@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"/>
+<title>POUR스토어 · 시공후 NPS 관리</title>
+<meta name="theme-color" content="#047857"/>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain:"pour-app-new.firebaseapp.com",
+  projectId:"pour-app-new",
+  storageBucket:"pour-app-new.firebasestorage.app",
+  messagingSenderId:"411031141847",
+  appId:"1:411031141847:web:e658174fd4b9652cdadf92"
+});
+const db = firebase.firestore();
+</script>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet"/>
+<style>
+:root{
+  --brand:#059669; --brand-d:#047857; --brand-l:#ECFDF5;
+  --navy:#0D1B2A; --accent:#2563EB; --gold:#D97706; --red:#DC2626;
+  --text:#111827; --text-md:#4B5563; --text-sm:#9CA3AF;
+  --bg:#F3F4F6; --card:#FFFFFF; --border:#E5E7EB; --border-s:#F3F4F6;
+  --r:14px; --r-sm:9px;
+  --shadow:0 1px 6px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:3px;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px 60px;}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);}
+.sec-t{font-size:12px;font-weight:700;color:var(--text-md);margin-bottom:10px;letter-spacing:-.01em;}
+.bar-track{height:8px;background:var(--border-s);border-radius:4px;overflow:hidden;flex:1;}
+.btn{padding:8px 14px;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--text-md);font-family:inherit;transition:all .15s;}
+.btn:hover{border-color:var(--brand);color:var(--brand-d);}
+.btn-p{background:var(--brand);border-color:var(--brand);color:#fff;}
+.btn-p:hover{background:var(--brand-d);color:#fff;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useMemo, useCallback } = React;
+
+// 이 설문(스토어 시공후 NPS)만 필터링
+const CAMPAIGN = 'store-post-construction';
+const AMOUNT_OPTS = ['남았어요','딱 맞았어요','모자랐어요'];
+const HARD_OPTS = ['도구 사용','자재 바르는 법','시간·체력','자재 부족','기타'];
+const AMOUNT_COLOR = { '남았어요':'#2563EB', '딱 맞았어요':'#059669', '모자랐어요':'#DC2626' };
+const PERIODS = [['all','전체'],['7','최근 7일'],['30','최근 30일'],['90','최근 90일']];
+
+// 추천 분류: 5·4 추천 / 3 중립 / 2·1 비추천 (recommendScore 우선, 없으면 저장된 category)
+function catOf(r){
+  const v = r.recommendScore;
+  if(v>=1&&v<=5) return v>=4?'promoter':v===3?'passive':'detractor';
+  return r.category || 'detractor';
+}
+const CAT_KO = { promoter:'추천', passive:'중립', detractor:'비추천' };
+const CAT_COLOR = { promoter:'#059669', passive:'#D97706', detractor:'#DC2626' };
+// 힘들었던 점 / 자재양 등 카운트 (미지정은 '미지정')
+function tally(rows, keyFn){
+  const m={}; rows.forEach(r=>{ const k=keyFn(r)||'미지정'; m[k]=(m[k]||0)+1; }); return m;
+}
+
+function fmtDate(iso){
+  if(!iso) return '-';
+  const d = new Date(iso);
+  if(isNaN(d)) return iso;
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function Spinner(){
+  return <div style={{textAlign:'center',padding:'80px 0',color:'var(--text-sm)'}}>
+    <div style={{width:26,height:26,border:'3px solid var(--border)',borderTopColor:'var(--brand)',borderRadius:'50%',animation:'spin 1s linear infinite',margin:'0 auto 12px'}}/>
+    <div style={{fontSize:13}}>설문 응답 불러오는 중…</div>
+  </div>;
+}
+
+function StatCard({label,value,unit,sub,color}){
+  return <div className="card" style={{padding:'18px 16px',textAlign:'center'}}>
+    <div style={{fontSize:11.5,fontWeight:600,color:'var(--text-md)',marginBottom:8}}>{label}</div>
+    <div style={{fontSize:32,fontWeight:900,lineHeight:1,color:color||'var(--text)'}}>{value}<span style={{fontSize:14,fontWeight:700,marginLeft:2}}>{unit}</span></div>
+    {sub && <div style={{fontSize:11,color:'var(--text-sm)',marginTop:7}}>{sub}</div>}
+  </div>;
+}
+
+// 가로 막대 분포 (점수 척도)
+function ScaleDist({title,dist,max,accent}){
+  return <div className="card" style={{padding:'16px 18px'}}>
+    <div className="sec-t">{title}</div>
+    {[5,4,3,2,1].map(n=>{
+      const c = dist[n]||0;
+      const pct = max ? Math.round(c/max*100) : 0;
+      return <div key={n} style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+        <div style={{width:16,fontSize:12,fontWeight:800,color:'var(--text-md)',textAlign:'center'}}>{n}</div>
+        <div className="bar-track"><div style={{width:pct+'%',height:'100%',background:accent,borderRadius:4,transition:'width .4s'}}/></div>
+        <div style={{width:34,fontSize:11,fontWeight:700,color:'var(--text-md)',textAlign:'right'}}>{c}건</div>
+      </div>;
+    })}
+  </div>;
+}
+
+function App(){
+  const [rows,setRows] = useState([]);
+  const [loading,setLoading] = useState(true);
+  const [err,setErr] = useState(null);
+  const [amtFilter,setAmtFilter] = useState('all');
+  const [catFilter,setCatFilter] = useState('all');
+  const [period,setPeriod] = useState('all');
+  const [prodFilter,setProdFilter] = useState('all');
+
+  const load = useCallback(async()=>{
+    setLoading(true); setErr(null);
+    try{
+      const snap = await db.collection('nps-surveys').get();
+      const all = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      // 이 설문만: campaign 일치 (구버전 대비 source도 허용)
+      const mine = all.filter(r => r.campaign===CAMPAIGN || r.source==='nps-store');
+      mine.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+      console.log(`[nps-store-admin] 전체 ${all.length}건 中 스토어 시공후 ${mine.length}건 로드`);
+      setRows(mine);
+    }catch(e){
+      console.error('[nps-store-admin] 로드 실패:',e);
+      setErr(e.message||'로드 실패');
+    }
+    setLoading(false);
+  },[]);
+  useEffect(()=>{ load(); },[load]);
+
+  // 제품 목록 (필터용)
+  const products = useMemo(()=>{
+    const s = new Set(); rows.forEach(r=>{ if(r.product) s.add(r.product); });
+    return Array.from(s).sort();
+  },[rows]);
+
+  // 기간 + 제품 스코프
+  const scoped = useMemo(()=>{
+    let out = rows;
+    if(period!=='all'){
+      const cutoff = Date.now() - Number(period)*86400000;
+      out = out.filter(r=>{ const t=Date.parse(r.createdAt); return isNaN(t) ? true : t>=cutoff; });
+    }
+    if(prodFilter!=='all') out = out.filter(r=>(r.product||'미지정')===prodFilter);
+    return out;
+  },[rows,period,prodFilter]);
+
+  const stats = useMemo(()=>{
+    const total = scoped.length;
+    const promoters = scoped.filter(r=>catOf(r)==='promoter').length;
+    const passives  = scoped.filter(r=>catOf(r)==='passive').length;
+    const detractors= scoped.filter(r=>catOf(r)==='detractor').length;
+    const nps = total ? Math.round((promoters-detractors)/total*100) : 0;
+    const recDist = {}, satDist = {};
+    let satSum=0, satCnt=0, recSum=0, recCnt=0;
+    const amt = {}, hard = {};
+    scoped.forEach(r=>{
+      const rec = r.recommendScore;
+      if(rec>=1&&rec<=5){ recDist[rec]=(recDist[rec]||0)+1; recSum+=rec; recCnt++; }
+      const sat = r.satisfactionScore;
+      if(sat>=1&&sat<=5){ satDist[sat]=(satDist[sat]||0)+1; satSum+=sat; satCnt++; }
+      if(r.materialAmount) amt[r.materialAmount]=(amt[r.materialAmount]||0)+1;
+      const h = r.difficulty || (r.badFactors&&r.badFactors[0]);
+      if(h) hard[h]=(hard[h]||0)+1;
+    });
+    const recMax = Math.max(1,...Object.values(recDist));
+    const satMax = Math.max(1,...Object.values(satDist));
+    return {
+      total, promoters, passives, detractors, nps,
+      recDist, satDist, recMax, satMax,
+      satAvg: satCnt ? (satSum/satCnt).toFixed(1) : '0.0',
+      recAvg: recCnt ? (recSum/recCnt).toFixed(1) : '0.0',
+      amt, hard,
+    };
+  },[scoped]);
+
+  // 제품별·채널별 NPS (그룹별 추천%−비추천%)
+  const groupNPS = useMemo(()=>{
+    const build = keyFn => {
+      const g = {};
+      scoped.forEach(r=>{ const k=keyFn(r)||'미지정'; (g[k]=g[k]||[]).push(r); });
+      return Object.entries(g).map(([k,arr])=>{
+        const p=arr.filter(r=>catOf(r)==='promoter').length;
+        const d=arr.filter(r=>catOf(r)==='detractor').length;
+        return { key:k, n:arr.length, nps:Math.round((p-d)/arr.length*100) };
+      }).sort((a,b)=>b.n-a.n);
+    };
+    return { product: build(r=>r.product), channel: build(r=>r.channel) };
+  },[scoped]);
+
+  const feedbacks = useMemo(()=> scoped.filter(r=>(r.feedback||'').trim()), [scoped]);
+  const detractorList = useMemo(()=> scoped.filter(r=>catOf(r)==='detractor'), [scoped]);
+
+  const filtered = useMemo(()=>{
+    return scoped.filter(r=>{
+      if(catFilter!=='all' && catOf(r)!==catFilter) return false;
+      if(amtFilter!=='all' && r.materialAmount!==amtFilter) return false;
+      return true;
+    });
+  },[scoped,catFilter,amtFilter]);
+
+  const exportCSV = useCallback(()=>{
+    const head = ['제출일시','추천의향(1-5)','NPS구분','만족도(1-5)','자재 양','가장 힘들었던 점','제품','채널','고객ID','하고싶은 말·문의'];
+    const esc = v => `"${String(v==null?'':v).replace(/"/g,'""')}"`;
+    const lines = [head.join(',')];
+    filtered.forEach(r=>{
+      lines.push([
+        fmtDate(r.createdAt), r.recommendScore??'', CAT_KO[catOf(r)]||'',
+        r.satisfactionScore??'', r.materialAmount||'', r.difficulty||(r.badFactors&&r.badFactors[0])||'',
+        r.product||'', r.channel||'', r.customerId||'',
+        (r.feedback||'').replace(/\r?\n/g,' '),
+      ].map(esc).join(','));
+    });
+    const blob = new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download=`POUR스토어_시공후NPS_${filtered.length}건.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  },[filtered]);
+
+  const npsColor = stats.nps>=50?'var(--brand)':stats.nps>=0?'var(--gold)':'var(--red)';
+
+  return <div className="wrap">
+    {/* 헤더 */}
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10,padding:'22px 4px 18px'}}>
+      <div>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--brand-d)',letterSpacing:'.03em'}}>POUR스토어 · 셀프시공</div>
+        <h1 style={{fontSize:21,fontWeight:800,letterSpacing:'-.03em',marginTop:3}}>시공 후 NPS 설문 관리</h1>
+      </div>
+      <div style={{display:'flex',gap:8}}>
+        <button className="btn" onClick={load}>↻ 새로고침</button>
+        <button className="btn btn-p" onClick={exportCSV} disabled={!filtered.length}>⬇ CSV 내보내기</button>
+      </div>
+    </div>
+
+    {/* 기간 · 제품 필터 */}
+    {!loading && !err && rows.length>0 &&
+      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',padding:'0 4px 14px'}}>
+        <span style={{fontSize:11,fontWeight:700,color:'var(--text-sm)'}}>기간</span>
+        {PERIODS.map(([k,l])=>(
+          <button key={k} onClick={()=>setPeriod(k)} style={{padding:'5px 12px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',border:period===k?'none':'1px solid var(--border)',background:period===k?'var(--navy)':'#fff',color:period===k?'#fff':'var(--text-md)',fontFamily:'inherit'}}>{l}</button>
+        ))}
+        {products.length>0 && <>
+          <span style={{width:1,height:16,background:'var(--border)',margin:'0 4px'}}/>
+          <span style={{fontSize:11,fontWeight:700,color:'var(--text-sm)'}}>제품</span>
+          <select value={prodFilter} onChange={e=>setProdFilter(e.target.value)} style={{padding:'5px 10px',borderRadius:8,fontSize:12,fontWeight:600,border:'1px solid var(--border)',background:'#fff',color:'var(--text-md)',fontFamily:'inherit'}}>
+            <option value="all">전체 제품</option>
+            {products.map(p=><option key={p} value={p}>{p}</option>)}
+          </select>
+        </>}
+      </div>}
+
+    {loading ? <Spinner/> : err ? (
+      <div className="card" style={{padding:30,textAlign:'center',color:'var(--red)'}}>
+        ⚠ 데이터를 불러오지 못했습니다.<br/><span style={{fontSize:12,color:'var(--text-sm)'}}>{err}</span>
+        <div style={{marginTop:14}}><button className="btn" onClick={load}>다시 시도</button></div>
+      </div>
+    ) : stats.total===0 ? (
+      <div className="card" style={{padding:'60px 20px',textAlign:'center'}}>
+        <div style={{fontSize:40,marginBottom:12}}>📭</div>
+        <div style={{fontSize:16,fontWeight:700}}>아직 응답이 없어요</div>
+        <div style={{fontSize:13,color:'var(--text-md)',marginTop:8,lineHeight:1.6}}>
+          설문 폼 링크를 고객에게 공유하면<br/>여기에 응답이 실시간으로 집계됩니다.
+        </div>
+        <div style={{marginTop:16,fontSize:12,color:'var(--text-sm)'}}>설문 폼 · <code>/nps-store.html</code></div>
+      </div>
+    ) : (
+    <div style={{animation:'fadeIn .3s ease'}}>
+      {/* KPI */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12,marginBottom:12}}>
+        <StatCard label="NPS 점수" value={stats.nps} sub={stats.nps>=50?'우수':stats.nps>=0?'보통':'개선 필요'} color={npsColor}/>
+        <StatCard label="추천의향 평균" value={stats.recAvg} unit="/5" color="var(--brand)"/>
+        <StatCard label="시공 만족도 평균" value={stats.satAvg} unit="/5" color="var(--accent)"/>
+        <StatCard label="총 응답" value={stats.total} unit="건"/>
+      </div>
+
+      {/* 추천 구성 */}
+      <div className="card" style={{padding:'16px 18px',marginBottom:12}}>
+        <div className="sec-t">추천 그룹 구성 (NPS = 추천% − 비추천%)</div>
+        <div style={{display:'flex',height:16,borderRadius:8,overflow:'hidden',marginBottom:10}}>
+          {[['promoter',stats.promoters,'#059669'],['passive',stats.passives,'#D97706'],['detractor',stats.detractors,'#DC2626']].map(([k,c,col])=>{
+            const pct = stats.total?c/stats.total*100:0;
+            return pct>0 && <div key={k} style={{width:pct+'%',background:col}} title={`${c}건`}/>;
+          })}
+        </div>
+        <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+          {[['추천 (4·5점)',stats.promoters,'#059669'],['중립 (3점)',stats.passives,'#D97706'],['비추천 (1·2점)',stats.detractors,'#DC2626']].map(([l,c,col])=>(
+            <div key={l} style={{display:'flex',alignItems:'center',gap:6,fontSize:12}}>
+              <span style={{width:9,height:9,borderRadius:3,background:col}}/>
+              <span style={{color:'var(--text-md)'}}>{l}</span>
+              <span style={{fontWeight:800}}>{c}</span>
+              <span style={{color:'var(--text-sm)'}}>({stats.total?Math.round(c/stats.total*100):0}%)</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 비추천 알림 */}
+      {detractorList.length>0 &&
+        <div className="card" style={{padding:'14px 16px',marginBottom:12,borderLeft:'4px solid var(--red)',background:'#FEF2F2'}}>
+          <div style={{fontSize:13,fontWeight:800,color:'var(--red)',marginBottom:detractorList.length?8:0}}>
+            🚨 비추천 응답 {detractorList.length}건 — 즉시 확인 권장
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:6,maxHeight:160,overflow:'auto'}}>
+            {detractorList.slice(0,8).map(r=>(
+              <div key={r.id} style={{fontSize:12,color:'var(--text)',lineHeight:1.5}}>
+                <b style={{color:'var(--red)'}}>{r.recommendScore}점</b>
+                {r.product && <span style={{marginLeft:6,fontSize:11,color:'var(--text-md)'}}>· {r.product}</span>}
+                {r.customerId && <span style={{marginLeft:6,fontSize:11,color:'var(--accent)'}}>· 고객 {r.customerId}</span>}
+                {r.feedback && <span style={{marginLeft:6,color:'var(--text-md)'}}>"{r.feedback}"</span>}
+                {!r.feedback && r.difficulty && <span style={{marginLeft:6,color:'var(--text-sm)'}}>(힘든점: {r.difficulty})</span>}
+              </div>
+            ))}
+            {detractorList.length>8 && <div style={{fontSize:11,color:'var(--text-sm)'}}>외 {detractorList.length-8}건 — 아래 표에서 '비추천' 필터로 확인</div>}
+          </div>
+        </div>}
+
+      {/* 척도 분포 2열 */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:12,marginBottom:12}}>
+        <ScaleDist title="Q1. 추천의향 분포 (1 아니다 ~ 5 그렇다)" dist={stats.recDist} max={stats.recMax} accent="#059669"/>
+        <ScaleDist title="Q2. 시공 만족도 분포 (1 불만족 ~ 5 만족)" dist={stats.satDist} max={stats.satMax} accent="#2563EB"/>
+      </div>
+
+      {/* 자재 양 + 힘들었던 점 */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:12,marginBottom:12}}>
+        {/* Q3 자재 양 */}
+        <div className="card" style={{padding:'16px 18px'}}>
+          <div className="sec-t">Q3. 받은 자재 양 <span style={{fontWeight:500,color:'var(--text-sm)'}}>· 패키지 구성량 신호</span></div>
+          {AMOUNT_OPTS.map(o=>{
+            const c = stats.amt[o]||0; const pct = stats.total?Math.round(c/stats.total*100):0;
+            return <div key={o} style={{display:'flex',alignItems:'center',gap:10,marginBottom:9}}>
+              <div style={{width:76,fontSize:12,fontWeight:600}}>{o}</div>
+              <div className="bar-track"><div style={{width:pct+'%',height:'100%',background:AMOUNT_COLOR[o],borderRadius:4}}/></div>
+              <div style={{width:52,fontSize:11,fontWeight:700,color:'var(--text-md)',textAlign:'right'}}>{c}건·{pct}%</div>
+            </div>;
+          })}
+          {(stats.amt['모자랐어요']||0) > (stats.total*0.2) && stats.total>=5 &&
+            <div style={{marginTop:6,fontSize:11,color:'var(--red)',background:'#FEF2F2',padding:'8px 10px',borderRadius:8,lineHeight:1.5}}>
+              ⚠ "모자랐어요" 비율이 높아요. 패키지 구성량·보충 안내 점검이 필요합니다.
+            </div>}
+        </div>
+        {/* Q4 힘들었던 점 */}
+        <div className="card" style={{padding:'16px 18px'}}>
+          <div className="sec-t">Q4. 가장 힘들었던 점 <span style={{fontWeight:500,color:'var(--text-sm)'}}>· 개선 우선순위</span></div>
+          {HARD_OPTS.every(o=>!stats.hard[o]) ? <div style={{fontSize:12,color:'var(--text-sm)',padding:'12px 0'}}>응답 없음</div> :
+            HARD_OPTS.map(o=>{
+              const c = stats.hard[o]||0; const pct = stats.total?Math.round(c/stats.total*100):0;
+              return <div key={o} style={{display:'flex',alignItems:'center',gap:10,marginBottom:9}}>
+                <div style={{width:88,fontSize:12,fontWeight:600}}>{o}</div>
+                <div className="bar-track"><div style={{width:pct+'%',height:'100%',background:'#EA580C',borderRadius:4}}/></div>
+                <div style={{width:52,fontSize:11,fontWeight:700,color:'var(--text-md)',textAlign:'right'}}>{c}건·{pct}%</div>
+              </div>;
+            })}
+        </div>
+      </div>
+
+      {/* 제품별 · 채널별 NPS */}
+      {(()=>{
+        const hasTag = rows.some(r=>r.product||r.channel);
+        if(!hasTag) return (
+          <div className="card" style={{padding:'16px 18px',marginBottom:12,background:'#F8FAFF',border:'1px dashed var(--border)'}}>
+            <div className="sec-t" style={{color:'var(--accent)'}}>📊 제품별 · 채널별 분석 (태그 대기 중)</div>
+            <div style={{fontSize:12,color:'var(--text-md)',lineHeight:1.7}}>
+              문자 발송 시 설문 링크 뒤에 태그를 붙이면 제품·채널별 NPS가 자동 집계됩니다.<br/>
+              <code style={{fontSize:11,background:'#fff',padding:'2px 6px',borderRadius:5,border:'1px solid var(--border)'}}>/nps-store.html?cid=고객ID&p=제품명&ch=채널</code>
+            </div>
+          </div>
+        );
+        const GroupTable = ({title,list})=>(
+          <div className="card" style={{padding:'16px 18px'}}>
+            <div className="sec-t">{title}</div>
+            {list.length===0 ? <div style={{fontSize:12,color:'var(--text-sm)',padding:'8px 0'}}>데이터 없음</div> :
+              list.map(g=>{
+                const col = g.nps>=50?'#059669':g.nps>=0?'#D97706':'#DC2626';
+                return <div key={g.key} style={{display:'flex',alignItems:'center',gap:10,marginBottom:9}}>
+                  <div style={{flex:1,fontSize:12.5,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{g.key}</div>
+                  <div style={{fontSize:11,color:'var(--text-sm)'}}>{g.n}건</div>
+                  <div style={{width:52,textAlign:'right',fontSize:14,fontWeight:900,color:col}}>{g.nps}</div>
+                </div>;
+              })}
+          </div>
+        );
+        return <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:12,marginBottom:12}}>
+          <GroupTable title="제품별 NPS" list={groupNPS.product}/>
+          <GroupTable title="채널별 NPS" list={groupNPS.channel}/>
+        </div>;
+      })()}
+
+      {/* Q5 서술형 */}
+      <div className="card" style={{padding:'16px 18px',marginBottom:12}}>
+        <div className="sec-t">Q5. 하고 싶은 말·문의사항 ({feedbacks.length}건)</div>
+        {feedbacks.length===0 ? <div style={{fontSize:12,color:'var(--text-sm)',padding:'10px 0'}}>서술형 응답이 없습니다.</div> :
+          <div style={{display:'flex',flexDirection:'column',gap:8,maxHeight:280,overflow:'auto'}}>
+            {feedbacks.map(r=>{
+              const col = r.category==='promoter'?'#059669':r.category==='passive'?'#D97706':'#DC2626';
+              return <div key={r.id} style={{padding:'10px 12px',background:'var(--bg)',borderRadius:9,borderLeft:`3px solid ${col}`}}>
+                <div style={{fontSize:13,lineHeight:1.6,color:'var(--text)'}}>{r.feedback}</div>
+                <div style={{fontSize:10.5,color:'var(--text-sm)',marginTop:5}}>
+                  추천 {r.recommendScore}점 · 만족 {r.satisfactionScore}점 · {r.materialAmount||'-'} · {fmtDate(r.createdAt)}
+                </div>
+              </div>;
+            })}
+          </div>}
+      </div>
+
+      {/* 개별 응답 테이블 */}
+      <div className="card" style={{overflow:'hidden'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10,padding:'14px 16px',borderBottom:'1px solid var(--border)'}}>
+          <div style={{fontSize:13,fontWeight:800}}>개별 응답 ({filtered.length}건)</div>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+            {[['all','전체'],['promoter','추천'],['passive','중립'],['detractor','비추천']].map(([k,l])=>(
+              <button key={k} onClick={()=>setCatFilter(k)} style={{padding:'4px 11px',borderRadius:7,fontSize:11.5,fontWeight:700,cursor:'pointer',border:catFilter===k?'none':'1px solid var(--border)',background:catFilter===k?'var(--brand)':'#fff',color:catFilter===k?'#fff':'var(--text-md)',fontFamily:'inherit'}}>{l}</button>
+            ))}
+            <span style={{width:1,background:'var(--border)',margin:'0 2px'}}/>
+            {[['all','자재 전체'],...AMOUNT_OPTS.map(o=>[o,o])].map(([k,l])=>(
+              <button key={k} onClick={()=>setAmtFilter(k)} style={{padding:'4px 11px',borderRadius:7,fontSize:11.5,fontWeight:700,cursor:'pointer',border:amtFilter===k?'none':'1px solid var(--border)',background:amtFilter===k?'var(--accent)':'#fff',color:amtFilter===k?'#fff':'var(--text-md)',fontFamily:'inherit'}}>{l}</button>
+            ))}
+          </div>
+        </div>
+        <div style={{overflowX:'auto'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:12.5,minWidth:640}}>
+            <thead>
+              <tr style={{background:'var(--bg)',color:'var(--text-md)',textAlign:'left'}}>
+                {['제출일시','추천','만족','자재 양','힘들었던 점','제품·고객','하고 싶은 말'].map((h,i)=>(
+                  <th key={h} style={{padding:'10px 12px',fontWeight:700,whiteSpace:'nowrap',textAlign:i>=1&&i<=2?'center':'left'}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length===0 ? (
+                <tr><td colSpan={7} style={{padding:'30px',textAlign:'center',color:'var(--text-sm)'}}>조건에 맞는 응답이 없습니다.</td></tr>
+              ) : filtered.map(r=>{
+                const cat = catOf(r); const col = CAT_COLOR[cat];
+                return <tr key={r.id} style={{borderBottom:'1px solid var(--border-s)'}}>
+                  <td style={{padding:'10px 12px',color:'var(--text-md)',whiteSpace:'nowrap'}}>{fmtDate(r.createdAt)}</td>
+                  <td style={{padding:'10px 12px',textAlign:'center'}}>
+                    <span style={{display:'inline-block',minWidth:22,fontWeight:900,color:col}}>{r.recommendScore??'-'}</span>
+                  </td>
+                  <td style={{padding:'10px 12px',textAlign:'center',fontWeight:700,color:'var(--accent)'}}>{r.satisfactionScore??'-'}</td>
+                  <td style={{padding:'10px 12px',whiteSpace:'nowrap'}}>
+                    <span style={{fontSize:11,fontWeight:700,color:AMOUNT_COLOR[r.materialAmount]||'var(--text-sm)'}}>{r.materialAmount||'-'}</span>
+                  </td>
+                  <td style={{padding:'10px 12px',whiteSpace:'nowrap',color:'var(--text-md)'}}>{r.difficulty||(r.badFactors&&r.badFactors[0])||'-'}</td>
+                  <td style={{padding:'10px 12px',whiteSpace:'nowrap',fontSize:11,color:'var(--text-md)'}}>
+                    {r.product||'-'}{r.customerId && <span style={{color:'var(--accent)'}}> · {r.customerId}</span>}
+                  </td>
+                  <td style={{padding:'10px 12px',color:'var(--text-md)',maxWidth:240,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={r.feedback||''}>{r.feedback||'-'}</td>
+                </tr>;
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style={{textAlign:'center',fontSize:11,color:'var(--text-sm)',marginTop:18,lineHeight:1.6}}>
+        데이터 출처: <code>nps-surveys</code> · <code>campaign: {CAMPAIGN}</code><br/>
+        박람회 상담 데이터와 분리된 POUR스토어 시공후 NPS 전용 화면입니다.
+      </div>
+    </div>
+    )}
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

@@ -76,14 +76,24 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 <script type="text/babel">
 const {useState}=React;
 
+// 링크에 붙은 추적 파라미터 (문자 발송 시 부여) — 고객은 입력 불필요
+// 예) /nps-store.html?cid=CUST123&p=옥상방수패키지&ch=자사몰&b=2026-07
+const QP=new URLSearchParams(location.search);
+const TRACK={
+  customerId:QP.get('cid')||QP.get('customerId')||'',
+  product:QP.get('p')||QP.get('product')||'',
+  channel:QP.get('ch')||QP.get('channel')||'',
+  batch:QP.get('b')||QP.get('batch')||'',
+};
+
 const RECOMMEND_ENDS=['매우 아니다','매우 그렇다'];
 const SATISFY_ENDS=['매우 불만족','매우 만족'];
 const AMOUNT_OPTS=['남았어요','딱 맞았어요','모자랐어요'];
 const HARD_OPTS=['도구 사용','자재 바르는 법','시간·체력','자재 부족','기타'];
 
-// 5점 추천의향 → NPS 카테고리·0~10 환산 (기존 nps-surveys 리포팅 호환)
-function toCategory(v){ return v>=5?'promoter':v>=4?'passive':'detractor'; }
-function toScore10(v){ return Math.round((v-1)/4*10); } // 1→0,2→3,3→5,4→8,5→10
+// 5점 추천의향 → NPS 카테고리 (5·4 추천 / 3 중립 / 2·1 비추천)
+function toCategory(v){ return v>=4?'promoter':v===3?'passive':'detractor'; }
+function toScore10(v){ return Math.round((v-1)/4*10); } // 1→0,2→3,3→5,4→8,5→10 (리포팅 호환)
 
 function Scale({value,onChange,ends}){
   return(
@@ -124,6 +134,11 @@ function App(){
         materialAmount:amount,         // Q3 자재 양
         difficulty:hard||'',           // Q4 힘들었던 점
         feedback:feedback.trim(),      // Q5 서술형
+        // 링크 추적 파라미터 (제품·채널·고객 연결용, 없으면 빈값)
+        customerId:TRACK.customerId,
+        product:TRACK.product,
+        channel:TRACK.channel,
+        batch:TRACK.batch,
         // NPS 리포팅 호환 필드
         score:toScore10(recommend),
         category:toCategory(recommend),

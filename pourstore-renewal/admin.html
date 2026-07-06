@@ -347,6 +347,7 @@ const NAV = [
 
   { type: 'divider', label: '디자인/개발 센터', group: 'design', collapsible: true, defaultCollapsed: false },
   { id: 'preview',         icon: '🎨', label: '자사몰 페이지 관리', group: 'design' },
+  { id: 'hotkeywords',     icon: '🔥', label: '인기검색어 관리',     group: 'design' },
   { id: 'products',        icon: '📦', label: '상품관리',           group: 'design' },
   { id: 'metrics',         icon: '📊', label: '공신력 수치',        group: 'design' },
   { id: 'method-links',    icon: '🔗', label: '링크 관리',          group: 'design' },
@@ -4428,6 +4429,178 @@ function MetricsPage({showToast}){
 /* ══════════════════════════════════════════════════════════════
    링크 관리 — method-links
    ══════════════════════════════════════════════════════════════ */
+// ============================================================
+// 인기검색어 관리 (POUR스토어 자사몰 헤더 연동)
+//   저장 위치: config/pourstoreHotkeywords (단일 문서)
+//   { items:[{rank,keyword,link,active}], updatedAt, updatedBy }
+//   → 카페24 헤더는 이 문서 1회 read 후 rank순 클라이언트 정렬해 표출 (orderBy 미사용)
+// ============================================================
+const HOTKEYWORDS_DOC = 'pourstoreHotkeywords';
+// §3-6 금지어 — 견적/맞춤/진단 계열 + 셀프인테리어/홈데코(그로홈 영역) 차단
+const HOTKEYWORD_BANNED = ['견적','맞춤','진단','셀프인테리어','셀프 인테리어','홈데코','홈 데코'];
+// synonyms(연관어): 레벨2 검색 자동완성용. 레벨1 헤더는 keyword만 표출, 레벨2는 keyword+synonyms 매칭.
+const HOTKEYWORD_DEFAULTS = [
+  { keyword:'옥상 방수', link:'/product/search.html?keyword=옥상방수', active:true, synonyms:['옥상누수','지붕방수','우레탄방수'] },
+  { keyword:'외벽 균열', link:'/product/search.html?keyword=외벽균열', active:true, synonyms:['크랙보수','벽균열','탄성도료'] },
+  { keyword:'벽돌 발수', link:'/product/search.html?keyword=벽돌발수', active:true, synonyms:['벽돌방수','발수제','조적방수'] },
+  { keyword:'곰팡이 제거', link:'/product/search.html?keyword=곰팡이', active:true, synonyms:['곰팡이','결로','벽곰팡이'] },
+  { keyword:'철재 방청', link:'/product/search.html?keyword=철재방청', active:true, synonyms:['녹방지','방청도료','철재도장'] },
+];
+const synToText = (arr) => Array.isArray(arr) ? arr.join(', ') : '';
+const textToSyn = (t) => (t||'').split(',').map(s=>s.trim()).filter(Boolean);
+const findBannedWord = (kw) => {
+  const s = (kw||'').replace(/\s+/g,'');
+  return HOTKEYWORD_BANNED.map(b=>b.replace(/\s+/g,'')).find(b=>s.includes(b)) || null;
+};
+const suggestKeywordLink = (kw) => '/product/search.html?keyword=' + (kw||'').replace(/\s+/g,'');
+
+function HotKeywordsPage({showToast}){
+  const { audit } = useActiveStaffContext();
+  const [items,setItems]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [dirty,setDirty]=useState(false);
+
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const doc=await db.collection('config').doc(HOTKEYWORDS_DOC).get();
+        if(doc.exists && Array.isArray(doc.data().items) && doc.data().items.length){
+          const loaded=doc.data().items.map(it=>({keyword:it.keyword||'',link:it.link||'',active:it.active!==false,synText:synToText(it.synonyms)}));
+          console.log(`[config/${HOTKEYWORDS_DOC}] ${loaded.length}건 로드`);
+          setItems(loaded);
+        }else{
+          console.log(`[config/${HOTKEYWORDS_DOC}] 문서 없음 → 기본 5건 표시(미저장)`);
+          setItems(HOTKEYWORD_DEFAULTS.map(it=>({keyword:it.keyword,link:it.link,active:it.active,synText:synToText(it.synonyms)})));
+          setDirty(true); // 아직 Firestore에 없으니 저장 유도
+        }
+      }catch(e){
+        console.error(`[config/${HOTKEYWORDS_DOC}] 로드 실패:`,e);
+        showToast('인기검색어 로드 실패: '+e.message,'error');
+        setItems(HOTKEYWORD_DEFAULTS.map(it=>({keyword:it.keyword,link:it.link,active:it.active,synText:synToText(it.synonyms)})));
+      }
+      setLoading(false);
+    })();
+  },[]);
+
+  const mutate=(fn)=>{ setItems(prev=>fn(prev.map(x=>({...x})))); setDirty(true); };
+  const updateRow=(i,patch)=>mutate(prev=>{ prev[i]={...prev[i],...patch}; return prev; });
+  const addRow=()=>mutate(prev=>[...prev,{keyword:'',link:'',active:true,synText:''}]);
+  const removeRow=(i)=>mutate(prev=>prev.filter((_,idx)=>idx!==i));
+  const move=(i,dir)=>mutate(prev=>{
+    const j=i+dir; if(j<0||j>=prev.length)return prev;
+    [prev[i],prev[j]]=[prev[j],prev[i]]; return prev;
+  });
+
+  const save=async()=>{
+    const active=items.filter(it=>it.active);
+    const emptyKw=items.find(it=>it.active && !it.keyword.trim());
+    if(emptyKw){ showToast('활성 항목의 키워드를 입력하세요','error'); return; }
+    // 키워드 + 연관어 모두 금지어 검사 (활성 항목만)
+    const banned=active.map(it=>{
+      const pool=[it.keyword,...textToSyn(it.synText)];
+      for(const term of pool){ const w=findBannedWord(term); if(w) return {kw:term,w}; }
+      return {kw:it.keyword,w:null};
+    }).find(x=>x.w);
+    if(banned){ showToast(`금지어 "${banned.w}" 포함 (${banned.kw}) — §3-6 위반`,'error'); return; }
+    setSaving(true);
+    try{
+      const cleaned=items
+        .filter(it=>it.keyword.trim())
+        .map((it,idx)=>({rank:idx+1,keyword:it.keyword.trim(),link:(it.link.trim()||suggestKeywordLink(it.keyword)),active:it.active!==false,synonyms:textToSyn(it.synText)}));
+      const auditStamp=audit.update();
+      await db.collection('config').doc(HOTKEYWORDS_DOC).set({items:cleaned,schemaVersion:2,...auditStamp});
+      console.log(`[config/${HOTKEYWORDS_DOC}] ${cleaned.length}건 저장`);
+      setItems(cleaned.map(it=>({keyword:it.keyword,link:it.link,active:it.active,synText:synToText(it.synonyms)})));
+      setDirty(false);
+      showToast(`인기검색어 ${cleaned.length}건 저장 완료`);
+    }catch(e){ console.error(`[config/${HOTKEYWORDS_DOC}] 저장 실패:`,e); showToast('저장 실패: '+e.message,'error'); }
+    setSaving(false);
+  };
+
+  if(loading)return <div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>;
+
+  const activeCount=items.filter(it=>it.active && it.keyword.trim()).length;
+
+  return(
+    <div style={{padding:'24px 32px',maxWidth:1040}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,flexWrap:'wrap',gap:16}}>
+        <div>
+          <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>🔥 인기검색어 관리</h1>
+          <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>위→아래 순서가 1~N위. <b>키워드</b>는 헤더 인기검색어(레벨1), <b>연관어</b>는 검색 자동완성(레벨2) 매칭용입니다. 저장 시 헤더에 자동 반영.</div>
+        </div>
+        <button onClick={save} disabled={saving||!dirty} style={{
+          padding:'12px 24px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',
+          background:(saving||!dirty)?'var(--text-xs)':'linear-gradient(135deg, var(--or), var(--or-d))',
+          boxShadow:(saving||!dirty)?'none':'0 4px 12px rgba(249,115,22,.25)',cursor:(saving||!dirty)?'default':'pointer'
+        }}>
+          {saving?'저장 중...':dirty?'저장':'저장됨'}
+        </button>
+      </div>
+
+      <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:18}}>
+        노출 {activeCount}개 · 전체 {items.length}개 &nbsp;|&nbsp; 금지어(§3-6): {HOTKEYWORD_BANNED.filter((v,i,a)=>a.indexOf(v)===i && !v.includes(' ')).join(', ')}
+      </div>
+
+      <div style={{background:'var(--card)',borderRadius:14,border:'1px solid var(--border)',overflow:'hidden'}}>
+        <div style={{display:'grid',gridTemplateColumns:'40px 1.1fr 1.2fr 1.2fr 56px 88px',padding:'10px 14px',background:'var(--or-pale)',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:800,color:'var(--text-sm)'}}>
+          <div>순위</div><div>키워드 (레벨1)</div><div>연관어 (레벨2·쉼표구분)</div><div>링크</div><div style={{textAlign:'center'}}>노출</div><div style={{textAlign:'center'}}>관리</div>
+        </div>
+        {items.length===0 && <div style={{padding:'40px 0',textAlign:'center',color:'var(--text-sm)',fontSize:13}}>항목이 없습니다. 아래 "+ 검색어 추가"를 눌러 추가하세요.</div>}
+        {items.map((it,i)=>{
+          const banned=it.active?findBannedWord(it.keyword):null;
+          const synBanned=it.active?textToSyn(it.synText).map(findBannedWord).find(Boolean):null;
+          return(
+          <div key={i} style={{display:'grid',gridTemplateColumns:'40px 1.1fr 1.2fr 1.2fr 56px 88px',padding:'10px 14px',borderBottom:'1px solid var(--border-s)',alignItems:'center',opacity:it.active?1:0.5}}>
+            <div style={{fontSize:15,fontWeight:900,color:'var(--or-d)'}}>{i+1}</div>
+            <div style={{paddingRight:10}}>
+              <input value={it.keyword} onChange={e=>updateRow(i,{keyword:e.target.value})} placeholder="예: 옥상 방수"
+                style={{width:'100%',padding:'8px 10px',borderRadius:8,fontSize:13,fontWeight:700,outline:'none',
+                  border:'1.5px solid '+(banned?'var(--red)':'var(--border)'),color:banned?'var(--red)':'var(--text)'}}/>
+              {banned && <div style={{fontSize:10.5,color:'var(--red)',fontWeight:800,marginTop:3}}>⚠ 금지어 "{banned}" 포함</div>}
+            </div>
+            <div style={{paddingRight:10}}>
+              <input value={it.synText} onChange={e=>updateRow(i,{synText:e.target.value})} placeholder="크랙보수, 벽균열 (선택)"
+                style={{width:'100%',padding:'8px 10px',borderRadius:8,fontSize:12,fontWeight:600,outline:'none',
+                  border:'1.5px solid '+(synBanned?'var(--red)':'var(--border)'),color:synBanned?'var(--red)':'var(--text-md)'}}/>
+              {synBanned && <div style={{fontSize:10.5,color:'var(--red)',fontWeight:800,marginTop:3}}>⚠ 금지어 "{synBanned}" 포함</div>}
+            </div>
+            <div style={{paddingRight:10,display:'flex',gap:6}}>
+              <input value={it.link} onChange={e=>updateRow(i,{link:e.target.value})} placeholder="/product/search.html?keyword=..."
+                style={{flex:1,minWidth:0,padding:'8px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,outline:'none',color:'var(--text-md)'}}/>
+              <button onClick={()=>updateRow(i,{link:suggestKeywordLink(it.keyword)})} title="키워드로 링크 자동생성"
+                style={{padding:'0 9px',borderRadius:8,border:'1px solid var(--border)',background:'var(--bg)',fontSize:11,fontWeight:800,color:'var(--text-md)',cursor:'pointer',flexShrink:0}}>자동</button>
+            </div>
+            <div style={{textAlign:'center'}}>
+              <button onClick={()=>updateRow(i,{active:!it.active})} title="노출 on/off"
+                style={{width:40,height:22,borderRadius:11,border:'none',cursor:'pointer',position:'relative',
+                  background:it.active?'var(--green)':'var(--border)',transition:'background .15s'}}>
+                <span style={{position:'absolute',top:2,left:it.active?20:2,width:18,height:18,borderRadius:'50%',background:'#fff',transition:'left .15s',boxShadow:'0 1px 2px rgba(0,0,0,.2)'}}/>
+              </button>
+            </div>
+            <div style={{display:'flex',gap:3,justifyContent:'center'}}>
+              <button onClick={()=>move(i,-1)} disabled={i===0} title="위로" style={{width:24,height:24,borderRadius:6,border:'1px solid var(--border)',background:'#fff',cursor:i===0?'default':'pointer',opacity:i===0?.35:1,fontSize:11}}>▲</button>
+              <button onClick={()=>move(i,1)} disabled={i===items.length-1} title="아래로" style={{width:24,height:24,borderRadius:6,border:'1px solid var(--border)',background:'#fff',cursor:i===items.length-1?'default':'pointer',opacity:i===items.length-1?.35:1,fontSize:11}}>▼</button>
+              <button onClick={()=>removeRow(i)} title="삭제" style={{width:24,height:24,borderRadius:6,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',cursor:'pointer',fontSize:12,fontWeight:900}}>×</button>
+            </div>
+          </div>);
+        })}
+        <div style={{padding:'12px 14px'}}>
+          <button onClick={addRow} style={{width:'100%',padding:'10px',borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>+ 검색어 추가</button>
+        </div>
+      </div>
+
+      <div style={{marginTop:18,padding:'14px 16px',background:'var(--bg)',borderRadius:12,border:'1px solid var(--border)',fontSize:11.5,color:'var(--text-md)',lineHeight:1.7}}>
+        <div style={{fontWeight:900,color:'var(--navy)',marginBottom:6,fontSize:12}}>🔌 헤더(카페24) 연동 규격</div>
+        저장 위치: <code style={{background:'var(--or-pale)',padding:'1px 5px',borderRadius:4,fontWeight:800}}>config/pourstoreHotkeywords</code> (단일 문서 · read 1회) · schemaVersion 2<br/>
+        문서 모양: <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>{'{ items:[{rank,keyword,link,active,synonyms:[]}], updatedAt, updatedBy }'}</code><br/>
+        <b>레벨1 (인기검색어):</b> <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>items</code>를 <b>rank 오름차순</b> 정렬 후 <b>active===true</b>만 keyword·link로 표출 (orderBy 미사용, §10.3-C)<br/>
+        <b>레벨2 (검색 자동완성):</b> 같은 문서 1회 read → 입력값을 각 item의 <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>keyword + synonyms[]</code>에 부분매칭해 드롭다운. 가이드 포스팅은 추후 <code style={{background:'var(--or-pale)',padding:'1px 5px',borderRadius:4,fontWeight:800}}>pourstore-postings</code> 컬렉션으로 합류.
+      </div>
+    </div>
+  );
+}
+
 function MethodLinksPage({showToast}){
   const { audit } = useActiveStaffContext();
   const [links,setLinks]=useState([]);
@@ -9703,6 +9876,7 @@ function App() {
         {active === 'products' && <ProductsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'metrics' && <MetricsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'method-links' && <MethodLinksPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'hotkeywords' && <HotKeywordsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'staff' && <StaffPage onToast={setToast} />}
         {active === 'firebase-usage' && <FirebaseUsagePage />}
         {active === 'settings' && <Settings onToast={setToast} />}

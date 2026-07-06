@@ -165,6 +165,7 @@ const COLLECTIONS = {
   PRODUCTS: 'products',
   SITE_METRICS: 'site-metrics',
   METHOD_LINKS: 'method-links',
+  POURSTORE_POSTINGS: 'pourstore-postings', // 자사몰 검색 상단 관련 컨텐츠(가이드·블로그·유튜브·시공사례)
   STAFF: 'staff',              // 어드민 담당자 마스터
 
   // KPI 업무관리센터 (POUR OS → React 흡수, PR α 인프라)
@@ -348,6 +349,7 @@ const NAV = [
   { type: 'divider', label: '디자인/개발 센터', group: 'design', collapsible: true, defaultCollapsed: false },
   { id: 'preview',         icon: '🎨', label: '자사몰 페이지 관리', group: 'design' },
   { id: 'hotkeywords',     icon: '🔥', label: '인기검색어 관리',     group: 'design' },
+  { id: 'postings',        icon: '📚', label: '포스팅 관리',         group: 'design' },
   { id: 'products',        icon: '📦', label: '상품관리',           group: 'design' },
   { id: 'metrics',         icon: '📊', label: '공신력 수치',        group: 'design' },
   { id: 'method-links',    icon: '🔗', label: '링크 관리',          group: 'design' },
@@ -4608,6 +4610,191 @@ function HotKeywordsPage({showToast}){
         문서 모양: <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>{'{ items:[{rank,keyword,link,active,synonyms:[],thumbnail}], updatedAt, updatedBy }'}</code><br/>
         <b>레벨1 (인기검색어·검색바 우측 가로):</b> <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>items</code>를 <b>rank 오름차순</b> 정렬 후 <b>active===true</b>만 keyword·link로 표출 (orderBy 미사용, §10.3-C)<br/>
         <b>레벨A (검색 드롭다운·네이버식 세로카드):</b> 검색창 포커스 시 같은 items를 🔍+순위+keyword로 세로 표출, <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>thumbnail</code> 있으면 우측 썸네일. 타이핑 시 <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>keyword + synonyms[]</code> 부분매칭으로 전환. 가이드 포스팅은 추후 <code style={{background:'var(--or-pale)',padding:'1px 5px',borderRadius:4,fontWeight:800}}>pourstore-postings</code> 합류.
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// 포스팅 관리 (자사몰 검색 상단 '관련 컨텐츠')
+//   저장: pourstore-postings (문서당 1건)
+//   { type, title, link, thumbnail, tags:[], summary, order, active, createdAt, updatedAt }
+//   → 검색 페이지: tags에 검색어(또는 hotkeyword synonyms) 포함 + active를 order순 상위 N개 상단 카드로
+// ============================================================
+const POSTING_TYPES=[
+  {key:'guide', label:'가이드',  icon:'📘', color:'#059669'},
+  {key:'blog',  label:'블로그',  icon:'📝', color:'#03C75A'},
+  {key:'video', label:'유튜브',  icon:'▶',  color:'#DC2626'},
+  {key:'case',  label:'시공사례', icon:'🏗', color:'#EA580C'},
+];
+const postingType=(k)=>POSTING_TYPES.find(t=>t.key===k)||POSTING_TYPES[0];
+const ytId=(url)=>{const m=(url||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/);return m?m[1]:null;};
+const ytThumb=(url)=>{const id=ytId(url);return id?('https://img.youtube.com/vi/'+id+'/hqdefault.jpg'):'';};
+
+function PostingsPage({showToast}){
+  const { audit } = useActiveStaffContext();
+  const [list,setList]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [filter,setFilter]=useState('all');
+  const [search,setSearch]=useState('');
+  const [editing,setEditing]=useState(null);
+  const [saving,setSaving]=useState(false);
+
+  const load=async()=>{
+    try{
+      const snap=await db.collection(COLLECTIONS.POURSTORE_POSTINGS).get();
+      const docs=snap.docs.map(d=>({id:d.id,...d.data()}));
+      docs.sort((a,b)=>((a.order??999)-(b.order??999)) || (b.createdAt||'').localeCompare(a.createdAt||''));
+      console.log(`[${COLLECTIONS.POURSTORE_POSTINGS}] ${docs.length}건 로드`);
+      setList(docs);
+    }catch(e){ console.error(`[${COLLECTIONS.POURSTORE_POSTINGS}] 로드 실패:`,e); showToast('포스팅 로드 실패: '+e.message,'error'); }
+    setLoading(false);
+  };
+  useEffect(()=>{ load(); },[]);
+
+  const startNew=()=>setEditing({type:'blog',title:'',link:'',thumbnail:'',tagsText:'',summary:'',active:true,order:list.length});
+  const startEdit=(p)=>setEditing({...p,tagsText:(p.tags||[]).join(', ')});
+
+  const saveEditing=async()=>{
+    const f=editing;
+    if(!f.title.trim()){ showToast('제목을 입력하세요','error'); return; }
+    if(!f.link.trim()){ showToast('링크를 입력하세요','error'); return; }
+    setSaving(true);
+    try{
+      const tags=(f.tagsText||'').split(',').map(s=>s.trim()).filter(Boolean);
+      const thumbnail=(f.thumbnail||'').trim() || (f.type==='video'?ytThumb(f.link):'');
+      const payload={ type:f.type, title:f.title.trim(), link:f.link.trim(), thumbnail, tags,
+        summary:(f.summary||'').trim(), order:Number(f.order)||0, active:f.active!==false };
+      if(f.id){
+        await db.collection(COLLECTIONS.POURSTORE_POSTINGS).doc(f.id).set({...payload,...audit.update()},{merge:true});
+      }else{
+        await db.collection(COLLECTIONS.POURSTORE_POSTINGS).add({...payload,...audit.create()});
+      }
+      console.log(`[${COLLECTIONS.POURSTORE_POSTINGS}] 저장(${f.id?'수정':'신규'}) ${payload.title}`);
+      showToast('저장되었습니다');
+      setEditing(null);
+      await load();
+    }catch(e){ console.error('포스팅 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
+    setSaving(false);
+  };
+
+  const toggleActive=async(p)=>{
+    const next=!(p.active!==false);
+    try{
+      await db.collection(COLLECTIONS.POURSTORE_POSTINGS).doc(p.id).set({active:next,...audit.update()},{merge:true});
+      setList(prev=>prev.map(x=>x.id===p.id?{...x,active:next}:x));
+    }catch(e){ console.error(e); showToast('변경 실패: '+e.message,'error'); }
+  };
+
+  const remove=async(p)=>{
+    if(!window.confirm(`"${p.title}" 삭제할까요?`))return;
+    try{
+      await db.collection(COLLECTIONS.POURSTORE_POSTINGS).doc(p.id).delete();
+      setList(prev=>prev.filter(x=>x.id!==p.id));
+      showToast('삭제되었습니다');
+    }catch(e){ console.error(e); showToast('삭제 실패: '+e.message,'error'); }
+  };
+
+  const counts=POSTING_TYPES.reduce((a,t)=>{a[t.key]=list.filter(p=>p.type===t.key).length;return a;},{});
+  const filtered=list.filter(p=>(filter==='all'||p.type===filter) && (!search || (p.title||'').includes(search) || (p.tags||[]).some(t=>t.includes(search))));
+
+  if(loading)return <div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>;
+
+  return(
+    <div style={{padding:'24px 32px',maxWidth:1100}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,flexWrap:'wrap',gap:16}}>
+        <div>
+          <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>📚 포스팅 관리</h1>
+          <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>자사몰 검색 상단 '관련 컨텐츠' 큐레이션. 검색어 태그가 일치하는 컨텐츠가 상품 위에 카드로 노출됩니다.</div>
+        </div>
+        <button onClick={startNew} style={{padding:'12px 22px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',background:'linear-gradient(135deg, var(--or), var(--or-d))',boxShadow:'0 4px 12px rgba(249,115,22,.25)',cursor:'pointer'}}>+ 새 컨텐츠</button>
+      </div>
+
+      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',margin:'16px 0'}}>
+        {[{key:'all',label:'전체',icon:'▦'},...POSTING_TYPES].map(t=>{
+          const on=filter===t.key; const n=t.key==='all'?list.length:counts[t.key];
+          return <button key={t.key} onClick={()=>setFilter(t.key)} style={{padding:'7px 13px',borderRadius:999,fontSize:12,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or-pale)':'#fff',color:on?'var(--or-d)':'var(--text-md)'}}>{t.icon} {t.label} {n}</button>;
+        })}
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="제목·태그 검색..." style={{marginLeft:'auto',padding:'8px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:12.5,outline:'none',minWidth:180}}/>
+      </div>
+
+      {filtered.length===0 && <div style={{padding:'50px 0',textAlign:'center',color:'var(--text-sm)',fontSize:13,background:'var(--card)',borderRadius:12,border:'1px solid var(--border)'}}>컨텐츠가 없습니다. "+ 새 컨텐츠"로 추가하세요.</div>}
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        {filtered.map(p=>{ const t=postingType(p.type); const on=p.active!==false; return(
+          <div key={p.id} style={{display:'flex',gap:12,alignItems:'center',background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:'10px 14px',opacity:on?1:0.5}}>
+            <div style={{width:64,height:44,borderRadius:8,flexShrink:0,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              {p.thumbnail?<img src={p.thumbnail} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.visibility='hidden';}}/>:<span style={{fontSize:16,opacity:.5}}>{t.icon}</span>}
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:3}}>
+                <span style={{fontSize:10.5,fontWeight:800,color:'#fff',background:t.color,padding:'1px 7px',borderRadius:5,flexShrink:0}}>{t.icon} {t.label}</span>
+                <span style={{fontSize:13.5,fontWeight:800,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.title}</span>
+              </div>
+              <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                {(p.tags||[]).length?('#'+(p.tags||[]).join(' #')):<span style={{color:'var(--red)'}}>태그 없음 — 검색 매칭 안됨</span>}
+              </div>
+            </div>
+            <button onClick={()=>toggleActive(p)} title="노출 on/off" style={{width:40,height:22,borderRadius:11,border:'none',cursor:'pointer',position:'relative',flexShrink:0,background:on?'var(--green)':'var(--border)'}}>
+              <span style={{position:'absolute',top:2,left:on?20:2,width:18,height:18,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 2px rgba(0,0,0,.2)'}}/>
+            </button>
+            <button onClick={()=>startEdit(p)} style={{padding:'6px 12px',borderRadius:8,border:'1px solid var(--border)',background:'#fff',fontSize:12,fontWeight:800,color:'var(--text-md)',cursor:'pointer',flexShrink:0}}>수정</button>
+            <button onClick={()=>remove(p)} title="삭제" style={{width:28,height:28,borderRadius:8,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',cursor:'pointer',fontSize:13,fontWeight:900,flexShrink:0}}>×</button>
+          </div>);
+        })}
+      </div>
+
+      {editing && <PostingEditor form={editing} setForm={setEditing} onSave={saveEditing} onClose={()=>setEditing(null)} saving={saving} />}
+    </div>
+  );
+}
+
+function PostingEditor({form,setForm,onSave,onClose,saving}){
+  const set=(patch)=>setForm(prev=>({...prev,...patch}));
+  const autoThumb=form.type==='video'?ytThumb(form.link):'';
+  const previewThumb=(form.thumbnail||'').trim()||autoThumb;
+  const field={width:'100%',padding:'10px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13,outline:'none',boxSizing:'border-box',marginTop:6};
+  const lbl={fontSize:11.5,fontWeight:800,color:'var(--text-md)'};
+  return(
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:3000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:16,padding:'22px 24px',width:'100%',maxWidth:520,maxHeight:'90vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <h2 style={{fontSize:17,fontWeight:900,color:'var(--navy)'}}>{form.id?'컨텐츠 수정':'새 컨텐츠'}</h2>
+          <button onClick={onClose} style={{width:30,height:30,borderRadius:8,border:'1px solid var(--border)',background:'#fff',fontSize:16,cursor:'pointer'}}>×</button>
+        </div>
+        <label style={lbl}>유형</label>
+        <div style={{display:'flex',gap:6,marginTop:6,marginBottom:12,flexWrap:'wrap'}}>
+          {POSTING_TYPES.map(t=>{const on=form.type===t.key;return <button key={t.key} onClick={()=>set({type:t.key})} style={{padding:'7px 12px',borderRadius:8,fontSize:12,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?t.color:'var(--border)'),background:on?t.color:'#fff',color:on?'#fff':'var(--text-md)'}}>{t.icon} {t.label}</button>;})}
+        </div>
+        <label style={lbl}>제목 *</label>
+        <input value={form.title} onChange={e=>set({title:e.target.value})} placeholder="예: 옥상 슬라브 방수, 이렇게 하세요" style={field}/>
+        <div style={{height:12}}/>
+        <label style={lbl}>링크(URL) *</label>
+        <input value={form.link} onChange={e=>set({link:e.target.value})} placeholder="https://blog.naver.com/... 또는 https://youtu.be/..." style={field}/>
+        {form.type==='video' && <div style={{fontSize:11,color:'var(--green)',fontWeight:700,marginTop:4}}>▶ 유튜브 링크면 썸네일 자동 추출됩니다</div>}
+        <div style={{height:12}}/>
+        <label style={lbl}>썸네일 URL {form.type==='video'?'(비우면 자동)':''}</label>
+        <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
+          <input value={form.thumbnail} onChange={e=>set({thumbnail:e.target.value})} placeholder="이미지 URL" style={{...field,flex:1}}/>
+          <div style={{width:64,height:48,borderRadius:8,flexShrink:0,marginTop:6,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            {previewThumb?<img src={previewThumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.visibility='hidden';}}/>:<span style={{fontSize:15,opacity:.5}}>🖼</span>}
+          </div>
+        </div>
+        <div style={{height:12}}/>
+        <label style={lbl}>검색어 태그 (쉼표구분) — 이 검색어로 진입 시 노출</label>
+        <input value={form.tagsText} onChange={e=>set({tagsText:e.target.value})} placeholder="슬라브방수, 옥상방수, 옥상누수" style={field}/>
+        <div style={{height:12}}/>
+        <label style={lbl}>요약 (선택)</label>
+        <input value={form.summary||''} onChange={e=>set({summary:e.target.value})} placeholder="한 줄 설명" style={field}/>
+        <div style={{display:'flex',gap:16,alignItems:'center',marginTop:14}}>
+          <label style={{...lbl,display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}>
+            <input type="checkbox" checked={form.active!==false} onChange={e=>set({active:e.target.checked})}/> 노출
+          </label>
+          <label style={{...lbl,display:'flex',alignItems:'center',gap:6}}>정렬순서 <input type="number" value={form.order} onChange={e=>set({order:e.target.value})} style={{width:66,padding:'6px 8px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12}}/></label>
+        </div>
+        <div style={{display:'flex',gap:10,marginTop:20}}>
+          <button onClick={onClose} style={{flex:1,padding:'12px',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',fontSize:13,fontWeight:800,color:'var(--text-md)',cursor:'pointer'}}>취소</button>
+          <button onClick={onSave} disabled={saving} style={{flex:2,padding:'12px',borderRadius:10,border:'none',background:saving?'var(--text-xs)':'linear-gradient(135deg, var(--or), var(--or-d))',color:'#fff',fontSize:13,fontWeight:900,cursor:saving?'wait':'pointer'}}>{saving?'저장 중...':'저장'}</button>
+        </div>
       </div>
     </div>
   );
@@ -9889,6 +10076,7 @@ function App() {
         {active === 'metrics' && <MetricsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'method-links' && <MethodLinksPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'hotkeywords' && <HotKeywordsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'postings' && <PostingsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'staff' && <StaffPage onToast={setToast} />}
         {active === 'firebase-usage' && <FirebaseUsagePage />}
         {active === 'settings' && <Settings onToast={setToast} />}

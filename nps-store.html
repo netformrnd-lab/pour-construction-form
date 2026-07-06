@@ -104,8 +104,6 @@ function App(){
   const [amount,setAmount]=useState('');
   const [hard,setHard]=useState('');
   const [feedback,setFeedback]=useState('');
-  const [name,setName]=useState('');
-  const [phone,setPhone]=useState('');
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
 
@@ -126,9 +124,6 @@ function App(){
         materialAmount:amount,         // Q3 자재 양
         difficulty:hard||'',           // Q4 힘들었던 점
         feedback:feedback.trim(),      // Q5 서술형
-        // 선택 연락처
-        name:name.trim(),
-        phone:phone.trim(),
         // NPS 리포팅 호환 필드
         score:toScore10(recommend),
         category:toCategory(recommend),
@@ -152,7 +147,7 @@ function App(){
       <div className="done-emoji">🎉</div>
       <div className="done-title">소중한 의견 감사합니다!</div>
       <div className="done-sub">보내주신 답변은 더 쉽고 오래가는<br/>POUR스토어 자재와 가이드를 만드는 데<br/>소중하게 사용됩니다.</div>
-      {phone.trim() && <div className="done-nps">📞 남겨주신 연락처로 문의 확인 후 연락드릴게요</div>}
+      <div className="done-nps">🎁 기프티콘 추첨은 패키지 구매 고객 대상으로 진행돼요</div>
     </div></div>
   );
 
@@ -201,19 +196,10 @@ function App(){
       <div className="card">
         <div className="q-title"><span className="q-no">5</span>하고 싶은 말이나 문의사항을 자유롭게 남겨주세요.</div>
         <textarea className="ta" placeholder="예) 옥상 방수 하고 나서 누수가 멈췄어요! / 자재가 조금 모자랐어요 / 문의사항이 있어요" value={feedback} onChange={e=>setFeedback(e.target.value)}/>
-        {/* 선택 연락처 — 문의사항 회신용 */}
-        <div className="fg">
-          <label className="fl">성함 <span className="opt">(선택)</span></label>
-          <input className="fi" placeholder="홍길동" value={name} onChange={e=>setName(e.target.value)}/>
-        </div>
-        <div className="fg">
-          <label className="fl">연락처 <span className="opt">(선택 · 문의사항이 있으면 남겨주세요)</span></label>
-          <input className="fi" placeholder="010-0000-0000" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
-        </div>
       </div>
 
       <button className="btn" disabled={saving} onClick={save}>{saving?'제출 중...':'설문 제출하기'}</button>
-      <div className="privacy">수집된 응답은 서비스 개선 및 문의 회신 목적으로만 활용됩니다.</div>
+      <div className="privacy">🎁 기프티콘 추첨은 패키지 구매 고객 대상 · 별도 연락처 입력은 필요 없어요.<br/>수집된 응답은 서비스 개선 목적으로만 활용됩니다.</div>
     </div>
   );
 }

@@ -1,9 +1,5 @@
 # pourstore-renewal 폴더는 직접 서빙 (SPA 라우터 제외)
 /pourstore-renewal/* /pourstore-renewal/:splat 200
 
-# POUR스토어 NPS 설문·관리 페이지 직접 서빙 (SPA 라우터 제외)
-/nps-store.html /nps-store.html 200
-/nps-store-admin.html /nps-store-admin.html 200
-
 # 나머지 경로는 루트 index.html로
 /* /index.html 200

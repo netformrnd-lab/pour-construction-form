@@ -1,0 +1,140 @@
+<!-- ============================================================
+  pour-02-search-content  —  카페24 "상품검색 결과" 페이지 상단 삽입 조각
+  위치: 카페24 → 디자인 → 상품검색결과 스킨(board/product/search 등)의
+        상품 리스트 '위'에 이 블록을 붙여넣으세요. (헤더 pour-01-main과 별개)
+  데이터: pourstore-postings (admin 포스팅 관리 탭에서 등록)
+          검색어(keyword)가 각 포스팅 tags(또는 인기검색어 synonyms)와
+          매칭되면 상단 카드로 노출. 매칭 0건이면 블록 자체가 숨겨짐(기본 검색 그대로).
+============================================================ -->
+<section class="psrc" data-psrc>
+<style>
+.psrc *, .psrc *::before, .psrc *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; letter-spacing:-0.02em; }
+.psrc { max-width:1256px; margin:0 auto; padding:8px 24px 4px; }
+.psrc-inner { display:none; }
+.psrc-inner.on { display:block; animation:psrc-in .3s ease; }
+@keyframes psrc-in { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+.psrc-head { display:flex; align-items:baseline; gap:8px; margin:6px 2px 14px; }
+.psrc-head .k { font-size:18px; font-weight:800; color:#111827; }
+.psrc-head .k b { color:#E8780F; }
+.psrc-head .sub { font-size:12.5px; font-weight:600; color:#9AA0A6; }
+.psrc-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+.psrc-card { display:flex; flex-direction:column; border:1px solid #EEF0F2; border-radius:14px; overflow:hidden; background:#fff; transition:.15s; cursor:pointer; }
+.psrc-card:hover { border-color:#FBE2C4; box-shadow:0 8px 24px rgba(232,120,15,.10); transform:translateY(-2px); }
+.psrc-thumb { position:relative; aspect-ratio:16/9; background:#F2F3F5; overflow:hidden; }
+.psrc-thumb img { width:100%; height:100%; object-fit:cover; }
+.psrc-thumb .ph { width:100%; height:100%; display:grid; place-items:center; font-size:30px; opacity:.5; }
+.psrc-badge { position:absolute; top:9px; left:9px; display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:800; color:#fff; padding:3px 8px; border-radius:6px; }
+.psrc-play { position:absolute; inset:0; display:grid; place-items:center; }
+.psrc-play span { width:44px; height:44px; border-radius:50%; background:rgba(0,0,0,.55); display:grid; place-items:center; }
+.psrc-play svg { width:18px; height:18px; margin-left:2px; fill:#fff; }
+.psrc-body { padding:11px 13px 13px; }
+.psrc-title { font-size:14px; font-weight:700; color:#2F3438; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.psrc-sum { margin-top:5px; font-size:12px; font-weight:500; color:#9AA0A6; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+@media (max-width:900px){ .psrc-grid{ grid-template-columns:repeat(2,1fr);} }
+@media (max-width:600px){
+  .psrc{ padding:6px 14px 2px; }
+  .psrc-grid{ display:flex; gap:11px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .psrc-grid::-webkit-scrollbar{ display:none; }
+  .psrc-card{ flex:0 0 72%; }
+  .psrc-head .k{ font-size:16px; }
+}
+</style>
+<div class="psrc-inner" data-psrc-inner>
+  <div class="psrc-head">
+    <span class="k">'<b data-psrc-kw></b>' 관련 콘텐츠</span>
+    <span class="sub" data-psrc-sub></span>
+  </div>
+  <div class="psrc-grid" data-psrc-grid></div>
+</div>
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain: "pour-app-new.firebaseapp.com",
+  projectId: "pour-app-new",
+  storageBucket: "pour-app-new.firebasestorage.app",
+  messagingSenderId: "411031141847",
+  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
+};
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const TYPE = {
+  guide: { label:'가이드',  color:'#059669', icon:'📘' },
+  blog:  { label:'블로그',  color:'#03C75A', icon:'📝' },
+  video: { label:'유튜브',  color:'#DC2626', icon:'▶' },
+  case:  { label:'시공사례', color:'#EA580C', icon:'🏗' }
+};
+const MAX = 6;
+const norm = (s) => (s||'').toString().toLowerCase().replace(/\s+/g,'');
+
+(async function(){
+  const sec = document.querySelector('.psrc');
+  if (!sec) return;
+
+  // 검색어 파싱 (?keyword= 또는 ?keyword2=)
+  const params = new URLSearchParams(location.search);
+  const kw = (params.get('keyword') || params.get('keyword2') || '').trim();
+  if (!kw) return;
+  const kwN = norm(kw);
+
+  // 매칭 확장어: 인기검색어에서 kw와 연결된 keyword/synonyms를 끌어와 태그 매칭 폭을 넓힘
+  let expand = new Set([kwN]);
+  try {
+    const hs = await getDoc(doc(db, "config", "pourstoreHotkeywords"));
+    const hk = hs.exists() && Array.isArray(hs.data().items) ? hs.data().items : [];
+    hk.forEach(o => {
+      const pool = [o.keyword, ...(Array.isArray(o.synonyms)?o.synonyms:[])].map(norm);
+      if (pool.includes(kwN)) pool.forEach(t => t && expand.add(t));
+    });
+  } catch(e){ console.log('[psrc] 인기검색어 확장 스킵:', e && e.message); }
+
+  // 포스팅 로드
+  let posts = [];
+  try {
+    const snap = await getDocs(collection(db, "pourstore-postings"));
+    posts = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    console.log('[psrc] 포스팅 ' + posts.length + '건 로드');
+  } catch(e){ console.log('[psrc] 포스팅 로드 실패:', e && e.message); return; }
+
+  // 태그 매칭: (tag ⊇ 확장어) 또는 (확장어 ⊇ tag)
+  const terms = [...expand];
+  const matched = posts.filter(p => p.active !== false).filter(p => {
+    const tags = (Array.isArray(p.tags)?p.tags:[]).map(norm).filter(Boolean);
+    return tags.some(t => terms.some(q => t.includes(q) || q.includes(t)));
+  }).sort((a,b) => ((a.order??999)-(b.order??999)));
+
+  console.log('[psrc] "' + kw + '" 매칭 ' + matched.length + '건');
+  if (!matched.length) return; // 매칭 없으면 블록 숨김 유지 → 기본 검색 그대로
+
+  const list = matched.slice(0, MAX);
+  const grid = sec.querySelector('[data-psrc-grid]');
+  sec.querySelector('[data-psrc-kw]').textContent = kw;
+  sec.querySelector('[data-psrc-sub]').textContent = matched.length + '개';
+
+  list.forEach(p => {
+    const t = TYPE[p.type] || TYPE.blog;
+    const a = document.createElement('a');
+    a.className = 'psrc-card';
+    a.href = p.link || '#';
+    if (p.type === 'video' || /^https?:\/\/(www\.)?(youtu\.be|youtube\.com)/.test(p.link||'')) { a.target = '_blank'; a.rel = 'noopener'; }
+    const thumb = p.thumbnail
+      ? '<img src="'+p.thumbnail+'" alt="" loading="lazy" onerror="this.parentNode.innerHTML=\'<div class=&quot;ph&quot;>'+t.icon+'</div>\'"/>'
+      : '<div class="ph">'+t.icon+'</div>';
+    const play = p.type === 'video' ? '<div class="psrc-play"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>' : '';
+    a.innerHTML =
+      '<div class="psrc-thumb">'+thumb+play+
+        '<span class="psrc-badge" style="background:'+t.color+'">'+t.icon+' '+t.label+'</span>'+
+      '</div>'+
+      '<div class="psrc-body">'+
+        '<div class="psrc-title">'+(p.title||'')+'</div>'+
+        (p.summary ? '<div class="psrc-sum">'+p.summary+'</div>' : '')+
+      '</div>';
+    grid.appendChild(a);
+  });
+
+  sec.querySelector('[data-psrc-inner]').classList.add('on');
+})();
+</script>
+</section>

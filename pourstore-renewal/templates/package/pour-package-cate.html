@@ -1,0 +1,36 @@
+<!-- ============================================================
+  pour-package-cate  —  '패키지 전체'(cate_no=71) 상품목록 '상단' 삽입 조각
+  용도: 카페24 상품분류 목록 스킨(product/list.html)의 상품 리스트 '위'에
+        이 한 줄만 @import 하면, cate_no=71 화면에서만 패키지 디자인이 뜨고
+        그 아래로 기존 17개 상품이 그대로 노출됩니다. (네이버식: 상단 콘텐츠 + 하단 상품)
+  동작: JS가 URL의 cate_no를 확인 → 71이면 표시, 아니면 통째로 제거(다른 분류엔 영향 없음).
+  구성: 이미 업로드된 pkg-*.html 6개를 그대로 재사용(@import) → 추가 업로드는 이 파일 1개뿐.
+  주의: pour-package.html(별도 페이지용, @layout 포함)과 다른 파일. 이건 삽입 전용(@layout 없음).
+  ============================================================ -->
+<section class="ppcate" data-ppcate hidden>
+<style>
+.ppcate[hidden]{ display:none !important; }
+.ppcate{ max-width:1256px; margin:0 auto 10px; }
+.ppcate > section{ margin-bottom:8px; }
+</style>
+<!--@import(/pourstore_renewal/package/pkg-1-check.html)-->
+<!--@import(/pourstore_renewal/package/pkg-t-scope.html)-->
+<!--@import(/pourstore_renewal/package/pkg-2-best.html)-->
+<!--@import(/pourstore_renewal/package/pkg-3-new.html)-->
+<!--@import(/pourstore_renewal/package/pkg-4-matrix.html)-->
+<!--@import(/pourstore_renewal/package/pkg-5-video.html)-->
+<script>
+(function(){
+  var el = document.querySelector('[data-ppcate]');
+  if (!el) return;
+  var cate = new URLSearchParams(location.search).get('cate_no');
+  if (cate === '71') {           // 패키지 전체 분류에서만 노출
+    el.hidden = false;
+    el.removeAttribute('hidden');
+    console.log('[ppcate] cate_no=71 패키지 디자인 노출');
+  } else {                        // 다른 분류에선 흔적 없이 제거
+    el.parentNode && el.parentNode.removeChild(el);
+  }
+})();
+</script>
+</section>

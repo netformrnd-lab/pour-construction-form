@@ -26,7 +26,8 @@ templates/
 ├── search/      상품검색 결과 페이지 삽입 조각
 │   └── pour-02-search-content.html   상품 아래 '관련 매거진' (pourstore-postings)
 ├── package/     패키지 별도 페이지 (GNB '패키지')
-│   ├── pour-package.html        @import 6개 컨테이너
+│   ├── pour-package.html        @import 6개 컨테이너 (별도 페이지, @layout O)
+│   ├── pour-package-cate.html   cate_no=71 상품목록 상단 삽입 (JS 가드, @layout X)
 │   ├── pkg-1-check.html         부위별 네비
 │   ├── pkg-t-scope.html         등급 3단계
 │   ├── pkg-2-best.html          베스트

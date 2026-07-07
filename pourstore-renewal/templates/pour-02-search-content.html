@@ -1,15 +1,16 @@
 <!-- ============================================================
-  pour-02-search-content  —  카페24 "상품검색 결과" 페이지 상단 삽입 조각
-  위치: 카페24 → 디자인 → 상품검색결과 스킨(board/product/search 등)의
-        상품 리스트 '위'에 이 블록을 붙여넣으세요. (헤더 pour-01-main과 별개)
-  데이터: pourstore-postings (admin 포스팅 관리 탭에서 등록)
+  pour-02-search-content  —  카페24 "상품검색 결과" 페이지 삽입 조각
+  위치: 카페24 → 디자인 → 상품검색결과 스킨의 상품 리스트 '아래'에 붙여넣으세요.
+        (배치: 상품 2줄+더보기[카페24] → 이 관련 매거진 블록[본 조각])
+  데이터: pourstore-postings (admin 포스팅 관리 = 매거진 컨텐츠)
           검색어(keyword)가 각 포스팅 tags(또는 인기검색어 synonyms)와
-          매칭되면 상단 카드로 노출. 매칭 0건이면 블록 자체가 숨겨짐(기본 검색 그대로).
+          매칭되면 '관련 매거진'으로 노출. 매칭 0건이면 블록 숨김(기본 검색 그대로).
+          매칭: 띄어쓰기 무시(정규화) + 부분일치 + 인기검색어 연관어 확장.
 ============================================================ -->
 <section class="psrc" data-psrc>
 <style>
 .psrc *, .psrc *::before, .psrc *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; letter-spacing:-0.02em; }
-.psrc { max-width:1256px; margin:0 auto; padding:8px 24px 4px; }
+.psrc { max-width:1256px; margin:20px auto 0; padding:24px 24px 4px; border-top:1px solid #F0F1F3; }
 .psrc-inner { display:none; }
 .psrc-inner.on { display:block; animation:psrc-in .3s ease; }
 @keyframes psrc-in { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
@@ -139,13 +140,13 @@ const norm = (s) => (s||'').toString().toLowerCase().replace(/\s+/g,'');
   if (list.length === 1) grid.classList.add('n1');
   else if (list.length === 2) grid.classList.add('n2');
 
-  // ③ 헤드라인 — 모든 항목이 같은 유형이면 그 유형 문구, 섞였으면 기본
+  // ③ 헤드라인 — '관련 매거진' 고정(포스팅=매거진 컨텐츠), 부제는 유형별 쉬운 말
   const types = list.map(p => p.type);
   const allSame = types.every(t => t === types[0]);
   const h = (allSame && HEAD[types[0]]) ? HEAD[types[0]] : HEAD.default;
-  sec.querySelector('[data-psrc-ico]').textContent = h.ico;
+  sec.querySelector('[data-psrc-ico]').textContent = '📚';
   sec.querySelector('[data-psrc-kw]').textContent = kw;
-  sec.querySelector('[data-psrc-label]').textContent = h.label;
+  sec.querySelector('[data-psrc-label]').textContent = '관련 매거진';
   sec.querySelector('[data-psrc-sub]').textContent = matched.length + '개';
   sec.querySelector('[data-psrc-tip]').textContent = h.tip;
 

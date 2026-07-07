@@ -4462,24 +4462,26 @@ function HotKeywordsPage({showToast}){
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [dirty,setDirty]=useState(false);
+  const [uploading,setUploading]=useState(null); // 업로드 중인 행 index
 
   useEffect(()=>{
     (async()=>{
       try{
         const doc=await db.collection('config').doc(HOTKEYWORDS_DOC).get();
         if(doc.exists && Array.isArray(doc.data().items) && doc.data().items.length){
-          const loaded=doc.data().items.map(it=>({keyword:it.keyword||'',link:it.link||'',active:it.active!==false,synText:synToText(it.synonyms),thumbnail:it.thumbnail||''}));
+          // thumb(신규 canonical) 우선, 없으면 thumbnail(구버전) fallback
+          const loaded=doc.data().items.map(it=>({keyword:it.keyword||'',link:it.link||'',active:it.active!==false,synText:synToText(it.synonyms),thumb:(it.thumb||it.thumbnail||'')}));
           console.log(`[config/${HOTKEYWORDS_DOC}] ${loaded.length}건 로드`);
           setItems(loaded);
         }else{
           console.log(`[config/${HOTKEYWORDS_DOC}] 문서 없음 → 기본 5건 표시(미저장)`);
-          setItems(HOTKEYWORD_DEFAULTS.map(it=>({keyword:it.keyword,link:it.link,active:it.active,synText:synToText(it.synonyms),thumbnail:''})));
+          setItems(HOTKEYWORD_DEFAULTS.map(it=>({keyword:it.keyword,link:it.link,active:it.active,synText:synToText(it.synonyms),thumb:''})));
           setDirty(true); // 아직 Firestore에 없으니 저장 유도
         }
       }catch(e){
         console.error(`[config/${HOTKEYWORDS_DOC}] 로드 실패:`,e);
         showToast('인기검색어 로드 실패: '+e.message,'error');
-        setItems(HOTKEYWORD_DEFAULTS.map(it=>({keyword:it.keyword,link:it.link,active:it.active,synText:synToText(it.synonyms),thumbnail:''})));
+        setItems(HOTKEYWORD_DEFAULTS.map(it=>({keyword:it.keyword,link:it.link,active:it.active,synText:synToText(it.synonyms),thumb:''})));
       }
       setLoading(false);
     })();
@@ -4487,12 +4489,29 @@ function HotKeywordsPage({showToast}){
 
   const mutate=(fn)=>{ setItems(prev=>fn(prev.map(x=>({...x})))); setDirty(true); };
   const updateRow=(i,patch)=>mutate(prev=>{ prev[i]={...prev[i],...patch}; return prev; });
-  const addRow=()=>mutate(prev=>[...prev,{keyword:'',link:'',active:true,synText:'',thumbnail:''}]);
+  const addRow=()=>mutate(prev=>[...prev,{keyword:'',link:'',active:true,synText:'',thumb:''}]);
   const removeRow=(i)=>mutate(prev=>prev.filter((_,idx)=>idx!==i));
   const move=(i,dir)=>mutate(prev=>{
     const j=i+dir; if(j<0||j>=prev.length)return prev;
     [prev[i],prev[j]]=[prev[j],prev[i]]; return prev;
   });
+  // 방식B: 파일 업로드 → Firebase Storage → getDownloadURL → thumb
+  const uploadThumb=async(i,file)=>{
+    if(!file)return;
+    if(!file.type.startsWith('image/')){ showToast('이미지 파일만 가능','error'); return; }
+    if(file.size > 5*1024*1024){ showToast('5MB 이하 이미지만 가능','error'); return; }
+    setUploading(i);
+    try{
+      const ts=Date.now();
+      const safe=file.name.replace(/[^\w.\-]/g,'_');
+      const path=`POUR스토어_리뉴얼/hotkeyword-thumbs/${ts}_${safe}`;
+      const snap=await storage.ref(path).put(file);
+      const url=await snap.ref.getDownloadURL();
+      updateRow(i,{thumb:url});
+      showToast('썸네일 업로드 완료');
+    }catch(e){ console.error('[hotkeyword] 썸네일 업로드 실패:',e); showToast('업로드 실패: '+e.message,'error'); }
+    setUploading(null);
+  };
 
   const save=async()=>{
     const active=items.filter(it=>it.active);
@@ -4509,11 +4528,11 @@ function HotKeywordsPage({showToast}){
     try{
       const cleaned=items
         .filter(it=>it.keyword.trim())
-        .map((it,idx)=>({rank:idx+1,keyword:it.keyword.trim(),link:(it.link.trim()||suggestKeywordLink(it.keyword)),active:it.active!==false,synonyms:textToSyn(it.synText),thumbnail:(it.thumbnail||'').trim()}));
+        .map((it,idx)=>({rank:idx+1,keyword:it.keyword.trim(),link:(it.link.trim()||suggestKeywordLink(it.keyword)),active:it.active!==false,synonyms:textToSyn(it.synText),thumb:(it.thumb||'').trim()}));
       const auditStamp=audit.update();
-      await db.collection('config').doc(HOTKEYWORDS_DOC).set({items:cleaned,schemaVersion:2,...auditStamp});
+      await db.collection('config').doc(HOTKEYWORDS_DOC).set({items:cleaned,schemaVersion:3,...auditStamp});
       console.log(`[config/${HOTKEYWORDS_DOC}] ${cleaned.length}건 저장`);
-      setItems(cleaned.map(it=>({keyword:it.keyword,link:it.link,active:it.active,synText:synToText(it.synonyms),thumbnail:it.thumbnail})));
+      setItems(cleaned.map(it=>({keyword:it.keyword,link:it.link,active:it.active,synText:synToText(it.synonyms),thumb:it.thumb})));
       setDirty(false);
       showToast(`인기검색어 ${cleaned.length}건 저장 완료`);
     }catch(e){ console.error(`[config/${HOTKEYWORDS_DOC}] 저장 실패:`,e); showToast('저장 실패: '+e.message,'error'); }
@@ -4556,8 +4575,8 @@ function HotKeywordsPage({showToast}){
             <div style={{width:22,textAlign:'center',fontSize:16,fontWeight:900,color:'var(--or-d)',flexShrink:0,paddingTop:6}}>{i+1}</div>
             {/* 썸네일 미리보기 (네이버식) */}
             <div style={{width:46,height:46,borderRadius:10,flexShrink:0,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',marginTop:2}}>
-              {it.thumbnail
-                ? <img src={it.thumbnail} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.visibility='hidden';}}/>
+              {it.thumb
+                ? <img src={it.thumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.visibility='hidden';}}/>
                 : <span style={{fontSize:18,opacity:.5}}>🔍</span>}
             </div>
             {/* 입력 필드 (2줄 스택) */}
@@ -4581,8 +4600,14 @@ function HotKeywordsPage({showToast}){
                   <button onClick={()=>updateRow(i,{link:suggestKeywordLink(it.keyword)})} title="키워드로 링크 자동생성"
                     style={{padding:'0 9px',borderRadius:8,border:'1px solid var(--border)',background:'var(--bg)',fontSize:11,fontWeight:800,color:'var(--text-md)',cursor:'pointer',flexShrink:0}}>자동</button>
                 </div>
-                <input value={it.thumbnail} onChange={e=>updateRow(i,{thumbnail:e.target.value})} placeholder="🖼 썸네일 이미지 URL (선택)"
-                  style={inp({flex:'1 1 200px',minWidth:0,fontSize:12,border:'1.5px solid var(--border)',color:'var(--text-md)'})}/>
+                <div style={{flex:'1 1 200px',minWidth:0,display:'flex',gap:6}}>
+                  <input value={it.thumb} onChange={e=>updateRow(i,{thumb:e.target.value})} placeholder="🖼 썸네일 URL (선택)"
+                    style={inp({flex:1,minWidth:0,fontSize:12,border:'1.5px solid var(--border)',color:'var(--text-md)'})}/>
+                  <label title="이미지 업로드" style={{padding:'0 9px',borderRadius:8,border:'1px solid var(--border)',background:uploading===i?'var(--or-pale)':'var(--bg)',fontSize:11,fontWeight:800,color:'var(--or-d)',cursor:uploading===i?'wait':'pointer',flexShrink:0,display:'flex',alignItems:'center'}}>
+                    {uploading===i?'…':'업로드'}
+                    <input type="file" accept="image/*" disabled={uploading===i} onChange={e=>{const f=e.target.files&&e.target.files[0]; uploadThumb(i,f); e.target.value='';}} style={{display:'none'}}/>
+                  </label>
+                </div>
               </div>
             </div>
             {/* 노출 토글 */}
@@ -4606,10 +4631,10 @@ function HotKeywordsPage({showToast}){
 
       <div style={{marginTop:18,padding:'14px 16px',background:'var(--bg)',borderRadius:12,border:'1px solid var(--border)',fontSize:11.5,color:'var(--text-md)',lineHeight:1.7}}>
         <div style={{fontWeight:900,color:'var(--navy)',marginBottom:6,fontSize:12}}>🔌 헤더(카페24) 연동 규격</div>
-        저장 위치: <code style={{background:'var(--or-pale)',padding:'1px 5px',borderRadius:4,fontWeight:800}}>config/pourstoreHotkeywords</code> (단일 문서 · read 1회) · schemaVersion 2<br/>
-        문서 모양: <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>{'{ items:[{rank,keyword,link,active,synonyms:[],thumbnail}], updatedAt, updatedBy }'}</code><br/>
+        저장 위치: <code style={{background:'var(--or-pale)',padding:'1px 5px',borderRadius:4,fontWeight:800}}>config/pourstoreHotkeywords</code> (단일 문서 · read 1회) · schemaVersion 3<br/>
+        문서 모양: <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>{'{ items:[{rank,keyword,link,active,synonyms:[],thumb}], updatedAt, updatedBy }'}</code><br/>
         <b>레벨1 (인기검색어·검색바 우측 가로):</b> <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>items</code>를 <b>rank 오름차순</b> 정렬 후 <b>active===true</b>만 keyword·link로 표출 (orderBy 미사용, §10.3-C)<br/>
-        <b>레벨A (검색 드롭다운·네이버식 세로카드):</b> 검색창 포커스 시 같은 items를 🔍+순위+keyword로 세로 표출, <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>thumbnail</code> 있으면 우측 썸네일. 타이핑 시 <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>keyword + synonyms[]</code> 부분매칭으로 전환. 가이드 포스팅은 추후 <code style={{background:'var(--or-pale)',padding:'1px 5px',borderRadius:4,fontWeight:800}}>pourstore-postings</code> 합류.
+        <b>레벨A (검색 드롭다운·네이버식 세로카드):</b> 검색창 포커스 시 같은 items를 🔍+순위+keyword로 세로 표출, <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>thumb</code> 있으면 우측 썸네일. 타이핑 시 <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>keyword + synonyms[]</code> 부분매칭으로 전환. 가이드 포스팅은 추후 <code style={{background:'var(--or-pale)',padding:'1px 5px',borderRadius:4,fontWeight:800}}>pourstore-postings</code> 합류.
       </div>
     </div>
   );

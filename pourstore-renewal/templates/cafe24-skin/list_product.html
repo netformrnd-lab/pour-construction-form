@@ -1,0 +1,98 @@
+<!--
+※ 상품진열 공통소스 morenvy.com
+  [POUR스토어 통일 디자인] 기존 카페24 변수·모듈(장바구니/옵션/품절/찜/가격)은 그대로 두고
+  pour-card 스타일(라운드 카드·오렌지 hover·통일 타이포)만 CSS로 입힘. 전체 상품목록 공통 적용.
+-->
+	 <li id="anchorBoxId_{$product_no}" class="item pour-card">
+        <style>
+        /* ===== POUR스토어 상품카드 통일 스타일 — .pour-card (기능/변수 무변경, 디자인만) ===== */
+        .prdList li.item.pour-card{
+          font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif !important;
+          letter-spacing:-0.02em;
+          background:#fff !important;
+          border:1px solid #EEF0F2 !important;
+          border-radius:16px !important;
+          overflow:hidden;
+          transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+        }
+        .prdList li.item.pour-card:hover{
+          border-color:#FBE2C4 !important;
+          box-shadow:0 10px 26px rgba(232,120,15,.12);
+          transform:translateY(-3px);
+        }
+        .pour-card .prdList__item{ background:transparent !important; border:0 !important; box-shadow:none !important; }
+        /* 썸네일 */
+        .pour-card .thumbnail{ margin:0 !important; border:0 !important; }
+        .pour-card .prdImg{ position:relative; border:0 !important; }
+        .pour-card .prdImg .image-container{ display:block; position:relative; overflow:hidden; background:#F5F6F8; aspect-ratio:1/1; border-radius:16px 16px 0 0; }
+        .pour-card .prdImg .image-container img.default,
+        .pour-card .prdImg .image-container img.hover{ width:100% !important; height:100% !important; object-fit:cover; }
+        /* 찜 하트 우상단 */
+        .pour-card .wish{ position:absolute; top:10px; right:10px; z-index:3; }
+        .pour-card .sold{ z-index:2; }
+        /* 설명영역 */
+        .pour-card .description{ padding:12px 14px 14px !important; text-align:left; border:0 !important; }
+        .pour-card .description .name{ display:block; margin:0 0 6px !important; }
+        .pour-card .description .name a{ font-size:14.5px !important; font-weight:700 !important; color:#2F3438 !important; line-height:1.4 !important; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        .pour-card .description .name .title{ color:#9AA0A6 !important; font-weight:600 !important; }
+        /* 스펙/가격 */
+        .pour-card .spec{ margin:0 !important; padding:0 !important; }
+        .pour-card .spec > li{ font-size:15px !important; font-weight:800 !important; color:#111827 !important; line-height:1.35 !important; padding:1px 0 !important; border:0 !important; background:none !important; }
+        .pour-card .spec .title{ font-size:12px !important; font-weight:600 !important; color:#9AA0A6 !important; }
+        /* 프로모션/뱃지 */
+        .pour-card .promotion{ margin-top:8px !important; display:flex; flex-wrap:wrap; align-items:center; gap:4px; }
+        .pour-card .promotion img{ vertical-align:middle; }
+        </style>
+        <div class="prdList__item">
+          <div class="thumbnail">
+            <div class="prdImg">
+
+              <!--@import(/han/html/saleperadd.html)-->
+
+                <a href="{$link_product_detail}" class="image-container">
+  					<img src="{$image_medium}" class="default" alt="{$seo_alt_tag}"  loading="lazy"/>
+  					<img src="{$image_big}" class="hover" alt="{$seo_alt_tag}" id="{$image_medium_id}" loading="lazy"/>
+ 					 <span module="product_Imagestyle">
+  					  <span class="prdIcon {$icon_class_name}" style="background-image:url('{$icon_url}');"></span>
+ 					 </span>
+				</a>
+
+
+              <div class="sold">{$soldout_icon}</div>
+              <div class="wish">{$list_wish_icon}</div>
+
+            <div class="icon">
+              <div class="button">
+                <div class="option option1 trans3">{$basket_icon} <p>BASKET</p></div>
+                <div class="option option2 trans3">{$zoom_icon} <p>ZOOM</p></div>
+                <div class="option option3 trans3">{$option_preview_icon} <p>OPTION</p></div>
+              </div>
+              <div class="likeButton {$disp_likeprd_class} trans3">
+                <button type="button">{$disp_likeprd_icon}<strong>{$disp_likeprd_count}</strong></button>
+              </div>
+            </div>
+          </div>
+       </div>
+
+              <!--------------------------------///-------------------------------->
+
+              <!--@import(/han/html/timeadd.html)-->
+
+              <!--------------------------------///-------------------------------->
+
+
+          <div class="description">
+            <strong class="name"><a href="{$link_product_detail}" class="{$product_name_display|display}"><span class="title {$product_name_title_display|display}">{$product_name_title} :</span> {$product_name}</a></strong>
+            <ul module="product_ListItem" class="spec">
+              <li class="{$item_display|display}">
+                <p class="perhan"></p>
+                <strong class="title {$item_title_display|display}">{$item_title} :</strong> {$item_content}</li>
+              <li class="{$item_display|display}">
+                <p class="perhan"></p>
+                <strong class="title {$item_title_display|display}">{$item_title} :</strong> {$item_content}</li>
+            </ul>
+              <div class="promotion">{$stock_icon} {$recommend_icon} {$new_icon} {$product_icons} {$pickup_icon} {$benefit_icons}</div>
+          </div>
+        </div>
+
+      </li>

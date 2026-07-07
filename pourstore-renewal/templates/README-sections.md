@@ -34,6 +34,8 @@ templates/
 │   ├── pkg-3-new.html           신규
 │   ├── pkg-4-matrix.html        전체 매트릭스
 │   └── pkg-5-video.html         시공 영상
+├── cafe24-skin/ 카페24 네이티브 스킨 커스텀본 (pourstore_renewal 아님, 원위치 덮어쓰기)
+│   └── list_product.html        상품카드 공통 스킨 — pour-card 통일 디자인(CSS)
 ├── _etc/        원본·시안 보관
 │   ├── 패키지페이지-원본.html   (분할 전 원본, 소스 아카이브)
 │   ├── main-banner-ohouse-v1.html
@@ -48,6 +50,7 @@ templates/
 | `main/*` | `pourstore_renewal/*` | index.html이 `@import` |
 | `search/pour-02-search-content.html` | `pourstore_renewal/pour-02-search-content.html` | 상품검색결과 스킨 맨 아래 `@import` |
 | `package/*` | `pourstore_renewal/*` | GNB '패키지' → `pour-package.html` 화면 |
+| `cafe24-skin/list_product.html` | 카페24 `product/list_product.html` (원위치 덮어쓰기) | 전체 상품목록 카드 공통 |
 | `_etc/*` | (업로드 불필요, 아카이브) | — |
 
 ## 섹션 ↔ 데이터 ↔ 랜딩

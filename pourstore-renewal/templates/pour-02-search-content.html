@@ -13,11 +13,21 @@
 .psrc-inner { display:none; }
 .psrc-inner.on { display:block; animation:psrc-in .3s ease; }
 @keyframes psrc-in { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
-.psrc-head { display:flex; align-items:baseline; gap:8px; margin:6px 2px 14px; }
+.psrc-head { display:flex; align-items:baseline; gap:8px; margin:6px 2px 3px; }
+.psrc-head .ico { font-size:18px; line-height:1; align-self:center; }
 .psrc-head .k { font-size:18px; font-weight:800; color:#111827; }
 .psrc-head .k b { color:#E8780F; }
 .psrc-head .sub { font-size:12.5px; font-weight:600; color:#9AA0A6; }
+.psrc-tip { font-size:12.5px; font-weight:600; color:#9AA0A6; margin:0 2px 14px; }
 .psrc-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+/* 개수 적응형: 1개 와이드(가로), 2개 2열, 3개+ 3열 */
+.psrc-grid.n2 { grid-template-columns:repeat(2,1fr); }
+.psrc-grid.n1 { grid-template-columns:1fr; max-width:680px; }
+.psrc-grid.n1 .psrc-card { flex-direction:row; align-items:stretch; }
+.psrc-grid.n1 .psrc-thumb { width:42%; flex:0 0 42%; aspect-ratio:auto; min-height:150px; }
+.psrc-grid.n1 .psrc-body { flex:1; display:flex; flex-direction:column; justify-content:center; padding:16px 20px; }
+.psrc-grid.n1 .psrc-title { font-size:16px; -webkit-line-clamp:3; }
+.psrc-grid.n1 .psrc-sum { font-size:12.5px; white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
 .psrc-card { display:flex; flex-direction:column; border:1px solid #EEF0F2; border-radius:14px; overflow:hidden; background:#fff; transition:.15s; cursor:pointer; }
 .psrc-card:hover { border-color:#FBE2C4; box-shadow:0 8px 24px rgba(232,120,15,.10); transform:translateY(-2px); }
 .psrc-thumb { position:relative; aspect-ratio:16/9; background:#F2F3F5; overflow:hidden; }
@@ -30,20 +40,25 @@
 .psrc-body { padding:11px 13px 13px; }
 .psrc-title { font-size:14px; font-weight:700; color:#2F3438; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .psrc-sum { margin-top:5px; font-size:12px; font-weight:500; color:#9AA0A6; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-@media (max-width:900px){ .psrc-grid{ grid-template-columns:repeat(2,1fr);} }
+@media (max-width:900px){ .psrc-grid:not(.n1):not(.n2){ grid-template-columns:repeat(2,1fr);} }
 @media (max-width:600px){
   .psrc{ padding:6px 14px 2px; }
   .psrc-grid{ display:flex; gap:11px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
   .psrc-grid::-webkit-scrollbar{ display:none; }
   .psrc-card{ flex:0 0 72%; }
+  .psrc-grid.n1{ display:block; max-width:none; }
+  .psrc-grid.n1 .psrc-card{ flex-direction:column; }
+  .psrc-grid.n1 .psrc-thumb{ width:100%; flex-basis:auto; aspect-ratio:16/9; min-height:0; }
   .psrc-head .k{ font-size:16px; }
 }
 </style>
 <div class="psrc-inner" data-psrc-inner>
   <div class="psrc-head">
-    <span class="k">'<b data-psrc-kw></b>' 관련 콘텐츠</span>
+    <span class="ico" data-psrc-ico>📌</span>
+    <span class="k">'<b data-psrc-kw></b>' <span data-psrc-label>관련 콘텐츠</span></span>
     <span class="sub" data-psrc-sub></span>
   </div>
+  <div class="psrc-tip" data-psrc-tip></div>
   <div class="psrc-grid" data-psrc-grid></div>
 </div>
 <script type="module">
@@ -65,6 +80,14 @@ const TYPE = {
   blog:  { label:'블로그',  color:'#03C75A', icon:'📝' },
   video: { label:'유튜브',  color:'#DC2626', icon:'▶' },
   case:  { label:'시공사례', color:'#EA580C', icon:'🏗' }
+};
+// 헤드라인 — 유형별 쉬운 말 (§3-2). §3-6 금지어(견적/맞춤/진단/시방서·셀프인테리어/홈데코) 미사용.
+const HEAD = {
+  video:   { ico:'🎬', label:'시공 영상',  tip:'영상 보고 따라 해보세요' },
+  case:    { ico:'🏗', label:'시공 사례',  tip:'실제 시공 현장을 확인해보세요' },
+  guide:   { ico:'📘', label:'시공 가이드', tip:'순서대로 따라 해보세요' },
+  blog:    { ico:'📝', label:'관련 글',    tip:'도움되는 글을 모았어요' },
+  default: { ico:'📌', label:'관련 콘텐츠', tip:'도움되는 자료를 모았어요' }
 };
 const MAX = 6;
 const norm = (s) => (s||'').toString().toLowerCase().replace(/\s+/g,'');
@@ -110,8 +133,21 @@ const norm = (s) => (s||'').toString().toLowerCase().replace(/\s+/g,'');
 
   const list = matched.slice(0, MAX);
   const grid = sec.querySelector('[data-psrc-grid]');
+
+  // ② 개수 적응형 레이아웃 (1→와이드, 2→2열, 3+→3열)
+  grid.classList.remove('n1','n2');
+  if (list.length === 1) grid.classList.add('n1');
+  else if (list.length === 2) grid.classList.add('n2');
+
+  // ③ 헤드라인 — 모든 항목이 같은 유형이면 그 유형 문구, 섞였으면 기본
+  const types = list.map(p => p.type);
+  const allSame = types.every(t => t === types[0]);
+  const h = (allSame && HEAD[types[0]]) ? HEAD[types[0]] : HEAD.default;
+  sec.querySelector('[data-psrc-ico]').textContent = h.ico;
   sec.querySelector('[data-psrc-kw]').textContent = kw;
+  sec.querySelector('[data-psrc-label]').textContent = h.label;
   sec.querySelector('[data-psrc-sub]').textContent = matched.length + '개';
+  sec.querySelector('[data-psrc-tip]').textContent = h.tip;
 
   list.forEach(p => {
     const t = TYPE[p.type] || TYPE.blog;

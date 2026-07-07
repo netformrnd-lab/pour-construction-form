@@ -1,0 +1,397 @@
+<section class="psm1">
+<style>
+.psm1 *, .psm1 *::before, .psm1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.psm1 { background:#fff; color:#2F3438; line-height:1.5; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.02em; }
+.psm1 a { color:inherit; text-decoration:none; }
+.psm1 button { background:none; border:none; cursor:pointer; font:inherit; color:inherit; letter-spacing:inherit; }
+.psm1 img { display:block; max-width:100%; }
+.psm1 ul, .psm1 li { list-style:none; }
+/* sticky 래퍼 */
+.psm1-sticky { position:sticky; top:0; z-index:1000; background:#fff; }
+.psm1-sticky.psm1-scrolled { box-shadow:0 2px 12px rgba(15,31,92,.08); }
+/* 0) 상단 유틸바 */
+.psm1-topbar { background:#FAFAFB; border-bottom:1px solid #F2F3F5; }
+.psm1-topbar-inner { max-width:1256px; margin:0 auto; padding:7px 24px; display:flex; align-items:center; justify-content:flex-end; gap:16px; }
+.psm1-topbar a { font-size:12px; font-weight:500; color:#8B95A1; letter-spacing:-0.02em; }
+.psm1-topbar a:hover { color:#2F3438; }
+.psm1-topbar .psm1-tb-divider { width:1px; height:10px; background:#E5E7EB; }
+/* 1) 메인 헤더 (로고 + 검색 + 인기검색어) */
+.psm1-hd { border-bottom:1px solid #F2F3F5; background:#fff; }
+.psm1-hd-inner { max-width:1256px; margin:0 auto; padding:18px 24px; display:flex; align-items:center; gap:28px; }
+.psm1-logo { display:flex; align-items:center; font-weight:800; font-size:24px; color:#111827; letter-spacing:-0.045em; flex-shrink:0; }
+.psm1-logo .psm1-logo-or { color:#111827; }
+.psm1-searchwrap { flex:1; max-width:620px; position:relative; }
+.psm1-search form { margin:0; display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:26px; padding:10px 12px 10px 18px; }
+.psm1-search .psm1-search-ico { width:20px; height:20px; color:#E8780F; flex-shrink:0; }
+.psm1-search input { flex:1; min-width:0; border:none; outline:none; background:none; font-size:15px; font-weight:400; color:#2F3438; letter-spacing:-0.02em; }
+.psm1-search input::placeholder { color:#9E9E9E; }
+.psm1-search-btn { flex-shrink:0; width:38px; height:38px; border-radius:50%; background:#E8780F; display:grid; place-items:center; transition:.15s; }
+.psm1-search-btn:hover { background:#C8650D; }
+.psm1-search-btn svg { width:18px; height:18px; color:#fff; }
+/* 자동완성 드롭다운 */
+.psm1-ac { position:absolute; top:calc(100% + 8px); left:0; right:0; background:#fff; border:1px solid #F0F1F3; border-radius:16px; box-shadow:0 12px 40px rgba(15,31,92,.12); padding:10px; opacity:0; pointer-events:none; transform:translateY(-6px); transition:all .18s cubic-bezier(.16,1,.3,1); z-index:60; max-height:420px; overflow-y:auto; }
+.psm1-ac.open { opacity:1; pointer-events:auto; transform:translateY(0); }
+.psm1-ac-sec { display:flex; align-items:center; gap:5px; font-size:11.5px; font-weight:800; color:#E8780F; letter-spacing:-0.01em; padding:6px 10px 8px; }
+.psm1-ac-item { display:flex; align-items:center; gap:12px; padding:9px 10px; border:1px solid transparent; border-radius:12px; cursor:pointer; font-size:14.5px; color:#2F3438; letter-spacing:-0.02em; margin-bottom:2px; transition:.12s; }
+.psm1-ac-item:hover, .psm1-ac-item.on { background:#FFFBF6; border-color:#FBE2C4; }
+.psm1-ac-item .psm1-ac-rank { width:22px; height:22px; border-radius:7px; background:#FFEDD5; color:#E8780F; font-size:12px; font-weight:800; display:grid; place-items:center; flex-shrink:0; }
+.psm1-ac-item .psm1-ac-ico { width:18px; height:18px; color:#C9CED4; flex-shrink:0; display:grid; place-items:center; }
+.psm1-ac-item .psm1-ac-ico svg { width:18px; height:18px; }
+.psm1-ac-item .psm1-ac-text { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.psm1-ac-item .psm1-ac-thumb { width:44px; height:44px; border-radius:10px; object-fit:cover; background:#F2F3F5; flex-shrink:0; }
+.psm1-ac-item mark { background:none; color:#E8780F; font-weight:800; }
+/* 인기검색어 (검색바 우측) */
+.psm1-hot { flex-shrink:0; display:flex; align-items:center; gap:10px; max-width:340px; overflow:hidden; }
+.psm1-hot-label { display:flex; align-items:center; gap:4px; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:-0.02em; flex-shrink:0; }
+.psm1-hot-list { display:flex; align-items:center; gap:14px; overflow:hidden; min-height:20px; }
+.psm1-hot-item { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:500; color:#424242; white-space:nowrap; letter-spacing:-0.02em; }
+.psm1-hot-item:hover { color:#E8780F; }
+.psm1-hot-item .psm1-hot-rank { font-size:12px; font-weight:800; color:#E8780F; }
+.psm1-hd-util { flex-shrink:0; display:flex; align-items:center; gap:6px; }
+.psm1-hd-util .psm1-cart-link { position:relative; display:inline-flex; width:40px; height:40px; align-items:center; justify-content:center; }
+.psm1-hd-util .psm1-cart { width:24px; height:24px; color:#374151; }
+.psm1-hd-util .psm1-cart-link .count { position:absolute; top:2px; right:0; min-width:17px; height:17px; padding:0 4px; background:#E8780F; color:#fff; font-size:10px; font-weight:800; border-radius:9px; display:grid; place-items:center; line-height:1; }
+.psm1-hd-mb { display:none; }
+/* 2) 카테고리 탭 */
+.psm1-tabs { border-bottom:1px solid #F2F3F5; background:#fff; }
+.psm1-tabs-inner { max-width:1256px; margin:0 auto; padding:0 24px; display:flex; align-items:center; gap:0; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; }
+.psm1-tabs-inner::-webkit-scrollbar { display:none; }
+.psm1-tab { padding:15px 14px; font-size:15px; font-weight:600; color:#757575; white-space:nowrap; border-bottom:2px solid transparent; margin-bottom:-1px; transition:.15s; letter-spacing:-0.03em; }
+.psm1-tab.on { color:#E8780F; border-color:#E8780F; font-weight:700; }
+.psm1-tab:hover { color:#2F3438; }
+.psm1-tab .psm1-tab-new { display:inline-block; font-size:10px; font-weight:800; color:#E8780F; vertical-align:top; margin-left:2px; letter-spacing:0; }
+/* 3) 히어로 */
+.psm1-hero { background:#fff; padding:20px 24px 0; }
+.psm1-hero-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:1fr 320px; gap:20px; }
+.psm1-banner { position:relative; border-radius:12px; overflow:hidden; aspect-ratio:16/9; background:#F5F6F8; cursor:pointer; display:block; }
+.psm1-banner-img { width:100%; height:100%; object-fit:cover; }
+.psm1-banner-grad { position:absolute; inset:0; background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,.55) 100%); }
+.psm1-banner-cap { position:absolute; left:24px; right:24px; bottom:24px; color:#fff; }
+.psm1-banner-cap .tag { display:inline-block; font-size:12px; font-weight:700; padding:4px 9px; background:rgba(232,120,15,.92); border-radius:4px; margin-bottom:10px; letter-spacing:-0.02em; }
+.psm1-banner-cap .title { font-size:22px; font-weight:800; line-height:1.35; letter-spacing:-0.04em; text-shadow:0 2px 8px rgba(0,0,0,.3); }
+.psm1-banner-cap .author { margin-top:8px; font-size:12px; font-weight:500; opacity:.95; display:flex; align-items:center; gap:5px; letter-spacing:-0.02em; }
+.psm1-banner-cap .author .av { width:20px; height:20px; border-radius:50%; background:linear-gradient(135deg,#F49A3A,#E8780F); display:grid; place-items:center; font-size:10px; font-weight:800; }
+.psm1-banner-counter { position:absolute; right:14px; bottom:14px; background:rgba(15,23,42,.65); color:#fff; font-size:11px; font-weight:600; padding:4px 9px; border-radius:12px; letter-spacing:-0.02em; }
+.psm1-banner-side { position:relative; border-radius:12px; overflow:hidden; background:linear-gradient(160deg,#E8780F 0%,#F49A3A 60%,#FED7AA 100%); cursor:pointer; display:flex; flex-direction:column; padding:20px 22px; min-height:100%; }
+.psm1-banner-side .ad { display:inline-block; font-size:10px; font-weight:700; padding:2px 6px; background:rgba(255,255,255,.85); color:#7C2D12; border-radius:3px; align-self:flex-start; letter-spacing:0.02em; }
+.psm1-banner-side .label { margin-top:18px; font-size:12px; font-weight:600; color:#7C2D12; letter-spacing:-0.02em; }
+.psm1-banner-side .title { margin-top:6px; font-size:20px; font-weight:800; color:#fff; line-height:1.3; letter-spacing:-0.04em; }
+.psm1-banner-side .product { margin-top:auto; padding-top:20px; align-self:center; display:grid; place-items:center; }
+.psm1-banner-side .product-mock { width:120px; height:140px; background:rgba(255,255,255,.92); border-radius:10px; box-shadow:0 8px 24px rgba(124,45,18,.18); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:#0F1F5C; }
+.psm1-banner-side .product-mock .pm-pkg { font-size:36px; }
+.psm1-banner-side .product-mock .pm-name { font-size:10px; font-weight:700; color:#7C2D12; letter-spacing:0.02em; }
+/* 4) 카테고리 아이콘 */
+.psm1-cats { padding:30px 24px 36px; }
+.psm1-cats-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:repeat(10,1fr); gap:8px; }
+.psm1-cat { display:flex; flex-direction:column; align-items:center; gap:8px; padding:8px 4px; border-radius:12px; cursor:pointer; transition:.15s; }
+.psm1-cat:hover { background:#FAFAFA; }
+.psm1-cat-ico { width:54px; height:54px; border-radius:14px; background:#F5F6F8; display:grid; place-items:center; font-size:24px; }
+.psm1-cat-ico.c1 { background:#F3E8FF; } .psm1-cat-ico.c2 { background:#FFE4E6; } .psm1-cat-ico.c3 { background:#DBEAFE; } .psm1-cat-ico.c4 { background:#DCFCE7; } .psm1-cat-ico.c5 { background:#FCE7F3; } .psm1-cat-ico.c6 { background:#F1F5F9; } .psm1-cat-ico.c7 { background:#FFEDD5; } .psm1-cat-ico.c8 { background:#E0F2FE; } .psm1-cat-ico.c9 { background:#CFFAFE; } .psm1-cat-ico.c10 { background:#FEE2E2; }
+.psm1-cat-name { font-size:13px; font-weight:500; color:#2F3438; text-align:center; letter-spacing:-0.03em; }
+/* 모바일 */
+@media (max-width: 900px) {
+  .psm1-hot { display:none; }
+  .psm1-searchwrap { max-width:none; }
+  .psm1-hero-inner { grid-template-columns:1fr 220px; gap:12px; }
+  .psm1-banner-side { padding:16px; }
+  .psm1-banner-side .title { font-size:16px; }
+  .psm1-banner-cap .title { font-size:18px; }
+  .psm1-cats-inner { grid-template-columns:repeat(5,1fr); row-gap:18px; }
+}
+@media (max-width: 700px) {
+  .psm1-topbar { display:none; }
+  .psm1-hd-inner { display:none; }
+  .psm1-hd-mb { display:block; padding:12px 14px 14px; }
+  .psm1-mb-top { display:grid; grid-template-columns:40px 1fr 40px; align-items:center; }
+  .psm1-hd-mb .psm1-mb-menu, .psm1-hd-mb .psm1-mb-cart { width:40px; height:40px; display:grid; place-items:center; font-size:22px; color:#374151; position:relative; }
+  .psm1-hd-mb .psm1-mb-cart .count { position:absolute; top:2px; right:2px; min-width:15px; height:15px; padding:0 4px; background:#E8780F; color:#fff; font-size:9px; font-weight:800; border-radius:8px; display:grid; place-items:center; line-height:1; }
+  .psm1-hd-mb .psm1-mb-logo { display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; color:#111827; letter-spacing:-0.045em; }
+  .psm1-hd-mb .psm1-mb-logo .psm1-logo-or { color:#111827; }
+  .psm1-mb-searchbar { margin-top:14px; }
+  .psm1-mb-searchbar form { display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:24px; padding:10px 12px 10px 16px; }
+  .psm1-mb-searchbar .psm1-mb-search-ico { width:18px; height:18px; color:#E8780F; flex-shrink:0; }
+  .psm1-mb-searchbar input { flex:1; min-width:0; border:none; background:none; outline:none; font-size:14px; color:#2F3438; letter-spacing:-0.02em; }
+  .psm1-mb-searchbar input::placeholder { color:#9E9E9E; }
+  .psm1-mb-searchbar button[type="submit"] { flex-shrink:0; width:32px; height:32px; border-radius:50%; background:#E8780F; display:grid; place-items:center; }
+  .psm1-mb-searchbar button[type="submit"] svg { width:15px; height:15px; color:#fff; }
+  .psm1-mb-hot { margin-top:10px; display:flex; align-items:center; gap:10px; overflow-x:auto; scrollbar-width:none; }
+  .psm1-mb-hot::-webkit-scrollbar { display:none; }
+  .psm1-mb-hot .psm1-mb-hot-label { font-size:11px; font-weight:800; color:#E8780F; flex-shrink:0; }
+  .psm1-mb-hot a { font-size:12.5px; font-weight:500; color:#616161; white-space:nowrap; }
+  .psm1-tabs-inner { padding:0 14px; }
+  .psm1-tab { font-size:14px; padding:14px 10px; }
+  .psm1-hero { padding:14px 14px 0; }
+  .psm1-hero-inner { grid-template-columns:1fr; gap:10px; }
+  .psm1-banner { aspect-ratio:4/3; border-radius:10px; }
+  .psm1-banner-cap { left:16px; right:16px; bottom:16px; }
+  .psm1-banner-cap .title { font-size:18px; }
+  .psm1-banner-side { aspect-ratio:auto; min-height:140px; flex-direction:row; align-items:center; gap:14px; padding:16px 18px; border-radius:10px; }
+  .psm1-banner-side .label { margin-top:0; }
+  .psm1-banner-side .title { font-size:17px; }
+  .psm1-banner-side .product { margin:0 0 0 auto; padding:0; }
+  .psm1-banner-side .product-mock { width:88px; height:96px; }
+  .psm1-banner-side .product-mock .pm-pkg { font-size:28px; }
+  .psm1-banner-side .ad { position:absolute; top:12px; right:12px; }
+  .psm1-cats { padding:22px 8px 28px; }
+  .psm1-cats-inner { grid-template-columns:repeat(5,1fr); row-gap:18px; gap:0; }
+  .psm1-cat-ico { width:48px; height:48px; font-size:22px; border-radius:14px; }
+  .psm1-cat-name { font-size:11.5px; }
+}
+</style>
+<div class="psm1-sticky">
+<!-- 0) 상단 유틸바 -->
+<div class="psm1-topbar">
+  <div class="psm1-topbar-inner">
+    <a module="Layout_statelogoff" href="/member/login.html">로그인</a>
+    <span class="psm1-tb-divider" module="Layout_statelogoff"></span>
+    <a module="Layout_statelogoff" href="/member/agreement.html">회원가입</a>
+    <a module="Layout_stateLogon" href="/myshop/index.html">마이페이지</a>
+    <span class="psm1-tb-divider" module="Layout_stateLogon"></span>
+    <a module="Layout_stateLogon" href="{$action_logout}">로그아웃</a>
+    <span class="psm1-tb-divider"></span>
+    <a href="/myshop/order/list.html">주문조회</a>
+    <span class="psm1-tb-divider"></span>
+    <a href="/board/index.html">고객센터</a>
+  </div>
+</div>
+<!-- 1) 메인 헤더 -->
+<header class="psm1-hd">
+  <div class="psm1-hd-inner">
+    <a href="/" class="psm1-logo"><span class="psm1-logo-or">POUR</span><span>스토어</span></a>
+    <div class="psm1-searchwrap">
+      <div class="psm1-search">
+        <form action="/product/search.html" method="get" role="search">
+          <svg class="psm1-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="text" name="keyword" autocomplete="off" placeholder="찾으시는 자재를 검색해보세요 (예: 방수재, 프라이머)" aria-label="상품검색" data-psm1-searchinput/>
+          <button type="submit" class="psm1-search-btn" aria-label="검색">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          </button>
+        </form>
+      </div>
+      <div class="psm1-ac" data-psm1-ac></div>
+    </div>
+    <div class="psm1-hot" data-psm1-hot>
+      <span class="psm1-hot-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="#E8780F"><path d="M12 2s4 4 4 8a4 4 0 1 1-8 0c0-1.5.5-2.5.5-2.5S6 10 6 13a6 6 0 1 0 12 0c0-5-6-11-6-11z"/></svg>인기</span>
+      <div class="psm1-hot-list" data-psm1-hot-list></div>
+    </div>
+    <div class="psm1-hd-util">
+      <a href="/order/basket.html" module="Layout_orderBasketcount" class="psm1-cart-link" aria-label="장바구니">
+        <svg class="psm1-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg>
+        <span class="count {$basket_count_display|display} {$basket_count_display_class}"><span class="{$basket_count_class}">{$basket_count}</span></span>
+      </a>
+    </div>
+  </div>
+  <!-- 모바일 헤더 -->
+  <div class="psm1-hd-mb">
+    <div class="psm1-mb-top">
+      <button class="psm1-mb-menu" aria-label="메뉴">☰</button>
+      <a href="/" class="psm1-mb-logo"><span class="psm1-logo-or">POUR</span><span>스토어</span></a>
+      <a href="/order/basket.html" module="Layout_orderBasketcount" class="psm1-mb-cart" aria-label="장바구니">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg>
+        <span class="count {$basket_count_display|display} {$basket_count_display_class}"><span class="{$basket_count_class}">{$basket_count}</span></span>
+      </a>
+    </div>
+    <div class="psm1-mb-searchbar">
+      <form action="/product/search.html" method="get" role="search">
+        <svg class="psm1-mb-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="text" name="keyword" placeholder="찾으시는 자재를 검색해보세요" aria-label="상품검색"/>
+        <button type="submit" aria-label="검색">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        </button>
+      </form>
+    </div>
+    <div class="psm1-mb-hot" data-psm1-mb-hot>
+      <span class="psm1-mb-hot-label">인기</span>
+    </div>
+  </div>
+</header>
+<!-- 2) 카테고리 탭 -->
+<nav class="psm1-tabs" aria-label="카테고리 탭">
+  <div class="psm1-tabs-inner">
+    <a href="/" class="psm1-tab on">홈</a>
+    <a href="/product/list.html" class="psm1-tab">추천</a>
+    <a href="/product/list.html" class="psm1-tab">베스트</a>
+    <a href="/product/list.html" class="psm1-tab">신상품</a>
+    <a href="/product/list.html" class="psm1-tab">셀프시공</a>
+    <a href="/board/index.html" class="psm1-tab">시공가이드</a>
+    <a href="/board/index.html" class="psm1-tab">시공사례</a>
+    <a href="/board/index.html" class="psm1-tab">쇼핑수다</a>
+    <a href="/board/index.html" class="psm1-tab">이벤트</a>
+    <a href="/product/list.html" class="psm1-tab">패키지 NEW <span class="psm1-tab-new">N</span></a>
+  </div>
+</nav>
+</div><!-- //psm1-sticky -->
+<!-- 3) 히어로 -->
+<div class="psm1-hero">
+  <div class="psm1-hero-inner">
+    <a href="/product/list.html" class="psm1-banner">
+      <svg class="psm1-banner-img" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="psm1bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3E9DB"/><stop offset=".55" stop-color="#E8D7BC"/><stop offset="1" stop-color="#B89A77"/></linearGradient>
+          <linearGradient id="psm1sun" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE6B8"/><stop offset="1" stop-color="#F49A3A" stop-opacity=".55"/></linearGradient>
+        </defs>
+        <rect width="1280" height="720" fill="url(#psm1bg)"/>
+        <rect x="180" y="120" width="700" height="430" fill="#E8F0EE" opacity=".85"/>
+        <rect x="180" y="120" width="700" height="430" fill="url(#psm1sun)" opacity=".55"/>
+        <g stroke="#fff" stroke-width="6" opacity=".85"><line x1="530" y1="120" x2="530" y2="550"/><line x1="180" y1="335" x2="880" y2="335"/></g>
+        <ellipse cx="780" cy="560" rx="55" ry="14" fill="#3D4A33" opacity=".4"/>
+        <path d="M730 555 q50 -120 100 0 z" fill="#3F6B47"/>
+        <rect x="745" y="555" width="70" height="40" rx="6" fill="#7C4A2A"/>
+        <rect x="240" y="560" width="380" height="110" rx="14" fill="#C2A485"/>
+        <rect x="240" y="540" width="380" height="40" rx="14" fill="#A88564"/>
+        <line x1="160" y1="680" x2="160" y2="280" stroke="#3D2A1C" stroke-width="5"/>
+        <ellipse cx="160" cy="270" rx="50" ry="32" fill="#F5E8C8"/>
+      </svg>
+      <div class="psm1-banner-grad"></div>
+      <div class="psm1-banner-cap">
+        <span class="tag">#방수패키지</span>
+        <div class="title">옥상 누수, 셀프로 케어하는 방수 패키지</div>
+        <div class="author"><span class="av">P</span>@pour_official</div>
+      </div>
+      <div class="psm1-banner-counter">1 / 15 +</div>
+    </a>
+    <a href="/product/list.html" class="psm1-banner-side">
+      <span class="ad">AD</span>
+      <div class="text-wrap">
+        <div class="label">POUR스토어 추천</div>
+        <div class="title">방수 자재<br/>셀프 패키지</div>
+      </div>
+      <div class="product"><div class="product-mock"><span class="pm-pkg">🪣</span><span class="pm-name">방수 자재</span></div></div>
+    </a>
+  </div>
+</div>
+<!-- 4) 카테고리 아이콘 -->
+<nav class="psm1-cats" aria-label="빠른 메뉴">
+  <div class="psm1-cats-inner">
+    <a href="/product/list.html" class="psm1-cat"><span class="psm1-cat-ico c1">🏷</span><span class="psm1-cat-name">쇼핑하기</span></a>
+    <a href="/product/list.html" class="psm1-cat"><span class="psm1-cat-ico c2">⚡</span><span class="psm1-cat-name">오늘의딜</span></a>
+    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c3">🔍</span><span class="psm1-cat-name">시공가이드</span></a>
+    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c4">✅</span><span class="psm1-cat-name">출석체크</span></a>
+    <a href="/product/list.html" class="psm1-cat"><span class="psm1-cat-ico c5">📦</span><span class="psm1-cat-name">패키지</span></a>
+    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c6">📸</span><span class="psm1-cat-name">후기참여</span></a>
+    <a href="/product/list.html" class="psm1-cat"><span class="psm1-cat-ico c7">🛒</span><span class="psm1-cat-name">자재마트</span></a>
+    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c8">🚚</span><span class="psm1-cat-name">배송안내</span></a>
+    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c9">🧹</span><span class="psm1-cat-name">시공상담</span></a>
+    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c10">📡</span><span class="psm1-cat-name">문의하기</span></a>
+  </div>
+</nav>
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain: "pour-app-new.firebaseapp.com",
+  projectId: "pour-app-new",
+  storageBucket: "pour-app-new.firebasestorage.app",
+  messagingSenderId: "411031141847",
+  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
+};
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+(async function(){
+  var section = document.querySelector('.psm1');
+  if (!section) return;
+
+  // sticky 그림자
+  var sticky = section.querySelector('.psm1-sticky');
+  if (sticky) {
+    var onScroll = function(){ if (window.pageYOffset > 4) sticky.classList.add('psm1-scrolled'); else sticky.classList.remove('psm1-scrolled'); };
+    window.addEventListener('scroll', onScroll, { passive:true }); onScroll();
+  }
+
+  var SEARCH_URL = '/product/search.html?keyword=';
+  var items = [];
+
+  // ===== config/pourstoreHotkeywords 읽기 =====
+  try {
+    var snap = await getDoc(doc(db, "config", "pourstoreHotkeywords"));
+    var raw = snap.exists() && Array.isArray(snap.data().items) ? snap.data().items : [];
+    console.log("[psm1] 인기검색어 원본 " + raw.length + "건 로드");
+    // 클라 정렬: rank 오름차순 + active===true (§10.3-C, orderBy 미사용)
+    items = raw.filter(function(o){ return o && o.active === true; })
+               .sort(function(a,b){ return (a.rank||99) - (b.rank||99); });
+    console.log("[psm1] 노출 대상 " + items.length + "건");
+  } catch (e) {
+    console.log("[psm1] 인기검색어 로드 실패:", e && e.message ? e.message : e);
+  }
+
+  function linkFor(o){ return (o.link && o.link.trim()) ? o.link : (SEARCH_URL + encodeURIComponent(o.keyword||'')); }
+
+  // ===== 레벨1: 인기검색어 표출 (PC) =====
+  var hotList = section.querySelector('[data-psm1-hot-list]');
+  var hotWrap = section.querySelector('[data-psm1-hot]');
+  if (hotList && items.length) {
+    items.slice(0,5).forEach(function(o, i){
+      var a = document.createElement('a');
+      a.className = 'psm1-hot-item';
+      a.href = linkFor(o);
+      a.innerHTML = '<span class="psm1-hot-rank">' + (i+1) + '</span>' + (o.keyword||'');
+      hotList.appendChild(a);
+    });
+  } else if (hotWrap) {
+    hotWrap.style.display = 'none';
+  }
+  // 모바일 인기검색어
+  var mbHot = section.querySelector('[data-psm1-mb-hot]');
+  if (mbHot && items.length) {
+    items.slice(0,8).forEach(function(o){
+      var a = document.createElement('a');
+      a.href = linkFor(o);
+      a.textContent = o.keyword||'';
+      mbHot.appendChild(a);
+    });
+  }
+
+  // ===== 레벨2: 검색 자동완성 =====
+  var input = section.querySelector('[data-psm1-searchinput]');
+  var ac = section.querySelector('[data-psm1-ac]');
+  if (input && ac) {
+    function esc(s){ return (s||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+    function thumbHtml(o){ var t = o.thumb || o.thumbnail || o.image; return (t && String(t).trim()) ? '<img class="psm1-ac-thumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' : ''; }
+    function highlight(text, q){ if(!q) return text; return text.replace(new RegExp('('+esc(q)+')','gi'), '<mark>$1</mark>'); }
+
+    function renderDefault(){
+      // 입력 없을 때: 인기검색어 노출
+      var html = '';
+      if (items.length) {
+        html += '<div class="psm1-ac-sec">인기 검색어</div>';
+        items.slice(0,5).forEach(function(o,i){
+          html += '<a class="psm1-ac-item" href="'+linkFor(o)+'"><span class="psm1-ac-rank">'+(i+1)+'</span><span class="psm1-ac-text">'+(o.keyword||'')+'</span>'+thumbHtml(o)+'</a>';
+        });
+      }
+      ac.innerHTML = html;
+      return !!html;
+    }
+    function renderMatches(q){
+      var ql = q.toLowerCase();
+      var matched = [];
+      items.forEach(function(o){
+        var pool = [o.keyword||''].concat(Array.isArray(o.synonyms)? o.synonyms : []);
+        var hit = pool.some(function(t){ return (t||'').toLowerCase().indexOf(ql) !== -1; });
+        if (hit) matched.push(o);
+      });
+      if (!matched.length) { ac.innerHTML=''; ac.classList.remove('open'); return; }
+      var html = '<div class="psm1-ac-sec">추천 검색어</div>';
+      matched.slice(0,8).forEach(function(o){
+        html += '<a class="psm1-ac-item" href="'+linkFor(o)+'"><span class="psm1-ac-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span><span class="psm1-ac-text">'+highlight(o.keyword||'', q)+'</span>'+thumbHtml(o)+'</a>';
+      });
+      ac.innerHTML = html;
+      ac.classList.add('open');
+    }
+
+    input.addEventListener('focus', function(){
+      if (input.value.trim()) renderMatches(input.value.trim());
+      else if (renderDefault()) ac.classList.add('open');
+    });
+    input.addEventListener('input', function(){
+      var q = input.value.trim();
+      if (!q) { if(renderDefault()) ac.classList.add('open'); else ac.classList.remove('open'); }
+      else renderMatches(q);
+    });
+    input.addEventListener('blur', function(){ setTimeout(function(){ ac.classList.remove('open'); }, 160); });
+    ac.addEventListener('mousedown', function(e){ if (e.target.closest('a')) return; e.preventDefault(); });
+  }
+})();
+</script>
+</section>

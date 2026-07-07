@@ -6,6 +6,7 @@
           검색어(keyword)가 각 포스팅 tags(또는 인기검색어 synonyms)와
           매칭되면 '관련 매거진'으로 노출. 매칭 0건이면 블록 숨김(기본 검색 그대로).
           매칭: 띄어쓰기 무시(정규화) + 부분일치 + 인기검색어 연관어 확장.
+  아이콘: 이모지 미사용 — 인라인 SVG 라인 아이콘(psm 스타일 통일).
 ============================================================ -->
 <section class="psrc" data-psrc>
 <style>
@@ -14,11 +15,12 @@
 .psrc-inner { display:none; }
 .psrc-inner.on { display:block; animation:psrc-in .3s ease; }
 @keyframes psrc-in { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
-.psrc-head { display:flex; align-items:baseline; gap:8px; margin:6px 2px 3px; }
-.psrc-head .ico { font-size:18px; line-height:1; align-self:center; }
+.psrc-head { display:flex; align-items:center; gap:7px; margin:6px 2px 3px; }
+.psrc-head .ico { display:inline-flex; color:#E8780F; }
+.psrc-head .ico svg { width:18px; height:18px; }
 .psrc-head .k { font-size:18px; font-weight:800; color:#111827; }
 .psrc-head .k b { color:#E8780F; }
-.psrc-head .sub { font-size:12.5px; font-weight:600; color:#9AA0A6; }
+.psrc-head .sub { font-size:12.5px; font-weight:600; color:#9AA0A6; align-self:flex-end; }
 .psrc-tip { font-size:12.5px; font-weight:600; color:#9AA0A6; margin:0 2px 14px; }
 .psrc-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
 /* 개수 적응형: 1개 와이드(가로), 2개 2열, 3개+ 3열 */
@@ -32,10 +34,12 @@
 .psrc-card { display:flex; flex-direction:column; border:1px solid #EEF0F2; border-radius:14px; overflow:hidden; background:#fff; transition:.15s; cursor:pointer; }
 .psrc-card:hover { border-color:#FBE2C4; box-shadow:0 8px 24px rgba(232,120,15,.10); transform:translateY(-2px); }
 .psrc-thumb { position:relative; aspect-ratio:16/9; background:#F2F3F5; overflow:hidden; }
-.psrc-thumb img { width:100%; height:100%; object-fit:cover; }
-.psrc-thumb .ph { width:100%; height:100%; display:grid; place-items:center; font-size:30px; opacity:.5; }
-.psrc-badge { position:absolute; top:9px; left:9px; display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:800; color:#fff; padding:3px 8px; border-radius:6px; }
-.psrc-play { position:absolute; inset:0; display:grid; place-items:center; }
+.psrc-thumb .ph { position:absolute; inset:0; display:grid; place-items:center; color:#C4C9CF; }
+.psrc-thumb .ph svg { width:34px; height:34px; }
+.psrc-thumb img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.psrc-badge { position:absolute; top:9px; left:9px; z-index:2; display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:800; color:#fff; padding:4px 8px; border-radius:6px; }
+.psrc-badge svg { width:11px; height:11px; }
+.psrc-play { position:absolute; inset:0; z-index:2; display:grid; place-items:center; }
 .psrc-play span { width:44px; height:44px; border-radius:50%; background:rgba(0,0,0,.55); display:grid; place-items:center; }
 .psrc-play svg { width:18px; height:18px; margin-left:2px; fill:#fff; }
 .psrc-body { padding:11px 13px 13px; }
@@ -43,7 +47,7 @@
 .psrc-sum { margin-top:5px; font-size:12px; font-weight:500; color:#9AA0A6; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 @media (max-width:900px){ .psrc-grid:not(.n1):not(.n2){ grid-template-columns:repeat(2,1fr);} }
 @media (max-width:600px){
-  .psrc{ padding:6px 14px 2px; }
+  .psrc{ padding:20px 14px 2px; }
   .psrc-grid{ display:flex; gap:11px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
   .psrc-grid::-webkit-scrollbar{ display:none; }
   .psrc-card{ flex:0 0 72%; }
@@ -55,8 +59,8 @@
 </style>
 <div class="psrc-inner" data-psrc-inner>
   <div class="psrc-head">
-    <span class="ico" data-psrc-ico>📌</span>
-    <span class="k">'<b data-psrc-kw></b>' <span data-psrc-label>관련 콘텐츠</span></span>
+    <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span>
+    <span class="k">'<b data-psrc-kw></b>' <span data-psrc-label>관련 매거진</span></span>
     <span class="sub" data-psrc-sub></span>
   </div>
   <div class="psrc-tip" data-psrc-tip></div>
@@ -76,19 +80,25 @@ const firebaseConfig = {
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// 인라인 SVG 라인 아이콘 (이모지 미사용)
+const IC_PLAY  = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+const IC_DOC   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 13h6M9 17h4"/></svg>';
+const IC_BLD   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M6 21V8l6-4 6 4v13"/><path d="M10 12h.01M14 12h.01M10 16h.01M14 16h.01"/></svg>';
+const IC_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';
+
 const TYPE = {
-  guide: { label:'가이드',  color:'#059669', icon:'📘' },
-  blog:  { label:'블로그',  color:'#03C75A', icon:'📝' },
-  video: { label:'유튜브',  color:'#DC2626', icon:'▶' },
-  case:  { label:'시공사례', color:'#EA580C', icon:'🏗' }
+  guide: { label:'가이드',  color:'#059669', icon:IC_CHECK },
+  blog:  { label:'블로그',  color:'#03C75A', icon:IC_DOC },
+  video: { label:'유튜브',  color:'#DC2626', icon:IC_PLAY },
+  case:  { label:'시공사례', color:'#EA580C', icon:IC_BLD }
 };
-// 헤드라인 — 유형별 쉬운 말 (§3-2). §3-6 금지어(견적/맞춤/진단/시방서·셀프인테리어/홈데코) 미사용.
-const HEAD = {
-  video:   { ico:'🎬', label:'시공 영상',  tip:'영상 보고 따라 해보세요' },
-  case:    { ico:'🏗', label:'시공 사례',  tip:'실제 시공 현장을 확인해보세요' },
-  guide:   { ico:'📘', label:'시공 가이드', tip:'순서대로 따라 해보세요' },
-  blog:    { ico:'📝', label:'관련 글',    tip:'도움되는 글을 모았어요' },
-  default: { ico:'📌', label:'관련 콘텐츠', tip:'도움되는 자료를 모았어요' }
+// 부제 — 유형별 쉬운 말(§3-2). §3-6 금지어(견적/맞춤/진단/시방서·셀프인테리어/홈데코) 미사용.
+const TIP = {
+  video:   '영상 보고 따라 해보세요',
+  case:    '실제 시공 현장을 확인해보세요',
+  guide:   '순서대로 따라 해보세요',
+  blog:    '도움되는 글을 모았어요',
+  default: '도움되는 자료를 모았어요'
 };
 const MAX = 6;
 const norm = (s) => (s||'').toString().toLowerCase().replace(/\s+/g,'');
@@ -143,12 +153,11 @@ const norm = (s) => (s||'').toString().toLowerCase().replace(/\s+/g,'');
   // ③ 헤드라인 — '관련 매거진' 고정(포스팅=매거진 컨텐츠), 부제는 유형별 쉬운 말
   const types = list.map(p => p.type);
   const allSame = types.every(t => t === types[0]);
-  const h = (allSame && HEAD[types[0]]) ? HEAD[types[0]] : HEAD.default;
-  sec.querySelector('[data-psrc-ico]').textContent = '📚';
+  const tip = (allSame && TIP[types[0]]) ? TIP[types[0]] : TIP.default;
   sec.querySelector('[data-psrc-kw]').textContent = kw;
   sec.querySelector('[data-psrc-label]').textContent = '관련 매거진';
   sec.querySelector('[data-psrc-sub]').textContent = matched.length + '개';
-  sec.querySelector('[data-psrc-tip]').textContent = h.tip;
+  sec.querySelector('[data-psrc-tip]').textContent = tip;
 
   list.forEach(p => {
     const t = TYPE[p.type] || TYPE.blog;
@@ -156,12 +165,12 @@ const norm = (s) => (s||'').toString().toLowerCase().replace(/\s+/g,'');
     a.className = 'psrc-card';
     a.href = p.link || '#';
     if (p.type === 'video' || /^https?:\/\/(www\.)?(youtu\.be|youtube\.com)/.test(p.link||'')) { a.target = '_blank'; a.rel = 'noopener'; }
-    const thumb = p.thumbnail
-      ? '<img src="'+p.thumbnail+'" alt="" loading="lazy" onerror="this.parentNode.innerHTML=\'<div class=&quot;ph&quot;>'+t.icon+'</div>\'"/>'
-      : '<div class="ph">'+t.icon+'</div>';
-    const play = p.type === 'video' ? '<div class="psrc-play"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>' : '';
+    const img = p.thumbnail ? '<img src="'+p.thumbnail+'" alt="" loading="lazy" onerror="this.remove()"/>' : '';
+    const play = p.type === 'video' ? '<div class="psrc-play"><span>'+IC_PLAY+'</span></div>' : '';
     a.innerHTML =
-      '<div class="psrc-thumb">'+thumb+play+
+      '<div class="psrc-thumb">'+
+        '<div class="ph">'+t.icon+'</div>'+
+        img + play +
         '<span class="psrc-badge" style="background:'+t.color+'">'+t.icon+' '+t.label+'</span>'+
       '</div>'+
       '<div class="psrc-body">'+

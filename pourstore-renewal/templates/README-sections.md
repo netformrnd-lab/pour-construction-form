@@ -60,7 +60,10 @@ templates/
 | pour-01-main | `config/pourstoreHotkeywords` | 검색→`/product/search.html` |
 | pour-02b-vending | (더미, 2단계 카페24 상품모듈) | `/product/list.html` |
 | pour-09-record | `site-resources/pourstore-gallery`·`pourstore-partners` | pourstore.net |
-| search/pour-02-search-content | `pourstore-postings` | 각 포스팅 링크 |
+| search/pour-02-search-content | `pourstore-postings` (태그 자동매칭) | 각 포스팅 링크 |
+| package/pkg-5-video | `pourstore-postings` (placements⊇`pkg-video`) | 각 영상 링크 |
+
+> 포스팅(`pourstore-postings`)은 어드민 '포스팅 관리'에서 등록. `placements`에 `pkg-video`를 지정하면 패키지 시공영상(pkg-5-video)에 노출. 검색 상단은 `tags` 자동매칭이라 placements 무관.
 
 ## 규칙
 - 편집 시작 전 섹션은 **카페24가 source of truth**. 이 레포에서 편집·재배포할 때부터 레포가 원본.

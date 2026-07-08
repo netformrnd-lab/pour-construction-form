@@ -4643,14 +4643,19 @@ function HotKeywordsPage({showToast}){
 // ============================================================
 // 포스팅 관리 (자사몰 검색 상단 '관련 컨텐츠')
 //   저장: pourstore-postings (문서당 1건)
-//   { type, title, link, thumbnail, tags:[], summary, order, active, createdAt, updatedAt }
-//   → 검색 페이지: tags에 검색어(또는 hotkeyword synonyms) 포함 + active를 order순 상위 N개 상단 카드로
+//   { type, title, link, thumbnail, tags:[], summary, duration, placements:[], order, active, createdAt, updatedAt }
+//   → 검색 페이지: tags에 검색어(또는 hotkeyword synonyms) 포함 + active를 order순 상위 N개 상단 카드로 (placements 무관, 태그 자동)
+//   → placements: 특정 스토어 섹션에 추가 노출. 'pkg-video' = 패키지 시공영상(pkg-5-video)
 // ============================================================
 const POSTING_TYPES=[
   {key:'guide', label:'가이드',  icon:'📘', color:'#059669'},
   {key:'blog',  label:'블로그',  icon:'📝', color:'#03C75A'},
   {key:'video', label:'유튜브',  icon:'▶',  color:'#DC2626'},
   {key:'case',  label:'시공사례', icon:'🏗', color:'#EA580C'},
+];
+// 노출 위치 — 검색 상단은 태그로 자동 매칭되므로, 여기선 '추가 노출' 섹션만 지정
+const POSTING_PLACEMENTS=[
+  {key:'pkg-video', label:'패키지 시공영상'},
 ];
 const postingType=(k)=>POSTING_TYPES.find(t=>t.key===k)||POSTING_TYPES[0];
 const ytId=(url)=>{const m=(url||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/);return m?m[1]:null;};
@@ -4677,8 +4682,8 @@ function PostingsPage({showToast}){
   };
   useEffect(()=>{ load(); },[]);
 
-  const startNew=()=>setEditing({type:'blog',title:'',link:'',thumbnail:'',tagsText:'',summary:'',active:true,order:list.length});
-  const startEdit=(p)=>setEditing({...p,tagsText:(p.tags||[]).join(', ')});
+  const startNew=()=>setEditing({type:'blog',title:'',link:'',thumbnail:'',tagsText:'',summary:'',duration:'',placements:[],active:true,order:list.length});
+  const startEdit=(p)=>setEditing({...p,tagsText:(p.tags||[]).join(', '),placements:p.placements||[],duration:p.duration||''});
 
   const saveEditing=async()=>{
     const f=editing;
@@ -4689,7 +4694,8 @@ function PostingsPage({showToast}){
       const tags=(f.tagsText||'').split(',').map(s=>s.trim()).filter(Boolean);
       const thumbnail=(f.thumbnail||'').trim() || (f.type==='video'?ytThumb(f.link):'');
       const payload={ type:f.type, title:f.title.trim(), link:f.link.trim(), thumbnail, tags,
-        summary:(f.summary||'').trim(), order:Number(f.order)||0, active:f.active!==false };
+        summary:(f.summary||'').trim(), duration:(f.duration||'').trim(), placements:Array.isArray(f.placements)?f.placements:[],
+        order:Number(f.order)||0, active:f.active!==false };
       if(f.id){
         await db.collection(COLLECTIONS.POURSTORE_POSTINGS).doc(f.id).set({...payload,...audit.update()},{merge:true});
       }else{
@@ -4756,6 +4762,7 @@ function PostingsPage({showToast}){
                 <span style={{fontSize:13.5,fontWeight:800,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.title}</span>
               </div>
               <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                {(p.placements||[]).includes('pkg-video') && <span style={{fontSize:9.5,fontWeight:800,color:'#EA580C',background:'var(--or-pale)',border:'1px solid #FED7AA',borderRadius:5,padding:'1px 6px',marginRight:6}}>패키지영상</span>}
                 {(p.tags||[]).length?('#'+(p.tags||[]).join(' #')):<span style={{color:'var(--red)'}}>태그 없음 — 검색 매칭 안됨</span>}
               </div>
             </div>
@@ -4810,6 +4817,18 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
         <div style={{height:12}}/>
         <label style={lbl}>요약 (선택)</label>
         <input value={form.summary||''} onChange={e=>set({summary:e.target.value})} placeholder="한 줄 설명" style={field}/>
+        {form.type==='video' && <React.Fragment>
+          <div style={{height:12}}/>
+          <label style={lbl}>영상 길이 (선택) — 예: 12:30</label>
+          <input value={form.duration||''} onChange={e=>set({duration:e.target.value})} placeholder="12:30" style={field}/>
+        </React.Fragment>}
+        <div style={{height:12}}/>
+        <label style={lbl}>노출 위치 (추가) — 검색 상단은 태그로 자동 노출됩니다</label>
+        <div style={{display:'flex',gap:8,marginTop:6,flexWrap:'wrap'}}>
+          {POSTING_PLACEMENTS.map(pl=>{ const on=(form.placements||[]).includes(pl.key);
+            return <button key={pl.key} type="button" onClick={()=>{const cur=form.placements||[]; set({placements: on?cur.filter(x=>x!==pl.key):[...cur,pl.key]});}} style={{padding:'7px 12px',borderRadius:8,fontSize:12,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or-pale)':'#fff',color:on?'var(--or-d)':'var(--text-md)'}}>{on?'✓ ':''}{pl.label}</button>;
+          })}
+        </div>
         <div style={{display:'flex',gap:16,alignItems:'center',marginTop:14}}>
           <label style={{...lbl,display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}>
             <input type="checkbox" checked={form.active!==false} onChange={e=>set({active:e.target.checked})}/> 노출

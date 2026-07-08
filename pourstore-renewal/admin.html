@@ -4854,12 +4854,12 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
 // ============================================================
 const BANNER_SLOTS=[
   {key:'hero', label:'메인 히어로 배너', desc:'검색바 아래 좌측 큰 배너', size:'권장 1280 × 720 px (가로형 16:9)', ratio:'16 / 9'},
-  {key:'side', label:'추천(사이드) 배너', desc:'히어로 우측 세로 배너', size:'권장 640 × 1060 px (세로형)', ratio:'64 / 106'},
+  {key:'side', label:'추천(사이드) 배너', desc:'히어로 우측 세로 배너 (높이는 좌측에 맞춰 표시)', size:'권장 640 × 1060 px (세로형)', ratio:'64 / 106'},
 ];
 function BannersPage({showToast}){
   const { audit } = useActiveStaffContext();
-  const emptySlot={image:'',link:'',active:true};
-  const [data,setData]=useState({hero:{...emptySlot}, side:{...emptySlot}});
+  const normSlot=(v)=>{ if(Array.isArray(v)) return v.map(x=>({image:x.image||'',link:x.link||''})); if(v && (v.image||v.link)) return [{image:v.image||'',link:v.link||''}]; return []; };
+  const [data,setData]=useState({hero:[], side:[], intervalSec:5});
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState(null);
@@ -4867,25 +4867,29 @@ function BannersPage({showToast}){
   useEffect(()=>{ (async()=>{
     try{
       const d=await db.collection('config').doc('pourstoreBanners').get();
-      if(d.exists){ const v=d.data()||{}; setData({hero:{...emptySlot,...(v.hero||{})}, side:{...emptySlot,...(v.side||{})}}); }
+      if(d.exists){ const v=d.data()||{}; setData({hero:normSlot(v.hero), side:normSlot(v.side), intervalSec:Number(v.intervalSec)||5}); }
       console.log('[banners] 로드', d.exists);
     }catch(e){ console.error('[banners] 로드 실패:',e); showToast('배너 로드 실패: '+e.message,'error'); }
     setLoading(false);
   })(); },[]);
 
-  const patch=(slot,part)=>setData(prev=>({...prev,[slot]:{...prev[slot],...part}}));
+  const setSlot=(slot,arr)=>setData(prev=>({...prev,[slot]:arr}));
+  const addBanner=(slot)=>setSlot(slot,[...data[slot],{image:'',link:''}]);
+  const removeBanner=(slot,i)=>setSlot(slot,data[slot].filter((_,idx)=>idx!==i));
+  const patchBanner=(slot,i,part)=>setSlot(slot,data[slot].map((b,idx)=>idx===i?{...b,...part}:b));
+  const moveBanner=(slot,i,dir)=>{ const arr=[...data[slot]]; const j=i+dir; if(j<0||j>=arr.length)return; const t=arr[i];arr[i]=arr[j];arr[j]=t; setSlot(slot,arr); };
 
-  const upload=async(slot,file)=>{
+  const upload=async(slot,i,file)=>{
     if(!file)return;
     if(!file.type.startsWith('image/')){ showToast('이미지(png/jpg)만 가능','error'); return; }
     if(file.size > 5*1024*1024){ showToast('5MB 이하 이미지만 가능','error'); return; }
-    setUploading(slot);
+    setUploading(slot+':'+i);
     try{
       const ts=Date.now(); const safe=file.name.replace(/[^\w.\-]/g,'_');
       const path=`POUR스토어_리뉴얼/banners/${slot}_${ts}_${safe}`;
       const snap=await storage.ref(path).put(file);
       const url=await snap.ref.getDownloadURL();
-      patch(slot,{image:url});
+      patchBanner(slot,i,{image:url});
       showToast('이미지 업로드 완료 — 하단 저장을 눌러 반영');
     }catch(e){ console.error('[banners] 업로드 실패:',e); showToast('업로드 실패: '+e.message,'error'); }
     setUploading(null);
@@ -4894,48 +4898,59 @@ function BannersPage({showToast}){
   const save=async()=>{
     setSaving(true);
     try{
-      await db.collection('config').doc('pourstoreBanners').set({hero:data.hero, side:data.side, ...audit.update()},{merge:true});
-      console.log('[banners] 저장', data); showToast('저장되었습니다 — 스토어에 반영됩니다');
+      const clean=(arr)=>arr.filter(b=>b.image).map(b=>({image:b.image,link:(b.link||'').trim()}));
+      await db.collection('config').doc('pourstoreBanners').set({hero:clean(data.hero), side:clean(data.side), intervalSec:Number(data.intervalSec)||5, ...audit.update()},{merge:true});
+      showToast('저장되었습니다 — 스토어에 반영됩니다');
     }catch(e){ console.error('[banners] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
     setSaving(false);
   };
 
   if(loading)return <div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>;
-  const field={width:'100%',padding:'10px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13,outline:'none',boxSizing:'border-box',marginTop:6};
+  const field={width:'100%',padding:'9px 11px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:12.5,outline:'none',boxSizing:'border-box',marginTop:6};
 
   return(
-    <div style={{padding:'24px 32px',maxWidth:1000}}>
-      <div style={{marginBottom:18}}>
-        <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>🖼 메인 배너 관리</h1>
-        <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>메인 상단 배너 2종을 이미지(png/jpg)로 직접 교체. 권장 사이즈에 맞춰 올리면 화면에 그대로 반영됩니다.</div>
+    <div style={{padding:'24px 32px',maxWidth:1100}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:18}}>
+        <div>
+          <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>🖼 메인 배너 관리</h1>
+          <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>배너를 여러 개 올리면 자동으로 슬라이드됩니다. 각 배너에 링크를 넣으면 클릭 시 이동합니다.</div>
+        </div>
+        <label style={{fontSize:12,fontWeight:800,color:'var(--text-md)',display:'flex',alignItems:'center',gap:6}}>자동 전환 <input type="number" min="2" max="20" value={data.intervalSec} onChange={e=>setData(prev=>({...prev,intervalSec:e.target.value}))} style={{width:54,padding:'6px 8px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12}}/> 초</label>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(380px,1fr))',gap:18}}>
-        {BANNER_SLOTS.map(slot=>{ const b=data[slot.key]; const up=uploading===slot.key;
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(400px,1fr))',gap:18}}>
+        {BANNER_SLOTS.map(slot=>{
+          const list=data[slot.key];
           return(
-            <div key={slot.key} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'18px 18px 20px'}}>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:4}}>
-                <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}>{slot.label}</div>
-                <label style={{display:'flex',alignItems:'center',gap:5,fontSize:12,fontWeight:800,color:b.active!==false?'var(--green)':'var(--text-sm)',cursor:'pointer'}}>
-                  <input type="checkbox" checked={b.active!==false} onChange={e=>patch(slot.key,{active:e.target.checked})}/> 노출
-                </label>
+            <div key={slot.key} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'18px'}}>
+              <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}>{slot.label} <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>({list.length}장)</span></div>
+              <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,margin:'2px 0'}}>{slot.desc}</div>
+              <div style={{fontSize:11.5,color:'var(--or-d)',fontWeight:800,marginBottom:12}}>{slot.size}</div>
+              <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                {list.length===0 && <div style={{padding:'22px 0',textAlign:'center',color:'var(--text-sm)',fontSize:12.5,fontWeight:700,background:'var(--bg)',borderRadius:10,border:'1px dashed var(--border)'}}>배너가 없습니다. 아래 '+ 배너 추가'</div>}
+                {list.map((b,i)=>{ const up=uploading===slot.key+':'+i;
+                  return(
+                    <div key={i} style={{display:'flex',gap:12,alignItems:'flex-start',padding:'10px',background:'var(--bg)',borderRadius:10,border:'1px solid var(--border)'}}>
+                      <div style={{position:'relative',width:120,aspectRatio:slot.ratio,flexShrink:0,borderRadius:8,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                        {b.image?<img src={b.image} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';}}/>:<span style={{fontSize:11,color:'var(--text-sm)',fontWeight:700}}>없음</span>}
+                        {up&&<div style={{position:'absolute',inset:0,background:'rgba(255,255,255,.7)',display:'grid',placeItems:'center',fontSize:11,fontWeight:800,color:'var(--or-d)'}}>업로드중</div>}
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{display:'flex',gap:6}}>
+                          <label style={{flex:1,textAlign:'center',padding:'8px',borderRadius:8,border:'1.5px solid var(--or)',color:'var(--or-d)',background:'#fff',fontSize:11.5,fontWeight:800,cursor:up?'wait':'pointer'}}>
+                            {b.image?'이미지 교체':'이미지 업로드'}
+                            <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload(slot.key,i,f); e.target.value='';}} style={{display:'none'}}/>
+                          </label>
+                          <button onClick={()=>moveBanner(slot.key,i,-1)} disabled={i===0} title="위로" style={{width:30,borderRadius:8,border:'1px solid var(--border)',background:'#fff',cursor:i===0?'default':'pointer',opacity:i===0?0.4:1,fontWeight:800}}>↑</button>
+                          <button onClick={()=>moveBanner(slot.key,i,1)} disabled={i===list.length-1} title="아래로" style={{width:30,borderRadius:8,border:'1px solid var(--border)',background:'#fff',cursor:i===list.length-1?'default':'pointer',opacity:i===list.length-1?0.4:1,fontWeight:800}}>↓</button>
+                          <button onClick={()=>removeBanner(slot.key,i)} title="삭제" style={{width:30,borderRadius:8,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',cursor:'pointer',fontWeight:900}}>×</button>
+                        </div>
+                        <input value={b.link||''} onChange={e=>patchBanner(slot.key,i,{link:e.target.value})} placeholder="클릭 시 이동 링크 (예: /product/list.html?cate_no=71)" style={field}/>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:2}}>{slot.desc}</div>
-              <div style={{fontSize:11.5,color:'var(--or-d)',fontWeight:800,marginBottom:10}}>{slot.size}</div>
-              <div style={{position:'relative',width:'100%',aspectRatio:slot.ratio,borderRadius:10,overflow:'hidden',background:'var(--or-pale)',border:'1px dashed var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                {b.image
-                  ? <img src={b.image} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';}}/>
-                  : <span style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>이미지 없음 — 아래에서 업로드</span>}
-                {up && <div style={{position:'absolute',inset:0,background:'rgba(255,255,255,.7)',display:'grid',placeItems:'center',fontSize:13,fontWeight:800,color:'var(--or-d)'}}>업로드 중...</div>}
-              </div>
-              <div style={{display:'flex',gap:8,marginTop:10}}>
-                <label style={{flex:1,textAlign:'center',padding:'10px',borderRadius:9,border:'1.5px solid var(--or)',color:'var(--or-d)',background:'#fff',fontSize:12.5,fontWeight:800,cursor:up?'wait':'pointer'}}>
-                  {b.image?'이미지 교체':'이미지 업로드'} (png/jpg)
-                  <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload(slot.key,f); e.target.value='';}} style={{display:'none'}}/>
-                </label>
-                {b.image && <button onClick={()=>patch(slot.key,{image:''})} style={{padding:'10px 14px',borderRadius:9,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>제거</button>}
-              </div>
-              <label style={{fontSize:11.5,fontWeight:800,color:'var(--text-md)',display:'block',marginTop:12}}>클릭 시 이동 링크 (선택)</label>
-              <input value={b.link||''} onChange={e=>patch(slot.key,{link:e.target.value})} placeholder="예: /product/list.html?cate_no=71" style={field}/>
+              <button onClick={()=>addBanner(slot.key)} style={{marginTop:12,width:'100%',padding:'10px',borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>+ 배너 추가</button>
             </div>
           );
         })}
@@ -4946,7 +4961,6 @@ function BannersPage({showToast}){
     </div>
   );
 }
-
 // ============================================================
 // 패키지 구성 관리 (부위·등급·베스트·신규)
 //   저장: pourstore-packages (문서당 1건)

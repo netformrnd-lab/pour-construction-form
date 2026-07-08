@@ -91,6 +91,15 @@
 .psm1-banner-side .product-mock { width:120px; height:140px; background:rgba(255,255,255,.92); border-radius:10px; box-shadow:0 8px 24px rgba(124,45,18,.18); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:#0F1F5C; }
 .psm1-banner-side .product-mock .pm-pkg { font-size:36px; }
 .psm1-banner-side .product-mock .pm-name { font-size:10px; font-weight:700; color:#7C2D12; letter-spacing:0.02em; }
+/* 배너 캐러셀 (여러 배너 자동슬라이드 + 링크) */
+.psm1-banner-side { min-height:0; } /* 사이드 높이를 히어로에 맞춤(슬라이드 absolute → 행 높이는 히어로가 결정) */
+.psm1-bnr-carousel { position:absolute; inset:0; z-index:1; }
+.psm1-bnr-slide { position:absolute; inset:0; opacity:0; transition:opacity .55s ease; display:block; }
+.psm1-bnr-slide.on { opacity:1; }
+.psm1-bnr-slide img { width:100%; height:100%; object-fit:cover; display:block; }
+.psm1-bnr-dots { position:absolute; bottom:10px; left:0; right:0; display:flex; justify-content:center; gap:6px; z-index:3; }
+.psm1-bnr-dot { width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.55); cursor:pointer; transition:.2s; padding:0; border:0; }
+.psm1-bnr-dot.on { background:#fff; width:18px; border-radius:4px; }
 /* 4) 카테고리 아이콘 */
 .psm1-cats { padding:30px 24px 36px; }
 .psm1-cats-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:repeat(10,1fr); gap:8px; }
@@ -231,7 +240,7 @@
 <!-- 3) 히어로 -->
 <div class="psm1-hero">
   <div class="psm1-hero-inner">
-    <a href="/product/list.html" class="psm1-banner">
+    <div class="psm1-banner" data-hero-banner>
       <svg class="psm1-banner-img" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id="psm1bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3E9DB"/><stop offset=".55" stop-color="#E8D7BC"/><stop offset="1" stop-color="#B89A77"/></linearGradient>
@@ -256,15 +265,15 @@
         <div class="author"><span class="av">P</span>@pour_official</div>
       </div>
       <div class="psm1-banner-counter">1 / 15 +</div>
-    </a>
-    <a href="/product/list.html" class="psm1-banner-side">
+    </div>
+    <div class="psm1-banner-side" data-side-banner>
       <span class="ad">AD</span>
       <div class="text-wrap">
         <div class="label">POUR스토어 추천</div>
         <div class="title">방수 자재<br/>셀프 패키지</div>
       </div>
       <div class="product"><div class="product-mock"><span class="pm-pkg" style="color:#E8780F"><svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.3 11.6a1 1 0 0 1-1 .9H7.3a1 1 0 0 1-1-.9L5 8z"/><path d="M5 8c0-2.1 3.1-3.3 7-3.3s7 1.2 7 3.3"/></svg></span><span class="pm-name">방수 자재</span></div></div>
-    </a>
+    </div>
   </div>
 </div>
 <!-- 4) 카테고리 아이콘 -->
@@ -394,18 +403,56 @@ const db = getFirestore(app);
     return productsLoading;
   }
 
-  // ===== 메인 배너 (config/pourstoreBanners) — 어드민 '메인 배너 관리'에서 업로드 =====
-  function applyBanner(sel, b){
-    if (!b || b.active === false || !b.image) return;
+  // ===== 메인 배너 캐러셀 (config/pourstoreBanners) — 어드민 '메인 배너 관리' =====
+  function normBanners(v){
+    if (Array.isArray(v)) return v.filter(function(x){ return x && x.image; }).map(function(x){ return { image:x.image, link:(x.link||'') }; });
+    if (v && v.image) return [{ image:v.image, link:(v.link||'') }]; // 구버전 단일 호환
+    return [];
+  }
+  function renderCarousel(sel, banners, intervalSec){
+    if (!banners.length) return;
     var el = section.querySelector(sel);
     if (!el) return;
-    if (b.link && String(b.link).trim()) el.setAttribute('href', String(b.link).trim());
     el.style.padding = '0';
-    el.innerHTML = '<img src="'+b.image+'" alt="배너" style="width:100%;height:100%;object-fit:cover;display:block" loading="lazy" onerror="this.remove()"/>';
+    var wrap = document.createElement('div'); wrap.className = 'psm1-bnr-carousel';
+    banners.forEach(function(b, i){
+      var a = document.createElement('a'); a.className = 'psm1-bnr-slide' + (i===0?' on':'');
+      var link = (b.link||'').trim();
+      if (link){ a.href = link; if (/^https?:\/\//.test(link) && link.indexOf(location.host) === -1){ a.target='_blank'; a.rel='noopener'; } }
+      else { a.href = 'javascript:void(0)'; }
+      var img = document.createElement('img'); img.src = b.image; img.alt = '배너'; img.loading = 'lazy';
+      img.onerror = function(){ a.style.display = 'none'; };
+      a.appendChild(img); wrap.appendChild(a);
+    });
+    el.innerHTML = ''; el.appendChild(wrap);
+    if (banners.length > 1){
+      var dots = document.createElement('div'); dots.className = 'psm1-bnr-dots';
+      banners.forEach(function(_, i){ var d = document.createElement('button'); d.type='button'; d.className = 'psm1-bnr-dot' + (i===0?' on':''); d.setAttribute('aria-label','배너 '+(i+1));
+        d.addEventListener('click', function(e){ e.preventDefault(); go(i); reset(); }); dots.appendChild(d); });
+      el.appendChild(dots);
+      var slides = wrap.children, ds = dots.children, cur = 0, timer = null;
+      function go(n){ slides[cur].classList.remove('on'); ds[cur].classList.remove('on'); cur=(n+banners.length)%banners.length; slides[cur].classList.add('on'); ds[cur].classList.add('on'); }
+      function start(){ if(!timer) timer = setInterval(function(){ go(cur+1); }, Math.max(2, intervalSec||5)*1000); }
+      function stop(){ if(timer){ clearInterval(timer); timer=null; } }
+      function reset(){ stop(); start(); }
+      el.addEventListener('mouseenter', stop); el.addEventListener('mouseleave', start); start();
+    }
   }
   try {
     var bsnap = await getDoc(doc(db, "config", "pourstoreBanners"));
-    if (bsnap.exists()) { var bd = bsnap.data() || {}; applyBanner('.psm1-banner', bd.hero); applyBanner('.psm1-banner-side', bd.side); console.log('[psm1] 배너 적용'); }
+    if (bsnap.exists()) {
+      var bd = bsnap.data() || {}; var iv = Number(bd.intervalSec) || 5;
+      renderCarousel('.psm1-banner', normBanners(bd.hero), iv);
+      var sideBn = normBanners(bd.side);
+      renderCarousel('.psm1-banner-side', sideBn, iv);
+      if (sideBn.length) { // 사이드 높이를 히어로에 맞춤 (그리드 aspect 행높이 미반영 보정)
+        var syncH = function(){ var h = section.querySelector('.psm1-banner'), s = section.querySelector('.psm1-banner-side'); if (h && s && h.offsetHeight) s.style.height = h.offsetHeight + 'px'; };
+        syncH(); window.addEventListener('resize', syncH);
+        var hImg = section.querySelector('.psm1-banner img'); if (hImg) hImg.addEventListener('load', syncH);
+        setTimeout(syncH, 300);
+      }
+      console.log('[psm1] 배너 캐러셀 적용');
+    }
   } catch (e) { console.log('[psm1] 배너 로드 스킵:', e && e.message ? e.message : e); }
 
   // ===== 레벨1: 인기검색어 표출 (PC) =====

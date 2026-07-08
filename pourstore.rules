@@ -4,10 +4,12 @@ rules_version = '2';
 //  (기존 pour-app-new 의 firestore.rules 와 무관 — 절대 혼용 금지)
 //
 //  방침:
-//   · 대외비(원가·공급가·채널·계수·매입처 암호문)는 로그인한 사용자만 읽기 가능
-//   · 앱은 Firestore 에 쓰지 않음(편집분은 클라이언트 localStorage) → 쓰기 전면 금지
+//   · 데이터(원가·공급가·채널·계수)는 "허용목록(config/access.allowedEmails)에 있는 계정"만 읽기 가능
+//     → 로그인만 해서는 아무것도 못 봄. 목록에 없는 계정은 전면 차단(서버 강제).
+//   · 매입처 암호문(config/secure)은 그중 "마스터 계정 + 이메일 인증"만 읽기 가능
+//   · 앱은 config/access 외에는 Firestore 에 쓰지 않음 → 대부분 쓰기 금지
 //   · 시딩은 Admin SDK(서비스 계정)로 수행되며 보안규칙을 우회하므로 영향 없음
-//   · 공개 회원가입은 사용하지 않음 — 계정은 Firebase 콘솔에서 수동 생성/allowlist
+//   · 공개 회원가입은 사용하지 않음 — 계정은 Firebase 콘솔에서 수동 생성 후 허용목록에 추가
 //
 //  배포:
 //   firebase deploy --only firestore:rules --project pourstoreproject
@@ -24,21 +26,69 @@ service cloud.firestore {
     function signedIn() {
       return request.auth != null;
     }
+    // 마스터 계정: config/access.masterEmail 과 "이메일 인증된" 로그인 계정이 일치할 때만
+    //  → 이 판정은 서버(Firestore)에서 강제되므로, 클라이언트 HTML/JS 를 수정해도 우회 불가.
+    function accessExists() {
+      return exists(/databases/$(database)/documents/config/access);
+    }
+    function masterEmail() {
+      return get(/databases/$(database)/documents/config/access).data.masterEmail;
+    }
+    function isMaster() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && accessExists()
+        && request.auth.token.email == masterEmail();
+    }
+    // 데이터 열람 허용: config/access.allowedEmails 목록에 있거나 마스터 본인.
+    //  → 허용목록에 없는 계정은 로그인해도 채널·제품·계수 read 전면 거부(서버 강제).
+    function isAllowedReader() {
+      return signedIn()
+        && accessExists()
+        && ( request.auth.token.email == masterEmail()
+             || request.auth.token.email in get(/databases/$(database)/documents/config/access).data.get('allowedEmails', []) );
+    }
 
     match /channels/{uid} {
-      allow read: if signedIn();
+      allow read: if isAllowedReader();
       allow write: if false;
     }
     match /products/{id} {
-      allow read: if signedIn();
-      allow write: if false;
-    }
-    match /config/{doc} {
-      allow read: if signedIn();
+      allow read: if isAllowedReader();
       allow write: if false;
     }
 
-    // 그 외 모든 경로 금지
+    // 계산/정책 상수 — 허용목록 계정만 읽기, 쓰기 금지
+    match /config/calc {
+      allow read: if isAllowedReader();
+      allow write: if false;
+    }
+
+    // 계정 관리 문서 — 마스터 계정 지정.
+    //  · 최초 1회만 생성 가능(이미 있으면 불가) + 본인 이메일로만 + 이메일 인증 필수
+    //  · 변경(update)은 "현재 마스터 + 이메일 인증"만 가능 → 개발/코드 수정으로는 못 바꿈
+    //  · 삭제 금지
+    match /config/access {
+      allow read: if signedIn();
+      // 최초 마스터는 지정 계정(songhee44@netformrnd.com)만 청구 가능 → 선점 경쟁 방지
+      allow create: if signedIn()
+        && !accessExists()
+        && request.auth.token.email_verified == true
+        && request.resource.data.masterEmail == request.auth.token.email
+        && request.auth.token.email == 'songhee44@netformrnd.com';
+      allow update: if signedIn()
+        && request.auth.token.email_verified == true
+        && resource.data.masterEmail == request.auth.token.email;
+      allow delete: if false;
+    }
+
+    // 대외비 매입처 암호문 — 마스터(이메일 인증) 계정만 읽기, 쓰기 금지(시딩은 Admin SDK)
+    match /config/secure {
+      allow read: if isMaster();
+      allow write: if false;
+    }
+
+    // 그 외 모든 경로(다른 config 문서 포함) 금지
     match /{document=**} {
       allow read, write: if false;
     }

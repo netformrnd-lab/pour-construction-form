@@ -6,14 +6,14 @@
 <title>POUR스토어 — 집안도 튼튼하고, 아름답게 (v14)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css" rel="stylesheet">
 <style>body{margin:0;padding:0;background:#F9FAFB;}</style>
 </head>
 <body>
 
 <section data-section="집안도 튼튼하고, 아름답게">
 <style>
-.psh * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+.psh * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .psh { background:linear-gradient(180deg,#fff 0%,#FFFBF5 100%); padding:80px 18px; }
 .psh-inner { max-width:1200px; margin:0 auto; }
 
@@ -22,7 +22,7 @@
 .psh-zonebar { display:inline-flex; align-items:center; gap:10px; padding:9px 16px; background:#fff; border:1px solid #E5E7EB; border-radius:999px; margin-bottom:22px; box-shadow:0 4px 14px rgba(15,31,92,.06); }
 .psh-zonebar .dot { width:8px; height:8px; background:#F97316; border-radius:50%; box-shadow:0 0 8px #F97316; animation:psh-pulse 1.6s infinite; }
 @keyframes psh-pulse { 50%{opacity:.4;} }
-.psh-zonebar .kicker { font-family:'Bebas Neue',sans-serif; font-size:13px; font-weight:900; color:#0F1F5C; letter-spacing:1.5px; }
+.psh-zonebar .kicker { font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; font-size:13px; font-weight:900; color:#0F1F5C; letter-spacing:1.5px; }
 .psh-zonebar .kicker .x { color:#F97316; margin:0 4px; }
 
 .psh-head h2 { font-size:46px; font-weight:900; letter-spacing:-1.6px; line-height:1.2; margin-bottom:14px; }
@@ -76,7 +76,7 @@
 .slide-right { position:relative; overflow:hidden; }
 .slide-right svg { display:block; width:100%; height:100%; }
 .carousel-mockup-note { position:absolute; top:18px; left:18px; padding:7px 13px; background:rgba(254,243,199,.95); border:1.5px dashed #EA580C; color:#7C2D12; font-size:11px; font-weight:800; border-radius:8px; z-index:6; box-shadow:0 4px 12px rgba(0,0,0,.12); transform:rotate(-1.5deg); }
-.carousel-mockup-note::before { content:'📸 '; }
+.carousel-mockup-note svg { width:14px; height:14px; vertical-align:-2px; margin-right:5px; }
 .carousel-nav { position:absolute; bottom:18px; left:0; right:0; display:flex; align-items:center; justify-content:center; gap:14px; z-index:5; }
 .carousel-dots { display:flex; gap:6px; }
 .carousel-dot { width:8px; height:8px; border-radius:50%; background:rgba(15,31,92,.25); border:0; cursor:pointer; transition:all .25s; padding:0; }
@@ -103,7 +103,7 @@
 .swatch.svg-inside { padding:0; }
 .swatch.svg-inside svg { width:100%; height:100%; display:block; }
 .swatch.hit { background:radial-gradient(circle at 30% 25%, #FCD34D 0%, #F97316 50%, #DC2626 100%); display:grid; place-items:center; }
-.swatch.hit::before { content:'HIT'; color:#fff; font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:1.8px; font-weight:900; text-shadow:0 2px 8px rgba(0,0,0,.4); }
+.swatch.hit::before { content:'HIT'; color:#fff; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; font-size:22px; letter-spacing:1.8px; font-weight:900; text-shadow:0 2px 8px rgba(0,0,0,.4); }
 .swatch.hit::after { content:''; position:absolute; top:14%; left:18%; width:30%; height:40%; background:radial-gradient(ellipse, rgba(255,255,255,.5), transparent); border-radius:50%; filter:blur(3px); }
 .swatch.wood { background:linear-gradient(135deg, #D4A574, #A8784A); }
 .swatch.wood::before { content:''; position:absolute; inset:0; background:repeating-linear-gradient(90deg, rgba(80,40,15,.3), rgba(80,40,15,.3) 1.5px, transparent 1.5px, transparent 6px), repeating-linear-gradient(90deg, rgba(0,0,0,.06), rgba(0,0,0,.06) 0.5px, transparent 0.5px, transparent 2px); }
@@ -130,6 +130,7 @@
 .psh-card .img.tools { background:linear-gradient(135deg, #FED7AA, #FCD34D); }
 .psh-card .img.cement { background:#9CA3AF; background-image:radial-gradient(circle at 25% 30%, rgba(255,255,255,.22) 1.5px, transparent 2.5px), radial-gradient(circle at 70% 70%, rgba(0,0,0,.2) 1.5px, transparent 2.5px), linear-gradient(135deg, #D1D5DB, #6B7280); background-size:22px 22px, 28px 28px, 100% 100%; }
 .psh-card .img .ic { font-size:54px; opacity:.7; filter:drop-shadow(0 6px 12px rgba(0,0,0,.18)); position:relative; z-index:1; }
+.psh-card .img .ic svg { width:54px; height:54px; stroke-width:1.5; color:#0F1F5C; }
 .psh-card .brand { position:absolute; top:10px; left:10px; padding:4px 10px; font-size:10px; font-weight:900; border-radius:6px; letter-spacing:.5px; z-index:2; }
 .psh-card .brand.pour { background:#EA580C; color:#fff; box-shadow:0 4px 10px rgba(234,88,12,.3); }
 .psh-card .brand.gro { background:#fff; color:#7C2D12; border:1.5px solid #7C2D12; }
@@ -190,14 +191,14 @@
 
     <!-- ===== 카루셀 ===== -->
     <div class="psh-carousel" id="carousel">
-      <div class="carousel-mockup-note">사진 넣을 예정 · 시안용 일러스트</div>
+      <div class="carousel-mockup-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l1.5-2h5L16 7"/><circle cx="12" cy="13.5" r="3.2"/></svg>사진 넣을 예정 · 시안용 일러스트</div>
       <div class="carousel-counter"><span class="cur">01</span> / 03</div>
       <div class="carousel-track">
 
         <!-- Slide 1: 홈데코 -->
         <div class="slide deco-slide active" data-slide="0">
           <div class="slide-left">
-            <span class="slide-kicker">🎨 HOME DECO · 홈데코</span>
+            <span class="slide-kicker"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.9 1.8-1.9 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.1 0-1 .8-1.8 1.8-1.8H16a5 5 0 0 0 5-5c0-3.9-4-7-9-7z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10.5" r="1"/></svg>HOME DECO · 홈데코</span>
             <h3>오늘의 무드,<br/><span class="hl-orange">새롭게 꾸며요</span></h3>
             <p>POUR 친환경 페인트·스테인·시트지로 공간 분위기를 바꾸는 가장 쉬운 방법.</p>
             <div class="slide-tags"><span>친환경 1등급</span><span>80+ 컬러</span><span>셀프 OK</span></div>
@@ -211,7 +212,7 @@
               <g transform="translate(40,60)"><rect width="78" height="115" fill="#fff" stroke="#A8987F" stroke-width="3"/><rect x="6" y="6" width="66" height="103" fill="#F5EFE6"/><circle cx="39" cy="48" r="13" fill="#F97316" opacity="0.45"/><path d="M14 90 L30 72 L45 92 L65 75 L65 104 L14 104 Z" fill="#A8784A" opacity="0.5"/></g>
               <g transform="translate(165,155)"><path d="M0 30 L-3 70 L55 70 L52 30 Z" fill="#C19A6B"/><ellipse cx="26" cy="30" rx="28" ry="3.5" fill="#A8784A"/><path d="M26 30 Q5 -5 0 -32" stroke="#6B8E6B" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M26 30 Q47 -5 52 -28" stroke="#6B8E6B" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M26 30 Q28 -15 32 -52" stroke="#8FA987" stroke-width="3.5" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="-32" rx="13" ry="6" fill="#6B8E6B" transform="rotate(-32 0 -32)"/><ellipse cx="52" cy="-28" rx="13" ry="6" fill="#6B8E6B" transform="rotate(32 52 -28)"/><ellipse cx="32" cy="-52" rx="11" ry="5" fill="#8FA987"/></g>
               <g transform="translate(285,120)"><rect x="12" y="0" width="70" height="78" fill="#F97316" rx="10"/><rect x="0" y="72" width="94" height="34" fill="#EA580C" rx="6"/><rect x="7" y="104" width="5" height="36" fill="#7C2D12"/><rect x="82" y="104" width="5" height="36" fill="#7C2D12"/></g>
-              <g transform="translate(420,150)"><rect width="80" height="6" fill="#A8784A"/><rect x="4" y="6" width="3" height="74" fill="#8B6539"/><rect x="73" y="6" width="3" height="74" fill="#8B6539"/><g transform="translate(20,-50)"><path d="M5 5 Q20 -8 35 5" stroke="#9CA3AF" stroke-width="2" fill="none"/><rect x="0" y="5" width="40" height="50" fill="#fff" stroke="#D1D5DB"/><rect x="0" y="5" width="40" height="4" fill="#9CA3AF"/><rect x="0" y="51" width="40" height="4" fill="#9CA3AF"/><rect x="4" y="15" width="32" height="30" fill="#FFEDD5"/><text x="20" y="32" text-anchor="middle" font-family="Bebas Neue" font-size="9" fill="#EA580C" font-weight="900">POUR</text></g></g>
+              <g transform="translate(420,150)"><rect width="80" height="6" fill="#A8784A"/><rect x="4" y="6" width="3" height="74" fill="#8B6539"/><rect x="73" y="6" width="3" height="74" fill="#8B6539"/><g transform="translate(20,-50)"><path d="M5 5 Q20 -8 35 5" stroke="#9CA3AF" stroke-width="2" fill="none"/><rect x="0" y="5" width="40" height="50" fill="#fff" stroke="#D1D5DB"/><rect x="0" y="5" width="40" height="4" fill="#9CA3AF"/><rect x="0" y="51" width="40" height="4" fill="#9CA3AF"/><rect x="4" y="15" width="32" height="30" fill="#FFEDD5"/><text x="20" y="32" text-anchor="middle" font-family="Pretendard" font-size="9" fill="#EA580C" font-weight="900">POUR</text></g></g>
               <ellipse cx="335" cy="250" rx="55" ry="4" fill="#000" opacity="0.08"/>
             </svg>
           </div>
@@ -220,7 +221,7 @@
         <!-- Slide 2: 홈리페어 -->
         <div class="slide repair-slide" data-slide="1">
           <div class="slide-left">
-            <span class="slide-kicker">🛠 HOME REPAIR · 홈리페어</span>
+            <span class="slide-kicker"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M14.5 6.5a3.5 3.5 0 0 0-4.6 4.3l-5.1 5.1a1.6 1.6 0 0 0 2.3 2.3l5.1-5.1a3.5 3.5 0 0 0 4.3-4.6l-2.2 2.2-1.8-1.8 2-1.4z"/></svg>HOME REPAIR · 홈리페어</span>
             <h3>고치는 건,<br/><span class="hl-green">어렵지 않아요</span></h3>
             <p>균열·곰팡이·줄눈 보수까지 — GROHOME 보수재로 직접 고치는 법.</p>
             <div class="slide-tags"><span>속건성</span><span>곰팡이 방지</span><span>초보자 OK</span></div>
@@ -232,7 +233,7 @@
               <rect width="600" height="230" fill="url(#wall2)"/><rect y="110" width="600" height="120" fill="url(#tile2)" opacity="0.5"/><rect y="230" width="600" height="70" fill="#A8B8AC"/>
               <g transform="translate(70,50)"><ellipse cx="50" cy="60" rx="48" ry="55" fill="#fff" stroke="#9CA3AF" stroke-width="3"/><ellipse cx="50" cy="60" rx="42" ry="49" fill="#D6E5DC" opacity="0.5"/><ellipse cx="38" cy="40" rx="12" ry="20" fill="#fff" opacity="0.6"/></g>
               <g transform="translate(200,180)"><rect width="240" height="50" fill="#fff" stroke="#D1D5DB"/><rect x="0" y="48" width="240" height="4" fill="#9CA3AF"/><ellipse cx="120" cy="25" rx="55" ry="13" fill="#E8F1EB" stroke="#9CA3AF"/><ellipse cx="120" cy="25" rx="45" ry="9" fill="#D6E5DC"/><rect x="115" y="0" width="10" height="18" fill="#9CA3AF" rx="2"/><rect x="113" y="0" width="14" height="4" fill="#6B7280" rx="1"/></g>
-              <g transform="translate(450,150)"><rect x="0" y="20" width="80" height="14" fill="#047857" rx="2"/><rect x="60" y="14" width="35" height="6" fill="#fff" stroke="#9CA3AF" rx="3"/><path d="M93 17 L100 17 L97 21 Z" fill="#10B981"/><rect x="0" y="34" width="14" height="20" fill="#047857"/><rect x="-3" y="48" width="22" height="6" fill="#065F46" rx="1"/><text x="40" y="32" text-anchor="middle" font-family="Bebas Neue" font-size="8" fill="#fff" font-weight="900">GROHOME</text></g>
+              <g transform="translate(450,150)"><rect x="0" y="20" width="80" height="14" fill="#047857" rx="2"/><rect x="60" y="14" width="35" height="6" fill="#fff" stroke="#9CA3AF" rx="3"/><path d="M93 17 L100 17 L97 21 Z" fill="#10B981"/><rect x="0" y="34" width="14" height="20" fill="#047857"/><rect x="-3" y="48" width="22" height="6" fill="#065F46" rx="1"/><text x="40" y="32" text-anchor="middle" font-family="Pretendard" font-size="8" fill="#fff" font-weight="900">GROHOME</text></g>
               <ellipse cx="320" cy="252" rx="100" ry="4" fill="#000" opacity="0.08"/>
             </svg>
           </div>
@@ -241,7 +242,7 @@
         <!-- Slide 3: 시멘트 -->
         <div class="slide cement-slide" data-slide="2">
           <div class="slide-left">
-            <span class="slide-kicker">🧱 CEMENT · 시멘트·벽돌</span>
+            <span class="slide-kicker"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" style="flex:none"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 12h18M12 5v3M8 8h8M8 8v4M16 8v4M3 16h18M7 16v3M17 16v3"/></svg>CEMENT · 시멘트·벽돌</span>
             <h3>약한 곳부터,<br/><span class="hl-stone">다시 단단하게</span></h3>
             <p>POUR의 보수 노하우 — 시멘트·벽돌 보수재로 균열·베란다 직접 회복.</p>
             <div class="slide-tags"><span>균열보수</span><span>베란다 OK</span><span>셀프 시공</span></div>
@@ -288,7 +289,7 @@
                 <rect width="160" height="180" fill="#E7E5E4" stroke="#A8A29E" stroke-width="2" rx="3"/>
                 <!-- 상단 검은 띠 -->
                 <rect width="160" height="40" fill="#1F2937"/>
-                <text x="80" y="26" text-anchor="middle" fill="#fff" font-family="Bebas Neue" font-size="18" font-weight="900" letter-spacing="1">GROHOME</text>
+                <text x="80" y="26" text-anchor="middle" fill="#fff" font-family="Pretendard" font-size="18" font-weight="900" letter-spacing="1">GROHOME</text>
                 <!-- 중앙 카피 박스 -->
                 <rect x="20" y="55" width="120" height="50" fill="#9CA3AF"/>
                 <text x="80" y="80" text-anchor="middle" fill="#fff" font-size="14" font-weight="900">균열보수</text>
@@ -454,14 +455,14 @@
 
     <!-- Product grid -->
     <div class="psh-grid">
-      <a class="psh-card" href="#" data-cat="wallpaper"><div class="img wallpaper"><span class="brand gro">GROHOME</span><span class="status best">★ BEST</span><span class="cat">벽지</span><div class="ic">🧴</div></div><div class="body"><div class="meta">친환경 · 강력 접착</div><div class="name">GROHOME 친환경 도배풀</div><div class="price-row"><div class="price">8,200<span class="won">원</span></div><span class="unit">/ 1kg</span></div></div></a>
-      <a class="psh-card" href="#" data-cat="wallpaper"><div class="img wallpaper"><span class="brand gro">GROHOME</span><span class="cat">벽지</span><div class="ic">📜</div></div><div class="body"><div class="meta">우드·마블·패턴</div><div class="name">GROHOME 인테리어 시트지</div><div class="price-row"><div class="price">12,000<span class="won">원</span></div><span class="unit">/ 1m</span></div></div></a>
-      <a class="psh-card" href="#" data-cat="wood"><div class="img wood"><span class="brand pour">POUR</span><span class="status new">NEW</span><span class="cat">목재</span><div class="ic">🪵</div></div><div class="body"><div class="meta">무광·발수 · 5색</div><div class="name">POUR 우드 스테인 페인트</div><div class="price-row"><div class="price">18,500<span class="won">원</span></div><span class="unit">/ 0.5L</span></div></div></a>
-      <a class="psh-card" href="#" data-cat="metal"><div class="img metal"><span class="brand pour">POUR</span><span class="status best">★ BEST</span><span class="cat">철재</span><div class="ic">🛡</div></div><div class="body"><div class="meta">직접 도포 · 1액형</div><div class="name">POUR 녹제거·방청 페인트</div><div class="price-row"><div class="price">22,000<span class="won">원</span></div><span class="unit">/ 1L</span></div></div></a>
-      <a class="psh-card" href="#" data-cat="glass"><div class="img glass"><span class="brand pour">POUR</span><span class="cat">유리</span><div class="ic">🪟</div></div><div class="body"><div class="meta">김서림·물방울 차단</div><div class="name">POUR 글래스 발수 코팅재</div><div class="price-row"><div class="price">15,800<span class="won">원</span></div><span class="unit">/ 500ml</span></div></div></a>
-      <a class="psh-card" href="#" data-cat="tile"><div class="img tile"><span class="brand gro">GROHOME</span><span class="status best">★ BEST</span><span class="cat">타일</span><div class="ic">🧱</div></div><div class="body"><div class="meta">백색·회색 / 욕실 OK</div><div class="name">GROHOME 줄눈 보수 키트</div><div class="price-row"><div class="price">9,500<span class="won">원</span></div><span class="unit">/ 세트</span></div></div></a>
-      <a class="psh-card" href="#" data-cat="cement"><div class="img cement"><span class="brand gro">GROHOME</span><span class="status best">★ BEST</span><span class="cat">시멘트</span><div class="ic">🪨</div></div><div class="body"><div class="meta">1액형 · 셀프 시공</div><div class="name">GROHOME 균열보수 시멘트</div><div class="price-row"><div class="price">9,800<span class="won">원</span></div><span class="unit">/ 1kg</span></div></div></a>
-      <a class="psh-card" href="#" data-cat="cement"><div class="img cement"><span class="brand gro">GROHOME</span><span class="status new">NEW</span><span class="cat">시멘트</span><div class="ic">🪣</div></div><div class="body"><div class="meta">방수·내수성 / 욕실·베란다</div><div class="name">GROHOME 베란다 바닥 보수재</div><div class="price-row"><div class="price">18,500<span class="won">원</span></div><span class="unit">/ 4kg</span></div></div></a>
+      <a class="psh-card" href="#" data-cat="wallpaper"><div class="img wallpaper"><span class="brand gro">GROHOME</span><span class="status best">★ BEST</span><span class="cat">벽지</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3h4v2.5l1.2 2.2V19a2 2 0 0 1-2 2h-2.4a2 2 0 0 1-2-2V7.7L10 5.5V3z"/><path d="M10 6.5h4"/></svg></div></div><div class="body"><div class="meta">친환경 · 강력 접착</div><div class="name">GROHOME 친환경 도배풀</div><div class="price-row"><div class="price">8,200<span class="won">원</span></div><span class="unit">/ 1kg</span></div></div></a>
+      <a class="psh-card" href="#" data-cat="wallpaper"><div class="img wallpaper"><span class="brand gro">GROHOME</span><span class="cat">벽지</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v13a3 3 0 0 1-3 3H7z"/><path d="M17 4a3 3 0 0 1 3 3 3 3 0 0 1-3 3"/><path d="M10 9h4M10 13h4"/></svg></div></div><div class="body"><div class="meta">우드·마블·패턴</div><div class="name">GROHOME 인테리어 시트지</div><div class="price-row"><div class="price">12,000<span class="won">원</span></div><span class="unit">/ 1m</span></div></div></a>
+      <a class="psh-card" href="#" data-cat="wood"><div class="img wood"><span class="brand pour">POUR</span><span class="status new">NEW</span><span class="cat">목재</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 7c2.2 1.4 2.2 8.6 0 10M12 7c2.2 1.4 2.2 8.6 0 10"/></svg></div></div><div class="body"><div class="meta">무광·발수 · 5색</div><div class="name">POUR 우드 스테인 페인트</div><div class="price-row"><div class="price">18,500<span class="won">원</span></div><span class="unit">/ 0.5L</span></div></div></a>
+      <a class="psh-card" href="#" data-cat="metal"><div class="img metal"><span class="brand pour">POUR</span><span class="status best">★ BEST</span><span class="cat">철재</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg></div></div><div class="body"><div class="meta">직접 도포 · 1액형</div><div class="name">POUR 녹제거·방청 페인트</div><div class="price-row"><div class="price">22,000<span class="won">원</span></div><span class="unit">/ 1L</span></div></div></a>
+      <a class="psh-card" href="#" data-cat="glass"><div class="img glass"><span class="brand pour">POUR</span><span class="cat">유리</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="1"/><path d="M12 4v16M4 12h16"/></svg></div></div><div class="body"><div class="meta">김서림·물방울 차단</div><div class="name">POUR 글래스 발수 코팅재</div><div class="price-row"><div class="price">15,800<span class="won">원</span></div><span class="unit">/ 500ml</span></div></div></a>
+      <a class="psh-card" href="#" data-cat="tile"><div class="img tile"><span class="brand gro">GROHOME</span><span class="status best">★ BEST</span><span class="cat">타일</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 12h18M12 5v3M8 8h8M8 8v4M16 8v4M3 16h18M7 16v3M17 16v3"/></svg></div></div><div class="body"><div class="meta">백색·회색 / 욕실 OK</div><div class="name">GROHOME 줄눈 보수 키트</div><div class="price-row"><div class="price">9,500<span class="won">원</span></div><span class="unit">/ 세트</span></div></div></a>
+      <a class="psh-card" href="#" data-cat="cement"><div class="img cement"><span class="brand gro">GROHOME</span><span class="status best">★ BEST</span><span class="cat">시멘트</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8l1 4c1 4-1 12-5 12s-6-8-5-12l1-4z"/><path d="M9 8h6"/></svg></div></div><div class="body"><div class="meta">1액형 · 셀프 시공</div><div class="name">GROHOME 균열보수 시멘트</div><div class="price-row"><div class="price">9,800<span class="won">원</span></div><span class="unit">/ 1kg</span></div></div></a>
+      <a class="psh-card" href="#" data-cat="cement"><div class="img cement"><span class="brand gro">GROHOME</span><span class="status new">NEW</span><span class="cat">시멘트</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.3 11.6a1 1 0 0 1-1 .9H7.3a1 1 0 0 1-1-.9L5 8z"/><path d="M5 8c0-2.1 3.1-3.3 7-3.3s7 1.2 7 3.3"/></svg></div></div><div class="body"><div class="meta">방수·내수성 / 욕실·베란다</div><div class="name">GROHOME 베란다 바닥 보수재</div><div class="price-row"><div class="price">18,500<span class="won">원</span></div><span class="unit">/ 4kg</span></div></div></a>
     </div>
 
     <div class="psh-cta-wrap">

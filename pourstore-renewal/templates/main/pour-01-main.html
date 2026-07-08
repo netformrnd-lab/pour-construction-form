@@ -34,6 +34,10 @@
 .psm1-ac.open { opacity:1; pointer-events:auto; transform:translateY(0); }
 .psm1-ac-sec { display:flex; align-items:center; gap:5px; font-size:11.5px; font-weight:800; color:#E8780F; letter-spacing:-0.01em; padding:6px 10px 8px; }
 .psm1-ac-div { height:1px; background:#F0F1F3; margin:6px 8px; }
+.psm1-ac-badge2 { flex-shrink:0; font-size:10px; font-weight:800; padding:2px 7px; border-radius:5px; letter-spacing:-0.02em; }
+.psm1-ac-badge2.t-keyword { background:#FFEDD5; color:#E8780F; }
+.psm1-ac-badge2.t-product { background:#EFF6FF; color:#2563EB; }
+.psm1-ac-badge2.t-content { background:#ECFDF5; color:#059669; }
 .psm1-ac-item { display:flex; align-items:center; gap:12px; padding:9px 10px; border:1px solid transparent; border-radius:12px; cursor:pointer; font-size:14.5px; color:#2F3438; letter-spacing:-0.02em; margin-bottom:2px; transition:.12s; }
 .psm1-ac-item:hover, .psm1-ac-item.on { background:#FFFBF6; border-color:#FBE2C4; }
 .psm1-ac-item .psm1-ac-rank { width:22px; height:22px; border-radius:7px; background:#FFEDD5; color:#E8780F; font-size:12px; font-weight:800; display:grid; place-items:center; flex-shrink:0; }
@@ -346,6 +350,50 @@ const db = getFirestore(app);
     return h;
   }
 
+  // ===== 통합 검색 인덱스 — 인기검색어 + 등록상품 + 패키지 + 콘텐츠 모두 인식 =====
+  // 성능: 키워드/패키지/콘텐츠는 즉시(소량), 등록상품(대량)은 검색 첫 상호작용 시 지연 로딩.
+  function norm(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,''); }
+  var SIDX = [];
+  function idxPush(e){ if ((e.title||'').trim() && e.terms.length) SIDX.push(e); }
+  items.forEach(function(o){
+    idxPush({ type:'keyword', title:o.keyword||'', sub:'', link:linkFor(o), thumb:(o.thumb||o.thumbnail||o.image||''), yt:false,
+      terms:[o.keyword].concat(Array.isArray(o.synonyms)?o.synonyms:[]).map(norm).filter(Boolean) });
+  });
+  posts.forEach(function(p){
+    idxPush({ type:'content', title:p.title||'', sub:(POST_TYPE[p.type]||''), link:(p.link||'#'), thumb:(p.thumbnail||p.thumb||''), yt:/youtu\.?be/.test(p.link||''),
+      terms:[p.title].concat(Array.isArray(p.tags)?p.tags:[]).map(norm).filter(Boolean) });
+  });
+  try {
+    var pkgSnap = await getDocs(collection(db, "pourstore-packages"));
+    pkgSnap.docs.map(function(d){ return Object.assign({ id:d.id }, d.data()); })
+      .filter(function(p){ return p && p.active !== false && p.productNo; })
+      .forEach(function(p){ idxPush({ type:'product', title:p.name||'', sub:(p.price||''), link:'/product/detail.html?product_no=' + p.productNo + '&cate_no=71', thumb:(p.thumbnail||''), yt:false, terms:[p.name].map(norm).filter(Boolean) }); });
+  } catch (e) { console.log("[psm1] 패키지 로드 스킵:", e && e.message ? e.message : e); }
+  console.log("[psm1] 검색 인덱스 " + SIDX.length + "건(즉시: 키워드/패키지/콘텐츠)");
+
+  // 등록상품(대량) 지연 로딩 — 검색을 처음 쓸 때 1회만
+  var productsLoading = null;
+  function ensureProducts(){
+    if (productsLoading) return productsLoading;
+    productsLoading = (async function(){
+      try {
+        var snap = await getDocs(collection(db, "products"));
+        var n = 0;
+        snap.docs.map(function(d){ return Object.assign({ id:d.id }, d.data()); })
+          .filter(function(p){ return p && p.isActive !== false; })
+          .forEach(function(p){
+            var no = p.channels && p.channels.imweb;
+            var link = (no && String(no).trim()) ? ('/product/detail.html?product_no=' + String(no).trim()) : (SEARCH_URL + encodeURIComponent(p.name||''));
+            idxPush({ type:'product', title:p.name||'', sub:(p.price?String(p.price):''), link:link, thumb:(p.thumbnail||''), yt:false,
+              terms:[p.name].concat(Array.isArray(p.tags)?p.tags:[]).map(norm).filter(Boolean) });
+            n++;
+          });
+        console.log("[psm1] 등록상품 " + n + "건 인덱스 추가 (총 " + SIDX.length + ")");
+      } catch (e) { console.log("[psm1] 상품 로드 스킵:", e && e.message ? e.message : e); }
+    })();
+    return productsLoading;
+  }
+
   // ===== 메인 배너 (config/pourstoreBanners) — 어드민 '메인 배너 관리'에서 업로드 =====
   function applyBanner(sel, b){
     if (!b || b.active === false || !b.image) return;
@@ -432,31 +480,43 @@ const db = getFirestore(app);
       return !!html;
     }
     function openDefault(){ if (renderDefault()) ac.classList.add('open'); }
+    var TYPE_LABEL = { keyword:'검색어', product:'상품', content:'콘텐츠' };
+    var TYPE_ORDER = { keyword:0, product:1, content:2 };
     function renderMatches(q){
-      var ql = q.toLowerCase();
-      var matched = [];
-      items.forEach(function(o){
-        var pool = [o.keyword||''].concat(Array.isArray(o.synonyms)? o.synonyms : []);
-        var hit = pool.some(function(t){ return (t||'').toLowerCase().indexOf(ql) !== -1; });
-        if (hit) matched.push(o);
+      var qn = norm(q);
+      if (!qn) { ac.innerHTML=''; ac.classList.remove('open'); return; }
+      var hits = SIDX.filter(function(e){ return e.terms.some(function(t){ return t.indexOf(qn) !== -1; }); });
+      if (!hits.length) { ac.innerHTML=''; ac.classList.remove('open'); return; }
+      // 정렬: 제목 앞부분 일치 우선 → 타입(검색어>상품>콘텐츠)
+      hits.sort(function(a,b){
+        var sa = norm(a.title).indexOf(qn)===0 ? 0 : 1;
+        var sb = norm(b.title).indexOf(qn)===0 ? 0 : 1;
+        return (sa - sb) || (TYPE_ORDER[a.type] - TYPE_ORDER[b.type]);
       });
-      if (!matched.length) { ac.innerHTML=''; ac.classList.remove('open'); return; }
-      var html = '<div class="psm1-ac-sec">추천 검색어</div>';
-      matched.slice(0,8).forEach(function(o){
-        html += '<a class="psm1-ac-item" href="'+linkFor(o)+'"><span class="psm1-ac-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span><span class="psm1-ac-text">'+highlight(o.keyword||'', q)+'</span>'+thumbHtml(o)+'</a>';
+      var html = '<div class="psm1-ac-sec">추천 검색어 · 상품 · 콘텐츠</div>';
+      hits.slice(0,10).forEach(function(e){
+        var thumb = (e.thumb && String(e.thumb).trim()) ? '<img class="psm1-ac-thumb" src="'+e.thumb+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' : '';
+        var sub = e.sub ? ' <span style="color:#9AA0A6;font-weight:600">· '+e.sub+'</span>' : '';
+        html += '<a class="psm1-ac-item" href="'+e.link+'"'+(e.yt?' target="_blank" rel="noopener"':'')+'>'
+             +    '<span class="psm1-ac-badge2 t-'+e.type+'">'+TYPE_LABEL[e.type]+'</span>'
+             +    '<span class="psm1-ac-text">'+highlight(e.title||'', q)+sub+'</span>'
+             +    thumb
+             + '</a>';
       });
       ac.innerHTML = html;
       ac.classList.add('open');
     }
 
+    function reRunIfTyping(){ ensureProducts().then(function(){ if (input.value.trim()) renderMatches(input.value.trim()); }); }
     input.addEventListener('focus', function(){
+      reRunIfTyping(); // 등록상품 지연 로딩 시작
       if (input.value.trim()) renderMatches(input.value.trim());
       else if (renderDefault()) ac.classList.add('open');
     });
     input.addEventListener('input', function(){
       var q = input.value.trim();
       if (!q) { if(renderDefault()) ac.classList.add('open'); else ac.classList.remove('open'); }
-      else renderMatches(q);
+      else { renderMatches(q); reRunIfTyping(); }
     });
     input.addEventListener('blur', function(){ setTimeout(function(){ ac.classList.remove('open'); }, 160); });
     ac.addEventListener('mousedown', function(e){ if (e.target.closest('a')) return; e.preventDefault(); });

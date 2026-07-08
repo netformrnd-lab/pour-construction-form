@@ -2,6 +2,15 @@ node_modules/
 package.json
 package-lock.json
 !backup/package.json
+!seed/package.json
+
+# POUR스토어 가격·마진 대시보드 — 원본(대외비 수치)·시드 데이터 (절대 커밋 금지)
+# 원본 HTML: 매입원가·채널 공급가·매입처가 하드코딩됨
+POUR스토어_가격마진_대시보드.html
+*가격마진*대시보드*.html
+# 추출된 시드 데이터(대외비)
+seed/data*
+seed/*.local.*
 
 # 환경 변수 (실제 키 포함 — 절대 커밋 금지)
 .env

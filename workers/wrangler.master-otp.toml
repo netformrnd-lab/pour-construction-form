@@ -1,0 +1,17 @@
+# Cloudflare Worker — 마스터 계정 변경 SMS-OTP
+# 배포: npx wrangler deploy --config workers/wrangler.master-otp.toml
+
+name = "pour-master-otp"
+main = "pour-master-otp.js"
+compatibility_date = "2024-01-01"
+
+# ── 시크릿 등록 (평문 저장 금지 — 모두 secret 으로) ─────────
+# npx wrangler secret put FB_PROJECT_ID     --config workers/wrangler.master-otp.toml   # pourstoreproject
+# npx wrangler secret put FB_CLIENT_EMAIL   --config workers/wrangler.master-otp.toml   # 서비스계정 client_email
+# npx wrangler secret put FB_PRIVATE_KEY    --config workers/wrangler.master-otp.toml   # 서비스계정 private_key (PEM, 개행 포함)
+# npx wrangler secret put SOLAPI_API_KEY    --config workers/wrangler.master-otp.toml
+# npx wrangler secret put SOLAPI_API_SECRET --config workers/wrangler.master-otp.toml
+# npx wrangler secret put SOLAPI_SENDER     --config workers/wrangler.master-otp.toml   # 발신번호
+#
+# 서비스계정 키: Firebase 콘솔 → pourstoreproject → 프로젝트 설정 → 서비스 계정
+#   → "새 비공개 키 생성"으로 받은 JSON 의 client_email / private_key 사용

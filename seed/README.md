@@ -17,8 +17,16 @@ products/{p0000..}  // 문서ID = 'p' + 4자리(seq)
 
 config/secure       // { blob: "<AES-256-GCM 암호문>" }   ← 매입처·상품매칭 (복호화는 앱에서)
 config/calc         // { moqTiers:[{label,f,min,max(null=∞)}], chVar:{...}, codeRank:{...} }
-config/access       // { masterEmail: "<마스터>", allowedEmails: ["<열람 허용 계정들>"] }  ← 앱에서 생성/변경
+config/access       // { masterEmail, allowedEmails:[...], masterPhone, otpWorkerUrl }  ← 앱에서 생성/관리
+config/master-otp   // { codeHash, expiresAt, attempts, pendingEmail, pendingPhone }  ← OTP Worker 가 임시 사용
 ```
+
+### 마스터 변경 SMS-OTP (workers/pour-master-otp.js)
+- 마스터 계정 변경(`masterEmail`)은 **현재 마스터 휴대폰으로 온 6자리 SMS 코드**를 확인해야만 됩니다.
+- `masterEmail`·`masterPhone` 은 Firestore 규칙상 **클라이언트에서 변경 불가** → 변경은 서비스계정(Admin)으로
+  동작하는 이 Worker 만 수행합니다(앱 코드·개발자도구로 우회 불가). 휴대폰번호는 최초 1회만 앱에서 등록.
+- 배포: `workers/wrangler.master-otp.toml` 참고(서비스계정 키 + Solapi 시크릿 등록 후 deploy).
+  배포 URL 을 앱 [계정 관리] > "OTP Worker URL" 에 저장하면 활성화됩니다.
 
 ### 계정 기반 접근 제어(config/access) — 3중 방어
 - **열람 허용목록(allowedEmails)**: 여기 있는 계정만 채널·제품·마진 등 데이터를 읽습니다.

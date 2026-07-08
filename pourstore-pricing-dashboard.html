@@ -252,7 +252,63 @@ thead .sticky1,thead .sticky2{z-index:25}
 @media(max-width:760px){
   #ribbon .kpis{display:none}
   .toolrow input[type=text]{width:130px}
-  .bar-row{grid-template-columns:110px 1fr 120px}
+  .bar-row{grid-template-columns:96px 1fr 108px}
+}
+
+/* ── 모바일 최적화 (태블릿/폰) ───────────── */
+@media(max-width:640px){
+  body{font-size:13px}
+  /* 리본: 컴팩트 */
+  #ribbon{padding:8px 12px;gap:8px}
+  #ribbon .brand{min-width:0;flex:1}
+  #ribbon .brand b{font-size:14px}
+  #ribbon .brand span{font-size:10px}
+  #btnSignOut{padding:5px 9px;font-size:11px}
+  #authWho{display:none}
+  /* 수식줄: 좁게 */
+  #fxbar{height:auto;min-height:28px}
+  #fxbar .fx{width:26px}
+  #fxbar .cellref{width:auto;max-width:44%;font-size:11px;padding:0 8px}
+  #fxbar .expr{font-size:11px;padding:0 8px}
+  #fxSplit{padding:6px 10px;gap:8px;font-size:11px}
+  /* 도구줄: 검색·필터 꽉차게 줄바꿈 */
+  .toolrow{padding:9px 12px;gap:6px}
+  .toolrow .ttl{font-size:13px;width:100%;margin-right:0}
+  .toolrow input[type=text]{width:100%;flex:1 1 140px;font-size:16px;padding:8px 10px}
+  .toolrow select{flex:1 1 120px;font-size:16px;padding:7px 8px}
+  .toolrow .hint{display:none}
+  .tbtn{padding:8px 12px;font-size:12.5px}
+  .seg button{padding:8px 12px}
+  /* 시트 여백 축소 */
+  .sheet-pad{padding:12px 12px 96px}
+  .panel .bd{padding:12px}
+  .panel>h3{padding:10px 12px;flex-wrap:wrap;gap:6px}
+  /* 카드: 폰에서 2열 */
+  .cards{grid-template-columns:repeat(2,1fr);gap:8px}
+  .card{padding:12px 12px}
+  .card .big{font-size:18px}
+  /* 폼: 무조건 1열로 쌓기 (인라인 grid-template 덮어쓰기) — 라벨 세로쪼개짐 방지 */
+  .formgrid{grid-template-columns:1fr!important;gap:10px}
+  .formgrid button.tbtn{width:100%;height:42px!important}
+  .fld input,.fld select{font-size:16px;padding:9px 11px}
+  /* 로그인/보안 입력: iOS 확대 방지 */
+  #authEmail,#authPw,#pwInput,#pwNew1,#pwNew2{font-size:16px}
+  /* 바 로우 */
+  .bar-row{grid-template-columns:1fr;gap:2px;padding:7px 0;border-bottom:1px solid var(--border-s,#F0F1F3)}
+  .bar-row .bar-val{text-align:left}
+  /* 시트 탭: 터치 크게, 힌트 화살표 제거 */
+  #tabs{height:44px;padding-left:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  #tabs::before{display:none}
+  .stab{padding:0 13px;font-size:12.5px}
+  /* 마진계산기 FAB: 컴팩트하게, 탭 위로 */
+  #calcFab{right:12px;bottom:56px;padding:11px 15px;font-size:13px;border-radius:24px}
+  #calcPanel{right:8px;left:8px;width:auto;bottom:auto;top:50%;transform:translateY(-50%);max-height:82vh}
+  #calcPanel.open{display:block}
+}
+@media(max-width:400px){
+  .cards{grid-template-columns:1fr}
+  #ribbon .brand b{font-size:13px}
 }
 </style>
 <!-- Firebase 10.12.0 compat (Analytics 제외) -->
@@ -289,6 +345,18 @@ thead .sticky1,thead .sticky2{z-index:25}
       <p id="authMsg" style="font-size:12px;color:#C0392B;margin-top:10px;min-height:16px"></p>
     </div>
   </div>
+</div>
+
+<!-- ═══ 로딩 오버레이 (로그인 후 Firestore 로드 중) ═══ -->
+<div id="loadingOverlay" style="display:none;position:fixed;inset:0;z-index:4800;background:rgba(255,255,255,.94);flex-direction:column;align-items:center;justify-content:center;gap:14px">
+  <div style="width:38px;height:38px;border:3.5px solid #D5D9DE;border-top-color:#107C41;border-radius:50%;animation:spin .8s linear infinite"></div>
+  <p style="font-size:13px;color:#5A6572;font-weight:600">대외비 데이터를 불러오는 중…</p>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<!-- ═══ 데이터 미시딩 안내 배너 ═══ -->
+<div id="dataNotice" style="display:none;flex:0 0 auto;background:#FDEBE7;border-bottom:1px solid #F1B7AD;color:#8A2B1E;padding:9px 16px;font-size:12.5px;line-height:1.5;align-items:center;gap:8px">
+  <b>표시할 데이터가 없습니다.</b> Firestore(pourstoreproject)에 채널·제품 데이터가 아직 시딩되지 않았습니다. <code>seed/</code> 도구로 데이터를 올린 뒤 새로고침하세요.
 </div>
 
 <!-- ═══ 수식 입력줄 ═══ -->
@@ -1247,7 +1315,7 @@ $('#btnReset').addEventListener('click',()=>{
   localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_SEC); localStorage.removeItem(LS_BASE);
   CHANNELS=CH_DEF.map(c=>({...c})); uidSeq=100;
   P=RAW.map((r,i)=>({id:i,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:{...r.pr},sup:'',mgr:'',mfg:'',added:false}));
-  plState=null; lock();
+  fillProductSelects(); plState=null; lock();
 });
 $('#btnCsv').addEventListener('click',()=>{
   const cols=COLS(), rUid=retailUid();
@@ -2010,7 +2078,9 @@ async function boot(){
   try{
     const [channels, products, config]=await Promise.all([fetchChannels(),fetchProducts(),fetchConfig()]);
     applyLoaded(channels, products, config);
-    if(!channels.length||!products.length) console.warn('[boot] 로드된 데이터가 비어있습니다 — 시딩 여부를 확인하세요.');
+    const empty=!channels.length||!products.length;
+    if(empty) console.warn('[boot] 로드된 데이터가 비어있습니다 — 시딩 여부를 확인하세요.');
+    const dn=$('#dataNotice'); if(dn) dn.style.display=empty?'flex':'none';
   }catch(e){
     console.error('[boot] Firestore 로드 실패:', e);
     showLoginError('데이터를 불러오지 못했습니다: '+(e.message||e.code||e));
@@ -2045,8 +2115,11 @@ $('#btnSignOut').addEventListener('click',async()=>{ try{ await auth.signOut(); 
 auth.onAuthStateChanged(async user=>{
   if(user){
     const who=$('#authWho'); if(who) who.textContent=user.email||'';
-    try{ await boot(); $('#authGate').style.display='none'; }
-    catch(e){ /* boot 실패 시 게이트 유지 · 메시지는 showLoginError 로 표시 */ }
+    $('#authGate').style.display='none';
+    $('#loadingOverlay').style.display='flex';
+    try{ await boot(); }
+    catch(e){ $('#authGate').style.display='flex'; /* 메시지는 showLoginError 로 표시 */ }
+    finally{ $('#loadingOverlay').style.display='none'; }
   }else{
     $('#authGate').style.display='flex';
   }

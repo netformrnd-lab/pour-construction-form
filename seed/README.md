@@ -43,7 +43,9 @@ node seed.mjs --prune
 
 ## 보안규칙 배포
 
-`../pourstore.rules` 를 pourstoreproject 에 배포하세요. (읽기 = 로그인 사용자만, 쓰기 = 금지)
+`../pourstore.rules` 를 pourstoreproject 에 배포하세요.
+(읽기 = **허용 이메일(allowlist)** 만, 쓰기 = 금지. 현재 `songhee44@netformrnd.com`.
+관리자 추가 시 규칙의 `allowed()` 배열과 콘솔 Authentication 사용자 양쪽에 등록)
 
 ```bash
 firebase deploy --only firestore:rules --project pourstoreproject

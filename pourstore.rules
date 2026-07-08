@@ -16,25 +16,26 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 인증된 사용자만. 더 조이려면 아래를 이메일 allowlist 로 교체:
-    //   function allowed() {
-    //     return request.auth != null &&
-    //       request.auth.token.email in ['admin@example.com'];
-    //   }
-    function signedIn() {
-      return request.auth != null;
+    // 허용 이메일(allowlist)만 읽기 가능. 관리자 추가 시 이 배열에 이메일을 넣으세요.
+    // (Firebase 콘솔 → Authentication → 사용자 추가 후 동일 이메일을 여기에 등록)
+    // 콘솔에서 수동 생성한 계정은 email_verified 여부와 무관하게 이메일로 판별됩니다.
+    function allowed() {
+      return request.auth != null &&
+        request.auth.token.email in [
+          'songhee44@netformrnd.com'
+        ];
     }
 
     match /channels/{uid} {
-      allow read: if signedIn();
+      allow read: if allowed();
       allow write: if false;
     }
     match /products/{id} {
-      allow read: if signedIn();
+      allow read: if allowed();
       allow write: if false;
     }
     match /config/{doc} {
-      allow read: if signedIn();
+      allow read: if allowed();
       allow write: if false;
     }
 

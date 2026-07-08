@@ -1,0 +1,46 @@
+rules_version = '2';
+// ─────────────────────────────────────────────────────────────
+//  Firestore 보안규칙 — 신규 프로젝트 pourstoreproject 전용
+//  (기존 pour-app-new 의 firestore.rules 와 무관 — 절대 혼용 금지)
+//
+//  방침:
+//   · 대외비(원가·공급가·채널·계수·매입처 암호문)는 로그인한 사용자만 읽기 가능
+//   · 앱은 Firestore 에 쓰지 않음(편집분은 클라이언트 localStorage) → 쓰기 전면 금지
+//   · 시딩은 Admin SDK(서비스 계정)로 수행되며 보안규칙을 우회하므로 영향 없음
+//   · 공개 회원가입은 사용하지 않음 — 계정은 Firebase 콘솔에서 수동 생성/allowlist
+//
+//  배포:
+//   firebase deploy --only firestore:rules --project pourstoreproject
+//   (firebase.json 의 firestore.rules 를 이 파일로 지정하거나 --config 로 분리)
+// ─────────────────────────────────────────────────────────────
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 인증된 사용자만. 더 조이려면 아래를 이메일 allowlist 로 교체:
+    //   function allowed() {
+    //     return request.auth != null &&
+    //       request.auth.token.email in ['admin@example.com'];
+    //   }
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /channels/{uid} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+    match /products/{id} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+    match /config/{doc} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // 그 외 모든 경로 금지
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

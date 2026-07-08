@@ -166,6 +166,7 @@ const COLLECTIONS = {
   SITE_METRICS: 'site-metrics',
   METHOD_LINKS: 'method-links',
   POURSTORE_POSTINGS: 'pourstore-postings', // 자사몰 검색 상단 관련 컨텐츠(가이드·블로그·유튜브·시공사례)
+  POURSTORE_PACKAGES: 'pourstore-packages', // 패키지 구성(부위·등급·베스트·신규) → 스토어 패키지 매트릭스·베스트·신규
   STAFF: 'staff',              // 어드민 담당자 마스터
 
   // KPI 업무관리센터 (POUR OS → React 흡수, PR α 인프라)
@@ -350,6 +351,7 @@ const NAV = [
   { id: 'preview',         icon: '🎨', label: '자사몰 페이지 관리', group: 'design' },
   { id: 'hotkeywords',     icon: '🔥', label: '인기검색어 관리',     group: 'design' },
   { id: 'postings',        icon: '📚', label: '포스팅 관리',         group: 'design' },
+  { id: 'packages',        icon: '🧩', label: '패키지 구성 관리',     group: 'design' },
   { id: 'products',        icon: '📦', label: '상품관리',           group: 'design' },
   { id: 'metrics',         icon: '📊', label: '공신력 수치',        group: 'design' },
   { id: 'method-links',    icon: '🔗', label: '링크 관리',          group: 'design' },
@@ -4840,6 +4842,177 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
           <button onClick={onSave} disabled={saving} style={{flex:2,padding:'12px',borderRadius:10,border:'none',background:saving?'var(--text-xs)':'linear-gradient(135deg, var(--or), var(--or-d))',color:'#fff',fontSize:13,fontWeight:900,cursor:saving?'wait':'pointer'}}>{saving?'저장 중...':'저장'}</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ============================================================
+// 패키지 구성 관리 (부위·등급·베스트·신규)
+//   저장: pourstore-packages (문서당 1건)
+//   { productNo, name, price, thumbnail, area, tier, best, isNew, order, active, createdAt, updatedAt }
+//   → 스토어: pkg-4-matrix(부위×등급), pkg-2-best(best), pkg-3-new(isNew) 자동 렌더
+// ============================================================
+const PKG_AREAS=[
+  {key:'slab', label:'슬라브(옥상)'},
+  {key:'roof', label:'지붕(슁글/금속)'},
+  {key:'wall', label:'균열/외벽'},
+  {key:'drain',label:'배수·베란다·이음부'},
+];
+const PKG_TIERS=[
+  {key:'full',    label:'풀패키지'},
+  {key:'partial', label:'부분패키지'},
+  {key:'coating', label:'단순코팅'},
+];
+const pkgAreaLabel=(k)=>(PKG_AREAS.find(a=>a.key===k)||{label:'미분류'}).label;
+const pkgTierLabel=(k)=>(PKG_TIERS.find(t=>t.key===k)||{label:'-'}).label;
+const PKG_IMG_BASE='https://ecimg.cafe24img.com/pg2736b04221490007/pourstore/web/product/medium/shop1_';
+// 초기 시드 — 실상품 17종(cate_no=71). area/tier/best/isNew는 기본 추정값(관리자가 자유 변경)
+const PKG_SEED=[
+  {productNo:'64', name:'평형 슬라브 옥상 방수 보강', price:'32,500원/㎡', hash:'a4f21e3f39f83e80a05e4832ab567c44', area:'slab', tier:'full',    best:true },
+  {productNo:'118',name:'슬라브 습기배출 방수·보강 (페이퍼팬벤트)', price:'33,000원/㎡', hash:'b985ad20f7afd2bc2b9de286cad9d69e', area:'slab', tier:'full' },
+  {productNo:'69', name:'옥상 콘크리트 탄성강화 보강', price:'11,000원/㎡', hash:'e4f33ac7875ea9941b4f186c0a6bd94a', area:'slab', tier:'partial' },
+  {productNo:'154',name:'옥상 배관 방수트랩 (거름망·보강시트)', price:'69,200원', hash:'7918363c584953559c584f2376e41d8d', area:'slab', tier:'partial', best:true },
+  {productNo:'323',name:'옥상 배수구 비파괴 방수트랩 50mm', price:'64,400원', hash:'acce11dc38585dbbcf936cefef3f080f', area:'slab', tier:'partial', isNew:true },
+  {productNo:'61', name:'아스팔트슁글 박공지붕 방수 보강', price:'23,500원/㎡', hash:'962c558046c4621eb7529e6a6886bec4', area:'roof', tier:'full',    best:true },
+  {productNo:'62', name:'금속·함석 기와 방수 보강', price:'32,000원/㎡', hash:'74c538c7b1b1fdc0a5acc92ad7b07784', area:'roof', tier:'full',    best:true },
+  {productNo:'164',name:'아스팔트슁글 고층 방수 강화 함침', price:'26,500원/㎡', hash:'03ba72fccc32c1445478073adadb4a00', area:'roof', tier:'partial', isNew:true },
+  {productNo:'67', name:'금속·함석 기와 재도장·코팅', price:'7,000원/㎡', hash:'62ce78a5f598bec8e63d5fead240f229', area:'roof', tier:'coating' },
+  {productNo:'319',name:'균열·크렉 보수 방수 세트 (1L)', price:'40,920원', hash:'63cada980371f001c3e7119a6bc29efd', area:'wall', tier:'full',    isNew:true },
+  {productNo:'150',name:'외벽 균열·크렉 보수 (하이퍼티 세트)', price:'3,100원/㎡', hash:'a9b53f23fc61f69ba41c07f23aaa78fb', area:'wall', tier:'full' },
+  {productNo:'160',name:'외벽 균열 플러스 세트', price:'3,000원/㎡', hash:'0fe61a7d312b88a0254954e19424ca44', area:'wall', tier:'partial' },
+  {productNo:'63', name:'외벽 균열·크렉 보수 방수', price:'1,800원/m', hash:'c0179ccea61962a749331ce726d38641', area:'wall', tier:'partial' },
+  {productNo:'318',name:'올인원 균열보수 씰 프로 맥스 500ml', price:'21,000원', hash:'7495ba3341bbcb4ee74771a27297d18c', area:'wall', tier:'coating', isNew:true },
+  {productNo:'80', name:'배수로·베란다 방수 보강', price:'18,000원/㎡', hash:'3d5eaa3573d8105f3e86dcff46f52fa8', area:'drain',tier:'full' },
+  {productNo:'117',name:'배수로 배수관 방수 보강 (배관트랩)', price:'19,600원/㎡', hash:'f3a8be17ec44d62aa6334dc372347b94', area:'drain',tier:'full' },
+  {productNo:'68', name:'이음부 방수 보강 (창틀·벽체)', price:'1,800원/m', hash:'0b115232537e24d6cad54c441756f41b', area:'drain',tier:'partial' },
+];
+
+function PackagesPage({showToast}){
+  const { audit } = useActiveStaffContext();
+  const [rows,setRows]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [seeding,setSeeding]=useState(false);
+
+  const load=async()=>{
+    try{
+      const snap=await db.collection(COLLECTIONS.POURSTORE_PACKAGES).get();
+      const docs=snap.docs.map(d=>({id:d.id,...d.data()}));
+      console.log(`[${COLLECTIONS.POURSTORE_PACKAGES}] ${docs.length}건 로드`);
+      setRows(docs);
+    }catch(e){ console.error(`[${COLLECTIONS.POURSTORE_PACKAGES}] 로드 실패:`,e); showToast('패키지 로드 실패: '+e.message,'error'); }
+    setLoading(false);
+  };
+  useEffect(()=>{ load(); },[]);
+
+  const patch=async(id,partial)=>{
+    setRows(prev=>prev.map(r=>r.id===id?{...r,...partial}:r));
+    try{ await db.collection(COLLECTIONS.POURSTORE_PACKAGES).doc(id).set({...partial,...audit.update()},{merge:true}); }
+    catch(e){ console.error('[packages] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
+  };
+
+  const remove=async(r)=>{
+    if(!window.confirm(`"${r.name}" 삭제할까요?`))return;
+    try{ await db.collection(COLLECTIONS.POURSTORE_PACKAGES).doc(r.id).delete();
+      setRows(prev=>prev.filter(x=>x.id!==r.id)); showToast('삭제되었습니다');
+    }catch(e){ console.error(e); showToast('삭제 실패: '+e.message,'error'); }
+  };
+
+  const seed=async()=>{
+    if(!window.confirm('실상품 17종을 기본값으로 불러올까요? (부위·등급은 이후 자유 변경)'))return;
+    setSeeding(true);
+    try{
+      for(let i=0;i<PKG_SEED.length;i++){ const s=PKG_SEED[i];
+        await db.collection(COLLECTIONS.POURSTORE_PACKAGES).add({
+          productNo:s.productNo, name:s.name, price:s.price, thumbnail:PKG_IMG_BASE+s.hash+'.jpg',
+          area:s.area, tier:s.tier, best:!!s.best, isNew:!!s.isNew, active:true, order:i, ...audit.create() });
+      }
+      console.log('[packages] 17종 시드 완료'); showToast('17종 시드 완료'); await load();
+    }catch(e){ console.error('[packages] 시드 실패:',e); showToast('시드 실패: '+e.message,'error'); }
+    setSeeding(false);
+  };
+
+  const addManual=async()=>{
+    const productNo=(window.prompt('cate_no=71 상품번호 (예: 64)')||'').trim(); if(!productNo)return;
+    const name=(window.prompt('상품명')||'').trim(); if(!name)return;
+    const price=(window.prompt('가격 표기 (예: 32,500원/㎡ 또는 69,200원)')||'').trim();
+    try{
+      await db.collection(COLLECTIONS.POURSTORE_PACKAGES).add({
+        productNo, name, price, thumbnail:'', area:'slab', tier:'partial', best:false, isNew:false, active:true, order:rows.length, ...audit.create() });
+      showToast('추가되었습니다'); await load();
+    }catch(e){ console.error(e); showToast('추가 실패: '+e.message,'error'); }
+  };
+
+  if(loading)return <div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>;
+
+  const bestN=rows.filter(r=>r.best&&r.active!==false).length;
+  const newN=rows.filter(r=>r.isNew&&r.active!==false).length;
+  const sel={padding:'6px 8px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12,fontWeight:700,background:'#fff',cursor:'pointer'};
+  const areaIdx=(k)=>{const i=PKG_AREAS.findIndex(a=>a.key===k);return i<0?99:i;};
+  const tierIdx=(k)=>{const i=PKG_TIERS.findIndex(t=>t.key===k);return i<0?99:i;};
+  const sorted=[...rows].sort((a,b)=>areaIdx(a.area)-areaIdx(b.area)||tierIdx(a.tier)-tierIdx(b.tier)||((a.order??999)-(b.order??999)));
+
+  return(
+    <div style={{padding:'24px 32px',maxWidth:1180}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,flexWrap:'wrap',gap:16}}>
+        <div>
+          <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>🧩 패키지 구성 관리</h1>
+          <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>상품별 <b>부위·등급(풀/부분/단순코팅)</b>과 <b>베스트·신규</b> 노출을 직접 설정 → 스토어 패키지 화면에 자동 반영됩니다.</div>
+        </div>
+        {rows.length>0 && <button onClick={addManual} style={{padding:'10px 18px',borderRadius:10,fontSize:12.5,fontWeight:900,color:'var(--or-d)',background:'#fff',border:'1.5px solid var(--or)',cursor:'pointer'}}>+ 상품 추가</button>}
+      </div>
+
+      {rows.length===0 ? (
+        <div style={{padding:'44px 0',textAlign:'center',background:'var(--card)',borderRadius:12,border:'1px solid var(--border)',marginTop:16}}>
+          <div style={{fontSize:13.5,color:'var(--text-md)',fontWeight:700,marginBottom:14}}>등록된 패키지가 없습니다. 실상품 17종(cate_no=71)을 불러와 시작하세요.</div>
+          <button onClick={seed} disabled={seeding} style={{padding:'12px 24px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',background:seeding?'var(--text-sm)':'linear-gradient(135deg, var(--or), var(--or-d))',cursor:seeding?'wait':'pointer'}}>{seeding?'불러오는 중...':'실상품 17종 불러오기'}</button>
+        </div>
+      ) : (
+        <>
+          <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',margin:'16px 0',fontSize:12,fontWeight:800}}>
+            <span style={{padding:'5px 11px',borderRadius:999,background:'var(--or-pale)',color:'var(--or-d)',border:'1px solid #FED7AA'}}>전체 {rows.length}</span>
+            <span style={{padding:'5px 11px',borderRadius:999,background:bestN>=1?'#FEF3C7':'#FEE2E2',color:bestN>=1?'#B45309':'#DC2626',border:'1px solid '+(bestN>=1?'#FCD34D':'#FCA5A5')}}>베스트 {bestN}{bestN===0?' — 카드 비어있음':''}</span>
+            <span style={{padding:'5px 11px',borderRadius:999,background:newN>=1?'#DCFCE7':'#FEE2E2',color:newN>=1?'#059669':'#DC2626',border:'1px solid '+(newN>=1?'#A7F3D0':'#FCA5A5')}}>신규 {newN}{newN===0?' — 카드 비어있음':''}</span>
+            <span style={{marginLeft:'auto',color:'var(--text-sm)',fontWeight:700}}>변경 시 자동 저장</span>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:7}}>
+            {sorted.map((r,i)=>{
+              const on=r.active!==false;
+              const showAreaHead = i===0 || sorted[i-1].area!==r.area;
+              return(
+                <React.Fragment key={r.id}>
+                  {showAreaHead && <div style={{fontSize:12.5,fontWeight:900,color:'var(--navy)',margin:(i===0?'0':'12px')+' 0 2px',paddingLeft:2}}>■ {pkgAreaLabel(r.area)}</div>}
+                  <div style={{display:'flex',gap:10,alignItems:'center',background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:'9px 12px',opacity:on?1:0.5,flexWrap:'wrap'}}>
+                    <div style={{width:46,height:46,borderRadius:8,flexShrink:0,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)'}}>
+                      {r.thumbnail?<img src={r.thumbnail} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.visibility='hidden';}}/>:null}
+                    </div>
+                    <div style={{flex:1,minWidth:170}}>
+                      <div style={{fontSize:13,fontWeight:800,color:'var(--text)',lineHeight:1.3}}>{r.name}</div>
+                      <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:700,marginTop:2}}>#{r.productNo} · {r.price||'가격 미정'}</div>
+                    </div>
+                    <select value={r.area||'slab'} onChange={e=>patch(r.id,{area:e.target.value})} style={sel} title="부위">
+                      {PKG_AREAS.map(a=><option key={a.key} value={a.key}>{a.label}</option>)}
+                    </select>
+                    <select value={r.tier||'partial'} onChange={e=>patch(r.id,{tier:e.target.value})} style={{...sel,color:r.tier==='full'?'var(--or-d)':'var(--text-md)',fontWeight:800}} title="등급">
+                      {PKG_TIERS.map(t=><option key={t.key} value={t.key}>{t.label}</option>)}
+                    </select>
+                    <label style={{display:'flex',alignItems:'center',gap:4,fontSize:11.5,fontWeight:800,color:r.best?'#B45309':'var(--text-sm)',cursor:'pointer'}} title="이 달의 베스트 카드에 노출">
+                      <input type="checkbox" checked={!!r.best} onChange={e=>patch(r.id,{best:e.target.checked})}/> 베스트
+                    </label>
+                    <label style={{display:'flex',alignItems:'center',gap:4,fontSize:11.5,fontWeight:800,color:r.isNew?'#059669':'var(--text-sm)',cursor:'pointer'}} title="신규 카드에 노출">
+                      <input type="checkbox" checked={!!r.isNew} onChange={e=>patch(r.id,{isNew:e.target.checked})}/> 신규
+                    </label>
+                    <label style={{display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:700,color:'var(--text-sm)'}} title="정렬순서">순서 <input type="number" value={r.order??0} onChange={e=>patch(r.id,{order:Number(e.target.value)||0})} style={{width:52,padding:'5px 6px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12}}/></label>
+                    <button onClick={()=>patch(r.id,{active:!on})} title="노출 on/off" style={{width:40,height:22,borderRadius:11,border:'none',cursor:'pointer',position:'relative',flexShrink:0,background:on?'var(--green)':'var(--border)'}}>
+                      <span style={{position:'absolute',top:2,left:on?20:2,width:18,height:18,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 2px rgba(0,0,0,.2)'}}/>
+                    </button>
+                    <button onClick={()=>remove(r)} title="삭제" style={{width:26,height:26,borderRadius:7,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',cursor:'pointer',fontSize:13,fontWeight:900,flexShrink:0}}>×</button>
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -10121,6 +10294,7 @@ function App() {
         {active === 'method-links' && <MethodLinksPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'hotkeywords' && <HotKeywordsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'postings' && <PostingsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'packages' && <PackagesPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'staff' && <StaffPage onToast={setToast} />}
         {active === 'firebase-usage' && <FirebaseUsagePage />}
         {active === 'settings' && <Settings onToast={setToast} />}

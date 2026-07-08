@@ -62,6 +62,11 @@ templates/
 | pour-09-record | `site-resources/pourstore-gallery`·`pourstore-partners` | pourstore.net |
 | search/pour-02-search-content | `pourstore-postings` (태그 자동매칭) | 각 포스팅 링크 |
 | package/pkg-5-video | `pourstore-postings` (placements⊇`pkg-video`) | 각 영상 링크 |
+| package/pkg-4-matrix | `pourstore-packages` (부위×등급) | 각 상품 상세 |
+| package/pkg-2-best | `pourstore-packages` (`best:true`) | 각 상품 상세 |
+| package/pkg-3-new | `pourstore-packages` (`isNew:true`) | 각 상품 상세 |
+
+> 패키지(`pourstore-packages`)는 어드민 '패키지 구성 관리'에서 상품별 `area`(부위)·`tier`(풀/부분/단순코팅)·`best`·`isNew`를 설정. 매트릭스는 부위×등급으로, 베스트/신규는 플래그로 자동 노출.
 
 > 포스팅(`pourstore-postings`)은 어드민 '포스팅 관리'에서 등록. `placements`에 `pkg-video`를 지정하면 패키지 시공영상(pkg-5-video)에 노출. 검색 상단은 `tags` 자동매칭이라 placements 무관.
 

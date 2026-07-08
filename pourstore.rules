@@ -4,10 +4,12 @@ rules_version = '2';
 //  (기존 pour-app-new 의 firestore.rules 와 무관 — 절대 혼용 금지)
 //
 //  방침:
-//   · 대외비(원가·공급가·채널·계수·매입처 암호문)는 로그인한 사용자만 읽기 가능
-//   · 앱은 Firestore 에 쓰지 않음(편집분은 클라이언트 localStorage) → 쓰기 전면 금지
+//   · 데이터(원가·공급가·채널·계수)는 "허용목록(config/access.allowedEmails)에 있는 계정"만 읽기 가능
+//     → 로그인만 해서는 아무것도 못 봄. 목록에 없는 계정은 전면 차단(서버 강제).
+//   · 매입처 암호문(config/secure)은 그중 "마스터 계정 + 이메일 인증"만 읽기 가능
+//   · 앱은 config/access 외에는 Firestore 에 쓰지 않음 → 대부분 쓰기 금지
 //   · 시딩은 Admin SDK(서비스 계정)로 수행되며 보안규칙을 우회하므로 영향 없음
-//   · 공개 회원가입은 사용하지 않음 — 계정은 Firebase 콘솔에서 수동 생성/allowlist
+//   · 공개 회원가입은 사용하지 않음 — 계정은 Firebase 콘솔에서 수동 생성 후 허용목록에 추가
 //
 //  배포:
 //   firebase deploy --only firestore:rules --project pourstoreproject
@@ -38,19 +40,27 @@ service cloud.firestore {
         && accessExists()
         && request.auth.token.email == masterEmail();
     }
+    // 데이터 열람 허용: config/access.allowedEmails 목록에 있거나 마스터 본인.
+    //  → 허용목록에 없는 계정은 로그인해도 채널·제품·계수 read 전면 거부(서버 강제).
+    function isAllowedReader() {
+      return signedIn()
+        && accessExists()
+        && ( request.auth.token.email == masterEmail()
+             || request.auth.token.email in get(/databases/$(database)/documents/config/access).data.get('allowedEmails', []) );
+    }
 
     match /channels/{uid} {
-      allow read: if signedIn();
+      allow read: if isAllowedReader();
       allow write: if false;
     }
     match /products/{id} {
-      allow read: if signedIn();
+      allow read: if isAllowedReader();
       allow write: if false;
     }
 
-    // 계산/정책 상수 — 로그인 사용자 읽기, 쓰기 금지
+    // 계산/정책 상수 — 허용목록 계정만 읽기, 쓰기 금지
     match /config/calc {
-      allow read: if signedIn();
+      allow read: if isAllowedReader();
       allow write: if false;
     }
 

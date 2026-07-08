@@ -17,18 +17,23 @@ products/{p0000..}  // 문서ID = 'p' + 4자리(seq)
 
 config/secure       // { blob: "<AES-256-GCM 암호문>" }   ← 매입처·상품매칭 (복호화는 앱에서)
 config/calc         // { moqTiers:[{label,f,min,max(null=∞)}], chVar:{...}, codeRank:{...} }
-config/access       // { masterEmail: "<마스터 계정 이메일>" }  ← 앱에서 생성/변경 (아래 참고)
+config/access       // { masterEmail: "<마스터>", allowedEmails: ["<열람 허용 계정들>"] }  ← 앱에서 생성/변경
 ```
 
-### 마스터 계정(config/access) — 공급업체·매입처 접근 제어
-- `config/secure`(대외비 암호문)는 **마스터 계정 + 이메일 인증** 사용자만 읽을 수 있습니다.
-- 판정은 **Firestore 보안규칙(서버)** 에서 강제되므로, 클라이언트 HTML/JS 를 수정하거나
-  개발자도구를 열어도 마스터가 아니면 서버가 암호문 자체를 내려주지 않습니다.
-- 마스터 지정/변경은 앱의 **[계정 관리]** 탭에서 수행합니다.
-  - 최초 1회: 로그인 + 이메일 인증 후 "이 계정을 마스터로 설정" (`config/access` create).
-  - 변경: 현재 마스터 + 이메일 인증 상태에서만 (`update`). 그 외 계정/코드 수정으로는 불가.
-- 시딩 시 `config/access` 는 만들지 않아도 됩니다(앱에서 생성). 콘솔에서 미리 만들려면
-  `{ masterEmail: "admin@…" }` 로 생성하세요.
+### 계정 기반 접근 제어(config/access) — 3중 방어
+- **열람 허용목록(allowedEmails)**: 여기 있는 계정만 채널·제품·마진 등 데이터를 읽습니다.
+  목록에 없는 계정은 **로그인해도 아무것도 못 봅니다**(서버 강제, `isAllowedReader()`).
+- **마스터(masterEmail) + 이메일 인증**: 대외비 암호문 `config/secure`(공급업체·매입처·매칭)는
+  마스터 계정이 이메일 인증(`email_verified`)까지 완료했을 때만 읽습니다.
+- 판정은 모두 **Firestore 보안규칙(서버)** 에서 강제 → 클라이언트 HTML/JS 수정·개발자도구로도 우회 불가.
+- 지정/변경은 앱의 **[계정 관리]** 탭에서:
+  - 최초 1회: 지정 마스터(`songhee44@netformrnd.com`)가 로그인+이메일 인증 후 "마스터로 설정".
+  - 마스터 변경: 현재 마스터 + 이메일 인증만. 허용목록 추가/삭제: 마스터만.
+- 콘솔에서 미리 만들려면 `{ masterEmail:"songhee44@netformrnd.com", allowedEmails:["songhee44@netformrnd.com"] }`.
+
+> ⚠️ **콘솔(console.firebase.google.com) 접근은 이 규칙과 별개**입니다. 프로젝트 IAM 권한을 가진
+> 구글 계정은 규칙과 무관하게 raw 데이터를 봅니다(공급업체는 여전히 AES 암호문). 프로젝트 설정 →
+> 사용자 및 권한에서 콘솔 접근 인원을 최소화하세요. 앱 로그인 계정으로는 콘솔에 들어갈 수 없습니다.
 
 문서ID가 결정론적이라 **재실행해도 같은 문서를 덮어씁니다(멱등)**.
 

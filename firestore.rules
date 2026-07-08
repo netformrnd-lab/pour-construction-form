@@ -82,6 +82,8 @@ service cloud.firestore {
     match /pourstore-renewal-listings/{doc}  { allow read, write: if true; }
     // 자사몰 검색 상단 '관련 컨텐츠' 큐레이션 (pourstore-renewal/admin 포스팅 관리)
     match /pourstore-postings/{doc}          { allow read, write: if true; }
+    // 패키지 구성 관리 (부위·등급·베스트·신규) — pourstore-renewal/admin '패키지 구성 관리'
+    match /pourstore-packages/{doc}          { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
     // POUR스토어 업무관리 (work-*) — pourstore-renewal/admin

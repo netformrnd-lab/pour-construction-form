@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>POUR스토어 상담봇</title>
+<!--
+  chat-widget.html — POUR스토어 소비자용(온라인) 챗봇 v1
+  · 지식: 인라인 시드(CRM 상담 Q&A 소비자톤) + Firestore chatbot-kb(audience b2c/store/전체) 병합
+  · 답변: 검색(키워드·태그 매칭). API 키 불필요, 안전(견적/타사/과장 배제).
+  · 못 맞추면 1:1 상담 연결 + 모든 질문을 chatbot-consumer-logs에 기록(진화 루프).
+  · 카페24 임베드: <iframe src="…/chat-widget.html" style="width:100%;height:640px;border:0"></iframe>
+-->
+<style>
+:root{
+  --or:#E8780F; --or-d:#C8650D; --or-l:#FFF7EF; --or-m:#FBE2C4;
+  --navy:#0F1F5C; --ink:#111827; --ink2:#2F3438; --muted:#9AA0A6;
+  --line:#EEF0F2; --bg:#F5F6F8; --card:#fff; --green:#03C75A;
+}
+*{box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; letter-spacing:-0.02em; -webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{background:var(--bg); color:var(--ink2); display:flex; justify-content:center;}
+.cw{width:100%; max-width:520px; height:100dvh; min-height:100%; background:var(--card); display:flex; flex-direction:column; overflow:hidden; box-shadow:0 0 40px rgba(15,31,92,.06);}
+/* 헤더 */
+.cw-hd{flex-shrink:0; display:flex; align-items:center; gap:11px; padding:14px 16px; background:linear-gradient(120deg,var(--navy),#1a2f7a); color:#fff;}
+.cw-hd .ava{width:40px; height:40px; border-radius:12px; background:var(--or); display:grid; place-items:center; flex-shrink:0;}
+.cw-hd .ava svg{width:22px; height:22px; color:#fff;}
+.cw-hd .tt{flex:1; min-width:0;}
+.cw-hd .tt .n{font-size:15px; font-weight:800; display:flex; align-items:center; gap:6px;}
+.cw-hd .tt .n .dot{width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px rgba(3,199,90,.25);}
+.cw-hd .tt .s{font-size:11.5px; font-weight:500; color:rgba(255,255,255,.75); margin-top:2px;}
+/* 메시지 영역 */
+.cw-body{flex:1; overflow-y:auto; padding:16px 14px 8px; display:flex; flex-direction:column; gap:12px; scroll-behavior:smooth;}
+.cw-body::-webkit-scrollbar{width:6px;} .cw-body::-webkit-scrollbar-thumb{background:#E2E5E9; border-radius:6px;}
+.row{display:flex; gap:8px; align-items:flex-end; max-width:100%;}
+.row.bot{align-self:flex-start;}
+.row.me{align-self:flex-end; flex-direction:row-reverse;}
+.row .bava{width:28px; height:28px; border-radius:9px; background:var(--or-l); border:1px solid var(--or-m); display:grid; place-items:center; flex-shrink:0;}
+.row .bava svg{width:15px; height:15px; color:var(--or);}
+.bubble{padding:11px 14px; border-radius:15px; font-size:14px; line-height:1.55; font-weight:500; white-space:pre-line; word-break:break-word; max-width:80vw;}
+@media(min-width:520px){.bubble{max-width:380px;}}
+.row.bot .bubble{background:#F4F5F7; color:var(--ink2); border-bottom-left-radius:5px;}
+.row.me .bubble{background:var(--or); color:#fff; border-bottom-right-radius:5px;}
+.bubble b, .bubble strong{font-weight:800;}
+/* 칩 */
+.chips{display:flex; flex-wrap:wrap; gap:7px; align-self:flex-start; max-width:92%; margin:-2px 0 2px 36px;}
+.chip{border:1px solid var(--or-m); background:#fff; color:var(--or-d); font-size:12.5px; font-weight:700; padding:7px 13px; border-radius:20px; cursor:pointer; transition:.12s; line-height:1;}
+.chip:hover{background:var(--or-l); border-color:var(--or);}
+.chip.ghost{border-color:var(--line); color:var(--ink2);}
+.chip.ghost:hover{background:var(--bg); border-color:var(--muted);}
+/* 액션 버튼(상담연결) */
+.acts{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 2px 36px;}
+.act{display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:11px; font-size:13px; font-weight:800; cursor:pointer; text-decoration:none;}
+.act.primary{background:var(--navy); color:#fff;}
+.act.line{background:#fff; border:1.5px solid var(--or); color:var(--or-d);}
+.act svg{width:15px; height:15px;}
+/* 타이핑 */
+.typing{display:flex; gap:4px; padding:13px 15px;}
+.typing span{width:7px; height:7px; border-radius:50%; background:#C4C9CF; animation:tp 1s infinite;}
+.typing span:nth-child(2){animation-delay:.15s;} .typing span:nth-child(3){animation-delay:.3s;}
+@keyframes tp{0%,60%,100%{opacity:.3; transform:translateY(0);} 30%{opacity:1; transform:translateY(-3px);}}
+/* 입력 */
+.cw-ft{flex-shrink:0; border-top:1px solid var(--line); padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:#fff;}
+.cw-ft form{display:flex; align-items:center; gap:8px; background:var(--bg); border:1.5px solid var(--line); border-radius:24px; padding:6px 6px 6px 16px; transition:.15s;}
+.cw-ft form:focus-within{border-color:var(--or); background:#fff;}
+.cw-ft input{flex:1; min-width:0; border:0; outline:0; background:none; font-size:14.5px; color:var(--ink);}
+.cw-ft input::placeholder{color:#B0B6BD;}
+.cw-ft button{flex-shrink:0; width:38px; height:38px; border-radius:50%; border:0; background:var(--or); display:grid; place-items:center; cursor:pointer; transition:.15s;}
+.cw-ft button:disabled{background:#D6D9DD; cursor:default;}
+.cw-ft button svg{width:18px; height:18px; color:#fff;}
+.cw-guard{font-size:10.5px; color:var(--muted); text-align:center; margin-top:7px; font-weight:500;}
+</style>
+</head>
+<body>
+<div class="cw">
+  <div class="cw-hd">
+    <div class="ava" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3.9 0 7 2.6 7 6 0 3.4-3.1 6-7 6-.8 0-1.6-.1-2.3-.3L6 16.5l.4-2.7C5 12.7 5 11.4 5 9c0-3.4 3.1-6 7-6z"/></svg>
+    </div>
+    <div class="tt">
+      <div class="n">POUR스토어 상담봇 <span class="dot"></span></div>
+      <div class="s">제품 사용·시공 궁금증을 도와드려요</div>
+    </div>
+  </div>
+  <div class="cw-body" id="body"></div>
+  <div class="cw-ft">
+    <form id="form" autocomplete="off">
+      <input id="input" type="text" placeholder="궁금한 점을 입력해 주세요 (예: 옥상 방수트랩 들뜸)" aria-label="메시지 입력"/>
+      <button id="send" type="submit" aria-label="보내기" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-6 16-3-6-7-2z"/></svg>
+      </button>
+    </form>
+    <div class="cw-guard">정확한 견적·수량은 상품 페이지 또는 1:1 문의로 확인해 주세요.</div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain: "pour-app-new.firebaseapp.com",
+  projectId: "pour-app-new",
+  storageBucket: "pour-app-new.firebasestorage.app",
+  messagingSenderId: "411031141847",
+  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
+};
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ===== 상담 연결(고객사에 맞게 값만 교체) =====
+const CONTACT = {
+  inquiryUrl: "https://www.pourstore.net",   // 1:1 문의/상담 페이지 (카페24 게시판 등으로 교체 가능)
+  tel: ""                                     // 전화번호 있으면 입력 (예: "1577-0000") — 없으면 버튼 숨김
+};
+
+// ===== 인라인 시드(CRM 상담 Q&A 소비자톤) — Firestore chatbot-kb와 병합됨 =====
+const SEED = [
+  {q:"기존 PVC방수시트 위에 방수(도막) 시공을 해도 되나요? 보강은 어떻게 하나요?",
+   a:"PVC방수시트는 보통 20년 내외로 오래 사용할 수 있어요. 아직 누수 같은 하자 증상이 없다면 시트 위에 도막을 덧시공하실 필요는 크지 않습니다.\n보강이 필요하시면 먼저 시트가 열화(노화)됐는지 점검하고, 시트 접합부와 누수가 생기기 쉬운 부위를 보강하는 방법이 있어요. 상태 확인이 먼저라, 사진을 남겨 1:1 문의로 보내주시면 더 정확히 안내해 드릴게요.",
+   tags:["PVC방수시트","방수시트","도막","보강","옥상","방수","덧시공"]},
+  {q:"방수트랩(배수구배관트랩) 덮개가 들뜨거나 변형됐어요. 열 때문인가요?",
+   a:"트랩 소재 자체는 단순히 햇빛(태양열)만으로 변형되지는 않습니다. 덮개가 들뜨는 건 대개 처음 시공할 때 바닥(바탕면) 단차에 완전히 밀착 부착되지 않은 경우예요.\n바탕면에 밀착되도록 다시 시공하시거나, 새 제품으로 교체하시면 개선됩니다. 설치 사진을 1:1 문의로 보내주시면 상태를 보고 안내해 드릴게요.",
+   tags:["배수구배관트랩","방수트랩","트랩","70mm","들뜸","변형","옥상"]},
+  {q:"슈퍼복합압축시트를 붙인 위에 코트재를 발라도 되나요? 프라이머 종류가 걱정돼요.",
+   a:"시트를 부착할 수 있을 정도로 프라이머가 얇게 발린 상태라면, 그 위에 코트재를 도포해도 대체로 무리는 없습니다.\n다만 사용한 프라이머 종류와 현재 표면 상태에 따라 달라질 수 있어요. 시공 사진과 사용하신 프라이머 정보를 1:1 문의로 보내주시면 확인 후 정확히 안내해 드리겠습니다.",
+   tags:["코트재","슈퍼복합압축시트","프라이머","슬라브","옥상","도포"]},
+  {q:"아크릴배면차수재를 섞어 시공했는데 경화가 안 돼요.",
+   a:"아크릴배면차수재는 A제와 B제를 1:1로 섞는 것이 기본이고, C제는 경화를 도와주는 촉진제(첨가제)예요.\n그래서 C제는 A+B를 섞은 혼합제에 추가로 넣으셔야 합니다. B제 없이 A제와 C제만 섞으면 경화되지 않아요. 배합을 다시 확인해 주세요.",
+   tags:["아크릴배면차수","배면차수","경화","A제","B제","C제","경화촉진제","배합"]},
+  {q:"PMQ강화코팅제는 에폭시 하도 위에 바르나요? 유광인가요 무광인가요?",
+   a:"PMQ강화코팅제는 에폭시 상도(마감재)입니다. 단품으로도 사용 가능하지만, 오래 유지하시려면 바탕에 하도를 먼저 바른 뒤 상도로 마감하시는 걸 권장해요.\n오염을 막아주는 유광 마감입니다.",
+   tags:["PMQ강화코팅제","PMQ","에폭시","하도","상도","유광","마감"]},
+  {q:"물이 상시 닿는 콘크리트 탈락 부위(댐 방류로 등)에도 탄성강화 패키지로 시공할 수 있나요?",
+   a:"물이 항상 닿고 방류 하중을 받는 특수한 환경(댐 방류로 등)은 탄성강화 패키지로는 보수가 어렵습니다. 이런 부위는 전용 제품과 숙련된 전문 시공이 필요해요.\n현장 위치와 환경 정보를 1:1 문의로 남겨주시면 적합한 방향을 별도로 검토해 안내해 드리겠습니다.",
+   tags:["탄성강화패키지","탄성강화","댐","방류","콘크리트 탈락","습기","수중"]},
+  {q:"수영장 타일 위에 에폭시(써밋에폭시)를 바를 수 있나요? 방수/코팅 대안이 있나요?",
+   a:"수영장은 물이 상시 고여 있는 환경이라 써밋에폭시는 적합하지 않습니다. 욕실 침투방수재는 타일 사이(메지)의 수분 침투는 막아주지만 상시 물이 고인 곳에선 장기 내구성에 무리가 있어요.\n세 가지 중에는 고탄성 타일방수재가 가장 적합합니다. 근본적인 방수를 원하시면 타일을 제거한 뒤 고탄성 타일방수재를 바르고 타일을 새로 시공하는 방법이 가장 좋고, 기존 타일 위에 덧방(고탄성 타일방수재 도포 후 새 타일 시공)도 가능합니다.",
+   tags:["수영장","타일","써밋에폭시","에폭시","욕실침투방수재","고탄성타일방수재","방수","덧방"]},
+  {q:"카센터 자동차 리프트 바닥에 코트재를 시공해도 되나요?",
+   a:"자동차 리프트처럼 하중이 반복적으로 실리는 바닥은 코트재만으로는 오래 견디기 어려워, 층을 나눠 시공하시길 권장해요.\n\n[추천 1안]\n1) POUR코트재 도포(방청)\n2) 에폭시 프라이머(하도) — 다음 층과의 접착력\n3) POUR써밋에폭시 중도 — 단단한 바탕층으로 마모 방지\n4) POUR PMQ강화코팅재 + 논슬립 크리스탈 파우더 — 미끄럼 방지\n\n[추천 2안]\n1) POUR코트재 도포(방청)\n2) 에폭시 프라이머(하도)\n3) POUR PMQ강화코팅재 + 논슬립 크리스탈 파우더\n\n현장 상태에 따라 달라질 수 있어 1:1 문의로 상담해 주세요.",
+   tags:["코트재","자동차 리프트","카센터","방청","에폭시","프라이머","PMQ","논슬립","마모","바닥"]},
+  {q:"POUR MMA를 기존 에폭시 도장면 위에 시공할 수 있나요?",
+   a:"네, 가능합니다. 다만 표면에 스크래치(거칠기) 작업을 한 뒤 시공하시면 부착이 잘 됩니다.\n기존 콘크리트에 바로 하는 것보다는 부착력이 다소 떨어질 수 있어, 표면 스크래치 작업은 꼭 해주시는 걸 권장해요.",
+   tags:["MMA","POUR MMA","에폭시 도장면","미끄럼방지","부착","스크래치","도로"]},
+  {q:"POUR MMA 색상은 원하는 색으로 다 되나요? 규사는 별도인가요? 겨울(영하)에도 시공되나요?",
+   a:"안내드립니다.\n· 색상 : 제공되는 색상 안에서 모두 선택 가능합니다(최소 주문 10EA).\n· 규사 : 크리스탈파우더와 비슷한 소재가 MMA 제품에 이미 1mm 두께로 포함돼 있어요. 더 강한 미끄럼 방지가 필요하면 용도에 맞는 규사를 선택해 추가 구매하시면 됩니다.\n· 동절기 : 영하 10도 이하에서도 시공 가능합니다(기온이 낮으면 경화 시간이 더 걸릴 수 있어요).",
+   tags:["MMA","POUR MMA","색상","규사","크리스탈파우더","동절기","영하","논슬립","경화"]}
+];
+
+// 시작 추천 칩
+const START_CHIPS = ["옥상 방수트랩 들뜸","PVC방수시트 위 시공","에폭시/바닥 코팅","수영장 타일 방수","MMA 미끄럼방지","제품 사용법 문의"];
+
+// ===== 유틸 =====
+const bodyEl = document.getElementById('body');
+const form = document.getElementById('form');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+const norm = s => (s||'').toString().toLowerCase().replace(/[\s\.,!?~·:;()\[\]'"·\-\/]/g,'');
+const esc = s => (s||'').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+let KB = SEED.slice();
+let started = false;
+
+function scrollDown(){ requestAnimationFrame(()=>{ bodyEl.scrollTop = bodyEl.scrollHeight; }); }
+
+function addBot(text, {chips, acts}={}){
+  const row = document.createElement('div');
+  row.className = 'row bot';
+  row.innerHTML = '<div class="bava"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3.9 0 7 2.6 7 6 0 3.4-3.1 6-7 6-.8 0-1.6-.1-2.3-.3L6 16.5l.4-2.7C5 12.7 5 11.4 5 9c0-3.4 3.1-6 7-6z"/></svg></div><div class="bubble">'+esc(text)+'</div>';
+  bodyEl.appendChild(row);
+  if (acts && acts.length) renderActs(acts);
+  if (chips && chips.length) renderChips(chips);
+  scrollDown();
+}
+function addMe(text){
+  const row = document.createElement('div');
+  row.className = 'row me';
+  row.innerHTML = '<div class="bubble">'+esc(text)+'</div>';
+  bodyEl.appendChild(row); scrollDown();
+}
+function renderChips(list){
+  const wrap = document.createElement('div');
+  wrap.className = 'chips';
+  list.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (c.ghost ? ' ghost' : '');
+    b.type = 'button';
+    b.textContent = c.label || c;
+    b.onclick = () => { removeTransient(); handle(c.value || c.label || c); };
+    wrap.appendChild(b);
+  });
+  wrap.dataset.transient = '1';
+  bodyEl.appendChild(wrap); scrollDown();
+}
+function renderActs(list){
+  const wrap = document.createElement('div');
+  wrap.className = 'acts';
+  list.forEach(a => {
+    const el = document.createElement('a');
+    el.className = 'act ' + (a.kind||'line');
+    el.href = a.href; if (/^https?:/.test(a.href)) { el.target='_blank'; el.rel='noopener'; }
+    el.innerHTML = a.icon + '<span>'+esc(a.label)+'</span>';
+    wrap.appendChild(el);
+  });
+  bodyEl.appendChild(wrap); scrollDown();
+}
+function removeTransient(){ bodyEl.querySelectorAll('[data-transient]').forEach(n=>n.remove()); }
+
+function typing(){
+  const row = document.createElement('div');
+  row.className = 'row bot'; row.dataset.typing='1';
+  row.innerHTML = '<div class="bava"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3.9 0 7 2.6 7 6 0 3.4-3.1 6-7 6-.8 0-1.6-.1-2.3-.3L6 16.5l.4-2.7C5 12.7 5 11.4 5 9c0-3.4 3.1-6 7-6z"/></svg></div><div class="bubble typing"><span></span><span></span><span></span></div>';
+  bodyEl.appendChild(row); scrollDown(); return row;
+}
+
+// ===== 매칭 엔진 =====
+function scoreEntry(entry, query){
+  const qn = norm(query);
+  const words = (query.toLowerCase().match(/[가-힣a-z0-9]+/g)||[]).filter(w=>w.length>=2);
+  let s = 0;
+  (entry.tags||[]).forEach(t => {
+    const tn = norm(t); if (!tn) return;
+    if (qn.includes(tn) || tn.includes(qn)) s += 4;
+    else if (words.some(w => { const wn=norm(w); return wn.length>=2 && (tn.includes(wn) || wn.includes(tn)); })) s += 3;
+  });
+  const qtn = norm(entry.q);
+  words.forEach(w => { const wn=norm(w); if (wn.length>=2 && qtn.includes(wn)) s += 1; });
+  return s;
+}
+function search(query){
+  const scored = KB.map(e => ({e, s:scoreEntry(e, query)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s);
+  return scored;
+}
+
+const ACT_INQUIRY = { kind:'primary', label:'1:1 문의하기', href:CONTACT.inquiryUrl, icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' };
+function contactActs(){
+  const acts = [ACT_INQUIRY];
+  if (CONTACT.tel) acts.push({ kind:'line', label:'전화 '+CONTACT.tel, href:'tel:'+CONTACT.tel.replace(/[^0-9]/g,''), icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.6 2.6.7a2 2 0 0 1 1.7 2z"/></svg>' });
+  return acts;
+}
+
+// 진화 로그: 모든 질문 기록(무엇을 묻는지 → 팀이 지식 보강)
+async function log(query, matched, score){
+  try {
+    await addDoc(collection(db, "chatbot-consumer-logs"), {
+      q: query, matched: matched ? matched.q : null, score: score||0,
+      audience: "b2c", source: "chat-widget", ts: new Date().toISOString()
+    });
+  } catch(e){ console.log("[chat] 로그 스킵:", e && e.message); }
+}
+
+// ===== 핸들 =====
+async function handle(query){
+  query = (query||'').trim(); if (!query) return;
+  addMe(query);
+  const t = typing();
+
+  // 가드: 견적/가격 문의 → 금액 미제시
+  const priceAsk = /(견적|얼마|가격|비용|단가|원가)/.test(query);
+  const results = search(query);
+  const top = results[0];
+  const good = top && top.s >= 4;
+
+  await new Promise(r=>setTimeout(r, 450));
+  t.remove();
+
+  if (good){
+    addBot(top.e.a, {
+      acts: [ACT_INQUIRY],
+      chips: buildRelatedChips(results, top)
+    });
+    log(query, top.e, top.s);
+  } else if (priceAsk){
+    addBot("정확한 견적과 수량은 제품·현장 상태에 따라 달라져요. 상품 페이지에서 규격을 확인하시거나, 1:1 문의로 필요 수량을 알려주시면 담당자가 자세히 안내해 드립니다.", { acts: contactActs(), chips: startChips() });
+    log(query, null, 0);
+  } else {
+    addBot("제가 아직 정확히 답변드리기 어려운 질문이에요. 담당자가 확실하게 도와드릴 수 있도록 1:1 문의로 연결해 드릴게요. 아래 주제로도 바로 확인하실 수 있어요.", { acts: contactActs(), chips: startChips() });
+    log(query, null, 0);
+  }
+}
+
+function buildRelatedChips(results, top){
+  const rel = results.slice(1, 3).map(x => ({ label: shorten(x.e.q), value: x.e.q, ghost:true }));
+  return rel.length ? rel : startChips();
+}
+function startChips(){ return START_CHIPS.map(c => ({label:c})); }
+function shorten(s){ s=s.replace(/\?+$/,''); return s.length>22 ? s.slice(0,22)+'…' : s; }
+
+form.addEventListener('submit', e => { e.preventDefault(); const v=input.value.trim(); if(!v) return; input.value=''; sendBtn.disabled=true; removeTransient(); handle(v); });
+input.addEventListener('input', ()=>{ sendBtn.disabled = !input.value.trim(); });
+
+// ===== 시작 =====
+async function boot(){
+  // Firestore chatbot-kb 병합 (audience b2c/store/전체, status active)
+  try {
+    const snap = await getDocs(collection(db, "chatbot-kb"));
+    const rows = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    console.log("[chat] chatbot-kb "+rows.length+"건 로드");
+    const seen = new Set(SEED.map(e=>norm(e.q)));
+    rows.forEach(k => {
+      if (k.status && k.status!=='active') return;
+      const aud = Array.isArray(k.audience) ? k.audience : [];
+      const ok = aud.length===0 || aud.includes('b2c') || aud.includes('store');
+      if (!ok) return;
+      const q = k.q || ''; const a = k.a || '';
+      if (!q || !a) return;
+      if (seen.has(norm(q))) return;
+      seen.add(norm(q));
+      KB.push({ q, a, tags: Array.isArray(k.tags)?k.tags:[] });
+    });
+    console.log("[chat] 지식 총 "+KB.length+"건(시드 포함)");
+  } catch(e){ console.log("[chat] chatbot-kb 로드 실패(시드만 사용):", e && e.message); }
+
+  addBot("안녕하세요! POUR스토어 상담봇이에요. 제품 사용법·시공 관련 궁금한 점을 물어봐 주세요. 아래에서 골라보셔도 좋아요.", { chips: startChips() });
+}
+boot();
+</script>
+</body>
+</html>

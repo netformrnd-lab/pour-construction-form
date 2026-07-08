@@ -11,11 +11,29 @@
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
 .ppcate[hidden]{ display:none !important; }
-.ppcate{ max-width:1256px; margin:0 auto 10px; }
-.ppcate > section{ margin-bottom:8px; }
+/* ── cate_no=71 페이지 전용 UI 통일 (스코프: .ppcate만 → 별도 패키지 페이지엔 무영향) ── */
+.ppcate{ max-width:1200px; margin:0 auto 24px; background:#fff; }
+.ppcate > section{ margin:0; }
+/* 배경 띠 제거 → 하나의 연속된 면처럼. 섹션 여백 통일 */
+.ppcate .ppr2, .ppcate .ppr3, .ppcate .ppr4, .ppcate .ppr5{ background:#fff !important; padding:54px 20px !important; }
+/* 첫 섹션(대표 방수·보강 패키지) 상단 여백 축소 → 깔끔하게 시작 */
+.ppcate .ppr2{ padding-top:32px !important; }
+/* 섹션 사이 얇은 구분선으로 리듬 */
+.ppcate > section + section{ border-top:1px solid #F1ECE4; }
+/* 제목 크기·정렬 통일(모두 좌측 정렬) */
+.ppcate .ppr2-head h2, .ppcate .ppr3-head h2, .ppcate .ppr4-head h2, .ppcate .ppr5-head h2{ font-size:27px !important; letter-spacing:-0.8px !important; }
+.ppcate .ppr4-head, .ppcate .ppr5-head{ text-align:left !important; }
+.ppcate .ppr4-head p, .ppcate .ppr5-head p{ margin-left:0 !important; margin-right:0 !important; }
+/* 이 페이지에선 중복되는 '전체 패키지' 링크·비작동 라인필터 숨김 */
+.ppcate .ppr2-head .more, .ppcate .ppr3-head .more{ display:none !important; }
+.ppcate .ppr4-line{ display:none !important; }
+@media (max-width:640px){ .ppcate .ppr2, .ppcate .ppr3, .ppcate .ppr4, .ppcate .ppr5{ padding:40px 16px !important; } .ppcate .ppr2{ padding-top:24px !important; } .ppcate .ppr2-head h2, .ppcate .ppr3-head h2, .ppcate .ppr4-head h2, .ppcate .ppr5-head h2{ font-size:22px !important; } }
 </style>
-<!--@import(/pourstore_renewal/package/pkg-1-check.html)-->
-<!--@import(/pourstore_renewal/package/pkg-t-scope.html)-->
+<!-- [보류] 나중에 고도화 시 '대표 패키지' 위에 다시 노출할 섹션 — 경로만 보존(현재는 미노출).
+     복구하려면 아래 두 경로를 정상 @import 지시자로 되살리세요:
+       /pourstore_renewal/package/pkg-1-check.html   (부위별 네비)
+       /pourstore_renewal/package/pkg-t-scope.html   (등급 3단계 안내)
+     → 현재는 '대표 방수·보강 패키지'(pkg-2-best)부터 시작합니다. -->
 <!--@import(/pourstore_renewal/package/pkg-2-best.html)-->
 <!--@import(/pourstore_renewal/package/pkg-3-new.html)-->
 <!--@import(/pourstore_renewal/package/pkg-4-matrix.html)-->

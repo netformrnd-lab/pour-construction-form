@@ -346,6 +346,20 @@ const db = getFirestore(app);
     return h;
   }
 
+  // ===== 메인 배너 (config/pourstoreBanners) — 어드민 '메인 배너 관리'에서 업로드 =====
+  function applyBanner(sel, b){
+    if (!b || b.active === false || !b.image) return;
+    var el = section.querySelector(sel);
+    if (!el) return;
+    if (b.link && String(b.link).trim()) el.setAttribute('href', String(b.link).trim());
+    el.style.padding = '0';
+    el.innerHTML = '<img src="'+b.image+'" alt="배너" style="width:100%;height:100%;object-fit:cover;display:block" loading="lazy" onerror="this.remove()"/>';
+  }
+  try {
+    var bsnap = await getDoc(doc(db, "config", "pourstoreBanners"));
+    if (bsnap.exists()) { var bd = bsnap.data() || {}; applyBanner('.psm1-banner', bd.hero); applyBanner('.psm1-banner-side', bd.side); console.log('[psm1] 배너 적용'); }
+  } catch (e) { console.log('[psm1] 배너 로드 스킵:', e && e.message ? e.message : e); }
+
   // ===== 레벨1: 인기검색어 표출 (PC) =====
   var hotList = section.querySelector('[data-psm1-hot-list]');
   var hotWrap = section.querySelector('[data-psm1-hot]');

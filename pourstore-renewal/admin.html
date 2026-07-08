@@ -352,6 +352,7 @@ const NAV = [
   { id: 'hotkeywords',     icon: '🔥', label: '인기검색어 관리',     group: 'design' },
   { id: 'postings',        icon: '📚', label: '포스팅 관리',         group: 'design' },
   { id: 'packages',        icon: '🧩', label: '패키지 구성 관리',     group: 'design' },
+  { id: 'banners',         icon: '🖼', label: '메인 배너 관리',       group: 'design' },
   { id: 'products',        icon: '📦', label: '상품관리',           group: 'design' },
   { id: 'metrics',         icon: '📊', label: '공신력 수치',        group: 'design' },
   { id: 'method-links',    icon: '🔗', label: '링크 관리',          group: 'design' },
@@ -4841,6 +4842,106 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
           <button onClick={onClose} style={{flex:1,padding:'12px',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',fontSize:13,fontWeight:800,color:'var(--text-md)',cursor:'pointer'}}>취소</button>
           <button onClick={onSave} disabled={saving} style={{flex:2,padding:'12px',borderRadius:10,border:'none',background:saving?'var(--text-xs)':'linear-gradient(135deg, var(--or), var(--or-d))',color:'#fff',fontSize:13,fontWeight:900,cursor:saving?'wait':'pointer'}}>{saving?'저장 중...':'저장'}</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// 메인 배너 관리 (히어로 + 사이드) — 이미지 업로드(png/jpg)
+//   저장: config/pourstoreBanners { hero:{image,link,active}, side:{image,link,active} }
+//   → 스토어 pour-01-main 히어로/사이드 배너에 자동 반영. (config 규칙 사용 → 새 보안규칙 불필요)
+// ============================================================
+const BANNER_SLOTS=[
+  {key:'hero', label:'메인 히어로 배너', desc:'검색바 아래 좌측 큰 배너', size:'권장 1280 × 720 px (가로형 16:9)', ratio:'16 / 9'},
+  {key:'side', label:'추천(사이드) 배너', desc:'히어로 우측 세로 배너', size:'권장 640 × 1060 px (세로형)', ratio:'64 / 106'},
+];
+function BannersPage({showToast}){
+  const { audit } = useActiveStaffContext();
+  const emptySlot={image:'',link:'',active:true};
+  const [data,setData]=useState({hero:{...emptySlot}, side:{...emptySlot}});
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [uploading,setUploading]=useState(null);
+
+  useEffect(()=>{ (async()=>{
+    try{
+      const d=await db.collection('config').doc('pourstoreBanners').get();
+      if(d.exists){ const v=d.data()||{}; setData({hero:{...emptySlot,...(v.hero||{})}, side:{...emptySlot,...(v.side||{})}}); }
+      console.log('[banners] 로드', d.exists);
+    }catch(e){ console.error('[banners] 로드 실패:',e); showToast('배너 로드 실패: '+e.message,'error'); }
+    setLoading(false);
+  })(); },[]);
+
+  const patch=(slot,part)=>setData(prev=>({...prev,[slot]:{...prev[slot],...part}}));
+
+  const upload=async(slot,file)=>{
+    if(!file)return;
+    if(!file.type.startsWith('image/')){ showToast('이미지(png/jpg)만 가능','error'); return; }
+    if(file.size > 5*1024*1024){ showToast('5MB 이하 이미지만 가능','error'); return; }
+    setUploading(slot);
+    try{
+      const ts=Date.now(); const safe=file.name.replace(/[^\w.\-]/g,'_');
+      const path=`POUR스토어_리뉴얼/banners/${slot}_${ts}_${safe}`;
+      const snap=await storage.ref(path).put(file);
+      const url=await snap.ref.getDownloadURL();
+      patch(slot,{image:url});
+      showToast('이미지 업로드 완료 — 하단 저장을 눌러 반영');
+    }catch(e){ console.error('[banners] 업로드 실패:',e); showToast('업로드 실패: '+e.message,'error'); }
+    setUploading(null);
+  };
+
+  const save=async()=>{
+    setSaving(true);
+    try{
+      await db.collection('config').doc('pourstoreBanners').set({hero:data.hero, side:data.side, ...audit.update()},{merge:true});
+      console.log('[banners] 저장', data); showToast('저장되었습니다 — 스토어에 반영됩니다');
+    }catch(e){ console.error('[banners] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
+    setSaving(false);
+  };
+
+  if(loading)return <div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>;
+  const field={width:'100%',padding:'10px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13,outline:'none',boxSizing:'border-box',marginTop:6};
+
+  return(
+    <div style={{padding:'24px 32px',maxWidth:1000}}>
+      <div style={{marginBottom:18}}>
+        <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>🖼 메인 배너 관리</h1>
+        <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>메인 상단 배너 2종을 이미지(png/jpg)로 직접 교체. 권장 사이즈에 맞춰 올리면 화면에 그대로 반영됩니다.</div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(380px,1fr))',gap:18}}>
+        {BANNER_SLOTS.map(slot=>{ const b=data[slot.key]; const up=uploading===slot.key;
+          return(
+            <div key={slot.key} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'18px 18px 20px'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:4}}>
+                <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}>{slot.label}</div>
+                <label style={{display:'flex',alignItems:'center',gap:5,fontSize:12,fontWeight:800,color:b.active!==false?'var(--green)':'var(--text-sm)',cursor:'pointer'}}>
+                  <input type="checkbox" checked={b.active!==false} onChange={e=>patch(slot.key,{active:e.target.checked})}/> 노출
+                </label>
+              </div>
+              <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:2}}>{slot.desc}</div>
+              <div style={{fontSize:11.5,color:'var(--or-d)',fontWeight:800,marginBottom:10}}>{slot.size}</div>
+              <div style={{position:'relative',width:'100%',aspectRatio:slot.ratio,borderRadius:10,overflow:'hidden',background:'var(--or-pale)',border:'1px dashed var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                {b.image
+                  ? <img src={b.image} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';}}/>
+                  : <span style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>이미지 없음 — 아래에서 업로드</span>}
+                {up && <div style={{position:'absolute',inset:0,background:'rgba(255,255,255,.7)',display:'grid',placeItems:'center',fontSize:13,fontWeight:800,color:'var(--or-d)'}}>업로드 중...</div>}
+              </div>
+              <div style={{display:'flex',gap:8,marginTop:10}}>
+                <label style={{flex:1,textAlign:'center',padding:'10px',borderRadius:9,border:'1.5px solid var(--or)',color:'var(--or-d)',background:'#fff',fontSize:12.5,fontWeight:800,cursor:up?'wait':'pointer'}}>
+                  {b.image?'이미지 교체':'이미지 업로드'} (png/jpg)
+                  <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload(slot.key,f); e.target.value='';}} style={{display:'none'}}/>
+                </label>
+                {b.image && <button onClick={()=>patch(slot.key,{image:''})} style={{padding:'10px 14px',borderRadius:9,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>제거</button>}
+              </div>
+              <label style={{fontSize:11.5,fontWeight:800,color:'var(--text-md)',display:'block',marginTop:12}}>클릭 시 이동 링크 (선택)</label>
+              <input value={b.link||''} onChange={e=>patch(slot.key,{link:e.target.value})} placeholder="예: /product/list.html?cate_no=71" style={field}/>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{marginTop:20,display:'flex',justifyContent:'flex-end'}}>
+        <button onClick={save} disabled={saving} style={{padding:'12px 28px',borderRadius:10,fontSize:13.5,fontWeight:900,color:'#fff',background:saving?'var(--text-sm)':'linear-gradient(135deg, var(--or), var(--or-d))',cursor:saving?'wait':'pointer'}}>{saving?'저장 중...':'저장'}</button>
       </div>
     </div>
   );
@@ -10295,6 +10396,7 @@ function App() {
         {active === 'hotkeywords' && <HotKeywordsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'postings' && <PostingsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'packages' && <PackagesPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'banners' && <BannersPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'staff' && <StaffPage onToast={setToast} />}
         {active === 'firebase-usage' && <FirebaseUsagePage />}
         {active === 'settings' && <Settings onToast={setToast} />}

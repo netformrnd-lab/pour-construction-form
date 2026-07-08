@@ -685,8 +685,8 @@ thead .sticky1,thead .sticky2{z-index:25}
     </div>
     <div class="sheet-pad">
 
-      <div class="panel">
-        <h3>① 제조사(공급업체) 등록 <span class="tag">매입처 마스터</span></h3>
+      <div class="panel" id="regMfgPanel">
+        <h3>① 제조사(공급업체) 등록 <span class="tag">매입처 마스터 · 마스터 전용</span></h3>
         <div class="bd">
           <div class="formgrid" style="grid-template-columns:1fr 130px 150px 1fr auto;align-items:end">
             <div class="fld"><label>제조사명</label><input type="text" id="mfName" placeholder="예: ㈜넷폼알앤디"></div>
@@ -708,7 +708,7 @@ thead .sticky1,thead .sticky2{z-index:25}
             <div class="fld"><label>제품명</label><input type="text" id="apName" placeholder="예: POUR 신규 코트재"></div>
             <div class="fld"><label>규격</label><input type="text" id="apSpec" placeholder="예: 20kg/통"></div>
             <div class="fld"><label>매입원가 (원)</label><input type="number" id="apCost" placeholder="예: 60000"></div>
-            <div class="fld"><label>제조사</label><input type="text" id="apMfg" list="mfgList" placeholder="선택/입력"><datalist id="mfgList"></datalist></div>
+            <div class="fld" id="apMfgFld"><label>제조사</label><input type="text" id="apMfg" list="mfgList" placeholder="선택/입력"><datalist id="mfgList"></datalist></div>
           </div>
           <div class="formgrid" id="apPriceRow" style="grid-template-columns:auto 150px 1fr auto;align-items:end;margin-top:10px;padding-top:10px;border-top:1px dashed var(--xl-grid)">
             <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);white-space:nowrap"><input type="checkbox" id="apAuto" checked style="width:auto">목표 마진율로 채널가 자동 산출</label>
@@ -1104,6 +1104,9 @@ function applySecGating(){
     const cur=document.querySelector('.stab.on');
     if(cur&&cur.dataset.sh==='sh-match') gotoTab('sh-dash');
   }
+  // 제조사(공급업체) 정보: 마스터 전용 — 일반계정에선 등록 패널·제조사 입력칸 숨김
+  const mfgPanel=$('#regMfgPanel'); if(mfgPanel) mfgPanel.style.display=secAllowed?'':'none';
+  const mfgFld=$('#apMfgFld'); if(mfgFld) mfgFld.style.display=secAllowed?'':'none';
   renderAccess();
 }
 
@@ -2123,9 +2126,9 @@ function renderMfg(){
 function renderAddProd(){
   const add=P.filter(p=>p.added);
   if(!add.length){ $('#addProdTable').innerHTML='<tbody><tr><td class="dim" style="padding:10px">직접 등록한 제품이 여기에 표시됩니다. 기존 제품은 가격정책표에서 수정하세요.</td></tr></tbody>'; return; }
-  const cols=COLS();
-  let h='<thead><tr><th>분류</th><th style="min-width:180px">제품명</th><th>규격</th><th>제조사</th><th class="num">매입원가</th>'+cols.map(c=>`<th class="num">${esc(c.code)}</th>`).join('')+'<th></th></tr></thead><tbody>';
-  add.forEach(p=>{ h+=`<tr><td class="dim">${esc(p.cat)}</td><td class="name">${esc(p.name)}</td><td class="dim">${esc(p.spec)}</td><td class="dim">${esc(p.mfg)||'—'}</td><td class="num cost">${won(p.cost)}</td>`+
+  const cols=COLS(), showMfg=secAllowed;   // 제조사 열: 마스터 전용
+  let h='<thead><tr><th>분류</th><th style="min-width:180px">제품명</th><th>규격</th>'+(showMfg?'<th>제조사</th>':'')+'<th class="num">매입원가</th>'+cols.map(c=>`<th class="num">${esc(c.code)}</th>`).join('')+'<th></th></tr></thead><tbody>';
+  add.forEach(p=>{ h+=`<tr><td class="dim">${esc(p.cat)}</td><td class="name">${esc(p.name)}</td><td class="dim">${esc(p.spec)}</td>`+(showMfg?`<td class="dim">${esc(p.mfg)||'—'}</td>`:'')+`<td class="num cost">${won(p.cost)}</td>`+
       cols.map(c=>`<td class="num">${won(gp(p,c.uid))}</td>`).join('')+
       `<td style="text-align:center"><button class="tbtn" data-pdel="${p.id}" style="color:var(--red);padding:2px 9px;font-size:11px">삭제</button></td></tr>`; });
   $('#addProdTable').innerHTML=h+'</tbody>';

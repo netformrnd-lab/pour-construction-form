@@ -60,10 +60,12 @@ service cloud.firestore {
     //  · 삭제 금지
     match /config/access {
       allow read: if signedIn();
+      // 최초 마스터는 지정 계정(songhee44@netformrnd.com)만 청구 가능 → 선점 경쟁 방지
       allow create: if signedIn()
         && !accessExists()
         && request.auth.token.email_verified == true
-        && request.resource.data.masterEmail == request.auth.token.email;
+        && request.resource.data.masterEmail == request.auth.token.email
+        && request.auth.token.email == 'songhee44@netformrnd.com';
       allow update: if signedIn()
         && request.auth.token.email_verified == true
         && resource.data.masterEmail == request.auth.token.email;

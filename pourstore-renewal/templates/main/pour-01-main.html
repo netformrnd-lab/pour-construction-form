@@ -86,6 +86,7 @@
 .psm1-cat { display:flex; flex-direction:column; align-items:center; gap:8px; padding:8px 4px; border-radius:12px; cursor:pointer; transition:.15s; }
 .psm1-cat:hover { background:#FAFAFA; }
 .psm1-cat-ico { width:54px; height:54px; border-radius:14px; background:#F5F6F8; display:grid; place-items:center; font-size:24px; }
+.psm1-cat-ico svg { width:26px; height:26px; }
 .psm1-cat-ico.c1 { background:#F3E8FF; } .psm1-cat-ico.c2 { background:#FFE4E6; } .psm1-cat-ico.c3 { background:#DBEAFE; } .psm1-cat-ico.c4 { background:#DCFCE7; } .psm1-cat-ico.c5 { background:#FCE7F3; } .psm1-cat-ico.c6 { background:#F1F5F9; } .psm1-cat-ico.c7 { background:#FFEDD5; } .psm1-cat-ico.c8 { background:#E0F2FE; } .psm1-cat-ico.c9 { background:#CFFAFE; } .psm1-cat-ico.c10 { background:#FEE2E2; }
 .psm1-cat-name { font-size:13px; font-weight:500; color:#2F3438; text-align:center; letter-spacing:-0.03em; }
 /* 모바일 */
@@ -135,6 +136,7 @@
   .psm1-cats { padding:22px 8px 28px; }
   .psm1-cats-inner { grid-template-columns:repeat(5,1fr); row-gap:18px; gap:0; }
   .psm1-cat-ico { width:48px; height:48px; font-size:22px; border-radius:14px; }
+  .psm1-cat-ico svg { width:23px; height:23px; }
   .psm1-cat-name { font-size:11.5px; }
 }
 </style>
@@ -184,7 +186,7 @@
   <!-- 모바일 헤더 -->
   <div class="psm1-hd-mb">
     <div class="psm1-mb-top">
-      <button class="psm1-mb-menu" aria-label="메뉴">☰</button>
+      <button class="psm1-mb-menu" aria-label="메뉴"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <a href="/" class="psm1-mb-logo"><span class="psm1-logo-or">POUR</span><span>스토어</span></a>
       <a href="/order/basket.html" module="Layout_orderBasketcount" class="psm1-mb-cart" aria-label="장바구니">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg>
@@ -256,23 +258,23 @@
         <div class="label">POUR스토어 추천</div>
         <div class="title">방수 자재<br/>셀프 패키지</div>
       </div>
-      <div class="product"><div class="product-mock"><span class="pm-pkg">🪣</span><span class="pm-name">방수 자재</span></div></div>
+      <div class="product"><div class="product-mock"><span class="pm-pkg" style="color:#E8780F"><svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.3 11.6a1 1 0 0 1-1 .9H7.3a1 1 0 0 1-1-.9L5 8z"/><path d="M5 8c0-2.1 3.1-3.3 7-3.3s7 1.2 7 3.3"/></svg></span><span class="pm-name">방수 자재</span></div></div>
     </a>
   </div>
 </div>
 <!-- 4) 카테고리 아이콘 -->
 <nav class="psm1-cats" aria-label="빠른 메뉴">
   <div class="psm1-cats-inner">
-    <a href="/product/list.html" class="psm1-cat"><span class="psm1-cat-ico c1">🏷</span><span class="psm1-cat-name">쇼핑하기</span></a>
-    <a href="/product/list.html" class="psm1-cat"><span class="psm1-cat-ico c2">⚡</span><span class="psm1-cat-name">오늘의딜</span></a>
-    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c3">🔍</span><span class="psm1-cat-name">시공가이드</span></a>
-    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c4">✅</span><span class="psm1-cat-name">출석체크</span></a>
-    <a href="/product/list.html?cate_no=71" class="psm1-cat"><span class="psm1-cat-ico c5">📦</span><span class="psm1-cat-name">패키지</span></a>
-    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c6">📸</span><span class="psm1-cat-name">후기참여</span></a>
-    <a href="/product/list.html" class="psm1-cat"><span class="psm1-cat-ico c7">🛒</span><span class="psm1-cat-name">자재마트</span></a>
-    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c8">🚚</span><span class="psm1-cat-name">배송안내</span></a>
-    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c9">🧹</span><span class="psm1-cat-name">시공상담</span></a>
-    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c10">📡</span><span class="psm1-cat-name">문의하기</span></a>
+    <a href="/product/list.html" class="psm1-cat"><span class="psm1-cat-ico c1" style="color:#7C3AED"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></span><span class="psm1-cat-name">쇼핑하기</span></a>
+    <a href="/product/list.html" class="psm1-cat"><span class="psm1-cat-ico c2" style="color:#E11D48"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L5 13h6l-1 8 8-11h-6l1-7z"/></svg></span><span class="psm1-cat-name">오늘의딜</span></a>
+    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c3" style="color:#2563EB"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6C10 4.5 6.5 4.5 4 5v13c2.5-.5 6-.5 8 1 2-1.5 5.5-1.5 8-1V5c-2.5-.5-6-.5-8 1z"/><path d="M12 6v13"/></svg></span><span class="psm1-cat-name">시공가이드</span></a>
+    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c4" style="color:#059669"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/><path d="M9 15l2 2 4-4"/></svg></span><span class="psm1-cat-name">출석체크</span></a>
+    <a href="/product/list.html?cate_no=71" class="psm1-cat"><span class="psm1-cat-ico c5" style="color:#DB2777"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span><span class="psm1-cat-name">패키지</span></a>
+    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c6" style="color:#475569"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l1.5-2h5L16 7"/><circle cx="12" cy="13.5" r="3.2"/></svg></span><span class="psm1-cat-name">후기참여</span></a>
+    <a href="/product/list.html" class="psm1-cat"><span class="psm1-cat-ico c7" style="color:#EA580C"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/><path d="M3 4h2l2.2 11h10l1.8-8H6.2"/></svg></span><span class="psm1-cat-name">자재마트</span></a>
+    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c8" style="color:#0284C7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v9H3zM14 9h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg></span><span class="psm1-cat-name">배송안내</span></a>
+    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c9" style="color:#0891B2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19a4 4 0 0 1-4 3h-2"/></svg></span><span class="psm1-cat-name">시공상담</span></a>
+    <a href="/board/index.html" class="psm1-cat"><span class="psm1-cat-ico c10" style="color:#DC2626"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M4 7l8 6 8-6"/></svg></span><span class="psm1-cat-name">문의하기</span></a>
   </div>
 </nav>
 <script type="module">

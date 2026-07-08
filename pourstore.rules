@@ -24,6 +24,20 @@ service cloud.firestore {
     function signedIn() {
       return request.auth != null;
     }
+    // 마스터 계정: config/access.masterEmail 과 "이메일 인증된" 로그인 계정이 일치할 때만
+    //  → 이 판정은 서버(Firestore)에서 강제되므로, 클라이언트 HTML/JS 를 수정해도 우회 불가.
+    function accessExists() {
+      return exists(/databases/$(database)/documents/config/access);
+    }
+    function masterEmail() {
+      return get(/databases/$(database)/documents/config/access).data.masterEmail;
+    }
+    function isMaster() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && accessExists()
+        && request.auth.token.email == masterEmail();
+    }
 
     match /channels/{uid} {
       allow read: if signedIn();
@@ -33,12 +47,36 @@ service cloud.firestore {
       allow read: if signedIn();
       allow write: if false;
     }
-    match /config/{doc} {
+
+    // 계산/정책 상수 — 로그인 사용자 읽기, 쓰기 금지
+    match /config/calc {
       allow read: if signedIn();
       allow write: if false;
     }
 
-    // 그 외 모든 경로 금지
+    // 계정 관리 문서 — 마스터 계정 지정.
+    //  · 최초 1회만 생성 가능(이미 있으면 불가) + 본인 이메일로만 + 이메일 인증 필수
+    //  · 변경(update)은 "현재 마스터 + 이메일 인증"만 가능 → 개발/코드 수정으로는 못 바꿈
+    //  · 삭제 금지
+    match /config/access {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && !accessExists()
+        && request.auth.token.email_verified == true
+        && request.resource.data.masterEmail == request.auth.token.email;
+      allow update: if signedIn()
+        && request.auth.token.email_verified == true
+        && resource.data.masterEmail == request.auth.token.email;
+      allow delete: if false;
+    }
+
+    // 대외비 매입처 암호문 — 마스터(이메일 인증) 계정만 읽기, 쓰기 금지(시딩은 Admin SDK)
+    match /config/secure {
+      allow read: if isMaster();
+      allow write: if false;
+    }
+
+    // 그 외 모든 경로(다른 config 문서 포함) 금지
     match /{document=**} {
       allow read, write: if false;
     }

@@ -462,6 +462,21 @@ thead .sticky1,thead .sticky2{z-index:25}
       <span class="hint" id="secHint">공급업체·연락처는 AES-256으로 암호화되어 있습니다 — 비밀번호로 잠금을 해제하세요</span>
     </div>
 
+    <!-- 권한 없음 (마스터 계정 아님) -->
+    <div id="secNoAccess" class="sheet-pad" style="display:none;max-width:460px;margin:40px auto 0">
+      <div class="panel" style="text-align:center">
+        <div class="bd" style="padding:34px 28px">
+          <div style="font-size:44px;margin-bottom:10px">🔒</div>
+          <h3 style="font-size:16px;margin-bottom:6px">접근 권한이 없습니다</h3>
+          <p style="font-size:12px;color:var(--ink-soft);line-height:1.7">
+            공급업체·매입처·상품 매칭 정보는 <b>마스터 계정(이메일 인증 완료)</b>만 볼 수 있습니다.<br>
+            현재 로그인 계정에는 권한이 없습니다.
+          </p>
+          <button class="tbtn" id="btnGoAccess" style="margin-top:14px;padding:9px 16px">계정 관리로 이동 →</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 잠금 화면 -->
     <div id="lockScreen" class="sheet-pad" style="max-width:460px;margin:40px auto 0">
       <div class="panel" style="text-align:center">
@@ -748,6 +763,15 @@ thead .sticky1,thead .sticky2{z-index:25}
     </div>
   </section>
 
+  <!-- ── Sheet: 계정 관리 (마스터 계정) ── -->
+  <section class="sheet" id="sh-access">
+    <div class="toolrow">
+      <span class="ttl">계정 관리</span>
+      <span class="hint">공급업체·매입처·제품상품매칭 보안구역은 여기서 지정한 <b>마스터 계정</b>(이메일 인증)만 볼 수 있습니다</span>
+    </div>
+    <div class="sheet-pad" id="accessBody"></div>
+  </section>
+
 </div>
 
 <!-- ═══ 시트 탭 ═══ -->
@@ -761,6 +785,7 @@ thead .sticky1,thead .sticky2{z-index:25}
   <button class="stab" data-sh="sh-moq"><span class="dot"></span>MOQ 대량판매</button>
   <button class="stab" data-sh="sh-pl"><span class="dot"></span>손익·공헌이익</button>
   <button class="stab" data-sh="sh-fixed"><span class="dot"></span>고정지출 관리</button>
+  <button class="stab" data-sh="sh-access"><span class="dot"></span>계정 관리</button>
 </div>
 
 <!-- ═══ 퀵 마진 계산기 ═══ -->
@@ -811,6 +836,18 @@ let SEC_BLOB='';          // config/secure.blob (AES-256-GCM 암호문)
 let MOQ_TIERS=[];         // config/calc.moqTiers (max:null → Infinity 복원)
 let CH_VAR_DEFAULT={};    // config/calc.chVar
 let CODE_RANK={};         // config/calc.codeRank
+let ACCESS=null;          // config/access {masterEmail, ...} — 마스터 계정 지정
+let curUser=null;         // 현재 로그인 사용자 (Firebase Auth)
+/* secAllowed: "마스터 계정 + 이메일 인증" 일 때만 공급업체·매칭 노출.
+   최종 판정은 Firestore 규칙(서버)에서 강제 — 클라이언트 수정으로 우회 불가. */
+let secAllowed=false;
+function recomputeSecAllowed(){
+  const email=((curUser&&curUser.email)||'').toLowerCase();
+  const verified=!!(curUser&&curUser.emailVerified);
+  const master=(ACCESS&&ACCESS.masterEmail)?String(ACCESS.masterEmail).toLowerCase():'';
+  secAllowed = !!master && email===master && verified;
+  return secAllowed;
+}
 
 /* ── Firestore 로더 (orderBy 미사용 → 클라이언트 정렬 · 개수 로그 · 실패는 throw) ── */
 async function fetchChannels(){
@@ -828,12 +865,24 @@ async function fetchProducts(){
   return arr;
 }
 async function fetchConfig(){
-  const [sec,calc]=await Promise.all([
-    db.collection('config').doc('secure').get(),
-    db.collection('config').doc('calc').get()
-  ]);
-  console.log(`[config] secure:${sec.exists?'O':'X'} calc:${calc.exists?'O':'X'}`);
-  return { secure: sec.exists?sec.data():null, calc: calc.exists?calc.data():null };
+  // 1) 계정 관리 문서 먼저 로드 → 마스터 여부 판정
+  const access = await db.collection('config').doc('access').get()
+    .then(d=>d.exists?d.data():null)
+    .catch(e=>{ console.warn('[config/access] 로드 실패:', e.code||e.message||e); return null; });
+  ACCESS = access;
+  recomputeSecAllowed();
+  // 2) calc(공통 상수)
+  const calc = await db.collection('config').doc('calc').get();
+  // 3) secure(대외비 매입처 암호문) — 마스터+이메일인증 계정만 규칙상 읽기 가능.
+  //    그 외 계정은 접근 자체가 차단되는 것이 정상 → 실패해도 앱 전체를 막지 않음.
+  let secure=null;
+  if(secAllowed){
+    secure = await db.collection('config').doc('secure').get()
+      .then(d=>d.exists?d.data():null)
+      .catch(e=>{ console.warn('[config/secure] 읽기 거부/실패(마스터 아님?):', e.code||e.message||e); return null; });
+  }
+  console.log(`[config] access:${access?'O':'X'} calc:${calc.exists?'O':'X'} secure:${secure?'O':'X'} · secAllowed:${secAllowed}`);
+  return { secure, calc: calc.exists?calc.data():null };
 }
 /* Firestore 로드본을 앱 자료구조로 변환 */
 function applyLoaded(channels, products, config){
@@ -999,6 +1048,19 @@ function armAutoLock(){
 }
 ['click','keydown'].forEach(ev=>document.addEventListener(ev,()=>{ if(unlocked)armAutoLock(); }));
 function renderSecUI(){
+  const na=$('#secNoAccess');
+  if(!secAllowed){                                  // 마스터 아님 → 접근 자체 차단
+    if(na) na.style.display='';
+    $('#lockScreen').style.display='none';
+    $('#matchContent').style.display='none';
+    $('#pwChangeBox').style.display='none';
+    ['#mq','#btnSaveMatch','#btnLock','#btnPwChange'].forEach(s=>{const el=$(s);if(el)el.style.display='none';});
+    $('#secStatus').className='pill r'; $('#secStatus').textContent='🔒 권한 없음';
+    $('#tabLockIcon').textContent='🔒';
+    $('#secHint').textContent='마스터 계정(이메일 인증)만 접근할 수 있는 보안 구역입니다 — [계정 관리] 참고';
+    return;
+  }
+  if(na) na.style.display='none';
   $('#lockScreen').style.display=unlocked?'none':'';
   $('#matchContent').style.display=unlocked?'':'none';
   $('#pwChangeBox').style.display='none';
@@ -1012,6 +1074,102 @@ function renderSecUI(){
   $('#secHint').textContent=unlocked
     ?'공급업체·연락처·상품명·가격 셀은 더블클릭으로 수정 · 저장 시 암호화되어 보관됩니다'
     :'공급업체·연락처는 AES-256으로 암호화되어 있습니다 — 비밀번호로 잠금을 해제하세요';
+}
+/* 계정 기반 노출 제어: 매칭 탭·보안 등록폼 표시 여부 + 잘못된 위치면 이동 */
+function applySecGating(){
+  const tab=document.querySelector('.stab[data-sh="sh-match"]');
+  if(tab) tab.style.display=secAllowed?'':'none';
+  if(!secAllowed){
+    if(unlocked) lock();                            // 혹시 열려 있으면 강제 잠금
+    const cur=document.querySelector('.stab.on');
+    if(cur&&cur.dataset.sh==='sh-match') gotoTab('sh-dash');
+  }
+  renderAccess();
+}
+
+/* ══════════ 계정 관리 (마스터 계정) ══════════ */
+async function reloadAccess(){
+  try{
+    const d=await db.collection('config').doc('access').get();
+    ACCESS=d.exists?d.data():null;
+  }catch(e){ console.warn('[config/access] 재로드 실패:', e.code||e); }
+  recomputeSecAllowed();
+}
+async function refreshVerifyState(){                // 이메일 인증 링크 클릭 후 토큰 최신화
+  if(!curUser)return;
+  try{ await curUser.reload(); await curUser.getIdToken(true); curUser=auth.currentUser; }catch(e){ console.warn('reload 실패',e.code||e); }
+  recomputeSecAllowed();
+}
+function accMsg(t,ok){ const el=$('#accMsg'); if(el){ el.style.color=ok?'var(--xl-green-dark)':'var(--red)'; el.textContent=t; } }
+function renderAccess(){
+  const box=$('#accessBody'); if(!box)return;
+  const email=(curUser&&curUser.email)||'—';
+  const verified=!!(curUser&&curUser.emailVerified);
+  const master=(ACCESS&&ACCESS.masterEmail)||'';
+  const isMaster=!!master && email.toLowerCase()===String(master).toLowerCase();
+  const vBadge=verified?'<span class="pill g">✔ 이메일 인증됨</span>':'<span class="pill a">이메일 미인증</span>';
+  const mBadge=master?(isMaster?'<span class="pill g">현재 계정 = 마스터</span>':'<span class="pill r">다른 계정이 마스터</span>'):'<span class="pill a">마스터 미설정</span>';
+  let actions='';
+  if(!master){
+    actions=`<div class="panel"><h3>① 마스터 계정 설정 <span class="tag">최초 1회</span></h3><div class="bd">
+      <p class="footnote" style="margin-bottom:10px">현재 로그인한 <b>${esc(email)}</b> 계정을 이 대시보드의 <b>마스터 계정</b>으로 설정합니다.
+      설정 후에는 <b>마스터 본인(이메일 인증)만</b> 변경할 수 있으며, 코드 수정으로는 바꿀 수 없습니다(Firestore 규칙이 서버에서 차단).</p>
+      ${verified
+        ? `<button class="tbtn primary" id="btnSetMaster">이 계정을 마스터로 설정</button>`
+        : `<p class="footnote" style="color:var(--red)">· 먼저 이메일 인증이 필요합니다. 아래 "인증메일 보내기"로 인증을 완료한 뒤 다시 시도하세요.</p>`}
+    </div></div>`;
+  }else if(isMaster){
+    actions=`<div class="panel"><h3>② 마스터 계정 변경 <span class="tag">현재 마스터만 · 이메일 인증 필수</span></h3><div class="bd">
+      <div class="formgrid" style="grid-template-columns:minmax(220px,1fr) auto;align-items:end">
+        <div class="fld"><label>새 마스터 계정 이메일 (Firebase 계정이어야 함)</label><input type="email" id="newMasterEmail" placeholder="new-master@example.com"></div>
+        <button class="tbtn primary" id="btnChangeMaster" style="height:42px" ${verified?'':'disabled'}>변경</button>
+      </div>
+      <p class="footnote">· 변경하면 <b>현재 계정은 즉시 마스터 권한을 잃습니다</b>. 새 계정은 로그인 후 <b>본인 이메일 인증</b>을 완료해야 보안구역을 볼 수 있습니다.
+      ${verified?'':'<br>· 변경하려면 먼저 이메일 인증이 필요합니다.'}</p>
+    </div></div>`;
+  }else{
+    actions=`<div class="panel"><h3>② 마스터 계정 변경</h3><div class="bd">
+      <p class="footnote">· 마스터 계정(<b>${esc(master)}</b>)만 변경할 수 있습니다. 현재 계정에는 변경 권한이 없습니다.</p></div></div>`;
+  }
+  box.innerHTML=`
+    <div class="cards" style="margin-bottom:14px">
+      <div class="card"><h4>현재 로그인 계정</h4><div class="big" style="font-size:15px;word-break:break-all">${esc(email)}</div><div class="foot" style="margin-top:6px">${vBadge}</div></div>
+      <div class="card"><h4>마스터 계정</h4><div class="big" style="font-size:15px;word-break:break-all">${master?esc(master):'미설정'}</div><div class="foot" style="margin-top:6px">${mBadge}</div></div>
+      <div class="card"><h4>보안구역 접근</h4><div class="big" style="font-size:15px">${secAllowed?'🔓 허용':'🔒 차단'}</div><div class="foot">공급업체·매입처·제품상품매칭</div></div>
+    </div>
+    <div class="panel"><h3>이메일 인증 <span class="tag">보안구역 접근·마스터 변경 조건</span></h3><div class="bd">
+      <p class="footnote" style="margin-bottom:10px">보안구역은 <b>이메일 인증을 완료한 마스터 계정</b>만 접근할 수 있습니다(Firestore 규칙에서 <code>email_verified</code> 강제).</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="tbtn" id="btnSendVerify" ${verified?'disabled':''}>인증메일 보내기</button>
+        <button class="tbtn" id="btnRefreshVerify">인증 완료 후 새로고침</button>
+      </div>
+    </div></div>
+    ${actions}
+    <p id="accMsg" style="font-size:12px;margin-top:6px;min-height:16px"></p>
+    <p class="footnote">· 이 접근 제어는 <b>서버(Firestore 보안규칙)</b>에서 강제됩니다. 클라이언트 HTML/JS 를 수정하거나 개발자도구로 화면을 열어도, 마스터·이메일인증 계정이 아니면 암호문 자체를 서버가 내려주지 않습니다.</p>`;
+  // 핸들러 바인딩
+  const on=(id,fn)=>{const el=$('#'+id); if(el)el.addEventListener('click',fn);};
+  on('btnSendVerify',async()=>{
+    try{ await curUser.sendEmailVerification(); accMsg('인증메일을 보냈습니다. 메일의 링크를 클릭한 뒤 "인증 완료 후 새로고침"을 누르세요.',true); }
+    catch(e){ accMsg('인증메일 발송 실패: '+(e.code||e.message||e)); }
+  });
+  on('btnRefreshVerify',async()=>{ accMsg('새로고침 중…',true); await refreshVerifyState(); refreshAll(); accMsg(curUser&&curUser.emailVerified?'이메일 인증이 확인되었습니다.':'아직 미인증 상태입니다. 메일의 링크를 클릭했는지 확인하세요.', !!(curUser&&curUser.emailVerified)); });
+  on('btnSetMaster',async()=>{
+    if(!confirm(`이 계정(${email})을 마스터로 설정할까요?\n설정 후에는 마스터 본인만 변경할 수 있습니다.`))return;
+    try{
+      await db.collection('config').doc('access').set({masterEmail:curUser.email,createdAt:new Date().toISOString(),createdBy:curUser.email});
+      await reloadAccess(); refreshAll(); accMsg('마스터 계정으로 설정되었습니다.',true);
+    }catch(e){ accMsg('설정 실패: '+(e.code||e.message||e)+' (이메일 인증 여부/이미 설정됨 확인)'); }
+  });
+  on('btnChangeMaster',async()=>{
+    const ne=($('#newMasterEmail').value||'').trim();
+    if(!ne||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ne)){ accMsg('올바른 이메일을 입력하세요.'); return; }
+    if(!confirm(`마스터를 ${ne} 로 변경할까요?\n현재 계정(${email})은 즉시 권한을 잃습니다.`))return;
+    try{
+      await db.collection('config').doc('access').set({masterEmail:ne,updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
+      await reloadAccess(); refreshAll(); accMsg('마스터 계정이 변경되었습니다.',true);
+    }catch(e){ accMsg('변경 실패: '+(e.code||e.message||e)+' (현재 마스터·이메일 인증 여부 확인)'); }
+  });
 }
 $('#btnUnlock').addEventListener('click',async()=>{
   const pw=$('#pwInput').value;
@@ -1205,12 +1363,13 @@ function renderGrid(){
   const q=($('#q').value||'').trim().toLowerCase();
   const cat=$('#catSel').value;
   const cols=COLS(), rUid=retailUid();
-  const nCols=5+cols.length+1;
+  const showSup=secAllowed;                 // 공급업체 열: 마스터+이메일인증 계정만
+  const nCols=(showSup?5:4)+cols.length+1;
   let html=`<thead><tr>
     <th class="sticky1" style="left:0;min-width:36px">No</th>
     <th class="sticky2" style="left:36px;min-width:230px">제품명</th>
     <th style="min-width:90px">규격</th>
-    <th style="min-width:96px">공급업체</th>
+    ${showSup?'<th style="min-width:96px">공급업체</th>':''}
     <th class="num" style="min-width:86px">매입원가</th>
     ${cols.map(c=>`<th class="num" style="min-width:96px;height:38px" title="${esc(c.desc)}">
       <div style="font-size:9.5px;font-family:var(--mono);color:var(--amber);line-height:1.2">${esc(c.g)} · ${esc(c.code)}</div>${esc(c.name)}</th>`).join('')}
@@ -1227,7 +1386,7 @@ function renderGrid(){
       <td class="sticky1 dim" style="left:0">${no}</td>
       <td class="sticky2 name" style="left:36px">${p.name}</td>
       <td class="dim">${p.spec}</td>
-      <td class="dim" title="${unlocked?esc(p.mgr||''):''}">${unlocked?esc(p.sup||'—'):'🔒'}</td>
+      ${showSup?`<td class="dim" title="${unlocked?esc(p.mgr||''):''}">${unlocked?esc(p.sup||'—'):'🔒'}</td>`:''}
       <td class="num cost editable" data-id="${p.id}" data-f="cost">${won(p.cost)}</td>
       ${cols.map(c=>{
         const pr=gp(p,c.uid), m=margin(pr,p.cost);
@@ -1253,7 +1412,7 @@ function showSplit(p,uid){
   const pw=Math.max(0,Math.min(100-cw,pm/base*100));
   const kw=Math.max(0,100-cw-pw);
   box.innerHTML=`
-    <span class="who"><span class="sw" style="background:#B7BEC7"></span>매입원가 <b>${wonU(p.cost)}</b> (${unlocked?esc(p.sup||'공급업체 미지정'):'공급업체 🔒'})</span>
+    <span class="who"><span class="sw" style="background:#B7BEC7"></span>매입원가 <b>${wonU(p.cost)}</b>${secAllowed?` (${unlocked?esc(p.sup||'공급업체 미지정'):'공급업체 🔒'})`:''}</span>
     <span class="who"><span class="sw" style="background:var(--xl-green)"></span><b style="color:var(--xl-green-dark)">POUR스토어 마진</b>
       <b class="${pm<0?'neg':''}" style="color:${pm<0?'var(--red)':'inherit'}">${wonU(pm)}</b> · ${pct(pr?pm/pr:null)}
       <span style="color:var(--ink-faint)">(공급가 대비)</span></span>
@@ -1276,7 +1435,7 @@ document.addEventListener('click',e=>{
   const p=P[+td.dataset.id], f=td.dataset.f;
   if(f==='cost'){
     $('#fxRef').textContent=p.name+' · 매입원가';
-    $('#fxExpr').innerHTML=`매입원가 = <b>${wonU(p.cost)}</b> &nbsp;(공급업체: ${unlocked?esc(p.sup||'미지정')+(p.mgr?' · '+esc(p.mgr):''):'🔒 보안 잠금'})`;
+    $('#fxExpr').innerHTML=`매입원가 = <b>${wonU(p.cost)}</b>`+(secAllowed?` &nbsp;(공급업체: ${unlocked?esc(p.sup||'미지정')+(p.mgr?' · '+esc(p.mgr):''):'🔒 보안 잠금'})`:'');
     $('#fxSplit').classList.remove('on');
   }else{
     const uid=f.slice(1), c=chByUid(uid), pr=gp(p,uid), m=margin(pr,p.cost), r=mrate(pr,p.cost);
@@ -1909,7 +2068,8 @@ function renderAddProd(){
 }
 function renderAddItem(){
   const box=$('#regItemForm'), lockMsg=$('#regItemLockMsg'), badge=$('#regItemLock');
-  if(!unlocked){ box.style.display='none'; lockMsg.style.display=''; badge.className='pill r'; badge.textContent='🔒 보안 잠김'; return; }
+  if(!secAllowed){ box.style.display='none'; lockMsg.style.display=''; lockMsg.innerHTML='· 온라인 상품(리스팅) 등록은 <b>마스터 계정(이메일 인증)</b>만 사용할 수 있는 보안 구역입니다. <b>계정 관리</b> 탭을 확인하세요.'; badge.className='pill r'; badge.textContent='🔒 권한 없음'; return; }
+  if(!unlocked){ box.style.display='none'; lockMsg.style.display=''; lockMsg.innerHTML='· 상품(리스팅) 등록은 매입단가가 연결되는 보안 구역입니다. <b>제품·상품 매칭</b> 탭에서 잠금을 해제하면 여기서 추가할 수 있습니다.'; badge.className='pill r'; badge.textContent='🔒 보안 잠김'; return; }
   box.style.display=''; lockMsg.style.display='none'; badge.className='pill g'; badge.textContent='🔓 해제됨';
   const add=M.filter(x=>x.added);
   if(!add.length){ $('#addItemTable').innerHTML='<tbody><tr><td class="dim" style="padding:10px">직접 등록한 온라인 상품이 여기에 표시됩니다.</td></tr></tbody>'; return; }
@@ -2040,6 +2200,7 @@ function refreshAll(){
   renderChannel(); renderMoq(); ensurePl(); renderPlInput();
   fillPlanChSel(); sanitizePlan(); renderPlanGrid(); renderAgg(); renderPl();
   fillRegDatalists(); renderMfg(); renderAddProd(); renderAddItem(); renderFixed();
+  applySecGating();
 }
 function syncStickyTop(){
   const tr=$('#sh-price .toolrow'); if(!tr)return;
@@ -2112,9 +2273,13 @@ $('#authBtn').addEventListener('click',doSignIn);
 $('#authPw').addEventListener('keydown',e=>{ if(e.key==='Enter')doSignIn(); });
 $('#authEmail').addEventListener('keydown',e=>{ if(e.key==='Enter')$('#authPw').focus(); });
 $('#btnSignOut').addEventListener('click',async()=>{ try{ await auth.signOut(); }catch(e){ console.error(e); } location.reload(); });
+$('#btnGoAccess')&&$('#btnGoAccess').addEventListener('click',()=>gotoTab('sh-access'));
 auth.onAuthStateChanged(async user=>{
   if(user){
-    const who=$('#authWho'); if(who) who.textContent=user.email||'';
+    curUser=user;
+    // 이메일 인증 상태를 최신 토큰으로 반영 (인증 링크 클릭 직후 재로그인 시)
+    try{ await user.reload(); await user.getIdToken(true); curUser=auth.currentUser; }catch(e){ console.warn('user.reload 실패:', e.code||e); }
+    const who=$('#authWho'); if(who) who.textContent=(curUser&&curUser.email)||'';
     $('#authGate').style.display='none';
     $('#loadingOverlay').style.display='flex';
     try{ await boot(); }

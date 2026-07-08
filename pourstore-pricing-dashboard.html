@@ -1142,13 +1142,28 @@ function renderAccess(){
         : `<p class="footnote" style="color:var(--red)">· 먼저 이메일 인증이 필요합니다. 아래 "인증메일 보내기"로 인증을 완료한 뒤 다시 시도하세요.</p>`}
     </div></div>`;
   }else if(isMaster){
-    actions=`<div class="panel"><h3>② 마스터 계정 변경 <span class="tag">현재 마스터만 · 이메일 인증 필수</span></h3><div class="bd">
-      <div class="formgrid" style="grid-template-columns:minmax(220px,1fr) auto;align-items:end">
-        <div class="fld"><label>새 마스터 계정 이메일 (Firebase 계정이어야 함)</label><input type="email" id="newMasterEmail" placeholder="new-master@example.com"></div>
-        <button class="tbtn primary" id="btnChangeMaster" style="height:42px" ${verified?'':'disabled'}>변경</button>
+    const phone=(ACCESS&&ACCESS.masterPhone)||'';
+    const workerUrl=(ACCESS&&ACCESS.otpWorkerUrl)||'';
+    const readyChange=verified&&!!workerUrl&&!!phone;
+    actions=`<div class="panel"><h3>② 마스터 계정 변경 <span class="tag">SMS 인증(OTP) 필수</span></h3><div class="bd">
+      <div class="formgrid" style="grid-template-columns:minmax(220px,1fr) auto;align-items:end;margin-bottom:10px">
+        <div class="fld"><label>OTP Worker URL <span style="color:var(--ink-faint)">(pour-master-otp 배포 후 입력)</span></label><input type="text" id="otpUrl" value="${esc(workerUrl)}" placeholder="https://pour-master-otp.<계정>.workers.dev"></div>
+        <button class="tbtn" id="btnSaveOtpUrl" style="height:42px" ${verified?'':'disabled'}>URL 저장</button>
       </div>
-      <p class="footnote">· 변경하면 <b>현재 계정은 즉시 마스터 권한을 잃습니다</b>. 새 계정은 로그인 후 <b>본인 이메일 인증</b>을 완료해야 보안구역을 볼 수 있습니다.
-      ${verified?'':'<br>· 변경하려면 먼저 이메일 인증이 필요합니다.'}</p>
+      <div class="formgrid" style="grid-template-columns:minmax(220px,1fr) auto;align-items:end;margin-bottom:12px">
+        <div class="fld"><label>마스터 휴대폰(OTP 수신)${phone?' — 등록됨':''}</label><input type="tel" id="masterPhone" value="${esc(phone)}" placeholder="01012345678" ${phone?'disabled':''}></div>
+        ${phone?'<span class="footnote" style="align-self:center;max-width:180px">번호 변경은 OTP 변경 절차에서만 가능</span>':`<button class="tbtn" id="btnSavePhone" style="height:42px" ${verified?'':'disabled'}>번호 등록</button>`}
+      </div>
+      <div class="formgrid" style="grid-template-columns:minmax(220px,1fr) auto;align-items:end;border-top:1px dashed var(--xl-grid);padding-top:12px">
+        <div class="fld"><label>새 마스터 계정 이메일 (Firebase 계정이어야 함)</label><input type="email" id="newMasterEmail" placeholder="new-master@example.com"></div>
+        <button class="tbtn primary" id="btnOtpRequest" style="height:42px" ${readyChange?'':'disabled'}>인증코드 발송(SMS)</button>
+      </div>
+      <div class="formgrid" id="otpConfirmRow" style="display:none;grid-template-columns:minmax(160px,240px) auto;align-items:end;margin-top:10px">
+        <div class="fld"><label>SMS 인증코드 6자리</label><input type="text" id="otpCode" inputmode="numeric" maxlength="6" placeholder="① ② ③ ④ ⑤ ⑥"></div>
+        <button class="tbtn primary" id="btnOtpConfirm" style="height:42px">변경 확정</button>
+      </div>
+      <p class="footnote">· 마스터 변경은 <b>현재 마스터 휴대폰</b>으로 온 6자리 코드(3분 유효)를 입력해야 완료됩니다. masterEmail 은 Firestore 규칙상 <b>이 OTP 절차(서버)로만</b> 바뀝니다 — 앱 코드·개발자도구로는 불가.
+      ${verified?'':'<br>· 먼저 이메일 인증이 필요합니다.'}${workerUrl?'':'<br>· 먼저 OTP Worker 를 배포하고 위에 URL 을 저장하세요.'}${phone?'':'<br>· 먼저 마스터 휴대폰번호를 등록하세요.'}</p>
     </div></div>`;
   }else{
     actions=`<div class="panel"><h3>② 마스터 계정 변경</h3><div class="bd">
@@ -1208,16 +1223,48 @@ function renderAccess(){
       setTimeout(()=>location.reload(),700);   // 부트스트랩 후 정상 로드
     }catch(e){ accMsg('설정 실패: '+(e.code||e.message||e)+' (지정 마스터 계정/이메일 인증 여부 확인)'); }
   });
-  on('btnChangeMaster',async()=>{
+  on('btnSaveOtpUrl',async()=>{
+    const url=($('#otpUrl').value||'').trim().replace(/\/$/,'');
+    if(url&&!/^https?:\/\//.test(url)){ accMsg('URL은 http(s):// 로 시작해야 합니다.'); return; }
+    try{ await db.collection('config').doc('access').set({otpWorkerUrl:url,updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
+      await reloadAccess(); refreshAll(); accMsg('OTP Worker URL을 저장했습니다.',true);
+    }catch(e){ accMsg('저장 실패: '+(e.code||e.message||e)); }
+  });
+  on('btnSavePhone',async()=>{
+    const ph=($('#masterPhone').value||'').replace(/[^0-9]/g,'');
+    if(ph.length<10){ accMsg('휴대폰번호를 정확히 입력하세요.'); return; }
+    if(!confirm(`마스터 OTP 수신번호를 ${ph} 로 등록할까요?\n등록 후 번호 변경은 OTP 변경 절차에서만 가능합니다.`))return;
+    try{ await db.collection('config').doc('access').set({masterPhone:ph,updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
+      await reloadAccess(); refreshAll(); accMsg('마스터 휴대폰번호를 등록했습니다.',true);
+    }catch(e){ accMsg('등록 실패: '+(e.code||e.message||e)); }
+  });
+  const otpBase=()=>((ACCESS&&ACCESS.otpWorkerUrl)||'').replace(/\/$/,'');
+  on('btnOtpRequest',async()=>{
     const ne=($('#newMasterEmail').value||'').trim();
     if(!ne||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ne)){ accMsg('올바른 이메일을 입력하세요.'); return; }
-    if(!confirm(`마스터를 ${ne} 로 변경할까요?\n현재 계정(${email})은 즉시 마스터 권한을 잃습니다.`))return;
+    if(!otpBase()){ accMsg('OTP Worker URL을 먼저 저장하세요.'); return; }
+    accMsg('현재 마스터 휴대폰으로 인증코드 발송 중…',true);
     try{
-      // 새 마스터도 열람 가능하도록 허용목록에 포함
-      const nl=Array.from(new Set([...(list||[]),ne]));
-      await db.collection('config').doc('access').set({masterEmail:ne,allowedEmails:nl,updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
-      await reloadAccess(); refreshAll(); accMsg('마스터 계정이 변경되었습니다.',true);
-    }catch(e){ accMsg('변경 실패: '+(e.code||e.message||e)+' (현재 마스터·이메일 인증 여부 확인)'); }
+      const idToken=await curUser.getIdToken();
+      const res=await fetch(otpBase()+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken,newEmail:ne})});
+      const j=await res.json();
+      if(!res.ok||!j.ok){ accMsg('발송 실패: '+(j.error||res.status)); return; }
+      $('#otpConfirmRow').style.display='grid'; $('#otpCode').focus();
+      accMsg('인증코드를 발송했습니다. 3분 내 6자리 코드를 입력하고 "변경 확정"을 누르세요.',true);
+    }catch(e){ accMsg('발송 오류: '+(e.message||e)); }
+  });
+  on('btnOtpConfirm',async()=>{
+    const code=($('#otpCode').value||'').replace(/[^0-9]/g,'');
+    if(code.length!==6){ accMsg('6자리 코드를 입력하세요.'); return; }
+    accMsg('인증 확인 중…',true);
+    try{
+      const idToken=await curUser.getIdToken();
+      const res=await fetch(otpBase()+'/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken,code})});
+      const j=await res.json();
+      if(!res.ok||!j.ok){ accMsg('확인 실패: '+(j.error||res.status)); return; }
+      alert('마스터 계정이 '+(j.newMaster||'')+' (으)로 변경되었습니다. 현재 계정은 권한을 잃습니다.');
+      location.reload();
+    }catch(e){ accMsg('확인 오류: '+(e.message||e)); }
   });
   on('btnAllowAdd',async()=>{
     const ne=($('#allowEmail').value||'').trim();

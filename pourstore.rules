@@ -76,9 +76,16 @@ service cloud.firestore {
         && request.auth.token.email_verified == true
         && request.resource.data.masterEmail == request.auth.token.email
         && request.auth.token.email == 'songhee44@netformrnd.com';
+      // 클라이언트 update: 현재 마스터 + 이메일 인증만. 단 아래는 클라이언트에서 변경 불가:
+      //  · masterEmail 은 절대 불변 → 마스터 변경은 SMS-OTP Worker(Admin)만 수행(코드 수정 우회 불가)
+      //  · masterPhone 은 최초 1회(빈 값일 때)만 설정 가능, 이후 변경은 OTP Worker 로만
+      //  → allowedEmails / otpWorkerUrl 등 나머지 필드는 마스터가 자유롭게 편집
       allow update: if signedIn()
         && request.auth.token.email_verified == true
-        && resource.data.masterEmail == request.auth.token.email;
+        && resource.data.masterEmail == request.auth.token.email
+        && request.resource.data.masterEmail == resource.data.masterEmail
+        && ( request.resource.data.get('masterPhone', '') == resource.data.get('masterPhone', '')
+             || resource.data.get('masterPhone', '') == '' );
       allow delete: if false;
     }
 

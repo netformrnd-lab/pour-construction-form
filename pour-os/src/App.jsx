@@ -5596,8 +5596,9 @@ function pushKRSubtree(items,D,uid,isThisWeek,doneInP,krColors,baseDepth,opts={}
     const pushTask=(t,d)=>{
       if(activeOnly&&!anyAct(t))return;
       const kids=kidsOf(t.id);const st=STATUS_MAP[t.status]||STATUS_MAP.todo;
-      const chips=kids.length?[{t:"할일",c:stT.color,bg:stT.bg},{t:"하위 "+kids.length,c:"#6B7280",bg:"#F2F4F6"}]:[{t:st.label,c:st.color,bg:st.bg}];
-      items.push({id:pfx+t.id,depth:d,label:t.title,color:kids.length?stT.color:st.color,active:anyAct(t),leftTag:t.weekDay||null,chips,ref:{kind:"task",id:t.id}});
+      const chips=kids.length?[{t:"하위 "+kids.length,c:"#6B7280",bg:"#F2F4F6"}]:[];
+      if(t.status==="done"||t.status==="hold")chips.unshift({t:st.label,c:st.color,bg:st.bg});   // 마인드맵: 요일 태그 제거 · 완료/보류 상태만 칩 표시
+      items.push({id:pfx+t.id,depth:d,label:t.title,color:kids.length?stT.color:st.color,active:anyAct(t),leftTag:null,chips,ref:{kind:"task",id:t.id}});
       kids.forEach(k=>pushTask(k,d+1));
     };
     rootsT.forEach(t=>pushTask(t,depth+1));
@@ -5680,8 +5681,9 @@ function buildKpiMapItems(D,activeInP,doneInP,opts={}){
       const pushTask=(t,d)=>{
         if(activeOnly&&!anyAct(t))return;
         const kids=kidsOf(t.id);const st=STATUS_MAP[t.status]||stT;
-        const chips=kids.length?[{t:"할일",c:stT.color,bg:stT.bg},{t:"하위 "+kids.length,c:"#6B7280",bg:"#F2F4F6"}]:[{t:st.label,c:st.color,bg:st.bg}];
-        items.push({id:pf+t.id,depth:d,label:t.title,color:kids.length?stT.color:st.color,active:anyAct(t),leftTag:t.weekDay||null,chips,ref:{kind:"task",id:t.id}});
+        const chips=kids.length?[{t:"하위 "+kids.length,c:"#6B7280",bg:"#F2F4F6"}]:[];
+        if(t.status==="done"||t.status==="hold")chips.unshift({t:st.label,c:st.color,bg:st.bg});   // 마인드맵: 요일 태그 제거 · 완료/보류 상태만 칩 표시
+        items.push({id:pf+t.id,depth:d,label:t.title,color:kids.length?stT.color:st.color,active:anyAct(t),leftTag:null,chips,ref:{kind:"task",id:t.id}});
         kids.forEach(k=>pushTask(k,d+1));
       };
       rootsT.forEach(t=>pushTask(t,3));

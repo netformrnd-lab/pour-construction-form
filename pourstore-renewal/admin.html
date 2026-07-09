@@ -4955,7 +4955,7 @@ function BannersPage({showToast}){
                           </label>
                           {b.imageMobile && <button onClick={()=>patchBanner(slot.key,i,{imageMobile:''})} title="모바일 이미지 제거" style={{width:28,borderRadius:7,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',cursor:'pointer',fontWeight:900,fontSize:12}}>×</button>}
                         </div>
-                        <div style={{fontSize:10.5,color:'var(--text-sm)',fontWeight:600,marginTop:3}}>모바일에선 이 가로 이미지가 대신 노출 (권장 1080×608, 없으면 위 이미지 사용)</div>
+                        <div style={{fontSize:10.5,color:'var(--text-sm)',fontWeight:600,marginTop:3}}>모바일에선 이 가로 이미지가 대신 노출 (권장 1080×304, 가로 슬림 — 없으면 위 이미지 사용)</div>
                       </div>
                     </div>
                   );

@@ -495,11 +495,15 @@ thead .sticky1,thead .sticky2{z-index:25}
         <div class="bd" style="padding:34px 28px">
           <div style="font-size:44px;margin-bottom:10px">🔒</div>
           <h3 style="font-size:16px;margin-bottom:6px">보안 구역 — 제조사·매입처 정보</h3>
-          <p style="font-size:12px;color:var(--ink-soft);line-height:1.6;margin-bottom:18px">
+          <p style="font-size:12px;color:var(--ink-soft);line-height:1.6;margin-bottom:12px">
             공급업체명·담당자 연락처·상품 매칭 데이터는 AES-256-GCM으로<br>
             암호화되어 있습니다. 비밀번호 없이는 파일을 열어봐도 복원되지 않습니다.
           </p>
-          <input type="password" id="pwInput" placeholder="비밀번호 입력"
+          <p style="font-size:12px;color:var(--xl-green-dark);line-height:1.6;margin-bottom:16px;font-weight:700">
+            ✅ 이 계정은 접근 허용된 마스터입니다.<br>
+            초기 비밀번호를 <u>최초 1회만</u> 입력하면, 이후 어느 PC·장소에서든 자동으로 열립니다.
+          </p>
+          <input type="password" id="pwInput" placeholder="초기 비밀번호 입력 (최초 1회)"
             style="width:100%;border:1px solid var(--xl-grid);border-radius:4px;padding:10px 12px;font-size:14px;text-align:center;letter-spacing:2px">
           <button class="tbtn primary" id="btnUnlock" style="width:100%;margin-top:10px;padding:10px;font-size:13.5px">잠금 해제</button>
           <p id="pwMsg" style="font-size:12px;margin-top:10px;min-height:16px;color:var(--red)"></p>

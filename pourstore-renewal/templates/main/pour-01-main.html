@@ -427,16 +427,22 @@ const db = getFirestore(app);
     el.style.padding = '0';
     el.classList.add('psm1-has-carousel');
     var n = banners.length;
+    // 인라인 스타일 병행 — 카페24 스킨 전역 CSS(img{height:auto} 등)에 밀리지 않도록
     var box = document.createElement('div'); box.className = 'psm1-bnr-carousel';
+    box.style.cssText = 'position:absolute;inset:0;overflow:hidden;z-index:1;';
     var track = document.createElement('div'); track.className = 'psm1-bnr-track';
+    track.style.cssText = 'display:flex;height:100%;will-change:transform;';
     banners.forEach(function(b){
       var a = document.createElement('a'); a.className = 'psm1-bnr-slide';
+      a.style.cssText = 'flex:0 0 100%;width:100%;height:100%;display:block;';
       var link = (b.link||'').trim();
       if (link){ a.href = link; if (/^https?:\/\//.test(link) && link.indexOf(location.host) === -1){ a.target='_blank'; a.rel='noopener'; } }
       else { a.href = 'javascript:void(0)'; }
       var img = document.createElement('img'); img.src = b.image; img.alt = '배너'; img.loading = 'lazy'; img.draggable = false;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;';
       if (b.imageMobile) { // 모바일용 가로 이미지가 있으면 <picture>로 전환
         var pic = document.createElement('picture');
+        pic.style.cssText = 'display:block;width:100%;height:100%;';
         var src = document.createElement('source'); src.media = '(max-width:700px)'; src.srcset = b.imageMobile;
         pic.appendChild(src); pic.appendChild(img);
         a.appendChild(pic);

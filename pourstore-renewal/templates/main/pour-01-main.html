@@ -233,6 +233,28 @@
 .psm1-ov-results { padding:6px 8px 48px; }
 .psm1-ov-noresult { padding:56px 18px; text-align:center; color:#9AA0A6; font-size:14px; font-weight:500; line-height:1.7; }
 .psm1-ov-sep { height:8px; background:#F6F7F9; margin:14px 0 0; }
+/* ===== 모바일 슬라이드 메뉴(햄버거) ===== */
+.psm1-drawer-bk { position:fixed; inset:0; z-index:99998; background:rgba(15,23,42,.42); opacity:0; transition:opacity .28s ease; }
+.psm1-drawer-bk.open { opacity:1; }
+.psm1-drawer-bk[hidden] { display:none; }
+.psm1-drawer { position:fixed; top:0; left:0; bottom:0; width:82%; max-width:320px; z-index:99999; background:#fff; display:flex; flex-direction:column; transform:translateX(-100%); transition:transform .28s cubic-bezier(.16,1,.3,1); box-shadow:2px 0 24px rgba(15,23,42,.15); }
+.psm1-drawer.open { transform:translateX(0); }
+.psm1-drawer[hidden] { display:none; }
+.psm1-drawer-head { display:flex; align-items:center; justify-content:space-between; padding:16px 16px 14px; border-bottom:1px solid #F2F3F5; flex-shrink:0; }
+.psm1-drawer-logo { font-weight:800; font-size:19px; color:#111827; letter-spacing:-0.045em; }
+.psm1-drawer-logo .or { color:#E8780F; }
+.psm1-drawer-close { width:36px; height:36px; display:grid; place-items:center; color:#555; }
+.psm1-drawer-close svg { width:22px; height:22px; }
+.psm1-drawer-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:8px 0 40px; }
+.psm1-drawer-acct { display:flex; align-items:center; gap:8px; padding:12px 18px 16px; flex-wrap:wrap; }
+.psm1-drawer-acct a { font-size:13px; font-weight:700; color:#374151; padding:8px 13px; border:1px solid #E5E7EB; border-radius:999px; }
+.psm1-drawer-acct a.primary { background:#E8780F; color:#fff; border-color:#E8780F; }
+.psm1-drawer-sec { padding:6px 0 4px; }
+.psm1-drawer-sec-t { font-size:11.5px; font-weight:800; color:#9AA0A6; letter-spacing:0; padding:12px 18px 6px; }
+.psm1-drawer-link { display:flex; align-items:center; gap:10px; padding:12px 18px; font-size:15px; font-weight:600; color:#2F3438; letter-spacing:-0.02em; }
+.psm1-drawer-link:active { background:#FAFAFA; }
+.psm1-drawer-link .em { color:#E8780F; }
+.psm1-drawer-div { height:8px; background:#F6F7F9; }
 </style>
 <div class="psm1-sticky">
 <!-- 0) 상단 유틸바 제거 — 마이페이지/로그인·로그아웃/주문조회/고객센터는 헤더 우측 아이콘으로 이동 -->
@@ -339,6 +361,36 @@
   <div class="psm1-ov-body" data-psm1-ov-body></div>
   <div class="psm1-ov-results" data-psm1-ov-results hidden></div>
 </div>
+<!-- 6) 모바일 슬라이드 메뉴(햄버거) -->
+<div class="psm1-drawer-bk" data-mb-backdrop hidden></div>
+<aside class="psm1-drawer" data-mb-drawer hidden aria-label="전체 메뉴">
+  <div class="psm1-drawer-head">
+    <a href="/" class="psm1-drawer-logo"><span class="or">POUR</span>스토어</a>
+    <button class="psm1-drawer-close" data-mb-close type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="psm1-drawer-body">
+    <div class="psm1-drawer-acct">
+      <a href="/member/login.html" class="primary" module="Layout_statelogoff">로그인</a>
+      <a href="/member/agreement.html" module="Layout_statelogoff">회원가입</a>
+      <a href="/myshop/index.html" module="Layout_stateLogon">마이페이지</a>
+      <a href="{$action_logout}" module="Layout_stateLogon">로그아웃</a>
+    </div>
+    <div class="psm1-drawer-sec" data-mb-cats>
+      <div class="psm1-drawer-sec-t">카테고리</div>
+    </div>
+    <div class="psm1-drawer-div"></div>
+    <div class="psm1-drawer-sec" data-mb-quick>
+      <div class="psm1-drawer-sec-t">바로가기</div>
+    </div>
+    <div class="psm1-drawer-div"></div>
+    <div class="psm1-drawer-sec">
+      <div class="psm1-drawer-sec-t">고객 서비스</div>
+      <a href="/myshop/order/list.html" class="psm1-drawer-link">주문조회</a>
+      <a href="/board/index.html" class="psm1-drawer-link">고객센터</a>
+      <a href="/order/basket.html" class="psm1-drawer-link" module="Layout_orderBasketcount">장바구니</a>
+    </div>
+  </div>
+</aside>
 <script type="module">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -832,6 +884,53 @@ const db = getFirestore(app);
     });
     // 결과에서 항목 클릭 → 현재 입력어를 최근검색어로 저장
     ovResults.addEventListener('click', function(e){ if (e.target.closest('a')) addRecent(ovInput.value); });
+  }
+
+  // ===== 모바일 슬라이드 메뉴(햄버거) =====
+  var mbMenuBtn = section.querySelector('.psm1-mb-menu');
+  var drawer = section.querySelector('[data-mb-drawer]');
+  var backdrop = section.querySelector('[data-mb-backdrop]');
+  if (mbMenuBtn && drawer && backdrop) {
+    var drawerBuilt = false;
+    function buildDrawer(){
+      if (drawerBuilt) return; drawerBuilt = true;
+      // 카테고리: 상단 탭에서 자동 구성
+      var catBox = drawer.querySelector('[data-mb-cats]');
+      Array.prototype.forEach.call(section.querySelectorAll('.psm1-tabs .psm1-tab'), function(t){
+        var a = document.createElement('a');
+        a.className = 'psm1-drawer-link'; a.href = t.getAttribute('href') || '#';
+        var name = (t.textContent || '').trim();
+        a.innerHTML = (t.classList.contains('story') ? '<span class="em">'+name+'</span>' : name);
+        catBox.appendChild(a);
+      });
+      // 바로가기: 퀵메뉴 아이콘에서 자동 구성
+      var qBox = drawer.querySelector('[data-mb-quick]');
+      Array.prototype.forEach.call(section.querySelectorAll('.psm1-cats .psm1-cat'), function(c){
+        var nm = c.querySelector('.psm1-cat-name'); if (!nm) return;
+        var a = document.createElement('a');
+        a.className = 'psm1-drawer-link'; a.href = c.getAttribute('href') || '#';
+        a.textContent = (nm.textContent || '').trim();
+        qBox.appendChild(a);
+      });
+    }
+    var _drawerOverflow = '';
+    function openDrawer(){
+      buildDrawer();
+      drawer.hidden = false; backdrop.hidden = false;
+      _drawerOverflow = document.documentElement.style.overflow;
+      document.documentElement.style.overflow = 'hidden';
+      requestAnimationFrame(function(){ drawer.classList.add('open'); backdrop.classList.add('open'); });
+    }
+    function closeDrawer(){
+      drawer.classList.remove('open'); backdrop.classList.remove('open');
+      document.documentElement.style.overflow = _drawerOverflow;
+      setTimeout(function(){ drawer.hidden = true; backdrop.hidden = true; }, 300);
+    }
+    mbMenuBtn.addEventListener('click', function(e){ e.preventDefault(); openDrawer(); });
+    backdrop.addEventListener('click', closeDrawer);
+    var dClose = drawer.querySelector('[data-mb-close]');
+    if (dClose) dClose.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !drawer.hidden) closeDrawer(); });
   }
 })();
 </script>

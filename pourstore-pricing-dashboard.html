@@ -213,6 +213,8 @@ thead .sticky1,thead .sticky2{z-index:25}
   border-top:3px solid var(--xl-green);
 }
 .stab.on .dot{background:var(--xl-green);opacity:1}
+/* 모바일 메뉴는 기본(데스크톱)에서 숨김 — 폰 media query 에서만 노출 */
+#mobileMenuBtn,#mobileMenu{display:none}
 
 /* ── 퀵 마진 계산기 ─────────────────────── */
 #calcFab{
@@ -308,13 +310,26 @@ thead .sticky1,thead .sticky2{z-index:25}
   /* 바 로우 */
   .bar-row{grid-template-columns:1fr;gap:2px;padding:7px 0;border-bottom:1px solid var(--border-s,#F0F1F3)}
   .bar-row .bar-val{text-align:left}
-  /* 시트 탭: 터치 크게, 힌트 화살표 제거 */
-  #tabs{height:44px;padding-left:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-  #tabs::-webkit-scrollbar{display:none}
-  #tabs::before{display:none}
-  .stab{padding:0 13px;font-size:12.5px}
-  /* 마진계산기 FAB: 컴팩트하게, 탭 위로 */
-  #calcFab{right:12px;bottom:56px;padding:11px 15px;font-size:13px;border-radius:24px}
+  /* 폰: Excel식 탭/그룹칩 숨기고 하단 메뉴 버튼 사용 */
+  #tabGroups,#tabs{display:none!important}
+  #mobileMenuBtn{
+    display:flex;align-items:center;gap:9px;position:fixed;left:10px;right:10px;bottom:10px;z-index:120;
+    background:var(--xl-green);color:#fff;border:0;border-radius:13px;padding:13px 16px;font-size:14.5px;font-weight:700;
+    box-shadow:0 6px 20px rgba(11,92,48,.38);
+  }
+  #mobileMenuBtn .mm-ic{font-size:17px}
+  #mobileMenuBtn #mmCurrent{flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #mobileMenuBtn .mm-caret{opacity:.85;font-size:12px}
+  #mobileMenu{display:none}
+  #mobileMenu.open{display:block;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.45)}
+  .mm-panel{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:18px 18px 0 0;max-height:82vh;overflow:auto}
+  .mm-head{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--xl-grid);position:sticky;top:0;background:#fff;font-size:15px}
+  .mm-head button{border:0;background:none;font-size:19px;color:var(--ink-soft);padding:2px 6px}
+  .mm-grp{padding:14px 18px 4px;font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.4px}
+  .mm-item{display:block;width:100%;text-align:left;border:0;background:none;padding:14px 18px;font-size:15.5px;color:var(--ink);border-bottom:1px solid var(--xl-head)}
+  .mm-item.on{color:var(--xl-green-dark);font-weight:800;background:rgba(11,92,48,.07)}
+  /* 마진계산기 FAB: 하단 메뉴 버튼 위로 */
+  #calcFab{right:12px;bottom:72px;padding:11px 15px;font-size:13px;border-radius:24px}
   #calcPanel{right:8px;left:8px;width:auto;bottom:auto;top:50%;transform:translateY(-50%);max-height:82vh}
   #calcPanel.open{display:block}
 }
@@ -903,6 +918,17 @@ thead .sticky1,thead .sticky2{z-index:25}
   <button class="stab" data-grp="mkt" data-sh="sh-mktlink"><span class="dot"></span>추적링크</button>
   <button class="stab" data-grp="mkt" data-sh="sh-mktpromo"><span class="dot"></span>프로모션 성과</button>
   <button class="stab" data-grp="set" data-sh="sh-access"><span class="dot"></span>계정 관리</button>
+</div>
+
+<!-- ═══ 모바일 메뉴 (폰 전용) ═══ -->
+<button id="mobileMenuBtn" aria-label="시트 메뉴 열기">
+  <span class="mm-ic">☰</span><span id="mmCurrent">경영요약</span><span class="mm-caret">▾</span>
+</button>
+<div id="mobileMenu">
+  <div class="mm-panel" role="dialog" aria-label="시트 메뉴">
+    <div class="mm-head"><b>메뉴 · 시트 이동</b><button id="mmClose" aria-label="닫기">✕</button></div>
+    <div id="mmList"></div>
+  </div>
 </div>
 
 <!-- ═══ 퀵 마진 계산기 ═══ -->
@@ -2273,6 +2299,13 @@ $('#tabGroups').addEventListener('click',e=>{
   const g=e.target.closest('.tgrp'); if(!g)return;
   selectGroup(g.dataset.grp);
 });
+$('#mobileMenuBtn').addEventListener('click',openMobileMenu);
+$('#mmClose').addEventListener('click',closeMobileMenu);
+$('#mobileMenu').addEventListener('click',e=>{
+  if(e.target.id==='mobileMenu'){ closeMobileMenu(); return; }   // 배경 탭 → 닫기
+  const it=e.target.closest('.mm-item'); if(!it)return;
+  gotoTab(it.dataset.sh); closeMobileMenu();
+});
 
 /* ══════════ 퀵 마진 계산기 ══════════ */
 let calcM='fwd';
@@ -2343,7 +2376,23 @@ function tabHidden(b){ return b.dataset.sh==='sh-match' && !secAllowed; }   // �
 function renderTabs(){
   $$('.tgrp').forEach(g=>g.classList.toggle('on',g.dataset.grp===activeGrp));
   $$('.stab').forEach(b=>{ b.style.display=(b.dataset.grp===activeGrp && !tabHidden(b))?'':'none'; });
+  const cur=document.querySelector('.stab.on'), mc=$('#mmCurrent');
+  if(mc&&cur) mc.textContent=cur.textContent.trim();
 }
+/* 모바일 메뉴: 그룹별 시트 목록을 현재 DOM(보안 게이팅 포함)에서 생성 */
+function buildMobileMenu(){
+  const list=$('#mmList'); if(!list)return;
+  let html='';
+  $$('#tabGroups .tgrp').forEach(g=>{
+    const tabs=[...document.querySelectorAll('.stab[data-grp="'+g.dataset.grp+'"]')].filter(b=>!tabHidden(b));
+    if(!tabs.length)return;
+    html+='<div class="mm-grp">'+g.textContent.trim()+'</div>';
+    tabs.forEach(b=>{ html+='<button class="mm-item'+(b.classList.contains('on')?' on':'')+'" data-sh="'+b.dataset.sh+'">'+b.textContent.trim()+'</button>'; });
+  });
+  list.innerHTML=html;
+}
+function openMobileMenu(){ buildMobileMenu(); $('#mobileMenu').classList.add('open'); }
+function closeMobileMenu(){ $('#mobileMenu').classList.remove('open'); }
 function gotoTab(sh){
   const b=document.querySelector('.stab[data-sh="'+sh+'"]');
   if(b) activeGrp=b.dataset.grp;

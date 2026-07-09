@@ -69,6 +69,9 @@
 .psm1-tabs-inner::-webkit-scrollbar { display:none; }
 .psm1-tab { padding:15px 14px; font-size:15px; font-weight:600; color:#757575; white-space:nowrap; border-bottom:2px solid transparent; margin-bottom:-1px; transition:.15s; letter-spacing:-0.03em; }
 .psm1-tab.on { color:#E8780F; border-color:#E8780F; font-weight:700; }
+/* 베스트 강조: 오렌지 필드 알약 → 회색 탭들 사이에서 도드라지게 */
+.psm1-tab.hot { color:#fff; background:#E8780F; border-radius:999px; padding:8px 18px; margin-right:6px; font-weight:800; border-bottom-color:transparent; box-shadow:0 2px 8px rgba(232,120,15,.32); }
+.psm1-tab.hot:hover { color:#fff; background:#D26A0A; }
 .psm1-tab:hover { color:#2F3438; }
 .psm1-tab .psm1-tab-new { display:inline-block; font-size:10px; font-weight:800; color:#E8780F; vertical-align:top; margin-left:2px; letter-spacing:0; }
 /* 3) 히어로 */
@@ -83,7 +86,7 @@
 .psm1-banner-cap .author { margin-top:8px; font-size:12px; font-weight:500; opacity:.95; display:flex; align-items:center; gap:5px; letter-spacing:-0.02em; }
 .psm1-banner-cap .author .av { width:20px; height:20px; border-radius:50%; background:linear-gradient(135deg,#F49A3A,#E8780F); display:grid; place-items:center; font-size:10px; font-weight:800; }
 .psm1-banner-counter { position:absolute; right:14px; bottom:14px; background:rgba(15,23,42,.65); color:#fff; font-size:11px; font-weight:600; padding:4px 9px; border-radius:12px; letter-spacing:-0.02em; }
-.psm1-banner-side { position:relative; border-radius:12px; overflow:hidden; background:linear-gradient(160deg,#E8780F 0%,#F49A3A 60%,#FED7AA 100%); cursor:pointer; display:flex; flex-direction:column; padding:20px 22px; min-height:100%; }
+.psm1-banner-side { position:relative; border-radius:12px; overflow:hidden; background:#F5F6F8; cursor:pointer; display:flex; flex-direction:column; padding:20px 22px; min-height:100%; }
 .psm1-banner-side .ad { display:inline-block; font-size:10px; font-weight:700; padding:2px 6px; background:rgba(255,255,255,.85); color:#7C2D12; border-radius:3px; align-self:flex-start; letter-spacing:0.02em; }
 .psm1-banner-side .label { margin-top:18px; font-size:12px; font-weight:600; color:#7C2D12; letter-spacing:-0.02em; }
 .psm1-banner-side .title { margin-top:6px; font-size:20px; font-weight:800; color:#fff; line-height:1.3; letter-spacing:-0.04em; }
@@ -108,7 +111,7 @@
 @media (max-width:700px){
   .psm1-bnr-arrow { display:none; } /* 모바일은 스와이프로 넘김 */
   /* 모바일: 서브(사이드) 배너는 가로형으로 (JS 높이동기화 무시, 16:9) */
-  .psm1-banner-side.psm1-has-carousel { aspect-ratio:32/9; min-height:0 !important; height:auto !important; } /* 모바일 서브배너: 높이 절반(가로 슬림) */
+  .psm1-banner-side.psm1-has-carousel { aspect-ratio:5/2; min-height:0 !important; height:auto !important; } /* 모바일 서브배너 2.5:1 (권장 이미지 1080×432) */
 }
 /* 4) 카테고리 아이콘 */
 .psm1-cats { padding:30px 24px 36px; }
@@ -234,8 +237,7 @@
 <!-- 2) 카테고리 탭 (복구) — 목적지는 CMS 페이지 제작 후 연결 예정(임시 #) -->
 <nav class="psm1-tabs" aria-label="카테고리 탭">
   <div class="psm1-tabs-inner">
-    <a href="#" class="psm1-tab">추천</a>
-    <a href="#" class="psm1-tab">베스트</a>
+    <a href="#" class="psm1-tab hot">베스트</a>
     <a href="#" class="psm1-tab">셀프시공</a>
     <a href="#" class="psm1-tab">시공가이드</a>
     <a href="#" class="psm1-tab">브랜드스토리</a>
@@ -247,40 +249,9 @@
 <!-- 3) 히어로 -->
 <div class="psm1-hero">
   <div class="psm1-hero-inner">
-    <div class="psm1-banner" data-hero-banner>
-      <svg class="psm1-banner-img" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="psm1bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3E9DB"/><stop offset=".55" stop-color="#E8D7BC"/><stop offset="1" stop-color="#B89A77"/></linearGradient>
-          <linearGradient id="psm1sun" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE6B8"/><stop offset="1" stop-color="#F49A3A" stop-opacity=".55"/></linearGradient>
-        </defs>
-        <rect width="1280" height="720" fill="url(#psm1bg)"/>
-        <rect x="180" y="120" width="700" height="430" fill="#E8F0EE" opacity=".85"/>
-        <rect x="180" y="120" width="700" height="430" fill="url(#psm1sun)" opacity=".55"/>
-        <g stroke="#fff" stroke-width="6" opacity=".85"><line x1="530" y1="120" x2="530" y2="550"/><line x1="180" y1="335" x2="880" y2="335"/></g>
-        <ellipse cx="780" cy="560" rx="55" ry="14" fill="#3D4A33" opacity=".4"/>
-        <path d="M730 555 q50 -120 100 0 z" fill="#3F6B47"/>
-        <rect x="745" y="555" width="70" height="40" rx="6" fill="#7C4A2A"/>
-        <rect x="240" y="560" width="380" height="110" rx="14" fill="#C2A485"/>
-        <rect x="240" y="540" width="380" height="40" rx="14" fill="#A88564"/>
-        <line x1="160" y1="680" x2="160" y2="280" stroke="#3D2A1C" stroke-width="5"/>
-        <ellipse cx="160" cy="270" rx="50" ry="32" fill="#F5E8C8"/>
-      </svg>
-      <div class="psm1-banner-grad"></div>
-      <div class="psm1-banner-cap">
-        <span class="tag">#방수패키지</span>
-        <div class="title">옥상 누수, 셀프로 케어하는 방수 패키지</div>
-        <div class="author"><span class="av">P</span>@pour_official</div>
-      </div>
-      <div class="psm1-banner-counter">1 / 15 +</div>
-    </div>
-    <div class="psm1-banner-side" data-side-banner>
-      <span class="ad">AD</span>
-      <div class="text-wrap">
-        <div class="label">POUR스토어 추천</div>
-        <div class="title">방수 자재<br/>셀프 패키지</div>
-      </div>
-      <div class="product"><div class="product-mock"><span class="pm-pkg" style="color:#E8780F"><svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.3 11.6a1 1 0 0 1-1 .9H7.3a1 1 0 0 1-1-.9L5 8z"/><path d="M5 8c0-2.1 3.1-3.3 7-3.3s7 1.2 7 3.3"/></svg></span><span class="pm-name">방수 자재</span></div></div>
-    </div>
+    <!-- 로딩 전엔 빈 배너(회색) — 어드민 배너가 로드되면 캐러셀이 채움 -->
+    <div class="psm1-banner" data-hero-banner></div>
+    <div class="psm1-banner-side" data-side-banner></div>
   </div>
 </div>
 <!-- 4) 카테고리 아이콘 -->

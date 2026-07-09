@@ -54,6 +54,7 @@
 .psm1-hot-item { display:flex; align-items:center; gap:6px; height:22px; font-size:13px; font-weight:500; color:#424242; white-space:nowrap; letter-spacing:-0.02em; text-decoration:none; }
 .psm1-hot-item:hover { color:#E8780F; }
 .psm1-hot-item .psm1-hot-rank { font-size:12px; font-weight:800; color:#E8780F; }
+.psm1-hot-thumb { width:18px; height:18px; border-radius:4px; object-fit:cover; flex-shrink:0; background:#F5F6F8; }
 .psm1-hd-util { flex-shrink:0; display:flex; align-items:center; gap:6px; }
 .psm1-hd-util .psm1-cart-link { position:relative; display:inline-flex; width:40px; height:40px; align-items:center; justify-content:center; }
 .psm1-hd-util .psm1-cart { width:24px; height:24px; color:#374151; }
@@ -215,9 +216,10 @@
 .psm1-ov-cat-name { font-size:12.5px; font-weight:600; color:#374151; letter-spacing:-0.03em; text-align:center; white-space:nowrap; }
 /* 급상승 검색어 (2단 순번) */
 .psm1-ov-rank { display:grid; grid-template-columns:1fr 1fr; gap:0 20px; }
-.psm1-ov-rank-item { display:flex; align-items:center; gap:13px; padding:9px 0; min-width:0; }
+.psm1-ov-rank-item { display:flex; align-items:center; gap:10px; padding:8px 0; min-width:0; }
 .psm1-ov-rank-num { width:16px; text-align:center; font-size:15px; font-weight:800; color:#E8780F; flex-shrink:0; }
-.psm1-ov-rank-kw { font-size:15px; color:#1F2937; font-weight:500; letter-spacing:-0.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.psm1-ov-rank-kw { flex:1; min-width:0; font-size:15px; color:#1F2937; font-weight:500; letter-spacing:-0.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.psm1-ov-rank-thumb { width:30px; height:30px; border-radius:7px; object-fit:cover; flex-shrink:0; margin-left:4px; background:#F5F6F8; }
 /* 추천 검색어 (알약) */
 .psm1-ov-reco { display:flex; flex-wrap:wrap; gap:9px; }
 .psm1-ov-reco a { padding:9px 15px; background:#F3F4F6; border-radius:999px; font-size:14px; color:#4B5563; font-weight:500; letter-spacing:-0.02em; }
@@ -275,7 +277,7 @@
       <div class="psm1-ac" data-psm1-ac></div>
     </div>
     <div class="psm1-hot" data-psm1-hot>
-      <span class="psm1-hot-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="#E8780F"><path d="M12 2s4 4 4 8a4 4 0 1 1-8 0c0-1.5.5-2.5.5-2.5S6 10 6 13a6 6 0 1 0 12 0c0-5-6-11-6-11z"/></svg>인기검색어</span>
+      <span class="psm1-hot-label">인기검색어</span>
       <div class="psm1-hot-list" data-psm1-hot-list></div>
     </div>
     <div class="psm1-hd-util">
@@ -614,7 +616,10 @@ const db = getFirestore(app);
       var a = document.createElement('a');
       a.className = 'psm1-hot-item';
       a.href = linkFor(o);
-      a.innerHTML = '<span class="psm1-hot-rank">' + rank + '</span>' + (o.keyword||'');
+      var t = o.thumb || o.thumbnail || o.image;
+      a.innerHTML = '<span class="psm1-hot-rank">' + rank + '</span>'
+        + (t && String(t).trim() ? '<img class="psm1-hot-thumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' : '')
+        + '<span>' + (o.keyword||'') + '</span>';
       return a;
     }
     HOT.forEach(function(o, i){ track.appendChild(hotItemEl(o, i+1)); });
@@ -772,7 +777,7 @@ const db = getFirestore(app);
     // 급상승 검색어 (인기검색어 — 시간 미표시)
     if (items.length){
       h += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">급상승 검색어</span></div><div class="psm1-ov-rank">';
-      items.slice(0,8).forEach(function(o,i){ h += '<a class="psm1-ov-rank-item" href="'+linkFor(o)+'" data-ov-kw="'+escHtml(o.keyword||'')+'"><span class="psm1-ov-rank-num">'+(i+1)+'</span><span class="psm1-ov-rank-kw">'+escHtml(o.keyword||'')+'</span></a>'; });
+      items.slice(0,8).forEach(function(o,i){ var t=o.thumb||o.thumbnail||o.image; h += '<a class="psm1-ov-rank-item" href="'+linkFor(o)+'" data-ov-kw="'+escHtml(o.keyword||'')+'"><span class="psm1-ov-rank-num">'+(i+1)+'</span><span class="psm1-ov-rank-kw">'+escHtml(o.keyword||'')+'</span>'+(t&&String(t).trim()?'<img class="psm1-ov-rank-thumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':'')+'</a>'; });
       h += '</div></div>';
     }
     // 추천 검색어 (어드민 config/pourstoreRecoKeywords)

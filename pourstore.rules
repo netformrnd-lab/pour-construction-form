@@ -34,18 +34,25 @@ service cloud.firestore {
     function masterEmail() {
       return get(/databases/$(database)/documents/config/access).data.masterEmail;
     }
+    // 추가 마스터 목록(소유자 masterEmail 외). 소유자만 이 배열을 편집할 수 있음(config/access update 규칙).
+    function masterEmails() {
+      return get(/databases/$(database)/documents/config/access).data.get('masterEmails', []);
+    }
+    // 마스터: 소유자(masterEmail) 또는 추가 마스터(masterEmails[]) + 이메일 인증
     function isMaster() {
       return signedIn()
         && request.auth.token.email_verified == true
         && accessExists()
-        && request.auth.token.email == masterEmail();
+        && ( request.auth.token.email == masterEmail()
+             || request.auth.token.email in masterEmails() );
     }
-    // 데이터 열람 허용: config/access.allowedEmails 목록에 있거나 마스터 본인.
-    //  → 허용목록에 없는 계정은 로그인해도 채널·제품·계수 read 전면 거부(서버 강제).
+    // 데이터 열람 허용: 마스터(소유자·추가)거나 allowedEmails 목록에 있음.
+    //  → 어디에도 없는 계정은 로그인해도 채널·제품·계수 read 전면 거부(서버 강제).
     function isAllowedReader() {
       return signedIn()
         && accessExists()
         && ( request.auth.token.email == masterEmail()
+             || request.auth.token.email in masterEmails()
              || request.auth.token.email in get(/databases/$(database)/documents/config/access).data.get('allowedEmails', []) );
     }
 
@@ -82,10 +89,18 @@ service cloud.firestore {
       //  → allowedEmails / otpWorkerUrl 등 나머지 필드는 마스터가 자유롭게 편집
       allow update: if signedIn()
         && request.auth.token.email_verified == true
-        && resource.data.masterEmail == request.auth.token.email
-        && request.resource.data.masterEmail == resource.data.masterEmail
-        && ( request.resource.data.get('masterPhone', '') == resource.data.get('masterPhone', '')
-             || resource.data.get('masterPhone', '') == '' );
+        && (
+          // (정상) 현재 마스터 본인의 편집 — masterEmail 불변, masterPhone 은 최초 1회만
+          ( resource.data.masterEmail == request.auth.token.email
+            && request.resource.data.masterEmail == resource.data.masterEmail
+            && ( request.resource.data.get('masterPhone', '') == resource.data.get('masterPhone', '')
+                 || resource.data.get('masterPhone', '') == '' ) )
+          // (복구) masterEmail 이 비어있는 깨진 문서를 지정 계정이 최초 청구 → 부트스트랩 교착 방지
+          //  · 오직 지정 계정(songhee44) + 이메일 인증 + 기존 masterEmail 이 빈 값일 때만 허용
+          || ( resource.data.get('masterEmail', '') == ''
+               && request.auth.token.email == 'songhee44@netformrnd.com'
+               && request.resource.data.masterEmail == request.auth.token.email )
+        );
       allow delete: if false;
     }
 
@@ -93,6 +108,13 @@ service cloud.firestore {
     match /config/secure {
       allow read: if isMaster();
       allow write: if false;
+    }
+
+    // 보안구역 복호화 키(비밀번호) — 마스터(이메일 인증)만 read/write.
+    //  → 마스터는 어느 PC/장소에서든 자동 잠금해제. 일반계정은 규칙상 이 문서를 아예 못 읽음.
+    //  → config/secure 자체도 isMaster 전용이므로, 키가 여기 있어도 열람 권한은 마스터로 동일하게 강제됨.
+    match /config/seckey {
+      allow read, write: if isMaster();
     }
 
     // ── 마케팅 성과 ──────────────────────────────────────────────

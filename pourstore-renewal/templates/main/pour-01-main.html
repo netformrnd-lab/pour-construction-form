@@ -843,19 +843,29 @@ const db = getFirestore(app);
   }
 
   if (ov){
-    // 헤더 검색창(데스크톱·모바일) 탭 → 오버레이 오픈 (자동 확대·인라인 드롭다운 대신)
+    // 모바일 검색창 탭 → 전체화면 오버레이 (PC는 아래 인라인 드롭다운 사용)
     function attachOpener(inp){
       if (!inp) return;
-      inp.readOnly = true; // 헤더 input엔 직접 입력하지 않음(포커스 즉시 오버레이로)
+      inp.readOnly = true; // 모바일 헤더 input엔 직접 입력하지 않음(포커스 즉시 오버레이로)
       inp.addEventListener('focus', function(){ openOverlay(inp.value); inp.blur(); });
       inp.addEventListener('click', function(){ openOverlay(inp.value); });
     }
-    attachOpener(pcInput);
     attachOpener(mbInput);
 
-    // 인기검색어 롤링 클릭 → 오버레이 오픈 (데스크톱)
+    // PC 검색창 → 기존 방식(검색창 아래 인라인 드롭다운)
+    var pcAc = section.querySelector('[data-psm1-ac]');
+    var pcSearch = wireSearch(pcInput, pcAc);
+
+    // 인기검색어 롤링 클릭 — PC는 인라인 드롭다운 토글, 모바일은 오버레이
     var hotBox = section.querySelector('[data-psm1-hot]');
-    if (hotBox){ hotBox.style.cursor = 'pointer'; hotBox.addEventListener('click', function(e){ e.preventDefault(); openOverlay(''); }); }
+    if (hotBox && pcSearch && pcAc && pcInput){
+      hotBox.style.cursor = 'pointer';
+      hotBox.addEventListener('click', function(e){
+        e.preventDefault();
+        if (pcAc.classList.contains('open')) pcAc.classList.remove('open');
+        else { pcSearch.openDefault(); pcInput.focus(); }
+      });
+    }
     var mbHotBox = section.querySelector('[data-psm1-mb-hot]');
     if (mbHotBox){ mbHotBox.style.cursor = 'pointer'; mbHotBox.addEventListener('click', function(e){ if (e.target.closest('a')) return; openOverlay(''); }); }
 

@@ -184,12 +184,24 @@ thead .sticky1,thead .sticky2{z-index:25}
 .cols2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:980px){.cols2{grid-template-columns:1fr}}
 
-/* ── Excel식 시트 탭 ───────────────────── */
+/* ── 그룹(1단) + Excel식 시트 탭(2단) ───────────────────── */
+#tabGroups{
+  flex:0 0 auto;background:var(--xl-head);border-top:1px solid var(--xl-grid);
+  display:flex;align-items:stretch;gap:6px;padding:6px 10px;overflow-x:auto;
+}
+.tgrp{
+  border:1px solid var(--xl-grid);border-radius:16px;padding:5px 14px;font-size:12.5px;font-weight:600;
+  color:var(--ink-soft);background:#fff;white-space:nowrap;transition:all .12s ease;
+}
+.tgrp:hover{border-color:var(--xl-green);color:var(--xl-green-dark)}
+.tgrp.on{
+  background:var(--xl-green);border-color:var(--xl-green);color:#fff;font-weight:700;
+  box-shadow:0 2px 8px rgba(11,92,48,.25);
+}
 #tabs{
   flex:0 0 auto;background:#fff;border-top:1px solid var(--xl-grid);
   display:flex;align-items:stretch;height:34px;padding-left:8px;gap:2px;overflow-x:auto;
 }
-#tabs::before{content:'◀ ▶';color:var(--ink-faint);font-size:9px;align-self:center;padding:0 8px;letter-spacing:2px}
 .stab{
   border:1px solid var(--xl-grid);border-bottom:0;border-radius:5px 5px 0 0;
   margin-top:5px;padding:0 16px;font-size:12px;color:var(--ink-soft);background:var(--xl-head);
@@ -868,21 +880,29 @@ thead .sticky1,thead .sticky2{z-index:25}
 
 </div>
 
-<!-- ═══ 시트 탭 ═══ -->
+<!-- ═══ 시트 탭 (그룹 2단 네비게이션) ═══ -->
+<div id="tabGroups">
+  <button class="tgrp on" data-grp="sum">📊 요약</button>
+  <button class="tgrp" data-grp="price">💰 가격·채널</button>
+  <button class="tgrp" data-grp="prod">📦 제품·매입</button>
+  <button class="tgrp" data-grp="profit">📈 판매·손익</button>
+  <button class="tgrp" data-grp="mkt">📣 마케팅</button>
+  <button class="tgrp" data-grp="set">⚙️ 설정</button>
+</div>
 <div id="tabs">
-  <button class="stab on" data-sh="sh-dash"><span class="dot"></span>경영요약</button>
-  <button class="stab" data-sh="sh-price"><span class="dot"></span>가격정책표</button>
-  <button class="stab" data-sh="sh-chman"><span class="dot"></span>채널 관리</button>
-  <button class="stab" data-sh="sh-reg"><span class="dot"></span>제조사·제품·상품 등록</button>
-  <button class="stab" data-sh="sh-match"><span class="dot"></span>제품·상품 매칭 <span id="tabLockIcon" style="font-size:10px">🔒</span></button>
-  <button class="stab" data-sh="sh-channel"><span class="dot"></span>채널 수익분석</button>
-  <button class="stab" data-sh="sh-moq"><span class="dot"></span>MOQ 대량판매</button>
-  <button class="stab" data-sh="sh-pl"><span class="dot"></span>손익·공헌이익</button>
-  <button class="stab" data-sh="sh-fixed"><span class="dot"></span>고정지출 관리</button>
-  <button class="stab" data-sh="sh-mkt"><span class="dot"></span>마케팅 개요</button>
-  <button class="stab" data-sh="sh-mktlink"><span class="dot"></span>추적링크</button>
-  <button class="stab" data-sh="sh-mktpromo"><span class="dot"></span>프로모션 성과</button>
-  <button class="stab" data-sh="sh-access"><span class="dot"></span>계정 관리</button>
+  <button class="stab on" data-grp="sum" data-sh="sh-dash"><span class="dot"></span>경영요약</button>
+  <button class="stab" data-grp="price" data-sh="sh-price"><span class="dot"></span>가격정책표</button>
+  <button class="stab" data-grp="price" data-sh="sh-chman"><span class="dot"></span>채널 관리</button>
+  <button class="stab" data-grp="price" data-sh="sh-channel"><span class="dot"></span>채널 수익분석</button>
+  <button class="stab" data-grp="prod" data-sh="sh-reg"><span class="dot"></span>제조사·제품·상품 등록</button>
+  <button class="stab" data-grp="prod" data-sh="sh-match"><span class="dot"></span>제품·상품 매칭 <span id="tabLockIcon" style="font-size:10px">🔒</span></button>
+  <button class="stab" data-grp="profit" data-sh="sh-moq"><span class="dot"></span>MOQ 대량판매</button>
+  <button class="stab" data-grp="profit" data-sh="sh-pl"><span class="dot"></span>손익·공헌이익</button>
+  <button class="stab" data-grp="profit" data-sh="sh-fixed"><span class="dot"></span>고정지출 관리</button>
+  <button class="stab" data-grp="mkt" data-sh="sh-mkt"><span class="dot"></span>마케팅 개요</button>
+  <button class="stab" data-grp="mkt" data-sh="sh-mktlink"><span class="dot"></span>추적링크</button>
+  <button class="stab" data-grp="mkt" data-sh="sh-mktpromo"><span class="dot"></span>프로모션 성과</button>
+  <button class="stab" data-grp="set" data-sh="sh-access"><span class="dot"></span>계정 관리</button>
 </div>
 
 <!-- ═══ 퀵 마진 계산기 ═══ -->
@@ -1046,6 +1066,17 @@ let P=[];
 let BASE_N=0;                        // 원본(로드) 제품 수 — 이 뒤로는 직접 추가한 제품
 let M=[];                            // 상품명 매칭 — 잠금 해제 후
 let unlocked=false, secPw=null, RAW_MATCH=null;
+/* 마스터 무암호 접근: 저장키(config/seckey) 또는 초기 비밀번호로 자동 잠금해제.
+   실패(비밀번호 변경 등) 시에만 수동 입력 화면을 노출한다. */
+const SEC_DEFAULT_PW='pour@2026';   // 초기 비밀번호(마스터 자동 잠금해제 기본값)
+let SEC_STORED_PW='';               // config/seckey 에 저장된 비밀번호(있으면 우선)
+let secAutoTried=false;             // 페이지 로드당 자동 해제 1회 시도 여부
+async function tryAutoUnlock(){
+  if(!secAllowed || unlocked) return;
+  secAutoTried=true;
+  try{ await unlock(SEC_STORED_PW || SEC_DEFAULT_PW); }
+  catch(e){ console.warn('[sec] 자동 잠금해제 실패 — 수동 입력 필요:', e.message||e); renderSecUI(); }
+}
 
 /* ── 제조사 마스터 · 고정지출 (일반 저장, 이 브라우저에만 보관) ── */
 let MFG=[];    let mfgSeq=1;          // {id,name,mgr,tel,memo}
@@ -1158,11 +1189,7 @@ function lock(){
   renderSecUI(); refreshAll();
 }
 let alTimer=null;
-function armAutoLock(){
-  if(alTimer)clearTimeout(alTimer);
-  if(unlocked) alTimer=setTimeout(()=>{ lock(); },15*60*1000);
-}
-['click','keydown'].forEach(ev=>document.addEventListener(ev,()=>{ if(unlocked)armAutoLock(); }));
+function armAutoLock(){ /* 마스터 무암호 상시 접근: 유휴 자동잠금 비활성화 */ }
 function renderSecUI(){
   const na=$('#secNoAccess');
   if(!secAllowed){                                  // 마스터 아님 → 접근 자체 차단
@@ -1177,7 +1204,10 @@ function renderSecUI(){
     return;
   }
   if(na) na.style.display='none';
-  $('#lockScreen').style.display=unlocked?'none':'';
+  // 마스터: 비밀번호 없이 자동으로 열기. 자동 시도 전이면 잠금화면 대신 조용히 해제 시도.
+  if(!unlocked && !secAutoTried){ tryAutoUnlock(); }
+  const showPrompt = !unlocked && secAutoTried;   // 자동 해제까지 실패했을 때만 수동 입력 노출
+  $('#lockScreen').style.display=showPrompt?'':'none';
   $('#matchContent').style.display=unlocked?'':'none';
   $('#pwChangeBox').style.display='none';
   $('#mq').style.display=unlocked?'':'none';
@@ -1194,13 +1224,12 @@ function renderSecUI(){
 }
 /* 계정 기반 노출 제어: 매칭 탭·보안 등록폼 표시 여부 + 잘못된 위치면 이동 */
 function applySecGating(){
-  const tab=document.querySelector('.stab[data-sh="sh-match"]');
-  if(tab) tab.style.display=secAllowed?'':'none';
   if(!secAllowed){
     if(unlocked) lock();                            // 혹시 열려 있으면 강제 잠금
     const cur=document.querySelector('.stab.on');
     if(cur&&cur.dataset.sh==='sh-match') gotoTab('sh-dash');
   }
+  if(typeof renderTabs==='function') renderTabs();   // 보안탭 표시/숨김 반영(그룹 필터 유지)
   // 제조사(공급업체) 정보: 마스터 전용 — 일반계정에선 등록 패널·제조사 입력칸 숨김
   const mfgPanel=$('#regMfgPanel'); if(mfgPanel) mfgPanel.style.display=secAllowed?'':'none';
   const mfgFld=$('#apMfgFld'); if(mfgFld) mfgFld.style.display=secAllowed?'':'none';
@@ -2235,11 +2264,14 @@ $('#plProd').addEventListener('change',initPl);
 $('#plRun').addEventListener('click',()=>{ensurePl();renderPl();});
 $('#fixedCost').addEventListener('input',renderPl);
 
-/* ══════════ 시트 탭 ══════════ */
+/* ══════════ 시트 탭 (그룹 2단) ══════════ */
 $('#tabs').addEventListener('click',e=>{
   const b=e.target.closest('.stab'); if(!b)return;
-  $$('.stab').forEach(x=>x.classList.toggle('on',x===b));
-  $$('.sheet').forEach(s=>s.classList.toggle('on',s.id===b.dataset.sh));
+  gotoTab(b.dataset.sh);
+});
+$('#tabGroups').addEventListener('click',e=>{
+  const g=e.target.closest('.tgrp'); if(!g)return;
+  selectGroup(g.dataset.grp);
 });
 
 /* ══════════ 퀵 마진 계산기 ══════════ */
@@ -2306,7 +2338,28 @@ function runCalc(){
 }
 
 /* ══════════ 제조사·제품·상품 등록 ══════════ */
-function gotoTab(sh){ $$('.stab').forEach(x=>x.classList.toggle('on',x.dataset.sh===sh)); $$('.sheet').forEach(s=>s.classList.toggle('on',s.id===sh)); }
+let activeGrp='sum';
+function tabHidden(b){ return b.dataset.sh==='sh-match' && !secAllowed; }   // 보안탭은 마스터만
+function renderTabs(){
+  $$('.tgrp').forEach(g=>g.classList.toggle('on',g.dataset.grp===activeGrp));
+  $$('.stab').forEach(b=>{ b.style.display=(b.dataset.grp===activeGrp && !tabHidden(b))?'':'none'; });
+}
+function gotoTab(sh){
+  const b=document.querySelector('.stab[data-sh="'+sh+'"]');
+  if(b) activeGrp=b.dataset.grp;
+  $$('.stab').forEach(x=>x.classList.toggle('on',x.dataset.sh===sh));
+  $$('.sheet').forEach(s=>s.classList.toggle('on',s.id===sh));
+  renderTabs();
+}
+function selectGroup(grp){
+  activeGrp=grp;
+  const cur=document.querySelector('.stab.on');
+  if(!cur || cur.dataset.grp!==grp){
+    const first=[...document.querySelectorAll('.stab[data-grp="'+grp+'"]')].find(b=>!tabHidden(b));
+    if(first){ gotoTab(first.dataset.sh); return; }
+  }
+  renderTabs();
+}
 function mfgProductCount(name){ return P.filter(p=>p.mfg===name).length; }
 function autoPricesFor(cost,tgt){
   const pr={}; if(!cost||cost<=0)return pr;
@@ -2748,10 +2801,12 @@ async function boot(){
   appStarted=true;
   buildState();
   init();
-  // 3) 마스터 자동 잠금해제: 저장된 보안키가 있으면 보안구역을 바로 사용 가능하게(일반계정엔 규칙상 seckey 자체가 안 내려옴)
-  if(secAllowed && seckeyPw){
-    try{ await unlock(seckeyPw); console.log('[seckey] 마스터 자동 잠금해제 완료'); }
-    catch(e){ console.warn('[seckey] 자동 잠금해제 실패(초기 비밀번호 불일치?) — 수동 입력 필요:', e.message||e); }
+  // 3) 마스터 무암호 자동 잠금해제: 저장키(config/seckey) 또는 초기 비밀번호로 즉시 오픈
+  SEC_STORED_PW = seckeyPw||'';
+  if(secAllowed){
+    secAutoTried=true;
+    try{ await unlock(SEC_STORED_PW || SEC_DEFAULT_PW); console.log('[sec] 마스터 자동 잠금해제 완료'); }
+    catch(e){ console.warn('[sec] 자동 잠금해제 실패 — 수동 입력 필요:', e.message||e); }
   }
 }
 /* 허용목록에 없는 계정용 전체화면 안내 */

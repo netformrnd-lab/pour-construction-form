@@ -4796,8 +4796,15 @@ const POSTING_TYPES=[
   {key:'case',  label:'시공사례', icon:'🏗', color:'#EA580C'},
 ];
 // 노출 위치 — 검색 상단은 태그로 자동 매칭되므로, 여기선 '추가 노출' 섹션만 지정
+// story-* = POUR이야기 허브 페이지(pour-story.html)의 하위 탭. 하나의 글을 여러 탭에 중복 노출 가능.
 const POSTING_PLACEMENTS=[
-  {key:'pkg-video', label:'패키지 시공영상'},
+  {key:'pkg-video',   label:'패키지 시공영상'},
+  {key:'story-brand', label:'POUR이야기·브랜드 이야기'},
+  {key:'story-guide', label:'POUR이야기·시공가이드'},
+  {key:'story-case',  label:'POUR이야기·시공사례'},
+  {key:'story-news',  label:'POUR이야기·뉴스'},
+  {key:'story-short', label:'POUR이야기·숏폼'},
+  {key:'story-event', label:'POUR이야기·이벤트'},
 ];
 const postingType=(k)=>POSTING_TYPES.find(t=>t.key===k)||POSTING_TYPES[0];
 const ytId=(url)=>{const m=(url||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/);return m?m[1]:null;};

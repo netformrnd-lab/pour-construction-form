@@ -1,0 +1,212 @@
+<section class="pst2">
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
+.pst2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pst2 { background:#FFFBF5; padding:80px 18px; letter-spacing:-0.02em; }
+.pst2-inner { max-width:1200px; margin:0 auto; }
+.pst2-top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:22px; }
+.pst2-kicker { font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.14em; }
+.pst2-note { font-size:13px; font-weight:500; color:#8B95A1; }
+.pst2-note b { color:#E8780F; font-weight:800; }
+.pst2-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:64px; }
+.pst2-stat { background:#fff; border:1px solid #F3E7D5; border-radius:20px; padding:26px 24px; box-shadow:0 6px 18px rgba(232,120,15,.06); }
+.pst2-stat .lbl { font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.1em; margin-bottom:14px; }
+.pst2-stat .num { display:flex; align-items:baseline; gap:4px; }
+.pst2-stat .num b { font-size:38px; font-weight:900; color:#0F1F5C; letter-spacing:-0.03em; line-height:1; }
+.pst2-stat .num span { font-size:15px; font-weight:700; color:#0F1F5C; }
+.pst2-stat .sub { margin-top:12px; font-size:12.5px; font-weight:500; color:#8B95A1; line-height:1.5; word-break:keep-all; }
+.pst2-gal-head { margin-bottom:24px; }
+.pst2-gk { display:inline-flex; align-items:center; gap:10px; font-size:11.5px; font-weight:800; color:#E8780F; letter-spacing:0.16em; margin-bottom:12px; }
+.pst2-gk::before { content:''; width:26px; height:2px; background:#E8780F; }
+.pst2-gal-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-0.04em; line-height:1.2; }
+.pst2-gal-head h2 span { font-size:15px; font-weight:500; color:#8B95A1; letter-spacing:-0.02em; margin-left:10px; }
+.pst2-gal { overflow:hidden; -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 4%, #000 96%, transparent 100%); mask-image:linear-gradient(90deg, transparent 0, #000 4%, #000 96%, transparent 100%); cursor:grab; touch-action:pan-y; user-select:none; -webkit-user-select:none; }
+.pst2-gal.pst2-dragging { cursor:grabbing; }
+.pst2-gal-track { display:flex; gap:14px; width:max-content; will-change:transform; }
+.pst2-card { flex:0 0 280px; width:280px; aspect-ratio:4/4.5; display:block; border-radius:18px; overflow:hidden; background:#EEE; box-shadow:0 6px 18px rgba(15,31,92,.08); border:1px solid #F3F4F6; transition:box-shadow .25s ease; }
+.pst2-card:hover { box-shadow:0 18px 40px rgba(15,31,92,.16); }
+.pst2-img { width:100%; height:100%; object-fit:cover; display:block; background:#0F1F5C; pointer-events:none; -webkit-user-drag:none; }
+.pst2-logo-head { margin-top:64px; margin-bottom:24px; }
+.pst2-logo-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-0.04em; line-height:1.2; }
+.pst2-logo-head h2 span { font-size:15px; font-weight:500; color:#8B95A1; letter-spacing:-0.02em; margin-left:10px; }
+.pst2-logos { display:flex; flex-direction:column; gap:14px; overflow:hidden; min-height:88px; }
+.pst2-logo-row { overflow:hidden; -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%); mask-image:linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%); }
+.pst2-logo-track { display:flex; gap:14px; width:max-content; will-change:transform; }
+.pst2-row-right .pst2-logo-track { animation:pst2MarqRight linear infinite; }
+.pst2-row-left .pst2-logo-track { animation:pst2MarqLeft linear infinite; }
+.pst2-logos:hover .pst2-logo-track { animation-play-state:paused; }
+@keyframes pst2MarqLeft { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+@keyframes pst2MarqRight { from { transform:translateX(-50%); } to { transform:translateX(0); } }
+.pst2-logo { flex:0 0 150px; width:150px; height:88px; display:flex; align-items:center; justify-content:center; background:#fff; border:1px solid #F3E7D5; border-radius:14px; padding:14px 18px; box-shadow:0 4px 12px rgba(232,120,15,.05); }
+.pst2-logo img { max-width:100%; max-height:100%; object-fit:contain; filter:grayscale(1); opacity:.72; }
+.pst2-logo.pst2-logo-fallback { font-size:12px; font-weight:700; color:#8B95A1; text-align:center; word-break:keep-all; line-height:1.3; }
+@media (prefers-reduced-motion:reduce) { .pst2-logo-track, .pst2-gal-track { animation:none !important; } }
+.pst2-swipe { display:none; }
+@keyframes pst2SwipeAr { 0%,100% { transform:translateX(0); } 50% { transform:translateX(4px); } }
+@media (max-width:880px) {
+  .pst2-stats { grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:48px; }
+  .pst2-gal-head h2 { font-size:24px; }
+  .pst2-gal-head h2 span { display:block; margin-left:0; margin-top:6px; font-size:13px; }
+  .pst2-logo-head { margin-top:48px; }
+  .pst2-logo-head h2 { font-size:24px; }
+  .pst2-logo-head h2 span { display:block; margin-left:0; margin-top:6px; font-size:13px; }
+}
+@media (max-width:640px) {
+  .pst2 { padding:48px 0 56px; }
+  .pst2-inner { max-width:none; }
+  .pst2-top, .pst2-stats, .pst2-gal-head, .pst2-logo-head { padding-left:18px; padding-right:18px; }
+  .pst2-stat .num b { font-size:30px; }
+  .pst2-card { flex:0 0 220px; width:220px; }
+  .pst2-logos { gap:10px; }
+  .pst2-logo { flex-basis:120px; width:120px; height:70px; padding:10px 14px; border-radius:11px; }
+}
+</style>
+<div class="pst2-inner">
+  <div class="pst2-top"><span class="pst2-kicker">POUR스토어 실적</span><span class="pst2-note">아파트·공장·병원·관공서에서 <b>사용 중</b></span></div>
+  <div class="pst2-stats"><div class="pst2-stat"><div class="lbl">누적 시공</div><div class="num"><b>2,600,000</b><span>세대</span></div><div class="sub">아파트·공장·병원·관공서</div></div><div class="pst2-stat"><div class="lbl">보유 특허</div><div class="num"><b>70</b><span>여 개</span></div><div class="sub">건축물 유지보수 관련 자체 특허</div></div><div class="pst2-stat"><div class="lbl">제품 라인업</div><div class="num"><b>110</b><span>여 개</span></div><div class="sub">R&D 자체 개발 유지보수 제품</div></div><div class="pst2-stat"><div class="lbl">시공 협력사</div><div class="num"><b>250</b><span>여 곳</span></div><div class="sub">전국 검증된 전문 시공 네트워크</div></div></div>
+  <div class="pst2-gal-head"><span class="pst2-gk">CONSTRUCTION GALLERY</span><h2>전국 시공 현장 <span>직접 시공한 현장들입니다</span></h2></div>
+  <div class="pst2-gal" data-pst2-gal><div class="pst2-gal-track" data-pst2-gal-track></div></div>
+  <div class="pst2-logo-head"><span class="pst2-gk">PARTNERS</span><h2>함께한 시공 협력사 <span>전국 250여 곳과 함께합니다</span></h2></div>
+  <div class="pst2-logos" data-pst2-logos></div>
+</div>
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain: "pour-app-new.firebaseapp.com",
+  projectId: "pour-app-new",
+  storageBucket: "pour-app-new.firebasestorage.app",
+  messagingSenderId: "411031141847",
+  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
+};
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+(async function(){
+  var section = document.currentScript ? document.currentScript.closest('.pst2') : document.querySelector('.pst2');
+  if (!section) return;
+  var g = section.querySelector('[data-pst2-gal]');
+  var gtrack = section.querySelector('[data-pst2-gal-track]');
+  var lg = section.querySelector('[data-pst2-logos]');
+
+  // ===== 시공현장 갤러리 (1행 자동 흐름 + 드래그, JS transform 단일 제어) =====
+  try {
+    var gSnap = await getDoc(doc(db, "site-resources", "pourstore-gallery"));
+    var imgs = gSnap.exists() && Array.isArray(gSnap.data().urls) ? gSnap.data().urls : [];
+    console.log("[pst2] 갤러리 " + imgs.length + "개 로드");
+    if (gtrack && imgs.length) {
+      function makeCard(u){
+        var a = document.createElement('a');
+        a.className = 'pst2-card';
+        a.href = 'https://www.pourstore.net';
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.setAttribute('aria-label', 'POUR스토어 시공 현장');
+        var im = document.createElement('img');
+        im.className = 'pst2-img';
+        im.src = u;
+        im.alt = 'POUR스토어 시공 현장';
+        im.loading = 'lazy';
+        im.onerror = function(){ console.log("[pst2] 갤러리 이미지 실패:", u.slice(0,80)); };
+        a.appendChild(im);
+        return a;
+      }
+      // 끊김 없는 루프를 위해 동일 세트를 2번 넣음
+      imgs.forEach(function(u){ gtrack.appendChild(makeCard(u)); });
+      imgs.forEach(function(u){ gtrack.appendChild(makeCard(u)); });
+
+      // CSS 애니메이션 대신 JS로 transform 직접 제어 (자동+드래그 한 좌표계)
+      gtrack.style.animation = 'none';
+      var pos = 0;              // 현재 이동량(px)
+      var speed = 0.5;          // 자동 흐름 속도(px/frame, 약 30px/s)
+      var half = 0;             // 한 세트 너비(절반 지점)
+      var paused = false;
+      var dragging = false, startX = 0, startPos = 0, moved = false;
+
+      function measure(){ half = gtrack.scrollWidth / 2; }
+      // 이미지 로드 후 너비 확정
+      setTimeout(measure, 300);
+      window.addEventListener('resize', measure);
+
+      function tick(){
+        if (!paused && !dragging && half > 0){
+          pos -= speed;
+          if (pos <= -half) pos += half;   // 절반 지나면 되감기(끊김 없음)
+        }
+        gtrack.style.transform = 'translateX(' + pos + 'px)';
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+
+      // 마우스 올리면 멈춤
+      g.addEventListener('mouseenter', function(){ paused = true; });
+      g.addEventListener('mouseleave', function(){ paused = false; });
+
+      // 드래그로 직접 밀기
+      g.addEventListener('pointerdown', function(e){
+        dragging = true; moved = false;
+        startX = e.clientX; startPos = pos;
+        g.classList.add('pst2-dragging');
+        if (g.setPointerCapture) { try { g.setPointerCapture(e.pointerId); } catch(_){} }
+      });
+      g.addEventListener('pointermove', function(e){
+        if (!dragging) return;
+        var dx = e.clientX - startX;
+        if (Math.abs(dx) > 4) moved = true;
+        pos = startPos + dx;
+        if (half > 0){ while (pos <= -half) pos += half; while (pos > 0) pos -= half; }
+      });
+      function endDrag(){ dragging = false; g.classList.remove('pst2-dragging'); }
+      g.addEventListener('pointerup', endDrag);
+      g.addEventListener('pointercancel', endDrag);
+      // 드래그였으면 카드 클릭(링크 이동) 막기
+      gtrack.addEventListener('click', function(e){ if (moved){ e.preventDefault(); } }, true);
+      gtrack.addEventListener('dragstart', function(e){ e.preventDefault(); });
+    }
+  } catch (e) {
+    console.log("[pst2] 갤러리 로드 실패:", e && e.message ? e.message : e);
+  }
+
+  // ===== 협력사 로고 =====
+  try {
+    var pSnap = await getDoc(doc(db, "site-resources", "pourstore-partners"));
+    var logos = pSnap.exists() && Array.isArray(pSnap.data().items) ? pSnap.data().items : [];
+    console.log("[pst2] 협력사 로고 " + logos.length + "개 로드");
+    if (lg && logos.length) {
+      // 가나다 클라이언트 정렬 (orderBy 미사용 — 개발규칙 준수)
+      logos = logos.slice().sort(function(a,b){ return (a.n||'').localeCompare(b.n||'', 'ko'); });
+      var ROWS = 4;
+      var rows = [[],[],[],[]];
+      logos.forEach(function(o, i){ rows[i % ROWS].push(o); });
+      function makeCell(o){
+        var cell = document.createElement('div');
+        cell.className = 'pst2-logo';
+        cell.title = o.n;
+        var im = document.createElement('img');
+        im.src = o.u;
+        im.alt = o.n;
+        im.loading = 'lazy';
+        im.onerror = function(){ cell.classList.add('pst2-logo-fallback'); cell.textContent = o.n; };
+        cell.appendChild(im);
+        return cell;
+      }
+      rows.forEach(function(rowLogos, r){
+        var row = document.createElement('div');
+        row.className = 'pst2-logo-row' + (r % 2 === 0 ? ' pst2-row-right' : ' pst2-row-left');
+        var track = document.createElement('div');
+        track.className = 'pst2-logo-track';
+        rowLogos.forEach(function(o){ track.appendChild(makeCell(o)); });
+        rowLogos.forEach(function(o){ track.appendChild(makeCell(o)); });
+        track.style.animationDuration = (rowLogos.length * 4.2) + 's';
+        row.appendChild(track);
+        lg.appendChild(row);
+      });
+    }
+  } catch (e) {
+    console.log("[pst2] 로고 로드 실패:", e && e.message ? e.message : e);
+  }
+})();
+</script>
+</section>

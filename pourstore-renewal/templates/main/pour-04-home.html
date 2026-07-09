@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POUR스토어 — 집안도 튼튼하고, 아름답게 (v14)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css" rel="stylesheet">
+<style>body{margin:0;padding:0;background:#F9FAFB;}</style>
+</head>
+<body>
+
+<section data-section="집안도 튼튼하고, 아름답게">
+<style>
+.psh * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.psh { background:linear-gradient(180deg,#fff 0%,#FFFBF5 100%); padding:80px 18px; }
+.psh-inner { max-width:1200px; margin:0 auto; }
+
+/* Header */
+.psh-head { text-align:center; margin-bottom:24px; }
+.psh-zonebar { display:inline-flex; align-items:center; gap:10px; padding:9px 16px; background:#fff; border:1px solid #E5E7EB; border-radius:999px; margin-bottom:22px; box-shadow:0 4px 14px rgba(15,31,92,.06); }
+.psh-zonebar .dot { width:8px; height:8px; background:#F97316; border-radius:50%; box-shadow:0 0 8px #F97316; animation:psh-pulse 1.6s infinite; }
+@keyframes psh-pulse { 50%{opacity:.4;} }
+.psh-zonebar .kicker { font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; font-size:13px; font-weight:900; color:#0F1F5C; letter-spacing:1.5px; }
+.psh-zonebar .kicker .x { color:#F97316; margin:0 4px; }
+
+.psh-head h2 { font-size:46px; font-weight:900; letter-spacing:-1.6px; line-height:1.2; margin-bottom:14px; }
+.psh-head h2 .nv { color:#0F1F5C; }
+.psh-head h2 .or { color:#F97316; }
+
+.psh-head .sub-tag { font-size:15px; color:#374151; font-weight:800; letter-spacing:-.3px; margin-bottom:18px; }
+.psh-head .sub-tag .dash { color:#D1D5DB; margin-right:4px; }
+.psh-head .sub-tag .brand { color:#EA580C; }
+
+.psh-head .desc { font-size:13.5px; color:#6B7280; max-width:540px; margin:0 auto 18px; line-height:1.75; font-weight:500; }
+.psh-head .desc b { color:#0F1F5C; font-weight:800; }
+
+.psh-meta { display:inline-flex; align-items:center; gap:14px; padding:8px 16px; background:#fff; border:1px solid #FED7AA; border-radius:12px; font-size:11.5px; color:#6B7280; font-weight:700; }
+.psh-meta b { color:#EA580C; font-weight:900; }
+.psh-meta .vs { color:#D1D5DB; }
+
+/* 카루셀 */
+.psh-carousel { position:relative; height:300px; border-radius:24px; overflow:hidden; margin:32px 0; box-shadow:0 14px 36px rgba(15,31,92,.1); border:1px solid #F0E8DC; }
+.carousel-track { position:relative; width:100%; height:100%; }
+.slide { position:absolute; inset:0; display:grid; grid-template-columns:1fr 1.3fr; opacity:0; pointer-events:none; transition:opacity .6s ease; }
+.slide.active { opacity:1; pointer-events:auto; }
+.slide.deco-slide { background:linear-gradient(90deg,#FAF4EA 0%,#F5EFE6 100%); }
+.slide.repair-slide { background:linear-gradient(90deg,#F0F7F2 0%,#E0EFE5 100%); }
+.slide.cement-slide { background:linear-gradient(90deg,#F5F3EE 0%,#E8E2D5 100%); }
+.slide-left { padding:40px 36px; display:flex; flex-direction:column; justify-content:center; position:relative; z-index:2; }
+.slide-left::after { content:''; position:absolute; top:0; right:-60px; bottom:0; width:90px; pointer-events:none; z-index:-1; }
+.slide.deco-slide .slide-left::after { background:linear-gradient(90deg,#F5EFE6,transparent); }
+.slide.repair-slide .slide-left::after { background:linear-gradient(90deg,#E8F1EB,transparent); }
+.slide.cement-slide .slide-left::after { background:linear-gradient(90deg,#E8E2D5,transparent); }
+.slide-kicker { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:900; letter-spacing:1.2px; margin-bottom:14px; padding:6px 13px; background:#fff; border-radius:999px; align-self:flex-start; }
+.slide.deco-slide .slide-kicker { color:#EA580C; border:1px solid #FED7AA; }
+.slide.repair-slide .slide-kicker { color:#047857; border:1px solid #A7F3D0; }
+.slide.cement-slide .slide-kicker { color:#57534E; border:1px solid #D6D3D1; }
+.slide h3 { font-size:28px; font-weight:900; color:#0F1F5C; line-height:1.3; letter-spacing:-.8px; margin-bottom:10px; }
+.slide h3 .hl-orange { color:#EA580C; }
+.slide h3 .hl-green { color:#047857; }
+.slide h3 .hl-yellow { color:#A16207; }
+.slide h3 .hl-stone { color:#57534E; }
+.slide p { font-size:13.5px; color:#6B7280; line-height:1.7; font-weight:600; max-width:340px; margin-bottom:16px; }
+.slide-tags { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:18px; }
+.slide-tags span { padding:4px 10px; background:#fff; border-radius:6px; font-size:10.5px; font-weight:700; }
+.slide.deco-slide .slide-tags span { border:1px solid #E8D5B7; color:#7C2D12; }
+.slide.repair-slide .slide-tags span { border:1px solid #A7F3D0; color:#065F46; }
+.slide.cement-slide .slide-tags span { border:1px solid #D6D3D1; color:#44403C; }
+.slide-cta { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:999px; font-size:12px; font-weight:800; text-decoration:none; align-self:flex-start; transition:all .2s; }
+.slide.deco-slide .slide-cta { background:#EA580C; color:#fff; }
+.slide.repair-slide .slide-cta { background:#047857; color:#fff; }
+.slide.cement-slide .slide-cta { background:#57534E; color:#fff; }
+.slide-cta:hover { filter:brightness(.85); transform:translateY(-1px); }
+.slide-right { position:relative; overflow:hidden; }
+.slide-right svg { display:block; width:100%; height:100%; }
+.carousel-mockup-note { position:absolute; top:18px; left:18px; padding:7px 13px; background:rgba(254,243,199,.95); border:1.5px dashed #EA580C; color:#7C2D12; font-size:11px; font-weight:800; border-radius:8px; z-index:6; box-shadow:0 4px 12px rgba(0,0,0,.12); transform:rotate(-1.5deg); }
+.carousel-mockup-note svg { width:14px; height:14px; vertical-align:-2px; margin-right:5px; }
+.carousel-nav { position:absolute; bottom:18px; left:0; right:0; display:flex; align-items:center; justify-content:center; gap:14px; z-index:5; }
+.carousel-dots { display:flex; gap:6px; }
+.carousel-dot { width:8px; height:8px; border-radius:50%; background:rgba(15,31,92,.25); border:0; cursor:pointer; transition:all .25s; padding:0; }
+.carousel-dot.active { width:24px; border-radius:4px; background:#0F1F5C; }
+.carousel-btn { width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.9); border:1px solid #E5E7EB; cursor:pointer; display:grid; place-items:center; color:#0F1F5C; font-size:14px; font-weight:700; transition:all .2s; }
+.carousel-btn:hover { background:#0F1F5C; color:#fff; border-color:#0F1F5C; }
+.carousel-counter { position:absolute; top:18px; right:18px; padding:5px 11px; background:rgba(255,255,255,.9); border-radius:999px; font-size:11px; font-weight:800; color:#0F1F5C; backdrop-filter:blur(6px); z-index:5; letter-spacing:.5px; }
+.carousel-counter .cur { color:#EA580C; }
+
+/* 재질 스와치 */
+.psh-swatch-head { text-align:center; margin:12px 0 16px; }
+.psh-swatch-head .swatch-kicker { font-size:11px; font-weight:900; color:#EA580C; letter-spacing:1.2px; margin-bottom:4px; }
+.psh-swatch-head .swatch-title { font-size:17px; font-weight:900; color:#0F1F5C; letter-spacing:-.5px; }
+.psh-swatch-head .swatch-title b { color:#F97316; }
+.psh-swatches { display:flex; gap:18px; overflow-x:auto; padding:6px 4px 18px; margin-bottom:28px; justify-content:center; scrollbar-width:thin; scrollbar-color:#FED7AA #fff; }
+.psh-swatches::-webkit-scrollbar { height:5px; }
+.psh-swatches::-webkit-scrollbar-track { background:#FFFBF5; border-radius:3px; }
+.psh-swatches::-webkit-scrollbar-thumb { background:#FED7AA; border-radius:3px; }
+.swatch-btn { flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:9px; border:0; background:none; cursor:pointer; padding:6px 2px; min-width:88px; transition:transform .25s; }
+.swatch-btn:hover { transform:translateY(-2px); }
+.swatch { width:74px; height:74px; border-radius:50%; border:3px solid #fff; box-shadow:0 6px 16px rgba(0,0,0,.12), inset 0 -3px 8px rgba(0,0,0,.08); position:relative; overflow:hidden; transition:all .25s; }
+.swatch-btn.on .swatch { outline:3px solid #F97316; outline-offset:3px; box-shadow:0 12px 26px rgba(249,115,22,.35), inset 0 -3px 8px rgba(0,0,0,.08); }
+.swatch-btn.on .swatch.tex-only::after { content:'✓'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#fff; font-size:22px; font-weight:900; text-shadow:0 2px 6px rgba(0,0,0,.5); z-index:5; }
+.swatch.svg-inside { padding:0; }
+.swatch.svg-inside svg { width:100%; height:100%; display:block; }
+.swatch.hit { background:radial-gradient(circle at 30% 25%, #FCD34D 0%, #F97316 50%, #DC2626 100%); display:grid; place-items:center; }
+.swatch.hit::before { content:'HIT'; color:#fff; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; font-size:22px; letter-spacing:1.8px; font-weight:900; text-shadow:0 2px 8px rgba(0,0,0,.4); }
+.swatch.hit::after { content:''; position:absolute; top:14%; left:18%; width:30%; height:40%; background:radial-gradient(ellipse, rgba(255,255,255,.5), transparent); border-radius:50%; filter:blur(3px); }
+.swatch.wood { background:linear-gradient(135deg, #D4A574, #A8784A); }
+.swatch.wood::before { content:''; position:absolute; inset:0; background:repeating-linear-gradient(90deg, rgba(80,40,15,.3), rgba(80,40,15,.3) 1.5px, transparent 1.5px, transparent 6px), repeating-linear-gradient(90deg, rgba(0,0,0,.06), rgba(0,0,0,.06) 0.5px, transparent 0.5px, transparent 2px); }
+.swatch.wood::after { content:''; position:absolute; top:14%; left:20%; width:28%; height:35%; background:radial-gradient(ellipse, rgba(255,255,255,.3), transparent); border-radius:50%; filter:blur(3px); }
+.swatch.glass { background:linear-gradient(135deg, #DBEAFE 0%, #93C5FD 60%, #60A5FA 100%); }
+.swatch.glass::before { content:''; position:absolute; top:12%; left:14%; width:38%; height:50%; background:rgba(255,255,255,.6); border-radius:50%; filter:blur(3px); }
+.swatch.glass::after { content:''; position:absolute; bottom:18%; right:18%; width:22%; height:25%; background:rgba(255,255,255,.45); border-radius:50%; filter:blur(3px); }
+.swatch.tile { background-color:#FAF8F4; background-image:linear-gradient(0deg, rgba(0,0,0,.14) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.14) 1px, transparent 1px); background-size:18px 18px; }
+
+.swatch-label { font-size:13px; font-weight:800; color:#0F1F5C; letter-spacing:-.3px; line-height:1; }
+.swatch-btn.on .swatch-label { color:#EA580C; }
+.swatch-sub { font-size:10.5px; color:#9CA3AF; font-weight:600; letter-spacing:-.2px; line-height:1; }
+
+/* Grid */
+.psh-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:28px; }
+.psh-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; overflow:hidden; text-decoration:none; color:inherit; cursor:pointer; transition:all .3s; display:block; }
+.psh-card:hover { transform:translateY(-5px); box-shadow:0 18px 40px rgba(15,31,92,.12); border-color:#FED7AA; }
+.psh-card .img { aspect-ratio:1/1; position:relative; overflow:hidden; display:grid; place-items:center; }
+.psh-card .img.wallpaper { background:#F5EFE6; background-image:radial-gradient(circle at 50% 50%, rgba(168,120,90,.25) 2px, transparent 3px), repeating-linear-gradient(90deg, transparent 0, transparent 12px, rgba(168,120,90,.1) 12px, rgba(168,120,90,.1) 13px); background-size:24px 24px, 100% 100%; }
+.psh-card .img.wood { background:linear-gradient(135deg, #D4A574, #A8784A); }
+.psh-card .img.metal { background:radial-gradient(circle at 30% 25%, #F3F4F6 0%, #D1D5DB 50%, #9CA3AF 100%); }
+.psh-card .img.glass { background:linear-gradient(135deg, #DBEAFE, #93C5FD); }
+.psh-card .img.tile { background-color:#FAF8F4; background-image:linear-gradient(0deg, rgba(0,0,0,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.1) 1px, transparent 1px); background-size:18px 18px; }
+.psh-card .img.tools { background:linear-gradient(135deg, #FED7AA, #FCD34D); }
+.psh-card .img.cement { background:#9CA3AF; background-image:radial-gradient(circle at 25% 30%, rgba(255,255,255,.22) 1.5px, transparent 2.5px), radial-gradient(circle at 70% 70%, rgba(0,0,0,.2) 1.5px, transparent 2.5px), linear-gradient(135deg, #D1D5DB, #6B7280); background-size:22px 22px, 28px 28px, 100% 100%; }
+.psh-card .img .ic { font-size:54px; opacity:.7; filter:drop-shadow(0 6px 12px rgba(0,0,0,.18)); position:relative; z-index:1; }
+.psh-card .img .ic svg { width:54px; height:54px; stroke-width:1.5; color:#0F1F5C; }
+.psh-card .brand { position:absolute; top:10px; left:10px; padding:4px 10px; font-size:10px; font-weight:900; border-radius:6px; letter-spacing:.5px; z-index:2; }
+.psh-card .brand.pour { background:#EA580C; color:#fff; box-shadow:0 4px 10px rgba(234,88,12,.3); }
+.psh-card .brand.gro { background:#fff; color:#7C2D12; border:1.5px solid #7C2D12; }
+.psh-card .status { position:absolute; top:10px; right:10px; padding:4px 9px; font-size:10px; font-weight:900; border-radius:5px; z-index:2; }
+.psh-card .status.best { background:#0F1F5C; color:#fff; }
+.psh-card .status.new { background:#10B981; color:#fff; }
+.psh-card .cat { position:absolute; bottom:10px; left:10px; padding:3px 9px; background:rgba(255,255,255,.92); color:#0F1F5C; font-size:10px; font-weight:800; border-radius:5px; backdrop-filter:blur(4px); z-index:2; }
+.psh-card .body { padding:14px 16px 16px; }
+.psh-card .meta { font-size:10.5px; color:#EA580C; font-weight:800; margin-bottom:5px; }
+.psh-card .name { font-size:13.5px; font-weight:800; color:#0F1F5C; line-height:1.4; margin-bottom:10px; min-height:38px; letter-spacing:-.3px; }
+.psh-card .price-row { display:flex; align-items:baseline; gap:6px; }
+.psh-card .price { font-size:17px; font-weight:900; color:#0F1F5C; }
+.psh-card .price .won { font-size:11px; color:#6B7280; margin-left:1px; font-weight:600; }
+.psh-card .unit { font-size:11px; color:#9CA3AF; font-weight:600; }
+.psh-card.hide { display:none; }
+
+.psh-cta-wrap { text-align:center; padding-top:20px; border-top:1px solid #F3F4F6; }
+.psh-cta { display:inline-flex; align-items:center; gap:8px; padding:14px 28px; background:#0F1F5C; color:#fff; border-radius:999px; font-size:13.5px; font-weight:800; text-decoration:none; transition:all .25s; }
+.psh-cta:hover { background:#F97316; transform:translateY(-2px); box-shadow:0 12px 24px rgba(249,115,22,.3); }
+.psh-cta-note { font-size:11px; color:#9CA3AF; margin-top:10px; font-weight:600; }
+
+@media (max-width:880px) {
+  .psh-carousel { height:auto; }
+  .slide { grid-template-columns:1fr; position:relative; display:none; opacity:1; pointer-events:auto; }
+  .slide.active { display:grid; }
+  .slide-left { padding:24px 22px 18px; }
+  .slide-left::after { display:none; }
+  .slide h3 { font-size:21px; }
+  .slide-right { height:160px; }
+  .psh-swatches { justify-content:flex-start; }
+  .psh-grid { grid-template-columns:repeat(3,1fr); }
+  .psh-card:nth-child(n+7) { display:none; }
+}
+@media (max-width:600px) {
+  .psh-grid { grid-template-columns:repeat(2,1fr); }
+  .psh-card:nth-child(n+5) { display:none; }
+  .psh-head h2 { font-size:30px; }
+  .swatch { width:64px; height:64px; }
+  .swatch-btn { min-width:78px; }
+}
+</style>
+<section class="psh">
+  <div class="psh-inner">
+
+    <!-- ===== 헤더 (변형 4: 보수도 디자인이다) ===== -->
+    <div class="psh-head">
+      <div class="psh-zonebar">
+        <span class="dot"></span>
+        <span class="kicker">HOME REPAIR <span class="x">×</span> HOME DECO</span>
+      </div>
+      <h2><span class="nv">집안도 튼튼하고,</span> <span class="or">아름답게</span></h2>
+      <p class="sub-tag"><span class="dash">—</span> <span class="brand">POUR스토어</span>의 홈리페어 × 홈데코</p>
+      <p class="desc">보수가 <b>인테리어가 되도록</b> — POUR스토어 큐레이션.</p>
+      <div class="psh-meta">
+        <span><b>120+</b> SKU</span><span class="vs">·</span><span>친환경 1등급</span><span class="vs">·</span><span>전국 당일 출고</span>
+      </div>
+    </div>
+
+    <!-- ===== 카루셀 ===== -->
+    <div class="psh-carousel" id="carousel">
+      <div class="carousel-mockup-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l1.5-2h5L16 7"/><circle cx="12" cy="13.5" r="3.2"/></svg>사진 넣을 예정 · 시안용 일러스트</div>
+      <div class="carousel-counter"><span class="cur">01</span> / 03</div>
+      <div class="carousel-track">
+
+        <!-- Slide 1: 홈데코 -->
+        <div class="slide deco-slide active" data-slide="0">
+          <div class="slide-left">
+            <span class="slide-kicker"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.9 1.8-1.9 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.1 0-1 .8-1.8 1.8-1.8H16a5 5 0 0 0 5-5c0-3.9-4-7-9-7z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10.5" r="1"/></svg>HOME DECO · 홈데코</span>
+            <h3>오늘의 무드,<br/><span class="hl-orange">새롭게 꾸며요</span></h3>
+            <p>POUR 친환경 페인트·스테인·시트지로 공간 분위기를 바꾸는 가장 쉬운 방법.</p>
+            <div class="slide-tags"><span>친환경 1등급</span><span>80+ 컬러</span><span>셀프 OK</span></div>
+            <a class="slide-cta" href="#">홈데코 자재 보기 <span class="ar">→</span></a>
+          </div>
+          <div class="slide-right">
+            <svg viewBox="0 0 600 300" preserveAspectRatio="xMidYMid slice">
+              <defs><linearGradient id="wall1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F5EFE6"/><stop offset="100%" stop-color="#EDE2D0"/></linearGradient><linearGradient id="floor1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#D4A574"/><stop offset="100%" stop-color="#B8895A"/></linearGradient></defs>
+              <rect width="600" height="230" fill="url(#wall1)"/><rect y="230" width="600" height="70" fill="url(#floor1)"/><rect y="228" width="600" height="2" fill="#8B6539" opacity="0.4"/>
+              <circle cx="500" cy="60" r="110" fill="#F97316" opacity="0.1"/><circle cx="500" cy="60" r="60" fill="#F97316" opacity="0.16"/><circle cx="500" cy="60" r="28" fill="#FCD34D" opacity="0.4"/>
+              <g transform="translate(40,60)"><rect width="78" height="115" fill="#fff" stroke="#A8987F" stroke-width="3"/><rect x="6" y="6" width="66" height="103" fill="#F5EFE6"/><circle cx="39" cy="48" r="13" fill="#F97316" opacity="0.45"/><path d="M14 90 L30 72 L45 92 L65 75 L65 104 L14 104 Z" fill="#A8784A" opacity="0.5"/></g>
+              <g transform="translate(165,155)"><path d="M0 30 L-3 70 L55 70 L52 30 Z" fill="#C19A6B"/><ellipse cx="26" cy="30" rx="28" ry="3.5" fill="#A8784A"/><path d="M26 30 Q5 -5 0 -32" stroke="#6B8E6B" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M26 30 Q47 -5 52 -28" stroke="#6B8E6B" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M26 30 Q28 -15 32 -52" stroke="#8FA987" stroke-width="3.5" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="-32" rx="13" ry="6" fill="#6B8E6B" transform="rotate(-32 0 -32)"/><ellipse cx="52" cy="-28" rx="13" ry="6" fill="#6B8E6B" transform="rotate(32 52 -28)"/><ellipse cx="32" cy="-52" rx="11" ry="5" fill="#8FA987"/></g>
+              <g transform="translate(285,120)"><rect x="12" y="0" width="70" height="78" fill="#F97316" rx="10"/><rect x="0" y="72" width="94" height="34" fill="#EA580C" rx="6"/><rect x="7" y="104" width="5" height="36" fill="#7C2D12"/><rect x="82" y="104" width="5" height="36" fill="#7C2D12"/></g>
+              <g transform="translate(420,150)"><rect width="80" height="6" fill="#A8784A"/><rect x="4" y="6" width="3" height="74" fill="#8B6539"/><rect x="73" y="6" width="3" height="74" fill="#8B6539"/><g transform="translate(20,-50)"><path d="M5 5 Q20 -8 35 5" stroke="#9CA3AF" stroke-width="2" fill="none"/><rect x="0" y="5" width="40" height="50" fill="#fff" stroke="#D1D5DB"/><rect x="0" y="5" width="40" height="4" fill="#9CA3AF"/><rect x="0" y="51" width="40" height="4" fill="#9CA3AF"/><rect x="4" y="15" width="32" height="30" fill="#FFEDD5"/><text x="20" y="32" text-anchor="middle" font-family="Pretendard" font-size="9" fill="#EA580C" font-weight="900">POUR</text></g></g>
+              <ellipse cx="335" cy="250" rx="55" ry="4" fill="#000" opacity="0.08"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Slide 2: 홈리페어 -->
+        <div class="slide repair-slide" data-slide="1">
+          <div class="slide-left">
+            <span class="slide-kicker"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M14.5 6.5a3.5 3.5 0 0 0-4.6 4.3l-5.1 5.1a1.6 1.6 0 0 0 2.3 2.3l5.1-5.1a3.5 3.5 0 0 0 4.3-4.6l-2.2 2.2-1.8-1.8 2-1.4z"/></svg>HOME REPAIR · 홈리페어</span>
+            <h3>고치는 건,<br/><span class="hl-green">어렵지 않아요</span></h3>
+            <p>균열·곰팡이·줄눈 보수까지 — GROHOME 보수재로 직접 고치는 법.</p>
+            <div class="slide-tags"><span>속건성</span><span>곰팡이 방지</span><span>초보자 OK</span></div>
+            <a class="slide-cta" href="#">홈리페어 자재 보기 <span class="ar">→</span></a>
+          </div>
+          <div class="slide-right">
+            <svg viewBox="0 0 600 300" preserveAspectRatio="xMidYMid slice">
+              <defs><linearGradient id="wall2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E8F1EB"/><stop offset="100%" stop-color="#D6E5DC"/></linearGradient><pattern id="tile2" width="50" height="50" patternUnits="userSpaceOnUse"><rect width="50" height="50" fill="#F0F7F2"/><rect x="0" y="0" width="48" height="48" fill="#E8F1EB" stroke="#fff"/></pattern></defs>
+              <rect width="600" height="230" fill="url(#wall2)"/><rect y="110" width="600" height="120" fill="url(#tile2)" opacity="0.5"/><rect y="230" width="600" height="70" fill="#A8B8AC"/>
+              <g transform="translate(70,50)"><ellipse cx="50" cy="60" rx="48" ry="55" fill="#fff" stroke="#9CA3AF" stroke-width="3"/><ellipse cx="50" cy="60" rx="42" ry="49" fill="#D6E5DC" opacity="0.5"/><ellipse cx="38" cy="40" rx="12" ry="20" fill="#fff" opacity="0.6"/></g>
+              <g transform="translate(200,180)"><rect width="240" height="50" fill="#fff" stroke="#D1D5DB"/><rect x="0" y="48" width="240" height="4" fill="#9CA3AF"/><ellipse cx="120" cy="25" rx="55" ry="13" fill="#E8F1EB" stroke="#9CA3AF"/><ellipse cx="120" cy="25" rx="45" ry="9" fill="#D6E5DC"/><rect x="115" y="0" width="10" height="18" fill="#9CA3AF" rx="2"/><rect x="113" y="0" width="14" height="4" fill="#6B7280" rx="1"/></g>
+              <g transform="translate(450,150)"><rect x="0" y="20" width="80" height="14" fill="#047857" rx="2"/><rect x="60" y="14" width="35" height="6" fill="#fff" stroke="#9CA3AF" rx="3"/><path d="M93 17 L100 17 L97 21 Z" fill="#10B981"/><rect x="0" y="34" width="14" height="20" fill="#047857"/><rect x="-3" y="48" width="22" height="6" fill="#065F46" rx="1"/><text x="40" y="32" text-anchor="middle" font-family="Pretendard" font-size="8" fill="#fff" font-weight="900">GROHOME</text></g>
+              <ellipse cx="320" cy="252" rx="100" ry="4" fill="#000" opacity="0.08"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Slide 3: 시멘트 -->
+        <div class="slide cement-slide" data-slide="2">
+          <div class="slide-left">
+            <span class="slide-kicker"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" style="flex:none"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 12h18M12 5v3M8 8h8M8 8v4M16 8v4M3 16h18M7 16v3M17 16v3"/></svg>CEMENT · 시멘트·벽돌</span>
+            <h3>약한 곳부터,<br/><span class="hl-stone">다시 단단하게</span></h3>
+            <p>POUR의 보수 노하우 — 시멘트·벽돌 보수재로 균열·베란다 직접 회복.</p>
+            <div class="slide-tags"><span>균열보수</span><span>베란다 OK</span><span>셀프 시공</span></div>
+            <a class="slide-cta" href="#">시멘트·벽돌 자재 보기 <span class="ar">→</span></a>
+          </div>
+          <div class="slide-right">
+            <svg viewBox="0 0 600 300" preserveAspectRatio="xMidYMid slice">
+              <defs>
+                <linearGradient id="wall3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F5F3EE"/><stop offset="100%" stop-color="#E8E2D5"/></linearGradient>
+                <linearGradient id="concrete3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#A8A29E"/><stop offset="100%" stop-color="#78716C"/></linearGradient>
+                <linearGradient id="floor3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#9CA3AF"/><stop offset="100%" stop-color="#6B7280"/></linearGradient>
+              </defs>
+              <!-- BG -->
+              <rect width="600" height="200" fill="url(#wall3)"/>
+              <rect y="200" width="600" height="100" fill="url(#floor3)"/>
+              <!-- Floor texture (speckled) -->
+              <g fill="#374151" opacity="0.3">
+                <circle cx="50" cy="220" r="1.5"/><circle cx="120" cy="240" r="1"/><circle cx="220" cy="225" r="1.5"/><circle cx="320" cy="250" r="1.2"/><circle cx="420" cy="230" r="1"/><circle cx="520" cy="255" r="1.4"/>
+                <circle cx="80" cy="260" r="1"/><circle cx="180" cy="275" r="1.2"/><circle cx="280" cy="265" r="1"/><circle cx="380" cy="280" r="1.3"/><circle cx="480" cy="270" r="1"/><circle cx="560" cy="285" r="1.1"/>
+                <circle cx="100" cy="285" r="0.9"/><circle cx="260" cy="290" r="1"/><circle cx="450" cy="295" r="1.1"/>
+              </g>
+              <!-- 콘크리트 벽 패널 (왼쪽 위, 균열 있음) -->
+              <g transform="translate(60,40)">
+                <rect width="180" height="140" fill="url(#concrete3)" stroke="#57534E" stroke-width="2"/>
+                <!-- Speckle texture -->
+                <g fill="#44403C" opacity="0.4">
+                  <circle cx="20" cy="20" r="1"/><circle cx="60" cy="15" r="1.2"/><circle cx="100" cy="25" r="0.8"/><circle cx="140" cy="20" r="1"/><circle cx="160" cy="35" r="1.1"/>
+                  <circle cx="30" cy="50" r="0.9"/><circle cx="80" cy="60" r="1.1"/><circle cx="120" cy="55" r="0.8"/><circle cx="155" cy="70" r="1"/>
+                  <circle cx="25" cy="90" r="1.2"/><circle cx="70" cy="100" r="0.9"/><circle cx="115" cy="95" r="1"/><circle cx="145" cy="110" r="1.1"/>
+                  <circle cx="40" cy="125" r="0.8"/><circle cx="95" cy="130" r="1"/><circle cx="140" cy="135" r="0.9"/>
+                </g>
+                <!-- 균열 (지그재그, 어두운 색) -->
+                <path d="M30 20 L40 45 L25 65 L50 90 L35 115 L60 138" stroke="#1F2937" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+                <!-- 균열 옆 그림자 -->
+                <path d="M32 22 L42 47 L27 67 L52 92 L37 117 L62 140" stroke="#0F172A" stroke-width="1" fill="none" stroke-linejoin="round" opacity="0.4"/>
+                <!-- 채워진 부분 (위쪽 절반은 라이트 그레이로 보수됨) -->
+                <path d="M30 20 L40 45 L25 65" stroke="#F3F4F6" stroke-width="3.5" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+              </g>
+              <!-- 시멘트 봉투 (오른쪽, GROHOME 라벨) -->
+              <g transform="translate(360,70)">
+                <!-- 봉투 그림자 -->
+                <rect x="3" y="3" width="160" height="180" fill="#000" opacity="0.15" rx="3"/>
+                <!-- 봉투 본체 -->
+                <rect width="160" height="180" fill="#E7E5E4" stroke="#A8A29E" stroke-width="2" rx="3"/>
+                <!-- 상단 검은 띠 -->
+                <rect width="160" height="40" fill="#1F2937"/>
+                <text x="80" y="26" text-anchor="middle" fill="#fff" font-family="Pretendard" font-size="18" font-weight="900" letter-spacing="1">GROHOME</text>
+                <!-- 중앙 카피 박스 -->
+                <rect x="20" y="55" width="120" height="50" fill="#9CA3AF"/>
+                <text x="80" y="80" text-anchor="middle" fill="#fff" font-size="14" font-weight="900">균열보수</text>
+                <text x="80" y="97" text-anchor="middle" fill="#E5E7EB" font-size="10" font-weight="700">CRACK REPAIR</text>
+                <!-- 제품 정보 -->
+                <text x="80" y="130" text-anchor="middle" fill="#57534E" font-size="11" font-weight="700">시멘트</text>
+                <line x1="40" y1="140" x2="120" y2="140" stroke="#A8A29E" stroke-width="1"/>
+                <text x="80" y="158" text-anchor="middle" fill="#78716C" font-size="9">실내·베란다용</text>
+                <!-- 용량 -->
+                <rect x="55" y="163" width="50" height="12" fill="#F97316"/>
+                <text x="80" y="172" text-anchor="middle" fill="#fff" font-size="8" font-weight="900">1kg / 4kg</text>
+              </g>
+              <!-- 흙손 (앞쪽 바닥에) -->
+              <g transform="translate(240,225)">
+                <!-- 손잡이 -->
+                <rect x="0" y="0" width="40" height="14" fill="#7C2D12" rx="2"/>
+                <rect x="0" y="0" width="40" height="3" fill="#A0522D"/>
+                <!-- 연결부 -->
+                <rect x="40" y="3" width="14" height="8" fill="#374151"/>
+                <!-- 흙손 평면 (사다리꼴) -->
+                <path d="M54 1 L120 4 L120 10 L54 13 Z" fill="#D1D5DB" stroke="#6B7280" stroke-width="1.2"/>
+                <!-- 흙손 위에 시멘트 잔여물 -->
+                <ellipse cx="85" cy="6" rx="20" ry="2.5" fill="#9CA3AF" opacity="0.7"/>
+              </g>
+              <!-- 바닥 그림자 -->
+              <ellipse cx="310" cy="255" rx="80" ry="4" fill="#000" opacity="0.1"/>
+            </svg>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="carousel-nav">
+        <button class="carousel-btn" id="cs-prev" aria-label="이전">◂</button>
+        <div class="carousel-dots"><button class="carousel-dot active" data-go="0"></button><button class="carousel-dot" data-go="1"></button><button class="carousel-dot" data-go="2"></button></div>
+        <button class="carousel-btn" id="cs-next" aria-label="다음">▸</button>
+      </div>
+    </div>
+
+    <!-- ===== 재질 스와치 ===== -->
+    <div class="psh-swatch-head">
+      <div class="swatch-kicker">MATERIAL FILTER</div>
+      <div class="swatch-title"><b>재질</b>로 골라보세요</div>
+    </div>
+    <div class="psh-swatches">
+
+      <button class="swatch-btn on" data-cat="all">
+        <div class="swatch hit"></div>
+        <div class="swatch-label">인기</div>
+        <div class="swatch-sub">BEST SELLER</div>
+      </button>
+
+      <button class="swatch-btn" data-cat="wallpaper">
+        <div class="swatch svg-inside" style="background:#EDE2D0;">
+          <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+            <rect width="80" height="80" fill="#EDE2D0"/>
+            <g transform="rotate(-3 40 40)">
+              <rect x="14" y="14" width="48" height="54" fill="#000" opacity="0.12"/>
+              <rect x="12" y="12" width="48" height="54" fill="#F8EFDF" stroke="#A8784A" stroke-width="1.2"/>
+              <rect x="16" y="12" width="4" height="54" fill="#C19A6B" opacity="0.7"/>
+              <rect x="28" y="12" width="4" height="54" fill="#C19A6B" opacity="0.7"/>
+              <rect x="40" y="12" width="4" height="54" fill="#C19A6B" opacity="0.7"/>
+              <rect x="52" y="12" width="4" height="54" fill="#C19A6B" opacity="0.7"/>
+              <g fill="#7C5A3A" opacity="0.85">
+                <circle cx="18" cy="22" r="1.3"/><circle cx="30" cy="32" r="1.3"/><circle cx="42" cy="22" r="1.3"/><circle cx="54" cy="32" r="1.3"/>
+                <circle cx="18" cy="44" r="1.3"/><circle cx="30" cy="54" r="1.3"/><circle cx="42" cy="44" r="1.3"/><circle cx="54" cy="54" r="1.3"/>
+              </g>
+              <path d="M60 56 Q63 60 60 66 L50 66 Q56 64 60 56 Z" fill="#F0E4D2" stroke="#A8784A" stroke-width="0.8"/>
+              <path d="M60 56 Q57 58 50 66" fill="none" stroke="#A8784A" stroke-width="0.5" opacity="0.5"/>
+            </g>
+          </svg>
+        </div>
+        <div class="swatch-label">벽지</div>
+        <div class="swatch-sub">도배·시트·풀</div>
+      </button>
+
+      <button class="swatch-btn" data-cat="wood">
+        <div class="swatch wood tex-only"></div>
+        <div class="swatch-label">목재</div>
+        <div class="swatch-sub">우드·마루</div>
+      </button>
+
+      <button class="swatch-btn" data-cat="metal">
+        <div class="swatch svg-inside">
+          <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="metalDP" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#F3F4F6"/><stop offset="40%" stop-color="#D1D5DB"/><stop offset="100%" stop-color="#6B7280"/></linearGradient></defs>
+            <rect width="80" height="80" fill="url(#metalDP)"/>
+            <g>
+              <g transform="translate(15,12)"><path d="M0 0 L5 4 L0 8 L-5 4 Z" fill="#fff" opacity="0.55"/><path d="M0 8 L5 4 L0 0" fill="none" stroke="#000" stroke-width="0.3" opacity="0.4"/></g>
+              <g transform="translate(35,12)"><path d="M0 0 L5 4 L0 8 L-5 4 Z" fill="#fff" opacity="0.55"/><path d="M0 8 L5 4 L0 0" fill="none" stroke="#000" stroke-width="0.3" opacity="0.4"/></g>
+              <g transform="translate(55,12)"><path d="M0 0 L5 4 L0 8 L-5 4 Z" fill="#fff" opacity="0.55"/><path d="M0 8 L5 4 L0 0" fill="none" stroke="#000" stroke-width="0.3" opacity="0.4"/></g>
+              <g transform="translate(25,28)"><path d="M0 0 L5 4 L0 8 L-5 4 Z" fill="#fff" opacity="0.55"/><path d="M0 8 L5 4 L0 0" fill="none" stroke="#000" stroke-width="0.3" opacity="0.4"/></g>
+              <g transform="translate(45,28)"><path d="M0 0 L5 4 L0 8 L-5 4 Z" fill="#fff" opacity="0.55"/><path d="M0 8 L5 4 L0 0" fill="none" stroke="#000" stroke-width="0.3" opacity="0.4"/></g>
+              <g transform="translate(65,28)"><path d="M0 0 L5 4 L0 8 L-5 4 Z" fill="#fff" opacity="0.5"/></g>
+              <g transform="translate(15,44)"><path d="M0 0 L5 4 L0 8 L-5 4 Z" fill="#fff" opacity="0.55"/><path d="M0 8 L5 4 L0 0" fill="none" stroke="#000" stroke-width="0.3" opacity="0.4"/></g>
+              <g transform="translate(35,44)"><path d="M0 0 L5 4 L0 8 L-5 4 Z" fill="#fff" opacity="0.55"/><path d="M0 8 L5 4 L0 0" fill="none" stroke="#000" stroke-width="0.3" opacity="0.4"/></g>
+              <g transform="translate(55,44)"><path d="M0 0 L5 4 L0 8 L-5 4 Z" fill="#fff" opacity="0.55"/><path d="M0 8 L5 4 L0 0" fill="none" stroke="#000" stroke-width="0.3" opacity="0.4"/></g>
+              <g transform="translate(25,60)"><path d="M0 0 L5 4 L0 8 L-5 4 Z" fill="#fff" opacity="0.55"/><path d="M0 8 L5 4 L0 0" fill="none" stroke="#000" stroke-width="0.3" opacity="0.4"/></g>
+              <g transform="translate(45,60)"><path d="M0 0 L5 4 L0 8 L-5 4 Z" fill="#fff" opacity="0.55"/><path d="M0 8 L5 4 L0 0" fill="none" stroke="#000" stroke-width="0.3" opacity="0.4"/></g>
+              <g transform="translate(65,60)"><path d="M0 0 L5 4 L0 8 L-5 4 Z" fill="#fff" opacity="0.5"/></g>
+            </g>
+            <ellipse cx="22" cy="18" rx="18" ry="22" fill="#fff" opacity="0.18"/>
+          </svg>
+        </div>
+        <div class="swatch-label">철재</div>
+        <div class="swatch-sub">메탈·방청</div>
+      </button>
+
+      <button class="swatch-btn" data-cat="glass">
+        <div class="swatch glass tex-only"></div>
+        <div class="swatch-label">유리</div>
+        <div class="swatch-sub">글래스·코팅</div>
+      </button>
+
+      <button class="swatch-btn" data-cat="tile">
+        <div class="swatch tile tex-only"></div>
+        <div class="swatch-label">타일</div>
+        <div class="swatch-sub">줄눈·욕실</div>
+      </button>
+
+      <button class="swatch-btn" data-cat="cement">
+        <div class="swatch svg-inside" style="background:#78716C;">
+          <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+            <!-- 모르타르(시멘트) 베이스 -->
+            <rect width="80" height="80" fill="#78716C"/>
+            <!-- 벽돌 (지그재그 staggered, 어스톤) -->
+            <!-- Row 1 -->
+            <rect x="3" y="5" width="22" height="11" fill="#9A3412" rx="0.5"/>
+            <rect x="27" y="5" width="22" height="11" fill="#B45309" rx="0.5"/>
+            <rect x="51" y="5" width="22" height="11" fill="#9A3412" rx="0.5"/>
+            <!-- Row 2 (offset) -->
+            <rect x="-9" y="18" width="22" height="11" fill="#B45309" rx="0.5"/>
+            <rect x="15" y="18" width="22" height="11" fill="#9A3412" rx="0.5"/>
+            <rect x="39" y="18" width="22" height="11" fill="#C2410C" rx="0.5"/>
+            <rect x="63" y="18" width="22" height="11" fill="#9A3412" rx="0.5"/>
+            <!-- Row 3 -->
+            <rect x="3" y="31" width="22" height="11" fill="#C2410C" rx="0.5"/>
+            <rect x="27" y="31" width="22" height="11" fill="#9A3412" rx="0.5"/>
+            <rect x="51" y="31" width="22" height="11" fill="#B45309" rx="0.5"/>
+            <!-- Row 4 (offset) -->
+            <rect x="-9" y="44" width="22" height="11" fill="#9A3412" rx="0.5"/>
+            <rect x="15" y="44" width="22" height="11" fill="#B45309" rx="0.5"/>
+            <rect x="39" y="44" width="22" height="11" fill="#9A3412" rx="0.5"/>
+            <rect x="63" y="44" width="22" height="11" fill="#C2410C" rx="0.5"/>
+            <!-- Row 5 -->
+            <rect x="3" y="57" width="22" height="11" fill="#B45309" rx="0.5"/>
+            <rect x="27" y="57" width="22" height="11" fill="#C2410C" rx="0.5"/>
+            <rect x="51" y="57" width="22" height="11" fill="#9A3412" rx="0.5"/>
+            <!-- 벽돌 텍스처 (작은 다크 스펙) -->
+            <g fill="#000" opacity="0.18">
+              <circle cx="14" cy="10" r="0.6"/><circle cx="38" cy="22" r="0.5"/><circle cx="26" cy="35" r="0.7"/><circle cx="50" cy="48" r="0.5"/>
+              <circle cx="62" cy="62" r="0.6"/><circle cx="8" cy="48" r="0.5"/><circle cx="44" cy="60" r="0.6"/><circle cx="60" cy="36" r="0.5"/>
+            </g>
+            <!-- 하이라이트 -->
+            <ellipse cx="22" cy="18" rx="18" ry="22" fill="#fff" opacity="0.15"/>
+          </svg>
+        </div>
+        <div class="swatch-label">시멘트/벽돌</div>
+        <div class="swatch-sub">벽돌·균열·보수</div>
+      </button>
+
+    </div>
+
+    <!-- Product grid -->
+    <div class="psh-grid">
+      <a class="psh-card" href="#" data-cat="wallpaper"><div class="img wallpaper"><span class="brand gro">GROHOME</span><span class="status best">★ BEST</span><span class="cat">벽지</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3h4v2.5l1.2 2.2V19a2 2 0 0 1-2 2h-2.4a2 2 0 0 1-2-2V7.7L10 5.5V3z"/><path d="M10 6.5h4"/></svg></div></div><div class="body"><div class="meta">친환경 · 강력 접착</div><div class="name">GROHOME 친환경 도배풀</div><div class="price-row"><div class="price">8,200<span class="won">원</span></div><span class="unit">/ 1kg</span></div></div></a>
+      <a class="psh-card" href="#" data-cat="wallpaper"><div class="img wallpaper"><span class="brand gro">GROHOME</span><span class="cat">벽지</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v13a3 3 0 0 1-3 3H7z"/><path d="M17 4a3 3 0 0 1 3 3 3 3 0 0 1-3 3"/><path d="M10 9h4M10 13h4"/></svg></div></div><div class="body"><div class="meta">우드·마블·패턴</div><div class="name">GROHOME 인테리어 시트지</div><div class="price-row"><div class="price">12,000<span class="won">원</span></div><span class="unit">/ 1m</span></div></div></a>
+      <a class="psh-card" href="#" data-cat="wood"><div class="img wood"><span class="brand pour">POUR</span><span class="status new">NEW</span><span class="cat">목재</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 7c2.2 1.4 2.2 8.6 0 10M12 7c2.2 1.4 2.2 8.6 0 10"/></svg></div></div><div class="body"><div class="meta">무광·발수 · 5색</div><div class="name">POUR 우드 스테인 페인트</div><div class="price-row"><div class="price">18,500<span class="won">원</span></div><span class="unit">/ 0.5L</span></div></div></a>
+      <a class="psh-card" href="#" data-cat="metal"><div class="img metal"><span class="brand pour">POUR</span><span class="status best">★ BEST</span><span class="cat">철재</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg></div></div><div class="body"><div class="meta">직접 도포 · 1액형</div><div class="name">POUR 녹제거·방청 페인트</div><div class="price-row"><div class="price">22,000<span class="won">원</span></div><span class="unit">/ 1L</span></div></div></a>
+      <a class="psh-card" href="#" data-cat="glass"><div class="img glass"><span class="brand pour">POUR</span><span class="cat">유리</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="1"/><path d="M12 4v16M4 12h16"/></svg></div></div><div class="body"><div class="meta">김서림·물방울 차단</div><div class="name">POUR 글래스 발수 코팅재</div><div class="price-row"><div class="price">15,800<span class="won">원</span></div><span class="unit">/ 500ml</span></div></div></a>
+      <a class="psh-card" href="#" data-cat="tile"><div class="img tile"><span class="brand gro">GROHOME</span><span class="status best">★ BEST</span><span class="cat">타일</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 12h18M12 5v3M8 8h8M8 8v4M16 8v4M3 16h18M7 16v3M17 16v3"/></svg></div></div><div class="body"><div class="meta">백색·회색 / 욕실 OK</div><div class="name">GROHOME 줄눈 보수 키트</div><div class="price-row"><div class="price">9,500<span class="won">원</span></div><span class="unit">/ 세트</span></div></div></a>
+      <a class="psh-card" href="#" data-cat="cement"><div class="img cement"><span class="brand gro">GROHOME</span><span class="status best">★ BEST</span><span class="cat">시멘트</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8l1 4c1 4-1 12-5 12s-6-8-5-12l1-4z"/><path d="M9 8h6"/></svg></div></div><div class="body"><div class="meta">1액형 · 셀프 시공</div><div class="name">GROHOME 균열보수 시멘트</div><div class="price-row"><div class="price">9,800<span class="won">원</span></div><span class="unit">/ 1kg</span></div></div></a>
+      <a class="psh-card" href="#" data-cat="cement"><div class="img cement"><span class="brand gro">GROHOME</span><span class="status new">NEW</span><span class="cat">시멘트</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.3 11.6a1 1 0 0 1-1 .9H7.3a1 1 0 0 1-1-.9L5 8z"/><path d="M5 8c0-2.1 3.1-3.3 7-3.3s7 1.2 7 3.3"/></svg></div></div><div class="body"><div class="meta">방수·내수성 / 욕실·베란다</div><div class="name">GROHOME 베란다 바닥 보수재</div><div class="price-row"><div class="price">18,500<span class="won">원</span></div><span class="unit">/ 4kg</span></div></div></a>
+    </div>
+
+    <div class="psh-cta-wrap">
+      <a class="psh-cta" href="#"><span>홈리페어 × 홈데코 전체 보기</span><span class="ar">→</span></a>
+      <div class="psh-cta-note">POUR + GROHOME 라벨 120+ SKU 모두 확인</div>
+    </div>
+  </div>
+</section>
+<script>
+(function(){
+  var sw = document.querySelectorAll('.swatch-btn');
+  var cards = document.querySelectorAll('.psh-card');
+  sw.forEach(function(b){
+    b.addEventListener('click', function(){
+      sw.forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      var cat = b.dataset.cat;
+      cards.forEach(function(c){
+        if(cat === 'all' || c.dataset.cat === cat){ c.classList.remove('hide'); }
+        else { c.classList.add('hide'); }
+      });
+    });
+  });
+  var slides = document.querySelectorAll('.slide');
+  var dots = document.querySelectorAll('.carousel-dot');
+  var counter = document.querySelector('.carousel-counter .cur');
+  var cur = 0, timer;
+  function go(i){
+    slides[cur].classList.remove('active');
+    dots[cur].classList.remove('active');
+    cur = (i + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    dots[cur].classList.add('active');
+    if(counter) counter.textContent = String(cur+1).padStart(2,'0');
+    resetTimer();
+  }
+  function resetTimer(){ clearInterval(timer); timer = setInterval(function(){ go(cur+1); }, 5000); }
+  dots.forEach(function(d,i){ d.addEventListener('click', function(){ go(i); }); });
+  document.getElementById('cs-prev').addEventListener('click', function(){ go(cur-1); });
+  document.getElementById('cs-next').addEventListener('click', function(){ go(cur+1); });
+  var car = document.getElementById('carousel');
+  car.addEventListener('mouseenter', function(){ clearInterval(timer); });
+  car.addEventListener('mouseleave', resetTimer);
+  resetTimer();
+})();
+</script>
+</section>
+
+</body>
+</html>

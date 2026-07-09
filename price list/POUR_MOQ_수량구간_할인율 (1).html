@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POUR MOQ 수량구간 납품단가 · 정가대비 할인율</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+<style>
+:root{
+ --or:#F25C05; --or2:#F49A3A; --or-pale:rgba(242,92,5,.08);
+ --navy:#0F1F5C; --ink:#111827; --ink2:#374151; --muted:#6B7280;
+ --light:#F9F7F4; --card:#fff; --border:#E5E7EB; --line:#EEF0F3;
+ --green:#03C75A; --red:#DC2626;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Pretendard Variable',Pretendard,-apple-system,system-ui,sans-serif;
+ background:var(--light);color:var(--ink);line-height:1.5;
+ font-feature-settings:'tnum' on,'lnum' on;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1280px;margin:0 auto;padding:0 20px}
+
+/* header */
+header{background:var(--navy);color:#fff;padding:34px 0 30px}
+header .eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--or2);margin-bottom:10px}
+header h1{font-size:28px;font-weight:800;letter-spacing:-.02em}
+header h1 .o{color:var(--or)}
+header p{font-size:14px;color:#c5cbe0;margin-top:10px;max-width:760px}
+
+/* floor callout */
+.floor{display:flex;gap:14px;align-items:center;background:#fff;border:1px solid var(--border);
+ border-left:4px solid var(--or);border-radius:14px;padding:16px 20px;margin:22px 0}
+.floor .tag{flex-shrink:0;font-size:11px;font-weight:800;color:#fff;background:var(--or);
+ padding:6px 11px;border-radius:8px;letter-spacing:.02em}
+.floor .txt{font-size:14px;color:var(--ink2);font-weight:500}
+.floor .txt b{color:var(--navy);font-weight:800}
+.floor .txt .mono{font-variant-numeric:tabular-nums;font-weight:800;color:var(--or)}
+
+/* settings */
+.panel{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px 22px;margin-bottom:18px}
+.panel h3{font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+.panel .sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+.brks{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.brk{background:var(--light);border:1px solid var(--border);border-radius:12px;padding:12px}
+.brk .lb{font-size:12px;font-weight:800;color:var(--navy);margin-bottom:8px;text-align:center}
+.brk .lb input{width:100%;border:none;background:transparent;text-align:center;font:inherit;
+ font-size:12px;font-weight:800;color:var(--navy)}
+.brk .row{display:flex;align-items:center;gap:4px;justify-content:center}
+.brk .row label{font-size:11px;color:var(--muted)}
+.brk .row input{width:52px;border:1px solid var(--border);border-radius:7px;padding:5px;
+ text-align:right;font:inherit;font-size:12px;font-weight:700;color:var(--or)}
+.brk .row span{font-size:11px;color:var(--muted)}
+.hint{font-size:11px;color:var(--muted);margin-top:12px}
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.search{flex:1;min-width:200px;border:1px solid var(--border);border-radius:10px;
+ padding:10px 14px;font:inherit;font-size:14px;background:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--border);background:#fff;color:var(--ink2);border-radius:999px;
+ padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer;transition:.15s}
+.chip:hover{border-color:var(--or)}
+.chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+/* table */
+.tablecard{background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:8px}
+.cardctrls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);background:#fff}
+.tscroll{max-height:66vh;overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:1120px}
+thead th{position:sticky;top:0;background:var(--navy);color:#fff;font-size:12px;font-weight:700;
+ padding:12px 10px;text-align:center;white-space:nowrap;border-bottom:2px solid #0a1642;z-index:4}
+thead th.l{text-align:left}
+th.l,td.l{position:sticky;left:0;min-width:210px;max-width:210px;white-space:normal}
+thead th.l{z-index:6}
+tbody td.l{z-index:2;background:#fff;border-right:1px solid var(--border)}
+tbody tr:hover td.l{background:#fafbfc}
+.review td.l{background:#fff8f2}
+thead th.anchor{background:#0a1642}
+thead th.brkh{background:#16266b}
+thead th.brkh.last{background:var(--or)}
+tbody td{padding:9px 10px;font-size:12.5px;border-bottom:1px solid var(--line);
+ text-align:center;vertical-align:middle;white-space:nowrap}
+tbody td.l{text-align:left}
+tbody tr:hover{background:#fafbfc}
+.no{color:var(--muted);font-size:11px}
+.nm{font-weight:600;color:var(--ink)}
+.spec{color:var(--muted);font-size:11px}
+.mono{font-variant-numeric:tabular-nums}
+.chong{font-weight:800;color:var(--or);font-variant-numeric:tabular-nums}
+.jasa{font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums}
+.cell .price{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;font-size:13px}
+.cell .disc{display:inline-block;margin-top:3px;font-size:10.5px;font-weight:800;
+ padding:2px 7px;border-radius:6px;font-variant-numeric:tabular-nums}
+td.last{background:var(--or-pale)}
+td.last .price{color:var(--or)}
+.d0{color:var(--muted);background:#f3f4f6}
+.d1{color:#0a7d3f;background:#e7f7ee}
+.d2{color:#b45309;background:#fff2e0}
+.d3{color:#c2410c;background:#ffe8db}
+.d4{color:#fff;background:var(--or)}
+.review td{background:#fff8f2}
+.review .rv{color:var(--red);font-weight:700;font-size:11px}
+.badge{display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px}
+.badge.ng{background:#fdeaea;color:var(--red)}
+.catlabel{font-size:10px;color:var(--muted);font-weight:700}
+
+footer{padding:26px 0 46px;color:var(--muted);font-size:12px;line-height:1.7}
+footer b{color:var(--ink2)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin:14px 0 4px;font-size:11.5px;color:var(--muted);align-items:center}
+.legend .k{display:inline-flex;align-items:center;gap:5px}
+.legend .sw{width:22px;height:14px;border-radius:4px;display:inline-block}
+.count{font-size:12px;color:var(--muted);margin-left:auto;font-weight:600}
+@media(max-width:640px){header h1{font-size:22px}.brks{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header>
+ <div class="wrap">
+  <div class="eyebrow">POUR스토어 · 제조사 납품가 · MOQ 수량구간</div>
+  <h1>MOQ 수량구간 납품단가 <span class="o">· 정가대비 할인율</span></h1>
+  <p>주문 수량 구간이 커질수록 납품 단가가 낮아지고 정가대비 할인율이 커집니다. 소비자 판매가는 어느 채널에서 사든 자사몰 정가로 고정됩니다.</p>
+ </div>
+</header>
+
+<div class="wrap">
+ <div class="floor">
+  <span class="tag">하한 · 단독 최저</span>
+  <span class="txt"><b>총판유통 / POUR공법 협력사</b> 단가가 유일한 최저입니다. MOQ 최저구간 단가는 <b>이 하한에서 멈추며</b>(예: 코트재Ⅰ <span class="mono">144,400원</span>), 그 아래로 절대 내려가지 않습니다.</span>
+ </div>
+
+ <div class="panel">
+  <h3>수량구간 · 할인계수 설정</h3>
+  <div class="sub">구간 명칭과 할인계수(정가→하한(총판유통·POUR공법 협력사) 격차 중 인하 비율)를 조정하면 전 품목 단가·할인율이 즉시 재계산됩니다. 마지막 구간 100% = 총판유통·POUR공법 협력사(하한).</div>
+  <div class="brks" id="brks"></div>
+  <div class="hint">※ 할인계수 0% = 자사몰 정가, 100% = 총판유통. 값은 자사몰 정가와 총판유통 사이에서만 움직여 하한을 절대 넘지 않습니다.</div>
+ </div>
+
+ <div class="legend">
+  <span class="k"><span class="sw d0"></span>0%</span>
+  <span class="k"><span class="sw d1"></span>~8%</span>
+  <span class="k"><span class="sw d2"></span>~13%</span>
+  <span class="k"><span class="sw d3"></span>~18%</span>
+  <span class="k"><span class="sw d4"></span>최저구간(=총판유통·POUR공법 협력사)</span>
+ </div>
+
+ <div class="tablecard">
+  <div class="cardctrls">
+   <input class="search" id="q" placeholder="제품명 검색 (예: 코트재, 시트, 파우더)">
+   <div class="chips" id="cats"></div>
+   <span class="count" id="count"></span>
+  </div>
+  <div class="tscroll">
+   <table>
+    <thead><tr id="head"></tr></thead>
+    <tbody id="body"></tbody>
+   </table>
+  </div>
+ </div>
+
+ <footer>
+  <b>검토 표기</b> — 총판가가 없는 소량 SKU·세트용(코트재 1·5·10L, 세트용 보강시트), 총판=0(하이롤퍼티·에어쉘시트), 자사몰 정가 &lt; 총판유통 역전(벤트 4종)은 하한 기준을 세울 수 없어 자동 제외했습니다. 총판 과소(트랩 시트포함, 총판 3,200)는 값이 나오되 원가표 확인이 필요합니다.<br>
+  단가는 10원 단위 반올림. 소비자 판매가(자사몰 정가) 고정 · 표시 단가는 모두 <b>납품가</b>입니다.
+ </footer>
+</div>
+
+<script>
+const DATA = [{"no": 1, "name": "POUR 코트재 1L (회색)", "pack": "1", "spec": "kg/통", "cat": "수용성", "chong": null, "jasa": 26300}, {"no": 2, "name": "POUR 코트재 5L (회색)", "pack": "5", "spec": "kg/통", "cat": "수용성", "chong": null, "jasa": 61500}, {"no": 3, "name": "POUR 코트재 10L (회색)", "pack": "10", "spec": "kg/통", "cat": "수용성", "chong": null, "jasa": 104500}, {"no": 4, "name": "POUR 코트재Ⅰ(회색)", "pack": "20", "spec": "kg/통", "cat": "수용성", "chong": 144400, "jasa": 177500}, {"no": 5, "name": "POUR 코트재Ⅰ(녹색)", "pack": "20", "spec": "kg/통", "cat": "수용성", "chong": 144400, "jasa": 177500}, {"no": 6, "name": "POUR 코트재Ⅰ(적갈색)", "pack": "20", "spec": "kg/통", "cat": "수용성", "chong": 144400, "jasa": 177500}, {"no": 7, "name": "POUR 코트재Ⅰ(백색)", "pack": "20", "spec": "kg/통", "cat": "수용성", "chong": 144400, "jasa": 177500}, {"no": 8, "name": "POUR 코트재Ⅱ회색", "pack": "20", "spec": "kg/통", "cat": "수용성", "chong": 144400, "jasa": 177500}, {"no": 9, "name": "POUR 코트재Ⅱ녹색", "pack": "20", "spec": "kg/통", "cat": "수용성", "chong": 144400, "jasa": 177500}, {"no": 10, "name": "POUR 코트재Ⅱ적갈색", "pack": "20", "spec": "kg/통", "cat": "수용성", "chong": 144400, "jasa": 177500}, {"no": 11, "name": "POUR 상도코트재(회색)", "pack": "20", "spec": "kg/통", "cat": "수용성", "chong": 170700, "jasa": 187500}, {"no": 12, "name": "POUR 상도코트재(녹색)", "pack": "20", "spec": "kg/통", "cat": "수용성", "chong": 170700, "jasa": 187500}, {"no": 13, "name": "POUR 상도코트재(적갈색)", "pack": "20", "spec": "kg/통", "cat": "수용성", "chong": 170700, "jasa": 187500}, {"no": 14, "name": "POUR써밋페인트 플러스", "pack": "20", "spec": "kg/통", "cat": "수용성", "chong": 131300, "jasa": 157500}, {"no": 15, "name": "POUR 아크릴배면차수제 (A+B제)", "pack": "20", "spec": "kg/통", "cat": "수용성", "chong": 157500, "jasa": 190000}, {"no": 16, "name": "POUR콘크리트 강화제", "pack": "14", "spec": "kg/통", "cat": "수용성", "chong": 117500, "jasa": 144400}, {"no": 17, "name": "POUR강화재1(슬라브용)", "pack": "18", "spec": "L/통", "cat": "수용성", "chong": 200900, "jasa": 225000}, {"no": 18, "name": "POUR강화제2(금속기와용)", "pack": "18", "spec": "L/통", "cat": "수용성", "chong": 200900, "jasa": 225000}, {"no": 19, "name": "POUR하이롤퍼티", "pack": "20", "spec": "kg/통", "cat": "수용성", "chong": null, "jasa": 170000}, {"no": 20, "name": "POUR하이퍼티", "pack": "20", "spec": "kg/통", "cat": "수용성", "chong": 137500, "jasa": 170000}, {"no": 21, "name": "POUR써밋바인더", "pack": "18", "spec": "kg/통", "cat": "수용성", "chong": 131300, "jasa": 157500}, {"no": 22, "name": "POUR써밋에폭시(하도)", "pack": "13.5", "spec": "kg/통", "cat": "유성", "chong": 104000, "jasa": 124800}, {"no": 23, "name": "POUR써밋에폭시(중도)", "pack": "24", "spec": "kg/통", "cat": "유성", "chong": 137500, "jasa": 165000}, {"no": 24, "name": "POUR써밋에폭시(상도)", "pack": "16", "spec": "kg/통", "cat": "유성", "chong": 130000, "jasa": 156000}, {"no": 25, "name": "POUR써밋우레탄 하도", "pack": "17", "spec": "kg/통", "cat": "유성", "chong": 86900, "jasa": 91300}, {"no": 26, "name": "POUR써밋우레탄 중도", "pack": "20", "spec": "kg/통", "cat": "유성", "chong": 86300, "jasa": 90700}, {"no": 27, "name": "POUR써밋우레탄 상도", "pack": "15.24", "spec": "kg/통", "cat": "유성", "chong": 105000, "jasa": 110300}, {"no": 28, "name": "POUR PMQ강화코팅제", "pack": "15", "spec": "kg/통", "cat": "유성", "chong": 375000, "jasa": 431300}, {"no": 29, "name": "POUR폴리우레아", "pack": "410", "spec": "kg/통", "cat": "유성", "chong": 3375000, "jasa": 4050000}, {"no": 30, "name": "POUR써밋엠보라이닝", "pack": "24", "spec": "kg/통", "cat": "유성", "chong": 143800, "jasa": 171300}, {"no": 31, "name": "POUR탄성테이프2T", "pack": "5cm*10m", "spec": "ea/개", "cat": "아스팔트", "chong": 71300, "jasa": 85500}, {"no": 32, "name": "POUR씰패치 2T", "pack": "1m*10m", "spec": "ea/개", "cat": "아스팔트", "chong": 593800, "jasa": 712500}, {"no": 33, "name": "POUR유화프라이머", "pack": "420ml", "spec": "ea/개", "cat": "아스팔트", "chong": 14300, "jasa": 17200}, {"no": 34, "name": "POUR씰코트", "pack": "25", "spec": "kg/통", "cat": "아스팔트", "chong": 166300, "jasa": 199500}, {"no": 35, "name": "POUR하드씰코트", "pack": "20", "spec": "kg/통", "cat": "아스팔트", "chong": 166300, "jasa": 199500}, {"no": 36, "name": "POUR쉴드 유화아스팔트(RSC-3)", "pack": "200", "spec": "L/통", "cat": "아스팔트", "chong": 312500, "jasa": 375000}, {"no": 37, "name": "POUR쉴드 유화아스팔트(RSC-4)", "pack": "200", "spec": "L/통", "cat": "아스팔트", "chong": 312500, "jasa": 375000}, {"no": 38, "name": "POUR MMA", "pack": "20", "spec": "kg/통", "cat": "아스팔트", "chong": 225000, "jasa": 258800}, {"no": 39, "name": "POUR 슈퍼복합압축시트 0.3T", "pack": "10cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 40400, "jasa": 48500}, {"no": 40, "name": "POUR 슈퍼복합압축시트 0.3T", "pack": "20cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 57800, "jasa": 69300}, {"no": 41, "name": "POUR 슈퍼복합압축시트 0.3T", "pack": "30cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 70300, "jasa": 84300}, {"no": 42, "name": "POUR 슈퍼복합압축시트 0.3T", "pack": "40cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 84500, "jasa": 101400}, {"no": 43, "name": "POUR 슈퍼복합압축시트 0.3T", "pack": "50cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 102700, "jasa": 123200}, {"no": 44, "name": "POUR 슈퍼복합압축시트 0.3T", "pack": "60cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 124400, "jasa": 149300}, {"no": 45, "name": "POUR 슈퍼복합압축시트 0.3T", "pack": "70cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 149400, "jasa": 179300}, {"no": 46, "name": "POUR 슈퍼복합압축시트 0.3T", "pack": "80cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 176500, "jasa": 211900}, {"no": 47, "name": "POUR 슈퍼복합압축시트 0.3T", "pack": "1m*100m", "spec": "롤/개", "cat": "보강시트", "chong": 196900, "jasa": 236300}, {"no": 48, "name": "POUR 듀얼복합시트 1.5T", "pack": "20cm*25m", "spec": "롤/개", "cat": "보강시트", "chong": 64400, "jasa": 73200}, {"no": 49, "name": "POUR 듀얼복합시트 1.5T", "pack": "30cm*25m", "spec": "롤/개", "cat": "보강시트", "chong": 91900, "jasa": 104400}, {"no": 50, "name": "POUR 듀얼복합시트 1.5T", "pack": "40cm*25m", "spec": "롤/개", "cat": "보강시트", "chong": 116400, "jasa": 132500}, {"no": 51, "name": "POUR 듀얼복합시트 1.5T", "pack": "50cm*25m", "spec": "롤/개", "cat": "보강시트", "chong": 153200, "jasa": 174400}, {"no": 52, "name": "POUR 듀얼복합시트 1.5T", "pack": "60cm*25m", "spec": "롤/개", "cat": "보강시트", "chong": 177700, "jasa": 202500}, {"no": 53, "name": "POUR 듀얼복합시트 1.5T", "pack": "70cm*25m", "spec": "롤/개", "cat": "보강시트", "chong": 205200, "jasa": 233800}, {"no": 54, "name": "POUR 듀얼복합시트 1.5T", "pack": "80cm*25m", "spec": "롤/개", "cat": "보강시트", "chong": 232800, "jasa": 265700}, {"no": 55, "name": "POUR 듀얼복합시트 1.5T", "pack": "1m*25m", "spec": "롤/개", "cat": "보강시트", "chong": 287500, "jasa": 328200}, {"no": 56, "name": "POUR 압축강화시트 0.7T", "pack": "10cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 40300, "jasa": 48300}, {"no": 57, "name": "POUR 압축강화시트 0.7T", "pack": "15cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 40300, "jasa": 65400}, {"no": 58, "name": "POUR 압축강화시트 0.7T", "pack": "20cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 71500, "jasa": 85900}, {"no": 59, "name": "POUR 압축강화시트 0.7T", "pack": "30cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 108700, "jasa": 130500}, {"no": 60, "name": "POUR 압축강화시트 0.7T", "pack": "40cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 145800, "jasa": 174900}, {"no": 61, "name": "POUR 압축강화시트 0.7T", "pack": "50cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 181800, "jasa": 218200}, {"no": 62, "name": "POUR 압축강화시트 0.7T", "pack": "60cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 217300, "jasa": 260700}, {"no": 63, "name": "POUR 압축강화시트 0.7T", "pack": "70cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 254700, "jasa": 305500}, {"no": 64, "name": "POUR 압축강화시트 0.7T", "pack": "80cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 286200, "jasa": 343400}, {"no": 65, "name": "POUR 압축강화시트 0.7T", "pack": "1m*100m", "spec": "롤/개", "cat": "보강시트", "chong": 380700, "jasa": 456800}, {"no": 66, "name": "POUR PVC 시트 1.5T", "pack": "1.83m*15m", "spec": "롤/개", "cat": "보강시트", "chong": 439200, "jasa": 526900}, {"no": 67, "name": "POUR 보강시트 0.3T (크랙용)", "pack": "10cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 40400, "jasa": 48500}, {"no": 68, "name": "POUR 보강시트 0.3T (크랙용)", "pack": "15cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 52500, "jasa": 63000}, {"no": 69, "name": "POUR 보강시트 0.3T (크랙용)", "pack": "20cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 57800, "jasa": 69300}, {"no": 70, "name": "POUR 보강시트 0.3T (슬라브용)", "pack": "10cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 40400, "jasa": 48500}, {"no": 71, "name": "POUR 보강시트 0.3T (슬라브용)", "pack": "15cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 52500, "jasa": 63000}, {"no": 72, "name": "POUR 보강시트 0.3T (슬라브용)", "pack": "20cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 57800, "jasa": 69300}, {"no": 73, "name": "POUR 보강시트 0.3T (세트용)", "pack": "10cm*10m", "spec": "롤/개", "cat": "보강시트", "chong": null, "jasa": 32200}, {"no": 74, "name": "POUR 균열보수시트(에폭시용)", "pack": "10cm*100m", "spec": "롤/개", "cat": "보강시트", "chong": 40400, "jasa": 48500}, {"no": 75, "name": "POUR에어쉘시트", "pack": "1m*100m", "spec": "롤/개", "cat": "보강시트", "chong": null, "jasa": 287500}, {"no": 76, "name": "POUR 106파우더", "pack": "20", "spec": "kg/포", "cat": "파우더", "chong": 96600, "jasa": 108700}, {"no": 77, "name": "POUR 107파우더", "pack": "20", "spec": "kg/포", "cat": "파우더", "chong": 96600, "jasa": 108700}, {"no": 78, "name": "POUR 표면강화 파우더", "pack": "20", "spec": "kg/포", "cat": "파우더", "chong": 96600, "jasa": 108700}, {"no": 79, "name": "POUR 탄성강화 파우더", "pack": "20", "spec": "kg/포", "cat": "파우더", "chong": 38000, "jasa": 46000}, {"no": 80, "name": "POUR 탄성강화 파우더(경계석)", "pack": "20", "spec": "kg/포", "cat": "파우더", "chong": 32000, "jasa": 38400}, {"no": 81, "name": "POUR 탄성강화 파우더(측구/단면복구)", "pack": "20", "spec": "kg/포", "cat": "파우더", "chong": 32000, "jasa": 38400}, {"no": 82, "name": "POUR 시트함침 파우더", "pack": "20", "spec": "kg/포", "cat": "파우더", "chong": 32000, "jasa": 38400}, {"no": 83, "name": "POUR슁글용 후커 5cm", "pack": "5cm", "spec": "ea/개", "cat": "보강제품", "chong": 6300, "jasa": 7600}, {"no": 84, "name": "POUR슁글용 후커 6cm", "pack": "6cm", "spec": "ea/개", "cat": "보강제품", "chong": 6300, "jasa": 7600}, {"no": 85, "name": "POUR슁글용 후커 7cm", "pack": "7cm", "spec": "ea/개", "cat": "보강제품", "chong": 6300, "jasa": 7600}, {"no": 86, "name": "POUR슁글용 후커 8cm", "pack": "8cm", "spec": "ea/개", "cat": "보강제품", "chong": 6300, "jasa": 7600}, {"no": 87, "name": "POUR슁글용 후커 9cm", "pack": "9cm", "spec": "ea/개", "cat": "보강제품", "chong": 6300, "jasa": 7600}, {"no": 88, "name": "POUR슁글용 후커 10cm", "pack": "10cm", "spec": "ea/개", "cat": "보강제품", "chong": 6300, "jasa": 7600}, {"no": 89, "name": "POUR금속기와용 후커", "pack": "-", "spec": "ea/개", "cat": "보강제품", "chong": 6300, "jasa": 7600}, {"no": 90, "name": "POUR팬 벤트(도막용)", "pack": "H230*W230", "spec": "ea/개", "cat": "보강제품", "chong": 31300, "jasa": 37500}, {"no": 91, "name": "POUR팬 벤트(시트용)", "pack": "H230*W210", "spec": "ea/개", "cat": "보강제품", "chong": 31300, "jasa": 37500}, {"no": 92, "name": "POUR옥상배관방수트랩100(시트미포함)", "pack": "직경75mm", "spec": "ea/개", "cat": "보강제품", "chong": 18800, "jasa": 22500}, {"no": 93, "name": "POUR옥상배관방수트랩100(시트포함)", "pack": "직경75mm", "spec": "ea/개", "cat": "보강제품", "chong": 3200, "jasa": 25700}, {"no": 94, "name": "POUR옥상배관방수트랩50(시트포함)", "pack": "직경45mm", "spec": "ea/개", "cat": "보강제품", "chong": 17500, "jasa": 21300}, {"no": 95, "name": "POUR벤트 회색(35ea)_확장형", "pack": "지름65mm", "spec": "set/개", "cat": "보강제품", "chong": 131300, "jasa": 112500}, {"no": 96, "name": "POUR벤트 녹색(35ea)_확장형", "pack": "지름66mm", "spec": "set/개", "cat": "보강제품", "chong": 131300, "jasa": 112500}, {"no": 97, "name": "POUR벤트 회색(35ea)_기본형", "pack": "지름45mm", "spec": "set/개", "cat": "보강제품", "chong": 131300, "jasa": 112500}, {"no": 98, "name": "POUR벤트 녹색(35ea)_기본형", "pack": "지름45mm", "spec": "set/개", "cat": "보강제품", "chong": 131300, "jasa": 112500}, {"no": 99, "name": "POUR컨플럭스 듀오", "pack": "600ml", "spec": "ea/개", "cat": "보강제품", "chong": 86300, "jasa": 103500}, {"no": 100, "name": "POUR페이퍼 팬 벤트(도막용)", "pack": "H230*W230", "spec": "ea/개", "cat": "보강제품", "chong": 31300, "jasa": 37500}, {"no": 101, "name": "POUR페이퍼 팬 벤트(시트용)", "pack": "H230*W210", "spec": "ea/개", "cat": "보강제품", "chong": 31300, "jasa": 37500}];
+let BRK = [
+ {label:'1~9개', frac:0},
+ {label:'10~50개', frac:0.25},
+ {label:'51~80개', frac:0.45},
+ {label:'81~150개', frac:0.65},
+ {label:'151~300개', frac:0.85},
+ {label:'301개 이상', frac:1.00},
+];
+const CATS = ['전체','수용성','유성','아스팔트','보강시트','파우더','보강제품'];
+let curCat='전체', curQ='';
+
+const won = n => n.toLocaleString('ko-KR');
+const round10 = x => Math.round(x/10)*10;
+
+function calc(row){
+  const {chong,jasa}=row;
+  if(chong==null || chong<=0 || chong>=jasa){
+     let why = chong==null||chong<=0 ? '총판가 없음' : '자사몰<총판 역전';
+     return {ok:false, why};
+  }
+  const cells = BRK.map(b=>{
+     let p = round10(jasa - (jasa-chong)*b.frac);
+     if(p<chong) p=chong;
+     const disc = (jasa-p)/jasa*100;
+     return {price:p, disc};
+  });
+  const note = (chong < jasa*0.5) ? '총판 과소-확인' : '';
+  return {ok:true, cells, note};
+}
+function dcls(d){ if(d<=0)return'd0'; if(d<=8)return'd1'; if(d<=13)return'd2'; if(d<18.4)return'd3'; return'd4'; }
+
+function renderBrkPanel(){
+  document.getElementById('brks').innerHTML = BRK.map((b,i)=>`
+   <div class="brk">
+     <div class="lb"><input value="${b.label}" data-i="${i}" data-k="label"></div>
+     <div class="row"><label>할인계수</label>
+       <input type="number" min="0" max="100" step="1" value="${Math.round(b.frac*100)}" data-i="${i}" data-k="frac">
+       <span>%</span></div>
+   </div>`).join('');
+  document.querySelectorAll('#brks input').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const i=+e.target.dataset.i, k=e.target.dataset.k;
+      if(k==='label') BRK[i].label=e.target.value;
+      else BRK[i].frac=Math.max(0,Math.min(100,+e.target.value||0))/100;
+      renderHead(); renderBody();
+    });
+  });
+}
+function renderCats(){
+  document.getElementById('cats').innerHTML = CATS.map(c=>
+    `<button class="chip ${c===curCat?'on':''}" data-c="${c}">${c}</button>`).join('');
+  document.querySelectorAll('#cats .chip').forEach(ch=>ch.onclick=()=>{curCat=ch.dataset.c;renderCats();renderBody();});
+}
+function renderHead(){
+  let h = `<th class="l anchor" style="min-width:210px">제품</th>
+    <th class="anchor">포장</th>
+    <th class="anchor">총판유통 / POUR공법 협력사<br>(하한·단독최저)</th>
+    <th class="anchor">자사몰정가<br>(기준)</th>`;
+  h += BRK.map((b,i)=>`<th class="brkh ${i===BRK.length-1?'last':''}">${b.label}</th>`).join('');
+  h += `<th class="anchor">비고</th>`;
+  document.getElementById('head').innerHTML=h;
+}
+function renderBody(){
+  const rows = DATA.filter(r=>(curCat==='전체'||r.cat===curCat) &&
+     (!curQ || r.name.toLowerCase().includes(curQ)));
+  let shown=0;
+  const html = rows.map(r=>{
+    const c=calc(r);
+    if(!c.ok){
+      return `<tr class="review">
+        <td class="l"><span class="catlabel">${r.cat}</span><br><span class="nm">${r.name}</span> <span class="spec">${r.spec}</span></td>
+        <td class="spec">${r.pack}</td>
+        <td class="mono">${r.chong?won(r.chong):'-'}</td>
+        <td class="jasa">${won(r.jasa)}</td>
+        <td colspan="${BRK.length}" class="rv">검토필요 — ${c.why} · 하한 기준 없음</td>
+        <td><span class="badge ng">검토</span></td></tr>`;
+    }
+    shown++;
+    const cells = c.cells.map((cl,i)=>{
+      const last=i===BRK.length-1;
+      return `<td class="cell ${last?'last':''}">
+        <div class="price">${won(cl.price)}</div>
+        <span class="disc ${dcls(cl.disc)}">${cl.disc===0?'0%':'−'+cl.disc.toFixed(1)+'%'}</span></td>`;
+    }).join('');
+    return `<tr>
+      <td class="l"><span class="catlabel">${r.cat}</span><br><span class="nm">${r.name}</span> <span class="spec">${r.spec}</span></td>
+      <td class="spec">${r.pack}</td>
+      <td class="chong">${won(r.chong)}</td>
+      <td class="jasa">${won(r.jasa)}</td>
+      ${cells}
+      <td>${c.note?'<span class="badge ng">확인</span>':'<span style="color:var(--green);font-weight:800;font-size:11px">OK</span>'}</td></tr>`;
+  }).join('');
+  document.getElementById('body').innerHTML=html;
+  document.getElementById('count').textContent = `표시 ${rows.length}개 · 산출 ${shown}개`;
+}
+document.getElementById('q').addEventListener('input',e=>{curQ=e.target.value.trim().toLowerCase();renderBody();});
+renderBrkPanel(); renderCats(); renderHead(); renderBody();
+</script>
+</body>
+</html>

@@ -1,0 +1,2735 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POUR스토어 가격·마진 통합 대시보드</title>
+<style>
+:root{
+  --xl-green:#107C41; --xl-green-dark:#0B5C30; --xl-green-deep:#0A4A27;
+  --xl-grid:#D5D9DE; --xl-head:#F3F5F7; --xl-sel:#CDE8D8;
+  --ink:#1F2733; --ink-soft:#5A6572; --ink-faint:#8A94A0;
+  --paper:#FFFFFF; --canvas:#EDEFF2;
+  --amber:#B45309; --red:#C0392B; --blue:#1B6AC9;
+  --mono:'D2Coding','Consolas','SF Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:'Pretendard','Malgun Gothic','Apple SD Gothic Neo','Segoe UI',sans-serif;
+  background:var(--canvas); color:var(--ink); font-size:13px;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit;font-size:13px}
+
+/* ── 상단 리본 ─────────────────────────── */
+#ribbon{
+  background:linear-gradient(180deg,var(--xl-green) 0%,var(--xl-green-dark) 100%);
+  color:#fff; padding:10px 18px 8px; flex:0 0 auto;
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+#ribbon .brand{display:flex;flex-direction:column;gap:1px;min-width:210px}
+#ribbon .brand b{font-size:16px;letter-spacing:-.3px}
+#ribbon .brand span{font-size:11px;opacity:.82}
+#ribbon .kpis{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto}
+.kpi{
+  background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25);
+  border-radius:4px; padding:6px 12px; min-width:118px;
+}
+.kpi .lb{font-size:10.5px;opacity:.85}
+.kpi .vl{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.25}
+.kpi .sub{font-size:10px;opacity:.75}
+
+/* ── 수식 입력줄 (Excel formula bar) ───── */
+#fxbar{
+  flex:0 0 auto; background:#fff; border-bottom:1px solid var(--xl-grid);
+  display:flex; align-items:stretch; height:30px; font-size:12.5px;
+}
+#fxbar .fx{
+  width:34px;display:flex;align-items:center;justify-content:center;
+  color:var(--ink-faint);border-right:1px solid var(--xl-grid);
+  font-family:var(--mono);font-style:italic;font-weight:700;
+}
+#fxbar .cellref{
+  width:120px;display:flex;align-items:center;padding:0 10px;
+  border-right:1px solid var(--xl-grid);color:var(--xl-green-dark);font-weight:600;
+  white-space:nowrap;overflow:hidden;
+}
+#fxbar .expr{
+  flex:1;display:flex;align-items:center;padding:0 12px;
+  font-family:var(--mono);color:var(--ink-soft);white-space:nowrap;overflow:hidden;
+}
+#fxbar .expr b{color:var(--ink)}
+#fxbar .expr .pos{color:var(--xl-green-dark);font-weight:700}
+#fxbar .expr .neg{color:var(--red);font-weight:700}
+
+/* ── 이익배분 스트립 (셀 선택 시) ──────── */
+#fxSplit{
+  display:none;flex:0 0 auto;background:#FAFCFB;border-bottom:1px solid var(--xl-grid);
+  padding:7px 14px;align-items:center;gap:14px;font-size:12px;
+}
+#fxSplit.on{display:flex}
+#fxSplit .who{display:flex;align-items:center;gap:5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+#fxSplit .sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+#fxSplit .strip{flex:1;height:18px;border-radius:3px;overflow:hidden;display:flex;min-width:120px;border:1px solid var(--xl-grid)}
+#fxSplit .strip i{display:block;height:100%}
+@media(max-width:760px){#fxSplit{flex-wrap:wrap}}
+
+/* ── 본문 시트 영역 ────────────────────── */
+#sheetwrap{flex:1;overflow:hidden;position:relative;background:var(--paper)}
+.sheet{display:none;height:100%;overflow:auto;padding:0}
+.sheet.on{display:block}
+.sheet-pad{padding:16px 18px 90px}
+
+/* 시트 상단 도구줄 */
+.toolrow{
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  padding:10px 18px;border-bottom:1px solid var(--xl-grid);
+  background:var(--xl-head);position:sticky;top:0;z-index:30;
+}
+.toolrow .ttl{font-size:14px;font-weight:700;margin-right:6px}
+.toolrow input[type=text]{
+  border:1px solid var(--xl-grid);border-radius:3px;padding:5px 9px;width:200px;background:#fff;
+}
+.toolrow select{border:1px solid var(--xl-grid);border-radius:3px;padding:5px 8px;background:#fff}
+.tbtn{
+  border:1px solid var(--xl-grid);background:#fff;border-radius:3px;
+  padding:5px 11px;font-size:12px;color:var(--ink);
+}
+.tbtn:hover{border-color:var(--xl-green);color:var(--xl-green-dark)}
+.tbtn.primary{background:var(--xl-green);border-color:var(--xl-green);color:#fff}
+.tbtn.primary:hover{background:var(--xl-green-dark)}
+.seg{display:flex;border:1px solid var(--xl-grid);border-radius:3px;overflow:hidden;background:#fff}
+.seg button{border:0;background:transparent;padding:5px 11px;font-size:12px;color:var(--ink-soft)}
+.seg button.on{background:var(--xl-green);color:#fff}
+.hint{font-size:11px;color:var(--ink-faint);margin-left:auto}
+
+/* ── 그리드(표) 공통 ───────────────────── */
+table.grid{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-variant-numeric:tabular-nums}
+table.grid th,table.grid td{
+  border-right:1px solid var(--xl-grid);border-bottom:1px solid var(--xl-grid);
+  padding:0 8px;height:26px;font-size:12.3px;white-space:nowrap;background:#fff;
+}
+table.grid thead th{
+  background:var(--xl-head);font-weight:600;color:var(--ink-soft);
+  position:sticky;top:var(--toolh,49px);z-index:20;text-align:center;height:30px;font-size:11.5px;
+}
+table.grid thead tr.chgrp th{top:49px;height:24px;background:#E7ECEF;color:var(--ink);font-size:11px}
+table.grid thead tr.chsub th{top:73px}
+td.num,th.num{text-align:right}
+td.name{min-width:220px;font-weight:500}
+td.dim{color:var(--ink-faint)}
+tr.catrow td{
+  background:var(--xl-green-deep)!important;color:#fff;font-weight:700;font-size:12px;
+  letter-spacing:.3px;border-right:0;
+}
+td.cost{background:#FFF8E7}
+td.editable{cursor:cell}
+td.editable:hover{outline:1.5px solid var(--xl-green);outline-offset:-1.5px}
+td.selcell{outline:2px solid var(--xl-green);outline-offset:-2px;background:var(--xl-sel)!important}
+td .mrate{font-size:10.5px;color:var(--ink-faint);margin-left:4px}
+td.neg{color:var(--red);font-weight:600}
+td.warn{background:#FDEBE7}
+tr:hover td{background:#F4FAF6}
+tr:hover td.cost{background:#FCF3DC}
+td input.cellinput{
+  width:100%;border:0;outline:2px solid var(--xl-green);outline-offset:-2px;
+  height:24px;text-align:right;font-size:12.3px;background:#fff;font-variant-numeric:tabular-nums;
+}
+.sticky1{position:sticky;left:0;z-index:15}
+.sticky2{position:sticky;z-index:15}
+thead .sticky1,thead .sticky2{z-index:25}
+
+/* ── 카드/패널 ─────────────────────────── */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:16px}
+.card{
+  background:#fff;border:1px solid var(--xl-grid);border-radius:6px;padding:14px 16px;
+  box-shadow:0 1px 2px rgba(31,39,51,.04);
+}
+.card h4{font-size:12px;color:var(--ink-soft);font-weight:600;margin-bottom:6px}
+.card .big{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.4px}
+.card .big small{font-size:12px;font-weight:600;color:var(--ink-faint)}
+.card .foot{font-size:11px;color:var(--ink-faint);margin-top:4px}
+.panel{background:#fff;border:1px solid var(--xl-grid);border-radius:6px;margin-bottom:16px;overflow:hidden}
+.panel>h3{
+  font-size:13px;font-weight:700;padding:10px 14px;background:var(--xl-head);
+  border-bottom:1px solid var(--xl-grid);display:flex;align-items:center;gap:8px;
+}
+.panel>h3 .tag{font-size:10.5px;font-weight:600;color:var(--xl-green-dark);background:var(--xl-sel);border-radius:3px;padding:2px 7px}
+.panel .bd{padding:14px}
+
+/* 가로 막대 */
+.bar-row{display:grid;grid-template-columns:150px 1fr 170px;gap:10px;align-items:center;padding:5px 0;font-size:12px}
+.bar-track{background:#EDEFF2;border-radius:3px;height:16px;position:relative;overflow:hidden}
+.bar-fill{position:absolute;left:0;top:0;bottom:0;background:var(--xl-green);border-radius:3px;min-width:2px;transition:width .35s ease}
+.bar-fill.b2{background:#5FA97F}
+.bar-fill.amber{background:var(--amber)}
+.bar-fill.red{background:var(--red)}
+.bar-fill.blue{background:var(--blue)}
+.bar-val{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+.bar-val b{color:var(--ink)}
+
+/* 입력폼 */
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.fld label{display:block;font-size:11px;color:var(--ink-soft);margin-bottom:3px;font-weight:600}
+.fld input,.fld select{
+  width:100%;border:1px solid var(--xl-grid);border-radius:3px;padding:7px 9px;
+  font-size:13px;background:#fff;font-variant-numeric:tabular-nums;
+}
+.fld input:focus,.fld select:focus{outline:2px solid var(--xl-green);outline-offset:-1px;border-color:var(--xl-green)}
+.fld .unit{font-size:10.5px;color:var(--ink-faint);margin-top:2px}
+
+/* 2단 레이아웃 */
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:980px){.cols2{grid-template-columns:1fr}}
+
+/* ── Excel식 시트 탭 ───────────────────── */
+#tabs{
+  flex:0 0 auto;background:#fff;border-top:1px solid var(--xl-grid);
+  display:flex;align-items:stretch;height:34px;padding-left:8px;gap:2px;overflow-x:auto;
+}
+#tabs::before{content:'◀ ▶';color:var(--ink-faint);font-size:9px;align-self:center;padding:0 8px;letter-spacing:2px}
+.stab{
+  border:1px solid var(--xl-grid);border-bottom:0;border-radius:5px 5px 0 0;
+  margin-top:5px;padding:0 16px;font-size:12px;color:var(--ink-soft);background:var(--xl-head);
+  display:flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.stab .dot{width:7px;height:7px;border-radius:2px;background:var(--ink-faint);opacity:.5}
+.stab.on{
+  background:#fff;color:var(--xl-green-dark);font-weight:700;margin-top:2px;
+  border-top:3px solid var(--xl-green);
+}
+.stab.on .dot{background:var(--xl-green);opacity:1}
+
+/* ── 퀵 마진 계산기 ─────────────────────── */
+#calcFab{
+  position:fixed;right:20px;bottom:52px;z-index:100;
+  background:var(--xl-green);color:#fff;border:0;border-radius:26px;
+  padding:12px 20px 12px 16px;font-size:14px;font-weight:700;
+  box-shadow:0 6px 18px rgba(11,92,48,.38);display:flex;align-items:center;gap:8px;
+  transition:transform .15s ease;
+}
+#calcFab:hover{transform:translateY(-2px)}
+#calcFab .sym{font-family:var(--mono);font-size:16px;font-style:italic}
+#calcPanel{
+  position:fixed;right:20px;bottom:104px;z-index:100;width:400px;max-width:calc(100vw - 32px);
+  background:#fff;border:1px solid var(--xl-grid);border-radius:8px;
+  box-shadow:0 18px 48px rgba(31,39,51,.28);display:none;overflow:hidden;
+  max-height:calc(100vh - 140px);overflow-y:auto;
+}
+#calcPanel.open{display:block}
+#calcPanel .hd{
+  background:var(--xl-green);color:#fff;padding:11px 14px;font-weight:700;font-size:13.5px;
+  display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:2;
+}
+#calcPanel .hd button{background:transparent;border:0;color:#fff;font-size:16px}
+#calcPanel .mode{display:flex;border-bottom:1px solid var(--xl-grid)}
+#calcPanel .mode button{
+  flex:1;border:0;background:var(--xl-head);padding:9px 4px;font-size:12px;color:var(--ink-soft);
+  border-right:1px solid var(--xl-grid);
+}
+#calcPanel .mode button:last-child{border-right:0}
+#calcPanel .mode button.on{background:#fff;color:var(--xl-green-dark);font-weight:700;box-shadow:inset 0 -2.5px 0 var(--xl-green)}
+#calcPanel .bd{padding:14px}
+#calcPanel .res{
+  margin-top:12px;border:1px solid var(--xl-grid);border-radius:5px;overflow:hidden;
+}
+#calcPanel .res .row{
+  display:flex;justify-content:space-between;padding:8px 12px;font-size:12.5px;
+  border-bottom:1px solid var(--xl-grid);font-variant-numeric:tabular-nums;
+}
+#calcPanel .res .row:last-child{border-bottom:0}
+#calcPanel .res .row.hl{background:var(--xl-sel);font-weight:800;font-size:14px}
+#calcPanel .res .row .neg{color:var(--red)}
+#calcPanel .note{font-size:10.5px;color:var(--ink-faint);margin-top:8px;line-height:1.5}
+
+.footnote{font-size:11px;color:var(--ink-faint);line-height:1.6;margin-top:10px}
+.pill{display:inline-block;font-size:10.5px;border-radius:3px;padding:1px 7px;font-weight:600}
+.pill.g{background:var(--xl-sel);color:var(--xl-green-dark)}
+.pill.a{background:#FCEFD9;color:var(--amber)}
+.pill.r{background:#FDE3DD;color:var(--red)}
+@media(max-width:760px){
+  #ribbon .kpis{display:none}
+  .toolrow input[type=text]{width:130px}
+  .bar-row{grid-template-columns:96px 1fr 108px}
+}
+
+/* ── 모바일 최적화 (태블릿/폰) ───────────── */
+@media(max-width:640px){
+  body{font-size:13px}
+  /* 리본: 컴팩트 */
+  #ribbon{padding:8px 12px;gap:8px}
+  #ribbon .brand{min-width:0;flex:1}
+  #ribbon .brand b{font-size:14px}
+  #ribbon .brand span{font-size:10px}
+  #btnSignOut{padding:5px 9px;font-size:11px}
+  #authWho{display:none}
+  /* 수식줄: 좁게 */
+  #fxbar{height:auto;min-height:28px}
+  #fxbar .fx{width:26px}
+  #fxbar .cellref{width:auto;max-width:44%;font-size:11px;padding:0 8px}
+  #fxbar .expr{font-size:11px;padding:0 8px}
+  #fxSplit{padding:6px 10px;gap:8px;font-size:11px}
+  /* 도구줄: 검색·필터 꽉차게 줄바꿈 */
+  .toolrow{padding:9px 12px;gap:6px}
+  .toolrow .ttl{font-size:13px;width:100%;margin-right:0}
+  .toolrow input[type=text]{width:100%;flex:1 1 140px;font-size:16px;padding:8px 10px}
+  .toolrow select{flex:1 1 120px;font-size:16px;padding:7px 8px}
+  .toolrow .hint{display:none}
+  .tbtn{padding:8px 12px;font-size:12.5px}
+  .seg button{padding:8px 12px}
+  /* 시트 여백 축소 */
+  .sheet-pad{padding:12px 12px 96px}
+  .panel .bd{padding:12px}
+  .panel>h3{padding:10px 12px;flex-wrap:wrap;gap:6px}
+  /* 카드: 폰에서 2열 */
+  .cards{grid-template-columns:repeat(2,1fr);gap:8px}
+  .card{padding:12px 12px}
+  .card .big{font-size:18px}
+  /* 폼: 무조건 1열로 쌓기 (인라인 grid-template 덮어쓰기) — 라벨 세로쪼개짐 방지 */
+  .formgrid{grid-template-columns:1fr!important;gap:10px}
+  .formgrid button.tbtn{width:100%;height:42px!important}
+  .fld input,.fld select{font-size:16px;padding:9px 11px}
+  /* 로그인/보안 입력: iOS 확대 방지 */
+  #authEmail,#authPw,#pwInput,#pwNew1,#pwNew2{font-size:16px}
+  /* 바 로우 */
+  .bar-row{grid-template-columns:1fr;gap:2px;padding:7px 0;border-bottom:1px solid var(--border-s,#F0F1F3)}
+  .bar-row .bar-val{text-align:left}
+  /* 시트 탭: 터치 크게, 힌트 화살표 제거 */
+  #tabs{height:44px;padding-left:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  #tabs::before{display:none}
+  .stab{padding:0 13px;font-size:12.5px}
+  /* 마진계산기 FAB: 컴팩트하게, 탭 위로 */
+  #calcFab{right:12px;bottom:56px;padding:11px 15px;font-size:13px;border-radius:24px}
+  #calcPanel{right:8px;left:8px;width:auto;bottom:auto;top:50%;transform:translateY(-50%);max-height:82vh}
+  #calcPanel.open{display:block}
+}
+@media(max-width:400px){
+  .cards{grid-template-columns:1fr}
+  #ribbon .brand b{font-size:13px}
+}
+</style>
+<!-- Firebase 10.12.0 compat (Analytics 제외) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+<!-- ═══ 상단 리본 ═══ -->
+<div id="ribbon">
+  <div class="brand">
+    <b>POUR스토어 가격·마진 통합 관리</b>
+    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북</span>
+  </div>
+  <div class="kpis" id="ribbonKpis"></div>
+  <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
+    <span id="authWho" style="font-size:11px;opacity:.85"></span>
+    <button id="btnSignOut" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:4px;padding:5px 10px;font-size:11.5px">로그아웃</button>
+  </div>
+</div>
+
+<!-- ═══ 로그인 게이트 (대외비 접근 · Firebase Auth) ═══ -->
+<div id="authGate" style="position:fixed;inset:0;z-index:5000;background:linear-gradient(180deg,#107C41,#0A4A27);display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:360px;max-width:100%;overflow:hidden">
+    <div style="background:#0B5C30;color:#fff;padding:16px 20px;font-weight:800;font-size:15px">POUR스토어 가격·마진 대시보드</div>
+    <div style="padding:22px">
+      <p style="font-size:12px;color:#5A6572;line-height:1.6;margin-bottom:14px">대외비 데이터에 접근하려면 로그인하세요. 계정은 관리자에게 문의하세요.</p>
+      <label style="font-size:11px;color:#5A6572;font-weight:600">이메일</label>
+      <input id="authEmail" type="email" autocomplete="username" style="width:100%;border:1px solid #D5D9DE;border-radius:5px;padding:9px 11px;font-size:13px;margin:4px 0 10px">
+      <label style="font-size:11px;color:#5A6572;font-weight:600">비밀번호</label>
+      <input id="authPw" type="password" autocomplete="current-password" style="width:100%;border:1px solid #D5D9DE;border-radius:5px;padding:9px 11px;font-size:13px;margin:4px 0 14px">
+      <button id="authBtn" class="tbtn primary" style="width:100%;padding:10px;font-size:13.5px">로그인</button>
+      <p id="authMsg" style="font-size:12px;color:#C0392B;margin-top:10px;min-height:16px"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 로딩 오버레이 (로그인 후 Firestore 로드 중) ═══ -->
+<div id="loadingOverlay" style="display:none;position:fixed;inset:0;z-index:4800;background:rgba(255,255,255,.94);flex-direction:column;align-items:center;justify-content:center;gap:14px">
+  <div style="width:38px;height:38px;border:3.5px solid #D5D9DE;border-top-color:#107C41;border-radius:50%;animation:spin .8s linear infinite"></div>
+  <p style="font-size:13px;color:#5A6572;font-weight:600">대외비 데이터를 불러오는 중…</p>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<!-- ═══ 열람 권한 없음 (허용목록 미포함) ═══ -->
+<div id="accessDenied" style="display:none;position:fixed;inset:0;z-index:4700;background:linear-gradient(180deg,#107C41,#0A4A27);flex-direction:column;align-items:center;justify-content:center;padding:22px;text-align:center;color:#fff">
+  <div style="font-size:52px;margin-bottom:10px">🔒</div>
+  <h2 style="font-size:18px;font-weight:800;margin-bottom:8px">열람 권한이 없습니다</h2>
+  <p id="adHint" style="font-size:13px;opacity:.9;line-height:1.6;max-width:420px"></p>
+  <p style="font-size:12px;opacity:.8;margin-top:10px">로그인 계정: <b id="adEmail"></b></p>
+  <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;justify-content:center">
+    <button id="adBootstrap" class="tbtn" style="display:none;background:#fff;color:#0B5C30;font-weight:700;padding:10px 16px">계정 관리에서 마스터 설정 →</button>
+    <button id="adSignOut" class="tbtn" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff;padding:10px 16px">로그아웃</button>
+  </div>
+</div>
+
+<!-- ═══ 데이터 미시딩 안내 배너 ═══ -->
+<div id="dataNotice" style="display:none;flex:0 0 auto;background:#FDEBE7;border-bottom:1px solid #F1B7AD;color:#8A2B1E;padding:9px 16px;font-size:12.5px;line-height:1.5;align-items:center;gap:8px">
+  <b>표시할 데이터가 없습니다.</b> Firestore(pourstoreproject)에 채널·제품 데이터가 아직 시딩되지 않았습니다. <code>seed/</code> 도구로 데이터를 올린 뒤 새로고침하세요.
+</div>
+
+<!-- ═══ 수식 입력줄 ═══ -->
+<div id="fxbar">
+  <div class="fx">fx</div>
+  <div class="cellref" id="fxRef">셀을 선택하세요</div>
+  <div class="expr" id="fxExpr">가격정책표에서 셀을 클릭하면 원가 대비 마진 수식이 여기에 표시됩니다.</div>
+</div>
+
+<!-- ═══ 이익배분 스트립 ═══ -->
+<div id="fxSplit"></div>
+
+<!-- ═══ 시트 영역 ═══ -->
+<div id="sheetwrap">
+
+  <!-- ── Sheet 1: 요약 대시보드 ── -->
+  <section class="sheet on" id="sh-dash">
+    <div class="toolrow">
+      <span class="ttl">경영 요약</span>
+      <span class="hint">모든 수치는 [가격정책표] 시트의 현재 값 기준으로 자동 재계산됩니다</span>
+    </div>
+    <div class="sheet-pad">
+      <div class="cards" id="dashCards"></div>
+      <div class="cols2">
+        <div class="panel">
+          <h3>채널별 평균 마진율 <span class="tag">POUR스토어 관점 · 원가 대비</span></h3>
+          <div class="bd" id="chAvgBars"></div>
+        </div>
+        <div class="panel">
+          <h3>가격 점검 알림 <span class="tag">자동 감지</span></h3>
+          <div class="bd" id="alertBox"></div>
+        </div>
+      </div>
+      <div class="cols2">
+        <div class="panel">
+          <h3>마진율 상위 10개 제품 <span class="tag">자사몰 정가 기준</span></h3>
+          <div class="bd" id="topBars"></div>
+        </div>
+        <div class="panel">
+          <h3>마진율 하위 10개 제품 <span class="tag">자사몰 정가 기준</span></h3>
+          <div class="bd" id="botBars"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Sheet 2: 가격정책표 ── -->
+  <section class="sheet" id="sh-price">
+    <div class="toolrow">
+      <span class="ttl">가격정책표</span>
+      <input type="text" id="q" placeholder="제품명 검색…">
+      <select id="catSel"><option value="">전체 분류</option></select>
+      <div class="seg" id="viewSeg">
+        <button data-v="price" class="on">판매가</button>
+        <button data-v="margin">마진액</button>
+        <button data-v="rate">마진율</button>
+      </div>
+      <button class="tbtn" id="btnSave">변경사항 저장</button>
+      <button class="tbtn" id="btnCsv">CSV 내보내기</button>
+      <button class="tbtn" id="btnReset">원본 복원</button>
+      <span class="hint">노란색(매입원가)과 흰색 가격 셀은 더블클릭으로 수정 · Enter로 확정</span>
+    </div>
+    <table class="grid" id="priceGrid"></table>
+  </section>
+
+  <!-- ── Sheet 2.2: 채널 관리 ── -->
+  <section class="sheet" id="sh-chman">
+    <div class="toolrow">
+      <span class="ttl">판매 채널 관리</span>
+      <button class="tbtn primary" id="btnChSave">채널 설정 저장</button>
+      <span class="hint">어드민 코드 체계 그대로 — 한 코드(P2 등)에 여러 채널을 둘 수 있습니다 · 셀 더블클릭으로 수정</span>
+    </div>
+    <div class="sheet-pad">
+      <div class="panel">
+        <h3>새 채널 추가 <span class="tag">그룹·코드·명칭</span></h3>
+        <div class="bd">
+          <div class="formgrid" style="grid-template-columns:110px 90px 1fr 90px 130px 1fr 110px auto;align-items:end">
+            <div class="fld"><label>그룹</label><input type="text" id="ncG" list="grpList" value="KR2"><datalist id="grpList"></datalist></div>
+            <div class="fld"><label>코드</label><input type="text" id="ncCode" placeholder="P9"></div>
+            <div class="fld"><label>채널명</label><input type="text" id="ncName" placeholder="예: 하이마트 입점"></div>
+            <div class="fld"><label>짧은이름</label><input type="text" id="ncShort" placeholder="표시용"></div>
+            <div class="fld"><label>목표 매출 (원)</label><input type="number" id="ncTgt" placeholder="선택"></div>
+            <div class="fld"><label>설명</label><input type="text" id="ncDesc" placeholder="선택"></div>
+            <div class="fld"><label>가격열 표시</label><select id="ncCol"><option value="1">표시</option><option value="0">숨김</option></select></div>
+            <button class="tbtn primary" id="btnChAdd" style="height:34px">＋ 추가</button>
+          </div>
+          <p class="footnote">"가격열 표시"를 켜면 가격정책표·채널분석·손익 시트에 해당 채널 열이 즉시 생기고, 제품별 공급가를 입력할 수 있습니다.</p>
+        </div>
+      </div>
+      <div id="chGroups"></div>
+      <p class="footnote">· <span class="pill g">정가 기준</span> = 소비자가 기준(채널 마진·이익배분 계산의 100%), <span class="pill a">MOQ 하한</span> = 수량구간 할인의 하한가. 역할은 각 행의 "역할" 선택으로 옮길 수 있습니다.<br>· 채널을 삭제하면 그 채널에 입력된 제품별 가격도 함께 삭제됩니다. "채널 설정 저장"을 눌러야 브라우저에 유지됩니다.</p>
+    </div>
+  </section>
+
+  <!-- ── Sheet 2.5: 제품·상품 매칭 (보안 구역) ── -->
+  <section class="sheet" id="sh-match">
+    <div class="toolrow">
+      <span class="ttl">제품 · 상품 매칭 <span id="secStatus" class="pill r">🔒 잠김</span></span>
+      <input type="text" id="mq" placeholder="제품·상품·업체 검색…" style="display:none">
+      <button class="tbtn" id="btnSaveMatch" style="display:none">변경사항 저장</button>
+      <button class="tbtn" id="btnLock" style="display:none">🔒 지금 잠그기</button>
+      <button class="tbtn" id="btnPwChange" style="display:none">비밀번호 변경</button>
+      <span class="hint" id="secHint">공급업체·연락처는 AES-256으로 암호화되어 있습니다 — 비밀번호로 잠금을 해제하세요</span>
+    </div>
+
+    <!-- 권한 없음 (마스터 계정 아님) -->
+    <div id="secNoAccess" class="sheet-pad" style="display:none;max-width:460px;margin:40px auto 0">
+      <div class="panel" style="text-align:center">
+        <div class="bd" style="padding:34px 28px">
+          <div style="font-size:44px;margin-bottom:10px">🔒</div>
+          <h3 style="font-size:16px;margin-bottom:6px">접근 권한이 없습니다</h3>
+          <p style="font-size:12px;color:var(--ink-soft);line-height:1.7">
+            공급업체·매입처·상품 매칭 정보는 <b>마스터 계정(이메일 인증 완료)</b>만 볼 수 있습니다.<br>
+            현재 로그인 계정에는 권한이 없습니다.
+          </p>
+          <button class="tbtn" id="btnGoAccess" style="margin-top:14px;padding:9px 16px">계정 관리로 이동 →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 잠금 화면 -->
+    <div id="lockScreen" class="sheet-pad" style="max-width:460px;margin:40px auto 0">
+      <div class="panel" style="text-align:center">
+        <div class="bd" style="padding:34px 28px">
+          <div style="font-size:44px;margin-bottom:10px">🔒</div>
+          <h3 style="font-size:16px;margin-bottom:6px">보안 구역 — 제조사·매입처 정보</h3>
+          <p style="font-size:12px;color:var(--ink-soft);line-height:1.6;margin-bottom:18px">
+            공급업체명·담당자 연락처·상품 매칭 데이터는 AES-256-GCM으로<br>
+            암호화되어 있습니다. 비밀번호 없이는 파일을 열어봐도 복원되지 않습니다.
+          </p>
+          <input type="password" id="pwInput" placeholder="비밀번호 입력"
+            style="width:100%;border:1px solid var(--xl-grid);border-radius:4px;padding:10px 12px;font-size:14px;text-align:center;letter-spacing:2px">
+          <button class="tbtn primary" id="btnUnlock" style="width:100%;margin-top:10px;padding:10px;font-size:13.5px">잠금 해제</button>
+          <p id="pwMsg" style="font-size:12px;margin-top:10px;min-height:16px;color:var(--red)"></p>
+          <p style="font-size:10.5px;color:var(--ink-faint);margin-top:6px">5회 실패 시 60초간 입력이 제한됩니다 · 15분간 조작이 없으면 자동으로 다시 잠깁니다</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 비밀번호 변경 (해제 후) -->
+    <div id="pwChangeBox" class="sheet-pad" style="display:none;padding-bottom:0">
+      <div class="panel"><h3>비밀번호 변경 <span class="tag">이 컴퓨터의 브라우저에 적용</span></h3>
+        <div class="bd">
+          <div class="formgrid" style="grid-template-columns:220px 220px auto;align-items:end">
+            <div class="fld"><label>새 비밀번호 (8자 이상 권장)</label><input type="password" id="pwNew1"></div>
+            <div class="fld"><label>새 비밀번호 확인</label><input type="password" id="pwNew2"></div>
+            <button class="tbtn primary" id="btnPwApply" style="height:34px">변경 적용</button>
+          </div>
+          <p class="footnote" id="pwChangeMsg">변경된 비밀번호는 이 브라우저에 암호화되어 저장됩니다. 다른 PC에서 파일을 새로 열면 초기 비밀번호가 적용되니, 초기 비밀번호도 별도로 안전하게 보관하세요.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="sheet-pad" id="matchContent" style="display:none">
+      <div class="panel">
+        <h3>① 제조사(공급업체) ↔ 제품명 매칭 <span class="tag">매입처 관리 · 보안</span></h3>
+        <div class="bd">
+          <table class="grid" id="supTable" style="width:100%"></table>
+          <p class="footnote">· 업로드하신 "㈜넷폼알앤디 메인 제품 리스트"의 공급업체·담당자 정보를 제품마다 자동 매칭했습니다. 틀린 곳은 더블클릭으로 바로잡으세요.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>② 제조사 제품명 ↔ POUR스토어 상품명 매칭 <span class="tag">4kg 소분 온라인 리스팅</span></h3>
+        <div class="bd">
+          <div class="formgrid" style="margin-bottom:12px;grid-template-columns:repeat(3,minmax(150px,220px))">
+            <div class="fld"><label>판매수수료율 (PG 포함, %)</label><input type="number" id="mFee" value="19" step="0.1"></div>
+            <div class="fld"><label>배송·보관·검수비 (원/개)</label><input type="number" id="mShip" value="5000"></div>
+            <div class="fld"><label>마케팅비 (원/개)</label><input type="number" id="mMkt" value="5000"></div>
+          </div>
+          <table class="grid" id="matchTable" style="width:100%"></table>
+          <p class="footnote">· 마진 = 판매가 − (도매단가 + 판매가×수수료율 + 배송비 + 마케팅비) · 업로드하신 "판매 상품 판매가 설정" 시트의 구조를 그대로 계산식으로 옮겼습니다.<br>· 판매가 0원(주황 등)은 아직 미정 상태라는 뜻입니다 — 셀을 더블클릭해 값을 넣으면 마진이 즉시 계산됩니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Sheet 3: 채널 수익분석 ── -->
+  <section class="sheet" id="sh-channel">
+    <div class="toolrow">
+      <span class="ttl">채널 수익분석</span>
+      <select id="chProd" style="min-width:280px"></select>
+      <span class="hint">우리(POUR스토어) 마진과, 공급받은 채널이 소비자 정가로 되팔 때의 채널 마진을 나란히 봅니다</span>
+    </div>
+    <div class="sheet-pad">
+      <div class="cards" id="chCards"></div>
+      <div class="panel">
+        <h3>채널별 이익 구조 <span class="tag">1개 판매 기준 · 원 단위</span></h3>
+        <div class="bd">
+          <table class="grid" id="chTable" style="width:100%"></table>
+          <p class="footnote">
+            · <b>POUR 마진</b> = 채널 공급가 − 매입원가 &nbsp;/&nbsp; <b>채널 마진</b> = 자사몰 정가(소비자가) − 채널 공급가.<br>
+            · 채널 마진은 해당 채널이 소비자 정가에 판매한다고 가정한 이론치입니다. 실제 판매가·수수료에 따라 달라집니다.<br>
+            · 알리바바 수출가는 수출 조건(운임·관세 등)이 별도이므로 참고용으로만 표시합니다.
+          </p>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>이익 배분 시각화 <span class="tag">원가 → POUR 마진 → 채널 마진</span></h3>
+        <div class="bd" id="chStack"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Sheet 4: MOQ 대량판매 ── -->
+  <section class="sheet" id="sh-moq">
+    <div class="toolrow">
+      <span class="ttl">MOQ 수량구간 시뮬레이션</span>
+      <select id="moqProd" style="min-width:280px"></select>
+      <span class="hint">구간별 납품가 = 정가 − 할인계수 × (정가 − 대리점 하한가). 가입 유무와 무관하게 모든 고객 적용</span>
+    </div>
+    <div class="sheet-pad">
+      <div class="panel">
+        <h3>수량 견적 계산 <span class="tag">업체 협상용</span></h3>
+        <div class="bd">
+          <div class="formgrid">
+            <div class="fld"><label>주문 수량 (개)</label><input type="number" id="moqQty" value="60" min="1"></div>
+            <div class="fld"><label>특별 협의가 (선택 · 개당)</label><input type="number" id="moqCustom" placeholder="비우면 구간가 적용"></div>
+          </div>
+          <div class="cards" id="moqCards" style="margin-top:14px;margin-bottom:0"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>수량구간별 납품가 테이블 <span class="tag">301개 이상 = 대리점 납품가</span></h3>
+        <div class="bd">
+          <table class="grid" id="moqTable" style="width:100%"></table>
+          <p class="footnote">· <b>POUR 마진</b> = 구간 납품가 − 매입원가 &nbsp;/&nbsp; <b>공급받는이 마진</b> = 정가 − 구간 납품가 (정가 재판매 가정).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Sheet 5: 손익·공헌이익 ── -->
+  <section class="sheet" id="sh-pl">
+    <div class="toolrow">
+      <span class="ttl">손익계산 · 공헌이익</span>
+      <div class="seg" id="plModeSeg">
+        <button data-m="prod" class="on">제품 기준</button>
+        <button data-m="plan">채널·코드 기준</button>
+      </div>
+      <select id="plProd" style="min-width:280px"></select>
+      <button class="tbtn primary" id="plRun">재계산</button>
+      <span class="hint" id="plHint">월 판매계획을 채널별로 입력하면 공헌이익과 손익분기점(BEP)을 계산합니다</span>
+    </div>
+    <div class="sheet-pad">
+
+      <!-- 제품 기준 -->
+      <div class="panel" id="plProdPanel">
+        <h3>① 월 판매계획 입력 <span class="tag">선택 제품 1개 · 채널별 수량</span></h3>
+        <div class="bd">
+          <table class="grid" id="plInput" style="width:100%"></table>
+          <p class="footnote">· 수수료율은 판매가 대비 %, 개당 부대비는 포장·택배 등 개당 변동비입니다. 셀을 직접 수정하세요.</p>
+        </div>
+      </div>
+
+      <!-- 채널·코드 기준: 채널 선택 → 전 제품 수량 입력 -->
+      <div id="plPlanWrap" style="display:none">
+        <div class="panel">
+          <h3>① 채널 선택 → 제품별 월 판매수량 입력 <span class="tag">본사 몫 vs 채널 몫</span></h3>
+          <div class="bd">
+            <div class="formgrid" style="grid-template-columns:minmax(220px,300px) minmax(140px,180px) minmax(160px,220px) 110px 130px;align-items:end">
+              <div class="fld"><label>채널</label><select id="planChSel"></select></div>
+              <div class="fld"><label>분류</label><select id="planCat"><option value="">전체 분류</option></select></div>
+              <div class="fld"><label>제품 검색</label><input type="text" id="planQ" placeholder="제품명…"></div>
+              <div class="fld"><label>채널 수수료율 %</label><input type="number" id="planFee" step="0.1" value="0"></div>
+              <div class="fld"><label>개당 부대비 (원)</label><input type="number" id="planExtra" value="0"></div>
+            </div>
+            <div class="cards" id="planCards" style="margin:14px 0 12px"></div>
+            <div style="max-height:430px;overflow:auto;border:1px solid var(--xl-grid);border-radius:4px">
+              <table class="grid" id="planGrid" style="width:100%"></table>
+            </div>
+            <p class="footnote">· <b>본사(POUR) 몫</b> = (공급가 − 수수료 − 부대비 − 매입원가) × 수량 (공헌이익) &nbsp;/&nbsp; <b>채널 몫</b> = (소비자 정가 − 공급가) × 수량, 정가 재판매 가정.<br>· 수량을 입력한 제품만 계획에 반영됩니다. 다른 채널로 전환해도 입력값은 유지되며, 아래 집계와 손익계산서는 모든 채널의 계획을 합산합니다.</p>
+          </div>
+        </div>
+        <div class="cols2">
+          <div class="panel">
+            <h3>② 채널별 집계 <span class="tag">본사 몫 · 채널 몫 · 목표 달성률</span></h3>
+            <div class="bd"><table class="grid" id="aggCh" style="width:100%"></table></div>
+          </div>
+          <div class="panel">
+            <h3>③ 코드별 집계 <span class="tag">같은 코드(P2 등)의 채널 합산</span></h3>
+            <div class="bd"><table class="grid" id="aggCode" style="width:100%"></table></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cols2">
+        <div class="panel">
+          <h3 id="plStmtTitle">② 월 손익계산서 <span class="tag">공헌이익 방식</span></h3>
+          <div class="bd">
+            <table class="grid" id="plStatement" style="width:100%"></table>
+            <div class="formgrid" style="margin-top:12px">
+              <div class="fld"><label>월 고정비 (인건비·임차료·마케팅 등)</label><input type="number" id="fixedCost" value="10000000" step="100000"></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>손익분기점 · 안전여유 <span class="tag">BEP</span></h3>
+          <div class="bd" id="bepBox"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3 id="plBarsTitle">채널별 공헌이익 기여도 <span class="tag">월 합계</span></h3>
+        <div class="bd" id="plBars"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Sheet: 제조사·제품·상품 등록 ── -->
+  <section class="sheet" id="sh-reg">
+    <div class="toolrow">
+      <span class="ttl">제조사 · 제품 · 상품 등록</span>
+      <button class="tbtn primary" id="btnRegSave">변경사항 저장</button>
+      <span class="hint">여기서 추가한 항목은 가격정책표·손익 등 모든 시트에 즉시 반영됩니다 · 저장은 이 브라우저에만 보관됩니다</span>
+    </div>
+    <div class="sheet-pad">
+
+      <div class="panel" id="regMfgPanel">
+        <h3>① 제조사(공급업체) 등록 <span class="tag">매입처 마스터 · 마스터 전용</span></h3>
+        <div class="bd">
+          <div class="formgrid" style="grid-template-columns:1fr 130px 150px 1fr auto;align-items:end">
+            <div class="fld"><label>제조사명</label><input type="text" id="mfName" placeholder="예: ㈜넷폼알앤디"></div>
+            <div class="fld"><label>담당자</label><input type="text" id="mfMgr" placeholder="선택"></div>
+            <div class="fld"><label>연락처</label><input type="text" id="mfTel" placeholder="선택"></div>
+            <div class="fld"><label>메모</label><input type="text" id="mfMemo" placeholder="결제조건·비고 등"></div>
+            <button class="tbtn primary" id="btnMfAdd" style="height:34px">＋ 추가</button>
+          </div>
+          <table class="grid" id="mfgTable" style="width:100%;margin-top:10px"></table>
+          <p class="footnote">· 제품 등록 시 이 목록에서 제조사를 고를 수 있습니다. 셀 더블클릭으로 수정 · "제품 수"는 그 제조사로 등록된 제품 개수입니다.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>② 제품 등록 <span class="tag">제조사 원제품 · 채널 공급가</span></h3>
+        <div class="bd">
+          <div class="formgrid" style="grid-template-columns:150px 1fr 110px 130px 1fr;align-items:end">
+            <div class="fld"><label>분류</label><input type="text" id="apCat" list="catList" placeholder="예: 수용성 도료"><datalist id="catList"></datalist></div>
+            <div class="fld"><label>제품명</label><input type="text" id="apName" placeholder="예: POUR 신규 코트재"></div>
+            <div class="fld"><label>규격</label><input type="text" id="apSpec" placeholder="예: 20kg/통"></div>
+            <div class="fld"><label>매입원가 (원)</label><input type="number" id="apCost" placeholder="예: 60000"></div>
+            <div class="fld" id="apMfgFld"><label>제조사</label><input type="text" id="apMfg" list="mfgList" placeholder="선택/입력"><datalist id="mfgList"></datalist></div>
+          </div>
+          <div class="formgrid" id="apPriceRow" style="grid-template-columns:auto 150px 1fr auto;align-items:end;margin-top:10px;padding-top:10px;border-top:1px dashed var(--xl-grid)">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);white-space:nowrap"><input type="checkbox" id="apAuto" checked style="width:auto">목표 마진율로 채널가 자동 산출</label>
+            <div class="fld" id="apTgtFld"><label>목표 마진율 (%)</label><input type="number" id="apTgt" value="35" step="0.5"></div>
+            <p class="footnote" id="apAutoNote" style="margin:0;align-self:center">가격열이 켜진 채널마다 <b>필요 공급가 = 매입원가 ÷ (1 − 목표마진율 − 채널수수료)</b>로 초기값을 채웁니다. 등록 후 가격정책표에서 개별 수정하세요.</p>
+            <button class="tbtn primary" id="btnApAdd" style="height:34px">＋ 제품 등록</button>
+          </div>
+          <table class="grid" id="addProdTable" style="width:100%;margin-top:12px"></table>
+          <p class="footnote">· 여기 표에는 <b>직접 추가한 제품</b>만 나옵니다. 기존 제품의 원가·가격 수정은 <b>가격정책표</b> 시트에서 하세요.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>③ 온라인 상품(리스팅) 등록 <span class="tag">4kg 소분 · 판매채널 리스팅</span> <span id="regItemLock" class="pill r">🔒 보안 잠김</span></h3>
+        <div class="bd">
+          <div id="regItemLockMsg" class="footnote" style="padding:8px 0">· 상품(리스팅) 등록은 매입단가가 연결되는 보안 구역입니다. <b>제품·상품 매칭</b> 탭에서 잠금을 해제하면 여기서 추가할 수 있습니다.</div>
+          <div id="regItemForm" style="display:none">
+            <div class="formgrid" style="grid-template-columns:1fr 1fr 120px 120px 120px auto;align-items:end">
+              <div class="fld"><label>POUR스토어 상품명</label><input type="text" id="aiItem" placeholder="예: POUR 벽돌 발수제 4kg"></div>
+              <div class="fld"><label>제조사 원제품명</label><input type="text" id="aiSrc" placeholder="원제품 매칭"></div>
+              <div class="fld"><label>색상/규격</label><input type="text" id="aiColor" placeholder="예: 투명"></div>
+              <div class="fld"><label>도매단가 (원)</label><input type="number" id="aiCost" placeholder="매입"></div>
+              <div class="fld"><label>판매가 (원)</label><input type="number" id="aiPrice" placeholder="선택"></div>
+              <button class="tbtn primary" id="btnAiAdd" style="height:34px">＋ 상품 등록</button>
+            </div>
+            <table class="grid" id="addItemTable" style="width:100%;margin-top:12px"></table>
+            <p class="footnote">· 추가한 상품은 <b>제품·상품 매칭</b> 표에 함께 표시되고, 마진이 자동 계산됩니다. 저장 시 암호화되어 보관됩니다.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── Sheet: 고정지출 관리 ── -->
+  <section class="sheet" id="sh-fixed">
+    <div class="toolrow">
+      <span class="ttl">고정지출 관리</span>
+      <button class="tbtn primary" id="btnFxApply">이 고정비를 손익에 적용 →</button>
+      <button class="tbtn" id="btnFxSave">변경사항 저장</button>
+      <button class="tbtn" id="btnFxCsv">CSV 내보내기</button>
+      <span class="hint">인건비·이용 플랫폼/서비스를 항목별로 정리 · 월간/연간을 구분하면 월 환산 합계가 자동 계산됩니다</span>
+    </div>
+    <div class="sheet-pad">
+      <div class="cards" id="fxCards"></div>
+
+      <div class="panel">
+        <h3>지출 항목 추가 <span class="tag">그룹 · 주기(월간/연간)</span></h3>
+        <div class="bd">
+          <div class="formgrid" style="grid-template-columns:160px 1fr 130px 110px 1fr auto;align-items:end">
+            <div class="fld"><label>그룹</label><input type="text" id="fxG" list="fxGrpList" placeholder="예: 인건비"><datalist id="fxGrpList"></datalist></div>
+            <div class="fld"><label>항목명</label><input type="text" id="fxName" placeholder="예: 사방넷 / 카페24 / 대표급여"></div>
+            <div class="fld"><label>금액 (원)</label><input type="number" id="fxAmt" placeholder="주기 기준 금액"></div>
+            <div class="fld"><label>주기</label><select id="fxCycle"><option value="월간">월간</option><option value="연간">연간</option></select></div>
+            <div class="fld"><label>메모</label><input type="text" id="fxMemo" placeholder="선택"></div>
+            <button class="tbtn primary" id="btnFxAdd" style="height:34px">＋ 추가</button>
+          </div>
+          <p class="footnote">· 연간 항목은 월 환산(÷12)되어 합계에 반영됩니다. 잠시 빼고 싶은 항목은 "사용"을 꺼두세요(삭제 없이 합계에서 제외).</p>
+        </div>
+      </div>
+
+      <div id="fxGroups"></div>
+      <p class="footnote">· <b>월 고정비 합계</b> = 모든 "사용 중" 항목의 월 환산액 합. 손익·공헌이익 시트의 <b>월 고정비</b>로 바로 적용해 손익분기점을 볼 수 있습니다.</p>
+    </div>
+  </section>
+
+  <!-- ── Sheet: 마케팅 개요 ── -->
+  <section class="sheet" id="sh-mkt">
+    <div class="toolrow">
+      <span class="ttl">마케팅 개요</span>
+      <span class="hint">추적링크 클릭은 자동 집계 · 주문·매출·광고비는 [추적링크]에서 입력하면 ROAS·전환율이 자동 계산됩니다</span>
+    </div>
+    <div class="sheet-pad">
+      <div class="cards" id="mktCards"></div>
+      <div class="cols2">
+        <div class="panel"><h3>채널(매체)별 성과 <span class="tag">유입·전환·ROAS</span></h3><div class="bd" id="mktByChannel"></div></div>
+        <div class="panel"><h3>콘텐츠 유형별 유입 <span class="tag">광고·블로그·카페 등</span></h3><div class="bd" id="mktByContent"></div></div>
+      </div>
+      <div class="panel"><h3>상위 링크 <span class="tag">클릭·전환 기준</span></h3><div class="bd" id="mktTop"></div></div>
+    </div>
+  </section>
+
+  <!-- ── Sheet: 캠페인·추적링크 ── -->
+  <section class="sheet" id="sh-mktlink">
+    <div class="toolrow">
+      <span class="ttl">캠페인 · 추적링크</span>
+      <input type="text" id="mlq" placeholder="라벨·캠페인·URL 검색…">
+      <select id="mlChan"><option value="">전체 매체</option></select>
+      <select id="mlType"><option value="">전체 유형</option></select>
+      <span class="hint">링크를 만들어 광고·블로그·카페에 붙이면 클릭이 자동 집계됩니다 · 노출·주문·매출·광고비는 셀 더블클릭 입력</span>
+    </div>
+    <div class="sheet-pad">
+      <div class="panel">
+        <h3>새 추적링크 만들기 <span class="tag">UTM 자동 + 단축링크</span></h3>
+        <div class="bd">
+          <div class="formgrid" style="grid-template-columns:1.4fr 1fr 130px 120px 1fr 1fr auto;align-items:end">
+            <div class="fld"><label>목적지 URL (상품·기획전 페이지)</label><input type="text" id="mlUrl" placeholder="https://www.pourstore.net/product/123"></div>
+            <div class="fld"><label>상품 (선택)</label><select id="mlProd"><option value="">— 선택 안 함</option></select></div>
+            <div class="fld"><label>매체(채널)</label><input type="text" id="mlChanIn" list="mlChanList" placeholder="네이버/메타/블로그…"><datalist id="mlChanList"></datalist></div>
+            <div class="fld"><label>유형</label><select id="mlTypeIn"></select></div>
+            <div class="fld"><label>캠페인</label><input type="text" id="mlCampaign" placeholder="예: 2026-06_옥상방수"></div>
+            <div class="fld"><label>라벨(게시글/소재명)</label><input type="text" id="mlLabel" placeholder="예: 네이버블로그_옥상누수후기"></div>
+            <button class="tbtn primary" id="mlAdd" style="height:34px">＋ 링크 생성</button>
+          </div>
+          <p class="footnote">· 생성하면 <b>단축추적링크</b>(클릭 자동집계)와 <b>UTM 파라미터</b>가 붙은 목적지 링크가 만들어집니다. "복사"로 광고/게시글에 붙여넣으세요.<br>· 유형을 <b>블로그·카페</b>로 두면 게시글별 유입을, <b>광고</b>로 두면 매체 광고 유입을 각각 집계합니다.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>추적링크 목록 <span class="tag">클릭=자동 · 전환=수기</span></h3>
+        <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="mlTable" style="width:100%"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Sheet: 프로모션 성과 ── -->
+  <section class="sheet" id="sh-mktpromo">
+    <div class="toolrow">
+      <span class="ttl">프로모션 성과</span>
+      <span class="hint">프로모션 기간의 매출을 평시(기준)와 비교해 증분매출·ROAS를 봅니다 · 셀 더블클릭 수정</span>
+    </div>
+    <div class="sheet-pad">
+      <div class="panel">
+        <h3>프로모션 등록 <span class="tag">기간·할인·매출</span></h3>
+        <div class="bd">
+          <div class="formgrid" style="grid-template-columns:1.3fr 120px 120px 1fr 130px 130px 120px auto;align-items:end">
+            <div class="fld"><label>프로모션명</label><input type="text" id="pmName" placeholder="예: 6월 옥상방수 기획전"></div>
+            <div class="fld"><label>시작일</label><input type="date" id="pmStart"></div>
+            <div class="fld"><label>종료일</label><input type="date" id="pmEnd"></div>
+            <div class="fld"><label>대상 상품</label><input type="text" id="pmProducts" placeholder="예: 코트재, 하이퍼티"></div>
+            <div class="fld"><label>평시 매출/일 (기준)</label><input type="number" id="pmBaseline" placeholder="원"></div>
+            <div class="fld"><label>프로모션 총매출</label><input type="number" id="pmActual" placeholder="원"></div>
+            <div class="fld"><label>광고비</label><input type="number" id="pmSpend" placeholder="원"></div>
+            <button class="tbtn primary" id="pmAdd" style="height:34px">＋ 추가</button>
+          </div>
+          <p class="footnote">· <b>증분매출</b> = 프로모션 총매출 − (평시 매출/일 × 기간일수). <b>증분 ROAS</b> = 증분매출 ÷ 광고비. 프로모션이 실제로 매출을 얼마나 끌어올렸는지 봅니다.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>프로모션 목록·성과</h3>
+        <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="pmTable" style="width:100%"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Sheet: 계정 관리 (마스터 계정) ── -->
+  <section class="sheet" id="sh-access">
+    <div class="toolrow">
+      <span class="ttl">계정 관리</span>
+      <span class="hint">공급업체·매입처·제품상품매칭 보안구역은 여기서 지정한 <b>마스터 계정</b>(이메일 인증)만 볼 수 있습니다</span>
+    </div>
+    <div class="sheet-pad" id="accessBody"></div>
+  </section>
+
+</div>
+
+<!-- ═══ 시트 탭 ═══ -->
+<div id="tabs">
+  <button class="stab on" data-sh="sh-dash"><span class="dot"></span>경영요약</button>
+  <button class="stab" data-sh="sh-price"><span class="dot"></span>가격정책표</button>
+  <button class="stab" data-sh="sh-chman"><span class="dot"></span>채널 관리</button>
+  <button class="stab" data-sh="sh-reg"><span class="dot"></span>제조사·제품·상품 등록</button>
+  <button class="stab" data-sh="sh-match"><span class="dot"></span>제품·상품 매칭 <span id="tabLockIcon" style="font-size:10px">🔒</span></button>
+  <button class="stab" data-sh="sh-channel"><span class="dot"></span>채널 수익분석</button>
+  <button class="stab" data-sh="sh-moq"><span class="dot"></span>MOQ 대량판매</button>
+  <button class="stab" data-sh="sh-pl"><span class="dot"></span>손익·공헌이익</button>
+  <button class="stab" data-sh="sh-fixed"><span class="dot"></span>고정지출 관리</button>
+  <button class="stab" data-sh="sh-mkt"><span class="dot"></span>마케팅 개요</button>
+  <button class="stab" data-sh="sh-mktlink"><span class="dot"></span>추적링크</button>
+  <button class="stab" data-sh="sh-mktpromo"><span class="dot"></span>프로모션 성과</button>
+  <button class="stab" data-sh="sh-access"><span class="dot"></span>계정 관리</button>
+</div>
+
+<!-- ═══ 퀵 마진 계산기 ═══ -->
+<button id="calcFab"><span class="sym">fx</span> 마진계산기</button>
+<div id="calcPanel">
+  <div class="hd">퀵 마진 계산기 — 업체 협의용 <button id="calcClose">✕</button></div>
+  <div class="mode" id="calcMode">
+    <button data-m="fwd" class="on">공급가 → 마진</button>
+    <button data-m="rev">목표마진율 → 공급가</button>
+    <button data-m="split">이익 배분 점검</button>
+  </div>
+  <div class="bd">
+    <div class="formgrid" style="grid-template-columns:1fr 1fr">
+      <div class="fld"><label>제품 불러오기 (선택)</label>
+        <select id="calcProd" style="grid-column:1/-1"><option value="">직접 입력</option></select>
+      </div>
+      <div class="fld"><label>매입원가 (원/개)</label><input type="number" id="cCost" placeholder="예: 60000"></div>
+      <div class="fld" id="fldPrice"><label>공급가 (원/개)</label><input type="number" id="cPrice" placeholder="예: 145700"></div>
+      <div class="fld" id="fldTarget" style="display:none"><label>목표 마진율 (%)</label><input type="number" id="cTarget" value="35" step="0.5"></div>
+      <div class="fld" id="fldRetail" style="display:none"><label>소비자 정가 (원/개)</label><input type="number" id="cRetail" placeholder="예: 177500"></div>
+      <div class="fld"><label>수량 (개)</label><input type="number" id="cQty" value="1" min="1"></div>
+      <div class="fld"><label>수수료·기타 변동비 (%)</label><input type="number" id="cFee" value="0" step="0.1"></div>
+    </div>
+    <div class="res" id="calcRes"></div>
+    <p class="note">마진율 = 마진 ÷ 공급가(매출) 기준. 협상 중 상대 화면에 바로 보여주며 쓸 수 있습니다.</p>
+  </div>
+</div>
+<script>
+/* ══════════ Firebase (신규 프로젝트: pourstoreproject) ══════════ */
+firebase.initializeApp({
+  apiKey:"AIzaSyB9VC75Hs8eAdXxy9n2aVsCeFUnCGX4xhA",
+  authDomain:"pourstoreproject.firebaseapp.com",
+  projectId:"pourstoreproject",
+  storageBucket:"pourstoreproject.firebasestorage.app",
+  messagingSenderId:"549863414475",
+  appId:"1:549863414475:web:9c696d7f85d82a7b7bd94e"
+});
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+/* ══════════ 데이터 컨테이너 ══════════
+   실제 값(원가·공급가·채널·계수·매입처)은 이 코드에 없다.
+   로그인 후 Firestore(pourstoreproject)에서 로드해 아래 변수에 채운다.
+   RAW 행 형식: {cat, name, spec, cost, pr:{채널uid:공급가}} */
+let CH_DEF=[];            // channels  (표시순서 ord 포함)
+let RAW=[];              // products
+let SEC_BLOB='';          // config/secure.blob (AES-256-GCM 암호문)
+let MOQ_TIERS=[];         // config/calc.moqTiers (max:null → Infinity 복원)
+let CH_VAR_DEFAULT={};    // config/calc.chVar
+let CODE_RANK={};         // config/calc.codeRank
+let ACCESS=null;          // config/access {masterEmail, ...} — 마스터 계정 지정
+let curUser=null;         // 현재 로그인 사용자 (Firebase Auth)
+/* secAllowed: "마스터 계정 + 이메일 인증" 일 때만 공급업체·매칭 노출.
+   최종 판정은 Firestore 규칙(서버)에서 강제 — 클라이언트 수정으로 우회 불가. */
+let secAllowed=false;    // 마스터 + 이메일 인증 → 공급업체·매칭(암호문)
+let dataAllowed=false;   // 허용목록(또는 마스터) → 채널·제품·마진 등 일반 데이터
+function _emailLc(){ return ((curUser&&curUser.email)||'').toLowerCase(); }
+function _masterLc(){ return (ACCESS&&ACCESS.masterEmail)?String(ACCESS.masterEmail).toLowerCase():''; }
+function _allowLc(){ return (ACCESS&&Array.isArray(ACCESS.allowedEmails)?ACCESS.allowedEmails:[]).map(e=>String(e).toLowerCase()); }
+function recomputeSecAllowed(){
+  const email=_emailLc(), master=_masterLc();
+  secAllowed = !!master && email===master && !!(curUser&&curUser.emailVerified);
+  return secAllowed;
+}
+function recomputeDataAllowed(){
+  const email=_emailLc(), master=_masterLc();
+  dataAllowed = !!email && (email===master || _allowLc().includes(email));
+  return dataAllowed;
+}
+
+/* ── Firestore 로더 (orderBy 미사용 → 클라이언트 정렬 · 개수 로그 · 실패는 throw) ── */
+async function fetchChannels(){
+  const snap=await db.collection('channels').get();
+  console.log(`[channels] ${snap.size}건 로드`);
+  const arr=snap.docs.map(d=>({uid:d.id, ...d.data()}));
+  arr.sort((a,b)=>(a.ord??0)-(b.ord??0));
+  return arr;
+}
+async function fetchProducts(){
+  const snap=await db.collection('products').get();
+  console.log(`[products] ${snap.size}건 로드`);
+  const arr=snap.docs.map(d=>d.data());
+  arr.sort((a,b)=>(a.seq??0)-(b.seq??0));
+  return arr;
+}
+async function fetchAccess(){
+  // 계정 관리 문서 로드 → 허용목록/마스터 판정 (규칙상 로그인 사용자 읽기 허용)
+  const access = await db.collection('config').doc('access').get()
+    .then(d=>d.exists?d.data():null)
+    .catch(e=>{ console.warn('[config/access] 로드 실패:', e.code||e.message||e); return null; });
+  ACCESS = access;
+  recomputeSecAllowed(); recomputeDataAllowed();
+  console.log(`[access] master:${(ACCESS&&ACCESS.masterEmail)||'-'} · dataAllowed:${dataAllowed} · secAllowed:${secAllowed}`);
+}
+async function fetchConfig(){
+  // calc(공통 상수) + secure(대외비 암호문 — 마스터+이메일인증만 규칙상 읽기 가능)
+  const calc = await db.collection('config').doc('calc').get();
+  let secure=null;
+  if(secAllowed){
+    secure = await db.collection('config').doc('secure').get()
+      .then(d=>d.exists?d.data():null)
+      .catch(e=>{ console.warn('[config/secure] 읽기 거부/실패(마스터 아님?):', e.code||e.message||e); return null; });
+  }
+  console.log(`[config] calc:${calc.exists?'O':'X'} secure:${secure?'O':'X'} · secAllowed:${secAllowed}`);
+  return { secure, calc: calc.exists?calc.data():null };
+}
+/* Firestore 로드본을 앱 자료구조로 변환 */
+function applyLoaded(channels, products, config){
+  CH_DEF = channels;
+  RAW = products.map(p=>({cat:p.cat,name:p.name,spec:p.spec,cost:p.cost,pr:p.pr||{}}));
+  if(config){
+    SEC_BLOB = (config.secure&&config.secure.blob)||'';
+    if(config.calc){
+      MOQ_TIERS = (config.calc.moqTiers||[]).map(t=>({label:t.label,f:t.f,min:t.min,max:t.max==null?Infinity:t.max}));
+      CH_VAR_DEFAULT = config.calc.chVar||{};
+      CODE_RANK = config.calc.codeRank||{};
+    }
+  }
+}
+
+/* ── 보안 영역: 매입처 매칭 (복호화는 클라이언트, SEC_BLOB 은 Firestore 에서 로드) ── */
+let SUPPLIERS=null; /* 잠금 해제 시 복호화되어 채워짐 */
+function matchSupplier(p){
+  if(!SUPPLIERS)return["",""];
+  if(p.cat==='패키지')return["㈜넷폼알앤디 (세트 구성)",""];
+  for(const[k,x,m]of SUPPLIERS)if(p.name.includes(k))return[x,m];
+  return["",""];
+}
+</script>
+<script>
+/* ══════════ 헬퍼 ══════════ */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const won=v=>v==null||isNaN(v)?'—':Math.round(v).toLocaleString('ko-KR');
+const wonU=v=>v==null||isNaN(v)?'—':Math.round(v).toLocaleString('ko-KR')+'원';
+const pct=v=>v==null||!isFinite(v)?'—':(v*100).toFixed(1)+'%';
+const margin=(price,cost)=>(price==null||cost==null)?null:price-cost;
+const mrate=(price,cost)=>{const m=margin(price,cost);return(m==null||!price)?null:m/price;};
+const esc=t=>String(t??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+
+/* ══════════ 상태 ══════════ */
+const LS_KEY='pour-price-dash-v5';   // 일반 데이터(원가·판매가·채널설정·제조사·고정지출)
+const LS_SEC='pour-sec-edit-v1';     // 보안 데이터 편집본(암호화 저장)
+const LS_BASE='pour-sec-base-v1';    // 비밀번호 변경 시 재암호화된 원본
+const LS_FAIL='pour-sec-fail-v1';
+
+// CHANNELS/P/BASE_N 는 Firestore 로드 후 buildState() 에서 채운다 (부팅 지연)
+let CHANNELS=[];
+let uidSeq=100;
+let P=[];
+let BASE_N=0;                        // 원본(로드) 제품 수 — 이 뒤로는 직접 추가한 제품
+let M=[];                            // 상품명 매칭 — 잠금 해제 후
+let unlocked=false, secPw=null, RAW_MATCH=null;
+
+/* ── 제조사 마스터 · 고정지출 (일반 저장, 이 브라우저에만 보관) ── */
+let MFG=[];    let mfgSeq=1;          // {id,name,mgr,tel,memo}
+let FX=[];     let fxSeq=1;          // {id,g,name,amt,cycle:'월간'|'연간',memo,on}
+const FX_GROUPS_SEED=['인건비','플랫폼·서비스','임대·관리','기타'];
+
+/* 채널 헬퍼 */
+const COLS=()=>CHANNELS.filter(c=>c.col);
+const chBy=r=>CHANNELS.find(c=>c.role===r)||null;
+const chByUid=u=>CHANNELS.find(c=>c.uid===u)||null;
+const retailUid=()=>{const c=chBy('retail');return c?c.uid:null;};
+const dealerUid=()=>{const c=chBy('dealer');return c?c.uid:null;};
+const gp=(p,uid)=>uid&&p.pr[uid]!=null?p.pr[uid]:null;
+const retailOf=p=>gp(p,retailUid());
+const chLabel=c=>`${c.code}·${c.name}`;
+
+const LS_LEGACY='pour-price-dash-v4';
+function loadSaved(){                        // buildState() 에서 호출 (Firestore 로드 후)
+  let s=null;
+  try{ s=JSON.parse(localStorage.getItem(LS_KEY)||'null'); }catch(e){}
+  if(!s){                                   // v4 → v5 마이그레이션
+    try{
+      const old=JSON.parse(localStorage.getItem(LS_LEGACY)||'null');
+      if(old){
+        if(old.CH){ CHANNELS=old.CH; uidSeq=old.seq||100; }
+        if(old.P&&old.P.length===BASE_N) old.P.forEach((r,i)=>{ P[i].cost=r.c; P[i].pr=r.pr||{}; });
+      }
+    }catch(e){}
+    return;
+  }
+  try{
+    if(s.CH){ CHANNELS=s.CH; uidSeq=s.seq||100; }
+    if(s.Pedit) s.Pedit.forEach((r,i)=>{ if(P[i]){ P[i].cost=r.c; P[i].pr=r.pr||{}; if(r.mfg!=null)P[i].mfg=r.mfg; if(r.cat)P[i].cat=r.cat; if(r.name)P[i].name=r.name; if(r.spec!=null)P[i].spec=r.spec; } });
+    if(s.Padd) s.Padd.forEach(r=>{ P.push({id:P.length,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:r.pr||{},sup:'',mgr:'',mfg:r.mfg||'',added:true}); });
+    if(Array.isArray(s.MFG)){ MFG=s.MFG; mfgSeq=s.mfgSeq||(MFG.reduce((m,x)=>Math.max(m,x.id),0)+1); }
+    if(Array.isArray(s.FX)){ FX=s.FX; fxSeq=s.fxSeq||(FX.reduce((m,x)=>Math.max(m,x.id),0)+1); }
+  }catch(e){}
+}
+function persist(){
+  localStorage.setItem(LS_KEY, JSON.stringify({
+    CH:CHANNELS, seq:uidSeq,
+    Pedit:P.slice(0,BASE_N).map(x=>({c:x.cost,pr:x.pr,mfg:x.mfg||'',cat:x.cat,name:x.name,spec:x.spec})),
+    Padd:P.slice(BASE_N).map(x=>({cat:x.cat,name:x.name,spec:x.spec,cost:x.cost,pr:x.pr,mfg:x.mfg||''})),
+    MFG, mfgSeq, FX, fxSeq
+  }));
+}
+async function persistSecure(){
+  if(!unlocked||!secPw)return;
+  const payload={
+    sup:P.map(x=>x.sup), mgr:P.map(x=>x.mgr),
+    M:M.filter(x=>!x.added).map(x=>({i:x.item,c:x.cost,p:x.price})),
+    Madd:M.filter(x=>x.added).map(x=>({item:x.item,src:x.src,color:x.color,cost:x.cost,price:x.price}))
+  };
+  localStorage.setItem(LS_SEC, await encryptJson(payload,secPw));
+}
+
+/* ══════════ 보안 엔진 (AES-256-GCM · PBKDF2 20만회) ══════════ */
+const b64e=buf=>btoa(String.fromCharCode(...new Uint8Array(buf)));
+const b64d=str=>Uint8Array.from(atob(str),c=>c.charCodeAt(0));
+async function deriveKey(pw,salt,usage){
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:200000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,usage);
+}
+async function decryptBlob(blob,pw){
+  const raw=b64d(blob), salt=raw.slice(0,16), iv=raw.slice(16,28), ct=raw.slice(28);
+  const key=await deriveKey(pw,salt,['decrypt']);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+async function encryptJson(obj,pw){
+  const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await deriveKey(pw,salt,['encrypt']);
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(JSON.stringify(obj))));
+  const out=new Uint8Array(16+12+ct.length); out.set(salt); out.set(iv,16); out.set(ct,28);
+  return b64e(out);
+}
+function failState(){ try{return JSON.parse(localStorage.getItem(LS_FAIL)||'{"n":0,"until":0}');}catch(e){return{n:0,until:0};} }
+function setFail(f){ localStorage.setItem(LS_FAIL,JSON.stringify(f)); }
+async function unlock(pw){
+  const f=failState(), now=Date.now();
+  if(now<f.until) throw new Error('시도 제한 중입니다. '+Math.ceil((f.until-now)/1000)+'초 후 다시 시도하세요.');
+  let data;
+  try{ data=await decryptBlob(localStorage.getItem(LS_BASE)||SEC_BLOB,pw); }
+  catch(e){
+    const nf={n:f.n+1,until:0};
+    if(nf.n>=5){ nf.until=now+60000; nf.n=0; }
+    setFail(nf);
+    throw new Error(nf.until?'5회 실패 — 60초간 잠금됩니다.':'비밀번호가 올바르지 않습니다. ('+nf.n+'/5)');
+  }
+  setFail({n:0,until:0});
+  SUPPLIERS=data.S; RAW_MATCH=data.M;
+  unlocked=true; secPw=pw;
+  P.forEach(p=>{ const[a,b]=matchSupplier(p); p.sup=a; p.mgr=b; });
+  M=RAW_MATCH.map((r,i)=>({id:i,item:r[0],src:r[1],color:r[2],cost:r[3],price:r[4],added:false}));
+  try{
+    const sec=localStorage.getItem(LS_SEC);
+    if(sec){
+      const ed=await decryptBlob(sec,pw);
+      if(ed.sup) ed.sup.forEach((v,i)=>{ if(P[i]){ P[i].sup=v; P[i].mgr=(ed.mgr&&ed.mgr[i])||''; } });
+      if(ed.M) ed.M.forEach((row,i)=>{ if(M[i]){ M[i].item=row.i; M[i].cost=row.c; M[i].price=row.p; } });
+      if(ed.Madd) ed.Madd.forEach(r=>{ M.push({id:M.length,item:r.item,src:r.src,color:r.color,cost:r.cost,price:r.price,added:true}); });
+    }
+  }catch(e){}
+  renderSecUI(); refreshAll(); armAutoLock();
+}
+function lock(){
+  unlocked=false; secPw=null; SUPPLIERS=null; RAW_MATCH=null; M=[];
+  P.forEach(p=>{ p.sup=''; p.mgr=''; });
+  $('#pwInput').value='';
+  renderSecUI(); refreshAll();
+}
+let alTimer=null;
+function armAutoLock(){
+  if(alTimer)clearTimeout(alTimer);
+  if(unlocked) alTimer=setTimeout(()=>{ lock(); },15*60*1000);
+}
+['click','keydown'].forEach(ev=>document.addEventListener(ev,()=>{ if(unlocked)armAutoLock(); }));
+function renderSecUI(){
+  const na=$('#secNoAccess');
+  if(!secAllowed){                                  // 마스터 아님 → 접근 자체 차단
+    if(na) na.style.display='';
+    $('#lockScreen').style.display='none';
+    $('#matchContent').style.display='none';
+    $('#pwChangeBox').style.display='none';
+    ['#mq','#btnSaveMatch','#btnLock','#btnPwChange'].forEach(s=>{const el=$(s);if(el)el.style.display='none';});
+    $('#secStatus').className='pill r'; $('#secStatus').textContent='🔒 권한 없음';
+    $('#tabLockIcon').textContent='🔒';
+    $('#secHint').textContent='마스터 계정(이메일 인증)만 접근할 수 있는 보안 구역입니다 — [계정 관리] 참고';
+    return;
+  }
+  if(na) na.style.display='none';
+  $('#lockScreen').style.display=unlocked?'none':'';
+  $('#matchContent').style.display=unlocked?'':'none';
+  $('#pwChangeBox').style.display='none';
+  $('#mq').style.display=unlocked?'':'none';
+  $('#btnSaveMatch').style.display=unlocked?'':'none';
+  $('#btnLock').style.display=unlocked?'':'none';
+  $('#btnPwChange').style.display=unlocked?'':'none';
+  $('#secStatus').className='pill '+(unlocked?'g':'r');
+  $('#secStatus').textContent=unlocked?'🔓 해제됨':'🔒 잠김';
+  $('#tabLockIcon').textContent=unlocked?'🔓':'🔒';
+  $('#secHint').textContent=unlocked
+    ?'공급업체·연락처·상품명·가격 셀은 더블클릭으로 수정 · 저장 시 암호화되어 보관됩니다'
+    :'공급업체·연락처는 AES-256으로 암호화되어 있습니다 — 비밀번호로 잠금을 해제하세요';
+}
+/* 계정 기반 노출 제어: 매칭 탭·보안 등록폼 표시 여부 + 잘못된 위치면 이동 */
+function applySecGating(){
+  const tab=document.querySelector('.stab[data-sh="sh-match"]');
+  if(tab) tab.style.display=secAllowed?'':'none';
+  if(!secAllowed){
+    if(unlocked) lock();                            // 혹시 열려 있으면 강제 잠금
+    const cur=document.querySelector('.stab.on');
+    if(cur&&cur.dataset.sh==='sh-match') gotoTab('sh-dash');
+  }
+  // 제조사(공급업체) 정보: 마스터 전용 — 일반계정에선 등록 패널·제조사 입력칸 숨김
+  const mfgPanel=$('#regMfgPanel'); if(mfgPanel) mfgPanel.style.display=secAllowed?'':'none';
+  const mfgFld=$('#apMfgFld'); if(mfgFld) mfgFld.style.display=secAllowed?'':'none';
+  renderAccess();
+}
+
+/* ══════════ 계정 관리 (마스터 계정) ══════════ */
+async function reloadAccess(){
+  try{
+    const d=await db.collection('config').doc('access').get();
+    ACCESS=d.exists?d.data():null;
+  }catch(e){ console.warn('[config/access] 재로드 실패:', e.code||e); }
+  recomputeSecAllowed(); recomputeDataAllowed();
+}
+async function refreshVerifyState(){                // 이메일 인증 링크 클릭 후 토큰 최신화
+  if(!curUser)return;
+  try{ await curUser.reload(); await curUser.getIdToken(true); curUser=auth.currentUser; }catch(e){ console.warn('reload 실패',e.code||e); }
+  recomputeSecAllowed(); recomputeDataAllowed();
+}
+function accMsg(t,ok){ const el=$('#accMsg'); if(el){ el.style.color=ok?'var(--xl-green-dark)':'var(--red)'; el.textContent=t; } }
+function renderAccess(){
+  const box=$('#accessBody'); if(!box)return;
+  const email=(curUser&&curUser.email)||'—';
+  const verified=!!(curUser&&curUser.emailVerified);
+  const master=(ACCESS&&ACCESS.masterEmail)||'';
+  const isMaster=!!master && email.toLowerCase()===String(master).toLowerCase();
+  const vBadge=verified?'<span class="pill g">✔ 이메일 인증됨</span>':'<span class="pill a">이메일 미인증</span>';
+  const mBadge=master?(isMaster?'<span class="pill g">현재 계정 = 마스터</span>':'<span class="pill r">다른 계정이 마스터</span>'):'<span class="pill a">마스터 미설정</span>';
+  let actions='';
+  if(!master){
+    actions=`<div class="panel"><h3>① 마스터 계정 설정 <span class="tag">최초 1회</span></h3><div class="bd">
+      <p class="footnote" style="margin-bottom:10px">현재 로그인한 <b>${esc(email)}</b> 계정을 이 대시보드의 <b>마스터 계정</b>으로 설정합니다.
+      설정 후에는 <b>마스터 본인(이메일 인증)만</b> 변경할 수 있으며, 코드 수정으로는 바꿀 수 없습니다(Firestore 규칙이 서버에서 차단).</p>
+      ${verified
+        ? `<button class="tbtn primary" id="btnSetMaster">이 계정을 마스터로 설정</button>`
+        : `<p class="footnote" style="color:var(--red)">· 먼저 이메일 인증이 필요합니다. 아래 "인증메일 보내기"로 인증을 완료한 뒤 다시 시도하세요.</p>`}
+    </div></div>`;
+  }else if(isMaster){
+    const phone=(ACCESS&&ACCESS.masterPhone)||'';
+    const workerUrl=(ACCESS&&ACCESS.otpWorkerUrl)||'';
+    const readyChange=verified&&!!workerUrl&&!!phone;
+    actions=`<div class="panel"><h3>② 마스터 계정 변경 <span class="tag">SMS 인증(OTP) 필수</span></h3><div class="bd">
+      <div class="formgrid" style="grid-template-columns:minmax(220px,1fr) auto;align-items:end;margin-bottom:10px">
+        <div class="fld"><label>OTP Worker URL <span style="color:var(--ink-faint)">(pour-master-otp 배포 후 입력)</span></label><input type="text" id="otpUrl" value="${esc(workerUrl)}" placeholder="https://pour-master-otp.<계정>.workers.dev"></div>
+        <button class="tbtn" id="btnSaveOtpUrl" style="height:42px" ${verified?'':'disabled'}>URL 저장</button>
+      </div>
+      <div class="formgrid" style="grid-template-columns:minmax(220px,1fr) auto;align-items:end;margin-bottom:12px">
+        <div class="fld"><label>마스터 휴대폰(OTP 수신)${phone?' — 등록됨':''}</label><input type="tel" id="masterPhone" value="${esc(phone)}" placeholder="01012345678" ${phone?'disabled':''}></div>
+        ${phone?'<span class="footnote" style="align-self:center;max-width:180px">번호 변경은 OTP 변경 절차에서만 가능</span>':`<button class="tbtn" id="btnSavePhone" style="height:42px" ${verified?'':'disabled'}>번호 등록</button>`}
+      </div>
+      <div class="formgrid" style="grid-template-columns:minmax(220px,1fr) auto;align-items:end;border-top:1px dashed var(--xl-grid);padding-top:12px">
+        <div class="fld"><label>새 마스터 계정 이메일 (Firebase 계정이어야 함)</label><input type="email" id="newMasterEmail" placeholder="new-master@example.com"></div>
+        <button class="tbtn primary" id="btnOtpRequest" style="height:42px" ${readyChange?'':'disabled'}>인증코드 발송(SMS)</button>
+      </div>
+      <div class="formgrid" id="otpConfirmRow" style="display:none;grid-template-columns:minmax(160px,240px) auto;align-items:end;margin-top:10px">
+        <div class="fld"><label>SMS 인증코드 6자리</label><input type="text" id="otpCode" inputmode="numeric" maxlength="6" placeholder="① ② ③ ④ ⑤ ⑥"></div>
+        <button class="tbtn primary" id="btnOtpConfirm" style="height:42px">변경 확정</button>
+      </div>
+      <p class="footnote">· 마스터 변경은 <b>현재 마스터 휴대폰</b>으로 온 6자리 코드(3분 유효)를 입력해야 완료됩니다. masterEmail 은 Firestore 규칙상 <b>이 OTP 절차(서버)로만</b> 바뀝니다 — 앱 코드·개발자도구로는 불가.
+      ${verified?'':'<br>· 먼저 이메일 인증이 필요합니다.'}${workerUrl?'':'<br>· 먼저 OTP Worker 를 배포하고 위에 URL 을 저장하세요.'}${phone?'':'<br>· 먼저 마스터 휴대폰번호를 등록하세요.'}</p>
+    </div></div>`;
+  }else{
+    actions=`<div class="panel"><h3>② 마스터 계정 변경</h3><div class="bd">
+      <p class="footnote">· 마스터 계정(<b>${esc(master)}</b>)만 변경할 수 있습니다. 현재 계정에는 변경 권한이 없습니다.</p></div></div>`;
+  }
+  // 열람 허용목록 (마스터만 편집 가능)
+  const list=(ACCESS&&Array.isArray(ACCESS.allowedEmails))?ACCESS.allowedEmails:[];
+  let allowPanel='';
+  if(master){
+    const rows = list.length
+      ? list.map(e=>{
+          const isM=String(e).toLowerCase()===String(master).toLowerCase();
+          return `<tr><td class="name">${esc(e)}${isM?' <span class="pill g">마스터</span>':''}</td>
+            <td style="text-align:center;width:80px">${(isMaster&&!isM)?`<button class="tbtn" data-allowdel="${esc(e)}" style="color:var(--red);padding:2px 9px;font-size:11px">삭제</button>`:'—'}</td></tr>`;
+        }).join('')
+      : `<tr><td class="dim" colspan="2" style="padding:10px">허용된 계정이 없습니다. 마스터는 항상 접근할 수 있습니다.</td></tr>`;
+    allowPanel=`<div class="panel"><h3>③ 열람 허용 계정 <span class="tag">여기 있는 계정만 데이터 열람</span></h3><div class="bd">
+      ${isMaster?`<div class="formgrid" style="grid-template-columns:minmax(220px,1fr) auto;align-items:end;margin-bottom:12px">
+        <div class="fld"><label>허용할 계정 이메일 (미리 Firebase Authentication에 계정 생성 필요)</label><input type="email" id="allowEmail" placeholder="teammate@netformrnd.com"></div>
+        <button class="tbtn primary" id="btnAllowAdd" style="height:42px" ${verified?'':'disabled'}>추가</button>
+      </div>`:`<p class="footnote" style="margin-bottom:10px">· 허용목록 편집은 마스터 계정만 가능합니다.</p>`}
+      <table class="grid" style="width:100%"><thead><tr><th>이메일</th><th style="width:80px">삭제</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="footnote">· 목록에 없는 계정은 로그인해도 데이터가 보이지 않습니다(서버에서 차단). 공급업체·매칭은 이 중 <b>마스터</b>만 볼 수 있습니다.
+      ${verified?'':'<br>· 편집하려면 먼저 이메일 인증이 필요합니다.'}</p>
+    </div></div>`;
+  }
+  box.innerHTML=`
+    <div class="cards" style="margin-bottom:14px">
+      <div class="card"><h4>현재 로그인 계정</h4><div class="big" style="font-size:15px;word-break:break-all">${esc(email)}</div><div class="foot" style="margin-top:6px">${vBadge}</div></div>
+      <div class="card"><h4>마스터 계정</h4><div class="big" style="font-size:15px;word-break:break-all">${master?esc(master):'미설정'}</div><div class="foot" style="margin-top:6px">${mBadge}</div></div>
+      <div class="card"><h4>보안구역 접근</h4><div class="big" style="font-size:15px">${secAllowed?'🔓 허용':'🔒 차단'}</div><div class="foot">공급업체·매입처·제품상품매칭</div></div>
+    </div>
+    <div class="panel"><h3>이메일 인증 <span class="tag">보안구역 접근·마스터 변경 조건</span></h3><div class="bd">
+      <p class="footnote" style="margin-bottom:10px">보안구역은 <b>이메일 인증을 완료한 마스터 계정</b>만 접근할 수 있습니다(Firestore 규칙에서 <code>email_verified</code> 강제).</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="tbtn" id="btnSendVerify" ${verified?'disabled':''}>인증메일 보내기</button>
+        <button class="tbtn" id="btnRefreshVerify">인증 완료 후 새로고침</button>
+      </div>
+    </div></div>
+    ${actions}
+    ${allowPanel}
+    <p id="accMsg" style="font-size:12px;margin-top:6px;min-height:16px"></p>
+    <p class="footnote">· 이 접근 제어는 <b>서버(Firestore 보안규칙)</b>에서 강제됩니다. 클라이언트 HTML/JS 를 수정하거나 개발자도구로 화면을 열어도, 허용목록·마스터 계정이 아니면 데이터를 서버가 내려주지 않습니다.
+    <br>· 권한은 <b>계정 기준</b>입니다(장소·IP·기기 제한 아님) — 허용된 계정으로 로그인하면 <b>어느 PC·어느 장소에서든</b> 동일하게 데이터가 보입니다. 데이터가 안 보이면 위 <b>이메일 인증 → 마스터 설정/허용목록</b> 상태를 확인하세요.
+    <br>· <b>콘솔(console.firebase.google.com) 접근은 이 규칙과 별개</b>입니다 — 프로젝트 설정 → 사용자 및 권한에서 콘솔 접근 인원을 최소화하세요.</p>`;
+  // 핸들러 바인딩
+  const on=(id,fn)=>{const el=$('#'+id); if(el)el.addEventListener('click',fn);};
+  on('btnSendVerify',async()=>{
+    try{ await curUser.sendEmailVerification(); accMsg('인증메일을 보냈습니다. 메일의 링크를 클릭한 뒤 "인증 완료 후 새로고침"을 누르세요.',true); }
+    catch(e){ accMsg('인증메일 발송 실패: '+(e.code||e.message||e)); }
+  });
+  on('btnRefreshVerify',async()=>{ accMsg('새로고침 중…',true); await refreshVerifyState(); refreshAll(); accMsg(curUser&&curUser.emailVerified?'이메일 인증이 확인되었습니다.':'아직 미인증 상태입니다. 메일의 링크를 클릭했는지 확인하세요.', !!(curUser&&curUser.emailVerified)); });
+  on('btnSetMaster',async()=>{
+    if(!confirm(`이 계정(${email})을 마스터로 설정할까요?\n설정 후에는 마스터 본인만 변경할 수 있습니다.`))return;
+    // 이메일 인증 직후에는 ID토큰의 email_verified 클레임이 아직 갱신 전일 수 있어
+    // 서버 규칙이 거부(permission-denied)한다. 쓰기 전에 토큰을 강제 갱신해 자가 치유한다.
+    accMsg('인증 상태 확인 중…',true);
+    try{ await curUser.reload(); await curUser.getIdToken(true); curUser=auth.currentUser; }catch(e){ console.warn('토큰 갱신 실패',e.code||e); }
+    if(!(curUser&&curUser.emailVerified)){
+      renderAccess();
+      accMsg('이메일 인증이 아직 완료되지 않았습니다. 위 "인증메일 보내기" 링크를 클릭한 뒤 다시 시도하세요.');
+      return;
+    }
+    try{
+      await db.collection('config').doc('access').set({masterEmail:curUser.email,allowedEmails:[curUser.email],createdAt:new Date().toISOString(),createdBy:curUser.email});
+      accMsg('마스터 계정으로 설정되었습니다. 데이터를 불러옵니다…',true);
+      setTimeout(()=>location.reload(),700);   // 부트스트랩 후 정상 로드
+    }catch(e){
+      const code=e.code||e.message||e;
+      accMsg('설정 실패: '+code+(code==='permission-denied'?' — 지정 마스터 계정(songhee44@netformrnd.com)이며 이메일 인증을 마쳤는지 확인하세요.':''));
+    }
+  });
+  on('btnSaveOtpUrl',async()=>{
+    const url=($('#otpUrl').value||'').trim().replace(/\/$/,'');
+    if(url&&!/^https?:\/\//.test(url)){ accMsg('URL은 http(s):// 로 시작해야 합니다.'); return; }
+    try{ await db.collection('config').doc('access').set({otpWorkerUrl:url,updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
+      await reloadAccess(); refreshAll(); accMsg('OTP Worker URL을 저장했습니다.',true);
+    }catch(e){ accMsg('저장 실패: '+(e.code||e.message||e)); }
+  });
+  on('btnSavePhone',async()=>{
+    const ph=($('#masterPhone').value||'').replace(/[^0-9]/g,'');
+    if(ph.length<10){ accMsg('휴대폰번호를 정확히 입력하세요.'); return; }
+    if(!confirm(`마스터 OTP 수신번호를 ${ph} 로 등록할까요?\n등록 후 번호 변경은 OTP 변경 절차에서만 가능합니다.`))return;
+    try{ await db.collection('config').doc('access').set({masterPhone:ph,updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
+      await reloadAccess(); refreshAll(); accMsg('마스터 휴대폰번호를 등록했습니다.',true);
+    }catch(e){ accMsg('등록 실패: '+(e.code||e.message||e)); }
+  });
+  const otpBase=()=>((ACCESS&&ACCESS.otpWorkerUrl)||'').replace(/\/$/,'');
+  on('btnOtpRequest',async()=>{
+    const ne=($('#newMasterEmail').value||'').trim();
+    if(!ne||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ne)){ accMsg('올바른 이메일을 입력하세요.'); return; }
+    if(!otpBase()){ accMsg('OTP Worker URL을 먼저 저장하세요.'); return; }
+    accMsg('현재 마스터 휴대폰으로 인증코드 발송 중…',true);
+    try{
+      const idToken=await curUser.getIdToken();
+      const res=await fetch(otpBase()+'/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken,newEmail:ne})});
+      const j=await res.json();
+      if(!res.ok||!j.ok){ accMsg('발송 실패: '+(j.error||res.status)); return; }
+      $('#otpConfirmRow').style.display='grid'; $('#otpCode').focus();
+      accMsg('인증코드를 발송했습니다. 3분 내 6자리 코드를 입력하고 "변경 확정"을 누르세요.',true);
+    }catch(e){ accMsg('발송 오류: '+(e.message||e)); }
+  });
+  on('btnOtpConfirm',async()=>{
+    const code=($('#otpCode').value||'').replace(/[^0-9]/g,'');
+    if(code.length!==6){ accMsg('6자리 코드를 입력하세요.'); return; }
+    accMsg('인증 확인 중…',true);
+    try{
+      const idToken=await curUser.getIdToken();
+      const res=await fetch(otpBase()+'/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken,code})});
+      const j=await res.json();
+      if(!res.ok||!j.ok){ accMsg('확인 실패: '+(j.error||res.status)); return; }
+      alert('마스터 계정이 '+(j.newMaster||'')+' (으)로 변경되었습니다. 현재 계정은 권한을 잃습니다.');
+      location.reload();
+    }catch(e){ accMsg('확인 오류: '+(e.message||e)); }
+  });
+  on('btnAllowAdd',async()=>{
+    const ne=($('#allowEmail').value||'').trim();
+    if(!ne||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ne)){ accMsg('올바른 이메일을 입력하세요.'); return; }
+    try{
+      const nl=Array.from(new Set([...(list||[]),ne]));
+      await db.collection('config').doc('access').set({allowedEmails:nl,updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
+      await reloadAccess(); refreshAll(); accMsg(`${ne} 을(를) 허용목록에 추가했습니다.`,true);
+    }catch(e){ accMsg('추가 실패: '+(e.code||e.message||e)+' (마스터·이메일 인증 여부 확인)'); }
+  });
+  box.querySelectorAll('[data-allowdel]').forEach(b=>b.addEventListener('click',async()=>{
+    const em=b.dataset.allowdel;
+    if(!confirm(`${em} 을(를) 허용목록에서 제거할까요?`))return;
+    try{
+      const nl=(list||[]).filter(x=>String(x).toLowerCase()!==String(em).toLowerCase());
+      await db.collection('config').doc('access').set({allowedEmails:nl,updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
+      await reloadAccess(); refreshAll(); accMsg(`${em} 을(를) 제거했습니다.`,true);
+    }catch(e){ accMsg('제거 실패: '+(e.code||e.message||e)); }
+  }));
+}
+$('#btnUnlock').addEventListener('click',async()=>{
+  const pw=$('#pwInput').value;
+  if(!pw){ $('#pwMsg').textContent='비밀번호를 입력하세요.'; return; }
+  $('#pwMsg').style.color='var(--ink-faint)'; $('#pwMsg').textContent='복호화 중…';
+  try{ await unlock(pw); }
+  catch(e){ $('#pwMsg').style.color='var(--red)'; $('#pwMsg').textContent=e.message; }
+});
+$('#pwInput').addEventListener('keydown',e=>{ if(e.key==='Enter')$('#btnUnlock').click(); });
+$('#btnLock').addEventListener('click',lock);
+$('#btnPwChange').addEventListener('click',()=>{
+  $('#pwChangeBox').style.display=$('#pwChangeBox').style.display==='none'?'':'none';
+});
+$('#btnPwApply').addEventListener('click',async()=>{
+  const a=$('#pwNew1').value,b=$('#pwNew2').value,msg=$('#pwChangeMsg');
+  if(a.length<4){ msg.textContent='비밀번호가 너무 짧습니다.'; return; }
+  if(a!==b){ msg.textContent='두 입력이 일치하지 않습니다.'; return; }
+  localStorage.setItem(LS_BASE, await encryptJson({S:SUPPLIERS,M:RAW_MATCH},a));
+  secPw=a; localStorage.removeItem(LS_SEC); await persistSecure();
+  $('#pwNew1').value=''; $('#pwNew2').value='';
+  msg.textContent='변경되었습니다. 이 브라우저에서는 새 비밀번호로 열립니다 (다른 PC에서는 초기 비밀번호 사용).';
+});
+
+/* ══════════ 채널 관리 ══════════ */
+const GRP_COLOR=g=>g==='KR1'?'g':(g==='KR2'?'a':'r');
+function renderChMan(){
+  const groups=[...new Set(CHANNELS.map(c=>c.g))];
+  $('#grpList').innerHTML=groups.map(g=>`<option value="${esc(g)}">`).join('');
+  $('#chGroups').innerHTML=groups.map(g=>{
+    const list=CHANNELS.filter(c=>c.g===g);
+    let rows=list.map(c=>`
+      <tr data-uid="${c.uid}">
+        <td class="editable" data-cf="code" style="font-weight:700;color:var(--amber);font-family:var(--mono)">${esc(c.code)}</td>
+        <td class="editable name" data-cf="name">${esc(c.name)}</td>
+        <td class="editable dim" data-cf="short">${esc(c.short)}</td>
+        <td class="num editable" data-cf="tgt">${c.tgt!=null?won(c.tgt):'—'}</td>
+        <td><select data-cs="st" style="border:1px solid var(--xl-grid);border-radius:3px;padding:2px 4px;font-size:11.5px;background:${c.st==='운영'?'var(--xl-sel)':'#FCEFD9'}">
+          ${['운영','준비','중지'].map(o=>`<option ${o===c.st?'selected':''}>${o}</option>`).join('')}</select></td>
+        <td style="text-align:center"><input type="checkbox" data-cs="col" ${c.col?'checked':''}></td>
+        <td><select data-cs="role" style="border:1px solid var(--xl-grid);border-radius:3px;padding:2px 4px;font-size:11.5px">
+          <option value="" ${!c.role?'selected':''}>—</option>
+          <option value="retail" ${c.role==='retail'?'selected':''}>정가 기준</option>
+          <option value="dealer" ${c.role==='dealer'?'selected':''}>MOQ 하한</option>
+          <option value="export" ${c.role==='export'?'selected':''}>수출(참고)</option>
+        </select></td>
+        <td class="editable dim" data-cf="desc" style="max-width:280px;overflow:hidden;text-overflow:ellipsis">${esc(c.desc)||'—'}</td>
+        <td style="text-align:center"><button class="tbtn" data-cdel="${c.uid}" style="color:var(--red);padding:2px 9px;font-size:11px">삭제</button></td>
+      </tr>`).join('');
+    return `<div class="panel">
+      <h3>📁 ${esc(g)} <span class="tag">${list.length}개 채널 · 가격열 ${list.filter(c=>c.col).length}개 표시</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--ink-faint);font-weight:400">${g==='KR1'?'본사 직접 판매':g==='KR2'?'타업체 협업 판매':''}</span></h3>
+      <div class="bd" style="padding:0;overflow-x:auto">
+        <table class="grid" style="width:100%"><thead><tr>
+          <th style="min-width:56px">코드</th><th style="min-width:170px">채널명</th><th>짧은이름</th>
+          <th class="num" style="min-width:110px">목표 매출</th><th>상태</th><th>가격열</th><th style="min-width:100px">역할</th><th>설명</th><th></th>
+        </tr></thead><tbody>${rows}</tbody></table>
+      </div></div>`;
+  }).join('');
+}
+/* 채널 셀 편집 / 상태·역할·가격열 변경 / 삭제 */
+document.addEventListener('dblclick',e=>{
+  const td=e.target.closest('#chGroups td.editable'); if(!td||td.querySelector('input'))return;
+  const c=chByUid(td.closest('tr').dataset.uid), f=td.dataset.cf;
+  const isNum=f==='tgt';
+  td.innerHTML=`<input class="cellinput" style="text-align:${isNum?'right':'left'}" type="${isNum?'number':'text'}" value="${esc(c[f]==null?'':c[f])}">`;
+  const inp=td.querySelector('input'); inp.focus(); if(isNum)inp.select();
+  const commit=()=>{ c[f]=isNum?(inp.value===''?null:+inp.value):inp.value; refreshAll(); };
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')commit(); if(ev.key==='Escape')renderChMan(); });
+  inp.addEventListener('blur',commit);
+});
+document.addEventListener('change',e=>{
+  const el=e.target.closest('#chGroups [data-cs]'); if(!el)return;
+  const c=chByUid(el.closest('tr').dataset.uid), f=el.dataset.cs;
+  if(f==='col'){ c.col=el.checked; }
+  else if(f==='role'){
+    const v=el.value;
+    if(v==='retail'||v==='dealer') CHANNELS.forEach(x=>{ if(x!==c&&x.role===v)x.role=''; });
+    c.role=v;
+  }else{ c[f]=el.value; }
+  plState=null; refreshAll();
+});
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-cdel]'); if(!b)return;
+  const c=chByUid(b.dataset.cdel);
+  if(!confirm(`[${c.code}] ${c.name} 채널을 삭제할까요?\n이 채널에 입력된 제품별 가격도 함께 삭제됩니다.`))return;
+  CHANNELS=CHANNELS.filter(x=>x.uid!==c.uid);
+  P.forEach(p=>{ delete p.pr[c.uid]; });
+  plState=null; refreshAll();
+});
+$('#btnChAdd').addEventListener('click',()=>{
+  const g=$('#ncG').value.trim()||'KR2', code=$('#ncCode').value.trim(), name=$('#ncName').value.trim();
+  if(!code||!name){ alert('코드와 채널명은 필수입니다.'); return; }
+  CHANNELS.push({uid:'c'+(++uidSeq),g,code,name,short:$('#ncShort').value.trim()||name.slice(0,3),
+    st:'준비',tgt:$('#ncTgt').value===''?null:+$('#ncTgt').value,desc:$('#ncDesc').value.trim(),
+    col:$('#ncCol').value==='1',role:''});
+  $('#ncCode').value='';$('#ncName').value='';$('#ncShort').value='';$('#ncTgt').value='';$('#ncDesc').value='';
+  plState=null; refreshAll();
+});
+$('#btnChSave').addEventListener('click',()=>{ persist(); $('#btnChSave').textContent='저장됨 ✓'; setTimeout(()=>$('#btnChSave').textContent='채널 설정 저장',1400); });
+</script>
+<script>
+/* ══════════ 알림 감지 ══════════ */
+function detectAlerts(){
+  const out=[], rUid=retailUid();
+  const rankCols=COLS().filter(c=>CODE_RANK[c.code]).sort((a,b)=>CODE_RANK[a.code]-CODE_RANK[b.code]);
+  P.forEach(p=>{
+    if(p.cat==='패키지')return;
+    COLS().forEach(c=>{
+      const pr=gp(p,c.uid);
+      if(pr!=null&&p.cost!=null&&pr<p.cost)
+        out.push({type:'loss',msg:`${p.name} (${p.spec}) — [${c.code}] ${c.name} ${wonU(pr)} < 매입원가 ${wonU(p.cost)} · 역마진`});
+    });
+    for(let i=0;i<rankCols.length-1;i++){
+      const a=rankCols[i],b=rankCols[i+1];
+      const x=gp(p,a.uid),y=gp(p,b.uid);
+      if(x!=null&&y!=null&&y<x-1)
+        out.push({type:'order',msg:`${p.name} (${p.spec}) — [${b.code}] ${b.name}(${won(y)})가 [${a.code}] ${a.name}(${won(x)})보다 낮음 · 가격 역전`});
+    }
+    const ex=CHANNELS.find(c=>c.role==='export');
+    if(ex&&rUid){
+      const xv=gp(p,ex.uid), rv=gp(p,rUid);
+      if(xv!=null&&rv!=null&&xv>rv)
+        out.push({type:'order',msg:`${p.name} (${p.spec}) — [${ex.code}] 수출가(${won(xv)})가 정가(${won(rv)})보다 높음`});
+    }
+  });
+  return out;
+}
+
+/* ══════════ 리본 KPI + 경영요약 ══════════ */
+function avgRate(uid){
+  if(!uid)return null;
+  let s=0,n=0;
+  P.forEach(p=>{ if(p.cat==='패키지')return; const r=mrate(gp(p,uid),p.cost); if(r!=null){s+=r;n++;} });
+  return n?s/n:null;
+}
+function renderRibbon(){
+  const alerts=detectAlerts();
+  const rc=chBy('retail'), dc=chBy('dealer');
+  const items=[
+    {lb:'등록 품목 / 판매 채널', vl:P.length+'개 / '+CHANNELS.length+'개', sub:'가격열 표시 채널 '+COLS().length+'개'},
+    {lb:'평균 마진율 ('+(rc?rc.short:'정가')+')', vl:pct(avgRate(retailUid())), sub:'매입원가 대비'},
+    {lb:'평균 마진율 ('+(dc?dc.short:'대리점')+' 공급)', vl:pct(avgRate(dealerUid())), sub:dc?('['+dc.code+'] '+dc.name+' 기준'):'MOQ 하한 채널 미지정'},
+    {lb:'가격 점검 필요', vl:alerts.length+'건', sub:'역마진·가격역전 자동 감지'}
+  ];
+  $('#ribbonKpis').innerHTML=items.map(k=>`<div class="kpi"><div class="lb">${k.lb}</div><div class="vl">${k.vl}</div><div class="sub">${k.sub}</div></div>`).join('');
+}
+function renderDash(){
+  const alerts=detectAlerts(), rUid=retailUid(), dc=chBy('dealer');
+  const rated=P.filter(p=>p.cat!=='패키지'&&mrate(gp(p,rUid),p.cost)!=null)
+               .map(p=>({p,r:mrate(gp(p,rUid),p.cost),m:margin(gp(p,rUid),p.cost)}));
+  rated.sort((a,b)=>b.r-a.r);
+  const best=rated[0], worst=rated[rated.length-1];
+  $('#dashCards').innerHTML=[
+    {h:'정가 평균 마진율',v:pct(avgRate(rUid)),f:'원가 대비 · 단품 '+rated.length+'개 평균'},
+    {h:(dc?dc.name:'대리점')+' 공급 평균 마진율',v:pct(avgRate(dealerUid())),f:'하한 공급가 기준에서도 확보되는 마진'},
+    {h:'최고 마진 제품',v:best?pct(best.r):'—',f:best?`${best.p.name} · 개당 ${wonU(best.m)}`:''},
+    {h:'최저 마진 제품',v:worst?pct(worst.r):'—',f:worst?`${worst.p.name} · 개당 ${wonU(worst.m)}`:''}
+  ].map(c=>`<div class="card"><h4>${c.h}</h4><div class="big">${c.v}</div><div class="foot">${c.f}</div></div>`).join('');
+
+  $('#chAvgBars').innerHTML=COLS().map(c=>{
+    const r=avgRate(c.uid); if(r==null)return'';
+    const w=Math.max(0,Math.min(100,r*100));
+    return `<div class="bar-row"><span title="${esc(c.desc)}"><b style="font-family:var(--mono);font-size:10.5px;color:var(--amber)">${esc(c.code)}</b> ${esc(c.name)}</span><div class="bar-track"><div class="bar-fill ${c.role==='dealer'?'':'b2'}" style="width:${w}%"></div></div><span class="bar-val"><b>${pct(r)}</b></span></div>`;
+  }).join('')+`<p class="footnote">전 품목 단순평균 · 가격열이 켜진 채널만 표시됩니다. 공급 순서(P2→P3→…→OWN)로 갈수록 마진율이 높아지는 구조가 정상입니다.</p>`;
+
+  $('#alertBox').innerHTML = alerts.length===0
+    ? '<span class="pill g">이상 없음</span><p class="footnote">모든 채널 가격이 매입원가와 공급 순서를 만족합니다.</p>'
+    : alerts.slice(0,14).map(a=>`<div style="padding:5px 0;border-bottom:1px dashed var(--xl-grid);font-size:12px"><span class="pill ${a.type==='loss'?'r':'a'}">${a.type==='loss'?'역마진':'가격역전'}</span> ${a.msg}</div>`).join('')
+      +(alerts.length>14?`<p class="footnote">외 ${alerts.length-14}건 — 가격정책표에서 확인하세요.</p>`:'');
+
+  const bar=(list,cls)=>list.map(x=>{
+    const w=Math.max(2,Math.min(100,x.r*100));
+    return `<div class="bar-row"><span title="${esc(x.p.name)}">${x.p.name.length>13?x.p.name.slice(0,13)+'…':x.p.name}</span><div class="bar-track"><div class="bar-fill ${cls}" style="width:${w}%"></div></div><span class="bar-val"><b>${pct(x.r)}</b> · ${won(x.m)}원</span></div>`;
+  }).join('');
+  $('#topBars').innerHTML=bar(rated.slice(0,10),'');
+  $('#botBars').innerHTML=bar(rated.slice(-10).reverse(),'amber');
+}
+
+/* ══════════ 가격정책표 그리드 ══════════ */
+let viewMode='price', selCell=null;
+function cellDisplay(p,uid){
+  const pr=gp(p,uid);
+  if(pr==null)return'—';
+  if(viewMode==='price')return won(pr);
+  const m=margin(pr,p.cost);
+  if(m==null)return won(pr)+'<span class="mrate">원가?</span>';
+  if(viewMode==='margin')return won(m);
+  return pct(mrate(pr,p.cost));
+}
+function renderGrid(){
+  const q=($('#q').value||'').trim().toLowerCase();
+  const cat=$('#catSel').value;
+  const cols=COLS(), rUid=retailUid();
+  const showSup=secAllowed;                 // 공급업체 열: 마스터+이메일인증 계정만
+  const nCols=(showSup?5:4)+cols.length+1;
+  let html=`<thead><tr>
+    <th class="sticky1" style="left:0;min-width:36px">No</th>
+    <th class="sticky2" style="left:36px;min-width:230px">제품명</th>
+    <th style="min-width:90px">규격</th>
+    ${showSup?'<th style="min-width:96px">공급업체</th>':''}
+    <th class="num" style="min-width:86px">매입원가</th>
+    ${cols.map(c=>`<th class="num" style="min-width:96px;height:38px" title="${esc(c.desc)}">
+      <div style="font-size:9.5px;font-family:var(--mono);color:var(--amber);line-height:1.2">${esc(c.g)} · ${esc(c.code)}</div>${esc(c.name)}</th>`).join('')}
+    <th class="num" style="min-width:88px">정가 마진율</th>
+  </tr></thead><tbody>`;
+  let lastCat=null,no=0;
+  P.forEach(p=>{
+    if(cat&&p.cat!==cat)return;
+    if(q&&!(p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||(p.sup||'').toLowerCase().includes(q)))return;
+    if(p.cat!==lastCat){ lastCat=p.cat; html+=`<tr class="catrow"><td colspan="${nCols}">■ ${p.cat}</td></tr>`; }
+    no++;
+    const r7=mrate(gp(p,rUid),p.cost);
+    html+=`<tr data-id="${p.id}">
+      <td class="sticky1 dim" style="left:0">${no}</td>
+      <td class="sticky2 name" style="left:36px">${p.name}</td>
+      <td class="dim">${p.spec}</td>
+      ${showSup?`<td class="dim" title="${unlocked?esc(p.mgr||''):''}">${unlocked?esc(p.sup||'—'):'🔒'}</td>`:''}
+      <td class="num cost editable" data-id="${p.id}" data-f="cost">${won(p.cost)}</td>
+      ${cols.map(c=>{
+        const pr=gp(p,c.uid), m=margin(pr,p.cost);
+        const cls=['num','editable']; if(m!=null&&m<0)cls.push('neg','warn');
+        return `<td class="${cls.join(' ')}" data-id="${p.id}" data-f="u${c.uid}">${cellDisplay(p,c.uid)}</td>`;
+      }).join('')}
+      <td class="num" style="font-weight:600;color:${r7!=null&&r7<0.15?'var(--amber)':'var(--xl-green-dark)'}">${pct(r7)}</td>
+    </tr>`;
+  });
+  $('#priceGrid').innerHTML=html+'</tbody>';
+}
+/* 셀 선택 → 수식줄 + 이익배분 */
+function showSplit(p,uid){
+  const box=$('#fxSplit');
+  const c=chByUid(uid), rUid=retailUid();
+  const pr=gp(p,uid), retail=gp(p,rUid);
+  if(pr==null||p.cost==null){ box.classList.remove('on'); return; }
+  const pm=pr-p.cost;
+  const isRetail=uid===rUid;
+  const cm=(isRetail||retail==null)?null:retail-pr;
+  const base=(retail!=null&&!isRetail)?retail:pr;
+  const cw=Math.max(0,Math.min(100,p.cost/base*100));
+  const pw=Math.max(0,Math.min(100-cw,pm/base*100));
+  const kw=Math.max(0,100-cw-pw);
+  box.innerHTML=`
+    <span class="who"><span class="sw" style="background:#B7BEC7"></span>매입원가 <b>${wonU(p.cost)}</b>${secAllowed?` (${unlocked?esc(p.sup||'공급업체 미지정'):'공급업체 🔒'})`:''}</span>
+    <span class="who"><span class="sw" style="background:var(--xl-green)"></span><b style="color:var(--xl-green-dark)">POUR스토어 마진</b>
+      <b class="${pm<0?'neg':''}" style="color:${pm<0?'var(--red)':'inherit'}">${wonU(pm)}</b> · ${pct(pr?pm/pr:null)}
+      <span style="color:var(--ink-faint)">(공급가 대비)</span></span>
+    ${cm==null
+      ? `<span class="who" style="color:var(--ink-faint)">${isRetail?'자사몰 직접 판매 — 채널 마진 없음':'정가 기준 채널 없음 — 채널 마진 계산 불가'}</span>`
+      : `<span class="who"><span class="sw" style="background:var(--blue)"></span><b style="color:var(--blue)">[${esc(c.code)}] ${esc(c.name)} 채널 마진</b>
+          <b class="${cm<0?'neg':''}" style="color:${cm<0?'var(--red)':'inherit'}">${wonU(cm)}</b> · ${pct(retail?cm/retail:null)}
+          <span style="color:var(--ink-faint)">(정가 ${won(retail)} 재판매 시)</span></span>`}
+    <span class="strip" title="소비자 정가 100% 기준 배분">
+      <i style="width:${cw}%;background:#B7BEC7"></i>
+      <i style="width:${pw}%;background:var(--xl-green)"></i>
+      <i style="width:${kw}%;background:var(--blue)"></i>
+    </span>`;
+  box.classList.add('on');
+}
+document.addEventListener('click',e=>{
+  const td=e.target.closest('#priceGrid td.editable'); if(!td)return;
+  if(selCell)selCell.classList.remove('selcell');
+  selCell=td; td.classList.add('selcell');
+  const p=P[+td.dataset.id], f=td.dataset.f;
+  if(f==='cost'){
+    $('#fxRef').textContent=p.name+' · 매입원가';
+    $('#fxExpr').innerHTML=`매입원가 = <b>${wonU(p.cost)}</b>`+(secAllowed?` &nbsp;(공급업체: ${unlocked?esc(p.sup||'미지정')+(p.mgr?' · '+esc(p.mgr):''):'🔒 보안 잠금'})`:'');
+    $('#fxSplit').classList.remove('on');
+  }else{
+    const uid=f.slice(1), c=chByUid(uid), pr=gp(p,uid), m=margin(pr,p.cost), r=mrate(pr,p.cost);
+    $('#fxRef').textContent=p.name+' · '+(c?c.code:'');
+    $('#fxExpr').innerHTML = pr==null ? '가격 미등록 — 더블클릭하여 입력'
+      : p.cost==null ? `<b>${wonU(pr)}</b> (매입원가 미등록 → 마진 계산 불가)`
+      : `= ${won(pr)} − ${won(p.cost)} → <b style="color:var(--xl-green-dark)">POUR스토어 마진</b> <span class="${m<0?'neg':'pos'}">${wonU(m)}</span> · <span class="${m<0?'neg':'pos'}">${pct(r)}</span>`;
+    showSplit(p,uid);
+  }
+});
+document.addEventListener('dblclick',e=>{
+  const td=e.target.closest('#priceGrid td.editable'); if(!td||td.querySelector('input'))return;
+  const p=P[+td.dataset.id], f=td.dataset.f;
+  const cur=f==='cost'?p.cost:gp(p,f.slice(1));
+  td.innerHTML=`<input class="cellinput" type="number" value="${cur==null?'':cur}">`;
+  const inp=td.querySelector('input'); inp.focus(); inp.select();
+  const commit=()=>{
+    const v=inp.value===''?null:+inp.value;
+    if(f==='cost')p.cost=v;
+    else{ const uid=f.slice(1); if(v==null)delete p.pr[uid]; else p.pr[uid]=v; }
+    refreshAll();
+  };
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')commit(); if(ev.key==='Escape')renderGrid(); });
+  inp.addEventListener('blur',commit);
+});
+$('#q').addEventListener('input',renderGrid);
+$('#catSel').addEventListener('change',renderGrid);
+$('#viewSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  $$('#viewSeg button').forEach(x=>x.classList.toggle('on',x===b));
+  viewMode=b.dataset.v; renderGrid();
+});
+$('#btnSave').addEventListener('click',()=>{ persist(); persistSecure(); $('#btnSave').textContent='저장됨 ✓'; setTimeout(()=>$('#btnSave').textContent='변경사항 저장',1400); });
+$('#btnReset').addEventListener('click',()=>{
+  if(!confirm('편집한 값·채널 설정을 모두 버리고 원본 데이터로 복원할까요? (보안 편집분·변경한 비밀번호도 초기화되고 다시 잠깁니다)'))return;
+  localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_SEC); localStorage.removeItem(LS_BASE);
+  CHANNELS=CH_DEF.map(c=>({...c})); uidSeq=100;
+  P=RAW.map((r,i)=>({id:i,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:{...r.pr},sup:'',mgr:'',mfg:'',added:false}));
+  fillProductSelects(); plState=null; lock();
+});
+$('#btnCsv').addEventListener('click',()=>{
+  const cols=COLS(), rUid=retailUid();
+  const head=['분류','제품명','규격',...(unlocked?['공급업체','담당자']:[]),'매입원가',...cols.map(c=>`[${c.code}] ${c.name}`),'정가 마진액','정가 마진율(%)'];
+  const rows=P.map(p=>{
+    const m=margin(gp(p,rUid),p.cost), r=mrate(gp(p,rUid),p.cost);
+    return [p.cat,p.name,p.spec,...(unlocked?[p.sup||'',p.mgr||'']:[]),p.cost??'',...cols.map(c=>gp(p,c.uid)??''),m??'',r!=null?(r*100).toFixed(2):''];
+  });
+  const csv='\uFEFF'+[head,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='POUR_가격정책표.csv'; a.click();
+});
+
+/* ══════════ 제품·상품 매칭 ══════════ */
+function renderSup(){
+  if(!unlocked){$('#supTable').innerHTML='';return;}
+  const q=($('#mq').value||'').trim().toLowerCase();
+  let html=`<thead><tr><th style="min-width:32px">No</th><th>분류</th><th style="min-width:210px">제품명</th><th>규격</th>
+    <th style="min-width:110px">공급업체</th><th style="min-width:170px">담당자·연락처</th><th class="num">매입원가</th></tr></thead><tbody>`;
+  let no=0;
+  P.forEach(p=>{
+    if(p.cat==='패키지')return;
+    if(q&&!(p.name.toLowerCase().includes(q)||(p.sup||'').toLowerCase().includes(q)||(p.mgr||'').toLowerCase().includes(q)))return;
+    no++;
+    html+=`<tr><td class="dim">${no}</td><td class="dim">${p.cat}</td><td class="name">${p.name}</td><td class="dim">${p.spec}</td>
+      <td class="editable" data-mid="${p.id}" data-mf="sup">${esc(p.sup)||'—'}</td>
+      <td class="editable dim" data-mid="${p.id}" data-mf="mgr">${esc(p.mgr)||'—'}</td>
+      <td class="num cost editable" data-mid="${p.id}" data-mf="cost">${won(p.cost)}</td></tr>`;
+  });
+  $('#supTable').innerHTML=html+'</tbody>';
+}
+function renderMatch(){
+  if(!unlocked){$('#matchTable').innerHTML='';return;}
+  const q=($('#mq').value||'').trim().toLowerCase();
+  const fee=(+$('#mFee').value||0)/100, ship=+$('#mShip').value||0, mkt=+$('#mMkt').value||0;
+  let html=`<thead><tr><th style="min-width:180px">POUR스토어 상품명</th><th style="min-width:150px">제조사 제품명</th><th>색상</th>
+    <th class="num">도매단가</th><th class="num">판매가</th><th class="num">총 발생비</th>
+    <th class="num">마진/개</th><th class="num">마진율</th></tr></thead><tbody>`;
+  let prev=null;
+  M.forEach(r=>{
+    if(q&&!(r.item.toLowerCase().includes(q)||r.src.toLowerCase().includes(q)))return;
+    const tot=r.price>0 ? r.cost + r.price*fee + ship + mkt : null;
+    const mg=tot==null?null:r.price-tot;
+    const first=r.item!==prev; prev=r.item;
+    html+=`<tr>
+      <td class="editable" data-xid="${r.id}" data-xf="item" style="font-weight:${first?600:400};color:${first?'inherit':'var(--ink-faint)'}">${first?esc(r.item):'〃'}</td>
+      <td class="dim">${esc(r.src)}</td><td class="dim">${esc(r.color)} · 4kg/통</td>
+      <td class="num editable cost" data-xid="${r.id}" data-xf="cost">${won(r.cost)}</td>
+      <td class="num editable" data-xid="${r.id}" data-xf="price" style="font-weight:600">${r.price>0?won(r.price):'<span class="pill a">미정</span>'}</td>
+      <td class="num dim">${won(tot)}</td>
+      <td class="num ${mg!=null&&mg<0?'neg':''}" style="font-weight:600">${won(mg)}</td>
+      <td class="num">${mg!=null&&r.price?pct(mg/r.price):'—'}</td></tr>`;
+  });
+  $('#matchTable').innerHTML=html+'</tbody>';
+}
+document.addEventListener('dblclick',e=>{
+  const td=e.target.closest('[data-mid],[data-xid]'); if(!td||td.querySelector('input'))return;
+  const isSup=td.dataset.mid!=null;
+  const obj=isSup?P[+td.dataset.mid]:M[+td.dataset.xid];
+  const f=isSup?td.dataset.mf:td.dataset.xf;
+  const isText=(f==='sup'||f==='mgr'||f==='item');
+  const cur=obj[f];
+  td.innerHTML=`<input class="cellinput" style="text-align:${isText?'left':'right'}" type="${isText?'text':'number'}" value="${esc(cur==null?'':cur)}">`;
+  const inp=td.querySelector('input'); inp.focus(); if(!isText)inp.select();
+  const commit=()=>{ obj[f]=isText?inp.value:(inp.value===''?0:+inp.value); refreshAll(); };
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')commit(); if(ev.key==='Escape'){renderSup();renderMatch();} });
+  inp.addEventListener('blur',commit);
+});
+$('#mq').addEventListener('input',()=>{renderSup();renderMatch();});
+['#mFee','#mShip','#mMkt'].forEach(s=>$(s).addEventListener('input',renderMatch));
+$('#btnSaveMatch').addEventListener('click',()=>{ persist(); persistSecure(); $('#btnSaveMatch').textContent='저장됨 ✓'; setTimeout(()=>$('#btnSaveMatch').textContent='변경사항 저장',1400); });
+
+/* ══════════ 채널 수익분석 ══════════ */
+function fillProductSelects(){
+  const opts=P.filter(p=>p.cat!=='패키지').map(p=>`<option value="${p.id}">[${p.cat}] ${p.name} · ${p.spec}</option>`).join('');
+  ['#chProd','#moqProd','#plProd'].forEach(s=>$(s).innerHTML=opts);
+  $('#calcProd').innerHTML='<option value="">직접 입력</option>'+opts;
+  const d=P.findIndex(p=>p.name.includes('코트재Ⅰ(회색)'));
+  if(d>=0){['#chProd','#moqProd','#plProd'].forEach(s=>$(s).value=d);}
+}
+function renderChannel(){
+  const p=P[+$('#chProd').value]; if(!p)return;
+  const rUid=retailUid(), dc=chBy('dealer');
+  const retail=gp(p,rUid), dealerP=dc?gp(p,dc.uid):null;
+  $('#chCards').innerHTML=[
+    {h:'매입원가',v:wonU(p.cost),f:p.spec},
+    {h:'소비자 정가 (기준가)',v:wonU(retail),f:'채널 마진 계산의 100% 기준'},
+    {h:'정가 판매 시 POUR 마진',v:wonU(margin(retail,p.cost)),f:'마진율 '+pct(mrate(retail,p.cost))},
+    {h:(dc?'['+dc.code+'] '+dc.name:'MOQ 하한')+' 공급 시 POUR 마진',v:wonU(margin(dealerP,p.cost)),f:'마진율 '+pct(mrate(dealerP,p.cost))}
+  ].map(c=>`<div class="card"><h4>${c.h}</h4><div class="big">${c.v}</div><div class="foot">${c.f}</div></div>`).join('');
+
+  let t=`<thead><tr><th>공급 채널</th><th class="num">채널 공급가</th>
+    <th class="num">POUR 마진</th><th class="num">POUR 마진율</th>
+    <th class="num">채널 마진<br>(정가 재판매 시)</th><th class="num">채널 마진율</th></tr></thead><tbody>`;
+  COLS().forEach(c=>{
+    const pr=gp(p,c.uid); if(pr==null)return;
+    const pm=margin(pr,p.cost), pmr=mrate(pr,p.cost);
+    const isRetail=c.uid===rUid;
+    const cm=(isRetail||retail==null)?null:retail-pr;
+    const cmr=(cm==null||!retail)?null:cm/retail;
+    t+=`<tr><td><b style="font-family:var(--mono);font-size:11px;color:var(--amber)">${esc(c.code)}</b> ${esc(c.name)}${c.role==='export'?' <span class="pill a">참고</span>':''}${isRetail?' <span class="pill g">기준</span>':''}</td>
+      <td class="num">${won(pr)}</td>
+      <td class="num ${pm!=null&&pm<0?'neg':''}" style="font-weight:600">${won(pm)}</td>
+      <td class="num">${pct(pmr)}</td>
+      <td class="num" style="color:var(--blue);font-weight:600">${isRetail?'(직접 판매)':won(cm)}</td>
+      <td class="num">${isRetail?'—':pct(cmr)}</td></tr>`;
+  });
+  $('#chTable').innerHTML=t+'</tbody>';
+
+  $('#chStack').innerHTML = retail==null||p.cost==null ? '<p class="footnote">정가 기준 채널 또는 원가가 없어 배분을 표시할 수 없습니다.</p>'
+   : COLS().map(c=>{
+      const pr=gp(p,c.uid); if(pr==null||c.role==='export')return'';
+      const cw=Math.min(100,p.cost/retail*100);
+      const pw=Math.max(0,Math.min(100-cw,(pr-p.cost)/retail*100));
+      const kw=Math.max(0,100-cw-pw);
+      const isRetail=c.uid===rUid;
+      return `<div class="bar-row"><span><b style="font-family:var(--mono);font-size:10.5px;color:var(--amber)">${esc(c.code)}</b> ${esc(c.name)}</span>
+        <div class="bar-track" style="height:20px">
+          <div class="bar-fill" style="width:${cw}%;background:#B7BEC7"></div>
+          <div class="bar-fill" style="left:${cw}%;width:${pw}%;background:var(--xl-green)"></div>
+          <div class="bar-fill" style="left:${cw+pw}%;width:${kw}%;background:var(--blue)"></div>
+        </div>
+        <span class="bar-val">POUR <b>${won(pr-p.cost)}</b> / 채널 <b style="color:var(--blue)">${isRetail?'—':won(retail-pr)}</b></span></div>`;
+    }).join('')+`<p class="footnote"><span class="pill" style="background:#E8EAEE;color:var(--ink-soft)">회색 = 매입원가</span> <span class="pill g">초록 = POUR스토어 마진</span> <span class="pill" style="background:#DCE9F9;color:var(--blue)">파랑 = 채널(공급받는이) 마진</span> — 정가 100% 기준 배분</p>`;
+}
+$('#chProd').addEventListener('change',renderChannel);
+
+/* ══════════ MOQ ══════════ */
+function tierPrice(p,f){
+  const r=gp(p,retailUid()), d=gp(p,dealerUid());
+  if(r==null||d==null)return null;
+  return Math.round((r-f*(r-d))/10)*10;
+}
+function renderMoq(){
+  const p=P[+$('#moqProd').value]; if(!p)return;
+  const dc=chBy('dealer');
+  const retail=gp(p,retailUid()), dealer=dc?gp(p,dc.uid):null;
+  const qty=Math.max(1,+$('#moqQty').value||1);
+  const custom=$('#moqCustom').value===''?null:+$('#moqCustom').value;
+  const tier=MOQ_TIERS.find(t=>qty>=t.min&&qty<=t.max)||MOQ_TIERS[MOQ_TIERS.length-1];
+  const unit=custom!=null?custom:tierPrice(p,tier.f);
+  const pm=margin(unit,p.cost), pmr=mrate(unit,p.cost);
+  const bm=(retail!=null&&unit!=null)?retail-unit:null;
+  $('#moqCards').innerHTML = unit==null
+   ? '<div class="card"><h4>계산 불가</h4><div class="big">—</div><div class="foot">정가 기준 채널과 MOQ 하한 채널(역할 지정)의 가격이 모두 있어야 구간가를 계산할 수 있습니다.</div></div>'
+   : [
+    {h:'적용 구간',v:custom!=null?'협의가 적용':tier.label,f:custom!=null?'구간가 대신 직접 입력한 단가':'할인계수 '+(tier.f*100)+'% (정가↔하한가 구간)'},
+    {h:'개당 납품가',v:wonU(unit),f:'정가 '+wonU(retail)+' · '+(dc?'['+dc.code+'] 하한 ':'하한 ')+wonU(dealer)},
+    {h:'POUR 총마진 ('+qty+'개)',v:wonU(pm!=null?pm*qty:null),f:'개당 '+wonU(pm)+' · 마진율 '+pct(pmr)},
+    {h:'공급받는이 총마진',v:wonU(bm!=null?bm*qty:null),f:'개당 '+wonU(bm)+' · 정가 재판매 가정'}
+   ].map(c=>`<div class="card"><h4>${c.h}</h4><div class="big" style="font-size:19px">${c.v}</div><div class="foot">${c.f}</div></div>`).join('');
+
+  let t=`<thead><tr><th>수량 구간</th><th class="num">할인계수</th><th class="num">납품가</th>
+    <th class="num">POUR 마진/개</th><th class="num">POUR 마진율</th>
+    <th class="num">공급받는이 마진/개</th><th class="num">공급받는이 마진율</th></tr></thead><tbody>`;
+  MOQ_TIERS.forEach(tr=>{
+    const u=tierPrice(p,tr.f);
+    const m1=margin(u,p.cost), m2=(retail!=null&&u!=null)?retail-u:null;
+    const hl=tr===tier&&custom==null;
+    t+=`<tr style="${hl?'background:var(--xl-sel)':''}">
+      <td style="font-weight:${hl?700:400}">${tr.label}${hl?' ◀ 현재':''}</td>
+      <td class="num dim">${(tr.f*100)}%</td>
+      <td class="num" style="font-weight:600">${won(u)}</td>
+      <td class="num ${m1!=null&&m1<0?'neg':''}">${won(m1)}</td>
+      <td class="num">${pct(mrate(u,p.cost))}</td>
+      <td class="num" style="color:var(--blue)">${won(m2)}</td>
+      <td class="num">${m2!=null&&retail?pct(m2/retail):'—'}</td></tr>`;
+  });
+  $('#moqTable').innerHTML=t+'</tbody>';
+}
+['#moqProd','#moqQty','#moqCustom'].forEach(s=>$(s).addEventListener('input',renderMoq));
+
+/* ══════════ 손익 · 공헌이익 ══════════ */
+let plState=null, plMode='prod', PLAN=window.__PLAN||[], planSeq=window.__planSeq||0;
+
+/* ── 공통: 제품 기준 ── */
+function initPl(){
+  const p=P[+$('#plProd').value]; if(!p)return;
+  plState=COLS().map(c=>{
+    const d=CH_VAR_DEFAULT[c.code]||{fee:0,extra:0,qty:0};
+    return {uid:c.uid,price:gp(p,c.uid),qty:d.qty,fee:d.fee,extra:d.extra};
+  });
+  renderPlInput(); renderPl();
+}
+function ensurePl(){ if(!plState)initPl(); else{
+  const uids=COLS().map(c=>c.uid);
+  if(plState.length!==uids.length||plState.some((s,i)=>s.uid!==uids[i]))initPl();
+}}
+function renderPlInput(){
+  const p=P[+$('#plProd').value]; if(!p||!plState)return;
+  let t=`<thead><tr><th>채널</th><th class="num">적용 공급가</th><th class="num">월 수량</th>
+    <th class="num">수수료율 %</th><th class="num">개당 부대비</th>
+    <th class="num">매출</th><th class="num">공헌이익</th><th class="num">공헌이익률</th></tr></thead><tbody>`;
+  plState.forEach((s,i)=>{
+    const c=chByUid(s.uid); if(!c)return;
+    const rev=(s.price||0)*s.qty;
+    const cmU=s.price==null?null:(s.price*(1-s.fee/100)-(p.cost||0)-s.extra);
+    const cm=cmU==null?0:cmU*s.qty;
+    t+=`<tr><td><b style="font-family:var(--mono);font-size:11px;color:var(--amber)">${esc(c.code)}</b> ${esc(c.name)}</td>
+      <td class="num"><input class="cellinput" style="outline:1px solid var(--xl-grid);width:96px" type="number" data-i="${i}" data-f="price" value="${s.price??''}"></td>
+      <td class="num"><input class="cellinput" style="outline:1px solid var(--xl-grid);width:70px" type="number" data-i="${i}" data-f="qty" value="${s.qty}"></td>
+      <td class="num"><input class="cellinput" style="outline:1px solid var(--xl-grid);width:64px" type="number" step="0.1" data-i="${i}" data-f="fee" value="${s.fee}"></td>
+      <td class="num"><input class="cellinput" style="outline:1px solid var(--xl-grid);width:76px" type="number" data-i="${i}" data-f="extra" value="${s.extra}"></td>
+      <td class="num">${won(rev)}</td>
+      <td class="num ${cm<0?'neg':''}" style="font-weight:600">${won(cm)}</td>
+      <td class="num">${rev?pct(cm/rev):'—'}</td></tr>`;
+  });
+  $('#plInput').innerHTML=t+'</tbody>';
+  $$('#plInput input').forEach(inp=>inp.addEventListener('change',()=>{
+    const i=+inp.dataset.i,f=inp.dataset.f;
+    plState[i][f]=inp.value===''?(f==='price'?null:0):+inp.value;
+    renderPlInput(); renderPl();
+  }));
+}
+
+/* ── 채널·코드 기준: 채널 선택 → 제품별 수량 ── */
+let PLANVAR=window.__PLANVAR||{};   // 채널별 수수료·부대비 가정
+function sanitizePlan(){ PLAN=PLAN.filter(l=>P[l.pid]&&chByUid(l.uid)); }
+function planVar(uid){
+  if(!PLANVAR[uid]){
+    const c=chByUid(uid), d=(c&&CH_VAR_DEFAULT[c.code])||{fee:0,extra:0};
+    PLANVAR[uid]={fee:d.fee,extra:d.extra};
+  }
+  return PLANVAR[uid];
+}
+function getLine(pid,uid){ return PLAN.find(l=>l.pid===pid&&l.uid===uid); }
+function setQty(pid,uid,qty){
+  let l=getLine(pid,uid);
+  if(!qty||qty<=0){ if(l)PLAN=PLAN.filter(x=>x!==l); return; }
+  const v=planVar(uid);
+  if(!l){ l={id:++planSeq,pid,uid,qty:0,price:null,fee:v.fee,extra:v.extra}; PLAN.push(l); }
+  l.qty=qty; l.fee=v.fee; l.extra=v.extra;
+}
+function planUnit(l){
+  const p=P[l.pid]; if(!p)return null;
+  return l.price!=null?l.price:gp(p,l.uid);
+}
+function planLineCalc(l){
+  const p=P[l.pid], u=planUnit(l);
+  if(!p||u==null||!l.qty)return null;
+  const rev=u*l.qty;
+  const cm=(u*(1-l.fee/100)-(p.cost||0)-l.extra)*l.qty;   // 본사(POUR) 몫 = 공헌이익
+  const retail=gp(p,retailUid());
+  const chm=(l.uid!==retailUid()&&retail!=null)?(retail-u)*l.qty:0; // 채널 몫
+  return {rev,cogs:(p.cost||0)*l.qty,fees:u*l.fee/100*l.qty,extras:l.extra*l.qty,cm,chm,units:l.qty};
+}
+function planTotals(){
+  const tot={rev:0,cogs:0,fees:0,extras:0,units:0,cm:0,chm:0};
+  const byCh={}, byCode={};
+  PLAN.forEach(l=>{
+    const r=planLineCalc(l); if(!r)return;
+    tot.rev+=r.rev; tot.cogs+=r.cogs; tot.fees+=r.fees; tot.extras+=r.extras; tot.units+=r.units; tot.cm+=r.cm; tot.chm+=r.chm;
+    const c=chByUid(l.uid);
+    (byCh[l.uid]=byCh[l.uid]||{c,rev:0,cm:0,chm:0,units:0});
+    byCh[l.uid].rev+=r.rev; byCh[l.uid].cm+=r.cm; byCh[l.uid].chm+=r.chm; byCh[l.uid].units+=r.units;
+    (byCode[c.code]=byCode[c.code]||{code:c.code,names:new Set(),g:c.g,rev:0,cm:0,chm:0,units:0,tgt:0,tgtSet:new Set()});
+    const bc=byCode[c.code]; bc.names.add(c.name); bc.rev+=r.rev; bc.cm+=r.cm; bc.chm+=r.chm; bc.units+=r.units;
+    if(c.tgt!=null&&!bc.tgtSet.has(c.uid)){bc.tgt+=c.tgt;bc.tgtSet.add(c.uid);}
+  });
+  return {tot,byCh,byCode};
+}
+function fillPlanChSel(){
+  const cur=$('#planChSel').value;
+  $('#planChSel').innerHTML=CHANNELS.map(c=>`<option value="${c.uid}">[${esc(c.g)}·${esc(c.code)}] ${esc(c.name)}${c.role==='retail'?' (정가)':''}</option>`).join('');
+  if(cur&&chByUid(cur))$('#planChSel').value=cur;
+  else{const d=chBy('dealer'); if(d)$('#planChSel').value=d.uid;}
+  const cats=[...new Set(P.map(p=>p.cat))];
+  const curCat=$('#planCat').value;
+  $('#planCat').innerHTML='<option value="">전체 분류</option>'+cats.map(c=>`<option>${c}</option>`).join('');
+  $('#planCat').value=curCat;
+}
+function renderPlanGrid(){
+  const uid=$('#planChSel').value, c=chByUid(uid);
+  if(!c){ $('#planGrid').innerHTML=''; $('#planCards').innerHTML=''; return; }
+  const v=planVar(uid);
+  if(document.activeElement!==$('#planFee'))$('#planFee').value=v.fee;
+  if(document.activeElement!==$('#planExtra'))$('#planExtra').value=v.extra;
+  const q=($('#planQ').value||'').trim().toLowerCase();
+  const cat=$('#planCat').value;
+  const rUid=retailUid(), isRetail=uid===rUid;
+  let html=`<thead><tr>
+    <th style="min-width:210px">제품명</th><th>규격</th>
+    <th class="num">매입원가</th><th class="num">공급가</th><th class="num">소비자 정가</th>
+    <th class="num" style="min-width:76px">월 수량</th>
+    <th class="num">매출</th>
+    <th class="num" style="color:var(--xl-green-dark)">본사(POUR) 몫</th><th class="num">본사 마진율</th>
+    <th class="num" style="color:var(--blue)">채널 몫</th><th class="num">채널 몫율</th>
+  </tr></thead><tbody>`;
+  let lastCat=null;
+  P.forEach(p=>{
+    if(cat&&p.cat!==cat)return;
+    if(q&&!(p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)))return;
+    if(p.cat!==lastCat){ lastCat=p.cat; html+=`<tr class="catrow"><td colspan="11">■ ${p.cat}</td></tr>`; }
+    const l=getLine(p.id,uid);
+    const unit=l&&l.price!=null?l.price:gp(p,uid);
+    const qty=l?l.qty:0;
+    const retail=gp(p,rUid);
+    const cmU=unit==null?null:(unit*(1-v.fee/100)-(p.cost||0)-v.extra);
+    const chmU=(unit!=null&&retail!=null&&!isRetail)?retail-unit:null;
+    html+=`<tr style="${qty>0?'background:#F4FAF6':''}">
+      <td class="name">${esc(p.name)}</td><td class="dim">${esc(p.spec)}</td>
+      <td class="num dim">${won(p.cost)}</td>
+      <td class="num"><input class="cellinput" style="outline:1px solid var(--xl-grid);width:88px" type="number" data-pg="${p.id}" data-f="price" value="${unit??''}" placeholder="—"></td>
+      <td class="num dim">${won(retail)}</td>
+      <td class="num"><input class="cellinput" style="outline:1px solid ${qty>0?'var(--xl-green)':'var(--xl-grid)'};width:64px;font-weight:${qty>0?700:400}" type="number" min="0" data-pg="${p.id}" data-f="qty" value="${qty||''}" placeholder="0"></td>
+      <td class="num">${qty&&unit!=null?won(unit*qty):'—'}</td>
+      <td class="num ${cmU!=null&&cmU<0?'neg':''}" style="font-weight:600;color:${cmU!=null&&cmU<0?'var(--red)':'var(--xl-green-dark)'}">${qty&&cmU!=null?won(cmU*qty):'—'}</td>
+      <td class="num">${unit&&cmU!=null?pct(cmU/unit):'—'}</td>
+      <td class="num" style="font-weight:600;color:var(--blue)">${isRetail?'(직판)':(qty&&chmU!=null?won(chmU*qty):'—')}</td>
+      <td class="num">${isRetail?'—':(chmU!=null&&retail?pct(chmU/retail):'—')}</td>
+    </tr>`;
+  });
+  /* 이 채널 합계 */
+  let T={rev:0,cm:0,chm:0,units:0};
+  PLAN.filter(l=>l.uid===uid).forEach(l=>{ const r=planLineCalc(l); if(r){T.rev+=r.rev;T.cm+=r.cm;T.chm+=r.chm;T.units+=r.units;} });
+  html+=`</tbody><tfoot><tr style="background:var(--xl-head);font-weight:700">
+    <td colspan="5">[${esc(c.code)}] ${esc(c.name)} 합계</td>
+    <td class="num">${T.units.toLocaleString()}개</td>
+    <td class="num">${won(T.rev)}</td>
+    <td class="num" style="color:var(--xl-green-dark)">${won(T.cm)}</td>
+    <td class="num">${T.rev?pct(T.cm/T.rev):'—'}</td>
+    <td class="num" style="color:var(--blue)">${isRetail?'—':won(T.chm)}</td>
+    <td class="num">${isRetail?'—':(T.chm+T.cm>0?pct(T.chm/(T.chm+T.cm)):'—')}</td>
+  </tr></tfoot>`;
+  $('#planGrid').innerHTML=html;
+
+  const rate=c.tgt?T.rev/c.tgt:null;
+  const split=(T.cm+T.chm)>0?`${Math.round(T.cm/(T.cm+T.chm)*100)} : ${Math.round(T.chm/(T.cm+T.chm)*100)}`:null;
+  $('#planCards').innerHTML=[
+    {h:'['+c.code+'] 채널 매출 (월)',v:wonU(T.rev),f:T.units.toLocaleString()+'개 · '+esc(c.name)},
+    {h:'본사(POUR) 몫 — 공헌이익',v:wonU(T.cm),f:'매출 대비 '+(T.rev?pct(T.cm/T.rev):'—')},
+    {h:'채널 몫 — 재판매 마진',v:isRetail?'직판 (해당 없음)':wonU(T.chm),f:isRetail?'자사몰 직접 판매':'정가 재판매 가정'},
+    {h:'이익 배분 (본사 : 채널)',v:split??'—',f:'목표 '+(c.tgt?wonU(c.tgt)+' 대비 '+pct(rate):'미설정')}
+  ].map(x=>`<div class="card"><h4>${x.h}</h4><div class="big" style="font-size:18px">${x.v}</div><div class="foot">${x.f}</div></div>`).join('');
+}
+document.addEventListener('change',e=>{
+  const inp=e.target.closest('#planGrid input[data-pg]'); if(!inp)return;
+  const pid=+inp.dataset.pg, uid=$('#planChSel').value, f=inp.dataset.f;
+  if(f==='qty'){
+    setQty(pid,uid,inp.value===''?0:Math.max(0,+inp.value));
+  }else{
+    const l=getLine(pid,uid);
+    const val=inp.value===''?null:+inp.value;
+    if(l)l.price=val;
+    else if(val!=null){ const v=planVar(uid); PLAN.push({id:++planSeq,pid,uid,qty:0,price:val,fee:v.fee,extra:v.extra}); }
+  }
+  renderPlanGrid(); renderAgg(); renderPl();
+});
+['#planChSel','#planCat'].forEach(sel=>$(sel).addEventListener('change',renderPlanGrid));
+$('#planQ').addEventListener('input',renderPlanGrid);
+['#planFee','#planExtra'].forEach(sel=>$(sel).addEventListener('change',()=>{
+  const uid=$('#planChSel').value; if(!uid)return;
+  PLANVAR[uid]={fee:+$('#planFee').value||0,extra:+$('#planExtra').value||0};
+  PLAN.forEach(l=>{ if(l.uid===uid){ l.fee=PLANVAR[uid].fee; l.extra=PLANVAR[uid].extra; } });
+  renderPlanGrid(); renderAgg(); renderPl();
+}));
+function renderAgg(){
+  const {byCh,byCode}=planTotals();
+  const chRows=Object.values(byCh);
+  $('#aggCh').innerHTML = chRows.length===0 ? '<tbody><tr><td style="padding:12px;color:var(--ink-faint)">수량을 입력하면 집계됩니다.</td></tr></tbody>'
+   : `<thead><tr><th>채널</th><th class="num">수량</th><th class="num">매출</th>
+      <th class="num" style="color:var(--xl-green-dark)">본사 몫</th><th class="num" style="color:var(--blue)">채널 몫</th>
+      <th class="num">CM률</th><th class="num" style="min-width:140px">목표 대비</th></tr></thead><tbody>`
+    + chRows.sort((a,b)=>b.cm-a.cm).map(r=>{
+      const rate=r.c.tgt?r.rev/r.c.tgt:null;
+      return `<tr><td><b style="font-family:var(--mono);font-size:11px;color:var(--amber)">${esc(r.c.code)}</b> ${esc(r.c.name)}</td>
+        <td class="num">${r.units.toLocaleString()}</td>
+        <td class="num">${won(r.rev)}</td>
+        <td class="num ${r.cm<0?'neg':''}" style="font-weight:600;color:${r.cm<0?'var(--red)':'var(--xl-green-dark)'}">${won(r.cm)}</td>
+        <td class="num" style="font-weight:600;color:var(--blue)">${r.c.uid===retailUid()?'—':won(r.chm)}</td>
+        <td class="num">${r.rev?pct(r.cm/r.rev):'—'}</td>
+        <td class="num">${rate==null?'<span class="dim">목표 미설정</span>':
+          `<div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
+            <div class="bar-track" style="width:64px;height:10px"><div class="bar-fill ${rate>=1?'':'amber'}" style="width:${Math.min(100,rate*100)}%"></div></div>
+            <b>${pct(rate)}</b></div>`}</td></tr>`;
+    }).join('')+'</tbody>';
+
+  const cdRows=Object.values(byCode);
+  $('#aggCode').innerHTML = cdRows.length===0 ? '<tbody><tr><td style="padding:12px;color:var(--ink-faint)">수량을 입력하면 집계됩니다.</td></tr></tbody>'
+   : `<thead><tr><th>코드</th><th style="min-width:130px">포함 채널</th><th class="num">수량</th><th class="num">매출</th>
+      <th class="num" style="color:var(--xl-green-dark)">본사 몫</th><th class="num" style="color:var(--blue)">채널 몫</th>
+      <th class="num">목표 대비</th></tr></thead><tbody>`
+    + cdRows.sort((a,b)=>b.cm-a.cm).map(r=>{
+      const rate=r.tgt?r.rev/r.tgt:null;
+      return `<tr><td><b style="font-family:var(--mono);color:var(--amber)">${esc(r.code)}</b> <span class="pill ${r.g==='KR1'?'g':'a'}" style="margin-left:4px">${esc(r.g)}</span></td>
+        <td class="dim" style="font-size:11.5px">${[...r.names].map(esc).join(' + ')}</td>
+        <td class="num">${r.units.toLocaleString()}</td>
+        <td class="num">${won(r.rev)}</td>
+        <td class="num ${r.cm<0?'neg':''}" style="font-weight:600;color:${r.cm<0?'var(--red)':'var(--xl-green-dark)'}">${won(r.cm)}</td>
+        <td class="num" style="font-weight:600;color:var(--blue)">${won(r.chm)}</td>
+        <td class="num">${rate==null?'<span class="dim">—</span>':`<b>${pct(rate)}</b>`}</td></tr>`;
+    }).join('')+'</tbody>';
+}
+$('#plModeSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  $$('#plModeSeg button').forEach(x=>x.classList.toggle('on',x===b));
+  plMode=b.dataset.m;
+  const prod=plMode==='prod';
+  $('#plProdPanel').style.display=prod?'':'none';
+  $('#plPlanWrap').style.display=prod?'none':'';
+  $('#plProd').style.display=prod?'':'none';
+  $('#plHint').textContent=prod
+    ?'월 판매계획을 채널별로 입력하면 공헌이익과 손익분기점(BEP)을 계산합니다'
+    :'채널을 고르고 제품별 월 수량을 입력하면 본사 몫과 채널 몫, 코드별 집계, 목표 달성률이 계산됩니다';
+  $('#plStmtTitle').firstChild.textContent=prod?'② 월 손익계산서 ':'④ 월 손익계산서 (전 채널 계획 합산) ';
+  $('#plBarsTitle').firstChild.textContent=prod?'채널별 공헌이익 기여도 ':'채널별 본사 몫(공헌이익) 기여도 ';
+  renderPlanGrid(); renderAgg(); renderPl();
+});
+
+/* ── 손익계산서 · BEP · 바 (양쪽 모드 공용) ── */
+function currentTotals(){
+  if(plMode==='plan'){ const {tot}=planTotals(); return tot; }
+  const p=P[+$('#plProd').value];
+  const tot={rev:0,cogs:0,fees:0,extras:0,units:0};
+  if(p&&plState)plState.forEach(s=>{
+    if(s.price==null||!s.qty)return;
+    tot.rev+=s.price*s.qty; tot.cogs+=(p.cost||0)*s.qty;
+    tot.fees+=s.price*s.fee/100*s.qty; tot.extras+=s.extra*s.qty; tot.units+=s.qty;
+  });
+  return tot;
+}
+function renderPl(){
+  const t=currentTotals();
+  const cm=t.rev-t.cogs-t.fees-t.extras, cmr=t.rev?cm/t.rev:0;
+  const fixed=+$('#fixedCost').value||0;
+  const op=cm-fixed;
+  const rows=[
+    ['매출액', t.rev, ''],
+    ['(−) 매출원가 (매입)', -t.cogs, pct(t.rev?t.cogs/t.rev:0)+' of 매출'],
+    ['(−) 채널 수수료', -t.fees, ''],
+    ['(−) 개당 부대비 (포장·택배 등)', -t.extras, ''],
+    ['= 공헌이익', cm, '공헌이익률 '+pct(cmr)],
+    ['(−) 고정비', -fixed, ''],
+    ['= 영업이익', op, '영업이익률 '+pct(t.rev?op/t.rev:0)]
+  ];
+  $('#plStatement').innerHTML='<tbody>'+rows.map((r,i)=>`
+    <tr style="${i===4||i===6?'background:var(--xl-sel);font-weight:700':''}">
+      <td>${r[0]}</td><td class="num ${r[1]<0&&(i===6)?'neg':''}" style="min-width:120px">${won(r[1])}</td><td class="dim" style="font-size:11px">${r[2]}</td></tr>`).join('')+'</tbody>';
+
+  const bepRev=cmr>0?fixed/cmr:null;
+  const avgCmU=t.units?cm/t.units:null;
+  const bepQty=avgCmU&&avgCmU>0?Math.ceil(fixed/avgCmU):null;
+  const safety=bepRev!=null&&t.rev>0?(t.rev-bepRev)/t.rev:null;
+  $('#bepBox').innerHTML=`
+    <div class="cards" style="grid-template-columns:1fr 1fr;margin-bottom:10px">
+      <div class="card"><h4>손익분기 매출 (월)</h4><div class="big" style="font-size:19px">${wonU(bepRev)}</div><div class="foot">고정비 ÷ 공헌이익률</div></div>
+      <div class="card"><h4>손익분기 수량 (월)</h4><div class="big" style="font-size:19px">${bepQty==null?'—':bepQty.toLocaleString()+'개'}</div><div class="foot">현재 ${plMode==='plan'?'계획 믹스':'채널 믹스'}의 평균 공헌이익 기준</div></div>
+    </div>
+    <div class="bar-row"><span>현재 매출 vs BEP</span>
+      <div class="bar-track" style="height:20px">
+        <div class="bar-fill ${op>=0?'':'red'}" style="width:${bepRev?Math.min(100,t.rev/Math.max(t.rev,bepRev)*100):0}%"></div>
+        ${bepRev?`<div style="position:absolute;left:${Math.min(100,bepRev/Math.max(t.rev,bepRev)*100)}%;top:-3px;bottom:-3px;width:2px;background:var(--red)"></div>`:''}
+      </div>
+      <span class="bar-val">안전여유율 <b class="${safety!=null&&safety<0?'neg':''}">${pct(safety)}</b></span></div>
+    <p class="footnote">${op>=0?'현재 계획은 손익분기점을 넘습니다. 빨간 선이 BEP 지점입니다.':'현재 계획은 BEP 미달입니다. 수량 확대 또는 고정비 절감이 필요합니다.'}</p>`;
+
+  if(plMode==='plan'){
+    const {byCh}=planTotals();
+    const rows2=Object.values(byCh);
+    const maxCm=Math.max(1,...rows2.map(r=>Math.abs(r.cm)));
+    $('#plBars').innerHTML=rows2.length===0?'<p class="footnote">계획을 추가하면 표시됩니다.</p>'
+     : rows2.sort((a,b)=>b.cm-a.cm).map(r=>
+        `<div class="bar-row"><span><b style="font-family:var(--mono);font-size:10.5px;color:var(--amber)">${esc(r.c.code)}</b> ${esc(r.c.name)} · ${r.units}개</span><div class="bar-track"><div class="bar-fill ${r.cm<0?'red':''}" style="width:${Math.abs(r.cm)/maxCm*100}%"></div></div><span class="bar-val"><b>${won(r.cm)}</b>원</span></div>`).join('');
+  }else{
+    const p=P[+$('#plProd').value]; if(!p||!plState){$('#plBars').innerHTML='';return;}
+    const maxCm=Math.max(1,...plState.map(s=>s.price==null?0:Math.abs((s.price*(1-s.fee/100)-(p.cost||0)-s.extra)*s.qty)));
+    $('#plBars').innerHTML=plState.map(s=>{
+      const c=chByUid(s.uid);
+      if(!c||s.price==null||!s.qty)return'';
+      const v=(s.price*(1-s.fee/100)-(p.cost||0)-s.extra)*s.qty;
+      return `<div class="bar-row"><span><b style="font-family:var(--mono);font-size:10.5px;color:var(--amber)">${esc(c.code)}</b> ${esc(c.name)} · ${s.qty}개</span><div class="bar-track"><div class="bar-fill ${v<0?'red':''}" style="width:${Math.abs(v)/maxCm*100}%"></div></div><span class="bar-val"><b>${won(v)}</b>원</span></div>`;
+    }).join('');
+  }
+}
+$('#plProd').addEventListener('change',initPl);
+$('#plRun').addEventListener('click',()=>{ensurePl();renderPl();});
+$('#fixedCost').addEventListener('input',renderPl);
+
+/* ══════════ 시트 탭 ══════════ */
+$('#tabs').addEventListener('click',e=>{
+  const b=e.target.closest('.stab'); if(!b)return;
+  $$('.stab').forEach(x=>x.classList.toggle('on',x===b));
+  $$('.sheet').forEach(s=>s.classList.toggle('on',s.id===b.dataset.sh));
+});
+
+/* ══════════ 퀵 마진 계산기 ══════════ */
+let calcM='fwd';
+$('#calcFab').addEventListener('click',()=>$('#calcPanel').classList.toggle('open'));
+$('#calcClose').addEventListener('click',()=>$('#calcPanel').classList.remove('open'));
+$('#calcMode').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  $$('#calcMode button').forEach(x=>x.classList.toggle('on',x===b));
+  calcM=b.dataset.m;
+  $('#fldPrice').style.display = calcM==='rev'?'none':'';
+  $('#fldTarget').style.display = calcM==='rev'?'':'none';
+  $('#fldRetail').style.display = calcM==='split'?'':'none';
+  runCalc();
+});
+$('#calcProd').addEventListener('change',()=>{
+  const v=$('#calcProd').value; if(v==='')return;
+  const p=P[+v];
+  $('#cCost').value=p.cost??'';
+  $('#cPrice').value=gp(p,dealerUid())??gp(p,retailUid())??'';
+  $('#cRetail').value=gp(p,retailUid())??'';
+  runCalc();
+});
+['#cCost','#cPrice','#cTarget','#cRetail','#cQty','#cFee'].forEach(s=>$(s).addEventListener('input',runCalc));
+function runCalc(){
+  const cost=+$('#cCost').value||0, qty=Math.max(1,+$('#cQty').value||1), fee=(+$('#cFee').value||0)/100;
+  let rows=[];
+  if(calcM==='fwd'){
+    const price=+$('#cPrice').value||0;
+    const feeAmt=price*fee, m=price-feeAmt-cost, r=price?m/price:0;
+    rows=[
+      ['공급가(매출) / 개', wonU(price)],
+      ['수수료·변동비 / 개', '− '+wonU(feeAmt)],
+      ['매입원가 / 개', '− '+wonU(cost)],
+      ['개당 마진', wonU(m), m<0],
+      ['마진율', pct(r), m<0],
+      [qty+'개 총마진', wonU(m*qty), m<0, true],
+      ['원가율', pct(price?cost/price:0)]
+    ];
+  }else if(calcM==='rev'){
+    const tr=(+$('#cTarget').value||0)/100;
+    const denom=1-tr-fee;
+    const need=denom>0?cost/denom:null;
+    const m=need!=null?need*tr:null;
+    rows=[
+      ['매입원가 / 개', wonU(cost)],
+      ['목표 마진율', pct(tr)+(fee?` (+수수료 ${pct(fee)})`:'')],
+      ['필요 공급가 / 개', need==null?'계산 불가 (마진율+수수료 ≥ 100%)':wonU(Math.ceil(need/10)*10), false, true],
+      ['확보 마진 / 개', wonU(m)],
+      [qty+'개 총마진', wonU(m!=null?m*qty:null)]
+    ];
+  }else{
+    const price=+$('#cPrice').value||0, retail=+$('#cRetail').value||0;
+    const pm=price*(1-fee)-cost, bm=retail-price;
+    rows=[
+      ['매입원가 → 공급가 → 정가', `${won(cost)} → ${won(price)} → ${won(retail)}`],
+      ['POUR 마진 / 개', wonU(pm)+' ('+pct(price?pm/price:0)+')', pm<0],
+      ['공급받는이 마진 / 개', wonU(bm)+' ('+pct(retail?bm/retail:0)+')', bm<0],
+      ['이익 배분 (POUR : 채널)', (pm+bm)>0?`${Math.round(pm/(pm+bm)*100)}% : ${Math.round(bm/(pm+bm)*100)}%`:'—', false, true],
+      [qty+'개 기준 POUR 총마진', wonU(pm*qty), pm<0]
+    ];
+  }
+  $('#calcRes').innerHTML=rows.map(r=>`<div class="row ${r[3]?'hl':''}"><span>${r[0]}</span><span class="${r[2]?'neg':''}">${r[1]}</span></div>`).join('');
+}
+
+/* ══════════ 제조사·제품·상품 등록 ══════════ */
+function gotoTab(sh){ $$('.stab').forEach(x=>x.classList.toggle('on',x.dataset.sh===sh)); $$('.sheet').forEach(s=>s.classList.toggle('on',s.id===sh)); }
+function mfgProductCount(name){ return P.filter(p=>p.mfg===name).length; }
+function autoPricesFor(cost,tgt){
+  const pr={}; if(!cost||cost<=0)return pr;
+  COLS().forEach(c=>{
+    if(c.role==='export')return;
+    const fee=((CH_VAR_DEFAULT[c.code]&&CH_VAR_DEFAULT[c.code].fee)||0)/100;
+    const denom=1-tgt-fee;
+    if(denom>0) pr[c.uid]=Math.round(cost/denom/10)*10;
+  });
+  return pr;
+}
+function fillRegDatalists(){
+  const cats=[...new Set(P.map(p=>p.cat))];
+  $('#catList').innerHTML=cats.map(c=>`<option value="${esc(c)}">`).join('');
+  $('#mfgList').innerHTML=MFG.map(m=>`<option value="${esc(m.name)}">`).join('');
+  const gset=[...new Set([...FX_GROUPS_SEED,...FX.map(x=>x.g)])];
+  $('#fxGrpList').innerHTML=gset.map(g=>`<option value="${esc(g)}">`).join('');
+}
+function renderMfg(){
+  if(!MFG.length){ $('#mfgTable').innerHTML='<tbody><tr><td class="dim" style="padding:10px">아직 등록된 제조사가 없습니다. 위에서 추가하세요.</td></tr></tbody>'; return; }
+  let h='<thead><tr><th style="min-width:160px">제조사명</th><th>담당자</th><th>연락처</th><th>메모</th><th class="num">제품 수</th><th></th></tr></thead><tbody>';
+  MFG.forEach(m=>{ h+=`<tr data-mfid="${m.id}">
+      <td class="editable name" data-mff="name">${esc(m.name)||'—'}</td>
+      <td class="editable dim" data-mff="mgr">${esc(m.mgr)||'—'}</td>
+      <td class="editable dim" data-mff="tel">${esc(m.tel)||'—'}</td>
+      <td class="editable dim" data-mff="memo">${esc(m.memo)||'—'}</td>
+      <td class="num">${mfgProductCount(m.name)}</td>
+      <td style="text-align:center"><button class="tbtn" data-mfdel="${m.id}" style="color:var(--red);padding:2px 9px;font-size:11px">삭제</button></td></tr>`; });
+  $('#mfgTable').innerHTML=h+'</tbody>';
+}
+function renderAddProd(){
+  const add=P.filter(p=>p.added);
+  if(!add.length){ $('#addProdTable').innerHTML='<tbody><tr><td class="dim" style="padding:10px">직접 등록한 제품이 여기에 표시됩니다. 기존 제품은 가격정책표에서 수정하세요.</td></tr></tbody>'; return; }
+  const cols=COLS(), showMfg=secAllowed;   // 제조사 열: 마스터 전용
+  let h='<thead><tr><th>분류</th><th style="min-width:180px">제품명</th><th>규격</th>'+(showMfg?'<th>제조사</th>':'')+'<th class="num">매입원가</th>'+cols.map(c=>`<th class="num">${esc(c.code)}</th>`).join('')+'<th></th></tr></thead><tbody>';
+  add.forEach(p=>{ h+=`<tr><td class="dim">${esc(p.cat)}</td><td class="name">${esc(p.name)}</td><td class="dim">${esc(p.spec)}</td>`+(showMfg?`<td class="dim">${esc(p.mfg)||'—'}</td>`:'')+`<td class="num cost">${won(p.cost)}</td>`+
+      cols.map(c=>`<td class="num">${won(gp(p,c.uid))}</td>`).join('')+
+      `<td style="text-align:center"><button class="tbtn" data-pdel="${p.id}" style="color:var(--red);padding:2px 9px;font-size:11px">삭제</button></td></tr>`; });
+  $('#addProdTable').innerHTML=h+'</tbody>';
+}
+function renderAddItem(){
+  const box=$('#regItemForm'), lockMsg=$('#regItemLockMsg'), badge=$('#regItemLock');
+  if(!secAllowed){ box.style.display='none'; lockMsg.style.display=''; lockMsg.innerHTML='· 온라인 상품(리스팅) 등록은 <b>마스터 계정(이메일 인증)</b>만 사용할 수 있는 보안 구역입니다. <b>계정 관리</b> 탭을 확인하세요.'; badge.className='pill r'; badge.textContent='🔒 권한 없음'; return; }
+  if(!unlocked){ box.style.display='none'; lockMsg.style.display=''; lockMsg.innerHTML='· 상품(리스팅) 등록은 매입단가가 연결되는 보안 구역입니다. <b>제품·상품 매칭</b> 탭에서 잠금을 해제하면 여기서 추가할 수 있습니다.'; badge.className='pill r'; badge.textContent='🔒 보안 잠김'; return; }
+  box.style.display=''; lockMsg.style.display='none'; badge.className='pill g'; badge.textContent='🔓 해제됨';
+  const add=M.filter(x=>x.added);
+  if(!add.length){ $('#addItemTable').innerHTML='<tbody><tr><td class="dim" style="padding:10px">직접 등록한 온라인 상품이 여기에 표시됩니다.</td></tr></tbody>'; return; }
+  let h='<thead><tr><th style="min-width:180px">상품명</th><th>원제품</th><th>색상/규격</th><th class="num">도매단가</th><th class="num">판매가</th><th></th></tr></thead><tbody>';
+  add.forEach(r=>{ h+=`<tr><td class="name">${esc(r.item)}</td><td class="dim">${esc(r.src)||'—'}</td><td class="dim">${esc(r.color)||'—'}</td><td class="num cost">${won(r.cost)}</td><td class="num">${r.price>0?won(r.price):'<span class="pill a">미정</span>'}</td><td style="text-align:center"><button class="tbtn" data-idel="${r.id}" style="color:var(--red);padding:2px 9px;font-size:11px">삭제</button></td></tr>`; });
+  $('#addItemTable').innerHTML=h+'</tbody>';
+}
+/* 등록 이벤트 */
+$('#btnMfAdd').addEventListener('click',()=>{
+  const name=($('#mfName').value||'').trim();
+  if(!name){ alert('제조사명은 필수입니다.'); return; }
+  if(MFG.some(m=>m.name===name)){ alert('이미 등록된 제조사입니다.'); return; }
+  MFG.push({id:mfgSeq++,name,mgr:($('#mfMgr').value||'').trim(),tel:($('#mfTel').value||'').trim(),memo:($('#mfMemo').value||'').trim()});
+  ['#mfName','#mfMgr','#mfTel','#mfMemo'].forEach(s=>$(s).value=''); refreshAll();
+});
+$('#apAuto').addEventListener('change',()=>{ const on=$('#apAuto').checked; $('#apTgtFld').style.display=on?'':'none'; $('#apAutoNote').style.display=on?'':'none'; });
+$('#btnApAdd').addEventListener('click',()=>{
+  const cat=($('#apCat').value||'').trim()||'기타', name=($('#apName').value||'').trim();
+  if(!name){ alert('제품명은 필수입니다.'); return; }
+  const spec=($('#apSpec').value||'').trim()||'-';
+  const cost=$('#apCost').value===''?null:+$('#apCost').value;
+  const mfg=($('#apMfg').value||'').trim();
+  const auto=$('#apAuto').checked, tgt=(+$('#apTgt').value||0)/100;
+  P.push({id:P.length,cat,name,spec,cost,pr:auto?autoPricesFor(cost,tgt):{},sup:'',mgr:'',mfg,added:true});
+  if(mfg && !MFG.some(m=>m.name===mfg)) MFG.push({id:mfgSeq++,name:mfg,mgr:'',tel:'',memo:'(제품 등록 시 자동 추가)'});
+  ['#apName','#apSpec','#apCost','#apMfg'].forEach(s=>$(s).value='');
+  fillProductSelects(); plState=null; refreshAll();
+  $('#btnApAdd').textContent='등록됨 ✓'; setTimeout(()=>$('#btnApAdd').textContent='＋ 제품 등록',1200);
+});
+$('#btnAiAdd').addEventListener('click',()=>{
+  if(!unlocked){ alert('보안 잠금을 먼저 해제하세요.'); return; }
+  const item=($('#aiItem').value||'').trim();
+  if(!item){ alert('상품명은 필수입니다.'); return; }
+  M.push({id:M.length,item,src:($('#aiSrc').value||'').trim(),color:($('#aiColor').value||'').trim(),cost:+$('#aiCost').value||0,price:+$('#aiPrice').value||0,added:true});
+  ['#aiItem','#aiSrc','#aiColor','#aiCost','#aiPrice'].forEach(s=>$(s).value=''); refreshAll();
+  $('#btnAiAdd').textContent='등록됨 ✓'; setTimeout(()=>$('#btnAiAdd').textContent='＋ 상품 등록',1200);
+});
+$('#btnRegSave').addEventListener('click',()=>{ persist(); persistSecure(); $('#btnRegSave').textContent='저장됨 ✓'; setTimeout(()=>$('#btnRegSave').textContent='변경사항 저장',1400); });
+document.addEventListener('dblclick',e=>{
+  const td=e.target.closest('#mfgTable td.editable'); if(!td||td.querySelector('input'))return;
+  const m=MFG.find(x=>x.id==td.closest('tr').dataset.mfid), f=td.dataset.mff; if(!m)return;
+  td.innerHTML=`<input class="cellinput" value="${esc(m[f]==null?'':m[f])}">`;
+  const inp=td.querySelector('input'); inp.focus();
+  const commit=()=>{ m[f]=inp.value; refreshAll(); };
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')commit(); if(ev.key==='Escape')renderMfg(); });
+  inp.addEventListener('blur',commit);
+});
+
+/* ══════════ 고정지출 ══════════ */
+function fxMonthly(x){ return x.cycle==='연간' ? (x.amt||0)/12 : (x.amt||0); }
+function fxMonthlyTotal(){ return FX.filter(x=>x.on!==false).reduce((s,x)=>s+fxMonthly(x),0); }
+function renderFixed(){
+  const active=FX.filter(x=>x.on!==false);
+  const mTotal=active.reduce((s,x)=>s+fxMonthly(x),0);
+  const labor=active.filter(x=>x.g==='인건비').reduce((s,x)=>s+fxMonthly(x),0);
+  $('#fxCards').innerHTML=[
+    {h:'월 고정비 합계',v:won(mTotal)+'원',f:'사용 중 '+active.length+'개 항목 · 월 환산'},
+    {h:'연 환산 합계',v:won(mTotal*12)+'원',f:'월 합계 × 12'},
+    {h:'인건비',v:won(labor)+'원/월',f:mTotal?('전체의 '+pct(labor/mTotal)):'항목을 추가하세요'},
+    {h:'인건비 외',v:won(mTotal-labor)+'원/월',f:'플랫폼·서비스·임대 등'}
+  ].map(c=>`<div class="card"><h4>${c.h}</h4><div class="big">${c.v}</div><div class="foot">${c.f}</div></div>`).join('');
+  if(!FX.length){ $('#fxGroups').innerHTML='<div class="panel"><div class="bd"><p class="footnote">아직 등록된 고정지출이 없습니다. 위에서 인건비·플랫폼 항목을 추가하세요.</p></div></div>'; return; }
+  const groups=[...new Set(FX.map(x=>x.g))];
+  $('#fxGroups').innerHTML=groups.map(g=>{
+    const list=FX.filter(x=>x.g===g);
+    const sub=list.filter(x=>x.on!==false).reduce((s,x)=>s+fxMonthly(x),0);
+    const rows=list.map(x=>`<tr data-fxid="${x.id}" style="${x.on===false?'opacity:.42':''}">
+      <td style="text-align:center"><input type="checkbox" class="fxOn" ${x.on===false?'':'checked'} style="width:auto"></td>
+      <td class="editable name" data-fxf="name">${esc(x.name)||'—'}</td>
+      <td class="num editable cost" data-fxf="amt">${won(x.amt)}</td>
+      <td style="text-align:center"><select class="fxCycleSel">${['월간','연간'].map(o=>`<option ${x.cycle===o?'selected':''}>${o}</option>`).join('')}</select></td>
+      <td class="num" style="font-weight:600">${won(fxMonthly(x))}</td>
+      <td class="editable dim" data-fxf="memo">${esc(x.memo)||'—'}</td>
+      <td style="text-align:center"><button class="tbtn" data-fxdel="${x.id}" style="color:var(--red);padding:2px 9px;font-size:11px">삭제</button></td></tr>`).join('');
+    return `<div class="panel"><h3>${esc(g)} <span class="tag">${list.length}개</span><span style="margin-left:auto;font-family:var(--mono);color:var(--xl-green-dark);font-weight:700">${won(sub)}원/월</span></h3>
+      <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" style="width:100%">
+      <thead><tr><th style="width:48px">사용</th><th style="min-width:180px">항목명</th><th class="num">금액</th><th style="width:82px">주기</th><th class="num">월 환산</th><th>메모</th><th></th></tr></thead>
+      <tbody>${rows}</tbody></table></div></div>`;
+  }).join('');
+}
+$('#btnFxAdd').addEventListener('click',()=>{
+  const g=($('#fxG').value||'').trim()||'기타', name=($('#fxName').value||'').trim();
+  const amt=$('#fxAmt').value===''?0:+$('#fxAmt').value;
+  if(!name){ alert('항목명은 필수입니다.'); return; }
+  FX.push({id:fxSeq++,g,name,amt,cycle:$('#fxCycle').value,memo:($('#fxMemo').value||'').trim(),on:true});
+  ['#fxName','#fxAmt','#fxMemo'].forEach(s=>$(s).value=''); fillRegDatalists(); renderFixed();
+});
+$('#btnFxApply').addEventListener('click',()=>{ $('#fixedCost').value=Math.round(fxMonthlyTotal()); gotoTab('sh-pl'); ensurePl(); renderPl(); $('#btnFxApply').textContent='적용됨 ✓'; setTimeout(()=>$('#btnFxApply').textContent='이 고정비를 손익에 적용 →',1400); });
+$('#btnFxSave').addEventListener('click',()=>{ persist(); $('#btnFxSave').textContent='저장됨 ✓'; setTimeout(()=>$('#btnFxSave').textContent='변경사항 저장',1400); });
+$('#btnFxCsv').addEventListener('click',()=>{
+  const rows=[['그룹','항목명','금액','주기','월환산','사용','메모']];
+  FX.forEach(x=>rows.push([x.g,x.name,x.amt,x.cycle,Math.round(fxMonthly(x)),x.on===false?'중지':'사용',x.memo||'']));
+  const csv='\ufeff'+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='POUR스토어_고정지출.csv'; a.click();
+});
+document.addEventListener('dblclick',e=>{
+  const td=e.target.closest('#fxGroups td.editable'); if(!td||td.querySelector('input'))return;
+  const x=FX.find(v=>v.id==td.closest('tr').dataset.fxid), f=td.dataset.fxf; if(!x)return;
+  const isNum=f==='amt';
+  td.innerHTML=`<input class="cellinput" style="text-align:${isNum?'right':'left'}" type="${isNum?'number':'text'}" value="${esc(x[f]==null?'':x[f])}">`;
+  const inp=td.querySelector('input'); inp.focus(); if(isNum)inp.select();
+  const commit=()=>{ x[f]=isNum?(inp.value===''?0:+inp.value):inp.value; renderFixed(); };
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')commit(); if(ev.key==='Escape')renderFixed(); });
+  inp.addEventListener('blur',commit);
+});
+document.addEventListener('change',e=>{
+  const tr=e.target.closest('#fxGroups tr[data-fxid]'); if(!tr)return;
+  const x=FX.find(v=>v.id==tr.dataset.fxid); if(!x)return;
+  if(e.target.classList.contains('fxOn')) x.on=e.target.checked;
+  else if(e.target.classList.contains('fxCycleSel')) x.cycle=e.target.value;
+  renderFixed();
+});
+/* 등록/지출 공통 삭제 */
+document.addEventListener('click',e=>{
+  const md=e.target.closest('[data-mfdel]');
+  if(md){ const id=+md.dataset.mfdel, m=MFG.find(x=>x.id==id); if(confirm(`제조사 "${m?m.name:''}"를 삭제할까요?`)){ MFG=MFG.filter(x=>x.id!=id); refreshAll(); } return; }
+  const pd=e.target.closest('[data-pdel]');
+  if(pd){ const id=+pd.dataset.pdel, p=P.find(x=>x.id===id); if(p&&p.added&&confirm(`제품 "${p.name}"을(를) 삭제할까요?`)){ P=P.filter(x=>x.id!==id); P.forEach((x,i)=>x.id=i); fillProductSelects(); plState=null; refreshAll(); } return; }
+  const idl=e.target.closest('[data-idel]');
+  if(idl){ const id=+idl.dataset.idel, r=M.find(x=>x.id===id); if(r&&r.added&&confirm(`상품 "${r.item}"을(를) 삭제할까요?`)){ M=M.filter(x=>x.id!==id); M.forEach((x,i)=>x.id=i); refreshAll(); } return; }
+  const fd=e.target.closest('[data-fxdel]');
+  if(fd){ const id=+fd.dataset.fxdel, x=FX.find(v=>v.id==id); if(confirm(`"${x?x.name:''}" 항목을 삭제할까요?`)){ FX=FX.filter(v=>v.id!=id); renderFixed(); } return; }
+});
+
+/* ══════════ 마케팅 성과 ══════════ */
+let MKT_LINKS=[], MKT_PERF={}, PROMOS=[];
+const MKT_TYPES=['광고','블로그','카페','인스타','유튜브','기타'];
+const MKT_CHAN_SUGGEST=['네이버','메타(인스타/페북)','카카오','구글','네이버블로그','네이버카페','유튜브','문자','기타'];
+async function fetchMkt(){
+  try{
+    const [l,p,pr]=await Promise.all([
+      db.collection('mkt-links').get(), db.collection('mkt-perf').get(), db.collection('promotions').get()
+    ]);
+    MKT_LINKS=l.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.deleted);
+    MKT_LINKS.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+    MKT_PERF={}; p.docs.forEach(d=>{ MKT_PERF[d.id]=d.data(); });
+    PROMOS=pr.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.deleted);
+    PROMOS.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+    console.log(`[mkt] links:${MKT_LINKS.length} perf:${Object.keys(MKT_PERF).length} promos:${PROMOS.length}`);
+  }catch(e){ console.warn('[mkt] 로드 실패:', e.code||e.message||e); }
+}
+const trackUrl=id=>location.origin+'/g?l='+id;
+function genLinkId(){ const a=new Uint8Array(7); crypto.getRandomValues(a); return [...a].map(b=>(b%36).toString(36)).join(''); }
+function utmMedium(type){ return type==='광고'?'cpc':(type==='인스타'||type==='유튜브')?'social':(type==='블로그'||type==='카페')?'post':'referral'; }
+function buildTarget(base,u){
+  try{ const url=new URL(base);
+    if(u.source)url.searchParams.set('utm_source',u.source);
+    if(u.medium)url.searchParams.set('utm_medium',u.medium);
+    if(u.campaign)url.searchParams.set('utm_campaign',u.campaign);
+    if(u.content)url.searchParams.set('utm_content',u.content);
+    return url.toString();
+  }catch(e){ return base; }
+}
+function linkMetrics(l){
+  const pf=MKT_PERF[l.id]||{};
+  const clicks=+l.clicks||0, impr=+pf.impressions||0, orders=+pf.orders||0, revenue=+pf.revenue||0, spend=+pf.spend||0;
+  const cvr=clicks?orders/clicks:null, roas=spend?revenue/spend:null, cpa=orders?spend/orders:null, cpc=clicks?spend/clicks:null, ctr=impr?clicks/impr:null;
+  const prod=l.product?P.find(p=>p.name===l.product):null;
+  const mr=prod?mrate(retailOf(prod),prod.cost):null;
+  const beRoas=(mr&&mr>0)?1/mr:null;      // 손익분기 ROAS = 1 / 마진율
+  return {clicks,impr,orders,revenue,spend,cvr,roas,cpa,cpc,ctr,beRoas,mr};
+}
+async function mktCreateLink(){
+  const base=($('#mlUrl').value||'').trim();
+  if(!/^https?:\/\//.test(base)){ alert('목적지 URL을 http(s):// 로 입력하세요.'); return; }
+  const product=$('#mlProd').value||'', channel=($('#mlChanIn').value||'').trim(), type=$('#mlTypeIn').value||'기타';
+  const campaign=($('#mlCampaign').value||'').trim(), label=($('#mlLabel').value||'').trim()||((channel||'매체')+' '+type);
+  const utm={source:channel||'direct',medium:utmMedium(type),campaign,content:label};
+  const url=buildTarget(base,utm), id=genLinkId();
+  try{
+    await db.collection('mkt-links').doc(id).set({
+      url,label,product,channel,contentType:type,campaign,
+      utmSource:utm.source,utmMedium:utm.medium,utmCampaign:utm.campaign,utmContent:utm.content,
+      clicks:0,createdAt:new Date().toISOString(),createdBy:(curUser&&curUser.email)||''
+    });
+    ['#mlUrl','#mlCampaign','#mlLabel'].forEach(s=>$(s).value='');
+    await fetchMkt(); refreshAll();
+    try{ await navigator.clipboard.writeText(trackUrl(id)); }catch(e){}
+    $('#mlAdd').textContent='생성·복사됨 ✓'; setTimeout(()=>$('#mlAdd').textContent='＋ 링크 생성',1500);
+  }catch(e){ alert('링크 생성 실패: '+(e.code||e.message||e)); }
+}
+async function mktSetPerf(id,patch){
+  MKT_PERF[id]=Object.assign({},MKT_PERF[id],patch);
+  try{ await db.collection('mkt-perf').doc(id).set({...patch,updatedAt:new Date().toISOString()},{merge:true}); }
+  catch(e){ alert('저장 실패: '+(e.code||e.message||e)); }
+}
+async function mktDeleteLink(id){
+  const l=MKT_LINKS.find(x=>x.id===id);
+  if(!confirm(`링크 "${(l&&l.label)||id}" 를 삭제할까요? (수기 실측도 함께 삭제)`))return;
+  try{ await db.collection('mkt-links').doc(id).delete(); await db.collection('mkt-perf').doc(id).delete().catch(()=>{}); await fetchMkt(); refreshAll(); }
+  catch(e){ alert('삭제 실패: '+(e.code||e.message||e)); }
+}
+function promoDays(p){ if(!p.startDate||!p.endDate)return 1; const d=Math.round((new Date(p.endDate)-new Date(p.startDate))/86400000)+1; return d>0?d:1; }
+function promoMetrics(p){
+  const days=promoDays(p), baseline=(+p.baselineRevenue||0)*days, actual=+p.actualRevenue||0, spend=+p.spend||0;
+  const incr=actual-baseline, roas=spend?actual/spend:null, incrRoas=spend?incr/spend:null;
+  return {days,baseline,actual,spend,incr,roas,incrRoas};
+}
+async function promoAdd(){
+  const name=($('#pmName').value||'').trim(); if(!name){ alert('프로모션명을 입력하세요.'); return; }
+  try{
+    await db.collection('promotions').add({
+      name, startDate:$('#pmStart').value||'', endDate:$('#pmEnd').value||'', products:($('#pmProducts').value||'').trim(),
+      baselineRevenue:+$('#pmBaseline').value||0, actualRevenue:+$('#pmActual').value||0, spend:+$('#pmSpend').value||0,
+      createdAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||''
+    });
+    ['#pmName','#pmStart','#pmEnd','#pmProducts','#pmBaseline','#pmActual','#pmSpend'].forEach(s=>$(s).value='');
+    await fetchMkt(); refreshAll();
+  }catch(e){ alert('추가 실패: '+(e.code||e.message||e)); }
+}
+async function promoSet(id,patch){ try{ await db.collection('promotions').doc(id).set({...patch,updatedAt:new Date().toISOString()},{merge:true}); }catch(e){ alert('저장 실패: '+(e.code||e.message||e)); } }
+async function promoDel(id){ const p=PROMOS.find(x=>x.id===id); if(!confirm(`"${(p&&p.name)||''}" 삭제할까요?`))return; try{ await db.collection('promotions').doc(id).delete(); await fetchMkt(); refreshAll(); }catch(e){ alert('삭제 실패: '+(e.code||e.message||e)); } }
+function fillMktSelects(){
+  const ps=$('#mlProd'); if(ps){ const cur=ps.value; ps.innerHTML='<option value="">— 선택 안 함</option>'+P.filter(p=>p.cat!=='패키지').map(p=>`<option value="${esc(p.name)}">${esc(p.name)}</option>`).join(''); ps.value=cur; }
+  const ts=$('#mlTypeIn'); if(ts&&!ts.options.length) ts.innerHTML=MKT_TYPES.map(t=>`<option>${t}</option>`).join('');
+  const cl=$('#mlChanList'); if(cl&&!cl.options.length) cl.innerHTML=MKT_CHAN_SUGGEST.map(c=>`<option value="${esc(c)}">`).join('');
+  const fc=$('#mlChan'); if(fc){ const cur=fc.value; const chans=[...new Set(MKT_LINKS.map(l=>l.channel).filter(Boolean))]; fc.innerHTML='<option value="">전체 매체</option>'+chans.map(c=>`<option>${esc(c)}</option>`).join(''); fc.value=cur; }
+  const ftt=$('#mlType'); if(ftt&&ftt.options.length<=1) ftt.innerHTML='<option value="">전체 유형</option>'+MKT_TYPES.map(t=>`<option>${t}</option>`).join('');
+}
+const roasPct=r=>r==null?'—':Math.round(r*100)+'%';
+function renderMktLinks(){
+  const t=$('#mlTable'); if(!t)return;
+  const q=($('#mlq').value||'').toLowerCase(), fc=$('#mlChan').value, ft=$('#mlType').value;
+  const rows=MKT_LINKS.filter(l=>{
+    if(fc&&l.channel!==fc)return false; if(ft&&l.contentType!==ft)return false;
+    if(q&&!((l.label||'').toLowerCase().includes(q)||(l.campaign||'').toLowerCase().includes(q)||(l.url||'').toLowerCase().includes(q)))return false;
+    return true;
+  });
+  let h=`<thead><tr>
+    <th style="min-width:150px">라벨 / 캠페인</th><th>매체</th><th>유형</th><th style="min-width:110px">상품</th>
+    <th class="num">클릭</th><th class="num">노출</th><th class="num">주문</th><th class="num">매출</th><th class="num">광고비</th>
+    <th class="num">전환율</th><th class="num">ROAS</th><th class="num">손익분기</th><th class="num">CPA</th><th>링크</th><th></th>
+  </tr></thead><tbody>`;
+  if(!rows.length) h+=`<tr><td class="dim" colspan="15" style="padding:12px">추적링크가 없습니다. 위에서 만들어 광고·게시글에 붙여넣으세요.</td></tr>`;
+  rows.forEach(l=>{ const m=linkMetrics(l);
+    const roasCls=(m.roas!=null&&m.beRoas!=null)?(m.roas>=m.beRoas?'':'neg'):'';
+    h+=`<tr>
+      <td class="name">${esc(l.label||'—')}<div class="dim" style="font-size:10.5px">${esc(l.campaign||'')}</div></td>
+      <td class="dim">${esc(l.channel||'—')}</td><td class="dim">${esc(l.contentType||'—')}</td><td class="dim">${esc(l.product||'—')}</td>
+      <td class="num" style="font-weight:700">${won(m.clicks)}</td>
+      <td class="num editable" data-mlid="${l.id}" data-mlf="impressions">${won(m.impr)}</td>
+      <td class="num editable" data-mlid="${l.id}" data-mlf="orders">${won(m.orders)}</td>
+      <td class="num editable" data-mlid="${l.id}" data-mlf="revenue">${won(m.revenue)}</td>
+      <td class="num editable cost" data-mlid="${l.id}" data-mlf="spend">${won(m.spend)}</td>
+      <td class="num">${m.cvr==null?'—':pct(m.cvr)}</td>
+      <td class="num ${roasCls}" style="font-weight:600">${roasPct(m.roas)}</td>
+      <td class="num dim" title="이 값 이상이면 이익">${roasPct(m.beRoas)}</td>
+      <td class="num">${m.cpa==null?'—':won(m.cpa)}</td>
+      <td><button class="tbtn" data-mlcopy="${l.id}" style="padding:2px 8px;font-size:11px">복사</button></td>
+      <td style="text-align:center"><button class="tbtn" data-mldel="${l.id}" style="color:var(--red);padding:2px 8px;font-size:11px">삭제</button></td>
+    </tr>`;
+  });
+  t.innerHTML=h+'</tbody>';
+}
+function renderMktOverview(){
+  let C=0,O=0,R=0,S=0;
+  MKT_LINKS.forEach(l=>{ const m=linkMetrics(l); C+=m.clicks;O+=m.orders;R+=m.revenue;S+=m.spend; });
+  const cvr=C?O/C:null, roas=S?R/S:null, cpa=O?S/O:null;
+  if($('#mktCards'))$('#mktCards').innerHTML=[
+    {h:'총 클릭(유입)',v:won(C),f:MKT_LINKS.length+'개 추적링크'},
+    {h:'총 주문',v:won(O),f:'전환율 '+(cvr==null?'—':pct(cvr))},
+    {h:'총 매출',v:wonU(R),f:'광고비 '+wonU(S)},
+    {h:'ROAS',v:roasPct(roas),f:'CPA '+(cpa==null?'—':wonU(cpa))}
+  ].map(c=>`<div class="card"><h4>${c.h}</h4><div class="big">${c.v}</div><div class="foot">${c.f}</div></div>`).join('');
+  const byCh={}; MKT_LINKS.forEach(l=>{ const k=l.channel||'(미지정)', m=linkMetrics(l); (byCh[k]=byCh[k]||{c:0,o:0,r:0,s:0}); byCh[k].c+=m.clicks;byCh[k].o+=m.orders;byCh[k].r+=m.revenue;byCh[k].s+=m.spend; });
+  const chArr=Object.entries(byCh).map(([k,v])=>({k,...v})).sort((a,b)=>b.c-a.c), maxC=Math.max(1,...chArr.map(x=>x.c));
+  if($('#mktByChannel'))$('#mktByChannel').innerHTML=chArr.length?chArr.map(x=>{ const ro=x.s?x.r/x.s:null, cv=x.c?x.o/x.c:null;
+    return `<div class="bar-row"><span>${esc(x.k)}</span><div class="bar-track"><div class="bar-fill" style="width:${x.c/maxC*100}%"></div></div><span class="bar-val">클릭 <b>${won(x.c)}</b> · 전환 ${cv==null?'—':pct(cv)} · ROAS ${roasPct(ro)}</span></div>`;
+  }).join(''):'<p class="footnote">데이터가 없습니다.</p>';
+  const byT={}; MKT_LINKS.forEach(l=>{ const k=l.contentType||'기타', m=linkMetrics(l); (byT[k]=byT[k]||{c:0,o:0}); byT[k].c+=m.clicks;byT[k].o+=m.orders; });
+  const tArr=Object.entries(byT).map(([k,v])=>({k,...v})).sort((a,b)=>b.c-a.c), maxT=Math.max(1,...tArr.map(x=>x.c));
+  if($('#mktByContent'))$('#mktByContent').innerHTML=tArr.length?tArr.map(x=>`<div class="bar-row"><span>${esc(x.k)}</span><div class="bar-track"><div class="bar-fill b2" style="width:${x.c/maxT*100}%"></div></div><span class="bar-val">클릭 <b>${won(x.c)}</b> · 주문 ${won(x.o)}</span></div>`).join(''):'<p class="footnote">데이터가 없습니다.</p>';
+  const top=MKT_LINKS.map(l=>({l,m:linkMetrics(l)})).sort((a,b)=>b.m.clicks-a.m.clicks).slice(0,10);
+  if($('#mktTop'))$('#mktTop').innerHTML=top.length?`<table class="grid" style="width:100%"><thead><tr><th>라벨</th><th>매체</th><th>유형</th><th class="num">클릭</th><th class="num">주문</th><th class="num">전환율</th><th class="num">ROAS</th></tr></thead><tbody>`+
+    top.map(({l,m})=>`<tr><td class="name">${esc(l.label||'—')}</td><td class="dim">${esc(l.channel||'—')}</td><td class="dim">${esc(l.contentType||'—')}</td><td class="num">${won(m.clicks)}</td><td class="num">${won(m.orders)}</td><td class="num">${m.cvr==null?'—':pct(m.cvr)}</td><td class="num">${roasPct(m.roas)}</td></tr>`).join('')+'</tbody></table>':'<p class="footnote">데이터가 없습니다.</p>';
+}
+function renderPromos(){
+  const t=$('#pmTable'); if(!t)return;
+  let h=`<thead><tr><th style="min-width:150px">프로모션</th><th>기간</th><th>대상</th><th class="num">평시/일</th><th class="num">총매출</th><th class="num">광고비</th><th class="num">증분매출</th><th class="num">ROAS</th><th class="num">증분ROAS</th><th></th></tr></thead><tbody>`;
+  if(!PROMOS.length) h+=`<tr><td class="dim" colspan="10" style="padding:12px">등록된 프로모션이 없습니다.</td></tr>`;
+  PROMOS.forEach(p=>{ const m=promoMetrics(p);
+    h+=`<tr>
+      <td class="name">${esc(p.name)}</td>
+      <td class="dim">${esc(p.startDate||'')}~${esc(p.endDate||'')} (${m.days}일)</td>
+      <td class="dim">${esc(p.products||'—')}</td>
+      <td class="num editable" data-pmid="${p.id}" data-pmf="baselineRevenue">${won(+p.baselineRevenue||0)}</td>
+      <td class="num editable" data-pmid="${p.id}" data-pmf="actualRevenue">${won(+p.actualRevenue||0)}</td>
+      <td class="num editable cost" data-pmid="${p.id}" data-pmf="spend">${won(+p.spend||0)}</td>
+      <td class="num ${m.incr<0?'neg':''}" style="font-weight:600">${won(m.incr)}</td>
+      <td class="num">${roasPct(m.roas)}</td>
+      <td class="num" style="font-weight:600">${roasPct(m.incrRoas)}</td>
+      <td style="text-align:center"><button class="tbtn" data-pmdel="${p.id}" style="color:var(--red);padding:2px 8px;font-size:11px">삭제</button></td>
+    </tr>`;
+  });
+  t.innerHTML=h+'</tbody>';
+}
+function renderMktAll(){ fillMktSelects(); renderMktOverview(); renderMktLinks(); renderPromos(); }
+/* 마케팅 이벤트 */
+$('#mlAdd')&&$('#mlAdd').addEventListener('click',mktCreateLink);
+$('#pmAdd')&&$('#pmAdd').addEventListener('click',promoAdd);
+['#mlq','#mlChan','#mlType'].forEach(s=>{ const el=$(s); if(el)el.addEventListener('input',renderMktLinks); });
+document.addEventListener('click',e=>{
+  const cp=e.target.closest('[data-mlcopy]');
+  if(cp){ const u=trackUrl(cp.dataset.mlcopy); (navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>{cp.textContent='복사됨';setTimeout(()=>cp.textContent='복사',1200);}).catch(()=>prompt('이 링크를 복사하세요:',u)); return; }
+  const dl=e.target.closest('[data-mldel]'); if(dl){ mktDeleteLink(dl.dataset.mldel); return; }
+  const pd=e.target.closest('[data-pmdel]'); if(pd){ promoDel(pd.dataset.pmdel); return; }
+});
+document.addEventListener('dblclick',e=>{
+  const td=e.target.closest('#mlTable td.editable'); if(!td||td.querySelector('input'))return;
+  const id=td.dataset.mlid, f=td.dataset.mlf, cur=(MKT_PERF[id]&&MKT_PERF[id][f])||0;
+  td.innerHTML=`<input class="cellinput" type="number" value="${cur||''}">`;
+  const inp=td.querySelector('input'); inp.focus(); inp.select();
+  const commit=async()=>{ await mktSetPerf(id,{[f]:inp.value===''?0:+inp.value}); renderMktLinks(); renderMktOverview(); };
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')commit(); if(ev.key==='Escape')renderMktLinks(); });
+  inp.addEventListener('blur',commit);
+});
+document.addEventListener('dblclick',e=>{
+  const td=e.target.closest('#pmTable td.editable'); if(!td||td.querySelector('input'))return;
+  const id=td.dataset.pmid, f=td.dataset.pmf, p=PROMOS.find(x=>x.id===id); if(!p)return;
+  td.innerHTML=`<input class="cellinput" type="number" value="${(+p[f]||0)||''}">`;
+  const inp=td.querySelector('input'); inp.focus(); inp.select();
+  const commit=async()=>{ const v=inp.value===''?0:+inp.value; p[f]=v; await promoSet(id,{[f]:v}); renderPromos(); };
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')commit(); if(ev.key==='Escape')renderPromos(); });
+  inp.addEventListener('blur',commit);
+});
+
+/* ══════════ 전체 갱신 ══════════ */
+function refreshAll(){
+  renderRibbon(); renderDash(); renderGrid(); renderChMan(); renderSup(); renderMatch();
+  renderChannel(); renderMoq(); ensurePl(); renderPlInput();
+  fillPlanChSel(); sanitizePlan(); renderPlanGrid(); renderAgg(); renderPl();
+  fillRegDatalists(); renderMfg(); renderAddProd(); renderAddItem(); renderFixed();
+  renderMktAll();
+  applySecGating();
+}
+function syncStickyTop(){
+  const tr=$('#sh-price .toolrow'); if(!tr)return;
+  document.documentElement.style.setProperty('--toolh', tr.offsetHeight+'px');
+}
+window.addEventListener('resize',syncStickyTop);
+function init(){
+  if(!MFG.length) MFG=[{id:mfgSeq++,name:'㈜넷폼알앤디',mgr:'',tel:'',memo:'자사 브랜드'}];
+  if(!FX.length) FX=[
+    {id:fxSeq++,g:'인건비',name:'(예시) 대표 급여',amt:0,cycle:'월간',memo:'금액을 수정하세요',on:true},
+    {id:fxSeq++,g:'플랫폼·서비스',name:'사방넷 (통합관리)',amt:0,cycle:'월간',memo:'',on:true},
+    {id:fxSeq++,g:'플랫폼·서비스',name:'카페24 (자사몰)',amt:0,cycle:'월간',memo:'',on:true},
+    {id:fxSeq++,g:'플랫폼·서비스',name:'채널톡 (CS)',amt:0,cycle:'월간',memo:'',on:true},
+    {id:fxSeq++,g:'플랫폼·서비스',name:'도메인 (pourstore.net)',amt:0,cycle:'연간',memo:'연 1회 결제',on:true},
+    {id:fxSeq++,g:'임대·관리',name:'(예시) 쇼룸·창고 임차료',amt:0,cycle:'월간',memo:'금액을 수정하세요',on:true}
+  ];
+  const cats=[...new Set(P.map(p=>p.cat))];
+  $('#catSel').innerHTML='<option value="">전체 분류</option>'+cats.map(c=>`<option>${c}</option>`).join('');
+  fillProductSelects();
+  renderSecUI();
+  refreshAll();
+  runCalc();
+  syncStickyTop();
+}
+
+/* ══════════ 로그인 게이트 + 부팅 ══════════ */
+let appStarted=false;
+function buildState(){                        // Firestore 로드본으로 앱 상태 구성
+  CHANNELS=CH_DEF.map(c=>({...c})); uidSeq=100;
+  P=RAW.map((r,i)=>({id:i,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:{...r.pr},sup:'',mgr:'',mfg:'',added:false}));
+  BASE_N=P.length;
+  loadSaved();                                // localStorage 편집 오버레이 적용
+}
+async function boot(){
+  if(appStarted) return;
+  // 1) 접근 권한 먼저 판정 (허용목록/마스터)
+  await fetchAccess();
+  if(!dataAllowed){
+    // 허용목록에 없는 계정 → 데이터 로드 시도 없이 "권한 없음" 안내. 마스터 부트스트랩만 허용.
+    appStarted=true;
+    buildState(); init();
+    renderAccessDenied(true);
+    return;
+  }
+  renderAccessDenied(false);
+  // 2) 허용 계정만 데이터 로드
+  try{
+    const [channels, products, config]=await Promise.all([fetchChannels(),fetchProducts(),fetchConfig()]);
+    applyLoaded(channels, products, config);
+    await fetchMkt();                            // 마케팅 성과 데이터(허용목록 계정만)
+    const empty=!channels.length||!products.length;
+    if(empty) console.warn('[boot] 로드된 데이터가 비어있습니다 — 시딩 여부를 확인하세요.');
+    const dn=$('#dataNotice'); if(dn) dn.style.display=empty?'flex':'none';
+  }catch(e){
+    console.error('[boot] Firestore 로드 실패:', e);
+    showLoginError('데이터를 불러오지 못했습니다: '+(e.message||e.code||e));
+    throw e;
+  }
+  appStarted=true;
+  buildState();
+  init();
+}
+/* 허용목록에 없는 계정용 전체화면 안내 */
+function renderAccessDenied(show){
+  const ov=$('#accessDenied'); if(!ov)return;
+  ov.style.display=show?'flex':'none';
+  if(show){
+    const email=(curUser&&curUser.email)||'';
+    const canBootstrap=!ACCESS && !!(curUser&&curUser.emailVerified);
+    $('#adEmail').textContent=email;
+    $('#adBootstrap').style.display=canBootstrap?'':'none';
+    $('#adHint').textContent = ACCESS
+      ? '이 계정은 열람 허용목록에 없습니다. 마스터 계정 관리자에게 등록을 요청하세요.'
+      : (curUser&&curUser.emailVerified
+          ? '아직 마스터 계정이 설정되지 않았습니다. 지정 마스터 계정이라면 아래에서 설정하세요.'
+          : '아직 마스터 계정이 설정되지 않았습니다. 마스터 지정 계정으로 로그인 후 이메일 인증을 완료하세요.');
+  }
+}
+$('#adBootstrap')&&$('#adBootstrap').addEventListener('click',()=>{ renderAccessDenied(false); gotoTab('sh-access'); });
+$('#adSignOut')&&$('#adSignOut').addEventListener('click',async()=>{ try{ await auth.signOut(); }catch(e){} location.reload(); });
+
+/* ── 인증 (Firebase Auth · 이메일/비밀번호) ── */
+function showLoginError(m){ const el=$('#authMsg'); if(el){ el.style.color='#C0392B'; el.textContent=m; } }
+function authErr(e){
+  const c=(e&&e.code)||'';
+  if(c.includes('invalid-credential')||c.includes('wrong-password')||c.includes('user-not-found')) return '이메일 또는 비밀번호가 올바르지 않습니다.';
+  if(c.includes('invalid-email')) return '이메일 형식이 올바르지 않습니다.';
+  if(c.includes('too-many-requests')) return '시도가 많습니다. 잠시 후 다시 시도하세요.';
+  if(c.includes('network')) return '네트워크 오류입니다. 연결을 확인하세요.';
+  return '로그인 실패: '+((e&&e.message)||c);
+}
+async function doSignIn(){
+  const email=$('#authEmail').value.trim(), pw=$('#authPw').value;
+  if(!email||!pw){ showLoginError('이메일과 비밀번호를 입력하세요.'); return; }
+  $('#authMsg').style.color='#5A6572'; $('#authMsg').textContent='로그인 중…';
+  try{ await auth.signInWithEmailAndPassword(email,pw); }
+  catch(e){ showLoginError(authErr(e)); }
+}
+$('#authBtn').addEventListener('click',doSignIn);
+$('#authPw').addEventListener('keydown',e=>{ if(e.key==='Enter')doSignIn(); });
+$('#authEmail').addEventListener('keydown',e=>{ if(e.key==='Enter')$('#authPw').focus(); });
+$('#btnSignOut').addEventListener('click',async()=>{ try{ await auth.signOut(); }catch(e){ console.error(e); } location.reload(); });
+$('#btnGoAccess')&&$('#btnGoAccess').addEventListener('click',()=>gotoTab('sh-access'));
+auth.onAuthStateChanged(async user=>{
+  if(user){
+    curUser=user;
+    // 이메일 인증 상태를 최신 토큰으로 반영 (인증 링크 클릭 직후 재로그인 시)
+    try{ await user.reload(); await user.getIdToken(true); curUser=auth.currentUser; }catch(e){ console.warn('user.reload 실패:', e.code||e); }
+    const who=$('#authWho'); if(who) who.textContent=(curUser&&curUser.email)||'';
+    $('#authGate').style.display='none';
+    $('#loadingOverlay').style.display='flex';
+    try{ await boot(); }
+    catch(e){ $('#authGate').style.display='flex'; /* 메시지는 showLoginError 로 표시 */ }
+    finally{ $('#loadingOverlay').style.display='none'; }
+  }else{
+    $('#authGate').style.display='flex';
+  }
+});
+</script>
+</body>
+</html>

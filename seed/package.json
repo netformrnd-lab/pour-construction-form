@@ -1,0 +1,15 @@
+{
+  "name": "pourstore-pricing-seed",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "POUR스토어 가격·마진 대시보드 — Firestore(pourstoreproject) 시드 도구",
+  "scripts": {
+    "extract": "node extract.mjs",
+    "seed": "node seed.mjs",
+    "seed:prune": "node seed.mjs --prune"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

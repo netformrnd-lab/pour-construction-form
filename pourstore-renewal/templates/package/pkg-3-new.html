@@ -1,0 +1,93 @@
+<section data-section="신규 패키지">
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
+  .ppr3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+  .ppr3 { background:#FFFBF5; padding:72px 18px; }
+  .ppr3-inner { max-width:1200px; margin:0 auto; }
+  .ppr3-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:14px; }
+  .ppr3-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppr3-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:6px; }
+  .ppr3-head p { font-size:13.5px; color:#6B7280; }
+  .ppr3-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; transition:all .25s; background:#fff; }
+  .ppr3-head .more:hover { background:#FFF7ED; }
+  .ppr3-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px; }
+  .ppr3-card { background:#fff; border:1.5px solid #F3F4F6; border-radius:18px; overflow:hidden; transition:all .3s; text-decoration:none; position:relative; display:flex; flex-direction:column; }
+  .ppr3-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .ppr3-thumb { aspect-ratio:5/4; background-size:cover; background-position:center; position:relative; }
+  .ppr3-thumb::after { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(15,31,92,.5) 0%, transparent 50%); }
+  .ppr3-thumb .new { position:absolute; top:10px; left:10px; padding:4px 10px; background:#0F1F5C; color:#fff; font-size:10px; font-weight:900; border-radius:5px; letter-spacing:.5px; z-index:1; }
+  .ppr3-thumb .tier { position:absolute; top:10px; right:10px; padding:4px 10px; background:rgba(255,255,255,.94); color:#0F1F5C; font-size:10px; font-weight:900; border-radius:5px; letter-spacing:.4px; z-index:1; backdrop-filter:blur(4px); }
+  .ppr3-thumb .tier.full { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; }
+  .ppr3-thumb .compose { position:absolute; bottom:10px; left:10px; right:10px; display:flex; flex-wrap:wrap; gap:4px; z-index:1; }
+  .ppr3-thumb .compose span { padding:3px 7px; background:rgba(255,255,255,.92); color:#0F1F5C; font-size:10px; font-weight:800; border-radius:5px; letter-spacing:-.2px; }
+  .ppr3-info { padding:14px 16px; flex:1; display:flex; flex-direction:column; }
+  .ppr3-info .date { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.3px; margin-bottom:6px; }
+  .ppr3-info .area { font-size:10.5px; font-weight:800; color:#9CA3AF; letter-spacing:.5px; margin-bottom:4px; }
+  .ppr3-info .name { font-size:14.5px; font-weight:900; color:#0F1F5C; margin-bottom:6px; line-height:1.4; letter-spacing:-.3px; }
+  .ppr3-info .desc { font-size:11.5px; color:#6B7280; line-height:1.55; margin-bottom:10px; }
+  .ppr3-info .price { display:flex; align-items:baseline; gap:6px; margin-bottom:12px; }
+  .ppr3-info .now { font-size:16px; font-weight:900; color:#0F1F5C; }
+  .ppr3-info .original { font-size:11px; color:#9CA3AF; text-decoration:line-through; font-weight:600; }
+  .ppr3-info .footer { display:flex; gap:6px; flex-wrap:wrap; padding-top:10px; border-top:1px solid #F3F4F6; margin-top:auto; }
+  .ppr3-info .self { padding:3px 8px; font-size:10px; font-weight:800; border-radius:5px; }
+  .ppr3-info .self.ok { background:#ECFDF5; border:1px solid #A7F3D0; color:#059669; }
+  .ppr3-info .self.pro { background:#FEE2E2; border:1px solid #FCA5A5; color:#DC2626; }
+  .ppr3-info .media { display:inline-flex; align-items:center; gap:4px; font-size:10px; color:#EA580C; font-weight:800; padding:3px 8px; background:#FFFBF5; border:1px solid #FED7AA; border-radius:5px; }
+  @media (max-width:640px) { .ppr3-head h2 { font-size:22px; } }
+  </style>
+  <section class="ppr3">
+    <div class="ppr3-inner">
+      <div class="ppr3-head">
+        <div>
+          <div class="kicker"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" style="vertical-align:-0.14em"><path d="M12 4l1.4 4.2L18 9.6l-4.6 1.4L12 15l-1.4-4L6 9.6l4.6-1.4z"/></svg> NEW PACKAGE</div>
+          <h2>신규 입고 패키지</h2>
+          <p>새로 준비한 R&D 시너지 조합 패키지</p>
+        </div>
+        <a class="more" href="/product/list.html?cate_no=71">전체 패키지 →</a>
+      </div>
+      <div class="ppr3-grid" data-ppr3-grid>
+        <div style="grid-column:1/-1;text-align:center;color:#9CA3AF;font-size:13px;font-weight:700;padding:30px 0">신규로 지정된 상품이 없습니다</div>
+      </div>
+
+<script type="module">
+// 신규 입고 — 어드민 '패키지 구성 관리'에서 '신규' 지정한 상품 (pourstore-packages, isNew:true)
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const firebaseConfig = { apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU", authDomain:"pour-app-new.firebaseapp.com", projectId:"pour-app-new", storageBucket:"pour-app-new.firebasestorage.app", messagingSenderId:"411031141847", appId:"1:411031141847:web:e658174fd4b9652cdadf92" };
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const esc=(s)=>(s||'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const STAR='<svg viewBox="0 0 24 24" width="1em" height="1em" fill="#F59E0B" style="vertical-align:-0.14em"><path d="M12 3l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 18l-5.8 3 1.1-6.5L2.6 9.8l6.5-.9z"/></svg>';
+const CHK='<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>';
+const SHIELD='<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><path d="M3 15a9 9 0 0 1 18 0"/><path d="M2 15h20v3H2z"/><path d="M12 6v3M9 7v2M15 7v2"/></svg>';
+const AREA_L={slab:'옥상 슬라브',roof:'금속·슁글 지붕',wall:'균열·외벽',drain:'배수·베란다·이음부'};
+const TIER_L={full:'풀패키지',partial:'부분 패키지',coating:'단품'};
+const GRAD=['135deg,#F97316,#EA580C','135deg,#EA580C,#9A3412','135deg,#0F1F5C,#1E3A8A','135deg,#059669,#065F46'];
+function card(p,i){
+  const th=p.thumbnail?("url('"+esc(p.thumbnail)+"') center/cover no-repeat, "):"";
+  const full=p.tier==='full';
+  const tier=full?('<div class="tier full">'+STAR+' 풀패키지</div>'):('<div class="tier">'+esc(TIER_L[p.tier]||'부분 패키지')+'</div>');
+  const pro=p.area==='roof';
+  const self=pro?('<span class="self pro">'+SHIELD+' 안전 시공 권장</span>'):('<span class="self ok">'+CHK+' 셀프 OK</span>');
+  return '<a class="ppr3-card" href="/product/detail.html?product_no='+esc(p.productNo)+'&cate_no=71">'
+    +'<div class="ppr3-thumb" style="background:'+th+'linear-gradient('+GRAD[i%GRAD.length]+')"><div class="new">NEW</div>'+tier+'</div>'
+    +'<div class="ppr3-info"><div class="area">'+esc(AREA_L[p.area]||'패키지')+'</div><div class="name">'+esc(p.name)+'</div>'
+    +'<div class="price"><span class="now">'+esc(p.price||'')+'</span></div><div class="footer">'+self+'</div></div></a>';
+}
+(async function(){
+  const grid=document.querySelector('[data-ppr3-grid]'); if(!grid) return;
+  let pkgs=[];
+  try{ const snap=await getDocs(collection(db,"pourstore-packages")); pkgs=snap.docs.map(d=>({id:d.id,...d.data()})); console.log('[ppr3] 패키지 '+pkgs.length+'건 로드'); }
+  catch(e){ console.log('[ppr3] 로드 실패:', e && e.message); return; }
+  const news=pkgs.filter(p=>p.active!==false && p.isNew).sort((a,b)=>((a.order??999)-(b.order??999))).slice(0,8);
+  console.log('[ppr3] 신규 '+news.length+'건');
+  if(!news.length) return;
+  grid.innerHTML=news.map(card).join('');
+})();
+</script>
+      </div>
+    </div>
+  </section>
+</section>
+
+<!-- [5] 전체 패키지 매트릭스 -->

@@ -1,0 +1,80 @@
+<!-- [폰트 토큰] 폰트 관리에서 역할별로 일괄 정의됨 -->
+<style data-pour-font-tokens="1">
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
+.role-제목{font-family:'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;font-size:24px;font-weight:900;color:#111111;line-height:1.4;letter-spacing:-0.04em;}
+.role-강조{font-family:'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;font-size:16px;font-weight:700;color:#2F3438;line-height:1.45;letter-spacing:-0.03em;}
+.role-본문{font-family:'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;font-size:14px;font-weight:400;color:#2F3438;line-height:1.5;letter-spacing:-0.02em;}
+.role-서브{font-family:'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;font-size:12px;font-weight:500;color:#888888;line-height:1.5;letter-spacing:-0.02em;}
+</style>
+
+<!-- [1] 부위별 패키지 네비 -->
+<section data-section="부위별 패키지 네비">
+<style>
+  .ppr1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+  .ppr1 { background:linear-gradient(180deg,#FFFBF5 0%,#fff 100%); padding:64px 18px 32px; }
+  .ppr1-inner { max-width:1200px; margin:0 auto; }
+  .ppr1-head { text-align:center; margin-bottom:28px; }
+  .ppr1-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppr1-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .ppr1-head p { font-size:14px; color:#6B7280; max-width:580px; margin:0 auto; }
+  .ppr1-line { display:flex; gap:8px; justify-content:center; margin-bottom:24px; flex-wrap:wrap; }
+  .ppr1-line button { padding:9px 20px; background:#fff; border:1.5px solid #F3F4F6; border-radius:999px; font-size:13px; font-weight:700; color:#6B7280; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:6px; }
+  .ppr1-line button:hover { border-color:#FED7AA; color:#EA580C; }
+  .ppr1-line button.active { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border-color:transparent; box-shadow:0 6px 16px rgba(249,115,22,.3); }
+  .ppr1-nav { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; }
+  .ppr1-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; padding:22px 16px; text-align:center; transition:all .3s; cursor:pointer; text-decoration:none; position:relative; overflow:hidden; }
+  .ppr1-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .ppr1-card .icon { width:54px; height:54px; margin:0 auto 12px; border-radius:14px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:26px; transition:transform .3s; }
+  .ppr1-card:hover .icon { transform:rotate(-8deg) scale(1.05); }
+  .ppr1-card .name { font-size:14px; font-weight:900; color:#0F1F5C; margin-bottom:5px; letter-spacing:-.3px; }
+  .ppr1-card .count { font-size:11px; color:#EA580C; font-weight:800; letter-spacing:.3px; margin-bottom:8px; }
+  .ppr1-card .self { display:inline-block; padding:3px 8px; font-size:10px; font-weight:800; border-radius:5px; letter-spacing:-.2px; }
+  .ppr1-card .self.ok { background:#ECFDF5; border:1px solid #A7F3D0; color:#059669; }
+  .ppr1-card .self.warn { background:#FEF3C7; border:1px solid #FCD34D; color:#B45309; }
+  .ppr1-card .self.pro { background:#FEE2E2; border:1px solid #FCA5A5; color:#DC2626; }
+  .ppr1-card .hot { position:absolute; top:8px; right:8px; padding:2px 7px; background:#DC2626; color:#fff; font-size:9.5px; font-weight:900; border-radius:4px; letter-spacing:.3px; }
+  @media (max-width:640px) { .ppr1-head h2 { font-size:24px; } }
+  </style>
+  <section class="ppr1">
+    <div class="ppr1-inner">
+      <div class="ppr1-head">
+        <div class="kicker"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg> PACKAGE BY AREA</div>
+        <h2>부위별 패키지 — 한눈에 골라요</h2>
+        <p><b style="color:#0F1F5C">고품질 R&D 자재 시너지 조합 패키지</b> — 영상만 따라하면 초보자도 품질 좋은 시공 가능. 시공업자·셀프 보수 모두 자유 구매하세요</p>
+      </div>
+      <div class="ppr1-line">
+        <button class="active"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 7h.01M13 7h.01M9 11h.01M13 11h.01M9 15h.01M13 15h.01"/></svg> 전체</button>
+        <button>아파트 라인 (고층)</button>
+        <button>일반 저층 (주택·상가)</button>
+      </div>
+      <div style="display:flex;justify-content:center;gap:14px;margin-bottom:14px;flex-wrap:wrap;font-size:11.5px;color:#6B7280;font-weight:700;">
+        <span><span style="display:inline-block;width:10px;height:10px;background:#10B981;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>셀프 가능 · 평지·난간 있음</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#F59E0B;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>저층 셀프 / 고층 시공연결</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#DC2626;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><path d="M3 15a9 9 0 0 1 18 0"/><path d="M2 15h20v3H2z"/><path d="M12 6v3M9 7v2M15 7v2"/></svg> 안전 시공 권장 · 경사·로프 (안전상)</span>
+      </div>
+      <div style="text-align:center;margin-bottom:18px;font-size:12px;color:#6B7280;line-height:1.65;">
+        <b style="color:#0F1F5C">시공방법은 영상만 따라하면 누구나 OK</b> — R&D 고품질 자재라 가능. 시공업자는 모든 부위 자유 구매하세요.
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:linear-gradient(135deg,#FEF3C7,#FFEDD5);border:1px solid #FCD34D;border-radius:14px;margin-bottom:24px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:220px;font-size:13px;color:#0F1F5C;line-height:1.55;font-weight:700;">
+          <span style="display:inline-block;padding:3px 9px;background:#fff;border:1px solid #FCA5A5;color:#DC2626;font-size:11px;font-weight:900;border-radius:5px;margin-right:8px;"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><path d="M3 15a9 9 0 0 1 18 0"/><path d="M2 15h20v3H2z"/><path d="M12 6v3M9 7v2M15 7v2"/></svg> 안전 시공 권장</span>
+          안전상 셀프가 어려우시면 — <b style="color:#DC2626;">시공연결 도와드려요</b>
+        </div>
+        <a href="https://www.poursolution.net/163" style="padding:11px 22px;background:linear-gradient(135deg,#F97316,#EA580C);color:#fff;border-radius:10px;font-size:13px;font-weight:900;text-decoration:none;box-shadow:0 4px 14px rgba(249,115,22,.35);white-space:nowrap;">신청하기 →</a>
+      </div>
+      <div class="ppr1-nav">
+        <a class="ppr1-card" href="#area-slab"><div class="icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><rect x="3" y="4" width="18" height="5" rx="1"/><rect x="3" y="11" width="18" height="5" rx="1"/><path d="M3 19h18"/></svg></div><div class="name">슬라브</div><div class="count">패키지 6종</div><span class="self ok"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg> 셀프 OK</span><span class="hot">HOT</span></a>
+        <a class="ppr1-card" href="#area-shingle"><div class="icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><path d="M3 11l9-8 9 8"/><path d="M5 10v9h14v-9"/></svg></div><div class="name">아스팔트 슁글</div><div class="count">패키지 4종</div><span class="self pro"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><path d="M3 15a9 9 0 0 1 18 0"/><path d="M2 15h20v3H2z"/><path d="M12 6v3M9 7v2M15 7v2"/></svg> 안전 시공 권장</span></a>
+        <a class="ppr1-card" href="#area-tile"><div class="icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 12h18M12 5v3M8 8h8M3 16h18M7 16v3M17 16v3"/></svg></div><div class="name">금속 기와</div><div class="count">패키지 4종</div><span class="self pro"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><path d="M3 15a9 9 0 0 1 18 0"/><path d="M2 15h20v3H2z"/><path d="M12 6v3M9 7v2M15 7v2"/></svg> 안전 시공 권장</span></a>
+        <a class="ppr1-card" href="#area-crack"><div class="icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" style="vertical-align:-0.14em"><path d="M13 2L4 14h6l-1 8 9-13h-6z"/></svg></div><div class="name">균열 보수</div><div class="count">패키지 3종</div><span class="self warn"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg> 저층만 셀프</span></a>
+        <a class="ppr1-card" href="#area-paint"><div class="icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><rect x="3" y="4" width="12" height="6" rx="1"/><path d="M15 7h4v4h-7v3"/><rect x="9" y="14" width="6" height="7" rx="1"/></svg></div><div class="name">재도장 (외벽)</div><div class="count">패키지 5종</div><span class="self pro"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><path d="M3 15a9 9 0 0 1 18 0"/><path d="M2 15h20v3H2z"/><path d="M12 6v3M9 7v2M15 7v2"/></svg> 안전 시공 권장</span><span class="hot">HOT</span></a>
+        <a class="ppr1-card" href="#area-color"><div class="icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></div><div class="name">칼라강판·징크</div><div class="count">패키지 3종</div><span class="self pro"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><path d="M3 15a9 9 0 0 1 18 0"/><path d="M2 15h20v3H2z"/><path d="M12 6v3M9 7v2M15 7v2"/></svg> 안전 시공 권장</span></a>
+        <a class="ppr1-card" href="#area-drain"><div class="icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><path d="M2 8c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 14c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 20c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg></div><div class="name">배수로·베란다</div><div class="count">패키지 4종</div><span class="self ok"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg> 셀프 OK</span></a>
+        <a class="ppr1-card" href="#area-parking"><div class="icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><path d="M3 11h18v5H3z"/><circle cx="7.5" cy="16.5" r="1.3"/><circle cx="16.5" cy="16.5" r="1.3"/></svg></div><div class="name">지하주차장</div><div class="count">패키지 3종</div><span class="self ok"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg> 셀프 OK</span></a>
+        <a class="ppr1-card" href="#area-joint"><div class="icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg></div><div class="name">이음부·실링</div><div class="count">패키지 2종</div><span class="self ok"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg> 셀프 OK</span></a>
+      </div>
+    </div>
+  </section>
+</section>
+
+<!-- [2] 패키지 등급 가이드 -->

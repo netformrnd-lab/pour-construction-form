@@ -1,0 +1,143 @@
+<!-- ============================================================
+  pour-02b-vending  —  소재별 SKU 자판기 모듈 (신규)
+  네임스페이스: .psm2b (pour-02-best .psm2와 충돌 방지)
+  이모지 미사용 — 인라인 SVG 라인 아이콘.
+
+  ▣▣▣ 2단계 교체 지점 ▣▣▣
+  현재(1단계): 아래 DATA 배열 = §6-10 더미 SKU. 가격은 renderPrice()로 분리 → "가격 준비중".
+  나중(2단계): cate_no 확정 시, 각 그룹의 카드 그리드(.psm2b-grid)를
+    카페24 상품 진열 모듈(<div module="product_listmore"> …)로 교체하고
+    renderPrice()를 {$product_price}로 대체하면 소재별 실제 상품·가격 자동 노출.
+  ============================================================ -->
+<section class="psm2b">
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
+.psm2b *, .psm2b *::before, .psm2b *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; letter-spacing:-0.02em; }
+.psm2b { background:#F9F7F4; padding:44px 18px 48px; color:#0F1F5C; }
+.psm2b a { text-decoration:none; color:inherit; }
+.psm2b-inner { max-width:1256px; margin:0 auto; }
+.psm2b-eyebrow { font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.02em; margin-bottom:8px; }
+.psm2b-title { font-size:26px; font-weight:900; color:#0F1F5C; letter-spacing:-0.04em; line-height:1.25; }
+.psm2b-sub { margin-top:7px; font-size:13.5px; font-weight:600; color:#6B6560; }
+/* 소재 그룹 */
+.psm2b-group { margin-top:30px; }
+.psm2b-ghead { display:flex; align-items:center; gap:9px; margin-bottom:14px; }
+.psm2b-gicon { width:34px; height:34px; border-radius:9px; display:grid; place-items:center; background:#fff; border:1px solid #EAE4DC; }
+.psm2b-gicon svg { width:19px; height:19px; }
+.psm2b-gname { font-size:16.5px; font-weight:800; color:#0F1F5C; }
+.psm2b-gcount { font-size:11.5px; font-weight:800; color:#9A938B; background:#fff; border:1px solid #EAE4DC; border-radius:999px; padding:2px 9px; }
+/* 자판기 격자 — 촘촘하게 */
+.psm2b-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+.psm2b-card { background:#fff; border:1px solid #EEEAE3; border-radius:13px; overflow:hidden; transition:.15s; display:flex; flex-direction:column; }
+.psm2b-card:hover { border-color:#F1C89E; box-shadow:0 8px 22px rgba(15,31,92,.08); transform:translateY(-2px); }
+.psm2b-thumb { position:relative; aspect-ratio:1/1; display:grid; place-items:center; overflow:hidden; }
+.psm2b-thumb .wm { width:52%; height:52%; opacity:.16; }
+.psm2b-cap { position:absolute; left:8px; top:8px; font-size:10px; font-weight:800; color:#fff; background:rgba(15,31,92,.82); border-radius:5px; padding:3px 7px; }
+.psm2b-stock { position:absolute; right:8px; top:8px; display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:800; color:#03A24C; background:#fff; border-radius:999px; padding:3px 8px; }
+.psm2b-stock .dot { width:5px; height:5px; border-radius:50%; background:#03C75A; }
+.psm2b-body { padding:10px 11px 12px; display:flex; flex-direction:column; gap:2px; }
+.psm2b-name { font-size:13px; font-weight:800; color:#1A2130; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:35px; }
+.psm2b-desc { font-size:11px; font-weight:600; color:#9A938B; }
+.psm2b-tag { align-self:flex-start; margin-top:4px; font-size:10px; font-weight:800; border-radius:5px; padding:2px 7px; }
+.psm2b-price { margin-top:8px; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; font-size:13.5px; font-weight:800; color:#E8780F; }
+.psm2b-price.ready { color:#9A938B; font-weight:700; }
+@media (max-width:900px){ .psm2b-grid{ grid-template-columns:repeat(4,1fr);} }
+@media (max-width:640px){
+  .psm2b{ padding:34px 14px 40px; }
+  .psm2b-title{ font-size:22px; }
+  .psm2b-grid{ grid-template-columns:repeat(3,1fr); gap:9px; }
+  .psm2b-name{ font-size:12px; min-height:32px; }
+}
+@media (max-width:380px){ .psm2b-grid{ grid-template-columns:repeat(2,1fr);} }
+</style>
+<div class="psm2b-inner">
+  <div class="psm2b-eyebrow">소재별 자재</div>
+  <div class="psm2b-title">소재별로 골라요</div>
+  <div class="psm2b-sub">1세대용 소포장으로 준비했어요</div>
+  <div data-psm2b-groups></div>
+</div>
+<script>
+(function(){
+  var root = document.currentScript ? document.currentScript.closest('.psm2b') : document.querySelector('.psm2b');
+  if (!root) return;
+  var mount = root.querySelector('[data-psm2b-groups]');
+
+  // 아이콘 (인라인 SVG 라인)
+  var IC = {
+    brick: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 12h18M12 5v3M8 8h8M8 8v4M16 8v4M3 16h18M7 16v3M17 16v3"/></svg>',
+    roof:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-8 9 8"/><path d="M5 10v9h14v-9"/><path d="M10 19v-5h4v5"/></svg>',
+    wall:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M3 14h18M9 4v5M15 9v5M9 14v6"/></svg>',
+    wood:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 8c2.5 1.2 2.5 6.8 0 8M12 7c2.5 1.4 2.5 8.6 0 10M17 8c2 1.1 2 5.9 0 7"/></svg>',
+    steel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 18h16M9 6v12M15 6v12M4 12h16"/></svg>'
+  };
+
+  // ▣ 1단계 더미 데이터 (§6-10). 2단계엔 카페24 상품모듈로 교체.
+  var GROUPS = [
+    { key:'brick', name:'벽돌', color:'#8B3A1F', items:[
+      { name:'벽돌 발수 케어', desc:'물 스밈 저감' },
+      { name:'벽돌 백화 케어', desc:'백화 억제' }
+    ]},
+    { key:'roof', name:'지붕', color:'#B4552E', items:[
+      { name:'아스팔트슁글 케어', desc:'지붕 보호' }
+    ]},
+    { key:'wall', name:'외벽', color:'#5B6470', items:[
+      { name:'외벽 보호 코트', desc:'외벽 보호' },
+      { name:'드라이비트 케어', desc:'단열벽 보호' },
+      { name:'미장 마감 케어', desc:'표면 보호' }
+    ]},
+    { key:'wood', name:'목재', color:'#8A5A2B', items:[
+      { name:'목재 방부 케어', desc:'부패 억제' }
+    ]},
+    { key:'steel', name:'철재', color:'#556070', items:[
+      { name:'철재 방청 케어', desc:'녹 억제' },
+      { name:'패널·철골 방청', desc:'녹 억제' }
+    ]}
+  ];
+
+  var UNIT = '4kg / 1세대용';
+  var PRODUCT_LINK = '/product/list.html'; // 2단계: 실제 상품 상세 링크로 교체
+
+  // ▣ 가격 렌더 — 2단계 교체 지점. 확정가 없으면 '가격 준비중'.
+  function renderPrice(sku){
+    if (sku.price) {
+      var won = String(sku.price).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return '<div class="psm2b-price">' + won + '원 (4kg)</div>';       // §3-4 형식
+    }
+    return '<div class="psm2b-price ready">가격 준비중</div>';
+  }
+
+  // rgba 헬퍼 (그룹색 연한 배경)
+  function tint(hex, a){
+    var h = hex.replace('#',''); var r=parseInt(h.substr(0,2),16), g=parseInt(h.substr(2,2),16), b=parseInt(h.substr(4,2),16);
+    return 'rgba('+r+','+g+','+b+','+a+')';
+  }
+
+  var html = '';
+  GROUPS.forEach(function(grp){
+    var icon = IC[grp.key] || IC.wall;
+    html += '<div class="psm2b-group">';
+    html += '<div class="psm2b-ghead"><span class="psm2b-gicon" style="color:'+grp.color+'">'+icon+'</span>'
+          + '<span class="psm2b-gname">'+grp.name+'</span>'
+          + '<span class="psm2b-gcount">'+grp.items.length+'</span></div>';
+    html += '<div class="psm2b-grid">';
+    grp.items.forEach(function(sku){
+      html += '<a class="psm2b-card" href="'+PRODUCT_LINK+'">'
+            +   '<div class="psm2b-thumb" style="background:'+tint(grp.color,0.08)+'">'
+            +     '<span class="wm" style="color:'+grp.color+'">'+icon+'</span>'
+            +     '<span class="psm2b-cap">'+UNIT+'</span>'
+            +     '<span class="psm2b-stock"><span class="dot"></span>재고있음</span>'
+            +   '</div>'
+            +   '<div class="psm2b-body">'
+            +     '<div class="psm2b-name">'+sku.name+'</div>'
+            +     '<div class="psm2b-desc">'+sku.desc+'</div>'
+            +     '<span class="psm2b-tag" style="color:'+grp.color+';background:'+tint(grp.color,0.10)+'">'+grp.name+'</span>'
+            +     renderPrice(sku)
+            +   '</div>'
+            + '</a>';
+    });
+    html += '</div></div>';
+  });
+  mount.innerHTML = html;
+})();
+</script>
+</section>

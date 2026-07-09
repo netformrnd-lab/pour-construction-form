@@ -165,6 +165,8 @@ const COLLECTIONS = {
   PRODUCTS: 'products',
   SITE_METRICS: 'site-metrics',
   METHOD_LINKS: 'method-links',
+  POURSTORE_POSTINGS: 'pourstore-postings', // 자사몰 검색 상단 관련 컨텐츠(가이드·블로그·유튜브·시공사례)
+  POURSTORE_PACKAGES: 'pourstore-packages', // 패키지 구성(부위·등급·베스트·신규) → 스토어 패키지 매트릭스·베스트·신규
   STAFF: 'staff',              // 어드민 담당자 마스터
 
   // KPI 업무관리센터 (POUR OS → React 흡수, PR α 인프라)
@@ -347,6 +349,10 @@ const NAV = [
 
   { type: 'divider', label: '디자인/개발 센터', group: 'design', collapsible: true, defaultCollapsed: false },
   { id: 'preview',         icon: '🎨', label: '자사몰 페이지 관리', group: 'design' },
+  { id: 'hotkeywords',     icon: '🔥', label: '인기검색어 관리',     group: 'design' },
+  { id: 'postings',        icon: '📚', label: '포스팅 관리',         group: 'design' },
+  { id: 'packages',        icon: '🧩', label: '패키지 구성 관리',     group: 'design' },
+  { id: 'banners',         icon: '🖼', label: '메인 배너 관리',       group: 'design' },
   { id: 'products',        icon: '📦', label: '상품관리',           group: 'design' },
   { id: 'metrics',         icon: '📊', label: '공신력 수치',        group: 'design' },
   { id: 'method-links',    icon: '🔗', label: '링크 관리',          group: 'design' },
@@ -4428,6 +4434,715 @@ function MetricsPage({showToast}){
 /* ══════════════════════════════════════════════════════════════
    링크 관리 — method-links
    ══════════════════════════════════════════════════════════════ */
+// ============================================================
+// 인기검색어 관리 (POUR스토어 자사몰 헤더 연동)
+//   저장 위치: config/pourstoreHotkeywords (단일 문서)
+//   { items:[{rank,keyword,link,active}], updatedAt, updatedBy }
+//   → 카페24 헤더는 이 문서 1회 read 후 rank순 클라이언트 정렬해 표출 (orderBy 미사용)
+// ============================================================
+const HOTKEYWORDS_DOC = 'pourstoreHotkeywords';
+// §3-6 금지어 — 견적/맞춤/진단 계열 + 셀프인테리어/홈데코(그로홈 영역) 차단
+const HOTKEYWORD_BANNED = ['견적','맞춤','진단','셀프인테리어','셀프 인테리어','홈데코','홈 데코'];
+// synonyms(연관어): 레벨2 검색 자동완성용. 레벨1 헤더는 keyword만 표출, 레벨2는 keyword+synonyms 매칭.
+const HOTKEYWORD_DEFAULTS = [
+  { keyword:'옥상 방수', link:'/product/search.html?keyword=옥상방수', active:true, synonyms:['옥상누수','지붕방수','우레탄방수'] },
+  { keyword:'외벽 균열', link:'/product/search.html?keyword=외벽균열', active:true, synonyms:['크랙보수','벽균열','탄성도료'] },
+  { keyword:'벽돌 발수', link:'/product/search.html?keyword=벽돌발수', active:true, synonyms:['벽돌방수','발수제','조적방수'] },
+  { keyword:'곰팡이 제거', link:'/product/search.html?keyword=곰팡이', active:true, synonyms:['곰팡이','결로','벽곰팡이'] },
+  { keyword:'철재 방청', link:'/product/search.html?keyword=철재방청', active:true, synonyms:['녹방지','방청도료','철재도장'] },
+];
+const synToText = (arr) => Array.isArray(arr) ? arr.join(', ') : '';
+const textToSyn = (t) => (t||'').split(',').map(s=>s.trim()).filter(Boolean);
+const findBannedWord = (kw) => {
+  const s = (kw||'').replace(/\s+/g,'');
+  return HOTKEYWORD_BANNED.map(b=>b.replace(/\s+/g,'')).find(b=>s.includes(b)) || null;
+};
+const suggestKeywordLink = (kw) => '/product/search.html?keyword=' + (kw||'').replace(/\s+/g,'');
+
+function HotKeywordsPage({showToast}){
+  const { audit } = useActiveStaffContext();
+  const [items,setItems]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [dirty,setDirty]=useState(false);
+  const [uploading,setUploading]=useState(null); // 업로드 중인 행 index
+
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const doc=await db.collection('config').doc(HOTKEYWORDS_DOC).get();
+        if(doc.exists && Array.isArray(doc.data().items) && doc.data().items.length){
+          // thumb(신규 canonical) 우선, 없으면 thumbnail(구버전) fallback
+          const loaded=doc.data().items.map(it=>({keyword:it.keyword||'',link:it.link||'',active:it.active!==false,synText:synToText(it.synonyms),thumb:(it.thumb||it.thumbnail||'')}));
+          console.log(`[config/${HOTKEYWORDS_DOC}] ${loaded.length}건 로드`);
+          setItems(loaded);
+        }else{
+          console.log(`[config/${HOTKEYWORDS_DOC}] 문서 없음 → 기본 5건 표시(미저장)`);
+          setItems(HOTKEYWORD_DEFAULTS.map(it=>({keyword:it.keyword,link:it.link,active:it.active,synText:synToText(it.synonyms),thumb:''})));
+          setDirty(true); // 아직 Firestore에 없으니 저장 유도
+        }
+      }catch(e){
+        console.error(`[config/${HOTKEYWORDS_DOC}] 로드 실패:`,e);
+        showToast('인기검색어 로드 실패: '+e.message,'error');
+        setItems(HOTKEYWORD_DEFAULTS.map(it=>({keyword:it.keyword,link:it.link,active:it.active,synText:synToText(it.synonyms),thumb:''})));
+      }
+      setLoading(false);
+    })();
+  },[]);
+
+  const mutate=(fn)=>{ setItems(prev=>fn(prev.map(x=>({...x})))); setDirty(true); };
+  const updateRow=(i,patch)=>mutate(prev=>{ prev[i]={...prev[i],...patch}; return prev; });
+  const addRow=()=>mutate(prev=>[...prev,{keyword:'',link:'',active:true,synText:'',thumb:''}]);
+  const removeRow=(i)=>mutate(prev=>prev.filter((_,idx)=>idx!==i));
+  const move=(i,dir)=>mutate(prev=>{
+    const j=i+dir; if(j<0||j>=prev.length)return prev;
+    [prev[i],prev[j]]=[prev[j],prev[i]]; return prev;
+  });
+  // 방식B: 파일 업로드 → Firebase Storage → getDownloadURL → thumb
+  const uploadThumb=async(i,file)=>{
+    if(!file)return;
+    if(!file.type.startsWith('image/')){ showToast('이미지 파일만 가능','error'); return; }
+    if(file.size > 5*1024*1024){ showToast('5MB 이하 이미지만 가능','error'); return; }
+    setUploading(i);
+    try{
+      const ts=Date.now();
+      const safe=file.name.replace(/[^\w.\-]/g,'_');
+      const path=`POUR스토어_리뉴얼/hotkeyword-thumbs/${ts}_${safe}`;
+      const snap=await storage.ref(path).put(file);
+      const url=await snap.ref.getDownloadURL();
+      updateRow(i,{thumb:url});
+      showToast('썸네일 업로드 완료');
+    }catch(e){ console.error('[hotkeyword] 썸네일 업로드 실패:',e); showToast('업로드 실패: '+e.message,'error'); }
+    setUploading(null);
+  };
+
+  const save=async()=>{
+    const active=items.filter(it=>it.active);
+    const emptyKw=items.find(it=>it.active && !it.keyword.trim());
+    if(emptyKw){ showToast('활성 항목의 키워드를 입력하세요','error'); return; }
+    // 키워드 + 연관어 모두 금지어 검사 (활성 항목만)
+    const banned=active.map(it=>{
+      const pool=[it.keyword,...textToSyn(it.synText)];
+      for(const term of pool){ const w=findBannedWord(term); if(w) return {kw:term,w}; }
+      return {kw:it.keyword,w:null};
+    }).find(x=>x.w);
+    if(banned){ showToast(`금지어 "${banned.w}" 포함 (${banned.kw}) — §3-6 위반`,'error'); return; }
+    setSaving(true);
+    try{
+      const cleaned=items
+        .filter(it=>it.keyword.trim())
+        .map((it,idx)=>({rank:idx+1,keyword:it.keyword.trim(),link:(it.link.trim()||suggestKeywordLink(it.keyword)),active:it.active!==false,synonyms:textToSyn(it.synText),thumb:(it.thumb||'').trim()}));
+      const auditStamp=audit.update();
+      await db.collection('config').doc(HOTKEYWORDS_DOC).set({items:cleaned,schemaVersion:3,...auditStamp});
+      console.log(`[config/${HOTKEYWORDS_DOC}] ${cleaned.length}건 저장`);
+      setItems(cleaned.map(it=>({keyword:it.keyword,link:it.link,active:it.active,synText:synToText(it.synonyms),thumb:it.thumb})));
+      setDirty(false);
+      showToast(`인기검색어 ${cleaned.length}건 저장 완료`);
+    }catch(e){ console.error(`[config/${HOTKEYWORDS_DOC}] 저장 실패:`,e); showToast('저장 실패: '+e.message,'error'); }
+    setSaving(false);
+  };
+
+  if(loading)return <div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>;
+
+  const activeCount=items.filter(it=>it.active && it.keyword.trim()).length;
+
+  return(
+    <div style={{padding:'24px 32px',maxWidth:1040}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,flexWrap:'wrap',gap:16}}>
+        <div>
+          <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>🔥 인기검색어 관리</h1>
+          <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>위→아래 순서가 1~N위. <b>키워드</b>는 헤더 인기검색어(레벨1), <b>연관어</b>는 검색 자동완성(레벨2) 매칭용입니다. 저장 시 헤더에 자동 반영.</div>
+        </div>
+        <button onClick={save} disabled={saving||!dirty} style={{
+          padding:'12px 24px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',
+          background:(saving||!dirty)?'var(--text-xs)':'linear-gradient(135deg, var(--or), var(--or-d))',
+          boxShadow:(saving||!dirty)?'none':'0 4px 12px rgba(249,115,22,.25)',cursor:(saving||!dirty)?'default':'pointer'
+        }}>
+          {saving?'저장 중...':dirty?'저장':'저장됨'}
+        </button>
+      </div>
+
+      <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:18}}>
+        노출 {activeCount}개 · 전체 {items.length}개 &nbsp;|&nbsp; 금지어(§3-6): {HOTKEYWORD_BANNED.filter((v,i,a)=>a.indexOf(v)===i && !v.includes(' ')).join(', ')}
+      </div>
+
+      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+        {items.length===0 && <div style={{padding:'40px 0',textAlign:'center',color:'var(--text-sm)',fontSize:13,background:'var(--card)',borderRadius:12,border:'1px solid var(--border)'}}>항목이 없습니다. 아래 "+ 검색어 추가"를 눌러 추가하세요.</div>}
+        {items.map((it,i)=>{
+          const banned=it.active?findBannedWord(it.keyword):null;
+          const synBanned=it.active?textToSyn(it.synText).map(findBannedWord).find(Boolean):null;
+          const inp=(extra)=>({width:'100%',padding:'8px 10px',borderRadius:8,outline:'none',boxSizing:'border-box',...extra});
+          return(
+          <div key={i} style={{display:'flex',alignItems:'flex-start',gap:12,background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:'12px 14px',opacity:it.active?1:0.55}}>
+            {/* 순위 */}
+            <div style={{width:22,textAlign:'center',fontSize:16,fontWeight:900,color:'var(--or-d)',flexShrink:0,paddingTop:6}}>{i+1}</div>
+            {/* 썸네일 미리보기 (네이버식) */}
+            <div style={{width:46,height:46,borderRadius:10,flexShrink:0,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',marginTop:2}}>
+              {it.thumb
+                ? <img src={it.thumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.visibility='hidden';}}/>
+                : <span style={{fontSize:18,opacity:.5}}>🔍</span>}
+            </div>
+            {/* 입력 필드 (2줄 스택) */}
+            <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',gap:6}}>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                <div style={{flex:'1 1 160px',minWidth:0}}>
+                  <input value={it.keyword} onChange={e=>updateRow(i,{keyword:e.target.value})} placeholder="키워드 (예: 옥상 방수)"
+                    style={inp({fontSize:13,fontWeight:700,border:'1.5px solid '+(banned?'var(--red)':'var(--border)'),color:banned?'var(--red)':'var(--text)'})}/>
+                  {banned && <div style={{fontSize:10.5,color:'var(--red)',fontWeight:800,marginTop:3}}>⚠ 금지어 "{banned}" 포함</div>}
+                </div>
+                <div style={{flex:'1 1 160px',minWidth:0}}>
+                  <input value={it.synText} onChange={e=>updateRow(i,{synText:e.target.value})} placeholder="연관어 (쉼표구분·선택)"
+                    style={inp({fontSize:12,fontWeight:600,border:'1.5px solid '+(synBanned?'var(--red)':'var(--border)'),color:synBanned?'var(--red)':'var(--text-md)'})}/>
+                  {synBanned && <div style={{fontSize:10.5,color:'var(--red)',fontWeight:800,marginTop:3}}>⚠ 금지어 "{synBanned}" 포함</div>}
+                </div>
+              </div>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                <div style={{flex:'1 1 200px',minWidth:0,display:'flex',gap:6}}>
+                  <input value={it.link} onChange={e=>updateRow(i,{link:e.target.value})} placeholder="/product/search.html?keyword=..."
+                    style={inp({flex:1,minWidth:0,fontSize:12,border:'1.5px solid var(--border)',color:'var(--text-md)'})}/>
+                  <button onClick={()=>updateRow(i,{link:suggestKeywordLink(it.keyword)})} title="키워드로 링크 자동생성"
+                    style={{padding:'0 9px',borderRadius:8,border:'1px solid var(--border)',background:'var(--bg)',fontSize:11,fontWeight:800,color:'var(--text-md)',cursor:'pointer',flexShrink:0}}>자동</button>
+                </div>
+                <div style={{flex:'1 1 200px',minWidth:0,display:'flex',gap:6}}>
+                  <input value={it.thumb} onChange={e=>updateRow(i,{thumb:e.target.value})} placeholder="🖼 썸네일 URL (선택)"
+                    style={inp({flex:1,minWidth:0,fontSize:12,border:'1.5px solid var(--border)',color:'var(--text-md)'})}/>
+                  <label title="이미지 업로드" style={{padding:'0 9px',borderRadius:8,border:'1px solid var(--border)',background:uploading===i?'var(--or-pale)':'var(--bg)',fontSize:11,fontWeight:800,color:'var(--or-d)',cursor:uploading===i?'wait':'pointer',flexShrink:0,display:'flex',alignItems:'center'}}>
+                    {uploading===i?'…':'업로드'}
+                    <input type="file" accept="image/*" disabled={uploading===i} onChange={e=>{const f=e.target.files&&e.target.files[0]; uploadThumb(i,f); e.target.value='';}} style={{display:'none'}}/>
+                  </label>
+                </div>
+              </div>
+            </div>
+            {/* 노출 토글 */}
+            <div style={{flexShrink:0,paddingTop:6}}>
+              <button onClick={()=>updateRow(i,{active:!it.active})} title="노출 on/off"
+                style={{width:40,height:22,borderRadius:11,border:'none',cursor:'pointer',position:'relative',
+                  background:it.active?'var(--green)':'var(--border)',transition:'background .15s'}}>
+                <span style={{position:'absolute',top:2,left:it.active?20:2,width:18,height:18,borderRadius:'50%',background:'#fff',transition:'left .15s',boxShadow:'0 1px 2px rgba(0,0,0,.2)'}}/>
+              </button>
+            </div>
+            {/* 순서·삭제 */}
+            <div style={{display:'flex',gap:3,flexShrink:0,paddingTop:3}}>
+              <button onClick={()=>move(i,-1)} disabled={i===0} title="위로" style={{width:24,height:24,borderRadius:6,border:'1px solid var(--border)',background:'#fff',cursor:i===0?'default':'pointer',opacity:i===0?.35:1,fontSize:11}}>▲</button>
+              <button onClick={()=>move(i,1)} disabled={i===items.length-1} title="아래로" style={{width:24,height:24,borderRadius:6,border:'1px solid var(--border)',background:'#fff',cursor:i===items.length-1?'default':'pointer',opacity:i===items.length-1?.35:1,fontSize:11}}>▼</button>
+              <button onClick={()=>removeRow(i)} title="삭제" style={{width:24,height:24,borderRadius:6,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',cursor:'pointer',fontSize:12,fontWeight:900}}>×</button>
+            </div>
+          </div>);
+        })}
+        <button onClick={addRow} style={{width:'100%',padding:'12px',borderRadius:12,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>+ 검색어 추가</button>
+      </div>
+
+      <div style={{marginTop:18,padding:'14px 16px',background:'var(--bg)',borderRadius:12,border:'1px solid var(--border)',fontSize:11.5,color:'var(--text-md)',lineHeight:1.7}}>
+        <div style={{fontWeight:900,color:'var(--navy)',marginBottom:6,fontSize:12}}>🔌 헤더(카페24) 연동 규격</div>
+        저장 위치: <code style={{background:'var(--or-pale)',padding:'1px 5px',borderRadius:4,fontWeight:800}}>config/pourstoreHotkeywords</code> (단일 문서 · read 1회) · schemaVersion 3<br/>
+        문서 모양: <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>{'{ items:[{rank,keyword,link,active,synonyms:[],thumb}], updatedAt, updatedBy }'}</code><br/>
+        <b>레벨1 (인기검색어·검색바 우측 가로):</b> <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>items</code>를 <b>rank 오름차순</b> 정렬 후 <b>active===true</b>만 keyword·link로 표출 (orderBy 미사용, §10.3-C)<br/>
+        <b>레벨A (검색 드롭다운·네이버식 세로카드):</b> 검색창 포커스 시 같은 items를 🔍+순위+keyword로 세로 표출, <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>thumb</code> 있으면 우측 썸네일. 타이핑 시 <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>keyword + synonyms[]</code> 부분매칭으로 전환. 가이드 포스팅은 추후 <code style={{background:'var(--or-pale)',padding:'1px 5px',borderRadius:4,fontWeight:800}}>pourstore-postings</code> 합류.
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// 포스팅 관리 (자사몰 검색 상단 '관련 컨텐츠')
+//   저장: pourstore-postings (문서당 1건)
+//   { type, title, link, thumbnail, tags:[], summary, duration, placements:[], order, active, createdAt, updatedAt }
+//   → 검색 페이지: tags에 검색어(또는 hotkeyword synonyms) 포함 + active를 order순 상위 N개 상단 카드로 (placements 무관, 태그 자동)
+//   → placements: 특정 스토어 섹션에 추가 노출. 'pkg-video' = 패키지 시공영상(pkg-5-video)
+// ============================================================
+const POSTING_TYPES=[
+  {key:'guide', label:'가이드',  icon:'📘', color:'#059669'},
+  {key:'blog',  label:'블로그',  icon:'📝', color:'#03C75A'},
+  {key:'video', label:'유튜브',  icon:'▶',  color:'#DC2626'},
+  {key:'case',  label:'시공사례', icon:'🏗', color:'#EA580C'},
+];
+// 노출 위치 — 검색 상단은 태그로 자동 매칭되므로, 여기선 '추가 노출' 섹션만 지정
+const POSTING_PLACEMENTS=[
+  {key:'pkg-video', label:'패키지 시공영상'},
+];
+const postingType=(k)=>POSTING_TYPES.find(t=>t.key===k)||POSTING_TYPES[0];
+const ytId=(url)=>{const m=(url||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/);return m?m[1]:null;};
+const ytThumb=(url)=>{const id=ytId(url);return id?('https://img.youtube.com/vi/'+id+'/hqdefault.jpg'):'';};
+
+function PostingsPage({showToast}){
+  const { audit } = useActiveStaffContext();
+  const [list,setList]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [filter,setFilter]=useState('all');
+  const [search,setSearch]=useState('');
+  const [editing,setEditing]=useState(null);
+  const [saving,setSaving]=useState(false);
+
+  const load=async()=>{
+    try{
+      const snap=await db.collection(COLLECTIONS.POURSTORE_POSTINGS).get();
+      const docs=snap.docs.map(d=>({id:d.id,...d.data()}));
+      docs.sort((a,b)=>((a.order??999)-(b.order??999)) || (b.createdAt||'').localeCompare(a.createdAt||''));
+      console.log(`[${COLLECTIONS.POURSTORE_POSTINGS}] ${docs.length}건 로드`);
+      setList(docs);
+    }catch(e){ console.error(`[${COLLECTIONS.POURSTORE_POSTINGS}] 로드 실패:`,e); showToast('포스팅 로드 실패: '+e.message,'error'); }
+    setLoading(false);
+  };
+  useEffect(()=>{ load(); },[]);
+
+  const startNew=()=>setEditing({type:'blog',title:'',link:'',thumbnail:'',tagsText:'',summary:'',duration:'',placements:[],active:true,order:list.length});
+  const startEdit=(p)=>setEditing({...p,tagsText:(p.tags||[]).join(', '),placements:p.placements||[],duration:p.duration||''});
+
+  const saveEditing=async()=>{
+    const f=editing;
+    if(!f.title.trim()){ showToast('제목을 입력하세요','error'); return; }
+    if(!f.link.trim()){ showToast('링크를 입력하세요','error'); return; }
+    setSaving(true);
+    try{
+      const tags=(f.tagsText||'').split(',').map(s=>s.trim()).filter(Boolean);
+      const thumbnail=(f.thumbnail||'').trim() || (f.type==='video'?ytThumb(f.link):'');
+      const payload={ type:f.type, title:f.title.trim(), link:f.link.trim(), thumbnail, tags,
+        summary:(f.summary||'').trim(), duration:(f.duration||'').trim(), placements:Array.isArray(f.placements)?f.placements:[],
+        order:Number(f.order)||0, active:f.active!==false };
+      if(f.id){
+        await db.collection(COLLECTIONS.POURSTORE_POSTINGS).doc(f.id).set({...payload,...audit.update()},{merge:true});
+      }else{
+        await db.collection(COLLECTIONS.POURSTORE_POSTINGS).add({...payload,...audit.create()});
+      }
+      console.log(`[${COLLECTIONS.POURSTORE_POSTINGS}] 저장(${f.id?'수정':'신규'}) ${payload.title}`);
+      showToast('저장되었습니다');
+      setEditing(null);
+      await load();
+    }catch(e){ console.error('포스팅 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
+    setSaving(false);
+  };
+
+  const toggleActive=async(p)=>{
+    const next=!(p.active!==false);
+    try{
+      await db.collection(COLLECTIONS.POURSTORE_POSTINGS).doc(p.id).set({active:next,...audit.update()},{merge:true});
+      setList(prev=>prev.map(x=>x.id===p.id?{...x,active:next}:x));
+    }catch(e){ console.error(e); showToast('변경 실패: '+e.message,'error'); }
+  };
+
+  const remove=async(p)=>{
+    if(!window.confirm(`"${p.title}" 삭제할까요?`))return;
+    try{
+      await db.collection(COLLECTIONS.POURSTORE_POSTINGS).doc(p.id).delete();
+      setList(prev=>prev.filter(x=>x.id!==p.id));
+      showToast('삭제되었습니다');
+    }catch(e){ console.error(e); showToast('삭제 실패: '+e.message,'error'); }
+  };
+
+  const counts=POSTING_TYPES.reduce((a,t)=>{a[t.key]=list.filter(p=>p.type===t.key).length;return a;},{});
+  const filtered=list.filter(p=>(filter==='all'||p.type===filter) && (!search || (p.title||'').includes(search) || (p.tags||[]).some(t=>t.includes(search))));
+
+  if(loading)return <div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>;
+
+  return(
+    <div style={{padding:'24px 32px',maxWidth:1100}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,flexWrap:'wrap',gap:16}}>
+        <div>
+          <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>📚 포스팅 관리</h1>
+          <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>자사몰 검색 상단 '관련 컨텐츠' 큐레이션. 검색어 태그가 일치하는 컨텐츠가 상품 위에 카드로 노출됩니다.</div>
+        </div>
+        <button onClick={startNew} style={{padding:'12px 22px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',background:'linear-gradient(135deg, var(--or), var(--or-d))',boxShadow:'0 4px 12px rgba(249,115,22,.25)',cursor:'pointer'}}>+ 새 컨텐츠</button>
+      </div>
+
+      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',margin:'16px 0'}}>
+        {[{key:'all',label:'전체',icon:'▦'},...POSTING_TYPES].map(t=>{
+          const on=filter===t.key; const n=t.key==='all'?list.length:counts[t.key];
+          return <button key={t.key} onClick={()=>setFilter(t.key)} style={{padding:'7px 13px',borderRadius:999,fontSize:12,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or-pale)':'#fff',color:on?'var(--or-d)':'var(--text-md)'}}>{t.icon} {t.label} {n}</button>;
+        })}
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="제목·태그 검색..." style={{marginLeft:'auto',padding:'8px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:12.5,outline:'none',minWidth:180}}/>
+      </div>
+
+      {filtered.length===0 && <div style={{padding:'50px 0',textAlign:'center',color:'var(--text-sm)',fontSize:13,background:'var(--card)',borderRadius:12,border:'1px solid var(--border)'}}>컨텐츠가 없습니다. "+ 새 컨텐츠"로 추가하세요.</div>}
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        {filtered.map(p=>{ const t=postingType(p.type); const on=p.active!==false; return(
+          <div key={p.id} style={{display:'flex',gap:12,alignItems:'center',background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:'10px 14px',opacity:on?1:0.5}}>
+            <div style={{width:64,height:44,borderRadius:8,flexShrink:0,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              {p.thumbnail?<img src={p.thumbnail} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.visibility='hidden';}}/>:<span style={{fontSize:16,opacity:.5}}>{t.icon}</span>}
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:3}}>
+                <span style={{fontSize:10.5,fontWeight:800,color:'#fff',background:t.color,padding:'1px 7px',borderRadius:5,flexShrink:0}}>{t.icon} {t.label}</span>
+                <span style={{fontSize:13.5,fontWeight:800,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.title}</span>
+              </div>
+              <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                {(p.placements||[]).includes('pkg-video') && <span style={{fontSize:9.5,fontWeight:800,color:'#EA580C',background:'var(--or-pale)',border:'1px solid #FED7AA',borderRadius:5,padding:'1px 6px',marginRight:6}}>패키지영상</span>}
+                {(p.tags||[]).length?('#'+(p.tags||[]).join(' #')):<span style={{color:'var(--red)'}}>태그 없음 — 검색 매칭 안됨</span>}
+              </div>
+            </div>
+            <button onClick={()=>toggleActive(p)} title="노출 on/off" style={{width:40,height:22,borderRadius:11,border:'none',cursor:'pointer',position:'relative',flexShrink:0,background:on?'var(--green)':'var(--border)'}}>
+              <span style={{position:'absolute',top:2,left:on?20:2,width:18,height:18,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 2px rgba(0,0,0,.2)'}}/>
+            </button>
+            <button onClick={()=>startEdit(p)} style={{padding:'6px 12px',borderRadius:8,border:'1px solid var(--border)',background:'#fff',fontSize:12,fontWeight:800,color:'var(--text-md)',cursor:'pointer',flexShrink:0}}>수정</button>
+            <button onClick={()=>remove(p)} title="삭제" style={{width:28,height:28,borderRadius:8,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',cursor:'pointer',fontSize:13,fontWeight:900,flexShrink:0}}>×</button>
+          </div>);
+        })}
+      </div>
+
+      {editing && <PostingEditor form={editing} setForm={setEditing} onSave={saveEditing} onClose={()=>setEditing(null)} saving={saving} />}
+    </div>
+  );
+}
+
+function PostingEditor({form,setForm,onSave,onClose,saving}){
+  const set=(patch)=>setForm(prev=>({...prev,...patch}));
+  const autoThumb=form.type==='video'?ytThumb(form.link):'';
+  const previewThumb=(form.thumbnail||'').trim()||autoThumb;
+  const field={width:'100%',padding:'10px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13,outline:'none',boxSizing:'border-box',marginTop:6};
+  const lbl={fontSize:11.5,fontWeight:800,color:'var(--text-md)'};
+  return(
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:3000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:16,padding:'22px 24px',width:'100%',maxWidth:520,maxHeight:'90vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <h2 style={{fontSize:17,fontWeight:900,color:'var(--navy)'}}>{form.id?'컨텐츠 수정':'새 컨텐츠'}</h2>
+          <button onClick={onClose} style={{width:30,height:30,borderRadius:8,border:'1px solid var(--border)',background:'#fff',fontSize:16,cursor:'pointer'}}>×</button>
+        </div>
+        <label style={lbl}>유형</label>
+        <div style={{display:'flex',gap:6,marginTop:6,marginBottom:12,flexWrap:'wrap'}}>
+          {POSTING_TYPES.map(t=>{const on=form.type===t.key;return <button key={t.key} onClick={()=>set({type:t.key})} style={{padding:'7px 12px',borderRadius:8,fontSize:12,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?t.color:'var(--border)'),background:on?t.color:'#fff',color:on?'#fff':'var(--text-md)'}}>{t.icon} {t.label}</button>;})}
+        </div>
+        <label style={lbl}>제목 *</label>
+        <input value={form.title} onChange={e=>set({title:e.target.value})} placeholder="예: 옥상 슬라브 방수, 이렇게 하세요" style={field}/>
+        <div style={{height:12}}/>
+        <label style={lbl}>링크(URL) *</label>
+        <input value={form.link} onChange={e=>set({link:e.target.value})} placeholder="https://blog.naver.com/... 또는 https://youtu.be/..." style={field}/>
+        {form.type==='video' && <div style={{fontSize:11,color:'var(--green)',fontWeight:700,marginTop:4}}>▶ 유튜브 링크면 썸네일 자동 추출됩니다</div>}
+        <div style={{height:12}}/>
+        <label style={lbl}>썸네일 URL {form.type==='video'?'(비우면 자동)':''}</label>
+        <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
+          <input value={form.thumbnail} onChange={e=>set({thumbnail:e.target.value})} placeholder="이미지 URL" style={{...field,flex:1}}/>
+          <div style={{width:64,height:48,borderRadius:8,flexShrink:0,marginTop:6,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            {previewThumb?<img src={previewThumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.visibility='hidden';}}/>:<span style={{fontSize:15,opacity:.5}}>🖼</span>}
+          </div>
+        </div>
+        <div style={{height:12}}/>
+        <label style={lbl}>검색어 태그 (쉼표구분) — 이 검색어로 진입 시 노출</label>
+        <input value={form.tagsText} onChange={e=>set({tagsText:e.target.value})} placeholder="슬라브방수, 옥상방수, 옥상누수" style={field}/>
+        <div style={{height:12}}/>
+        <label style={lbl}>요약 (선택)</label>
+        <input value={form.summary||''} onChange={e=>set({summary:e.target.value})} placeholder="한 줄 설명" style={field}/>
+        {form.type==='video' && <React.Fragment>
+          <div style={{height:12}}/>
+          <label style={lbl}>영상 길이 (선택) — 예: 12:30</label>
+          <input value={form.duration||''} onChange={e=>set({duration:e.target.value})} placeholder="12:30" style={field}/>
+        </React.Fragment>}
+        <div style={{height:12}}/>
+        <label style={lbl}>노출 위치 (추가) — 검색 상단은 태그로 자동 노출됩니다</label>
+        <div style={{display:'flex',gap:8,marginTop:6,flexWrap:'wrap'}}>
+          {POSTING_PLACEMENTS.map(pl=>{ const on=(form.placements||[]).includes(pl.key);
+            return <button key={pl.key} type="button" onClick={()=>{const cur=form.placements||[]; set({placements: on?cur.filter(x=>x!==pl.key):[...cur,pl.key]});}} style={{padding:'7px 12px',borderRadius:8,fontSize:12,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or-pale)':'#fff',color:on?'var(--or-d)':'var(--text-md)'}}>{on?'✓ ':''}{pl.label}</button>;
+          })}
+        </div>
+        <div style={{display:'flex',gap:16,alignItems:'center',marginTop:14}}>
+          <label style={{...lbl,display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}>
+            <input type="checkbox" checked={form.active!==false} onChange={e=>set({active:e.target.checked})}/> 노출
+          </label>
+          <label style={{...lbl,display:'flex',alignItems:'center',gap:6}}>정렬순서 <input type="number" value={form.order} onChange={e=>set({order:e.target.value})} style={{width:66,padding:'6px 8px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12}}/></label>
+        </div>
+        <div style={{display:'flex',gap:10,marginTop:20}}>
+          <button onClick={onClose} style={{flex:1,padding:'12px',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',fontSize:13,fontWeight:800,color:'var(--text-md)',cursor:'pointer'}}>취소</button>
+          <button onClick={onSave} disabled={saving} style={{flex:2,padding:'12px',borderRadius:10,border:'none',background:saving?'var(--text-xs)':'linear-gradient(135deg, var(--or), var(--or-d))',color:'#fff',fontSize:13,fontWeight:900,cursor:saving?'wait':'pointer'}}>{saving?'저장 중...':'저장'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// 메인 배너 관리 (히어로 + 사이드) — 이미지 업로드(png/jpg)
+//   저장: config/pourstoreBanners { hero:{image,link,active}, side:{image,link,active} }
+//   → 스토어 pour-01-main 히어로/사이드 배너에 자동 반영. (config 규칙 사용 → 새 보안규칙 불필요)
+// ============================================================
+const BANNER_SLOTS=[
+  {key:'hero', label:'메인 히어로 배너', desc:'검색바 아래 좌측 큰 배너', size:'권장 1280 × 720 px (가로형 16:9)', ratio:'16 / 9'},
+  {key:'side', label:'추천(사이드) 배너', desc:'히어로 우측 세로 배너 (높이는 좌측에 맞춰 표시)', size:'권장 640 × 1060 px (세로형)', ratio:'64 / 106'},
+];
+function BannersPage({showToast}){
+  const { audit } = useActiveStaffContext();
+  const normSlot=(v)=>{ if(Array.isArray(v)) return v.map(x=>({image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||''})); if(v && (v.image||v.link)) return [{image:v.image||'',imageMobile:v.imageMobile||'',link:v.link||''}]; return []; };
+  const [data,setData]=useState({hero:[], side:[], intervalSec:5});
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [uploading,setUploading]=useState(null);
+
+  useEffect(()=>{ (async()=>{
+    try{
+      const d=await db.collection('config').doc('pourstoreBanners').get();
+      if(d.exists){ const v=d.data()||{}; setData({hero:normSlot(v.hero), side:normSlot(v.side), intervalSec:Number(v.intervalSec)||5}); }
+      console.log('[banners] 로드', d.exists);
+    }catch(e){ console.error('[banners] 로드 실패:',e); showToast('배너 로드 실패: '+e.message,'error'); }
+    setLoading(false);
+  })(); },[]);
+
+  const setSlot=(slot,arr)=>setData(prev=>({...prev,[slot]:arr}));
+  const addBanner=(slot)=>setSlot(slot,[...data[slot],{image:'',link:''}]);
+  const removeBanner=(slot,i)=>setSlot(slot,data[slot].filter((_,idx)=>idx!==i));
+  const patchBanner=(slot,i,part)=>setSlot(slot,data[slot].map((b,idx)=>idx===i?{...b,...part}:b));
+  const moveBanner=(slot,i,dir)=>{ const arr=[...data[slot]]; const j=i+dir; if(j<0||j>=arr.length)return; const t=arr[i];arr[i]=arr[j];arr[j]=t; setSlot(slot,arr); };
+
+  const upload=async(slot,i,field,file)=>{
+    if(!file)return;
+    if(!file.type.startsWith('image/')){ showToast('이미지(png/jpg)만 가능','error'); return; }
+    if(file.size > 5*1024*1024){ showToast('5MB 이하 이미지만 가능','error'); return; }
+    setUploading(slot+':'+i);
+    try{
+      const ts=Date.now(); const safe=file.name.replace(/[^\w.\-]/g,'_');
+      const path=`POUR스토어_리뉴얼/banners/${slot}_${field}_${ts}_${safe}`;
+      const snap=await storage.ref(path).put(file);
+      const url=await snap.ref.getDownloadURL();
+      patchBanner(slot,i,{[field]:url});
+      showToast('이미지 업로드 완료 — 하단 저장을 눌러 반영');
+    }catch(e){ console.error('[banners] 업로드 실패:',e); showToast('업로드 실패: '+e.message,'error'); }
+    setUploading(null);
+  };
+
+  const save=async()=>{
+    setSaving(true);
+    try{
+      const clean=(arr)=>arr.filter(b=>b.image).map(b=>({image:b.image,imageMobile:(b.imageMobile||''),link:(b.link||'').trim()}));
+      await db.collection('config').doc('pourstoreBanners').set({hero:clean(data.hero), side:clean(data.side), intervalSec:Number(data.intervalSec)||5, ...audit.update()},{merge:true});
+      showToast('저장되었습니다 — 스토어에 반영됩니다');
+    }catch(e){ console.error('[banners] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
+    setSaving(false);
+  };
+
+  if(loading)return <div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>;
+  const field={width:'100%',padding:'9px 11px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:12.5,outline:'none',boxSizing:'border-box',marginTop:6};
+
+  return(
+    <div style={{padding:'24px 32px',maxWidth:1100}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:18}}>
+        <div>
+          <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>🖼 메인 배너 관리</h1>
+          <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>배너를 여러 개 올리면 자동으로 슬라이드됩니다. 각 배너에 링크를 넣으면 클릭 시 이동합니다.</div>
+        </div>
+        <label style={{fontSize:12,fontWeight:800,color:'var(--text-md)',display:'flex',alignItems:'center',gap:6}}>자동 전환 <input type="number" min="2" max="20" value={data.intervalSec} onChange={e=>setData(prev=>({...prev,intervalSec:e.target.value}))} style={{width:54,padding:'6px 8px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12}}/> 초</label>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(400px,1fr))',gap:18}}>
+        {BANNER_SLOTS.map(slot=>{
+          const list=data[slot.key];
+          return(
+            <div key={slot.key} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'18px'}}>
+              <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}>{slot.label} <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>({list.length}장)</span></div>
+              <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,margin:'2px 0'}}>{slot.desc}</div>
+              <div style={{fontSize:11.5,color:'var(--or-d)',fontWeight:800,marginBottom:12}}>{slot.size}</div>
+              <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                {list.length===0 && <div style={{padding:'22px 0',textAlign:'center',color:'var(--text-sm)',fontSize:12.5,fontWeight:700,background:'var(--bg)',borderRadius:10,border:'1px dashed var(--border)'}}>배너가 없습니다. 아래 '+ 배너 추가'</div>}
+                {list.map((b,i)=>{ const up=uploading===slot.key+':'+i;
+                  return(
+                    <div key={i} style={{display:'flex',gap:12,alignItems:'flex-start',padding:'10px',background:'var(--bg)',borderRadius:10,border:'1px solid var(--border)'}}>
+                      <div style={{position:'relative',width:120,aspectRatio:slot.ratio,flexShrink:0,borderRadius:8,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                        {b.image?<img src={b.image} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';}}/>:<span style={{fontSize:11,color:'var(--text-sm)',fontWeight:700}}>없음</span>}
+                        {up&&<div style={{position:'absolute',inset:0,background:'rgba(255,255,255,.7)',display:'grid',placeItems:'center',fontSize:11,fontWeight:800,color:'var(--or-d)'}}>업로드중</div>}
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{display:'flex',gap:6}}>
+                          <label style={{flex:1,textAlign:'center',padding:'8px',borderRadius:8,border:'1.5px solid var(--or)',color:'var(--or-d)',background:'#fff',fontSize:11.5,fontWeight:800,cursor:up?'wait':'pointer'}}>
+                            {b.image?'이미지 교체':'이미지 업로드'}
+                            <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload(slot.key,i,'image',f); e.target.value='';}} style={{display:'none'}}/>
+                          </label>
+                          <button onClick={()=>moveBanner(slot.key,i,-1)} disabled={i===0} title="위로" style={{width:30,borderRadius:8,border:'1px solid var(--border)',background:'#fff',cursor:i===0?'default':'pointer',opacity:i===0?0.4:1,fontWeight:800}}>↑</button>
+                          <button onClick={()=>moveBanner(slot.key,i,1)} disabled={i===list.length-1} title="아래로" style={{width:30,borderRadius:8,border:'1px solid var(--border)',background:'#fff',cursor:i===list.length-1?'default':'pointer',opacity:i===list.length-1?0.4:1,fontWeight:800}}>↓</button>
+                          <button onClick={()=>removeBanner(slot.key,i)} title="삭제" style={{width:30,borderRadius:8,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',cursor:'pointer',fontWeight:900}}>×</button>
+                        </div>
+                        <input value={b.link||''} onChange={e=>patchBanner(slot.key,i,{link:e.target.value})} placeholder="클릭 시 이동 링크 (예: /product/list.html?cate_no=71)" style={field}/>
+                        <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                          <div style={{position:'relative',width:70,aspectRatio:'16/9',flexShrink:0,borderRadius:6,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                            {b.imageMobile?<img src={b.imageMobile} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';}}/>:<span style={{fontSize:9,color:'var(--text-sm)',fontWeight:700}}>모바일</span>}
+                          </div>
+                          <label style={{flex:1,textAlign:'center',padding:'7px',borderRadius:8,border:'1.5px dashed var(--or)',color:'var(--or-d)',background:'#fff',fontSize:11,fontWeight:800,cursor:up?'wait':'pointer'}}>
+                            {b.imageMobile?'모바일 가로 교체':'모바일 가로 이미지 (선택)'}
+                            <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload(slot.key,i,'imageMobile',f); e.target.value='';}} style={{display:'none'}}/>
+                          </label>
+                          {b.imageMobile && <button onClick={()=>patchBanner(slot.key,i,{imageMobile:''})} title="모바일 이미지 제거" style={{width:28,borderRadius:7,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',cursor:'pointer',fontWeight:900,fontSize:12}}>×</button>}
+                        </div>
+                        <div style={{fontSize:10.5,color:'var(--text-sm)',fontWeight:600,marginTop:3}}>모바일에선 이 가로 이미지가 대신 노출 (권장 1080×432, 2.5:1 — 없으면 위 이미지 사용)</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <button onClick={()=>addBanner(slot.key)} style={{marginTop:12,width:'100%',padding:'10px',borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>+ 배너 추가</button>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{marginTop:20,display:'flex',justifyContent:'flex-end'}}>
+        <button onClick={save} disabled={saving} style={{padding:'12px 28px',borderRadius:10,fontSize:13.5,fontWeight:900,color:'#fff',background:saving?'var(--text-sm)':'linear-gradient(135deg, var(--or), var(--or-d))',cursor:saving?'wait':'pointer'}}>{saving?'저장 중...':'저장'}</button>
+      </div>
+    </div>
+  );
+}
+// ============================================================
+// 패키지 구성 관리 (부위·등급·베스트·신규)
+//   저장: pourstore-packages (문서당 1건)
+//   { productNo, name, price, thumbnail, area, tier, best, isNew, order, active, createdAt, updatedAt }
+//   → 스토어: pkg-4-matrix(부위×등급), pkg-2-best(best), pkg-3-new(isNew) 자동 렌더
+// ============================================================
+const PKG_AREAS=[
+  {key:'slab', label:'슬라브(옥상)'},
+  {key:'roof', label:'지붕(슁글/금속)'},
+  {key:'wall', label:'균열/외벽'},
+  {key:'drain',label:'배수·베란다·이음부'},
+];
+const PKG_TIERS=[
+  {key:'full',    label:'풀패키지'},
+  {key:'partial', label:'부분패키지'},
+  {key:'coating', label:'단순코팅'},
+];
+const pkgAreaLabel=(k)=>(PKG_AREAS.find(a=>a.key===k)||{label:'미분류'}).label;
+const pkgTierLabel=(k)=>(PKG_TIERS.find(t=>t.key===k)||{label:'-'}).label;
+const PKG_IMG_BASE='https://ecimg.cafe24img.com/pg2736b04221490007/pourstore/web/product/medium/shop1_';
+// 초기 시드 — 실상품 17종(cate_no=71). area/tier/best/isNew는 기본 추정값(관리자가 자유 변경)
+const PKG_SEED=[
+  {productNo:'64', name:'평형 슬라브 옥상 방수 보강', price:'32,500원/㎡', hash:'a4f21e3f39f83e80a05e4832ab567c44', area:'slab', tier:'full',    best:true },
+  {productNo:'118',name:'슬라브 습기배출 방수·보강 (페이퍼팬벤트)', price:'33,000원/㎡', hash:'b985ad20f7afd2bc2b9de286cad9d69e', area:'slab', tier:'full' },
+  {productNo:'69', name:'옥상 콘크리트 탄성강화 보강', price:'11,000원/㎡', hash:'e4f33ac7875ea9941b4f186c0a6bd94a', area:'slab', tier:'partial' },
+  {productNo:'154',name:'옥상 배관 방수트랩 (거름망·보강시트)', price:'69,200원', hash:'7918363c584953559c584f2376e41d8d', area:'slab', tier:'partial', best:true },
+  {productNo:'323',name:'옥상 배수구 비파괴 방수트랩 50mm', price:'64,400원', hash:'acce11dc38585dbbcf936cefef3f080f', area:'slab', tier:'partial', isNew:true },
+  {productNo:'61', name:'아스팔트슁글 박공지붕 방수 보강', price:'23,500원/㎡', hash:'962c558046c4621eb7529e6a6886bec4', area:'roof', tier:'full',    best:true },
+  {productNo:'62', name:'금속·함석 기와 방수 보강', price:'32,000원/㎡', hash:'74c538c7b1b1fdc0a5acc92ad7b07784', area:'roof', tier:'full',    best:true },
+  {productNo:'164',name:'아스팔트슁글 고층 방수 강화 함침', price:'26,500원/㎡', hash:'03ba72fccc32c1445478073adadb4a00', area:'roof', tier:'partial', isNew:true },
+  {productNo:'67', name:'금속·함석 기와 재도장·코팅', price:'7,000원/㎡', hash:'62ce78a5f598bec8e63d5fead240f229', area:'roof', tier:'coating' },
+  {productNo:'319',name:'균열·크렉 보수 방수 세트 (1L)', price:'40,920원', hash:'63cada980371f001c3e7119a6bc29efd', area:'wall', tier:'full',    isNew:true },
+  {productNo:'150',name:'외벽 균열·크렉 보수 (하이퍼티 세트)', price:'3,100원/㎡', hash:'a9b53f23fc61f69ba41c07f23aaa78fb', area:'wall', tier:'full' },
+  {productNo:'160',name:'외벽 균열 플러스 세트', price:'3,000원/㎡', hash:'0fe61a7d312b88a0254954e19424ca44', area:'wall', tier:'partial' },
+  {productNo:'63', name:'외벽 균열·크렉 보수 방수', price:'1,800원/m', hash:'c0179ccea61962a749331ce726d38641', area:'wall', tier:'partial' },
+  {productNo:'318',name:'올인원 균열보수 씰 프로 맥스 500ml', price:'21,000원', hash:'7495ba3341bbcb4ee74771a27297d18c', area:'wall', tier:'coating', isNew:true },
+  {productNo:'80', name:'배수로·베란다 방수 보강', price:'18,000원/㎡', hash:'3d5eaa3573d8105f3e86dcff46f52fa8', area:'drain',tier:'full' },
+  {productNo:'117',name:'배수로 배수관 방수 보강 (배관트랩)', price:'19,600원/㎡', hash:'f3a8be17ec44d62aa6334dc372347b94', area:'drain',tier:'full' },
+  {productNo:'68', name:'이음부 방수 보강 (창틀·벽체)', price:'1,800원/m', hash:'0b115232537e24d6cad54c441756f41b', area:'drain',tier:'partial' },
+];
+
+function PackagesPage({showToast}){
+  const { audit } = useActiveStaffContext();
+  const [rows,setRows]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [seeding,setSeeding]=useState(false);
+
+  const load=async()=>{
+    try{
+      const snap=await db.collection(COLLECTIONS.POURSTORE_PACKAGES).get();
+      const docs=snap.docs.map(d=>({id:d.id,...d.data()}));
+      console.log(`[${COLLECTIONS.POURSTORE_PACKAGES}] ${docs.length}건 로드`);
+      setRows(docs);
+    }catch(e){ console.error(`[${COLLECTIONS.POURSTORE_PACKAGES}] 로드 실패:`,e); showToast('패키지 로드 실패: '+e.message,'error'); }
+    setLoading(false);
+  };
+  useEffect(()=>{ load(); },[]);
+
+  const patch=async(id,partial)=>{
+    setRows(prev=>prev.map(r=>r.id===id?{...r,...partial}:r));
+    try{ await db.collection(COLLECTIONS.POURSTORE_PACKAGES).doc(id).set({...partial,...audit.update()},{merge:true}); }
+    catch(e){ console.error('[packages] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
+  };
+
+  const remove=async(r)=>{
+    if(!window.confirm(`"${r.name}" 삭제할까요?`))return;
+    try{ await db.collection(COLLECTIONS.POURSTORE_PACKAGES).doc(r.id).delete();
+      setRows(prev=>prev.filter(x=>x.id!==r.id)); showToast('삭제되었습니다');
+    }catch(e){ console.error(e); showToast('삭제 실패: '+e.message,'error'); }
+  };
+
+  const seed=async()=>{
+    if(!window.confirm('실상품 17종을 기본값으로 불러올까요? (부위·등급은 이후 자유 변경)'))return;
+    setSeeding(true);
+    try{
+      for(let i=0;i<PKG_SEED.length;i++){ const s=PKG_SEED[i];
+        await db.collection(COLLECTIONS.POURSTORE_PACKAGES).add({
+          productNo:s.productNo, name:s.name, price:s.price, thumbnail:PKG_IMG_BASE+s.hash+'.jpg',
+          area:s.area, tier:s.tier, best:!!s.best, isNew:!!s.isNew, active:true, order:i, ...audit.create() });
+      }
+      console.log('[packages] 17종 시드 완료'); showToast('17종 시드 완료'); await load();
+    }catch(e){ console.error('[packages] 시드 실패:',e); showToast('시드 실패: '+e.message,'error'); }
+    setSeeding(false);
+  };
+
+  const addManual=async()=>{
+    const productNo=(window.prompt('cate_no=71 상품번호 (예: 64)')||'').trim(); if(!productNo)return;
+    const name=(window.prompt('상품명')||'').trim(); if(!name)return;
+    const price=(window.prompt('가격 표기 (예: 32,500원/㎡ 또는 69,200원)')||'').trim();
+    try{
+      await db.collection(COLLECTIONS.POURSTORE_PACKAGES).add({
+        productNo, name, price, thumbnail:'', area:'slab', tier:'partial', best:false, isNew:false, active:true, order:rows.length, ...audit.create() });
+      showToast('추가되었습니다'); await load();
+    }catch(e){ console.error(e); showToast('추가 실패: '+e.message,'error'); }
+  };
+
+  if(loading)return <div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>;
+
+  const bestN=rows.filter(r=>r.best&&r.active!==false).length;
+  const newN=rows.filter(r=>r.isNew&&r.active!==false).length;
+  const sel={padding:'6px 8px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12,fontWeight:700,background:'#fff',cursor:'pointer'};
+  const areaIdx=(k)=>{const i=PKG_AREAS.findIndex(a=>a.key===k);return i<0?99:i;};
+  const tierIdx=(k)=>{const i=PKG_TIERS.findIndex(t=>t.key===k);return i<0?99:i;};
+  const sorted=[...rows].sort((a,b)=>areaIdx(a.area)-areaIdx(b.area)||tierIdx(a.tier)-tierIdx(b.tier)||((a.order??999)-(b.order??999)));
+
+  return(
+    <div style={{padding:'24px 32px',maxWidth:1180}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,flexWrap:'wrap',gap:16}}>
+        <div>
+          <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>🧩 패키지 구성 관리</h1>
+          <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>상품별 <b>부위·등급(풀/부분/단순코팅)</b>과 <b>베스트·신규</b> 노출을 직접 설정 → 스토어 패키지 화면에 자동 반영됩니다.</div>
+        </div>
+        {rows.length>0 && <button onClick={addManual} style={{padding:'10px 18px',borderRadius:10,fontSize:12.5,fontWeight:900,color:'var(--or-d)',background:'#fff',border:'1.5px solid var(--or)',cursor:'pointer'}}>+ 상품 추가</button>}
+      </div>
+
+      {rows.length===0 ? (
+        <div style={{padding:'44px 0',textAlign:'center',background:'var(--card)',borderRadius:12,border:'1px solid var(--border)',marginTop:16}}>
+          <div style={{fontSize:13.5,color:'var(--text-md)',fontWeight:700,marginBottom:14}}>등록된 패키지가 없습니다. 실상품 17종(cate_no=71)을 불러와 시작하세요.</div>
+          <button onClick={seed} disabled={seeding} style={{padding:'12px 24px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',background:seeding?'var(--text-sm)':'linear-gradient(135deg, var(--or), var(--or-d))',cursor:seeding?'wait':'pointer'}}>{seeding?'불러오는 중...':'실상품 17종 불러오기'}</button>
+        </div>
+      ) : (
+        <>
+          <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',margin:'16px 0',fontSize:12,fontWeight:800}}>
+            <span style={{padding:'5px 11px',borderRadius:999,background:'var(--or-pale)',color:'var(--or-d)',border:'1px solid #FED7AA'}}>전체 {rows.length}</span>
+            <span style={{padding:'5px 11px',borderRadius:999,background:bestN>=1?'#FEF3C7':'#FEE2E2',color:bestN>=1?'#B45309':'#DC2626',border:'1px solid '+(bestN>=1?'#FCD34D':'#FCA5A5')}}>베스트 {bestN}{bestN===0?' — 카드 비어있음':''}</span>
+            <span style={{padding:'5px 11px',borderRadius:999,background:newN>=1?'#DCFCE7':'#FEE2E2',color:newN>=1?'#059669':'#DC2626',border:'1px solid '+(newN>=1?'#A7F3D0':'#FCA5A5')}}>신규 {newN}{newN===0?' — 카드 비어있음':''}</span>
+            <span style={{marginLeft:'auto',color:'var(--text-sm)',fontWeight:700}}>변경 시 자동 저장</span>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:7}}>
+            {sorted.map((r,i)=>{
+              const on=r.active!==false;
+              const showAreaHead = i===0 || sorted[i-1].area!==r.area;
+              return(
+                <React.Fragment key={r.id}>
+                  {showAreaHead && <div style={{fontSize:12.5,fontWeight:900,color:'var(--navy)',margin:(i===0?'0':'12px')+' 0 2px',paddingLeft:2}}>■ {pkgAreaLabel(r.area)}</div>}
+                  <div style={{display:'flex',gap:10,alignItems:'center',background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:'9px 12px',opacity:on?1:0.5,flexWrap:'wrap'}}>
+                    <div style={{width:46,height:46,borderRadius:8,flexShrink:0,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)'}}>
+                      {r.thumbnail?<img src={r.thumbnail} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.visibility='hidden';}}/>:null}
+                    </div>
+                    <div style={{flex:1,minWidth:170}}>
+                      <div style={{fontSize:13,fontWeight:800,color:'var(--text)',lineHeight:1.3}}>{r.name}</div>
+                      <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:700,marginTop:2}}>#{r.productNo} · {r.price||'가격 미정'}</div>
+                    </div>
+                    <select value={r.area||'slab'} onChange={e=>patch(r.id,{area:e.target.value})} style={sel} title="부위">
+                      {PKG_AREAS.map(a=><option key={a.key} value={a.key}>{a.label}</option>)}
+                    </select>
+                    <select value={r.tier||'partial'} onChange={e=>patch(r.id,{tier:e.target.value})} style={{...sel,color:r.tier==='full'?'var(--or-d)':'var(--text-md)',fontWeight:800}} title="등급">
+                      {PKG_TIERS.map(t=><option key={t.key} value={t.key}>{t.label}</option>)}
+                    </select>
+                    <label style={{display:'flex',alignItems:'center',gap:4,fontSize:11.5,fontWeight:800,color:r.best?'#B45309':'var(--text-sm)',cursor:'pointer'}} title="이 달의 베스트 카드에 노출">
+                      <input type="checkbox" checked={!!r.best} onChange={e=>patch(r.id,{best:e.target.checked})}/> 베스트
+                    </label>
+                    <label style={{display:'flex',alignItems:'center',gap:4,fontSize:11.5,fontWeight:800,color:r.isNew?'#059669':'var(--text-sm)',cursor:'pointer'}} title="신규 카드에 노출">
+                      <input type="checkbox" checked={!!r.isNew} onChange={e=>patch(r.id,{isNew:e.target.checked})}/> 신규
+                    </label>
+                    <label style={{display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:700,color:'var(--text-sm)'}} title="정렬순서">순서 <input type="number" value={r.order??0} onChange={e=>patch(r.id,{order:Number(e.target.value)||0})} style={{width:52,padding:'5px 6px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12}}/></label>
+                    <button onClick={()=>patch(r.id,{active:!on})} title="노출 on/off" style={{width:40,height:22,borderRadius:11,border:'none',cursor:'pointer',position:'relative',flexShrink:0,background:on?'var(--green)':'var(--border)'}}>
+                      <span style={{position:'absolute',top:2,left:on?20:2,width:18,height:18,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 2px rgba(0,0,0,.2)'}}/>
+                    </button>
+                    <button onClick={()=>remove(r)} title="삭제" style={{width:26,height:26,borderRadius:7,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',cursor:'pointer',fontSize:13,fontWeight:900,flexShrink:0}}>×</button>
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function MethodLinksPage({showToast}){
   const { audit } = useActiveStaffContext();
   const [links,setLinks]=useState([]);
@@ -9703,6 +10418,10 @@ function App() {
         {active === 'products' && <ProductsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'metrics' && <MetricsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'method-links' && <MethodLinksPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'hotkeywords' && <HotKeywordsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'postings' && <PostingsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'packages' && <PackagesPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'banners' && <BannersPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'staff' && <StaffPage onToast={setToast} />}
         {active === 'firebase-usage' && <FirebaseUsagePage />}
         {active === 'settings' && <Settings onToast={setToast} />}

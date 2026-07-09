@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POUR스토어 단가·공급망 관리 — 넷폼알앤디</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+<!-- React 18 (production) -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<!-- Babel (JSX) -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<!-- Firebase 10.12.0 compat -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<style>
+:root{
+ --navy:#0F1F5C; --navy2:#16266b;
+ --or:#F25C05; --or-soft:#FFF3EC; --or-dim:rgba(242,92,5,.09);
+ --t1:#191F28; --t2:#4E5968; --t3:#8B95A1;
+ --bg:#F7F8FA; --card:#FFFFFF; --soft:#F9FAFB; --soft2:#F2F4F6;
+ --border:#E5E8EB; --line:#F2F4F6;
+ --blue:#2563EB; --blue-l:#EFF6FF;
+ --green:#0a7d3f; --green-l:#E7F7EE; --red:#F04452; --red-l:#FEECEC; --amber:#B45309;
+ --r:12px; --r-sm:8px; --r-lg:18px;
+ --shadow:0 1px 6px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+ --shadow-lg:0 8px 32px rgba(0,0,0,.12);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Pretendard Variable',Pretendard,-apple-system,system-ui,sans-serif;
+ background:var(--bg);color:var(--t1);line-height:1.5;-webkit-font-smoothing:antialiased;
+ font-feature-settings:'tnum' on,'lnum' on;letter-spacing:-.01em}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select{font-family:inherit;font-size:14px;color:var(--t1)}
+.mono{font-variant-numeric:tabular-nums}
+
+/* ── header ── */
+.top{position:sticky;top:0;z-index:30;background:var(--navy);color:#fff}
+.top-in{max-width:1360px;margin:0 auto;padding:0 20px;height:58px;display:flex;align-items:center;gap:14px}
+.top .brand{font-weight:800;font-size:16px;letter-spacing:-.02em}
+.top .brand .o{color:var(--or)}
+.top .sub{font-size:12px;color:#9fb0c7;font-weight:600}
+.top .spacer{flex:1}
+.savechip{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#cdd7e5;
+ background:rgba(255,255,255,.08);border-radius:9px;padding:7px 12px}
+.savechip .dot{width:8px;height:8px;border-radius:50%;background:#7d8aa3}
+.savechip.dirty .dot{background:var(--or)} .savechip.saved .dot{background:#13B877} .savechip.error .dot{background:var(--red)}
+.top .btn{font-size:13px;font-weight:700;color:#fff;border:1px solid rgba(255,255,255,.22);padding:8px 14px;border-radius:9px}
+.top .btn.primary{background:var(--or);border-color:var(--or)}
+.top .btn:disabled{opacity:.5;cursor:default}
+
+/* ── tabs ── */
+.tabs{max-width:1360px;margin:0 auto;padding:16px 20px 0;display:flex;gap:8px;flex-wrap:wrap}
+.tab{padding:10px 18px;border-radius:999px;background:var(--card);border:1px solid var(--border);
+ font-size:13.5px;font-weight:700;color:var(--t2);transition:.12s}
+.tab:hover{border-color:var(--or)}
+.tab.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.tab .n{font-size:10.5px;font-weight:800;margin-left:6px;padding:1px 6px;border-radius:6px;background:var(--soft2);color:var(--t3)}
+.tab.on .n{background:rgba(255,255,255,.2);color:#fff}
+
+.wrap{max-width:1360px;margin:0 auto;padding:18px 20px 80px}
+
+/* ── cards / summary ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.mcard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow)}
+.mcard .k{font-size:12px;color:var(--t3);font-weight:600;margin-bottom:6px}
+.mcard .v{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.mcard .v small{font-size:13px;font-weight:700;color:var(--t3);margin-left:3px}
+
+/* ── controls ── */
+.ctrls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.search{flex:1;min-width:200px;border:1px solid var(--border);border-radius:11px;padding:11px 14px;font-size:14px;background:var(--card)}
+.search:focus{outline:none;border-color:var(--or)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--border);background:var(--card);color:var(--t2);border-radius:999px;
+ padding:8px 14px;font-size:12.5px;font-weight:600;transition:.12s}
+.chip:hover{border-color:var(--or)} .chip.on{background:var(--or);color:#fff;border-color:var(--or)}
+.btn2{border:1px solid var(--border);background:var(--card);color:var(--t2);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;white-space:nowrap}
+.btn2:hover{border-color:var(--navy);color:var(--navy)}
+.btn2.or{background:var(--or);color:#fff;border-color:var(--or)}
+.btn2.or:hover{color:#fff}
+.count{font-size:12.5px;color:var(--t3);font-weight:600;margin-left:auto}
+
+/* ── table ── */
+.tablecard{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow)}
+.tscroll{overflow:auto;max-height:72vh}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+thead th{position:sticky;top:0;background:var(--navy);color:#fff;font-weight:700;font-size:11.5px;
+ padding:11px 8px;text-align:center;white-space:nowrap;z-index:4;border-bottom:2px solid #0a1642}
+thead th .cc{display:block;font-size:9.5px;color:var(--or);font-weight:800;margin-top:2px}
+thead th.base{background:var(--or)} thead th.base .cc{color:#fff}
+th.stick,td.stick{position:sticky;left:0;text-align:left;min-width:210px;max-width:210px}
+thead th.stick{z-index:6;background:#0a1642}
+tbody td.stick{background:var(--card);z-index:2;border-right:1px solid var(--border)}
+tbody tr:hover td{background:var(--soft)} tbody tr:hover td.stick{background:#f5f7fa}
+tbody td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:center;vertical-align:middle;white-space:nowrap}
+td.base{background:var(--or-dim)}
+.cat{font-size:9.5px;color:var(--t3);font-weight:700}
+.nm{font-weight:600;color:var(--t1);font-size:12.5px}
+.sp{color:var(--t3);font-size:10.5px}
+.price{font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums;font-size:12.5px}
+.dash{color:#CDD2D9}
+.badge{display:inline-block;margin-top:2px;font-size:10px;font-weight:800;padding:1px 6px;border-radius:6px;font-variant-numeric:tabular-nums}
+.d0{color:var(--t3);background:var(--soft2)} .d1{color:#0a7d3f;background:#e7f7ee}
+.d2{color:#b45309;background:#fff4e0} .d3{color:#c2410c;background:#ffe6d8} .d4{color:#fff;background:var(--or)}
+.over{color:#fff;background:var(--red)} .base-b{color:var(--or);background:#fff;border:1px solid var(--or)}
+.pos{color:#0a7d3f;font-weight:800} .neg{color:var(--red);font-weight:800}
+
+/* editable cell */
+.ecell{cursor:pointer;border-radius:6px;min-width:64px;transition:background .1s}
+.ecell:hover{background:var(--blue-l);box-shadow:inset 0 0 0 1px var(--blue)}
+.einput{width:88px;border:1.5px solid var(--or);border-radius:7px;padding:5px 6px;font-size:12.5px;
+ text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.einput:focus{outline:none}
+.rowdel{color:var(--red);font-size:15px;font-weight:800;opacity:.35}
+.rowdel:hover{opacity:1}
+
+/* MOQ break editor */
+.brks{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:6px}
+.brk{background:var(--soft);border:1px solid var(--border);border-radius:12px;padding:12px}
+.brk .lb input{width:100%;border:none;background:transparent;text-align:center;font-weight:800;color:var(--navy);font-size:12.5px}
+.brk .lb input:focus{outline:none}
+.brk .row{display:flex;align-items:center;gap:5px;justify-content:center;margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
+.brk .row label{font-size:11px;color:var(--t3)}
+.brk .row input{width:56px;border:1px solid var(--border);border-radius:7px;padding:5px;text-align:right;font-weight:700;color:var(--or)}
+.brk .row input:focus{outline:none;border-color:var(--or)}
+.brk .row span{font-size:11px;color:var(--t3)}
+.brk .x{float:right;color:var(--red);font-weight:800;opacity:.4;font-size:13px}.brk .x:hover{opacity:1}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow)}
+.panel h3{font-size:14px;font-weight:800;color:var(--navy);margin-bottom:4px}
+.panel .psub{font-size:12px;color:var(--t3);margin-bottom:14px;line-height:1.6}
+td.last{background:var(--or-soft)} td.last .price{color:var(--or)}
+.review td{background:#fff8f2} .rv{color:var(--red);font-weight:700;font-size:11px}
+.ng{background:#fdeaea;color:var(--red)} .ok{color:#0a7d3f;font-weight:800;font-size:11px}
+
+/* modal */
+.mask{position:fixed;inset:0;background:rgba(15,31,92,.28);backdrop-filter:blur(2px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:#fff;border-radius:18px;box-shadow:var(--shadow-lg);width:100%;max-width:440px;padding:24px;max-height:90vh;overflow:auto}
+.modal h2{font-size:17px;font-weight:800;margin-bottom:4px}
+.modal .msub{font-size:12.5px;color:var(--t3);margin-bottom:18px}
+.frow{margin-bottom:13px}
+.frow label{display:block;font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px}
+.frow input,.frow select{width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:10px;background:var(--soft)}
+.frow input:focus,.frow select:focus{outline:none;border-color:var(--or);background:#fff}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mact{display:flex;gap:10px;margin-top:20px}
+.mact .btn2{flex:1;justify-content:center;text-align:center;padding:12px}
+
+/* toast */
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:2000;padding:12px 22px;border-radius:12px;
+ font-size:13px;font-weight:700;color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.25);white-space:nowrap}
+.toast.ok{background:#059669} .toast.err{background:var(--red)} .toast.info{background:var(--navy)}
+
+/* gate */
+.gate{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
+.gatebox{background:#fff;border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow-lg);width:100%;max-width:360px;padding:30px 26px;text-align:center}
+.gatebox h1{font-size:18px;font-weight:800;margin-bottom:6px}.gatebox p{font-size:12.5px;color:var(--t3);margin-bottom:20px}
+.gatebox input{width:100%;padding:13px;border:1px solid var(--border);border-radius:11px;text-align:center;letter-spacing:.3em;font-size:18px;font-weight:700;background:var(--soft)}
+.gatebox input:focus{outline:none;border-color:var(--or);background:#fff}
+.gatebox .gbtn{width:100%;margin-top:12px;padding:13px;background:var(--or);color:#fff;border-radius:11px;font-weight:800;font-size:14px}
+.gatebox .gerr{color:var(--red);font-size:12px;font-weight:700;margin-top:10px;min-height:16px}
+.help{font-size:12px;color:var(--t2);line-height:1.7;background:var(--soft);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px}
+.help b{color:var(--navy)}
+@media(max-width:720px){.top .sub{display:none}.mcard .v{font-size:18px}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState,useEffect,useRef,useMemo} = React;
+
+/* ══════════════ Firebase (pour-app-new · 변경 금지) ══════════════ */
+const FB_CFG = {
+  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain: "pour-app-new.firebaseapp.com",
+  projectId: "pour-app-new",
+  storageBucket: "pour-app-new.firebasestorage.app",
+  messagingSenderId: "411031141847",
+  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
+};
+try{ if(firebase&&firebase.apps&&!firebase.apps.length) firebase.initializeApp(FB_CFG); }catch(e){ console.error('[firebase] init 실패:',e); }
+const db = firebase.firestore();
+// sourcing-os 네임스페이스는 firestore.rules에서 이미 허용됨 → 규칙 변경 불필요
+const DOC = db.collection('sourcing-os').doc('price-list');
+
+/* ══════════════ 채널 정의 ══════════════ */
+// px 배열 인덱스 순서와 1:1 매칭
+const CHANNELS = [
+  {key:'exp', label:'수출가',    cc:'수출', i:0},
+  {key:'p2',  label:'총판유통',   cc:'P2',  i:1, floor:true},   // MOQ 하한
+  {key:'p3',  label:'대리점',     cc:'P3',  i:2},
+  {key:'p4',  label:'시공파트너스', cc:'P4',  i:3},
+  {key:'p5',  label:'온라인위탁',  cc:'P5',  i:4},
+  {key:'p6',  label:'온라인도매',  cc:'P6',  i:5},
+  {key:'p7',  label:'쿠팡',       cc:'P7',  i:6},
+  {key:'p8',  label:'자사몰정가',  cc:'P8',  i:7, base:true},    // 소비자 정가 = 기준
+];
+const CH_FLOOR = 1;   // 총판유통 인덱스 (MOQ 하한)
+const CH_BASE  = 7;   // 자사몰정가 인덱스 (기준)
+const CATS = ['전체','수용성','유성','아스팔트','보강시트','파우더','보강제품'];
+
+/* ══════════════ 초기 시드 (price list 원본 2파일 기준) ══════════════ */
+const SEED_PX = [{"cat":"수용성","name":"POUR 코트재 1L (회색)","pack":"1","spec":"kg/통","px":[null,null,null,22800,23500,24100,25000,26300]},{"cat":"수용성","name":"POUR 코트재 5L (회색)","pack":"5","spec":"kg/통","px":[null,null,null,55500,56600,57600,58500,61500]},{"cat":"수용성","name":"POUR 코트재 10L (회색)","pack":"10","spec":"kg/통","px":[null,null,null,94200,95600,97800,99300,104500]},{"cat":"수용성","name":"POUR 코트재Ⅰ(회색)","pack":"20","spec":"kg/통","px":[127500,144400,145700,147300,148800,159800,168700,177500]},{"cat":"수용성","name":"POUR 코트재Ⅰ(녹색)","pack":"20","spec":"kg/통","px":[127500,144400,145700,147300,148800,159800,168700,177500]},{"cat":"수용성","name":"POUR 코트재Ⅰ(적갈색)","pack":"20","spec":"kg/통","px":[127500,144400,145700,147300,148800,159800,168700,177500]},{"cat":"수용성","name":"POUR 코트재Ⅰ(백색)","pack":"20","spec":"kg/통","px":[127500,144400,145700,147300,148800,159800,168700,177500]},{"cat":"수용성","name":"POUR 코트재Ⅱ회색","pack":"20","spec":"kg/통","px":[127500,144400,145700,147300,148800,159800,168700,177500]},{"cat":"수용성","name":"POUR 코트재Ⅱ녹색","pack":"20","spec":"kg/통","px":[127500,144400,145700,147300,148800,159800,168700,177500]},{"cat":"수용성","name":"POUR 코트재Ⅱ적갈색","pack":"20","spec":"kg/통","px":[148800,144400,145700,147300,148800,159800,168700,177500]},{"cat":"수용성","name":"POUR 상도코트재(회색)","pack":"20","spec":"kg/통","px":[127500,170700,172300,174000,175800,168800,179200,187500]},{"cat":"수용성","name":"POUR 상도코트재(녹색)","pack":"20","spec":"kg/통","px":[127500,170700,172300,174000,175800,168800,179200,187500]},{"cat":"수용성","name":"POUR 상도코트재(적갈색)","pack":"20","spec":"kg/통","px":[127500,170700,172300,174000,175800,168800,179200,187500]},{"cat":"수용성","name":"POUR써밋페인트 플러스","pack":"20","spec":"kg/통","px":[127500,131300,132500,133900,135300,141800,149700,157500]},{"cat":"수용성","name":"POUR 아크릴배면차수제(A+B제)","pack":"20","spec":"kg/통","px":[195500,157500,159000,160700,162300,171000,180500,190000]},{"cat":"수용성","name":"POUR콘크리트 강화제","pack":"14","spec":"kg/통","px":[99900,117500,118700,119900,121000,130000,137200,144400]},{"cat":"수용성","name":"POUR강화재1(슬라브용)","pack":"18","spec":"L/통","px":[144500,200900,202900,204900,206900,202500,213800,225000]},{"cat":"수용성","name":"POUR강화제2(금속기와용)","pack":"18","spec":"L/통","px":[148800,200900,202900,204900,206900,202500,213800,225000]},{"cat":"수용성","name":"POUR하이롤퍼티","pack":"20","spec":"kg/통","px":[89300,0,117800,119000,137800,153000,161500,170000]},{"cat":"수용성","name":"POUR하이퍼티","pack":"20","spec":"kg/통","px":[92900,137500,138800,140300,141700,153000,161500,170000]},{"cat":"수용성","name":"POUR써밋바인더","pack":"18","spec":"kg/통","px":[50000,131300,132500,133900,135300,141800,149700,157500]},{"cat":"유성","name":"POUR써밋에폭시(하도)","pack":"13.5","spec":"kg/통","px":[110500,104000,105000,106200,107200,112300,118500,124800]},{"cat":"유성","name":"POUR써밋에폭시(중도)","pack":"24","spec":"kg/통","px":[148800,137500,138800,140300,141700,148500,156800,165000]},{"cat":"유성","name":"POUR써밋에폭시(상도)","pack":"16","spec":"kg/통","px":[138200,130000,131300,132700,133900,140400,148300,156000]},{"cat":"유성","name":"POUR써밋우레탄 하도","pack":"17","spec":"kg/통","px":[91500,86900,88000,88700,89500,82200,91300,91300]},{"cat":"유성","name":"POUR써밋우레탄 중도","pack":"20","spec":"kg/통","px":[91300,86300,87300,88000,88900,81500,90700,90700]},{"cat":"유성","name":"POUR써밋우레탄 상도","pack":"15.24","spec":"kg/통","px":[110300,105000,106300,107200,108200,99300,110300,110300]},{"cat":"유성","name":"POUR PMQ강화코팅제","pack":"15","spec":"kg/통","px":[261400,375000,378800,382500,386300,388200,409800,431300]},{"cat":"유성","name":"POUR폴리우레아","pack":"410","spec":"kg/통","px":[4182000,3375000,3407500,3442500,3476300,3645000,3847500,4050000]},{"cat":"유성","name":"POUR써밋엠보라이닝","pack":"24","spec":"kg/통","px":[159400,143800,145200,146700,148200,154200,162800,171300]},{"cat":"아스팔트","name":"POUR탄성테이프2T","pack":"5cm*10m","spec":"ea/개","px":[63800,71300,71900,72700,73400,77000,81300,85500]},{"cat":"아스팔트","name":"POUR씰패치 2T","pack":"1m*10m","spec":"ea/개","px":[531300,593800,599400,605700,611700,641300,676900,712500]},{"cat":"아스팔트","name":"POUR유화프라이머","pack":"420ml","spec":"ea/개","px":[12800,14300,14400,14500,14700,15400,16300,17200]},{"cat":"아스팔트","name":"POUR씰코트","pack":"25","spec":"kg/통","px":[148800,166300,167800,169700,171300,179500,189500,199500]},{"cat":"아스팔트","name":"POUR하드씰코트","pack":"20","spec":"kg/통","px":[148800,166300,167800,169700,171300,179500,189500,199500]},{"cat":"아스팔트","name":"POUR쉴드 유화아스팔트(RSC-3)","pack":"200","spec":"L/통","px":[318800,312500,315500,318800,321900,337500,356300,375000]},{"cat":"아스팔트","name":"POUR쉴드 유화아스팔트(RSC-4)","pack":"200","spec":"L/통","px":[318800,312500,315500,318800,321900,337500,356300,375000]},{"cat":"아스팔트","name":"POUR MMA","pack":"20","spec":"kg/통","px":[125400,225000,227200,229500,231800,232900,245900,258800]},{"cat":"보강시트","name":"POUR 슈퍼복합압축시트0.3T","pack":"10cm*100m","spec":"롤/개","px":[13900,40400,40800,41200,41700,43700,46200,48500]},{"cat":"보강시트","name":"POUR 슈퍼복합압축시트0.3T","pack":"20cm*100m","spec":"롤/개","px":[23400,57800,58300,58900,59500,62400,65800,69300]},{"cat":"보강시트","name":"POUR 슈퍼복합압축시트0.3T","pack":"30cm*100m","spec":"롤/개","px":[33000,70300,70900,71700,72400,75900,80000,84300]},{"cat":"보강시트","name":"POUR 슈퍼복합압축시트0.3T","pack":"40cm*100m","spec":"롤/개","px":[42500,84500,85300,86300,87000,91300,96300,101400]},{"cat":"보강시트","name":"POUR 슈퍼복합압축시트0.3T","pack":"50cm*100m","spec":"롤/개","px":[52300,102700,103500,104700,105800,110800,117000,123200]},{"cat":"보강시트","name":"POUR 슈퍼복합압축시트0.3T","pack":"60cm*100m","spec":"롤/개","px":[61900,124400,125500,126900,128200,134400,141800,149300]},{"cat":"보강시트","name":"POUR 슈퍼복합압축시트0.3T","pack":"70cm*100m","spec":"롤/개","px":[71400,149400,150800,152400,153900,161400,170300,179300]},{"cat":"보강시트","name":"POUR 슈퍼복합압축시트0.3T","pack":"80cm*100m","spec":"롤/개","px":[81000,176500,178200,180000,181800,190800,201300,211900]},{"cat":"보강시트","name":"POUR 슈퍼복합압축시트0.3T","pack":"1m*100m","spec":"롤/개","px":[95900,196900,198800,200900,202800,224500,224500,236300]},{"cat":"보강시트","name":"POUR 듀얼복합시트1.5T","pack":"20cm*25m","spec":"롤/개","px":[55800,64400,65000,65700,66300,68200,69500,73200]},{"cat":"보강시트","name":"POUR 듀얼복합시트1.5T","pack":"30cm*25m","spec":"롤/개","px":[81200,91900,92800,93800,94700,97200,99200,104400]},{"cat":"보강시트","name":"POUR 듀얼복합시트1.5T","pack":"40cm*25m","spec":"롤/개","px":[103500,116400,117500,118800,119900,123300,125900,132500]},{"cat":"보강시트","name":"POUR 듀얼복합시트1.5T","pack":"50cm*25m","spec":"롤/개","px":[136400,153200,154700,156300,157800,162300,165700,174400]},{"cat":"보강시트","name":"POUR 듀얼복합시트1.5T","pack":"60cm*25m","spec":"롤/개","px":[158200,177700,179300,181200,183000,188400,192400,202500]},{"cat":"보강시트","name":"POUR 듀얼복합시트1.5T","pack":"70cm*25m","spec":"롤/개","px":[184500,205200,207200,209300,211400,217500,222200,233800]},{"cat":"보강시트","name":"POUR 듀얼복합시트1.5T","pack":"80cm*25m","spec":"롤/개","px":[208900,232800,235000,237400,239800,247200,252400,265700]},{"cat":"보강시트","name":"POUR 듀얼복합시트1.5T","pack":"1m*25m","spec":"롤/개","px":[260400,287500,290300,293300,296200,305300,311800,328200]},{"cat":"보강시트","name":"POUR 압축강화시트0.7T","pack":"10cm*100m","spec":"롤/개","px":[29800,40300,40700,41000,41500,44900,45900,48300]},{"cat":"보강시트","name":"POUR 압축강화시트0.7T","pack":"15cm*100m","spec":"롤/개","px":[40400,40300,40700,41000,55900,60900,62200,65400]},{"cat":"보강시트","name":"POUR 압축강화시트0.7T","pack":"20cm*100m","spec":"롤/개","px":[55300,71500,72200,72900,73700,79900,81700,85900]},{"cat":"보강시트","name":"POUR 압축강화시트0.7T","pack":"30cm*100m","spec":"롤/개","px":[80800,108700,109700,110800,111900,121400,124000,130500]},{"cat":"보강시트","name":"POUR 압축강화시트0.7T","pack":"40cm*100m","spec":"롤/개","px":[106300,145800,147200,148700,150200,162800,166200,174900]},{"cat":"보강시트","name":"POUR 압축강화시트0.7T","pack":"50cm*100m","spec":"롤/개","px":[135000,181800,183500,185400,187300,202900,207300,218200]},{"cat":"보강시트","name":"POUR 압축강화시트0.7T","pack":"60cm*100m","spec":"롤/개","px":[161500,217300,219400,221700,223800,242500,247700,260700]},{"cat":"보강시트","name":"POUR 압축강화시트0.7T","pack":"70cm*100m","spec":"롤/개","px":[189200,254700,257200,259800,262300,284200,290300,305500]},{"cat":"보강시트","name":"POUR 압축강화시트0.7T","pack":"80cm*100m","spec":"롤/개","px":[212500,286200,288900,291900,294800,319400,326300,343400]},{"cat":"보강시트","name":"POUR 압축강화시트0.7T","pack":"1m*100m","spec":"롤/개","px":[299700,380700,384400,388300,392000,424900,433900,456800]},{"cat":"보강시트","name":"POUR PVC 시트1.5T","pack":"1.83m*15m","spec":"롤/개","px":[358800,439200,443400,447900,452300,490000,500500,526900]},{"cat":"보강시트","name":"POUR 보강시트0.3T(크랙용)","pack":"10cm*100m","spec":"롤/개","px":[38700,40400,40800,41200,41700,45200,46200,48500]},{"cat":"보강시트","name":"POUR 보강시트0.3T(크랙용)","pack":"15cm*100m","spec":"롤/개","px":[56200,52500,53000,53500,54200,58700,59900,63000]},{"cat":"보강시트","name":"POUR 보강시트0.3T(크랙용)","pack":"20cm*100m","spec":"롤/개","px":[74800,57800,58300,58900,59500,64500,65800,69300]},{"cat":"보강시트","name":"POUR 보강시트0.3T(슬라브용)","pack":"10cm*100m","spec":"롤/개","px":[38700,40400,40800,41200,41700,45200,46200,48500]},{"cat":"보강시트","name":"POUR 보강시트0.3T(슬라브용)","pack":"15cm*100m","spec":"롤/개","px":[56200,52500,53000,53500,54200,58700,59900,63000]},{"cat":"보강시트","name":"POUR 보강시트0.3T(슬라브용)","pack":"20cm*100m","spec":"롤/개","px":[74800,57800,58300,58900,59500,64500,65800,69300]},{"cat":"보강시트","name":"POUR 보강시트0.3T(세트용)","pack":"10cm*10m","spec":"롤/개","px":[null,null,null,null,null,null,null,32200]},{"cat":"보강시트","name":"POUR 균열보수시트(에폭시용)","pack":"10cm*100m","spec":"롤/개","px":[21300,40400,40800,41200,41700,45200,46200,48500]},{"cat":"보강시트","name":"POUR에어쉘시트","pack":"1m*100m","spec":"롤/개","px":[195500,0,201300,166800,245900,267400,273200,287500]},{"cat":"파우더","name":"POUR 106파우더","pack":"20","spec":"kg/포","px":[32000,96600,97500,98500,99500,103265,103300,108700]},{"cat":"파우더","name":"POUR 107파우더","pack":"20","spec":"kg/포","px":[32000,96600,97500,98500,99500,103265,103300,108700]},{"cat":"파우더","name":"POUR 표면강화 파우더","pack":"20","spec":"kg/포","px":[32000,96600,97500,98500,99500,103265,103300,108700]},{"cat":"파우더","name":"POUR 탄성강화 파우더","pack":"20","spec":"kg/포","px":[32000,38000,38400,38800,39300,43700,43700,46000]},{"cat":"파우더","name":"POUR 탄성강화 파우더(경계석)","pack":"20","spec":"kg/포","px":[32000,32000,32300,32600,33000,36500,36500,38400]},{"cat":"파우더","name":"POUR 탄성강화 파우더(측구/단면복구)","pack":"20","spec":"kg/포","px":[32000,32000,32300,32600,33000,36500,36500,38400]},{"cat":"파우더","name":"POUR 시트함침 파우더","pack":"20","spec":"kg/포","px":[32000,32000,32300,32600,33000,36500,36500,38400]},{"cat":"보강제품","name":"POUR슁글용 후커 5cm","pack":"5cm","spec":"ea/개","px":[6300,6300,6400,6400,6500,7220,7200,7600]},{"cat":"보강제품","name":"POUR슁글용 후커 6cm","pack":"6cm","spec":"ea/개","px":[6300,6300,6400,6400,6500,7220,7200,7600]},{"cat":"보강제품","name":"POUR슁글용 후커 7cm","pack":"7cm","spec":"ea/개","px":[6300,6300,6400,6400,6500,7220,7200,7600]},{"cat":"보강제품","name":"POUR슁글용 후커 8cm","pack":"8cm","spec":"ea/개","px":[6300,6300,6400,6400,6500,7220,7200,7600]},{"cat":"보강제품","name":"POUR슁글용 후커 9cm","pack":"9cm","spec":"ea/개","px":[6300,6300,6400,6400,6500,7220,7200,7600]},{"cat":"보강제품","name":"POUR슁글용 후커 10cm","pack":"10cm","spec":"ea/개","px":[6300,6300,6400,6400,6500,7220,7200,7600]},{"cat":"보강제품","name":"POUR금속기와용 후커","pack":"-","spec":"ea/개","px":[6300,6300,6400,6400,6500,7220,7200,7600]},{"cat":"보강제품","name":"POUR팬 벤트(도막용)","pack":"H230*W230","spec":"ea/개","px":[20000,31300,31500,31900,32300,35700,35700,37500]},{"cat":"보강제품","name":"POUR팬 벤트(시트용)","pack":"H230*W210","spec":"ea/개","px":[20000,31300,31500,31900,32300,35700,35700,37500]},{"cat":"보강제품","name":"POUR옥상배관방수트랩100(시트미포함)","pack":"직경75mm","spec":"ea/개","px":[12500,18800,18900,19200,19400,20300,21400,22500]},{"cat":"보강제품","name":"POUR옥상배관방수트랩100(시트포함)","pack":"직경75mm","spec":"ea/개","px":[12500,3200,18000,14900,21900,24400,24400,25700]},{"cat":"보강제품","name":"POUR옥상배관방수트랩50(시트포함)","pack":"직경45mm","spec":"ea/개","px":[12500,17500,17800,18000,18700,19200,20300,21300]},{"cat":"보강제품","name":"POUR벤트 회색(35ea)_확장형","pack":"지름65mm","spec":"set/개","px":[1500,131300,132500,133900,135300,137800,137900,null]},{"cat":"보강제품","name":"POUR벤트 녹색(35ea)_확장형","pack":"지름66mm","spec":"set/개","px":[1500,131300,132500,133900,135300,137800,137900,null]},{"cat":"보강제품","name":"POUR벤트 회색(35ea)_기본형","pack":"지름45mm","spec":"set/개","px":[2300,131300,132500,133900,135300,137800,137900,null]},{"cat":"보강제품","name":"POUR벤트 녹색(35ea)_기본형","pack":"지름45mm","spec":"set/개","px":[2300,131300,132500,133900,135300,137800,137900,null]},{"cat":"보강제품","name":"POUR벤트 회색(25ea)_확장형","pack":"지름65mm","spec":"set/개","px":[null,null,null,null,null,null,null,112500]},{"cat":"보강제품","name":"POUR벤트 녹색(25ea)_확장형","pack":"지름66mm","spec":"set/개","px":[null,null,null,null,null,null,null,112500]},{"cat":"보강제품","name":"POUR컨플럭스 듀오","pack":"600ml","spec":"ea/개","px":[76200,86300,87000,88000,88900,93300,98400,103500]},{"cat":"보강제품","name":"POUR페이퍼 팬 벤트(도막용)","pack":"H230*W230","spec":"ea/개","px":[16700,31300,31500,31900,32300,33800,35700,37500]},{"cat":"보강제품","name":"POUR페이퍼 팬 벤트(시트용)","pack":"H230*W210","spec":"ea/개","px":[16800,31300,31500,31900,32300,33800,35700,37500]}];
+const SEED_BREAKS = [
+ {label:'1~9개',    frac:0},
+ {label:'10~50개',  frac:0.25},
+ {label:'51~80개',  frac:0.45},
+ {label:'81~150개', frac:0.65},
+ {label:'151~300개',frac:0.85},
+ {label:'301개 이상',frac:1.00},
+];
+function seedProducts(){
+  return SEED_PX.map((d,i)=>({
+    id:'p'+String(i+1).padStart(3,'0'),
+    cat:d.cat, name:d.name, pack:d.pack, spec:d.spec,
+    px:d.px.slice(),
+    cost:null,          // 매입가 (추후 순익 계산용)
+  }));
+}
+
+/* ══════════════ 유틸 ══════════════ */
+const won = n => (n==null?'':Number(n).toLocaleString('ko-KR'));
+const round10 = x => Math.round(x/10)*10;
+const parseNum = v => {
+  if(v==null) return null;
+  const s = String(v).replace(/[,\s원]/g,'').trim();
+  if(s==='') return null;
+  const n = Number(s);
+  return isFinite(n) ? n : null;
+};
+const nextId = () => 'p'+Date.now().toString(36);
+const sanitize = obj => JSON.parse(JSON.stringify(obj, (k,v)=> v===undefined ? null : v));
+
+async function hashPin(pin){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+/* 채널 정가대비 할인% */
+function chDisc(px,i){ const ja=px[CH_BASE]; if(ja==null||ja===0||px[i]==null) return null; return (ja-px[i])/ja*100; }
+function dcls(d){ if(d==null)return'd0'; if(d<0)return'over'; if(d<=2)return'd0'; if(d<=8)return'd1'; if(d<=15)return'd2'; if(d<25)return'd3'; return'd4'; }
+/* MOQ 구간 계산 (원본 로직 유지) */
+function moqCalc(chong,jasa,breaks){
+  if(chong==null || chong<=0 || chong>=jasa){
+    return {ok:false, why: (chong==null||chong<=0)?'총판가 없음':'자사몰<총판 역전'};
+  }
+  const cells = breaks.map(b=>{
+    let p = round10(jasa-(jasa-chong)*b.frac);
+    if(p<chong) p=chong;
+    return {price:p, disc:(jasa-p)/jasa*100};
+  });
+  const note = (chong < jasa*0.5) ? '총판 과소-확인' : '';
+  return {ok:true, cells, note};
+}
+function mcls(d){ if(d<=0)return'd0'; if(d<=8)return'd1'; if(d<=13)return'd2'; if(d<18.4)return'd3'; return'd4'; }
+
+/* ══════════════ Toast ══════════════ */
+function Toast({t,onDone}){
+  useEffect(()=>{ const id=setTimeout(onDone,2600); return ()=>clearTimeout(id); },[]);
+  return <div className={'toast '+(t.type||'info')}>{t.msg}</div>;
+}
+
+/* ══════════════ 편집 셀 ══════════════ */
+function EditCell({value, onCommit, cls, fmt}){
+  const [editing,setEditing]=useState(false);
+  const ref=useRef();
+  useEffect(()=>{ if(editing&&ref.current){ref.current.focus();ref.current.select();} },[editing]);
+  if(editing){
+    return <input ref={ref} className="einput" defaultValue={value==null?'':value}
+      onKeyDown={e=>{ if(e.key==='Enter'){onCommit(parseNum(e.target.value));setEditing(false);} if(e.key==='Escape')setEditing(false); }}
+      onBlur={e=>{onCommit(parseNum(e.target.value));setEditing(false);}} />;
+  }
+  return <div className={'ecell '+(cls||'')} onClick={()=>setEditing(true)} title="클릭하여 수정">
+    {value==null ? <span className="dash">–</span> : (fmt?fmt(value):won(value))}
+  </div>;
+}
+
+/* ══════════════ 신규 품목 모달 ══════════════ */
+function AddModal({onClose,onAdd}){
+  const [f,setF]=useState({cat:'수용성',name:'',pack:'',spec:'kg/통'});
+  const set=(k,v)=>setF(p=>({...p,[k]:v}));
+  return (
+    <div className="mask" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div className="modal">
+        <h2>신규 품목 추가</h2>
+        <div className="msub">기본 정보만 입력하면 됩니다. 채널별 단가·매입가는 표에서 셀 클릭으로 입력하세요.</div>
+        <div className="frow"><label>카테고리</label>
+          <select value={f.cat} onChange={e=>set('cat',e.target.value)}>
+            {CATS.filter(c=>c!=='전체').map(c=><option key={c}>{c}</option>)}
+          </select></div>
+        <div className="frow"><label>제품명</label>
+          <input value={f.name} onChange={e=>set('name',e.target.value)} placeholder="예: POUR 코트재Ⅰ(회색)"/></div>
+        <div className="grid2">
+          <div className="frow"><label>포장(규격)</label>
+            <input value={f.pack} onChange={e=>set('pack',e.target.value)} placeholder="예: 20"/></div>
+          <div className="frow"><label>단위</label>
+            <input value={f.spec} onChange={e=>set('spec',e.target.value)} placeholder="예: kg/통"/></div>
+        </div>
+        <div className="mact">
+          <button className="btn2" onClick={onClose}>취소</button>
+          <button className="btn2 or" onClick={()=>{
+            if(!f.name.trim()){alert('제품명을 입력하세요.');return;}
+            onAdd({id:nextId(),cat:f.cat,name:f.name.trim(),pack:f.pack.trim(),spec:f.spec.trim(),px:[null,null,null,null,null,null,null,null],cost:null});
+            onClose();
+          }}>추가</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════ 채널 단가표 탭 ══════════════ */
+function ChannelTab({products,setProducts,cat,q,toast}){
+  const rows = useMemo(()=>products.filter(r=>(cat==='전체'||r.cat===cat)&&(!q||r.name.toLowerCase().includes(q))),[products,cat,q]);
+  const setPx=(id,i,v)=>setProducts(ps=>ps.map(p=>{ if(p.id!==id)return p; const px=p.px.slice(); px[i]=v; return {...p,px}; }));
+  const setCost=(id,v)=>setProducts(ps=>ps.map(p=>p.id===id?{...p,cost:v}:p));
+  const del=(id,name)=>{ if(confirm('['+name+'] 품목을 삭제할까요?')) setProducts(ps=>ps.filter(p=>p.id!==id)); };
+  const exportCSV=()=>{
+    const head=['카테고리','제품명','포장','단위','매입가',...CHANNELS.map(c=>c.label+'('+c.cc+')')];
+    const lines=[head.join(',')];
+    rows.forEach(r=>{ lines.push([r.cat,'"'+r.name+'"',r.pack,r.spec,r.cost==null?'':r.cost,...r.px.map(v=>v==null?'':v)].join(',')); });
+    const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='POUR_채널단가표.csv'; a.click();
+    toast('CSV 내보내기 완료','ok');
+  };
+  return (<>
+    <div className="help">
+      <b>채널 단가표</b> — 셀을 <b>클릭</b>하면 바로 수정됩니다. <b>P2 총판유통</b>이 MOQ 하한, <b>P8 자사몰정가</b>가 소비자 기준가입니다.
+      배지는 자사몰 정가 대비 할인율(초과 시 <span style={{color:'var(--red)'}}>빨강</span>). 매입가를 넣으면 <b>순익</b> 탭에서 채널별 마진이 계산됩니다.
+    </div>
+    <div className="ctrls" style={{marginBottom:12}}>
+      <button className="btn2 or" onClick={()=>window.__openAdd&&window.__openAdd()}>＋ 품목 추가</button>
+      <button className="btn2" onClick={exportCSV}>CSV 내보내기</button>
+      <span className="count">{rows.length}개 품목</span>
+    </div>
+    <div className="tablecard"><div className="tscroll">
+      <table>
+        <thead><tr>
+          <th className="stick">제품</th>
+          <th style={{background:'#0a1642'}}>매입가<span className="cc" style={{color:'#9fb0c7'}}>원가</span></th>
+          {CHANNELS.map(c=><th key={c.key} className={c.base?'base':''}>{c.label}<span className="cc">{c.cc}</span></th>)}
+          <th style={{background:'#0a1642'}}></th>
+        </tr></thead>
+        <tbody>
+          {rows.map(r=>(
+            <tr key={r.id}>
+              <td className="stick"><span className="cat">{r.cat}</span><br/><span className="nm">{r.name}</span> <span className="sp">{r.pack}·{r.spec}</span></td>
+              <td style={{background:'#fafbff'}}><EditCell value={r.cost} onCommit={v=>setCost(r.id,v)} /></td>
+              {CHANNELS.map(c=>{
+                const v=r.px[c.i], d=chDisc(r.px,c.i);
+                return (<td key={c.key} className={c.base?'base':''}>
+                  <EditCell value={v} onCommit={nv=>setPx(r.id,c.i,nv)} />
+                  {v!=null && (c.base
+                    ? <span className="badge base-b">기준</span>
+                    : (d!=null && <span className={'badge '+dcls(d)}>{(d<0?'+':'−')+Math.abs(d).toFixed(1)+'%'}</span>))}
+                </td>);
+              })}
+              <td><button className="rowdel" title="삭제" onClick={()=>del(r.id,r.name)}>×</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div></div>
+  </>);
+}
+
+/* ══════════════ MOQ 수량구간 탭 ══════════════ */
+function MoqTab({products,setProducts,breaks,setBreaks,cat,q,toast}){
+  const rows = useMemo(()=>products.filter(r=>(cat==='전체'||r.cat===cat)&&(!q||r.name.toLowerCase().includes(q))),[products,cat,q]);
+  const setBrk=(i,k,v)=>setBreaks(bs=>bs.map((b,idx)=>idx===i?{...b,[k]:v}:b));
+  const addBrk=()=>setBreaks(bs=>[...bs,{label:'새 구간',frac:1.0}]);
+  const delBrk=i=>{ if(breaks.length<=1){alert('최소 1개 구간은 필요합니다.');return;} setBreaks(bs=>bs.filter((_,idx)=>idx!==i)); };
+  const shown = rows.filter(r=>moqCalc(r.px[CH_FLOOR],r.px[CH_BASE],breaks).ok).length;
+  return (<>
+    <div className="panel">
+      <h3>수량구간 · 할인계수 설정</h3>
+      <div className="psub">구간 명칭과 할인계수(자사몰 정가→총판 하한 격차 중 인하 비율)를 바꾸면 전 품목 단가가 즉시 재계산됩니다.
+        <b> 0% = 자사몰 정가, 100% = 총판유통(하한)</b>. 값은 하한을 절대 넘지 않습니다. 총판/자사몰 단가는 <b>채널 단가표</b> 탭에서 수정합니다.</div>
+      <div className="brks">
+        {breaks.map((b,i)=>(
+          <div className="brk" key={i}>
+            {breaks.length>1 && <span className="brk x" title="구간 삭제" onClick={()=>delBrk(i)}>×</span>}
+            <div className="lb"><input value={b.label} onChange={e=>setBrk(i,'label',e.target.value)}/></div>
+            <div className="row"><label>할인계수</label>
+              <input type="number" min="0" max="100" step="1" value={Math.round(b.frac*100)}
+                onChange={e=>setBrk(i,'frac',Math.max(0,Math.min(100,+e.target.value||0))/100)}/><span>%</span></div>
+          </div>
+        ))}
+      </div>
+      <div style={{marginTop:12}}><button className="btn2" onClick={addBrk}>＋ 구간 추가</button></div>
+    </div>
+    <div className="ctrls" style={{marginBottom:12}}>
+      <span className="count">표시 {rows.length}개 · 산출 {shown}개</span>
+    </div>
+    <div className="tablecard"><div className="tscroll">
+      <table>
+        <thead><tr>
+          <th className="stick">제품</th>
+          <th style={{background:'#0a1642'}}>포장</th>
+          <th style={{background:'#0a1642'}}>총판유통<br/><span className="cc" style={{color:'#9fb0c7'}}>하한·P2</span></th>
+          <th style={{background:'#0a1642'}}>자사몰정가<br/><span className="cc" style={{color:'#9fb0c7'}}>기준·P8</span></th>
+          {breaks.map((b,i)=><th key={i} className={i===breaks.length-1?'base':''}>{b.label}</th>)}
+          <th style={{background:'#0a1642'}}>비고</th>
+        </tr></thead>
+        <tbody>
+          {rows.map(r=>{
+            const chong=r.px[CH_FLOOR], jasa=r.px[CH_BASE];
+            const c=moqCalc(chong,jasa,breaks);
+            if(!c.ok){
+              return (<tr className="review" key={r.id}>
+                <td className="stick"><span className="cat">{r.cat}</span><br/><span className="nm">{r.name}</span> <span className="sp">{r.spec}</span></td>
+                <td className="sp">{r.pack}</td>
+                <td className="mono">{chong?won(chong):'-'}</td>
+                <td className="mono" style={{fontWeight:700,color:'var(--navy)'}}>{jasa?won(jasa):'-'}</td>
+                <td colSpan={breaks.length} className="rv">검토필요 — {c.why} · 하한 기준 없음</td>
+                <td><span className="badge ng">검토</span></td>
+              </tr>);
+            }
+            return (<tr key={r.id}>
+              <td className="stick"><span className="cat">{r.cat}</span><br/><span className="nm">{r.name}</span> <span className="sp">{r.spec}</span></td>
+              <td className="sp">{r.pack}</td>
+              <td className="mono" style={{fontWeight:800,color:'var(--or)'}}>{won(chong)}</td>
+              <td className="mono" style={{fontWeight:700,color:'var(--navy)'}}>{won(jasa)}</td>
+              {c.cells.map((cl,i)=>{ const last=i===breaks.length-1;
+                return (<td key={i} className={last?'last':''}>
+                  <div className="price">{won(cl.price)}</div>
+                  <span className={'badge '+mcls(cl.disc)}>{cl.disc<=0?'0%':'−'+cl.disc.toFixed(1)+'%'}</span>
+                </td>);
+              })}
+              <td>{c.note?<span className="badge ng">확인</span>:<span className="ok">OK</span>}</td>
+            </tr>);
+          })}
+        </tbody>
+      </table>
+    </div></div>
+  </>);
+}
+
+/* ══════════════ 순익 분석 탭 ══════════════ */
+const PROFIT_CH = [1,7,6]; // 총판(P2), 자사몰(P8), 쿠팡(P7)
+function ProfitTab({products,setProducts,cat,q}){
+  const rows = useMemo(()=>products.filter(r=>(cat==='전체'||r.cat===cat)&&(!q||r.name.toLowerCase().includes(q))),[products,cat,q]);
+  const setCost=(id,v)=>setProducts(ps=>ps.map(p=>p.id===id?{...p,cost:v}:p));
+  const margin=(price,cost)=>{ if(price==null||cost==null||price===0)return null; return {won:price-cost, pct:(price-cost)/price*100}; };
+  return (<>
+    <div className="help">
+      <b>순익 분석</b> — 품목별 <b>매입가(원가)</b>를 입력하면 채널별 <b>순이익액</b>과 <b>마진율</b>이 자동 계산됩니다.
+      매입가는 이 표에서도, 채널 단가표에서도 수정할 수 있습니다(같은 값). 마진이 <span style={{color:'var(--red)'}}>빨강</span>이면 원가 이하(손실)입니다.
+    </div>
+    <div className="tablecard"><div className="tscroll">
+      <table>
+        <thead><tr>
+          <th className="stick">제품</th>
+          <th style={{background:'#0a1642'}}>매입가<span className="cc" style={{color:'#9fb0c7'}}>원가</span></th>
+          {PROFIT_CH.map(ci=><th key={ci} className={ci===CH_BASE?'base':''}>{CHANNELS[ci].label}<span className="cc">{CHANNELS[ci].cc} 순익/마진</span></th>)}
+        </tr></thead>
+        <tbody>
+          {rows.map(r=>(
+            <tr key={r.id}>
+              <td className="stick"><span className="cat">{r.cat}</span><br/><span className="nm">{r.name}</span> <span className="sp">{r.pack}·{r.spec}</span></td>
+              <td style={{background:'#fafbff'}}><EditCell value={r.cost} onCommit={v=>setCost(r.id,v)} /></td>
+              {PROFIT_CH.map(ci=>{
+                const price=r.px[ci]; const m=margin(price,r.cost);
+                return (<td key={ci} className={ci===CH_BASE?'base':''}>
+                  {price==null ? <span className="dash">–</span>
+                   : r.cost==null ? <span className="sp">매입가 입력</span>
+                   : <><div className={'price '+(m.won<0?'neg':'pos')}>{(m.won<0?'−':'+')+won(Math.abs(m.won))}</div>
+                       <span className={'badge '+(m.pct<0?'over':(m.pct<15?'d2':'d1'))}>{m.pct.toFixed(1)+'%'}</span></>}
+                </td>);
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div></div>
+  </>);
+}
+
+/* ══════════════ App ══════════════ */
+function App(){
+  const [gate,setGate]=useState('checking'); // checking|need|setup|ok
+  const [pin,setPin]=useState(''); const [gerr,setGerr]=useState('');
+  const [products,setProducts]=useState([]);
+  const [breaks,setBreaks]=useState(SEED_BREAKS);
+  const [tab,setTab]=useState('channel');
+  const [cat,setCat]=useState('전체'); const [q,setQ]=useState('');
+  const [loaded,setLoaded]=useState(false);
+  const [dirty,setDirty]=useState(false);
+  const [saveState,setSaveState]=useState('idle'); // idle|saving|saved|error
+  const [showAdd,setShowAdd]=useState(false);
+  const [toast,setToast]=useState(null);
+  const skipDirty=useRef(true);
+  const notify=(msg,type)=>setToast({msg,type});
+
+  /* PIN 게이트 (index.html/admin.html 공유 키) */
+  useEffect(()=>{
+    if(sessionStorage.getItem('priceListAuthed')==='1'){ setGate('ok'); return; }
+    const stored=localStorage.getItem('pourAdminPin');
+    setGate(stored ? 'need' : 'setup');
+  },[]);
+  const submitPin=async()=>{
+    if(pin.length<4){ setGerr('4자리 이상 입력하세요.'); return; }
+    const h=await hashPin(pin);
+    if(gate==='setup'){ localStorage.setItem('pourAdminPin',h); }
+    else if(h!==localStorage.getItem('pourAdminPin')){ setGerr('PIN이 일치하지 않습니다.'); setPin(''); return; }
+    sessionStorage.setItem('priceListAuthed','1'); setGate('ok');
+  };
+
+  /* Firestore 로드 */
+  const load=async()=>{
+    try{
+      const snap=await DOC.get();
+      if(snap.exists){
+        const d=snap.data();
+        const ps=Array.isArray(d.products)?d.products:[];
+        console.log('[price-list] products '+ps.length+'건 · breaks '+((d.breaks||[]).length)+'개 로드');
+        skipDirty.current=true;
+        setProducts(ps.map(p=>({cost:null,...p, px:(p.px||[]).slice()})));
+        setBreaks(Array.isArray(d.breaks)&&d.breaks.length?d.breaks:SEED_BREAKS);
+        setDirty(false);
+      }else{
+        console.log('[price-list] 문서 없음 → 시드 데이터 로드 (미저장)');
+        skipDirty.current=true;
+        setProducts(seedProducts());
+        setBreaks(SEED_BREAKS);
+        setDirty(true);
+        notify('초기 데이터를 불러왔습니다. 저장 버튼을 눌러 Firestore에 반영하세요.','info');
+      }
+    }catch(e){
+      console.error('[price-list] 로드 실패:',e);
+      notify('로드 실패: '+e.message,'err');
+    }finally{ setLoaded(true); }
+  };
+  useEffect(()=>{ if(gate==='ok'&&!loaded) load(); },[gate]);
+
+  /* 변경 감지 */
+  useEffect(()=>{
+    if(!loaded) return;
+    if(skipDirty.current){ skipDirty.current=false; return; }
+    setDirty(true); setSaveState('idle');
+  },[products,breaks]);
+
+  /* 저장 */
+  const save=async()=>{
+    setSaveState('saving');
+    try{
+      await DOC.set(sanitize({
+        products, breaks,
+        updatedAt:new Date().toISOString(),
+        updatedBy:'price-list-dashboard',
+      }));
+      console.log('[price-list] 저장 완료 · products '+products.length+'건');
+      setDirty(false); setSaveState('saved'); notify('저장 완료','ok');
+    }catch(e){
+      console.error('[price-list] 저장 실패:',e);
+      setSaveState('error'); notify('저장 실패: '+e.message,'err');
+    }
+  };
+  // 실수 이탈 방지
+  useEffect(()=>{
+    const h=e=>{ if(dirty){ e.preventDefault(); e.returnValue=''; } };
+    window.addEventListener('beforeunload',h); return ()=>window.removeEventListener('beforeunload',h);
+  },[dirty]);
+  window.__openAdd=()=>setShowAdd(true);
+
+  /* 요약 수치 */
+  const stats=useMemo(()=>{
+    const withCost=products.filter(p=>p.cost!=null).length;
+    const moqOk=products.filter(p=>moqCalc(p.px[CH_FLOOR],p.px[CH_BASE],breaks).ok).length;
+    return {total:products.length,withCost,moqOk,review:products.length-moqOk};
+  },[products,breaks]);
+
+  if(gate==='checking') return null;
+  if(gate!=='ok'){
+    return (<div className="gate"><div className="gatebox">
+      <h1>{gate==='setup'?'관리 PIN 설정':'단가·공급망 관리'}</h1>
+      <p>{gate==='setup'?'처음 접속입니다. 사용할 PIN을 설정하세요. (index/admin과 공유)':'관리 PIN을 입력하세요.'}</p>
+      <input type="password" inputMode="numeric" value={pin} maxLength={12}
+        onChange={e=>{setPin(e.target.value);setGerr('');}}
+        onKeyDown={e=>{if(e.key==='Enter')submitPin();}} placeholder="••••" autoFocus/>
+      <button className="gbtn" onClick={submitPin}>{gate==='setup'?'설정하고 시작':'입장'}</button>
+      <div className="gerr">{gerr}</div>
+    </div></div>);
+  }
+
+  return (<>
+    <div className="top"><div className="top-in">
+      <div className="brand">POUR<span className="o">스토어</span> 단가·공급망</div>
+      <div className="sub">채널 단가표 · MOQ 수량구간 · 순익</div>
+      <div className="spacer"></div>
+      <div className={'savechip '+(saveState==='saving'?'':dirty?'dirty':saveState==='error'?'error':'saved')}>
+        <span className="dot"></span>{saveState==='saving'?'저장 중…':dirty?'미저장 변경':saveState==='error'?'저장 오류':'저장됨'}
+      </div>
+      <button className="btn" onClick={load} disabled={saveState==='saving'}>새로고침</button>
+      <button className="btn primary" onClick={save} disabled={saveState==='saving'||!dirty}>저장</button>
+    </div></div>
+
+    <div className="tabs">
+      <button className={'tab '+(tab==='channel'?'on':'')} onClick={()=>setTab('channel')}>채널 단가표<span className="n">{products.length}</span></button>
+      <button className={'tab '+(tab==='moq'?'on':'')} onClick={()=>setTab('moq')}>MOQ 수량구간<span className="n">{stats.moqOk}</span></button>
+      <button className={'tab '+(tab==='profit'?'on':'')} onClick={()=>setTab('profit')}>순익 분석<span className="n">{stats.withCost}</span></button>
+    </div>
+
+    <div className="wrap">
+      {!loaded ? <div className="mcard">데이터 불러오는 중…</div> : <>
+        <div className="cards">
+          <div className="mcard"><div className="k">총 품목</div><div className="v">{stats.total}<small>개</small></div></div>
+          <div className="mcard"><div className="k">MOQ 산출 가능</div><div className="v">{stats.moqOk}<small>개</small></div></div>
+          <div className="mcard"><div className="k">MOQ 검토필요</div><div className="v" style={{color:stats.review?'var(--red)':'var(--t1)'}}>{stats.review}<small>개</small></div></div>
+          <div className="mcard"><div className="k">매입가 입력</div><div className="v">{stats.withCost}<small>/ {stats.total}</small></div></div>
+        </div>
+
+        <div className="ctrls">
+          <input className="search" placeholder="제품 검색 (코트재, 시트, 파우더 …)" value={q}
+            onChange={e=>setQ(e.target.value.trim().toLowerCase())}/>
+          <div className="chips">
+            {CATS.map(c=><button key={c} className={'chip '+(c===cat?'on':'')} onClick={()=>setCat(c)}>{c}</button>)}
+          </div>
+        </div>
+
+        {tab==='channel' && <ChannelTab products={products} setProducts={setProducts} cat={cat} q={q} toast={notify}/>}
+        {tab==='moq' && <MoqTab products={products} setProducts={setProducts} breaks={breaks} setBreaks={setBreaks} cat={cat} q={q} toast={notify}/>}
+        {tab==='profit' && <ProfitTab products={products} setProducts={setProducts} cat={cat} q={q}/>}
+      </>}
+    </div>
+
+    {showAdd && <AddModal onClose={()=>setShowAdd(false)} onAdd={p=>{skipDirty.current=false;setProducts(ps=>[...ps,p]);}}/>}
+    {toast && <Toast t={toast} onDone={()=>setToast(null)}/>}
+  </>);
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

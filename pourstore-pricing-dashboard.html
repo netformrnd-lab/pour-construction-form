@@ -775,6 +775,84 @@ thead .sticky1,thead .sticky2{z-index:25}
     </div>
   </section>
 
+  <!-- ── Sheet: 마케팅 개요 ── -->
+  <section class="sheet" id="sh-mkt">
+    <div class="toolrow">
+      <span class="ttl">마케팅 개요</span>
+      <span class="hint">추적링크 클릭은 자동 집계 · 주문·매출·광고비는 [추적링크]에서 입력하면 ROAS·전환율이 자동 계산됩니다</span>
+    </div>
+    <div class="sheet-pad">
+      <div class="cards" id="mktCards"></div>
+      <div class="cols2">
+        <div class="panel"><h3>채널(매체)별 성과 <span class="tag">유입·전환·ROAS</span></h3><div class="bd" id="mktByChannel"></div></div>
+        <div class="panel"><h3>콘텐츠 유형별 유입 <span class="tag">광고·블로그·카페 등</span></h3><div class="bd" id="mktByContent"></div></div>
+      </div>
+      <div class="panel"><h3>상위 링크 <span class="tag">클릭·전환 기준</span></h3><div class="bd" id="mktTop"></div></div>
+    </div>
+  </section>
+
+  <!-- ── Sheet: 캠페인·추적링크 ── -->
+  <section class="sheet" id="sh-mktlink">
+    <div class="toolrow">
+      <span class="ttl">캠페인 · 추적링크</span>
+      <input type="text" id="mlq" placeholder="라벨·캠페인·URL 검색…">
+      <select id="mlChan"><option value="">전체 매체</option></select>
+      <select id="mlType"><option value="">전체 유형</option></select>
+      <span class="hint">링크를 만들어 광고·블로그·카페에 붙이면 클릭이 자동 집계됩니다 · 노출·주문·매출·광고비는 셀 더블클릭 입력</span>
+    </div>
+    <div class="sheet-pad">
+      <div class="panel">
+        <h3>새 추적링크 만들기 <span class="tag">UTM 자동 + 단축링크</span></h3>
+        <div class="bd">
+          <div class="formgrid" style="grid-template-columns:1.4fr 1fr 130px 120px 1fr 1fr auto;align-items:end">
+            <div class="fld"><label>목적지 URL (상품·기획전 페이지)</label><input type="text" id="mlUrl" placeholder="https://www.pourstore.net/product/123"></div>
+            <div class="fld"><label>상품 (선택)</label><select id="mlProd"><option value="">— 선택 안 함</option></select></div>
+            <div class="fld"><label>매체(채널)</label><input type="text" id="mlChanIn" list="mlChanList" placeholder="네이버/메타/블로그…"><datalist id="mlChanList"></datalist></div>
+            <div class="fld"><label>유형</label><select id="mlTypeIn"></select></div>
+            <div class="fld"><label>캠페인</label><input type="text" id="mlCampaign" placeholder="예: 2026-06_옥상방수"></div>
+            <div class="fld"><label>라벨(게시글/소재명)</label><input type="text" id="mlLabel" placeholder="예: 네이버블로그_옥상누수후기"></div>
+            <button class="tbtn primary" id="mlAdd" style="height:34px">＋ 링크 생성</button>
+          </div>
+          <p class="footnote">· 생성하면 <b>단축추적링크</b>(클릭 자동집계)와 <b>UTM 파라미터</b>가 붙은 목적지 링크가 만들어집니다. "복사"로 광고/게시글에 붙여넣으세요.<br>· 유형을 <b>블로그·카페</b>로 두면 게시글별 유입을, <b>광고</b>로 두면 매체 광고 유입을 각각 집계합니다.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>추적링크 목록 <span class="tag">클릭=자동 · 전환=수기</span></h3>
+        <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="mlTable" style="width:100%"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Sheet: 프로모션 성과 ── -->
+  <section class="sheet" id="sh-mktpromo">
+    <div class="toolrow">
+      <span class="ttl">프로모션 성과</span>
+      <span class="hint">프로모션 기간의 매출을 평시(기준)와 비교해 증분매출·ROAS를 봅니다 · 셀 더블클릭 수정</span>
+    </div>
+    <div class="sheet-pad">
+      <div class="panel">
+        <h3>프로모션 등록 <span class="tag">기간·할인·매출</span></h3>
+        <div class="bd">
+          <div class="formgrid" style="grid-template-columns:1.3fr 120px 120px 1fr 130px 130px 120px auto;align-items:end">
+            <div class="fld"><label>프로모션명</label><input type="text" id="pmName" placeholder="예: 6월 옥상방수 기획전"></div>
+            <div class="fld"><label>시작일</label><input type="date" id="pmStart"></div>
+            <div class="fld"><label>종료일</label><input type="date" id="pmEnd"></div>
+            <div class="fld"><label>대상 상품</label><input type="text" id="pmProducts" placeholder="예: 코트재, 하이퍼티"></div>
+            <div class="fld"><label>평시 매출/일 (기준)</label><input type="number" id="pmBaseline" placeholder="원"></div>
+            <div class="fld"><label>프로모션 총매출</label><input type="number" id="pmActual" placeholder="원"></div>
+            <div class="fld"><label>광고비</label><input type="number" id="pmSpend" placeholder="원"></div>
+            <button class="tbtn primary" id="pmAdd" style="height:34px">＋ 추가</button>
+          </div>
+          <p class="footnote">· <b>증분매출</b> = 프로모션 총매출 − (평시 매출/일 × 기간일수). <b>증분 ROAS</b> = 증분매출 ÷ 광고비. 프로모션이 실제로 매출을 얼마나 끌어올렸는지 봅니다.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>프로모션 목록·성과</h3>
+        <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="pmTable" style="width:100%"></table></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ── Sheet: 계정 관리 (마스터 계정) ── -->
   <section class="sheet" id="sh-access">
     <div class="toolrow">
@@ -797,6 +875,9 @@ thead .sticky1,thead .sticky2{z-index:25}
   <button class="stab" data-sh="sh-moq"><span class="dot"></span>MOQ 대량판매</button>
   <button class="stab" data-sh="sh-pl"><span class="dot"></span>손익·공헌이익</button>
   <button class="stab" data-sh="sh-fixed"><span class="dot"></span>고정지출 관리</button>
+  <button class="stab" data-sh="sh-mkt"><span class="dot"></span>마케팅 개요</button>
+  <button class="stab" data-sh="sh-mktlink"><span class="dot"></span>추적링크</button>
+  <button class="stab" data-sh="sh-mktpromo"><span class="dot"></span>프로모션 성과</button>
   <button class="stab" data-sh="sh-access"><span class="dot"></span>계정 관리</button>
 </div>
 
@@ -2308,12 +2389,215 @@ document.addEventListener('click',e=>{
   if(fd){ const id=+fd.dataset.fxdel, x=FX.find(v=>v.id==id); if(confirm(`"${x?x.name:''}" 항목을 삭제할까요?`)){ FX=FX.filter(v=>v.id!=id); renderFixed(); } return; }
 });
 
+/* ══════════ 마케팅 성과 ══════════ */
+let MKT_LINKS=[], MKT_PERF={}, PROMOS=[];
+const MKT_TYPES=['광고','블로그','카페','인스타','유튜브','기타'];
+const MKT_CHAN_SUGGEST=['네이버','메타(인스타/페북)','카카오','구글','네이버블로그','네이버카페','유튜브','문자','기타'];
+async function fetchMkt(){
+  try{
+    const [l,p,pr]=await Promise.all([
+      db.collection('mkt-links').get(), db.collection('mkt-perf').get(), db.collection('promotions').get()
+    ]);
+    MKT_LINKS=l.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.deleted);
+    MKT_LINKS.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+    MKT_PERF={}; p.docs.forEach(d=>{ MKT_PERF[d.id]=d.data(); });
+    PROMOS=pr.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.deleted);
+    PROMOS.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+    console.log(`[mkt] links:${MKT_LINKS.length} perf:${Object.keys(MKT_PERF).length} promos:${PROMOS.length}`);
+  }catch(e){ console.warn('[mkt] 로드 실패:', e.code||e.message||e); }
+}
+const trackUrl=id=>location.origin+'/g?l='+id;
+function genLinkId(){ const a=new Uint8Array(7); crypto.getRandomValues(a); return [...a].map(b=>(b%36).toString(36)).join(''); }
+function utmMedium(type){ return type==='광고'?'cpc':(type==='인스타'||type==='유튜브')?'social':(type==='블로그'||type==='카페')?'post':'referral'; }
+function buildTarget(base,u){
+  try{ const url=new URL(base);
+    if(u.source)url.searchParams.set('utm_source',u.source);
+    if(u.medium)url.searchParams.set('utm_medium',u.medium);
+    if(u.campaign)url.searchParams.set('utm_campaign',u.campaign);
+    if(u.content)url.searchParams.set('utm_content',u.content);
+    return url.toString();
+  }catch(e){ return base; }
+}
+function linkMetrics(l){
+  const pf=MKT_PERF[l.id]||{};
+  const clicks=+l.clicks||0, impr=+pf.impressions||0, orders=+pf.orders||0, revenue=+pf.revenue||0, spend=+pf.spend||0;
+  const cvr=clicks?orders/clicks:null, roas=spend?revenue/spend:null, cpa=orders?spend/orders:null, cpc=clicks?spend/clicks:null, ctr=impr?clicks/impr:null;
+  const prod=l.product?P.find(p=>p.name===l.product):null;
+  const mr=prod?mrate(retailOf(prod),prod.cost):null;
+  const beRoas=(mr&&mr>0)?1/mr:null;      // 손익분기 ROAS = 1 / 마진율
+  return {clicks,impr,orders,revenue,spend,cvr,roas,cpa,cpc,ctr,beRoas,mr};
+}
+async function mktCreateLink(){
+  const base=($('#mlUrl').value||'').trim();
+  if(!/^https?:\/\//.test(base)){ alert('목적지 URL을 http(s):// 로 입력하세요.'); return; }
+  const product=$('#mlProd').value||'', channel=($('#mlChanIn').value||'').trim(), type=$('#mlTypeIn').value||'기타';
+  const campaign=($('#mlCampaign').value||'').trim(), label=($('#mlLabel').value||'').trim()||((channel||'매체')+' '+type);
+  const utm={source:channel||'direct',medium:utmMedium(type),campaign,content:label};
+  const url=buildTarget(base,utm), id=genLinkId();
+  try{
+    await db.collection('mkt-links').doc(id).set({
+      url,label,product,channel,contentType:type,campaign,
+      utmSource:utm.source,utmMedium:utm.medium,utmCampaign:utm.campaign,utmContent:utm.content,
+      clicks:0,createdAt:new Date().toISOString(),createdBy:(curUser&&curUser.email)||''
+    });
+    ['#mlUrl','#mlCampaign','#mlLabel'].forEach(s=>$(s).value='');
+    await fetchMkt(); refreshAll();
+    try{ await navigator.clipboard.writeText(trackUrl(id)); }catch(e){}
+    $('#mlAdd').textContent='생성·복사됨 ✓'; setTimeout(()=>$('#mlAdd').textContent='＋ 링크 생성',1500);
+  }catch(e){ alert('링크 생성 실패: '+(e.code||e.message||e)); }
+}
+async function mktSetPerf(id,patch){
+  MKT_PERF[id]=Object.assign({},MKT_PERF[id],patch);
+  try{ await db.collection('mkt-perf').doc(id).set({...patch,updatedAt:new Date().toISOString()},{merge:true}); }
+  catch(e){ alert('저장 실패: '+(e.code||e.message||e)); }
+}
+async function mktDeleteLink(id){
+  const l=MKT_LINKS.find(x=>x.id===id);
+  if(!confirm(`링크 "${(l&&l.label)||id}" 를 삭제할까요? (수기 실측도 함께 삭제)`))return;
+  try{ await db.collection('mkt-links').doc(id).delete(); await db.collection('mkt-perf').doc(id).delete().catch(()=>{}); await fetchMkt(); refreshAll(); }
+  catch(e){ alert('삭제 실패: '+(e.code||e.message||e)); }
+}
+function promoDays(p){ if(!p.startDate||!p.endDate)return 1; const d=Math.round((new Date(p.endDate)-new Date(p.startDate))/86400000)+1; return d>0?d:1; }
+function promoMetrics(p){
+  const days=promoDays(p), baseline=(+p.baselineRevenue||0)*days, actual=+p.actualRevenue||0, spend=+p.spend||0;
+  const incr=actual-baseline, roas=spend?actual/spend:null, incrRoas=spend?incr/spend:null;
+  return {days,baseline,actual,spend,incr,roas,incrRoas};
+}
+async function promoAdd(){
+  const name=($('#pmName').value||'').trim(); if(!name){ alert('프로모션명을 입력하세요.'); return; }
+  try{
+    await db.collection('promotions').add({
+      name, startDate:$('#pmStart').value||'', endDate:$('#pmEnd').value||'', products:($('#pmProducts').value||'').trim(),
+      baselineRevenue:+$('#pmBaseline').value||0, actualRevenue:+$('#pmActual').value||0, spend:+$('#pmSpend').value||0,
+      createdAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||''
+    });
+    ['#pmName','#pmStart','#pmEnd','#pmProducts','#pmBaseline','#pmActual','#pmSpend'].forEach(s=>$(s).value='');
+    await fetchMkt(); refreshAll();
+  }catch(e){ alert('추가 실패: '+(e.code||e.message||e)); }
+}
+async function promoSet(id,patch){ try{ await db.collection('promotions').doc(id).set({...patch,updatedAt:new Date().toISOString()},{merge:true}); }catch(e){ alert('저장 실패: '+(e.code||e.message||e)); } }
+async function promoDel(id){ const p=PROMOS.find(x=>x.id===id); if(!confirm(`"${(p&&p.name)||''}" 삭제할까요?`))return; try{ await db.collection('promotions').doc(id).delete(); await fetchMkt(); refreshAll(); }catch(e){ alert('삭제 실패: '+(e.code||e.message||e)); } }
+function fillMktSelects(){
+  const ps=$('#mlProd'); if(ps){ const cur=ps.value; ps.innerHTML='<option value="">— 선택 안 함</option>'+P.filter(p=>p.cat!=='패키지').map(p=>`<option value="${esc(p.name)}">${esc(p.name)}</option>`).join(''); ps.value=cur; }
+  const ts=$('#mlTypeIn'); if(ts&&!ts.options.length) ts.innerHTML=MKT_TYPES.map(t=>`<option>${t}</option>`).join('');
+  const cl=$('#mlChanList'); if(cl&&!cl.options.length) cl.innerHTML=MKT_CHAN_SUGGEST.map(c=>`<option value="${esc(c)}">`).join('');
+  const fc=$('#mlChan'); if(fc){ const cur=fc.value; const chans=[...new Set(MKT_LINKS.map(l=>l.channel).filter(Boolean))]; fc.innerHTML='<option value="">전체 매체</option>'+chans.map(c=>`<option>${esc(c)}</option>`).join(''); fc.value=cur; }
+  const ftt=$('#mlType'); if(ftt&&ftt.options.length<=1) ftt.innerHTML='<option value="">전체 유형</option>'+MKT_TYPES.map(t=>`<option>${t}</option>`).join('');
+}
+const roasPct=r=>r==null?'—':Math.round(r*100)+'%';
+function renderMktLinks(){
+  const t=$('#mlTable'); if(!t)return;
+  const q=($('#mlq').value||'').toLowerCase(), fc=$('#mlChan').value, ft=$('#mlType').value;
+  const rows=MKT_LINKS.filter(l=>{
+    if(fc&&l.channel!==fc)return false; if(ft&&l.contentType!==ft)return false;
+    if(q&&!((l.label||'').toLowerCase().includes(q)||(l.campaign||'').toLowerCase().includes(q)||(l.url||'').toLowerCase().includes(q)))return false;
+    return true;
+  });
+  let h=`<thead><tr>
+    <th style="min-width:150px">라벨 / 캠페인</th><th>매체</th><th>유형</th><th style="min-width:110px">상품</th>
+    <th class="num">클릭</th><th class="num">노출</th><th class="num">주문</th><th class="num">매출</th><th class="num">광고비</th>
+    <th class="num">전환율</th><th class="num">ROAS</th><th class="num">손익분기</th><th class="num">CPA</th><th>링크</th><th></th>
+  </tr></thead><tbody>`;
+  if(!rows.length) h+=`<tr><td class="dim" colspan="15" style="padding:12px">추적링크가 없습니다. 위에서 만들어 광고·게시글에 붙여넣으세요.</td></tr>`;
+  rows.forEach(l=>{ const m=linkMetrics(l);
+    const roasCls=(m.roas!=null&&m.beRoas!=null)?(m.roas>=m.beRoas?'':'neg'):'';
+    h+=`<tr>
+      <td class="name">${esc(l.label||'—')}<div class="dim" style="font-size:10.5px">${esc(l.campaign||'')}</div></td>
+      <td class="dim">${esc(l.channel||'—')}</td><td class="dim">${esc(l.contentType||'—')}</td><td class="dim">${esc(l.product||'—')}</td>
+      <td class="num" style="font-weight:700">${won(m.clicks)}</td>
+      <td class="num editable" data-mlid="${l.id}" data-mlf="impressions">${won(m.impr)}</td>
+      <td class="num editable" data-mlid="${l.id}" data-mlf="orders">${won(m.orders)}</td>
+      <td class="num editable" data-mlid="${l.id}" data-mlf="revenue">${won(m.revenue)}</td>
+      <td class="num editable cost" data-mlid="${l.id}" data-mlf="spend">${won(m.spend)}</td>
+      <td class="num">${m.cvr==null?'—':pct(m.cvr)}</td>
+      <td class="num ${roasCls}" style="font-weight:600">${roasPct(m.roas)}</td>
+      <td class="num dim" title="이 값 이상이면 이익">${roasPct(m.beRoas)}</td>
+      <td class="num">${m.cpa==null?'—':won(m.cpa)}</td>
+      <td><button class="tbtn" data-mlcopy="${l.id}" style="padding:2px 8px;font-size:11px">복사</button></td>
+      <td style="text-align:center"><button class="tbtn" data-mldel="${l.id}" style="color:var(--red);padding:2px 8px;font-size:11px">삭제</button></td>
+    </tr>`;
+  });
+  t.innerHTML=h+'</tbody>';
+}
+function renderMktOverview(){
+  let C=0,O=0,R=0,S=0;
+  MKT_LINKS.forEach(l=>{ const m=linkMetrics(l); C+=m.clicks;O+=m.orders;R+=m.revenue;S+=m.spend; });
+  const cvr=C?O/C:null, roas=S?R/S:null, cpa=O?S/O:null;
+  if($('#mktCards'))$('#mktCards').innerHTML=[
+    {h:'총 클릭(유입)',v:won(C),f:MKT_LINKS.length+'개 추적링크'},
+    {h:'총 주문',v:won(O),f:'전환율 '+(cvr==null?'—':pct(cvr))},
+    {h:'총 매출',v:wonU(R),f:'광고비 '+wonU(S)},
+    {h:'ROAS',v:roasPct(roas),f:'CPA '+(cpa==null?'—':wonU(cpa))}
+  ].map(c=>`<div class="card"><h4>${c.h}</h4><div class="big">${c.v}</div><div class="foot">${c.f}</div></div>`).join('');
+  const byCh={}; MKT_LINKS.forEach(l=>{ const k=l.channel||'(미지정)', m=linkMetrics(l); (byCh[k]=byCh[k]||{c:0,o:0,r:0,s:0}); byCh[k].c+=m.clicks;byCh[k].o+=m.orders;byCh[k].r+=m.revenue;byCh[k].s+=m.spend; });
+  const chArr=Object.entries(byCh).map(([k,v])=>({k,...v})).sort((a,b)=>b.c-a.c), maxC=Math.max(1,...chArr.map(x=>x.c));
+  if($('#mktByChannel'))$('#mktByChannel').innerHTML=chArr.length?chArr.map(x=>{ const ro=x.s?x.r/x.s:null, cv=x.c?x.o/x.c:null;
+    return `<div class="bar-row"><span>${esc(x.k)}</span><div class="bar-track"><div class="bar-fill" style="width:${x.c/maxC*100}%"></div></div><span class="bar-val">클릭 <b>${won(x.c)}</b> · 전환 ${cv==null?'—':pct(cv)} · ROAS ${roasPct(ro)}</span></div>`;
+  }).join(''):'<p class="footnote">데이터가 없습니다.</p>';
+  const byT={}; MKT_LINKS.forEach(l=>{ const k=l.contentType||'기타', m=linkMetrics(l); (byT[k]=byT[k]||{c:0,o:0}); byT[k].c+=m.clicks;byT[k].o+=m.orders; });
+  const tArr=Object.entries(byT).map(([k,v])=>({k,...v})).sort((a,b)=>b.c-a.c), maxT=Math.max(1,...tArr.map(x=>x.c));
+  if($('#mktByContent'))$('#mktByContent').innerHTML=tArr.length?tArr.map(x=>`<div class="bar-row"><span>${esc(x.k)}</span><div class="bar-track"><div class="bar-fill b2" style="width:${x.c/maxT*100}%"></div></div><span class="bar-val">클릭 <b>${won(x.c)}</b> · 주문 ${won(x.o)}</span></div>`).join(''):'<p class="footnote">데이터가 없습니다.</p>';
+  const top=MKT_LINKS.map(l=>({l,m:linkMetrics(l)})).sort((a,b)=>b.m.clicks-a.m.clicks).slice(0,10);
+  if($('#mktTop'))$('#mktTop').innerHTML=top.length?`<table class="grid" style="width:100%"><thead><tr><th>라벨</th><th>매체</th><th>유형</th><th class="num">클릭</th><th class="num">주문</th><th class="num">전환율</th><th class="num">ROAS</th></tr></thead><tbody>`+
+    top.map(({l,m})=>`<tr><td class="name">${esc(l.label||'—')}</td><td class="dim">${esc(l.channel||'—')}</td><td class="dim">${esc(l.contentType||'—')}</td><td class="num">${won(m.clicks)}</td><td class="num">${won(m.orders)}</td><td class="num">${m.cvr==null?'—':pct(m.cvr)}</td><td class="num">${roasPct(m.roas)}</td></tr>`).join('')+'</tbody></table>':'<p class="footnote">데이터가 없습니다.</p>';
+}
+function renderPromos(){
+  const t=$('#pmTable'); if(!t)return;
+  let h=`<thead><tr><th style="min-width:150px">프로모션</th><th>기간</th><th>대상</th><th class="num">평시/일</th><th class="num">총매출</th><th class="num">광고비</th><th class="num">증분매출</th><th class="num">ROAS</th><th class="num">증분ROAS</th><th></th></tr></thead><tbody>`;
+  if(!PROMOS.length) h+=`<tr><td class="dim" colspan="10" style="padding:12px">등록된 프로모션이 없습니다.</td></tr>`;
+  PROMOS.forEach(p=>{ const m=promoMetrics(p);
+    h+=`<tr>
+      <td class="name">${esc(p.name)}</td>
+      <td class="dim">${esc(p.startDate||'')}~${esc(p.endDate||'')} (${m.days}일)</td>
+      <td class="dim">${esc(p.products||'—')}</td>
+      <td class="num editable" data-pmid="${p.id}" data-pmf="baselineRevenue">${won(+p.baselineRevenue||0)}</td>
+      <td class="num editable" data-pmid="${p.id}" data-pmf="actualRevenue">${won(+p.actualRevenue||0)}</td>
+      <td class="num editable cost" data-pmid="${p.id}" data-pmf="spend">${won(+p.spend||0)}</td>
+      <td class="num ${m.incr<0?'neg':''}" style="font-weight:600">${won(m.incr)}</td>
+      <td class="num">${roasPct(m.roas)}</td>
+      <td class="num" style="font-weight:600">${roasPct(m.incrRoas)}</td>
+      <td style="text-align:center"><button class="tbtn" data-pmdel="${p.id}" style="color:var(--red);padding:2px 8px;font-size:11px">삭제</button></td>
+    </tr>`;
+  });
+  t.innerHTML=h+'</tbody>';
+}
+function renderMktAll(){ fillMktSelects(); renderMktOverview(); renderMktLinks(); renderPromos(); }
+/* 마케팅 이벤트 */
+$('#mlAdd')&&$('#mlAdd').addEventListener('click',mktCreateLink);
+$('#pmAdd')&&$('#pmAdd').addEventListener('click',promoAdd);
+['#mlq','#mlChan','#mlType'].forEach(s=>{ const el=$(s); if(el)el.addEventListener('input',renderMktLinks); });
+document.addEventListener('click',e=>{
+  const cp=e.target.closest('[data-mlcopy]');
+  if(cp){ const u=trackUrl(cp.dataset.mlcopy); (navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>{cp.textContent='복사됨';setTimeout(()=>cp.textContent='복사',1200);}).catch(()=>prompt('이 링크를 복사하세요:',u)); return; }
+  const dl=e.target.closest('[data-mldel]'); if(dl){ mktDeleteLink(dl.dataset.mldel); return; }
+  const pd=e.target.closest('[data-pmdel]'); if(pd){ promoDel(pd.dataset.pmdel); return; }
+});
+document.addEventListener('dblclick',e=>{
+  const td=e.target.closest('#mlTable td.editable'); if(!td||td.querySelector('input'))return;
+  const id=td.dataset.mlid, f=td.dataset.mlf, cur=(MKT_PERF[id]&&MKT_PERF[id][f])||0;
+  td.innerHTML=`<input class="cellinput" type="number" value="${cur||''}">`;
+  const inp=td.querySelector('input'); inp.focus(); inp.select();
+  const commit=async()=>{ await mktSetPerf(id,{[f]:inp.value===''?0:+inp.value}); renderMktLinks(); renderMktOverview(); };
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')commit(); if(ev.key==='Escape')renderMktLinks(); });
+  inp.addEventListener('blur',commit);
+});
+document.addEventListener('dblclick',e=>{
+  const td=e.target.closest('#pmTable td.editable'); if(!td||td.querySelector('input'))return;
+  const id=td.dataset.pmid, f=td.dataset.pmf, p=PROMOS.find(x=>x.id===id); if(!p)return;
+  td.innerHTML=`<input class="cellinput" type="number" value="${(+p[f]||0)||''}">`;
+  const inp=td.querySelector('input'); inp.focus(); inp.select();
+  const commit=async()=>{ const v=inp.value===''?0:+inp.value; p[f]=v; await promoSet(id,{[f]:v}); renderPromos(); };
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')commit(); if(ev.key==='Escape')renderPromos(); });
+  inp.addEventListener('blur',commit);
+});
+
 /* ══════════ 전체 갱신 ══════════ */
 function refreshAll(){
   renderRibbon(); renderDash(); renderGrid(); renderChMan(); renderSup(); renderMatch();
   renderChannel(); renderMoq(); ensurePl(); renderPlInput();
   fillPlanChSel(); sanitizePlan(); renderPlanGrid(); renderAgg(); renderPl();
   fillRegDatalists(); renderMfg(); renderAddProd(); renderAddItem(); renderFixed();
+  renderMktAll();
   applySecGating();
 }
 function syncStickyTop(){
@@ -2364,6 +2648,7 @@ async function boot(){
   try{
     const [channels, products, config]=await Promise.all([fetchChannels(),fetchProducts(),fetchConfig()]);
     applyLoaded(channels, products, config);
+    await fetchMkt();                            // 마케팅 성과 데이터(허용목록 계정만)
     const empty=!channels.length||!products.length;
     if(empty) console.warn('[boot] 로드된 데이터가 비어있습니다 — 시딩 여부를 확인하세요.');
     const dn=$('#dataNotice'); if(dn) dn.style.display=empty?'flex':'none';

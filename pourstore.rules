@@ -95,6 +95,25 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ── 마케팅 성과 ──────────────────────────────────────────────
+    // 추적 링크: 리다이렉트용으로 read 공개. 생성/삭제·태그편집은 허용목록 계정만.
+    //  공개 사용자는 clicks/lastClickAt "1 증가"만 가능(재무값 없음 → 노출돼도 안전).
+    match /mkt-links/{id} {
+      allow read: if true;
+      allow create, delete: if isAllowedReader();
+      allow update: if isAllowedReader()
+        || ( request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicks','lastClickAt'])
+             && request.resource.data.clicks == resource.data.clicks + 1 );
+    }
+    // 링크별 실측(주문·매출·광고비 등) — 허용목록 계정만(비공개)
+    match /mkt-perf/{id} {
+      allow read, write: if isAllowedReader();
+    }
+    // 프로모션 성과 — 허용목록 계정만
+    match /promotions/{id} {
+      allow read, write: if isAllowedReader();
+    }
+
     // 그 외 모든 경로(다른 config 문서 포함) 금지
     match /{document=**} {
       allow read, write: if false;

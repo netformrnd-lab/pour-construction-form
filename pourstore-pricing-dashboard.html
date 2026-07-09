@@ -1207,6 +1207,7 @@ function renderAccess(){
     ${allowPanel}
     <p id="accMsg" style="font-size:12px;margin-top:6px;min-height:16px"></p>
     <p class="footnote">· 이 접근 제어는 <b>서버(Firestore 보안규칙)</b>에서 강제됩니다. 클라이언트 HTML/JS 를 수정하거나 개발자도구로 화면을 열어도, 허용목록·마스터 계정이 아니면 데이터를 서버가 내려주지 않습니다.
+    <br>· 권한은 <b>계정 기준</b>입니다(장소·IP·기기 제한 아님) — 허용된 계정으로 로그인하면 <b>어느 PC·어느 장소에서든</b> 동일하게 데이터가 보입니다. 데이터가 안 보이면 위 <b>이메일 인증 → 마스터 설정/허용목록</b> 상태를 확인하세요.
     <br>· <b>콘솔(console.firebase.google.com) 접근은 이 규칙과 별개</b>입니다 — 프로젝트 설정 → 사용자 및 권한에서 콘솔 접근 인원을 최소화하세요.</p>`;
   // 핸들러 바인딩
   const on=(id,fn)=>{const el=$('#'+id); if(el)el.addEventListener('click',fn);};
@@ -1217,11 +1218,23 @@ function renderAccess(){
   on('btnRefreshVerify',async()=>{ accMsg('새로고침 중…',true); await refreshVerifyState(); refreshAll(); accMsg(curUser&&curUser.emailVerified?'이메일 인증이 확인되었습니다.':'아직 미인증 상태입니다. 메일의 링크를 클릭했는지 확인하세요.', !!(curUser&&curUser.emailVerified)); });
   on('btnSetMaster',async()=>{
     if(!confirm(`이 계정(${email})을 마스터로 설정할까요?\n설정 후에는 마스터 본인만 변경할 수 있습니다.`))return;
+    // 이메일 인증 직후에는 ID토큰의 email_verified 클레임이 아직 갱신 전일 수 있어
+    // 서버 규칙이 거부(permission-denied)한다. 쓰기 전에 토큰을 강제 갱신해 자가 치유한다.
+    accMsg('인증 상태 확인 중…',true);
+    try{ await curUser.reload(); await curUser.getIdToken(true); curUser=auth.currentUser; }catch(e){ console.warn('토큰 갱신 실패',e.code||e); }
+    if(!(curUser&&curUser.emailVerified)){
+      renderAccess();
+      accMsg('이메일 인증이 아직 완료되지 않았습니다. 위 "인증메일 보내기" 링크를 클릭한 뒤 다시 시도하세요.');
+      return;
+    }
     try{
       await db.collection('config').doc('access').set({masterEmail:curUser.email,allowedEmails:[curUser.email],createdAt:new Date().toISOString(),createdBy:curUser.email});
       accMsg('마스터 계정으로 설정되었습니다. 데이터를 불러옵니다…',true);
       setTimeout(()=>location.reload(),700);   // 부트스트랩 후 정상 로드
-    }catch(e){ accMsg('설정 실패: '+(e.code||e.message||e)+' (지정 마스터 계정/이메일 인증 여부 확인)'); }
+    }catch(e){
+      const code=e.code||e.message||e;
+      accMsg('설정 실패: '+code+(code==='permission-denied'?' — 지정 마스터 계정(songhee44@netformrnd.com)이며 이메일 인증을 마쳤는지 확인하세요.':''));
+    }
   });
   on('btnSaveOtpUrl',async()=>{
     const url=($('#otpUrl').value||'').trim().replace(/\/$/,'');

@@ -4858,7 +4858,7 @@ const BANNER_SLOTS=[
 ];
 function BannersPage({showToast}){
   const { audit } = useActiveStaffContext();
-  const normSlot=(v)=>{ if(Array.isArray(v)) return v.map(x=>({image:x.image||'',link:x.link||''})); if(v && (v.image||v.link)) return [{image:v.image||'',link:v.link||''}]; return []; };
+  const normSlot=(v)=>{ if(Array.isArray(v)) return v.map(x=>({image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||''})); if(v && (v.image||v.link)) return [{image:v.image||'',imageMobile:v.imageMobile||'',link:v.link||''}]; return []; };
   const [data,setData]=useState({hero:[], side:[], intervalSec:5});
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
@@ -4879,17 +4879,17 @@ function BannersPage({showToast}){
   const patchBanner=(slot,i,part)=>setSlot(slot,data[slot].map((b,idx)=>idx===i?{...b,...part}:b));
   const moveBanner=(slot,i,dir)=>{ const arr=[...data[slot]]; const j=i+dir; if(j<0||j>=arr.length)return; const t=arr[i];arr[i]=arr[j];arr[j]=t; setSlot(slot,arr); };
 
-  const upload=async(slot,i,file)=>{
+  const upload=async(slot,i,field,file)=>{
     if(!file)return;
     if(!file.type.startsWith('image/')){ showToast('이미지(png/jpg)만 가능','error'); return; }
     if(file.size > 5*1024*1024){ showToast('5MB 이하 이미지만 가능','error'); return; }
     setUploading(slot+':'+i);
     try{
       const ts=Date.now(); const safe=file.name.replace(/[^\w.\-]/g,'_');
-      const path=`POUR스토어_리뉴얼/banners/${slot}_${ts}_${safe}`;
+      const path=`POUR스토어_리뉴얼/banners/${slot}_${field}_${ts}_${safe}`;
       const snap=await storage.ref(path).put(file);
       const url=await snap.ref.getDownloadURL();
-      patchBanner(slot,i,{image:url});
+      patchBanner(slot,i,{[field]:url});
       showToast('이미지 업로드 완료 — 하단 저장을 눌러 반영');
     }catch(e){ console.error('[banners] 업로드 실패:',e); showToast('업로드 실패: '+e.message,'error'); }
     setUploading(null);
@@ -4898,7 +4898,7 @@ function BannersPage({showToast}){
   const save=async()=>{
     setSaving(true);
     try{
-      const clean=(arr)=>arr.filter(b=>b.image).map(b=>({image:b.image,link:(b.link||'').trim()}));
+      const clean=(arr)=>arr.filter(b=>b.image).map(b=>({image:b.image,imageMobile:(b.imageMobile||''),link:(b.link||'').trim()}));
       await db.collection('config').doc('pourstoreBanners').set({hero:clean(data.hero), side:clean(data.side), intervalSec:Number(data.intervalSec)||5, ...audit.update()},{merge:true});
       showToast('저장되었습니다 — 스토어에 반영됩니다');
     }catch(e){ console.error('[banners] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
@@ -4938,13 +4938,24 @@ function BannersPage({showToast}){
                         <div style={{display:'flex',gap:6}}>
                           <label style={{flex:1,textAlign:'center',padding:'8px',borderRadius:8,border:'1.5px solid var(--or)',color:'var(--or-d)',background:'#fff',fontSize:11.5,fontWeight:800,cursor:up?'wait':'pointer'}}>
                             {b.image?'이미지 교체':'이미지 업로드'}
-                            <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload(slot.key,i,f); e.target.value='';}} style={{display:'none'}}/>
+                            <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload(slot.key,i,'image',f); e.target.value='';}} style={{display:'none'}}/>
                           </label>
                           <button onClick={()=>moveBanner(slot.key,i,-1)} disabled={i===0} title="위로" style={{width:30,borderRadius:8,border:'1px solid var(--border)',background:'#fff',cursor:i===0?'default':'pointer',opacity:i===0?0.4:1,fontWeight:800}}>↑</button>
                           <button onClick={()=>moveBanner(slot.key,i,1)} disabled={i===list.length-1} title="아래로" style={{width:30,borderRadius:8,border:'1px solid var(--border)',background:'#fff',cursor:i===list.length-1?'default':'pointer',opacity:i===list.length-1?0.4:1,fontWeight:800}}>↓</button>
                           <button onClick={()=>removeBanner(slot.key,i)} title="삭제" style={{width:30,borderRadius:8,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',cursor:'pointer',fontWeight:900}}>×</button>
                         </div>
                         <input value={b.link||''} onChange={e=>patchBanner(slot.key,i,{link:e.target.value})} placeholder="클릭 시 이동 링크 (예: /product/list.html?cate_no=71)" style={field}/>
+                        <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                          <div style={{position:'relative',width:70,aspectRatio:'16/9',flexShrink:0,borderRadius:6,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                            {b.imageMobile?<img src={b.imageMobile} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';}}/>:<span style={{fontSize:9,color:'var(--text-sm)',fontWeight:700}}>모바일</span>}
+                          </div>
+                          <label style={{flex:1,textAlign:'center',padding:'7px',borderRadius:8,border:'1.5px dashed var(--or)',color:'var(--or-d)',background:'#fff',fontSize:11,fontWeight:800,cursor:up?'wait':'pointer'}}>
+                            {b.imageMobile?'모바일 가로 교체':'모바일 가로 이미지 (선택)'}
+                            <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload(slot.key,i,'imageMobile',f); e.target.value='';}} style={{display:'none'}}/>
+                          </label>
+                          {b.imageMobile && <button onClick={()=>patchBanner(slot.key,i,{imageMobile:''})} title="모바일 이미지 제거" style={{width:28,borderRadius:7,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',cursor:'pointer',fontWeight:900,fontSize:12}}>×</button>}
+                        </div>
+                        <div style={{fontSize:10.5,color:'var(--text-sm)',fontWeight:600,marginTop:3}}>모바일에선 이 가로 이미지가 대신 노출 (권장 1080×608, 없으면 위 이미지 사용)</div>
                       </div>
                     </div>
                   );

@@ -126,6 +126,7 @@
 @media (max-width: 900px) {
   .psm1-hot { display:none; }
   .psm1-searchwrap { max-width:none; }
+  .psm1-search input { font-size:16px; } /* 터치기기 자동확대(줌) 방지 — 16px 미만 금지 */
   .psm1-hero-inner { grid-template-columns:1fr 220px; gap:12px; }
   .psm1-banner-side { padding:16px; }
   .psm1-banner-side .title { font-size:16px; }
@@ -144,7 +145,7 @@
   .psm1-mb-searchbar { margin-top:14px; }
   .psm1-mb-searchbar form { display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:24px; padding:10px 12px 10px 16px; }
   .psm1-mb-searchbar .psm1-mb-search-ico { width:18px; height:18px; color:#E8780F; flex-shrink:0; }
-  .psm1-mb-searchbar input { flex:1; min-width:0; border:none; background:none; outline:none; font-size:14px; color:#2F3438; letter-spacing:-0.02em; }
+  .psm1-mb-searchbar input { flex:1; min-width:0; border:none; background:none; outline:none; font-size:16px; color:#2F3438; letter-spacing:-0.02em; } /* 16px 미만이면 iOS가 포커스 시 자동확대 → 16px 고정 */
   .psm1-mb-searchbar input::placeholder { color:#9E9E9E; }
   .psm1-mb-searchbar button[type="submit"] { flex-shrink:0; width:32px; height:32px; border-radius:50%; background:#E8780F; display:grid; place-items:center; }
   .psm1-mb-searchbar button[type="submit"] svg { width:15px; height:15px; color:#fff; }

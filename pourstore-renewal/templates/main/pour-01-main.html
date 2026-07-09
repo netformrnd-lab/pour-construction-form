@@ -96,15 +96,20 @@
 .psm1-bnr-carousel { position:absolute; inset:0; overflow:hidden; z-index:1; touch-action:pan-y; }
 .psm1-bnr-track { display:flex; height:100%; transition:transform .4s ease; will-change:transform; }
 .psm1-bnr-slide { flex:0 0 100%; width:100%; height:100%; display:block; }
+.psm1-bnr-slide picture { display:block; width:100%; height:100%; }
 .psm1-bnr-slide img { width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; -webkit-user-drag:none; user-select:none; }
-.psm1-bnr-dots { position:absolute; bottom:10px; left:0; right:0; display:flex; justify-content:center; gap:6px; z-index:3; }
-.psm1-bnr-dot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.55); box-shadow:0 1px 3px rgba(0,0,0,.25); cursor:pointer; transition:.2s; padding:0; border:0; }
-.psm1-bnr-dot.on { background:#fff; width:20px; border-radius:4px; }
+.psm1-bnr-dots { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); display:flex; align-items:center; justify-content:center; gap:7px; z-index:3; padding:6px 11px; background:rgba(15,23,42,.32); border-radius:999px; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
+.psm1-bnr-dot { width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.6); cursor:pointer; transition:.22s; padding:0; border:0; }
+.psm1-bnr-dot.on { background:#fff; width:24px; border-radius:5px; box-shadow:0 0 0 1px rgba(255,255,255,.35); }
 .psm1-bnr-arrow { position:absolute; top:50%; transform:translateY(-50%); width:34px; height:34px; border-radius:50%; background:rgba(15,23,42,.4); color:#fff; display:grid; place-items:center; z-index:3; cursor:pointer; border:0; padding:0; font-size:20px; line-height:1; opacity:0; transition:opacity .2s, background .2s; }
 .psm1-bnr-arrow:hover { background:rgba(15,23,42,.65); }
 .psm1-bnr-arrow.prev { left:10px; } .psm1-bnr-arrow.next { right:10px; }
 .psm1-banner:hover .psm1-bnr-arrow, .psm1-banner-side:hover .psm1-bnr-arrow { opacity:1; }
-@media (max-width:700px){ .psm1-bnr-arrow { display:none; } } /* 모바일은 스와이프로 넘김 */
+@media (max-width:700px){
+  .psm1-bnr-arrow { display:none; } /* 모바일은 스와이프로 넘김 */
+  /* 모바일: 서브(사이드) 배너는 가로형으로 (JS 높이동기화 무시, 16:9) */
+  .psm1-banner-side.psm1-has-carousel { aspect-ratio:16/9; min-height:0 !important; height:auto !important; }
+}
 /* 4) 카테고리 아이콘 */
 .psm1-cats { padding:30px 24px 36px; }
 .psm1-cats-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:repeat(10,1fr); gap:8px; }
@@ -411,8 +416,8 @@ const db = getFirestore(app);
 
   // ===== 메인 배너 캐러셀 (config/pourstoreBanners) — 어드민 '메인 배너 관리' =====
   function normBanners(v){
-    if (Array.isArray(v)) return v.filter(function(x){ return x && x.image; }).map(function(x){ return { image:x.image, link:(x.link||'') }; });
-    if (v && v.image) return [{ image:v.image, link:(v.link||'') }]; // 구버전 단일 호환
+    if (Array.isArray(v)) return v.filter(function(x){ return x && x.image; }).map(function(x){ return { image:x.image, imageMobile:(x.imageMobile||''), link:(x.link||'') }; });
+    if (v && v.image) return [{ image:v.image, imageMobile:(v.imageMobile||''), link:(v.link||'') }]; // 구버전 단일 호환
     return [];
   }
   function renderCarousel(sel, banners, intervalSec){
@@ -420,6 +425,7 @@ const db = getFirestore(app);
     var el = section.querySelector(sel);
     if (!el) return;
     el.style.padding = '0';
+    el.classList.add('psm1-has-carousel');
     var n = banners.length;
     var box = document.createElement('div'); box.className = 'psm1-bnr-carousel';
     var track = document.createElement('div'); track.className = 'psm1-bnr-track';
@@ -429,7 +435,15 @@ const db = getFirestore(app);
       if (link){ a.href = link; if (/^https?:\/\//.test(link) && link.indexOf(location.host) === -1){ a.target='_blank'; a.rel='noopener'; } }
       else { a.href = 'javascript:void(0)'; }
       var img = document.createElement('img'); img.src = b.image; img.alt = '배너'; img.loading = 'lazy'; img.draggable = false;
-      a.appendChild(img); track.appendChild(a);
+      if (b.imageMobile) { // 모바일용 가로 이미지가 있으면 <picture>로 전환
+        var pic = document.createElement('picture');
+        var src = document.createElement('source'); src.media = '(max-width:700px)'; src.srcset = b.imageMobile;
+        pic.appendChild(src); pic.appendChild(img);
+        a.appendChild(pic);
+      } else {
+        a.appendChild(img);
+      }
+      track.appendChild(a);
     });
     box.appendChild(track); el.innerHTML = ''; el.appendChild(box);
 
@@ -473,7 +487,7 @@ const db = getFirestore(app);
       var sideBn = normBanners(bd.side);
       renderCarousel('.psm1-banner-side', sideBn, iv);
       if (sideBn.length) { // 사이드 높이를 히어로에 맞춤 (그리드 aspect 행높이 미반영 보정)
-        var syncH = function(){ var h = section.querySelector('.psm1-banner'), s = section.querySelector('.psm1-banner-side'); if (h && s && h.offsetHeight) s.style.height = h.offsetHeight + 'px'; };
+        var syncH = function(){ var h = section.querySelector('.psm1-banner'), s = section.querySelector('.psm1-banner-side'); if (!h || !s) return; if (window.innerWidth > 700) { if (h.offsetHeight) s.style.height = h.offsetHeight + 'px'; } else { s.style.height = ''; } };
         syncH(); window.addEventListener('resize', syncH);
         var hImg = section.querySelector('.psm1-banner img'); if (hImg) hImg.addEventListener('load', syncH);
         setTimeout(syncH, 300);

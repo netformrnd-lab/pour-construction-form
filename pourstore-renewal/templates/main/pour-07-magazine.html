@@ -105,14 +105,14 @@ const db = getFirestore(app);
   var grid = sec.querySelector('[data-psg3-grid]');
   var swipe = sec.querySelector('[data-psg3-swipe]');
   var HUB = '/pourstore_renewal/story/pour-story.html';
-  var TYPE = { news:'뉴스', guide:'시공가이드', case:'시공사례', interview:'인터뷰', video:'영상', blog:'컨텐츠', event:'이벤트' };
+  var TYPE = { news:'뉴스', guide:'시공가이드', case:'시공사례', interview:'인터뷰', video:'영상', short:'숏츠', blog:'컨텐츠', event:'이벤트' };
 
   function esc(s){ return (s||'').toString().replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function ytId(u){ var m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/); return m?m[1]:null; }
   function isYt(u){ return /youtu\.?be/.test(u||''); }
   function thumbOf(p){ var t=p.thumbnail||p.thumb||p.image; if(t&&String(t).trim())return t; var id=ytId(p.link); return id?('https://img.youtube.com/vi/'+id+'/hqdefault.jpg'):''; }
   function typeLabel(t){ return TYPE[t] || '이야기'; }
-  function dateOf(p){ var m=String(p.createdAt||p.updatedAt||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[1]+'.'+m[2]+'.'+m[3]):''; }
+  function dateOf(p){ var m=String(p.displayDate||p.createdAt||p.updatedAt||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[1]+'.'+m[2]+'.'+m[3]):''; }
   function hrefOf(p){ return (p.link && /^https?:\/\//.test(p.link)) ? { h:p.link, t:' target="_blank" rel="noopener"' } : { h:HUB, t:'' }; }
   function bgStyle(p){ var t=thumbOf(p); return t ? ' style="background-image:url(\''+esc(t)+'\')"' : ''; }
   function playHtml(p){ return isYt(p.link) ? '<div class="play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>' : ''; }

@@ -302,6 +302,20 @@
 .psm1-drawer-link:active { background:#FAFAFA; }
 .psm1-drawer-link .em { color:#E8780F; }
 .psm1-drawer-div { height:8px; background:#F6F7F9; }
+/* 유튜브 자사몰 내 재생 모달 */
+.psm1-ytm { position:fixed; inset:0; z-index:100010; background:rgba(9,11,15,.82); display:flex; align-items:center; justify-content:center; padding:24px; opacity:0; animation:psm1ytmIn .18s ease forwards; }
+.psm1-ytm[hidden] { display:none; }
+@keyframes psm1ytmIn { to { opacity:1; } }
+.psm1-ytm-box { width:100%; max-width:980px; }
+.psm1-ytm-player { position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:14px; overflow:hidden; box-shadow:0 24px 70px rgba(0,0,0,.5); }
+.psm1-ytm-player iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+.psm1-ytm-meta { color:#fff; font-size:15px; font-weight:700; letter-spacing:-0.02em; margin-top:14px; line-height:1.5; }
+.psm1-ytm-meta .t { display:block; font-size:16.5px; font-weight:800; }
+.psm1-ytm-meta .s { display:block; font-size:12.5px; font-weight:600; color:#B9BEC6; margin-top:3px; }
+.psm1-ytm-x { position:fixed; top:18px; right:20px; width:44px; height:44px; display:grid; place-items:center; border:0; border-radius:999px; background:rgba(255,255,255,.14); color:#fff; cursor:pointer; z-index:2; transition:.15s; }
+.psm1-ytm-x:hover { background:rgba(255,255,255,.26); }
+.psm1-ytm-x svg { width:22px; height:22px; }
+@media (max-width:700px){ .psm1-ytm { padding:0; align-items:flex-start; } .psm1-ytm-box { max-width:100%; } .psm1-ytm-player { border-radius:0; } .psm1-ytm-meta { padding:0 16px; } .psm1-ytm-x { top:10px; right:10px; width:40px; height:40px; background:rgba(0,0,0,.5); } }
 </style>
 <div class="psm1-sticky">
 <!-- 0) 상단 유틸바 제거 — 마이페이지/로그인·로그아웃/주문조회/고객센터는 헤더 우측 아이콘으로 이동 -->
@@ -438,6 +452,14 @@
     </div>
   </div>
 </aside>
+<!-- 유튜브 영상 자사몰 내 재생 모달 (페이지 어디서든 유튜브 링크 클릭 시) -->
+<div class="psm1-ytm" data-psm1-ytm hidden>
+  <button class="psm1-ytm-x" data-psm1-ytm-x type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <div class="psm1-ytm-box">
+    <div class="psm1-ytm-player" data-psm1-ytm-player></div>
+    <div class="psm1-ytm-meta" data-psm1-ytm-meta></div>
+  </div>
+</div>
 <script type="module">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -451,6 +473,39 @@ const firebaseConfig = {
 };
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+/* ===== 유튜브 자사몰 내 재생: 페이지 어디서든 유튜브 링크 클릭을 가로채 모달로 재생 =====
+   (메인의 모든 프래그먼트가 한 document를 공유하므로, 여기 한 곳의 캡처 리스너가 전 영역 커버) */
+(function(){
+  function ytId(u){ if(!u) return ''; var m=String(u).match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/))([\w-]{11})/); return m?m[1]:''; }
+  function isYtHost(u){ return /(?:^|\.)(?:youtube\.com|youtu\.be)/i.test((function(){ try{ return new URL(u, location.href).hostname; }catch(e){ return ''; } })()); }
+  var modal=document.querySelector('[data-psm1-ytm]'), player=document.querySelector('[data-psm1-ytm-player]'),
+      meta=document.querySelector('[data-psm1-ytm-meta]'), btnX=document.querySelector('[data-psm1-ytm-x]'), prevOv='';
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function open(id, title, sub){
+    if(!modal||!player) return;
+    player.innerHTML='<iframe src="https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&rel=0&modestbranding=1&playsinline=1" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="영상"></iframe>';
+    meta.innerHTML = title ? ('<span class="t">'+esc(title)+'</span>'+(sub?'<span class="s">'+esc(sub)+'</span>':'')) : '';
+    modal.hidden=false; prevOv=document.documentElement.style.overflow; document.documentElement.style.overflow='hidden';
+  }
+  function close(){ if(!modal) return; modal.hidden=true; if(player) player.innerHTML=''; document.documentElement.style.overflow=prevOv; }
+  if(btnX) btnX.addEventListener('click', close);
+  if(modal) modal.addEventListener('click', function(e){ if(e.target===modal) close(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape' && modal && !modal.hidden) close(); });
+  // 캡처 단계에서 유튜브 앵커 클릭 가로채기 (모달 내부 iframe/버튼 제외)
+  document.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[href]'); if(!a) return;
+    if(a.closest('[data-psm1-ytm]')) return;
+    var href = a.getAttribute('href')||''; if(!isYtHost(href)) return;
+    var id = ytId(href); if(!id) return;               // 채널/재생목록 등 영상ID 없으면 그대로 진행
+    e.preventDefault(); e.stopPropagation();
+    var title = a.getAttribute('data-title') || (a.querySelector('[data-title]')||{}).textContent || a.getAttribute('title') || '';
+    var sub = a.getAttribute('data-sub') || '';
+    open(id, (title||'').trim(), (sub||'').trim());
+  }, true);
+  // 다른 프래그먼트에서 프로그램적으로 열 수 있도록 전역 노출
+  window.pourOpenYt = function(u, title, sub){ var id=ytId(u); if(id) open(id, title||'', sub||''); };
+})();
 
 (async function(){
   var section = document.querySelector('.psm1');
@@ -500,7 +555,7 @@ const db = getFirestore(app);
                       .sort(function(a,b){ return ((a.order==null?999:a.order) - (b.order==null?999:b.order)); });
     console.log("[psm1] 관련 콘텐츠 " + posts.length + "건 로드");
   } catch (e) { console.log("[psm1] 관련 콘텐츠 로드 스킵:", e && e.message ? e.message : e); }
-  var POST_TYPE = { news:'뉴스', guide:'시공가이드', case:'시공사례', interview:'인터뷰', video:'영상', blog:'컨텐츠', event:'이벤트' };
+  var POST_TYPE = { news:'뉴스', guide:'시공가이드', case:'시공사례', interview:'인터뷰', video:'영상', short:'숏츠', blog:'컨텐츠', event:'이벤트' };
   function ytThumbUrl(u){ var m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/); return m?('https://img.youtube.com/vi/'+m[1]+'/hqdefault.jpg'):''; }
   function postThumb(p){ var t=p.thumbnail||p.thumb||p.image||ytThumbUrl(p.link); return (t&&String(t).trim())?'<img class="psm1-ac-thumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':''; }
   // 숏츠식 세로 카드(9:16) — 관련 콘텐츠를 가로 스크롤로

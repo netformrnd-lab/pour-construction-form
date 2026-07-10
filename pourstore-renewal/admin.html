@@ -4796,6 +4796,7 @@ const POSTING_TYPES=[
   {key:'case',      label:'시공사례',  icon:'🏗', color:'#EA580C'},
   {key:'interview', label:'인터뷰',   icon:'🎤', color:'#7C3AED'},
   {key:'video',     label:'영상',     icon:'▶',  color:'#DC2626'},
+  {key:'short',     label:'숏츠',     icon:'📱', color:'#DB2777'},
   {key:'blog',      label:'컨텐츠',   icon:'📝', color:'#0891B2'},
   {key:'event',     label:'이벤트',   icon:'🎉', color:'#D97706'},
 ];
@@ -4839,7 +4840,7 @@ function PostingsPage({showToast}){
   };
   useEffect(()=>{ load(); },[]);
 
-  const startNew=()=>setEditing({type:'blog',title:'',link:'',thumbnail:'',tagsText:'',summary:'',body:'',duration:'',placements:[],active:true,order:list.length});
+  const startNew=()=>setEditing({type:'blog',title:'',link:'',thumbnail:'',tagsText:'',summary:'',body:'',duration:'',displayDate:'',placements:[],active:true,order:list.length});
   const startEdit=(p)=>setEditing({...p,tagsText:(p.tags||[]).join(', '),placements:p.placements||[],duration:p.duration||''});
 
   const saveEditing=async()=>{
@@ -4851,14 +4852,15 @@ function PostingsPage({showToast}){
       : {type:'text', text:(b.text||'').trim()}
     ).filter(b=> b.type==='image' ? b.url : b.text);
     const bodyStr=blocksToBody(blocks);
-    if(f.type==='video' && !f.link.trim()){ showToast('영상은 유튜브 링크가 필요합니다','error'); return; }
-    if(f.type!=='video' && !f.link.trim() && !bodyStr.trim()){ showToast('링크 또는 본문 중 하나는 입력하세요','error'); return; }
+    const isVid=(f.type==='video'||f.type==='short');
+    if(isVid && !f.link.trim()){ showToast('영상/숏츠는 유튜브 링크가 필요합니다','error'); return; }
+    if(!isVid && !f.link.trim() && !bodyStr.trim()){ showToast('링크 또는 본문 중 하나는 입력하세요','error'); return; }
     setSaving(true);
     try{
       const tags=(f.tagsText||'').split(',').map(s=>s.trim()).filter(Boolean);
-      const thumbnail=(f.thumbnail||'').trim() || (f.type==='video'?ytThumb(f.link):'') || (blocks.find(b=>b.type==='image')||{}).url || '';
+      const thumbnail=(f.thumbnail||'').trim() || (isVid?ytThumb(f.link):'') || (blocks.find(b=>b.type==='image')||{}).url || '';
       const payload={ type:f.type, title:f.title.trim(), link:f.link.trim(), thumbnail, tags,
-        summary:(f.summary||'').trim(), body:bodyStr, blocks, duration:(f.duration||'').trim(), placements:Array.isArray(f.placements)?f.placements:[],
+        summary:(f.summary||'').trim(), body:bodyStr, blocks, duration:(f.duration||'').trim(), displayDate:(f.displayDate||'').trim(), placements:Array.isArray(f.placements)?f.placements:[],
         order:Number(f.order)||0, active:f.active!==false };
       if(f.id){
         await db.collection(COLLECTIONS.POURSTORE_POSTINGS).doc(f.id).set({...payload,...audit.update()},{merge:true});
@@ -5044,10 +5046,10 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
         <label style={lbl}>제목 *</label>
         <input value={form.title} onChange={e=>set({title:e.target.value})} placeholder="예: 옥상 슬라브 방수, 이렇게 하세요" style={field}/>
         <div style={{height:12}}/>
-        <label style={lbl}>링크(URL) — 영상은 유튜브 링크(필수), 아티클은 비워도 됨</label>
-        <input value={form.link} onChange={e=>set({link:e.target.value})} placeholder="https://youtu.be/... (영상) / 외부글 링크 / 비우면 자사몰 아티클" style={field}/>
-        {form.type==='video' && <div style={{fontSize:11,color:'var(--green)',fontWeight:700,marginTop:4}}>▶ 유튜브 링크면 썸네일 자동 추출됩니다</div>}
-        {form.type!=='video' && <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:700,marginTop:4}}>ℹ 링크를 비우고 아래 <b>본문</b>을 채우면, 글 클릭 시 자사몰 안에서 아티클로 열립니다.</div>}
+        <label style={lbl}>링크(URL) — 영상·숏츠는 유튜브 링크(필수), 아티클은 비워도 됨</label>
+        <input value={form.link} onChange={e=>set({link:e.target.value})} placeholder="https://youtu.be/... (영상/숏츠) / 외부글 링크 / 비우면 자사몰 아티클" style={field}/>
+        {(form.type==='video'||form.type==='short') && <div style={{fontSize:11,color:'var(--green)',fontWeight:700,marginTop:4}}>▶ 유튜브 링크면 썸네일 자동 추출 · 클릭 시 자사몰 안에서 재생(유튜브로 안 넘어감)</div>}
+        {!(form.type==='video'||form.type==='short') && <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:700,marginTop:4}}>ℹ 링크를 비우고 아래 <b>본문</b>을 채우면, 글 클릭 시 자사몰 안에서 아티클로 열립니다.</div>}
         <div style={{height:12}}/>
         <label style={lbl}>썸네일 URL {form.type==='video'?'(비우면 자동)':''} — <b style={{color:'var(--or-d)'}}>드래그·붙여넣기(Ctrl+V)</b> 가능</label>
         <div tabIndex={0}
@@ -5069,11 +5071,17 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
         <label style={lbl}>요약 (선택)</label>
         <input value={form.summary||''} onChange={e=>set({summary:e.target.value})} placeholder="한 줄 설명" style={field}/>
         <div style={{height:12}}/>
+        <label style={lbl}>노출 날짜 (선택) — 화면에 표시할 날짜. 비우면 등록일</label>
+        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+          <input type="date" value={form.displayDate||''} onChange={e=>set({displayDate:e.target.value})} style={{...field,flex:1}}/>
+          {form.displayDate && <button type="button" onClick={()=>set({displayDate:''})} style={{padding:'0 11px',height:39,borderRadius:8,border:'1px solid var(--border)',background:'var(--bg)',fontSize:11,fontWeight:800,color:'var(--text-md)',cursor:'pointer',flexShrink:0}}>지우기</button>}
+        </div>
+        <div style={{height:12}}/>
         <label style={lbl}>본문 (자사몰 아티클) — 글/사진 블록으로 구성. <b style={{color:'var(--or-d)'}}>사진을 클릭하면 상품 점(핫스팟)</b>이 추가됩니다</label>
         <div style={{marginTop:6}}>
           <PostingBlocks blocks={Array.isArray(form.blocks)?form.blocks:[]} onChange={b=>set({blocks:b})} uploadImage={uploadImage} uploadingKey={uploadingKey}/>
         </div>
-        {form.type==='video' && <React.Fragment>
+        {(form.type==='video'||form.type==='short') && <React.Fragment>
           <div style={{height:12}}/>
           <label style={lbl}>영상 길이 (선택) — 예: 12:30</label>
           <input value={form.duration||''} onChange={e=>set({duration:e.target.value})} placeholder="12:30" style={field}/>

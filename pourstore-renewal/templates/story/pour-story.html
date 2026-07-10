@@ -61,6 +61,23 @@
 .pstory-tt { font-size:15.5px; font-weight:700; color:#1F2937; line-height:1.42; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .pstory-sm { margin-top:6px; font-size:13px; color:#8B95A1; font-weight:500; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .pstory-date { margin-top:8px; font-size:12px; color:#B0B5BB; font-weight:500; }
+/* 영상 인사이트 재생 모달 */
+.pstory-modal { position:fixed; inset:0; z-index:99999; display:flex; align-items:center; justify-content:center; padding:24px; }
+.pstory-modal[hidden] { display:none; }
+.pstory-modal-bk { position:absolute; inset:0; background:rgba(9,12,18,.82); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
+.pstory-modal-box { position:relative; z-index:1; width:100%; max-width:920px; }
+.pstory-modal-x { position:absolute; top:-44px; right:0; width:38px; height:38px; display:grid; place-items:center; color:#fff; background:rgba(255,255,255,.14); border-radius:50%; border:0; cursor:pointer; transition:.15s; }
+.pstory-modal-x:hover { background:rgba(255,255,255,.28); }
+.pstory-modal-x svg { width:22px; height:22px; }
+.pstory-modal-player { position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:14px; overflow:hidden; box-shadow:0 24px 70px rgba(0,0,0,.55); }
+.pstory-modal-player iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+.pstory-modal-meta { margin-top:16px; color:#fff; }
+.pstory-modal-ct { font-size:12.5px; font-weight:800; color:#FDBA74; letter-spacing:-0.01em; }
+.pstory-modal-tt { margin-top:6px; font-size:19px; font-weight:800; letter-spacing:-0.03em; line-height:1.4; }
+.pstory-modal-sm { margin-top:8px; font-size:14px; color:#C6CBD2; font-weight:500; line-height:1.6; }
+.pstory-modal-link { margin-top:13px; display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:700; color:#9AA0A6; }
+.pstory-modal-link:hover { color:#fff; }
+.pstory-modal-link svg { width:14px; height:14px; }
 /* 반응형 */
 @media (max-width:1000px){ .pstory-grid { grid-template-columns:repeat(3,1fr); } }
 @media (max-width:760px){
@@ -74,6 +91,7 @@
   .pstory-feat-tt { font-size:19px; }
   .pstory-grid { grid-template-columns:repeat(2,1fr); gap:24px 12px; }
   .pstory-tt { font-size:14px; }
+  .pstory-modal { padding:14px; } .pstory-modal-x { top:-40px; } .pstory-modal-tt { font-size:16px; }
 }
 </style>
 
@@ -86,6 +104,14 @@
 </div>
 <nav class="pstory-chips" aria-label="분류"><div class="pstory-chips-inner" data-story-chips></div></nav>
 <div class="pstory-body" data-story-body><div class="pstory-loading">불러오는 중…</div></div>
+<div class="pstory-modal" data-modal hidden>
+  <div class="pstory-modal-bk" data-modal-bk></div>
+  <div class="pstory-modal-box">
+    <button class="pstory-modal-x" data-modal-x type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="pstory-modal-player" data-modal-player></div>
+    <div class="pstory-modal-meta" data-modal-meta></div>
+  </div>
+</div>
 
 <script type="module">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -171,10 +197,12 @@ const db = getFirestore(app);
       : '<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5h16v14H4z"/><path d="M4 15l4-4 3 3 4-5 5 6"/><circle cx="9" cy="9" r="1.4"/></svg></div>';
   }
   function tgt(p){ return isYt(p.link) ? ' target="_blank" rel="noopener"' : ''; }
+  // 유튜브 글이면 인사이트 재생용 데이터 부착(클릭 시 모달로 가로챔). href는 JS 미동작 시 폴백.
+  function ytAttrs(p){ var id=isYt(p.link)?ytId(p.link):null; return id ? (' data-yt="'+id+'" data-vtitle="'+esc(p.title||'')+'" data-vsub="'+esc(p.summary||'')+'" data-vlink="'+esc(p.link||'')+'"') : ''; }
 
   function featHtml(p){
     var ty=TYPE[p.type];
-    return '<a class="pstory-feat" href="'+esc(p.link||'#')+'"'+tgt(p)+'>'
+    return '<a class="pstory-feat" href="'+esc(p.link||'#')+'"'+tgt(p)+ytAttrs(p)+'>'
       + '<div class="pstory-feat-thumb">'+thumbInner(p)+playOverlay(p)+'</div>'
       + '<div class="pstory-feat-body">'
       +   '<span class="pstory-feat-ct">'+esc(typeLabel(p.type))+(dateOf(p)?'  ·  '+dateOf(p):'')+'</span>'
@@ -185,7 +213,7 @@ const db = getFirestore(app);
   }
   function cardHtml(p){
     var ty=TYPE[p.type];
-    return '<a class="pstory-card" href="'+esc(p.link||'#')+'"'+tgt(p)+'>'
+    return '<a class="pstory-card" href="'+esc(p.link||'#')+'"'+tgt(p)+ytAttrs(p)+'>'
       + '<div class="pstory-thumb">'+thumbInner(p)
       +   (ty?'<span class="pstory-badge" style="background:'+ty.c+'">'+esc(ty.l)+'</span>':'')+playOverlay(p)+'</div>'
       + '<div class="pstory-info">'
@@ -205,6 +233,39 @@ const db = getFirestore(app);
     if (cur==='all' && arr.length>=2){ html += featHtml(arr[0]); rest = arr.slice(1); }
     html += '<div class="pstory-grid">' + rest.map(cardHtml).join('') + '</div>';
     body.innerHTML = html;
+  }
+
+  // ===== 자사몰 내 영상 재생 모달 =====
+  var modal = root.querySelector('[data-modal]');
+  var mPlayer = root.querySelector('[data-modal-player]');
+  var mMeta = root.querySelector('[data-modal-meta]');
+  var _mOverflow = '';
+  function openVideo(id, title, sub, link){
+    if (!modal || !id) return;
+    mPlayer.innerHTML = '<iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1&rel=0&modestbranding=1&playsinline=1" title="'+esc(title||'')+'" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+    mMeta.innerHTML = '<div class="pstory-modal-ct">영상</div>'
+      + '<div class="pstory-modal-tt">'+esc(title||'')+'</div>'
+      + (sub ? '<div class="pstory-modal-sm">'+esc(sub)+'</div>' : '')
+      + (link ? '<a class="pstory-modal-link" href="'+esc(link)+'" target="_blank" rel="noopener">YouTube에서 보기 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a>' : '');
+    modal.hidden = false;
+    _mOverflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+  }
+  function closeVideo(){
+    if (!modal) return;
+    modal.hidden = true;
+    mPlayer.innerHTML = ''; // iframe 제거 → 재생 정지
+    document.documentElement.style.overflow = _mOverflow;
+  }
+  if (modal){
+    root.querySelector('[data-modal-bk]').addEventListener('click', closeVideo);
+    root.querySelector('[data-modal-x]').addEventListener('click', closeVideo);
+    document.addEventListener('keydown', function(e){ if (e.key==='Escape' && !modal.hidden) closeVideo(); });
+    // 유튜브 카드 클릭 → 새 탭 대신 모달 재생 (본문은 재렌더되므로 컨테이너에 위임)
+    body.addEventListener('click', function(e){
+      var v = e.target.closest('[data-yt]');
+      if (v){ e.preventDefault(); openVideo(v.getAttribute('data-yt'), v.getAttribute('data-vtitle'), v.getAttribute('data-vsub'), v.getAttribute('data-vlink')); }
+    });
   }
 
   renderChips();

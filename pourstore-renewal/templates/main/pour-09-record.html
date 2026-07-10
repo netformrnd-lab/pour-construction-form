@@ -9,7 +9,7 @@
 .pst2-note { font-size:13px; font-weight:500; color:#8B95A1; }
 .pst2-note b { color:#E8780F; font-weight:800; }
 .pst2-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:64px; }
-.pst2-stat { background:#fff; border:1px solid #F3E7D5; border-radius:20px; padding:26px 24px; box-shadow:0 6px 18px rgba(232,120,15,.06); }
+.pst2-stat { background:#fff; border:1px solid #F3E7D5; border-radius:0; padding:26px 24px; box-shadow:0 6px 18px rgba(232,120,15,.06); }
 .pst2-stat .lbl { font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.1em; margin-bottom:14px; }
 .pst2-stat .num { display:flex; align-items:baseline; gap:4px; }
 .pst2-stat .num b { font-size:38px; font-weight:900; color:#0F1F5C; letter-spacing:-0.03em; line-height:1; }
@@ -23,7 +23,7 @@
 .pst2-gal { overflow:hidden; -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 4%, #000 96%, transparent 100%); mask-image:linear-gradient(90deg, transparent 0, #000 4%, #000 96%, transparent 100%); cursor:grab; touch-action:pan-y; user-select:none; -webkit-user-select:none; }
 .pst2-gal.pst2-dragging { cursor:grabbing; }
 .pst2-gal-track { display:flex; gap:14px; width:max-content; will-change:transform; }
-.pst2-card { flex:0 0 280px; width:280px; aspect-ratio:4/4.5; display:block; border-radius:18px; overflow:hidden; background:#EEE; box-shadow:0 6px 18px rgba(15,31,92,.08); border:1px solid #F3F4F6; transition:box-shadow .25s ease; }
+.pst2-card { flex:0 0 280px; width:280px; aspect-ratio:4/4.5; display:block; border-radius:0; overflow:hidden; background:#EEE; box-shadow:0 6px 18px rgba(15,31,92,.08); border:1px solid #F3F4F6; transition:box-shadow .25s ease; }
 .pst2-card:hover { box-shadow:0 18px 40px rgba(15,31,92,.16); }
 .pst2-img { width:100%; height:100%; object-fit:cover; display:block; background:#0F1F5C; pointer-events:none; -webkit-user-drag:none; }
 .pst2-logo-head { margin-top:64px; margin-bottom:24px; }
@@ -37,7 +37,7 @@
 .pst2-logos:hover .pst2-logo-track { animation-play-state:paused; }
 @keyframes pst2MarqLeft { from { transform:translateX(0); } to { transform:translateX(-50%); } }
 @keyframes pst2MarqRight { from { transform:translateX(-50%); } to { transform:translateX(0); } }
-.pst2-logo { flex:0 0 150px; width:150px; height:88px; display:flex; align-items:center; justify-content:center; background:#fff; border:1px solid #F3E7D5; border-radius:14px; padding:14px 18px; box-shadow:0 4px 12px rgba(232,120,15,.05); }
+.pst2-logo { flex:0 0 150px; width:150px; height:88px; display:flex; align-items:center; justify-content:center; background:#fff; border:1px solid #F3E7D5; border-radius:0; padding:14px 18px; box-shadow:0 4px 12px rgba(232,120,15,.05); }
 .pst2-logo img { max-width:100%; max-height:100%; object-fit:contain; filter:grayscale(1); opacity:.72; }
 .pst2-logo.pst2-logo-fallback { font-size:12px; font-weight:700; color:#8B95A1; text-align:center; word-break:keep-all; line-height:1.3; }
 @media (prefers-reduced-motion:reduce) { .pst2-logo-track, .pst2-gal-track { animation:none !important; } }
@@ -58,7 +58,7 @@
   .pst2-stat .num b { font-size:30px; }
   .pst2-card { flex:0 0 220px; width:220px; }
   .pst2-logos { gap:10px; }
-  .pst2-logo { flex-basis:120px; width:120px; height:70px; padding:10px 14px; border-radius:11px; }
+  .pst2-logo { flex-basis:120px; width:120px; height:70px; padding:10px 14px; border-radius:0; }
 }
 </style>
 <div class="pst2-inner">

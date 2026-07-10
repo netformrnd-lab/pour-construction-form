@@ -63,7 +63,7 @@ body{ color:var(--pour-ink); }
 .btnSubmit, a.btnSubmit, button.btnSubmit, .btnStrong, .btnEm, .btnColor,
 .ec-base-button .btnSubmit, #totalProducts .btnSubmit, .btnBuy{
   background:var(--pour-or) !important; border:1px solid var(--pour-or) !important;
-  color:#fff !important; border-radius:10px !important; font-weight:800 !important;
+  color:#fff !important; border-radius:0!important; font-weight:800 !important;
   box-shadow:none !important; transition:.15s !important;
 }
 .btnSubmit:hover, .btnStrong:hover, .btnEm:hover, .btnColor:hover, .btnBuy:hover{
@@ -72,7 +72,7 @@ body{ color:var(--pour-ink); }
 /* 보조 액션: 계속쇼핑·수량변경·관심상품 → 아웃라인 */
 .btnNormal, a.btnNormal, button.btnNormal, .btnBasic, .btnMore, .btnFix, .btnWhite{
   background:#fff !important; border:1px solid var(--pour-bd2) !important;
-  color:var(--pour-ink) !important; border-radius:10px !important; font-weight:700 !important;
+  color:var(--pour-ink) !important; border-radius:0!important; font-weight:700 !important;
 }
 .btnNormal:hover, .btnBasic:hover, .btnMore:hover, .btnWhite:hover{
   border-color:var(--pour-or-bd) !important; color:var(--pour-or) !important; background:var(--pour-or-pale) !important;
@@ -97,22 +97,22 @@ body{ color:var(--pour-ink); }
 /* ===== 6) 상품목록 상단 정렬/개수 바 ===== */
 .ec-base-prdSort, .prdCount, .xans-product-normalmenu{ color:var(--pour-mut) !important; font-size:13px !important; }
 .ec-base-prdSort .count strong, .prdCount strong{ color:var(--pour-navy) !important; font-weight:800 !important; }
-.ec-base-prdSort select, .sortList select{ border:1px solid var(--pour-bd2) !important; border-radius:8px !important; padding:6px 10px !important; color:var(--pour-ink) !important; }
+.ec-base-prdSort select, .sortList select{ border:1px solid var(--pour-bd2) !important; border-radius:0!important; padding:6px 10px !important; color:var(--pour-ink) !important; }
 /* 진열 방식(그리드) 토글 선택 시 오렌지 */
 .ec-base-prdSort .btnType a.selected, .displayType a.on{ border-color:var(--pour-or) !important; }
 
 /* ===== 7) 페이징 ===== */
-.ec-base-paginate a, .xans-product-normalpaging a{ border:1px solid var(--pour-bd2) !important; border-radius:8px !important; color:var(--pour-ink) !important; font-weight:700 !important; }
+.ec-base-paginate a, .xans-product-normalpaging a{ border:1px solid var(--pour-bd2) !important; border-radius:0!important; color:var(--pour-ink) !important; font-weight:700 !important; }
 .ec-base-paginate a:hover{ border-color:var(--pour-or-bd) !important; color:var(--pour-or) !important; }
 .ec-base-paginate .this, .ec-base-paginate strong.this, .xans-product-normalpaging .this{
-  background:var(--pour-navy) !important; border-color:var(--pour-navy) !important; color:#fff !important; border-radius:8px !important;
+  background:var(--pour-navy) !important; border-color:var(--pour-navy) !important; color:#fff !important; border-radius:0!important;
 }
 
 /* ===== 8) 폼 인풋 포커스 ===== */
 #contents input[type=text], #contents input[type=password], #contents input[type=tel],
 #contents input[type=email], #contents input[type=number], #contents input[type=search],
 #contents select, #contents textarea{
-  border:1px solid var(--pour-bd2) !important; border-radius:8px !important; color:var(--pour-ink) !important;
+  border:1px solid var(--pour-bd2) !important; border-radius:0!important; color:var(--pour-ink) !important;
 }
 #contents input:focus, #contents select:focus, #contents textarea:focus{
   border-color:var(--pour-or) !important; outline:none !important; box-shadow:0 0 0 3px rgba(232,120,15,.12) !important;
@@ -121,7 +121,7 @@ body{ color:var(--pour-ink); }
 /* ===== 9) 빈 상태 / 안내 박스 (장바구니가 비어 있습니다 등) ===== */
 .ec-base-noData, .ec-base-prdInfo .empty, .cartEmpty{ color:var(--pour-mut) !important; }
 .ec-base-help ul li, .ec-base-desc li{ color:var(--pour-mut) !important; line-height:1.7 !important; }
-.ec-base-desc, .ec-base-help.typeType{ border-radius:var(--pour-r) !important; }
+.ec-base-desc, .ec-base-help.typeType{ border-radius:0!important; }
 
 /* ===== 10) 가격/강조 텍스트 통일 ===== */
 #contents .price, #contents strong.price, .description .spec > li{ color:var(--pour-navy) !important; }
@@ -131,6 +131,6 @@ body{ color:var(--pour-ink); }
 @media (max-width:767px){
   .titleArea h2{ font-size:22px !important; }
   #contents h2.title, #contents h3.title{ font-size:15px !important; }
-  .btnSubmit, .btnStrong, .btnNormal, .btnBasic{ border-radius:9px !important; }
+  .btnSubmit, .btnStrong, .btnNormal, .btnBasic{ border-radius:0!important; }
 }
 </style>

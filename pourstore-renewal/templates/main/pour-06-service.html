@@ -4,12 +4,12 @@
 .psv2 { background:#fff; padding:64px 18px 72px; color:#2F3438; letter-spacing:-0.02em; }
 .psv2-inner { max-width:880px; margin:0 auto; }
 .psv2-head { text-align:center; margin-bottom:28px; }
-.psv2-head .kicker { display:inline-block; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.06em; padding:4px 12px; background:#FFF7ED; border:1px solid #FED7AA; border-radius:999px; margin-bottom:12px; }
+.psv2-head .kicker { display:inline-block; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.06em; padding:4px 12px; background:#FFF7ED; border:1px solid #FED7AA; border-radius:0; margin-bottom:12px; }
 .psv2-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-0.045em; line-height:1.25; margin-bottom:8px; }
 .psv2-head p { font-size:13.5px; font-weight:500; color:#6B7280; }
 /* 아코디언 */
 .psv2-acc { display:flex; flex-direction:column; gap:10px; }
-.psv2-item { background:#fff; border:1.5px solid #F2F3F5; border-radius:16px; overflow:hidden; transition:.25s; }
+.psv2-item { background:#fff; border:1.5px solid #F2F3F5; border-radius:0; overflow:hidden; transition:.25s; }
 .psv2-item:hover { border-color:#E5E7EB; }
 .psv2-item.open { box-shadow:0 8px 28px rgba(15,31,92,.08); }
 .psv2-item.shop.open { border-color:#FED7AA; }
@@ -18,7 +18,7 @@
 .psv2-summary { display:flex; align-items:center; gap:14px; padding:18px 22px; cursor:pointer; background:transparent; border:none; width:100%; text-align:left; font-family:inherit; color:inherit; transition:.18s; }
 .psv2-summary:hover { background:#FAFAFA; }
 .psv2-item.open .psv2-summary { background:transparent; }
-.psv2-icon { width:50px; height:50px; border-radius:14px; display:grid; place-items:center; flex-shrink:0; }
+.psv2-icon { width:50px; height:50px; border-radius:0; display:grid; place-items:center; flex-shrink:0; }
 .psv2-icon svg { width:24px; height:24px; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
 .psv2-item.shop .psv2-icon { background:linear-gradient(135deg,#FED7AA,#FB923C); }
 .psv2-item.shop .psv2-icon svg { stroke:#7C2D12; }
@@ -27,7 +27,7 @@
 .psv2-item.show .psv2-icon { background:linear-gradient(135deg,#A7F3D0,#34D399); }
 .psv2-item.show .psv2-icon svg { stroke:#064E3B; }
 .psv2-summary-text { flex:1; min-width:0; }
-.psv2-summary-label { display:inline-block; font-size:11px; font-weight:800; letter-spacing:0.04em; padding:3px 9px; border-radius:999px; margin-bottom:5px; }
+.psv2-summary-label { display:inline-block; font-size:11px; font-weight:800; letter-spacing:0.04em; padding:3px 9px; border-radius:0; margin-bottom:5px; }
 .psv2-item.shop .psv2-summary-label { background:#FFEDD5; color:#7C2D12; }
 .psv2-item.partner .psv2-summary-label { background:#DBEAFE; color:#1E3A8A; }
 .psv2-item.show .psv2-summary-label { background:#D1FAE5; color:#064E3B; }
@@ -40,11 +40,11 @@
 .psv2-body-inner { padding:0 22px 22px 22px; display:flex; flex-direction:column; gap:14px; }
 .psv2-body-desc { font-size:13.5px; font-weight:500; color:#374151; line-height:1.7; letter-spacing:-0.02em; padding-top:6px; border-top:1px dashed #E5E7EB; padding-top:14px; }
 .psv2-body-chips { display:flex; gap:6px; flex-wrap:wrap; }
-.psv2-body-chip { font-size:11.5px; font-weight:700; padding:5px 11px; border-radius:999px; letter-spacing:-0.02em; }
+.psv2-body-chip { font-size:11.5px; font-weight:700; padding:5px 11px; border-radius:0; letter-spacing:-0.02em; }
 .psv2-item.shop .psv2-body-chip { background:#FFEDD5; color:#7C2D12; border:1px solid #FED7AA; }
 .psv2-item.partner .psv2-body-chip { background:#DBEAFE; color:#1E3A8A; border:1px solid #BFDBFE; }
 .psv2-item.show .psv2-body-chip { background:#D1FAE5; color:#064E3B; border:1px solid #A7F3D0; }
-.psv2-body-cta { display:inline-flex; align-items:center; justify-content:space-between; padding:13px 18px; border-radius:12px; font-size:13px; font-weight:800; text-decoration:none; transition:all .25s; letter-spacing:-0.02em; align-self:flex-start; min-width:240px; gap:8px; }
+.psv2-body-cta { display:inline-flex; align-items:center; justify-content:space-between; padding:13px 18px; border-radius:0; font-size:13px; font-weight:800; text-decoration:none; transition:all .25s; letter-spacing:-0.02em; align-self:flex-start; min-width:240px; gap:8px; }
 .psv2-body-cta::after { content:'→'; transition:transform .25s; }
 .psv2-body-cta:hover::after { transform:translateX(4px); }
 .psv2-item.shop .psv2-body-cta { background:#FFEDD5; color:#7C2D12; }
@@ -58,7 +58,7 @@
   .psv2-head h2 { font-size:24px; }
   .psv2-head p { font-size:12.5px; }
   .psv2-summary { padding:15px 16px; gap:12px; }
-  .psv2-icon { width:44px; height:44px; border-radius:12px; }
+  .psv2-icon { width:44px; height:44px; border-radius:0; }
   .psv2-icon svg { width:22px; height:22px; }
   .psv2-summary-label { font-size:10px; padding:2px 8px; }
   .psv2-summary-title { font-size:13.5px; }

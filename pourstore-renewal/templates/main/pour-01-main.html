@@ -53,6 +53,26 @@
 .psm1-ac-item .psm1-ac-text { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .psm1-ac-item .psm1-ac-thumb { width:44px; height:44px; border-radius:10px; object-fit:cover; background:#F2F3F5; flex-shrink:0; }
 .psm1-ac-item mark { background:none; color:#E8780F; font-weight:800; }
+/* 검색 드롭다운 — 최근검색어 / 추천카테고리 / 급상승검색어(2열) */
+.psm1-ac-clear { font-size:11px; font-weight:600; color:#9AA0A6; letter-spacing:-0.02em; }
+.psm1-ac-recent { display:flex; flex-wrap:wrap; gap:6px; padding:2px 8px 10px; }
+.psm1-ac-chip { display:inline-flex; align-items:center; gap:4px; padding:6px 6px 6px 12px; border:1px solid #E5E7EB; border-radius:999px; }
+.psm1-ac-chip > a { font-size:13px; font-weight:500; color:#374151; letter-spacing:-0.02em; }
+.psm1-ac-chip > button { width:16px; height:16px; display:grid; place-items:center; color:#B7BCC2; flex-shrink:0; }
+.psm1-ac-chip > button svg { width:13px; height:13px; }
+.psm1-ac-cats { display:flex; gap:2px; overflow-x:auto; padding:2px 6px 10px; scrollbar-width:none; -ms-overflow-style:none; }
+.psm1-ac-cats::-webkit-scrollbar { display:none; }
+.psm1-ac-cat { flex:0 0 auto; width:66px; display:flex; flex-direction:column; align-items:center; gap:6px; padding:5px 2px; border-radius:10px; transition:.12s; }
+.psm1-ac-cat:hover { background:#FAFAFA; }
+.psm1-ac-cat-ico { width:44px; height:44px; border-radius:13px; background:#FFF3E9; color:#E8780F; display:grid; place-items:center; }
+.psm1-ac-cat-ico svg { width:22px; height:22px; }
+.psm1-ac-cat-nm { font-size:11.5px; font-weight:600; color:#374151; white-space:nowrap; letter-spacing:-0.03em; }
+.psm1-ac-rank { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; padding:0 4px 6px; }
+.psm1-ac-rankitem { display:flex; align-items:center; gap:9px; padding:7px 7px; border:1px solid transparent; border-radius:9px; min-width:0; transition:.12s; }
+.psm1-ac-rankitem:hover { background:#FFFBF6; border-color:#FBE2C4; }
+.psm1-ac-ranknum { width:14px; text-align:center; font-size:13px; font-weight:800; color:#E8780F; flex-shrink:0; }
+.psm1-ac-rankkw { flex:1; min-width:0; font-size:14px; color:#2F3438; font-weight:500; letter-spacing:-0.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.psm1-ac-rankthumb { width:26px; height:26px; border-radius:6px; object-fit:cover; background:#F2F3F5; flex-shrink:0; }
 /* 인기검색어 (검색바 우측) */
 .psm1-hot { flex-shrink:0; display:flex; align-items:center; gap:10px; max-width:340px; overflow:hidden; }
 .psm1-hot-label { display:flex; align-items:center; gap:4px; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:-0.02em; flex-shrink:0; }
@@ -238,6 +258,13 @@
 .psm1-ov-prod img { width:130px; height:130px; object-fit:cover; border-radius:12px; background:#F5F6F8; }
 .psm1-ov-prod-name { margin-top:7px; font-size:13px; color:#374151; font-weight:500; letter-spacing:-0.02em; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .psm1-ov-prod-price { margin-top:2px; font-size:13.5px; font-weight:800; color:#1F2937; }
+/* 관련 콘텐츠 (포스팅 리스트) */
+.psm1-ov-content { display:flex; flex-direction:column; gap:4px; }
+.psm1-ov-citem { display:flex; align-items:center; gap:12px; padding:8px 0; }
+.psm1-ov-cthumb { width:52px; height:40px; border-radius:8px; object-fit:cover; background:#F2F3F5; flex-shrink:0; }
+.psm1-ov-cbody { min-width:0; flex:1; }
+.psm1-ov-ctt { font-size:14.5px; font-weight:600; color:#2F3438; letter-spacing:-0.02em; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.psm1-ov-cct { margin-top:3px; font-size:12px; font-weight:700; color:#E8780F; }
 /* 검색 결과(타이핑) — 인라인 자동완성 스타일 재사용 */
 .psm1-ov-results { padding:6px 8px 48px; }
 .psm1-ov-noresult { padding:56px 18px; text-align:center; color:#9AA0A6; font-size:14px; font-weight:500; line-height:1.7; }
@@ -462,7 +489,7 @@ const db = getFirestore(app);
                       .sort(function(a,b){ return ((a.order==null?999:a.order) - (b.order==null?999:b.order)); });
     console.log("[psm1] 관련 콘텐츠 " + posts.length + "건 로드");
   } catch (e) { console.log("[psm1] 관련 콘텐츠 로드 스킵:", e && e.message ? e.message : e); }
-  var POST_TYPE = { guide:'가이드', blog:'블로그', video:'유튜브', case:'시공사례' };
+  var POST_TYPE = { news:'뉴스', guide:'시공가이드', case:'시공사례', interview:'인터뷰', video:'영상', blog:'컨텐츠', event:'이벤트' };
   function ytThumbUrl(u){ var m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/); return m?('https://img.youtube.com/vi/'+m[1]+'/hqdefault.jpg'):''; }
   function postThumb(p){ var t=p.thumbnail||p.thumb||p.image||ytThumbUrl(p.link); return (t&&String(t).trim())?'<img class="psm1-ac-thumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':''; }
   function postItemsHtml(){
@@ -471,7 +498,6 @@ const db = getFirestore(app);
     posts.slice(0,3).forEach(function(p){
       var isYt = /youtu\.?be/.test(p.link||'');
       h += '<a class="psm1-ac-item" href="'+(p.link||'#')+'"'+(isYt?' target="_blank" rel="noopener"':'')+'>'
-        +   '<span class="psm1-ac-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/></svg></span>'
         +   '<span class="psm1-ac-text">'+(p.title||'')+(POST_TYPE[p.type]?' <span style="color:#9AA0A6;font-weight:600">· '+POST_TYPE[p.type]+'</span>':'')+'</span>'
         +   postThumb(p)
         + '</a>';
@@ -674,15 +700,27 @@ const db = getFirestore(app);
   function wireSearch(input, ac){
     if (!input || !ac) return null;
     function renderDefault(){
-      // 입력 없을 때: 인기검색어 + (구분선) 관련 콘텐츠
+      // 입력 없을 때: 최근검색어 · 추천카테고리 · 급상승검색어(2열) · 관련콘텐츠
       var html = '';
-      if (items.length) {
-        html += '<div class="psm1-ac-sec">인기 검색어</div>';
-        items.slice(0,5).forEach(function(o,i){
-          html += '<a class="psm1-ac-item" href="'+linkFor(o)+'"><span class="psm1-ac-rank">'+(i+1)+'</span><span class="psm1-ac-text">'+(o.keyword||'')+'</span>'+thumbHtml(o)+'</a>';
-        });
+      var rec = (typeof getRecent==='function') ? getRecent() : [];
+      if (rec.length){
+        html += '<div class="psm1-ac-sec" style="justify-content:space-between"><span>최근 검색어</span><button type="button" class="psm1-ac-clear" data-acclear>전체삭제</button></div>';
+        html += '<div class="psm1-ac-recent">' + rec.slice(0,10).map(function(kw){
+          return '<span class="psm1-ac-chip"><a href="'+SEARCH_URL+encodeURIComponent(kw)+'" data-ackw="'+escHtml(kw)+'">'+escHtml(kw)+'</a><button type="button" data-acdel="'+escHtml(kw)+'" aria-label="삭제"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>';
+        }).join('') + '</div>';
       }
-      html += postItemsHtml(); // 구분선 + 관련 콘텐츠(상품/컨텐츠)
+      if (typeof OV_CATS !== 'undefined' && OV_CATS.length){
+        html += '<div class="psm1-ac-sec">추천 카테고리</div><div class="psm1-ac-cats">' + OV_CATS.map(function(c){
+          return '<a class="psm1-ac-cat" href="'+c.link+'"><span class="psm1-ac-cat-ico">'+c.svg+'</span><span class="psm1-ac-cat-nm">'+escHtml(c.name)+'</span></a>';
+        }).join('') + '</div>';
+      }
+      if (items.length){
+        html += '<div class="psm1-ac-sec">급상승 검색어</div><div class="psm1-ac-rank">' + items.slice(0,8).map(function(o,i){
+          var t = o.thumb||o.thumbnail||o.image||ytThumbUrl(o.link);
+          return '<a class="psm1-ac-rankitem" href="'+linkFor(o)+'" data-ackw="'+escHtml(o.keyword||'')+'"><span class="psm1-ac-ranknum">'+(i+1)+'</span><span class="psm1-ac-rankkw">'+escHtml(o.keyword||'')+'</span>'+(t?'<img class="psm1-ac-rankthumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':'')+'</a>';
+        }).join('') + '</div>';
+      }
+      html += postItemsHtml(); // 구분선 + 관련 콘텐츠
       ac.innerHTML = html;
       return !!html;
     }
@@ -724,6 +762,13 @@ const db = getFirestore(app);
     });
     input.addEventListener('blur', function(){ setTimeout(function(){ ac.classList.remove('open'); }, 200); });
     ac.addEventListener('mousedown', function(e){ if (e.target.closest('a')) return; e.preventDefault(); });
+    // 최근검색어 삭제/전체삭제 + 검색어 클릭 시 최근검색어 저장
+    ac.addEventListener('click', function(e){
+      var del=e.target.closest('[data-acdel]'); if(del){ e.preventDefault(); if(typeof removeRecent==='function') removeRecent(del.getAttribute('data-acdel')); renderDefault(); return; }
+      var clr=e.target.closest('[data-acclear]'); if(clr){ e.preventDefault(); if(typeof saveRecent==='function') saveRecent([]); renderDefault(); return; }
+      var kw=e.target.closest('[data-ackw]'); if(kw && typeof addRecent==='function'){ addRecent(kw.getAttribute('data-ackw')); }
+    });
+    var frm=input.closest('form'); if(frm) frm.addEventListener('submit', function(){ if(typeof addRecent==='function') addRecent(input.value); });
     return { openDefault: openDefault };
   }
 
@@ -792,6 +837,17 @@ const db = getFirestore(app);
     if (reco.length){
       h += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">추천 검색어</span></div><div class="psm1-ov-reco">';
       reco.forEach(function(o){ h += '<a href="'+linkFor(o)+'" data-ov-kw="'+escHtml(o.keyword||'')+'">'+escHtml(o.keyword||'')+'</a>'; });
+      h += '</div></div>';
+    }
+    // 관련 콘텐츠 (포스팅)
+    if (posts.length){
+      h += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">관련 콘텐츠</span></div><div class="psm1-ov-content">';
+      posts.slice(0,4).forEach(function(p){
+        var isYt=/youtu\.?be/.test(p.link||''); var t=p.thumbnail||p.thumb||p.image||ytThumbUrl(p.link);
+        h += '<a class="psm1-ov-citem" href="'+escHtml(p.link||'#')+'"'+(isYt?' target="_blank" rel="noopener"':'')+'>'
+          + (t?'<img class="psm1-ov-cthumb" src="'+escHtml(t)+'" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'"/>':'<span class="psm1-ov-cthumb"></span>')
+          + '<div class="psm1-ov-cbody"><div class="psm1-ov-ctt">'+escHtml(p.title||'')+'</div><div class="psm1-ov-cct">'+escHtml(POST_TYPE[p.type]||'콘텐츠')+'</div></div></a>';
+      });
       h += '</div></div>';
     }
     // 최근 본 상품 (있을 때만)

@@ -308,7 +308,7 @@
 </section>
 <!-- POUR 쇼츠 -->
 <section class="pstory-sec" data-sec-shorts hidden>
-  <div class="pstory-sec-h"><h2>POUR 쇼츠</h2><span class="pstory-more" data-more-shorts>영상 전체 →</span></div>
+  <div class="pstory-sec-h"><h2>POUR 쇼츠</h2><span class="pstory-more" data-more-shorts>숏츠 전체 →</span></div>
   <div class="pstory-shorts" data-shorts></div>
 </section>
 <!-- BEST 매거진 -->
@@ -438,7 +438,8 @@ const db = getFirestore(app);
     return;
   }
 
-  var videos = posts.filter(function(p){ return isYt(p.link); });
+  // POUR 쇼츠 섹션: '숏츠' 유형으로 등록된 것만 노출 (일반 영상은 제외)
+  var videos = posts.filter(function(p){ return p.type==='short'; });
 
   // ===== 특집 (상위 3) =====
   var feat = posts.slice(0,3);
@@ -512,7 +513,7 @@ const db = getFirestore(app);
 
   // '영상 전체 →' → 매거진 영상 칩으로 필터 + 스크롤
   var moreShorts = $('[data-more-shorts]');
-  if (moreShorts) moreShorts.addEventListener('click', function(){ cur='video'; renderChips(); renderGrid(); $('[data-sec-all]').scrollIntoView({behavior:'smooth'}); });
+  if (moreShorts) moreShorts.addEventListener('click', function(){ cur='short'; renderChips(); renderGrid(); $('[data-sec-all]').scrollIntoView({behavior:'smooth'}); });
 
   // ===== 영상 시청 모달 (유튜브 watch식) =====
   var modal=$('[data-modal]'), mPlayer=$('[data-modal-player]'), mMeta=$('[data-modal-meta]'), mSide=$('[data-modal-side]'), _mOverflow='';

@@ -6,43 +6,47 @@
 	 <li id="anchorBoxId_{$product_no}" class="item pour-card">
         <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
-        /* ===== POUR스토어 상품카드 통일 스타일 — .pour-card (기능/변수 무변경, 디자인만) ===== */
+        /* ===== POUR스토어 상품카드(무신사식 클린) — .pour-card (기능/변수 무변경, 디자인만) =====
+           색: 텍스트=검정#111 / 포인트=주황#E8780F / 애매한 강조=진회색#4B5563 */
         .prdList li.item.pour-card{
           font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif !important;
           letter-spacing:-0.02em;
           background:#fff !important;
-          border:1px solid #EEF0F2 !important;
+          border:0 !important;
           border-radius:0!important;
           overflow:hidden;
-          transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+          transition:transform .15s ease;
         }
-        .prdList li.item.pour-card:hover{
-          border-color:#FBE2C4 !important;
-          box-shadow:0 10px 26px rgba(232,120,15,.12);
-          transform:translateY(-3px);
-        }
+        .prdList li.item.pour-card:hover{ transform:translateY(-2px); }
+        .prdList li.item.pour-card:hover .image-container{ opacity:.94; }
         .pour-card .prdList__item{ background:transparent !important; border:0 !important; box-shadow:none !important; }
-        /* 썸네일 */
+        /* 썸네일 1:1 정사각 */
         .pour-card .thumbnail{ margin:0 !important; border:0 !important; }
         .pour-card .prdImg{ position:relative; border:0 !important; }
-        .pour-card .prdImg .image-container{ display:block; position:relative; overflow:hidden; background:#F5F6F8; aspect-ratio:1/1; border-radius:0; }
+        .pour-card .prdImg .image-container{ display:block; position:relative; overflow:hidden; background:#F5F6F8; aspect-ratio:1/1; border-radius:0; transition:opacity .15s ease; }
         .pour-card .prdImg .image-container img.default,
         .pour-card .prdImg .image-container img.hover{ width:100% !important; height:100% !important; object-fit:cover; }
         /* 찜 하트 우상단 */
         .pour-card .wish{ position:absolute; top:10px; right:10px; z-index:3; }
         .pour-card .sold{ z-index:2; }
-        /* 설명영역 */
-        .pour-card .description{ padding:12px 14px 14px !important; text-align:left; border:0 !important; }
-        .pour-card .description .name{ display:block; margin:0 0 6px !important; }
-        .pour-card .description .name a{ font-size:14.5px !important; font-weight:700 !important; color:#2F3438 !important; line-height:1.4 !important; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-        .pour-card .description .name .title{ color:#9AA0A6 !important; font-weight:600 !important; }
-        /* 스펙/가격 */
-        .pour-card .spec{ margin:0 !important; padding:0 !important; }
-        .pour-card .spec > li{ font-size:15px !important; font-weight:800 !important; color:#111827 !important; line-height:1.35 !important; padding:1px 0 !important; border:0 !important; background:none !important; }
-        .pour-card .spec .title{ font-size:12px !important; font-weight:600 !important; color:#9AA0A6 !important; }
-        /* 프로모션/뱃지 */
+        /* 설명영역(좌측정렬, 이미지와 라인 맞춤) */
+        .pour-card .description{ padding:12px 2px 4px !important; text-align:left; border:0 !important; }
+        .pour-card .description .name{ display:block; margin:0 !important; }
+        /* 상품명(검정, 2줄) */
+        .pour-card .description .name a{ display:block; font-size:13.5px !important; font-weight:500 !important; color:#111111 !important; line-height:1.46 !important; text-decoration:none !important; }
+        /* 브랜드/타이틀 라인(진회색 볼드, 상단 1줄) */
+        .pour-card .description .name .title{ display:block; font-size:12px !important; font-weight:800 !important; color:#4B5563 !important; margin-bottom:3px !important; letter-spacing:-0.02em; }
+        /* 가격(검정 볼드) · 할인/세일은 주황 포인트 */
+        .pour-card .spec{ margin:9px 0 0 !important; padding:0 !important; }
+        .pour-card .spec > li{ font-size:15px !important; font-weight:800 !important; color:#111111 !important; line-height:1.35 !important; padding:1px 0 !important; border:0 !important; background:none !important; }
+        .pour-card .spec .title{ font-size:11.5px !important; font-weight:600 !important; color:#9CA3AF !important; }
+        .pour-card .spec .sale, .pour-card .spec em, .pour-card .spec .discount, .pour-card .discountRate{ color:#E8780F !important; font-weight:800 !important; }
+        /* 카페24 아이콘(신상품/추천 등) */
         .pour-card .promotion{ margin-top:8px !important; display:flex; flex-wrap:wrap; align-items:center; gap:4px; }
         .pour-card .promotion img{ vertical-align:middle; }
+        /* 해시태그(셀프OK·풀패키지 등 — 상품 '간략설명'에서 생성) */
+        .pour-card .pour-tags{ display:flex; flex-wrap:wrap; gap:3px 9px; margin-top:9px; }
+        .pour-card .pour-tag{ font-size:11.5px; font-weight:600; color:#6B7280; letter-spacing:-0.01em; }
         </style>
         <div class="prdList__item">
           <div class="thumbnail">
@@ -83,7 +87,7 @@
 
 
           <div class="description">
-            <strong class="name"><a href="{$link_product_detail}" class="{$product_name_display|display}"><span class="title {$product_name_title_display|display}">{$product_name_title} :</span> {$product_name}</a></strong>
+            <strong class="name"><a href="{$link_product_detail}" class="{$product_name_display|display}"><span class="title {$product_name_title_display|display}">{$product_name_title}</span> {$product_name}</a></strong>
             <ul module="product_ListItem" class="spec">
               <li class="{$item_display|display}">
                 <p class="perhan"></p>
@@ -93,7 +97,28 @@
                 <strong class="title {$item_title_display|display}">{$item_title} :</strong> {$item_content}</li>
             </ul>
               <div class="promotion">{$stock_icon} {$recommend_icon} {$new_icon} {$product_icons} {$pickup_icon} {$benefit_icons}</div>
+              <!-- 해시태그: 상품 '간략설명(요약설명)'에 넣은 키워드를 #태그로 표시 (예: 셀프OK 풀패키지) -->
+              <div class="pour-tags" data-sum="{$summary_description}"></div>
           </div>
         </div>
 
       </li>
+<script>
+/* 상품 간략설명 → 해시태그 칩. 리스트 전체를 1회만 처리(아이템마다 중복 삽입돼도 안전) */
+(function(){
+  if (window.__pourTagsInit) return; window.__pourTagsInit = true;
+  function build(){
+    var els = document.querySelectorAll('.pour-tags[data-sum]');
+    for (var i=0;i<els.length;i++){
+      var el=els[i]; if (el.getAttribute('data-done')) continue; el.setAttribute('data-done','1');
+      var raw=(el.getAttribute('data-sum')||'').trim();
+      if (!raw || raw.indexOf('{$')!==-1){ el.parentNode && el.parentNode.removeChild(el); continue; }
+      var parts=raw.split(/[\s,#/|·]+/).filter(Boolean).slice(0,4);
+      if (!parts.length){ el.parentNode && el.parentNode.removeChild(el); continue; }
+      var h=''; for (var j=0;j<parts.length;j++){ var t=parts[j].replace(/[<>&"]/g,''); h+='<span class="pour-tag">#'+t+'</span>'; }
+      el.innerHTML=h;
+    }
+  }
+  if (document.readyState!=='loading') build(); else document.addEventListener('DOMContentLoaded', build);
+})();
+</script>

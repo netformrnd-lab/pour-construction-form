@@ -4789,22 +4789,19 @@ function RecoKeywordsPage({showToast}){
 //   → 검색 페이지: tags에 검색어(또는 hotkeyword synonyms) 포함 + active를 order순 상위 N개 상단 카드로 (placements 무관, 태그 자동)
 //   → placements: 특정 스토어 섹션에 추가 노출. 'pkg-video' = 패키지 시공영상(pkg-5-video)
 // ============================================================
+// 유형(type) = POUR이야기 허브(pour-story.html)의 분류 탭이 됨. 글마다 1개 선택 → 해당 탭에 자동 정리.
 const POSTING_TYPES=[
-  {key:'guide', label:'가이드',  icon:'📘', color:'#059669'},
-  {key:'blog',  label:'블로그',  icon:'📝', color:'#03C75A'},
-  {key:'video', label:'유튜브',  icon:'▶',  color:'#DC2626'},
-  {key:'case',  label:'시공사례', icon:'🏗', color:'#EA580C'},
+  {key:'news',      label:'뉴스',     icon:'📰', color:'#2563EB'},
+  {key:'guide',     label:'시공가이드', icon:'📘', color:'#059669'},
+  {key:'case',      label:'시공사례',  icon:'🏗', color:'#EA580C'},
+  {key:'interview', label:'인터뷰',   icon:'🎤', color:'#7C3AED'},
+  {key:'video',     label:'영상',     icon:'▶',  color:'#DC2626'},
+  {key:'blog',      label:'컨텐츠',   icon:'📝', color:'#0891B2'},
+  {key:'event',     label:'이벤트',   icon:'🎉', color:'#D97706'},
 ];
-// 노출 위치 — 검색 상단은 태그로 자동 매칭되므로, 여기선 '추가 노출' 섹션만 지정
-// story-* = POUR이야기 허브 페이지(pour-story.html)의 하위 탭. 하나의 글을 여러 탭에 중복 노출 가능.
+// 노출 위치 — 검색 상단은 태그로 자동 매칭. POUR이야기 허브는 유형(type)으로 자동 정리되므로 여기선 '추가 노출'만 지정.
 const POSTING_PLACEMENTS=[
-  {key:'pkg-video',   label:'패키지 시공영상'},
-  {key:'story-brand', label:'POUR이야기·브랜드 이야기'},
-  {key:'story-guide', label:'POUR이야기·시공가이드'},
-  {key:'story-case',  label:'POUR이야기·시공사례'},
-  {key:'story-news',  label:'POUR이야기·뉴스'},
-  {key:'story-short', label:'POUR이야기·숏폼'},
-  {key:'story-event', label:'POUR이야기·이벤트'},
+  {key:'pkg-video', label:'패키지 시공영상'},
 ];
 const postingType=(k)=>POSTING_TYPES.find(t=>t.key===k)||POSTING_TYPES[0];
 const ytId=(url)=>{const m=(url||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/);return m?m[1]:null;};

@@ -59,6 +59,9 @@ import { getFirestore, collection, getDocs } from "https://www.gstatic.com/fireb
 const firebaseConfig = { apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU", authDomain:"pour-app-new.firebaseapp.com", projectId:"pour-app-new", storageBucket:"pour-app-new.firebasestorage.app", messagingSenderId:"411031141847", appId:"1:411031141847:web:e658174fd4b9652cdadf92" };
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
+/* 공유 로딩 캐시(성능) — 중복 fetch 제거 + 페이지 이동 시 재사용. define-if-absent. */
+window.__pcache = window.__pcache || (function(){ var mem={}; return { wrap:function(key,ttl,fetcher){ if(mem[key])return mem[key]; try{var raw=sessionStorage.getItem('pc:'+key); if(raw){var o=JSON.parse(raw); if(o&&(Date.now()-o.t)<ttl){return (mem[key]=Promise.resolve(o.v));}}}catch(e){} var p=Promise.resolve().then(fetcher).then(function(v){try{sessionStorage.setItem('pc:'+key,JSON.stringify({t:Date.now(),v:v}));}catch(e){} return v;}); p.catch(function(){delete mem[key];}); return (mem[key]=p); }}; })();
+var PC_TTL = 300000;
 const esc=(s)=>(s||'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const STAR='<svg viewBox="0 0 24 24" width="1em" height="1em" fill="#F59E0B" style="vertical-align:-0.14em"><path d="M12 3l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 18l-5.8 3 1.1-6.5L2.6 9.8l6.5-.9z"/></svg>';
 const CHK='<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>';
@@ -80,7 +83,7 @@ function card(p,i){
 (async function(){
   const grid=document.querySelector('[data-ppr2-grid]'); if(!grid) return;
   let pkgs=[];
-  try{ const snap=await getDocs(collection(db,"pourstore-packages")); pkgs=snap.docs.map(d=>({id:d.id,...d.data()})); console.log('[ppr2] 패키지 '+pkgs.length+'건 로드'); }
+  try{ pkgs=await window.__pcache.wrap('col:packages',PC_TTL,()=>getDocs(collection(db,"pourstore-packages")).then(sn=>sn.docs.map(d=>({id:d.id,...d.data()})))); console.log('[ppr2] 패키지 '+pkgs.length+'건 로드'); }
   catch(e){ console.log('[ppr2] 로드 실패:', e && e.message); return; }
   const best=pkgs.filter(p=>p.active!==false && p.best).sort((a,b)=>((a.order??999)-(b.order??999))).slice(0,8);
   console.log('[ppr2] 베스트 '+best.length+'건');

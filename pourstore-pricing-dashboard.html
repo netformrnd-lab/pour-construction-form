@@ -752,6 +752,12 @@ thead .sticky1,thead .sticky2{z-index:25}
             <div class="fld"><label>매입원가 (원)</label><input type="number" id="apCost" placeholder="예: 60000"></div>
             <div class="fld" id="apMfgFld"><label>제조사</label><input type="text" id="apMfg" list="mfgList" placeholder="선택/입력"><datalist id="mfgList"></datalist></div>
           </div>
+          <div class="formgrid" style="grid-template-columns:1fr 120px 120px 1fr;align-items:end;margin-top:10px">
+            <div class="fld"><label>컨셉 <span style="color:var(--ink-faint)">(파생 기준)</span></label><input type="text" id="apConcept" placeholder="예: 옥상방수 세트"></div>
+            <div class="fld"><label>유형</label><select id="apType"><option value="단품">단품</option><option value="세트">세트</option></select></div>
+            <div class="fld"><label>상태</label><select id="apStatus"><option>소싱중</option><option>출시</option><option>단종</option></select></div>
+            <div class="fld"><label>세트 구성 <span style="color:var(--ink-faint)">(세트일 때, 쉼표)</span></label><input type="text" id="apSetItems" placeholder="구성품명, 구성품명"></div>
+          </div>
           <div class="formgrid" id="apPriceRow" style="grid-template-columns:auto 150px 1fr auto;align-items:end;margin-top:10px;padding-top:10px;border-top:1px dashed var(--xl-grid)">
             <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);white-space:nowrap"><input type="checkbox" id="apAuto" checked style="width:auto">목표 마진율로 채널가 자동 산출</label>
             <div class="fld" id="apTgtFld"><label>목표 마진율 (%)</label><input type="number" id="apTgt" value="35" step="0.5"></div>
@@ -991,6 +997,7 @@ let SEC_BLOB='';          // config/secure.blob (AES-256-GCM 암호문)
 let MOQ_TIERS=[];         // config/calc.moqTiers (max:null → Infinity 복원)
 let CH_VAR_DEFAULT={};    // config/calc.chVar
 let CODE_RANK={};         // config/calc.codeRank
+let PADD=[];              // products-added: 공유 원장(앱에서 등록한 상품) {docId,cat,name,spec,cost,pr,mfg,concept,type,status,setItems}
 let ACCESS=null;          // config/access {masterEmail, ...} — 마스터 계정 지정
 let curUser=null;         // 현재 로그인 사용자 (Firebase Auth)
 /* secAllowed: "마스터 계정 + 이메일 인증" 일 때만 공급업체·매칭 노출.
@@ -1143,21 +1150,26 @@ function loadSaved(){                        // buildState() 에서 호출 (Fire
         if(old.P&&old.P.length===BASE_N) old.P.forEach((r,i)=>{ P[i].cost=r.c; P[i].pr=r.pr||{}; });
       }
     }catch(e){}
-    return;
+  } else {
+    try{
+      if(s.CH){ CHANNELS=s.CH; uidSeq=s.seq||100; }
+      if(s.Pedit) s.Pedit.forEach((r,i)=>{ if(P[i]){ P[i].cost=r.c; P[i].pr=r.pr||{}; if(r.mfg!=null)P[i].mfg=r.mfg; if(r.cat)P[i].cat=r.cat; if(r.name)P[i].name=r.name; if(r.spec!=null)P[i].spec=r.spec; } });
+      if(s.Padd) s.Padd.forEach(r=>{ P.push({id:P.length,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:r.pr||{},sup:'',mgr:'',mfg:r.mfg||'',added:true}); });
+      if(Array.isArray(s.MFG)){ MFG=s.MFG; mfgSeq=s.mfgSeq||(MFG.reduce((m,x)=>Math.max(m,x.id),0)+1); }
+      if(Array.isArray(s.FX)){ FX=s.FX; fxSeq=s.fxSeq||(FX.reduce((m,x)=>Math.max(m,x.id),0)+1); }
+    }catch(e){}
   }
-  try{
-    if(s.CH){ CHANNELS=s.CH; uidSeq=s.seq||100; }
-    if(s.Pedit) s.Pedit.forEach((r,i)=>{ if(P[i]){ P[i].cost=r.c; P[i].pr=r.pr||{}; if(r.mfg!=null)P[i].mfg=r.mfg; if(r.cat)P[i].cat=r.cat; if(r.name)P[i].name=r.name; if(r.spec!=null)P[i].spec=r.spec; } });
-    if(s.Padd) s.Padd.forEach(r=>{ P.push({id:P.length,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:r.pr||{},sup:'',mgr:'',mfg:r.mfg||'',added:true}); });
-    if(Array.isArray(s.MFG)){ MFG=s.MFG; mfgSeq=s.mfgSeq||(MFG.reduce((m,x)=>Math.max(m,x.id),0)+1); }
-    if(Array.isArray(s.FX)){ FX=s.FX; fxSeq=s.fxSeq||(FX.reduce((m,x)=>Math.max(m,x.id),0)+1); }
-  }catch(e){}
+  // 공유 원장(Firestore products-added) — 로컬 유무와 무관하게 항상 append. 중복 제거 + docId 로 등록/수정/삭제 대상 식별.
+  { const seen=new Set(P.map(p=>`${p.cat}|${p.name}|${p.spec}`));
+    PADD.forEach(r=>{ const k=`${r.cat}|${r.name}|${r.spec}`; if(seen.has(k))return; seen.add(k);
+      P.push({id:P.length,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:r.pr||{},sup:'',mgr:'',mfg:r.mfg||'',added:true,
+        docId:r.docId,concept:r.concept||'',ptype:r.type||'단품',status:r.status||'',setItems:r.setItems||''}); }); }
 }
 function persist(){
   localStorage.setItem(LS_KEY, JSON.stringify({
     CH:CHANNELS, seq:uidSeq,
     Pedit:P.slice(0,BASE_N).map(x=>({c:x.cost,pr:x.pr,mfg:x.mfg||'',cat:x.cat,name:x.name,spec:x.spec})),
-    Padd:P.slice(BASE_N).map(x=>({cat:x.cat,name:x.name,spec:x.spec,cost:x.cost,pr:x.pr,mfg:x.mfg||''})),
+    Padd:P.slice(BASE_N).filter(x=>!x.docId).map(x=>({cat:x.cat,name:x.name,spec:x.spec,cost:x.cost,pr:x.pr,mfg:x.mfg||''})),  // 공유 원장(docId) 제외 — 로컬 전용만
     MFG, mfgSeq, FX, fxSeq
   }));
 }
@@ -2491,11 +2503,16 @@ $('#btnApAdd').addEventListener('click',()=>{
   const cost=$('#apCost').value===''?null:+$('#apCost').value;
   const mfg=($('#apMfg').value||'').trim();
   const auto=$('#apAuto').checked, tgt=(+$('#apTgt').value||0)/100;
-  P.push({id:P.length,cat,name,spec,cost,pr:auto?autoPricesFor(cost,tgt):{},sup:'',mgr:'',mfg,added:true});
-  if(mfg && !MFG.some(m=>m.name===mfg)) MFG.push({id:mfgSeq++,name:mfg,mgr:'',tel:'',memo:'(제품 등록 시 자동 추가)'});
-  ['#apName','#apSpec','#apCost','#apMfg'].forEach(s=>$(s).value='');
-  fillProductSelects(); plState=null; refreshAll();
-  $('#btnApAdd').textContent='등록됨 ✓'; setTimeout(()=>$('#btnApAdd').textContent='＋ 제품 등록',1200);
+  const doc={ cat,name,spec,cost,pr:auto?autoPricesFor(cost,tgt):{},mfg,
+    concept:($('#apConcept').value||'').trim(), type:$('#apType').value||'단품',
+    status:$('#apStatus').value||'소싱중', setItems:($('#apSetItems').value||'').trim(),
+    seq:P.length, updatedAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'' };
+  if(mfg && !MFG.some(m=>m.name===mfg)){ MFG.push({id:mfgSeq++,name:mfg,mgr:'',tel:'',memo:'(제품 등록 시 자동 추가)'}); persist(); }
+  // 공유 원장(Firestore)에 등록 → onSnapshot 이 대시보드·소싱앱 모두에 실시간 반영
+  db.collection('products-added').add(doc).then(()=>{
+    ['#apName','#apSpec','#apCost','#apMfg','#apConcept','#apSetItems'].forEach(s=>$(s).value='');
+    $('#btnApAdd').textContent='등록됨 ✓'; setTimeout(()=>$('#btnApAdd').textContent='＋ 제품 등록',1200);
+  }).catch(e=>alert('등록 실패: '+(e.code||e.message||e)+'\n(마스터/허용목록 계정·규칙 게시 확인)'));
 });
 $('#btnAiAdd').addEventListener('click',()=>{
   if(!unlocked){ alert('보안 잠금을 먼저 해제하세요.'); return; }
@@ -2585,7 +2602,10 @@ document.addEventListener('click',e=>{
   const md=e.target.closest('[data-mfdel]');
   if(md){ const id=+md.dataset.mfdel, m=MFG.find(x=>x.id==id); if(confirm(`제조사 "${m?m.name:''}"를 삭제할까요?`)){ MFG=MFG.filter(x=>x.id!=id); refreshAll(); } return; }
   const pd=e.target.closest('[data-pdel]');
-  if(pd){ const id=+pd.dataset.pdel, p=P.find(x=>x.id===id); if(p&&p.added&&confirm(`제품 "${p.name}"을(를) 삭제할까요?`)){ P=P.filter(x=>x.id!==id); P.forEach((x,i)=>x.id=i); fillProductSelects(); plState=null; refreshAll(); } return; }
+  if(pd){ const id=+pd.dataset.pdel, p=P.find(x=>x.id===id); if(p&&p.added&&confirm(`제품 "${p.name}"을(를) 삭제할까요?`)){
+      if(p.docId){ db.collection('products-added').doc(p.docId).delete().catch(e=>alert('삭제 실패: '+(e.code||e.message||e))); }   // 공유 원장 → onSnapshot 반영
+      else { P=P.filter(x=>x.id!==id); P.forEach((x,i)=>x.id=i); persist(); fillProductSelects(); plState=null; refreshAll(); }
+    } return; }
   const idl=e.target.closest('[data-idel]');
   if(idl){ const id=+idl.dataset.idel, r=M.find(x=>x.id===id); if(r&&r.added&&confirm(`상품 "${r.item}"을(를) 삭제할까요?`)){ M=M.filter(x=>x.id!==id); M.forEach((x,i)=>x.id=i); refreshAll(); } return; }
   const fd=e.target.closest('[data-fxdel]');
@@ -2994,6 +3014,10 @@ function startLiveSync(){
     if(editingNow()) return;                    // 입력 중엔 덮어쓰지 않음
     PMETA=d.exists?(d.data()||{}):{}; renderProductView();
   }, onErr('product-meta'));
+  db.collection('products-added').onSnapshot(s=>{
+    PADD=s.docs.map(d=>({docId:d.id,...d.data()})).sort((a,b)=>(a.seq??0)-(b.seq??0));
+    scheduleRebuild('products-added('+s.size+')');
+  }, onErr('products-added'));
   console.log('[live] 실시간 동기화 시작(channels·products·calc·mkt·product-meta)');
 }
 async function boot(){
@@ -3017,6 +3041,8 @@ async function boot(){
     await fetchMkt();                            // 마케팅 성과 데이터(허용목록 계정만)
     try{ const pm=await db.collection('product-meta').doc('all').get(); PMETA=pm.exists?(pm.data()||{}):{}; console.log('[product-meta] '+Object.keys(PMETA).length+'개 상품 메타'); }
     catch(e){ console.warn('[product-meta] 로드 실패:', e.code||e.message||e); }
+    try{ const ps=await db.collection('products-added').get(); PADD=ps.docs.map(d=>({docId:d.id,...d.data()})).sort((a,b)=>(a.seq??0)-(b.seq??0)); console.log('[products-added] '+PADD.length+'개 공유 등록상품'); }
+    catch(e){ console.warn('[products-added] 로드 실패:', e.code||e.message||e); }
     const empty=!channels.length||!products.length;
     if(empty) console.warn('[boot] 로드된 데이터가 비어있습니다 — 시딩 여부를 확인하세요.');
     const dn=$('#dataNotice'); if(dn) dn.style.display=empty?'flex':'none';

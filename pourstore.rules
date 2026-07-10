@@ -139,6 +139,10 @@ service cloud.firestore {
     match /product-meta/{doc} {
       allow read, write: if isAllowedReader();
     }
+    // 공유 상품 원장(앱에서 등록한 상품) — 대시보드·소싱앱 공용. 허용목록 계정 등록·수정·삭제
+    match /products-added/{id} {
+      allow read, write: if isAllowedReader();
+    }
 
     // 그 외 모든 경로(다른 config 문서 포함) 금지
     match /{document=**} {

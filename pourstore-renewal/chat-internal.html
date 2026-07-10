@@ -143,8 +143,9 @@ const APP_POURK = {
   storageBucket: "pour-k.firebasestorage.app", messagingSenderId: "548427623760",
   appId: "1:548427623760:web:7767b3b08b280911b51055"
 };
-// [예정] CRM 라이브 연결: pourstorecrm 웹 config + 컬렉션 스키마 확보 시 여기에 채워 교체.
-// const APP_CRM = { apiKey:"…", projectId:"pourstorecrm", … };  const CRM_COLLECTION = "…";
+// CRM 라이브 연결(워커 프록시): 배포한 crm-proxy 워커 URL + 시크릿 입력 → CRM을 라이브로 읽음.
+// 비워두면 아래 CRM_SEED(정적)로 동작. 개인정보는 워커에서 이미 제거되어 옴.
+const CRM_PROXY = { url: "", secret: "" }; // 예: url:"https://pour-crm-proxy.<계정>.workers.dev", secret:"<WORKER_SECRET>"
 const mainApp = getApps().find(a=>a.name==='[DEFAULT]') || initializeApp(APP_MAIN);
 const pourkApp = getApps().find(a=>a.name==='pourk') || initializeApp(APP_POURK, 'pourk');
 const dbMain = getFirestore(mainApp);
@@ -315,8 +316,21 @@ input.addEventListener('input', ()=>{ sendBtn.disabled=!input.value.trim(); });
 // ===== 시작 =====
 async function boot(){
   if(booted) return; booted=true;
-  // CRM 시드
-  CRM_SEED.forEach(e=> KB.push({ src:'crm', q:e.q, a:e.a, tags:e.tags||[], text:'', name:e.q }));
+  // CRM 지식: 워커 프록시(라이브) 우선, 실패/미설정 시 시드
+  let crmLive = false;
+  if (CRM_PROXY.url && CRM_PROXY.secret) {
+    try {
+      const u = CRM_PROXY.url.replace(/\/$/,'') + "/crm-kb?secret=" + encodeURIComponent(CRM_PROXY.secret);
+      const r = await fetch(u);
+      const d = await r.json();
+      if (Array.isArray(d.items) && d.items.length) {
+        d.items.forEach(e=>{ if(e && e.a) KB.push({ src:'crm', q:e.q||'', a:e.a, tags:Array.isArray(e.tags)?e.tags:[], text:e.q||'', name:(e.q||'').slice(0,24) }); });
+        crmLive = true;
+        console.log("[internal] CRM 라이브 "+d.items.length+"건 로드(프록시)");
+      } else { console.log("[internal] CRM 프록시 응답 비어있음:", d && d.error); }
+    } catch(e){ console.log("[internal] CRM 프록시 실패 → 시드 사용:", e && e.message); }
+  }
+  if (!crmLive) CRM_SEED.forEach(e=> KB.push({ src:'crm', q:e.q, a:e.a, tags:e.tags||[], text:'', name:e.q }));
   // 기술연구소 pour-k 라이브
   try{
     const snap=await getDocs(collection(dbPourk,"products")); let n=0;

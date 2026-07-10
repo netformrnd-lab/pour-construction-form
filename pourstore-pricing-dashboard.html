@@ -442,6 +442,17 @@ thead .sticky1,thead .sticky2{z-index:25}
     </div>
   </section>
 
+  <!-- ── Sheet: 상품 기준 (종합 뷰 + 쿠폰/기프티콘 손익 계산기) ── -->
+  <section class="sheet" id="sh-product">
+    <div class="toolrow">
+      <span class="ttl">상품 기준</span>
+      <select id="pvSel" style="min-width:260px;flex:0 1 320px"></select>
+      <button class="tbtn primary" id="pvSave" style="margin-left:auto">이 상품 설정 저장</button>
+      <span class="hint">한 상품의 원가·판매가·이익·채널별 이익·마케팅(CPA·CVR)·프로모션(쿠폰/기프티콘) 손익을 한 화면에서 봅니다</span>
+    </div>
+    <div class="sheet-pad"><div id="pvBody"></div></div>
+  </section>
+
   <!-- ── Sheet 2: 가격정책표 ── -->
   <section class="sheet" id="sh-price">
     <div class="toolrow">
@@ -906,6 +917,7 @@ thead .sticky1,thead .sticky2{z-index:25}
 </div>
 <div id="tabs">
   <button class="stab on" data-grp="sum" data-sh="sh-dash"><span class="dot"></span>경영요약</button>
+  <button class="stab" data-grp="price" data-sh="sh-product"><span class="dot"></span>상품 기준</button>
   <button class="stab" data-grp="price" data-sh="sh-price"><span class="dot"></span>가격정책표</button>
   <button class="stab" data-grp="price" data-sh="sh-chman"><span class="dot"></span>채널 관리</button>
   <button class="stab" data-grp="price" data-sh="sh-channel"><span class="dot"></span>채널 수익분석</button>
@@ -2306,6 +2318,9 @@ $('#mobileMenu').addEventListener('click',e=>{
   const it=e.target.closest('.mm-item'); if(!it)return;
   gotoTab(it.dataset.sh); closeMobileMenu();
 });
+/* 상품 기준 뷰: 상품 전환 · 저장 */
+$('#pvSel')&&$('#pvSel').addEventListener('change',e=>{ const p=pvProduct(); if(p)PMETA[pKey(p)]=pvCollect(); pvCur=+e.target.value; renderProductView(); });
+$('#pvSave')&&$('#pvSave').addEventListener('click',savePMeta);
 
 /* ══════════ 퀵 마진 계산기 ══════════ */
 let calcM='fwd';
@@ -2780,8 +2795,113 @@ document.addEventListener('dblclick',e=>{
 });
 
 /* ══════════ 전체 갱신 ══════════ */
+/* ══════════ 상품 기준 뷰 + 쿠폰/기프티콘 손익 계산기 ══════════ */
+let PMETA={};                       // product-meta/all: {키:{marketMin,mkts:[],promo:{}}}
+let pvCur=null;                     // 현재 선택 상품 id
+const pKey=p=>`${p.cat}|${p.name}|${p.spec}`;
+const pvDefaultPromo=()=>({disc:20,logi:1800,deli:2900,pg:4,gifts:[],gifticon:0,join:0,qty:30});
+function getMeta(p){ const m=PMETA[pKey(p)]||{}; return {marketMin:m.marketMin??null, mkts:Array.isArray(m.mkts)?m.mkts:[], promo:Object.assign(pvDefaultPromo(), m.promo||{})}; }
+function pvProduct(){ return P.find(p=>p.id===pvCur) || P[0] || null; }
+function pvReadMkts(){ return [...document.querySelectorAll('#pvMkBody tr[data-mk]')].map(tr=>{ const g=f=>tr.querySelector(`[data-mkf="${f}"]`); return {media:g('media').value, spend:+g('spend').value||0, units:+g('units').value||0, clicks:+g('clicks').value||0}; }); }
+function pvCollect(){
+  return { marketMin:(+($('#pvMarketMin')?.value)||0)||null, mkts:pvReadMkts(),
+    promo:{ disc:+($('#pvDisc')?.value)||0, logi:+($('#pvLogi')?.value)||0, deli:+($('#pvDeli')?.value)||0, pg:+($('#pvPg')?.value)||0,
+      gifts:($('#pvGifts')?.value||'').split(',').map(s=>+s.trim()||0).filter(x=>x>0), gifticon:+($('#pvGifticon')?.value)||0, join:+($('#pvJoin')?.value)||0, qty:+($('#pvQty')?.value)||0 } };
+}
+function fillPvSel(){ const sel=$('#pvSel'); if(!sel)return; sel.innerHTML=P.map(p=>`<option value="${p.id}">${esc(p.cat)} · ${esc(p.name)}${p.spec?' ('+esc(p.spec)+')':''}</option>`).join(''); if(pvCur!=null&&P.some(p=>p.id===pvCur)) sel.value=pvCur; }
+function recalcPvMkt(){
+  const rows=[...document.querySelectorAll('#pvMkBody tr[data-mk]')]; let ts=0,tu=0,tc=0;
+  rows.forEach(tr=>{ const g=f=>tr.querySelector(`[data-mkf="${f}"]`), o=k=>tr.querySelector(`[data-mko="${k}"]`);
+    const spend=+g('spend').value||0, units=+g('units').value||0, clicks=+g('clicks').value||0;
+    o('cpa').textContent=units>0?wonU(spend/units):'—'; o('cvr').textContent=clicks>0?pct(units/clicks):'—'; ts+=spend; tu+=units; tc+=clicks; });
+  const s=$('#pvMkTotSpend'); if(s)s.textContent=wonU(ts);
+  const u=$('#pvMkTotUnits'); if(u)u.textContent=tu+'개';
+  const c=$('#pvMkCPA'); if(c)c.textContent=tu>0?wonU(ts/tu):'—';
+  const v=$('#pvMkCVR'); if(v)v.textContent=tc>0?pct(tu/tc):'—';
+}
+function recalcPvPromo(){
+  const p=pvProduct(); if(!p)return; const retail=retailOf(p), cost=p.cost, num=id=>+($('#'+id)?.value)||0;
+  const disc=num('pvDisc'),logi=num('pvLogi'),deli=num('pvDeli'),pg=num('pvPg'),gifticon=num('pvGifticon'),join=num('pvJoin'),qty=num('pvQty');
+  const gifts=($('#pvGifts')?.value||'').split(',').map(s=>+s.trim()||0).filter(x=>x>0), giftMax=gifts.length?Math.max(...gifts):0;
+  const out=$('#pvPromoOut'); if(!out)return;
+  const coupon=retail!=null?retail*(1-disc/100):null;
+  const mm=+($('#pvMarketMin')?.value)||0, mg=$('#pvMinGap');
+  if(mg){ if(mm>0&&retail!=null){ const d=retail-mm; mg.innerHTML=`정가 대비 ${d>=0?'+':''}${won(d)}원 (${pct(retail?d/retail:0)})`; mg.style.color=d<0?'var(--red)':'var(--ink-soft)'; } else mg.textContent='—'; }
+  if(coupon==null){ out.innerHTML='<p class="footnote" style="color:var(--red)">· 자사몰 정가가 없어 계산할 수 없습니다. [가격정책표]에서 정가를 확인하세요.</p>'; return; }
+  const pgAmt=coupon*(pg/100), profitNo=coupon-cost-logi-deli-pgAmt-giftMax, profitYes=profitNo-gifticon;
+  const blended=profitNo*(1-join/100)+profitYes*(join/100), rate=coupon?blended/coupon:null;
+  const warn=blended<0||profitYes<0, cell=(lb,v,cls)=>`<div class="card"><h4>${lb}</h4><div class="big ${cls||''}">${v}</div></div>`;
+  out.innerHTML=`${warn?'<div class="panel" style="border-color:var(--red);margin-bottom:10px"><div class="bd" style="color:var(--red);font-weight:800">⚠️ 적자 경고 — 이 조건은 손실입니다. 할인율·사은품·기프티콘을 조정하세요.</div></div>':''}
+    <div class="cards">
+      ${cell('쿠폰 결제가',wonU(coupon))}${cell('PG 수수료',wonU(pgAmt))}
+      ${cell('개당순익(후기 미참여)',wonU(profitNo),profitNo<0?'neg':'pos')}${cell('개당순익(후기 참여)',wonU(profitYes),profitYes<0?'neg':'pos')}
+      ${cell('참여율 가중 개당순익',wonU(blended),blended<0?'neg':'pos')}${cell('마진율',pct(rate),(rate!=null&&rate<0)?'neg':'pos')}
+      ${cell('총매출('+qty+'개)',wonU(coupon*qty))}${cell('총순익('+qty+'개)',wonU(blended*qty),blended<0?'neg':'pos')}
+    </div>
+    <p class="footnote" style="margin-top:8px">· 순익 = 쿠폰가 − 매입원가 − 물류비 − 택배비 − PG(${pg}%) − 사은품 최고가(${wonU(giftMax)})${join>0?` · 참여분(${join}%)은 − 기프티콘(${wonU(gifticon)})`:''}. 고정비 미포함.</p>`;
+}
+function bindPvInputs(){
+  ['pvDisc','pvLogi','pvDeli','pvPg','pvGifts','pvGifticon','pvJoin','pvQty','pvMarketMin'].forEach(id=>{ const el=$('#'+id); if(el)el.oninput=recalcPvPromo; });
+  const mb=$('#pvMkBody'); if(mb){ mb.oninput=recalcPvMkt; mb.onclick=e=>{ const d=e.target.closest('[data-mkdel]'); if(!d)return; const cur=pvCollect(); cur.mkts.splice(+d.dataset.mkdel,1); PMETA[pKey(pvProduct())]=cur; renderProductView(); }; }
+  const add=$('#pvMkAdd'); if(add)add.onclick=()=>{ const cur=pvCollect(); cur.mkts.push({media:'',spend:0,units:0,clicks:0}); PMETA[pKey(pvProduct())]=cur; renderProductView(); };
+}
+function renderProductView(){
+  const box=$('#pvBody'); if(!box)return;
+  if(!P.length){ box.innerHTML='<div class="panel"><div class="bd dim" style="padding:14px">상품 데이터가 없습니다.</div></div>'; return; }
+  if(pvCur==null||!P.some(p=>p.id===pvCur)) pvCur=P[0].id;
+  fillPvSel();
+  const p=pvProduct(); if(!p){ box.innerHTML=''; return; }
+  const meta=getMeta(p), retail=retailOf(p), cost=p.cost, oM=margin(retail,cost), oR=mrate(retail,cost);
+  const chans=CHANNELS.filter(c=>c.role!=='retail'&&gp(p,c.uid)!=null);
+  const chRows=chans.map(c=>{ const sup=gp(p,c.uid),ourM=margin(sup,cost),ourR=mrate(sup,cost),chM=(retail!=null)?retail-sup:null,chR=(retail?chM/retail:null);
+    return `<tr><td class="name">[${esc(c.code||'')}] ${esc(c.name)}</td><td class="num">${wonU(sup)}</td><td class="num ${ourM<0?'neg':'pos'}">${wonU(ourM)}</td><td class="num">${pct(ourR)}</td><td class="num">${wonU(chM)}</td><td class="num">${pct(chR)}</td></tr>`;
+  }).join('')||`<tr><td colspan="6" class="dim" style="padding:10px">공급 채널 가격이 없습니다. [가격정책표]에서 입력하세요.</td></tr>`;
+  const mkRows=meta.mkts.map((m,i)=>`<tr data-mk="${i}">
+      <td><input data-mkf="media" value="${esc(m.media||'')}" placeholder="예: 인스타" style="width:100%"></td>
+      <td><input data-mkf="spend" type="number" value="${m.spend??''}" placeholder="지출액" style="width:100%"></td>
+      <td><input data-mkf="units" type="number" value="${m.units??''}" placeholder="판매수" style="width:100%"></td>
+      <td><input data-mkf="clicks" type="number" value="${m.clicks??''}" placeholder="클릭수" style="width:100%"></td>
+      <td class="num" data-mko="cpa">—</td><td class="num" data-mko="cvr">—</td>
+      <td style="text-align:center"><button class="tbtn" data-mkdel="${i}" style="color:var(--red);padding:2px 8px;font-size:11px">삭제</button></td></tr>`).join('');
+  const pr=meta.promo;
+  box.innerHTML=`
+    <div class="cards" style="margin-bottom:14px">
+      <div class="card"><h4>매입원가</h4><div class="big">${wonU(cost)}</div></div>
+      <div class="card"><h4>자사몰 정가(우리 판매가)</h4><div class="big">${wonU(retail)}</div></div>
+      <div class="card"><h4>우리 이익 / 이익율</h4><div class="big ${oM<0?'neg':'pos'}">${wonU(oM)}</div><div class="foot">${pct(oR)}</div></div>
+      <div class="card"><h4>시장조사 최저가 <span class="pill a">수동</span></h4><input id="pvMarketMin" type="number" value="${meta.marketMin??''}" placeholder="경쟁사 최저가" style="width:100%;font-size:16px;padding:6px 8px"><div class="foot" id="pvMinGap">—</div></div>
+    </div>
+    <div class="panel"><h3>채널별 이익 <span class="tag">우리 이익 vs 채널 이익(정가 재판매 가정)</span></h3><div class="bd" style="padding:0">
+      <table class="grid" style="width:100%"><thead><tr><th>채널</th><th class="num">공급가</th><th class="num">우리 이익</th><th class="num">우리 이익율</th><th class="num">채널 이익</th><th class="num">채널 이익율</th></tr></thead><tbody>${chRows}</tbody></table></div></div>
+    <div class="panel"><h3>상품별 마케팅 <span class="tag">매체별 지출·판매수 → CPA·CVR</span></h3><div class="bd">
+      <table class="grid" style="width:100%"><thead><tr><th>매체</th><th>지출액</th><th>판매수</th><th>클릭수</th><th class="num">CPA</th><th class="num">CVR</th><th style="width:56px"></th></tr></thead><tbody id="pvMkBody">${mkRows}</tbody></table>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap"><button class="tbtn" id="pvMkAdd">+ 매체 추가</button>
+        <span class="footnote" style="margin-left:auto">합계 지출 <b id="pvMkTotSpend">—</b> · 총 판매 <b id="pvMkTotUnits">—</b> · 평균 CPA <b id="pvMkCPA">—</b> · CVR <b id="pvMkCVR">—</b></span></div>
+      <p class="footnote">· CPA = 지출 ÷ 판매수 · CVR = 판매수 ÷ 클릭수. (LTV 실측은 카페24 주문 연동 후 — 2단계)</p></div></div>
+    <div class="panel"><h3>프로모션 손익 계산기 <span class="tag">쿠폰 · 사은품 · 포토후기 기프티콘</span></h3><div class="bd">
+      <div class="formgrid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">
+        <div class="fld"><label>쿠폰 할인율 (%)</label><input id="pvDisc" type="number" value="${pr.disc}"></div>
+        <div class="fld"><label>물류비 (원)</label><input id="pvLogi" type="number" value="${pr.logi}"></div>
+        <div class="fld"><label>택배비 (원)</label><input id="pvDeli" type="number" value="${pr.deli}"></div>
+        <div class="fld"><label>PG 수수료 (%)</label><input id="pvPg" type="number" value="${pr.pg}"></div>
+        <div class="fld"><label>사은품 후보(원, 쉼표) <span style="color:var(--ink-faint)">최고가 자동</span></label><input id="pvGifts" value="${esc((pr.gifts||[]).join(','))}" placeholder="660,1650"></div>
+        <div class="fld"><label>포토후기 기프티콘 (원)</label><input id="pvGifticon" type="number" value="${pr.gifticon}"></div>
+        <div class="fld"><label>포토후기 참여율 (%)</label><input id="pvJoin" type="number" value="${pr.join}"></div>
+        <div class="fld"><label>목표 판매수량</label><input id="pvQty" type="number" value="${pr.qty}"></div>
+      </div>
+      <div id="pvPromoOut" style="margin-top:14px"></div></div></div>`;
+  bindPvInputs(); recalcPvMkt(); recalcPvPromo();
+}
+async function savePMeta(){
+  const p=pvProduct(); if(!p)return;
+  PMETA[pKey(p)]=pvCollect();
+  try{ await db.collection('product-meta').doc('all').set({[pKey(p)]:PMETA[pKey(p)]},{merge:true}); pvToast('저장됨 ✓'); }
+  catch(e){ pvToast('저장 실패: '+(e.code||e.message||e)); }
+}
+function pvToast(t){ const b=$('#pvSave'); if(b){ const o=b.textContent; b.textContent=t; setTimeout(()=>b.textContent=o,1400);} }
+
 function refreshAll(){
-  renderRibbon(); renderDash(); renderGrid(); renderChMan(); renderSup(); renderMatch();
+  renderRibbon(); renderDash(); renderProductView(); renderGrid(); renderChMan(); renderSup(); renderMatch();
   renderChannel(); renderMoq(); ensurePl(); renderPlInput();
   fillPlanChSel(); sanitizePlan(); renderPlanGrid(); renderAgg(); renderPl();
   fillRegDatalists(); renderMfg(); renderAddProd(); renderAddItem(); renderFixed();
@@ -2870,7 +2990,11 @@ function startLiveSync(){
     PROMOS=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.deleted).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
     scheduleMkt();
   }, onErr('promotions'));
-  console.log('[live] 실시간 동기화 시작(channels·products·calc·mkt)');
+  db.collection('product-meta').doc('all').onSnapshot(d=>{
+    if(editingNow()) return;                    // 입력 중엔 덮어쓰지 않음
+    PMETA=d.exists?(d.data()||{}):{}; renderProductView();
+  }, onErr('product-meta'));
+  console.log('[live] 실시간 동기화 시작(channels·products·calc·mkt·product-meta)');
 }
 async function boot(){
   if(appStarted) return;
@@ -2891,6 +3015,8 @@ async function boot(){
     applyLoaded(channels, products, config);
     seckeyPw=(config&&config.seckey)||'';
     await fetchMkt();                            // 마케팅 성과 데이터(허용목록 계정만)
+    try{ const pm=await db.collection('product-meta').doc('all').get(); PMETA=pm.exists?(pm.data()||{}):{}; console.log('[product-meta] '+Object.keys(PMETA).length+'개 상품 메타'); }
+    catch(e){ console.warn('[product-meta] 로드 실패:', e.code||e.message||e); }
     const empty=!channels.length||!products.length;
     if(empty) console.warn('[boot] 로드된 데이터가 비어있습니다 — 시딩 여부를 확인하세요.');
     const dn=$('#dataNotice'); if(dn) dn.style.display=empty?'flex':'none';

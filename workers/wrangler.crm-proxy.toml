@@ -1,0 +1,19 @@
+# Cloudflare Workers — CRM(pourstorecrm) 안전 프록시
+# 배포: npx wrangler deploy --config workers/wrangler.crm-proxy.toml
+
+name = "pour-crm-proxy"
+main = "crm-proxy.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+CRM_PROJECT_ID = "pourstorecrm"
+CRM_COLLECTION = "posts"     # ← 실제 CRM 컬렉션명으로 조정 (/crm-sample로 확인 후)
+ALLOW_ORIGIN   = "*"         # ← 필요 시 "https://pour-construction-form.pages.dev" 로 제한
+
+# ── 시크릿 등록 (CLI) ─────────────────────────────────────
+# npx wrangler secret put WORKER_SECRET        --config workers/wrangler.crm-proxy.toml
+# npx wrangler secret put CRM_SERVICE_ACCOUNT  --config workers/wrangler.crm-proxy.toml
+#   (CRM_SERVICE_ACCOUNT 값 = pourstorecrm 서비스계정 JSON 파일 '전체 내용' 붙여넣기)
+#
+# ── 또는 Dashboard ────────────────────────────────────────
+# Workers & Pages → pour-crm-proxy → Settings → Variables and Secrets → Add (Type: Secret)

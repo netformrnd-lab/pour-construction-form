@@ -4959,6 +4959,9 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
   const updHot=(i,hi,patch)=>mut(p=>{p[i].hotspots[hi]={...p[i].hotspots[hi],...patch};return p;});
   const delHot=(i,hi)=>mut(p=>{p[i].hotspots=p[i].hotspots.filter((_,x)=>x!==hi);return p;});
   const onImgClick=(i,e)=>{const r=e.currentTarget.getBoundingClientRect();const x=Math.max(0,Math.min(100,Math.round(((e.clientX-r.left)/r.width)*100)));const y=Math.max(0,Math.min(100,Math.round(((e.clientY-r.top)/r.height)*100)));addHot(i,x,y);};
+  const [dragOver,setDragOver]=useState(null);
+  const onPasteImg=(i,e)=>{ const items=(e.clipboardData&&e.clipboardData.items)||[]; for(let k=0;k<items.length;k++){ if(((items[k].type)||'').indexOf('image')===0){ const f=items[k].getAsFile(); if(f){ e.preventDefault(); uploadImage('b'+i,f,(url)=>upd(i,{url})); return; } } } };
+  const onDropImg=(i,e)=>{ e.preventDefault(); setDragOver(null); const files=e.dataTransfer&&e.dataTransfer.files; if(files&&files[0]&&((files[0].type)||'').indexOf('image')===0){ uploadImage('b'+i,files[0],(url)=>upd(i,{url})); } };
   return(
     <div>
       {blocks.length===0 && <div style={{padding:'16px',textAlign:'center',color:'var(--text-sm)',fontSize:12,background:'var(--bg)',borderRadius:9,border:'1px solid var(--border)',marginBottom:8}}>블록이 없습니다. 아래에서 글/사진을 추가하세요.</div>}
@@ -4974,11 +4977,12 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
           </div>
           {b.type==='text'
             ? <textarea value={b.text||''} onChange={e=>upd(i,{text:e.target.value})} placeholder="문단 내용을 입력하세요" style={{...fld,minHeight:70,resize:'vertical',fontFamily:'inherit',lineHeight:1.6}}/>
-            : <div>
+            : <div tabIndex={0} onPaste={e=>onPasteImg(i,e)} onDragOver={e=>{e.preventDefault(); if(dragOver!=='b'+i)setDragOver('b'+i);}} onDragLeave={()=>setDragOver(null)} onDrop={e=>onDropImg(i,e)} style={{outline:'none',borderRadius:9,padding:dragOver==='b'+i?6:0,boxShadow:dragOver==='b'+i?'0 0 0 2px var(--or)':'none',transition:'box-shadow .12s'}}>
                 <div style={{display:'flex',gap:6}}>
-                  <input value={b.url||''} onChange={e=>upd(i,{url:e.target.value})} placeholder="사진 URL (또는 업로드)" style={{...fld,flex:1}}/>
+                  <input value={b.url||''} onChange={e=>upd(i,{url:e.target.value})} placeholder="사진 URL / 드래그·Ctrl+V" style={{...fld,flex:1}}/>
                   <label style={{padding:'0 10px',borderRadius:8,border:'1px solid var(--border)',background:uploadingKey==='b'+i?'var(--or-pale)':'var(--bg)',fontSize:11,fontWeight:800,color:'var(--or-d)',cursor:'pointer',display:'flex',alignItems:'center'}}>{uploadingKey==='b'+i?'…':'업로드'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)uploadImage('b'+i,f,(url)=>upd(i,{url})); e.target.value='';}}/></label>
                 </div>
+                {!b.url && <div style={{marginTop:8,border:'1.5px dashed var(--or)',borderRadius:9,padding:'22px 12px',textAlign:'center',color:'var(--or-d)',fontSize:12,fontWeight:700,background:'var(--or-pale)'}}>{uploadingKey==='b'+i?'업로드 중…':'여기로 이미지 드래그 · 클릭 후 Ctrl+V 붙여넣기 · 또는 [업로드]'}</div>}
                 {b.url && <div style={{position:'relative',marginTop:8,borderRadius:8,overflow:'hidden',border:'1px solid var(--border)',cursor:'crosshair'}} onClick={e=>onImgClick(i,e)}>
                   <img src={b.url} alt="" style={{width:'100%',display:'block'}} onError={e=>{e.target.style.opacity=.3;}}/>
                   {(b.hotspots||[]).map((h,hi)=>(<span key={hi} style={{position:'absolute',left:h.x+'%',top:h.y+'%',transform:'translate(-50%,-50%)',width:22,height:22,borderRadius:'50%',background:'#E8780F',color:'#fff',fontSize:14,fontWeight:900,display:'grid',placeItems:'center',boxShadow:'0 2px 6px rgba(0,0,0,.35)',border:'2px solid #fff',pointerEvents:'none'}}>+</span>))}
@@ -5009,6 +5013,7 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
 function PostingEditor({form,setForm,onSave,onClose,saving}){
   const set=(patch)=>setForm(prev=>({...prev,...patch}));
   const [uploadingKey,setUploadingKey]=useState(null);
+  const [thumbDrag,setThumbDrag]=useState(false);
   useEffect(()=>{ if(!Array.isArray(form.blocks)){ set({blocks:parseBodyToBlocks(form.body||'')}); } },[]);
   const uploadImage=async(key,file,cb)=>{
     if(!file.type.startsWith('image/')){ alert('이미지 파일만 가능합니다'); return; }
@@ -5044,11 +5049,17 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
         {form.type==='video' && <div style={{fontSize:11,color:'var(--green)',fontWeight:700,marginTop:4}}>▶ 유튜브 링크면 썸네일 자동 추출됩니다</div>}
         {form.type!=='video' && <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:700,marginTop:4}}>ℹ 링크를 비우고 아래 <b>본문</b>을 채우면, 글 클릭 시 자사몰 안에서 아티클로 열립니다.</div>}
         <div style={{height:12}}/>
-        <label style={lbl}>썸네일 URL {form.type==='video'?'(비우면 자동)':''}</label>
-        <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
-          <input value={form.thumbnail} onChange={e=>set({thumbnail:e.target.value})} placeholder="이미지 URL" style={{...field,flex:1}}/>
-          <div style={{width:64,height:48,borderRadius:8,flexShrink:0,marginTop:6,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-            {previewThumb?<img src={previewThumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.visibility='hidden';}}/>:<span style={{fontSize:15,opacity:.5}}>🖼</span>}
+        <label style={lbl}>썸네일 URL {form.type==='video'?'(비우면 자동)':''} — <b style={{color:'var(--or-d)'}}>드래그·붙여넣기(Ctrl+V)</b> 가능</label>
+        <div tabIndex={0}
+          onPaste={e=>{const items=(e.clipboardData&&e.clipboardData.items)||[]; for(let k=0;k<items.length;k++){ if(((items[k].type)||'').indexOf('image')===0){ const f=items[k].getAsFile(); if(f){ e.preventDefault(); uploadImage('thumb',f,(url)=>set({thumbnail:url})); return; } } }}}
+          onDragOver={e=>{e.preventDefault(); if(!thumbDrag)setThumbDrag(true);}}
+          onDragLeave={()=>setThumbDrag(false)}
+          onDrop={e=>{e.preventDefault(); setThumbDrag(false); const files=e.dataTransfer&&e.dataTransfer.files; if(files&&files[0]&&((files[0].type)||'').indexOf('image')===0) uploadImage('thumb',files[0],(url)=>set({thumbnail:url}));}}
+          style={{display:'flex',gap:8,alignItems:'flex-start',outline:'none',borderRadius:9,padding:thumbDrag?6:0,boxShadow:thumbDrag?'0 0 0 2px var(--or)':'none',transition:'box-shadow .12s'}}>
+          <input value={form.thumbnail} onChange={e=>set({thumbnail:e.target.value})} placeholder="이미지 URL / 드래그·Ctrl+V" style={{...field,flex:1}}/>
+          <label style={{marginTop:6,padding:'0 11px',height:39,borderRadius:8,border:'1px solid var(--border)',background:uploadingKey==='thumb'?'var(--or-pale)':'var(--bg)',fontSize:11,fontWeight:800,color:'var(--or-d)',cursor:'pointer',display:'flex',alignItems:'center',flexShrink:0}}>{uploadingKey==='thumb'?'…':'업로드'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)uploadImage('thumb',f,(url)=>set({thumbnail:url})); e.target.value='';}}/></label>
+          <div style={{width:56,height:44,borderRadius:8,flexShrink:0,marginTop:6,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            {previewThumb?<img src={previewThumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.visibility='hidden';}}/>:<span style={{fontSize:14,opacity:.5}}>🖼</span>}
           </div>
         </div>
         <div style={{height:12}}/>

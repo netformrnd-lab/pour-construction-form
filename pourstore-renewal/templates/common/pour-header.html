@@ -1,0 +1,1211 @@
+<section class="pour-gh" data-pour-gh>
+<style>
+/* ===== 공용 헤더(pour-header): pour-01-main 헤더를 전 페이지 공용으로 =====
+   - 검색+탭만 노출(히어로/빠른메뉴 등 본문 숨김)
+   - 루트는 .pour-gh (querySelector('.psm1')와 충돌 방지). 컴포넌트 .psm1-* 스타일은 그대로 적용됨
+   - 메인 페이지(자체 .psm1 헤더 존재)에선 숨김 + JS 비활성 */
+.pour-gh *, .pour-gh *::before, .pour-gh *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pour-gh { background:#fff; color:#111111; line-height:1.5; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.02em; }
+.pour-gh a { color:inherit; text-decoration:none; }
+.pour-gh button { background:none; border:none; cursor:pointer; font:inherit; color:inherit; letter-spacing:inherit; }
+.pour-gh img { display:block; max-width:100%; }
+.pour-gh ul, .pour-gh li { list-style:none; }
+.pour-gh .psm1-hero, .pour-gh .psm1-cats { display:none !important; } /* 본문 숨김 → 검색+탭만 */
+body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인엔 자체 헤더 있으니 숨김 */
+/* 카테고리 줄(섹션2): 스크롤 내리면 접힘 / 올리면 펼침. 검색+탭은 항상 고정 */
+.pour-gh-sub { border-bottom:1px solid #F2F3F5; background:#fff; overflow:hidden; max-height:60px; transition:max-height .28s cubic-bezier(.4,0,.2,1), opacity .18s ease; }
+.pour-gh-sub[hidden] { display:none; }
+.pour-gh-sub.pour-gh-sub--hide { max-height:0; opacity:0; }
+.pour-gh-sub-inner { max-width:1256px; margin:0 auto; padding:0 24px; display:flex; align-items:center; gap:0; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; }
+.pour-gh-sub-inner::-webkit-scrollbar { display:none; }
+.pour-gh-sub-link { padding:11px 13px; font-size:13.5px; font-weight:600; color:#4B5563; white-space:nowrap; transition:.15s; letter-spacing:-0.02em; }
+.pour-gh-sub-link:hover { color:#E8780F; }
+.pour-gh-sub-link.on { color:#E8780F; font-weight:800; }
+@media (max-width:700px){ .pour-gh-sub-inner { padding:0 14px; } .pour-gh-sub-link { font-size:12.5px; padding:10px 9px; } .pour-gh-sub { max-height:52px; } }
+</style>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
+.psm1 *, .psm1 *::before, .psm1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.psm1 { background:#fff; color:#2F3438; line-height:1.5; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.02em; }
+.psm1 a { color:inherit; text-decoration:none; }
+.psm1 button { background:none; border:none; cursor:pointer; font:inherit; color:inherit; letter-spacing:inherit; }
+.psm1 img { display:block; max-width:100%; }
+.psm1 ul, .psm1 li { list-style:none; }
+/* sticky 래퍼 */
+.psm1-sticky { position:sticky; top:0; z-index:1000; background:#fff; }
+.psm1-sticky.psm1-scrolled { box-shadow:0 2px 12px rgba(15,31,92,.08); }
+/* 0) 상단 유틸바 */
+.psm1-topbar { background:#FAFAFB; border-bottom:1px solid #F2F3F5; }
+.psm1-topbar-inner { max-width:1256px; margin:0 auto; padding:7px 24px; display:flex; align-items:center; justify-content:flex-end; gap:16px; }
+.psm1-topbar a { font-size:12px; font-weight:500; color:#8B95A1; letter-spacing:-0.02em; }
+.psm1-topbar a:hover { color:#2F3438; }
+.psm1-topbar .psm1-tb-divider { width:1px; height:10px; background:#E5E7EB; }
+/* 1) 메인 헤더 (로고 + 검색 + 인기검색어) */
+.psm1-hd { border-bottom:1px solid #F2F3F5; background:#fff; }
+.psm1-hd-inner { max-width:1256px; margin:0 auto; padding:18px 24px; display:flex; align-items:center; gap:28px; }
+.psm1-logo { display:flex; align-items:center; font-weight:800; font-size:24px; color:#111827; letter-spacing:-0.045em; flex-shrink:0; }
+.psm1-logo .psm1-logo-or { color:#111827; }
+.psm1-searchwrap { flex:1; max-width:620px; position:relative; }
+.psm1-search form { margin:0; display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:26px; padding:10px 12px 10px 18px; }
+.psm1-search .psm1-search-ico { width:20px; height:20px; color:#E8780F; flex-shrink:0; }
+.psm1-search input { flex:1; min-width:0; border:none; outline:none; background:none; font-size:15px; font-weight:400; color:#2F3438; letter-spacing:-0.02em; }
+.psm1-search input::placeholder { color:#9E9E9E; }
+/* 검색 input에 카페24 스킨이 덧씌우는 네모박스(테두리·배경·기본 appearance) 제거 → 흰색/투명하게 구분없이 */
+.psm1 input[type="text"], .psm1-search input, .psm1-mb-searchbar input, .psm1-ov-form input {
+  -webkit-appearance:none !important; appearance:none !important;
+  background-color:transparent !important; background-image:none !important;
+  border:none !important; border-radius:0!important; box-shadow:none !important; outline:none !important;
+}
+.psm1 input[type="text"]:-webkit-autofill { -webkit-box-shadow:0 0 0 1000px #fff inset !important; }
+.psm1-search-btn { flex-shrink:0; width:38px; height:38px; border-radius:50%; background:#E8780F; display:grid; place-items:center; transition:.15s; }
+.psm1-search-btn:hover { background:#C8650D; }
+.psm1-search-btn svg { width:18px; height:18px; color:#fff; }
+/* 자동완성 드롭다운 */
+.psm1-ac { position:absolute; top:calc(100% + 8px); left:0; right:0; background:#fff; border:1px solid #F0F1F3; border-radius:0; box-shadow:0 12px 40px rgba(15,31,92,.12); padding:10px; opacity:0; pointer-events:none; transform:translateY(-6px); transition:all .18s cubic-bezier(.16,1,.3,1); z-index:60; max-height:420px; overflow-y:auto; }
+.psm1-ac.open { opacity:1; pointer-events:auto; transform:translateY(0); }
+.psm1-ac-sec { display:flex; align-items:center; gap:5px; font-size:11.5px; font-weight:800; color:#E8780F; letter-spacing:-0.01em; padding:6px 10px 8px; }
+.psm1-ac-div { height:1px; background:#F0F1F3; margin:6px 8px; }
+.psm1-ac-badge2 { flex-shrink:0; font-size:10px; font-weight:800; padding:2px 7px; border-radius:0; letter-spacing:-0.02em; }
+.psm1-ac-badge2.t-keyword { background:#FFEDD5; color:#E8780F; }
+.psm1-ac-badge2.t-product { background:#EFF6FF; color:#2563EB; }
+.psm1-ac-badge2.t-content { background:#ECFDF5; color:#059669; }
+.psm1-ac-item { display:flex; align-items:center; gap:12px; padding:9px 10px; border:1px solid transparent; border-radius:0; cursor:pointer; font-size:14.5px; color:#2F3438; letter-spacing:-0.02em; margin-bottom:2px; transition:.12s; }
+.psm1-ac-item:hover, .psm1-ac-item.on { background:#FFFBF6; border-color:#FBE2C4; }
+.psm1-ac-item .psm1-ac-rank { width:22px; height:22px; border-radius:0; background:#FFEDD5; color:#E8780F; font-size:12px; font-weight:800; display:grid; place-items:center; flex-shrink:0; }
+.psm1-ac-item .psm1-ac-ico { width:18px; height:18px; color:#C9CED4; flex-shrink:0; display:grid; place-items:center; }
+.psm1-ac-item .psm1-ac-ico svg { width:18px; height:18px; }
+.psm1-ac-item .psm1-ac-text { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.psm1-ac-item .psm1-ac-thumb { width:44px; height:44px; border-radius:0; object-fit:cover; background:#F2F3F5; flex-shrink:0; }
+.psm1-ac-item mark { background:none; color:#E8780F; font-weight:800; }
+/* 검색 드롭다운 — 최근검색어 / 추천카테고리 / 급상승검색어(2열) */
+.psm1-ac-clear { font-size:11px; font-weight:600; color:#9AA0A6; letter-spacing:-0.02em; }
+.psm1-ac-recent { display:flex; flex-wrap:wrap; gap:6px; padding:2px 8px 10px; }
+.psm1-ac-chip { display:inline-flex; align-items:center; gap:4px; padding:6px 6px 6px 12px; border:1px solid #E5E7EB; border-radius:999px; }
+.psm1-ac-chip > a { font-size:13px; font-weight:500; color:#374151; letter-spacing:-0.02em; }
+.psm1-ac-chip > button { width:16px; height:16px; display:grid; place-items:center; color:#B7BCC2; flex-shrink:0; }
+.psm1-ac-chip > button svg { width:13px; height:13px; }
+.psm1-ac-cats { display:flex; gap:2px; overflow-x:auto; padding:2px 6px 10px; scrollbar-width:none; -ms-overflow-style:none; }
+.psm1-ac-cats::-webkit-scrollbar { display:none; }
+.psm1-ac-cat { flex:0 0 auto; width:66px; display:flex; flex-direction:column; align-items:center; gap:6px; padding:5px 2px; border-radius:0; transition:.12s; }
+.psm1-ac-cat:hover { background:#FAFAFA; }
+.psm1-ac-cat-ico { width:44px; height:44px; border-radius:13px; background:#FFF3E9; color:#E8780F; display:grid; place-items:center; }
+.psm1-ac-cat-ico svg { width:22px; height:22px; }
+.psm1-ac-cat-nm { font-size:11.5px; font-weight:600; color:#374151; white-space:nowrap; letter-spacing:-0.03em; }
+.psm1-ac-rank { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; padding:0 4px 6px; }
+.psm1-ac-rankitem { display:flex; align-items:center; gap:9px; padding:7px 7px; border:1px solid transparent; border-radius:0; min-width:0; transition:.12s; }
+.psm1-ac-rankitem:hover { background:#FFFBF6; border-color:#FBE2C4; }
+.psm1-ac-ranknum { width:14px; text-align:center; font-size:13px; font-weight:800; color:#E8780F; flex-shrink:0; }
+.psm1-ac-rankkw { flex:1; min-width:0; font-size:14px; color:#2F3438; font-weight:500; letter-spacing:-0.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.psm1-ac-rankthumb { width:26px; height:26px; border-radius:6px; object-fit:cover; background:#F2F3F5; flex-shrink:0; }
+/* 관련 콘텐츠 — 숏츠식 세로 카드(9:16) 가로 스크롤 (PC 드롭다운 + 모바일 오버레이 공용) */
+.psm1-scwrap { display:flex; gap:10px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; padding-bottom:2px; }
+.psm1-scwrap::-webkit-scrollbar { display:none; }
+.psm1-sc { flex:0 0 auto; width:118px; }
+.psm1-sc-th { position:relative; width:100%; aspect-ratio:9/16; border-radius:8px; overflow:hidden; background:#111; }
+.psm1-sc-th img { width:100%; height:100%; object-fit:cover; display:block; }
+.psm1-sc-grad { position:absolute; inset:0; background:linear-gradient(180deg,rgba(0,0,0,.28) 0%,transparent 34%,transparent 54%,rgba(0,0,0,.78) 100%); }
+.psm1-sc-badge { position:absolute; top:7px; left:7px; font-size:9.5px; font-weight:800; color:#fff; background:rgba(232,120,15,.94); padding:2px 6px; border-radius:0; letter-spacing:-0.02em; }
+.psm1-sc-play { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:34px; height:34px; border-radius:50%; background:rgba(15,23,42,.5); display:grid; place-items:center; -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
+.psm1-sc-play svg { width:15px; height:15px; color:#fff; margin-left:1px; }
+.psm1-sc-tt { position:absolute; left:8px; right:8px; bottom:8px; font-size:11.5px; font-weight:700; color:#fff; line-height:1.32; letter-spacing:-0.02em; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-shadow:0 1px 5px rgba(0,0,0,.5); }
+/* 인기검색어 (검색바 우측) */
+.psm1-hot { flex-shrink:0; display:flex; align-items:center; gap:10px; max-width:340px; overflow:hidden; }
+.psm1-hot-label { display:flex; align-items:center; gap:4px; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:-0.02em; flex-shrink:0; }
+.psm1-hot-list { position:relative; height:22px; overflow:hidden; } /* 롤링 뷰포트(1줄) */
+.psm1-hot-track { display:flex; flex-direction:column; }
+.psm1-hot-item { display:flex; align-items:center; gap:6px; height:22px; font-size:13px; font-weight:500; color:#424242; white-space:nowrap; letter-spacing:-0.02em; text-decoration:none; }
+.psm1-hot-item:hover { color:#E8780F; }
+.psm1-hot-item .psm1-hot-rank { font-size:12px; font-weight:800; color:#E8780F; }
+.psm1-hot-thumb { width:18px; height:18px; border-radius:4px; object-fit:cover; flex-shrink:0; background:#F5F6F8; }
+.psm1-hd-util { flex-shrink:0; display:flex; align-items:center; gap:6px; }
+.psm1-hd-util .psm1-cart-link { position:relative; display:inline-flex; width:40px; height:40px; align-items:center; justify-content:center; }
+.psm1-hd-util .psm1-cart { width:24px; height:24px; color:#374151; }
+.psm1-hd-util .psm1-cart-link .count { position:absolute; top:2px; right:0; min-width:17px; height:17px; padding:0 4px; background:#E8780F; color:#fff; font-size:10px; font-weight:800; border-radius:9px; display:grid; place-items:center; line-height:1; }
+.psm1-hd-util .psm1-util-ico { position:relative; display:inline-flex; width:40px; height:40px; align-items:center; justify-content:center; color:#374151; }
+.psm1-hd-util .psm1-util-ico svg { width:21px; height:21px; }
+.psm1-hd-util .psm1-util-ico:hover { color:#E8780F; }
+.psm1-hd-util .psm1-util-sep { width:1px; height:16px; background:#E5E7EB; margin:0 2px; }
+.psm1-hd-mb { display:none; }
+/* 2) 카테고리 탭 */
+.psm1-tabs { border-bottom:1px solid #F2F3F5; background:#fff; }
+.psm1-tabs-inner { max-width:1256px; margin:0 auto; padding:0 24px; display:flex; align-items:center; gap:0; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; }
+.psm1-tabs-inner::-webkit-scrollbar { display:none; }
+.psm1-tab { padding:15px 14px; font-size:15px; font-weight:600; color:#757575; white-space:nowrap; border-bottom:2px solid transparent; margin-bottom:-1px; transition:.15s; letter-spacing:-0.03em; }
+.psm1-tab.on { color:#E8780F; border-color:#E8780F; font-weight:700; }
+/* 베스트: 톤다운 — 알약 제거, 오렌지 텍스트 + 작은 따봉으로 '살짝'만 강조 */
+.psm1-tab.hot { color:#E8780F; font-weight:700; display:inline-flex; align-items:center; gap:4px; }
+.psm1-tab.hot:hover { color:#D26A0A; }
+.psm1-tab-thumb { width:15px; height:15px; flex-shrink:0; color:#E8780F; display:inline-flex; }
+.psm1-tab-thumb svg { width:100%; height:100%; display:block; }
+/* POUR이야기: 배경 없이 확성기 아이콘 + 오렌지 강조 (가끔 흔들리는 효과) */
+.psm1-tab.story { color:#E8780F; font-weight:800; display:inline-flex; align-items:center; gap:5px; }
+.psm1-tab.story:hover { color:#D26A0A; }
+.psm1-tab-mega { width:17px; height:17px; flex-shrink:0; color:#E8780F; display:inline-flex; transform-origin:75% 75%; animation:psm1-mega-wiggle 2.4s ease-in-out infinite; }
+.psm1-tab-mega svg { width:100%; height:100%; display:block; }
+@keyframes psm1-mega-wiggle { 0%,86%,100% { transform:rotate(0); } 90% { transform:rotate(-12deg); } 94% { transform:rotate(9deg); } }
+.psm1-tab:hover { color:#2F3438; }
+.psm1-tab .psm1-tab-new { display:inline-block; font-size:10px; font-weight:800; color:#E8780F; vertical-align:top; margin-left:2px; letter-spacing:0; }
+/* 3) 히어로 */
+.psm1-hero { background:#fff; padding:20px 24px 0; }
+.psm1-hero-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:1fr 320px; gap:20px; }
+.psm1-banner { position:relative; border-radius:12px; overflow:hidden; aspect-ratio:16/9; background:#F5F6F8; cursor:pointer; display:block; }
+.psm1-banner-img { width:100%; height:100%; object-fit:cover; }
+.psm1-banner-grad { position:absolute; inset:0; background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,.55) 100%); }
+.psm1-banner-cap { position:absolute; left:24px; right:24px; bottom:24px; color:#fff; }
+.psm1-banner-cap .tag { display:inline-block; font-size:12px; font-weight:700; padding:4px 9px; background:rgba(232,120,15,.92); border-radius:0; margin-bottom:10px; letter-spacing:-0.02em; }
+.psm1-banner-cap .title { font-size:22px; font-weight:800; line-height:1.35; letter-spacing:-0.04em; text-shadow:0 2px 8px rgba(0,0,0,.3); }
+.psm1-banner-cap .author { margin-top:8px; font-size:12px; font-weight:500; opacity:.95; display:flex; align-items:center; gap:5px; letter-spacing:-0.02em; }
+.psm1-banner-cap .author .av { width:20px; height:20px; border-radius:50%; background:linear-gradient(135deg,#F49A3A,#E8780F); display:grid; place-items:center; font-size:10px; font-weight:800; }
+.psm1-banner-counter { position:absolute; right:14px; bottom:14px; background:rgba(15,23,42,.65); color:#fff; font-size:11px; font-weight:600; padding:4px 9px; border-radius:0; letter-spacing:-0.02em; }
+.psm1-banner-side { position:relative; border-radius:12px; overflow:hidden; background:#F5F6F8; cursor:pointer; display:flex; flex-direction:column; padding:20px 22px; min-height:100%; }
+.psm1-banner-side .ad { display:inline-block; font-size:10px; font-weight:700; padding:2px 6px; background:rgba(255,255,255,.85); color:#7C2D12; border-radius:3px; align-self:flex-start; letter-spacing:0.02em; }
+.psm1-banner-side .label { margin-top:18px; font-size:12px; font-weight:600; color:#7C2D12; letter-spacing:-0.02em; }
+.psm1-banner-side .title { margin-top:6px; font-size:20px; font-weight:800; color:#fff; line-height:1.3; letter-spacing:-0.04em; }
+.psm1-banner-side .product { margin-top:auto; padding-top:20px; align-self:center; display:grid; place-items:center; }
+.psm1-banner-side .product-mock { width:120px; height:140px; background:rgba(255,255,255,.92); border-radius:10px; box-shadow:0 8px 24px rgba(124,45,18,.18); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:#111111; }
+.psm1-banner-side .product-mock .pm-pkg { font-size:36px; }
+.psm1-banner-side .product-mock .pm-name { font-size:10px; font-weight:700; color:#7C2D12; letter-spacing:0.02em; }
+/* 배너 캐러셀 (여러 배너 자동슬라이드 + 링크) */
+.psm1-banner-side { min-height:0; } /* 사이드 높이를 히어로에 맞춤(슬라이드 absolute → 행 높이는 히어로가 결정) */
+.psm1-bnr-carousel { position:absolute; inset:0; overflow:hidden; z-index:1; touch-action:pan-y; }
+.psm1-bnr-track { display:flex; height:100%; transition:transform .4s ease; will-change:transform; }
+.psm1-bnr-slide { flex:0 0 100%; width:100%; height:100%; display:block; }
+.psm1-bnr-slide picture { display:block; width:100%; height:100%; }
+.psm1-bnr-slide img { width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; -webkit-user-drag:none; user-select:none; }
+.psm1-bnr-dots { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); display:flex; align-items:center; justify-content:center; gap:7px; z-index:3; padding:6px 11px; background:rgba(15,23,42,.32); border-radius:999px; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
+.psm1-bnr-dot { width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.6); cursor:pointer; transition:.22s; padding:0; border:0; }
+.psm1-bnr-dot.on { background:#fff; width:24px; border-radius:5px; box-shadow:0 0 0 1px rgba(255,255,255,.35); }
+.psm1-bnr-arrow { position:absolute; top:50%; transform:translateY(-50%); width:34px; height:34px; border-radius:50%; background:rgba(15,23,42,.4); color:#fff; display:grid; place-items:center; z-index:3; cursor:pointer; border:0; padding:0; font-size:20px; line-height:1; opacity:0; transition:opacity .2s, background .2s; }
+.psm1-bnr-arrow:hover { background:rgba(15,23,42,.65); }
+.psm1-bnr-arrow.prev { left:10px; } .psm1-bnr-arrow.next { right:10px; }
+.psm1-banner:hover .psm1-bnr-arrow, .psm1-banner-side:hover .psm1-bnr-arrow { opacity:1; }
+@media (max-width:700px){
+  .psm1-bnr-arrow { display:none; } /* 모바일은 스와이프로 넘김 */
+  /* 모바일: 서브(사이드) 배너는 가로형으로 (JS 높이동기화 무시, 16:9) */
+  .psm1-banner-side.psm1-has-carousel { aspect-ratio:5/2; min-height:0 !important; height:auto !important; } /* 모바일 서브배너 2.5:1 (권장 이미지 1080×432) */
+}
+/* 4) 카테고리 아이콘 */
+.psm1-cats { padding:30px 24px 36px; }
+.psm1-cats-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit, minmax(86px, 1fr)); gap:16px 6px; }
+.psm1-cat { display:flex; flex-direction:column; align-items:center; gap:8px; padding:8px 4px; border-radius:12px; cursor:pointer; transition:.15s; }
+.psm1-cat:hover { background:#FAFAFA; }
+.psm1-cat-ico { width:54px; height:54px; border-radius:14px; background:#F5F6F8; display:grid; place-items:center; font-size:24px; }
+.psm1-cat-ico svg { width:26px; height:26px; }
+.psm1-cat-ico.c1 { background:#F3E8FF; } .psm1-cat-ico.c2 { background:#FFE4E6; } .psm1-cat-ico.c3 { background:#DBEAFE; } .psm1-cat-ico.c4 { background:#DCFCE7; } .psm1-cat-ico.c5 { background:#FCE7F3; } .psm1-cat-ico.c6 { background:#F1F5F9; } .psm1-cat-ico.c7 { background:#FFEDD5; } .psm1-cat-ico.c8 { background:#E0F2FE; } .psm1-cat-ico.c9 { background:#CFFAFE; } .psm1-cat-ico.c10 { background:#FEE2E2; } .psm1-cat-ico.c11 { background:#EDE9FE; } .psm1-cat-ico.c12 { background:#FEF9C3; } .psm1-cat-ico.c13 { background:#E0E7FF; }
+.psm1-cat-name { font-size:13px; font-weight:500; color:#2F3438; text-align:center; letter-spacing:-0.03em; }
+/* 모바일 */
+@media (max-width: 900px) {
+  .psm1-hot { display:none; }
+  .psm1-searchwrap { max-width:none; }
+  .psm1-search input { font-size:16px; } /* 터치기기 자동확대(줌) 방지 — 16px 미만 금지 */
+  .psm1-hero-inner { grid-template-columns:1fr 220px; gap:12px; }
+  .psm1-banner-side { padding:16px; }
+  .psm1-banner-side .title { font-size:16px; }
+  .psm1-banner-cap .title { font-size:18px; }
+  .psm1-cats-inner { grid-template-columns:repeat(5,1fr); row-gap:18px; }
+}
+@media (max-width: 700px) {
+  .psm1-topbar { display:none; }
+  .psm1-hd-inner { display:none; }
+  .psm1-hd-mb { display:block; padding:12px 14px 14px; }
+  .psm1-mb-top { display:grid; grid-template-columns:40px 1fr 40px; align-items:center; }
+  .psm1-hd-mb .psm1-mb-menu, .psm1-hd-mb .psm1-mb-cart { width:40px; height:40px; display:grid; place-items:center; font-size:22px; color:#374151; position:relative; }
+  .psm1-hd-mb .psm1-mb-cart .count { position:absolute; top:2px; right:2px; min-width:15px; height:15px; padding:0 4px; background:#E8780F; color:#fff; font-size:9px; font-weight:800; border-radius:8px; display:grid; place-items:center; line-height:1; }
+  .psm1-hd-mb .psm1-mb-logo { display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; color:#111827; letter-spacing:-0.045em; }
+  .psm1-hd-mb .psm1-mb-logo .psm1-logo-or { color:#111827; }
+  .psm1-mb-searchbar { margin-top:14px; }
+  .psm1-mb-searchbar form { display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:24px; padding:10px 12px 10px 16px; }
+  .psm1-mb-searchbar .psm1-mb-search-ico { width:18px; height:18px; color:#E8780F; flex-shrink:0; }
+  .psm1-mb-searchbar input { flex:1; min-width:0; border:none; background:none; outline:none; font-size:16px; color:#2F3438; letter-spacing:-0.02em; } /* 16px 미만이면 iOS가 포커스 시 자동확대 → 16px 고정 */
+  .psm1-mb-searchbar input::placeholder { color:#9E9E9E; }
+  .psm1-mb-searchbar button[type="submit"] { flex-shrink:0; width:32px; height:32px; border-radius:50%; background:#E8780F; display:grid; place-items:center; }
+  .psm1-mb-searchbar button[type="submit"] svg { width:15px; height:15px; color:#fff; }
+  .psm1-mb-hot { margin-top:10px; display:flex; align-items:center; gap:10px; overflow-x:auto; scrollbar-width:none; }
+  .psm1-mb-hot::-webkit-scrollbar { display:none; }
+  .psm1-mb-hot .psm1-mb-hot-label { font-size:11px; font-weight:800; color:#E8780F; flex-shrink:0; }
+  .psm1-mb-hot a { font-size:12.5px; font-weight:500; color:#616161; white-space:nowrap; }
+  .psm1-tabs-inner { padding:0 14px; }
+  .psm1-tab { font-size:14px; padding:14px 10px; }
+  .psm1-hero { padding:14px 14px 0; }
+  .psm1-hero-inner { grid-template-columns:1fr; gap:10px; }
+  .psm1-banner { aspect-ratio:4/3; border-radius:10px; }
+  .psm1-banner-cap { left:16px; right:16px; bottom:16px; }
+  .psm1-banner-cap .title { font-size:18px; }
+  .psm1-banner-side { aspect-ratio:auto; min-height:140px; flex-direction:row; align-items:center; gap:14px; padding:16px 18px; border-radius:10px; }
+  .psm1-banner-side .label { margin-top:0; }
+  .psm1-banner-side .title { font-size:17px; }
+  .psm1-banner-side .product { margin:0 0 0 auto; padding:0; }
+  .psm1-banner-side .product-mock { width:88px; height:96px; }
+  .psm1-banner-side .product-mock .pm-pkg { font-size:28px; }
+  .psm1-banner-side .ad { position:absolute; top:12px; right:12px; }
+  .psm1-cats { padding:22px 8px 28px; }
+  .psm1-cats-inner { grid-template-columns:repeat(5,1fr); row-gap:18px; gap:0; }
+  .psm1-cat-ico { width:48px; height:48px; font-size:22px; border-radius:14px; }
+  .psm1-cat-ico svg { width:23px; height:23px; }
+  .psm1-cat-name { font-size:11.5px; }
+}
+/* ===== 전체화면 검색 오버레이 (검색창 탭 시 등장) ===== */
+.psm1-ov { position:fixed; inset:0; z-index:99999; background:#fff; display:flex; flex-direction:column; }
+.psm1-ov[hidden] { display:none; }
+.psm1-ov-head { display:flex; align-items:center; gap:6px; padding:10px 12px; border-bottom:1px solid #F2F3F5; background:#fff; flex-shrink:0; }
+.psm1-ov-back { width:38px; height:38px; display:grid; place-items:center; color:#333; flex-shrink:0; }
+.psm1-ov-back svg { width:25px; height:25px; }
+.psm1-ov-form { flex:1; display:flex; align-items:center; gap:8px; background:#F4F5F7; border-radius:22px; padding:9px 14px; margin:0; }
+.psm1-ov-form input { flex:1; min-width:0; border:none; outline:none; background:none; font-size:16px; font-weight:500; color:#2F3438; letter-spacing:-0.02em; }
+.psm1-ov-form input::placeholder { color:#9AA0A6; font-weight:400; }
+.psm1-ov-searchbtn { flex-shrink:0; width:26px; height:26px; display:grid; place-items:center; color:#E8780F; }
+.psm1-ov-searchbtn svg { width:22px; height:22px; }
+.psm1-ov-body, .psm1-ov-results { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:4px 0 48px; }
+.psm1-ov-results[hidden], .psm1-ov-body[hidden] { display:none; }
+.psm1-ov-sec { padding:20px 18px 0; }
+.psm1-ov-sec + .psm1-ov-sec { margin-top:4px; }
+.psm1-ov-sec-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:13px; }
+.psm1-ov-sec-title { font-size:16px; font-weight:800; color:#1F2937; letter-spacing:-0.03em; }
+.psm1-ov-clear { font-size:13px; color:#9AA0A6; font-weight:500; letter-spacing:-0.02em; }
+/* 최근 검색어 */
+.psm1-ov-recent { display:flex; flex-wrap:wrap; gap:8px; }
+.psm1-ov-chip { display:inline-flex; align-items:center; gap:5px; padding:8px 8px 8px 14px; border:1px solid #E5E7EB; border-radius:999px; }
+.psm1-ov-chip > a { font-size:14px; color:#374151; font-weight:500; letter-spacing:-0.02em; }
+.psm1-ov-chip > button { width:18px; height:18px; display:grid; place-items:center; color:#B7BCC2; flex-shrink:0; }
+.psm1-ov-chip > button svg { width:14px; height:14px; }
+.psm1-ov-empty-line { font-size:13.5px; color:#9AA0A6; font-weight:500; padding:2px 0; }
+/* 추천 카테고리 (가로 스크롤) */
+.psm1-ov-cats { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; padding-bottom:2px; }
+.psm1-ov-cats::-webkit-scrollbar { display:none; }
+.psm1-ov-cat { flex:0 0 auto; width:74px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.psm1-ov-cat-ico { width:62px; height:62px; border-radius:18px; display:grid; place-items:center; background:#FFF3E9; color:#E8780F; }
+.psm1-ov-cat-ico svg { width:28px; height:28px; }
+.psm1-ov-cat-name { font-size:12.5px; font-weight:600; color:#374151; letter-spacing:-0.03em; text-align:center; white-space:nowrap; }
+/* 급상승 검색어 (2단 순번) */
+.psm1-ov-rank { display:grid; grid-template-columns:1fr 1fr; gap:0 20px; }
+.psm1-ov-rank-item { display:flex; align-items:center; gap:10px; padding:8px 0; min-width:0; }
+.psm1-ov-rank-num { width:16px; text-align:center; font-size:15px; font-weight:800; color:#E8780F; flex-shrink:0; }
+.psm1-ov-rank-kw { flex:1; min-width:0; font-size:15px; color:#1F2937; font-weight:500; letter-spacing:-0.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.psm1-ov-rank-thumb { width:30px; height:30px; border-radius:7px; object-fit:cover; flex-shrink:0; margin-left:4px; background:#F5F6F8; }
+/* 추천 검색어 (알약) */
+.psm1-ov-reco { display:flex; flex-wrap:wrap; gap:9px; }
+.psm1-ov-reco a { padding:9px 15px; background:#F3F4F6; border-radius:0; font-size:14px; color:#4B5563; font-weight:500; letter-spacing:-0.02em; }
+.psm1-ov-reco a:hover { background:#FFF3E9; color:#E8780F; }
+/* 최근 본 상품 (가로 스크롤 카드) */
+.psm1-ov-prods { display:flex; gap:12px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
+.psm1-ov-prods::-webkit-scrollbar { display:none; }
+.psm1-ov-prod { flex:0 0 auto; width:130px; }
+.psm1-ov-prod img { width:130px; height:130px; object-fit:cover; border-radius:0; background:#F5F6F8; }
+.psm1-ov-prod-name { margin-top:7px; font-size:13px; color:#374151; font-weight:500; letter-spacing:-0.02em; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.psm1-ov-prod-price { margin-top:2px; font-size:13.5px; font-weight:800; color:#1F2937; }
+/* 관련 콘텐츠 (포스팅 리스트) */
+.psm1-ov-content { display:flex; flex-direction:column; gap:4px; }
+.psm1-ov-citem { display:flex; align-items:center; gap:12px; padding:8px 0; }
+.psm1-ov-cthumb { width:52px; height:40px; border-radius:8px; object-fit:cover; background:#F2F3F5; flex-shrink:0; }
+.psm1-ov-cbody { min-width:0; flex:1; }
+.psm1-ov-ctt { font-size:14.5px; font-weight:600; color:#2F3438; letter-spacing:-0.02em; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.psm1-ov-cct { margin-top:3px; font-size:12px; font-weight:700; color:#E8780F; }
+/* 검색 결과(타이핑) — 인라인 자동완성 스타일 재사용 */
+.psm1-ov-results { padding:6px 8px 48px; }
+.psm1-ov-noresult { padding:56px 18px; text-align:center; color:#9AA0A6; font-size:14px; font-weight:500; line-height:1.7; }
+.psm1-ov-sep { height:8px; background:#F6F7F9; margin:14px 0 0; }
+/* ===== 모바일 슬라이드 메뉴(햄버거) ===== */
+.psm1-drawer-bk { position:fixed; inset:0; z-index:99998; background:rgba(15,23,42,.42); opacity:0; transition:opacity .28s ease; }
+.psm1-drawer-bk.open { opacity:1; }
+.psm1-drawer-bk[hidden] { display:none; }
+.psm1-drawer { position:fixed; top:0; left:0; bottom:0; width:82%; max-width:320px; z-index:99999; background:#fff; display:flex; flex-direction:column; transform:translateX(-100%); transition:transform .28s cubic-bezier(.16,1,.3,1); box-shadow:2px 0 24px rgba(15,23,42,.15); }
+.psm1-drawer.open { transform:translateX(0); }
+.psm1-drawer[hidden] { display:none; }
+.psm1-drawer-head { display:flex; align-items:center; justify-content:space-between; padding:16px 16px 14px; border-bottom:1px solid #F2F3F5; flex-shrink:0; }
+.psm1-drawer-logo { font-weight:800; font-size:19px; color:#111827; letter-spacing:-0.045em; }
+.psm1-drawer-logo .or { color:#E8780F; }
+.psm1-drawer-close { width:36px; height:36px; display:grid; place-items:center; color:#555; }
+.psm1-drawer-close svg { width:22px; height:22px; }
+.psm1-drawer-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:8px 0 40px; }
+.psm1-drawer-acct { display:flex; align-items:center; gap:8px; padding:12px 18px 16px; flex-wrap:wrap; }
+.psm1-drawer-acct a { font-size:13px; font-weight:700; color:#374151; padding:8px 13px; border:1px solid #E5E7EB; border-radius:0; }
+.psm1-drawer-acct a.primary { background:#E8780F; color:#fff; border-color:#E8780F; }
+.psm1-drawer-sec { padding:6px 0 4px; }
+.psm1-drawer-sec-t { font-size:11.5px; font-weight:800; color:#9AA0A6; letter-spacing:0; padding:12px 18px 6px; }
+.psm1-drawer-link { display:flex; align-items:center; gap:10px; padding:12px 18px; font-size:15px; font-weight:600; color:#2F3438; letter-spacing:-0.02em; }
+.psm1-drawer-link:active { background:#FAFAFA; }
+.psm1-drawer-link .em { color:#E8780F; }
+.psm1-drawer-div { height:8px; background:#F6F7F9; }
+/* 유튜브 자사몰 내 재생 모달 (watch식: 상단 고정바 + 플레이어 + 메타 + 관련 콘텐츠) */
+.psm1-ytm { position:fixed; inset:0; z-index:100010; background:#0F0F0F; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.psm1-ytm[hidden] { display:none; }
+.psm1-ytm-top { position:sticky; top:0; z-index:10; height:56px; display:flex; align-items:center; gap:12px; padding:0 18px; background:rgba(15,15,15,.94); backdrop-filter:saturate(160%) blur(10px); -webkit-backdrop-filter:saturate(160%) blur(10px); border-bottom:1px solid rgba(255,255,255,.09); }
+.psm1-ytm-brand { display:inline-flex; align-items:center; font-weight:800; font-size:19px; color:#fff; letter-spacing:-0.045em; text-decoration:none; }
+.psm1-ytm-brand .or { color:#F49A3A; }
+.psm1-ytm-label { font-size:12.5px; font-weight:800; color:#0F0F0F; background:#F49A3A; padding:3px 9px; border-radius:0; }
+.psm1-ytm-x { margin-left:auto; width:40px; height:40px; display:grid; place-items:center; border:0; border-radius:50%; background:rgba(255,255,255,.12); color:#fff; cursor:pointer; transition:.15s; flex-shrink:0; }
+.psm1-ytm-x:hover { background:rgba(255,255,255,.24); }
+.psm1-ytm-x svg { width:22px; height:22px; }
+.psm1-ytm-wrap { max-width:1400px; margin:0 auto; padding:26px 24px 60px; display:grid; grid-template-columns:minmax(0,1fr) 402px; gap:24px; align-items:start; }
+.psm1-ytm-player { position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:8px; overflow:hidden; }
+.psm1-ytm-player iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+.psm1-ytm-meta { padding:16px 2px 0; }
+.psm1-ytm-tt { font-size:20px; font-weight:800; color:#fff; letter-spacing:-0.03em; line-height:1.35; }
+.psm1-ytm-row { margin-top:12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding-bottom:16px; border-bottom:1px solid rgba(255,255,255,.12); }
+.psm1-ytm-ct { font-size:13px; font-weight:800; color:#FDBA74; }
+.psm1-ytm-dt { font-size:13px; color:#AAB0B8; font-weight:500; }
+.psm1-ytm-ext { margin-left:auto; display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:800; color:#fff; background:rgba(255,255,255,.12); padding:9px 15px; border-radius:0; text-decoration:none; }
+.psm1-ytm-ext:hover { background:rgba(255,255,255,.22); }
+.psm1-ytm-ext svg { width:15px; height:15px; }
+.psm1-ytm-sm { margin-top:14px; font-size:14px; color:#C6CBD2; font-weight:500; line-height:1.6; white-space:pre-line; }
+.psm1-ytm-side { display:flex; flex-direction:column; gap:8px; }
+.psm1-ytm-sideh { font-size:15px; font-weight:800; color:#fff; margin-bottom:4px; }
+.psm1-ytm-rel { display:grid; grid-template-columns:168px 1fr; gap:10px; cursor:pointer; border-radius:8px; padding:4px; transition:.12s; text-decoration:none; }
+.psm1-ytm-rel:hover { background:rgba(255,255,255,.07); }
+.psm1-ytm-rel-th { position:relative; aspect-ratio:16/9; border-radius:8px; overflow:hidden; background:#222; }
+.psm1-ytm-rel-th img { width:100%; height:100%; object-fit:cover; }
+.psm1-ytm-rel-badge { position:absolute; right:6px; bottom:6px; font-size:10px; font-weight:800; padding:2px 6px; border-radius:0; background:rgba(0,0,0,.78); color:#fff; }
+.psm1-ytm-rel-tt { font-size:14px; font-weight:700; color:#fff; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.psm1-ytm-rel-ct { margin-top:5px; font-size:12.5px; color:#AAB0B8; font-weight:500; }
+.psm1-ytm-empty { color:#888; font-size:13px; font-weight:500; padding:8px 4px; }
+@media (max-width:1000px){
+  .psm1-ytm-wrap { grid-template-columns:1fr; gap:30px; }
+  .psm1-ytm-side { display:grid; grid-template-columns:repeat(2,1fr); gap:20px 16px; }
+  .psm1-ytm-sideh { grid-column:1/-1; font-size:16.5px; }
+  .psm1-ytm-rel { grid-template-columns:1fr; gap:9px; padding:0; }
+  .psm1-ytm-rel-tt { font-size:15px; } .psm1-ytm-rel-ct { font-size:13px; } .psm1-ytm-rel-badge { font-size:11px; padding:3px 7px; }
+}
+@media (max-width:700px){
+  .psm1-ytm-wrap { padding:16px 12px 48px; } .psm1-ytm-tt { font-size:17px; }
+  .psm1-ytm-side { grid-template-columns:1fr; gap:22px; }
+  .psm1-ytm-rel-tt { font-size:15.5px; }
+}
+</style>
+<div class="psm1-sticky">
+<!-- 0) 상단 유틸바 제거 — 마이페이지/로그인·로그아웃/주문조회/고객센터는 헤더 우측 아이콘으로 이동 -->
+<!-- 1) 메인 헤더 -->
+<header class="psm1-hd">
+  <div class="psm1-hd-inner">
+    <a href="/" class="psm1-logo"><span class="psm1-logo-or">POUR</span><span>스토어</span></a>
+    <div class="psm1-searchwrap">
+      <div class="psm1-search">
+        <form action="/product/search.html" method="get" role="search">
+          <svg class="psm1-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="text" name="keyword" autocomplete="off" placeholder="찾으시는 자재를 검색해보세요 (예: 방수재, 프라이머)" aria-label="상품검색" data-psm1-searchinput/>
+          <button type="submit" class="psm1-search-btn" aria-label="검색">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          </button>
+        </form>
+      </div>
+      <div class="psm1-ac" data-psm1-ac></div>
+    </div>
+    <div class="psm1-hot" data-psm1-hot>
+      <span class="psm1-hot-label">인기검색어</span>
+      <div class="psm1-hot-list" data-psm1-hot-list></div>
+    </div>
+    <div class="psm1-hd-util">
+      <a module="Layout_statelogoff" href="/member/login.html" class="psm1-util-ico" aria-label="로그인" title="로그인"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg></a>
+      <a module="Layout_statelogoff" href="/member/agreement.html" class="psm1-util-ico" aria-label="회원가입" title="회원가입"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="8" r="4"/><path d="M19 8v6M22 11h-6"/></svg></a>
+      <a module="Layout_stateLogon" href="/myshop/index.html" class="psm1-util-ico" aria-label="마이페이지" title="마이페이지"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></a>
+      <a module="Layout_stateLogon" href="{$action_logout}" class="psm1-util-ico" aria-label="로그아웃" title="로그아웃"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></a>
+      <a href="/myshop/order/list.html" class="psm1-util-ico" aria-label="주문조회" title="주문조회"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6a1 1 0 0 1 1 1v1h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2V4a1 1 0 0 1 1-1z"/><path d="M9 12h6M9 16h4"/></svg></a>
+      <a href="/board/index.html" class="psm1-util-ico" aria-label="고객센터" title="고객센터"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19a4 4 0 0 1-4 3h-2"/></svg></a>
+      <span class="psm1-util-sep"></span>
+      <a href="/order/basket.html" module="Layout_orderBasketcount" class="psm1-cart-link" aria-label="장바구니">
+        <svg class="psm1-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg>
+        <span class="count {$basket_count_display|display} {$basket_count_display_class}"><span class="{$basket_count_class}">{$basket_count}</span></span>
+      </a>
+    </div>
+  </div>
+  <!-- 모바일 헤더 -->
+  <div class="psm1-hd-mb">
+    <div class="psm1-mb-top">
+      <button class="psm1-mb-menu" aria-label="메뉴"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <a href="/" class="psm1-mb-logo"><span class="psm1-logo-or">POUR</span><span>스토어</span></a>
+      <a href="/order/basket.html" module="Layout_orderBasketcount" class="psm1-mb-cart" aria-label="장바구니">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg>
+        <span class="count {$basket_count_display|display} {$basket_count_display_class}"><span class="{$basket_count_class}">{$basket_count}</span></span>
+      </a>
+    </div>
+    <div class="psm1-mb-searchbar" style="position:relative">
+      <form action="/product/search.html" method="get" role="search">
+        <svg class="psm1-mb-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="text" name="keyword" autocomplete="off" placeholder="찾으시는 자재를 검색해보세요" aria-label="상품검색" data-psm1-mb-searchinput/>
+        <button type="submit" aria-label="검색">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        </button>
+      </form>
+      <div class="psm1-ac" data-psm1-mb-ac></div>
+    </div>
+    <div class="psm1-mb-hot" data-psm1-mb-hot>
+      <span class="psm1-mb-hot-label">인기검색어</span>
+    </div>
+  </div>
+</header>
+<!-- 2) 카테고리 탭 (복구) — 목적지는 CMS 페이지 제작 후 연결 예정(임시 #) -->
+<nav class="psm1-tabs" aria-label="카테고리 탭">
+  <div class="psm1-tabs-inner">
+    <a href="#" class="psm1-tab hot"><span class="psm1-tab-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11M2 13v7a2 2 0 0 0 2 2h13.3a2 2 0 0 0 2-1.7l1.4-9a2 2 0 0 0-2-2.3H14V5a3 3 0 0 0-3-3l-4 9"/></svg></span>베스트</a>
+    <a href="/pourstore_renewal/story/pour-story.html" class="psm1-tab story"><span class="psm1-tab-mega"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5v3a1 1 0 0 0 1 1h2l10 4.5V5L6 9.5H4a1 1 0 0 0-1 1z"/><path d="M6 14.5V18a1.5 1.5 0 0 0 3 0v-2"/><path d="M19 9.8a3.4 3.4 0 0 1 0 4.4"/></svg></span>POUR이야기</a>
+    <a href="#" class="psm1-tab">셀프시공</a>
+    <a href="#" class="psm1-tab">시공사례</a>
+    <a href="#" class="psm1-tab">이벤트</a>
+  </div>
+</nav>
+<!-- 카테고리 줄(해당 페이지 하위 카테고리): 스크롤 내리면 숨김 / 올리면 표시. 내용 없으면 자동 숨김.
+     ↓ 이 안에 카페24 '현재 카테고리 하위분류' 모듈/링크를 넣으면 자동 노출됩니다. (메인엔 위 body:has(.psm1) 규칙으로 헤더 전체가 숨겨져 안 나옴) -->
+<nav class="pour-gh-sub" data-gh-sub hidden aria-label="카테고리">
+  <div class="pour-gh-sub-inner" data-gh-sub-inner>
+    <!-- 예시(실제 cate_no로 교체):
+    <a href="/product/list.html?cate_no=XX" class="pour-gh-sub-link">콘크리트/벽돌</a>
+    <a href="/product/list.html?cate_no=XX" class="pour-gh-sub-link">철재</a> -->
+  </div>
+</nav>
+</div><!-- //psm1-sticky -->
+<!-- 3) 히어로 -->
+<div class="psm1-hero">
+  <div class="psm1-hero-inner">
+    <!-- 로딩 전엔 빈 배너(회색) — 어드민 배너가 로드되면 캐러셀이 채움 -->
+    <div class="psm1-banner" data-hero-banner></div>
+    <div class="psm1-banner-side" data-side-banner></div>
+  </div>
+</div>
+<!-- 4) 카테고리 아이콘 -->
+<nav class="psm1-cats" aria-label="빠른 메뉴">
+  <div class="psm1-cats-inner">
+    <a href="/product/list.html" class="psm1-cat"><span class="psm1-cat-ico c1" style="color:#7C3AED"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9l1-4h14l1 4M4 9v10h16V9M4 9h16M9 19v-5h6v5"/></svg></span><span class="psm1-cat-name">제품구매</span></a>
+    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c2" style="color:#E11D48"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6C10 4.5 6.5 4.5 4 5v13c2.5-.5 6-.5 8 1 2-1.5 5.5-1.5 8-1V5c-2.5-.5-6-.5-8 1z"/><path d="M12 6v13"/></svg></span><span class="psm1-cat-name">시공가이드</span></a>
+    <a href="/product/list.html?cate_no=71" class="psm1-cat"><span class="psm1-cat-ico c3" style="color:#2563EB"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span><span class="psm1-cat-name">패키지</span></a>
+    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c4" style="color:#059669"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l1.5-2h5L16 7"/><circle cx="12" cy="13.5" r="3.2"/></svg></span><span class="psm1-cat-name">후기참여</span></a>
+    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c5" style="color:#DB2777"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v9H3zM14 9h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg></span><span class="psm1-cat-name">배송안내</span></a>    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c7" style="color:#EA580C"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg></span><span class="psm1-cat-name">공급제휴</span></a>    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c9" style="color:#0891B2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 10h.01M15 10h.01"/></svg></span><span class="psm1-cat-name">전시장</span></a>
+    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c10" style="color:#DC2626"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.7-6-10a6 6 0 0 1 12 0c0 4.3-6 10-6 10z"/><circle cx="12" cy="11" r="2.4"/></svg></span><span class="psm1-cat-name">대리점</span></a>
+    <a href="/product/list.html?cate_no=84" class="psm1-cat"><span class="psm1-cat-ico c11" style="color:#6D28D9"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6.5a3.5 3.5 0 0 0-4.6 4.3l-5.1 5.1a1.6 1.6 0 0 0 2.3 2.3l5.1-5.1a3.5 3.5 0 0 0 4.3-4.6l-2.2 2.2-1.8-1.8 2-1.4z"/></svg></span><span class="psm1-cat-name">부자재·안전용품</span></a>
+    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c13" style="color:#4F46E5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 14l2 2 4-4"/></svg></span><span class="psm1-cat-name">파트너사협약</span></a>
+  </div>
+</nav>
+<!-- 5) 전체화면 검색 오버레이 (검색창 탭 시 등장) -->
+<div class="psm1-ov" data-psm1-ov hidden>
+  <div class="psm1-ov-head">
+    <button class="psm1-ov-back" data-psm1-ov-close type="button" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <form class="psm1-ov-form" action="/product/search.html" method="get" role="search">
+      <input type="text" name="keyword" autocomplete="off" placeholder="찾으시는 자재를 검색해보세요" aria-label="상품검색" data-psm1-ov-input/>
+      <button type="submit" class="psm1-ov-searchbtn" aria-label="검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    </form>
+  </div>
+  <div class="psm1-ov-body" data-psm1-ov-body></div>
+  <div class="psm1-ov-results" data-psm1-ov-results hidden></div>
+</div>
+<!-- 6) 모바일 슬라이드 메뉴(햄버거) -->
+<div class="psm1-drawer-bk" data-mb-backdrop hidden></div>
+<aside class="psm1-drawer" data-mb-drawer hidden aria-label="전체 메뉴">
+  <div class="psm1-drawer-head">
+    <a href="/" class="psm1-drawer-logo"><span class="or">POUR</span>스토어</a>
+    <button class="psm1-drawer-close" data-mb-close type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="psm1-drawer-body">
+    <div class="psm1-drawer-acct">
+      <a href="/member/login.html" class="primary" module="Layout_statelogoff">로그인</a>
+      <a href="/member/agreement.html" module="Layout_statelogoff">회원가입</a>
+      <a href="/myshop/index.html" module="Layout_stateLogon">마이페이지</a>
+      <a href="{$action_logout}" module="Layout_stateLogon">로그아웃</a>
+    </div>
+    <div class="psm1-drawer-sec" data-mb-cats>
+      <div class="psm1-drawer-sec-t">카테고리</div>
+    </div>
+    <div class="psm1-drawer-div"></div>
+    <div class="psm1-drawer-sec" data-mb-quick>
+      <div class="psm1-drawer-sec-t">바로가기</div>
+    </div>
+    <div class="psm1-drawer-div"></div>
+    <div class="psm1-drawer-sec">
+      <div class="psm1-drawer-sec-t">고객 서비스</div>
+      <a href="/myshop/order/list.html" class="psm1-drawer-link">주문조회</a>
+      <a href="/board/index.html" class="psm1-drawer-link">고객센터</a>
+      <a href="/order/basket.html" class="psm1-drawer-link" module="Layout_orderBasketcount">장바구니</a>
+    </div>
+  </div>
+</aside>
+<!-- 유튜브 영상 자사몰 내 재생 모달 (페이지 어디서든 유튜브 링크 클릭 시 · 유튜브 watch식) -->
+<div class="psm1-ytm" data-psm1-ytm hidden>
+  <div class="psm1-ytm-top">
+    <a class="psm1-ytm-brand" href="/" aria-label="POUR스토어 홈"><span class="or">POUR</span>스토어</a>
+    <span class="psm1-ytm-label">영상</span>
+    <button class="psm1-ytm-x" data-psm1-ytm-x type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="psm1-ytm-wrap">
+    <div class="psm1-ytm-main">
+      <div class="psm1-ytm-player" data-psm1-ytm-player></div>
+      <div class="psm1-ytm-meta" data-psm1-ytm-meta></div>
+    </div>
+    <aside class="psm1-ytm-side" data-psm1-ytm-side aria-label="관련 콘텐츠"></aside>
+  </div>
+</div>
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain: "pour-app-new.firebaseapp.com",
+  projectId: "pour-app-new",
+  storageBucket: "pour-app-new.firebasestorage.app",
+  messagingSenderId: "411031141847",
+  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
+};
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* ===== 유튜브 자사몰 내 재생: 페이지 어디서든 유튜브 링크 클릭을 가로채 watch식 모달로 재생 =====
+   (메인의 모든 프래그먼트가 한 document를 공유하므로, 여기 한 곳의 캡처 리스너가 전 영역 커버)
+   PM_POSTS는 아래 async 로직이 pourstore-postings 로드 후 채운다(관련 콘텐츠용). */
+var PM_POSTS = [];
+(function(){
+  function ytId(u){ if(!u) return ''; var m=String(u).match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/))([\w-]{11})/); return m?m[1]:''; }
+  function isYtHost(u){ return /(?:^|\.)(?:youtube\.com|youtu\.be)/i.test((function(){ try{ return new URL(u, location.href).hostname; }catch(e){ return ''; } })()); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function ytThumb(u){ var id=ytId(u); return id?('https://img.youtube.com/vi/'+id+'/hqdefault.jpg'):''; }
+  function typeLabel(t){ return (typeof POST_TYPE!=='undefined' && POST_TYPE[t]) || '영상'; }
+  function dOf(p){ var m=String((p&&(p.displayDate||p.createdAt||p.updatedAt))||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[1]+'.'+m[2]+'.'+m[3]):''; }
+  function thumbOf(p){ var t=p&&(p.thumbnail||p.thumb||p.image); return (t&&String(t).trim())?t:ytThumb(p&&p.link); }
+  function findPost(href){ var id=ytId(href); return PM_POSTS.filter(function(p){ return id && ytId(p.link)===id; })[0] || PM_POSTS.filter(function(p){ return p.link===href; })[0] || null; }
+
+  var modal=document.querySelector('[data-psm1-ytm]'), player=document.querySelector('[data-psm1-ytm-player]'),
+      meta=document.querySelector('[data-psm1-ytm-meta]'), side=document.querySelector('[data-psm1-ytm-side]'),
+      btnX=document.querySelector('[data-psm1-ytm-x]'), prevOv='';
+
+  function relHtml(p){
+    var yt = isYtHost(p.link||''); var th = thumbOf(p);
+    return '<a class="psm1-ytm-rel" href="'+esc(p.link||'#')+'"'+(yt?'':(/^https?:/.test(p.link||'')?' target="_blank" rel="noopener"':''))+'>'
+      + '<div class="psm1-ytm-rel-th">'+(th?'<img src="'+esc(th)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':'')+(yt?'<span class="psm1-ytm-rel-badge">▶ 영상</span>':'')+'</div>'
+      + '<div><div class="psm1-ytm-rel-tt">'+esc(p.title||'')+'</div><div class="psm1-ytm-rel-ct">'+esc(typeLabel(p.type))+(dOf(p)?' · '+dOf(p):'')+'</div></div></a>';
+  }
+  function renderSide(cur){
+    if(!side) return;
+    var curId = cur ? ytId(cur.link) : '';
+    var vs = PM_POSTS.filter(function(x){ return x!==cur && ytId(x.link)!==curId && isYtHost(x.link||''); });
+    var os = PM_POSTS.filter(function(x){ return x!==cur && !isYtHost(x.link||''); });
+    var rel = vs.concat(os).slice(0,12);
+    side.innerHTML = '<div class="psm1-ytm-sideh">관련 콘텐츠</div>' + (rel.length ? rel.map(relHtml).join('') : '<div class="psm1-ytm-empty">관련 콘텐츠가 없습니다.</div>');
+  }
+  function open(id, p, fallbackTitle, fallbackLink){
+    if(!modal||!player) return;
+    player.innerHTML='<iframe src="https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&rel=0&modestbranding=1&playsinline=1" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="영상"></iframe>';
+    var title = (p&&p.title) || fallbackTitle || '영상';
+    var link = (p&&p.link) || fallbackLink || 'https://youtu.be/'+id;
+    meta.innerHTML = '<div class="psm1-ytm-tt">'+esc(title)+'</div>'
+      + '<div class="psm1-ytm-row"><span class="psm1-ytm-ct">'+esc(p?typeLabel(p.type):'영상')+'</span>'
+      + (p&&dOf(p)?'<span class="psm1-ytm-dt">'+dOf(p)+'</span>':'')
+      + '<a class="psm1-ytm-ext" href="'+esc(link)+'" target="_blank" rel="noopener">YouTube <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div>'
+      + (p&&p.summary?'<div class="psm1-ytm-sm">'+esc(p.summary)+'</div>':'');
+    renderSide(p);
+    if(modal.hidden){ modal.hidden=false; prevOv=document.documentElement.style.overflow; document.documentElement.style.overflow='hidden'; }
+    modal.scrollTop=0;
+  }
+  function close(){ if(!modal) return; modal.hidden=true; if(player) player.innerHTML=''; document.documentElement.style.overflow=prevOv; }
+  if(btnX) btnX.addEventListener('click', close);
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape' && modal && !modal.hidden) close(); });
+
+  // 캡처 단계에서 유튜브 앵커 클릭 가로채기 (전역). 모달 내부 관련영상 클릭 → 제자리 재생.
+  document.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[href]'); if(!a) return;
+    var inModal = a.closest('[data-psm1-ytm]');
+    if(inModal && (a.classList.contains('psm1-ytm-ext') || a.classList.contains('psm1-ytm-brand'))) return; // 유튜브 원문/홈 이동 허용
+    var href = a.getAttribute('href')||'';
+    var id = ytId(href);
+    if(inModal){
+      if(id){ e.preventDefault(); e.stopPropagation(); open(id, findPost(href), (a.querySelector('.psm1-ytm-rel-tt')||{}).textContent||'', href); }
+      return; // 모달 내 비유튜브(아티클 등)는 정상 이동
+    }
+    if(!isYtHost(href) || !id) return;                  // 채널/재생목록 등 영상ID 없으면 그대로 진행
+    e.preventDefault(); e.stopPropagation();
+    var fbTitle = a.getAttribute('data-title') || (a.querySelector('[data-title]')||{}).textContent || a.getAttribute('title') || '';
+    open(id, findPost(href), (fbTitle||'').trim(), href);
+  }, true);
+  // 다른 프래그먼트에서 프로그램적으로 열 수 있도록 전역 노출
+  window.pourOpenYt = function(u, title){ var id=ytId(u); if(id) open(id, findPost(u), title||'', u); };
+})();
+
+(async function(){
+  // 메인엔 자체 헤더(.psm1)가 있으므로 공용 헤더는 비활성
+  if (document.querySelector('.psm1')) return;
+  var section = document.querySelector('.pour-gh');
+  if (!section) return;
+
+  // sticky 그림자 + 카테고리 줄(섹션2) 스크롤 방향 접힘 (검색+탭은 항상 고정)
+  var sticky = section.querySelector('.psm1-sticky');
+  var sub = section.querySelector('[data-gh-sub]');
+  // 카테고리 줄에 내용이 있으면 노출(비면 숨김 유지)
+  if (sub){ var inner = sub.querySelector('[data-gh-sub-inner]'); if (inner && inner.querySelector('a')) sub.hidden = false; }
+  var lastY = window.pageYOffset || 0;
+  function onScroll(){
+    var y = window.pageYOffset || 0;
+    if (sticky){ if (y > 4) sticky.classList.add('psm1-scrolled'); else sticky.classList.remove('psm1-scrolled'); }
+    if (sub && !sub.hidden){
+      if (y <= 8){ sub.classList.remove('pour-gh-sub--hide'); }
+      else if (y > lastY + 4){ sub.classList.add('pour-gh-sub--hide'); }
+      else if (y < lastY - 4){ sub.classList.remove('pour-gh-sub--hide'); }
+    }
+    lastY = y;
+  }
+  window.addEventListener('scroll', onScroll, { passive:true });
+  onScroll();
+
+  var SEARCH_URL = '/product/search.html?keyword=';
+  var items = [];
+
+  // ===== config/pourstoreHotkeywords 읽기 =====
+  try {
+    var snap = await getDoc(doc(db, "config", "pourstoreHotkeywords"));
+    var raw = snap.exists() && Array.isArray(snap.data().items) ? snap.data().items : [];
+    console.log("[psm1] 인기검색어 원본 " + raw.length + "건 로드");
+    // 클라 정렬: rank 오름차순 + active===true (§10.3-C, orderBy 미사용)
+    items = raw.filter(function(o){ return o && o.active === true; })
+               .sort(function(a,b){ return (a.rank||99) - (b.rank||99); });
+    console.log("[psm1] 노출 대상 " + items.length + "건");
+  } catch (e) {
+    console.log("[psm1] 인기검색어 로드 실패:", e && e.message ? e.message : e);
+  }
+
+  function linkFor(o){ return (o.link && o.link.trim()) ? o.link : (SEARCH_URL + encodeURIComponent(o.keyword||'')); }
+
+  // ===== config/pourstoreRecoKeywords 읽기 (검색 오버레이 '추천 검색어') =====
+  var reco = [];
+  try {
+    var rsnap = await getDoc(doc(db, "config", "pourstoreRecoKeywords"));
+    var rraw = rsnap.exists() && Array.isArray(rsnap.data().items) ? rsnap.data().items : [];
+    reco = rraw.filter(function(o){ return o && o.active === true; })
+               .sort(function(a,b){ return (a.rank||99) - (b.rank||99); });
+    console.log("[psm1] 추천검색어 " + reco.length + "건 로드");
+  } catch (e) { console.log("[psm1] 추천검색어 로드 스킵:", e && e.message ? e.message : e); }
+
+  // ===== 검색 드롭다운 '관련 콘텐츠'용 포스팅 로드 (pourstore-postings) =====
+  var posts = [];
+  try {
+    var psnap = await getDocs(collection(db, "pourstore-postings"));
+    posts = psnap.docs.map(function(d){ return Object.assign({ id:d.id }, d.data()); })
+                      .filter(function(p){ return p && p.active !== false; })
+                      .sort(function(a,b){ return ((a.order==null?999:a.order) - (b.order==null?999:b.order)); });
+    console.log("[psm1] 관련 콘텐츠 " + posts.length + "건 로드");
+  } catch (e) { console.log("[psm1] 관련 콘텐츠 로드 스킵:", e && e.message ? e.message : e); }
+  PM_POSTS = posts;   // 유튜브 재생 모달의 '관련 콘텐츠'용 공유
+  var POST_TYPE = { news:'뉴스', guide:'시공가이드', case:'시공사례', interview:'인터뷰', video:'영상', short:'숏츠', blog:'컨텐츠', event:'이벤트' };
+  function ytThumbUrl(u){ var m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/); return m?('https://img.youtube.com/vi/'+m[1]+'/hqdefault.jpg'):''; }
+  function postThumb(p){ var t=p.thumbnail||p.thumb||p.image||ytThumbUrl(p.link); return (t&&String(t).trim())?'<img class="psm1-ac-thumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':''; }
+  // 숏츠식 세로 카드(9:16) — 관련 콘텐츠를 가로 스크롤로
+  function shortsCardsHtml(list){
+    return list.map(function(p){
+      var isYt = /youtu\.?be/.test(p.link||''); var t = p.thumbnail||p.thumb||p.image||ytThumbUrl(p.link);
+      return '<a class="psm1-sc" href="'+esc2(p.link||'#')+'"'+(isYt?' target="_blank" rel="noopener"':'')+'>'
+        + '<div class="psm1-sc-th">'+(t?'<img src="'+esc2(t)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':'')
+        +   '<div class="psm1-sc-grad"></div>'
+        +   (POST_TYPE[p.type]?'<span class="psm1-sc-badge">'+esc2(POST_TYPE[p.type])+'</span>':'')
+        +   (isYt?'<div class="psm1-sc-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>':'')
+        +   '<div class="psm1-sc-tt">'+esc2(p.title||'')+'</div>'
+        + '</div></a>';
+    }).join('');
+  }
+  function esc2(s){ return (s||'').toString().replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function postItemsHtml(){
+    if (!posts.length) return '';
+    return '<div class="psm1-ac-div"></div><div class="psm1-ac-sec">인기 콘텐츠</div><div class="psm1-scwrap" style="padding:2px 6px 8px">'+shortsCardsHtml(posts.slice(0,10))+'</div>';
+  }
+
+  // ===== 통합 검색 인덱스 — 인기검색어 + 등록상품 + 패키지 + 콘텐츠 모두 인식 =====
+  // 성능: 키워드/패키지/콘텐츠는 즉시(소량), 등록상품(대량)은 검색 첫 상호작용 시 지연 로딩.
+  function norm(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,''); }
+  var SIDX = [];
+  function idxPush(e){ if ((e.title||'').trim() && e.terms.length) SIDX.push(e); }
+  items.forEach(function(o){
+    idxPush({ type:'keyword', title:o.keyword||'', sub:'', link:linkFor(o), thumb:(o.thumb||o.thumbnail||o.image||''), yt:false,
+      terms:[o.keyword].concat(Array.isArray(o.synonyms)?o.synonyms:[]).map(norm).filter(Boolean) });
+  });
+  posts.forEach(function(p){
+    idxPush({ type:'content', title:p.title||'', sub:(POST_TYPE[p.type]||''), link:(p.link||'#'), thumb:(p.thumbnail||p.thumb||ytThumbUrl(p.link)||''), yt:/youtu\.?be/.test(p.link||''),
+      terms:[p.title].concat(Array.isArray(p.tags)?p.tags:[]).map(norm).filter(Boolean) });
+  });
+  try {
+    var pkgSnap = await getDocs(collection(db, "pourstore-packages"));
+    pkgSnap.docs.map(function(d){ return Object.assign({ id:d.id }, d.data()); })
+      .filter(function(p){ return p && p.active !== false && p.productNo; })
+      .forEach(function(p){ idxPush({ type:'product', title:p.name||'', sub:(p.price||''), link:'/product/detail.html?product_no=' + p.productNo + '&cate_no=71', thumb:(p.thumbnail||''), yt:false, terms:[p.name].map(norm).filter(Boolean) }); });
+  } catch (e) { console.log("[psm1] 패키지 로드 스킵:", e && e.message ? e.message : e); }
+  console.log("[psm1] 검색 인덱스 " + SIDX.length + "건(즉시: 키워드/패키지/콘텐츠)");
+
+  // 등록상품(대량) 지연 로딩 — 검색을 처음 쓸 때 1회만
+  var productsLoading = null;
+  function ensureProducts(){
+    if (productsLoading) return productsLoading;
+    productsLoading = (async function(){
+      try {
+        var snap = await getDocs(collection(db, "products"));
+        var n = 0;
+        snap.docs.map(function(d){ return Object.assign({ id:d.id }, d.data()); })
+          .filter(function(p){ return p && p.isActive !== false; })
+          .forEach(function(p){
+            var no = p.channels && p.channels.imweb;
+            var link = (no && String(no).trim()) ? ('/product/detail.html?product_no=' + String(no).trim()) : (SEARCH_URL + encodeURIComponent(p.name||''));
+            idxPush({ type:'product', title:p.name||'', sub:(p.price?String(p.price):''), link:link, thumb:(p.thumbnail||''), yt:false,
+              terms:[p.name].concat(Array.isArray(p.tags)?p.tags:[]).map(norm).filter(Boolean) });
+            n++;
+          });
+        console.log("[psm1] 등록상품 " + n + "건 인덱스 추가 (총 " + SIDX.length + ")");
+      } catch (e) { console.log("[psm1] 상품 로드 스킵:", e && e.message ? e.message : e); }
+    })();
+    return productsLoading;
+  }
+
+  // ===== 메인 배너 캐러셀 (config/pourstoreBanners) — 어드민 '메인 배너 관리' =====
+  function normBanners(v){
+    if (Array.isArray(v)) return v.filter(function(x){ return x && x.image; }).map(function(x){ return { image:x.image, imageMobile:(x.imageMobile||''), link:(x.link||'') }; });
+    if (v && v.image) return [{ image:v.image, imageMobile:(v.imageMobile||''), link:(v.link||'') }]; // 구버전 단일 호환
+    return [];
+  }
+  function renderCarousel(sel, banners, intervalSec){
+    if (!banners.length) return;
+    var el = section.querySelector(sel);
+    if (!el) return;
+    el.style.padding = '0';
+    el.classList.add('psm1-has-carousel');
+    var n = banners.length;
+    // 인라인 스타일 병행 — 카페24 스킨 전역 CSS(img{height:auto} 등)에 밀리지 않도록
+    var box = document.createElement('div'); box.className = 'psm1-bnr-carousel';
+    box.style.cssText = 'position:absolute;inset:0;overflow:hidden;z-index:1;';
+    var track = document.createElement('div'); track.className = 'psm1-bnr-track';
+    track.style.cssText = 'display:flex;height:100%;will-change:transform;';
+    banners.forEach(function(b){
+      var a = document.createElement('a'); a.className = 'psm1-bnr-slide';
+      a.style.cssText = 'flex:0 0 100%;width:100%;height:100%;display:block;';
+      var link = (b.link||'').trim();
+      if (link){ a.href = link; if (/^https?:\/\//.test(link) && link.indexOf(location.host) === -1){ a.target='_blank'; a.rel='noopener'; } }
+      else { a.href = 'javascript:void(0)'; }
+      var img = document.createElement('img'); img.src = b.image; img.alt = '배너'; img.loading = 'lazy'; img.draggable = false;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;';
+      if (b.imageMobile) { // 모바일용 가로 이미지가 있으면 <picture>로 전환
+        var pic = document.createElement('picture');
+        pic.style.cssText = 'display:block;width:100%;height:100%;';
+        var src = document.createElement('source'); src.media = '(max-width:700px)'; src.srcset = b.imageMobile;
+        pic.appendChild(src); pic.appendChild(img);
+        a.appendChild(pic);
+      } else {
+        a.appendChild(img);
+      }
+      track.appendChild(a);
+    });
+    box.appendChild(track); el.innerHTML = ''; el.appendChild(box);
+
+    var cur = 0, timer = null, ds = null;
+    function apply(anim){ track.style.transition = anim===false ? 'none' : 'transform .4s ease'; track.style.transform = 'translateX(-' + (cur*100) + '%)'; if (ds){ for (var i=0;i<ds.length;i++) ds[i].classList.toggle('on', i===cur); } }
+    function go(i){ cur = ((i % n) + n) % n; apply(true); }
+    function start(){ if (n>1 && !timer) timer = setInterval(function(){ go(cur+1); }, Math.max(2, intervalSec||5)*1000); }
+    function stop(){ if (timer){ clearInterval(timer); timer=null; } }
+    function reset(){ stop(); start(); }
+
+    if (n > 1){
+      // 하단 점(O) — 총 개수 표시 + 클릭 시 해당 슬라이드
+      var dots = document.createElement('div'); dots.className = 'psm1-bnr-dots';
+      banners.forEach(function(_, i){ var d = document.createElement('button'); d.type='button'; d.className='psm1-bnr-dot'+(i===0?' on':''); d.setAttribute('aria-label','배너 '+(i+1));
+        d.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); go(i); reset(); }); dots.appendChild(d); });
+      el.appendChild(dots); ds = dots.children;
+      // 좌우 화살표
+      var prev = document.createElement('button'); prev.type='button'; prev.className='psm1-bnr-arrow prev'; prev.setAttribute('aria-label','이전 배너'); prev.textContent='‹';
+      var next = document.createElement('button'); next.type='button'; next.className='psm1-bnr-arrow next'; next.setAttribute('aria-label','다음 배너'); next.textContent='›';
+      prev.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); go(cur-1); reset(); });
+      next.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); go(cur+1); reset(); });
+      el.appendChild(prev); el.appendChild(next);
+      el.addEventListener('mouseenter', stop); el.addEventListener('mouseleave', start);
+
+      // 스와이프/드래그로 직접 넘기기 (터치+마우스 = pointer events)
+      var startX = 0, moved = 0, dragging = false, wasDrag = false;
+      box.addEventListener('pointerdown', function(e){ dragging = true; wasDrag = false; startX = e.clientX; moved = 0; track.style.transition = 'none'; stop(); if (box.setPointerCapture) { try { box.setPointerCapture(e.pointerId); } catch(_){} } });
+      box.addEventListener('pointermove', function(e){ if (!dragging) return; moved = e.clientX - startX; if (Math.abs(moved) > 6) wasDrag = true; track.style.transform = 'translateX(calc(-' + (cur*100) + '% + ' + moved + 'px))'; });
+      var endDrag = function(){ if (!dragging) return; dragging = false; if (moved < -45) go(cur+1); else if (moved > 45) go(cur-1); else apply(true); reset(); };
+      box.addEventListener('pointerup', endDrag); box.addEventListener('pointercancel', endDrag);
+      // 드래그로 넘긴 경우엔 슬라이드 링크 클릭 무시(캡처 단계에서 차단)
+      track.addEventListener('click', function(e){ if (wasDrag){ e.preventDefault(); e.stopPropagation(); } }, true);
+    }
+    apply(false); start();
+  }
+  try {
+    var bsnap = await getDoc(doc(db, "config", "pourstoreBanners"));
+    if (bsnap.exists()) {
+      var bd = bsnap.data() || {}; var iv = Number(bd.intervalSec) || 5;
+      renderCarousel('.psm1-banner', normBanners(bd.hero), iv);
+      var sideBn = normBanners(bd.side);
+      renderCarousel('.psm1-banner-side', sideBn, iv);
+      if (sideBn.length) { // 사이드 높이를 히어로에 맞춤 (그리드 aspect 행높이 미반영 보정)
+        var syncH = function(){ var h = section.querySelector('.psm1-banner'), s = section.querySelector('.psm1-banner-side'); if (!h || !s) return; if (window.innerWidth > 700) { if (h.offsetHeight) s.style.height = h.offsetHeight + 'px'; } else { s.style.height = ''; } };
+        syncH(); window.addEventListener('resize', syncH);
+        var hImg = section.querySelector('.psm1-banner img'); if (hImg) hImg.addEventListener('load', syncH);
+        setTimeout(syncH, 300);
+      }
+      console.log('[psm1] 배너 캐러셀 적용');
+    }
+  } catch (e) { console.log('[psm1] 배너 로드 스킵:', e && e.message ? e.message : e); }
+
+  // ===== 레벨1: 인기검색어 표출 (PC) =====
+  var hotList = section.querySelector('[data-psm1-hot-list]');
+  var hotWrap = section.querySelector('[data-psm1-hot]');
+  if (hotList && items.length) {
+    // 네이버 '전체언론사'식 세로 롤링 — 한 번에 1개씩 위로 굴러가며 교체
+    var HOT = items.slice(0,5);
+    var HH = 22; // .psm1-hot-item 높이와 일치
+    var track = document.createElement('div');
+    track.className = 'psm1-hot-track';
+    function hotItemEl(o, rank){
+      var a = document.createElement('a');
+      a.className = 'psm1-hot-item';
+      a.href = linkFor(o);
+      var t = o.thumb || o.thumbnail || o.image;
+      a.innerHTML = '<span class="psm1-hot-rank">' + rank + '</span>'
+        + (t && String(t).trim() ? '<img class="psm1-hot-thumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' : '')
+        + '<span>' + (o.keyword||'') + '</span>';
+      return a;
+    }
+    HOT.forEach(function(o, i){ track.appendChild(hotItemEl(o, i+1)); });
+    if (HOT.length > 1) track.appendChild(hotItemEl(HOT[0], 1)); // 끝에 첫 항목 복제 → 무한 루프 이음새 제거
+    hotList.appendChild(track);
+
+    if (HOT.length > 1) {
+      var idx = 0, timer = null;
+      var advance = function(){
+        idx++;
+        track.style.transition = 'transform .55s cubic-bezier(.16,1,.3,1)';
+        track.style.transform = 'translateY(-' + (idx * HH) + 'px)';
+        if (idx === HOT.length) { // 복제본 도달 → 트랜지션 없이 처음으로 리셋
+          setTimeout(function(){ track.style.transition = 'none'; track.style.transform = 'translateY(0)'; idx = 0; }, 580);
+        }
+      };
+      var start = function(){ if (!timer) timer = setInterval(advance, 2600); };
+      var stop  = function(){ if (timer) { clearInterval(timer); timer = null; } };
+      hotList.addEventListener('mouseenter', stop);  // 마우스 올리면 멈춤
+      hotList.addEventListener('mouseleave', start);
+      start();
+    }
+  } else if (hotWrap) {
+    hotWrap.style.display = 'none';
+  }
+  // 모바일 인기검색어
+  var mbHot = section.querySelector('[data-psm1-mb-hot]');
+  if (mbHot && items.length) {
+    items.slice(0,8).forEach(function(o){
+      var a = document.createElement('a');
+      a.href = linkFor(o);
+      a.textContent = o.keyword||'';
+      mbHot.appendChild(a);
+    });
+  }
+
+  // ===== 레벨2: 검색 자동완성 (데스크톱 + 모바일 공용) =====
+  function esc(s){ return (s||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+  function thumbHtml(o){ var t = o.thumb || o.thumbnail || o.image; return (t && String(t).trim()) ? '<img class="psm1-ac-thumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' : ''; }
+  function highlight(text, q){ if(!q) return text; return text.replace(new RegExp('('+esc(q)+')','gi'), '<mark>$1</mark>'); }
+  var TYPE_LABEL = { keyword:'검색어', product:'상품', content:'콘텐츠' };
+  var TYPE_ORDER = { keyword:0, product:1, content:2 };
+
+  function wireSearch(input, ac){
+    if (!input || !ac) return null;
+    function renderDefault(){
+      // 입력 없을 때: 최근검색어 · 추천카테고리 · 급상승검색어(2열) · 관련콘텐츠
+      var html = '';
+      var rec = (typeof getRecent==='function') ? getRecent() : [];
+      if (rec.length){
+        html += '<div class="psm1-ac-sec" style="justify-content:space-between"><span>최근 검색어</span><button type="button" class="psm1-ac-clear" data-acclear>전체삭제</button></div>';
+        html += '<div class="psm1-ac-recent">' + rec.slice(0,10).map(function(kw){
+          return '<span class="psm1-ac-chip"><a href="'+SEARCH_URL+encodeURIComponent(kw)+'" data-ackw="'+escHtml(kw)+'">'+escHtml(kw)+'</a><button type="button" data-acdel="'+escHtml(kw)+'" aria-label="삭제"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>';
+        }).join('') + '</div>';
+      }
+      if (typeof OV_CATS !== 'undefined' && OV_CATS.length){
+        html += '<div class="psm1-ac-sec">추천 카테고리</div><div class="psm1-ac-cats">' + OV_CATS.map(function(c){
+          return '<a class="psm1-ac-cat" href="'+c.link+'"><span class="psm1-ac-cat-ico">'+c.svg+'</span><span class="psm1-ac-cat-nm">'+escHtml(c.name)+'</span></a>';
+        }).join('') + '</div>';
+      }
+      if (items.length){
+        html += '<div class="psm1-ac-sec">급상승 검색어</div><div class="psm1-ac-rank">' + items.slice(0,8).map(function(o,i){
+          var t = o.thumb||o.thumbnail||o.image||ytThumbUrl(o.link);
+          return '<a class="psm1-ac-rankitem" href="'+linkFor(o)+'" data-ackw="'+escHtml(o.keyword||'')+'"><span class="psm1-ac-ranknum">'+(i+1)+'</span><span class="psm1-ac-rankkw">'+escHtml(o.keyword||'')+'</span>'+(t?'<img class="psm1-ac-rankthumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':'')+'</a>';
+        }).join('') + '</div>';
+      }
+      html += postItemsHtml(); // 구분선 + 관련 콘텐츠
+      ac.innerHTML = html;
+      return !!html;
+    }
+    function openDefault(){ if (renderDefault()) ac.classList.add('open'); }
+    function renderMatches(q){
+      var qn = norm(q);
+      if (!qn) { ac.innerHTML=''; ac.classList.remove('open'); return; }
+      // 연관 검색어(검색어+상품) — 검색 전 '급상승 검색어'와 동일 디자인(2열 번호+썸네일)
+      var kwHits = SIDX.filter(function(e){ return (e.type==='keyword'||e.type==='product') && e.terms.some(function(t){ return t.indexOf(qn)!==-1; }); });
+      var seen={}; kwHits = kwHits.filter(function(e){ var k=norm(e.title); if(!k||seen[k]) return false; seen[k]=1; return true; });
+      kwHits.sort(function(a,b){
+        var sa=norm(a.title).indexOf(qn)===0?0:1, sb=norm(b.title).indexOf(qn)===0?0:1;
+        return (sa-sb) || (TYPE_ORDER[a.type]-TYPE_ORDER[b.type]);
+      });
+      // 연관 콘텐츠 — 검색 전 '관련 콘텐츠'와 동일 디자인(숏츠 카드). 매칭 포스트 사용
+      var ctPosts = posts.filter(function(p){
+        return [p.title].concat(Array.isArray(p.tags)?p.tags:[]).map(norm).some(function(t){ return t.indexOf(qn)!==-1; });
+      });
+      if (!kwHits.length && !ctPosts.length) { ac.innerHTML=''; ac.classList.remove('open'); return; }
+      var html='';
+      if (kwHits.length){
+        html += '<div class="psm1-ac-sec">연관 검색어</div><div class="psm1-ac-rank">' + kwHits.slice(0,8).map(function(e,i){
+          var t = e.thumb||ytThumbUrl(e.link);
+          return '<a class="psm1-ac-rankitem" href="'+e.link+'"'+(e.yt?' target="_blank" rel="noopener"':'')+' data-ackw="'+escHtml(e.title||'')+'"><span class="psm1-ac-ranknum">'+(i+1)+'</span><span class="psm1-ac-rankkw">'+highlight(escHtml(e.title||''), q)+'</span>'+(t&&String(t).trim()?'<img class="psm1-ac-rankthumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':'')+'</a>';
+        }).join('') + '</div>';
+      }
+      if (ctPosts.length){
+        html += (kwHits.length?'<div class="psm1-ac-div"></div>':'') + '<div class="psm1-ac-sec">연관 콘텐츠</div><div class="psm1-scwrap" style="padding:2px 6px 8px">'+shortsCardsHtml(ctPosts.slice(0,10))+'</div>';
+      }
+      ac.innerHTML = html;
+      ac.classList.add('open');
+    }
+    function reRunIfTyping(){ ensureProducts().then(function(){ if (input.value.trim()) renderMatches(input.value.trim()); }); }
+    input.addEventListener('focus', function(){
+      reRunIfTyping(); // 등록상품 지연 로딩 시작
+      if (input.value.trim()) renderMatches(input.value.trim());
+      else openDefault(); // 입력 없으면 인기검색어+관련콘텐츠
+    });
+    input.addEventListener('input', function(){
+      var q = input.value.trim();
+      if (!q) openDefault();
+      else { renderMatches(q); reRunIfTyping(); }
+    });
+    input.addEventListener('blur', function(){ setTimeout(function(){ ac.classList.remove('open'); }, 200); });
+    ac.addEventListener('mousedown', function(e){ if (e.target.closest('a')) return; e.preventDefault(); });
+    // 최근검색어 삭제/전체삭제 + 검색어 클릭 시 최근검색어 저장
+    ac.addEventListener('click', function(e){
+      var del=e.target.closest('[data-acdel]'); if(del){ e.preventDefault(); if(typeof removeRecent==='function') removeRecent(del.getAttribute('data-acdel')); renderDefault(); return; }
+      var clr=e.target.closest('[data-acclear]'); if(clr){ e.preventDefault(); if(typeof saveRecent==='function') saveRecent([]); renderDefault(); return; }
+      var kw=e.target.closest('[data-ackw]'); if(kw && typeof addRecent==='function'){ addRecent(kw.getAttribute('data-ackw')); }
+    });
+    var frm=input.closest('form'); if(frm) frm.addEventListener('submit', function(){ if(typeof addRecent==='function') addRecent(input.value); });
+    return { openDefault: openDefault };
+  }
+
+  // ===== 레벨3: 전체화면 검색 오버레이 (검색창 탭 시 등장) =====
+  var pcInput = section.querySelector('[data-psm1-searchinput]');
+  var mbInput = section.querySelector('[data-psm1-mb-searchinput]');
+  var ov = section.querySelector('[data-psm1-ov]');
+  var ovInput = section.querySelector('[data-psm1-ov-input]');
+  var ovBody = section.querySelector('[data-psm1-ov-body]');
+  var ovResults = section.querySelector('[data-psm1-ov-results]');
+  var ovForm = ov ? ov.querySelector('.psm1-ov-form') : null;
+
+  function escHtml(s){ return (s||'').toString().replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+  // 최근 검색어 (localStorage)
+  var RECENT_KEY = 'pourStoreRecentSearch';
+  function getRecent(){ try { return JSON.parse(localStorage.getItem(RECENT_KEY)||'[]'); } catch(e){ return []; } }
+  function saveRecent(a){ try { localStorage.setItem(RECENT_KEY, JSON.stringify(a.slice(0,12))); } catch(e){} }
+  function addRecent(kw){ kw=(kw||'').trim(); if(!kw) return; var a=getRecent().filter(function(x){ return x!==kw; }); a.unshift(kw); saveRecent(a); }
+  function removeRecent(kw){ saveRecent(getRecent().filter(function(x){ return x!==kw; })); }
+
+  // 최근 본 상품 (localStorage — 상품상세 페이지에서 기록, 스니펫 별도 안내)
+  var RV_KEY = 'pourStoreRecentView';
+  function getRecentView(){ try { var a=JSON.parse(localStorage.getItem(RV_KEY)||'[]'); return Array.isArray(a)?a:[]; } catch(e){ return []; } }
+
+  // 추천 카테고리 (부자재=84, 안전용품=63만 실제 연결. 나머지는 CMS 페이지 제작 후 연결)
+  var OV_CATS = [
+    { name:'셀프시공',  link:'#', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a3.5 3.5 0 0 0-4.6 4.3l-6 6a1.6 1.6 0 0 0 2.3 2.3l6-6a3.5 3.5 0 0 0 4.3-4.6l-2.2 2.2-1.8-1.8z"/></svg>' },
+    { name:'시공가이드', link:'#', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6C10 4.5 6.5 4.5 4 5v13c2.5-.5 6-.5 8 1 2-1.5 5.5-1.5 8-1V5c-2.5-.5-6-.5-8 1z"/><path d="M12 6v13"/></svg>' },
+    { name:'시공의뢰',  link:'#', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 13l2 2 4-4"/></svg>' },
+    { name:'매장',     link:'#', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9M3 9v10h18V9M3 9h18M4 9a3 3 0 0 0 5 0 3 3 0 0 0 6 0 3 3 0 0 0 5 0"/></svg>' },
+    { name:'부자재',   link:'/product/list.html?cate_no=84', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>' },
+    { name:'안전용품', link:'/product/list.html?cate_no=63', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a9 7 0 0 0-9 7v3a9 9 0 0 0 18 0V9a9 7 0 0 0-9-7z"/><path d="M3 12h18"/></svg>' }
+  ];
+
+  function renderOverlayDefault(){
+    if (!ovBody) return;
+    var h = '';
+    // 최근 검색어
+    var rec = getRecent();
+    h += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">최근 검색어</span>'
+       + (rec.length ? '<button class="psm1-ov-clear" data-ov-clear type="button">전체삭제</button>' : '')
+       + '</div>';
+    if (rec.length){
+      h += '<div class="psm1-ov-recent">';
+      rec.forEach(function(kw){
+        h += '<span class="psm1-ov-chip"><a href="'+SEARCH_URL+encodeURIComponent(kw)+'" data-ov-kw="'+escHtml(kw)+'">'+escHtml(kw)+'</a>'
+          +  '<button type="button" data-ov-del="'+escHtml(kw)+'" aria-label="삭제"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>';
+      });
+      h += '</div>';
+    } else {
+      h += '<div class="psm1-ov-empty-line">최근 검색 내역이 없습니다.</div>';
+    }
+    h += '</div>';
+    // 추천 카테고리
+    h += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">추천 카테고리</span></div><div class="psm1-ov-cats">';
+    OV_CATS.forEach(function(c){ h += '<a class="psm1-ov-cat" href="'+c.link+'"><span class="psm1-ov-cat-ico">'+c.svg+'</span><span class="psm1-ov-cat-name">'+escHtml(c.name)+'</span></a>'; });
+    h += '</div></div>';
+    // 급상승 검색어 (인기검색어 — 시간 미표시)
+    if (items.length){
+      h += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">급상승 검색어</span></div><div class="psm1-ov-rank">';
+      items.slice(0,8).forEach(function(o,i){ var t=o.thumb||o.thumbnail||o.image; h += '<a class="psm1-ov-rank-item" href="'+linkFor(o)+'" data-ov-kw="'+escHtml(o.keyword||'')+'"><span class="psm1-ov-rank-num">'+(i+1)+'</span><span class="psm1-ov-rank-kw">'+escHtml(o.keyword||'')+'</span>'+(t&&String(t).trim()?'<img class="psm1-ov-rank-thumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':'')+'</a>'; });
+      h += '</div></div>';
+    }
+    // 추천 검색어 (어드민 config/pourstoreRecoKeywords)
+    if (reco.length){
+      h += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">추천 검색어</span></div><div class="psm1-ov-reco">';
+      reco.forEach(function(o){ h += '<a href="'+linkFor(o)+'" data-ov-kw="'+escHtml(o.keyword||'')+'">'+escHtml(o.keyword||'')+'</a>'; });
+      h += '</div></div>';
+    }
+    // 관련 콘텐츠 (포스팅) — 숏츠식 가로 스크롤
+    if (posts.length){
+      h += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">인기 콘텐츠</span></div><div class="psm1-scwrap">'+shortsCardsHtml(posts.slice(0,10))+'</div></div>';
+    }
+    // 최근 본 상품 (있을 때만)
+    var rv = getRecentView();
+    if (rv.length){
+      h += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">최근 본 상품</span></div><div class="psm1-ov-prods">';
+      rv.slice(0,12).forEach(function(p){
+        h += '<a class="psm1-ov-prod" href="'+(p.link||'#')+'">'
+          +  '<img src="'+escHtml(p.thumb||'')+'" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'"/>'
+          +  '<div class="psm1-ov-prod-name">'+escHtml(p.name||'')+'</div>'
+          +  (p.price ? '<div class="psm1-ov-prod-price">'+escHtml(String(p.price))+'</div>' : '')
+          + '</a>';
+      });
+      h += '</div></div>';
+    }
+    ovBody.innerHTML = h;
+  }
+
+  function renderOverlayMatches(q){
+    if (!ovResults) return;
+    var qn = norm(q);
+    if (!qn){ ovResults.hidden = true; ovBody.hidden = false; return; }
+    ovBody.hidden = true; ovResults.hidden = false;
+    // 연관 검색어(검색어+상품) — '급상승 검색어'와 동일 디자인
+    var kwHits = SIDX.filter(function(e){ return (e.type==='keyword'||e.type==='product') && e.terms.some(function(t){ return t.indexOf(qn)!==-1; }); });
+    var seen={}; kwHits = kwHits.filter(function(e){ var k=norm(e.title); if(!k||seen[k]) return false; seen[k]=1; return true; });
+    kwHits.sort(function(a,b){
+      var sa=norm(a.title).indexOf(qn)===0?0:1, sb=norm(b.title).indexOf(qn)===0?0:1;
+      return (sa-sb) || (TYPE_ORDER[a.type]-TYPE_ORDER[b.type]);
+    });
+    // 연관 콘텐츠 — '관련 콘텐츠'와 동일 디자인(숏츠 카드)
+    var ctPosts = posts.filter(function(p){
+      return [p.title].concat(Array.isArray(p.tags)?p.tags:[]).map(norm).some(function(t){ return t.indexOf(qn)!==-1; });
+    });
+    if (!kwHits.length && !ctPosts.length){ ovResults.innerHTML = '<div class="psm1-ov-noresult">검색 결과가 없습니다.<br>엔터를 눌러 전체 검색결과를 확인하세요.</div>'; return; }
+    var html = '';
+    if (kwHits.length){
+      html += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">연관 검색어</span></div><div class="psm1-ov-rank">';
+      kwHits.slice(0,10).forEach(function(e,i){ var t=e.thumb||ytThumbUrl(e.link); html += '<a class="psm1-ov-rank-item" href="'+e.link+'"'+(e.yt?' target="_blank" rel="noopener"':'')+' data-ov-kw="'+escHtml(e.title||'')+'"><span class="psm1-ov-rank-num">'+(i+1)+'</span><span class="psm1-ov-rank-kw">'+highlight(escHtml(e.title||''), q)+'</span>'+(t&&String(t).trim()?'<img class="psm1-ov-rank-thumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':'')+'</a>'; });
+      html += '</div></div>';
+    }
+    if (ctPosts.length){
+      html += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">연관 콘텐츠</span></div><div class="psm1-scwrap">'+shortsCardsHtml(ctPosts.slice(0,10))+'</div></div>';
+    }
+    ovResults.innerHTML = html;
+  }
+
+  var _htmlOverflow = '';
+  function openOverlay(prefill){
+    if (!ov) return;
+    renderOverlayDefault();
+    ovResults.hidden = true; ovBody.hidden = false;
+    ov.hidden = false;
+    _htmlOverflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+    ensureProducts(); // 등록상품 지연 로딩 시작
+    if (prefill && prefill.trim()){ ovInput.value = prefill; renderOverlayMatches(prefill); }
+    setTimeout(function(){ try { ovInput.focus(); } catch(e){} }, 30);
+  }
+  function closeOverlay(){
+    if (!ov) return;
+    ov.hidden = true;
+    document.documentElement.style.overflow = _htmlOverflow;
+    ovInput.value = '';
+    ovResults.hidden = true; ovBody.hidden = false;
+  }
+
+  if (ov){
+    // 모바일 검색창 탭 → 전체화면 오버레이 (PC는 아래 인라인 드롭다운 사용)
+    function attachOpener(inp){
+      if (!inp) return;
+      inp.readOnly = true; // 모바일 헤더 input엔 직접 입력하지 않음(포커스 즉시 오버레이로)
+      inp.addEventListener('focus', function(){ openOverlay(inp.value); inp.blur(); });
+      inp.addEventListener('click', function(){ openOverlay(inp.value); });
+    }
+    attachOpener(mbInput);
+
+    // PC 검색창 → 기존 방식(검색창 아래 인라인 드롭다운)
+    var pcAc = section.querySelector('[data-psm1-ac]');
+    var pcSearch = wireSearch(pcInput, pcAc);
+
+    // 인기검색어 롤링 클릭 — PC는 인라인 드롭다운 토글, 모바일은 오버레이
+    var hotBox = section.querySelector('[data-psm1-hot]');
+    if (hotBox && pcSearch && pcAc && pcInput){
+      hotBox.style.cursor = 'pointer';
+      hotBox.addEventListener('click', function(e){
+        e.preventDefault();
+        if (pcAc.classList.contains('open')) pcAc.classList.remove('open');
+        else { pcSearch.openDefault(); pcInput.focus(); }
+      });
+    }
+    var mbHotBox = section.querySelector('[data-psm1-mb-hot]');
+    if (mbHotBox){ mbHotBox.style.cursor = 'pointer'; mbHotBox.addEventListener('click', function(e){ if (e.target.closest('a')) return; openOverlay(''); }); }
+
+    // 닫기
+    var closeBtn = ov.querySelector('[data-psm1-ov-close]');
+    if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !ov.hidden) closeOverlay(); });
+
+    // 타이핑 → 결과
+    ovInput.addEventListener('input', function(){
+      var q = ovInput.value.trim();
+      if (!q){ ovResults.hidden = true; ovBody.hidden = false; }
+      else { renderOverlayMatches(q); ensureProducts().then(function(){ if (ovInput.value.trim()) renderOverlayMatches(ovInput.value.trim()); }); }
+    });
+    // 제출 → 최근검색어 저장 후 검색결과로 이동
+    if (ovForm) ovForm.addEventListener('submit', function(){ addRecent(ovInput.value); });
+
+    // 기본 화면: 최근검색어 삭제/전체삭제
+    ovBody.addEventListener('click', function(e){
+      var clr = e.target.closest('[data-ov-clear]');
+      if (clr){ e.preventDefault(); saveRecent([]); renderOverlayDefault(); return; }
+      var del = e.target.closest('[data-ov-del]');
+      if (del){ e.preventDefault(); e.stopPropagation(); removeRecent(del.getAttribute('data-ov-del')); renderOverlayDefault(); return; }
+      var kwEl = e.target.closest('[data-ov-kw]');
+      if (kwEl){ addRecent(kwEl.getAttribute('data-ov-kw')); } // 이동은 그대로 진행
+    });
+    // 결과에서 항목 클릭 → 현재 입력어를 최근검색어로 저장
+    ovResults.addEventListener('click', function(e){ if (e.target.closest('a')) addRecent(ovInput.value); });
+  }
+
+  // ===== 모바일 슬라이드 메뉴(햄버거) =====
+  var mbMenuBtn = section.querySelector('.psm1-mb-menu');
+  var drawer = section.querySelector('[data-mb-drawer]');
+  var backdrop = section.querySelector('[data-mb-backdrop]');
+  if (mbMenuBtn && drawer && backdrop) {
+    var drawerBuilt = false;
+    function buildDrawer(){
+      if (drawerBuilt) return; drawerBuilt = true;
+      // 카테고리: 상단 탭에서 자동 구성
+      var catBox = drawer.querySelector('[data-mb-cats]');
+      Array.prototype.forEach.call(section.querySelectorAll('.psm1-tabs .psm1-tab'), function(t){
+        var a = document.createElement('a');
+        a.className = 'psm1-drawer-link'; a.href = t.getAttribute('href') || '#';
+        var name = (t.textContent || '').trim();
+        a.innerHTML = (t.classList.contains('story') ? '<span class="em">'+name+'</span>' : name);
+        catBox.appendChild(a);
+      });
+      // 바로가기: 퀵메뉴 아이콘에서 자동 구성
+      var qBox = drawer.querySelector('[data-mb-quick]');
+      Array.prototype.forEach.call(section.querySelectorAll('.psm1-cats .psm1-cat'), function(c){
+        var nm = c.querySelector('.psm1-cat-name'); if (!nm) return;
+        var a = document.createElement('a');
+        a.className = 'psm1-drawer-link'; a.href = c.getAttribute('href') || '#';
+        a.textContent = (nm.textContent || '').trim();
+        qBox.appendChild(a);
+      });
+    }
+    var _drawerOverflow = '';
+    function openDrawer(){
+      buildDrawer();
+      drawer.hidden = false; backdrop.hidden = false;
+      _drawerOverflow = document.documentElement.style.overflow;
+      document.documentElement.style.overflow = 'hidden';
+      requestAnimationFrame(function(){ drawer.classList.add('open'); backdrop.classList.add('open'); });
+    }
+    function closeDrawer(){
+      drawer.classList.remove('open'); backdrop.classList.remove('open');
+      document.documentElement.style.overflow = _drawerOverflow;
+      setTimeout(function(){ drawer.hidden = true; backdrop.hidden = true; }, 300);
+    }
+    mbMenuBtn.addEventListener('click', function(e){ e.preventDefault(); openDrawer(); });
+    backdrop.addEventListener('click', closeDrawer);
+    var dClose = drawer.querySelector('[data-mb-close]');
+    if (dClose) dClose.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !drawer.hidden) closeDrawer(); });
+  }
+})();
+</script>
+</section>

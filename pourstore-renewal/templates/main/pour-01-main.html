@@ -649,7 +649,7 @@ var PM_POSTS = [];
   function esc2(s){ return (s||'').toString().replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function postItemsHtml(){
     if (!posts.length) return '';
-    return '<div class="psm1-ac-div"></div><div class="psm1-ac-sec">관련 콘텐츠</div><div class="psm1-scwrap" style="padding:2px 6px 8px">'+shortsCardsHtml(posts.slice(0,10))+'</div>';
+    return '<div class="psm1-ac-div"></div><div class="psm1-ac-sec">인기 콘텐츠</div><div class="psm1-scwrap" style="padding:2px 6px 8px">'+shortsCardsHtml(posts.slice(0,10))+'</div>';
   }
 
   // ===== 통합 검색 인덱스 — 인기검색어 + 등록상품 + 패키지 + 콘텐츠 모두 인식 =====
@@ -875,24 +875,28 @@ var PM_POSTS = [];
     function renderMatches(q){
       var qn = norm(q);
       if (!qn) { ac.innerHTML=''; ac.classList.remove('open'); return; }
-      var hits = SIDX.filter(function(e){ return e.terms.some(function(t){ return t.indexOf(qn) !== -1; }); });
-      if (!hits.length) { ac.innerHTML=''; ac.classList.remove('open'); return; }
-      // 정렬: 제목 앞부분 일치 우선 → 타입(검색어>상품>콘텐츠)
-      hits.sort(function(a,b){
-        var sa = norm(a.title).indexOf(qn)===0 ? 0 : 1;
-        var sb = norm(b.title).indexOf(qn)===0 ? 0 : 1;
-        return (sa - sb) || (TYPE_ORDER[a.type] - TYPE_ORDER[b.type]);
+      // 연관 검색어(검색어+상품) — 검색 전 '급상승 검색어'와 동일 디자인(2열 번호+썸네일)
+      var kwHits = SIDX.filter(function(e){ return (e.type==='keyword'||e.type==='product') && e.terms.some(function(t){ return t.indexOf(qn)!==-1; }); });
+      var seen={}; kwHits = kwHits.filter(function(e){ var k=norm(e.title); if(!k||seen[k]) return false; seen[k]=1; return true; });
+      kwHits.sort(function(a,b){
+        var sa=norm(a.title).indexOf(qn)===0?0:1, sb=norm(b.title).indexOf(qn)===0?0:1;
+        return (sa-sb) || (TYPE_ORDER[a.type]-TYPE_ORDER[b.type]);
       });
-      var html = '<div class="psm1-ac-sec">추천 검색어 · 상품 · 콘텐츠</div>';
-      hits.slice(0,10).forEach(function(e){
-        var thumb = (e.thumb && String(e.thumb).trim()) ? '<img class="psm1-ac-thumb" src="'+e.thumb+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' : '';
-        var sub = e.sub ? ' <span style="color:#9AA0A6;font-weight:600">· '+e.sub+'</span>' : '';
-        html += '<a class="psm1-ac-item" href="'+e.link+'"'+(e.yt?' target="_blank" rel="noopener"':'')+'>'
-             +    '<span class="psm1-ac-badge2 t-'+e.type+'">'+TYPE_LABEL[e.type]+'</span>'
-             +    '<span class="psm1-ac-text">'+highlight(e.title||'', q)+sub+'</span>'
-             +    thumb
-             + '</a>';
+      // 연관 콘텐츠 — 검색 전 '관련 콘텐츠'와 동일 디자인(숏츠 카드). 매칭 포스트 사용
+      var ctPosts = posts.filter(function(p){
+        return [p.title].concat(Array.isArray(p.tags)?p.tags:[]).map(norm).some(function(t){ return t.indexOf(qn)!==-1; });
       });
+      if (!kwHits.length && !ctPosts.length) { ac.innerHTML=''; ac.classList.remove('open'); return; }
+      var html='';
+      if (kwHits.length){
+        html += '<div class="psm1-ac-sec">연관 검색어</div><div class="psm1-ac-rank">' + kwHits.slice(0,8).map(function(e,i){
+          var t = e.thumb||ytThumbUrl(e.link);
+          return '<a class="psm1-ac-rankitem" href="'+e.link+'"'+(e.yt?' target="_blank" rel="noopener"':'')+' data-ackw="'+escHtml(e.title||'')+'"><span class="psm1-ac-ranknum">'+(i+1)+'</span><span class="psm1-ac-rankkw">'+highlight(escHtml(e.title||''), q)+'</span>'+(t&&String(t).trim()?'<img class="psm1-ac-rankthumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':'')+'</a>';
+        }).join('') + '</div>';
+      }
+      if (ctPosts.length){
+        html += (kwHits.length?'<div class="psm1-ac-div"></div>':'') + '<div class="psm1-ac-sec">연관 콘텐츠</div><div class="psm1-scwrap" style="padding:2px 6px 8px">'+shortsCardsHtml(ctPosts.slice(0,10))+'</div>';
+      }
       ac.innerHTML = html;
       ac.classList.add('open');
     }
@@ -988,7 +992,7 @@ var PM_POSTS = [];
     }
     // 관련 콘텐츠 (포스팅) — 숏츠식 가로 스크롤
     if (posts.length){
-      h += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">관련 콘텐츠</span></div><div class="psm1-scwrap">'+shortsCardsHtml(posts.slice(0,10))+'</div></div>';
+      h += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">인기 콘텐츠</span></div><div class="psm1-scwrap">'+shortsCardsHtml(posts.slice(0,10))+'</div></div>';
     }
     // 최근 본 상품 (있을 때만)
     var rv = getRecentView();
@@ -1011,23 +1015,27 @@ var PM_POSTS = [];
     var qn = norm(q);
     if (!qn){ ovResults.hidden = true; ovBody.hidden = false; return; }
     ovBody.hidden = true; ovResults.hidden = false;
-    var hits = SIDX.filter(function(e){ return e.terms.some(function(t){ return t.indexOf(qn) !== -1; }); });
-    if (!hits.length){ ovResults.innerHTML = '<div class="psm1-ov-noresult">검색 결과가 없습니다.<br>엔터를 눌러 전체 검색결과를 확인하세요.</div>'; return; }
-    hits.sort(function(a,b){
-      var sa = norm(a.title).indexOf(qn)===0 ? 0 : 1;
-      var sb = norm(b.title).indexOf(qn)===0 ? 0 : 1;
-      return (sa - sb) || (TYPE_ORDER[a.type] - TYPE_ORDER[b.type]);
+    // 연관 검색어(검색어+상품) — '급상승 검색어'와 동일 디자인
+    var kwHits = SIDX.filter(function(e){ return (e.type==='keyword'||e.type==='product') && e.terms.some(function(t){ return t.indexOf(qn)!==-1; }); });
+    var seen={}; kwHits = kwHits.filter(function(e){ var k=norm(e.title); if(!k||seen[k]) return false; seen[k]=1; return true; });
+    kwHits.sort(function(a,b){
+      var sa=norm(a.title).indexOf(qn)===0?0:1, sb=norm(b.title).indexOf(qn)===0?0:1;
+      return (sa-sb) || (TYPE_ORDER[a.type]-TYPE_ORDER[b.type]);
     });
+    // 연관 콘텐츠 — '관련 콘텐츠'와 동일 디자인(숏츠 카드)
+    var ctPosts = posts.filter(function(p){
+      return [p.title].concat(Array.isArray(p.tags)?p.tags:[]).map(norm).some(function(t){ return t.indexOf(qn)!==-1; });
+    });
+    if (!kwHits.length && !ctPosts.length){ ovResults.innerHTML = '<div class="psm1-ov-noresult">검색 결과가 없습니다.<br>엔터를 눌러 전체 검색결과를 확인하세요.</div>'; return; }
     var html = '';
-    hits.slice(0,20).forEach(function(e){
-      var thumb = (e.thumb && String(e.thumb).trim()) ? '<img class="psm1-ac-thumb" src="'+e.thumb+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' : '';
-      var sub = e.sub ? ' <span style="color:#9AA0A6;font-weight:600">· '+escHtml(String(e.sub))+'</span>' : '';
-      html += '<a class="psm1-ac-item" href="'+e.link+'"'+(e.yt?' target="_blank" rel="noopener"':'')+'>'
-           +    '<span class="psm1-ac-badge2 t-'+e.type+'">'+TYPE_LABEL[e.type]+'</span>'
-           +    '<span class="psm1-ac-text">'+highlight(e.title||'', q)+sub+'</span>'
-           +    thumb
-           + '</a>';
-    });
+    if (kwHits.length){
+      html += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">연관 검색어</span></div><div class="psm1-ov-rank">';
+      kwHits.slice(0,10).forEach(function(e,i){ var t=e.thumb||ytThumbUrl(e.link); html += '<a class="psm1-ov-rank-item" href="'+e.link+'"'+(e.yt?' target="_blank" rel="noopener"':'')+' data-ov-kw="'+escHtml(e.title||'')+'"><span class="psm1-ov-rank-num">'+(i+1)+'</span><span class="psm1-ov-rank-kw">'+highlight(escHtml(e.title||''), q)+'</span>'+(t&&String(t).trim()?'<img class="psm1-ov-rank-thumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':'')+'</a>'; });
+      html += '</div></div>';
+    }
+    if (ctPosts.length){
+      html += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">연관 콘텐츠</span></div><div class="psm1-scwrap">'+shortsCardsHtml(ctPosts.slice(0,10))+'</div></div>';
+    }
     ovResults.innerHTML = html;
   }
 

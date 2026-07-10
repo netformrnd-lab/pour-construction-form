@@ -1240,6 +1240,25 @@ var PM_POSTS = [];
 .pstory-lead { margin-top:8px; font-size:15px; color:#6B7280; font-weight:500; }
 /* 섹션 공통 */
 .pstory-sec { max-width:1256px; margin:0 auto; padding:36px 24px; }
+/* 브랜드 스토리 (하단 다크 섹션) */
+.pstory-brand { background:#14161A; }
+.pstory-brand-inner { max-width:1100px; margin:0 auto; padding:64px 24px 70px; }
+.pstory-brand-kicker { display:inline-block; font-size:12px; font-weight:800; letter-spacing:0.14em; color:#F49A3A; }
+.pstory-brand-h { margin-top:15px; font-size:32px; font-weight:900; color:#fff; letter-spacing:-0.045em; line-height:1.25; }
+.pstory-brand-lead { margin-top:15px; font-size:15.5px; color:#AEB4BE; font-weight:500; line-height:1.72; max-width:640px; }
+.pstory-brand-lead b { color:#fff; font-weight:800; }
+.pstory-brand-stats { margin-top:36px; display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:rgba(255,255,255,.09); border:1px solid rgba(255,255,255,.09); }
+.pstory-brand-stat { background:#14161A; padding:26px 16px; text-align:center; }
+.pstory-brand-stat b { display:block; font-size:29px; font-weight:900; color:#F49A3A; letter-spacing:-0.03em; }
+.pstory-brand-stat span { display:block; margin-top:7px; font-size:12.5px; color:#9AA0A6; font-weight:600; letter-spacing:-0.02em; }
+.pstory-brand-points { margin-top:36px; display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+.pstory-brand-point b { display:block; font-size:15.5px; font-weight:800; color:#fff; letter-spacing:-0.03em; }
+.pstory-brand-point span { display:block; margin-top:9px; font-size:13.5px; color:#9AA0A6; font-weight:500; line-height:1.66; }
+.pstory-brand-cta { margin-top:42px; display:flex; gap:10px; flex-wrap:wrap; }
+.pstory-brand-btn { display:inline-flex; align-items:center; justify-content:center; padding:14px 28px; font-size:14.5px; font-weight:800; letter-spacing:-0.02em; background:#E8780F; color:#fff; text-decoration:none; transition:.15s; }
+.pstory-brand-btn:hover { background:#D26A0A; }
+.pstory-brand-btn.ghost { background:transparent; color:#fff; border:1px solid rgba(255,255,255,.28); }
+.pstory-brand-btn.ghost:hover { border-color:#fff; background:rgba(255,255,255,.06); }
 .pstory-sec + .pstory-sec { border-top:1px solid #F1F2F4; }
 .pstory-sec-h { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:20px; }
 .pstory-sec-h h2 { font-size:21px; font-weight:800; color:#171C26; letter-spacing:-0.04em; }
@@ -1399,6 +1418,12 @@ var PM_POSTS = [];
   .pstory-top-inner { padding:26px 16px 22px; }
   .pstory-h1 { font-size:24px; } .pstory-lead { font-size:13.5px; }
   .pstory-sec { padding:28px 16px; }
+  .pstory-brand-inner { padding:44px 16px 50px; }
+  .pstory-brand-h { font-size:24px; }
+  .pstory-brand-stats { grid-template-columns:repeat(2,1fr); }
+  .pstory-brand-stat b { font-size:25px; }
+  .pstory-brand-points { grid-template-columns:1fr; gap:16px; }
+  .pstory-brand-cta .pstory-brand-btn { flex:1; }
   .pstory-sec-h h2 { font-size:18px; }
   .pstory-feat { grid-template-columns:1fr; gap:22px; }
   .pstory-feat-tt { font-size:18px; }
@@ -1442,6 +1467,30 @@ var PM_POSTS = [];
   <div class="pstory-sec-h"><h2>매거진 전체</h2></div>
   <div class="pstory-chips" data-chips></div>
   <div class="pstory-grid" data-grid></div>
+</section>
+
+<!-- 브랜드 스토리 (POUR이야기 하단 고정 섹션) -->
+<section class="pstory-brand" aria-label="브랜드 스토리">
+  <div class="pstory-brand-inner">
+    <span class="pstory-brand-kicker">BRAND STORY</span>
+    <h2 class="pstory-brand-h">현장을 아는 회사가 만든<br>유지보수 자재</h2>
+    <p class="pstory-brand-lead">설계·연구·제조·시공까지 직접 하는 <b>넷폼알앤디</b>가 POUR스토어를 만듭니다. 숫자는 거짓말하지 않습니다.</p>
+    <div class="pstory-brand-stats">
+      <div class="pstory-brand-stat"><b>260만+</b><span>세대 누적 시공</span></div>
+      <div class="pstory-brand-stat"><b>70여 개</b><span>자체 R&amp;D 특허</span></div>
+      <div class="pstory-brand-stat"><b>250여 곳</b><span>전국 시공 협력사</span></div>
+      <div class="pstory-brand-stat"><b>제1026호</b><span>국토부 건설신기술</span></div>
+    </div>
+    <div class="pstory-brand-points">
+      <div class="pstory-brand-point"><b>현장에서 개발하고 직접 제조</b><span>강남제비스코·서울과학기술대와 공동 연구. 70여 개 특허 기술을 현장에서 만들었습니다.</span></div>
+      <div class="pstory-brand-point"><b>전국 어디든 시공</b><span>250여 전문 시공 협력사가 검증하고 선택한 브랜드입니다.</span></div>
+      <div class="pstory-brand-point"><b>설계·감리·시공·제조·판매까지</b><span>현장을 아는 회사가 만든 제품이라 결과가 다릅니다.</span></div>
+    </div>
+    <div class="pstory-brand-cta">
+      <a href="/product/list.html?cate_no=71" class="pstory-brand-btn">패키지 보러가기</a>
+      <a href="/" class="pstory-brand-btn ghost">POUR스토어 홈</a>
+    </div>
+  </div>
 </section>
 
 <div class="pstory-modal" data-modal hidden>

@@ -7,9 +7,10 @@
 .psm1 button { background:none; border:none; cursor:pointer; font:inherit; color:inherit; letter-spacing:inherit; }
 .psm1 img { display:block; max-width:100%; }
 .psm1 ul, .psm1 li { list-style:none; }
-/* sticky 래퍼 */
-.psm1-sticky { position:sticky; top:0; z-index:1000; background:#fff; }
+/* 헤더 고정 래퍼: fixed로 어떤 래퍼(overflow) 안에서도 스크롤 끝까지 상단 고정 */
+.psm1-sticky { position:fixed; top:0; left:0; right:0; z-index:1000; background:#fff; }
 .psm1-sticky.psm1-scrolled { box-shadow:0 2px 12px rgba(15,31,92,.08); }
+.psm1 { padding-top:0; } /* JS가 헤더 실제 높이만큼 padding-top 설정(본문이 헤더에 안 가림) */
 /* 0) 상단 유틸바 */
 .psm1-topbar { background:#FAFAFB; border-bottom:1px solid #F2F3F5; }
 .psm1-topbar-inner { max-width:1256px; margin:0 auto; padding:7px 24px; display:flex; align-items:center; justify-content:flex-end; gap:16px; }
@@ -585,9 +586,13 @@ var PM_POSTS = [];
   var section = document.querySelector('.psm1');
   if (!section) return;
 
-  // sticky 그림자
+  // 고정 헤더 그림자 + 본문 오프셋(헤더가 fixed라 본문을 헤더 높이만큼 내려 안 가리게)
   var sticky = section.querySelector('.psm1-sticky');
   if (sticky) {
+    var setPad = function(){ section.style.paddingTop = sticky.offsetHeight + 'px'; };
+    setPad();
+    window.addEventListener('resize', setPad, { passive:true });
+    if (window.ResizeObserver){ try { new ResizeObserver(setPad).observe(sticky); } catch(e){} }
     var onScroll = function(){ if (window.pageYOffset > 4) sticky.classList.add('psm1-scrolled'); else sticky.classList.remove('psm1-scrolled'); };
     window.addEventListener('scroll', onScroll, { passive:true }); onScroll();
   }

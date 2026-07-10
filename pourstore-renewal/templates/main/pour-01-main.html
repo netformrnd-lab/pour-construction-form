@@ -463,7 +463,8 @@ const db = getFirestore(app);
     console.log("[psm1] 관련 콘텐츠 " + posts.length + "건 로드");
   } catch (e) { console.log("[psm1] 관련 콘텐츠 로드 스킵:", e && e.message ? e.message : e); }
   var POST_TYPE = { guide:'가이드', blog:'블로그', video:'유튜브', case:'시공사례' };
-  function postThumb(p){ var t=p.thumbnail||p.thumb||p.image; return (t&&String(t).trim())?'<img class="psm1-ac-thumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':''; }
+  function ytThumbUrl(u){ var m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/); return m?('https://img.youtube.com/vi/'+m[1]+'/hqdefault.jpg'):''; }
+  function postThumb(p){ var t=p.thumbnail||p.thumb||p.image||ytThumbUrl(p.link); return (t&&String(t).trim())?'<img class="psm1-ac-thumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':''; }
   function postItemsHtml(){
     if (!posts.length) return '';
     var h = '<div class="psm1-ac-div"></div><div class="psm1-ac-sec">관련 콘텐츠</div>';
@@ -488,7 +489,7 @@ const db = getFirestore(app);
       terms:[o.keyword].concat(Array.isArray(o.synonyms)?o.synonyms:[]).map(norm).filter(Boolean) });
   });
   posts.forEach(function(p){
-    idxPush({ type:'content', title:p.title||'', sub:(POST_TYPE[p.type]||''), link:(p.link||'#'), thumb:(p.thumbnail||p.thumb||''), yt:/youtu\.?be/.test(p.link||''),
+    idxPush({ type:'content', title:p.title||'', sub:(POST_TYPE[p.type]||''), link:(p.link||'#'), thumb:(p.thumbnail||p.thumb||ytThumbUrl(p.link)||''), yt:/youtu\.?be/.test(p.link||''),
       terms:[p.title].concat(Array.isArray(p.tags)?p.tags:[]).map(norm).filter(Boolean) });
   });
   try {

@@ -550,6 +550,8 @@ const db = getFirestore(app);
    PM_POSTS는 아래 async 로직이 pourstore-postings 로드 후 채운다(관련 콘텐츠용). */
 var PM_POSTS = [];
 (function(){
+  // POUR이야기(.pstory)엔 자체 영상 재생 모달이 있으므로, 헤더의 유튜브 인터셉터는 비활성(충돌 방지)
+  if (document.querySelector('.pstory')) return;
   function ytId(u){ if(!u) return ''; var m=String(u).match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/))([\w-]{11})/); return m?m[1]:''; }
   function isYtHost(u){ return /(?:^|\.)(?:youtube\.com|youtu\.be)/i.test((function(){ try{ return new URL(u, location.href).hostname; }catch(e){ return ''; } })()); }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }

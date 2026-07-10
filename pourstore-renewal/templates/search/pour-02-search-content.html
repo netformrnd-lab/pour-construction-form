@@ -81,6 +81,25 @@ const firebaseConfig = {
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+/* 공유 로딩 캐시(성능) — 헤더(pour-header)가 이미 받아둔 인기검색어/포스팅을 재사용해 중복 fetch 제거.
+   window에 1회만 정의(define-if-absent). */
+window.__pcache = window.__pcache || (function(){
+  var mem = {};
+  return { wrap: function(key, ttl, fetcher){
+    if (mem[key]) return mem[key];
+    try { var raw = sessionStorage.getItem('pc:'+key);
+      if (raw){ var o = JSON.parse(raw); if (o && (Date.now()-o.t) < ttl){ return (mem[key] = Promise.resolve(o.v)); } }
+    } catch(e){}
+    var p = Promise.resolve().then(fetcher).then(function(v){
+      try { sessionStorage.setItem('pc:'+key, JSON.stringify({ t: Date.now(), v: v })); } catch(e){}
+      return v;
+    });
+    p.catch(function(){ delete mem[key]; });
+    return (mem[key] = p);
+  }};
+})();
+const PC_TTL = 300000; // 5분
+
 // 인라인 SVG 라인 아이콘 (이모지 미사용)
 const IC_PLAY  = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
 const IC_DOC   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 13h6M9 17h4"/></svg>';
@@ -117,8 +136,7 @@ const norm = (s) => (s||'').toString().toLowerCase().replace(/\s+/g,'');
   // 매칭 확장어: 인기검색어에서 kw와 연결된 keyword/synonyms를 끌어와 태그 매칭 폭을 넓힘
   let expand = new Set([kwN]);
   try {
-    const hs = await getDoc(doc(db, "config", "pourstoreHotkeywords"));
-    const hk = hs.exists() && Array.isArray(hs.data().items) ? hs.data().items : [];
+    const hk = await window.__pcache.wrap('cfg:hot', PC_TTL, () => getDoc(doc(db, "config", "pourstoreHotkeywords")).then(s => s.exists() && Array.isArray(s.data().items) ? s.data().items : []));
     hk.forEach(o => {
       const pool = [o.keyword, ...(Array.isArray(o.synonyms)?o.synonyms:[])].map(norm);
       if (pool.includes(kwN)) pool.forEach(t => t && expand.add(t));
@@ -128,8 +146,7 @@ const norm = (s) => (s||'').toString().toLowerCase().replace(/\s+/g,'');
   // 포스팅 로드
   let posts = [];
   try {
-    const snap = await getDocs(collection(db, "pourstore-postings"));
-    posts = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    posts = await window.__pcache.wrap('col:postings', PC_TTL, () => getDocs(collection(db, "pourstore-postings")).then(sn => sn.docs.map(d => ({ id:d.id, ...d.data() }))));
     console.log('[psrc] 포스팅 ' + posts.length + '건 로드');
   } catch(e){ console.log('[psrc] 포스팅 로드 실패:', e && e.message); return; }
 

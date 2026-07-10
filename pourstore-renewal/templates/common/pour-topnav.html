@@ -1,0 +1,106 @@
+<!-- ============================================================
+  pour-topnav : 공용 상단 고정 내비 (모든 커스텀 페이지 공통)
+  용도: 별도 페이지(POUR이야기 등) 최상단에 카페24 @import 지시자로 삽입 →
+        어디서든 로고(홈=메인)로 복귀 + 상단 탭 이동. 스크롤해도 상단 고정(sticky).
+  삽입 경로: /pourstore_renewal/common/pour-topnav.html
+  규칙: 앞으로 만드는 모든 개별 페이지는 이 내비를 최상단에 @import 한다.
+  높이 54px 고정 : 페이지 내부의 다른 sticky 요소는 top 54px 로 맞춘다.
+  ============================================================ -->
+<nav class="ptopnav" data-ptopnav aria-label="상단 내비게이션">
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
+.ptopnav, .ptopnav *, .ptopnav *::before, .ptopnav *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.ptopnav { position:sticky; top:0; z-index:1000; background:#fff; border-bottom:1px solid #EFF0F2; box-shadow:0 1px 0 rgba(0,0,0,.01); }
+.ptopnav a { text-decoration:none; color:inherit; }
+.ptopnav-inner { max-width:1256px; margin:0 auto; padding:0 24px; height:54px; display:flex; align-items:center; gap:22px; }
+.ptopnav-logo { display:flex; align-items:center; font-weight:800; font-size:20px; color:#111827; letter-spacing:-0.045em; flex-shrink:0; }
+.ptopnav-logo .or { color:#111827; }
+.ptopnav-menu { display:flex; align-items:center; gap:2px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; }
+.ptopnav-menu::-webkit-scrollbar { display:none; }
+.ptopnav-link { padding:8px 13px; font-size:14.5px; font-weight:600; color:#5A6472; white-space:nowrap; border-radius:0; transition:.13s; letter-spacing:-0.02em; }
+.ptopnav-link:hover { background:#F5F6F8; color:#2F3438; }
+.ptopnav-link.on { color:#E8780F; font-weight:800; }
+.ptopnav-home { margin-left:auto; flex-shrink:0; display:inline-flex; align-items:center; gap:5px; font-size:13.5px; font-weight:800; color:#E8780F; background:#FFF3E9; border-radius:0; padding:8px 15px; }
+.ptopnav-home:hover { background:#FFE6D2; }
+.ptopnav-home svg { width:15px; height:15px; }
+/* 모바일 햄버거 (기본 숨김, 모바일에서 노출) */
+.ptopnav-ham { display:none; width:38px; height:38px; place-items:center; color:#374151; border:0; background:none; cursor:pointer; flex-shrink:0; margin-left:-8px; }
+.ptopnav-ham svg { width:24px; height:24px; }
+/* 슬라이드 드로어 */
+.ptopnav-bk { position:fixed; inset:0; z-index:1001; background:rgba(15,23,42,.42); opacity:0; transition:opacity .25s ease; }
+.ptopnav-bk.open { opacity:1; }
+.ptopnav-bk[hidden] { display:none; }
+.ptopnav-drawer { position:fixed; top:0; left:0; bottom:0; width:80%; max-width:300px; z-index:1002; background:#fff; transform:translateX(-100%); transition:transform .25s cubic-bezier(.16,1,.3,1); box-shadow:2px 0 22px rgba(0,0,0,.14); display:flex; flex-direction:column; }
+.ptopnav-drawer.open { transform:translateX(0); }
+.ptopnav-drawer[hidden] { display:none; }
+.ptopnav-drawer-head { display:flex; align-items:center; justify-content:space-between; padding:15px 16px; border-bottom:1px solid #F2F3F5; }
+.ptopnav-drawer-x { width:34px; height:34px; display:grid; place-items:center; color:#555; border:0; background:none; cursor:pointer; }
+.ptopnav-drawer-x svg { width:20px; height:20px; }
+.ptopnav-drawer-body { padding:6px 0 30px; overflow-y:auto; }
+.ptopnav-drawer-link { display:flex; align-items:center; gap:9px; padding:13px 18px; font-size:15px; font-weight:600; color:#2F3438; letter-spacing:-0.02em; }
+.ptopnav-drawer-link:active { background:#FAFAFA; }
+.ptopnav-drawer-link.home { color:#E8780F; font-weight:800; }
+.ptopnav-drawer-link.on { color:#E8780F; font-weight:800; }
+.ptopnav-drawer-link svg { width:17px; height:17px; flex-shrink:0; }
+@media (max-width:700px){
+  .ptopnav-inner { height:54px; padding:0 12px; gap:10px; }
+  .ptopnav-ham { display:grid; }
+  .ptopnav-menu { display:none; }        /* 모바일: 탭 대신 햄버거 */
+  .ptopnav-logo { font-size:18px; }
+  .ptopnav-home { padding:7px 12px; font-size:12.5px; }
+  .ptopnav-home .t { display:none; }     /* 홈 버튼은 아이콘만 */
+}
+</style>
+  <div class="ptopnav-inner">
+    <button class="ptopnav-ham" data-ptnav-ham type="button" aria-label="메뉴"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <a href="/" class="ptopnav-logo"><span class="or">POUR</span>스토어</a>
+    <div class="ptopnav-menu">
+      <a href="/" class="ptopnav-link">베스트</a>
+      <a href="/pourstore_renewal/story/pour-story.html" class="ptopnav-link">POUR이야기</a>
+      <a href="/" class="ptopnav-link">셀프시공</a>
+      <a href="/" class="ptopnav-link">시공사례</a>
+      <a href="/" class="ptopnav-link">이벤트</a>
+    </div>
+    <a href="/" class="ptopnav-home" aria-label="메인으로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span class="t">메인으로</span></a>
+  </div>
+  <div class="ptopnav-bk" data-ptnav-bk hidden></div>
+  <aside class="ptopnav-drawer" data-ptnav-drawer hidden aria-label="메뉴">
+    <div class="ptopnav-drawer-head">
+      <a href="/" class="ptopnav-logo"><span class="or">POUR</span>스토어</a>
+      <button class="ptopnav-drawer-x" data-ptnav-close type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="ptopnav-drawer-body">
+      <a href="/" class="ptopnav-drawer-link home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>홈 (메인)</a>
+      <a href="/" class="ptopnav-drawer-link">베스트</a>
+      <a href="/pourstore_renewal/story/pour-story.html" class="ptopnav-drawer-link">POUR이야기</a>
+      <a href="/" class="ptopnav-drawer-link">셀프시공</a>
+      <a href="/" class="ptopnav-drawer-link">시공사례</a>
+      <a href="/" class="ptopnav-drawer-link">이벤트</a>
+    </div>
+  </aside>
+<script>
+(function(){
+  // 현재 페이지 경로와 일치하는 탭/드로어 항목 자동 강조 (홈 링크 '/' 제외)
+  try {
+    var p = location.pathname;
+    document.querySelectorAll('.ptopnav-link, .ptopnav-drawer-link:not(.home)').forEach(function(a){
+      var h = a.getAttribute('href');
+      if (h && h !== '/' && p.indexOf(h.replace(/^https?:\/\/[^/]+/,'')) !== -1) a.classList.add('on');
+    });
+  } catch(e){}
+  // 모바일 햄버거 → 슬라이드 드로어
+  var ham = document.querySelector('[data-ptnav-ham]');
+  var dr = document.querySelector('[data-ptnav-drawer]');
+  var bk = document.querySelector('[data-ptnav-bk]');
+  if (ham && dr && bk){
+    var ov='';
+    function openD(){ dr.hidden=false; bk.hidden=false; ov=document.documentElement.style.overflow; document.documentElement.style.overflow='hidden'; requestAnimationFrame(function(){ dr.classList.add('open'); bk.classList.add('open'); }); }
+    function closeD(){ dr.classList.remove('open'); bk.classList.remove('open'); document.documentElement.style.overflow=ov; setTimeout(function(){ dr.hidden=true; bk.hidden=true; }, 260); }
+    ham.addEventListener('click', openD);
+    bk.addEventListener('click', closeD);
+    var x = dr.querySelector('[data-ptnav-close]'); if (x) x.addEventListener('click', closeD);
+    document.addEventListener('keydown', function(e){ if (e.key==='Escape' && !dr.hidden) closeD(); });
+  }
+})();
+</script>
+</nav>

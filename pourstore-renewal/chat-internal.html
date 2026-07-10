@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>POUR 사내 통합봇</title>
+<!--
+  chat-internal.html — POUR 사내 팀원용 통합 챗봇 v2
+  · 두 지식원을 각각/통합으로 사용:
+     [기술연구소] 기술연구소 Firebase(pour-k) products 라이브 로드(자동 진화)
+     [CRM 상담]   CRM 상담 Q&A(현재 시드; 라이브 연결 시 pourstorecrm로 교체 예정)
+     + pour-app-new chatbot-kb(audience internal/전체) 병합
+  · 상단 탭으로 [통합]/[CRM 상담]/[기술연구소] 전환. 답변마다 출처 표시.
+  · 질문은 chatbot-internal-logs 기록. 간단 PIN 게이트(사내 제한).
+-->
+<style>
+:root{
+  --or:#E8780F; --or-d:#C8650D; --or-l:#FFF7EF; --or-m:#FBE2C4;
+  --navy:#0F1F5C; --ink:#111827; --ink2:#2F3438; --muted:#9AA0A6;
+  --line:#EEF0F2; --bg:#F5F6F8; --card:#fff; --green:#03C75A; --blue:#2563EB; --blue-l:#EFF6FF;
+}
+*{box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; letter-spacing:-0.02em; -webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{background:var(--bg); color:var(--ink2); display:flex; justify-content:center;}
+.cw{width:100%; max-width:560px; height:100dvh; min-height:100%; background:var(--card); display:flex; flex-direction:column; overflow:hidden; box-shadow:0 0 40px rgba(15,31,92,.06);}
+.cw-hd{flex-shrink:0; display:flex; align-items:center; gap:11px; padding:14px 16px; background:linear-gradient(120deg,#0d1836,var(--navy)); color:#fff;}
+.cw-hd .ava{width:40px; height:40px; border-radius:12px; background:var(--or); display:grid; place-items:center; flex-shrink:0;}
+.cw-hd .ava svg{width:22px; height:22px; color:#fff;}
+.cw-hd .tt{flex:1; min-width:0;}
+.cw-hd .tt .n{font-size:15px; font-weight:800; display:flex; align-items:center; gap:6px;}
+.cw-hd .tt .n .tag{font-size:10px; font-weight:800; background:rgba(255,255,255,.16); padding:2px 7px; border-radius:6px; letter-spacing:0;}
+.cw-hd .tt .n .dot{width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px rgba(3,199,90,.25);}
+.cw-hd .tt .s{font-size:11.5px; font-weight:500; color:rgba(255,255,255,.72); margin-top:2px;}
+/* 탭(모드 전환) */
+.cw-seg{flex-shrink:0; display:flex; gap:6px; padding:9px 12px; border-bottom:1px solid var(--line); background:#fff;}
+.cw-seg button{flex:1; padding:9px 6px; border:1px solid var(--line); background:#fff; border-radius:10px; font-size:12.5px; font-weight:800; color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; transition:.12s;}
+.cw-seg button .d{width:6px; height:6px; border-radius:50%; background:#C4C9CF;}
+.cw-seg button.on{background:var(--navy); color:#fff; border-color:var(--navy);}
+.cw-seg button.on .d{background:#fff;}
+.cw-seg button[data-m="crm"] .d{background:var(--blue);}
+.cw-seg button[data-m="rnd"] .d{background:var(--or);}
+.cw-seg button.on[data-m="crm"], .cw-seg button.on[data-m="rnd"]{}
+.cw-body{flex:1; overflow-y:auto; padding:16px 14px 8px; display:flex; flex-direction:column; gap:12px; scroll-behavior:smooth;}
+.cw-body::-webkit-scrollbar{width:6px;} .cw-body::-webkit-scrollbar-thumb{background:#E2E5E9; border-radius:6px;}
+.row{display:flex; gap:8px; align-items:flex-end; max-width:100%;}
+.row.bot{align-self:flex-start;}
+.row.me{align-self:flex-end; flex-direction:row-reverse;}
+.row .bava{width:28px; height:28px; border-radius:9px; background:var(--or-l); border:1px solid var(--or-m); display:grid; place-items:center; flex-shrink:0;}
+.row .bava svg{width:15px; height:15px; color:var(--or);}
+.bubble{padding:11px 14px; border-radius:15px; font-size:14px; line-height:1.6; font-weight:500; word-break:break-word; max-width:82vw;}
+.bubble .tx{white-space:pre-line;}
+@media(min-width:560px){.bubble{max-width:410px;}}
+.row.bot .bubble{background:#F4F5F7; color:var(--ink2); border-bottom-left-radius:5px;}
+.row.me .bubble{background:var(--or); color:#fff; border-bottom-right-radius:5px; white-space:pre-line;}
+.bubble b, .bubble strong{font-weight:800;}
+.src{display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:6px; margin-bottom:7px;}
+.src .d{width:6px; height:6px; border-radius:50%;}
+.src.crm{background:var(--blue-l); color:var(--blue);} .src.crm .d{background:var(--blue);}
+.src.rnd{background:var(--or-l); color:var(--or-d);} .src.rnd .d{background:var(--or);}
+.chips{display:flex; flex-wrap:wrap; gap:7px; align-self:flex-start; max-width:94%; margin:-2px 0 2px 36px;}
+.chip{border:1px solid var(--or-m); background:#fff; color:var(--or-d); font-size:12.5px; font-weight:700; padding:7px 13px; border-radius:20px; cursor:pointer; transition:.12s; line-height:1;}
+.chip:hover{background:var(--or-l); border-color:var(--or);}
+.chip.ghost{border-color:var(--line); color:var(--ink2);}
+.chip.ghost:hover{background:var(--bg); border-color:var(--muted);}
+.typing{display:flex; gap:4px; padding:13px 15px;}
+.typing span{width:7px; height:7px; border-radius:50%; background:#C4C9CF; animation:tp 1s infinite;}
+.typing span:nth-child(2){animation-delay:.15s;} .typing span:nth-child(3){animation-delay:.3s;}
+@keyframes tp{0%,60%,100%{opacity:.3; transform:translateY(0);} 30%{opacity:1; transform:translateY(-3px);}}
+.cw-ft{flex-shrink:0; border-top:1px solid var(--line); padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:#fff;}
+.cw-ft form{display:flex; align-items:center; gap:8px; background:var(--bg); border:1.5px solid var(--line); border-radius:24px; padding:6px 6px 6px 16px; transition:.15s;}
+.cw-ft form:focus-within{border-color:var(--or); background:#fff;}
+.cw-ft input{flex:1; min-width:0; border:0; outline:0; background:none; font-size:14.5px; color:var(--ink);}
+.cw-ft input::placeholder{color:#B0B6BD;}
+.cw-ft button{flex-shrink:0; width:38px; height:38px; border-radius:50%; border:0; background:var(--or); display:grid; place-items:center; cursor:pointer; transition:.15s;}
+.cw-ft button:disabled{background:#D6D9DD; cursor:default;}
+.cw-ft button svg{width:18px; height:18px; color:#fff;}
+.cw-guard{font-size:10.5px; color:var(--muted); text-align:center; margin-top:7px; font-weight:500;}
+.gate{position:fixed; inset:0; background:#0d1836; display:grid; place-items:center; z-index:100; padding:20px;}
+.gate.hide{display:none;}
+.gate-card{width:100%; max-width:320px; background:#fff; border-radius:18px; padding:26px 22px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.gate-card .gi{width:48px; height:48px; border-radius:14px; background:var(--or-l); display:grid; place-items:center; margin:0 auto 14px;}
+.gate-card .gi svg{width:24px; height:24px; color:var(--or);}
+.gate-card h1{font-size:16px; font-weight:800; color:var(--ink); margin-bottom:4px;}
+.gate-card p{font-size:12px; color:var(--muted); margin-bottom:18px;}
+.gate-card input{width:100%; border:1.5px solid var(--line); border-radius:11px; padding:12px 14px; font-size:16px; text-align:center; letter-spacing:4px; outline:none;}
+.gate-card input:focus{border-color:var(--or);}
+.gate-card button{width:100%; margin-top:10px; border:0; background:var(--navy); color:#fff; font-size:14px; font-weight:800; padding:12px; border-radius:11px; cursor:pointer;}
+.gate-err{color:#DC2626; font-size:12px; font-weight:700; margin-top:8px; min-height:16px;}
+</style>
+</head>
+<body>
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+    <h1>POUR 사내 통합봇</h1>
+    <p>사내 전용입니다. PIN을 입력하세요.</p>
+    <input id="pin" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off"/>
+    <button id="pinBtn" type="button">입장</button>
+    <div class="gate-err" id="pinErr"></div>
+  </div>
+</div>
+
+<div class="cw">
+  <div class="cw-hd">
+    <div class="ava" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>
+    </div>
+    <div class="tt">
+      <div class="n">POUR 사내 통합봇 <span class="tag">사내</span><span class="dot"></span></div>
+      <div class="s">CRM 상담 + 기술연구소 자료를 함께 검색</div>
+    </div>
+  </div>
+  <div class="cw-seg" id="seg">
+    <button type="button" data-m="all" class="on"><span class="d"></span>통합</button>
+    <button type="button" data-m="crm"><span class="d"></span>CRM 상담</button>
+    <button type="button" data-m="rnd"><span class="d"></span>기술연구소</button>
+  </div>
+  <div class="cw-body" id="body"></div>
+  <div class="cw-ft">
+    <form id="form" autocomplete="off">
+      <input id="input" type="text" placeholder="제품·공법·상담사례를 물어보세요" aria-label="메시지 입력"/>
+      <button id="send" type="submit" aria-label="보내기" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-6 16-3-6-7-2z"/></svg>
+      </button>
+    </form>
+    <div class="cw-guard">기술연구소(pour-k) 라이브 · CRM 상담 자료 · 사내 참고용</div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const APP_MAIN = {
+  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain: "pour-app-new.firebaseapp.com", projectId: "pour-app-new",
+  storageBucket: "pour-app-new.firebasestorage.app", messagingSenderId: "411031141847",
+  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
+};
+const APP_POURK = {
+  apiKey: "AIzaSyDH9oj7rTgySAYrXJQfbFo2U6B4wB3cjho",
+  authDomain: "pour-k.firebaseapp.com", projectId: "pour-k",
+  storageBucket: "pour-k.firebasestorage.app", messagingSenderId: "548427623760",
+  appId: "1:548427623760:web:7767b3b08b280911b51055"
+};
+// CRM 라이브 연결(워커 프록시): 배포한 crm-proxy 워커 URL + 시크릿 입력 → CRM을 라이브로 읽음.
+// 비워두면 아래 CRM_SEED(정적)로 동작. 개인정보는 워커에서 이미 제거되어 옴.
+const CRM_PROXY = { url: "", secret: "" }; // 예: url:"https://pour-crm-proxy.<계정>.workers.dev", secret:"<WORKER_SECRET>"
+const mainApp = getApps().find(a=>a.name==='[DEFAULT]') || initializeApp(APP_MAIN);
+const pourkApp = getApps().find(a=>a.name==='pourk') || initializeApp(APP_POURK, 'pourk');
+const dbMain = getFirestore(mainApp);
+const dbPourk = getFirestore(pourkApp);
+
+// ===== PIN 게이트 =====
+const INTERNAL_PIN = "1234";
+const AUTH_KEY = "pourInternalBotAuth";
+const gate = document.getElementById('gate');
+const pinInput = document.getElementById('pin');
+const pinErr = document.getElementById('pinErr');
+let booted = false;
+function openApp(){ gate.classList.add('hide'); boot(); }
+function tryPin(){ if (pinInput.value === INTERNAL_PIN){ try{localStorage.setItem(AUTH_KEY,'1');}catch(e){} openApp(); } else { pinErr.textContent='PIN이 올바르지 않습니다.'; pinInput.value=''; pinInput.focus(); } }
+document.getElementById('pinBtn').onclick = tryPin;
+pinInput.addEventListener('keydown', e=>{ if(e.key==='Enter') tryPin(); });
+if ((()=>{try{return localStorage.getItem(AUTH_KEY)==='1';}catch(e){return false;}})()) openApp(); else setTimeout(()=>pinInput.focus(),200);
+
+// ===== CRM 상담 시드 (라이브 연결 전까지 사용) =====
+const CRM_SEED = [
+  {q:"기존 PVC방수시트 위에 방수(도막) 시공을 해도 되나요? 보강은 어떻게 하나요?",
+   a:"PVC방수시트는 보통 20년 내외로 오래 사용할 수 있습니다. 아직 누수 같은 하자 증상이 없다면 시트 위에 도막을 덧시공할 필요는 크지 않습니다.\n보강이 필요하면 먼저 시트 열화(노화) 여부를 점검하고, 시트 접합부와 누수 취약부를 보강하는 방법이 있습니다. 상태 확인이 우선이라 현장 사진 확보 후 판단을 권장합니다.",
+   tags:["PVC방수시트","방수시트","도막","보강","옥상","방수"]},
+  {q:"방수트랩(배수구배관트랩) 덮개가 들뜨거나 변형됐어요. 열 때문인가요?",
+   a:"트랩 소재 자체는 단순 태양열로는 변형되지 않습니다. 덮개 들뜸은 대개 최초 시공 시 바탕면(바닥 단차)에 밀착 부착되지 않은 경우 발생합니다.\n바탕면 밀착 재시공 또는 제품 교체로 개선됩니다. 최초 시공 시 밀착 여부/설치 사진 확인이 필요합니다.",
+   tags:["배수구배관트랩","방수트랩","트랩","70mm","들뜸","변형","옥상"]},
+  {q:"슈퍼복합압축시트를 붙인 위에 코트재를 발라도 되나요? 프라이머 종류가 걱정돼요.",
+   a:"시트를 부착할 정도로 프라이머가 얇게 시공된 상태라면 코트재 도포는 대체로 무관합니다.\n다만 프라이머 종류·현재 상태에 따라 달라지므로 시공 사진과 사용 프라이머 정보 확인 후 판단하는 것이 정확합니다.",
+   tags:["코트재","슈퍼복합압축시트","프라이머","슬라브","옥상","도포"]},
+  {q:"아크릴배면차수재를 섞어 시공했는데 경화가 안 돼요.",
+   a:"아크릴배면차수재는 A제·B제를 1:1로 섞는 것이 원칙이고, C제는 경화촉진제(경화시간 단축 첨가제)입니다.\nC제는 A+B 혼합제에 추가로 넣어야 합니다. B제 없이 A+C만 섞으면 경화되지 않습니다. 배합 재확인이 필요합니다.",
+   tags:["아크릴배면차수","배면차수","경화","A제","B제","C제","경화촉진제","배합"]},
+  {q:"PMQ강화코팅제는 에폭시 하도 위에 바르나요? 유광인가요 무광인가요?",
+   a:"PMQ강화코팅제는 에폭시 상도(마감재)입니다. 단품 사용도 가능하나 장기 유지를 위해 하도 도포 후 상도를 권장합니다.\n오염방지 목적의 유광 마감입니다.",
+   tags:["PMQ강화코팅제","PMQ","에폭시","하도","상도","유광","마감"]},
+  {q:"물이 상시 닿는 콘크리트 탈락 부위(댐 방류로 등)에도 탄성강화 패키지로 시공할 수 있나요?",
+   a:"물이 상시 닿고 방류 하중을 받는 특수 환경(댐 방류로 등)은 탄성강화 패키지로 보수하기 어렵습니다. 전용 제품과 숙련 시공이 필요합니다.\n댐 위치·주변 환경에 따라 조건이 달라지므로 위치 공유 후 별도 검토가 필요합니다.",
+   tags:["탄성강화패키지","탄성강화","댐","방류","콘크리트 탈락","습기","수중"]},
+  {q:"수영장 타일 위에 에폭시(써밋에폭시)를 바를 수 있나요? 방수/코팅 대안이 있나요?",
+   a:"수영장 환경 특성상 써밋에폭시는 적합하지 않습니다. 욕실 침투방수재는 타일 메지 수분침투는 막지만 상시 물이 고인 환경에선 장기 내구성에 무리가 있습니다.\n세 가지 중 고탄성 타일방수재가 가장 적합합니다. 근본 방수는 타일 제거 후 고탄성 타일방수재 도포+타일 시공이 가장 적합하며, 기존 타일 위 덧방 시공도 가능합니다.",
+   tags:["수영장","타일","써밋에폭시","에폭시","욕실침투방수재","고탄성타일방수재","방수","덧방"]},
+  {q:"카센터 자동차 리프트 바닥에 코트재를 시공해도 되나요?",
+   a:"자동차 리프트처럼 하중이 반복되는 바닥은 코트재 단독으로는 조기 박리 우려가 큽니다. 층 구성을 권장합니다.\n\n[1안] 코트재(방청) → 에폭시 프라이머(하도) → 써밋에폭시 중도(마모 방지) → PMQ강화코팅재+논슬립 크리스탈 파우더(미끄럼 방지)\n[2안] 코트재(방청) → 에폭시 프라이머(하도) → PMQ강화코팅재+논슬립 크리스탈 파우더\n\n현장 상태에 따라 조정이 필요합니다.",
+   tags:["코트재","자동차 리프트","카센터","방청","에폭시","프라이머","PMQ","논슬립","마모","바닥"]},
+  {q:"POUR MMA를 기존 에폭시 도장면 위에 시공할 수 있나요?",
+   a:"가능합니다. 표면 스크래치(거칠기) 작업 후 시공하면 부착성이 확보됩니다.\n기존 콘크리트 대비 부착력은 다소 떨어질 수 있어 표면 스크래치 작업이 필수입니다.",
+   tags:["MMA","POUR MMA","에폭시 도장면","미끄럼방지","부착","스크래치","도로"]},
+  {q:"POUR MMA 색상은 원하는 색으로 다 되나요? 규사는 별도인가요? 겨울(영하)에도 시공되나요?",
+   a:"· 색상 : 제공 색상 내 모두 선택 가능(최소 주문 10EA)\n· 규사 : 크리스탈파우더와 유사 소재가 MMA 제품에 1mm 두께로 포함. 논슬립 강화가 필요하면 용도에 맞는 규사를 선택 추가 구매\n· 동절기 : 영하 10도 이하에서도 시공 가능(기온이 낮으면 경화시간 증가)",
+   tags:["MMA","POUR MMA","색상","규사","크리스탈파우더","동절기","영하","논슬립","경화"]}
+];
+
+// ===== 카테고리/모드 =====
+const CAT_KO = { asphalt:['아스팔트','아스콘','도로','포장'], functional:['기능성'], 'oil-based':['유성'], powder:['분말','파우더'], repair:['보수','부속'], sheet:['시트'], 'water-based':['수성','프라이머'] };
+const SRC = { crm:{cls:'crm', label:'CRM 상담'}, rnd:{cls:'rnd', label:'기술연구소'} };
+const CHIPS = {
+  rnd: ["탄성강화 파우더 배합비","균열보수시트 특징","씰코트 적용부위","코트재 공법","전체 제품 목록"],
+  crm: ["PVC시트 위 시공","방수트랩 들뜸","아크릴배면차수 경화","수영장 타일 방수","MMA 색상"],
+  all: ["탄성강화 파우더 배합비","방수트랩 들뜸","균열보수시트 특징","수영장 타일 방수","전체 제품 목록"]
+};
+
+// ===== DOM =====
+const bodyEl=document.getElementById('body'), form=document.getElementById('form'), input=document.getElementById('input'), sendBtn=document.getElementById('send'), seg=document.getElementById('seg');
+const norm = s => (s||'').toString().toLowerCase().replace(/[\s\.,!?~·:;()\[\]'"·\-\/]/g,'');
+const esc = s => (s||'').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+let KB = [];
+let mode = 'all';
+function scrollDown(){ requestAnimationFrame(()=>{ bodyEl.scrollTop=bodyEl.scrollHeight; }); }
+const BOT_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/></svg>';
+
+function addBot(text,{chips,src}={}){
+  const row=document.createElement('div'); row.className='row bot';
+  const pill = src ? '<div class="src '+src.cls+'"><span class="d"></span>'+src.label+'</div>' : '';
+  row.innerHTML='<div class="bava">'+BOT_SVG+'</div><div class="bubble">'+pill+'<span class="tx">'+esc(text)+'</span></div>';
+  bodyEl.appendChild(row); if(chips&&chips.length) renderChips(chips); scrollDown();
+}
+function addMe(text){ const row=document.createElement('div'); row.className='row me'; row.innerHTML='<div class="bubble">'+esc(text)+'</div>'; bodyEl.appendChild(row); scrollDown(); }
+function renderChips(list){
+  const wrap=document.createElement('div'); wrap.className='chips'; wrap.dataset.transient='1';
+  list.forEach(c=>{ const b=document.createElement('button'); b.className='chip'+(c.ghost?' ghost':''); b.type='button'; b.textContent=c.label||c; b.onclick=()=>{ removeTransient(); handle(c.value||c.label||c); }; wrap.appendChild(b); });
+  bodyEl.appendChild(wrap); scrollDown();
+}
+function removeTransient(){ bodyEl.querySelectorAll('[data-transient]').forEach(n=>n.remove()); }
+function typing(){ const row=document.createElement('div'); row.className='row bot'; row.innerHTML='<div class="bava">'+BOT_SVG+'</div><div class="bubble typing"><span></span><span></span><span></span></div>'; bodyEl.appendChild(row); scrollDown(); return row; }
+function startChips(){ return (CHIPS[mode]||CHIPS.all).map(c=>({label:c})); }
+function shorten(s){ s=(s||'').replace(/\?+$/,''); return s.length>18?s.slice(0,18)+'…':s; }
+
+// ===== pour-k products → KB =====
+function fmtProduct(p, catKo){
+  const L=[]; L.push('■ '+(p.name||'제품'));
+  if(p.role) L.push('· 정의 : '+p.role);
+  if(p.desc) L.push('· 요약 : '+p.desc);
+  if(Array.isArray(p.features)&&p.features.length){ L.push('· 특징 :'); p.features.forEach(f=>{ if(f&&f.name) L.push('   - '+f.name+(f.desc?' : '+f.desc:'')); }); }
+  if(Array.isArray(p.methods)&&p.methods.length) L.push('· 적용 공법 : '+p.methods.join(', '));
+  if(Array.isArray(p.applications)&&p.applications.length) L.push('· 적용 부위 : '+p.applications.join(', '));
+  if(p.specs&&typeof p.specs==='object'){ const sp=Object.entries(p.specs).filter(([k,v])=>v).map(([k,v])=>k+' '+v); if(sp.length) L.push('· 규격 : '+sp.join(' / ')); }
+  if(catKo&&catKo.length) L.push('· 분류 : '+catKo.join('/'));
+  return L.join('\n');
+}
+function buildRnd(p, catId){
+  const catKo=CAT_KO[catId]||[catId];
+  const feat=Array.isArray(p.features)?p.features.map(f=>f&&f.name).filter(Boolean):[];
+  const tags=[p.name, ...(p.methods||[]), ...(p.applications||[]), ...feat, ...catKo].filter(Boolean);
+  const text=[p.role,p.desc,feat.join(' '),(p.methods||[]).join(' '),(p.applications||[]).join(' ')].join(' ');
+  return { src:'rnd', q:p.name||'', a:fmtProduct(p,catKo), tags, text, name:p.name||'' };
+}
+
+// ===== 매칭 =====
+function pool(){ return mode==='all' ? KB : KB.filter(e=>e.src===mode); }
+function scoreEntry(e, query){
+  const qn=norm(query);
+  const words=(query.toLowerCase().match(/[가-힣a-z0-9]+/g)||[]).filter(w=>w.length>=2);
+  let s=0;
+  (e.tags||[]).forEach(t=>{ const tn=norm(t); if(!tn) return;
+    if(qn.includes(tn)||tn.includes(qn)) s+=4;
+    else if(words.some(w=>{const wn=norm(w); return wn.length>=2&&(tn.includes(wn)||wn.includes(tn));})) s+=3; });
+  const qtn=norm(e.q); words.forEach(w=>{const wn=norm(w); if(wn.length>=2&&qtn.includes(wn)) s+=2;});
+  const txn=norm(e.text||''); words.forEach(w=>{const wn=norm(w); if(wn.length>=2&&txn.includes(wn)) s+=1;});
+  return s;
+}
+function search(q){ return pool().map(e=>({e,s:scoreEntry(e,q)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s); }
+
+async function log(query, matched, score){
+  try{ await addDoc(collection(dbMain,"chatbot-internal-logs"),{ q:query, mode, matched:matched?matched.q:null, matchedSrc:matched?matched.src:null, score:score||0, audience:"internal", source:"chat-internal", ts:new Date().toISOString() }); }
+  catch(e){ console.log("[internal] 로그 스킵:", e&&e.message); }
+}
+
+function listProducts(){ const items=KB.filter(e=>e.src==='rnd'); return "기술연구소 등록 제품입니다.\n\n"+items.map(e=>'· '+e.name).join('\n')+"\n\n제품명을 입력하시면 규격·공법·적용부위를 안내합니다."; }
+
+async function handle(query){
+  query=(query||'').trim(); if(!query) return;
+  addMe(query); const t=typing();
+  await new Promise(r=>setTimeout(r,360)); t.remove();
+
+  if(mode!=='crm' && /(전체|목록|리스트|어떤 제품|제품 종류|다 보여|모든 제품)/.test(query)){
+    addBot(listProducts(), { src:SRC.rnd, chips: KB.filter(e=>e.src==='rnd').slice(0,6).map(e=>({label:shorten(e.name), value:e.name, ghost:true})) });
+    log(query, null, 0); return;
+  }
+  const res=search(query); const top=res[0]; const good=top&&top.s>=4;
+  if(good){
+    addBot(top.e.a, { src: SRC[top.e.src], chips: relChips(res) });
+    log(query, top.e, top.s);
+  } else {
+    const where = mode==='crm' ? 'CRM 상담 자료' : (mode==='rnd' ? '기술연구소 제품 자료' : '등록된 자료');
+    addBot("해당 내용은 "+where+"에서 찾지 못했어요. 아래로 확인하시거나, 다른 탭(통합/CRM/기술연구소)으로 바꿔서 검색해 보세요.", { chips: startChips() });
+    log(query, null, 0);
+  }
+}
+function relChips(res){ const r=res.slice(1,3).map(x=>({label:shorten(x.e.name||x.e.q), value:x.e.q, ghost:true})); return r.length?r:startChips(); }
+
+// ===== 모드 전환 =====
+function setMode(m, announce){
+  mode=m;
+  seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.m===m));
+  if(announce){
+    removeTransient();
+    const msg = m==='crm' ? "CRM 상담봇으로 전환했어요. 고객 상담사례 기반으로 답합니다."
+              : m==='rnd' ? "기술연구소봇으로 전환했어요. 제품 규격·공법·적용부위를 안내합니다."
+              : "통합 모드예요. CRM 상담 + 기술연구소 자료를 함께 검색합니다.";
+    addBot(msg, { chips: startChips() });
+  }
+}
+seg.querySelectorAll('button').forEach(b=> b.onclick=()=> setMode(b.dataset.m, true));
+
+form.addEventListener('submit', e=>{ e.preventDefault(); const v=input.value.trim(); if(!v) return; input.value=''; sendBtn.disabled=true; removeTransient(); handle(v); });
+input.addEventListener('input', ()=>{ sendBtn.disabled=!input.value.trim(); });
+
+// ===== 시작 =====
+async function boot(){
+  if(booted) return; booted=true;
+  // CRM 지식: 워커 프록시(라이브) 우선, 실패/미설정 시 시드
+  let crmLive = false;
+  if (CRM_PROXY.url && CRM_PROXY.secret) {
+    try {
+      const u = CRM_PROXY.url.replace(/\/$/,'') + "/crm-kb?secret=" + encodeURIComponent(CRM_PROXY.secret);
+      const r = await fetch(u);
+      const d = await r.json();
+      if (Array.isArray(d.items) && d.items.length) {
+        d.items.forEach(e=>{ if(e && e.a) KB.push({ src:'crm', q:e.q||'', a:e.a, tags:Array.isArray(e.tags)?e.tags:[], text:e.q||'', name:(e.q||'').slice(0,24) }); });
+        crmLive = true;
+        console.log("[internal] CRM 라이브 "+d.items.length+"건 로드(프록시)");
+      } else { console.log("[internal] CRM 프록시 응답 비어있음:", d && d.error); }
+    } catch(e){ console.log("[internal] CRM 프록시 실패 → 시드 사용:", e && e.message); }
+  }
+  if (!crmLive) CRM_SEED.forEach(e=> KB.push({ src:'crm', q:e.q, a:e.a, tags:e.tags||[], text:'', name:e.q }));
+  // 기술연구소 pour-k 라이브
+  try{
+    const snap=await getDocs(collection(dbPourk,"products")); let n=0;
+    snap.docs.forEach(d=>{ const data=d.data(); (Array.isArray(data.items)?data.items:[]).forEach(p=>{ if(p&&p.name){ KB.push(buildRnd(p,d.id)); n++; } }); });
+    console.log("[internal] pour-k 제품 "+n+"건 로드");
+  }catch(e){ console.log("[internal] pour-k 로드 실패:", e&&e.message); }
+  // 보조 chatbot-kb(internal) → CRM 계열로 병합
+  try{
+    const snap=await getDocs(collection(dbMain,"chatbot-kb"));
+    const seen=new Set(KB.map(e=>norm(e.q)));
+    snap.docs.forEach(d=>{ const k=d.data();
+      if(k.status&&k.status!=='active') return;
+      const aud=Array.isArray(k.audience)?k.audience:[];
+      if(!(aud.length===0||aud.includes('internal'))) return;
+      if(!k.q||!k.a||seen.has(norm(k.q))) return; seen.add(norm(k.q));
+      KB.push({ src:'crm', q:k.q, a:k.a, tags:Array.isArray(k.tags)?k.tags:[], text:'', name:k.q });
+    });
+  }catch(e){ console.log("[internal] chatbot-kb 병합 스킵:", e&&e.message); }
+  const nc=KB.filter(e=>e.src==='crm').length, nr=KB.filter(e=>e.src==='rnd').length;
+  console.log("[internal] 지식 총 "+KB.length+"건 (CRM "+nc+" · 연구소 "+nr+")");
+
+  addBot("안녕하세요, POUR 사내 통합봇입니다. 위 탭으로 검색 범위를 고를 수 있어요.\n· 통합 : CRM 상담 + 기술연구소 자료 함께\n· CRM 상담 : 고객 상담사례 기반\n· 기술연구소 : 제품 규격·공법·적용부위 (pour-k 라이브)", { chips: startChips() });
+}
+</script>
+</body>
+</html>

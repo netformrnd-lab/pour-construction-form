@@ -1,0 +1,150 @@
+<!-- ============================================================
+  pour-skin : POUR스토어 전역 브랜드 스킨 (카페24 기본 화면 통일)
+  용도: 상품목록·상품상세·장바구니·주문서·마이페이지·게시판 등 카페24 기본 페이지의
+        공통 크롬(브레드크럼·페이지 타이틀·버튼·테이블·탭·정렬바·페이징·폼)을
+        메인/커스텀 페이지와 같은 톤(Pretendard · 네이비 #0F1F5C · 오렌지 #E8780F)으로 통일.
+  삽입: 카페24 스킨 공통 레이아웃(레이아웃 HTML) <head> 안에 한 번만
+        <!--@import(/pourstore_renewal/common/pour-skin.html)--> → 전 페이지 자동 적용.
+  원칙: 카페24 기능/변수/모듈은 절대 건드리지 않음. 색·폰트·라운드·여백만 CSS로 덮음.
+        레이아웃(위치/플로트)은 바꾸지 않아 깨질 위험 최소화. 아이콘 폰트는 미대상.
+  ============================================================ -->
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
+:root{
+  --pour-or:#E8780F; --pour-or2:#EA580C; --pour-or-pale:#FFF3E9; --pour-or-bd:#FBE2C4;
+  --pour-navy:#0F1F5C; --pour-ink:#2F3438; --pour-mut:#8B95A1;
+  --pour-bd:#EEF0F2; --pour-bd2:#E5E7EB; --pour-bg:#F7F8FA;
+  --pour-r:12px; --pour-r-lg:16px;
+  --pour-font:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+}
+
+/* ===== 0) 전역 타이포 (아이콘 폰트는 자체 font-family를 선언하므로 영향 없음) ===== */
+body, input, select, textarea, button,
+#contents, #container, .xans-element-,
+.path, .path *, .title, .titleArea, .titleArea *,
+.ec-base-table, .ec-base-table *, .ec-base-tab, .ec-base-tab *,
+.ec-base-help, .ec-base-help *, .ec-base-button, .ec-base-button *,
+.ec-base-prdInfo, .ec-base-prdInfo *, .ec-base-paginate, .ec-base-paginate *,
+.prdList, .prdList *, .board, .board *, .step, .step *{
+  font-family:var(--pour-font) !important;
+  letter-spacing:-0.02em;
+}
+body{ color:var(--pour-ink); }
+::selection{ background:var(--pour-or-pale); color:var(--pour-navy); }
+
+/* 링크 hover 강조 */
+#contents a:hover{ color:var(--pour-or); }
+
+/* ===== 1) 브레드크럼 (홈 / 패키지 전체) ===== */
+.path, .xans-layout-orderdetail .path{ font-size:12.5px !important; color:var(--pour-mut) !important; }
+.path ol, .path ul{ display:flex; align-items:center; justify-content:flex-end; gap:2px; flex-wrap:wrap; }
+.path a, .path li, .path strong{ color:var(--pour-mut) !important; font-weight:600 !important; }
+.path li:last-child, .path strong, .path .step_now{ color:var(--pour-navy) !important; font-weight:800 !important; }
+.path a:hover{ color:var(--pour-or) !important; }
+
+/* ===== 2) 페이지 대제목 (패키지 전체 / 장바구니 …) ===== */
+#contents h1, #contents .titleArea, #contents .titleArea h2,
+.ec-base-title, #contents > h2.title{
+  color:var(--pour-navy) !important; font-weight:900 !important; letter-spacing:-0.045em !important;
+}
+.titleArea{ padding:14px 0 22px !important; }
+.titleArea h2{ font-size:30px !important; line-height:1.2 !important; }
+.titleArea p{ color:var(--pour-mut) !important; font-size:14px !important; }
+
+/* 소제목/구분 헤딩 (이용안내, 장바구니 이용안내 …) */
+#contents h2.title, #contents h3.title, .ec-base-help > h2, .ec-base-help > h3,
+.ec-base-desc .title, .boardTitleArea h2{
+  color:var(--pour-navy) !important; font-weight:800 !important; font-size:16px !important;
+  border-bottom-color:var(--pour-navy) !important;
+}
+
+/* ===== 3) 버튼 (텍스트형 클래스 버튼) ===== */
+/* 강조/주요 액션: 주문하기·바로구매·결제 → 오렌지 필 */
+.btnSubmit, a.btnSubmit, button.btnSubmit, .btnStrong, .btnEm, .btnColor,
+.ec-base-button .btnSubmit, #totalProducts .btnSubmit, .btnBuy{
+  background:var(--pour-or) !important; border:1px solid var(--pour-or) !important;
+  color:#fff !important; border-radius:0!important; font-weight:800 !important;
+  box-shadow:none !important; transition:.15s !important;
+}
+.btnSubmit:hover, .btnStrong:hover, .btnEm:hover, .btnColor:hover, .btnBuy:hover{
+  background:#D26A0A !important; border-color:#D26A0A !important; color:#fff !important;
+}
+/* 보조 액션: 계속쇼핑·수량변경·관심상품 → 아웃라인 */
+.btnNormal, a.btnNormal, button.btnNormal, .btnBasic, .btnMore, .btnFix, .btnWhite{
+  background:#fff !important; border:1px solid var(--pour-bd2) !important;
+  color:var(--pour-ink) !important; border-radius:0!important; font-weight:700 !important;
+}
+.btnNormal:hover, .btnBasic:hover, .btnMore:hover, .btnWhite:hover{
+  border-color:var(--pour-or-bd) !important; color:var(--pour-or) !important; background:var(--pour-or-pale) !important;
+}
+
+/* ===== 4) 탭 / 주문 스텝 (1.장바구니 2.주문서작성 3.주문완료 · 국내/해외배송 탭) ===== */
+.ec-base-tab .menu li a, .ec-base-tab ul.menu li{ font-weight:700 !important; color:var(--pour-mut) !important; }
+.ec-base-tab .menu li.selected a, .ec-base-tab .menu li.selected,
+.ec-base-tab .menu li.active a{
+  color:var(--pour-navy) !important; border-color:var(--pour-navy) !important; font-weight:800 !important;
+}
+/* 주문 진행 스텝 */
+.ec-base-step, .step{ color:var(--pour-mut) !important; }
+.step .on, .step .active, .ec-base-step .on{ color:var(--pour-navy) !important; font-weight:800 !important; }
+
+/* ===== 5) 테이블 (장바구니/주문/마이페이지) ===== */
+.ec-base-table{ border-top:2px solid var(--pour-navy) !important; }
+.ec-base-table th{ background:var(--pour-bg) !important; color:var(--pour-ink) !important; font-weight:800 !important; border-color:var(--pour-bd) !important; }
+.ec-base-table td{ border-color:var(--pour-bd) !important; color:var(--pour-ink) !important; }
+.ec-base-table .money, .ec-base-table strong.price, td .price{ color:var(--pour-navy) !important; font-weight:800 !important; }
+
+/* ===== 6) 상품목록 상단 정렬/개수 바 ===== */
+.ec-base-prdSort, .prdCount, .xans-product-normalmenu{ color:var(--pour-mut) !important; font-size:13px !important; }
+.ec-base-prdSort .count strong, .prdCount strong{ color:var(--pour-navy) !important; font-weight:800 !important; }
+.ec-base-prdSort select, .sortList select{ border:1px solid var(--pour-bd2) !important; border-radius:0!important; padding:6px 10px !important; color:var(--pour-ink) !important; }
+/* 진열 방식(그리드) 토글 선택 시 오렌지 */
+.ec-base-prdSort .btnType a.selected, .displayType a.on{ border-color:var(--pour-or) !important; }
+
+/* ===== 6-B) 상품 목록 그리드 강제(4/3/2열 반응형) =====
+   카페24 기본 그리드 CSS가 특정 화면에서 적용 안 돼 상품이 1열로 무너지는 문제 방지.
+   진열설정/토글 JS와 무관하게 항상 정렬 보장. (관련상품/최근본상품 위젯은 아래에서 제외) */
+.prdList{ display:grid !important; grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:26px 18px !important; float:none !important; margin:0 !important; padding:0 !important; list-style:none !important; }
+.prdList > li{ width:auto !important; min-width:0 !important; float:none !important; margin:0 !important; }
+@media (max-width:1024px){ .prdList{ grid-template-columns:repeat(3,minmax(0,1fr)) !important; } }
+@media (max-width:767px){ .prdList{ grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:18px 12px !important; } }
+/* 가로 스크롤 위젯(관련상품·최근본상품·메인진열)은 강제 그리드에서 제외 → 카페24 원래 배치 유지 */
+.xans-product-relation .prdList, .xans-product-recent .prdList,
+.xans-product-listmain .prdList, .xans-product-listrecommend .prdList,
+.xans-product-addproduct .prdList, .ec-base-prdList.horizon .prdList{
+  display:block !important; grid-template-columns:none !important;
+}
+
+/* ===== 7) 페이징 ===== */
+.ec-base-paginate a, .xans-product-normalpaging a{ border:1px solid var(--pour-bd2) !important; border-radius:0!important; color:var(--pour-ink) !important; font-weight:700 !important; }
+.ec-base-paginate a:hover{ border-color:var(--pour-or-bd) !important; color:var(--pour-or) !important; }
+.ec-base-paginate .this, .ec-base-paginate strong.this, .xans-product-normalpaging .this{
+  background:var(--pour-navy) !important; border-color:var(--pour-navy) !important; color:#fff !important; border-radius:0!important;
+}
+
+/* ===== 8) 폼 인풋 포커스 ===== */
+#contents input[type=text], #contents input[type=password], #contents input[type=tel],
+#contents input[type=email], #contents input[type=number], #contents input[type=search],
+#contents select, #contents textarea{
+  border:1px solid var(--pour-bd2) !important; border-radius:0!important; color:var(--pour-ink) !important;
+}
+#contents input:focus, #contents select:focus, #contents textarea:focus{
+  border-color:var(--pour-or) !important; outline:none !important; box-shadow:0 0 0 3px rgba(232,120,15,.12) !important;
+}
+
+/* ===== 9) 빈 상태 / 안내 박스 (장바구니가 비어 있습니다 등) ===== */
+.ec-base-noData, .ec-base-prdInfo .empty, .cartEmpty{ color:var(--pour-mut) !important; }
+.ec-base-help ul li, .ec-base-desc li{ color:var(--pour-mut) !important; line-height:1.7 !important; }
+.ec-base-desc, .ec-base-help.typeType{ border-radius:0!important; }
+
+/* ===== 10) 가격/강조 텍스트 통일 ===== */
+#contents .price, #contents strong.price, .description .spec > li{ color:var(--pour-navy) !important; }
+#contents em.emphasis, #contents .txtEm, .discount{ color:var(--pour-or2) !important; }
+
+/* ===== 11) 반응형 (모바일) ===== */
+@media (max-width:767px){
+  .titleArea h2{ font-size:22px !important; }
+  #contents h2.title, #contents h3.title{ font-size:15px !important; }
+  .btnSubmit, .btnStrong, .btnNormal, .btnBasic{ border-radius:0!important; }
+}
+</style>

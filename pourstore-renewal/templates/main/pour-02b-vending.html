@@ -22,23 +22,23 @@
 /* 소재 그룹 */
 .psm2b-group { margin-top:30px; }
 .psm2b-ghead { display:flex; align-items:center; gap:9px; margin-bottom:14px; }
-.psm2b-gicon { width:34px; height:34px; border-radius:9px; display:grid; place-items:center; background:#fff; border:1px solid #EAE4DC; }
+.psm2b-gicon { width:34px; height:34px; border-radius:0; display:grid; place-items:center; background:#fff; border:1px solid #EAE4DC; }
 .psm2b-gicon svg { width:19px; height:19px; }
 .psm2b-gname { font-size:16.5px; font-weight:800; color:#0F1F5C; }
-.psm2b-gcount { font-size:11.5px; font-weight:800; color:#9A938B; background:#fff; border:1px solid #EAE4DC; border-radius:999px; padding:2px 9px; }
+.psm2b-gcount { font-size:11.5px; font-weight:800; color:#9A938B; background:#fff; border:1px solid #EAE4DC; border-radius:0; padding:2px 9px; }
 /* 자판기 격자 — 촘촘하게 */
 .psm2b-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
-.psm2b-card { background:#fff; border:1px solid #EEEAE3; border-radius:13px; overflow:hidden; transition:.15s; display:flex; flex-direction:column; }
+.psm2b-card { background:#fff; border:1px solid #EEEAE3; border-radius:0; overflow:hidden; transition:.15s; display:flex; flex-direction:column; }
 .psm2b-card:hover { border-color:#F1C89E; box-shadow:0 8px 22px rgba(15,31,92,.08); transform:translateY(-2px); }
 .psm2b-thumb { position:relative; aspect-ratio:1/1; display:grid; place-items:center; overflow:hidden; }
 .psm2b-thumb .wm { width:52%; height:52%; opacity:.16; }
-.psm2b-cap { position:absolute; left:8px; top:8px; font-size:10px; font-weight:800; color:#fff; background:rgba(15,31,92,.82); border-radius:5px; padding:3px 7px; }
-.psm2b-stock { position:absolute; right:8px; top:8px; display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:800; color:#03A24C; background:#fff; border-radius:999px; padding:3px 8px; }
+.psm2b-cap { position:absolute; left:8px; top:8px; font-size:10px; font-weight:800; color:#fff; background:rgba(15,31,92,.82); border-radius:0; padding:3px 7px; }
+.psm2b-stock { position:absolute; right:8px; top:8px; display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:800; color:#03A24C; background:#fff; border-radius:0; padding:3px 8px; }
 .psm2b-stock .dot { width:5px; height:5px; border-radius:50%; background:#03C75A; }
 .psm2b-body { padding:10px 11px 12px; display:flex; flex-direction:column; gap:2px; }
 .psm2b-name { font-size:13px; font-weight:800; color:#1A2130; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:35px; }
 .psm2b-desc { font-size:11px; font-weight:600; color:#9A938B; }
-.psm2b-tag { align-self:flex-start; margin-top:4px; font-size:10px; font-weight:800; border-radius:5px; padding:2px 7px; }
+.psm2b-tag { align-self:flex-start; margin-top:4px; font-size:10px; font-weight:800; border-radius:0; padding:2px 7px; }
 .psm2b-price { margin-top:8px; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; font-size:13.5px; font-weight:800; color:#E8780F; }
 .psm2b-price.ready { color:#9A938B; font-weight:700; }
 @media (max-width:900px){ .psm2b-grid{ grid-template-columns:repeat(4,1fr);} }

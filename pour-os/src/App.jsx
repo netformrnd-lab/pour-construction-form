@@ -1512,6 +1512,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const todayDate=new Date().getDate();
   const todayStr=ymdLocal(new Date());
   const [weekOffset,setWeekOffset]=useState(0);   // 주간배치 주 이동(0=이번주, -1=저번주, +1=다음주)
+  const [trayOpen,setTrayOpen]=useState(true);   // 미배치(목표일 없는 할일) 트레이 펼침
   const weekMon=(()=>{const x=new Date();const off=(x.getDay()+6)%7;x.setDate(x.getDate()-off);x.setHours(0,0,0,0);return x;})();   // 이번 주 월요일
   const selMon=(()=>{const m=new Date(weekMon);m.setDate(m.getDate()+weekOffset*7);return m;})();   // 선택된 주의 월요일
   const dateOfDay=(d)=>{const i=WEEK_DAYS.indexOf(d);if(i<0)return"";const dt=new Date(selMon);dt.setDate(dt.getDate()+i);return ymdLocal(dt);};   // 선택 주의 그 요일 실제 날짜
@@ -1551,8 +1552,11 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     if(dr.weekDay===d&&dr.workDate===ds) return;
     up("tasks",dr.id,{weekDay:d,workDate:ds,weekSlot:nextSlot(d)});
   };
-  // 요일별 정렬 목록 — 목표일(workDate)/요일 배치 + 진행중이면 시작일~오늘 매일 노출(완료·보류 전까지)
-  const dayOrdered=(d)=>{const ds=dateOfDay(d);return myT.filter(t=>!t.isFixed&&(t.workDate===ds||(isThisWeek&&!t.workDate&&t.weekDay===d)||taskInprogSpan(t,ds,todayStr)))
+  // 업무 표시 기준일 — 월간 캘린더와 동일: 목표일(workDate) → 완료일(doneAt) → 마감일(dueDate)
+  const taskDate=(t)=> t.workDate || (t.doneAt?String(t.doneAt).slice(0,10):"") || t.dueDate || "";
+  // 요일별 목록 — 그 날짜가 표시기준일인 업무 + 진행중(시작~오늘 이어짐). 할일·진행중·보류·완료 모두 노출(월간과 동일).
+  // 날짜가 아무것도 없는 '미배치'만 그리드에서 빠져 하단 트레이로 → 떠다니는 문제는 없음.
+  const dayOrdered=(d)=>{const ds=dateOfDay(d);return myT.filter(t=>!t.isFixed&&(taskDate(t)===ds||taskInprogSpan(t,ds,todayStr)))
     .sort((a,b)=>{const sa=a.weekSlot??9999,sb=b.weekSlot??9999;return sa!==sb?sa-sb:String(a.id).localeCompare(String(b.id));});};
   const nextSlot=(d)=>Math.max(0,...dayOrdered(d).map(t=>t.weekSlot||0))+1;
   // 같은 요일 안에서 순서만 변경 — 통째로 1..N 재번호(순위 명확화)
@@ -1567,7 +1571,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     if(t.isFixed||t.status==="done") return null;
     let s,e;
     if(t.status==="inprogress"){ s=inprogressStartDate(t)||t.workDate||(isThisWeek?todayStr:dateOfDay("월")); e=isThisWeek?todayStr:dateOfDay("금"); }   // 진행중 = 시작일~오늘(이어짐)
-    else { s=t.workDate||(isThisWeek&&t.weekDay?dateOfDay(t.weekDay):""); e=(t.dueDate&&t.dueDate>=s)?t.dueDate:s; }   // 할일·보류 = 목표일~마감일
+    else { s=taskDate(t); e=(t.dueDate&&t.dueDate>=s)?t.dueDate:s; }   // 할일·보류·완료 = 표시기준일~마감일 (날짜 없으면 바 없음 — 미배치 트레이로)
     if(!s||!e) return null;
     const monStr=dateOfDay("월"), friStr=dateOfDay("금");
     if(e<monStr||s>friStr) return null;   // 이번 주(월~금)에 안 걸침
@@ -1641,7 +1645,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const toggleFixed=t=>up("tasks",t.id,{doneDates:{...(t.doneDates||{}),[cu.id]:fixedDone(t)?null:todayKey},doneAt:new Date().toISOString(),doneByName:cu?.name||""});
   const doQuick=()=>{
     if(!quick.trim()) return;
-    add("tasks",{id:"t"+Date.now(),title:quick.trim(),projectId:quickProj,assigneeId:cu.id,type:"general",status:"todo",weekDay:today,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[]});
+    add("tasks",{id:"t"+Date.now(),title:quick.trim(),projectId:quickProj,assigneeId:cu.id,type:"general",status:"todo",weekDay:today,workDate:todayStr,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[]});
     setQuick("");setQuickProj("");
   };
   // 내 업무 빠른 등록 — 진행날짜→요일·순위 자동 배치
@@ -1861,8 +1865,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       <WorkCalendar D={D} userId={cu.id} up={up} onEditTask={setEditTask}/>
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid #F2F4F6"}}>
         <div style={{marginBottom:2}}>
-          <h3 style={{margin:"0 0 4px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📅 주간 업무 배치</h3>
-          <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>{isNarrow?"하루씩 ◀▶ · ‹ › 로 주 이동 · ▲▼ 순서":"‹ › 로 주 이동(저번/다음 주) · 드래그로 날짜 이동 · ▲▼ 순서"}</p>
+          <h3 style={{margin:"0 0 4px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📋 주간 업무 보드</h3>
+          <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>{isNarrow?"할일·진행중·보류·완료 · 하루씩 ◀▶ · ‹ › 주 이동":"할일·진행중·보류·완료를 요일별로 · ‹ › 주 이동 · 드래그로 날짜 이동 · ▲▼ 순서"}</p>
         </div>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,margin:"9px 0 2px"}}>
           <button onClick={()=>setWeekOffset(o=>o-1)} style={{padding:"6px 11px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>‹ 저번주</button>
@@ -1873,6 +1877,14 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
           <button onClick={()=>setWeekOffset(o=>o+1)} style={{padding:"6px 11px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>다음주 ›</button>
         </div>
+        {/* 이번 주(보이는 주) 상태별 집계 — 할일·진행중·보류·완료 (월간 캘린더와 동일한 상태 보드) */}
+        {(()=>{const ids=new Set();WEEK_DAYS.forEach(d=>dayOrdered(d).forEach(t=>ids.add(t.id)));const cnt=(s)=>[...ids].filter(id=>{const t=myT.find(x=>x.id===id);return t&&(t.status||"todo")===s;}).length;return(
+          <div style={{display:"flex",flexWrap:"wrap",gap:10,margin:"6px 2px 2px"}}>
+            {[["todo","할일"],["inprogress","진행중"],["hold","보류"],["done","완료"]].map(([k,l])=>{const st=STATUS_MAP[k]||STATUS_MAP.todo;return(
+              <span key={k} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10.5,fontWeight:700,color:"#6B7280"}}><span style={{width:9,height:9,borderRadius:3,background:st.color}}/>{l} {cnt(k)}</span>
+            );})}
+          </div>
+        );})()}
         {(isNarrow?(
           <div style={{marginTop:10}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
@@ -1918,6 +1930,38 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
             <div style={{display:"flex",gap:10}}>{WEEK_DAYS.map(d=>renderDayCol(d,false))}</div>
           </div>
         ))}
+        {/* 미배치 트레이 — 목표일 없는 할일은 그리드에 안 뜨고 여기 모임. 요일 버튼으로 지금 보는 주에 배치(목표일 자동 앵커). */}
+        {(()=>{
+          const unplaced=myT.filter(t=>!t.isFixed&&t.status==="todo"&&!t.workDate&&!t.dueDate).sort((a,b)=>String(a.title).localeCompare(String(b.title)));
+          if(!unplaced.length) return null;
+          const placeTo=(t,d)=>up("tasks",t.id,{weekDay:d,workDate:dateOfDay(d),weekSlot:nextSlot(d)});
+          return(
+            <div style={{marginTop:12,borderTop:"1px dashed #E5E8EB",paddingTop:10}}>
+              <button onClick={()=>setTrayOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",background:"none",border:"none",cursor:"pointer",padding:"2px 0",fontFamily:"inherit"}}>
+                <span style={{fontSize:12.5,fontWeight:900,color:"#EA580C"}}>📥 미배치 {unplaced.length}건 <span style={{fontSize:10.5,fontWeight:700,color:"#9CA3AF"}}>· 목표일 없는 할일 · 요일 눌러 배치</span></span>
+                <span style={{fontSize:11,color:"#9CA3AF"}}>{trayOpen?"▲":"▼"}</span>
+              </button>
+              {trayOpen&&(
+                <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:6}}>
+                  {unplaced.map(t=>{const proj=D.projects.find(p=>p.id===t.projectId);return(
+                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:10,border:"1px solid #FED7AA",background:"#FFFBF5"}}>
+                      <button onClick={()=>setEditTask(t)} style={{flex:1,minWidth:0,textAlign:"left",background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit"}}>
+                        <span style={{display:"block",fontSize:12.5,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</span>
+                        {proj&&<span style={{display:"block",fontSize:10.5,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📁 {proj.title}</span>}
+                      </button>
+                      <div style={{display:"flex",gap:3,flexShrink:0}}>
+                        {WEEK_DAYS.map(d=>(
+                          <button key={d} onClick={()=>placeTo(t,d)} title={`${d}요일(${wdDate(d)})에 배치`} style={{width:24,height:26,borderRadius:7,border:`1px solid ${d===today&&isThisWeek?"#F97316":"#E5E8EB"}`,background:d===today&&isThisWeek?"#FFEDD5":"#fff",color:d===today&&isThisWeek?"#EA580C":"#6B7280",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit",padding:0}}>{d}</button>
+                        ))}
+                      </div>
+                    </div>
+                  );})}
+                </div>
+              )}
+              {trayOpen&&!isThisWeek&&<p style={{margin:"6px 2px 0",fontSize:10,color:"#B0B8C1"}}>※ 요일 버튼은 지금 보는 <b>{weekOffset===-1?"저번 주":weekOffset===1?"다음 주":"선택한 주"}</b>에 배치됩니다</p>}
+            </div>
+          );
+        })()}
       {/* 주간 업무 배치: 항상 펼친 상태 고정 */}
       </div>
       <div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:12,flexWrap:"wrap"}}>
@@ -2103,7 +2147,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                     {(taskFilter==="hold")?(
                       <button onClick={()=>bringToday(t)} style={{width:"100%",marginTop:8,padding:"8px 0",borderRadius:9,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>📍 오늘로 재개</button>
                     ):(!placed&&t.status!=="done")&&(
-                      <button onClick={()=>up("tasks",t.id,{weekDay:today})} style={{width:"100%",marginTop:8,padding:"8px 0",borderRadius:9,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>📍 오늘({today}) 배치</button>
+                      <button onClick={()=>up("tasks",t.id,{weekDay:today,workDate:todayStr,weekSlot:null})} style={{width:"100%",marginTop:8,padding:"8px 0",borderRadius:9,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>📍 오늘({today}) 배치</button>
                     )}
                   </div>);})}
               </div>
@@ -5562,8 +5606,9 @@ function pushKRSubtree(items,D,uid,isThisWeek,doneInP,krColors,baseDepth,opts={}
     const pushTask=(t,d)=>{
       if(activeOnly&&!anyAct(t))return;
       const kids=kidsOf(t.id);const st=STATUS_MAP[t.status]||STATUS_MAP.todo;
-      const chips=kids.length?[{t:"할일",c:stT.color,bg:stT.bg},{t:"하위 "+kids.length,c:"#6B7280",bg:"#F2F4F6"}]:[{t:st.label,c:st.color,bg:st.bg}];
-      items.push({id:pfx+t.id,depth:d,label:t.title,color:kids.length?stT.color:st.color,active:anyAct(t),leftTag:t.weekDay||null,chips,ref:{kind:"task",id:t.id}});
+      const chips=kids.length?[{t:"하위 "+kids.length,c:"#6B7280",bg:"#F2F4F6"}]:[];
+      if(t.status==="done"||t.status==="hold")chips.unshift({t:st.label,c:st.color,bg:st.bg});   // 마인드맵: 요일 태그 제거 · 완료/보류 상태만 칩 표시
+      items.push({id:pfx+t.id,depth:d,label:t.title,color:kids.length?stT.color:st.color,active:anyAct(t),leftTag:null,chips,ref:{kind:"task",id:t.id}});
       kids.forEach(k=>pushTask(k,d+1));
     };
     rootsT.forEach(t=>pushTask(t,depth+1));
@@ -5646,8 +5691,9 @@ function buildKpiMapItems(D,activeInP,doneInP,opts={}){
       const pushTask=(t,d)=>{
         if(activeOnly&&!anyAct(t))return;
         const kids=kidsOf(t.id);const st=STATUS_MAP[t.status]||stT;
-        const chips=kids.length?[{t:"할일",c:stT.color,bg:stT.bg},{t:"하위 "+kids.length,c:"#6B7280",bg:"#F2F4F6"}]:[{t:st.label,c:st.color,bg:st.bg}];
-        items.push({id:pf+t.id,depth:d,label:t.title,color:kids.length?stT.color:st.color,active:anyAct(t),leftTag:t.weekDay||null,chips,ref:{kind:"task",id:t.id}});
+        const chips=kids.length?[{t:"하위 "+kids.length,c:"#6B7280",bg:"#F2F4F6"}]:[];
+        if(t.status==="done"||t.status==="hold")chips.unshift({t:st.label,c:st.color,bg:st.bg});   // 마인드맵: 요일 태그 제거 · 완료/보류 상태만 칩 표시
+        items.push({id:pf+t.id,depth:d,label:t.title,color:kids.length?stT.color:st.color,active:anyAct(t),leftTag:null,chips,ref:{kind:"task",id:t.id}});
         kids.forEach(k=>pushTask(k,d+1));
       };
       rootsT.forEach(t=>pushTask(t,3));

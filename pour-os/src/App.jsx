@@ -394,7 +394,7 @@ const taskTimeSpent=(t)=>{
   return total;
 };
 // 진행중 시작 시점 — statusLog의 첫 '진행중' 전환 시각(실제 행동 시작). 기록 없으면 null.
-const inprogressStartAt=(t)=>{const log=(Array.isArray(t.statusLog)?t.statusLog:[]).filter(e=>e&&e.at&&e.status==="inprogress").sort((a,b)=>String(a.at).localeCompare(String(b.at)));return log.length?log[0].at:null;};
+const inprogressStartAt=(t)=>{if(t.startedAt)return t.startedAt;const log=(Array.isArray(t.statusLog)?t.statusLog:[]).filter(e=>e&&e.at&&e.status==="inprogress").sort((a,b)=>String(a.at).localeCompare(String(b.at)));return log.length?log[0].at:null;};   // startedAt(수동 지정) 있으면 우선
 const inprogressStartDate=(t)=>{const at=inprogressStartAt(t);return at?ymdLocal(new Date(at)):null;};
 // 진행중 시작 시각 표기 (MM/DD HH:mm)
 const fmtStart=(at)=>{if(!at)return"";const d=new Date(at);if(isNaN(d))return"";return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;};
@@ -444,7 +444,9 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
   const [histOpen,setHistOpen]=useState(false);  // 진행 이력 펼침(기본 접힘)
   const [childName,setChildName]=useState("");   // 새 하위 업무명 즉시 입력
   const [delText,setDelText]=useState("");        // 삭제 확인 입력('삭제')
-  if(task&&task.id!==prevId){setPrevId(task.id);setDelText("");setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",assigneeIds:Array.isArray(task.assigneeIds)&&task.assigneeIds.length?task.assigneeIds:(task.assigneeId?[task.assigneeId]:[]),forAll:!!task.forAll,parentId:task.parentId||"",attachments:Array.isArray(task.attachments)?task.attachments:[],weekDay:task.weekDay||"",weekSlot:task.weekSlot??null,workDate:task.workDate||"",fixedTime:task.fixedTime||""});}
+  const [mStart,setMStart]=useState("");          // 실제 시작일(직접 수정) YYYY-MM-DD
+  const [mDone,setMDone]=useState("");            // 완료일(직접 수정) YYYY-MM-DD
+  if(task&&task.id!==prevId){setPrevId(task.id);setDelText("");setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",assigneeIds:Array.isArray(task.assigneeIds)&&task.assigneeIds.length?task.assigneeIds:(task.assigneeId?[task.assigneeId]:[]),forAll:!!task.forAll,parentId:task.parentId||"",attachments:Array.isArray(task.attachments)?task.attachments:[],weekDay:task.weekDay||"",weekSlot:task.weekSlot??null,workDate:task.workDate||"",fixedTime:task.fixedTime||""});const _sa=inprogressStartAt(task);setMStart(_sa?String(_sa).slice(0,10):"");setMDone(task.doneAt?String(task.doneAt).slice(0,10):"");}
   if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",assigneeIds:[],forAll:false,attachments:[],weekDay:"",weekSlot:null,workDate:"",fixedTime:""});}
   // 날짜 선택 → 요일·슬롯 자동 배정(담당자의 그 요일 빈 슬롯 중 가장 앞, 없으면 슬롯 없이 그날에)
   const placeOn=(f,ds)=>{
@@ -594,6 +596,29 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
           </div>
           );
         })()}
+        {task&&!task.isFixed&&(
+          <div style={{marginBottom:14,padding:"11px 13px",background:"#F9FAFB",borderRadius:12,border:"1px solid #F2F4F6"}}>
+            <label style={{display:"block",fontSize:12,fontWeight:800,color:"#374151",marginBottom:2}}>🕒 실제 진행 기록 <span style={{color:"#9CA3AF",fontWeight:600}}>(직접 수정 · 보드·캘린더에 반영)</span></label>
+            <p style={{margin:"0 0 8px",fontSize:10.5,color:"#9CA3AF",lineHeight:1.5}}>실제로 언제 시작했고 언제 완료했는지 직접 지정할 수 있어요. 비우면 진행 이력 기준(자동).</p>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <div style={{flex:1,minWidth:132}}>
+                <span style={{fontSize:10.5,fontWeight:800,color:"#3182F6"}}>🔵 실제 시작일</span>
+                <div style={{display:"flex",gap:5,marginTop:3}}>
+                  <input type="date" value={mStart} onChange={e=>{const ds=e.target.value;setMStart(ds);up("tasks",task.id,{startedAt:ds?ds+"T12:00:00":null});}} style={{flex:1,minWidth:0,padding:"9px 10px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                  {mStart&&<button type="button" onClick={()=>{setMStart("");up("tasks",task.id,{startedAt:null});}} title="자동(진행 이력)으로" style={{padding:"0 10px",borderRadius:9,border:"1px solid #E5E8EB",background:"#fff",color:"#9CA3AF",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>자동</button>}
+                </div>
+              </div>
+              {(form.status==="done"||task.status==="done")&&(
+                <div style={{flex:1,minWidth:132}}>
+                  <span style={{fontSize:10.5,fontWeight:800,color:"#00A862"}}>✅ 완료일</span>
+                  <div style={{display:"flex",gap:5,marginTop:3}}>
+                    <input type="date" value={mDone} onChange={e=>{const ds=e.target.value;setMDone(ds);up("tasks",task.id,ds?{doneAt:ds+"T12:00:00",doneBy:task.doneBy||null,doneByName:task.doneByName||""}:{doneAt:null});}} style={{flex:1,minWidth:0,padding:"9px 10px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {task&&task.isFixed?(
         <div style={{marginBottom:14}}>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>🕐 시간 <span style={{color:"#9CA3AF",fontWeight:600}}>(반복 시각 — 선택)</span></label>
@@ -901,7 +926,7 @@ export default function App(){
   };
   // ── 활동 여정(activityLog) 기록 헬퍼 — 추가·수정·삭제·복구를 누가·언제·무엇을 한 줄로 남긴다(데이터 자산화) ──
   const recLabel=(it)=>it&&(it.title||it.name||it.companyName||it.targetName||it.label||it._label||it.week||it.id)||"(제목 없음)";
-  const FIELD_L={status:"상태",progress:"진척",resultValue:"매출",currentValue:"수치",title:"제목",name:"이름",memo:"메모",dueDate:"마감",assigneeId:"담당",priority:"우선순위",dealerType:"거래처유형",activityKPIs:"활동지표",stages:"단계",nodes:"단계",target:"목표",color:"색상"};
+  const FIELD_L={status:"상태",progress:"진척",resultValue:"매출",currentValue:"수치",title:"제목",name:"이름",memo:"메모",dueDate:"마감",startedAt:"실제시작일",assigneeId:"담당",priority:"우선순위",dealerType:"거래처유형",activityKPIs:"활동지표",stages:"단계",nodes:"단계",target:"목표",color:"색상"};
   const fieldSummary=(c)=>Object.keys(c||{}).filter(f=>!["statusLog","doneAt","doneBy","doneByName","updatedAt","valueHistory","salesHistory","edits"].includes(f)).map(f=>FIELD_L[f]||f).slice(0,4).join("·");
   const mkLog=(action,col,targetId,label,extra)=>({id:"log"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),action,col,targetId:targetId||null,label:label||"",by:cu?.id||null,byName:cu?.name||"",at:new Date().toISOString(),...(extra||{})});
   const withLog=(state,action,col,targetId,label,extra)=>{ const arr=[...(state.activityLog||[]),mkLog(action,col,targetId,label,extra)]; return {...state,activityLog:arr.length>ACT_LOG_CAP?arr.slice(arr.length-ACT_LOG_CAP):arr}; };

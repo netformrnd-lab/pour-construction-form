@@ -200,7 +200,7 @@
 </header>
 
 <div class="topbar">
-  <div class="seg2" id="mgSeg"><button data-mg="products" class="on">상품 정보</button><button data-mg="plans">기획 보고함 <span id="mgPlanCount"></span></button><button data-mg="content">컨텐츠 소스</button></div>
+  <div class="seg2" id="mgSeg"><button data-mg="products" class="on">상품 정보</button><button data-mg="plans">기획 보고함 <span id="mgPlanCount"></span></button><button data-mg="content">컨텐츠 소스</button><button data-mg="registry">상품 원장 🔗</button></div>
   <span class="visnote" id="visNote"></span>
 </div>
 
@@ -229,6 +229,14 @@
     <a class="cbar-link ghost" id="cosLink" href="content-os.html" target="_blank" rel="noopener">새창에서 열기 ↗</a>
   </div>
   <iframe id="contentFrame" title="컨텐츠 소스 관리" loading="lazy"></iframe>
+</div>
+
+<div class="wrapP hidden" id="mgRegistry">
+  <div class="cbar">
+    <div class="cbar-info"><b>가격대시보드와 공유되는 상품 원장</b>이에요. 여기서 상품을 등록·수정·삭제하면 가격대시보드에도 실시간 반영됩니다. (원장은 대시보드 계정으로 별도 로그인)</div>
+    <a class="cbar-link ghost" href="registry.html" target="_blank" rel="noopener">새창에서 열기 ↗</a>
+  </div>
+  <iframe id="registryFrame" title="상품 원장" loading="lazy" style="width:100%;height:calc(100vh - 180px);min-height:520px;border:0;background:#fff;border-radius:12px"></iframe>
 </div>
 
 <!-- 기획 상세/승인 모달 -->
@@ -424,9 +432,11 @@ function setMgView(v){
   $('#mgProducts').classList.toggle('hidden',v!=='products');
   $('#mgPlans').classList.toggle('hidden',v!=='plans');
   const mc=$('#mgContent');if(mc)mc.classList.toggle('hidden',v!=='content');
+  const mr=$('#mgRegistry');if(mr)mr.classList.toggle('hidden',v!=='registry');
   $('#visNote').style.display=(v==='products')?'':'none';
   if(v==='plans')renderMgPlans();
   if(v==='content'){const f=$('#contentFrame');if(f&&!f.getAttribute('src'))f.setAttribute('src','content-os.html');} // 처음 열 때만 로드
+  if(v==='registry'){const f=$('#registryFrame');if(f&&!f.getAttribute('src'))f.setAttribute('src','registry.html');} // 상품 원장(가격대시보드 공유) 처음 열 때만 로드
 }
 function renderMgPlanChips(){
   const box=$('#mgPlanChips');if(!box)return;

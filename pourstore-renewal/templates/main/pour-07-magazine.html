@@ -98,6 +98,9 @@ const firebaseConfig = {
 };
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
+/* 공유 로딩 캐시(성능) — 메인의 다른 섹션이 이미 받은 pourstore-postings 재사용(중복 fetch 제거). define-if-absent. */
+window.__pcache = window.__pcache || (function(){ var mem={}; return { wrap:function(key,ttl,fetcher){ if(mem[key])return mem[key]; try{var raw=sessionStorage.getItem('pc:'+key); if(raw){var o=JSON.parse(raw); if(o&&(Date.now()-o.t)<ttl){return (mem[key]=Promise.resolve(o.v));}}}catch(e){} var p=Promise.resolve().then(fetcher).then(function(v){try{sessionStorage.setItem('pc:'+key,JSON.stringify({t:Date.now(),v:v}));}catch(e){} return v;}); p.catch(function(){delete mem[key];}); return (mem[key]=p); }}; })();
+var PC_TTL = 300000;
 
 (async function(){
   var sec = document.querySelector('[data-psg3]');
@@ -119,9 +122,8 @@ const db = getFirestore(app);
 
   var posts = [];
   try {
-    var snap = await getDocs(collection(db, "pourstore-postings"));
-    posts = snap.docs.map(function(d){ return Object.assign({ id:d.id }, d.data()); })
-      .filter(function(p){ return p && p.active !== false; })
+    var rawPosts = await window.__pcache.wrap('col:postings', PC_TTL, function(){ return getDocs(collection(db,"pourstore-postings")).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); });
+    posts = rawPosts.filter(function(p){ return p && p.active !== false; })
       .sort(function(a,b){ var o=(a.order==null?999:a.order)-(b.order==null?999:b.order); return o!==0?o:String(b.createdAt||'').localeCompare(String(a.createdAt||'')); });
     console.log("[psg3] 매거진 글 " + posts.length + "건 로드");
   } catch (e) {

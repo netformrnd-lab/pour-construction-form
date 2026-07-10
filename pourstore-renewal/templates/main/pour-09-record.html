@@ -83,6 +83,9 @@ const firebaseConfig = {
 };
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
+/* 공유 로딩 캐시(성능) — 두 site-resources 읽기를 병렬로 시작 + 재방문 시 재사용. define-if-absent. */
+window.__pcache = window.__pcache || (function(){ var mem={}; return { wrap:function(key,ttl,fetcher){ if(mem[key])return mem[key]; try{var raw=sessionStorage.getItem('pc:'+key); if(raw){var o=JSON.parse(raw); if(o&&(Date.now()-o.t)<ttl){return (mem[key]=Promise.resolve(o.v));}}}catch(e){} var p=Promise.resolve().then(fetcher).then(function(v){try{sessionStorage.setItem('pc:'+key,JSON.stringify({t:Date.now(),v:v}));}catch(e){} return v;}); p.catch(function(){delete mem[key];}); return (mem[key]=p); }}; })();
+var PC_TTL = 300000;
 
 (async function(){
   var section = document.currentScript ? document.currentScript.closest('.pst2') : document.querySelector('.pst2');
@@ -91,10 +94,13 @@ const db = getFirestore(app);
   var gtrack = section.querySelector('[data-pst2-gal-track]');
   var lg = section.querySelector('[data-pst2-logos]');
 
+  // 갤러리·협력사 두 읽기를 병렬로 먼저 시작(순차 대기 제거)
+  var pGallery  = window.__pcache.wrap('sr:gallery',  PC_TTL, function(){ return getDoc(doc(db,"site-resources","pourstore-gallery")).then(function(s){ return s.exists()&&Array.isArray(s.data().urls)?s.data().urls:[]; }); });
+  var pPartners = window.__pcache.wrap('sr:partners', PC_TTL, function(){ return getDoc(doc(db,"site-resources","pourstore-partners")).then(function(s){ return s.exists()&&Array.isArray(s.data().items)?s.data().items:[]; }); });
+
   // ===== 시공현장 갤러리 (1행 자동 흐름 + 드래그, JS transform 단일 제어) =====
   try {
-    var gSnap = await getDoc(doc(db, "site-resources", "pourstore-gallery"));
-    var imgs = gSnap.exists() && Array.isArray(gSnap.data().urls) ? gSnap.data().urls : [];
+    var imgs = await pGallery;
     console.log("[pst2] 갤러리 " + imgs.length + "개 로드");
     if (gtrack && imgs.length) {
       function makeCard(u){
@@ -171,8 +177,7 @@ const db = getFirestore(app);
 
   // ===== 협력사 로고 =====
   try {
-    var pSnap = await getDoc(doc(db, "site-resources", "pourstore-partners"));
-    var logos = pSnap.exists() && Array.isArray(pSnap.data().items) ? pSnap.data().items : [];
+    var logos = await pPartners;
     console.log("[pst2] 협력사 로고 " + logos.length + "개 로드");
     if (lg && logos.length) {
       // 가나다 클라이언트 정렬 (orderBy 미사용 — 개발규칙 준수)

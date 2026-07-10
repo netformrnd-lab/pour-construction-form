@@ -101,6 +101,20 @@ body{ color:var(--pour-ink); }
 /* 진열 방식(그리드) 토글 선택 시 오렌지 */
 .ec-base-prdSort .btnType a.selected, .displayType a.on{ border-color:var(--pour-or) !important; }
 
+/* ===== 6-B) 상품 목록 그리드 강제(4/3/2열 반응형) =====
+   카페24 기본 그리드 CSS가 특정 화면에서 적용 안 돼 상품이 1열로 무너지는 문제 방지.
+   진열설정/토글 JS와 무관하게 항상 정렬 보장. (관련상품/최근본상품 위젯은 아래에서 제외) */
+.prdList{ display:grid !important; grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:26px 18px !important; float:none !important; margin:0 !important; padding:0 !important; list-style:none !important; }
+.prdList > li{ width:auto !important; min-width:0 !important; float:none !important; margin:0 !important; }
+@media (max-width:1024px){ .prdList{ grid-template-columns:repeat(3,minmax(0,1fr)) !important; } }
+@media (max-width:767px){ .prdList{ grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:18px 12px !important; } }
+/* 가로 스크롤 위젯(관련상품·최근본상품·메인진열)은 강제 그리드에서 제외 → 카페24 원래 배치 유지 */
+.xans-product-relation .prdList, .xans-product-recent .prdList,
+.xans-product-listmain .prdList, .xans-product-listrecommend .prdList,
+.xans-product-addproduct .prdList, .ec-base-prdList.horizon .prdList{
+  display:block !important; grid-template-columns:none !important;
+}
+
 /* ===== 7) 페이징 ===== */
 .ec-base-paginate a, .xans-product-normalpaging a{ border:1px solid var(--pour-bd2) !important; border-radius:0!important; color:var(--pour-ink) !important; font-weight:700 !important; }
 .ec-base-paginate a:hover{ border-color:var(--pour-or-bd) !important; color:var(--pour-or) !important; }

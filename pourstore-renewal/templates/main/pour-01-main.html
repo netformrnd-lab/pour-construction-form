@@ -121,6 +121,16 @@
 @keyframes psm1-mega-wiggle { 0%,86%,100% { transform:rotate(0); } 90% { transform:rotate(-12deg); } 94% { transform:rotate(9deg); } }
 .psm1-tab:hover { color:#2F3438; }
 .psm1-tab .psm1-tab-new { display:inline-block; font-size:10px; font-weight:800; color:#E8780F; vertical-align:top; margin-left:2px; letter-spacing:0; }
+/* 메뉴 묶음(탭+카테고리): 스크롤 내리면 접힘 / 올리면 펼침 (검색줄은 항상 고정) */
+.psm1-menus { overflow:hidden; max-height:120px; transition:max-height .3s cubic-bezier(.4,0,.2,1), opacity .18s ease; will-change:max-height; }
+.psm1-menus.psm1-menus--hide { max-height:0; opacity:0; }
+/* 카테고리 메뉴 줄 */
+.psm1-cats { border-bottom:1px solid #F2F3F5; background:#fff; }
+.psm1-cats-inner { max-width:1256px; margin:0 auto; padding:0 24px; display:flex; align-items:center; gap:0; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; }
+.psm1-cats-inner::-webkit-scrollbar { display:none; }
+.psm1-cat-link { padding:11px 13px; font-size:13.5px; font-weight:600; color:#4B5563; white-space:nowrap; transition:.15s; letter-spacing:-0.02em; }
+.psm1-cat-link:hover { color:#E8780F; }
+.psm1-cat-link.on { color:#E8780F; font-weight:800; }
 /* 3) 히어로 */
 .psm1-hero { background:#fff; padding:20px 24px 0; }
 .psm1-hero-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:1fr 320px; gap:20px; }
@@ -202,6 +212,9 @@
   .psm1-mb-hot a { font-size:12.5px; font-weight:500; color:#616161; white-space:nowrap; }
   .psm1-tabs-inner { padding:0 14px; }
   .psm1-tab { font-size:14px; padding:14px 10px; }
+  .psm1-cats-inner { padding:0 14px; }
+  .psm1-cat-link { font-size:12.5px; padding:10px 9px; }
+  .psm1-menus { max-height:150px; }
   .psm1-hero { padding:14px 14px 0; }
   .psm1-hero-inner { grid-template-columns:1fr; gap:10px; }
   .psm1-banner { aspect-ratio:4/3; border-radius:10px; }
@@ -408,6 +421,8 @@
     </div>
   </div>
 </header>
+<!-- 메뉴 묶음: 스크롤 내리면 숨김 / 올리면 표시 (검색줄은 위에 항상 고정) -->
+<div class="psm1-menus" data-psm1-menus>
 <!-- 2) 카테고리 탭 (복구) — 목적지는 CMS 페이지 제작 후 연결 예정(임시 #) -->
 <nav class="psm1-tabs" aria-label="카테고리 탭">
   <div class="psm1-tabs-inner">
@@ -418,6 +433,19 @@
     <a href="#" class="psm1-tab">이벤트</a>
   </div>
 </nav>
+<!-- 3) 카테고리 메뉴 줄 — 실제 cate_no로 교체하세요 (71=패키지,84=부자재,63=안전용품 확인됨. 나머지는 # 임시) -->
+<nav class="psm1-cats" aria-label="상품 카테고리">
+  <div class="psm1-cats-inner">
+    <a href="/product/list.html?cate_no=71" class="psm1-cat-link">패키지</a>
+    <a href="#" class="psm1-cat-link">방수</a>
+    <a href="#" class="psm1-cat-link">도장</a>
+    <a href="#" class="psm1-cat-link">보수·보강</a>
+    <a href="/product/list.html?cate_no=84" class="psm1-cat-link">부자재</a>
+    <a href="/product/list.html?cate_no=63" class="psm1-cat-link">안전용품</a>
+    <a href="#" class="psm1-cat-link">시공도구</a>
+  </div>
+</nav>
+</div><!-- //psm1-menus -->
 </div><!-- //psm1-sticky -->
 <!-- 3) 히어로 -->
 <div class="psm1-hero">
@@ -585,12 +613,22 @@ var PM_POSTS = [];
   var section = document.querySelector('.psm1');
   if (!section) return;
 
-  // sticky 그림자
+  // sticky 그림자 + 스크롤 방향에 따른 메뉴 접힘(검색줄은 항상 고정)
   var sticky = section.querySelector('.psm1-sticky');
-  if (sticky) {
-    var onScroll = function(){ if (window.pageYOffset > 4) sticky.classList.add('psm1-scrolled'); else sticky.classList.remove('psm1-scrolled'); };
-    window.addEventListener('scroll', onScroll, { passive:true }); onScroll();
+  var menus = section.querySelector('[data-psm1-menus]');
+  var lastY = window.pageYOffset || 0;
+  function onScroll(){
+    var y = window.pageYOffset || 0;
+    if (sticky){ if (y > 4) sticky.classList.add('psm1-scrolled'); else sticky.classList.remove('psm1-scrolled'); }
+    if (menus){
+      if (y <= 8){ menus.classList.remove('psm1-menus--hide'); }        // 최상단 → 항상 표시
+      else if (y > lastY + 4){ menus.classList.add('psm1-menus--hide'); } // 아래로 → 숨김
+      else if (y < lastY - 4){ menus.classList.remove('psm1-menus--hide'); } // 위로 → 표시
+    }
+    lastY = y;
   }
+  window.addEventListener('scroll', onScroll, { passive:true });
+  onScroll();
 
   var SEARCH_URL = '/product/search.html?keyword=';
   var items = [];

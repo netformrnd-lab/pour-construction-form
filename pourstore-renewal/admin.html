@@ -4806,6 +4806,17 @@ const POSTING_PLACEMENTS=[
 const postingType=(k)=>POSTING_TYPES.find(t=>t.key===k)||POSTING_TYPES[0];
 const ytId=(url)=>{const m=(url||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/);return m?m[1]:null;};
 const ytThumb=(url)=>{const id=ytId(url);return id?('https://img.youtube.com/vi/'+id+'/hqdefault.jpg'):'';};
+// 본문 string ↔ blocks[] 변환 (구버전 body 호환)
+const parseBodyToBlocks=(body)=>{
+  const lines=String(body||'').split(/\r?\n/); const blocks=[]; let para=[];
+  const flush=()=>{ if(para.join('').trim()){ blocks.push({type:'text',text:para.join('\n').trim()}); } para=[]; };
+  lines.forEach(ln=>{ const t=ln.trim();
+    if(/^https?:\/\/\S+$/i.test(t)){ flush(); blocks.push({type:'image',url:t,hotspots:[]}); }
+    else para.push(ln);
+  });
+  flush(); return blocks;
+};
+const blocksToBody=(blocks)=>(blocks||[]).map(b=>b.type==='image'?(b.url||''):(b.text||'')).filter(Boolean).join('\n\n');
 
 function PostingsPage({showToast}){
   const { audit } = useActiveStaffContext();
@@ -4834,14 +4845,20 @@ function PostingsPage({showToast}){
   const saveEditing=async()=>{
     const f=editing;
     if(!f.title.trim()){ showToast('제목을 입력하세요','error'); return; }
+    // blocks 정리
+    const blocks=(Array.isArray(f.blocks)?f.blocks:[]).map(b=> b.type==='image'
+      ? {type:'image', url:(b.url||'').trim(), hotspots:(b.hotspots||[]).filter(h=>(h.name||'').trim()||(h.link||'').trim()).map(h=>({x:Number(h.x)||0,y:Number(h.y)||0,name:(h.name||'').trim(),price:(h.price||'').trim(),thumb:(h.thumb||'').trim(),link:(h.link||'').trim()}))}
+      : {type:'text', text:(b.text||'').trim()}
+    ).filter(b=> b.type==='image' ? b.url : b.text);
+    const bodyStr=blocksToBody(blocks);
     if(f.type==='video' && !f.link.trim()){ showToast('영상은 유튜브 링크가 필요합니다','error'); return; }
-    if(f.type!=='video' && !f.link.trim() && !(f.body||'').trim()){ showToast('링크 또는 본문 중 하나는 입력하세요','error'); return; }
+    if(f.type!=='video' && !f.link.trim() && !bodyStr.trim()){ showToast('링크 또는 본문 중 하나는 입력하세요','error'); return; }
     setSaving(true);
     try{
       const tags=(f.tagsText||'').split(',').map(s=>s.trim()).filter(Boolean);
-      const thumbnail=(f.thumbnail||'').trim() || (f.type==='video'?ytThumb(f.link):'');
+      const thumbnail=(f.thumbnail||'').trim() || (f.type==='video'?ytThumb(f.link):'') || (blocks.find(b=>b.type==='image')||{}).url || '';
       const payload={ type:f.type, title:f.title.trim(), link:f.link.trim(), thumbnail, tags,
-        summary:(f.summary||'').trim(), body:(f.body||'').trim(), duration:(f.duration||'').trim(), placements:Array.isArray(f.placements)?f.placements:[],
+        summary:(f.summary||'').trim(), body:bodyStr, blocks, duration:(f.duration||'').trim(), placements:Array.isArray(f.placements)?f.placements:[],
         order:Number(f.order)||0, active:f.active!==false };
       if(f.id){
         await db.collection(COLLECTIONS.POURSTORE_POSTINGS).doc(f.id).set({...payload,...audit.update()},{merge:true});
@@ -4927,8 +4944,83 @@ function PostingsPage({showToast}){
   );
 }
 
+// 본문 블록 에디터 — 글/사진 블록 + 사진 클릭으로 상품 핫스팟
+function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
+  const fld={width:'100%',padding:'8px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12.5,outline:'none',boxSizing:'border-box'};
+  const mini={width:24,height:24,borderRadius:6,border:'1px solid var(--border)',background:'#fff',cursor:'pointer',fontSize:11,lineHeight:1};
+  const addBtn={flex:1,padding:'10px',borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'};
+  const mut=(fn)=>onChange(fn(blocks.map(b=>({...b,hotspots:(b.hotspots||[]).map(h=>({...h}))}))));
+  const addText=()=>mut(p=>[...p,{type:'text',text:''}]);
+  const addImage=()=>mut(p=>[...p,{type:'image',url:'',hotspots:[]}]);
+  const upd=(i,patch)=>mut(p=>{p[i]={...p[i],...patch};return p;});
+  const del=(i)=>mut(p=>p.filter((_,x)=>x!==i));
+  const move=(i,d)=>mut(p=>{const j=i+d;if(j<0||j>=p.length)return p;[p[i],p[j]]=[p[j],p[i]];return p;});
+  const addHot=(i,x,y)=>mut(p=>{p[i].hotspots=[...(p[i].hotspots||[]),{x,y,name:'',price:'',thumb:'',link:''}];return p;});
+  const updHot=(i,hi,patch)=>mut(p=>{p[i].hotspots[hi]={...p[i].hotspots[hi],...patch};return p;});
+  const delHot=(i,hi)=>mut(p=>{p[i].hotspots=p[i].hotspots.filter((_,x)=>x!==hi);return p;});
+  const onImgClick=(i,e)=>{const r=e.currentTarget.getBoundingClientRect();const x=Math.max(0,Math.min(100,Math.round(((e.clientX-r.left)/r.width)*100)));const y=Math.max(0,Math.min(100,Math.round(((e.clientY-r.top)/r.height)*100)));addHot(i,x,y);};
+  return(
+    <div>
+      {blocks.length===0 && <div style={{padding:'16px',textAlign:'center',color:'var(--text-sm)',fontSize:12,background:'var(--bg)',borderRadius:9,border:'1px solid var(--border)',marginBottom:8}}>블록이 없습니다. 아래에서 글/사진을 추가하세요.</div>}
+      {blocks.map((b,i)=>(
+        <div key={i} style={{border:'1px solid var(--border)',borderRadius:10,padding:10,marginBottom:8,background:'#fff'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+            <span style={{fontSize:11,fontWeight:800,color:'var(--or-d)'}}>{b.type==='image'?'사진':'글'} {i+1}</span>
+            <div style={{display:'flex',gap:4}}>
+              <button type="button" onClick={()=>move(i,-1)} disabled={i===0} style={{...mini,opacity:i===0?.35:1}}>▲</button>
+              <button type="button" onClick={()=>move(i,1)} disabled={i===blocks.length-1} style={{...mini,opacity:i===blocks.length-1?.35:1}}>▼</button>
+              <button type="button" onClick={()=>del(i)} style={{...mini,color:'var(--red)',borderColor:'var(--red-m)',background:'var(--red-l)',fontWeight:900}}>×</button>
+            </div>
+          </div>
+          {b.type==='text'
+            ? <textarea value={b.text||''} onChange={e=>upd(i,{text:e.target.value})} placeholder="문단 내용을 입력하세요" style={{...fld,minHeight:70,resize:'vertical',fontFamily:'inherit',lineHeight:1.6}}/>
+            : <div>
+                <div style={{display:'flex',gap:6}}>
+                  <input value={b.url||''} onChange={e=>upd(i,{url:e.target.value})} placeholder="사진 URL (또는 업로드)" style={{...fld,flex:1}}/>
+                  <label style={{padding:'0 10px',borderRadius:8,border:'1px solid var(--border)',background:uploadingKey==='b'+i?'var(--or-pale)':'var(--bg)',fontSize:11,fontWeight:800,color:'var(--or-d)',cursor:'pointer',display:'flex',alignItems:'center'}}>{uploadingKey==='b'+i?'…':'업로드'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)uploadImage('b'+i,f,(url)=>upd(i,{url})); e.target.value='';}}/></label>
+                </div>
+                {b.url && <div style={{position:'relative',marginTop:8,borderRadius:8,overflow:'hidden',border:'1px solid var(--border)',cursor:'crosshair'}} onClick={e=>onImgClick(i,e)}>
+                  <img src={b.url} alt="" style={{width:'100%',display:'block'}} onError={e=>{e.target.style.opacity=.3;}}/>
+                  {(b.hotspots||[]).map((h,hi)=>(<span key={hi} style={{position:'absolute',left:h.x+'%',top:h.y+'%',transform:'translate(-50%,-50%)',width:22,height:22,borderRadius:'50%',background:'#E8780F',color:'#fff',fontSize:14,fontWeight:900,display:'grid',placeItems:'center',boxShadow:'0 2px 6px rgba(0,0,0,.35)',border:'2px solid #fff',pointerEvents:'none'}}>+</span>))}
+                  <div style={{position:'absolute',left:8,top:8,background:'rgba(15,23,42,.72)',color:'#fff',fontSize:10.5,fontWeight:700,padding:'3px 8px',borderRadius:5,pointerEvents:'none'}}>사진 클릭 → 상품 점 추가</div>
+                </div>}
+                {(b.hotspots||[]).map((h,hi)=>(
+                  <div key={hi} style={{marginTop:8,padding:9,border:'1px dashed var(--or)',borderRadius:8,background:'var(--or-pale)'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}><b style={{fontSize:11,color:'var(--or-d)'}}>상품 점 {hi+1} · 위치 {h.x}%,{h.y}%</b><button type="button" onClick={()=>delHot(i,hi)} style={{...mini,width:'auto',padding:'0 8px',color:'var(--red)',fontWeight:800}}>삭제</button></div>
+                    <input value={h.name||''} onChange={e=>updHot(i,hi,{name:e.target.value})} placeholder="상품명" style={{...fld,marginBottom:5}}/>
+                    <div style={{display:'flex',gap:5,marginBottom:5}}>
+                      <input value={h.price||''} onChange={e=>updHot(i,hi,{price:e.target.value})} placeholder="가격(선택) 예:189,000원" style={{...fld,flex:1}}/>
+                      <input value={h.thumb||''} onChange={e=>updHot(i,hi,{thumb:e.target.value})} placeholder="상품 썸네일 URL(선택)" style={{...fld,flex:1}}/>
+                    </div>
+                    <input value={h.link||''} onChange={e=>updHot(i,hi,{link:e.target.value})} placeholder="상품 링크 예:/product/detail.html?product_no=123" style={fld}/>
+                  </div>
+                ))}
+              </div>}
+        </div>
+      ))}
+      <div style={{display:'flex',gap:8,marginTop:4}}>
+        <button type="button" onClick={addText} style={addBtn}>+ 글 추가</button>
+        <button type="button" onClick={addImage} style={addBtn}>+ 사진 추가</button>
+      </div>
+    </div>
+  );
+}
+
 function PostingEditor({form,setForm,onSave,onClose,saving}){
   const set=(patch)=>setForm(prev=>({...prev,...patch}));
+  const [uploadingKey,setUploadingKey]=useState(null);
+  useEffect(()=>{ if(!Array.isArray(form.blocks)){ set({blocks:parseBodyToBlocks(form.body||'')}); } },[]);
+  const uploadImage=async(key,file,cb)=>{
+    if(!file.type.startsWith('image/')){ alert('이미지 파일만 가능합니다'); return; }
+    if(file.size>5*1024*1024){ alert('5MB 이하 이미지만 가능합니다'); return; }
+    setUploadingKey(key);
+    try{
+      const ts=Date.now(); const safe=file.name.replace(/[^\w.\-]/g,'_');
+      const snap=await storage.ref(`POUR스토어_리뉴얼/posting-images/${ts}_${safe}`).put(file);
+      const url=await snap.ref.getDownloadURL(); cb(url);
+    }catch(e){ console.error('[posting] 이미지 업로드 실패:',e); alert('업로드 실패: '+e.message); }
+    setUploadingKey(null);
+  };
   const autoThumb=form.type==='video'?ytThumb(form.link):'';
   const previewThumb=(form.thumbnail||'').trim()||autoThumb;
   const field={width:'100%',padding:'10px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13,outline:'none',boxSizing:'border-box',marginTop:6};
@@ -4966,8 +5058,10 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
         <label style={lbl}>요약 (선택)</label>
         <input value={form.summary||''} onChange={e=>set({summary:e.target.value})} placeholder="한 줄 설명" style={field}/>
         <div style={{height:12}}/>
-        <label style={lbl}>본문 (자사몰 아티클) — 한 줄에 이미지 URL만 있으면 사진으로 삽입, 나머지 줄은 문단</label>
-        <textarea value={form.body||''} onChange={e=>set({body:e.target.value})} placeholder={"옥상 방수는 왜 중요할까요?\n\nhttps://이미지주소.jpg\n\n프라이머를 먼저 도포한 뒤..."} style={{...field, minHeight:170, resize:'vertical', fontFamily:'inherit', lineHeight:1.6}}/>
+        <label style={lbl}>본문 (자사몰 아티클) — 글/사진 블록으로 구성. <b style={{color:'var(--or-d)'}}>사진을 클릭하면 상품 점(핫스팟)</b>이 추가됩니다</label>
+        <div style={{marginTop:6}}>
+          <PostingBlocks blocks={Array.isArray(form.blocks)?form.blocks:[]} onChange={b=>set({blocks:b})} uploadImage={uploadImage} uploadingKey={uploadingKey}/>
+        </div>
         {form.type==='video' && <React.Fragment>
           <div style={{height:12}}/>
           <label style={lbl}>영상 길이 (선택) — 예: 12:30</label>

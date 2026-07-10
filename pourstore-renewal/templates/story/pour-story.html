@@ -61,23 +61,37 @@
 .pstory-tt { font-size:15.5px; font-weight:700; color:#1F2937; line-height:1.42; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .pstory-sm { margin-top:6px; font-size:13px; color:#8B95A1; font-weight:500; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .pstory-date { margin-top:8px; font-size:12px; color:#B0B5BB; font-weight:500; }
-/* 영상 인사이트 재생 모달 */
-.pstory-modal { position:fixed; inset:0; z-index:99999; display:flex; align-items:center; justify-content:center; padding:24px; }
+/* 영상 시청 모달 (유튜브 watch식: 좌측 플레이어 + 우측 관련목록) */
+.pstory-modal { position:fixed; inset:0; z-index:99999; background:#0F0F0F; overflow-y:auto; -webkit-overflow-scrolling:touch; }
 .pstory-modal[hidden] { display:none; }
-.pstory-modal-bk { position:absolute; inset:0; background:rgba(9,12,18,.82); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
-.pstory-modal-box { position:relative; z-index:1; width:100%; max-width:920px; }
-.pstory-modal-x { position:absolute; top:-44px; right:0; width:38px; height:38px; display:grid; place-items:center; color:#fff; background:rgba(255,255,255,.14); border-radius:50%; border:0; cursor:pointer; transition:.15s; }
-.pstory-modal-x:hover { background:rgba(255,255,255,.28); }
+.pstory-modal-x { position:fixed; top:14px; right:16px; z-index:5; width:40px; height:40px; display:grid; place-items:center; color:#fff; background:rgba(255,255,255,.12); border-radius:50%; border:0; cursor:pointer; transition:.15s; }
+.pstory-modal-x:hover { background:rgba(255,255,255,.24); }
 .pstory-modal-x svg { width:22px; height:22px; }
-.pstory-modal-player { position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:14px; overflow:hidden; box-shadow:0 24px 70px rgba(0,0,0,.55); }
-.pstory-modal-player iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
-.pstory-modal-meta { margin-top:16px; color:#fff; }
-.pstory-modal-ct { font-size:12.5px; font-weight:800; color:#FDBA74; letter-spacing:-0.01em; }
-.pstory-modal-tt { margin-top:6px; font-size:19px; font-weight:800; letter-spacing:-0.03em; line-height:1.4; }
-.pstory-modal-sm { margin-top:8px; font-size:14px; color:#C6CBD2; font-weight:500; line-height:1.6; }
-.pstory-modal-link { margin-top:13px; display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:700; color:#9AA0A6; }
-.pstory-modal-link:hover { color:#fff; }
-.pstory-modal-link svg { width:14px; height:14px; }
+.pstory-watch { max-width:1400px; margin:0 auto; padding:62px 24px 60px; display:grid; grid-template-columns:minmax(0,1fr) 402px; gap:24px; align-items:start; }
+.pstory-watch-player { position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:14px; overflow:hidden; }
+.pstory-watch-player iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+.pstory-watch-meta { padding:16px 2px 0; }
+.pstory-watch-tt { font-size:20px; font-weight:800; color:#fff; letter-spacing:-0.03em; line-height:1.35; }
+.pstory-watch-row { margin-top:12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding-bottom:16px; border-bottom:1px solid rgba(255,255,255,.12); }
+.pstory-watch-ct { font-size:13px; font-weight:800; color:#FDBA74; }
+.pstory-watch-dt { font-size:13px; color:#AAB0B8; font-weight:500; }
+.pstory-watch-yt { margin-left:auto; display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:800; color:#fff; background:rgba(255,255,255,.12); padding:9px 15px; border-radius:999px; }
+.pstory-watch-yt:hover { background:rgba(255,255,255,.22); }
+.pstory-watch-yt svg { width:15px; height:15px; }
+.pstory-watch-sm { margin-top:14px; font-size:14px; color:#C6CBD2; font-weight:500; line-height:1.6; white-space:pre-line; }
+.pstory-watch-side { display:flex; flex-direction:column; gap:8px; }
+.pstory-side-h { font-size:15px; font-weight:800; color:#fff; margin-bottom:4px; letter-spacing:-0.02em; }
+.pstory-rel { display:grid; grid-template-columns:168px 1fr; gap:10px; cursor:pointer; border-radius:10px; padding:4px; transition:.12s; }
+.pstory-rel:hover { background:rgba(255,255,255,.07); }
+.pstory-rel-th { position:relative; aspect-ratio:16/9; border-radius:9px; overflow:hidden; background:#222; }
+.pstory-rel-th img { width:100%; height:100%; object-fit:cover; }
+.pstory-rel-th .ph { width:100%; height:100%; display:grid; place-items:center; color:#555; }
+.pstory-rel-th .ph svg { width:26px; height:26px; }
+.pstory-rel-badge { position:absolute; right:6px; bottom:6px; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px; background:rgba(0,0,0,.78); color:#fff; }
+.pstory-rel-tt { font-size:14px; font-weight:700; color:#fff; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.pstory-rel-ct { margin-top:5px; font-size:12.5px; color:#AAB0B8; font-weight:500; }
+.pstory-side-empty { color:#888; font-size:13px; font-weight:500; padding:8px 4px; }
+@media (max-width:1000px){ .pstory-watch { grid-template-columns:1fr; } .pstory-watch-side { margin-top:10px; } }
 /* 반응형 */
 @media (max-width:1000px){ .pstory-grid { grid-template-columns:repeat(3,1fr); } }
 @media (max-width:760px){
@@ -91,7 +105,7 @@
   .pstory-feat-tt { font-size:19px; }
   .pstory-grid { grid-template-columns:repeat(2,1fr); gap:24px 12px; }
   .pstory-tt { font-size:14px; }
-  .pstory-modal { padding:14px; } .pstory-modal-x { top:-40px; } .pstory-modal-tt { font-size:16px; }
+  .pstory-watch { padding:56px 12px 48px; } .pstory-watch-tt { font-size:17px; } .pstory-rel { grid-template-columns:150px 1fr; }
 }
 </style>
 
@@ -105,11 +119,13 @@
 <nav class="pstory-chips" aria-label="분류"><div class="pstory-chips-inner" data-story-chips></div></nav>
 <div class="pstory-body" data-story-body><div class="pstory-loading">불러오는 중…</div></div>
 <div class="pstory-modal" data-modal hidden>
-  <div class="pstory-modal-bk" data-modal-bk></div>
-  <div class="pstory-modal-box">
-    <button class="pstory-modal-x" data-modal-x type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    <div class="pstory-modal-player" data-modal-player></div>
-    <div class="pstory-modal-meta" data-modal-meta></div>
+  <button class="pstory-modal-x" data-modal-x type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <div class="pstory-watch">
+    <div class="pstory-watch-main">
+      <div class="pstory-watch-player" data-modal-player></div>
+      <div class="pstory-watch-meta" data-modal-meta></div>
+    </div>
+    <aside class="pstory-watch-side" data-modal-side aria-label="관련 콘텐츠"></aside>
   </div>
 </div>
 
@@ -198,7 +214,7 @@ const db = getFirestore(app);
   }
   function tgt(p){ return isYt(p.link) ? ' target="_blank" rel="noopener"' : ''; }
   // 유튜브 글이면 인사이트 재생용 데이터 부착(클릭 시 모달로 가로챔). href는 JS 미동작 시 폴백.
-  function ytAttrs(p){ var id=isYt(p.link)?ytId(p.link):null; return id ? (' data-yt="'+id+'" data-vtitle="'+esc(p.title||'')+'" data-vsub="'+esc(p.summary||'')+'" data-vlink="'+esc(p.link||'')+'"') : ''; }
+  function ytAttrs(p){ var id=isYt(p.link)?ytId(p.link):null; return id ? (' data-yt="'+id+'" data-pid="'+esc(p.id||'')+'"') : ''; }
 
   function featHtml(p){
     var ty=TYPE[p.type];
@@ -235,21 +251,38 @@ const db = getFirestore(app);
     body.innerHTML = html;
   }
 
-  // ===== 자사몰 내 영상 재생 모달 =====
+  // ===== 자사몰 내 영상 시청 모달 (유튜브 watch식) =====
   var modal = root.querySelector('[data-modal]');
   var mPlayer = root.querySelector('[data-modal-player]');
   var mMeta = root.querySelector('[data-modal-meta]');
+  var mSide = root.querySelector('[data-modal-side]');
   var _mOverflow = '';
-  function openVideo(id, title, sub, link){
-    if (!modal || !id) return;
-    mPlayer.innerHTML = '<iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1&rel=0&modestbranding=1&playsinline=1" title="'+esc(title||'')+'" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
-    mMeta.innerHTML = '<div class="pstory-modal-ct">영상</div>'
-      + '<div class="pstory-modal-tt">'+esc(title||'')+'</div>'
-      + (sub ? '<div class="pstory-modal-sm">'+esc(sub)+'</div>' : '')
-      + (link ? '<a class="pstory-modal-link" href="'+esc(link)+'" target="_blank" rel="noopener">YouTube에서 보기 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a>' : '');
-    modal.hidden = false;
-    _mOverflow = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = 'hidden';
+  function byId(id){ return posts.filter(function(x){ return String(x.id)===String(id); })[0]; }
+  function relThumb(p){ var t=thumbOf(p); return t ? '<img src="'+esc(t)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' : '<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5h16v14H4z"/><path d="M4 15l4-4 3 3 4-5 5 6"/></svg></div>'; }
+  function relHtml(p){
+    var yt=isYt(p.link);
+    return '<a class="pstory-rel" href="'+esc(p.link||'#')+'"'+(yt?ytAttrs(p):(/^https?:/.test(p.link||'')?' target="_blank" rel="noopener"':''))+'>'
+      + '<div class="pstory-rel-th">'+relThumb(p)+(yt?'<span class="pstory-rel-badge">▶ 영상</span>':'')+'</div>'
+      + '<div><div class="pstory-rel-tt">'+esc(p.title||'')+'</div><div class="pstory-rel-ct">'+esc(typeLabel(p.type))+(dateOf(p)?' · '+dateOf(p):'')+'</div></div>'
+      + '</a>';
+  }
+  function openWatch(p){
+    if (!modal || !p) return;
+    var id = ytId(p.link); if (!id) return;
+    mPlayer.innerHTML = '<iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1&rel=0&modestbranding=1&playsinline=1" title="'+esc(p.title||'')+'" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+    mMeta.innerHTML = '<div class="pstory-watch-tt">'+esc(p.title||'')+'</div>'
+      + '<div class="pstory-watch-row"><span class="pstory-watch-ct">'+esc(typeLabel(p.type))+'</span>'
+      +   (dateOf(p)?'<span class="pstory-watch-dt">'+dateOf(p)+'</span>':'')
+      +   '<a class="pstory-watch-yt" href="'+esc(p.link)+'" target="_blank" rel="noopener">YouTube <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div>'
+      + (p.summary?'<div class="pstory-watch-sm">'+esc(p.summary)+'</div>':'');
+    // 관련: 다른 영상 우선 + 나머지 콘텐츠
+    var vids = posts.filter(function(x){ return x!==p && isYt(x.link); });
+    var others = posts.filter(function(x){ return x!==p && !isYt(x.link); });
+    var rel = vids.concat(others).slice(0,12);
+    mSide.innerHTML = '<div class="pstory-side-h">관련 콘텐츠</div>'
+      + (rel.length ? rel.map(relHtml).join('') : '<div class="pstory-side-empty">관련 콘텐츠가 없습니다.</div>');
+    if (modal.hidden){ modal.hidden = false; _mOverflow = document.documentElement.style.overflow; document.documentElement.style.overflow = 'hidden'; }
+    modal.scrollTop = 0;
   }
   function closeVideo(){
     if (!modal) return;
@@ -258,13 +291,12 @@ const db = getFirestore(app);
     document.documentElement.style.overflow = _mOverflow;
   }
   if (modal){
-    root.querySelector('[data-modal-bk]').addEventListener('click', closeVideo);
     root.querySelector('[data-modal-x]').addEventListener('click', closeVideo);
     document.addEventListener('keydown', function(e){ if (e.key==='Escape' && !modal.hidden) closeVideo(); });
-    // 유튜브 카드 클릭 → 새 탭 대신 모달 재생 (본문은 재렌더되므로 컨테이너에 위임)
-    body.addEventListener('click', function(e){
+    // 영상(유튜브) 클릭 → 새 탭 대신 watch 모달. 본문·모달 모두 root 하위이므로 root에 위임.
+    root.addEventListener('click', function(e){
       var v = e.target.closest('[data-yt]');
-      if (v){ e.preventDefault(); openVideo(v.getAttribute('data-yt'), v.getAttribute('data-vtitle'), v.getAttribute('data-vsub'), v.getAttribute('data-vlink')); }
+      if (v){ e.preventDefault(); var p = byId(v.getAttribute('data-pid')); if (p) openWatch(p); }
     });
   }
 

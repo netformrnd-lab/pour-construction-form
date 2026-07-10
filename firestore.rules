@@ -86,6 +86,16 @@ service cloud.firestore {
     match /pourstore-packages/{doc}          { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
+    // AI 챗봇센터 (pourstore-renewal/chatbot.html) + 소비자/사내 챗봇
+    // ─────────────────────────────────────────────
+    match /chatbot-bots/{doc}                { allow read, write: if true; }
+    match /chatbot-kb/{doc}                   { allow read, write: if true; }
+    match /chatbot-sessions/{doc}             { allow read, write: if true; }
+    match /chatbot-leads/{doc}                { allow read, write: if true; }
+    match /chatbot-consumer-logs/{doc}        { allow read, write: if true; }
+    match /chatbot-internal-logs/{doc}        { allow read, write: if true; }
+
+    // ─────────────────────────────────────────────
     // POUR스토어 업무관리 (work-*) — pourstore-renewal/admin
     // ─────────────────────────────────────────────
     match /work-tasks/{doc}         { allow read, write: if true; }

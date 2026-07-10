@@ -182,10 +182,15 @@
 /* 영상 시청 모달 (유튜브 watch식) */
 .pstory-modal { position:fixed; inset:0; z-index:99999; background:#0F0F0F; overflow-y:auto; -webkit-overflow-scrolling:touch; }
 .pstory-modal[hidden] { display:none; }
-.pstory-modal-x { position:fixed; top:14px; right:16px; z-index:5; width:40px; height:40px; display:grid; place-items:center; color:#fff; background:rgba(255,255,255,.12); border-radius:50%; border:0; cursor:pointer; transition:.15s; }
+/* 자사몰 느낌 고정 상단바 */
+.pstory-watch-top { position:sticky; top:0; z-index:10; height:56px; display:flex; align-items:center; gap:12px; padding:0 18px; background:rgba(15,15,15,.94); backdrop-filter:saturate(160%) blur(10px); -webkit-backdrop-filter:saturate(160%) blur(10px); border-bottom:1px solid rgba(255,255,255,.09); }
+.pstory-watch-brand { display:inline-flex; align-items:center; font-weight:800; font-size:19px; color:#fff; letter-spacing:-0.045em; text-decoration:none; }
+.pstory-watch-brand .or { color:#F49A3A; }
+.pstory-watch-toplabel { font-size:12.5px; font-weight:800; color:#0F0F0F; background:#F49A3A; padding:3px 9px; border-radius:999px; letter-spacing:-0.01em; }
+.pstory-modal-x { margin-left:auto; width:40px; height:40px; display:grid; place-items:center; color:#fff; background:rgba(255,255,255,.12); border-radius:50%; border:0; cursor:pointer; transition:.15s; flex-shrink:0; }
 .pstory-modal-x:hover { background:rgba(255,255,255,.24); }
 .pstory-modal-x svg { width:22px; height:22px; }
-.pstory-watch { max-width:1400px; margin:0 auto; padding:62px 24px 60px; display:grid; grid-template-columns:minmax(0,1fr) 402px; gap:24px; align-items:start; }
+.pstory-watch { max-width:1400px; margin:0 auto; padding:26px 24px 60px; display:grid; grid-template-columns:minmax(0,1fr) 402px; gap:24px; align-items:start; }
 .pstory-watch-player { position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:14px; overflow:hidden; }
 .pstory-watch-player iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
 .pstory-watch-meta { padding:16px 2px 0; }
@@ -260,7 +265,14 @@
   .pstory-feat { grid-template-columns:repeat(2,1fr); }
   .pstory-grid { grid-template-columns:repeat(3,1fr); }
   .pstory-best { grid-template-columns:1fr; gap:0; }
-  .pstory-watch { grid-template-columns:1fr; }
+  /* 관련 콘텐츠: 스택되면 유튜브식 대형 카드(썸네일 위 / 제목 아래) */
+  .pstory-watch { grid-template-columns:1fr; gap:30px; }
+  .pstory-watch-side { display:grid; grid-template-columns:repeat(2,1fr); gap:20px 16px; }
+  .pstory-side-h { grid-column:1/-1; font-size:16.5px; }
+  .pstory-rel { grid-template-columns:1fr; gap:9px; padding:0; }
+  .pstory-rel-tt { font-size:15px; }
+  .pstory-rel-ct { font-size:13px; }
+  .pstory-rel-badge { font-size:11px; padding:3px 7px; }
 }
 @media (max-width:700px){
   .pstory-top-inner { padding:26px 16px 22px; }
@@ -272,7 +284,9 @@
   .pstory-short { width:158px; }
   .pstory-grid { grid-template-columns:repeat(2,1fr); gap:24px 12px; }
   .pstory-tt { font-size:14px; }
-  .pstory-watch { padding:56px 12px 48px; } .pstory-watch-tt { font-size:17px; } .pstory-rel { grid-template-columns:150px 1fr; }
+  .pstory-watch { padding:16px 12px 48px; } .pstory-watch-tt { font-size:17px; }
+  .pstory-watch-side { grid-template-columns:1fr; gap:22px; }
+  .pstory-rel-tt { font-size:15.5px; }
   .pstory-art-tt { font-size:21px; } .pstory-art-body p { font-size:15px; } .pstory-art-rel-list { grid-template-columns:1fr 1fr; }
 }
 </style>
@@ -310,7 +324,11 @@
 </section>
 
 <div class="pstory-modal" data-modal hidden>
-  <button class="pstory-modal-x" data-modal-x type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <div class="pstory-watch-top">
+    <a class="pstory-watch-brand" href="/" aria-label="POUR스토어 홈"><span class="or">POUR</span>스토어</a>
+    <span class="pstory-watch-toplabel">영상</span>
+    <button class="pstory-modal-x" data-modal-x type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
   <div class="pstory-watch">
     <div class="pstory-watch-main">
       <div class="pstory-watch-player" data-modal-player></div>

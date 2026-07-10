@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>상품 원장 (가격대시보드 연동) · POUR스토어</title>
+<!--
+  소싱앱 ↔ 가격대시보드 공유 상품 원장.
+  · Firebase 프로젝트: pourstoreproject (가격대시보드와 동일 원장)
+  · 컬렉션: products(시드·읽기전용 참고) / products-added(공유 등록상품·CRUD) / channels(참고)
+  · 접근: config/access 허용목록·마스터만 (Firestore 규칙이 서버에서 강제)
+  · 소싱앱(pour-app-new)에 <iframe src="registry.html"> 로 내장해서 사용. 이 페이지는 자체 로그인.
+-->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<style>
+:root{--green:#0B5C30;--green2:#0E7A40;--ink:#111827;--ink2:#374151;--muted:#6B7280;--faint:#9CA3AF;
+  --line:#E5E7EB;--bg:#F5F7F6;--card:#fff;--red:#DC2626;--amber:#D97706;--r:12px;--r2:8px}
+*{box-sizing:border-box}
+body{margin:0;font-family:Pretendard,-apple-system,system-ui,'Segoe UI',sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+#top{background:var(--green);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:12px}
+#top b{font-size:16px}
+#top .sub{font-size:11px;opacity:.85}
+#who{margin-left:auto;font-size:12px;opacity:.9}
+.tbtn{border:1px solid var(--line);background:#fff;color:var(--ink2);border-radius:var(--r2);padding:8px 13px;font-size:13px;font-weight:600;cursor:pointer}
+.tbtn.primary{background:var(--green);border-color:var(--green);color:#fff}
+.tbtn.ghost{background:transparent;border-color:rgba(255,255,255,.4);color:#fff}
+.wrap{max-width:1100px;margin:0 auto;padding:16px 16px 60px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);margin-bottom:16px;overflow:hidden}
+.panel h3{margin:0;padding:13px 16px;font-size:14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.panel .bd{padding:14px 16px}
+.tag{font-size:11px;font-weight:700;color:var(--green2);background:#E7F3EC;border-radius:20px;padding:2px 9px}
+.tag.a{color:var(--amber);background:#FDF2E2}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:11px;color:var(--muted);font-weight:700;background:#FAFBFB}
+td.num,th.num{text-align:right}
+.pill{font-size:11px;font-weight:700;border-radius:20px;padding:2px 8px;display:inline-block}
+.pill.g{color:var(--green2);background:#E7F3EC}.pill.a{color:var(--amber);background:#FDF2E2}.pill.m{color:var(--muted);background:#F1F2F4}
+.formgrid{display:grid;grid-template-columns:130px 1fr 110px 120px;gap:10px;align-items:end}
+.fld label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600}
+.fld input,.fld select{width:100%;border:1px solid var(--line);border-radius:var(--r2);padding:8px 10px;font-size:14px}
+.rowbtns{display:flex;gap:6px}
+.rowbtns button{border:0;background:none;font-size:12px;cursor:pointer;padding:3px 7px;border-radius:6px}
+.rowbtns .edit{color:var(--green2)}.rowbtns .del{color:var(--red)}.rowbtns .der{color:var(--amber)}
+.dim{color:var(--faint)}
+#gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100}
+#gate .box{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:28px 26px;width:340px;max-width:92vw}
+#gate h2{margin:0 0 4px;font-size:17px}#gate p{margin:0 0 16px;font-size:12px;color:var(--muted)}
+#gate input{width:100%;border:1px solid var(--line);border-radius:var(--r2);padding:11px 12px;font-size:16px;margin-bottom:9px}
+#gmsg{font-size:12px;color:var(--red);min-height:16px;margin-top:6px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:11px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:200;box-shadow:0 6px 20px rgba(11,92,48,.3)}
+@media(max-width:640px){.formgrid{grid-template-columns:1fr 1fr}.hidem{display:none}}
+</style>
+</head>
+<body>
+<div id="gate">
+  <div class="box">
+    <h2>상품 원장 로그인</h2>
+    <p>가격대시보드와 동일한 계정(pourstoreproject)으로 로그인하세요.</p>
+    <input type="email" id="gEmail" placeholder="이메일" autocomplete="username">
+    <input type="password" id="gPw" placeholder="비밀번호" autocomplete="current-password">
+    <button class="tbtn primary" id="gBtn" style="width:100%;padding:11px">로그인</button>
+    <div id="gmsg"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <div id="top">
+    <div><b>상품 원장</b> <span class="sub">가격대시보드 공유 · pourstoreproject</span></div>
+    <span id="who"></span>
+    <button class="tbtn ghost" id="btnOut">로그아웃</button>
+  </div>
+  <div class="wrap">
+    <div id="denied" style="display:none" class="panel"><div class="bd" style="color:var(--red)">
+      이 계정은 <b>열람 허용목록/마스터</b>가 아닙니다. 가격대시보드 [계정 관리]에서 이 이메일을 추가해야 원장을 볼 수 있습니다(서버 규칙 강제).
+    </div></div>
+
+    <div class="panel" id="formPanel">
+      <h3><span id="formTitle">＋ 상품 등록</span> <span class="tag">공유 원장에 저장 · 실시간</span></h3>
+      <div class="bd">
+        <div class="formgrid">
+          <div class="fld"><label>분류</label><input id="fCat" list="catList" placeholder="예: 수용성 도료"><datalist id="catList"></datalist></div>
+          <div class="fld"><label>상품명 *</label><input id="fName" placeholder="예: 벽돌 발수 코팅제"></div>
+          <div class="fld"><label>규격</label><input id="fSpec" placeholder="예: 4kg"></div>
+          <div class="fld"><label>매입원가(원)</label><input id="fCost" type="number" placeholder="예: 8000"></div>
+        </div>
+        <div class="formgrid" style="margin-top:10px">
+          <div class="fld"><label>제조사</label><input id="fMfg" list="mfgList" placeholder="선택/입력"><datalist id="mfgList"></datalist></div>
+          <div class="fld"><label>컨셉(파생 기준)</label><input id="fConcept" placeholder="예: 옥상방수 라인"></div>
+          <div class="fld"><label>유형</label><select id="fType"><option value="단품">단품</option><option value="세트">세트</option></select></div>
+          <div class="fld"><label>상태</label><select id="fStatus"><option>소싱중</option><option>출시</option><option>단종</option></select></div>
+        </div>
+        <div class="formgrid" style="grid-template-columns:1fr auto;margin-top:10px">
+          <div class="fld"><label>세트 구성(세트일 때, 쉼표)</label><input id="fSet" placeholder="구성품명, 구성품명"></div>
+          <div class="rowbtns" style="align-items:end">
+            <button class="tbtn" id="fClear">초기화</button>
+            <button class="tbtn primary" id="fSave">저장</button>
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin:10px 0 0">· 채널 공급가·판매가는 <b>가격대시보드</b>에서 설정합니다. 여기선 상품·원가·컨셉·상태를 관리합니다.</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>공유 등록 상품 <span class="tag" id="cntAdded">0</span> <span style="margin-left:auto;font-size:12px;font-weight:400;color:var(--muted)">수정·삭제·파생 가능</span></h3>
+      <div class="bd" style="padding:0;overflow-x:auto">
+        <table><thead><tr><th>상품명</th><th class="hidem">분류</th><th>규격</th><th class="hidem">컨셉</th><th>유형</th><th class="hidem">제조사</th><th>상태</th><th class="num">원가</th><th style="width:130px"></th></tr></thead>
+          <tbody id="addedBody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>기존 시드 상품 <span class="tag m" id="cntBase">0</span> <span class="tag a">읽기전용 · 참고</span> <span style="margin-left:auto;font-size:12px;font-weight:400;color:var(--muted)">여기서 "파생"으로 새 상품을 만들 수 있어요</span></h3>
+      <div class="bd" style="padding:0;overflow-x:auto">
+        <table><thead><tr><th>상품명</th><th class="hidem">분류</th><th>규격</th><th class="num">원가</th><th style="width:80px"></th></tr></thead>
+          <tbody id="baseBody"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyB9VC75Hs8eAdXxy9n2aVsCeFUnCGX4xhA",
+  authDomain:"pourstoreproject.firebaseapp.com",
+  projectId:"pourstoreproject",
+  storageBucket:"pourstoreproject.firebasestorage.app",
+  messagingSenderId:"549863414475",
+  appId:"1:549863414475:web:9c696d7f85d82a7b7bd94e"
+});
+const db=firebase.firestore(), auth=firebase.auth();
+const $=s=>document.querySelector(s);
+const won=v=>v==null||isNaN(v)?'—':Math.round(v).toLocaleString('ko-KR')+'원';
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let BASE=[], ADDED=[], editId=null, curUser=null;
+
+/* ── 로그인 ── */
+function gmsg(t){ $('#gmsg').textContent=t||''; }
+$('#gBtn').addEventListener('click',doLogin);
+$('#gPw').addEventListener('keydown',e=>{ if(e.key==='Enter')doLogin(); });
+async function doLogin(){
+  const em=$('#gEmail').value.trim(), pw=$('#gPw').value;
+  if(!em||!pw){ gmsg('이메일과 비밀번호를 입력하세요.'); return; }
+  gmsg('로그인 중…');
+  try{ await auth.signInWithEmailAndPassword(em,pw); }
+  catch(e){ const c=(e&&e.code)||''; gmsg(c.includes('invalid')||c.includes('wrong')||c.includes('not-found')?'이메일 또는 비밀번호가 올바르지 않습니다.':'로그인 실패: '+(e.message||c)); }
+}
+$('#btnOut').addEventListener('click',async()=>{ try{ await auth.signOut(); }catch(e){} location.reload(); });
+auth.onAuthStateChanged(u=>{
+  if(u){ curUser=u; $('#gate').style.display='none'; $('#app').style.display=''; $('#who').textContent=u.email; start(); }
+  else { $('#gate').style.display='flex'; $('#app').style.display='none'; }
+});
+
+/* ── 데이터(실시간) ── */
+let started=false;
+function start(){
+  if(started) return; started=true;
+  db.collection('products').onSnapshot(s=>{
+    BASE=s.docs.map(d=>d.data()).sort((a,b)=>(a.seq??0)-(b.seq??0)); renderBase(); fillDatalists();
+    $('#denied').style.display='none';
+  }, e=>{ console.warn('[products]',e.code||e); if((e.code||'').includes('permission')) $('#denied').style.display=''; });
+  db.collection('products-added').onSnapshot(s=>{
+    ADDED=s.docs.map(d=>({docId:d.id,...d.data()})).sort((a,b)=>(a.seq??0)-(b.seq??0)); renderAdded(); fillDatalists();
+  }, e=>{ console.warn('[products-added]',e.code||e); if((e.code||'').includes('permission')) $('#denied').style.display=''; });
+}
+function fillDatalists(){
+  const cats=[...new Set([...BASE,...ADDED].map(p=>p.cat).filter(Boolean))];
+  const mfgs=[...new Set(ADDED.map(p=>p.mfg).filter(Boolean))];
+  $('#catList').innerHTML=cats.map(c=>`<option value="${esc(c)}">`).join('');
+  $('#mfgList').innerHTML=mfgs.map(m=>`<option value="${esc(m)}">`).join('');
+}
+const typePill=t=>t==='세트'?'<span class="pill g">세트</span>':'<span class="pill m">단품</span>';
+const statusPill=s=>s==='출시'?'<span class="pill g">출시</span>':(s==='단종'?'<span class="pill a">단종</span>':'<span class="pill m">소싱중</span>');
+function renderAdded(){
+  $('#cntAdded').textContent=ADDED.length;
+  $('#addedBody').innerHTML = ADDED.length? ADDED.map(p=>`<tr>
+    <td><b>${esc(p.name)}</b></td><td class="hidem">${esc(p.cat||'')}</td><td>${esc(p.spec||'')}</td>
+    <td class="hidem">${esc(p.concept||'')}</td><td>${typePill(p.type)}</td><td class="hidem">${esc(p.mfg||'')}</td>
+    <td>${statusPill(p.status)}</td><td class="num">${won(p.cost)}</td>
+    <td><div class="rowbtns"><button class="edit" data-edit="${p.docId}">수정</button><button class="der" data-der="a:${p.docId}">파생</button><button class="del" data-del="${p.docId}">삭제</button></div></td></tr>`).join('')
+    : `<tr><td colspan="9" class="dim" style="padding:14px">아직 등록한 상품이 없습니다. 위에서 등록하거나, 아래 시드 상품에서 "파생"으로 시작하세요.</td></tr>`;
+}
+function renderBase(){
+  $('#cntBase').textContent=BASE.length;
+  $('#baseBody').innerHTML = BASE.length? BASE.map((p,i)=>`<tr>
+    <td>${esc(p.name)}</td><td class="hidem">${esc(p.cat||'')}</td><td>${esc(p.spec||'')}</td><td class="num">${won(p.cost)}</td>
+    <td><div class="rowbtns"><button class="der" data-der="b:${i}">파생</button></div></td></tr>`).join('')
+    : `<tr><td colspan="5" class="dim" style="padding:14px">시드 상품이 없습니다.</td></tr>`;
+}
+
+/* ── 폼 ── */
+function readForm(){
+  return { cat:($('#fCat').value||'').trim()||'기타', name:($('#fName').value||'').trim(), spec:($('#fSpec').value||'').trim()||'-',
+    cost:$('#fCost').value===''?null:+$('#fCost').value, mfg:($('#fMfg').value||'').trim(),
+    concept:($('#fConcept').value||'').trim(), type:$('#fType').value||'단품', status:$('#fStatus').value||'소싱중',
+    setItems:($('#fSet').value||'').trim() };
+}
+function setForm(d){
+  $('#fCat').value=d.cat||''; $('#fName').value=d.name||''; $('#fSpec').value=(d.spec&&d.spec!=='-')?d.spec:'';
+  $('#fCost').value=d.cost??''; $('#fMfg').value=d.mfg||''; $('#fConcept').value=d.concept||'';
+  $('#fType').value=d.type||'단품'; $('#fStatus').value=d.status||'소싱중'; $('#fSet').value=d.setItems||'';
+}
+function clearForm(){ editId=null; setForm({}); $('#formTitle').textContent='＋ 상품 등록'; $('#fSave').textContent='저장'; }
+$('#fClear').addEventListener('click',clearForm);
+$('#fSave').addEventListener('click',async()=>{
+  const d=readForm();
+  if(!d.name){ toast('상품명은 필수입니다.',true); return; }
+  d.pr = d.pr||{}; d.updatedAt=new Date().toISOString(); d.updatedBy=(curUser&&curUser.email)||'';
+  try{
+    if(editId){ await db.collection('products-added').doc(editId).set(d,{merge:true}); toast('수정 저장됨 ✓'); }
+    else { d.seq = ADDED.length; await db.collection('products-added').add(d); toast('등록됨 ✓'); }
+    clearForm();
+  }catch(e){ toast('저장 실패: '+(e.code||e.message||e),true); }
+});
+document.addEventListener('click',async e=>{
+  const ed=e.target.closest('[data-edit]'); if(ed){ const p=ADDED.find(x=>x.docId===ed.dataset.edit); if(p){ editId=p.docId; setForm(p); $('#formTitle').textContent='✎ 상품 수정'; $('#fSave').textContent='수정 저장'; window.scrollTo({top:0,behavior:'smooth'}); } return; }
+  const dl=e.target.closest('[data-del]'); if(dl){ const p=ADDED.find(x=>x.docId===dl.dataset.del); if(p&&confirm(`"${p.name}" 을(를) 삭제할까요?`)){ try{ await db.collection('products-added').doc(p.docId).delete(); toast('삭제됨'); if(editId===p.docId)clearForm(); }catch(err){ toast('삭제 실패: '+(err.code||err),true);} } return; }
+  const dr=e.target.closest('[data-der]'); if(dr){ const [t,k]=dr.dataset.der.split(':'); const src=t==='a'?ADDED.find(x=>x.docId===k):BASE[+k]; if(src){ clearForm(); setForm({...src,name:src.name+' (파생)',concept:src.concept||src.name,type:'세트',status:'소싱중'}); $('#formTitle').textContent='＋ 파생 상품 등록'; window.scrollTo({top:0,behavior:'smooth'}); $('#fName').focus(); } return; }
+});
+let toastT=null;
+function toast(t,bad){ let el=$('#toastEl'); if(!el){ el=document.createElement('div'); el.id='toastEl'; el.className='toast'; document.body.appendChild(el);} el.textContent=t; el.style.background=bad?'#DC2626':'var(--green)'; clearTimeout(toastT); toastT=setTimeout(()=>el.remove(),2200); }
+</script>
+</body>
+</html>

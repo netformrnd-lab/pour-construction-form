@@ -4828,19 +4828,20 @@ function PostingsPage({showToast}){
   };
   useEffect(()=>{ load(); },[]);
 
-  const startNew=()=>setEditing({type:'blog',title:'',link:'',thumbnail:'',tagsText:'',summary:'',duration:'',placements:[],active:true,order:list.length});
+  const startNew=()=>setEditing({type:'blog',title:'',link:'',thumbnail:'',tagsText:'',summary:'',body:'',duration:'',placements:[],active:true,order:list.length});
   const startEdit=(p)=>setEditing({...p,tagsText:(p.tags||[]).join(', '),placements:p.placements||[],duration:p.duration||''});
 
   const saveEditing=async()=>{
     const f=editing;
     if(!f.title.trim()){ showToast('제목을 입력하세요','error'); return; }
-    if(!f.link.trim()){ showToast('링크를 입력하세요','error'); return; }
+    if(f.type==='video' && !f.link.trim()){ showToast('영상은 유튜브 링크가 필요합니다','error'); return; }
+    if(f.type!=='video' && !f.link.trim() && !(f.body||'').trim()){ showToast('링크 또는 본문 중 하나는 입력하세요','error'); return; }
     setSaving(true);
     try{
       const tags=(f.tagsText||'').split(',').map(s=>s.trim()).filter(Boolean);
       const thumbnail=(f.thumbnail||'').trim() || (f.type==='video'?ytThumb(f.link):'');
       const payload={ type:f.type, title:f.title.trim(), link:f.link.trim(), thumbnail, tags,
-        summary:(f.summary||'').trim(), duration:(f.duration||'').trim(), placements:Array.isArray(f.placements)?f.placements:[],
+        summary:(f.summary||'').trim(), body:(f.body||'').trim(), duration:(f.duration||'').trim(), placements:Array.isArray(f.placements)?f.placements:[],
         order:Number(f.order)||0, active:f.active!==false };
       if(f.id){
         await db.collection(COLLECTIONS.POURSTORE_POSTINGS).doc(f.id).set({...payload,...audit.update()},{merge:true});
@@ -4946,9 +4947,10 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
         <label style={lbl}>제목 *</label>
         <input value={form.title} onChange={e=>set({title:e.target.value})} placeholder="예: 옥상 슬라브 방수, 이렇게 하세요" style={field}/>
         <div style={{height:12}}/>
-        <label style={lbl}>링크(URL) *</label>
-        <input value={form.link} onChange={e=>set({link:e.target.value})} placeholder="https://blog.naver.com/... 또는 https://youtu.be/..." style={field}/>
+        <label style={lbl}>링크(URL) — 영상은 유튜브 링크(필수), 아티클은 비워도 됨</label>
+        <input value={form.link} onChange={e=>set({link:e.target.value})} placeholder="https://youtu.be/... (영상) / 외부글 링크 / 비우면 자사몰 아티클" style={field}/>
         {form.type==='video' && <div style={{fontSize:11,color:'var(--green)',fontWeight:700,marginTop:4}}>▶ 유튜브 링크면 썸네일 자동 추출됩니다</div>}
+        {form.type!=='video' && <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:700,marginTop:4}}>ℹ 링크를 비우고 아래 <b>본문</b>을 채우면, 글 클릭 시 자사몰 안에서 아티클로 열립니다.</div>}
         <div style={{height:12}}/>
         <label style={lbl}>썸네일 URL {form.type==='video'?'(비우면 자동)':''}</label>
         <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
@@ -4963,6 +4965,9 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
         <div style={{height:12}}/>
         <label style={lbl}>요약 (선택)</label>
         <input value={form.summary||''} onChange={e=>set({summary:e.target.value})} placeholder="한 줄 설명" style={field}/>
+        <div style={{height:12}}/>
+        <label style={lbl}>본문 (자사몰 아티클) — 한 줄에 이미지 URL만 있으면 사진으로 삽입, 나머지 줄은 문단</label>
+        <textarea value={form.body||''} onChange={e=>set({body:e.target.value})} placeholder={"옥상 방수는 왜 중요할까요?\n\nhttps://이미지주소.jpg\n\n프라이머를 먼저 도포한 뒤..."} style={{...field, minHeight:170, resize:'vertical', fontFamily:'inherit', lineHeight:1.6}}/>
         {form.type==='video' && <React.Fragment>
           <div style={{height:12}}/>
           <label style={lbl}>영상 길이 (선택) — 예: 12:30</label>

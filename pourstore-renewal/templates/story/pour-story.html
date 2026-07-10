@@ -209,6 +209,38 @@
 .pstory-rel-tt { font-size:14px; font-weight:700; color:#fff; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .pstory-rel-ct { margin-top:5px; font-size:12.5px; color:#AAB0B8; font-weight:500; }
 .pstory-side-empty { color:#888; font-size:13px; font-weight:500; padding:8px 4px; }
+/* 자사몰 아티클 오버레이 (무신사 콘텐츠 상세식) */
+.pstory-article { position:fixed; inset:0; z-index:99998; background:#fff; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.pstory-article[hidden] { display:none; }
+.pstory-art-bar { position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:10px; height:52px; padding:0 12px; background:rgba(255,255,255,.94); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); border-bottom:1px solid #F0F1F3; }
+.pstory-art-back { display:inline-flex; align-items:center; gap:5px; font-size:14px; font-weight:700; color:#374151; border:0; background:none; cursor:pointer; padding:8px 6px; }
+.pstory-art-back svg { width:20px; height:20px; }
+.pstory-art-hero { width:100%; aspect-ratio:16/9; background:#F3F4F6; overflow:hidden; }
+.pstory-art-hero img { width:100%; height:100%; object-fit:cover; }
+.pstory-art-wrap { max-width:720px; margin:0 auto; padding:28px 20px 40px; }
+.pstory-art-ct { font-size:13px; font-weight:800; color:#E8780F; }
+.pstory-art-tt { margin-top:10px; font-size:26px; font-weight:800; color:#151B26; letter-spacing:-0.04em; line-height:1.32; }
+.pstory-art-dt { margin-top:12px; font-size:13px; color:#AEB4BC; font-weight:500; padding-bottom:20px; border-bottom:1px solid #F0F1F3; }
+.pstory-art-body { margin-top:24px; }
+.pstory-art-body p { font-size:16px; color:#2B3038; line-height:1.85; margin:0 0 20px; letter-spacing:-0.01em; word-break:keep-all; }
+.pstory-art-body img { width:100%; border-radius:12px; margin:8px 0 24px; }
+.pstory-art-cta { margin-top:20px; display:flex; gap:10px; flex-wrap:wrap; }
+.pstory-art-cta a { display:inline-flex; align-items:center; gap:6px; font-size:14px; font-weight:800; padding:12px 20px; border-radius:12px; }
+.pstory-art-cta .primary { background:#E8780F; color:#fff; }
+.pstory-art-cta .primary:hover { background:#D26A0A; }
+.pstory-art-cta .ghost { background:#F3F4F6; color:#374151; }
+.pstory-art-cta .ghost svg { width:15px; height:15px; }
+.pstory-art-rel { max-width:720px; margin:0 auto; padding:0 20px 60px; }
+.pstory-art-rel-top { border-top:8px solid #F6F7F9; margin:14px -20px 0; }
+.pstory-art-rel-h { font-size:16px; font-weight:800; color:#171C26; margin:26px 0 14px; }
+.pstory-art-rel-list { display:grid; grid-template-columns:1fr 1fr; gap:18px 16px; }
+.pstory-rel2 { cursor:pointer; }
+.pstory-rel2-th { position:relative; width:100%; aspect-ratio:16/10; border-radius:12px; overflow:hidden; background:#F3F4F6; }
+.pstory-rel2-th img { width:100%; height:100%; object-fit:cover; }
+.pstory-rel2-th .ph { width:100%; height:100%; display:grid; place-items:center; color:#D1D5DB; }
+.pstory-rel2-th .ph svg { width:30px; height:30px; }
+.pstory-rel2-ct { margin-top:9px; font-size:11px; font-weight:800; color:#E8780F; }
+.pstory-rel2-tt { margin-top:4px; font-size:14.5px; font-weight:700; color:#242A33; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 /* 반응형 */
 @media (max-width:1000px){
   .pstory-feat { grid-template-columns:repeat(2,1fr); }
@@ -227,6 +259,7 @@
   .pstory-grid { grid-template-columns:repeat(2,1fr); gap:24px 12px; }
   .pstory-tt { font-size:14px; }
   .pstory-watch { padding:56px 12px 48px; } .pstory-watch-tt { font-size:17px; } .pstory-rel { grid-template-columns:150px 1fr; }
+  .pstory-art-tt { font-size:21px; } .pstory-art-body p { font-size:15px; } .pstory-art-rel-list { grid-template-columns:1fr 1fr; }
 }
 </style>
 
@@ -273,6 +306,13 @@
   </div>
 </div>
 
+<div class="pstory-article" data-article-modal hidden>
+  <div class="pstory-art-bar">
+    <button class="pstory-art-back" data-art-close type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>목록으로</button>
+  </div>
+  <div data-art-scroll></div>
+</div>
+
 <script type="module">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -304,6 +344,26 @@ const db = getFirestore(app);
   function dateOf(p){ var m=String(p.createdAt||p.updatedAt||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[1]+'.'+m[2]+'.'+m[3]):''; }
   function tgt(p){ return isYt(p.link) ? ' target="_blank" rel="noopener"' : ''; }
   function ytAttrs(p){ var id=isYt(p.link)?ytId(p.link):null; return id ? (' data-yt="'+id+'" data-pid="'+esc(p.id||'')+'"') : ''; }
+  function realLink(p){ return p.link && p.link!=='#' && /^https?:\/\//.test(p.link); }
+  // 클릭 라우팅: 영상=재생 모달 / 본문 있거나 외부링크 없음=자사몰 아티클 / 그 외=외부링크 이동
+  function clickAttrs(p){
+    if (isYt(p.link)) return ytAttrs(p);
+    if ((p.body && p.body.trim()) || !realLink(p)) return ' data-article="'+esc(p.id||'')+'"';
+    return '';
+  }
+  // 본문 파서: 한 줄이 이미지 URL이면 <img>, 아니면 문단(<p>). 빈 줄로 문단 구분.
+  function renderBodyBlocks(body){
+    var lines = String(body||'').split(/\r?\n/), html='', para=[];
+    function flush(){ if(para.length){ html += '<p>'+para.join('<br>')+'</p>'; para=[]; } }
+    lines.forEach(function(ln){
+      var t=ln.trim();
+      if(!t){ flush(); return; }
+      if(/^https?:\/\/\S+$/i.test(t)){ flush(); html += '<img src="'+esc(t)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>'; } // 한 줄에 URL만 → 이미지로 삽입(깨지면 자동 숨김)
+      else { para.push(esc(t)); }
+    });
+    flush();
+    return html || '<p style="color:#9AA0A6">본문이 준비 중입니다.</p>';
+  }
   function imgOrPh(p){ var t=thumbOf(p); return t ? '<img src="'+esc(t)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' : '<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5h16v14H4z"/><path d="M4 15l4-4 3 3 4-5 5 6"/></svg></div>'; }
   function playSpan(p){ return isYt(p.link) ? '<div class="pstory-play"><span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></div>' : ''; }
 
@@ -332,7 +392,7 @@ const db = getFirestore(app);
   // ===== 특집 (상위 3) =====
   var feat = posts.slice(0,3);
   $('[data-feat]').innerHTML = feat.map(function(p){
-    return '<a class="pstory-feat-card" href="'+esc(p.link||'#')+'"'+tgt(p)+ytAttrs(p)+'>'
+    return '<a class="pstory-feat-card" href="'+esc(p.link||'#')+'"'+tgt(p)+clickAttrs(p)+'>'
       + '<div class="pstory-feat-th">'+imgOrPh(p)+playSpan(p)+'</div>'
       + '<div class="pstory-feat-ct">'+esc(typeLabel(p.type))+'</div>'
       + '<div class="pstory-feat-tt">'+esc(p.title||'')+'</div>'
@@ -359,7 +419,7 @@ const db = getFirestore(app);
   // ===== BEST 매거진 (순번 랭킹, 4건 이상일 때) =====
   if (posts.length >= 4){
     $('[data-best]').innerHTML = posts.slice(0,10).map(function(p,i){
-      return '<a class="pstory-best-item" href="'+esc(p.link||'#')+'"'+tgt(p)+ytAttrs(p)+'>'
+      return '<a class="pstory-best-item" href="'+esc(p.link||'#')+'"'+tgt(p)+clickAttrs(p)+'>'
         + '<span class="pstory-best-rank">'+(i+1)+'</span>'
         + '<div class="pstory-best-body"><div class="pstory-best-tt">'+esc(p.title||'')+'</div>'
         +   '<div class="pstory-best-meta">'+esc(typeLabel(p.type))+(dateOf(p)?' · '+dateOf(p):'')+'</div></div>'
@@ -375,7 +435,7 @@ const db = getFirestore(app);
   var cur = 'all';
   function cardHtml(p){
     var ty=TYPE[p.type];
-    return '<a class="pstory-card" href="'+esc(p.link||'#')+'"'+tgt(p)+ytAttrs(p)+'>'
+    return '<a class="pstory-card" href="'+esc(p.link||'#')+'"'+tgt(p)+clickAttrs(p)+'>'
       + '<div class="pstory-thumb">'+imgOrPh(p)+(ty?'<span class="pstory-badge" style="background:'+ty.c+'">'+esc(ty.l)+'</span>':'')+playSpan(p)+'</div>'
       + '<span class="pstory-ct">'+esc(typeLabel(p.type))+'</span>'
       + '<div class="pstory-tt">'+esc(p.title||'')+'</div>'
@@ -429,13 +489,46 @@ const db = getFirestore(app);
     modal.scrollTop=0;
   }
   function closeVideo(){ if(!modal) return; modal.hidden=true; mPlayer.innerHTML=''; document.documentElement.style.overflow=_mOverflow; }
-  if (modal){
-    $('[data-modal-x]').addEventListener('click', closeVideo);
-    document.addEventListener('keydown', function(e){ if(e.key==='Escape' && !modal.hidden) closeVideo(); });
-    root.addEventListener('click', function(e){
-      var v=e.target.closest('[data-yt]'); if(v){ e.preventDefault(); var p=byId(v.getAttribute('data-pid')); if(p) openWatch(p); }
-    });
+
+  // ===== 자사몰 아티클 오버레이 =====
+  var artModal=$('[data-article-modal]'), artScroll=$('[data-art-scroll]'), _aOverflow='';
+  function relCardHtml(p){
+    return '<a class="pstory-rel2" href="'+esc(p.link||'#')+'"'+tgt(p)+clickAttrs(p)+'>'
+      + '<div class="pstory-rel2-th">'+imgOrPh(p)+playSpan(p)+'</div>'
+      + '<div class="pstory-rel2-ct">'+esc(typeLabel(p.type))+'</div>'
+      + '<div class="pstory-rel2-tt">'+esc(p.title||'')+'</div></a>';
   }
+  function openArticle(p){
+    if (!artModal || !p) return;
+    var hero = thumbOf(p) ? '<div class="pstory-art-hero"><img src="'+esc(thumbOf(p))+'" alt="" onerror="this.parentNode.style.display=\'none\'"/></div>' : '';
+    var ext = (realLink(p) && !isYt(p.link)) ? p.link : '';
+    var cta = '<div class="pstory-art-cta"><a class="primary" href="/product/list.html">제품 보러가기</a>'
+      + (ext ? '<a class="ghost" href="'+esc(ext)+'" target="_blank" rel="noopener">원문 보기 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a>' : '')
+      + '</div>';
+    var bodyHtml = (p.body && p.body.trim()) ? renderBodyBlocks(p.body) : (p.summary ? '<p>'+esc(p.summary)+'</p>' : '<p style="color:#9AA0A6">본문이 준비 중입니다.</p>');
+    var rel = posts.filter(function(x){ return x!==p; }).slice(0,4);
+    artScroll.innerHTML = hero
+      + '<div class="pstory-art-wrap">'
+      +   '<div class="pstory-art-ct">'+esc(typeLabel(p.type))+'</div>'
+      +   '<div class="pstory-art-tt">'+esc(p.title||'')+'</div>'
+      +   '<div class="pstory-art-dt">'+(dateOf(p)||'')+'</div>'
+      +   '<div class="pstory-art-body">'+bodyHtml+'</div>'
+      +   cta
+      + '</div>'
+      + (rel.length ? '<div class="pstory-art-rel"><div class="pstory-art-rel-top"></div><div class="pstory-art-rel-h">다른 이야기</div><div class="pstory-art-rel-list">'+rel.map(relCardHtml).join('')+'</div></div>' : '');
+    if (artModal.hidden){ artModal.hidden=false; _aOverflow=document.documentElement.style.overflow; document.documentElement.style.overflow='hidden'; }
+    artModal.scrollTop=0;
+  }
+  function closeArticle(){ if(!artModal) return; artModal.hidden=true; artScroll.innerHTML=''; document.documentElement.style.overflow=_aOverflow; }
+
+  // 닫기 + 클릭 라우팅(영상=재생 / 아티클=본문 / 그외=외부이동)
+  if ($('[data-art-close]')) $('[data-art-close]').addEventListener('click', closeArticle);
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ if(modal && !modal.hidden) closeVideo(); else if(artModal && !artModal.hidden) closeArticle(); } });
+  if (modal) $('[data-modal-x]').addEventListener('click', closeVideo);
+  root.addEventListener('click', function(e){
+    var v=e.target.closest('[data-yt]'); if(v){ e.preventDefault(); var p=byId(v.getAttribute('data-pid')); if(p) openWatch(p); return; }
+    var a=e.target.closest('[data-article]'); if(a){ e.preventDefault(); var q=byId(a.getAttribute('data-article')); if(q) openArticle(q); return; }
+  });
 })();
 </script>
 </section>

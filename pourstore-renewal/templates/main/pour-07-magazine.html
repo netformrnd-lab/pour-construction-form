@@ -1,7 +1,15 @@
+<!-- ============================================================
+  pour-07-magazine — 메인 '자사몰 매거진' 섹션
+  데이터: Firestore pourstore-postings (어드민 '포스팅 관리') → 등록/수정 시 자동 반영.
+  구성: 정렬 상위 4건 = 대표(feature) 1 + 사이드 3. 글 없으면 섹션 자동 숨김.
+  클릭: 외부링크 있으면 그 링크(새 탭), 없으면 POUR이야기 허브로 이동.
+  주의: 이모지 미사용(인라인 SVG). @import 폰트만 CSS import(카페24 @import 아님).
+  ============================================================ -->
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
 .psg3 *, .psg3 *::before, .psg3 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .psg3 { background:#FFFBF5; padding:72px 18px; letter-spacing:-0.02em; }
+.psg3[hidden] { display:none; }
 .psg3-inner { max-width:1200px; margin:0 auto; }
 .psg3-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:14px; }
 .psg3-head .left { flex:1; min-width:240px; }
@@ -10,7 +18,6 @@
 .psg3-head p { font-size:13.5px; font-weight:500; color:#6B7280; margin-top:6px; }
 .psg3-head .more { display:inline-flex; align-items:center; gap:6px; padding:10px 18px; background:#fff; border:1.5px solid #E5E7EB; border-radius:999px; color:#0F1F5C; font-size:13px; font-weight:800; text-decoration:none; transition:all .2s; letter-spacing:-0.02em; }
 .psg3-head .more:hover { border-color:#0F1F5C; background:#0F1F5C; color:#fff; }
-/* 데스크탑 그리드 (Feature 좌측 큰, 우측 3개) */
 .psg3-grid { display:grid; grid-template-columns:1.5fr 1fr 1fr; grid-template-rows:auto auto; gap:14px; }
 .psg3-list { display:contents; }
 .psg3-card { background:#fff; border-radius:20px; overflow:hidden; cursor:pointer; transition:all .3s; text-decoration:none; color:inherit; display:flex; flex-direction:column; border:1px solid #F3F4F6; }
@@ -20,33 +27,31 @@
 .psg3-card .img::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,transparent 50%, rgba(0,0,0,.05) 100%); }
 .psg3-card.feature .img { aspect-ratio:1.4/1; }
 .psg3-card:not(.feature) .img { aspect-ratio:16/10; }
-.psg3-card .tag { position:absolute; top:14px; left:14px; padding:5px 11px; background:rgba(15,31,92,.95); color:#fff; font-size:10.5px; font-weight:800; border-radius:6px; backdrop-filter:blur(8px); letter-spacing:0.04em; }
+.psg3-card .tag { position:absolute; top:14px; left:14px; padding:5px 11px; background:rgba(15,31,92,.95); color:#fff; font-size:10.5px; font-weight:800; border-radius:6px; -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); letter-spacing:0.04em; }
 .psg3-card.feature .tag { background:#F97316; }
-.psg3-card .meta-tl { position:absolute; bottom:14px; right:14px; display:flex; gap:6px; }
-.psg3-card .meta-tl span { padding:4px 9px; background:rgba(0,0,0,.6); color:#fff; font-size:10.5px; font-weight:700; border-radius:5px; backdrop-filter:blur(4px); }
+.psg3-card .play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:46px; height:46px; border-radius:50%; background:rgba(15,23,42,.5); display:grid; place-items:center; -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
+.psg3-card .play svg { width:19px; height:19px; color:#fff; margin-left:2px; }
 .psg3-card .body { padding:18px 20px 22px; flex:1; display:flex; flex-direction:column; }
 .psg3-card.feature .body { padding:24px 26px 26px; }
-.psg3-card .title { font-size:14.5px; font-weight:800; color:#0F1F5C; line-height:1.45; margin-bottom:8px; letter-spacing:-0.03em; }
-.psg3-card.feature .title { font-size:20px; line-height:1.3; letter-spacing:-0.04em; }
+.psg3-card .title { font-size:14.5px; font-weight:800; color:#0F1F5C; line-height:1.45; margin-bottom:8px; letter-spacing:-0.03em; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.psg3-card.feature .title { font-size:20px; line-height:1.3; letter-spacing:-0.04em; -webkit-line-clamp:3; }
 .psg3-card .desc { font-size:12.5px; font-weight:500; color:#6B7280; line-height:1.65; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; flex:1; letter-spacing:-0.02em; }
 .psg3-card.feature .desc { font-size:13.5px; -webkit-line-clamp:3; }
 .psg3-card .meta-bot { display:flex; gap:10px; align-items:center; margin-top:14px; padding-top:14px; border-top:1px solid #F3F4F6; font-size:11.5px; color:#9CA3AF; font-weight:600; letter-spacing:-0.02em; }
 .psg3-card .meta-bot .dot { width:3px; height:3px; background:#D1D5DB; border-radius:50%; }
-/* 활성(자동 재생 중) 카드 표시 — 모바일에서만 활성화 */
 .psg3-card .psg3-prog { position:absolute; left:0; right:0; bottom:0; height:3px; background:rgba(232,120,15,.15); overflow:hidden; opacity:0; transition:opacity .3s; pointer-events:none; }
 .psg3-card[data-psg3-active] .psg3-prog { opacity:1; }
 .psg3-card .psg3-prog::after { content:''; position:absolute; left:0; top:0; bottom:0; width:0; background:linear-gradient(90deg,#F49A3A,#E8780F); }
 .psg3-card[data-psg3-active] .psg3-prog::after { animation:psg3Fill var(--psg3-d, 6s) linear forwards; }
 @keyframes psg3Fill { to { width:100%; } }
+.psg3-loading { grid-column:1/-1; text-align:center; padding:50px 0; color:#9AA0A6; font-size:14px; font-weight:500; }
 .psg3-swipe { display:none; }
 @keyframes psg3SwipeAr { 0%,100% { transform:translateX(0); } 50% { transform:translateX(4px); } }
-/* 태블릿 */
 @media (max-width:1080px) {
   .psg3-grid { grid-template-columns:1fr 1fr; }
   .psg3-card.feature { grid-row:auto; grid-column:span 2; }
   .psg3-card.feature .img { aspect-ratio:2.4/1; }
 }
-/* 모바일 — Feature 풀폭 + 나머지 3개 가로 스크롤 */
 @media (max-width:700px) {
   .psg3 { padding:48px 0 56px; }
   .psg3-inner { max-width:none; }
@@ -60,7 +65,6 @@
   .psg3-card.feature .body { padding:18px 20px 22px; }
   .psg3-card.feature .title { font-size:17px; }
   .psg3-card.feature .desc { font-size:13px; -webkit-line-clamp:2; }
-  /* 비특집 카드 3개를 가로 스크롤 컨테이너로 */
   .psg3-list { display:flex !important; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; gap:12px; padding:0 18px 8px; margin:0 -18px; -webkit-overflow-scrolling:touch; grid-column:auto; }
   .psg3-list::-webkit-scrollbar { display:none; }
   .psg3-list .psg3-card { flex:0 0 76%; max-width:300px; scroll-snap-align:center; position:relative; transition:.25s; }
@@ -69,7 +73,7 @@
   .psg3-swipe .ar { display:inline-block; animation:psg3SwipeAr 1.3s ease-in-out infinite; }
 }
 </style>
-<section class="psg3">
+<section class="psg3" data-psg3 hidden>
   <div class="psg3-inner">
     <div class="psg3-head">
       <div class="left">
@@ -77,95 +81,102 @@
         <h2>자사몰 매거진</h2>
         <p>시공 노하우·하자 해결 사례·트렌드 인사이트</p>
       </div>
-      <a class="more" href="https://www.pourstore.net/posts">전체 보기 →</a>
+      <a class="more" href="/pourstore_renewal/story/pour-story.html">전체 보기 →</a>
     </div>
-    <div class="psg3-grid">
-      <a class="psg3-card feature" href="https://www.pourstore.net/posts/know-how">
-        <div class="img" style="background-image:url('https://placehold.co/1200x800/8B4513/fff?text=COVER+STORY')"><span class="tag">COVER STORY</span><div class="meta-tl"><span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M4 5c2-.5 5-.5 8 1 3-1.5 6-1.5 8-1v13c-2-.5-5-.5-8 1-3-1.5-6-1.5-8-1V5z"/><path d="M12 6v13"/></svg>읽기 8분</span></div></div>
-        <div class="body"><div class="title">금속기와 하자, 이렇게 대응합니다 — 실제 시공자가 알려주는 5단계</div><div class="desc">금속기와 지붕 소재의 특성과 하자 발생 원인, 그리고 POUR HOOKER 시스템으로 어떻게 해결하는지 단계별로 정리했습니다.</div><div class="meta-bot"><span>POUR 편집팀</span><span class="dot"></span><span>2일 전</span><span class="dot"></span><span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="2.6"/></svg>4.2K</span></div></div>
-      </a>
-      <div class="psg3-list" data-psg3-scroll>
-        <a class="psg3-card" data-psg3-dur="6" href="https://www.pourstore.net/posts/silicone">
-          <div class="img" style="background-image:url('https://placehold.co/600x375/D1D5DB/0F1F5C?text=SILICONE')"><span class="tag">노하우</span></div>
-          <div class="body"><div class="title">실리콘이 답일까? 외벽 균열 보수의 진실</div><div class="desc">실리콘 보수의 한계와 600% 신축 하이퍼티가 답인 이유.</div><div class="meta-bot"><span>5일 전</span><span class="dot"></span><span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="2.6"/></svg>2.1K</span></div></div>
-          <span class="psg3-prog"></span>
-        </a>
-        <a class="psg3-card" data-psg3-dur="6" href="https://www.pourstore.net/posts/leak-fix">
-          <div class="img" style="background-image:url('https://placehold.co/600x375/059669/fff?text=DIY')"><span class="tag">셀프시공</span></div>
-          <div class="body"><div class="title">크랙·누수 한 방에 — 빌라 옥상 셀프 방수 후기</div><div class="desc">평택 빌라 옥상 셀프 방수 사례, 비용·시간·결과 모두 공개.</div><div class="meta-bot"><span>1주 전</span><span class="dot"></span><span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="2.6"/></svg>3.5K</span></div></div>
-          <span class="psg3-prog"></span>
-        </a>
-        <a class="psg3-card" data-psg3-dur="6" href="https://www.pourstore.net/posts/shingle-coat">
-          <div class="img" style="background-image:url('https://placehold.co/600x375/B91C1C/fff?text=SHINGLE')"><span class="tag">슁글</span></div>
-          <div class="body"><div class="title">아스팔트 슁글에 도막방수, 잘 버틸까?</div><div class="desc">경사형 지붕에 액체방수의 한계 — 시트+도료 일체화 방식이 답.</div><div class="meta-bot"><span>2주 전</span><span class="dot"></span><span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="2.6"/></svg>1.8K</span></div></div>
-          <span class="psg3-prog"></span>
-        </a>
-      </div>
-      <div class="psg3-swipe">옆으로 밀어 더 보기 <span class="ar">→</span></div>
-    </div>
+    <div class="psg3-grid" data-psg3-grid><div class="psg3-loading">불러오는 중…</div></div>
+    <div class="psg3-swipe" data-psg3-swipe hidden>옆으로 밀어 더 보기 <span class="ar">→</span></div>
   </div>
-  <script>
-  (function(){
-    var root = document.currentScript && document.currentScript.parentElement;
-    if (!root) return;
-    var scroller = root.querySelector('[data-psg3-scroll]');
-    if (!scroller) return;
-    var cards = Array.prototype.slice.call(scroller.querySelectorAll('.psg3-card'));
-    if (cards.length === 0) return;
-    var current = 0, paused = false, inView = false;
-    var advanceT = null, resumeT = null;
+</section>
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain: "pour-app-new.firebaseapp.com", projectId: "pour-app-new",
+  storageBucket: "pour-app-new.firebasestorage.app", messagingSenderId: "411031141847",
+  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
+};
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+(async function(){
+  var sec = document.querySelector('[data-psg3]');
+  if (!sec) return;
+  var grid = sec.querySelector('[data-psg3-grid]');
+  var swipe = sec.querySelector('[data-psg3-swipe]');
+  var HUB = '/pourstore_renewal/story/pour-story.html';
+  var TYPE = { news:'뉴스', guide:'시공가이드', case:'시공사례', interview:'인터뷰', video:'영상', blog:'컨텐츠', event:'이벤트' };
+
+  function esc(s){ return (s||'').toString().replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function ytId(u){ var m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/); return m?m[1]:null; }
+  function isYt(u){ return /youtu\.?be/.test(u||''); }
+  function thumbOf(p){ var t=p.thumbnail||p.thumb||p.image; if(t&&String(t).trim())return t; var id=ytId(p.link); return id?('https://img.youtube.com/vi/'+id+'/hqdefault.jpg'):''; }
+  function typeLabel(t){ return TYPE[t] || '이야기'; }
+  function dateOf(p){ var m=String(p.createdAt||p.updatedAt||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[1]+'.'+m[2]+'.'+m[3]):''; }
+  function hrefOf(p){ return (p.link && /^https?:\/\//.test(p.link)) ? { h:p.link, t:' target="_blank" rel="noopener"' } : { h:HUB, t:'' }; }
+  function bgStyle(p){ var t=thumbOf(p); return t ? ' style="background-image:url(\''+esc(t)+'\')"' : ''; }
+  function playHtml(p){ return isYt(p.link) ? '<div class="play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>' : ''; }
+
+  var posts = [];
+  try {
+    var snap = await getDocs(collection(db, "pourstore-postings"));
+    posts = snap.docs.map(function(d){ return Object.assign({ id:d.id }, d.data()); })
+      .filter(function(p){ return p && p.active !== false; })
+      .sort(function(a,b){ var o=(a.order==null?999:a.order)-(b.order==null?999:b.order); return o!==0?o:String(b.createdAt||'').localeCompare(String(a.createdAt||'')); });
+    console.log("[psg3] 매거진 글 " + posts.length + "건 로드");
+  } catch (e) {
+    console.error("[psg3] 로드 실패:", e && e.message ? e.message : e);
+    sec.hidden = true; return;
+  }
+  if (!posts.length){ sec.hidden = true; return; }
+  sec.hidden = false;
+
+  var feat = posts[0], rest = posts.slice(1, 4);
+  var fl = hrefOf(feat);
+  var featHtml = '<a class="psg3-card feature" href="'+fl.h+'"'+fl.t+'>'
+    + '<div class="img"'+bgStyle(feat)+'><span class="tag">'+esc(typeLabel(feat.type))+'</span>'+playHtml(feat)+'</div>'
+    + '<div class="body"><div class="title">'+esc(feat.title||'')+'</div>'
+    +   '<div class="desc">'+esc(feat.summary||'')+'</div>'
+    +   '<div class="meta-bot"><span>POUR 편집팀</span>'+(dateOf(feat)?'<span class="dot"></span><span>'+dateOf(feat)+'</span>':'')+'</div></div></a>';
+  var listHtml = rest.map(function(p){
+    var l = hrefOf(p);
+    return '<a class="psg3-card" data-psg3-dur="6" href="'+l.h+'"'+l.t+'>'
+      + '<div class="img"'+bgStyle(p)+'><span class="tag">'+esc(typeLabel(p.type))+'</span>'+playHtml(p)+'</div>'
+      + '<div class="body"><div class="title">'+esc(p.title||'')+'</div>'
+      +   '<div class="desc">'+esc(p.summary||'')+'</div>'
+      +   '<div class="meta-bot">'+(dateOf(p)?'<span>'+dateOf(p)+'</span>':'<span>POUR스토어</span>')+'</div></div>'
+      + '<span class="psg3-prog"></span></a>';
+  }).join('');
+  grid.innerHTML = featHtml + '<div class="psg3-list" data-psg3-scroll>' + listHtml + '</div>';
+  if (swipe) swipe.hidden = rest.length < 2;
+
+  // ===== 모바일 자동 순환 강조 =====
+  var scroller = sec.querySelector('[data-psg3-scroll]');
+  var cards = scroller ? Array.prototype.slice.call(scroller.querySelectorAll('.psg3-card')) : [];
+  if (scroller && cards.length){
+    var current=0, paused=false, inView=false, advanceT=null, resumeT=null;
     var mq = window.matchMedia('(max-width:700px)');
-    function durMs(i){
-      var d = parseFloat(cards[i].getAttribute('data-psg3-dur') || '6');
-      return Math.min(Math.max(d, 3), 12) * 1000;
-    }
-    function clearAdvance(){ if (advanceT) { clearTimeout(advanceT); advanceT = null; } }
+    function durMs(i){ var d=parseFloat(cards[i].getAttribute('data-psg3-dur')||'6'); return Math.min(Math.max(d,3),12)*1000; }
+    function clearAdvance(){ if(advanceT){ clearTimeout(advanceT); advanceT=null; } }
     function activate(i){
       clearAdvance();
-      current = ((i % cards.length) + cards.length) % cards.length;
-      cards.forEach(function(c, idx){
-        if (idx === current) {
-          c.style.setProperty('--psg3-d', (durMs(current)/1000) + 's');
-          c.removeAttribute('data-psg3-active');
-          void c.offsetWidth;
-          c.setAttribute('data-psg3-active', '');
-        } else {
-          c.removeAttribute('data-psg3-active');
-        }
+      current=((i%cards.length)+cards.length)%cards.length;
+      cards.forEach(function(c,idx){
+        if(idx===current){ c.style.setProperty('--psg3-d',(durMs(current)/1000)+'s'); c.removeAttribute('data-psg3-active'); void c.offsetWidth; c.setAttribute('data-psg3-active',''); }
+        else c.removeAttribute('data-psg3-active');
       });
-      if (mq.matches) {
-        try { cards[current].scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' }); }
-        catch(_) { scroller.scrollLeft = cards[current].offsetLeft - (scroller.clientWidth - cards[current].clientWidth)/2; }
-      }
-      if (!paused && inView && !document.hidden) {
-        advanceT = setTimeout(function(){ activate(current + 1); }, durMs(current));
-      }
+      if(mq.matches){ try{ cards[current].scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}); }catch(_){ scroller.scrollLeft=cards[current].offsetLeft-(scroller.clientWidth-cards[current].clientWidth)/2; } }
+      if(!paused && inView && !document.hidden){ advanceT=setTimeout(function(){ activate(current+1); }, durMs(current)); }
     }
-    function pauseFor(ms){
-      paused = true;
-      clearAdvance();
-      if (resumeT) clearTimeout(resumeT);
-      resumeT = setTimeout(function(){ paused = false; if (inView) activate(current); }, ms || 7000);
-    }
+    function pauseFor(ms){ paused=true; clearAdvance(); if(resumeT)clearTimeout(resumeT); resumeT=setTimeout(function(){ paused=false; if(inView)activate(current); }, ms||7000); }
     scroller.addEventListener('touchstart', function(){ pauseFor(8000); }, {passive:true});
     scroller.addEventListener('pointerdown', function(){ pauseFor(8000); });
     scroller.addEventListener('mouseenter', function(){ pauseFor(10000); });
-    document.addEventListener('visibilitychange', function(){
-      if (document.hidden) clearAdvance();
-      else if (inView && !paused) activate(current);
-    });
-    if ('IntersectionObserver' in window) {
-      var io = new IntersectionObserver(function(entries){
-        entries.forEach(function(e){
-          inView = e.isIntersecting;
-          if (inView && !paused && mq.matches) activate(current);
-          else clearAdvance();
-        });
-      }, { threshold: 0.3 });
+    document.addEventListener('visibilitychange', function(){ if(document.hidden)clearAdvance(); else if(inView&&!paused)activate(current); });
+    if('IntersectionObserver' in window){
+      var io=new IntersectionObserver(function(entries){ entries.forEach(function(e){ inView=e.isIntersecting; if(inView&&!paused&&mq.matches)activate(current); else clearAdvance(); }); }, {threshold:0.3});
       io.observe(scroller);
-    } else if (mq.matches) {
-      inView = true; activate(0);
-    }
-  })();
-  </script>
-</section>
+    } else if(mq.matches){ inView=true; activate(0); }
+  }
+})();
+</script>

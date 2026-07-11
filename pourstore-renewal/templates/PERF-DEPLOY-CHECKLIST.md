@@ -25,6 +25,9 @@
 ### 공용 헤더 (검색 등 전 페이지)
 - [ ] `common/pour-header.html` *(검색 페이지 속도 핵심)*
 
+### 패키지 페이지 (cate_no=71)
+- [ ] `package/pour-package-cate.html` — *(신규: 하단 카페24 기본 정렬/보기 툴바 숨김 → 이질감 제거)*
+
 ### 검색결과 페이지
 - [ ] `search/pour-02-search-content.html`
 

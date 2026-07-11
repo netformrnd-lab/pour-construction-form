@@ -27,6 +27,18 @@
 /* 이 페이지에선 중복되는 '전체 패키지' 링크·비작동 라인필터 숨김 */
 .ppcate .ppr2-head .more, .ppcate .ppr3-head .more{ display:none !important; }
 .ppcate .ppr4-line{ display:none !important; }
+/* ── cate_no=71에서만: 카페24 기본 상품 툴바(정렬 '신상품▾' + 보기전환 아이콘 + 상품개수) 완전 숨김 ──
+   커스텀 섹션과의 이질감 제거. html.pour-cate-71 로 스코프 한정 → 다른 분류의 정렬/보기 기능은 그대로. */
+html.pour-cate-71 .ec-base-prdSort,
+html.pour-cate-71 .ec-base-prdSort .function,
+html.pour-cate-71 .ec-base-prdSort .btnType,
+html.pour-cate-71 .xans-product-normalmenu,
+html.pour-cate-71 .xans-product-orderby,
+html.pour-cate-71 .displayType,
+html.pour-cate-71 .prdCount{ display:none !important; }
+/* 툴바가 빠진 자리 — 상품 그리드가 영상 섹션과 자연스럽게 이어지도록 상단 여백만 살짝 */
+html.pour-cate-71 .xans-product-listnormal,
+html.pour-cate-71 .ec-base-prdList{ padding-top:6px !important; }
 @media (max-width:640px){ .ppcate .ppr2, .ppcate .ppr3, .ppcate .ppr4, .ppcate .ppr5{ padding:40px 16px !important; } .ppcate .ppr2{ padding-top:24px !important; } .ppcate .ppr2-head h2, .ppcate .ppr3-head h2, .ppcate .ppr4-head h2, .ppcate .ppr5-head h2{ font-size:22px !important; } }
 </style>
 <!-- [보류] 나중에 고도화 시 '대표 패키지' 위에 다시 노출할 섹션 — 경로만 보존(현재는 미노출).
@@ -46,6 +58,7 @@
   if (cate === '71') {           // 패키지 전체 분류에서만 노출
     el.hidden = false;
     el.removeAttribute('hidden');
+    document.documentElement.classList.add('pour-cate-71'); // 이 분류에서만 기본 툴바 숨김 스코프
     console.log('[ppcate] cate_no=71 패키지 디자인 노출');
   } else {                        // 다른 분류에선 흔적 없이 제거
     el.parentNode && el.parentNode.removeChild(el);

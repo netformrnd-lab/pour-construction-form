@@ -4854,8 +4854,13 @@ function PostingsPage({showToast}){
       else if(m==='info') card={mode:'info',title:(c.title||'').trim(),text:(c.text||'').trim(),image:(c.image||'').trim()};
       return {pts,card};
     });
+    const cleanHot=(list)=>(list||[]).map(h=>{
+      const m=h.mode||'product';
+      if(m==='info') return {x:Number(h.x)||0,y:Number(h.y)||0,mode:'info',title:(h.title||'').trim(),text:(h.text||'').trim(),image:(h.image||'').trim()};
+      return {x:Number(h.x)||0,y:Number(h.y)||0,mode:'product',name:(h.name||'').trim(),price:(h.price||'').trim(),thumb:(h.thumb||'').trim(),link:(h.link||'').trim()};
+    }).filter(h=> h.mode==='info' ? (h.title||h.text||h.image) : (h.name||h.link));
     const blocks=(Array.isArray(f.blocks)?f.blocks:[]).map(b=> b.type==='image'
-      ? {type:'image', url:(b.url||'').trim(), hotspots:(b.hotspots||[]).filter(h=>(h.name||'').trim()||(h.link||'').trim()).map(h=>({x:Number(h.x)||0,y:Number(h.y)||0,name:(h.name||'').trim(),price:(h.price||'').trim(),thumb:(h.thumb||'').trim(),link:(h.link||'').trim()})), highlights:cleanHl(b.highlights)}
+      ? {type:'image', url:(b.url||'').trim(), hotspots:cleanHot(b.hotspots), highlights:cleanHl(b.highlights)}
       : {type:'text', text:(b.text||'').trim(), align:b.align||'left', size:b.size||'normal'}
     ).filter(b=> b.type==='image' ? b.url : b.text);
     const bodyStr=blocksToBody(blocks);
@@ -4964,10 +4969,12 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
   const upd=(i,patch)=>mut(p=>{p[i]={...p[i],...patch};return p;});
   const del=(i)=>mut(p=>p.filter((_,x)=>x!==i));
   const move=(i,d)=>mut(p=>{const j=i+d;if(j<0||j>=p.length)return p;[p[i],p[j]]=[p[j],p[i]];return p;});
-  const addHot=(i,x,y)=>mut(p=>{p[i].hotspots=[...(p[i].hotspots||[]),{x,y,name:'',price:'',thumb:'',link:''}];return p;});
+  const [pendHot,setPendHot]=useState(null);
+  const addHot=(i,x,y,mode)=>mut(p=>{p[i].hotspots=[...(p[i].hotspots||[]),{x,y,mode:mode||'product',name:'',price:'',thumb:'',link:'',title:'',text:'',image:''}];return p;});
+  const chooseHot=(mode)=>{ if(pendHot){ addHot(pendHot.i,pendHot.x,pendHot.y,mode); setPendHot(null); } };
   const updHot=(i,hi,patch)=>mut(p=>{p[i].hotspots[hi]={...p[i].hotspots[hi],...patch};return p;});
   const delHot=(i,hi)=>mut(p=>{p[i].hotspots=p[i].hotspots.filter((_,x)=>x!==hi);return p;});
-  const onImgClick=(i,e)=>{const r=e.currentTarget.getBoundingClientRect();const x=Math.max(0,Math.min(100,Math.round(((e.clientX-r.left)/r.width)*100)));const y=Math.max(0,Math.min(100,Math.round(((e.clientY-r.top)/r.height)*100)));addHot(i,x,y);};
+  const onImgClick=(i,e)=>{const r=e.currentTarget.getBoundingClientRect();const x=Math.max(0,Math.min(100,Math.round(((e.clientX-r.left)/r.width)*100)));const y=Math.max(0,Math.min(100,Math.round(((e.clientY-r.top)/r.height)*100)));setPendHot({i:i,x:x,y:y});};
   const [dragOver,setDragOver]=useState(null);
   const onPasteImg=(i,e)=>{ const items=(e.clipboardData&&e.clipboardData.items)||[]; for(let k=0;k<items.length;k++){ if(((items[k].type)||'').indexOf('image')===0){ const f=items[k].getAsFile(); if(f){ e.preventDefault(); uploadImage('b'+i,f,(url)=>upd(i,{url})); return; } } } };
   const onDropImg=(i,e)=>{ e.preventDefault(); setDragOver(null); const files=e.dataTransfer&&e.dataTransfer.files; if(files&&files[0]&&((files[0].type)||'').indexOf('image')===0){ uploadImage('b'+i,files[0],(url)=>upd(i,{url})); } };
@@ -5013,21 +5020,42 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
                     {(b.highlights||[]).map((hl,hi)=> (hl.pts&&hl.pts.length>=2) ? <polyline key={'h'+hi} points={hl.pts.map(p=>p.x+','+p.y).join(' ')} fill="none" stroke="#E8780F" strokeWidth={2.5} strokeOpacity={0.6} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/> : null)}
                     {poly.i===i && poly.pts.length>=1 ? <polyline points={poly.pts.map(p=>p.x+','+p.y).join(' ')} fill="none" stroke="#E8780F" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/> : null}
                   </svg>
-                  {(b.hotspots||[]).map((h,hi)=>(<span key={hi} style={{position:'absolute',left:h.x+'%',top:h.y+'%',transform:'translate(-50%,-50%)',width:22,height:22,borderRadius:'50%',background:'#E8780F',color:'#fff',fontSize:14,fontWeight:900,display:'grid',placeItems:'center',boxShadow:'0 2px 6px rgba(0,0,0,.35)',border:'2px solid #fff',pointerEvents:'none'}}>+</span>))}
+                  {(b.hotspots||[]).map((h,hi)=>(<span key={hi} style={{position:'absolute',left:h.x+'%',top:h.y+'%',transform:'translate(-50%,-50%)',width:22,height:22,borderRadius:'50%',background:(h.mode==='info')?'#2563EB':'#E8780F',color:'#fff',fontSize:(h.mode==='info')?12:14,fontWeight:900,display:'grid',placeItems:'center',boxShadow:'0 2px 6px rgba(0,0,0,.35)',border:'2px solid #fff',pointerEvents:'none'}}>{(h.mode==='info')?'i':'+'}</span>))}
+                  {pendHot && pendHot.i===i && <div onClick={e=>e.stopPropagation()} style={{position:'absolute',left:pendHot.x+'%',top:pendHot.y+'%',transform:'translate(-50%,calc(-100% - 10px))',zIndex:6,display:'flex',gap:5,background:'#fff',padding:6,borderRadius:9,boxShadow:'0 8px 24px rgba(0,0,0,.3)',border:'1px solid var(--border)',whiteSpace:'nowrap'}}>
+                    <button type="button" onClick={()=>chooseHot('product')} style={{padding:'6px 11px',borderRadius:7,border:'none',background:'var(--or)',color:'#fff',fontSize:11.5,fontWeight:900,cursor:'pointer'}}>🛒 상품</button>
+                    <button type="button" onClick={()=>chooseHot('info')} style={{padding:'6px 11px',borderRadius:7,border:'1.5px solid var(--or)',background:'#fff',color:'var(--or-d)',fontSize:11.5,fontWeight:900,cursor:'pointer'}}>💬 설명</button>
+                    <button type="button" onClick={()=>setPendHot(null)} style={{padding:'6px 8px',borderRadius:7,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text-md)',fontSize:11.5,fontWeight:800,cursor:'pointer'}}>✕</button>
+                  </div>}
                   {poly.i===i && poly.pts.map((p,pi)=>(<span key={'p'+pi} style={{position:'absolute',left:p.x+'%',top:p.y+'%',transform:'translate(-50%,-50%)',width:16,height:16,borderRadius:'50%',background:'#fff',border:'2px solid #E8780F',color:'#E8780F',fontSize:9,fontWeight:900,display:'grid',placeItems:'center',pointerEvents:'none'}}>{pi+1}</span>))}
-                  <div style={{position:'absolute',left:8,top:8,background:poly.i===i?'rgba(232,120,15,.92)':'rgba(15,23,42,.72)',color:'#fff',fontSize:10.5,fontWeight:700,padding:'3px 8px',borderRadius:5,pointerEvents:'none'}}>{poly.i===i?('✏ 외곽선 그리기 · 톡톡 눌러 점 추가 ('+poly.pts.length+')'):'사진 클릭 → 상품 점 추가'}</div>
+                  <div style={{position:'absolute',left:8,top:8,background:poly.i===i?'rgba(232,120,15,.92)':'rgba(15,23,42,.72)',color:'#fff',fontSize:10.5,fontWeight:700,padding:'3px 8px',borderRadius:5,pointerEvents:'none'}}>{poly.i===i?('✏ 외곽선 그리기 · 톡톡 눌러 점 추가 ('+poly.pts.length+')'):'사진 클릭 → 점 추가 (상품/설명 선택)'}</div>
                 </div>}
-                {(b.hotspots||[]).map((h,hi)=>(
+                {(b.hotspots||[]).map(function(h,hi){ const hm=h.mode||'product'; return (
                   <div key={hi} style={{marginTop:8,padding:9,border:'1px dashed var(--or)',borderRadius:8,background:'var(--or-pale)'}}>
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}><b style={{fontSize:11,color:'var(--or-d)'}}>상품 점 {hi+1} · 위치 {h.x}%,{h.y}%</b><button type="button" onClick={()=>delHot(i,hi)} style={{...mini,width:'auto',padding:'0 8px',color:'var(--red)',fontWeight:800}}>삭제</button></div>
-                    <input value={h.name||''} onChange={e=>updHot(i,hi,{name:e.target.value})} placeholder="상품명" style={{...fld,marginBottom:5}}/>
-                    <div style={{display:'flex',gap:5,marginBottom:5}}>
-                      <input value={h.price||''} onChange={e=>updHot(i,hi,{price:e.target.value})} placeholder="가격(선택) 예:189,000원" style={{...fld,flex:1}}/>
-                      <input value={h.thumb||''} onChange={e=>updHot(i,hi,{thumb:e.target.value})} placeholder="상품 썸네일 URL(선택)" style={{...fld,flex:1}}/>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6,gap:6,flexWrap:'wrap'}}>
+                      <b style={{fontSize:11,color:'var(--or-d)'}}>{hm==='info'?'💬 설명 점':'🛒 상품 점'} {hi+1} · {h.x}%,{h.y}%</b>
+                      <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                        {[['product','상품'],['info','설명']].map(function(o){const m=o[0];const on=hm===m;return <button key={m} type="button" onClick={()=>updHot(i,hi,{mode:m})} style={{padding:'3px 9px',borderRadius:6,fontSize:10.5,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'#fff':'transparent',color:on?'var(--or-d)':'var(--text-md)'}}>{o[1]}</button>;})}
+                        <button type="button" onClick={()=>delHot(i,hi)} style={{...mini,width:'auto',padding:'0 8px',color:'var(--red)',fontWeight:800}}>삭제</button>
+                      </div>
                     </div>
-                    <input value={h.link||''} onChange={e=>updHot(i,hi,{link:e.target.value})} placeholder="상품 링크 예:/product/detail.html?product_no=123" style={fld}/>
+                    {hm==='product' && <div>
+                      <input value={h.name||''} onChange={e=>updHot(i,hi,{name:e.target.value})} placeholder="상품명" style={{...fld,marginBottom:5}}/>
+                      <div style={{display:'flex',gap:5,marginBottom:5}}>
+                        <input value={h.price||''} onChange={e=>updHot(i,hi,{price:e.target.value})} placeholder="가격(선택) 예:189,000원" style={{...fld,flex:1}}/>
+                        <input value={h.thumb||''} onChange={e=>updHot(i,hi,{thumb:e.target.value})} placeholder="상품 썸네일 URL(선택)" style={{...fld,flex:1}}/>
+                      </div>
+                      <input value={h.link||''} onChange={e=>updHot(i,hi,{link:e.target.value})} placeholder="상품 링크 예:/product/detail.html?product_no=123" style={fld}/>
+                    </div>}
+                    {hm==='info' && <div>
+                      <input value={h.title||''} onChange={e=>updHot(i,hi,{title:e.target.value})} placeholder="제목" style={{...fld,marginBottom:5}}/>
+                      <textarea value={h.text||''} onChange={e=>updHot(i,hi,{text:e.target.value})} placeholder="설명글" style={{...fld,minHeight:52,resize:'vertical',fontFamily:'inherit',lineHeight:1.5,marginBottom:5}}/>
+                      <div style={{display:'flex',gap:5}}>
+                        <input value={h.image||''} onChange={e=>updHot(i,hi,{image:e.target.value})} placeholder="사진 URL / Ctrl+V·드래그" style={{...fld,flex:1}} onPaste={e=>{const it=(e.clipboardData&&e.clipboardData.items)||[];for(let k=0;k<it.length;k++){if(((it[k].type)||'').indexOf('image')===0){const f=it[k].getAsFile();if(f){e.preventDefault();uploadImage('ht'+i+'_'+hi,f,(url)=>updHot(i,hi,{image:url}));return;}}}}}/>
+                        <label style={{padding:'0 10px',borderRadius:8,border:'1px solid var(--border)',background:uploadingKey==='ht'+i+'_'+hi?'var(--or-pale)':'var(--bg)',fontSize:11,fontWeight:800,color:'var(--or-d)',cursor:'pointer',display:'flex',alignItems:'center'}}>{uploadingKey==='ht'+i+'_'+hi?'…':'업로드'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)uploadImage('ht'+i+'_'+hi,f,(url)=>updHot(i,hi,{image:url})); e.target.value='';}}/></label>
+                      </div>
+                    </div>}
                   </div>
-                ))}
+                );})}
                 {b.url && <div style={{marginTop:10,paddingTop:10,borderTop:'1px dashed var(--border)'}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}>
                     <span style={{fontSize:11,fontWeight:800,color:'var(--or-d)'}}>✏ 강조 영역 (펜툴·깜빡임)</span>

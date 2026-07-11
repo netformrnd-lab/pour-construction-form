@@ -1601,13 +1601,22 @@ var PC_TTL = 300000;
     if (!Array.isArray(blocks) || !blocks.length) return '';
     return blocks.map(function(b){
       if (b.type === 'image' && b.url){
-        var hots = (b.hotspots||[]).filter(function(h){ return h && (h.link||h.name); }).map(function(h){
-          var card = '<div class="pstory-hotpop"><a class="pstory-hotpop-inner" href="'+esc(h.link||'#')+'">'
-            + (h.thumb ? '<img src="'+esc(h.thumb)+'" alt="" onerror="this.style.display=\'none\'"/>' : '')
-            + '<div class="pstory-hotpop-body"><div class="pstory-hotpop-nm">'+esc(h.name||'상품 보기')+'</div>'
-            + (h.price ? '<div class="pstory-hotpop-pr">'+esc(h.price)+'</div>' : '')+'</div>'
-            + '<span class="pstory-hotpop-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></a></div>';
-          return '<button class="pstory-hot" type="button" style="left:'+(Number(h.x)||0)+'%;top:'+(Number(h.y)||0)+'%" aria-label="상품">+</button>'+card;
+        var hots = (b.hotspots||[]).filter(function(h){ return h && (h.link||h.name||h.title||h.text||h.image); }).map(function(h){
+          var mode = h.mode || 'product';
+          var card;
+          if (mode === 'info'){
+            card = '<div class="pstory-hlpop"><div class="pstory-hlpop-in">'
+              + (h.image ? '<img src="'+esc(h.image)+'" alt="" onerror="this.style.display=\'none\'"/>' : '')
+              + (h.title ? '<div class="pstory-hlpop-tt">'+esc(h.title)+'</div>' : '')
+              + (h.text ? '<div class="pstory-hlpop-tx">'+esc(h.text)+'</div>' : '')+'</div></div>';
+          } else {
+            card = '<div class="pstory-hotpop"><a class="pstory-hotpop-inner" href="'+esc(h.link||'#')+'">'
+              + (h.thumb ? '<img src="'+esc(h.thumb)+'" alt="" onerror="this.style.display=\'none\'"/>' : '')
+              + '<div class="pstory-hotpop-body"><div class="pstory-hotpop-nm">'+esc(h.name||'상품 보기')+'</div>'
+              + (h.price ? '<div class="pstory-hotpop-pr">'+esc(h.price)+'</div>' : '')+'</div>'
+              + '<span class="pstory-hotpop-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></a></div>';
+          }
+          return '<button class="pstory-hot" type="button" style="left:'+(Number(h.x)||0)+'%;top:'+(Number(h.y)||0)+'%" aria-label="'+(mode==='info'?'설명':'상품')+'">'+(mode==='info'?'i':'+')+'</button>'+card;
         }).join('');
         var hlHtml = (b.highlights||[]).map(function(hl){
           var pts = (hl.pts||[]).filter(function(p){ return p && isFinite(p.x) && isFinite(p.y); });

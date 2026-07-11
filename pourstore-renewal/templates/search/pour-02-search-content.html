@@ -1,3 +1,10 @@
+<!-- 성능 힌트: 폰트·Firebase SDK 조기 로딩 (FOUC 감소 + 첫 응답 단축) -->
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css">
 <!-- ============================================================
   pour-02-search-content  —  카페24 "상품검색 결과" 페이지 삽입 조각
   위치: 카페24 → 디자인 → 상품검색결과 스킨의 상품 리스트 '아래'에 붙여넣으세요.
@@ -10,7 +17,6 @@
 ============================================================ -->
 <section class="psrc" data-psrc>
 <style>
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
 .psrc *, .psrc *::before, .psrc *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; letter-spacing:-0.02em; }
 .psrc { max-width:1256px; margin:20px auto 0; padding:24px 24px 4px; border-top:1px solid #F0F1F3; }
 .psrc-inner { display:none; }

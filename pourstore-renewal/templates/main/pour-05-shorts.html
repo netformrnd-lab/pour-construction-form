@@ -1,3 +1,10 @@
+<!-- 성능 힌트: 폰트·Firebase SDK 조기 로딩 (FOUC 감소 + 첫 응답 단축) -->
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css">
 <!-- ============================================================
   pour-05-shorts — 메인 'POUR스토어 숏츠 영상' 섹션
   데이터: Firestore pourstore-postings 중 type==='short' (어드민 '포스팅 관리'에서 숏츠로 등록)
@@ -5,7 +12,6 @@
   클릭: 유튜브 링크 → 메인 전역 인터셉터(pour-01-main)가 자사몰 내 모달로 재생(유튜브 이탈 없음).
   ============================================================ -->
 <style>
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
 .psy3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .psy3 { background:#FFFBF5; padding:80px 18px; position:relative; }
 .psy3[hidden] { display:none; }

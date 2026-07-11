@@ -1,3 +1,10 @@
+<!-- 성능 힌트: 폰트·Firebase SDK 조기 로딩 (FOUC 감소 + 첫 응답 단축) -->
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css">
 <!-- ============================================================
   pour-story — POUR이야기 콘텐츠 허브 (무신사 매거진 스타일)
   용도: 카페24 pourstore_renewal/story/pour-story.html. POUR이야기 탭 연결.
@@ -35,7 +42,6 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 @media (max-width:700px){ .pour-gh-sub-inner { padding:0 14px; } .pour-gh-sub-link { font-size:12.5px; padding:10px 9px; } .pour-gh-sub { max-height:52px; } }
 </style>
 <style>
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
 .psm1 *, .psm1 *::before, .psm1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .psm1 { background:#fff; color:#2F3438; line-height:1.5; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.02em; }
 .psm1 a { color:inherit; text-decoration:none; }
@@ -554,6 +560,9 @@ const firebaseConfig = {
 };
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
+/* 공유 로딩 캐시(성능) — 중복 fetch 제거 + 페이지 이동/재방문 시 재사용. define-if-absent(모듈별). */
+window.__pcache = window.__pcache || (function(){ var mem={}; return { wrap:function(key,ttl,fetcher){ if(mem[key])return mem[key]; try{var raw=sessionStorage.getItem('pc:'+key); if(raw){var o=JSON.parse(raw); if(o&&(Date.now()-o.t)<ttl){return (mem[key]=Promise.resolve(o.v));}}}catch(e){} var p=Promise.resolve().then(fetcher).then(function(v){try{sessionStorage.setItem('pc:'+key,JSON.stringify({t:Date.now(),v:v}));}catch(e){} return v;}); p.catch(function(){delete mem[key];}); return (mem[key]=p); }}; })();
+var PC_TTL = 300000;
 
 /* ===== 유튜브 자사몰 내 재생: 페이지 어디서든 유튜브 링크 클릭을 가로채 watch식 모달로 재생 =====
    (메인의 모든 프래그먼트가 한 document를 공유하므로, 여기 한 곳의 캡처 리스너가 전 영역 커버)
@@ -655,12 +664,20 @@ var PM_POSTS = [];
   var SEARCH_URL = '/product/search.html?keyword=';
   var items = [];
 
-  // ===== config/pourstoreHotkeywords 읽기 =====
+  // ===== ① 모든 Firestore 읽기를 병렬로 먼저 시작(순차 대기 제거) + 공유 캐시(중복·재방문 fetch 제거) =====
+  var pHot     = window.__pcache.wrap('cfg:hot',      PC_TTL, function(){ return getDoc(doc(db,"config","pourstoreHotkeywords")).then(function(s){ return s.exists()&&Array.isArray(s.data().items)?s.data().items:[]; }); });
+  var pReco    = window.__pcache.wrap('cfg:reco',     PC_TTL, function(){ return getDoc(doc(db,"config","pourstoreRecoKeywords")).then(function(s){ return s.exists()&&Array.isArray(s.data().items)?s.data().items:[]; }); });
+  var pPosts   = window.__pcache.wrap('col:postings', PC_TTL, function(){ return getDocs(collection(db,"pourstore-postings")).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); });
+  var pPkgs    = window.__pcache.wrap('col:packages', PC_TTL, function(){ return getDocs(collection(db,"pourstore-packages")).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); });
+  var pBanners = window.__pcache.wrap('cfg:banners',  PC_TTL, function(){ return getDoc(doc(db,"config","pourstoreBanners")).then(function(s){ return s.exists()?(s.data()||{}):null; }); });
+
+  // 배너는 도착 즉시 렌더(다른 데이터 대기 없이) → 회색 대기 최소화
+  pBanners.then(function(bd){ if (bd) applyBanners(bd); }).catch(function(e){ console.log('[psm1] 배너 로드 스킵:', e && e.message ? e.message : e); });
+
+  // ===== config/pourstoreHotkeywords =====
   try {
-    var snap = await getDoc(doc(db, "config", "pourstoreHotkeywords"));
-    var raw = snap.exists() && Array.isArray(snap.data().items) ? snap.data().items : [];
+    var raw = await pHot;
     console.log("[psm1] 인기검색어 원본 " + raw.length + "건 로드");
-    // 클라 정렬: rank 오름차순 + active===true (§10.3-C, orderBy 미사용)
     items = raw.filter(function(o){ return o && o.active === true; })
                .sort(function(a,b){ return (a.rank||99) - (b.rank||99); });
     console.log("[psm1] 노출 대상 " + items.length + "건");
@@ -673,8 +690,7 @@ var PM_POSTS = [];
   // ===== config/pourstoreRecoKeywords 읽기 (검색 오버레이 '추천 검색어') =====
   var reco = [];
   try {
-    var rsnap = await getDoc(doc(db, "config", "pourstoreRecoKeywords"));
-    var rraw = rsnap.exists() && Array.isArray(rsnap.data().items) ? rsnap.data().items : [];
+    var rraw = await pReco;
     reco = rraw.filter(function(o){ return o && o.active === true; })
                .sort(function(a,b){ return (a.rank||99) - (b.rank||99); });
     console.log("[psm1] 추천검색어 " + reco.length + "건 로드");
@@ -683,10 +699,9 @@ var PM_POSTS = [];
   // ===== 검색 드롭다운 '관련 콘텐츠'용 포스팅 로드 (pourstore-postings) =====
   var posts = [];
   try {
-    var psnap = await getDocs(collection(db, "pourstore-postings"));
-    posts = psnap.docs.map(function(d){ return Object.assign({ id:d.id }, d.data()); })
-                      .filter(function(p){ return p && p.active !== false; })
-                      .sort(function(a,b){ return ((a.order==null?999:a.order) - (b.order==null?999:b.order)); });
+    var rawPosts = await pPosts;
+    posts = rawPosts.filter(function(p){ return p && p.active !== false; })
+                    .sort(function(a,b){ return ((a.order==null?999:a.order) - (b.order==null?999:b.order)); });
     console.log("[psm1] 관련 콘텐츠 " + posts.length + "건 로드");
   } catch (e) { console.log("[psm1] 관련 콘텐츠 로드 스킵:", e && e.message ? e.message : e); }
   PM_POSTS = posts;   // 유튜브 재생 모달의 '관련 콘텐츠'용 공유
@@ -726,9 +741,8 @@ var PM_POSTS = [];
       terms:[p.title].concat(Array.isArray(p.tags)?p.tags:[]).map(norm).filter(Boolean) });
   });
   try {
-    var pkgSnap = await getDocs(collection(db, "pourstore-packages"));
-    pkgSnap.docs.map(function(d){ return Object.assign({ id:d.id }, d.data()); })
-      .filter(function(p){ return p && p.active !== false && p.productNo; })
+    var rawPkgs = await pPkgs;
+    rawPkgs.filter(function(p){ return p && p.active !== false && p.productNo; })
       .forEach(function(p){ idxPush({ type:'product', title:p.name||'', sub:(p.price||''), link:'/product/detail.html?product_no=' + p.productNo + '&cate_no=71', thumb:(p.thumbnail||''), yt:false, terms:[p.name].map(norm).filter(Boolean) }); });
   } catch (e) { console.log("[psm1] 패키지 로드 스킵:", e && e.message ? e.message : e); }
   console.log("[psm1] 검색 인덱스 " + SIDX.length + "건(즉시: 키워드/패키지/콘텐츠)");
@@ -739,10 +753,9 @@ var PM_POSTS = [];
     if (productsLoading) return productsLoading;
     productsLoading = (async function(){
       try {
-        var snap = await getDocs(collection(db, "products"));
+        var arr = await window.__pcache.wrap('col:products', PC_TTL, function(){ return getDocs(collection(db,"products")).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); });
         var n = 0;
-        snap.docs.map(function(d){ return Object.assign({ id:d.id }, d.data()); })
-          .filter(function(p){ return p && p.isActive !== false; })
+        arr.filter(function(p){ return p && p.isActive !== false; })
           .forEach(function(p){
             var no = p.channels && p.channels.imweb;
             var link = (no && String(no).trim()) ? ('/product/detail.html?product_no=' + String(no).trim()) : (SEARCH_URL + encodeURIComponent(p.name||''));
@@ -827,10 +840,10 @@ var PM_POSTS = [];
     }
     apply(false); start();
   }
-  try {
-    var bsnap = await getDoc(doc(db, "config", "pourstoreBanners"));
-    if (bsnap.exists()) {
-      var bd = bsnap.data() || {}; var iv = Number(bd.intervalSec) || 5;
+  // 배너 렌더는 함수로 분리 — 위에서 pBanners 도착 즉시 호출(다른 데이터 대기 없이)
+  function applyBanners(bd){
+    try {
+      var iv = Number(bd.intervalSec) || 5;
       renderCarousel('.psm1-banner', normBanners(bd.hero), iv);
       var sideBn = normBanners(bd.side);
       renderCarousel('.psm1-banner-side', sideBn, iv);
@@ -841,8 +854,8 @@ var PM_POSTS = [];
         setTimeout(syncH, 300);
       }
       console.log('[psm1] 배너 캐러셀 적용');
-    }
-  } catch (e) { console.log('[psm1] 배너 로드 스킵:', e && e.message ? e.message : e); }
+    } catch (e) { console.log('[psm1] 배너 렌더 스킵:', e && e.message ? e.message : e); }
+  }
 
   // ===== 레벨1: 인기검색어 표출 (PC) =====
   var hotList = section.querySelector('[data-psm1-hot-list]');
@@ -1225,7 +1238,6 @@ var PM_POSTS = [];
 
 <section class="pstory">
 <style>
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
 .pstory *, .pstory *::before, .pstory *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .pstory { background:#fff; color:#2F3438; line-height:1.5; letter-spacing:-0.02em; -webkit-font-smoothing:antialiased; }
 .pstory a { color:inherit; text-decoration:none; }
@@ -1526,6 +1538,9 @@ const firebaseConfig = {
 };
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
+/* 공유 로딩 캐시(성능) — 중복 fetch 제거 + 페이지 이동/재방문 시 재사용. define-if-absent(모듈별). */
+window.__pcache = window.__pcache || (function(){ var mem={}; return { wrap:function(key,ttl,fetcher){ if(mem[key])return mem[key]; try{var raw=sessionStorage.getItem('pc:'+key); if(raw){var o=JSON.parse(raw); if(o&&(Date.now()-o.t)<ttl){return (mem[key]=Promise.resolve(o.v));}}}catch(e){} var p=Promise.resolve().then(fetcher).then(function(v){try{sessionStorage.setItem('pc:'+key,JSON.stringify({t:Date.now(),v:v}));}catch(e){} return v;}); p.catch(function(){delete mem[key];}); return (mem[key]=p); }}; })();
+var PC_TTL = 300000;
 
 (async function(){
   var root = document.querySelector('.pstory');
@@ -1591,9 +1606,8 @@ const db = getFirestore(app);
   // ===== 데이터 로드 =====
   var posts = [];
   try {
-    var snap = await getDocs(collection(db, "pourstore-postings"));
-    posts = snap.docs.map(function(d){ return Object.assign({ id:d.id }, d.data()); })
-      .filter(function(p){ return p && p.active !== false; })
+    var rawPosts = await window.__pcache.wrap('col:postings', PC_TTL, function(){ return getDocs(collection(db,"pourstore-postings")).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); });
+    posts = rawPosts.filter(function(p){ return p && p.active !== false; })
       .sort(function(a,b){ var o=(a.order==null?999:a.order)-(b.order==null?999:b.order); return o!==0?o:String(b.createdAt||'').localeCompare(String(a.createdAt||'')); });
     console.log("[pstory] 글 " + posts.length + "건 로드");
   } catch (e) {

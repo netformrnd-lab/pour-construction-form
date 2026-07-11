@@ -351,7 +351,7 @@ const NAV = [
   { id: 'preview',         icon: '🎨', label: '자사몰 페이지 관리', group: 'design' },
   { id: 'hotkeywords',     icon: '🔥', label: '인기검색어 관리',     group: 'design' },
   { id: 'recokeywords',    icon: '🏷', label: '추천검색어 관리',     group: 'design' },
-  { id: 'postings',        icon: '📚', label: '포스팅 관리',         group: 'design' },
+  { id: 'postings',        icon: '📚', label: 'POUR이야기 관리',      group: 'design' },
   { id: 'packages',        icon: '🧩', label: '패키지 구성 관리',     group: 'design' },
   { id: 'banners',         icon: '🖼', label: '메인 배너 관리',       group: 'design' },
   { id: 'products',        icon: '📦', label: '상품관리',           group: 'design' },
@@ -4783,7 +4783,7 @@ function RecoKeywordsPage({showToast}){
 }
 
 // ============================================================
-// 포스팅 관리 (자사몰 검색 상단 '관련 컨텐츠')
+// POUR이야기 관리 = 포스팅 (자사몰 검색 상단 '관련 콘텐츠')
 //   저장: pourstore-postings (문서당 1건)
 //   { type, title, link, thumbnail, tags:[], summary, duration, placements:[], order, active, createdAt, updatedAt }
 //   → 검색 페이지: tags에 검색어(또는 hotkeyword synonyms) 포함 + active를 order순 상위 N개 상단 카드로 (placements 무관, 태그 자동)
@@ -4901,10 +4901,10 @@ function PostingsPage({showToast}){
     <div style={{padding:'24px 32px',maxWidth:1100}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,flexWrap:'wrap',gap:16}}>
         <div>
-          <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>📚 포스팅 관리</h1>
-          <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>자사몰 검색 상단 '관련 컨텐츠' 큐레이션. 검색어 태그가 일치하는 컨텐츠가 상품 위에 카드로 노출됩니다.</div>
+          <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>📚 POUR이야기 관리</h1>
+          <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>자사몰 검색 상단 '관련 포스팅' 큐레이션. 검색어 태그가 일치하는 포스팅이 상품 위에 카드로 노출됩니다.</div>
         </div>
-        <button onClick={startNew} style={{padding:'12px 22px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',background:'linear-gradient(135deg, var(--or), var(--or-d))',boxShadow:'0 4px 12px rgba(249,115,22,.25)',cursor:'pointer'}}>+ 새 컨텐츠</button>
+        <button onClick={startNew} style={{padding:'12px 22px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',background:'linear-gradient(135deg, var(--or), var(--or-d))',boxShadow:'0 4px 12px rgba(249,115,22,.25)',cursor:'pointer'}}>+ 새 포스팅</button>
       </div>
 
       <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',margin:'16px 0'}}>
@@ -4915,7 +4915,7 @@ function PostingsPage({showToast}){
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="제목·태그 검색..." style={{marginLeft:'auto',padding:'8px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:12.5,outline:'none',minWidth:180}}/>
       </div>
 
-      {filtered.length===0 && <div style={{padding:'50px 0',textAlign:'center',color:'var(--text-sm)',fontSize:13,background:'var(--card)',borderRadius:12,border:'1px solid var(--border)'}}>컨텐츠가 없습니다. "+ 새 컨텐츠"로 추가하세요.</div>}
+      {filtered.length===0 && <div style={{padding:'50px 0',textAlign:'center',color:'var(--text-sm)',fontSize:13,background:'var(--card)',borderRadius:12,border:'1px solid var(--border)'}}>포스팅이 없습니다. "+ 새 포스팅"으로 추가하세요.</div>}
       <div style={{display:'flex',flexDirection:'column',gap:8}}>
         {filtered.map(p=>{ const t=postingType(p.type); const on=p.active!==false; return(
           <div key={p.id} style={{display:'flex',gap:12,alignItems:'center',background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:'10px 14px',opacity:on?1:0.5}}>
@@ -5036,7 +5036,7 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:3000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:16,padding:'22px 24px',width:'100%',maxWidth:520,maxHeight:'90vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-          <h2 style={{fontSize:17,fontWeight:900,color:'var(--navy)'}}>{form.id?'컨텐츠 수정':'새 컨텐츠'}</h2>
+          <h2 style={{fontSize:17,fontWeight:900,color:'var(--navy)'}}>{form.id?'포스팅 수정':'새 포스팅'}</h2>
           <button onClick={onClose} style={{width:30,height:30,borderRadius:8,border:'1px solid var(--border)',background:'#fff',fontSize:16,cursor:'pointer'}}>×</button>
         </div>
         <label style={lbl}>유형</label>

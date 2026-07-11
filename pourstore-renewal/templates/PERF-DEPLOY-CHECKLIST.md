@@ -19,6 +19,7 @@
 - [ ] `main/pour-01-main.html` — 상단(검색+배너) *(핵심)*
 - [ ] `main/pour-05-shorts.html` — 숏츠
 - [ ] `main/pour-07-magazine.html` — 매거진
+- [ ] `main/pour-08-video.html` — 동영상 가이드 *(신규: 시안→실데이터 연동. 관리자 영상 자동 노출)*
 - [ ] `main/pour-09-record.html` — 시공현장/협력사
 
 ### 공용 헤더 (검색 등 전 페이지)

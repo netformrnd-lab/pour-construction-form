@@ -1,7 +1,21 @@
+<!-- 성능 힌트: 폰트·Firebase SDK 조기 로딩 (FOUC 감소 + 첫 응답 단축) -->
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css">
+<!-- ============================================================
+  pour-08-video — 메인/POUR이야기 '동영상 가이드' 섹션
+  데이터: Firestore pourstore-postings (어드민 '포스팅 관리')
+          → type==='video' 또는 유튜브 링크가 있는 글(숏츠 제외)을 자동 노출.
+  구성: 정렬 상위 1건 = 추천(feature) + 나머지 최대 4건 사이드. 영상 없으면 섹션 자동 숨김.
+  클릭: 유튜브 링크는 메인/헤더의 전역 인터셉터가 자사몰 내 모달로 재생(유튜브 이탈 없음).
+============================================================ -->
 <style>
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
 .psg4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .psg4 { background:#fff; padding:80px 18px; }
+.psg4[hidden] { display:none; }
 .psg4-inner { max-width:1200px; margin:0 auto; }
 .psg4-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:32px; flex-wrap:wrap; gap:14px; }
 .psg4-head .left { flex:1; min-width:240px; }
@@ -20,8 +34,8 @@
 .psg4-main .play::after { content:''; border:0 solid transparent; border-left:24px solid #fff; border-top:14px solid transparent; border-bottom:14px solid transparent; margin-left:5px; }
 .psg4-main .info { position:absolute; bottom:0; left:0; right:0; padding:30px; color:#fff; z-index:1; }
 .psg4-main .badge { display:inline-flex; align-items:center; gap:6px; padding:5px 11px; background:#F97316; border-radius:0; font-size:10.5px; font-weight:800; margin-bottom:12px; letter-spacing:.5px; }
-.psg4-main h3 { font-size:24px; font-weight:900; line-height:1.3; margin-bottom:8px; letter-spacing:-.5px; }
-.psg4-main p { font-size:13px; color:rgba(255,255,255,.75); line-height:1.6; }
+.psg4-main h3 { font-size:24px; font-weight:900; line-height:1.3; margin-bottom:8px; letter-spacing:-.5px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.psg4-main p { font-size:13px; color:rgba(255,255,255,.75); line-height:1.6; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .psg4-side { display:flex; flex-direction:column; gap:12px; }
 .psg4-mini { display:flex; gap:12px; padding:12px; border-radius:8px; cursor:pointer; transition:all .25s; text-decoration:none; color:inherit; border:1px solid transparent; }
 .psg4-mini:hover { background:#FFFBF5; border-color:#FED7AA; }
@@ -46,7 +60,7 @@
   .psg4-main p { display:none; }
 }
 </style>
-<section class="psg4">
+<section class="psg4" data-psg4 hidden>
   <div class="psg4-inner">
     <div class="psg4-head">
       <div class="left">
@@ -56,19 +70,73 @@
       </div>
       <a class="more" href="https://www.pourstore.net/videos">전체 영상 →</a>
     </div>
-    <div class="psg4-feature">
-      <a class="psg4-main" href="https://www.pourstore.net/videos/feature">
-        <div class="img" style="background-image:url('https://placehold.co/1200x675/0F1F5C/F97316?text=POUR+FEATURE')"></div>
-        <div class="play"></div>
-        <div class="info"><span class="badge">▶ 추천 영상</span><h3>POUR 코트재 — 시공 전 알아야 할 모든 것</h3><p>10분 안에 정리되는 코트재 시공 노하우. 바탕면 처리부터 마감까지.</p></div>
-      </a>
-      <div class="psg4-side">
-        <a class="psg4-mini" href="https://www.pourstore.net/videos/v1"><div class="thumb" style="background-image:url('https://placehold.co/240x135/0F1F5C/fff?text=GUIDE+1')"></div><div class="info"><div class="sub">시공가이드</div><div class="title">옥상 슬라브 방수 단계별 진행 가이드</div><div class="meta">8:42 · 12K 회</div></div></a>
-        <a class="psg4-mini" href="https://www.pourstore.net/videos/v2"><div class="thumb" style="background-image:url('https://placehold.co/240x135/EA580C/fff?text=AI+GUIDE')"></div><div class="info"><div class="sub">길잡이</div><div class="title">POUR 길잡이 AI 진단 사용법</div><div class="meta">5:18 · 8.2K 회</div></div></a>
-        <a class="psg4-mini" href="https://www.pourstore.net/videos/v3"><div class="thumb" style="background-image:url('https://placehold.co/240x135/F97316/fff?text=CASE')"></div><div class="info"><div class="sub">시공 사례</div><div class="title">신축 정밀 자공 푸드프트정 시공 현장</div><div class="meta">12:05 · 6.5K 회</div></div></a>
-        <a class="psg4-mini" href="https://www.pourstore.net/videos/v4"><div class="thumb" style="background-image:url('https://placehold.co/240x135/059669/fff?text=APT')"></div><div class="info"><div class="sub">아파트 사례</div><div class="title">구안주 아파트 단지 — 유니크하우 시공</div><div class="meta">9:33 · 4.1K 회</div></div></a>
-      </div>
-      <div class="psg4-swipe">옆으로 밀어 더 보기 <span class="ar">→</span></div>
-    </div>
+    <div class="psg4-feature" data-psg4-feature></div>
   </div>
 </section>
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain: "pour-app-new.firebaseapp.com", projectId: "pour-app-new",
+  storageBucket: "pour-app-new.firebasestorage.app", messagingSenderId: "411031141847",
+  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
+};
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const db = getFirestore(app);
+/* 공유 로딩 캐시(성능) — 메인의 다른 섹션이 이미 받은 pourstore-postings 재사용(중복 fetch 제거). define-if-absent. */
+window.__pcache = window.__pcache || (function(){ var mem={}; return { wrap:function(key,ttl,fetcher){ if(mem[key])return mem[key]; try{var raw=sessionStorage.getItem('pc:'+key); if(raw){var o=JSON.parse(raw); if(o&&(Date.now()-o.t)<ttl){return (mem[key]=Promise.resolve(o.v));}}}catch(e){} var p=Promise.resolve().then(fetcher).then(function(v){try{sessionStorage.setItem('pc:'+key,JSON.stringify({t:Date.now(),v:v}));}catch(e){} return v;}); p.catch(function(){delete mem[key];}); return (mem[key]=p); }}; })();
+var PC_TTL = 300000;
+
+(async function(){
+  var sec = document.querySelector('[data-psg4]');
+  if (!sec) return;
+  var box = sec.querySelector('[data-psg4-feature]');
+  if (!box) return;
+  var HUB = '/pourstore_renewal/story/pour-story.html';
+  var TYPE = { news:'뉴스', guide:'시공가이드', case:'시공사례', interview:'인터뷰', video:'영상', short:'숏츠', blog:'컨텐츠', event:'이벤트' };
+
+  function esc(s){ return (s||'').toString().replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function ytId(u){ var m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/); return m?m[1]:null; }
+  function isYt(u){ return /youtu\.?be/.test(u||''); }
+  function thumbOf(p){ var t=p.thumbnail||p.thumb||p.image; if(t&&String(t).trim())return t; var id=ytId(p.link); return id?('https://img.youtube.com/vi/'+id+'/hqdefault.jpg'):''; }
+  function typeLabel(t){ return TYPE[t] || '영상'; }
+  function dateOf(p){ var m=String(p.displayDate||p.createdAt||p.updatedAt||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[1]+'.'+m[2]+'.'+m[3]):''; }
+  function hrefOf(p){ return (p.link && /^https?:\/\//.test(p.link)) ? { h:p.link, t:' target="_blank" rel="noopener"' } : { h:HUB, t:'' }; }
+  function bgStyle(p){ var t=thumbOf(p); return t ? ' style="background-image:url(\''+esc(t)+'\')"' : ''; }
+
+  // 영상 글만: type==='video' 이거나 유튜브 링크가 있는 글. 숏츠(전용 섹션)는 제외.
+  var vids = [];
+  try {
+    var rawPosts = await window.__pcache.wrap('col:postings', PC_TTL, function(){ return getDocs(collection(db,"pourstore-postings")).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); });
+    vids = rawPosts.filter(function(p){ return p && p.active !== false; })
+      .filter(function(p){ return p.type !== 'short' && (p.type === 'video' || isYt(p.link)); })
+      .sort(function(a,b){ var o=(a.order==null?999:a.order)-(b.order==null?999:b.order); return o!==0?o:String(b.createdAt||'').localeCompare(String(a.createdAt||'')); });
+    console.log("[psg4] 동영상 " + vids.length + "건 로드");
+  } catch (e) {
+    console.error("[psg4] 동영상 로드 실패:", e && e.message ? e.message : e);
+    sec.hidden = true; return;
+  }
+  if (!vids.length){ sec.hidden = true; return; } // 영상 없으면 섹션 숨김(가짜 노출 방지)
+  sec.hidden = false;
+
+  var feat = vids[0], rest = vids.slice(1, 5);
+  var fl = hrefOf(feat);
+  var featHtml = '<a class="psg4-main" href="'+fl.h+'"'+fl.t+'>'
+    + '<div class="img"'+bgStyle(feat)+'></div><div class="play"></div>'
+    + '<div class="info"><span class="badge">▶ 추천 영상</span><h3>'+esc(feat.title||'')+'</h3>'
+    +   (feat.summary ? '<p>'+esc(feat.summary)+'</p>' : '')
+    + '</div></a>';
+  var sideHtml = rest.map(function(p){
+    var l = hrefOf(p);
+    return '<a class="psg4-mini" href="'+l.h+'"'+l.t+'>'
+      + '<div class="thumb"'+bgStyle(p)+'></div>'
+      + '<div class="info"><div class="sub">'+esc(typeLabel(p.type))+'</div>'
+      +   '<div class="title">'+esc(p.title||'')+'</div>'
+      +   (dateOf(p) ? '<div class="meta">'+dateOf(p)+'</div>' : '')
+      + '</div></a>';
+  }).join('');
+  var swipeHtml = rest.length >= 2 ? '<div class="psg4-swipe">옆으로 밀어 더 보기 <span class="ar">→</span></div>' : '';
+  box.innerHTML = featHtml + '<div class="psg4-side">' + sideHtml + '</div>' + swipeHtml;
+})();
+</script>

@@ -1404,6 +1404,20 @@ var PM_POSTS = [];
 .pstory-shopimg > img { width:100%; border-radius:8px; display:block; margin:0; }
 .pstory-hot { position:absolute; transform:translate(-50%,-50%); width:28px; height:28px; border-radius:50%; background:#fff; color:#E8780F; border:0; font-size:20px; font-weight:900; line-height:1; display:grid; place-items:center; box-shadow:0 3px 10px rgba(0,0,0,.4); cursor:pointer; z-index:2; padding:0; animation:pstory-hotpulse 2s ease-out infinite; }
 @keyframes pstory-hotpulse { 0%,100% { box-shadow:0 3px 10px rgba(0,0,0,.4), 0 0 0 0 rgba(232,120,15,.5); } 55% { box-shadow:0 3px 10px rgba(0,0,0,.4), 0 0 0 9px rgba(232,120,15,0); } }
+/* ===== 강조 영역(폴리곤 선) — 펜툴로 그린 외곽선이 은은하게 맥박 ===== */
+.pstory-hl { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; z-index:2; }
+.pstory-hl .hlg { filter:blur(5px); }
+.pstory-hl .hlg, .pstory-hl .hlm { animation:pstory-hlpulse 1.9s ease-in-out infinite; }
+.pstory-hl.hlc .hlhit { pointer-events:stroke; cursor:pointer; }
+@keyframes pstory-hlpulse { 0%,100% { opacity:.30; } 50% { opacity:.9; } }
+@media (prefers-reduced-motion:reduce){ .pstory-hl .hlg, .pstory-hl .hlm { animation:none; opacity:.7; } }
+/* 강조 영역 '설명' 카드 팝업 */
+.pstory-hlpop { position:absolute; transform:translate(-50%,calc(-100% - 14px)); z-index:4; width:240px; max-width:78vw; opacity:0; pointer-events:none; transition:opacity .15s, transform .15s; }
+.pstory-hlpop.open { opacity:1; pointer-events:auto; transform:translate(-50%,calc(-100% - 18px)); }
+.pstory-hlpop-in { background:#fff; border-radius:10px; padding:12px; box-shadow:0 12px 34px rgba(0,0,0,.24); }
+.pstory-hlpop-in > img { width:100%; border-radius:7px; display:block; margin:0 0 8px; }
+.pstory-hlpop-tt { font-size:13.5px; font-weight:800; color:#1F2937; line-height:1.4; }
+.pstory-hlpop-tx { margin-top:4px; font-size:12.5px; font-weight:500; color:#4B5563; line-height:1.6; white-space:pre-wrap; }
 .pstory-hotpop { position:absolute; transform:translate(-50%,calc(-100% - 16px)); z-index:3; width:230px; opacity:0; pointer-events:none; transition:opacity .15s, transform .15s; }
 .pstory-hotpop.open { opacity:1; pointer-events:auto; transform:translate(-50%,calc(-100% - 20px)); }
 .pstory-hotpop-inner { display:flex; gap:11px; align-items:center; background:#fff; border-radius:0; padding:11px; box-shadow:0 12px 34px rgba(0,0,0,.24); text-decoration:none; }
@@ -1595,7 +1609,35 @@ var PC_TTL = 300000;
             + '<span class="pstory-hotpop-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></a></div>';
           return '<button class="pstory-hot" type="button" style="left:'+(Number(h.x)||0)+'%;top:'+(Number(h.y)||0)+'%" aria-label="상품">+</button>'+card;
         }).join('');
-        return '<div class="pstory-shopimg"><img src="'+esc(b.url)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>'+hots+'</div>';
+        var hlHtml = (b.highlights||[]).map(function(hl){
+          var pts = (hl.pts||[]).filter(function(p){ return p && isFinite(p.x) && isFinite(p.y); });
+          if (pts.length < 2) return '';
+          var d = 'M' + pts.map(function(p){ return (Number(p.x)||0)+','+(Number(p.y)||0); }).join(' L');
+          var card = hl.card || {}; var mode = card.mode || 'none';
+          var clk = (mode === 'product' || mode === 'info');
+          var cx = Math.round(pts.reduce(function(s,p){ return s+(Number(p.x)||0); },0)/pts.length);
+          var cy = Math.round(pts.reduce(function(s,p){ return s+(Number(p.y)||0); },0)/pts.length);
+          var svg = '<svg class="pstory-hl'+(clk?' hlc':'')+'" viewBox="0 0 100 100" preserveAspectRatio="none">'
+            + '<path class="hlg" d="'+d+'" fill="none" stroke="#E8780F" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>'
+            + '<path class="hlm" d="'+d+'" fill="none" stroke="#E8780F" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>'
+            + (clk ? '<path class="hlhit" d="'+d+'" fill="none" stroke="#000" stroke-opacity="0" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>' : '')
+            + '</svg>';
+          var pop = '';
+          if (mode === 'product'){
+            pop = '<div class="pstory-hotpop pstory-hlpop" style="left:'+cx+'%;top:'+cy+'%"><a class="pstory-hotpop-inner" href="'+esc(card.link||'#')+'">'
+              + (card.thumb ? '<img src="'+esc(card.thumb)+'" alt="" onerror="this.style.display=\'none\'"/>' : '')
+              + '<div class="pstory-hotpop-body"><div class="pstory-hotpop-nm">'+esc(card.name||'상품 보기')+'</div>'
+              + (card.price ? '<div class="pstory-hotpop-pr">'+esc(card.price)+'</div>' : '')+'</div>'
+              + '<span class="pstory-hotpop-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></a></div>';
+          } else if (mode === 'info'){
+            pop = '<div class="pstory-hlpop" style="left:'+cx+'%;top:'+cy+'%"><div class="pstory-hlpop-in">'
+              + (card.image ? '<img src="'+esc(card.image)+'" alt="" onerror="this.style.display=\'none\'"/>' : '')
+              + (card.title ? '<div class="pstory-hlpop-tt">'+esc(card.title)+'</div>' : '')
+              + (card.text ? '<div class="pstory-hlpop-tx">'+esc(card.text)+'</div>' : '')+'</div></div>';
+          }
+          return svg + pop;
+        }).join('');
+        return '<div class="pstory-shopimg"><img src="'+esc(b.url)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>'+hots+hlHtml+'</div>';
       }
       var txt = esc(b.text||'').replace(/\n/g,'<br>');
       if (!txt) return '';
@@ -1772,15 +1814,16 @@ var PC_TTL = 300000;
   // 상품 핫스팟 점 클릭 → 상품 미니카드 토글 (아티클 본문 이미지)
   if (artScroll){
     artScroll.addEventListener('click', function(e){
-      var dot=e.target.closest('.pstory-hot');
-      var opened=Array.prototype.slice.call(artScroll.querySelectorAll('.pstory-hotpop.open'));
+      // 상품 점(.pstory-hot) 또는 강조영역(.pstory-hl.hlc) 클릭 → 카드 토글
+      var trg=e.target.closest('.pstory-hot') || e.target.closest('.pstory-hl.hlc');
+      var opened=Array.prototype.slice.call(artScroll.querySelectorAll('.pstory-hotpop.open, .pstory-hlpop.open'));
       opened.forEach(function(x){ x.classList.remove('open'); });
-      if (dot){
+      if (trg){
         e.preventDefault();
-        var pop=dot.nextElementSibling;
-        if (pop && opened.indexOf(pop)===-1){
+        var pop=trg.nextElementSibling;
+        if (pop && (pop.classList.contains('pstory-hotpop')||pop.classList.contains('pstory-hlpop')) && opened.indexOf(pop)===-1){
           pop.style.marginLeft='0px'; pop.classList.add('open');
-          var box=dot.parentNode; // .pstory-shopimg
+          var box=trg.closest('.pstory-shopimg');
           var pr=pop.getBoundingClientRect(), cr=box.getBoundingClientRect(), shift=0;
           if (pr.left < cr.left+6) shift=(cr.left+6)-pr.left;
           else if (pr.right > cr.right-6) shift=(cr.right-6)-pr.right;

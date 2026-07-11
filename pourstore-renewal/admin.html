@@ -4951,7 +4951,7 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
   const fld={width:'100%',padding:'8px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12.5,outline:'none',boxSizing:'border-box'};
   const mini={width:24,height:24,borderRadius:6,border:'1px solid var(--border)',background:'#fff',cursor:'pointer',fontSize:11,lineHeight:1};
   const addBtn={flex:1,padding:'10px',borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'};
-  const mut=(fn)=>onChange(fn(blocks.map(b=>({...b,hotspots:(b.hotspots||[]).map(h=>({...h}))}))));
+  const mut=(fn)=>onChange(fn(blocks.map(b=>({...b,hotspots:(b.hotspots||[]).map(h=>({...h})),highlights:(b.highlights||[]).map(h=>({...h,pts:(h.pts||[]).map(p=>({...p})),card:h.card?{...h.card}:null}))}))));
   const addText=()=>mut(p=>[...p,{type:'text',text:''}]);
   const addImage=()=>mut(p=>[...p,{type:'image',url:'',hotspots:[]}]);
   const upd=(i,patch)=>mut(p=>{p[i]={...p[i],...patch};return p;});
@@ -4964,6 +4964,14 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
   const [dragOver,setDragOver]=useState(null);
   const onPasteImg=(i,e)=>{ const items=(e.clipboardData&&e.clipboardData.items)||[]; for(let k=0;k<items.length;k++){ if(((items[k].type)||'').indexOf('image')===0){ const f=items[k].getAsFile(); if(f){ e.preventDefault(); uploadImage('b'+i,f,(url)=>upd(i,{url})); return; } } } };
   const onDropImg=(i,e)=>{ e.preventDefault(); setDragOver(null); const files=e.dataTransfer&&e.dataTransfer.files; if(files&&files[0]&&((files[0].type)||'').indexOf('image')===0){ uploadImage('b'+i,files[0],(url)=>upd(i,{url})); } };
+  // ===== 강조 영역(폴리곤 펜툴) =====
+  const [poly,setPoly]=useState({i:null,pts:[]});
+  const polyAdd=(i,e)=>{const r=e.currentTarget.getBoundingClientRect();const x=Math.max(0,Math.min(100,Math.round(((e.clientX-r.left)/r.width)*100)));const y=Math.max(0,Math.min(100,Math.round(((e.clientY-r.top)/r.height)*100)));setPoly(pv=>({i:i,pts:[...pv.pts,{x,y}]}));};
+  const polyUndo=()=>setPoly(pv=>({...pv,pts:pv.pts.slice(0,-1)}));
+  const polyFinish=()=>{ if(poly.i!=null && poly.pts.length>=2){ const idx=poly.i, pts=poly.pts; mut(p=>{p[idx].highlights=[...(p[idx].highlights||[]),{pts:pts,card:{mode:'none'}}];return p;}); } setPoly({i:null,pts:[]}); };
+  const polyCancel=()=>setPoly({i:null,pts:[]});
+  const delHl=(i,hi)=>mut(p=>{p[i].highlights=(p[i].highlights||[]).filter((_,x)=>x!==hi);return p;});
+  const setHlCard=(i,hi,patch)=>mut(p=>{const c=p[i].highlights[hi].card||{mode:'none'};p[i].highlights[hi].card={...c,...patch};return p;});
   return(
     <div>
       {blocks.length===0 && <div style={{padding:'16px',textAlign:'center',color:'var(--text-sm)',fontSize:12,background:'var(--bg)',borderRadius:9,border:'1px solid var(--border)',marginBottom:8}}>블록이 없습니다. 아래에서 글/사진을 추가하세요.</div>}
@@ -4992,10 +5000,15 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
                   <label style={{padding:'0 10px',borderRadius:8,border:'1px solid var(--border)',background:uploadingKey==='b'+i?'var(--or-pale)':'var(--bg)',fontSize:11,fontWeight:800,color:'var(--or-d)',cursor:'pointer',display:'flex',alignItems:'center'}}>{uploadingKey==='b'+i?'…':'업로드'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)uploadImage('b'+i,f,(url)=>upd(i,{url})); e.target.value='';}}/></label>
                 </div>
                 {!b.url && <div style={{marginTop:8,border:'1.5px dashed var(--or)',borderRadius:9,padding:'22px 12px',textAlign:'center',color:'var(--or-d)',fontSize:12,fontWeight:700,background:'var(--or-pale)'}}>{uploadingKey==='b'+i?'업로드 중…':'여기로 이미지 드래그 · 클릭 후 Ctrl+V 붙여넣기 · 또는 [업로드]'}</div>}
-                {b.url && <div style={{position:'relative',marginTop:8,borderRadius:8,overflow:'hidden',border:'1px solid var(--border)',cursor:'crosshair'}} onClick={e=>onImgClick(i,e)}>
+                {b.url && <div style={{position:'relative',marginTop:8,borderRadius:8,overflow:'hidden',border:'1px solid var(--border)',cursor:'crosshair'}} onClick={e=>{ if(poly.i===i) polyAdd(i,e); else onImgClick(i,e); }}>
                   <img src={b.url} alt="" style={{width:'100%',display:'block'}} onError={e=>{e.target.style.opacity=.3;}}/>
+                  <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',overflow:'visible'}}>
+                    {(b.highlights||[]).map((hl,hi)=> (hl.pts&&hl.pts.length>=2) ? <polyline key={'h'+hi} points={hl.pts.map(p=>p.x+','+p.y).join(' ')} fill="none" stroke="#E8780F" strokeWidth={2.5} strokeOpacity={0.6} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/> : null)}
+                    {poly.i===i && poly.pts.length>=1 ? <polyline points={poly.pts.map(p=>p.x+','+p.y).join(' ')} fill="none" stroke="#E8780F" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/> : null}
+                  </svg>
                   {(b.hotspots||[]).map((h,hi)=>(<span key={hi} style={{position:'absolute',left:h.x+'%',top:h.y+'%',transform:'translate(-50%,-50%)',width:22,height:22,borderRadius:'50%',background:'#E8780F',color:'#fff',fontSize:14,fontWeight:900,display:'grid',placeItems:'center',boxShadow:'0 2px 6px rgba(0,0,0,.35)',border:'2px solid #fff',pointerEvents:'none'}}>+</span>))}
-                  <div style={{position:'absolute',left:8,top:8,background:'rgba(15,23,42,.72)',color:'#fff',fontSize:10.5,fontWeight:700,padding:'3px 8px',borderRadius:5,pointerEvents:'none'}}>사진 클릭 → 상품 점 추가</div>
+                  {poly.i===i && poly.pts.map((p,pi)=>(<span key={'p'+pi} style={{position:'absolute',left:p.x+'%',top:p.y+'%',transform:'translate(-50%,-50%)',width:16,height:16,borderRadius:'50%',background:'#fff',border:'2px solid #E8780F',color:'#E8780F',fontSize:9,fontWeight:900,display:'grid',placeItems:'center',pointerEvents:'none'}}>{pi+1}</span>))}
+                  <div style={{position:'absolute',left:8,top:8,background:poly.i===i?'rgba(232,120,15,.92)':'rgba(15,23,42,.72)',color:'#fff',fontSize:10.5,fontWeight:700,padding:'3px 8px',borderRadius:5,pointerEvents:'none'}}>{poly.i===i?('✏ 외곽선 그리기 · 톡톡 눌러 점 추가 ('+poly.pts.length+')'):'사진 클릭 → 상품 점 추가'}</div>
                 </div>}
                 {(b.hotspots||[]).map((h,hi)=>(
                   <div key={hi} style={{marginTop:8,padding:9,border:'1px dashed var(--or)',borderRadius:8,background:'var(--or-pale)'}}>
@@ -5008,6 +5021,44 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
                     <input value={h.link||''} onChange={e=>updHot(i,hi,{link:e.target.value})} placeholder="상품 링크 예:/product/detail.html?product_no=123" style={fld}/>
                   </div>
                 ))}
+                {b.url && <div style={{marginTop:10,paddingTop:10,borderTop:'1px dashed var(--border)'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}>
+                    <span style={{fontSize:11,fontWeight:800,color:'var(--or-d)'}}>✏ 강조 영역 (펜툴·깜빡임)</span>
+                    {poly.i===i
+                      ? <div style={{display:'flex',gap:5}}>
+                          <button type="button" onClick={polyUndo} disabled={poly.pts.length===0} style={{...mini,width:'auto',padding:'3px 9px',fontWeight:800,opacity:poly.pts.length===0?.4:1}}>↶ 점취소</button>
+                          <button type="button" onClick={polyCancel} style={{...mini,width:'auto',padding:'3px 9px',color:'var(--text-md)',fontWeight:800}}>취소</button>
+                          <button type="button" onClick={polyFinish} disabled={poly.pts.length<2} style={{padding:'3px 12px',borderRadius:6,border:'none',background:poly.pts.length<2?'var(--border)':'var(--or)',color:'#fff',fontSize:11,fontWeight:900,cursor:poly.pts.length<2?'default':'pointer'}}>✓ 완료 ({poly.pts.length})</button>
+                        </div>
+                      : <button type="button" onClick={()=>setPoly({i:i,pts:[]})} disabled={poly.i!=null} style={{padding:'5px 11px',borderRadius:7,border:'1.5px solid var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:11.5,fontWeight:800,cursor:poly.i!=null?'default':'pointer',opacity:poly.i!=null?.4:1}}>+ 외곽선 그리기</button>}
+                  </div>
+                  {poly.i===i && <div style={{marginTop:5,fontSize:10.5,color:'var(--text-sm)',fontWeight:700}}>사진 위를 <b style={{color:'var(--or-d)'}}>톡톡</b> 눌러 강조할 부위 외곽선을 따라 점을 찍고 [완료]. (점 2개 이상)</div>}
+                  {(b.highlights||[]).map(function(hl,hi){ const cm=(hl.card&&hl.card.mode)||'none'; return (
+                    <div key={hi} style={{marginTop:8,padding:9,border:'1px dashed var(--or)',borderRadius:8,background:'var(--or-pale)'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}><b style={{fontSize:11,color:'var(--or-d)'}}>강조영역 {hi+1} · {(hl.pts||[]).length}점</b><button type="button" onClick={()=>delHl(i,hi)} style={{...mini,width:'auto',padding:'0 8px',color:'var(--red)',fontWeight:800}}>삭제</button></div>
+                      <div style={{fontSize:10.5,fontWeight:800,color:'var(--text-md)',marginBottom:4}}>클릭 시 카드 (선택)</div>
+                      <div style={{display:'flex',gap:4,marginBottom:cm==='none'?0:6}}>
+                        {[['none','없음'],['product','상품'],['info','설명']].map(function(o){const m=o[0];const on=cm===m;return <button key={m} type="button" onClick={()=>setHlCard(i,hi,{mode:m})} style={{padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'#fff':'transparent',color:on?'var(--or-d)':'var(--text-md)'}}>{o[1]}</button>;})}
+                      </div>
+                      {cm==='product' && <div>
+                        <input value={(hl.card&&hl.card.name)||''} onChange={e=>setHlCard(i,hi,{name:e.target.value})} placeholder="상품명" style={{...fld,marginBottom:5}}/>
+                        <div style={{display:'flex',gap:5,marginBottom:5}}>
+                          <input value={(hl.card&&hl.card.price)||''} onChange={e=>setHlCard(i,hi,{price:e.target.value})} placeholder="가격(선택)" style={{...fld,flex:1}}/>
+                          <input value={(hl.card&&hl.card.thumb)||''} onChange={e=>setHlCard(i,hi,{thumb:e.target.value})} placeholder="썸네일 URL(선택)" style={{...fld,flex:1}}/>
+                        </div>
+                        <input value={(hl.card&&hl.card.link)||''} onChange={e=>setHlCard(i,hi,{link:e.target.value})} placeholder="상품 링크 예:/product/detail.html?product_no=123" style={fld}/>
+                      </div>}
+                      {cm==='info' && <div>
+                        <input value={(hl.card&&hl.card.title)||''} onChange={e=>setHlCard(i,hi,{title:e.target.value})} placeholder="제목" style={{...fld,marginBottom:5}}/>
+                        <textarea value={(hl.card&&hl.card.text)||''} onChange={e=>setHlCard(i,hi,{text:e.target.value})} placeholder="설명글" style={{...fld,minHeight:52,resize:'vertical',fontFamily:'inherit',lineHeight:1.5,marginBottom:5}}/>
+                        <div style={{display:'flex',gap:5}}>
+                          <input value={(hl.card&&hl.card.image)||''} onChange={e=>setHlCard(i,hi,{image:e.target.value})} placeholder="사진 URL / Ctrl+V·드래그" style={{...fld,flex:1}} onPaste={e=>{const it=(e.clipboardData&&e.clipboardData.items)||[];for(let k=0;k<it.length;k++){if(((it[k].type)||'').indexOf('image')===0){const f=it[k].getAsFile();if(f){e.preventDefault();uploadImage('hl'+i+'_'+hi,f,(url)=>setHlCard(i,hi,{image:url}));return;}}}}}/>
+                          <label style={{padding:'0 10px',borderRadius:8,border:'1px solid var(--border)',background:uploadingKey==='hl'+i+'_'+hi?'var(--or-pale)':'var(--bg)',fontSize:11,fontWeight:800,color:'var(--or-d)',cursor:'pointer',display:'flex',alignItems:'center'}}>{uploadingKey==='hl'+i+'_'+hi?'…':'업로드'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)uploadImage('hl'+i+'_'+hi,f,(url)=>setHlCard(i,hi,{image:url})); e.target.value='';}}/></label>
+                        </div>
+                      </div>}
+                    </div>
+                  );})}
+                </div>}
               </div>}
         </div>
       ))}

@@ -1,3 +1,10 @@
+<!-- 성능 힌트: 폰트·Firebase SDK 조기 로딩 (FOUC 감소 + 첫 응답 단축) -->
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css">
 <!-- ============================================================
   pour-story — POUR이야기 콘텐츠 허브 (무신사 매거진 스타일)
   용도: 카페24 pourstore_renewal/story/pour-story.html. POUR이야기 탭 연결.
@@ -35,7 +42,6 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 @media (max-width:700px){ .pour-gh-sub-inner { padding:0 14px; } .pour-gh-sub-link { font-size:12.5px; padding:10px 9px; } .pour-gh-sub { max-height:52px; } }
 </style>
 <style>
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
 .psm1 *, .psm1 *::before, .psm1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .psm1 { background:#fff; color:#2F3438; line-height:1.5; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.02em; }
 .psm1 a { color:inherit; text-decoration:none; }
@@ -1232,7 +1238,6 @@ var PM_POSTS = [];
 
 <section class="pstory">
 <style>
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
 .pstory *, .pstory *::before, .pstory *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .pstory { background:#fff; color:#2F3438; line-height:1.5; letter-spacing:-0.02em; -webkit-font-smoothing:antialiased; }
 .pstory a { color:inherit; text-decoration:none; }

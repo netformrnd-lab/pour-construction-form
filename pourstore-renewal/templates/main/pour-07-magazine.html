@@ -1,3 +1,10 @@
+<!-- 성능 힌트: 폰트·Firebase SDK 조기 로딩 (FOUC 감소 + 첫 응답 단축) -->
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css">
 <!-- ============================================================
   pour-07-magazine — 메인 '자사몰 매거진' 섹션
   데이터: Firestore pourstore-postings (어드민 '포스팅 관리') → 등록/수정 시 자동 반영.
@@ -6,7 +13,6 @@
   주의: 이모지 미사용(인라인 SVG). @import 폰트만 CSS import(카페24 @import 아님).
   ============================================================ -->
 <style>
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
 .psg3 *, .psg3 *::before, .psg3 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .psg3 { background:#FFFBF5; padding:72px 18px; letter-spacing:-0.02em; }
 .psg3[hidden] { display:none; }

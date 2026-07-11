@@ -8,7 +8,10 @@
 - 순차 로딩 → **병렬 로딩** (한 번에 시작)
 - 화면 상단 **배너 먼저 렌더** (회색 박스 대기 최소화)
 - `window.__pcache` **공유 캐시**: 같은 페이지 중복 fetch 제거 + `sessionStorage` 5분 재사용
-- Firestore·SDK·폰트 **preconnect**
+- Firestore·SDK·폰트 **preconnect** + **modulepreload**(SDK 조기 다운로드)
+- 폰트 render-blocking `@import` 제거 → `<link>` 조기 로드(검색 진입 깜빡임/FOUC 감소)
+
+> ※ 로딩 최적화 3차(폰트/SDK)는 아래 **동일 11개 파일**에 이미 포함됨 — 추가 업로드 파일 없음.
 
 ## 재업로드 대상 (총 11개)
 

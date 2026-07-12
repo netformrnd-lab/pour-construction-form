@@ -1,0 +1,114 @@
+<!-- ============================================================
+  pour-buja-cate — '부자재' 상품분류 목록 '상단' 삽입 조각
+  용도: 카페24 상품분류 목록 스킨(product/list.html)의 상품 리스트 '위'에
+        이 한 줄만 @import → 부자재 분류(및 하위분류)에서만 상단 UI가 뜨고,
+        그 아래로 카페24 자동진열 상품이 그대로 노출됩니다.
+  구성: ① 인트로(제목) ② 추천 줄(카페24 '추천상품 진열' 모듈 슬롯) ③ 필터 칩(하위분류)
+  동작: JS가 현재 cate_no를 확인 → 부자재 상위/하위면 표시, 아니면 통째로 제거.
+  ★ 설정: 아래 <script>의 CATE 객체에 실제 분류번호(cate_no)만 채우면 됩니다.
+  ★ 정렬: 카페24 [상품 › 상품분류 관리 › 부자재 › 상품 정렬방식]을 '진열 순서(수동)'로 두고
+          [상품 › 상품 진열]에서 원하는 순서(추천순)로 드래그하세요.
+  ============================================================ -->
+<section class="pbc" data-pbc hidden>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
+.pbc[hidden]{ display:none !important; }
+.pbc *, .pbc *::before, .pbc *::after{ box-sizing:border-box; }
+.pbc{ max-width:1200px; margin:0 auto; background:#fff; padding:36px 20px 6px; color:#2F3438; letter-spacing:-0.02em; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+/* ① 인트로 */
+.pbc-head{ margin-bottom:20px; }
+.pbc-head .kicker{ display:inline-block; font-size:11.5px; font-weight:800; color:#E8780F; letter-spacing:0.06em; padding:4px 12px; background:#FFF7ED; border:1px solid #FED7AA; border-radius:0; margin-bottom:11px; }
+.pbc-head h2{ font-size:28px; font-weight:900; color:#111; letter-spacing:-0.045em; line-height:1.2; }
+.pbc-head p{ margin-top:8px; font-size:13.5px; font-weight:500; color:#6B7280; word-break:keep-all; }
+/* ② 추천 줄 */
+.pbc-best{ margin:24px 0 8px; }
+.pbc-best-h{ display:flex; align-items:center; gap:6px; font-size:16px; font-weight:900; color:#111; letter-spacing:-0.03em; margin-bottom:14px; }
+.pbc-best-h .em{ color:#E8780F; }
+/* 추천 줄 안의 카페24 상품리스트를 가로 스크롤 카드로 (자동진열 그리드 강제 무시) */
+.pbc-best .prdList{ display:flex !important; gap:14px !important; overflow-x:auto; grid-template-columns:none !important; padding-bottom:6px; scrollbar-width:none; }
+.pbc-best .prdList::-webkit-scrollbar{ display:none; }
+.pbc-best .prdList > li{ flex:0 0 190px; width:190px !important; }
+@media (max-width:700px){ .pbc-best .prdList > li{ flex-basis:150px; width:150px !important; } }
+/* ③ 필터 칩(하위분류) */
+.pbc-filter{ display:flex; gap:8px; overflow-x:auto; padding:18px 0 4px; margin-top:12px; border-top:1px solid #F1ECE4; scrollbar-width:none; }
+.pbc-filter::-webkit-scrollbar{ display:none; }
+.pbc-chip{ flex:0 0 auto; padding:9px 16px; border:1.5px solid #E5E7EB; border-radius:0; font-size:13.5px; font-weight:700; color:#4B5563; text-decoration:none; background:#fff; white-space:nowrap; transition:.15s; }
+.pbc-chip:hover{ border-color:#FED7AA; color:#E8780F; }
+.pbc-chip.on{ background:#111; color:#fff; border-color:#111; }
+/* 하단 카페24 기본 툴바(정렬/보기전환/개수) 숨김 — 커스텀 상단과 이질감 제거. 스코프 한정 */
+html.pour-cate-buja .ec-base-prdSort,
+html.pour-cate-buja .xans-product-normalmenu,
+html.pour-cate-buja .xans-product-orderby,
+html.pour-cate-buja .displayType,
+html.pour-cate-buja .prdCount{ display:none !important; }
+html.pour-cate-buja .xans-product-listnormal,
+html.pour-cate-buja .ec-base-prdList{ padding-top:8px !important; }
+@media (max-width:640px){ .pbc{ padding:26px 16px 4px; } .pbc-head h2{ font-size:22px; } }
+</style>
+<div class="pbc-head">
+  <div class="kicker">MATERIALS</div>
+  <h2>부자재</h2>
+  <p>붓·롤러부터 배합·보수 자재까지 — 시공을 완성하는 필수 부자재</p>
+</div>
+
+<!-- ② 추천 줄: 아래 슬롯에 카페24 '추천상품 진열' 모듈을 삽입하세요.
+     (카페24 [상품 › 상품 진열]에서 '추천 부자재' 진열 그룹 생성 → 그 모듈 소스를 여기에 붙여넣기)
+     비워두면 JS가 이 줄을 자동으로 숨깁니다. -->
+<div class="pbc-best" data-pbc-best>
+  <div class="pbc-best-h"><span class="em">⭐</span> 추천 부자재</div>
+  <!-- ▼▼▼ 카페24 추천상품 진열 모듈 삽입 위치 ▼▼▼ -->
+
+  <!-- ▲▲▲ 여기까지 ▲▲▲ -->
+</div>
+
+<!-- ③ 필터 칩(하위분류) — JS가 아래 CATE 설정으로 자동 생성 -->
+<nav class="pbc-filter" data-pbc-filter aria-label="부자재 하위분류"></nav>
+
+<script>
+(function(){
+  // ===== ★ 설정: 실제 cate_no만 채우세요 (숫자 문자열) =====
+  var CATE = {
+    parent: '00',                 // 부자재 대분류 cate_no
+    subs: [                        // 하위분류 (필터 칩). 개수·이름은 자유롭게 조정
+      { no:'00', name:'도포도구' },
+      { no:'00', name:'배합·계량' },
+      { no:'00', name:'보수·보강' },
+      { no:'00', name:'마감·양생' }
+    ]
+  };
+  // =========================================================
+  var el = document.querySelector('[data-pbc]');
+  if (!el) return;
+  var cate = new URLSearchParams(location.search).get('cate_no');
+  var all = [CATE.parent].concat(CATE.subs.map(function(s){ return s.no; }));
+  if (!cate || all.indexOf(cate) === -1) {   // 부자재 분류가 아니면 흔적 없이 제거
+    el.parentNode && el.parentNode.removeChild(el);
+    return;
+  }
+  el.hidden = false; el.removeAttribute('hidden');
+  document.documentElement.classList.add('pour-cate-buja'); // 이 분류에서만 기본 툴바 숨김
+
+  // 필터 칩 생성 (전체 + 하위분류), 현재 분류 하이라이트
+  var nav = el.querySelector('[data-pbc-filter]');
+  if (nav) {
+    var mk = function(no, name){
+      var a = document.createElement('a');
+      a.className = 'pbc-chip' + (no === cate ? ' on' : '');
+      a.href = '/product/list.html?cate_no=' + no;
+      a.textContent = name;
+      return a;
+    };
+    nav.appendChild(mk(CATE.parent, '전체'));
+    CATE.subs.forEach(function(s){ nav.appendChild(mk(s.no, s.name)); });
+  }
+
+  // 추천 줄: '전체(부모)' 화면에서만 노출 + 모듈이 비었으면 숨김
+  var best = el.querySelector('[data-pbc-best]');
+  if (best) {
+    var hasModule = best.querySelector('.prdList, [module], .xans-product-listmain');
+    if (cate !== CATE.parent || !hasModule) best.style.display = 'none';
+  }
+  console.log('[pbc] 부자재 카테고리 노출 cate_no=' + cate);
+})();
+</script>
+</section>

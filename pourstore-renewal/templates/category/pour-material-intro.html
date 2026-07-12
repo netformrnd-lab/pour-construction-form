@@ -1,0 +1,87 @@
+<!-- ============================================================
+  pour-material-intro — '부자재·안전용품 소개' 페이지 (독립 콘텐츠 조각)
+  용도: GNB '부자재·안전용품' 메뉴가 도착하는 소개 랜딩. 두 카드(부자재/안전용품)를
+        누르면 각 카테고리 목록 페이지로 이동(소개→개별 카테고리 구조).
+  배치: 카페24 디자인 페이지(또는 게시판 '내용') 어디에나 이 조각 하나 삽입.
+  ★ 링크 설정: 아래 <a href> 두 곳의 cate_no 를 실제 분류번호로 교체하세요.
+      부자재 목록:   /product/list.html?cate_no=◯◯   (예: 부자재 대분류 번호)
+      안전용품 목록: /product/list.html?cate_no=◯◯   (예: 안전용품 대분류 번호)
+  ============================================================ -->
+<section class="pmi">
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
+.pmi *, .pmi *::before, .pmi *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pmi { background:#fff; padding:80px 18px; color:#2F3438; letter-spacing:-0.02em; }
+.pmi-inner { max-width:1000px; margin:0 auto; }
+/* 헤더 — 메인 섹션과 동일 패턴 */
+.pmi-head { text-align:center; margin-bottom:34px; }
+.pmi-head .kicker { display:inline-block; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.06em; padding:4px 12px; background:#FFF7ED; border:1px solid #FED7AA; border-radius:0; margin-bottom:12px; }
+.pmi-head h2 { font-size:30px; font-weight:900; color:#111111; letter-spacing:-0.045em; line-height:1.25; margin-bottom:8px; }
+.pmi-head p { font-size:13.5px; font-weight:500; color:#6B7280; }
+/* 카드 2개 나란히 */
+.pmi-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.pmi-card { position:relative; display:flex; flex-direction:column; background:#fff; border:1.5px solid #F2F3F5; border-radius:0; padding:34px 30px 26px; text-decoration:none; color:inherit; overflow:hidden; transition:border-color .25s ease, box-shadow .25s ease, transform .25s ease; }
+.pmi-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:5px; }
+.pmi-card.buja::before { background:#E8780F; }
+.pmi-card.safe::before { background:#0F1F5C; }
+.pmi-card:hover { transform:translateY(-3px); box-shadow:0 14px 34px rgba(15,31,92,.10); }
+.pmi-card.buja:hover { border-color:#FED7AA; }
+.pmi-card.safe:hover { border-color:#BFD0F0; }
+.pmi-ico { width:64px; height:64px; border-radius:0; display:grid; place-items:center; font-size:34px; margin-bottom:16px; }
+.pmi-card.buja .pmi-ico { background:#FFF3E9; }
+.pmi-card.safe .pmi-ico { background:#EAF0FB; }
+.pmi-label { font-size:11.5px; font-weight:800; letter-spacing:0.04em; margin-bottom:7px; }
+.pmi-card.buja .pmi-label { color:#E8780F; }
+.pmi-card.safe .pmi-label { color:#0F1F5C; }
+.pmi-tt { font-size:23px; font-weight:900; color:#111111; letter-spacing:-0.04em; line-height:1.2; }
+.pmi-desc { margin-top:9px; font-size:13.5px; font-weight:500; color:#6B7280; line-height:1.6; word-break:keep-all; }
+.pmi-tags { margin-top:16px; display:flex; flex-wrap:wrap; gap:6px; }
+.pmi-tag { font-size:11.5px; font-weight:700; padding:5px 11px; border-radius:0; letter-spacing:-0.01em; }
+.pmi-card.buja .pmi-tag { background:#FFF3E9; color:#9A5B1E; }
+.pmi-card.safe .pmi-tag { background:#EAF0FB; color:#26386B; }
+.pmi-cta { margin-top:22px; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:14px 22px; font-size:14.5px; font-weight:800; border-radius:0; letter-spacing:-0.02em; transition:background .2s ease, color .2s ease; }
+.pmi-card.buja .pmi-cta { background:#E8780F; color:#fff; }
+.pmi-card.buja:hover .pmi-cta { background:#D26A0A; }
+.pmi-card.safe .pmi-cta { background:#0F1F5C; color:#fff; }
+.pmi-card.safe:hover .pmi-cta { background:#0A1642; }
+.pmi-cta-arrow { font-size:16px; transition:transform .2s ease; }
+.pmi-card:hover .pmi-cta-arrow { transform:translateX(4px); }
+@media (max-width:700px) {
+  .pmi { padding:52px 14px 58px; }
+  .pmi-head h2 { font-size:24px; }
+  .pmi-head p { font-size:12.5px; }
+  .pmi-grid { grid-template-columns:1fr; gap:14px; }
+  .pmi-card { padding:26px 22px 22px; }
+  .pmi-ico { width:56px; height:56px; font-size:30px; }
+  .pmi-tt { font-size:20px; }
+  .pmi-cta { width:100%; }
+}
+</style>
+<div class="pmi-inner">
+  <div class="pmi-head">
+    <div class="kicker">SITE ESSENTIALS</div>
+    <h2>부자재 &amp; 안전용품</h2>
+    <p>시공에 꼭 필요한 자재와 현장 안전, 카테고리별로 준비했습니다</p>
+  </div>
+  <div class="pmi-grid">
+    <!-- ★ href의 cate_no를 실제 '부자재' 분류번호로 교체 -->
+    <a class="pmi-card buja" href="/product/list.html?cate_no=◯◯">
+      <div class="pmi-ico">🧰</div>
+      <div class="pmi-label">MATERIALS</div>
+      <div class="pmi-tt">부자재</div>
+      <div class="pmi-desc">붓·롤러부터 배합·보수 자재까지, 시공을 완성하는 필수 부자재를 한 번에.</div>
+      <div class="pmi-tags"><span class="pmi-tag">붓·롤러</span><span class="pmi-tag">배합·믹싱</span><span class="pmi-tag">보수·마감</span><span class="pmi-tag">부속·소모품</span></div>
+      <span class="pmi-cta">부자재 상품 보기 <span class="pmi-cta-arrow">→</span></span>
+    </a>
+    <!-- ★ href의 cate_no를 실제 '안전용품' 분류번호로 교체 -->
+    <a class="pmi-card safe" href="/product/list.html?cate_no=◯◯">
+      <div class="pmi-ico">🦺</div>
+      <div class="pmi-label">SAFETY</div>
+      <div class="pmi-tt">안전용품</div>
+      <div class="pmi-desc">안전화·장갑·보안경·안전벨트까지, 현장을 지키는 필수 안전용품을 갖췄습니다.</div>
+      <div class="pmi-tags"><span class="pmi-tag">머리·눈</span><span class="pmi-tag">손·발</span><span class="pmi-tag">호흡</span><span class="pmi-tag">추락방지</span></div>
+      <span class="pmi-cta">안전용품 상품 보기 <span class="pmi-cta-arrow">→</span></span>
+    </a>
+  </div>
+</div>
+</section>

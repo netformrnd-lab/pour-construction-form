@@ -1603,14 +1603,15 @@ var PC_TTL = 300000;
       if (b.type === 'image' && b.url){
         var hots = (b.hotspots||[]).filter(function(h){ return h && (h.link||h.name||h.title||h.text||h.image); }).map(function(h){
           var mode = h.mode || 'product';
+          var pos = 'left:'+(Number(h.x)||0)+'%;top:'+(Number(h.y)||0)+'%';
           var card;
           if (mode === 'info'){
-            card = '<div class="pstory-hlpop"><div class="pstory-hlpop-in">'
+            card = '<div class="pstory-hlpop" style="'+pos+'"><div class="pstory-hlpop-in">'
               + (h.image ? '<img src="'+esc(h.image)+'" alt="" onerror="this.style.display=\'none\'"/>' : '')
               + (h.title ? '<div class="pstory-hlpop-tt">'+esc(h.title)+'</div>' : '')
               + (h.text ? '<div class="pstory-hlpop-tx">'+esc(h.text)+'</div>' : '')+'</div></div>';
           } else {
-            card = '<div class="pstory-hotpop"><a class="pstory-hotpop-inner" href="'+esc(h.link||'#')+'">'
+            card = '<div class="pstory-hotpop" style="'+pos+'"><a class="pstory-hotpop-inner" href="'+esc(h.link||'#')+'">'
               + (h.thumb ? '<img src="'+esc(h.thumb)+'" alt="" onerror="this.style.display=\'none\'"/>' : '')
               + '<div class="pstory-hotpop-body"><div class="pstory-hotpop-nm">'+esc(h.name||'상품 보기')+'</div>'
               + (h.price ? '<div class="pstory-hotpop-pr">'+esc(h.price)+'</div>' : '')+'</div>'

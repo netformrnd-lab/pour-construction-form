@@ -6,11 +6,11 @@
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css">
 <!-- ============================================================
-  pour-story — POUR이야기 콘텐츠 허브 (무신사 매거진 스타일)
+  pour-story — POUR이야기 콘텐츠 허브 (무신사 콘텐츠 스타일)
   용도: 카페24 pourstore_renewal/story/pour-story.html. POUR이야기 탭 연결.
   데이터: Firestore pourstore-postings (어드민 '포스팅 관리').
          모든 활성 글을 유형(type)으로 자동 정리. 유튜브 영상은 자사몰 내 재생(모달).
-  구성: 공용 상단내비 → 특집(큐레이션) → POUR쇼츠 → BEST매거진 → 매거진 전체(칩+그리드).
+  구성: 공용 상단내비 → 특집(큐레이션) → POUR쇼츠 → BEST콘텐츠 → 콘텐츠 전체(칩+그리드).
   주의: 이모지 미사용(인라인 SVG). 단일 파일. 최상단에 공용 고정 내비 @import.
   ============================================================ -->
 <!-- 공용 풀헤더(검색+탭) 직접 삽입 — 다른 페이지와 동일. raw 파일이라 @import 불가 → embed.
@@ -1299,7 +1299,7 @@ var PM_POSTS = [];
 .pstory-short-dur { position:absolute; right:10px; bottom:10px; font-size:11px; font-weight:700; color:#fff; background:rgba(0,0,0,.6); border-radius:0; padding:2px 7px; }
 .pstory-short-play { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:44px; height:44px; border-radius:50%; background:rgba(15,23,42,.5); display:grid; place-items:center; -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
 .pstory-short-play svg { width:18px; height:18px; color:#fff; margin-left:2px; }
-/* BEST 매거진 (순번 랭킹, 2단) */
+/* BEST 콘텐츠 (순번 랭킹, 2단) */
 .pstory-best { display:grid; grid-template-columns:1fr 1fr; gap:0 44px; }
 .pstory-best-item { display:flex; align-items:center; gap:15px; padding:12px 0; border-bottom:1px solid #F4F5F7; cursor:pointer; min-width:0; }
 .pstory-best-rank { width:22px; text-align:center; font-size:18px; font-weight:800; color:#E8780F; flex-shrink:0; font-style:italic; }
@@ -1307,7 +1307,7 @@ var PM_POSTS = [];
 .pstory-best-tt { font-size:15px; font-weight:700; color:#242A33; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .pstory-best-meta { margin-top:3px; font-size:12px; color:#AEB4BC; font-weight:500; }
 .pstory-best-th { width:56px; height:42px; border-radius:8px; object-fit:cover; background:#F3F4F6; flex-shrink:0; }
-/* 매거진 전체 (칩 + 그리드) */
+/* 콘텐츠 전체 (칩 + 그리드) */
 .pstory-chips { display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; margin-bottom:22px; }
 .pstory-chips::-webkit-scrollbar { display:none; }
 .pstory-chip { flex:0 0 auto; padding:9px 16px; border-radius:0; font-size:14px; font-weight:700; color:#5A6472; background:#F3F4F6; white-space:nowrap; cursor:pointer; border:0; transition:.15s; }
@@ -1484,14 +1484,14 @@ var PM_POSTS = [];
   <div class="pstory-sec-h"><h2>POUR 쇼츠</h2><span class="pstory-more" data-more-shorts>숏츠 전체 →</span></div>
   <div class="pstory-shorts" data-shorts></div>
 </section>
-<!-- BEST 매거진 -->
+<!-- BEST 콘텐츠 -->
 <section class="pstory-sec" data-sec-best hidden>
-  <div class="pstory-sec-h"><h2>BEST 매거진</h2></div>
+  <div class="pstory-sec-h"><h2>BEST 콘텐츠</h2></div>
   <div class="pstory-best" data-best></div>
 </section>
-<!-- 매거진 전체 -->
+<!-- 콘텐츠 전체 -->
 <section class="pstory-sec" data-sec-all hidden>
-  <div class="pstory-sec-h"><h2>매거진 전체</h2></div>
+  <div class="pstory-sec-h"><h2>콘텐츠 전체</h2></div>
   <div class="pstory-chips" data-chips></div>
   <div class="pstory-grid" data-grid></div>
 </section>
@@ -1726,7 +1726,7 @@ var PC_TTL = 300000;
     else { play(0); start(); }
   }
 
-  // ===== BEST 매거진 (순번 랭킹, 4건 이상일 때) =====
+  // ===== BEST 콘텐츠 (순번 랭킹, 4건 이상일 때) =====
   if (posts.length >= 4){
     $('[data-best]').innerHTML = posts.slice(0,10).map(function(p,i){
       return '<a class="pstory-best-item" href="'+esc(p.link||'#')+'"'+tgt(p)+clickAttrs(p)+'>'
@@ -1739,7 +1739,7 @@ var PC_TTL = 300000;
     $('[data-sec-best]').hidden = false;
   }
 
-  // ===== 매거진 전체 (칩 + 그리드) =====
+  // ===== 콘텐츠 전체 (칩 + 그리드) =====
   function countFor(cat){ return cat==='all' ? posts.length : posts.filter(function(p){ return p.type===cat; }).length; }
   var cats = [{key:'all',label:'전체'}].concat(CAT_ORDER.filter(function(k){ return countFor(k)>0; }).map(function(k){ return {key:k,label:TYPE[k].l}; }));
   var cur = 'all';
@@ -1769,7 +1769,7 @@ var PC_TTL = 300000;
   renderChips(); renderGrid();
   $('[data-sec-all]').hidden = false;
 
-  // '영상 전체 →' → 매거진 영상 칩으로 필터 + 스크롤
+  // '영상 전체 →' → 콘텐츠 영상 칩으로 필터 + 스크롤
   var moreShorts = $('[data-more-shorts]');
   if (moreShorts) moreShorts.addEventListener('click', function(){ cur='short'; renderChips(); renderGrid(); $('[data-sec-all]').scrollIntoView({behavior:'smooth'}); });
 

@@ -1,0 +1,115 @@
+<!-- ============================================================
+  pour-safe-cate — '안전용품' 상품분류 목록 '상단' 삽입 조각
+  용도: 카페24 상품분류 목록 스킨(product/list.html)의 상품 리스트 '위'에
+        이 한 줄만 @import → 안전용품 분류(및 하위분류)에서만 상단 UI가 뜨고,
+        그 아래로 카페24 자동진열 상품이 그대로 노출됩니다.
+  구성: ① 인트로(제목) ② 추천 줄(카페24 '추천상품 진열' 모듈 슬롯) ③ 필터 칩(하위분류)
+  동작: JS가 현재 cate_no를 확인 → 안전용품 상위/하위면 표시, 아니면 통째로 제거.
+  ★ 설정: 아래 <script>의 CATE 객체에 실제 분류번호(cate_no)만 채우면 됩니다.
+  ★ 정렬: 카페24 [상품 › 상품분류 관리 › 안전용품 › 상품 정렬방식]을 '진열 순서(수동)'로 두고
+          [상품 › 상품 진열]에서 원하는 순서(추천순)로 드래그하세요.
+  ※ 부자재 조각(pour-buja-cate)과 동일 구조, 포인트색만 네이비.
+  ============================================================ -->
+<section class="psc" data-psc hidden>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
+.psc[hidden]{ display:none !important; }
+.psc *, .psc *::before, .psc *::after{ box-sizing:border-box; }
+.psc{ max-width:1200px; margin:0 auto; background:#fff; padding:36px 20px 6px; color:#2F3438; letter-spacing:-0.02em; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+/* ① 인트로 (네이비 포인트) */
+.psc-head{ margin-bottom:20px; }
+.psc-head .kicker{ display:inline-block; font-size:11.5px; font-weight:800; color:#0F1F5C; letter-spacing:0.06em; padding:4px 12px; background:#EAF0FB; border:1px solid #BFD0F0; border-radius:0; margin-bottom:11px; }
+.psc-head h2{ font-size:28px; font-weight:900; color:#111; letter-spacing:-0.045em; line-height:1.2; }
+.psc-head p{ margin-top:8px; font-size:13.5px; font-weight:500; color:#6B7280; word-break:keep-all; }
+/* ② 추천 줄 */
+.psc-best{ margin:24px 0 8px; }
+.psc-best-h{ display:flex; align-items:center; gap:6px; font-size:16px; font-weight:900; color:#111; letter-spacing:-0.03em; margin-bottom:14px; }
+.psc-best-h .em{ color:#0F1F5C; }
+.psc-best .prdList{ display:flex !important; gap:14px !important; overflow-x:auto; grid-template-columns:none !important; padding-bottom:6px; scrollbar-width:none; }
+.psc-best .prdList::-webkit-scrollbar{ display:none; }
+.psc-best .prdList > li{ flex:0 0 190px; width:190px !important; }
+@media (max-width:700px){ .psc-best .prdList > li{ flex-basis:150px; width:150px !important; } }
+/* ③ 필터 칩(하위분류) */
+.psc-filter{ display:flex; gap:8px; overflow-x:auto; padding:18px 0 4px; margin-top:12px; border-top:1px solid #EDF0F4; scrollbar-width:none; }
+.psc-filter::-webkit-scrollbar{ display:none; }
+.psc-chip{ flex:0 0 auto; padding:9px 16px; border:1.5px solid #E5E7EB; border-radius:0; font-size:13.5px; font-weight:700; color:#4B5563; text-decoration:none; background:#fff; white-space:nowrap; transition:.15s; }
+.psc-chip:hover{ border-color:#BFD0F0; color:#0F1F5C; }
+.psc-chip.on{ background:#0F1F5C; color:#fff; border-color:#0F1F5C; }
+/* 하단 카페24 기본 툴바 숨김 — 스코프 한정 */
+html.pour-cate-safe .ec-base-prdSort,
+html.pour-cate-safe .xans-product-normalmenu,
+html.pour-cate-safe .xans-product-orderby,
+html.pour-cate-safe .displayType,
+html.pour-cate-safe .prdCount{ display:none !important; }
+html.pour-cate-safe .xans-product-listnormal,
+html.pour-cate-safe .ec-base-prdList{ padding-top:8px !important; }
+@media (max-width:640px){ .psc{ padding:26px 16px 4px; } .psc-head h2{ font-size:22px; } }
+</style>
+<div class="psc-head">
+  <div class="kicker">SAFETY</div>
+  <h2>안전용품</h2>
+  <p>안전화·장갑·보안경·안전벨트까지 — 현장을 지키는 필수 안전용품</p>
+</div>
+
+<!-- ② 추천 줄: 아래 슬롯에 카페24 '추천상품 진열' 모듈을 삽입하세요.
+     (카페24 [상품 › 상품 진열]에서 '추천 안전용품' 진열 그룹 생성 → 그 모듈 소스를 여기에 붙여넣기)
+     비워두면 JS가 이 줄을 자동으로 숨깁니다. -->
+<div class="psc-best" data-psc-best>
+  <div class="psc-best-h"><span class="em">⭐</span> 추천 안전용품</div>
+  <!-- ▼▼▼ 카페24 추천상품 진열 모듈 삽입 위치 ▼▼▼ -->
+
+  <!-- ▲▲▲ 여기까지 ▲▲▲ -->
+</div>
+
+<!-- ③ 필터 칩(하위분류) — JS가 아래 CATE 설정으로 자동 생성 -->
+<nav class="psc-filter" data-psc-filter aria-label="안전용품 하위분류"></nav>
+
+<script>
+(function(){
+  // ===== ★ 설정: 실제 cate_no만 채우세요 (숫자 문자열) =====
+  var CATE = {
+    parent: '00',                 // 안전용품 대분류 cate_no
+    subs: [                        // 하위분류 (필터 칩). 개수·이름은 자유롭게 조정
+      { no:'00', name:'머리·눈' },
+      { no:'00', name:'손·발' },
+      { no:'00', name:'호흡' },
+      { no:'00', name:'추락방지' },
+      { no:'00', name:'현장표시' }
+    ]
+  };
+  // =========================================================
+  var el = document.querySelector('[data-psc]');
+  if (!el) return;
+  var cate = new URLSearchParams(location.search).get('cate_no');
+  var all = [CATE.parent].concat(CATE.subs.map(function(s){ return s.no; }));
+  if (!cate || all.indexOf(cate) === -1) {   // 안전용품 분류가 아니면 흔적 없이 제거
+    el.parentNode && el.parentNode.removeChild(el);
+    return;
+  }
+  el.hidden = false; el.removeAttribute('hidden');
+  document.documentElement.classList.add('pour-cate-safe'); // 이 분류에서만 기본 툴바 숨김
+
+  // 필터 칩 생성 (전체 + 하위분류), 현재 분류 하이라이트
+  var nav = el.querySelector('[data-psc-filter]');
+  if (nav) {
+    var mk = function(no, name){
+      var a = document.createElement('a');
+      a.className = 'psc-chip' + (no === cate ? ' on' : '');
+      a.href = '/product/list.html?cate_no=' + no;
+      a.textContent = name;
+      return a;
+    };
+    nav.appendChild(mk(CATE.parent, '전체'));
+    CATE.subs.forEach(function(s){ nav.appendChild(mk(s.no, s.name)); });
+  }
+
+  // 추천 줄: '전체(부모)' 화면에서만 노출 + 모듈이 비었으면 숨김
+  var best = el.querySelector('[data-psc-best]');
+  if (best) {
+    var hasModule = best.querySelector('.prdList, [module], .xans-product-listmain');
+    if (cate !== CATE.parent || !hasModule) best.style.display = 'none';
+  }
+  console.log('[psc] 안전용품 카테고리 노출 cate_no=' + cate);
+})();
+</script>
+</section>

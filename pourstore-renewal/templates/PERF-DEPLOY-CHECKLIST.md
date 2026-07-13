@@ -1,29 +1,37 @@
 # POUR스토어 — 카페24 반영 종합 체크리스트
 
-브랜치 `claude/pourstore-load-speed-auuszd`. 아래 파일 내용을 복사해 카페24 해당 조각에
-**한 파일씩** 붙여넣고 저장하세요. 확인은 **라이브 + 시크릿창(Ctrl+Shift+R)**.
+**✅ `main`으로 통합 완료** (브랜치와 0 차이 — 이제 `main` 파일만 복사해 쓰면 됩니다).
+아래 파일 내용을 복사해 카페24 해당 조각에 **한 파일씩** 붙여넣고 저장하세요.
+확인은 **라이브 + 시크릿창(Ctrl+Shift+R)**.
+> 주말 작업으로 **사실상 전 조각이 변경**됐습니다(안 바뀐 건 `package/pour-package.html` 하나뿐).
+> 일부만 올리면 로딩 캐시가 중복돼 느려질 수 있으니 **아래 목록 전부** 올리는 걸 권장.
 
 > `admin.html`(포스팅 편집기 등)은 **카페24가 아니라 pages.dev**라 붙여넣기 불필요 — 자동 반영.
 
 ---
 
-## A. 카페24 재업로드 (총 15개)
+## A. 카페24 재업로드 (총 26개 — 사실상 전 조각)
 
 ### 전역 스킨 ⭐ 상품카드 통일 (전 페이지 영향)
 - [ ] `common/pour-skin.html` — **자사몰 모든 상품카드 디자인 통일** (모서리 라운드 0% · 좌측정렬 · 브랜드/요약설명/정가·할인율·할인가/적립금/아이콘/태그 최대 노출).
       레이아웃 공통 `<head>`에 `@import` 되어 있으면 그 파일만 교체 → 메인 진열·분류 목록·검색·추천/신상품·관련상품·최근본상품 전부 자동 적용.
 - [ ] `cafe24-skin/list_product.html` — 분류 목록 상품카드(.pour-card). 이미 라운드 0 · 태그 노출. (스킨 편집 > product/list.html 상품 반복영역에 이 소스 사용 중이면 교체)
 
-### 메인 페이지 섹션
-- [ ] `main/pour-01-main.html` — 상단(검색+배너) *(로딩 최적화 핵심)*
-- [ ] `main/pour-03-doctor.html` — 챗봇(POUR닥터) 섹션 *(디자인 개선: 형제 섹션과 헤더·여백·카드 룩 통일, 이질감 제거)*
-- [ ] `main/pour-05-shorts.html` — 숏츠
+### 메인 페이지 섹션 (pour-01 ~ 09 전부)
+- [ ] `main/pour-01-main.html` — 상단(검색+배너) *(헤더 fixed 고정 · 로딩 최적화 핵심)*
+- [ ] `main/pour-02-best.html` — 베스트 *(라운드 0 · 검정색 통일)*
+- [ ] `main/pour-02b-vending.html` — 자판기 *(라운드 0 · 검정색 통일)*
+- [ ] `main/pour-03-doctor.html` — 챗봇(POUR닥터) 섹션 *(형제 섹션과 룩 통일, 이질감 제거)*
+- [ ] `main/pour-04-home.html` — 홈 *(라운드 0 · 검정색 통일)*
+- [ ] `main/pour-05-shorts.html` — 숏츠 *(실제 숏츠 데이터 · 헤더 배지 개선)*
+- [ ] `main/pour-06-service.html` — 서비스 *(라운드 0 · 검정색 통일)*
 - [ ] `main/pour-07-magazine.html` — 매거진
-- [ ] `main/pour-08-video.html` — 동영상 가이드 *(시안→실데이터 연동, 관리자 영상 자동 노출)*
+- [ ] `main/pour-08-video.html` — 동영상 가이드 *(시안→실데이터 연동)*
 - [ ] `main/pour-09-record.html` — 시공현장/협력사
 
-### 공용 헤더 (검색 등 전 페이지)
-- [ ] `common/pour-header.html` *(검색 페이지 속도 핵심)*
+### 공용 (검색+탭 헤더 · 슬림 내비)
+- [ ] `common/pour-header.html` — **전 페이지 공용 풀헤더**(검색+탭, 상단 고정). 레이아웃 `<body>` 아래 `@import` *(검색 페이지 속도 핵심)*
+- [ ] `common/pour-topnav.html` — 슬림 내비(라운드 0 반영). *POUR이야기는 이제 pour-header를 쓰므로 이 파일은 다른 페이지에서 쓸 때만 교체*
 
 ### 검색결과 페이지
 - [ ] `search/pour-02-search-content.html`
@@ -34,10 +42,13 @@
 
 ### 패키지 페이지 (cate_no=71)
 - [ ] `package/pour-package-cate.html` — 하단 카페24 기본 정렬/보기 툴바 숨김(이질감 제거)
+- [ ] `package/pkg-1-check.html` *(라운드 0 · 검정색 통일)*
 - [ ] `package/pkg-2-best.html` — 로딩 최적화(패키지 fetch 3→1회)
 - [ ] `package/pkg-3-new.html`
 - [ ] `package/pkg-4-matrix.html`
 - [ ] `package/pkg-5-video.html`
+- [ ] `package/pkg-t-scope.html` *(라운드 0 · 검정색 통일)*
+> `package/pour-package.html` = **유일하게 안 바뀐 파일** (재업로드 불필요)
 
 ---
 

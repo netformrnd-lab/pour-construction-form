@@ -376,6 +376,10 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 .psm1-ytm-side::-webkit-scrollbar-thumb { background:rgba(255,255,255,.22); border-radius:8px; }
 .psm1-ytm-side::-webkit-scrollbar-track { background:rgba(255,255,255,.05); border-radius:8px; }
 .psm1-ytm-sideh { font-size:15px; font-weight:800; color:#fff; margin-bottom:4px; }
+.psm1-ytm-sidecat { position:sticky; top:0; z-index:2; background:#0F0F0F; margin:8px 0 3px; padding:8px 2px 7px; font-size:13.5px; font-weight:800; color:#fff; border-bottom:1px solid rgba(255,255,255,.14); display:flex; align-items:center; gap:7px; }
+.psm1-ytm-sidecat .n { font-size:11px; font-weight:800; color:#8A9099; }
+.psm1-ytm-sidecat.cur { color:#FDBA74; }
+.psm1-ytm-sidecat .curbadge { margin-left:auto; font-size:10px; font-weight:800; color:#0F0F0F; background:#FDBA74; padding:2px 8px; border-radius:999px; }
 .psm1-ytm-rel { display:grid; grid-template-columns:168px 1fr; gap:10px; cursor:pointer; border-radius:8px; padding:4px; transition:.12s; text-decoration:none; }
 .psm1-ytm-rel:hover { background:rgba(255,255,255,.07); }
 .psm1-ytm-rel-th { position:relative; aspect-ratio:16/9; border-radius:8px; overflow:hidden; background:#222; }
@@ -388,6 +392,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
   .psm1-ytm-wrap { grid-template-columns:1fr; gap:30px; }
   .psm1-ytm-side { display:grid; grid-template-columns:repeat(2,1fr); gap:20px 16px; position:static; max-height:none; overflow:visible; padding-right:0; }
   .psm1-ytm-sideh { grid-column:1/-1; font-size:16.5px; }
+  .psm1-ytm-sidecat { grid-column:1/-1; position:static; }
   .psm1-ytm-rel { grid-template-columns:1fr; gap:9px; padding:0; }
   .psm1-ytm-rel-tt { font-size:15px; } .psm1-ytm-rel-ct { font-size:13px; } .psm1-ytm-rel-badge { font-size:11px; padding:3px 7px; }
 }
@@ -618,13 +623,25 @@ var PM_POSTS = [];
       + '<div class="psm1-ytm-rel-th">'+(th?'<img src="'+esc(th)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':'')+(yt?'<span class="psm1-ytm-rel-badge">▶ 영상</span>':'')+'</div>'
       + '<div><div class="psm1-ytm-rel-tt">'+esc(p.title||'')+'</div><div class="psm1-ytm-rel-ct">'+esc(typeLabel(p.type))+(dOf(p)?' · '+dOf(p):'')+'</div></div></a>';
   }
+  var SIDE_CAT_ORDER=['news','guide','case','interview','video','short','blog','event'];
   function renderSide(cur){
     if(!side) return;
     var curId = cur ? ytId(cur.link) : '';
-    var vs = PM_POSTS.filter(function(x){ return x!==cur && ytId(x.link)!==curId && isYtHost(x.link||''); });
-    var os = PM_POSTS.filter(function(x){ return x!==cur && !isYtHost(x.link||''); });
-    var rel = vs.concat(os).slice(0,12);
-    side.innerHTML = '<div class="psm1-ytm-sideh">관련 콘텐츠</div>' + (rel.length ? rel.map(relHtml).join('') : '<div class="psm1-ytm-empty">관련 콘텐츠가 없습니다.</div>');
+    var curType = cur ? cur.type : null;
+    var others = PM_POSTS.filter(function(x){ return x!==cur && (!curId || ytId(x.link)!==curId); });
+    var groups={}; others.forEach(function(x){ var k=x.type||'blog'; (groups[k]=groups[k]||[]).push(x); });
+    var keys=Object.keys(groups).sort(function(a,b){
+      if(a===curType) return -1; if(b===curType) return 1;
+      var ia=SIDE_CAT_ORDER.indexOf(a), ib=SIDE_CAT_ORDER.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib);
+    });
+    var html='<div class="psm1-ytm-sideh">관련 콘텐츠</div>';
+    if(!keys.length){ html+='<div class="psm1-ytm-empty">관련 콘텐츠가 없습니다.</div>'; }
+    else keys.forEach(function(k){
+      var items=groups[k], isCur=(k===curType);
+      html+='<div class="psm1-ytm-sidecat'+(isCur?' cur':'')+'">'+esc(typeLabel(k))+'<span class="n">'+items.length+'</span>'+(isCur?'<span class="curbadge">지금 보는 유형</span>':'')+'</div>';
+      html+=items.slice(0,30).map(relHtml).join('');
+    });
+    side.innerHTML=html;
   }
   function open(id, p, fallbackTitle, fallbackLink){
     if(!modal||!player) return;

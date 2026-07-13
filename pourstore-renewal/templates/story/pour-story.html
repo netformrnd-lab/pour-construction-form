@@ -1375,6 +1375,10 @@ var PM_POSTS = [];
 .pstory-watch-side::-webkit-scrollbar-thumb { background:rgba(255,255,255,.22); border-radius:8px; }
 .pstory-watch-side::-webkit-scrollbar-track { background:rgba(255,255,255,.05); border-radius:8px; }
 .pstory-side-h { font-size:15px; font-weight:800; color:#fff; margin-bottom:4px; }
+.pstory-side-cat { position:sticky; top:0; z-index:2; background:#0F0F0F; margin:8px 0 3px; padding:8px 2px 7px; font-size:13.5px; font-weight:800; color:#fff; border-bottom:1px solid rgba(255,255,255,.14); display:flex; align-items:center; gap:7px; }
+.pstory-side-cat .n { font-size:11px; font-weight:800; color:#8A9099; }
+.pstory-side-cat.cur { color:#FDBA74; }
+.pstory-side-cat .curbadge { margin-left:auto; font-size:10px; font-weight:800; color:#0F0F0F; background:#FDBA74; padding:2px 8px; border-radius:999px; }
 .pstory-rel { display:grid; grid-template-columns:168px 1fr; gap:10px; cursor:pointer; border-radius:8px; padding:4px; transition:.12s; }
 .pstory-rel:hover { background:rgba(255,255,255,.07); }
 .pstory-rel-th { position:relative; aspect-ratio:16/9; border-radius:8px; overflow:hidden; background:#222; }
@@ -1478,6 +1482,7 @@ var PM_POSTS = [];
   .pstory-tt { font-size:14px; }
   .pstory-watch { padding:16px 12px 48px; } .pstory-watch-tt { font-size:17px; }
   .pstory-watch-side { grid-template-columns:1fr; gap:22px; position:static; max-height:none; overflow:visible; padding-right:0; }
+  .pstory-side-cat { position:static; }
   .pstory-rel-tt { font-size:15.5px; }
   .pstory-art-tt { font-size:21px; } .pstory-art-body p { font-size:15px; } .pstory-art-rel-list { grid-template-columns:1fr 1fr; }
 }
@@ -1960,10 +1965,20 @@ var PC_TTL = 300000;
       +   (rawPl ? '<button class="pstory-watch-abtn" type="button" data-watch-prod data-plink="'+esc(rawPl)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>상품</button>' : '')
       + '</div>'
       + '<div class="pstory-watch-nav">' + navHtml(_watchPrev,-1) + navHtml(_watchNext,1) + '</div>';
-    var vs=posts.filter(function(x){ return x!==p && isYt(x.link); });
-    var os=posts.filter(function(x){ return x!==p && !isYt(x.link); });
-    var rel=vs.concat(os).slice(0,12);
-    mSide.innerHTML = '<div class="pstory-side-h">관련 콘텐츠</div>' + (rel.length ? rel.map(relHtml).join('') : '<div class="pstory-side-empty">관련 콘텐츠가 없습니다.</div>');
+    var others=posts.filter(function(x){ return x!==p; });
+    var groups={}; others.forEach(function(x){ var k=x.type||'blog'; (groups[k]=groups[k]||[]).push(x); });
+    var keys=Object.keys(groups).sort(function(a,b){
+      if(a===p.type) return -1; if(b===p.type) return 1;
+      var ia=CAT_ORDER.indexOf(a), ib=CAT_ORDER.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib);
+    });
+    var sideHtml='<div class="pstory-side-h">관련 콘텐츠</div>';
+    if(!keys.length){ sideHtml+='<div class="pstory-side-empty">관련 콘텐츠가 없습니다.</div>'; }
+    else keys.forEach(function(k){
+      var items=groups[k], isCur=(k===p.type);
+      sideHtml+='<div class="pstory-side-cat'+(isCur?' cur':'')+'">'+esc(typeLabel(k))+'<span class="n">'+items.length+'</span>'+(isCur?'<span class="curbadge">지금 보는 유형</span>':'')+'</div>';
+      sideHtml+=items.slice(0,30).map(relHtml).join('');
+    });
+    mSide.innerHTML=sideHtml;
     if (modal.hidden){ modal.hidden=false; _mOverflow=document.documentElement.style.overflow; document.documentElement.style.overflow='hidden'; }
     modal.scrollTop=0;
   }

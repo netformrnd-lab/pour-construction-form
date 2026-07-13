@@ -4904,6 +4904,27 @@ function PostingsPage({showToast}){
     }catch(e){ console.error(e); showToast('삭제 실패: '+e.message,'error'); }
   };
 
+  // 드래그로 순서 변경 (전체 보기 + 검색 없을 때만 — order는 전역 순서)
+  const dragFrom=useRef(null);
+  const [dragOver,setDragOver]=useState(null);
+  const canReorder = filter==='all' && !search.trim();
+  const persistOrder=async(newList)=>{
+    setList(newList);
+    try{
+      const batch=db.batch();
+      newList.forEach((p,i)=>{ if(p.order!==i){ batch.set(db.collection(COLLECTIONS.POURSTORE_POSTINGS).doc(p.id),{order:i,...audit.update()},{merge:true}); } });
+      await batch.commit();
+      console.log(`[${COLLECTIONS.POURSTORE_POSTINGS}] 순서 저장 ${newList.length}건`);
+      showToast('순서가 저장되었습니다');
+    }catch(e){ console.error('순서 저장 실패:',e); showToast('순서 저장 실패: '+e.message,'error'); load(); }
+  };
+  const onRowDrop=(toIdx)=>{
+    const from=dragFrom.current; dragFrom.current=null; setDragOver(null);
+    if(from==null||from===toIdx) return;
+    const nl=list.slice(); const [m]=nl.splice(from,1); nl.splice(toIdx,0,m);
+    persistOrder(nl.map((p,i)=>({...p,order:i})));
+  };
+
   const counts=POSTING_TYPES.reduce((a,t)=>{a[t.key]=list.filter(p=>p.type===t.key).length;return a;},{});
   const filtered=list.filter(p=>(filter==='all'||p.type===filter) && (!search || (p.title||'').includes(search) || (p.tags||[]).some(t=>t.includes(search))));
 
@@ -4928,9 +4949,19 @@ function PostingsPage({showToast}){
       </div>
 
       {filtered.length===0 && <div style={{padding:'50px 0',textAlign:'center',color:'var(--text-sm)',fontSize:13,background:'var(--card)',borderRadius:12,border:'1px solid var(--border)'}}>포스팅이 없습니다. "+ 새 포스팅"으로 추가하세요.</div>}
+      {canReorder && <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,margin:'0 2px 8px'}}>↕ 왼쪽 손잡이를 잡고 드래그하면 노출 순서를 바꿀 수 있어요 (자동 저장).</div>}
+      {!canReorder && <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,margin:'0 2px 8px'}}>ℹ 순서 변경(드래그)은 <b>전체</b> 필터 + 검색어 없을 때 가능합니다.</div>}
       <div style={{display:'flex',flexDirection:'column',gap:8}}>
-        {filtered.map(p=>{ const t=postingType(p.type); const on=p.active!==false; return(
-          <div key={p.id} style={{display:'flex',gap:12,alignItems:'center',background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:'10px 14px',opacity:on?1:0.5}}>
+        {filtered.map((p,idx)=>{ const t=postingType(p.type); const on=p.active!==false; return(
+          <div key={p.id}
+            onDragOver={canReorder?(e=>{e.preventDefault(); if(dragOver!==idx)setDragOver(idx);}):undefined}
+            onDrop={canReorder?(e=>{e.preventDefault(); onRowDrop(idx);}):undefined}
+            style={{display:'flex',gap:12,alignItems:'center',background:'var(--card)',border:'1px solid '+(dragOver===idx&&canReorder?'var(--or)':'var(--border)'),borderRadius:12,padding:'10px 14px',opacity:on?1:0.5,boxShadow:dragOver===idx&&canReorder?'0 0 0 2px var(--or-pale)':'none'}}>
+            {canReorder && <div draggable
+              onDragStart={()=>{dragFrom.current=idx;}}
+              onDragEnd={()=>{dragFrom.current=null;setDragOver(null);}}
+              title="드래그로 순서 변경"
+              style={{flexShrink:0,cursor:'grab',color:'var(--text-sm)',fontSize:17,lineHeight:1,padding:'0 2px',userSelect:'none'}}>⠿</div>}
             <div style={{width:64,height:44,borderRadius:8,flexShrink:0,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
               {p.thumbnail?<img src={p.thumbnail} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.visibility='hidden';}}/>:<span style={{fontSize:16,opacity:.5}}>{t.icon}</span>}
             </div>

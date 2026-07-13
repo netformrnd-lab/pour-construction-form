@@ -215,6 +215,11 @@ body{ color:var(--pour-ink); }
 #contents .price, #contents strong.price, .description .spec > li{ color:var(--pour-navy) !important; }
 #contents em.emphasis, #contents .txtEm, .discount{ color:var(--pour-or2) !important; }
 
+/* ===== 12) 검색결과 페이지 정리 — 중간 '상품검색' 제목 + 카페24 기본 검색폼 숨김
+   (검색어는 상단 공용 헤더 검색바에 표시됨) ===== */
+.xans-product-searchdata{ display:none !important; }
+body:has(.xans-product-searchdata) .titleArea{ display:none !important; }
+
 /* ===== 11) 반응형 (모바일) ===== */
 @media (max-width:767px){
   .titleArea h2{ font-size:22px !important; }

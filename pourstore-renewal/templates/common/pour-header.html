@@ -1007,6 +1007,11 @@ var PM_POSTS = [];
   // ===== 레벨3: 전체화면 검색 오버레이 (검색창 탭 시 등장) =====
   var pcInput = section.querySelector('[data-psm1-searchinput]');
   var mbInput = section.querySelector('[data-psm1-mb-searchinput]');
+  // 검색결과 페이지: URL의 keyword를 상단 헤더 검색바에 표시(카페24 중간 검색폼 대신)
+  try {
+    var _kw = new URLSearchParams(location.search).get('keyword');
+    if (_kw) { _kw = _kw.trim(); if (pcInput) pcInput.value = _kw; if (mbInput) mbInput.value = _kw; }
+  } catch(e){}
   var ov = section.querySelector('[data-psm1-ov]');
   var ovInput = section.querySelector('[data-psm1-ov-input]');
   var ovBody = section.querySelector('[data-psm1-ov-body]');

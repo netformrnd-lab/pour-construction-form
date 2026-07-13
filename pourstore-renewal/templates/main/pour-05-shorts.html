@@ -86,7 +86,8 @@ var PC_TTL = 300000;
   var section = document.querySelector('.psy3'); if (!section) return;
   var grid = section.querySelector('[data-psy3-grid]'); if (!grid) return;
   function esc(s){ return (s||'').toString().replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-  function ytThumb(u){ var m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/); return m?('https://img.youtube.com/vi/'+m[1]+'/hqdefault.jpg'):''; }
+  function ytId(u){ var m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/|live\/)([\w-]{11})/); return m?m[1]:''; }
+  function ytThumb(u){ var id=ytId(u); return id?('https://img.youtube.com/vi/'+id+'/hqdefault.jpg'):''; }
   var posts = [];
   try {
     var rawPosts = await window.__pcache.wrap('col:postings', PC_TTL, function(){ return getDocs(collection(db,"pourstore-postings")).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); });
@@ -98,13 +99,37 @@ var PC_TTL = 300000;
   grid.innerHTML = posts.slice(0,12).map(function(p){
     var thumb = p.thumbnail || p.thumb || p.image || ytThumb(p.link);
     var dur = p.duration ? '<span class="duration">'+esc(p.duration)+'</span>' : '';
-    var isYt = /youtu\.?be/.test(p.link||'');
-    return '<a class="psy3-card" href="'+esc(p.link||'#')+'"'+(isYt?'':(/^https?:/.test(p.link||'')?' target="_blank" rel="noopener"':''))+'>'
+    // 숏츠는 모달 없이 카드 안에서 바로 재생 → 앵커 대신 div + data-yt
+    return '<div class="psy3-card" data-yt="'+esc(ytId(p.link))+'">'
       + '<div class="img"'+(thumb?' style="background-image:url(\''+esc(thumb)+'\')"':'')+'></div>'
       + '<span class="brand">POUR</span>'
       + '<div class="play"></div>' + dur
-      + '<div class="title">'+esc(p.title||'')+'</div></a>';
+      + '<div class="title">'+esc(p.title||'')+'</div></div>';
   }).join('');
   section.hidden = false;
+  setupShortsAutoplay(grid);
+
+  // 숏츠 인라인 자동재생: 하나씩 음소거 재생 → 14s마다 다음. 클릭 시 그 카드 재생(사이클 정지). 모달 없음.
+  function mountPlayer(card){
+    var id=card.getAttribute('data-yt'); if(!id || card.querySelector('iframe')) return;
+    var f=document.createElement('iframe');
+    f.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&mute=1&loop=1&playlist='+id+'&controls=1&rel=0&modestbranding=1&playsinline=1';
+    f.allow='autoplay; encrypted-media; picture-in-picture'; f.setAttribute('allowfullscreen','');
+    f.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:0;z-index:2';
+    card.appendChild(f); card.classList.add('psy3-playing');
+  }
+  function unmount(card){ var f=card.querySelector('iframe'); if(f) f.remove(); card.classList.remove('psy3-playing'); }
+  function setupShortsAutoplay(row){
+    var cards=[].slice.call(row.querySelectorAll('.psy3-card')); if(!cards.length) return;
+    var idx=0, timer=null, manual=false;
+    function play(i){ cards.forEach(function(c,j){ if(j!==i) unmount(c); }); idx=((i%cards.length)+cards.length)%cards.length; mountPlayer(cards[idx]); }
+    function start(){ if(cards.length>1 && !timer && !manual) timer=setInterval(function(){ if(!manual) play(idx+1); },14000); }
+    function stop(){ if(timer){ clearInterval(timer); timer=null; } }
+    cards.forEach(function(c,i){ c.addEventListener('click', function(){ manual=true; stop(); play(i); }); });
+    if('IntersectionObserver' in window){
+      var io=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ if(!manual){ play(idx); start(); } } else { stop(); cards.forEach(unmount); } }); }, {threshold:.35});
+      io.observe(row);
+    } else { play(0); start(); }
+  }
 })();
 </script>

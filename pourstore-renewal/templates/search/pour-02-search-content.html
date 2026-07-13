@@ -61,6 +61,7 @@
 .psrc-modal-box iframe { width:100%; height:100%; border:0; display:block; }
 /* 숏츠 확대 피드 (인스타그램 스토리식 가로 캐러셀) */
 .psfs { position:fixed; inset:0; z-index:100001; background:#2B2B2B; overflow:hidden; }
+.psfs, .psfs * { box-sizing:border-box; }
 .psfs[hidden] { display:none; }
 .psfs-brand { position:fixed; top:16px; left:22px; z-index:8; color:#fff; font-size:19px; font-weight:800; letter-spacing:-.04em; }
 .psfs-brand .or { color:#F49A3A; }
@@ -81,15 +82,14 @@
 .psfs-card.is-side .psfs-meta, .psfs-card.is-side .psfs-rail, .psfs-card.is-side .psfs-segs { display:none; }
 .psfs-segs { position:absolute; top:9px; left:9px; right:9px; z-index:3; display:flex; gap:4px; }
 .psfs-segs span { flex:1; height:2.5px; border-radius:2px; background:rgba(255,255,255,.85); }
-.psfs-meta { position:absolute; left:0; right:0; bottom:0; z-index:3; padding:54px 14px 15px; background:linear-gradient(transparent, rgba(0,0,0,.55) 34%, rgba(0,0,0,.93)); color:#fff; }
+.psfs-meta { position:absolute; left:0; right:0; bottom:0; z-index:3; padding:11px 13px 13px; background:rgba(0,0,0,.86); color:#fff; }
 .psfs-meta .b { display:inline-block; font-size:10.5px; font-weight:800; background:#DB2777; padding:2px 8px; }
-.psfs-meta .t { margin-top:8px; font-size:15.5px; font-weight:800; line-height:1.4; text-shadow:0 1px 8px rgba(0,0,0,.9); }
+.psfs-meta .t { margin-top:7px; font-size:14.5px; font-weight:600; line-height:1.4; }
 .psfs-rail { position:absolute; right:8px; bottom:80px; z-index:4; display:flex; flex-direction:column; gap:14px; }
 .psfs-rbtn { border:0; background:transparent; display:flex; flex-direction:column; align-items:center; gap:4px; color:#fff; cursor:pointer; }
 .psfs-rbtn .ic { width:42px; height:42px; border-radius:50%; background:rgba(0,0,0,.4); display:grid; place-items:center; } .psfs-rbtn .ic svg { width:20px; height:20px; }
 .psfs-rbtn.prod .ic { background:#E8780F; } .psfs-rbtn .lb { font-size:10px; font-weight:700; }
 .psfs-cta2 { position:absolute; z-index:6; height:46px; display:flex; align-items:center; justify-content:center; gap:6px; padding:0 12px; background:#E8780F; color:#fff; font-size:14px; font-weight:800; border-radius:9px; text-decoration:none; box-shadow:0 4px 16px rgba(232,120,15,.4); }
-.psfs-cta2 .pth { position:absolute; left:5px; top:50%; transform:translateY(-50%); width:34px; height:34px; border-radius:6px; object-fit:cover; background:#fff; }
 .psfs-cta2[hidden] { display:none; }
 @media (max-width:700px){ .psfs-arrow { display:none; } }
 @media (max-width:700px){
@@ -219,10 +219,10 @@ const isYt=(u)=>/youtu\.?be/.test(u||'');
     if(strip){ strip.innerHTML=feedItems.map(function(p,i){ var th=p.thumbnail||p.thumb||ytThumb(p.link); return '<button class="psfs-thumb" data-i="'+i+'"'+(th?' style="background-image:url(\''+esc(th)+'\')"':'')+'></button>'; }).join(''); } }
   function updateStrip(){ if(!strip) return; var ts=strip.querySelectorAll('.psfs-thumb'); for(var k=0;k<ts.length;k++){ ts[k].classList.toggle('on', k===cur); } if(ts[cur]) ts[cur].scrollIntoView({inline:'center',block:'nearest'}); }
   function mountActive(){ cardEls.forEach(function(el,i){ var f=el.querySelector('iframe'); if(i===cur){ if(!f){ var id=el.getAttribute('data-yt'); if(id){ f=document.createElement('iframe'); f.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&loop=1&playlist='+id+'&rel=0&modestbranding=1&playsinline=1'; f.allow='autoplay; encrypted-media; picture-in-picture; fullscreen'; f.setAttribute('allowfullscreen',''); el.appendChild(f); } } } else if(f){ f.remove(); } }); }
-  function layout(){ if(!cardEls.length) return; var W=window.innerWidth,H=window.innerHeight,mobile=W<=700; var hasCta=!!(feedItems[cur]&&(feedItems[cur].productLink||'').trim()); var areaTop=mobile?134:62, areaBottom=H-(hasCta?62:16), areaH=Math.max(200,areaBottom-areaTop); var cardH=Math.min(areaH,760),cardW=cardH*9/16, maxW=mobile?W*0.9:W*0.86; if(cardW>maxW){cardW=maxW;cardH=cardW*16/9; if(cardH>areaH){cardH=areaH;cardW=cardH*9/16;}} var cx=W/2,cardTop=areaTop+(areaH-cardH)/2,cy=cardTop+cardH/2,gap=18,w1=cardW*0.8,w2=cardW*0.62; function centerOf(o){ if(o===0)return cx; var s=o>0?1:-1,k=Math.abs(o); if(k===1)return cx+s*(cardW/2+gap+w1/2); return cx+s*(cardW/2+gap+w1+gap+w2/2); }
+  function layout(){ if(!cardEls.length) return; var W=window.innerWidth,H=window.innerHeight,mobile=W<=700; var hasCta=!!(feedItems[cur]&&(feedItems[cur].productLink||'').trim()); var areaTop=mobile?126:62, areaBottom=H-(hasCta?(mobile?74:62):(mobile?26:16)), areaH=Math.max(200,areaBottom-areaTop); var cardH=Math.min(areaH,760),cardW=cardH*9/16, maxW=mobile?W*0.9:W*0.86; if(cardW>maxW){cardW=maxW;cardH=cardW*16/9; if(cardH>areaH){cardH=areaH;cardW=cardH*9/16;}} var cx=W/2,cardTop=(mobile?areaTop:areaTop+(areaH-cardH)/2),cy=cardTop+cardH/2,gap=18,w1=cardW*0.8,w2=cardW*0.62; function centerOf(o){ if(o===0)return cx; var s=o>0?1:-1,k=Math.abs(o); if(k===1)return cx+s*(cardW/2+gap+w1/2); return cx+s*(cardW/2+gap+w1+gap+w2/2); }
     cardEls.forEach(function(el,i){ var o=i-cur,ao=Math.abs(o); if((mobile&&ao!==0)||ao>2){el.style.display='none';return;} el.style.display='block'; var w=ao===0?cardW:ao===1?w1:w2,h=w*16/9,ccx=centerOf(o); el.style.width=w+'px';el.style.height=h+'px';el.style.left=(ccx-w/2)+'px';el.style.top=(ao===0?cardTop:(cy-h/2))+'px'; el.style.opacity=ao===0?'1':ao===1?'0.95':'0.85'; el.style.zIndex=ao===0?'5':ao===1?'3':'2'; el.classList.toggle('is-side',ao!==0); });
     aPrev.hidden=mobile||cur<=0; aNext.hidden=mobile||cur>=cardEls.length-1; aPrev.style.left=(cx-cardW/2-44)+'px'; aNext.style.left=(cx+cardW/2+8)+'px'; aPrev.style.top=aNext.style.top=cy+'px';
-    if(cta2){ if(hasCta){ var _pi=(feedItems[cur].productImage||'').trim(); cta2.innerHTML=(_pi?'<img class="pth" src="'+esc(_pi)+'" alt="" onerror="this.style.display=\'none\'"/>':'')+'<span>제품 보러가기</span> →'; cta2.hidden=false; cta2.href=(feedItems[cur].productLink||'').trim(); cta2.style.left=(cx-cardW/2)+'px'; cta2.style.top=(cardTop+cardH+12)+'px'; cta2.style.width=cardW+'px'; } else cta2.hidden=true; }
+    if(cta2){ if(hasCta){ cta2.hidden=false; cta2.href=(feedItems[cur].productLink||'').trim(); cta2.style.left=(cx-cardW/2)+'px'; cta2.style.top=(cardTop+cardH+12)+'px'; cta2.style.width=cardW+'px'; } else cta2.hidden=true; }
     updateStrip(); mountActive();
   }
   function goTo(i){ i=Math.max(0,Math.min(i,feedItems.length-1)); if(i===cur)return; cur=i; layout(); }

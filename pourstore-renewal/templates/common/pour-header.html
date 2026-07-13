@@ -356,9 +356,8 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 .psm1-ytm-ext svg { width:15px; height:15px; }
 .psm1-ytm-sm { margin-top:14px; font-size:14px; color:#C6CBD2; font-weight:500; line-height:1.6; white-space:pre-line; }
 .psm1-ytm-acts { margin-top:16px; display:flex; gap:8px; flex-wrap:wrap; }
-.psm1-ytm-cta { position:relative; flex:1 1 200px; display:flex; align-items:center; justify-content:center; gap:6px; height:52px; background:#E8780F; color:#fff; font-size:14.5px; font-weight:800; border-radius:10px; text-decoration:none; padding:0 14px; }
+.psm1-ytm-cta { flex:1 1 200px; display:flex; align-items:center; justify-content:center; gap:6px; height:46px; background:#E8780F; color:#fff; font-size:14.5px; font-weight:800; border-radius:10px; text-decoration:none; }
 .psm1-ytm-cta svg { width:16px; height:16px; }
-.psm1-ytm-cta .pth { position:absolute; left:6px; top:50%; transform:translateY(-50%); width:40px; height:40px; border-radius:7px; object-fit:cover; background:#fff; }
 .psm1-ytm-abtn { display:inline-flex; align-items:center; gap:7px; height:46px; padding:0 18px; background:rgba(255,255,255,.12); color:#fff; font-size:13.5px; font-weight:700; border:0; border-radius:10px; cursor:pointer; }
 .psm1-ytm-abtn:hover { background:rgba(255,255,255,.22); }
 .psm1-ytm-abtn svg { width:18px; height:18px; }
@@ -638,7 +637,6 @@ var PM_POSTS = [];
     _pmNext = (ci>=0 && ci<allVids.length-1) ? allVids[ci+1] : null;
     _pmShare = link;
     var rawPl = (p && p.productLink ? String(p.productLink) : '').trim();
-    var rawImg = (p && p.productImage ? String(p.productImage) : '').trim();
     var ctaLink = rawPl || '/product/list.html';
     var navHtml = function(np, dir){
       var arrow = dir<0 ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
@@ -653,7 +651,7 @@ var PM_POSTS = [];
       + '<a class="psm1-ytm-ext" href="'+esc(link)+'" target="_blank" rel="noopener">YouTube <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div>'
       + (p&&p.summary?'<div class="psm1-ytm-sm">'+esc(p.summary)+'</div>':'')
       + '<div class="psm1-ytm-acts">'
-      +   '<a class="psm1-ytm-cta" href="'+esc(ctaLink)+'">'+(rawImg?'<img class="pth" src="'+esc(rawImg)+'" alt="" onerror="this.style.display=\'none\'"/>':'')+'<span>제품 보러가기</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>'
+      +   '<a class="psm1-ytm-cta" href="'+esc(ctaLink)+'"><span>제품 보러가기</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>'
       +   '<button class="psm1-ytm-abtn" type="button" data-ytm-share><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>공유</button>'
       +   (rawPl ? '<button class="psm1-ytm-abtn" type="button" data-ytm-prod data-plink="'+esc(rawPl)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>상품</button>' : '')
       + '</div>'

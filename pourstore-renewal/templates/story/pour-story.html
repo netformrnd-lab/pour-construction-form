@@ -1355,9 +1355,8 @@ var PM_POSTS = [];
 .pstory-watch-yt svg { width:15px; height:15px; }
 .pstory-watch-sm { margin-top:14px; font-size:14px; color:#C6CBD2; font-weight:500; line-height:1.6; white-space:pre-line; }
 .pstory-watch-acts { margin-top:16px; display:flex; gap:8px; flex-wrap:wrap; }
-.pstory-watch-cta { position:relative; flex:1 1 200px; display:flex; align-items:center; justify-content:center; gap:6px; height:52px; background:#E8780F; color:#fff; font-size:14.5px; font-weight:800; border-radius:10px; text-decoration:none; padding:0 14px; }
+.pstory-watch-cta { flex:1 1 200px; display:flex; align-items:center; justify-content:center; gap:6px; height:46px; background:#E8780F; color:#fff; font-size:14.5px; font-weight:800; border-radius:10px; text-decoration:none; }
 .pstory-watch-cta svg { width:16px; height:16px; }
-.pstory-watch-cta .pth { position:absolute; left:6px; top:50%; transform:translateY(-50%); width:40px; height:40px; border-radius:7px; object-fit:cover; background:#fff; }
 .pstory-watch-abtn { display:inline-flex; align-items:center; gap:7px; height:46px; padding:0 18px; background:rgba(255,255,255,.12); color:#fff; font-size:13.5px; font-weight:700; border:0; border-radius:10px; cursor:pointer; }
 .pstory-watch-abtn:hover { background:rgba(255,255,255,.22); }
 .pstory-watch-abtn svg { width:18px; height:18px; }
@@ -1484,6 +1483,7 @@ var PM_POSTS = [];
 }
 /* 숏츠 확대 피드 (인스타그램 스토리식 가로 캐러셀) */
 .psfs { position:fixed; inset:0; z-index:100001; background:#2B2B2B; overflow:hidden; }
+.psfs, .psfs * { box-sizing:border-box; }
 .psfs[hidden] { display:none; }
 .psfs-brand { position:fixed; top:16px; left:22px; z-index:8; color:#fff; font-size:19px; font-weight:800; letter-spacing:-.04em; }
 .psfs-brand .or { color:#F49A3A; }
@@ -1504,15 +1504,14 @@ var PM_POSTS = [];
 .psfs-card.is-side .psfs-meta, .psfs-card.is-side .psfs-rail, .psfs-card.is-side .psfs-segs { display:none; }
 .psfs-segs { position:absolute; top:9px; left:9px; right:9px; z-index:3; display:flex; gap:4px; }
 .psfs-segs span { flex:1; height:2.5px; border-radius:2px; background:rgba(255,255,255,.85); }
-.psfs-meta { position:absolute; left:0; right:0; bottom:0; z-index:3; padding:54px 14px 15px; background:linear-gradient(transparent, rgba(0,0,0,.55) 34%, rgba(0,0,0,.93)); color:#fff; }
+.psfs-meta { position:absolute; left:0; right:0; bottom:0; z-index:3; padding:11px 13px 13px; background:rgba(0,0,0,.86); color:#fff; }
 .psfs-meta .b { display:inline-block; font-size:10.5px; font-weight:800; background:#DB2777; padding:2px 8px; }
-.psfs-meta .t { margin-top:8px; font-size:15.5px; font-weight:800; line-height:1.4; text-shadow:0 1px 8px rgba(0,0,0,.9); }
+.psfs-meta .t { margin-top:7px; font-size:14.5px; font-weight:600; line-height:1.4; }
 .psfs-rail { position:absolute; right:8px; bottom:80px; z-index:4; display:flex; flex-direction:column; gap:14px; }
 .psfs-rbtn { border:0; background:transparent; display:flex; flex-direction:column; align-items:center; gap:4px; color:#fff; cursor:pointer; }
 .psfs-rbtn .ic { width:42px; height:42px; border-radius:50%; background:rgba(0,0,0,.4); display:grid; place-items:center; } .psfs-rbtn .ic svg { width:20px; height:20px; }
 .psfs-rbtn.prod .ic { background:#E8780F; } .psfs-rbtn .lb { font-size:10px; font-weight:700; }
 .psfs-cta2 { position:absolute; z-index:6; height:46px; display:flex; align-items:center; justify-content:center; gap:6px; padding:0 12px; background:#E8780F; color:#fff; font-size:14px; font-weight:800; border-radius:9px; text-decoration:none; box-shadow:0 4px 16px rgba(232,120,15,.4); }
-.psfs-cta2 .pth { position:absolute; left:5px; top:50%; transform:translateY(-50%); width:34px; height:34px; border-radius:6px; object-fit:cover; background:#fff; }
 .psfs-cta2[hidden] { display:none; }
 @media (max-width:700px){ .psfs-arrow { display:none; } }
 </style>
@@ -1825,10 +1824,10 @@ var PC_TTL = 300000;
     if(!cardEls.length) return;
     var W=window.innerWidth, H=window.innerHeight, mobile=W<=700;
     var hasCta = !!(feedItems[cur] && (feedItems[cur].productLink||'').trim());
-    var areaTop = mobile?134:62, areaBottom = H-(hasCta?62:16), areaH = Math.max(200, areaBottom-areaTop);
+    var areaTop = mobile?126:62, areaBottom = H-(hasCta?(mobile?74:62):(mobile?26:16)), areaH = Math.max(200, areaBottom-areaTop);
     var cardH=Math.min(areaH, 760), cardW=cardH*9/16, maxW=mobile?W*0.9:W*0.86;
     if(cardW > maxW){ cardW=maxW; cardH=cardW*16/9; if(cardH>areaH){ cardH=areaH; cardW=cardH*9/16; } }
-    var cx=W/2, cardTop=areaTop+(areaH-cardH)/2, cy=cardTop+cardH/2, gap=18, w1=cardW*0.8, w2=cardW*0.62;
+    var cx=W/2, cardTop=(mobile?areaTop:areaTop+(areaH-cardH)/2), cy=cardTop+cardH/2, gap=18, w1=cardW*0.8, w2=cardW*0.62;
     function centerOf(o){ if(o===0) return cx; var s=o>0?1:-1, k=Math.abs(o); if(k===1) return cx + s*(cardW/2 + gap + w1/2); return cx + s*(cardW/2 + gap + w1 + gap + w2/2); }
     cardEls.forEach(function(el,i){
       var o=i-cur, ao=Math.abs(o);
@@ -1842,7 +1841,7 @@ var PC_TTL = 300000;
     });
     aPrev.hidden = mobile||cur<=0; aNext.hidden = mobile||cur>=cardEls.length-1;
     aPrev.style.left=(cx - cardW/2 - 44)+'px'; aNext.style.left=(cx + cardW/2 + 8)+'px'; aPrev.style.top=aNext.style.top=cy+'px';
-    if(cta2){ if(hasCta){ var _pi=(feedItems[cur].productImage||'').trim(); cta2.innerHTML=(_pi?'<img class="pth" src="'+esc(_pi)+'" alt="" onerror="this.style.display=\'none\'"/>':'')+'<span>제품 보러가기</span> →'; cta2.hidden=false; cta2.href=(feedItems[cur].productLink||'').trim(); cta2.style.left=(cx-cardW/2)+'px'; cta2.style.top=(cardTop+cardH+12)+'px'; cta2.style.width=cardW+'px'; } else cta2.hidden=true; }
+    if(cta2){ if(hasCta){ cta2.hidden=false; cta2.href=(feedItems[cur].productLink||'').trim(); cta2.style.left=(cx-cardW/2)+'px'; cta2.style.top=(cardTop+cardH+12)+'px'; cta2.style.width=cardW+'px'; } else cta2.hidden=true; }
     updateStrip();
     mountActive();
   }
@@ -1941,7 +1940,6 @@ var PC_TTL = 300000;
     _watchNext = (ci>=0 && ci<allVids.length-1) ? allVids[ci+1] : null;
     _watchShare = p.link||'';
     var rawPl=(p.productLink||'').trim();
-    var rawImg=(p.productImage||'').trim();
     var ctaLink = rawPl || '/product/list.html';
     var navHtml = function(np, dir){
       var arrow = dir<0 ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
@@ -1957,7 +1955,7 @@ var PC_TTL = 300000;
       +   '<a class="pstory-watch-yt" href="'+esc(p.link)+'" target="_blank" rel="noopener">YouTube <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div>'
       + (p.summary?'<div class="pstory-watch-sm">'+esc(p.summary)+'</div>':'')
       + '<div class="pstory-watch-acts">'
-      +   '<a class="pstory-watch-cta" href="'+esc(ctaLink)+'">'+(rawImg?'<img class="pth" src="'+esc(rawImg)+'" alt="" onerror="this.style.display=\'none\'"/>':'')+'<span>제품 보러가기</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>'
+      +   '<a class="pstory-watch-cta" href="'+esc(ctaLink)+'"><span>제품 보러가기</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>'
       +   '<button class="pstory-watch-abtn" type="button" data-watch-share><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>공유</button>'
       +   (rawPl ? '<button class="pstory-watch-abtn" type="button" data-watch-prod data-plink="'+esc(rawPl)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>상품</button>' : '')
       + '</div>'

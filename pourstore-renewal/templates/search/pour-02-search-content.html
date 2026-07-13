@@ -273,11 +273,13 @@ const isYt=(u)=>/youtu\.?be/.test(u||'');
         +(p.summary?'<div class="psrc-sum">'+esc(p.summary)+'</div>':'')
         +(dt?'<div class="psrc-date">'+esc(dt)+'</div>':'')+'</div>';
       let el;
-      if(yt){ el=document.createElement('div'); el.className='psrc-card'; el.setAttribute('data-yt',id); el.innerHTML=inner;
+      if(yt){ el=document.createElement('a'); el.className='psrc-card'; el.href=p.link||'#'; el.setAttribute('data-yt',id); el.innerHTML=inner;
         // 마우스 올리면 미리보기(음소거) → 숏츠 순환 잠시 멈춤. 벗어나면 재개.
         el.addEventListener('mouseenter', ()=>{ stopShortsCycle(); previewOn(el, id, '.psrc-thumb'); });
         el.addEventListener('mouseleave', ()=>{ if(activePrev===el) previewOff(); startShortsCycle(); });
-        el.addEventListener('click', ()=>openModal(id, false));
+        // 클릭 → POUR이야기와 동일한 재생화면: 공용헤더(pour-header)의 watch 모달이 캡처단계에서 이 유튜브 링크를 가로채 관련콘텐츠·CTA·이전/다음까지 표시.
+        //   pour-header 미로딩 시에만 검색 자체 모달로 폴백.
+        el.addEventListener('click', (e)=>{ if(e.defaultPrevented) return; e.preventDefault(); previewOff(); openModal(id, false); });
       } else { el=document.createElement('a'); el.className='psrc-card'; el.href=p.link||'#'; if(/^https?:/.test(p.link||'')){ el.target='_blank'; el.rel='noopener'; } el.innerHTML=inner; }
       restRow.appendChild(el);
     });

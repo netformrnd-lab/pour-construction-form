@@ -4845,33 +4845,34 @@ function PostingsPage({showToast}){
 
   const saveEditing=async()=>{
     const f=editing;
-    if(!f.title.trim()){ showToast('제목을 입력하세요','error'); return; }
-    // blocks 정리
-    const cleanHl=(list)=>(list||[]).filter(hl=>Array.isArray(hl.pts)&&hl.pts.length>=2).map(hl=>{
-      const pts=hl.pts.map(p=>({x:Number(p.x)||0,y:Number(p.y)||0}));
-      const c=hl.card||{}; const m=c.mode||'none'; let card={mode:'none'};
-      if(m==='product') card={mode:'product',name:(c.name||'').trim(),price:(c.price||'').trim(),thumb:(c.thumb||'').trim(),link:(c.link||'').trim()};
-      else if(m==='info') card={mode:'info',title:(c.title||'').trim(),text:(c.text||'').trim(),image:(c.image||'').trim()};
-      return {pts,card};
-    });
-    const cleanHot=(list)=>(list||[]).map(h=>{
-      const m=h.mode||'product';
-      if(m==='info') return {x:Number(h.x)||0,y:Number(h.y)||0,mode:'info',title:(h.title||'').trim(),text:(h.text||'').trim(),image:(h.image||'').trim()};
-      return {x:Number(h.x)||0,y:Number(h.y)||0,mode:'product',name:(h.name||'').trim(),price:(h.price||'').trim(),thumb:(h.thumb||'').trim(),link:(h.link||'').trim()};
-    }).filter(h=> h.mode==='info' ? (h.title||h.text||h.image) : (h.name||h.link));
-    const blocks=(Array.isArray(f.blocks)?f.blocks:[]).map(b=> b.type==='image'
-      ? {type:'image', url:(b.url||'').trim(), hotspots:cleanHot(b.hotspots), highlights:cleanHl(b.highlights)}
-      : {type:'text', text:(b.text||'').trim(), align:b.align||'left', size:b.size||'normal'}
-    ).filter(b=> b.type==='image' ? b.url : b.text);
-    const bodyStr=blocksToBody(blocks);
-    const isVid=(f.type==='video'||f.type==='short');
-    if(isVid && !f.link.trim()){ showToast('영상/숏츠는 유튜브 링크가 필요합니다','error'); return; }
-    if(!isVid && !f.link.trim() && !bodyStr.trim()){ showToast('링크 또는 본문 중 하나는 입력하세요','error'); return; }
-    setSaving(true);
+    console.log('[posting] 저장 시도:', {type:f.type, hasLink:!!(f.link||'').trim(), title:(f.title||'').slice(0,20)});
     try{
+      if(!(f.title||'').trim()){ alert('제목을 입력하세요.'); return; }
+      // blocks 정리
+      const cleanHl=(list)=>(list||[]).filter(hl=>Array.isArray(hl.pts)&&hl.pts.length>=2).map(hl=>{
+        const pts=hl.pts.map(p=>({x:Number(p.x)||0,y:Number(p.y)||0}));
+        const c=hl.card||{}; const m=c.mode||'none'; let card={mode:'none'};
+        if(m==='product') card={mode:'product',name:(c.name||'').trim(),price:(c.price||'').trim(),thumb:(c.thumb||'').trim(),link:(c.link||'').trim()};
+        else if(m==='info') card={mode:'info',title:(c.title||'').trim(),text:(c.text||'').trim(),image:(c.image||'').trim()};
+        return {pts,card};
+      });
+      const cleanHot=(list)=>(list||[]).map(h=>{
+        const m=h.mode||'product';
+        if(m==='info') return {x:Number(h.x)||0,y:Number(h.y)||0,mode:'info',title:(h.title||'').trim(),text:(h.text||'').trim(),image:(h.image||'').trim()};
+        return {x:Number(h.x)||0,y:Number(h.y)||0,mode:'product',name:(h.name||'').trim(),price:(h.price||'').trim(),thumb:(h.thumb||'').trim(),link:(h.link||'').trim()};
+      }).filter(h=> h.mode==='info' ? (h.title||h.text||h.image) : (h.name||h.link));
+      const blocks=(Array.isArray(f.blocks)?f.blocks:[]).map(b=> b.type==='image'
+        ? {type:'image', url:(b.url||'').trim(), hotspots:cleanHot(b.hotspots), highlights:cleanHl(b.highlights)}
+        : {type:'text', text:(b.text||'').trim(), align:b.align||'left', size:b.size||'normal'}
+      ).filter(b=> b.type==='image' ? b.url : b.text);
+      const bodyStr=blocksToBody(blocks);
+      const isVid=(f.type==='video'||f.type==='short');
+      if(isVid && !(f.link||'').trim()){ alert('영상·숏츠는 유튜브 링크가 필요합니다.\n\n[링크(URL)] 칸에 유튜브 주소(https://youtu.be/... )를 넣어주세요.'); return; }
+      if(!isVid && !(f.link||'').trim() && !bodyStr.trim()){ alert('링크 또는 본문 중 하나는 입력하세요.'); return; }
+      setSaving(true);
       const tags=(f.tagsText||'').split(',').map(s=>s.trim()).filter(Boolean);
       const thumbnail=(f.thumbnail||'').trim() || (isVid?ytThumb(f.link):'') || (blocks.find(b=>b.type==='image')||{}).url || '';
-      const payload={ type:f.type, title:f.title.trim(), link:f.link.trim(), thumbnail, tags,
+      const payload={ type:f.type, title:f.title.trim(), link:(f.link||'').trim(), thumbnail, tags,
         summary:(f.summary||'').trim(), body:bodyStr, blocks, duration:(f.duration||'').trim(), displayDate:(f.displayDate||'').trim(), productLink:(f.productLink||'').trim(), placements:Array.isArray(f.placements)?f.placements:[],
         order:Number(f.order)||0, active:f.active!==false };
       if(f.id){
@@ -4883,8 +4884,12 @@ function PostingsPage({showToast}){
       showToast('저장되었습니다');
       setEditing(null);
       await load();
-    }catch(e){ console.error('포스팅 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
-    setSaving(false);
+    }catch(e){
+      console.error('포스팅 저장 실패:',e);
+      alert('저장 오류: '+(e&&e.message?e.message:e));
+    }finally{
+      setSaving(false);
+    }
   };
 
   const toggleActive=async(p)=>{

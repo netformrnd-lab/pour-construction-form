@@ -1769,11 +1769,71 @@ function KnowledgePage({ onToast }) {
     } catch (e) { onToast({ message: '적용 실패: ' + e.message, type: 'error' }); }
   };
 
+  // ── 외부 데이터 가져오기: 기술연구소(pour-k) 라이브 → 지식베이스 ──
+  const PK_CFG = { apiKey:"AIzaSyDH9oj7rTgySAYrXJQfbFo2U6B4wB3cjho", authDomain:"pour-k.firebaseapp.com", projectId:"pour-k", storageBucket:"pour-k.firebasestorage.app", messagingSenderId:"548427623760", appId:"1:548427623760:web:7767b3b08b280911b51055" };
+  const PK_CAT = { asphalt:['아스팔트','아스콘','도로','포장'], functional:['기능성'], 'oil-based':['유성'], powder:['분말','파우더'], repair:['보수','부속'], sheet:['시트'], 'water-based':['수성','프라이머'] };
+  const fmtPk = (p, catKo) => {
+    const L = ['■ ' + (p.name || '제품')];
+    if (p.role) L.push('· 정의 : ' + p.role);
+    if (p.desc) L.push('· 요약 : ' + p.desc);
+    if (Array.isArray(p.features) && p.features.length) { L.push('· 특징 :'); p.features.forEach(f => { if (f && f.name) L.push('   - ' + f.name + (f.desc ? ' : ' + f.desc : '')); }); }
+    if (Array.isArray(p.methods) && p.methods.length) L.push('· 적용 공법 : ' + p.methods.join(', '));
+    if (Array.isArray(p.applications) && p.applications.length) L.push('· 적용 부위 : ' + p.applications.join(', '));
+    if (p.specs && typeof p.specs === 'object') { const sp = Object.entries(p.specs).filter(([k, v]) => v).map(([k, v]) => k + ' ' + v); if (sp.length) L.push('· 규격 : ' + sp.join(' / ')); }
+    if (catKo && catKo.length) L.push('· 분류 : ' + catKo.join('/'));
+    return L.join('\n');
+  };
+  const importPourk = async () => {
+    if (!confirm('기술연구소(pour-k) 제품 자료를 지식베이스로 가져옵니다.\n기존 pour-k 지식은 최신본으로 교체됩니다. 진행할까요?')) return;
+    try {
+      let app; try { app = firebase.app('pourk'); } catch (e) { app = firebase.initializeApp(PK_CFG, 'pourk'); }
+      const snap = await app.firestore().collection('products').get();
+      const items = [];
+      snap.forEach(d => { const data = d.data(); (Array.isArray(data.items) ? data.items : []).forEach(p => { if (p && p.name) items.push({ p, cat: d.id }); }); });
+      if (!items.length) { onToast({ message: 'pour-k 제품이 없습니다', type: 'error' }); return; }
+      const existing = kb.filter(k => k.source === 'pour-k');
+      const batch = db.batch();
+      existing.forEach(k => batch.delete(db.collection(COLLECTIONS.KB).doc(k.id)));
+      items.forEach(({ p, cat }) => {
+        const ck = PK_CAT[cat] || [cat];
+        const ref = db.collection(COLLECTIONS.KB).doc();
+        batch.set(ref, { type:'faq', q:p.name, a:fmtPk(p, ck), tags:[p.name, ...(p.methods||[]), ...(p.applications||[]), ...ck].filter(Boolean).slice(0, 12), audience:['internal'], status:'active', source:'pour-k', createdAt:nowIso(), updatedAt:nowIso() });
+      });
+      await batch.commit();
+      onToast({ message: `기술연구소 ${items.length}건 가져오기 완료`, type: 'success' });
+      reload();
+    } catch (e) { onToast({ message: '가져오기 실패: ' + e.message, type: 'error' }); }
+  };
+
+  // ── 외부 데이터 가져오기: CRM(pourstorecrm) 프록시 → 지식베이스 (개인정보 제거본) ──
+  const importCrm = async () => {
+    let url = localStorage.getItem('pourCrmProxyUrl') || '';
+    let secret = localStorage.getItem('pourCrmProxySecret') || '';
+    if (!url) { url = (prompt('CRM 프록시 워커 URL 을 입력하세요 (예: https://pour-crm-proxy.<계정>.workers.dev)') || '').trim(); if (!url) return; localStorage.setItem('pourCrmProxyUrl', url); }
+    if (!secret) { secret = (prompt('CRM 프록시 WORKER_SECRET 을 입력하세요') || '').trim(); if (!secret) return; localStorage.setItem('pourCrmProxySecret', secret); }
+    if (!confirm('CRM 상담 데이터(개인정보 제거본)를 지식베이스로 가져옵니다.\n기존 CRM 지식은 최신본으로 교체됩니다. 진행할까요?')) return;
+    try {
+      const r = await fetch(url.replace(/\/$/, '') + '/crm-kb?secret=' + encodeURIComponent(secret));
+      const d = await r.json();
+      if (!Array.isArray(d.items) || !d.items.length) { onToast({ message: 'CRM 데이터를 못 받음: ' + (d.error || '0건 (컬렉션/스키마 확인)'), type: 'error' }); return; }
+      const existing = kb.filter(k => k.source === 'crm');
+      const batch = db.batch();
+      existing.forEach(k => batch.delete(db.collection(COLLECTIONS.KB).doc(k.id)));
+      d.items.forEach(it => { if (!it || !it.a) return; const ref = db.collection(COLLECTIONS.KB).doc(); batch.set(ref, { type:'faq', q:it.q || '상담 사례', a:it.a, tags:Array.isArray(it.tags) ? it.tags.slice(0, 12) : [], audience:['internal'], status:'active', source:'crm', createdAt:nowIso(), updatedAt:nowIso() }); });
+      await batch.commit();
+      onToast({ message: `CRM ${d.items.length}건 가져오기 완료`, type: 'success' });
+      reload();
+    } catch (e) { onToast({ message: 'CRM 가져오기 실패: ' + e.message, type: 'error' }); }
+  };
+  const resetCrmProxy = () => { localStorage.removeItem('pourCrmProxyUrl'); localStorage.removeItem('pourCrmProxySecret'); onToast({ message: 'CRM 프록시 설정 초기화됨 (다음 가져오기 때 다시 입력)', type: 'success' }); };
+
   return (
     <>
       <Header title="지식베이스" subtitle="봇이 근거로 삼는 FAQ·매뉴얼. 여기 쌓인 데이터가 봇 정확도를 결정합니다 (FAQ 주입식 RAG)."
         actions={<>
           <button onClick={seedMaster} style={{ ...btnGhost(), color:'var(--or-d)', borderColor:'var(--or-l)', background:'var(--or-pale)' }}>📘 마스터프롬프트 불러오기</button>
+          <button onClick={importPourk} style={{ ...btnGhost(), color:'var(--or-d)', borderColor:'#FED7AA', background:'var(--or-l)' }} title="기술연구소 pour-k 제품 자료를 지식베이스로 동기화 (내부용)">🔬 기술연구소 가져오기</button>
+          <button onClick={importCrm} onContextMenu={(e)=>{e.preventDefault();resetCrmProxy();}} style={{ ...btnGhost(), color:'var(--blue)', borderColor:'var(--blue-m)', background:'var(--blue-l)' }} title="CRM 상담 데이터(개인정보 제거본)를 지식베이스로 동기화. 우클릭=프록시 재설정">🗂 CRM 가져오기</button>
           <button onClick={() => setImporting(true)} style={btnGhost()}>📥 매뉴얼 임포트</button>
           <button onClick={() => setEditing({ type:'faq', q:'', a:'', tags:[], audience:[], status:'active' })} style={btnPrimary()}>+ 지식 추가</button>
         </>} />

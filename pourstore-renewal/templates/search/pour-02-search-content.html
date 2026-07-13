@@ -77,7 +77,27 @@
 .psrc-feed-hint { position:absolute; left:50%; bottom:12px; transform:translateX(-50%); z-index:3; color:rgba(255,255,255,.72); font-size:11.5px; font-weight:700; display:flex; align-items:center; gap:5px; animation:psrc-bob 1.6s ease-in-out infinite; pointer-events:none; }
 .psrc-feed-hint svg { width:15px; height:15px; }
 @keyframes psrc-bob { 0%,100%{transform:translate(-50%,0);} 50%{transform:translate(-50%,5px);} }
-@media (max-width:700px){ .psrc-feed-stage { width:100%; height:100%; aspect-ratio:auto; } }
+.psrc-feed-segs { position:absolute; top:9px; left:10px; right:10px; z-index:4; display:flex; gap:4px; }
+.psrc-feed-segs span { flex:1; height:3px; border-radius:2px; background:rgba(255,255,255,.34); }
+.psrc-feed-segs span.on { background:#fff; }
+.psrc-feed-cta { margin-top:11px; display:flex; align-items:center; justify-content:center; gap:6px; height:40px; background:#E8780F; color:#fff; font-size:13.5px; font-weight:800; border-radius:8px; text-decoration:none; pointer-events:auto; }
+.psrc-feed-cta:hover { background:#D26A0A; }
+.psrc-feed-rail { position:absolute; right:8px; bottom:104px; z-index:4; display:flex; flex-direction:column; gap:15px; }
+.psrc-feed-rbtn { border:0; background:transparent; display:flex; flex-direction:column; align-items:center; gap:4px; color:#fff; cursor:pointer; }
+.psrc-feed-rbtn .ic { width:44px; height:44px; border-radius:50%; background:rgba(0,0,0,.42); display:grid; place-items:center; }
+.psrc-feed-rbtn .ic svg { width:21px; height:21px; }
+.psrc-feed-rbtn.prod .ic { background:#E8780F; }
+.psrc-feed-rbtn .lb { font-size:10.5px; font-weight:700; }
+.psrc-feed-nav { position:absolute; right:20px; width:44px; height:44px; border:0; border-radius:50%; background:rgba(255,255,255,.16); color:#fff; display:grid; place-items:center; cursor:pointer; z-index:4; }
+.psrc-feed-nav:hover { background:rgba(255,255,255,.3); }
+.psrc-feed-nav svg { width:24px; height:24px; }
+.psrc-feed-nav.up { top:calc(50% - 54px); }
+.psrc-feed-nav.down { top:calc(50% + 10px); }
+@media (max-width:700px){
+  .psrc-feed-stage { width:100%; height:100%; aspect-ratio:auto; }
+  .psrc-feed-nav { display:none; }
+  .psrc-feed-rail { right:8px; bottom:110px; }
+}
 @media (max-width:700px){
   .psrc { padding:12px 14px 6px; }
   .psrc-short { flex-basis:118px; width:118px; }
@@ -105,6 +125,8 @@
 </div>
 <div class="psrc-feed" data-psrc-feed hidden>
   <button class="psrc-feed-x" data-psrc-feed-x type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <button class="psrc-feed-nav up" data-feed-prev type="button" aria-label="이전 숏츠"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg></button>
+  <button class="psrc-feed-nav down" data-feed-next type="button" aria-label="다음 숏츠"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
   <div class="psrc-feed-scroll" data-psrc-feed-scroll></div>
 </div>
 <script type="module">
@@ -119,6 +141,8 @@ const IC_PLAY  = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l
 const IC_DOC   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 13h6M9 17h4"/></svg>';
 const IC_BLD   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M6 21V8l6-4 6 4v13"/><path d="M10 12h.01M14 12h.01M10 16h.01M14 16h.01"/></svg>';
 const IC_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';
+const IC_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v14"/></svg>';
+const IC_BAG   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>';
 const TYPE = {
   news:{label:'뉴스',color:'#2563EB',icon:IC_DOC}, guide:{label:'시공가이드',color:'#059669',icon:IC_CHECK},
   case:{label:'시공사례',color:'#EA580C',icon:IC_BLD}, interview:{label:'인터뷰',color:'#7C3AED',icon:IC_DOC},
@@ -184,15 +208,24 @@ const isYt=(u)=>/youtu\.?be/.test(u||'');
   // ===== 숏츠 피드(유튜브 쇼츠식 세로 스크롤: 내리면 다음 숏폼, 보이는 것만 재생) =====
   const feed=sec.querySelector('[data-psrc-feed]'), feedScroll=sec.querySelector('[data-psrc-feed-scroll]');
   const HINT='<div class="psrc-feed-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>스크롤</div>';
-  function feedMount(slide){ const id=slide.getAttribute('data-yt'); const st=slide.querySelector('.psrc-feed-stage'); if(!id||!st||st.querySelector('iframe')) return; const f=document.createElement('iframe'); f.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&loop=1&playlist='+id+'&rel=0&modestbranding=1&playsinline=1'; f.allow='autoplay; encrypted-media; picture-in-picture; fullscreen'; f.setAttribute('allowfullscreen',''); st.appendChild(f); }
+  function segsHtml(n,active){ var h=''; for(var k=0;k<n;k++) h+='<span class="'+(k===active?'on':'')+'"></span>'; return h; }
+  function feedMount(slide){ const id=slide.getAttribute('data-yt'); const st=slide.querySelector('.psrc-feed-stage'); if(!id||!st||st.querySelector('iframe')) return; const f=document.createElement('iframe'); f.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&loop=1&playlist='+id+'&rel=0&modestbranding=1&playsinline=1'; f.allow='autoplay; encrypted-media; picture-in-picture; fullscreen'; f.setAttribute('allowfullscreen',''); f.style.zIndex='1'; st.insertBefore(f, st.firstChild); }
   function feedUnmount(slide){ const f=slide.querySelector('iframe'); if(f) f.remove(); }
   function openShortsFeed(startIdx){
     stopShortsCycle(); previewOff();
-    feedScroll.innerHTML = shorts.map(function(p,i){ const id=ytId(p.link), th=p.thumbnail||p.thumb||ytThumb(p.link);
-      return '<div class="psrc-feed-slide" data-yt="'+id+'">'
-        + '<div class="psrc-feed-stage">'+(th?'<img src="'+esc(th)+'" alt=""/>':'')+'</div>'
-        + '<div class="psrc-feed-meta"><span class="b">숏츠</span><div class="t">'+esc(p.title||'')+'</div></div>'
-        + (i===0?HINT:'') + '</div>';
+    feedScroll.innerHTML = shorts.map(function(p,i){ const id=ytId(p.link), th=p.thumbnail||p.thumb||ytThumb(p.link); const pl=p.productLink||'';
+      return '<div class="psrc-feed-slide" data-yt="'+id+'" data-plink="'+esc(pl)+'" data-share="'+esc(p.link||'')+'">'
+        + '<div class="psrc-feed-stage">'+(th?'<img src="'+esc(th)+'" alt=""/>':'')
+        +   '<div class="psrc-feed-segs">'+segsHtml(shorts.length,i)+'</div>'
+        +   '<div class="psrc-feed-rail">'
+        +     '<button class="psrc-feed-rbtn" data-act="share" type="button" aria-label="공유"><span class="ic">'+IC_SHARE+'</span><span class="lb">공유</span></button>'
+        +     (pl?'<button class="psrc-feed-rbtn prod" data-act="prod" type="button" aria-label="상품"><span class="ic">'+IC_BAG+'</span><span class="lb">상품</span></button>':'')
+        +   '</div>'
+        +   '<div class="psrc-feed-meta"><span class="b">숏츠</span><div class="t">'+esc(p.title||'')+'</div>'
+        +     (pl?'<a class="psrc-feed-cta" href="'+esc(pl)+'">제품 보러가기 →</a>':'')
+        +   '</div>'
+        +   (i===0?HINT:'')
+        + '</div></div>';
     }).join('');
     feed.hidden=false; mOv=document.documentElement.style.overflow; document.documentElement.style.overflow='hidden';
     const slides=[].slice.call(feedScroll.querySelectorAll('.psrc-feed-slide'));
@@ -202,8 +235,13 @@ const isYt=(u)=>/youtu\.?be/.test(u||'');
     requestAnimationFrame(function(){ if(slides[si]){ feedScroll.scrollTop = slides[si].offsetTop; feedMount(slides[si]); } });
   }
   function closeFeed(){ if(feed._io){ feed._io.disconnect(); feed._io=null; } feedScroll.innerHTML=''; feed.hidden=true; document.documentElement.style.overflow=mOv; startShortsCycle(); }
+  function feedGo(dir){ var slides=[].slice.call(feedScroll.querySelectorAll('.psrc-feed-slide')); if(!slides.length) return; var h=feedScroll.clientHeight||1; var cur=Math.round(feedScroll.scrollTop/h); var ni=Math.max(0,Math.min(cur+dir,slides.length-1)); feedScroll.scrollTo({top:slides[ni].offsetTop,behavior:'smooth'}); }
+  function feedShare(url){ if(!url) return; if(navigator.share){ navigator.share({url:url}).catch(function(){}); } else if(navigator.clipboard){ navigator.clipboard.writeText(url).then(function(){ alert('링크를 복사했어요'); }).catch(function(){}); } else { window.open(url,'_blank','noopener'); } }
   sec.querySelector('[data-psrc-feed-x]').addEventListener('click', closeFeed);
-  document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ if(!modal.hidden) closeModal(); else if(!feed.hidden) closeFeed(); } });
+  sec.querySelector('[data-feed-prev]').addEventListener('click', function(){ feedGo(-1); });
+  sec.querySelector('[data-feed-next]').addEventListener('click', function(){ feedGo(1); });
+  feedScroll.addEventListener('click', function(e){ var b=e.target.closest&&e.target.closest('[data-act]'); if(!b) return; e.stopPropagation(); var sl=b.closest('.psrc-feed-slide'); if(!sl) return; var act=b.getAttribute('data-act'); if(act==='prod'){ var pl=sl.getAttribute('data-plink'); if(pl) location.href=pl; } else if(act==='share'){ feedShare(sl.getAttribute('data-share')); } });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ if(!modal.hidden) closeModal(); else if(!feed.hidden) closeFeed(); } else if(!feed.hidden){ if(e.key==='ArrowDown'){ e.preventDefault(); feedGo(1); } else if(e.key==='ArrowUp'){ e.preventDefault(); feedGo(-1); } } });
 
   // ===== 1줄: 숏츠 (하나씩 순환 자동재생 · 클릭→모달) =====
   const shortsRow = sec.querySelector('[data-psrc-shorts]');

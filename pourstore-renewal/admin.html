@@ -4840,7 +4840,7 @@ function PostingsPage({showToast}){
   };
   useEffect(()=>{ load(); },[]);
 
-  const startNew=()=>setEditing({type:'blog',title:'',link:'',thumbnail:'',tagsText:'',summary:'',body:'',duration:'',displayDate:'',productLink:'',placements:[],active:true,order:list.length});
+  const startNew=()=>setEditing({type:'blog',title:'',link:'',thumbnail:'',tagsText:'',summary:'',body:'',duration:'',displayDate:'',productLink:'',productImage:'',placements:[],active:true,order:list.length});
   const startEdit=(p)=>setEditing({...p,tagsText:(p.tags||[]).join(', '),placements:p.placements||[],duration:p.duration||''});
 
   const saveEditing=async()=>{
@@ -4872,7 +4872,7 @@ function PostingsPage({showToast}){
       const tags=(f.tagsText||'').split(',').map(s=>s.trim()).filter(Boolean);
       const thumbnail=(f.thumbnail||'').trim() || (isVid?ytThumb(f.link):'') || (blocks.find(b=>b.type==='image')||{}).url || '';
       const payload={ type:f.type, title:f.title.trim(), link:f.link.trim(), thumbnail, tags,
-        summary:(f.summary||'').trim(), body:bodyStr, blocks, duration:(f.duration||'').trim(), displayDate:(f.displayDate||'').trim(), productLink:(f.productLink||'').trim(), placements:Array.isArray(f.placements)?f.placements:[],
+        summary:(f.summary||'').trim(), body:bodyStr, blocks, duration:(f.duration||'').trim(), displayDate:(f.displayDate||'').trim(), productLink:(f.productLink||'').trim(), productImage:(f.productImage||'').trim(), placements:Array.isArray(f.placements)?f.placements:[],
         order:Number(f.order)||0, active:f.active!==false };
       if(f.id){
         await db.collection(COLLECTIONS.POURSTORE_POSTINGS).doc(f.id).set({...payload,...audit.update()},{merge:true});
@@ -5167,6 +5167,13 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
         <label style={lbl}>연결 상품 URL (선택) — 영상·숏츠 재생화면의 <b style={{color:'var(--or-d)'}}>'제품 보러가기'</b> 버튼 링크</label>
         <input value={form.productLink||''} onChange={e=>set({productLink:e.target.value})} placeholder="/product/detail.html?product_no=123  또는  /product/list.html?cate_no=71" style={field}/>
         <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:700,marginTop:4}}>ℹ 비우면 '제품 보러가기' 버튼이 숨겨집니다. (카페24 상품/카테고리 URL 붙여넣기)</div>
+        <div style={{height:12}}/>
+        <label style={lbl}>연결 상품 썸네일 URL (선택) — '제품 보러가기' 버튼 <b style={{color:'var(--or-d)'}}>왼쪽에 상품 이미지</b> 미리보기</label>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <input value={form.productImage||''} onChange={e=>set({productImage:e.target.value})} placeholder="https://.../product-thumb.jpg  (상품 대표이미지 URL)" style={{...field,flex:1}}/>
+          {form.productImage && <img src={form.productImage} alt="" style={{width:39,height:39,objectFit:'cover',borderRadius:8,border:'1px solid var(--border)',flexShrink:0}} onError={e=>{e.target.style.display='none';}}/>}
+        </div>
+        <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:700,marginTop:4}}>ℹ 비우면 이미지 없이 버튼만 나옵니다.</div>
         <div style={{height:12}}/>
         <label style={lbl}>노출 날짜 (선택) — 화면에 표시할 날짜. 비우면 등록일</label>
         <div style={{display:'flex',gap:6,alignItems:'center'}}>

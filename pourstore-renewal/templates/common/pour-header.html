@@ -356,18 +356,26 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 .psm1-ytm-ext svg { width:15px; height:15px; }
 .psm1-ytm-sm { margin-top:14px; font-size:14px; color:#C6CBD2; font-weight:500; line-height:1.6; white-space:pre-line; }
 .psm1-ytm-acts { margin-top:16px; display:flex; gap:8px; flex-wrap:wrap; }
-.psm1-ytm-cta { flex:1 1 200px; display:flex; align-items:center; justify-content:center; gap:6px; height:46px; background:#E8780F; color:#fff; font-size:14.5px; font-weight:800; border-radius:10px; text-decoration:none; }
+.psm1-ytm-cta { position:relative; flex:1 1 200px; display:flex; align-items:center; justify-content:center; gap:6px; height:52px; background:#E8780F; color:#fff; font-size:14.5px; font-weight:800; border-radius:10px; text-decoration:none; padding:0 14px; }
 .psm1-ytm-cta svg { width:16px; height:16px; }
+.psm1-ytm-cta .pth { position:absolute; left:6px; top:50%; transform:translateY(-50%); width:40px; height:40px; border-radius:7px; object-fit:cover; background:#fff; }
 .psm1-ytm-abtn { display:inline-flex; align-items:center; gap:7px; height:46px; padding:0 18px; background:rgba(255,255,255,.12); color:#fff; font-size:13.5px; font-weight:700; border:0; border-radius:10px; cursor:pointer; }
 .psm1-ytm-abtn:hover { background:rgba(255,255,255,.22); }
 .psm1-ytm-abtn svg { width:18px; height:18px; }
 .psm1-ytm-nav { margin-top:10px; display:flex; gap:8px; }
-.psm1-ytm-navb { flex:1; min-width:0; display:inline-flex; align-items:center; justify-content:center; gap:7px; height:44px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14); color:#fff; font-size:13.5px; font-weight:700; border-radius:10px; cursor:pointer; }
+.psm1-ytm-navb { flex:1; min-width:0; display:inline-flex; align-items:center; gap:9px; height:60px; padding:0 12px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14); color:#fff; font-size:13px; font-weight:700; border-radius:10px; cursor:pointer; text-align:left; }
+.psm1-ytm-navb.next { flex-direction:row-reverse; text-align:right; }
 .psm1-ytm-navb:hover:not(:disabled) { background:rgba(255,255,255,.16); }
 .psm1-ytm-navb:disabled { opacity:.35; cursor:default; }
 .psm1-ytm-navb svg { width:16px; height:16px; flex-shrink:0; }
-.psm1-ytm-navb .lb2 { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.psm1-ytm-side { display:flex; flex-direction:column; gap:8px; }
+.psm1-ytm-navb .nth { width:64px; height:38px; flex-shrink:0; border-radius:6px; object-fit:cover; background:#222; }
+.psm1-ytm-navb .nbx { min-width:0; flex:1; }
+.psm1-ytm-navb .ndir { font-size:11px; font-weight:800; color:#FDBA74; }
+.psm1-ytm-navb .lb2 { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; }
+.psm1-ytm-side { display:flex; flex-direction:column; gap:8px; position:sticky; top:72px; max-height:calc(100vh - 96px); overflow-y:auto; padding-right:6px; }
+.psm1-ytm-side::-webkit-scrollbar { width:8px; }
+.psm1-ytm-side::-webkit-scrollbar-thumb { background:rgba(255,255,255,.22); border-radius:8px; }
+.psm1-ytm-side::-webkit-scrollbar-track { background:rgba(255,255,255,.05); border-radius:8px; }
 .psm1-ytm-sideh { font-size:15px; font-weight:800; color:#fff; margin-bottom:4px; }
 .psm1-ytm-rel { display:grid; grid-template-columns:168px 1fr; gap:10px; cursor:pointer; border-radius:8px; padding:4px; transition:.12s; text-decoration:none; }
 .psm1-ytm-rel:hover { background:rgba(255,255,255,.07); }
@@ -379,7 +387,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 .psm1-ytm-empty { color:#888; font-size:13px; font-weight:500; padding:8px 4px; }
 @media (max-width:1000px){
   .psm1-ytm-wrap { grid-template-columns:1fr; gap:30px; }
-  .psm1-ytm-side { display:grid; grid-template-columns:repeat(2,1fr); gap:20px 16px; }
+  .psm1-ytm-side { display:grid; grid-template-columns:repeat(2,1fr); gap:20px 16px; position:static; max-height:none; overflow:visible; padding-right:0; }
   .psm1-ytm-sideh { grid-column:1/-1; font-size:16.5px; }
   .psm1-ytm-rel { grid-template-columns:1fr; gap:9px; padding:0; }
   .psm1-ytm-rel-tt { font-size:15px; } .psm1-ytm-rel-ct { font-size:13px; } .psm1-ytm-rel-badge { font-size:11px; padding:3px 7px; }
@@ -630,21 +638,26 @@ var PM_POSTS = [];
     _pmNext = (ci>=0 && ci<allVids.length-1) ? allVids[ci+1] : null;
     _pmShare = link;
     var rawPl = (p && p.productLink ? String(p.productLink) : '').trim();
+    var rawImg = (p && p.productImage ? String(p.productImage) : '').trim();
     var ctaLink = rawPl || '/product/list.html';
+    var navHtml = function(np, dir){
+      var arrow = dir<0 ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
+      var th = np ? thumbOf(np) : '';
+      var thHtml = th ? '<img class="nth" src="'+esc(th)+'" alt="" onerror="this.style.display=\'none\'"/>' : '';
+      var body = '<span class="nbx"><span class="ndir">'+(dir<0?'이전 영상':'다음 영상')+'</span><span class="lb2">'+(np?esc(np.title||''):'없음')+'</span></span>';
+      return '<button class="psm1-ytm-navb'+(dir<0?'':' next')+'" type="button" data-ytm-'+(dir<0?'prev':'next')+(np?'':' disabled')+'>'+arrow+thHtml+body+'</button>';
+    };
     meta.innerHTML = '<div class="psm1-ytm-tt">'+esc(title)+'</div>'
       + '<div class="psm1-ytm-row"><span class="psm1-ytm-ct">'+esc(p?typeLabel(p.type):'영상')+'</span>'
       + (p&&dOf(p)?'<span class="psm1-ytm-dt">'+dOf(p)+'</span>':'')
       + '<a class="psm1-ytm-ext" href="'+esc(link)+'" target="_blank" rel="noopener">YouTube <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div>'
       + (p&&p.summary?'<div class="psm1-ytm-sm">'+esc(p.summary)+'</div>':'')
       + '<div class="psm1-ytm-acts">'
-      +   '<a class="psm1-ytm-cta" href="'+esc(ctaLink)+'"><span>제품 보러가기</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>'
+      +   '<a class="psm1-ytm-cta" href="'+esc(ctaLink)+'">'+(rawImg?'<img class="pth" src="'+esc(rawImg)+'" alt="" onerror="this.style.display=\'none\'"/>':'')+'<span>제품 보러가기</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>'
       +   '<button class="psm1-ytm-abtn" type="button" data-ytm-share><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>공유</button>'
       +   (rawPl ? '<button class="psm1-ytm-abtn" type="button" data-ytm-prod data-plink="'+esc(rawPl)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>상품</button>' : '')
       + '</div>'
-      + '<div class="psm1-ytm-nav">'
-      +   '<button class="psm1-ytm-navb" type="button" data-ytm-prev'+(_pmPrev?'':' disabled')+'><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg><span class="lb2">'+(_pmPrev?esc(_pmPrev.title||'이전 영상'):'이전 영상')+'</span></button>'
-      +   '<button class="psm1-ytm-navb" type="button" data-ytm-next'+(_pmNext?'':' disabled')+'><span class="lb2">'+(_pmNext?esc(_pmNext.title||'다음 영상'):'다음 영상')+'</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>'
-      + '</div>';
+      + '<div class="psm1-ytm-nav">' + navHtml(_pmPrev,-1) + navHtml(_pmNext,1) + '</div>';
     renderSide(p);
     if(modal.hidden){ modal.hidden=false; prevOv=document.documentElement.style.overflow; document.documentElement.style.overflow='hidden'; }
     modal.scrollTop=0;

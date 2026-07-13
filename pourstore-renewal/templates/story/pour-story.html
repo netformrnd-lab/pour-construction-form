@@ -1481,9 +1481,11 @@ var PM_POSTS = [];
   .pstory-grid { grid-template-columns:repeat(2,1fr); gap:24px 12px; }
   .pstory-tt { font-size:14px; }
   .pstory-watch { padding:16px 12px 48px; } .pstory-watch-tt { font-size:17px; }
-  .pstory-watch-side { grid-template-columns:1fr; gap:22px; position:static; max-height:none; overflow:visible; padding-right:0; }
-  .pstory-side-cat { position:static; }
-  .pstory-rel-tt { font-size:15.5px; }
+  .pstory-watch-side { display:grid; grid-template-columns:repeat(2,1fr); gap:22px 12px; position:static; max-height:none; overflow:visible; padding-right:0; }
+  .pstory-side-cat { position:static; grid-column:1/-1; margin:4px 0 0; }
+  .pstory-rel { grid-template-columns:1fr; gap:9px; }
+  .pstory-rel-tt { font-size:14.5px; }
+  .pstory-rel-th { border-radius:10px; }
   .pstory-art-tt { font-size:21px; } .pstory-art-body p { font-size:15px; } .pstory-art-rel-list { grid-template-columns:1fr 1fr; }
 }
 /* 숏츠 확대 피드 (인스타그램 스토리식 가로 캐러셀) */

@@ -56,12 +56,17 @@
 @media (max-width:520px) { .psy3-head h2 { font-size:22px; } .psy3-card .title { font-size:12px; } }
 .psfs { position:fixed; inset:0; z-index:100001; background:#2B2B2B; overflow:hidden; }
 .psfs[hidden] { display:none; }
-.psfs-brand { position:fixed; top:16px; left:22px; z-index:7; color:#fff; font-size:19px; font-weight:800; letter-spacing:-.04em; }
+.psfs-brand { position:fixed; top:16px; left:22px; z-index:8; color:#fff; font-size:19px; font-weight:800; letter-spacing:-.04em; }
 .psfs-brand .or { color:#F49A3A; }
-.psfs-x { position:fixed; top:13px; right:18px; z-index:7; width:42px; height:42px; border:0; background:transparent; color:#fff; display:grid; place-items:center; cursor:pointer; }
+.psfs-x { position:fixed; top:13px; right:18px; z-index:8; width:42px; height:42px; border:0; background:transparent; color:#fff; display:grid; place-items:center; cursor:pointer; }
 .psfs-x svg { width:28px; height:28px; }
+.psfs-strip { position:fixed; top:52px; left:0; right:0; z-index:6; height:74px; display:flex; gap:7px; align-items:center; justify-content:center; padding:0 14px; overflow-x:auto; scrollbar-width:none; }
+.psfs-strip::-webkit-scrollbar { display:none; }
+.psfs-thumb { flex:0 0 auto; width:40px; height:58px; border-radius:6px; border:2px solid transparent; background:#000 center/cover no-repeat; opacity:.5; cursor:pointer; padding:0; transition:.15s; }
+.psfs-thumb.on { opacity:1; border-color:#fff; width:46px; height:66px; }
+@media (min-width:701px){ .psfs-strip { display:none; } }
 .psfs-stage { position:absolute; inset:0; }
-.psfs-arrow { position:absolute; top:50%; z-index:7; width:36px; height:36px; margin-top:-18px; border-radius:50%; border:0; background:rgba(255,255,255,.92); color:#111; display:grid; place-items:center; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.3); }
+.psfs-arrow { position:absolute; z-index:7; width:36px; height:36px; margin-top:-18px; border-radius:50%; border:0; background:rgba(255,255,255,.92); color:#111; display:grid; place-items:center; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.3); }
 .psfs-arrow svg { width:22px; height:22px; } .psfs-arrow[hidden] { display:none; }
 .psfs-card { position:absolute; top:0; left:0; border-radius:10px; overflow:hidden; background:#000; box-shadow:0 10px 44px rgba(0,0,0,.5); transition:width .3s cubic-bezier(.33,0,.2,1),height .3s cubic-bezier(.33,0,.2,1),left .3s cubic-bezier(.33,0,.2,1),top .3s cubic-bezier(.33,0,.2,1),opacity .3s,filter .3s; cursor:pointer; }
 .psfs-card > img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
@@ -70,14 +75,15 @@
 .psfs-card.is-side .psfs-meta, .psfs-card.is-side .psfs-rail, .psfs-card.is-side .psfs-segs { display:none; }
 .psfs-segs { position:absolute; top:9px; left:9px; right:9px; z-index:3; display:flex; gap:4px; }
 .psfs-segs span { flex:1; height:2.5px; border-radius:2px; background:rgba(255,255,255,.85); }
-.psfs-meta { position:absolute; left:0; right:0; bottom:0; z-index:3; padding:50px 14px 16px; background:linear-gradient(transparent,rgba(0,0,0,.7)); color:#fff; }
+.psfs-meta { position:absolute; left:0; right:0; bottom:0; z-index:3; padding:54px 14px 15px; background:linear-gradient(transparent, rgba(0,0,0,.55) 34%, rgba(0,0,0,.93)); color:#fff; }
 .psfs-meta .b { display:inline-block; font-size:10.5px; font-weight:800; background:#DB2777; padding:2px 8px; }
-.psfs-meta .t { margin-top:8px; font-size:14.5px; font-weight:700; line-height:1.4; }
-.psfs-cta { margin-top:11px; display:flex; align-items:center; justify-content:center; gap:6px; height:40px; background:#E8780F; color:#fff; font-size:13.5px; font-weight:800; border-radius:8px; text-decoration:none; }
-.psfs-rail { position:absolute; right:8px; bottom:96px; z-index:4; display:flex; flex-direction:column; gap:14px; }
+.psfs-meta .t { margin-top:8px; font-size:15.5px; font-weight:800; line-height:1.4; text-shadow:0 1px 8px rgba(0,0,0,.9); }
+.psfs-rail { position:absolute; right:8px; bottom:80px; z-index:4; display:flex; flex-direction:column; gap:14px; }
 .psfs-rbtn { border:0; background:transparent; display:flex; flex-direction:column; align-items:center; gap:4px; color:#fff; cursor:pointer; }
 .psfs-rbtn .ic { width:42px; height:42px; border-radius:50%; background:rgba(0,0,0,.4); display:grid; place-items:center; } .psfs-rbtn .ic svg { width:20px; height:20px; }
 .psfs-rbtn.prod .ic { background:#E8780F; } .psfs-rbtn .lb { font-size:10px; font-weight:700; }
+.psfs-cta2 { position:absolute; z-index:6; height:44px; display:flex; align-items:center; justify-content:center; gap:6px; background:#E8780F; color:#fff; font-size:14px; font-weight:800; border-radius:9px; text-decoration:none; box-shadow:0 4px 16px rgba(232,120,15,.4); }
+.psfs-cta2[hidden] { display:none; }
 @media (max-width:700px){ .psfs-arrow { display:none; } }
 </style>
 <section class="psy3" data-psy3 hidden>
@@ -96,9 +102,11 @@
 <div class="psfs" data-psfs hidden>
   <div class="psfs-brand"><span class="or">POUR</span>스토어</div>
   <button class="psfs-x" data-psfs-x aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <div class="psfs-strip" data-psfs-strip></div>
   <button class="psfs-arrow prev" data-psfs-prev aria-label="이전"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
   <button class="psfs-arrow next" data-psfs-next aria-label="다음"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
   <div class="psfs-stage" data-psfs-stage></div>
+  <a class="psfs-cta2" data-psfs-cta hidden><span>제품 보러가기</span> →</a>
 </div>
 <script type="module">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -170,22 +178,25 @@ var PC_TTL = 300000;
   var stage = feedEl && feedEl.querySelector('[data-psfs-stage]');
   var aPrev = feedEl && feedEl.querySelector('[data-psfs-prev]');
   var aNext = feedEl && feedEl.querySelector('[data-psfs-next]');
+  var strip = feedEl && feedEl.querySelector('[data-psfs-strip]');
+  var cta2 = feedEl && feedEl.querySelector('[data-psfs-cta]');
   var cur = 0, cardEls = [], feedItems = [];
   var IC_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>';
   var IC_BAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>';
   function cardInner(p){
     var thumb=p.thumbnail||p.thumb||p.image||ytThumb(p.link), plink=(p.productLink||'').trim();
-    var cta = plink ? '<a class="psfs-cta" href="'+esc(plink)+'"><span>제품 보러가기</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>' : '';
     var prodBtn = plink ? '<button class="psfs-rbtn prod" data-act="prod" data-plink="'+esc(plink)+'"><span class="ic">'+IC_BAG+'</span><span class="lb">상품</span></button>' : '';
     return (thumb?'<img src="'+esc(thumb)+'" alt="">':'')
       + '<div class="psfs-segs"><span></span></div>'
       + '<div class="psfs-rail"><button class="psfs-rbtn" data-act="share" data-share="'+esc(p.link||'')+'"><span class="ic">'+IC_SHARE+'</span><span class="lb">공유</span></button>'+prodBtn+'</div>'
-      + '<div class="psfs-meta"><span class="b">숏츠</span><div class="t">'+esc(p.title||'')+'</div>'+cta+'</div>';
+      + '<div class="psfs-meta"><span class="b">숏츠</span><div class="t">'+esc(p.title||'')+'</div></div>';
   }
   function buildCards(){
     stage.innerHTML = feedItems.map(function(p,i){ return '<div class="psfs-card" data-i="'+i+'" data-yt="'+esc(ytId(p.link))+'">'+cardInner(p)+'</div>'; }).join('');
     cardEls = [].slice.call(stage.querySelectorAll('.psfs-card'));
+    if(strip){ strip.innerHTML = feedItems.map(function(p,i){ var th=p.thumbnail||p.thumb||p.image||ytThumb(p.link); return '<button class="psfs-thumb" data-i="'+i+'"'+(th?' style="background-image:url(\''+esc(th)+'\')"':'')+'></button>'; }).join(''); }
   }
+  function updateStrip(){ if(!strip) return; var ts=strip.querySelectorAll('.psfs-thumb'); for(var k=0;k<ts.length;k++){ ts[k].classList.toggle('on', k===cur); } if(ts[cur]) ts[cur].scrollIntoView({inline:'center',block:'nearest'}); }
   function mountActive(){
     cardEls.forEach(function(el,i){
       var f=el.querySelector('iframe');
@@ -195,23 +206,27 @@ var PC_TTL = 300000;
   }
   function layout(){
     if(!cardEls.length) return;
-    var W=window.innerWidth, H=window.innerHeight;
-    var cardH=Math.min(H*0.86, 780), cardW=cardH*9/16;
-    if(cardW > W*0.86){ cardW=W*0.86; cardH=cardW*16/9; }
-    var cx=W/2, cy=H/2, gap=18, w1=cardW*0.8, w2=cardW*0.62;
+    var W=window.innerWidth, H=window.innerHeight, mobile=W<=700;
+    var hasCta = !!(feedItems[cur] && (feedItems[cur].productLink||'').trim());
+    var areaTop = mobile?134:62, areaBottom = H-(hasCta?62:16), areaH = Math.max(200, areaBottom-areaTop);
+    var cardH=Math.min(areaH, 760), cardW=cardH*9/16, maxW=mobile?W*0.9:W*0.86;
+    if(cardW > maxW){ cardW=maxW; cardH=cardW*16/9; if(cardH>areaH){ cardH=areaH; cardW=cardH*9/16; } }
+    var cx=W/2, cardTop=areaTop+(areaH-cardH)/2, cy=cardTop+cardH/2, gap=18, w1=cardW*0.8, w2=cardW*0.62;
     function centerOf(o){ if(o===0) return cx; var s=o>0?1:-1, k=Math.abs(o); if(k===1) return cx + s*(cardW/2 + gap + w1/2); return cx + s*(cardW/2 + gap + w1 + gap + w2/2); }
     cardEls.forEach(function(el,i){
       var o=i-cur, ao=Math.abs(o);
-      if(ao>2){ el.style.display='none'; return; }
+      if((mobile&&ao!==0) || ao>2){ el.style.display='none'; return; }
       el.style.display='block';
       var w = ao===0?cardW : ao===1?w1 : w2, h = w*16/9, ccx=centerOf(o);
-      el.style.width=w+'px'; el.style.height=h+'px'; el.style.left=(ccx-w/2)+'px'; el.style.top=(cy-h/2)+'px';
+      el.style.width=w+'px'; el.style.height=h+'px'; el.style.left=(ccx-w/2)+'px'; el.style.top=(ao===0?cardTop:(cy-h/2))+'px';
       el.style.opacity = ao===0?'1' : ao===1?'0.95':'0.85';
       el.style.zIndex = ao===0?'5' : ao===1?'3':'2';
       el.classList.toggle('is-side', ao!==0);
     });
-    aPrev.hidden = cur<=0; aNext.hidden = cur>=cardEls.length-1;
-    aPrev.style.left=(cx - cardW/2 - 44)+'px'; aNext.style.left=(cx + cardW/2 + 8)+'px';
+    aPrev.hidden = mobile||cur<=0; aNext.hidden = mobile||cur>=cardEls.length-1;
+    aPrev.style.left=(cx - cardW/2 - 44)+'px'; aNext.style.left=(cx + cardW/2 + 8)+'px'; aPrev.style.top=aNext.style.top=cy+'px';
+    if(cta2){ if(hasCta){ cta2.hidden=false; cta2.href=(feedItems[cur].productLink||'').trim(); cta2.style.left=(cx-cardW/2)+'px'; cta2.style.top=(cardTop+cardH+12)+'px'; cta2.style.width=cardW+'px'; } else cta2.hidden=true; }
+    updateStrip();
     mountActive();
   }
   function goTo(i){ i=Math.max(0,Math.min(i, feedItems.length-1)); if(i===cur) return; cur=i; layout(); }
@@ -230,10 +245,10 @@ var PC_TTL = 300000;
     feedEl.querySelector('[data-psfs-x]').addEventListener('click', closeFeed);
     aPrev.addEventListener('click', function(){ goTo(cur-1); });
     aNext.addEventListener('click', function(){ goTo(cur+1); });
+    if(strip) strip.addEventListener('click', function(e){ var t=e.target.closest('.psfs-thumb'); if(t) goTo(+t.getAttribute('data-i')); });
     stage.addEventListener('click', function(e){
       var act=e.target.closest('[data-act]');
       if(act){ e.stopPropagation(); if(act.getAttribute('data-act')==='prod'){ var pl=act.getAttribute('data-plink'); if(pl) location.href=pl; } else feedShare(act.getAttribute('data-share')); return; }
-      if(e.target.closest('.psfs-cta')) return;
       var card=e.target.closest('.psfs-card'); if(!card) return;
       goTo(+card.getAttribute('data-i'));
     });

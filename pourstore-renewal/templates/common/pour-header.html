@@ -355,6 +355,18 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 .psm1-ytm-ext:hover { background:rgba(255,255,255,.22); }
 .psm1-ytm-ext svg { width:15px; height:15px; }
 .psm1-ytm-sm { margin-top:14px; font-size:14px; color:#C6CBD2; font-weight:500; line-height:1.6; white-space:pre-line; }
+.psm1-ytm-acts { margin-top:16px; display:flex; gap:8px; flex-wrap:wrap; }
+.psm1-ytm-cta { flex:1 1 200px; display:flex; align-items:center; justify-content:center; gap:6px; height:46px; background:#E8780F; color:#fff; font-size:14.5px; font-weight:800; border-radius:10px; text-decoration:none; }
+.psm1-ytm-cta svg { width:16px; height:16px; }
+.psm1-ytm-abtn { display:inline-flex; align-items:center; gap:7px; height:46px; padding:0 18px; background:rgba(255,255,255,.12); color:#fff; font-size:13.5px; font-weight:700; border:0; border-radius:10px; cursor:pointer; }
+.psm1-ytm-abtn:hover { background:rgba(255,255,255,.22); }
+.psm1-ytm-abtn svg { width:18px; height:18px; }
+.psm1-ytm-nav { margin-top:10px; display:flex; gap:8px; }
+.psm1-ytm-navb { flex:1; min-width:0; display:inline-flex; align-items:center; justify-content:center; gap:7px; height:44px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14); color:#fff; font-size:13.5px; font-weight:700; border-radius:10px; cursor:pointer; }
+.psm1-ytm-navb:hover:not(:disabled) { background:rgba(255,255,255,.16); }
+.psm1-ytm-navb:disabled { opacity:.35; cursor:default; }
+.psm1-ytm-navb svg { width:16px; height:16px; flex-shrink:0; }
+.psm1-ytm-navb .lb2 { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .psm1-ytm-side { display:flex; flex-direction:column; gap:8px; }
 .psm1-ytm-sideh { font-size:15px; font-weight:800; color:#fff; margin-bottom:4px; }
 .psm1-ytm-rel { display:grid; grid-template-columns:168px 1fr; gap:10px; cursor:pointer; border-radius:8px; padding:4px; transition:.12s; text-decoration:none; }
@@ -590,6 +602,8 @@ var PM_POSTS = [];
   var modal=document.querySelector('[data-psm1-ytm]'), player=document.querySelector('[data-psm1-ytm-player]'),
       meta=document.querySelector('[data-psm1-ytm-meta]'), side=document.querySelector('[data-psm1-ytm-side]'),
       btnX=document.querySelector('[data-psm1-ytm-x]'), prevOv='';
+  var _pmPrev=null, _pmNext=null, _pmShare='';
+  function pmShare(url){ if(!url) return; if(navigator.share){ navigator.share({url:url}).catch(function(){}); } else if(navigator.clipboard){ navigator.clipboard.writeText(url); } }
 
   function relHtml(p){
     var yt = isYtHost(p.link||''); var th = thumbOf(p);
@@ -610,11 +624,27 @@ var PM_POSTS = [];
     player.innerHTML='<iframe src="https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&rel=0&modestbranding=1&playsinline=1" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="영상"></iframe>';
     var title = (p&&p.title) || fallbackTitle || '영상';
     var link = (p&&p.link) || fallbackLink || 'https://youtu.be/'+id;
+    var allVids = PM_POSTS.filter(function(x){ return isYtHost(x.link||''); });
+    var ci = p ? allVids.indexOf(p) : -1;
+    _pmPrev = ci>0 ? allVids[ci-1] : null;
+    _pmNext = (ci>=0 && ci<allVids.length-1) ? allVids[ci+1] : null;
+    _pmShare = link;
+    var rawPl = (p && p.productLink ? String(p.productLink) : '').trim();
+    var ctaLink = rawPl || '/product/list.html';
     meta.innerHTML = '<div class="psm1-ytm-tt">'+esc(title)+'</div>'
       + '<div class="psm1-ytm-row"><span class="psm1-ytm-ct">'+esc(p?typeLabel(p.type):'영상')+'</span>'
       + (p&&dOf(p)?'<span class="psm1-ytm-dt">'+dOf(p)+'</span>':'')
       + '<a class="psm1-ytm-ext" href="'+esc(link)+'" target="_blank" rel="noopener">YouTube <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div>'
-      + (p&&p.summary?'<div class="psm1-ytm-sm">'+esc(p.summary)+'</div>':'');
+      + (p&&p.summary?'<div class="psm1-ytm-sm">'+esc(p.summary)+'</div>':'')
+      + '<div class="psm1-ytm-acts">'
+      +   '<a class="psm1-ytm-cta" href="'+esc(ctaLink)+'"><span>제품 보러가기</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>'
+      +   '<button class="psm1-ytm-abtn" type="button" data-ytm-share><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>공유</button>'
+      +   (rawPl ? '<button class="psm1-ytm-abtn" type="button" data-ytm-prod data-plink="'+esc(rawPl)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>상품</button>' : '')
+      + '</div>'
+      + '<div class="psm1-ytm-nav">'
+      +   '<button class="psm1-ytm-navb" type="button" data-ytm-prev'+(_pmPrev?'':' disabled')+'><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg><span class="lb2">'+(_pmPrev?esc(_pmPrev.title||'이전 영상'):'이전 영상')+'</span></button>'
+      +   '<button class="psm1-ytm-navb" type="button" data-ytm-next'+(_pmNext?'':' disabled')+'><span class="lb2">'+(_pmNext?esc(_pmNext.title||'다음 영상'):'다음 영상')+'</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>'
+      + '</div>';
     renderSide(p);
     if(modal.hidden){ modal.hidden=false; prevOv=document.documentElement.style.overflow; document.documentElement.style.overflow='hidden'; }
     modal.scrollTop=0;
@@ -622,6 +652,14 @@ var PM_POSTS = [];
   function close(){ if(!modal) return; modal.hidden=true; if(player) player.innerHTML=''; document.documentElement.style.overflow=prevOv; }
   if(btnX) btnX.addEventListener('click', close);
   document.addEventListener('keydown', function(e){ if(e.key==='Escape' && modal && !modal.hidden) close(); });
+  if(meta) meta.addEventListener('click', function(e){
+    var b=e.target.closest('[data-ytm-prev],[data-ytm-next],[data-ytm-share],[data-ytm-prod]'); if(!b||b.disabled) return;
+    e.preventDefault(); e.stopPropagation();
+    if(b.hasAttribute('data-ytm-prev')){ if(_pmPrev) open(ytId(_pmPrev.link), _pmPrev); }
+    else if(b.hasAttribute('data-ytm-next')){ if(_pmNext) open(ytId(_pmNext.link), _pmNext); }
+    else if(b.hasAttribute('data-ytm-share')){ pmShare(_pmShare); }
+    else if(b.hasAttribute('data-ytm-prod')){ var pl=b.getAttribute('data-plink'); if(pl) location.href=pl; }
+  });
 
   // 캡처 단계에서 유튜브 앵커 클릭 가로채기 (전역). 모달 내부 관련영상 클릭 → 제자리 재생.
   document.addEventListener('click', function(e){

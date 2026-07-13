@@ -1754,7 +1754,7 @@ var PC_TTL = 300000;
     setupShortsAutoplay($('[data-shorts]'));
   }
   // 숏츠 인라인 자동재생: 하나씩 음소거 재생 → 14s마다 다음. 클릭 시 그 카드 재생(사이클 정지).
-  function _shMount(card){ var id=card.getAttribute('data-ytshort'); if(!id) return; var th=card.querySelector('.pstory-short-th'); if(!th || th.querySelector('iframe')) return; var f=document.createElement('iframe'); f.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&mute=1&loop=1&playlist='+id+'&controls=1&rel=0&modestbranding=1&playsinline=1'; f.allow='autoplay; encrypted-media; picture-in-picture'; f.setAttribute('allowfullscreen',''); f.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:0;z-index:3'; th.appendChild(f); card.classList.add('playing'); }
+  function _shMount(card){ var id=card.getAttribute('data-ytshort'); if(!id) return; var th=card.querySelector('.pstory-short-th'); if(!th || th.querySelector('iframe')) return; var f=document.createElement('iframe'); f.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&mute=1&loop=1&playlist='+id+'&controls=1&rel=0&modestbranding=1&playsinline=1'; f.allow='autoplay; encrypted-media; picture-in-picture'; f.setAttribute('allowfullscreen',''); f.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:0;z-index:3;pointer-events:none'; th.appendChild(f); card.classList.add('playing'); }
   function _shUnmount(card){ var f=card.querySelector('iframe'); if(f) f.remove(); card.classList.remove('playing'); }
   function setupShortsAutoplay(row){
     if(!row) return; var cards=[].slice.call(row.querySelectorAll('.pstory-short')); if(!cards.length) return;

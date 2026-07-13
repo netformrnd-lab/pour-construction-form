@@ -145,7 +145,7 @@ var PC_TTL = 300000;
     var f=document.createElement('iframe');
     f.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&mute=1&loop=1&playlist='+id+'&controls=1&rel=0&modestbranding=1&playsinline=1';
     f.allow='autoplay; encrypted-media; picture-in-picture'; f.setAttribute('allowfullscreen','');
-    f.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:0;z-index:2';
+    f.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:0;z-index:2;pointer-events:none';
     card.appendChild(f); card.classList.add('psy3-playing');
   }
   function unmount(card){ var f=card.querySelector('iframe'); if(f) f.remove(); card.classList.remove('psy3-playing'); }

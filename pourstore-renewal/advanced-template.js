@@ -123,15 +123,25 @@
 .adv-host .uie-pop-body{display:grid;gap:3px;}
 .adv-host .uie-pop-body label{font-size:11px;font-weight:850;color:#555;margin-top:5px;}
 .adv-host .uie-pop-del{margin-top:10px;width:100%;border:0;border-radius:8px;background:#fff0ec;color:#e5484d;font:inherit;font-size:12px;font-weight:900;padding:8px;cursor:pointer;}
-/* 외곽선(강조 영역) */
+/* 외곽선(강조 영역) — 톡톡 점찍기 방식 */
 .adv-host .uie-hl-svg{position:absolute;inset:0;z-index:58;pointer-events:none;overflow:visible;}
-.adv-host .uie-hl-svg polygon{fill:rgba(255,90,0,.12);stroke:#ff5a00;stroke-width:2;stroke-dasharray:6 4;vector-effect:non-scaling-stroke;}
-.adv-host .uie-vtx{position:absolute;transform:translate(-50%,-50%);z-index:62;width:15px;height:15px;border-radius:50%;background:#fff;border:2px solid #ff5a00;cursor:grab;touch-action:none;box-shadow:0 2px 6px rgba(0,0,0,.25);}
-.adv-host .uie-vtx:active{cursor:grabbing;}
-.adv-host .uie-hl-ctrl{position:absolute;transform:translate(-50%,-50%);z-index:63;display:flex;gap:4px;}
-.adv-host .uie-hl-ctrl button{border:0;border-radius:6px;padding:4px 9px;font:inherit;font-size:11px;font-weight:900;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.22);}
-.adv-host .uie-hl-card{background:#ff5a00;color:#fff;}
-.adv-host .uie-hl-del{background:#222;color:#fff;}
+.adv-host .uie-hl-svg polyline{fill:none;stroke:#ff5a00;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;}
+.adv-host .uie-hl-svg polyline.done{stroke-opacity:.85;}
+.adv-host .uie-hl-svg polyline.draw{stroke-dasharray:5 4;stroke-opacity:1;}
+.adv-host .uie-dot{position:absolute;transform:translate(-50%,-50%);z-index:62;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #ff5a00;color:#ff5a00;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.25);}
+.adv-host .uie-hint{position:absolute;left:8px;top:8px;z-index:64;background:rgba(255,90,0,.94);color:#fff;font-size:11px;font-weight:800;padding:4px 9px;border-radius:6px;pointer-events:none;}
+.adv-host .uie-hl-wrap{margin-top:12px;}
+.adv-host .uie-hl-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.adv-host .uie-hl-head>span{font-size:12px;font-weight:900;color:#ff5a00;}
+.adv-host .uie-hl-btns{display:flex;gap:6px;}
+.adv-host .uie-mini{border:1px solid #ddd;border-radius:7px;background:#f7f7f7;color:#333;font:inherit;font-size:11px;font-weight:900;padding:5px 10px;cursor:pointer;}
+.adv-host .uie-mini.on{border-color:#ff5a00;background:#ff5a00;color:#fff;}
+.adv-host .uie-mini.line{border-color:#ff8a3d;background:#fff4ea;color:#ff5a00;}
+.adv-host .uie-mini.del{border-color:#f3c0c0;background:#fff;color:#e5484d;}
+.adv-host .uie-hl-tip{margin:0 0 8px;font-size:11px;color:#777;font-weight:700;}
+.adv-host .uie-hl-item{margin-top:8px;padding:10px;border:1px solid #eee;border-radius:10px;background:#fafafa;}
+.adv-host .uie-hl-itop{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.adv-host .uie-hl-itop b{font-size:11.5px;color:#ff5a00;}
 `;
 
   var IMG = {

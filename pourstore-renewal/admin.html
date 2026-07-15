@@ -90,6 +90,7 @@ input::placeholder, textarea::placeholder { color: var(--text-xs); }
 </head>
 <body>
 <div id="root"></div>
+<script src="advanced-template.js"></script>
 <script type="text/babel-src" id="appsrc">
 const { useState, useEffect, useMemo, useRef, createContext, useContext } = React;
 
@@ -5260,7 +5261,7 @@ const ADV_DEFAULT_HTML = `
     <button type="button" class="info-add-tile addInfoItem" aria-label="항목 추가"><span></span></button>
   </div></section>
 </div>`;
-function advEnsureStyle(){ if(!document.getElementById('adv-uie-style')){ const s=document.createElement('style'); s.id='adv-uie-style'; s.textContent=ADV_CSS; document.head.appendChild(s); } }
+function advEnsureStyle(){ if(!document.getElementById('adv-uie-style')){ const s=document.createElement('style'); s.id='adv-uie-style'; s.textContent=ADV_CSS+(window.ADV_EXTRA_CSS||''); document.head.appendChild(s); } }
 function advReadFile(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
 function advBuildUIE(box, host, onChange){
   if(box.dataset.uieReady==='1') return; box.dataset.uieReady='1';
@@ -5347,7 +5348,7 @@ function AdvancedContentEditor({form,set}){
   useEffect(()=>{
     if(inited.current) return; inited.current=true;
     const host=hostRef.current; if(!host) return;
-    host.innerHTML=(form.advancedHtml&&form.advancedHtml.trim())?form.advancedHtml:ADV_DEFAULT_HTML;
+    host.innerHTML=(form.advancedHtml&&form.advancedHtml.trim())?form.advancedHtml:(window.ADV_DEFAULT_HTML||ADV_DEFAULT_HTML);
     const sync=()=>{ try{ setRef.current({advancedHtml: advCleanHtml(host)}); }catch(_){} };
     advEnhance(host, sync);
     sync();

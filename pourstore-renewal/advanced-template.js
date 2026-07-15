@@ -123,6 +123,15 @@
 .adv-host .uie-pop-body{display:grid;gap:3px;}
 .adv-host .uie-pop-body label{font-size:11px;font-weight:850;color:#555;margin-top:5px;}
 .adv-host .uie-pop-del{margin-top:10px;width:100%;border:0;border-radius:8px;background:#fff0ec;color:#e5484d;font:inherit;font-size:12px;font-weight:900;padding:8px;cursor:pointer;}
+/* 외곽선(강조 영역) */
+.adv-host .uie-hl-svg{position:absolute;inset:0;z-index:58;pointer-events:none;overflow:visible;}
+.adv-host .uie-hl-svg polygon{fill:rgba(255,90,0,.12);stroke:#ff5a00;stroke-width:2;stroke-dasharray:6 4;vector-effect:non-scaling-stroke;}
+.adv-host .uie-vtx{position:absolute;transform:translate(-50%,-50%);z-index:62;width:15px;height:15px;border-radius:50%;background:#fff;border:2px solid #ff5a00;cursor:grab;touch-action:none;box-shadow:0 2px 6px rgba(0,0,0,.25);}
+.adv-host .uie-vtx:active{cursor:grabbing;}
+.adv-host .uie-hl-ctrl{position:absolute;transform:translate(-50%,-50%);z-index:63;display:flex;gap:4px;}
+.adv-host .uie-hl-ctrl button{border:0;border-radius:6px;padding:4px 9px;font:inherit;font-size:11px;font-weight:900;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.22);}
+.adv-host .uie-hl-card{background:#ff5a00;color:#fff;}
+.adv-host .uie-hl-del{background:#222;color:#fff;}
 `;
 
   var IMG = {

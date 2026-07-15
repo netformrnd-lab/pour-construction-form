@@ -5272,7 +5272,7 @@ function advBuildUIE(box, host, onChange){
   applyImg();
   const open=document.createElement('button'); open.type='button'; open.className='uie-open'; open.textContent='🖼 이미지 변경';
   const panel=document.createElement('div'); panel.className='uie-panel';
-  panel.innerHTML='<p class="uie-title">이미지 편집</p><div class="uie-row"><label>이미지 링크로 넣기</label><div class="uie-url-line"><input class="uie-input js-url" type="url" placeholder="https:// 이미지 주소 붙여넣기"><button type="button" class="uie-btn js-apply">적용</button></div></div><div class="uie-row"><label>컴퓨터에서 업로드</label><div class="uie-upload-line"><label class="uie-file-btn">업로드<input class="js-file" type="file" accept="image/*" style="display:none"></label><div class="uie-preview js-preview"><span>🖼</span></div></div></div><div class="uie-tabs"><button type="button" class="uie-tab js-tab is-active" data-mode="box">박스 크기 조절</button><button type="button" class="uie-tab js-tab" data-mode="inner">안쪽 이미지 조절</button></div><div class="uie-row"><button type="button" class="uie-btn ghost js-addpoint" style="width:100%">＋ 상품·설명 점 추가</button></div><div class="uie-actions"><button type="button" class="uie-btn ghost js-reset">초기화</button><button type="button" class="uie-btn ghost js-close">닫기</button></div><p class="uie-help"><b>박스 크기</b> 모드=파란 점으로 이미지 칸을 조절 · <b>안쪽 이미지</b> 모드=주황 점을 끌거나 사진을 직접 드래그해서 조절</p>';
+  panel.innerHTML='<p class="uie-title">이미지 편집</p><div class="uie-row"><label>이미지 링크로 넣기</label><div class="uie-url-line"><input class="uie-input js-url" type="url" placeholder="https:// 이미지 주소 붙여넣기"><button type="button" class="uie-btn js-apply">적용</button></div></div><div class="uie-row"><label>컴퓨터에서 업로드</label><div class="uie-upload-line"><label class="uie-file-btn">업로드<input class="js-file" type="file" accept="image/*" style="display:none"></label><div class="uie-preview js-preview"><span>🖼</span></div></div></div><div class="uie-tabs"><button type="button" class="uie-tab js-tab is-active" data-mode="box">박스 크기 조절</button><button type="button" class="uie-tab js-tab" data-mode="inner">안쪽 이미지 조절</button></div><div class="uie-row" style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><button type="button" class="uie-btn ghost js-addpoint">＋ 상품·설명 점</button><button type="button" class="uie-btn ghost js-addhl">＋ 외곽선</button></div><div class="uie-actions"><button type="button" class="uie-btn ghost js-reset">초기화</button><button type="button" class="uie-btn ghost js-close">닫기</button></div><p class="uie-help"><b>박스 크기</b> 모드=파란 점으로 이미지 칸을 조절 · <b>안쪽 이미지</b> 모드=주황 점을 끌거나 사진을 직접 드래그해서 조절</p>';
   box.appendChild(open); box.appendChild(panel);
   ['nw','n','ne','e','se','s','sw','w'].forEach(dir=>{ const h=document.createElement('span'); h.className='uie-handle '+dir; h.dataset.dir=dir; box.appendChild(h); });
   const badge=document.createElement('span'); badge.className='uie-badge'; box.appendChild(badge);
@@ -5323,6 +5323,57 @@ function advBuildUIE(box, host, onChange){
   }
   panel.querySelector('.js-addpoint').addEventListener('click',e=>{ e.stopPropagation(); points.push({x:50,y:50,mode:'product',name:'',price:'',thumb:'',link:''}); savePoints(); renderPoints(); openEditor(points.length-1); });
   renderPoints();
+  // ---- 외곽선(강조 영역) ----
+  let highlights; try{ highlights=JSON.parse(box.dataset.highlights||'[]'); }catch(_){ highlights=[]; }
+  if(!Array.isArray(highlights)) highlights=[];
+  let hlSvg=null;
+  function saveHl(){ box.dataset.highlights=JSON.stringify(highlights); onChange&&onChange(); }
+  function ensureHlSvg(){ if(!hlSvg){ hlSvg=document.createElementNS('http://www.w3.org/2000/svg','svg'); hlSvg.setAttribute('class','uie-hl-svg'); hlSvg.setAttribute('viewBox','0 0 100 100'); hlSvg.setAttribute('preserveAspectRatio','none'); box.appendChild(hlSvg); } return hlSvg; }
+  function centroid(pts){ let x=0,y=0; pts.forEach(p=>{x+=p.x;y+=p.y;}); return {x:x/pts.length,y:y/pts.length}; }
+  function hlCardFields(card){
+    if(card.mode==='product') return '<label>상품명</label><input class="uie-input jf" data-k="name" value="'+esc(card.name)+'"><label>가격</label><input class="uie-input jf" data-k="price" value="'+esc(card.price)+'"><label>썸네일 URL(선택)</label><input class="uie-input jf" data-k="thumb" value="'+esc(card.thumb)+'"><label>상품 링크</label><input class="uie-input jf" data-k="link" value="'+esc(card.link)+'">';
+    if(card.mode==='info') return '<label>제목</label><input class="uie-input jf" data-k="title" value="'+esc(card.title)+'"><label>설명</label><input class="uie-input jf" data-k="text" value="'+esc(card.text)+'">';
+    return '<p style="font-size:12px;color:#888;font-weight:700;margin:6px 0 0;">외곽선만 표시(카드 없음). 상품/설명을 누르면 카드가 붙어요.</p>';
+  }
+  function openHlCard(hi){
+    closePops(); const hl=highlights[hi]; if(!hl) return; const card=hl.card||(hl.card={mode:'none'}); const c=centroid(hl.pts);
+    const pop=document.createElement('div'); pop.className='uie-pop'; pop.style.left=Math.min(82,c.x)+'%'; pop.style.top=Math.min(78,c.y)+'%';
+    pop.innerHTML='<div class="uie-pop-tabs"><button type="button" class="uie-pt'+(card.mode==='none'?' on':'')+'" data-m="none">없음</button><button type="button" class="uie-pt'+(card.mode==='product'?' on':'')+'" data-m="product">상품</button><button type="button" class="uie-pt'+(card.mode==='info'?' on':'')+'" data-m="info">설명</button><button type="button" class="uie-pop-x" title="닫기">×</button></div><div class="uie-pop-body">'+hlCardFields(card)+'</div>';
+    box.appendChild(pop);
+    pop.addEventListener('click',e=>e.stopPropagation()); pop.addEventListener('pointerdown',e=>e.stopPropagation());
+    pop.querySelectorAll('.uie-pt').forEach(b=>b.addEventListener('click',()=>{ card.mode=b.dataset.m; saveHl(); openHlCard(hi); }));
+    pop.querySelector('.uie-pop-x').addEventListener('click',closePops);
+    pop.querySelectorAll('.jf').forEach(inp=>inp.addEventListener('input',()=>{ card[inp.dataset.k]=inp.value; saveHl(); }));
+  }
+  function bindVtx(v,hi,pi){
+    v.addEventListener('pointerdown',ev0=>{
+      ev0.stopPropagation(); ev0.preventDefault();
+      const r=box.getBoundingClientRect(), sx=ev0.clientX, sy=ev0.clientY, p=highlights[hi].pts[pi], sl=p.x, st=p.y;
+      try{v.setPointerCapture(ev0.pointerId);}catch(_){}
+      function mv(ev){ p.x=Math.max(0,Math.min(100,sl+((ev.clientX-sx)/r.width*100))); p.y=Math.max(0,Math.min(100,st+((ev.clientY-sy)/r.height*100))); v.style.left=p.x+'%'; v.style.top=p.y+'%'; const poly=hlSvg&&hlSvg.querySelectorAll('polygon')[hi]; if(poly) poly.setAttribute('points', highlights[hi].pts.map(q=>q.x+','+q.y).join(' ')); }
+      function up(ev){ try{v.releasePointerCapture(ev.pointerId);}catch(_){} v.removeEventListener('pointermove',mv); v.removeEventListener('pointerup',up); saveHl(); renderHighlights(); }
+      v.addEventListener('pointermove',mv); v.addEventListener('pointerup',up);
+    });
+  }
+  function renderHighlights(){
+    box.querySelectorAll('.uie-vtx,.uie-hl-ctrl').forEach(el=>el.remove());
+    ensureHlSvg(); hlSvg.innerHTML='';
+    highlights.forEach((hl,hi)=>{
+      if(!Array.isArray(hl.pts)||hl.pts.length<3) return;
+      const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+      poly.setAttribute('points', hl.pts.map(p=>p.x+','+p.y).join(' '));
+      hlSvg.appendChild(poly);
+      hl.pts.forEach((p,pi)=>{ const v=document.createElement('div'); v.className='uie-vtx'; v.style.left=p.x+'%'; v.style.top=p.y+'%'; box.appendChild(v); bindVtx(v,hi,pi); });
+      const c=centroid(hl.pts); const ctrl=document.createElement('div'); ctrl.className='uie-hl-ctrl'; ctrl.style.left=c.x+'%'; ctrl.style.top=c.y+'%';
+      ctrl.innerHTML='<button type="button" class="uie-hl-card">카드</button><button type="button" class="uie-hl-del">삭제</button>';
+      box.appendChild(ctrl);
+      ctrl.addEventListener('pointerdown',e=>e.stopPropagation());
+      ctrl.querySelector('.uie-hl-card').addEventListener('click',e=>{ e.stopPropagation(); openHlCard(hi); });
+      ctrl.querySelector('.uie-hl-del').addEventListener('click',e=>{ e.stopPropagation(); highlights.splice(hi,1); saveHl(); renderHighlights(); closePops(); });
+    });
+  }
+  panel.querySelector('.js-addhl').addEventListener('click',e=>{ e.stopPropagation(); highlights.push({pts:[{x:30,y:35},{x:70,y:35},{x:70,y:65},{x:30,y:65}],card:{mode:'none'}}); saveHl(); renderHighlights(); });
+  renderHighlights();
   const preview=panel.querySelector('.js-preview');
   function refreshPreview(){ preview.innerHTML=''; const pv=document.createElement('img'); pv.src=img.src; pv.alt=''; pv.onerror=()=>{preview.innerHTML='<span>🖼</span>';}; preview.appendChild(pv); }
   refreshPreview();
@@ -5383,7 +5434,7 @@ function advEnhance(host, onChange){
 // 저장용: 편집 버튼·핸들 등을 뺀 깨끗한 HTML
 function advCleanHtml(host){
   const c=host.cloneNode(true);
-  c.querySelectorAll('.uie-open,.uie-panel,.uie-handle,.uie-badge,.uie-point,.uie-pop,.chip-add-tile,.text-add-tile,.info-add-tile,.delete-chip,.delete-block,.delete-info-card,.delete-info-item').forEach(el=>el.remove());
+  c.querySelectorAll('.uie-open,.uie-panel,.uie-handle,.uie-badge,.uie-point,.uie-pop,.uie-hl-svg,.uie-vtx,.uie-hl-ctrl,.chip-add-tile,.text-add-tile,.info-add-tile,.delete-chip,.delete-block,.delete-info-card,.delete-info-item').forEach(el=>el.remove());
   c.querySelectorAll('.uie-box').forEach(b=>{ b.classList.remove('is-selected','inner-mode'); b.removeAttribute('data-uie-ready'); });
   c.querySelectorAll('[contenteditable]').forEach(el=>{ el.removeAttribute('contenteditable'); el.removeAttribute('spellcheck'); });
   return c.innerHTML.trim();

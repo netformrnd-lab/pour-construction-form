@@ -4798,6 +4798,7 @@ const POSTING_TYPES=[
   {key:'video',     label:'영상',     icon:'▶',  color:'#DC2626'},
   {key:'short',     label:'숏츠',     icon:'📱', color:'#DB2777'},
   {key:'blog',      label:'컨텐츠',   icon:'📝', color:'#0891B2'},
+  {key:'advanced',  label:'컨텐츠(고도화)', icon:'✨', color:'#7C3AED'},
   {key:'event',     label:'이벤트',   icon:'🎉', color:'#D97706'},
 ];
 // 노출 위치 — 검색 상단은 태그로 자동 매칭. POUR이야기 허브는 유형(type)으로 자동 정리되므로 여기선 '추가 노출'만 지정.
@@ -4868,12 +4869,14 @@ function PostingsPage({showToast}){
       const bodyStr=blocksToBody(blocks);
       const isVid=(f.type==='video'||f.type==='short');
       if(isVid && !(f.link||'').trim()){ alert('영상·숏츠는 유튜브 링크가 필요합니다.\n\n[링크(URL)] 칸에 유튜브 주소(https://youtu.be/... )를 넣어주세요.'); return; }
-      if(!isVid && !(f.link||'').trim() && !bodyStr.trim()){ alert('링크 또는 본문 중 하나는 입력하세요.'); return; }
+      const advHtml=(f.advancedHtml||'').trim();
+      if(!isVid && !(f.link||'').trim() && !bodyStr.trim() && !(f.type==='advanced'&&advHtml)){ alert('링크 또는 본문 중 하나는 입력하세요.'); return; }
       setSaving(true);
       const tags=(f.tagsText||'').split(',').map(s=>s.trim()).filter(Boolean);
       const thumbnail=(f.thumbnail||'').trim() || (isVid?ytThumb(f.link):'') || (blocks.find(b=>b.type==='image')||{}).url || '';
       const payload={ type:f.type, title:f.title.trim(), link:(f.link||'').trim(), thumbnail, tags,
         summary:(f.summary||'').trim(), body:bodyStr, blocks, duration:(f.duration||'').trim(), displayDate:(f.displayDate||'').trim(), productLink:(f.productLink||'').trim(), placements:Array.isArray(f.placements)?f.placements:[],
+        advancedHtml:advHtml,
         order:Number(f.order)||0, active:f.active!==false };
       if(f.id){
         await db.collection(COLLECTIONS.POURSTORE_POSTINGS).doc(f.id).set({...payload,...audit.update()},{merge:true});
@@ -5141,6 +5144,216 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
   );
 }
 
+// ============================================================
+// 고도화 콘텐츠 편집기 — 기존 포스팅 폼에 섞어 넣는 섹션 편집기
+//  · 이미지 편집: 공용 이미지 편집기(UIE) — URL/업로드 넣기 + 박스크기/안쪽이미지 조절
+//  · 글/태그/정보상자: 화면에서 바로 편집 + 추가/삭제
+//  · 저장: form.advancedHtml (편집용 버튼은 빼고 깨끗한 HTML로)
+//  · 모든 스타일은 .adv-host 안으로 격리 (기존 admin CSS와 충돌 방지)
+// ============================================================
+const ADV_CSS = `
+.adv-host{background:#fff;color:#222;padding:22px 22px 34px;font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;line-height:1.7;}
+.adv-host *{box-sizing:border-box;}
+.adv-host .breadcrumb{margin:0 0 14px;font-size:13px;font-weight:700;color:#b7b7b7;letter-spacing:-.02em;}
+.adv-host .chips{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.adv-host .chip{position:relative;display:inline-flex;align-items:center;min-height:36px;padding:7px 15px;border:2px solid #ff8a3d;border-radius:6px;background:#fff8f3;color:#ff5a00;font-size:14px;font-weight:900;letter-spacing:-.03em;}
+.adv-host .chip-add-tile,.adv-host .text-add-tile{position:relative;flex:0 0 auto;width:44px;height:36px;border-radius:6px;border:2px dashed rgba(255,90,0,.42);background:#fff8f3;color:#ff5a00;cursor:pointer;}
+.adv-host .text-add-tile{margin:-6px 0 20px;vertical-align:top;display:inline-flex;}
+.adv-host .chip-add-tile:hover,.adv-host .text-add-tile:hover{background:#fff1e7;border-color:#ff5a00;}
+.adv-host .chip-add-tile span,.adv-host .text-add-tile span{position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%);border-radius:999px;background:rgba(255,90,0,.10);}
+.adv-host .chip-add-tile span::before,.adv-host .chip-add-tile span::after,.adv-host .text-add-tile span::before,.adv-host .text-add-tile span::after{content:"";position:absolute;left:50%;top:50%;background:#ff5a00;border-radius:999px;transform:translate(-50%,-50%);}
+.adv-host .chip-add-tile span::before,.adv-host .text-add-tile span::before{width:12px;height:2px;}
+.adv-host .chip-add-tile span::after,.adv-host .text-add-tile span::after{width:2px;height:12px;}
+.adv-host .delete-chip,.adv-host .delete-block,.adv-host .delete-info-card,.adv-host .delete-info-item{position:absolute;border:0;border-radius:999px;background:#202020;color:#fff;cursor:pointer;font-weight:900;line-height:1;box-shadow:0 3px 8px rgba(0,0,0,.18);}
+.adv-host .delete-chip{right:-7px;top:-7px;width:18px;height:18px;font-size:11px;}
+.adv-host .title{margin:0 0 12px;color:#111827;font-size:28px;line-height:1.34;font-weight:950;letter-spacing:-.05em;}
+.adv-host .desc{margin:0 0 24px;color:#8c95a1;font-size:16px;font-weight:700;letter-spacing:-.03em;word-break:keep-all;}
+.adv-host .content-block{position:relative;}
+.adv-host .delete-block{right:-7px;top:-7px;width:20px;height:20px;font-size:12px;display:none;align-items:center;justify-content:center;z-index:5;}
+.adv-host .content-block:hover .delete-block{display:inline-flex;}
+.adv-host .cards-area{display:flex;flex-direction:column;gap:14px;margin:22px 0;}
+.adv-host .info-card{position:relative;border:1px solid #dfe3e8;border-radius:10px;background:#fbfcfd;padding:20px 22px;}
+.adv-host .delete-info-card{right:-8px;top:-8px;width:22px;height:22px;font-size:13px;display:none;align-items:center;justify-content:center;z-index:10;}
+.adv-host .info-card:hover .delete-info-card{display:inline-flex;}
+.adv-host .info-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;}
+.adv-host .info-item{position:relative;min-height:80px;padding:11px 9px;border-radius:10px;background:#fff;border:1px solid #edf0f3;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px;}
+.adv-host .delete-info-item{right:-6px;top:-6px;width:18px;height:18px;font-size:11px;display:none;align-items:center;justify-content:center;}
+.adv-host .info-item:hover .delete-info-item{display:inline-flex;}
+.adv-host .info-label{color:#ff5a00;font-size:12.5px;font-weight:950;line-height:1.2;letter-spacing:-.04em;}
+.adv-host .info-value{color:#374151;font-size:13.5px;font-weight:800;line-height:1.35;letter-spacing:-.035em;word-break:keep-all;}
+.adv-host .info-add-tile{position:relative;min-height:80px;border-radius:10px;border:2px dashed rgba(255,90,0,.42);background:#fff8f3;color:#ff5a00;cursor:pointer;}
+.adv-host .info-add-tile:hover{background:#fff1e7;border-color:#ff5a00;}
+.adv-host .info-add-tile span{position:absolute;left:50%;top:50%;width:30px;height:30px;transform:translate(-50%,-50%);border-radius:999px;background:rgba(255,90,0,.09);}
+.adv-host .info-add-tile span::before,.adv-host .info-add-tile span::after{content:"";position:absolute;left:50%;top:50%;background:#ff5a00;border-radius:999px;transform:translate(-50%,-50%);}
+.adv-host .info-add-tile span::before{width:16px;height:2.5px;}
+.adv-host .info-add-tile span::after{width:2.5px;height:16px;}
+.adv-host [data-editable="true"]{outline:0;border-radius:6px;transition:background .16s,box-shadow .16s;cursor:text;}
+.adv-host [data-editable="true"]:hover{background:rgba(255,138,61,.08);box-shadow:0 0 0 4px rgba(255,138,61,.08);}
+.adv-host [data-editable="true"]:focus{background:#fff8f3;box-shadow:0 0 0 2px rgba(255,90,0,.35),0 0 0 6px rgba(255,138,61,.12);}
+/* 공용 이미지 편집기(UIE) */
+.adv-host .uie-box{position:relative;width:100%;height:360px;overflow:visible;border-radius:14px;background:#f8f8f8;box-shadow:0 8px 22px rgba(0,0,0,.08);margin-bottom:26px;}
+.adv-host .uie-crop{position:absolute;inset:0;overflow:hidden;border-radius:inherit;background:#f3f4f6;}
+.adv-host .uie-crop>img{position:absolute;left:50%;top:50%;width:100%;height:100%;object-fit:cover;transform-origin:center center;user-select:none;-webkit-user-drag:none;}
+.adv-host .uie-open{position:absolute;left:12px;top:12px;z-index:45;border:0;border-radius:999px;padding:8px 13px;background:rgba(255,90,0,.95);color:#fff;font:inherit;font-size:12px;font-weight:900;letter-spacing:-.03em;cursor:pointer;box-shadow:0 5px 14px rgba(0,0,0,.18);}
+.adv-host .uie-open:hover{background:#ff5a00;}
+.adv-host .uie-panel{position:absolute;left:12px;top:50px;z-index:80;width:min(340px,calc(100% - 24px));padding:14px;border-radius:14px;background:#fff;border:1px solid rgba(0,0,0,.08);box-shadow:0 14px 34px rgba(0,0,0,.20);display:none;}
+.adv-host .uie-panel.is-open{display:block;}
+.adv-host .uie-title{margin:0 0 10px;font-size:14px;font-weight:950;color:#222;letter-spacing:-.04em;}
+.adv-host .uie-row{display:grid;gap:6px;margin-top:12px;}
+.adv-host .uie-row>label{font-size:11.5px;font-weight:850;color:#555;letter-spacing:-.03em;}
+.adv-host .uie-url-line{display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:6px;}
+.adv-host .uie-input{width:100%;min-width:0;height:36px;border:1px solid #ddd;border-radius:8px;padding:0 10px;background:#fff;color:#222;font:inherit;font-size:12px;font-weight:700;outline:none;}
+.adv-host .uie-input:focus{border-color:#ff5a00;box-shadow:0 0 0 3px rgba(255,90,0,.10);}
+.adv-host .uie-btn{border:0;border-radius:8px;padding:0 10px;height:36px;font:inherit;font-size:12px;font-weight:900;letter-spacing:-.03em;cursor:pointer;background:#ff5a00;color:#fff;}
+.adv-host .uie-btn.ghost{background:#f0f0f0;color:#333;}
+.adv-host .uie-upload-line{display:flex;align-items:center;gap:8px;}
+.adv-host .uie-file-btn{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 12px;border:1px solid #ddd;border-radius:8px;background:#fafafa;color:#ff5a00;font-size:12px;font-weight:900;cursor:pointer;flex-shrink:0;}
+.adv-host .uie-preview{width:52px;height:40px;border-radius:8px;flex-shrink:0;overflow:hidden;border:1px solid #eee;background:#fff4ec;display:flex;align-items:center;justify-content:center;}
+.adv-host .uie-preview img{width:100%;height:100%;object-fit:cover;}
+.adv-host .uie-preview span{font-size:15px;opacity:.5;}
+.adv-host .uie-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:14px;}
+.adv-host .uie-tab{border:1px solid #ddd;border-radius:8px;background:#f7f7f7;color:#333;padding:9px 7px;font:inherit;font-size:11.5px;font-weight:900;cursor:pointer;letter-spacing:-.03em;}
+.adv-host .uie-tab.is-active{border-color:#169cff;background:#169cff;color:#fff;}
+.adv-host .uie-actions{display:flex;gap:6px;margin-top:14px;}
+.adv-host .uie-actions .uie-btn{flex:1;height:38px;}
+.adv-host .uie-help{margin:10px 0 0;color:#888;font-size:11px;line-height:1.4;font-weight:650;letter-spacing:-.02em;}
+.adv-host .uie-help b{color:#ff5a00;}
+.adv-host .uie-box.is-selected{outline:2px solid #169cff;box-shadow:0 0 0 1px rgba(22,156,255,.2),0 8px 20px rgba(0,0,0,.08);}
+.adv-host .uie-box.is-selected::after{content:"";position:absolute;inset:0;border:1px dashed rgba(22,156,255,.7);pointer-events:none;z-index:54;}
+.adv-host .uie-box.inner-mode.is-selected{outline-color:#ff8a00;}
+.adv-host .uie-box.inner-mode.is-selected::after{border-color:rgba(255,138,0,.7);}
+.adv-host .uie-handle{display:none;position:absolute;width:11px;height:11px;background:#169cff;border:1px solid #fff;border-radius:2px;box-shadow:0 1px 4px rgba(0,0,0,.18);z-index:90;}
+.adv-host .uie-box.inner-mode .uie-handle{background:#ff8a00;}
+.adv-host .uie-box.is-selected .uie-handle{display:block;}
+.adv-host .uie-handle.nw{left:-6px;top:-6px;cursor:nwse-resize;}
+.adv-host .uie-handle.n{left:50%;top:-6px;transform:translateX(-50%);cursor:ns-resize;}
+.adv-host .uie-handle.ne{right:-6px;top:-6px;cursor:nesw-resize;}
+.adv-host .uie-handle.e{right:-6px;top:50%;transform:translateY(-50%);cursor:ew-resize;}
+.adv-host .uie-handle.se{right:-6px;bottom:-6px;cursor:nwse-resize;}
+.adv-host .uie-handle.s{left:50%;bottom:-6px;transform:translateX(-50%);cursor:ns-resize;}
+.adv-host .uie-handle.sw{left:-6px;bottom:-6px;cursor:nesw-resize;}
+.adv-host .uie-handle.w{left:-6px;top:50%;transform:translateY(-50%);cursor:ew-resize;}
+.adv-host .uie-badge{display:none;position:absolute;left:50%;bottom:-26px;transform:translateX(-50%);padding:3px 8px;border-radius:4px;background:#169cff;color:#fff;font-size:12px;font-weight:900;letter-spacing:-.03em;white-space:nowrap;z-index:92;pointer-events:none;}
+.adv-host .uie-box.inner-mode .uie-badge{background:#ff8a00;}
+.adv-host .uie-box.is-selected .uie-badge{display:block;}
+`;
+const ADV_DEFAULT_HTML = `
+<p class="breadcrumb" contenteditable="true" data-editable="true">POUR 아스팔트 &gt; 지붕 싱글코팅</p>
+<div class="chips">
+  <span class="chip"><span contenteditable="true" data-editable="true">아스팔트 슁글 지붕</span><button type="button" class="delete-chip">×</button></span>
+  <span class="chip"><span contenteditable="true" data-editable="true">셀프 시공</span><button type="button" class="delete-chip">×</button></span>
+  <button type="button" class="chip-add-tile" aria-label="태그 추가"><span></span></button>
+</div>
+<div class="uie-box"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%EA%B3%B5%EB%B2%95%2F%ED%8F%AC%EC%8A%A4%ED%8C%85%2F%EC%8D%B8%EB%84%A4%EC%9D%BC%EC%9D%B4%EB%AF%B8%EC%A7%80.png?alt=media&token=995d4fcc-bbfb-4fcf-b223-d45785b0829c" alt="대표 이미지"></div>
+<div class="adv-textblocks">
+  <div class="content-block"><button type="button" class="delete-block">×</button><h1 class="title" contenteditable="true" data-editable="true">30년 된 아스팔트 싱글 지붕, 철거 없이 복원한 방법</h1></div>
+  <div class="content-block"><button type="button" class="delete-block">×</button><p class="desc" contenteditable="true" data-editable="true">노후된 아스팔트 슁글 지붕을 POUR 방수코팅제로 복원한 실제 시공 사례입니다.</p></div>
+</div>
+<button type="button" class="text-add-tile" aria-label="글 추가"><span></span></button>
+<div class="cards-area">
+  <section class="info-card"><button type="button" class="delete-info-card">×</button><div class="info-grid">
+    <div class="info-item"><button type="button" class="delete-info-item">×</button><div class="info-label" contenteditable="true" data-editable="true">건물유형</div><div class="info-value" contenteditable="true" data-editable="true">단독주택</div></div>
+    <div class="info-item"><button type="button" class="delete-info-item">×</button><div class="info-label" contenteditable="true" data-editable="true">면적</div><div class="info-value" contenteditable="true" data-editable="true">30평</div></div>
+    <div class="info-item"><button type="button" class="delete-info-item">×</button><div class="info-label" contenteditable="true" data-editable="true">시공방식</div><div class="info-value" contenteditable="true" data-editable="true">셀프 시공</div></div>
+    <div class="info-item"><button type="button" class="delete-info-item">×</button><div class="info-label" contenteditable="true" data-editable="true">지붕자재</div><div class="info-value" contenteditable="true" data-editable="true">아스팔트 지붕</div></div>
+    <div class="info-item"><button type="button" class="delete-info-item">×</button><div class="info-label" contenteditable="true" data-editable="true">위치</div><div class="info-value" contenteditable="true" data-editable="true">경기도 분당시</div></div>
+    <button type="button" class="info-add-tile addInfoItem" aria-label="항목 추가"><span></span></button>
+  </div></section>
+</div>`;
+function advEnsureStyle(){ if(!document.getElementById('adv-uie-style')){ const s=document.createElement('style'); s.id='adv-uie-style'; s.textContent=ADV_CSS; document.head.appendChild(s); } }
+function advReadFile(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
+function advBuildUIE(box, host, onChange){
+  if(box.dataset.uieReady==='1') return; box.dataset.uieReady='1';
+  let crop=box.querySelector(':scope > .uie-crop'); let img;
+  if(crop){ img=crop.querySelector('img'); } else { img=box.querySelector(':scope > img'); if(!img) return; crop=document.createElement('div'); crop.className='uie-crop'; box.insertBefore(crop,img); crop.appendChild(img); }
+  const state={scale:100,x:0,y:0,mode:'box'};
+  function applyImg(){ const s=Math.max(50,Math.min(300,state.scale))/100; img.style.transform='translate(-50%,-50%) translate('+state.x+'px,'+state.y+'px) scale('+s+')'; }
+  applyImg();
+  const open=document.createElement('button'); open.type='button'; open.className='uie-open'; open.textContent='🖼 이미지 변경';
+  const panel=document.createElement('div'); panel.className='uie-panel';
+  panel.innerHTML='<p class="uie-title">이미지 편집</p><div class="uie-row"><label>이미지 링크로 넣기</label><div class="uie-url-line"><input class="uie-input js-url" type="url" placeholder="https:// 이미지 주소 붙여넣기"><button type="button" class="uie-btn js-apply">적용</button></div></div><div class="uie-row"><label>컴퓨터에서 업로드</label><div class="uie-upload-line"><label class="uie-file-btn">업로드<input class="js-file" type="file" accept="image/*" style="display:none"></label><div class="uie-preview js-preview"><span>🖼</span></div></div></div><div class="uie-tabs"><button type="button" class="uie-tab js-tab is-active" data-mode="box">박스 크기 조절</button><button type="button" class="uie-tab js-tab" data-mode="inner">안쪽 이미지 조절</button></div><div class="uie-actions"><button type="button" class="uie-btn ghost js-reset">초기화</button><button type="button" class="uie-btn ghost js-close">닫기</button></div><p class="uie-help"><b>박스 크기</b> 모드=파란 점으로 이미지 칸을 조절 · <b>안쪽 이미지</b> 모드=주황 점을 끌거나 사진을 직접 드래그해서 조절</p>';
+  box.appendChild(open); box.appendChild(panel);
+  ['nw','n','ne','e','se','s','sw','w'].forEach(dir=>{ const h=document.createElement('span'); h.className='uie-handle '+dir; h.dataset.dir=dir; box.appendChild(h); });
+  const badge=document.createElement('span'); badge.className='uie-badge'; box.appendChild(badge);
+  const preview=panel.querySelector('.js-preview');
+  function refreshPreview(){ preview.innerHTML=''; const pv=document.createElement('img'); pv.src=img.src; pv.alt=''; pv.onerror=()=>{preview.innerHTML='<span>🖼</span>';}; preview.appendChild(pv); }
+  refreshPreview();
+  function updateBadge(){ if(state.mode==='inner'){ badge.textContent='이미지 '+Math.round(state.scale)+'%'; } else { const r=box.getBoundingClientRect(); badge.textContent=Math.round(r.width)+' × '+Math.round(r.height)+' 박스'; } }
+  function refreshMode(){ box.classList.toggle('inner-mode',state.mode==='inner'); panel.querySelectorAll('.js-tab').forEach(t=>t.classList.toggle('is-active',t.dataset.mode===state.mode)); updateBadge(); }
+  function selectBox(){ host.querySelectorAll('.uie-box.is-selected').forEach(b=>{if(b!==box)b.classList.remove('is-selected');}); box.classList.add('is-selected'); refreshMode(); }
+  const urlInput=panel.querySelector('.js-url');
+  panel.querySelector('.js-apply').addEventListener('click',()=>{ const u=urlInput.value.trim(); if(!u)return; img.src=u; refreshPreview(); onChange&&onChange(); });
+  urlInput.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); panel.querySelector('.js-apply').click(); } });
+  panel.querySelector('.js-file').addEventListener('change',async e=>{ const f=e.target.files&&e.target.files[0]; if(!f)return; if(!f.type.startsWith('image/')){ alert('이미지 파일만 넣을 수 있어요.'); return; } img.src=await advReadFile(f); urlInput.value=''; refreshPreview(); onChange&&onChange(); e.target.value=''; });
+  panel.querySelectorAll('.js-tab').forEach(tab=>{ tab.addEventListener('click',e=>{ e.stopPropagation(); state.mode=tab.dataset.mode; refreshMode(); selectBox(); }); });
+  open.addEventListener('click',e=>{ e.stopPropagation(); host.querySelectorAll('.uie-panel.is-open').forEach(p=>{if(p!==panel)p.classList.remove('is-open');}); panel.classList.toggle('is-open'); selectBox(); });
+  panel.addEventListener('click',e=>e.stopPropagation());
+  panel.querySelector('.js-close').addEventListener('click',()=>panel.classList.remove('is-open'));
+  panel.querySelector('.js-reset').addEventListener('click',()=>{ state.scale=100; state.x=0; state.y=0; box.style.width=''; box.style.height=''; applyImg(); updateBadge(); onChange&&onChange(); });
+  box.addEventListener('click',e=>{ if(e.target.closest('.uie-open,.uie-panel,.uie-handle'))return; selectBox(); });
+  box.querySelectorAll('.uie-handle').forEach(handle=>{
+    handle.addEventListener('pointerdown',e=>{
+      e.preventDefault(); e.stopPropagation(); selectBox();
+      const dir=handle.dataset.dir, sx=e.clientX, sy=e.clientY, r=box.getBoundingClientRect(), startW=r.width, startH=r.height, startScale=state.scale;
+      document.body.style.userSelect='none'; try{handle.setPointerCapture(e.pointerId);}catch(_){}
+      function mv(ev){ const dx=ev.clientX-sx, dy=ev.clientY-sy;
+        if(state.mode==='inner'){ let d=0; if(dir.includes('e'))d+=dx; if(dir.includes('w'))d-=dx; if(dir.includes('s'))d+=dy; if(dir.includes('n'))d-=dy; state.scale=Math.max(50,Math.min(300,Math.round(startScale+d/2))); applyImg(); updateBadge(); return; }
+        let w=startW,h=startH; if(dir.includes('e'))w=startW+dx; if(dir.includes('w'))w=startW-dx; if(dir.includes('s'))h=startH+dy; if(dir.includes('n'))h=startH-dy;
+        box.style.width=Math.max(180,Math.min(820,w))+'px'; box.style.height=Math.max(120,Math.min(1000,h))+'px'; updateBadge(); }
+      function up(ev){ document.body.style.userSelect=''; try{handle.releasePointerCapture(ev.pointerId);}catch(_){} document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up); onChange&&onChange(); }
+      document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up); document.addEventListener('pointercancel',up);
+    });
+  });
+  img.addEventListener('pointerdown',e=>{
+    if(state.mode!=='inner')return; e.preventDefault(); selectBox();
+    const sx=e.clientX, sy=e.clientY, startX=state.x, startY=state.y; try{img.setPointerCapture(e.pointerId);}catch(_){}
+    function mv(ev){ state.x=startX+(ev.clientX-sx); state.y=startY+(ev.clientY-sy); applyImg(); }
+    function up(ev){ try{img.releasePointerCapture(ev.pointerId);}catch(_){} img.removeEventListener('pointermove',mv); img.removeEventListener('pointerup',up); img.removeEventListener('pointercancel',up); onChange&&onChange(); }
+    img.addEventListener('pointermove',mv); img.addEventListener('pointerup',up); img.addEventListener('pointercancel',up);
+  });
+}
+function advEnhance(host, onChange){
+  advEnsureStyle();
+  host.querySelectorAll('[data-editable="true"]').forEach(el=>{ el.setAttribute('contenteditable','true'); el.setAttribute('spellcheck','false'); });
+  host.querySelectorAll('.uie-box').forEach(box=>advBuildUIE(box,host,onChange));
+  host.addEventListener('input',()=>onChange&&onChange());
+  host.addEventListener('click',e=>{
+    const t=e.target;
+    if(t.closest('.delete-chip')){ t.closest('.chip')?.remove(); onChange&&onChange(); return; }
+    if(t.closest('.delete-block')){ t.closest('.content-block')?.remove(); onChange&&onChange(); return; }
+    if(t.closest('.delete-info-card')){ t.closest('.info-card')?.remove(); onChange&&onChange(); return; }
+    if(t.closest('.delete-info-item')){ t.closest('.info-item')?.remove(); onChange&&onChange(); return; }
+    const chipAdd=t.closest('.chip-add-tile');
+    if(chipAdd){ const chip=document.createElement('span'); chip.className='chip'; chip.innerHTML='<span contenteditable="true" data-editable="true">새 태그</span><button type="button" class="delete-chip">×</button>'; chipAdd.parentNode.insertBefore(chip,chipAdd); chip.querySelector('[data-editable]').focus(); onChange&&onChange(); return; }
+    const textAdd=t.closest('.text-add-tile');
+    if(textAdd){ const wrap=host.querySelector('.adv-textblocks'); if(wrap){ const b=document.createElement('div'); b.className='content-block'; b.innerHTML='<button type="button" class="delete-block">×</button><p class="desc" contenteditable="true" data-editable="true">새 문구를 입력하세요.</p>'; wrap.appendChild(b); b.querySelector('[data-editable]').focus(); onChange&&onChange(); } return; }
+    const infoAdd=t.closest('.info-add-tile');
+    if(infoAdd){ const grid=infoAdd.closest('.info-grid'); if(grid){ const it=document.createElement('div'); it.className='info-item'; it.innerHTML='<button type="button" class="delete-info-item">×</button><div class="info-label" contenteditable="true" data-editable="true">항목명</div><div class="info-value" contenteditable="true" data-editable="true">내용 입력</div>'; grid.insertBefore(it,infoAdd); onChange&&onChange(); } return; }
+  });
+  document.addEventListener('click',e=>{ if(e.target.closest('.adv-host'))return; host.querySelectorAll('.uie-box.is-selected').forEach(b=>b.classList.remove('is-selected')); host.querySelectorAll('.uie-panel.is-open').forEach(p=>p.classList.remove('is-open')); });
+}
+// 저장용: 편집 버튼·핸들 등을 뺀 깨끗한 HTML
+function advCleanHtml(host){
+  const c=host.cloneNode(true);
+  c.querySelectorAll('.uie-open,.uie-panel,.uie-handle,.uie-badge,.chip-add-tile,.text-add-tile,.info-add-tile,.delete-chip,.delete-block,.delete-info-card,.delete-info-item').forEach(el=>el.remove());
+  c.querySelectorAll('.uie-box').forEach(b=>{ b.classList.remove('is-selected','inner-mode'); b.removeAttribute('data-uie-ready'); });
+  c.querySelectorAll('[contenteditable]').forEach(el=>{ el.removeAttribute('contenteditable'); el.removeAttribute('spellcheck'); });
+  return c.innerHTML.trim();
+}
+function AdvancedContentEditor({form,set}){
+  const hostRef=useRef(null);
+  const setRef=useRef(set); setRef.current=set;
+  const inited=useRef(false);
+  useEffect(()=>{
+    if(inited.current) return; inited.current=true;
+    const host=hostRef.current; if(!host) return;
+    host.innerHTML=(form.advancedHtml&&form.advancedHtml.trim())?form.advancedHtml:ADV_DEFAULT_HTML;
+    const sync=()=>{ try{ setRef.current({advancedHtml: advCleanHtml(host)}); }catch(_){} };
+    advEnhance(host, sync);
+    sync();
+  },[]);
+  return <div ref={hostRef} className="adv-host"/>;
+}
 function PostingEditor({form,setForm,onSave,onClose,saving}){
   const set=(patch)=>setForm(prev=>({...prev,...patch}));
   const [uploadingKey,setUploadingKey]=useState(null);
@@ -5214,6 +5427,14 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
         <div style={{marginTop:6}}>
           <PostingBlocks blocks={Array.isArray(form.blocks)?form.blocks:[]} onChange={b=>set({blocks:b})} uploadImage={uploadImage} uploadingKey={uploadingKey}/>
         </div>
+        {form.type==='advanced' && <React.Fragment>
+          <div style={{height:16}}/>
+          <label style={lbl}>✨ 고도화 콘텐츠 섹션 — 이미지·글을 화면에서 바로 편집 (이미지 편집 방식 통일)</label>
+          <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:700,marginTop:4}}>ℹ 이미지 위 <b style={{color:'var(--or-d)'}}>[이미지 변경]</b> → URL/업로드로 넣고, <b>박스 크기 / 안쪽 이미지</b> 탭으로 조절. 태그·글·정보상자는 바로 클릭해서 수정합니다.</div>
+          <div style={{marginTop:8,border:'1.5px solid var(--border)',borderRadius:12,overflow:'hidden',background:'#fff'}}>
+            <AdvancedContentEditor form={form} set={set}/>
+          </div>
+        </React.Fragment>}
         {(form.type==='video'||form.type==='short') && <React.Fragment>
           <div style={{height:12}}/>
           <label style={lbl}>영상 길이 (선택) — 예: 12:30</label>

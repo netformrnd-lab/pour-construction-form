@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>① 포스팅 헤더 — 통일 편집기</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" />
+  <style>
+    * { box-sizing: border-box; }
+    html { font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    body { margin:0; padding:0; background:#f4f4f4; color:#222; line-height:1.7;
+      font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; }
+    button, input, textarea, select { font-family: inherit; }
+    body.modal-open { overflow: hidden; }
+    .wrap { width:100%; max-width:860px; margin:0 auto; background:#fff; padding:34px 34px 54px; }
+
+    .breadcrumb { margin:0 0 16px; font-size:14px; font-weight:700; color:#b7b7b7; letter-spacing:-0.02em; }
+
+    .chips { display:flex; align-items:center; gap:12px; margin-bottom:22px; flex-wrap:wrap; }
+    .chip { position:relative; display:inline-flex; align-items:center; justify-content:center; min-height:40px;
+      padding:8px 18px; border:2px solid #ff8a3d; border-radius:6px; background:#fff8f3; color:#ff5a00;
+      font-size:15px; font-weight:900; letter-spacing:-0.03em; }
+    .chip-add-tile { position:relative; flex:0 0 auto; width:48px; height:40px; min-height:40px; border-radius:6px;
+      align-self:stretch; border:2px dashed rgba(255,90,0,.42); background:#fff8f3; color:#ff5a00; cursor:pointer;
+      transition:background .16s ease, border-color .16s ease; }
+    .chip-add-tile:hover { background:#fff1e7; border-color:#ff5a00; }
+    .chip-add-tile span { position:absolute; left:50%; top:50%; width:22px; height:22px; transform:translate(-50%,-50%);
+      border-radius:999px; background:rgba(255,90,0,.10); }
+    .chip-add-tile span::before, .chip-add-tile span::after { content:""; position:absolute; left:50%; top:50%;
+      background:#ff5a00; border-radius:999px; transform:translate(-50%,-50%); }
+    .chip-add-tile span::before { width:14px; height:2px; }
+    .chip-add-tile span::after { width:2px; height:14px; }
+    .delete-chip { position:absolute; right:-8px; top:-8px; width:20px; height:20px; border:0; border-radius:999px;
+      background:#202020; color:#fff; cursor:pointer; font-weight:900; font-size:12px; line-height:1; box-shadow:0 4px 10px rgba(0,0,0,.15); }
+
+    .title { margin:0 0 14px; color:#111827; font-size:32px; line-height:1.34; font-weight:950; letter-spacing:-0.06em; }
+    .desc { margin:0 0 28px; color:#8c95a1; font-size:17px; font-weight:700; letter-spacing:-0.03em; word-break:keep-all; }
+    .content-block { position:relative; }
+    .delete-block { position:absolute; right:-8px; top:-8px; width:22px; height:22px; display:none; font-size:13px; z-index:5;
+      border:0; border-radius:999px; background:#202020; color:#fff; cursor:pointer; font-weight:900; line-height:1; box-shadow:0 4px 10px rgba(0,0,0,.15); }
+    .content-block:hover .delete-block { display:inline-flex; align-items:center; justify-content:center; }
+    .text-add-tile { width:48px; height:40px; margin:-8px 0 22px; display:inline-flex; vertical-align:top; border-radius:8px;
+      position:relative; border:2px dashed rgba(255,90,0,.42); background:#fff8f3; color:#ff5a00; cursor:pointer; }
+    .text-add-tile:hover { background:#fff1e7; border-color:#ff5a00; }
+    .text-add-tile span { position:absolute; left:50%; top:50%; width:22px; height:22px; transform:translate(-50%,-50%);
+      border-radius:999px; background:rgba(255,90,0,.10); }
+    .text-add-tile span::before, .text-add-tile span::after { content:""; position:absolute; left:50%; top:50%;
+      background:#ff5a00; border-radius:999px; transform:translate(-50%,-50%); }
+    .text-add-tile span::before { width:14px; height:2px; }
+    .text-add-tile span::after { width:2px; height:14px; }
+
+    .cards-area { display:flex; flex-direction:column; gap:16px; margin:24px 0; }
+    .info-card { position:relative; width:100%; border:1px solid #dfe3e8; border-radius:10px; background:#fbfcfd; padding:22px 24px; }
+    .delete-info-card { position:absolute; right:-9px; top:-9px; z-index:10; width:24px; height:24px; font-size:14px; display:none;
+      align-items:center; justify-content:center; border:0; border-radius:999px; background:#202020; color:#fff; cursor:pointer; font-weight:900; line-height:1; }
+    .info-card:hover .delete-info-card { display:inline-flex; }
+    .info-grid { display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:10px; }
+    .info-item { position:relative; min-height:84px; padding:12px 10px; border-radius:10px; background:#fff; border:1px solid #edf0f3;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:4px; box-shadow:0 4px 12px rgba(17,24,39,.03); }
+    .delete-info-item { position:absolute; right:-7px; top:-7px; width:19px; height:19px; display:none; align-items:center; justify-content:center;
+      font-size:11px; border:0; border-radius:999px; background:#202020; color:#fff; cursor:pointer; font-weight:900; line-height:1; }
+    .info-item:hover .delete-info-item { display:inline-flex; }
+    .info-label { color:#ff5a00; font-size:13px; font-weight:950; line-height:1.2; letter-spacing:-0.04em; }
+    .info-value { color:#374151; font-size:14px; font-weight:800; line-height:1.35; letter-spacing:-0.035em; word-break:keep-all; }
+    .info-add-tile { position:relative; width:100%; min-height:84px; border-radius:10px; border:2px dashed rgba(255,90,0,.42);
+      background:#fff8f3; color:#ff5a00; cursor:pointer; }
+    .info-add-tile:hover { background:#fff1e7; border-color:#ff5a00; }
+    .info-add-tile span { position:absolute; left:50%; top:50%; width:32px; height:32px; transform:translate(-50%,-50%);
+      border-radius:999px; background:rgba(255,90,0,.09); }
+    .info-add-tile span::before, .info-add-tile span::after { content:""; position:absolute; left:50%; top:50%;
+      background:#ff5a00; border-radius:999px; transform:translate(-50%,-50%); }
+    .info-add-tile span::before { width:18px; height:2.5px; }
+    .info-add-tile span::after { width:2.5px; height:18px; }
+
+    .actions { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; margin-top:24px; }
+    .action-btn { min-height:48px; border:1px solid #dfe3e8; border-radius:8px; background:#fff; color:#374151;
+      font-size:16px; font-weight:900; letter-spacing:-0.03em; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; transition:.18s ease; }
+    .action-btn:hover { border-color:#ff8a3d; background:#fff8f3; color:#ff5a00; }
+    .action-btn.is-bookmarked { border-color:#ff5a00; background:#fff4ea; color:#ff5a00; }
+    .action-btn svg { width:19px; height:19px; color:currentColor; }
+
+    .toast { position:fixed; left:50%; bottom:34px; transform:translateX(-50%) translateY(20px); padding:12px 18px; border-radius:999px;
+      background:rgba(17,24,39,.92); color:#fff; font-size:14px; font-weight:800; letter-spacing:-0.03em; opacity:0; pointer-events:none;
+      transition:.24s ease; z-index:2000; white-space:nowrap; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    .share-modal { position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:22px; background:rgba(17,24,39,.45); z-index:999; }
+    .share-modal.show { display:flex; }
+    .share-panel { width:100%; max-width:430px; border-radius:18px; background:#fff; box-shadow:0 20px 60px rgba(0,0,0,.2); overflow:hidden; }
+    .share-head { display:flex; align-items:center; justify-content:space-between; padding:20px 22px; border-bottom:1px solid #f0f0f0; }
+    .share-head h2 { margin:0; font-size:20px; font-weight:950; letter-spacing:-0.05em; color:#111827; }
+    .close-btn { width:34px; height:34px; border:0; border-radius:50%; background:#f3f4f6; color:#4b5563; font-size:22px; line-height:1; cursor:pointer; }
+    .share-body { padding:20px 22px 22px; }
+    .share-guide { margin:0 0 16px; color:#6b7280; font-size:14px; font-weight:700; letter-spacing:-0.03em; word-break:keep-all; }
+    .share-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+    .share-option { min-height:82px; border:1px solid #e5e7eb; border-radius:14px; background:#fff; color:#374151; font-size:13px; font-weight:900;
+      letter-spacing:-0.03em; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:pointer; text-decoration:none; transition:.18s ease; }
+    .share-option:hover { border-color:#ff8a3d; background:#fff8f3; color:#ff5a00; }
+    .share-icon { width:34px; height:34px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:#fff4ea; color:#ff5a00; font-size:15px; font-weight:950; }
+    .share-url-box { display:flex; gap:8px; margin-top:18px; padding-top:18px; border-top:1px solid #f0f0f0; }
+    .share-url { flex:1; min-width:0; height:42px; padding:0 12px; border:1px solid #e5e7eb; border-radius:8px; color:#6b7280; font-size:13px; font-weight:700; background:#f9fafb; }
+    .copy-btn { width:86px; height:42px; border:0; border-radius:8px; background:#ff5a00; color:#fff; font-size:13px; font-weight:900; cursor:pointer; }
+
+    [data-editable="true"] { outline:0; border-radius:6px; transition:background .16s ease, box-shadow .16s ease; cursor:text; }
+    [data-editable="true"]:hover { background:rgba(255,138,61,.08); box-shadow:0 0 0 4px rgba(255,138,61,.08); }
+    [data-editable="true"]:focus { background:#fff8f3; box-shadow:0 0 0 2px rgba(255,90,0,.35), 0 0 0 6px rgba(255,138,61,.12); }
+
+    /* ============================================================
+       ▼▼▼ 공용 이미지 편집기 (UIE) — 모든 섹션 공통 ▼▼▼
+       ============================================================ */
+    .uie-box { position:relative; width:100%; height:475px; overflow:visible; border-radius:16px; background:#f8f8f8; box-shadow:0 8px 24px rgba(0,0,0,.08); margin-bottom:30px; }
+    .uie-crop { position:absolute; inset:0; overflow:hidden; border-radius:inherit; background:#f3f4f6; }
+    .uie-crop > img { position:absolute; left:50%; top:50%; width:100%; height:100%; object-fit:cover; transform-origin:center center; will-change:transform; user-select:none; -webkit-user-drag:none; }
+    .uie-open { position:absolute; left:12px; top:12px; z-index:45; appearance:none; border:0; border-radius:999px; padding:8px 13px; background:rgba(255,90,0,.95); color:#fff; font:inherit; font-size:12px; font-weight:900; letter-spacing:-.03em; cursor:pointer; box-shadow:0 5px 14px rgba(0,0,0,.18); }
+    .uie-open:hover { background:#ff5a00; }
+    .uie-panel { position:absolute; left:12px; top:50px; z-index:80; width:min(340px,calc(100% - 24px)); padding:14px; border-radius:14px; background:rgba(255,255,255,.99); border:1px solid rgba(0,0,0,.08); box-shadow:0 14px 34px rgba(0,0,0,.20); display:none; }
+    .uie-panel.is-open { display:block; }
+    .uie-title { margin:0 0 10px; font-size:14px; font-weight:950; color:#222; letter-spacing:-.04em; }
+    .uie-row { display:grid; gap:6px; margin-top:12px; }
+    .uie-row > label { font-size:11.5px; font-weight:850; color:#555; letter-spacing:-.03em; }
+    .uie-url-line { display:grid; grid-template-columns:minmax(0,1fr) 52px; gap:6px; }
+    .uie-input { width:100%; min-width:0; height:36px; border:1px solid #ddd; border-radius:8px; padding:0 10px; background:#fff; color:#222; font:inherit; font-size:12px; font-weight:700; outline:none; }
+    .uie-input:focus { border-color:#ff5a00; box-shadow:0 0 0 3px rgba(255,90,0,.10); }
+    .uie-btn { appearance:none; border:0; border-radius:8px; padding:0 10px; height:36px; font:inherit; font-size:12px; font-weight:900; letter-spacing:-.03em; cursor:pointer; background:#ff5a00; color:#fff; }
+    .uie-btn.ghost { background:#f0f0f0; color:#333; }
+    .uie-upload-line { display:flex; align-items:center; gap:8px; }
+    .uie-file-btn { display:inline-flex; align-items:center; justify-content:center; height:36px; padding:0 12px; border:1px solid #ddd; border-radius:8px; background:#fafafa; color:#ff5a00; font-size:12px; font-weight:900; cursor:pointer; flex-shrink:0; }
+    .uie-preview { width:52px; height:40px; border-radius:8px; flex-shrink:0; overflow:hidden; border:1px solid #eee; background:#fff4ec; display:flex; align-items:center; justify-content:center; }
+    .uie-preview img { width:100%; height:100%; object-fit:cover; }
+    .uie-preview span { font-size:15px; opacity:.5; }
+    .uie-tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:14px; }
+    .uie-tab { appearance:none; border:1px solid #ddd; border-radius:8px; background:#f7f7f7; color:#333; padding:9px 7px; font:inherit; font-size:11.5px; font-weight:900; cursor:pointer; letter-spacing:-.03em; }
+    .uie-tab.is-active { border-color:#169cff; background:#169cff; color:#fff; }
+    .uie-actions { display:flex; gap:6px; margin-top:14px; }
+    .uie-actions .uie-btn { flex:1; height:38px; }
+    .uie-help { margin:10px 0 0; color:#888; font-size:11px; line-height:1.4; font-weight:650; letter-spacing:-.02em; }
+    .uie-help b { color:#ff5a00; }
+    .uie-box.is-selected { outline:2px solid #169cff; outline-offset:0; box-shadow:0 0 0 1px rgba(22,156,255,.20),0 8px 20px rgba(0,0,0,.08); }
+    .uie-box.is-selected::after { content:""; position:absolute; inset:0; border:1px dashed rgba(22,156,255,.7); pointer-events:none; z-index:54; }
+    .uie-box.inner-mode.is-selected { outline-color:#ff8a00; }
+    .uie-box.inner-mode.is-selected::after { border-color:rgba(255,138,0,.7); }
+    .uie-handle { display:none; position:absolute; width:11px; height:11px; background:#169cff; border:1px solid #fff; border-radius:2px; box-shadow:0 1px 4px rgba(0,0,0,.18); z-index:90; }
+    .uie-box.inner-mode .uie-handle { background:#ff8a00; }
+    .uie-box.is-selected .uie-handle { display:block; }
+    .uie-handle.nw { left:-6px; top:-6px; cursor:nwse-resize; }
+    .uie-handle.n { left:50%; top:-6px; transform:translateX(-50%); cursor:ns-resize; }
+    .uie-handle.ne { right:-6px; top:-6px; cursor:nesw-resize; }
+    .uie-handle.e { right:-6px; top:50%; transform:translateY(-50%); cursor:ew-resize; }
+    .uie-handle.se { right:-6px; bottom:-6px; cursor:nwse-resize; }
+    .uie-handle.s { left:50%; bottom:-6px; transform:translateX(-50%); cursor:ns-resize; }
+    .uie-handle.sw { left:-6px; bottom:-6px; cursor:nesw-resize; }
+    .uie-handle.w { left:-6px; top:50%; transform:translateY(-50%); cursor:ew-resize; }
+    .uie-badge { display:none; position:absolute; left:50%; bottom:-28px; transform:translateX(-50%); padding:3px 8px; border-radius:4px; background:#169cff; color:#fff; font-size:12px; font-weight:900; letter-spacing:-.03em; white-space:nowrap; z-index:92; pointer-events:none; }
+    .uie-box.inner-mode .uie-badge { background:#ff8a00; }
+    .uie-box.is-selected .uie-badge { display:block; }
+    /* ▲▲▲ 공용 이미지 편집기 끝 ▲▲▲ */
+
+    @media (max-width:700px) {
+      .wrap { padding:24px 18px 40px; }
+      .breadcrumb { font-size:12px; margin-bottom:12px; }
+      .chips { gap:8px; margin-bottom:18px; }
+      .chip { min-height:34px; padding:7px 12px; font-size:13px; }
+      .uie-box { height:285px; border-radius:14px; margin-bottom:26px; }
+      .title { font-size:26px; line-height:1.35; margin-bottom:12px; }
+      .desc { font-size:14px; margin-bottom:22px; }
+      .info-card { padding:18px 14px; }
+      .info-grid { grid-template-columns:1fr 1fr; }
+      .actions { gap:10px; }
+      .action-btn { min-height:44px; font-size:14px; }
+      .share-modal { align-items:flex-end; padding:14px; }
+      .share-grid { grid-template-columns:repeat(2,1fr); }
+    }
+    @media (max-width:420px) {
+      .title { font-size:23px; }
+      .uie-box { height:245px; }
+      .info-grid { grid-template-columns:1fr; }
+      .actions { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <p class="breadcrumb content-block" contenteditable="true" data-editable="true">POUR 아스팔트 &gt; 지붕 싱글코팅</p>
+
+    <div class="chips" id="chips">
+      <span class="chip"><span contenteditable="true" data-editable="true">아스팔트 슁글 지붕</span><button type="button" class="delete-chip">×</button></span>
+      <span class="chip"><span contenteditable="true" data-editable="true">셀프 시공</span><button type="button" class="delete-chip">×</button></span>
+      <button type="button" class="chip-add-tile" id="addChipTile" aria-label="태그 추가"><span></span></button>
+    </div>
+
+    <!-- 히어로 이미지 — 통일 편집기(uie-box) 적용 -->
+    <div class="uie-box">
+      <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%EA%B3%B5%EB%B2%95%2F%ED%8F%AC%EC%8A%A4%ED%8C%85%2F%EC%8D%B8%EB%84%A4%EC%9D%BC%EC%9D%B4%EB%AF%B8%EC%A7%80.png?alt=media&token=995d4fcc-bbfb-4fcf-b223-d45785b0829c" alt="30년 된 아스팔트 싱글 지붕 복원 사례 이미지">
+    </div>
+
+    <div id="textBlocks">
+      <div class="content-block">
+        <button type="button" class="delete-block">×</button>
+        <h1 class="title" contenteditable="true" data-editable="true">30년 된 아스팔트 싱글 지붕, 철거 없이 복원한 방법</h1>
+      </div>
+      <div class="content-block">
+        <button type="button" class="delete-block">×</button>
+        <p class="desc" contenteditable="true" data-editable="true">노후된 아스팔트 슁글 지붕을 POUR 방수코팅제로 복원한 실제 시공 사례입니다.</p>
+      </div>
+    </div>
+
+    <button type="button" class="text-add-tile" id="addTextTile" aria-label="글 추가"><span></span></button>
+
+    <div class="cards-area" id="cardsArea">
+      <section class="info-card">
+        <button type="button" class="delete-info-card">×</button>
+        <div class="info-grid">
+          <div class="info-item"><button type="button" class="delete-info-item">×</button><div class="info-label" contenteditable="true" data-editable="true">건물유형</div><div class="info-value" contenteditable="true" data-editable="true">단독주택</div></div>
+          <div class="info-item"><button type="button" class="delete-info-item">×</button><div class="info-label" contenteditable="true" data-editable="true">면적</div><div class="info-value" contenteditable="true" data-editable="true">30평</div></div>
+          <div class="info-item"><button type="button" class="delete-info-item">×</button><div class="info-label" contenteditable="true" data-editable="true">시공방식</div><div class="info-value" contenteditable="true" data-editable="true">셀프 시공</div></div>
+          <div class="info-item"><button type="button" class="delete-info-item">×</button><div class="info-label" contenteditable="true" data-editable="true">지붕자재</div><div class="info-value" contenteditable="true" data-editable="true">아스팔트 지붕</div></div>
+          <div class="info-item"><button type="button" class="delete-info-item">×</button><div class="info-label" contenteditable="true" data-editable="true">위치</div><div class="info-value" contenteditable="true" data-editable="true">경기도 분당시</div></div>
+          <button type="button" class="info-add-tile addInfoItem" aria-label="항목 추가"><span></span></button>
+        </div>
+      </section>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="action-btn" id="bookmarkBtn" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4V4z"></path></svg>
+        <span id="bookmarkText">북마크</span>
+      </button>
+      <button type="button" class="action-btn" id="shareBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="M8.5 10.8l7-4.1"></path><path d="M8.5 13.2l7 4.1"></path></svg>
+        공유하기
+      </button>
+    </div>
+  </main>
+
+  <div class="share-modal" id="shareModal" aria-hidden="true">
+    <div class="share-panel" role="dialog" aria-modal="true">
+      <div class="share-head">
+        <h2 contenteditable="true" data-editable="true">공유하기</h2>
+        <button type="button" class="close-btn" id="closeShare" aria-label="닫기">×</button>
+      </div>
+      <div class="share-body">
+        <p class="share-guide" contenteditable="true" data-editable="true">공유할 채널을 선택하거나 링크를 복사해 전달해 주세요.</p>
+        <div class="share-grid">
+          <button type="button" class="share-option" id="nativeShare"><span class="share-icon">↗</span>앱으로 공유</button>
+          <a class="share-option" id="kakaoShare" href="#" target="_blank" rel="noopener"><span class="share-icon">K</span>카카오톡</a>
+          <a class="share-option" id="bandShare" href="#" target="_blank" rel="noopener"><span class="share-icon">B</span>네이버 밴드</a>
+          <a class="share-option" id="facebookShare" href="#" target="_blank" rel="noopener"><span class="share-icon">f</span>페이스북</a>
+          <a class="share-option" id="xShare" href="#" target="_blank" rel="noopener"><span class="share-icon">X</span>X 공유</a>
+          <button type="button" class="share-option" id="instagramShare"><span class="share-icon">◎</span>인스타그램</button>
+        </div>
+        <div class="share-url-box">
+          <input type="text" class="share-url" id="shareUrl" readonly>
+          <button type="button" class="copy-btn" id="copyUrl">복사</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">저장되었습니다.</div>
+
+  <script>
+  (function () {
+    'use strict';
+    const $  = (s, r=document) => r.querySelector(s);
+    const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+    const toast = $('#toast');
+    let toastTimer = null;
+    function showToast(msg){ if(!toast) return; toast.textContent=msg; toast.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>toast.classList.remove('show'),1500); }
+
+    /* ---------- 글자 편집 ---------- */
+    function initEditableText(){
+      $$('[data-editable="true"]').forEach(el=>{
+        if(el.dataset.bound==='1') return; el.dataset.bound='1';
+        el.setAttribute('contenteditable','true'); el.setAttribute('spellcheck','false');
+        el.addEventListener('keydown', e=>{
+          const multi = el.classList.contains('title')||el.classList.contains('desc')||el.classList.contains('share-guide');
+          if(e.key==='Enter' && !e.shiftKey && !multi){ e.preventDefault(); el.blur(); }
+        });
+      });
+    }
+
+    /* ---------- 태그(칩) ---------- */
+    function initChips(){
+      const chips=$('#chips'), add=$('#addChipTile');
+      if(add && add.dataset.bound!=='1'){ add.dataset.bound='1';
+        add.addEventListener('click', ()=>{
+          const chip=document.createElement('span'); chip.className='chip';
+          chip.innerHTML='<span contenteditable="true" data-editable="true">새 태그</span><button type="button" class="delete-chip">×</button>';
+          chips.insertBefore(chip, add); initEditableText(); bindDeleteChips(); $('[data-editable="true"]', chip).focus();
+        });
+      }
+      bindDeleteChips();
+    }
+    function bindDeleteChips(){ $$('.delete-chip').forEach(b=>{ if(b.dataset.bound==='1')return; b.dataset.bound='1'; b.addEventListener('click',()=>b.closest('.chip')?.remove()); }); }
+
+    /* ---------- 글 블록 ---------- */
+    function initTextBlocks(){
+      const add=$('#addTextTile'), box=$('#textBlocks');
+      if(add && add.dataset.bound!=='1'){ add.dataset.bound='1';
+        add.addEventListener('click',()=>{
+          const b=document.createElement('div'); b.className='content-block';
+          b.innerHTML='<button type="button" class="delete-block">×</button><p class="desc" contenteditable="true" data-editable="true">새 문구를 입력하세요.</p>';
+          box.appendChild(b); initEditableText(); bindDeleteBlocks(); $('[data-editable="true"]', b).focus();
+        });
+      }
+      bindDeleteBlocks();
+    }
+    function bindDeleteBlocks(){ $$('.delete-block').forEach(b=>{ if(b.dataset.bound==='1')return; b.dataset.bound='1'; b.addEventListener('click',()=>b.closest('.content-block')?.remove()); }); }
+
+    /* ---------- 정보 카드 ---------- */
+    function newInfoItem(label='항목명', value='내용 입력'){
+      const it=document.createElement('div'); it.className='info-item';
+      it.innerHTML='<button type="button" class="delete-info-item">×</button><div class="info-label" contenteditable="true" data-editable="true">'+label+'</div><div class="info-value" contenteditable="true" data-editable="true">'+value+'</div>';
+      return it;
+    }
+    function initInfoCards(){
+      $$('.addInfoItem').forEach(btn=>{ if(btn.dataset.bound==='1')return; btn.dataset.bound='1';
+        btn.addEventListener('click',()=>{ const grid=btn.closest('.info-grid'); if(!grid)return; grid.insertBefore(newInfoItem(), btn); initEditableText(); bindInfoDeletes(); });
+      });
+      bindInfoDeletes();
+    }
+    function bindInfoDeletes(){
+      $$('.delete-info-card').forEach(b=>{ if(b.dataset.bound==='1')return; b.dataset.bound='1'; b.addEventListener('click',()=>b.closest('.info-card')?.remove()); });
+      $$('.delete-info-item').forEach(b=>{ if(b.dataset.bound==='1')return; b.dataset.bound='1'; b.addEventListener('click',()=>b.closest('.info-item')?.remove()); });
+    }
+
+    /* ---------- 북마크 & 공유 ---------- */
+    function initShareAndBookmark(){
+      const bookmarkBtn=$('#bookmarkBtn'), bookmarkText=$('#bookmarkText'), shareBtn=$('#shareBtn'), shareModal=$('#shareModal'),
+            closeShare=$('#closeShare'), shareUrl=$('#shareUrl'), copyUrl=$('#copyUrl'), pageUrl=window.location.href;
+      const pageTitle=()=>($('.title')?.textContent.trim()||document.title);
+      bookmarkBtn?.addEventListener('click',()=>{ const on=!bookmarkBtn.classList.contains('is-bookmarked'); bookmarkBtn.classList.toggle('is-bookmarked',on); bookmarkBtn.setAttribute('aria-pressed',on?'true':'false'); if(bookmarkText)bookmarkText.textContent=on?'북마크됨':'북마크'; showToast(on?'북마크에 저장되었습니다.':'북마크가 해제되었습니다.'); });
+      function open(){ if(!shareModal)return; const u=encodeURIComponent(pageUrl), t=encodeURIComponent(pageTitle()); if(shareUrl)shareUrl.value=pageUrl;
+        $('#kakaoShare')&&( $('#kakaoShare').href='https://sharer.kakao.com/talk/friends/picker/link?url='+u+'&text='+t );
+        $('#bandShare') &&( $('#bandShare').href='https://band.us/plugin/share?body='+t+'%0A'+u+'&route='+u );
+        $('#facebookShare')&&( $('#facebookShare').href='https://www.facebook.com/sharer/sharer.php?u='+u );
+        $('#xShare')&&( $('#xShare').href='https://twitter.com/intent/tweet?text='+t+'&url='+u );
+        shareModal.classList.add('show'); shareModal.setAttribute('aria-hidden','false'); document.body.classList.add('modal-open'); }
+      function close(){ if(!shareModal)return; shareModal.classList.remove('show'); shareModal.setAttribute('aria-hidden','true'); document.body.classList.remove('modal-open'); }
+      shareBtn?.addEventListener('click',open); closeShare?.addEventListener('click',close);
+      shareModal?.addEventListener('click',e=>{ if(e.target===shareModal) close(); });
+      document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
+      copyUrl?.addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText(pageUrl); }catch(_){ shareUrl?.select(); document.execCommand('copy'); } showToast('링크가 복사되었습니다.'); });
+    }
+
+    /* ============================================================
+       공용 이미지 편집기 (UIE) — 모든 섹션 공통 로직
+       ============================================================ */
+    function readFileAsDataURL(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
+    function buildUIE(box){
+      if(box.dataset.uieReady==='1') return; box.dataset.uieReady='1';
+      let img=box.querySelector(':scope > img'); if(!img) return;
+      const crop=document.createElement('div'); crop.className='uie-crop'; box.insertBefore(crop,img); crop.appendChild(img);
+      const state={scale:100,x:0,y:0,mode:'box'};
+      function applyImg(){ const s=Math.max(50,Math.min(300,state.scale))/100; img.style.transform='translate(-50%,-50%) translate('+state.x+'px,'+state.y+'px) scale('+s+')'; }
+      applyImg();
+      const open=document.createElement('button'); open.type='button'; open.className='uie-open'; open.textContent='🖼 이미지 변경';
+      const panel=document.createElement('div'); panel.className='uie-panel';
+      panel.innerHTML=
+        '<p class="uie-title">이미지 편집</p>'+
+        '<div class="uie-row"><label>이미지 링크로 넣기</label><div class="uie-url-line"><input class="uie-input js-url" type="url" placeholder="https:// 이미지 주소 붙여넣기"><button type="button" class="uie-btn js-apply">적용</button></div></div>'+
+        '<div class="uie-row"><label>컴퓨터에서 업로드</label><div class="uie-upload-line"><label class="uie-file-btn">업로드<input class="js-file" type="file" accept="image/*" style="display:none"></label><div class="uie-preview js-preview"><span>🖼</span></div></div></div>'+
+        '<div class="uie-tabs"><button type="button" class="uie-tab js-tab is-active" data-mode="box">박스 크기 조절</button><button type="button" class="uie-tab js-tab" data-mode="inner">안쪽 이미지 조절</button></div>'+
+        '<div class="uie-actions"><button type="button" class="uie-btn ghost js-reset">초기화</button><button type="button" class="uie-btn ghost js-close">닫기</button></div>'+
+        '<p class="uie-help"><b>박스 크기</b> 모드=파란 점으로 이미지 칸을 조절 · <b>안쪽 이미지</b> 모드=주황 점을 끌거나 사진을 직접 드래그해서 조절</p>';
+      box.appendChild(open); box.appendChild(panel);
+      ['nw','n','ne','e','se','s','sw','w'].forEach(dir=>{ const h=document.createElement('span'); h.className='uie-handle '+dir; h.dataset.dir=dir; box.appendChild(h); });
+      const badge=document.createElement('span'); badge.className='uie-badge'; box.appendChild(badge);
+      const preview=panel.querySelector('.js-preview');
+      function refreshPreview(){ preview.innerHTML=''; const pv=document.createElement('img'); pv.src=img.src; pv.alt=''; pv.onerror=()=>{preview.innerHTML='<span>🖼</span>';}; preview.appendChild(pv); }
+      refreshPreview();
+      function updateBadge(){ if(state.mode==='inner'){ badge.textContent='이미지 '+Math.round(state.scale)+'%'; } else { const r=box.getBoundingClientRect(); badge.textContent=Math.round(r.width)+' × '+Math.round(r.height)+' 박스'; } }
+      function refreshMode(){ box.classList.toggle('inner-mode',state.mode==='inner'); panel.querySelectorAll('.js-tab').forEach(t=>t.classList.toggle('is-active',t.dataset.mode===state.mode)); updateBadge(); }
+      function selectBox(){ document.querySelectorAll('.uie-box.is-selected').forEach(b=>{if(b!==box)b.classList.remove('is-selected');}); box.classList.add('is-selected'); refreshMode(); }
+      const urlInput=panel.querySelector('.js-url');
+      panel.querySelector('.js-apply').addEventListener('click',()=>{ const u=urlInput.value.trim(); if(!u)return; img.src=u; refreshPreview(); });
+      urlInput.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); panel.querySelector('.js-apply').click(); } });
+      panel.querySelector('.js-file').addEventListener('change',async e=>{ const f=e.target.files&&e.target.files[0]; if(!f)return; if(!f.type.startsWith('image/')){ alert('이미지 파일만 넣을 수 있어요.'); return; } img.src=await readFileAsDataURL(f); urlInput.value=''; refreshPreview(); e.target.value=''; });
+      panel.querySelectorAll('.js-tab').forEach(tab=>{ tab.addEventListener('click',e=>{ e.stopPropagation(); state.mode=tab.dataset.mode; refreshMode(); selectBox(); }); });
+      open.addEventListener('click',e=>{ e.stopPropagation(); document.querySelectorAll('.uie-panel.is-open').forEach(p=>{if(p!==panel)p.classList.remove('is-open');}); panel.classList.toggle('is-open'); selectBox(); });
+      panel.addEventListener('click',e=>e.stopPropagation());
+      panel.querySelector('.js-close').addEventListener('click',()=>panel.classList.remove('is-open'));
+      panel.querySelector('.js-reset').addEventListener('click',()=>{ state.scale=100; state.x=0; state.y=0; box.style.width=''; box.style.height=''; applyImg(); updateBadge(); });
+      box.addEventListener('click',e=>{ if(e.target.closest('.uie-open,.uie-panel,.uie-handle'))return; selectBox(); });
+      box.querySelectorAll('.uie-handle').forEach(handle=>{
+        handle.addEventListener('pointerdown',e=>{
+          e.preventDefault(); e.stopPropagation(); selectBox();
+          const dir=handle.dataset.dir, sx=e.clientX, sy=e.clientY, r=box.getBoundingClientRect(), startW=r.width, startH=r.height, startScale=state.scale;
+          document.body.style.userSelect='none'; try{handle.setPointerCapture(e.pointerId);}catch(_){}
+          function mv(ev){
+            const dx=ev.clientX-sx, dy=ev.clientY-sy;
+            if(state.mode==='inner'){ let d=0; if(dir.includes('e'))d+=dx; if(dir.includes('w'))d-=dx; if(dir.includes('s'))d+=dy; if(dir.includes('n'))d-=dy; state.scale=Math.max(50,Math.min(300,Math.round(startScale+d/2))); applyImg(); updateBadge(); return; }
+            let w=startW,h=startH; if(dir.includes('e'))w=startW+dx; if(dir.includes('w'))w=startW-dx; if(dir.includes('s'))h=startH+dy; if(dir.includes('n'))h=startH-dy;
+            box.style.width=Math.max(180,Math.min(860,w))+'px'; box.style.height=Math.max(120,Math.min(1000,h))+'px'; updateBadge();
+          }
+          function up(ev){ document.body.style.userSelect=''; try{handle.releasePointerCapture(ev.pointerId);}catch(_){}
+            document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up); }
+          document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up); document.addEventListener('pointercancel',up);
+        });
+      });
+      img.addEventListener('pointerdown',e=>{
+        if(state.mode!=='inner')return; e.preventDefault(); selectBox();
+        const sx=e.clientX, sy=e.clientY, startX=state.x, startY=state.y; try{img.setPointerCapture(e.pointerId);}catch(_){}
+        function mv(ev){ state.x=startX+(ev.clientX-sx); state.y=startY+(ev.clientY-sy); applyImg(); }
+        function up(ev){ try{img.releasePointerCapture(ev.pointerId);}catch(_){} img.removeEventListener('pointermove',mv); img.removeEventListener('pointerup',up); img.removeEventListener('pointercancel',up); }
+        img.addEventListener('pointermove',mv); img.addEventListener('pointerup',up); img.addEventListener('pointercancel',up);
+      });
+    }
+    document.addEventListener('click',e=>{ if(e.target.closest('.uie-box'))return; document.querySelectorAll('.uie-box.is-selected').forEach(b=>b.classList.remove('is-selected')); document.querySelectorAll('.uie-panel.is-open').forEach(p=>p.classList.remove('is-open')); });
+
+    /* ---------- 시작 ---------- */
+    function boot(){
+      initEditableText(); initChips(); initTextBlocks(); initInfoCards(); initShareAndBookmark();
+      document.querySelectorAll('.uie-box').forEach(buildUIE);
+    }
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+  })();
+  </script>
+</body>
+</html>

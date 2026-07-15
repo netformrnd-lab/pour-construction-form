@@ -142,6 +142,18 @@
 .adv-host .uie-hl-item{margin-top:8px;padding:10px;border:1px solid #eee;border-radius:10px;background:#fafafa;}
 .adv-host .uie-hl-itop{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
 .adv-host .uie-hl-itop b{font-size:11.5px;color:#ff5a00;}
+/* ===== 편집 사용성 개선 ===== */
+/* 편집창: 이미지 크기와 무관하게 고정 폭 + 스크롤(아래 안 잘림) */
+.adv-host .uie-panel{width:min(300px,86vw);max-height:min(62vh,460px);overflow:auto;}
+.adv-host .uie-pop{width:min(240px,82vw);}
+/* 작은 이미지(댓글·자재·사례 썸네일): '이미지 변경(URL/업로드)'만, 고급도구 숨김 */
+.adv-host .comment-card .uie-adv-only,.adv-host .material-row .uie-adv-only,.adv-host .case-card .uie-adv-only{display:none;}
+.adv-host .comment-card .uie-handle,.adv-host .material-row .uie-handle,.adv-host .case-card .uie-handle,
+.adv-host .comment-card .uie-badge,.adv-host .material-row .uie-badge,.adv-host .case-card .uie-badge{display:none !important;}
+.adv-host .comment-card .uie-open,.adv-host .material-row .uie-open,.adv-host .case-card .uie-open{left:6px;top:6px;padding:5px 8px;font-size:12px;}
+/* 편집 가능한 글자: 은은한 점선으로 '여기 클릭해 수정' 힌트 */
+.adv-host [data-editable="true"]{box-shadow:inset 0 -1px 0 rgba(255,138,61,.35);}
+.adv-host [data-editable="true"]:hover,.adv-host [data-editable="true"]:focus{box-shadow:0 0 0 2px rgba(255,90,0,.25);}
 `;
 
   var IMG = {

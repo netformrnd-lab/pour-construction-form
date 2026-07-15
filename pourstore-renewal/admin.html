@@ -5270,9 +5270,10 @@ function advBuildUIE(box, host, onChange){
   const state={scale:100,x:0,y:0,mode:'box'};
   function applyImg(){ const s=Math.max(50,Math.min(300,state.scale))/100; img.style.transform='translate(-50%,-50%) translate('+state.x+'px,'+state.y+'px) scale('+s+')'; }
   applyImg();
-  const open=document.createElement('button'); open.type='button'; open.className='uie-open'; open.textContent='🖼 이미지 변경';
+  const smallImg=!!box.closest('.comment-card,.material-row,.case-card');
+  const open=document.createElement('button'); open.type='button'; open.className='uie-open'; open.textContent=smallImg?'🖼':'🖼 이미지 변경'; open.title='이미지 변경';
   const panel=document.createElement('div'); panel.className='uie-panel';
-  panel.innerHTML='<p class="uie-title">이미지 편집</p><div class="uie-row"><label>이미지 링크로 넣기</label><div class="uie-url-line"><input class="uie-input js-url" type="url" placeholder="https:// 이미지 주소 붙여넣기"><button type="button" class="uie-btn js-apply">적용</button></div></div><div class="uie-row"><label>컴퓨터에서 업로드</label><div class="uie-upload-line"><label class="uie-file-btn">업로드<input class="js-file" type="file" accept="image/*" style="display:none"></label><div class="uie-preview js-preview"><span>🖼</span></div></div></div><div class="uie-tabs"><button type="button" class="uie-tab js-tab is-active" data-mode="box">박스 크기 조절</button><button type="button" class="uie-tab js-tab" data-mode="inner">안쪽 이미지 조절</button></div><div class="uie-row"><button type="button" class="uie-btn ghost js-addpoint" style="width:100%">＋ 상품·설명 점 추가</button></div><div class="uie-hl-wrap"></div><div class="uie-actions"><button type="button" class="uie-btn ghost js-reset">초기화</button><button type="button" class="uie-btn ghost js-close">닫기</button></div><p class="uie-help"><b>박스 크기</b> 모드=파란 점으로 이미지 칸을 조절 · <b>안쪽 이미지</b> 모드=주황 점을 끌거나 사진을 직접 드래그해서 조절</p>';
+  panel.innerHTML='<p class="uie-title">이미지 편집</p><div class="uie-row"><label>이미지 링크로 넣기</label><div class="uie-url-line"><input class="uie-input js-url" type="url" placeholder="https:// 이미지 주소 붙여넣기"><button type="button" class="uie-btn js-apply">적용</button></div></div><div class="uie-row"><label>컴퓨터에서 업로드</label><div class="uie-upload-line"><label class="uie-file-btn">업로드<input class="js-file" type="file" accept="image/*" style="display:none"></label><div class="uie-preview js-preview"><span>🖼</span></div></div></div><div class="uie-tabs uie-adv-only"><button type="button" class="uie-tab js-tab is-active" data-mode="box">박스 크기 조절</button><button type="button" class="uie-tab js-tab" data-mode="inner">안쪽 이미지 조절</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-addpoint" style="width:100%">＋ 상품·설명 점 추가</button></div><div class="uie-hl-wrap uie-adv-only"></div><div class="uie-actions"><button type="button" class="uie-btn ghost js-reset">초기화</button><button type="button" class="uie-btn ghost js-close">닫기</button></div><p class="uie-help"><b>박스 크기</b> 모드=파란 점으로 이미지 칸을 조절 · <b>안쪽 이미지</b> 모드=주황 점을 끌거나 사진을 직접 드래그해서 조절</p>';
   box.appendChild(open); box.appendChild(panel);
   ['nw','n','ne','e','se','s','sw','w'].forEach(dir=>{ const h=document.createElement('span'); h.className='uie-handle '+dir; h.dataset.dir=dir; box.appendChild(h); });
   const badge=document.createElement('span'); badge.className='uie-badge'; box.appendChild(badge);
@@ -5539,8 +5540,12 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
         </div>
         {form.type==='advanced' && <React.Fragment>
           <div style={{height:16}}/>
-          <label style={lbl}>✨ 고도화 콘텐츠 섹션 — 이미지·글을 화면에서 바로 편집 (이미지 편집 방식 통일)</label>
-          <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:700,marginTop:4}}>ℹ 이미지 위 <b style={{color:'var(--or-d)'}}>[이미지 변경]</b> → URL/업로드로 넣고, <b>박스 크기 / 안쪽 이미지</b> 탭으로 조절. 태그·글·정보상자는 바로 클릭해서 수정합니다.</div>
+          <label style={lbl}>✨ 고도화 콘텐츠 섹션 — 화면에서 바로 편집</label>
+          <div style={{marginTop:6,padding:'10px 12px',background:'var(--or-pale)',border:'1px solid var(--or)',borderRadius:10,fontSize:11.5,fontWeight:700,color:'var(--or-d)',lineHeight:1.75}}>
+            <div>📝 <b>글자</b> — 밑줄 있는 글씨를 클릭해서 바로 고치기</div>
+            <div>🖼 <b>사진</b> — 사진 위 <b>[이미지 변경]</b> 버튼 → URL/업로드로 교체 · 크기 · 상품점 · 외곽선</div>
+            <div>➕ <b>추가/삭제</b> — 점선 <b>[＋]</b> 칸으로 태그·글·항목 추가, <b>×</b> 로 삭제</div>
+          </div>
           <div style={{marginTop:8,border:'1.5px solid var(--border)',borderRadius:12,overflow:'hidden',background:'#fff'}}>
             <AdvancedContentEditor form={form} set={set}/>
           </div>

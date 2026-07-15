@@ -111,6 +111,18 @@
   .adv-host .post-action-bar{grid-template-columns:1fr;}
   .adv-host .comment-card{flex-direction:column;align-items:flex-start;}
 }
+/* 상품/설명 점(핫스팟) */
+.adv-host .uie-point{position:absolute;transform:translate(-50%,-50%);z-index:60;width:24px;height:24px;border-radius:50%;background:#ff5a00;color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:grab;box-shadow:0 3px 10px rgba(0,0,0,.3);border:2px solid #fff;touch-action:none;}
+.adv-host .uie-point.info{background:#169cff;}
+.adv-host .uie-point:active{cursor:grabbing;}
+.adv-host .uie-pop{position:absolute;z-index:85;width:min(240px,calc(100% - 20px));transform:translate(-50%,10px);background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:12px;box-shadow:0 14px 34px rgba(0,0,0,.22);padding:12px;}
+.adv-host .uie-pop-tabs{display:flex;gap:6px;align-items:center;margin-bottom:8px;}
+.adv-host .uie-pt{border:1px solid #ddd;border-radius:7px;background:#f7f7f7;color:#333;font:inherit;font-size:12px;font-weight:900;padding:6px 12px;cursor:pointer;}
+.adv-host .uie-pt.on{border-color:#ff5a00;background:#ff5a00;color:#fff;}
+.adv-host .uie-pop-x{margin-left:auto;width:26px;height:26px;border:0;border-radius:50%;background:#f1f1f1;color:#555;font-size:16px;line-height:1;cursor:pointer;}
+.adv-host .uie-pop-body{display:grid;gap:3px;}
+.adv-host .uie-pop-body label{font-size:11px;font-weight:850;color:#555;margin-top:5px;}
+.adv-host .uie-pop-del{margin-top:10px;width:100%;border:0;border-radius:8px;background:#fff0ec;color:#e5484d;font:inherit;font-size:12px;font-weight:900;padding:8px;cursor:pointer;}
 `;
 
   var IMG = {

@@ -206,6 +206,9 @@
 /* 각 섹션 도구바 안의 '＋섹션' 메뉴는 버튼 아래·오른쪽에 표시 */
 .adv-host .adv-sec-bar .adv-sec-addafter{color:#ff5a00;border-color:#ff8a3d;}
 .adv-host .adv-sec-bar .adv-sec-menu{left:auto;right:0;bottom:auto;top:calc(100% + 6px);transform:none;}
+/* 상품핀 설명 팝업: 줄바꿈 유지 + 빈 사용제품 영역 최소높이 정리 */
+.adv-host .pv-pop .pv-desc{white-space:pre-line;}
+.adv-host .products:empty{display:none;}
 /* ===== 고도화 글은 본문 자체 헤더를 쓰므로, pour-story 자동 헤더(썸네일·제목·날짜) 숨김 =====
    (pour-story.html 재붙여넣기 없이도 pages.dev CSS로 자동 적용) */
 [data-art-scroll]:has(.adv-view) .pstory-art-hero,
@@ -294,10 +297,10 @@
 <div class="adv-sec"><span class="adv-sec-tag">③ 시공과정</span>
   <div class="sec-title"><strong contenteditable="true" data-editable="true">시공 과정</strong> ${ed('','span','문제 부위만 선별 보수')}</div>
   <div class="step adv-blk">${ed('eyebrow','div','STEP 1')}${ed('','h3','문제 부위 정리 및 청소')}${box(IMG.step1,'STEP1')}${ed('detail-text','p','지붕 표면의 먼지·이끼·곰팡이 등 오염물을 제거합니다. 고소 작업 시 안전장비를 반드시 착용합니다.')}
-    ${ed('used-title','p','사용 제품')}<div class="products"><a class="product adv-blk" href="#"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%EA%B3%B5%EB%B2%95%2F%ED%8F%AC%EC%8A%A4%ED%8C%85%2F%EC%95%88%EC%A0%84%EB%AA%A8.png?alt=media&token=9d651d8d-9fac-4a71-8880-8cf1ef9cbb96" alt=""><span contenteditable="true" data-editable="true">고급 경량 안전모</span></a></div>
+    ${ed('used-title','p','사용 제품')}<div class="products"></div>
   </div>
   <div class="step adv-blk">${ed('eyebrow','div','STEP 2')}${ed('','h3','균열 보수 및 방수 시트 시공')}${box(IMG.step2,'STEP2')}${ed('detail-text','p','탈락·들뜬 부위에 코트재를 도포하고 전용 보강 시트를 밀착 부착해 빈틈 없이 보강합니다.')}
-    ${ed('used-title','p','사용 제품')}<div class="products"><a class="product adv-blk" href="#"><img src="${IMG.coat}" alt=""><span contenteditable="true" data-editable="true">POUR 코트재</span></a><a class="product adv-blk" href="#"><img src="${IMG.sheet}" alt=""><span contenteditable="true" data-editable="true">POUR 슈퍼복합 방수시트</span></a></div>
+    ${ed('used-title','p','사용 제품')}<div class="products"></div>
   </div>
   <div class="step adv-blk">${ed('eyebrow','div','STEP 3')}${ed('','h3','방수층 형성 및 마감 코팅')}${box(IMG.step3,'STEP3')}${ed('detail-text','p','방수액 도포 후 전용 시트를 부착하고, 코트재를 2회 이상 도포해 탄탄한 방수층을 형성합니다.')}</div>
   <div class="point"><span class="bulb">💡</span><div>${ed('','h4','시공 포인트')}${ed('','p','문제 부위만 선별 보수하여 전체 교체 대비 비용과 시간을 절감했습니다.')}</div></div>

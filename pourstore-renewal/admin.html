@@ -5352,7 +5352,7 @@ function advBuildUIE(box, host, onChange){
       +'<label>상품명</label><input class="uie-input jf" data-k="name" value="'+esc(p.name)+'">'
       +'<label>가격</label><input class="uie-input jf" data-k="price" value="'+esc(p.price)+'">'
       +'<label>썸네일 URL</label><input class="uie-input jf" data-k="thumb" value="'+esc(p.thumb)+'">'
-      +'<label>설명 / 사용법 (선택)</label><input class="uie-input jf" data-k="desc" value="'+esc(p.desc)+'">';
+      +'<label>설명 / 사용법 (핀 누르면 표시)</label><textarea class="uie-input jf" data-k="desc" rows="3" style="resize:vertical;min-height:62px;line-height:1.5">'+String(p.desc==null?'':p.desc).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea>';
   }
   function openEditor(i){
     closePops(); const p=points[i]; if(!p) return;
@@ -5390,6 +5390,8 @@ function advBuildUIE(box, host, onChange){
     var step=box.closest('.step'); if(!step) return;
     var products=step.querySelector('.products'); if(!products) return;
     var prodPts=points.filter(function(p){ return p.mode==='product' && (p.name||p.link||p.thumb); });
+    // 상품은 오직 '상품핀'에서만 진열 → 기존(하드코딩) 상품카드는 제거
+    products.querySelectorAll('.product:not(.product-pin)').forEach(function(c){ c.remove(); });
     products.querySelectorAll('.product-pin').forEach(function(card){ if(!prodPts.some(function(p){return String(p.id)===card.getAttribute('data-pin');})) card.remove(); });
     prodPts.forEach(function(p){
       var card=products.querySelector('.product-pin[data-pin="'+p.id+'"]');
@@ -5397,6 +5399,8 @@ function advBuildUIE(box, host, onChange){
       else { var im=card.querySelector('img'); if(im&&p.thumb&&im.getAttribute('src')!==p.thumb)im.src=p.thumb; var sp=card.querySelector('span'); if(sp&&(p.name||'상품명')!==sp.textContent)sp.textContent=p.name||'상품명'; if(p.link)card.href=p.link; }
       bindPinCard(card);
     });
+    // '사용 제품' 제목은 진열된 상품이 있을 때만 표시
+    var ut=step.querySelector('.used-title'); if(ut) ut.style.display=products.children.length?'':'none';
   }
   renderPoints();
   syncStepProducts();

@@ -2073,7 +2073,17 @@ var PC_TTL = 300000;
       +'.peng-bm-i{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid #f0f1f3;cursor:pointer;}'
       +'.peng-bm-i img{width:64px;height:48px;object-fit:cover;border-radius:8px;background:#f3f4f6;flex:0 0 auto;}'
       +'.peng-bm-i b{font-size:14px;font-weight:800;color:#111;line-height:1.35;word-break:keep-all;}'
-      +'.peng-bm-empty{color:#9aa0a6;font-size:14px;padding:24px 0;text-align:center;}';
+      +'.peng-bm-empty{color:#9aa0a6;font-size:14px;padding:24px 0;text-align:center;}'
+      +'.peng-sh-ov{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;}'
+      +'.peng-sh{background:#fff;border-radius:18px;padding:20px 28px 24px;box-shadow:0 18px 50px rgba(0,0,0,.28);}'
+      +'.peng-sh-top{display:flex;justify-content:center;margin-bottom:16px;}'
+      +'.peng-sh-ic{width:44px;height:44px;border-radius:50%;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:18px;color:#333;}'
+      +'.peng-sh-row{display:flex;gap:28px;justify-content:center;}'
+      +'.peng-sh-btn{border:0;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;font:inherit;}'
+      +'.peng-sh-emoji{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;}'
+      +'.peng-sh-emoji.kko{background:#FEE500;}'
+      +'.peng-sh-emoji.lnk{background:#f1f3f5;}'
+      +'.peng-sh-btn>span:last-child{font-size:13px;font-weight:800;color:#333;}';
     document.head.appendChild(s);
   }
   function pengCol(name){ return collection(db, name); }
@@ -2171,9 +2181,36 @@ var PC_TTL = 300000;
       });
     }catch(e){ console.error('[comments] 로드 실패:', e); listEl.innerHTML='<div class="peng-cempty">댓글을 불러오지 못했어요.</div>'; }
   }
+  function pengShareUrl(post){ return location.origin+location.pathname+'#post-'+encodeURIComponent(post.id||''); }
   function pengShare(post){
-    var url=location.origin+location.pathname+'#post-'+encodeURIComponent(post.id||'');
-    function done(){ pengToast('링크를 복사했어요! 카톡·인스타에 붙여넣기 하세요', true); }
+    pengEnsureStyle();
+    var url=pengShareUrl(post), title=post.title||'POUR이야기';
+    var ov=document.createElement('div'); ov.className='peng-sh-ov';
+    ov.innerHTML='<div class="peng-sh"><div class="peng-sh-top"><span class="peng-sh-ic">↗</span></div>'
+      +'<div class="peng-sh-row">'
+      +'<button class="peng-sh-btn" type="button" data-k="kakao"><span class="peng-sh-emoji kko">💬</span><span>카카오톡</span></button>'
+      +'<button class="peng-sh-btn" type="button" data-k="copy"><span class="peng-sh-emoji lnk">🔗</span><span>링크복사</span></button>'
+      +'</div></div>';
+    document.body.appendChild(ov);
+    function close(){ ov.remove(); }
+    ov.addEventListener('click', function(e){ if(e.target===ov) close(); });
+    ov.querySelector('[data-k="copy"]').addEventListener('click', function(){ pengCopyLink(url); close(); });
+    ov.querySelector('[data-k="kakao"]').addEventListener('click', function(){ pengKakao(url, title, post); close(); });
+  }
+  function pengKakao(url, title, post){
+    try{
+      if(window.Kakao && window.Kakao.Share && window.Kakao.isInitialized && window.Kakao.isInitialized()){
+        window.Kakao.Share.sendDefault({objectType:'feed',
+          content:{title:title, description:'POUR이야기', imageUrl:(thumbOf(post)||''), link:{mobileWebUrl:url, webUrl:url}},
+          buttons:[{title:'보러가기', link:{mobileWebUrl:url, webUrl:url}}]});
+        return;
+      }
+    }catch(e){ console.error('[share] kakao 실패:', e); }
+    if(navigator.share){ navigator.share({title:title, url:url}).catch(function(){}); return; }
+    pengCopyLink(url, '링크를 복사했어요! 카카오톡에 붙여넣어 공유하세요');
+  }
+  function pengCopyLink(url, msg){
+    function done(){ pengToast(msg||'링크를 복사했어요! 카톡·인스타에 붙여넣기 하세요', true); }
     if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done, function(){ pengFallbackCopy(url, done); }); }
     else pengFallbackCopy(url, done);
   }
@@ -2192,12 +2229,6 @@ var PC_TTL = 300000;
         else if(t.indexOf('북마크')>=0){ pengLoadBookmark(pid, btn); btn.addEventListener('click', function(){ pengToggleBookmark(pid, btn, post); }); }
         else if(t.indexOf('공유')>=0){ btn.addEventListener('click', function(){ pengShare(post); }); }
       });
-      if(!(bar.nextElementSibling && bar.nextElementSibling.classList.contains('peng-mybm-wrap'))){
-        var mb=document.createElement('div'); mb.className='peng-mybm-wrap';
-        mb.innerHTML='<button class="peng-mybm" type="button">📑 내 북마크</button>';
-        bar.parentNode.insertBefore(mb, bar.nextSibling);
-        mb.querySelector('.peng-mybm').addEventListener('click', pengOpenMyBookmarks);
-      }
     }
     var hd=scope.querySelector('.comment-hd');
     if(hd){

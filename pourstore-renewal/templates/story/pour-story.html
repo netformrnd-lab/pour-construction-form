@@ -2037,15 +2037,26 @@ var PC_TTL = 300000;
       : (Array.isArray(p.blocks) && p.blocks.length) ? renderBlocksHtml(p.blocks)
       : ((p.body && p.body.trim()) ? renderBodyBlocks(p.body) : (p.summary ? '<p>'+esc(p.summary)+'</p>' : '<p style="color:#9AA0A6">본문이 준비 중입니다.</p>'));
     var rel = posts.filter(function(x){ return x!==p; }).slice(0,4);
-    artScroll.innerHTML = hero
-      + '<div class="pstory-art-wrap">'
-      +   '<div class="pstory-art-ct">'+esc(typeLabel(p.type))+'</div>'
-      +   '<div class="pstory-art-tt">'+esc(p.title||'')+'</div>'
-      +   '<div class="pstory-art-dt">'+(dateOf(p)||'')+'</div>'
-      +   '<div class="pstory-art-body">'+bodyHtml+'</div>'
-      +   cta
-      + '</div>'
-      + (rel.length ? '<div class="pstory-art-rel"><div class="pstory-art-rel-top"></div><div class="pstory-art-rel-h">다른 이야기</div><div class="pstory-art-rel-list">'+rel.map(relCardHtml).join('')+'</div></div>' : '');
+    var relBlock = (rel.length ? '<div class="pstory-art-rel"><div class="pstory-art-rel-top"></div><div class="pstory-art-rel-h">다른 이야기</div><div class="pstory-art-rel-list">'+rel.map(relCardHtml).join('')+'</div></div>' : '');
+    if (isAdv){
+      // 고도화 글: 본문 자체가 완결된 헤더(대표이미지+제목+설명)를 가지므로
+      // pour-story 자동 헤더(썸네일·카테고리·제목·날짜)를 생략해 중복 제거
+      artScroll.innerHTML = '<div class="pstory-art-wrap">'
+        +   '<div class="pstory-art-body">'+bodyHtml+'</div>'
+        +   cta
+        + '</div>'
+        + relBlock;
+    } else {
+      artScroll.innerHTML = hero
+        + '<div class="pstory-art-wrap">'
+        +   '<div class="pstory-art-ct">'+esc(typeLabel(p.type))+'</div>'
+        +   '<div class="pstory-art-tt">'+esc(p.title||'')+'</div>'
+        +   '<div class="pstory-art-dt">'+(dateOf(p)||'')+'</div>'
+        +   '<div class="pstory-art-body">'+bodyHtml+'</div>'
+        +   cta
+        + '</div>'
+        + relBlock;
+    }
     if (artModal.hidden){ artModal.hidden=false; _aOverflow=document.documentElement.style.overflow; document.documentElement.style.overflow='hidden'; }
     artModal.scrollTop=0;
     var av=artScroll.querySelector('.adv-view'); if(av) renderAdvView(av);

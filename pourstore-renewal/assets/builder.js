@@ -1393,7 +1393,7 @@ show('entry');
     <a href="#" class="psm1-tab">시공가이드</a>
     <a href="#" class="psm1-tab">시공사례</a>
     <a href="#" class="psm1-tab">쇼핑수다</a>
-    <a href="#" class="psm1-tab">이벤트</a>
+    <a href="/pourstore_renewal/story/event.html" class="psm1-tab">이벤트</a>
     <a href="#" class="psm1-tab">패키지 NEW <span class="psm1-tab-new">N</span></a>
     <div class="psm1-tabs-tail">
       <span class="psm1-tail-count">3</span>

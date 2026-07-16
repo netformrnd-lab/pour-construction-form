@@ -11,6 +11,24 @@
 .adv-host .adv-sec{margin:0 0 10px;padding:28px 0 4px;border-top:10px solid #f4f4f4;}
 .adv-host .adv-sec:first-of-type{border-top:0;padding-top:6px;}
 .adv-host .adv-sec-tag{display:inline-block;margin:0 0 14px;padding:4px 10px;border-radius:999px;background:#fff4ea;color:#ff5a00;font-size:11px;font-weight:900;letter-spacing:-.03em;}
+/* ① 헤더 영역 */
+.adv-host .breadcrumb{margin:0 0 14px;font-size:12.5px;font-weight:800;color:#9a9a9a;letter-spacing:-.03em;}
+.adv-host .chips{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 18px;}
+.adv-host .chip{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:999px;background:#f3f4f6;color:#4b5563;font-size:12.5px;font-weight:800;letter-spacing:-.03em;}
+.adv-host .adv-textblocks{margin:18px 0 0;}
+.adv-host .content-block{position:relative;margin:0 0 8px;}
+.adv-host h1.title,.adv-host .title{margin:0 0 6px;font-size:27px;line-height:1.32;font-weight:950;color:#111;letter-spacing:-.05em;word-break:keep-all;}
+.adv-host .desc{margin:0;font-size:15.5px;line-height:1.65;font-weight:700;color:#666;letter-spacing:-.03em;word-break:keep-all;}
+/* 기본 정보표(건물유형·면적 등) */
+.adv-host .cards-area{margin-top:22px;}
+.adv-host .info-card{position:relative;padding:4px 22px;border:1px solid #ececec;border-radius:16px;background:#fafafa;}
+.adv-host .info-grid{display:grid;grid-template-columns:1fr;}
+.adv-host .info-item{position:relative;display:grid;grid-template-columns:104px 1fr;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid #ededed;}
+.adv-host .info-item:last-of-type{border-bottom:0;}
+.adv-host .info-label{font-size:13.5px;font-weight:900;color:#9a9a9a;letter-spacing:-.03em;}
+.adv-host .info-value{font-size:15px;font-weight:850;color:#1f2430;letter-spacing:-.03em;}
+.adv-host .info-item>.delete-info-item{position:absolute;right:-6px;top:9px;z-index:5;}
+.adv-host .info-card>.delete-info-card{position:absolute;right:10px;top:10px;z-index:5;}
 /* BEFORE */
 .adv-host .comment-card{display:flex;align-items:center;gap:16px;padding:18px 20px;margin-bottom:12px;border-radius:14px;background:linear-gradient(135deg,#fff7f0,#f7f2ee);}
 .adv-host .comment-card .uie-box{flex:0 0 104px;width:104px;height:104px;margin:0;border-radius:12px;box-shadow:none;}
@@ -183,6 +201,31 @@
 /* 각 섹션 도구바 안의 '＋섹션' 메뉴는 버튼 아래·오른쪽에 표시 */
 .adv-host .adv-sec-bar .adv-sec-addafter{color:#ff5a00;border-color:#ff8a3d;}
 .adv-host .adv-sec-bar .adv-sec-menu{left:auto;right:0;bottom:auto;top:calc(100% + 6px);transform:none;}
+/* ===== 고객(공개) 페이지에서는 편집용 표시 전부 숨김 (.adv-view 일 때만) ===== */
+.adv-host.adv-view [data-editable]{box-shadow:none !important;}
+.adv-host.adv-view [contenteditable]{cursor:inherit;-webkit-user-modify:read-only;}
+.adv-host.adv-view .adv-sec-tag{display:none;}
+.adv-host.adv-view .adv-sec{border-top-color:#f0f0f0;}
+.adv-host.adv-view .delete-chip,
+.adv-host.adv-view .delete-block,
+.adv-host.adv-view .delete-info-item,
+.adv-host.adv-view .delete-info-card,
+.adv-host.adv-view .chip-add-tile,
+.adv-host.adv-view .text-add-tile,
+.adv-host.adv-view .info-add-tile,
+.adv-host.adv-view .adv-sec-bar,
+.adv-host.adv-view .adv-addsec,
+.adv-host.adv-view .adv-blk-tools,
+.adv-host.adv-view .uie-open,
+.adv-host.adv-view .uie-panel,
+.adv-host.adv-view .uie-handle,
+.adv-host.adv-view .uie-badge,
+.adv-host.adv-view .uie-point,
+.adv-host.adv-view .uie-pop,
+.adv-host.adv-view .uie-hl-svg,
+.adv-host.adv-view .uie-hint,
+.adv-host.adv-view .uie-dot,
+.adv-host.adv-view .uie-hlmove{display:none !important;}
 `;
 
   var IMG = {

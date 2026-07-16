@@ -2311,11 +2311,29 @@ var PC_TTL = 300000;
     var pop=document.createElement('div'); pop.className='pv-pop'; pop.style.left=Math.min(80,pos.x)+'%'; pop.style.top=Math.min(74,pos.y)+'%'; pop.innerHTML=cardHtml; box.appendChild(pop);
     m.addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); box.querySelectorAll('.pv-pop.open').forEach(function(x){ if(x!==pop) x.classList.remove('open'); }); pop.classList.toggle('open'); });
   }
+  // 글 안에서 링크가 연결된 상품들(시공과정 상품핀·사용제품·연관상품)의 이름→링크 맵
+  function advCollectProductLinks(root){
+    var map=[];
+    function add(nameEl, a){ if(!a) return; var href=a.getAttribute('href')||''; if(!/^https?:/i.test(href)) return; var nm=((nameEl?nameEl.textContent:a.textContent)||'').trim(); if(nm) map.push({name:nm, link:href}); }
+    root.querySelectorAll('a.product').forEach(function(a){ add(a.querySelector('span'), a); });
+    root.querySelectorAll('a.used-card').forEach(function(a){ add(a.querySelector('strong'), a); });
+    root.querySelectorAll('a.related-card').forEach(function(a){ add(a.querySelector('.related-name'), a); });
+    return map;
+  }
+  function advFindLink(map, name){
+    name=(name||'').trim(); if(!name) return '';
+    for(var i=0;i<map.length;i++){ if(map[i].name===name) return map[i].link; }
+    for(var j=0;j<map.length;j++){ if(map[j].name && (map[j].name.indexOf(name)>=0 || name.indexOf(map[j].name)>=0)) return map[j].link; }
+    return '';
+  }
   function renderAdvView(root){
-    // 견적노트 자재행(.material-row[data-link]) → 클릭하면 상품페이지로 이동
-    root.querySelectorAll('.material-row[data-link]').forEach(function(row){
-      var link=row.getAttribute('data-link'); if(!link || row.__mlBound) return; row.__mlBound=true;
-      row.addEventListener('click', function(){ window.open(link, '_blank', 'noopener'); });
+    // 견적노트 자재행 → 위에서 링크 연결된 상품과 이름이 같으면 자동으로 클릭 이동
+    // (admin에서 자재행에 직접 넣은 data-link가 있으면 그걸 우선)
+    var plinks=advCollectProductLinks(root);
+    root.querySelectorAll('.material-row').forEach(function(row){
+      var link=row.getAttribute('data-link');
+      if(!link){ var nm=row.querySelector('.material-name'); link=advFindLink(plinks, nm?nm.textContent:''); if(link) row.setAttribute('data-link', link); }
+      if(link && !row.__mlBound){ row.__mlBound=true; row.style.cursor='pointer'; row.addEventListener('click', function(){ window.open(link, '_blank', 'noopener'); }); }
     });
     root.querySelectorAll('.uie-box').forEach(function(box){
       var img=box.querySelector('.uie-crop > img') || box.querySelector(':scope > img');

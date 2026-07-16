@@ -5263,6 +5263,7 @@ const ADV_DEFAULT_HTML = `
 </div>`;
 function advEnsureStyle(){ if(!document.getElementById('adv-uie-style')){ const s=document.createElement('style'); s.id='adv-uie-style'; s.textContent=ADV_CSS+(window.ADV_EXTRA_CSS||''); document.head.appendChild(s); } }
 function advReadFile(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
+function advFetchProduct(url){ return fetch('/product-info?url='+encodeURIComponent(url)).then(function(r){return r.json();}); }
 function advBuildUIE(box, host, onChange){
   if(box.dataset.uieReady==='1') return; box.dataset.uieReady='1';
   let crop=box.querySelector(':scope > .uie-crop'); let img;
@@ -5289,10 +5290,11 @@ function advBuildUIE(box, host, onChange){
         +'<label>설명</label><input class="uie-input jf" data-k="text" value="'+esc(p.text)+'">'
         +'<label>이미지 URL(선택)</label><input class="uie-input jf" data-k="image" value="'+esc(p.image)+'">';
     }
-    return '<label>상품명</label><input class="uie-input jf" data-k="name" value="'+esc(p.name)+'">'
+    return '<label>상품 링크 (카페24 상품 주소)</label><input class="uie-input jf" data-k="link" value="'+esc(p.link)+'">'
+      +'<button type="button" class="uie-btn jf-fetch" style="width:100%;margin-top:8px">🔗 링크에서 자동채우기</button>'
+      +'<label>상품명</label><input class="uie-input jf" data-k="name" value="'+esc(p.name)+'">'
       +'<label>가격</label><input class="uie-input jf" data-k="price" value="'+esc(p.price)+'">'
-      +'<label>썸네일 URL(선택)</label><input class="uie-input jf" data-k="thumb" value="'+esc(p.thumb)+'">'
-      +'<label>상품 링크</label><input class="uie-input jf" data-k="link" value="'+esc(p.link)+'">';
+      +'<label>썸네일 URL</label><input class="uie-input jf" data-k="thumb" value="'+esc(p.thumb)+'">';
   }
   function openEditor(i){
     closePops(); const p=points[i]; if(!p) return;
@@ -5306,6 +5308,7 @@ function advBuildUIE(box, host, onChange){
     pop.querySelector('.uie-pop-x').addEventListener('click',closePops);
     pop.querySelector('.uie-pop-del').addEventListener('click',()=>{ points.splice(i,1); savePoints(); renderPoints(); closePops(); });
     pop.querySelectorAll('.jf').forEach(inp=>inp.addEventListener('input',()=>{ p[inp.dataset.k]=inp.value; savePoints(); }));
+    var fb=pop.querySelector('.jf-fetch'); if(fb) fb.addEventListener('click',function(){ var link=(p.link||'').trim(); if(!link){ alert('먼저 상품 링크를 입력하세요.'); return; } fb.disabled=true; fb.textContent='불러오는 중…'; advFetchProduct(link).then(function(d){ if(d&&!d.error){ if(d.name)p.name=d.name; if(d.price)p.price=d.price; if(d.thumb)p.thumb=d.thumb; savePoints(); openEditor(i); } else { alert('상품 정보를 불러오지 못했어요. 직접 입력해주세요.'); fb.disabled=false; fb.textContent='🔗 링크에서 자동채우기'; } }).catch(function(){ alert('불러오기 실패. 직접 입력해주세요.'); fb.disabled=false; fb.textContent='🔗 링크에서 자동채우기'; }); });
   }
   function bindPoint(m,i){
     m.addEventListener('click',e=>{ if(m.dataset.moved==='1'){ m.dataset.moved=''; return; } e.stopPropagation(); openEditor(i); });
@@ -5332,7 +5335,7 @@ function advBuildUIE(box, host, onChange){
   function ensureHlSvg(){ if(!hlSvg){ hlSvg=document.createElementNS('http://www.w3.org/2000/svg','svg'); hlSvg.setAttribute('class','uie-hl-svg'); hlSvg.setAttribute('viewBox','0 0 100 100'); hlSvg.setAttribute('preserveAspectRatio','none'); box.appendChild(hlSvg); } return hlSvg; }
   function centroid(pts){ let x=0,y=0; pts.forEach(p=>{x+=p.x;y+=p.y;}); return {x:x/pts.length,y:y/pts.length}; }
   function hlCardFields(card){
-    if(card.mode==='product') return '<label>상품명</label><input class="uie-input jf" data-k="name" value="'+esc(card.name)+'"><label>가격</label><input class="uie-input jf" data-k="price" value="'+esc(card.price)+'"><label>썸네일 URL(선택)</label><input class="uie-input jf" data-k="thumb" value="'+esc(card.thumb)+'"><label>상품 링크</label><input class="uie-input jf" data-k="link" value="'+esc(card.link)+'">';
+    if(card.mode==='product') return '<label>상품 링크 (카페24 상품 주소)</label><input class="uie-input jf" data-k="link" value="'+esc(card.link)+'"><button type="button" class="uie-btn jf-fetch" style="width:100%;margin-top:8px">🔗 링크에서 자동채우기</button><label>상품명</label><input class="uie-input jf" data-k="name" value="'+esc(card.name)+'"><label>가격</label><input class="uie-input jf" data-k="price" value="'+esc(card.price)+'"><label>썸네일 URL</label><input class="uie-input jf" data-k="thumb" value="'+esc(card.thumb)+'">';
     if(card.mode==='info') return '<label>제목</label><input class="uie-input jf" data-k="title" value="'+esc(card.title)+'"><label>설명</label><input class="uie-input jf" data-k="text" value="'+esc(card.text)+'">';
     return '<p style="font-size:12px;color:#888;font-weight:700;margin:6px 0 0;">외곽선만 표시(카드 없음). 상품/설명을 누르면 카드가 붙어요.</p>';
   }
@@ -5375,7 +5378,7 @@ function advBuildUIE(box, host, onChange){
     h+='</div>';
     if(drawing){ h+='<div class="uie-hl-tip">사진 위를 <b>톡톡</b> 눌러 강조할 부위를 따라 점을 찍고 [완료] (점 2개 이상)</div>'; }
     highlights.forEach(function(hl,hi){ const card=hl.card||(hl.card={mode:'none'});
-      h+='<div class="uie-hl-item"><div class="uie-hl-itop"><b>강조영역 '+(hi+1)+' · '+((hl.pts||[]).length)+'점</b><button type="button" class="uie-mini del js-hldel" data-i="'+hi+'">삭제</button></div><div class="uie-pop-tabs"><button type="button" class="uie-pt'+(card.mode==='none'?' on':'')+' js-hlmode" data-i="'+hi+'" data-m="none">없음</button><button type="button" class="uie-pt'+(card.mode==='product'?' on':'')+' js-hlmode" data-i="'+hi+'" data-m="product">상품</button><button type="button" class="uie-pt'+(card.mode==='info'?' on':'')+' js-hlmode" data-i="'+hi+'" data-m="info">설명</button></div><div class="uie-pop-body">'+hlCardFields(card).replace(/data-k="/g,'data-i="'+hi+'" data-k="')+'</div></div>';
+      h+='<div class="uie-hl-item" data-i="'+hi+'"><div class="uie-hl-itop"><b>강조영역 '+(hi+1)+' · '+((hl.pts||[]).length)+'점</b><button type="button" class="uie-mini del js-hldel" data-i="'+hi+'">삭제</button></div><div class="uie-pop-tabs"><button type="button" class="uie-pt'+(card.mode==='none'?' on':'')+' js-hlmode" data-i="'+hi+'" data-m="none">없음</button><button type="button" class="uie-pt'+(card.mode==='product'?' on':'')+' js-hlmode" data-i="'+hi+'" data-m="product">상품</button><button type="button" class="uie-pt'+(card.mode==='info'?' on':'')+' js-hlmode" data-i="'+hi+'" data-m="info">설명</button></div><div class="uie-pop-body">'+hlCardFields(card).replace(/data-k="/g,'data-i="'+hi+'" data-k="')+'</div></div>';
     });
     hlWrap.innerHTML=h;
     const bDraw=hlWrap.querySelector('.js-hldraw'); if(bDraw) bDraw.addEventListener('click',ev=>{ ev.stopPropagation(); drawing=true; drawPts=[]; renderHlPanel(); renderHlSvg(); });
@@ -5384,6 +5387,7 @@ function advBuildUIE(box, host, onChange){
     hlWrap.querySelectorAll('.js-hldel').forEach(b=>b.addEventListener('click',ev=>{ ev.stopPropagation(); highlights.splice(+b.dataset.i,1); saveHl(); renderHlPanel(); renderHlSvg(); }));
     hlWrap.querySelectorAll('.js-hlmode').forEach(b=>b.addEventListener('click',ev=>{ ev.stopPropagation(); const hl=highlights[+b.dataset.i]; hl.card=hl.card||{mode:'none'}; hl.card.mode=b.dataset.m; saveHl(); renderHlPanel(); }));
     hlWrap.querySelectorAll('.jf').forEach(inp=>inp.addEventListener('input',()=>{ const hl=highlights[+inp.dataset.i]; hl.card=hl.card||{mode:'none'}; hl.card[inp.dataset.k]=inp.value; saveHl(); }));
+    hlWrap.querySelectorAll('.jf-fetch').forEach(function(fb){ fb.addEventListener('click',function(){ var item=fb.closest('.uie-hl-item'); if(!item)return; var hi=+item.dataset.i; var hl=highlights[hi]; var card=hl.card||(hl.card={mode:'none'}); var link=(card.link||'').trim(); if(!link){ alert('먼저 상품 링크를 입력하세요.'); return; } fb.disabled=true; fb.textContent='불러오는 중…'; advFetchProduct(link).then(function(d){ if(d&&!d.error){ if(d.name)card.name=d.name; if(d.price)card.price=d.price; if(d.thumb)card.thumb=d.thumb; saveHl(); renderHlPanel(); } else { alert('상품 정보를 불러오지 못했어요.'); fb.disabled=false; fb.textContent='🔗 링크에서 자동채우기'; } }).catch(function(){ alert('불러오기 실패.'); fb.disabled=false; fb.textContent='🔗 링크에서 자동채우기'; }); }); });
   }
   renderHlPanel(); renderHlSvg();
   const preview=panel.querySelector('.js-preview');
@@ -5395,7 +5399,7 @@ function advBuildUIE(box, host, onChange){
   const urlInput=panel.querySelector('.js-url');
   panel.querySelector('.js-apply').addEventListener('click',()=>{ const u=urlInput.value.trim(); if(!u)return; img.src=u; refreshPreview(); onChange&&onChange(); });
   urlInput.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); panel.querySelector('.js-apply').click(); } });
-  panel.querySelector('.js-file').addEventListener('change',async e=>{ const f=e.target.files&&e.target.files[0]; if(!f)return; if(!f.type.startsWith('image/')){ alert('이미지 파일만 넣을 수 있어요.'); return; } img.src=await advReadFile(f); urlInput.value=''; refreshPreview(); onChange&&onChange(); e.target.value=''; });
+  panel.querySelector('.js-file').addEventListener('change',async e=>{ const f=e.target.files&&e.target.files[0]; if(!f)return; if(!f.type.startsWith('image/')){ alert('이미지 파일만 넣을 수 있어요.'); return; } if(window.__advUploadImage){ window.__advUploadImage('adv_'+Date.now(), f, function(url){ img.src=url; urlInput.value=''; refreshPreview(); onChange&&onChange(); }); } else { img.src=await advReadFile(f); urlInput.value=''; refreshPreview(); onChange&&onChange(); } e.target.value=''; });
   panel.querySelectorAll('.js-tab').forEach(tab=>{ tab.addEventListener('click',e=>{ e.stopPropagation(); state.mode=tab.dataset.mode; refreshMode(); selectBox(); }); });
   open.addEventListener('click',e=>{ e.stopPropagation(); host.querySelectorAll('.uie-panel.is-open').forEach(p=>{if(p!==panel)p.classList.remove('is-open');}); panel.classList.toggle('is-open'); selectBox(); });
   panel.addEventListener('click',e=>e.stopPropagation());
@@ -5478,7 +5482,8 @@ function advCleanHtml(host){
   c.querySelectorAll('[contenteditable]').forEach(el=>{ el.removeAttribute('contenteditable'); el.removeAttribute('spellcheck'); });
   return c.innerHTML.trim();
 }
-function AdvancedContentEditor({form,set}){
+function AdvancedContentEditor({form,set,uploadImage}){
+  window.__advUploadImage=uploadImage;
   const hostRef=useRef(null);
   const setRef=useRef(set); setRef.current=set;
   const inited=useRef(false);
@@ -5574,7 +5579,7 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
             <div>➕ <b>추가/삭제</b> — 점선 <b>[＋]</b> 칸으로 태그·글·항목 추가, <b>×</b> 로 삭제</div>
           </div>
           <div style={{marginTop:8,border:'1.5px solid var(--border)',borderRadius:12,overflow:'hidden',background:'#fff'}}>
-            <AdvancedContentEditor form={form} set={set}/>
+            <AdvancedContentEditor form={form} set={set} uploadImage={uploadImage}/>
           </div>
         </React.Fragment>}
         {(form.type==='video'||form.type==='short') && <React.Fragment>

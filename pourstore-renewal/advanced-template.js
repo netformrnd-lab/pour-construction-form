@@ -125,7 +125,8 @@
 .adv-host .uie-pop-del{margin-top:10px;width:100%;border:0;border-radius:8px;background:#fff0ec;color:#e5484d;font:inherit;font-size:12px;font-weight:900;padding:8px;cursor:pointer;}
 /* 외곽선(강조 영역) — 톡톡 점찍기 방식 */
 .adv-host .uie-hl-svg{position:absolute;inset:0;z-index:58;pointer-events:none;overflow:visible;}
-.adv-host .uie-hl-svg polyline{fill:none;stroke:#ff5a00;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;}
+.adv-host .uie-hl-svg polyline,.adv-host .uie-hl-svg polygon{fill:none;stroke:#ff5a00;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;}
+.adv-host .uie-hl-svg polygon.done{fill:rgba(255,90,0,.12);stroke-opacity:.9;}
 .adv-host .uie-hl-svg polyline.done{stroke-opacity:.85;}
 .adv-host .uie-hl-svg polyline.draw{stroke-dasharray:5 4;stroke-opacity:1;}
 .adv-host .uie-dot{position:absolute;transform:translate(-50%,-50%);z-index:62;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #ff5a00;color:#ff5a00;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.25);}
@@ -167,6 +168,9 @@
 .adv-host .adv-sec-menu.open{display:block;}
 .adv-host .adv-sec-menu button{display:block;width:100%;text-align:left;border:0;border-radius:8px;background:#fff;color:#333;font:inherit;font-size:12.5px;font-weight:800;padding:9px 10px;cursor:pointer;}
 .adv-host .adv-sec-menu button:hover{background:#fff4ea;color:#ff5a00;}
+/* 각 섹션 도구바 안의 '＋섹션' 메뉴는 버튼 아래·오른쪽에 표시 */
+.adv-host .adv-sec-bar .adv-sec-addafter{color:#ff5a00;border-color:#ff8a3d;}
+.adv-host .adv-sec-bar .adv-sec-menu{left:auto;right:0;bottom:auto;top:calc(100% + 6px);transform:none;}
 `;
 
   var IMG = {

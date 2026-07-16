@@ -5283,7 +5283,9 @@ function advBuildUIE(box, host, onChange){
   // ---- 상품/설명 점(핫스팟) ----
   let points; try{ points=JSON.parse(box.dataset.points||'[]'); }catch(_){ points=[]; }
   if(!Array.isArray(points)) points=[];
-  function savePoints(){ box.dataset.points=JSON.stringify(points); onChange&&onChange(); }
+  function newPid(){ return 'p'+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36); }
+  points.forEach(function(p){ if(!p.id) p.id=newPid(); });
+  function savePoints(){ box.dataset.points=JSON.stringify(points); syncStepProducts(); onChange&&onChange(); }
   function closePops(){ box.querySelectorAll('.uie-pop').forEach(p=>p.remove()); }
   function esc(v){ return String(v==null?'':v).replace(/"/g,'&quot;'); }
   function pointFields(p){
@@ -5296,7 +5298,8 @@ function advBuildUIE(box, host, onChange){
       +'<button type="button" class="uie-btn jf-fetch" style="width:100%;margin-top:8px">🔗 링크에서 자동채우기</button>'
       +'<label>상품명</label><input class="uie-input jf" data-k="name" value="'+esc(p.name)+'">'
       +'<label>가격</label><input class="uie-input jf" data-k="price" value="'+esc(p.price)+'">'
-      +'<label>썸네일 URL</label><input class="uie-input jf" data-k="thumb" value="'+esc(p.thumb)+'">';
+      +'<label>썸네일 URL</label><input class="uie-input jf" data-k="thumb" value="'+esc(p.thumb)+'">'
+      +'<label>설명 / 사용법 (선택)</label><input class="uie-input jf" data-k="desc" value="'+esc(p.desc)+'">';
   }
   function openEditor(i){
     closePops(); const p=points[i]; if(!p) return;
@@ -5327,8 +5330,23 @@ function advBuildUIE(box, host, onChange){
     box.querySelectorAll('.uie-point').forEach(el=>el.remove());
     points.forEach((p,i)=>{ const m=document.createElement('div'); m.className='uie-point'+(p.mode==='info'?' info':''); m.style.left=(p.x||50)+'%'; m.style.top=(p.y||50)+'%'; m.textContent=String(i+1); box.appendChild(m); bindPoint(m,i); });
   }
-  panel.querySelector('.js-addpoint').addEventListener('click',e=>{ e.stopPropagation(); points.push({x:50,y:50,mode:'product',name:'',price:'',thumb:'',link:''}); savePoints(); renderPoints(); openEditor(points.length-1); });
+  panel.querySelector('.js-addpoint').addEventListener('click',e=>{ e.stopPropagation(); points.push({id:newPid(),x:50,y:50,mode:'product',name:'',price:'',thumb:'',link:'',desc:''}); savePoints(); renderPoints(); openEditor(points.length-1); });
+  // 상품 점 → 이 STEP의 '사용 제품'에 카드 자동 동기화 (클릭하면 설명/편집창)
+  function bindPinCard(card){ if(card.__pinBound)return; card.__pinBound=true; card.addEventListener('click',function(ev){ ev.preventDefault(); ev.stopPropagation(); var pid=card.getAttribute('data-pin'); var idx=points.findIndex(function(pp){return String(pp.id)===String(pid);}); if(idx>=0) openEditor(idx); }); }
+  function syncStepProducts(){
+    var step=box.closest('.step'); if(!step) return;
+    var products=step.querySelector('.products'); if(!products) return;
+    var prodPts=points.filter(function(p){ return p.mode==='product' && (p.name||p.link||p.thumb); });
+    products.querySelectorAll('.product-pin').forEach(function(card){ if(!prodPts.some(function(p){return String(p.id)===card.getAttribute('data-pin');})) card.remove(); });
+    prodPts.forEach(function(p){
+      var card=products.querySelector('.product-pin[data-pin="'+p.id+'"]');
+      if(!card){ card=document.createElement('a'); card.className='product product-pin'; card.setAttribute('data-pin',String(p.id)); card.href=p.link||'#'; card.title='클릭하면 상품 설명/편집'; card.innerHTML='<img src="'+esc(p.thumb)+'" alt=""><span>'+esc(p.name||'상품명')+'</span>'; products.appendChild(card); }
+      else { var im=card.querySelector('img'); if(im&&p.thumb&&im.getAttribute('src')!==p.thumb)im.src=p.thumb; var sp=card.querySelector('span'); if(sp&&(p.name||'상품명')!==sp.textContent)sp.textContent=p.name||'상품명'; if(p.link)card.href=p.link; }
+      bindPinCard(card);
+    });
+  }
   renderPoints();
+  syncStepProducts();
   // ---- 외곽선(강조 영역) — 톡톡 눌러 점 찍기 방식 ----
   let highlights; try{ highlights=JSON.parse(box.dataset.highlights||'[]'); }catch(_){ highlights=[]; }
   if(!Array.isArray(highlights)) highlights=[];

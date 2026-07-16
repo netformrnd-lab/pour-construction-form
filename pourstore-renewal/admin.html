@@ -5639,15 +5639,16 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
   };
   const autoThumb=form.type==='video'?ytThumb(form.link):'';
   const previewThumb=(form.thumbnail||'').trim()||autoThumb;
-  const field={width:'100%',padding:'10px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13,outline:'none',boxSizing:'border-box',marginTop:6};
-  const lbl={fontSize:11.5,fontWeight:800,color:'var(--text-md)'};
+  const field={width:'100%',padding:'11px 13px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13.5,outline:'none',boxSizing:'border-box',marginTop:6};
+  const lbl={fontSize:12.5,fontWeight:800,color:'var(--text)'};
   return(
-    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:3000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:16,padding:'26px 32px',width:'100%',maxWidth:880,maxHeight:'92vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-          <h2 style={{fontSize:17,fontWeight:900,color:'var(--navy)'}}>{form.id?'포스팅 수정':'새 포스팅'}</h2>
-          <button onClick={onClose} style={{width:30,height:30,borderRadius:8,border:'1px solid var(--border)',background:'#fff',fontSize:16,cursor:'pointer'}}>×</button>
+    <div style={{position:'fixed',inset:0,background:'rgba(13,27,42,.55)',zIndex:3000,display:'flex',alignItems:'center',justifyContent:'center',padding:20,backdropFilter:'blur(2px)'}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:18,width:'96vw',maxWidth:1120,maxHeight:'94vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 24px 70px rgba(0,0,0,.35)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'18px 28px',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+          <h2 style={{fontSize:19,fontWeight:900,color:'var(--navy)',display:'flex',alignItems:'center',gap:8}}>{form.id?'포스팅 수정':'새 포스팅'}{form.type==='advanced' && <span style={{fontSize:12,fontWeight:800,color:'#7C3AED',background:'#F5F3FF',padding:'3px 9px',borderRadius:999}}>✨ 컨텐츠(고도화)</span>}</h2>
+          <button onClick={onClose} style={{width:34,height:34,borderRadius:9,border:'1px solid var(--border)',background:'#fff',fontSize:18,cursor:'pointer'}}>×</button>
         </div>
+        <div style={{flex:1,overflowY:'auto',padding:'22px 28px'}}>
         {draftFound && <div style={{margin:'0 0 12px',padding:'10px 12px',background:'var(--blue-l)',border:'1px solid var(--blue-m)',borderRadius:10,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <span style={{fontSize:12.5,fontWeight:800,color:'var(--accent-s)'}}>💾 임시저장된 내용이 있어요. 불러올까요?</span>
           <button type="button" onClick={()=>{ setForm(draftFound); setDraftFound(null); }} style={{padding:'5px 12px',borderRadius:7,border:'none',background:'var(--accent)',color:'#fff',fontSize:12,fontWeight:800,cursor:'pointer'}}>불러오기</button>
@@ -5729,11 +5730,12 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
           </label>
           <label style={{...lbl,display:'flex',alignItems:'center',gap:6}}>정렬순서 <input type="number" value={form.order} onChange={e=>set({order:e.target.value})} style={{width:66,padding:'6px 8px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12}}/></label>
         </div>
-        {draftMsg && <div style={{marginTop:12,fontSize:12,fontWeight:800,color:'var(--green)'}}>{draftMsg}</div>}
-        <div style={{display:'flex',gap:10,marginTop:12}}>
-          <button onClick={onClose} style={{flex:1,padding:'12px',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',fontSize:13,fontWeight:800,color:'var(--text-md)',cursor:'pointer'}}>취소</button>
-          <button onClick={saveDraft} style={{flex:1,padding:'12px',borderRadius:10,border:'1.5px solid var(--accent)',background:'var(--accent-l)',fontSize:13,fontWeight:800,color:'var(--accent-s)',cursor:'pointer'}}>💾 임시저장</button>
-          <button onClick={onSave} disabled={saving} style={{flex:2,padding:'12px',borderRadius:10,border:'none',background:saving?'var(--text-xs)':'linear-gradient(135deg, var(--or), var(--or-d))',color:'#fff',fontSize:13,fontWeight:900,cursor:saving?'wait':'pointer'}}>{saving?'저장 중...':'저장'}</button>
+        {draftMsg && <div style={{marginTop:12,fontSize:12.5,fontWeight:800,color:'var(--green)'}}>{draftMsg}</div>}
+        </div>
+        <div style={{display:'flex',gap:10,padding:'14px 28px',borderTop:'1px solid var(--border)',flexShrink:0,background:'#fff'}}>
+          <button onClick={onClose} style={{flex:1,padding:'13px',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',fontSize:14,fontWeight:800,color:'var(--text-md)',cursor:'pointer'}}>취소</button>
+          <button onClick={saveDraft} style={{flex:1,padding:'13px',borderRadius:10,border:'1.5px solid var(--accent)',background:'var(--accent-l)',fontSize:14,fontWeight:800,color:'var(--accent-s)',cursor:'pointer'}}>💾 임시저장</button>
+          <button onClick={onSave} disabled={saving} style={{flex:2,padding:'13px',borderRadius:10,border:'none',background:saving?'var(--text-xs)':'linear-gradient(135deg, var(--or), var(--or-d))',color:'#fff',fontSize:14,fontWeight:900,cursor:saving?'wait':'pointer'}}>{saving?'저장 중...':'저장'}</button>
         </div>
       </div>
     </div>

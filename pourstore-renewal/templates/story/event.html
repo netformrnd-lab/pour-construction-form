@@ -1,0 +1,112 @@
+<!-- ============================================================
+  event.html — POUR스토어 기획전(이벤트) 페이지 (오늘의집 스타일)
+  용도: 카페24 pourstore_renewal/story/event.html
+  데이터: Firestore pourstore-events (어드민 '기획전(이벤트) 관리')
+  구성: 큰 기획전 썸네일(제목 오버레이) + 아래 상품 썸네일 줄(+N)
+  단일 파일 · 이미지 미사용(인라인만) · Pretendard
+ ============================================================ -->
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css">
+<style>
+  .pev *{box-sizing:border-box;margin:0;padding:0;}
+  .pev{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;max-width:1080px;margin:0 auto;padding:22px 16px 60px;-webkit-font-smoothing:antialiased;}
+  .pev-head{padding:6px 4px 20px;}
+  .pev-head h1{font-size:26px;font-weight:900;letter-spacing:-.04em;color:#111;}
+  .pev-head p{margin-top:7px;font-size:14px;color:#8a8f98;font-weight:600;letter-spacing:-.02em;}
+  .pev-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 24px;}
+  .pev-card{display:block;}
+  .pev-hero{position:relative;width:100%;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#f1f3f5;box-shadow:0 6px 20px rgba(0,0,0,.06);}
+  .pev-hero>img{width:100%;height:100%;object-fit:cover;display:block;}
+  .pev-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.45),rgba(0,0,0,0) 55%);}
+  .pev-badge{position:absolute;top:14px;left:14px;background:rgba(0,0,0,.55);color:#fff;font-size:11.5px;font-weight:800;letter-spacing:-.02em;padding:5px 11px;border-radius:999px;backdrop-filter:blur(2px);}
+  .pev-hero-tt{position:absolute;left:18px;right:56px;bottom:16px;color:#fff;}
+  .pev-hero-tt b{display:block;font-size:20px;font-weight:900;letter-spacing:-.04em;line-height:1.28;text-shadow:0 2px 10px rgba(0,0,0,.35);word-break:keep-all;}
+  .pev-hero-tt span{display:block;margin-top:5px;font-size:13px;font-weight:600;opacity:.92;text-shadow:0 1px 6px rgba(0,0,0,.35);word-break:keep-all;}
+  .pev-bm{position:absolute;right:14px;bottom:14px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.22);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;}
+  .pev-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px;}
+  .pev-th{position:relative;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#f1f3f5;display:block;}
+  .pev-th>img{width:100%;height:100%;object-fit:cover;display:block;}
+  .pev-th.empty{background:#f4f5f7;}
+  .pev-more{position:absolute;inset:0;background:rgba(20,22,28,.62);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;font-weight:900;letter-spacing:-.03em;}
+  .pev-empty{padding:70px 0;text-align:center;color:#adb2bb;font-size:14px;font-weight:600;}
+  .pev-loading{padding:70px 0;text-align:center;color:#adb2bb;font-size:14px;}
+  @media (max-width:640px){
+    .pev-grid{grid-template-columns:1fr;gap:24px;}
+    .pev-head h1{font-size:22px;}
+    .pev-hero-tt b{font-size:18px;}
+  }
+</style>
+
+<div class="pev">
+  <div class="pev-head">
+    <h1>기획전</h1>
+    <p>POUR스토어가 준비한 특별한 기획전을 만나보세요.</p>
+  </div>
+  <div class="pev-loading" data-pev-loading>불러오는 중…</div>
+  <div class="pev-grid" data-pev-grid hidden></div>
+  <div class="pev-empty" data-pev-empty hidden>진행 중인 기획전이 없습니다.</div>
+</div>
+
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain: "pour-app-new.firebaseapp.com", projectId: "pour-app-new",
+  storageBucket: "pour-app-new.firebasestorage.app", messagingSenderId: "411031141847",
+  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
+};
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function attrLink(u){ return (u && String(u).trim()) ? String(u).trim() : ''; }
+
+function thumbTile(p, moreCount, isLast){
+  const link = attrLink(p && p.link);
+  const img = (p && p.thumb) ? '<img src="'+esc(p.thumb)+'" alt="'+esc((p&&p.name)||'')+'" loading="lazy" onerror="this.style.display=\'none\'">' : '';
+  const overlay = (isLast && moreCount>0) ? '<span class="pev-more">+'+moreCount+'</span>' : '';
+  const cls = 'pev-th'+((p&&p.thumb)?'':' empty');
+  if(link) return '<a class="'+cls+'" href="'+esc(link)+'" target="_blank" rel="noopener">'+img+overlay+'</a>';
+  return '<div class="'+cls+'">'+img+overlay+'</div>';
+}
+
+function cardHtml(ev){
+  const heroLink = attrLink(ev.link);
+  const heroImg = ev.thumbnail ? '<img src="'+esc(ev.thumbnail)+'" alt="'+esc(ev.title||'')+'" onerror="this.style.display=\'none\'">' : '';
+  const badge = ev.badge ? '<span class="pev-badge">'+esc(ev.badge)+'</span>' : '';
+  const sub = ev.subtitle ? '<span>'+esc(ev.subtitle)+'</span>' : '';
+  const heroInner = heroImg+'<div class="pev-hero-grad"></div>'+badge
+    +'<div class="pev-hero-tt"><b>'+esc(ev.title||'')+'</b>'+sub+'</div>'
+    +'<div class="pev-bm">🔖</div>';
+  const hero = heroLink
+    ? '<a class="pev-hero" href="'+esc(heroLink)+'" target="_blank" rel="noopener">'+heroInner+'</a>'
+    : '<div class="pev-hero">'+heroInner+'</div>';
+
+  const products = Array.isArray(ev.products) ? ev.products.slice(0,4) : [];
+  const moreCount = Number(ev.moreCount)||0;
+  let strip = '';
+  for(let i=0;i<4;i++){ strip += thumbTile(products[i], moreCount, i===3); }
+  return '<div class="pev-card">'+hero+'<div class="pev-strip">'+strip+'</div></div>';
+}
+
+(async function(){
+  const grid=document.querySelector('[data-pev-grid]');
+  const loading=document.querySelector('[data-pev-loading]');
+  const empty=document.querySelector('[data-pev-empty]');
+  try{
+    const snap=await getDocs(collection(db,'pourstore-events'));
+    let list=snap.docs.map(d=>Object.assign({id:d.id}, d.data())).filter(e=>e && e.active!==false);
+    list.sort((a,b)=>((a.order||0)-(b.order||0)) || String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+    console.log('[events] '+list.length+'건 노출');
+    loading.hidden=true;
+    if(!list.length){ empty.hidden=false; return; }
+    grid.innerHTML=list.map(cardHtml).join('');
+    grid.hidden=false;
+  }catch(e){
+    console.error('[events] 로드 실패:', e);
+    loading.textContent='기획전을 불러오지 못했어요. 잠시 후 새로고침해 주세요.';
+  }
+})();
+</script>

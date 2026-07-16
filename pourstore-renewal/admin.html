@@ -5305,6 +5305,25 @@ function advBuildUIE(box, host, onChange){
       }).catch(function(){ alert('불러오기 실패. 직접 입력해주세요.'); fb.disabled=false; fb.textContent='🔗 링크에서 자동채우기(썸네일·상품명)'; });
     });
   }
+  // ---- 큰 이미지: '＋ 사진 추가' (이 아래에 사진 한 장 더) ----
+  if(!smallImg){
+    const addPhoto=document.createElement('button'); addPhoto.type='button'; addPhoto.className='uie-btn ghost js-addphoto'; addPhoto.style.cssText='width:100%;margin-top:6px'; addPhoto.textContent='＋ 사진 추가 (이 아래에)';
+    const anc=panel.querySelector('.uie-actions'); if(anc) panel.insertBefore(addPhoto,anc); else panel.appendChild(addPhoto);
+    addPhoto.addEventListener('click',function(e){
+      e.stopPropagation();
+      const PH='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="360"><rect width="100%" height="100%" fill="#eef0f2"/><text x="50%" y="50%" font-size="22" fill="#9aa0a6" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">＋ 사진을 넣어주세요</text></svg>');
+      const nb=document.createElement('div'); nb.className='uie-box'; nb.setAttribute('data-added','1'); nb.innerHTML='<img src="'+PH+'" alt="">';
+      box.parentNode.insertBefore(nb, box.nextSibling);
+      advBuildUIE(nb, host, onChange); onChange&&onChange();
+      if(nb.scrollIntoView) nb.scrollIntoView({behavior:'smooth',block:'center'});
+    });
+  }
+  // ---- 추가한 사진(data-added): '이 사진 삭제' ----
+  if(box.getAttribute('data-added')==='1'){
+    const delPhoto=document.createElement('button'); delPhoto.type='button'; delPhoto.className='uie-btn ghost'; delPhoto.style.cssText='width:100%;margin-top:6px;color:#e5484d'; delPhoto.textContent='🗑 이 사진 삭제';
+    const anc2=panel.querySelector('.uie-actions'); if(anc2) panel.insertBefore(delPhoto,anc2); else panel.appendChild(delPhoto);
+    delPhoto.addEventListener('click',function(e){ e.stopPropagation(); if(confirm('이 사진을 삭제할까요?')){ box.remove(); onChange&&onChange(); } });
+  }
   // ---- 상품/설명 점(핫스팟) ----
   let points; try{ points=JSON.parse(box.dataset.points||'[]'); }catch(_){ points=[]; }
   if(!Array.isArray(points)) points=[];

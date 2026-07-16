@@ -168,6 +168,14 @@
 .adv-host .adv-sec-menu.open{display:block;}
 .adv-host .adv-sec-menu button{display:block;width:100%;text-align:left;border:0;border-radius:8px;background:#fff;color:#333;font:inherit;font-size:12.5px;font-weight:800;padding:9px 10px;cursor:pointer;}
 .adv-host .adv-sec-menu button:hover{background:#fff4ea;color:#ff5a00;}
+/* ===== 블록 추가/삭제 (마우스 올리면 표시) ===== */
+.adv-host .adv-blk{position:relative;}
+.adv-host .adv-blk-tools{position:absolute;right:6px;top:6px;z-index:36;display:flex;gap:4px;opacity:0;transition:opacity .15s;}
+.adv-host .adv-blk:hover>.adv-blk-tools{opacity:1;}
+.adv-host .adv-blk-tools button{width:26px;height:26px;border:1px solid #e2e2e2;border-radius:7px;background:#fff;color:#666;font:inherit;font-size:13px;font-weight:900;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;}
+.adv-host .adv-blk-tools .adv-blk-add{color:#ff5a00;border-color:#ff8a3d;}
+.adv-host .adv-blk-tools .adv-blk-del{color:#e5484d;border-color:#f3c0c0;}
+.adv-host .adv-blk-tools button:hover{background:#fff4ea;}
 /* 각 섹션 도구바 안의 '＋섹션' 메뉴는 버튼 아래·오른쪽에 표시 */
 .adv-host .adv-sec-bar .adv-sec-addafter{color:#ff5a00;border-color:#ff8a3d;}
 .adv-host .adv-sec-bar .adv-sec-menu{left:auto;right:0;bottom:auto;top:calc(100% + 6px);transform:none;}
@@ -194,7 +202,7 @@
     <span class="chip"><span contenteditable="true" data-editable="true">셀프 시공</span><button type="button" class="delete-chip">×</button></span>
     <button type="button" class="chip-add-tile" aria-label="태그 추가"><span></span></button>
   </div>
-  ${box(IMG.thumb,'대표 이미지')}
+  <div class="adv-blk">${box(IMG.thumb,'대표 이미지')}</div>
   <div class="adv-textblocks">
     <div class="content-block"><button type="button" class="delete-block">×</button>${ed('title','h1','30년 된 아스팔트 싱글 지붕, 철거 없이 복원한 방법')}</div>
     <div class="content-block"><button type="button" class="delete-block">×</button>${ed('desc','p','노후된 아스팔트 슁글 지붕을 POUR 방수코팅제로 복원한 실제 시공 사례입니다.')}</div>
@@ -212,12 +220,12 @@
 
 <!-- ② BEFORE -->
 <div class="adv-sec"><span class="adv-sec-tag">② BEFORE 현장진단</span>
-  <div class="comment-card">${box('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%EA%B3%B5%EB%B2%95%2F%ED%8F%AC%EC%8A%A4%ED%8C%85%2F%EA%B4%80%EB%A6%AC%EC%86%8C%EC%9E%A5%EC%95%84%EC%A0%80%EC%94%A8.png?alt=media&token=0913cf3a-a607-4d1b-b2a0-58dbbefd65b2','관리소장')}<div>${ed('comment-title','h2','관리소장 문의 내용')}${ed('comment-text','p','비 오는 날마다 한 동에서만 누수가 발생했습니다. 균열 있는 부분만 직접 보수할 방법을 찾다가 POUR 방수공법을 알게 됐습니다.')}</div></div>
+  <div class="comment-card adv-blk">${box('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%EA%B3%B5%EB%B2%95%2F%ED%8F%AC%EC%8A%A4%ED%8C%85%2F%EA%B4%80%EB%A6%AC%EC%86%8C%EC%9E%A5%EC%95%84%EC%A0%80%EC%94%A8.png?alt=media&token=0913cf3a-a607-4d1b-b2a0-58dbbefd65b2','관리소장')}<div>${ed('comment-title','h2','관리소장 문의 내용')}${ed('comment-text','p','비 오는 날마다 한 동에서만 누수가 발생했습니다. 균열 있는 부분만 직접 보수할 방법을 찾다가 POUR 방수공법을 알게 됐습니다.')}</div></div>
   <div class="sec-title"><strong contenteditable="true" data-editable="true">BEFORE</strong> ${ed('','span','시공 전 현장 상태')}</div>
   ${ed('sec-sub','p','누수 발생 부위 확인 및 문제점 분석')}
-  ${box(IMG.before,'시공 전 지붕 전경')}
-  <div class="detail-item"><div class="detail-head"><span class="num">01</span>${ed('detail-title','h3','싱글 탈락 부위')}</div>${box('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%EA%B3%B5%EB%B2%95%2F%ED%8F%AC%EC%8A%A4%ED%8C%85%2F%EC%8A%81%EA%B8%80%ED%83%88%EB%9D%BD%201.png?alt=media&token=8fb0d2cf-88f9-4896-a6f6-484bb8f5dea6','싱글 탈락')}${ed('detail-text','p','슁글 탈락으로 방수층이 노출된 상태였습니다. 전용 보강 시트와 코트재로 손상 부위를 보강하고 방수 성능을 회복합니다.')}</div>
-  <div class="detail-item"><div class="detail-head"><span class="num">02</span>${ed('detail-title','h3','벤추레이터 주변 균열')}</div>${box('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%EA%B3%B5%EB%B2%95%2F%ED%8F%AC%EC%8A%A4%ED%8C%85%2F%EC%9D%B4%EC%9D%8C%EB%B6%80%20%EA%B7%A0%EC%97%B4.png?alt=media&token=74777c65-192f-4922-80f7-3f5a8b17806b','이음부 균열')}${ed('detail-text','p','이음부에 노후화로 인한 균열이 확인되었습니다. 우천 시 빗물 침투가 발생할 수 있는 구간입니다.')}</div>
+  <div class="adv-blk">${box(IMG.before,'시공 전 지붕 전경')}</div>
+  <div class="detail-item adv-blk"><div class="detail-head"><span class="num">01</span>${ed('detail-title','h3','싱글 탈락 부위')}</div>${box('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%EA%B3%B5%EB%B2%95%2F%ED%8F%AC%EC%8A%A4%ED%8C%85%2F%EC%8A%81%EA%B8%80%ED%83%88%EB%9D%BD%201.png?alt=media&token=8fb0d2cf-88f9-4896-a6f6-484bb8f5dea6','싱글 탈락')}${ed('detail-text','p','슁글 탈락으로 방수층이 노출된 상태였습니다. 전용 보강 시트와 코트재로 손상 부위를 보강하고 방수 성능을 회복합니다.')}</div>
+  <div class="detail-item adv-blk"><div class="detail-head"><span class="num">02</span>${ed('detail-title','h3','벤추레이터 주변 균열')}</div>${box('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%EA%B3%B5%EB%B2%95%2F%ED%8F%AC%EC%8A%A4%ED%8C%85%2F%EC%9D%B4%EC%9D%8C%EB%B6%80%20%EA%B7%A0%EC%97%B4.png?alt=media&token=74777c65-192f-4922-80f7-3f5a8b17806b','이음부 균열')}${ed('detail-text','p','이음부에 노후화로 인한 균열이 확인되었습니다. 우천 시 빗물 침투가 발생할 수 있는 구간입니다.')}</div>
   <div class="point-summary">${ed('summary-title','h2','포인트 요약')}<ul class="summary-list"><li contenteditable="true" data-editable="true">전체 노후화와 국부적 <strong>균열·탈락</strong>이 누수 원인</li><li contenteditable="true" data-editable="true">부위별 맞춤 보수로 부분 복구 가능</li></ul>
     <div class="goal-note">${ed('goal-title','h3','작업 목표')}<ul class="goal-list"><li><span class="check">✓</span><span contenteditable="true" data-editable="true">누수 발생 부위 막기</span></li><li><span class="check">✓</span><span contenteditable="true" data-editable="true">전체 철거 없이 비용 절감</span></li></ul></div>
   </div>
@@ -226,25 +234,25 @@
 <!-- ③ 시공과정 -->
 <div class="adv-sec"><span class="adv-sec-tag">③ 시공과정</span>
   <div class="sec-title"><strong contenteditable="true" data-editable="true">시공 과정</strong> ${ed('','span','문제 부위만 선별 보수')}</div>
-  <div class="step">${ed('eyebrow','div','STEP 1')}${ed('','h3','문제 부위 정리 및 청소')}${box(IMG.step1,'STEP1')}${ed('detail-text','p','지붕 표면의 먼지·이끼·곰팡이 등 오염물을 제거합니다. 고소 작업 시 안전장비를 반드시 착용합니다.')}
+  <div class="step adv-blk">${ed('eyebrow','div','STEP 1')}${ed('','h3','문제 부위 정리 및 청소')}${box(IMG.step1,'STEP1')}${ed('detail-text','p','지붕 표면의 먼지·이끼·곰팡이 등 오염물을 제거합니다. 고소 작업 시 안전장비를 반드시 착용합니다.')}
     ${ed('used-title','p','사용 제품')}<div class="products"><a class="product" href="#"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%EA%B3%B5%EB%B2%95%2F%ED%8F%AC%EC%8A%A4%ED%8C%85%2F%EC%95%88%EC%A0%84%EB%AA%A8.png?alt=media&token=9d651d8d-9fac-4a71-8880-8cf1ef9cbb96" alt=""><span contenteditable="true" data-editable="true">고급 경량 안전모</span></a></div>
   </div>
-  <div class="step">${ed('eyebrow','div','STEP 2')}${ed('','h3','균열 보수 및 방수 시트 시공')}${box(IMG.step2,'STEP2')}${ed('detail-text','p','탈락·들뜬 부위에 코트재를 도포하고 전용 보강 시트를 밀착 부착해 빈틈 없이 보강합니다.')}
+  <div class="step adv-blk">${ed('eyebrow','div','STEP 2')}${ed('','h3','균열 보수 및 방수 시트 시공')}${box(IMG.step2,'STEP2')}${ed('detail-text','p','탈락·들뜬 부위에 코트재를 도포하고 전용 보강 시트를 밀착 부착해 빈틈 없이 보강합니다.')}
     ${ed('used-title','p','사용 제품')}<div class="products"><a class="product" href="#"><img src="${IMG.coat}" alt=""><span contenteditable="true" data-editable="true">POUR 코트재</span></a><a class="product" href="#"><img src="${IMG.sheet}" alt=""><span contenteditable="true" data-editable="true">POUR 슈퍼복합 방수시트</span></a></div>
   </div>
-  <div class="step">${ed('eyebrow','div','STEP 3')}${ed('','h3','방수층 형성 및 마감 코팅')}${box(IMG.step3,'STEP3')}${ed('detail-text','p','방수액 도포 후 전용 시트를 부착하고, 코트재를 2회 이상 도포해 탄탄한 방수층을 형성합니다.')}</div>
+  <div class="step adv-blk">${ed('eyebrow','div','STEP 3')}${ed('','h3','방수층 형성 및 마감 코팅')}${box(IMG.step3,'STEP3')}${ed('detail-text','p','방수액 도포 후 전용 시트를 부착하고, 코트재를 2회 이상 도포해 탄탄한 방수층을 형성합니다.')}</div>
   <div class="point"><span class="bulb">💡</span><div>${ed('','h4','시공 포인트')}${ed('','p','문제 부위만 선별 보수하여 전체 교체 대비 비용과 시간을 절감했습니다.')}</div></div>
   <div class="after-title"><strong contenteditable="true" data-editable="true">AFTER</strong>${ed('','h2','시공 완료 후 모습')}</div>
   ${ed('after-sub','p','보수 후 깔끔하게 마감된 지붕 전체 모습입니다.')}
-  ${box(IMG.thumb,'시공 완료 후')}
+  <div class="adv-blk">${box(IMG.thumb,'시공 완료 후')}</div>
 </div>
 
 <!-- ④ 사용 제품 리스트 -->
 <div class="adv-sec"><span class="adv-sec-tag">④ 사용 제품 리스트</span>
   ${ed('sec-title','h2','사용 제품 리스트')}
   <div class="used-track">
-    <a class="used-card" href="#"><img src="${IMG.coat}" alt=""><div><strong contenteditable="true" data-editable="true">POUR 코트재</strong><span class="u-sub" contenteditable="true" data-editable="true">20kg</span><p class="u-price" contenteditable="true" data-editable="true">177,500원</p></div></a>
-    <a class="used-card" href="#"><img src="${IMG.sheet}" alt=""><div><strong contenteditable="true" data-editable="true">POUR 슈퍼복합 방수시트</strong><span class="u-sub" contenteditable="true" data-editable="true">0.3T</span><p class="u-price" contenteditable="true" data-editable="true">48,500원</p></div></a>
+    <a class="used-card adv-blk" href="#"><img src="${IMG.coat}" alt=""><div><strong contenteditable="true" data-editable="true">POUR 코트재</strong><span class="u-sub" contenteditable="true" data-editable="true">20kg</span><p class="u-price" contenteditable="true" data-editable="true">177,500원</p></div></a>
+    <a class="used-card adv-blk" href="#"><img src="${IMG.sheet}" alt=""><div><strong contenteditable="true" data-editable="true">POUR 슈퍼복합 방수시트</strong><span class="u-sub" contenteditable="true" data-editable="true">0.3T</span><p class="u-price" contenteditable="true" data-editable="true">48,500원</p></div></a>
   </div>
 </div>
 
@@ -252,8 +260,8 @@
 <div class="adv-sec"><span class="adv-sec-tag">⑤ 견적 노트</span>
   <div class="estimate-card">${ed('estimate-title','h2','<span class="ic">🧾</span>견적 노트')}${ed('estimate-block-title','h3','사용 자재 내역')}
     <div class="material-list">
-      <div class="material-row">${box(IMG.coat,'')}<div>${ed('material-name','p','POUR 코트재')}${ed('material-sub','p','방수층 형성 및 표면 코팅 마감용 자재')}</div></div>
-      <div class="material-row">${box(IMG.sheet,'')}<div>${ed('material-name','p','POUR 슈퍼복합 방수시트')}${ed('material-sub','p','균열·이음부 보강용 복합 방수시트')}</div></div>
+      <div class="material-row adv-blk">${box(IMG.coat,'')}<div>${ed('material-name','p','POUR 코트재')}${ed('material-sub','p','방수층 형성 및 표면 코팅 마감용 자재')}</div></div>
+      <div class="material-row adv-blk">${box(IMG.sheet,'')}<div>${ed('material-name','p','POUR 슈퍼복합 방수시트')}${ed('material-sub','p','균열·이음부 보강용 복합 방수시트')}</div></div>
     </div>
   </div>
 </div>
@@ -267,8 +275,8 @@
 <div class="adv-sec"><span class="adv-sec-tag">⑦ 함께 보면 좋은 상품</span>
   <div class="related-head"><h2 contenteditable="true" data-editable="true">함께 보면 좋은 상품</h2></div>
   <div class="related-grid">
-    <a class="related-card" href="#"><div class="rimg"><img src="https://cdn.imweb.me/thumbnail/20240919/f1fad44549c6b.jpg" alt=""></div><div class="related-body"><span class="related-cat" contenteditable="true" data-editable="true">프라이머</span><p class="related-name" contenteditable="true" data-editable="true">옥상/지붕 셀프 방수 프라이머 POUR 강화재</p><div class="related-price"><span class="r-rate" contenteditable="true" data-editable="true">8%</span><strong class="r-final" contenteditable="true" data-editable="true">180,000원</strong></div></div></a>
-    <a class="related-card" href="#"><div class="rimg"><img src="https://cdn.imweb.me/thumbnail/20230819/04b6da7564e04.jpg" alt=""></div><div class="related-body"><span class="related-cat" contenteditable="true" data-editable="true">후레싱 고정</span><p class="related-name" contenteditable="true" data-editable="true">아스팔트 싱글 후레싱 고정 POUR후커</p><div class="related-price"><span class="r-rate" contenteditable="true" data-editable="true">23%</span><strong class="r-final" contenteditable="true" data-editable="true">7,600원</strong></div></div></a>
+    <a class="related-card adv-blk" href="#"><div class="rimg"><img src="https://cdn.imweb.me/thumbnail/20240919/f1fad44549c6b.jpg" alt=""></div><div class="related-body"><span class="related-cat" contenteditable="true" data-editable="true">프라이머</span><p class="related-name" contenteditable="true" data-editable="true">옥상/지붕 셀프 방수 프라이머 POUR 강화재</p><div class="related-price"><span class="r-rate" contenteditable="true" data-editable="true">8%</span><strong class="r-final" contenteditable="true" data-editable="true">180,000원</strong></div></div></a>
+    <a class="related-card adv-blk" href="#"><div class="rimg"><img src="https://cdn.imweb.me/thumbnail/20230819/04b6da7564e04.jpg" alt=""></div><div class="related-body"><span class="related-cat" contenteditable="true" data-editable="true">후레싱 고정</span><p class="related-name" contenteditable="true" data-editable="true">아스팔트 싱글 후레싱 고정 POUR후커</p><div class="related-price"><span class="r-rate" contenteditable="true" data-editable="true">23%</span><strong class="r-final" contenteditable="true" data-editable="true">7,600원</strong></div></div></a>
   </div>
 </div>
 
@@ -276,12 +284,12 @@
 <div class="adv-sec"><span class="adv-sec-tag">⑧ 댓글 · 다른 시공사례</span>
   <div class="post-action-bar"><div class="post-action-btn">❤ 좋아요 <span contenteditable="true" data-editable="true">284</span></div><div class="post-action-btn">🔖 북마크 <span contenteditable="true" data-editable="true">156</span></div><div class="post-action-btn">↗ 공유</div></div>
   <h2 class="comment-hd">댓글 <span contenteditable="true" data-editable="true">42</span></h2>
-  <div class="comment-item"><div class="c-avatar o">서</div><div><div><span class="c-name" contenteditable="true" data-editable="true">서연맘</span><span class="c-time">3시간 전</span></div>${ed('c-text','p','부분 보수 방식이면 공사 기간이 짧아서 좋겠네요. 비 오기 전에도 시공 가능할까요?')}</div></div>
-  <div class="comment-item"><div class="c-avatar g">하</div><div><div><span class="c-name" contenteditable="true" data-editable="true">하루의집</span><span class="c-time">5시간 전</span></div>${ed('c-text','p','후레싱 이음부 보강까지 들어가는 게 마음에 들어요.')}</div></div>
+  <div class="comment-item adv-blk"><div class="c-avatar o">서</div><div><div><span class="c-name" contenteditable="true" data-editable="true">서연맘</span><span class="c-time">3시간 전</span></div>${ed('c-text','p','부분 보수 방식이면 공사 기간이 짧아서 좋겠네요. 비 오기 전에도 시공 가능할까요?')}</div></div>
+  <div class="comment-item adv-blk"><div class="c-avatar g">하</div><div><div><span class="c-name" contenteditable="true" data-editable="true">하루의집</span><span class="c-time">5시간 전</span></div>${ed('c-text','p','후레싱 이음부 보강까지 들어가는 게 마음에 들어요.')}</div></div>
   <h2 class="case-hd">이 포스트와 어울리는 다른 시공사례</h2>
   <div class="case-grid">
-    <a class="case-card" href="#">${box('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%EA%B3%B5%EB%B2%95%2F%ED%8F%AC%EC%8A%A4%ED%8C%85%2F%EC%9D%B4%EC%9D%8C%EB%B6%80%20%EB%B3%B4%EA%B0%95.png?alt=media&token=cceb4510-0905-4a7e-964e-7a3e33559e7f','')}<div class="case-body"><span class="case-cat" contenteditable="true" data-editable="true">후레싱 보강</span><p class="case-name" contenteditable="true" data-editable="true">후레싱 이음부 균열 보수 시공</p></div></a>
-    <a class="case-card" href="#">${box(IMG.step3,'')}<div class="case-body"><span class="case-cat" contenteditable="true" data-editable="true">방수 코팅</span><p class="case-name" contenteditable="true" data-editable="true">노후 지붕 방수층 재도장 사례</p></div></a>
+    <a class="case-card adv-blk" href="#">${box('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%EA%B3%B5%EB%B2%95%2F%ED%8F%AC%EC%8A%A4%ED%8C%85%2F%EC%9D%B4%EC%9D%8C%EB%B6%80%20%EB%B3%B4%EA%B0%95.png?alt=media&token=cceb4510-0905-4a7e-964e-7a3e33559e7f','')}<div class="case-body"><span class="case-cat" contenteditable="true" data-editable="true">후레싱 보강</span><p class="case-name" contenteditable="true" data-editable="true">후레싱 이음부 균열 보수 시공</p></div></a>
+    <a class="case-card adv-blk" href="#">${box(IMG.step3,'')}<div class="case-body"><span class="case-cat" contenteditable="true" data-editable="true">방수 코팅</span><p class="case-name" contenteditable="true" data-editable="true">노후 지붕 방수층 재도장 사례</p></div></a>
   </div>
 </div>`;
   // 섹션 목록(추가 메뉴용): 기본 템플릿을 섹션 단위로 분해

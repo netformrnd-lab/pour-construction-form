@@ -2312,6 +2312,11 @@ var PC_TTL = 300000;
     m.addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); box.querySelectorAll('.pv-pop.open').forEach(function(x){ if(x!==pop) x.classList.remove('open'); }); pop.classList.toggle('open'); });
   }
   function renderAdvView(root){
+    // 견적노트 자재행(.material-row[data-link]) → 클릭하면 상품페이지로 이동
+    root.querySelectorAll('.material-row[data-link]').forEach(function(row){
+      var link=row.getAttribute('data-link'); if(!link || row.__mlBound) return; row.__mlBound=true;
+      row.addEventListener('click', function(){ window.open(link, '_blank', 'noopener'); });
+    });
     root.querySelectorAll('.uie-box').forEach(function(box){
       var img=box.querySelector('.uie-crop > img') || box.querySelector(':scope > img');
       if(img && !img.parentNode.classList.contains('uie-crop')){ var crop=document.createElement('div'); crop.className='uie-crop'; box.insertBefore(crop,img); crop.appendChild(img); }

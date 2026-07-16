@@ -88,6 +88,10 @@
 .adv-host .material-row .uie-box{width:58px;height:58px;margin:0;border-radius:12px;box-shadow:none;}
 .adv-host .material-name{margin:0 0 4px;font-size:15px;font-weight:900;letter-spacing:-.04em;}
 .adv-host .material-sub{margin:0;color:#777;font-size:12.5px;font-weight:600;letter-spacing:-.03em;}
+/* 상품 링크가 연결된 자재행 → 클릭 가능 표시 + 오른쪽 화살표 */
+.adv-host .material-row[data-link]{cursor:pointer;position:relative;padding-right:34px;}
+.adv-host .material-row[data-link]:hover{background:#fff8f3;}
+.adv-host .material-row[data-link]::after{content:'›';position:absolute;right:16px;top:50%;transform:translateY(-50%);color:#ff5a00;font-size:22px;font-weight:900;line-height:1;}
 /* 후기 */
 .adv-host .review-card{padding:28px 30px;border-radius:16px;background:linear-gradient(135deg,#fff9f1,#fffdf9 50%,#f8f8f8);border:1px solid rgba(0,0,0,.06);box-shadow:0 10px 28px rgba(0,0,0,.045);}
 .adv-host .review-title{margin:0 0 18px;font-size:24px;font-weight:950;letter-spacing:-.05em;color:#111;}

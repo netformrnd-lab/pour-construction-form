@@ -5280,6 +5280,31 @@ function advBuildUIE(box, host, onChange){
   box.appendChild(open); box.appendChild(panel);
   ['nw','n','ne','e','se','s','sw','w'].forEach(dir=>{ const h=document.createElement('span'); h.className='uie-handle '+dir; h.dataset.dir=dir; box.appendChild(h); });
   const badge=document.createElement('span'); badge.className='uie-badge'; box.appendChild(badge);
+  // ---- 견적노트 자재행(.material-row): 상품 링크 연결(선택) ----
+  const matRow=box.closest('.material-row');
+  if(matRow){
+    const mlWrap=document.createElement('div'); mlWrap.className='uie-row uie-matlink';
+    const curLink=(matRow.getAttribute('data-link')||'').replace(/"/g,'&quot;');
+    mlWrap.innerHTML='<label>상품 링크 (선택 · 고객이 클릭하면 상품페이지로 이동)</label>'
+      +'<input class="uie-input js-matlink" type="url" placeholder="https:// 상품 주소 붙여넣기" value="'+curLink+'">'
+      +'<button type="button" class="uie-btn js-matfetch" style="width:100%;margin-top:8px">🔗 링크에서 자동채우기(썸네일·상품명)</button>';
+    const anchor=panel.querySelector('.uie-actions'); if(anchor) panel.insertBefore(mlWrap,anchor); else panel.appendChild(mlWrap);
+    const mlInput=mlWrap.querySelector('.js-matlink');
+    mlInput.addEventListener('input',function(){ const v=mlInput.value.trim(); if(v) matRow.setAttribute('data-link',v); else matRow.removeAttribute('data-link'); onChange&&onChange(); });
+    mlWrap.querySelector('.js-matfetch').addEventListener('click',function(){
+      const link=(mlInput.value||'').trim(); if(!link){ alert('먼저 상품 링크를 입력하세요.'); return; }
+      const fb=this; fb.disabled=true; fb.textContent='불러오는 중…';
+      advFetchProduct(link).then(function(d){
+        if(d&&!d.error){
+          if(d.thumb) img.src=d.thumb;
+          const nm=matRow.querySelector('.material-name'); if(nm&&d.name) nm.textContent=d.name;
+          matRow.setAttribute('data-link',link); onChange&&onChange();
+          fb.disabled=false; fb.textContent='🔗 링크에서 자동채우기(썸네일·상품명)';
+          alert('상품 정보를 불러왔어요. (썸네일·상품명 반영)');
+        } else { alert('상품 정보를 불러오지 못했어요. 직접 입력해주세요.'); fb.disabled=false; fb.textContent='🔗 링크에서 자동채우기(썸네일·상품명)'; }
+      }).catch(function(){ alert('불러오기 실패. 직접 입력해주세요.'); fb.disabled=false; fb.textContent='🔗 링크에서 자동채우기(썸네일·상품명)'; });
+    });
+  }
   // ---- 상품/설명 점(핫스팟) ----
   let points; try{ points=JSON.parse(box.dataset.points||'[]'); }catch(_){ points=[]; }
   if(!Array.isArray(points)) points=[];

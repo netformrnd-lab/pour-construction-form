@@ -1637,7 +1637,7 @@ var PM_POSTS = [];
 
 <script type="module">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 const firebaseConfig = {
   apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
   authDomain: "pour-app-new.firebaseapp.com", projectId: "pour-app-new",
@@ -2025,6 +2025,212 @@ var PC_TTL = 300000;
       + '<div class="pstory-rel2-ct">'+esc(typeLabel(p.type))+'</div>'
       + '<div class="pstory-rel2-tt">'+esc(p.title||'')+'</div></a>';
   }
+  // ===== 댓글·좋아요·북마크·공유 (카페24 회원 연동) =====
+  // 카페24 스킨 렌더 시 {$member_id}/{$member_name}이 로그인 회원값으로 치환됨.
+  // 비회원이면 빈값, 파일이 치환처리 안 되면 "{...}" 리터럴 → '' 로 취급.
+  var _rawMid = "{$member_id}";
+  var _rawMnm = "{$member_name}";
+  var MEMBER_ID   = (_rawMid && _rawMid.charAt(0) !== '{') ? _rawMid.trim() : '';
+  var MEMBER_NAME = (_rawMnm && _rawMnm.charAt(0) !== '{' && _rawMnm.trim()) ? _rawMnm.trim()
+                    : (MEMBER_ID ? (MEMBER_ID.length>2 ? MEMBER_ID.slice(0,2)+'***' : MEMBER_ID+'***') : '');
+  if (_rawMid.charAt(0) === '{') console.warn('[engage] 카페24 {$member_id} 미치환 — 회원연동이 라이브에서 활성화됐는지 확인 필요');
+
+  function pengToast(msg, ok){
+    var t=document.createElement('div'); t.textContent=(ok?'✅ ':'⚠️ ')+msg;
+    t.style.cssText='position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:99999;background:'+(ok?'#059669':'#DC2626')+';color:#fff;font-size:14px;font-weight:800;padding:12px 20px;border-radius:10px;box-shadow:0 8px 26px rgba(0,0,0,.25);max-width:90vw;text-align:center;';
+    document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 2600);
+  }
+  function needLogin(){
+    if (MEMBER_ID) return false;
+    if (confirm('로그인 후 이용할 수 있어요. 로그인 페이지로 이동할까요?')) location.href='/member/login.html';
+    return true;
+  }
+  function pengEnsureStyle(){
+    if (document.getElementById('peng-style')) return;
+    var s=document.createElement('style'); s.id='peng-style';
+    s.textContent=''
+      +'.post-action-btn{cursor:pointer;user-select:none;transition:background .15s,border-color .15s,color .15s;}'
+      +'.post-action-btn.on{background:#fff4ea;border-color:#ff8a3d;color:#ff5a00;}'
+      +'.peng-mybm-wrap{margin:10px 0 2px;text-align:right;}'
+      +'.peng-mybm{border:1px solid #e2e5ec;background:#fff;color:#374151;font:inherit;font-size:13px;font-weight:800;padding:8px 14px;border-radius:9px;cursor:pointer;}'
+      +'.peng-mybm:hover{background:#f3f4f6;}'
+      +'.peng-write{display:flex;gap:8px;margin:14px 0 18px;align-items:flex-start;}'
+      +'.peng-write textarea{flex:1;min-height:46px;max-height:170px;resize:vertical;border:1px solid #e2e5ec;border-radius:10px;padding:11px 13px;font:inherit;font-size:14px;line-height:1.5;box-sizing:border-box;}'
+      +'.peng-write button{flex:0 0 auto;height:46px;padding:0 18px;border:0;border-radius:10px;background:#ff5a00;color:#fff;font:inherit;font-size:14px;font-weight:900;cursor:pointer;}'
+      +'.peng-write button:disabled{background:#f0a882;cursor:default;}'
+      +'.peng-cempty{color:#9aa0a6;font-size:14px;padding:8px 0 16px;}'
+      +'.peng-c{display:grid;grid-template-columns:36px 1fr;gap:12px;margin-bottom:16px;}'
+      +'.peng-c-av{width:36px;height:36px;border-radius:50%;background:#ff5a00;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;}'
+      +'.peng-c-nm{color:#06164a;font-weight:900;font-size:13px;margin-right:6px;}'
+      +'.peng-c-tm{color:#8b92a2;font-weight:700;font-size:12px;}'
+      +'.peng-c-del{margin-left:8px;border:0;background:none;color:#c0c4cc;font-size:12px;font-weight:800;cursor:pointer;}'
+      +'.peng-c-tx{margin:3px 0 0;color:#263044;font-size:14px;line-height:1.6;font-weight:600;word-break:keep-all;white-space:pre-wrap;}'
+      +'.peng-bm-ov{position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;}'
+      +'.peng-bm-sheet{background:#fff;width:100%;max-width:520px;max-height:80vh;overflow:auto;border-radius:18px 18px 0 0;padding:20px;}'
+      +'.peng-bm-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}'
+      +'.peng-bm-h b{font-size:18px;font-weight:950;color:#111;}'
+      +'.peng-bm-x{border:0;background:#f1f1f1;width:30px;height:30px;border-radius:50%;font-size:17px;cursor:pointer;}'
+      +'.peng-bm-i{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid #f0f1f3;cursor:pointer;}'
+      +'.peng-bm-i img{width:64px;height:48px;object-fit:cover;border-radius:8px;background:#f3f4f6;flex:0 0 auto;}'
+      +'.peng-bm-i b{font-size:14px;font-weight:800;color:#111;line-height:1.35;word-break:keep-all;}'
+      +'.peng-bm-empty{color:#9aa0a6;font-size:14px;padding:24px 0;text-align:center;}';
+    document.head.appendChild(s);
+  }
+  function pengCol(name){ return collection(db, name); }
+  function pengKey(pid){ return pid+'__'+MEMBER_ID; }
+
+  function pengPaintLike(btn, cnt, mine){
+    btn.innerHTML='❤ 좋아요 <span>'+cnt+'</span>';
+    btn.classList.toggle('on', !!mine);
+    btn.setAttribute('data-mine', mine?'1':'0'); btn.setAttribute('data-cnt', String(cnt));
+  }
+  async function pengLoadLikes(pid, btn){
+    try{
+      var sn=await getDocs(query(pengCol('pourstore-likes'), where('postId','==',pid)));
+      var mine = MEMBER_ID ? sn.docs.some(function(d){ return d.id===pengKey(pid); }) : false;
+      console.log('[likes] '+pid+' → '+sn.size+'건, 내가누름:'+mine);
+      pengPaintLike(btn, sn.size, mine);
+    }catch(e){ console.error('[likes] 로드 실패:', e); }
+  }
+  async function pengToggleLike(pid, btn){
+    if(needLogin()) return;
+    var mine=btn.getAttribute('data-mine')==='1', cnt=parseInt(btn.getAttribute('data-cnt')||'0',10);
+    var ref=doc(db,'pourstore-likes',pengKey(pid));
+    pengPaintLike(btn, cnt+(mine?-1:1), !mine); // 낙관적 UI
+    try{
+      if(mine) await deleteDoc(ref);
+      else await setDoc(ref,{postId:pid,memberId:MEMBER_ID,createdAt:new Date().toISOString()});
+    }catch(e){ console.error('[likes] 토글 실패:', e); pengPaintLike(btn,cnt,mine); pengToast('좋아요 저장에 실패했어요',false); }
+  }
+  function pengPaintBm(btn, mine){
+    btn.innerHTML='🔖 북마크'+(mine?' <span>완료</span>':'');
+    btn.classList.toggle('on', !!mine); btn.setAttribute('data-mine', mine?'1':'0');
+  }
+  async function pengLoadBookmark(pid, btn){
+    try{ var mine=false; if(MEMBER_ID){ var d=await getDoc(doc(db,'pourstore-bookmarks',pengKey(pid))); mine=d.exists(); } pengPaintBm(btn, mine); }
+    catch(e){ console.error('[bookmark] 로드 실패:', e); }
+  }
+  async function pengToggleBookmark(pid, btn, post){
+    if(needLogin()) return;
+    var mine=btn.getAttribute('data-mine')==='1', ref=doc(db,'pourstore-bookmarks',pengKey(pid));
+    pengPaintBm(btn, !mine);
+    try{
+      if(mine) await deleteDoc(ref);
+      else await setDoc(ref,{postId:pid,memberId:MEMBER_ID,title:(post.title||''),thumb:(thumbOf(post)||''),createdAt:new Date().toISOString()});
+      pengToast(mine?'북마크를 해제했어요':'북마크에 담았어요', true);
+    }catch(e){ console.error('[bookmark] 토글 실패:', e); pengPaintBm(btn, mine); pengToast('북마크 저장에 실패했어요',false); }
+  }
+  async function pengOpenMyBookmarks(){
+    if(needLogin()) return;
+    pengEnsureStyle();
+    var ov=document.createElement('div'); ov.className='peng-bm-ov';
+    ov.innerHTML='<div class="peng-bm-sheet"><div class="peng-bm-h"><b>내 북마크</b><button class="peng-bm-x" type="button">×</button></div><div class="peng-bm-list">불러오는 중…</div></div>';
+    document.body.appendChild(ov);
+    function close(){ ov.remove(); }
+    ov.addEventListener('click', function(e){ if(e.target===ov || e.target.classList.contains('peng-bm-x')) close(); });
+    try{
+      var sn=await getDocs(query(pengCol('pourstore-bookmarks'), where('memberId','==',MEMBER_ID)));
+      var items=sn.docs.map(function(d){ return d.data(); });
+      items.sort(function(a,b){ return String(b.createdAt||'').localeCompare(String(a.createdAt||'')); });
+      console.log('[bookmark] 내 북마크 '+items.length+'건');
+      var list=ov.querySelector('.peng-bm-list');
+      if(!items.length){ list.innerHTML='<div class="peng-bm-empty">아직 북마크한 글이 없어요.</div>'; return; }
+      list.innerHTML=items.map(function(it){
+        return '<div class="peng-bm-i" data-pid="'+esc(it.postId||'')+'">'
+          +(it.thumb?'<img src="'+esc(it.thumb)+'" alt="" onerror="this.style.display=\'none\'">':'<img alt="">')
+          +'<b>'+esc(it.title||'(제목 없음)')+'</b></div>';
+      }).join('');
+      list.querySelectorAll('.peng-bm-i').forEach(function(el){
+        el.addEventListener('click', function(){ var q=byId(el.getAttribute('data-pid')); close(); if(q) openArticle(q); else pengToast('원본 글을 찾지 못했어요',false); });
+      });
+    }catch(e){ console.error('[bookmark] 목록 실패:', e); var l=ov.querySelector('.peng-bm-list'); if(l) l.innerHTML='<div class="peng-bm-empty">목록을 불러오지 못했어요.</div>'; }
+  }
+  function pengCommentHtml(c, canDel){
+    var nm=c.memberName||'회원', av=(nm||'회').charAt(0), tm=String(c.createdAt||'').replace('T',' ').slice(0,16);
+    return '<div class="peng-c" data-cid="'+esc(c.id||'')+'"><div class="peng-c-av">'+esc(av)+'</div>'
+      +'<div><div><span class="peng-c-nm">'+esc(nm)+'</span><span class="peng-c-tm">'+esc(tm)+'</span>'
+      +(canDel?'<button class="peng-c-del" type="button">삭제</button>':'')+'</div>'
+      +'<p class="peng-c-tx">'+esc(c.text||'')+'</p></div></div>';
+  }
+  async function pengLoadComments(pid, listEl, hdEl){
+    try{
+      var sn=await getDocs(query(pengCol('pourstore-comments'), where('postId','==',pid)));
+      var arr=sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }).filter(function(c){ return !c.deleted; });
+      arr.sort(function(a,b){ return String(b.createdAt||'').localeCompare(String(a.createdAt||'')); });
+      console.log('[comments] '+pid+' → '+arr.length+'건');
+      if(hdEl) hdEl.innerHTML='댓글 <span>'+arr.length+'</span>';
+      listEl.innerHTML = arr.length ? arr.map(function(c){ return pengCommentHtml(c, MEMBER_ID && c.memberId===MEMBER_ID); }).join('')
+        : '<div class="peng-cempty">첫 댓글을 남겨보세요.</div>';
+      listEl.querySelectorAll('.peng-c-del').forEach(function(btn){
+        btn.addEventListener('click', async function(){
+          var row=btn.closest('.peng-c'), cid=row&&row.getAttribute('data-cid'); if(!cid) return;
+          if(!confirm('댓글을 삭제할까요?')) return;
+          try{ await setDoc(doc(db,'pourstore-comments',cid),{deleted:true,deletedAt:new Date().toISOString()},{merge:true}); pengLoadComments(pid,listEl,hdEl); }
+          catch(e){ console.error('[comments] 삭제 실패:', e); pengToast('삭제에 실패했어요',false); }
+        });
+      });
+    }catch(e){ console.error('[comments] 로드 실패:', e); listEl.innerHTML='<div class="peng-cempty">댓글을 불러오지 못했어요.</div>'; }
+  }
+  function pengShare(post){
+    var url=location.origin+location.pathname+'#post-'+encodeURIComponent(post.id||'');
+    function done(){ pengToast('링크를 복사했어요! 카톡·인스타에 붙여넣기 하세요', true); }
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done, function(){ pengFallbackCopy(url, done); }); }
+    else pengFallbackCopy(url, done);
+  }
+  function pengFallbackCopy(text, done){
+    try{ var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); }
+    catch(e){ prompt('아래 링크를 복사하세요:', text); }
+  }
+  function pengageSetup(scope, post){
+    if(!post) return; var pid=String(post.id||''); if(!pid) return;
+    pengEnsureStyle();
+    var bar=scope.querySelector('.post-action-bar');
+    if(bar){
+      bar.querySelectorAll('.post-action-btn').forEach(function(btn){
+        var t=btn.textContent||'';
+        if(t.indexOf('좋아요')>=0){ pengLoadLikes(pid, btn); btn.addEventListener('click', function(){ pengToggleLike(pid, btn); }); }
+        else if(t.indexOf('북마크')>=0){ pengLoadBookmark(pid, btn); btn.addEventListener('click', function(){ pengToggleBookmark(pid, btn, post); }); }
+        else if(t.indexOf('공유')>=0){ btn.addEventListener('click', function(){ pengShare(post); }); }
+      });
+      if(!(bar.nextElementSibling && bar.nextElementSibling.classList.contains('peng-mybm-wrap'))){
+        var mb=document.createElement('div'); mb.className='peng-mybm-wrap';
+        mb.innerHTML='<button class="peng-mybm" type="button">📑 내 북마크</button>';
+        bar.parentNode.insertBefore(mb, bar.nextSibling);
+        mb.querySelector('.peng-mybm').addEventListener('click', pengOpenMyBookmarks);
+      }
+    }
+    var hd=scope.querySelector('.comment-hd');
+    if(hd){
+      // 템플릿 샘플 댓글(.comment-item) 및 이전 삽입물 제거 (.case-hd 전까지)
+      var n=hd.nextElementSibling;
+      while(n && !n.classList.contains('case-hd')){
+        var nx=n.nextElementSibling;
+        if(n.classList.contains('comment-item')||n.classList.contains('peng-write')||n.classList.contains('peng-clist')) n.remove();
+        n=nx;
+      }
+      var list=document.createElement('div'); list.className='peng-clist';
+      var wrap=document.createElement('div'); wrap.className='peng-write';
+      wrap.innerHTML='<textarea placeholder="'+(MEMBER_ID?'따뜻한 댓글을 남겨주세요':'로그인 후 댓글을 남길 수 있어요')+'"></textarea><button type="button">등록</button>';
+      hd.parentNode.insertBefore(list, hd.nextSibling);
+      hd.parentNode.insertBefore(wrap, list);
+      var ta=wrap.querySelector('textarea'), sub=wrap.querySelector('button');
+      sub.addEventListener('click', async function(){
+        if(needLogin()) return;
+        var txt=(ta.value||'').trim(); if(!txt){ pengToast('댓글을 입력해 주세요',false); return; }
+        sub.disabled=true;
+        try{
+          await addDoc(pengCol('pourstore-comments'),{postId:pid,memberId:MEMBER_ID,memberName:(MEMBER_NAME||'회원'),text:txt,createdAt:new Date().toISOString(),deleted:false});
+          ta.value=''; await pengLoadComments(pid, list, hd); pengToast('댓글을 등록했어요', true);
+        }catch(e){ console.error('[comments] 등록 실패:', e); pengToast('댓글 등록에 실패했어요',false); }
+        sub.disabled=false;
+      });
+      pengLoadComments(pid, list, hd);
+    }
+  }
+  function pengOpenFromHash(){
+    try{ var m=String(location.hash||'').match(/#post-([^&]+)/); if(m){ var q=byId(decodeURIComponent(m[1])); if(q) openArticle(q); } }catch(e){}
+  }
+
   function openArticle(p){
     if (!artModal || !p) return;
     var hero = thumbOf(p) ? '<div class="pstory-art-hero"><img src="'+esc(thumbOf(p))+'" alt="" onerror="this.parentNode.style.display=\'none\'"/></div>' : '';
@@ -2060,6 +2266,7 @@ var PC_TTL = 300000;
     if (artModal.hidden){ artModal.hidden=false; _aOverflow=document.documentElement.style.overflow; document.documentElement.style.overflow='hidden'; }
     artModal.scrollTop=0;
     var av=artScroll.querySelector('.adv-view'); if(av) renderAdvView(av);
+    try{ pengageSetup(artScroll, p); }catch(e){ console.error('[engage] setup 실패:', e); }
   }
   // ===== 고도화 콘텐츠 공개 렌더 (핀/외곽선 표시) =====
   function _advCent(pts){ var x=0,y=0; pts.forEach(function(p){x+=p.x;y+=p.y;}); return {x:x/pts.length,y:y/pts.length}; }
@@ -2118,6 +2325,7 @@ var PC_TTL = 300000;
     var v=e.target.closest('[data-yt]'); if(v){ e.preventDefault(); var p=byId(v.getAttribute('data-pid')); if(p) openWatch(p); return; }
     var a=e.target.closest('[data-article]'); if(a){ e.preventDefault(); var q=byId(a.getAttribute('data-article')); if(q) openArticle(q); return; }
   });
+  try{ pengOpenFromHash(); }catch(e){}
 })();
 </script>
 </section>

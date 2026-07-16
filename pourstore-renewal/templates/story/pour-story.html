@@ -5,6 +5,30 @@
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css">
+<!-- 고도화 콘텐츠(컨텐츠 고도화) 표시용: 섹션 스타일 재사용 + 이미지/핀/외곽선 표시 CSS -->
+<script src="https://pour-construction-form.pages.dev/pourstore-renewal/advanced-template.js"></script>
+<script>
+(function(){
+  var BASE=''
+  +'.pstory-art-body .adv-view{max-width:860px;margin:0 auto;color:#222;line-height:1.7;font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;}'
+  +'.adv-host *{box-sizing:border-box;}'
+  +'.adv-host .uie-box{position:relative;width:100%;height:360px;overflow:visible;border-radius:14px;background:#f3f4f6;margin-bottom:26px;}'
+  +'.adv-host .uie-crop{position:absolute;inset:0;overflow:hidden;border-radius:inherit;}'
+  +'.adv-host .uie-crop>img{position:absolute;left:50%;top:50%;width:100%;height:100%;object-fit:cover;transform-origin:center center;}'
+  +'.adv-host .pv-point{position:absolute;transform:translate(-50%,-50%);z-index:6;width:26px;height:26px;border-radius:50%;background:#ff5a00;color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.3);border:2px solid #fff;font-size:14px;}'
+  +'.adv-host .pv-point.info{background:#169cff;}'
+  +'.adv-host .pv-pop{position:absolute;z-index:8;width:220px;transform:translate(-50%,10px);background:#fff;border-radius:12px;box-shadow:0 14px 34px rgba(0,0,0,.25);padding:12px;display:none;text-align:left;}'
+  +'.adv-host .pv-pop.open{display:block;}'
+  +'.adv-host .pv-pop img{width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:8px;display:block;}'
+  +'.adv-host .pv-pop b{display:block;font-weight:900;color:#111;font-size:14px;}'
+  +'.adv-host .pv-pop .pv-price{color:#ff5a00;font-weight:900;margin-top:2px;}'
+  +'.adv-host .pv-pop .pv-desc{color:#555;font-size:13px;margin-top:6px;line-height:1.5;}'
+  +'.adv-host .pv-hl-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:5;}'
+  +'.adv-host .pv-hl-svg polygon,.adv-host .pv-hl-svg polyline{fill:rgba(255,90,0,.12);stroke:#ff5a00;stroke-width:2.5;stroke-linejoin:round;vector-effect:non-scaling-stroke;animation:advHlBlink 1.1s ease-in-out infinite;}'
+  +'@keyframes advHlBlink{0%,100%{stroke-opacity:.95}50%{stroke-opacity:.25}}';
+  var s=document.createElement('style'); s.id='adv-view-style'; s.textContent=BASE+(window.ADV_EXTRA_CSS||''); (document.head||document.documentElement).appendChild(s);
+})();
+</script>
 <!-- ============================================================
   pour-story — POUR이야기 콘텐츠 허브 (무신사 콘텐츠 스타일)
   용도: 카페24 pourstore_renewal/story/pour-story.html. POUR이야기 탭 연결.
@@ -1649,7 +1673,7 @@ var PC_TTL = 300000;
   // 클릭 라우팅: 영상=재생 모달 / 본문 있거나 외부링크 없음=자사몰 아티클 / 그 외=외부링크 이동
   function clickAttrs(p){
     if (isYt(p.link)) return ytAttrs(p);
-    if ((p.body && p.body.trim()) || !realLink(p)) return ' data-article="'+esc(p.id||'')+'"';
+    if ((p.body && p.body.trim()) || (p.advancedHtml && p.advancedHtml.trim()) || !realLink(p)) return ' data-article="'+esc(p.id||'')+'"';
     return '';
   }
   // 본문 파서: 한 줄이 이미지 URL이면 <img>, 아니면 문단(<p>). 빈 줄로 문단 구분.
@@ -2008,7 +2032,9 @@ var PC_TTL = 300000;
     var cta = '<div class="pstory-art-cta"><a class="primary" href="/product/list.html">제품 보러가기</a>'
       + (ext ? '<a class="ghost" href="'+esc(ext)+'" target="_blank" rel="noopener">원문 보기 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a>' : '')
       + '</div>';
-    var bodyHtml = (Array.isArray(p.blocks) && p.blocks.length) ? renderBlocksHtml(p.blocks)
+    var isAdv = p.advancedHtml && p.advancedHtml.trim();
+    var bodyHtml = isAdv ? '<div class="adv-host adv-view">'+p.advancedHtml+'</div>'
+      : (Array.isArray(p.blocks) && p.blocks.length) ? renderBlocksHtml(p.blocks)
       : ((p.body && p.body.trim()) ? renderBodyBlocks(p.body) : (p.summary ? '<p>'+esc(p.summary)+'</p>' : '<p style="color:#9AA0A6">본문이 준비 중입니다.</p>'));
     var rel = posts.filter(function(x){ return x!==p; }).slice(0,4);
     artScroll.innerHTML = hero
@@ -2022,6 +2048,33 @@ var PC_TTL = 300000;
       + (rel.length ? '<div class="pstory-art-rel"><div class="pstory-art-rel-top"></div><div class="pstory-art-rel-h">다른 이야기</div><div class="pstory-art-rel-list">'+rel.map(relCardHtml).join('')+'</div></div>' : '');
     if (artModal.hidden){ artModal.hidden=false; _aOverflow=document.documentElement.style.overflow; document.documentElement.style.overflow='hidden'; }
     artModal.scrollTop=0;
+    var av=artScroll.querySelector('.adv-view'); if(av) renderAdvView(av);
+  }
+  // ===== 고도화 콘텐츠 공개 렌더 (핀/외곽선 표시) =====
+  function _advCent(pts){ var x=0,y=0; pts.forEach(function(p){x+=p.x;y+=p.y;}); return {x:x/pts.length,y:y/pts.length}; }
+  function _advCardHtml(c){
+    if(c.mode==='info'){ return (c.image?'<img src="'+esc(c.image)+'" alt="">':'')+'<b>'+esc(c.title||'')+'</b>'+(c.text?'<div class="pv-desc">'+esc(c.text)+'</div>':''); }
+    var inner=(c.thumb?'<img src="'+esc(c.thumb)+'" alt="">':'')+'<b>'+esc(c.name||'')+'</b>'+(c.price?'<div class="pv-price">'+esc(c.price)+'</div>':'')+(c.desc?'<div class="pv-desc">'+esc(c.desc)+'</div>':'');
+    return c.link ? '<a href="'+esc(c.link)+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;display:block">'+inner+'<div style="margin-top:8px;color:#E8780F;font-weight:900;font-size:13px">제품 보러가기 →</div></a>' : inner;
+  }
+  function _advMarker(box,pos,mode,cardHtml){
+    var m=document.createElement('div'); m.className='pv-point'+(mode==='info'?' info':''); m.style.left=pos.x+'%'; m.style.top=pos.y+'%'; m.textContent=mode==='info'?'i':'+'; box.appendChild(m);
+    var pop=document.createElement('div'); pop.className='pv-pop'; pop.style.left=Math.min(80,pos.x)+'%'; pop.style.top=Math.min(74,pos.y)+'%'; pop.innerHTML=cardHtml; box.appendChild(pop);
+    m.addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); box.querySelectorAll('.pv-pop.open').forEach(function(x){ if(x!==pop) x.classList.remove('open'); }); pop.classList.toggle('open'); });
+  }
+  function renderAdvView(root){
+    root.querySelectorAll('.uie-box').forEach(function(box){
+      var img=box.querySelector('.uie-crop > img') || box.querySelector(':scope > img');
+      if(img && !img.parentNode.classList.contains('uie-crop')){ var crop=document.createElement('div'); crop.className='uie-crop'; box.insertBefore(crop,img); crop.appendChild(img); }
+      var pts=[]; try{ pts=JSON.parse(box.getAttribute('data-points')||'[]'); }catch(e){}
+      pts.forEach(function(p){ var ok = p.mode==='info' ? (p.title||p.text||p.image) : (p.name||p.link||p.thumb); if(!ok) return; _advMarker(box,{x:p.x||50,y:p.y||50},p.mode,_advCardHtml(p)); });
+      var hls=[]; try{ hls=JSON.parse(box.getAttribute('data-highlights')||'[]'); }catch(e){}
+      if(hls.length){ var NS='http://www.w3.org/2000/svg'; var svg=document.createElementNS(NS,'svg'); svg.setAttribute('class','pv-hl-svg'); svg.setAttribute('viewBox','0 0 100 100'); svg.setAttribute('preserveAspectRatio','none'); box.appendChild(svg);
+        hls.forEach(function(hl){ if(!hl.pts||hl.pts.length<2) return; var el=document.createElementNS(NS, hl.pts.length>=3?'polygon':'polyline'); el.setAttribute('points', hl.pts.map(function(q){return q.x+','+q.y;}).join(' ')); svg.appendChild(el);
+          var card=(hl.card&&hl.card.mode&&hl.card.mode!=='none')?hl.card:null; if(card){ _advMarker(box,_advCent(hl.pts),card.mode,_advCardHtml(card)); } });
+      }
+    });
+    if(!root.__advBound){ root.__advBound=true; root.addEventListener('click',function(e){ if(!e.target.closest('.pv-point,.pv-pop')) root.querySelectorAll('.pv-pop.open').forEach(function(x){x.classList.remove('open');}); }); }
   }
   function closeArticle(){ if(!artModal) return; artModal.hidden=true; artScroll.innerHTML=''; document.documentElement.style.overflow=_aOverflow; }
 

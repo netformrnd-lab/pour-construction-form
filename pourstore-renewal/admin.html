@@ -5318,11 +5318,20 @@ function advBuildUIE(box, host, onChange){
       if(nb.scrollIntoView) nb.scrollIntoView({behavior:'smooth',block:'center'});
     });
   }
-  // ---- 추가한 사진(data-added): '이 사진 삭제' ----
+  // ---- 추가한 사진(data-added): '이 사진 삭제' 버튼 + Delete/Backspace 키 삭제 ----
   if(box.getAttribute('data-added')==='1'){
-    const delPhoto=document.createElement('button'); delPhoto.type='button'; delPhoto.className='uie-btn ghost'; delPhoto.style.cssText='width:100%;margin-top:6px;color:#e5484d'; delPhoto.textContent='🗑 이 사진 삭제';
+    const delPhoto=document.createElement('button'); delPhoto.type='button'; delPhoto.className='uie-btn ghost'; delPhoto.style.cssText='width:100%;margin-top:6px;color:#e5484d'; delPhoto.textContent='🗑 이 사진 삭제 (또는 사진 클릭 후 Delete키)';
     const anc2=panel.querySelector('.uie-actions'); if(anc2) panel.insertBefore(delPhoto,anc2); else panel.appendChild(delPhoto);
-    delPhoto.addEventListener('click',function(e){ e.stopPropagation(); if(confirm('이 사진을 삭제할까요?')){ box.remove(); onChange&&onChange(); } });
+    function removeThisPhoto(){ box.remove(); onChange&&onChange(); }
+    delPhoto.addEventListener('click',function(e){ e.stopPropagation(); if(confirm('이 사진을 삭제할까요?')) removeThisPhoto(); });
+    // 사진을 클릭하면 포커스 → Delete/Backspace 로 삭제 (글자 입력칸에 있을 땐 무시)
+    box.tabIndex=0; box.style.outline='none';
+    box.addEventListener('click',function(){ try{ box.focus(); }catch(_){} });
+    box.addEventListener('keydown',function(e){
+      if(e.key!=='Delete' && e.key!=='Backspace') return;
+      const tg=e.target; if(tg && (/^(input|textarea|select)$/i.test(tg.tagName) || tg.isContentEditable)) return;
+      e.preventDefault(); e.stopPropagation(); removeThisPhoto();
+    });
   }
   // ---- 상품/설명 점(핫스팟) ----
   let points; try{ points=JSON.parse(box.dataset.points||'[]'); }catch(_){ points=[]; }
@@ -5437,8 +5446,8 @@ function advBuildUIE(box, host, onChange){
     });
     if(drawing){
       if(drawPts.length>=2) hlSvg.appendChild(svgEl('polyline',drawPts,'draw'));
-      drawPts.forEach((p,i)=>{ const d=document.createElement('div'); d.className='uie-dot'; d.style.left=p.x+'%'; d.style.top=p.y+'%'; d.textContent=String(i+1); box.appendChild(d); });
-      const hint=document.createElement('div'); hint.className='uie-hint'; hint.textContent='✏ 톡톡 눌러 점 추가 ('+drawPts.length+') · [완료] 누르기'; box.appendChild(hint);
+      drawPts.forEach((p,i)=>{ const d=document.createElement('div'); d.className='uie-dot'+(i===0?' first':''); d.style.left=p.x+'%'; d.style.top=p.y+'%'; d.textContent=String(i+1); box.appendChild(d); });
+      const hint=document.createElement('div'); hint.className='uie-hint'; hint.textContent=drawPts.length>=3?('✏ 점 '+drawPts.length+'개 · 첫 점(①)을 다시 누르면 완성'):('✏ 톡톡 눌러 점 추가 ('+drawPts.length+')'); box.appendChild(hint);
     }
   }
   function bindHlVtx(v,hi,pi){
@@ -5463,20 +5472,28 @@ function advBuildUIE(box, host, onChange){
       g.addEventListener('pointermove',mv); g.addEventListener('pointerup',up);
     });
   }
-  function addDrawPoint(e){ const r=box.getBoundingClientRect(); const x=Math.max(0,Math.min(100,Math.round((e.clientX-r.left)/r.width*100))); const y=Math.max(0,Math.min(100,Math.round((e.clientY-r.top)/r.height*100))); drawPts.push({x:x,y:y}); renderHlSvg(); renderHlPanel(); }
+  function finishDraw(){ if(drawPts.length>=2){ highlights.push({pts:drawPts.slice(),card:{mode:'none'}}); saveHl(); } drawing=false; drawPts=[]; renderHlPanel(); renderHlSvg(); }
+  function addDrawPoint(e){
+    const r=box.getBoundingClientRect();
+    const cpx=e.clientX-r.left, cpy=e.clientY-r.top;
+    const x=Math.max(0,Math.min(100,Math.round(cpx/r.width*100))); const y=Math.max(0,Math.min(100,Math.round(cpy/r.height*100)));
+    // 첫 점 근처를 다시 누르면(점 3개 이상) 자동으로 외곽선 완성(닫기)
+    if(drawPts.length>=3){ const f=drawPts[0]; const fpx=f.x/100*r.width, fpy=f.y/100*r.height; if(Math.hypot(cpx-fpx,cpy-fpy)<=18){ finishDraw(); return; } }
+    drawPts.push({x:x,y:y}); renderHlSvg(); renderHlPanel();
+  }
   function renderHlPanel(){
     let h='<div class="uie-hl-head"><span>✏ 강조 영역</span>';
     if(drawing){ h+='<span class="uie-hl-btns"><button type="button" class="uie-mini js-hlundo">↶ 점취소</button><button type="button" class="uie-mini on js-hldone">✓ 완료 ('+drawPts.length+')</button></span>'; }
     else { h+='<button type="button" class="uie-mini line js-hldraw">+ 외곽선 그리기</button>'; }
     h+='</div>';
-    if(drawing){ h+='<div class="uie-hl-tip">사진 위를 <b>톡톡</b> 눌러 강조할 부위를 따라 점을 찍고 [완료] (점 2개 이상)</div>'; }
+    if(drawing){ h+='<div class="uie-hl-tip">사진 위를 <b>톡톡</b> 눌러 부위를 따라 점을 찍고, 마지막에 <b>첫 점(①)을 다시 누르면</b> 자동 완성돼요 (또는 [완료]).</div>'; }
     highlights.forEach(function(hl,hi){ const card=hl.card||(hl.card={mode:'none'});
       h+='<div class="uie-hl-item" data-i="'+hi+'"><div class="uie-hl-itop"><b>강조영역 '+(hi+1)+' · '+((hl.pts||[]).length)+'점</b><button type="button" class="uie-mini del js-hldel" data-i="'+hi+'">삭제</button></div><div class="uie-pop-tabs"><button type="button" class="uie-pt'+(card.mode==='none'?' on':'')+' js-hlmode" data-i="'+hi+'" data-m="none">없음</button><button type="button" class="uie-pt'+(card.mode==='product'?' on':'')+' js-hlmode" data-i="'+hi+'" data-m="product">상품</button><button type="button" class="uie-pt'+(card.mode==='info'?' on':'')+' js-hlmode" data-i="'+hi+'" data-m="info">설명</button></div><div class="uie-pop-body">'+hlCardFields(card).replace(/data-k="/g,'data-i="'+hi+'" data-k="')+'</div></div>';
     });
     hlWrap.innerHTML=h;
     const bDraw=hlWrap.querySelector('.js-hldraw'); if(bDraw) bDraw.addEventListener('click',ev=>{ ev.stopPropagation(); drawing=true; drawPts=[]; renderHlPanel(); renderHlSvg(); });
     const bUndo=hlWrap.querySelector('.js-hlundo'); if(bUndo) bUndo.addEventListener('click',ev=>{ ev.stopPropagation(); drawPts=drawPts.slice(0,-1); renderHlPanel(); renderHlSvg(); });
-    const bDone=hlWrap.querySelector('.js-hldone'); if(bDone) bDone.addEventListener('click',ev=>{ ev.stopPropagation(); if(drawPts.length>=2){ highlights.push({pts:drawPts.slice(),card:{mode:'none'}}); saveHl(); } drawing=false; drawPts=[]; renderHlPanel(); renderHlSvg(); });
+    const bDone=hlWrap.querySelector('.js-hldone'); if(bDone) bDone.addEventListener('click',ev=>{ ev.stopPropagation(); finishDraw(); });
     hlWrap.querySelectorAll('.js-hldel').forEach(b=>b.addEventListener('click',ev=>{ ev.stopPropagation(); highlights.splice(+b.dataset.i,1); saveHl(); renderHlPanel(); renderHlSvg(); }));
     hlWrap.querySelectorAll('.js-hlmode').forEach(b=>b.addEventListener('click',ev=>{ ev.stopPropagation(); const hl=highlights[+b.dataset.i]; hl.card=hl.card||{mode:'none'}; hl.card.mode=b.dataset.m; saveHl(); renderHlPanel(); }));
     hlWrap.querySelectorAll('.jf').forEach(inp=>inp.addEventListener('input',()=>{ const hl=highlights[+inp.dataset.i]; hl.card=hl.card||{mode:'none'}; hl.card[inp.dataset.k]=inp.value; saveHl(); }));

@@ -156,6 +156,7 @@
 .adv-host .uie-hl-svg polygon.done,.adv-host .uie-hl-svg polyline.done{animation:advHlBlink 1.1s ease-in-out infinite;}
 @media (prefers-reduced-motion:reduce){.adv-host .uie-hl-svg polygon.done,.adv-host .uie-hl-svg polyline.done{animation:none;}}
 .adv-host .uie-dot{position:absolute;transform:translate(-50%,-50%);z-index:62;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #ff5a00;color:#ff5a00;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.25);}
+.adv-host .uie-dot.first{background:#ff5a00;color:#fff;width:20px;height:20px;font-size:11px;box-shadow:0 0 0 3px rgba(255,90,0,.25),0 2px 6px rgba(0,0,0,.3);}
 .adv-host .uie-hint{position:absolute;left:8px;top:8px;z-index:64;background:rgba(255,90,0,.94);color:#fff;font-size:11px;font-weight:800;padding:4px 9px;border-radius:6px;pointer-events:none;}
 .adv-host .uie-hl-wrap{margin-top:12px;}
 .adv-host .uie-hl-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}

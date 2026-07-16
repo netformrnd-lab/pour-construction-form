@@ -205,7 +205,8 @@
 .adv-host.adv-view [data-editable]{box-shadow:none !important;}
 .adv-host.adv-view [contenteditable]{cursor:inherit;-webkit-user-modify:read-only;}
 .adv-host.adv-view .adv-sec-tag{display:none;}
-.adv-host.adv-view .adv-sec{border-top-color:#f0f0f0;}
+.adv-host.adv-view .adv-sec{border-top:0;padding-top:10px;margin-bottom:18px;}
+.adv-host.adv-view .adv-sec:first-of-type{padding-top:0;}
 .adv-host.adv-view .delete-chip,
 .adv-host.adv-view .delete-block,
 .adv-host.adv-view .delete-info-item,

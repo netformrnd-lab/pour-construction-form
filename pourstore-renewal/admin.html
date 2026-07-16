@@ -5364,13 +5364,42 @@ function advBuildUIE(box, host, onChange){
   function svgEl(tag,pts,cls){ const el=document.createElementNS('http://www.w3.org/2000/svg',tag); el.setAttribute('points', pts.map(p=>p.x+','+p.y).join(' ')); if(cls) el.setAttribute('class',cls); return el; }
   function renderHlSvg(){
     ensureHlSvg(); hlSvg.innerHTML='';
-    box.querySelectorAll('.uie-dot,.uie-hint').forEach(el=>el.remove());
-    highlights.forEach(hl=>{ if(Array.isArray(hl.pts)&&hl.pts.length>=3) hlSvg.appendChild(svgEl('polygon',hl.pts,'done')); else if(Array.isArray(hl.pts)&&hl.pts.length>=2) hlSvg.appendChild(svgEl('polyline',hl.pts,'done')); });
+    box.querySelectorAll('.uie-dot,.uie-hint,.uie-vtx,.uie-hlmove').forEach(el=>el.remove());
+    highlights.forEach(function(hl,hi){
+      if(!Array.isArray(hl.pts)||hl.pts.length<2) return;
+      hlSvg.appendChild(svgEl(hl.pts.length>=3?'polygon':'polyline', hl.pts, 'done'));
+      if(!drawing){
+        hl.pts.forEach(function(p,pi){ var v=document.createElement('div'); v.className='uie-vtx'; v.style.left=p.x+'%'; v.style.top=p.y+'%'; box.appendChild(v); bindHlVtx(v,hi,pi); });
+        var c=centroid(hl.pts); var g=document.createElement('div'); g.className='uie-hlmove'; g.style.left=c.x+'%'; g.style.top=c.y+'%'; g.textContent='✥'; g.title='드래그해서 외곽선 통째로 이동'; box.appendChild(g); bindHlMove(g,hi);
+      }
+    });
     if(drawing){
       if(drawPts.length>=2) hlSvg.appendChild(svgEl('polyline',drawPts,'draw'));
       drawPts.forEach((p,i)=>{ const d=document.createElement('div'); d.className='uie-dot'; d.style.left=p.x+'%'; d.style.top=p.y+'%'; d.textContent=String(i+1); box.appendChild(d); });
       const hint=document.createElement('div'); hint.className='uie-hint'; hint.textContent='✏ 톡톡 눌러 점 추가 ('+drawPts.length+') · [완료] 누르기'; box.appendChild(hint);
     }
+  }
+  function bindHlVtx(v,hi,pi){
+    v.addEventListener('pointerdown',function(ev0){
+      ev0.stopPropagation(); ev0.preventDefault();
+      var r=box.getBoundingClientRect(), sx=ev0.clientX, sy=ev0.clientY, p=highlights[hi].pts[pi], sl=p.x, st=p.y;
+      try{v.setPointerCapture(ev0.pointerId);}catch(_){}
+      function mv(ev){ p.x=Math.max(0,Math.min(100,sl+((ev.clientX-sx)/r.width*100))); p.y=Math.max(0,Math.min(100,st+((ev.clientY-sy)/r.height*100))); v.style.left=p.x+'%'; v.style.top=p.y+'%'; var poly=hlSvg.children[hi]; if(poly&&poly.setAttribute) poly.setAttribute('points', highlights[hi].pts.map(function(q){return q.x+','+q.y;}).join(' ')); }
+      function up(ev){ try{v.releasePointerCapture(ev.pointerId);}catch(_){} v.removeEventListener('pointermove',mv); v.removeEventListener('pointerup',up); saveHl(); renderHlSvg(); renderHlPanel(); }
+      v.addEventListener('pointermove',mv); v.addEventListener('pointerup',up);
+    });
+  }
+  function bindHlMove(g,hi){
+    g.addEventListener('pointerdown',function(ev0){
+      ev0.stopPropagation(); ev0.preventDefault();
+      var r=box.getBoundingClientRect(), sx=ev0.clientX, sy=ev0.clientY, pts=highlights[hi].pts, start=pts.map(function(p){return {x:p.x,y:p.y};});
+      var minx=Math.min.apply(null,start.map(function(p){return p.x;})), maxx=Math.max.apply(null,start.map(function(p){return p.x;})), miny=Math.min.apply(null,start.map(function(p){return p.y;})), maxy=Math.max.apply(null,start.map(function(p){return p.y;}));
+      box.querySelectorAll('.uie-vtx').forEach(function(el){el.remove();});
+      try{g.setPointerCapture(ev0.pointerId);}catch(_){}
+      function mv(ev){ var dx=(ev.clientX-sx)/r.width*100, dy=(ev.clientY-sy)/r.height*100; dx=Math.max(-minx,Math.min(100-maxx,dx)); dy=Math.max(-miny,Math.min(100-maxy,dy)); pts.forEach(function(p,i){ p.x=start[i].x+dx; p.y=start[i].y+dy; }); var poly=hlSvg.children[hi]; if(poly&&poly.setAttribute) poly.setAttribute('points', pts.map(function(q){return q.x+','+q.y;}).join(' ')); var c=centroid(pts); g.style.left=c.x+'%'; g.style.top=c.y+'%'; }
+      function up(ev){ try{g.releasePointerCapture(ev.pointerId);}catch(_){} g.removeEventListener('pointermove',mv); g.removeEventListener('pointerup',up); saveHl(); renderHlSvg(); }
+      g.addEventListener('pointermove',mv); g.addEventListener('pointerup',up);
+    });
   }
   function addDrawPoint(e){ const r=box.getBoundingClientRect(); const x=Math.max(0,Math.min(100,Math.round((e.clientX-r.left)/r.width*100))); const y=Math.max(0,Math.min(100,Math.round((e.clientY-r.top)/r.height*100))); drawPts.push({x:x,y:y}); renderHlSvg(); renderHlPanel(); }
   function renderHlPanel(){
@@ -5407,7 +5436,7 @@ function advBuildUIE(box, host, onChange){
   panel.addEventListener('click',e=>e.stopPropagation());
   panel.querySelector('.js-close').addEventListener('click',()=>panel.classList.remove('is-open'));
   panel.querySelector('.js-reset').addEventListener('click',()=>{ state.scale=100; state.x=0; state.y=0; box.style.width=''; box.style.height=''; applyImg(); updateBadge(); onChange&&onChange(); });
-  box.addEventListener('click',e=>{ if(e.target.closest('.uie-open,.uie-panel,.uie-handle,.uie-point,.uie-pop,.uie-dot,.uie-hint'))return; if(drawing){ addDrawPoint(e); return; } selectBox(); });
+  box.addEventListener('click',e=>{ if(e.target.closest('.uie-open,.uie-panel,.uie-handle,.uie-point,.uie-pop,.uie-dot,.uie-hint,.uie-vtx,.uie-hlmove'))return; if(drawing){ addDrawPoint(e); return; } selectBox(); });
   box.querySelectorAll('.uie-handle').forEach(handle=>{
     handle.addEventListener('pointerdown',e=>{
       e.preventDefault(); e.stopPropagation(); selectBox();
@@ -5486,7 +5515,7 @@ function advEnhance(host, onChange){
 // 저장용: 편집 버튼·핸들 등을 뺀 깨끗한 HTML
 function advCleanHtml(host){
   const c=host.cloneNode(true);
-  c.querySelectorAll('.uie-open,.uie-panel,.uie-handle,.uie-badge,.uie-point,.uie-pop,.uie-hl-svg,.uie-vtx,.uie-hl-ctrl,.uie-dot,.uie-hint,.adv-sec-bar,.adv-addsec,.adv-blk-tools,.chip-add-tile,.text-add-tile,.info-add-tile,.delete-chip,.delete-block,.delete-info-card,.delete-info-item').forEach(el=>el.remove());
+  c.querySelectorAll('.uie-open,.uie-panel,.uie-handle,.uie-badge,.uie-point,.uie-pop,.uie-hl-svg,.uie-vtx,.uie-hl-ctrl,.uie-dot,.uie-hint,.uie-hlmove,.adv-sec-bar,.adv-addsec,.adv-blk-tools,.chip-add-tile,.text-add-tile,.info-add-tile,.delete-chip,.delete-block,.delete-info-card,.delete-info-item').forEach(el=>el.remove());
   c.querySelectorAll('.uie-box').forEach(b=>{ b.classList.remove('is-selected','inner-mode'); b.removeAttribute('data-uie-ready'); });
   c.querySelectorAll('[contenteditable]').forEach(el=>{ el.removeAttribute('contenteditable'); el.removeAttribute('spellcheck'); });
   return c.innerHTML.trim();

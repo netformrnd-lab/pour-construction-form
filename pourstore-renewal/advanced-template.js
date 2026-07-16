@@ -124,7 +124,8 @@
 .adv-host .uie-pop-body label{font-size:11px;font-weight:850;color:#555;margin-top:5px;}
 .adv-host .uie-pop-del{margin-top:10px;width:100%;border:0;border-radius:8px;background:#fff0ec;color:#e5484d;font:inherit;font-size:12px;font-weight:900;padding:8px;cursor:pointer;}
 /* 외곽선(강조 영역) — 톡톡 점찍기 방식 */
-.adv-host .uie-hl-svg{position:absolute;inset:0;z-index:58;pointer-events:none;overflow:visible;}
+.adv-host .uie-hl-svg{position:absolute;inset:0;width:100%;height:100%;z-index:58;pointer-events:none;overflow:visible;}
+.adv-host .uie-hlmove{position:absolute;transform:translate(-50%,-50%);z-index:63;width:26px;height:26px;border-radius:50%;background:#ff5a00;color:#fff;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:move;box-shadow:0 3px 10px rgba(0,0,0,.3);border:2px solid #fff;touch-action:none;}
 .adv-host .uie-hl-svg polyline,.adv-host .uie-hl-svg polygon{fill:none;stroke:#ff5a00;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;}
 .adv-host .uie-hl-svg polygon.done{fill:rgba(255,90,0,.12);stroke-opacity:.9;}
 .adv-host .uie-hl-svg polyline.done{stroke-opacity:.85;}

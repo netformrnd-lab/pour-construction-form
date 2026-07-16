@@ -201,6 +201,12 @@
 /* 각 섹션 도구바 안의 '＋섹션' 메뉴는 버튼 아래·오른쪽에 표시 */
 .adv-host .adv-sec-bar .adv-sec-addafter{color:#ff5a00;border-color:#ff8a3d;}
 .adv-host .adv-sec-bar .adv-sec-menu{left:auto;right:0;bottom:auto;top:calc(100% + 6px);transform:none;}
+/* ===== 고도화 글은 본문 자체 헤더를 쓰므로, pour-story 자동 헤더(썸네일·제목·날짜) 숨김 =====
+   (pour-story.html 재붙여넣기 없이도 pages.dev CSS로 자동 적용) */
+[data-art-scroll]:has(.adv-view) .pstory-art-hero,
+[data-art-scroll]:has(.adv-view) .pstory-art-ct,
+[data-art-scroll]:has(.adv-view) .pstory-art-tt,
+[data-art-scroll]:has(.adv-view) .pstory-art-dt{display:none !important;}
 /* ===== 고객(공개) 페이지에서는 편집용 표시 전부 숨김 (.adv-view 일 때만) ===== */
 .adv-host.adv-view [data-editable]{box-shadow:none !important;}
 .adv-host.adv-view [contenteditable]{cursor:inherit;-webkit-user-modify:read-only;}

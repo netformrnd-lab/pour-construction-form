@@ -154,6 +154,19 @@
 /* 편집 가능한 글자: 은은한 점선으로 '여기 클릭해 수정' 힌트 */
 .adv-host [data-editable="true"]{box-shadow:inset 0 -1px 0 rgba(255,138,61,.35);}
 .adv-host [data-editable="true"]:hover,.adv-host [data-editable="true"]:focus{box-shadow:0 0 0 2px rgba(255,90,0,.25);}
+/* ===== 섹션 추가/삭제/이동 ===== */
+.adv-host .adv-sec{position:relative;}
+.adv-host .adv-sec-bar{position:absolute;right:0;top:4px;z-index:40;display:flex;gap:4px;}
+.adv-host .adv-sec-bar button{border:1px solid #e2e2e2;border-radius:7px;background:#fff;color:#666;font:inherit;font-size:11px;font-weight:900;padding:4px 8px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.adv-host .adv-sec-bar button:hover{background:#fff4ea;color:#ff5a00;border-color:#ff8a3d;}
+.adv-host .adv-sec-bar .adv-sec-del{color:#e5484d;border-color:#f3c0c0;}
+.adv-host .adv-addsec{position:relative;margin:20px 0 6px;text-align:center;}
+.adv-host .adv-addsec-btn{border:1.5px dashed #ff8a3d;border-radius:10px;background:#fff8f3;color:#ff5a00;font:inherit;font-size:13px;font-weight:900;padding:11px 20px;cursor:pointer;}
+.adv-host .adv-addsec-btn:hover{background:#fff1e7;}
+.adv-host .adv-sec-menu{display:none;position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);z-index:90;width:min(280px,90vw);max-height:260px;overflow:auto;background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:12px;box-shadow:0 14px 34px rgba(0,0,0,.2);padding:8px;}
+.adv-host .adv-sec-menu.open{display:block;}
+.adv-host .adv-sec-menu button{display:block;width:100%;text-align:left;border:0;border-radius:8px;background:#fff;color:#333;font:inherit;font-size:12.5px;font-weight:800;padding:9px 10px;cursor:pointer;}
+.adv-host .adv-sec-menu button:hover{background:#fff4ea;color:#ff5a00;}
 `;
 
   var IMG = {
@@ -267,4 +280,13 @@
     <a class="case-card" href="#">${box(IMG.step3,'')}<div class="case-body"><span class="case-cat" contenteditable="true" data-editable="true">방수 코팅</span><p class="case-name" contenteditable="true" data-editable="true">노후 지붕 방수층 재도장 사례</p></div></a>
   </div>
 </div>`;
+  // 섹션 목록(추가 메뉴용): 기본 템플릿을 섹션 단위로 분해
+  (function(){
+    try{
+      var _t=document.createElement('div'); _t.innerHTML=window.ADV_DEFAULT_HTML;
+      window.ADV_SECTIONS=Array.prototype.slice.call(_t.children)
+        .filter(function(el){ return el.classList && el.classList.contains('adv-sec'); })
+        .map(function(el){ var tag=el.querySelector('.adv-sec-tag'); return { label: tag?tag.textContent.trim():'섹션', html: el.outerHTML }; });
+    }catch(e){ window.ADV_SECTIONS=[]; }
+  })();
 })();

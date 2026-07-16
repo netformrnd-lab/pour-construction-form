@@ -5425,28 +5425,54 @@ function advBuildUIE(box, host, onChange){
 }
 function advEnhance(host, onChange){
   advEnsureStyle();
-  host.querySelectorAll('[data-editable="true"]').forEach(el=>{ el.setAttribute('contenteditable','true'); el.setAttribute('spellcheck','false'); });
-  host.querySelectorAll('.uie-box').forEach(box=>advBuildUIE(box,host,onChange));
-  host.addEventListener('input',()=>onChange&&onChange());
-  host.addEventListener('click',e=>{
-    const t=e.target;
-    if(t.closest('.delete-chip')){ t.closest('.chip')?.remove(); onChange&&onChange(); return; }
-    if(t.closest('.delete-block')){ t.closest('.content-block')?.remove(); onChange&&onChange(); return; }
-    if(t.closest('.delete-info-card')){ t.closest('.info-card')?.remove(); onChange&&onChange(); return; }
-    if(t.closest('.delete-info-item')){ t.closest('.info-item')?.remove(); onChange&&onChange(); return; }
-    const chipAdd=t.closest('.chip-add-tile');
-    if(chipAdd){ const chip=document.createElement('span'); chip.className='chip'; chip.innerHTML='<span contenteditable="true" data-editable="true">새 태그</span><button type="button" class="delete-chip">×</button>'; chipAdd.parentNode.insertBefore(chip,chipAdd); chip.querySelector('[data-editable]').focus(); onChange&&onChange(); return; }
-    const textAdd=t.closest('.text-add-tile');
-    if(textAdd){ const wrap=host.querySelector('.adv-textblocks'); if(wrap){ const b=document.createElement('div'); b.className='content-block'; b.innerHTML='<button type="button" class="delete-block">×</button><p class="desc" contenteditable="true" data-editable="true">새 문구를 입력하세요.</p>'; wrap.appendChild(b); b.querySelector('[data-editable]').focus(); onChange&&onChange(); } return; }
-    const infoAdd=t.closest('.info-add-tile');
-    if(infoAdd){ const grid=infoAdd.closest('.info-grid'); if(grid){ const it=document.createElement('div'); it.className='info-item'; it.innerHTML='<button type="button" class="delete-info-item">×</button><div class="info-label" contenteditable="true" data-editable="true">항목명</div><div class="info-value" contenteditable="true" data-editable="true">내용 입력</div>'; grid.insertBefore(it,infoAdd); onChange&&onChange(); } return; }
+  function enhanceScope(scope){
+    scope.querySelectorAll('[data-editable="true"]').forEach(function(el){ el.setAttribute('contenteditable','true'); el.setAttribute('spellcheck','false'); });
+    scope.querySelectorAll('.uie-box').forEach(function(box){ advBuildUIE(box,host,onChange); });
+  }
+  function ensureSectionTools(){
+    host.querySelectorAll('.adv-sec').forEach(function(s){
+      if(!s.querySelector(':scope > .adv-sec-bar')){
+        var bar=document.createElement('div'); bar.className='adv-sec-bar';
+        bar.innerHTML='<button type="button" class="adv-sec-up" title="위로 이동">▲</button><button type="button" class="adv-sec-down" title="아래로 이동">▼</button><button type="button" class="adv-sec-del" title="이 섹션 삭제">🗑 섹션삭제</button>';
+        s.insertBefore(bar, s.firstChild);
+      }
+    });
+    var add=host.querySelector('.adv-addsec');
+    if(!add){
+      add=document.createElement('div'); add.className='adv-addsec';
+      var menu='<div class="adv-sec-menu">'; (window.ADV_SECTIONS||[]).forEach(function(sec,i){ menu+='<button type="button" data-i="'+i+'">＋ '+(sec.label||('섹션 '+(i+1)))+'</button>'; }); menu+='</div>';
+      add.innerHTML='<button type="button" class="adv-addsec-btn">＋ 섹션 추가</button>'+menu;
+    }
+    host.appendChild(add); // 항상 맨 아래로
+  }
+  enhanceScope(host);
+  ensureSectionTools();
+  host.addEventListener('input',function(){ onChange&&onChange(); });
+  host.addEventListener('click',function(e){
+    var t=e.target;
+    if(!t.closest('.adv-addsec')){ var om=host.querySelector('.adv-sec-menu.open'); if(om) om.classList.remove('open'); }
+    var up=t.closest('.adv-sec-up'); if(up){ var s=up.closest('.adv-sec'), p=s&&s.previousElementSibling; if(p&&p.classList.contains('adv-sec')) s.parentNode.insertBefore(s,p); onChange&&onChange(); return; }
+    var dn=t.closest('.adv-sec-down'); if(dn){ var s2=dn.closest('.adv-sec'), n=s2&&s2.nextElementSibling; if(n&&n.classList.contains('adv-sec')) s2.parentNode.insertBefore(n,s2); onChange&&onChange(); return; }
+    var dl=t.closest('.adv-sec-del'); if(dl){ if(host.querySelectorAll('.adv-sec').length<=1){ alert('마지막 섹션은 삭제할 수 없어요.'); return; } var s3=dl.closest('.adv-sec'); if(s3 && confirm('이 섹션을 삭제할까요?')){ s3.remove(); onChange&&onChange(); } return; }
+    var ab=t.closest('.adv-addsec-btn'); if(ab){ e.stopPropagation(); var mn=host.querySelector('.adv-sec-menu'); if(mn) mn.classList.toggle('open'); return; }
+    var mi=t.closest('.adv-sec-menu button'); if(mi){ var i=+mi.dataset.i, secs=window.ADV_SECTIONS||[], sec=secs[i]; if(sec){ var tmp=document.createElement('div'); tmp.innerHTML=sec.html; var node=tmp.firstElementChild; if(node){ host.insertBefore(node, host.querySelector('.adv-addsec')); enhanceScope(node); ensureSectionTools(); if(node.scrollIntoView) node.scrollIntoView({behavior:'smooth',block:'center'}); onChange&&onChange(); } } var mm=host.querySelector('.adv-sec-menu.open'); if(mm) mm.classList.remove('open'); return; }
+    if(t.closest('.delete-chip')){ var c1=t.closest('.chip'); if(c1)c1.remove(); onChange&&onChange(); return; }
+    if(t.closest('.delete-block')){ var c2=t.closest('.content-block'); if(c2)c2.remove(); onChange&&onChange(); return; }
+    if(t.closest('.delete-info-card')){ var c3=t.closest('.info-card'); if(c3)c3.remove(); onChange&&onChange(); return; }
+    if(t.closest('.delete-info-item')){ var c4=t.closest('.info-item'); if(c4)c4.remove(); onChange&&onChange(); return; }
+    var chipAdd=t.closest('.chip-add-tile');
+    if(chipAdd){ var chip=document.createElement('span'); chip.className='chip'; chip.innerHTML='<span contenteditable="true" data-editable="true">새 태그</span><button type="button" class="delete-chip">×</button>'; chipAdd.parentNode.insertBefore(chip,chipAdd); chip.querySelector('[data-editable]').focus(); onChange&&onChange(); return; }
+    var textAdd=t.closest('.text-add-tile');
+    if(textAdd){ var sec4=textAdd.closest('.adv-sec'); var wrap=(sec4&&sec4.querySelector('.adv-textblocks'))||host.querySelector('.adv-textblocks'); if(wrap){ var b=document.createElement('div'); b.className='content-block'; b.innerHTML='<button type="button" class="delete-block">×</button><p class="desc" contenteditable="true" data-editable="true">새 문구를 입력하세요.</p>'; wrap.appendChild(b); b.querySelector('[data-editable]').focus(); onChange&&onChange(); } return; }
+    var infoAdd=t.closest('.info-add-tile');
+    if(infoAdd){ var grid=infoAdd.closest('.info-grid'); if(grid){ var it=document.createElement('div'); it.className='info-item'; it.innerHTML='<button type="button" class="delete-info-item">×</button><div class="info-label" contenteditable="true" data-editable="true">항목명</div><div class="info-value" contenteditable="true" data-editable="true">내용 입력</div>'; grid.insertBefore(it,infoAdd); onChange&&onChange(); } return; }
   });
-  document.addEventListener('click',e=>{ if(e.target.closest('.adv-host'))return; host.querySelectorAll('.uie-box.is-selected').forEach(b=>b.classList.remove('is-selected')); host.querySelectorAll('.uie-panel.is-open').forEach(p=>p.classList.remove('is-open')); });
+  document.addEventListener('click',function(e){ if(e.target.closest('.adv-host'))return; host.querySelectorAll('.uie-box.is-selected').forEach(function(b){b.classList.remove('is-selected');}); host.querySelectorAll('.uie-panel.is-open').forEach(function(p){p.classList.remove('is-open');}); host.querySelectorAll('.adv-sec-menu.open').forEach(function(m){m.classList.remove('open');}); });
 }
 // 저장용: 편집 버튼·핸들 등을 뺀 깨끗한 HTML
 function advCleanHtml(host){
   const c=host.cloneNode(true);
-  c.querySelectorAll('.uie-open,.uie-panel,.uie-handle,.uie-badge,.uie-point,.uie-pop,.uie-hl-svg,.uie-vtx,.uie-hl-ctrl,.uie-dot,.uie-hint,.chip-add-tile,.text-add-tile,.info-add-tile,.delete-chip,.delete-block,.delete-info-card,.delete-info-item').forEach(el=>el.remove());
+  c.querySelectorAll('.uie-open,.uie-panel,.uie-handle,.uie-badge,.uie-point,.uie-pop,.uie-hl-svg,.uie-vtx,.uie-hl-ctrl,.uie-dot,.uie-hint,.adv-sec-bar,.adv-addsec,.chip-add-tile,.text-add-tile,.info-add-tile,.delete-chip,.delete-block,.delete-info-card,.delete-info-item').forEach(el=>el.remove());
   c.querySelectorAll('.uie-box').forEach(b=>{ b.classList.remove('is-selected','inner-mode'); b.removeAttribute('data-uie-ready'); });
   c.querySelectorAll('[contenteditable]').forEach(el=>{ el.removeAttribute('contenteditable'); el.removeAttribute('spellcheck'); });
   return c.innerHTML.trim();

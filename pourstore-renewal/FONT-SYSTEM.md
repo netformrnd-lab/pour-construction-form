@@ -18,13 +18,12 @@
 - (참고) 도현·검은고딕 등은 헤딩에 쓰지 않는다. story 포스팅 에디터의 **본문 글꼴 선택지**로만 로드됨.
 
 ### Jua를 쓰는 "감성 포인트"란?
-따뜻하게 말 거는 짧은 카피 1줄. 예)
+따뜻하게 말 거는 **짧은 카피 딱 1줄**. 예)
 - "저희가 있어요" (pour-06 서비스)
 - "셀프시공, 혼자 하는 게 아니에요" (안심밴드)
 - "궁금하면 바로 물어보세요" (pour-03 닥터)
-- "누구나 쉽고, 성공적으로 시공하도록" (story 히어로)
-- 포인트 카드 라벨("데이터로 풀고")
-→ **섹션 대표 제목/정보성 제목에는 절대 쓰지 않는다.**
+→ **섹션 대표 제목·정보성 제목·페이지 히어로 제목·카드 라벨에는 쓰지 않는다.**
+  (한 블록 안에서 Jua 제목 + Pretendard 본문/라벨을 섞으면 이상해 보임 → Jua는 그 블록의 "한 줄"만.)
 
 ### 로드 스니펫
 Jua를 쓰는 조각만 Jua를 로드(안 쓰면 Pretendard만).
@@ -71,9 +70,9 @@ Jua를 쓰는 조각만 Jua를 로드(안 쓰면 Pretendard만).
 ## 4. 적용 현황 (2026-07 기준)
 - **Pretendard 900 섹션 제목**: pour-02-best, pour-02b-vending, pour-04-home, pour-05-shorts,
   pour-07-magazine, pour-08-video, pour-09-record, story(섹션 제목·브랜드 헤딩)
-- **Jua 감성 포인트**: pour-03-doctor, pour-06-service, story(히어로 h1·포인트 라벨·안심밴드),
-  common/pour-safety-banner
-- **Pretendard 유지**: 콘텐츠 카드 제목, 통계 숫자, 검색/입력 UI
+- **Jua 감성 포인트(각 1줄만)**: pour-03-doctor("궁금하면 바로 물어보세요"),
+  pour-06-service("저희가 있어요"), story 안심밴드("혼자 하는 게 아니에요"), common/pour-safety-banner
+- **Pretendard 유지**: story 히어로 h1·포인트 라벨·안심밴드 카드 라벨, 콘텐츠 카드 제목, 통계 숫자, 검색 UI
 
 ---
 

@@ -38,9 +38,9 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 .psm1 button { background:none; border:none; cursor:pointer; font:inherit; color:inherit; letter-spacing:inherit; }
 .psm1 img { display:block; max-width:100%; }
 .psm1 ul, .psm1 li { list-style:none; }
-/* sticky 래퍼 */
-.psm1-sticky { position:sticky; top:0; z-index:1000; background:#fff; }
-.psm1-sticky.psm1-scrolled { box-shadow:0 2px 12px rgba(15,31,92,.08); }
+/* sticky 래퍼 — .pour-gh 안으로 스코프(메인 pour-01-main의 .psm1-sticky{position:fixed}에 누수 금지) */
+.pour-gh .psm1-sticky { position:sticky; top:0; z-index:1000; background:#fff; }
+.pour-gh .psm1-sticky.psm1-scrolled { box-shadow:0 2px 12px rgba(15,31,92,.08); }
 /* 0) 상단 유틸바 */
 .psm1-topbar { background:#FAFAFB; border-bottom:1px solid #F2F3F5; }
 .psm1-topbar-inner { max-width:1256px; margin:0 auto; padding:7px 24px; display:flex; align-items:center; justify-content:flex-end; gap:16px; }

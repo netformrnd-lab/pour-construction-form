@@ -47,6 +47,7 @@ const db = firebase.firestore();
 const storage = firebase.storage();
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Gaegu&family=Jua&family=Nanum+Gothic:wght@400;700;800&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --navy: #0F1F5C; --navy2: #1A2E62;
@@ -5159,12 +5160,14 @@ function PostingsPage({showToast}){
 // 통합(블로그형) 글쓰기 — 한 칸에서 글·사진 자유롭게 + 문단 서식바. blocks[]로 저장(공개 렌더 그대로).
 const FLOW_SIZES={small:'13px',normal:'15px',large:'18px',xl:'22px'};
 const FLOW_COLORS={'':'#374151',point:'#E8780F',red:'#DC2626',blue:'#2563EB',green:'#059669',gray:'#9AA0A6'};
+const FLOW_FONTS={'':'기본(프리텐다드)',nanumgothic:'나눔고딕',nanummyeongjo:'나눔명조',notoserif:'본명조',jua:'배민 주아',dohyeon:'도현체',blackhan:'검은고딕',nanumpen:'손글씨(펜)',gaegu:'개구쟁이'};
+const FLOW_FONTCSS={nanumgothic:"'Nanum Gothic',sans-serif",nanummyeongjo:"'Nanum Myeongjo',serif",notoserif:"'Noto Serif KR',serif",jua:"'Jua',sans-serif",dohyeon:"'Do Hyeon',sans-serif",blackhan:"'Black Han Sans',sans-serif",nanumpen:"'Nanum Pen Script',cursive",gaegu:"'Gaegu',cursive"};
 function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
   const ref=useRef(null);
   const [dragOver,setDragOver]=useState(false);
   const escH=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const pStyle=(b)=>{ let s=''; if(b.align&&b.align!=='left')s+='text-align:'+b.align+';'; if(b.size&&b.size!=='normal')s+='font-size:'+(FLOW_SIZES[b.size]||FLOW_SIZES.normal)+';'; if(b.bold||b.size==='xl')s+='font-weight:800;'; if(b.color&&FLOW_COLORS[b.color])s+='color:'+FLOW_COLORS[b.color]+';'; return s; };
-  const pData=(b)=>{ let d=''; if(b.align&&b.align!=='left')d+=' data-align="'+b.align+'"'; if(b.size&&b.size!=='normal')d+=' data-size="'+b.size+'"'; if(b.bold)d+=' data-bold="1"'; if(b.color)d+=' data-color="'+b.color+'"'; return d; };
+  const pStyle=(b)=>{ let s=''; if(b.align&&b.align!=='left')s+='text-align:'+b.align+';'; if(b.size&&b.size!=='normal')s+='font-size:'+(FLOW_SIZES[b.size]||FLOW_SIZES.normal)+';'; if(b.bold||b.size==='xl')s+='font-weight:800;'; if(b.color&&FLOW_COLORS[b.color])s+='color:'+FLOW_COLORS[b.color]+';'; if(b.font&&FLOW_FONTCSS[b.font])s+='font-family:'+FLOW_FONTCSS[b.font]+';'; return s; };
+  const pData=(b)=>{ let d=''; if(b.align&&b.align!=='left')d+=' data-align="'+b.align+'"'; if(b.size&&b.size!=='normal')d+=' data-size="'+b.size+'"'; if(b.bold)d+=' data-bold="1"'; if(b.color)d+=' data-color="'+b.color+'"'; if(b.font)d+=' data-font="'+b.font+'"'; return d; };
   const toHtml=(bs)=> (bs||[]).map(function(b){ if(b.type==='image') return b.url?('<p><img src="'+escH(b.url)+'" alt=""></p>'):''; if(b.type==='divider') return '<hr>'; const st=pStyle(b); return '<p'+pData(b)+(st?(' style="'+st+'"'):'')+'>'+((escH(b.text||'').replace(/\n/g,'<br>'))||'<br>')+'</p>'; }).join('')||'<p><br></p>';
   const grabText=(node)=>{ let t=''; node.childNodes.forEach(function(c){ if(c.nodeType===3)t+=c.nodeValue; else if(c.nodeType===1){ if(c.tagName==='BR')t+='\n'; else t+=grabText(c); } }); return t; };
   const serialize=(root)=>{ const out=[];
@@ -5177,7 +5180,7 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
       const im=n.querySelector&&n.querySelector('img'); if(im){ out.push({type:'image',url:im.getAttribute('src')||'',hotspots:[]}); return; }
       let txt=grabText(n).replace(/ /g,' ').replace(/\n+$/,'').trim(); if(!txt) return;
       const blk={type:'text',text:txt};
-      if(n.dataset){ if(n.dataset.align)blk.align=n.dataset.align; if(n.dataset.size)blk.size=n.dataset.size; if(n.dataset.bold)blk.bold=true; if(n.dataset.color)blk.color=n.dataset.color; }
+      if(n.dataset){ if(n.dataset.align)blk.align=n.dataset.align; if(n.dataset.size)blk.size=n.dataset.size; if(n.dataset.bold)blk.bold=true; if(n.dataset.color)blk.color=n.dataset.color; if(n.dataset.font)blk.font=n.dataset.font; }
       out.push(blk);
     });
     return out; };
@@ -5188,7 +5191,7 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
   const onPaste=(e)=>{ const items=(e.clipboardData&&e.clipboardData.items)||[]; for(let k=0;k<items.length;k++){ if(((items[k].type)||'').indexOf('image')===0){ const f=items[k].getAsFile(); if(f){ e.preventDefault(); doUpload(f); return; } } } };
   const onDrop=(e)=>{ e.preventDefault(); setDragOver(false); const files=e.dataTransfer&&e.dataTransfer.files; if(files&&files[0]&&((files[0].type)||'').indexOf('image')===0) doUpload(files[0]); };
   const curPara=()=>{ const sel=window.getSelection&&window.getSelection(); if(!sel||!sel.rangeCount||!ref.current) return null; let n=sel.anchorNode; if(!n||!ref.current.contains(n)) return null; while(n&&n.parentNode!==ref.current) n=n.parentNode; if(!n||n.nodeType!==1) return null; return (n.tagName==='P'||n.tagName==='DIV')?n:null; };
-  const restyle=(p)=>{ p.style.textAlign=p.dataset.align||''; p.style.fontSize=(p.dataset.size&&FLOW_SIZES[p.dataset.size])?FLOW_SIZES[p.dataset.size]:''; p.style.fontWeight=(p.dataset.bold||p.dataset.size==='xl')?'800':''; p.style.color=(p.dataset.color&&FLOW_COLORS[p.dataset.color])?FLOW_COLORS[p.dataset.color]:''; };
+  const restyle=(p)=>{ p.style.textAlign=p.dataset.align||''; p.style.fontSize=(p.dataset.size&&FLOW_SIZES[p.dataset.size])?FLOW_SIZES[p.dataset.size]:''; p.style.fontWeight=(p.dataset.bold||p.dataset.size==='xl')?'800':''; p.style.color=(p.dataset.color&&FLOW_COLORS[p.dataset.color])?FLOW_COLORS[p.dataset.color]:''; p.style.fontFamily=(p.dataset.font&&FLOW_FONTCSS[p.dataset.font])?FLOW_FONTCSS[p.dataset.font]:''; };
   const applyPara=(patch)=>{ const p=curPara(); if(!p) return; Object.keys(patch).forEach(function(k){ const v=patch[k]; if(v==null||v===''||v===false){ p.removeAttribute('data-'+k); } else { p.setAttribute('data-'+k, v===true?'1':v); } }); restyle(p); sync(); };
   const tbtn={padding:'5px 10px',borderRadius:7,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,fontWeight:800,color:'var(--text-md)',cursor:'pointer'};
   const noBlur={onMouseDown:(e)=>e.preventDefault()};
@@ -5196,6 +5199,10 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
     <div>
       <style>{'.pflow{outline:none} .pflow p,.pflow div{margin:0 0 12px} .pflow img{max-width:100%;height:auto;border-radius:10px;margin:6px 0;display:block} .pflow hr{border:0;border-top:2px solid var(--border);margin:18px 0} .pflow:empty:before{content:attr(data-ph);color:var(--text-sm)}'}</style>
       <div style={{display:'flex',gap:5,marginBottom:7,flexWrap:'wrap',alignItems:'center',padding:'7px 8px',border:'1px solid var(--border)',borderRadius:9,background:'var(--bg)'}}>
+        <select {...noBlur} onChange={e=>applyPara({font:e.target.value})} defaultValue="" title="폰트(문단)" style={{...tbtn,padding:'5px 8px',cursor:'pointer'}}>
+          {Object.keys(FLOW_FONTS).map(function(k){return <option key={k||'def'} value={k}>{FLOW_FONTS[k]}</option>;})}
+        </select>
+        <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
         {[['left','좌'],['center','가운데'],['right','우']].map(function(o){return <button key={o[0]} type="button" {...noBlur} onClick={()=>applyPara({align:o[0]==='left'?'':o[0]})} style={tbtn}>{o[1]}</button>;})}
         <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
         {[['small','작게'],['normal','보통'],['large','크게'],['xl','제목']].map(function(o){return <button key={o[0]} type="button" {...noBlur} onClick={()=>applyPara({size:o[0]==='normal'?'':o[0]})} style={tbtn}>{o[1]}</button>;})}

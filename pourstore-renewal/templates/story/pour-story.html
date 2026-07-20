@@ -5,6 +5,8 @@
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css">
+<!-- 본문 폰트 선택용 웹폰트(무료·상업가능) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Gaegu&family=Jua&family=Nanum+Gothic:wght@400;700;800&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@400;600;700&display=swap">
 <!-- 고도화 콘텐츠(컨텐츠 고도화) 표시용: 섹션 스타일 재사용 + 이미지/핀/외곽선 표시 CSS -->
 <script src="https://pour-construction-form.pages.dev/pourstore-renewal/advanced-template.js"></script>
 <script>
@@ -1771,6 +1773,8 @@ var PC_TTL = 300000;
       var CLR = { point:'#E8780F', red:'#DC2626', blue:'#2563EB', green:'#059669', gray:'#9AA0A6' };
       var col = CLR[b.color] || (/^#[0-9a-fA-F]{3,8}$/.test(b.color||'') ? b.color : '');  // 레거시 키 → hex, 그 외 유효한 hex만 허용(CSS 인젝션 방지)
       if (col) st.push('color:'+col);
+      var FONT = { nanumgothic:"'Nanum Gothic',sans-serif", nanummyeongjo:"'Nanum Myeongjo',serif", notoserif:"'Noto Serif KR',serif", jua:"'Jua',sans-serif", dohyeon:"'Do Hyeon',sans-serif", blackhan:"'Black Han Sans',sans-serif", nanumpen:"'Nanum Pen Script',cursive", gaegu:"'Gaegu',cursive" };
+      if (b.font && FONT[b.font]) st.push('font-family:'+FONT[b.font]);  // 화이트리스트만 허용
       var stAttr = st.length?' style="'+st.join(';')+'"':'';
       var wrapLink = function(h){ return b.link ? '<a class="pstory-blocklink" href="'+esc(b.link)+'"'+(/^https?:/.test(b.link)?' target="_blank" rel="noopener"':'')+'>'+h+'</a>' : h; };
       // 목록

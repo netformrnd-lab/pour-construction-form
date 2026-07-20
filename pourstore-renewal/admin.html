@@ -5171,8 +5171,8 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
   const addFav=(hex)=>{ if(!hex||hex[0]!=='#')return; const h=hex.toLowerCase(); setFavColors(prev=>{ const nx=[h,...prev.filter(c=>c!==h)].slice(0,10); try{localStorage.setItem('pourPostFavColors',JSON.stringify(nx));}catch(e){} return nx; }); };
   const escH=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const colVal=(c)=> FLOW_COLORS[c] || (/^#[0-9a-fA-F]{3,8}$/.test(c||'') ? c : '');
-  const pStyle=(b)=>{ let s=''; if(b.align&&b.align!=='left')s+='text-align:'+b.align+';'; if(b.size&&b.size!=='normal')s+='font-size:'+(FLOW_SIZES[b.size]||FLOW_SIZES.normal)+';'; if(b.bold||b.size==='xl')s+='font-weight:800;'; if(b.color&&colVal(b.color))s+='color:'+colVal(b.color)+';'; if(b.font&&FLOW_FONTCSS[b.font])s+='font-family:'+FLOW_FONTCSS[b.font]+';'; return s; };
-  const pData=(b)=>{ let d=''; if(b.align&&b.align!=='left')d+=' data-align="'+b.align+'"'; if(b.size&&b.size!=='normal')d+=' data-size="'+b.size+'"'; if(b.bold)d+=' data-bold="1"'; if(b.color)d+=' data-color="'+b.color+'"'; if(b.font)d+=' data-font="'+b.font+'"'; return d; };
+  const pStyle=(b)=>{ let s=''; if(b.align&&b.align!=='left')s+='text-align:'+b.align+';'; if(b.fontSize&&+b.fontSize>=8&&+b.fontSize<=120)s+='font-size:'+(+b.fontSize)+'px;'; else if(b.size&&b.size!=='normal')s+='font-size:'+(FLOW_SIZES[b.size]||FLOW_SIZES.normal)+';'; if(b.bold||b.size==='xl')s+='font-weight:800;'; if(b.color&&colVal(b.color))s+='color:'+colVal(b.color)+';'; if(b.font&&FLOW_FONTCSS[b.font])s+='font-family:'+FLOW_FONTCSS[b.font]+';'; return s; };
+  const pData=(b)=>{ let d=''; if(b.align&&b.align!=='left')d+=' data-align="'+b.align+'"'; if(b.fontSize)d+=' data-fontsize="'+(+b.fontSize)+'"'; if(b.size&&b.size!=='normal')d+=' data-size="'+b.size+'"'; if(b.bold)d+=' data-bold="1"'; if(b.color)d+=' data-color="'+b.color+'"'; if(b.font)d+=' data-font="'+b.font+'"'; return d; };
   const toHtml=(bs)=> (bs||[]).map(function(b){ if(b.type==='image') return b.url?('<p><img src="'+escH(b.url)+'" alt=""></p>'):''; if(b.type==='divider') return '<hr>'; const st=pStyle(b); return '<p'+pData(b)+(st?(' style="'+st+'"'):'')+'>'+((escH(b.text||'').replace(/\n/g,'<br>'))||'<br>')+'</p>'; }).join('')||'<p><br></p>';
   const grabText=(node)=>{ let t=''; node.childNodes.forEach(function(c){ if(c.nodeType===3)t+=c.nodeValue; else if(c.nodeType===1){ if(c.tagName==='BR')t+='\n'; else t+=grabText(c); } }); return t; };
   const serialize=(root)=>{ const out=[];
@@ -5185,7 +5185,7 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
       const im=n.querySelector&&n.querySelector('img'); if(im){ out.push({type:'image',url:im.getAttribute('src')||'',hotspots:[]}); return; }
       let txt=grabText(n).replace(/ /g,' ').replace(/\n+$/,'').trim(); if(!txt) return;
       const blk={type:'text',text:txt};
-      if(n.dataset){ if(n.dataset.align)blk.align=n.dataset.align; if(n.dataset.size)blk.size=n.dataset.size; if(n.dataset.bold)blk.bold=true; if(n.dataset.color)blk.color=n.dataset.color; if(n.dataset.font)blk.font=n.dataset.font; }
+      if(n.dataset){ if(n.dataset.align)blk.align=n.dataset.align; if(n.dataset.fontsize)blk.fontSize=parseInt(n.dataset.fontsize,10); if(n.dataset.size)blk.size=n.dataset.size; if(n.dataset.bold)blk.bold=true; if(n.dataset.color)blk.color=n.dataset.color; if(n.dataset.font)blk.font=n.dataset.font; }
       out.push(blk);
     });
     return out; };
@@ -5196,7 +5196,7 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
   const onPaste=(e)=>{ const items=(e.clipboardData&&e.clipboardData.items)||[]; for(let k=0;k<items.length;k++){ if(((items[k].type)||'').indexOf('image')===0){ const f=items[k].getAsFile(); if(f){ e.preventDefault(); doUpload(f); return; } } } };
   const onDrop=(e)=>{ e.preventDefault(); setDragOver(false); const files=e.dataTransfer&&e.dataTransfer.files; if(files&&files[0]&&((files[0].type)||'').indexOf('image')===0) doUpload(files[0]); };
   const curPara=()=>{ const sel=window.getSelection&&window.getSelection(); if(!sel||!sel.rangeCount||!ref.current) return null; let n=sel.anchorNode; if(!n||!ref.current.contains(n)) return null; while(n&&n.parentNode!==ref.current) n=n.parentNode; if(!n||n.nodeType!==1) return null; const p=(n.tagName==='P'||n.tagName==='DIV')?n:null; if(p) lastPara.current=p; return p; };
-  const restyle=(p)=>{ p.style.textAlign=p.dataset.align||''; p.style.fontSize=(p.dataset.size&&FLOW_SIZES[p.dataset.size])?FLOW_SIZES[p.dataset.size]:''; p.style.fontWeight=(p.dataset.bold||p.dataset.size==='xl')?'800':''; p.style.color=colVal(p.dataset.color); p.style.fontFamily=(p.dataset.font&&FLOW_FONTCSS[p.dataset.font])?FLOW_FONTCSS[p.dataset.font]:''; };
+  const restyle=(p)=>{ p.style.textAlign=p.dataset.align||''; p.style.fontSize=p.dataset.fontsize?(parseInt(p.dataset.fontsize,10)+'px'):((p.dataset.size&&FLOW_SIZES[p.dataset.size])?FLOW_SIZES[p.dataset.size]:''); p.style.fontWeight=(p.dataset.bold||p.dataset.size==='xl')?'800':''; p.style.color=colVal(p.dataset.color); p.style.fontFamily=(p.dataset.font&&FLOW_FONTCSS[p.dataset.font])?FLOW_FONTCSS[p.dataset.font]:''; };
   const eyedrop=async()=>{ if(typeof window.EyeDropper!=='function'){ alert('스포이트는 크롬·엣지에서만 지원됩니다.'); return; } const tp=curPara()||lastPara.current; try{ const r=await new window.EyeDropper().open(); if(r&&r.sRGBHex){ setFc(r.sRGBHex); applyPara({color:r.sRGBHex}, tp); addFav(r.sRGBHex); } }catch(e){} };
   const applyPara=(patch,tp)=>{ const p=tp||curPara()||lastPara.current; if(!p||!ref.current||!ref.current.contains(p)) return; Object.keys(patch).forEach(function(k){ const v=patch[k]; if(v==null||v===''||v===false){ p.removeAttribute('data-'+k); } else { p.setAttribute('data-'+k, v===true?'1':v); } }); restyle(p); sync(); };
   const tbtn={padding:'5px 10px',borderRadius:7,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,fontWeight:800,color:'var(--text-md)',cursor:'pointer'};
@@ -5204,6 +5204,7 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
   return (
     <div>
       <style>{'.pflow{outline:none} .pflow p,.pflow div{margin:0 0 12px} .pflow img{width:100%;height:auto;border-radius:10px;margin:8px 0;display:block} .pflow p[data-align="center"] img{margin-left:auto;margin-right:auto} .pflow p[data-align="right"] img{margin-left:auto;margin-right:0} .pflow hr{border:0;border-top:2px solid var(--border);margin:18px 0} .pflow:empty:before{content:attr(data-ph);color:var(--text-sm)}'}</style>
+      <div style={{position:'sticky',top:-2,zIndex:8,background:'#fff',paddingTop:6,paddingBottom:2,borderBottom:'1px solid var(--border-s)',boxShadow:'0 4px 8px -6px rgba(0,0,0,.25)'}}>
       <div style={{display:'flex',gap:5,marginBottom:7,flexWrap:'wrap',alignItems:'center',padding:'7px 8px',border:'1px solid var(--border)',borderRadius:9,background:'var(--bg)'}}>
         <select {...noBlur} onChange={e=>applyPara({font:e.target.value})} defaultValue="" title="폰트(문단)" style={{...tbtn,padding:'5px 8px',cursor:'pointer'}}>
           {Object.keys(FLOW_FONTS).map(function(k){return <option key={k||'def'} value={k}>{FLOW_FONTS[k]}</option>;})}
@@ -5211,7 +5212,10 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
         <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
         {[['left','좌'],['center','가운데'],['right','우']].map(function(o){return <button key={o[0]} type="button" {...noBlur} onClick={()=>applyPara({align:o[0]==='left'?'':o[0]})} style={tbtn}>{o[1]}</button>;})}
         <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
-        {[['small','작게'],['normal','보통'],['large','크게'],['xl','제목']].map(function(o){return <button key={o[0]} type="button" {...noBlur} onClick={()=>applyPara({size:o[0]==='normal'?'':o[0]})} style={tbtn}>{o[1]}</button>;})}
+        <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:800}}>크기</span>
+        <button type="button" {...noBlur} onClick={()=>{ const p=curPara()||lastPara.current; if(!p)return; const cur=parseInt(p.dataset.fontsize||'15',10); applyPara({fontsize:Math.max(8,cur-1)},p); }} style={{...tbtn,padding:'5px 9px'}}>−</button>
+        <input type="number" min="8" max="120" placeholder="px" onMouseDown={()=>curPara()} onChange={e=>{ const v=parseInt(e.target.value,10); applyPara((v>=8&&v<=120)?{fontsize:v}:{fontsize:''}); }} style={{width:50,textAlign:'center',padding:'5px 6px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12,fontWeight:800,color:'var(--text)',outline:'none'}}/>
+        <button type="button" {...noBlur} onClick={()=>{ const p=curPara()||lastPara.current; if(!p)return; const cur=parseInt(p.dataset.fontsize||'15',10); applyPara({fontsize:Math.min(120,cur+1)},p); }} style={{...tbtn,padding:'5px 9px'}}>＋</button>
         <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
         <button type="button" {...noBlur} onClick={()=>{ const p=curPara(); if(p) applyPara({bold:p.dataset.bold?false:true}); }} style={{...tbtn,fontWeight:900,padding:'5px 11px'}}>B</button>
         <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
@@ -5225,6 +5229,7 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
         <label style={{...tbtn,color:'var(--or-d)',borderColor:'var(--or)',background:'var(--or-pale)',padding:'6px 12px'}}>{uploadingKey==='flow'?'업로드…':'📷 사진 넣기'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)doUpload(f); e.target.value='';}}/></label>
         <button type="button" {...noBlur} onClick={()=>insertAtCaret('<hr><p><br></p>')} style={{...tbtn,padding:'6px 12px'}}>— 구분선</button>
         <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:700}}>서식은 <b>문단 클릭 후</b> 위 바에서 · 사진은 <b>Ctrl+V·드래그</b></span>
+      </div>
       </div>
       <div ref={ref} className="pflow" contentEditable suppressContentEditableWarning data-ph="여기에 글을 쓰고, 사진은 붙여넣거나 드래그하세요…"
         onInput={sync} onPaste={onPaste} onKeyUp={()=>curPara()} onMouseUp={()=>curPara()}

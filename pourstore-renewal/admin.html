@@ -5016,10 +5016,12 @@ function PostingsPage({showToast}){
         if(m==='info') return {x:Number(h.x)||0,y:Number(h.y)||0,mode:'info',title:(h.title||'').trim(),text:(h.text||'').trim(),image:(h.image||'').trim()};
         return {x:Number(h.x)||0,y:Number(h.y)||0,mode:'product',name:(h.name||'').trim(),price:(h.price||'').trim(),thumb:(h.thumb||'').trim(),link:(h.link||'').trim()};
       }).filter(h=> h.mode==='info' ? (h.title||h.text||h.image) : (h.name||h.link));
-      const blocks=(Array.isArray(f.blocks)?f.blocks:[]).map(b=> b.type==='image'
-        ? {type:'image', url:(b.url||'').trim(), hotspots:cleanHot(b.hotspots), highlights:cleanHl(b.highlights)}
-        : {type:'text', text:(b.text||'').trim(), align:b.align||'left', size:b.size||'normal', bold:!!b.bold, color:b.color||'', quote:!!b.quote}
-      ).filter(b=> b.type==='image' ? b.url : b.text);
+      const blocks=(Array.isArray(f.blocks)?f.blocks:[]).map(b=>{
+        if(b.type==='image') return {type:'image', url:(b.url||'').trim(), caption:(b.caption||'').trim(), hotspots:cleanHot(b.hotspots), highlights:cleanHl(b.highlights)};
+        if(b.type==='divider') return {type:'divider'};
+        if(b.type==='button') return {type:'button', text:(b.text||'').trim(), link:(b.link||'').trim()};
+        return {type:'text', text:(b.text||'').trim(), align:b.align||'left', size:b.size||'normal', bold:!!b.bold, color:b.color||'', quote:!!b.quote, list:b.list||'', callout:b.callout||'', highlight:!!b.highlight, link:(b.link||'').trim()};
+      }).filter(b=> b.type==='image'?b.url : b.type==='divider'?true : b.type==='button'?(b.text||b.link) : b.text);
       const bodyStr=blocksToBody(blocks);
       const isVid=(f.type==='video'||f.type==='short');
       if(isVid && !(f.link||'').trim()){ alert('영상·숏츠는 유튜브 링크가 필요합니다.\n\n[링크(URL)] 칸에 유튜브 주소(https://youtu.be/... )를 넣어주세요.'); return; }
@@ -5159,8 +5161,11 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
   const mini={width:24,height:24,borderRadius:6,border:'1px solid var(--border)',background:'#fff',cursor:'pointer',fontSize:11,lineHeight:1};
   const addBtn={flex:1,padding:'10px',borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'};
   const mut=(fn)=>onChange(fn(blocks.map(b=>({...b,hotspots:(b.hotspots||[]).map(h=>({...h})),highlights:(b.highlights||[]).map(h=>({...h,pts:(h.pts||[]).map(p=>({...p})),card:h.card?{...h.card}:null}))}))));
+  const pill=(on)=>({padding:'4px 9px',borderRadius:6,fontSize:11,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or-pale)':'#fff',color:on?'var(--or-d)':'var(--text-md)'});
   const addText=()=>mut(p=>[...p,{type:'text',text:''}]);
   const addImage=()=>mut(p=>[...p,{type:'image',url:'',hotspots:[]}]);
+  const addDivider=()=>mut(p=>[...p,{type:'divider'}]);
+  const addButton=()=>mut(p=>[...p,{type:'button',text:'',link:''}]);
   const upd=(i,patch)=>mut(p=>{p[i]={...p[i],...patch};return p;});
   const del=(i)=>mut(p=>p.filter((_,x)=>x!==i));
   const move=(i,d)=>mut(p=>{const j=i+d;if(j<0||j>=p.length)return p;[p[i],p[j]]=[p[j],p[i]];return p;});
@@ -5187,7 +5192,7 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
       {blocks.map((b,i)=>(
         <div key={i} style={{border:'1px solid var(--border)',borderRadius:10,padding:10,marginBottom:8,background:'#fff'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-            <span style={{fontSize:11,fontWeight:800,color:'var(--or-d)'}}>{b.type==='image'?'사진':'글'} {i+1}</span>
+            <span style={{fontSize:11,fontWeight:800,color:'var(--or-d)'}}>{({image:'사진',divider:'구분선',button:'버튼'}[b.type]||'글')} {i+1}</span>
             <div style={{display:'flex',gap:4}}>
               <button type="button" onClick={()=>move(i,-1)} disabled={i===0} style={{...mini,opacity:i===0?.35:1}}>▲</button>
               <button type="button" onClick={()=>move(i,1)} disabled={i===blocks.length-1} style={{...mini,opacity:i===blocks.length-1?.35:1}}>▼</button>
@@ -5206,13 +5211,31 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
                   <span style={{width:1,height:15,background:'var(--border)',margin:'0 3px'}}/>
                   {[['','#374151','기본'],['point','#E8780F','포인트'],['red','#DC2626','빨강'],['blue','#2563EB','파랑'],['green','#059669','초록'],['gray','#9AA0A6','회색']].map(function(c){const on=(b.color||'')===c[0];return <button key={c[0]||'def'} type="button" title={c[2]} onClick={()=>upd(i,{color:c[0]})} style={{width:20,height:20,borderRadius:'50%',cursor:'pointer',padding:0,background:c[1],border:on?'2px solid var(--text)':'1.5px solid var(--border)',boxShadow:on?'0 0 0 2px #fff inset':'none'}}/>;})}
                 </div>
-                <textarea value={b.text||''} onChange={e=>upd(i,{text:e.target.value})} placeholder="문단 내용을 입력하세요" style={{...fld,minHeight:70,resize:'vertical',fontFamily:'inherit',lineHeight:1.6,textAlign:(b.align||'left'),fontSize:({small:12,large:16,xl:19}[b.size]||13),fontWeight:(b.bold||b.size==='xl')?800:400,fontStyle:b.quote?'italic':'normal',color:({point:'#E8780F',red:'#DC2626',blue:'#2563EB',green:'#059669',gray:'#9AA0A6'}[b.color]||'var(--text)'),background:b.quote?'#FFFBF5':'#fff',borderLeft:b.quote?'3px solid var(--or)':undefined}}/>
+                <div style={{display:'flex',gap:4,marginBottom:6,flexWrap:'wrap',alignItems:'center'}}>
+                  {[['bullet','• 목록'],['ordered','1. 목록']].map(function(o){const v=o[0];const on=(b.list||'')===v;return <button key={v} type="button" onClick={()=>upd(i,{list:on?'':v})} style={pill(on)}>{o[1]}</button>;})}
+                  <span style={{width:1,height:15,background:'var(--border)',margin:'0 3px'}}/>
+                  {[['tip','💡 팁'],['warn','⚠️ 주의'],['info','ℹ️ 정보']].map(function(o){const v=o[0];const on=(b.callout||'')===v;return <button key={v} type="button" onClick={()=>upd(i,{callout:on?'':v})} style={pill(on)}>{o[1]}</button>;})}
+                  <span style={{width:1,height:15,background:'var(--border)',margin:'0 3px'}}/>
+                  <button type="button" title="형광펜" onClick={()=>upd(i,{highlight:!b.highlight})} style={pill(!!b.highlight)}>✏ 형광펜</button>
+                  <button type="button" title="링크" onClick={()=>upd(i,{_linkOpen:!b._linkOpen})} style={pill(!!(b.link||b._linkOpen))}>🔗 링크</button>
+                </div>
+                {(b._linkOpen||b.link) && <input value={b.link||''} onChange={e=>upd(i,{link:e.target.value})} placeholder="연결할 URL — 이 문단 전체가 클릭 링크가 됩니다 (예: /product/list.html)" style={{...fld,marginBottom:6}}/>}
+                <textarea value={b.text||''} onChange={e=>upd(i,{text:e.target.value})} placeholder={b.list?'목록 항목을 한 줄에 하나씩 입력':'문단 내용을 입력하세요'} style={{...fld,minHeight:70,resize:'vertical',fontFamily:'inherit',lineHeight:1.6,textAlign:(b.align||'left'),fontSize:({small:12,large:16,xl:19}[b.size]||13),fontWeight:(b.bold||b.size==='xl')?800:400,fontStyle:b.quote?'italic':'normal',color:({point:'#E8780F',red:'#DC2626',blue:'#2563EB',green:'#059669',gray:'#9AA0A6'}[b.color]||'var(--text)'),background:b.highlight?'#FEF9C3':(b.quote?'#FFFBF5':'#fff'),borderLeft:b.quote?'3px solid var(--or)':undefined}}/>
+              </div>
+            : b.type==='divider'
+            ? <div style={{padding:'8px 0'}}><div style={{height:2,background:'var(--border)',borderRadius:2}}/><div style={{textAlign:'center',fontSize:10.5,color:'var(--text-sm)',fontWeight:700,marginTop:5}}>— 구분선 —</div></div>
+            : b.type==='button'
+            ? <div>
+                <input value={b.text||''} onChange={e=>upd(i,{text:e.target.value})} placeholder="버튼 문구 (예: 제품 보러가기)" style={{...fld,marginBottom:5}}/>
+                <input value={b.link||''} onChange={e=>upd(i,{link:e.target.value})} placeholder="버튼 링크 URL (예: /product/list.html?cate_no=71)" style={fld}/>
+                <div style={{marginTop:9,textAlign:'center'}}><span style={{display:'inline-flex',alignItems:'center',gap:6,padding:'11px 24px',borderRadius:10,background:'var(--or)',color:'#fff',fontSize:13.5,fontWeight:800}}>{b.text||'버튼 문구'} →</span></div>
               </div>
             : <div tabIndex={0} onPaste={e=>onPasteImg(i,e)} onDragOver={e=>{e.preventDefault(); if(dragOver!=='b'+i)setDragOver('b'+i);}} onDragLeave={()=>setDragOver(null)} onDrop={e=>onDropImg(i,e)} style={{outline:'none',borderRadius:9,padding:dragOver==='b'+i?6:0,boxShadow:dragOver==='b'+i?'0 0 0 2px var(--or)':'none',transition:'box-shadow .12s'}}>
                 <div style={{display:'flex',gap:6}}>
                   <input value={b.url||''} onChange={e=>upd(i,{url:e.target.value})} placeholder="사진 URL / 드래그·Ctrl+V" style={{...fld,flex:1}}/>
                   <label style={{padding:'0 10px',borderRadius:8,border:'1px solid var(--border)',background:uploadingKey==='b'+i?'var(--or-pale)':'var(--bg)',fontSize:11,fontWeight:800,color:'var(--or-d)',cursor:'pointer',display:'flex',alignItems:'center'}}>{uploadingKey==='b'+i?'…':'업로드'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)uploadImage('b'+i,f,(url)=>upd(i,{url})); e.target.value='';}}/></label>
                 </div>
+                <input value={b.caption||''} onChange={e=>upd(i,{caption:e.target.value})} placeholder="사진 설명(캡션, 선택)" style={{...fld,marginTop:6}}/>
                 {!b.url && <div style={{marginTop:8,border:'1.5px dashed var(--or)',borderRadius:9,padding:'22px 12px',textAlign:'center',color:'var(--or-d)',fontSize:12,fontWeight:700,background:'var(--or-pale)'}}>{uploadingKey==='b'+i?'업로드 중…':'여기로 이미지 드래그 · 클릭 후 Ctrl+V 붙여넣기 · 또는 [업로드]'}</div>}
                 {b.url && <div style={{position:'relative',marginTop:8,borderRadius:8,overflow:'hidden',border:'1px solid var(--border)',cursor:'crosshair'}} onClick={e=>{ if(poly.i===i) polyAdd(i,e); else onImgClick(i,e); }}>
                   <img src={b.url} alt="" style={{width:'100%',display:'block'}} onError={e=>{e.target.style.opacity=.3;}}/>
@@ -5297,9 +5320,11 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
               </div>}
         </div>
       ))}
-      <div style={{display:'flex',gap:8,marginTop:4}}>
+      <div style={{display:'flex',gap:8,marginTop:4,flexWrap:'wrap'}}>
         <button type="button" onClick={addText} style={addBtn}>+ 글 추가</button>
         <button type="button" onClick={addImage} style={addBtn}>+ 사진 추가</button>
+        <button type="button" onClick={addDivider} style={addBtn}>+ 구분선</button>
+        <button type="button" onClick={addButton} style={addBtn}>+ 버튼</button>
       </div>
     </div>
   );

@@ -1429,6 +1429,23 @@ var PM_POSTS = [];
 .pstory-art-body { margin-top:24px; }
 .pstory-art-body p { font-size:16px; color:#2B3038; line-height:1.85; margin:0 0 20px; letter-spacing:-0.01em; word-break:keep-all; }
 .pstory-art-body blockquote.pstory-quote { margin:8px 0 24px; padding:16px 22px; border-left:4px solid #E8780F; background:#FFF7ED; color:#4B5563; font-size:16px; line-height:1.8; font-style:italic; border-radius:0 10px 10px 0; word-break:keep-all; }
+.pstory-art-body hr.pstory-hr { border:0; border-top:1px solid #E5E7EB; margin:30px 0; }
+.pstory-art-body ul.pstory-list, .pstory-art-body ol.pstory-list { margin:0 0 20px; padding-left:24px; color:#2B3038; font-size:16px; line-height:1.85; word-break:keep-all; }
+.pstory-art-body ul.pstory-list { list-style:disc; } .pstory-art-body ol.pstory-list { list-style:decimal; }
+.pstory-art-body .pstory-list li { margin:0 0 8px; } .pstory-art-body .pstory-list li::marker { color:#E8780F; font-weight:800; }
+.pstory-art-body .pstory-hl-mark { background:#FEF08A; padding:1px 3px; border-radius:3px; -webkit-box-decoration-break:clone; box-decoration-break:clone; }
+.pstory-art-body .pstory-callout { display:flex; gap:12px; margin:8px 0 24px; padding:16px 18px; border-radius:12px; font-size:15.5px; line-height:1.75; color:#2B3038; word-break:keep-all; }
+.pstory-art-body .pstory-callout .pstory-callout-ic { font-size:20px; line-height:1.35; flex-shrink:0; }
+.pstory-art-body .pstory-callout > div { margin:0; flex:1; }
+.pstory-callout-tip { background:#ECFDF5; border:1px solid #A7F3D0; }
+.pstory-callout-warn { background:#FEF2F2; border:1px solid #FECACA; }
+.pstory-callout-info { background:#EFF6FF; border:1px solid #BFDBFE; }
+.pstory-art-body .pstory-btnwrap { text-align:center; margin:10px 0 26px; }
+.pstory-art-body a.pstory-cta-btn { display:inline-flex; align-items:center; gap:8px; padding:14px 30px; background:#E8780F; color:#fff; font-size:15px; font-weight:800; border-radius:11px; text-decoration:none; box-shadow:0 6px 18px rgba(232,120,15,.32); }
+.pstory-art-body a.pstory-cta-btn:hover { background:#D26A0A; }
+.pstory-art-body a.pstory-blocklink { text-decoration:none; color:inherit; display:block; }
+.pstory-art-body a.pstory-blocklink:hover { opacity:.82; }
+.pstory-art-body .pstory-imgcap { margin:-14px 0 26px; font-size:13px; color:#9AA0A6; text-align:center; font-weight:500; }
 .pstory-art-body img { width:100%; border-radius:8px; margin:8px 0 24px; }
 .pstory-art-cta { margin-top:20px; display:flex; gap:10px; flex-wrap:wrap; }
 .pstory-art-cta a { display:inline-flex; align-items:center; gap:6px; font-size:14px; font-weight:800; padding:12px 20px; border-radius:0; }
@@ -1741,10 +1758,11 @@ var PC_TTL = 300000;
           }
           return svg + pop;
         }).join('');
-        return '<div class="pstory-shopimg"><img src="'+esc(b.url)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>'+hots+hlHtml+'</div>';
+        return '<div class="pstory-shopimg"><img src="'+esc(b.url)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>'+hots+hlHtml+'</div>'+(b.caption?'<div class="pstory-imgcap">'+esc(b.caption)+'</div>':'');
       }
-      var txt = esc(b.text||'').replace(/\n/g,'<br>');
-      if (!txt) return '';
+      if (b.type === 'divider') return '<hr class="pstory-hr"/>';
+      if (b.type === 'button'){ var bt=esc(b.text||'제품 보러가기'), bl=esc(b.link||'#'); return '<div class="pstory-btnwrap"><a class="pstory-cta-btn" href="'+bl+'"'+(/^https?:/.test(b.link||'')?' target="_blank" rel="noopener"':'')+'>'+bt+' <span>→</span></a></div>'; }
+      // 공통 스타일(정렬·크기·굵기·색)
       var st = [];
       if (b.align === 'center' || b.align === 'right') st.push('text-align:'+b.align);
       var SZ = { small:'13px', large:'18px', xl:'22px' };
@@ -1753,8 +1771,26 @@ var PC_TTL = 300000;
       else if (b.bold) st.push('font-weight:700');
       var CLR = { point:'#E8780F', red:'#DC2626', blue:'#2563EB', green:'#059669', gray:'#9AA0A6' };
       if (CLR[b.color]) st.push('color:'+CLR[b.color]);
-      if (b.quote) return '<blockquote class="pstory-quote"'+(st.length?' style="'+st.join(';')+'"':'')+'>'+txt+'</blockquote>';
-      return '<p'+(st.length?' style="'+st.join(';')+'"':'')+'>'+txt+'</p>';
+      var stAttr = st.length?' style="'+st.join(';')+'"':'';
+      var wrapLink = function(h){ return b.link ? '<a class="pstory-blocklink" href="'+esc(b.link)+'"'+(/^https?:/.test(b.link)?' target="_blank" rel="noopener"':'')+'>'+h+'</a>' : h; };
+      // 목록
+      if (b.list === 'bullet' || b.list === 'ordered'){
+        var items = String(b.text||'').split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+        if (!items.length) return '';
+        var li = items.map(function(l){ return '<li>'+esc(l)+'</li>'; }).join('');
+        var tag = b.list==='ordered'?'ol':'ul';
+        return wrapLink('<'+tag+' class="pstory-list"'+stAttr+'>'+li+'</'+tag+'>');
+      }
+      var txt = esc(b.text||'').replace(/\n/g,'<br>');
+      if (!txt) return '';
+      var inner = b.highlight ? '<mark class="pstory-hl-mark">'+txt+'</mark>' : txt;
+      // 콜아웃
+      if (b.callout){
+        var ic = { tip:'💡', warn:'⚠️', info:'ℹ️' }[b.callout] || '💡';
+        return wrapLink('<div class="pstory-callout pstory-callout-'+b.callout+'"><span class="pstory-callout-ic">'+ic+'</span><div'+stAttr+'>'+inner+'</div></div>');
+      }
+      if (b.quote) return wrapLink('<blockquote class="pstory-quote"'+stAttr+'>'+inner+'</blockquote>');
+      return wrapLink('<p'+stAttr+'>'+inner+'</p>');
     }).join('') || '<p style="color:#9AA0A6">본문이 준비 중입니다.</p>';
   }
   function imgOrPh(p){ var t=thumbOf(p); return t ? '<img src="'+esc(t)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' : '<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5h16v14H4z"/><path d="M4 15l4-4 3 3 4-5 5 6"/></svg></div>'; }

@@ -3661,7 +3661,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
   const ST=STATUS_MAP;
   const pTabs=(
     <div style={{display:"flex",gap:6,marginBottom:12}}>
-      {[["list","▦ 프로젝트"],["canvas","🧩 로드맵·프로세스"]].map(([k,l])=>(
+      {[["list","▦ 프로젝트"],["canvas","🗺 업무 플로우맵"]].map(([k,l])=>(
         <button key={k} onClick={()=>setPview(k)} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",cursor:"pointer",backgroundColor:pview===k?"#0F1F5C":"#F2F4F6",color:pview===k?"#fff":"#374151",fontWeight:800,fontSize:12.5,fontFamily:"inherit"}}>{l}</button>
       ))}
     </div>
@@ -3670,68 +3670,68 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
     <div style={{padding:"14px 16px 24px"}}>
       {pTabs}
       <div style={{display:"flex",background:"#F2F4F6",borderRadius:12,padding:3,marginBottom:14}}>
-        {[["roadmap","🗺 프로젝트 로드맵"],["template","🚀 프로세스 템플릿"]].map(([k,l])=>(
+        {[["roadmap","🗺 플로우맵 모음"],["template","📋 표준 템플릿"]].map(([k,l])=>(
           <button key={k} onClick={()=>setCanvasSub(k)} style={{flex:1,padding:"8px 0",borderRadius:9,border:"none",cursor:"pointer",background:canvasSub===k?"#fff":"transparent",color:canvasSub===k?"#0F1F5C":"#6B7280",fontWeight:canvasSub===k?800:600,fontSize:12.5,fontFamily:"inherit",boxShadow:canvasSub===k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{l}</button>
         ))}
       </div>
-      {canvasSub==="template"&&<LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
-      {canvasSub==="roadmap"&&(<>
-      <p style={{margin:"0 2px 12px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>프로젝트별 로드맵·프로세스를 한 캔버스에서 · 카드를 열면 완전 편집형 캔버스</p>
-      {((D.manuals||[]).length>0||(D.launchTemplates||[]).length>0)&&(
-        <div style={{marginBottom:16,background:"#F9FAFB",border:"1px solid #E5E8EB",borderRadius:14,padding:"12px 13px"}}>
-          <p style={{margin:"0 0 9px",fontSize:12,fontWeight:900,color:"#EA580C"}}>🗺 로드맵 템플릿 <span style={{fontWeight:700,color:"#9CA3AF"}}>· 저장된 표준 (새 프로젝트로 재사용)</span></p>
-          <div style={{display:"flex",flexDirection:"column",gap:7}}>
-            {(D.manuals||[]).map(m=><ManualCard key={m.id} m={m} D={D} up={up} rm={rm} startFromManual={startFromManual}/>)}
-            {(D.launchTemplates||[]).map(t=>(
-              <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,background:"#fff",borderRadius:10,border:"1px solid #F2F4F6",padding:"9px 11px"}}>
-                <div style={{flex:1,minWidth:0}}>
-                  <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name}</p>
-                  <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}><span style={{color:"#6B7280",fontWeight:800}}>프로세스</span> · 마인드맵 · 단계 {(t.nodes||[]).length}</p>
-                </div>
-                <button onClick={()=>setCanvasSub("template")} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#F9FAFB",color:"#6B7280",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🚀 템플릿 보기</button>
-              </div>
-            ))}
-          </div>
-          <p style={{margin:"8px 2px 0",fontSize:10,color:"#9CA3AF",lineHeight:1.5}}>출시 프로세스는 SKU를 찍어내고 운영지표에 자동 집계돼 <b>🚀 프로세스</b> 탭에서 다룹니다.</p>
-        </div>
-      )}
-      {(()=>{
-        const hasTasks=(p)=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed);
-        const isFinal=(p)=>p.processConfirmed||projStatus(p)==="completed";   // 확정 or 완료 = 최종
-        const list=D.projects.filter(p=>hasTasks(p)&&isFinal(p));
-        const editing=D.projects.filter(p=>hasTasks(p)&&!isFinal(p)).length;   // 수정 중(미확정)
-        const pIds=new Set(D.tasks.filter(t=>t.parentId).map(t=>t.parentId));
-        return(<>
-        {editing>0&&<p style={{margin:"0 2px 10px",fontSize:11,color:"#9CA3AF",lineHeight:1.5,background:"#F9FAFB",border:"1px solid #F2F4F6",borderRadius:10,padding:"9px 11px"}}>✍️ 수정 중 <b style={{color:"#EA580C"}}>{editing}개</b>는 아직 안 보여요 — 프로젝트에서 <b>🗺 업무 플로우맵</b>을 열어 <b>✅ 확정</b>하면 여기 표시됩니다.</p>}
-        {list.length===0?<Empty t={editing>0?"확정된 플로우맵이 아직 없어요 · 업무 플로우맵에서 ✅ 확정하세요":"아직 로드맵이 없어요 · 프로젝트에서 🧩프로세스로 로드단계를 만들어보세요"}/>:(
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            {list.map(p=>{
-              const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);
-              const stages=ts.filter(t=>!t.parentId);
-              const leaves=ts.filter(t=>!pIds.has(t.id));
-              const done=leaves.filter(t=>t.status==="done").length;
-              const prog=leaves.length?Math.round(done/leaves.length*100):0;
-              const team=isTeamProj(D,p);
-              const who=D.users.find(u=>u.id===p.assigneeId);
-              return(
-                <button key={p.id} onClick={()=>setProcessProj(p)} style={{textAlign:"left",backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"13px 14px",cursor:"pointer",fontFamily:"inherit"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                    <span style={{fontSize:14}}>🧩</span>
-                    <span style={{flex:1,minWidth:0,fontSize:13.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
-                    {p.processConfirmed?<span style={{fontSize:9.5,fontWeight:800,color:"#EA580C",background:"#FFF3E9",borderRadius:6,padding:"2px 7px",flexShrink:0}}>✅ 확정</span>:<span style={{fontSize:9.5,fontWeight:800,color:"#6B7280",background:"#F2F4F6",borderRadius:6,padding:"2px 7px",flexShrink:0}}>완료</span>}
-                    <span style={{fontSize:9.5,fontWeight:800,color:team?"#EA580C":"#6B7280",background:team?"#FFF3E9":"#F2F4F6",borderRadius:6,padding:"2px 7px",flexShrink:0}}>{team?"팀":"개인"}</span>
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
-                    <div style={{flex:1,height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:prog+"%",height:"100%",background:"#F97316",borderRadius:6}}/></div>
-                    <span style={{fontSize:12,fontWeight:900,color:"#F97316",flexShrink:0}}>{prog}%</span>
-                  </div>
-                  <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>로드단계 {stages.length}개 · 업무 {done}/{leaves.length}{who?` · ${who.name}`:""}</p>
-                </button>
-              );
-            })}
+      {canvasSub==="template"&&(<>
+        {(D.manuals||[]).length>0&&(
+          <div style={{marginBottom:14,background:"#F9FAFB",border:"1px solid #E5E8EB",borderRadius:14,padding:"12px 13px"}}>
+            <p style={{margin:"0 0 9px",fontSize:12,fontWeight:900,color:"#EA580C"}}>🗺 로드맵 템플릿 <span style={{fontWeight:700,color:"#9CA3AF"}}>· 프로젝트 구조를 표준으로 저장 · 새 프로젝트로 재사용</span></p>
+            <div style={{display:"flex",flexDirection:"column",gap:7}}>
+              {(D.manuals||[]).map(m=><ManualCard key={m.id} m={m} D={D} up={up} rm={rm} startFromManual={startFromManual}/>)}
+            </div>
           </div>
         )}
-        </>);
+        <LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>
+      </>)}
+      {canvasSub==="roadmap"&&(<>
+      <p style={{margin:"0 2px 12px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>프로젝트별 업무 플로우맵 · <b style={{color:"#EA580C"}}>확정</b>본과 <b>수정 중</b>을 나눠서 봅니다 · 카드를 누르면 편집</p>
+      {(()=>{
+        const withTasks=D.projects.filter(p=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed));
+        if(!withTasks.length) return <Empty t="아직 플로우맵이 없어요 · 프로젝트 탭에서 🗺 업무 플로우맵을 만들어보세요"/>;
+        const pIds=new Set(D.tasks.filter(t=>t.parentId).map(t=>t.parentId));
+        const confirmed=withTasks.filter(p=>p.processConfirmed);
+        const editing=withTasks.filter(p=>!p.processConfirmed);
+        const card=(p)=>{
+          const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);
+          const stages=ts.filter(t=>!t.parentId);
+          const leaves=ts.filter(t=>!pIds.has(t.id));
+          const done=leaves.filter(t=>t.status==="done").length;
+          const prog=leaves.length?Math.round(done/leaves.length*100):0;
+          const team=isTeamProj(D,p);
+          const who=D.users.find(u=>u.id===p.assigneeId);
+          const cf=!!p.processConfirmed;
+          return(
+            <div key={p.id} style={{backgroundColor:"#fff",borderRadius:14,border:`1px solid ${cf?"#FCE0C6":"#F2F4F6"}`,padding:"13px 14px"}}>
+              <div onClick={()=>setProcessProj(p)} style={{cursor:"pointer"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                  <span style={{fontSize:14}}>🧩</span>
+                  <span style={{flex:1,minWidth:0,fontSize:13.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
+                  <span style={{fontSize:9.5,fontWeight:800,color:team?"#EA580C":"#6B7280",background:team?"#FFF3E9":"#F2F4F6",borderRadius:6,padding:"2px 7px",flexShrink:0}}>{team?"팀":"개인"}</span>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                  <div style={{flex:1,height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:prog+"%",height:"100%",background:"#F97316",borderRadius:6}}/></div>
+                  <span style={{fontSize:12,fontWeight:900,color:"#F97316",flexShrink:0}}>{prog}%</span>
+                </div>
+                <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>로드단계 {stages.length}개 · 업무 {done}/{leaves.length}{who?` · ${who.name}`:""}</p>
+              </div>
+              <button onClick={e=>{e.stopPropagation();up("projects",p.id,{processConfirmed:!cf});}} title={cf?"확정 해제 (수정 중으로)":"이 플로우맵을 확정"} style={{width:"100%",marginTop:9,padding:"7px 0",borderRadius:9,border:cf?"none":"1.5px solid #F97316",background:cf?"#F97316":"#fff",color:cf?"#fff":"#EA580C",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{cf?"✅ 확정됨 · 눌러서 수정 중으로":"○ 확정하기"}</button>
+            </div>
+          );
+        };
+        const section=(title,color,arr,emptyMsg)=>(
+          <div>
+            <p style={{margin:"0 2px 8px",fontSize:12.5,fontWeight:900,color}}>{title} <span style={{fontWeight:700,color:"#9CA3AF"}}>{arr.length}</span></p>
+            {arr.length?<div style={{display:"flex",flexDirection:"column",gap:10}}>{arr.map(card)}</div>:<p style={{margin:"0 2px",fontSize:11,color:"#C4C9D0"}}>{emptyMsg}</p>}
+          </div>
+        );
+        return(
+          <div style={{display:"flex",flexDirection:"column",gap:18}}>
+            {section("✅ 확정","#EA580C",confirmed,"확정된 플로우맵이 없어요 · 아래에서 ○ 확정하기를 누르세요")}
+            {section("✍️ 수정 중","#6B7280",editing,"수정 중인 플로우맵이 없어요")}
+          </div>
+        );
       })()}
       {roadmapProj&&<ProjectRoadmap D={D} proj={roadmapProj} up={up} add={add} rm={rm} onClose={()=>setRoadmapProj(null)} onOpenProcess={(p)=>{setRoadmapProj(null);setProcessProj(p);}}/>}
       {processProj&&<ProjectProcessEditor D={D} proj={processProj} cu={cu} add={add} up={up} rm={rm} onClose={()=>setProcessProj(null)}/>}
@@ -4417,7 +4417,7 @@ function downloadFlowImage(nodes,edges,name){
 }
 // 공유 보기 — 업무 플로우맵 전용(읽기). 프로젝트 골라 흐름 보기 + 이미지 저장.
 function ShareFlowPage({D}){
-  const projs=D.projects.filter(p=>(p.processConfirmed||projStatus(p)==="completed")&&D.tasks.some(t=>t.projectId===p.id&&!t.isFixed)).sort((a,b)=>String(a.group||"").localeCompare(String(b.group||""))||String(a.title||"").localeCompare(String(b.title||"")));
+  const projs=D.projects.filter(p=>p.processConfirmed&&D.tasks.some(t=>t.projectId===p.id&&!t.isFixed)).sort((a,b)=>String(a.group||"").localeCompare(String(b.group||""))||String(a.title||"").localeCompare(String(b.title||"")));
   const [sel,setSel]=useState(projs[0]?projs[0].id:null);
   const proj=projs.find(p=>p.id===sel)||projs[0]||null;
   const flow=proj?buildProjectFlow(D,proj):{nodes:[],edges:[],maxY:0};

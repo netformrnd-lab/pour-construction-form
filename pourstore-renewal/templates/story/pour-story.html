@@ -1438,7 +1438,7 @@ var PM_POSTS = [];
 .pstory-art-tt { margin-top:10px; font-size:26px; font-weight:800; color:#111111; letter-spacing:-0.04em; line-height:1.32; }
 .pstory-art-dt { margin-top:12px; font-size:13px; color:#AEB4BC; font-weight:500; padding-bottom:20px; border-bottom:1px solid #F0F1F3; }
 .pstory-art-body { margin-top:24px; }
-.pstory-art-body p { font-size:16px; color:#2B3038; line-height:1.85; margin:0 0 20px; letter-spacing:-0.01em; word-break:keep-all; }
+.pstory-art-body p { font-size:16px; color:#2B3038; line-height:1.6; margin:0 0 10px; letter-spacing:-0.01em; word-break:keep-all; }
 .pstory-art-body blockquote.pstory-quote { margin:8px 0 24px; padding:16px 22px; border-left:4px solid #E8780F; background:#FFF7ED; color:#4B5563; font-size:16px; line-height:1.8; font-style:italic; border-radius:0 10px 10px 0; word-break:keep-all; }
 .pstory-art-body hr.pstory-hr { border:0; border-top:1px solid #E5E7EB; margin:30px 0; }
 .pstory-art-body ul.pstory-list, .pstory-art-body ol.pstory-list { margin:0 0 20px; padding-left:24px; color:#2B3038; font-size:16px; line-height:1.85; word-break:keep-all; }
@@ -1793,6 +1793,8 @@ var PC_TTL = 300000;
       if (col) st.push('color:'+col);
       var FONT = { nanumgothic:"'Nanum Gothic',sans-serif", nanummyeongjo:"'Nanum Myeongjo',serif", notoserif:"'Noto Serif KR',serif", jua:"'Jua',sans-serif", dohyeon:"'Do Hyeon',sans-serif", blackhan:"'Black Han Sans',sans-serif", nanumpen:"'Nanum Pen Script',cursive", gaegu:"'Gaegu',cursive" };
       if (b.font && FONT[b.font]) st.push('font-family:'+FONT[b.font]);  // 화이트리스트만 허용
+      var SPC = { narrow:{lh:'1.4',mb:'3px'}, normal:{lh:'1.6',mb:'10px'}, wide:{lh:'1.95',mb:'22px'} };
+      if (b.space && SPC[b.space]){ st.push('line-height:'+SPC[b.space].lh); st.push('margin-bottom:'+SPC[b.space].mb); }
       var stAttr = st.length?' style="'+st.join(';')+'"':'';
       var wrapLink = function(h){ return b.link ? '<a class="pstory-blocklink" href="'+esc(b.link)+'"'+(/^https?:/.test(b.link)?' target="_blank" rel="noopener"':'')+'>'+h+'</a>' : h; };
       // 목록

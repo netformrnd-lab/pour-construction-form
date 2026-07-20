@@ -3204,26 +3204,26 @@ function ManualCard({m,D,up,rm,startFromManual}){
   const setCount=(val)=>{ up("manuals",m.id,{countKPIId:val}); (D.projects||[]).filter(p=>p.sourceManualId===m.id).forEach(p=>up("projects",p.id,{countKPIId:val})); };
   const restore=(v)=>{ if(!window.confirm(`v${v.v}로 되돌릴까요? 현재본(v${ver})은 이력으로 보관돼요.`))return; up("manuals",m.id,{stages:v.stages||[],version:ver+1,versions:[...vers,{v:ver,stages:m.stages||[],savedAt:m.updatedAt||m.createdAt||"",savedBy:m.updatedBy||m.createdBy||"",note:`v${v.v}로 되돌림`}]}); setShowV(false); };
   return(
-    <div style={{background:"#fff",borderRadius:10,border:"1px solid #F2E6D5",padding:"9px 11px"}}>
+    <div style={{background:"#fff",borderRadius:10,border:"1px solid #F2F4F6",padding:"9px 11px"}}>
       <div style={{display:"flex",alignItems:"center",gap:8}}>
         <div style={{flex:1,minWidth:0}}>
-          <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name} <span style={{fontSize:9.5,fontWeight:800,color:"#A16207",background:"#FEF3C7",borderRadius:5,padding:"1px 5px"}}>v{ver}</span></p>
+          <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name} <span style={{fontSize:9.5,fontWeight:800,color:"#6B7280",background:"#F2F4F6",borderRadius:5,padding:"1px 5px"}}>v{ver}</span></p>
           <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}>{m.projType==="team"?"팀":"개인"} · 로드단계 {sc} · 업무 {cnt}{vers.length?` · 이력 ${vers.length}`:""}</p>
         </div>
         <button onClick={()=>startFromManual(m)} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"none",background:"#F97316",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 새 프로젝트</button>
-        <button onClick={()=>{if(window.confirm(`'${m.name}' 로드맵 템플릿을 삭제할까요? (이미 만든 프로젝트는 영향 없음)\n휴지통에서 복구할 수 있어요.`))rm("manuals",m.id);}} style={{flexShrink:0,padding:"6px 8px",borderRadius:9,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
+        <button onClick={()=>{if(window.confirm(`'${m.name}' 로드맵 템플릿을 삭제할까요? (이미 만든 프로젝트는 영향 없음)\n휴지통에서 복구할 수 있어요.`))rm("manuals",m.id);}} style={{flexShrink:0,padding:"6px 8px",borderRadius:9,border:"1px solid #E5E8EB",background:"#F9FAFB",color:"#6B7280",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
       </div>
       {(mk3SKs.length>0||vers.length>0)&&(
-        <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8,paddingTop:8,borderTop:"1px dashed #F2E6D5"}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8,paddingTop:8,borderTop:"1px dashed #E5E8EB"}}>
           {mk3SKs.length>0&&(<>
             <span style={{fontSize:10.5,fontWeight:800,color:"#6B7280",flexShrink:0}}>📊 완료 시 집계</span>
             <select value={m.countKPIId||""} onChange={e=>setCount(e.target.value)} style={{flex:1,minWidth:0,padding:"6px 8px",borderRadius:8,border:"1px solid #E5E8EB",fontSize:11,fontWeight:700,color:"#374151",background:"#fff",fontFamily:"inherit",WebkitAppearance:"none"}}>
               <option value="">집계 안 함</option>
               {mk3SKs.map(s=><option key={s.id} value={s.id}>{s.title}</option>)}
             </select>
-            {m.countKPIId&&<span style={{fontSize:10,fontWeight:800,color:"#00A862",flexShrink:0}}>완료 {cdone}</span>}
+            {m.countKPIId&&<span style={{fontSize:10,fontWeight:800,color:"#6B7280",flexShrink:0}}>완료 {cdone}</span>}
           </>)}
-          {vers.length>0&&<button onClick={()=>setShowV(s=>!s)} style={{flexShrink:0,padding:"5px 8px",borderRadius:8,border:"1px solid #E5E8EB",background:showV?"#EEF2FF":"#fff",color:"#4B5563",fontSize:10.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📜 이력</button>}
+          {vers.length>0&&<button onClick={()=>setShowV(s=>!s)} style={{flexShrink:0,padding:"5px 8px",borderRadius:8,border:"1px solid #E5E8EB",background:showV?"#F2F4F6":"#fff",color:"#4B5563",fontSize:10.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📜 이력</button>}
         </div>
       )}
       {showV&&vers.length>0&&(
@@ -3675,21 +3675,21 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
       {canvasSub==="roadmap"&&(<>
       <p style={{margin:"0 2px 12px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>프로젝트별 로드맵·프로세스를 한 캔버스에서 · 카드를 열면 완전 편집형 캔버스</p>
       {((D.manuals||[]).length>0||(D.launchTemplates||[]).length>0)&&(
-        <div style={{marginBottom:16,background:"#FFFBF5",border:"1px solid #FBE5C8",borderRadius:14,padding:"12px 13px"}}>
-          <p style={{margin:"0 0 9px",fontSize:12,fontWeight:900,color:"#EA580C"}}>🗺 로드맵 템플릿 <span style={{fontWeight:700,color:"#C08A4A"}}>· 저장된 표준 (새 프로젝트로 재사용)</span></p>
+        <div style={{marginBottom:16,background:"#F9FAFB",border:"1px solid #E5E8EB",borderRadius:14,padding:"12px 13px"}}>
+          <p style={{margin:"0 0 9px",fontSize:12,fontWeight:900,color:"#EA580C"}}>🗺 로드맵 템플릿 <span style={{fontWeight:700,color:"#9CA3AF"}}>· 저장된 표준 (새 프로젝트로 재사용)</span></p>
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
             {(D.manuals||[]).map(m=><ManualCard key={m.id} m={m} D={D} up={up} rm={rm} startFromManual={startFromManual}/>)}
             {(D.launchTemplates||[]).map(t=>(
-              <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,background:"#fff",borderRadius:10,border:"1px solid #F2E6D5",padding:"9px 11px"}}>
+              <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,background:"#fff",borderRadius:10,border:"1px solid #F2F4F6",padding:"9px 11px"}}>
                 <div style={{flex:1,minWidth:0}}>
                   <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name}</p>
-                  <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}><span style={{color:"#7C3AED",fontWeight:800}}>프로세스</span> · 마인드맵 · 단계 {(t.nodes||[]).length}</p>
+                  <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}><span style={{color:"#6B7280",fontWeight:800}}>프로세스</span> · 마인드맵 · 단계 {(t.nodes||[]).length}</p>
                 </div>
-                <button onClick={()=>setCanvasSub("template")} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🚀 템플릿 보기</button>
+                <button onClick={()=>setCanvasSub("template")} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#F9FAFB",color:"#6B7280",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🚀 템플릿 보기</button>
               </div>
             ))}
           </div>
-          <p style={{margin:"8px 2px 0",fontSize:10,color:"#C08A4A",lineHeight:1.5}}>출시 프로세스는 SKU를 찍어내고 운영지표에 자동 집계돼 <b>🚀 프로세스</b> 탭에서 다룹니다.</p>
+          <p style={{margin:"8px 2px 0",fontSize:10,color:"#9CA3AF",lineHeight:1.5}}>출시 프로세스는 SKU를 찍어내고 운영지표에 자동 집계돼 <b>🚀 프로세스</b> 탭에서 다룹니다.</p>
         </div>
       )}
       {(()=>{
@@ -3711,11 +3711,11 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                     <span style={{fontSize:14}}>🧩</span>
                     <span style={{flex:1,minWidth:0,fontSize:13.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
-                    <span style={{fontSize:9.5,fontWeight:800,color:team?"#EA580C":"#3182F6",background:team?"#FFEDD5":"#EBF3FF",borderRadius:6,padding:"2px 7px",flexShrink:0}}>{team?"팀":"개인"}</span>
+                    <span style={{fontSize:9.5,fontWeight:800,color:team?"#EA580C":"#6B7280",background:team?"#FFF3E9":"#F2F4F6",borderRadius:6,padding:"2px 7px",flexShrink:0}}>{team?"팀":"개인"}</span>
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
-                    <div style={{flex:1,height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:prog+"%",height:"100%",background:prog>=100?"#00C073":"#F97316",borderRadius:6}}/></div>
-                    <span style={{fontSize:12,fontWeight:900,color:prog>=100?"#00C073":"#F97316",flexShrink:0}}>{prog}%</span>
+                    <div style={{flex:1,height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:prog+"%",height:"100%",background:"#F97316",borderRadius:6}}/></div>
+                    <span style={{fontSize:12,fontWeight:900,color:"#F97316",flexShrink:0}}>{prog}%</span>
                   </div>
                   <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>로드단계 {stages.length}개 · 업무 {done}/{leaves.length}{who?` · ${who.name}`:""}</p>
                 </button>

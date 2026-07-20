@@ -94,8 +94,12 @@ window.__pcache = window.__pcache || (function(){ var mem={}; return { wrap:func
 var PC_TTL = 300000;
 
 (async function(){
-  var section = document.currentScript ? document.currentScript.closest('.pst2') : document.querySelector('.pst2');
+  // module 스크립트는 document.currentScript가 항상 null → 인스턴스별로 "아직 초기화 안 된"
+  // .pst2 섹션을 순서대로 점유(중복 삽입돼도 각 섹션이 자기 것을 렌더 → 빈 섹션 방지)
+  var section = null, all = document.querySelectorAll('.pst2');
+  for (var si = 0; si < all.length; si++){ if (!all[si].hasAttribute('data-pst2-init')){ section = all[si]; break; } }
   if (!section) return;
+  section.setAttribute('data-pst2-init','1');
   var g = section.querySelector('[data-pst2-gal]');
   var gtrack = section.querySelector('[data-pst2-gal-track]');
   var lg = section.querySelector('[data-pst2-logos]');

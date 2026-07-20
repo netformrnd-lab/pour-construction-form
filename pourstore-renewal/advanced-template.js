@@ -206,6 +206,13 @@
 /* 각 섹션 도구바 안의 '＋섹션' 메뉴는 버튼 아래·오른쪽에 표시 */
 .adv-host .adv-sec-bar .adv-sec-addafter{color:#ff5a00;border-color:#ff8a3d;}
 .adv-host .adv-sec-bar .adv-sec-menu{left:auto;right:0;bottom:auto;top:calc(100% + 6px);transform:none;}
+/* 섹션 사이 [＋] 삽입점 — 누르면 어떤 섹션 추가할지 메뉴 */
+.adv-host .adv-secgap{position:relative;display:flex;justify-content:center;align-items:center;height:20px;margin:2px 0;}
+.adv-host .adv-secgap::before{content:'';position:absolute;left:0;right:0;top:50%;height:0;border-top:1px dashed #f0d9c6;opacity:0;transition:opacity .12s;}
+.adv-host .adv-secgap:hover::before{opacity:1;}
+.adv-host .adv-secgap-btn{position:relative;z-index:2;width:28px;height:28px;border-radius:50%;border:1.5px dashed #ff8a3d;background:#fff;color:#ff5a00;font-size:16px;font-weight:900;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.5;transition:opacity .12s,transform .12s,background .12s;}
+.adv-host .adv-secgap:hover .adv-secgap-btn,.adv-host .adv-secgap-btn:hover{opacity:1;transform:scale(1.1);background:#fff8f3;}
+.adv-host .adv-secgap .adv-sec-menu{left:50%;right:auto;bottom:auto;top:calc(100% + 6px);transform:translateX(-50%);}
 /* 상품핀 설명 팝업: 줄바꿈 유지 + 빈 사용제품 영역 최소높이 정리 */
 .adv-host .pv-pop .pv-desc{white-space:pre-line;}
 .adv-host .products:empty{display:none;}

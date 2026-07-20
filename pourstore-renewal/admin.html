@@ -5506,12 +5506,27 @@ function advBuildUIE(box, host, onChange){
       +'<label>썸네일 URL</label><input class="uie-input jf" data-k="thumb" value="'+esc(p.thumb)+'">'
       +'<label>설명 / 사용법 (핀 누르면 표시)</label><textarea class="uie-input jf" data-k="desc" rows="3" style="resize:vertical;min-height:62px;line-height:1.5">'+String(p.desc==null?'':p.desc).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea>';
   }
+  // 편집 팝업(uie-pop)을 탭바를 잡고 드래그해서 옮기기 (사진 가릴 때)
+  function makePopDraggable(pop){
+    const bar=pop.querySelector('.uie-pop-tabs'); if(!bar) return;
+    bar.style.cursor='move'; bar.title='잡고 드래그하면 창을 옮길 수 있어요';
+    bar.addEventListener('pointerdown',function(e){
+      if(e.target.closest('button')) return; // 탭/닫기 버튼은 클릭 유지
+      e.preventDefault(); e.stopPropagation();
+      const br=box.getBoundingClientRect(), pr=pop.getBoundingClientRect();
+      const offX=e.clientX-pr.left, offY=e.clientY-pr.top;
+      try{bar.setPointerCapture(e.pointerId);}catch(_){}
+      function mv(ev){ pop.style.transform='none'; pop.style.left=(ev.clientX-br.left-offX)+'px'; pop.style.top=(ev.clientY-br.top-offY)+'px'; }
+      function up(ev){ try{bar.releasePointerCapture(ev.pointerId);}catch(_){} bar.removeEventListener('pointermove',mv); bar.removeEventListener('pointerup',up); }
+      bar.addEventListener('pointermove',mv); bar.addEventListener('pointerup',up);
+    });
+  }
   function openEditor(i){
     closePops(); const p=points[i]; if(!p) return;
     const pop=document.createElement('div'); pop.className='uie-pop';
     pop.style.left=Math.min(82,(p.x||50))+'%'; pop.style.top=Math.min(78,(p.y||50))+'%';
     pop.innerHTML='<div class="uie-pop-tabs"><button type="button" class="uie-pt'+(p.mode!=='info'?' on':'')+'" data-m="product">상품</button><button type="button" class="uie-pt'+(p.mode==='info'?' on':'')+'" data-m="info">설명</button><button type="button" class="uie-pop-x" title="닫기">×</button></div><div class="uie-pop-body">'+pointFields(p)+'</div><button type="button" class="uie-pop-del">이 점 삭제</button>';
-    box.appendChild(pop);
+    box.appendChild(pop); makePopDraggable(pop);
     pop.addEventListener('click',e=>e.stopPropagation());
     pop.addEventListener('pointerdown',e=>e.stopPropagation());
     pop.querySelectorAll('.uie-pt').forEach(b=>b.addEventListener('click',()=>{ p.mode=b.dataset.m; savePoints(); openEditor(i); }));
@@ -5572,7 +5587,7 @@ function advBuildUIE(box, host, onChange){
     closePops(); const hl=highlights[hi]; if(!hl) return; const card=hl.card||(hl.card={mode:'none'}); const c=centroid(hl.pts);
     const pop=document.createElement('div'); pop.className='uie-pop'; pop.style.left=Math.min(82,c.x)+'%'; pop.style.top=Math.min(78,c.y)+'%';
     pop.innerHTML='<div class="uie-pop-tabs"><button type="button" class="uie-pt'+(card.mode==='none'?' on':'')+'" data-m="none">없음</button><button type="button" class="uie-pt'+(card.mode==='product'?' on':'')+'" data-m="product">상품</button><button type="button" class="uie-pt'+(card.mode==='info'?' on':'')+'" data-m="info">설명</button><button type="button" class="uie-pop-x" title="닫기">×</button></div><div class="uie-pop-body">'+hlCardFields(card)+'</div>';
-    box.appendChild(pop);
+    box.appendChild(pop); makePopDraggable(pop);
     pop.addEventListener('click',e=>e.stopPropagation()); pop.addEventListener('pointerdown',e=>e.stopPropagation());
     pop.querySelectorAll('.uie-pt').forEach(b=>b.addEventListener('click',()=>{ card.mode=b.dataset.m; saveHl(); openHlCard(hi); }));
     pop.querySelector('.uie-pop-x').addEventListener('click',closePops);

@@ -214,7 +214,7 @@ const isYt=(u)=>/youtu\.?be/.test(u||'');
   const strip=sec.querySelector('[data-psfs-strip]'), cta2=sec.querySelector('[data-psfs-cta]');
   let cur=0, cardEls=[], feedItems=[];
   function cardInner(p){
-    const th=p.thumbnail||p.thumb||ytThumb(p.link), pl=p.productLink||'';
+    const th=ytThumb(p.link)||p.thumbnail||p.thumb, pl=p.productLink||'';
     const prodBtn=pl?'<button class="psfs-rbtn prod" data-act="prod" type="button" aria-label="상품"><span class="ic">'+IC_BAG+'</span><span class="lb">상품</span></button>':'';
     return (th?'<img src="'+esc(th)+'" alt=""/>':'')
       + '<div class="psfs-segs"><span></span></div>'
@@ -222,7 +222,7 @@ const isYt=(u)=>/youtu\.?be/.test(u||'');
       + '<div class="psfs-meta"><span class="b">숏츠</span><div class="t">'+esc(p.title||'')+'</div></div>';
   }
   function buildCards(){ stage.innerHTML=feedItems.map(function(p,i){ return '<div class="psfs-card" data-i="'+i+'" data-yt="'+esc(ytId(p.link))+'" data-plink="'+esc(p.productLink||'')+'" data-share="'+esc(p.link||'')+'">'+cardInner(p)+'</div>'; }).join(''); cardEls=[].slice.call(stage.querySelectorAll('.psfs-card'));
-    if(strip){ strip.innerHTML=feedItems.map(function(p,i){ var th=p.thumbnail||p.thumb||ytThumb(p.link); return '<button class="psfs-thumb" data-i="'+i+'"'+(th?' style="background-image:url(\''+esc(th)+'\')"':'')+'></button>'; }).join(''); } }
+    if(strip){ strip.innerHTML=feedItems.map(function(p,i){ var th=ytThumb(p.link)||p.thumbnail||p.thumb; return '<button class="psfs-thumb" data-i="'+i+'"'+(th?' style="background-image:url(\''+esc(th)+'\')"':'')+'></button>'; }).join(''); } }
   function updateStrip(){ if(!strip) return; var ts=strip.querySelectorAll('.psfs-thumb'); for(var k=0;k<ts.length;k++){ ts[k].classList.toggle('on', k===cur); } if(ts[cur]) ts[cur].scrollIntoView({inline:'center',block:'nearest'}); }
   function mountActive(){ cardEls.forEach(function(el,i){ var f=el.querySelector('iframe'); if(i===cur){ if(!f){ var id=el.getAttribute('data-yt'); if(id){ f=document.createElement('iframe'); f.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&loop=1&playlist='+id+'&rel=0&modestbranding=1&playsinline=1'; f.allow='autoplay; encrypted-media; picture-in-picture; fullscreen'; f.setAttribute('allowfullscreen',''); el.appendChild(f); } } } else if(f){ f.remove(); } }); }
   function layout(){ if(!cardEls.length) return; var W=window.innerWidth,H=window.innerHeight,mobile=W<=700; var hasCta=!!(feedItems[cur]&&(feedItems[cur].productLink||'').trim()); var areaTop=mobile?126:62, areaBottom=H-(hasCta?(mobile?74:62):(mobile?26:16)), areaH=Math.max(200,areaBottom-areaTop); var cardH=Math.min(areaH,760),cardW=cardH*9/16, maxW=mobile?W*0.9:W*0.86; if(cardW>maxW){cardW=maxW;cardH=cardW*16/9; if(cardH>areaH){cardH=areaH;cardW=cardH*9/16;}} var cx=W/2,cardTop=(mobile?areaTop:areaTop+(areaH-cardH)/2),cy=cardTop+cardH/2,gap=18,w1=cardW*0.8,w2=cardW*0.62; function centerOf(o){ if(o===0)return cx; var s=o>0?1:-1,k=Math.abs(o); if(k===1)return cx+s*(cardW/2+gap+w1/2); return cx+s*(cardW/2+gap+w1+gap+w2/2); }
@@ -251,7 +251,7 @@ const isYt=(u)=>/youtu\.?be/.test(u||'');
   function startShortsCycle(){ if(scCards.length && !scTimer && modal.hidden){ scPlay(scIdx); scTimer=setInterval(()=>{ if(modal.hidden) scPlay(scIdx+1); },14000); } }
   function stopShortsCycle(){ if(scTimer){ clearInterval(scTimer); scTimer=null; } }
   if(shorts.length){
-    shorts.forEach((p,i)=>{ const id=ytId(p.link); const th=p.thumbnail||p.thumb||ytThumb(p.link);
+    shorts.forEach((p,i)=>{ const id=ytId(p.link); const th=ytThumb(p.link)||p.thumbnail||p.thumb;
       const c=document.createElement('div'); c.className='psrc-short'; c.setAttribute('data-yt',id);
       c.innerHTML=(th?'<img src="'+esc(th)+'" alt="" loading="lazy"/>':'')+'<div class="grad"></div><span class="live">숏츠</span><div class="play">'+IC_PLAY+'</div><div class="tt">'+esc(p.title||'')+'</div>';
       c.addEventListener('click', ()=>openShortsFeed(i));   // 클릭 → 쇼츠 피드(세로 스크롤)
@@ -264,7 +264,7 @@ const isYt=(u)=>/youtu\.?be/.test(u||'');
   const restRow = sec.querySelector('[data-psrc-rest]');
   if(rest.length){
     rest.forEach(p=>{ const t=TYPE[p.type]||TYPE.blog; const yt=isYt(p.link); const id=yt?ytId(p.link):'';
-      const th=p.thumbnail||p.thumb||(yt?ytThumb(p.link):'');
+      const th=ytThumb(p.link)||p.thumbnail||p.thumb;
       const img=th?'<img src="'+esc(th)+'" alt="" loading="lazy" onerror="this.remove()"/>':'';
       const play=yt?'<div class="psrc-play2"><span>'+IC_PLAY+'</span></div>':'';
       const dt=(p.displayDate||p.date||'').replace(/-/g,'.');

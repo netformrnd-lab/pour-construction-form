@@ -601,7 +601,7 @@ var PM_POSTS = [];
   function ytThumb(u){ var id=ytId(u); return id?('https://img.youtube.com/vi/'+id+'/hqdefault.jpg'):''; }
   function typeLabel(t){ return (typeof POST_TYPE!=='undefined' && POST_TYPE[t]) || '영상'; }
   function dOf(p){ var m=String((p&&(p.displayDate||p.createdAt||p.updatedAt))||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[1]+'.'+m[2]+'.'+m[3]):''; }
-  function thumbOf(p){ var t=p&&(p.thumbnail||p.thumb||p.image); return (t&&String(t).trim())?t:ytThumb(p&&p.link); }
+  function thumbOf(p){ var y=ytThumb(p&&p.link); if(y) return y; var t=p&&(p.thumbnail||p.thumb||p.image); return (t&&String(t).trim())?t:''; }
   function findPost(href){ var id=ytId(href); return PM_POSTS.filter(function(p){ return id && ytId(p.link)===id; })[0] || PM_POSTS.filter(function(p){ return p.link===href; })[0] || null; }
 
   var modal=document.querySelector('[data-psm1-ytm]'), player=document.querySelector('[data-psm1-ytm-player]'),
@@ -731,11 +731,11 @@ var PM_POSTS = [];
   PM_POSTS = posts;   // 유튜브 재생 모달의 '관련 콘텐츠'용 공유
   var POST_TYPE = { news:'뉴스', guide:'시공가이드', case:'시공사례', interview:'인터뷰', video:'영상', short:'숏츠', blog:'컨텐츠', advanced:'컨텐츠(고도화)', event:'이벤트' };
   function ytThumbUrl(u){ var m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/); return m?('https://img.youtube.com/vi/'+m[1]+'/hqdefault.jpg'):''; }
-  function postThumb(p){ var t=p.thumbnail||p.thumb||p.image||ytThumbUrl(p.link); return (t&&String(t).trim())?'<img class="psm1-ac-thumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':''; }
+  function postThumb(p){ var t=ytThumbUrl(p.link)||p.thumbnail||p.thumb||p.image; return (t&&String(t).trim())?'<img class="psm1-ac-thumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':''; }
   // 숏츠식 세로 카드(9:16) — 관련 콘텐츠를 가로 스크롤로
   function shortsCardsHtml(list){
     return list.map(function(p){
-      var isYt = /youtu\.?be/.test(p.link||''); var t = p.thumbnail||p.thumb||p.image||ytThumbUrl(p.link);
+      var isYt = /youtu\.?be/.test(p.link||''); var t = ytThumbUrl(p.link)||p.thumbnail||p.thumb||p.image;
       return '<a class="psm1-sc" href="'+esc2(p.link||'#')+'"'+(isYt?' target="_blank" rel="noopener"':'')+'>'
         + '<div class="psm1-sc-th">'+(t?'<img src="'+esc2(t)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':'')
         +   '<div class="psm1-sc-grad"></div>'
@@ -761,7 +761,7 @@ var PM_POSTS = [];
       terms:[o.keyword].concat(Array.isArray(o.synonyms)?o.synonyms:[]).map(norm).filter(Boolean) });
   });
   posts.forEach(function(p){
-    idxPush({ type:'content', title:p.title||'', sub:(POST_TYPE[p.type]||''), link:(p.link||'#'), thumb:(p.thumbnail||p.thumb||ytThumbUrl(p.link)||''), yt:/youtu\.?be/.test(p.link||''),
+    idxPush({ type:'content', title:p.title||'', sub:(POST_TYPE[p.type]||''), link:(p.link||'#'), thumb:(ytThumbUrl(p.link)||p.thumbnail||p.thumb||''), yt:/youtu\.?be/.test(p.link||''),
       terms:[p.title].concat(Array.isArray(p.tags)?p.tags:[]).map(norm).filter(Boolean) });
   });
   try {
@@ -1664,7 +1664,7 @@ var PC_TTL = 300000;
   function esc(s){ return (s||'').toString().replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function ytId(u){ var m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/); return m?m[1]:null; }
   function isYt(u){ return /youtu\.?be/.test(u||''); }
-  function thumbOf(p){ var t=p.thumbnail||p.thumb||p.image; if(t&&String(t).trim())return t; var id=ytId(p.link); return id?('https://img.youtube.com/vi/'+id+'/hqdefault.jpg'):''; }
+  function thumbOf(p){ var id=ytId(p.link); if(id) return 'https://img.youtube.com/vi/'+id+'/hqdefault.jpg'; var t=p.thumbnail||p.thumb||p.image; return (t&&String(t).trim())?t:''; }
   function typeLabel(t){ return (TYPE[t]||{}).l || '이야기'; }
   function dateOf(p){ var m=String(p.displayDate||p.createdAt||p.updatedAt||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[1]+'.'+m[2]+'.'+m[3]):''; }
   function tgt(p){ return isYt(p.link) ? ' target="_blank" rel="noopener"' : ''; }

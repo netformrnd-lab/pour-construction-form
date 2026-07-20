@@ -138,7 +138,7 @@ var PC_TTL = 300000;
   } catch (e) { console.log("[psy3] 숏츠 로드 스킵:", e && e.message ? e.message : e); }
   if (!posts.length) { section.hidden = true; return; }
   grid.innerHTML = posts.slice(0,12).map(function(p){
-    var thumb = p.thumbnail || p.thumb || p.image || ytThumb(p.link);
+    var thumb = ytThumb(p.link) || p.thumbnail || p.thumb || p.image;
     var dur = p.duration ? '<span class="duration">'+esc(p.duration)+'</span>' : '';
     // 숏츠는 모달 없이 카드 안에서 바로 재생 → 앵커 대신 div + data-yt
     return '<div class="psy3-card" data-yt="'+esc(ytId(p.link))+'">'
@@ -185,7 +185,7 @@ var PC_TTL = 300000;
   var IC_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>';
   var IC_BAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>';
   function cardInner(p){
-    var thumb=p.thumbnail||p.thumb||p.image||ytThumb(p.link), plink=(p.productLink||'').trim();
+    var thumb=ytThumb(p.link)||p.thumbnail||p.thumb||p.image, plink=(p.productLink||'').trim();
     var prodBtn = plink ? '<button class="psfs-rbtn prod" data-act="prod" data-plink="'+esc(plink)+'"><span class="ic">'+IC_BAG+'</span><span class="lb">상품</span></button>' : '';
     return (thumb?'<img src="'+esc(thumb)+'" alt="">':'')
       + '<div class="psfs-segs"><span></span></div>'
@@ -195,7 +195,7 @@ var PC_TTL = 300000;
   function buildCards(){
     stage.innerHTML = feedItems.map(function(p,i){ return '<div class="psfs-card" data-i="'+i+'" data-yt="'+esc(ytId(p.link))+'">'+cardInner(p)+'</div>'; }).join('');
     cardEls = [].slice.call(stage.querySelectorAll('.psfs-card'));
-    if(strip){ strip.innerHTML = feedItems.map(function(p,i){ var th=p.thumbnail||p.thumb||p.image||ytThumb(p.link); return '<button class="psfs-thumb" data-i="'+i+'"'+(th?' style="background-image:url(\''+esc(th)+'\')"':'')+'></button>'; }).join(''); }
+    if(strip){ strip.innerHTML = feedItems.map(function(p,i){ var th=ytThumb(p.link)||p.thumbnail||p.thumb||p.image; return '<button class="psfs-thumb" data-i="'+i+'"'+(th?' style="background-image:url(\''+esc(th)+'\')"':'')+'></button>'; }).join(''); }
   }
   function updateStrip(){ if(!strip) return; var ts=strip.querySelectorAll('.psfs-thumb'); for(var k=0;k<ts.length;k++){ ts[k].classList.toggle('on', k===cur); } if(ts[cur]) ts[cur].scrollIntoView({inline:'center',block:'nearest'}); }
   function mountActive(){

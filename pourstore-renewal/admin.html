@@ -5018,7 +5018,7 @@ function PostingsPage({showToast}){
       }).filter(h=> h.mode==='info' ? (h.title||h.text||h.image) : (h.name||h.link));
       const blocks=(Array.isArray(f.blocks)?f.blocks:[]).map(b=> b.type==='image'
         ? {type:'image', url:(b.url||'').trim(), hotspots:cleanHot(b.hotspots), highlights:cleanHl(b.highlights)}
-        : {type:'text', text:(b.text||'').trim(), align:b.align||'left', size:b.size||'normal'}
+        : {type:'text', text:(b.text||'').trim(), align:b.align||'left', size:b.size||'normal', bold:!!b.bold, color:b.color||'', quote:!!b.quote}
       ).filter(b=> b.type==='image' ? b.url : b.text);
       const bodyStr=blocksToBody(blocks);
       const isVid=(f.type==='video'||f.type==='short');
@@ -5200,8 +5200,13 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
                   {[['left','좌'],['center','가운데'],['right','우']].map(function(o){const a=o[0];const on=(b.align||'left')===a;return <button key={a} type="button" onClick={()=>upd(i,{align:a})} style={{padding:'4px 9px',borderRadius:6,fontSize:11,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or-pale)':'#fff',color:on?'var(--or-d)':'var(--text-md)'}}>{o[1]}</button>;})}
                   <span style={{width:1,height:15,background:'var(--border)',margin:'0 3px'}}/>
                   {[['small','작게'],['normal','보통'],['large','크게'],['xl','제목']].map(function(o){const s=o[0];const on=(b.size||'normal')===s;return <button key={s} type="button" onClick={()=>upd(i,{size:s})} style={{padding:'4px 9px',borderRadius:6,fontSize:11,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or-pale)':'#fff',color:on?'var(--or-d)':'var(--text-md)'}}>{o[1]}</button>;})}
+                  <span style={{width:1,height:15,background:'var(--border)',margin:'0 3px'}}/>
+                  <button type="button" title="굵게" onClick={()=>upd(i,{bold:!b.bold})} style={{padding:'4px 10px',borderRadius:6,fontSize:12,fontWeight:900,cursor:'pointer',border:'1.5px solid '+(b.bold?'var(--or)':'var(--border)'),background:b.bold?'var(--or-pale)':'#fff',color:b.bold?'var(--or-d)':'var(--text-md)'}}>B</button>
+                  <button type="button" title="인용구" onClick={()=>upd(i,{quote:!b.quote})} style={{padding:'4px 9px',borderRadius:6,fontSize:11,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(b.quote?'var(--or)':'var(--border)'),background:b.quote?'var(--or-pale)':'#fff',color:b.quote?'var(--or-d)':'var(--text-md)'}}>❝ 인용</button>
+                  <span style={{width:1,height:15,background:'var(--border)',margin:'0 3px'}}/>
+                  {[['','#374151','기본'],['point','#E8780F','포인트'],['red','#DC2626','빨강'],['blue','#2563EB','파랑'],['green','#059669','초록'],['gray','#9AA0A6','회색']].map(function(c){const on=(b.color||'')===c[0];return <button key={c[0]||'def'} type="button" title={c[2]} onClick={()=>upd(i,{color:c[0]})} style={{width:20,height:20,borderRadius:'50%',cursor:'pointer',padding:0,background:c[1],border:on?'2px solid var(--text)':'1.5px solid var(--border)',boxShadow:on?'0 0 0 2px #fff inset':'none'}}/>;})}
                 </div>
-                <textarea value={b.text||''} onChange={e=>upd(i,{text:e.target.value})} placeholder="문단 내용을 입력하세요" style={{...fld,minHeight:70,resize:'vertical',fontFamily:'inherit',lineHeight:1.6,textAlign:(b.align||'left'),fontSize:({small:12,large:16,xl:19}[b.size]||13),fontWeight:b.size==='xl'?800:400}}/>
+                <textarea value={b.text||''} onChange={e=>upd(i,{text:e.target.value})} placeholder="문단 내용을 입력하세요" style={{...fld,minHeight:70,resize:'vertical',fontFamily:'inherit',lineHeight:1.6,textAlign:(b.align||'left'),fontSize:({small:12,large:16,xl:19}[b.size]||13),fontWeight:(b.bold||b.size==='xl')?800:400,fontStyle:b.quote?'italic':'normal',color:({point:'#E8780F',red:'#DC2626',blue:'#2563EB',green:'#059669',gray:'#9AA0A6'}[b.color]||'var(--text)'),background:b.quote?'#FFFBF5':'#fff',borderLeft:b.quote?'3px solid var(--or)':undefined}}/>
               </div>
             : <div tabIndex={0} onPaste={e=>onPasteImg(i,e)} onDragOver={e=>{e.preventDefault(); if(dragOver!=='b'+i)setDragOver('b'+i);}} onDragLeave={()=>setDragOver(null)} onDrop={e=>onDropImg(i,e)} style={{outline:'none',borderRadius:9,padding:dragOver==='b'+i?6:0,boxShadow:dragOver==='b'+i?'0 0 0 2px var(--or)':'none',transition:'box-shadow .12s'}}>
                 <div style={{display:'flex',gap:6}}>

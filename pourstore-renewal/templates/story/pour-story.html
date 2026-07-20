@@ -1428,6 +1428,7 @@ var PM_POSTS = [];
 .pstory-art-dt { margin-top:12px; font-size:13px; color:#AEB4BC; font-weight:500; padding-bottom:20px; border-bottom:1px solid #F0F1F3; }
 .pstory-art-body { margin-top:24px; }
 .pstory-art-body p { font-size:16px; color:#2B3038; line-height:1.85; margin:0 0 20px; letter-spacing:-0.01em; word-break:keep-all; }
+.pstory-art-body blockquote.pstory-quote { margin:8px 0 24px; padding:16px 22px; border-left:4px solid #E8780F; background:#FFF7ED; color:#4B5563; font-size:16px; line-height:1.8; font-style:italic; border-radius:0 10px 10px 0; word-break:keep-all; }
 .pstory-art-body img { width:100%; border-radius:8px; margin:8px 0 24px; }
 .pstory-art-cta { margin-top:20px; display:flex; gap:10px; flex-wrap:wrap; }
 .pstory-art-cta a { display:inline-flex; align-items:center; gap:6px; font-size:14px; font-weight:800; padding:12px 20px; border-radius:0; }
@@ -1749,6 +1750,10 @@ var PC_TTL = 300000;
       var SZ = { small:'13px', large:'18px', xl:'22px' };
       if (SZ[b.size]) st.push('font-size:'+SZ[b.size]);
       if (b.size === 'xl') st.push('font-weight:800;letter-spacing:-0.02em');
+      else if (b.bold) st.push('font-weight:700');
+      var CLR = { point:'#E8780F', red:'#DC2626', blue:'#2563EB', green:'#059669', gray:'#9AA0A6' };
+      if (CLR[b.color]) st.push('color:'+CLR[b.color]);
+      if (b.quote) return '<blockquote class="pstory-quote"'+(st.length?' style="'+st.join(';')+'"':'')+'>'+txt+'</blockquote>';
       return '<p'+(st.length?' style="'+st.join(';')+'"':'')+'>'+txt+'</p>';
     }).join('') || '<p style="color:#9AA0A6">본문이 준비 중입니다.</p>';
   }

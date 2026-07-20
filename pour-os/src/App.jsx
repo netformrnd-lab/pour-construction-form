@@ -3063,6 +3063,9 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
           <p style={{margin:0,fontSize:14,fontWeight:900,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🗺 업무 플로우맵</p>
           <p style={{margin:"2px 0 0",fontSize:10,opacity:0.82}}>{proj.title} · {team?"팀 협업":"개인"} · Enter 같은단계 · Space/▸ 하위</p>
         </div>
+        {(()=>{const confirmed=!!(D.projects.find(x=>x.id===proj.id)||proj).processConfirmed;return(
+          <button onClick={()=>up("projects",proj.id,{processConfirmed:!confirmed})} title={confirmed?"확정 해제 — 다시 '수정 중'으로 (로드맵·프로세스에서 숨김)":"이 플로우맵을 확정 — 로드맵·프로세스에 표시"} style={{background:confirmed?"#F97316":"rgba(255,255,255,0.14)",border:`1px solid ${confirmed?"#F97316":"rgba(255,255,255,0.35)"}`,color:"#fff",borderRadius:9,padding:"8px 11px",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>{confirmed?"✅ 확정됨":"○ 확정"}</button>
+        );})()}
         <button onClick={saveAsTemplate} title="현재 구조를 표준 템플릿으로 저장(언제든)" style={{background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.35)",color:"#fff",borderRadius:9,padding:"8px 11px",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>📋 템플릿</button>
         <button onClick={save} style={{background:"#F97316",border:"none",color:"#fff",borderRadius:9,padding:"8px 16px",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>저장</button>
       </div>
@@ -3693,10 +3696,14 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
         </div>
       )}
       {(()=>{
-        const list=D.projects.filter(p=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed));
-        if(!list.length) return <Empty t="아직 로드맵이 없어요 · 프로젝트에서 🧩프로세스로 로드단계를 만들어보세요"/>;
+        const hasTasks=(p)=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed);
+        const isFinal=(p)=>p.processConfirmed||projStatus(p)==="completed";   // 확정 or 완료 = 최종
+        const list=D.projects.filter(p=>hasTasks(p)&&isFinal(p));
+        const editing=D.projects.filter(p=>hasTasks(p)&&!isFinal(p)).length;   // 수정 중(미확정)
         const pIds=new Set(D.tasks.filter(t=>t.parentId).map(t=>t.parentId));
-        return(
+        return(<>
+        {editing>0&&<p style={{margin:"0 2px 10px",fontSize:11,color:"#9CA3AF",lineHeight:1.5,background:"#F9FAFB",border:"1px solid #F2F4F6",borderRadius:10,padding:"9px 11px"}}>✍️ 수정 중 <b style={{color:"#EA580C"}}>{editing}개</b>는 아직 안 보여요 — 프로젝트에서 <b>🗺 업무 플로우맵</b>을 열어 <b>✅ 확정</b>하면 여기 표시됩니다.</p>}
+        {list.length===0?<Empty t={editing>0?"확정된 플로우맵이 아직 없어요 · 업무 플로우맵에서 ✅ 확정하세요":"아직 로드맵이 없어요 · 프로젝트에서 🧩프로세스로 로드단계를 만들어보세요"}/>:(
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {list.map(p=>{
               const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);
@@ -3711,6 +3718,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                     <span style={{fontSize:14}}>🧩</span>
                     <span style={{flex:1,minWidth:0,fontSize:13.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
+                    {p.processConfirmed?<span style={{fontSize:9.5,fontWeight:800,color:"#EA580C",background:"#FFF3E9",borderRadius:6,padding:"2px 7px",flexShrink:0}}>✅ 확정</span>:<span style={{fontSize:9.5,fontWeight:800,color:"#6B7280",background:"#F2F4F6",borderRadius:6,padding:"2px 7px",flexShrink:0}}>완료</span>}
                     <span style={{fontSize:9.5,fontWeight:800,color:team?"#EA580C":"#6B7280",background:team?"#FFF3E9":"#F2F4F6",borderRadius:6,padding:"2px 7px",flexShrink:0}}>{team?"팀":"개인"}</span>
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
@@ -3722,7 +3730,8 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
               );
             })}
           </div>
-        );
+        )}
+        </>);
       })()}
       {roadmapProj&&<ProjectRoadmap D={D} proj={roadmapProj} up={up} add={add} rm={rm} onClose={()=>setRoadmapProj(null)} onOpenProcess={(p)=>{setRoadmapProj(null);setProcessProj(p);}}/>}
       {processProj&&<ProjectProcessEditor D={D} proj={processProj} cu={cu} add={add} up={up} rm={rm} onClose={()=>setProcessProj(null)}/>}
@@ -4408,7 +4417,7 @@ function downloadFlowImage(nodes,edges,name){
 }
 // 공유 보기 — 업무 플로우맵 전용(읽기). 프로젝트 골라 흐름 보기 + 이미지 저장.
 function ShareFlowPage({D}){
-  const projs=D.projects.filter(p=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed)).sort((a,b)=>String(a.group||"").localeCompare(String(b.group||""))||String(a.title||"").localeCompare(String(b.title||"")));
+  const projs=D.projects.filter(p=>(p.processConfirmed||projStatus(p)==="completed")&&D.tasks.some(t=>t.projectId===p.id&&!t.isFixed)).sort((a,b)=>String(a.group||"").localeCompare(String(b.group||""))||String(a.title||"").localeCompare(String(b.title||"")));
   const [sel,setSel]=useState(projs[0]?projs[0].id:null);
   const proj=projs.find(p=>p.id===sel)||projs[0]||null;
   const flow=proj?buildProjectFlow(D,proj):{nodes:[],edges:[],maxY:0};
@@ -4418,7 +4427,7 @@ function ShareFlowPage({D}){
         <h2 style={{margin:0,fontSize:18,fontWeight:900,color:"#0F1F5C"}}>🗺 업무 플로우맵</h2>
         <p style={{margin:"4px 0 0",fontSize:11.5,color:"#9CA3AF"}}>프로젝트를 골라 진행 흐름을 보고 이미지로 저장할 수 있어요 · 읽기 전용</p>
       </div>
-      {projs.length===0?<Empty t="표시할 프로젝트가 없어요"/>:(<>
+      {projs.length===0?<Empty t="확정된 업무 플로우맵이 아직 없어요 · 편집 화면에서 ✅ 확정하면 여기 표시됩니다"/>:(<>
         <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
           {projs.map(p=>{const on=p.id===(proj&&proj.id);return(<button key={p.id} onClick={()=>setSel(p.id)} style={{padding:"7px 12px",borderRadius:9,border:`1.5px solid ${on?"#0F1F5C":"#E5E8EB"}`,background:on?"#0F1F5C":"#fff",color:on?"#fff":"#4B5563",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{p.group?`[${p.group}] `:""}{p.title}</button>);})}
         </div>

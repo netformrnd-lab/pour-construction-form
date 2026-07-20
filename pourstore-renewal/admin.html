@@ -5156,6 +5156,55 @@ function PostingsPage({showToast}){
 }
 
 // 본문 블록 에디터 — 글/사진 블록 + 사진 클릭으로 상품 핫스팟
+// 통합(블로그형) 글쓰기 — 한 칸에서 글·사진 자유롭게. blocks[]로 저장(공개 렌더 그대로).
+function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
+  const ref=useRef(null);
+  const [dragOver,setDragOver]=useState(false);
+  const escH=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const toHtml=(bs)=> (bs||[]).map(function(b){ return b.type==='image'?(b.url?('<p><img src="'+escH(b.url)+'" alt=""></p>'):''): b.type==='divider'?'<hr>':('<p>'+((escH(b.text||'').replace(/\n/g,'<br>'))||'<br>')+'</p>'); }).join('')||'<p><br></p>';
+  const serialize=(root)=>{ const out=[]; let buf=''; const flush=()=>{ const t=buf.replace(/ /g,' ').trim(); if(t) out.push({type:'text',text:t}); buf=''; };
+    const walk=(node)=>{ node.childNodes.forEach(function(n){ if(n.nodeType===3){ buf+=n.nodeValue; return; } if(n.nodeType!==1) return; const tag=n.tagName.toLowerCase(); if(tag==='img'){ flush(); out.push({type:'image',url:n.getAttribute('src')||'',hotspots:[]}); return; } if(tag==='hr'){ flush(); out.push({type:'divider'}); return; } if(tag==='br'){ buf+='\n'; return; } if(tag==='div'||tag==='p'||tag==='figure'){ walk(n); flush(); return; } walk(n); }); };
+    walk(root); flush(); return out; };
+  useEffect(()=>{ if(ref.current) ref.current.innerHTML=toHtml(blocks); },[]); // 최초 1회만 주입(커서 보존)
+  const sync=()=>{ if(ref.current) onChange(serialize(ref.current)); };
+  const insertAtCaret=(html)=>{ if(!ref.current)return; ref.current.focus(); let ok=false; try{ ok=document.execCommand('insertHTML',false,html); }catch(e){} if(!ok){ ref.current.insertAdjacentHTML('beforeend',html); } sync(); };
+  const doUpload=(file)=>{ if(!file)return; uploadImage('flow',file,(url)=>insertAtCaret('<p><img src="'+escH(url)+'" alt=""></p><p><br></p>')); };
+  const onPaste=(e)=>{ const items=(e.clipboardData&&e.clipboardData.items)||[]; for(let k=0;k<items.length;k++){ if(((items[k].type)||'').indexOf('image')===0){ const f=items[k].getAsFile(); if(f){ e.preventDefault(); doUpload(f); return; } } } };
+  const onDrop=(e)=>{ e.preventDefault(); setDragOver(false); const files=e.dataTransfer&&e.dataTransfer.files; if(files&&files[0]&&((files[0].type)||'').indexOf('image')===0) doUpload(files[0]); };
+  const tbtn={padding:'6px 12px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,fontWeight:800,color:'var(--text-md)',cursor:'pointer'};
+  return (
+    <div>
+      <style>{'.pflow{outline:none} .pflow p{margin:0 0 12px} .pflow img{max-width:100%;height:auto;border-radius:10px;margin:6px 0;display:block} .pflow hr{border:0;border-top:2px solid var(--border);margin:18px 0} .pflow:empty:before{content:attr(data-ph);color:var(--text-sm)}'}</style>
+      <div style={{display:'flex',gap:6,marginBottom:8,flexWrap:'wrap',alignItems:'center'}}>
+        <label style={{...tbtn,color:'var(--or-d)',borderColor:'var(--or)',background:'var(--or-pale)'}}>{uploadingKey==='flow'?'업로드…':'📷 사진 넣기'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)doUpload(f); e.target.value='';}}/></label>
+        <button type="button" onClick={()=>insertAtCaret('<hr><p><br></p>')} style={tbtn}>— 구분선</button>
+        <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:700}}>글 쓰다가 사진은 <b>붙여넣기(Ctrl+V)·드래그·[📷]</b> — 그 자리에 바로 들어가요</span>
+      </div>
+      <div ref={ref} className="pflow" contentEditable suppressContentEditableWarning data-ph="여기에 글을 쓰고, 사진은 붙여넣거나 드래그하세요…"
+        onInput={sync} onPaste={onPaste}
+        onDragOver={e=>{e.preventDefault(); if(!dragOver)setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onDrop={onDrop}
+        style={{minHeight:280,border:'1.5px solid '+(dragOver?'var(--or)':'var(--border)'),borderRadius:12,padding:'16px 18px',fontSize:14.5,lineHeight:1.75,color:'var(--text)',background:'#fff',boxShadow:dragOver?'0 0 0 3px var(--or-pale)':'none',transition:'box-shadow .12s'}}/>
+    </div>
+  );
+}
+// 본문 편집: 통합(블로그형) ↔ 블록(서식·핫스팟) 토글
+function PostingBody({blocks,onChange,uploadImage,uploadingKey}){
+  const hasRich=(blocks||[]).some(function(b){ return b && (b.bold||b.color||b.callout||b.list||b.quote||b.highlight||(b.align&&b.align!=='left')||(b.size&&b.size!=='normal')||(b.hotspots&&b.hotspots.length)||(b.highlights&&b.highlights.length)||b.type==='button'); });
+  const [mode,setMode]=useState(hasRich?'blocks':'flow');
+  const seg=(on)=>({padding:'7px 14px',borderRadius:8,border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or)':'#fff',color:on?'#fff':'var(--text-md)',fontSize:12.5,fontWeight:800,cursor:'pointer'});
+  return (
+    <div>
+      <div style={{display:'flex',gap:6,marginBottom:10,flexWrap:'wrap'}}>
+        <button type="button" onClick={()=>setMode('flow')} style={seg(mode==='flow')}>✍️ 통합 글쓰기</button>
+        <button type="button" onClick={()=>setMode('blocks')} style={seg(mode==='blocks')}>🧩 블록 편집 (서식·상품핀)</button>
+        <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:700,alignSelf:'center'}}>{mode==='flow'?'글·사진 한 곳에서 자유롭게':'문단별 서식·색상·상품핀·강조영역'}</span>
+      </div>
+      {mode==='flow'
+        ? <PostingFlow blocks={blocks} onChange={onChange} uploadImage={uploadImage} uploadingKey={uploadingKey}/>
+        : <PostingBlocks blocks={blocks} onChange={onChange} uploadImage={uploadImage} uploadingKey={uploadingKey}/>}
+    </div>
+  );
+}
 function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
   const fld={width:'100%',padding:'8px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12.5,outline:'none',boxSizing:'border-box'};
   const mini={width:24,height:24,borderRadius:6,border:'1px solid var(--border)',background:'#fff',cursor:'pointer',fontSize:11,lineHeight:1};
@@ -5923,7 +5972,7 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
         <div style={{height:12}}/>
         <label style={lbl}>본문 (자사몰 아티클) — 글/사진 블록으로 구성. <b style={{color:'var(--or-d)'}}>사진을 클릭하면 상품 점(핫스팟)</b>이 추가됩니다</label>
         <div style={{marginTop:6}}>
-          <PostingBlocks blocks={Array.isArray(form.blocks)?form.blocks:[]} onChange={b=>set({blocks:b})} uploadImage={uploadImage} uploadingKey={uploadingKey}/>
+          <PostingBody blocks={Array.isArray(form.blocks)?form.blocks:[]} onChange={b=>set({blocks:b})} uploadImage={uploadImage} uploadingKey={uploadingKey}/>
         </div>
         {form.type==='advanced' && <React.Fragment>
           <div style={{height:16}}/>

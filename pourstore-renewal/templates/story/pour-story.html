@@ -1769,7 +1769,8 @@ var PC_TTL = 300000;
       if (b.size === 'xl') st.push('font-weight:800;letter-spacing:-0.02em');
       else if (b.bold) st.push('font-weight:700');
       var CLR = { point:'#E8780F', red:'#DC2626', blue:'#2563EB', green:'#059669', gray:'#9AA0A6' };
-      if (CLR[b.color]) st.push('color:'+CLR[b.color]);
+      var col = CLR[b.color] || (/^#[0-9a-fA-F]{3,8}$/.test(b.color||'') ? b.color : '');  // 레거시 키 → hex, 그 외 유효한 hex만 허용(CSS 인젝션 방지)
+      if (col) st.push('color:'+col);
       var stAttr = st.length?' style="'+st.join(';')+'"':'';
       var wrapLink = function(h){ return b.link ? '<a class="pstory-blocklink" href="'+esc(b.link)+'"'+(/^https?:/.test(b.link)?' target="_blank" rel="noopener"':'')+'>'+h+'</a>' : h; };
       // 목록

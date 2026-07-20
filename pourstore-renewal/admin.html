@@ -5169,6 +5169,11 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
   const upd=(i,patch)=>mut(p=>{p[i]={...p[i],...patch};return p;});
   const del=(i)=>mut(p=>p.filter((_,x)=>x!==i));
   const move=(i,d)=>mut(p=>{const j=i+d;if(j<0||j>=p.length)return p;[p[i],p[j]]=[p[j],p[i]];return p;});
+  const insertAt=(idx,blk)=>mut(p=>{const n=p.slice();n.splice(idx,0,blk);return n;});
+  // 색상 즐겨찾기(localStorage) + 스포이트
+  const [favColors,setFavColors]=useState(()=>{ try{ return JSON.parse(localStorage.getItem('pourPostFavColors')||'[]'); }catch(e){ return []; } });
+  const addFav=(hex)=>{ if(!hex||hex[0]!=='#') return; const h=hex.toLowerCase(); setFavColors(prev=>{ const nx=[h,...prev.filter(c=>c!==h)].slice(0,12); try{localStorage.setItem('pourPostFavColors',JSON.stringify(nx));}catch(e){} return nx; }); };
+  const eyedrop=async(i)=>{ if(typeof window.EyeDropper!=='function'){ alert('이 브라우저는 스포이트를 지원하지 않습니다.\n(크롬·엣지에서 사용 가능)'); return; } try{ const r=await new window.EyeDropper().open(); if(r&&r.sRGBHex){ upd(i,{color:r.sRGBHex}); addFav(r.sRGBHex); } }catch(e){} };
   const [pendHot,setPendHot]=useState(null);
   const addHot=(i,x,y,mode)=>mut(p=>{p[i].hotspots=[...(p[i].hotspots||[]),{x,y,mode:mode||'product',name:'',price:'',thumb:'',link:'',title:'',text:'',image:''}];return p;});
   const chooseHot=(mode)=>{ if(pendHot){ addHot(pendHot.i,pendHot.x,pendHot.y,mode); setPendHot(null); } };
@@ -5190,7 +5195,8 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
     <div>
       {blocks.length===0 && <div style={{padding:'16px',textAlign:'center',color:'var(--text-sm)',fontSize:12,background:'var(--bg)',borderRadius:9,border:'1px solid var(--border)',marginBottom:8}}>블록이 없습니다. 아래에서 글/사진을 추가하세요.</div>}
       {blocks.map((b,i)=>(
-        <div key={i} style={{border:'1px solid var(--border)',borderRadius:10,padding:10,marginBottom:8,background:'#fff'}}>
+        <React.Fragment key={i}>
+        <div style={{border:'1px solid var(--border)',borderRadius:10,padding:10,marginBottom:8,background:'#fff'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
             <span style={{fontSize:11,fontWeight:800,color:'var(--or-d)'}}>{({image:'사진',divider:'구분선',button:'버튼'}[b.type]||'글')} {i+1}</span>
             <div style={{display:'flex',gap:4}}>
@@ -5209,7 +5215,12 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
                   <button type="button" title="굵게" onClick={()=>upd(i,{bold:!b.bold})} style={{padding:'4px 10px',borderRadius:6,fontSize:12,fontWeight:900,cursor:'pointer',border:'1.5px solid '+(b.bold?'var(--or)':'var(--border)'),background:b.bold?'var(--or-pale)':'#fff',color:b.bold?'var(--or-d)':'var(--text-md)'}}>B</button>
                   <button type="button" title="인용구" onClick={()=>upd(i,{quote:!b.quote})} style={{padding:'4px 9px',borderRadius:6,fontSize:11,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(b.quote?'var(--or)':'var(--border)'),background:b.quote?'var(--or-pale)':'#fff',color:b.quote?'var(--or-d)':'var(--text-md)'}}>❝ 인용</button>
                   <span style={{width:1,height:15,background:'var(--border)',margin:'0 3px'}}/>
-                  {[['','#374151','기본'],['point','#E8780F','포인트'],['red','#DC2626','빨강'],['blue','#2563EB','파랑'],['green','#059669','초록'],['gray','#9AA0A6','회색']].map(function(c){const on=(b.color||'')===c[0];return <button key={c[0]||'def'} type="button" title={c[2]} onClick={()=>upd(i,{color:c[0]})} style={{width:20,height:20,borderRadius:'50%',cursor:'pointer',padding:0,background:c[1],border:on?'2px solid var(--text)':'1.5px solid var(--border)',boxShadow:on?'0 0 0 2px #fff inset':'none'}}/>;})}
+                  {[['','기본','#374151'],['#E8780F','포인트','#E8780F'],['#DC2626','빨강','#DC2626'],['#2563EB','파랑','#2563EB'],['#059669','초록','#059669'],['#111111','검정','#111111'],['#9AA0A6','회색','#9AA0A6']].map(function(c){const on=(b.color||'')===c[0];return <button key={c[0]||'def'} type="button" title={c[1]} onClick={()=>upd(i,{color:c[0]})} style={{width:20,height:20,borderRadius:'50%',cursor:'pointer',padding:0,background:c[2],border:on?'2px solid var(--text)':'1.5px solid var(--border)',boxShadow:on?'0 0 0 2px #fff inset':'none'}}/>;})}
+                  <input type="color" title="커스텀 색상 선택" value={(b.color&&b.color[0]==='#')?b.color:'#E8780F'} onChange={e=>upd(i,{color:e.target.value})} style={{width:23,height:23,padding:0,border:'1.5px solid var(--border)',borderRadius:6,cursor:'pointer',background:'#fff'}}/>
+                  <button type="button" title="스포이트로 화면에서 색 찍기" onClick={()=>eyedrop(i)} style={{width:23,height:23,borderRadius:6,cursor:'pointer',border:'1.5px solid var(--border)',background:'#fff',fontSize:12,padding:0,lineHeight:1}}>💧</button>
+                  {(b.color&&b.color[0]==='#') && <button type="button" title="현재 색 즐겨찾기 추가" onClick={()=>addFav(b.color)} style={{padding:'2px 7px',borderRadius:6,fontSize:11,fontWeight:800,cursor:'pointer',border:'1.5px solid var(--or)',background:'var(--or-pale)',color:'var(--or-d)'}}>⭐+</button>}
+                  {favColors.length>0 && <span style={{width:1,height:15,background:'var(--border)',margin:'0 3px'}}/>}
+                  {favColors.map(function(hex){const on=(b.color||'').toLowerCase()===hex;return <button key={hex} type="button" title={'즐겨찾기 '+hex} onClick={()=>upd(i,{color:hex})} style={{width:20,height:20,borderRadius:5,cursor:'pointer',padding:0,background:hex,border:on?'2px solid var(--text)':'1.5px solid var(--border)'}}/>;})}
                 </div>
                 <div style={{display:'flex',gap:4,marginBottom:6,flexWrap:'wrap',alignItems:'center'}}>
                   {[['bullet','• 목록'],['ordered','1. 목록']].map(function(o){const v=o[0];const on=(b.list||'')===v;return <button key={v} type="button" onClick={()=>upd(i,{list:on?'':v})} style={pill(on)}>{o[1]}</button>;})}
@@ -5220,7 +5231,7 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
                   <button type="button" title="링크" onClick={()=>upd(i,{_linkOpen:!b._linkOpen})} style={pill(!!(b.link||b._linkOpen))}>🔗 링크</button>
                 </div>
                 {(b._linkOpen||b.link) && <input value={b.link||''} onChange={e=>upd(i,{link:e.target.value})} placeholder="연결할 URL — 이 문단 전체가 클릭 링크가 됩니다 (예: /product/list.html)" style={{...fld,marginBottom:6}}/>}
-                <textarea value={b.text||''} onChange={e=>upd(i,{text:e.target.value})} placeholder={b.list?'목록 항목을 한 줄에 하나씩 입력':'문단 내용을 입력하세요'} style={{...fld,minHeight:70,resize:'vertical',fontFamily:'inherit',lineHeight:1.6,textAlign:(b.align||'left'),fontSize:({small:12,large:16,xl:19}[b.size]||13),fontWeight:(b.bold||b.size==='xl')?800:400,fontStyle:b.quote?'italic':'normal',color:({point:'#E8780F',red:'#DC2626',blue:'#2563EB',green:'#059669',gray:'#9AA0A6'}[b.color]||'var(--text)'),background:b.highlight?'#FEF9C3':(b.quote?'#FFFBF5':'#fff'),borderLeft:b.quote?'3px solid var(--or)':undefined}}/>
+                <textarea value={b.text||''} onChange={e=>upd(i,{text:e.target.value})} placeholder={b.list?'목록 항목을 한 줄에 하나씩 입력':'문단 내용을 입력하세요'} style={{...fld,minHeight:70,resize:'vertical',fontFamily:'inherit',lineHeight:1.6,textAlign:(b.align||'left'),fontSize:({small:12,large:16,xl:19}[b.size]||13),fontWeight:(b.bold||b.size==='xl')?800:400,fontStyle:b.quote?'italic':'normal',color:(b.color?({point:'#E8780F',red:'#DC2626',blue:'#2563EB',green:'#059669',gray:'#9AA0A6'}[b.color]||b.color):'var(--text)'),background:b.highlight?'#FEF9C3':(b.quote?'#FFFBF5':'#fff'),borderLeft:b.quote?'3px solid var(--or)':undefined}}/>
               </div>
             : b.type==='divider'
             ? <div style={{padding:'8px 0'}}><div style={{height:2,background:'var(--border)',borderRadius:2}}/><div style={{textAlign:'center',fontSize:10.5,color:'var(--text-sm)',fontWeight:700,marginTop:5}}>— 구분선 —</div></div>
@@ -5319,6 +5330,12 @@ function PostingBlocks({blocks,onChange,uploadImage,uploadingKey}){
                 </div>}
               </div>}
         </div>
+        <div style={{display:'flex',alignItems:'center',gap:6,margin:'-2px 0 8px',opacity:.7}}>
+          <div style={{flex:1,height:1,background:'var(--border-s)'}}/>
+          {[['글','text'],['사진','image'],['구분선','divider'],['버튼','button']].map(function(o){return <button key={o[1]} type="button" title={'여기에 '+o[0]+' 삽입'} onClick={()=>insertAt(i+1,o[1]==='text'?{type:'text',text:''}:o[1]==='image'?{type:'image',url:'',hotspots:[]}:o[1]==='divider'?{type:'divider'}:{type:'button',text:'',link:''})} style={{padding:'2px 8px',borderRadius:20,fontSize:10.5,fontWeight:800,cursor:'pointer',border:'1px solid var(--border)',background:'#fff',color:'var(--text-md)'}}>+ {o[0]}</button>;})}
+          <div style={{flex:1,height:1,background:'var(--border-s)'}}/>
+        </div>
+        </React.Fragment>
       ))}
       <div style={{display:'flex',gap:8,marginTop:4,flexWrap:'wrap'}}>
         <button type="button" onClick={addText} style={addBtn}>+ 글 추가</button>

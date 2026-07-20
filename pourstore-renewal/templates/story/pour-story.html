@@ -1280,9 +1280,10 @@ var PM_POSTS = [];
 .pstory-philo { margin-top:16px; font-size:16px; color:#4B5563; font-weight:500; line-height:1.75; max-width:760px; word-break:keep-all; }
 .pstory-philo b { color:#111111; font-weight:800; }
 .pstory-philo-pts { margin-top:24px; display:flex; gap:12px; flex-wrap:wrap; }
-.pstory-pp { flex:1; min-width:190px; display:flex; flex-direction:column; background:#fff; border:1px solid #FBD9B8; border-radius:14px; padding:15px 18px; box-shadow:0 4px 14px rgba(232,120,15,.06); }
-.pstory-pp .ic { font-size:22px; line-height:1; }
-.pstory-pp b { margin-top:9px; font-size:15px; font-weight:800; color:#111111; letter-spacing:-0.02em; }
+.pstory-pp { flex:1; min-width:190px; display:flex; flex-direction:column; background:#fff; border:1px solid #FBD9B8; border-radius:14px; padding:16px 18px; box-shadow:0 4px 14px rgba(232,120,15,.06); }
+.pstory-pp .pp-ic { width:42px; height:42px; border-radius:12px; background:#FFF3E9; color:#E8780F; display:grid; place-items:center; }
+.pstory-pp .pp-ic svg { width:23px; height:23px; }
+.pstory-pp b { margin-top:12px; font-size:15px; font-weight:800; color:#111111; letter-spacing:-0.02em; }
 .pstory-pp .d { margin-top:4px; font-size:12.5px; font-weight:600; color:#A8815F; }
 /* 섹션 공통 */
 .pstory-sec { max-width:1256px; margin:0 auto; padding:36px 24px; }
@@ -1521,7 +1522,7 @@ var PM_POSTS = [];
   .pstory-h1 { font-size:25px; } .pstory-lead { font-size:13.5px; }
   .pstory-philo { font-size:14px; margin-top:12px; } .pstory-philo .pc { display:none; }
   .pstory-philo-pts { margin-top:16px; gap:8px; } .pstory-pp { min-width:0; flex-basis:calc(50% - 4px); padding:12px 13px; }
-  .pstory-pp .ic { font-size:19px; } .pstory-pp b { font-size:13.5px; margin-top:7px; } .pstory-pp .d { font-size:11.5px; }
+  .pstory-pp .pp-ic { width:36px; height:36px; border-radius:10px; } .pstory-pp .pp-ic svg { width:20px; height:20px; } .pstory-pp b { font-size:13.5px; margin-top:9px; } .pstory-pp .d { font-size:11.5px; }
   .pstory-sec { padding:28px 16px; }
   .pstory-brand-inner { padding:44px 16px 50px; }
   .pstory-brand-h { font-size:24px; }
@@ -1584,9 +1585,9 @@ var PM_POSTS = [];
     <h1 class="pstory-h1">누구나 쉽고, <span class="or">성공적으로 시공</span>하도록</h1>
     <p class="pstory-philo">260만 세대의 시공 데이터와 연구원·전문 시공사의 노하우를 <b>콘텐츠로 풀어냈습니다</b>. <br class="pc"/>관심 있는 이야기를 바로 보고, 직접 따라 해보고, <b>검증된 자재로 성공</b>하세요.</p>
     <div class="pstory-philo-pts">
-      <div class="pstory-pp"><span class="ic">📊</span><b>데이터로 풀고</b><span class="d">260만 세대·70여 특허·연구진</span></div>
-      <div class="pstory-pp"><span class="ic">👀</span><b>바로 보고</b><span class="d">관심 콘텐츠를 한눈에</span></div>
-      <div class="pstory-pp"><span class="ic">🔧</span><b>직접 성공</b><span class="d">셀프시공 + 검증된 자재</span></div>
+      <div class="pstory-pp"><span class="pp-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v15a1 1 0 0 0 1 1h15"/><rect x="7.5" y="12" width="2.6" height="5" rx="0.6"/><rect x="12" y="8.5" width="2.6" height="8.5" rx="0.6"/><rect x="16.5" y="5.5" width="2.6" height="11.5" rx="0.6"/></svg></span><b>데이터로 풀고</b><span class="d">260만 세대·70여 특허·연구진</span></div>
+      <div class="pstory-pp"><span class="pp-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3.1"/></svg></span><b>바로 보고</b><span class="d">관심 콘텐츠를 한눈에</span></div>
+      <div class="pstory-pp"><span class="pp-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.6 6.2a3.6 3.6 0 0 0-4.7 4.5l-5.2 5.2a1.7 1.7 0 0 0 2.4 2.4l5.2-5.2a3.6 3.6 0 0 0 4.5-4.7l-2.3 2.3-1.9-1.9 2-2z"/></svg></span><b>직접 성공</b><span class="d">셀프시공 + 검증된 자재</span></div>
     </div>
   </div>
 </div>

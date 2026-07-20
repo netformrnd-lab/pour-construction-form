@@ -5165,6 +5165,8 @@ const FLOW_FONTCSS={nanumgothic:"'Nanum Gothic',sans-serif",nanummyeongjo:"'Nanu
 function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
   const ref=useRef(null);
   const lastPara=useRef(null);
+  const selParas=useRef([]);
+  const [curFmt,setCurFmt]=useState({font:'',fontsize:''});
   const [dragOver,setDragOver]=useState(false);
   const [fc,setFc]=useState('#E8780F');
   const [favColors,setFavColors]=useState(()=>{ try{ return JSON.parse(localStorage.getItem('pourPostFavColors')||'[]'); }catch(e){ return []; } });
@@ -5199,7 +5201,10 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
   const restyle=(p)=>{ p.style.textAlign=p.dataset.align||''; p.style.fontSize=p.dataset.fontsize?(parseInt(p.dataset.fontsize,10)+'px'):((p.dataset.size&&FLOW_SIZES[p.dataset.size])?FLOW_SIZES[p.dataset.size]:''); p.style.fontWeight=(p.dataset.bold||p.dataset.size==='xl')?'800':''; p.style.color=colVal(p.dataset.color); p.style.fontFamily=(p.dataset.font&&FLOW_FONTCSS[p.dataset.font])?FLOW_FONTCSS[p.dataset.font]:''; };
   const eyedrop=async()=>{ if(typeof window.EyeDropper!=='function'){ alert('스포이트는 크롬·엣지에서만 지원됩니다.'); return; } const tp=curPara()||lastPara.current; try{ const r=await new window.EyeDropper().open(); if(r&&r.sRGBHex){ setFc(r.sRGBHex); applyPara({color:r.sRGBHex}, tp); addFav(r.sRGBHex); } }catch(e){} };
   const selectedParas=()=>{ const sel=window.getSelection&&window.getSelection(); if(!sel||!sel.rangeCount||!ref.current) return []; const rg=sel.getRangeAt(0); const kids=Array.prototype.slice.call(ref.current.children).filter(function(el){return el.tagName==='P'||el.tagName==='DIV';}); return kids.filter(function(el){ try{ return rg.intersectsNode(el); }catch(e){ return false; } }); };
-  const applyPara=(patch,tp)=>{ let ps=tp?[tp]:selectedParas(); if(!ps.length){ const p=curPara()||lastPara.current; if(p)ps=[p]; } ps=ps.filter(function(p){return p&&ref.current&&ref.current.contains(p);}); if(!ps.length) return; ps.forEach(function(p){ Object.keys(patch).forEach(function(k){ const v=patch[k]; if(v==null||v===''||v===false){ p.removeAttribute('data-'+k); } else { p.setAttribute('data-'+k, v===true?'1':v); } }); restyle(p); }); sync(); };
+  const applyPara=(patch,tp)=>{ let ps=tp?(Array.isArray(tp)?tp:[tp]):selectedParas(); if(!ps.length){ const p=curPara()||lastPara.current; if(p)ps=[p]; } ps=ps.filter(function(p){return p&&ref.current&&ref.current.contains(p);}); if(!ps.length) return; ps.forEach(function(p){ Object.keys(patch).forEach(function(k){ const v=patch[k]; if(v==null||v===''||v===false){ p.removeAttribute('data-'+k); } else { p.setAttribute('data-'+k, v===true?'1':v); } }); restyle(p); }); sync(); };
+  // 드래그(선택) 시 선택된 문단들 기억 + 서식바에 현재 폰트·크기 표시(워드처럼)
+  const onSel=()=>{ const ps=selectedParas(); selParas.current=ps; const first=(ps&&ps[0])||curPara()||lastPara.current; if(first){ setCurFmt({font:first.dataset.font||'', fontsize:first.dataset.fontsize||''}); } };
+  const targetParas=()=>{ const ps=(selParas.current&&selParas.current.length)?selParas.current:(lastPara.current?[lastPara.current]:[]); return ps.filter(function(p){return p&&ref.current&&ref.current.contains(p);}); };
   const tbtn={padding:'5px 10px',borderRadius:7,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,fontWeight:800,color:'var(--text-md)',cursor:'pointer'};
   const noBlur={onMouseDown:(e)=>e.preventDefault()};
   return (
@@ -5207,16 +5212,16 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
       <style>{'.pflow{outline:none} .pflow p,.pflow div{margin:0 0 12px} .pflow img{width:100%;height:auto;border-radius:10px;margin:8px 0;display:block} .pflow p[data-align="center"] img{margin-left:auto;margin-right:auto} .pflow p[data-align="right"] img{margin-left:auto;margin-right:0} .pflow hr{border:0;border-top:2px solid var(--border);margin:18px 0} .pflow:empty:before{content:attr(data-ph);color:var(--text-sm)}'}</style>
       <div style={{position:'sticky',top:-2,zIndex:8,background:'#fff',paddingTop:6,paddingBottom:2,borderBottom:'1px solid var(--border-s)',boxShadow:'0 4px 8px -6px rgba(0,0,0,.25)'}}>
       <div style={{display:'flex',gap:5,marginBottom:7,flexWrap:'wrap',alignItems:'center',padding:'7px 8px',border:'1px solid var(--border)',borderRadius:9,background:'var(--bg)'}}>
-        <select {...noBlur} onChange={e=>applyPara({font:e.target.value})} defaultValue="" title="폰트(문단)" style={{...tbtn,padding:'5px 8px',cursor:'pointer'}}>
+        <select value={curFmt.font} onChange={e=>{ const v=e.target.value; applyPara({font:v}, targetParas()); setCurFmt(function(f){return {...f,font:v};}); }} title="폰트(선택 문단들)" style={{...tbtn,padding:'5px 8px',cursor:'pointer'}}>
           {Object.keys(FLOW_FONTS).map(function(k){return <option key={k||'def'} value={k}>{FLOW_FONTS[k]}</option>;})}
         </select>
         <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
         {[['left','좌'],['center','가운데'],['right','우']].map(function(o){return <button key={o[0]} type="button" {...noBlur} onClick={()=>applyPara({align:o[0]==='left'?'':o[0]})} style={tbtn}>{o[1]}</button>;})}
         <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
         <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:800}}>크기</span>
-        <button type="button" {...noBlur} onClick={()=>{ const p=curPara()||lastPara.current; if(!p)return; const cur=parseInt(p.dataset.fontsize||'15',10); applyPara({fontsize:Math.max(8,cur-1)},p); }} style={{...tbtn,padding:'5px 9px'}}>−</button>
-        <input type="number" min="8" max="120" placeholder="px" onMouseDown={()=>curPara()} onChange={e=>{ const v=parseInt(e.target.value,10); applyPara((v>=8&&v<=120)?{fontsize:v}:{fontsize:''}); }} style={{width:50,textAlign:'center',padding:'5px 6px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12,fontWeight:800,color:'var(--text)',outline:'none'}}/>
-        <button type="button" {...noBlur} onClick={()=>{ const p=curPara()||lastPara.current; if(!p)return; const cur=parseInt(p.dataset.fontsize||'15',10); applyPara({fontsize:Math.min(120,cur+1)},p); }} style={{...tbtn,padding:'5px 9px'}}>＋</button>
+        <button type="button" {...noBlur} onClick={()=>{ const ps=targetParas(); if(!ps.length)return; const cur=parseInt(ps[0].dataset.fontsize||'15',10); const nv=Math.max(8,cur-1); applyPara({fontsize:nv},ps); setCurFmt(function(f){return {...f,fontsize:String(nv)};}); }} style={{...tbtn,padding:'5px 9px'}}>−</button>
+        <input type="number" min="8" max="120" placeholder="px" value={curFmt.fontsize} onChange={e=>{ const raw=e.target.value; setCurFmt(function(f){return {...f,fontsize:raw};}); const v=parseInt(raw,10); applyPara((v>=8&&v<=120)?{fontsize:v}:{fontsize:''}, targetParas()); }} style={{width:50,textAlign:'center',padding:'5px 6px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12,fontWeight:800,color:'var(--text)',outline:'none'}}/>
+        <button type="button" {...noBlur} onClick={()=>{ const ps=targetParas(); if(!ps.length)return; const cur=parseInt(ps[0].dataset.fontsize||'15',10); const nv=Math.min(120,cur+1); applyPara({fontsize:nv},ps); setCurFmt(function(f){return {...f,fontsize:String(nv)};}); }} style={{...tbtn,padding:'5px 9px'}}>＋</button>
         <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
         <button type="button" {...noBlur} onClick={()=>{ const p=curPara(); if(p) applyPara({bold:p.dataset.bold?false:true}); }} style={{...tbtn,fontWeight:900,padding:'5px 11px'}}>B</button>
         <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
@@ -5233,7 +5238,7 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
       </div>
       </div>
       <div ref={ref} className="pflow" contentEditable suppressContentEditableWarning data-ph="여기에 글을 쓰고, 사진은 붙여넣거나 드래그하세요…"
-        onInput={sync} onPaste={onPaste} onKeyUp={()=>curPara()} onMouseUp={()=>curPara()}
+        onInput={sync} onPaste={onPaste} onKeyUp={onSel} onMouseUp={onSel}
         onDragOver={e=>{e.preventDefault(); if(!dragOver)setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onDrop={onDrop}
         style={{minHeight:280,border:'1.5px solid '+(dragOver?'var(--or)':'var(--border)'),borderRadius:12,padding:'16px 18px',fontSize:14.5,lineHeight:1.75,color:'var(--text)',background:'#fff',boxShadow:dragOver?'0 0 0 3px var(--or-pale)':'none',transition:'box-shadow .12s'}}/>
     </div>

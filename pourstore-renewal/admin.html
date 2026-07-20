@@ -5203,7 +5203,7 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
   const noBlur={onMouseDown:(e)=>e.preventDefault()};
   return (
     <div>
-      <style>{'.pflow{outline:none} .pflow p,.pflow div{margin:0 0 12px} .pflow img{max-width:100%;height:auto;border-radius:10px;margin:6px 0;display:block} .pflow hr{border:0;border-top:2px solid var(--border);margin:18px 0} .pflow:empty:before{content:attr(data-ph);color:var(--text-sm)}'}</style>
+      <style>{'.pflow{outline:none} .pflow p,.pflow div{margin:0 0 12px} .pflow img{width:100%;height:auto;border-radius:10px;margin:8px 0;display:block} .pflow p[data-align="center"] img{margin-left:auto;margin-right:auto} .pflow p[data-align="right"] img{margin-left:auto;margin-right:0} .pflow hr{border:0;border-top:2px solid var(--border);margin:18px 0} .pflow:empty:before{content:attr(data-ph);color:var(--text-sm)}'}</style>
       <div style={{display:'flex',gap:5,marginBottom:7,flexWrap:'wrap',alignItems:'center',padding:'7px 8px',border:'1px solid var(--border)',borderRadius:9,background:'var(--bg)'}}>
         <select {...noBlur} onChange={e=>applyPara({font:e.target.value})} defaultValue="" title="폰트(문단)" style={{...tbtn,padding:'5px 8px',cursor:'pointer'}}>
           {Object.keys(FLOW_FONTS).map(function(k){return <option key={k||'def'} value={k}>{FLOW_FONTS[k]}</option>;})}

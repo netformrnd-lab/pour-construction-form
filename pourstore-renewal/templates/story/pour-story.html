@@ -1691,8 +1691,7 @@ var PC_TTL = 300000;
   // 클릭 라우팅: 영상=재생 모달 / 본문 있거나 외부링크 없음=자사몰 아티클 / 그 외=외부링크 이동
   function clickAttrs(p){
     if (isYt(p.link)) return ytAttrs(p);
-    if ((p.body && p.body.trim()) || (p.advancedHtml && p.advancedHtml.trim()) || !realLink(p)) return ' data-article="'+esc(p.id||'')+'"';
-    return ' data-embed="'+esc(p.id||'')+'"'; // 외부 일반 링크 → 자사몰 안 아이프레임으로 표시
+    return ' data-article="'+esc(p.id||'')+'"'; // 외부 링크든 아니든 항상 자사몰 네이티브 아티클로 열기
   }
   // 본문 파서: 한 줄이 이미지 URL이면 <img>, 아니면 문단(<p>). 빈 줄로 문단 구분.
   function renderBodyBlocks(body){
@@ -2393,7 +2392,7 @@ var PC_TTL = 300000;
 
   // 닫기 + 클릭 라우팅(영상=재생 / 아티클=본문 / 그외=외부이동)
   if ($('[data-art-close]')) $('[data-art-close]').addEventListener('click', closeArticle);
-  document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ if(embedModal && embedModal.classList.contains('open')) closeEmbed(); else if(modal && !modal.hidden) closeVideo(); else if(artModal && !artModal.hidden) closeArticle(); } });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ if(modal && !modal.hidden) closeVideo(); else if(artModal && !artModal.hidden) closeArticle(); } });
   if (modal) $('[data-modal-x]').addEventListener('click', closeVideo);
   // 상품 핫스팟 점 클릭 → 상품 미니카드 토글 (아티클 본문 이미지)
   if (artScroll){
@@ -2416,44 +2415,9 @@ var PC_TTL = 300000;
       }
     });
   }
-  // ===== 외부 콘텐츠(시공사례 등)를 자사몰 안 아이프레임으로 표시(랜딩 대신) =====
-  var embedModal=null, _embOverflow='';
-  function ensureEmbedStyle(){
-    if(document.getElementById('pstory-embed-style')) return;
-    var st=document.createElement('style'); st.id='pstory-embed-style';
-    st.textContent='.pstory-embed{position:fixed;inset:0;z-index:4000;background:#fff;display:none;flex-direction:column;}'
-      +'.pstory-embed.open{display:flex;}'
-      +'.pstory-embed-bar{display:flex;align-items:center;gap:10px;height:54px;padding:0 12px;border-bottom:1px solid #eee;flex:0 0 auto;background:#fff;}'
-      +'.pstory-embed-back{border:0;background:none;font:inherit;font-size:14px;font-weight:800;color:#111;cursor:pointer;padding:8px 6px;}'
-      +'.pstory-embed-tt{flex:1;font-size:14px;font-weight:800;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}'
-      +'.pstory-embed-ext{font-size:12.5px;font-weight:800;color:#E8780F;text-decoration:none;border:1px solid #F3D3B5;border-radius:8px;padding:8px 12px;white-space:nowrap;}'
-      +'.pstory-embed-x{border:0;background:#f1f1f1;width:34px;height:34px;border-radius:50%;font-size:18px;cursor:pointer;flex:0 0 auto;}'
-      +'.pstory-embed-body{flex:1;position:relative;background:#f6f7f9;}'
-      +'.pstory-embed-note{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;color:#9aa0a6;font-size:14px;font-weight:700;line-height:1.6;max-width:80%;z-index:0;}'
-      +'.pstory-embed-body iframe{position:relative;z-index:1;width:100%;height:100%;border:0;}';
-    document.head.appendChild(st);
-  }
-  function openEmbed(p){
-    var url=p&&p.link; if(!url||!/^https?:/.test(url)) return;
-    ensureEmbedStyle();
-    if(!embedModal){
-      embedModal=document.createElement('div'); embedModal.className='pstory-embed';
-      embedModal.innerHTML='<div class="pstory-embed-bar"><button type="button" class="pstory-embed-back" data-emb-close>‹ 목록으로</button><div class="pstory-embed-tt"></div><a class="pstory-embed-ext" target="_blank" rel="noopener">새 창 ↗</a><button type="button" class="pstory-embed-x" data-emb-close aria-label="닫기">×</button></div>'
-        +'<div class="pstory-embed-body"><div class="pstory-embed-note">페이지를 불러오는 중이에요…<br>화면이 비어 있으면 위 <b>새 창 ↗</b> 으로 열어주세요.</div><iframe title="" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe></div>';
-      document.body.appendChild(embedModal);
-      embedModal.addEventListener('click',function(e){ if(e.target.closest('[data-emb-close]')) closeEmbed(); });
-    }
-    embedModal.querySelector('.pstory-embed-tt').textContent=p.title||'';
-    embedModal.querySelector('.pstory-embed-ext').href=url;
-    embedModal.querySelector('iframe').src=url;
-    embedModal.classList.add('open');
-    _embOverflow=document.documentElement.style.overflow; document.documentElement.style.overflow='hidden';
-  }
-  function closeEmbed(){ if(!embedModal)return; embedModal.classList.remove('open'); var f=embedModal.querySelector('iframe'); if(f) f.src='about:blank'; document.documentElement.style.overflow=_embOverflow||''; }
   root.addEventListener('click', function(e){
     var v=e.target.closest('[data-yt]'); if(v){ e.preventDefault(); var p=byId(v.getAttribute('data-pid')); if(p) openWatch(p); return; }
     var a=e.target.closest('[data-article]'); if(a){ e.preventDefault(); var q=byId(a.getAttribute('data-article')); if(q) openArticle(q); return; }
-    var em=e.target.closest('[data-embed]'); if(em){ e.preventDefault(); var qe=byId(em.getAttribute('data-embed')); if(qe) openEmbed(qe); return; }
   });
   try{ pengOpenFromHash(); }catch(e){}
 })();

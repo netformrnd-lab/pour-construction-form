@@ -721,7 +721,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"일정"},{id:"journey",icon:"🗂",label:"활동 여정"},{id:"more",icon:"⋯",label:"더보기"}];
-const SHARE_NAV=[{id:"kpi",icon:"◎",label:"KPI"},{id:"mindmap",icon:"◈",label:"그로스보드"}];   // 공유 보기 전용 네비
+const SHARE_NAV=[{id:"kpi",icon:"◎",label:"KPI"},{id:"share-flow",icon:"🗺",label:"업무 플로우맵"},{id:"share-proj",icon:"▦",label:"프로젝트 현황"},{id:"mindmap",icon:"◈",label:"그로스보드"}];   // 공유 보기 전용 네비
 const MORE=[{id:"mindmap",icon:"◈",label:"그로스보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
 const NAV_GROUPS=[
@@ -1019,7 +1019,7 @@ export default function App(){
   },[D,loaded]);
   useEffect(()=>{ if(!undo) return; const t=setTimeout(()=>setUndo(null),5500); return ()=>clearTimeout(t); },[undo]);   // 되돌리기 토스트 5.5초 후 자동 소멸
   const nav=(id)=>{setPage(id);setMore(false);};
-  const allPages=[...TABS.filter(t=>t.id!=="more"),...MORE];
+  const allPages=[...TABS.filter(t=>t.id!=="more"),...MORE,{id:"share-flow",icon:"🗺",label:"업무 플로우맵"},{id:"share-proj",icon:"▦",label:"프로젝트 현황"}];
   const pi=allPages.find(p=>p.id===page);
   if(!loaded) return(
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:14,fontFamily:"'Pretendard',sans-serif",color:"#9CA3AF"}}>
@@ -1035,7 +1035,7 @@ export default function App(){
       <button onClick={()=>location.reload()} style={{marginTop:4,padding:"11px 22px",borderRadius:11,border:"none",background:"#F97316",color:"#fff",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>새로고침</button>
     </div>
   );
-  const navAll=[...TABS.filter(t=>t.id!=="more"),...MORE];
+  const navAll=[...TABS.filter(t=>t.id!=="more"),...MORE,{id:"share-flow",icon:"🗺",label:"업무 플로우맵"},{id:"share-proj",icon:"▦",label:"프로젝트 현황"}];
   const pageContent=(<>
     {page==="today"&&<TodayPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup} pc={viewMode==="pc"} ro={SHARE}/>}
@@ -1049,6 +1049,8 @@ export default function App(){
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="ai"&&<AIPage D={D} cu={cu} add={add} rm={rm}/>}
     {page==="journey"&&<JourneyPage D={D} cu={cu} restore={restore}/>}
+    {page==="share-flow"&&<ShareFlowPage D={D}/>}
+    {page==="share-proj"&&<ShareProjectsPage D={D}/>}
   </>);
   const sheets=(<>
     {syncToast&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 12px)",left:"50%",transform:"translateX(-50%)",zIndex:5000,background:"#0F1F5C",color:"#fff",padding:"8px 16px",borderRadius:999,fontSize:12,fontWeight:700,boxShadow:"0 6px 20px rgba(0,0,0,0.25)",whiteSpace:"nowrap",pointerEvents:"none"}}>🔄 다른 기기에서 업데이트됨</div>}
@@ -1151,7 +1153,7 @@ export default function App(){
           <div><p style={{margin:0,fontSize:14.5,fontWeight:900,color:"#0F1F5C",lineHeight:1.1}}>POUR OS</p><p style={{margin:0,fontSize:9.5,color:"#F97316",fontWeight:800}}>업무관리</p></div>
         </div>
         <nav style={{flex:1,overflowY:"auto",padding:8}}>
-          {(SHARE?[{label:"공유 보기",ids:["kpi","mindmap"]}]:NAV_GROUPS).map(grp=>(
+          {(SHARE?[{label:"공유 보기",ids:["kpi","share-flow","share-proj","mindmap"]}]:NAV_GROUPS).map(grp=>(
             <div key={grp.label} style={{marginBottom:8}}>
               <p style={{margin:"6px 12px 4px",fontSize:10,fontWeight:800,color:"#B0B8C1",letterSpacing:0.6}}>{grp.label}</p>
               {grp.ids.map(id=>{const it=navAll.find(x=>x.id===id);if(!it)return null;const act=page===id;return(
@@ -3100,7 +3102,7 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
             {rows.length===0?(
               <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:8,textAlign:"center"}}><p style={{margin:"24px 0 10px",fontSize:12,color:"#9CA3AF"}}>아직 단계가 없어요</p><button onClick={addRoot} style={{padding:"9px 16px",borderRadius:10,border:"1.5px dashed #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:16}}>+ 첫 단계 추가</button></div>
             ):(
-              <FlowView mode="progress" height={Math.max(320,Math.min(680,maxY+NODE_H+90))} nodes={fNodes} edges={fEdges} selectedId={selId} onNodeTap={node=>setSelId(node.id)}/>
+              <FlowView mode="progress" height={Math.max(320,Math.min(680,maxY+NODE_H+90))} nodes={fNodes} edges={fEdges} selectedId={selId} onNodeTap={node=>setSelId(node.id)} downloadName={proj.title}/>
             )}
             {sel&&(()=>{const si=items.findIndex(x=>x.id===selId);if(si<0)return null;return(
               <div style={{marginTop:10,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",background:"#fff",borderRadius:12,border:"1px solid #F2F4F6",padding:"10px 12px"}}>
@@ -4338,9 +4340,139 @@ function ProjStageFlow({D,proj,cu,up}){
 const NODE_W=144, NODE_H=56;
 const FLOW_ARROW="flowArrowHead";
 const flowPath=(a,b,w,h)=>{const x1=a.x+w/2,y1=a.y+h,x2=b.x+w/2,y2=b.y;return `M ${x1} ${y1} C ${x1} ${y1+44}, ${x2} ${y2-44}, ${x2} ${y2}`;};
+// 프로젝트 → 플로우 노드/엣지 (읽기 전용 렌더용). ProcessEditor의 map 빌드 로직과 동일한 배치·상태(완료/진행가능/대기).
+function buildProjectFlow(D,proj){
+  const team=(proj.collaboratorIds||[]).length>0||proj.projType==="team";
+  const uName=(id)=>(D.users.find(u=>u.id===id)||{}).name||"";
+  const uColor=(id)=>(D.users.find(u=>u.id===id)||{}).color||"#94A3B8";
+  const all=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed);
+  const idset=new Set(all.map(t=>t.id));
+  const parentOf=(t)=>(t.parentId&&idset.has(t.parentId))?t.parentId:null;
+  const childrenOf=(pid)=>all.filter(t=>parentOf(t)===pid).sort((a,b)=>(a.seq||0)-(b.seq||0));
+  const items=[]; const walk=(pid,depth)=>{childrenOf(pid).forEach(t=>{items.push({id:t.id,depth,title:t.title||"(빈 항목)",who:t.assigneeId,done:t.status==="done"});walk(t.id,depth+1);});};
+  walk(null,0);
+  if(!items.length) return {nodes:[],edges:[],maxY:0};
+  const rParent=(p)=>{const d=items[p].depth;for(let q=p-1;q>=0;q--){const dq=items[q].depth;if(dq===d-1)return q;if(dq<d-1)return -1;}return -1;};
+  const rKids=(p)=>{const o=[];for(let q=p+1;q<items.length;q++){const dq=items[q].depth;if(dq<=items[p].depth)break;if(rParent(q)===p)o.push(q);}return o;};
+  const CW=NODE_W+26,RH=NODE_H+48;let cur=0;const pos={};
+  const placeXY=(p,depth)=>{const ks=rKids(p);if(!ks.length){pos[p]={x:20+cur*CW,y:16+depth*RH};cur++;}else{ks.forEach(q=>placeXY(q,depth+1));const xs=ks.map(q=>pos[q].x);pos[p]={x:(Math.min(...xs)+Math.max(...xs))/2,y:16+depth*RH};}};
+  for(let p=0;p<items.length;p++){if(rParent(p)===-1)placeXY(p,0);}
+  const flowOf=(i)=>{if(items[i].done)return "done";const par=rParent(i);for(let j=0;j<i;j++){if(items[j].depth===items[i].depth&&rParent(j)===par&&!items[j].done)return "wait";}return "ready";};
+  const nodes=items.map((it,p)=>{const isStage=it.depth===0;const kc=rKids(p).length;return {id:it.id,x:(pos[p]||{}).x||20,y:(pos[p]||{}).y||16,title:it.title,sub:isStage?(team&&it.who?uName(it.who):""):("업무"+(team&&it.who?" · "+uName(it.who):"")),color:uColor(it.who),status:flowOf(p),kidCount:kc,isStage};});
+  const edges=[];items.forEach((it,p)=>{const pr=rParent(p);if(pr>=0)edges.push({id:"fe"+p,from:items[pr].id,to:it.id});});
+  const stageIdx=items.map((it,p)=>it.depth===0?p:-1).filter(p=>p>=0);
+  for(let s=1;s<stageIdx.length;s++)edges.push({id:"seq"+s,from:items[stageIdx[s-1]].id,to:items[stageIdx[s]].id,seq:true});
+  const maxY=Math.max(...items.map((it,p)=>(pos[p]||{}).y||0));
+  return {nodes,edges,maxY};
+}
+// 플로우 노드/엣지 → 독립 SVG 문자열(외부 라이브러리 없이). 이미지 저장에 사용.
+const _xmlEsc=(s)=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+const _wrapLines=(s,maxChars,maxLines)=>{const t=String(s||"");const lines=[];let i=0;while(i<t.length&&lines.length<maxLines){lines.push(t.slice(i,i+maxChars));i+=maxChars;}if(i<t.length&&lines.length)lines[lines.length-1]=lines[lines.length-1].slice(0,Math.max(0,maxChars-1))+"…";return lines;};
+function buildFlowSvg(nodes,edges,opts={}){
+  const W=NODE_W,H=NODE_H,pad=opts.pad||40,titleH=opts.title?34:0;
+  const minX=Math.min(...nodes.map(n=>n.x)),minY=Math.min(...nodes.map(n=>n.y));
+  const maxX=Math.max(...nodes.map(n=>n.x+W)),maxY=Math.max(...nodes.map(n=>n.y+H));
+  const ox=pad-minX,oy=pad-minY+titleH,width=Math.round((maxX-minX)+pad*2),height=Math.round((maxY-minY)+pad*2+titleH);
+  const byId=(id)=>nodes.find(n=>n.id===id);const T=(n)=>({...n,x:n.x+ox,y:n.y+oy});
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif">`;
+  s+=`<rect width="${width}" height="${height}" fill="#FFFFFF"/>`;
+  if(opts.title)s+=`<text x="${pad}" y="26" font-size="15" font-weight="800" fill="#0F1F5C">${_xmlEsc(opts.title)}</text>`;
+  s+=`<defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#F97316"/></marker><marker id="ahs" markerWidth="10" markerHeight="10" refX="6.5" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#0F1F5C"/></marker></defs>`;
+  edges.forEach(e=>{const a=byId(e.from),b=byId(e.to);if(!a||!b)return;const A=T(a),B=T(b);
+    if(e.seq){const x1=A.x+W,y1=A.y+H/2,x2=B.x,y2=B.y+H/2,dx=Math.max(34,(x2-x1)/2);s+=`<path d="M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}" stroke="#0F1F5C" stroke-width="3.5" fill="none" opacity="0.85" marker-end="url(#ahs)"/>`;}
+    else{const col=b.status?(ST_COLOR[b.status]||"#94A3B8"):"#94A3B8";const x1=A.x+W/2,y1=A.y+H,x2=B.x+W/2,y2=B.y;s+=`<path d="M ${x1} ${y1} C ${x1} ${y1+44}, ${x2} ${y2-44}, ${x2} ${y2}" stroke="${col}" stroke-width="2.5" fill="none" opacity="0.62" marker-end="url(#ah)"/>`;}});
+  nodes.forEach(n0=>{const n=T(n0);const isS=n0.isStage;const stc=n0.status?ST_COLOR[n0.status]:null;const bd=isS?"#0F1F5C":(stc||"#CBD5E1");const bg=isS?"#0F1F5C":(n0.status==="done"?"#F0FBF5":"#FFFFFF");
+    s+=`<rect x="${n.x}" y="${n.y}" width="${W}" height="${H}" rx="${isS?14:12}" fill="${bg}" stroke="${bd}" stroke-width="${isS?2.5:2}"/>`;
+    const badgeC=stc||n0.color||"#94A3B8",badgeTxt=n0.status==="done"?"✓":(n0.stepLabel||"");
+    s+=`<circle cx="${n.x+17}" cy="${n.y+16}" r="9" fill="${badgeC}"/>`;
+    if(badgeTxt)s+=`<text x="${n.x+17}" y="${n.y+19.5}" font-size="10" font-weight="900" fill="#FFFFFF" text-anchor="middle">${_xmlEsc(badgeTxt)}</text>`;
+    if(n0.sub)s+=`<text x="${n.x+31}" y="${n.y+19.5}" font-size="9.5" font-weight="800" fill="${isS?"#C7D2FE":(stc||n0.color||"#64748B")}">${_xmlEsc(String(n0.sub).slice(0,16))}</text>`;
+    const tcol=isS?"#FFFFFF":(n0.status==="wait"?"#9CA3AF":"#1F2937");
+    _wrapLines(n0.title,16,2).forEach((ln,li)=>{s+=`<text x="${n.x+10}" y="${n.y+37+li*14}" font-size="11.5" font-weight="${isS?800:700}" fill="${tcol}">${_xmlEsc(ln)}</text>`;});
+    if(n0.kidCount>0)s+=`<text x="${n.x+W-8}" y="${n.y+H-6}" font-size="8.5" font-weight="800" fill="${isS?"#0F1F5C":"#94A3B8"}" text-anchor="end">하위 ${n0.kidCount}</text>`;});
+  s+=`</svg>`;
+  return {svg:s,width,height};
+}
+// 플로우맵을 PNG로 다운로드(자체 SVG→canvas 래스터라이즈). 실패 시 SVG 파일로 폴백.
+function downloadFlowImage(nodes,edges,name){
+  if(!nodes||!nodes.length){alert("이미지로 내보낼 단계가 없어요");return;}
+  const {svg,width,height}=buildFlowSvg(nodes,edges,{title:name});
+  const fname=(String(name||"업무플로우맵")).replace(/[\\/:*?"<>|]/g,"_");
+  const dl=(blob,ext)=>{const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download=fname+"."+ext;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);};
+  const svgBlob=new Blob([svg],{type:"image/svg+xml;charset=utf-8"});
+  const url=URL.createObjectURL(svgBlob);
+  const img=new Image();
+  img.onload=()=>{try{const scale=2,canvas=document.createElement("canvas");canvas.width=Math.round(width*scale);canvas.height=Math.round(height*scale);const ctx=canvas.getContext("2d");ctx.scale(scale,scale);ctx.drawImage(img,0,0);URL.revokeObjectURL(url);canvas.toBlob(b=>{if(b)dl(b,"png");else dl(svgBlob,"svg");},"image/png");}catch(_){URL.revokeObjectURL(url);dl(svgBlob,"svg");}};
+  img.onerror=()=>{URL.revokeObjectURL(url);dl(svgBlob,"svg");};
+  img.src=url;
+}
+// 공유 보기 — 업무 플로우맵 전용(읽기). 프로젝트 골라 흐름 보기 + 이미지 저장.
+function ShareFlowPage({D}){
+  const projs=D.projects.filter(p=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed)).sort((a,b)=>String(a.group||"").localeCompare(String(b.group||""))||String(a.title||"").localeCompare(String(b.title||"")));
+  const [sel,setSel]=useState(projs[0]?projs[0].id:null);
+  const proj=projs.find(p=>p.id===sel)||projs[0]||null;
+  const flow=proj?buildProjectFlow(D,proj):{nodes:[],edges:[],maxY:0};
+  return(
+    <div style={{padding:"16px",maxWidth:1100,margin:"0 auto"}}>
+      <div style={{marginBottom:12}}>
+        <h2 style={{margin:0,fontSize:18,fontWeight:900,color:"#0F1F5C"}}>🗺 업무 플로우맵</h2>
+        <p style={{margin:"4px 0 0",fontSize:11.5,color:"#9CA3AF"}}>프로젝트를 골라 진행 흐름을 보고 이미지로 저장할 수 있어요 · 읽기 전용</p>
+      </div>
+      {projs.length===0?<Empty t="표시할 프로젝트가 없어요"/>:(<>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+          {projs.map(p=>{const on=p.id===(proj&&proj.id);return(<button key={p.id} onClick={()=>setSel(p.id)} style={{padding:"7px 12px",borderRadius:9,border:`1.5px solid ${on?"#0F1F5C":"#E5E8EB"}`,background:on?"#0F1F5C":"#fff",color:on?"#fff":"#4B5563",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{p.group?`[${p.group}] `:""}{p.title}</button>);})}
+        </div>
+        {proj&&(<>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:8,flexWrap:"wrap"}}>
+            <div style={{display:"flex",gap:12,fontSize:10.5,fontWeight:700,flexWrap:"wrap"}}><span style={{color:"#00A862"}}>● 완료</span><span style={{color:"#EA580C"}}>▶ 진행 가능</span><span style={{color:"#9CA3AF"}}>○ 대기</span></div>
+            <button onClick={()=>downloadFlowImage(flow.nodes,flow.edges,proj.title)} style={{padding:"8px 14px",borderRadius:9,border:"none",background:"#F97316",color:"#fff",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📷 이미지 저장</button>
+          </div>
+          {flow.nodes.length===0?<Empty t="이 프로젝트엔 아직 단계가 없어요"/>:<FlowView mode="progress" height={Math.max(360,Math.min(760,flow.maxY+NODE_H+120))} nodes={flow.nodes} edges={flow.edges} downloadName={proj.title}/>}
+        </>)}
+      </>)}
+    </div>
+  );
+}
+// 공유 보기 — 프로젝트 현황(읽기). 그룹별 진행률·상태·업무 수.
+function ShareProjectsPage({D}){
+  const uName=(id)=>(D.users.find(u=>u.id===id)||{}).name||"미배정";
+  const uColor=(id)=>(D.users.find(u=>u.id===id)||{}).color||"#9CA3AF";
+  const projs=[...D.projects].sort((a,b)=>String(a.group||"").localeCompare(String(b.group||""))||(b.progress||0)-(a.progress||0));
+  const groups={};projs.forEach(p=>{(groups[p.group||"기타"]=groups[p.group||"기타"]||[]).push(p);});
+  const taskN=(p)=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);
+  return(
+    <div style={{padding:"16px",maxWidth:1100,margin:"0 auto"}}>
+      <div style={{marginBottom:12}}>
+        <h2 style={{margin:0,fontSize:18,fontWeight:900,color:"#0F1F5C"}}>▦ 프로젝트 현황</h2>
+        <p style={{margin:"4px 0 0",fontSize:11.5,color:"#9CA3AF"}}>전체 프로젝트 진행 상황 · 읽기 전용</p>
+      </div>
+      {projs.length===0?<Empty t="프로젝트가 없어요"/>:Object.keys(groups).map(g=>(
+        <div key={g} style={{marginBottom:16}}>
+          <p style={{margin:"0 0 8px",fontSize:12,fontWeight:800,color:"#6B7280"}}>{g} · {groups[g].length}</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:10}}>
+            {groups[g].map(p=>{const st=PROJ_STATUS[projStatus(p)]||{};const ts=taskN(p);const done=ts.filter(t=>t.status==="done").length;const prog=p.progress||0;return(
+              <div key={p.id} style={{background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 14px",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:6}}>
+                  <span style={{fontSize:13,fontWeight:800,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
+                  <span style={{flexShrink:0,fontSize:10,fontWeight:800,color:st.color||"#6B7280",background:(st.color||"#9CA3AF")+"18",borderRadius:6,padding:"2px 7px"}}>{st.label||p.status||""}</span>
+                </div>
+                <div style={{height:7,borderRadius:6,background:"#F2F4F6",overflow:"hidden",marginBottom:5}}><div style={{width:prog+"%",height:"100%",background:prog>=100?"#00C073":"#F97316",borderRadius:6}}/></div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:10.5,color:"#9CA3AF",fontWeight:700}}>
+                  <span>진행 {prog}% · 업무 {done}/{ts.length}</span>
+                  <span style={{display:"inline-flex",alignItems:"center",gap:4}}><Ava name={uName(p.assigneeId)} color={uColor(p.assigneeId)} size={16}/>{uName(p.assigneeId)}</span>
+                </div>
+                {p.resultValue>0&&<p style={{margin:"6px 0 0",fontSize:11,fontWeight:800,color:"#EA580C"}}>💰 {fmt(p.resultValue,"원")}</p>}
+              </div>
+            );})}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 // n8n식 노드 캔버스 — 팬(빈공간 드래그)·줌(버튼/Ctrl휠)·노드 드래그·핸들 드래그로 연결·화살표. 편집/진행 공용.
 // nodes:[{id,x,y,title,sub,color,status?,auto?,stepLabel?}] · edges:[{id,from,to}] · mode:"edit"|"progress"
-function FlowView({nodes,edges,mode="progress",height=520,nodeW=NODE_W,nodeH=NODE_H,selectedId,onNodeTap,onNodeDragEnd,onConnect,onDeleteEdge,onNodeEdit}){
+function FlowView({nodes,edges,mode="progress",height=520,nodeW=NODE_W,nodeH=NODE_H,selectedId,onNodeTap,onNodeDragEnd,onConnect,onDeleteEdge,onNodeEdit,downloadName}){
   const editable=mode==="edit";
   const wrapRef=useRef(null);
   const [view,setView]=useState({x:24,y:20,z:1});
@@ -4419,6 +4551,7 @@ function FlowView({nodes,edges,mode="progress",height=520,nodeW=NODE_W,nodeH=NOD
         <button onPointerDown={e=>e.stopPropagation()} onClick={()=>zoomBy(1.2)} style={ctrlBtn}>＋</button>
         <button onPointerDown={e=>e.stopPropagation()} onClick={()=>zoomBy(1/1.2)} style={ctrlBtn}>－</button>
         <button onPointerDown={e=>e.stopPropagation()} onClick={fitView} title="전체 맞춤" style={{...ctrlBtn,fontSize:13}}>⤢</button>
+        <button onPointerDown={e=>e.stopPropagation()} onClick={()=>downloadFlowImage(nodes,edges,downloadName||"업무 플로우맵")} title="이미지로 저장(PNG)" style={{...ctrlBtn,fontSize:13}}>📷</button>
       </div>
       <span style={{position:"absolute",left:10,bottom:10,fontSize:10,fontWeight:700,color:"#AEB6BE",zIndex:10}}>{Math.round(view.z*100)}%{editable?" · 빈곳 드래그=이동 · 노드 ●드래그=연결":" · 빈곳 드래그=이동"}</span>
     </div>

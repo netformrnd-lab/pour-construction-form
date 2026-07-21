@@ -1,0 +1,205 @@
+<!-- ============================================================
+  POUR닥터 상담 페이지 (pour-doctor.html) — 퀵배너(.pdq)의 연결 목적지
+  - 고객 문의/사진 → pourstorecrm(pour_chatbot_threads)에 "상담대기"로 접수
+    → CRM 챗봇센터 → 봇 상담 에서 AI 초안 → 검토 → 전송
+  - 사진은 Firebase Storage(chatbot_uploads/)에 업로드
+  설치: Cafe24에 pour-doctor.html 페이지를 만들고 이 코드를 본문에 붙여넣기
+  ※ 사전 준비(1회): CRM 저장소에서  firebase deploy --only firestore:rules,storage
+============================================================ -->
+<section class="pdp">
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
+.pdp *, .pdp *::before, .pdp *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; letter-spacing:-0.02em; }
+.pdp { background:#fff; padding:64px 18px 90px; color:#2F3438; }
+.pdp button { background:none; border:none; cursor:pointer; font:inherit; color:inherit; }
+.pdp img { display:block; max-width:100%; }
+.pdp-inner { max-width:720px; margin:0 auto; }
+/* 헤더 */
+.pdp-head { text-align:center; margin-bottom:26px; }
+.pdp-head .kicker { display:inline-block; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.06em; padding:4px 12px; background:#FFF7ED; border:1px solid #FED7AA; margin-bottom:12px; }
+.pdp-head h2 { font-size:30px; font-weight:900; color:#111; letter-spacing:-0.045em; line-height:1.25; }
+.pdp-head h2 b { color:#E8780F; }
+.pdp-head p { margin-top:8px; font-size:13.5px; font-weight:500; color:#6B7280; }
+/* 마스코트 + 인사 */
+.pdp-hello { display:flex; flex-direction:column; align-items:center; margin-bottom:22px; }
+.pdp-char { position:relative; display:grid; place-items:center; margin-bottom:10px; }
+.pdp-char::after { content:''; position:absolute; left:50%; top:52%; transform:translate(-50%,-50%); width:150px; height:150px; border-radius:50%; background:radial-gradient(circle, rgba(244,154,58,.16) 0%, transparent 62%); z-index:0; animation:pdpHalo 4.5s ease-in-out infinite; }
+@keyframes pdpHalo { 0%,100%{opacity:.5;transform:translate(-50%,-50%) scale(.92)} 50%{opacity:.85;transform:translate(-50%,-50%) scale(1.06)} }
+.pdp-char img { position:relative; z-index:1; width:130px; height:auto; filter:drop-shadow(0 10px 16px rgba(15,31,92,.16)); animation:pdpFloat 4s ease-in-out infinite; }
+@keyframes pdpFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+.pdp-status { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; color:#059669; margin-bottom:12px; }
+.pdp-dot { width:6px; height:6px; border-radius:50%; background:#10B981; box-shadow:0 0 0 3px rgba(16,185,129,.18); animation:pdpDot 1.8s ease-in-out infinite; }
+@keyframes pdpDot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.45;transform:scale(.8)} }
+.pdp-bubble { position:relative; max-width:520px; background:#F7F8FA; padding:15px 18px; font-size:14.5px; font-weight:600; color:#374151; line-height:1.6; word-break:keep-all; text-align:center; }
+.pdp-bubble b { color:#111; font-weight:800; }
+/* 폼 카드 */
+.pdp-card { border:1.5px solid #F2F3F5; padding:26px 26px 22px; }
+.pdp-lbl { display:block; font-size:13px; font-weight:800; color:#374151; margin:20px 0 8px; }
+.pdp-lbl:first-child { margin-top:0; }
+.pdp-lbl .req { color:#EF4444; }
+.pdp-seg { display:flex; gap:8px; }
+.pdp-seg button { flex:1; padding:13px 0; border:1.5px solid #F2F3F5; font-size:14px; font-weight:700; color:#9CA3AF; background:#fff; }
+.pdp-seg button.on { border-color:#E8780F; background:#FFF7ED; color:#C8650D; }
+.pdp-ta { width:100%; min-height:120px; resize:vertical; border:1.5px solid #F2F3F5; padding:14px 16px; font-size:15px; color:#2F3438; outline:none; line-height:1.6; }
+.pdp-ta:focus { border-color:#E8780F; }
+.pdp-inp { width:100%; border:1.5px solid #F2F3F5; padding:14px 16px; font-size:15px; color:#2F3438; outline:none; }
+.pdp-inp:focus { border-color:#E8780F; }
+.pdp-photo { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.pdp-add { display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; width:84px; height:84px; border:1.5px dashed #E8780F; background:#FFFBF6; color:#C8650D; font-size:11.5px; font-weight:700; flex-shrink:0; }
+.pdp-add svg { width:24px; height:24px; }
+.pdp-thumb { position:relative; width:84px; height:84px; overflow:hidden; flex-shrink:0; border:1px solid #F2F3F5; }
+.pdp-thumb img { width:100%; height:100%; object-fit:cover; }
+.pdp-thumb button { position:absolute; top:4px; right:4px; width:22px; height:22px; border-radius:50%; background:rgba(15,23,42,.6); color:#fff; display:grid; place-items:center; }
+.pdp-thumb button svg { width:13px; height:13px; }
+.pdp-submit { width:100%; margin-top:26px; padding:17px; background:#E8780F; color:#fff; font-size:16px; font-weight:800; transition:background .2s ease; }
+.pdp-submit:hover:not(:disabled) { background:#D26A0A; }
+.pdp-submit:disabled { opacity:.55; cursor:default; }
+.pdp-note { margin-top:11px; font-size:12px; color:#9CA3AF; text-align:center; line-height:1.6; }
+/* 완료 */
+.pdp-done { text-align:center; padding:20px 10px; }
+.pdp-done .ic { width:74px; height:74px; margin:0 auto 18px; border-radius:50%; background:#ECFDF5; color:#059669; display:grid; place-items:center; font-size:38px; }
+.pdp-done h3 { font-size:21px; font-weight:900; color:#111; }
+.pdp-done p { margin-top:10px; font-size:14.5px; color:#6B7280; line-height:1.65; }
+.pdp-done b { color:#E8780F; }
+.pdp-done .home { display:inline-block; margin-top:22px; padding:13px 26px; border:1.5px solid #E8780F; color:#C8650D; font-size:14px; font-weight:800; }
+@media (prefers-reduced-motion:reduce){ .pdp-char img, .pdp-char::after, .pdp-dot { animation:none !important; } }
+@media (max-width:700px){
+  .pdp { padding:44px 14px 64px; }
+  .pdp-head h2 { font-size:23px; }
+  .pdp-char img { width:104px; } .pdp-char::after { width:120px; height:120px; }
+  .pdp-card { padding:22px 18px 20px; }
+}
+</style>
+<div class="pdp-inner">
+  <div class="pdp-head">
+    <span class="kicker">POUR닥터 · 1:1 무료 진단</span>
+    <h2>건물 고민, <b>사진 한 장</b>이면 끝</h2>
+    <p>R&D 박사가 직접 답해드려요 · 평균 3분 응답</p>
+  </div>
+
+  <div class="pdp-hello">
+    <div class="pdp-char">
+      <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/%EB%A7%88%EC%8A%A4%EC%BD%94%ED%8A%B8%2Fbeaver_quickbanner_gown_circle_noborder.png?alt=media&token=1b20bea5-1fde-44aa-87bd-18a116b1eeee" alt="POUR닥터" loading="lazy"/>
+    </div>
+    <span class="pdp-status"><span class="pdp-dot"></span>POUR닥터 · 지금 접속 중</span>
+    <div class="pdp-bubble">안녕하세요! 어떤 건물 고민이 있으신가요?<br><b>사진 한 장</b>과 함께 편하게 말씀해 주세요 😊</div>
+  </div>
+
+  <!-- 입력 폼 -->
+  <div class="pdp-card" data-pdp-form>
+    <label class="pdp-lbl">어떤 고객이신가요?</label>
+    <div class="pdp-seg" data-pdp-seg>
+      <button data-aud="b2c" class="on">개인 · 셀프시공</button>
+      <button data-aud="b2b">사업자 · 대량구매</button>
+    </div>
+
+    <label class="pdp-lbl">고민 내용 <span class="req">*</span></label>
+    <textarea class="pdp-ta" data-pdp-msg placeholder="예: 아파트 옥상에서 물이 새요. 어떤 자재를 써야 할까요? 면적은 대략 20㎡ 정도예요."></textarea>
+
+    <label class="pdp-lbl">사진 첨부 (선택 · 최대 5장)</label>
+    <div class="pdp-photo" data-pdp-photos>
+      <label class="pdp-add">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5-9 8"/></svg>
+        사진 추가
+        <input type="file" accept="image/*" multiple hidden data-pdp-file>
+      </label>
+    </div>
+
+    <label class="pdp-lbl">답변 받으실 연락처 (선택)</label>
+    <input class="pdp-inp" data-pdp-contact placeholder="휴대폰 또는 이메일 — 남겨주시면 답변을 보내드려요" />
+
+    <button class="pdp-submit" data-pdp-submit>상담 접수하기</button>
+    <div class="pdp-note">사진·문의는 POUR스토어 상담 담당자에게만 전달됩니다.</div>
+  </div>
+
+  <!-- 완료 -->
+  <div class="pdp-card pdp-done" data-pdp-done hidden>
+    <div class="ic">✓</div>
+    <h3>상담이 접수됐어요!</h3>
+    <p>담당자가 사진과 내용을 확인한 뒤 답변드릴게요.<br>평균 <b>3분</b> 이내 응답 😊</p>
+    <a class="home" href="/">홈으로 돌아가기</a>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+// CRM(pourstorecrm) 공개 웹 설정 — 보안은 Firestore/Storage 규칙(create만 공개)으로
+const crmConfig = {
+  apiKey: "AIzaSyDAQLBECvSDHqG2ciC7MM0MADdEYLrSyZ0",
+  authDomain: "pourstorecrm.firebaseapp.com",
+  projectId: "pourstorecrm",
+  storageBucket: "pourstorecrm.firebasestorage.app",
+  messagingSenderId: "814387236246",
+  appId: "1:814387236246:web:a17bec34f3c992007aa1b7",
+};
+const app = getApps().some(a => a.name === "pourdoctor") ? getApp("pourdoctor") : initializeApp(crmConfig, "pourdoctor");
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+const root = document.querySelector(".pdp");
+if (root) (function(){
+  const seg = root.querySelector("[data-pdp-seg]");
+  const msgEl = root.querySelector("[data-pdp-msg]");
+  const contactEl = root.querySelector("[data-pdp-contact]");
+  const fileEl = root.querySelector("[data-pdp-file]");
+  const photosBox = root.querySelector("[data-pdp-photos]");
+  const submitBtn = root.querySelector("[data-pdp-submit]");
+  const formCard = root.querySelector("[data-pdp-form]");
+  const doneCard = root.querySelector("[data-pdp-done]");
+
+  let audience = "b2c";
+  let files = [];
+
+  seg && seg.addEventListener("click", (e)=>{ const b = e.target.closest("button[data-aud]"); if(!b) return; audience = b.getAttribute("data-aud"); seg.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); });
+
+  function renderThumbs(){
+    photosBox.querySelectorAll(".pdp-thumb").forEach(n=>n.remove());
+    files.forEach((f, i)=>{
+      const d = document.createElement("div"); d.className = "pdp-thumb";
+      const img = document.createElement("img"); img.src = URL.createObjectURL(f); d.appendChild(img);
+      const del = document.createElement("button"); del.type="button"; del.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      del.addEventListener("click", ()=>{ files.splice(i,1); renderThumbs(); });
+      d.appendChild(del);
+      photosBox.insertBefore(d, photosBox.firstChild);
+    });
+  }
+  fileEl && fileEl.addEventListener("change", ()=>{ for (const f of fileEl.files){ if (files.length < 5 && f.type.startsWith("image/")) files.push(f); } fileEl.value=""; renderThumbs(); });
+
+  async function submit(){
+    const content = (msgEl.value || "").trim();
+    if (!content && !files.length){ alert("고민 내용을 적어주시거나 사진을 첨부해주세요."); msgEl.focus(); return; }
+    submitBtn.disabled = true; submitBtn.textContent = "접수 중…";
+    try {
+      const folder = "w-" + Date.now() + "-" + Math.random().toString(36).slice(2,8);
+      const urls = [];
+      for (let i=0; i<files.length; i++){
+        const f = files[i];
+        const ext = (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g,"") || "jpg";
+        const r = ref(storage, "chatbot_uploads/" + folder + "/" + (i+1) + "." + ext);
+        await uploadBytes(r, f, { contentType: f.type });
+        urls.push(await getDownloadURL(r));
+      }
+      const now = new Date().toISOString();
+      await addDoc(collection(db, "pour_chatbot_threads"), {
+        audience, botId: "", botName: "",
+        channel: "widget", source: "cafe24", customerName: "",
+        customerContact: (contactEl.value || "").trim(),
+        status: "waiting", unread: true, aiDraft: "",
+        messages: [{ role: "customer", content, ts: now, images: urls }],
+        createdAt: now, updatedAt: now,
+      });
+      formCard.hidden = true; doneCard.hidden = false;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e) {
+      console.error("[POUR닥터] 접수 실패:", e);
+      alert("접수 중 오류가 났어요. 잠시 후 다시 시도해주세요.");
+      submitBtn.disabled = false; submitBtn.textContent = "상담 접수하기";
+    }
+  }
+  submitBtn && submitBtn.addEventListener("click", submit);
+})();
+</script>
+</section>

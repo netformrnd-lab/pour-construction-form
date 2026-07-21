@@ -721,7 +721,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"일정"},{id:"journey",icon:"🗂",label:"활동 여정"},{id:"more",icon:"⋯",label:"더보기"}];
-const SHARE_NAV=[{id:"kpi",icon:"◎",label:"KPI"},{id:"share-proj",icon:"▦",label:"프로젝트 현황"},{id:"mindmap",icon:"◈",label:"그로스보드"}];   // 공유 보기 전용 네비 (확정 플로우맵은 프로젝트 현황 안에서)
+const SHARE_NAV=[{id:"kpi",icon:"◎",label:"KPI"},{id:"share-proj",icon:"▦",label:"프로젝트/업무플로우맵"},{id:"mindmap",icon:"◈",label:"그로스보드"}];   // 공유 보기 전용 네비 (확정 플로우맵은 프로젝트 현황 안에서)
 const MORE=[{id:"mindmap",icon:"◈",label:"그로스보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
 const NAV_GROUPS=[
@@ -1019,7 +1019,7 @@ export default function App(){
   },[D,loaded]);
   useEffect(()=>{ if(!undo) return; const t=setTimeout(()=>setUndo(null),5500); return ()=>clearTimeout(t); },[undo]);   // 되돌리기 토스트 5.5초 후 자동 소멸
   const nav=(id)=>{setPage(id);setMore(false);};
-  const allPages=[...TABS.filter(t=>t.id!=="more"),...MORE,{id:"share-proj",icon:"▦",label:"프로젝트 현황"}];
+  const allPages=[...TABS.filter(t=>t.id!=="more"),...MORE,{id:"share-proj",icon:"▦",label:"프로젝트/업무플로우맵"}];
   const pi=allPages.find(p=>p.id===page);
   if(!loaded) return(
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:14,fontFamily:"'Pretendard',sans-serif",color:"#9CA3AF"}}>
@@ -1035,7 +1035,7 @@ export default function App(){
       <button onClick={()=>location.reload()} style={{marginTop:4,padding:"11px 22px",borderRadius:11,border:"none",background:"#F97316",color:"#fff",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>새로고침</button>
     </div>
   );
-  const navAll=[...TABS.filter(t=>t.id!=="more"),...MORE,{id:"share-proj",icon:"▦",label:"프로젝트 현황"}];
+  const navAll=[...TABS.filter(t=>t.id!=="more"),...MORE,{id:"share-proj",icon:"▦",label:"프로젝트/업무플로우맵"}];
   const pageContent=(<>
     {page==="today"&&<TodayPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup} pc={viewMode==="pc"} ro={SHARE}/>}
@@ -4445,46 +4445,40 @@ function ShareFlowPage({D}){
 function ShareProjectsPage({D}){
   const [openId,setOpenId]=useState(null);
   const uName=(id)=>(D.users.find(u=>u.id===id)||{}).name||"미배정";
-  const uColor=(id)=>(D.users.find(u=>u.id===id)||{}).color||"#9CA3AF";
-  const projs=[...D.projects].sort((a,b)=>String(a.group||"").localeCompare(String(b.group||""))||(b.progress||0)-(a.progress||0));
-  const groups={};projs.forEach(p=>{(groups[p.group||"기타"]=groups[p.group||"기타"]||[]).push(p);});
   const taskN=(p)=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);
+  const hasFlow=(p)=>!!p.processConfirmed&&taskN(p).length>0;   // 확정 + 업무 있음 = 플로우맵 공개
+  const projs=[...D.projects].sort((a,b)=>{const ca=hasFlow(a)?1:0,cb=hasFlow(b)?1:0;if(ca!==cb)return cb-ca;return (b.progress||0)-(a.progress||0);});   // 확정된 것 먼저(맨 위)
+  const confN=projs.filter(hasFlow).length;
   return(
     <div style={{padding:"16px",maxWidth:1100,margin:"0 auto"}}>
-      <div style={{marginBottom:12}}>
-        <h2 style={{margin:0,fontSize:18,fontWeight:900,color:"#0F1F5C"}}>▦ 프로젝트 현황</h2>
-        <p style={{margin:"4px 0 0",fontSize:11.5,color:"#9CA3AF"}}>전체 프로젝트 진행 상황 · <b style={{color:"#EA580C"}}>✅ 확정</b>된 업무 플로우맵은 카드를 눌러 바로 볼 수 있어요 · 읽기 전용</p>
+      <div style={{marginBottom:14}}>
+        <h2 style={{margin:0,fontSize:18,fontWeight:900,color:"#0F1F5C"}}>프로젝트 / 업무 플로우맵</h2>
+        <p style={{margin:"4px 0 0",fontSize:11.5,color:"#9CA3AF"}}>확정된 업무 플로우맵이 맨 위 · 나머지는 프로젝트 현황 · 읽기 전용 <span style={{fontWeight:800,color:"#EA580C"}}>· 확정 {confN}</span></p>
       </div>
-      {projs.length===0?<Empty t="프로젝트가 없어요"/>:Object.keys(groups).map(g=>(
-        <div key={g} style={{marginBottom:16}}>
-          <p style={{margin:"0 0 8px",fontSize:12,fontWeight:800,color:"#6B7280"}}>{g} · {groups[g].length}</p>
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            {groups[g].map(p=>{
-              const st=PROJ_STATUS[projStatus(p)]||{};
-              const ts=taskN(p);
-              const done=ts.filter(t=>t.status==="done").length;
-              const prog=p.progress||0;
-              const cf=!!p.processConfirmed;
-              const open=cf&&openId===p.id;
-              const flow=open?buildProjectFlow(D,p):null;
-              return(
-              <div key={p.id} style={{background:"#fff",borderRadius:14,border:`1px solid ${cf?"#FCE0C6":"#F2F4F6"}`,padding:"12px 14px",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
-                <div onClick={()=>{if(cf)setOpenId(open?null:p.id);}} style={{cursor:cf?"pointer":"default"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                    <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:800,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
-                    {cf?<span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:"#EA580C",background:"#FFF3E9",borderRadius:6,padding:"2px 7px"}}>✅ 확정</span>:<span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:"#9CA3AF",background:"#F2F4F6",borderRadius:6,padding:"2px 7px"}}>✍️ 수정 중</span>}
-                    <span style={{flexShrink:0,fontSize:10,fontWeight:800,color:st.color||"#6B7280",background:(st.color||"#9CA3AF")+"18",borderRadius:6,padding:"2px 7px"}}>{st.label||p.status||""}</span>
-                    {cf&&<span style={{flexShrink:0,fontSize:11,color:"#9CA3AF"}}>{open?"▲":"▼"}</span>}
+      {projs.length===0?<Empty t="프로젝트가 없어요"/>:(
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {projs.map(p=>{
+            const st=PROJ_STATUS[projStatus(p)]||{};
+            const ts=taskN(p);const done=ts.filter(t=>t.status==="done").length;const prog=p.progress||0;
+            const cf=hasFlow(p);
+            const open=cf&&openId===p.id;
+            const flow=open?buildProjectFlow(D,p):null;
+            return(
+              <div key={p.id} style={{background:"#fff",borderRadius:14,border:`1px solid ${cf?"#FCE0C6":"#F2F4F6"}`}}>
+                <div style={{padding:"13px 15px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+                    <span style={{flex:1,minWidth:0,fontSize:13.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
+                    <span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:"#6B7280",background:"#F2F4F6",borderRadius:6,padding:"2px 7px"}}>{st.label||p.status||""}</span>
                   </div>
-                  <div style={{height:7,borderRadius:6,background:"#F2F4F6",overflow:"hidden",marginBottom:5}}><div style={{width:prog+"%",height:"100%",background:"#F97316",borderRadius:6}}/></div>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:10.5,color:"#9CA3AF",fontWeight:700,gap:8}}>
-                    <span style={{minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>진행 {prog}% · 업무 {done}/{ts.length}{cf?" · 🗺 플로우맵 보기":" · 확정 후 플로우맵 공개"}</span>
-                    <span style={{flexShrink:0,display:"inline-flex",alignItems:"center",gap:4}}><Ava name={uName(p.assigneeId)} color={uColor(p.assigneeId)} size={16}/>{uName(p.assigneeId)}</span>
-                  </div>
-                  {p.resultValue>0&&<p style={{margin:"6px 0 0",fontSize:11,fontWeight:800,color:"#EA580C"}}>💰 {fmt(p.resultValue,"원")}</p>}
+                  <div style={{height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden",marginBottom:6}}><div style={{width:prog+"%",height:"100%",background:"#F97316",borderRadius:6}}/></div>
+                  <p style={{margin:"0 0 9px",fontSize:10.5,color:"#9CA3AF",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>진행 {prog}% · 업무 {done}/{ts.length} · {uName(p.assigneeId)}</p>
+                  {cf
+                    ? <button onClick={()=>setOpenId(open?null:p.id)} style={{width:"100%",padding:"11px 0",borderRadius:10,border:"none",background:open?"#EA580C":"#F97316",color:"#fff",fontSize:13,fontWeight:900,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 3px 10px rgba(249,115,22,0.35)",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>🗺 업무 플로우맵 보기 {open?"▲":"▼"}</button>
+                    : <div style={{width:"100%",padding:"10px 0",borderRadius:10,border:"1px dashed #E5E8EB",background:"#FAFAFB",color:"#B0B8C1",fontSize:12,fontWeight:700,textAlign:"center"}}>🗺 업무 플로우맵 준비중</div>
+                  }
                 </div>
                 {open&&flow&&(
-                  <div style={{marginTop:10,borderTop:"1px solid #F2F4F6",paddingTop:10}}>
+                  <div style={{padding:"0 15px 14px"}}>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:8,flexWrap:"wrap"}}>
                       <div style={{display:"flex",gap:12,fontSize:10.5,fontWeight:700,flexWrap:"wrap"}}><span style={{color:"#00A862"}}>● 완료</span><span style={{color:"#EA580C"}}>▶ 진행 가능</span><span style={{color:"#9CA3AF"}}>○ 대기</span></div>
                       <button onClick={()=>downloadFlowImage(flow.nodes,flow.edges,p.title)} style={{padding:"7px 12px",borderRadius:9,border:"none",background:"#F97316",color:"#fff",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📷 이미지 저장</button>
@@ -4493,10 +4487,10 @@ function ShareProjectsPage({D}){
                   </div>
                 )}
               </div>
-            );})}
-          </div>
+            );
+          })}
         </div>
-      ))}
+      )}
     </div>
   );
 }

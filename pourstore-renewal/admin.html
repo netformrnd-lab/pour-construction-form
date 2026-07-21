@@ -6220,6 +6220,18 @@ const PKG_TIERS=[
   {key:'partial', label:'부분패키지'},
   {key:'coating', label:'단순코팅'},
 ];
+// 자재 파인더(pour-02-finder)용 축 — 문제유형·건물유형
+const PKG_PROBLEMS=[
+  {key:'waterproof', label:'누수·방수'},
+  {key:'repair',     label:'균열·보수'},
+  {key:'coating',    label:'코팅·재도장'},
+];
+const PKG_BUILDINGS=[
+  {key:'apt',    label:'아파트'},
+  {key:'house',  label:'주택'},
+  {key:'store',  label:'상가·빌딩'},
+  {key:'factory',label:'공장·창고'},
+];
 const pkgAreaLabel=(k)=>(PKG_AREAS.find(a=>a.key===k)||{label:'미분류'}).label;
 const pkgTierLabel=(k)=>(PKG_TIERS.find(t=>t.key===k)||{label:'-'}).label;
 const PKG_IMG_BASE='https://ecimg.cafe24img.com/pg2736b04221490007/pourstore/web/product/medium/shop1_';
@@ -6313,7 +6325,7 @@ function PackagesPage({showToast}){
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,flexWrap:'wrap',gap:16}}>
         <div>
           <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>🧩 패키지 구성 관리</h1>
-          <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>상품별 <b>부위·등급(풀/부분/단순코팅)</b>과 <b>베스트·신규</b> 노출을 직접 설정 → 스토어 패키지 화면에 자동 반영됩니다.</div>
+          <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>상품별 <b>부위·등급·문제유형·건물유형</b>과 <b>베스트·신규</b>를 설정 → 스토어 패키지 화면 + <b>자재 추천 파인더</b>에 자동 반영됩니다. (문제유형 비우면 상품명으로 자동 분류, 건물 미선택=전체 적용)</div>
         </div>
         {rows.length>0 && <button onClick={addManual} style={{padding:'10px 18px',borderRadius:10,fontSize:12.5,fontWeight:900,color:'var(--or-d)',background:'#fff',border:'1.5px solid var(--or)',cursor:'pointer'}}>+ 상품 추가</button>}
       </div>
@@ -6352,6 +6364,17 @@ function PackagesPage({showToast}){
                     <select value={r.tier||'partial'} onChange={e=>patch(r.id,{tier:e.target.value})} style={{...sel,color:r.tier==='full'?'var(--or-d)':'var(--text-md)',fontWeight:800}} title="등급">
                       {PKG_TIERS.map(t=><option key={t.key} value={t.key}>{t.label}</option>)}
                     </select>
+                    <select value={r.problem||''} onChange={e=>patch(r.id,{problem:e.target.value||null})} style={sel} title="문제유형 (비우면 상품명으로 자동 추론)">
+                      <option value="">문제:자동</option>
+                      {PKG_PROBLEMS.map(p=><option key={p.key} value={p.key}>{p.label}</option>)}
+                    </select>
+                    <div style={{display:'flex',gap:3,alignItems:'center'}} title="건물유형 (미선택=전체 적용)">
+                      {PKG_BUILDINGS.map(bd=>{
+                        const arr=Array.isArray(r.building)?r.building:[];
+                        const bon=arr.indexOf(bd.key)>=0;
+                        return <button key={bd.key} type="button" onClick={()=>{const na=bon?arr.filter(x=>x!==bd.key):[...arr,bd.key]; patch(r.id,{building:na});}} style={{padding:'4px 7px',borderRadius:6,border:'1px solid '+(bon?'var(--navy)':'var(--border)'),background:bon?'var(--navy)':'#fff',color:bon?'#fff':'var(--text-sm)',fontSize:10.5,fontWeight:800,cursor:'pointer'}}>{bd.label}</button>;
+                      })}
+                    </div>
                     <label style={{display:'flex',alignItems:'center',gap:4,fontSize:11.5,fontWeight:800,color:r.best?'#B45309':'var(--text-sm)',cursor:'pointer'}} title="이 달의 베스트 카드에 노출">
                       <input type="checkbox" checked={!!r.best} onChange={e=>patch(r.id,{best:e.target.checked})}/> 베스트
                     </label>

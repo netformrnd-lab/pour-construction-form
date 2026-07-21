@@ -1,0 +1,174 @@
+<!-- ============================================================
+  pour-02-finder  —  자재 추천 파인더 (부위 × 문제유형 × 건물유형)
+  pour-02-best('고치고 싶다면')·pour-02b-vending('소재별로 골라요') 통합 대체.
+  데이터: Firestore pourstore-packages (어드민 '패키지 구성 관리') — 실상품·가격·부위·등급.
+    · 부위(area): 실데이터 사용 (slab/roof/wall/drain)
+    · 문제유형(problem)·건물유형(building): 어드민 값 우선, 없으면 이름/부위로 자동 추론
+  링크: /product/detail.html?product_no=<no>&cate_no=71
+  네임스페이스: .pfind
+  ============================================================ -->
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css">
+<section class="pfind">
+<style>
+.pfind *,.pfind *::before,.pfind *::after{box-sizing:border-box;margin:0;padding:0;font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;letter-spacing:-0.02em}
+.pfind{background:#fff;padding:44px 24px 56px;color:#2F3438;-webkit-font-smoothing:antialiased}
+.pfind a{text-decoration:none;color:inherit}
+.pfind-inner{max-width:1256px;margin:0 auto}
+.pfind-eyebrow{font-size:12px;font-weight:800;color:#E8780F;letter-spacing:0.04em;margin-bottom:9px}
+.pfind-title{font-size:30px;font-weight:900;color:#111;letter-spacing:-0.035em;line-height:1.25}
+.pfind-title .or{color:#E8780F}
+.pfind-sub{margin-top:8px;font-size:14.5px;font-weight:500;color:#6B7280}
+.pfind-panel{margin-top:24px;background:#FAFAF8;border:1px solid #EFEBE4;border-radius:18px;padding:20px 22px}
+.pfind-row{display:flex;align-items:center;gap:12px;padding:11px 0}
+.pfind-row+.pfind-row{border-top:1px dashed #E8E2D8}
+.pfind-rlabel{flex-shrink:0;width:78px;font-size:13.5px;font-weight:800;color:#111}
+.pfind-rlabel .n{display:block;font-size:11px;font-weight:600;color:#B0A89C;margin-top:1px;letter-spacing:0.02em}
+.pfind-chips{display:flex;gap:8px;flex-wrap:wrap}
+.pfind-chip{padding:9px 16px;font-size:14px;font-weight:700;color:#4B5563;background:#fff;border:1px solid #E2DDD3;border-radius:999px;cursor:pointer;transition:.15s}
+.pfind-chip:hover{border-color:#E8780F;color:#E8780F}
+.pfind-chip.on{background:#111;border-color:#111;color:#fff}
+.pfind-resbar{margin:26px 0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pfind-count{font-size:15px;font-weight:800;color:#111}
+.pfind-count b{color:#E8780F}
+.pfind-reset{font-size:13px;font-weight:700;color:#9CA3AF;cursor:pointer;background:none;border:none;font-family:inherit}
+.pfind-reset:hover{color:#E8780F}
+.pfind-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.pfind-card{cursor:pointer;display:block}
+.pfind-thumb{position:relative;aspect-ratio:1/1;border-radius:12px;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#FFEDD5,#F6B87A)}
+.pfind-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.pfind-badge{position:absolute;left:10px;top:10px;padding:4px 9px;font-size:11px;font-weight:800;color:#fff;background:rgba(232,120,15,.95);border-radius:7px}
+.pfind-ptag{position:absolute;right:10px;top:10px;padding:4px 9px;font-size:10.5px;font-weight:800;color:#111;background:rgba(255,255,255,.9);border-radius:7px}
+.pfind-info{padding:11px 3px 0}
+.pfind-cat{font-size:11.5px;font-weight:800;color:#E8780F}
+.pfind-name{margin-top:5px;font-size:14.5px;font-weight:700;color:#1F2937;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:41px}
+.pfind-price{margin-top:6px;font-size:15px;font-weight:900;color:#E8780F}
+.pfind-empty{grid-column:1/-1;text-align:center;padding:50px 20px;color:#9CA3AF;font-size:15px;font-weight:600}
+.pfind-loading{grid-column:1/-1;text-align:center;padding:50px 20px;color:#B0A89C;font-size:14px;font-weight:700}
+@media (max-width:900px){ .pfind-grid{grid-template-columns:repeat(3,1fr)} }
+@media (max-width:640px){
+  .pfind{padding:34px 14px 42px}
+  .pfind-title{font-size:23px}
+  .pfind-panel{padding:15px 15px;border-radius:14px}
+  .pfind-row{flex-direction:column;align-items:flex-start;gap:8px;padding:10px 0}
+  .pfind-rlabel{width:auto}
+  .pfind-chip{padding:8px 13px;font-size:13px}
+  .pfind-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  .pfind-name{font-size:13px;min-height:36px}
+}
+</style>
+<div class="pfind-inner">
+  <div class="pfind-eyebrow">자재 추천</div>
+  <div class="pfind-title">내 건물, 뭘 사야 할지 모르겠다면? <span class="or">3초 만에 찾아드려요</span></div>
+  <div class="pfind-sub">부위·문제·건물만 고르면, 딱 맞는 자재를 추천해드려요</div>
+
+  <div class="pfind-panel">
+    <div class="pfind-row"><div class="pfind-rlabel">부위<span class="n">Part</span></div><div class="pfind-chips" data-facet="area"></div></div>
+    <div class="pfind-row"><div class="pfind-rlabel">문제<span class="n">Problem</span></div><div class="pfind-chips" data-facet="problem"></div></div>
+    <div class="pfind-row"><div class="pfind-rlabel">건물<span class="n">Building</span></div><div class="pfind-chips" data-facet="building"></div></div>
+  </div>
+
+  <div class="pfind-resbar">
+    <div class="pfind-count">추천 자재 <b data-pfind-cnt>0</b>개</div>
+    <button class="pfind-reset" type="button" data-pfind-reset>선택 초기화 ↺</button>
+  </div>
+  <div class="pfind-grid" data-pfind-grid><div class="pfind-loading">불러오는 중…</div></div>
+</div>
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const firebaseConfig = { apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU", authDomain:"pour-app-new.firebaseapp.com", projectId:"pour-app-new", storageBucket:"pour-app-new.firebasestorage.app", messagingSenderId:"411031141847", appId:"1:411031141847:web:e658174fd4b9652cdadf92" };
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const db = getFirestore(app);
+window.__pcache = window.__pcache || (function(){ var mem={}; return { wrap:function(key,ttl,fetcher){ if(mem[key])return mem[key]; try{var raw=sessionStorage.getItem('pc:'+key); if(raw){var o=JSON.parse(raw); if(o&&(Date.now()-o.t)<ttl){return (mem[key]=Promise.resolve(o.v));}}}catch(e){} var p=Promise.resolve().then(fetcher).then(function(v){try{sessionStorage.setItem('pc:'+key,JSON.stringify({t:Date.now(),v:v}));}catch(e){} return v;}); p.catch(function(){delete mem[key];}); return (mem[key]=p); }}; })();
+var PC_TTL = 300000;
+const esc=(s)=>(s||'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const FACETS = {
+  area:    [{k:'slab',n:'옥상·슬라브'},{k:'roof',n:'지붕(슁글·금속)'},{k:'wall',n:'외벽·균열'},{k:'drain',n:'배수·베란다'}],
+  problem: [{k:'waterproof',n:'누수·방수'},{k:'repair',n:'균열·보수'},{k:'coating',n:'코팅·재도장'}],
+  building:[{k:'apt',n:'아파트'},{k:'house',n:'주택'},{k:'store',n:'상가·빌딩'},{k:'factory',n:'공장·창고'}],
+};
+const PROBLEM_LABEL={waterproof:'누수·방수',repair:'균열·보수',coating:'코팅·재도장'};
+const ALL_BUILDINGS=['apt','house','store','factory'];
+
+// 어드민 값이 없으면 이름/부위로 문제유형 추론(백필 전에도 동작)
+function deriveProblem(p){
+  if(p.problem) return p.problem;
+  const n=(p.name||'')+' '+(p.tier||'');
+  if(/코팅|재도장|coating/i.test(n)) return 'coating';
+  if(/균열|크렉|보수|퍼티/.test(n) || p.area==='wall') return 'repair';
+  return 'waterproof';
+}
+function buildingsOf(p){
+  return (Array.isArray(p.building)&&p.building.length) ? p.building : ALL_BUILDINGS; // 미태깅=전체 적용
+}
+
+(async function(){
+  // 아직 초기화 안 된 .pfind 섹션 점유(중복 삽입 안전)
+  let section=null, all=document.querySelectorAll('.pfind');
+  for(let i=0;i<all.length;i++){ if(!all[i].hasAttribute('data-pfind-init')){ section=all[i]; break; } }
+  if(!section) return; section.setAttribute('data-pfind-init','1');
+
+  const grid=section.querySelector('[data-pfind-grid]');
+  const cntEl=section.querySelector('[data-pfind-cnt]');
+  const sel={area:'',problem:'',building:''};
+
+  // 칩 렌더 + 토글
+  Object.keys(FACETS).forEach(f=>{
+    const box=section.querySelector('[data-facet="'+f+'"]');
+    box.innerHTML=FACETS[f].map(o=>'<button class="pfind-chip" type="button" data-k="'+o.k+'">'+esc(o.n)+'</button>').join('');
+    box.addEventListener('click',e=>{
+      const b=e.target.closest('.pfind-chip'); if(!b) return;
+      sel[f]=(sel[f]===b.dataset.k)?'':b.dataset.k;
+      box.querySelectorAll('.pfind-chip').forEach(x=>x.classList.toggle('on',x.dataset.k===sel[f]));
+      render();
+    });
+  });
+  section.querySelector('[data-pfind-reset]').addEventListener('click',()=>{
+    sel.area=sel.problem=sel.building='';
+    section.querySelectorAll('.pfind-chip').forEach(x=>x.classList.remove('on'));
+    render();
+  });
+
+  let PRODUCTS=[];
+  try{
+    const pkgs=await window.__pcache.wrap('col:packages',PC_TTL,()=>getDocs(collection(db,"pourstore-packages")).then(sn=>sn.docs.map(d=>({id:d.id,...d.data()}))));
+    console.log('[pfind] 패키지 '+pkgs.length+'건 로드');
+    PRODUCTS=pkgs.filter(p=>p.active!==false).map(p=>({
+      productNo:p.productNo, name:p.name, price:p.price, thumbnail:p.thumbnail||'',
+      area:p.area||'', problem:deriveProblem(p), building:buildingsOf(p),
+      order:(p.order??999)
+    })).sort((a,b)=>a.order-b.order);
+  }catch(e){
+    console.log('[pfind] 로드 실패:', e && e.message);
+    grid.innerHTML='<div class="pfind-empty">상품을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</div>';
+    return;
+  }
+
+  function match(x){
+    if(sel.area && x.area!==sel.area) return false;
+    if(sel.problem && x.problem!==sel.problem) return false;
+    if(sel.building && x.building.indexOf(sel.building)<0) return false;
+    return true;
+  }
+  function card(x){
+    const cat=PROBLEM_LABEL[x.problem]||'';
+    const thumb=x.thumbnail?('<img src="'+esc(x.thumbnail)+'" alt="'+esc(x.name)+'" loading="lazy"/>'):'';
+    return '<a class="pfind-card" href="/product/detail.html?product_no='+esc(x.productNo)+'&cate_no=71">'
+      +'<div class="pfind-thumb">'+thumb
+      +'<span class="pfind-badge">'+esc(cat)+'</span></div>'
+      +'<div class="pfind-info"><div class="pfind-cat">'+esc(cat)+'</div>'
+      +'<div class="pfind-name">'+esc(x.name)+'</div>'
+      +'<div class="pfind-price">'+esc(x.price||'')+'</div></div></a>';
+  }
+  function render(){
+    const list=PRODUCTS.filter(match);
+    if(cntEl) cntEl.textContent=list.length;
+    grid.innerHTML=list.length ? list.map(card).join('')
+      : '<div class="pfind-empty">조건에 맞는 자재가 없어요. 선택을 조금 줄여보세요 🙂</div>';
+  }
+  render();
+})();
+</script>
+</section>

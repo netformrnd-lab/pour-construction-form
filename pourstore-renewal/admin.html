@@ -5882,10 +5882,15 @@ function advEnhance(host, onChange){
   function ensureBlockTools(scope){ scope=scope||host; if(scope.classList&&scope.classList.contains('adv-blk')) addBlkTool(scope); scope.querySelectorAll('.adv-blk').forEach(addBlkTool); }
   function renumberBlocks(){ host.querySelectorAll('.adv-sec').forEach(function(sec){ var di=0; sec.querySelectorAll('.detail-item .num').forEach(function(n){ di++; n.textContent=('0'+di).slice(-2); }); var st=0; sec.querySelectorAll('.step .eyebrow').forEach(function(el){ st++; if(/^STEP/i.test((el.textContent||'').trim())) el.textContent='STEP '+st; }); }); }
   function cleanBlockClone(node){ var c=node.cloneNode(true); c.querySelectorAll('.adv-blk-tools,.uie-open,.uie-panel,.uie-handle,.uie-badge,.uie-point,.uie-pop,.uie-hl-svg,.uie-vtx,.uie-hl-ctrl,.uie-dot,.uie-hint').forEach(function(el){el.remove();}); c.querySelectorAll('.uie-box').forEach(function(b){ b.classList.remove('is-selected','inner-mode'); b.removeAttribute('data-uie-ready'); }); return c; }
+  function ensureInfoTools(scope){
+    scope.querySelectorAll('.info-item').forEach(function(it){ if(!it.querySelector(':scope > .delete-info-item')){ var b=document.createElement('button'); b.type='button'; b.className='delete-info-item'; b.textContent='×'; it.insertBefore(b, it.firstChild); } });
+    scope.querySelectorAll('.info-grid').forEach(function(g){ if(!g.querySelector(':scope > .info-add-tile')){ var t=document.createElement('button'); t.type='button'; t.className='info-add-tile addInfoItem'; t.setAttribute('aria-label','항목 추가'); t.innerHTML='<span></span>'; g.appendChild(t); } });
+  }
   function enhanceScope(scope){
     scope.querySelectorAll('[data-editable="true"]').forEach(function(el){ el.setAttribute('contenteditable','true'); el.setAttribute('spellcheck','false'); });
     scope.querySelectorAll('.uie-box').forEach(function(box){ advBuildUIE(box,host,onChange); });
     ensureBlockTools(scope);
+    ensureInfoTools(scope);
   }
   function menuItemsHtml(){ var m=''; (window.ADV_SECTIONS||[]).forEach(function(sec,i){ m+='<button type="button" data-i="'+i+'">＋ '+(sec.label||('섹션 '+(i+1)))+'</button>'; }); return m; }
   function makeSecGap(){ var g=document.createElement('div'); g.className='adv-secgap'; g.innerHTML='<button type="button" class="adv-secgap-btn" title="여기에 섹션 추가">＋</button><div class="adv-sec-menu">'+menuItemsHtml()+'</div>'; return g; }
@@ -5910,6 +5915,19 @@ function advEnhance(host, onChange){
   enhanceScope(host);
   ensureSectionTools();
   host.addEventListener('input',function(){ onChange&&onChange(); });
+  // 정보표(현장정보) 항목: 마지막 칸에서 Enter→항목 추가 · 빈 칸에서 Delete/Backspace→항목 삭제
+  host.addEventListener('keydown',function(e){
+    var cell=e.target&&e.target.closest&&e.target.closest('.info-label,.info-value'); if(!cell) return;
+    var item=cell.closest('.info-item'); var grid=item&&item.closest('.info-grid'); if(!item||!grid) return;
+    if(e.key==='Enter'){ e.preventDefault();
+      var it=document.createElement('div'); it.className='info-item';
+      it.innerHTML='<button type="button" class="delete-info-item">×</button><div class="info-label" contenteditable="true" data-editable="true" spellcheck="false">항목명</div><div class="info-value" contenteditable="true" data-editable="true" spellcheck="false">내용 입력</div>';
+      grid.insertBefore(it, item.nextSibling);
+      var lbl=it.querySelector('.info-label'); if(lbl){ lbl.focus(); try{ var r=document.createRange(); r.selectNodeContents(lbl); var sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(r); }catch(_){}} onChange&&onChange(); return; }
+    if((e.key==='Delete'||e.key==='Backspace') && (cell.textContent||'').trim()===''){
+      var other=item.querySelector(cell.classList.contains('info-label')?'.info-value':'.info-label');
+      if(!other||(other.textContent||'').trim()===''){ e.preventDefault(); var prev=item.previousElementSibling; item.remove(); if(prev&&prev.classList&&prev.classList.contains('info-item')){ var f=prev.querySelector('.info-value')||prev.querySelector('.info-label'); if(f)f.focus(); } onChange&&onChange(); } }
+  });
   host.addEventListener('click',function(e){
     var t=e.target;
     if(!t.closest('.adv-sec-menu') && !t.closest('.adv-addsec-btn') && !t.closest('.adv-secgap-btn')){ host.querySelectorAll('.adv-sec-menu.open').forEach(function(m){m.classList.remove('open');}); }

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>대리점 조회 | POUR스토어</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<style>
+:root{
+  --or:#F25C05; --navy:#0F1F5C; --brick:#8B3A1F;
+  --ink:#111827; --ink2:#374151; --muted:#6B7280;
+  --border:#E5E7EB; --line:#111827; --red:#DC2626;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif;
+  background:#fff;color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:920px;margin:0 auto;padding:0 20px}
+
+.head{padding:56px 0 28px;text-align:center}
+.head .eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--or);margin-bottom:12px}
+.head h1{font-size:30px;font-weight:800;letter-spacing:-.025em;line-height:1.3}
+.head p{margin-top:12px;font-size:15px;color:var(--muted)}
+
+.finder{border-top:2px solid var(--line);border-bottom:1px solid var(--border);padding:22px 0}
+.fields{display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr auto;gap:8px}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--muted);
+  letter-spacing:.04em;margin-bottom:5px}
+select,input[type=search]{
+  width:100%;height:44px;border:1px solid var(--border);border-radius:6px;
+  padding:0 13px;font-family:inherit;font-size:14px;color:var(--ink);background:#fff;
+  appearance:none;-webkit-appearance:none;
+}
+select{
+  background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%236B7280' stroke-width='1.6' fill='none'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 13px center;padding-right:32px;
+}
+select:disabled{background-color:#F7F7F7;color:#B6BAC2;cursor:not-allowed}
+select:focus,input:focus{outline:none;border-color:var(--or)}
+.submit{height:44px;align-self:end;padding:0 30px;border:none;border-radius:6px;
+  background:var(--or);color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer}
+.submit:hover{background:#D94F02}
+.submit:disabled{background:#D6D3CE;cursor:not-allowed}
+.submit:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.clear{margin-top:12px;background:none;border:none;padding:0;
+  font-family:inherit;font-size:13px;color:var(--muted);cursor:pointer;text-decoration:underline}
+
+.result-head{display:flex;align-items:baseline;gap:10px;padding:22px 0 12px}
+.result-head h2{font-size:15px;font-weight:700}
+.result-head strong{color:var(--or);font-variant-numeric:tabular-nums}
+.result-head span{margin-left:auto;font-size:13px;color:var(--muted)}
+
+.row{display:grid;grid-template-columns:1fr 220px 126px 116px;gap:18px;align-items:center;
+  padding:20px 0;border-top:1px solid var(--border)}
+.row:last-child{border-bottom:1px solid var(--border)}
+.thumb{width:116px;aspect-ratio:4/3;border-radius:8px;overflow:hidden;
+  border:1px solid var(--border);background:#F7F6F4}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb.blank{display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:#B6BAC2;font-weight:600}
+.name{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.name h3{font-size:16px;font-weight:700;letter-spacing:-.01em}
+.tag{font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;
+  border:1px solid var(--or);color:var(--or)}
+.tag.t2{border-color:var(--brick);color:var(--brick)}
+.tag.t3{border-color:var(--navy);color:var(--navy)}
+.items{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.items span{font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 6px}
+.addr{font-size:13px;color:var(--ink2)}
+.tel{display:block;font-size:13px;color:var(--muted);margin-top:3px}
+.go{display:block;text-align:center;text-decoration:none;border:1px solid var(--border);
+  border-radius:6px;padding:9px 0;font-size:13px;font-weight:700;color:var(--ink2)}
+.go + .go{margin-top:6px;background:var(--or);border-color:var(--or);color:#fff}
+
+.msg{padding:64px 20px;text-align:center;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.msg p{font-size:15px;font-weight:600;margin-bottom:6px}
+.msg small{font-size:13px;color:var(--muted)}
+.msg.err p{color:var(--red)}
+.msg button{margin-top:14px;border:1px solid var(--border);background:#fff;border-radius:6px;
+  padding:9px 20px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.skel{padding:20px 0;border-top:1px solid var(--border)}
+.skel div{height:13px;background:#F1EFEC;border-radius:4px;margin-bottom:9px}
+.skel div:nth-child(1){width:34%;height:17px}
+.skel div:nth-child(2){width:56%}
+
+.notice{padding:32px 0 0}
+.notice h4{font-size:13px;font-weight:700;margin-bottom:9px}
+.notice li{font-size:13px;color:var(--muted);margin-left:17px;margin-bottom:4px}
+.cta{margin:40px 0 72px;padding:28px 24px;border:1px solid var(--border);border-radius:10px;
+  display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.cta div{flex:1;min-width:220px}
+.cta h3{font-size:17px;font-weight:800;letter-spacing:-.01em;margin-bottom:5px}
+.cta p{font-size:13px;color:var(--muted)}
+.cta a{background:var(--navy);color:#fff;text-decoration:none;padding:13px 26px;
+  border-radius:6px;font-size:14px;font-weight:700;white-space:nowrap}
+
+@media (max-width:760px){
+  .head{padding:40px 0 22px}
+  .head h1{font-size:24px}
+  .fields{grid-template-columns:1fr 1fr}
+  .field.kw{grid-column:1/-1}
+  .submit{grid-column:1/-1;width:100%}
+  .row{grid-template-columns:1fr;gap:12px}
+  .thumb{order:-1;width:100%;aspect-ratio:16/7}
+  .go{display:inline-block;padding:9px 22px}
+  .go + .go{margin-top:0;margin-left:6px}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">POUR스토어</div>
+    <h1>대리점 조회</h1>
+    <p>지역을 선택하고 조회하면 가까운 대리점을 확인할 수 있습니다.</p>
+  </div>
+
+  <div class="finder">
+    <div class="fields">
+      <div class="field">
+        <label for="fRegion">시 · 도</label>
+        <select id="fRegion" disabled><option value="">불러오는 중…</option></select>
+      </div>
+      <div class="field">
+        <label for="fCity">시 · 군 · 구</label>
+        <select id="fCity" disabled><option value="">전체</option></select>
+      </div>
+      <div class="field">
+        <label for="fType">매장 유형</label>
+        <select id="fType">
+          <option value="">전체</option>
+          <option>페인트점</option>
+          <option>철물점</option>
+          <option>오프라인몰</option>
+        </select>
+      </div>
+      <div class="field kw">
+        <label for="fKw">상호명 · 주소</label>
+        <input id="fKw" type="search" placeholder="예) 대성페인트">
+      </div>
+      <button class="submit" id="go" disabled>조회</button>
+    </div>
+    <button class="clear" id="clear">조건 초기화</button>
+  </div>
+
+  <div class="result-head">
+    <h2>조회 결과 <strong id="cnt">–</strong>곳</h2>
+    <span id="cond">전체 지역</span>
+  </div>
+  <div id="list">
+    <div class="skel"><div></div><div></div></div>
+    <div class="skel"><div></div><div></div></div>
+    <div class="skel"><div></div><div></div></div>
+  </div>
+
+  <div class="notice">
+    <h4>이용 안내</h4>
+    <ul>
+      <li>매장별 보유 재고는 상이할 수 있습니다. 방문 전 유선으로 확인 바랍니다.</li>
+      <li>단지·건물 전체 규모의 시공은 자재 구매에 앞서 현장 진단이 필요합니다. POUR솔루션 무료 진단을 이용 바랍니다.</li>
+    </ul>
+  </div>
+
+  <div class="cta">
+    <div>
+      <h3>페인트점 · 철물점 사장님, 대리점으로 함께해요</h3>
+      <p>재고 부담 없이 POUR 자재를 취급하고, 판매 수수료는 월말에 자동 정산됩니다.</p>
+    </div>
+    <a href="/partner">대리점 신청하기</a>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, query, where, getDocs }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ══════════════════════════════════════════════════════════
+   ▼▼▼ 1단계: 여기 6줄만 채우면 됩니다 ▼▼▼
+   Firebase 콘솔 → 좌측 상단 톱니바퀴 → 프로젝트 설정
+   → 일반 탭 → 맨 아래 "내 앱" → 웹 앱 → firebaseConfig 값 복사
+   ══════════════════════════════════════════════════════════ */
+const firebaseConfig = {
+  apiKey:            "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain:        "pour-app-new.firebaseapp.com",
+  projectId:         "pour-app-new",
+  storageBucket:     "pour-app-new.firebasestorage.app",
+  messagingSenderId: "411031141847",
+  appId:             "1:411031141847:web:e658174fd4b9652cdadf92"
+};
+const COLLECTION = "store-dealers";   // Firestore 컬렉션 이름
+/* ▲▲▲ 여기까지 ▲▲▲ */
+
+const REGIONS = ["서울","부산","대구","인천","광주","대전","울산","세종",
+                 "경기","강원","충북","충남","전북","전남","경북","경남","제주"];
+const TAGCLS = { "페인트점":"", "철물점":"t2", "오프라인몰":"t3" };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+let DEALERS = [];
+
+/* ── Firestore에서 대리점 불러오기 ── */
+async function load(){
+  const db = getFirestore(initializeApp(firebaseConfig));
+  /* orderBy 사용 안 함 — 정렬은 아래에서 브라우저가 처리 */
+  const snap = await getDocs(query(collection(db, COLLECTION), where("active", "==", true)));
+
+  const rows = [];
+  snap.forEach(doc => {
+    const v = doc.data();
+    rows.push({
+      id:     doc.id,
+      name:   v.name   || "",
+      region: v.region || "",
+      city:   v.city   || "",
+      type:   v.type   || "",
+      addr:   v.addr   || "",
+      tel:    v.tel    || "",
+      photo:  v.photo  || "",
+      items:  Array.isArray(v.items) ? v.items : []
+    });
+  });
+
+  console.log(`[대리점] ${COLLECTION} 조회 건수: ${rows.length}`);
+  if (rows.length === 0) console.log("[대리점] 결과 0건 — active:true 문서가 있는지 확인하세요.");
+
+  rows.sort((a,b) =>
+    REGIONS.indexOf(a.region) - REGIONS.indexOf(b.region) ||
+    a.city.localeCompare(b.city,"ko") ||
+    a.name.localeCompare(b.name,"ko"));
+  return rows;
+}
+
+/* ── 화면 준비 ── */
+function buildRegionSelect(){
+  $("fRegion").innerHTML = '<option value="">전체 지역</option>' +
+    REGIONS.map(r => {
+      const n = DEALERS.filter(d => d.region === r).length;
+      return `<option value="${r}"${n ? "" : " disabled"}>${r}${n ? " ("+n+")" : " (준비중)"}</option>`;
+    }).join("");
+  $("fRegion").disabled = false;
+  $("go").disabled = false;
+}
+
+$("fRegion").onchange = () => {
+  const r = $("fRegion").value, sel = $("fCity");
+  if (!r) { sel.innerHTML = '<option value="">전체</option>'; sel.disabled = true; return; }
+  const inR = DEALERS.filter(d => d.region === r);
+  const cities = [...new Set(inR.map(d => d.city))].sort((a,b) => a.localeCompare(b,"ko"));
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">전체</option>' +
+    cities.map(c => `<option>${esc(c)} (${inR.filter(d=>d.city===c).length})</option>`).join("");
+};
+
+$("go").onclick = search;
+$("fType").onchange = search;
+$("fKw").onkeydown = e => { if (e.key === "Enter") search(); };
+$("clear").onclick = () => {
+  $("fRegion").value = ""; $("fType").value = ""; $("fKw").value = "";
+  $("fCity").innerHTML = '<option value="">전체</option>'; $("fCity").disabled = true;
+  search();
+};
+
+function search(){
+  const r  = $("fRegion").value;
+  const c  = $("fCity").value.replace(/\s*\(\d+\)$/, "");
+  const t  = $("fType").value;
+  const kw = $("fKw").value.trim();
+
+  const rows = DEALERS.filter(d =>
+    (!r  || d.region === r) &&
+    (!c  || d.city === c) &&
+    (!t  || d.type === t) &&
+    (!kw || (d.name + d.addr).includes(kw)));
+
+  $("cnt").textContent = rows.length;
+  $("cond").textContent = [r || "전체 지역", c, t, kw && `"${kw}"`].filter(Boolean).join(" · ");
+
+  $("list").innerHTML = rows.length ? rows.map(d => `
+    <div class="row">
+      <div>
+        <div class="name">
+          <h3>${esc(d.name)}</h3>
+          <span class="tag ${TAGCLS[d.type] || ""}">${esc(d.type)}</span>
+        </div>
+        <div class="items">${d.items.map(i => `<span>${esc(i)}</span>`).join("")}</div>
+      </div>
+      <div>
+        <div class="addr">${esc(d.addr)}</div>
+        <span class="tel">${esc(d.tel)}</span>
+      </div>
+      <div>
+        <a class="go" href="https://map.kakao.com/link/search/${encodeURIComponent(d.addr)}" target="_blank" rel="noopener">길찾기</a>
+        <a class="go" href="tel:${esc(d.tel).replace(/-/g,"")}">전화하기</a>
+      </div>
+      ${d.photo
+        ? `<div class="thumb"><img src="${esc(d.photo)}" alt="${esc(d.name)} 매장 사진" loading="lazy"
+             onerror="this.parentNode.classList.add('blank');this.remove();this.parentNode.textContent='사진 준비중'"></div>`
+        : `<div class="thumb blank">사진 준비중</div>`}
+    </div>`).join("")
+    : `<div class="msg">
+         <p>조건에 맞는 대리점이 없습니다</p>
+         <small>지역이나 유형을 다시 선택해 주세요. 자사몰에서는 전국 어디든 배송됩니다.</small>
+       </div>`;
+}
+
+function showError(e){
+  console.error("[대리점] 불러오기 실패:", e);
+  $("cnt").textContent = "–";
+  $("list").innerHTML = `
+    <div class="msg err">
+      <p>대리점 정보를 불러오지 못했습니다</p>
+      <small>잠시 후 다시 시도해 주세요. 문제가 계속되면 고객센터로 문의 바랍니다.</small>
+      <br><button id="retry">다시 시도</button>
+    </div>`;
+  $("retry").onclick = start;
+}
+
+async function start(){
+  $("list").innerHTML = '<div class="skel"><div></div><div></div></div>'.repeat(3);
+  try {
+    DEALERS = await load();
+    buildRegionSelect();
+    search();
+  } catch (e) {
+    showError(e);          /* 실패를 빈 배열로 감추지 않음 */
+  }
+}
+start();
+</script>
+<script>
+  /* ============================================================
+     iframe 임베드용 — 부모(카페24) 페이지에 이 문서의 실제 높이를 전달.
+     조회 결과가 바뀌면 높이도 바뀌므로 주기적으로 재전송.
+     iframe 안에서 로드됐을 때만 동작 (단독 접속 시 영향 없음).
+     ============================================================ */
+  (function(){
+    if(window.self === window.top) return;
+    function postHeight(){
+      var h = Math.max(
+        document.documentElement ? document.documentElement.scrollHeight : 0,
+        document.body ? document.body.scrollHeight : 0
+      );
+      try{ window.parent.postMessage({ pourDealersHeight: h }, '*'); }catch(e){}
+    }
+    window.addEventListener('load', postHeight);
+    window.addEventListener('resize', postHeight);
+    setInterval(postHeight, 800);           // 조회 결과 렌더링 후 높이 갱신
+    document.addEventListener('click', function(){ setTimeout(postHeight, 300); });
+    setTimeout(postHeight, 300);
+  })();
+</script>
+</body>
+</html>

@@ -5583,13 +5583,16 @@ function advBuildUIE(box, host, onChange){
   if(box.dataset.uieReady==='1') return; box.dataset.uieReady='1';
   let crop=box.querySelector(':scope > .uie-crop'); let img;
   if(crop){ img=crop.querySelector('img'); } else { img=box.querySelector(':scope > img'); if(!img) return; crop=document.createElement('div'); crop.className='uie-crop'; box.insertBefore(crop,img); crop.appendChild(img); }
-  const state={scale:100,x:0,y:0,mode:'box'};
-  function applyImg(){ const s=Math.max(100,Math.min(300,state.scale))/100; const r=box.getBoundingClientRect(); const maxX=Math.max(0,(r.width*(s-1))/2), maxY=Math.max(0,(r.height*(s-1))/2); state.x=Math.max(-maxX,Math.min(maxX,state.x)); state.y=Math.max(-maxY,Math.min(maxY,state.y)); img.style.transform='translate(-50%,-50%) translate('+state.x+'px,'+state.y+'px) scale('+s+')'; }
+  const state={scale:100,posX:50,posY:50,mode:'box'};
+  // 저장된 크롭 위치(object-position)·배율 복원
+  (function(){ var op=(img.style.objectPosition||'').trim(); var m=op.match(/(-?\d+(?:\.\d+)?)%\s+(-?\d+(?:\.\d+)?)%/); if(m){ state.posX=Math.max(0,Math.min(100,+m[1])); state.posY=Math.max(0,Math.min(100,+m[2])); } var sm=(img.style.transform||'').match(/scale\(([\d.]+)\)/); if(sm){ state.scale=Math.max(100,Math.min(300,Math.round(+sm[1]*100))); } })();
+  // object-position으로 크롭 위치를 정해 항상 박스를 꽉 채움(회색 여백 없음)
+  function applyImg(){ const s=Math.max(100,Math.min(300,state.scale))/100; state.posX=Math.max(0,Math.min(100,state.posX)); state.posY=Math.max(0,Math.min(100,state.posY)); img.style.objectPosition=state.posX.toFixed(1)+'% '+state.posY.toFixed(1)+'%'; img.style.transform='translate(-50%,-50%) scale('+s+')'; }
   applyImg();
   const smallImg=!!box.closest('.comment-card,.material-row,.case-card');
   const open=document.createElement('button'); open.type='button'; open.className='uie-open'; open.textContent=smallImg?'🖼':'🖼 이미지 변경'; open.title='이미지 변경 · 사진 클릭 후 Ctrl+V 붙여넣기·드래그로도 넣기';
   const panel=document.createElement('div'); panel.className='uie-panel';
-  panel.innerHTML='<p class="uie-title">이미지 편집</p><div class="uie-row"><label>이미지 링크로 넣기</label><div class="uie-url-line"><input class="uie-input js-url" type="url" placeholder="https:// 이미지 주소 붙여넣기"><button type="button" class="uie-btn js-apply">적용</button></div></div><div class="uie-row"><label>컴퓨터에서 업로드</label><div class="uie-upload-line"><label class="uie-file-btn">업로드<input class="js-file" type="file" accept="image/*" style="display:none"></label><div class="uie-preview js-preview"><span>🖼</span></div></div></div><div class="uie-tabs uie-adv-only"><button type="button" class="uie-tab js-tab is-active" data-mode="box">박스 크기 조절</button><button type="button" class="uie-tab js-tab" data-mode="inner">안쪽 이미지 조절</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-unify" style="width:100%">↔ 모든 사진 이 크기로 통일</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-addpoint" style="width:100%">＋ 상품·설명 점 추가</button></div><div class="uie-hl-wrap uie-adv-only"></div><div class="uie-actions"><button type="button" class="uie-btn ghost js-reset">초기화</button><button type="button" class="uie-btn ghost js-close">닫기</button></div><p class="uie-help"><b>박스 크기</b> 모드=파란 점을 위·아래로 끌어 <b>높이</b>만 조절돼요(가로는 항상 꽉 참) · <b>안쪽 이미지</b> 모드=주황 점·사진을 끌어 <b>확대·이동</b>(사진을 작게 하려면 박스 크기를 줄이세요) · 사진 크기가 안 맞으면 <b>모든 사진 이 크기로 통일</b>을 누르세요 · <b>Ctrl+Z</b> 되돌리기 · <b>Ctrl+Y</b> 다시하기</p>';
+  panel.innerHTML='<p class="uie-title">이미지 편집</p><div class="uie-row"><label>이미지 링크로 넣기</label><div class="uie-url-line"><input class="uie-input js-url" type="url" placeholder="https:// 이미지 주소 붙여넣기"><button type="button" class="uie-btn js-apply">적용</button></div></div><div class="uie-row"><label>컴퓨터에서 업로드</label><div class="uie-upload-line"><label class="uie-file-btn">업로드<input class="js-file" type="file" accept="image/*" style="display:none"></label><div class="uie-preview js-preview"><span>🖼</span></div></div></div><div class="uie-tabs uie-adv-only"><button type="button" class="uie-tab js-tab is-active" data-mode="box">박스 크기 조절</button><button type="button" class="uie-tab js-tab" data-mode="inner">안쪽 이미지 조절</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-unify" style="width:100%">↔ 모든 사진 이 크기로 통일</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-addpoint" style="width:100%">＋ 상품·설명 점 추가</button></div><div class="uie-hl-wrap uie-adv-only"></div><div class="uie-actions"><button type="button" class="uie-btn ghost js-reset">초기화</button><button type="button" class="uie-btn ghost js-close">닫기</button></div><p class="uie-help"><b>박스 크기</b> 모드=파란 점을 위·아래로 끌어 <b>높이</b>만 조절돼요(가로는 항상 꽉 참) · <b>안쪽 이미지</b> 모드=사진을 끌어 <b>보이는 부위 이동</b>(위로 끌면 아래쪽이 보임·회색 여백 안 생김), 주황 점으로 확대 · 사진 크기가 안 맞으면 <b>모든 사진 이 크기로 통일</b> · <b>Ctrl+Z</b> 되돌리기 · <b>Ctrl+Y</b> 다시하기</p>';
   box.appendChild(open); box.appendChild(panel);
   ['nw','n','ne','e','se','s','sw','w'].forEach(dir=>{ const h=document.createElement('span'); h.className='uie-handle '+dir; h.dataset.dir=dir; box.appendChild(h); });
   const badge=document.createElement('span'); badge.className='uie-badge'; box.appendChild(badge);
@@ -5853,7 +5856,7 @@ function advBuildUIE(box, host, onChange){
   open.addEventListener('click',e=>{ e.stopPropagation(); host.querySelectorAll('.uie-panel.is-open').forEach(p=>{if(p!==panel)p.classList.remove('is-open');}); panel.classList.toggle('is-open'); selectBox(); });
   panel.addEventListener('click',e=>e.stopPropagation());
   panel.querySelector('.js-close').addEventListener('click',()=>panel.classList.remove('is-open'));
-  panel.querySelector('.js-reset').addEventListener('click',()=>{ state.scale=100; state.x=0; state.y=0; box.style.width=''; box.style.height=''; applyImg(); updateBadge(); onChange&&onChange(); });
+  panel.querySelector('.js-reset').addEventListener('click',()=>{ state.scale=100; state.posX=50; state.posY=50; box.style.width=''; box.style.height=''; applyImg(); updateBadge(); onChange&&onChange(); });
   const unifyBtn=panel.querySelector('.js-unify'); if(unifyBtn){ unifyBtn.addEventListener('click',()=>{ const hpx=Math.round(box.getBoundingClientRect().height); let n=0; host.querySelectorAll('.uie-box').forEach(b=>{ b.style.width=''; b.style.height=hpx+'px'; n++; }); console.log('[uie] 모든 사진 크기 통일: '+n+'개 → '+hpx+'px'); applyImg(); updateBadge(); onChange&&onChange(); }); }
   box.addEventListener('click',e=>{ if(e.target.closest('.uie-open,.uie-panel,.uie-handle,.uie-point,.uie-pop,.uie-dot,.uie-hint,.uie-vtx,.uie-hlmove'))return; if(drawing){ addDrawPoint(e); return; } selectBox(); });
   box.querySelectorAll('.uie-handle').forEach(handle=>{
@@ -5871,8 +5874,9 @@ function advBuildUIE(box, host, onChange){
   });
   img.addEventListener('pointerdown',e=>{
     if(drawing||state.mode!=='inner')return; e.preventDefault(); selectBox();
-    const sx=e.clientX, sy=e.clientY, startX=state.x, startY=state.y; try{img.setPointerCapture(e.pointerId);}catch(_){}
-    function mv(ev){ state.x=startX+(ev.clientX-sx); state.y=startY+(ev.clientY-sy); applyImg(); }
+    const r=box.getBoundingClientRect(), sx=e.clientX, sy=e.clientY, startPX=state.posX, startPY=state.posY; try{img.setPointerCapture(e.pointerId);}catch(_){}
+    // 사진을 끌면 보이는 부위(크롭 위치)를 이동 — 위로 끌면 아래쪽(지붕 등)이 보이고, 여백은 생기지 않음
+    function mv(ev){ state.posX=startPX-((ev.clientX-sx)/Math.max(1,r.width))*100; state.posY=startPY-((ev.clientY-sy)/Math.max(1,r.height))*100; applyImg(); }
     function up(ev){ try{img.releasePointerCapture(ev.pointerId);}catch(_){} img.removeEventListener('pointermove',mv); img.removeEventListener('pointerup',up); img.removeEventListener('pointercancel',up); onChange&&onChange(); }
     img.addEventListener('pointermove',mv); img.addEventListener('pointerup',up); img.addEventListener('pointercancel',up);
   });

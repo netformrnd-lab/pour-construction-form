@@ -31,6 +31,9 @@
 .adv-host .info-card>.delete-info-card{position:absolute;right:10px;top:10px;z-index:5;}
 /* BEFORE */
 .adv-host .comment-card{display:flex;align-items:center;gap:16px;padding:18px 20px;margin-bottom:12px;border-radius:14px;background:linear-gradient(135deg,#fff7f0,#f7f2ee);}
+/* 어드민 편집 폭을 고객 페이지(.adv-view max-width:860)와 동일하게 맞춤
+   → 이미지 박스 가로폭·비율이 같아져 object-fit 크롭과 외곽선(%좌표) 위치가 어드민=고객 일치 */
+.adv-host{max-width:860px;margin-left:auto;margin-right:auto;}
 .adv-host .uie-box{background:#fff;}
 .adv-host .uie-crop{background:#fff;}
 .adv-host .comment-card .uie-box{flex:0 0 auto;width:104px;height:104px;margin:0;border-radius:12px;box-shadow:none;background:transparent;}

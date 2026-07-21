@@ -6096,7 +6096,7 @@ function AdvancedContentEditor({form,set,uploadImage}){
     sync();
   },[]);
   const fire=()=>{ if(syncRef.current) syncRef.current(); };
-  return <div>
+  return <div style={{maxWidth:864,margin:'0 auto'}}>
     <AdvToolbar hostRef={hostRef} onChange={fire}/>
     <div ref={hostRef} className="adv-host"/>
   </div>;

@@ -6263,6 +6263,7 @@ function PackagesPage({showToast}){
   const [rows,setRows]=useState([]);
   const [loading,setLoading]=useState(true);
   const [seeding,setSeeding]=useState(false);
+  const [upId,setUpId]=useState(null);   // 썸네일 업로드 중인 상품 id
 
   const load=async()=>{
     try{
@@ -6279,6 +6280,21 @@ function PackagesPage({showToast}){
     setRows(prev=>prev.map(r=>r.id===id?{...r,...partial}:r));
     try{ await db.collection(COLLECTIONS.POURSTORE_PACKAGES).doc(id).set({...partial,...audit.update()},{merge:true}); }
     catch(e){ console.error('[packages] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
+  };
+
+  // 썸네일 직접 지정: 파일 업로드 → Firebase Storage → URL → thumbnail 저장
+  const uploadThumb=async(id,file)=>{
+    if(!file)return;
+    if(!file.type.startsWith('image/')){ showToast('이미지 파일만 가능','error'); return; }
+    if(file.size > 5*1024*1024){ showToast('5MB 이하 이미지만 가능','error'); return; }
+    setUpId(id);
+    try{
+      const ts=Date.now(); const safe=file.name.replace(/[^\w.\-]/g,'_');
+      const snap=await storage.ref(`POUR스토어_리뉴얼/package-thumbs/${ts}_${safe}`).put(file);
+      const url=await snap.ref.getDownloadURL();
+      await patch(id,{thumbnail:url}); showToast('썸네일 변경 완료');
+    }catch(e){ console.error('[packages] 썸네일 업로드 실패:',e); showToast('업로드 실패: '+e.message,'error'); }
+    setUpId(null);
   };
 
   const remove=async(r)=>{
@@ -6353,9 +6369,12 @@ function PackagesPage({showToast}){
                 <React.Fragment key={r.id}>
                   {showAreaHead && <div style={{fontSize:12.5,fontWeight:900,color:'var(--navy)',margin:(i===0?'0':'12px')+' 0 2px',paddingLeft:2}}>■ {pkgAreaLabel(r.area)}</div>}
                   <div style={{display:'flex',gap:10,alignItems:'center',background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:'9px 12px',opacity:on?1:0.5,flexWrap:'wrap'}}>
-                    <div style={{width:46,height:46,borderRadius:8,flexShrink:0,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)'}}>
-                      {r.thumbnail?<img src={r.thumbnail} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.visibility='hidden';}}/>:null}
-                    </div>
+                    <label title="클릭해 추천 썸네일 이미지 업로드 (파인더에 노출)" style={{position:'relative',width:46,height:46,borderRadius:8,flexShrink:0,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',cursor:'pointer',display:'block'}}>
+                      {r.thumbnail?<img src={r.thumbnail} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.visibility='hidden';}}/>:<span style={{position:'absolute',inset:0,display:'grid',placeItems:'center',fontSize:17,color:'var(--or-d)',fontWeight:900}}>＋</span>}
+                      {upId===r.id && <span style={{position:'absolute',inset:0,display:'grid',placeItems:'center',background:'rgba(255,255,255,.78)',fontSize:10,fontWeight:800,color:'var(--or-d)'}}>…</span>}
+                      <span style={{position:'absolute',left:0,right:0,bottom:0,fontSize:8.5,fontWeight:800,textAlign:'center',color:'#fff',background:'rgba(0,0,0,.45)',lineHeight:'12px'}}>변경</span>
+                      <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)uploadThumb(r.id,f); e.target.value='';}}/>
+                    </label>
                     <div style={{flex:1,minWidth:170}}>
                       <div style={{fontSize:13,fontWeight:800,color:'var(--text)',lineHeight:1.3}}>{r.name}</div>
                       <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:700,marginTop:2}}>#{r.productNo} · {r.price||'가격 미정'}</div>

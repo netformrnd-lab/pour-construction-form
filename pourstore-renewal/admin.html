@@ -5592,7 +5592,7 @@ function advBuildUIE(box, host, onChange){
   const smallImg=!!box.closest('.comment-card,.material-row,.case-card');
   const open=document.createElement('button'); open.type='button'; open.className='uie-open'; open.textContent=smallImg?'🖼':'🖼 이미지 변경'; open.title='이미지 변경 · 사진 클릭 후 Ctrl+V 붙여넣기·드래그로도 넣기';
   const panel=document.createElement('div'); panel.className='uie-panel';
-  panel.innerHTML='<p class="uie-title">이미지 편집</p><div class="uie-row"><label>이미지 링크로 넣기</label><div class="uie-url-line"><input class="uie-input js-url" type="url" placeholder="https:// 이미지 주소 붙여넣기"><button type="button" class="uie-btn js-apply">적용</button></div></div><div class="uie-row"><label>컴퓨터에서 업로드</label><div class="uie-upload-line"><label class="uie-file-btn">업로드<input class="js-file" type="file" accept="image/*" style="display:none"></label><div class="uie-preview js-preview"><span>🖼</span></div></div></div><div class="uie-tabs uie-adv-only"><button type="button" class="uie-tab js-tab is-active" data-mode="box">박스 크기 조절</button><button type="button" class="uie-tab js-tab" data-mode="inner">안쪽 이미지 조절</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-unify" style="width:100%">↔ 모든 사진 이 크기로 통일</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-addpoint" style="width:100%">＋ 상품·설명 점 추가</button></div><div class="uie-hl-wrap uie-adv-only"></div><div class="uie-actions"><button type="button" class="uie-btn ghost js-reset">초기화</button><button type="button" class="uie-btn ghost js-close">닫기</button></div><p class="uie-help"><b>박스 크기</b> 모드=파란 점을 위·아래로 끌어 <b>높이</b>만 조절돼요(가로는 항상 꽉 참) · <b>안쪽 이미지</b> 모드=사진을 끌어 <b>보이는 부위 이동</b>(위로 끌면 아래쪽이 보임·회색 여백 안 생김), 주황 점으로 확대 · 사진 크기가 안 맞으면 <b>모든 사진 이 크기로 통일</b> · <b>Ctrl+Z</b> 되돌리기 · <b>Ctrl+Y</b> 다시하기</p>';
+  panel.innerHTML='<p class="uie-title">이미지 편집</p><div class="uie-row"><label>이미지 링크로 넣기</label><div class="uie-url-line"><input class="uie-input js-url" type="url" placeholder="https:// 이미지 주소 붙여넣기"><button type="button" class="uie-btn js-apply">적용</button></div></div><div class="uie-row"><label>컴퓨터에서 업로드</label><div class="uie-upload-line"><label class="uie-file-btn">업로드<input class="js-file" type="file" accept="image/*" style="display:none"></label><div class="uie-preview js-preview"><span>🖼</span></div></div></div><div class="uie-tabs uie-adv-only uie-sizetab"><button type="button" class="uie-tab js-tab is-active" data-mode="box">박스 크기 조절</button><button type="button" class="uie-tab js-tab" data-mode="inner">안쪽 이미지 조절</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-unify" style="width:100%">↔ 모든 사진 이 크기로 통일</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-addpoint" style="width:100%">＋ 상품·설명 점 추가</button></div><div class="uie-hl-wrap uie-adv-only"></div><div class="uie-actions"><button type="button" class="uie-btn ghost js-reset">초기화</button><button type="button" class="uie-btn ghost js-close">닫기</button></div><p class="uie-help"><b>박스 크기</b> 모드=파란 점을 위·아래로 끌어 <b>높이</b>만 조절돼요(가로는 항상 꽉 참) · <b>안쪽 이미지</b> 모드=사진을 끌어 <b>보이는 부위 이동</b>(위로 끌면 아래쪽이 보임·회색 여백 안 생김), 주황 점으로 확대 · 사진 크기가 안 맞으면 <b>모든 사진 이 크기로 통일</b> · <b>Ctrl+Z</b> 되돌리기 · <b>Ctrl+Y</b> 다시하기</p>';
   box.appendChild(open); box.appendChild(panel);
   ['nw','n','ne','e','se','s','sw','w'].forEach(dir=>{ const h=document.createElement('span'); h.className='uie-handle '+dir; h.dataset.dir=dir; box.appendChild(h); });
   const badge=document.createElement('span'); badge.className='uie-badge'; box.appendChild(badge);
@@ -5654,7 +5654,7 @@ function advBuildUIE(box, host, onChange){
   if(!Array.isArray(points)) points=[];
   function newPid(){ return 'p'+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36); }
   points.forEach(function(p){ if(!p.id) p.id=newPid(); });
-  function savePoints(){ box.dataset.points=JSON.stringify(points); syncStepProducts(); onChange&&onChange(); }
+  function savePoints(){ box.dataset.points=JSON.stringify(points); syncStepProducts(); if(host&&host.__advSyncEstimate){ try{ host.__advSyncEstimate(); }catch(_){} } onChange&&onChange(); }
   function closePops(){ box.querySelectorAll('.uie-pop').forEach(p=>p.remove()); }
   function esc(v){ return String(v==null?'':v).replace(/"/g,'&quot;'); }
   function pointFields(p){
@@ -5891,7 +5891,11 @@ function advEnhance(host, onChange){
   function _advFlush(){ if(_advTimer){ clearTimeout(_advTimer); _advTimer=null; _advPush(); } }
   onChange=function(){ _advRecord(); _advOrigChange&&_advOrigChange(); };
   function addBlkTool(b){ if(b.querySelector(':scope > .adv-blk-tools')) return; var tb=document.createElement('div'); tb.className='adv-blk-tools'; tb.innerHTML='<button type="button" class="adv-blk-add" title="이 블록 복제(하나 더 추가)">＋</button><button type="button" class="adv-blk-del" title="이 블록 삭제">🗑</button>'; b.insertBefore(tb, b.firstChild); }
-  function ensureBlockTools(scope){ scope=scope||host; if(scope.classList&&scope.classList.contains('adv-blk')) addBlkTool(scope); scope.querySelectorAll('.adv-blk').forEach(addBlkTool); }
+  function ensureBlockTools(scope){ scope=scope||host;
+    // 카드형 블록(시공포인트·문의카드·상세·스텝·자재행)에도 ＋/🗑 툴을 붙일 수 있게 adv-blk 부여
+    if(scope.classList&&/\b(point|comment-card|detail-item|step|material-row)\b/.test(scope.className)) scope.classList.add('adv-blk');
+    scope.querySelectorAll('.point,.comment-card,.detail-item,.step,.material-row').forEach(function(el){ el.classList.add('adv-blk'); });
+    if(scope.classList&&scope.classList.contains('adv-blk')) addBlkTool(scope); scope.querySelectorAll('.adv-blk').forEach(addBlkTool); }
   function renumberBlocks(){ host.querySelectorAll('.adv-sec').forEach(function(sec){ var di=0; sec.querySelectorAll('.detail-item .num').forEach(function(n){ di++; n.textContent=('0'+di).slice(-2); }); var st=0; sec.querySelectorAll('.step .eyebrow').forEach(function(el){ st++; if(/^STEP/i.test((el.textContent||'').trim())) el.textContent='STEP '+st; }); }); }
   function cleanBlockClone(node){ var c=node.cloneNode(true); c.querySelectorAll('.adv-blk-tools,.uie-open,.uie-panel,.uie-handle,.uie-badge,.uie-point,.uie-pop,.uie-hl-svg,.uie-vtx,.uie-hl-ctrl,.uie-dot,.uie-hint').forEach(function(el){el.remove();}); c.querySelectorAll('.uie-box').forEach(function(b){ b.classList.remove('is-selected','inner-mode'); b.removeAttribute('data-uie-ready'); }); return c; }
   function ensureInfoTools(scope){
@@ -5924,12 +5928,36 @@ function advEnhance(host, onChange){
     host.querySelectorAll(':scope > .adv-secgap').forEach(function(g){ g.remove(); });
     host.querySelectorAll(':scope > .adv-sec').forEach(function(s){ host.insertBefore(makeSecGap(), s); });
   }
+  // ===== 견적노트(자재 내역) ← 상품핀 자동 반영 =====
+  // 스텝 이미지의 '상품핀'에 링크/이름/썸네일이 있으면 견적노트 자재 행으로 자동 생성(설명은 편집 가능)
+  function syncEstimateFromPins(){
+    var list=host.querySelector('.material-list'); if(!list) return;
+    var _e=function(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+    var pins=[]; host.querySelectorAll('.uie-box').forEach(function(b){ var pts; try{pts=JSON.parse(b.dataset.points||'[]');}catch(_){pts=[];} (pts||[]).forEach(function(p){ if(p&&p.mode==='product' && (p.name||p.link||p.thumb)) pins.push(p); }); });
+    var seen={};
+    pins.forEach(function(p){ seen['k'+p.id]=1;
+      var row=list.querySelector('.material-row[data-pin="'+p.id+'"]');
+      if(!row){
+        row=document.createElement('div'); row.className='material-row adv-blk'; row.setAttribute('data-pin',String(p.id)); if(p.link)row.setAttribute('data-link',p.link);
+        row.innerHTML='<div class="uie-box"><img src="'+_e(p.thumb||'')+'" alt=""></div><div><p class="material-name" contenteditable="true" data-editable="true">'+_e(p.name||'상품명')+'</p><p class="material-sub" contenteditable="true" data-editable="true">'+_e(p.desc||'설명을 입력하세요')+'</p></div>';
+        list.appendChild(row); enhanceScope(row);
+      } else {
+        if(p.link)row.setAttribute('data-link',p.link); else row.removeAttribute('data-link');
+        var im=row.querySelector('.uie-box img'); if(im&&p.thumb&&im.getAttribute('src')!==p.thumb) im.src=p.thumb;
+        var nm=row.querySelector('.material-name'); if(nm&&p.name&&document.activeElement!==nm&&(nm.textContent||'').trim()!==p.name) nm.textContent=p.name;
+        var sub=row.querySelector('.material-sub'); if(sub&&p.desc&&(sub.textContent||'').trim()==='') sub.textContent=p.desc;
+      }
+    });
+    list.querySelectorAll('.material-row[data-pin]').forEach(function(r){ if(!seen['k'+r.getAttribute('data-pin')]) r.remove(); });
+  }
+  host.__advSyncEstimate=syncEstimateFromPins;
   enhanceScope(host);
   ensureSectionTools();
+  syncEstimateFromPins();
   host.addEventListener('input',function(){ onChange&&onChange(); });
   // 되돌리기/다시하기 실행부
   _advUndo.push(_advSnap()); // 기준 스냅샷
-  function _advRestore(html){ _advLock=true; host.innerHTML=html; enhanceScope(host); ensureSectionTools(); _advLock=false; _advOrigChange&&_advOrigChange(); }
+  function _advRestore(html){ _advLock=true; host.innerHTML=html; enhanceScope(host); ensureSectionTools(); syncEstimateFromPins(); _advLock=false; _advOrigChange&&_advOrigChange(); }
   function _advDoUndo(){ _advFlush(); if(_advUndo.length<=1) return; var cur=_advUndo.pop(); _advRedo.push(cur); _advRestore(_advUndo[_advUndo.length-1]); console.log('[adv] ↩ 되돌리기 ('+_advUndo.length+'단계 남음)'); }
   function _advDoRedo(){ if(!_advRedo.length) return; var nx=_advRedo.pop(); _advUndo.push(nx); _advRestore(nx); console.log('[adv] ↪ 다시하기'); }
   function _advHistKey(e){ if(!host.isConnected) return; var inHost=(e.target&&host.contains(e.target))||(document.activeElement&&host.contains(document.activeElement))||host.querySelector('.uie-box.is-selected'); if(!inHost) return; var k=(e.key||'').toLowerCase(); if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&k==='z'){ e.preventDefault(); _advDoUndo(); } else if((e.ctrlKey||e.metaKey)&&(k==='y'||(e.shiftKey&&k==='z'))){ e.preventDefault(); _advDoRedo(); } }
@@ -5947,6 +5975,26 @@ function advEnhance(host, onChange){
     if((e.key==='Delete'||e.key==='Backspace') && (cell.textContent||'').trim()===''){
       var other=item.querySelector(cell.classList.contains('info-label')?'.info-value':'.info-label');
       if(!other||(other.textContent||'').trim()===''){ e.preventDefault(); var prev=item.previousElementSibling; item.remove(); if(prev&&prev.classList&&prev.classList.contains('info-item')){ var f=prev.querySelector('.info-value')||prev.querySelector('.info-label'); if(f)f.focus(); } onChange&&onChange(); } }
+  });
+  // 목록(포인트요약·작업목표 등) 항목: Enter→줄 추가 · 빈 줄에서 Delete/Backspace→줄 삭제
+  host.addEventListener('keydown',function(e){
+    if(e.key!=='Enter'&&e.key!=='Delete'&&e.key!=='Backspace') return;
+    var ed=e.target; if(!ed||!ed.closest) return;
+    var li=ed.closest('li'); if(!li) return;
+    var ul=li.parentNode; if(!ul||!ul.classList||!(ul.classList.contains('summary-list')||ul.classList.contains('goal-list'))) return;
+    var isGoal=ul.classList.contains('goal-list');
+    if(e.key==='Enter'){ e.preventDefault();
+      var nl=document.createElement('li');
+      if(isGoal){ nl.innerHTML='<span class="check">✓</span><span contenteditable="true" data-editable="true" spellcheck="false">내용 입력</span>'; }
+      else { nl.setAttribute('contenteditable','true'); nl.setAttribute('data-editable','true'); nl.setAttribute('spellcheck','false'); nl.textContent='내용 입력'; }
+      ul.insertBefore(nl, li.nextSibling);
+      var fe=isGoal?nl.querySelector('[contenteditable]'):nl; if(fe){ fe.focus(); try{ var r=document.createRange(); r.selectNodeContents(fe); var sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(r); }catch(_){}}
+      onChange&&onChange(); return; }
+    if((e.key==='Delete'||e.key==='Backspace') && (ed.textContent||'').trim()===''){
+      if(ul.children.length<=1) return; // 마지막 한 줄은 남김
+      e.preventDefault(); var prev=li.previousElementSibling; li.remove();
+      if(prev){ var pf=(prev.getAttribute&&prev.getAttribute('contenteditable')==='true')?prev:prev.querySelector('[contenteditable]'); if(pf){ pf.focus(); try{ var r2=document.createRange(); r2.selectNodeContents(pf); r2.collapse(false); var s2=window.getSelection(); s2.removeAllRanges(); s2.addRange(r2); }catch(_){}}}
+      onChange&&onChange(); return; }
   });
   host.addEventListener('click',function(e){
     var t=e.target;

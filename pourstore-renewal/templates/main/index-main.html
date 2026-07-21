@@ -5,6 +5,8 @@
 ============================================================ -->
 <!--@layout(/layout/basic/layout.html)-->
 <!--@css(/layout/basic/css/main.css)-->
+<!-- ★ 메인은 layout/pour-header를 안 타므로 뷰포트 meta를 여기서 강제 주입(모바일 반응형 필수) -->
+<script>(function(){try{var m=document.querySelector('meta[name=viewport]');var v='width=device-width, initial-scale=1';if(!m){m=document.createElement('meta');m.setAttribute('name','viewport');m.setAttribute('content',v);document.head.appendChild(m);}else if(!/width=device-width/i.test(m.getAttribute('content')||'')){m.setAttribute('content',v);}}catch(e){}})();</script>
 <div class="mainpage">
 
 <!--@import(/pourstore_renewal/pour-01-main.html)-->
@@ -24,10 +26,13 @@
 <!-- 하단 푸터 — 메인이 layout(공통 레이아웃)을 타지 않고 raw로 서빙되므로 여기서 직접 삽입.
      (라이브 확인 결과 메인 body 첫 요소가 .mainpage = layout의 #wrap/footer 미적용) -->
 <style>
-/* 메인은 layout CSS 미로드 → footer에 딸려온 카페24 모바일 하단내비(.bottom-nav)가
-   스타일 없이 리스트로 노출됨 → 숨김. 메인 내비게이션은 pour-header가 담당. */
-body > .bottom-nav, .mainpage ~ .bottom-nav { display:none !important; }
+/* 메인은 layout CSS 미로드 → footer에 딸려온 카페24 팝업/모바일바가 스타일 없이 노출됨 → 숨김.
+   (.bottom-nav=모바일 하단내비, #searchBarForm=검색 팝업). 메인 내비·검색은 pour-header가 담당. */
+body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !important; }
 </style>
 <!--@import(/layout/basic/footer.html)-->
+
+<!-- 전 페이지 고정 퀵버튼(POUR닥터 상담) — 메인은 layout을 안 타므로 여기서 직접 삽입 -->
+<!--@import(/pourstore_renewal/common/pour-quickbtn.html)-->
 
 <!--@define(cmc_log)-->

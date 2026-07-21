@@ -5903,8 +5903,26 @@ function advEnhance(host, onChange){
     scope.querySelectorAll('.info-item').forEach(function(it){ if(!it.querySelector(':scope > .delete-info-item')){ var b=document.createElement('button'); b.type='button'; b.className='delete-info-item'; b.textContent='×'; it.insertBefore(b, it.firstChild); } });
     scope.querySelectorAll('.info-grid').forEach(function(g){ if(!g.querySelector(':scope > .info-add-tile')){ var t=document.createElement('button'); t.type='button'; t.className='info-add-tile addInfoItem'; t.setAttribute('aria-label','항목 추가'); t.innerHTML='<span></span>'; g.appendChild(t); } });
   }
+  // Enter로 생긴 떠돌이 블록(클래스 없는 div/p·텍스트)을 바로 앞 편집요소로 흡수 → 편집·삭제 가능하게 복구
+  function absorbOrphans(scope){
+    scope.querySelectorAll('[data-editable="true"]').forEach(function(ed){
+      if(ed.closest('li')) return;
+      var sib=ed.nextSibling;
+      while(sib){
+        var nx=sib.nextSibling;
+        if(sib.nodeType===3){ if((sib.nodeValue||'').replace(/ /g,' ').trim()!==''){ ed.appendChild(document.createElement('br')); ed.appendChild(document.createTextNode(sib.nodeValue)); } sib.parentNode.removeChild(sib); sib=nx; continue; }
+        if(sib.nodeType===1){
+          var tag=sib.tagName.toLowerCase();
+          var plain=(tag==='div'||tag==='p') && !sib.hasAttribute('class') && !sib.querySelector('[data-editable],img,.uie-box,button,input,select,hr');
+          if(plain){ var has=(sib.textContent||'').replace(/ /g,' ').trim()!=='' || sib.querySelector('br,strong,em,b,i,span'); if(has){ ed.appendChild(document.createElement('br')); while(sib.firstChild) ed.appendChild(sib.firstChild); } sib.parentNode.removeChild(sib); sib=nx; continue; }
+        }
+        break;
+      }
+    });
+  }
   function enhanceScope(scope){
     scope.querySelectorAll('[data-editable="true"]').forEach(function(el){ el.setAttribute('contenteditable','true'); el.setAttribute('spellcheck','false'); });
+    absorbOrphans(scope);
     scope.querySelectorAll('.uie-box').forEach(function(box){ advBuildUIE(box,host,onChange); });
     ensureBlockTools(scope);
     ensureInfoTools(scope);
@@ -5996,6 +6014,17 @@ function advEnhance(host, onChange){
       e.preventDefault(); var prev=li.previousElementSibling; li.remove();
       if(prev){ var pf=(prev.getAttribute&&prev.getAttribute('contenteditable')==='true')?prev:prev.querySelector('[contenteditable]'); if(pf){ pf.focus(); try{ var r2=document.createRange(); r2.selectNodeContents(pf); r2.collapse(false); var s2=window.getSelection(); s2.removeAllRanges(); s2.addRange(r2); }catch(_){}}}
       onChange&&onChange(); return; }
+  });
+  // 일반 글(제목·본문 등)에서 Enter → 블록 분리 대신 줄바꿈(<br>) 삽입 → 떠돌이 블록(편집불가) 방지
+  host.addEventListener('keydown',function(e){
+    if(e.key!=='Enter'||e.shiftKey) return;
+    var t=e.target; if(!t||!t.closest) return;
+    var ce=t.closest('[contenteditable="true"]'); if(!ce||!host.contains(ce)) return;
+    if(t.closest('li, .info-label, .info-value')) return; // 목록·정보표는 별도 처리
+    e.preventDefault();
+    var ok=false; try{ ok=document.execCommand('insertLineBreak'); }catch(_){}
+    if(!ok){ try{ document.execCommand('insertHTML',false,'<br>'); }catch(__){} }
+    onChange&&onChange();
   });
   host.addEventListener('click',function(e){
     var t=e.target;

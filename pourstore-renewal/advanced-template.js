@@ -213,6 +213,8 @@
 .adv-host .adv-secgap-btn{position:relative;z-index:2;width:28px;height:28px;border-radius:50%;border:1.5px dashed #ff8a3d;background:#fff;color:#ff5a00;font-size:16px;font-weight:900;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.5;transition:opacity .12s,transform .12s,background .12s;}
 .adv-host .adv-secgap:hover .adv-secgap-btn,.adv-host .adv-secgap-btn:hover{opacity:1;transform:scale(1.1);background:#fff8f3;}
 .adv-host .adv-secgap .adv-sec-menu{left:50%;right:auto;bottom:auto;top:calc(100% + 6px);transform:translateX(-50%);}
+/* 이미지 박스에 드래그로 사진 놓을 때 하이라이트 */
+.adv-host .uie-box.uie-drop{outline:3px dashed #ff5a00;outline-offset:2px;}
 /* 상품핀 설명 팝업: 줄바꿈 유지 + 빈 사용제품 영역 최소높이 정리 */
 .adv-host .pv-pop .pv-desc{white-space:pre-line;}
 .adv-host .products:empty{display:none;}

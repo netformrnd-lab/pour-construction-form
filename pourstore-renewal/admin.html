@@ -5587,7 +5587,7 @@ function advBuildUIE(box, host, onChange){
   function applyImg(){ const s=Math.max(50,Math.min(300,state.scale))/100; img.style.transform='translate(-50%,-50%) translate('+state.x+'px,'+state.y+'px) scale('+s+')'; }
   applyImg();
   const smallImg=!!box.closest('.comment-card,.material-row,.case-card');
-  const open=document.createElement('button'); open.type='button'; open.className='uie-open'; open.textContent=smallImg?'🖼':'🖼 이미지 변경'; open.title='이미지 변경';
+  const open=document.createElement('button'); open.type='button'; open.className='uie-open'; open.textContent=smallImg?'🖼':'🖼 이미지 변경'; open.title='이미지 변경 · 사진 클릭 후 Ctrl+V 붙여넣기·드래그로도 넣기';
   const panel=document.createElement('div'); panel.className='uie-panel';
   panel.innerHTML='<p class="uie-title">이미지 편집</p><div class="uie-row"><label>이미지 링크로 넣기</label><div class="uie-url-line"><input class="uie-input js-url" type="url" placeholder="https:// 이미지 주소 붙여넣기"><button type="button" class="uie-btn js-apply">적용</button></div></div><div class="uie-row"><label>컴퓨터에서 업로드</label><div class="uie-upload-line"><label class="uie-file-btn">업로드<input class="js-file" type="file" accept="image/*" style="display:none"></label><div class="uie-preview js-preview"><span>🖼</span></div></div></div><div class="uie-tabs uie-adv-only"><button type="button" class="uie-tab js-tab is-active" data-mode="box">박스 크기 조절</button><button type="button" class="uie-tab js-tab" data-mode="inner">안쪽 이미지 조절</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-addpoint" style="width:100%">＋ 상품·설명 점 추가</button></div><div class="uie-hl-wrap uie-adv-only"></div><div class="uie-actions"><button type="button" class="uie-btn ghost js-reset">초기화</button><button type="button" class="uie-btn ghost js-close">닫기</button></div><p class="uie-help"><b>박스 크기</b> 모드=파란 점으로 이미지 칸을 조절 · <b>안쪽 이미지</b> 모드=주황 점을 끌거나 사진을 직접 드래그해서 조절</p>';
   box.appendChild(open); box.appendChild(panel);
@@ -5835,6 +5835,13 @@ function advBuildUIE(box, host, onChange){
   const preview=panel.querySelector('.js-preview');
   function refreshPreview(){ preview.innerHTML=''; const pv=document.createElement('img'); pv.src=img.src; pv.alt=''; pv.onerror=()=>{preview.innerHTML='<span>🖼</span>';}; preview.appendChild(pv); }
   refreshPreview();
+  // ---- 사진 붙여넣기(Ctrl+V) / 드래그 놓기 로 바로 넣기 ----
+  function applyImgFile(f){ if(!f||!(f.type||'').startsWith('image/')){ alert('이미지 파일만 가능합니다.'); return; } if(f.size>20*1024*1024){ alert('20MB 이하 이미지만 가능합니다 (GIF 포함)'); return; } if(window.__advUploadImage){ window.__advUploadImage('advpx_'+Date.now(), f, function(url){ img.src=url; refreshPreview(); onChange&&onChange(); }); } else { advReadFile(f).then(function(url){ img.src=url; refreshPreview(); onChange&&onChange(); }); } }
+  box.__advApplyFile=applyImgFile;
+  box.addEventListener('dragover',function(e){ e.preventDefault(); box.classList.add('uie-drop'); });
+  box.addEventListener('dragleave',function(){ box.classList.remove('uie-drop'); });
+  box.addEventListener('drop',function(e){ e.preventDefault(); box.classList.remove('uie-drop'); const files=e.dataTransfer&&e.dataTransfer.files; if(files&&files[0]) applyImgFile(files[0]); });
+  if(!window.__advPasteBound){ window.__advPasteBound=true; document.addEventListener('paste',function(e){ const t=e.target; if(t&&(/^(input|textarea)$/i.test(t.tagName)||t.isContentEditable)) return; const b=document.querySelector('.adv-host .uie-box.is-selected'); if(!b||!b.__advApplyFile) return; const items=(e.clipboardData&&e.clipboardData.items)||[]; for(let k=0;k<items.length;k++){ if(((items[k].type)||'').indexOf('image')===0){ const f=items[k].getAsFile(); if(f){ e.preventDefault(); b.__advApplyFile(f); return; } } } }); }
   function updateBadge(){ if(state.mode==='inner'){ badge.textContent='이미지 '+Math.round(state.scale)+'%'; } else { const r=box.getBoundingClientRect(); badge.textContent=Math.round(r.width)+' × '+Math.round(r.height)+' 박스'; } }
   function refreshMode(){ box.classList.toggle('inner-mode',state.mode==='inner'); panel.querySelectorAll('.js-tab').forEach(t=>t.classList.toggle('is-active',t.dataset.mode===state.mode)); updateBadge(); }
   function selectBox(){ host.querySelectorAll('.uie-box.is-selected').forEach(b=>{if(b!==box)b.classList.remove('is-selected');}); box.classList.add('is-selected'); refreshMode(); }

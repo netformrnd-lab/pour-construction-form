@@ -4,6 +4,7 @@ import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extC
 import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGetSnapshot } from "./durable.js";
 import { numF, skCur, mkCur, calcSegDone } from "./kpi.js";
 import { applyAutomation, instantiateLaunch } from "./launch.js";
+import { initCrmOperatorSync, matchOperator } from "./crmOperatorSync.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
 const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","eventTypes","weekGoals","launchTemplates","manuals","trash","activityLog"];
@@ -845,6 +846,21 @@ export default function App(){
     try{ if(window.parent&&window.parent!==window) window.parent.postMessage({type:"pour-os-ready"},"*"); }catch(_){}
     return ()=>window.removeEventListener("message",onMsg);
   },[]);
+  // POUR스토어 CRM에 임베드 시: 접속 담당자(이름·이메일) 수신 → 이메일→이름 순 매칭으로 currentUser 자동 선택
+  // (URL ?op_email/op_name/op_role + postMessage CRM_OPERATOR · CRM 출처만 신뢰 — crmOperatorSync.js)
+  const [crmOp,setCrmOp]=useState(null);   // {name, matched} — 툴바 표시용
+  useEffect(()=>{
+    const stop=initCrmOperatorSync((incoming)=>{
+      setD(p=>{
+        const matched=matchOperator(p.users,incoming,{getEmail:o=>o.email,getName:o=>o.name});
+        setCrmOp({name:(incoming.name||incoming.email||"").trim(),matched:!!matched});
+        if(matched) console.log("[CRM] 담당자 자동 매칭:",matched.name,incoming);
+        else console.warn("[CRM] 일치 담당자 없음:",incoming);
+        return (matched&&matched.id!==p.currentUser)?{...p,currentUser:matched.id}:p;
+      });
+    });
+    return stop;
+  },[]);
   // 변경 시 디바운스 저장 — 바뀐 컬렉션 문서만 저장(diff). 다른 컬렉션 동시편집 충돌 제거.
   useEffect(()=>{
     if(!loaded) return;
@@ -1052,6 +1068,7 @@ export default function App(){
     {page==="share-proj"&&<ShareProjectsPage D={D}/>}
   </>);
   const sheets=(<>
+    {crmOp&&<div title={crmOp.matched?"CRM 접속 담당자로 자동 선택됨":"일치하는 담당자를 못 찾아 그대로 유지"} style={{position:"fixed",left:8,bottom:"calc(env(safe-area-inset-bottom,0px) + 8px)",zIndex:4900,background:crmOp.matched?"#0F1F5C":"#6B7280",color:"#fff",padding:"5px 11px",borderRadius:999,fontSize:10.5,fontWeight:800,boxShadow:"0 4px 14px rgba(0,0,0,0.22)",whiteSpace:"nowrap",pointerEvents:"none",opacity:0.92}}>🖥 {crmOp.matched?`${crmOp.name} 담당자로 접속 중`:`CRM: ${crmOp.name} · 담당자 미일치`}</div>}
     {syncToast&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 12px)",left:"50%",transform:"translateX(-50%)",zIndex:5000,background:"#0F1F5C",color:"#fff",padding:"8px 16px",borderRadius:999,fontSize:12,fontWeight:700,boxShadow:"0 6px 20px rgba(0,0,0,0.25)",whiteSpace:"nowrap",pointerEvents:"none"}}>🔄 다른 기기에서 업데이트됨</div>}
     {saveWait&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 12px)",left:"50%",transform:"translateX(-50%)",zIndex:5002,background:"#EA580C",color:"#fff",padding:"9px 16px",borderRadius:999,fontSize:12,fontWeight:800,boxShadow:"0 6px 20px rgba(0,0,0,0.25)",whiteSpace:"nowrap",pointerEvents:"none",display:"flex",alignItems:"center",gap:8}}><span style={{display:"inline-block",width:13,height:13,border:"2px solid rgba(255,255,255,0.4)",borderTopColor:"#fff",borderRadius:"50%",animation:"pourspin 0.7s linear infinite"}}/>{saveWait} 저장 중… 잠시 후 저장돼요</div>}
     <style>{"@keyframes pourspin{to{transform:rotate(360deg)}}"}</style>

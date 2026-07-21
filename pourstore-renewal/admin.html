@@ -6196,7 +6196,7 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
             <div>🖼 <b>사진</b> — 사진 위 <b>[이미지 변경]</b> 버튼 → URL/업로드로 교체 · 크기 · 상품점 · 외곽선</div>
             <div>➕ <b>추가/삭제</b> — 점선 <b>[＋]</b> 칸으로 태그·글·항목 추가, <b>×</b> 로 삭제</div>
           </div>
-          <div style={{marginTop:8,border:'1.5px solid var(--border)',borderRadius:12,overflow:'hidden',background:'#fff'}}>
+          <div style={{marginTop:8,border:'1.5px solid var(--border)',borderRadius:12,overflow:'visible',background:'#fff',padding:'0 2px'}}>
             <AdvancedContentEditor form={form} set={set} uploadImage={uploadImage}/>
           </div>
         </React.Fragment>}

@@ -5584,7 +5584,7 @@ function advBuildUIE(box, host, onChange){
   let crop=box.querySelector(':scope > .uie-crop'); let img;
   if(crop){ img=crop.querySelector('img'); } else { img=box.querySelector(':scope > img'); if(!img) return; crop=document.createElement('div'); crop.className='uie-crop'; box.insertBefore(crop,img); crop.appendChild(img); }
   const state={scale:100,x:0,y:0,mode:'box'};
-  function applyImg(){ const s=Math.max(100,Math.min(300,state.scale))/100; img.style.transform='translate(-50%,-50%) translate('+state.x+'px,'+state.y+'px) scale('+s+')'; }
+  function applyImg(){ const s=Math.max(100,Math.min(300,state.scale))/100; const r=box.getBoundingClientRect(); const maxX=Math.max(0,(r.width*(s-1))/2), maxY=Math.max(0,(r.height*(s-1))/2); state.x=Math.max(-maxX,Math.min(maxX,state.x)); state.y=Math.max(-maxY,Math.min(maxY,state.y)); img.style.transform='translate(-50%,-50%) translate('+state.x+'px,'+state.y+'px) scale('+s+')'; }
   applyImg();
   const smallImg=!!box.closest('.comment-card,.material-row,.case-card');
   const open=document.createElement('button'); open.type='button'; open.className='uie-open'; open.textContent=smallImg?'🖼':'🖼 이미지 변경'; open.title='이미지 변경 · 사진 클릭 후 Ctrl+V 붙여넣기·드래그로도 넣기';
@@ -5854,7 +5854,7 @@ function advBuildUIE(box, host, onChange){
   panel.addEventListener('click',e=>e.stopPropagation());
   panel.querySelector('.js-close').addEventListener('click',()=>panel.classList.remove('is-open'));
   panel.querySelector('.js-reset').addEventListener('click',()=>{ state.scale=100; state.x=0; state.y=0; box.style.width=''; box.style.height=''; applyImg(); updateBadge(); onChange&&onChange(); });
-  const unifyBtn=panel.querySelector('.js-unify'); if(unifyBtn){ unifyBtn.addEventListener('click',()=>{ const hpx=Math.round(box.getBoundingClientRect().height); let n=0; host.querySelectorAll('.uie-box').forEach(b=>{ b.style.width=''; b.style.height=hpx+'px'; n++; }); console.log('[uie] 모든 사진 크기 통일: '+n+'개 → '+hpx+'px'); updateBadge(); onChange&&onChange(); }); }
+  const unifyBtn=panel.querySelector('.js-unify'); if(unifyBtn){ unifyBtn.addEventListener('click',()=>{ const hpx=Math.round(box.getBoundingClientRect().height); let n=0; host.querySelectorAll('.uie-box').forEach(b=>{ b.style.width=''; b.style.height=hpx+'px'; n++; }); console.log('[uie] 모든 사진 크기 통일: '+n+'개 → '+hpx+'px'); applyImg(); updateBadge(); onChange&&onChange(); }); }
   box.addEventListener('click',e=>{ if(e.target.closest('.uie-open,.uie-panel,.uie-handle,.uie-point,.uie-pop,.uie-dot,.uie-hint,.uie-vtx,.uie-hlmove'))return; if(drawing){ addDrawPoint(e); return; } selectBox(); });
   box.querySelectorAll('.uie-handle').forEach(handle=>{
     handle.addEventListener('pointerdown',e=>{
@@ -5864,7 +5864,7 @@ function advBuildUIE(box, host, onChange){
       function mv(ev){ const dx=ev.clientX-sx, dy=ev.clientY-sy;
         if(state.mode==='inner'){ let d=0; if(dir.includes('e'))d+=dx; if(dir.includes('w'))d-=dx; if(dir.includes('s'))d+=dy; if(dir.includes('n'))d-=dy; state.scale=Math.max(100,Math.min(300,Math.round(startScale+d/2))); applyImg(); updateBadge(); return; }
         let h=startH; if(dir.includes('s'))h=startH+dy; if(dir.includes('n'))h=startH-dy;
-        box.style.width=''; box.style.height=Math.max(120,Math.min(1200,h))+'px'; updateBadge(); }
+        box.style.width=''; box.style.height=Math.max(120,Math.min(1200,h))+'px'; applyImg(); updateBadge(); }
       function up(ev){ document.body.style.userSelect=''; try{handle.releasePointerCapture(ev.pointerId);}catch(_){} document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up); onChange&&onChange(); }
       document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up); document.addEventListener('pointercancel',up);
     });

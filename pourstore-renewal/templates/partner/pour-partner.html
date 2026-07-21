@@ -1006,6 +1006,29 @@
     setTimeout(enforce, 3000);
   })();
 </script>
+<script>
+  /* ============================================================
+     iframe 임베드용 — 부모(카페24) 페이지에 이 문서의 실제 높이를 전달.
+     부모가 이 값을 받아 iframe height를 맞추면 스크롤/여백 없이 딱 맞게 표시됨.
+     iframe 안에서 로드됐을 때만 동작하므로 단독 접속 시에는 아무 영향 없음.
+     ============================================================ */
+  (function(){
+    if(window.self === window.top) return; // iframe 내부에서만 동작
+    function postHeight(){
+      var h = Math.max(
+        document.documentElement ? document.documentElement.scrollHeight : 0,
+        document.body ? document.body.scrollHeight : 0
+      );
+      try{ window.parent.postMessage({ pourPartnerHeight: h }, '*'); }catch(e){}
+    }
+    window.addEventListener('load', postHeight);
+    window.addEventListener('resize', postHeight);
+    // 이미지·폰트 로딩, FAQ 아코디언 열림 등으로 높이가 바뀌는 경우 대비
+    setInterval(postHeight, 1000);
+    document.addEventListener('click', function(){ setTimeout(postHeight, 350); });
+    setTimeout(postHeight, 300);
+  })();
+</script>
 
 </body>
 </html>

@@ -39,10 +39,10 @@
 .pfind-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .pfind-badge{position:absolute;left:10px;top:10px;padding:4px 9px;font-size:11px;font-weight:800;color:#fff;background:rgba(232,120,15,.95);border-radius:7px}
 .pfind-ptag{position:absolute;right:10px;top:10px;padding:4px 9px;font-size:10.5px;font-weight:800;color:#111;background:rgba(255,255,255,.9);border-radius:7px}
-.pfind-info{padding:11px 3px 0}
-.pfind-cat{font-size:11.5px;font-weight:800;color:#E8780F}
-.pfind-name{margin-top:5px;font-size:14.5px;font-weight:700;color:#1F2937;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:41px}
-.pfind-price{margin-top:6px;font-size:15px;font-weight:900;color:#E8780F}
+.pfind-info{padding:10px 3px 0;display:flex;flex-direction:column;gap:4px}
+.pfind-name{font-size:14px;font-weight:700;color:#1F2937;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pfind-price{font-size:15px;font-weight:900;color:#111}
+.pfind-price .unit{font-size:12px;font-weight:700;color:#9CA3AF;margin-left:1px}
 .pfind-empty{grid-column:1/-1;text-align:center;padding:50px 20px;color:#9CA3AF;font-size:15px;font-weight:600}
 .pfind-loading{grid-column:1/-1;text-align:center;padding:50px 20px;color:#B0A89C;font-size:14px;font-weight:700}
 @media (max-width:900px){ .pfind-grid{grid-template-columns:repeat(3,1fr)} }
@@ -152,15 +152,20 @@ function buildingsOf(p){
     if(sel.building && x.building.indexOf(sel.building)<0) return false;
     return true;
   }
+  function priceHtml(p){
+    p=(p||'').toString().trim(); if(!p) return '';
+    const m=p.match(/^(.*?원)\s*(\/.*)?$/);  // "32,500원/㎡" → 본체 + 단위
+    return m ? esc(m[1])+(m[2]?'<span class="unit">'+esc(m[2])+'</span>':'') : esc(p);
+  }
   function card(x){
     const cat=PROBLEM_LABEL[x.problem]||'';
     const thumb=x.thumbnail?('<img src="'+esc(x.thumbnail)+'" alt="'+esc(x.name)+'" loading="lazy"/>'):'';
     return '<a class="pfind-card" href="/product/detail.html?product_no='+esc(x.productNo)+'&cate_no=71">'
       +'<div class="pfind-thumb">'+thumb
       +'<span class="pfind-badge">'+esc(cat)+'</span></div>'
-      +'<div class="pfind-info"><div class="pfind-cat">'+esc(cat)+'</div>'
+      +'<div class="pfind-info">'
       +'<div class="pfind-name">'+esc(x.name)+'</div>'
-      +'<div class="pfind-price">'+esc(x.price||'')+'</div></div></a>';
+      +'<div class="pfind-price">'+priceHtml(x.price)+'</div></div></a>';
   }
   function render(){
     const list=PRODUCTS.filter(match);

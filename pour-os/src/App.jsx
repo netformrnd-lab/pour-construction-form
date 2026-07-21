@@ -4375,23 +4375,27 @@ const FLOW_ARROW="flowArrowHead";
 const flowPath=(a,b,w,h)=>{const x1=a.x+w/2,y1=a.y+h,x2=b.x+w/2,y2=b.y;return `M ${x1} ${y1} C ${x1} ${y1+44}, ${x2} ${y2-44}, ${x2} ${y2}`;};
 // 프로젝트 → 플로우 노드/엣지 (읽기 전용 렌더용). ProcessEditor의 map 빌드 로직과 동일한 배치·상태(완료/진행가능/대기).
 function buildProjectFlow(D,proj){
-  const team=(proj.collaboratorIds||[]).length>0||proj.projType==="team";
-  const uName=(id)=>(D.users.find(u=>u.id===id)||{}).name||"";
-  const uColor=(id)=>(D.users.find(u=>u.id===id)||{}).color||"#94A3B8";
-  const all=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed);
-  const idset=new Set(all.map(t=>t.id));
-  const parentOf=(t)=>(t.parentId&&idset.has(t.parentId))?t.parentId:null;
-  const childrenOf=(pid)=>all.filter(t=>parentOf(t)===pid).sort((a,b)=>(a.seq||0)-(b.seq||0));
-  const items=[]; const walk=(pid,depth)=>{childrenOf(pid).forEach(t=>{items.push({id:t.id,depth,title:t.title||"(빈 항목)",who:t.assigneeId,done:t.status==="done"});walk(t.id,depth+1);});};
-  walk(null,0);
+  // ⚠️ ProjectProcessEditor의 load()·computeDD·map 빌드와 100% 동일하게 — 공유/편집 렌더 불일치 방지
+  const team=isTeamProj(D,proj);
+  const MEM=[{id:"",name:"미배정",color:"#9CA3AF"},...(D.users||[])];
+  const Mof=(id)=>MEM.find(m=>m.id===id)||MEM[0];
+  // load(): parentId||__root 그룹 · seq 정렬 · __root부터 DFS (부모 없는 고아 업무는 제외 — 편집기와 동일)
+  const ts=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed);
+  const byP={}; ts.forEach(t=>{const k=t.parentId||"__root";(byP[k]=byP[k]||[]).push(t);});
+  Object.values(byP).forEach(a=>a.sort((x,y)=>(x.seq||0)-(y.seq||0)));
+  const items=[]; const walk=(pid,depth)=>{(byP[pid]||[]).forEach(t=>{items.push({id:t.id,text:t.title,depth,who:t.assigneeId||"",done:t.status==="done"});walk(t.id,depth+1);});};
+  walk("__root",0);
   if(!items.length) return {nodes:[],edges:[],maxY:0};
+  const isP=(i)=>i+1<items.length&&items[i+1].depth>items[i].depth;   // 다음 항목이 더 깊으면 상위(단계)
+  const dd=(()=>{const a=new Array(items.length);const lastIdx=(i)=>{let k=i+1;while(k<items.length&&items[k].depth>items[i].depth)k++;return k-1;};const kidsOf=(i)=>{const o=[];const e=lastIdx(i);for(let k=i+1;k<=e;k++)if(items[k].depth===items[i].depth+1)o.push(k);return o;};for(let i=items.length-1;i>=0;i--){if(isP(i)){const ks=kidsOf(i);a[i]=ks.length>0&&ks.every(k=>a[k]);}else a[i]=!!items[i].done;}return a;})();   // computeDD: 상위=하위 전부 완료 시 완료(롤업)
+  const doneOf=(i)=>isP(i)?dd[i]:items[i].done;
   const rParent=(p)=>{const d=items[p].depth;for(let q=p-1;q>=0;q--){const dq=items[q].depth;if(dq===d-1)return q;if(dq<d-1)return -1;}return -1;};
   const rKids=(p)=>{const o=[];for(let q=p+1;q<items.length;q++){const dq=items[q].depth;if(dq<=items[p].depth)break;if(rParent(q)===p)o.push(q);}return o;};
+  const flowOf=(i)=>{if(doneOf(i))return "done";const par=rParent(i);for(let j=0;j<i;j++){if(items[j].depth===items[i].depth&&rParent(j)===par&&!doneOf(j))return "wait";}return "ready";};
   const CW=NODE_W+26,RH=NODE_H+48;let cur=0;const pos={};
   const placeXY=(p,depth)=>{const ks=rKids(p);if(!ks.length){pos[p]={x:20+cur*CW,y:16+depth*RH};cur++;}else{ks.forEach(q=>placeXY(q,depth+1));const xs=ks.map(q=>pos[q].x);pos[p]={x:(Math.min(...xs)+Math.max(...xs))/2,y:16+depth*RH};}};
   for(let p=0;p<items.length;p++){if(rParent(p)===-1)placeXY(p,0);}
-  const flowOf=(i)=>{if(items[i].done)return "done";const par=rParent(i);for(let j=0;j<i;j++){if(items[j].depth===items[i].depth&&rParent(j)===par&&!items[j].done)return "wait";}return "ready";};
-  const nodes=items.map((it,p)=>{const isStage=it.depth===0;const kc=rKids(p).length;return {id:it.id,x:(pos[p]||{}).x||20,y:(pos[p]||{}).y||16,title:it.title,sub:isStage?(team&&it.who?uName(it.who):""):("업무"+(team&&it.who?" · "+uName(it.who):"")),color:uColor(it.who),status:flowOf(p),kidCount:kc,isStage};});
+  const nodes=items.map((it,p)=>{const m=Mof(it.who);const isStage=it.depth===0;const kc=rKids(p).length;return {id:it.id,x:(pos[p]||{}).x||20,y:(pos[p]||{}).y||16,title:it.text||"(빈 항목)",sub:isStage?(team&&it.who?m.name:""):("업무"+(team&&it.who?" · "+m.name:"")),color:m.color,status:flowOf(p),kidCount:kc,isStage};});
   const edges=[];items.forEach((it,p)=>{const pr=rParent(p);if(pr>=0)edges.push({id:"fe"+p,from:items[pr].id,to:it.id});});
   const stageIdx=items.map((it,p)=>it.depth===0?p:-1).filter(p=>p>=0);
   for(let s=1;s<stageIdx.length;s++)edges.push({id:"seq"+s,from:items[stageIdx[s-1]].id,to:items[stageIdx[s]].id,seq:true});

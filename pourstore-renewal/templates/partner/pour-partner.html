@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POUR스토어 공식 파트너 모집</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-deep:#0F0F2D;
+    --navy:#1b2d5e;
+    --navy-soft:#2a3f7a;
+    --orange:#E1782D;
+    --orange-deep:#c95214;
+    --ink:#1a1d29;
+    --gray:#5b6276;
+    --line:#e4e7ee;
+    --bg-soft:#f6f7fa;
+    --white:#ffffff;
+    --radius:16px;
+    --shadow:0 10px 30px rgba(15,15,45,.08);
+    --maxw:1120px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;
+    color:var(--ink);
+    line-height:1.6;
+    background:var(--white);
+    -webkit-font-smoothing:antialiased;
+  }
+  img{max-width:100%;display:block}
+  a{text-decoration:none;color:inherit}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .eyebrow{
+    display:inline-block;font-size:14px;font-weight:700;letter-spacing:.08em;
+    color:var(--orange);text-transform:uppercase;margin-bottom:14px;
+  }
+  .section{padding:96px 0}
+  .section-title{font-size:34px;font-weight:900;line-height:1.3;letter-spacing:-.02em}
+  .section-sub{font-size:17px;color:var(--gray);margin-top:14px}
+  .center{text-align:center}
+
+  /* ===== HERO ===== */
+  .hero{
+    position:relative;color:#fff;overflow:hidden;
+    background:linear-gradient(135deg,var(--navy-deep) 0%,var(--navy) 60%,var(--navy-soft) 100%);
+  }
+  /* 동영상 삽입 예정 영역 (배경) */
+  .hero-video{
+    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    opacity:1;z-index:0;
+  }
+  .hero-overlay{position:absolute;inset:0;background:rgba(15,15,45,.2);z-index:1}
+  .hero-inner{position:relative;z-index:2;min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:140px 0 100px;text-align:center;text-shadow:0 2px 18px rgba(0,0,0,.45)}
+  .hero h1 small{
+    display:block;font-size:22px;font-weight:600;color:#fff;margin-bottom:16px;letter-spacing:.01em;
+  }
+  .hero h1{font-size:50px;font-weight:900;line-height:1.25;letter-spacing:-.03em}
+  .hero .hero-desc{font-size:19px;color:#dfe4f3;margin-top:22px;max-width:640px;margin-left:auto;margin-right:auto}
+  .hero-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:38px}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;
+    padding:16px 34px;border-radius:50px;font-size:16px;font-weight:700;
+    border:none;cursor:pointer;transition:.2s;
+  }
+  .btn-primary{background:var(--orange);color:#fff;box-shadow:0 8px 22px rgba(225,120,45,.35)}
+  .btn-primary:hover{background:var(--orange-deep);transform:translateY(-2px)}
+  .btn-ghost{background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.4)}
+  .btn-ghost:hover{background:rgba(255,255,255,.22)}
+
+  /* 헤드라인 + 공신력 카드 영역 */
+  .trust-section{
+    position:relative;margin-top:30px;padding:10px 0;
+  }
+  .trust{
+    position:relative;z-index:1;
+    display:grid;grid-template-columns:repeat(5,1fr);gap:18px;
+    max-width:var(--maxw);margin:40px auto 0;padding:0 24px;
+  }
+  .trust-card{
+    background:#fff;border:none;
+    border-radius:var(--radius);padding:28px 18px;text-align:center;
+    box-shadow:0 8px 22px rgba(15,15,45,.10);
+    transition:transform .25s,box-shadow .25s;
+  }
+  .trust-card:hover{transform:translateY(-6px);box-shadow:0 16px 36px rgba(15,15,45,.16)}
+  .trust-num{font-size:36px;font-weight:900;color:var(--orange);line-height:1}
+  .trust-num span{color:var(--orange);font-size:18px;font-weight:800}
+  .trust-num .count{color:var(--orange);font-size:36px;font-weight:900}
+  .trust-label{font-size:15px;font-weight:500;color:var(--gray);margin-top:12px;line-height:1.5}
+  /* 사용 실적 멘트 */
+  .usage-stat{margin-top:54px;font-size:32px;font-weight:800;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.45)}
+  .usage-stat .line{display:block;margin-top:16px}
+  .usage-stat .line:first-child{margin-top:0}
+  .usage-stat .big{font-size:56px;font-weight:900;color:var(--orange);line-height:1;display:inline-block;vertical-align:-4px}
+  /* 데이터 헤드라인 */
+  .data-headline{margin-top:0;font-size:47px;font-weight:900;color:var(--navy);line-height:1.4;letter-spacing:-.02em}
+
+  /* ===== WHY (이미지 마퀴) ===== */
+  .why{position:relative;overflow:hidden;background-size:cover;background-position:center top;background-repeat:no-repeat}
+  /* 상단(제목)은 기존 색, 아래로 갈수록 배경 이미지가 잘 보이게 */
+  .why::before{content:"";position:absolute;inset:0;z-index:0;
+    background:linear-gradient(180deg,
+      rgb(246,247,250) 0%,
+      rgb(246,247,250) 44%,
+      rgba(246,247,250,0) 50%,
+      rgba(15,15,45,0) 65%,
+      rgba(15,15,45,.62) 100%);
+  }
+  .why>*{position:relative;z-index:1}
+  .marquee{
+    position:relative;margin-top:40px;width:100%;overflow:hidden;padding:32px 0;
+    background:linear-gradient(180deg,rgb(246,247,250) 0%,rgba(246,247,250,.7) 50%,rgba(246,247,250,.4) 100%);
+  }
+  .marquee-track{
+    display:flex;gap:20px;width:max-content;will-change:transform;
+  }
+  .marq-item{
+    flex:0 0 auto;width:250px;height:320px;border-radius:var(--radius);overflow:hidden;
+    cursor:zoom-in;background-color:#e6eaf2;background-size:cover;background-position:center;background-repeat:no-repeat;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .25s;
+  }
+  .marq-item:hover{transform:translateY(-6px)}
+  .marq-item img{width:100%;height:100%;object-fit:cover}
+  .marq-ph{color:#9aa3bd;font-size:15px;font-weight:600}
+  /* 라이트박스 (확대 보기) */
+  .lightbox{
+    position:fixed;inset:0;background:rgba(15,15,45,.9);z-index:999;
+    display:none;align-items:center;justify-content:center;padding:30px;cursor:zoom-out;
+  }
+  .lightbox.open{display:flex}
+  .lightbox img{max-width:90vw;max-height:88vh;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .lightbox .lb-ph{
+    background:#fff;width:min(70vw,420px);height:min(82vh,580px);border-radius:10px;
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    color:#9aa3bd;font-size:17px;font-weight:600;padding:24px;
+  }
+  .lightbox .lb-close{position:absolute;top:20px;right:28px;color:#fff;font-size:42px;cursor:pointer;line-height:1}
+  @media (prefers-reduced-motion:reduce){.marquee-track{animation:none}}
+
+  /* ===== BENEFITS ===== */
+  .benefit-row{
+    display:grid;grid-template-columns:360px 460px;gap:40px;align-items:center;
+    justify-content:center;
+    padding:36px 0;border-bottom:1px solid var(--line);
+  }
+  .benefit-row:last-child{border-bottom:none}
+  .benefit-row:nth-child(even){grid-template-columns:460px 360px}
+  .benefit-row:nth-child(even) .benefit-img{order:2}
+  /* 사진 삽입 예정 영역 */
+  .benefit-img{
+    height:280px;border-radius:var(--radius);
+    background-color:#e3e8f2;background-size:cover;background-position:center;background-repeat:no-repeat;
+  }
+  .benefit-no{font-size:15px;font-weight:900;color:var(--orange);letter-spacing:.05em}
+  .benefit-text h3{font-size:26px;font-weight:900;color:var(--navy);margin-top:8px}
+  .benefit-text p{font-size:17px;color:var(--gray);margin-top:14px}
+  .benefit-text .hl{color:var(--orange-deep);font-weight:700}
+
+  /* ===== QUALIFY ===== */
+  .qualify{
+    background:linear-gradient(rgba(15,15,45,.5),rgba(15,15,45,.5)), url('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2Fqualify-bg.jpg?alt=media') center/cover no-repeat, var(--navy-deep);
+  }
+  .qualify .section-title{color:#fff}
+  .qualify .section-sub{color:#b9c2de}
+  .qual-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:50px}
+  .qual-col{background:#fff;border-radius:16px;padding:32px 30px;box-shadow:0 8px 24px rgba(15,15,45,.14)}
+  .qual-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:14px;font-weight:500;letter-spacing:.06em}
+  .qual-head .dash{width:26px;height:2px;display:inline-block;flex:none}
+  .qual-head.req{color:var(--orange)}
+  .qual-head.req .dash{background:var(--orange)}
+  .qual-head.plus{color:var(--gray)}
+  .qual-head.plus .dash{background:#b4bccc}
+  .qual-row{display:flex;gap:16px;padding:18px 0;border-top:1px solid var(--line)}
+  .qual-no{font-size:32px;font-weight:400;line-height:1;min-width:40px;color:rgba(225,120,45,.9)}
+  .qual-no.muted{color:#b0b8c8}
+  .qual-txt .t{font-size:20px;font-weight:500;color:var(--navy)}
+  .qual-txt .d{font-size:16px;color:var(--gray);margin-top:6px;line-height:1.5}
+
+  /* ===== PROCESS ===== */
+  .proc-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:54px}
+  .proc-step{text-align:center;position:relative}
+  .proc-step:not(:last-child)::after{
+    content:"";position:absolute;top:46px;right:-13px;
+    width:10px;height:10px;
+    border-top:2.5px solid #c3cad8;border-right:2.5px solid #c3cad8;
+    transform:rotate(45deg);
+  }
+  .proc-ico{
+    width:104px;height:104px;margin:0 auto 18px;border-radius:22px;
+    border:1px solid var(--line);background-color:#fff;
+    background-size:60px 60px;background-position:center;background-repeat:no-repeat;
+  }
+  .proc-step .t{font-size:16px;font-weight:700;color:var(--navy);line-height:1.4}
+
+  /* ===== SUPPORT ===== */
+  .support{background:var(--bg-soft)}
+  .sup-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:50px}
+  .sup-card{background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+  .sup-img{height:180px;background-color:#e3e8f2;background-size:cover;background-position:center;background-repeat:no-repeat}
+  .sup-body{padding:30px 34px 34px}
+  .sup-card .badge{
+    display:inline-block;font-size:13px;font-weight:700;color:#fff;background:var(--orange);
+    padding:6px 16px;border-radius:50px;margin-bottom:18px;
+  }
+  .sup-card h3{font-size:20px;font-weight:700;color:var(--navy);margin-bottom:16px}
+  .sup-card ul{list-style:none}
+  .sup-card li{padding:9px 0 9px 26px;position:relative;font-size:15px;color:var(--ink)}
+  .sup-card li::before{content:"";position:absolute;left:0;top:14px;width:8px;height:8px;border-radius:50%;background:var(--orange)}
+
+  /* ===== FORM ===== */
+  .apply{
+    position:relative;
+    background:linear-gradient(135deg, rgba(15,15,45,.70) 30%, rgba(15,15,45,.35) 100%), url('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2Fapply-bg.png?alt=media') center/cover no-repeat, var(--navy);
+  }
+  .apply .section-title{color:#fff}
+  .apply .section-sub{color:#c9d2de}
+  .form-card{background:#fff;border-radius:20px;padding:40px;margin-top:40px;box-shadow:var(--shadow)}
+  .form-group-title{font-size:17px;font-weight:700;color:var(--navy);margin:0 0 14px;padding-bottom:10px;border-bottom:2px solid var(--line)}
+  .form-group{margin-bottom:26px}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px}
+  .field label .req{color:var(--orange);margin-left:3px}
+  .field input[type=text],
+  .field input[type=tel],
+  .field input[type=email],
+  .field input[type=number],
+  .field textarea,
+  .field select{
+    width:100%;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.15s;background:#fff;
+  }
+  .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--orange)}
+  .field textarea{min-height:74px;resize:vertical}
+  .check-grid{display:flex;flex-wrap:wrap;gap:10px}
+  .check-pill{position:relative}
+  .check-pill input{position:absolute;opacity:0}
+  .check-pill label{
+    display:inline-block;padding:10px 20px;border:1.5px solid var(--line);border-radius:50px;
+    font-size:14px;font-weight:500;cursor:pointer;margin:0;transition:.15s;color:var(--gray);
+  }
+  .check-pill input:checked + label{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+  .file-field{display:flex;flex-direction:column;gap:6px}
+  .file-field input[type=file]{font-size:14px;padding:11px 14px;border:1.5px dashed var(--line);border-radius:10px;background:#fff;cursor:pointer;color:var(--gray)}
+  .file-field input[type=file]:focus{outline:none;border-color:var(--orange)}
+  .file-field input[type=file]::file-selector-button{margin-right:12px;padding:8px 16px;border:none;border-radius:50px;background:var(--navy);color:#fff;font-size:13px;font-weight:700;cursor:pointer}
+  .file-hint{font-size:13px;color:var(--gray)}
+  .agree{display:flex;align-items:flex-start;gap:10px;background:var(--bg-soft);padding:18px;border-radius:10px}
+  .agree input{margin-top:4px}
+  .agree label{font-size:14px;color:var(--gray);line-height:1.6}
+  .form-submit{text-align:center;margin-top:8px}
+  .form-submit .btn{width:100%;max-width:420px;font-size:17px;padding:18px}
+  .form-note{font-size:14px;color:var(--gray);margin-top:16px}
+
+  /* ===== FAQ ===== */
+  .faq-list{margin-top:44px;border-top:1px solid var(--line)}
+  .faq-item{border-bottom:1px solid var(--line)}
+  .faq-q{
+    width:100%;text-align:left;background:none;border:none;cursor:pointer;
+    padding:24px 8px;font-size:18px;font-weight:700;color:var(--navy);
+    display:flex;justify-content:space-between;align-items:center;gap:16px;font-family:inherit;
+    transition:color .2s;
+  }
+  .faq-q:hover{color:var(--orange)}
+  .faq-q .plus{font-size:24px;color:var(--orange);transition:.25s;flex-shrink:0}
+  .faq-item.open .faq-q .plus{transform:rotate(45deg)}
+  .faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease}
+  .faq-a-inner{padding:0 8px 24px;font-size:16px;color:var(--gray);line-height:1.8}
+
+  /* ===== FOOTER ===== */
+  .footer{background:var(--navy-deep);color:#aab3d0;padding:50px 0;font-size:14px}
+  .footer .wrap{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+  .footer .brand{font-size:20px;font-weight:900;color:#fff;letter-spacing:.02em}
+  .footer .brand span{color:var(--orange)}
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width:920px){
+    .trust{grid-template-columns:repeat(2,1fr)}
+    .why-grid,.sup-grid{grid-template-columns:1fr}
+    .proc-grid{grid-template-columns:repeat(2,1fr);gap:30px 16px}
+    .proc-step:not(:last-child)::after{display:none}
+    .qual-grid{grid-template-columns:1fr}
+    .benefit-row,.benefit-row:nth-child(even){grid-template-columns:1fr}
+    .benefit-row:nth-child(even) .benefit-img{order:0}
+    .benefit-img{height:200px}
+    .field-row{grid-template-columns:1fr;gap:0}
+  }
+  @media (max-width:560px){
+    .section{padding:64px 0}
+    .hero h1{font-size:34px}
+    .hero-inner{padding:80px 0 50px}
+    .section-title{font-size:26px}
+    .trust{grid-template-columns:1fr}
+    .form-card{padding:28px 20px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================= HERO ======================= -->
+<header class="hero">
+  <!-- 배경 동영상: 아래 source의 src 주소를 교체하면 영상이 바뀝니다 -->
+  <video class="hero-video" autoplay muted loop playsinline poster="">
+    <source src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2F%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%20%ED%99%88%ED%8E%98%EC%9D%B4%EC%A7%80.mp4?alt=media" type="video/mp4">
+  </video>
+  <div class="hero-overlay"></div>
+  <div class="wrap hero-inner">
+    <h1>
+      <small>리노베이션 전문가와 함께 성장하세요</small>
+      POUR스토어 시공 파트너 모집
+    </h1>
+    <p class="hero-desc">시공사·인테리어업체를 위한<br>차별화된 건축자재 공급 시스템</p>
+    <div class="hero-cta">
+      <a href="#apply" class="btn btn-primary">파트너 신청하기</a>
+      <a href="#benefits" class="btn btn-ghost">혜택 자세히 보기</a>
+    </div>
+  </div>
+</header>
+
+<!-- ======================= WHY ======================= -->
+<section class="section why" style="background-image:url('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2Fbuilding.jpg?alt=media')">
+  <div class="wrap center">
+    <span class="eyebrow">Why POUR Store</span>
+    <h2 class="section-title">왜 POUR스토어인가?</h2>
+    <p class="section-sub">리노베이션 시장, 제대로 된 파트너가 필요합니다.</p>
+  </div>
+  <!-- 데이터 헤드라인 + 공신력 카드 (배경은 WHY 섹션 전체에 적용됨) -->
+  <div class="trust-section">
+    <div class="wrap center">
+      <p class="data-headline">검증된 데이터를 통한 국내 1위 기술 브랜드 <span style="color:var(--orange)">POUR</span></p>
+    </div>
+    <div class="trust">
+      <div class="trust-card">
+        <div class="trust-num"><span class="count" data-target="260">0</span><span>만+</span></div>
+        <div class="trust-label">시공 세대</div>
+      </div>
+      <div class="trust-card">
+        <div class="trust-num"><span class="count" data-target="250">0</span><span>곳+</span></div>
+        <div class="trust-label">전국 파트너사</div>
+      </div>
+      <div class="trust-card">
+        <div class="trust-num"><span class="count" data-target="70">0</span><span>개+</span></div>
+        <div class="trust-label">건축물 유지보수 관련<br>특허 기술</div>
+      </div>
+      <div class="trust-card">
+        <div class="trust-num"><span class="count" data-target="110">0</span><span>개+</span></div>
+        <div class="trust-label">고품질 유지보수<br>제품 보유 수</div>
+      </div>
+      <div class="trust-card">
+        <div class="trust-num"><span class="count" data-target="0">00</span><span>회</span></div>
+        <div class="trust-label">연 시공 횟수 평균</div>
+      </div>
+    </div>
+  </div>
+  <!-- 이미지 띠: 자동 좌측 이동 / 마우스 올리면 느려짐 / 클릭하면 확대 -->
+  <div class="marquee" aria-label="POUR스토어 시공 이미지">
+    <div class="marquee-track" id="marqueeTrack"></div>
+  </div>
+  <!-- 사용 실적 멘트 -->
+  <div class="wrap center">
+    <p class="usage-stat">
+      <span class="line">전국 누적 <span class="big">260</span>만 세대</span>
+      <span class="line">아파트, 공장, 병원, 관공서, 각종 주택 등에서</span>
+      <span class="line">저희 POUR스토어 제품을 사용하고 있습니다.</span>
+    </p>
+  </div>
+</section>
+
+<!-- ======================= BENEFITS ======================= -->
+<section class="section" id="benefits">
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow">Benefits</span>
+      <h2 class="section-title">파트너사 혜택</h2>
+      <p class="section-sub">수익성 높은 조건, 실질적인 지원</p>
+    </div>
+
+    <div class="benefit-row">
+      <div class="benefit-img" style="background-image:url('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2Fbenefit1.png?alt=media')"></div>
+      <div class="benefit-text">
+        <span class="benefit-no">BENEFIT 01</span>
+        <h3>특별 공급가</h3>
+        <p>중간 유통 없이 본사 직공급으로,<br><span class="hl">시중가 대비 평균 22% 절감</span>된 가격에 공급받으실 수 있습니다.</p>
+      </div>
+    </div>
+
+    <div class="benefit-row">
+      <div class="benefit-img" style="background-image:url('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2Fbenefit2.png?alt=media')"></div>
+      <div class="benefit-text">
+        <span class="benefit-no">BENEFIT 02</span>
+        <h3>시공 의뢰</h3>
+        <p>시공 매칭 시스템으로<br><span class="hl">지역·시공분야에 맞는 시공 건</span>을 배정해 드립니다.</p>
+      </div>
+    </div>
+
+    <div class="benefit-row">
+      <div class="benefit-img" style="background-image:url('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2Fbenefit3.png?alt=media')"></div>
+      <div class="benefit-text">
+        <span class="benefit-no">BENEFIT 03</span>
+        <h3>기술 지원</h3>
+        <p>신공법·신제품 출시 시 <span class="hl">무료 교육</span>을 제공합니다.</p>
+      </div>
+    </div>
+
+    <div class="benefit-row">
+      <div class="benefit-img" style="background-image:url('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2Fbenefit4.png?alt=media')"></div>
+      <div class="benefit-text">
+        <span class="benefit-no">BENEFIT 04</span>
+        <h3>마케팅 지원</h3>
+        <p><span class="hl">파트너사 페이지 노출 / 시공사례 노출</span>로<br>파트너사의 인지도를 함께 높여 갑니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= QUALIFY ======================= -->
+<section class="section qualify">
+  <div class="wrap center">
+    <span class="eyebrow">Qualifications</span>
+    <h2 class="section-title">자격 요건</h2>
+  </div>
+  <div class="wrap">
+    <div class="qual-grid">
+      <div class="qual-col">
+        <div class="qual-head req"><span class="dash"></span>필수 조건</div>
+        <div class="qual-row">
+          <span class="qual-no">01</span>
+          <div class="qual-txt">
+            <div class="t">사업자등록증</div>
+            <div class="d">건설·인테리어·방수·도장 관련 업태</div>
+          </div>
+        </div>
+        <div class="qual-row">
+          <span class="qual-no">02</span>
+          <div class="qual-txt">
+            <div class="t">시공 경력 3년 이상</div>
+            <div class="d">방수·도장·균열보수 중 1개 이상 분야</div>
+          </div>
+        </div>
+        <div class="qual-row">
+          <span class="qual-no">03</span>
+          <div class="qual-txt">
+            <div class="t">시공사례 5건 이상</div>
+            <div class="d">보유 시공 실적 증빙 가능</div>
+          </div>
+        </div>
+      </div>
+      <div class="qual-col">
+        <div class="qual-head plus"><span class="dash"></span>우대 사항</div>
+        <div class="qual-row">
+          <span class="qual-no muted">01</span>
+          <div class="qual-txt">
+            <div class="t">기술자격증 보유</div>
+            <div class="d">건축·도장·방수기능사 등</div>
+          </div>
+        </div>
+        <div class="qual-row">
+          <span class="qual-no muted">02</span>
+          <div class="qual-txt">
+            <div class="t">전문건설업 면허</div>
+            <div class="d">미장·방수·습식 면허 보유</div>
+          </div>
+        </div>
+        <div class="qual-row">
+          <span class="qual-no muted">03</span>
+          <div class="qual-txt">
+            <div class="t">관공서·공동주택 실적</div>
+            <div class="d">아파트·관공서 시공 경험 보유</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= PROCESS ======================= -->
+<section class="section">
+  <div class="wrap center">
+    <span class="eyebrow">Process</span>
+    <h2 class="section-title">진행 절차</h2>
+    <div class="proc-grid">
+      <div class="proc-step">
+        <div class="proc-ico" style="background-image:url('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2Fprocess1.png?alt=media')"></div>
+        <div class="t">1. 신청서 제출</div>
+      </div>
+      <div class="proc-step">
+        <div class="proc-ico" style="background-image:url('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2Fprocess2.png?alt=media')"></div>
+        <div class="t">2. 서류 검토</div>
+      </div>
+      <div class="proc-step">
+        <div class="proc-ico" style="background-image:url('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2Fprocess3.png?alt=media')"></div>
+        <div class="t">3. 본사 방문</div>
+      </div>
+      <div class="proc-step">
+        <div class="proc-ico" style="background-image:url('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2Fprocess4.png?alt=media')"></div>
+        <div class="t">4. 계약 체결</div>
+      </div>
+      <div class="proc-step">
+        <div class="proc-ico" style="background-image:url('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2Fprocess5.png?alt=media')"></div>
+        <div class="t">5. 교육 이수 및<br>매칭 배정</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SUPPORT ======================= -->
+<section class="section support">
+  <div class="wrap center">
+    <span class="eyebrow">Starter Program</span>
+    <h2 class="section-title">시작 지원 프로그램</h2>
+  </div>
+  <div class="wrap">
+    <div class="sup-grid">
+      <div class="sup-card">
+        <div class="sup-img" style="background-image:url('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2Fsupport1.png?alt=media')"></div>
+        <div class="sup-body">
+          <span class="badge">무료교육</span>
+          <h3>현장에 바로 적용</h3>
+          <ul>
+            <li>제품별 시공 교육 (월 1회, 본사)</li>
+            <li>현장 참관 (1회, 현장)</li>
+            <li>온라인 시공 영상 제공</li>
+          </ul>
+        </div>
+      </div>
+      <div class="sup-card">
+        <div class="sup-img" style="background-image:url('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2Fsupport2.png?alt=media')"></div>
+        <div class="sup-body">
+          <span class="badge">샘플 키트 제공</span>
+          <h3>영업·제안에 활용</h3>
+          <ul>
+            <li>유형별 시공완료 샘플</li>
+            <li>시트 샘플북</li>
+            <li>카탈로그 2종 (시공/제품)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="sup-card">
+        <div class="sup-img" style="background-image:url('https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2Fsupport3.png?alt=media')"></div>
+        <div class="sup-body">
+          <span class="badge">첫 주문 특전</span>
+          <h3>현장 준비물 지원</h3>
+          <ul>
+            <li>POUR 로고 안전조끼 10벌 무상 제공</li>
+            <li>POUR 로고 안전모 5개 무상 제공</li>
+            <li>스타터 부자재 세트 (롤러·붓·헤라 등)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= APPLY FORM ======================= -->
+<section class="section apply" id="apply">
+  <div class="wrap center">
+    <span class="eyebrow">Apply</span>
+    <h2 class="section-title">파트너사 신청</h2>
+    <p class="section-sub">아래 정보를 입력해 주시면 담당자가 연락드립니다.</p>
+  </div>
+  <div class="wrap">
+    <form class="form-card" id="partnerForm" action="" method="post" enctype="multipart/form-data">
+
+      <!-- 사업자정보 -->
+      <div class="form-group">
+        <p class="form-group-title">사업자 정보</p>
+        <div class="field-row">
+          <div class="field">
+            <label>사업자명<span class="req">*</span></label>
+            <input type="text" name="company" required>
+          </div>
+          <div class="field">
+            <label>사업자등록번호<span class="req">*</span></label>
+            <input type="text" name="bizno" placeholder="000-00-00000" required>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>대표자명<span class="req">*</span></label>
+            <input type="text" name="ceo" required>
+          </div>
+          <div class="field">
+            <label>사업장 주소<span class="req">*</span></label>
+            <input type="text" name="address" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- 담당자정보 -->
+      <div class="form-group">
+        <p class="form-group-title">담당자 정보</p>
+        <div class="field-row">
+          <div class="field">
+            <label>담당자명<span class="req">*</span></label>
+            <input type="text" name="manager" required>
+          </div>
+          <div class="field">
+            <label>연락처<span class="req">*</span></label>
+            <input type="tel" name="phone" placeholder="010-0000-0000" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- 시공분야 -->
+      <div class="form-group">
+        <p class="form-group-title">시공 분야 <span style="font-size:13px;font-weight:400;color:var(--gray)">(복수 선택)</span></p>
+        <div class="check-grid">
+          <span class="check-pill"><input type="checkbox" id="f1" name="field[]" value="방수"><label for="f1">방수</label></span>
+          <span class="check-pill"><input type="checkbox" id="f2" name="field[]" value="도장"><label for="f2">도장</label></span>
+          <span class="check-pill"><input type="checkbox" id="f3" name="field[]" value="균열보수"><label for="f3">균열보수</label></span>
+          <span class="check-pill"><input type="checkbox" id="f4" name="field[]" value="에폭시"><label for="f4">에폭시</label></span>
+          <span class="check-pill"><input type="checkbox" id="f5" name="field[]" value="우레탄"><label for="f5">우레탄</label></span>
+          <span class="check-pill"><input type="checkbox" id="f6" name="field[]" value="아스콘"><label for="f6">아스콘</label></span>
+        </div>
+        <div class="field" style="margin-top:16px">
+          <label>기타 (직접 입력)</label>
+          <input type="text" name="field_etc">
+        </div>
+      </div>
+
+      <!-- 시공실적 -->
+      <div class="form-group">
+        <p class="form-group-title">시공 실적</p>
+        <div class="field-row">
+          <div class="field">
+            <label>시공 경력 (년)</label>
+            <input type="number" name="years" min="0">
+          </div>
+          <div class="field">
+            <label>연 시공 건수</label>
+            <input type="number" name="count" min="0">
+          </div>
+        </div>
+        <div class="field">
+          <label>주요 실적</label>
+          <textarea name="portfolio" placeholder="대표적인 시공 실적을 간단히 적어 주세요."></textarea>
+        </div>
+      </div>
+
+      <!-- 서류 첨부 -->
+      <div class="form-group">
+        <p class="form-group-title">서류 첨부</p>
+        <div class="field file-field">
+          <label>사업자등록증<span class="req">*</span></label>
+          <input type="file" name="bizfile" accept=".pdf,.jpg,.jpeg,.png" required>
+          <span class="file-hint">PDF 또는 이미지(JPG·PNG) 파일 1개 · 최대 10MB</span>
+        </div>
+      </div>
+
+      <!-- 유입경로 -->
+      <div class="form-group">
+        <div class="field">
+          <label>유입 경로</label>
+          <select name="inflow">
+            <option value="">선택해 주세요</option>
+            <option value="검색">검색 (네이버/구글 등)</option>
+            <option value="지인소개">지인 소개</option>
+            <option value="SNS">SNS·블로그</option>
+            <option value="기존거래">기존 거래처</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 동의 -->
+      <div class="form-group">
+        <div class="agree">
+          <input type="checkbox" id="agree" name="agree" required>
+          <label for="agree">개인정보 수집·이용에 동의합니다. 수집된 정보는 파트너 심사 및 연락 목적으로만 사용됩니다.<span class="req">*</span></label>
+        </div>
+      </div>
+
+      <div class="form-submit">
+        <button type="submit" class="btn btn-primary">파트너 신청 완료</button>
+        <p class="form-note">신청 후 영업일 기준 1~3일 내 담당자가 연락드립니다.</p>
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- ======================= FAQ ======================= -->
+<section class="section">
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow">FAQ</span>
+      <h2 class="section-title">자주 묻는 질문</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q">Q. 계약금이나 가입비가 있나요?<span class="plus">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">아니요. 가입비·계약금·보증금 모두 없습니다. 자재 구매가만 본사 직공급가로 정산되며, 시공 일감은 본사가 무상으로 배정합니다.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Q. 파트너 등급(A/B/C)은 어떻게 정해지나요?<span class="plus">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">전년도 매출, 시공의뢰 완료 건수, 시공 후 만족도 평가, 자체 수주 등을 고려하여 등급이 설정됩니다.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Q. 후불 결제가 가능한가요?<span class="plus">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">네, 가능합니다. 세금계산서 선발행 및 후결제로 진행 가능합니다.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Q. 최소 주문 금액이 있나요?<span class="plus">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">최소 주문 금액은 없습니다. 76,000원 이상일 경우 무료 배송이 가능하며, 구매 수량에 따라 차량 배송도 가능합니다.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Q. 교육은 어떻게 진행되나요? 교육비가 있나요?<span class="plus">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">파트너사 체결 시 최초 1회 의무 교육이 진행되며, 이후 요청에 따라 교육은 별도 진행됩니다. 교육비는 무상이며, 온라인 교육 영상도 제공 가능합니다.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Q. 시공의뢰 배정은 어떤 기준인가요?<span class="plus">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">접수된 의뢰를 지역 × 시공분야 기준으로 최적의 파트너에게 배정합니다.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 라이트박스 (이미지 확대 보기) -->
+<div class="lightbox" id="lightbox">
+  <span class="lb-close">&times;</span>
+  <div id="lbBody"></div>
+</div>
+
+<script>
+  /* ▼▼▼ 여기에 이미지 주소(URL)만 넣으세요. 비워두면 회색 "사진" 박스로 표시됩니다. ▼▼▼ */
+  const whyImages = [
+    "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2F16.png?alt=media",
+    "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2F17.png?alt=media",
+    "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2F18.png?alt=media",
+    "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2F19.png?alt=media",
+    "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2F20.png?alt=media",
+    "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2F21.png?alt=media",
+    "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2F22.png?alt=media",
+    "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2F23.png?alt=media",
+    "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2F24.png?alt=media",
+    "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%ED%8C%8C%ED%8A%B8%EB%84%88%EC%82%AC%2F25.png?alt=media"
+  ];
+  /* ▲▲▲ slide1.png ~ slide10.png 파일을 HTML과 같은 폴더에 넣으면 됩니다. ▲▲▲ */
+
+  // 이미지 띠 생성 (끊김 없는 무한 루프를 위해 2벌 렌더)
+  (function(){
+    const track = document.getElementById('marqueeTrack');
+    if(!track) return;
+    function makeItem(src, idx){
+      const fig = document.createElement('figure');
+      fig.className = 'marq-item';
+      if(src){
+        fig.style.backgroundImage = "url('" + src + "')";
+        fig.dataset.full = src;
+      } else {
+        const ph = document.createElement('span');
+        ph.className = 'marq-ph';
+        ph.textContent = '사진 ' + String(idx).padStart(2,'0');
+        fig.appendChild(ph);
+      }
+      fig.addEventListener('click', function(){ openLightbox(fig); });
+      return fig;
+    }
+    for(let r=0;r<2;r++){
+      whyImages.forEach(function(src,i){ track.appendChild(makeItem(src,i+1)); });
+    }
+
+    // 부드러운 좌측 이동 (CSS 애니메이션 대신 JS 제어 → 속도 변경 시 점프 없음)
+    const marquee = track.parentElement;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const NORMAL = 0.85, SLOW = 0.1;   // 평상시 속도 / 마우스 올렸을 때 속도
+    let pos = 0, speed = NORMAL, target = NORMAL, last = null;
+    marquee.addEventListener('mouseenter', function(){ target = SLOW; });
+    marquee.addEventListener('mouseleave', function(){ target = NORMAL; });
+    function tick(now){
+      if(last === null) last = now;
+      const dt = Math.min((now - last) / 16.67, 3);
+      last = now;
+      speed += (target - speed) * 0.06;          // 부드러운 가감속
+      pos -= speed * dt;
+      const half = track.scrollWidth / 2;
+      if(half && -pos >= half) pos += half;        // 절반 지나면 리셋(끊김 없음)
+      track.style.transform = 'translateX(' + pos + 'px)';
+      requestAnimationFrame(tick);
+    }
+    if(!reduce) requestAnimationFrame(tick);
+  })();
+
+  // 라이트박스 (확대 보기)
+  function openLightbox(fig){
+    const lb = document.getElementById('lightbox');
+    const body = document.getElementById('lbBody');
+    const full = fig.dataset.full;
+    if(full){
+      body.innerHTML = '<img src="'+full+'" alt="확대 이미지">';
+    } else {
+      const label = fig.querySelector('.marq-ph') ? fig.querySelector('.marq-ph').textContent : '사진';
+      body.innerHTML = '<div class="lb-ph">'+label+'<br><br>이미지를 넣으면 여기에 확대되어 표시됩니다.</div>';
+    }
+    lb.classList.add('open');
+  }
+  (function(){
+    const lb = document.getElementById('lightbox');
+    if(!lb) return;
+    lb.addEventListener('click', function(e){
+      if(e.target.closest('img')) return; // 확대된 이미지 클릭은 유지
+      lb.classList.remove('open');
+    });
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape') lb.classList.remove('open');
+    });
+  })();
+
+  // FAQ 아코디언
+  document.querySelectorAll('.faq-q').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var item = btn.parentElement;
+      var answer = item.querySelector('.faq-a');
+      var isOpen = item.classList.contains('open');
+      // 다른 항목 닫기
+      document.querySelectorAll('.faq-item').forEach(function(i){
+        i.classList.remove('open');
+        i.querySelector('.faq-a').style.maxHeight = null;
+      });
+      // 클릭한 항목 토글
+      if(!isOpen){
+        item.classList.add('open');
+        answer.style.maxHeight = answer.scrollHeight + 'px';
+      }
+    });
+  });
+
+  // 폼 제출 (임시: 실제 연동 전까지 알림만)
+  document.getElementById('partnerForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    // 사업자등록증 파일 용량 체크 (최대 10MB)
+    var bizfile = this.querySelector('input[name="bizfile"]');
+    if(bizfile && bizfile.files.length > 0){
+      var maxSize = 10 * 1024 * 1024; // 10MB
+      if(bizfile.files[0].size > maxSize){
+        alert('사업자등록증 파일은 10MB 이하만 첨부할 수 있어요. 파일 크기를 확인해 주세요.');
+        return;
+      }
+    }
+    alert('신청이 접수되었습니다. 영업일 기준 1~3일 내 담당자가 연락드립니다.');
+  });
+</script>
+<script>
+  // 공신력 카드 숫자 카운트업 (화면에 보이는 순간 0 → 목표값)
+  (function(){
+    var nums = document.querySelectorAll('.trust .count');
+    if(!nums.length || !('IntersectionObserver' in window)) return;
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function animate(el){
+      var target = parseInt(el.dataset.target, 10) || 0;
+      if(target === 0) return;            // 00회 같은 placeholder는 그대로 둠
+      if(reduce){ el.textContent = target.toLocaleString(); return; }
+      var dur = 1500, start = null;
+      function step(now){
+        if(start === null) start = now;
+        var p = Math.min((now - start) / dur, 1);
+        var eased = 1 - Math.pow(1 - p, 3);   // 끝에서 부드럽게 감속
+        el.textContent = Math.round(target * eased).toLocaleString();
+        if(p < 1){ requestAnimationFrame(step); }
+        else { el.textContent = target.toLocaleString(); }
+      }
+      requestAnimationFrame(step);
+    }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){ animate(en.target); io.unobserve(en.target); }
+      });
+    }, { threshold: 0.4 });
+    nums.forEach(function(el){ io.observe(el); });
+  })();
+</script>
+
+</body>
+</html>

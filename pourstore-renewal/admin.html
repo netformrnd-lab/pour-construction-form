@@ -6030,20 +6030,76 @@ function advCleanHtml(host){
   c.querySelectorAll('[contenteditable]').forEach(el=>{ el.removeAttribute('contenteditable'); el.removeAttribute('spellcheck'); });
   return c.innerHTML.trim();
 }
+// 고도화 콘텐츠 전용 서식바 — 선택한 글자(또는 그 문단)에 폰트·정렬·크기·줄간격·굵기·색 적용
+function AdvToolbar({hostRef,onChange}){
+  const [sz,setSz]=useState(15);
+  const [fc,setFc]=useState('#E8780F');
+  const [fontSel,setFontSel]=useState('');
+  const [wSel,setWSel]=useState('');
+  const savedRange=useRef(null);
+  const host=()=>hostRef.current;
+  const liveRange=()=>{ const s=window.getSelection&&window.getSelection(); if(!s||!s.rangeCount) return null; const r=s.getRangeAt(0); let n=r.commonAncestorContainer; n=n.nodeType===3?n.parentNode:n; if(!host()||!host().contains(n)) return null; return r; };
+  const saveRange=()=>{ const r=liveRange(); if(r) savedRange.current=r.cloneRange(); };
+  const useRange=()=>{ let r=liveRange(); if(!r && savedRange.current){ try{ const s=window.getSelection(); s.removeAllRanges(); s.addRange(savedRange.current); r=liveRange(); }catch(e){} } return r; };
+  const curEd=()=>{ const r=useRange(); let n=r?r.commonAncestorContainer:null; if(!n) return null; n=n.nodeType===3?n.parentNode:n; return (n.closest&&n.closest('[contenteditable="true"]'))||null; };
+  const fire=()=>{ if(onChange) onChange(); };
+  const inline=(css)=>{ const r=useRange(); if(!r) return; if(r.collapsed){ const ed=curEd(); if(ed){ Object.keys(css).forEach(function(k){ed.style[k]=css[k];}); fire(); } return; }
+    const span=document.createElement('span'); Object.keys(css).forEach(function(k){span.style[k]=css[k];});
+    try{ span.appendChild(r.extractContents()); r.insertNode(span); const s=window.getSelection(); s.removeAllRanges(); const nr=document.createRange(); nr.selectNodeContents(span); s.addRange(nr); savedRange.current=nr.cloneRange(); }catch(e){ return; }
+    fire(); };
+  const block=(css)=>{ const ed=curEd(); if(!ed) return; Object.keys(css).forEach(function(k){ed.style[k]=css[k];}); fire(); };
+  const setSize=(v)=>{ v=Math.max(8,Math.min(120,v)); setSz(v); inline({fontSize:v+'px'}); };
+  const tbtn={padding:'5px 10px',borderRadius:7,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,fontWeight:800,color:'var(--text-md)',cursor:'pointer'};
+  const noBlur={onMouseDown:(e)=>e.preventDefault()};
+  const COLS=[['','기본','#374151'],['point','포인트','#E8780F'],['red','빨강','#DC2626'],['blue','파랑','#2563EB'],['green','초록','#059669'],['gray','회색','#9AA0A6']];
+  return (
+   <div style={{position:'sticky',top:-2,zIndex:9,background:'#fff',paddingTop:6,paddingBottom:2,marginBottom:8,borderBottom:'1px solid var(--border-s)',boxShadow:'0 4px 8px -6px rgba(0,0,0,.25)'}}>
+     <div style={{display:'flex',gap:5,flexWrap:'wrap',alignItems:'center',padding:'7px 8px',border:'1px solid var(--border)',borderRadius:9,background:'var(--bg)'}}>
+       <select value={fontSel} onMouseDown={saveRange} onChange={e=>{ const v=e.target.value; setFontSel(v); inline({fontFamily:(v&&FLOW_FONTCSS[v])?FLOW_FONTCSS[v]:''}); }} title="폰트" style={{...tbtn,padding:'5px 8px',cursor:'pointer'}}>
+         {Object.keys(FLOW_FONTS).map(function(k){return <option key={k||'def'} value={k}>{FLOW_FONTS[k]}</option>;})}
+       </select>
+       <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
+       {[['left','좌'],['center','가운데'],['right','우']].map(function(o){return <button key={o[0]} type="button" {...noBlur} onClick={()=>block({textAlign:o[0]})} style={tbtn}>{o[1]}</button>;})}
+       <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
+       <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:800}}>크기</span>
+       <button type="button" {...noBlur} onClick={()=>setSize(sz-1)} style={{...tbtn,padding:'5px 9px'}}>−</button>
+       <input type="number" min="8" max="120" value={sz} onMouseDown={saveRange} onChange={e=>{ const v=parseInt(e.target.value,10); if(!isNaN(v)){ setSz(v); if(v>=8&&v<=120) inline({fontSize:v+'px'}); } }} style={{width:50,textAlign:'center',padding:'5px 6px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12,fontWeight:800,color:'var(--text)',outline:'none'}}/>
+       <button type="button" {...noBlur} onClick={()=>setSize(sz+1)} style={{...tbtn,padding:'5px 9px'}}>＋</button>
+       <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
+       <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:800}}>줄간격</span>
+       {[['narrow','좁게'],['normal','보통'],['wide','넓게']].map(function(o){return <button key={o[0]} type="button" {...noBlur} onClick={()=>block({lineHeight:FLOW_SPACE[o[0]].lh})} style={tbtn}>{o[1]}</button>;})}
+       <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
+       <select value={wSel} onMouseDown={saveRange} onChange={e=>{ const v=e.target.value; setWSel(v); inline({fontWeight:v||''}); }} title="굵기" style={{...tbtn,padding:'5px 8px',cursor:'pointer'}}>
+         {Object.keys(FLOW_WEIGHTS).map(function(k){return <option key={k||'def'} value={k}>{FLOW_WEIGHTS[k]}</option>;})}
+       </select>
+       <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
+       {COLS.map(function(c){return <button key={c[0]||'def'} type="button" title={c[1]} {...noBlur} onClick={()=>inline({color:c[0]?c[2]:''})} style={{width:20,height:20,borderRadius:'50%',cursor:'pointer',padding:0,background:c[2],border:'1.5px solid var(--border)'}}/>;})}
+       <input type="color" title="커스텀 색상" value={fc} onMouseDown={saveRange} onChange={e=>{setFc(e.target.value); inline({color:e.target.value});}} style={{width:23,height:23,padding:0,border:'1.5px solid var(--border)',borderRadius:6,cursor:'pointer'}}/>
+     </div>
+     <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:700,padding:'4px 2px 0'}}>글자를 <b>드래그해서 선택</b>하고 위 서식을 누르세요 · 선택 안 하면 <b>그 문단 전체</b>에 적용돼요</div>
+   </div>
+  );
+}
 function AdvancedContentEditor({form,set,uploadImage}){
   window.__advUploadImage=uploadImage;
   const hostRef=useRef(null);
   const setRef=useRef(set); setRef.current=set;
+  const syncRef=useRef(null);
   const inited=useRef(false);
   useEffect(()=>{
     if(inited.current) return; inited.current=true;
     const host=hostRef.current; if(!host) return;
     host.innerHTML=(form.advancedHtml&&form.advancedHtml.trim())?form.advancedHtml:(window.ADV_DEFAULT_HTML||ADV_DEFAULT_HTML);
     const sync=()=>{ try{ setRef.current({advancedHtml: advCleanHtml(host)}); }catch(_){} };
+    syncRef.current=sync;
     advEnhance(host, sync);
     sync();
   },[]);
-  return <div ref={hostRef} className="adv-host"/>;
+  const fire=()=>{ if(syncRef.current) syncRef.current(); };
+  return <div>
+    <AdvToolbar hostRef={hostRef} onChange={fire}/>
+    <div ref={hostRef} className="adv-host"/>
+  </div>;
 }
 function PostingEditor({form,setForm,onSave,onClose,saving}){
   const set=(patch)=>setForm(prev=>({...prev,...patch}));

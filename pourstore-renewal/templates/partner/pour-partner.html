@@ -34,6 +34,15 @@
   }
   img{max-width:100%;display:block}
   a{text-decoration:none;color:inherit}
+  /* ===== 카페24 임베드 풀블리드 (양쪽 여백 제거) =====
+     카페24 콘텐츠 영역이 폭을 제한해도 이 래퍼가 화면 전체 폭을 쓰게 함 */
+  .pp-fullbleed{
+    position:relative;
+    width:100vw;
+    left:50%;right:50%;
+    margin-left:-50vw;margin-right:-50vw;
+    overflow-x:hidden;   /* 100vw 스크롤바 여유분으로 인한 가로 스크롤 방지 */
+  }
   .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
   .eyebrow{
     display:inline-block;font-size:14px;font-weight:700;letter-spacing:.08em;
@@ -302,6 +311,7 @@
 </style>
 </head>
 <body>
+<div class="pp-fullbleed">
 
 <!-- ======================= HERO ======================= -->
 <header class="hero">
@@ -719,6 +729,8 @@
     </div>
   </div>
 </section>
+
+</div><!-- /.pp-fullbleed -->
 
 <!-- 라이트박스 (이미지 확대 보기) -->
 <div class="lightbox" id="lightbox">

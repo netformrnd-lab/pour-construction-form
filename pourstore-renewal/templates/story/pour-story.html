@@ -1833,7 +1833,8 @@ var PC_TTL = 300000;
       var SZ = { small:'13px', large:'18px', xl:'22px' };
       if (b.fontSize && Number(b.fontSize)>=8 && Number(b.fontSize)<=120) st.push('font-size:'+Number(b.fontSize)+'px');  // 숫자 크기 우선(범위 제한)
       else if (SZ[b.size]) st.push('font-size:'+SZ[b.size]);
-      if (b.size === 'xl') st.push('font-weight:800;letter-spacing:-0.02em');
+      if (b.weight && /^[3-9]00$/.test(''+b.weight)){ st.push('font-weight:'+b.weight); if(b.size==='xl') st.push('letter-spacing:-0.02em'); }
+      else if (b.size === 'xl') st.push('font-weight:800;letter-spacing:-0.02em');
       else if (b.bold) st.push('font-weight:700');
       var CLR = { point:'#E8780F', red:'#DC2626', blue:'#2563EB', green:'#059669', gray:'#9AA0A6' };
       var col = CLR[b.color] || (/^#[0-9a-fA-F]{3,8}$/.test(b.color||'') ? b.color : '');  // 레거시 키 → hex, 그 외 유효한 hex만 허용(CSS 인젝션 방지)

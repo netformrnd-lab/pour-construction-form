@@ -139,7 +139,7 @@
 /* 3) 히어로 */
 .psm1-hero { background:#fff; padding:20px 24px 0; }
 .psm1-hero-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:1fr 320px; gap:20px; }
-.psm1-banner { position:relative; border-radius:0; overflow:hidden; aspect-ratio:16/9; background:#F5F6F8; cursor:pointer; display:block; }
+.psm1-banner { position:relative; border-radius:8px; overflow:hidden; aspect-ratio:16/9; background:#F5F6F8; cursor:pointer; display:block; }
 .psm1-banner-img { width:100%; height:100%; object-fit:cover; }
 .psm1-banner-grad { position:absolute; inset:0; background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,.55) 100%); }
 .psm1-banner-cap { position:absolute; left:24px; right:24px; bottom:24px; color:#fff; }
@@ -148,7 +148,7 @@
 .psm1-banner-cap .author { margin-top:8px; font-size:12px; font-weight:500; opacity:.95; display:flex; align-items:center; gap:5px; letter-spacing:-0.02em; }
 .psm1-banner-cap .author .av { width:20px; height:20px; border-radius:50%; background:linear-gradient(135deg,#F49A3A,#E8780F); display:grid; place-items:center; font-size:10px; font-weight:800; }
 .psm1-banner-counter { position:absolute; right:14px; bottom:14px; background:rgba(15,23,42,.65); color:#fff; font-size:11px; font-weight:600; padding:4px 9px; border-radius:0; letter-spacing:-0.02em; }
-.psm1-banner-side { position:relative; border-radius:0; overflow:hidden; background:#F5F6F8; cursor:pointer; display:flex; flex-direction:column; padding:20px 22px; min-height:100%; }
+.psm1-banner-side { position:relative; border-radius:8px; overflow:hidden; background:#F5F6F8; cursor:pointer; display:flex; flex-direction:column; padding:20px 22px; min-height:100%; }
 .psm1-banner-side .ad { display:inline-block; font-size:10px; font-weight:700; padding:2px 6px; background:rgba(255,255,255,.85); color:#7C2D12; border-radius:3px; align-self:flex-start; letter-spacing:0.02em; }
 .psm1-banner-side .label { margin-top:18px; font-size:12px; font-weight:600; color:#7C2D12; letter-spacing:-0.02em; }
 .psm1-banner-side .title { margin-top:6px; font-size:20px; font-weight:800; color:#fff; line-height:1.3; letter-spacing:-0.04em; }
@@ -180,7 +180,7 @@
 .psm1-cats-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit, minmax(86px, 1fr)); gap:16px 6px; }
 .psm1-cat { display:flex; flex-direction:column; align-items:center; gap:8px; padding:8px 4px; border-radius:0; cursor:pointer; transition:.15s; }
 .psm1-cat:hover { background:#FAFAFA; }
-.psm1-cat-ico { width:54px; height:54px; border-radius:0; background:#F5F6F8; display:grid; place-items:center; font-size:24px; }
+.psm1-cat-ico { width:54px; height:54px; border-radius:16px; background:#F5F6F8; display:grid; place-items:center; font-size:24px; }
 .psm1-cat-ico svg { width:26px; height:26px; }
 .psm1-cat-ico.c1 { background:#F3E8FF; } .psm1-cat-ico.c2 { background:#FFE4E6; } .psm1-cat-ico.c3 { background:#DBEAFE; } .psm1-cat-ico.c4 { background:#DCFCE7; } .psm1-cat-ico.c5 { background:#FCE7F3; } .psm1-cat-ico.c6 { background:#F1F5F9; } .psm1-cat-ico.c7 { background:#FFEDD5; } .psm1-cat-ico.c8 { background:#E0F2FE; } .psm1-cat-ico.c9 { background:#CFFAFE; } .psm1-cat-ico.c10 { background:#FEE2E2; } .psm1-cat-ico.c11 { background:#EDE9FE; } .psm1-cat-ico.c12 { background:#FEF9C3; } .psm1-cat-ico.c13 { background:#E0E7FF; }
 .psm1-cat-name { font-size:13px; font-weight:500; color:#2F3438; text-align:center; letter-spacing:-0.03em; }
@@ -231,7 +231,7 @@
   .psm1-banner-side .ad { position:absolute; top:12px; right:12px; }
   .psm1-cats { padding:22px 8px 28px; }
   .psm1-cats-inner { grid-template-columns:repeat(5,1fr); row-gap:18px; gap:0; }
-  .psm1-cat-ico { width:48px; height:48px; font-size:22px; border-radius:0; }
+  .psm1-cat-ico { width:48px; height:48px; font-size:22px; border-radius:14px; }
   .psm1-cat-ico svg { width:23px; height:23px; }
   .psm1-cat-name { font-size:11.5px; }
 }

@@ -1,3 +1,6 @@
+<!-- ★ 모바일 반응형 필수: 뷰포트 meta 보장 (카페24가 head에서 누락/무효화 시 강제 주입·교정)
+     — 이게 없으면 모바일이 ~980px로 렌더되어 모든 반응형(@media)이 발동 안 함 -->
+<script>(function(){try{var m=document.querySelector('meta[name=viewport]');var v='width=device-width, initial-scale=1';if(!m){m=document.createElement('meta');m.setAttribute('name','viewport');m.setAttribute('content',v);document.head.appendChild(m);}else if(!/width=device-width/i.test(m.getAttribute('content')||'')){m.setAttribute('content',v);}}catch(e){}})();</script>
 <!-- 성능 힌트: 폰트·Firebase SDK 조기 로딩 (FOUC 감소 + 첫 응답 단축) -->
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>

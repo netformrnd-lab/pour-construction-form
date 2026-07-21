@@ -5866,6 +5866,7 @@ function advBuildUIE(box, host, onChange){
       document.body.style.userSelect='none'; try{handle.setPointerCapture(e.pointerId);}catch(_){}
       function mv(ev){ const dx=ev.clientX-sx, dy=ev.clientY-sy;
         if(state.mode==='inner'){ let d=0; if(dir.includes('e'))d+=dx; if(dir.includes('w'))d-=dx; if(dir.includes('s'))d+=dy; if(dir.includes('n'))d-=dy; state.scale=Math.max(100,Math.min(300,Math.round(startScale+d/2))); applyImg(); updateBadge(); return; }
+        if(smallImg){ let w=startW,h2=startH; if(dir.includes('e'))w=startW+dx; if(dir.includes('w'))w=startW-dx; if(dir.includes('s'))h2=startH+dy; if(dir.includes('n'))h2=startH-dy; box.style.width=Math.max(60,Math.min(600,w))+'px'; box.style.height=Math.max(60,Math.min(600,h2))+'px'; applyImg(); updateBadge(); return; }
         let h=startH; if(dir.includes('s'))h=startH+dy; if(dir.includes('n'))h=startH-dy;
         box.style.width=''; box.style.height=Math.max(120,Math.min(1200,h))+'px'; applyImg(); updateBadge(); }
       function up(ev){ document.body.style.userSelect=''; try{handle.releasePointerCapture(ev.pointerId);}catch(_){} document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up); onChange&&onChange(); }

@@ -31,7 +31,8 @@
 .adv-host .info-card>.delete-info-card{position:absolute;right:10px;top:10px;z-index:5;}
 /* BEFORE */
 .adv-host .comment-card{display:flex;align-items:center;gap:16px;padding:18px 20px;margin-bottom:12px;border-radius:14px;background:linear-gradient(135deg,#fff7f0,#f7f2ee);}
-.adv-host .comment-card .uie-box{flex:0 0 104px;width:104px;height:104px;margin:0;border-radius:12px;box-shadow:none;}
+.adv-host .comment-card .uie-box{flex:0 0 auto;width:104px;height:104px;margin:0;border-radius:12px;box-shadow:none;background:#ff5a00;}
+.adv-host .comment-card .uie-crop{background:#ff5a00;}
 .adv-host .comment-title{margin:0 0 6px;color:#ff5a00;font-size:18px;font-weight:850;letter-spacing:-.035em;}
 .adv-host .comment-text{margin:0;font-size:15px;line-height:1.55;font-weight:700;color:#333;word-break:keep-all;}
 .adv-host .sec-title{margin:0 0 5px;font-size:22px;line-height:1.25;font-weight:900;color:#111;letter-spacing:-.04em;}

@@ -5903,18 +5903,25 @@ function advEnhance(host, onChange){
     scope.querySelectorAll('.info-item').forEach(function(it){ if(!it.querySelector(':scope > .delete-info-item')){ var b=document.createElement('button'); b.type='button'; b.className='delete-info-item'; b.textContent='×'; it.insertBefore(b, it.firstChild); } });
     scope.querySelectorAll('.info-grid').forEach(function(g){ if(!g.querySelector(':scope > .info-add-tile')){ var t=document.createElement('button'); t.type='button'; t.className='info-add-tile addInfoItem'; t.setAttribute('aria-label','항목 추가'); t.innerHTML='<span></span>'; g.appendChild(t); } });
   }
-  // Enter로 생긴 떠돌이 블록(클래스 없는 div/p·텍스트)을 바로 앞 편집요소로 흡수 → 편집·삭제 가능하게 복구
+  // 편집요소 뒤에 붙은 '편집 불가' 문단(Enter로 생긴 떠돌이 블록·외부 붙여넣기 문단 isSelectedEnd 등)을
+  // 바로 앞 편집요소 안으로 흡수 → 다시 편집·삭제 가능. 구조 컨테이너(이미지·목록·정보표 등)는 건드리지 않음.
   function absorbOrphans(scope){
+    var NB=/\u00a0/g;
+    var inlineOnly=function(el){ return !el.querySelector('div,p,section,ul,ol,li,img,button,input,select,hr,h1,h2,h3,h4,h5,h6,.uie-box,[data-editable]'); };
     scope.querySelectorAll('[data-editable="true"]').forEach(function(ed){
       if(ed.closest('li')) return;
-      var sib=ed.nextSibling;
-      while(sib){
+      if(ed.tagName && /^(SPAN|STRONG|B|I|EM|A)$/.test(ed.tagName)) return;
+      var sib=ed.nextSibling, guard=0;
+      while(sib && guard++<300){
         var nx=sib.nextSibling;
-        if(sib.nodeType===3){ if((sib.nodeValue||'').replace(/ /g,' ').trim()!==''){ ed.appendChild(document.createElement('br')); ed.appendChild(document.createTextNode(sib.nodeValue)); } sib.parentNode.removeChild(sib); sib=nx; continue; }
+        if(sib.nodeType===3){ if((sib.nodeValue||'').replace(NB,' ').trim()!==''){ ed.appendChild(document.createElement('br')); ed.appendChild(document.createTextNode(sib.nodeValue)); } sib.parentNode.removeChild(sib); sib=nx; continue; }
         if(sib.nodeType===1){
           var tag=sib.tagName.toLowerCase();
-          var plain=(tag==='div'||tag==='p') && !sib.hasAttribute('class') && !sib.querySelector('[data-editable],img,.uie-box,button,input,select,hr');
-          if(plain){ var has=(sib.textContent||'').replace(/ /g,' ').trim()!=='' || sib.querySelector('br,strong,em,b,i,span'); if(has){ ed.appendChild(document.createElement('br')); while(sib.firstChild) ed.appendChild(sib.firstChild); } sib.parentNode.removeChild(sib); sib=nx; continue; }
+          if((tag==='p'||tag==='div') && !sib.hasAttribute('data-editable')){
+            var txt=(sib.textContent||'').replace(NB,' ').trim();
+            if(txt!=='' && inlineOnly(sib)){ ed.appendChild(document.createElement('br')); while(sib.firstChild) ed.appendChild(sib.firstChild); sib.parentNode.removeChild(sib); sib=nx; continue; }
+            if(txt==='' && !sib.hasAttribute('class') && inlineOnly(sib)){ sib.parentNode.removeChild(sib); sib=nx; continue; }
+          }
         }
         break;
       }

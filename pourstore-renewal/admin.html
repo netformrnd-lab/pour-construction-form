@@ -47,7 +47,7 @@ const db = firebase.firestore();
 const storage = firebase.storage();
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Gaegu&family=Jua&family=Nanum+Gothic:wght@400;700;800&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Dongle:wght@400;700&family=Gaegu&family=Gamja+Flower&family=Gothic+A1:wght@400;700;800&family=Gowun+Dodum&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Jua&family=Nanum+Brush+Script&family=Nanum+Gothic:wght@400;700;800&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@400;600;700&family=Song+Myung&display=swap" rel="stylesheet">
 <style>
 :root {
   --navy: #0F1F5C; --navy2: #1A2E62;
@@ -5018,7 +5018,7 @@ function PostingsPage({showToast}){
         return {x:Number(h.x)||0,y:Number(h.y)||0,mode:'product',name:(h.name||'').trim(),price:(h.price||'').trim(),thumb:(h.thumb||'').trim(),link:(h.link||'').trim()};
       }).filter(h=> h.mode==='info' ? (h.title||h.text||h.image) : (h.name||h.link));
       const blocks=(Array.isArray(f.blocks)?f.blocks:[]).map(b=>{
-        if(b.type==='image') return {type:'image', url:(b.url||'').trim(), caption:(b.caption||'').trim(), hotspots:cleanHot(b.hotspots), highlights:cleanHl(b.highlights)};
+        if(b.type==='image') return {type:'image', url:(b.url||'').trim(), caption:(b.caption||'').trim(), align:b.align||'', hotspots:cleanHot(b.hotspots), highlights:cleanHl(b.highlights)};
         if(b.type==='divider') return {type:'divider'};
         if(b.type==='button') return {type:'button', text:(b.text||'').trim(), link:(b.link||'').trim()};
         return {type:'text', text:(b.text||'').trim(), align:b.align||'left', size:b.size||'normal', fontSize:(b.fontSize&&+b.fontSize>=8&&+b.fontSize<=120)?+b.fontSize:0, font:b.font||'', space:b.space||'', bold:!!b.bold, color:b.color||'', quote:!!b.quote, list:b.list||'', callout:b.callout||'', highlight:!!b.highlight, link:(b.link||'').trim()};
@@ -5160,8 +5160,8 @@ function PostingsPage({showToast}){
 // 통합(블로그형) 글쓰기 — 한 칸에서 글·사진 자유롭게 + 문단 서식바. blocks[]로 저장(공개 렌더 그대로).
 const FLOW_SIZES={small:'13px',normal:'15px',large:'18px',xl:'22px'};
 const FLOW_COLORS={'':'#374151',point:'#E8780F',red:'#DC2626',blue:'#2563EB',green:'#059669',gray:'#9AA0A6'};
-const FLOW_FONTS={'':'기본(프리텐다드)',nanumgothic:'나눔고딕',nanummyeongjo:'나눔명조',notoserif:'본명조',jua:'배민 주아',dohyeon:'도현체',blackhan:'검은고딕',nanumpen:'손글씨(펜)',gaegu:'개구쟁이'};
-const FLOW_FONTCSS={nanumgothic:"'Nanum Gothic',sans-serif",nanummyeongjo:"'Nanum Myeongjo',serif",notoserif:"'Noto Serif KR',serif",jua:"'Jua',sans-serif",dohyeon:"'Do Hyeon',sans-serif",blackhan:"'Black Han Sans',sans-serif",nanumpen:"'Nanum Pen Script',cursive",gaegu:"'Gaegu',cursive"};
+const FLOW_FONTS={'':'기본(프리텐다드)',nanumgothic:'나눔고딕',gothica1:'고딕 A1',ibmplex:'IBM 플렉스',gowundodum:'고운돋움',nanummyeongjo:'나눔명조',notoserif:'본명조',songmyung:'송명(명조)',jua:'배민 주아',dohyeon:'도현체',blackhan:'검은고딕',nanumpen:'손글씨(펜)',nanumbrush:'붓글씨',gaegu:'개구쟁이',gamja:'감자꽃(손글씨)',dongle:'동글(둥근)'};
+const FLOW_FONTCSS={nanumgothic:"'Nanum Gothic',sans-serif",gothica1:"'Gothic A1',sans-serif",ibmplex:"'IBM Plex Sans KR',sans-serif",gowundodum:"'Gowun Dodum',sans-serif",nanummyeongjo:"'Nanum Myeongjo',serif",notoserif:"'Noto Serif KR',serif",songmyung:"'Song Myung',serif",jua:"'Jua',sans-serif",dohyeon:"'Do Hyeon',sans-serif",blackhan:"'Black Han Sans',sans-serif",nanumpen:"'Nanum Pen Script',cursive",nanumbrush:"'Nanum Brush Script',cursive",gaegu:"'Gaegu',cursive",gamja:"'Gamja Flower',cursive",dongle:"'Dongle',sans-serif"};
 const FLOW_SPACE={narrow:{lh:'1.4',mb:'3px'},normal:{lh:'1.6',mb:'10px'},wide:{lh:'1.95',mb:'22px'}};
 function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
   const ref=useRef(null);
@@ -5176,7 +5176,7 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
   const colVal=(c)=> FLOW_COLORS[c] || (/^#[0-9a-fA-F]{3,8}$/.test(c||'') ? c : '');
   const pStyle=(b)=>{ let s=''; if(b.align&&b.align!=='left')s+='text-align:'+b.align+';'; if(b.fontSize&&+b.fontSize>=8&&+b.fontSize<=120)s+='font-size:'+(+b.fontSize)+'px;'; else if(b.size&&b.size!=='normal')s+='font-size:'+(FLOW_SIZES[b.size]||FLOW_SIZES.normal)+';'; if(b.bold||b.size==='xl')s+='font-weight:800;'; if(b.color&&colVal(b.color))s+='color:'+colVal(b.color)+';'; if(b.font&&FLOW_FONTCSS[b.font])s+='font-family:'+FLOW_FONTCSS[b.font]+';'; if(b.space&&FLOW_SPACE[b.space])s+='line-height:'+FLOW_SPACE[b.space].lh+';margin-bottom:'+FLOW_SPACE[b.space].mb+';'; return s; };
   const pData=(b)=>{ let d=''; if(b.align&&b.align!=='left')d+=' data-align="'+b.align+'"'; if(b.fontSize)d+=' data-fontsize="'+(+b.fontSize)+'"'; if(b.size&&b.size!=='normal')d+=' data-size="'+b.size+'"'; if(b.bold)d+=' data-bold="1"'; if(b.color)d+=' data-color="'+b.color+'"'; if(b.font)d+=' data-font="'+b.font+'"'; if(b.space)d+=' data-space="'+b.space+'"'; return d; };
-  const toHtml=(bs)=> (bs||[]).map(function(b){ if(b.type==='image') return b.url?('<p><img src="'+escH(b.url)+'" alt=""></p>'):''; if(b.type==='divider') return '<hr>'; const st=pStyle(b); return '<p'+pData(b)+(st?(' style="'+st+'"'):'')+'>'+((escH(b.text||'').replace(/\n/g,'<br>'))||'<br>')+'</p>'; }).join('')||'<p><br></p>';
+  const toHtml=(bs)=> (bs||[]).map(function(b){ if(b.type==='image') return b.url?('<p'+(b.align&&b.align!=='left'?(' data-align="'+b.align+'" style="text-align:'+b.align+'"'):'')+'><img src="'+escH(b.url)+'" alt=""></p>'):''; if(b.type==='divider') return '<hr>'; const st=pStyle(b); return '<p'+pData(b)+(st?(' style="'+st+'"'):'')+'>'+((escH(b.text||'').replace(/\n/g,'<br>'))||'<br>')+'</p>'; }).join('')||'<p><br></p>';
   const grabText=(node)=>{ let t=''; node.childNodes.forEach(function(c){ if(c.nodeType===3)t+=c.nodeValue; else if(c.nodeType===1){ if(c.tagName==='BR')t+='\n'; else t+=grabText(c); } }); return t; };
   const serialize=(root)=>{ const out=[];
     Array.prototype.forEach.call(root.childNodes, function(n){
@@ -5185,7 +5185,7 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
       const tag=n.tagName.toLowerCase();
       if(tag==='hr'){ out.push({type:'divider'}); return; }
       if(tag==='img'){ out.push({type:'image',url:n.getAttribute('src')||'',hotspots:[]}); return; }
-      const im=n.querySelector&&n.querySelector('img'); if(im){ out.push({type:'image',url:im.getAttribute('src')||'',hotspots:[]}); return; }
+      const im=n.querySelector&&n.querySelector('img'); if(im){ const ib={type:'image',url:im.getAttribute('src')||'',hotspots:[]}; if(n.dataset&&n.dataset.align)ib.align=n.dataset.align; out.push(ib); return; }
       let txt=grabText(n).replace(/ /g,' ').replace(/\n+$/,'').trim(); if(!txt) return;
       const blk={type:'text',text:txt};
       if(n.dataset){ if(n.dataset.align)blk.align=n.dataset.align; if(n.dataset.fontsize)blk.fontSize=parseInt(n.dataset.fontsize,10); if(n.dataset.size)blk.size=n.dataset.size; if(n.dataset.bold)blk.bold=true; if(n.dataset.color)blk.color=n.dataset.color; if(n.dataset.font)blk.font=n.dataset.font; if(n.dataset.space)blk.space=n.dataset.space; }
@@ -5201,8 +5201,7 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
   const curPara=()=>{ const sel=window.getSelection&&window.getSelection(); if(!sel||!sel.rangeCount||!ref.current) return null; let n=sel.anchorNode; if(!n||!ref.current.contains(n)) return null; while(n&&n.parentNode!==ref.current) n=n.parentNode; if(!n||n.nodeType!==1) return null; const p=(n.tagName==='P'||n.tagName==='DIV')?n:null; if(p) lastPara.current=p; return p; };
   const restyle=(p)=>{ p.style.textAlign=p.dataset.align||''; p.style.fontSize=p.dataset.fontsize?(parseInt(p.dataset.fontsize,10)+'px'):((p.dataset.size&&FLOW_SIZES[p.dataset.size])?FLOW_SIZES[p.dataset.size]:''); p.style.fontWeight=(p.dataset.bold||p.dataset.size==='xl')?'800':''; p.style.color=colVal(p.dataset.color); p.style.fontFamily=(p.dataset.font&&FLOW_FONTCSS[p.dataset.font])?FLOW_FONTCSS[p.dataset.font]:''; if(p.dataset.space&&FLOW_SPACE[p.dataset.space]){p.style.lineHeight=FLOW_SPACE[p.dataset.space].lh;p.style.marginBottom=FLOW_SPACE[p.dataset.space].mb;}else{p.style.lineHeight='';p.style.marginBottom='';} };
   const eyedrop=async()=>{ if(typeof window.EyeDropper!=='function'){ alert('스포이트는 크롬·엣지에서만 지원됩니다.'); return; } const tp=curPara()||lastPara.current; try{ const r=await new window.EyeDropper().open(); if(r&&r.sRGBHex){ setFc(r.sRGBHex); applyPara({color:r.sRGBHex}, tp); addFav(r.sRGBHex); } }catch(e){} };
-  const topOf=(node)=>{ let n=node; if(!n||!ref.current||!ref.current.contains(n)) return null; while(n&&n.parentNode!==ref.current) n=n.parentNode; return (n&&n.nodeType===1)?n:null; };
-  const selectedParas=()=>{ const sel=window.getSelection&&window.getSelection(); if(!sel||!sel.rangeCount||!ref.current) return []; const rg=sel.getRangeAt(0); const kids=Array.prototype.slice.call(ref.current.children); let a=topOf(rg.startContainer), b=topOf(rg.endContainer); if(!a&&!b) return []; if(!a)a=kids[0]; if(!b)b=kids[kids.length-1]; let ia=kids.indexOf(a), ib=kids.indexOf(b); if(ia<0||ib<0) return []; if(ia>ib){ const t=ia;ia=ib;ib=t; } return kids.slice(ia,ib+1).filter(function(el){return el.tagName==='P'||el.tagName==='DIV';}); };
+  const selectedParas=()=>{ const sel=window.getSelection&&window.getSelection(); if(!sel||!sel.rangeCount||!ref.current) return []; const rg=sel.getRangeAt(0); const kids=Array.prototype.slice.call(ref.current.children).filter(function(el){return el.tagName==='P'||el.tagName==='DIV';}); if(rg.collapsed){ const p=curPara(); return p?[p]:[]; } return kids.filter(function(el){ try{ const r=document.createRange(); r.selectNodeContents(el); const startBeforeEnd=rg.compareBoundaryPoints(Range.END_TO_START,r)<0; const endAfterStart=rg.compareBoundaryPoints(Range.START_TO_END,r)>0; return startBeforeEnd&&endAfterStart; }catch(e){ return false; } }); };
   const applyPara=(patch,tp)=>{ let ps=tp?(Array.isArray(tp)?tp:[tp]):selectedParas(); if(!ps.length){ const p=curPara()||lastPara.current; if(p)ps=[p]; } ps=ps.filter(function(p){return p&&ref.current&&ref.current.contains(p);}); if(!ps.length) return; ps.forEach(function(p){ Object.keys(patch).forEach(function(k){ const v=patch[k]; if(v==null||v===''||v===false){ p.removeAttribute('data-'+k); } else { p.setAttribute('data-'+k, v===true?'1':v); } }); restyle(p); }); sync(); };
   // 드래그(선택) 시 선택된 문단들 기억 + 서식바에 현재 폰트·크기 표시(워드처럼)
   const onSel=()=>{ const ps=selectedParas(); selParas.current=ps; const first=(ps&&ps[0])||curPara()||lastPara.current; if(first){ setCurFmt({font:first.dataset.font||'', fontsize:first.dataset.fontsize||''}); } };
@@ -5228,7 +5227,7 @@ function PostingFlow({blocks,onChange,uploadImage,uploadingKey}){
         <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:800}}>줄간격</span>
         {[['narrow','좁게'],['normal','보통'],['wide','넓게']].map(function(o){return <button key={o[0]} type="button" {...noBlur} onClick={()=>applyPara({space:o[0]})} style={tbtn}>{o[1]}</button>;})}
         <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
-        <button type="button" {...noBlur} onClick={()=>{ const p=curPara(); if(p) applyPara({bold:p.dataset.bold?false:true}); }} style={{...tbtn,fontWeight:900,padding:'5px 11px'}}>B</button>
+        <button type="button" {...noBlur} onClick={()=>{ const ps=selectedParas(); const first=ps[0]||curPara()||lastPara.current; if(!first)return; const on=!first.dataset.bold; applyPara({bold:on}, ps.length?ps:[first]); }} style={{...tbtn,fontWeight:900,padding:'5px 11px'}}>B</button>
         <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
         {[['','기본'],['point','포인트'],['red','빨강'],['blue','파랑'],['green','초록'],['gray','회색']].map(function(c){return <button key={c[0]||'def'} type="button" title={c[1]} {...noBlur} onClick={()=>applyPara({color:c[0]})} style={{width:20,height:20,borderRadius:'50%',cursor:'pointer',padding:0,background:FLOW_COLORS[c[0]],border:'1.5px solid var(--border)'}}/>;})}
         <input type="color" title="커스텀 색상(문단)" value={fc} onMouseDown={()=>{ curPara(); }} onChange={e=>{setFc(e.target.value); applyPara({color:e.target.value});}} style={{width:23,height:23,padding:0,border:'1.5px solid var(--border)',borderRadius:6,cursor:'pointer'}}/>

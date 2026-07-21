@@ -6033,6 +6033,23 @@ function advEnhance(host, onChange){
     if(!ok){ try{ document.execCommand('insertHTML',false,'<br>'); }catch(__){} }
     onChange&&onChange();
   });
+  // 빈 글칸(내용 없는 편집 문단)에서 Delete/Backspace → 그 칸(문단) 삭제
+  host.addEventListener('keydown',function(e){
+    if(e.key!=='Delete'&&e.key!=='Backspace') return;
+    var t=e.target; if(!t||!t.closest) return;
+    var ce=t.closest('[contenteditable="true"]'); if(!ce||!host.contains(ce)) return;
+    if(t.closest('li, .info-label, .info-value')) return; // 목록·정보표는 별도 처리
+    if(ce.tagName!=='P') return; // 본문 문단(p)만 삭제 대상 — 제목류(h1~h3)·라벨은 보호
+    // 완전히 빈 칸일 때만(글자·이미지 없음)
+    if((ce.textContent||'').replace(/ /g,' ').trim()!=='' || ce.querySelector('img,.uie-box')) return;
+    if(!ce.parentNode) return;
+    e.preventDefault();
+    var focusTarget=null, prev=ce.previousElementSibling;
+    while(prev){ if(prev.getAttribute&&prev.getAttribute('contenteditable')==='true'){focusTarget=prev;break;} prev=prev.previousElementSibling; }
+    ce.parentNode.removeChild(ce);
+    if(focusTarget){ try{ focusTarget.focus(); var r=document.createRange(); r.selectNodeContents(focusTarget); r.collapse(false); var s=window.getSelection(); s.removeAllRanges(); s.addRange(r); }catch(_){}}
+    onChange&&onChange();
+  });
   host.addEventListener('click',function(e){
     var t=e.target;
     if(!t.closest('.adv-sec-menu') && !t.closest('.adv-addsec-btn') && !t.closest('.adv-secgap-btn')){ host.querySelectorAll('.adv-sec-menu.open').forEach(function(m){m.classList.remove('open');}); }

@@ -36,8 +36,10 @@
 .pdq-chip b { color:#E8780F; font-weight:800; }
 /* CTA — 형제 섹션과 동일한 플랫 오렌지 버튼(라운드 0) */
 .pdq-actions { margin-top:18px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-.pdq-cta { display:inline-flex; align-items:center; gap:8px; padding:14px 24px; background:#E8780F; color:#fff; font-size:15px; font-weight:800; border:none; border-radius:0; letter-spacing:-0.02em; transition:background .2s ease; }
-.pdq-card:hover .pdq-cta { background:#D26A0A; }
+.pdq-cta { display:inline-flex; align-items:center; gap:8px; padding:14px 24px; background:#E8780F; color:#fff; font-size:15px; font-weight:800; border:none; border-radius:0; letter-spacing:-0.02em; transition:background .2s ease; text-decoration:none; cursor:pointer; }
+.pdq-cta:hover { background:#D26A0A; }
+.pdq-cta.alt { background:#fff; color:#E8780F; border:1.5px solid #F6C99A; }
+.pdq-cta.alt:hover { background:#FFF7ED; border-color:#E8780F; }
 .pdq-cta-arrow { font-size:16px; transition:transform .2s ease; }
 .pdq-card:hover .pdq-cta-arrow { transform:translateX(4px); }
 .pdq-cta-note { font-size:12.5px; font-weight:600; color:#9CA3AF; }
@@ -68,7 +70,7 @@
     <h2>궁금하면 <b>바로 물어보세요</b></h2>
     <p>혼자 고민하지 마세요 · 사진 한 장이면 R&D 박사가 평균 3분 안에 답해드려요</p>
   </div>
-  <a class="pdq-card" href="./pour-doctor.html">
+  <div class="pdq-card">
     <div class="pdq-char">
       <img class="pdq-char-img" src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/%EB%A7%88%EC%8A%A4%EC%BD%94%ED%8A%B8%2Fbeaver_quickbanner_gown_circle_noborder.png?alt=media&token=1b20bea5-1fde-44aa-87bd-18a116b1eeee" alt="POUR닥터" loading="lazy"/>
     </div>
@@ -81,10 +83,10 @@
         <span class="pdq-chip">무료 상담</span>
       </div>
       <div class="pdq-actions">
-        <span class="pdq-cta">지금 말씀하기 <span class="pdq-cta-arrow">→</span></span>
-        <span class="pdq-cta-note">사진만 첨부하면 끝</span>
+        <a class="pdq-cta" href="./pour-doctor.html">지금 말씀하기 <span class="pdq-cta-arrow">→</span></a>
+        <a class="pdq-cta alt" href="/pour-finder.html">자재 추천 받기 <span class="pdq-cta-arrow">→</span></a>
       </div>
     </div>
-  </a>
+  </div>
 </div>
 </section>

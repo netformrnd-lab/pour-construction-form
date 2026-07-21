@@ -34,6 +34,15 @@
   }
   img{max-width:100%;display:block}
   a{text-decoration:none;color:inherit}
+  /* ===== 카페24 임베드 풀블리드 (양쪽 여백 제거) =====
+     카페24 콘텐츠 영역이 폭을 제한해도 이 래퍼가 화면 전체 폭을 쓰게 함 */
+  .pp-fullbleed{
+    position:relative;
+    width:100vw;
+    left:50%;right:50%;
+    margin-left:-50vw;margin-right:-50vw;
+    overflow-x:hidden;   /* 100vw 스크롤바 여유분으로 인한 가로 스크롤 방지 */
+  }
   .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
   .eyebrow{
     display:inline-block;font-size:14px;font-weight:700;letter-spacing:.08em;
@@ -299,9 +308,73 @@
     .trust{grid-template-columns:1fr}
     .form-card{padding:28px 20px}
   }
+
+  /* ============================================================
+     카페24 스킨 폼 CSS 충돌 방지 — 폼 요소 강제 재설정
+     (스킨의 전역 input/label/select 스타일이 폼을 깨는 것 방지)
+     ============================================================ */
+  .pp-fullbleed .form-card *{box-sizing:border-box}
+  .pp-fullbleed .field{position:relative;display:block;margin-bottom:14px;float:none}
+  .pp-fullbleed .field label{
+    display:block !important;position:static !important;float:none !important;
+    width:auto !important;height:auto !important;line-height:1.4 !important;
+    margin:0 0 8px !important;padding:0 !important;background:none !important;
+    font-size:14px !important;font-weight:700 !important;color:var(--ink) !important;
+    text-align:left !important;
+  }
+  .pp-fullbleed .field label .req{color:var(--orange) !important}
+  .pp-fullbleed .field input[type=text],
+  .pp-fullbleed .field input[type=tel],
+  .pp-fullbleed .field input[type=email],
+  .pp-fullbleed .field input[type=number],
+  .pp-fullbleed .field select,
+  .pp-fullbleed .field textarea{
+    display:block !important;width:100% !important;height:auto !important;
+    min-height:0 !important;max-width:none !important;
+    margin:0 !important;padding:11px 14px !important;
+    border:1.5px solid var(--line) !important;border-radius:10px !important;
+    background:#fff !important;background-image:none !important;
+    font-family:inherit !important;font-size:15px !important;line-height:1.5 !important;
+    color:var(--ink) !important;box-sizing:border-box !important;
+    float:none !important;position:static !important;vertical-align:baseline !important;
+  }
+  .pp-fullbleed .field textarea{min-height:74px !important;resize:vertical !important}
+  .pp-fullbleed .field input:focus,
+  .pp-fullbleed .field select:focus,
+  .pp-fullbleed .field textarea:focus{border-color:var(--orange) !important;outline:none !important}
+  .pp-fullbleed .field-row{display:grid !important;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:920px){
+    .pp-fullbleed .field-row{grid-template-columns:1fr !important;gap:0 !important}
+  }
+  /* 시공분야 체크 pill */
+  .pp-fullbleed .check-grid{display:flex !important;flex-wrap:wrap !important;gap:10px !important}
+  .pp-fullbleed .check-pill{position:relative !important;display:inline-block !important}
+  .pp-fullbleed .check-pill input{position:absolute !important;opacity:0 !important;width:auto !important}
+  .pp-fullbleed .check-pill label{
+    display:inline-block !important;width:auto !important;height:auto !important;
+    margin:0 !important;padding:10px 20px !important;line-height:1.4 !important;
+    border:1.5px solid var(--line) !important;border-radius:50px !important;
+    background:#fff !important;color:var(--gray) !important;font-weight:500 !important;
+    cursor:pointer !important;
+  }
+  .pp-fullbleed .check-pill input:checked + label{
+    background:var(--navy) !important;border-color:var(--navy) !important;
+    color:#fff !important;font-weight:700 !important;
+  }
+  /* 파일 첨부 */
+  .pp-fullbleed .file-field input[type=file]{
+    display:block !important;width:100% !important;padding:11px 14px !important;
+    border:1.5px dashed var(--line) !important;border-radius:10px !important;
+    background:#fff !important;color:var(--gray) !important;font-size:14px !important;
+  }
+  /* 동의 체크박스 */
+  .pp-fullbleed .agree{display:flex !important;align-items:flex-start !important;gap:10px !important}
+  .pp-fullbleed .agree input{width:auto !important;margin:4px 0 0 !important;flex:none !important}
+  .pp-fullbleed .form-group-title{background:none !important;text-align:left !important}
 </style>
 </head>
 <body>
+<div class="pp-fullbleed" id="ppPartner" style="position:relative!important;width:100vw!important;max-width:100vw!important;margin-left:calc(50% - 50vw)!important;margin-right:calc(50% - 50vw)!important;padding:0!important;left:0!important;right:0!important;overflow-x:hidden!important">
 
 <!-- ======================= HERO ======================= -->
 <header class="hero">
@@ -565,99 +638,103 @@
     <p class="section-sub">아래 정보를 입력해 주시면 담당자가 연락드립니다.</p>
   </div>
   <div class="wrap">
+    <!-- ※ 아래 폼은 카페24 스킨 CSS(ID+!important)를 확실히 이기기 위해
+         각 요소에 인라인 style로 !important를 직접 부착했습니다. 인라인 스타일은
+         외부 스킨 CSS가 무엇을 걸든 항상 우선하므로 회색 배경·겹침이 발생하지 않습니다.
+         반응형(PC 2단/모바일 1단)은 미디어쿼리 없이 auto-fit으로 자동 처리됩니다. -->
     <form class="form-card" id="partnerForm" action="" method="post" enctype="multipart/form-data">
 
       <!-- 사업자정보 -->
-      <div class="form-group">
-        <p class="form-group-title">사업자 정보</p>
-        <div class="field-row">
-          <div class="field">
-            <label>사업자명<span class="req">*</span></label>
-            <input type="text" name="company" required>
+      <div class="form-group" style="margin-bottom:26px!important">
+        <p class="form-group-title" style="background:none!important;text-align:left!important">사업자 정보</p>
+        <div class="field-row" style="display:grid!important;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))!important;gap:14px!important">
+          <div class="field" style="background:none!important;border:none!important;box-shadow:none!important;padding:0!important;margin:0!important;min-width:0!important;float:none!important">
+            <label style="display:block!important;margin:0 0 8px!important;padding:0!important;background:none!important;border:none!important;box-shadow:none!important;font-size:14px!important;font-weight:700!important;color:#1a1d29!important;line-height:1.4!important;float:none!important;position:static!important;width:auto!important;height:auto!important;text-align:left!important">사업자명<span class="req" style="color:#E1782D!important;margin-left:3px!important">*</span></label>
+            <input type="text" name="company" required style="display:block!important;width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;margin:0!important;padding:11px 14px!important;box-sizing:border-box!important;border:1.5px solid #e4e7ee!important;border-radius:10px!important;background:#fff!important;background-image:none!important;box-shadow:none!important;font-family:inherit!important;font-size:15px!important;line-height:1.5!important;color:#1a1d29!important;float:none!important;position:static!important;vertical-align:baseline!important">
           </div>
-          <div class="field">
-            <label>사업자등록번호<span class="req">*</span></label>
-            <input type="text" name="bizno" placeholder="000-00-00000" required>
+          <div class="field" style="background:none!important;border:none!important;box-shadow:none!important;padding:0!important;margin:0!important;min-width:0!important;float:none!important">
+            <label style="display:block!important;margin:0 0 8px!important;padding:0!important;background:none!important;border:none!important;box-shadow:none!important;font-size:14px!important;font-weight:700!important;color:#1a1d29!important;line-height:1.4!important;float:none!important;position:static!important;width:auto!important;height:auto!important;text-align:left!important">사업자등록번호<span class="req" style="color:#E1782D!important;margin-left:3px!important">*</span></label>
+            <input type="text" name="bizno" placeholder="000-00-00000" required style="display:block!important;width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;margin:0!important;padding:11px 14px!important;box-sizing:border-box!important;border:1.5px solid #e4e7ee!important;border-radius:10px!important;background:#fff!important;background-image:none!important;box-shadow:none!important;font-family:inherit!important;font-size:15px!important;line-height:1.5!important;color:#1a1d29!important;float:none!important;position:static!important;vertical-align:baseline!important">
           </div>
         </div>
-        <div class="field-row">
-          <div class="field">
-            <label>대표자명<span class="req">*</span></label>
-            <input type="text" name="ceo" required>
+        <div class="field-row" style="display:grid!important;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))!important;gap:14px!important">
+          <div class="field" style="background:none!important;border:none!important;box-shadow:none!important;padding:0!important;margin:0!important;min-width:0!important;float:none!important">
+            <label style="display:block!important;margin:0 0 8px!important;padding:0!important;background:none!important;border:none!important;box-shadow:none!important;font-size:14px!important;font-weight:700!important;color:#1a1d29!important;line-height:1.4!important;float:none!important;position:static!important;width:auto!important;height:auto!important;text-align:left!important">대표자명<span class="req" style="color:#E1782D!important;margin-left:3px!important">*</span></label>
+            <input type="text" name="ceo" required style="display:block!important;width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;margin:0!important;padding:11px 14px!important;box-sizing:border-box!important;border:1.5px solid #e4e7ee!important;border-radius:10px!important;background:#fff!important;background-image:none!important;box-shadow:none!important;font-family:inherit!important;font-size:15px!important;line-height:1.5!important;color:#1a1d29!important;float:none!important;position:static!important;vertical-align:baseline!important">
           </div>
-          <div class="field">
-            <label>사업장 주소<span class="req">*</span></label>
-            <input type="text" name="address" required>
+          <div class="field" style="background:none!important;border:none!important;box-shadow:none!important;padding:0!important;margin:0!important;min-width:0!important;float:none!important">
+            <label style="display:block!important;margin:0 0 8px!important;padding:0!important;background:none!important;border:none!important;box-shadow:none!important;font-size:14px!important;font-weight:700!important;color:#1a1d29!important;line-height:1.4!important;float:none!important;position:static!important;width:auto!important;height:auto!important;text-align:left!important">사업장 주소<span class="req" style="color:#E1782D!important;margin-left:3px!important">*</span></label>
+            <input type="text" name="address" required style="display:block!important;width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;margin:0!important;padding:11px 14px!important;box-sizing:border-box!important;border:1.5px solid #e4e7ee!important;border-radius:10px!important;background:#fff!important;background-image:none!important;box-shadow:none!important;font-family:inherit!important;font-size:15px!important;line-height:1.5!important;color:#1a1d29!important;float:none!important;position:static!important;vertical-align:baseline!important">
           </div>
         </div>
       </div>
 
       <!-- 담당자정보 -->
-      <div class="form-group">
-        <p class="form-group-title">담당자 정보</p>
-        <div class="field-row">
-          <div class="field">
-            <label>담당자명<span class="req">*</span></label>
-            <input type="text" name="manager" required>
+      <div class="form-group" style="margin-bottom:26px!important">
+        <p class="form-group-title" style="background:none!important;text-align:left!important">담당자 정보</p>
+        <div class="field-row" style="display:grid!important;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))!important;gap:14px!important">
+          <div class="field" style="background:none!important;border:none!important;box-shadow:none!important;padding:0!important;margin:0!important;min-width:0!important;float:none!important">
+            <label style="display:block!important;margin:0 0 8px!important;padding:0!important;background:none!important;border:none!important;box-shadow:none!important;font-size:14px!important;font-weight:700!important;color:#1a1d29!important;line-height:1.4!important;float:none!important;position:static!important;width:auto!important;height:auto!important;text-align:left!important">담당자명<span class="req" style="color:#E1782D!important;margin-left:3px!important">*</span></label>
+            <input type="text" name="manager" required style="display:block!important;width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;margin:0!important;padding:11px 14px!important;box-sizing:border-box!important;border:1.5px solid #e4e7ee!important;border-radius:10px!important;background:#fff!important;background-image:none!important;box-shadow:none!important;font-family:inherit!important;font-size:15px!important;line-height:1.5!important;color:#1a1d29!important;float:none!important;position:static!important;vertical-align:baseline!important">
           </div>
-          <div class="field">
-            <label>연락처<span class="req">*</span></label>
-            <input type="tel" name="phone" placeholder="010-0000-0000" required>
+          <div class="field" style="background:none!important;border:none!important;box-shadow:none!important;padding:0!important;margin:0!important;min-width:0!important;float:none!important">
+            <label style="display:block!important;margin:0 0 8px!important;padding:0!important;background:none!important;border:none!important;box-shadow:none!important;font-size:14px!important;font-weight:700!important;color:#1a1d29!important;line-height:1.4!important;float:none!important;position:static!important;width:auto!important;height:auto!important;text-align:left!important">연락처<span class="req" style="color:#E1782D!important;margin-left:3px!important">*</span></label>
+            <input type="tel" name="phone" placeholder="010-0000-0000" required style="display:block!important;width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;margin:0!important;padding:11px 14px!important;box-sizing:border-box!important;border:1.5px solid #e4e7ee!important;border-radius:10px!important;background:#fff!important;background-image:none!important;box-shadow:none!important;font-family:inherit!important;font-size:15px!important;line-height:1.5!important;color:#1a1d29!important;float:none!important;position:static!important;vertical-align:baseline!important">
           </div>
         </div>
       </div>
 
       <!-- 시공분야 -->
-      <div class="form-group">
-        <p class="form-group-title">시공 분야 <span style="font-size:13px;font-weight:400;color:var(--gray)">(복수 선택)</span></p>
-        <div class="check-grid">
-          <span class="check-pill"><input type="checkbox" id="f1" name="field[]" value="방수"><label for="f1">방수</label></span>
-          <span class="check-pill"><input type="checkbox" id="f2" name="field[]" value="도장"><label for="f2">도장</label></span>
-          <span class="check-pill"><input type="checkbox" id="f3" name="field[]" value="균열보수"><label for="f3">균열보수</label></span>
-          <span class="check-pill"><input type="checkbox" id="f4" name="field[]" value="에폭시"><label for="f4">에폭시</label></span>
-          <span class="check-pill"><input type="checkbox" id="f5" name="field[]" value="우레탄"><label for="f5">우레탄</label></span>
-          <span class="check-pill"><input type="checkbox" id="f6" name="field[]" value="아스콘"><label for="f6">아스콘</label></span>
+      <div class="form-group" style="margin-bottom:26px!important">
+        <p class="form-group-title" style="background:none!important;text-align:left!important">시공 분야 <span style="font-size:13px;font-weight:400;color:var(--gray)">(복수 선택)</span></p>
+        <div class="check-grid" style="display:flex!important;flex-wrap:wrap!important;gap:10px!important">
+          <span class="check-pill" style="position:relative!important;display:inline-block!important"><input type="checkbox" id="f1" name="field[]" value="방수" style="position:absolute!important;opacity:0!important;width:auto!important"><label for="f1" style="display:inline-block!important;width:auto!important;height:auto!important;margin:0!important;padding:10px 20px!important;line-height:1.4!important;border:1.5px solid #e4e7ee!important;border-radius:50px!important;background:#fff!important;color:#5b6276!important;font-weight:500!important;font-size:14px!important;cursor:pointer!important;float:none!important">방수</label></span>
+          <span class="check-pill" style="position:relative!important;display:inline-block!important"><input type="checkbox" id="f2" name="field[]" value="도장" style="position:absolute!important;opacity:0!important;width:auto!important"><label for="f2" style="display:inline-block!important;width:auto!important;height:auto!important;margin:0!important;padding:10px 20px!important;line-height:1.4!important;border:1.5px solid #e4e7ee!important;border-radius:50px!important;background:#fff!important;color:#5b6276!important;font-weight:500!important;font-size:14px!important;cursor:pointer!important;float:none!important">도장</label></span>
+          <span class="check-pill" style="position:relative!important;display:inline-block!important"><input type="checkbox" id="f3" name="field[]" value="균열보수" style="position:absolute!important;opacity:0!important;width:auto!important"><label for="f3" style="display:inline-block!important;width:auto!important;height:auto!important;margin:0!important;padding:10px 20px!important;line-height:1.4!important;border:1.5px solid #e4e7ee!important;border-radius:50px!important;background:#fff!important;color:#5b6276!important;font-weight:500!important;font-size:14px!important;cursor:pointer!important;float:none!important">균열보수</label></span>
+          <span class="check-pill" style="position:relative!important;display:inline-block!important"><input type="checkbox" id="f4" name="field[]" value="에폭시" style="position:absolute!important;opacity:0!important;width:auto!important"><label for="f4" style="display:inline-block!important;width:auto!important;height:auto!important;margin:0!important;padding:10px 20px!important;line-height:1.4!important;border:1.5px solid #e4e7ee!important;border-radius:50px!important;background:#fff!important;color:#5b6276!important;font-weight:500!important;font-size:14px!important;cursor:pointer!important;float:none!important">에폭시</label></span>
+          <span class="check-pill" style="position:relative!important;display:inline-block!important"><input type="checkbox" id="f5" name="field[]" value="우레탄" style="position:absolute!important;opacity:0!important;width:auto!important"><label for="f5" style="display:inline-block!important;width:auto!important;height:auto!important;margin:0!important;padding:10px 20px!important;line-height:1.4!important;border:1.5px solid #e4e7ee!important;border-radius:50px!important;background:#fff!important;color:#5b6276!important;font-weight:500!important;font-size:14px!important;cursor:pointer!important;float:none!important">우레탄</label></span>
+          <span class="check-pill" style="position:relative!important;display:inline-block!important"><input type="checkbox" id="f6" name="field[]" value="아스콘" style="position:absolute!important;opacity:0!important;width:auto!important"><label for="f6" style="display:inline-block!important;width:auto!important;height:auto!important;margin:0!important;padding:10px 20px!important;line-height:1.4!important;border:1.5px solid #e4e7ee!important;border-radius:50px!important;background:#fff!important;color:#5b6276!important;font-weight:500!important;font-size:14px!important;cursor:pointer!important;float:none!important">아스콘</label></span>
         </div>
-        <div class="field" style="margin-top:16px">
-          <label>기타 (직접 입력)</label>
-          <input type="text" name="field_etc">
+        <div class="field" style="margin-top:16px!important;background:none!important;border:none!important;box-shadow:none!important;padding:0!important;min-width:0!important;float:none!important">
+          <label style="display:block!important;margin:0 0 8px!important;padding:0!important;background:none!important;border:none!important;box-shadow:none!important;font-size:14px!important;font-weight:700!important;color:#1a1d29!important;line-height:1.4!important;float:none!important;position:static!important;width:auto!important;height:auto!important;text-align:left!important">기타 (직접 입력)</label>
+          <input type="text" name="field_etc" style="display:block!important;width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;margin:0!important;padding:11px 14px!important;box-sizing:border-box!important;border:1.5px solid #e4e7ee!important;border-radius:10px!important;background:#fff!important;background-image:none!important;box-shadow:none!important;font-family:inherit!important;font-size:15px!important;line-height:1.5!important;color:#1a1d29!important;float:none!important;position:static!important;vertical-align:baseline!important">
         </div>
       </div>
 
       <!-- 시공실적 -->
-      <div class="form-group">
-        <p class="form-group-title">시공 실적</p>
-        <div class="field-row">
-          <div class="field">
-            <label>시공 경력 (년)</label>
-            <input type="number" name="years" min="0">
+      <div class="form-group" style="margin-bottom:26px!important">
+        <p class="form-group-title" style="background:none!important;text-align:left!important">시공 실적</p>
+        <div class="field-row" style="display:grid!important;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))!important;gap:14px!important">
+          <div class="field" style="background:none!important;border:none!important;box-shadow:none!important;padding:0!important;margin:0!important;min-width:0!important;float:none!important">
+            <label style="display:block!important;margin:0 0 8px!important;padding:0!important;background:none!important;border:none!important;box-shadow:none!important;font-size:14px!important;font-weight:700!important;color:#1a1d29!important;line-height:1.4!important;float:none!important;position:static!important;width:auto!important;height:auto!important;text-align:left!important">시공 경력 (년)</label>
+            <input type="number" name="years" min="0" style="display:block!important;width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;margin:0!important;padding:11px 14px!important;box-sizing:border-box!important;border:1.5px solid #e4e7ee!important;border-radius:10px!important;background:#fff!important;background-image:none!important;box-shadow:none!important;font-family:inherit!important;font-size:15px!important;line-height:1.5!important;color:#1a1d29!important;float:none!important;position:static!important;vertical-align:baseline!important">
           </div>
-          <div class="field">
-            <label>연 시공 건수</label>
-            <input type="number" name="count" min="0">
+          <div class="field" style="background:none!important;border:none!important;box-shadow:none!important;padding:0!important;margin:0!important;min-width:0!important;float:none!important">
+            <label style="display:block!important;margin:0 0 8px!important;padding:0!important;background:none!important;border:none!important;box-shadow:none!important;font-size:14px!important;font-weight:700!important;color:#1a1d29!important;line-height:1.4!important;float:none!important;position:static!important;width:auto!important;height:auto!important;text-align:left!important">연 시공 건수</label>
+            <input type="number" name="count" min="0" style="display:block!important;width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;margin:0!important;padding:11px 14px!important;box-sizing:border-box!important;border:1.5px solid #e4e7ee!important;border-radius:10px!important;background:#fff!important;background-image:none!important;box-shadow:none!important;font-family:inherit!important;font-size:15px!important;line-height:1.5!important;color:#1a1d29!important;float:none!important;position:static!important;vertical-align:baseline!important">
           </div>
         </div>
-        <div class="field">
-          <label>주요 실적</label>
-          <textarea name="portfolio" placeholder="대표적인 시공 실적을 간단히 적어 주세요."></textarea>
+        <div class="field" style="background:none!important;border:none!important;box-shadow:none!important;padding:0!important;min-width:0!important;float:none!important">
+          <label style="display:block!important;margin:0 0 8px!important;padding:0!important;background:none!important;border:none!important;box-shadow:none!important;font-size:14px!important;font-weight:700!important;color:#1a1d29!important;line-height:1.4!important;float:none!important;position:static!important;width:auto!important;height:auto!important;text-align:left!important">주요 실적</label>
+          <textarea name="portfolio" placeholder="대표적인 시공 실적을 간단히 적어 주세요." style="display:block!important;width:100%!important;max-width:none!important;height:auto!important;min-height:74px!important;margin:0!important;padding:11px 14px!important;box-sizing:border-box!important;border:1.5px solid #e4e7ee!important;border-radius:10px!important;background:#fff!important;background-image:none!important;box-shadow:none!important;font-family:inherit!important;font-size:15px!important;line-height:1.5!important;color:#1a1d29!important;float:none!important;position:static!important;vertical-align:baseline!important;resize:vertical!important"></textarea>
         </div>
       </div>
 
       <!-- 서류 첨부 -->
-      <div class="form-group">
-        <p class="form-group-title">서류 첨부</p>
-        <div class="field file-field">
-          <label>사업자등록증<span class="req">*</span></label>
-          <input type="file" name="bizfile" accept=".pdf,.jpg,.jpeg,.png" required>
-          <span class="file-hint">PDF 또는 이미지(JPG·PNG) 파일 1개 · 최대 10MB</span>
+      <div class="form-group" style="margin-bottom:26px!important">
+        <p class="form-group-title" style="background:none!important;text-align:left!important">서류 첨부</p>
+        <div class="field file-field" style="background:none!important;border:none!important;box-shadow:none!important;padding:0!important;min-width:0!important;float:none!important">
+          <label style="display:block!important;margin:0 0 8px!important;padding:0!important;background:none!important;border:none!important;box-shadow:none!important;font-size:14px!important;font-weight:700!important;color:#1a1d29!important;line-height:1.4!important;float:none!important;position:static!important;width:auto!important;height:auto!important;text-align:left!important">사업자등록증<span class="req" style="color:#E1782D!important;margin-left:3px!important">*</span></label>
+          <input type="file" name="bizfile" accept=".pdf,.jpg,.jpeg,.png" required style="display:block!important;width:100%!important;max-width:none!important;margin:0!important;padding:11px 14px!important;box-sizing:border-box!important;border:1.5px dashed #e4e7ee!important;border-radius:10px!important;background:#fff!important;color:#5b6276!important;font-size:14px!important;float:none!important;position:static!important">
+          <span class="file-hint" style="display:block!important;margin-top:6px!important;font-size:13px!important;color:#5b6276!important">PDF 또는 이미지(JPG·PNG) 파일 1개 · 최대 10MB</span>
         </div>
       </div>
 
       <!-- 유입경로 -->
-      <div class="form-group">
-        <div class="field">
-          <label>유입 경로</label>
-          <select name="inflow">
+      <div class="form-group" style="margin-bottom:26px!important">
+        <div class="field" style="background:none!important;border:none!important;box-shadow:none!important;padding:0!important;min-width:0!important;float:none!important">
+          <label style="display:block!important;margin:0 0 8px!important;padding:0!important;background:none!important;border:none!important;box-shadow:none!important;font-size:14px!important;font-weight:700!important;color:#1a1d29!important;line-height:1.4!important;float:none!important;position:static!important;width:auto!important;height:auto!important;text-align:left!important">유입 경로</label>
+          <select name="inflow" style="display:block!important;width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;margin:0!important;padding:11px 14px!important;box-sizing:border-box!important;border:1.5px solid #e4e7ee!important;border-radius:10px!important;background:#fff!important;box-shadow:none!important;font-family:inherit!important;font-size:15px!important;line-height:1.5!important;color:#1a1d29!important;float:none!important;position:static!important;vertical-align:baseline!important;-webkit-appearance:auto!important;appearance:auto!important">
             <option value="">선택해 주세요</option>
             <option value="검색">검색 (네이버/구글 등)</option>
             <option value="지인소개">지인 소개</option>
@@ -669,16 +746,16 @@
       </div>
 
       <!-- 동의 -->
-      <div class="form-group">
-        <div class="agree">
-          <input type="checkbox" id="agree" name="agree" required>
-          <label for="agree">개인정보 수집·이용에 동의합니다. 수집된 정보는 파트너 심사 및 연락 목적으로만 사용됩니다.<span class="req">*</span></label>
+      <div class="form-group" style="margin-bottom:26px!important">
+        <div class="agree" style="display:flex!important;align-items:flex-start!important;gap:10px!important;background:#f6f7fa!important;padding:18px!important;border-radius:10px!important">
+          <input type="checkbox" id="agree" name="agree" required style="width:auto!important;margin:4px 0 0!important;flex:none!important;position:static!important;opacity:1!important">
+          <label for="agree" style="display:inline!important;background:none!important;border:none!important;margin:0!important;padding:0!important;font-size:14px!important;font-weight:400!important;color:#5b6276!important;line-height:1.6!important;float:none!important;width:auto!important;height:auto!important;text-align:left!important">개인정보 수집·이용에 동의합니다. 수집된 정보는 파트너 심사 및 연락 목적으로만 사용됩니다.<span class="req" style="color:#E1782D!important;margin-left:3px!important">*</span></label>
         </div>
       </div>
 
-      <div class="form-submit">
-        <button type="submit" class="btn btn-primary">파트너 신청 완료</button>
-        <p class="form-note">신청 후 영업일 기준 1~3일 내 담당자가 연락드립니다.</p>
+      <div class="form-submit" style="text-align:center!important;margin-top:8px!important">
+        <button type="submit" class="btn btn-primary" style="width:100%!important;max-width:420px!important;font-size:17px!important;padding:18px!important;background:#E1782D!important;color:#fff!important;border:none!important;border-radius:50px!important;font-weight:700!important;cursor:pointer!important">파트너 신청 완료</button>
+        <p class="form-note" style="font-size:14px!important;color:#5b6276!important;margin-top:16px!important">신청 후 영업일 기준 1~3일 내 담당자가 연락드립니다.</p>
       </div>
     </form>
   </div>
@@ -719,6 +796,8 @@
     </div>
   </div>
 </section>
+
+</div><!-- /.pp-fullbleed -->
 
 <!-- 라이트박스 (이미지 확대 보기) -->
 <div class="lightbox" id="lightbox">
@@ -872,6 +951,82 @@
       });
     }, { threshold: 0.4 });
     nums.forEach(function(el){ io.observe(el); });
+  })();
+</script>
+<script>
+  /* ============================================================
+     카페24 스킨 CSS를 확실히 이기기 위한 인라인 스타일 강제 주입.
+     카페24가 !important·ID 선택자로 폼을 덮어써도, 인라인 스타일은
+     항상 우선하므로 회색 배경/겹침/테두리 문제를 최종적으로 해결한다.
+     스킨 CSS가 늦게 로드되는 경우까지 대비해 여러 시점에 재적용.
+     ============================================================ */
+  (function(){
+    function set(el, obj){
+      for(var k in obj){ try{ el.style.setProperty(k, obj[k], 'important'); }catch(e){} }
+    }
+    function enforce(){
+      var root = document.getElementById('ppPartner');
+      if(!root) return;
+      // 입력칸 / 셀렉트 / 텍스트영역
+      root.querySelectorAll('.field input[type=text], .field input[type=tel], .field input[type=email], .field input[type=number], .field select, .field textarea').forEach(function(el){
+        set(el, {
+          'display':'block','width':'100%','max-width':'none','height':'auto','min-height':'0',
+          'margin':'0','padding':'11px 14px','box-sizing':'border-box',
+          'border':'1.5px solid #e4e7ee','border-radius':'10px',
+          'background':'#fff','background-image':'none','box-shadow':'none',
+          'font-family':'inherit','font-size':'15px','line-height':'1.5','color':'#1a1d29',
+          'float':'none','position':'static','vertical-align':'baseline'
+        });
+      });
+      root.querySelectorAll('.field textarea').forEach(function(el){
+        set(el, {'min-height':'74px','resize':'vertical'});
+      });
+      // 라벨
+      root.querySelectorAll('.field > label').forEach(function(el){
+        set(el, {
+          'display':'block','width':'auto','height':'auto','line-height':'1.4',
+          'margin':'0 0 8px','padding':'0','background':'none','background-image':'none',
+          'border':'none','box-shadow':'none','float':'none','position':'static','text-align':'left'
+        });
+      });
+      // 필드 컨테이너 (회색 배경·테두리 제거)
+      root.querySelectorAll('.field').forEach(function(el){
+        set(el, {'background':'none','background-image':'none','border':'none','box-shadow':'none'});
+      });
+      // 폼 그룹 제목
+      root.querySelectorAll('.form-group-title').forEach(function(el){
+        set(el, {'background':'none','background-image':'none','text-align':'left'});
+      });
+    }
+    if(document.readyState !== 'loading') enforce();
+    document.addEventListener('DOMContentLoaded', enforce);
+    window.addEventListener('load', enforce);
+    setTimeout(enforce, 500);
+    setTimeout(enforce, 1500);
+    setTimeout(enforce, 3000);
+  })();
+</script>
+<script>
+  /* ============================================================
+     iframe 임베드용 — 부모(카페24) 페이지에 이 문서의 실제 높이를 전달.
+     부모가 이 값을 받아 iframe height를 맞추면 스크롤/여백 없이 딱 맞게 표시됨.
+     iframe 안에서 로드됐을 때만 동작하므로 단독 접속 시에는 아무 영향 없음.
+     ============================================================ */
+  (function(){
+    if(window.self === window.top) return; // iframe 내부에서만 동작
+    function postHeight(){
+      var h = Math.max(
+        document.documentElement ? document.documentElement.scrollHeight : 0,
+        document.body ? document.body.scrollHeight : 0
+      );
+      try{ window.parent.postMessage({ pourPartnerHeight: h }, '*'); }catch(e){}
+    }
+    window.addEventListener('load', postHeight);
+    window.addEventListener('resize', postHeight);
+    // 이미지·폰트 로딩, FAQ 아코디언 열림 등으로 높이가 바뀌는 경우 대비
+    setInterval(postHeight, 1000);
+    document.addEventListener('click', function(){ setTimeout(postHeight, 350); });
+    setTimeout(postHeight, 300);
   })();
 </script>
 

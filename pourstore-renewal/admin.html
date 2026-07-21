@@ -6028,7 +6028,7 @@ function advCleanHtml(host){
   c.querySelectorAll('.uie-open,.uie-panel,.uie-handle,.uie-badge,.uie-point,.uie-pop,.uie-hl-svg,.uie-vtx,.uie-hl-ctrl,.uie-dot,.uie-hint,.uie-hlmove,.adv-sec-bar,.adv-addsec,.adv-secgap,.adv-blk-tools,.chip-add-tile,.text-add-tile,.info-add-tile,.delete-chip,.delete-block,.delete-info-card,.delete-info-item').forEach(el=>el.remove());
   c.querySelectorAll('.uie-box').forEach(b=>{ b.classList.remove('is-selected','inner-mode'); b.removeAttribute('data-uie-ready'); });
   c.querySelectorAll('[contenteditable]').forEach(el=>{ el.removeAttribute('contenteditable'); el.removeAttribute('spellcheck'); });
-  return c.innerHTML.trim();
+  return c.innerHTML.trim().replace(/(?:NaN){2,}/g,''); // 생성기 버그로 끼어든 'NaNNaN…' 잔여 텍스트 제거
 }
 // 고도화 콘텐츠 전용 서식바 — 선택한 글자(또는 그 문단)에 폰트·정렬·크기·줄간격·굵기·색 적용
 function AdvToolbar({hostRef,onChange}){
@@ -6089,7 +6089,7 @@ function AdvancedContentEditor({form,set,uploadImage}){
   useEffect(()=>{
     if(inited.current) return; inited.current=true;
     const host=hostRef.current; if(!host) return;
-    host.innerHTML=(form.advancedHtml&&form.advancedHtml.trim())?form.advancedHtml:(window.ADV_DEFAULT_HTML||ADV_DEFAULT_HTML);
+    host.innerHTML=((form.advancedHtml&&form.advancedHtml.trim())?form.advancedHtml:(window.ADV_DEFAULT_HTML||ADV_DEFAULT_HTML)).replace(/(?:NaN){2,}/g,'');
     const sync=()=>{ try{ setRef.current({advancedHtml: advCleanHtml(host)}); }catch(_){} };
     syncRef.current=sync;
     advEnhance(host, sync);

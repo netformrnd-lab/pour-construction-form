@@ -374,7 +374,7 @@
 </style>
 </head>
 <body>
-<div class="pp-fullbleed">
+<div class="pp-fullbleed" id="ppPartner">
 
 <!-- ======================= HERO ======================= -->
 <header class="hero">
@@ -947,6 +947,59 @@
       });
     }, { threshold: 0.4 });
     nums.forEach(function(el){ io.observe(el); });
+  })();
+</script>
+<script>
+  /* ============================================================
+     카페24 스킨 CSS를 확실히 이기기 위한 인라인 스타일 강제 주입.
+     카페24가 !important·ID 선택자로 폼을 덮어써도, 인라인 스타일은
+     항상 우선하므로 회색 배경/겹침/테두리 문제를 최종적으로 해결한다.
+     스킨 CSS가 늦게 로드되는 경우까지 대비해 여러 시점에 재적용.
+     ============================================================ */
+  (function(){
+    function set(el, obj){
+      for(var k in obj){ try{ el.style.setProperty(k, obj[k], 'important'); }catch(e){} }
+    }
+    function enforce(){
+      var root = document.getElementById('ppPartner');
+      if(!root) return;
+      // 입력칸 / 셀렉트 / 텍스트영역
+      root.querySelectorAll('.field input[type=text], .field input[type=tel], .field input[type=email], .field input[type=number], .field select, .field textarea').forEach(function(el){
+        set(el, {
+          'display':'block','width':'100%','max-width':'none','height':'auto','min-height':'0',
+          'margin':'0','padding':'11px 14px','box-sizing':'border-box',
+          'border':'1.5px solid #e4e7ee','border-radius':'10px',
+          'background':'#fff','background-image':'none','box-shadow':'none',
+          'font-family':'inherit','font-size':'15px','line-height':'1.5','color':'#1a1d29',
+          'float':'none','position':'static','vertical-align':'baseline'
+        });
+      });
+      root.querySelectorAll('.field textarea').forEach(function(el){
+        set(el, {'min-height':'74px','resize':'vertical'});
+      });
+      // 라벨
+      root.querySelectorAll('.field > label').forEach(function(el){
+        set(el, {
+          'display':'block','width':'auto','height':'auto','line-height':'1.4',
+          'margin':'0 0 8px','padding':'0','background':'none','background-image':'none',
+          'border':'none','box-shadow':'none','float':'none','position':'static','text-align':'left'
+        });
+      });
+      // 필드 컨테이너 (회색 배경·테두리 제거)
+      root.querySelectorAll('.field').forEach(function(el){
+        set(el, {'background':'none','background-image':'none','border':'none','box-shadow':'none'});
+      });
+      // 폼 그룹 제목
+      root.querySelectorAll('.form-group-title').forEach(function(el){
+        set(el, {'background':'none','background-image':'none','text-align':'left'});
+      });
+    }
+    if(document.readyState !== 'loading') enforce();
+    document.addEventListener('DOMContentLoaded', enforce);
+    window.addEventListener('load', enforce);
+    setTimeout(enforce, 500);
+    setTimeout(enforce, 1500);
+    setTimeout(enforce, 3000);
   })();
 </script>
 

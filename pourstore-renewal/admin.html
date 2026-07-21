@@ -5584,12 +5584,12 @@ function advBuildUIE(box, host, onChange){
   let crop=box.querySelector(':scope > .uie-crop'); let img;
   if(crop){ img=crop.querySelector('img'); } else { img=box.querySelector(':scope > img'); if(!img) return; crop=document.createElement('div'); crop.className='uie-crop'; box.insertBefore(crop,img); crop.appendChild(img); }
   const state={scale:100,x:0,y:0,mode:'box'};
-  function applyImg(){ const s=Math.max(50,Math.min(300,state.scale))/100; img.style.transform='translate(-50%,-50%) translate('+state.x+'px,'+state.y+'px) scale('+s+')'; }
+  function applyImg(){ const s=Math.max(100,Math.min(300,state.scale))/100; img.style.transform='translate(-50%,-50%) translate('+state.x+'px,'+state.y+'px) scale('+s+')'; }
   applyImg();
   const smallImg=!!box.closest('.comment-card,.material-row,.case-card');
   const open=document.createElement('button'); open.type='button'; open.className='uie-open'; open.textContent=smallImg?'🖼':'🖼 이미지 변경'; open.title='이미지 변경 · 사진 클릭 후 Ctrl+V 붙여넣기·드래그로도 넣기';
   const panel=document.createElement('div'); panel.className='uie-panel';
-  panel.innerHTML='<p class="uie-title">이미지 편집</p><div class="uie-row"><label>이미지 링크로 넣기</label><div class="uie-url-line"><input class="uie-input js-url" type="url" placeholder="https:// 이미지 주소 붙여넣기"><button type="button" class="uie-btn js-apply">적용</button></div></div><div class="uie-row"><label>컴퓨터에서 업로드</label><div class="uie-upload-line"><label class="uie-file-btn">업로드<input class="js-file" type="file" accept="image/*" style="display:none"></label><div class="uie-preview js-preview"><span>🖼</span></div></div></div><div class="uie-tabs uie-adv-only"><button type="button" class="uie-tab js-tab is-active" data-mode="box">박스 크기 조절</button><button type="button" class="uie-tab js-tab" data-mode="inner">안쪽 이미지 조절</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-unify" style="width:100%">↔ 모든 사진 이 크기로 통일</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-addpoint" style="width:100%">＋ 상품·설명 점 추가</button></div><div class="uie-hl-wrap uie-adv-only"></div><div class="uie-actions"><button type="button" class="uie-btn ghost js-reset">초기화</button><button type="button" class="uie-btn ghost js-close">닫기</button></div><p class="uie-help"><b>박스 크기</b> 모드=파란 점을 위·아래로 끌어 <b>높이</b>만 조절돼요(가로는 항상 꽉 참) · <b>안쪽 이미지</b> 모드=주황 점·사진을 끌어 확대·이동 · 사진 크기가 안 맞으면 <b>모든 사진 이 크기로 통일</b>을 누르세요</p>';
+  panel.innerHTML='<p class="uie-title">이미지 편집</p><div class="uie-row"><label>이미지 링크로 넣기</label><div class="uie-url-line"><input class="uie-input js-url" type="url" placeholder="https:// 이미지 주소 붙여넣기"><button type="button" class="uie-btn js-apply">적용</button></div></div><div class="uie-row"><label>컴퓨터에서 업로드</label><div class="uie-upload-line"><label class="uie-file-btn">업로드<input class="js-file" type="file" accept="image/*" style="display:none"></label><div class="uie-preview js-preview"><span>🖼</span></div></div></div><div class="uie-tabs uie-adv-only"><button type="button" class="uie-tab js-tab is-active" data-mode="box">박스 크기 조절</button><button type="button" class="uie-tab js-tab" data-mode="inner">안쪽 이미지 조절</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-unify" style="width:100%">↔ 모든 사진 이 크기로 통일</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-addpoint" style="width:100%">＋ 상품·설명 점 추가</button></div><div class="uie-hl-wrap uie-adv-only"></div><div class="uie-actions"><button type="button" class="uie-btn ghost js-reset">초기화</button><button type="button" class="uie-btn ghost js-close">닫기</button></div><p class="uie-help"><b>박스 크기</b> 모드=파란 점을 위·아래로 끌어 <b>높이</b>만 조절돼요(가로는 항상 꽉 참) · <b>안쪽 이미지</b> 모드=주황 점·사진을 끌어 <b>확대·이동</b>(사진을 작게 하려면 박스 크기를 줄이세요) · 사진 크기가 안 맞으면 <b>모든 사진 이 크기로 통일</b>을 누르세요 · <b>Ctrl+Z</b> 되돌리기 · <b>Ctrl+Y</b> 다시하기</p>';
   box.appendChild(open); box.appendChild(panel);
   ['nw','n','ne','e','se','s','sw','w'].forEach(dir=>{ const h=document.createElement('span'); h.className='uie-handle '+dir; h.dataset.dir=dir; box.appendChild(h); });
   const badge=document.createElement('span'); badge.className='uie-badge'; box.appendChild(badge);
@@ -5862,7 +5862,7 @@ function advBuildUIE(box, host, onChange){
       const dir=handle.dataset.dir, sx=e.clientX, sy=e.clientY, r=box.getBoundingClientRect(), startW=r.width, startH=r.height, startScale=state.scale;
       document.body.style.userSelect='none'; try{handle.setPointerCapture(e.pointerId);}catch(_){}
       function mv(ev){ const dx=ev.clientX-sx, dy=ev.clientY-sy;
-        if(state.mode==='inner'){ let d=0; if(dir.includes('e'))d+=dx; if(dir.includes('w'))d-=dx; if(dir.includes('s'))d+=dy; if(dir.includes('n'))d-=dy; state.scale=Math.max(50,Math.min(300,Math.round(startScale+d/2))); applyImg(); updateBadge(); return; }
+        if(state.mode==='inner'){ let d=0; if(dir.includes('e'))d+=dx; if(dir.includes('w'))d-=dx; if(dir.includes('s'))d+=dy; if(dir.includes('n'))d-=dy; state.scale=Math.max(100,Math.min(300,Math.round(startScale+d/2))); applyImg(); updateBadge(); return; }
         let h=startH; if(dir.includes('s'))h=startH+dy; if(dir.includes('n'))h=startH-dy;
         box.style.width=''; box.style.height=Math.max(120,Math.min(1200,h))+'px'; updateBadge(); }
       function up(ev){ document.body.style.userSelect=''; try{handle.releasePointerCapture(ev.pointerId);}catch(_){} document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up); onChange&&onChange(); }
@@ -5879,6 +5879,13 @@ function advBuildUIE(box, host, onChange){
 }
 function advEnhance(host, onChange){
   advEnsureStyle();
+  // ===== 되돌리기(Ctrl+Z) / 다시하기(Ctrl+Y) 기록 =====
+  var _advOrigChange=onChange, _advUndo=[], _advRedo=[], _advLock=false, _advTimer=null;
+  function _advSnap(){ try{ return advCleanHtml(host); }catch(_){ return host.innerHTML; } }
+  function _advPush(){ var s=_advSnap(); if(_advUndo.length && _advUndo[_advUndo.length-1]===s) return; _advUndo.push(s); if(_advUndo.length>60)_advUndo.shift(); _advRedo.length=0; }
+  function _advRecord(){ if(_advLock)return; clearTimeout(_advTimer); _advTimer=setTimeout(function(){ _advTimer=null; _advPush(); },350); }
+  function _advFlush(){ if(_advTimer){ clearTimeout(_advTimer); _advTimer=null; _advPush(); } }
+  onChange=function(){ _advRecord(); _advOrigChange&&_advOrigChange(); };
   function addBlkTool(b){ if(b.querySelector(':scope > .adv-blk-tools')) return; var tb=document.createElement('div'); tb.className='adv-blk-tools'; tb.innerHTML='<button type="button" class="adv-blk-add" title="이 블록 복제(하나 더 추가)">＋</button><button type="button" class="adv-blk-del" title="이 블록 삭제">🗑</button>'; b.insertBefore(tb, b.firstChild); }
   function ensureBlockTools(scope){ scope=scope||host; if(scope.classList&&scope.classList.contains('adv-blk')) addBlkTool(scope); scope.querySelectorAll('.adv-blk').forEach(addBlkTool); }
   function renumberBlocks(){ host.querySelectorAll('.adv-sec').forEach(function(sec){ var di=0; sec.querySelectorAll('.detail-item .num').forEach(function(n){ di++; n.textContent=('0'+di).slice(-2); }); var st=0; sec.querySelectorAll('.step .eyebrow').forEach(function(el){ st++; if(/^STEP/i.test((el.textContent||'').trim())) el.textContent='STEP '+st; }); }); }
@@ -5916,6 +5923,14 @@ function advEnhance(host, onChange){
   enhanceScope(host);
   ensureSectionTools();
   host.addEventListener('input',function(){ onChange&&onChange(); });
+  // 되돌리기/다시하기 실행부
+  _advUndo.push(_advSnap()); // 기준 스냅샷
+  function _advRestore(html){ _advLock=true; host.innerHTML=html; enhanceScope(host); ensureSectionTools(); _advLock=false; _advOrigChange&&_advOrigChange(); }
+  function _advDoUndo(){ _advFlush(); if(_advUndo.length<=1) return; var cur=_advUndo.pop(); _advRedo.push(cur); _advRestore(_advUndo[_advUndo.length-1]); console.log('[adv] ↩ 되돌리기 ('+_advUndo.length+'단계 남음)'); }
+  function _advDoRedo(){ if(!_advRedo.length) return; var nx=_advRedo.pop(); _advUndo.push(nx); _advRestore(nx); console.log('[adv] ↪ 다시하기'); }
+  function _advHistKey(e){ if(!host.isConnected) return; var inHost=(e.target&&host.contains(e.target))||(document.activeElement&&host.contains(document.activeElement))||host.querySelector('.uie-box.is-selected'); if(!inHost) return; var k=(e.key||'').toLowerCase(); if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&k==='z'){ e.preventDefault(); _advDoUndo(); } else if((e.ctrlKey||e.metaKey)&&(k==='y'||(e.shiftKey&&k==='z'))){ e.preventDefault(); _advDoRedo(); } }
+  if(window.__advHistKey){ try{ document.removeEventListener('keydown',window.__advHistKey,true); }catch(_){} }
+  window.__advHistKey=_advHistKey; document.addEventListener('keydown',_advHistKey,true);
   // 정보표(현장정보) 항목: 마지막 칸에서 Enter→항목 추가 · 빈 칸에서 Delete/Backspace→항목 삭제
   host.addEventListener('keydown',function(e){
     var cell=e.target&&e.target.closest&&e.target.closest('.info-label,.info-value'); if(!cell) return;

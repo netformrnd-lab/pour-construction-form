@@ -29,14 +29,10 @@
 .psm1-logo { display:flex; align-items:center; font-weight:800; font-size:24px; color:#111827; letter-spacing:-0.045em; flex-shrink:0; }
 .psm1-logo .psm1-logo-or { color:#111827; }
 .psm1-searchwrap { flex:1; max-width:620px; position:relative; }
-/* 검색창 아래 슬로건 — 은은한 반짝임이 오른쪽으로 sweep */
-.psm1-slogan { margin-top:9px; padding-left:6px; font-size:12.5px; font-weight:600; letter-spacing:-0.02em; }
-.psm1-slogan span { display:inline-block;
-  background:linear-gradient(100deg,#9AA0A6 0%,#9AA0A6 43%,#F49A3A 48%,#E8780F 50%,#F49A3A 52%,#9AA0A6 57%,#9AA0A6 100%);
-  background-size:280% 100%; -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent;
-  animation:psm1-shine 5.5s ease-in-out infinite; }
-@keyframes psm1-shine { 0% { background-position:180% 0; } 45% { background-position:-40% 0; } 100% { background-position:-40% 0; } }
-@media (prefers-reduced-motion:reduce) { .psm1-slogan span { animation:none; -webkit-text-fill-color:#9AA0A6; color:#9AA0A6; } }
+/* 검색창 아래 태그라인 — 검색 입력과 정렬된 정적·미니멀(움직임 없음) */
+.psm1-slogan { margin-top:9px; padding-left:20px; display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:500; letter-spacing:-0.01em; color:#A2A8AF; word-break:keep-all; }
+.psm1-slogan::before { content:''; width:5px; height:5px; border-radius:50%; background:#E8780F; flex-shrink:0; opacity:.9; }
+.psm1-slogan b { color:#6B7280; font-weight:700; }
 .psm1-search form { margin:0; display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:26px; padding:10px 12px 10px 18px; }
 .psm1-search .psm1-search-ico { width:20px; height:20px; color:#E8780F; flex-shrink:0; }
 .psm1-search input { flex:1; min-width:0; border:none; outline:none; background:none; font-size:15px; font-weight:400; color:#2F3438; letter-spacing:-0.02em; }
@@ -378,7 +374,7 @@
           </button>
         </form>
       </div>
-      <div class="psm1-slogan"><span>누구나 쉽고 오래가는 건축물 유지보수 자재의 모든 것</span></div>
+      <div class="psm1-slogan">누구나 쉽고 오래가는 <b>건축물 유지보수 자재</b>의 모든 것</div>
       <div class="psm1-ac" data-psm1-ac></div>
     </div>
     <div class="psm1-hot" data-psm1-hot>

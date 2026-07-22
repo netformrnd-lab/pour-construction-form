@@ -2496,3 +2496,49 @@ var PC_TTL = 300000;
 })();
 </script>
 </section>
+
+<!-- 정적 공용 푸터 (raw 페이지라 @import/{$변수} 미해석 → 직접 embed). 원본: common/pour-footer.html -->
+<footer class="pfoot">
+<style>
+.pfoot *{box-sizing:border-box;margin:0;padding:0;font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;letter-spacing:-0.02em}
+.pfoot{background:#F7F8FA;border-top:1px solid #ECEEF1;color:#6B7280;padding:44px 20px 40px}
+.pfoot-in{max-width:1256px;margin:0 auto}
+.pfoot-top{display:flex;flex-wrap:wrap;gap:34px 60px;padding-bottom:26px;border-bottom:1px solid #E9EBEF}
+.pfoot-cs .h{font-size:12px;font-weight:800;color:#111;letter-spacing:0.04em;margin-bottom:9px}
+.pfoot-cs .tel{font-size:24px;font-weight:900;color:#111;letter-spacing:-0.03em;line-height:1.15}
+.pfoot-cs .sub{margin-top:8px;font-size:12px;font-weight:500;color:#9CA3AF;line-height:1.6}
+.pfoot-nav{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;margin-left:auto}
+.pfoot-nav a{font-size:13px;font-weight:700;color:#4B5563;text-decoration:none}
+.pfoot-nav a:hover{color:#E8780F}
+.pfoot-biz{margin-top:22px;font-size:12px;font-weight:500;color:#9CA3AF;line-height:1.85;word-break:keep-all}
+.pfoot-biz b{color:#4B5563;font-weight:700}
+.pfoot-copy{margin-top:16px;font-size:11.5px;font-weight:600;color:#B4B9C0}
+.pfoot-copy .or{color:#E8780F}
+@media (max-width:700px){
+  .pfoot{padding:34px 16px 34px}
+  .pfoot-top{gap:22px}
+  .pfoot-nav{margin-left:0;width:100%;gap:14px}
+  .pfoot-cs .tel{font-size:21px}
+}
+</style>
+<div class="pfoot-in">
+  <div class="pfoot-top">
+    <div class="pfoot-cs">
+      <div class="h">고객센터</div>
+      <div class="tel">1800-8203</div>
+      <div class="sub">평일 10:00 ~ 18:00 · 점심 12:00 ~ 13:00<br>토 · 일 · 공휴일 휴무</div>
+    </div>
+    <nav class="pfoot-nav" aria-label="푸터 메뉴">
+      <a href="/index.html">홈</a>
+      <a href="/product/list.html">전체상품</a>
+      <a href="/member/agreement.html">이용약관</a>
+      <a href="/member/privacy_guide.html">개인정보처리방침</a>
+    </nav>
+  </div>
+  <div class="pfoot-biz">
+    상호 <b>주식회사 넷폼알앤디</b> · 대표 <b>이승우</b> · 사업자등록번호 <b>404-81-84528</b> · 통신판매업신고 <b>제 2021-경기오산-0622</b><br>
+    개인정보보호책임자 주식회사 넷폼알앤디 · 주소 18104 경기도 오산시 서동로 77 (서동) 1층, 3층 · 대표전화 1800-8203
+  </div>
+  <div class="pfoot-copy">© <span class="or">POUR스토어</span> · 주식회사 넷폼알앤디. All rights reserved.</div>
+</div>
+</footer>

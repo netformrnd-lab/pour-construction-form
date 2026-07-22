@@ -4488,7 +4488,7 @@ function ShareProjectsPage({D}){
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {projs.map(p=>{
             const st=PROJ_STATUS[projStatus(p)]||{};
-            const ts=taskN(p);const done=ts.filter(t=>t.status==="done").length;const prog=p.progress||0;
+            const ts=taskN(p);const _pid=new Set(ts.filter(t=>t.parentId).map(t=>t.parentId));const leaves=ts.filter(t=>!_pid.has(t.id));const done=leaves.filter(t=>t.status==="done").length;const total=leaves.length;const prog=p.progress||0;   // 말단 업무 기준(편집기와 동일)
             const cf=hasFlow(p);
             const open=cf&&openId===p.id;
             const flow=open?buildProjectFlow(D,p):null;
@@ -4500,7 +4500,7 @@ function ShareProjectsPage({D}){
                     <span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:"#6B7280",background:"#F2F4F6",borderRadius:6,padding:"2px 7px"}}>{st.label||p.status||""}</span>
                   </div>
                   <div style={{height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden",marginBottom:6}}><div style={{width:prog+"%",height:"100%",background:"#F97316",borderRadius:6}}/></div>
-                  <p style={{margin:"0 0 9px",fontSize:10.5,color:"#9CA3AF",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>진행 {prog}% · 업무 {done}/{ts.length} · {uName(p.assigneeId)}</p>
+                  <p style={{margin:"0 0 9px",fontSize:10.5,color:"#9CA3AF",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>진행 {prog}% · 업무 {done}/{total} · {uName(p.assigneeId)}</p>
                   {cf
                     ? <button onClick={()=>setOpenId(open?null:p.id)} style={{width:"100%",padding:"11px 0",borderRadius:10,border:"none",background:open?"#EA580C":"#F97316",color:"#fff",fontSize:13,fontWeight:900,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 3px 10px rgba(249,115,22,0.35)",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>🗺 업무 플로우맵 보기 {open?"▲":"▼"}</button>
                     : <div style={{width:"100%",padding:"10px 0",borderRadius:10,border:"1px dashed #E5E8EB",background:"#FAFAFB",color:"#B0B8C1",fontSize:12,fontWeight:700,textAlign:"center"}}>🗺 업무 플로우맵 준비중</div>

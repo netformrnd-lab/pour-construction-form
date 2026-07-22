@@ -4478,12 +4478,40 @@ function ShareProjectsPage({D}){
   const hasFlow=(p)=>!!p.processConfirmed&&taskN(p).length>0;   // 확정 + 업무 있음 = 플로우맵 공개
   const projs=[...D.projects].sort((a,b)=>{const ca=hasFlow(a)?1:0,cb=hasFlow(b)?1:0;if(ca!==cb)return cb-ca;return (b.progress||0)-(a.progress||0);});   // 확정된 것 먼저(맨 위)
   const confN=projs.filter(hasFlow).length;
+  // 매출 요약 — KPI 페이지와 동일: 원 단위 메인KPI 합계 / 최종목표
+  const goal=(D.goals||[])[0];
+  const revKPIs=(D.mainKPIs||[]).filter(mk=>mk.unit==="원");
+  const revCur=revKPIs.reduce((s,mk)=>s+mkCur(mk,D.subKPIs,D.projects),0);
+  const revTgt=goal?numF(goal.targetValue):0;
+  const revPct=revTgt?Math.min(100,(revCur/revTgt)*100):0;
   return(
     <div style={{padding:"16px",maxWidth:1100,margin:"0 auto"}}>
       <div style={{marginBottom:14}}>
         <h2 style={{margin:0,fontSize:18,fontWeight:900,color:"#0F1F5C"}}>프로젝트 / 업무 플로우맵</h2>
-        <p style={{margin:"4px 0 0",fontSize:11.5,color:"#9CA3AF"}}>확정된 업무 플로우맵이 맨 위 · 나머지는 프로젝트 현황 · 읽기 전용 <span style={{fontWeight:800,color:"#EA580C"}}>· 확정 {confN}</span></p>
+        <p style={{margin:"4px 0 0",fontSize:11.5,color:"#9CA3AF"}}>매출 · 확정 업무 플로우맵 · 프로젝트 현황 · 읽기 전용 <span style={{fontWeight:800,color:"#EA580C"}}>· 확정 {confN}</span></p>
       </div>
+      {revTgt>0&&(
+        <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px 18px",marginBottom:16,color:"#fff"}}>
+          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+            <div style={{minWidth:0}}>
+              <p style={{margin:0,fontSize:10.5,fontWeight:800,opacity:0.65,letterSpacing:0.3}}>💰 {goal&&goal.title?goal.title:"매출 목표"}</p>
+              <p style={{margin:"6px 0 0",fontSize:20,fontWeight:900,letterSpacing:-0.3}}>{fmt(revCur,"원")} <span style={{fontSize:12,fontWeight:700,opacity:0.7}}>/ {fmt(revTgt,"원")}</span></p>
+            </div>
+            <span style={{fontSize:26,fontWeight:900,color:"#F97316",flexShrink:0}}>{fmtPct(revPct)}%</span>
+          </div>
+          <div style={{marginTop:11,height:8,borderRadius:6,background:"rgba(255,255,255,0.16)",overflow:"hidden"}}><div style={{width:revPct+"%",height:"100%",background:"#F97316",borderRadius:6}}/></div>
+          {revKPIs.length>0&&(
+            <div style={{display:"flex",gap:8,marginTop:11,flexWrap:"wrap"}}>
+              {revKPIs.map(mk=>{const c=mkCur(mk,D.subKPIs,D.projects);const t=numF(mk.targetValue);const pc=t?Math.min(100,(c/t)*100):0;return(
+                <div key={mk.id} style={{flex:"1 1 150px",minWidth:0,background:"rgba(255,255,255,0.08)",borderRadius:10,padding:"8px 11px"}}>
+                  <p style={{margin:0,fontSize:10,fontWeight:800,opacity:0.85,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{mk.krKey?`${mk.krKey} · `:""}{mk.title}</p>
+                  <p style={{margin:"3px 0 0",fontSize:12.5,fontWeight:900}}>{fmt(c,"원")} <span style={{fontSize:10,fontWeight:700,color:"#F9A66C"}}>· {fmtPct(pc)}%</span></p>
+                </div>
+              );})}
+            </div>
+          )}
+        </div>
+      )}
       {projs.length===0?<Empty t="프로젝트가 없어요"/>:(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {projs.map(p=>{
@@ -4500,7 +4528,8 @@ function ShareProjectsPage({D}){
                     <span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:"#6B7280",background:"#F2F4F6",borderRadius:6,padding:"2px 7px"}}>{st.label||p.status||""}</span>
                   </div>
                   <div style={{height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden",marginBottom:6}}><div style={{width:prog+"%",height:"100%",background:"#F97316",borderRadius:6}}/></div>
-                  <p style={{margin:"0 0 9px",fontSize:10.5,color:"#9CA3AF",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>진행 {prog}% · 업무 {done}/{total} · {uName(p.assigneeId)}</p>
+                  <p style={{margin:"0 0 6px",fontSize:10.5,color:"#9CA3AF",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>진행 {prog}% · 업무 {done}/{total} · {uName(p.assigneeId)}</p>
+                  {p.resultValue>0&&<p style={{margin:"0 0 9px",fontSize:11.5,fontWeight:900,color:"#EA580C"}}>💰 매출 {fmt(p.resultValue,"원")}</p>}
                   {cf
                     ? <button onClick={()=>setOpenId(open?null:p.id)} style={{width:"100%",padding:"11px 0",borderRadius:10,border:"none",background:open?"#EA580C":"#F97316",color:"#fff",fontSize:13,fontWeight:900,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 3px 10px rgba(249,115,22,0.35)",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>🗺 업무 플로우맵 보기 {open?"▲":"▼"}</button>
                     : <div style={{width:"100%",padding:"10px 0",borderRadius:10,border:"1px dashed #E5E8EB",background:"#FAFAFB",color:"#B0B8C1",fontSize:12,fontWeight:700,textAlign:"center"}}>🗺 업무 플로우맵 준비중</div>

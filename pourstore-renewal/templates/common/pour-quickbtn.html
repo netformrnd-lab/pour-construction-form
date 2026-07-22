@@ -27,20 +27,24 @@
 .pqc-panel.on{display:flex}
 .pqc-panel *,.pqc-panel *::before,.pqc-panel *::after{box-sizing:border-box}
 .pqc-head{background:linear-gradient(135deg,#F79A3C,#E8780F);color:#fff;padding:16px 16px 14px;display:flex;align-items:center;gap:11px;flex-shrink:0}
-.pqc-head .a{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:22px;flex-shrink:0}
+.pqc-head .a{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.25);object-fit:cover;flex-shrink:0}
 .pqc-head .nm{font-size:15.5px;font-weight:900;line-height:1.2}
 .pqc-head .st{font-size:11.5px;font-weight:600;opacity:.95;display:inline-flex;align-items:center;gap:5px;margin-top:2px}
 .pqc-head .st::before{content:'';width:6px;height:6px;border-radius:50%;background:#B7F7CE}
 .pqc-x{margin-left:auto;width:32px;height:32px;border:none;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;cursor:pointer;display:grid;place-items:center;flex-shrink:0}
 .pqc-x svg{width:16px;height:16px}
-.pqc-log{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;background:#F7F8FA;padding:16px 14px}
+.pqc-log{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:12px;background:#F7F8FA;padding:16px 14px}
 .pqc-sys{text-align:center;font-size:11.5px;color:#9CA3AF;font-weight:600;padding:2px 0}
-.pqc-row{display:flex}
+.pqc-row{display:flex;gap:8px;max-width:100%}
 .pqc-row.me{justify-content:flex-end}
-.pqc-cell{max-width:82%}
-.pqc-who{font-size:10.5px;font-weight:800;color:#9CA3AF;margin-bottom:3px}
-.pqc-row.me .pqc-who{text-align:right}
-.pqc-msg{padding:10px 13px;font-size:14px;line-height:1.5;word-break:keep-all;white-space:pre-wrap;display:inline-block}
+.pqc-row.them{align-items:flex-start}
+.pqc-av{width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;margin-top:17px;background:#EDEFF2}
+.pqc-cell{max-width:78%;min-width:0}
+.pqc-who{font-size:11px;font-weight:800;color:#6B7280;margin-bottom:3px}
+.pqc-time{font-size:10px;color:#B0B4BA;margin-top:4px}
+.pqc-row.me .pqc-time{text-align:right}
+.pqc-msg{padding:10px 13px;font-size:14px;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;white-space:pre-wrap;display:inline-block;max-width:100%}
+.pqc-msg a{color:inherit;text-decoration:underline;word-break:break-all}
 .pqc-row.them .pqc-msg{background:#fff;border:1px solid #EEF0F2;border-radius:4px 14px 14px 14px;color:#2F3438}
 .pqc-row.me .pqc-msg{background:#E8780F;color:#fff;border-radius:14px 4px 14px 14px}
 .pqc-imgs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
@@ -82,7 +86,7 @@
 
 <div class="pqc-panel" data-pqc-panel role="dialog" aria-label="POUR닥터 실시간 상담">
   <div class="pqc-head">
-    <div class="a">🦫</div>
+    <img class="a" src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/%EB%A7%88%EC%8A%A4%EC%BD%94%ED%8A%B8%2Fbeaver_consulting_profile_circle.png?alt=media&token=6574671f-7f7d-4cac-a504-7e5f3b946f25" alt="POUR닥터" onerror="this.style.display='none'">
     <div>
       <div class="nm">POUR닥터</div>
       <div class="st">보통 3분 이내 응답</div>
@@ -121,6 +125,20 @@
   var latest=null, renderedKey='', unsub=null, chatOpen=false;
 
   var GREETING='안녕하세요, POUR닥터예요 🦫\n건물·방수 고민을 편하게 남겨주세요. 사진도 함께 보내주시면 더 정확히 도와드려요 📷';
+  var PROFILE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/%EB%A7%88%EC%8A%A4%EC%BD%94%ED%8A%B8%2Fbeaver_consulting_profile_circle.png?alt=media&token=6574671f-7f7d-4cac-a504-7e5f3b946f25';
+
+  // 보낸 시각 → '오후 5:29'
+  function fmtTime(ts){ try{ var d=new Date(ts); if(isNaN(d)) return ''; var h=d.getHours(), m=d.getMinutes(); var ap=h<12?'오전':'오후'; var hh=h%12; if(hh===0) hh=12; return ap+' '+hh+':'+(m<10?'0'+m:m); }catch(e){ return ''; } }
+  // 링크 자동 인식(클릭 가능) + 안전하게 텍스트노드로 삽입
+  function appendText(el, text){
+    var re=/(https?:\/\/[^\s]+)/g, last=0, m;
+    while((m=re.exec(text))){
+      if(m.index>last) el.appendChild(document.createTextNode(text.slice(last,m.index)));
+      var a=document.createElement('a'); a.href=m[0]; a.target='_blank'; a.rel='noopener'; a.textContent=m[0];
+      el.appendChild(a); last=m.index+m[0].length;
+    }
+    if(last<text.length) el.appendChild(document.createTextNode(text.slice(last)));
+  }
 
   function setUnread(n){
     if(!launcher) return;
@@ -161,11 +179,12 @@
     return urls;
   }
 
-  function bubble(mine,who,content,images,options,answered){
+  function bubble(mine,content,images,options,answered,ts){
     var row=document.createElement('div'); row.className='pqc-row '+(mine?'me':'them');
+    if(!mine){ var av=document.createElement('img'); av.className='pqc-av'; av.src=PROFILE; av.alt='POUR닥터'; av.onerror=function(){ this.style.visibility='hidden'; }; row.appendChild(av); }
     var cell=document.createElement('div'); cell.className='pqc-cell';
-    var w=document.createElement('div'); w.className='pqc-who'; w.textContent=who; cell.appendChild(w);
-    if(content){ var b=document.createElement('div'); b.className='pqc-msg'; b.textContent=content; cell.appendChild(b); }
+    if(!mine){ var w=document.createElement('div'); w.className='pqc-who'; w.textContent='POUR닥터'; cell.appendChild(w); }
+    if(content){ var b=document.createElement('div'); b.className='pqc-msg'; appendText(b,content); cell.appendChild(b); }
     if(images&&images.length){
       var box=document.createElement('div'); box.className='pqc-imgs'; box.style.justifyContent=mine?'flex-end':'flex-start';
       images.forEach(function(u){ var a=document.createElement('a'); a.href=u; a.target='_blank'; a.rel='noopener'; var im=document.createElement('img'); im.src=u; a.appendChild(im); box.appendChild(a); });
@@ -176,6 +195,7 @@
       options.forEach(function(o){ var btn=document.createElement('button'); btn.type='button'; btn.className='pqc-opt'; btn.textContent=o; btn.addEventListener('click',function(){ doSend(o,[]); }); op.appendChild(btn); });
       cell.appendChild(op);
     }
+    if(ts){ var t=document.createElement('div'); t.className='pqc-time'; t.textContent=fmtTime(ts); if(t.textContent) cell.appendChild(t); }
     row.appendChild(cell); logEl.appendChild(row);
   }
   function renderLog(){
@@ -184,12 +204,10 @@
     if(key===renderedKey) return; renderedKey=key;
     logEl.innerHTML='';
     var s=document.createElement('div'); s.className='pqc-sys'; s.textContent='POUR닥터가 확인 후 답변드려요'; logEl.appendChild(s);
-    bubble(false,'POUR닥터',GREETING,null,null,true);
+    bubble(false,GREETING,null,null,true,null);
     var lastAgent=-1; for(var k=0;k<msgs.length;k++){ if(msgs[k].role==='agent') lastAgent=k; }
     var answered=lastAgent>=0 && lastAgent<msgs.length-1;
-    msgs.forEach(function(m,idx){ bubble(m.role==='customer','', m.content, m.images, (m.role==='agent'&&idx===lastAgent)?m.options:null, answered); });
-    // who 라벨 채우기
-    var whos=logEl.querySelectorAll('.pqc-row');
+    msgs.forEach(function(m,idx){ bubble(m.role==='customer', m.content, m.images, (m.role==='agent'&&idx===lastAgent)?m.options:null, answered, m.ts); });
     logEl.scrollTop=logEl.scrollHeight;
   }
 

@@ -33,7 +33,8 @@
 .pqc-head .st::before{content:'';width:6px;height:6px;border-radius:50%;background:#B7F7CE}
 .pqc-x{margin-left:auto;width:32px;height:32px;border:none;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;cursor:pointer;display:grid;place-items:center;flex-shrink:0}
 .pqc-x svg{width:16px;height:16px}
-.pqc-log{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:12px;background:#F7F8FA;padding:16px 14px}
+.pqc-log{flex:1;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:12px;background:#F7F8FA;padding:16px 14px}
+.pqc-done{text-align:center;font-size:12.5px;color:#0F7A54;font-weight:700;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:12px;padding:12px 14px;line-height:1.6;white-space:pre-line}
 .pqc-sys{text-align:center;font-size:11.5px;color:#9CA3AF;font-weight:600;padding:2px 0}
 .pqc-row{display:flex;gap:8px;max-width:100%}
 .pqc-row.me{justify-content:flex-end}
@@ -93,6 +94,7 @@
 .pqc-notify-btn{width:100%;border:none;border-radius:10px;background:#E8780F;color:#fff;font-size:13.5px;font-weight:800;padding:11px;cursor:pointer;margin-top:3px}
 .pqc-notify-btn:disabled{opacity:.6}
 .pqc-notify-ok{margin:2px 0 0 38px;font-size:12px;color:#059669;font-weight:700;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:12px;padding:10px 13px}
+.pqc-renotify{background:none;border:none;color:#0F7A54;font-size:11.5px;font-weight:800;text-decoration:underline;cursor:pointer;padding:0;white-space:nowrap}
 /* 피드백 👍👎 */
 .pqc-fb{display:flex;gap:14px;margin-top:8px;padding-left:2px}
 .pqc-fb button{background:none;border:none;cursor:pointer;color:#C7CBD1;font-size:15px;line-height:1;padding:2px}
@@ -101,7 +103,8 @@
   .pqc-launcher{right:14px;bottom:16px;gap:8px}
   .pqc-lbl{display:none}
   .pqc-fab{width:56px;height:56px}
-  .pqc-panel{right:0;bottom:0;width:100vw;max-width:100vw;height:100dvh;border-radius:0}
+  /* 모바일: 상단 고정 + JS(visualViewport)로 키보드 높이만큼 줄여줌 → 입력창이 키보드 위에 딱 */
+  .pqc-panel{left:0;right:auto;top:0;bottom:auto;width:100vw;max-width:100vw;height:100dvh;border-radius:0}
 }
 @media (prefers-reduced-motion:reduce){ .pqc-fab::before{animation:none;opacity:0} }
 </style>
@@ -153,7 +156,7 @@
 
   var chatFiles=[];
   var threadId=null; try{ threadId=localStorage.getItem(LS_KEY)||null; }catch(e){}
-  var latest=null, renderedKey='', unsub=null, chatOpen=false;
+  var latest=null, renderedKey='', unsub=null, chatOpen=false, reNotify=false;
 
   var GREETING='안녕하세요, POUR닥터예요 🦫\n건물·방수 고민을 편하게 남겨주세요. 사진도 함께 보내주시면 더 정확히 도와드려요 📷';
   var PROFILE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/%EB%A7%88%EC%8A%A4%EC%BD%94%ED%8A%B8%2Fbeaver_consulting_profile_circle.png?alt=media&token=6574671f-7f7d-4cac-a504-7e5f3b946f25';
@@ -203,13 +206,30 @@
     if(n>0){ launcher.classList.add('pqc-unread'); if(badgeEl) badgeEl.textContent=String(n); if(labelT) labelT.textContent='상담원 답변이 도착했어요'; }
     else{ launcher.classList.remove('pqc-unread'); if(labelT) labelT.textContent='궁금하면 물어보세요'; }
   }
+  // 📱 모바일: 키보드가 뜨면 visualViewport 높이만큼 패널을 줄여 입력창이 키보드 위에 오게 함
+  function isMobile(){ return window.innerWidth<=640; }
+  function fitViewport(){
+    if(!panel.classList.contains('on') || !isMobile()){ panel.style.height=''; panel.style.top=''; return; }
+    var vv=window.visualViewport;
+    if(vv){ panel.style.height=vv.height+'px'; panel.style.top=vv.offsetTop+'px'; }
+    if(chatOpen) logEl.scrollTop=logEl.scrollHeight;
+  }
+  if(window.visualViewport){ window.visualViewport.addEventListener('resize',fitViewport); window.visualViewport.addEventListener('scroll',fitViewport); }
+  window.addEventListener('resize',fitViewport);
+  window.addEventListener('orientationchange',function(){ setTimeout(fitViewport,300); });
+
   function open(){
     panel.classList.add('on'); if(launcher) launcher.classList.add('pqc-open');
     chatOpen=true; setUnread(0); renderLog();
+    if(isMobile()) document.documentElement.style.overflow='hidden';   // 뒤 페이지 스크롤/비침 방지
+    fitViewport();
     if(threadId) subscribe().catch(function(){});
-    setTimeout(function(){ try{ msgEl.focus(); }catch(e){} },60);
+    setTimeout(function(){ try{ msgEl.focus(); }catch(e){} fitViewport(); logEl.scrollTop=logEl.scrollHeight; },60);
   }
-  function close(){ panel.classList.remove('on'); if(launcher) launcher.classList.remove('pqc-open'); chatOpen=false; }
+  function close(){
+    panel.classList.remove('on'); if(launcher) launcher.classList.remove('pqc-open'); chatOpen=false;
+    document.documentElement.style.overflow=''; panel.style.height=''; panel.style.top='';
+  }
   window.pourDoctorOpen=open;
   // 새 버튼(data-pqc-open) + 옛날 CTA 버튼(data-pqb-open) 모두 새 채팅창을 열도록 연결
   document.querySelectorAll('[data-pqc-open],[data-pqb-open]').forEach(function(b){ b.addEventListener('click',function(e){ e.preventDefault(); open(); }); });
@@ -301,6 +321,7 @@
       var msg={role:'customer',content:'📱 문자 알림 신청 · '+nm+' · '+phone.trim(),ts:now};
       var msgs=((latest&&latest.messages)||[]).concat([msg]);
       await F.updateDoc(F.doc(F.db,'pour_chatbot_threads',threadId),{ messages:msgs, customerName:nm, customerContact:phone.trim(), unread:true, updatedAt:now });
+      reNotify=false;
     }catch(e){ console.error('[POUR닥터] 알림신청 실패:',e); alert('신청 중 오류가 났어요. 잠시 후 다시 시도해주세요.'); btn.disabled=false; btn.textContent='문자 알림 신청'; }
   }
   function renderLog(){
@@ -322,11 +343,20 @@
       var isLastAgent=(m.role==='agent'&&idx===lastAgent);
       bubble(m.role==='customer', m.content, m.images, isLastAgent?m.options:null, answered, m.ts, isLastAgent?(threadId+'_'+idx):null);
     });
-    // 답변 대기중(마지막이 고객 발화) → '상담원 배정 중' + 문자 알림받기
-    if(threadId && msgs.length && msgs[msgs.length-1].role==='customer'){
+    if(latest && latest.status==='done'){
+      // 상담완료 → 완료 안내(고객이 다시 남기면 doSend가 status를 active로 되돌려 재시작)
+      var done=document.createElement('div'); done.className='pqc-done';
+      done.textContent='✅ 상담이 완료되었어요.\n이용해 주셔서 감사합니다 😊\n추가로 궁금하시면 아래에 메시지를 남겨주세요 — 다시 도와드릴게요!';
+      logEl.appendChild(done);
+    } else if(threadId && msgs.length && msgs[msgs.length-1].role==='customer'){
+      // 답변 대기중(마지막이 고객 발화) → '상담원 배정 중' + 문자 알림받기
       typingRow();
-      if(latest && latest.customerContact){
-        var ok=document.createElement('div'); ok.className='pqc-notify-ok'; ok.textContent='✅ 문자 알림 신청됨 — 답변이 오면 문자로 알려드릴게요.'; logEl.appendChild(ok);
+      if(latest && latest.customerContact && !reNotify){
+        var ok=document.createElement('div'); ok.className='pqc-notify-ok';
+        var okt=document.createElement('span'); okt.textContent='✅ 문자 알림 신청됨 — 답변 오면 문자로 알려드려요. '; ok.appendChild(okt);
+        var re=document.createElement('button'); re.type='button'; re.className='pqc-renotify'; re.textContent='번호 변경/재신청';
+        re.addEventListener('click',function(){ reNotify=true; renderedKey=''; renderLog(); });
+        ok.appendChild(re); logEl.appendChild(ok);
       } else {
         notifyCard();
       }
@@ -344,7 +374,7 @@
       d.appendChild(del); pendingBox.appendChild(d);
     });
   }
-  fileEl.addEventListener('change',function(){ for(var i=0;i<fileEl.files.length;i++){ var f=fileEl.files[i]; if(chatFiles.length<5&&f.type.indexOf('image/')===0) chatFiles.push(f); } fileEl.value=''; renderPending(); });
+  fileEl.addEventListener('change',function(){ for(var i=0;i<fileEl.files.length;i++){ var f=fileEl.files[i]; if(chatFiles.length<5&&f.type.indexOf('image/')===0) chatFiles.push(f); } fileEl.value=''; renderPending(); updateSend(); });
 
   async function subscribe(){
     var F=await ensureFb();
@@ -389,11 +419,14 @@
       console.error('[POUR닥터] 전송 실패:',e);
       alert('전송 중 오류가 났어요. 잠시 후 다시 시도해주세요.');
     }
-    sendBtn.disabled=false; msgEl.disabled=false; try{ msgEl.focus(); }catch(e){}
+    msgEl.disabled=false; updateSend(); try{ msgEl.focus(); }catch(e){}
   }
+  function updateSend(){ sendBtn.disabled=!(msgEl.value.trim()||chatFiles.length); }
   sendBtn.addEventListener('click',function(){ doSend(msgEl.value,null); });
   msgEl.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); doSend(msgEl.value,null); } });
-  msgEl.addEventListener('input',function(){ msgEl.style.height='auto'; msgEl.style.height=Math.min(msgEl.scrollHeight,96)+'px'; });
+  msgEl.addEventListener('input',function(){ msgEl.style.height='auto'; msgEl.style.height=Math.min(msgEl.scrollHeight,96)+'px'; updateSend(); });
+  msgEl.addEventListener('focus',function(){ setTimeout(function(){ logEl.scrollTop=logEl.scrollHeight; },120); });
+  updateSend();
 
   if(threadId) subscribe().catch(function(){}); // 답변 도착하면 배지
 })();

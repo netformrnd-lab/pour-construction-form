@@ -4826,17 +4826,18 @@ const blocksToBody=(blocks)=>(blocks||[]).map(b=>b.type==='image'?(b.url||''):(b
 
 // ============================================================
 // 기획전(이벤트) 관리 — 오늘의집 스타일 카드 (큰 이미지 + 상품 썸네일 줄)
-//   저장: pourstore-events / 노출: event.html
+//   저장: config/pourstoreEvents {events:[...]} (보안규칙상 쓰기 허용 컬렉션) / 노출: event.html
 // ============================================================
 function EventsPage({showToast}){
   const [items,setItems]=useState([]);
   const [loading,setLoading]=useState(true);
   const [editing,setEditing]=useState(null);
+  const EVREF=()=>db.collection('config').doc('pourstoreEvents');
   const load=async()=>{
     setLoading(true);
     try{
-      const snap=await db.collection('pourstore-events').get();
-      const arr=snap.docs.map(d=>({id:d.id,...d.data()}));
+      const snap=await EVREF().get();
+      const arr=(snap.exists && Array.isArray(snap.data().events))?snap.data().events.map(e=>({...e})):[];
       arr.sort((a,b)=>((a.order||0)-(b.order||0)) || String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
       console.log('[events] '+arr.length+'건 로드');
       setItems(arr);
@@ -4844,9 +4845,18 @@ function EventsPage({showToast}){
     setLoading(false);
   };
   useEffect(()=>{ load(); },[]);
+  const persist=async(arr)=>{ await EVREF().set({events:arr,updatedAt:new Date().toISOString()},{merge:true}); setItems(arr); };
   const startNew=()=>setEditing({title:'',thumbnail:'',startAt:'',endAt:'',mainImages:[],productMode:'manual',categoryNo:'',products:[],subtitle:'',badge:'',link:'',moreCount:'',active:true,order:items.length?Math.max.apply(null,items.map(i=>i.order||0))+1:0});
-  const remove=async(id)=>{ if(!window.confirm('이 기획전을 삭제할까요?'))return; try{ await db.collection('pourstore-events').doc(id).delete(); showToast('삭제했어요','success'); load(); }catch(e){ showToast('삭제 실패: '+(e&&e.message||e),'error'); } };
-  const toggleActive=async(it)=>{ try{ await db.collection('pourstore-events').doc(it.id).set({active:it.active===false,updatedAt:new Date().toISOString()},{merge:true}); load(); }catch(e){ showToast('변경 실패','error'); } };
+  const saveEvent=async(ev)=>{
+    const now=new Date().toISOString();
+    let arr;
+    if(ev.id && items.some(it=>it.id===ev.id)){ arr=items.map(it=>it.id===ev.id?{...ev,updatedAt:now}:it); }
+    else { const id=ev.id||('ev_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)); arr=[...items,{...ev,id:id,createdAt:now,updatedAt:now}]; }
+    await persist(arr);
+    showToast('저장했어요','success'); setEditing(null);
+  };
+  const remove=async(id)=>{ if(!window.confirm('이 기획전을 삭제할까요?'))return; try{ await persist(items.filter(it=>it.id!==id)); showToast('삭제했어요','success'); }catch(e){ showToast('삭제 실패: '+(e&&e.message||e),'error'); } };
+  const toggleActive=async(it)=>{ try{ await persist(items.map(x=>x.id===it.id?{...x,active:it.active===false,updatedAt:new Date().toISOString()}:x)); }catch(e){ showToast('변경 실패','error'); } };
   return (
     <div style={{padding:'8px 4px'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:10}}>
@@ -4877,11 +4887,11 @@ function EventsPage({showToast}){
           </div>
         ))}
       </div>
-      {editing && <EventEditor form={editing} setForm={setEditing} onClose={()=>setEditing(null)} onSaved={()=>{setEditing(null);load();}} showToast={showToast}/>}
+      {editing && <EventEditor form={editing} setForm={setEditing} onClose={()=>setEditing(null)} onSave={saveEvent} showToast={showToast}/>}
     </div>
   );
 }
-function EventEditor({form,setForm,onClose,onSaved,showToast}){
+function EventEditor({form,setForm,onClose,onSave,showToast}){
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState('');
   const set=(patch)=>setForm({...form,...patch});
@@ -4909,6 +4919,7 @@ function EventEditor({form,setForm,onClose,onSaved,showToast}){
       const now=new Date().toISOString();
       const products=prods.filter(p=>p.code||p.name||p.thumb||p.link).map(p=>{ const code=(p.code||'').trim(); const link=(p.link||'').trim()||(code?('/product/detail.html?product_no='+encodeURIComponent(code)):''); return {code:code,name:p.name||'',thumb:p.thumb||'',link:link}; });
       const payload={
+        id:form.id||'',
         title:form.title.trim(),
         thumbnail:form.thumbnail||'',
         startAt:form.startAt||'', endAt:form.endAt||'',
@@ -4917,11 +4928,9 @@ function EventEditor({form,setForm,onClose,onSaved,showToast}){
         categoryNo:(form.categoryNo||'').trim(),
         products:products,
         subtitle:form.subtitle||'', badge:form.badge||'', link:form.link||'', moreCount:Number(form.moreCount)||0,
-        active:form.active!==false, order:Number(form.order)||0, updatedAt:now
+        active:form.active!==false, order:Number(form.order)||0
       };
-      if(form.id) await db.collection('pourstore-events').doc(form.id).set(payload,{merge:true});
-      else { payload.createdAt=now; await db.collection('pourstore-events').add(payload); }
-      showToast('저장했어요','success'); onSaved();
+      await onSave(payload); // 저장은 EventsPage가 config/pourstoreEvents 배열로 처리
     }catch(e){ console.error('[events] 저장 실패:',e); showToast('저장 실패: '+(e&&e.message||e),'error'); }
     setSaving(false);
   };

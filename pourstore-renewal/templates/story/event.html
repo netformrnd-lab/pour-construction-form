@@ -1,6 +1,6 @@
 <!-- ============================================================
   event.html — POUR스토어 기획전(이벤트) 페이지 (오늘의집 스타일 · 공용 헤더 embed 포함)
-  데이터: Firestore pourstore-events (어드민 '기획전(이벤트) 관리')
+  데이터: Firestore config/pourstoreEvents {events:[...]} (어드민 '기획전(이벤트) 관리')
  ============================================================ -->
 <!-- ★ 모바일 반응형 필수: 뷰포트 meta 보장 (카페24가 head에서 누락/무효화 시 강제 주입·교정)
      — 이게 없으면 모바일이 ~980px로 렌더되어 모든 반응형(@media)이 발동 안 함 -->
@@ -1396,7 +1396,7 @@ var PM_POSTS = [];
 
 <script type="module">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 const firebaseConfig = {
   apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
   authDomain: "pour-app-new.firebaseapp.com", projectId: "pour-app-new",
@@ -1483,8 +1483,8 @@ function closeDetail(){
   const loading=document.querySelector('[data-pev-loading]');
   const empty=document.querySelector('[data-pev-empty]');
   try{
-    const snap=await getDocs(collection(db,'pourstore-events'));
-    let list=snap.docs.map(d=>Object.assign({id:d.id}, d.data())).filter(e=>e && e.active!==false && within(e));
+    const snap=await getDoc(doc(db,'config','pourstoreEvents'));
+    let list=(snap.exists() && Array.isArray(snap.data().events)?snap.data().events:[]).filter(e=>e && e.active!==false && within(e));
     list.sort((a,b)=>((a.order||0)-(b.order||0)) || String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
     console.log('[events] '+list.length+'건 노출');
     EVENTS=list;

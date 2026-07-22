@@ -79,7 +79,7 @@ const DT=Object.fromEntries(DEALER_TYPES.map(d=>[d.code,d]));
 const INIT={
   currentUser:"songhee",
   users:[
-    {id:"songhee",name:"김송희",role:"lead",dept:"전략·자사몰",color:"#3182F6"},
+    {id:"songhee",name:"김송희",role:"lead",dept:"전략·자사몰",color:"#3182F6",initials:"SH"},
     {id:"minji",name:"김민지",role:"member",dept:"디자인·콘텐츠·CS",color:"#8B5CF6"},
     {id:"ran",name:"이란",role:"member",dept:"광고·B2B·영업",color:"#00C073"},
     {id:"chaerim",name:"양채림",role:"member",dept:"운영·CS·인프라",color:"#F97316"},
@@ -852,7 +852,8 @@ export default function App(){
   useEffect(()=>{
     const stop=initCrmOperatorSync((incoming)=>{
       setD(p=>{
-        const matched=matchOperator(p.users,incoming,{getEmail:o=>o.email,getName:o=>o.name});
+        const matched=matchOperator(p.users,incoming,{getEmail:o=>o.email,getName:o=>o.initials})   // 이메일 / 이니셜(CRM 매칭) 우선
+          ||matchOperator(p.users,incoming,{getName:o=>o.name});                                     // 혹시 CRM이 풀네임을 보내면 이름으로도
         setCrmOp({name:(incoming.name||incoming.email||"").trim(),matched:!!matched});
         if(matched) console.log("[CRM] 담당자 자동 매칭:",matched.name,incoming);
         else console.warn("[CRM] 일치 담당자 없음:",incoming);
@@ -1135,7 +1136,7 @@ export default function App(){
               </div>
               {D.currentUser===u.id&&<span style={{marginLeft:8,fontSize:16,color:"#F97316"}}>✓</span>}
             </button>
-            <button onClick={()=>setEditUser({id:u.id,name:u.name||"",color:u.color||"#3182F6"})} title="이름·색상 수정" style={{flexShrink:0,width:38,height:38,borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",cursor:"pointer",fontSize:15,color:"#6B7280"}}>✎</button>
+            <button onClick={()=>setEditUser({id:u.id,name:u.name||"",color:u.color||"#3182F6",initials:u.initials||"",email:u.email||""})} title="이름·색상·CRM 매칭 수정" style={{flexShrink:0,width:38,height:38,borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",cursor:"pointer",fontSize:15,color:"#6B7280"}}>✎</button>
           </div>
         ))}
       </div>
@@ -1146,7 +1147,14 @@ export default function App(){
         <input value={editUser.name} onChange={e=>setEditUser({...editUser,name:e.target.value})} onKeyDown={e=>{if(e.key==="Enter"&&editUser.name.trim()){up("users",editUser.id,{name:editUser.name.trim(),color:editUser.color});setEditUser(null);}}} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
         <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:8}}>색상</label>
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18}}>{["#3182F6","#8B5CF6","#00C073","#F97316","#F04452","#0891B2","#EAB308","#EC4899"].map(c=>(<button key={c} onClick={()=>setEditUser({...editUser,color:c})} style={{width:34,height:34,borderRadius:"50%",background:c,border:editUser.color===c?"3px solid #0F1F5C":"2px solid #fff",boxShadow:"0 0 0 1px #E5E8EB",cursor:"pointer"}}/>))}</div>
-        <Btn full variant="orange" onClick={()=>{up("users",editUser.id,{name:editUser.name.trim()||"이름",color:editUser.color});setEditUser(null);}} disabled={!editUser.name.trim()}>저장</Btn>
+        <div style={{padding:"11px 12px",background:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,marginBottom:16}}>
+          <p style={{margin:"0 0 9px",fontSize:11.5,fontWeight:900,color:"#EA580C"}}>🖥 CRM 매칭 <span style={{fontWeight:700,color:"#9A3412"}}>· POUR스토어에서 접속 시 이 담당자로 자동 선택</span></p>
+          <label style={{display:"block",fontSize:11.5,fontWeight:800,color:"#374151",marginBottom:4}}>이니셜 <span style={{color:"#9CA3AF",fontWeight:600}}>(CRM 로그인 이니셜 — 예: SH)</span></label>
+          <input value={editUser.initials||""} onChange={e=>setEditUser({...editUser,initials:e.target.value})} placeholder="예: SH" maxLength={4} style={{width:"100%",padding:"11px 13px",borderRadius:10,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:10}}/>
+          <label style={{display:"block",fontSize:11.5,fontWeight:800,color:"#374151",marginBottom:4}}>이메일 <span style={{color:"#9CA3AF",fontWeight:600}}>(CRM 로그인 이메일 — 가장 정확)</span></label>
+          <input value={editUser.email||""} onChange={e=>setEditUser({...editUser,email:e.target.value})} placeholder="songhee44@netformrnd.com" style={{width:"100%",padding:"11px 13px",borderRadius:10,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+        </div>
+        <Btn full variant="orange" onClick={()=>{up("users",editUser.id,{name:editUser.name.trim()||"이름",color:editUser.color,initials:(editUser.initials||"").trim(),email:(editUser.email||"").trim()});setEditUser(null);}} disabled={!editUser.name.trim()}>저장</Btn>
       </div>)}
     </Sheet>
   </>);
@@ -4367,23 +4375,27 @@ const FLOW_ARROW="flowArrowHead";
 const flowPath=(a,b,w,h)=>{const x1=a.x+w/2,y1=a.y+h,x2=b.x+w/2,y2=b.y;return `M ${x1} ${y1} C ${x1} ${y1+44}, ${x2} ${y2-44}, ${x2} ${y2}`;};
 // 프로젝트 → 플로우 노드/엣지 (읽기 전용 렌더용). ProcessEditor의 map 빌드 로직과 동일한 배치·상태(완료/진행가능/대기).
 function buildProjectFlow(D,proj){
-  const team=(proj.collaboratorIds||[]).length>0||proj.projType==="team";
-  const uName=(id)=>(D.users.find(u=>u.id===id)||{}).name||"";
-  const uColor=(id)=>(D.users.find(u=>u.id===id)||{}).color||"#94A3B8";
-  const all=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed);
-  const idset=new Set(all.map(t=>t.id));
-  const parentOf=(t)=>(t.parentId&&idset.has(t.parentId))?t.parentId:null;
-  const childrenOf=(pid)=>all.filter(t=>parentOf(t)===pid).sort((a,b)=>(a.seq||0)-(b.seq||0));
-  const items=[]; const walk=(pid,depth)=>{childrenOf(pid).forEach(t=>{items.push({id:t.id,depth,title:t.title||"(빈 항목)",who:t.assigneeId,done:t.status==="done"});walk(t.id,depth+1);});};
-  walk(null,0);
+  // ⚠️ ProjectProcessEditor의 load()·computeDD·map 빌드와 100% 동일하게 — 공유/편집 렌더 불일치 방지
+  const team=isTeamProj(D,proj);
+  const MEM=[{id:"",name:"미배정",color:"#9CA3AF"},...(D.users||[])];
+  const Mof=(id)=>MEM.find(m=>m.id===id)||MEM[0];
+  // load(): parentId||__root 그룹 · seq 정렬 · __root부터 DFS (부모 없는 고아 업무는 제외 — 편집기와 동일)
+  const ts=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed);
+  const byP={}; ts.forEach(t=>{const k=t.parentId||"__root";(byP[k]=byP[k]||[]).push(t);});
+  Object.values(byP).forEach(a=>a.sort((x,y)=>(x.seq||0)-(y.seq||0)));
+  const items=[]; const walk=(pid,depth)=>{(byP[pid]||[]).forEach(t=>{items.push({id:t.id,text:t.title,depth,who:t.assigneeId||"",done:t.status==="done"});walk(t.id,depth+1);});};
+  walk("__root",0);
   if(!items.length) return {nodes:[],edges:[],maxY:0};
+  const isP=(i)=>i+1<items.length&&items[i+1].depth>items[i].depth;   // 다음 항목이 더 깊으면 상위(단계)
+  const dd=(()=>{const a=new Array(items.length);const lastIdx=(i)=>{let k=i+1;while(k<items.length&&items[k].depth>items[i].depth)k++;return k-1;};const kidsOf=(i)=>{const o=[];const e=lastIdx(i);for(let k=i+1;k<=e;k++)if(items[k].depth===items[i].depth+1)o.push(k);return o;};for(let i=items.length-1;i>=0;i--){if(isP(i)){const ks=kidsOf(i);a[i]=ks.length>0&&ks.every(k=>a[k]);}else a[i]=!!items[i].done;}return a;})();   // computeDD: 상위=하위 전부 완료 시 완료(롤업)
+  const doneOf=(i)=>isP(i)?dd[i]:items[i].done;
   const rParent=(p)=>{const d=items[p].depth;for(let q=p-1;q>=0;q--){const dq=items[q].depth;if(dq===d-1)return q;if(dq<d-1)return -1;}return -1;};
   const rKids=(p)=>{const o=[];for(let q=p+1;q<items.length;q++){const dq=items[q].depth;if(dq<=items[p].depth)break;if(rParent(q)===p)o.push(q);}return o;};
+  const flowOf=(i)=>{if(doneOf(i))return "done";const par=rParent(i);for(let j=0;j<i;j++){if(items[j].depth===items[i].depth&&rParent(j)===par&&!doneOf(j))return "wait";}return "ready";};
   const CW=NODE_W+26,RH=NODE_H+48;let cur=0;const pos={};
   const placeXY=(p,depth)=>{const ks=rKids(p);if(!ks.length){pos[p]={x:20+cur*CW,y:16+depth*RH};cur++;}else{ks.forEach(q=>placeXY(q,depth+1));const xs=ks.map(q=>pos[q].x);pos[p]={x:(Math.min(...xs)+Math.max(...xs))/2,y:16+depth*RH};}};
   for(let p=0;p<items.length;p++){if(rParent(p)===-1)placeXY(p,0);}
-  const flowOf=(i)=>{if(items[i].done)return "done";const par=rParent(i);for(let j=0;j<i;j++){if(items[j].depth===items[i].depth&&rParent(j)===par&&!items[j].done)return "wait";}return "ready";};
-  const nodes=items.map((it,p)=>{const isStage=it.depth===0;const kc=rKids(p).length;return {id:it.id,x:(pos[p]||{}).x||20,y:(pos[p]||{}).y||16,title:it.title,sub:isStage?(team&&it.who?uName(it.who):""):("업무"+(team&&it.who?" · "+uName(it.who):"")),color:uColor(it.who),status:flowOf(p),kidCount:kc,isStage};});
+  const nodes=items.map((it,p)=>{const m=Mof(it.who);const isStage=it.depth===0;const kc=rKids(p).length;return {id:it.id,x:(pos[p]||{}).x||20,y:(pos[p]||{}).y||16,title:it.text||"(빈 항목)",sub:isStage?(team&&it.who?m.name:""):("업무"+(team&&it.who?" · "+m.name:"")),color:m.color,status:flowOf(p),kidCount:kc,isStage};});
   const edges=[];items.forEach((it,p)=>{const pr=rParent(p);if(pr>=0)edges.push({id:"fe"+p,from:items[pr].id,to:it.id});});
   const stageIdx=items.map((it,p)=>it.depth===0?p:-1).filter(p=>p>=0);
   for(let s=1;s<stageIdx.length;s++)edges.push({id:"seq"+s,from:items[stageIdx[s-1]].id,to:items[stageIdx[s]].id,seq:true});

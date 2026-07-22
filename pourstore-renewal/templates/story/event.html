@@ -1497,8 +1497,8 @@ function closeDetail(){
     window.addEventListener('hashchange',function(){ var m=String(location.hash||'').match(/#ev-(.+)/); if(m){ var ev=EVENTS.filter(x=>String(x.id)===m[1])[0]; if(ev) openDetail(ev); } else closeDetail(); });
     var m0=String(location.hash||'').match(/#ev-(.+)/); if(m0){ var ev0=EVENTS.filter(x=>String(x.id)===m0[1])[0]; if(ev0) openDetail(ev0); }
   }catch(e){
-    console.error('[events] 로드 실패:', e);
-    loading.textContent='기획전을 불러오지 못했어요. 잠시 후 새로고침해 주세요.';
+    console.error('[events] 로드 실패(빈 상태로 표시):', e);
+    loading.hidden=true; empty.hidden=false;   // 문서 없음/일시 오류 → 빈 상태로(에러문구 대신)
   }
 })();
 </script>

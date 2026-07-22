@@ -88,6 +88,32 @@ export function initCrmOperatorSync(onOperator) {
   return listenForOperator(onOperator);      // 이후 postMessage 도 수신
 }
 
+// ── CRM 누적 매출 수신 ──────────────────────────────────────────
+// CRM이 넘긴 누적 매출을 받는다. (담당자와 동일하게 URL + postMessage 지원)
+//   (1) URL: ?crm_rev=220016538&crm_rev_target=1000000000&crm_rev_shipped=...&crm_rev_past=...
+//   (2) postMessage: { type:"CRM_REVENUE", payload:{ total, target, shipped, past, updatedAt } }
+export function readRevenueFromUrl() {
+  const q = new URLSearchParams(window.location.search);
+  const num = (k) => { const v = Number(q.get(k)); return isFinite(v) ? v : 0; };
+  const total = num("crm_rev"), target = num("crm_rev_target");
+  if (!total && !target) return null;
+  return { total, target, shipped: num("crm_rev_shipped"), past: num("crm_rev_past"), source: "url" };
+}
+
+// onRevenue({ total, target, shipped, past }) 콜백. 반환값은 정리(cleanup) 함수.
+export function initCrmRevenueSync(onRevenue) {
+  const fromUrl = readRevenueFromUrl();
+  if (fromUrl) onRevenue(fromUrl);           // URL 값이 있으면 즉시 1회
+  const handler = (e) => {
+    if (!CRM_ORIGINS.includes(e.origin)) return;                 // CRM 출처만 신뢰
+    if (e.data && e.data.type === "CRM_REVENUE" && e.data.payload) {
+      onRevenue({ ...e.data.payload, source: "postMessage" });
+    }
+  };
+  window.addEventListener("message", handler);
+  return () => window.removeEventListener("message", handler);
+}
+
 /* ─────────────────────────────────────────────────────────────
    사용 예시 A) React — 담당자 컨텍스트/최상위 컴포넌트
 

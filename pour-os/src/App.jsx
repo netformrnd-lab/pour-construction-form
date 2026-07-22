@@ -4,7 +4,7 @@ import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extC
 import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGetSnapshot } from "./durable.js";
 import { numF, skCur, mkCur, calcSegDone } from "./kpi.js";
 import { applyAutomation, instantiateLaunch } from "./launch.js";
-import { initCrmOperatorSync, matchOperator } from "./crmOperatorSync.js";
+import { initCrmOperatorSync, matchOperator, initCrmRevenueSync } from "./crmOperatorSync.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
 const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","eventTypes","weekGoals","launchTemplates","manuals","trash","activityLog"];
@@ -862,6 +862,16 @@ export default function App(){
     });
     return stop;
   },[]);
+  // POUR스토어 CRM 임베드 시: CRM 누적 매출 수신 → 공유페이지에 CRM 기준 매출 표시
+  // (URL ?crm_rev/crm_rev_target/crm_rev_shipped/crm_rev_past + postMessage CRM_REVENUE — crmOperatorSync.js)
+  const [crmRev,setCrmRev]=useState(null);   // {total,target,shipped,past}
+  useEffect(()=>{
+    const stop=initCrmRevenueSync((r)=>{
+      setCrmRev(r);
+      console.log("[CRM] 누적 매출 수신:",r);
+    });
+    return stop;
+  },[]);
   // 변경 시 디바운스 저장 — 바뀐 컬렉션 문서만 저장(diff). 다른 컬렉션 동시편집 충돌 제거.
   useEffect(()=>{
     if(!loaded) return;
@@ -1066,7 +1076,7 @@ export default function App(){
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="ai"&&<AIPage D={D} cu={cu} add={add} rm={rm}/>}
     {page==="journey"&&<JourneyPage D={D} cu={cu} restore={restore}/>}
-    {page==="share-proj"&&<ShareProjectsPage D={D}/>}
+    {page==="share-proj"&&<ShareProjectsPage D={D} crmRev={crmRev}/>}
   </>);
   const sheets=(<>
     {crmOp&&<div title={crmOp.matched?"CRM 접속 담당자로 자동 선택됨":"일치하는 담당자를 못 찾아 그대로 유지"} style={{position:"fixed",left:8,bottom:"calc(env(safe-area-inset-bottom,0px) + 8px)",zIndex:4900,background:crmOp.matched?"#0F1F5C":"#6B7280",color:"#fff",padding:"5px 11px",borderRadius:999,fontSize:10.5,fontWeight:800,boxShadow:"0 4px 14px rgba(0,0,0,0.22)",whiteSpace:"nowrap",pointerEvents:"none",opacity:0.92}}>🖥 {crmOp.matched?`${crmOp.name} 담당자로 접속 중`:`CRM: ${crmOp.name} · 담당자 미일치`}</div>}
@@ -4471,19 +4481,24 @@ function ShareFlowPage({D}){
   );
 }
 // 공유 보기 — 프로젝트 현황(읽기). 그룹별 진행률·상태·업무 수.
-function ShareProjectsPage({D}){
+function ShareProjectsPage({D,crmRev}){
   const [openId,setOpenId]=useState(null);
   const uName=(id)=>(D.users.find(u=>u.id===id)||{}).name||"미배정";
   const taskN=(p)=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);
   const hasFlow=(p)=>!!p.processConfirmed&&taskN(p).length>0;   // 확정 + 업무 있음 = 플로우맵 공개
   const projs=[...D.projects].sort((a,b)=>{const ca=hasFlow(a)?1:0,cb=hasFlow(b)?1:0;if(ca!==cb)return cb-ca;return (b.progress||0)-(a.progress||0);});   // 확정된 것 먼저(맨 위)
   const confN=projs.filter(hasFlow).length;
-  // 매출 요약 — KPI 페이지와 동일: 원 단위 메인KPI 합계 / 최종목표
+  // 매출 요약 — CRM 임베드로 누적 매출을 넘겨받으면 그 값 우선(CRM 기준), 아니면 POUR OS 내부 집계
   const goal=(D.goals||[])[0];
   const revKPIs=(D.mainKPIs||[]).filter(mk=>mk.unit==="원");
-  const revCur=revKPIs.reduce((s,mk)=>s+mkCur(mk,D.subKPIs,D.projects),0);
-  const revTgt=goal?numF(goal.targetValue):0;
+  const osCur=revKPIs.reduce((s,mk)=>s+mkCur(mk,D.subKPIs,D.projects),0);
+  const osTgt=goal?numF(goal.targetValue):0;
+  const useCrm=!!(crmRev&&(numF(crmRev.total)>0||numF(crmRev.target)>0));   // CRM에서 넘어온 값이 있으면 우선
+  const revCur=useCrm?numF(crmRev.total):osCur;
+  const revTgt=useCrm?(numF(crmRev.target)||osTgt):osTgt;
   const revPct=revTgt?Math.min(100,(revCur/revTgt)*100):0;
+  const crmShipped=useCrm?numF(crmRev.shipped):0;
+  const crmPast=useCrm?numF(crmRev.past):0;
   return(
     <div style={{padding:"16px",maxWidth:1100,margin:"0 auto"}}>
       <div style={{marginBottom:14}}>
@@ -4494,22 +4509,37 @@ function ShareProjectsPage({D}){
         <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px 18px",marginBottom:16,color:"#fff"}}>
           <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
             <div style={{minWidth:0}}>
-              <p style={{margin:0,fontSize:10.5,fontWeight:800,opacity:0.65,letterSpacing:0.3}}>💰 {goal&&goal.title?goal.title:"매출 목표"}</p>
+              <p style={{margin:0,fontSize:10.5,fontWeight:800,opacity:0.65,letterSpacing:0.3}}>💰 {useCrm?"CRM 누적 매출":(goal&&goal.title?goal.title:"매출 목표")}</p>
               <p style={{margin:"6px 0 0",fontSize:20,fontWeight:900,letterSpacing:-0.3}}>{fmt(revCur,"원")} <span style={{fontSize:12,fontWeight:700,opacity:0.7}}>/ {fmt(revTgt,"원")}</span></p>
             </div>
             <span style={{fontSize:26,fontWeight:900,color:"#F97316",flexShrink:0}}>{fmtPct(revPct)}%</span>
           </div>
           <div style={{marginTop:11,height:8,borderRadius:6,background:"rgba(255,255,255,0.16)",overflow:"hidden"}}><div style={{width:revPct+"%",height:"100%",background:"#F97316",borderRadius:6}}/></div>
-          {revKPIs.length>0&&(
-            <div style={{display:"flex",gap:8,marginTop:11,flexWrap:"wrap"}}>
-              {revKPIs.map(mk=>{const c=mkCur(mk,D.subKPIs,D.projects);const t=numF(mk.targetValue);const pc=t?Math.min(100,(c/t)*100):0;return(
-                <div key={mk.id} style={{flex:"1 1 150px",minWidth:0,background:"rgba(255,255,255,0.08)",borderRadius:10,padding:"8px 11px"}}>
-                  <p style={{margin:0,fontSize:10,fontWeight:800,opacity:0.85,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{mk.krKey?`${mk.krKey} · `:""}{mk.title}</p>
-                  <p style={{margin:"3px 0 0",fontSize:12.5,fontWeight:900}}>{fmt(c,"원")} <span style={{fontSize:10,fontWeight:700,color:"#F9A66C"}}>· {fmtPct(pc)}%</span></p>
+          {useCrm
+            ? ((crmShipped>0||crmPast>0)&&(
+                <div style={{display:"flex",gap:8,marginTop:11,flexWrap:"wrap"}}>
+                  <div style={{flex:"1 1 150px",minWidth:0,background:"rgba(255,255,255,0.08)",borderRadius:10,padding:"8px 11px"}}>
+                    <p style={{margin:0,fontSize:10,fontWeight:800,opacity:0.85}}>출고 매출</p>
+                    <p style={{margin:"3px 0 0",fontSize:12.5,fontWeight:900}}>{fmt(crmShipped,"원")}</p>
+                  </div>
+                  <div style={{flex:"1 1 150px",minWidth:0,background:"rgba(255,255,255,0.08)",borderRadius:10,padding:"8px 11px"}}>
+                    <p style={{margin:0,fontSize:10,fontWeight:800,opacity:0.85}}>과거 매출</p>
+                    <p style={{margin:"3px 0 0",fontSize:12.5,fontWeight:900}}>{fmt(crmPast,"원")}</p>
+                  </div>
                 </div>
-              );})}
-            </div>
-          )}
+              ))
+            : (revKPIs.length>0&&(
+                <div style={{display:"flex",gap:8,marginTop:11,flexWrap:"wrap"}}>
+                  {revKPIs.map(mk=>{const c=mkCur(mk,D.subKPIs,D.projects);const t=numF(mk.targetValue);const pc=t?Math.min(100,(c/t)*100):0;return(
+                    <div key={mk.id} style={{flex:"1 1 150px",minWidth:0,background:"rgba(255,255,255,0.08)",borderRadius:10,padding:"8px 11px"}}>
+                      <p style={{margin:0,fontSize:10,fontWeight:800,opacity:0.85,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{mk.krKey?`${mk.krKey} · `:""}{mk.title}</p>
+                      <p style={{margin:"3px 0 0",fontSize:12.5,fontWeight:900}}>{fmt(c,"원")} <span style={{fontSize:10,fontWeight:700,color:"#F9A66C"}}>· {fmtPct(pc)}%</span></p>
+                    </div>
+                  );})}
+                </div>
+              ))
+          }
+          {useCrm&&<p style={{margin:"10px 0 0",fontSize:9.5,fontWeight:700,opacity:0.5}}>※ POUR스토어 CRM 실시간 집계 기준</p>}
         </div>
       )}
       {projs.length===0?<Empty t="프로젝트가 없어요"/>:(

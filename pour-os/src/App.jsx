@@ -4481,157 +4481,22 @@ function ShareFlowPage({D}){
     </div>
   );
 }
-// 공유 보기 — 매출(읽기). CRM 임베드로 넘겨받은 누적 매출 우선, 없으면 POUR OS 내부 집계.
-// 요약 탭: 목표/누적/달성률 + 출고·과거. 상세 탭: CRM 상세(주별·채널별·제품별) + POUR OS 활동별(메인KPI→서브KPI·거래처유형별).
-function ShareRevenuePage({D,crmRev}){
-  const [tab,setTab]=useState("summary");
-  const goal=(D.goals||[])[0];
-  const revKPIs=(D.mainKPIs||[]).filter(mk=>mk.unit==="원");
-  const osCur=revKPIs.reduce((s,mk)=>s+mkCur(mk,D.subKPIs,D.projects),0);
-  const osTgt=goal?numF(goal.targetValue):0;
-  const useCrm=!!(crmRev&&(numF(crmRev.total)>0||numF(crmRev.target)>0));   // CRM에서 넘어온 값이 있으면 우선
-  const revCur=useCrm?numF(crmRev.total):osCur;
-  const revTgt=useCrm?(numF(crmRev.target)||osTgt):osTgt;
-  const revPct=revTgt?Math.min(100,(revCur/revTgt)*100):0;
-  const shipped=useCrm?numF(crmRev.shipped):0;
-  const past=useCrm?numF(crmRev.past):0;
-  // CRM 상세(선택) — postMessage로 넘어오면 표시. { weekly:{rangeLabel,days:[{label,amount,count}],total,count}, channels:[{name,amount,count}], products:[{name,amount,count}] }
-  const weekly=useCrm&&crmRev.weekly&&Array.isArray(crmRev.weekly.days)?crmRev.weekly:null;
-  const channels=useCrm&&Array.isArray(crmRev.channels)?crmRev.channels.filter(c=>numF(c.amount)>0):null;
-  const products=useCrm&&Array.isArray(crmRev.products)?crmRev.products.filter(c=>numF(c.amount)>0):null;
-  const hasCrmDetail=!!((weekly&&weekly.days.length)||(channels&&channels.length)||(products&&products.length));
-  // POUR OS 활동별 상세 — 거래처유형별 매출(프로젝트 resultValue 합)
-  const byDealer={}; (D.projects||[]).forEach(p=>{const v=numF(p.resultValue); if(v>0){const k=p.dealerType||"__none"; byDealer[k]=(byDealer[k]||0)+v;}});
-  const dealerRows=Object.entries(byDealer).map(([code,amount])=>({code,amount,dt:DT[code]})).sort((a,b)=>b.amount-a.amount);
-  const osTotal=dealerRows.reduce((s,r)=>s+r.amount,0);
-  const TabBtn=({id,label})=>(
-    <button onClick={()=>setTab(id)} style={{padding:"9px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:800,background:tab===id?"#F97316":"#F2F4F6",color:tab===id?"#fff":"#6B7280"}}>{label}</button>
-  );
+// 공유 보기 — 매출(읽기). CRM(POUR스토어) 매출 페이지를 그대로 iframe 임베드 → 레이아웃·숫자·업데이트 100% 동일.
+// URL은 ?crm_sales_url= 로 덮어쓸 수 있음(기본 https://pourstorecrm.web.app/sales).
+const CRM_SALES_URL_DEFAULT="https://pourstorecrm.web.app/sales";
+function ShareRevenuePage(){
+  const src=(()=>{ try{ const q=new URLSearchParams(window.location.search); const u=(q.get("crm_sales_url")||"").trim(); return u||CRM_SALES_URL_DEFAULT; }catch(_){ return CRM_SALES_URL_DEFAULT; } })();
   return(
-    <div style={{padding:"16px",maxWidth:1100,margin:"0 auto"}}>
-      <div style={{marginBottom:12}}>
-        <h2 style={{margin:0,fontSize:18,fontWeight:900,color:"#0F1F5C"}}>💰 매출</h2>
-        <p style={{margin:"4px 0 0",fontSize:11.5,color:"#9CA3AF"}}>{useCrm?"POUR스토어 CRM 누적 매출 · 출고/과거 통합":"POUR OS 내부 집계"} · 읽기 전용</p>
+    <div style={{display:"flex",flexDirection:"column",height:"100%",minHeight:"calc(100vh - 60px)"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,padding:"12px 16px",borderBottom:"1px solid #F2F4F6",flexWrap:"wrap"}}>
+        <div style={{minWidth:0}}>
+          <h2 style={{margin:0,fontSize:18,fontWeight:900,color:"#0F1F5C"}}>💰 매출</h2>
+          <p style={{margin:"3px 0 0",fontSize:11.5,color:"#9CA3AF"}}>POUR스토어 CRM 매출 화면 · 실시간 동일 표시</p>
+        </div>
+        <a href={src} target="_blank" rel="noopener noreferrer" style={{flexShrink:0,padding:"8px 13px",borderRadius:9,background:"#F97316",color:"#fff",fontSize:12,fontWeight:800,textDecoration:"none"}}>🔗 새 창에서 열기</a>
       </div>
-      {revTgt<=0?<Empty t="매출 목표가 아직 설정되지 않았어요"/>:(<>
-        <div style={{display:"flex",gap:8,marginBottom:14}}><TabBtn id="summary" label="📊 요약"/><TabBtn id="detail" label="🔍 상세"/></div>
-
-        {tab==="summary"&&(<>
-          {/* 히어로 — 목표 / 누적 / 달성률 */}
-          <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:18,padding:"22px 22px",marginBottom:14,color:"#fff"}}>
-            <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:16,flexWrap:"wrap"}}>
-              <div style={{minWidth:0}}>
-                <p style={{margin:0,fontSize:11,fontWeight:800,opacity:0.6,letterSpacing:0.3}}>{useCrm?"CRM 누적 매출 (출고 + 과거)":(goal&&goal.title?goal.title:"매출 목표")}</p>
-                <p style={{margin:"8px 0 0",fontSize:30,fontWeight:900,letterSpacing:-0.5,lineHeight:1.1}}>{fmt(revCur,"원")}</p>
-                <p style={{margin:"6px 0 0",fontSize:12.5,fontWeight:700,opacity:0.7}}>2026년 목표 {fmt(revTgt,"원")}</p>
-              </div>
-              <div style={{textAlign:"right",flexShrink:0}}>
-                <p style={{margin:0,fontSize:10.5,fontWeight:800,opacity:0.6}}>달성률</p>
-                <span style={{fontSize:34,fontWeight:900,color:"#F97316"}}>{fmtPct(revPct)}%</span>
-              </div>
-            </div>
-            <div style={{marginTop:16,height:12,borderRadius:8,background:"rgba(255,255,255,0.16)",overflow:"hidden"}}><div style={{width:revPct+"%",height:"100%",background:"linear-gradient(90deg,#F97316,#F9A66C)",borderRadius:8}}/></div>
-          </div>
-          {/* 출고 / 과거 분해 (CRM 값이 있을 때) */}
-          {useCrm&&(shipped>0||past>0)&&(
-            <div style={{display:"flex",gap:12,marginBottom:14,flexWrap:"wrap"}}>
-              <div style={{flex:"1 1 240px",minWidth:0,background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"16px 18px"}}>
-                <p style={{margin:0,fontSize:11.5,fontWeight:800,color:"#0F1F5C"}}>📦 출고 매출 <span style={{fontSize:10,fontWeight:700,color:"#9CA3AF"}}>· 정기</span></p>
-                <p style={{margin:"8px 0 0",fontSize:20,fontWeight:900,color:"#EA580C"}}>{fmt(shipped,"원")}</p>
-              </div>
-              <div style={{flex:"1 1 240px",minWidth:0,background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"16px 18px"}}>
-                <p style={{margin:0,fontSize:11.5,fontWeight:800,color:"#0F1F5C"}}>🧾 과거 주문 <span style={{fontSize:10,fontWeight:700,color:"#9CA3AF"}}>· 1회성</span></p>
-                <p style={{margin:"8px 0 0",fontSize:20,fontWeight:900,color:"#0F1F5C"}}>{fmt(past,"원")}</p>
-              </div>
-            </div>
-          )}
-          {/* POUR OS 내부 메인KPI 분해 (CRM 값이 없을 때 폴백) */}
-          {!useCrm&&revKPIs.length>0&&(
-            <div style={{display:"flex",gap:12,marginBottom:14,flexWrap:"wrap"}}>
-              {revKPIs.map(mk=>{const c=mkCur(mk,D.subKPIs,D.projects);const t=numF(mk.targetValue);const pc=t?Math.min(100,(c/t)*100):0;return(
-                <div key={mk.id} style={{flex:"1 1 240px",minWidth:0,background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"16px 18px"}}>
-                  <p style={{margin:0,fontSize:11.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{mk.krKey?`${mk.krKey} · `:""}{mk.title}</p>
-                  <p style={{margin:"8px 0 0",fontSize:19,fontWeight:900,color:"#EA580C"}}>{fmt(c,"원")}</p>
-                  <p style={{margin:"4px 0 0",fontSize:11,fontWeight:700,color:"#9CA3AF"}}>목표 {fmt(t,"원")} · {fmtPct(pc)}%</p>
-                  <div style={{marginTop:8,height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:pc+"%",height:"100%",background:"#F97316",borderRadius:6}}/></div>
-                </div>
-              );})}
-            </div>
-          )}
-          <p style={{margin:"2px 2px 0",fontSize:10,fontWeight:700,color:"#B0B8C1"}}>{useCrm?"※ POUR스토어 CRM 실시간 집계 기준 (출고 정기 + 과거 1회성 주문 통합)":"※ POUR OS 내부 매출 집계 기준"}</p>
-        </>)}
-
-        {tab==="detail"&&(<>
-          {/* ── CRM 상세 (넘겨받은 경우만) ── */}
-          {weekly&&weekly.days.length>0&&(
-            <div style={{background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"15px 16px",marginBottom:12}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,flexWrap:"wrap",gap:6}}>
-                <p style={{margin:0,fontSize:13,fontWeight:900,color:"#0F1F5C"}}>📅 주별 매출 현황 {weekly.rangeLabel&&<span style={{fontSize:11,fontWeight:700,color:"#9CA3AF"}}>· {weekly.rangeLabel}</span>}</p>
-                <p style={{margin:0,fontSize:11.5,fontWeight:800,color:"#EA580C"}}>주간 합계 {fmt(numF(weekly.total),"원")}{numF(weekly.count)>0?` · ${numF(weekly.count)}건`:""}</p>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(90px,1fr))",gap:8}}>
-                {weekly.days.map((d,i)=>(
-                  <div key={i} style={{background:numF(d.amount)>0?"#FFF7ED":"#FAFAFB",border:`1px solid ${numF(d.amount)>0?"#FCE0C6":"#F2F4F6"}`,borderRadius:10,padding:"9px 8px",textAlign:"center"}}>
-                    <p style={{margin:0,fontSize:10.5,fontWeight:800,color:"#6B7280"}}>{d.label}</p>
-                    <p style={{margin:"5px 0 0",fontSize:12,fontWeight:900,color:numF(d.amount)>0?"#EA580C":"#C4CBD3"}}>{numF(d.amount)>0?fmt(numF(d.amount),"원"):"-"}</p>
-                    {numF(d.count)>0&&<p style={{margin:"2px 0 0",fontSize:9.5,fontWeight:700,color:"#9CA3AF"}}>{numF(d.count)}건</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {channels&&channels.length>0&&(
-            <div style={{background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"15px 16px",marginBottom:12}}>
-              <p style={{margin:"0 0 10px",fontSize:13,fontWeight:900,color:"#0F1F5C"}}>🏬 채널별 매출</p>
-              {[...channels].sort((a,b)=>numF(b.amount)-numF(a.amount)).map((c,i)=>(<RevRow key={i} name={c.name} amount={numF(c.amount)} count={numF(c.count)} total={revCur}/>))}
-            </div>
-          )}
-          {products&&products.length>0&&(
-            <div style={{background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"15px 16px",marginBottom:12}}>
-              <p style={{margin:"0 0 10px",fontSize:13,fontWeight:900,color:"#0F1F5C"}}>📦 제품별 매출</p>
-              {[...products].sort((a,b)=>numF(b.amount)-numF(a.amount)).slice(0,20).map((c,i)=>(<RevRow key={i} name={c.name} amount={numF(c.amount)} count={numF(c.count)} total={revCur}/>))}
-            </div>
-          )}
-
-          {/* ── POUR OS 활동별 매출 (항상 표시) ── */}
-          <div style={{background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"15px 16px",marginBottom:12}}>
-            <p style={{margin:"0 0 4px",fontSize:13,fontWeight:900,color:"#0F1F5C"}}>🎯 활동별 매출 <span style={{fontSize:10.5,fontWeight:700,color:"#9CA3AF"}}>· POUR OS 내부 기준</span></p>
-            {revKPIs.map(mk=>{
-              const c=mkCur(mk,D.subKPIs,D.projects);const t=numF(mk.targetValue);const pc=t?Math.min(100,(c/t)*100):0;
-              const subs=(D.subKPIs||[]).filter(s=>s.mainKPIId===mk.id&&s.unit==="원");
-              return(
-                <div key={mk.id} style={{marginTop:12,paddingTop:12,borderTop:"1px solid #F2F4F6"}}>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-                    <span style={{fontSize:12.5,fontWeight:800,color:"#0F1F5C"}}>{mk.krKey?`${mk.krKey} · `:""}{mk.title}</span>
-                    <span style={{fontSize:12.5,fontWeight:900,color:"#EA580C"}}>{fmt(c,"원")} <span style={{fontSize:10,fontWeight:700,color:"#9CA3AF"}}>· {fmtPct(pc)}%</span></span>
-                  </div>
-                  {subs.length>0&&<div style={{marginTop:8}}>{subs.map(sk=>{const v=skCur(sk,D.projects);return(<RevRow key={sk.id} name={`${sk.channelCode?sk.channelCode+" · ":""}${sk.title}`} amount={v} total={c}/>);})}</div>}
-                </div>
-              );
-            })}
-          </div>
-          {dealerRows.length>0&&(
-            <div style={{background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"15px 16px",marginBottom:12}}>
-              <p style={{margin:"0 0 10px",fontSize:13,fontWeight:900,color:"#0F1F5C"}}>🏷 거래처유형별 매출 <span style={{fontSize:10.5,fontWeight:700,color:"#9CA3AF"}}>· POUR OS 내부 기준</span></p>
-              {dealerRows.map((r,i)=>(<RevRow key={i} name={r.dt?`${r.code} · ${r.dt.label}`:(r.code==="__none"?"미지정":r.code)} color={r.dt&&r.dt.color} amount={r.amount} total={osTotal}/>))}
-            </div>
-          )}
-          <p style={{margin:"2px 2px 0",fontSize:10,fontWeight:700,color:"#B0B8C1"}}>{hasCrmDetail?"※ 상단 CRM 상세 = 스토어 실집계 · 하단 활동별/거래처유형별 = POUR OS 내부 기록":"※ 활동별·거래처유형별 = POUR OS 내부 매출 기록 기준"}</p>
-        </>)}
-      </>)}
-    </div>
-  );
-}
-// 매출 상세 행 — 이름 + 비중 바 + 금액(+건수)
-function RevRow({name,amount,count,total,color}){
-  const share=total>0?Math.min(100,(numF(amount)/total)*100):0;
-  return(
-    <div style={{padding:"6px 0"}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-        <span style={{flex:1,minWidth:0,fontSize:11.5,fontWeight:700,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{name}</span>
-        <span style={{flexShrink:0,fontSize:11.5,fontWeight:800,color:"#EA580C"}}>{fmt(numF(amount),"원")}{numF(count)>0?<span style={{fontSize:9.5,fontWeight:700,color:"#9CA3AF"}}> · {numF(count)}건</span>:null}</span>
-      </div>
-      <div style={{height:5,borderRadius:5,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:share+"%",height:"100%",background:color||"#F97316",borderRadius:5}}/></div>
+      <iframe src={src} title="POUR스토어 CRM 매출" style={{flex:1,width:"100%",border:"none",minHeight:"640px",background:"#FFFBF5"}} allow="clipboard-read; clipboard-write"/>
+      <p style={{margin:0,padding:"8px 16px",fontSize:10.5,fontWeight:700,color:"#B0B8C1",borderTop:"1px solid #F2F4F6"}}>※ 화면이 비어 있거나 로그인 요청이 뜨면, CRM에 로그인된 상태에서 보거나 <a href={src} target="_blank" rel="noopener noreferrer" style={{color:"#EA580C",fontWeight:800}}>새 창에서 열기</a>를 눌러주세요.</p>
     </div>
   );
 }

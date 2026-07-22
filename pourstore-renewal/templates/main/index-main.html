@@ -100,6 +100,28 @@ body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !impo
 .pqc-send{flex-shrink:0;width:40px;height:40px;border:none;border-radius:50%;background:#E8780F;color:#fff;cursor:pointer;display:grid;place-items:center}
 .pqc-send:disabled{opacity:.45;cursor:default}
 .pqc-send svg{width:18px;height:18px}
+/* 시작 질문칩 */
+.pqc-starters{display:flex;flex-direction:column;gap:8px;margin:2px 0 0 38px}
+.pqc-starter{align-self:flex-start;text-align:left;background:#fff;border:1px solid #EAECEF;border-radius:14px;padding:11px 14px;font-size:13.5px;color:#374151;cursor:pointer;box-shadow:0 1px 3px rgba(15,31,92,.05);line-height:1.4}
+.pqc-starter:hover{border-color:#E8780F;color:#C8650D}
+/* 리치 텍스트(굵게·불릿) */
+.pqc-p{margin:0}
+.pqc-p+.pqc-p{margin-top:8px}
+.pqc-msg .pqc-ul{margin:7px 0 0;padding-left:17px}
+.pqc-msg .pqc-ul li{margin:3px 0}
+.pqc-msg strong{font-weight:800}
+/* 이어서 물어보세요 */
+.pqc-opthead{font-size:12px;font-weight:800;color:#6B7280;margin:11px 0 7px}
+/* 답변 생성 중(타이핑) */
+.pqc-typing{display:inline-flex;gap:4px;align-items:center;padding:13px 15px;background:#fff;border:1px solid #EEF0F2;border-radius:4px 14px 14px 14px}
+.pqc-typing i{width:7px;height:7px;border-radius:50%;background:#C7CBD1;display:inline-block;animation:pqcBlink 1.2s infinite}
+.pqc-typing i:nth-child(2){animation-delay:.2s}
+.pqc-typing i:nth-child(3){animation-delay:.4s}
+@keyframes pqcBlink{0%,60%,100%{opacity:.3}30%{opacity:1}}
+/* 피드백 👍👎 */
+.pqc-fb{display:flex;gap:14px;margin-top:8px;padding-left:2px}
+.pqc-fb button{background:none;border:none;cursor:pointer;color:#C7CBD1;font-size:15px;line-height:1;padding:2px}
+.pqc-fb button.on{color:#E8780F}
 @media (max-width:640px){
   .pqc-launcher{right:14px;bottom:16px;gap:8px}
   .pqc-lbl{display:none}
@@ -164,6 +186,14 @@ body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !impo
 
   // 보낸 시각 → '오후 5:29'
   function fmtTime(ts){ try{ var d=new Date(ts); if(isNaN(d)) return ''; var h=d.getHours(), m=d.getMinutes(); var ap=h<12?'오전':'오후'; var hh=h%12; if(hh===0) hh=12; return ap+' '+hh+':'+(m<10?'0'+m:m); }catch(e){ return ''; } }
+  // 고객이 탭해서 바로 물어볼 수 있는 시작 질문(원하면 여기 문구만 수정)
+  var STARTERS=[
+    '옥상 방수, 어떻게 시작하면 되나요?',
+    '누수·균열엔 어떤 자재를 써야 하나요?',
+    '셀프시공도 가능한가요?',
+    '지금 진행 중인 이벤트·혜택 있나요?'
+  ];
+
   // 링크 자동 인식(클릭 가능) + 안전하게 텍스트노드로 삽입
   function appendText(el, text){
     var re=/(https?:\/\/[^\s]+)/g, last=0, m;
@@ -173,6 +203,25 @@ body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !impo
       el.appendChild(a); last=m.index+m[0].length;
     }
     if(last<text.length) el.appendChild(document.createTextNode(text.slice(last)));
+  }
+  // 인라인: **굵게** + 링크
+  function inlineRich(el, text){
+    String(text).split(/(\*\*[^*]+\*\*)/).forEach(function(seg){
+      if(/^\*\*[^*]+\*\*$/.test(seg)){ var b=document.createElement('strong'); appendText(b, seg.slice(2,-2)); el.appendChild(b); }
+      else if(seg) appendText(el, seg);
+    });
+  }
+  // 블록: 줄바꿈·불릿(•,-)·굵게 렌더 (상담원/AI 답변용)
+  function renderRich(container, text){
+    var ul=null;
+    String(text).split('\n').forEach(function(line){
+      if(/^\s*[•\-]\s+/.test(line)){
+        if(!ul){ ul=document.createElement('ul'); ul.className='pqc-ul'; container.appendChild(ul); }
+        var li=document.createElement('li'); inlineRich(li, line.replace(/^\s*[•\-]\s+/,'')); ul.appendChild(li);
+      } else {
+        ul=null; var p=document.createElement('div'); p.className='pqc-p'; inlineRich(p, line); container.appendChild(p);
+      }
+    });
   }
 
   function setUnread(n){
@@ -214,23 +263,42 @@ body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !impo
     return urls;
   }
 
-  function bubble(mine,content,images,options,answered,ts){
+  function setFb(k,v,up,dn){ try{ localStorage.setItem('pqc_fb_'+k, v); }catch(e){} up.classList.toggle('on',v==='up'); dn.classList.toggle('on',v==='down'); }
+  function bubble(mine,content,images,options,answered,ts,fbKey){
     var row=document.createElement('div'); row.className='pqc-row '+(mine?'me':'them');
     if(!mine){ var av=document.createElement('img'); av.className='pqc-av'; av.src=PROFILE; av.alt='POUR닥터'; av.onerror=function(){ this.style.visibility='hidden'; }; row.appendChild(av); }
     var cell=document.createElement('div'); cell.className='pqc-cell';
     if(!mine){ var w=document.createElement('div'); w.className='pqc-who'; w.textContent='POUR닥터'; cell.appendChild(w); }
-    if(content){ var b=document.createElement('div'); b.className='pqc-msg'; appendText(b,content); cell.appendChild(b); }
+    if(content){ var b=document.createElement('div'); b.className='pqc-msg'; if(mine) appendText(b,content); else renderRich(b,content); cell.appendChild(b); }
     if(images&&images.length){
       var box=document.createElement('div'); box.className='pqc-imgs'; box.style.justifyContent=mine?'flex-end':'flex-start';
       images.forEach(function(u){ var a=document.createElement('a'); a.href=u; a.target='_blank'; a.rel='noopener'; var im=document.createElement('img'); im.src=u; a.appendChild(im); box.appendChild(a); });
       cell.appendChild(box);
     }
     if(options&&options.length&&!answered){
+      var oh=document.createElement('div'); oh.className='pqc-opthead'; oh.textContent='🔍 이어서 물어보세요'; cell.appendChild(oh);
       var op=document.createElement('div'); op.className='pqc-opts';
       options.forEach(function(o){ var btn=document.createElement('button'); btn.type='button'; btn.className='pqc-opt'; btn.textContent=o; btn.addEventListener('click',function(){ doSend(o,[]); }); op.appendChild(btn); });
       cell.appendChild(op);
     }
     if(ts){ var t=document.createElement('div'); t.className='pqc-time'; t.textContent=fmtTime(ts); if(t.textContent) cell.appendChild(t); }
+    if(fbKey){
+      var fbBox=document.createElement('div'); fbBox.className='pqc-fb';
+      var up=document.createElement('button'); up.type='button'; up.textContent='👍'; up.title='도움이 됐어요';
+      var dn=document.createElement('button'); dn.type='button'; dn.textContent='👎'; dn.title='아쉬워요';
+      var cur=''; try{ cur=localStorage.getItem('pqc_fb_'+fbKey)||''; }catch(e){}
+      if(cur==='up') up.classList.add('on'); if(cur==='down') dn.classList.add('on');
+      up.addEventListener('click',function(){ setFb(fbKey,'up',up,dn); }); dn.addEventListener('click',function(){ setFb(fbKey,'down',up,dn); });
+      fbBox.appendChild(up); fbBox.appendChild(dn); cell.appendChild(fbBox);
+    }
+    row.appendChild(cell); logEl.appendChild(row);
+  }
+  function typingRow(){
+    var row=document.createElement('div'); row.className='pqc-row them';
+    var av=document.createElement('img'); av.className='pqc-av'; av.src=PROFILE; av.onerror=function(){ this.style.visibility='hidden'; }; row.appendChild(av);
+    var cell=document.createElement('div'); cell.className='pqc-cell';
+    var w=document.createElement('div'); w.className='pqc-who'; w.textContent='POUR닥터'; cell.appendChild(w);
+    var tp=document.createElement('div'); tp.className='pqc-typing'; tp.appendChild(document.createElement('i')); tp.appendChild(document.createElement('i')); tp.appendChild(document.createElement('i')); cell.appendChild(tp);
     row.appendChild(cell); logEl.appendChild(row);
   }
   function renderLog(){
@@ -239,10 +307,21 @@ body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !impo
     if(key===renderedKey) return; renderedKey=key;
     logEl.innerHTML='';
     var s=document.createElement('div'); s.className='pqc-sys'; s.textContent='POUR닥터가 확인 후 답변드려요'; logEl.appendChild(s);
-    bubble(false,GREETING,null,null,true,null);
+    bubble(false,GREETING,null,null,true,null,null);
+    // 대화 시작 전: 시작 질문칩
+    if(!threadId || !msgs.length){
+      var st=document.createElement('div'); st.className='pqc-starters';
+      STARTERS.forEach(function(q){ var b=document.createElement('button'); b.type='button'; b.className='pqc-starter'; b.textContent=q; b.addEventListener('click',function(){ doSend(q,[]); }); st.appendChild(b); });
+      logEl.appendChild(st);
+    }
     var lastAgent=-1; for(var k=0;k<msgs.length;k++){ if(msgs[k].role==='agent') lastAgent=k; }
     var answered=lastAgent>=0 && lastAgent<msgs.length-1;
-    msgs.forEach(function(m,idx){ bubble(m.role==='customer', m.content, m.images, (m.role==='agent'&&idx===lastAgent)?m.options:null, answered, m.ts); });
+    msgs.forEach(function(m,idx){
+      var isLastAgent=(m.role==='agent'&&idx===lastAgent);
+      bubble(m.role==='customer', m.content, m.images, isLastAgent?m.options:null, answered, m.ts, isLastAgent?(threadId+'_'+idx):null);
+    });
+    // 답변 대기중(마지막이 고객 발화) → '답변 생성 중' 표시
+    if(threadId && msgs.length && msgs[msgs.length-1].role==='customer') typingRow();
     logEl.scrollTop=logEl.scrollHeight;
   }
 

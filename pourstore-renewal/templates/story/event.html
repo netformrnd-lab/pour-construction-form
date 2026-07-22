@@ -1357,6 +1357,7 @@ var PM_POSTS = [];
   .pev-dt-body{padding:0 0 60px;}
   .pev-dt-imgs{max-width:1280px;margin:0 auto;}
   .pev-dt-imgs img{width:100%;display:block;}
+  .pev-dt-text{padding:16px 20px;line-height:1.7;color:#2a2e33;letter-spacing:-.02em;word-break:keep-all;}
   .pev-dt-prods{max-width:1080px;margin:0 auto;padding:26px 16px 0;}
   .pev-dt-prods h2{font-size:18px;font-weight:900;letter-spacing:-.03em;margin-bottom:14px;}
   .pev-dt-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px 14px;}
@@ -1452,11 +1453,13 @@ function openDetail(ev){
   var body=document.querySelector('[data-pev-dt-body]');
   var titleEl=document.querySelector('[data-pev-dt-title]');
   titleEl.textContent=ev.title||'기획전';
-  var imgs=Array.isArray(ev.mainImages)?ev.mainImages.filter(Boolean):[];
-  var h='<div class="pev-dt-imgs">'
-    + (imgs.length ? imgs.map(function(u){return '<img src="'+esc(u)+'" alt="" onerror="this.style.display=\'none\'">';}).join('')
-        : (ev.thumbnail ? '<img src="'+esc(ev.thumbnail)+'" alt="">' : '<div style="padding:60px 20px;text-align:center;color:#adb2bb;font-weight:600">기획전 이미지가 준비 중입니다.</div>'))
-    + '</div>';
+  var blocks=Array.isArray(ev.mainBlocks)?ev.mainBlocks:(Array.isArray(ev.mainImages)?ev.mainImages.filter(Boolean).map(function(u){return {type:'image',url:u};}):[]);
+  var TSZ={normal:'15px',large:'18px',title:'24px'};
+  var inner = blocks.length ? blocks.map(function(b){
+    if(b&&b.type==='text'){ var sz=TSZ[b.size||'normal']||'15px'; var fw=(b.size==='title')?'800':'500'; return '<div class="pev-dt-text" style="text-align:'+(b.align||'left')+';font-size:'+sz+';font-weight:'+fw+'">'+esc(b.text||'').replace(/\n/g,'<br>')+'</div>'; }
+    return '<img src="'+esc((b&&b.url)||'')+'" alt="" onerror="this.style.display=\'none\'">';
+  }).join('') : (ev.thumbnail ? '<img src="'+esc(ev.thumbnail)+'" alt="">' : '<div style="padding:60px 20px;text-align:center;color:#adb2bb;font-weight:600">기획전 내용이 준비 중입니다.</div>');
+  var h='<div class="pev-dt-imgs">'+inner+'</div>';
   var products=Array.isArray(ev.products)?ev.products:[];
   if(products.length){
     h+='<div class="pev-dt-prods"><h2>이벤트 상품</h2><div class="pev-dt-grid">'+products.map(function(p){

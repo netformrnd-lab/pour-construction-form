@@ -4902,11 +4902,14 @@ function EventEditor({form,setForm,onClose,onSave,showToast}){
     catch(e){ console.error('[events] 업로드 실패:',e); showToast('업로드 실패: '+(e&&e.message||e),'error'); }
     setUploading('');
   };
-  const mainImgs=Array.isArray(form.mainImages)?form.mainImages:[];
-  const setMain=(arr)=>set({mainImages:arr});
-  const addMain=(url)=>setMain([...mainImgs,url||'']);
-  const setMainAt=(i,url)=>setMain(mainImgs.map((u,j)=>j===i?url:u));
-  const removeMain=(i)=>setMain(mainImgs.filter((_,j)=>j!==i));
+  // 메인 기획전 내용 = 블록 배열(이미지/글). 구버전 mainImages(URL 배열) 자동 변환
+  const blocks=Array.isArray(form.mainBlocks)?form.mainBlocks:(Array.isArray(form.mainImages)?form.mainImages.filter(Boolean).map(u=>({type:'image',url:u})):[]);
+  const setBlocks=(arr)=>set({mainBlocks:arr});
+  const addImgBlock=(url)=>setBlocks([...blocks,{type:'image',url:url||''}]);
+  const addTextBlock=()=>setBlocks([...blocks,{type:'text',text:'',align:'left',size:'normal'}]);
+  const setBlockAt=(i,patch)=>setBlocks(blocks.map((b,j)=>j===i?{...b,...patch}:b));
+  const removeBlock=(i)=>setBlocks(blocks.filter((_,j)=>j!==i));
+  const moveBlock=(i,d)=>{ const j=i+d; if(j<0||j>=blocks.length)return; const a=blocks.slice(); const t=a[i]; a[i]=a[j]; a[j]=t; setBlocks(a); };
   const mode=form.productMode||'manual';
   const prods=Array.isArray(form.products)?form.products:[];
   const setProduct=(i,patch)=>set({products:prods.map((p,j)=>j===i?{...p,...patch}:p)});
@@ -4938,7 +4941,8 @@ function EventEditor({form,setForm,onClose,onSave,showToast}){
         title:form.title.trim(),
         thumbnail:form.thumbnail||'',
         startAt:form.startAt||'', endAt:form.endAt||'',
-        mainImages:mainImgs.filter(Boolean),
+        mainBlocks:blocks.filter(b=>b&&(b.type==='text'?(b.text||'').trim():(b.url||'').trim())).map(b=>b.type==='text'?{type:'text',text:b.text||'',align:b.align||'left',size:b.size||'normal'}:{type:'image',url:b.url||''}),
+        mainImages:blocks.filter(b=>b&&b.type==='image'&&(b.url||'').trim()).map(b=>b.url), // 구버전 event.html 호환
         productMode:mode,
         categoryNo:(form.categoryNo||'').trim(),
         products:products,
@@ -4991,25 +4995,46 @@ function EventEditor({form,setForm,onClose,onSave,showToast}){
 
           <hr style={{margin:'24px 0',border:0,borderTop:'1px solid var(--border)'}}/>
 
-          {/* ② 메인 기획전 이미지 */}
+          {/* ② 메인 기획전 내용 (이미지 · 글) */}
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-            <label style={lbl}>② 메인 기획전 이미지</label>
-            {upBtn('mnew',url=>addMain(url),'＋ 이미지 추가')}
+            <label style={lbl}>② 메인 기획전 내용 (이미지 · 글)</label>
+            <div style={{display:'flex',gap:6}}>
+              {upBtn('mnew',url=>addImgBlock(url),'＋ 이미지')}
+              <button type="button" onClick={addTextBlock} style={addBtnS}>＋ 글</button>
+            </div>
           </div>
-          <div style={help}>상세 화면에 크게 표시되는 이미지예요. 여러 장 넣으면 위→아래로 이어붙어요.<br/>권장 사이즈: <b>가로 1280px · 세로 최대 3000px</b> · 이미지 박스를 클릭 후 <b>Delete</b> 키 또는 <b>× 삭제</b> 버튼으로 지울 수 있어요.</div>
+          <div style={help}>상세 화면에 위→아래로 이어붙어요. 이미지와 글을 원하는 순서로 섞을 수 있어요. (▲▼로 순서 이동)<br/>이미지 권장: <b>가로 1280px · 세로 최대 3000px</b></div>
           <div style={{marginTop:12,display:'flex',flexDirection:'column',gap:12}}>
-            {mainImgs.length===0 && <div style={{fontSize:12.5,color:'var(--text-sm)',padding:'16px',textAlign:'center',border:'1px dashed var(--border)',borderRadius:10}}>이미지가 없습니다. 위 <b>＋ 이미지 추가</b>로 넣으세요.</div>}
-            {mainImgs.map((u,i)=>(
-              <div key={i} tabIndex={0} onKeyDown={e=>{ if((e.key==='Delete'||e.key==='Backspace') && document.activeElement===e.currentTarget){ e.preventDefault(); removeMain(i); } }} style={{border:'1px solid var(--border)',borderRadius:12,overflow:'hidden',background:'var(--bg)',outline:'none'}}>
-                <div style={{position:'relative',background:'#f4f5f7'}}>
-                  {u? <img src={u} alt="" style={{width:'100%',display:'block'}}/> : <div style={{height:120,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontSize:12}}>이미지 없음</div>}
-                  <span style={{position:'absolute',top:8,left:8,background:'rgba(0,0,0,.55)',color:'#fff',fontSize:11,fontWeight:800,padding:'3px 9px',borderRadius:999}}>{i+1}번</span>
+            {blocks.length===0 && <div style={{fontSize:12.5,color:'var(--text-sm)',padding:'16px',textAlign:'center',border:'1px dashed var(--border)',borderRadius:10}}>내용이 없습니다. 위 <b>＋ 이미지</b> 또는 <b>＋ 글</b>로 추가하세요.</div>}
+            {blocks.map((b,i)=>(
+              <div key={i} style={{border:'1px solid var(--border)',borderRadius:12,overflow:'hidden',background:'var(--bg)'}}>
+                <div style={{display:'flex',alignItems:'center',gap:6,padding:'6px 10px',borderBottom:'1px solid var(--border-s)',background:'#fff'}}>
+                  <span style={{fontSize:11,fontWeight:800,color:b.type==='text'?'var(--purple)':'var(--or-d)'}}>{b.type==='text'?'✍ 글':'🖼 이미지'} {i+1}</span>
+                  <div style={{flex:1}}/>
+                  <button type="button" onClick={()=>moveBlock(i,-1)} disabled={i===0} style={{width:26,height:26,borderRadius:6,border:'1px solid var(--border)',background:'#fff',cursor:'pointer',fontSize:12,opacity:i===0?.4:1}}>▲</button>
+                  <button type="button" onClick={()=>moveBlock(i,1)} disabled={i===blocks.length-1} style={{width:26,height:26,borderRadius:6,border:'1px solid var(--border)',background:'#fff',cursor:'pointer',fontSize:12,opacity:i===blocks.length-1?.4:1}}>▼</button>
+                  <button type="button" onClick={()=>removeBlock(i)} style={{padding:'5px 10px',borderRadius:6,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontSize:12,fontWeight:800,cursor:'pointer'}}>× 삭제</button>
                 </div>
-                <div style={{display:'flex',gap:6,padding:10,alignItems:'center'}}>
-                  <input value={u} onChange={e=>setMainAt(i,e.target.value)} placeholder="이미지 URL" style={{...rowField,flex:1}}/>
-                  {upBtn('m'+i,url=>setMainAt(i,url),'교체')}
-                  <button onClick={()=>removeMain(i)} style={{padding:'8px 12px',borderRadius:8,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontSize:12,fontWeight:800,cursor:'pointer',whiteSpace:'nowrap'}}>× 삭제</button>
-                </div>
+                {b.type==='text' ? (
+                  <div style={{padding:10}}>
+                    <div style={{display:'flex',gap:6,marginBottom:6,flexWrap:'wrap'}}>
+                      {[['left','좌'],['center','가운데'],['right','우']].map(o=>{const on=(b.align||'left')===o[0];return <button key={o[0]} type="button" onClick={()=>setBlockAt(i,{align:o[0]})} style={{padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or-pale)':'#fff',color:on?'var(--or-d)':'var(--text-md)'}}>{o[1]}</button>;})}
+                      <span style={{width:1,height:16,background:'var(--border)',alignSelf:'center'}}/>
+                      {[['normal','보통'],['large','크게'],['title','제목']].map(o=>{const on=(b.size||'normal')===o[0];return <button key={o[0]} type="button" onClick={()=>setBlockAt(i,{size:o[0]})} style={{padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or-pale)':'#fff',color:on?'var(--or-d)':'var(--text-md)'}}>{o[1]}</button>;})}
+                    </div>
+                    <textarea value={b.text||''} onChange={e=>setBlockAt(i,{text:e.target.value})} placeholder="여기에 글을 입력하세요. 줄바꿈도 그대로 반영돼요." rows={4} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13.5,outline:'none',boxSizing:'border-box',resize:'vertical',fontFamily:'inherit',lineHeight:1.6}}/>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{position:'relative',background:'#f4f5f7'}}>
+                      {b.url? <img src={b.url} alt="" style={{width:'100%',display:'block'}}/> : <div style={{height:120,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontSize:12}}>이미지 없음</div>}
+                    </div>
+                    <div style={{display:'flex',gap:6,padding:10,alignItems:'center'}}>
+                      <input value={b.url||''} onChange={e=>setBlockAt(i,{url:e.target.value})} placeholder="이미지 URL" style={{...rowField,flex:1}}/>
+                      {upBtn('m'+i,url=>setBlockAt(i,{url:url}),'교체')}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

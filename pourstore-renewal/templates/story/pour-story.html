@@ -726,12 +726,12 @@ var PM_POSTS = [];
   var posts = [];
   try {
     var rawPosts = await pPosts;
-    posts = rawPosts.filter(function(p){ return p && p.active !== false; })
+    posts = rawPosts.filter(function(p){ return p && p.active !== false && p.type!=='case'; })
                     .sort(function(a,b){ return ((a.order==null?999:a.order) - (b.order==null?999:b.order)); });
     console.log("[psm1] 관련 콘텐츠 " + posts.length + "건 로드");
   } catch (e) { console.log("[psm1] 관련 콘텐츠 로드 스킵:", e && e.message ? e.message : e); }
   PM_POSTS = posts;   // 유튜브 재생 모달의 '관련 콘텐츠'용 공유
-  var POST_TYPE = { news:'뉴스', guide:'시공가이드', case:'시공사례', interview:'인터뷰', video:'영상', short:'숏츠', blog:'컨텐츠', advanced:'컨텐츠(고도화)', event:'이벤트' };
+  var POST_TYPE = { news:'뉴스', guide:'시공가이드', case:'시공사례(구)', interview:'인터뷰', video:'영상', short:'숏츠', blog:'컨텐츠', advanced:'시공사례', event:'이벤트' };
   function ytThumbUrl(u){ var m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/); return m?('https://img.youtube.com/vi/'+m[1]+'/hqdefault.jpg'):''; }
   function postThumb(p){ var t=ytThumbUrl(p.link)||p.thumbnail||p.thumb||p.image; return (t&&String(t).trim())?'<img class="psm1-ac-thumb" src="'+t+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':''; }
   // 숏츠식 세로 카드(9:16) — 관련 콘텐츠를 가로 스크롤로
@@ -1741,9 +1741,9 @@ var PC_TTL = 300000;
 
   var TYPE = {
     news:{l:'뉴스',c:'#2563EB'}, guide:{l:'시공가이드',c:'#059669'}, case:{l:'시공사례',c:'#EA580C'},
-    interview:{l:'인터뷰',c:'#7C3AED'}, video:{l:'영상',c:'#DC2626'}, short:{l:'숏츠',c:'#DB2777'}, blog:{l:'컨텐츠',c:'#0891B2'}, advanced:{l:'컨텐츠(고도화)',c:'#7C3AED'}, event:{l:'이벤트',c:'#D97706'}
+    interview:{l:'인터뷰',c:'#7C3AED'}, video:{l:'영상',c:'#DC2626'}, short:{l:'숏츠',c:'#DB2777'}, blog:{l:'컨텐츠',c:'#0891B2'}, advanced:{l:'시공사례',c:'#EA580C'}, event:{l:'이벤트',c:'#D97706'}
   };
-  var CAT_ORDER = ['news','guide','case','interview','video','short','blog','advanced','event'];
+  var CAT_ORDER = ['advanced','guide','interview','video','short','blog','news','event'];
 
   function esc(s){ return (s||'').toString().replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function ytId(u){ var m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/); return m?m[1]:null; }
@@ -1872,7 +1872,7 @@ var PC_TTL = 300000;
   var posts = [];
   try {
     var rawPosts = await window.__pcache.wrap('col:postings', PC_TTL, function(){ return getDocs(collection(db,"pourstore-postings")).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); });
-    posts = rawPosts.filter(function(p){ return p && p.active !== false; })
+    posts = rawPosts.filter(function(p){ return p && p.active !== false && p.type!=='case'; })
       .sort(function(a,b){ var o=(a.order==null?999:a.order)-(b.order==null?999:b.order); return o!==0?o:String(b.createdAt||'').localeCompare(String(a.createdAt||'')); });
     console.log("[pstory] 글 " + posts.length + "건 로드");
   } catch (e) {

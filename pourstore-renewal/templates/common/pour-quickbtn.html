@@ -1,230 +1,143 @@
 <!-- ============================================================
-  pour-quickbtn — 전 페이지 고정 플로팅 퀵버튼 + POUR닥터 상담(실시간 채팅)
-  클릭 → 그 자리에서 상담창(모달) 오픈 → pourstorecrm 접수 → 그대로 실시간 대화(채널톡식)
-  설치: 카페24 공통 레이아웃(layout.html) </body> 바로 위에 1회 붙여넣기 → 모든 페이지 노출
-  ※ 외부 페이지 불필요(404 없음), 이미지 의존 없음(인라인 SVG)
-  ※ Firebase는 상담창 열 때(또는 진행 중 상담이 있으면 로드시) 지연 로드
-  ※ 사전 준비(1회): CRM 저장소에서  firebase deploy --only firestore:rules,storage
-  전역 함수: window.pourDoctorOpen() — 다른 배너/버튼에서 호출 가능
+  pour-livechat — 오른쪽 하단 고정 실시간 채팅 (채널톡식)
+  버튼 클릭 → 접수 폼 없이 바로 채팅창 오픈 → 입력하면 그때 상담 생성
+  설치: 모든 페이지에 뜨게 하려면 공통 레이아웃 </body> 바로 위에 1회
+  전역 함수: window.pourDoctorOpen() — 다른 배너/버튼에서도 열 수 있음
 ============================================================ -->
 <style>
-.pqb-wrap{position:fixed;right:20px;bottom:22px;z-index:9999;display:flex;align-items:center;gap:10px;font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif}
-.pqb-wrap,.pqb-wrap *{box-sizing:border-box}
-.pqb-label{display:flex;flex-direction:column;background:#fff;border:1px solid #F1E3D3;border-radius:14px;padding:8px 13px;box-shadow:0 6px 20px rgba(15,31,92,.14);line-height:1.25;text-align:right;cursor:pointer;transition:.2s}
-.pqb-label .t{font-size:13px;font-weight:800;color:#111;letter-spacing:-0.03em}
-.pqb-label .s{font-size:11px;font-weight:600;color:#E8780F;letter-spacing:-0.02em;margin-top:1px}
-.pqb-btn{position:relative;width:64px;height:64px;flex-shrink:0;border-radius:50%;background:linear-gradient(135deg,#F79A3C,#E8780F);box-shadow:0 8px 24px rgba(232,120,15,.36);cursor:pointer;border:none;display:grid;place-items:center;transition:transform .18s ease}
-.pqb-btn:hover{transform:translateY(-3px) scale(1.04)}
-.pqb-btn::before{content:'';position:absolute;inset:-3px;border-radius:50%;border:2px solid #E8780F;animation:pqbPulse 2.2s ease-out infinite}
-@keyframes pqbPulse{0%{transform:scale(1);opacity:.7}70%{transform:scale(1.32);opacity:0}100%{opacity:0}}
-.pqb-ico{position:relative;z-index:1;width:32px;height:32px;color:#fff}
-.pqb-badge{position:absolute;top:-2px;right:-2px;z-index:2;min-width:19px;height:19px;padding:0 5px;border-radius:10px;background:#EF4444;color:#fff;font-size:10.5px;font-weight:800;display:grid;place-items:center;border:2px solid #fff;line-height:1}
-.pqb-wrap.pqb-unread .pqb-badge{min-width:21px;height:21px;animation:pqbBadge 1.4s ease-in-out infinite}
-@keyframes pqbBadge{0%,100%{transform:scale(1)}50%{transform:scale(1.14)}}
-.pqb-wrap.pqb-unread .pqb-label .t{color:#E8780F}
-.pqb-dot{position:absolute;left:8px;bottom:6px;z-index:2;width:12px;height:12px;border-radius:50%;background:#10B981;border:2.5px solid #fff}
-/* 상담 팝업(레이어) */
-.pdlg-ov{position:fixed;inset:0;z-index:10000;background:rgba(17,24,39,.55);display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:32px 14px;-webkit-overflow-scrolling:touch;font-family:'Pretendard Variable',Pretendard,-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif}
-.pdlg-ov.on{display:flex}
-.pdlg{position:relative;width:100%;max-width:540px;background:#fff;border-radius:18px;padding:30px 26px 26px;color:#2F3438;letter-spacing:-0.02em;box-shadow:0 24px 60px rgba(0,0,0,.28)}
-.pdlg *,.pdlg *::before,.pdlg *::after{box-sizing:border-box}
-.pdlg-x{position:absolute;top:12px;right:12px;width:34px;height:34px;border:none;border-radius:50%;background:#F3F4F6;color:#6B7280;cursor:pointer;display:grid;place-items:center;z-index:2}
-.pdlg-x svg{width:17px;height:17px}
-.pdlg-head{text-align:center;margin-bottom:18px}
-.pdlg-head .k{display:inline-block;font-size:11.5px;font-weight:800;color:#E8780F;background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:4px 11px;margin-bottom:11px}
-.pdlg-head h3{font-size:22px;font-weight:900;color:#111;letter-spacing:-0.04em;line-height:1.3}
-.pdlg-head h3 b{color:#E8780F}
-.pdlg-head p{margin-top:6px;font-size:12.5px;font-weight:500;color:#6B7280}
-.pdlg-lbl{display:block;font-size:12.5px;font-weight:800;color:#374151;margin:16px 0 7px}
-.pdlg-lbl:first-of-type{margin-top:0}
-.pdlg-lbl .req{color:#EF4444}
-.pdlg-seg{display:flex;gap:8px}
-.pdlg-seg button{flex:1;padding:12px 0;border:1.5px solid #F2F3F5;border-radius:10px;font-size:13.5px;font-weight:700;color:#9CA3AF;background:#fff;cursor:pointer}
-.pdlg-seg button.on{border-color:#E8780F;background:#FFF7ED;color:#C8650D}
-.pdlg-ta{width:100%;min-height:96px;resize:vertical;border:1.5px solid #F2F3F5;border-radius:10px;padding:12px 14px;font-size:14.5px;color:#2F3438;outline:none;line-height:1.6;font-family:inherit}
-.pdlg-ta:focus{border-color:#E8780F}
-.pdlg-inp{width:100%;border:1.5px solid #F2F3F5;border-radius:10px;padding:12px 14px;font-size:14.5px;color:#2F3438;outline:none;font-family:inherit}
-.pdlg-inp:focus{border-color:#E8780F}
-.pdlg-photo{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.pdlg-add{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:78px;height:78px;border:1.5px dashed #E8780F;border-radius:10px;background:#FFFBF6;color:#C8650D;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0}
-.pdlg-add svg{width:22px;height:22px}
-.pdlg-thumb{position:relative;width:78px;height:78px;border-radius:10px;overflow:hidden;flex-shrink:0;border:1px solid #F2F3F5}
-.pdlg-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.pdlg-thumb button{position:absolute;top:3px;right:3px;width:20px;height:20px;border:none;border-radius:50%;background:rgba(15,23,42,.6);color:#fff;cursor:pointer;display:grid;place-items:center}
-.pdlg-thumb button svg{width:11px;height:11px}
-.pdlg-submit{width:100%;margin-top:22px;padding:15px;border:none;border-radius:12px;background:#E8780F;color:#fff;font-size:15.5px;font-weight:800;cursor:pointer;transition:background .2s ease}
-.pdlg-submit:hover:not(:disabled){background:#D26A0A}
-.pdlg-submit:disabled{opacity:.55;cursor:default}
-.pdlg-note{margin-top:10px;font-size:11.5px;color:#9CA3AF;text-align:center;line-height:1.6}
-/* ── 실시간 채팅 뷰 ── */
-.pdlg-chead{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-right:36px}
-.pdlg-chead .a{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#F79A3C,#E8780F);display:grid;place-items:center;color:#fff;font-size:21px;flex-shrink:0}
-.pdlg-chead .nm{font-size:15px;font-weight:900;color:#111;line-height:1.2}
-.pdlg-chead .st{font-size:11.5px;font-weight:700;color:#059669;display:inline-flex;align-items:center;gap:5px;margin-top:2px}
-.pdlg-chead .st::before{content:'';width:6px;height:6px;border-radius:50%;background:#10B981}
-.pdlg-log{height:min(56vh,420px);overflow-y:auto;display:flex;flex-direction:column;gap:10px;background:#F7F8FA;border-radius:12px;padding:14px}
-.pdlg-sys{text-align:center;font-size:11.5px;color:#9CA3AF;font-weight:600;padding:1px 0}
-.pdlg-row{display:flex}
-.pdlg-row.me{justify-content:flex-end}
-.pdlg-cell{max-width:84%}
-.pdlg-who{font-size:10.5px;font-weight:800;color:#9CA3AF;margin-bottom:3px}
-.pdlg-row.me .pdlg-who{text-align:right}
-.pdlg-msg{padding:10px 13px;font-size:14px;line-height:1.5;word-break:keep-all;white-space:pre-wrap;display:inline-block}
-.pdlg-row.them .pdlg-msg{background:#fff;border:1px solid #EEF0F2;border-radius:4px 14px 14px 14px;color:#2F3438}
-.pdlg-row.me .pdlg-msg{background:#E8780F;color:#fff;border-radius:14px 4px 14px 14px}
-.pdlg-imgs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.pdlg-imgs a{display:block}
-.pdlg-imgs img{width:88px;height:88px;object-fit:cover;border-radius:10px;border:1px solid #EEF0F2;display:block}
-.pdlg-opts{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
-.pdlg-opt{border:1.5px solid #E8780F;color:#C8650D;background:#FFF7ED;border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;transition:.13s}
-.pdlg-opt:hover{background:#E8780F;color:#fff}
-.pdlg-opt-hint{font-size:11px;color:#9CA3AF;align-self:center;font-weight:600}
-.pdlg-pending{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 0}
-.pdlg-pending .pt{position:relative;width:50px;height:50px;border-radius:8px;overflow:hidden;border:1px solid #EEF0F2;flex-shrink:0}
-.pdlg-pending .pt img{width:100%;height:100%;object-fit:cover}
-.pdlg-pending .pt button{position:absolute;top:2px;right:2px;width:16px;height:16px;border:none;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;cursor:pointer;display:grid;place-items:center}
-.pdlg-pending .pt button svg{width:9px;height:9px}
-.pdlg-inbar{display:flex;align-items:flex-end;gap:8px;margin-top:12px}
-.pdlg-attach{flex-shrink:0;width:42px;height:42px;border-radius:11px;border:1.5px solid #F2F3F5;display:grid;place-items:center;color:#C8650D;cursor:pointer}
-.pdlg-attach svg{width:20px;height:20px}
-.pdlg-inbar textarea{flex:1;resize:none;border:1.5px solid #F2F3F5;border-radius:12px;padding:10px 13px;font-size:14.5px;max-height:100px;outline:none;line-height:1.4;font-family:inherit}
-.pdlg-inbar textarea:focus{border-color:#E8780F}
-.pdlg-send{flex-shrink:0;width:42px;height:42px;border:none;border-radius:50%;background:#E8780F;color:#fff;cursor:pointer;display:grid;place-items:center}
-.pdlg-send:disabled{opacity:.45;cursor:default}
-.pdlg-send svg{width:19px;height:19px}
-@media (max-width:700px){
-  .pqb-wrap{right:14px;bottom:calc(24px + env(safe-area-inset-bottom,0px));gap:8px}
-  .pqb-label{display:none}
-  .pqb-btn{width:56px;height:56px}
-  .pqb-ico{width:28px;height:28px}
-  .pdlg-ov{padding:0;align-items:stretch}
-  .pdlg{max-width:none;border-radius:0;min-height:100%;padding:24px 16px 22px}
-  .pdlg-head h3{font-size:19px}
-  .pdlg-log{height:auto;flex:1}
-  .pdlg[data-mode="chat"]{display:flex;flex-direction:column}
+.pqc-launcher{position:fixed;right:20px;bottom:22px;z-index:9999;display:flex;align-items:center;gap:10px;font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif}
+.pqc-launcher,.pqc-launcher *{box-sizing:border-box}
+.pqc-lbl{display:flex;flex-direction:column;background:#fff;border:1px solid #F1E3D3;border-radius:14px;padding:8px 13px;box-shadow:0 6px 20px rgba(15,31,92,.14);line-height:1.25;text-align:right;cursor:pointer}
+.pqc-lbl .t{font-size:13px;font-weight:800;color:#111;letter-spacing:-0.03em}
+.pqc-lbl .s{font-size:11px;font-weight:600;color:#E8780F;letter-spacing:-0.02em;margin-top:1px}
+.pqc-fab{position:relative;width:64px;height:64px;flex-shrink:0;border-radius:50%;background:linear-gradient(135deg,#F79A3C,#E8780F);box-shadow:0 8px 24px rgba(232,120,15,.36);cursor:pointer;border:none;display:grid;place-items:center;transition:transform .18s ease}
+.pqc-fab:hover{transform:translateY(-3px) scale(1.04)}
+.pqc-fab::before{content:'';position:absolute;inset:-3px;border-radius:50%;border:2px solid #E8780F;animation:pqcPulse 2.2s ease-out infinite}
+@keyframes pqcPulse{0%{transform:scale(1);opacity:.7}70%{transform:scale(1.32);opacity:0}100%{opacity:0}}
+.pqc-ico{position:relative;z-index:1;width:32px;height:32px;color:#fff}
+.pqc-badge{position:absolute;top:-2px;right:-2px;z-index:2;min-width:19px;height:19px;padding:0 5px;border-radius:10px;background:#EF4444;color:#fff;font-size:10.5px;font-weight:800;display:none;place-items:center;border:2px solid #fff;line-height:1}
+.pqc-launcher.pqc-unread .pqc-badge{display:grid;animation:pqcBadge 1.4s ease-in-out infinite}
+.pqc-launcher.pqc-unread .pqc-lbl .t{color:#E8780F}
+@keyframes pqcBadge{0%,100%{transform:scale(1)}50%{transform:scale(1.14)}}
+.pqc-dot{position:absolute;left:8px;bottom:6px;z-index:2;width:12px;height:12px;border-radius:50%;background:#10B981;border:2.5px solid #fff}
+.pqc-launcher.pqc-open{display:none}
+
+/* 도킹된 채팅 패널 (오른쪽 하단) */
+.pqc-panel{position:fixed;right:20px;bottom:22px;z-index:10000;width:374px;max-width:calc(100vw - 32px);height:min(600px,80vh);background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.28);display:none;flex-direction:column;overflow:hidden;font-family:'Pretendard Variable',Pretendard,-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;color:#2F3438}
+.pqc-panel.on{display:flex}
+.pqc-panel *,.pqc-panel *::before,.pqc-panel *::after{box-sizing:border-box}
+.pqc-head{background:linear-gradient(135deg,#F79A3C,#E8780F);color:#fff;padding:16px 16px 14px;display:flex;align-items:center;gap:11px;flex-shrink:0}
+.pqc-head .a{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:22px;flex-shrink:0}
+.pqc-head .nm{font-size:15.5px;font-weight:900;line-height:1.2}
+.pqc-head .st{font-size:11.5px;font-weight:600;opacity:.95;display:inline-flex;align-items:center;gap:5px;margin-top:2px}
+.pqc-head .st::before{content:'';width:6px;height:6px;border-radius:50%;background:#B7F7CE}
+.pqc-x{margin-left:auto;width:32px;height:32px;border:none;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;cursor:pointer;display:grid;place-items:center;flex-shrink:0}
+.pqc-x svg{width:16px;height:16px}
+.pqc-log{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;background:#F7F8FA;padding:16px 14px}
+.pqc-sys{text-align:center;font-size:11.5px;color:#9CA3AF;font-weight:600;padding:2px 0}
+.pqc-row{display:flex}
+.pqc-row.me{justify-content:flex-end}
+.pqc-cell{max-width:82%}
+.pqc-who{font-size:10.5px;font-weight:800;color:#9CA3AF;margin-bottom:3px}
+.pqc-row.me .pqc-who{text-align:right}
+.pqc-msg{padding:10px 13px;font-size:14px;line-height:1.5;word-break:keep-all;white-space:pre-wrap;display:inline-block}
+.pqc-row.them .pqc-msg{background:#fff;border:1px solid #EEF0F2;border-radius:4px 14px 14px 14px;color:#2F3438}
+.pqc-row.me .pqc-msg{background:#E8780F;color:#fff;border-radius:14px 4px 14px 14px}
+.pqc-imgs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.pqc-imgs img{width:88px;height:88px;object-fit:cover;border-radius:10px;border:1px solid #EEF0F2;display:block}
+.pqc-opts{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.pqc-opt{border:1.5px solid #E8780F;color:#C8650D;background:#FFF7ED;border-radius:999px;padding:8px 13px;font-size:13px;font-weight:700;cursor:pointer}
+.pqc-opt:hover{background:#E8780F;color:#fff}
+.pqc-pending{display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px 0;background:#F7F8FA}
+.pqc-pending .pt{position:relative;width:48px;height:48px;border-radius:8px;overflow:hidden;border:1px solid #EEF0F2}
+.pqc-pending .pt img{width:100%;height:100%;object-fit:cover}
+.pqc-pending .pt button{position:absolute;top:2px;right:2px;width:16px;height:16px;border:none;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;cursor:pointer;display:grid;place-items:center}
+.pqc-pending .pt button svg{width:9px;height:9px}
+.pqc-inbar{display:flex;align-items:flex-end;gap:8px;padding:10px 12px;border-top:1px solid #EEF0F2;background:#fff;flex-shrink:0}
+.pqc-attach{flex-shrink:0;width:40px;height:40px;border-radius:11px;border:1.5px solid #F2F3F5;display:grid;place-items:center;color:#C8650D;cursor:pointer}
+.pqc-attach svg{width:20px;height:20px}
+.pqc-inbar textarea{flex:1;resize:none;border:1.5px solid #F2F3F5;border-radius:12px;padding:10px 12px;font-size:14px;max-height:96px;outline:none;line-height:1.4;font-family:inherit}
+.pqc-inbar textarea:focus{border-color:#E8780F}
+.pqc-send{flex-shrink:0;width:40px;height:40px;border:none;border-radius:50%;background:#E8780F;color:#fff;cursor:pointer;display:grid;place-items:center}
+.pqc-send:disabled{opacity:.45;cursor:default}
+.pqc-send svg{width:18px;height:18px}
+@media (max-width:640px){
+  .pqc-launcher{right:14px;bottom:16px;gap:8px}
+  .pqc-lbl{display:none}
+  .pqc-fab{width:56px;height:56px}
+  .pqc-ico{width:28px;height:28px}
+  .pqc-panel{right:0;bottom:0;width:100vw;max-width:100vw;height:100dvh;border-radius:0}
 }
+@media (prefers-reduced-motion:reduce){ .pqc-fab::before{animation:none;opacity:0} }
 </style>
 
-<div class="pqb-wrap" data-pqb-wrap>
-  <button type="button" class="pqb-label" data-pqb-open><span class="t" data-pqb-lt>궁금하면 물어보세요</span><span class="s">POUR닥터 · 1:1 무료상담</span></button>
-  <button type="button" class="pqb-btn" data-pqb-open aria-label="POUR닥터 상담하기">
-    <svg class="pqb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.9 8.9 0 0 1-3.6-.8L3 20.5l1.4-4.1A8.4 8.4 0 0 1 3.6 11.5 8.4 8.4 0 0 1 12 3.2a8.4 8.4 0 0 1 9 8.3Z"/><path d="M8.6 11.5h.01M12 11.5h.01M15.4 11.5h.01"/></svg>
-    <span class="pqb-dot"></span>
-    <span class="pqb-badge" data-pqb-badge>1:1</span>
+<div class="pqc-launcher" data-pqc-launcher>
+  <button type="button" class="pqc-lbl" data-pqc-open><span class="t" data-pqc-lt>궁금하면 물어보세요</span><span class="s">POUR닥터 · 1:1 실시간 상담</span></button>
+  <button type="button" class="pqc-fab" data-pqc-open aria-label="POUR닥터 채팅 상담 열기">
+    <svg class="pqc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.9 8.9 0 0 1-3.6-.8L3 20.5l1.4-4.1A8.4 8.4 0 0 1 3.6 11.5 8.4 8.4 0 0 1 12 3.2a8.4 8.4 0 0 1 9 8.3Z"/><path d="M8.6 11.5h.01M12 11.5h.01M15.4 11.5h.01"/></svg>
+    <span class="pqc-dot"></span>
+    <span class="pqc-badge" data-pqc-badge>1</span>
   </button>
 </div>
 
-<div class="pdlg-ov" data-pdlg role="dialog" aria-modal="true" aria-label="POUR닥터 상담">
-  <div class="pdlg" data-pdlg-modal data-mode="form">
-    <button type="button" class="pdlg-x" data-pdlg-close aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-
-    <!-- 인테이크 폼 -->
-    <div data-pdlg-form>
-      <div class="pdlg-head">
-        <span class="k">POUR닥터 · 1:1 무료 진단</span>
-        <h3>건물 고민, <b>사진 한 장</b>이면 끝</h3>
-        <p>사진과 내용을 남겨주시면 담당자가 확인 후 답변드려요</p>
-      </div>
-      <label class="pdlg-lbl">어떤 고객이신가요?</label>
-      <div class="pdlg-seg" data-pdlg-seg>
-        <button type="button" data-aud="b2c" class="on">개인 · 셀프시공</button>
-        <button type="button" data-aud="b2b">사업자 · 대량구매</button>
-      </div>
-      <label class="pdlg-lbl">고민 내용 <span class="req">*</span></label>
-      <textarea class="pdlg-ta" data-pdlg-msg placeholder="예: 아파트 옥상에서 물이 새요. 어떤 자재를 써야 할까요? 면적은 대략 20㎡ 정도예요."></textarea>
-      <label class="pdlg-lbl">사진 첨부 (선택 · 최대 5장)</label>
-      <div class="pdlg-photo" data-pdlg-photos>
-        <label class="pdlg-add">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5-9 8"/></svg>
-          사진 추가
-          <input type="file" accept="image/*" multiple hidden data-pdlg-file>
-        </label>
-      </div>
-      <label class="pdlg-lbl">답변 받으실 연락처 (선택)</label>
-      <input class="pdlg-inp" data-pdlg-contact placeholder="휴대폰 또는 이메일 — 남겨주시면 답변을 보내드려요"/>
-      <button type="button" class="pdlg-submit" data-pdlg-submit>상담 시작하기</button>
-      <div class="pdlg-note">사진·문의는 POUR스토어 상담 담당자에게만 전달됩니다.</div>
+<div class="pqc-panel" data-pqc-panel role="dialog" aria-label="POUR닥터 실시간 상담">
+  <div class="pqc-head">
+    <div class="a">🦫</div>
+    <div>
+      <div class="nm">POUR닥터</div>
+      <div class="st">보통 3분 이내 응답</div>
     </div>
-
-    <!-- 실시간 채팅 -->
-    <div data-pdlg-chat hidden>
-      <div class="pdlg-chead">
-        <div class="a">🦫</div>
-        <div><div class="nm">POUR닥터</div><div class="st">상담 접수됨 · 평균 3분 이내 응답</div></div>
-      </div>
-      <div class="pdlg-log" data-pdlg-log></div>
-      <div class="pdlg-pending" data-pdlg-pending hidden></div>
-      <div class="pdlg-inbar">
-        <label class="pdlg-attach" aria-label="사진 첨부">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5-9 8"/></svg>
-          <input type="file" accept="image/*" multiple hidden data-pdlg-cfile>
-        </label>
-        <textarea data-pdlg-cmsg rows="1" placeholder="메시지를 입력하세요…"></textarea>
-        <button type="button" class="pdlg-send" data-pdlg-csend aria-label="보내기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
-      </div>
-    </div>
+    <button type="button" class="pqc-x" data-pqc-close aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="pqc-log" data-pqc-log></div>
+  <div class="pqc-pending" data-pqc-pending hidden></div>
+  <div class="pqc-inbar">
+    <label class="pqc-attach" aria-label="사진 첨부">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5-9 8"/></svg>
+      <input type="file" accept="image/*" multiple hidden data-pqc-file>
+    </label>
+    <textarea data-pqc-msg rows="1" placeholder="메시지를 입력하세요…"></textarea>
+    <button type="button" class="pqc-send" data-pqc-send aria-label="보내기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
   </div>
 </div>
 
 <script>
 (function(){
+  // 🧹 옛날 위젯(pqb/pdlg) 잔재가 다른 섹션/레이아웃에 남아있으면 제거 — 중복·옛날 폼 노출 방지
+  try{ document.querySelectorAll('.pqb-wrap, .pdlg-ov, [data-pdlg]').forEach(function(n){ n.remove(); }); }catch(e){}
   var LS_KEY='pourdoctor_tid';
-  var ov=document.querySelector('[data-pdlg]'); if(!ov) return;
-  var modal=ov.querySelector('[data-pdlg-modal]');
-  var wrap=document.querySelector('[data-pqb-wrap]');
-  var badgeEl=document.querySelector('[data-pqb-badge]');
-  var labelT=document.querySelector('[data-pqb-lt]');
-  var seg=ov.querySelector('[data-pdlg-seg]');
-  var msgEl=ov.querySelector('[data-pdlg-msg]');
-  var contactEl=ov.querySelector('[data-pdlg-contact]');
-  var fileEl=ov.querySelector('[data-pdlg-file]');
-  var photosBox=ov.querySelector('[data-pdlg-photos]');
-  var submitBtn=ov.querySelector('[data-pdlg-submit]');
-  var formCard=ov.querySelector('[data-pdlg-form]');
-  // 채팅
-  var chatCard=ov.querySelector('[data-pdlg-chat]');
-  var logEl=ov.querySelector('[data-pdlg-log]');
-  var pendingBox=ov.querySelector('[data-pdlg-pending]');
-  var cfileEl=ov.querySelector('[data-pdlg-cfile]');
-  var cmsgEl=ov.querySelector('[data-pdlg-cmsg]');
-  var csendBtn=ov.querySelector('[data-pdlg-csend]');
+  var launcher=document.querySelector('[data-pqc-launcher]');
+  var panel=document.querySelector('[data-pqc-panel]'); if(!panel) return;
+  var badgeEl=document.querySelector('[data-pqc-badge]');
+  var labelT=document.querySelector('[data-pqc-lt]');
+  var logEl=panel.querySelector('[data-pqc-log]');
+  var pendingBox=panel.querySelector('[data-pqc-pending]');
+  var fileEl=panel.querySelector('[data-pqc-file]');
+  var msgEl=panel.querySelector('[data-pqc-msg]');
+  var sendBtn=panel.querySelector('[data-pqc-send]');
 
-  var audience='b2c', files=[], chatFiles=[];
+  var chatFiles=[];
   var threadId=null; try{ threadId=localStorage.getItem(LS_KEY)||null; }catch(e){}
-  var latest=null, renderedLen=-1, unsub=null, chatOpen=false;
+  var latest=null, renderedKey='', unsub=null, chatOpen=false;
+
+  var GREETING='안녕하세요, POUR닥터예요 🦫\n건물·방수 고민을 편하게 남겨주세요. 사진도 함께 보내주시면 더 정확히 도와드려요 📷';
 
   function setUnread(n){
-    if(!wrap) return;
-    if(n>0){ wrap.classList.add('pqb-unread'); if(badgeEl) badgeEl.textContent=String(n); if(labelT) labelT.textContent='상담원 답변이 도착했어요'; }
-    else{ wrap.classList.remove('pqb-unread'); if(badgeEl) badgeEl.textContent='1:1'; if(labelT) labelT.textContent='궁금하면 물어보세요'; }
+    if(!launcher) return;
+    if(n>0){ launcher.classList.add('pqc-unread'); if(badgeEl) badgeEl.textContent=String(n); if(labelT) labelT.textContent='상담원 답변이 도착했어요'; }
+    else{ launcher.classList.remove('pqc-unread'); if(labelT) labelT.textContent='궁금하면 물어보세요'; }
   }
-
   function open(){
-    ov.classList.add('on'); document.documentElement.style.overflow='hidden';
-    chatOpen=true; setUnread(0);
-    if(threadId){ enterChat(threadId); }
-    else{ setTimeout(function(){ try{ msgEl.focus(); }catch(e){} },40); }
+    panel.classList.add('on'); if(launcher) launcher.classList.add('pqc-open');
+    chatOpen=true; setUnread(0); renderLog();
+    if(threadId) subscribe().catch(function(){});
+    setTimeout(function(){ try{ msgEl.focus(); }catch(e){} },60);
   }
-  function close(){ ov.classList.remove('on'); document.documentElement.style.overflow=''; chatOpen=false; }
+  function close(){ panel.classList.remove('on'); if(launcher) launcher.classList.remove('pqc-open'); chatOpen=false; }
   window.pourDoctorOpen=open;
-  document.querySelectorAll('[data-pqb-open]').forEach(function(b){ b.addEventListener('click',open); });
-  ov.querySelectorAll('[data-pdlg-close]').forEach(function(b){ b.addEventListener('click',close); });
-  ov.addEventListener('click',function(e){ if(e.target===ov) close(); });
-  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&ov.classList.contains('on')) close(); });
-
-  seg.addEventListener('click',function(e){ var b=e.target.closest('button[data-aud]'); if(!b)return; audience=b.getAttribute('data-aud'); seg.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b);}); });
-
-  function renderThumbs(){
-    photosBox.querySelectorAll('.pdlg-thumb').forEach(function(n){n.remove();});
-    files.forEach(function(f,i){
-      var d=document.createElement('div'); d.className='pdlg-thumb';
-      var im=document.createElement('img'); im.src=URL.createObjectURL(f); d.appendChild(im);
-      var del=document.createElement('button'); del.type='button'; del.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-      del.addEventListener('click',function(){ files.splice(i,1); renderThumbs(); });
-      d.appendChild(del); photosBox.insertBefore(d,photosBox.firstChild);
-    });
-  }
-  fileEl.addEventListener('change',function(){ for(var i=0;i<fileEl.files.length;i++){ var f=fileEl.files[i]; if(files.length<5&&f.type.indexOf('image/')===0) files.push(f); } fileEl.value=''; renderThumbs(); });
+  // 새 버튼(data-pqc-open) + 옛날 CTA 버튼(data-pqb-open) 모두 새 채팅창을 열도록 연결
+  document.querySelectorAll('[data-pqc-open],[data-pqb-open]').forEach(function(b){ b.addEventListener('click',function(e){ e.preventDefault(); open(); }); });
+  panel.querySelectorAll('[data-pqc-close]').forEach(function(b){ b.addEventListener('click',close); });
 
   // ── Firebase 지연 로드 ──
   var fb=null;
@@ -238,111 +151,50 @@
     fb={db:fs.getFirestore(app),storage:st.getStorage(app),collection:fs.collection,addDoc:fs.addDoc,doc:fs.doc,updateDoc:fs.updateDoc,onSnapshot:fs.onSnapshot,ref:st.ref,uploadBytes:st.uploadBytes,getDownloadURL:st.getDownloadURL};
     return fb;
   }
-
-  async function uploadFiles(F,fileList){
-    var folder='w-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
-    var urls=[];
-    for(var i=0;i<fileList.length;i++){
-      var f=fileList[i];
-      var ext=((f.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,''))||'jpg';
+  async function uploadFiles(F,list){
+    var folder='w-'+Date.now()+'-'+Math.random().toString(36).slice(2,8), urls=[];
+    for(var i=0;i<list.length;i++){
+      var f=list[i], ext=((f.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,''))||'jpg';
       var r=F.ref(F.storage,'chatbot_uploads/'+folder+'/'+(i+1)+'.'+ext);
-      await F.uploadBytes(r,f,{contentType:f.type});
-      urls.push(await F.getDownloadURL(r));
+      await F.uploadBytes(r,f,{contentType:f.type}); urls.push(await F.getDownloadURL(r));
     }
     return urls;
   }
 
-  // 인테이크 제출 → 스레드 생성 → 채팅 전환
-  submitBtn.addEventListener('click',async function(){
-    var content=(msgEl.value||'').trim();
-    if(!content&&!files.length){ alert('고민 내용을 적어주시거나 사진을 첨부해주세요.'); msgEl.focus(); return; }
-    submitBtn.disabled=true; submitBtn.textContent='접수 중…';
-    try{
-      var F=await ensureFb();
-      var urls=await uploadFiles(F,files);
-      var now=new Date().toISOString();
-      var first={role:'customer',content:content,ts:now}; if(urls.length) first.images=urls;
-      var refDoc=await F.addDoc(F.collection(F.db,'pour_chatbot_threads'),{
-        audience:audience, botId:'', botName:'', channel:'widget', source:'cafe24', customerName:'',
-        customerContact:(contactEl.value||'').trim(), status:'waiting', unread:true, aiDraft:'',
-        messages:[first], createdAt:now, updatedAt:now
-      });
-      threadId=refDoc.id; try{ localStorage.setItem(LS_KEY,threadId); }catch(e){}
-      submitBtn.disabled=false; submitBtn.textContent='상담 시작하기';
-      enterChat(threadId);
-    }catch(e){
-      console.error('[POUR닥터] 접수 실패:',e);
-      alert('접수 중 오류가 났어요. 잠시 후 다시 시도해주세요.');
-      submitBtn.disabled=false; submitBtn.textContent='상담 시작하기';
+  function bubble(mine,who,content,images,options,answered){
+    var row=document.createElement('div'); row.className='pqc-row '+(mine?'me':'them');
+    var cell=document.createElement('div'); cell.className='pqc-cell';
+    var w=document.createElement('div'); w.className='pqc-who'; w.textContent=who; cell.appendChild(w);
+    if(content){ var b=document.createElement('div'); b.className='pqc-msg'; b.textContent=content; cell.appendChild(b); }
+    if(images&&images.length){
+      var box=document.createElement('div'); box.className='pqc-imgs'; box.style.justifyContent=mine?'flex-end':'flex-start';
+      images.forEach(function(u){ var a=document.createElement('a'); a.href=u; a.target='_blank'; a.rel='noopener'; var im=document.createElement('img'); im.src=u; a.appendChild(im); box.appendChild(a); });
+      cell.appendChild(box);
     }
-  });
-
-  // ── 채팅 뷰 ──
-  async function enterChat(id){
-    threadId=id;
-    formCard.hidden=true; chatCard.hidden=false; modal.setAttribute('data-mode','chat');
-    renderedLen=-1;
-    try{ await subscribe(); }catch(e){ console.error(e); }
-    setTimeout(function(){ try{ cmsgEl.focus(); }catch(e){} },60);
+    if(options&&options.length&&!answered){
+      var op=document.createElement('div'); op.className='pqc-opts';
+      options.forEach(function(o){ var btn=document.createElement('button'); btn.type='button'; btn.className='pqc-opt'; btn.textContent=o; btn.addEventListener('click',function(){ doSend(o,[]); }); op.appendChild(btn); });
+      cell.appendChild(op);
+    }
+    row.appendChild(cell); logEl.appendChild(row);
   }
-
-  async function subscribe(){
-    var F=await ensureFb();
-    if(unsub){ try{ unsub(); }catch(e){} unsub=null; }
-    if(!threadId) return;
-    unsub=F.onSnapshot(F.doc(F.db,'pour_chatbot_threads',threadId),function(snap){
-      if(!snap.exists()){
-        try{ localStorage.removeItem(LS_KEY); }catch(e){}
-        threadId=null; latest=null; setUnread(0);
-        if(chatOpen){ chatCard.hidden=true; modal.setAttribute('data-mode','form'); formCard.hidden=false; }
-        return;
-      }
-      latest=snap.data();
-      var msgs=latest.messages||[];
-      // 마지막 고객 메시지 이후의 상담원 메시지 수 = 안 읽은 답변
-      var trailing=0; for(var i=msgs.length-1;i>=0;i--){ if(msgs[i].role==='agent') trailing++; else break; }
-      if(chatOpen) renderLog();
-      else setUnread(trailing);
-    },function(err){ console.error('[POUR닥터] 구독 오류:',err); });
-  }
-
   function renderLog(){
-    if(!latest) return;
-    var msgs=latest.messages||[];
-    if(msgs.length===renderedLen) return;
-    renderedLen=msgs.length;
+    var msgs=(latest&&latest.messages)||[];
+    var key=msgs.length+'|'+(latest?latest.updatedAt:'')+'|'+chatOpen;
+    if(key===renderedKey) return; renderedKey=key;
     logEl.innerHTML='';
-    var intro=document.createElement('div'); intro.className='pdlg-sys'; intro.textContent='POUR닥터가 확인 후 답변드려요 · 평균 3분 이내 응답'; logEl.appendChild(intro);
-
-    var lastAgentIdx=-1; for(var k=0;k<msgs.length;k++){ if(msgs[k].role==='agent') lastAgentIdx=k; }
-    var answered=lastAgentIdx>=0 && lastAgentIdx<msgs.length-1;
-
-    msgs.forEach(function(m,idx){
-      var mine=m.role==='customer';
-      var row=document.createElement('div'); row.className='pdlg-row '+(mine?'me':'them');
-      var cell=document.createElement('div'); cell.className='pdlg-cell';
-      var who=document.createElement('div'); who.className='pdlg-who'; who.textContent=mine?'나':'POUR닥터'; cell.appendChild(who);
-      if(m.content){ var b=document.createElement('div'); b.className='pdlg-msg'; b.textContent=m.content; cell.appendChild(b); }
-      if(Array.isArray(m.images)&&m.images.length){
-        var box=document.createElement('div'); box.className='pdlg-imgs'; box.style.justifyContent=mine?'flex-end':'flex-start';
-        m.images.forEach(function(u){ var a=document.createElement('a'); a.href=u; a.target='_blank'; a.rel='noopener'; var im=document.createElement('img'); im.src=u; im.alt='첨부'; a.appendChild(im); box.appendChild(a); });
-        cell.appendChild(box);
-      }
-      if(!mine && idx===lastAgentIdx && Array.isArray(m.options) && m.options.length && !answered){
-        var opts=document.createElement('div'); opts.className='pdlg-opts';
-        m.options.forEach(function(op){ var btn=document.createElement('button'); btn.type='button'; btn.className='pdlg-opt'; btn.textContent=op; btn.addEventListener('click',function(){ sendCust(op,[]); }); opts.appendChild(btn); });
-        var hint=document.createElement('span'); hint.className='pdlg-opt-hint'; hint.textContent='원하는 게 없으면 아래에 직접 입력';
-        opts.appendChild(hint); cell.appendChild(opts);
-      }
-      row.appendChild(cell); logEl.appendChild(row);
-    });
+    var s=document.createElement('div'); s.className='pqc-sys'; s.textContent='POUR닥터가 확인 후 답변드려요'; logEl.appendChild(s);
+    bubble(false,'POUR닥터',GREETING,null,null,true);
+    var lastAgent=-1; for(var k=0;k<msgs.length;k++){ if(msgs[k].role==='agent') lastAgent=k; }
+    var answered=lastAgent>=0 && lastAgent<msgs.length-1;
+    msgs.forEach(function(m,idx){ bubble(m.role==='customer','', m.content, m.images, (m.role==='agent'&&idx===lastAgent)?m.options:null, answered); });
+    // who 라벨 채우기
+    var whos=logEl.querySelectorAll('.pqc-row');
     logEl.scrollTop=logEl.scrollHeight;
   }
 
-  // 채팅 첨부 미리보기
   function renderPending(){
-    pendingBox.innerHTML='';
-    pendingBox.hidden=chatFiles.length===0;
+    pendingBox.innerHTML=''; pendingBox.hidden=chatFiles.length===0;
     chatFiles.forEach(function(f,i){
       var d=document.createElement('div'); d.className='pt';
       var im=document.createElement('img'); im.src=URL.createObjectURL(f); d.appendChild(im);
@@ -351,37 +203,57 @@
       d.appendChild(del); pendingBox.appendChild(d);
     });
   }
-  cfileEl.addEventListener('change',function(){ for(var i=0;i<cfileEl.files.length;i++){ var f=cfileEl.files[i]; if(chatFiles.length<5&&f.type.indexOf('image/')===0) chatFiles.push(f); } cfileEl.value=''; renderPending(); });
+  fileEl.addEventListener('change',function(){ for(var i=0;i<fileEl.files.length;i++){ var f=fileEl.files[i]; if(chatFiles.length<5&&f.type.indexOf('image/')===0) chatFiles.push(f); } fileEl.value=''; renderPending(); });
 
-  // 고객 후속 답변 (텍스트/선택지/사진)
-  async function sendCust(text,extraFiles){
+  async function subscribe(){
+    var F=await ensureFb();
+    if(unsub){ try{ unsub(); }catch(e){} unsub=null; }
+    if(!threadId) return;
+    unsub=F.onSnapshot(F.doc(F.db,'pour_chatbot_threads',threadId),function(snap){
+      if(!snap.exists()){ try{ localStorage.removeItem(LS_KEY); }catch(e){} threadId=null; latest=null; setUnread(0); renderedKey=''; if(chatOpen) renderLog(); return; }
+      latest=snap.data();
+      var msgs=latest.messages||[];
+      var trailing=0; for(var i=msgs.length-1;i>=0;i--){ if(msgs[i].role==='agent') trailing++; else break; }
+      if(chatOpen) renderLog(); else setUnread(trailing);
+    },function(err){ console.error('[POUR닥터] 구독 오류:',err); });
+  }
+
+  async function doSend(text,extra){
     var content=(text||'').trim();
-    var useFiles=extraFiles||chatFiles;
+    var useFiles=extra||chatFiles;
     if(!content&&!useFiles.length) return;
-    if(!threadId||!latest) return;
-    csendBtn.disabled=true; cmsgEl.disabled=true;
+    sendBtn.disabled=true; msgEl.disabled=true;
     try{
       var F=await ensureFb();
       var urls=useFiles.length?await uploadFiles(F,useFiles):[];
       var now=new Date().toISOString();
       var msg={role:'customer',content:content,ts:now}; if(urls.length) msg.images=urls;
-      var msgs=(latest.messages||[]).concat([msg]);
-      var patch={messages:msgs,unread:true,updatedAt:now};
-      if((latest.status||'waiting')==='done') patch.status='active';
-      await F.updateDoc(F.doc(F.db,'pour_chatbot_threads',threadId),patch);
-      cmsgEl.value=''; cmsgEl.style.height='auto';
+      if(!threadId){
+        var refDoc=await F.addDoc(F.collection(F.db,'pour_chatbot_threads'),{
+          audience:'b2c', botId:'', botName:'', channel:'widget', source:'cafe24', customerName:'',
+          customerContact:'', status:'waiting', unread:true, aiDraft:'',
+          messages:[msg], createdAt:now, updatedAt:now
+        });
+        threadId=refDoc.id; try{ localStorage.setItem(LS_KEY,threadId); }catch(e){}
+        await subscribe();
+      }else{
+        var msgs=((latest&&latest.messages)||[]).concat([msg]);
+        var patch={messages:msgs,unread:true,updatedAt:now};
+        if(latest&&latest.status==='done') patch.status='active';
+        await F.updateDoc(F.doc(F.db,'pour_chatbot_threads',threadId),patch);
+      }
+      msgEl.value=''; msgEl.style.height='auto';
       if(useFiles===chatFiles){ chatFiles=[]; renderPending(); }
     }catch(e){
       console.error('[POUR닥터] 전송 실패:',e);
       alert('전송 중 오류가 났어요. 잠시 후 다시 시도해주세요.');
     }
-    csendBtn.disabled=false; cmsgEl.disabled=false; cmsgEl.focus();
+    sendBtn.disabled=false; msgEl.disabled=false; try{ msgEl.focus(); }catch(e){}
   }
-  csendBtn.addEventListener('click',function(){ sendCust(cmsgEl.value,null); });
-  cmsgEl.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendCust(cmsgEl.value,null); } });
-  cmsgEl.addEventListener('input',function(){ cmsgEl.style.height='auto'; cmsgEl.style.height=Math.min(cmsgEl.scrollHeight,100)+'px'; });
+  sendBtn.addEventListener('click',function(){ doSend(msgEl.value,null); });
+  msgEl.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); doSend(msgEl.value,null); } });
+  msgEl.addEventListener('input',function(){ msgEl.style.height='auto'; msgEl.style.height=Math.min(msgEl.scrollHeight,96)+'px'; });
 
-  // 진행 중 상담이 있으면 백그라운드 구독(빨간 배지) — 답변 도착 알림
-  if(threadId){ subscribe().catch(function(){}); }
+  if(threadId) subscribe().catch(function(){}); // 답변 도착하면 배지
 })();
 </script>

@@ -32,7 +32,7 @@ body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !impo
 </style>
 <!--@import(/layout/basic/footer.html)-->
 
-<!-- 전 페이지 고정 퀵버튼(POUR닥터 실시간 채팅) — 메인은 layout을 안 타므로 코드 직접 삽입 -->
+	<!-- 전 페이지 고정 실시간 채팅(POUR닥터) — 원본: common/pour-quickbtn.html -->
 <!-- ============================================================
   pour-livechat — 오른쪽 하단 고정 실시간 채팅 (채널톡식)
   버튼 클릭 → 접수 폼 없이 바로 채팅창 오픈 → 입력하면 그때 상담 생성
@@ -97,7 +97,7 @@ body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !impo
 .pqc-send:disabled{opacity:.45;cursor:default}
 .pqc-send svg{width:18px;height:18px}
 @media (max-width:640px){
-  .pqc-launcher{right:14px;bottom:calc(24px + env(safe-area-inset-bottom,0px));gap:8px}
+  .pqc-launcher{right:14px;bottom:16px;gap:8px}
   .pqc-lbl{display:none}
   .pqc-fab{width:56px;height:56px}
   .pqc-ico{width:28px;height:28px}
@@ -138,6 +138,8 @@ body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !impo
 
 <script>
 (function(){
+  // 🧹 옛날 위젯(pqb/pdlg) 잔재가 다른 섹션/레이아웃에 남아있으면 제거 — 중복·옛날 폼 노출 방지
+  try{ document.querySelectorAll('.pqb-wrap, .pdlg-ov, [data-pdlg]').forEach(function(n){ n.remove(); }); }catch(e){}
   var LS_KEY='pourdoctor_tid';
   var launcher=document.querySelector('[data-pqc-launcher]');
   var panel=document.querySelector('[data-pqc-panel]'); if(!panel) return;
@@ -168,7 +170,8 @@ body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !impo
   }
   function close(){ panel.classList.remove('on'); if(launcher) launcher.classList.remove('pqc-open'); chatOpen=false; }
   window.pourDoctorOpen=open;
-  document.querySelectorAll('[data-pqc-open]').forEach(function(b){ b.addEventListener('click',open); });
+  // 새 버튼(data-pqc-open) + 옛날 CTA 버튼(data-pqb-open) 모두 새 채팅창을 열도록 연결
+  document.querySelectorAll('[data-pqc-open],[data-pqb-open]').forEach(function(b){ b.addEventListener('click',function(e){ e.preventDefault(); open(); }); });
   panel.querySelectorAll('[data-pqc-close]').forEach(function(b){ b.addEventListener('click',close); });
 
   // ── Firebase 지연 로드 ──

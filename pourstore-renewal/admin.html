@@ -4912,6 +4912,21 @@ function EventEditor({form,setForm,onClose,onSave,showToast}){
   const setProduct=(i,patch)=>set({products:prods.map((p,j)=>j===i?{...p,...patch}:p)});
   const addProduct=()=>set({products:[...prods,{code:'',name:'',thumb:'',link:''}]});
   const removeProduct=(i)=>set({products:prods.filter((_,j)=>j!==i)});
+  // ===== 등록된 상품(카페24/products 컬렉션)에서 검색·선택 =====
+  const [allProds,setAllProds]=useState([]);
+  const [prodQ,setProdQ]=useState('');
+  const [loadingProds,setLoadingProds]=useState(true);
+  useEffect(()=>{ let alive=true;
+    db.collection('products').get().then(function(snap){ if(!alive)return;
+      var arr=snap.docs.map(function(d){return {id:d.id,...d.data()};}).filter(function(p){return p&&p.isActive!==false;});
+      arr.sort(function(a,b){return String(a.name||'').localeCompare(String(b.name||''));});
+      console.log('[events] 등록상품 '+arr.length+'건 로드'); setAllProds(arr); setLoadingProds(false);
+    }).catch(function(e){ console.error('[events] 상품 로드 실패:',e); setLoadingProds(false); });
+    return function(){alive=false;};
+  },[]);
+  const prodCode=(p)=>{ var c=(p.channels&&p.channels.imweb)||p.imwebId||''; return String(c).trim(); };
+  const addFromProduct=(p)=>{ var code=prodCode(p); if(code && prods.some(function(x){return x.code===code;})) return; set({products:[...prods,{code:code,name:p.name||'',thumb:p.thumbnail||'',link:code?('/product/detail.html?product_no='+encodeURIComponent(code)):(p.imwebUrl||'')}]}); };
+  const filteredProds=(function(){ var q=prodQ.trim().toLowerCase(); var base=q?allProds.filter(function(p){return String(p.name||'').toLowerCase().indexOf(q)!==-1;}):allProds; return base.slice(0,60); })();
   const save=async()=>{
     if(!(form.title||'').trim()){ showToast('제목을 입력하세요','error'); return; }
     setSaving(true);
@@ -5004,7 +5019,7 @@ function EventEditor({form,setForm,onClose,onSave,showToast}){
           {/* ③ 제품 진열 */}
           <label style={lbl}>③ 제품 진열</label>
           <div style={{display:'flex',gap:6,margin:'10px 0'}}>
-            <button type="button" onClick={()=>set({productMode:'manual'})} style={seg(mode!=='category')}>상품코드/상품명으로 하나씩</button>
+            <button type="button" onClick={()=>set({productMode:'manual'})} style={seg(mode!=='category')}>등록 상품에서 선택</button>
             <button type="button" onClick={()=>set({productMode:'category'})} style={seg(mode==='category')}>상품 카테고리로</button>
           </div>
           {mode==='category' ? (
@@ -5015,27 +5030,35 @@ function EventEditor({form,setForm,onClose,onSave,showToast}){
             </div>
           ) : (
             <div>
-              <div style={{display:'flex',justifyContent:'flex-end'}}><button type="button" onClick={addProduct} style={addBtnS}>+ 상품 추가</button></div>
-              <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:8}}>
-                {prods.length===0 && <div style={{fontSize:12,color:'var(--text-sm)',padding:'10px 0'}}>상품이 없습니다. "+ 상품 추가"로 넣으세요.</div>}
-                {prods.map((p,i)=>(
-                  <div key={i} style={{display:'flex',gap:8,alignItems:'flex-start',padding:10,border:'1px solid var(--border)',borderRadius:10,background:'var(--bg)'}}>
-                    <div style={{width:52,height:52,borderRadius:8,overflow:'hidden',background:'#fff',border:'1px solid var(--border)',flexShrink:0}}>{p.thumb&&<img src={p.thumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}</div>
-                    <div style={{flex:1,display:'flex',flexDirection:'column',gap:6}}>
-                      <div style={{display:'flex',gap:6}}>
-                        <input value={p.code||''} onChange={e=>setProduct(i,{code:e.target.value})} placeholder="상품코드(product_no) 예: 1234" style={rowField}/>
-                        <input value={p.name||''} onChange={e=>setProduct(i,{name:e.target.value})} placeholder="상품명(선택)" style={rowField}/>
-                      </div>
-                      <div style={{display:'flex',gap:6}}>
-                        <input value={p.thumb||''} onChange={e=>setProduct(i,{thumb:e.target.value})} placeholder="상품 이미지 URL(선택)" style={{...rowField,flex:1}}/>
-                        {upBtn('p'+i,url=>setProduct(i,{thumb:url}))}
-                      </div>
+              <div style={help}>스토어에 <b>등록된 상품</b>을 검색해서 골라 담으세요. (상품명·썸네일·링크가 자동으로 들어가요)</div>
+              <input value={prodQ} onChange={e=>setProdQ(e.target.value)} placeholder="🔍 상품명으로 검색" style={{...field,marginTop:8}}/>
+              <div style={{marginTop:8,maxHeight:250,overflowY:'auto',border:'1px solid var(--border)',borderRadius:10}}>
+                {loadingProds && <div style={{padding:'24px',textAlign:'center',color:'var(--text-sm)',fontSize:12}}>등록 상품 불러오는 중…</div>}
+                {!loadingProds && filteredProds.length===0 && <div style={{padding:'24px',textAlign:'center',color:'var(--text-sm)',fontSize:12}}>검색 결과가 없어요.</div>}
+                {filteredProds.map((p,i)=>{ const code=prodCode(p); const added=code&&prods.some(x=>x.code===code); return (
+                  <div key={p.id||i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',borderBottom:'1px solid var(--border-s)'}}>
+                    <div style={{width:44,height:44,borderRadius:8,overflow:'hidden',background:'#fff',border:'1px solid var(--border)',flexShrink:0}}>{p.thumbnail&&<img src={p.thumbnail} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:700,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name||'(이름없음)'}</div>
+                      <div style={{fontSize:11.5,color:'var(--text-sm)'}}>{p.salePrice?(Number(p.salePrice).toLocaleString()+'원'):''}{code?(' · 코드 '+code):''}</div>
                     </div>
-                    <button onClick={()=>removeProduct(i)} style={{width:30,height:30,borderRadius:8,border:'1px solid var(--border)',background:'#fff',color:'var(--red)',fontSize:15,cursor:'pointer',flexShrink:0}}>×</button>
+                    <button type="button" onClick={()=>addFromProduct(p)} disabled={added} style={{padding:'6px 12px',borderRadius:7,border:'1.5px solid '+(added?'var(--border)':'var(--or)'),background:added?'var(--bg)':'var(--or-pale)',color:added?'var(--text-sm)':'var(--or-d)',fontSize:12,fontWeight:800,cursor:added?'default':'pointer',flexShrink:0}}>{added?'추가됨':'+ 추가'}</button>
                   </div>
-                ))}
+                );})}
               </div>
-              <div style={help}><b>상품코드</b>만 넣으면 자동으로 상품페이지로 연결돼요(/product/detail.html?product_no=코드). 썸네일을 넣으면 이미지가 보이고, 없으면 상품명만 표시돼요.</div>
+              <div style={{marginTop:14}}>
+                <div style={sub}>추가된 상품 ({prods.length})</div>
+                {prods.length===0 && <div style={{fontSize:12,color:'var(--text-sm)',padding:'6px 0'}}>위에서 상품을 검색해 <b>+ 추가</b> 하세요.</div>}
+                <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:6}}>
+                  {prods.map((p,i)=>(
+                    <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 8px',border:'1px solid var(--border)',borderRadius:8,background:'var(--bg)'}}>
+                      <div style={{width:34,height:34,borderRadius:6,overflow:'hidden',background:'#fff',border:'1px solid var(--border)',flexShrink:0}}>{p.thumb&&<img src={p.thumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}</div>
+                      <div style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:600,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name||p.code||'(상품)'}</div>
+                      <button onClick={()=>removeProduct(i)} style={{width:26,height:26,borderRadius:6,border:'1px solid var(--border)',background:'#fff',color:'var(--red)',fontSize:14,cursor:'pointer',flexShrink:0}}>×</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 

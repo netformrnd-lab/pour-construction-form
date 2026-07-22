@@ -1044,6 +1044,35 @@
     setTimeout(postHeight, 300);
   })();
 </script>
+<script>
+  /* ============================================================
+     시공분야 pill 선택 상태 표시 — 라벨에 인라인 배경(!important)이 있어
+     :checked CSS가 안 먹으므로, 체크 변화 시 JS로 직접 스타일을 토글한다.
+     (체크박스 자체는 클릭 시 정상 토글됨)
+     ============================================================ */
+  (function(){
+    var NAVY = '#1b2d5e', OFF_BG = '#fff', OFF_BD = '#e4e7ee', OFF_TX = '#5b6276';
+    document.querySelectorAll('.check-pill input[type=checkbox]').forEach(function(cb){
+      var lb = cb.nextElementSibling; // 짝지어진 label
+      if(!lb) return;
+      function sync(){
+        if(cb.checked){
+          lb.style.setProperty('background', NAVY, 'important');
+          lb.style.setProperty('border-color', NAVY, 'important');
+          lb.style.setProperty('color', '#fff', 'important');
+          lb.style.setProperty('font-weight', '700', 'important');
+        }else{
+          lb.style.setProperty('background', OFF_BG, 'important');
+          lb.style.setProperty('border-color', OFF_BD, 'important');
+          lb.style.setProperty('color', OFF_TX, 'important');
+          lb.style.setProperty('font-weight', '500', 'important');
+        }
+      }
+      cb.addEventListener('change', sync);
+      sync(); // 초기 상태 반영
+    });
+  })();
+</script>
 
 </body>
 </html>

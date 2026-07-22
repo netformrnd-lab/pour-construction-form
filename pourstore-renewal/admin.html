@@ -4841,7 +4841,7 @@ function EventsPage({showToast}){
       arr.sort((a,b)=>((a.order||0)-(b.order||0)) || String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
       console.log('[events] '+arr.length+'건 로드');
       setItems(arr);
-    }catch(e){ console.error('[events] 로드 실패:',e); showToast('불러오기 실패: '+(e&&e.message||e),'error'); }
+    }catch(e){ console.error('[events] 로드 실패(문서 없음이면 빈 목록으로 시작):',e); setItems([]); }
     setLoading(false);
   };
   useEffect(()=>{ load(); },[]);

@@ -49,7 +49,7 @@ body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !impo
 .pqc-fab:hover{transform:translateY(-3px) scale(1.04)}
 .pqc-fab::before{content:'';position:absolute;inset:-3px;border-radius:50%;border:2px solid #E8780F;animation:pqcPulse 2.2s ease-out infinite}
 @keyframes pqcPulse{0%{transform:scale(1);opacity:.7}70%{transform:scale(1.32);opacity:0}100%{opacity:0}}
-.pqc-ico{position:relative;z-index:1;width:32px;height:32px;color:#fff}
+.pqc-ico{position:relative;z-index:1;width:calc(100% - 6px);height:calc(100% - 6px);border-radius:50%;object-fit:cover;background:#fff}
 .pqc-badge{position:absolute;top:-2px;right:-2px;z-index:2;min-width:19px;height:19px;padding:0 5px;border-radius:10px;background:#EF4444;color:#fff;font-size:10.5px;font-weight:800;display:none;place-items:center;border:2px solid #fff;line-height:1}
 .pqc-launcher.pqc-unread .pqc-badge{display:grid;animation:pqcBadge 1.4s ease-in-out infinite}
 .pqc-launcher.pqc-unread .pqc-lbl .t{color:#E8780F}
@@ -126,7 +126,6 @@ body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !impo
   .pqc-launcher{right:14px;bottom:16px;gap:8px}
   .pqc-lbl{display:none}
   .pqc-fab{width:56px;height:56px}
-  .pqc-ico{width:28px;height:28px}
   .pqc-panel{right:0;bottom:0;width:100vw;max-width:100vw;height:100dvh;border-radius:0}
 }
 @media (prefers-reduced-motion:reduce){ .pqc-fab::before{animation:none;opacity:0} }
@@ -135,7 +134,7 @@ body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !impo
 <div class="pqc-launcher" data-pqc-launcher>
   <button type="button" class="pqc-lbl" data-pqc-open><span class="t" data-pqc-lt>궁금하면 물어보세요</span><span class="s">POUR닥터 · 1:1 실시간 상담</span></button>
   <button type="button" class="pqc-fab" data-pqc-open aria-label="POUR닥터 채팅 상담 열기">
-    <svg class="pqc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.9 8.9 0 0 1-3.6-.8L3 20.5l1.4-4.1A8.4 8.4 0 0 1 3.6 11.5 8.4 8.4 0 0 1 12 3.2a8.4 8.4 0 0 1 9 8.3Z"/><path d="M8.6 11.5h.01M12 11.5h.01M15.4 11.5h.01"/></svg>
+    <img class="pqc-ico" src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/%EB%A7%88%EC%8A%A4%EC%BD%94%ED%8A%B8%2Fbeaver_consulting_profile_circle.png?alt=media&token=6574671f-7f7d-4cac-a504-7e5f3b946f25" alt="POUR닥터" onerror="this.style.display='none'">
     <span class="pqc-dot"></span>
     <span class="pqc-badge" data-pqc-badge>1</span>
   </button>

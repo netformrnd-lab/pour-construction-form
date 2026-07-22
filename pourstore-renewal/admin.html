@@ -4844,7 +4844,7 @@ function EventsPage({showToast}){
     setLoading(false);
   };
   useEffect(()=>{ load(); },[]);
-  const startNew=()=>setEditing({title:'',subtitle:'',badge:'',thumbnail:'',link:'',moreCount:'',products:[],active:true,order:items.length?Math.max.apply(null,items.map(i=>i.order||0))+1:0});
+  const startNew=()=>setEditing({title:'',thumbnail:'',startAt:'',endAt:'',mainImages:[],productMode:'manual',categoryNo:'',products:[],subtitle:'',badge:'',link:'',moreCount:'',active:true,order:items.length?Math.max.apply(null,items.map(i=>i.order||0))+1:0});
   const remove=async(id)=>{ if(!window.confirm('이 기획전을 삭제할까요?'))return; try{ await db.collection('pourstore-events').doc(id).delete(); showToast('삭제했어요','success'); load(); }catch(e){ showToast('삭제 실패: '+(e&&e.message||e),'error'); } };
   const toggleActive=async(it)=>{ try{ await db.collection('pourstore-events').doc(it.id).set({active:it.active===false,updatedAt:new Date().toISOString()},{merge:true}); load(); }catch(e){ showToast('변경 실패','error'); } };
   return (
@@ -4892,24 +4892,47 @@ function EventEditor({form,setForm,onClose,onSaved,showToast}){
     catch(e){ console.error('[events] 업로드 실패:',e); showToast('업로드 실패: '+(e&&e.message||e),'error'); }
     setUploading('');
   };
-  const setProduct=(i,patch)=>{ const ps=(form.products||[]).map((p,j)=>j===i?{...p,...patch}:p); set({products:ps}); };
-  const addProduct=()=>set({products:[...(form.products||[]),{thumb:'',name:'',link:''}]});
-  const removeProduct=(i)=>set({products:(form.products||[]).filter((_,j)=>j!==i)});
+  const mainImgs=Array.isArray(form.mainImages)?form.mainImages:[];
+  const setMain=(arr)=>set({mainImages:arr});
+  const addMain=(url)=>setMain([...mainImgs,url||'']);
+  const setMainAt=(i,url)=>setMain(mainImgs.map((u,j)=>j===i?url:u));
+  const removeMain=(i)=>setMain(mainImgs.filter((_,j)=>j!==i));
+  const mode=form.productMode||'manual';
+  const prods=Array.isArray(form.products)?form.products:[];
+  const setProduct=(i,patch)=>set({products:prods.map((p,j)=>j===i?{...p,...patch}:p)});
+  const addProduct=()=>set({products:[...prods,{code:'',name:'',thumb:'',link:''}]});
+  const removeProduct=(i)=>set({products:prods.filter((_,j)=>j!==i)});
   const save=async()=>{
     if(!(form.title||'').trim()){ showToast('제목을 입력하세요','error'); return; }
     setSaving(true);
     try{
       const now=new Date().toISOString();
-      const payload={title:form.title.trim(),subtitle:form.subtitle||'',badge:form.badge||'',thumbnail:form.thumbnail||'',link:form.link||'',moreCount:Number(form.moreCount)||0,products:(form.products||[]).filter(p=>p.thumb||p.name||p.link).map(p=>({thumb:p.thumb||'',name:p.name||'',link:p.link||''})),active:form.active!==false,order:Number(form.order)||0,updatedAt:now};
+      const products=prods.filter(p=>p.code||p.name||p.thumb||p.link).map(p=>{ const code=(p.code||'').trim(); const link=(p.link||'').trim()||(code?('/product/detail.html?product_no='+encodeURIComponent(code)):''); return {code:code,name:p.name||'',thumb:p.thumb||'',link:link}; });
+      const payload={
+        title:form.title.trim(),
+        thumbnail:form.thumbnail||'',
+        startAt:form.startAt||'', endAt:form.endAt||'',
+        mainImages:mainImgs.filter(Boolean),
+        productMode:mode,
+        categoryNo:(form.categoryNo||'').trim(),
+        products:products,
+        subtitle:form.subtitle||'', badge:form.badge||'', link:form.link||'', moreCount:Number(form.moreCount)||0,
+        active:form.active!==false, order:Number(form.order)||0, updatedAt:now
+      };
       if(form.id) await db.collection('pourstore-events').doc(form.id).set(payload,{merge:true});
       else { payload.createdAt=now; await db.collection('pourstore-events').add(payload); }
       showToast('저장했어요','success'); onSaved();
     }catch(e){ console.error('[events] 저장 실패:',e); showToast('저장 실패: '+(e&&e.message||e),'error'); }
     setSaving(false);
   };
-  const field={width:'100%',padding:'11px 13px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13.5,outline:'none',boxSizing:'border-box',marginTop:6};
-  const lbl={fontSize:12.5,fontWeight:800,color:'var(--text)'};
-  const upBtn=(key,cb)=>(<label style={{marginTop:6,padding:'0 12px',height:41,borderRadius:8,border:'1px solid var(--border)',background:uploading===key?'var(--or-pale)':'var(--bg)',fontSize:11,fontWeight:800,color:'var(--or-d)',cursor:'pointer',display:'flex',alignItems:'center',flexShrink:0}}>{uploading===key?'…':'업로드'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)upload(key,f,cb); e.target.value='';}}/></label>);
+  const field={width:'100%',padding:'11px 13px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13.5,outline:'none',boxSizing:'border-box'};
+  const lbl={fontSize:13,fontWeight:900,color:'var(--navy)'};
+  const sub={fontSize:11.5,fontWeight:700,color:'var(--text-md)',marginBottom:4};
+  const help={fontSize:11.5,color:'var(--text-sm)',marginTop:6,lineHeight:1.5};
+  const seg=(on)=>({padding:'8px 14px',borderRadius:8,border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or)':'#fff',color:on?'#fff':'var(--text-md)',fontSize:12.5,fontWeight:800,cursor:'pointer'});
+  const addBtnS={padding:'7px 13px',borderRadius:8,border:'1.5px solid var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12,fontWeight:800,cursor:'pointer'};
+  const rowField={...field,fontSize:12.5,padding:'8px 10px'};
+  const upBtn=(key,cb,txt)=>(<label style={{padding:'0 12px',height:39,borderRadius:8,border:'1px solid var(--border)',background:uploading===key?'var(--or-pale)':'var(--bg)',fontSize:11.5,fontWeight:800,color:'var(--or-d)',cursor:'pointer',display:'flex',alignItems:'center',flexShrink:0,whiteSpace:'nowrap'}}>{uploading===key?'…':(txt||'업로드')}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)upload(key,f,cb); e.target.value='';}}/></label>);
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(13,27,42,.55)',zIndex:3000,display:'flex',alignItems:'center',justifyContent:'center',padding:20,backdropFilter:'blur(2px)'}}>
       <div style={{background:'#fff',borderRadius:18,width:'96vw',maxWidth:920,maxHeight:'94vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 24px 70px rgba(0,0,0,.35)'}}>
@@ -4918,53 +4941,99 @@ function EventEditor({form,setForm,onClose,onSaved,showToast}){
           <button onClick={onClose} style={{width:34,height:34,borderRadius:9,border:'1px solid var(--border)',background:'#fff',fontSize:18,cursor:'pointer'}}>×</button>
         </div>
         <div style={{flex:1,overflowY:'auto',padding:'22px 28px'}}>
-          <label style={lbl}>기획전 제목 *</label>
-          <input value={form.title} onChange={e=>set({title:e.target.value})} placeholder="예: 오늘의 모든 특가, 오늘의딜" style={field}/>
-          <div style={{height:12}}/>
-          <label style={lbl}>부제목 (선택)</label>
-          <input value={form.subtitle||''} onChange={e=>set({subtitle:e.target.value})} placeholder="예: 단 24시간 초특가 스페셜딜" style={field}/>
-          <div style={{height:12}}/>
-          <label style={lbl}>뱃지/라벨 (선택) — 이미지 위 작은 태그</label>
-          <input value={form.badge||''} onChange={e=>set({badge:e.target.value})} placeholder="예: HOT · 24시간특가" style={field}/>
-          <div style={{height:12}}/>
-          <label style={lbl}>큰 기획전 썸네일 이미지 *</label>
-          <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+
+          {/* ① 썸네일 */}
+          <label style={lbl}>① 썸네일 이미지 <span style={{color:'var(--or-d)'}}>*</span></label>
+          <div style={help}>목록(기획전 리스트)에 보이는 대표 이미지예요.</div>
+          <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
             <input value={form.thumbnail||''} onChange={e=>set({thumbnail:e.target.value})} placeholder="이미지 URL 또는 업로드" style={{...field,flex:1}}/>
-            {upBtn('thumb',url=>set({thumbnail:url}))}
-            <div style={{width:64,height:44,borderRadius:8,marginTop:6,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',flexShrink:0}}>{form.thumbnail&&<img src={form.thumbnail} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}</div>
+            {upBtn('thumb',url=>set({thumbnail:url}),'썸네일 업로드')}
           </div>
-          <div style={{height:12}}/>
-          <label style={lbl}>기획전 링크 (선택) — 큰 이미지 클릭 시 이동</label>
-          <input value={form.link||''} onChange={e=>set({link:e.target.value})} placeholder="예: /product/list.html?cate_no=71" style={field}/>
-          <div style={{height:12}}/>
-          <label style={lbl}>+더보기 숫자 (선택) — 마지막 칸에 "+697"처럼 표시</label>
-          <input type="number" value={form.moreCount||''} onChange={e=>set({moreCount:e.target.value})} placeholder="예: 697 (비우면 표시 안 함)" style={field}/>
+          <div style={{width:'100%',maxWidth:300,aspectRatio:'16/9',borderRadius:12,overflow:'hidden',background:'var(--bg)',border:'1px solid var(--border)',marginTop:10,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontSize:12}}>{form.thumbnail?<img src={form.thumbnail} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:'썸네일 미리보기'}</div>
+
+          {/* 제목 */}
           <div style={{height:18}}/>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <label style={lbl}>상품 썸네일 (아래 줄에 진열) — 최대 4개 노출</label>
-            <button onClick={addProduct} style={{padding:'7px 12px',borderRadius:8,border:'1.5px solid var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12,fontWeight:800,cursor:'pointer'}}>+ 상품 추가</button>
+          <label style={lbl}>제목 <span style={{color:'var(--or-d)'}}>*</span></label>
+          <input value={form.title||''} onChange={e=>set({title:e.target.value})} placeholder="예: 패키지 상품 무료반환 이벤트" style={{...field,marginTop:8}}/>
+
+          {/* 노출 기간 */}
+          <div style={{height:18}}/>
+          <label style={lbl}>노출 기간</label>
+          <div style={help}>이 기간에만 이벤트 페이지에 노출돼요. (비우면 항상 노출) · 시·분까지 설정 가능</div>
+          <div style={{display:'flex',gap:12,marginTop:8,flexWrap:'wrap'}}>
+            <div style={{flex:1,minWidth:210}}><div style={sub}>시작 일시</div><input type="datetime-local" value={form.startAt||''} onChange={e=>set({startAt:e.target.value})} style={field}/></div>
+            <div style={{flex:1,minWidth:210}}><div style={sub}>종료 일시</div><input type="datetime-local" value={form.endAt||''} onChange={e=>set({endAt:e.target.value})} style={field}/></div>
           </div>
-          <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:8}}>
-            {(form.products||[]).length===0 && <div style={{fontSize:12,color:'var(--text-sm)',padding:'10px 0'}}>상품이 없습니다. "+ 상품 추가"로 넣으세요.</div>}
-            {(form.products||[]).map((p,i)=>(
-              <div key={i} style={{display:'flex',gap:8,alignItems:'flex-start',padding:10,border:'1px solid var(--border)',borderRadius:10,background:'var(--bg)'}}>
-                <div style={{width:52,height:52,borderRadius:8,overflow:'hidden',background:'#fff',border:'1px solid var(--border)',flexShrink:0}}>{p.thumb&&<img src={p.thumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}</div>
-                <div style={{flex:1,display:'flex',flexDirection:'column',gap:6}}>
-                  <div style={{display:'flex',gap:6}}>
-                    <input value={p.thumb||''} onChange={e=>setProduct(i,{thumb:e.target.value})} placeholder="상품 이미지 URL" style={{...field,marginTop:0,fontSize:12.5,padding:'8px 10px'}}/>
-                    {upBtn('p'+i,url=>setProduct(i,{thumb:url}))}
-                  </div>
-                  <input value={p.name||''} onChange={e=>setProduct(i,{name:e.target.value})} placeholder="상품명 (선택)" style={{...field,marginTop:0,fontSize:12.5,padding:'8px 10px'}}/>
-                  <input value={p.link||''} onChange={e=>setProduct(i,{link:e.target.value})} placeholder="상품 링크 (선택)" style={{...field,marginTop:0,fontSize:12.5,padding:'8px 10px'}}/>
+
+          <hr style={{margin:'24px 0',border:0,borderTop:'1px solid var(--border)'}}/>
+
+          {/* ② 메인 기획전 이미지 */}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+            <label style={lbl}>② 메인 기획전 이미지</label>
+            {upBtn('mnew',url=>addMain(url),'＋ 이미지 추가')}
+          </div>
+          <div style={help}>상세 화면에 크게 표시되는 이미지예요. 여러 장 넣으면 위→아래로 이어붙어요.<br/>권장 사이즈: <b>가로 1280px · 세로 최대 3000px</b> · 이미지 박스를 클릭 후 <b>Delete</b> 키 또는 <b>× 삭제</b> 버튼으로 지울 수 있어요.</div>
+          <div style={{marginTop:12,display:'flex',flexDirection:'column',gap:12}}>
+            {mainImgs.length===0 && <div style={{fontSize:12.5,color:'var(--text-sm)',padding:'16px',textAlign:'center',border:'1px dashed var(--border)',borderRadius:10}}>이미지가 없습니다. 위 <b>＋ 이미지 추가</b>로 넣으세요.</div>}
+            {mainImgs.map((u,i)=>(
+              <div key={i} tabIndex={0} onKeyDown={e=>{ if((e.key==='Delete'||e.key==='Backspace') && document.activeElement===e.currentTarget){ e.preventDefault(); removeMain(i); } }} style={{border:'1px solid var(--border)',borderRadius:12,overflow:'hidden',background:'var(--bg)',outline:'none'}}>
+                <div style={{position:'relative',background:'#f4f5f7'}}>
+                  {u? <img src={u} alt="" style={{width:'100%',display:'block'}}/> : <div style={{height:120,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontSize:12}}>이미지 없음</div>}
+                  <span style={{position:'absolute',top:8,left:8,background:'rgba(0,0,0,.55)',color:'#fff',fontSize:11,fontWeight:800,padding:'3px 9px',borderRadius:999}}>{i+1}번</span>
                 </div>
-                <button onClick={()=>removeProduct(i)} style={{width:30,height:30,borderRadius:8,border:'1px solid var(--border)',background:'#fff',color:'var(--red)',fontSize:15,cursor:'pointer',flexShrink:0}}>×</button>
+                <div style={{display:'flex',gap:6,padding:10,alignItems:'center'}}>
+                  <input value={u} onChange={e=>setMainAt(i,e.target.value)} placeholder="이미지 URL" style={{...rowField,flex:1}}/>
+                  {upBtn('m'+i,url=>setMainAt(i,url),'교체')}
+                  <button onClick={()=>removeMain(i)} style={{padding:'8px 12px',borderRadius:8,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontSize:12,fontWeight:800,cursor:'pointer',whiteSpace:'nowrap'}}>× 삭제</button>
+                </div>
               </div>
             ))}
           </div>
-          <div style={{height:16}}/>
+
+          <hr style={{margin:'24px 0',border:0,borderTop:'1px solid var(--border)'}}/>
+
+          {/* ③ 제품 진열 */}
+          <label style={lbl}>③ 제품 진열</label>
+          <div style={{display:'flex',gap:6,margin:'10px 0'}}>
+            <button type="button" onClick={()=>set({productMode:'manual'})} style={seg(mode!=='category')}>상품코드/상품명으로 하나씩</button>
+            <button type="button" onClick={()=>set({productMode:'category'})} style={seg(mode==='category')}>상품 카테고리로</button>
+          </div>
+          {mode==='category' ? (
+            <div>
+              <div style={sub}>카테고리 번호 (cate_no)</div>
+              <input value={form.categoryNo||''} onChange={e=>set({categoryNo:e.target.value})} placeholder="예: 71 (카페24 상품분류 번호)" style={field}/>
+              <div style={help}>이벤트 페이지에서 <b>“이 카테고리 상품 전체보기”</b> 버튼으로 연결돼요. (/product/list.html?cate_no=번호)</div>
+            </div>
+          ) : (
+            <div>
+              <div style={{display:'flex',justifyContent:'flex-end'}}><button type="button" onClick={addProduct} style={addBtnS}>+ 상품 추가</button></div>
+              <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:8}}>
+                {prods.length===0 && <div style={{fontSize:12,color:'var(--text-sm)',padding:'10px 0'}}>상품이 없습니다. "+ 상품 추가"로 넣으세요.</div>}
+                {prods.map((p,i)=>(
+                  <div key={i} style={{display:'flex',gap:8,alignItems:'flex-start',padding:10,border:'1px solid var(--border)',borderRadius:10,background:'var(--bg)'}}>
+                    <div style={{width:52,height:52,borderRadius:8,overflow:'hidden',background:'#fff',border:'1px solid var(--border)',flexShrink:0}}>{p.thumb&&<img src={p.thumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}</div>
+                    <div style={{flex:1,display:'flex',flexDirection:'column',gap:6}}>
+                      <div style={{display:'flex',gap:6}}>
+                        <input value={p.code||''} onChange={e=>setProduct(i,{code:e.target.value})} placeholder="상품코드(product_no) 예: 1234" style={rowField}/>
+                        <input value={p.name||''} onChange={e=>setProduct(i,{name:e.target.value})} placeholder="상품명(선택)" style={rowField}/>
+                      </div>
+                      <div style={{display:'flex',gap:6}}>
+                        <input value={p.thumb||''} onChange={e=>setProduct(i,{thumb:e.target.value})} placeholder="상품 이미지 URL(선택)" style={{...rowField,flex:1}}/>
+                        {upBtn('p'+i,url=>setProduct(i,{thumb:url}))}
+                      </div>
+                    </div>
+                    <button onClick={()=>removeProduct(i)} style={{width:30,height:30,borderRadius:8,border:'1px solid var(--border)',background:'#fff',color:'var(--red)',fontSize:15,cursor:'pointer',flexShrink:0}}>×</button>
+                  </div>
+                ))}
+              </div>
+              <div style={help}><b>상품코드</b>만 넣으면 자동으로 상품페이지로 연결돼요(/product/detail.html?product_no=코드). 썸네일을 넣으면 이미지가 보이고, 없으면 상품명만 표시돼요.</div>
+            </div>
+          )}
+
+          <div style={{height:18}}/>
           <div style={{display:'flex',gap:16,alignItems:'center'}}>
-            <label style={{...lbl,display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}><input type="checkbox" checked={form.active!==false} onChange={e=>set({active:e.target.checked})}/> 노출</label>
-            <label style={{...lbl,display:'flex',alignItems:'center',gap:6}}>정렬순서 <input type="number" value={form.order} onChange={e=>set({order:e.target.value})} style={{width:70,padding:'6px 8px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12}}/></label>
+            <label style={{...lbl,fontWeight:800,display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}><input type="checkbox" checked={form.active!==false} onChange={e=>set({active:e.target.checked})}/> 노출</label>
+            <label style={{...lbl,fontWeight:800,display:'flex',alignItems:'center',gap:6}}>정렬순서 <input type="number" value={form.order} onChange={e=>set({order:e.target.value})} style={{width:70,padding:'6px 8px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12}}/></label>
           </div>
         </div>
         <div style={{display:'flex',gap:10,padding:'14px 28px',borderTop:'1px solid var(--border)',flexShrink:0}}>
@@ -4975,6 +5044,7 @@ function EventEditor({form,setForm,onClose,onSaved,showToast}){
     </div>
   );
 }
+
 function PostingsPage({showToast}){
   const { audit } = useActiveStaffContext();
   const [list,setList]=useState([]);

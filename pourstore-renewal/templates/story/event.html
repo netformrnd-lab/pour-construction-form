@@ -1326,31 +1326,53 @@ var PM_POSTS = [];
 <!-- ===== 기획전 본문 ===== -->
 <style>
   .pev *{box-sizing:border-box;margin:0;padding:0;}
-  .pev{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;max-width:1080px;margin:0 auto;padding:22px 16px 60px;-webkit-font-smoothing:antialiased;}
+  .pev{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;max-width:1080px;margin:0 auto;padding:24px 16px 70px;-webkit-font-smoothing:antialiased;}
   .pev-head{padding:6px 4px 20px;}
   .pev-head h1{font-size:26px;font-weight:900;letter-spacing:-.04em;color:#111;}
   .pev-head p{margin-top:7px;font-size:14px;color:#8a8f98;font-weight:600;letter-spacing:-.02em;}
   .pev-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 24px;}
-  .pev-card{display:block;}
+  .pev-card{display:block;cursor:pointer;text-decoration:none;color:inherit;}
   .pev-hero{position:relative;width:100%;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#f1f3f5;box-shadow:0 6px 20px rgba(0,0,0,.06);}
-  .pev-hero>img{width:100%;height:100%;object-fit:cover;display:block;}
+  .pev-hero>img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease;}
+  .pev-card:hover .pev-hero>img{transform:scale(1.03);}
   .pev-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.45),rgba(0,0,0,0) 55%);}
   .pev-badge{position:absolute;top:14px;left:14px;background:rgba(0,0,0,.55);color:#fff;font-size:11.5px;font-weight:800;letter-spacing:-.02em;padding:5px 11px;border-radius:999px;backdrop-filter:blur(2px);}
-  .pev-hero-tt{position:absolute;left:18px;right:56px;bottom:16px;color:#fff;}
+  .pev-period{position:absolute;top:14px;right:14px;background:rgba(232,120,15,.95);color:#fff;font-size:11px;font-weight:800;letter-spacing:-.02em;padding:4px 10px;border-radius:999px;}
+  .pev-hero-tt{position:absolute;left:18px;right:18px;bottom:16px;color:#fff;}
   .pev-hero-tt b{display:block;font-size:20px;font-weight:900;letter-spacing:-.04em;line-height:1.28;text-shadow:0 2px 10px rgba(0,0,0,.35);word-break:keep-all;}
-  .pev-hero-tt span{display:block;margin-top:5px;font-size:13px;font-weight:600;opacity:.92;text-shadow:0 1px 6px rgba(0,0,0,.35);word-break:keep-all;}
-  .pev-bm{position:absolute;right:14px;bottom:14px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.22);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;}
   .pev-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px;}
-  .pev-th{position:relative;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#f1f3f5;display:block;}
+  .pev-th{position:relative;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#f1f3f5;}
   .pev-th>img{width:100%;height:100%;object-fit:cover;display:block;}
   .pev-th.empty{background:#f4f5f7;}
   .pev-more{position:absolute;inset:0;background:rgba(20,22,28,.62);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;font-weight:900;letter-spacing:-.03em;}
-  .pev-empty{padding:70px 0;text-align:center;color:#adb2bb;font-size:14px;font-weight:600;}
-  .pev-loading{padding:70px 0;text-align:center;color:#adb2bb;font-size:14px;}
+  .pev-catchip{margin-top:10px;display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:800;color:#E8780F;background:#FFF3E9;padding:7px 12px;border-radius:999px;}
+  .pev-empty,.pev-loading{padding:70px 0;text-align:center;color:#adb2bb;font-size:14px;font-weight:600;}
+  /* 상세 오버레이 */
+  .pev-detail{position:fixed;inset:0;z-index:100020;background:#fff;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .pev-detail[hidden]{display:none;}
+  .pev-dt-top{position:sticky;top:0;z-index:5;height:54px;display:flex;align-items:center;gap:8px;padding:0 12px;background:rgba(255,255,255,.96);backdrop-filter:blur(6px);border-bottom:1px solid #F2F3F5;}
+  .pev-dt-back{width:38px;height:38px;display:grid;place-items:center;border:0;background:none;cursor:pointer;color:#333;flex-shrink:0;}
+  .pev-dt-back svg{width:24px;height:24px;}
+  .pev-dt-title{font-size:16px;font-weight:800;letter-spacing:-.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pev-dt-body{padding:0 0 60px;}
+  .pev-dt-imgs{max-width:1280px;margin:0 auto;}
+  .pev-dt-imgs img{width:100%;display:block;}
+  .pev-dt-prods{max-width:1080px;margin:0 auto;padding:26px 16px 0;}
+  .pev-dt-prods h2{font-size:18px;font-weight:900;letter-spacing:-.03em;margin-bottom:14px;}
+  .pev-dt-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px 14px;}
+  .pev-dp{display:block;text-decoration:none;color:inherit;}
+  .pev-dp-th{aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#f1f3f5;}
+  .pev-dp-th>img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease;}
+  .pev-dp:hover .pev-dp-th>img{transform:scale(1.04);}
+  .pev-dp-nm{margin-top:8px;font-size:13.5px;font-weight:600;color:#333;line-height:1.4;letter-spacing:-.02em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .pev-dt-catbtn{display:block;max-width:420px;margin:22px auto 0;text-align:center;background:#E8780F;color:#fff;font-size:15px;font-weight:800;padding:15px;border-radius:12px;text-decoration:none;letter-spacing:-.02em;}
   @media (max-width:640px){
+    .pev{padding:20px 16px 56px;}
     .pev-grid{grid-template-columns:1fr;gap:24px;}
     .pev-head h1{font-size:22px;}
     .pev-hero-tt b{font-size:18px;}
+    .pev-dt-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 10px;}
+    .pev-dp-nm{font-size:12.5px;}
   }
 </style>
 
@@ -1362,6 +1384,14 @@ var PM_POSTS = [];
   <div class="pev-loading" data-pev-loading>불러오는 중…</div>
   <div class="pev-grid" data-pev-grid hidden></div>
   <div class="pev-empty" data-pev-empty hidden>진행 중인 기획전이 없습니다.</div>
+</div>
+
+<div class="pev-detail" data-pev-detail hidden>
+  <div class="pev-dt-top">
+    <button class="pev-dt-back" data-pev-back type="button" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div class="pev-dt-title" data-pev-dt-title></div>
+  </div>
+  <div class="pev-dt-body" data-pev-dt-body></div>
 </div>
 
 <script type="module">
@@ -1378,33 +1408,74 @@ const db = getFirestore(app);
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 function attrLink(u){ return (u && String(u).trim()) ? String(u).trim() : ''; }
-
-function thumbTile(p, moreCount, isLast){
-  const link = attrLink(p && p.link);
-  const img = (p && p.thumb) ? '<img src="'+esc(p.thumb)+'" alt="'+esc((p&&p.name)||'')+'" loading="lazy" onerror="this.style.display=\'none\'">' : '';
-  const overlay = (isLast && moreCount>0) ? '<span class="pev-more">+'+moreCount+'</span>' : '';
+function within(ev){
+  var now=Date.now();
+  var s=ev.startAt?Date.parse(ev.startAt):NaN;
+  var e=ev.endAt?Date.parse(ev.endAt):NaN;
+  if(!isNaN(s)&&now<s) return false;
+  if(!isNaN(e)&&now>e) return false;
+  return true;
+}
+function periodLabel(ev){
+  function d(x){ var m=String(x||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[2]+'.'+m[3]):''; }
+  var a=d(ev.startAt), b=d(ev.endAt);
+  if(a&&b) return a+'~'+b; if(b) return '~'+b; if(a) return a+'~'; return '';
+}
+function thumbTile(p, moreN, isLast){
+  const img = (p && p.thumb) ? '<img src="'+esc(p.thumb)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : '';
+  const overlay = (isLast && moreN>0) ? '<span class="pev-more">+'+moreN+'</span>' : '';
   const cls = 'pev-th'+((p&&p.thumb)?'':' empty');
-  if(link) return '<a class="'+cls+'" href="'+esc(link)+'" target="_blank" rel="noopener">'+img+overlay+'</a>';
   return '<div class="'+cls+'">'+img+overlay+'</div>';
 }
-
-function cardHtml(ev){
-  const heroLink = attrLink(ev.link);
+function cardHtml(ev, idx){
   const heroImg = ev.thumbnail ? '<img src="'+esc(ev.thumbnail)+'" alt="'+esc(ev.title||'')+'" onerror="this.style.display=\'none\'">' : '';
   const badge = ev.badge ? '<span class="pev-badge">'+esc(ev.badge)+'</span>' : '';
-  const sub = ev.subtitle ? '<span>'+esc(ev.subtitle)+'</span>' : '';
-  const heroInner = heroImg+'<div class="pev-hero-grad"></div>'+badge
-    +'<div class="pev-hero-tt"><b>'+esc(ev.title||'')+'</b>'+sub+'</div>'
-    +'<div class="pev-bm">🔖</div>';
-  const hero = heroLink
-    ? '<a class="pev-hero" href="'+esc(heroLink)+'" target="_blank" rel="noopener">'+heroInner+'</a>'
-    : '<div class="pev-hero">'+heroInner+'</div>';
+  const per = periodLabel(ev);
+  const perEl = per ? '<span class="pev-period">'+esc(per)+'</span>' : '';
+  const heroInner = heroImg+'<div class="pev-hero-grad"></div>'+badge+perEl+'<div class="pev-hero-tt"><b>'+esc(ev.title||'')+'</b></div>';
+  var products = Array.isArray(ev.products)?ev.products:[];
+  var strip='';
+  if(products.length){
+    var show=products.slice(0,4);
+    var moreN = ev.moreCount ? Number(ev.moreCount) : (products.length>4?products.length-4:0);
+    var inner=''; for(let i=0;i<4;i++){ inner += thumbTile(show[i], moreN, i===3); }
+    strip = '<div class="pev-strip">'+inner+'</div>';
+  } else if(ev.categoryNo){
+    strip = '<div class="pev-catchip">🏷 카테고리 상품 보기</div>';
+  }
+  return '<a class="pev-card" href="#ev-'+esc(ev.id)+'" data-ev="'+idx+'"><div class="pev-hero">'+heroInner+'</div>'+strip+'</a>';
+}
 
-  const products = Array.isArray(ev.products) ? ev.products.slice(0,4) : [];
-  const moreCount = Number(ev.moreCount)||0;
-  let strip = '';
-  for(let i=0;i<4;i++){ strip += thumbTile(products[i], moreCount, i===3); }
-  return '<div class="pev-card">'+hero+'<div class="pev-strip">'+strip+'</div></div>';
+var EVENTS=[];
+function openDetail(ev){
+  var detail=document.querySelector('[data-pev-detail]');
+  var body=document.querySelector('[data-pev-dt-body]');
+  var titleEl=document.querySelector('[data-pev-dt-title]');
+  titleEl.textContent=ev.title||'기획전';
+  var imgs=Array.isArray(ev.mainImages)?ev.mainImages.filter(Boolean):[];
+  var h='<div class="pev-dt-imgs">'
+    + (imgs.length ? imgs.map(function(u){return '<img src="'+esc(u)+'" alt="" onerror="this.style.display=\'none\'">';}).join('')
+        : (ev.thumbnail ? '<img src="'+esc(ev.thumbnail)+'" alt="">' : '<div style="padding:60px 20px;text-align:center;color:#adb2bb;font-weight:600">기획전 이미지가 준비 중입니다.</div>'))
+    + '</div>';
+  var products=Array.isArray(ev.products)?ev.products:[];
+  if(products.length){
+    h+='<div class="pev-dt-prods"><h2>이벤트 상품</h2><div class="pev-dt-grid">'+products.map(function(p){
+      var link=attrLink(p.link)||'#';
+      var im=p.thumb?'<img src="'+esc(p.thumb)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
+      return '<a class="pev-dp" href="'+esc(link)+'"><div class="pev-dp-th">'+im+'</div>'+(p.name?'<div class="pev-dp-nm">'+esc(p.name)+'</div>':'')+'</a>';
+    }).join('')+'</div></div>';
+  }
+  if(ev.categoryNo){
+    h+='<div class="pev-dt-prods"><a class="pev-dt-catbtn" href="/product/list.html?cate_no='+esc(ev.categoryNo)+'">이 카테고리 상품 전체보기 →</a></div>';
+  }
+  body.innerHTML=h;
+  detail.hidden=false; detail.scrollTop=0;
+  document.documentElement.style.overflow='hidden';
+}
+function closeDetail(){
+  var d=document.querySelector('[data-pev-detail]'); if(!d) return; d.hidden=true;
+  document.documentElement.style.overflow='';
+  if(location.hash){ try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} }
 }
 
 (async function(){
@@ -1413,13 +1484,18 @@ function cardHtml(ev){
   const empty=document.querySelector('[data-pev-empty]');
   try{
     const snap=await getDocs(collection(db,'pourstore-events'));
-    let list=snap.docs.map(d=>Object.assign({id:d.id}, d.data())).filter(e=>e && e.active!==false);
+    let list=snap.docs.map(d=>Object.assign({id:d.id}, d.data())).filter(e=>e && e.active!==false && within(e));
     list.sort((a,b)=>((a.order||0)-(b.order||0)) || String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
     console.log('[events] '+list.length+'건 노출');
+    EVENTS=list;
     loading.hidden=true;
     if(!list.length){ empty.hidden=false; return; }
-    grid.innerHTML=list.map(cardHtml).join('');
+    grid.innerHTML=list.map((ev,i)=>cardHtml(ev,i)).join('');
     grid.hidden=false;
+    grid.addEventListener('click',function(e){ var a=e.target.closest('[data-ev]'); if(!a) return; e.preventDefault(); var ev=EVENTS[+a.getAttribute('data-ev')]; if(ev){ try{ location.hash='ev-'+ev.id; }catch(_){} openDetail(ev); } });
+    var back=document.querySelector('[data-pev-back]'); if(back) back.addEventListener('click', closeDetail);
+    window.addEventListener('hashchange',function(){ var m=String(location.hash||'').match(/#ev-(.+)/); if(m){ var ev=EVENTS.filter(x=>String(x.id)===m[1])[0]; if(ev) openDetail(ev); } else closeDetail(); });
+    var m0=String(location.hash||'').match(/#ev-(.+)/); if(m0){ var ev0=EVENTS.filter(x=>String(x.id)===m0[1])[0]; if(ev0) openDetail(ev0); }
   }catch(e){
     console.error('[events] 로드 실패:', e);
     loading.textContent='기획전을 불러오지 못했어요. 잠시 후 새로고침해 주세요.';

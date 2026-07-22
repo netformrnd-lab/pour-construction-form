@@ -2619,7 +2619,7 @@ document.addEventListener('DOMContentLoaded',function(){
 .pdlg-done b{color:#E8780F}
 .pdlg-done .cls{display:inline-block;margin-top:20px;padding:12px 24px;border:1.5px solid #E8780F;border-radius:10px;background:#fff;color:#C8650D;font-size:13.5px;font-weight:800;cursor:pointer}
 @media (max-width:700px){
-  .pqb-wrap{right:14px;bottom:16px;gap:8px}
+  .pqb-wrap{right:16px;bottom:calc(24px + env(safe-area-inset-bottom,0px));gap:8px}
   .pqb-label{display:none}
   .pqb-btn{width:56px;height:56px}
   .pqb-ico{width:28px;height:28px}

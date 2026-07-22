@@ -97,7 +97,7 @@ body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !impo
 .pqc-send:disabled{opacity:.45;cursor:default}
 .pqc-send svg{width:18px;height:18px}
 @media (max-width:640px){
-  .pqc-launcher{right:14px;bottom:16px;gap:8px}
+  .pqc-launcher{right:16px;bottom:calc(24px + env(safe-area-inset-bottom,0px));gap:8px}
   .pqc-lbl{display:none}
   .pqc-fab{width:56px;height:56px}
   .pqc-ico{width:28px;height:28px}

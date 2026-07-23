@@ -237,20 +237,35 @@
   var MAP={ '철재':'metal', '목재':'wood', '돌·시멘트':'stone' };
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   function cardHtml(c){
-    var link=(c.link||'').trim(), title=c.title||'';
-    var h='<a class="psm2-card psm2-managed" href="'+(link?esc(link):'#')+'"'+(link?'':' onclick="return false"')+'>';
+    var link=(c.link||'').trim(), title=c.title||'', cat=c.cat||'';
+    var h='<a class="psm2-card psm2-managed" data-cat="'+esc(cat)+'" href="'+(link?esc(link):'#')+'"'+(link?'':' onclick="return false"')+'>';
     h+='<div class="psm2-card-img"><img src="'+esc(c.image)+'" alt="'+esc(title)+'" loading="lazy"></div>';
-    if(title) h+='<div class="psm2-card-info"><div class="psm2-card-title">'+esc(title)+'</div></div>';
+    if(title) h+='<div class="psm2-card-info"><div class="psm2-card-title">'+esc(title)+'</div></div>';   // 가격 없이 썸네일+제목만
     return h+'</a>';
   }
   function apply(data){
     document.querySelectorAll('.psm2-group[data-material]').forEach(function(group){
       var key=MAP[group.getAttribute('data-material')];
-      var cards=key && data[key];
-      if(!cards || !cards.length) return;          // 관리 데이터 없으면 기존 기본 카드 유지
+      var md=key && data[key]; if(!md) return;
+      var cards=Array.isArray(md)?md:md.cards;                 // 구/신 포맷 호환
+      if(!cards || !cards.length) return;                      // 관리 카드 없으면 기존 기본 유지
+      var filters=(!Array.isArray(md) && Array.isArray(md.filters))?md.filters:[];
       var scroll=group.querySelector('.psm2-scroll'); if(!scroll) return;
       scroll.innerHTML=cards.map(cardHtml).join('');
-      var filters=group.querySelector('.psm2-filters'); if(filters) filters.style.display='none'; // 관리 카드엔 소분류 필터 숨김
+      var fbar=group.querySelector('.psm2-filters'); if(!fbar) return;
+      if(!filters.length){ fbar.style.display='none'; return; }   // 필터 없으면 필터바 숨김
+      fbar.style.display='';
+      fbar.innerHTML=['전체'].concat(filters).map(function(f,i){ return '<button class="psm2-filter'+(i===0?' on':'')+'" type="button" data-f="'+esc(f)+'">'+esc(f)+'</button>'; }).join('');
+      fbar.querySelectorAll('.psm2-filter').forEach(function(btn){
+        btn.addEventListener('click',function(){
+          fbar.querySelectorAll('.psm2-filter').forEach(function(x){ x.classList.remove('on'); });
+          btn.classList.add('on');
+          var f=btn.getAttribute('data-f');
+          scroll.querySelectorAll('.psm2-card').forEach(function(card){
+            card.style.display=(f==='전체'||card.getAttribute('data-cat')===f)?'':'none';
+          });
+        });
+      });
     });
   }
   (async function(){

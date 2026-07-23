@@ -515,9 +515,19 @@
   function apply(data){
     var hero=(data&&data.hero)||[]; if(!hero.length) return; var used=false;
     document.querySelectorAll('#carousel .slide').forEach(function(slide,i){
-      var h=hero[i]; if(!h||!h.image) return;
-      var right=slide.querySelector('.slide-right'); if(right){ right.innerHTML='<img src="'+esc(h.image)+'" alt="" loading="lazy">'; used=true; }
-      var cta=slide.querySelector('.slide-cta'); if(cta && (h.link||'').trim()) cta.setAttribute('href',(h.link||'').trim());
+      var h=hero[i]; if(!h) return;
+      if(h.image){ var right=slide.querySelector('.slide-right'); if(right){ right.innerHTML='<img src="'+esc(h.image)+'" alt="" loading="lazy">'; used=true; } }
+      var left=slide.querySelector('.slide-left'); if(!left) return;
+      // 상단 라벨(아이콘 유지)
+      if(h.kicker){ var k=left.querySelector('.slide-kicker'); if(k){ var svg=k.querySelector('svg'); k.innerHTML=(svg?svg.outerHTML:'')+esc(h.kicker); } }
+      // 제목(줄바꿈 → <br>, 마지막 줄은 기존 강조색 유지)
+      if(h.title){ var t=left.querySelector('h3'); if(t){ var hs=t.querySelector('span'); var hl=(hs&&hs.className)?hs.className:'hl-orange'; var lines=String(h.title).split(/\r?\n/); if(lines.length>1){ t.innerHTML=lines.slice(0,-1).map(esc).join('<br>')+'<br><span class="'+hl+'">'+esc(lines[lines.length-1])+'</span>'; } else { t.innerHTML='<span class="'+hl+'">'+esc(lines[0])+'</span>'; } } }
+      // 설명
+      if(h.desc){ var p=left.querySelector('p'); if(p) p.textContent=h.desc; }
+      // 태그(쉼표 구분)
+      if(h.tags){ var tg=left.querySelector('.slide-tags'); if(tg){ tg.innerHTML=String(h.tags).split(',').map(function(x){ x=x.trim(); return x?'<span>'+esc(x)+'</span>':''; }).join(''); } }
+      // 버튼 문구·링크
+      var cta=left.querySelector('.slide-cta'); if(cta){ if(h.cta) cta.innerHTML=esc(h.cta)+' <span class="ar">→</span>'; if((h.link||'').trim()) cta.setAttribute('href',(h.link||'').trim()); }
     });
     if(used){ var note=document.querySelector('.carousel-mockup-note'); if(note) note.style.display='none'; }
   }

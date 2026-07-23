@@ -357,7 +357,6 @@ const NAV = [
   { id: 'events',          icon: '🎉', label: '기획전(이벤트) 관리',   group: 'design' },
   { id: 'best',            icon: '🏆', label: '베스트 관리',           group: 'design' },
   { id: 'guidedetail',     icon: '📖', label: '시공가이드 상세',        group: 'design' },
-  { id: 'delivery',        icon: '🚚', label: '배송안내',              group: 'design' },
   { id: 'packages',        icon: '🧩', label: '패키지 구성 관리',     group: 'design' },
   { id: 'banners',         icon: '🖼', label: '메인 배너 관리',       group: 'design' },
   { id: 'homecards',       icon: '🏠', label: '홈 소재별 카드 관리',   group: 'design' },
@@ -4833,96 +4832,6 @@ const blocksToBody=(blocks)=>(blocks||[]).map(b=>b.type==='image'?(b.url||''):(b
 //   저장: config/pourstoreEvents {events:[...]} (보안규칙상 쓰기 허용 컬렉션) / 노출: event.html
 // ============================================================
 // ============================================================
-// 배송안내 — 텍스트/이미지 블록 편집
-//   저장: config/pourstoreDelivery {title, blocks:[]} / 노출: delivery/delivery.html
-// ============================================================
-function DeliveryPage({showToast}){
-  const [title,setTitle]=useState('배송안내');
-  const [blocks,setBlocks]=useState([]);
-  const [loading,setLoading]=useState(true);
-  const [saving,setSaving]=useState(false);
-  const [uploading,setUploading]=useState(-1);
-  const DREF=()=>db.collection('config').doc('pourstoreDelivery');
-  useEffect(()=>{ (async()=>{
-    try{ const snap=await DREF().get(); const d=(snap.exists&&snap.data())||{}; if(d.title!=null) setTitle(d.title); setBlocks(Array.isArray(d.blocks)?d.blocks:[]); console.log('[배송안내] 로드'); }
-    catch(e){ console.error('[배송안내] 로드 실패(없으면 빈값):',e); }
-    setLoading(false);
-  })(); },[]);
-  const setBlockAt=(i,patch)=>setBlocks(blocks.map((b,j)=>j===i?{...b,...patch}:b));
-  const removeBlock=(i)=>{ if(!window.confirm('이 블록을 삭제할까요?'))return; setBlocks(blocks.filter((_,j)=>j!==i)); };
-  const moveBlock=(i,d)=>{ var j=i+d; if(j<0||j>=blocks.length)return; var a=blocks.slice(); var t=a[i];a[i]=a[j];a[j]=t; setBlocks(a); };
-  const addBlock=(b)=>setBlocks([...blocks,b]);
-  const upload=async(i,file)=>{
-    if(!file)return; if(!file.type.startsWith('image/')){ showToast('이미지 파일만 가능','error'); return; } if(file.size>20*1024*1024){ showToast('20MB 이하 이미지','error'); return; }
-    setUploading(i);
-    try{ const ts=Date.now(); const safe=file.name.replace(/[^\w.\-]/g,'_'); const snap=await storage.ref('POUR스토어_리뉴얼/delivery/'+ts+'_'+safe).put(file); const url=await snap.ref.getDownloadURL(); setBlockAt(i,{url:url}); }
-    catch(e){ console.error('[배송안내] 업로드 실패:',e); showToast('업로드 실패: '+(e&&e.message||e),'error'); }
-    setUploading(-1);
-  };
-  const save=async()=>{ setSaving(true);
-    try{ await DREF().set({title:title,blocks:blocks,updatedAt:new Date().toISOString()},{merge:true}); showToast('저장했어요 · 배송안내 페이지에 반영','success'); }
-    catch(e){ console.error('[배송안내] 저장 실패:',e); showToast('저장 실패: '+(e&&e.message||e),'error'); }
-    setSaving(false);
-  };
-  const field={width:'100%',padding:'10px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13.5,outline:'none',boxSizing:'border-box',fontFamily:'inherit'};
-  const addBtn=(txt,onClick)=>(<button onClick={onClick} style={{padding:'9px 15px',borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>{txt}</button>);
-  const iconBtn={width:28,height:28,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',lineHeight:1};
-  return (
-    <div style={{padding:'8px 4px'}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:10}}>
-        <div>
-          <h1 style={{fontSize:20,fontWeight:900,color:'var(--navy)'}}>🚚 배송안내</h1>
-          <p style={{fontSize:12.5,color:'var(--text-md)',marginTop:4}}><b>텍스트·이미지</b>를 순서대로 넣어 배송안내 페이지를 구성해요. <b>delivery.html</b>에 노출됩니다.</p>
-        </div>
-        <button onClick={save} disabled={saving} style={{padding:'12px 26px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',background:saving?'var(--text-sm)':'linear-gradient(135deg, var(--navy), var(--navy2))',boxShadow:'0 4px 12px rgba(13,27,42,.2)',cursor:saving?'default':'pointer'}}>{saving?'저장 중…':'💾 저장'}</button>
-      </div>
-      {loading && <div style={{padding:'40px 0',textAlign:'center',color:'var(--text-sm)'}}>불러오는 중…</div>}
-      {!loading && <React.Fragment>
-        <div style={{background:'#fff',border:'1px solid var(--border)',borderRadius:12,padding:14,marginBottom:14,boxShadow:'var(--shadow)'}}>
-          <div style={{fontSize:12,fontWeight:800,color:'var(--navy)',marginBottom:6}}>페이지 제목</div>
-          <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="예: 배송안내" style={field}/>
-        </div>
-        {blocks.length===0 && <div style={{padding:'34px 0',textAlign:'center',color:'var(--text-sm)',fontSize:13,background:'#fff',borderRadius:12,border:'1px dashed var(--border)',marginBottom:12}}>아직 내용이 없어요. 아래에서 텍스트·이미지를 추가하세요.</div>}
-        <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:16}}>
-          {blocks.map(function(b,i){
-            var badge=b.type==='text'?'📝 텍스트':'🖼 이미지';
-            return (
-              <div key={i} style={{background:'#fff',border:'1px solid var(--border)',borderRadius:12,padding:14,boxShadow:'var(--shadow)'}}>
-                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
-                  <span style={{fontSize:12,fontWeight:900,color:'var(--navy)',background:'var(--bg)',padding:'4px 10px',borderRadius:7}}>{badge}</span>
-                  <input value={b.label||''} onChange={e=>setBlockAt(i,{label:e.target.value})} placeholder="소제목(선택) 예: 배송비 / 교환·반품" style={{...field,flex:1,fontSize:12.5,padding:'7px 10px'}}/>
-                  <button onClick={()=>moveBlock(i,-1)} disabled={i===0} style={{...iconBtn,opacity:i===0?.35:1}}>↑</button>
-                  <button onClick={()=>moveBlock(i,1)} disabled={i===blocks.length-1} style={{...iconBtn,opacity:i===blocks.length-1?.35:1}}>↓</button>
-                  <button onClick={()=>removeBlock(i)} style={{...iconBtn,color:'var(--red)'}}>×</button>
-                </div>
-                {b.type==='text' && <React.Fragment>
-                  <div style={{display:'flex',gap:6,marginBottom:8}}>
-                    {[['head','제목'],['big','크게'],['normal','보통']].map(function(sz){ var on=(b.size||'normal')===sz[0]; return <button key={sz[0]} onClick={()=>setBlockAt(i,{size:sz[0]})} style={{padding:'5px 11px',borderRadius:7,border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or)':'#fff',color:on?'#fff':'var(--text-md)',fontSize:11.5,fontWeight:800,cursor:'pointer'}}>{sz[1]}</button>; })}
-                  </div>
-                  <textarea value={b.text||''} onChange={e=>setBlockAt(i,{text:e.target.value})} placeholder="내용을 입력하세요 (줄바꿈 그대로 반영)" rows={4} style={{...field,resize:'vertical',lineHeight:1.6}}/>
-                </React.Fragment>}
-                {b.type==='image' && <div style={{display:'flex',gap:12,alignItems:'flex-start',flexWrap:'wrap'}}>
-                  <div style={{width:150,height:150,borderRadius:10,border:'1px solid var(--border)',background:'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
-                    {b.url?<img src={b.url} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}}/>:<span style={{fontSize:11,color:'var(--text-sm)'}}>미리보기</span>}
-                  </div>
-                  <div style={{flex:1,minWidth:180}}>
-                    <label style={{display:'inline-block',padding:'9px 15px',borderRadius:9,border:'1.5px solid var(--or)',background:uploading===i?'var(--or-pale)':'#fff',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer',marginBottom:8}}>{uploading===i?'업로드 중…':'📤 이미지 업로드'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)upload(i,f); e.target.value='';}}/></label>
-                    <input value={b.url||''} onChange={e=>setBlockAt(i,{url:e.target.value})} placeholder="또는 이미지 주소(URL) 직접 입력" style={{...field,fontSize:12,padding:'8px 10px'}}/>
-                  </div>
-                </div>}
-              </div>
-            );
-          })}
-        </div>
-        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-          {addBtn('＋ 텍스트', ()=>addBlock({type:'text',text:'',size:'normal',label:''}))}
-          {addBtn('＋ 이미지', ()=>addBlock({type:'image',url:'',label:''}))}
-        </div>
-      </React.Fragment>}
-    </div>
-  );
-}
-// ============================================================
 // 시공가이드 상세 — 유형별 콘텐츠(텍스트/영상/이미지) 편집
 //   저장: config/pourstoreGuideDetail {types:{'1'..'4':{title,blocks:[]}}} / 노출: guide-detail.html
 // ============================================================
@@ -6863,20 +6772,23 @@ function BannersPage({showToast}){
   );
 }
 // ============================================================
-// 홈 소재별 카드 관리 (홈리페어×홈데코 히어로 + 철재/목재/돌 라인 카드)
-//   저장: config/pourstoreHomeCards { hero:[{image,imageMobile,link}], metal/wood/stone:[{image,link,title}] }
+// 홈 소재별 카드 관리 (히어로 멘트·사진 + 철재/목재/돌 라인: 필터 카테고리 + 썸네일 카드)
+//   저장: config/pourstoreHomeCards {
+//     hero:[{image,imageMobile,link,kicker,title,desc,tags,cta}],
+//     metal/wood/stone:{filters:[..], cards:[{image,link,title,cat}]} }
 //   → 스토어 pour-04-home 히어로 / pour-02-best 소재별 라인에 자동 반영. (config 규칙 → 새 보안규칙 불필요)
 // ============================================================
-const HOMECARD_SLOTS=[
-  {key:'hero',  label:'홈리페어×홈데코 히어로', desc:'상단 큰 이미지 (약한 곳부터 다시 단단하게 자리)', size:'권장 1200 × 720 px (가로 16:9)', ratio:'16 / 9', hasTitle:false},
-  {key:'metal', label:'철재 라인 카드',        desc:'"철재를 고치고 싶다면?" 줄에 노출', size:'권장 640 × 640 px (정사각)', ratio:'1 / 1', hasTitle:true},
-  {key:'wood',  label:'목재 라인 카드',        desc:'"목재를 고치고 싶다면?" 줄에 노출', size:'권장 640 × 640 px (정사각)', ratio:'1 / 1', hasTitle:true},
-  {key:'stone', label:'돌·시멘트 라인 카드',   desc:'"돌·시멘트를 고치고 싶다면?" 줄에 노출', size:'권장 640 × 640 px (정사각)', ratio:'1 / 1', hasTitle:true},
+const HC_MATERIALS=[
+  {key:'metal', label:'철재 라인', hint:'"철재를 고치고 싶다면?" 줄'},
+  {key:'wood',  label:'목재 라인', hint:'"목재를 고치고 싶다면?" 줄'},
+  {key:'stone', label:'돌·시멘트 라인', hint:'"돌·시멘트를 고치고 싶다면?" 줄'},
 ];
+const HC_DEFAULT_FILTERS=['방수','코팅','보수','단열·차열','밑칠'];
 function HomeCardsPage({showToast}){
   const { audit } = useActiveStaffContext();
-  const norm=(v)=>Array.isArray(v)?v.map(x=>({image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',title:x.title||''})):[];
-  const [data,setData]=useState({hero:[],metal:[],wood:[],stone:[]});
+  const normHero=(v)=>Array.isArray(v)?v.map(x=>({image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',kicker:x.kicker||'',title:x.title||'',desc:x.desc||'',tags:x.tags||'',cta:x.cta||''})):[];
+  const normMat=(v)=>{ if(Array.isArray(v)) return {filters:HC_DEFAULT_FILTERS.slice(),cards:v.map(c=>({image:c.image||'',link:c.link||'',title:c.title||'',cat:c.cat||''}))}; v=v||{}; return {filters:(Array.isArray(v.filters)&&v.filters.length)?v.filters.filter(Boolean):HC_DEFAULT_FILTERS.slice(),cards:Array.isArray(v.cards)?v.cards.map(c=>({image:c.image||'',link:c.link||'',title:c.title||'',cat:c.cat||''})):[]}; };
+  const [data,setData]=useState({hero:[],metal:normMat(),wood:normMat(),stone:normMat()});
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState(null);
@@ -6884,29 +6796,38 @@ function HomeCardsPage({showToast}){
   useEffect(()=>{ (async()=>{
     try{
       const d=await db.collection('config').doc('pourstoreHomeCards').get();
-      if(d.exists){ const v=d.data()||{}; setData({hero:norm(v.hero),metal:norm(v.metal),wood:norm(v.wood),stone:norm(v.stone)}); }
+      if(d.exists){ const v=d.data()||{}; setData({hero:normHero(v.hero),metal:normMat(v.metal),wood:normMat(v.wood),stone:normMat(v.stone)}); }
       console.log('[homecards] 로드', d.exists);
     }catch(e){ console.error('[homecards] 로드 실패:',e); showToast('로드 실패: '+e.message,'error'); }
     setLoading(false);
   })(); },[]);
 
-  const setSlot=(slot,arr)=>setData(prev=>({...prev,[slot]:arr}));
-  const addCard=(slot)=>setSlot(slot,[...data[slot],{image:'',link:'',title:''}]);
-  const removeCard=(slot,i)=>setSlot(slot,data[slot].filter((_,idx)=>idx!==i));
-  const patchCard=(slot,i,part)=>setSlot(slot,data[slot].map((b,idx)=>idx===i?{...b,...part}:b));
-  const moveCard=(slot,i,dir)=>{ const arr=[...data[slot]]; const j=i+dir; if(j<0||j>=arr.length)return; const t=arr[i];arr[i]=arr[j];arr[j]=t; setSlot(slot,arr); };
+  // 히어로 ops
+  const heroAdd=()=>setData(p=>({...p,hero:[...p.hero,{image:'',imageMobile:'',link:'',kicker:'',title:'',desc:'',tags:'',cta:''}]}));
+  const heroRemove=(i)=>setData(p=>({...p,hero:p.hero.filter((_,x)=>x!==i)}));
+  const heroPatch=(i,part)=>setData(p=>({...p,hero:p.hero.map((h,x)=>x===i?{...h,...part}:h)}));
+  const heroMove=(i,dir)=>setData(p=>{const a=[...p.hero];const j=i+dir;if(j<0||j>=a.length)return p;const t=a[i];a[i]=a[j];a[j]=t;return{...p,hero:a};});
 
-  const upload=async(slot,i,field,file)=>{
+  // 소재 ops
+  const matSet=(key,part)=>setData(p=>({...p,[key]:{...p[key],...part}}));
+  const filterAdd=(key)=>matSet(key,{filters:[...data[key].filters,'']});
+  const filterPatch=(key,i,val)=>matSet(key,{filters:data[key].filters.map((f,x)=>x===i?val:f)});
+  const filterRemove=(key,i)=>matSet(key,{filters:data[key].filters.filter((_,x)=>x!==i)});
+  const filterMove=(key,i,dir)=>{const a=[...data[key].filters];const j=i+dir;if(j<0||j>=a.length)return;const t=a[i];a[i]=a[j];a[j]=t;matSet(key,{filters:a});};
+  const cardAdd=(key)=>matSet(key,{cards:[...data[key].cards,{image:'',link:'',title:'',cat:''}]});
+  const cardRemove=(key,i)=>matSet(key,{cards:data[key].cards.filter((_,x)=>x!==i)});
+  const cardPatch=(key,i,part)=>matSet(key,{cards:data[key].cards.map((c,x)=>x===i?{...c,...part}:c)});
+  const cardMove=(key,i,dir)=>{const a=[...data[key].cards];const j=i+dir;if(j<0||j>=a.length)return;const t=a[i];a[i]=a[j];a[j]=t;matSet(key,{cards:a});};
+
+  const upload=async(uid,file,cb)=>{
     if(!file)return;
     if(!file.type.startsWith('image/')){ showToast('이미지(png/jpg)만 가능','error'); return; }
-    if(file.size > 20*1024*1024){ showToast('20MB 이하 이미지만 가능','error'); return; }
-    setUploading(slot+':'+i);
+    if(file.size>20*1024*1024){ showToast('20MB 이하 이미지만 가능','error'); return; }
+    setUploading(uid);
     try{
       const ts=Date.now(); const safe=file.name.replace(/[^\w.\-]/g,'_');
-      const path=`POUR스토어_리뉴얼/homecards/${slot}_${field}_${ts}_${safe}`;
-      const snap=await storage.ref(path).put(file);
-      const url=await snap.ref.getDownloadURL();
-      patchCard(slot,i,{[field]:url});
+      const snap=await storage.ref(`POUR스토어_리뉴얼/homecards/${uid.replace(/[^\w]/g,'_')}_${ts}_${safe}`).put(file);
+      cb(await snap.ref.getDownloadURL());
       showToast('이미지 업로드 완료 — 하단 저장을 눌러 반영');
     }catch(e){ console.error('[homecards] 업로드 실패:',e); showToast('업로드 실패: '+e.message,'error'); }
     setUploading(null);
@@ -6915,61 +6836,126 @@ function HomeCardsPage({showToast}){
   const save=async()=>{
     setSaving(true);
     try{
-      const clean=(arr)=>arr.filter(b=>b.image).map(b=>({image:b.image,imageMobile:(b.imageMobile||''),link:(b.link||'').trim(),title:(b.title||'').trim()}));
-      await db.collection('config').doc('pourstoreHomeCards').set({hero:clean(data.hero),metal:clean(data.metal),wood:clean(data.wood),stone:clean(data.stone),...audit.update()},{merge:true});
+      const hero=data.hero.filter(h=>h.image||h.title||h.kicker).map(h=>({image:h.image||'',imageMobile:h.imageMobile||'',link:(h.link||'').trim(),kicker:(h.kicker||'').trim(),title:(h.title||'').trim(),desc:(h.desc||'').trim(),tags:(h.tags||'').trim(),cta:(h.cta||'').trim()}));
+      const mat=(m)=>({filters:m.filters.map(f=>(f||'').trim()).filter(Boolean),cards:m.cards.filter(c=>c.image).map(c=>({image:c.image,link:(c.link||'').trim(),title:(c.title||'').trim(),cat:(c.cat||'').trim()}))});
+      await db.collection('config').doc('pourstoreHomeCards').set({hero,metal:mat(data.metal),wood:mat(data.wood),stone:mat(data.stone),...audit.update()},{merge:true});
       showToast('저장되었습니다 — 스토어에 반영됩니다');
     }catch(e){ console.error('[homecards] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
     setSaving(false);
   };
 
   if(loading)return <div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>;
-  const field={width:'100%',padding:'9px 11px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:12.5,outline:'none',boxSizing:'border-box',marginTop:6};
+  const inp={width:'100%',padding:'8px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12.5,outline:'none',boxSizing:'border-box',marginTop:6};
 
-  return(
+  return (
     <div style={{padding:'24px 32px',maxWidth:1100}}>
       <div style={{marginBottom:18}}>
         <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>🏠 홈 소재별 카드 관리</h1>
-        <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>메인의 히어로 이미지와 철재/목재/돌 라인 카드에 실사 사진을 올리고, 클릭 시 이동할 상품 링크를 넣으세요. (사진 넣은 카드만 스토어에 노출 — 사진 없으면 기존 기본 카드가 그대로 보입니다)</div>
+        <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>히어로 멘트·사진과 철재/목재/돌 라인의 필터·썸네일을 관리합니다. (내용을 넣지 않은 부분은 기존 기본 화면이 그대로 유지됩니다)</div>
       </div>
-      <div style={{display:'flex',flexDirection:'column',gap:18}}>
-        {HOMECARD_SLOTS.map(slot=>{
-          const list=data[slot.key];
-          return(
-            <div key={slot.key} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'18px'}}>
-              <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}>{slot.label} <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>({list.length}장)</span></div>
-              <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,margin:'2px 0'}}>{slot.desc}</div>
-              <div style={{fontSize:11.5,color:'var(--or-d)',fontWeight:800,marginBottom:12}}>{slot.size}</div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(340px,1fr))',gap:12}}>
-                {list.length===0 && <div style={{padding:'22px 0',textAlign:'center',color:'var(--text-sm)',fontSize:12.5,fontWeight:700,background:'var(--bg)',borderRadius:10,border:'1px dashed var(--border)'}}>카드가 없습니다. 아래 '+ 카드 추가'</div>}
-                {list.map((b,i)=>{ const up=uploading===slot.key+':'+i;
-                  return(
-                    <div key={i} style={{display:'flex',gap:12,alignItems:'flex-start',padding:'10px',background:'var(--bg)',borderRadius:10,border:'1px solid var(--border)'}}>
-                      <div style={{position:'relative',width:96,aspectRatio:slot.ratio,flexShrink:0,borderRadius:8,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                        {b.image?<img src={b.image} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';}}/>:<span style={{fontSize:11,color:'var(--text-sm)',fontWeight:700}}>없음</span>}
-                        {up&&<div style={{position:'absolute',inset:0,background:'rgba(255,255,255,.7)',display:'grid',placeItems:'center',fontSize:11,fontWeight:800,color:'var(--or-d)'}}>업로드중</div>}
+
+      {/* ===== 히어로 ===== */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>
+        <div style={{fontSize:15,fontWeight:900,color:'var(--navy)',marginBottom:2}}>홈리페어×홈데코 히어로 <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>({data.hero.length}장)</span></div>
+        <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:12}}>상단 큰 슬라이드 — 사진 + 멘트(라벨/제목/설명/태그/버튼)를 슬라이드별로 관리 · 권장 1200×720</div>
+        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+          {data.hero.length===0 && <div style={{padding:'20px',textAlign:'center',color:'var(--text-sm)',fontSize:12.5,fontWeight:700,background:'var(--bg)',borderRadius:10,border:'1px dashed var(--border)'}}>슬라이드가 없습니다 — 아래 '+ 슬라이드 추가' (없으면 기존 기본 히어로 유지)</div>}
+          {data.hero.map((h,i)=>{ const up=uploading==='hero:'+i;
+            return (
+              <div key={i} style={{display:'flex',gap:12,padding:12,background:'var(--bg)',borderRadius:10,border:'1px solid var(--border)'}}>
+                <div style={{width:150,flexShrink:0}}>
+                  <div style={{position:'relative',width:'100%',aspectRatio:'16/9',borderRadius:8,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    {h.image?<img src={h.image} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontSize:11,color:'var(--text-sm)',fontWeight:700}}>없음</span>}
+                    {up&&<div style={{position:'absolute',inset:0,background:'rgba(255,255,255,.7)',display:'grid',placeItems:'center',fontSize:11,fontWeight:800,color:'var(--or-d)'}}>업로드중</div>}
+                  </div>
+                  <label style={{display:'block',textAlign:'center',padding:'7px',marginTop:6,borderRadius:8,border:'1.5px solid var(--or)',color:'var(--or-d)',background:'#fff',fontSize:11,fontWeight:800,cursor:up?'wait':'pointer'}}>
+                    {h.image?'사진 교체':'사진 업로드'}
+                    <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload('hero:'+i,f,url=>heroPatch(i,{image:url})); e.target.value='';}} style={{display:'none'}}/>
+                  </label>
+                  <div style={{display:'flex',gap:5,marginTop:6}}>
+                    <button onClick={()=>heroMove(i,-1)} disabled={i===0} style={{flex:1,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontWeight:800,cursor:'pointer',opacity:i===0?.4:1}}>↑</button>
+                    <button onClick={()=>heroMove(i,1)} disabled={i===data.hero.length-1} style={{flex:1,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontWeight:800,cursor:'pointer',opacity:i===data.hero.length-1?.4:1}}>↓</button>
+                    <button onClick={()=>heroRemove(i)} style={{flex:1,borderRadius:7,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontWeight:900,cursor:'pointer'}}>×</button>
+                  </div>
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <input value={h.kicker} onChange={e=>heroPatch(i,{kicker:e.target.value})} placeholder="상단 라벨 (예: HOME REPAIR · 홈리페어)" style={inp}/>
+                  <textarea value={h.title} onChange={e=>heroPatch(i,{title:e.target.value})} placeholder={'제목 (줄바꿈 가능 · 마지막 줄은 색 강조)\n예: 고치는 건,\n어렵지 않아요'} style={{...inp,minHeight:52,resize:'vertical',fontWeight:800}}/>
+                  <textarea value={h.desc} onChange={e=>heroPatch(i,{desc:e.target.value})} placeholder="설명 문구" style={{...inp,minHeight:44,resize:'vertical'}}/>
+                  <input value={h.tags} onChange={e=>heroPatch(i,{tags:e.target.value})} placeholder="태그 (쉼표로 구분 · 예: 속건성, 곰팡이 방지, 초보자 OK)" style={inp}/>
+                  <div style={{display:'flex',gap:6}}>
+                    <input value={h.cta} onChange={e=>heroPatch(i,{cta:e.target.value})} placeholder="버튼 문구 (예: 홈리페어 자재 보기)" style={{...inp,flex:1}}/>
+                    <input value={h.link} onChange={e=>heroPatch(i,{link:e.target.value})} placeholder="버튼·사진 클릭 링크" style={{...inp,flex:1.4}}/>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <button onClick={heroAdd} style={{marginTop:12,width:'100%',padding:10,borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>+ 슬라이드 추가</button>
+      </div>
+
+      {/* ===== 소재별 라인 ===== */}
+      {HC_MATERIALS.map(m=>{ const md=data[m.key];
+        return (
+          <div key={m.key} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>
+            <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}>{m.label} <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>({md.cards.length}장 · 필터 {md.filters.length}개)</span></div>
+            <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:10}}>{m.hint} — 가격 없이 <b>썸네일+제목만</b> 노출. 카드에 필터를 지정하면 위 필터 버튼으로 걸러집니다.</div>
+
+            {/* 필터 카테고리 편집 */}
+            <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:10,padding:'10px 12px',marginBottom:12}}>
+              <div style={{fontSize:11.5,fontWeight:800,color:'var(--text-md)',marginBottom:8}}>필터 카테고리 <span style={{fontWeight:700,color:'var(--text-sm)'}}>(추가·수정·삭제·순서 · '전체'는 스토어에서 자동으로 맨 앞에 붙습니다)</span></div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                {md.filters.map((f,i)=>(
+                  <div key={i} style={{display:'inline-flex',alignItems:'center',gap:3,background:'#fff',border:'1.5px solid var(--or-l)',borderRadius:999,padding:'3px 5px 3px 10px'}}>
+                    <input value={f} onChange={e=>filterPatch(m.key,i,e.target.value)} placeholder="이름" style={{border:'none',outline:'none',width:Math.max(46,(String(f).length+1)*11),fontSize:12,fontWeight:700,color:'var(--navy)',background:'transparent'}}/>
+                    <button onClick={()=>filterMove(m.key,i,-1)} disabled={i===0} title="앞으로" style={{border:'none',background:'transparent',color:'var(--text-sm)',cursor:'pointer',fontWeight:800,fontSize:15,opacity:i===0?.3:1}}>‹</button>
+                    <button onClick={()=>filterMove(m.key,i,1)} disabled={i===md.filters.length-1} title="뒤로" style={{border:'none',background:'transparent',color:'var(--text-sm)',cursor:'pointer',fontWeight:800,fontSize:15,opacity:i===md.filters.length-1?.3:1}}>›</button>
+                    <button onClick={()=>filterRemove(m.key,i)} title="삭제" style={{border:'none',background:'var(--red-l)',color:'var(--red)',borderRadius:'50%',width:18,height:18,cursor:'pointer',fontWeight:900,fontSize:11}}>×</button>
+                  </div>
+                ))}
+                <button onClick={()=>filterAdd(m.key)} style={{border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',borderRadius:999,padding:'5px 12px',fontSize:12,fontWeight:800,cursor:'pointer'}}>+ 필터 추가</button>
+              </div>
+            </div>
+
+            {/* 카드 목록 */}
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:12}}>
+              {md.cards.length===0 && <div style={{padding:'18px',textAlign:'center',color:'var(--text-sm)',fontSize:12.5,fontWeight:700,background:'var(--bg)',borderRadius:10,border:'1px dashed var(--border)'}}>카드가 없습니다 — 아래 '+ 카드 추가' (없으면 기존 기본 카드 유지)</div>}
+              {md.cards.map((c,i)=>{ const up=uploading===m.key+':card:'+i;
+                return (
+                  <div key={i} style={{display:'flex',gap:10,padding:10,background:'var(--bg)',borderRadius:10,border:'1px solid var(--border)'}}>
+                    <div style={{width:84,flexShrink:0}}>
+                      <div style={{position:'relative',width:84,height:84,borderRadius:8,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                        {c.image?<img src={c.image} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontSize:10,color:'var(--text-sm)',fontWeight:700}}>없음</span>}
+                        {up&&<div style={{position:'absolute',inset:0,background:'rgba(255,255,255,.7)',display:'grid',placeItems:'center',fontSize:10,fontWeight:800,color:'var(--or-d)'}}>업로드</div>}
                       </div>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{display:'flex',gap:6}}>
-                          <label style={{flex:1,textAlign:'center',padding:'8px',borderRadius:8,border:'1.5px solid var(--or)',color:'var(--or-d)',background:'#fff',fontSize:11.5,fontWeight:800,cursor:up?'wait':'pointer'}}>
-                            {b.image?'이미지 교체':'이미지 업로드'}
-                            <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload(slot.key,i,'image',f); e.target.value='';}} style={{display:'none'}}/>
-                          </label>
-                          <button onClick={()=>moveCard(slot.key,i,-1)} disabled={i===0} title="위로" style={{width:30,borderRadius:8,border:'1px solid var(--border)',background:'#fff',cursor:i===0?'default':'pointer',opacity:i===0?0.4:1,fontWeight:800}}>↑</button>
-                          <button onClick={()=>moveCard(slot.key,i,1)} disabled={i===list.length-1} title="아래로" style={{width:30,borderRadius:8,border:'1px solid var(--border)',background:'#fff',cursor:i===list.length-1?'default':'pointer',opacity:i===list.length-1?0.4:1,fontWeight:800}}>↓</button>
-                          <button onClick={()=>removeCard(slot.key,i)} title="삭제" style={{width:30,borderRadius:8,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',cursor:'pointer',fontWeight:900}}>×</button>
-                        </div>
-                        <input value={b.link||''} onChange={e=>patchCard(slot.key,i,{link:e.target.value})} placeholder="클릭 시 상품 링크 (예: /product/detail.html?product_no=123)" style={field}/>
-                        {slot.hasTitle && <input value={b.title||''} onChange={e=>patchCard(slot.key,i,{title:e.target.value})} placeholder="카드 캡션(선택) — 예: 철재 누수+코팅 패키지" style={field}/>}
+                      <label style={{display:'block',textAlign:'center',padding:'6px',marginTop:5,borderRadius:7,border:'1.5px solid var(--or)',color:'var(--or-d)',background:'#fff',fontSize:10.5,fontWeight:800,cursor:up?'wait':'pointer'}}>
+                        {c.image?'교체':'사진'}
+                        <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload(m.key+':card:'+i,f,url=>cardPatch(m.key,i,{image:url})); e.target.value='';}} style={{display:'none'}}/>
+                      </label>
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <input value={c.title} onChange={e=>cardPatch(m.key,i,{title:e.target.value})} placeholder="제목 (예: 옥상 누수 풀패키지)" style={inp}/>
+                      <input value={c.link} onChange={e=>cardPatch(m.key,i,{link:e.target.value})} placeholder="상품 링크" style={inp}/>
+                      <div style={{display:'flex',gap:6,marginTop:6,alignItems:'center'}}>
+                        <select value={c.cat} onChange={e=>cardPatch(m.key,i,{cat:e.target.value})} style={{flex:1,padding:'7px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,fontWeight:700,color:'var(--navy)',background:'#fff'}}>
+                          <option value="">필터 없음(전체만)</option>
+                          {md.filters.map((f,x)=><option key={x} value={f}>{f}</option>)}
+                        </select>
+                        <button onClick={()=>cardMove(m.key,i,-1)} disabled={i===0} style={{width:28,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontWeight:800,cursor:'pointer',opacity:i===0?.4:1}}>↑</button>
+                        <button onClick={()=>cardMove(m.key,i,1)} disabled={i===md.cards.length-1} style={{width:28,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontWeight:800,cursor:'pointer',opacity:i===md.cards.length-1?.4:1}}>↓</button>
+                        <button onClick={()=>cardRemove(m.key,i)} style={{width:28,borderRadius:7,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontWeight:900,cursor:'pointer'}}>×</button>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-              <button onClick={()=>addCard(slot.key)} style={{marginTop:12,width:'100%',padding:'10px',borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>+ 카드 추가</button>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
+            <button onClick={()=>cardAdd(m.key)} style={{marginTop:12,width:'100%',padding:10,borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>+ 카드 추가</button>
+          </div>
+        );
+      })}
+
       <div style={{marginTop:20,display:'flex',justifyContent:'flex-end'}}>
         <button onClick={save} disabled={saving} style={{padding:'12px 28px',borderRadius:10,fontSize:13.5,fontWeight:900,color:'#fff',background:saving?'var(--text-sm)':'linear-gradient(135deg, var(--or), var(--or-d))',cursor:saving?'wait':'pointer'}}>{saving?'저장 중...':'저장'}</button>
       </div>
@@ -12470,7 +12456,6 @@ function App() {
         {active === 'events' && <EventsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'best' && <BestPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'guidedetail' && <GuideDetailPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
-        {active === 'delivery' && <DeliveryPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'packages' && <PackagesPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'banners' && <BannersPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'homecards' && <HomeCardsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}

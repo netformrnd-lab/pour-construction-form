@@ -1,0 +1,52 @@
+<!-- ============================================================
+  product-tabs — '제품 보기' 카테고리 탭바 (카페24 product/list.html 상단 삽입)
+  용도: 카페24 상품분류 목록 스킨(product/list.html)의 상품 리스트 '위'에 붙여넣으면
+        모든 상품/분류 페이지 상단에 이 탭바가 뜨고, 아래로 카페24 자동진열 상품이 그대로 노출.
+        → 탭바(우리 디자인) + 카페24 실제 상품(링크 정확·찜·장바구니·품절 자동)
+  ★ 설정: 아래 TABS 의 cate_no(분류번호)만 실제 값으로 채우세요. '방수'만 미입력 상태.
+  ============================================================ -->
+<div class="ptv">
+  <h2 class="ptv-title">제품 보기</h2>
+  <nav class="ptv-tabs" data-ptv-tabs aria-label="제품 카테고리"></nav>
+</div>
+<style>
+.ptv{ max-width:1256px; margin:0 auto; padding:28px 20px 8px; text-align:center;
+  font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.ptv *{ box-sizing:border-box; }
+.ptv-title{ font-size:34px; font-weight:900; letter-spacing:-0.04em; color:#111; margin-bottom:22px; }
+.ptv-tabs{ display:inline-flex; flex-wrap:wrap; justify-content:center; gap:30px; }
+.ptv-tab{ padding:9px 18px; border-radius:999px; font-size:17px; font-weight:700; color:#111;
+  text-decoration:none; letter-spacing:-0.02em; white-space:nowrap; transition:background .15s,color .15s; }
+.ptv-tab:hover{ background:#F2F3F7; }
+.ptv-tab.on{ background:#33373D; color:#fff; }
+@media (max-width:700px){
+  .ptv{ padding:20px 14px 4px; }
+  .ptv-title{ font-size:25px; margin-bottom:16px; }
+  .ptv-tabs{ gap:16px 18px; }
+  .ptv-tab{ font-size:15px; padding:8px 14px; }
+}
+</style>
+<script>
+(function(){
+  // ★ [탭이름, 카페24 분류번호(cate_no)] — '방수'만 실제 번호 넣으면 완성
+  var TABS = [
+    ['전체',      '73'],   // 제품메인카테고리(전체) — 다르면 교체
+    ['패키지',    '71'],
+    ['방수',      ''],     // ← 방수 분류번호 입력
+    ['균열보수',  '88'],
+    ['도장·도색', '74'],
+    ['페인트',    '75'],
+    ['보강자재',  '92'],
+    ['부자재',    '84'],
+    ['안전용품',  '63']
+  ];
+  var box = document.querySelector('[data-ptv-tabs]');
+  if(!box) return;
+  var cur = '';
+  try{ cur = new URLSearchParams(location.search).get('cate_no') || ''; }catch(e){}
+  box.innerHTML = TABS.filter(function(t){ return t[1]; }).map(function(t){
+    var on = (String(cur) === String(t[1])) ? ' on' : '';
+    return '<a class="ptv-tab'+on+'" href="/product/list.html?cate_no='+t[1]+'">'+t[0]+'</a>';
+  }).join('');
+})();
+</script>

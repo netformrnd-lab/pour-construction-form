@@ -6785,12 +6785,14 @@ const HC_MATERIALS=[
 ];
 const HC_DEFAULT_FILTERS=['방수','코팅','보수','단열·차열','밑칠'];
 const HC_GRID_CATS=[{key:'wallpaper',label:'벽지'},{key:'wood',label:'목재'},{key:'metal',label:'철재'},{key:'glass',label:'유리'},{key:'tile',label:'타일'},{key:'cement',label:'시멘트/벽돌'}];
+const HC_SWATCHES=[{key:'all',label:'인기',sub:'BEST SELLER'},{key:'wallpaper',label:'벽지',sub:'도배·시트·풀'},{key:'wood',label:'목재',sub:'우드·마루'},{key:'metal',label:'철재',sub:'메탈·방청'},{key:'glass',label:'유리',sub:'글래스·코팅'},{key:'tile',label:'타일',sub:'줄눈·욕실'},{key:'cement',label:'시멘트/벽돌',sub:'벽돌·균열·보수'}];
 function HomeCardsPage({showToast}){
   const { audit } = useActiveStaffContext();
   const normHero=(v)=>Array.isArray(v)?v.map(x=>({image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',kicker:x.kicker||'',title:x.title||'',desc:x.desc||'',tags:x.tags||'',cta:x.cta||''})):[];
   const normMat=(v)=>{ if(Array.isArray(v)) return {filters:HC_DEFAULT_FILTERS.slice(),cards:v.map(c=>({image:c.image||'',link:c.link||'',title:c.title||'',cat:c.cat||''}))}; v=v||{}; return {filters:(Array.isArray(v.filters)&&v.filters.length)?v.filters.filter(Boolean):HC_DEFAULT_FILTERS.slice(),cards:Array.isArray(v.cards)?v.cards.map(c=>({image:c.image||'',link:c.link||'',title:c.title||'',cat:c.cat||''})):[]}; };
   const normGrid=(v)=>Array.isArray(v)?v.map(c=>({image:c.image||'',title:c.title||'',meta:c.meta||'',price:c.price||'',unit:c.unit||'',link:c.link||'',cat:c.cat||'',brand:c.brand||'',badge:c.badge||''})):[];
-  const [data,setData]=useState({hero:[],metal:normMat(),wood:normMat(),stone:normMat(),homeGrid:[]});
+  const normSw=(v)=>{ v=v||{}; const o={}; HC_SWATCHES.forEach(s=>{ const x=v[s.key]||{}; o[s.key]={image:x.image||'',label:x.label||'',sub:x.sub||''}; }); return o; };
+  const [data,setData]=useState({hero:[],metal:normMat(),wood:normMat(),stone:normMat(),homeGrid:[],homeSwatches:normSw()});
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState(null);
@@ -6798,7 +6800,7 @@ function HomeCardsPage({showToast}){
   useEffect(()=>{ (async()=>{
     try{
       const d=await db.collection('config').doc('pourstoreHomeCards').get();
-      if(d.exists){ const v=d.data()||{}; setData({hero:normHero(v.hero),metal:normMat(v.metal),wood:normMat(v.wood),stone:normMat(v.stone),homeGrid:normGrid(v.homeGrid)}); }
+      if(d.exists){ const v=d.data()||{}; setData({hero:normHero(v.hero),metal:normMat(v.metal),wood:normMat(v.wood),stone:normMat(v.stone),homeGrid:normGrid(v.homeGrid),homeSwatches:normSw(v.homeSwatches)}); }
       console.log('[homecards] 로드', d.exists);
     }catch(e){ console.error('[homecards] 로드 실패:',e); showToast('로드 실패: '+e.message,'error'); }
     setLoading(false);
@@ -6827,6 +6829,9 @@ function HomeCardsPage({showToast}){
   const gridPatch=(i,part)=>setData(p=>({...p,homeGrid:p.homeGrid.map((c,x)=>x===i?{...c,...part}:c)}));
   const gridMove=(i,dir)=>setData(p=>{const a=[...p.homeGrid];const j=i+dir;if(j<0||j>=a.length)return p;const t=a[i];a[i]=a[j];a[j]=t;return{...p,homeGrid:a};});
 
+  // 재질 스와치(동그란 아이콘) ops
+  const swPatch=(key,part)=>setData(p=>({...p,homeSwatches:{...p.homeSwatches,[key]:{...p.homeSwatches[key],...part}}}));
+
   const upload=async(uid,file,cb)=>{
     if(!file)return;
     if(!file.type.startsWith('image/')){ showToast('이미지(png/jpg)만 가능','error'); return; }
@@ -6847,7 +6852,8 @@ function HomeCardsPage({showToast}){
       const hero=data.hero.filter(h=>h.image||h.title||h.kicker).map(h=>({image:h.image||'',imageMobile:h.imageMobile||'',link:(h.link||'').trim(),kicker:(h.kicker||'').trim(),title:(h.title||'').trim(),desc:(h.desc||'').trim(),tags:(h.tags||'').trim(),cta:(h.cta||'').trim()}));
       const mat=(m)=>({filters:m.filters.map(f=>(f||'').trim()).filter(Boolean),cards:m.cards.filter(c=>c.image).map(c=>({image:c.image,link:(c.link||'').trim(),title:(c.title||'').trim(),cat:(c.cat||'').trim()}))});
       const homeGrid=data.homeGrid.filter(c=>c.image).map(c=>({image:c.image,title:(c.title||'').trim(),meta:(c.meta||'').trim(),price:(c.price||'').trim(),unit:(c.unit||'').trim(),link:(c.link||'').trim(),cat:(c.cat||'').trim(),brand:(c.brand||'').trim(),badge:(c.badge||'').trim()}));
-      await db.collection('config').doc('pourstoreHomeCards').set({hero,metal:mat(data.metal),wood:mat(data.wood),stone:mat(data.stone),homeGrid,...audit.update()},{merge:true});
+      const homeSwatches={}; HC_SWATCHES.forEach(s=>{ const x=data.homeSwatches[s.key]||{}; homeSwatches[s.key]={image:x.image||'',label:(x.label||'').trim(),sub:(x.sub||'').trim()}; });
+      await db.collection('config').doc('pourstoreHomeCards').set({hero,metal:mat(data.metal),wood:mat(data.wood),stone:mat(data.stone),homeGrid,homeSwatches,...audit.update()},{merge:true});
       showToast('저장되었습니다 — 스토어에 반영됩니다');
     }catch(e){ console.error('[homecards] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
     setSaving(false);
@@ -6964,6 +6970,36 @@ function HomeCardsPage({showToast}){
           </div>
         );
       })}
+
+      {/* ===== 재질 스와치(동그란 아이콘) ===== */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>
+        <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}>재질 스와치 아이콘 <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>(7개 동그란 버튼)</span></div>
+        <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:12}}>"재질로 골라보세요" 위 <b>동그란 아이콘</b>(인기·벽지·목재·철재·유리·타일·시멘트/벽돌)을 사진으로 교체. 이름·소제목도 바꿀 수 있어요. <b>사진을 안 넣으면 기존 기본 아이콘이 그대로 유지</b>됩니다. (권장: 정사각형 이미지)</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:12}}>
+          {HC_SWATCHES.map(s=>{ const sd=data.homeSwatches[s.key]||{image:'',label:'',sub:''}; const up=uploading==='sw:'+s.key;
+            return (
+              <div key={s.key} style={{display:'flex',gap:10,padding:10,background:'var(--bg)',borderRadius:10,border:'1px solid var(--border)',alignItems:'flex-start'}}>
+                <div style={{width:72,flexShrink:0,textAlign:'center'}}>
+                  <div style={{position:'relative',width:72,height:72,borderRadius:'50%',overflow:'hidden',background:'var(--or-pale)',border:'2px solid #fff',boxShadow:'0 4px 12px rgba(0,0,0,.12)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto'}}>
+                    {sd.image?<img src={sd.image} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontSize:10,color:'var(--text-sm)',fontWeight:800}}>기본</span>}
+                    {up&&<div style={{position:'absolute',inset:0,background:'rgba(255,255,255,.7)',display:'grid',placeItems:'center',fontSize:9.5,fontWeight:800,color:'var(--or-d)'}}>업로드</div>}
+                  </div>
+                  <label style={{display:'block',textAlign:'center',padding:'6px',marginTop:6,borderRadius:7,border:'1.5px solid var(--or)',color:'var(--or-d)',background:'#fff',fontSize:10.5,fontWeight:800,cursor:up?'wait':'pointer'}}>
+                    {sd.image?'교체':'사진'}
+                    <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload('sw:'+s.key,f,url=>swPatch(s.key,{image:url})); e.target.value='';}} style={{display:'none'}}/>
+                  </label>
+                  {sd.image && <button onClick={()=>swPatch(s.key,{image:''})} style={{marginTop:4,width:'100%',borderRadius:7,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontSize:10,fontWeight:800,cursor:'pointer',padding:'4px'}}>기본으로</button>}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:11,fontWeight:800,color:'var(--text-md)',marginBottom:2}}>{s.label} 자리</div>
+                  <input value={sd.label} onChange={e=>swPatch(s.key,{label:e.target.value})} placeholder={'이름 ('+s.label+')'} style={inp}/>
+                  <input value={sd.sub} onChange={e=>swPatch(s.key,{sub:e.target.value})} placeholder={'소제목 ('+s.sub+')'} style={inp}/>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* ===== 재질별 진열(홈 그리드) ===== */}
       <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>

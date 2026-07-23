@@ -357,6 +357,7 @@ const NAV = [
   { id: 'events',          icon: '🎉', label: '기획전(이벤트) 관리',   group: 'design' },
   { id: 'best',            icon: '🏆', label: '베스트 관리',           group: 'design' },
   { id: 'guidedetail',     icon: '📖', label: '시공가이드 상세',        group: 'design' },
+  { id: 'delivery',        icon: '🚚', label: '배송안내',              group: 'design' },
   { id: 'packages',        icon: '🧩', label: '패키지 구성 관리',     group: 'design' },
   { id: 'banners',         icon: '🖼', label: '메인 배너 관리',       group: 'design' },
   { id: 'products',        icon: '📦', label: '상품관리',           group: 'design' },
@@ -4830,6 +4831,96 @@ const blocksToBody=(blocks)=>(blocks||[]).map(b=>b.type==='image'?(b.url||''):(b
 // 기획전(이벤트) 관리 — 오늘의집 스타일 카드 (큰 이미지 + 상품 썸네일 줄)
 //   저장: config/pourstoreEvents {events:[...]} (보안규칙상 쓰기 허용 컬렉션) / 노출: event.html
 // ============================================================
+// ============================================================
+// 배송안내 — 텍스트/이미지 블록 편집
+//   저장: config/pourstoreDelivery {title, blocks:[]} / 노출: story/delivery.html
+// ============================================================
+function DeliveryPage({showToast}){
+  const [title,setTitle]=useState('배송안내');
+  const [blocks,setBlocks]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [uploading,setUploading]=useState(-1);
+  const DREF=()=>db.collection('config').doc('pourstoreDelivery');
+  useEffect(()=>{ (async()=>{
+    try{ const snap=await DREF().get(); const d=(snap.exists&&snap.data())||{}; if(d.title!=null) setTitle(d.title); setBlocks(Array.isArray(d.blocks)?d.blocks:[]); console.log('[배송안내] 로드'); }
+    catch(e){ console.error('[배송안내] 로드 실패(없으면 빈값):',e); }
+    setLoading(false);
+  })(); },[]);
+  const setBlockAt=(i,patch)=>setBlocks(blocks.map((b,j)=>j===i?{...b,...patch}:b));
+  const removeBlock=(i)=>{ if(!window.confirm('이 블록을 삭제할까요?'))return; setBlocks(blocks.filter((_,j)=>j!==i)); };
+  const moveBlock=(i,d)=>{ var j=i+d; if(j<0||j>=blocks.length)return; var a=blocks.slice(); var t=a[i];a[i]=a[j];a[j]=t; setBlocks(a); };
+  const addBlock=(b)=>setBlocks([...blocks,b]);
+  const upload=async(i,file)=>{
+    if(!file)return; if(!file.type.startsWith('image/')){ showToast('이미지 파일만 가능','error'); return; } if(file.size>20*1024*1024){ showToast('20MB 이하 이미지','error'); return; }
+    setUploading(i);
+    try{ const ts=Date.now(); const safe=file.name.replace(/[^\w.\-]/g,'_'); const snap=await storage.ref('POUR스토어_리뉴얼/delivery/'+ts+'_'+safe).put(file); const url=await snap.ref.getDownloadURL(); setBlockAt(i,{url:url}); }
+    catch(e){ console.error('[배송안내] 업로드 실패:',e); showToast('업로드 실패: '+(e&&e.message||e),'error'); }
+    setUploading(-1);
+  };
+  const save=async()=>{ setSaving(true);
+    try{ await DREF().set({title:title,blocks:blocks,updatedAt:new Date().toISOString()},{merge:true}); showToast('저장했어요 · 배송안내 페이지에 반영','success'); }
+    catch(e){ console.error('[배송안내] 저장 실패:',e); showToast('저장 실패: '+(e&&e.message||e),'error'); }
+    setSaving(false);
+  };
+  const field={width:'100%',padding:'10px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13.5,outline:'none',boxSizing:'border-box',fontFamily:'inherit'};
+  const addBtn=(txt,onClick)=>(<button onClick={onClick} style={{padding:'9px 15px',borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>{txt}</button>);
+  const iconBtn={width:28,height:28,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',lineHeight:1};
+  return (
+    <div style={{padding:'8px 4px'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:10}}>
+        <div>
+          <h1 style={{fontSize:20,fontWeight:900,color:'var(--navy)'}}>🚚 배송안내</h1>
+          <p style={{fontSize:12.5,color:'var(--text-md)',marginTop:4}}><b>텍스트·이미지</b>를 순서대로 넣어 배송안내 페이지를 구성해요. <b>delivery.html</b>에 노출됩니다.</p>
+        </div>
+        <button onClick={save} disabled={saving} style={{padding:'12px 26px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',background:saving?'var(--text-sm)':'linear-gradient(135deg, var(--navy), var(--navy2))',boxShadow:'0 4px 12px rgba(13,27,42,.2)',cursor:saving?'default':'pointer'}}>{saving?'저장 중…':'💾 저장'}</button>
+      </div>
+      {loading && <div style={{padding:'40px 0',textAlign:'center',color:'var(--text-sm)'}}>불러오는 중…</div>}
+      {!loading && <React.Fragment>
+        <div style={{background:'#fff',border:'1px solid var(--border)',borderRadius:12,padding:14,marginBottom:14,boxShadow:'var(--shadow)'}}>
+          <div style={{fontSize:12,fontWeight:800,color:'var(--navy)',marginBottom:6}}>페이지 제목</div>
+          <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="예: 배송안내" style={field}/>
+        </div>
+        {blocks.length===0 && <div style={{padding:'34px 0',textAlign:'center',color:'var(--text-sm)',fontSize:13,background:'#fff',borderRadius:12,border:'1px dashed var(--border)',marginBottom:12}}>아직 내용이 없어요. 아래에서 텍스트·이미지를 추가하세요.</div>}
+        <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:16}}>
+          {blocks.map(function(b,i){
+            var badge=b.type==='text'?'📝 텍스트':'🖼 이미지';
+            return (
+              <div key={i} style={{background:'#fff',border:'1px solid var(--border)',borderRadius:12,padding:14,boxShadow:'var(--shadow)'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                  <span style={{fontSize:12,fontWeight:900,color:'var(--navy)',background:'var(--bg)',padding:'4px 10px',borderRadius:7}}>{badge}</span>
+                  <input value={b.label||''} onChange={e=>setBlockAt(i,{label:e.target.value})} placeholder="소제목(선택) 예: 배송비 / 교환·반품" style={{...field,flex:1,fontSize:12.5,padding:'7px 10px'}}/>
+                  <button onClick={()=>moveBlock(i,-1)} disabled={i===0} style={{...iconBtn,opacity:i===0?.35:1}}>↑</button>
+                  <button onClick={()=>moveBlock(i,1)} disabled={i===blocks.length-1} style={{...iconBtn,opacity:i===blocks.length-1?.35:1}}>↓</button>
+                  <button onClick={()=>removeBlock(i)} style={{...iconBtn,color:'var(--red)'}}>×</button>
+                </div>
+                {b.type==='text' && <React.Fragment>
+                  <div style={{display:'flex',gap:6,marginBottom:8}}>
+                    {[['head','제목'],['big','크게'],['normal','보통']].map(function(sz){ var on=(b.size||'normal')===sz[0]; return <button key={sz[0]} onClick={()=>setBlockAt(i,{size:sz[0]})} style={{padding:'5px 11px',borderRadius:7,border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or)':'#fff',color:on?'#fff':'var(--text-md)',fontSize:11.5,fontWeight:800,cursor:'pointer'}}>{sz[1]}</button>; })}
+                  </div>
+                  <textarea value={b.text||''} onChange={e=>setBlockAt(i,{text:e.target.value})} placeholder="내용을 입력하세요 (줄바꿈 그대로 반영)" rows={4} style={{...field,resize:'vertical',lineHeight:1.6}}/>
+                </React.Fragment>}
+                {b.type==='image' && <div style={{display:'flex',gap:12,alignItems:'flex-start',flexWrap:'wrap'}}>
+                  <div style={{width:150,height:150,borderRadius:10,border:'1px solid var(--border)',background:'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
+                    {b.url?<img src={b.url} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}}/>:<span style={{fontSize:11,color:'var(--text-sm)'}}>미리보기</span>}
+                  </div>
+                  <div style={{flex:1,minWidth:180}}>
+                    <label style={{display:'inline-block',padding:'9px 15px',borderRadius:9,border:'1.5px solid var(--or)',background:uploading===i?'var(--or-pale)':'#fff',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer',marginBottom:8}}>{uploading===i?'업로드 중…':'📤 이미지 업로드'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)upload(i,f); e.target.value='';}}/></label>
+                    <input value={b.url||''} onChange={e=>setBlockAt(i,{url:e.target.value})} placeholder="또는 이미지 주소(URL) 직접 입력" style={{...field,fontSize:12,padding:'8px 10px'}}/>
+                  </div>
+                </div>}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          {addBtn('＋ 텍스트', ()=>addBlock({type:'text',text:'',size:'normal',label:''}))}
+          {addBtn('＋ 이미지', ()=>addBlock({type:'image',url:'',label:''}))}
+        </div>
+      </React.Fragment>}
+    </div>
+  );
+}
 // ============================================================
 // 시공가이드 상세 — 유형별 콘텐츠(텍스트/영상/이미지) 편집
 //   저장: config/pourstoreGuideDetail {types:{'1'..'4':{title,blocks:[]}}} / 노출: guide-detail.html
@@ -12264,6 +12355,7 @@ function App() {
         {active === 'events' && <EventsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'best' && <BestPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'guidedetail' && <GuideDetailPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'delivery' && <DeliveryPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'packages' && <PackagesPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'banners' && <BannersPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'staff' && <StaffPage onToast={setToast} />}

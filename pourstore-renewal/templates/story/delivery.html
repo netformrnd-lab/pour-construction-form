@@ -1,8 +1,7 @@
 <!-- ============================================================
-  case.html — POUR스토어 시공사례 전용 페이지 (공용 헤더 embed 포함)
-  용도: 카페24 pourstore_renewal/story/case.html
-  데이터: Firestore pourstore-postings (type=='advanced')
-  카드 클릭 → pour-story.html#post-<id> 로 본문 열기
+  delivery.html — 배송안내 (공용 헤더 embed 포함)
+  용도: 카페24 pourstore_renewal/story/delivery.html (퀵메뉴 '배송안내' 목적지)
+  콘텐츠(텍스트/이미지 블록) — Firestore config/pourstoreDelivery / admin에서 편집
  ============================================================ -->
 <!-- ★ 모바일 반응형 필수: 뷰포트 meta 보장 (카페24가 head에서 누락/무효화 시 강제 주입·교정)
      — 이게 없으면 모바일이 ~980px로 렌더되어 모든 반응형(@media)이 발동 안 함 -->
@@ -1375,93 +1374,49 @@ var PM_POSTS = [];
 </script>
 </section>
 
-
-<!-- ===== 시공사례 본문 ===== -->
+<!-- ===== 배송안내 본문 ===== -->
 <style>
-  .pcase *{box-sizing:border-box;margin:0;padding:0;}
-  .pcase{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;max-width:1180px;margin:0 auto;padding:26px 20px 70px;-webkit-font-smoothing:antialiased;}
-  .pcase-head{padding:6px 2px 22px;border-bottom:1px solid #F2F3F5;margin-bottom:22px;}
-  .pcase-head .eyebrow{display:inline-block;font-size:12.5px;font-weight:800;color:#E8780F;letter-spacing:-.02em;margin-bottom:8px;}
-  .pcase-head h1{font-size:27px;font-weight:900;letter-spacing:-.04em;color:#111;}
-  .pcase-head p{margin-top:8px;font-size:14.5px;color:#8a8f98;font-weight:600;letter-spacing:-.02em;word-break:keep-all;}
-  .pcase-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px 24px;}
-  .pcase-card{display:block;text-decoration:none;color:inherit;}
-  .pcase-th{position:relative;width:100%;aspect-ratio:4/3;border-radius:14px;overflow:hidden;background:#f1f3f5;box-shadow:0 6px 20px rgba(0,0,0,.06);}
-  .pcase-th>img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease;}
-  .pcase-card:hover .pcase-th>img{transform:scale(1.04);}
-  .pcase-th .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#c4c8ce;}
-  .pcase-th .ph svg{width:44px;height:44px;}
-  .pcase-badge{position:absolute;top:12px;left:12px;background:#E8780F;color:#fff;font-size:11.5px;font-weight:800;letter-spacing:-.02em;padding:5px 11px;border-radius:999px;}
-  .pcase-ct{display:block;margin:14px 0 5px;font-size:12px;font-weight:800;color:#E8780F;letter-spacing:-.02em;}
-  .pcase-tt{font-size:17px;font-weight:800;color:#191F28;letter-spacing:-.035em;line-height:1.34;word-break:keep-all;}
-  .pcase-sm{margin-top:7px;font-size:13.5px;color:#6B7280;font-weight:500;line-height:1.5;letter-spacing:-.02em;word-break:keep-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  .pcase-date{margin-top:10px;font-size:12.5px;color:#ADB2BB;font-weight:600;}
-  .pcase-empty,.pcase-loading{grid-column:1/-1;padding:80px 0;text-align:center;color:#adb2bb;font-size:14px;font-weight:600;}
-  @media (max-width:900px){ .pcase-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 20px;} }
-  @media (max-width:600px){
-    .pcase{padding:20px 16px 56px;}
-    .pcase-grid{grid-template-columns:1fr;gap:24px;}
-    .pcase-head h1{font-size:22px;}
-    .pcase-tt{font-size:16px;}
-  }
+  .dv{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;max-width:900px;margin:0 auto;padding:42px 20px 90px;-webkit-font-smoothing:antialiased;}
+  .dv-title{text-align:center;font-size:32px;font-weight:900;letter-spacing:-.04em;color:#111;margin-bottom:38px;}
+  .dv-block{margin:0 auto 24px;max-width:860px;}
+  .dv-b-label{font-size:17px;font-weight:900;color:#111;margin:0 0 12px;letter-spacing:-.02em;}
+  .dv-block.dv-text{font-size:15px;line-height:1.85;color:#374151;letter-spacing:-.01em;word-break:keep-all;white-space:pre-wrap;}
+  .dv-block.dv-text.big{font-size:18px;}
+  .dv-block.dv-text.head{font-size:22px;font-weight:900;color:#111;text-align:center;}
+  .dv-block img{width:100%;border-radius:10px;display:block;}
+  .dv-empty{text-align:center;color:#9CA3AF;padding:70px 0;font-size:14px;font-weight:600;}
+  @media (max-width:640px){ .dv{padding:28px 14px 60px;} .dv-title{font-size:25px;margin-bottom:28px;} }
 </style>
 
-<div class="pcase">
-  <div class="pcase-head">
-    <span class="eyebrow">POUR스토어 시공사례</span>
-    <h1>시공사례</h1>
-    <p>노후 건물의 누수·균열을 실제로 해결한 POUR 시공 이야기를 모았어요. 문제 진단부터 시공 과정, 사용 자재까지 한눈에 확인해 보세요.</p>
-  </div>
-  <div class="pcase-grid" data-grid>
-    <div class="pcase-loading" data-loading>불러오는 중…</div>
-  </div>
+<div class="dv">
+  <h1 class="dv-title" data-dv-title>배송안내</h1>
+  <div data-dv-content><div class="dv-empty">불러오는 중…</div></div>
 </div>
 
 <script type="module">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-const firebaseConfig = {
-  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
-  authDomain: "pour-app-new.firebaseapp.com", projectId: "pour-app-new",
-  storageBucket: "pour-app-new.firebasestorage.app", messagingSenderId: "411031141847",
-  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
-};
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const app = getApps().length ? getApps()[0] : initializeApp({apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"});
 const db = getFirestore(app);
-
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
-function dateOf(p){ var m=String(p.displayDate||p.createdAt||p.updatedAt||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[1]+'.'+m[2]+'.'+m[3]):''; }
-function thumbOf(p){ var t=p.thumbnail||p.thumb||p.image; return (t&&String(t).trim())?String(t).trim():''; }
-const PH_SVG='<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5h16v14H4z"/><path d="M4 15l4-4 3 3 4-5 5 6"/></svg></div>';
-
-function cardHtml(p){
-  var link='/pourstore_renewal/story/pour-story.html#post-'+encodeURIComponent(p.id);
-  var th=thumbOf(p);
-  var img=th ? '<img src="'+esc(th)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' : PH_SVG;
-  var sum=p.summary ? '<p class="pcase-sm">'+esc(p.summary)+'</p>' : '';
-  var dt=dateOf(p);
-  return '<a class="pcase-card" href="'+link+'">'
-    + '<div class="pcase-th">'+img+'<span class="pcase-badge">시공사례</span></div>'
-    + '<span class="pcase-ct">시공사례</span>'
-    + '<div class="pcase-tt">'+esc(p.title||'')+'</div>'
-    + sum
-    + (dt?'<div class="pcase-date">'+dt+'</div>':'')
-    + '</a>';
+function blockHtml(b){
+  if(!b||!b.type) return '';
+  var lbl=b.label?('<div class="dv-b-label">'+esc(b.label)+'</div>'):'';
+  if(b.type==='text'){ if(!(b.text||'').trim()) return ''; var sz=b.size==='head'?' head':(b.size==='big'?' big':''); return lbl+'<div class="dv-block dv-text'+sz+'">'+esc(b.text)+'</div>'; }
+  if(b.type==='image'){ if(!(b.url||'').trim()) return ''; return lbl+'<div class="dv-block"><img src="'+esc(b.url)+'" alt="" loading="lazy"></div>'; }
+  return '';
 }
-
 (async function(){
-  var grid=document.querySelector('[data-grid]');
+  var titleEl=document.querySelector('[data-dv-title]');
+  var contentEl=document.querySelector('[data-dv-content]');
   try{
-    var snap=await getDocs(collection(db,'pourstore-postings'));
-    var list=snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); })
-      .filter(function(p){ return p && p.active!==false && p.type==='advanced'; });
-    list.sort(function(a,b){ var o=(a.order==null?999:a.order)-(b.order==null?999:b.order); return o!==0?o:String(b.createdAt||'').localeCompare(String(a.createdAt||'')); });
-    console.log('[case] 시공사례 '+list.length+'건 노출');
-    if(!list.length){ grid.innerHTML='<div class="pcase-empty">등록된 시공사례가 없습니다.</div>'; return; }
-    grid.innerHTML=list.map(cardHtml).join('');
-  }catch(e){
-    console.error('[case] 로드 실패:', e);
-    grid.innerHTML='<div class="pcase-empty">시공사례를 불러오지 못했어요. 잠시 후 새로고침해 주세요.</div>';
-  }
+    var snap=await getDoc(doc(db,'config','pourstoreDelivery'));
+    var d=(snap.exists()&&snap.data())||{};
+    if((d.title||'').trim()) titleEl.textContent=d.title.trim();
+    var blocks=Array.isArray(d.blocks)?d.blocks:[];
+    var html=blocks.map(blockHtml).join('');
+    contentEl.innerHTML=html || '<div class="dv-empty">준비 중인 안내예요.</div>';
+    console.log('[배송안내] 블록 '+blocks.length+'개');
+  }catch(e){ console.warn('[배송안내] 로드 실패:', e && e.message); contentEl.innerHTML='<div class="dv-empty">준비 중인 안내예요.</div>'; }
 })();
 </script>

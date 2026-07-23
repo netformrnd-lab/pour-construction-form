@@ -506,4 +506,31 @@
   resetTimer();
 })();
 </script>
+
+<!-- ===== 홈리페어×홈데코 히어로 — 관리(config/pourstoreHomeCards.hero) 실사 사진으로 교체 ===== -->
+<style>.slide-right img{display:block;width:100%;height:100%;object-fit:cover}</style>
+<script>
+(function(){
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function apply(data){
+    var hero=(data&&data.hero)||[]; if(!hero.length) return; var used=false;
+    document.querySelectorAll('#carousel .slide').forEach(function(slide,i){
+      var h=hero[i]; if(!h||!h.image) return;
+      var right=slide.querySelector('.slide-right'); if(right){ right.innerHTML='<img src="'+esc(h.image)+'" alt="" loading="lazy">'; used=true; }
+      var cta=slide.querySelector('.slide-cta'); if(cta && (h.link||'').trim()) cta.setAttribute('href',(h.link||'').trim());
+    });
+    if(used){ var note=document.querySelector('.carousel-mockup-note'); if(note) note.style.display='none'; }
+  }
+  (async function(){
+    try{
+      var a=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      var fs=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      var cfg={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
+      var app=a.getApps().length?a.getApps()[0]:a.initializeApp(cfg);
+      var snap=await fs.getDoc(fs.doc(fs.getFirestore(app),'config','pourstoreHomeCards'));
+      if(snap.exists()) apply(snap.data()||{});
+    }catch(e){ console.error('[pour-04-home] 홈카드 히어로 로드 실패:',e); }
+  })();
+})();
+</script>
 </section>

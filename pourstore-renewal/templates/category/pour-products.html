@@ -1339,7 +1339,7 @@ var PM_POSTS = [];
   .pv-tabs{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid #EEF0F2;margin:0 -20px 22px;padding:10px 20px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
   .pv-tabs::-webkit-scrollbar{display:none;}
   .pv-tabs-inner{display:inline-flex;gap:8px;white-space:nowrap;}
-  .pv-tab{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;background:#F4F5F6;color:#4B5563;font-size:14px;font-weight:700;letter-spacing:-.02em;cursor:pointer;transition:background .15s,color .15s;font-family:inherit;text-decoration:none;border:0;}
+  .pv-tab{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;background:#F4F5F6;color:#4B5563;font-size:14px;font-weight:700;letter-spacing:-.02em;cursor:pointer;transition:background .15s,color .15s;}
   .pv-tab:hover{background:#EAECEF;}
   .pv-tab.on{background:#111;color:#fff;}
   .pv-tab .cnt{font-size:12px;font-weight:800;opacity:.55;}
@@ -1424,8 +1424,6 @@ function classify(name){
 }
 // 탭 노출 순서 (실제 상품이 있는 탭만 표시)
 var TAB_ORDER=['패키지','방수','균열보수','도장·도색','페인트','보강자재','부자재','안전용품','기타'];
-// 링크 탭: 격자 필터 대신 기존 페이지로 이동 (패키지 → 신규 입고 패키지 쇼케이스)
-var TAB_LINKS={'패키지':'/product/list.html'};
 
 function codeOf(p){ var c=(p.channels&&p.channels.imweb)||p.imwebId||''; return String(c).trim(); }
 function thumbOf(p){ var t=p.thumbnail||p.thumb||p.image; return (t&&String(t).trim())?String(t).trim():''; }
@@ -1467,15 +1465,11 @@ function cardHtml(p){
 
     // 탭별 개수
     var counts={}; list.forEach(function(p){ counts[p._tab]=(counts[p._tab]||0)+1; });
-    var tabs=['전체'].concat(TAB_ORDER.filter(function(t){ return counts[t] || TAB_LINKS[t]; }));
+    var tabs=['전체'].concat(TAB_ORDER.filter(function(t){ return counts[t]; }));
 
     function tabBtn(t){
-      if(TAB_LINKS[t]){
-        // 링크 탭: 클릭 시 기존 페이지로 이동 (a 태그 → JS 없이도 동작)
-        return '<a class="pv-tab" href="'+esc(TAB_LINKS[t])+'" data-tab="'+esc(t)+'">'+esc(t)+' <span class="cnt" aria-hidden="true">→</span></a>';
-      }
       var c=(t==='전체')?list.length:counts[t];
-      return '<button class="pv-tab" type="button" data-tab="'+esc(t)+'">'+esc(t)+' <span class="cnt">'+c+'</span></button>';
+      return '<button class="pv-tab" data-tab="'+esc(t)+'">'+esc(t)+' <span class="cnt">'+c+'</span></button>';
     }
     tabsInner.innerHTML=tabs.map(tabBtn).join('');
 
@@ -1485,11 +1479,10 @@ function cardHtml(p){
       grid.innerHTML=items.length?items.map(cardHtml).join(''):'<div class="pv-empty">해당 카테고리에 제품이 없습니다.</div>';
       Array.prototype.forEach.call(tabsInner.querySelectorAll('.pv-tab'),function(b){ b.classList.toggle('on', b.getAttribute('data-tab')===tab); });
     }
-    tabsInner.addEventListener('click',function(e){ var b=e.target.closest('.pv-tab'); if(!b)return; var t=b.getAttribute('data-tab'); if(TAB_LINKS[t]) return; /* 링크 탭은 a 태그가 기본 이동 처리 */ render(t); document.querySelector('.pv-head').scrollIntoView({behavior:'smooth',block:'start'}); });
+    tabsInner.addEventListener('click',function(e){ var b=e.target.closest('.pv-tab'); if(!b)return; render(b.getAttribute('data-tab')); document.querySelector('.pv-head').scrollIntoView({behavior:'smooth',block:'start'}); });
 
-    // #cat=방수 처럼 해시로 특정 탭 진입 지원 (링크 탭이면 해당 페이지로 이동)
+    // #cat=방수 처럼 해시로 특정 탭 진입 지원
     var hash=decodeURIComponent((location.hash||'').replace(/^#cat=/,'').replace(/^#/,''));
-    if(hash && TAB_LINKS[hash]){ location.href=TAB_LINKS[hash]; return; }
     render(tabs.indexOf(hash)>=0?hash:'전체');
   }catch(e){
     console.error('[제품보기] 로드 실패:', e);

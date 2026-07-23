@@ -1212,4 +1212,30 @@ var PM_POSTS = [];
   }
 })();
 </script>
+<script>
+/* ============================================================
+   빠른메뉴 아이콘 링크 복원 — 카페24 편집기가 정적 href를 #로 치환해도,
+   로드 후 JS로 실제 링크를 다시 심어 확실히 연결한다. (메뉴명으로 매칭)
+   ============================================================ */
+(function(){
+  var MAP = {
+    '공급제휴'      : '/pourstore_renewal/Supply/Supply.html',
+    '전시장'        : '/pourstore_renewal/showroom/pour-showroom.html',
+    '대리점'        : '/pourstore_renewal/dealers/dealers.html',
+    '파트너사협약'  : '/pourstore_renewal/partner/partner01.html'
+  };
+  function apply(){
+    var els = document.querySelectorAll('.psm1-cats .psm1-cat');
+    Array.prototype.forEach.call(els, function(a){
+      var nm = a.querySelector('.psm1-cat-name'); if(!nm) return;
+      var url = MAP[(nm.textContent||'').trim()];
+      if(url){ a.setAttribute('href', url); }
+    });
+  }
+  if(document.readyState !== 'loading') apply();
+  document.addEventListener('DOMContentLoaded', apply);
+  setTimeout(apply, 500);
+  setTimeout(apply, 1500);
+})();
+</script>
 </section>

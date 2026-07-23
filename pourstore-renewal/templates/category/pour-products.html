@@ -1496,48 +1496,112 @@ function cardHtml(p){
     + '</a>';
 }
 
+// ===== 카페24 자체 호출: 같은 도메인의 상품목록(product/list.html)을 불러와 진짜 상품만 사용 =====
+// 탭 = 카페24 분류(cate_no). 방수 없음. 링크는 카페24가 준 detail.html?product_no=… 그대로 → 정상.
+var CATS=[['전체','73'],['패키지','71'],['균열보수','88'],['도장·도색','74'],['페인트','75'],['보강자재','92'],['부자재','84'],['안전용품','63']];
+var _cafeCache={};
+
+// 카페24 목록 HTML에서 일반 상품(li)만 추출 (베스트/신상품 슬라이더 제외)
+function parseProducts(html){
+  var doc; try{ doc=new DOMParser().parseFromString(html,'text/html'); }catch(e){ return []; }
+  var lis=doc.querySelectorAll('div[module="product_listnormal"] ul.prdList>li, .xans-product-listnormal ul.prdList>li, ul.prdList.grid4>li');
+  var arr=Array.prototype.slice.call(lis).filter(function(li){ return !li.closest('.main_product_slide') && !li.closest('.swiper-wrapper'); });
+  if(!arr.length){ // 폴백: product_no 링크를 가진 li 중 슬라이더 밖의 것
+    arr=Array.prototype.slice.call(doc.querySelectorAll('li')).filter(function(li){
+      return li.querySelector('a[href*="product_no="]') && !li.closest('.main_product_slide') && !li.closest('.swiper-wrapper');
+    });
+  }
+  var out=[], seen={};
+  arr.forEach(function(li){
+    var a=li.querySelector('a[href*="product_no="]'); if(!a) return;
+    var href=a.getAttribute('href')||''; var m=href.match(/product_no=(\d+)/); var no=m?m[1]:''; if(!no||seen[no]) return; seen[no]=1;
+    var img=''; var ims=li.querySelectorAll('img');
+    for(var k=0;k<ims.length;k++){ var s=ims[k].getAttribute('ec-data-src')||ims[k].getAttribute('data-original')||ims[k].getAttribute('src')||''; s=(s||'').trim(); if(s && !/base64|blank|no_?image|noimg|loading/i.test(s)){ img=s; break; } }
+    if(img.indexOf('//')===0) img='https:'+img;
+    var name=''; var ne=li.querySelector('.name a, p.name a, strong.name, .name, [class*="name"] a, [class*="name"]');
+    if(ne) name=(ne.textContent||'').replace(/\s+/g,' ').trim();
+    name=name.replace(/^상품명\s*:?\s*/,'');
+    if(!name){ var al=li.querySelector('img'); if(al) name=(al.getAttribute('alt')||'').trim(); }
+    var txt=(li.textContent||''); var price=''; var pm=txt.match(/([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{3,})\s*원/); if(pm) price=pm[1].replace(/[^0-9]/g,'');
+    var soldout=/품절|sold\s*out|판매완료|판매중지/i.test(txt) || !!li.querySelector('.icon_soldout,.soldout,[class*="soldout"]');
+    var link=href; if(link.indexOf('http')!==0 && link.indexOf('/')!==0) link='/'+link;
+    out.push({productNo:no, link:link, img:img, name:name, price:price, soldout:soldout});
+  });
+  return out;
+}
+
+// 분류 상품을 (페이지 넘겨가며) 전부 수집
+async function fetchCate(cateNo){
+  if(_cafeCache[cateNo]) return _cafeCache[cateNo];
+  var out=[], seen={}, page=1, MAXP=12;
+  while(page<=MAXP){
+    var url='/product/list.html?cate_no='+cateNo+'&page='+page, html;
+    try{ var r=await fetch(url,{credentials:'same-origin'}); if(!r.ok){ break; } html=await r.text(); }
+    catch(e){ console.warn('[제품보기] fetch 실패 cate='+cateNo+' page='+page, e&&e.message); break; }
+    var items=parseProducts(html); if(!items.length) break;
+    var added=0; items.forEach(function(it){ if(!seen[it.productNo]){ seen[it.productNo]=1; out.push(it); added++; } });
+    if(added===0) break;        // 페이지네이션 없음/마지막 → 중단
+    if(items.length<10) break;  // 마지막 페이지 추정
+    page++;
+  }
+  _cafeCache[cateNo]=out;
+  return out;
+}
+
+function cafeCard(p){
+  var img=p.img ? '<img src="'+esc(p.img)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' : PH_SVG;
+  var price=p.price ? '<div class="pv-price">'+Number(p.price).toLocaleString()+'<span class="won">원</span></div>' : '<div class="pv-price"><span class="ask">가격문의</span></div>';
+  return '<a class="pv-card'+(p.soldout?' pv-soldout':'')+'" href="'+esc(p.link)+'">'
+    +'<div class="pv-th">'+img+'</div>'
+    +'<div class="pv-name">'+esc(p.name||'')+'</div>'+price+'</a>';
+}
+
+// ── Firestore 폴백(카페24 호출 실패 시에만; 이때는 검색 링크) ──
+var _fsList=null;
+async function fsLoad(){
+  if(_fsList) return _fsList;
+  var loader=function(){ return getDocs(collection(db,'products')).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); };
+  var all=(window.__pcache ? await window.__pcache.wrap('col:products', PC_TTL, loader) : await loader());
+  var list=all.filter(function(p){ return p && p.isActive!==false && p.name && !isJunk(p.name) && p.displayStatus!=='N' && p.salesStatus!=='숨김'; });
+  list.forEach(function(p){ p._tab=classify(p.name); });
+  list.sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''),'ko'); });
+  _fsList=list; return list;
+}
+
 (async function(){
   var grid=document.querySelector('[data-grid]');
   var tabsInner=document.querySelector('[data-tabs-inner]');
   var countEl=document.querySelector('[data-count]');
-  try{
-    var loader=function(){ return getDocs(collection(db,'products')).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); };
-    var all = (window.__pcache ? await window.__pcache.wrap('col:products', PC_TTL, loader) : await loader());
-    var list=all.filter(function(p){ return p && p.isActive!==false && p.name && !isJunk(p.name) && p.displayStatus!=='N' && p.salesStatus!=='숨김'; });
-    list.forEach(function(p){ p._tab=classify(p.name); });
-    // 이름 가나다순 정렬
-    list.sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''),'ko'); });
-    console.log('[제품보기] 전체 '+all.length+'건 중 노출 '+list.length+'건');
+  tabsInner.innerHTML=CATS.map(function(c){ return '<button class="pv-tab" data-cate="'+c[1]+'" data-name="'+esc(c[0])+'">'+esc(c[0])+'</button>'; }).join('');
+  function setActive(cateNo){ Array.prototype.forEach.call(tabsInner.querySelectorAll('.pv-tab'),function(b){ b.classList.toggle('on', b.getAttribute('data-cate')===String(cateNo)); }); }
 
-    if(!list.length){ grid.innerHTML='<div class="pv-empty">등록된 제품이 없습니다.</div>'; return; }
-
-    // 탭별 개수
-    var counts={}; list.forEach(function(p){ counts[p._tab]=(counts[p._tab]||0)+1; });
-    var tabs=['전체'].concat(TAB_ORDER.filter(function(t){ return counts[t]; }));
-
-    function tabBtn(t){
-      var c=(t==='전체')?list.length:counts[t];
-      return '<button class="pv-tab" data-tab="'+esc(t)+'">'+esc(t)+' <span class="cnt">'+c+'</span></button>';
-    }
-    tabsInner.innerHTML=tabs.map(tabBtn).join('');
-
-    function render(tab){
-      var items=(tab==='전체')?list:list.filter(function(p){ return p._tab===tab; });
+  async function show(cateNo, name){
+    setActive(cateNo);
+    grid.innerHTML='<div class="pv-loading">제품을 불러오는 중…</div>'; countEl.textContent='';
+    var items=[];
+    try{ items=await fetchCate(cateNo); }catch(e){ console.warn('[제품보기] fetchCate 예외', e&&e.message); }
+    if(items && items.length){
       countEl.textContent='총 '+items.length.toLocaleString()+'개 제품';
-      grid.innerHTML=items.length?items.map(cardHtml).join(''):'<div class="pv-empty">해당 카테고리에 제품이 없습니다.</div>';
-      Array.prototype.forEach.call(tabsInner.querySelectorAll('.pv-tab'),function(b){ b.classList.toggle('on', b.getAttribute('data-tab')===tab); });
+      grid.innerHTML=items.map(cafeCard).join('');
+      console.log('[제품보기] ✅ 카페24 '+name+'(cate '+cateNo+') '+items.length+'건 — 정상 상품 링크');
+      return;
     }
-    tabsInner.addEventListener('click',function(e){ var b=e.target.closest('.pv-tab'); if(!b)return; render(b.getAttribute('data-tab')); });
-
-    // #cat=방수 처럼 해시로 특정 탭 진입 지원
-    function tabFromHash(){ try{ return decodeURIComponent((location.hash||'').replace(/^#cat=/,'').replace(/^#/,'')); }catch(_){ return ''; } }
-    var hash=tabFromHash();
-    render(tabs.indexOf(hash)>=0?hash:'전체');
-    // 같은 페이지에서 상단 카테고리 드롭다운으로 이동 시 즉시 재필터
-    window.addEventListener('hashchange',function(){ var h=tabFromHash(); render(tabs.indexOf(h)>=0?h:'전체'); document.querySelector('.pv').scrollIntoView({behavior:'smooth',block:'start'}); });
-  }catch(e){
-    console.error('[제품보기] 로드 실패:', e);
-    grid.innerHTML='<div class="pv-empty">제품을 불러오지 못했어요. 잠시 후 새로고침해 주세요.</div>';
+    console.warn('[제품보기] ⚠️ 카페24 '+name+' 0건 → Firestore 폴백(검색 링크)');
+    try{
+      var list=await fsLoad();
+      var f=(name==='전체')?list:list.filter(function(p){ return p._tab===name; });
+      countEl.textContent='총 '+f.length.toLocaleString()+'개 제품';
+      grid.innerHTML=f.length?f.map(cardHtml).join(''):'<div class="pv-empty">해당 카테고리에 제품이 없습니다.</div>';
+    }catch(e2){ console.error('[제품보기] 폴백도 실패', e2); grid.innerHTML='<div class="pv-empty">제품을 불러오지 못했어요. 잠시 후 새로고침해 주세요.</div>'; }
   }
+
+  tabsInner.addEventListener('click',function(e){ var b=e.target.closest('.pv-tab'); if(!b) return; show(b.getAttribute('data-cate'), b.getAttribute('data-name')); });
+
+  // #cat=이름 해시 진입 지원(예: #cat=부자재)
+  function nameFromHash(){ try{ return decodeURIComponent((location.hash||'').replace(/^#cat=/,'').replace(/^#/,'')); }catch(_){ return ''; } }
+  function catByName(nm){ for(var i=0;i<CATS.length;i++){ if(CATS[i][0]===nm) return CATS[i]; } return null; }
+  var h=catByName(nameFromHash());
+  if(h) show(h[1],h[0]); else show('73','전체');
+  window.addEventListener('hashchange',function(){ var c=catByName(nameFromHash())||['전체','73']; show(c[1],c[0]); var pv=document.querySelector('.pv'); if(pv) pv.scrollIntoView({behavior:'smooth',block:'start'}); });
 })();
 </script>

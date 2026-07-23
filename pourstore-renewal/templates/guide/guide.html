@@ -1367,6 +1367,10 @@ var PM_POSTS = [];
   .pg-card{position:relative;display:flex;flex-direction:column;align-items:center;aspect-ratio:.52;border-radius:6px;overflow:hidden;padding:30px 18px 0;background:var(--bg);color:#fff;text-decoration:none;transition:transform .18s ease,box-shadow .18s ease;box-shadow:0 6px 20px rgba(0,0,0,.10);}
   .pg-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.22);}
   .pg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:5;display:block;}
+  /* 이미지가 로드되면: 원본 비율 그대로(안 잘림) + 디자인 요소 숨김 */
+  .pg-card.has-img{aspect-ratio:auto;display:block;padding:0;}
+  .pg-card.has-img > :not(.pg-img){display:none;}
+  .pg-card.has-img .pg-img{position:relative;inset:auto;width:100%;height:auto;object-fit:contain;}
   .pg-logo{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--logo);}
   .pg-sky-wrap{--acc:#E8780F;width:112px;display:block;}
   .pg-sky{width:100%;height:auto;display:block;}
@@ -1425,6 +1429,7 @@ var PM_POSTS = [];
   function tryLoad(im, cands, k){
     if(k>=cands.length){ im.remove(); return; }        // 다 실패 → 디자인 카드
     im.onerror=function(){ tryLoad(im, cands, k+1); };
+    im.onload=function(){ var c=im.closest('.pg-card'); if(c) c.classList.add('has-img'); };  // 성공 → 원본비율 표시
     im.src=BASE+encodeURIComponent(cands[k])+'?alt=media';
   }
   Array.prototype.forEach.call(document.querySelectorAll('.pg-img'), function(im){

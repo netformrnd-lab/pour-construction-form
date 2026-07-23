@@ -482,7 +482,17 @@ body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !impo
   msgEl.addEventListener('focus',function(){ setTimeout(function(){ logEl.scrollTop=logEl.scrollHeight; },120); });
   updateSend();
 
-  if(threadId) subscribe().catch(function(){}); // 답변 도착하면 배지
+  // 📨 문자 링크(상담코드 ?pdc=)로 들어온 경우: 다른 기기·브라우저여도 그 상담을 그대로 이어서 표시
+  (function(){
+    var code=null; try{ code=(new URLSearchParams(location.search).get('pdc')||'').trim(); }catch(e){}
+    if(code){
+      threadId=code; try{ localStorage.setItem(LS_KEY,threadId); }catch(e){}
+      try{ history.replaceState(null,'',location.pathname+location.hash); }catch(e){} // 주소창에서 코드 숨김
+      renderedKey=''; open();   // 링크로 왔으니 채팅창 자동 오픈(open이 해당 상담 구독)
+      return;
+    }
+    if(threadId) subscribe().catch(function(){}); // 답변 도착하면 배지
+  })();
 })();
 </script>
 

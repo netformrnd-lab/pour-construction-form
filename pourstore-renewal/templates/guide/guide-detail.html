@@ -1427,8 +1427,10 @@ function ytId(u){ try{ var m=String(u).match(/(?:youtu\.be\/|v=|\/embed\/|\/shor
 function videoHtml(url){
   var id=ytId(url);
   if(id) return '<div class="gd-vid"><iframe src="https://www.youtube.com/embed/'+esc(id)+'" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>';
+  var vm=String(url).match(/vimeo\.com\/(?:video\/)?(\d+)(?:\/([\w]+))?/);
+  if(vm){ var vurl='https://player.vimeo.com/video/'+vm[1]+(vm[2]?('?h='+vm[2]):''); return '<div class="gd-vid"><iframe src="'+esc(vurl)+'" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>'; }
   if(/\.(mp4|webm|ogg)(\?|$)/i.test(url)) return '<div class="gd-vid"><video controls src="'+esc(url)+'"></video></div>';
-  return '<div class="gd-vid"><iframe src="'+esc(url)+'" allowfullscreen></iframe></div>';
+  return '<div class="gd-vid"><iframe src="'+esc(url)+'" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>';
 }
 function blockHtml(b){
   if(!b||!b.type) return '';

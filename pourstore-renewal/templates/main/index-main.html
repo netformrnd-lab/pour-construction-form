@@ -117,6 +117,10 @@ body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !impo
 .pqc-msg .pqc-ul{margin:7px 0 0;padding-left:17px}
 .pqc-msg .pqc-ul li{margin:3px 0}
 .pqc-msg strong{font-weight:800}
+/* 상품·가이드 축약 링크(칩) */
+.pqc-msg a.pqc-link{display:inline-flex;align-items:center;gap:3px;background:#FFF7ED;border:1.5px solid #E8780F;color:#C8650D;border-radius:999px;padding:3px 11px;font-size:12.5px;font-weight:800;text-decoration:none;margin:4px 4px 0 0;line-height:1.5;word-break:keep-all;vertical-align:middle}
+.pqc-msg a.pqc-link::after{content:'›';font-weight:900;margin-left:1px}
+.pqc-msg a.pqc-link:hover{background:#E8780F;color:#fff}
 /* 이어서 물어보세요 */
 .pqc-opthead{font-size:12px;font-weight:800;color:#6B7280;margin:11px 0 7px}
 /* 상담원 배정 중(타이핑) */
@@ -233,12 +237,40 @@ body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !impo
     }
     if(last<text.length) el.appendChild(document.createTextNode(text.slice(last)));
   }
-  // 인라인: **굵게** + 링크
-  function inlineRich(el, text){
+  // 상품·가이드 링크에 UTM 자동 삽입(챗봇 유입/전환을 GA가 인식하게)
+  function withUtm(url, label){
+    try{ var u=new URL(url);
+      if(!u.searchParams.get('utm_source')){
+        u.searchParams.set('utm_source','pourdoctor');
+        u.searchParams.set('utm_medium','chat');
+        u.searchParams.set('utm_campaign','pourdoctor_chat');
+        if(label) u.searchParams.set('utm_content', String(label).slice(0,60));
+        if(threadId) u.searchParams.set('utm_term', threadId);
+      }
+      return u.toString();
+    }catch(e){ return url; }
+  }
+  function linkChip(label, url){
+    var a=document.createElement('a'); a.className='pqc-link'; a.href=withUtm(url,label);
+    a.target='_blank'; a.rel='noopener'; a.textContent=label; return a;
+  }
+  // **굵게** + 원시 URL 링크
+  function boldRich(el, text){
     String(text).split(/(\*\*[^*]+\*\*)/).forEach(function(seg){
       if(/^\*\*[^*]+\*\*$/.test(seg)){ var b=document.createElement('strong'); appendText(b, seg.slice(2,-2)); el.appendChild(b); }
       else if(seg) appendText(el, seg);
     });
+  }
+  // 인라인: [라벨](URL) 축약 링크 → 칩 · 그 외엔 굵게/URL 처리
+  var MDLINK=/\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g;
+  function inlineRich(el, text){
+    var s=String(text), last=0, m; MDLINK.lastIndex=0;
+    while((m=MDLINK.exec(s))){
+      if(m.index>last) boldRich(el, s.slice(last,m.index));
+      el.appendChild(linkChip(m[1], m[2]));
+      last=m.index+m[0].length;
+    }
+    if(last<s.length) boldRich(el, s.slice(last));
   }
   // 블록: 줄바꿈·불릿(•,-)·굵게 렌더 (상담원/AI 답변용)
   function renderRich(container, text){

@@ -622,12 +622,14 @@
     var price=p.price?'<div class="price-row"><div class="price">'+Number(p.price).toLocaleString()+'<span class="won">원</span></div></div>':'';
     return '<a class="psh-card psh-managed'+(p.soldout?' psh-soldout':'')+'" href="'+esc(p.link)+'" data-cat="'+esc(cat)+'"><div class="img '+esc(cat)+'">'+catSpan+img+'</div><div class="body"><div class="name">'+esc(p.name||'')+'</div>'+price+'</div></a>';
   }
+  // 재질별 카페24 분류번호 기본값(관리에서 미설정 시 사용) — 홈데코 분류
+  var DEFAULT_SRC={wallpaper:'98',wood:'99',metal:'100',glass:'101',cement:'102'};
   async function applyGridSource(data){
     var src=(data&&data.homeGridSource)||{}; var cats=src.cats||{};
     var limit=Number(src.limit)>0?Number(src.limit):8;
     var MATS=['wallpaper','wood','metal','glass','cement'];
     var configured=MATS.filter(function(m){ return String(cats[m]||'').replace(/[^0-9]/g,''); });
-    if(!configured.length) return false;
+    if(!configured.length){ cats=DEFAULT_SRC; configured=MATS.filter(function(m){ return String(cats[m]||'').replace(/[^0-9]/g,''); }); }  // 미설정 → 기본 분류번호
     var wrap=document.querySelector('.psh-grid'); if(!wrap) return false;
     var backup=wrap.innerHTML;   // 실패 시 기본 카드 복원용
     wrap.innerHTML='<div style="grid-column:1/-1;text-align:center;color:#9CA3AF;padding:36px;font-weight:700">상품을 불러오는 중…</div>';

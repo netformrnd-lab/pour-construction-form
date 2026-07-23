@@ -6786,13 +6786,14 @@ const HC_MATERIALS=[
 const HC_DEFAULT_FILTERS=['방수','코팅','보수','단열·차열','밑칠'];
 const HC_GRID_CATS=[{key:'wallpaper',label:'벽지'},{key:'wood',label:'목재'},{key:'metal',label:'철재'},{key:'glass',label:'유리'},{key:'cement',label:'시멘트/벽돌'}];
 const HC_SWATCHES=[{key:'all',label:'인기',sub:'BEST SELLER'},{key:'wallpaper',label:'벽지',sub:'도배·시트·풀'},{key:'wood',label:'목재',sub:'우드·마루'},{key:'metal',label:'철재',sub:'메탈·방청'},{key:'glass',label:'유리',sub:'글래스·코팅'},{key:'cement',label:'시멘트/벽돌',sub:'벽돌·균열·보수'}];
+const HC_SRC_DEFAULT={wallpaper:'98',wood:'99',metal:'100',glass:'101',cement:'102'};   // 카페24 홈데코 분류번호 기본값
 function HomeCardsPage({showToast}){
   const { audit } = useActiveStaffContext();
   const normHero=(v)=>Array.isArray(v)?v.map(x=>({image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',kicker:x.kicker||'',title:x.title||'',desc:x.desc||'',tags:x.tags||'',cta:x.cta||''})):[];
   const normMat=(v)=>{ if(Array.isArray(v)) return {filters:HC_DEFAULT_FILTERS.slice(),cards:v.map(c=>({image:c.image||'',link:c.link||'',title:c.title||'',cat:c.cat||''}))}; v=v||{}; return {filters:(Array.isArray(v.filters)&&v.filters.length)?v.filters.filter(Boolean):HC_DEFAULT_FILTERS.slice(),cards:Array.isArray(v.cards)?v.cards.map(c=>({image:c.image||'',link:c.link||'',title:c.title||'',cat:c.cat||''})):[]}; };
   const normGrid=(v)=>Array.isArray(v)?v.map(c=>({image:c.image||'',title:c.title||'',meta:c.meta||'',price:c.price||'',unit:c.unit||'',link:c.link||'',cat:c.cat||'',brand:c.brand||'',badge:c.badge||''})):[];
   const normSw=(v)=>{ v=v||{}; const o={}; HC_SWATCHES.forEach(s=>{ const x=v[s.key]||{}; o[s.key]={image:x.image||'',label:x.label||'',sub:x.sub||''}; }); return o; };
-  const normSrc=(v)=>{ v=v||{}; const c=v.cats||{}; const cats={}; HC_GRID_CATS.forEach(g=>{ cats[g.key]=String(c[g.key]||'').trim(); }); return {limit:Number(v.limit)>0?Number(v.limit):8, cats}; };
+  const normSrc=(v)=>{ v=v||{}; const c=v.cats||{}; const stored=HC_GRID_CATS.some(g=>String(c[g.key]||'').trim()); const cats={}; HC_GRID_CATS.forEach(g=>{ cats[g.key]= stored ? String(c[g.key]||'').trim() : (HC_SRC_DEFAULT[g.key]||''); }); return {limit:Number(v.limit)>0?Number(v.limit):8, cats}; };
   const [data,setData]=useState({hero:[],metal:normMat(),wood:normMat(),stone:normMat(),homeGrid:[],homeSwatches:normSw(),homeGridSource:normSrc()});
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);

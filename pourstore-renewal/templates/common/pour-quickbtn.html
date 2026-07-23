@@ -64,8 +64,9 @@
 .pqc-pending .pt button{position:absolute;top:2px;right:2px;width:16px;height:16px;border:none;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;cursor:pointer;display:grid;place-items:center}
 .pqc-pending .pt button svg{width:9px;height:9px}
 .pqc-inbar{display:flex;align-items:flex-end;gap:8px;padding:10px 12px;border-top:1px solid #EEF0F2;background:#fff;flex-shrink:0}
-.pqc-attach{flex-shrink:0;width:40px;height:40px;border-radius:11px;border:1.5px solid #F2F3F5;display:grid;place-items:center;color:#C8650D;cursor:pointer}
-.pqc-attach svg{width:20px;height:20px}
+.pqc-attach{flex-shrink:0;min-width:44px;padding:4px 7px;border-radius:11px;border:1.5px solid #F2F3F5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:#C8650D;cursor:pointer;line-height:1}
+.pqc-attach svg{width:19px;height:19px}
+.pqc-attach .lb{font-size:9.5px;font-weight:800;letter-spacing:-0.02em}
 .pqc-inbar textarea{flex:1;resize:none;border:1.5px solid #F2F3F5;border-radius:12px;padding:10px 12px;font-size:14px;max-height:96px;outline:none;line-height:1.4;font-family:inherit}
 .pqc-inbar textarea:focus{border-color:#E8780F}
 .pqc-send{flex-shrink:0;width:40px;height:40px;border:none;border-radius:50%;background:#E8780F;color:#fff;cursor:pointer;display:grid;place-items:center}
@@ -100,10 +101,13 @@
 .pqc-notify-btn:disabled{opacity:.6}
 .pqc-notify-ok{margin:2px 0 0 38px;font-size:12px;color:#059669;font-weight:700;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:12px;padding:10px 13px}
 .pqc-renotify{background:none;border:none;color:#0F7A54;font-size:11.5px;font-weight:800;text-decoration:underline;cursor:pointer;padding:0;white-space:nowrap}
-/* 피드백 👍👎 */
-.pqc-fb{display:flex;gap:14px;margin-top:8px;padding-left:2px}
-.pqc-fb button{background:none;border:none;cursor:pointer;color:#C7CBD1;font-size:15px;line-height:1;padding:2px}
-.pqc-fb button.on{color:#E8780F}
+/* 피드백(도움돼요/아쉬워요) — 커스텀 아이콘 */
+.pqc-fb{display:flex;align-items:center;gap:8px;margin-top:9px;padding-left:2px}
+.pqc-fb button{background:none;border:1px solid #EAECEF;border-radius:8px;cursor:pointer;color:#9CA3AF;padding:4px 7px;display:inline-flex;align-items:center;line-height:0}
+.pqc-fb button svg{width:16px;height:16px;display:block}
+.pqc-fb button:hover{border-color:#E8780F;color:#E8780F}
+.pqc-fb button.on{color:#fff;background:#E8780F;border-color:#E8780F}
+.pqc-fb-thx{font-size:11.5px;font-weight:700;color:#0F7A54}
 @media (max-width:640px){
   .pqc-launcher{right:14px;bottom:16px;gap:8px}
   .pqc-lbl{display:none}
@@ -142,6 +146,7 @@
   <div class="pqc-inbar">
     <label class="pqc-attach" aria-label="사진 첨부">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5-9 8"/></svg>
+      <span class="lb">첨부</span>
       <input type="file" accept="image/*" multiple hidden data-pqc-file>
     </label>
     <textarea data-pqc-msg rows="1" placeholder="메시지를 입력하세요…"></textarea>
@@ -168,7 +173,7 @@
   var threadId=null; try{ threadId=localStorage.getItem(LS_KEY)||null; }catch(e){}
   var latest=null, renderedKey='', unsub=null, chatOpen=false, reNotify=false;
 
-  var GREETING='안녕하세요, POUR닥터예요 🦫\n건물·방수 고민을 편하게 남겨주세요. 사진도 함께 보내주시면 더 정확히 도와드려요 📷';
+  var GREETING='안녕하세요, POUR닥터예요.\n건물·방수 고민을 편하게 남겨주세요.\n사진도 함께 보내주시면 더 정확히 도와드려요.';
   var PROFILE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/%EB%A7%88%EC%8A%A4%EC%BD%94%ED%8A%B8%2Fbeaver_consulting_profile_circle.png?alt=media&token=6574671f-7f7d-4cac-a504-7e5f3b946f25';
 
   // 보낸 시각 → '오후 5:29'
@@ -267,7 +272,8 @@
     return urls;
   }
 
-  function setFb(k,v,up,dn){ try{ localStorage.setItem('pqc_fb_'+k, v); }catch(e){} up.classList.toggle('on',v==='up'); dn.classList.toggle('on',v==='down'); }
+  var FB_THX_UP='소중한 의견 감사해요 :)', FB_THX_DN='의견 감사해요. 더 정확히 도와드릴게요';
+  function setFb(k,v,up,dn,thx){ try{ localStorage.setItem('pqc_fb_'+k, v); }catch(e){} up.classList.toggle('on',v==='up'); dn.classList.toggle('on',v==='down'); if(thx){ thx.textContent = v==='up' ? FB_THX_UP : FB_THX_DN; } }
   function bubble(mine,content,images,options,answered,ts,fbKey){
     var row=document.createElement('div'); row.className='pqc-row '+(mine?'me':'them');
     if(!mine){ var av=document.createElement('img'); av.className='pqc-av'; av.src=PROFILE; av.alt='POUR닥터'; av.onerror=function(){ this.style.visibility='hidden'; }; row.appendChild(av); }
@@ -280,7 +286,7 @@
       cell.appendChild(box);
     }
     if(options&&options.length&&!answered){
-      var oh=document.createElement('div'); oh.className='pqc-opthead'; oh.textContent='🔍 이어서 물어보세요'; cell.appendChild(oh);
+      var oh=document.createElement('div'); oh.className='pqc-opthead'; oh.textContent='이어서 물어보세요'; cell.appendChild(oh);
       var op=document.createElement('div'); op.className='pqc-opts';
       options.forEach(function(o){ var btn=document.createElement('button'); btn.type='button'; btn.className='pqc-opt'; btn.textContent=o; btn.addEventListener('click',function(){ doSend(o,[]); }); op.appendChild(btn); });
       cell.appendChild(op);
@@ -288,12 +294,15 @@
     if(ts){ var t=document.createElement('div'); t.className='pqc-time'; t.textContent=fmtTime(ts); if(t.textContent) cell.appendChild(t); }
     if(fbKey){
       var fbBox=document.createElement('div'); fbBox.className='pqc-fb';
-      var up=document.createElement('button'); up.type='button'; up.textContent='👍'; up.title='도움이 됐어요';
-      var dn=document.createElement('button'); dn.type='button'; dn.textContent='👎'; dn.title='아쉬워요';
+      var THUMB='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10.5V21H4.5A1.5 1.5 0 0 1 3 19.5v-7.5A1.5 1.5 0 0 1 4.5 10.5H7z"/><path d="M7 10.5l4.2-7.2a1.8 1.8 0 0 1 3.3 1.3L13.6 9h5.1a2 2 0 0 1 2 2.4l-1.3 7A2 2 0 0 1 17.4 20H7"/></svg>';
+      var up=document.createElement('button'); up.type='button'; up.innerHTML=THUMB; up.title='도움이 됐어요';
+      var dn=document.createElement('button'); dn.type='button'; dn.innerHTML=THUMB; dn.title='아쉬워요'; dn.style.transform='rotate(180deg)';
+      var thx=document.createElement('span'); thx.className='pqc-fb-thx';
       var cur=''; try{ cur=localStorage.getItem('pqc_fb_'+fbKey)||''; }catch(e){}
-      if(cur==='up') up.classList.add('on'); if(cur==='down') dn.classList.add('on');
-      up.addEventListener('click',function(){ setFb(fbKey,'up',up,dn); }); dn.addEventListener('click',function(){ setFb(fbKey,'down',up,dn); });
-      fbBox.appendChild(up); fbBox.appendChild(dn); cell.appendChild(fbBox);
+      if(cur==='up'){ up.classList.add('on'); thx.textContent=FB_THX_UP; }
+      if(cur==='down'){ dn.classList.add('on'); thx.textContent=FB_THX_DN; }
+      up.addEventListener('click',function(){ setFb(fbKey,'up',up,dn,thx); }); dn.addEventListener('click',function(){ setFb(fbKey,'down',up,dn,thx); });
+      fbBox.appendChild(up); fbBox.appendChild(dn); fbBox.appendChild(thx); cell.appendChild(fbBox);
     }
     row.appendChild(cell); logEl.appendChild(row);
   }
@@ -310,7 +319,7 @@
   // 문자 알림 받기 카드
   function notifyCard(){
     var wrap=document.createElement('div'); wrap.className='pqc-notify';
-    var t=document.createElement('div'); t.className='pqc-notify-t'; t.textContent='📱 답변을 문자로 받아보시겠어요?'; wrap.appendChild(t);
+    var t=document.createElement('div'); t.className='pqc-notify-t'; t.textContent='답변을 문자로 받아보시겠어요?'; wrap.appendChild(t);
     var d=document.createElement('div'); d.className='pqc-notify-d'; d.textContent='자리를 비우셔도 상담원 답변이 오면 문자로 알려드려요.'; wrap.appendChild(d);
     var nm=document.createElement('input'); nm.className='pqc-notify-in'; nm.placeholder='성함'; nm.maxLength=20; wrap.appendChild(nm);
     var ph=document.createElement('input'); ph.className='pqc-notify-in'; ph.placeholder='휴대폰 번호 (010-0000-0000)'; ph.inputMode='numeric'; wrap.appendChild(ph);
@@ -328,7 +337,7 @@
     try{
       var F=await ensureFb();
       var now=new Date().toISOString();
-      var msg={role:'customer',content:'📱 문자 알림 신청 · '+nm+' · '+phone.trim(),ts:now};
+      var msg={role:'customer',content:'문자 알림 신청 · '+nm+' · '+phone.trim(),ts:now};
       var msgs=((latest&&latest.messages)||[]).concat([msg]);
       await F.updateDoc(F.doc(F.db,'pour_chatbot_threads',threadId),{ messages:msgs, customerName:nm, customerContact:phone.trim(), unread:true, updatedAt:now });
       reNotify=false;
@@ -356,14 +365,14 @@
     if(latest && latest.status==='done'){
       // 상담완료 → 완료 안내(고객이 다시 남기면 doSend가 status를 active로 되돌려 재시작)
       var done=document.createElement('div'); done.className='pqc-done';
-      done.textContent='✅ 상담이 완료되었어요.\n이용해 주셔서 감사합니다 😊\n추가로 궁금하시면 아래에 메시지를 남겨주세요 — 다시 도와드릴게요!';
+      done.textContent='상담이 완료되었어요.\n이용해 주셔서 감사합니다.\n추가로 궁금하시면 아래에 메시지를 남겨주세요 — 다시 도와드릴게요!';
       logEl.appendChild(done);
     } else if(threadId && msgs.length && msgs[msgs.length-1].role==='customer'){
       // 답변 대기중(마지막이 고객 발화) → '상담원 배정 중' + 문자 알림받기
       typingRow();
       if(latest && latest.customerContact && !reNotify){
         var ok=document.createElement('div'); ok.className='pqc-notify-ok';
-        var okt=document.createElement('span'); okt.textContent='✅ 문자 알림 신청됨 — 답변 오면 문자로 알려드려요. '; ok.appendChild(okt);
+        var okt=document.createElement('span'); okt.textContent='문자 알림 신청됨 — 답변 오면 문자로 알려드려요. '; ok.appendChild(okt);
         var re=document.createElement('button'); re.type='button'; re.className='pqc-renotify'; re.textContent='번호 변경/재신청';
         re.addEventListener('click',function(){ reNotify=true; renderedKey=''; renderLog(); });
         ok.appendChild(re); logEl.appendChild(ok);

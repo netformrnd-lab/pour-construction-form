@@ -1331,12 +1331,10 @@ var PM_POSTS = [];
 <style>
   .pv *{box-sizing:border-box;margin:0;padding:0;}
   .pv{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;max-width:1180px;margin:0 auto;padding:24px 20px 80px;-webkit-font-smoothing:antialiased;}
-  .pv-head{padding:6px 2px 16px;}
-  .pv-head .eyebrow{display:inline-block;font-size:12.5px;font-weight:800;color:#E8780F;letter-spacing:-.02em;margin-bottom:8px;}
-  .pv-head h1{font-size:27px;font-weight:900;letter-spacing:-.04em;color:#111;}
-  .pv-head p{margin-top:8px;font-size:14.5px;color:#8a8f98;font-weight:600;letter-spacing:-.02em;word-break:keep-all;}
-  /* 카테고리 탭 (가로 스크롤, 상단 고정) */
-  .pv-tabs{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid #EEF0F2;margin:0 -20px 22px;padding:10px 20px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .pv-head{padding:6px 2px 18px;text-align:center;}
+  .pv-head h1{font-size:38px;font-weight:900;letter-spacing:-.04em;color:#111;}
+  /* 카테고리 탭 (가로 스크롤, 상단 고정, 가운데 정렬) */
+  .pv-tabs{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid #EEF0F2;margin:0 -20px 22px;padding:10px 20px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;text-align:center;}
   .pv-tabs::-webkit-scrollbar{display:none;}
   .pv-tabs-inner{display:inline-flex;gap:8px;white-space:nowrap;}
   .pv-tab{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;background:#F4F5F6;color:#4B5563;font-size:14px;font-weight:700;letter-spacing:-.02em;cursor:pointer;transition:background .15s,color .15s;}
@@ -1364,7 +1362,7 @@ var PM_POSTS = [];
   @media (max-width:640px){
     .pv{padding:18px 14px 60px;}
     .pv-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 12px;}
-    .pv-head h1{font-size:22px;}
+    .pv-head h1{font-size:30px;}
     .pv-tabs{margin:0 -14px 18px;padding:9px 14px;}
     .pv-name{font-size:13.5px;}
     .pv-price{font-size:15px;}
@@ -1373,9 +1371,7 @@ var PM_POSTS = [];
 
 <div class="pv">
   <div class="pv-head">
-    <span class="eyebrow">POUR스토어</span>
     <h1>제품 보기</h1>
-    <p>카페24에 등록된 모든 제품을 카테고리별로 모았어요. 원하는 카테고리를 눌러 필요한 자재를 바로 찾아보세요.</p>
   </div>
   <div class="pv-tabs" data-tabs><div class="pv-tabs-inner" data-tabs-inner></div></div>
   <div class="pv-count" data-count></div>
@@ -1479,7 +1475,7 @@ function cardHtml(p){
       grid.innerHTML=items.length?items.map(cardHtml).join(''):'<div class="pv-empty">해당 카테고리에 제품이 없습니다.</div>';
       Array.prototype.forEach.call(tabsInner.querySelectorAll('.pv-tab'),function(b){ b.classList.toggle('on', b.getAttribute('data-tab')===tab); });
     }
-    tabsInner.addEventListener('click',function(e){ var b=e.target.closest('.pv-tab'); if(!b)return; render(b.getAttribute('data-tab')); document.querySelector('.pv-head').scrollIntoView({behavior:'smooth',block:'start'}); });
+    tabsInner.addEventListener('click',function(e){ var b=e.target.closest('.pv-tab'); if(!b)return; render(b.getAttribute('data-tab')); });
 
     // #cat=방수 처럼 해시로 특정 탭 진입 지원
     var hash=decodeURIComponent((location.hash||'').replace(/^#cat=/,'').replace(/^#/,''));

@@ -4833,7 +4833,7 @@ const blocksToBody=(blocks)=>(blocks||[]).map(b=>b.type==='image'?(b.url||''):(b
 // ============================================================
 // ============================================================
 // 배송안내 — 텍스트/이미지 블록 편집
-//   저장: config/pourstoreDelivery {title, blocks:[]} / 노출: story/delivery.html
+//   저장: config/pourstoreDelivery {title, blocks:[]} / 노출: delivery/delivery.html
 // ============================================================
 function DeliveryPage({showToast}){
   const [title,setTitle]=useState('배송안내');

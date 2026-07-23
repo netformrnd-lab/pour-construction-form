@@ -1,0 +1,11 @@
+node_modules
+dist
+.dev.vars
+.wrangler
+.DS_Store
+*.log
+
+# 미리보기 목업 산출물 (앱과 무관)
+make-mockup.mjs
+mockup.svg
+process-editor-mockup.png

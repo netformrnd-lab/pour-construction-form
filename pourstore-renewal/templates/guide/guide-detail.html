@@ -1,8 +1,8 @@
 <!-- ============================================================
-  guide.html — POUR스토어 시공가이드(가이드북) 랜딩 (공용 헤더 embed 포함)
-  용도: 카페24 guide/guide.html (스킨 루트의 guide 폴더)
-  구성: 안내문 + 주제 카드 4종(셀프시공 A TO Z). 원본 pourstore.net/140 재현
-  카드 클릭 → (추후) 각 주제 상세 페이지 연결 예정
+  guide-detail.html — 시공가이드 상세(셀프시공 A to Z) (공용 헤더 embed 포함)
+  용도: 카페24 guide/guide-detail.html  (가이드 카드 클릭 목적지)
+  상단 고정: 시공 전 준비사항 STEP1~4 + 4유형 탭
+  아래: 유형별 콘텐츠(텍스트/영상/이미지 블록) — Firestore config/pourstoreGuideDetail
  ============================================================ -->
 <!-- ★ 모바일 반응형 필수: 뷰포트 meta 보장 (카페24가 head에서 누락/무효화 시 강제 주입·교정)
      — 이게 없으면 모바일이 ~980px로 렌더되어 모든 반응형(@media)이 발동 안 함 -->
@@ -1355,86 +1355,114 @@ var PM_POSTS = [];
 </script>
 </section>
 
-<!-- ===== 시공가이드(가이드북) 본문 ===== -->
+<!-- ===== 시공가이드 상세 본문 ===== -->
 <style>
-  .pg{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;max-width:1180px;margin:0 auto;padding:36px 20px 90px;-webkit-font-smoothing:antialiased;}
-  .pg-head h1{font-size:30px;font-weight:900;letter-spacing:-.04em;color:#111;}
-  .pg-head p{margin-top:14px;font-size:15px;line-height:1.7;color:#4B5563;font-weight:500;word-break:keep-all;}
-  .pg-ask{text-align:center;margin:56px 0 30px;}
-  .pg-ask h2{font-size:23px;font-weight:900;letter-spacing:-.03em;color:#111;}
-  .pg-ask p{margin-top:8px;font-size:15px;color:#4B5563;font-weight:600;}
-  .pg-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}
-  .pg-card{position:relative;display:flex;flex-direction:column;align-items:center;aspect-ratio:.52;border-radius:6px;overflow:hidden;padding:30px 18px 0;background:var(--bg);color:#fff;text-decoration:none;transition:transform .18s ease,box-shadow .18s ease;box-shadow:0 6px 20px rgba(0,0,0,.10);}
-  .pg-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.22);}
-  .pg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:5;display:block;}
-  /* 이미지가 로드되면: 원본 비율 그대로(안 잘림) + 디자인 요소 숨김 */
-  .pg-card.has-img{aspect-ratio:auto;display:block;padding:0;}
-  .pg-card.has-img > :not(.pg-img){display:none;}
-  .pg-card.has-img .pg-img{position:relative;inset:auto;width:100%;height:auto;object-fit:contain;}
-  .pg-logo{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--logo);}
-  .pg-sky-wrap{--acc:#E8780F;width:112px;display:block;}
-  .pg-sky{width:100%;height:auto;display:block;}
-  .pg-logo-t{font-size:15px;font-weight:800;letter-spacing:.02em;}
-  .pg-title-wrap{position:relative;margin-top:16%;width:78%;display:flex;flex-direction:column;align-items:center;color:#fff;}
-  .pg-roof-svg{width:100%;height:26px;display:block;color:#fff;margin-bottom:12px;}
-  .pg-title{font-size:22px;font-weight:900;line-height:1.32;letter-spacing:.06em;text-align:center;color:#fff;word-break:keep-all;}
-  .pg-atoz{margin-top:12%;display:flex;flex-direction:column;align-items:center;gap:12px;color:#fff;}
-  .pg-atoz-line{width:52px;height:2px;background:#fff;opacity:.9;}
-  .pg-atoz span:last-child{font-size:14px;font-weight:800;letter-spacing:.04em;}
-  .pg-bar{position:absolute;left:0;bottom:0;width:62%;height:46px;background:var(--bar);}
-  .pg-foot{position:absolute;right:14px;bottom:12px;display:flex;flex-direction:column;align-items:center;gap:5px;}
-  .pg-watch{font-size:10px;font-weight:800;color:#fff;letter-spacing:-.01em;}
-  .pg-qr{width:58px;height:58px;background:#fff;border-radius:4px;padding:4px;box-sizing:border-box;}
-  .pg-qr-svg{width:100%;height:100%;display:block;}
-  @media (max-width:900px){
-    .pg-cards{grid-template-columns:repeat(2,1fr);gap:14px;}
-    .pg-head h1{font-size:25px;} .pg-ask h2{font-size:20px;}
-  }
-  @media (max-width:900px){
-    .pg-title-wrap{margin-top:12%;} .pg-atoz{margin-top:9%;}
-  }
-  @media (max-width:480px){
-    .pg{padding:26px 14px 70px;}
-    .pg-card{padding:24px 12px 0;}
-    .pg-title{font-size:17px;letter-spacing:.03em;} .pg-logo-t{font-size:12px;} .pg-sky-wrap{width:84px;}
-    .pg-title-wrap{margin-top:9%;width:88%;} .pg-roof-svg{height:20px;margin-bottom:8px;}
-    .pg-atoz{margin-top:8%;gap:8px;} .pg-atoz span:last-child{font-size:11.5px;}
-    .pg-qr{width:44px;height:44px;} .pg-bar{height:34px;width:58%;} .pg-watch{font-size:9px;}
-    .pg-foot{right:10px;bottom:9px;}
+  .gd{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;-webkit-font-smoothing:antialiased;}
+  .gd-prep{background:#F4F6F8;padding:46px 20px 44px;}
+  .gd-prep-in{max-width:1040px;margin:0 auto;}
+  .gd-prep h2{text-align:center;font-size:30px;font-weight:900;letter-spacing:-.04em;color:#1F2937;margin-bottom:40px;}
+  .gd-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;position:relative;}
+  .gd-steps::before{content:"";position:absolute;top:7px;left:9%;right:9%;height:2px;background:#C6D2E1;z-index:0;}
+  .gd-step{position:relative;padding-top:22px;z-index:1;}
+  .gd-dot{position:absolute;top:0;left:0;width:15px;height:15px;border-radius:50%;background:#8FB0E6;border:3px solid #F4F6F8;}
+  .gd-no{font-size:23px;font-weight:900;color:#3A4250;letter-spacing:-.02em;}
+  .gd-st{font-size:15px;font-weight:800;color:#111;margin:9px 0 7px;letter-spacing:-.02em;}
+  .gd-ds{font-size:12.5px;color:#6B7280;line-height:1.65;word-break:keep-all;min-height:66px;}
+  .gd-ic{margin-top:14px;width:100%;aspect-ratio:1.6/1;max-width:150px;background:#E7EDF6;border-radius:16px;display:flex;align-items:center;justify-content:center;}
+  .gd-ic svg{width:52%;height:52%;}
+  .gd-body{max-width:1180px;margin:0 auto;padding:0 20px 90px;}
+  .gd-tabs{display:flex;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;margin:30px 0 0;}
+  .gd-tab{flex:1;padding:15px 8px;text-align:center;font-size:14.5px;font-weight:800;color:#6B7280;background:#fff;cursor:pointer;border:0;border-right:1px solid #E5E7EB;font-family:inherit;letter-spacing:-.02em;transition:.15s;}
+  .gd-tab:last-child{border-right:0;}
+  .gd-tab:hover{background:#FAFAFA;}
+  .gd-tab.on{background:#E8780F;color:#fff;}
+  .gd-title{text-align:center;font-size:23px;font-weight:900;margin:46px 0 26px;line-height:1.4;letter-spacing:-.03em;word-break:keep-all;}
+  .gd-block{margin:0 auto 24px;max-width:880px;}
+  .gd-b-label{font-size:16px;font-weight:900;color:#111;margin:0 auto 12px;max-width:880px;letter-spacing:-.02em;}
+  .gd-block.gd-text{font-size:15px;line-height:1.8;color:#374151;letter-spacing:-.01em;word-break:keep-all;white-space:pre-wrap;}
+  .gd-block.gd-text.big{font-size:18px;}
+  .gd-block.gd-text.head{font-size:21px;font-weight:900;color:#111;text-align:center;}
+  .gd-block img{width:100%;border-radius:10px;display:block;}
+  .gd-vid{position:relative;padding-top:56.25%;border-radius:12px;overflow:hidden;background:#000;}
+  .gd-vid iframe,.gd-vid video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;}
+  .gd-empty{text-align:center;color:#9CA3AF;padding:70px 0;font-size:14px;font-weight:600;}
+  @media (max-width:820px){
+    .gd-prep h2{font-size:24px;}
+    .gd-steps{grid-template-columns:repeat(2,1fr);gap:28px 16px;}
+    .gd-steps::before{display:none;}
+    .gd-ds{min-height:0;}
+    .gd-tabs{flex-wrap:wrap;}
+    .gd-tab{flex:1 0 50%;border-bottom:1px solid #E5E7EB;font-size:13.5px;padding:13px 6px;}
+    .gd-tab:nth-child(2){border-right:0;}
+    .gd-title{font-size:19px;}
   }
 </style>
 
-<div class="pg">
-  <div class="pg-head">
-    <h1>POUR스토어 가이드북</h1>
-    <p>POUR스토어 가이드북은 눈높이 교육을 통해 다양한 시공 전문 정보를 제공합니다.<br>제품 사용을 위한 방법부터, 유형별 필요한 보수방법까지 전반적인 시공을 이해하기 쉽게 안내합니다.</p>
-  </div>
-  <div class="pg-ask">
-    <h2>시공방법에 대해 궁금하신가요?</h2>
-    <p>아래 해당 주제를 클릭해주세요.</p>
-  </div>
-  <div class="pg-cards">
-<a class="pg-card" style="--bg:#1F3A2A;--bar:#E8780F;--logo:#fff" href="/guide/guide-detail.html?type=1"><img class="pg-img" data-gi="0" alt="" loading="lazy"><div class="pg-logo"><span class="pg-sky-wrap"><svg class="pg-sky" viewBox="0 0 132 40" fill="none" xmlns="http://www.w3.org/2000/svg"><g fill="var(--acc,#E8780F)"><rect x="2" y="20" width="10" height="20"/><rect x="14" y="12" width="10" height="28"/><path d="M26 40V16l6-5 6 5v24z"/><rect x="38" y="8" width="10" height="32"/><rect x="50" y="18" width="10" height="22"/><path d="M62 40V14l6-6 6 6v26z"/><rect x="76" y="10" width="10" height="30"/><rect x="88" y="20" width="10" height="20"/><rect x="100" y="14" width="10" height="26"/></g></svg></span><span class="pg-logo-t">POUR스토어</span></div><div class="pg-title-wrap"><svg class="pg-roof-svg" viewBox="0 0 220 34" preserveAspectRatio="none" fill="none"><polyline points="5,32 5,17 110,5 215,17 215,32" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><h3 class="pg-title">평형옥상지붕<br>방수보강공사</h3></div><div class="pg-atoz"><span class="pg-atoz-line"></span><span>셀프시공 A TO Z 설명서</span></div><span class="pg-bar"></span><div class="pg-foot"><span class="pg-watch">시공영상 시청하기</span><span class="pg-qr"><svg class="pg-qr-svg" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" fill="#fff"/><g fill="#111"><path d="M8 8h26v26H8zm6 6v14h14V14z"/><rect x="18" y="18" width="6" height="6"/><path d="M66 8h26v26H66zm6 6v14h14V14z"/><rect x="76" y="18" width="6" height="6"/><path d="M8 66h26v26H8zm6 6v14h14V14z" transform="translate(0 0)"/><path d="M8 66h26v26H8zm6 6v14h14V72z"/><rect x="18" y="76" width="6" height="6"/><rect x="42" y="10" width="6" height="6"/><rect x="52" y="16" width="6" height="6"/><rect x="42" y="24" width="6" height="6"/><rect x="42" y="42" width="6" height="6"/><rect x="52" y="42" width="6" height="6"/><rect x="62" y="42" width="6" height="6"/><rect x="42" y="52" width="6" height="6"/><rect x="42" y="62" width="6" height="6"/><rect x="54" y="54" width="6" height="6"/><rect x="66" y="52" width="6" height="6"/><rect x="76" y="52" width="6" height="6"/><rect x="88" y="52" width="6" height="6"/><rect x="66" y="66" width="6" height="6"/><rect x="78" y="66" width="6" height="6"/><rect x="88" y="66" width="6" height="6"/><rect x="66" y="78" width="6" height="6"/><rect x="76" y="86" width="6" height="6"/><rect x="88" y="80" width="6" height="6"/></g></svg></span></div></a>
-    <a class="pg-card" style="--bg:#5C2318;--bar:#E8780F;--logo:#fff" href="/guide/guide-detail.html?type=2"><img class="pg-img" data-gi="1" alt="" loading="lazy"><div class="pg-logo"><span class="pg-sky-wrap"><svg class="pg-sky" viewBox="0 0 132 40" fill="none" xmlns="http://www.w3.org/2000/svg"><g fill="var(--acc,#E8780F)"><rect x="2" y="20" width="10" height="20"/><rect x="14" y="12" width="10" height="28"/><path d="M26 40V16l6-5 6 5v24z"/><rect x="38" y="8" width="10" height="32"/><rect x="50" y="18" width="10" height="22"/><path d="M62 40V14l6-6 6 6v26z"/><rect x="76" y="10" width="10" height="30"/><rect x="88" y="20" width="10" height="20"/><rect x="100" y="14" width="10" height="26"/></g></svg></span><span class="pg-logo-t">POUR스토어</span></div><div class="pg-title-wrap"><svg class="pg-roof-svg" viewBox="0 0 220 34" preserveAspectRatio="none" fill="none"><polyline points="5,32 5,17 110,5 215,17 215,32" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><h3 class="pg-title">아스팔트슁글<br>방수보강공사</h3></div><div class="pg-atoz"><span class="pg-atoz-line"></span><span>셀프시공 A TO Z 설명서</span></div><span class="pg-bar"></span><div class="pg-foot"><span class="pg-watch">시공영상 시청하기</span><span class="pg-qr"><svg class="pg-qr-svg" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" fill="#fff"/><g fill="#111"><path d="M8 8h26v26H8zm6 6v14h14V14z"/><rect x="18" y="18" width="6" height="6"/><path d="M66 8h26v26H66zm6 6v14h14V14z"/><rect x="76" y="18" width="6" height="6"/><path d="M8 66h26v26H8zm6 6v14h14V14z" transform="translate(0 0)"/><path d="M8 66h26v26H8zm6 6v14h14V72z"/><rect x="18" y="76" width="6" height="6"/><rect x="42" y="10" width="6" height="6"/><rect x="52" y="16" width="6" height="6"/><rect x="42" y="24" width="6" height="6"/><rect x="42" y="42" width="6" height="6"/><rect x="52" y="42" width="6" height="6"/><rect x="62" y="42" width="6" height="6"/><rect x="42" y="52" width="6" height="6"/><rect x="42" y="62" width="6" height="6"/><rect x="54" y="54" width="6" height="6"/><rect x="66" y="52" width="6" height="6"/><rect x="76" y="52" width="6" height="6"/><rect x="88" y="52" width="6" height="6"/><rect x="66" y="66" width="6" height="6"/><rect x="78" y="66" width="6" height="6"/><rect x="88" y="66" width="6" height="6"/><rect x="66" y="78" width="6" height="6"/><rect x="76" y="86" width="6" height="6"/><rect x="88" y="80" width="6" height="6"/></g></svg></span></div></a>
-    <a class="pg-card" style="--bg:#8CA06E;--bar:#14303E;--logo:#14303E" href="/guide/guide-detail.html?type=3"><img class="pg-img" data-gi="2" alt="" loading="lazy"><div class="pg-logo"><span class="pg-sky-wrap"><svg class="pg-sky" viewBox="0 0 132 40" fill="none" xmlns="http://www.w3.org/2000/svg"><g fill="var(--acc,#E8780F)"><rect x="2" y="20" width="10" height="20"/><rect x="14" y="12" width="10" height="28"/><path d="M26 40V16l6-5 6 5v24z"/><rect x="38" y="8" width="10" height="32"/><rect x="50" y="18" width="10" height="22"/><path d="M62 40V14l6-6 6 6v26z"/><rect x="76" y="10" width="10" height="30"/><rect x="88" y="20" width="10" height="20"/><rect x="100" y="14" width="10" height="26"/></g></svg></span><span class="pg-logo-t">POUR스토어</span></div><div class="pg-title-wrap"><svg class="pg-roof-svg" viewBox="0 0 220 34" preserveAspectRatio="none" fill="none"><polyline points="5,32 5,17 110,5 215,17 215,32" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><h3 class="pg-title">금속기와 및<br>칼라강판<br>방수보강공사</h3></div><div class="pg-atoz"><span class="pg-atoz-line"></span><span>셀프시공 A TO Z 설명서</span></div><span class="pg-bar"></span><div class="pg-foot"><span class="pg-watch">시공영상 시청하기</span><span class="pg-qr"><svg class="pg-qr-svg" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" fill="#fff"/><g fill="#111"><path d="M8 8h26v26H8zm6 6v14h14V14z"/><rect x="18" y="18" width="6" height="6"/><path d="M66 8h26v26H66zm6 6v14h14V14z"/><rect x="76" y="18" width="6" height="6"/><path d="M8 66h26v26H8zm6 6v14h14V14z" transform="translate(0 0)"/><path d="M8 66h26v26H8zm6 6v14h14V72z"/><rect x="18" y="76" width="6" height="6"/><rect x="42" y="10" width="6" height="6"/><rect x="52" y="16" width="6" height="6"/><rect x="42" y="24" width="6" height="6"/><rect x="42" y="42" width="6" height="6"/><rect x="52" y="42" width="6" height="6"/><rect x="62" y="42" width="6" height="6"/><rect x="42" y="52" width="6" height="6"/><rect x="42" y="62" width="6" height="6"/><rect x="54" y="54" width="6" height="6"/><rect x="66" y="52" width="6" height="6"/><rect x="76" y="52" width="6" height="6"/><rect x="88" y="52" width="6" height="6"/><rect x="66" y="66" width="6" height="6"/><rect x="78" y="66" width="6" height="6"/><rect x="88" y="66" width="6" height="6"/><rect x="66" y="78" width="6" height="6"/><rect x="76" y="86" width="6" height="6"/><rect x="88" y="80" width="6" height="6"/></g></svg></span></div></a>
-    <a class="pg-card" style="--bg:#14303E;--bar:#E8780F;--logo:#fff" href="/guide/guide-detail.html?type=4"><img class="pg-img" data-gi="3" alt="" loading="lazy"><div class="pg-logo"><span class="pg-sky-wrap"><svg class="pg-sky" viewBox="0 0 132 40" fill="none" xmlns="http://www.w3.org/2000/svg"><g fill="var(--acc,#E8780F)"><rect x="2" y="20" width="10" height="20"/><rect x="14" y="12" width="10" height="28"/><path d="M26 40V16l6-5 6 5v24z"/><rect x="38" y="8" width="10" height="32"/><rect x="50" y="18" width="10" height="22"/><path d="M62 40V14l6-6 6 6v26z"/><rect x="76" y="10" width="10" height="30"/><rect x="88" y="20" width="10" height="20"/><rect x="100" y="14" width="10" height="26"/></g></svg></span><span class="pg-logo-t">POUR스토어</span></div><div class="pg-title-wrap"><svg class="pg-roof-svg" viewBox="0 0 220 34" preserveAspectRatio="none" fill="none"><polyline points="5,32 5,17 110,5 215,17 215,32" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><h3 class="pg-title">균열, 크렉<br>보수방법</h3></div><div class="pg-atoz"><span class="pg-atoz-line"></span><span>셀프시공 A TO Z 설명서</span></div><span class="pg-bar"></span><div class="pg-foot"><span class="pg-watch">시공영상 시청하기</span><span class="pg-qr"><svg class="pg-qr-svg" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" fill="#fff"/><g fill="#111"><path d="M8 8h26v26H8zm6 6v14h14V14z"/><rect x="18" y="18" width="6" height="6"/><path d="M66 8h26v26H66zm6 6v14h14V14z"/><rect x="76" y="18" width="6" height="6"/><path d="M8 66h26v26H8zm6 6v14h14V14z" transform="translate(0 0)"/><path d="M8 66h26v26H8zm6 6v14h14V72z"/><rect x="18" y="76" width="6" height="6"/><rect x="42" y="10" width="6" height="6"/><rect x="52" y="16" width="6" height="6"/><rect x="42" y="24" width="6" height="6"/><rect x="42" y="42" width="6" height="6"/><rect x="52" y="42" width="6" height="6"/><rect x="62" y="42" width="6" height="6"/><rect x="42" y="52" width="6" height="6"/><rect x="42" y="62" width="6" height="6"/><rect x="54" y="54" width="6" height="6"/><rect x="66" y="52" width="6" height="6"/><rect x="76" y="52" width="6" height="6"/><rect x="88" y="52" width="6" height="6"/><rect x="66" y="66" width="6" height="6"/><rect x="78" y="66" width="6" height="6"/><rect x="88" y="66" width="6" height="6"/><rect x="66" y="78" width="6" height="6"/><rect x="76" y="86" width="6" height="6"/><rect x="88" y="80" width="6" height="6"/></g></svg></span></div></a>
+<div class="gd">
+  <section class="gd-prep"><div class="gd-prep-in">
+    <h2>시공 전 준비사항</h2>
+    <div class="gd-steps">
+      <div class="gd-step"><span class="gd-dot"></span><div class="gd-no">STEP 1</div><div class="gd-st">안전한 작업환경 조성</div><div class="gd-ds">작업 시 위험요인을 제거하고 안전한 작업환경을 조성해주세요.<br>필요 시 준비물: 앙카작업, 안전모, 안전화, 안전그네(전체식), PP로프(16MM이상) 등</div><div class="gd-ic"><svg viewBox="0 0 48 48" fill="none" stroke="#5b6b86" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 30a16 16 0 0 1 32 0"/><rect x="6" y="30" width="36" height="5" rx="2.5"/><path d="M20 15v8M28 15v8M24 13v10"/></svg></div></div>
+      <div class="gd-step"><span class="gd-dot"></span><div class="gd-no">STEP 2</div><div class="gd-st">시공 부위 정리</div><div class="gd-ds">간단한 바닥정리를 해주세요.<br>*필요 시 미장작업이 필요할 수 있습니다.</div><div class="gd-ic"><svg viewBox="0 0 48 48" fill="none" stroke="#5b6b86" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M30 8L18 20"/><path d="M14 24l10 10-6 6H10a2 2 0 0 1-2-2v-8z"/><path d="M24 34l12-12"/></svg></div></div>
+      <div class="gd-step"><span class="gd-dot"></span><div class="gd-no">STEP 3</div><div class="gd-st">시공 준비물 준비</div><div class="gd-ds">시공유형과 평수에 맞는 자재를 준비해 주세요.<br>준비물: 제품 및 부자재</div><div class="gd-ic"><svg viewBox="0 0 48 48" fill="none" stroke="#5b6b86" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h24l-2 22a2 2 0 0 1-2 2H16a2 2 0 0 1-2-2z"/><path d="M12 16a12 5 0 0 1 24 0"/><path d="M30 6l6 6"/></svg></div></div>
+      <div class="gd-step"><span class="gd-dot"></span><div class="gd-no">STEP 4</div><div class="gd-st">시공방법 확인</div><div class="gd-ds">각 시공유형별 해당하는 혼합방법과 시공방법을 꼼꼼히 확인해주세요.<br>준비물: POUR스토어 설명서</div><div class="gd-ic"><svg viewBox="0 0 48 48" fill="none" stroke="#5b6b86" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="12" y="10" width="24" height="30" rx="3"/><rect x="18" y="6" width="12" height="7" rx="2"/><path d="M18 22h12M18 28h12M18 34h7"/></svg></div></div>
+    </div>
+  </div></section>
+  <div class="gd-body">
+    <div class="gd-tabs" data-gd-tabs><button class="gd-tab" data-type="1">옥상 평형 슬라브</button><button class="gd-tab" data-type="2">아스팔트 슁글</button><button class="gd-tab" data-type="3">금속기와/칼라강판</button><button class="gd-tab" data-type="4">균열 및 이음부 보강</button></div>
+    <h3 class="gd-title" data-gd-title></h3>
+    <div data-gd-content><div class="gd-empty">불러오는 중…</div></div>
   </div>
 </div>
 
-<!-- 가이드 카드 이미지: Firebase Storage guide-images/ 에서 여러 파일명 자동 시도 -->
-<script>
-(function(){
-  var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'
-           + encodeURIComponent('POUR스토어_리뉴얼') + '%2F' + encodeURIComponent('guide-images') + '%2F';
-  function tryLoad(im, cands, k){
-    if(k>=cands.length){ im.remove(); return; }        // 다 실패 → 디자인 카드
-    im.onerror=function(){ tryLoad(im, cands, k+1); };
-    im.onload=function(){ var c=im.closest('.pg-card'); if(c) c.classList.add('has-img'); };  // 성공 → 원본비율 표시
-    im.src=BASE+encodeURIComponent(cands[k])+'?alt=media';
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const app = getApps().length ? getApps()[0] : initializeApp({apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"});
+const db = getFirestore(app);
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+const TYPE_NAMES={'1':'옥상 평형 슬라브','2':'아스팔트 슁글','3':'금속기와/칼라강판','4':'균열 및 이음부 보강'};
+
+function ytId(u){ try{ var m=String(u).match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)([\w-]{6,})/); return m?m[1]:''; }catch(e){ return ''; } }
+function videoHtml(url){
+  var id=ytId(url);
+  if(id) return '<div class="gd-vid"><iframe src="https://www.youtube.com/embed/'+esc(id)+'" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>';
+  if(/\.(mp4|webm|ogg)(\?|$)/i.test(url)) return '<div class="gd-vid"><video controls src="'+esc(url)+'"></video></div>';
+  return '<div class="gd-vid"><iframe src="'+esc(url)+'" allowfullscreen></iframe></div>';
+}
+function blockHtml(b){
+  if(!b||!b.type) return '';
+  var lbl=b.label?('<div class="gd-b-label">'+esc(b.label)+'</div>'):'';
+  if(b.type==='text'){ if(!(b.text||'').trim()) return ''; var sz=b.size==='head'?' head':(b.size==='big'?' big':''); return lbl+'<div class="gd-block gd-text'+sz+'">'+esc(b.text)+'</div>'; }
+  if(b.type==='image'){ if(!(b.url||'').trim()) return ''; return lbl+'<div class="gd-block"><img src="'+esc(b.url)+'" alt="" loading="lazy"></div>'; }
+  if(b.type==='video'){ if(!(b.url||'').trim()) return ''; return lbl+'<div class="gd-block">'+videoHtml(b.url)+'</div>'; }
+  return '';
+}
+
+(async function(){
+  var tabsBox=document.querySelector('[data-gd-tabs]');
+  var titleEl=document.querySelector('[data-gd-title]');
+  var contentEl=document.querySelector('[data-gd-content]');
+  var DATA={};
+  try{
+    var snap=await getDoc(doc(db,'config','pourstoreGuideDetail'));
+    if(snap.exists() && snap.data() && typeof snap.data().types==='object') DATA=snap.data().types||{};
+    console.log('[가이드상세] 로드', Object.keys(DATA));
+  }catch(e){ console.warn('[가이드상세] 로드 실패:', e && e.message); }
+
+  function render(type){
+    Array.prototype.forEach.call(tabsBox.querySelectorAll('.gd-tab'),function(b){ b.classList.toggle('on', b.getAttribute('data-type')===type); });
+    var d=DATA[type]||{};
+    titleEl.textContent=(d.title||'').trim();
+    titleEl.style.display=(d.title||'').trim()?'':'none';
+    var blocks=Array.isArray(d.blocks)?d.blocks:[];
+    var html=blocks.map(blockHtml).join('');
+    contentEl.innerHTML=html || '<div class="gd-empty">준비 중인 콘텐츠예요.</div>';
+    try{ history.replaceState(null,'', location.pathname+'?type='+type); }catch(e){}
   }
-  Array.prototype.forEach.call(document.querySelectorAll('.pg-img'), function(im){
-    var n=Number(im.getAttribute('data-gi'))+1;
-    tryLoad(im, ['guide-'+n+'.jpg.png','guide-'+n+'.png','guide-'+n+'.jpg','guide-'+n+'.png.png','guide-'+n+'.jpeg','guide-'+n+'.webp'], 0);
-  });
+  tabsBox.addEventListener('click',function(e){ var b=e.target.closest('.gd-tab'); if(!b)return; render(b.getAttribute('data-type')); });
+
+  var qp=''; try{ qp=new URLSearchParams(location.search).get('type')||''; }catch(e){}
+  render(TYPE_NAMES[qp]?qp:'1');
 })();
 </script>

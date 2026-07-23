@@ -69,6 +69,36 @@ body{background:var(--bg); color:var(--ink2); display:flex; justify-content:cent
 .cw-ft button:disabled{background:#D6D9DD; cursor:default;}
 .cw-ft button svg{width:18px; height:18px; color:#fff;}
 .cw-guard{font-size:10.5px; color:var(--muted); text-align:center; margin-top:7px; font-weight:500;}
+/* 진단 진입 칩(강조) */
+.chip.solid{background:var(--or); border-color:var(--or); color:#fff;}
+.chip.solid:hover{background:var(--or-d); border-color:var(--or-d);}
+/* 첨부한 사진 미리보기(내 말풍선) */
+.row.me .myimg{width:120px; max-width:52vw; border-radius:14px; border-bottom-right-radius:5px; display:block;}
+/* 진단 결과 카드 */
+.dx-card{background:#F4F5F7; border-radius:15px; border-bottom-left-radius:5px; padding:13px 14px; max-width:82vw; font-size:13.5px; line-height:1.55; color:var(--ink2);}
+@media(min-width:520px){.dx-card{max-width:392px;}}
+.dx-head{display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-bottom:4px;}
+.dx-tagbig{font-size:14px; font-weight:800; color:var(--navy);}
+.dx-conf{font-size:11px; font-weight:800; color:var(--or-d); background:var(--or-l); border:1px solid var(--or-m); padding:2px 8px; border-radius:20px;}
+.dx-sec{margin-top:11px;}
+.dx-sec .lb{font-size:11.5px; font-weight:800; color:var(--navy); margin-bottom:5px; display:flex; align-items:center; gap:5px;}
+.dx-sec p{font-size:13px; line-height:1.6; color:var(--ink2); font-weight:500;}
+/* 유사 하자사진 가로 스크롤 */
+.dx-photos{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch;}
+.dx-photos::-webkit-scrollbar{height:5px;} .dx-photos::-webkit-scrollbar-thumb{background:#D6DAE0; border-radius:5px;}
+.dx-photos a{flex-shrink:0;}
+.dx-photos img{width:96px; height:96px; object-fit:cover; border-radius:10px; border:1px solid var(--line); display:block;}
+/* 공법 태그 */
+.dx-methods{display:flex; flex-wrap:wrap; gap:5px; margin-top:6px;}
+.dx-methods span{font-size:11px; font-weight:700; color:#0a7d3f; background:#E8F8EE; border:1px solid #A7E7C2; padding:3px 8px; border-radius:8px;}
+/* 추천 상품 카드 */
+.dx-prods{display:flex; gap:9px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch;}
+.dx-prods::-webkit-scrollbar{height:5px;} .dx-prods::-webkit-scrollbar-thumb{background:#D6DAE0; border-radius:5px;}
+.dx-prod{flex-shrink:0; width:118px; background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden; text-decoration:none; color:inherit;}
+.dx-prod .th{width:100%; height:88px; object-fit:cover; background:var(--bg); display:block;}
+.dx-prod .th.ph{display:grid; place-items:center; color:var(--muted); font-size:11px;}
+.dx-prod .nm{font-size:11.5px; font-weight:700; color:var(--ink); padding:7px 8px 2px; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+.dx-prod .pr{font-size:12px; font-weight:800; color:var(--or-d); padding:0 8px 8px;}
 </style>
 </head>
 <body>
@@ -97,6 +127,7 @@ body{background:var(--bg); color:var(--ink2); display:flex; justify-content:cent
 <script type="module">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 const firebaseConfig = {
   apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
   authDomain: "pour-app-new.firebaseapp.com",
@@ -107,11 +138,21 @@ const firebaseConfig = {
 };
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 // ===== 상담 연결(고객사에 맞게 값만 교체) =====
 const CONTACT = {
   inquiryUrl: "https://www.pourstore.net",   // 1:1 문의/상담 페이지 (카페24 게시판 등으로 교체 가능)
   tel: ""                                     // 전화번호 있으면 입력 (예: "1577-0000") — 없으면 버튼 숨김
+};
+
+// ===== 사진 진단(하자매칭) 설정 =====
+//  · proxyUrl 비우면: 설문 체크리스트 기반 즉석 매칭(원인·해결·유사사진·추천상품). API 불필요, 바로 동작.
+//  · proxyUrl 입력하면: 첨부 사진을 공개 진단 워커(Claude 비전, 오리진 화이트리스트)로 보내 하자유형까지 AI 판별.
+//  · storeOrigin: 상품 링크(/product/detail.html…)를 절대경로로 열기 위한 자사몰 도메인. 비우면 상대경로 그대로.
+const DIAGNOSE = {
+  proxyUrl: "",                               // 예: "https://pour-diagnose.<계정>.workers.dev"
+  storeOrigin: ""                             // 예: "https://poursto.cafe24.com" 또는 "https://www.pourstore.net"
 };
 
 // ===== 인라인 시드(CRM 상담 Q&A 소비자톤) — Firestore chatbot-kb와 병합됨 =====
@@ -183,10 +224,11 @@ function renderChips(list){
   wrap.className = 'chips';
   list.forEach(c => {
     const b = document.createElement('button');
-    b.className = 'chip' + (c.ghost ? ' ghost' : '');
+    b.className = 'chip' + (c.ghost ? ' ghost' : '') + (c.solid ? ' solid' : '');
     b.type = 'button';
     b.textContent = c.label || c;
-    b.onclick = () => { removeTransient(); handle(c.value || c.label || c); };
+    if (typeof c.fn === 'function') b.onclick = () => { removeTransient(); c.fn(); };
+    else b.onclick = () => { removeTransient(); handle(c.value || c.label || c); };
     wrap.appendChild(b);
   });
   wrap.dataset.transient = '1';
@@ -271,10 +313,10 @@ async function handle(query){
     });
     log(query, top.e, top.s);
   } else if (priceAsk){
-    addBot("정확한 견적과 수량은 제품·현장 상태에 따라 달라져요. 상품 페이지에서 규격을 확인하시거나, 1:1 문의로 필요 수량을 알려주시면 담당자가 자세히 안내해 드립니다.", { acts: contactActs(), chips: startChips() });
+    addBot("정확한 견적과 수량은 제품·현장 상태에 따라 달라져요. 상품 페이지에서 규격을 확인하시거나, 1:1 문의로 필요 수량을 알려주시면 담당자가 자세히 안내해 드립니다.", { acts: contactActs(), chips: [dxChip(), ...startChips()] });
     log(query, null, 0);
   } else {
-    addBot("제가 아직 정확히 답변드리기 어려운 질문이에요. 담당자가 확실하게 도와드릴 수 있도록 1:1 문의로 연결해 드릴게요. 아래 주제로도 바로 확인하실 수 있어요.", { acts: contactActs(), chips: startChips() });
+    addBot("제가 아직 정확히 답변드리기 어려운 질문이에요. 담당자가 확실하게 도와드릴 수 있도록 1:1 문의로 연결해 드릴게요. 하자 사진이 있다면 아래 '사진으로 하자 진단'도 이용해 보세요.", { acts: contactActs(), chips: [dxChip(), ...startChips()] });
     log(query, null, 0);
   }
 }
@@ -288,6 +330,222 @@ function shorten(s){ s=s.replace(/\?+$/,''); return s.length>22 ? s.slice(0,22)+
 
 form.addEventListener('submit', e => { e.preventDefault(); const v=input.value.trim(); if(!v) return; input.value=''; sendBtn.disabled=true; removeTransient(); handle(v); });
 input.addEventListener('input', ()=>{ sendBtn.disabled = !input.value.trim(); });
+
+// ===== 📷 사진 진단(하자매칭) =====
+// 위젯 자체 폴백 템플릿 — Firestore defect-templates가 비어있을 때 사용(어드민 저장 전에도 동작)
+const DX_SEED_TPL = [
+  {tags:['누수','물자국'],methods:['POUR 듀얼강화방수 공법','POUR 우레탄 방수 공법'],
+   cause:'방수층 노후·균열·이음부 실링 파단으로 물이 구조체를 통과하는 상태예요. 표면만이 아니라 방수층 자체의 수명이 끝난 경우가 많습니다.',
+   solution:'기존 방수층을 강화·재시공하는 듀얼강화방수가 표준이에요. 자사 복합압축시트로 이음부를 보강해 재하자를 최소화합니다.',products:[]},
+  {tags:['균열','크랙'],methods:['POUR 균열보수 및 재도장 공법(바인더+플러스)','POUR 복합시트 균열보수 공법'],
+   cause:'콘크리트 수축·구조 거동·중성화로 마감재와 구조체에 금이 간 상태예요. 방치하면 균열을 타고 물이 침투해 2차 하자로 커집니다.',
+   solution:'균열을 탄성 퍼티로 충전한 뒤 고신율 도막으로 재도장하거나, 폭이 큰 균열은 복합시트로 보강합니다.',products:[]},
+  {tags:['들뜸','부풀음'],methods:['POUR 듀얼강화방수 공법'],
+   cause:'바탕면 습기가 빠져나가지 못해 방수층·도막이 들뜬 상태예요. 들뜬 부위는 곧 찢어져 누수로 이어집니다.',
+   solution:'들뜬 층을 제거하고 무동력 배습으로 습기를 배출한 뒤 재방수합니다.',products:[]},
+  {tags:['박리','벗겨짐'],methods:['POUR 에폭시 도장 공법','POUR 엠보라이닝 도장 공법'],
+   cause:'바닥·표면 마감재가 마모·부착불량으로 벗겨진 상태예요. 주차장 바닥에서 분진·미끄럼을 유발합니다.',
+   solution:'열화된 도막을 제거하고 부착강도 높은 에폭시/엠보라이닝으로 재도장합니다.',products:[]},
+  {tags:['부식','녹슬음','녹'],methods:['POUR 금속기와/칼라강판 코팅 공법','POUR 탄성강화 보강공법 (단면복구)'],
+   cause:'도장 열화·중성화·염해로 금속/철근이 부식된 상태예요. 방치하면 팽창해 콘크리트를 밀어냅니다.',
+   solution:'부식부를 제거·방청 처리 후 코트재 재코팅 또는 탄성강화 보강재로 단면을 복구합니다.',products:[]},
+  {tags:['탈락','기와탈락'],methods:['POUR 아스팔트싱글 방수 공법','POUR 금속기와 방수 공법'],
+   cause:'지붕재·방수재의 접착력이 떨어져 강풍·노후로 떨어져 나간 상태예요. 낙하 위험과 누수가 함께 발생합니다.',
+   solution:'방수콘크리트 함침으로 바탕면과 완전 일체화하고 후레싱을 견고하게 재고정합니다.',products:[]},
+];
+const DX_BUILDINGS = ['아파트','단독·빌라','상가·건물','공장·창고','기타'];
+const DX_LOCATIONS = ['옥상·지붕','외벽','지하·주차장','발코니·화장실','바닥·도로','기타'];
+const DX_SYMPTOMS = [
+  {label:'물이 샘(누수)',tags:['누수']},
+  {label:'금이 감(균열)',tags:['균열']},
+  {label:'들뜸·부풀음',tags:['들뜸']},
+  {label:'벗겨짐·박리',tags:['박리']},
+  {label:'녹·부식',tags:['부식','녹슬음']},
+  {label:'탈락·떨어짐',tags:['탈락']},
+  {label:'잘 모르겠어요',tags:[]},
+];
+let DX = null, defectData = null;
+const BOT_SVG = '<div class="bava"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3.9 0 7 2.6 7 6 0 3.4-3.1 6-7 6-.8 0-1.6-.1-2.3-.3L6 16.5l.4-2.7C5 12.7 5 11.4 5 9c0-3.4 3.1-6 7-6z"/></svg></div>';
+const shortM = m => String(m||'').replace('POUR ','').replace(' 공법','');
+const dxChip = () => ({ label:'📷 사진으로 하자 진단', fn:startDiagnose, solid:true });
+
+async function fetchDefectData(){
+  if (defectData) return defectData;
+  try{
+    const [tSnap, pSnap] = await Promise.all([
+      getDocs(collection(db,'defect-templates')),
+      getDocs(collection(db,'defect-photos')),
+    ]);
+    let templates = tSnap.docs.map(d=>({id:d.id, ...d.data()}));
+    const photos = pSnap.docs.map(d=>({id:d.id, ...d.data()}));
+    if (!templates.length) templates = DX_SEED_TPL.slice();
+    console.log('[chat] 진단데이터 템플릿 '+templates.length+' · 사진 '+photos.length);
+    defectData = { templates, photos };
+  }catch(e){ console.log('[chat] 진단데이터 로드 실패(폴백 사용):', e&&e.message); defectData = { templates:DX_SEED_TPL.slice(), photos:[] }; }
+  return defectData;
+}
+
+const tplTagsOf = t => (t.tags&&t.tags.length ? t.tags : (t.type ? [t.type] : []));
+const photoTagsOf = p => (Array.isArray(p.defectTypes)&&p.defectTypes.length ? p.defectTypes : (p.defectType ? [p.defectType] : []));
+function pickTemplate(templates, tags){
+  if (!tags || !tags.length) return null;
+  const want = tags.map(norm).filter(Boolean);
+  let best=null, bestS=0;
+  templates.forEach(t=>{
+    const tt = tplTagsOf(t).map(norm);
+    let s=0; want.forEach(w=>{ if (tt.some(x=>x===w || x.includes(w) || w.includes(x))) s++; });
+    if (s>bestS){ bestS=s; best=t; }
+  });
+  return best;
+}
+function similarPhotos(photos, tags, methods, limit){
+  const want=(tags||[]).map(norm), wantM=(methods||[]).map(norm);
+  const scored = photos.map(p=>{
+    const pt=photoTagsOf(p).map(norm);
+    const pm=(Array.isArray(p.methods)?p.methods:(p.method?[p.method]:[])).map(norm);
+    let s=0;
+    want.forEach(w=>{ if (pt.some(x=>x===w || x.includes(w) || w.includes(x))) s+=2; });
+    wantM.forEach(w=>{ if (pm.some(x=>x===w)) s+=1; });
+    return {p,s};
+  }).filter(x=>x.s>0 && x.p.imageUrl).sort((a,b)=>b.s-a.s);
+  return scored.slice(0, limit||6).map(x=>x.p);
+}
+
+function fileToDataURL(file){ return new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(file); }); }
+async function aiDetect(file, templates){
+  if (!DIAGNOSE.proxyUrl || !file) return null;
+  try{
+    const image = await fileToDataURL(file);
+    const tpl = templates.slice(0,20).map(t=>({ tags:tplTagsOf(t), desc:t.desc||t.cause||'' }));
+    const r = await fetch(DIAGNOSE.proxyUrl.replace(/\/$/,'')+'/diagnose', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ image, checklist:{buildingType:DX.buildingType, location:DX.location, symptom:DX.symptom}, templates:tpl })
+    });
+    if (!r.ok){ console.log('[chat] AI 진단 응답 '+r.status); return null; }
+    const j = await r.json();
+    return (j && j.defectType) ? j : null;
+  }catch(e){ console.log('[chat] AI 진단 스킵:', e&&e.message); return null; }
+}
+async function uploadPhoto(file){
+  const safe=(file.name||'photo').replace(/[^\w.\-]/g,'_');
+  const r=sRef(storage, 'defect-diagnosis/'+Date.now()+'_'+safe);
+  await uploadBytes(r, file);
+  return await getDownloadURL(r);
+}
+
+function addMeImage(url){
+  const row=document.createElement('div'); row.className='row me';
+  row.innerHTML='<img class="myimg" src="'+esc(url)+'" alt="첨부사진"/>';
+  bodyEl.appendChild(row); scrollDown();
+}
+function renderUpload(onFile){
+  const wrap=document.createElement('div'); wrap.className='acts'; wrap.dataset.transient='1';
+  const lab=document.createElement('label'); lab.className='act primary'; lab.style.cursor='pointer';
+  lab.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>사진 첨부</span>';
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.style.display='none';
+  inp.onchange=()=>{ const f=inp.files&&inp.files[0]; removeTransient(); onFile(f||null); };
+  lab.appendChild(inp);
+  const skip=document.createElement('button'); skip.className='act line'; skip.type='button';
+  skip.innerHTML='<span>사진 없이 진행</span>';
+  skip.onclick=()=>{ removeTransient(); onFile(null); };
+  wrap.appendChild(lab); wrap.appendChild(skip);
+  bodyEl.appendChild(wrap); scrollDown();
+}
+
+function prodHref(link){
+  link=link||'';
+  if (/^https?:/.test(link)) return link;
+  if (link && DIAGNOSE.storeOrigin) return DIAGNOSE.storeOrigin.replace(/\/$/,'')+link;
+  return link || CONTACT.inquiryUrl;
+}
+function addResult(matched, opts){
+  opts=opts||{};
+  const tagLabel = opts.tagLabel || (matched ? tplTagsOf(matched)[0] : '하자');
+  const row=document.createElement('div'); row.className='row bot';
+  let h = BOT_SVG + '<div class="dx-card">';
+  h += '<div class="dx-head"><span class="dx-tagbig">#'+esc(tagLabel)+'</span>';
+  if (opts.conf) h += '<span class="dx-conf">AI 신뢰도 '+esc(String(opts.conf))+'%</span>';
+  h += '</div>';
+  if (opts.photos && opts.photos.length){
+    h += '<div class="dx-sec"><div class="lb">📸 유사 하자사진</div><div class="dx-photos">';
+    opts.photos.forEach(p=>{ h += '<a href="'+esc(p.imageUrl)+'" target="_blank" rel="noopener"><img src="'+esc(p.imageUrl)+'" alt=""/></a>'; });
+    h += '</div></div>';
+  }
+  const cause = (matched && matched.cause) ? matched.cause : '사진만으로는 원인 진단이 더 필요한 상태예요. 아래 1:1 문의로 사진을 남겨주시면 담당자가 정확히 확인해 드립니다.';
+  h += '<div class="dx-sec"><div class="lb">🔎 문제 원인</div><p>'+esc(cause)+'</p></div>';
+  if (matched && matched.solution){
+    h += '<div class="dx-sec"><div class="lb">🛠 해결 방안</div><p>'+esc(matched.solution)+'</p>';
+    const ms=(matched.methods||[]);
+    if (ms.length){ h += '<div class="dx-methods">'; ms.forEach(m=>h+='<span>'+esc(shortM(m))+'</span>'); h += '</div>'; }
+    h += '</div>';
+  }
+  const prods=(matched && matched.products) || [];
+  if (prods.length){
+    h += '<div class="dx-sec"><div class="lb">🛒 추천 상품</div><div class="dx-prods">';
+    prods.forEach(pr=>{
+      h += '<a class="dx-prod" href="'+esc(prodHref(pr.link))+'" target="_top">';
+      h += pr.thumb ? '<img class="th" src="'+esc(pr.thumb)+'" alt=""/>' : '<div class="th ph">상품</div>';
+      h += '<div class="nm">'+esc(pr.name||'')+'</div>';
+      h += pr.price ? '<div class="pr">'+Number(pr.price).toLocaleString()+'원</div>' : '<div class="pr" style="color:var(--muted)">가격문의</div>';
+      h += '</a>';
+    });
+    h += '</div></div>';
+  }
+  h += '</div>';
+  row.innerHTML=h;
+  bodyEl.appendChild(row);
+  renderActs(contactActs());
+  renderChips([{label:'📷 다른 사진으로 다시 진단', fn:startDiagnose, solid:true}, ...startChips()]);
+  scrollDown();
+}
+
+function startDiagnose(){
+  DX={}; fetchDefectData();
+  addBot('사진과 간단한 체크로 맞춤 진단을 도와드릴게요. 먼저, 어떤 건물인가요?', { chips: DX_BUILDINGS.map(b=>({label:b, fn:()=>pickBuilding(b)})) });
+}
+function pickBuilding(b){ addMe(b); DX.buildingType=b; addBot('하자가 어디에 있나요?', { chips: DX_LOCATIONS.map(l=>({label:l, fn:()=>pickLocation(l)})) }); }
+function pickLocation(l){ addMe(l); DX.location=l; addBot('어떤 증상인가요? 가장 가까운 것을 골라주세요.', { chips: DX_SYMPTOMS.map(s=>({label:s.label, fn:()=>pickSymptom(s)})) }); }
+function pickSymptom(s){ addMe(s.label); DX.symptom=s.label; DX.tags=(s.tags||[]).slice(); askPhoto(); }
+function askPhoto(){
+  const hint = DIAGNOSE.proxyUrl ? '하자 사진을 첨부하시면 AI가 사진을 분석해 더 정확히 매칭해 드려요.' : '하자 사진을 첨부하시면 담당자가 사진을 보고 정확히 확인해 드려요.';
+  addBot('마지막이에요! '+hint, {});
+  renderUpload(runMatch);
+}
+async function runMatch(file){
+  const data = await fetchDefectData();
+  if (file) addMeImage(URL.createObjectURL(file)); else addMe('사진 없이 진행');
+  const t = typing();
+  let tags = (DX.tags||[]).slice(), conf=null, aiType=null;
+  if (file){
+    const ai = await aiDetect(file, data.templates);
+    if (ai){ aiType=ai.defectType; conf=ai.confidence||null; tags=[ai.defectType, ...tags]; }
+  }
+  let matched = pickTemplate(data.templates, tags);
+  if (!matched && aiType) matched = pickTemplate(data.templates, [aiType]);
+  const useTags = matched ? tplTagsOf(matched) : tags;
+  const photos = similarPhotos(data.photos, useTags, matched?matched.methods:[], 6);
+  let imageUrl=null;
+  if (file){ try{ imageUrl=await uploadPhoto(file); }catch(e){ console.log('[chat] 사진 업로드 실패:', e&&e.message); } }
+  saveDiagnosis({ imageUrl, matched, aiType, conf });
+  await new Promise(r=>setTimeout(r, 300));
+  t.remove();
+  if (!matched && !photos.length){
+    addBot('입력만으로는 정확히 판단이 어려워요. 담당자가 사진을 직접 보고 확실하게 안내드릴게요. 아래 1:1 문의로 남겨주시면 됩니다.', { acts:contactActs(), chips:[dxChip(), ...startChips()] });
+    return;
+  }
+  addResult(matched, { photos, conf, tagLabel: aiType || (DX.tags&&DX.tags[0]) || (matched?tplTagsOf(matched)[0]:'하자') });
+}
+async function saveDiagnosis(o){
+  try{
+    await addDoc(collection(db,'defect-diagnosis'), {
+      source:'chat-widget', buildingType:DX.buildingType||'', location:DX.location||'', symptom:DX.symptom||'',
+      matchedType: o.matched ? tplTagsOf(o.matched)[0] : (o.aiType||''),
+      matchedTemplateId: (o.matched && o.matched.id) || null,
+      aiConfidence: o.conf||null, imageUrl:o.imageUrl||'',
+      ts:new Date().toISOString(), createdAt:new Date().toISOString()
+    });
+  }catch(e){ console.log('[chat] 진단기록 스킵:', e&&e.message); }
+}
 
 // ===== 시작 =====
 async function boot(){
@@ -311,7 +569,7 @@ async function boot(){
     console.log("[chat] 지식 총 "+KB.length+"건(시드 포함)");
   } catch(e){ console.log("[chat] chatbot-kb 로드 실패(시드만 사용):", e && e.message); }
 
-  addBot("안녕하세요! POUR스토어 상담봇이에요. 제품 사용법·시공 관련 궁금한 점을 물어봐 주세요. 아래에서 골라보셔도 좋아요.", { chips: startChips() });
+  addBot("안녕하세요! POUR스토어 상담봇이에요. 하자 사진을 첨부하면 유사사례·원인·해결·추천상품까지 맞춤 진단해 드려요. 제품·시공 궁금증도 편하게 물어봐 주세요.", { chips: [dxChip(), ...startChips()] });
 }
 boot();
 </script>

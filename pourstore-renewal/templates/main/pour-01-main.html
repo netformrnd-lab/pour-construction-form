@@ -492,6 +492,26 @@
     <a href="https://pourstore.cafe24.com/pourstore_renewal/showroom/pour-showroom.html" class="psm1-cat"><span class="psm1-cat-ico c9" style="color:#0891B2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 10h.01M15 10h.01"/></svg></span><span class="psm1-cat-name">전시장</span></a>
   </div>
 </nav>
+<!-- 퀵메뉴 아이콘 이미지 교체(Storage quick-icons/icon-N.*) — 있으면 이미지, 없으면 기본 아이콘 -->
+<style>
+.psm1-cat-ico img{display:none;}
+.psm1-cat-ico.has-img{background:transparent !important;}
+.psm1-cat-ico.has-img svg{display:none;}
+.psm1-cat-ico.has-img img{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit;}
+</style>
+<script>
+(function(){
+  var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'+encodeURIComponent('POUR스토어_리뉴얼')+'%2F'+encodeURIComponent('quick-icons')+'%2F';
+  var cats=document.querySelectorAll('.psm1-cats .psm1-cat');
+  Array.prototype.forEach.call(cats,function(cat,i){
+    var box=cat.querySelector('.psm1-cat-ico'); if(!box) return;
+    var n=i+1, cands=['icon-'+n+'.png','icon-'+n+'.jpg','icon-'+n+'.png.png','icon-'+n+'.jpg.png','icon-'+n+'.webp'];
+    var img=document.createElement('img'); img.alt='';
+    function tryLoad(k){ if(k>=cands.length) return; img.onerror=function(){ tryLoad(k+1); }; img.onload=function(){ box.classList.add('has-img'); }; img.src=BASE+encodeURIComponent(cands[k])+'?alt=media'; }
+    tryLoad(0); box.appendChild(img);
+  });
+})();
+</script>
 <!-- 5) 전체화면 검색 오버레이 (검색창 탭 시 등장) -->
 <div class="psm1-ov" data-psm1-ov hidden>
   <div class="psm1-ov-head">

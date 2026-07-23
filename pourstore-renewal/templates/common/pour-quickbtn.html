@@ -114,6 +114,8 @@
   .pqc-fab{width:56px;height:56px}
   /* 모바일: 상단 고정 + JS(visualViewport)로 키보드 높이만큼 줄여줌 → 입력창이 키보드 위에 딱 */
   .pqc-panel{left:0;right:auto;top:0;bottom:auto;width:100vw;max-width:100vw;height:100dvh;border-radius:0}
+  /* iOS: 입력창 글자 16px 미만이면 포커스 시 화면이 확대돼 불편 → 16px로 고정해 자동확대 방지 */
+  .pqc-inbar textarea,.pqc-notify-in{font-size:16px}
 }
 @media (prefers-reduced-motion:reduce){ .pqc-fab::before{animation:none;opacity:0} }
 </style>

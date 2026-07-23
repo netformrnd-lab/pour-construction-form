@@ -1536,8 +1536,6 @@ function cardHtml(p, rank){
       var fl=await ensureFallback();
       items=(state.cat==='전체')?fl:fl.filter(function(p){ return p._tab===state.cat; });
       items=items.slice(0,100);
-      note='<div class="pb-note">⚠ 실제 판매 랭킹 집계 준비중이에요. 카페24 판매량 연동 전까지 상품을 임시로 보여드립니다.</div>';
-      if(!basisEl.textContent) basisEl.textContent='집계 준비중';
     }
     if(!items || !items.length){ grid.innerHTML=note+'<div class="pb-empty">해당 카테고리 베스트가 아직 없어요.</div>'; return; }
     grid.innerHTML=note+items.map(function(p,i){ return cardHtml(p, i+1); }).join('');

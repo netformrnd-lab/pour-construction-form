@@ -170,6 +170,9 @@ const COLLECTIONS = {
   POURSTORE_POSTINGS: 'pourstore-postings', // 자사몰 검색 상단 관련 컨텐츠(가이드·블로그·유튜브·시공사례)
   POURSTORE_PACKAGES: 'pourstore-packages', // 패키지 구성(부위·등급·베스트·신규) → 스토어 패키지 매트릭스·베스트·신규
   STAFF: 'staff',              // 어드민 담당자 마스터
+  // 🔍 공법분석 — 하자사진 라이브러리(챗봇 사진진단의 매칭 소스). 루트 admin.html·defect-diagnosis.html과 공용(pour-app-new).
+  DEFECT_PHOTOS: 'defect-photos',       // { method, methods[], defectType, defectTypes[], description, imageUrl, source, createdAt, updatedAt }
+  DEFECT_TEMPLATES: 'defect-templates', // { tags[], methods[], desc, cause, solution, products[{code,name,thumb,price,link}], referenceImageUrl }
 
   // KPI 업무관리센터 (POUR OS → React 흡수, PR α 인프라)
   // 모든 문서는 staffId(어드민 staff 컬렉션의 doc.id)로 소유자 식별.
@@ -345,6 +348,7 @@ const NAV = [
 
   { type: 'divider', label: 'AI 챗봇센터', group: 'chatbot', collapsible: true, defaultCollapsed: false },
   { id: 'chatbot', icon: '💬', label: '챗봇 관리센터', group: 'chatbot', external: './chatbot.html' },
+  { id: 'defect-photos', icon: '🔍', label: '공법분석(하자사진)', group: 'chatbot' },
 
   { type: 'divider', label: '소싱센터', group: 'sourcing', collapsible: true, defaultCollapsed: false },
   { id: 'sourcing-manage', icon: '🧭', label: '소싱 관리센터', group: 'sourcing' },
@@ -12411,6 +12415,511 @@ function AiReviewConfigForm({ config, onSave, onCancel }) {
 }
 
 // ============================================================
+// 🔍 공법분석 — 하자사진 라이브러리 (챗봇 사진진단의 매칭 소스)
+//   Firestore: defect-photos(사진) + defect-templates(분류/원인/해결/추천상품)
+//   Storage:   POUR스토어_리뉴얼/defect-photos, POUR스토어_리뉴얼/defect-templates
+//   루트 admin.html·defect-diagnosis.html과 동일 컬렉션 공용(pour-app-new)
+// ============================================================
+const DEFECT_METHODS = [
+  'POUR 아스팔트싱글 방수 공법',
+  'POUR 금속기와 방수 공법',
+  'POUR 금속기와/칼라강판 코팅 공법',
+  'POUR 듀얼강화방수 공법',
+  'POUR PVC 방수 공법',
+  'POUR 우레탄 방수 공법',
+  'POUR 아크릴 배면차수 방수 공법',
+  'POUR 에폭시 도장 공법',
+  'POUR 엠보라이닝 도장 공법',
+  'POUR 균열보수 및 재도장 공법(바인더+플러스)',
+  'POUR 균열보수 및 재도장 공법(플러스+수성)',
+  'POUR 균열보수 및 재도장 공법(바인더+수성)',
+  'POUR 탄성강화 보강공법 (바탕면)',
+  'POUR 탄성강화 보강공법 (단면복구)',
+  'POUR 복합시트 균열보수 공법',
+];
+const DEFECT_TYPES = ['탈락','부식','변형','녹슬음','균열','이음부','들뜸','누수','박리','백화','기타'];
+// 기본 하자 분류 템플릿 — tags(해시태그) · methods(적용공법) · cause(원인) · solution(해결) · products(추천상품)
+const DEFECT_TEMPLATES_SEED = [
+  {tags:['누수','물자국','스며듦'],methods:['POUR 듀얼강화방수 공법','POUR 우레탄 방수 공법','POUR PVC 방수 공법'],
+    cause:'방수층 노후·균열·이음부 실링 파단으로 물이 구조체를 통과하는 상태입니다. 표면만이 아니라 방수층 자체의 수명이 끝난 경우가 많습니다.',
+    solution:'기존 방수층을 강화·재시공하는 듀얼강화방수(성능·단가 균형)가 표준입니다. 자사 복합압축시트로 이음부를 보강해 재하자를 최소화합니다.',products:[],referenceImageUrl:'',
+    desc:'물이 구조체를 통과하거나 표면에 스며드는 상태'},
+  {tags:['균열','크랙','갈라짐'],methods:['POUR 균열보수 및 재도장 공법(바인더+플러스)','POUR 복합시트 균열보수 공법'],
+    cause:'콘크리트 수축·구조 거동·중성화로 마감재와 구조체에 금이 간 상태입니다. 방치 시 균열을 타고 물이 침투해 2차 하자로 확대됩니다.',
+    solution:'균열을 탄성 퍼티로 충전한 뒤 고신율 도막으로 재도장하거나, 폭이 큰 균열은 복합시트로 보강합니다.',products:[],referenceImageUrl:'',
+    desc:'구조체나 마감재에 금이 가거나 갈라진 상태'},
+  {tags:['탈락','기와탈락','슁글탈락'],methods:['POUR 아스팔트싱글 방수 공법','POUR 금속기와 방수 공법'],
+    cause:'지붕재·방수재가 바탕면과의 접착력이 떨어져 강풍·노후로 떨어져 나간 상태입니다. 낙하 위험과 누수가 함께 발생합니다.',
+    solution:'방수콘크리트 함침으로 바탕면과 완전 일체화하고 후레싱을 견고하게 재고정합니다.',products:[],referenceImageUrl:'',
+    desc:'방수재·도료·기와 등이 바탕면에서 분리되어 떨어진 상태'},
+  {tags:['들뜸','부풀음','기포'],methods:['POUR 듀얼강화방수 공법','POUR 우레탄 방수 공법'],
+    cause:'바탕면 습기가 빠져나가지 못해 방수층·도막이 들뜬 상태입니다. 들뜬 부위는 곧 찢어져 누수로 이어집니다.',
+    solution:'들뜬 층을 제거하고 무동력 배습(페이퍼팬벤트)으로 습기를 배출한 뒤 재방수합니다.',products:[],referenceImageUrl:'',
+    desc:'방수층·도막이 바탕면에서 들떠 있는 상태'},
+  {tags:['박리','벗겨짐','도막박리'],methods:['POUR 에폭시 도장 공법','POUR 엠보라이닝 도장 공법'],
+    cause:'바닥·표면 마감재가 마모·부착불량으로 벗겨진 상태입니다. 주차장 바닥에서 분진·미끄럼을 유발합니다.',
+    solution:'열화된 도막을 제거하고 부착강도 높은 에폭시/엠보라이닝으로 재도장합니다.',products:[],referenceImageUrl:'',
+    desc:'표면 마감재가 벗겨지거나 분리되는 상태'},
+  {tags:['부식','녹','철근노출'],methods:['POUR 탄성강화 보강공법 (바탕면)','POUR 탄성강화 보강공법 (단면복구)'],
+    cause:'중성화·염해로 철근이 부식·팽창하며 콘크리트를 밀어내 단면이 파손된 상태입니다.',
+    solution:'부식부를 제거·방청 처리 후 탄성강화 보강재로 단면을 복구합니다.',products:[],referenceImageUrl:'',
+    desc:'금속 부재나 철근이 산화·부식된 상태'},
+  {tags:['이음부','조인트','실링'],methods:['POUR 아스팔트싱글 방수 공법','POUR 듀얼강화방수 공법'],
+    cause:'구조물 이음부·조인트의 실링이 파단되어 그 틈으로 누수가 시작되는 상태입니다.',
+    solution:'이음부를 자사 복합압축시트로 보강해 거동에 유연하게 대응하도록 방수층을 일체화합니다.',products:[],referenceImageUrl:'',
+    desc:'구조물 이음부·조인트에서 발생한 하자'},
+  {tags:['녹슬음','산화','부식흔적'],methods:['POUR 금속기와/칼라강판 코팅 공법','POUR 금속기와 방수 공법'],
+    cause:'금속기와·칼라강판 표면 도장이 열화되어 녹이 발생·확산되는 상태입니다.',
+    solution:'녹을 제거하고 일사반사·방청 성능의 코트재로 재코팅해 미관과 내구성을 회복합니다.',products:[],referenceImageUrl:'',
+    desc:'금속 표면에 녹이 발생한 상태'},
+  {tags:['백화','오염','기타'],methods:[],
+    cause:'백화(에플로레센스)·오염 등 표면 현상으로, 원인 진단 후 공법을 결정합니다.',
+    solution:'현장 진단 후 세정·중화 또는 재도장 여부를 결정합니다.',products:[],referenceImageUrl:'',
+    desc:'위 분류에 해당하지 않는 기타 하자'},
+];
+const tplTags = (t) => (t.tags && t.tags.length ? t.tags : (t.type ? [t.type] : []));
+const tplName = (t) => (tplTags(t)[0] || '미분류');
+const shortMethod = (m) => String(m || '').replace('POUR ', '').replace(' 공법', '');
+
+function DefectPhotosPage({ showToast }) {
+  const [photos, setPhotos] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selMethod, setSelMethod] = useState('전체');
+  const [selDefect, setSelDefect] = useState('전체');
+  const [lightbox, setLightbox] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [showTpl, setShowTpl] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importUrl, setImportUrl] = useState('');
+  const [importJson, setImportJson] = useState('');
+  const [form, setForm] = useState({ methods: [DEFECT_METHODS[0]], defectTypes: [DEFECT_TYPES[0]], description: '', files: [] });
+  const [editingId, setEditingId] = useState(null);
+  const [newSubTag, setNewSubTag] = useState('');
+  // 템플릿 편집
+  const emptyTpl = { tags: [], methods: [], desc: '', cause: '', solution: '', products: [], referenceImage: null, referenceImageUrl: '' };
+  const [tplForm, setTplForm] = useState(emptyTpl);
+  const [editingTpl, setEditingTpl] = useState(null);
+  const [tplTagInput, setTplTagInput] = useState('');
+  const [prodQuery, setProdQuery] = useState('');
+
+  const IS = { width: '100%', padding: '10px 13px', borderRadius: 8, border: '1.5px solid var(--border)', fontSize: 13, fontFamily: 'inherit', outline: 'none' };
+  const LS = { fontSize: 12, fontWeight: 800, color: 'var(--text-md)', marginBottom: 6, display: 'block' };
+  const chip = (on, color) => ({ fontSize: 12, padding: '5px 11px', borderRadius: 20, border: `1.5px solid ${on ? color : 'var(--border)'}`, background: on ? color + '18' : '#fff', color: on ? color : 'var(--text-md)', cursor: 'pointer', fontWeight: on ? 800 : 500, fontFamily: 'inherit', whiteSpace: 'nowrap' });
+
+  // ── 데이터 로드 ──
+  const fetchPhotos = async () => {
+    setLoading(true);
+    try {
+      const snap = await db.collection(COLLECTIONS.DEFECT_PHOTOS).get();
+      const arr = []; snap.forEach(d => arr.push({ id: d.id, ...d.data() }));
+      arr.sort((a, b) => (a.method || '').localeCompare(b.method || '') || (a.defectType || '').localeCompare(b.defectType || ''));
+      console.log(`[defect-photos] ${arr.length}건 로드`);
+      setPhotos(arr);
+    } catch (e) { console.error('[defect-photos] 로드 실패:', e); showToast('사진 로드 실패', 'error'); }
+    setLoading(false);
+  };
+  const fetchTemplates = async () => {
+    try {
+      const snap = await db.collection(COLLECTIONS.DEFECT_TEMPLATES).get();
+      if (snap.empty) { setTemplates(DEFECT_TEMPLATES_SEED); console.log('[defect-templates] 0건 → 기본 시드 사용'); return; }
+      const arr = []; snap.forEach(d => {
+        const t = { id: d.id, ...d.data() };
+        if (!t.tags && t.type) t.tags = [t.type, ...String(t.keywords || '').split(',').map(s => s.trim()).filter(Boolean)];
+        if (!t.methods) t.methods = []; if (!t.products) t.products = [];
+        arr.push(t);
+      });
+      arr.sort((a, b) => tplName(a).localeCompare(tplName(b)));
+      console.log(`[defect-templates] ${arr.length}건 로드`);
+      setTemplates(arr);
+    } catch (e) { console.error('[defect-templates] 로드 실패:', e); setTemplates(DEFECT_TEMPLATES_SEED); }
+  };
+  const fetchProducts = async () => {
+    try {
+      const snap = await db.collection(COLLECTIONS.PRODUCTS).get();
+      const arr = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p && p.isActive !== false && p.name);
+      arr.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ko'));
+      console.log(`[products] ${arr.length}건 로드(추천상품 선택용)`);
+      setProducts(arr);
+    } catch (e) { console.error('[products] 로드 실패:', e); }
+  };
+  useEffect(() => { fetchPhotos(); fetchTemplates(); fetchProducts(); }, []);
+
+  // ── 파생 데이터 ──
+  const photoMethods = (p) => (Array.isArray(p.methods) && p.methods.length ? p.methods : (p.method ? [p.method] : []));
+  const photoTags = (p) => (Array.isArray(p.defectTypes) && p.defectTypes.length ? p.defectTypes : (p.defectType ? [p.defectType] : []));
+  const allMethods = useMemo(() => { const s = new Set(DEFECT_METHODS); photos.forEach(p => photoMethods(p).forEach(m => s.add(m))); return [...s]; }, [photos]);
+  const allDefects = useMemo(() => { const s = new Set(DEFECT_TYPES); photos.forEach(p => photoTags(p).forEach(t => s.add(t))); templates.forEach(t => tplTags(t).forEach(x => s.add(x))); return [...s]; }, [photos, templates]);
+  const filtered = useMemo(() => photos.filter(p => {
+    if (selMethod !== '전체' && !photoMethods(p).includes(selMethod)) return false;
+    if (selDefect !== '전체' && !photoTags(p).includes(selDefect)) return false;
+    return true;
+  }), [photos, selMethod, selDefect]);
+  const stats = useMemo(() => ({
+    total: photos.length,
+    methods: new Set(photos.flatMap(p => photoMethods(p))).size,
+    defects: new Set(photos.flatMap(p => photoTags(p))).size,
+    manus: photos.filter(p => p.source === 'manus').length,
+    tpl: templates.length,
+  }), [photos, templates]);
+
+  // ── 업로드 ──
+  const uploadImg = async (file, folder) => {
+    const safe = String(file.name || 'img').replace(/[^\w.\-]/g, '_');
+    const snap = await storage.ref(`POUR스토어_리뉴얼/${folder}/${Date.now()}_${safe}`).put(file);
+    return await snap.ref.getDownloadURL();
+  };
+
+  // ── 사진 저장/수정/삭제 ──
+  const savePhotos = async () => {
+    if (!form.methods.length || !form.defectTypes.length) { showToast('공법과 하자유형을 선택하세요', 'error'); return; }
+    if (!editingId && !form.files.length) { showToast('사진을 선택하세요', 'error'); return; }
+    setUploading(true);
+    try {
+      if (editingId) {
+        const data = { method: form.methods[0], methods: form.methods, defectType: form.defectTypes[0] || '', defectTypes: form.defectTypes, description: form.description, updatedAt: new Date().toISOString() };
+        if (form.files.length) data.imageUrl = await uploadImg(form.files[0], 'defect-photos');
+        await db.collection(COLLECTIONS.DEFECT_PHOTOS).doc(editingId).update(data);
+        showToast('수정 완료');
+      } else {
+        for (const f of form.files) {
+          const url = await uploadImg(f, 'defect-photos');
+          await db.collection(COLLECTIONS.DEFECT_PHOTOS).add({
+            method: form.methods[0], methods: form.methods, defectType: form.defectTypes[0] || '', defectTypes: form.defectTypes,
+            description: form.description, imageUrl: url, source: 'manual', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+          });
+        }
+        showToast(`${form.files.length}장 등록 완료`);
+      }
+      closeAdd(); fetchPhotos();
+    } catch (e) { console.error('[defect-photos] 저장 실패:', e); showToast('저장 실패', 'error'); }
+    setUploading(false);
+  };
+  const deletePhoto = async (id) => {
+    if (!window.confirm('이 사진을 삭제할까요?')) return;
+    try { await db.collection(COLLECTIONS.DEFECT_PHOTOS).doc(id).delete(); showToast('삭제 완료'); fetchPhotos(); }
+    catch (e) { console.error('[defect-photos] 삭제 실패:', e); showToast('삭제 실패', 'error'); }
+  };
+  const startEdit = (p) => {
+    setEditingId(p.id);
+    setForm({ methods: photoMethods(p).length ? photoMethods(p) : [DEFECT_METHODS[0]], defectTypes: photoTags(p).length ? photoTags(p) : [DEFECT_TYPES[0]], description: p.description || '', files: [] });
+    setShowAdd(true);
+  };
+  const closeAdd = () => { setShowAdd(false); setEditingId(null); setForm({ methods: [DEFECT_METHODS[0]], defectTypes: [DEFECT_TYPES[0]], description: '', files: [] }); setNewSubTag(''); };
+
+  // ── 템플릿 저장/삭제 ──
+  const saveTpl = async () => {
+    if (!tplForm.tags.length) { showToast('해시태그를 1개 이상 입력하세요', 'error'); return; }
+    try {
+      let refUrl = tplForm.referenceImageUrl || '';
+      if (tplForm.referenceImage) refUrl = await uploadImg(tplForm.referenceImage, 'defect-templates');
+      const data = {
+        tags: tplForm.tags, methods: tplForm.methods || [], desc: (tplForm.desc || '').trim(),
+        cause: (tplForm.cause || '').trim(), solution: (tplForm.solution || '').trim(),
+        products: tplForm.products || [], referenceImageUrl: refUrl,
+        type: tplForm.tags[0] || '', keywords: tplForm.tags.join(','), updatedAt: new Date().toISOString(),
+      };
+      if (editingTpl && editingTpl.id) await db.collection(COLLECTIONS.DEFECT_TEMPLATES).doc(editingTpl.id).update(data);
+      else await db.collection(COLLECTIONS.DEFECT_TEMPLATES).add({ ...data, createdAt: new Date().toISOString() });
+      showToast('템플릿 저장 완료'); setEditingTpl(null); setTplForm(emptyTpl); setTplTagInput(''); setProdQuery(''); fetchTemplates();
+    } catch (e) { console.error('[defect-templates] 저장 실패:', e); showToast('저장 실패', 'error'); }
+  };
+  const deleteTpl = async (id) => {
+    if (!window.confirm('이 템플릿을 삭제할까요?')) return;
+    try { await db.collection(COLLECTIONS.DEFECT_TEMPLATES).doc(id).delete(); showToast('삭제 완료'); fetchTemplates(); }
+    catch (e) { showToast('삭제 실패', 'error'); }
+  };
+  const resetTpls = async () => {
+    if (!window.confirm('기본 템플릿으로 초기화할까요? 기존 템플릿이 모두 삭제됩니다.')) return;
+    try {
+      const snap = await db.collection(COLLECTIONS.DEFECT_TEMPLATES).get();
+      const batch = db.batch(); snap.forEach(d => batch.delete(d.ref)); await batch.commit();
+      for (const t of DEFECT_TEMPLATES_SEED) await db.collection(COLLECTIONS.DEFECT_TEMPLATES).add({ ...t, type: t.tags[0] || '', keywords: t.tags.join(','), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      showToast('기본 템플릿으로 초기화 완료'); fetchTemplates();
+    } catch (e) { showToast('초기화 실패', 'error'); }
+  };
+  const editTpl = (t) => { setEditingTpl(t); setTplForm({ tags: tplTags(t), methods: t.methods || [], desc: t.desc || '', cause: t.cause || '', solution: t.solution || '', products: t.products || [], referenceImage: null, referenceImageUrl: t.referenceImageUrl || '' }); setTplTagInput(''); setProdQuery(''); };
+
+  // ── 추천상품 선택 ──
+  const prodCode = (p) => String((p.channels && p.channels.imweb) || p.imwebId || '').trim();
+  const prodLink = (p) => { const c = prodCode(p); return c ? ('/product/detail.html?product_no=' + encodeURIComponent(c)) : (p.imwebUrl || ''); };
+  const addProdToTpl = (p) => {
+    const code = prodCode(p) || p.id;
+    if ((tplForm.products || []).some(x => x.code === code)) { showToast('이미 담긴 상품이에요', 'error'); return; }
+    setTplForm({ ...tplForm, products: [...(tplForm.products || []), { code, name: p.name || '', thumb: p.thumbnail || '', price: p.price != null ? Number(p.price) : 0, link: prodLink(p) }] });
+  };
+  const removeProdFromTpl = (code) => setTplForm({ ...tplForm, products: (tplForm.products || []).filter(x => x.code !== code) });
+  const prodResults = useMemo(() => { const q = prodQuery.trim().toLowerCase(); const base = q ? products.filter(p => String(p.name || '').toLowerCase().includes(q)) : products; return base.slice(0, 40); }, [products, prodQuery]);
+
+  // ── 마누스/JSON 임포트 ──
+  const doImport = async () => {
+    setImporting(true);
+    try {
+      let data = null;
+      if (importUrl.trim()) {
+        try {
+          const r = await fetch(importUrl.trim()); const html = await r.text();
+          const jm = html.match(/<script[^>]*type\s*=\s*["']application\/json["'][^>]*>([\s\S]*?)<\/script>/);
+          if (jm) { try { data = JSON.parse(jm[1]); } catch (e) {} }
+          if (!data) { const imgs = [...html.matchAll(/<img[^>]+src\s*=\s*["']([^"']+)["'][^>]*(?:alt\s*=\s*["']([^"']*)["'])?/gi)]; if (imgs.length) data = imgs.map((m, i) => ({ imageUrl: m[1], label: m[2] || `사진${i + 1}`, method: '미분류', defectType: '기타' })); }
+        } catch (e) { console.warn('[manus-import] URL fetch 실패(CORS일 수 있음):', e); }
+      }
+      if (!data && importJson.trim()) { try { data = JSON.parse(importJson.trim()); } catch (e) { showToast('JSON 형식 오류', 'error'); setImporting(false); return; } }
+      if (!data) { showToast('데이터를 찾을 수 없습니다 (URL이 CORS로 막히면 JSON을 직접 붙여넣으세요)', 'error'); setImporting(false); return; }
+      if (!Array.isArray(data)) data = [data];
+      let count = 0;
+      for (const item of data) {
+        const doc = {
+          method: item.method || item.공법 || '미분류', methods: item.methods || [item.method || item.공법 || '미분류'],
+          defectType: item.defectType || item.하자유형 || item.category || '기타', defectTypes: item.defectTypes || [item.defectType || item.하자유형 || item.category || '기타'],
+          label: item.label || item.이름 || item.name || item.title || `사진${count + 1}`,
+          imageUrl: item.imageUrl || item.url || item.image || item.src || item.사진 || '',
+          description: item.description || item.설명 || item.desc || '', source: 'manus', sourceUrl: importUrl || '',
+          createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        };
+        if (doc.imageUrl) { await db.collection(COLLECTIONS.DEFECT_PHOTOS).add(doc); count++; }
+      }
+      showToast(`${count}건 가져오기 완료`); setShowImport(false); setImportUrl(''); setImportJson(''); fetchPhotos();
+    } catch (e) { console.error('[manus-import] 실패:', e); showToast('가져오기 실패', 'error'); }
+    setImporting(false);
+  };
+
+  // ── 라이트박스 ──
+  const renderLightbox = () => {
+    if (!lightbox) return null;
+    const idx = filtered.findIndex(p => p.id === lightbox.id);
+    const prev = idx > 0 ? filtered[idx - 1] : null, next = idx < filtered.length - 1 ? filtered[idx + 1] : null;
+    return (
+      <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: '92vw', maxHeight: '88vh' }}>
+          <img src={lightbox.imageUrl} style={{ maxWidth: '92vw', maxHeight: '78vh', borderRadius: 12, objectFit: 'contain' }} alt="" />
+          <div style={{ marginTop: 10, textAlign: 'center', color: '#fff', fontSize: 13, display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {photoTags(lightbox).map((t, i) => <span key={i} style={{ background: 'rgba(96,165,250,.35)', padding: '2px 10px', borderRadius: 12 }}>#{t}</span>)}
+            <span style={{ opacity: .75 }}>· {photoMethods(lightbox).map(shortMethod).join(', ')}</span>
+          </div>
+          {prev && <button onClick={() => setLightbox(prev)} style={{ position: 'absolute', left: -46, top: '45%', background: 'rgba(255,255,255,.2)', color: '#fff', fontSize: 26, width: 38, height: 38, borderRadius: '50%' }}>‹</button>}
+          {next && <button onClick={() => setLightbox(next)} style={{ position: 'absolute', right: -46, top: '45%', background: 'rgba(255,255,255,.2)', color: '#fff', fontSize: 26, width: 38, height: 38, borderRadius: '50%' }}>›</button>}
+        </div>
+      </div>
+    );
+  };
+
+  const btn = (bg, extra) => ({ padding: '9px 15px', borderRadius: 9, border: 'none', background: bg, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', ...(extra || {}) });
+
+  return (
+    <div style={{ padding: '8px 4px' }}>
+      {renderLightbox()}
+
+      {/* 헤더 */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 900, color: 'var(--navy)' }}>🔍 공법분석 · 하자사진</h1>
+          <div style={{ fontSize: 12.5, color: 'var(--text-sm)', marginTop: 5 }}>
+            사진 {stats.total}장 · 공법 {stats.methods} · 하자유형 {stats.defects} · 분류템플릿 {stats.tpl}
+            {stats.manus > 0 ? ` · 마누스 ${stats.manus}건` : ''}
+            <span style={{ color: 'var(--or-d)', fontWeight: 700 }}> · 챗봇 사진진단의 매칭 소스</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={() => { fetchPhotos(); fetchTemplates(); }} style={{ ...btn('#fff'), color: 'var(--text-md)', border: '1.5px solid var(--border)' }}>🔄</button>
+          <button onClick={() => setShowTpl(true)} style={{ ...btn('#F5F3FF'), color: 'var(--purple)', border: '1.5px solid #E9D5FF' }}>📋 분류 템플릿</button>
+          <button onClick={() => setShowImport(true)} style={btn('var(--gold)')}>📥 마누스 연동</button>
+          <button onClick={() => { closeAdd(); setShowAdd(true); }} style={btn('var(--or)')}>+ 사진 등록</button>
+        </div>
+      </div>
+
+      {/* 필터 */}
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 12, marginBottom: 16, boxShadow: 'var(--shadow)' }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-sm)', marginBottom: 6 }}>공법(대분류)</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+          <button onClick={() => setSelMethod('전체')} style={chip(selMethod === '전체', 'var(--or)')}>전체</button>
+          {allMethods.map(m => <button key={m} onClick={() => setSelMethod(m)} style={chip(selMethod === m, 'var(--or)')}>{shortMethod(m)}</button>)}
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-sm)', marginBottom: 6 }}>하자유형(태그)</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <button onClick={() => setSelDefect('전체')} style={chip(selDefect === '전체', 'var(--purple)')}>전체</button>
+          {allDefects.map(d => <button key={d} onClick={() => setSelDefect(d)} style={chip(selDefect === d, 'var(--purple)')}>#{d}</button>)}
+        </div>
+      </div>
+
+      {/* 그리드 */}
+      {loading ? <div style={{ textAlign: 'center', padding: 50, color: 'var(--text-sm)' }}>로딩 중…</div>
+        : filtered.length === 0 ? <div style={{ textAlign: 'center', padding: 50, color: 'var(--text-sm)', background: 'var(--card)', borderRadius: 12, border: '1px dashed var(--border)' }}>등록된 하자사진이 없습니다. <b>+ 사진 등록</b> 또는 <b>마누스 연동</b>으로 추가하세요.</div>
+        : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+          {filtered.map(p => (
+            <div key={p.id} style={{ background: '#fff', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow)' }}>
+              <div onClick={() => setLightbox(p)} style={{ height: 150, background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {p.imageUrl ? <img src={p.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : <span style={{ color: 'var(--text-sm)', fontSize: 12 }}>이미지 없음</span>}
+              </div>
+              <div style={{ padding: '9px 11px' }}>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 5 }}>
+                  {photoTags(p).map((t, i) => <span key={i} style={{ padding: '2px 7px', borderRadius: 10, background: 'var(--blue-l)', color: 'var(--blue)', fontSize: 10, fontWeight: 700 }}>#{t}</span>)}
+                </div>
+                <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                  {photoMethods(p).map((m, i) => <span key={i} style={{ padding: '2px 6px', borderRadius: 8, background: '#F0FDF4', color: 'var(--green)', fontSize: 9, fontWeight: 700 }}>{shortMethod(m)}</span>)}
+                  {p.source === 'manus' && <span style={{ padding: '2px 6px', borderRadius: 4, background: '#FEF3C7', color: '#92400E', fontSize: 9, fontWeight: 700 }}>마누스</span>}
+                </div>
+              </div>
+              <div style={{ borderTop: '1px solid var(--border-s)', padding: '6px 11px', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button onClick={() => startEdit(p)} style={{ fontSize: 11, color: 'var(--blue)', fontWeight: 700 }}>수정</button>
+                <button onClick={() => deletePhoto(p.id)} style={{ fontSize: 11, color: 'var(--red)', fontWeight: 700 }}>삭제</button>
+              </div>
+            </div>
+          ))}
+        </div>}
+
+      {/* 사진 등록/수정 모달 */}
+      {showAdd && <div onClick={closeAdd} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+        <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 24, width: 'min(480px,96vw)', maxHeight: '88vh', overflow: 'auto', boxShadow: 'var(--shadow-lg)' }}>
+          <div style={{ fontSize: 17, fontWeight: 900, marginBottom: 18 }}>{editingId ? '사진 수정' : '사진 등록'}</div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={LS}>공법(대분류) — 복수 선택</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              {allMethods.map(m => { const on = form.methods.includes(m); return <button key={m} type="button" onClick={() => setForm({ ...form, methods: on ? form.methods.filter(x => x !== m) : [...form.methods, m] })} style={chip(on, 'var(--or)')}>{shortMethod(m)}</button>; })}
+            </div>
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={LS}>하자유형(태그) — 복수 선택</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+              {allDefects.map(d => { const on = form.defectTypes.includes(d); return <button key={d} type="button" onClick={() => setForm({ ...form, defectTypes: on ? form.defectTypes.filter(x => x !== d) : [...form.defectTypes, d] })} style={chip(on, 'var(--purple)')}>#{d}</button>; })}
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input value={newSubTag} onChange={e => setNewSubTag(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); const v = newSubTag.trim().replace(/^#/, ''); if (v && !form.defectTypes.includes(v)) setForm({ ...form, defectTypes: [...form.defectTypes, v] }); setNewSubTag(''); } }} placeholder="+ 태그 직접 입력 후 Enter" style={{ ...IS, flex: 1, borderStyle: 'dashed' }} />
+            </div>
+          </div>
+          <div style={{ marginBottom: 14 }}><label style={LS}>설명 (선택)</label>
+            <textarea style={{ ...IS, resize: 'vertical', minHeight: 48 }} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="하자 상세 설명" />
+          </div>
+          <div style={{ marginBottom: 18 }}>
+            <label style={LS}>{editingId ? '사진 변경 (선택)' : '사진 업로드 (여러 장 가능)'}</label>
+            <input type="file" accept="image/*" multiple={!editingId} onChange={e => setForm({ ...form, files: Array.from(e.target.files) })} style={{ fontSize: 12 }} />
+            {form.files.length > 0 && <div style={{ fontSize: 11, color: 'var(--text-sm)', marginTop: 4 }}>{form.files.length}개 선택됨</div>}
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={closeAdd} style={{ flex: 1, padding: '11px 0', borderRadius: 10, border: '1.5px solid var(--border)', background: '#fff', fontSize: 14, fontWeight: 800, color: 'var(--text-md)' }}>취소</button>
+            <button onClick={savePhotos} disabled={uploading} style={{ flex: 2, padding: '11px 0', borderRadius: 10, background: 'var(--or)', color: '#fff', fontSize: 14, fontWeight: 900, opacity: uploading ? .6 : 1 }}>{uploading ? '업로드 중…' : editingId ? '수정' : '등록'}</button>
+          </div>
+        </div>
+      </div>}
+
+      {/* 마누스 연동 모달 */}
+      {showImport && <div onClick={() => setShowImport(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+        <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 24, width: 'min(560px,96vw)', maxHeight: '88vh', overflow: 'auto', boxShadow: 'var(--shadow-lg)' }}>
+          <div style={{ fontSize: 17, fontWeight: 900, marginBottom: 6 }}>📥 마누스 데이터 연동</div>
+          <div style={{ fontSize: 12, color: 'var(--text-sm)', marginBottom: 16 }}>마누스 하자뷰어 URL에서 자동 추출하거나, JSON을 직접 붙여넣으세요.</div>
+          <div style={{ marginBottom: 12 }}><label style={LS}>마누스 URL (선택)</label>
+            <input style={IS} value={importUrl} onChange={e => setImportUrl(e.target.value)} placeholder="https://hajaviewer-xay3p7o4.manus.space/" />
+          </div>
+          <div style={{ marginBottom: 12 }}><label style={LS}>JSON 데이터 (직접 입력)</label>
+            <textarea style={{ ...IS, resize: 'vertical', minHeight: 130, fontFamily: 'monospace', fontSize: 11 }} value={importJson} onChange={e => setImportJson(e.target.value)} placeholder={'[\n  { "method":"POUR 듀얼강화방수 공법", "defectType":"누수", "imageUrl":"https://…", "description":"" }\n]'} />
+          </div>
+          <div style={{ background: 'var(--bg)', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 11, color: 'var(--text-md)', lineHeight: 1.7 }}>
+            <b>지원 필드(영/한):</b> 공법 method/공법 · 하자유형 defectType/하자유형/category · 이미지 imageUrl/url/image/src/사진 · 설명 description/설명/desc
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={() => setShowImport(false)} style={{ flex: 1, padding: '11px 0', borderRadius: 10, border: '1.5px solid var(--border)', background: '#fff', fontSize: 14, fontWeight: 800, color: 'var(--text-md)' }}>취소</button>
+            <button onClick={doImport} disabled={importing} style={{ flex: 2, padding: '11px 0', borderRadius: 10, background: 'var(--gold)', color: '#fff', fontSize: 14, fontWeight: 900, opacity: importing ? .6 : 1 }}>{importing ? '가져오는 중…' : '가져오기'}</button>
+          </div>
+        </div>
+      </div>}
+
+      {/* 분류 템플릿 모달 */}
+      {showTpl && <div onClick={() => setShowTpl(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+        <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 18, padding: 24, width: 'min(720px,96vw)', maxHeight: '90vh', overflow: 'auto', boxShadow: 'var(--shadow-lg)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+            <div><div style={{ fontSize: 17, fontWeight: 900 }}>📋 하자 분류 템플릿</div>
+              <div style={{ fontSize: 12, color: 'var(--text-sm)', marginTop: 4 }}>해시태그 · 적용공법 · <b>원인 · 해결방안 · 추천상품</b> — 챗봇이 이 값으로 고객에게 답합니다.</div></div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={resetTpls} style={{ padding: '6px 11px', borderRadius: 8, border: '1.5px solid var(--red-m)', background: 'var(--red-l)', color: 'var(--red)', fontSize: 12, fontWeight: 800 }}>초기화</button>
+              <button onClick={() => setShowTpl(false)} style={{ fontSize: 20, color: 'var(--text-sm)' }}>✕</button>
+            </div>
+          </div>
+
+          {/* 편집 폼 */}
+          <div style={{ background: 'var(--bg)', borderRadius: 12, padding: 15, marginBottom: 18, border: '1.5px solid var(--border)' }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 12 }}>{editingTpl ? '템플릿 수정' : '새 하자유형 추가'}</div>
+            <div style={{ marginBottom: 11 }}>
+              <label style={LS}>해시태그 (하자유형) *</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 6 }}>
+                {tplForm.tags.map((tag, i) => <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, background: '#EDE9FE', color: 'var(--purple)', fontSize: 12, fontWeight: 700 }}>#{tag}<button type="button" onClick={() => setTplForm({ ...tplForm, tags: tplForm.tags.filter((_, x) => x !== i) })} style={{ color: 'var(--purple)', fontSize: 14 }}>×</button></span>)}
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input style={{ ...IS, flex: 1 }} value={tplTagInput} onChange={e => setTplTagInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); const v = tplTagInput.trim().replace(/^#/, ''); if (v && !tplForm.tags.includes(v)) setTplForm({ ...tplForm, tags: [...tplForm.tags, v] }); setTplTagInput(''); } }} placeholder="태그 입력 후 Enter (예: 이음부)" />
+              </div>
+            </div>
+            <div style={{ marginBottom: 11 }}>
+              <label style={LS}>적용 공법 — 복수 선택</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, maxHeight: 110, overflow: 'auto' }}>
+                {DEFECT_METHODS.map(m => { const on = (tplForm.methods || []).includes(m); return <button key={m} type="button" onClick={() => setTplForm({ ...tplForm, methods: on ? tplForm.methods.filter(x => x !== m) : [...(tplForm.methods || []), m] })} style={chip(on, 'var(--or)')}>{shortMethod(m)}</button>; })}
+              </div>
+            </div>
+            <div style={{ marginBottom: 11 }}><label style={LS}>문제 원인 (챗봇 답변)</label>
+              <textarea style={{ ...IS, resize: 'vertical', minHeight: 52 }} value={tplForm.cause} onChange={e => setTplForm({ ...tplForm, cause: e.target.value })} placeholder="이 하자가 왜 생기는지 고객 눈높이로 설명" />
+            </div>
+            <div style={{ marginBottom: 11 }}><label style={LS}>해결 방안 (챗봇 답변)</label>
+              <textarea style={{ ...IS, resize: 'vertical', minHeight: 52 }} value={tplForm.solution} onChange={e => setTplForm({ ...tplForm, solution: e.target.value })} placeholder="어떤 공법으로 어떻게 해결하는지" />
+            </div>
+
+            {/* 추천 상품 */}
+            <div style={{ marginBottom: 11 }}>
+              <label style={LS}>추천 상품 (자사몰 products)</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                {(tplForm.products || []).map(pr => <span key={pr.code} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 8, background: '#F0FDF4', border: '1px solid var(--green-m)', fontSize: 11.5, fontWeight: 700, color: 'var(--green)' }}>{pr.thumb ? <img src={pr.thumb} style={{ width: 20, height: 20, borderRadius: 4, objectFit: 'cover' }} alt="" /> : null}{pr.name}<button type="button" onClick={() => removeProdFromTpl(pr.code)} style={{ color: 'var(--red)', fontSize: 13 }}>×</button></span>)}
+                {(tplForm.products || []).length === 0 && <span style={{ fontSize: 11, color: 'var(--text-sm)' }}>아직 없음 — 아래에서 검색해 추가</span>}
+              </div>
+              <input style={IS} value={prodQuery} onChange={e => setProdQuery(e.target.value)} placeholder={`상품명 검색 (등록상품 ${products.length}개)`} />
+              {prodQuery.trim() && <div style={{ marginTop: 6, maxHeight: 170, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 8 }}>
+                {prodResults.length === 0 ? <div style={{ padding: 12, fontSize: 12, color: 'var(--text-sm)' }}>검색 결과 없음</div>
+                  : prodResults.map(p => <div key={p.id} onClick={() => addProdToTpl(p)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', cursor: 'pointer', borderBottom: '1px solid var(--border-s)' }}>
+                    {p.thumbnail ? <img src={p.thumbnail} style={{ width: 30, height: 30, borderRadius: 5, objectFit: 'cover' }} alt="" /> : <div style={{ width: 30, height: 30, borderRadius: 5, background: 'var(--bg)' }} />}
+                    <span style={{ flex: 1, fontSize: 12, fontWeight: 600 }}>{p.name}</span>
+                    <span style={{ fontSize: 11, color: 'var(--or)', fontWeight: 800 }}>+ 추가</span>
+                  </div>)}
+              </div>}
+            </div>
+
+            <div style={{ marginBottom: 11 }}>
+              <label style={LS}>기준 사진 (선택)</label>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                {(tplForm.referenceImageUrl || tplForm.referenceImage) && <img src={tplForm.referenceImage ? URL.createObjectURL(tplForm.referenceImage) : tplForm.referenceImageUrl} style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover', border: '2px solid var(--purple)' }} alt="" />}
+                <input type="file" accept="image/*" onChange={e => { if (e.target.files[0]) setTplForm({ ...tplForm, referenceImage: e.target.files[0] }); }} style={{ fontSize: 12 }} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {editingTpl && <button onClick={() => { setEditingTpl(null); setTplForm(emptyTpl); setTplTagInput(''); }} style={{ padding: '8px 15px', borderRadius: 8, border: '1.5px solid var(--border)', background: '#fff', fontSize: 13, fontWeight: 700 }}>취소</button>}
+              <button onClick={saveTpl} style={{ padding: '8px 20px', borderRadius: 8, background: 'var(--or)', color: '#fff', fontSize: 13, fontWeight: 800 }}>{editingTpl ? '수정 저장' : '추가'}</button>
+            </div>
+          </div>
+
+          {/* 템플릿 목록 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {templates.map((t, i) => (
+              <div key={t.id || i} style={{ padding: '12px 14px', borderRadius: 10, border: '1.5px solid var(--border)', background: '#fff', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                {t.referenceImageUrl ? <img src={t.referenceImageUrl} style={{ width: 54, height: 54, borderRadius: 8, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border)' }} alt="" /> : <div style={{ width: 54, height: 54, borderRadius: 8, background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>📷</div>}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 4 }}>{tplTags(t).map((tag, x) => <span key={x} style={{ padding: '2px 8px', borderRadius: 12, background: '#EDE9FE', color: 'var(--purple)', fontSize: 11, fontWeight: 700 }}>#{tag}</span>)}</div>
+                  {(t.methods || []).length > 0 && <div style={{ fontSize: 10.5, color: 'var(--green)', marginBottom: 3, fontWeight: 700 }}>공법: {t.methods.map(shortMethod).join(', ')}</div>}
+                  {t.cause && <div style={{ fontSize: 11, color: 'var(--text-md)', lineHeight: 1.5 }}><b>원인</b> {t.cause}</div>}
+                  {t.solution && <div style={{ fontSize: 11, color: 'var(--text-md)', lineHeight: 1.5 }}><b>해결</b> {t.solution}</div>}
+                  {(t.products || []).length > 0 && <div style={{ fontSize: 10.5, color: 'var(--or-d)', marginTop: 3, fontWeight: 700 }}>추천상품 {t.products.length}개: {t.products.map(p => p.name).join(', ')}</div>}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                  <button onClick={() => editTpl(t)} style={{ fontSize: 11, color: 'var(--blue)', fontWeight: 700 }}>수정</button>
+                  {t.id && <button onClick={() => deleteTpl(t.id)} style={{ fontSize: 11, color: 'var(--red)', fontWeight: 700 }}>삭제</button>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>}
+    </div>
+  );
+}
+
+// ============================================================
 // App
 // ============================================================
 function App() {
@@ -12525,6 +13034,7 @@ function App() {
         {active === 'workmgmt' && <WorkMgmtPage />}
         {active === 'pour-os' && <PourOsPage />}
         {active === 'sourcing-manage' && <SourcingManagePage />}
+        {active === 'defect-photos' && <DefectPhotosPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'dashboard-os' && <DashboardPage onToast={setToast} onNav={setActive} />}
         {active === 'recurring' && <RecurringTasksPage onToast={setToast} />}
         {active === 'okr' && <OKRPage onToast={setToast} />}

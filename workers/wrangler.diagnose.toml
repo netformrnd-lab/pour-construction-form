@@ -1,0 +1,22 @@
+# Cloudflare Workers — POUR 사진진단 공개 프록시
+# 배포: npx wrangler deploy --config workers/wrangler.diagnose.toml
+# (또는 Cloudflare Dashboard에서 pour-diagnose-proxy.js를 Edit code로 직접 붙여넣기)
+
+name = "pour-diagnose-proxy"
+main = "pour-diagnose-proxy.js"
+compatibility_date = "2024-01-01"
+
+# ── 일반 변수(비밀 아님) ─────────────────────────────
+[vars]
+# 허용 오리진(콤마 구분). 운영 시 자사몰 도메인을 반드시 넣으세요. 비우면 전체 허용(개발용).
+ALLOWED_ORIGINS = "https://pour-construction-form.pages.dev"
+# 비전·저비용 기본 모델. 필요 시 교체.
+CLAUDE_MODEL = "claude-haiku-4-5-20251001"
+
+# ── 시크릿 등록 (CLI) ────────────────────────────────
+# npx wrangler secret put CLAUDE_API_KEY --config workers/wrangler.diagnose.toml
+#
+# ── 또는 Dashboard에서 ───────────────────────────────
+# Workers & Pages → pour-diagnose-proxy → Settings → Variables and Secrets → Add
+#   - CLAUDE_API_KEY : Anthropic API 키 (Type: Secret)
+#   - ALLOWED_ORIGINS: 자사몰 도메인 추가 (Type: Plaintext) 예) https://pour-construction-form.pages.dev,https://poursto.cafe24.com

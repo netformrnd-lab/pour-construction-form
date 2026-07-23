@@ -889,10 +889,10 @@ var PM_POSTS = [];
       try {
         var arr = await window.__pcache.wrap('col:products', PC_TTL, function(){ return getDocs(collection(db,"products")).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); });
         var n = 0;
-        arr.filter(function(p){ return p && p.isActive !== false; })
+        arr.filter(function(p){ return p && p.isActive !== false && p.displayStatus !== 'N' && p.salesStatus !== '숨김'; })
           .forEach(function(p){
             var no = p.channels && p.channels.imweb;
-            var link = (no && String(no).trim()) ? ('/product/detail.html?product_no=' + String(no).trim()) : (SEARCH_URL + encodeURIComponent(p.name||''));
+            var link = SEARCH_URL + encodeURIComponent(p.name||'');
             idxPush({ type:'product', title:p.name||'', sub:(p.price?String(p.price):''), link:link, thumb:(p.thumbnail||''), yt:false,
               terms:[p.name].concat(Array.isArray(p.tags)?p.tags:[]).map(norm).filter(Boolean) });
             n++;

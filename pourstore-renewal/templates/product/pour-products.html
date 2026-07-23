@@ -1,7 +1,7 @@
 <!-- ============================================================
-  case.html — POUR스토어 시공사례 전용 페이지 (공용 헤더 embed 포함)
+  pour-products.html — POUR스토어 제품 보기 페이지 (공용 헤더 embed 포함)
   용도: 카페24 pourstore_renewal/story/case.html
-  데이터: Firestore pourstore-postings (type=='advanced')
+  데이터: Firestore products (카페24 등록 상품 전체, 카테고리 탭 그리드)
   카드 클릭 → pour-story.html#post-<id> 로 본문 열기
  ============================================================ -->
 <!-- ★ 모바일 반응형 필수: 뷰포트 meta 보장 (카페24가 head에서 누락/무효화 시 강제 주입·교정)
@@ -1325,44 +1325,62 @@ var PM_POSTS = [];
 </section>
 
 
-<!-- ===== 시공사례 본문 ===== -->
+
+
+<!-- ===== 제품 보기 본문 (products 컬렉션 · 카테고리 탭 그리드) ===== -->
 <style>
-  .pcase *{box-sizing:border-box;margin:0;padding:0;}
-  .pcase{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;max-width:1180px;margin:0 auto;padding:26px 20px 70px;-webkit-font-smoothing:antialiased;}
-  .pcase-head{padding:6px 2px 22px;border-bottom:1px solid #F2F3F5;margin-bottom:22px;}
-  .pcase-head .eyebrow{display:inline-block;font-size:12.5px;font-weight:800;color:#E8780F;letter-spacing:-.02em;margin-bottom:8px;}
-  .pcase-head h1{font-size:27px;font-weight:900;letter-spacing:-.04em;color:#111;}
-  .pcase-head p{margin-top:8px;font-size:14.5px;color:#8a8f98;font-weight:600;letter-spacing:-.02em;word-break:keep-all;}
-  .pcase-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px 24px;}
-  .pcase-card{display:block;text-decoration:none;color:inherit;}
-  .pcase-th{position:relative;width:100%;aspect-ratio:4/3;border-radius:14px;overflow:hidden;background:#f1f3f5;box-shadow:0 6px 20px rgba(0,0,0,.06);}
-  .pcase-th>img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease;}
-  .pcase-card:hover .pcase-th>img{transform:scale(1.04);}
-  .pcase-th .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#c4c8ce;}
-  .pcase-th .ph svg{width:44px;height:44px;}
-  .pcase-badge{position:absolute;top:12px;left:12px;background:#E8780F;color:#fff;font-size:11.5px;font-weight:800;letter-spacing:-.02em;padding:5px 11px;border-radius:999px;}
-  .pcase-ct{display:block;margin:14px 0 5px;font-size:12px;font-weight:800;color:#E8780F;letter-spacing:-.02em;}
-  .pcase-tt{font-size:17px;font-weight:800;color:#191F28;letter-spacing:-.035em;line-height:1.34;word-break:keep-all;}
-  .pcase-sm{margin-top:7px;font-size:13.5px;color:#6B7280;font-weight:500;line-height:1.5;letter-spacing:-.02em;word-break:keep-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  .pcase-date{margin-top:10px;font-size:12.5px;color:#ADB2BB;font-weight:600;}
-  .pcase-empty,.pcase-loading{grid-column:1/-1;padding:80px 0;text-align:center;color:#adb2bb;font-size:14px;font-weight:600;}
-  @media (max-width:900px){ .pcase-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 20px;} }
-  @media (max-width:600px){
-    .pcase{padding:20px 16px 56px;}
-    .pcase-grid{grid-template-columns:1fr;gap:24px;}
-    .pcase-head h1{font-size:22px;}
-    .pcase-tt{font-size:16px;}
+  .pv *{box-sizing:border-box;margin:0;padding:0;}
+  .pv{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;max-width:1180px;margin:0 auto;padding:24px 20px 80px;-webkit-font-smoothing:antialiased;}
+  .pv-head{padding:6px 2px 16px;}
+  .pv-head .eyebrow{display:inline-block;font-size:12.5px;font-weight:800;color:#E8780F;letter-spacing:-.02em;margin-bottom:8px;}
+  .pv-head h1{font-size:27px;font-weight:900;letter-spacing:-.04em;color:#111;}
+  .pv-head p{margin-top:8px;font-size:14.5px;color:#8a8f98;font-weight:600;letter-spacing:-.02em;word-break:keep-all;}
+  /* 카테고리 탭 (가로 스크롤, 상단 고정) */
+  .pv-tabs{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid #EEF0F2;margin:0 -20px 22px;padding:10px 20px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .pv-tabs::-webkit-scrollbar{display:none;}
+  .pv-tabs-inner{display:inline-flex;gap:8px;white-space:nowrap;}
+  .pv-tab{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;background:#F4F5F6;color:#4B5563;font-size:14px;font-weight:700;letter-spacing:-.02em;cursor:pointer;transition:background .15s,color .15s;}
+  .pv-tab:hover{background:#EAECEF;}
+  .pv-tab.on{background:#111;color:#fff;}
+  .pv-tab .cnt{font-size:12px;font-weight:800;opacity:.55;}
+  .pv-tab.on .cnt{opacity:.7;}
+  /* 그리드 */
+  .pv-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:30px 22px;}
+  .pv-card{display:block;text-decoration:none;color:inherit;}
+  .pv-th{position:relative;width:100%;aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:#f3f4f6;box-shadow:0 4px 16px rgba(0,0,0,.05);}
+  .pv-th>img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease;}
+  .pv-card:hover .pv-th>img{transform:scale(1.045);}
+  .pv-th .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#c4c8ce;}
+  .pv-th .ph svg{width:40px;height:40px;}
+  .pv-soldout .pv-th::after{content:"품절";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(17,17,17,.5);color:#fff;font-size:14px;font-weight:800;letter-spacing:.02em;}
+  .pv-cat{display:block;margin:13px 0 4px;font-size:11.5px;font-weight:800;color:#E8780F;letter-spacing:-.02em;}
+  .pv-name{font-size:14.5px;font-weight:700;color:#191F28;letter-spacing:-.03em;line-height:1.4;word-break:keep-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em;}
+  .pv-price{margin-top:7px;font-size:16px;font-weight:900;color:#111;letter-spacing:-.02em;}
+  .pv-price .won{font-size:13px;font-weight:800;margin-left:1px;}
+  .pv-price .ask{font-size:13.5px;font-weight:700;color:#8a8f98;}
+  .pv-empty,.pv-loading{grid-column:1/-1;padding:80px 0;text-align:center;color:#adb2bb;font-size:14px;font-weight:600;}
+  .pv-count{margin:0 2px 14px;font-size:13px;color:#8a8f98;font-weight:600;}
+  @media (max-width:900px){ .pv-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:26px 16px;} }
+  @media (max-width:640px){
+    .pv{padding:18px 14px 60px;}
+    .pv-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 12px;}
+    .pv-head h1{font-size:22px;}
+    .pv-tabs{margin:0 -14px 18px;padding:9px 14px;}
+    .pv-name{font-size:13.5px;}
+    .pv-price{font-size:15px;}
   }
 </style>
 
-<div class="pcase">
-  <div class="pcase-head">
-    <span class="eyebrow">POUR스토어 시공사례</span>
-    <h1>시공사례</h1>
-    <p>노후 건물의 누수·균열을 실제로 해결한 POUR 시공 이야기를 모았어요. 문제 진단부터 시공 과정, 사용 자재까지 한눈에 확인해 보세요.</p>
+<div class="pv">
+  <div class="pv-head">
+    <span class="eyebrow">POUR스토어</span>
+    <h1>제품 보기</h1>
+    <p>카페24에 등록된 모든 제품을 카테고리별로 모았어요. 원하는 카테고리를 눌러 필요한 자재를 바로 찾아보세요.</p>
   </div>
-  <div class="pcase-grid" data-grid>
-    <div class="pcase-loading" data-loading>불러오는 중…</div>
+  <div class="pv-tabs" data-tabs><div class="pv-tabs-inner" data-tabs-inner></div></div>
+  <div class="pv-count" data-count></div>
+  <div class="pv-grid" data-grid>
+    <div class="pv-loading" data-loading>제품을 불러오는 중…</div>
   </div>
 </div>
 
@@ -1377,40 +1395,98 @@ const firebaseConfig = {
 };
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
+var PC_TTL = 300000;
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
-function dateOf(p){ var m=String(p.displayDate||p.createdAt||p.updatedAt||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[1]+'.'+m[2]+'.'+m[3]):''; }
+var PH_SVG='<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5h16v14H4z"/><path d="M4 15l4-4 3 3 4-5 5 6"/></svg></div>';
+
+// ── 제품명 → 카테고리 분류 (우선순위 순서, 위에서부터 먼저 매칭) ──
+// products.category(imweb CATE코드)는 사람이 못 읽으므로 제품명 키워드로 분류한다.
+var TAB_RULES = [
+  ['패키지',   ['패키지','세트','키트','도구세트']],
+  ['안전용품', ['안전','세이프티','절연화','현장화','작업화','주방화','크린룸화','안전화','블랙야크','아이더','유니칸','네파','캠프라인','프렌칸토','K2','마스크','장갑','방진','안전모','벨트','칼라콘','꼬깔','목토시','넥워머','베스트','쿨토시','토시','스카프','방한','티셔츠','팬츠','양말','인솔','버킷햇','캠프캡','캠프햇','메쉬캡','메쉬햇','보안경','글러브','조끼','발등보호대','압박밴드','썬가드','베이스레이어','스파이크슈즈','넥쿨러','멀티넥','폴로','라운드티','조거','워커','풋밸런스','슈즈']],
+  ['보강자재', ['탄성강화','모체강화','강화 파우더','강화파우더','후커','드라이비트','코너비드','보강 매쉬','드라이비트매쉬','페이퍼 팬 벤트','팬벤트','팬 벤트']],
+  ['방수',     ['방수','우레탄','실란트','PVC시트','씰코트','씰패치','씰코팅','방수밀대','방수페인트','방수비','드림코트']],
+  ['균열보수', ['균열','크랙','퍼티','씰 프로','씰프로','인젝션','후레슁','후레싱','포트홀','아스콘','유화프라이머','아스팔트프라이머']],
+  ['페인트',   ['제비스코','에폭시','우방코트','프라이머','도료','락카','에나멜','바니쉬','매직칼라','라이닝','실러','PMQ','코트재','써밋페인트','페인트 강화','강화재','방청','녹방지']],
+  ['도장·도색',['붓','로라','롤러','로러','하나로','리필','트레이','도색통','공캔','신나통','P캔','스프레이건','스프레이','도색','풀솔','빽붓','극세사','로라대','노즐','코킹건','스프레이건','펌프','믹서','샌더','교반','브러쉬','유리블러','건','DS-','FR-']],
+  ['부자재',   ['헤라','스크래퍼','스크레퍼','바닥칼','밀대','고대','미장','흙손','사포','연마','테이프','커버링','보양','마스킹','한냉사','아사','빠데판','여과지','통','캔','컵','와이어브러쉬','믹서바','면보루','록타이트','접착제','비드','골판지','차커버','월패치','사이깡']],
+];
+// 카페24 내부 결제/정산용 더미 상품은 노출 제외
+function isJunk(name){ var n=String(name||''); return /자재대금|개인\s*결제|업체전용|님\s*개인|대금/.test(n); }
+function classify(name){
+  var n=String(name||'').replace(/\s+/g,'');
+  for(var i=0;i<TAB_RULES.length;i++){
+    var kws=TAB_RULES[i][1];
+    for(var j=0;j<kws.length;j++){ if(n.indexOf(kws[j].replace(/\s+/g,''))>=0) return TAB_RULES[i][0]; }
+  }
+  return '기타';
+}
+// 탭 노출 순서 (실제 상품이 있는 탭만 표시)
+var TAB_ORDER=['패키지','방수','균열보수','도장·도색','페인트','보강자재','부자재','안전용품','기타'];
+
+function codeOf(p){ var c=(p.channels&&p.channels.imweb)||p.imwebId||''; return String(c).trim(); }
 function thumbOf(p){ var t=p.thumbnail||p.thumb||p.image; return (t&&String(t).trim())?String(t).trim():''; }
-const PH_SVG='<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5h16v14H4z"/><path d="M4 15l4-4 3 3 4-5 5 6"/></svg></div>';
+function priceHtml(p){
+  var raw=p.salePrice||p.price||'';
+  var n=Number(String(raw).replace(/[^0-9.]/g,''));
+  if(!isNaN(n)&&n>0) return '<div class="pv-price">'+n.toLocaleString()+'<span class="won">원</span></div>';
+  return '<div class="pv-price"><span class="ask">가격문의</span></div>';
+}
+function isSoldout(p){ return /품절|판매중지|중지|불가/.test(String(p.salesStatus||p.displayStatus||'')); }
 
 function cardHtml(p){
-  var link='/pourstore_renewal/story/pour-story.html#post-'+encodeURIComponent(p.id);
+  var code=codeOf(p);
+  var link=code ? ('/product/detail.html?product_no='+encodeURIComponent(code)) : (p.imwebUrl||'#');
   var th=thumbOf(p);
   var img=th ? '<img src="'+esc(th)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' : PH_SVG;
-  var sum=p.summary ? '<p class="pcase-sm">'+esc(p.summary)+'</p>' : '';
-  var dt=dateOf(p);
-  return '<a class="pcase-card" href="'+link+'">'
-    + '<div class="pcase-th">'+img+'<span class="pcase-badge">시공사례</span></div>'
-    + '<span class="pcase-ct">시공사례</span>'
-    + '<div class="pcase-tt">'+esc(p.title||'')+'</div>'
-    + sum
-    + (dt?'<div class="pcase-date">'+dt+'</div>':'')
+  return '<a class="pv-card'+(isSoldout(p)?' pv-soldout':'')+'" href="'+esc(link)+'">'
+    + '<div class="pv-th">'+img+'</div>'
+    + '<span class="pv-cat">'+esc(p._tab)+'</span>'
+    + '<div class="pv-name">'+esc(p.name||'')+'</div>'
+    + priceHtml(p)
     + '</a>';
 }
 
 (async function(){
   var grid=document.querySelector('[data-grid]');
+  var tabsInner=document.querySelector('[data-tabs-inner]');
+  var countEl=document.querySelector('[data-count]');
   try{
-    var snap=await getDocs(collection(db,'pourstore-postings'));
-    var list=snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); })
-      .filter(function(p){ return p && p.active!==false && p.type==='advanced'; });
-    list.sort(function(a,b){ var o=(a.order==null?999:a.order)-(b.order==null?999:b.order); return o!==0?o:String(b.createdAt||'').localeCompare(String(a.createdAt||'')); });
-    console.log('[case] 시공사례 '+list.length+'건 노출');
-    if(!list.length){ grid.innerHTML='<div class="pcase-empty">등록된 시공사례가 없습니다.</div>'; return; }
-    grid.innerHTML=list.map(cardHtml).join('');
+    var loader=function(){ return getDocs(collection(db,'products')).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); };
+    var all = (window.__pcache ? await window.__pcache.wrap('col:products', PC_TTL, loader) : await loader());
+    var list=all.filter(function(p){ return p && p.isActive!==false && p.name && !isJunk(p.name); });
+    list.forEach(function(p){ p._tab=classify(p.name); });
+    // 이름 가나다순 정렬
+    list.sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''),'ko'); });
+    console.log('[제품보기] 전체 '+all.length+'건 중 노출 '+list.length+'건');
+
+    if(!list.length){ grid.innerHTML='<div class="pv-empty">등록된 제품이 없습니다.</div>'; return; }
+
+    // 탭별 개수
+    var counts={}; list.forEach(function(p){ counts[p._tab]=(counts[p._tab]||0)+1; });
+    var tabs=['전체'].concat(TAB_ORDER.filter(function(t){ return counts[t]; }));
+
+    function tabBtn(t){
+      var c=(t==='전체')?list.length:counts[t];
+      return '<button class="pv-tab" data-tab="'+esc(t)+'">'+esc(t)+' <span class="cnt">'+c+'</span></button>';
+    }
+    tabsInner.innerHTML=tabs.map(tabBtn).join('');
+
+    function render(tab){
+      var items=(tab==='전체')?list:list.filter(function(p){ return p._tab===tab; });
+      countEl.textContent='총 '+items.length.toLocaleString()+'개 제품';
+      grid.innerHTML=items.length?items.map(cardHtml).join(''):'<div class="pv-empty">해당 카테고리에 제품이 없습니다.</div>';
+      Array.prototype.forEach.call(tabsInner.querySelectorAll('.pv-tab'),function(b){ b.classList.toggle('on', b.getAttribute('data-tab')===tab); });
+    }
+    tabsInner.addEventListener('click',function(e){ var b=e.target.closest('.pv-tab'); if(!b)return; render(b.getAttribute('data-tab')); document.querySelector('.pv-head').scrollIntoView({behavior:'smooth',block:'start'}); });
+
+    // #cat=방수 처럼 해시로 특정 탭 진입 지원
+    var hash=decodeURIComponent((location.hash||'').replace(/^#cat=/,'').replace(/^#/,''));
+    render(tabs.indexOf(hash)>=0?hash:'전체');
   }catch(e){
-    console.error('[case] 로드 실패:', e);
-    grid.innerHTML='<div class="pcase-empty">시공사례를 불러오지 못했어요. 잠시 후 새로고침해 주세요.</div>';
+    console.error('[제품보기] 로드 실패:', e);
+    grid.innerHTML='<div class="pv-empty">제품을 불러오지 못했어요. 잠시 후 새로고침해 주세요.</div>';
   }
 })();
 </script>

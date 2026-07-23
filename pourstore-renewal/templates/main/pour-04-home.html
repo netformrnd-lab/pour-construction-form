@@ -532,6 +532,16 @@
     });
     if(used){ var note=document.querySelector('.carousel-mockup-note'); if(note) note.style.display='none'; }
   }
+  // ===== 재질 스와치 아이콘 — 관리에서 올린 사진으로 교체(없으면 기본 유지) =====
+  function applySwatch(data){
+    var sw=(data&&data.homeSwatches)||{};
+    document.querySelectorAll('.swatch-btn').forEach(function(b){
+      var s=sw[b.dataset.cat]; if(!s) return;
+      if(s.image){ var box=b.querySelector('.swatch'); if(box){ box.className='swatch'; box.removeAttribute('style'); box.innerHTML='<img src="'+esc(s.image)+'" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block">'; } }
+      if(s.label){ var l=b.querySelector('.swatch-label'); if(l) l.textContent=s.label; }
+      if(s.sub){ var sb=b.querySelector('.swatch-sub'); if(sb) sb.textContent=s.sub; }
+    });
+  }
   // ===== 재질별 진열(홈 그리드) — 관리에서 등록한 상품만 노출 =====
   var GRID_CAT_LABEL={wallpaper:'벽지',wood:'목재',metal:'철재',glass:'유리',tile:'타일',cement:'시멘트'};
   function gridCardHtml(c){
@@ -579,7 +589,7 @@
       var cfg={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
       var app=a.getApps().length?a.getApps()[0]:a.initializeApp(cfg);
       var snap=await fs.getDoc(fs.doc(fs.getFirestore(app),'config','pourstoreHomeCards'));
-      if(snap.exists()){ var d=snap.data()||{}; apply(d); applyGrid(d); }
+      if(snap.exists()){ var d=snap.data()||{}; apply(d); applySwatch(d); applyGrid(d); }
     }catch(e){ console.error('[pour-04-home] 홈카드 로드 실패:',e); }
   })();
 })();

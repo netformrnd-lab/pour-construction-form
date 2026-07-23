@@ -1,42 +1,47 @@
 <!-- ============================================================
-  product-tabs — '제품 보기' 탭바 + 카페24 상품 격자화 (product/list.html 상단 삽입)
-  동작:
-   · /product/list.html?cate_no=NN  → "제품 보기" 탭바 + 쇼케이스(신규입고패키지 등) 숨김 + 상품 격자
-   · /product/list.html (그냥·분류없음)  → 탭바 숨김 + 쇼케이스 그대로 (=패키지 쇼케이스 페이지)
-  ★ 설정: 아래 TABS 의 cate_no만 채우세요. '방수'만 미입력.
+  product-tabs — '제품 보기' 탭바 (카페24 product/list.html 상단 @import 전용)
+  위치: 카페24 product/list.html 스킨의 titleArea 아래(네이티브 typeMenu 위)에 이 한 줄만 삽입
+        <!--@import(/pourstore_renewal/category/product-tabs.html)-->
+  동작(현 스킨 기준):
+   · 주소에 ?cate_no=NN 있으면 → 제품보기 모드
+       - 우리 '제품 보기' + 탭바 노출
+       - 카페24 기본 요소 숨김: 경로(.path)·타이틀(.titleArea)·기본분류메뉴(.typeMenu)
+         ·상단이미지(.product_top_image)·베스트/신상품 슬라이더(.main_product_slide)
+       - 실제 상품 그리드(ul.prdList.grid4)는 그대로 유지
+   · cate_no=71(패키지)에선 pour-package-cate.html이 쇼케이스를 별도로 노출(공존 OK)
+   · 분류 없는 /product/list.html에선 아무것도 안 함
+  ★ 설정: 아래 TABS의 cate_no만 채우세요. '방수'만 번호 미확인 → 임시 키워드검색.
   ============================================================ -->
 <div class="ptv" data-ptv hidden>
   <h2 class="ptv-title">제품 보기</h2>
   <nav class="ptv-tabs" data-ptv-tabs aria-label="제품 카테고리"></nav>
 </div>
 <style>
-.ptv{ max-width:1256px; margin:0 auto; padding:28px 20px 8px; text-align:center;
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
+.ptv{ max-width:1256px; margin:0 auto; padding:30px 20px 10px; text-align:center;
   font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
-.ptv[hidden]{ display:none; }
+.ptv[hidden]{ display:none !important; }
 .ptv *{ box-sizing:border-box; }
 .ptv-title{ font-size:34px; font-weight:900; letter-spacing:-0.04em; color:#111; margin-bottom:22px; }
-.ptv-tabs{ display:inline-flex; flex-wrap:wrap; justify-content:center; gap:30px; }
+.ptv-tabs{ display:inline-flex; flex-wrap:wrap; justify-content:center; gap:12px 14px; }
 .ptv-tab{ padding:9px 18px; border-radius:999px; font-size:17px; font-weight:700; color:#111;
   text-decoration:none; letter-spacing:-0.02em; white-space:nowrap; transition:background .15s,color .15s; }
 .ptv-tab:hover{ background:#F2F3F7; }
 .ptv-tab.on{ background:#33373D; color:#fff; }
 @media (max-width:700px){
-  .ptv{ padding:20px 14px 4px; } .ptv-title{ font-size:25px; margin-bottom:16px; }
-  .ptv-tabs{ gap:16px 18px; } .ptv-tab{ font-size:15px; padding:8px 14px; }
+  .ptv{ padding:20px 14px 6px; } .ptv-title{ font-size:25px; margin-bottom:16px; }
+  .ptv-tabs{ gap:10px; } .ptv-tab{ font-size:15px; padding:8px 14px; }
 }
-/* ▼ 제품보기/분류 페이지에서만: 패키지 쇼케이스 숨김 + 카페24 상품리스트 격자화 */
-html.ptv-browse .ppr1, html.ptv-browse .ppr2, html.ptv-browse .ppr3,
-html.ptv-browse .ppr4, html.ptv-browse .ppr5, html.ptv-browse .pprt{ display:none !important; }
-html.ptv-browse ul.prdList{
-  display:grid !important; grid-template-columns:repeat(4,minmax(0,1fr)) !important;
-  gap:30px 22px !important; padding:0 20px !important; max-width:1256px; margin:0 auto !important; }
-html.ptv-browse ul.prdList > li{ width:auto !important; margin:0 !important; float:none !important; }
-@media (max-width:900px){ html.ptv-browse ul.prdList{ grid-template-columns:repeat(3,minmax(0,1fr)) !important; gap:26px 16px !important; } }
-@media (max-width:640px){ html.ptv-browse ul.prdList{ grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:22px 12px !important; padding:0 14px !important; } }
+/* ▼ 제품보기 모드에서만: 카페24 기본 상단 요소 숨김(상품 그리드는 유지) */
+html.ptv-browse .section.path,
+html.ptv-browse .section.titleArea,
+html.ptv-browse .ec-base-tab.typeMenu,
+html.ptv-browse .product_top_image,
+html.ptv-browse .main_product_slide{ display:none !important; }
 </style>
 <script>
 (function(){
-  // [탭이름, cate_no] — '방수'만 실제 번호 넣으면 완성. 전체=73(제품메인카테고리)
+  // [탭이름, cate_no] — '방수'만 번호 확인되면 넣으세요. 전체=73(제품메인카테고리)
   var TABS = [
     ['전체',      '73'],
     ['패키지',    '71'],
@@ -50,15 +55,16 @@ html.ptv-browse ul.prdList > li{ width:auto !important; margin:0 !important; flo
   ];
   var p; try{ p = new URLSearchParams(location.search); }catch(e){ p = { get:function(){return null;} }; }
   var cate = p.get('cate_no');
-  var browse = !!cate;                    // 분류 페이지(cate_no 있음) = 제품보기
-  if(!browse) return;                     // 그냥 /product/list.html = 패키지 쇼케이스 → 탭바·격자화 안 함
+  if(!cate) return;                       // 분류 없음 = 그냥 목록 → 관여 안 함
   document.documentElement.classList.add('ptv-browse');
-  var wrap = document.querySelector('[data-ptv]'); if(wrap) wrap.hidden = false;
+  var wrap = document.querySelector('[data-ptv]'); if(wrap){ wrap.hidden = false; wrap.removeAttribute('hidden'); }
   var box = document.querySelector('[data-ptv-tabs]'); if(!box) return;
-  box.innerHTML = TABS.filter(function(t){ return t[1]; }).map(function(t){
-    var href = '/product/list.html?cate_no='+t[1];
-    var on = (String(cate)===String(t[1]));
-    return '<a class="ptv-tab'+(on?' on':'')+'" href="'+href+'">'+t[0]+'</a>';
+  box.innerHTML = TABS.map(function(t){
+    var name = t[0], no = t[1];
+    var href = no ? ('/product/list.html?cate_no='+no)
+                  : ('/product/search.html?keyword='+encodeURIComponent(name));  // 방수: 번호 없으면 검색
+    var on = no && (String(cate)===String(no));
+    return '<a class="ptv-tab'+(on?' on':'')+'" href="'+href+'">'+name+'</a>';
   }).join('');
 })();
 </script>

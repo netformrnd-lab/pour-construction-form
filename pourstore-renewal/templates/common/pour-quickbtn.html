@@ -164,6 +164,12 @@
 (function(){
   // 🧹 옛날 위젯(pqb/pdlg) 잔재가 다른 섹션/레이아웃에 남아있으면 제거 — 중복·옛날 폼 노출 방지
   try{ document.querySelectorAll('.pqb-wrap, .pdlg-ov, [data-pdlg]').forEach(function(n){ n.remove(); }); }catch(e){}
+  // 🔒 중복 로드 방지: 한 페이지에 위젯이 2번 포함돼도(예: 레이아웃+스킨) 딱 1개만 동작
+  if(window.__pourDoctorBooted){
+    try{ ['.pqc-launcher','.pqc-panel'].forEach(function(sel){ var e=document.querySelectorAll(sel); if(e.length>1) e[e.length-1].remove(); }); }catch(_e){}
+    return;
+  }
+  window.__pourDoctorBooted=true;
   var LS_KEY='pourdoctor_tid';
   var launcher=document.querySelector('[data-pqc-launcher]');
   var panel=document.querySelector('[data-pqc-panel]'); if(!panel) return;

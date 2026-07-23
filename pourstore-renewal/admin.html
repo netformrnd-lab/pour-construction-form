@@ -6784,8 +6784,8 @@ const HC_MATERIALS=[
   {key:'stone', label:'돌·시멘트 라인', hint:'"돌·시멘트를 고치고 싶다면?" 줄'},
 ];
 const HC_DEFAULT_FILTERS=['방수','코팅','보수','단열·차열','밑칠'];
-const HC_GRID_CATS=[{key:'wallpaper',label:'벽지'},{key:'wood',label:'목재'},{key:'metal',label:'철재'},{key:'glass',label:'유리'},{key:'tile',label:'타일'},{key:'cement',label:'시멘트/벽돌'}];
-const HC_SWATCHES=[{key:'all',label:'인기',sub:'BEST SELLER'},{key:'wallpaper',label:'벽지',sub:'도배·시트·풀'},{key:'wood',label:'목재',sub:'우드·마루'},{key:'metal',label:'철재',sub:'메탈·방청'},{key:'glass',label:'유리',sub:'글래스·코팅'},{key:'tile',label:'타일',sub:'줄눈·욕실'},{key:'cement',label:'시멘트/벽돌',sub:'벽돌·균열·보수'}];
+const HC_GRID_CATS=[{key:'wallpaper',label:'벽지'},{key:'wood',label:'목재'},{key:'metal',label:'철재'},{key:'glass',label:'유리'},{key:'cement',label:'시멘트/벽돌'}];
+const HC_SWATCHES=[{key:'all',label:'인기',sub:'BEST SELLER'},{key:'wallpaper',label:'벽지',sub:'도배·시트·풀'},{key:'wood',label:'목재',sub:'우드·마루'},{key:'metal',label:'철재',sub:'메탈·방청'},{key:'glass',label:'유리',sub:'글래스·코팅'},{key:'cement',label:'시멘트/벽돌',sub:'벽돌·균열·보수'}];
 function HomeCardsPage({showToast}){
   const { audit } = useActiveStaffContext();
   const normHero=(v)=>Array.isArray(v)?v.map(x=>({image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',kicker:x.kicker||'',title:x.title||'',desc:x.desc||'',tags:x.tags||'',cta:x.cta||''})):[];
@@ -6981,7 +6981,7 @@ function HomeCardsPage({showToast}){
       {/* ===== 재질 스와치(동그란 아이콘) ===== */}
       <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>
         <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}>재질 스와치 아이콘 <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>(7개 동그란 버튼)</span></div>
-        <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:12}}>"재질로 골라보세요" 위 <b>동그란 아이콘</b>(인기·벽지·목재·철재·유리·타일·시멘트/벽돌)을 사진으로 교체. 이름·소제목도 바꿀 수 있어요. <b>사진을 안 넣으면 기존 기본 아이콘이 그대로 유지</b>됩니다. (권장: 정사각형 이미지)</div>
+        <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:12}}>"재질로 골라보세요" 위 <b>동그란 아이콘</b>(인기·벽지·목재·철재·유리·시멘트/벽돌)을 사진으로 교체. 이름·소제목도 바꿀 수 있어요. <b>사진을 안 넣으면 기존 기본 아이콘이 그대로 유지</b>됩니다. (권장: 정사각형 이미지)</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:12}}>
           {HC_SWATCHES.map(s=>{ const sd=data.homeSwatches[s.key]||{image:'',label:'',sub:''}; const up=uploading==='sw:'+s.key;
             return (

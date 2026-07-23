@@ -1360,6 +1360,11 @@ var PM_POSTS = [];
   .gd{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;-webkit-font-smoothing:antialiased;}
   .gd-prep{background:#F4F6F8;padding:46px 20px 44px;}
   .gd-prep-in{max-width:1040px;margin:0 auto;}
+  /* 준비사항을 이미지 한 장으로 대체(Storage guide-steps) — 있으면 이미지, 없으면 아래 디자인 */
+  .gd-prep-img{display:none;width:100%;max-width:1100px;height:auto;margin:0 auto;}
+  .gd-prep.has-steps{background:#fff;padding:18px 16px 6px;}
+  .gd-prep.has-steps .gd-prep-in{display:none;}
+  .gd-prep.has-steps .gd-prep-img{display:block;}
   .gd-prep h2{text-align:center;font-size:30px;font-weight:900;letter-spacing:-.04em;color:#1F2937;margin-bottom:40px;}
   .gd-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;position:relative;}
   .gd-steps::before{content:"";position:absolute;top:7px;left:9%;right:9%;height:2px;background:#C6D2E1;z-index:0;}
@@ -1399,7 +1404,7 @@ var PM_POSTS = [];
 </style>
 
 <div class="gd">
-  <section class="gd-prep"><div class="gd-prep-in">
+  <section class="gd-prep"><img class="gd-prep-img" data-gd-steps alt="시공 전 준비사항"><div class="gd-prep-in">
     <h2>시공 전 준비사항</h2>
     <div class="gd-steps">
       <div class="gd-step"><span class="gd-dot"></span><div class="gd-no">STEP 1</div><div class="gd-st">안전한 작업환경 조성</div><div class="gd-ds">작업 시 위험요인을 제거하고 안전한 작업환경을 조성해주세요.<br>필요 시 준비물: 앙카작업, 안전모, 안전화, 안전그네(전체식), PP로프(16MM이상) 등</div><div class="gd-ic"><svg viewBox="0 0 48 48" fill="none" stroke="#5b6b86" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 30a16 16 0 0 1 32 0"/><rect x="6" y="30" width="36" height="5" rx="2.5"/><path d="M20 15v8M28 15v8M24 13v10"/></svg></div></div>
@@ -1466,5 +1471,21 @@ function blockHtml(b){
 
   var qp=''; try{ qp=new URLSearchParams(location.search).get('type')||''; }catch(e){}
   render(TYPE_NAMES[qp]?qp:'1');
+})();
+</script>
+
+<!-- 시공 전 준비사항: Storage guide-images/guide-steps.* 있으면 이미지로 대체 -->
+<script>
+(function(){
+  var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'+encodeURIComponent('POUR스토어_리뉴얼')+'%2F'+encodeURIComponent('guide-images')+'%2F';
+  var im=document.querySelector('[data-gd-steps]'); if(!im) return;
+  var cands=['guide-steps.png','guide-steps.jpg','guide-steps.jpg.png','guide-steps.png.png','guide-steps.jpeg','guide-steps.webp'];
+  function tryLoad(k){
+    if(k>=cands.length){ im.remove(); return; }              // 없으면 디자인(STEP HTML)
+    im.onerror=function(){ tryLoad(k+1); };
+    im.onload=function(){ var sec=im.closest('.gd-prep'); if(sec) sec.classList.add('has-steps'); };
+    im.src=BASE+encodeURIComponent(cands[k])+'?alt=media';
+  }
+  tryLoad(0);
 })();
 </script>

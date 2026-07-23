@@ -1,19 +1,17 @@
 <!-- ============================================================
-  product-tabs — '제품 보기' 탭바 (카페24 product/list.html 상단 @import 전용)
-  위치: 카페24 product/list.html 스킨의 titleArea 아래(네이티브 typeMenu 위)에 이 한 줄만 삽입
-        <!--@import(/pourstore_renewal/category/product-tabs.html)-->
-  동작(현 스킨 기준):
-   · 주소에 ?cate_no=NN 있으면 → 제품보기 모드
-       - 우리 '제품 보기' + 탭바 노출
-       - 카페24 기본 요소 숨김: 경로(.path)·타이틀(.titleArea)·기본분류메뉴(.typeMenu)
-         ·상단이미지(.product_top_image)·베스트/신상품 슬라이더(.main_product_slide)
-       - 실제 상품 그리드(ul.prdList.grid4)는 그대로 유지
-   · cate_no=71(패키지)에선 pour-package-cate.html이 쇼케이스를 별도로 노출(공존 OK)
-   · 분류 없는 /product/list.html에선 아무것도 안 함
-  ★ 설정: 아래 TABS의 cate_no만 채우세요. '방수'만 번호 미확인 → 임시 키워드검색.
+  product-tabs — 카페24 상품페이지(product/list.html)를 pour-products.html처럼 보이게 하는 '덧칠' 조각
+  삽입: 카페24 product/list.html 스킨의 titleArea 아래(네이티브 typeMenu 위)에 한 번만 붙여넣기.
+  동작:
+   · ?cate_no=NN(제품 분류) → "제품 보기" + 탭바 노출, 카페24 기본 상단요소 숨김, 상품격자는 그대로.
+   · ?cate_no=(베스트 분류)  → "베스트" 타이틀 + 상품에 순위 뱃지(1,2,3…), 탭바 숨김.
+   · 분류 없는 /product/list.html → 아무것도 안 함(패키지 쇼케이스 그대로).
+  ★ 설정 2가지:
+     1) BEST_CATE 에 카페24 '베스트' 분류번호 입력(예: '90'). 없으면 베스트 모드 꺼짐.
+     2) TABS 의 cate_no 확인(방수 없음).
+  상품 링크는 카페24가 준 detail.html?product_no=… 그대로 → 항상 정상. 새 상품 자동 반영.
   ============================================================ -->
 <div class="ptv" data-ptv hidden>
-  <h2 class="ptv-title">제품 보기</h2>
+  <h2 class="ptv-title" data-ptv-title>제품 보기</h2>
   <nav class="ptv-tabs" data-ptv-tabs aria-label="제품 카테고리"></nav>
 </div>
 <style>
@@ -32,39 +30,51 @@
   .ptv{ padding:20px 14px 6px; } .ptv-title{ font-size:25px; margin-bottom:16px; }
   .ptv-tabs{ gap:10px; } .ptv-tab{ font-size:15px; padding:8px 14px; }
 }
-/* ▼ 제품보기 모드에서만: 카페24 기본 상단 요소 숨김(상품 그리드는 유지) */
+/* ▼ 제품보기/베스트 모드: 카페24 기본 상단·툴바 숨김(상품 격자는 유지) */
 html.ptv-browse .section.path,
 html.ptv-browse .section.titleArea,
 html.ptv-browse .ec-base-tab.typeMenu,
 html.ptv-browse .product_top_image,
-html.ptv-browse .main_product_slide{ display:none !important; }
+html.ptv-browse .main_product_slide,
+html.ptv-browse [module="product_normalmenu"] .function{ display:none !important; }
+/* ▼ 베스트 모드: 상품 카드에 순위 뱃지(진열 순서 = 순위) */
+html.ptv-best ul.prdList{ counter-reset:pvrank; }
+html.ptv-best ul.prdList > li{ counter-increment:pvrank; position:relative; }
+html.ptv-best ul.prdList > li::before{ content:counter(pvrank); position:absolute; top:10px; left:10px; z-index:6;
+  min-width:30px; height:30px; padding:0 7px; background:#111; color:#fff; font-size:15px; font-weight:800;
+  display:inline-flex; align-items:center; justify-content:center; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.25); }
 </style>
 <script>
 (function(){
-  // [탭이름, cate_no] — '방수'만 번호 확인되면 넣으세요. 전체=73(제품메인카테고리)
+  // ★ 1) 카페24 '베스트' 분류번호 입력(만든 뒤). 비우면 베스트 뱃지 안 씀.
+  var BEST_CATE = '';
+  // ★ 2) 제품 분류 탭 (방수 없음). 전체=73(제품메인카테고리)
   var TABS = [
-    ['전체',      '73'],
-    ['패키지',    '71'],
-    ['방수',      ''],
-    ['균열보수',  '88'],
-    ['도장·도색', '74'],
-    ['페인트',    '75'],
-    ['보강자재',  '92'],
-    ['부자재',    '84'],
-    ['안전용품',  '63']
+    ['전체','73'],['패키지','71'],['균열보수','88'],['도장·도색','74'],
+    ['페인트','75'],['보강자재','92'],['부자재','84'],['안전용품','63']
   ];
   var p; try{ p = new URLSearchParams(location.search); }catch(e){ p = { get:function(){return null;} }; }
   var cate = p.get('cate_no');
-  if(!cate) return;                       // 분류 없음 = 그냥 목록 → 관여 안 함
+  if(!cate) return;                        // 분류 없음 = 패키지 쇼케이스 → 관여 안 함
   document.documentElement.classList.add('ptv-browse');
   var wrap = document.querySelector('[data-ptv]'); if(wrap){ wrap.hidden = false; wrap.removeAttribute('hidden'); }
-  var box = document.querySelector('[data-ptv-tabs]'); if(!box) return;
-  box.innerHTML = TABS.map(function(t){
-    var name = t[0], no = t[1];
-    var href = no ? ('/product/list.html?cate_no='+no)
-                  : ('/product/search.html?keyword='+encodeURIComponent(name));  // 방수: 번호 없으면 검색
-    var on = no && (String(cate)===String(no));
-    return '<a class="ptv-tab'+(on?' on':'')+'" href="'+href+'">'+name+'</a>';
-  }).join('');
+  var titleEl = document.querySelector('[data-ptv-title]');
+  var box = document.querySelector('[data-ptv-tabs]');
+
+  var isBest = BEST_CATE && String(cate)===String(BEST_CATE);
+  if(isBest){                              // 베스트 분류: 순위 뱃지 + 탭 없음
+    document.documentElement.classList.add('ptv-best');
+    if(titleEl) titleEl.textContent = '베스트';
+    if(box) box.style.display = 'none';
+    return;
+  }
+  if(titleEl) titleEl.textContent = '제품 보기';
+  if(box){
+    box.innerHTML = TABS.map(function(t){
+      var href = '/product/list.html?cate_no='+t[1];
+      var on = (String(cate)===String(t[1]));
+      return '<a class="ptv-tab'+(on?' on':'')+'" href="'+href+'">'+t[0]+'</a>';
+    }).join('');
+  }
 })();
 </script>

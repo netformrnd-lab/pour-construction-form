@@ -6784,11 +6784,13 @@ const HC_MATERIALS=[
   {key:'stone', label:'돌·시멘트 라인', hint:'"돌·시멘트를 고치고 싶다면?" 줄'},
 ];
 const HC_DEFAULT_FILTERS=['방수','코팅','보수','단열·차열','밑칠'];
+const HC_GRID_CATS=[{key:'wallpaper',label:'벽지'},{key:'wood',label:'목재'},{key:'metal',label:'철재'},{key:'glass',label:'유리'},{key:'tile',label:'타일'},{key:'cement',label:'시멘트/벽돌'}];
 function HomeCardsPage({showToast}){
   const { audit } = useActiveStaffContext();
   const normHero=(v)=>Array.isArray(v)?v.map(x=>({image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',kicker:x.kicker||'',title:x.title||'',desc:x.desc||'',tags:x.tags||'',cta:x.cta||''})):[];
   const normMat=(v)=>{ if(Array.isArray(v)) return {filters:HC_DEFAULT_FILTERS.slice(),cards:v.map(c=>({image:c.image||'',link:c.link||'',title:c.title||'',cat:c.cat||''}))}; v=v||{}; return {filters:(Array.isArray(v.filters)&&v.filters.length)?v.filters.filter(Boolean):HC_DEFAULT_FILTERS.slice(),cards:Array.isArray(v.cards)?v.cards.map(c=>({image:c.image||'',link:c.link||'',title:c.title||'',cat:c.cat||''})):[]}; };
-  const [data,setData]=useState({hero:[],metal:normMat(),wood:normMat(),stone:normMat()});
+  const normGrid=(v)=>Array.isArray(v)?v.map(c=>({image:c.image||'',title:c.title||'',meta:c.meta||'',price:c.price||'',unit:c.unit||'',link:c.link||'',cat:c.cat||'',brand:c.brand||'',badge:c.badge||''})):[];
+  const [data,setData]=useState({hero:[],metal:normMat(),wood:normMat(),stone:normMat(),homeGrid:[]});
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState(null);
@@ -6796,7 +6798,7 @@ function HomeCardsPage({showToast}){
   useEffect(()=>{ (async()=>{
     try{
       const d=await db.collection('config').doc('pourstoreHomeCards').get();
-      if(d.exists){ const v=d.data()||{}; setData({hero:normHero(v.hero),metal:normMat(v.metal),wood:normMat(v.wood),stone:normMat(v.stone)}); }
+      if(d.exists){ const v=d.data()||{}; setData({hero:normHero(v.hero),metal:normMat(v.metal),wood:normMat(v.wood),stone:normMat(v.stone),homeGrid:normGrid(v.homeGrid)}); }
       console.log('[homecards] 로드', d.exists);
     }catch(e){ console.error('[homecards] 로드 실패:',e); showToast('로드 실패: '+e.message,'error'); }
     setLoading(false);
@@ -6819,6 +6821,12 @@ function HomeCardsPage({showToast}){
   const cardPatch=(key,i,part)=>matSet(key,{cards:data[key].cards.map((c,x)=>x===i?{...c,...part}:c)});
   const cardMove=(key,i,dir)=>{const a=[...data[key].cards];const j=i+dir;if(j<0||j>=a.length)return;const t=a[i];a[i]=a[j];a[j]=t;matSet(key,{cards:a});};
 
+  // 재질별 진열(홈 그리드) ops
+  const gridAdd=()=>setData(p=>({...p,homeGrid:[...p.homeGrid,{image:'',title:'',meta:'',price:'',unit:'',link:'',cat:'',brand:'',badge:''}]}));
+  const gridRemove=(i)=>setData(p=>({...p,homeGrid:p.homeGrid.filter((_,x)=>x!==i)}));
+  const gridPatch=(i,part)=>setData(p=>({...p,homeGrid:p.homeGrid.map((c,x)=>x===i?{...c,...part}:c)}));
+  const gridMove=(i,dir)=>setData(p=>{const a=[...p.homeGrid];const j=i+dir;if(j<0||j>=a.length)return p;const t=a[i];a[i]=a[j];a[j]=t;return{...p,homeGrid:a};});
+
   const upload=async(uid,file,cb)=>{
     if(!file)return;
     if(!file.type.startsWith('image/')){ showToast('이미지(png/jpg)만 가능','error'); return; }
@@ -6838,7 +6846,8 @@ function HomeCardsPage({showToast}){
     try{
       const hero=data.hero.filter(h=>h.image||h.title||h.kicker).map(h=>({image:h.image||'',imageMobile:h.imageMobile||'',link:(h.link||'').trim(),kicker:(h.kicker||'').trim(),title:(h.title||'').trim(),desc:(h.desc||'').trim(),tags:(h.tags||'').trim(),cta:(h.cta||'').trim()}));
       const mat=(m)=>({filters:m.filters.map(f=>(f||'').trim()).filter(Boolean),cards:m.cards.filter(c=>c.image).map(c=>({image:c.image,link:(c.link||'').trim(),title:(c.title||'').trim(),cat:(c.cat||'').trim()}))});
-      await db.collection('config').doc('pourstoreHomeCards').set({hero,metal:mat(data.metal),wood:mat(data.wood),stone:mat(data.stone),...audit.update()},{merge:true});
+      const homeGrid=data.homeGrid.filter(c=>c.image).map(c=>({image:c.image,title:(c.title||'').trim(),meta:(c.meta||'').trim(),price:(c.price||'').trim(),unit:(c.unit||'').trim(),link:(c.link||'').trim(),cat:(c.cat||'').trim(),brand:(c.brand||'').trim(),badge:(c.badge||'').trim()}));
+      await db.collection('config').doc('pourstoreHomeCards').set({hero,metal:mat(data.metal),wood:mat(data.wood),stone:mat(data.stone),homeGrid,...audit.update()},{merge:true});
       showToast('저장되었습니다 — 스토어에 반영됩니다');
     }catch(e){ console.error('[homecards] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
     setSaving(false);
@@ -6955,6 +6964,63 @@ function HomeCardsPage({showToast}){
           </div>
         );
       })}
+
+      {/* ===== 재질별 진열(홈 그리드) ===== */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>
+        <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}>재질별 상품 진열 <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>({data.homeGrid.length}개)</span></div>
+        <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:10}}>홈 "<b>재질로 골라보세요</b>" 스와치(인기·벽지·목재·철재·유리·타일·시멘트) 아래에 뜨는 상품 카드. <b>여기서 등록한 상품만</b> 노출됩니다. (하나도 없으면 기존 기본 8종이 그대로 유지)</div>
+
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(330px,1fr))',gap:12}}>
+          {data.homeGrid.length===0 && <div style={{padding:'18px',textAlign:'center',color:'var(--text-sm)',fontSize:12.5,fontWeight:700,background:'var(--bg)',borderRadius:10,border:'1px dashed var(--border)'}}>등록된 상품이 없습니다 — 아래 '+ 상품 추가' (없으면 기존 기본 카드 유지)</div>}
+          {data.homeGrid.map((c,i)=>{ const up=uploading==='grid:'+i;
+            return (
+              <div key={i} style={{display:'flex',gap:10,padding:10,background:'var(--bg)',borderRadius:10,border:'1px solid var(--border)'}}>
+                <div style={{width:92,flexShrink:0}}>
+                  <div style={{position:'relative',width:92,height:92,borderRadius:8,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    {c.image?<img src={c.image} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontSize:10,color:'var(--text-sm)',fontWeight:700}}>없음</span>}
+                    {up&&<div style={{position:'absolute',inset:0,background:'rgba(255,255,255,.7)',display:'grid',placeItems:'center',fontSize:10,fontWeight:800,color:'var(--or-d)'}}>업로드</div>}
+                  </div>
+                  <label style={{display:'block',textAlign:'center',padding:'6px',marginTop:5,borderRadius:7,border:'1.5px solid var(--or)',color:'var(--or-d)',background:'#fff',fontSize:10.5,fontWeight:800,cursor:up?'wait':'pointer'}}>
+                    {c.image?'교체':'사진'}
+                    <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload('grid:'+i,f,url=>gridPatch(i,{image:url})); e.target.value='';}} style={{display:'none'}}/>
+                  </label>
+                  <div style={{display:'flex',gap:4,marginTop:5}}>
+                    <button onClick={()=>gridMove(i,-1)} disabled={i===0} style={{flex:1,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontWeight:800,cursor:'pointer',opacity:i===0?.4:1}}>↑</button>
+                    <button onClick={()=>gridMove(i,1)} disabled={i===data.homeGrid.length-1} style={{flex:1,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontWeight:800,cursor:'pointer',opacity:i===data.homeGrid.length-1?.4:1}}>↓</button>
+                    <button onClick={()=>gridRemove(i)} style={{flex:1,borderRadius:7,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontWeight:900,cursor:'pointer'}}>×</button>
+                  </div>
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <input value={c.title} onChange={e=>gridPatch(i,{title:e.target.value})} placeholder="상품명 (예: POUR 녹제거·방청 페인트)" style={inp}/>
+                  <input value={c.meta} onChange={e=>gridPatch(i,{meta:e.target.value})} placeholder="한 줄 설명 (예: 직접 도포 · 1액형)" style={inp}/>
+                  <div style={{display:'flex',gap:6}}>
+                    <input value={c.price} onChange={e=>gridPatch(i,{price:e.target.value})} placeholder="가격 (예: 22,000)" style={{...inp,flex:1.3}}/>
+                    <input value={c.unit} onChange={e=>gridPatch(i,{unit:e.target.value})} placeholder="단위 (예: 1L)" style={{...inp,flex:1}}/>
+                  </div>
+                  <input value={c.link} onChange={e=>gridPatch(i,{link:e.target.value})} placeholder="상품 링크" style={inp}/>
+                  <div style={{display:'flex',gap:6,marginTop:6,alignItems:'center'}}>
+                    <select value={c.cat} onChange={e=>gridPatch(i,{cat:e.target.value})} title="재질(스와치)" style={{flex:1,padding:'7px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,fontWeight:700,color:'var(--navy)',background:'#fff'}}>
+                      <option value="">재질(스와치) 선택</option>
+                      {HC_GRID_CATS.map(g=><option key={g.key} value={g.key}>{g.label}</option>)}
+                    </select>
+                    <select value={c.brand} onChange={e=>gridPatch(i,{brand:e.target.value})} title="브랜드" style={{width:110,padding:'7px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,fontWeight:700,color:'var(--navy)',background:'#fff'}}>
+                      <option value="">브랜드 없음</option>
+                      <option value="POUR">POUR</option>
+                      <option value="GROHOME">GROHOME</option>
+                    </select>
+                    <select value={c.badge} onChange={e=>gridPatch(i,{badge:e.target.value})} title="뱃지" style={{width:96,padding:'7px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,fontWeight:700,color:'var(--navy)',background:'#fff'}}>
+                      <option value="">뱃지 없음</option>
+                      <option value="best">★ BEST</option>
+                      <option value="new">NEW</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <button onClick={gridAdd} style={{marginTop:12,width:'100%',padding:10,borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>+ 상품 추가</button>
+      </div>
 
       <div style={{marginTop:20,display:'flex',justifyContent:'flex-end'}}>
         <button onClick={save} disabled={saving} style={{padding:'12px 28px',borderRadius:10,fontSize:13.5,fontWeight:900,color:'#fff',background:saving?'var(--text-sm)':'linear-gradient(135deg, var(--or), var(--or-d))',cursor:saving?'wait':'pointer'}}>{saving?'저장 중...':'저장'}</button>

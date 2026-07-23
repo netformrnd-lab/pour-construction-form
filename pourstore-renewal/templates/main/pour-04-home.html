@@ -507,8 +507,9 @@
 })();
 </script>
 
-<!-- ===== 홈리페어×홈데코 히어로 — 관리(config/pourstoreHomeCards.hero) 실사 사진으로 교체 ===== -->
-<style>.slide-right img{display:block;width:100%;height:100%;object-fit:cover}</style>
+<!-- ===== 홈리페어×홈데코 히어로 + 재질별 진열 — 관리(config/pourstoreHomeCards) 실사 사진으로 교체 ===== -->
+<style>.slide-right img{display:block;width:100%;height:100%;object-fit:cover}
+.psh-card.psh-managed .img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}</style>
 <script>
 (function(){
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
@@ -531,6 +532,46 @@
     });
     if(used){ var note=document.querySelector('.carousel-mockup-note'); if(note) note.style.display='none'; }
   }
+  // ===== 재질별 진열(홈 그리드) — 관리에서 등록한 상품만 노출 =====
+  var GRID_CAT_LABEL={wallpaper:'벽지',wood:'목재',metal:'철재',glass:'유리',tile:'타일',cement:'시멘트'};
+  function gridCardHtml(c){
+    var cat=c.cat||'';
+    var brandCls=c.brand==='POUR'?'pour':(c.brand==='GROHOME'?'gro':'');
+    var brand=(c.brand&&brandCls)?'<span class="brand '+brandCls+'">'+esc(c.brand)+'</span>':'';
+    var badge=c.badge==='best'?'<span class="status best">★ BEST</span>':(c.badge==='new'?'<span class="status new">NEW</span>':'');
+    var catSpan=cat?'<span class="cat">'+esc(GRID_CAT_LABEL[cat]||cat)+'</span>':'';
+    var img=c.image?'<img src="'+esc(c.image)+'" alt="" loading="lazy">':'';
+    var meta=c.meta?'<div class="meta">'+esc(c.meta)+'</div>':'';
+    var name='<div class="name">'+esc(c.title||'')+'</div>';
+    var price='';
+    if(c.price){ price='<div class="price-row"><div class="price">'+esc(c.price)+'<span class="won">원</span></div>'+(c.unit?'<span class="unit">/ '+esc(c.unit)+'</span>':'')+'</div>'; }
+    var href=(c.link||'').trim()||'#';
+    return '<a class="psh-card psh-managed" href="'+esc(href)+'" data-cat="'+esc(cat)+'"><div class="img '+esc(cat)+'">'+brand+badge+catSpan+img+'</div><div class="body">'+meta+name+price+'</div></a>';
+  }
+  function applyGrid(data){
+    var grid=(data&&data.homeGrid)||[]; if(!grid.length) return;
+    var wrap=document.querySelector('.psh-grid'); if(!wrap) return;
+    wrap.innerHTML=grid.map(gridCardHtml).join('');
+    // 스와치 필터 재바인딩: 기존 리스너는 사라진 카드를 참조 → 스와치 버튼 복제로 리스너 제거 후 새 카드로 재연결
+    var oldSw=document.querySelectorAll('.swatch-btn');
+    oldSw.forEach(function(b){ b.parentNode.replaceChild(b.cloneNode(true),b); });
+    var sw=document.querySelectorAll('.swatch-btn');
+    var cards=wrap.querySelectorAll('.psh-card');
+    sw.forEach(function(b){
+      b.addEventListener('click', function(){
+        sw.forEach(function(x){ x.classList.remove('on'); });
+        b.classList.add('on');
+        var cat=b.dataset.cat;
+        cards.forEach(function(c){
+          if(cat==='all'||c.dataset.cat===cat){ c.classList.remove('hide'); }
+          else { c.classList.add('hide'); }
+        });
+      });
+    });
+    // 현재 켜진 스와치 기준으로 초기 필터 반영
+    var on=document.querySelector('.swatch-btn.on'); var initCat=on?on.dataset.cat:'all';
+    cards.forEach(function(c){ if(initCat==='all'||c.dataset.cat===initCat){ c.classList.remove('hide'); } else { c.classList.add('hide'); } });
+  }
   (async function(){
     try{
       var a=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
@@ -538,8 +579,8 @@
       var cfg={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
       var app=a.getApps().length?a.getApps()[0]:a.initializeApp(cfg);
       var snap=await fs.getDoc(fs.doc(fs.getFirestore(app),'config','pourstoreHomeCards'));
-      if(snap.exists()) apply(snap.data()||{});
-    }catch(e){ console.error('[pour-04-home] 홈카드 히어로 로드 실패:',e); }
+      if(snap.exists()){ var d=snap.data()||{}; apply(d); applyGrid(d); }
+    }catch(e){ console.error('[pour-04-home] 홈카드 로드 실패:',e); }
   })();
 })();
 </script>

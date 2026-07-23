@@ -355,6 +355,7 @@ const NAV = [
   { id: 'recokeywords',    icon: '🏷', label: '추천검색어 관리',     group: 'design' },
   { id: 'postings',        icon: '📚', label: 'POUR이야기 관리',      group: 'design' },
   { id: 'events',          icon: '🎉', label: '기획전(이벤트) 관리',   group: 'design' },
+  { id: 'best',            icon: '🏆', label: '베스트 관리',           group: 'design' },
   { id: 'packages',        icon: '🧩', label: '패키지 구성 관리',     group: 'design' },
   { id: 'banners',         icon: '🖼', label: '메인 배너 관리',       group: 'design' },
   { id: 'products',        icon: '📦', label: '상품관리',           group: 'design' },
@@ -4828,6 +4829,127 @@ const blocksToBody=(blocks)=>(blocks||[]).map(b=>b.type==='image'?(b.url||''):(b
 // 기획전(이벤트) 관리 — 오늘의집 스타일 카드 (큰 이미지 + 상품 썸네일 줄)
 //   저장: config/pourstoreEvents {events:[...]} (보안규칙상 쓰기 허용 컬렉션) / 노출: event.html
 // ============================================================
+// ============================================================
+// 베스트 관리 — 카테고리별 일/주/월 베스트 상품 수동 지정
+//   저장: config/pourstoreBest {periods:{daily/weekly/monthly:{카테고리:[...]}}} / 노출: best.html
+//   (카페24 판매량 자동연동 전 수동 운영 → 나중에 Worker가 같은 문서를 자동 갱신)
+// ============================================================
+var BEST_CATS=['전체','패키지','방수','균열보수','도장·도색','페인트','보강자재','부자재','안전용품'];
+var BEST_PERIODS=[['daily','일간'],['weekly','주간'],['monthly','월간']];
+function BestPage({showToast}){
+  const [data,setData]=useState({daily:{},weekly:{},monthly:{}});
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [period,setPeriod]=useState('daily');
+  const [cat,setCat]=useState('전체');
+  const [allProds,setAllProds]=useState([]);
+  const [prodQ,setProdQ]=useState('');
+  const [loadingProds,setLoadingProds]=useState(true);
+  const BREF=()=>db.collection('config').doc('pourstoreBest');
+  useEffect(()=>{ (async()=>{
+    try{ const snap=await BREF().get(); const d=(snap.exists&&snap.data())||{}; const p=(d.periods&&typeof d.periods==='object')?d.periods:{};
+      setData({daily:p.daily||{},weekly:p.weekly||{},monthly:p.monthly||{}}); console.log('[best] 랭킹문서 로드'); }
+    catch(e){ console.error('[best] 로드 실패(없으면 빈값으로 시작):',e); }
+    setLoading(false);
+  })(); },[]);
+  useEffect(()=>{ let alive=true;
+    db.collection('products').get().then(function(snap){ if(!alive)return;
+      var arr=snap.docs.map(function(d){return {id:d.id,...d.data()};}).filter(function(p){return p&&p.isActive!==false&&p.name;});
+      arr.sort(function(a,b){return String(a.name||'').localeCompare(String(b.name||''),'ko');});
+      console.log('[best] 등록상품 '+arr.length+'건'); setAllProds(arr); setLoadingProds(false);
+    }).catch(function(e){ console.error('[best] 상품 로드 실패:',e); setLoadingProds(false); });
+    return function(){alive=false;};
+  },[]);
+  const prodCode=(p)=>{ var c=(p.channels&&p.channels.imweb)||p.imwebId||''; return String(c).trim(); };
+  const cur=(data[period]&&data[period][cat])||[];
+  const setCur=(arr)=>{ setData({...data,[period]:{...(data[period]||{}),[cat]:arr}}); };
+  const catCount=(c)=>((data[period]&&data[period][c])||[]).length;
+  const addFromProduct=(p)=>{ var code=prodCode(p);
+    if(code&&cur.some(function(x){return x.code===code;})){ showToast('이미 담긴 상품이에요','error'); return; }
+    setCur([...cur,{code:code,name:p.name||'',brand:p.brand||'POUR스토어',thumb:p.thumbnail||'',price:p.price!=null?Number(p.price):0,salePrice:p.salePrice!=null?Number(p.salePrice):0,link:code?('/product/detail.html?product_no='+encodeURIComponent(code)):(p.imwebUrl||'')}]); };
+  const move=(i,d)=>{ var j=i+d; if(j<0||j>=cur.length)return; var a=cur.slice(); var t=a[i];a[i]=a[j];a[j]=t; setCur(a); };
+  const removeAt=(i)=>setCur(cur.filter((_,j)=>j!==i));
+  const filtered=(function(){ var q=prodQ.trim().toLowerCase(); var base=q?allProds.filter(function(p){return String(p.name||'').toLowerCase().indexOf(q)!==-1;}):allProds; return base.slice(0,80); })();
+  const save=async()=>{ setSaving(true);
+    try{ await BREF().set({basisDate:'',updatedAt:new Date().toISOString(),periods:data}); showToast('저장했어요 · best.html에 바로 반영','success'); }
+    catch(e){ console.error('[best] 저장 실패:',e); showToast('저장 실패: '+(e&&e.message||e),'error'); }
+    setSaving(false);
+  };
+  const won=(n)=>{ var v=Number(n); return (!isNaN(v)&&v>0)?v.toLocaleString()+'원':''; };
+  const seg=(on)=>({padding:'9px 18px',borderRadius:9,border:'1.5px solid '+(on?'var(--navy)':'var(--border)'),background:on?'var(--navy)':'#fff',color:on?'#fff':'var(--text-md)',fontSize:13,fontWeight:800,cursor:'pointer'});
+  const cseg=(on)=>({padding:'7px 13px',borderRadius:999,border:'1.5px solid '+(on?'var(--navy)':'var(--border)'),background:on?'var(--navy)':'#fff',color:on?'#fff':'var(--text-md)',fontSize:12.5,fontWeight:800,cursor:'pointer'});
+  const panel={border:'1px solid var(--border)',borderRadius:14,background:'#fff',padding:14,boxShadow:'var(--shadow)'};
+  const panelH={fontSize:13,fontWeight:900,color:'var(--navy)',marginBottom:10};
+  const iconBtn={width:28,height:28,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',lineHeight:1};
+  const thumbS={width:44,height:44,borderRadius:8,objectFit:'cover',background:'var(--bg)',flexShrink:0,border:'1px solid var(--border)'};
+  const periodLabel=(BEST_PERIODS.find(x=>x[0]===period)||['','일간'])[1];
+  return (
+    <div style={{padding:'8px 4px'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:10}}>
+        <div>
+          <h1 style={{fontSize:20,fontWeight:900,color:'var(--navy)'}}>🏆 베스트 관리</h1>
+          <p style={{fontSize:12.5,color:'var(--text-md)',marginTop:4}}>카테고리별 <b>일간·주간·월간</b> 베스트 상품을 직접 골라 순서대로 배치합니다. <b>best.html</b>에 노출돼요. (판매량 자동연동 전 수동 운영)</p>
+        </div>
+        <button onClick={save} disabled={saving} style={{padding:'12px 26px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',background:saving?'var(--text-sm)':'linear-gradient(135deg, var(--navy), var(--navy2))',boxShadow:'0 4px 12px rgba(13,27,42,.2)',cursor:saving?'default':'pointer'}}>{saving?'저장 중…':'💾 저장'}</button>
+      </div>
+      {loading && <div style={{padding:'40px 0',textAlign:'center',color:'var(--text-sm)'}}>불러오는 중…</div>}
+      {!loading && <React.Fragment>
+        <div style={{display:'flex',gap:8,marginBottom:12}}>
+          {BEST_PERIODS.map(function(x){ return <button key={x[0]} onClick={()=>setPeriod(x[0])} style={seg(period===x[0])}>{x[1]}</button>; })}
+        </div>
+        <div style={{display:'flex',gap:7,flexWrap:'wrap',marginBottom:16}}>
+          {BEST_CATS.map(function(c){ return <button key={c} onClick={()=>setCat(c)} style={cseg(cat===c)}>{c} <span style={{opacity:.6,fontWeight:900}}>{catCount(c)}</span></button>; })}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(330px,1fr))',gap:16,alignItems:'start'}}>
+          {/* 왼쪽: 현재 베스트 목록(순서) */}
+          <div style={panel}>
+            <div style={panelH}>현재 베스트 — {periodLabel} · {cat} <span style={{color:'var(--or-d)'}}>({cur.length})</span></div>
+            {cur.length===0 && <div style={{padding:'34px 0',textAlign:'center',color:'var(--text-sm)',fontSize:12.5}}>담긴 상품이 없어요.<br/>오른쪽에서 상품을 추가하세요.</div>}
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {cur.map(function(p,i){ return (
+                <div key={(p.code||'')+i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px',border:'1px solid var(--border-s)',borderRadius:10}}>
+                  <span style={{width:24,height:24,borderRadius:6,background:'var(--navy)',color:'#fff',fontSize:12,fontWeight:900,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{i+1}</span>
+                  {p.thumb?<img src={p.thumb} alt="" style={thumbS}/>:<div style={{...thumbS,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontSize:9}}>없음</div>}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12.5,fontWeight:700,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name||'(이름없음)'}</div>
+                    <div style={{fontSize:11.5,color:'var(--text-md)',fontWeight:800}}>{won(p.salePrice||p.price)}{p.code?(' · 코드 '+p.code):''}</div>
+                  </div>
+                  <div style={{display:'flex',gap:4,flexShrink:0}}>
+                    <button onClick={()=>move(i,-1)} disabled={i===0} style={{...iconBtn,opacity:i===0?.35:1}}>↑</button>
+                    <button onClick={()=>move(i,1)} disabled={i===cur.length-1} style={{...iconBtn,opacity:i===cur.length-1?.35:1}}>↓</button>
+                    <button onClick={()=>removeAt(i)} style={{...iconBtn,color:'var(--red)'}}>×</button>
+                  </div>
+                </div>
+              ); })}
+            </div>
+          </div>
+          {/* 오른쪽: 등록상품에서 추가 */}
+          <div style={panel}>
+            <div style={panelH}>상품 추가 <span style={{fontWeight:700,color:'var(--text-sm)',fontSize:11.5}}>(카페24 등록상품)</span></div>
+            <input value={prodQ} onChange={e=>setProdQ(e.target.value)} placeholder="상품명 검색…" style={{width:'100%',padding:'10px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13,outline:'none',boxSizing:'border-box',marginBottom:10}}/>
+            {loadingProds && <div style={{padding:'20px 0',textAlign:'center',color:'var(--text-sm)',fontSize:12}}>상품 불러오는 중…</div>}
+            {!loadingProds && <div style={{maxHeight:460,overflowY:'auto',display:'flex',flexDirection:'column',gap:6}}>
+              {filtered.map(function(p){ var code=prodCode(p); var inList=code&&cur.some(function(x){return x.code===code;}); return (
+                <div key={p.id} style={{display:'flex',alignItems:'center',gap:10,padding:'7px',border:'1px solid var(--border-s)',borderRadius:10}}>
+                  {p.thumbnail?<img src={p.thumbnail} alt="" style={thumbS}/>:<div style={{...thumbS,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontSize:9}}>없음</div>}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12.5,fontWeight:700,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
+                    <div style={{fontSize:11.5,color:'var(--text-md)',fontWeight:800}}>{won(p.salePrice||p.price)}{code?(' · 코드 '+code):''}</div>
+                  </div>
+                  <button onClick={()=>addFromProduct(p)} disabled={inList} style={{padding:'7px 13px',borderRadius:8,border:'1.5px solid '+(inList?'var(--border)':'var(--navy)'),background:inList?'var(--bg)':'#fff',color:inList?'var(--text-sm)':'var(--navy)',fontSize:12,fontWeight:800,cursor:inList?'default':'pointer',flexShrink:0}}>{inList?'담김':'추가'}</button>
+                </div>
+              ); })}
+              {filtered.length===0 && <div style={{padding:'20px 0',textAlign:'center',color:'var(--text-sm)',fontSize:12}}>검색 결과가 없어요.</div>}
+            </div>}
+          </div>
+        </div>
+        <div style={{marginTop:14,padding:'11px 14px',background:'var(--blue-l)',borderRadius:10,fontSize:12,color:'var(--text-md)',lineHeight:1.6}}>
+          💡 <b>전체</b> 탭은 카테고리 구분 없이 전체 베스트로 노출돼요. 각 기간(일/주/월)·카테고리별로 따로 담고 <b>저장</b>을 눌러야 반영됩니다. 나중에 판매가 쌓이면 자동연동으로 전환할 수 있어요.
+        </div>
+      </React.Fragment>}
+    </div>
+  );
+}
 function EventsPage({showToast}){
   const [items,setItems]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -12027,6 +12149,7 @@ function App() {
         {active === 'recokeywords' && <RecoKeywordsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'postings' && <PostingsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'events' && <EventsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'best' && <BestPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'packages' && <PackagesPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'banners' && <BannersPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'staff' && <StaffPage onToast={setToast} />}

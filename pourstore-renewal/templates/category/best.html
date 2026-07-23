@@ -1448,7 +1448,7 @@ function classify(name){
     for(var j=0;j<kws.length;j++){ if(n.indexOf(kws[j].replace(/\s+/g,''))>=0) return TAB_RULES[i][0]; } }
   return '기타';
 }
-var TAB_ORDER=['패키지','방수','균열보수','도장·도색','페인트','보강자재','부자재','안전용품','기타'];
+var TAB_ORDER=['패키지','방수','균열보수','도장·도색','페인트','보강자재','부자재','안전용품'];
 var CATS=['전체'].concat(TAB_ORDER);
 
 function isJunk(name){ var n=String(name||''); return /자재대금|개인\s*결제|업체전용|님\s*개인|대금/.test(n); }

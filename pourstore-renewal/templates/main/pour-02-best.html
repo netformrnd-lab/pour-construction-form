@@ -225,4 +225,44 @@
   });
 })();
 </script>
+
+<!-- ===== 홈 소재별 카드 관리(config/pourstoreHomeCards) — 어드민에서 올린 실사 사진+상품링크로 교체 ===== -->
+<style>
+.psm2-card.psm2-managed{text-decoration:none;color:inherit;cursor:pointer}
+.psm2-card.psm2-managed .psm2-card-img{position:relative;overflow:hidden}
+.psm2-card.psm2-managed .psm2-card-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+</style>
+<script>
+(function(){
+  var MAP={ '철재':'metal', '목재':'wood', '돌·시멘트':'stone' };
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function cardHtml(c){
+    var link=(c.link||'').trim(), title=c.title||'';
+    var h='<a class="psm2-card psm2-managed" href="'+(link?esc(link):'#')+'"'+(link?'':' onclick="return false"')+'>';
+    h+='<div class="psm2-card-img"><img src="'+esc(c.image)+'" alt="'+esc(title)+'" loading="lazy"></div>';
+    if(title) h+='<div class="psm2-card-info"><div class="psm2-card-title">'+esc(title)+'</div></div>';
+    return h+'</a>';
+  }
+  function apply(data){
+    document.querySelectorAll('.psm2-group[data-material]').forEach(function(group){
+      var key=MAP[group.getAttribute('data-material')];
+      var cards=key && data[key];
+      if(!cards || !cards.length) return;          // 관리 데이터 없으면 기존 기본 카드 유지
+      var scroll=group.querySelector('.psm2-scroll'); if(!scroll) return;
+      scroll.innerHTML=cards.map(cardHtml).join('');
+      var filters=group.querySelector('.psm2-filters'); if(filters) filters.style.display='none'; // 관리 카드엔 소분류 필터 숨김
+    });
+  }
+  (async function(){
+    try{
+      var a=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      var fs=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      var cfg={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
+      var app=a.getApps().length?a.getApps()[0]:a.initializeApp(cfg);
+      var snap=await fs.getDoc(fs.doc(fs.getFirestore(app),'config','pourstoreHomeCards'));
+      if(snap.exists()) apply(snap.data()||{});
+    }catch(e){ console.error('[pour-02-best] 홈카드 로드 실패:',e); }
+  })();
+})();
+</script>
 </section>

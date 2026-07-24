@@ -1,0 +1,2543 @@
+[
+  {
+    "id": "0EWaxST9fJdZKyykNu75",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_20_c03b0d53.jpg",
+    "description": "바닥면의 도장재가 광범위하게 벗겨져 있고 바닥 표면이 손상된 상태임.",
+    "updatedAt": "2026-04-10T07:51:57.748Z",
+    "createdAt": "2026-04-10T07:51:57.748Z",
+    "method": "POUR 기타 방수 공법",
+    "defectType": "탈락",
+    "label": "탈락45",
+    "source": "manus"
+  },
+  {
+    "id": "16Vr2z2DgmwZmPuGatU5",
+    "defectType": "탈락",
+    "label": "탈락14",
+    "source": "manus",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "녹색 도장와 마감재가 심하게 벗겨져 콘크리트 기초가 드러나 있으며, 일부 부위는 금이 가고 부분적으로 파손된 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20230619_151325_50c5b874.jpg",
+    "createdAt": "2026-04-10T07:51:56.898Z",
+    "method": "POUR 기타 방수 공법",
+    "updatedAt": "2026-04-10T07:51:56.898Z"
+  },
+  {
+    "id": "1AaMGoc0r8Thd4q8FUWt",
+    "description": "옥상 바닥에서 방수층이 벗겨지거나 탈락되어 노출된 콘크리트가 보입니다. 방수 기능 저하로 인한 누수 위험이 우려됩니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_03_f51731e9.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:56.957Z",
+    "updatedAt": "2026-04-10T07:51:56.957Z",
+    "defectType": "탈락",
+    "source": "manus",
+    "label": "탈락16"
+  },
+  {
+    "id": "1PgXgV4YNkERWI5eiwHd",
+    "description": "방수 도막이 들떠서 부풀어오르고 일부가 탈락된 상태로 보입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리20220915_155327_6f2399bf.jpg",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-15T08:18:50.965Z",
+    "method": "POUR 슬라브 방수 공법",
+    "createdAt": "2026-04-10T07:51:56.337Z",
+    "defectTypes": [
+      "공기포 발생",
+      "부식",
+      "방수불량",
+      "장시간 물고임"
+    ],
+    "defectType": "공기포 발생",
+    "label": "탈락35",
+    "source": "manus"
+  },
+  {
+    "id": "1U3lQMJvmx7GgCj1B2RE",
+    "defectTypes": [
+      "도막 방수하자"
+    ],
+    "createdAt": "2026-04-15T05:16:39.783Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "updatedAt": "2026-04-15T05:35:08.911Z",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "imageUrl": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776230195961_page011_img002_1431x919.jpeg?alt=media&token=1076b0af-0d5a-4dde-af5f-823dda8792e1",
+    "description": "",
+    "source": "manual",
+    "defectType": "도막 방수하자"
+  },
+  {
+    "id": "1alIGffEoS7KkyMxuUvt",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "배수구 주변에서 방수층이 손상되어 변색과 부패가 진행된 모습으로 보입니다. 이는 방수 기능 저하로 누수 가능성이 있습니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_26_f44d5af7.jpg",
+    "createdAt": "2026-04-10T07:51:57.822Z",
+    "method": "POUR 기타 방수 공법",
+    "updatedAt": "2026-04-10T07:51:57.822Z",
+    "defectType": "방수불량",
+    "source": "manus",
+    "label": "방수불량3"
+  },
+  {
+    "id": "1u6d6P00ISRIGWNER1Tc",
+    "updatedAt": "2026-04-10T07:51:55.296Z",
+    "createdAt": "2026-04-10T07:51:55.296Z",
+    "method": "POUR 금속기와 방수 공법",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "표면 도장층이 부풀어 오르고 일부가 떨어져 나가려는 상태로, 도장와 기초면 간 접착력 저하가 의심됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/타복합시트공법 금속기와 못 찢김 사례2_74456f74.jpg",
+    "label": "탈락4",
+    "source": "manus",
+    "defectType": "탈락"
+  },
+  {
+    "id": "3F56QxvMgVApeQqWN3Oi",
+    "defectType": "변형",
+    "source": "manus",
+    "label": "변형1",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/강판 굽음_74521789.PNG",
+    "description": "지붕재가 눌려서 변형되고 파손된 상태로, 외부 충격이나 구조적 문제로 인한 것으로 보임.",
+    "createdAt": "2026-04-10T07:51:53.819Z",
+    "method": "POUR 금속기와 방수 공법",
+    "updatedAt": "2026-04-10T07:51:53.819Z"
+  },
+  {
+    "id": "3TDR9fkGEaQU0us1u4Yz",
+    "defectType": "부식",
+    "source": "manus",
+    "label": "부식3",
+    "description": "처마 부분의 철재가 녹슬어 표면이 부식된 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220621_143126_de70a2e8.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 금속기와 방수 공법",
+    "createdAt": "2026-04-10T07:51:54.144Z",
+    "updatedAt": "2026-04-10T07:51:54.144Z"
+  },
+  {
+    "id": "5GCBhXC0YfuKMm6y41h4",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "옥상 방수층의 표면이 들떠서 벗겨지고, 일부 구간에서는 박리 및 탈락이 심하게 진행되어 원래의 방수 기능이 상실된 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20221101_175455476_08_c808e5ca.jpg",
+    "updatedAt": "2026-04-10T07:51:56.762Z",
+    "createdAt": "2026-04-10T07:51:56.762Z",
+    "method": "POUR 기타 방수 공법",
+    "defectType": "탈락",
+    "label": "탈락10",
+    "source": "manus"
+  },
+  {
+    "id": "5ZnZsdcvoqrn4UO5Wl1M",
+    "label": "탈락19",
+    "source": "manus",
+    "defectType": "들뜸",
+    "updatedAt": "2026-04-15T05:08:02.267Z",
+    "defectTypes": [
+      "들뜸"
+    ],
+    "createdAt": "2026-04-10T07:51:54.923Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "description": "표면의 타일이 일부분 박리되었고, 일부 균열이 관찰됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20240701_111958292_01_b7bd1709.jpg"
+  },
+  {
+    "id": "5jnF8N1ugNquatxS1lvN",
+    "label": "탈락26",
+    "source": "manus",
+    "defectType": "탈락",
+    "updatedAt": "2026-04-10T07:51:57.269Z",
+    "createdAt": "2026-04-10T07:51:57.269Z",
+    "method": "POUR 기타 방수 공법",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "옥상 바닥면과 구조물 측면에서 방수층 및 표면 마감재가 벗겨져 손상된 상태가 확인됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리옥상 슬라브_ 아파트 (2)_1aa58b79.jpg"
+  },
+  {
+    "id": "6XeoqtPST5bebO9yPtzZ",
+    "defectTypes": [
+      "방수불량",
+      "들뜸",
+      "시공불량"
+    ],
+    "createdAt": "2026-04-10T07:51:54.505Z",
+    "method": "POUR 슬라브 방수 공법",
+    "updatedAt": "2026-04-15T00:53:07.107Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/4_8248b538.png",
+    "description": "옥상 방수층 표면에 기포와 부풀음 현상이 발생하여 방수 성능이 저하된 상태입니다.",
+    "source": "manus",
+    "label": "방수불량4",
+    "defectType": "방수불량"
+  },
+  {
+    "id": "6dFkUH4IMyH2xFsVW16a",
+    "updatedAt": "2026-04-15T08:17:22.699Z",
+    "createdAt": "2026-04-10T07:51:56.048Z",
+    "defectTypes": [
+      "이음부",
+      "박리",
+      "들뜸",
+      "부식"
+    ],
+    "method": "POUR 슬라브 방수 공법",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "표면 도장이 벗겨지고 갈라지면서 일부 부분에서는 도장 탈락이 심하게 발생하여 기초층이 드러나 있음.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20220406_172951795_20_d5e0714f.jpg",
+    "label": "탈락21",
+    "source": "manus",
+    "defectType": "이음부"
+  },
+  {
+    "id": "70uA22qiaOAEOdiNnh4E",
+    "source": "manus",
+    "label": "탈락42",
+    "defectType": "탈락",
+    "createdAt": "2026-04-10T07:51:57.691Z",
+    "method": "POUR 기타 방수 공법",
+    "updatedAt": "2026-04-10T07:51:57.691Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "옥상 바닥 방수층이 벗겨지고 일부 구간에는 기초 콘크리트가 노출되어 있습니다. 방수 기능 상실로 누수 위험이 높아 보입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_03_fbcbfa9a.jpg"
+  },
+  {
+    "id": "7N7bDSNkghTtIbfw9SDR",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20250519_160937170_08_9cdb6d86.jpg",
+    "description": "옥상 바닥의 방수층이 심하게 박리되어 여러 부분에서 벗겨져 있는 상태입니다.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "method": "POUR 슬라브 방수 공법",
+    "defectTypes": [
+      "철거 폐기물 발생",
+      "방수불량"
+    ],
+    "createdAt": "2026-04-10T07:51:55.527Z",
+    "updatedAt": "2026-04-15T08:19:42.144Z",
+    "defectType": "철거 폐기물 발생",
+    "source": "manus",
+    "label": "탈락6"
+  },
+  {
+    "id": "7TmEOmztvdVwSsQEokX1",
+    "defectType": "방수불량",
+    "label": "방수불량3",
+    "source": "manus",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "옥상 방수층에 기포와 부풀음 현상이 나타나 방수 성능 저하가 우려됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/3_bd0f0da8.png",
+    "defectTypes": [
+      "방수불량",
+      "들뜸",
+      "시공불량"
+    ],
+    "createdAt": "2026-04-10T07:51:54.431Z",
+    "method": "POUR 슬라브 방수 공법",
+    "updatedAt": "2026-04-15T00:53:11.685Z"
+  },
+  {
+    "id": "7V91JjjUEiA2Ty3V10F4",
+    "defectType": "부식",
+    "label": "부식3",
+    "source": "manus",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "배기통 부분에 녹이 발생하여 표면 부식이 진행된 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20250622_091026258_03_a1a2a896.jpg",
+    "createdAt": "2026-04-10T07:51:56.876Z",
+    "method": "POUR 기타 방수 공법",
+    "updatedAt": "2026-04-10T07:51:56.876Z"
+  },
+  {
+    "id": "9KeB9uPdWzCtz14F5EoM",
+    "defectType": "탈락",
+    "label": "탈락1",
+    "source": "manus",
+    "description": "바닥 표면의 도장 또는 마감재가 부분적으로 떨어져 나가고 갈라진 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/v커팅 하자사례4_b9a4b952.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-10T07:51:55.120Z",
+    "method": "POUR 지하주차장 방수 공법",
+    "createdAt": "2026-04-10T07:51:55.120Z"
+  },
+  {
+    "id": "9LVpDihY6pMKN2kSaCB3",
+    "defectType": "배수불량",
+    "label": "방수불량2",
+    "source": "manus",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "옥상 바닥에 물이 고여 있어 배수가 원활하지 않은 상태로 보이며, 방수층 손상 또는 배수 설계 문제로 인한 누수가 의심됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리2_0b295863.jpg",
+    "createdAt": "2026-04-10T07:51:57.166Z",
+    "defectTypes": [
+      "배수불량",
+      "장시간 물고임"
+    ],
+    "method": "POUR 기타 방수 공법",
+    "updatedAt": "2026-04-15T00:53:21.067Z"
+  },
+  {
+    "id": "AHSGYLoovWs6W6M2xLtl",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "표면 도장층에 크고 깊은 균열이 발생하여 외벽의 구조적 손상이 우려됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/v커팅 하자사례2_4f996f14.jpg",
+    "updatedAt": "2026-04-10T07:51:55.141Z",
+    "createdAt": "2026-04-10T07:51:55.141Z",
+    "method": "POUR 균열 보수 공법",
+    "defectType": "균열",
+    "source": "manus",
+    "label": "균열2"
+  },
+  {
+    "id": "AZYFmqTWQFWwWJzB304o",
+    "source": "manual",
+    "defectType": "도막 방수하자",
+    "updatedAt": "2026-04-15T05:15:18.466Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "defectTypes": [
+      "도막 방수하자"
+    ],
+    "createdAt": "2026-04-15T05:15:18.466Z",
+    "description": "",
+    "imageUrl": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776230116274_page011_img003_442x223.jpeg?alt=media&token=9b428f01-b4e1-4c1a-b385-3a2237be8730",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ]
+  },
+  {
+    "id": "B3AMvktZFYzg4nMv9pj3",
+    "description": "지붕의 타일들이 고르지 않게 휨 현상이 나타나며 일부 타일이 들떠 있고 뒤틀려 있음.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220621_142843_1987a94a.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-10T07:51:54.105Z",
+    "method": "POUR 금속기와 방수 공법",
+    "createdAt": "2026-04-10T07:51:54.105Z",
+    "defectType": "변형",
+    "source": "manus",
+    "label": "변형2"
+  },
+  {
+    "id": "BeWb5LyPLYK1AxsQyvdZ",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220324_140000_91fe7e41.jpg",
+    "description": "옥상 표면의 도장층이 벗겨지고 탈락하여 하부가 노출된 상태입니다. 전체적으로 도장이 심하게 손상되어 보호 기능이 저하된 모습입니다.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:56.916Z",
+    "updatedAt": "2026-04-10T07:51:56.916Z",
+    "defectType": "탈락",
+    "source": "manus",
+    "label": "탈락15"
+  },
+  {
+    "id": "BfDRrHLP6Px7XDqkjGaI",
+    "updatedAt": "2026-04-15T00:53:26.115Z",
+    "method": "POUR 금속기와 방수 공법",
+    "defectTypes": [
+      "이음부"
+    ],
+    "createdAt": "2026-04-10T07:51:55.258Z",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/타복합시트공법 금속기와 기타 사례4_1aa92808.jpg",
+    "description": "지붕과 벽체 경계부의 방수 마감이 제대로 되지 않아 균열과 물 스며드는 흔적이 관찰됨",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "label": "",
+    "source": "manus",
+    "defectType": "이음부"
+  },
+  {
+    "id": "CH3yqAGrbB1TJQEtHR2g",
+    "description": "콘크리트 표면에 여러 갈래로 균열이 발생하여 녹색 표시로 하자 부위를 표시한 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/옥상 슬라브_세종 고운동 (6)_df30e73c.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-10T07:51:57.250Z",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.250Z",
+    "defectType": "균열",
+    "source": "manus",
+    "label": "균열3"
+  },
+  {
+    "id": "CTkVCKimcbGMhWLXJSDd",
+    "label": "탈락31",
+    "source": "manus",
+    "defectType": "탈락",
+    "updatedAt": "2026-04-10T07:51:57.455Z",
+    "createdAt": "2026-04-10T07:51:57.455Z",
+    "method": "POUR 기타 방수 공법",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_12_719a727c.jpg",
+    "description": "표면 도막이 갈라지고 벗겨져 있으며 일부 영역에 작은 기포와 균열이 발생한 상태입니다."
+  },
+  {
+    "id": "CZa246O05VOjE2P8Cbwt",
+    "updatedAt": "2026-04-10T07:51:57.125Z",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.125Z",
+    "description": "옥상 방수층에서 도막이 들뜨고 벗겨진 현상이 다수 관찰됨. 이는 방수층의 노후나 시공 불량으로 인해 발생할 수 있음.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/옥상슬라브 (2)_b95d0b26.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "label": "탈락21",
+    "source": "manus",
+    "defectType": "탈락"
+  },
+  {
+    "id": "CiVuDvPfZrvMOZ5I1t4Y",
+    "description": "철판 표면이 녹슬어 부식이 발생하였으며, 부분적으로 도장이 벗겨지고 변색된 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20230719_153839590_9799b422.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 금속기와 방수 공법",
+    "createdAt": "2026-04-10T07:51:53.989Z",
+    "updatedAt": "2026-04-10T07:51:53.989Z",
+    "defectType": "부식",
+    "source": "manus",
+    "label": "부식2"
+  },
+  {
+    "id": "DJg6yTYe32Hun6PFssEL",
+    "defectType": "탈락",
+    "label": "탈락1",
+    "source": "manus",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/Resized_20240520_094945_1716273994001_0bc604a1.jpeg",
+    "description": "옥상 마감재가 벗겨지고 탈락되어 일부 부분의 노출이 확인됨.",
+    "defectTypes": [
+      "탈락"
+    ],
+    "createdAt": "2026-04-10T07:51:54.310Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "updatedAt": "2026-04-15T02:12:27.619Z"
+  },
+  {
+    "id": "E06jZrk6hpLqxA3cgVRq",
+    "description": "지붕 타일 일부가 아래쪽으로 휘어져 변형되어 있고, 이음새 부분에 균열도 일부 발생한 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220621_143011_d958b6b7.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-11T12:17:39.039Z",
+    "method": "POUR 금속기와 방수 공법",
+    "createdAt": "2026-04-10T07:51:54.203Z",
+    "defectType": "이음부",
+    "source": "manus",
+    "label": "변형5"
+  },
+  {
+    "id": "EIVQNyXMWWlIFGp4hKxF",
+    "defectType": "시트 방수하자",
+    "label": "탈락11",
+    "source": "manus",
+    "description": "지붕 방수층이 변색되고 일부 영역에서 박리 및 탈락이 발생하여 보호 기능이 저하된 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20210812_094503_a9b54d83.jpg",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-15T04:55:31.064Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "createdAt": "2026-04-10T07:51:54.760Z",
+    "defectTypes": [
+      "시트 방수하자"
+    ]
+  },
+  {
+    "id": "EJF5ImLoY0WzM1MFBpDJ",
+    "label": "탈락3",
+    "source": "manus",
+    "defectType": "탈락",
+    "createdAt": "2026-04-10T07:51:55.184Z",
+    "method": "POUR 지하주차장 방수 공법",
+    "updatedAt": "2026-04-10T07:51:55.184Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/v커팅 하자사례1_ccb3af3f.jpg",
+    "description": "벽면 도장이 벗겨지고 일부는 탈락되어 노출된 콘크리트가 보임."
+  },
+  {
+    "id": "EXHZ2aP2Ox8q7itXTh95",
+    "defectType": "탈락",
+    "label": "탈락17",
+    "source": "manus",
+    "description": "외벽과 바닥 사이 실란트가 들떠 박리가 발생한 상태로 보입니다. 실란트가 제대로 부착되지 않아 단열 및 방수 성능 저하 우려가 있습니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20250624_172137098_04_ec89ab46.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:56.976Z",
+    "updatedAt": "2026-04-10T07:51:56.976Z"
+  },
+  {
+    "id": "EZLuMNfRIOvuzlhPpuwM",
+    "label": "탈락39",
+    "source": "manus",
+    "defectType": "탈락",
+    "updatedAt": "2026-04-10T07:51:57.635Z",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.635Z",
+    "description": "사진에서 방수층이 심하게 벗겨져 있고, 배수구 주변에 고인 물과 오염물이 확인됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_18_848c0268.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space"
+  },
+  {
+    "id": "EmjzSoav1F6K12WtId0n",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/옥상 슬라브_세종 고운동 (5)_c0eb16bc.jpg",
+    "description": "옥상 모서리 부분에 방수 도료가 불균일하게 도포되어 있고, 일부 균열이 보이며 방수층이 제대로 형성되지 않아 누수가 발생할 우려가 있음.",
+    "updatedAt": "2026-04-14T06:23:49.954Z",
+    "createdAt": "2026-04-10T07:51:55.606Z",
+    "method": "POUR 슬라브 방수 공법",
+    "defectType": "이음부",
+    "label": "이음부 불량",
+    "source": "manus"
+  },
+  {
+    "id": "FeWy28dvhonkscZnkoCU",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/2_83ed4a67.jpg",
+    "description": "방수층 표면에 기포처럼 부풀어 오른 부분들이 여러 군데 보이며, 이는 방수층의 접착 불량이나 습기침투로 인한 박리 현상으로 판단됨.",
+    "defectTypes": [
+      "기존 복합시트 방수",
+      "들뜸"
+    ],
+    "createdAt": "2026-04-10T07:51:54.562Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "updatedAt": "2026-04-15T03:44:59.842Z",
+    "defectType": "기존 복합시트 방수",
+    "source": "manus",
+    "label": "탈락3"
+  },
+  {
+    "id": "GSkVDxG3lDlQI59TmamF",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/타복합시트공법 금속기와 못 찢김 사례1_5e0c0dea.jpg",
+    "description": "표면 도장층이 일부 탈락되고 기포와 균열이 발생하여 부풀어 오른 상태임.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-10T07:51:55.373Z",
+    "method": "POUR 금속기와 방수 공법",
+    "createdAt": "2026-04-10T07:51:55.373Z",
+    "defectType": "탈락",
+    "source": "manus",
+    "label": "탈락6"
+  },
+  {
+    "id": "Gj1Rjrbix02FGuYEPwzR",
+    "label": "탈락23",
+    "source": "manus",
+    "defectType": "배수불량",
+    "method": "POUR 슬라브 방수 공법",
+    "createdAt": "2026-04-10T07:51:56.086Z",
+    "defectTypes": [
+      "배수불량",
+      "방수불량",
+      "누수",
+      "부식"
+    ],
+    "updatedAt": "2026-04-15T08:21:02.467Z",
+    "description": "바닥 마감재가 벗겨지고 일부가 떨어져 나가면서 표면이 심하게 손상된 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_Photo_2024-06-27-15-43-21_05__a31dd10d.jpg",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space"
+  },
+  {
+    "id": "Gqxme63Y2lzjAn9MgMqs",
+    "defectType": "도막 방수하자",
+    "source": "manual",
+    "imageUrl": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776230221838_page011_img001_1431x919.jpeg?alt=media&token=65df77f1-fbd9-4c63-b145-8aa85ffd04f1",
+    "description": "",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "createdAt": "2026-04-15T05:17:06.963Z",
+    "defectTypes": [
+      "도막 방수하자"
+    ],
+    "updatedAt": "2026-04-15T05:17:06.963Z"
+  },
+  {
+    "id": "HQ18Fg6nfhzWJrrOhfoU",
+    "description": "건물 외벽과 바닥의 접합부에 균열이 발생하여 구조적 결함 가능성이 있음.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_21_a8a32d7b.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 슬라브 방수 공법",
+    "createdAt": "2026-04-10T07:51:55.661Z",
+    "updatedAt": "2026-04-14T08:38:11.765Z",
+    "defectType": "이음부",
+    "source": "manus",
+    "label": ""
+  },
+  {
+    "id": "Hac2eZEUmLr1xfpL67Yy",
+    "updatedAt": "2026-04-15T08:20:16.429Z",
+    "method": "POUR 슬라브 방수 공법",
+    "defectTypes": [
+      "부식",
+      "박리",
+      "장시간 물고임",
+      "배수불량",
+      "방수불량"
+    ],
+    "createdAt": "2026-04-10T07:51:56.525Z",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_07_973f0c99.jpg",
+    "description": "바닥 표면의 마감재가 일부 벗겨지고 들떠 있는 상태로, 외부 환경이나 시공 부주의로 인한 박리가 의심됩니다.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "source": "manus",
+    "label": "탈락41",
+    "defectType": "부식"
+  },
+  {
+    "id": "I0lssnoz3tTEWD94S7S7",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:56.581Z",
+    "updatedAt": "2026-04-10T07:51:56.581Z",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220324_140050_7b3b596d.jpg",
+    "description": "옥상 방수층의 도막이 넓은 면적으로 벗겨지고 탈락하여 바닥 노출과 오염이 심각한 상태입니다.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "label": "탈락6",
+    "source": "manus",
+    "defectType": "탈락"
+  },
+  {
+    "id": "JEykEjp6JWgn5dg5jvVV",
+    "defectType": "도장불량",
+    "label": "도장불량2",
+    "source": "manus",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "도장면에 기포와 들뜸 현상이 발생하여 표면이 울퉁불퉁하고 부착력이 약한 상태임.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/타복합시트공법 금속기와 기타 사례3_f04d930d.jpg",
+    "createdAt": "2026-04-10T07:51:55.429Z",
+    "method": "POUR 금속기와 방수 공법",
+    "updatedAt": "2026-04-10T07:51:55.429Z"
+  },
+  {
+    "id": "JgQFlKQHc1d3Dm8GQohM",
+    "updatedAt": "2026-04-10T07:51:57.068Z",
+    "createdAt": "2026-04-10T07:51:57.068Z",
+    "method": "POUR 기타 방수 공법",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "외벽 페인트가 균열과 함께 일부 떨어져 나간 상태로 노출되어 있습니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20250620_165355077_11_8e1b26b0.jpg",
+    "source": "manus",
+    "label": "탈락19",
+    "defectType": "탈락"
+  },
+  {
+    "id": "JgaiB7jguMmi8QagowGO",
+    "defectType": "탈락",
+    "source": "manus",
+    "label": "탈락5",
+    "description": "페인트 표면이 부분적으로 부풀고 박리되어 도장 상태가 불량한 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/타복합시트공법 금속기와 기타 사례2_98dbf47a.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-10T07:51:55.353Z",
+    "method": "POUR 금속기와 방수 공법",
+    "createdAt": "2026-04-10T07:51:55.353Z"
+  },
+  {
+    "id": "JvK3FG3HHyp6oPK0x3sw",
+    "source": "manus",
+    "label": "탈락4",
+    "defectType": "탈락",
+    "updatedAt": "2026-04-10T07:51:55.484Z",
+    "createdAt": "2026-04-10T07:51:55.484Z",
+    "method": "POUR 균열 보수 공법",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220819_143032_b0369220.jpg",
+    "description": "벽면에 도장이 벗겨지고 부분적으로 탈락되어 아래층의 다른 색상이 드러나 있고, 페인트가 불규칙하게 일어나 있는 상태입니다."
+  },
+  {
+    "id": "KoizoecPAu2uozwXYqcw",
+    "updatedAt": "2026-04-15T08:15:56.561Z",
+    "method": "POUR 슬라브 방수 공법",
+    "createdAt": "2026-04-10T07:51:56.252Z",
+    "defectTypes": [
+      "배수불량"
+    ],
+    "description": "옥상에 물이 고여 있으며 방수가 제대로 이루어지지 않아 침수 현상이 발생한 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20250620_165355077_05_8b247a9d.jpg",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "label": "방수불량8",
+    "source": "manus",
+    "defectType": "배수불량"
+  },
+  {
+    "id": "L09bDXIXTts1Dn0IGL1d",
+    "source": "manus",
+    "label": "탈락30",
+    "defectType": "탈락",
+    "createdAt": "2026-04-10T07:51:57.433Z",
+    "method": "POUR 기타 방수 공법",
+    "updatedAt": "2026-04-10T07:51:57.433Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_11_e71c87a0.jpg",
+    "description": "바닥 방수층 일부가 벗겨져 떨어져 나간 상태로, 방수 기능이 손상된 것으로 보임."
+  },
+  {
+    "id": "Liy1gWDPHKYYMSwdrZkM",
+    "defectType": "누수",
+    "source": "manual",
+    "imageUrl": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776229823904_page008_img002_550x413.jpeg?alt=media&token=44a68239-bf8f-4eff-bf6c-dc3e25953265",
+    "description": "",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "updatedAt": "2026-04-15T05:10:26.909Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "createdAt": "2026-04-15T05:10:26.909Z",
+    "defectTypes": [
+      "누수"
+    ]
+  },
+  {
+    "id": "N2MdloWNXZth5Gd6lAT1",
+    "source": "manual",
+    "defectType": "후레싱 탈락/부식",
+    "updatedAt": "2026-04-15T05:09:54.975Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "createdAt": "2026-04-15T05:09:54.975Z",
+    "defectTypes": [
+      "후레싱 탈락/부식"
+    ],
+    "imageUrl": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776229791780_page007_img002_740x522.jpeg?alt=media&token=8c8af297-7bd8-4371-98c3-de0a2172fcac",
+    "description": "",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ]
+  },
+  {
+    "id": "NVXlgsLOWIPuHiDUQqJw",
+    "defectType": "탈락",
+    "label": "탈락22",
+    "source": "manus",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "옥상 방수층이 부분적으로 벗겨지고 탈락하여 표면 손상과 함께 오염된 부위가 보입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/물고임2_c3b557cd.jpg",
+    "createdAt": "2026-04-10T07:51:57.147Z",
+    "method": "POUR 기타 방수 공법",
+    "updatedAt": "2026-04-10T07:51:57.147Z"
+  },
+  {
+    "id": "O0lrVvSFfPgimxEdNXvQ",
+    "defectType": "배수불량",
+    "label": "누수3",
+    "source": "manus",
+    "description": "옥상 바닥에 물이 고여 있고, 주변에 오염 흔적이 보여 방수층의 손상 또는 누수가 의심됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/옥상 슬라브_세종 고운동 (9)_50674141.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 슬라브 방수 공법",
+    "createdAt": "2026-04-10T07:51:55.761Z",
+    "defectTypes": [
+      "배수불량"
+    ],
+    "updatedAt": "2026-04-15T00:48:27.742Z"
+  },
+  {
+    "id": "O6mAOTxMTbiDST75wIO6",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/타복합시트공법 금속기와 방수 시공 미비 사례2_6bf5f447.jpg",
+    "description": "사진에서 실란트가 제대로 부착되지 않고 박리되어 틈새가 발생한 상태입니다.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:55.221Z",
+    "updatedAt": "2026-04-10T07:51:55.221Z",
+    "defectType": "탈락",
+    "label": "탈락4",
+    "source": "manus"
+  },
+  {
+    "id": "OkoUs6IpkiaYiJIJ93Ae",
+    "label": "탈락24",
+    "source": "manus",
+    "defectType": "균열",
+    "method": "POUR 슬라브 방수 공법",
+    "defectTypes": [
+      "균열",
+      "방수불량",
+      "부식"
+    ],
+    "createdAt": "2026-04-10T07:51:56.105Z",
+    "updatedAt": "2026-04-15T08:17:40.635Z",
+    "description": "도장 표면이 갈라지고 일부가 떨어져 나가면서 도장 박리가 발생한 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_10_f13bd211.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ]
+  },
+  {
+    "id": "OqnaCmLC6Nq67Ju6gMa8",
+    "description": "바닥에 넓게 물이 고여 있고, 그 주변으로 얼룩과 변색이 심하게 나타나 누수가 발생했음을 보여준다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_08_c65cca08.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 기타 방수 공법",
+    "defectTypes": [
+      "배수불량"
+    ],
+    "createdAt": "2026-04-10T07:51:57.312Z",
+    "updatedAt": "2026-04-15T00:47:51.608Z",
+    "defectType": "배수불량",
+    "label": "누수6",
+    "source": "manus"
+  },
+  {
+    "id": "OuLhemnjbeKllQFqB3DW",
+    "createdAt": "2026-04-10T07:51:57.493Z",
+    "method": "POUR 기타 방수 공법",
+    "updatedAt": "2026-04-10T07:51:57.493Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_19_73d69a81.jpg",
+    "description": "바닥 도장면이 부풀어 오르고 벗겨져 원래 상태를 유지하지 못하는 심각한 박리 현상이 발생함.",
+    "label": "탈락33",
+    "source": "manus",
+    "defectType": "탈락"
+  },
+  {
+    "id": "Pf53ts8VOJ6LXdttUpCQ",
+    "updatedAt": "2026-04-15T05:19:02.161Z",
+    "createdAt": "2026-04-15T05:14:52.754Z",
+    "defectTypes": [
+      "교체 / 덧시공",
+      "슁글 탈락 문제 반복",
+      "철거 폐기물 발생"
+    ],
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "imageUrl": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776230087302_page010_img006_1299x831.jpeg?alt=media&token=06d934ef-9eae-4a1b-b369-18c02b52c766",
+    "description": "",
+    "source": "manual",
+    "defectType": "교체 / 덧시공"
+  },
+  {
+    "id": "Q7bzdBH2iRDY1hYjlGvr",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_27_8865137b.jpg",
+    "description": "배수구 주변 바닥에 물 자국과 오염 흔적이 있어 누수 가능성이 의심됨.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 기타 방수 공법",
+    "defectTypes": [
+      "배수불량"
+    ],
+    "createdAt": "2026-04-10T07:51:57.352Z",
+    "updatedAt": "2026-04-15T00:49:07.454Z",
+    "defectType": "배수불량",
+    "label": "누수7",
+    "source": "manus"
+  },
+  {
+    "id": "QGbn86SBWKiTE18NsAvI",
+    "updatedAt": "2026-04-15T05:14:02.080Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "createdAt": "2026-04-15T05:14:02.080Z",
+    "defectTypes": [
+      "교체 / 덧시공",
+      "철거 폐기물 발생"
+    ],
+    "imageUrl": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776230037703_page010_img007_753x432.jpeg?alt=media&token=722dc3a4-7a33-45e3-9c3f-b1ca71483bff",
+    "description": "",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "source": "manual",
+    "defectType": "교체 / 덧시공"
+  },
+  {
+    "id": "QGe7F85S6HrCBOKDVpee",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "지붕 표면에서 마감재가 대부분 벗겨져 떨어져 나간 상태로, 노후화와 외부 환경 영향으로 보인다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/날아감_3f59d8b2.jpg",
+    "createdAt": "2026-04-10T07:51:54.677Z",
+    "defectTypes": [
+      "시트 방수하자"
+    ],
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "updatedAt": "2026-04-15T03:43:42.429Z",
+    "defectType": "시트 방수하자",
+    "label": "탈락8",
+    "source": "manus"
+  },
+  {
+    "id": "QMGfSflSuG4D6F5sGCBM",
+    "source": "manual",
+    "defectType": "누수",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "createdAt": "2026-04-15T05:11:23.146Z",
+    "defectTypes": [
+      "누수"
+    ],
+    "updatedAt": "2026-04-15T05:11:23.146Z",
+    "imageUrl": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776229880113_page008_img004_791x533.jpeg?alt=media&token=051ab1f6-ec30-4fe7-93f1-540e2971c0ef",
+    "description": "",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ]
+  },
+  {
+    "id": "QW5wPqpav3vLWEzf1Wo9",
+    "source": "manus",
+    "label": "부식1",
+    "defectType": "부식",
+    "createdAt": "2026-04-10T07:51:55.644Z",
+    "method": "POUR 슬라브 방수 공법",
+    "updatedAt": "2026-04-10T07:51:55.644Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20250622_091026258_04_11733390.jpg",
+    "description": "사진 우측 환기통의 금속 부위에 녹이 심하게 발생하여 부식 진행 중임."
+  },
+  {
+    "id": "QWuwbWp5miupfugVQZQw",
+    "updatedAt": "2026-04-14T08:45:05.081Z",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.615Z",
+    "description": "코너 부위에 균열이 발생하여 방수층이나 마감재가 손상된 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_28_53641584.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "label": "",
+    "source": "manus",
+    "defectType": "이음부"
+  },
+  {
+    "id": "QdC1usg4NNQrr7ZPKk8B",
+    "description": "외벽 도장이 전체적으로 벗겨지고 부식이 시작된 상태로, 표면의 페인트층이 불규칙하게 탈락됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_29_f0a9c621.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-10T07:51:57.803Z",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.803Z",
+    "defectType": "탈락",
+    "source": "manus",
+    "label": "탈락48"
+  },
+  {
+    "id": "RWGReitertLkidQum98t",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "외벽 도장면이 거품처럼 부풀고 벗겨지며, 일부 부위에서는 도장 탈락이 관찰됩니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/타복합시트공법 금속기와 못 찢김 사례3_cbcc24ee.jpg",
+    "createdAt": "2026-04-10T07:51:55.410Z",
+    "method": "POUR 금속기와 방수 공법",
+    "updatedAt": "2026-04-10T07:51:55.410Z",
+    "defectType": "탈락",
+    "label": "탈락7",
+    "source": "manus"
+  },
+  {
+    "id": "Rvrebb93CcOWlk1Ttt1A",
+    "label": "방수불량9",
+    "source": "manus",
+    "defectType": "배수불량",
+    "updatedAt": "2026-04-15T00:53:40.379Z",
+    "createdAt": "2026-04-10T07:51:56.356Z",
+    "defectTypes": [
+      "배수불량",
+      "부식"
+    ],
+    "method": "POUR 슬라브 방수 공법",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "옥상 배수구 주변 방수층이 들떠 있고 탈락되어 물이 고여 있으며, 녹슨 배수 그레이팅과 함께 방수 기능이 저하된 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_18_a3fcf1a7.jpg"
+  },
+  {
+    "id": "RzB6WiaFbXsvMRTsQWBE",
+    "updatedAt": "2026-04-10T07:51:55.837Z",
+    "createdAt": "2026-04-10T07:51:55.837Z",
+    "method": "POUR 슬라브 방수 공법",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "금속 표면에 녹이 발생하여 도장이 벗겨지고 부식 흔적이 보이며, 균열도 일부 발견됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리KakaoTalk_20220406_172951795_20_aa656ac1.jpg",
+    "label": "부식2",
+    "source": "manus",
+    "defectType": "부식"
+  },
+  {
+    "id": "SPCzVTaWmAHnZkmNAUNL",
+    "label": "탈락9",
+    "source": "manus",
+    "defectType": "시트 방수하자",
+    "updatedAt": "2026-04-15T03:43:34.237Z",
+    "createdAt": "2026-04-10T07:51:54.700Z",
+    "defectTypes": [
+      "시트 방수하자"
+    ],
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "옥상 방수층 일부가 탈락되고, 표면에 갈라짐과 함께 들뜸 현상이 보임.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20240701_111958292_22bc15b8.jpg"
+  },
+  {
+    "id": "SUsrBprHeWp9gtLQXnvB",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_14_6d44d749.jpg",
+    "description": "사진에서 방수층이 들떠서 박리되고, 틈새에 식물 뿌리가 자라고 있는 상태입니다.",
+    "updatedAt": "2026-04-10T07:51:57.766Z",
+    "createdAt": "2026-04-10T07:51:57.766Z",
+    "method": "POUR 기타 방수 공법",
+    "defectType": "탈락",
+    "source": "manus",
+    "label": "탈락46"
+  },
+  {
+    "id": "Sez4gVRfUJX60UhYKlhR",
+    "updatedAt": "2026-04-15T00:54:18.628Z",
+    "method": "POUR 기타 방수 공법",
+    "defectTypes": [
+      "부식",
+      "배수불량",
+      "누수",
+      "오염"
+    ],
+    "createdAt": "2026-04-10T07:51:56.854Z",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리부산명지중흥S클래스프라디움 KakaoTalk_20240719_150900163_14_42e3e82e.jpg",
+    "description": "배관 내부 표면에 심한 부식과 변색이 확인되어 구조적 약화가 우려됨",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "source": "manus",
+    "label": "부식2",
+    "defectType": "부식"
+  },
+  {
+    "id": "T5mAAZrUC3ifjY9fuiIs",
+    "source": "manus",
+    "label": "방수불량6",
+    "defectType": "방수불량",
+    "updatedAt": "2026-04-10T07:51:54.543Z",
+    "method": "POUR 슬라브 방수 공법",
+    "createdAt": "2026-04-10T07:51:54.543Z",
+    "description": "옥상 방수막 표면에 많은 부풀음 현상이 확인되어 방수층의 접착 불량이나 기포 발생으로 판단됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/5_b209d340.png",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space"
+  },
+  {
+    "id": "TfTrt01t461t7MwV9ACW",
+    "label": "오염1",
+    "source": "manus",
+    "defectType": "시공불량",
+    "method": "POUR 기타 방수 공법",
+    "defectTypes": [
+      "시공불량",
+      "이음부"
+    ],
+    "createdAt": "2026-04-10T07:51:57.048Z",
+    "updatedAt": "2026-04-15T00:55:38.554Z",
+    "description": "녹색 방수면에 검은색 곰팡이나 오염물이 군데군데 발생하여 표면이 불균일하게 변색됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220905_160154_eecd2888.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space"
+  },
+  {
+    "id": "U5P24qRu04OmIHZOvmpG",
+    "method": "POUR 금속기와 방수 공법",
+    "createdAt": "2026-04-10T07:51:55.203Z",
+    "updatedAt": "2026-04-10T07:51:55.203Z",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/타복합시트공법 금속기와 못 찢김 사례5_36f712ea.jpg",
+    "description": "사진에서 벽면 도장 부분 일부가 떨어져 작은 구멍이 생긴 상태입니다.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "source": "manus",
+    "label": "탈락3",
+    "defectType": "탈락"
+  },
+  {
+    "id": "Uhv0LIsRJfA4LaOyMvb9",
+    "defectType": "이음부",
+    "source": "manus",
+    "label": "",
+    "description": "옥상 구조물 하단부에 방수 코팅이 불규칙하게 도포되어 있고, 마감 처리가 부실해 보임.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/옥상 슬라브_세종 고운동 (2)_1ebb461d.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-14T08:46:02.307Z",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.012Z"
+  },
+  {
+    "id": "UiTqyPeBbFX7ARQK8ftx",
+    "updatedAt": "2026-04-15T00:56:13.716Z",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:56.724Z",
+    "defectTypes": [
+      "탈락",
+      "방수불량",
+      "부식"
+    ],
+    "description": "옥상 바닥의 녹색 도장층이 여러 구역에서 벗겨지고 떨어져 나가면서 기초 콘크리트가 노출된 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리KakaoTalk_20230701_172003255_04_698e4537.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "label": "탈락9",
+    "source": "manus",
+    "defectType": "탈락"
+  },
+  {
+    "id": "UlqlT0oD76C3pujc5g0k",
+    "label": "누수4",
+    "source": "manus",
+    "defectType": "이음부",
+    "updatedAt": "2026-04-15T00:49:21.607Z",
+    "createdAt": "2026-04-10T07:51:55.780Z",
+    "defectTypes": [
+      "이음부"
+    ],
+    "method": "POUR 슬라브 방수 공법",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "벽과 바닥 경계 부위에 물이 스며들어 변색과 얼룩이 발생한 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리옥상 슬라브_세종 고운동 (4)_53526245.jpg"
+  },
+  {
+    "id": "Uv4y7R23F5hYEBWRnX18",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220621_142855_cf06d894.jpg",
+    "description": "지붕 자재의 일부분이 휘거나 뒤틀려 있으며 못 부분이 변형되어 자재가 손상된 상태입니다.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 금속기와 방수 공법",
+    "createdAt": "2026-04-10T07:51:54.248Z",
+    "updatedAt": "2026-04-10T07:51:54.248Z",
+    "defectType": "변형",
+    "label": "변형6",
+    "source": "manus"
+  },
+  {
+    "id": "VMEYfsSn0ZnTVPVeoV4j",
+    "defectType": "탈락",
+    "label": "탈락2",
+    "source": "manus",
+    "description": "외벽 마감재가 떨어져 나가고 일부 콘크리트가 노출된 상태로, 표면이 벗겨지고 균열이 발생함.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/몰탈탈락 사례1_cf18cd61.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:54.979Z",
+    "updatedAt": "2026-04-10T07:51:54.979Z"
+  },
+  {
+    "id": "VU7DvX6tZGxiujlU5zwv",
+    "defectType": "탈락",
+    "label": "탈락41",
+    "source": "manus",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "방수층이 심하게 벗겨져 하부 구조물이 노출된 상태로, 방수 기능 상실로 인한 추가 손상이 우려됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_05_d3a21735.jpg",
+    "updatedAt": "2026-04-10T07:51:57.672Z",
+    "createdAt": "2026-04-10T07:51:57.672Z",
+    "method": "POUR 기타 방수 공법"
+  },
+  {
+    "id": "WVjPuyDRgGL1Cfgwwybj",
+    "method": "POUR 슬라브 방수 공법",
+    "defectTypes": [
+      "배수불량"
+    ],
+    "createdAt": "2026-04-10T07:51:55.743Z",
+    "updatedAt": "2026-04-15T08:16:15.577Z",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_172654372_09_a7aed5f6.jpg",
+    "description": "옥상 배수로 내부 바닥 표면이 벗겨지고 균열이 발생하여 식물이 자라고 있음.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "source": "manus",
+    "label": "탈락11",
+    "defectType": "배수불량"
+  },
+  {
+    "id": "Wjoeq1PM1SSl2gCtCii7",
+    "updatedAt": "2026-04-15T00:46:44.756Z",
+    "method": "POUR 기타 방수 공법",
+    "defectTypes": [
+      "누수",
+      "이음부"
+    ],
+    "createdAt": "2026-04-10T07:51:56.706Z",
+    "description": "사진 내 표시된 부분에서 방수층이 손상되어 누수가 의심되는 흔적이 보입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/image (1)_f7bfdada.png",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "label": "누수3",
+    "source": "manus",
+    "defectType": "누수"
+  },
+  {
+    "id": "WwQq3OLbT8qefXifxM9K",
+    "source": "manus",
+    "label": "탈락23",
+    "defectType": "탈락",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.185Z",
+    "updatedAt": "2026-04-10T07:51:57.185Z",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리1_9f3b0109.jpg",
+    "description": "옥상 방수층의 도막이 균열과 함께 벗겨지고 탈락한 상태이며, 노출된 부분이 넓어 방수 기능 저하가 우려됨.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space"
+  },
+  {
+    "id": "X3qaLLIjhUaeVeOWFQWz",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/몰탈탈락 사례2_538e6e20.jpg",
+    "description": "외벽 마감재가 부분적으로 박리되어 떨어져 나가고 있으며, 노출된 부분이 관찰됨.",
+    "createdAt": "2026-04-10T07:51:54.999Z",
+    "method": "POUR 기타 방수 공법",
+    "updatedAt": "2026-04-10T07:51:54.999Z",
+    "defectType": "탈락",
+    "source": "manus",
+    "label": "탈락3"
+  },
+  {
+    "id": "XLSmV4cbKzSDqRJxBsQO",
+    "createdAt": "2026-04-15T05:11:44.142Z",
+    "defectTypes": [
+      "이음부"
+    ],
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "updatedAt": "2026-04-15T05:11:44.142Z",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "imageUrl": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776229899568_page009_img004_1083x739.jpeg?alt=media&token=859621cf-67c4-4ba4-b5d5-2de5bef9f05c",
+    "description": "",
+    "source": "manual",
+    "defectType": "이음부"
+  },
+  {
+    "id": "Y02AFJPlz5HvwXyPyTUq",
+    "method": "POUR 슬라브 방수 공법",
+    "defectTypes": [
+      "방수불량",
+      "배수불량",
+      "장시간 물고임",
+      "부식"
+    ],
+    "createdAt": "2026-04-10T07:51:55.929Z",
+    "updatedAt": "2026-04-15T08:16:33.157Z",
+    "description": "옥상 바닥 방수층이 벗겨지고 일부가 탈락된 상태로, 방수 기능이 저하된 것으로 보임.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리물고임에 의한 부식_8029253c.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "label": "탈락16",
+    "source": "manus",
+    "defectType": "방수불량"
+  },
+  {
+    "id": "Y6sfabRUqgDdmeDERrvt",
+    "description": "외벽과 바닥 경계 부분에서 코팅이 갈라지고 떨어져 나가고 있는 상태입니다. 방수층 역할을 하는 코팅의 박리 현상으로 보입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_24_c7fbf680.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.474Z",
+    "updatedAt": "2026-04-10T07:51:57.474Z",
+    "defectType": "탈락",
+    "source": "manus",
+    "label": "탈락32"
+  },
+  {
+    "id": "Y9fdPvkFhVU6QT3p3hBB",
+    "updatedAt": "2026-04-15T08:16:53.749Z",
+    "defectTypes": [
+      "부식",
+      "장시간 물고임",
+      "배수불량"
+    ],
+    "createdAt": "2026-04-10T07:51:55.952Z",
+    "method": "POUR 슬라브 방수 공법",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리230915_01096511005_슬라브 (6)_ff316344.jpg",
+    "description": "옥상 바닥면의 도막이 곳곳에서 벗겨져 바닥 노출 부위가 보이고 있으며, 일부 구간에서는 박리 현상이 심하게 나타나고 있음.",
+    "label": "탈락17",
+    "source": "manus",
+    "defectType": "부식"
+  },
+  {
+    "id": "YjeI1GIs0xwru8qedoyN",
+    "source": "manus",
+    "label": "탈락24",
+    "defectType": "탈락",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.206Z",
+    "updatedAt": "2026-04-10T07:51:57.206Z",
+    "description": "옥상 바닥 면에 균열이 다수 발생하고, 일부 구간에서는 표면 재료가 박리되어 떨어져 나가고 있음.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리KakaoTalk_Photo_2024-06-27-15-43-22_06__1a2d5481.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space"
+  },
+  {
+    "id": "Yp8irz6zPEMGQylQvHvj",
+    "label": "균열2",
+    "source": "manus",
+    "defectType": "균열",
+    "updatedAt": "2026-04-10T07:51:56.781Z",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:56.781Z",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리230915_01096511005_슬라브 (5)_1162ae54.jpg",
+    "description": "옥상 콘크리트 바닥에 여러 곳의 가는 균열이 발생한 상태로 보임.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space"
+  },
+  {
+    "id": "YrsfnEZUxwwbrDlVL0Zp",
+    "defectType": "탈락",
+    "source": "manus",
+    "label": "탈락34",
+    "description": "외벽 도장층이 벗겨지면서 내부 구조물이 노출되어 있으며, 일부 녹이 발생한 흔적과 함께 균열이 관찰됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_25_dd630e9d.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-10T07:51:57.513Z",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.513Z"
+  },
+  {
+    "id": "Z73CJElcPSCoImXlhe4m",
+    "description": "콘크리트 표면 도포재가 떨어지고 벗겨져 있으며, 건물 모서리 부위에 손상과 함께 이끼 및 식물 성장 흔적이 보입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_22_166563ea.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-10T07:51:57.556Z",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.556Z",
+    "defectType": "탈락",
+    "label": "탈락36",
+    "source": "manus"
+  },
+  {
+    "id": "ZGCyZXdUKzFLwxVDeJMf",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "사진에서 보이는 방수층 표면에 여러 곳의 기포와 주름이 발생하여 방수 성능 저하 우려가 있음.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/6_aa4fcdf6.png",
+    "updatedAt": "2026-04-10T07:51:54.392Z",
+    "createdAt": "2026-04-10T07:51:54.392Z",
+    "method": "POUR 슬라브 방수 공법",
+    "defectType": "방수불량",
+    "source": "manus",
+    "label": "방수불량1"
+  },
+  {
+    "id": "Zi46LcKp3WwqdJK0Y66U",
+    "source": "manual",
+    "defectType": "탈락",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "createdAt": "2026-04-15T05:07:44.573Z",
+    "defectTypes": [
+      "탈락"
+    ],
+    "updatedAt": "2026-04-15T05:07:44.574Z",
+    "description": "",
+    "imageUrl": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776229660618_page004_img004_566x565.jpeg?alt=media&token=11f3c1a0-f647-43c0-949a-2ab1e928d023",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ]
+  },
+  {
+    "id": "a1etPWhA1nqO3yI1CJZD",
+    "description": "외벽의 마감재가 부분적으로 떨어져 나가면서 밑의 네트망이 노출된 상태입니다. 도장층이 들떠 있고 탈락이 진행 중인 모습입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/메쉬균열보수하자4_8c998a97.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 균열 보수 공법",
+    "createdAt": "2026-04-10T07:51:55.080Z",
+    "updatedAt": "2026-04-10T07:51:55.080Z",
+    "defectType": "탈락",
+    "label": "탈락3",
+    "source": "manus"
+  },
+  {
+    "id": "a2YnM1Z43nxa15vnSXoj",
+    "label": "탈락40",
+    "source": "manus",
+    "defectType": "탈락",
+    "updatedAt": "2026-04-10T07:51:57.653Z",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.653Z",
+    "description": "도장면의 페인트가 벗겨지고 갈라져서 떨어지는 현상이 나타나고 있습니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_06_9878deca.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space"
+  },
+  {
+    "id": "aMxVbzO6vDCxQ3aNXwbz",
+    "defectType": "도장불량",
+    "label": "균열4",
+    "source": "manus",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "건물 외벽에 깊고 넓은 균열이 발생하여 구조적 손상이 우려되는 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_7f8cb8c8.jpg",
+    "defectTypes": [
+      "도장불량",
+      "방수불량"
+    ],
+    "createdAt": "2026-04-10T07:51:57.373Z",
+    "method": "POUR 기타 방수 공법",
+    "updatedAt": "2026-04-15T00:46:02.936Z"
+  },
+  {
+    "id": "aNoYGhqOz8c1RkZBU7Qe",
+    "createdAt": "2026-04-10T07:51:57.594Z",
+    "method": "POUR 기타 방수 공법",
+    "updatedAt": "2026-04-10T07:51:57.594Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "사진에서 외벽 마감재가 떨어져 나가고 있으며, 내부 재료가 노출된 상태임.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_13_f2c06da4.jpg",
+    "label": "탈락38",
+    "source": "manus",
+    "defectType": "탈락"
+  },
+  {
+    "id": "aQNZQI4ukZTo2t1C25q7",
+    "label": "탈락36",
+    "source": "manus",
+    "defectType": "부식",
+    "updatedAt": "2026-04-15T08:19:21.525Z",
+    "method": "POUR 슬라브 방수 공법",
+    "defectTypes": [
+      "부식",
+      "오염",
+      "방수불량"
+    ],
+    "createdAt": "2026-04-10T07:51:56.415Z",
+    "description": "푸른색 도막이 심하게 박리되어 바닥 표면이 들떠 있고, 일부 부식이 진행된 것이 보입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220324_140055_952d5efd.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ]
+  },
+  {
+    "id": "acHGjBrXZSfxxZSZZohw",
+    "label": "탈락17",
+    "source": "manus",
+    "defectType": "방수불량",
+    "updatedAt": "2026-04-15T02:13:01.738Z",
+    "defectTypes": [
+      "방수불량",
+      "부식",
+      "변형"
+    ],
+    "createdAt": "2026-04-10T07:51:54.886Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20240701_111958292_08_8ed63eb4.jpg",
+    "description": "옥상 방수재가 부분적으로 벗겨지고 박리되어 있어 방수 기능이 저하된 상태입니다."
+  },
+  {
+    "id": "afX0NLLXOMjTlJhSYAjA",
+    "source": "manual",
+    "defectType": "기존 복합시트 방수",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "createdAt": "2026-04-15T05:18:23.611Z",
+    "defectTypes": [
+      "기존 복합시트 방수"
+    ],
+    "updatedAt": "2026-04-15T05:18:23.611Z",
+    "imageUrl": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776230300442_page013_img004_515x515.jpeg?alt=media&token=a785d558-4aa8-41a4-889c-d35033d9f36f",
+    "description": "",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ]
+  },
+  {
+    "id": "amnJ8iZJYRphzWw1wGB8",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220621_143024_cd9616ab.jpg",
+    "description": "외벽면에서 몰탈이 분리되어 떨어지고 있으며, 하단 부분에 누락된 부위가 발생하고 있습니다.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 후레싱 방수 공법",
+    "createdAt": "2026-04-10T07:51:54.085Z",
+    "updatedAt": "2026-04-10T07:51:54.085Z",
+    "defectType": "탈락",
+    "label": "탈락1",
+    "source": "manus"
+  },
+  {
+    "id": "bV8gKZfzVaVFLG48s9fg",
+    "defectType": "방수불량",
+    "label": "방수불량2",
+    "source": "manus",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "지붕 방수층이 들떠서 접착이 불량하고 일부가 벗겨져 있는 상태입니다. 방수 기능이 저하되어 누수 위험이 있습니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/PVC_7b14003b.PNG",
+    "updatedAt": "2026-04-10T07:51:54.411Z",
+    "createdAt": "2026-04-10T07:51:54.411Z",
+    "method": "POUR 슬라브 방수 공법"
+  },
+  {
+    "id": "cu3Lsafu2cNtD8OWqj21",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "지붕 타일들이 휘어지고 뒤틀려 균열 및 단차가 발생한 상태로 보입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220621_142835_aee17f1b.jpg",
+    "createdAt": "2026-04-10T07:51:54.184Z",
+    "method": "POUR 금속기와 방수 공법",
+    "updatedAt": "2026-04-10T07:51:54.184Z",
+    "defectType": "변형",
+    "source": "manus",
+    "label": "변형4"
+  },
+  {
+    "id": "d7AKgotwwzsE7Jl5v3E4",
+    "label": "탈락27",
+    "source": "manus",
+    "defectType": "부식",
+    "createdAt": "2026-04-10T07:51:56.161Z",
+    "defectTypes": [
+      "부식",
+      "방수불량",
+      "장시간 물고임"
+    ],
+    "method": "POUR 슬라브 방수 공법",
+    "updatedAt": "2026-04-15T08:17:48.511Z",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "방수 시트가 들떠서 벗겨지고 있으며, 이로 인해 방수 성능이 저하될 위험이 있음.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_01_4f4e759c.jpg"
+  },
+  {
+    "id": "dSfiw1Lb35LueC61nMy6",
+    "defectType": "도막 방수하자",
+    "source": "manus",
+    "label": "탈락4",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20221020_142907_adce3a6e.jpg",
+    "description": "사진에서 보이는 외벽 표면 마감재가 부분적으로 떨어져 나가고 있다.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "defectTypes": [
+      "도막 방수하자"
+    ],
+    "createdAt": "2026-04-10T07:51:54.582Z",
+    "updatedAt": "2026-04-15T05:08:08.677Z"
+  },
+  {
+    "id": "e8U0IaezNgKL4Ay5O0Gl",
+    "updatedAt": "2026-04-10T07:51:54.125Z",
+    "createdAt": "2026-04-10T07:51:54.125Z",
+    "method": "POUR 금속기와 방수 공법",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220621_142902_eeb09e30.jpg",
+    "description": "지붕 기와 일부가 떨어지거나 고정이 제대로 되지 않아 들떠 있는 상태가 관찰됨",
+    "label": "탈락1",
+    "source": "manus",
+    "defectType": "탈락"
+  },
+  {
+    "id": "eenuqavkmjeVjyHCRa9g",
+    "createdAt": "2026-04-10T07:51:57.397Z",
+    "method": "POUR 기타 방수 공법",
+    "updatedAt": "2026-04-10T07:51:57.397Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "방수층 표면에 균열과 박리가 발생하여 부분적으로 들뜨고 떨어진 상태임.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_09_f2c4e0a1.jpg",
+    "source": "manus",
+    "label": "탈락28",
+    "defectType": "탈락"
+  },
+  {
+    "id": "emXWwkeJyEUo6oNXH8Kx",
+    "description": "도장 면이 벗겨져 손가락으로 들릴 정도로 박리 현상이 발생함.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/pvc 이음부 누수 700,500_283938a6.PNG",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 이음부 방수 공법",
+    "createdAt": "2026-04-10T07:51:54.373Z",
+    "updatedAt": "2026-04-10T07:51:54.373Z",
+    "defectType": "탈락",
+    "label": "탈락1",
+    "source": "manus"
+  },
+  {
+    "id": "eveUMOQD7boqV6qAVBak",
+    "defectType": "도막 방수하자",
+    "label": "탈락20",
+    "source": "manus",
+    "description": "옥상 타일 표면 여러 곳에서 타일의 박리 및 탈락 현상이 관찰되며, 보수가 진행된 흔적이 보입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20221020_142751_dcd732d7.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "updatedAt": "2026-04-15T03:44:46.994Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "defectTypes": [
+      "도막 방수하자"
+    ],
+    "createdAt": "2026-04-10T07:51:54.940Z"
+  },
+  {
+    "id": "ewirVO4GU9nUKaryLHZE",
+    "source": "manual",
+    "defectType": "후레싱 탈락/부식",
+    "defectTypes": [
+      "후레싱 탈락/부식"
+    ],
+    "createdAt": "2026-04-15T05:09:34.139Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "updatedAt": "2026-04-15T05:09:34.139Z",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "description": "",
+    "imageUrl": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776229770900_page006_img003_1252x733.jpeg?alt=media&token=c770f2fe-20bc-4176-bf27-6231ea2ffe9b"
+  },
+  {
+    "id": "f5IY6P0VBR6GRY2PYOlR",
+    "defectType": "장시간 물고임",
+    "label": "누수5",
+    "source": "manus",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/옥상 슬라브_세종 고운동 (10)_e405c559.jpg",
+    "description": "베란다 또는 옥상 난간 하부에서 물이 고여 있는 상태로 보이며, 방수층 손상 또는 배수 불량으로 인한 누수가 의심됨.",
+    "defectTypes": [
+      "장시간 물고임",
+      "배수불량"
+    ],
+    "createdAt": "2026-04-10T07:51:56.375Z",
+    "method": "POUR 슬라브 방수 공법",
+    "updatedAt": "2026-04-15T00:48:48.130Z"
+  },
+  {
+    "id": "fJBgHWDoM5doN5GzouU1",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "옥상 방수층의 도막이 곳곳에서 벗겨지고 탈락되어 방수 기능 저하 우려가 있음.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20230701_172003255_03_3086633a.jpg",
+    "updatedAt": "2026-04-15T08:21:18.032Z",
+    "createdAt": "2026-04-10T07:51:56.487Z",
+    "defectTypes": [
+      "박리",
+      "부식",
+      "방수불량"
+    ],
+    "method": "POUR 슬라브 방수 공법",
+    "defectType": "박리",
+    "label": "탈락39",
+    "source": "manus"
+  },
+  {
+    "id": "g59I4GOu8nvrwm0zq0Rd",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리20220324_140045_1a52b5f5.jpg",
+    "description": "청색 방수층이 넓은 면적에 걸쳐 벗겨지고 갈라져 방수 기능이 저하된 상태임",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-15T08:18:15.167Z",
+    "method": "POUR 슬라브 방수 공법",
+    "defectTypes": [
+      "변형",
+      "부식",
+      "장시간 물고임",
+      "방수불량"
+    ],
+    "createdAt": "2026-04-10T07:51:56.234Z",
+    "defectType": "변형",
+    "label": "탈락31",
+    "source": "manus"
+  },
+  {
+    "id": "gieyNDrmOmboAuHrJ2vE",
+    "label": "부식1",
+    "source": "manus",
+    "defectType": "부식",
+    "method": "POUR 금속기와 방수 공법",
+    "createdAt": "2026-04-10T07:51:53.967Z",
+    "updatedAt": "2026-04-10T07:51:53.967Z",
+    "description": "사진 내 원형 표시된 부분에 금속 표면에 녹이 발생한 흔적이 보임.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/강판 녹슬음_90047b2f.PNG",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space"
+  },
+  {
+    "id": "grJ3JAEjiKRiuj7QFWRj",
+    "defectType": "교체 / 덧시공",
+    "source": "manual",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "imageUrl": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776219839837_page010_img004_295x295.jpeg?alt=media&token=c80c19ad-c2c4-4d4d-81e9-b352dcc63fcc",
+    "description": "",
+    "updatedAt": "2026-04-15T05:12:22.045Z",
+    "defectTypes": [
+      "교체 / 덧시공",
+      "철거 폐기물 발생"
+    ],
+    "createdAt": "2026-04-15T02:24:03.546Z",
+    "method": "POUR 아스팔트싱글 방수 공법"
+  },
+  {
+    "id": "gxVe0lM1gIYAYPMyc8PY",
+    "defectType": "탈락",
+    "label": "탈락43",
+    "source": "manus",
+    "description": "외벽 도장층이 벗겨지면서 층간에 균열과 틈이 발생했으며, 그 틈 사이에서 식물이 자라고 있는 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_02_5d1ade6f.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-10T07:51:57.712Z",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.712Z"
+  },
+  {
+    "id": "hG41a5qmu0Ub5RtUftUb",
+    "label": "균열1",
+    "source": "manus",
+    "defectType": "균열",
+    "createdAt": "2026-04-10T07:51:56.742Z",
+    "method": "POUR 기타 방수 공법",
+    "updatedAt": "2026-04-10T07:51:56.742Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "외벽 표면에 길고 불규칙한 균열이 발생하여 구조적 손상이 의심됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_172654372_03_294654de.jpg"
+  },
+  {
+    "id": "hdZk4EOWTgQpo0rjqBMR",
+    "createdAt": "2026-04-10T07:51:56.667Z",
+    "method": "POUR 기타 방수 공법",
+    "updatedAt": "2026-04-10T07:51:56.667Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "외벽 바닥 부분에서 마감재가 부분적으로 벗겨지고 들떠 있는 상태로 확인됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리231010_01085596775_복층주택(판넬) (5)_494fbf6d.jpg",
+    "label": "탈락8",
+    "source": "manus",
+    "defectType": "탈락"
+  },
+  {
+    "id": "i6LUyuiYolVA9dVM1IWW",
+    "defectType": "누수",
+    "label": "누수1",
+    "source": "manus",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220621_143220_69d46002.jpg",
+    "description": "건물 외벽 옥상 경사면에 물이 흐른 듯한 얼룩과 오염 흔적이 보이며, 이는 누수로 인한 피해로 추정됩니다.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 기타 방수 공법",
+    "defectTypes": [
+      "누수",
+      "녹슬음"
+    ],
+    "createdAt": "2026-04-10T07:51:54.044Z",
+    "updatedAt": "2026-04-15T00:46:21.248Z"
+  },
+  {
+    "id": "iUflnV4fM0XeAedxV0Ux",
+    "updatedAt": "2026-04-15T02:11:47.722Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "defectTypes": [
+      "방수불량",
+      "도장불량",
+      "시공불량"
+    ],
+    "createdAt": "2026-04-10T07:51:54.839Z",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/4_0ad6ea46.jpg",
+    "description": "옥상 방수층에 기포가 형성되고 일부 박리 현상이 나타나 방수 기능 저하 우려가 있음.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "source": "manus",
+    "label": "탈락15",
+    "defectType": "방수불량"
+  },
+  {
+    "id": "iVx9Uzb5tQyM37d26Ein",
+    "defectType": "들뜸",
+    "source": "manus",
+    "label": "",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "옥상 방수층 표면이 울퉁불퉁하게 부풀어 오르고 부분적으로 박리 현상이 발생한 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/5_dd1c2f7d.jpg",
+    "createdAt": "2026-04-10T07:51:54.779Z",
+    "defectTypes": [
+      "들뜸"
+    ],
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "updatedAt": "2026-04-15T03:41:58.147Z"
+  },
+  {
+    "id": "icVDZvLL9Ax9gVq3WoEZ",
+    "defectType": "도막 방수하자",
+    "label": "탈락7",
+    "source": "manus",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "적색 타일 외벽 일부가 들떠서 박리가 진행되고 있는 상태입니다. 마감재 접착 불량이나 하부 습기 침투가 원인일 수 있습니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20221020_143003_ff74bce7.jpg",
+    "updatedAt": "2026-04-15T03:41:15.726Z",
+    "createdAt": "2026-04-10T07:51:54.658Z",
+    "defectTypes": [
+      "도막 방수하자",
+      "들뜸",
+      "시공불량"
+    ],
+    "method": "POUR 아스팔트싱글 방수 공법"
+  },
+  {
+    "id": "j4sFt4Nykg082DO11JFu",
+    "defectTypes": [
+      "시트 방수하자"
+    ],
+    "createdAt": "2026-04-10T07:51:54.639Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "updatedAt": "2026-04-15T03:44:11.284Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20210812_094538_80debb24.jpg",
+    "description": "방수재 표면이 벗겨져서 아스팔트층이 노출된 상태로, 방수 성능 저하가 우려됨.",
+    "source": "manus",
+    "label": "탈락6",
+    "defectType": "시트 방수하자"
+  },
+  {
+    "id": "jFHnLchsWDn4qplcgmBI",
+    "createdAt": "2026-04-10T07:51:55.099Z",
+    "method": "POUR 지하주차장 방수 공법",
+    "updatedAt": "2026-04-10T07:51:55.099Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/v커팅 하자사례3_908d668f.jpg",
+    "description": "사진에서 바닥 표면에 길게 균열이 형성되어 있으며, 균열 주변 도장면이 벗겨진 상태임.",
+    "source": "manus",
+    "label": "균열1",
+    "defectType": "균열"
+  },
+  {
+    "id": "jUd1Gnh7VHjhcmMBINSr",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "지붕 타일이 부분적으로 뒤틀리거나 변형되어 본래의 평평한 형태가 유지되지 않고 있음.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220621_143211_7a53538b.jpg",
+    "updatedAt": "2026-04-10T07:51:54.267Z",
+    "createdAt": "2026-04-10T07:51:54.267Z",
+    "method": "POUR 금속기와 방수 공법",
+    "defectType": "변형",
+    "label": "변형7",
+    "source": "manus"
+  },
+  {
+    "id": "jeZXuZr0zIkNYyOWfXa7",
+    "defectType": "도막 방수하자",
+    "label": "탈락21",
+    "source": "manus",
+    "description": "방수층이 부풀어 오르고 일부가 벗겨져 있는 상태로, 방수 성능이 저하된 것으로 보임.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20221020_142759 - (1)_ffe5d95d.jpg",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "createdAt": "2026-04-10T07:51:54.958Z",
+    "defectTypes": [
+      "도막 방수하자"
+    ],
+    "updatedAt": "2026-04-15T03:44:51.680Z"
+  },
+  {
+    "id": "jrVWnvtOQQoMLb7P2You",
+    "defectType": "시공불량",
+    "source": "manus",
+    "label": "시공불량1",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "지붕 패널에 나사가 제대로 고정되지 않아 잠금력 부족 및 누수 가능성이 있음.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/강판 못_f5f2ac7f.PNG",
+    "createdAt": "2026-04-10T07:51:53.930Z",
+    "method": "POUR 금속기와 방수 공법",
+    "updatedAt": "2026-04-10T07:51:53.930Z"
+  },
+  {
+    "id": "k6UFPVubus3leOJnmBSx",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220324_140017_cd987a8b.jpg",
+    "description": "옥상 바닥 코팅 및 방수층의 박리와 탈락이 심하게 발생하여 노출면이 드러나 있고, 표면 부식 및 손상이 동반됨.",
+    "defectTypes": [
+      "부식"
+    ],
+    "createdAt": "2026-04-10T07:51:55.857Z",
+    "method": "POUR 슬라브 방수 공법",
+    "updatedAt": "2026-04-15T08:13:51.678Z",
+    "defectType": "부식",
+    "source": "manus",
+    "label": "탈락12"
+  },
+  {
+    "id": "kCZG6CeKhj9XwiUsYw36",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20230719_153829840_0eab2f48.jpg",
+    "description": "옥상 지붕 도장면이 벗겨지고 부분적으로 재도장이 불균일하게 이루어진 상태입니다.",
+    "createdAt": "2026-04-10T07:51:54.026Z",
+    "method": "POUR 금속기와 방수 공법",
+    "updatedAt": "2026-04-11T12:17:07.579Z",
+    "defectType": "시공불량",
+    "label": "도장불량1",
+    "source": "manus"
+  },
+  {
+    "id": "kxQQrKwTpPR4htiATcaK",
+    "defectType": "도장불량",
+    "source": "manus",
+    "label": "도장불량2",
+    "description": "옥상 바닥 도장면이 벗겨지고 박리된 상태로, 도장 보호막 기능이 저하됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_172722902_06_a95b0156.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:56.647Z",
+    "updatedAt": "2026-04-10T07:51:56.647Z"
+  },
+  {
+    "id": "kymt1VYHouenfv9cHfRG",
+    "description": "옥상 방수층이 일부 탈락되어 아래층이 노출되어 있고 주변에 이물질과 오염도 확인됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_05_88f205bf.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:56.819Z",
+    "updatedAt": "2026-04-10T07:51:56.819Z",
+    "defectType": "탈락",
+    "label": "탈락12",
+    "source": "manus"
+  },
+  {
+    "id": "lGQDAO0lswWE64knn68L",
+    "defectType": "이음부",
+    "source": "manus",
+    "label": "탈락2",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/pvc_6351b6ee.jpg",
+    "description": "사진에서 바닥의 방수재가 들리면서 일부가 벗겨진 상태가 보임.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "method": "POUR 슬라브 방수 공법",
+    "defectTypes": [
+      "이음부",
+      "박리"
+    ],
+    "createdAt": "2026-04-10T07:51:54.468Z",
+    "updatedAt": "2026-04-15T08:17:07.981Z"
+  },
+  {
+    "id": "lXHjWhxgeqlTmidzLzIA",
+    "updatedAt": "2026-04-10T07:51:57.415Z",
+    "createdAt": "2026-04-10T07:51:57.415Z",
+    "method": "POUR 기타 방수 공법",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "표면 도장이 벗겨지고 갈라져서 원래 바탕면이 노출된 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_07_e8aa7176.jpg",
+    "source": "manus",
+    "label": "탈락29",
+    "defectType": "탈락"
+  },
+  {
+    "id": "lg2Cvc6LI0grBzUeXe0C",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_06_08d92840.jpg",
+    "description": "표면 도장이 부착력을 잃고 부분적으로 벗겨져 떨어져 나간 상태임.",
+    "defectTypes": [
+      "방수불량",
+      "장시간 물고임",
+      "부식"
+    ],
+    "createdAt": "2026-04-10T07:51:56.124Z",
+    "method": "POUR 슬라브 방수 공법",
+    "updatedAt": "2026-04-15T08:16:47.617Z",
+    "defectType": "방수불량",
+    "source": "manus",
+    "label": "탈락25"
+  },
+  {
+    "id": "lucx9Y9DevIGMvrmRkWi",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/옥상 슬라브_ 아파트 (1)_dce70f88.jpg",
+    "description": "배수구 주변 콘크리트 표면에 박리와 탈락 현상이 발생하여 표면이 거칠고 부분적으로 분리되어 있음.",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-15T08:16:40.237Z",
+    "method": "POUR 슬라브 방수 공법",
+    "defectTypes": [
+      "부식",
+      "장시간 물고임",
+      "배수불량"
+    ],
+    "createdAt": "2026-04-10T07:51:55.969Z",
+    "defectType": "부식",
+    "label": "탈락18",
+    "source": "manus"
+  },
+  {
+    "id": "m4QiwAls96ZhcxpkxrhC",
+    "source": "manual",
+    "defectType": "탈락",
+    "updatedAt": "2026-04-15T05:08:35.965Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "defectTypes": [
+      "탈락"
+    ],
+    "createdAt": "2026-04-15T05:08:35.965Z",
+    "imageUrl": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776229712676_page006_img002_1080x1080.jpeg?alt=media&token=c163a461-c391-4213-9727-be30face9ceb",
+    "description": "",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ]
+  },
+  {
+    "id": "m8a8LPVUaFtEIC1YHNf6",
+    "createdAt": "2026-04-10T07:51:55.160Z",
+    "method": "POUR 지하주차장 방수 공법",
+    "updatedAt": "2026-04-10T07:51:55.160Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "바닥 도장면이 균열을 따라 벗겨져 떨어지고 일부 영역에서 도장박리가 확인됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/v커팅 하자사례5_bcf48802.jpg",
+    "source": "manus",
+    "label": "탈락2",
+    "defectType": "탈락"
+  },
+  {
+    "id": "mAP2z1nhVIVuCfpnzWoB",
+    "label": "탈락30",
+    "source": "manus",
+    "defectType": "방수불량",
+    "defectTypes": [
+      "방수불량",
+      "부식",
+      "박리"
+    ],
+    "createdAt": "2026-04-10T07:51:56.216Z",
+    "method": "POUR 슬라브 방수 공법",
+    "updatedAt": "2026-04-15T08:18:04.379Z",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_172722902_04_ea996719.jpg",
+    "description": "외벽 마감재가 크게 박리되어 내피가 드러나 있고, 보호막 역할을 하는 도막이 손상되어 있다."
+  },
+  {
+    "id": "mPt0ar4yYrVKLOtDMBvi",
+    "defectType": "방수불량",
+    "source": "manus",
+    "label": "",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "표면 도장이 들떠서 벗겨지고 있으며, 기포가 발생해 부풀어 오른 상태가 관찰됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/3_be0284e6.jpg",
+    "createdAt": "2026-04-10T07:51:54.742Z",
+    "defectTypes": [
+      "방수불량",
+      "시공불량",
+      "도장불량"
+    ],
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "updatedAt": "2026-04-15T02:11:52.397Z"
+  },
+  {
+    "id": "myVNsdgZ0hPtWc08NnpM",
+    "updatedAt": "2026-04-10T07:51:55.334Z",
+    "createdAt": "2026-04-10T07:51:55.334Z",
+    "method": "POUR 기타 방수 공법",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "방수층이 들뜨면서 일부가 떨어져 나가 구멍이 생긴 상태입니다. 방수 기능이 저하될 위험이 있습니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/타복합시트공법 금속기와 방수 시공 미비 사례1_05f370da.jpg",
+    "label": "탈락5",
+    "source": "manus",
+    "defectType": "탈락"
+  },
+  {
+    "id": "n0NPHjOUSmVCUzo6y7eH",
+    "source": "manus",
+    "label": "탈락44",
+    "defectType": "탈락",
+    "updatedAt": "2026-04-10T07:51:57.730Z",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.730Z",
+    "description": "방수층이 들떠서 부풀어 오르고 일부가 분리되어 떨어지고 있는 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_01_d2138fed.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space"
+  },
+  {
+    "id": "okCAdw5BD6w48WP0int1",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220324_140101_30659e8d.jpg",
+    "description": "사진에서 철재 표면이 심하게 부식되어 녹이 발생하였고, 이로 인해 페인트가 벗겨져 표면이 거칠고 손상된 상태로 보입니다.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:56.601Z",
+    "updatedAt": "2026-04-10T07:51:56.601Z",
+    "defectType": "부식",
+    "source": "manus",
+    "label": "부식1"
+  },
+  {
+    "id": "oxyuO0doHwcw6pRxFr3U",
+    "description": "바닥과 벽 사이의 방수재가 박리되어 끝부분이 들뜬 상태임",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_172722902_09_5d1acf2f.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-10T07:51:56.626Z",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:56.626Z",
+    "defectType": "탈락",
+    "source": "manus",
+    "label": "탈락7"
+  },
+  {
+    "id": "pSjmYe8ggWrSsk39qxDI",
+    "label": "탈락1",
+    "source": "manus",
+    "defectType": "탈락",
+    "updatedAt": "2026-04-10T07:51:55.021Z",
+    "method": "POUR 균열 보수 공법",
+    "createdAt": "2026-04-10T07:51:55.021Z",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/메쉬균열보수하자1_6f6fd20c.jpg",
+    "description": "외벽 도장층과 마감재가 떨어져 나가면서 밑에 메쉬망이 노출된 상태입니다.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space"
+  },
+  {
+    "id": "pgJ6fyNVIuxJKuIe4oGP",
+    "defectTypes": [
+      "기존 복합시트 방수",
+      "들뜸"
+    ],
+    "createdAt": "2026-04-10T07:51:54.620Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "updatedAt": "2026-04-15T03:45:12.773Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/1._f1609c7b.jpg",
+    "description": "사진에서 페인트 표면이 부풀어 오르고 기포가 생기면서 도장 박리가 진행되고 있습니다.",
+    "source": "manus",
+    "label": "탈락5",
+    "defectType": "기존 복합시트 방수"
+  },
+  {
+    "id": "pqaULQId4silMKxFT1Uu",
+    "updatedAt": "2026-04-10T07:51:57.086Z",
+    "createdAt": "2026-04-10T07:51:57.086Z",
+    "method": "POUR 기타 방수 공법",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "데크 바닥재 일부가 탈락되어 원목판이 드러나 있으며, 표면이 부식되고 오염된 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/231010_01085596775_복층주택(판넬) (3)_604b4b31.jpg",
+    "source": "manus",
+    "label": "탈락20",
+    "defectType": "탈락"
+  },
+  {
+    "id": "qMTAzl7nWEq4G3vecOyk",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "지붕 타일 일부가 뒤틀리고 들떠 있는 상태로, 외관상 변형과 잠재적 누수 위험이 있음.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220621_142816_59fefb8b.jpg",
+    "createdAt": "2026-04-10T07:51:54.165Z",
+    "method": "POUR 금속기와 방수 공법",
+    "updatedAt": "2026-04-10T07:51:54.165Z",
+    "defectType": "변형",
+    "source": "manus",
+    "label": "변형3"
+  },
+  {
+    "id": "qaOdZIsFotW4QjLqvMCS",
+    "label": "탈락35",
+    "source": "manus",
+    "defectType": "탈락",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.534Z",
+    "updatedAt": "2026-04-10T07:51:57.534Z",
+    "description": "외벽 표면이 일부 박리되어 떨어져 나가고 있고, 균열도 관찰됨. 이는 구조적 손상이나 누수 위험을 높임.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_23_4744936b.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space"
+  },
+  {
+    "id": "qd9nVyugsISRyCbdiM1f",
+    "defectType": "부식",
+    "source": "manus",
+    "label": "부식3",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "녹이 발생하여 금속 부위가 부식되고 있으며, 부식 부위 주변 도장면도 손상된 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리20220905_160154_bce26477.jpg",
+    "updatedAt": "2026-04-10T07:51:56.027Z",
+    "createdAt": "2026-04-10T07:51:56.027Z",
+    "method": "POUR 슬라브 방수 공법"
+  },
+  {
+    "id": "qj02aymmYlkNpTWwRZ3O",
+    "updatedAt": "2026-04-10T07:51:57.575Z",
+    "createdAt": "2026-04-10T07:51:57.575Z",
+    "method": "POUR 기타 방수 공법",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "옥상 방수층 표면이 벗겨지고 들떠 있는 상태로, 방수 기능 저하가 우려됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_17_f76d8d82.jpg",
+    "label": "탈락37",
+    "source": "manus",
+    "defectType": "탈락"
+  },
+  {
+    "id": "r6RVFfR1z4DoNMUTMGYt",
+    "defectType": "탈락",
+    "label": "탈락25",
+    "source": "manus",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/옥상 슬라브_ 아파트 (3)_cd3a815e.jpg",
+    "description": "외벽 표면 도장층이 곳곳에서 벗겨지고 박리된 상태이며, 부착력이 떨어져 재도장이 필요해 보입니다.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-10T07:51:57.228Z",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.228Z"
+  },
+  {
+    "id": "r7L4XN7OhO0858vej7X8",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:56.800Z",
+    "updatedAt": "2026-04-10T07:51:56.800Z",
+    "description": "옥상 방수층의 도장 및 방수층이 벗겨지고 변색된 상태로, 부분적으로 탈락이 진행되고 있음.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리물고임2_4d496b66.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "source": "manus",
+    "label": "탈락11",
+    "defectType": "탈락"
+  },
+  {
+    "id": "rvvHF7UR9XEAeRzJd3TW",
+    "description": "표면 도장이 갈라지고 벗겨져 원래의 바탕면이 노출된 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_10_478740f4.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.785Z",
+    "updatedAt": "2026-04-10T07:51:57.785Z",
+    "defectType": "탈락",
+    "label": "탈락47",
+    "source": "manus"
+  },
+  {
+    "id": "rwD7nUsB3NbuX46XX7ti",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20250618_110739144_05_e9196c73.jpg",
+    "description": "외부 방수층과 보호 마감재가 탈락되어 기초 콘크리트면이 노출된 상태입니다. 노출 부위 주변에 녹스러움도 확인됩니다.",
+    "updatedAt": "2026-04-15T08:20:37.955Z",
+    "defectTypes": [
+      "박리",
+      "누수",
+      "부식",
+      "이음부"
+    ],
+    "createdAt": "2026-04-10T07:51:55.721Z",
+    "method": "POUR 슬라브 방수 공법",
+    "defectType": "박리",
+    "source": "manus",
+    "label": "탈락10"
+  },
+  {
+    "id": "sGnlJbEcJEA8aJ9cx9e3",
+    "label": "탈락15",
+    "source": "manus",
+    "defectType": "배수불량",
+    "updatedAt": "2026-04-15T08:20:48.162Z",
+    "defectTypes": [
+      "배수불량",
+      "누수",
+      "방수불량"
+    ],
+    "createdAt": "2026-04-10T07:51:55.912Z",
+    "method": "POUR 슬라브 방수 공법",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_172654372_06_83b57f0c.jpg",
+    "description": "지붕 배수로의 방수층이 벗겨지고 일부 부분에서 식물이 자라고 있어 방수층 탈락이 확인됨."
+  },
+  {
+    "id": "sP5r1qNL5T6VeSytan3C",
+    "defectType": "배수불량",
+    "label": "누수1",
+    "source": "manus",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "옥상 바닥에 물이 고였던 흔적과 함께 방수층 손상 및 오염된 부분이 확인됩니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_16_f97df225.jpg",
+    "createdAt": "2026-04-10T07:51:55.566Z",
+    "defectTypes": [
+      "배수불량",
+      "장시간 물고임",
+      "부식"
+    ],
+    "method": "POUR 슬라브 방수 공법",
+    "updatedAt": "2026-04-15T00:53:58.918Z"
+  },
+  {
+    "id": "sQBsXye04Qylp0iOemB7",
+    "createdAt": "2026-04-10T07:51:54.450Z",
+    "method": "POUR 기타 방수 공법",
+    "updatedAt": "2026-04-10T07:51:54.450Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "도장면이 벗겨지고 박리되어 손가락으로 쉽게 뜯어낼 수 있는 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/pvc 이음부 누수2_21b592c2.PNG",
+    "source": "manus",
+    "label": "탈락1",
+    "defectType": "탈락"
+  },
+  {
+    "id": "spprBVihIMXgUzldmYun",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "바닥 방수층 표면이 벗겨지고 탈락되어 있는 상태로, 방수 성능 저하가 우려됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_15_cca3f17e.jpg",
+    "updatedAt": "2026-04-10T07:51:57.331Z",
+    "createdAt": "2026-04-10T07:51:57.331Z",
+    "method": "POUR 기타 방수 공법",
+    "defectType": "탈락",
+    "source": "manus",
+    "label": "탈락27"
+  },
+  {
+    "id": "t1nyffpiB3dDT5c69zwx",
+    "defectType": "탈락",
+    "label": "탈락2",
+    "source": "manus",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/메쉬균열보수하자2_e7223eed.jpg",
+    "description": "벽면의 도장 및 마감재가 벗겨지면서 내부 메시망이 드러나고 일부 떨어진 상태임",
+    "createdAt": "2026-04-10T07:51:55.042Z",
+    "method": "POUR 균열 보수 공법",
+    "updatedAt": "2026-04-10T07:51:55.042Z"
+  },
+  {
+    "id": "tGynmC7PwRPGy60mEFbt",
+    "updatedAt": "2026-04-15T00:52:44.926Z",
+    "defectTypes": [
+      "이음부"
+    ],
+    "createdAt": "2026-04-10T07:51:55.277Z",
+    "method": "POUR 이음부 방수 공법",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "벽과 바닥이 물에 젖은 흔적이 있으며, 코너 부위에 일부 보수가 된 흔적이 보인다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/타복합시트공법 금속기와 방수 시공 미비 사례3_712de1ad.jpg",
+    "label": "누수1",
+    "source": "manus",
+    "defectType": "이음부"
+  },
+  {
+    "id": "tg0lMjYLY1UyI97e4Kol",
+    "source": "manus",
+    "label": "탈락2",
+    "defectType": "탈락",
+    "createdAt": "2026-04-10T07:51:54.222Z",
+    "method": "POUR 금속기와 방수 공법",
+    "updatedAt": "2026-04-10T07:51:54.222Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "외벽 마감재가 벽면에서 일부 떨어져 나가면서 박리가 발생한 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20220621_143027_3eca77af.jpg"
+  },
+  {
+    "id": "ttVuZgY0gzpLtpVNSJ2U",
+    "updatedAt": "2026-04-15T08:19:56.174Z",
+    "createdAt": "2026-04-10T07:51:55.505Z",
+    "defectTypes": [
+      "철거 폐기물 발생",
+      "부식"
+    ],
+    "method": "POUR 슬라브 방수 공법",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "옥상 구조물 외벽의 도장 및 마감재가 심하게 벗겨지고 부스러져 나오는 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리20230619_151325_1e2abc72.jpg",
+    "label": "탈락5",
+    "source": "manus",
+    "defectType": "철거 폐기물 발생"
+  },
+  {
+    "id": "u7V9t8wHpweEGGmHKsRC",
+    "defectType": "탈락",
+    "source": "manus",
+    "label": "탈락18",
+    "description": "녹색 바닥 코팅이 벗겨지고 갈라지며 부분적으로 떨어진 상태입니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리우레탄 터짐_29c41d29.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:57.030Z",
+    "updatedAt": "2026-04-10T07:51:57.030Z"
+  },
+  {
+    "id": "uHTYBOj2Lwyx0C2YCyQ1",
+    "defectType": "균열",
+    "label": "균열3",
+    "source": "manus",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "벽면에 수직방향으로 심한 균열이 발생하였고, 일부 부위에서는 콘크리트가 탈락된 상태가 관찰됩니다.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20250618_110739144_04_f31bcaa4.jpg",
+    "createdAt": "2026-04-10T07:51:55.800Z",
+    "defectTypes": [
+      "균열",
+      "두겁",
+      "이음부"
+    ],
+    "method": "POUR 균열 보수 공법",
+    "updatedAt": "2026-04-15T00:45:40.456Z"
+  },
+  {
+    "id": "uMSNyV7ZvWrBDL26GlZg",
+    "source": "manus",
+    "label": "탈락2",
+    "defectType": "기존 복합시트 방수",
+    "defectTypes": [
+      "기존 복합시트 방수"
+    ],
+    "createdAt": "2026-04-10T07:51:54.331Z",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "updatedAt": "2026-04-15T04:54:56.895Z",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/시트방수하자_9e5755c7.jpg",
+    "description": "사진에서 지붕 마감재 일부가 떨어져 나가고 벗겨진 상태로 보입니다."
+  },
+  {
+    "id": "uaeGI9CpAchhTYQRuuC3",
+    "method": "POUR 균열 보수 공법",
+    "createdAt": "2026-04-10T07:51:55.061Z",
+    "updatedAt": "2026-04-10T07:51:55.061Z",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/메쉬균열보수하자3_567a7c88.jpg",
+    "description": "외벽 표면에 세로로 길게 균열이 발생하였으며, 일부 보수 작업 흔적과 함께 기존 도장층이 갈라지고 박리된 상태입니다.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "source": "manus",
+    "label": "균열1",
+    "defectType": "균열"
+  },
+  {
+    "id": "vOxDCm3bZ2D7seSe3ErW",
+    "source": "manus",
+    "label": "탈락22",
+    "defectType": "부식",
+    "updatedAt": "2026-04-15T08:15:10.066Z",
+    "defectTypes": [
+      "부식"
+    ],
+    "createdAt": "2026-04-10T07:51:56.067Z",
+    "method": "POUR 슬라브 방수 공법",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리20220324_140101_8259fd40.jpg",
+    "description": "외벽의 도장면이 넓게 벗겨지고 부식된 부분이 노출되어 있는 상태입니다."
+  },
+  {
+    "id": "vQpdA9XoYHjDKmmXNXP0",
+    "defectType": "탈락",
+    "label": "탈락13",
+    "source": "manus",
+    "description": "바닥과 벽면 경계 부위의 도장이나 방수 도막이 벗겨지면서 박리된 상태가 확인됨.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_172722902_01_41285c6d.jpg",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "updatedAt": "2026-04-10T07:51:56.836Z",
+    "method": "POUR 기타 방수 공법",
+    "createdAt": "2026-04-10T07:51:56.836Z"
+  },
+  {
+    "id": "vr2kyElh8UIklO47aHif",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/20221020_142913_2d297ce0.jpg",
+    "description": "바닥 코팅층이 들떠서 벗겨지고 구멍이 생긴 상태로 보이며, 이는 코팅 불량이나 재질 부적합으로 인해 발생한 것으로 추정됨.",
+    "methods": [
+      "POUR 아스팔트싱글 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "method": "POUR 아스팔트싱글 방수 공법",
+    "defectTypes": [
+      "도막 방수하자"
+    ],
+    "createdAt": "2026-04-10T07:51:54.818Z",
+    "updatedAt": "2026-04-15T03:41:42.889Z",
+    "defectType": "도막 방수하자",
+    "label": "탈락14",
+    "source": "manus"
+  },
+  {
+    "id": "vxnyps3DBLAge8cVQCmq",
+    "label": "탈락26",
+    "source": "manus",
+    "defectType": "부식",
+    "createdAt": "2026-04-10T07:51:56.142Z",
+    "defectTypes": [
+      "부식"
+    ],
+    "method": "POUR 슬라브 방수 공법",
+    "updatedAt": "2026-04-15T08:14:16.082Z",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ],
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "옥상 방수 도막이 넓은 면적에 걸쳐 벗겨지고 갈라진 상태이며, 하부 콘크리트가 노출되고 있음.",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리20220324_135946_68f8724b.jpg"
+  },
+  {
+    "id": "xp5bf76GnrpbxffOlU1U",
+    "updatedAt": "2026-04-15T00:48:10.243Z",
+    "method": "POUR 슬라브 방수 공법",
+    "defectTypes": [
+      "배수불량"
+    ],
+    "createdAt": "2026-04-10T07:51:55.702Z",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20250620_165355077_15_2f06c460.jpg",
+    "description": "옥상 표면에 고인 물이 보여 방수 불량으로 인한 누수 가능성이 높음.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "source": "manus",
+    "label": "누수2",
+    "defectType": "배수불량"
+  },
+  {
+    "id": "y8qScvCZngsM2X7870DO",
+    "defectType": "도장불량",
+    "source": "manus",
+    "label": "도장불량1",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "description": "옥상 바닥 도장면에 벗겨짐과 이음새 부위 도장 불량이 관찰됨",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/타복합시트공법 금속기와 기타 사례1_cbb2f89b.jpg",
+    "updatedAt": "2026-04-10T07:51:55.239Z",
+    "createdAt": "2026-04-10T07:51:55.239Z",
+    "method": "POUR 기타 방수 공법"
+  },
+  {
+    "id": "yl7SjyeLPkdzjQeNINHX",
+    "source": "manus",
+    "label": "탈락14",
+    "defectType": "방수불량",
+    "updatedAt": "2026-04-15T08:16:25.553Z",
+    "method": "POUR 슬라브 방수 공법",
+    "defectTypes": [
+      "방수불량",
+      "누수",
+      "배수불량"
+    ],
+    "createdAt": "2026-04-10T07:51:55.894Z",
+    "imageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/1_8daafcdb.jpg",
+    "description": "옥상 바닥면의 도막이 심하게 박리 및 탈락하여 노출된 상태임.",
+    "sourceUrl": "https://hajaviewer-xay3p7o4.manus.space",
+    "methods": [
+      "POUR 슬라브 방수 공법"
+    ]
+  }
+]

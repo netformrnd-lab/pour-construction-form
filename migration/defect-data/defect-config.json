@@ -1,0 +1,80 @@
+{
+  "id": "defectTypesMeta",
+  "tags": [
+    {
+      "photo": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776230116274_page011_img003_442x223.jpeg?alt=media&token=9b428f01-b4e1-4c1a-b385-3a2237be8730",
+      "label": "도막 방수",
+      "role": "main",
+      "featured": false,
+      "id": "도막 방수하자"
+    },
+    {
+      "photo": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/날아감_3f59d8b2.jpg",
+      "label": "시트 방수",
+      "role": "main",
+      "featured": false,
+      "id": "시트 방수하자"
+    },
+    {
+      "featured": false,
+      "id": "탈락",
+      "label": "탈락",
+      "role": "main"
+    },
+    {
+      "featured": false,
+      "id": "부식",
+      "photo": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/테두리KakaoTalk_20220406_172951795_20_aa656ac1.jpg",
+      "role": "main",
+      "label": "부식"
+    },
+    {
+      "photo": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/시트방수하자_9e5755c7.jpg",
+      "label": "기존 복합시트 방수",
+      "role": "main",
+      "featured": false,
+      "id": "기존 복합시트 방수"
+    },
+    {
+      "featured": false,
+      "id": "교체 / 덧시공",
+      "photo": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776230037703_page010_img007_753x432.jpeg?alt=media&token=722dc3a4-7a33-45e3-9c3f-b1ca71483bff",
+      "label": "교체 / 덧시공",
+      "role": "main"
+    },
+    {
+      "featured": false,
+      "role": "main",
+      "id": "후레싱 탈락/부식",
+      "label": "후레싱 탈락/부식"
+    },
+    {
+      "featured": false,
+      "id": "누수",
+      "photo": "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/defect-photos%2F1776229823904_page008_img002_550x413.jpeg?alt=media&token=44a68239-bf8f-4eff-bf6c-dc3e25953265",
+      "role": "main",
+      "label": "누수"
+    },
+    {
+      "label": "배수불량",
+      "role": "main",
+      "photo": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/KakaoTalk_20251021_153916658_16_f97df225.jpg",
+      "id": "배수불량",
+      "featured": false
+    },
+    {
+      "id": "방수불량",
+      "featured": false,
+      "label": "방수불량",
+      "role": "main",
+      "photo": "https://d2xsxph8kpxj0f.cloudfront.net/310519663344305613/XAY3p7o4NAVtkerqirar8b/5_b209d340.png"
+    },
+    {
+      "featured": false,
+      "id": "공기포 발생",
+      "label": "공기포 발생",
+      "role": "main"
+    }
+  ],
+  "updatedAt": "2026-04-15T08:18:39.678Z"
+}

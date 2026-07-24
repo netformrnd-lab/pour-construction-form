@@ -26,7 +26,7 @@
 </style>
 <script>
 (function(){
-  var BEST_CATE = '';   // ← 카페24 '베스트' 분류번호 입력(만든 뒤). 비우면 순위 뱃지 안 씀.
+  var BEST_CATE = '104';   // ← 카페24 '베스트' 분류번호 입력(만든 뒤). 비우면 순위 뱃지 안 씀.
   var TABS = [['전체','73'],['패키지','71'],['균열보수','88'],['도장·도색','74'],['페인트','75'],['보강자재','92'],['부자재','84'],['안전용품','63']];
   var p; try{ p = new URLSearchParams(location.search); }catch(e){ p = { get:function(){return null;} }; }
   var cate = p.get('cate_no'); var cur = cate || '73';

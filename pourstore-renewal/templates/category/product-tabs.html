@@ -20,10 +20,7 @@
 .ptv-tab:hover{ background:#F2F3F7; }
 .ptv-tab.on{ background:#33373D; color:#fff; }
 @media (max-width:700px){ .ptv{ padding:20px 14px 4px; } .ptv-title{ font-size:25px; margin-bottom:16px; } .ptv-tabs{ gap:10px; } .ptv-tab{ font-size:15px; padding:8px 14px; } }
-/* 상단 정리(있으면 숨김) — 격자는 아래 JS가 담당 */
-html.ptv-browse .section.path, html.ptv-browse .section.titleArea, html.ptv-browse .ec-base-tab.typeMenu,
-html.ptv-browse .product_top_image, html.ptv-browse .main_product_slide,
-html.ptv-browse .xans-product-normalmenu{ display:none !important; }
+/* ※ 안전 버전: 아무것도 숨기지 않음(상품이 사라지지 않도록). 격자만 JS가 담당. */
 /* 베스트 순위 뱃지 */
 .ptv-rankbadge{ position:absolute; top:10px; left:10px; z-index:6; min-width:30px; height:30px; padding:0 7px; background:#111; color:#fff; font-size:15px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.25); }
 </style>

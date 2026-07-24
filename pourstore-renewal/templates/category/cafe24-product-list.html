@@ -20,14 +20,14 @@
     <span class="likeButton {$disp_likecate_class}"><button type="button">{$disp_likecate_icon}<strong>{$disp_likecate_count}</strong></button></span>
 </div>
 
-<!-- ▼▼▼ [POUR] 제품 보기 탭바 + 베스트 순위 (카페24 상품페이지를 pour-products 룩으로) ▼▼▼ -->
+<!-- ▼▼▼ [POUR] 제품 보기 탭바 + 베스트 순위 (JS 없이도 격자) ▼▼▼ -->
 <div class="ptv" data-ptv hidden>
   <h2 class="ptv-title" data-ptv-title>제품 보기</h2>
   <nav class="ptv-tabs" data-ptv-tabs aria-label="제품 카테고리"></nav>
 </div>
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
-.ptv{ max-width:1256px; margin:0 auto; padding:30px 20px 6px; text-align:center; font-family:'Pretendard Variable',Pretendard,-apple-system,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.ptv{ max-width:1256px; margin:0 auto; padding:30px 20px 6px; text-align:center; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .ptv[hidden]{ display:none !important; }
 .ptv *{ box-sizing:border-box; }
 .ptv-title{ font-size:34px; font-weight:900; letter-spacing:-0.04em; color:#111; margin-bottom:22px; }
@@ -36,15 +36,28 @@
 .ptv-tab:hover{ background:#F2F3F7; }
 .ptv-tab.on{ background:#33373D; color:#fff; }
 @media (max-width:700px){ .ptv{ padding:20px 14px 4px; } .ptv-title{ font-size:25px; margin-bottom:16px; } .ptv-tabs{ gap:10px; } .ptv-tab{ font-size:15px; padding:8px 14px; } }
-html.ptv-browse .section.path, html.ptv-browse .section.titleArea, html.ptv-browse .ec-base-tab.typeMenu, html.ptv-browse .product_top_image, html.ptv-browse .main_product_slide, html.ptv-browse .xans-product-normalmenu, html.ptv-browse .prdCount, html.ptv-browse .ec-base-prdSort{ display:none !important; }
-html.ptv-browse .product_scrollx{ overflow:visible !important; }
-html.ptv-browse ul.prdList.grid4, html.ptv-browse .xans-product-listnormal ul.prdList{ display:grid !important; grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:30px 22px !important; margin:0 auto !important; padding:0 20px !important; max-width:1256px; list-style:none !important; }
-html.ptv-browse ul.prdList.grid4 > li, html.ptv-browse .xans-product-listnormal ul.prdList > li{ width:auto !important; margin:0 !important; padding:0 !important; float:none !important; display:block !important; }
-@media (max-width:900px){ html.ptv-browse ul.prdList.grid4, html.ptv-browse .xans-product-listnormal ul.prdList{ grid-template-columns:repeat(3,minmax(0,1fr)) !important; gap:24px 16px !important; } }
-@media (max-width:640px){ html.ptv-browse ul.prdList.grid4, html.ptv-browse .xans-product-listnormal ul.prdList{ grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:20px 12px !important; padding:0 14px !important; } }
-html.ptv-best ul.prdList.grid4, html.ptv-best .xans-product-listnormal ul.prdList{ counter-reset:pvrank; }
-html.ptv-best ul.prdList.grid4 > li, html.ptv-best .xans-product-listnormal ul.prdList > li{ counter-increment:pvrank; position:relative; }
-html.ptv-best ul.prdList.grid4 > li::before, html.ptv-best .xans-product-listnormal ul.prdList > li::before{ content:counter(pvrank); position:absolute; top:10px; left:10px; z-index:6; min-width:30px; height:30px; padding:0 7px; background:#111; color:#fff; font-size:15px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.25); }
+
+/* ▼▼ 격자화 — JS 없이도 항상 적용. 슬라이더(.main_product_slide)는 .normalpackage_box 밖이라 영향 없음 ▼▼ */
+.normalpackage_box, .normalpackage_box .product_scrollx, .normalpackage_box .xans-product-listnormal{ overflow:visible !important; width:auto !important; max-width:100% !important; }
+.normalpackage_box ul.prdList{
+  display:grid !important; grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  gap:30px 22px !important; width:auto !important; max-width:1256px !important; margin:0 auto !important;
+  padding:0 20px !important; list-style:none !important; white-space:normal !important; }
+.normalpackage_box ul.prdList > li{ width:auto !important; min-width:0 !important; margin:0 !important; padding:0 !important; float:none !important; display:block !important; }
+@media (max-width:900px){ .normalpackage_box ul.prdList{ grid-template-columns:repeat(3,minmax(0,1fr)) !important; gap:24px 16px !important; } }
+@media (max-width:640px){ .normalpackage_box ul.prdList{ grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:20px 12px !important; padding:0 14px !important; } }
+
+/* ▼ 스크립트가 켜지면 카페24 기본 상단·툴바 숨김(제품보기 룩) */
+html.ptv-browse .section.path, html.ptv-browse .section.titleArea, html.ptv-browse .ec-base-tab.typeMenu,
+html.ptv-browse .product_top_image, html.ptv-browse .main_product_slide,
+html.ptv-browse .xans-product-normalmenu, html.ptv-browse .prdCount, html.ptv-browse .ec-base-prdSort{ display:none !important; }
+
+/* ▼ 베스트 모드: 카드에 순위 뱃지(진열 순서 = 순위) */
+html.ptv-best .normalpackage_box ul.prdList{ counter-reset:pvrank; }
+html.ptv-best .normalpackage_box ul.prdList > li{ counter-increment:pvrank; position:relative; }
+html.ptv-best .normalpackage_box ul.prdList > li::before{ content:counter(pvrank); position:absolute; top:10px; left:10px; z-index:6;
+  min-width:30px; height:30px; padding:0 7px; background:#111; color:#fff; font-size:15px; font-weight:800;
+  display:inline-flex; align-items:center; justify-content:center; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.25); }
 </style>
 <script>
 (function(){

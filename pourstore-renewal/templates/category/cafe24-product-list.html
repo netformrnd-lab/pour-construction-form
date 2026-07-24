@@ -20,91 +20,6 @@
     <span class="likeButton {$disp_likecate_class}"><button type="button">{$disp_likecate_icon}<strong>{$disp_likecate_count}</strong></button></span>
 </div>
 
-<!-- ▼▼▼ [POUR] 제품 보기 + 4열격자(JS) · 숨김없음 안전판 ▼▼▼ -->
-<div class="ptv" data-ptv hidden>
-  <h2 class="ptv-title" data-ptv-title>제품 보기</h2>
-  <nav class="ptv-tabs" data-ptv-tabs aria-label="제품 카테고리"></nav>
-</div>
-<style>
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
-.ptv{ max-width:1256px; margin:0 auto; padding:30px 20px 6px; text-align:center; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
-.ptv[hidden]{ display:none !important; }
-.ptv *{ box-sizing:border-box; }
-.ptv-title{ font-size:34px; font-weight:900; letter-spacing:-0.04em; color:#111; margin-bottom:22px; }
-.ptv-tabs{ display:inline-flex; flex-wrap:wrap; justify-content:center; gap:12px 14px; }
-.ptv-tab{ padding:9px 18px; border-radius:999px; font-size:17px; font-weight:700; color:#111; text-decoration:none; letter-spacing:-0.02em; white-space:nowrap; transition:background .15s,color .15s; }
-.ptv-tab:hover{ background:#F2F3F7; }
-.ptv-tab.on{ background:#33373D; color:#fff; }
-@media (max-width:700px){ .ptv{ padding:20px 14px 4px; } .ptv-title{ font-size:25px; margin-bottom:16px; } .ptv-tabs{ gap:10px; } .ptv-tab{ font-size:15px; padding:8px 14px; } }
-/* ※ 안전 버전: 아무것도 숨기지 않음(상품이 사라지지 않도록). 격자만 JS가 담당. */
-/* 베스트 순위 뱃지 */
-.ptv-rankbadge{ position:absolute; top:10px; left:10px; z-index:6; min-width:30px; height:30px; padding:0 7px; background:#111; color:#fff; font-size:15px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.25); }
-</style>
-<script>
-(function(){
-  var BEST_CATE = '';   // ← 카페24 '베스트' 분류번호 입력(만든 뒤). 비우면 순위 뱃지 안 씀.
-  var TABS = [['전체','73'],['패키지','71'],['균열보수','88'],['도장·도색','74'],['페인트','75'],['보강자재','92'],['부자재','84'],['안전용품','63']];
-  var p; try{ p = new URLSearchParams(location.search); }catch(e){ p = { get:function(){return null;} }; }
-  var cate = p.get('cate_no'); var cur = cate || '73';
-  var isBest = !!(BEST_CATE && String(cate)===String(BEST_CATE));
-
-  document.documentElement.classList.add('ptv-browse');
-  var wrap = document.querySelector('[data-ptv]'); if(wrap){ wrap.hidden=false; wrap.removeAttribute('hidden'); }
-  var titleEl = document.querySelector('[data-ptv-title]'); var box = document.querySelector('[data-ptv-tabs]');
-  if(isBest){ if(titleEl) titleEl.textContent='베스트'; if(box) box.style.display='none'; }
-  else{
-    if(titleEl) titleEl.textContent='제품 보기';
-    if(box) box.innerHTML = TABS.map(function(t){ var href='/product/list.html?cate_no='+t[1]; var on=(String(cur)===String(t[1])); return '<a class="ptv-tab'+(on?' on':'')+'" href="'+href+'">'+t[0]+'</a>'; }).join('');
-  }
-
-  // ===== 상품 목록을 직접 찾아 4열 격자로 강제 (클래스 무관) =====
-  function findContainer(){
-    var links = Array.prototype.slice.call(document.querySelectorAll('a[href*="product_no="]')).filter(function(a){
-      return !a.closest('.main_product_slide') && !a.closest('.swiper-container') && !a.closest('.swiper-wrapper') && !a.closest('.ppcate') && !a.closest('[data-ppcate]') && !a.closest('[data-ptv]');
-    });
-    if(!links.length) return null;
-    // 각 상품 카드 = 링크의 가장 가까운 li(없으면 부모), 그 카드들의 최다 공통 부모 = 상품 그리드
-    var cards = links.map(function(a){ return a.closest('li') || a.parentElement; }).filter(Boolean);
-    var counts = [], parents = [];
-    cards.forEach(function(c){ var pa=c.parentElement; if(!pa) return; var i=parents.indexOf(pa); if(i<0){ parents.push(pa); counts.push(1); } else counts[i]++; });
-    var max=0, cont=null; for(var i=0;i<parents.length;i++){ if(counts[i]>max){ max=counts[i]; cont=parents[i]; } }
-    return (max>=2) ? cont : null;
-  }
-  function colCount(){ var w=window.innerWidth||1200; return w<=640?2:(w<=900?3:4); }
-  function applyGrid(cont){
-    cont.style.setProperty('display','grid','important');
-    cont.style.setProperty('grid-template-columns','repeat('+colCount()+',minmax(0,1fr))','important');
-    cont.style.setProperty('gap','30px 22px','important');
-    cont.style.setProperty('max-width','1256px','important');
-    cont.style.setProperty('width','auto','important');
-    cont.style.setProperty('margin','0 auto','important');
-    cont.style.setProperty('padding','0 16px','important');
-    cont.style.setProperty('float','none','important');
-    cont.style.setProperty('list-style','none','important');
-    Array.prototype.forEach.call(cont.children, function(li, idx){
-      li.style.setProperty('width','auto','important');
-      li.style.setProperty('float','none','important');
-      li.style.setProperty('margin','0','important');
-      li.style.setProperty('display','block','important');
-      li.style.setProperty('position','relative','important');
-      if(isBest && !li.querySelector('.ptv-rankbadge')){
-        var b=document.createElement('span'); b.className='ptv-rankbadge'; b.textContent=(idx+1); li.insertBefore(b, li.firstChild);
-      }
-    });
-  }
-  var _cont=null;
-  function tryGrid(n){
-    var cont = findContainer();
-    if(cont){ _cont=cont; applyGrid(cont); console.log('[ptv격자] 적용 OK:', cont.tagName+'.'+(cont.className||'(무클래스)'), '카드', cont.children.length+'개'); return; }
-    if(n<12){ setTimeout(function(){ tryGrid(n+1); }, 350); }
-    else console.log('[ptv격자] 상품 컨테이너 못찾음 — a[href*=product_no=] 0개');
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', function(){ tryGrid(0); });
-  else tryGrid(0);
-  window.addEventListener('resize', function(){ if(_cont) applyGrid(_cont); });
-})();
-</script>
-<!-- ▲▲▲ [POUR] 끝 ▲▲▲ -->
 
 <div class="section ec-base-tab typeMenu">
     <ul class="menuCategory menu">
@@ -140,21 +55,16 @@
 </div>
 
 
-
-
-
 <div module="product_headcategory" class="section product_top_image">{$top_image1_tag}{$top_image2_tag}{$top_image3_tag}</div>
 
 
 <!-- (패키지 쇼케이스는 별도 페이지 pour-package.html로 이동 — 리스트에서 제거됨) -->
 
 
-
 <div class="section main_product_slide">
 
 
   <div module="product_listrecommend" class="ec-base-product swiper-container swiperPRO swiperPRO1">
-
 
 
 	<div class="main_title ez-align-left"><!-- 타이틀 수정하는곳 -->
@@ -191,7 +101,6 @@
 
   </div>
 </div>
-
 
 
 <div class="section main_product_slide">
@@ -234,10 +143,6 @@
 </div>
 
 
-
-
-
-
 <div class="normalpackage_box section">
 	<!--@import(/product/shoppQ/searchContent.html)-->
 	<div module="product_normalpackage" class="product_scrollx">
@@ -249,9 +154,6 @@
 				$compare_page = /product/compare.html
 			-->
 			<div class="function" id="{$listmenu_position}">
-
-
-
 
 
       <div class="viewtype"  module="product_headcategory">
@@ -292,10 +194,6 @@
       </div>
 
 
-
-
-
-
 				<p class="prdCount">총<strong class="txtEm">{$total_count}</strong>개의 상품이 있습니다.</p>
 				<div class="sort">
 					<select id="selArray" name="selArray" module="product_Orderby">
@@ -326,7 +224,6 @@
 
 
  		 <div class="hanblank_50"></div>  <!-- 영역 사이 간격 소스입니다. [ madehan.css 파일 최하단 참고 ] -->
-
 
 
 			<div module="product_listnormal" class="ec-base-product">
@@ -369,7 +266,6 @@
 
 
 <!--@css(/han/css/timesale.css)-->
-
 
 
 <!--#ez="1/1"-->

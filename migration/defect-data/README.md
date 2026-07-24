@@ -66,6 +66,28 @@ node import-to-crm.mjs --key ./pourstorecrm-sa.json
 > 마누스가 만든 하자유형/공법 명칭이 자유롭게 들어있습니다(예: `공기포 발생`, `장시간 물고임`, `POUR 기타 방수 공법`).
 > CRM에서 정규 명칭으로 정리하려면 임포트 후 매핑 테이블로 일괄 치환하는 것을 권장합니다.
 
+## 원본 사진 재호스팅 + 똑같이 자동분류 (선택, 권장)
+
+마누스 CDN 의존을 없애고 **원본 사진을 내 Firebase에 올려** 동일 분류로 정리하려면:
+
+1. **매핑표**: `defect-classification-by-filename.json`
+   - 마누스가 붙인 `_<해시>`를 뗀 **원본 파일명 → 분류(공법·하자유형·설명·라벨)** 표.
+   - 예: `KakaoTalk_20251021_153916658_20.jpg` → `{ defectType:"탈락", method:"POUR 기타 방수 공법", … }`
+2. **원본 업로드**: 원본 사진을 **원래 파일명 그대로** Firebase Storage 한 폴더(기본 `defect-originals/`)에 올립니다.
+3. **자동분류 실행**:
+   ```bash
+   npm i firebase-admin
+   node classify-by-filename.mjs --key ./sa.json --bucket <프로젝트>.appspot.com --dry   # 매칭 미리보기
+   node classify-by-filename.mjs --key ./sa.json --bucket <프로젝트>.appspot.com          # 실제 생성
+   ```
+   - 올라온 파일을 파일명으로 매칭 → 그 사진을 가리키는 `defect-photos` 문서를 마누스 분류 그대로 생성(`source:"manus-rehosted"`).
+   - 매칭/미매칭 결과를 `classify-report.json`으로 남깁니다.
+
+**주의**
+- 원본은 **마누스가 해시 붙이기 전 파일명**이어야 매칭됩니다(카톡 원본명 유지 등).
+- **파일명 중복 7건**(`KakaoTalk_20251021_153916658_01/03/05/06/07/10/18.jpg`) — 마누스가 같은 카톡앨범을 두 번 임포트한 흔적이라 수동 확인 권장.
+- **이미 Firebase에 있는 14장**은 재호스팅 불필요(매핑표에서 `alreadyFirebase:true`로 제외).
+
 ## 데이터 재추출(원본이 바뀌었을 때)
 
 `pour-app-new`의 `defect-photos`/`defect-templates`는 읽기가 열려 있어 인증 없이 다시 뽑을 수 있습니다:

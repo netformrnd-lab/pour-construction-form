@@ -1,0 +1,333 @@
+<!--@layout(/layout/basic/layout.html)-->
+<!--@js(/js/module/product/menucategory.js)-->
+<!--@css(/css/module/product/menupackage.css)-->
+
+<div class="section prosection path" module="product_headcategory">
+<div class="section prosection path" module="product_headcategory">
+	<span>현재 위치</span>
+	<ol>
+		<li><a href="/">홈</a></li>
+		<li class="{$disp_cate_1|display}"><a href="{$link_product_list_1}">{$name_1}</a></li>
+		<li class="{$disp_cate_2|display}"><a href="{$link_product_list_2}">{$name_2}</a></li>
+		<li class="{$disp_cate_3|display}"><a href="{$link_product_list_3}">{$name_3}</a></li>
+		<li class="{$disp_cate_4|display}"><strong><a href="{$link_product_list_4}">{$name_4}</a></strong></li>
+	</ol>
+</div>
+
+
+<div class="section prosection titleArea" module="product_headcategory">
+    <h2>{$title_text_or_image}</h2>
+    <span class="likeButton {$disp_likecate_class}"><button type="button">{$disp_likecate_icon}<strong>{$disp_likecate_count}</strong></button></span>
+</div>
+
+<!-- ▼▼▼ [POUR] 제품 보기 탭바 + 베스트 순위 (카페24 상품페이지를 pour-products 룩으로) ▼▼▼ -->
+<div class="ptv" data-ptv hidden>
+  <h2 class="ptv-title" data-ptv-title>제품 보기</h2>
+  <nav class="ptv-tabs" data-ptv-tabs aria-label="제품 카테고리"></nav>
+</div>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css');
+.ptv{ max-width:1256px; margin:0 auto; padding:30px 20px 6px; text-align:center; font-family:'Pretendard Variable',Pretendard,-apple-system,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.ptv[hidden]{ display:none !important; }
+.ptv *{ box-sizing:border-box; }
+.ptv-title{ font-size:34px; font-weight:900; letter-spacing:-0.04em; color:#111; margin-bottom:22px; }
+.ptv-tabs{ display:inline-flex; flex-wrap:wrap; justify-content:center; gap:12px 14px; }
+.ptv-tab{ padding:9px 18px; border-radius:999px; font-size:17px; font-weight:700; color:#111; text-decoration:none; letter-spacing:-0.02em; white-space:nowrap; transition:background .15s,color .15s; }
+.ptv-tab:hover{ background:#F2F3F7; }
+.ptv-tab.on{ background:#33373D; color:#fff; }
+@media (max-width:700px){ .ptv{ padding:20px 14px 4px; } .ptv-title{ font-size:25px; margin-bottom:16px; } .ptv-tabs{ gap:10px; } .ptv-tab{ font-size:15px; padding:8px 14px; } }
+html.ptv-browse .section.path, html.ptv-browse .section.titleArea, html.ptv-browse .ec-base-tab.typeMenu, html.ptv-browse .product_top_image, html.ptv-browse .main_product_slide, html.ptv-browse .xans-product-normalmenu, html.ptv-browse .prdCount, html.ptv-browse .ec-base-prdSort{ display:none !important; }
+html.ptv-browse .product_scrollx{ overflow:visible !important; }
+html.ptv-browse ul.prdList.grid4, html.ptv-browse .xans-product-listnormal ul.prdList{ display:grid !important; grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:30px 22px !important; margin:0 auto !important; padding:0 20px !important; max-width:1256px; list-style:none !important; }
+html.ptv-browse ul.prdList.grid4 > li, html.ptv-browse .xans-product-listnormal ul.prdList > li{ width:auto !important; margin:0 !important; padding:0 !important; float:none !important; display:block !important; }
+@media (max-width:900px){ html.ptv-browse ul.prdList.grid4, html.ptv-browse .xans-product-listnormal ul.prdList{ grid-template-columns:repeat(3,minmax(0,1fr)) !important; gap:24px 16px !important; } }
+@media (max-width:640px){ html.ptv-browse ul.prdList.grid4, html.ptv-browse .xans-product-listnormal ul.prdList{ grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:20px 12px !important; padding:0 14px !important; } }
+html.ptv-best ul.prdList.grid4, html.ptv-best .xans-product-listnormal ul.prdList{ counter-reset:pvrank; }
+html.ptv-best ul.prdList.grid4 > li, html.ptv-best .xans-product-listnormal ul.prdList > li{ counter-increment:pvrank; position:relative; }
+html.ptv-best ul.prdList.grid4 > li::before, html.ptv-best .xans-product-listnormal ul.prdList > li::before{ content:counter(pvrank); position:absolute; top:10px; left:10px; z-index:6; min-width:30px; height:30px; padding:0 7px; background:#111; color:#fff; font-size:15px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.25); }
+</style>
+<script>
+(function(){
+  var BEST_CATE = '';   // ← 카페24 '베스트' 분류번호 입력(만든 뒤). 비우면 베스트 뱃지 안 씀.
+  var TABS = [['전체','73'],['패키지','71'],['균열보수','88'],['도장·도색','74'],['페인트','75'],['보강자재','92'],['부자재','84'],['안전용품','63']];
+  var p; try{ p = new URLSearchParams(location.search); }catch(e){ p = { get:function(){return null;} }; }
+  var cate = p.get('cate_no'); var cur = cate || '73';
+  document.documentElement.classList.add('ptv-browse');
+  var wrap = document.querySelector('[data-ptv]'); if(wrap){ wrap.hidden=false; wrap.removeAttribute('hidden'); }
+  var titleEl = document.querySelector('[data-ptv-title]'); var box = document.querySelector('[data-ptv-tabs]');
+  if(BEST_CATE && String(cate)===String(BEST_CATE)){ document.documentElement.classList.add('ptv-best'); if(titleEl) titleEl.textContent='베스트'; if(box) box.style.display='none'; return; }
+  if(titleEl) titleEl.textContent='제품 보기';
+  if(box){ box.innerHTML = TABS.map(function(t){ var href='/product/list.html?cate_no='+t[1]; var on=(String(cur)===String(t[1])); return '<a class="ptv-tab'+(on?' on':'')+'" href="'+href+'">'+t[0]+'</a>'; }).join(''); }
+})();
+</script>
+<!-- ▲▲▲ [POUR] 끝 ▲▲▲ -->
+
+<div class="section ec-base-tab typeMenu">
+    <ul class="menuCategory menu">
+        <li module="product_displaycategory" style="display:{$display};" class="{$selected}">
+            <a href="/product/list.html?{$param_cate_no}" class="button">{$category_name}
+                <span class="count {$product_count_display|display}">({$product_count})</span></a><a href="#none" class="iconWrap"></a>
+            <ul module="product_children">
+                <li class="{$selected}">
+                    <a href="/product/list.html?{$param_cate_no}">{$category_name}
+                        <span class="{$product_count_display|display}">({$product_count})</span></a><a href="#none" class="iconWrap"></a>
+                    <div class="button">
+                        {$children_icon}
+                        <ul module="product_children" class="subCategory">
+                            <li class="{$selected}"><a href="/product/list.html?{$param_cate_no}">{$category_name}<span class="{$product_count_display|display}">({$product_count})</span></a><a href="#none" class="iconWrap"></a></li>
+                            <li class="{$selected}"><a href="/product/list.html?{$param_cate_no}">{$category_name}<span class="{$product_count_display|display}">({$product_count})</span></a><a href="#none" class="iconWrap"></a></li>
+                        </ul>
+                    </div>
+                </li>
+                <li class="{$selected}">
+                    <a href="/product/list.html?{$param_cate_no}">{$category_name}
+                        <span class="{$product_count_display|display}">({$product_count})</span></a><a href="#none" class="iconWrap"></a>
+                    <div class="button">
+                        {$children_icon}
+                        <ul module="product_children" class="subCategory">
+                            <li class="{$selected}"><a href="/product/list.html?{$param_cate_no}">{$category_name}<span class="{$product_count_display|display}">({$product_count})</span></a><a href="#none" class="iconWrap"></a></li>
+                            <li class="{$selected}"><a href="/product/list.html?{$param_cate_no}">{$category_name}<span class="{$product_count_display|display}">({$product_count})</span></a><a href="#none" class="iconWrap"></a></li>
+                        </ul>
+                    </div>
+                </li>
+            </ul>
+        </li>
+    </ul>
+</div>
+
+
+
+
+
+<div module="product_headcategory" class="section product_top_image">{$top_image1_tag}{$top_image2_tag}{$top_image3_tag}</div>
+
+
+<!-- ▼▼▼ [추가] 패키지 전체(cate_no=71) 화면에서만 패키지 디자인 노출 — 그 아래로 상품 정상 노출 ▼▼▼ -->
+<!--@import(/pourstore_renewal/package/pour-package-cate.html)-->
+<!-- ▲▲▲ [추가] 끝 ▲▲▲ -->
+
+
+
+<div class="section main_product_slide">
+
+
+  <div module="product_listrecommend" class="ec-base-product swiper-container swiperPRO swiperPRO1">
+
+
+
+	<div class="main_title ez-align-left"><!-- 타이틀 수정하는곳 -->
+		<div class="main_title_txt01">BEST ITEMS</div>
+		<div class="main_title_txt02" module="product_headcategory">{$title_text_or_image} 베스트</div>
+	</div><!-- //main_title -->
+
+
+    <!--
+		    $count = 10
+		    $basket_result = /product/add_basket.html
+		    $basket_option = /product/basket_option.html
+		    -->
+
+    <ul class="swiper-wrapper prdList">
+      <!--@import(/product/list_product_slide.html)-->
+    </ul>
+
+
+    <!-- CSS 화살표 -좌 -->
+    <div class="hanarrL swiper-button-prev">
+      <div class="bar top"></div>
+      <div class="bar middle"></div>
+      <div class="bar bottom"></div>
+    </div>
+
+    <!-- CSS 화살표 -우 -->
+    <div class="hanarrR swiper-button-next">
+      <div class="bar top"></div>
+      <div class="bar middle"></div>
+      <div class="bar bottom"></div>
+    </div>
+
+
+  </div>
+</div>
+
+
+
+<div class="section main_product_slide">
+
+  <div module="product_listnew" class="ec-base-product swiper-container swiperPRO swiperPRO2">
+
+
+	<div class="main_title ez-align-left"><!-- 타이틀 수정하는곳 -->
+		<div class="main_title_txt01">NEW ARRIVALS</div>
+		<div class="main_title_txt02" module="product_headcategory">{$title_text_or_image} 신상품</div>
+	</div><!-- //main_title -->
+
+    <!--
+		    $count = 10
+		    $basket_result = /product/add_basket.html
+		    $basket_option = /product/basket_option.html
+		    -->
+
+    <ul class="swiper-wrapper prdList">
+      <!--@import(/product/list_product_slide.html)-->
+    </ul>
+
+
+    <!-- CSS 화살표 -좌 -->
+    <div class="hanarrL swiper-button-prev">
+      <div class="bar top"></div>
+      <div class="bar middle"></div>
+      <div class="bar bottom"></div>
+    </div>
+
+    <!-- CSS 화살표 -우 -->
+    <div class="hanarrR swiper-button-next">
+      <div class="bar top"></div>
+      <div class="bar middle"></div>
+      <div class="bar bottom"></div>
+    </div>
+
+
+  </div>
+</div>
+
+
+
+
+
+
+<div class="normalpackage_box section">
+	<!--@import(/product/shoppQ/searchContent.html)-->
+	<div module="product_normalpackage" class="product_scrollx">
+		<!--@css(/css/module/product/listnormal.css)-->
+		<!--@js(/js/module/product/normalmenu.js)-->
+
+		<div module="product_normalmenu">
+			<!--
+				$compare_page = /product/compare.html
+			-->
+			<div class="function" id="{$listmenu_position}">
+
+
+
+
+
+      <div class="viewtype"  module="product_headcategory">
+        <ul class="liststylep">
+          <li class="liststylep_li"><a href="/product/list2.html{$param}">
+            <div class="viewicon pl2">
+              <p></p>
+              <p></p>
+            </div>
+            </a></li>
+          <li class="liststylep_li display_pc_only"><a href="/product/list3.html{$param}">
+            <div class="viewicon pl3">
+              <p></p>
+              <p></p>
+              <p></p>
+            </div>
+            </a></li>
+          <li class="liststylep_li"><a class="active" href="/product/list.html{$param}">
+            <div class="viewicon pl4">
+              <p></p>
+              <p></p>
+                <div class="hanblank_1"></div>
+              <p></p>
+              <p></p>
+            </div>
+            </a></li>
+          <li class="liststylep_li display_pc_only"><a href="/product/list4.html{$param}">
+            <div class="viewicon pl5">
+              <p></p>
+              <p></p>
+                <div class="hanblank_1"></div>
+              <p></p>
+              <p></p>
+              <p></p>
+            </div>
+            </a></li>
+        </ul>
+      </div>
+
+
+
+
+
+
+				<p class="prdCount">총<strong class="txtEm">{$total_count}</strong>개의 상품이 있습니다.</p>
+				<div class="sort">
+					<select id="selArray" name="selArray" module="product_Orderby">
+						<option value="{$param}">{$sort_name}</option>
+						<option value="{$param}">{$sort_name}</option>
+					</select>
+				</div>
+			</div>
+
+			<fieldset class="condition {$select_search_display|display}">
+				<legend>조건별 검색</legend>
+				<p>
+					<!--@js(/js/module/product/product_selectsearch.js)-->
+					<select class="FirstSelect" module="product_FirstSelect">
+						<option value>-조건선택-</option>
+						<option value="{$value}" {$selected}>{$title}</option>
+						<option value="{$value}" {$selected}>{$title}</option>
+					</select>
+					<select class="SecondSelect" module="product_SecondSelect">
+						<option value>-조건선택-</option>
+						<option value="{$value}" {$selected}>{$title}</option>
+						<option value="{$value}" {$selected}>{$title}</option>
+					</select>
+					<a href="#SelectSearch" class="btnSubmitFix">검색</a>
+				</p>
+			</fieldset>
+		</div>
+
+
+ 		 <div class="hanblank_50"></div>  <!-- 영역 사이 간격 소스입니다. [ madehan.css 파일 최하단 참고 ] -->
+
+
+
+			<div module="product_listnormal" class="ec-base-product">
+				<!--
+					$count = 28
+					※ 상품진열갯수를 설정하는 변수입니다. 설정하지 않을 경우, 최대 200개의 상품이 진열 됩니다.
+					※ 진열된 상품이 많으면, 쇼핑몰에 부하가 발생할 수 있습니다.
+					$moreview = no
+					$cache = yes
+					$basket_result = /product/add_basket.html
+					$basket_option = /product/basket_option.html
+				-->
+				<ul class="prdList grid4">
+					<!--@import(/product/list_product.html)-->
+				</ul>
+			</div>
+
+			<div module="product_listmore" class="more">
+				<a href="#none" onclick="{$more_action}" class="btnMore">
+					상품 더보기<div>(<span id="more_current_page">{$current_page}</span>/<span id="more_total_page">{$total_page}</span>)</div>
+				</a>
+			</div>
+
+			<div module="product_normalpaging" class="ec-base-paginate typeList">
+				<a href="{$param_first}" class="first">첫 페이지</a>
+				<a href="{$param_before}">이전 페이지</a>
+				<ol>
+					<li><a href="{$param}" class="{$param_class}">{$no}</a></li>
+					<li><a href="{$param}" class="{$param_class}">{$no}</a></li>
+					<li><a href="{$param}" class="{$param_class}">{$no}</a></li>
+					<li><a href="{$param}" class="{$param_class}">{$no}</a></li>
+					<li><a href="{$param}" class="{$param_class}">{$no}</a></li>
+				</ol>
+				<a href="{$param_next}">다음 페이지</a>
+				<a href="{$param_last}" class="last">마지막 페이지</a>
+			</div>
+
+	</div><!-- //product_normalpackage -->
+</div>
+
+
+<!--@css(/han/css/timesale.css)-->
+
+
+
+<!--#ez="1/1"-->

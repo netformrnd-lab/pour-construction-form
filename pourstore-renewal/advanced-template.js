@@ -31,7 +31,13 @@
 .adv-host .info-card>.delete-info-card{position:absolute;right:10px;top:10px;z-index:5;}
 /* BEFORE */
 .adv-host .comment-card{display:flex;align-items:center;gap:16px;padding:18px 20px;margin-bottom:12px;border-radius:14px;background:linear-gradient(135deg,#fff7f0,#f7f2ee);}
-.adv-host .comment-card .uie-box{flex:0 0 104px;width:104px;height:104px;margin:0;border-radius:12px;box-shadow:none;}
+/* 어드민 편집 폭을 고객 페이지(.adv-view max-width:860)와 동일하게 맞춤
+   → 이미지 박스 가로폭·비율이 같아져 object-fit 크롭과 외곽선(%좌표) 위치가 어드민=고객 일치 */
+.adv-host{max-width:860px;margin-left:auto;margin-right:auto;}
+.adv-host .uie-box{background:#fff;}
+.adv-host .uie-crop{background:#fff;}
+.adv-host .comment-card .uie-box{flex:0 0 auto;width:104px;height:104px;margin:0;border-radius:12px;box-shadow:none;background:transparent;}
+.adv-host .comment-card .uie-crop{background:transparent;}
 .adv-host .comment-title{margin:0 0 6px;color:#ff5a00;font-size:18px;font-weight:850;letter-spacing:-.035em;}
 .adv-host .comment-text{margin:0;font-size:15px;line-height:1.55;font-weight:700;color:#333;word-break:keep-all;}
 .adv-host .sec-title{margin:0 0 5px;font-size:22px;line-height:1.25;font-weight:900;color:#111;letter-spacing:-.04em;}
@@ -175,9 +181,9 @@
 .adv-host .uie-panel{width:min(300px,86vw);max-height:min(62vh,460px);overflow:auto;}
 .adv-host .uie-pop{width:min(240px,82vw);}
 /* 작은 이미지(댓글·자재·사례 썸네일): '이미지 변경(URL/업로드)'만, 고급도구 숨김 */
-.adv-host .comment-card .uie-adv-only,.adv-host .material-row .uie-adv-only,.adv-host .case-card .uie-adv-only{display:none;}
-.adv-host .comment-card .uie-handle,.adv-host .material-row .uie-handle,.adv-host .case-card .uie-handle,
-.adv-host .comment-card .uie-badge,.adv-host .material-row .uie-badge,.adv-host .case-card .uie-badge{display:none !important;}
+.adv-host .comment-card .uie-adv-only:not(.uie-sizetab),.adv-host .material-row .uie-adv-only,.adv-host .case-card .uie-adv-only{display:none;}
+.adv-host .material-row .uie-handle,.adv-host .case-card .uie-handle,
+.adv-host .material-row .uie-badge,.adv-host .case-card .uie-badge{display:none !important;}
 .adv-host .comment-card .uie-open,.adv-host .material-row .uie-open,.adv-host .case-card .uie-open{left:6px;top:6px;padding:5px 8px;font-size:12px;}
 /* 편집 가능한 글자: 은은한 점선으로 '여기 클릭해 수정' 힌트 */
 .adv-host [data-editable="true"]{box-shadow:inset 0 -1px 0 rgba(255,138,61,.35);}
@@ -213,6 +219,8 @@
 .adv-host .adv-secgap-btn{position:relative;z-index:2;width:28px;height:28px;border-radius:50%;border:1.5px dashed #ff8a3d;background:#fff;color:#ff5a00;font-size:16px;font-weight:900;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.5;transition:opacity .12s,transform .12s,background .12s;}
 .adv-host .adv-secgap:hover .adv-secgap-btn,.adv-host .adv-secgap-btn:hover{opacity:1;transform:scale(1.1);background:#fff8f3;}
 .adv-host .adv-secgap .adv-sec-menu{left:50%;right:auto;bottom:auto;top:calc(100% + 6px);transform:translateX(-50%);}
+/* 이미지 박스에 드래그로 사진 놓을 때 하이라이트 */
+.adv-host .uie-box.uie-drop{outline:3px dashed #ff5a00;outline-offset:2px;}
 /* 상품핀 설명 팝업: 줄바꿈 유지 + 빈 사용제품 영역 최소높이 정리 */
 .adv-host .pv-pop .pv-desc{white-space:pre-line;}
 .adv-host .products:empty{display:none;}

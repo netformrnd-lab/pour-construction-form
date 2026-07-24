@@ -1,6 +1,8 @@
 <!-- ============================================================
-  event.html — POUR스토어 기획전(이벤트) 페이지 (오늘의집 스타일 · 공용 헤더 embed 포함)
-  데이터: Firestore config/pourstoreEvents {events:[...]} (어드민 '기획전(이벤트) 관리')
+  pour-products.html — POUR스토어 제품 보기 페이지 (공용 헤더 embed 포함)
+  용도: 카페24 pourstore_renewal/story/case.html
+  데이터: Firestore products (카페24 등록 상품 전체, 카테고리 탭 그리드)
+  카드 클릭 → pour-story.html#post-<id> 로 본문 열기
  ============================================================ -->
 <!-- ★ 모바일 반응형 필수: 뷰포트 meta 보장 (카페24가 head에서 누락/무효화 시 강제 주입·교정)
      — 이게 없으면 모바일이 ~980px로 렌더되어 모든 반응형(@media)이 발동 안 함 -->
@@ -1374,82 +1376,65 @@ var PM_POSTS = [];
 </section>
 
 
-<!-- ===== 기획전 본문 ===== -->
+
+
+<!-- ===== 제품 보기 본문 (products 컬렉션 · 카테고리 탭 그리드) ===== -->
 <style>
-  .pev *{box-sizing:border-box;margin:0;padding:0;}
-  .pev{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;max-width:1080px;margin:0 auto;padding:24px 16px 70px;-webkit-font-smoothing:antialiased;}
-  .pev-head{padding:6px 4px 20px;}
-  .pev-head h1{font-size:26px;font-weight:900;letter-spacing:-.04em;color:#111;}
-  .pev-head p{margin-top:7px;font-size:14px;color:#8a8f98;font-weight:600;letter-spacing:-.02em;}
-  .pev-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 24px;}
-  .pev-card{display:block;cursor:pointer;text-decoration:none;color:inherit;}
-  .pev-hero{position:relative;width:100%;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#f1f3f5;box-shadow:0 6px 20px rgba(0,0,0,.06);}
-  .pev-hero>img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease;}
-  .pev-card:hover .pev-hero>img{transform:scale(1.03);}
-  .pev-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.45),rgba(0,0,0,0) 55%);}
-  .pev-badge{position:absolute;top:14px;left:14px;background:rgba(0,0,0,.55);color:#fff;font-size:11.5px;font-weight:800;letter-spacing:-.02em;padding:5px 11px;border-radius:999px;backdrop-filter:blur(2px);}
-  .pev-period{position:absolute;top:14px;right:14px;background:rgba(232,120,15,.95);color:#fff;font-size:11px;font-weight:800;letter-spacing:-.02em;padding:4px 10px;border-radius:999px;}
-  .pev-hero-tt{position:absolute;left:18px;right:18px;bottom:16px;color:#fff;}
-  .pev-hero-tt b{display:block;font-size:20px;font-weight:900;letter-spacing:-.04em;line-height:1.28;text-shadow:0 2px 10px rgba(0,0,0,.35);word-break:keep-all;}
-  .pev-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px;}
-  .pev-th{position:relative;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#f1f3f5;}
-  .pev-th>img{width:100%;height:100%;object-fit:cover;display:block;}
-  .pev-th.empty{background:#f4f5f7;}
-  .pev-more{position:absolute;inset:0;background:rgba(20,22,28,.62);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;font-weight:900;letter-spacing:-.03em;}
-  .pev-catchip{margin-top:10px;display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:800;color:#E8780F;background:#FFF3E9;padding:7px 12px;border-radius:999px;}
-  .pev-empty,.pev-loading{padding:70px 0;text-align:center;color:#adb2bb;font-size:14px;font-weight:600;}
-  /* 상세 오버레이 */
-  .pev-detail{position:fixed;inset:0;z-index:100020;background:#fff;overflow-y:auto;-webkit-overflow-scrolling:touch;}
-  .pev-detail[hidden]{display:none;}
-  .pev-dt-top{position:sticky;top:0;z-index:5;height:54px;display:flex;align-items:center;gap:8px;padding:0 12px;background:rgba(255,255,255,.96);backdrop-filter:blur(6px);border-bottom:1px solid #F2F3F5;}
-  .pev-dt-back{width:38px;height:38px;display:grid;place-items:center;border:0;background:none;cursor:pointer;color:#333;flex-shrink:0;}
-  .pev-dt-back svg{width:24px;height:24px;}
-  .pev-dt-title{font-size:16px;font-weight:800;letter-spacing:-.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .pev-dt-body{padding:0 0 60px;}
-  .pev-dt-imgs{max-width:1280px;margin:0 auto;}
-  .pev-dt-imgs img{width:100%;display:block;}
-  .pev-dt-text{padding:16px 20px;line-height:1.7;color:#2a2e33;letter-spacing:-.02em;word-break:keep-all;}
-  .pev-dt-prods{max-width:1080px;margin:0 auto;padding:26px 16px 0;}
-  .pev-dt-prods h2{font-size:18px;font-weight:900;letter-spacing:-.03em;margin-bottom:14px;}
-  .pev-dt-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px 14px;}
-  .pev-dp{display:block;text-decoration:none;color:inherit;}
-  .pev-dp-th{aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#f1f3f5;}
-  .pev-dp-th>img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease;}
-  .pev-dp:hover .pev-dp-th>img{transform:scale(1.04);}
-  .pev-dp-nm{margin-top:8px;font-size:13.5px;font-weight:600;color:#333;line-height:1.4;letter-spacing:-.02em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  .pev-dp-price{margin-top:4px;font-size:15px;font-weight:900;color:#111;letter-spacing:-.02em;}
-  .pev-dt-catbtn{display:block;max-width:420px;margin:22px auto 0;text-align:center;background:#E8780F;color:#fff;font-size:15px;font-weight:800;padding:15px;border-radius:12px;text-decoration:none;letter-spacing:-.02em;}
+  .pv *{box-sizing:border-box;margin:0;padding:0;}
+  .pv{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;max-width:1180px;margin:0 auto;padding:24px 20px 80px;-webkit-font-smoothing:antialiased;}
+  .pv-head{padding:6px 2px 18px;text-align:center;}
+  .pv-head h1{font-size:38px;font-weight:900;letter-spacing:-.04em;color:#111;}
+  /* 카테고리 탭 (가로 스크롤, 상단 고정, 가운데 정렬) */
+  .pv-tabs{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid #EEF0F2;margin:0 -20px 22px;padding:10px 20px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;text-align:center;}
+  .pv-tabs::-webkit-scrollbar{display:none;}
+  .pv-tabs-inner{display:inline-flex;gap:32px;white-space:nowrap;}
+  .pv-tab{flex:0 0 auto;display:inline-flex;align-items:center;padding:9px 18px;border-radius:999px;background:transparent;color:#111;font-size:17.5px;font-weight:700;letter-spacing:-.02em;cursor:pointer;transition:background .15s,color .15s;font-family:inherit;text-decoration:none;border:0;}
+  .pv-tab:hover{color:#000;background:#F2F3F7;}
+  .pv-tab.on{background:#33373D;color:#fff;}
+  .pv-tab .cnt{display:none;}
+  /* 그리드 */
+  .pv-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:30px 22px;}
+  .pv-card{display:block;text-decoration:none;color:inherit;}
+  .pv-th{position:relative;width:100%;aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:#f3f4f6;box-shadow:0 4px 16px rgba(0,0,0,.05);}
+  .pv-th>img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease;}
+  .pv-card:hover .pv-th>img{transform:scale(1.045);}
+  .pv-th .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#c4c8ce;}
+  .pv-th .ph svg{width:40px;height:40px;}
+  .pv-soldout .pv-th::after{content:"품절";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(17,17,17,.5);color:#fff;font-size:14px;font-weight:800;letter-spacing:.02em;}
+  .pv-cat{display:block;margin:13px 0 4px;font-size:11.5px;font-weight:800;color:#E8780F;letter-spacing:-.02em;}
+  .pv-name{font-size:14.5px;font-weight:700;color:#191F28;letter-spacing:-.03em;line-height:1.4;word-break:keep-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em;}
+  .pv-price{margin-top:7px;font-size:16px;font-weight:900;color:#111;letter-spacing:-.02em;}
+  .pv-price .won{font-size:13px;font-weight:800;margin-left:1px;}
+  .pv-price .ask{font-size:13.5px;font-weight:700;color:#8a8f98;}
+  .pv-empty,.pv-loading{grid-column:1/-1;padding:80px 0;text-align:center;color:#adb2bb;font-size:14px;font-weight:600;}
+  .pv-count{margin:0 2px 14px;font-size:13px;color:#8a8f98;font-weight:600;}
+  @media (max-width:900px){ .pv-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:26px 16px;} }
   @media (max-width:640px){
-    .pev{padding:20px 16px 56px;}
-    .pev-grid{grid-template-columns:1fr;gap:24px;}
-    .pev-head h1{font-size:22px;}
-    .pev-hero-tt b{font-size:18px;}
-    .pev-dt-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 10px;}
-    .pev-dp-nm{font-size:12.5px;}
+    .pv{padding:18px 14px 60px;}
+    .pv-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 12px;}
+    .pv-head h1{font-size:30px;}
+    .pv-tabs{margin:0 -14px 18px;padding:9px 14px;text-align:left;}
+    .pv-tabs-inner{gap:20px;}
+    .pv-tab{font-size:16px;padding:8px 14px;}
+    .pv-name{font-size:13.5px;}
+    .pv-price{font-size:15px;}
   }
 </style>
 
-<div class="pev">
-  <div class="pev-head">
-    <h1>기획전</h1>
-    <p>POUR스토어가 준비한 특별한 기획전을 만나보세요.</p>
+<div class="pv">
+  <div class="pv-head">
+    <h1>제품 보기</h1>
   </div>
-  <div class="pev-loading" data-pev-loading>불러오는 중…</div>
-  <div class="pev-grid" data-pev-grid hidden></div>
-  <div class="pev-empty" data-pev-empty hidden>진행 중인 기획전이 없습니다.</div>
-</div>
-
-<div class="pev-detail" data-pev-detail hidden>
-  <div class="pev-dt-top">
-    <button class="pev-dt-back" data-pev-back type="button" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <div class="pev-dt-title" data-pev-dt-title></div>
+  <div class="pv-tabs" data-tabs><div class="pv-tabs-inner" data-tabs-inner></div></div>
+  <div class="pv-count" data-count></div>
+  <div class="pv-grid" data-grid>
+    <div class="pv-loading" data-loading>제품을 불러오는 중…</div>
   </div>
-  <div class="pev-dt-body" data-pev-dt-body></div>
 </div>
 
 <script type="module">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 const firebaseConfig = {
   apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
   authDomain: "pour-app-new.firebaseapp.com", projectId: "pour-app-new",
@@ -1458,103 +1443,165 @@ const firebaseConfig = {
 };
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
+var PC_TTL = 300000;
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
-function attrLink(u){ return (u && String(u).trim()) ? String(u).trim() : ''; }
-function within(ev){
-  var now=Date.now();
-  var s=ev.startAt?Date.parse(ev.startAt):NaN;
-  var e=ev.endAt?Date.parse(ev.endAt):NaN;
-  if(!isNaN(s)&&now<s) return false;
-  if(!isNaN(e)&&now>e) return false;
-  return true;
-}
-function periodLabel(ev){
-  function d(x){ var m=String(x||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[2]+'.'+m[3]):''; }
-  var a=d(ev.startAt), b=d(ev.endAt);
-  if(a&&b) return a+'~'+b; if(b) return '~'+b; if(a) return a+'~'; return '';
-}
-function thumbTile(p, moreN, isLast){
-  const img = (p && p.thumb) ? '<img src="'+esc(p.thumb)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : '';
-  const overlay = (isLast && moreN>0) ? '<span class="pev-more">+'+moreN+'</span>' : '';
-  const cls = 'pev-th'+((p&&p.thumb)?'':' empty');
-  return '<div class="'+cls+'">'+img+overlay+'</div>';
-}
-function cardHtml(ev, idx){
-  const heroImg = ev.thumbnail ? '<img src="'+esc(ev.thumbnail)+'" alt="'+esc(ev.title||'')+'" onerror="this.style.display=\'none\'">' : '';
-  const badge = ev.badge ? '<span class="pev-badge">'+esc(ev.badge)+'</span>' : '';
-  const per = periodLabel(ev);
-  const perEl = per ? '<span class="pev-period">'+esc(per)+'</span>' : '';
-  const heroInner = heroImg+'<div class="pev-hero-grad"></div>'+badge+perEl+'<div class="pev-hero-tt"><b>'+esc(ev.title||'')+'</b></div>';
-  var products = Array.isArray(ev.products)?ev.products:[];
-  var strip='';
-  if(products.length){
-    var show=products.slice(0,4);
-    var moreN = ev.moreCount ? Number(ev.moreCount) : (products.length>4?products.length-4:0);
-    var inner=''; for(let i=0;i<4;i++){ inner += thumbTile(show[i], moreN, i===3); }
-    strip = '<div class="pev-strip">'+inner+'</div>';
-  } else if(ev.categoryNo){
-    strip = '<div class="pev-catchip">🏷 카테고리 상품 보기</div>';
+var PH_SVG='<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5h16v14H4z"/><path d="M4 15l4-4 3 3 4-5 5 6"/></svg></div>';
+
+// ── 제품명 → 카테고리 분류 (우선순위 순서, 위에서부터 먼저 매칭) ──
+// products.category(imweb CATE코드)는 사람이 못 읽으므로 제품명 키워드로 분류한다.
+var TAB_RULES = [
+  ['패키지',   ['패키지','세트','키트','도구세트']],
+  ['안전용품', ['안전','세이프티','절연화','현장화','작업화','주방화','크린룸화','안전화','블랙야크','아이더','유니칸','네파','캠프라인','프렌칸토','K2','마스크','장갑','방진','안전모','벨트','칼라콘','꼬깔','목토시','넥워머','베스트','쿨토시','토시','스카프','방한','티셔츠','팬츠','양말','인솔','버킷햇','캠프캡','캠프햇','메쉬캡','메쉬햇','보안경','글러브','조끼','발등보호대','압박밴드','썬가드','베이스레이어','스파이크슈즈','넥쿨러','멀티넥','폴로','라운드티','조거','워커','풋밸런스','슈즈']],
+  ['보강자재', ['탄성강화','모체강화','강화 파우더','강화파우더','후커','드라이비트','코너비드','보강 매쉬','드라이비트매쉬','페이퍼 팬 벤트','팬벤트','팬 벤트']],
+  ['방수',     ['방수','우레탄','실란트','PVC시트','씰코트','씰패치','씰코팅','방수밀대','방수페인트','방수비','드림코트']],
+  ['균열보수', ['균열','크랙','퍼티','씰 프로','씰프로','인젝션','후레슁','후레싱','포트홀','아스콘','유화프라이머','아스팔트프라이머']],
+  ['페인트',   ['제비스코','에폭시','우방코트','프라이머','도료','락카','에나멜','바니쉬','매직칼라','라이닝','실러','PMQ','코트재','써밋페인트','페인트 강화','강화재','방청','녹방지']],
+  ['도장·도색',['붓','로라','롤러','로러','하나로','리필','트레이','도색통','공캔','신나통','P캔','스프레이건','스프레이','도색','풀솔','빽붓','극세사','로라대','노즐','코킹건','스프레이건','펌프','믹서','샌더','교반','브러쉬','유리블러','건','DS-','FR-']],
+  ['부자재',   ['헤라','스크래퍼','스크레퍼','바닥칼','밀대','고대','미장','흙손','사포','연마','테이프','커버링','보양','마스킹','한냉사','아사','빠데판','여과지','통','캔','컵','와이어브러쉬','믹서바','면보루','록타이트','접착제','비드','골판지','차커버','월패치','사이깡']],
+];
+// 카페24 내부 결제/정산용 더미 상품은 노출 제외
+function isJunk(name){ var n=String(name||''); return /자재대금|개인\s*결제|업체전용|님\s*개인|대금/.test(n); }
+function classify(name){
+  var n=String(name||'').replace(/\s+/g,'');
+  for(var i=0;i<TAB_RULES.length;i++){
+    var kws=TAB_RULES[i][1];
+    for(var j=0;j<kws.length;j++){ if(n.indexOf(kws[j].replace(/\s+/g,''))>=0) return TAB_RULES[i][0]; }
   }
-  return '<a class="pev-card" href="#ev-'+esc(ev.id)+'" data-ev="'+idx+'"><div class="pev-hero">'+heroInner+'</div>'+strip+'</a>';
+  return '기타';
+}
+// 탭 노출 순서 (실제 상품이 있는 탭만 표시)
+var TAB_ORDER=['패키지','방수','균열보수','도장·도색','페인트','보강자재','부자재','안전용품','기타'];
+
+function codeOf(p){ var c=(p.channels&&p.channels.imweb)||p.imwebId||''; return String(c).trim(); }
+function thumbOf(p){ var t=p.thumbnail||p.thumb||p.image; return (t&&String(t).trim())?String(t).trim():''; }
+function priceHtml(p){
+  var raw=p.salePrice||p.price||'';
+  var n=Number(String(raw).replace(/[^0-9.]/g,''));
+  if(!isNaN(n)&&n>0) return '<div class="pv-price">'+n.toLocaleString()+'<span class="won">원</span></div>';
+  return '<div class="pv-price"><span class="ask">가격문의</span></div>';
+}
+function isSoldout(p){ return /품절|판매중지|중지|불가/.test(String(p.salesStatus||p.displayStatus||'')); }
+
+function cardHtml(p){
+  var code=codeOf(p);
+  var link='/product/search.html?keyword='+encodeURIComponent((p.name||'').trim());  // 카페24 상품명 검색 → 실제 카페24 상품
+  var th=thumbOf(p);
+  var img=th ? '<img src="'+esc(th)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' : PH_SVG;
+  return '<a class="pv-card'+(isSoldout(p)?' pv-soldout':'')+'" href="'+esc(link)+'">'
+    + '<div class="pv-th">'+img+'</div>'
+    + '<span class="pv-cat">'+esc(p._tab)+'</span>'
+    + '<div class="pv-name">'+esc(p.name||'')+'</div>'
+    + priceHtml(p)
+    + '</a>';
 }
 
-var EVENTS=[];
-function openDetail(ev){
-  var detail=document.querySelector('[data-pev-detail]');
-  var body=document.querySelector('[data-pev-dt-body]');
-  var titleEl=document.querySelector('[data-pev-dt-title]');
-  titleEl.textContent=ev.title||'기획전';
-  var blocks=Array.isArray(ev.mainBlocks)?ev.mainBlocks:(Array.isArray(ev.mainImages)?ev.mainImages.filter(Boolean).map(function(u){return {type:'image',url:u};}):[]);
-  var TSZ={normal:'15px',large:'18px',title:'24px'};
-  var inner = blocks.length ? blocks.map(function(b){
-    if(b&&b.type==='text'){ var sz=TSZ[b.size||'normal']||'15px'; var fw=(b.size==='title')?'800':'500'; return '<div class="pev-dt-text" style="text-align:'+(b.align||'left')+';font-size:'+sz+';font-weight:'+fw+'">'+esc(b.text||'').replace(/\n/g,'<br>')+'</div>'; }
-    return '<img src="'+esc((b&&b.url)||'')+'" alt="" onerror="this.style.display=\'none\'">';
-  }).join('') : (ev.thumbnail ? '<img src="'+esc(ev.thumbnail)+'" alt="">' : '<div style="padding:60px 20px;text-align:center;color:#adb2bb;font-weight:600">기획전 내용이 준비 중입니다.</div>');
-  var h='<div class="pev-dt-imgs">'+inner+'</div>';
-  var products=Array.isArray(ev.products)?ev.products:[];
-  if(products.length){
-    h+='<div class="pev-dt-prods"><h2>이벤트 상품</h2><div class="pev-dt-grid">'+products.map(function(p){
-      var link=attrLink(p.link)||'#';
-      var im=p.thumb?'<img src="'+esc(p.thumb)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
-      var pr=''; if(p.price!=null && String(p.price).trim()!==''){ var n=Number(String(p.price).replace(/[^0-9.]/g,'')); pr=(!isNaN(n)&&n>0)?(n.toLocaleString()+'원'):esc(String(p.price)); }
-      return '<a class="pev-dp" href="'+esc(link)+'"><div class="pev-dp-th">'+im+'</div>'+(p.name?'<div class="pev-dp-nm">'+esc(p.name)+'</div>':'')+(pr?'<div class="pev-dp-price">'+pr+'</div>':'')+'</a>';
-    }).join('')+'</div></div>';
+// ===== 카페24 자체 호출: 같은 도메인의 상품목록(product/list.html)을 불러와 진짜 상품만 사용 =====
+// 탭 = 카페24 분류(cate_no). 방수 없음. 링크는 카페24가 준 detail.html?product_no=… 그대로 → 정상.
+var CATS=[['전체','73'],['패키지','71'],['균열보수','88'],['도장·도색','74'],['페인트','75'],['보강자재','92'],['부자재','84'],['안전용품','63']];
+var _cafeCache={};
+
+// 카페24 목록 HTML에서 일반 상품(li)만 추출 (베스트/신상품 슬라이더 제외)
+function parseProducts(html){
+  var doc; try{ doc=new DOMParser().parseFromString(html,'text/html'); }catch(e){ return []; }
+  var lis=doc.querySelectorAll('div[module="product_listnormal"] ul.prdList>li, .xans-product-listnormal ul.prdList>li, ul.prdList.grid4>li');
+  var arr=Array.prototype.slice.call(lis).filter(function(li){ return !li.closest('.main_product_slide') && !li.closest('.swiper-wrapper'); });
+  if(!arr.length){ // 폴백: product_no 링크를 가진 li 중 슬라이더 밖의 것
+    arr=Array.prototype.slice.call(doc.querySelectorAll('li')).filter(function(li){
+      return li.querySelector('a[href*="product_no="]') && !li.closest('.main_product_slide') && !li.closest('.swiper-wrapper');
+    });
   }
-  if(ev.categoryNo){
-    h+='<div class="pev-dt-prods"><a class="pev-dt-catbtn" href="/product/list.html?cate_no='+esc(ev.categoryNo)+'">이 카테고리 상품 전체보기 →</a></div>';
-  }
-  body.innerHTML=h;
-  detail.hidden=false; detail.scrollTop=0;
-  document.documentElement.style.overflow='hidden';
+  var out=[], seen={};
+  arr.forEach(function(li){
+    var a=li.querySelector('a[href*="product_no="]'); if(!a) return;
+    var href=a.getAttribute('href')||''; var m=href.match(/product_no=(\d+)/); var no=m?m[1]:''; if(!no||seen[no]) return; seen[no]=1;
+    var img=''; var ims=li.querySelectorAll('img');
+    for(var k=0;k<ims.length;k++){ var s=ims[k].getAttribute('ec-data-src')||ims[k].getAttribute('data-original')||ims[k].getAttribute('src')||''; s=(s||'').trim(); if(s && !/base64|blank|no_?image|noimg|loading/i.test(s)){ img=s; break; } }
+    if(img.indexOf('//')===0) img='https:'+img;
+    var name=''; var ne=li.querySelector('.name a, p.name a, strong.name, .name, [class*="name"] a, [class*="name"]');
+    if(ne) name=(ne.textContent||'').replace(/\s+/g,' ').trim();
+    name=name.replace(/^상품명\s*:?\s*/,'');
+    if(!name){ var al=li.querySelector('img'); if(al) name=(al.getAttribute('alt')||'').trim(); }
+    var txt=(li.textContent||''); var price=''; var pm=txt.match(/([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{3,})\s*원/); if(pm) price=pm[1].replace(/[^0-9]/g,'');
+    var soldout=/품절|sold\s*out|판매완료|판매중지/i.test(txt) || !!li.querySelector('.icon_soldout,.soldout,[class*="soldout"]');
+    var link=href; if(link.indexOf('http')!==0 && link.indexOf('/')!==0) link='/'+link;
+    out.push({productNo:no, link:link, img:img, name:name, price:price, soldout:soldout});
+  });
+  return out;
 }
-function closeDetail(){
-  var d=document.querySelector('[data-pev-detail]'); if(!d) return; d.hidden=true;
-  document.documentElement.style.overflow='';
-  if(location.hash){ try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} }
+
+// 분류 상품을 (페이지 넘겨가며) 전부 수집
+async function fetchCate(cateNo){
+  if(_cafeCache[cateNo]) return _cafeCache[cateNo];
+  var out=[], seen={}, page=1, MAXP=12;
+  while(page<=MAXP){
+    var url='/product/list.html?cate_no='+cateNo+'&page='+page, html;
+    try{ var r=await fetch(url,{credentials:'same-origin'}); if(!r.ok){ break; } html=await r.text(); }
+    catch(e){ console.warn('[제품보기] fetch 실패 cate='+cateNo+' page='+page, e&&e.message); break; }
+    var items=parseProducts(html); if(!items.length) break;
+    var added=0; items.forEach(function(it){ if(!seen[it.productNo]){ seen[it.productNo]=1; out.push(it); added++; } });
+    if(added===0) break;        // 페이지네이션 없음/마지막 → 중단
+    if(items.length<10) break;  // 마지막 페이지 추정
+    page++;
+  }
+  _cafeCache[cateNo]=out;
+  return out;
+}
+
+function cafeCard(p){
+  var img=p.img ? '<img src="'+esc(p.img)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' : PH_SVG;
+  var price=p.price ? '<div class="pv-price">'+Number(p.price).toLocaleString()+'<span class="won">원</span></div>' : '<div class="pv-price"><span class="ask">가격문의</span></div>';
+  return '<a class="pv-card'+(p.soldout?' pv-soldout':'')+'" href="'+esc(p.link)+'">'
+    +'<div class="pv-th">'+img+'</div>'
+    +'<div class="pv-name">'+esc(p.name||'')+'</div>'+price+'</a>';
+}
+
+// ── Firestore 폴백(카페24 호출 실패 시에만; 이때는 검색 링크) ──
+var _fsList=null;
+async function fsLoad(){
+  if(_fsList) return _fsList;
+  var loader=function(){ return getDocs(collection(db,'products')).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); };
+  var all=(window.__pcache ? await window.__pcache.wrap('col:products', PC_TTL, loader) : await loader());
+  var list=all.filter(function(p){ return p && p.isActive!==false && p.name && !isJunk(p.name) && p.displayStatus!=='N' && p.salesStatus!=='숨김'; });
+  list.forEach(function(p){ p._tab=classify(p.name); });
+  list.sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''),'ko'); });
+  _fsList=list; return list;
 }
 
 (async function(){
-  const grid=document.querySelector('[data-pev-grid]');
-  const loading=document.querySelector('[data-pev-loading]');
-  const empty=document.querySelector('[data-pev-empty]');
-  try{
-    const snap=await getDoc(doc(db,'config','pourstoreEvents'));
-    let list=(snap.exists() && Array.isArray(snap.data().events)?snap.data().events:[]).filter(e=>e && e.active!==false && within(e));
-    list.sort((a,b)=>((a.order||0)-(b.order||0)) || String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
-    console.log('[events] '+list.length+'건 노출');
-    EVENTS=list;
-    loading.hidden=true;
-    if(!list.length){ empty.hidden=false; return; }
-    grid.innerHTML=list.map((ev,i)=>cardHtml(ev,i)).join('');
-    grid.hidden=false;
-    grid.addEventListener('click',function(e){ var a=e.target.closest('[data-ev]'); if(!a) return; e.preventDefault(); var ev=EVENTS[+a.getAttribute('data-ev')]; if(ev){ try{ location.hash='ev-'+ev.id; }catch(_){} openDetail(ev); } });
-    var back=document.querySelector('[data-pev-back]'); if(back) back.addEventListener('click', closeDetail);
-    window.addEventListener('hashchange',function(){ var m=String(location.hash||'').match(/#ev-(.+)/); if(m){ var ev=EVENTS.filter(x=>String(x.id)===m[1])[0]; if(ev) openDetail(ev); } else closeDetail(); });
-    var m0=String(location.hash||'').match(/#ev-(.+)/); if(m0){ var ev0=EVENTS.filter(x=>String(x.id)===m0[1])[0]; if(ev0) openDetail(ev0); }
-  }catch(e){
-    console.error('[events] 로드 실패(빈 상태로 표시):', e);
-    loading.hidden=true; empty.hidden=false;   // 문서 없음/일시 오류 → 빈 상태로(에러문구 대신)
+  var grid=document.querySelector('[data-grid]');
+  var tabsInner=document.querySelector('[data-tabs-inner]');
+  var countEl=document.querySelector('[data-count]');
+  tabsInner.innerHTML=CATS.map(function(c){ return '<button class="pv-tab" data-cate="'+c[1]+'" data-name="'+esc(c[0])+'">'+esc(c[0])+'</button>'; }).join('');
+  function setActive(cateNo){ Array.prototype.forEach.call(tabsInner.querySelectorAll('.pv-tab'),function(b){ b.classList.toggle('on', b.getAttribute('data-cate')===String(cateNo)); }); }
+
+  async function show(cateNo, name){
+    setActive(cateNo);
+    grid.innerHTML='<div class="pv-loading">제품을 불러오는 중…</div>'; countEl.textContent='';
+    var items=[];
+    try{ items=await fetchCate(cateNo); }catch(e){ console.warn('[제품보기] fetchCate 예외', e&&e.message); }
+    if(items && items.length){
+      countEl.textContent='총 '+items.length.toLocaleString()+'개 제품';
+      grid.innerHTML=items.map(cafeCard).join('');
+      console.log('[제품보기] ✅ 카페24 '+name+'(cate '+cateNo+') '+items.length+'건 — 정상 상품 링크');
+      return;
+    }
+    console.warn('[제품보기] ⚠️ 카페24 '+name+' 0건 → Firestore 폴백(검색 링크)');
+    try{
+      var list=await fsLoad();
+      var f=(name==='전체')?list:list.filter(function(p){ return p._tab===name; });
+      countEl.textContent='총 '+f.length.toLocaleString()+'개 제품';
+      grid.innerHTML=f.length?f.map(cardHtml).join(''):'<div class="pv-empty">해당 카테고리에 제품이 없습니다.</div>';
+    }catch(e2){ console.error('[제품보기] 폴백도 실패', e2); grid.innerHTML='<div class="pv-empty">제품을 불러오지 못했어요. 잠시 후 새로고침해 주세요.</div>'; }
   }
+
+  tabsInner.addEventListener('click',function(e){ var b=e.target.closest('.pv-tab'); if(!b) return; show(b.getAttribute('data-cate'), b.getAttribute('data-name')); });
+
+  // #cat=이름 해시 진입 지원(예: #cat=부자재)
+  function nameFromHash(){ try{ return decodeURIComponent((location.hash||'').replace(/^#cat=/,'').replace(/^#/,'')); }catch(_){ return ''; } }
+  function catByName(nm){ for(var i=0;i<CATS.length;i++){ if(CATS[i][0]===nm) return CATS[i]; } return null; }
+  var h=catByName(nameFromHash());
+  if(h) show(h[1],h[0]); else show('73','전체');
+  window.addEventListener('hashchange',function(){ var c=catByName(nameFromHash())||['전체','73']; show(c[1],c[0]); var pv=document.querySelector('.pv'); if(pv) pv.scrollIntoView({behavior:'smooth',block:'start'}); });
 })();
 </script>

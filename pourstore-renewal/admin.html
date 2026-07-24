@@ -355,8 +355,11 @@ const NAV = [
   { id: 'recokeywords',    icon: '🏷', label: '추천검색어 관리',     group: 'design' },
   { id: 'postings',        icon: '📚', label: 'POUR이야기 관리',      group: 'design' },
   { id: 'events',          icon: '🎉', label: '기획전(이벤트) 관리',   group: 'design' },
+  { id: 'best',            icon: '🏆', label: '베스트 관리',           group: 'design' },
+  { id: 'guidedetail',     icon: '📖', label: '시공가이드 상세',        group: 'design' },
   { id: 'packages',        icon: '🧩', label: '패키지 구성 관리',     group: 'design' },
   { id: 'banners',         icon: '🖼', label: '메인 배너 관리',       group: 'design' },
+  { id: 'homecards',       icon: '🏠', label: '홈 소재별 카드 관리',   group: 'design' },
   { id: 'products',        icon: '📦', label: '상품관리',           group: 'design' },
   { id: 'metrics',         icon: '📊', label: '공신력 수치',        group: 'design' },
   { id: 'method-links',    icon: '🔗', label: '링크 관리',          group: 'design' },
@@ -4826,27 +4829,270 @@ const blocksToBody=(blocks)=>(blocks||[]).map(b=>b.type==='image'?(b.url||''):(b
 
 // ============================================================
 // 기획전(이벤트) 관리 — 오늘의집 스타일 카드 (큰 이미지 + 상품 썸네일 줄)
-//   저장: pourstore-events / 노출: event.html
+//   저장: config/pourstoreEvents {events:[...]} (보안규칙상 쓰기 허용 컬렉션) / 노출: event.html
 // ============================================================
+// ============================================================
+// 시공가이드 상세 — 유형별 콘텐츠(텍스트/영상/이미지) 편집
+//   저장: config/pourstoreGuideDetail {types:{'1'..'4':{title,blocks:[]}}} / 노출: guide-detail.html
+// ============================================================
+var GD_TYPES=[['1','옥상 평형 슬라브'],['2','아스팔트 슁글'],['3','금속기와/칼라강판'],['4','균열 및 이음부 보강']];
+function GuideDetailPage({showToast}){
+  const [data,setData]=useState({});
+  const [type,setType]=useState('1');
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [uploading,setUploading]=useState(-1);
+  const GDREF=()=>db.collection('config').doc('pourstoreGuideDetail');
+  useEffect(()=>{ (async()=>{
+    try{ const snap=await GDREF().get(); const d=(snap.exists&&snap.data())||{}; setData((d.types&&typeof d.types==='object')?d.types:{}); console.log('[가이드상세] 로드'); }
+    catch(e){ console.error('[가이드상세] 로드 실패(없으면 빈값):',e); }
+    setLoading(false);
+  })(); },[]);
+  const cur=data[type]||{title:'',blocks:[]};
+  const blocks=Array.isArray(cur.blocks)?cur.blocks:[];
+  const setCur=(patch)=>setData({...data,[type]:{...cur,...patch}});
+  const setBlocks=(arr)=>setCur({blocks:arr});
+  const addBlock=(b)=>setBlocks([...blocks,b]);
+  const setBlockAt=(i,patch)=>setBlocks(blocks.map((b,j)=>j===i?{...b,...patch}:b));
+  const removeBlock=(i)=>{ if(!window.confirm('이 블록을 삭제할까요?'))return; setBlocks(blocks.filter((_,j)=>j!==i)); };
+  const moveBlock=(i,d)=>{ var j=i+d; if(j<0||j>=blocks.length)return; var a=blocks.slice(); var t=a[i];a[i]=a[j];a[j]=t; setBlocks(a); };
+  const upload=async(i,file)=>{
+    if(!file)return; if(!file.type.startsWith('image/')){ showToast('이미지 파일만 가능','error'); return; } if(file.size>20*1024*1024){ showToast('20MB 이하 이미지','error'); return; }
+    setUploading(i);
+    try{ const ts=Date.now(); const safe=file.name.replace(/[^\w.\-]/g,'_'); const snap=await storage.ref('POUR스토어_리뉴얼/guide-detail/'+ts+'_'+safe).put(file); const url=await snap.ref.getDownloadURL(); setBlockAt(i,{url:url}); }
+    catch(e){ console.error('[가이드상세] 업로드 실패:',e); showToast('업로드 실패: '+(e&&e.message||e),'error'); }
+    setUploading(-1);
+  };
+  const save=async()=>{ setSaving(true);
+    try{ await GDREF().set({types:data,updatedAt:new Date().toISOString()},{merge:true}); showToast('저장했어요 · 상세 페이지에 반영','success'); }
+    catch(e){ console.error('[가이드상세] 저장 실패:',e); showToast('저장 실패: '+(e&&e.message||e),'error'); }
+    setSaving(false);
+  };
+  const field={width:'100%',padding:'10px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13.5,outline:'none',boxSizing:'border-box',fontFamily:'inherit'};
+  const seg=(on)=>({padding:'7px 13px',borderRadius:8,border:'1.5px solid '+(on?'var(--navy)':'var(--border)'),background:on?'var(--navy)':'#fff',color:on?'#fff':'var(--text-md)',fontSize:12,fontWeight:800,cursor:'pointer'});
+  const addBtn=(txt,onClick)=>(<button onClick={onClick} style={{padding:'9px 15px',borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>{txt}</button>);
+  const iconBtn={width:28,height:28,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',lineHeight:1};
+  const typeName=(GD_TYPES.find(t=>t[0]===type)||['','',''])[1];
+  return (
+    <div style={{padding:'8px 4px'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:10}}>
+        <div>
+          <h1 style={{fontSize:20,fontWeight:900,color:'var(--navy)'}}>📖 시공가이드 상세</h1>
+          <p style={{fontSize:12.5,color:'var(--text-md)',marginTop:4}}>유형별로 <b>텍스트·영상·이미지</b>를 순서대로 넣어 상세 페이지를 구성해요. <b>guide-detail.html</b>에 노출됩니다.</p>
+        </div>
+        <button onClick={save} disabled={saving} style={{padding:'12px 26px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',background:saving?'var(--text-sm)':'linear-gradient(135deg, var(--navy), var(--navy2))',boxShadow:'0 4px 12px rgba(13,27,42,.2)',cursor:saving?'default':'pointer'}}>{saving?'저장 중…':'💾 저장'}</button>
+      </div>
+      {loading && <div style={{padding:'40px 0',textAlign:'center',color:'var(--text-sm)'}}>불러오는 중…</div>}
+      {!loading && <React.Fragment>
+        {/* 유형 탭 */}
+        <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
+          {GD_TYPES.map(function(t){ var n=((data[t[0]]&&data[t[0]].blocks)||[]).length; return <button key={t[0]} onClick={()=>setType(t[0])} style={seg(type===t[0])}>{t[1]} <span style={{opacity:.6,fontWeight:900}}>{n}</span></button>; })}
+        </div>
+        {/* 대표 제목 */}
+        <div style={{background:'#fff',border:'1px solid var(--border)',borderRadius:12,padding:14,marginBottom:14,boxShadow:'var(--shadow)'}}>
+          <div style={{fontSize:12,fontWeight:800,color:'var(--navy)',marginBottom:6}}>{typeName} · 대표 제목 <span style={{fontWeight:600,color:'var(--text-sm)'}}>(맨 위 큰 제목, 예: 듀얼 평형 옥상 방수 시공 순서)</span></div>
+          <input value={cur.title||''} onChange={e=>setCur({title:e.target.value})} placeholder="상세 페이지 상단 제목" style={field}/>
+        </div>
+        {/* 블록들 */}
+        {blocks.length===0 && <div style={{padding:'34px 0',textAlign:'center',color:'var(--text-sm)',fontSize:13,background:'#fff',borderRadius:12,border:'1px dashed var(--border)',marginBottom:12}}>아직 콘텐츠가 없어요. 아래에서 텍스트·영상·이미지를 추가하세요.</div>}
+        <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:16}}>
+          {blocks.map(function(b,i){
+            var badge=b.type==='text'?'📝 텍스트':(b.type==='video'?'🎬 영상':'🖼 이미지');
+            return (
+              <div key={i} style={{background:'#fff',border:'1px solid var(--border)',borderRadius:12,padding:14,boxShadow:'var(--shadow)'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                  <span style={{fontSize:12,fontWeight:900,color:'var(--navy)',background:'var(--bg)',padding:'4px 10px',borderRadius:7}}>{badge}</span>
+                  <input value={b.label||''} onChange={e=>setBlockAt(i,{label:e.target.value})} placeholder="소제목(선택) 예: 동영상 / 시공방법" style={{...field,flex:1,fontSize:12.5,padding:'7px 10px'}}/>
+                  <button onClick={()=>moveBlock(i,-1)} disabled={i===0} style={{...iconBtn,opacity:i===0?.35:1}}>↑</button>
+                  <button onClick={()=>moveBlock(i,1)} disabled={i===blocks.length-1} style={{...iconBtn,opacity:i===blocks.length-1?.35:1}}>↓</button>
+                  <button onClick={()=>removeBlock(i)} style={{...iconBtn,color:'var(--red)'}}>×</button>
+                </div>
+                {b.type==='text' && <React.Fragment>
+                  <div style={{display:'flex',gap:6,marginBottom:8}}>
+                    {[['head','제목'],['big','크게'],['normal','보통']].map(function(sz){ var on=(b.size||'normal')===sz[0]; return <button key={sz[0]} onClick={()=>setBlockAt(i,{size:sz[0]})} style={{padding:'5px 11px',borderRadius:7,border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or)':'#fff',color:on?'#fff':'var(--text-md)',fontSize:11.5,fontWeight:800,cursor:'pointer'}}>{sz[1]}</button>; })}
+                  </div>
+                  <textarea value={b.text||''} onChange={e=>setBlockAt(i,{text:e.target.value})} placeholder="내용을 입력하세요 (줄바꿈 그대로 반영)" rows={4} style={{...field,resize:'vertical',lineHeight:1.6}}/>
+                </React.Fragment>}
+                {b.type==='image' && <div style={{display:'flex',gap:12,alignItems:'flex-start',flexWrap:'wrap'}}>
+                  <div style={{width:150,height:150,borderRadius:10,border:'1px solid var(--border)',background:'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
+                    {b.url?<img src={b.url} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}}/>:<span style={{fontSize:11,color:'var(--text-sm)'}}>미리보기</span>}
+                  </div>
+                  <div style={{flex:1,minWidth:180}}>
+                    <label style={{display:'inline-block',padding:'9px 15px',borderRadius:9,border:'1.5px solid var(--or)',background:uploading===i?'var(--or-pale)':'#fff',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer',marginBottom:8}}>{uploading===i?'업로드 중…':'📤 이미지 업로드'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)upload(i,f); e.target.value='';}}/></label>
+                    <input value={b.url||''} onChange={e=>setBlockAt(i,{url:e.target.value})} placeholder="또는 이미지 주소(URL) 직접 입력" style={{...field,fontSize:12,padding:'8px 10px'}}/>
+                  </div>
+                </div>}
+                {b.type==='video' && <React.Fragment>
+                  <input value={b.url||''} onChange={e=>setBlockAt(i,{url:e.target.value})} placeholder="유튜브 주소 붙여넣기 (예: https://youtu.be/xxxx) · mp4 주소도 가능" style={field}/>
+                  <div style={{fontSize:11.5,color:'var(--text-sm)',marginTop:6}}>유튜브 링크를 붙여넣으면 자동으로 영상 플레이어가 들어가요.</div>
+                </React.Fragment>}
+              </div>
+            );
+          })}
+        </div>
+        {/* 추가 버튼 */}
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          {addBtn('＋ 텍스트', ()=>addBlock({type:'text',text:'',size:'normal',label:''}))}
+          {addBtn('＋ 영상', ()=>addBlock({type:'video',url:'',label:''}))}
+          {addBtn('＋ 이미지', ()=>addBlock({type:'image',url:'',label:''}))}
+        </div>
+        <div style={{marginTop:14,padding:'11px 14px',background:'var(--blue-l)',borderRadius:10,fontSize:12,color:'var(--text-md)',lineHeight:1.6}}>
+          💡 유형(4개)별로 따로 구성하고 <b>저장</b>을 눌러야 반영돼요. 상단 "시공 전 준비사항"(STEP 1~4)은 고정이라 여기서 편집하지 않아요.
+        </div>
+      </React.Fragment>}
+    </div>
+  );
+}
+// ============================================================
+// 베스트 관리 — 카테고리별 일/주/월 베스트 상품 수동 지정
+//   저장: config/pourstoreBest {periods:{daily/weekly/monthly:{카테고리:[...]}}} / 노출: best.html
+//   (카페24 판매량 자동연동 전 수동 운영 → 나중에 Worker가 같은 문서를 자동 갱신)
+// ============================================================
+var BEST_CATS=['전체','패키지','방수','균열보수','도장·도색','페인트','보강자재','부자재','안전용품'];
+var BEST_PERIODS=[['daily','일간'],['weekly','주간'],['monthly','월간']];
+function BestPage({showToast}){
+  const [data,setData]=useState({daily:{},weekly:{},monthly:{}});
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [period,setPeriod]=useState('daily');
+  const [cat,setCat]=useState('전체');
+  const [allProds,setAllProds]=useState([]);
+  const [prodQ,setProdQ]=useState('');
+  const [loadingProds,setLoadingProds]=useState(true);
+  const BREF=()=>db.collection('config').doc('pourstoreBest');
+  useEffect(()=>{ (async()=>{
+    try{ const snap=await BREF().get(); const d=(snap.exists&&snap.data())||{}; const p=(d.periods&&typeof d.periods==='object')?d.periods:{};
+      setData({daily:p.daily||{},weekly:p.weekly||{},monthly:p.monthly||{}}); console.log('[best] 랭킹문서 로드'); }
+    catch(e){ console.error('[best] 로드 실패(없으면 빈값으로 시작):',e); }
+    setLoading(false);
+  })(); },[]);
+  useEffect(()=>{ let alive=true;
+    db.collection('products').get().then(function(snap){ if(!alive)return;
+      var arr=snap.docs.map(function(d){return {id:d.id,...d.data()};}).filter(function(p){return p&&p.isActive!==false&&p.name;});
+      arr.sort(function(a,b){return String(a.name||'').localeCompare(String(b.name||''),'ko');});
+      console.log('[best] 등록상품 '+arr.length+'건'); setAllProds(arr); setLoadingProds(false);
+    }).catch(function(e){ console.error('[best] 상품 로드 실패:',e); setLoadingProds(false); });
+    return function(){alive=false;};
+  },[]);
+  const prodCode=(p)=>{ var c=(p.channels&&p.channels.imweb)||p.imwebId||''; return String(c).trim(); };
+  const cur=(data[period]&&data[period][cat])||[];
+  const setCur=(arr)=>{ setData({...data,[period]:{...(data[period]||{}),[cat]:arr}}); };
+  const catCount=(c)=>((data[period]&&data[period][c])||[]).length;
+  const addFromProduct=(p)=>{ var code=prodCode(p);
+    if(code&&cur.some(function(x){return x.code===code;})){ showToast('이미 담긴 상품이에요','error'); return; }
+    setCur([...cur,{code:code,name:p.name||'',brand:p.brand||'POUR스토어',thumb:p.thumbnail||'',price:p.price!=null?Number(p.price):0,salePrice:p.salePrice!=null?Number(p.salePrice):0,link:code?('/product/detail.html?product_no='+encodeURIComponent(code)):(p.imwebUrl||'')}]); };
+  const move=(i,d)=>{ var j=i+d; if(j<0||j>=cur.length)return; var a=cur.slice(); var t=a[i];a[i]=a[j];a[j]=t; setCur(a); };
+  const removeAt=(i)=>setCur(cur.filter((_,j)=>j!==i));
+  const filtered=(function(){ var q=prodQ.trim().toLowerCase(); var base=q?allProds.filter(function(p){return String(p.name||'').toLowerCase().indexOf(q)!==-1;}):allProds; return base.slice(0,80); })();
+  const save=async()=>{ setSaving(true);
+    try{ await BREF().set({basisDate:'',updatedAt:new Date().toISOString(),periods:data}); showToast('저장했어요 · best.html에 바로 반영','success'); }
+    catch(e){ console.error('[best] 저장 실패:',e); showToast('저장 실패: '+(e&&e.message||e),'error'); }
+    setSaving(false);
+  };
+  const won=(n)=>{ var v=Number(n); return (!isNaN(v)&&v>0)?v.toLocaleString()+'원':''; };
+  const seg=(on)=>({padding:'9px 18px',borderRadius:9,border:'1.5px solid '+(on?'var(--navy)':'var(--border)'),background:on?'var(--navy)':'#fff',color:on?'#fff':'var(--text-md)',fontSize:13,fontWeight:800,cursor:'pointer'});
+  const cseg=(on)=>({padding:'7px 13px',borderRadius:999,border:'1.5px solid '+(on?'var(--navy)':'var(--border)'),background:on?'var(--navy)':'#fff',color:on?'#fff':'var(--text-md)',fontSize:12.5,fontWeight:800,cursor:'pointer'});
+  const panel={border:'1px solid var(--border)',borderRadius:14,background:'#fff',padding:14,boxShadow:'var(--shadow)'};
+  const panelH={fontSize:13,fontWeight:900,color:'var(--navy)',marginBottom:10};
+  const iconBtn={width:28,height:28,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',lineHeight:1};
+  const thumbS={width:44,height:44,borderRadius:8,objectFit:'cover',background:'var(--bg)',flexShrink:0,border:'1px solid var(--border)'};
+  const periodLabel=(BEST_PERIODS.find(x=>x[0]===period)||['','일간'])[1];
+  return (
+    <div style={{padding:'8px 4px'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:10}}>
+        <div>
+          <h1 style={{fontSize:20,fontWeight:900,color:'var(--navy)'}}>🏆 베스트 관리</h1>
+          <p style={{fontSize:12.5,color:'var(--text-md)',marginTop:4}}>카테고리별 <b>일간·주간·월간</b> 베스트 상품을 직접 골라 순서대로 배치합니다. <b>best.html</b>에 노출돼요. (판매량 자동연동 전 수동 운영)</p>
+        </div>
+        <button onClick={save} disabled={saving} style={{padding:'12px 26px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',background:saving?'var(--text-sm)':'linear-gradient(135deg, var(--navy), var(--navy2))',boxShadow:'0 4px 12px rgba(13,27,42,.2)',cursor:saving?'default':'pointer'}}>{saving?'저장 중…':'💾 저장'}</button>
+      </div>
+      {loading && <div style={{padding:'40px 0',textAlign:'center',color:'var(--text-sm)'}}>불러오는 중…</div>}
+      {!loading && <React.Fragment>
+        <div style={{display:'flex',gap:8,marginBottom:12}}>
+          {BEST_PERIODS.map(function(x){ return <button key={x[0]} onClick={()=>setPeriod(x[0])} style={seg(period===x[0])}>{x[1]}</button>; })}
+        </div>
+        <div style={{display:'flex',gap:7,flexWrap:'wrap',marginBottom:16}}>
+          {BEST_CATS.map(function(c){ return <button key={c} onClick={()=>setCat(c)} style={cseg(cat===c)}>{c} <span style={{opacity:.6,fontWeight:900}}>{catCount(c)}</span></button>; })}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(330px,1fr))',gap:16,alignItems:'start'}}>
+          {/* 왼쪽: 현재 베스트 목록(순서) */}
+          <div style={panel}>
+            <div style={panelH}>현재 베스트 — {periodLabel} · {cat} <span style={{color:'var(--or-d)'}}>({cur.length})</span></div>
+            {cur.length===0 && <div style={{padding:'34px 0',textAlign:'center',color:'var(--text-sm)',fontSize:12.5}}>담긴 상품이 없어요.<br/>오른쪽에서 상품을 추가하세요.</div>}
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {cur.map(function(p,i){ return (
+                <div key={(p.code||'')+i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px',border:'1px solid var(--border-s)',borderRadius:10}}>
+                  <span style={{width:24,height:24,borderRadius:6,background:'var(--navy)',color:'#fff',fontSize:12,fontWeight:900,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{i+1}</span>
+                  {p.thumb?<img src={p.thumb} alt="" style={thumbS}/>:<div style={{...thumbS,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontSize:9}}>없음</div>}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12.5,fontWeight:700,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name||'(이름없음)'}</div>
+                    <div style={{fontSize:11.5,color:'var(--text-md)',fontWeight:800}}>{won(p.salePrice||p.price)}{p.code?(' · 코드 '+p.code):''}</div>
+                  </div>
+                  <div style={{display:'flex',gap:4,flexShrink:0}}>
+                    <button onClick={()=>move(i,-1)} disabled={i===0} style={{...iconBtn,opacity:i===0?.35:1}}>↑</button>
+                    <button onClick={()=>move(i,1)} disabled={i===cur.length-1} style={{...iconBtn,opacity:i===cur.length-1?.35:1}}>↓</button>
+                    <button onClick={()=>removeAt(i)} style={{...iconBtn,color:'var(--red)'}}>×</button>
+                  </div>
+                </div>
+              ); })}
+            </div>
+          </div>
+          {/* 오른쪽: 등록상품에서 추가 */}
+          <div style={panel}>
+            <div style={panelH}>상품 추가 <span style={{fontWeight:700,color:'var(--text-sm)',fontSize:11.5}}>(카페24 등록상품)</span></div>
+            <input value={prodQ} onChange={e=>setProdQ(e.target.value)} placeholder="상품명 검색…" style={{width:'100%',padding:'10px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13,outline:'none',boxSizing:'border-box',marginBottom:10}}/>
+            {loadingProds && <div style={{padding:'20px 0',textAlign:'center',color:'var(--text-sm)',fontSize:12}}>상품 불러오는 중…</div>}
+            {!loadingProds && <div style={{maxHeight:460,overflowY:'auto',display:'flex',flexDirection:'column',gap:6}}>
+              {filtered.map(function(p){ var code=prodCode(p); var inList=code&&cur.some(function(x){return x.code===code;}); return (
+                <div key={p.id} style={{display:'flex',alignItems:'center',gap:10,padding:'7px',border:'1px solid var(--border-s)',borderRadius:10}}>
+                  {p.thumbnail?<img src={p.thumbnail} alt="" style={thumbS}/>:<div style={{...thumbS,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontSize:9}}>없음</div>}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12.5,fontWeight:700,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
+                    <div style={{fontSize:11.5,color:'var(--text-md)',fontWeight:800}}>{won(p.salePrice||p.price)}{code?(' · 코드 '+code):''}</div>
+                  </div>
+                  <button onClick={()=>addFromProduct(p)} disabled={inList} style={{padding:'7px 13px',borderRadius:8,border:'1.5px solid '+(inList?'var(--border)':'var(--navy)'),background:inList?'var(--bg)':'#fff',color:inList?'var(--text-sm)':'var(--navy)',fontSize:12,fontWeight:800,cursor:inList?'default':'pointer',flexShrink:0}}>{inList?'담김':'추가'}</button>
+                </div>
+              ); })}
+              {filtered.length===0 && <div style={{padding:'20px 0',textAlign:'center',color:'var(--text-sm)',fontSize:12}}>검색 결과가 없어요.</div>}
+            </div>}
+          </div>
+        </div>
+        <div style={{marginTop:14,padding:'11px 14px',background:'var(--blue-l)',borderRadius:10,fontSize:12,color:'var(--text-md)',lineHeight:1.6}}>
+          💡 <b>전체</b> 탭은 카테고리 구분 없이 전체 베스트로 노출돼요. 각 기간(일/주/월)·카테고리별로 따로 담고 <b>저장</b>을 눌러야 반영됩니다. 나중에 판매가 쌓이면 자동연동으로 전환할 수 있어요.
+        </div>
+      </React.Fragment>}
+    </div>
+  );
+}
 function EventsPage({showToast}){
   const [items,setItems]=useState([]);
   const [loading,setLoading]=useState(true);
   const [editing,setEditing]=useState(null);
+  const EVREF=()=>db.collection('config').doc('pourstoreEvents');
   const load=async()=>{
     setLoading(true);
     try{
-      const snap=await db.collection('pourstore-events').get();
-      const arr=snap.docs.map(d=>({id:d.id,...d.data()}));
+      const snap=await EVREF().get();
+      const arr=(snap.exists && Array.isArray(snap.data().events))?snap.data().events.map(e=>({...e})):[];
       arr.sort((a,b)=>((a.order||0)-(b.order||0)) || String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
       console.log('[events] '+arr.length+'건 로드');
       setItems(arr);
-    }catch(e){ console.error('[events] 로드 실패:',e); showToast('불러오기 실패: '+(e&&e.message||e),'error'); }
+    }catch(e){ console.error('[events] 로드 실패(문서 없음이면 빈 목록으로 시작):',e); setItems([]); }
     setLoading(false);
   };
   useEffect(()=>{ load(); },[]);
-  const startNew=()=>setEditing({title:'',subtitle:'',badge:'',thumbnail:'',link:'',moreCount:'',products:[],active:true,order:items.length?Math.max.apply(null,items.map(i=>i.order||0))+1:0});
-  const remove=async(id)=>{ if(!window.confirm('이 기획전을 삭제할까요?'))return; try{ await db.collection('pourstore-events').doc(id).delete(); showToast('삭제했어요','success'); load(); }catch(e){ showToast('삭제 실패: '+(e&&e.message||e),'error'); } };
-  const toggleActive=async(it)=>{ try{ await db.collection('pourstore-events').doc(it.id).set({active:it.active===false,updatedAt:new Date().toISOString()},{merge:true}); load(); }catch(e){ showToast('변경 실패','error'); } };
+  const persist=async(arr)=>{ await EVREF().set({events:arr,updatedAt:new Date().toISOString()},{merge:true}); setItems(arr); };
+  const startNew=()=>setEditing({title:'',thumbnail:'',startAt:'',endAt:'',mainImages:[],productMode:'manual',categoryNo:'',products:[],subtitle:'',badge:'',link:'',moreCount:'',active:true,order:items.length?Math.max.apply(null,items.map(i=>i.order||0))+1:0});
+  const saveEvent=async(ev)=>{
+    const now=new Date().toISOString();
+    let arr;
+    if(ev.id && items.some(it=>it.id===ev.id)){ arr=items.map(it=>it.id===ev.id?{...ev,updatedAt:now}:it); }
+    else { const id=ev.id||('ev_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)); arr=[...items,{...ev,id:id,createdAt:now,updatedAt:now}]; }
+    await persist(arr);
+    showToast('저장했어요','success'); setEditing(null);
+  };
+  const remove=async(id)=>{ if(!window.confirm('이 기획전을 삭제할까요?'))return; try{ await persist(items.filter(it=>it.id!==id)); showToast('삭제했어요','success'); }catch(e){ showToast('삭제 실패: '+(e&&e.message||e),'error'); } };
+  const toggleActive=async(it)=>{ try{ await persist(items.map(x=>x.id===it.id?{...x,active:it.active===false,updatedAt:new Date().toISOString()}:x)); }catch(e){ showToast('변경 실패','error'); } };
   return (
     <div style={{padding:'8px 4px'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:10}}>
@@ -4877,11 +5123,11 @@ function EventsPage({showToast}){
           </div>
         ))}
       </div>
-      {editing && <EventEditor form={editing} setForm={setEditing} onClose={()=>setEditing(null)} onSaved={()=>{setEditing(null);load();}} showToast={showToast}/>}
+      {editing && <EventEditor form={editing} setForm={setEditing} onClose={()=>setEditing(null)} onSave={saveEvent} showToast={showToast}/>}
     </div>
   );
 }
-function EventEditor({form,setForm,onClose,onSaved,showToast}){
+function EventEditor({form,setForm,onClose,onSave,showToast}){
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState('');
   const set=(patch)=>setForm({...form,...patch});
@@ -4892,24 +5138,65 @@ function EventEditor({form,setForm,onClose,onSaved,showToast}){
     catch(e){ console.error('[events] 업로드 실패:',e); showToast('업로드 실패: '+(e&&e.message||e),'error'); }
     setUploading('');
   };
-  const setProduct=(i,patch)=>{ const ps=(form.products||[]).map((p,j)=>j===i?{...p,...patch}:p); set({products:ps}); };
-  const addProduct=()=>set({products:[...(form.products||[]),{thumb:'',name:'',link:''}]});
-  const removeProduct=(i)=>set({products:(form.products||[]).filter((_,j)=>j!==i)});
+  // 메인 기획전 내용 = 블록 배열(이미지/글). 구버전 mainImages(URL 배열) 자동 변환
+  const blocks=Array.isArray(form.mainBlocks)?form.mainBlocks:(Array.isArray(form.mainImages)?form.mainImages.filter(Boolean).map(u=>({type:'image',url:u})):[]);
+  const setBlocks=(arr)=>set({mainBlocks:arr});
+  const addImgBlock=(url)=>setBlocks([...blocks,{type:'image',url:url||''}]);
+  const addTextBlock=()=>setBlocks([...blocks,{type:'text',text:'',align:'left',size:'normal'}]);
+  const setBlockAt=(i,patch)=>setBlocks(blocks.map((b,j)=>j===i?{...b,...patch}:b));
+  const removeBlock=(i)=>setBlocks(blocks.filter((_,j)=>j!==i));
+  const moveBlock=(i,d)=>{ const j=i+d; if(j<0||j>=blocks.length)return; const a=blocks.slice(); const t=a[i]; a[i]=a[j]; a[j]=t; setBlocks(a); };
+  const mode=form.productMode||'manual';
+  const prods=Array.isArray(form.products)?form.products:[];
+  const setProduct=(i,patch)=>set({products:prods.map((p,j)=>j===i?{...p,...patch}:p)});
+  const addProduct=()=>set({products:[...prods,{code:'',name:'',thumb:'',link:''}]});
+  const removeProduct=(i)=>set({products:prods.filter((_,j)=>j!==i)});
+  // ===== 등록된 상품(카페24/products 컬렉션)에서 검색·선택 =====
+  const [allProds,setAllProds]=useState([]);
+  const [prodQ,setProdQ]=useState('');
+  const [loadingProds,setLoadingProds]=useState(true);
+  useEffect(()=>{ let alive=true;
+    db.collection('products').get().then(function(snap){ if(!alive)return;
+      var arr=snap.docs.map(function(d){return {id:d.id,...d.data()};}).filter(function(p){return p&&p.isActive!==false;});
+      arr.sort(function(a,b){return String(a.name||'').localeCompare(String(b.name||''));});
+      console.log('[events] 등록상품 '+arr.length+'건 로드'); setAllProds(arr); setLoadingProds(false);
+    }).catch(function(e){ console.error('[events] 상품 로드 실패:',e); setLoadingProds(false); });
+    return function(){alive=false;};
+  },[]);
+  const prodCode=(p)=>{ var c=(p.channels&&p.channels.imweb)||p.imwebId||''; return String(c).trim(); };
+  const addFromProduct=(p)=>{ var code=prodCode(p); if(code && prods.some(function(x){return x.code===code;})) return; var price=p.salePrice||p.price||''; set({products:[...prods,{code:code,name:p.name||'',thumb:p.thumbnail||'',price:price!==''?String(price):'',link:code?('/product/detail.html?product_no='+encodeURIComponent(code)):(p.imwebUrl||'')}]}); };
+  const filteredProds=(function(){ var q=prodQ.trim().toLowerCase(); var base=q?allProds.filter(function(p){return String(p.name||'').toLowerCase().indexOf(q)!==-1;}):allProds; return base.slice(0,60); })();
   const save=async()=>{
     if(!(form.title||'').trim()){ showToast('제목을 입력하세요','error'); return; }
     setSaving(true);
     try{
       const now=new Date().toISOString();
-      const payload={title:form.title.trim(),subtitle:form.subtitle||'',badge:form.badge||'',thumbnail:form.thumbnail||'',link:form.link||'',moreCount:Number(form.moreCount)||0,products:(form.products||[]).filter(p=>p.thumb||p.name||p.link).map(p=>({thumb:p.thumb||'',name:p.name||'',link:p.link||''})),active:form.active!==false,order:Number(form.order)||0,updatedAt:now};
-      if(form.id) await db.collection('pourstore-events').doc(form.id).set(payload,{merge:true});
-      else { payload.createdAt=now; await db.collection('pourstore-events').add(payload); }
-      showToast('저장했어요','success'); onSaved();
+      const products=prods.filter(p=>p.code||p.name||p.thumb||p.link).map(p=>{ const code=(p.code||'').trim(); const link=(p.link||'').trim()||(code?('/product/detail.html?product_no='+encodeURIComponent(code)):''); return {code:code,name:p.name||'',thumb:p.thumb||'',price:p.price!=null?String(p.price):'',link:link}; });
+      const payload={
+        id:form.id||'',
+        title:form.title.trim(),
+        thumbnail:form.thumbnail||'',
+        startAt:form.startAt||'', endAt:form.endAt||'',
+        mainBlocks:blocks.filter(b=>b&&(b.type==='text'?(b.text||'').trim():(b.url||'').trim())).map(b=>b.type==='text'?{type:'text',text:b.text||'',align:b.align||'left',size:b.size||'normal'}:{type:'image',url:b.url||''}),
+        mainImages:blocks.filter(b=>b&&b.type==='image'&&(b.url||'').trim()).map(b=>b.url), // 구버전 event.html 호환
+        productMode:mode,
+        categoryNo:(form.categoryNo||'').trim(),
+        products:products,
+        subtitle:form.subtitle||'', badge:form.badge||'', link:form.link||'', moreCount:Number(form.moreCount)||0,
+        active:form.active!==false, order:Number(form.order)||0
+      };
+      await onSave(payload); // 저장은 EventsPage가 config/pourstoreEvents 배열로 처리
     }catch(e){ console.error('[events] 저장 실패:',e); showToast('저장 실패: '+(e&&e.message||e),'error'); }
     setSaving(false);
   };
-  const field={width:'100%',padding:'11px 13px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13.5,outline:'none',boxSizing:'border-box',marginTop:6};
-  const lbl={fontSize:12.5,fontWeight:800,color:'var(--text)'};
-  const upBtn=(key,cb)=>(<label style={{marginTop:6,padding:'0 12px',height:41,borderRadius:8,border:'1px solid var(--border)',background:uploading===key?'var(--or-pale)':'var(--bg)',fontSize:11,fontWeight:800,color:'var(--or-d)',cursor:'pointer',display:'flex',alignItems:'center',flexShrink:0}}>{uploading===key?'…':'업로드'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)upload(key,f,cb); e.target.value='';}}/></label>);
+  const field={width:'100%',padding:'11px 13px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13.5,outline:'none',boxSizing:'border-box'};
+  const lbl={fontSize:13,fontWeight:900,color:'var(--navy)'};
+  const sub={fontSize:11.5,fontWeight:700,color:'var(--text-md)',marginBottom:4};
+  const help={fontSize:11.5,color:'var(--text-sm)',marginTop:6,lineHeight:1.5};
+  const seg=(on)=>({padding:'8px 14px',borderRadius:8,border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or)':'#fff',color:on?'#fff':'var(--text-md)',fontSize:12.5,fontWeight:800,cursor:'pointer'});
+  const addBtnS={padding:'7px 13px',borderRadius:8,border:'1.5px solid var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12,fontWeight:800,cursor:'pointer'};
+  const rowField={...field,fontSize:12.5,padding:'8px 10px'};
+  const upBtn=(key,cb,txt)=>(<label style={{padding:'0 12px',height:39,borderRadius:8,border:'1px solid var(--border)',background:uploading===key?'var(--or-pale)':'var(--bg)',fontSize:11.5,fontWeight:800,color:'var(--or-d)',cursor:'pointer',display:'flex',alignItems:'center',flexShrink:0,whiteSpace:'nowrap'}}>{uploading===key?'…':(txt||'업로드')}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)upload(key,f,cb); e.target.value='';}}/></label>);
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(13,27,42,.55)',zIndex:3000,display:'flex',alignItems:'center',justifyContent:'center',padding:20,backdropFilter:'blur(2px)'}}>
       <div style={{background:'#fff',borderRadius:18,width:'96vw',maxWidth:920,maxHeight:'94vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 24px 70px rgba(0,0,0,.35)'}}>
@@ -4918,53 +5205,128 @@ function EventEditor({form,setForm,onClose,onSaved,showToast}){
           <button onClick={onClose} style={{width:34,height:34,borderRadius:9,border:'1px solid var(--border)',background:'#fff',fontSize:18,cursor:'pointer'}}>×</button>
         </div>
         <div style={{flex:1,overflowY:'auto',padding:'22px 28px'}}>
-          <label style={lbl}>기획전 제목 *</label>
-          <input value={form.title} onChange={e=>set({title:e.target.value})} placeholder="예: 오늘의 모든 특가, 오늘의딜" style={field}/>
-          <div style={{height:12}}/>
-          <label style={lbl}>부제목 (선택)</label>
-          <input value={form.subtitle||''} onChange={e=>set({subtitle:e.target.value})} placeholder="예: 단 24시간 초특가 스페셜딜" style={field}/>
-          <div style={{height:12}}/>
-          <label style={lbl}>뱃지/라벨 (선택) — 이미지 위 작은 태그</label>
-          <input value={form.badge||''} onChange={e=>set({badge:e.target.value})} placeholder="예: HOT · 24시간특가" style={field}/>
-          <div style={{height:12}}/>
-          <label style={lbl}>큰 기획전 썸네일 이미지 *</label>
-          <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+
+          {/* ① 썸네일 */}
+          <label style={lbl}>① 썸네일 이미지 <span style={{color:'var(--or-d)'}}>*</span></label>
+          <div style={help}>목록(기획전 리스트)에 보이는 대표 이미지예요.</div>
+          <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
             <input value={form.thumbnail||''} onChange={e=>set({thumbnail:e.target.value})} placeholder="이미지 URL 또는 업로드" style={{...field,flex:1}}/>
-            {upBtn('thumb',url=>set({thumbnail:url}))}
-            <div style={{width:64,height:44,borderRadius:8,marginTop:6,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',flexShrink:0}}>{form.thumbnail&&<img src={form.thumbnail} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}</div>
+            {upBtn('thumb',url=>set({thumbnail:url}),'썸네일 업로드')}
           </div>
-          <div style={{height:12}}/>
-          <label style={lbl}>기획전 링크 (선택) — 큰 이미지 클릭 시 이동</label>
-          <input value={form.link||''} onChange={e=>set({link:e.target.value})} placeholder="예: /product/list.html?cate_no=71" style={field}/>
-          <div style={{height:12}}/>
-          <label style={lbl}>+더보기 숫자 (선택) — 마지막 칸에 "+697"처럼 표시</label>
-          <input type="number" value={form.moreCount||''} onChange={e=>set({moreCount:e.target.value})} placeholder="예: 697 (비우면 표시 안 함)" style={field}/>
+          <div style={{width:'100%',maxWidth:300,aspectRatio:'16/9',borderRadius:12,overflow:'hidden',background:'var(--bg)',border:'1px solid var(--border)',marginTop:10,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontSize:12}}>{form.thumbnail?<img src={form.thumbnail} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:'썸네일 미리보기'}</div>
+
+          {/* 제목 */}
           <div style={{height:18}}/>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <label style={lbl}>상품 썸네일 (아래 줄에 진열) — 최대 4개 노출</label>
-            <button onClick={addProduct} style={{padding:'7px 12px',borderRadius:8,border:'1.5px solid var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12,fontWeight:800,cursor:'pointer'}}>+ 상품 추가</button>
+          <label style={lbl}>제목 <span style={{color:'var(--or-d)'}}>*</span></label>
+          <input value={form.title||''} onChange={e=>set({title:e.target.value})} placeholder="예: 패키지 상품 무료반환 이벤트" style={{...field,marginTop:8}}/>
+
+          {/* 노출 기간 */}
+          <div style={{height:18}}/>
+          <label style={lbl}>노출 기간</label>
+          <div style={help}>이 기간에만 이벤트 페이지에 노출돼요. (비우면 항상 노출) · 시·분까지 설정 가능</div>
+          <div style={{display:'flex',gap:12,marginTop:8,flexWrap:'wrap'}}>
+            <div style={{flex:1,minWidth:210}}><div style={sub}>시작 일시</div><input type="datetime-local" value={form.startAt||''} onChange={e=>set({startAt:e.target.value})} style={field}/></div>
+            <div style={{flex:1,minWidth:210}}><div style={sub}>종료 일시</div><input type="datetime-local" value={form.endAt||''} onChange={e=>set({endAt:e.target.value})} style={field}/></div>
           </div>
-          <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:8}}>
-            {(form.products||[]).length===0 && <div style={{fontSize:12,color:'var(--text-sm)',padding:'10px 0'}}>상품이 없습니다. "+ 상품 추가"로 넣으세요.</div>}
-            {(form.products||[]).map((p,i)=>(
-              <div key={i} style={{display:'flex',gap:8,alignItems:'flex-start',padding:10,border:'1px solid var(--border)',borderRadius:10,background:'var(--bg)'}}>
-                <div style={{width:52,height:52,borderRadius:8,overflow:'hidden',background:'#fff',border:'1px solid var(--border)',flexShrink:0}}>{p.thumb&&<img src={p.thumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}</div>
-                <div style={{flex:1,display:'flex',flexDirection:'column',gap:6}}>
-                  <div style={{display:'flex',gap:6}}>
-                    <input value={p.thumb||''} onChange={e=>setProduct(i,{thumb:e.target.value})} placeholder="상품 이미지 URL" style={{...field,marginTop:0,fontSize:12.5,padding:'8px 10px'}}/>
-                    {upBtn('p'+i,url=>setProduct(i,{thumb:url}))}
-                  </div>
-                  <input value={p.name||''} onChange={e=>setProduct(i,{name:e.target.value})} placeholder="상품명 (선택)" style={{...field,marginTop:0,fontSize:12.5,padding:'8px 10px'}}/>
-                  <input value={p.link||''} onChange={e=>setProduct(i,{link:e.target.value})} placeholder="상품 링크 (선택)" style={{...field,marginTop:0,fontSize:12.5,padding:'8px 10px'}}/>
+
+          <hr style={{margin:'24px 0',border:0,borderTop:'1px solid var(--border)'}}/>
+
+          {/* ② 메인 기획전 내용 (이미지 · 글) */}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+            <label style={lbl}>② 메인 기획전 내용 (이미지 · 글)</label>
+            <div style={{display:'flex',gap:6}}>
+              {upBtn('mnew',url=>addImgBlock(url),'＋ 이미지')}
+              <button type="button" onClick={addTextBlock} style={addBtnS}>＋ 글</button>
+            </div>
+          </div>
+          <div style={help}>상세 화면에 위→아래로 이어붙어요. 이미지와 글을 원하는 순서로 섞을 수 있어요. (▲▼로 순서 이동)<br/>이미지 권장: <b>가로 1280px · 세로 최대 3000px</b></div>
+          <div style={{marginTop:12,display:'flex',flexDirection:'column',gap:12}}>
+            {blocks.length===0 && <div style={{fontSize:12.5,color:'var(--text-sm)',padding:'16px',textAlign:'center',border:'1px dashed var(--border)',borderRadius:10}}>내용이 없습니다. 위 <b>＋ 이미지</b> 또는 <b>＋ 글</b>로 추가하세요.</div>}
+            {blocks.map((b,i)=>(
+              <div key={i} style={{border:'1px solid var(--border)',borderRadius:12,overflow:'hidden',background:'var(--bg)'}}>
+                <div style={{display:'flex',alignItems:'center',gap:6,padding:'6px 10px',borderBottom:'1px solid var(--border-s)',background:'#fff'}}>
+                  <span style={{fontSize:11,fontWeight:800,color:b.type==='text'?'var(--purple)':'var(--or-d)'}}>{b.type==='text'?'✍ 글':'🖼 이미지'} {i+1}</span>
+                  <div style={{flex:1}}/>
+                  <button type="button" onClick={()=>moveBlock(i,-1)} disabled={i===0} style={{width:26,height:26,borderRadius:6,border:'1px solid var(--border)',background:'#fff',cursor:'pointer',fontSize:12,opacity:i===0?.4:1}}>▲</button>
+                  <button type="button" onClick={()=>moveBlock(i,1)} disabled={i===blocks.length-1} style={{width:26,height:26,borderRadius:6,border:'1px solid var(--border)',background:'#fff',cursor:'pointer',fontSize:12,opacity:i===blocks.length-1?.4:1}}>▼</button>
+                  <button type="button" onClick={()=>removeBlock(i)} style={{padding:'5px 10px',borderRadius:6,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontSize:12,fontWeight:800,cursor:'pointer'}}>× 삭제</button>
                 </div>
-                <button onClick={()=>removeProduct(i)} style={{width:30,height:30,borderRadius:8,border:'1px solid var(--border)',background:'#fff',color:'var(--red)',fontSize:15,cursor:'pointer',flexShrink:0}}>×</button>
+                {b.type==='text' ? (
+                  <div style={{padding:10}}>
+                    <div style={{display:'flex',gap:6,marginBottom:6,flexWrap:'wrap'}}>
+                      {[['left','좌'],['center','가운데'],['right','우']].map(o=>{const on=(b.align||'left')===o[0];return <button key={o[0]} type="button" onClick={()=>setBlockAt(i,{align:o[0]})} style={{padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or-pale)':'#fff',color:on?'var(--or-d)':'var(--text-md)'}}>{o[1]}</button>;})}
+                      <span style={{width:1,height:16,background:'var(--border)',alignSelf:'center'}}/>
+                      {[['normal','보통'],['large','크게'],['title','제목']].map(o=>{const on=(b.size||'normal')===o[0];return <button key={o[0]} type="button" onClick={()=>setBlockAt(i,{size:o[0]})} style={{padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or-pale)':'#fff',color:on?'var(--or-d)':'var(--text-md)'}}>{o[1]}</button>;})}
+                    </div>
+                    <textarea value={b.text||''} onChange={e=>setBlockAt(i,{text:e.target.value})} placeholder="여기에 글을 입력하세요. 줄바꿈도 그대로 반영돼요." rows={4} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13.5,outline:'none',boxSizing:'border-box',resize:'vertical',fontFamily:'inherit',lineHeight:1.6}}/>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{position:'relative',background:'#f4f5f7'}}>
+                      {b.url? <img src={b.url} alt="" style={{width:'100%',display:'block'}}/> : <div style={{height:120,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontSize:12}}>이미지 없음</div>}
+                    </div>
+                    <div style={{display:'flex',gap:6,padding:10,alignItems:'center'}}>
+                      <input value={b.url||''} onChange={e=>setBlockAt(i,{url:e.target.value})} placeholder="이미지 URL" style={{...rowField,flex:1}}/>
+                      {upBtn('m'+i,url=>setBlockAt(i,{url:url}),'교체')}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
-          <div style={{height:16}}/>
+
+          <hr style={{margin:'24px 0',border:0,borderTop:'1px solid var(--border)'}}/>
+
+          {/* ③ 제품 진열 */}
+          <label style={lbl}>③ 제품 진열</label>
+          <div style={{display:'flex',gap:6,margin:'10px 0'}}>
+            <button type="button" onClick={()=>set({productMode:'manual'})} style={seg(mode!=='category')}>등록 상품에서 선택</button>
+            <button type="button" onClick={()=>set({productMode:'category'})} style={seg(mode==='category')}>상품 카테고리로</button>
+          </div>
+          {mode==='category' ? (
+            <div>
+              <div style={sub}>카테고리 번호 (cate_no)</div>
+              <input value={form.categoryNo||''} onChange={e=>set({categoryNo:e.target.value})} placeholder="예: 71 (카페24 상품분류 번호)" style={field}/>
+              <div style={help}>이벤트 페이지에서 <b>“이 카테고리 상품 전체보기”</b> 버튼으로 연결돼요. (/product/list.html?cate_no=번호)</div>
+            </div>
+          ) : (
+            <div>
+              <div style={help}>스토어에 <b>등록된 상품</b>을 검색해서 골라 담으세요. (상품명·썸네일·링크가 자동으로 들어가요)</div>
+              <input value={prodQ} onChange={e=>setProdQ(e.target.value)} placeholder="🔍 상품명으로 검색" style={{...field,marginTop:8}}/>
+              <div style={{marginTop:8,maxHeight:250,overflowY:'auto',border:'1px solid var(--border)',borderRadius:10}}>
+                {loadingProds && <div style={{padding:'24px',textAlign:'center',color:'var(--text-sm)',fontSize:12}}>등록 상품 불러오는 중…</div>}
+                {!loadingProds && filteredProds.length===0 && <div style={{padding:'24px',textAlign:'center',color:'var(--text-sm)',fontSize:12}}>검색 결과가 없어요.</div>}
+                {filteredProds.map((p,i)=>{ const code=prodCode(p); const added=code&&prods.some(x=>x.code===code); return (
+                  <div key={p.id||i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',borderBottom:'1px solid var(--border-s)'}}>
+                    <div style={{width:44,height:44,borderRadius:8,overflow:'hidden',background:'#fff',border:'1px solid var(--border)',flexShrink:0}}>{p.thumbnail&&<img src={p.thumbnail} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:700,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name||'(이름없음)'}</div>
+                      <div style={{fontSize:11.5,color:'var(--text-sm)'}}>{p.salePrice?(Number(p.salePrice).toLocaleString()+'원'):''}{code?(' · 코드 '+code):''}</div>
+                    </div>
+                    <button type="button" onClick={()=>addFromProduct(p)} disabled={added} style={{padding:'6px 12px',borderRadius:7,border:'1.5px solid '+(added?'var(--border)':'var(--or)'),background:added?'var(--bg)':'var(--or-pale)',color:added?'var(--text-sm)':'var(--or-d)',fontSize:12,fontWeight:800,cursor:added?'default':'pointer',flexShrink:0}}>{added?'추가됨':'+ 추가'}</button>
+                  </div>
+                );})}
+              </div>
+              <div style={{marginTop:14}}>
+                <div style={sub}>추가된 상품 ({prods.length})</div>
+                {prods.length===0 && <div style={{fontSize:12,color:'var(--text-sm)',padding:'6px 0'}}>위에서 상품을 검색해 <b>+ 추가</b> 하세요.</div>}
+                <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:6}}>
+                  {prods.map((p,i)=>(
+                    <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 8px',border:'1px solid var(--border)',borderRadius:8,background:'var(--bg)'}}>
+                      <div style={{width:34,height:34,borderRadius:6,overflow:'hidden',background:'#fff',border:'1px solid var(--border)',flexShrink:0}}>{p.thumb&&<img src={p.thumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}</div>
+                      <div style={{flex:1,minWidth:0}}><div style={{fontSize:12.5,fontWeight:600,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name||p.code||'(상품)'}</div>{p.price?<div style={{fontSize:11.5,fontWeight:800,color:'var(--navy)'}}>{Number(String(p.price).replace(/[^0-9.]/g,'')).toLocaleString()}원</div>:null}</div>
+                      <button onClick={()=>removeProduct(i)} style={{width:26,height:26,borderRadius:6,border:'1px solid var(--border)',background:'#fff',color:'var(--red)',fontSize:14,cursor:'pointer',flexShrink:0}}>×</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div style={{height:18}}/>
           <div style={{display:'flex',gap:16,alignItems:'center'}}>
-            <label style={{...lbl,display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}><input type="checkbox" checked={form.active!==false} onChange={e=>set({active:e.target.checked})}/> 노출</label>
-            <label style={{...lbl,display:'flex',alignItems:'center',gap:6}}>정렬순서 <input type="number" value={form.order} onChange={e=>set({order:e.target.value})} style={{width:70,padding:'6px 8px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12}}/></label>
+            <label style={{...lbl,fontWeight:800,display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}><input type="checkbox" checked={form.active!==false} onChange={e=>set({active:e.target.checked})}/> 노출</label>
+            <label style={{...lbl,fontWeight:800,display:'flex',alignItems:'center',gap:6}}>정렬순서 <input type="number" value={form.order} onChange={e=>set({order:e.target.value})} style={{width:70,padding:'6px 8px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12}}/></label>
           </div>
         </div>
         <div style={{display:'flex',gap:10,padding:'14px 28px',borderTop:'1px solid var(--border)',flexShrink:0}}>
@@ -4975,6 +5337,7 @@ function EventEditor({form,setForm,onClose,onSaved,showToast}){
     </div>
   );
 }
+
 function PostingsPage({showToast}){
   const { audit } = useActiveStaffContext();
   const [list,setList]=useState([]);
@@ -5583,13 +5946,16 @@ function advBuildUIE(box, host, onChange){
   if(box.dataset.uieReady==='1') return; box.dataset.uieReady='1';
   let crop=box.querySelector(':scope > .uie-crop'); let img;
   if(crop){ img=crop.querySelector('img'); } else { img=box.querySelector(':scope > img'); if(!img) return; crop=document.createElement('div'); crop.className='uie-crop'; box.insertBefore(crop,img); crop.appendChild(img); }
-  const state={scale:100,x:0,y:0,mode:'box'};
-  function applyImg(){ const s=Math.max(50,Math.min(300,state.scale))/100; img.style.transform='translate(-50%,-50%) translate('+state.x+'px,'+state.y+'px) scale('+s+')'; }
+  const state={scale:100,posX:50,posY:50,mode:'box'};
+  // 저장된 크롭 위치(object-position)·배율 복원
+  (function(){ var op=(img.style.objectPosition||'').trim(); var m=op.match(/(-?\d+(?:\.\d+)?)%\s+(-?\d+(?:\.\d+)?)%/); if(m){ state.posX=Math.max(0,Math.min(100,+m[1])); state.posY=Math.max(0,Math.min(100,+m[2])); } var sm=(img.style.transform||'').match(/scale\(([\d.]+)\)/); if(sm){ state.scale=Math.max(100,Math.min(300,Math.round(+sm[1]*100))); } })();
+  // object-position으로 크롭 위치를 정해 항상 박스를 꽉 채움(회색 여백 없음)
+  function applyImg(){ const s=Math.max(100,Math.min(300,state.scale))/100; state.posX=Math.max(0,Math.min(100,state.posX)); state.posY=Math.max(0,Math.min(100,state.posY)); img.style.objectPosition=state.posX.toFixed(1)+'% '+state.posY.toFixed(1)+'%'; img.style.transform='translate(-50%,-50%) scale('+s+')'; }
   applyImg();
   const smallImg=!!box.closest('.comment-card,.material-row,.case-card');
-  const open=document.createElement('button'); open.type='button'; open.className='uie-open'; open.textContent=smallImg?'🖼':'🖼 이미지 변경'; open.title='이미지 변경';
+  const open=document.createElement('button'); open.type='button'; open.className='uie-open'; open.textContent=smallImg?'🖼':'🖼 이미지 변경'; open.title='이미지 변경 · 사진 클릭 후 Ctrl+V 붙여넣기·드래그로도 넣기';
   const panel=document.createElement('div'); panel.className='uie-panel';
-  panel.innerHTML='<p class="uie-title">이미지 편집</p><div class="uie-row"><label>이미지 링크로 넣기</label><div class="uie-url-line"><input class="uie-input js-url" type="url" placeholder="https:// 이미지 주소 붙여넣기"><button type="button" class="uie-btn js-apply">적용</button></div></div><div class="uie-row"><label>컴퓨터에서 업로드</label><div class="uie-upload-line"><label class="uie-file-btn">업로드<input class="js-file" type="file" accept="image/*" style="display:none"></label><div class="uie-preview js-preview"><span>🖼</span></div></div></div><div class="uie-tabs uie-adv-only"><button type="button" class="uie-tab js-tab is-active" data-mode="box">박스 크기 조절</button><button type="button" class="uie-tab js-tab" data-mode="inner">안쪽 이미지 조절</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-addpoint" style="width:100%">＋ 상품·설명 점 추가</button></div><div class="uie-hl-wrap uie-adv-only"></div><div class="uie-actions"><button type="button" class="uie-btn ghost js-reset">초기화</button><button type="button" class="uie-btn ghost js-close">닫기</button></div><p class="uie-help"><b>박스 크기</b> 모드=파란 점으로 이미지 칸을 조절 · <b>안쪽 이미지</b> 모드=주황 점을 끌거나 사진을 직접 드래그해서 조절</p>';
+  panel.innerHTML='<p class="uie-title">이미지 편집</p><div class="uie-row"><label>이미지 링크로 넣기</label><div class="uie-url-line"><input class="uie-input js-url" type="url" placeholder="https:// 이미지 주소 붙여넣기"><button type="button" class="uie-btn js-apply">적용</button></div></div><div class="uie-row"><label>컴퓨터에서 업로드</label><div class="uie-upload-line"><label class="uie-file-btn">업로드<input class="js-file" type="file" accept="image/*" style="display:none"></label><div class="uie-preview js-preview"><span>🖼</span></div></div></div><div class="uie-tabs uie-adv-only uie-sizetab"><button type="button" class="uie-tab js-tab is-active" data-mode="box">박스 크기 조절</button><button type="button" class="uie-tab js-tab" data-mode="inner">안쪽 이미지 조절</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-unify" style="width:100%">↔ 모든 사진 이 크기로 통일</button></div><div class="uie-row uie-adv-only"><button type="button" class="uie-btn ghost js-addpoint" style="width:100%">＋ 상품·설명 점 추가</button></div><div class="uie-hl-wrap uie-adv-only"></div><div class="uie-actions"><button type="button" class="uie-btn ghost js-reset">초기화</button><button type="button" class="uie-btn ghost js-close">닫기</button></div><p class="uie-help"><b>박스 크기</b> 모드=파란 점을 위·아래로 끌어 <b>높이</b>만 조절돼요(가로는 항상 꽉 참) · <b>안쪽 이미지</b> 모드=사진을 끌어 <b>보이는 부위 이동</b>(위로 끌면 아래쪽이 보임·회색 여백 안 생김), 주황 점으로 확대 · 사진 크기가 안 맞으면 <b>모든 사진 이 크기로 통일</b> · <b>Ctrl+Z</b> 되돌리기 · <b>Ctrl+Y</b> 다시하기</p>';
   box.appendChild(open); box.appendChild(panel);
   ['nw','n','ne','e','se','s','sw','w'].forEach(dir=>{ const h=document.createElement('span'); h.className='uie-handle '+dir; h.dataset.dir=dir; box.appendChild(h); });
   const badge=document.createElement('span'); badge.className='uie-badge'; box.appendChild(badge);
@@ -5651,7 +6017,7 @@ function advBuildUIE(box, host, onChange){
   if(!Array.isArray(points)) points=[];
   function newPid(){ return 'p'+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36); }
   points.forEach(function(p){ if(!p.id) p.id=newPid(); });
-  function savePoints(){ box.dataset.points=JSON.stringify(points); syncStepProducts(); onChange&&onChange(); }
+  function savePoints(){ box.dataset.points=JSON.stringify(points); syncStepProducts(); if(host&&host.__advSyncEstimate){ try{ host.__advSyncEstimate(); }catch(_){} } onChange&&onChange(); }
   function closePops(){ box.querySelectorAll('.uie-pop').forEach(p=>p.remove()); }
   function esc(v){ return String(v==null?'':v).replace(/"/g,'&quot;'); }
   function pointFields(p){
@@ -5835,6 +6201,13 @@ function advBuildUIE(box, host, onChange){
   const preview=panel.querySelector('.js-preview');
   function refreshPreview(){ preview.innerHTML=''; const pv=document.createElement('img'); pv.src=img.src; pv.alt=''; pv.onerror=()=>{preview.innerHTML='<span>🖼</span>';}; preview.appendChild(pv); }
   refreshPreview();
+  // ---- 사진 붙여넣기(Ctrl+V) / 드래그 놓기 로 바로 넣기 ----
+  function applyImgFile(f){ if(!f||!(f.type||'').startsWith('image/')){ alert('이미지 파일만 가능합니다.'); return; } if(f.size>20*1024*1024){ alert('20MB 이하 이미지만 가능합니다 (GIF 포함)'); return; } if(window.__advUploadImage){ window.__advUploadImage('advpx_'+Date.now(), f, function(url){ img.src=url; refreshPreview(); onChange&&onChange(); }); } else { advReadFile(f).then(function(url){ img.src=url; refreshPreview(); onChange&&onChange(); }); } }
+  box.__advApplyFile=applyImgFile;
+  box.addEventListener('dragover',function(e){ e.preventDefault(); box.classList.add('uie-drop'); });
+  box.addEventListener('dragleave',function(){ box.classList.remove('uie-drop'); });
+  box.addEventListener('drop',function(e){ e.preventDefault(); box.classList.remove('uie-drop'); const files=e.dataTransfer&&e.dataTransfer.files; if(files&&files[0]) applyImgFile(files[0]); });
+  if(!window.__advPasteBound){ window.__advPasteBound=true; document.addEventListener('paste',function(e){ const t=e.target; if(t&&(/^(input|textarea)$/i.test(t.tagName)||t.isContentEditable)) return; const b=document.querySelector('.adv-host .uie-box.is-selected'); if(!b||!b.__advApplyFile) return; const items=(e.clipboardData&&e.clipboardData.items)||[]; for(let k=0;k<items.length;k++){ if(((items[k].type)||'').indexOf('image')===0){ const f=items[k].getAsFile(); if(f){ e.preventDefault(); b.__advApplyFile(f); return; } } } }); }
   function updateBadge(){ if(state.mode==='inner'){ badge.textContent='이미지 '+Math.round(state.scale)+'%'; } else { const r=box.getBoundingClientRect(); badge.textContent=Math.round(r.width)+' × '+Math.round(r.height)+' 박스'; } }
   function refreshMode(){ box.classList.toggle('inner-mode',state.mode==='inner'); panel.querySelectorAll('.js-tab').forEach(t=>t.classList.toggle('is-active',t.dataset.mode===state.mode)); updateBadge(); }
   function selectBox(){ host.querySelectorAll('.uie-box.is-selected').forEach(b=>{if(b!==box)b.classList.remove('is-selected');}); box.classList.add('is-selected'); refreshMode(); }
@@ -5846,7 +6219,8 @@ function advBuildUIE(box, host, onChange){
   open.addEventListener('click',e=>{ e.stopPropagation(); host.querySelectorAll('.uie-panel.is-open').forEach(p=>{if(p!==panel)p.classList.remove('is-open');}); panel.classList.toggle('is-open'); selectBox(); });
   panel.addEventListener('click',e=>e.stopPropagation());
   panel.querySelector('.js-close').addEventListener('click',()=>panel.classList.remove('is-open'));
-  panel.querySelector('.js-reset').addEventListener('click',()=>{ state.scale=100; state.x=0; state.y=0; box.style.width=''; box.style.height=''; applyImg(); updateBadge(); onChange&&onChange(); });
+  panel.querySelector('.js-reset').addEventListener('click',()=>{ state.scale=100; state.posX=50; state.posY=50; box.style.width=''; box.style.height=''; applyImg(); updateBadge(); onChange&&onChange(); });
+  const unifyBtn=panel.querySelector('.js-unify'); if(unifyBtn){ unifyBtn.addEventListener('click',()=>{ const hpx=Math.round(box.getBoundingClientRect().height); let n=0; host.querySelectorAll('.uie-box').forEach(b=>{ b.style.width=''; b.style.height=hpx+'px'; n++; }); console.log('[uie] 모든 사진 크기 통일: '+n+'개 → '+hpx+'px'); applyImg(); updateBadge(); onChange&&onChange(); }); }
   box.addEventListener('click',e=>{ if(e.target.closest('.uie-open,.uie-panel,.uie-handle,.uie-point,.uie-pop,.uie-dot,.uie-hint,.uie-vtx,.uie-hlmove'))return; if(drawing){ addDrawPoint(e); return; } selectBox(); });
   box.querySelectorAll('.uie-handle').forEach(handle=>{
     handle.addEventListener('pointerdown',e=>{
@@ -5854,31 +6228,74 @@ function advBuildUIE(box, host, onChange){
       const dir=handle.dataset.dir, sx=e.clientX, sy=e.clientY, r=box.getBoundingClientRect(), startW=r.width, startH=r.height, startScale=state.scale;
       document.body.style.userSelect='none'; try{handle.setPointerCapture(e.pointerId);}catch(_){}
       function mv(ev){ const dx=ev.clientX-sx, dy=ev.clientY-sy;
-        if(state.mode==='inner'){ let d=0; if(dir.includes('e'))d+=dx; if(dir.includes('w'))d-=dx; if(dir.includes('s'))d+=dy; if(dir.includes('n'))d-=dy; state.scale=Math.max(50,Math.min(300,Math.round(startScale+d/2))); applyImg(); updateBadge(); return; }
-        let w=startW,h=startH; if(dir.includes('e'))w=startW+dx; if(dir.includes('w'))w=startW-dx; if(dir.includes('s'))h=startH+dy; if(dir.includes('n'))h=startH-dy;
-        box.style.width=Math.max(180,Math.min(820,w))+'px'; box.style.height=Math.max(120,Math.min(1000,h))+'px'; updateBadge(); }
+        if(state.mode==='inner'){ let d=0; if(dir.includes('e'))d+=dx; if(dir.includes('w'))d-=dx; if(dir.includes('s'))d+=dy; if(dir.includes('n'))d-=dy; state.scale=Math.max(100,Math.min(300,Math.round(startScale+d/2))); applyImg(); updateBadge(); return; }
+        if(smallImg){ let w=startW,h2=startH; if(dir.includes('e'))w=startW+dx; if(dir.includes('w'))w=startW-dx; if(dir.includes('s'))h2=startH+dy; if(dir.includes('n'))h2=startH-dy; box.style.width=Math.max(60,Math.min(600,w))+'px'; box.style.height=Math.max(60,Math.min(600,h2))+'px'; applyImg(); updateBadge(); return; }
+        let h=startH; if(dir.includes('s'))h=startH+dy; if(dir.includes('n'))h=startH-dy;
+        box.style.width=''; box.style.height=Math.max(120,Math.min(1200,h))+'px'; applyImg(); updateBadge(); }
       function up(ev){ document.body.style.userSelect=''; try{handle.releasePointerCapture(ev.pointerId);}catch(_){} document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up); onChange&&onChange(); }
       document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up); document.addEventListener('pointercancel',up);
     });
   });
   img.addEventListener('pointerdown',e=>{
     if(drawing||state.mode!=='inner')return; e.preventDefault(); selectBox();
-    const sx=e.clientX, sy=e.clientY, startX=state.x, startY=state.y; try{img.setPointerCapture(e.pointerId);}catch(_){}
-    function mv(ev){ state.x=startX+(ev.clientX-sx); state.y=startY+(ev.clientY-sy); applyImg(); }
+    const r=box.getBoundingClientRect(), sx=e.clientX, sy=e.clientY, startPX=state.posX, startPY=state.posY; try{img.setPointerCapture(e.pointerId);}catch(_){}
+    // 사진을 끌면 보이는 부위(크롭 위치)를 이동 — 위로 끌면 아래쪽(지붕 등)이 보이고, 여백은 생기지 않음
+    function mv(ev){ state.posX=startPX-((ev.clientX-sx)/Math.max(1,r.width))*100; state.posY=startPY-((ev.clientY-sy)/Math.max(1,r.height))*100; applyImg(); }
     function up(ev){ try{img.releasePointerCapture(ev.pointerId);}catch(_){} img.removeEventListener('pointermove',mv); img.removeEventListener('pointerup',up); img.removeEventListener('pointercancel',up); onChange&&onChange(); }
     img.addEventListener('pointermove',mv); img.addEventListener('pointerup',up); img.addEventListener('pointercancel',up);
   });
 }
 function advEnhance(host, onChange){
   advEnsureStyle();
+  // ===== 되돌리기(Ctrl+Z) / 다시하기(Ctrl+Y) 기록 =====
+  var _advOrigChange=onChange, _advUndo=[], _advRedo=[], _advLock=false, _advTimer=null;
+  function _advSnap(){ try{ return advCleanHtml(host); }catch(_){ return host.innerHTML; } }
+  function _advPush(){ var s=_advSnap(); if(_advUndo.length && _advUndo[_advUndo.length-1]===s) return; _advUndo.push(s); if(_advUndo.length>60)_advUndo.shift(); _advRedo.length=0; }
+  function _advRecord(){ if(_advLock)return; clearTimeout(_advTimer); _advTimer=setTimeout(function(){ _advTimer=null; _advPush(); },350); }
+  function _advFlush(){ if(_advTimer){ clearTimeout(_advTimer); _advTimer=null; _advPush(); } }
+  onChange=function(){ _advRecord(); _advOrigChange&&_advOrigChange(); };
   function addBlkTool(b){ if(b.querySelector(':scope > .adv-blk-tools')) return; var tb=document.createElement('div'); tb.className='adv-blk-tools'; tb.innerHTML='<button type="button" class="adv-blk-add" title="이 블록 복제(하나 더 추가)">＋</button><button type="button" class="adv-blk-del" title="이 블록 삭제">🗑</button>'; b.insertBefore(tb, b.firstChild); }
-  function ensureBlockTools(scope){ scope=scope||host; if(scope.classList&&scope.classList.contains('adv-blk')) addBlkTool(scope); scope.querySelectorAll('.adv-blk').forEach(addBlkTool); }
+  function ensureBlockTools(scope){ scope=scope||host;
+    // 카드형 블록(시공포인트·문의카드·상세·스텝·자재행)에도 ＋/🗑 툴을 붙일 수 있게 adv-blk 부여
+    if(scope.classList&&/\b(point|comment-card|detail-item|step|material-row)\b/.test(scope.className)) scope.classList.add('adv-blk');
+    scope.querySelectorAll('.point,.comment-card,.detail-item,.step,.material-row').forEach(function(el){ el.classList.add('adv-blk'); });
+    if(scope.classList&&scope.classList.contains('adv-blk')) addBlkTool(scope); scope.querySelectorAll('.adv-blk').forEach(addBlkTool); }
   function renumberBlocks(){ host.querySelectorAll('.adv-sec').forEach(function(sec){ var di=0; sec.querySelectorAll('.detail-item .num').forEach(function(n){ di++; n.textContent=('0'+di).slice(-2); }); var st=0; sec.querySelectorAll('.step .eyebrow').forEach(function(el){ st++; if(/^STEP/i.test((el.textContent||'').trim())) el.textContent='STEP '+st; }); }); }
   function cleanBlockClone(node){ var c=node.cloneNode(true); c.querySelectorAll('.adv-blk-tools,.uie-open,.uie-panel,.uie-handle,.uie-badge,.uie-point,.uie-pop,.uie-hl-svg,.uie-vtx,.uie-hl-ctrl,.uie-dot,.uie-hint').forEach(function(el){el.remove();}); c.querySelectorAll('.uie-box').forEach(function(b){ b.classList.remove('is-selected','inner-mode'); b.removeAttribute('data-uie-ready'); }); return c; }
+  function ensureInfoTools(scope){
+    scope.querySelectorAll('.info-item').forEach(function(it){ if(!it.querySelector(':scope > .delete-info-item')){ var b=document.createElement('button'); b.type='button'; b.className='delete-info-item'; b.textContent='×'; it.insertBefore(b, it.firstChild); } });
+    scope.querySelectorAll('.info-grid').forEach(function(g){ if(!g.querySelector(':scope > .info-add-tile')){ var t=document.createElement('button'); t.type='button'; t.className='info-add-tile addInfoItem'; t.setAttribute('aria-label','항목 추가'); t.innerHTML='<span></span>'; g.appendChild(t); } });
+  }
+  // 편집요소 뒤에 붙은 '편집 불가' 문단(Enter로 생긴 떠돌이 블록·외부 붙여넣기 문단 isSelectedEnd 등)을
+  // 바로 앞 편집요소 안으로 흡수 → 다시 편집·삭제 가능. 구조 컨테이너(이미지·목록·정보표 등)는 건드리지 않음.
+  function absorbOrphans(scope){
+    var NB=/\u00a0/g;
+    var inlineOnly=function(el){ return !el.querySelector('div,p,section,ul,ol,li,img,button,input,select,hr,h1,h2,h3,h4,h5,h6,.uie-box,[data-editable]'); };
+    scope.querySelectorAll('[data-editable="true"]').forEach(function(ed){
+      if(ed.closest('li')) return;
+      if(ed.tagName && /^(SPAN|STRONG|B|I|EM|A)$/.test(ed.tagName)) return;
+      var sib=ed.nextSibling, guard=0;
+      while(sib && guard++<300){
+        var nx=sib.nextSibling;
+        if(sib.nodeType===3){ if((sib.nodeValue||'').replace(NB,' ').trim()!==''){ ed.appendChild(document.createElement('br')); ed.appendChild(document.createTextNode(sib.nodeValue)); } sib.parentNode.removeChild(sib); sib=nx; continue; }
+        if(sib.nodeType===1){
+          var tag=sib.tagName.toLowerCase();
+          if((tag==='p'||tag==='div') && !sib.hasAttribute('data-editable')){
+            var txt=(sib.textContent||'').replace(NB,' ').trim();
+            if(txt!=='' && inlineOnly(sib)){ ed.appendChild(document.createElement('br')); while(sib.firstChild) ed.appendChild(sib.firstChild); sib.parentNode.removeChild(sib); sib=nx; continue; }
+            if(txt==='' && !sib.hasAttribute('class') && inlineOnly(sib)){ sib.parentNode.removeChild(sib); sib=nx; continue; }
+          }
+        }
+        break;
+      }
+    });
+  }
   function enhanceScope(scope){
     scope.querySelectorAll('[data-editable="true"]').forEach(function(el){ el.setAttribute('contenteditable','true'); el.setAttribute('spellcheck','false'); });
+    absorbOrphans(scope);
     scope.querySelectorAll('.uie-box').forEach(function(box){ advBuildUIE(box,host,onChange); });
     ensureBlockTools(scope);
+    ensureInfoTools(scope);
   }
   function menuItemsHtml(){ var m=''; (window.ADV_SECTIONS||[]).forEach(function(sec,i){ m+='<button type="button" data-i="'+i+'">＋ '+(sec.label||('섹션 '+(i+1)))+'</button>'; }); return m; }
   function makeSecGap(){ var g=document.createElement('div'); g.className='adv-secgap'; g.innerHTML='<button type="button" class="adv-secgap-btn" title="여기에 섹션 추가">＋</button><div class="adv-sec-menu">'+menuItemsHtml()+'</div>'; return g; }
@@ -5900,9 +6317,102 @@ function advEnhance(host, onChange){
     host.querySelectorAll(':scope > .adv-secgap').forEach(function(g){ g.remove(); });
     host.querySelectorAll(':scope > .adv-sec').forEach(function(s){ host.insertBefore(makeSecGap(), s); });
   }
+  // ===== 견적노트(자재 내역) ← 상품핀 자동 반영 =====
+  // 스텝 이미지의 '상품핀'에 링크/이름/썸네일이 있으면 견적노트 자재 행으로 자동 생성(설명은 편집 가능)
+  function syncEstimateFromPins(){
+    var list=host.querySelector('.material-list'); if(!list) return;
+    var _e=function(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+    var pins=[]; host.querySelectorAll('.uie-box').forEach(function(b){ var pts; try{pts=JSON.parse(b.dataset.points||'[]');}catch(_){pts=[];} (pts||[]).forEach(function(p){ if(p&&p.mode==='product' && (p.name||p.link||p.thumb)) pins.push(p); }); });
+    var seen={};
+    pins.forEach(function(p){ seen['k'+p.id]=1;
+      var row=list.querySelector('.material-row[data-pin="'+p.id+'"]');
+      if(!row){
+        row=document.createElement('div'); row.className='material-row adv-blk'; row.setAttribute('data-pin',String(p.id)); if(p.link)row.setAttribute('data-link',p.link);
+        row.innerHTML='<div class="uie-box"><img src="'+_e(p.thumb||'')+'" alt=""></div><div><p class="material-name" contenteditable="true" data-editable="true">'+_e(p.name||'상품명')+'</p><p class="material-sub" contenteditable="true" data-editable="true">'+_e(p.desc||'설명을 입력하세요')+'</p></div>';
+        list.appendChild(row); enhanceScope(row);
+      } else {
+        if(p.link)row.setAttribute('data-link',p.link); else row.removeAttribute('data-link');
+        var im=row.querySelector('.uie-box img'); if(im&&p.thumb&&im.getAttribute('src')!==p.thumb) im.src=p.thumb;
+        var nm=row.querySelector('.material-name'); if(nm&&p.name&&document.activeElement!==nm&&(nm.textContent||'').trim()!==p.name) nm.textContent=p.name;
+        var sub=row.querySelector('.material-sub'); if(sub&&p.desc&&(sub.textContent||'').trim()==='') sub.textContent=p.desc;
+      }
+    });
+    list.querySelectorAll('.material-row[data-pin]').forEach(function(r){ if(!seen['k'+r.getAttribute('data-pin')]) r.remove(); });
+  }
+  host.__advSyncEstimate=syncEstimateFromPins;
   enhanceScope(host);
   ensureSectionTools();
+  syncEstimateFromPins();
   host.addEventListener('input',function(){ onChange&&onChange(); });
+  // 되돌리기/다시하기 실행부
+  _advUndo.push(_advSnap()); // 기준 스냅샷
+  function _advRestore(html){ _advLock=true; host.innerHTML=html; enhanceScope(host); ensureSectionTools(); syncEstimateFromPins(); _advLock=false; _advOrigChange&&_advOrigChange(); }
+  function _advDoUndo(){ _advFlush(); if(_advUndo.length<=1) return; var cur=_advUndo.pop(); _advRedo.push(cur); _advRestore(_advUndo[_advUndo.length-1]); console.log('[adv] ↩ 되돌리기 ('+_advUndo.length+'단계 남음)'); }
+  function _advDoRedo(){ if(!_advRedo.length) return; var nx=_advRedo.pop(); _advUndo.push(nx); _advRestore(nx); console.log('[adv] ↪ 다시하기'); }
+  function _advHistKey(e){ if(!host.isConnected) return; var inHost=(e.target&&host.contains(e.target))||(document.activeElement&&host.contains(document.activeElement))||host.querySelector('.uie-box.is-selected'); if(!inHost) return; var k=(e.key||'').toLowerCase(); if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&k==='z'){ e.preventDefault(); _advDoUndo(); } else if((e.ctrlKey||e.metaKey)&&(k==='y'||(e.shiftKey&&k==='z'))){ e.preventDefault(); _advDoRedo(); } }
+  if(window.__advHistKey){ try{ document.removeEventListener('keydown',window.__advHistKey,true); }catch(_){} }
+  window.__advHistKey=_advHistKey; document.addEventListener('keydown',_advHistKey,true);
+  // 정보표(현장정보) 항목: 마지막 칸에서 Enter→항목 추가 · 빈 칸에서 Delete/Backspace→항목 삭제
+  host.addEventListener('keydown',function(e){
+    var cell=e.target&&e.target.closest&&e.target.closest('.info-label,.info-value'); if(!cell) return;
+    var item=cell.closest('.info-item'); var grid=item&&item.closest('.info-grid'); if(!item||!grid) return;
+    if(e.key==='Enter'){ e.preventDefault();
+      var it=document.createElement('div'); it.className='info-item';
+      it.innerHTML='<button type="button" class="delete-info-item">×</button><div class="info-label" contenteditable="true" data-editable="true" spellcheck="false">항목명</div><div class="info-value" contenteditable="true" data-editable="true" spellcheck="false">내용 입력</div>';
+      grid.insertBefore(it, item.nextSibling);
+      var lbl=it.querySelector('.info-label'); if(lbl){ lbl.focus(); try{ var r=document.createRange(); r.selectNodeContents(lbl); var sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(r); }catch(_){}} onChange&&onChange(); return; }
+    if((e.key==='Delete'||e.key==='Backspace') && (cell.textContent||'').trim()===''){
+      var other=item.querySelector(cell.classList.contains('info-label')?'.info-value':'.info-label');
+      if(!other||(other.textContent||'').trim()===''){ e.preventDefault(); var prev=item.previousElementSibling; item.remove(); if(prev&&prev.classList&&prev.classList.contains('info-item')){ var f=prev.querySelector('.info-value')||prev.querySelector('.info-label'); if(f)f.focus(); } onChange&&onChange(); } }
+  });
+  // 목록(포인트요약·작업목표 등) 항목: Enter→줄 추가 · 빈 줄에서 Delete/Backspace→줄 삭제
+  host.addEventListener('keydown',function(e){
+    if(e.key!=='Enter'&&e.key!=='Delete'&&e.key!=='Backspace') return;
+    var ed=e.target; if(!ed||!ed.closest) return;
+    var li=ed.closest('li'); if(!li) return;
+    var ul=li.parentNode; if(!ul||!ul.classList||!(ul.classList.contains('summary-list')||ul.classList.contains('goal-list'))) return;
+    var isGoal=ul.classList.contains('goal-list');
+    if(e.key==='Enter'){ e.preventDefault();
+      var nl=document.createElement('li');
+      if(isGoal){ nl.innerHTML='<span class="check">✓</span><span contenteditable="true" data-editable="true" spellcheck="false">내용 입력</span>'; }
+      else { nl.setAttribute('contenteditable','true'); nl.setAttribute('data-editable','true'); nl.setAttribute('spellcheck','false'); nl.textContent='내용 입력'; }
+      ul.insertBefore(nl, li.nextSibling);
+      var fe=isGoal?nl.querySelector('[contenteditable]'):nl; if(fe){ fe.focus(); try{ var r=document.createRange(); r.selectNodeContents(fe); var sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(r); }catch(_){}}
+      onChange&&onChange(); return; }
+    if((e.key==='Delete'||e.key==='Backspace') && (ed.textContent||'').trim()===''){
+      if(ul.children.length<=1) return; // 마지막 한 줄은 남김
+      e.preventDefault(); var prev=li.previousElementSibling; li.remove();
+      if(prev){ var pf=(prev.getAttribute&&prev.getAttribute('contenteditable')==='true')?prev:prev.querySelector('[contenteditable]'); if(pf){ pf.focus(); try{ var r2=document.createRange(); r2.selectNodeContents(pf); r2.collapse(false); var s2=window.getSelection(); s2.removeAllRanges(); s2.addRange(r2); }catch(_){}}}
+      onChange&&onChange(); return; }
+  });
+  // 일반 글(제목·본문 등)에서 Enter → 블록 분리 대신 줄바꿈(<br>) 삽입 → 떠돌이 블록(편집불가) 방지
+  host.addEventListener('keydown',function(e){
+    if(e.key!=='Enter'||e.shiftKey) return;
+    var t=e.target; if(!t||!t.closest) return;
+    var ce=t.closest('[contenteditable="true"]'); if(!ce||!host.contains(ce)) return;
+    if(t.closest('li, .info-label, .info-value')) return; // 목록·정보표는 별도 처리
+    e.preventDefault();
+    var ok=false; try{ ok=document.execCommand('insertLineBreak'); }catch(_){}
+    if(!ok){ try{ document.execCommand('insertHTML',false,'<br>'); }catch(__){} }
+    onChange&&onChange();
+  });
+  // 빈 글칸(내용 없는 편집 문단)에서 Delete/Backspace → 그 칸(문단) 삭제
+  host.addEventListener('keydown',function(e){
+    if(e.key!=='Delete'&&e.key!=='Backspace') return;
+    var t=e.target; if(!t||!t.closest) return;
+    var ce=t.closest('[contenteditable="true"]'); if(!ce||!host.contains(ce)) return;
+    if(t.closest('li, .info-label, .info-value')) return; // 목록·정보표는 별도 처리
+    if(ce.tagName!=='P') return; // 본문 문단(p)만 삭제 대상 — 제목류(h1~h3)·라벨은 보호
+    // 완전히 빈 칸일 때만(글자·이미지 없음)
+    if((ce.textContent||'').replace(/ /g,' ').trim()!=='' || ce.querySelector('img,.uie-box')) return;
+    if(!ce.parentNode) return;
+    e.preventDefault();
+    var focusTarget=null, prev=ce.previousElementSibling;
+    while(prev){ if(prev.getAttribute&&prev.getAttribute('contenteditable')==='true'){focusTarget=prev;break;} prev=prev.previousElementSibling; }
+    ce.parentNode.removeChild(ce);
+    if(focusTarget){ try{ focusTarget.focus(); var r=document.createRange(); r.selectNodeContents(focusTarget); r.collapse(false); var s=window.getSelection(); s.removeAllRanges(); s.addRange(r); }catch(_){}}
+    onChange&&onChange();
+  });
   host.addEventListener('click',function(e){
     var t=e.target;
     if(!t.closest('.adv-sec-menu') && !t.closest('.adv-addsec-btn') && !t.closest('.adv-secgap-btn')){ host.querySelectorAll('.adv-sec-menu.open').forEach(function(m){m.classList.remove('open');}); }
@@ -5934,22 +6444,78 @@ function advCleanHtml(host){
   c.querySelectorAll('.uie-open,.uie-panel,.uie-handle,.uie-badge,.uie-point,.uie-pop,.uie-hl-svg,.uie-vtx,.uie-hl-ctrl,.uie-dot,.uie-hint,.uie-hlmove,.adv-sec-bar,.adv-addsec,.adv-secgap,.adv-blk-tools,.chip-add-tile,.text-add-tile,.info-add-tile,.delete-chip,.delete-block,.delete-info-card,.delete-info-item').forEach(el=>el.remove());
   c.querySelectorAll('.uie-box').forEach(b=>{ b.classList.remove('is-selected','inner-mode'); b.removeAttribute('data-uie-ready'); });
   c.querySelectorAll('[contenteditable]').forEach(el=>{ el.removeAttribute('contenteditable'); el.removeAttribute('spellcheck'); });
-  return c.innerHTML.trim();
+  return c.innerHTML.trim().replace(/(?:NaN){2,}/g,''); // 생성기 버그로 끼어든 'NaNNaN…' 잔여 텍스트 제거
+}
+// 고도화 콘텐츠 전용 서식바 — 선택한 글자(또는 그 문단)에 폰트·정렬·크기·줄간격·굵기·색 적용
+function AdvToolbar({hostRef,onChange}){
+  const [sz,setSz]=useState(15);
+  const [fc,setFc]=useState('#E8780F');
+  const [fontSel,setFontSel]=useState('');
+  const [wSel,setWSel]=useState('');
+  const savedRange=useRef(null);
+  const host=()=>hostRef.current;
+  const liveRange=()=>{ const s=window.getSelection&&window.getSelection(); if(!s||!s.rangeCount) return null; const r=s.getRangeAt(0); let n=r.commonAncestorContainer; n=n.nodeType===3?n.parentNode:n; if(!host()||!host().contains(n)) return null; return r; };
+  const saveRange=()=>{ const r=liveRange(); if(r) savedRange.current=r.cloneRange(); };
+  const useRange=()=>{ let r=liveRange(); if(!r && savedRange.current){ try{ const s=window.getSelection(); s.removeAllRanges(); s.addRange(savedRange.current); r=liveRange(); }catch(e){} } return r; };
+  const curEd=()=>{ const r=useRange(); let n=r?r.commonAncestorContainer:null; if(!n) return null; n=n.nodeType===3?n.parentNode:n; return (n.closest&&n.closest('[contenteditable="true"]'))||null; };
+  const fire=()=>{ if(onChange) onChange(); };
+  const inline=(css)=>{ const r=useRange(); if(!r) return; if(r.collapsed){ const ed=curEd(); if(ed){ Object.keys(css).forEach(function(k){ed.style[k]=css[k];}); fire(); } return; }
+    const span=document.createElement('span'); Object.keys(css).forEach(function(k){span.style[k]=css[k];});
+    try{ span.appendChild(r.extractContents()); r.insertNode(span); const s=window.getSelection(); s.removeAllRanges(); const nr=document.createRange(); nr.selectNodeContents(span); s.addRange(nr); savedRange.current=nr.cloneRange(); }catch(e){ return; }
+    fire(); };
+  const block=(css)=>{ const ed=curEd(); if(!ed) return; Object.keys(css).forEach(function(k){ed.style[k]=css[k];}); fire(); };
+  const setSize=(v)=>{ v=Math.max(8,Math.min(120,v)); setSz(v); inline({fontSize:v+'px'}); };
+  const tbtn={padding:'5px 10px',borderRadius:7,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,fontWeight:800,color:'var(--text-md)',cursor:'pointer'};
+  const noBlur={onMouseDown:(e)=>e.preventDefault()};
+  const COLS=[['','기본','#374151'],['point','포인트','#E8780F'],['red','빨강','#DC2626'],['blue','파랑','#2563EB'],['green','초록','#059669'],['gray','회색','#9AA0A6']];
+  return (
+   <div style={{position:'sticky',top:-2,zIndex:9,background:'#fff',paddingTop:6,paddingBottom:2,marginBottom:8,borderBottom:'1px solid var(--border-s)',boxShadow:'0 4px 8px -6px rgba(0,0,0,.25)'}}>
+     <div style={{display:'flex',gap:5,flexWrap:'wrap',alignItems:'center',padding:'7px 8px',border:'1px solid var(--border)',borderRadius:9,background:'var(--bg)'}}>
+       <select value={fontSel} onMouseDown={saveRange} onChange={e=>{ const v=e.target.value; setFontSel(v); inline({fontFamily:(v&&FLOW_FONTCSS[v])?FLOW_FONTCSS[v]:''}); }} title="폰트" style={{...tbtn,padding:'5px 8px',cursor:'pointer'}}>
+         {Object.keys(FLOW_FONTS).map(function(k){return <option key={k||'def'} value={k}>{FLOW_FONTS[k]}</option>;})}
+       </select>
+       <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
+       {[['left','좌'],['center','가운데'],['right','우']].map(function(o){return <button key={o[0]} type="button" {...noBlur} onClick={()=>block({textAlign:o[0]})} style={tbtn}>{o[1]}</button>;})}
+       <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
+       <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:800}}>크기</span>
+       <button type="button" {...noBlur} onClick={()=>setSize(sz-1)} style={{...tbtn,padding:'5px 9px'}}>−</button>
+       <input type="number" min="8" max="120" value={sz} onMouseDown={saveRange} onChange={e=>{ const v=parseInt(e.target.value,10); if(!isNaN(v)){ setSz(v); if(v>=8&&v<=120) inline({fontSize:v+'px'}); } }} style={{width:50,textAlign:'center',padding:'5px 6px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12,fontWeight:800,color:'var(--text)',outline:'none'}}/>
+       <button type="button" {...noBlur} onClick={()=>setSize(sz+1)} style={{...tbtn,padding:'5px 9px'}}>＋</button>
+       <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
+       <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:800}}>줄간격</span>
+       {[['narrow','좁게'],['normal','보통'],['wide','넓게']].map(function(o){return <button key={o[0]} type="button" {...noBlur} onClick={()=>block({lineHeight:FLOW_SPACE[o[0]].lh})} style={tbtn}>{o[1]}</button>;})}
+       <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
+       <select value={wSel} onMouseDown={saveRange} onChange={e=>{ const v=e.target.value; setWSel(v); inline({fontWeight:v||''}); }} title="굵기" style={{...tbtn,padding:'5px 8px',cursor:'pointer'}}>
+         {Object.keys(FLOW_WEIGHTS).map(function(k){return <option key={k||'def'} value={k}>{FLOW_WEIGHTS[k]}</option>;})}
+       </select>
+       <span style={{width:1,height:16,background:'var(--border)',margin:'0 2px'}}/>
+       {COLS.map(function(c){return <button key={c[0]||'def'} type="button" title={c[1]} {...noBlur} onClick={()=>inline({color:c[0]?c[2]:''})} style={{width:20,height:20,borderRadius:'50%',cursor:'pointer',padding:0,background:c[2],border:'1.5px solid var(--border)'}}/>;})}
+       <input type="color" title="커스텀 색상" value={fc} onMouseDown={saveRange} onChange={e=>{setFc(e.target.value); inline({color:e.target.value});}} style={{width:23,height:23,padding:0,border:'1.5px solid var(--border)',borderRadius:6,cursor:'pointer'}}/>
+     </div>
+     <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:700,padding:'4px 2px 0'}}>글자를 <b>드래그해서 선택</b>하고 위 서식을 누르세요 · 선택 안 하면 <b>그 문단 전체</b>에 적용돼요</div>
+   </div>
+  );
 }
 function AdvancedContentEditor({form,set,uploadImage}){
   window.__advUploadImage=uploadImage;
   const hostRef=useRef(null);
   const setRef=useRef(set); setRef.current=set;
+  const syncRef=useRef(null);
   const inited=useRef(false);
   useEffect(()=>{
     if(inited.current) return; inited.current=true;
     const host=hostRef.current; if(!host) return;
-    host.innerHTML=(form.advancedHtml&&form.advancedHtml.trim())?form.advancedHtml:(window.ADV_DEFAULT_HTML||ADV_DEFAULT_HTML);
+    host.innerHTML=((form.advancedHtml&&form.advancedHtml.trim())?form.advancedHtml:(window.ADV_DEFAULT_HTML||ADV_DEFAULT_HTML)).replace(/(?:NaN){2,}/g,'');
     const sync=()=>{ try{ setRef.current({advancedHtml: advCleanHtml(host)}); }catch(_){} };
+    syncRef.current=sync;
     advEnhance(host, sync);
     sync();
   },[]);
-  return <div ref={hostRef} className="adv-host"/>;
+  const fire=()=>{ if(syncRef.current) syncRef.current(); };
+  return <div style={{maxWidth:864,margin:'0 auto'}}>
+    <AdvToolbar hostRef={hostRef} onChange={fire}/>
+    <div ref={hostRef} className="adv-host"/>
+  </div>;
 }
 function PostingEditor({form,setForm,onSave,onClose,saving}){
   const set=(patch)=>setForm(prev=>({...prev,...patch}));
@@ -6046,7 +6612,7 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
             <div>🖼 <b>사진</b> — 사진 위 <b>[이미지 변경]</b> 버튼 → URL/업로드로 교체 · 크기 · 상품점 · 외곽선</div>
             <div>➕ <b>추가/삭제</b> — 점선 <b>[＋]</b> 칸으로 태그·글·항목 추가, <b>×</b> 로 삭제</div>
           </div>
-          <div style={{marginTop:8,border:'1.5px solid var(--border)',borderRadius:12,overflow:'hidden',background:'#fff'}}>
+          <div style={{marginTop:8,border:'1.5px solid var(--border)',borderRadius:12,overflow:'visible',background:'#fff',padding:'0 2px'}}>
             <AdvancedContentEditor form={form} set={set} uploadImage={uploadImage}/>
           </div>
         </React.Fragment>}
@@ -6199,6 +6765,283 @@ function BannersPage({showToast}){
           );
         })}
       </div>
+      <div style={{marginTop:20,display:'flex',justifyContent:'flex-end'}}>
+        <button onClick={save} disabled={saving} style={{padding:'12px 28px',borderRadius:10,fontSize:13.5,fontWeight:900,color:'#fff',background:saving?'var(--text-sm)':'linear-gradient(135deg, var(--or), var(--or-d))',cursor:saving?'wait':'pointer'}}>{saving?'저장 중...':'저장'}</button>
+      </div>
+    </div>
+  );
+}
+// ============================================================
+// 홈 소재별 카드 관리 (히어로 멘트·사진 + 철재/목재/돌 라인: 필터 카테고리 + 썸네일 카드)
+//   저장: config/pourstoreHomeCards {
+//     hero:[{image,imageMobile,link,kicker,title,desc,tags,cta}],
+//     metal/wood/stone:{filters:[..], cards:[{image,link,title,cat}]} }
+//   → 스토어 pour-04-home 히어로 / pour-02-best 소재별 라인에 자동 반영. (config 규칙 → 새 보안규칙 불필요)
+// ============================================================
+const HC_MATERIALS=[
+  {key:'metal', label:'철재 라인', hint:'"철재를 고치고 싶다면?" 줄'},
+  {key:'wood',  label:'목재 라인', hint:'"목재를 고치고 싶다면?" 줄'},
+  {key:'stone', label:'돌·시멘트 라인', hint:'"돌·시멘트를 고치고 싶다면?" 줄'},
+];
+const HC_DEFAULT_FILTERS=['방수','코팅','보수','단열·차열','밑칠'];
+const HC_GRID_CATS=[{key:'wallpaper',label:'벽지'},{key:'wood',label:'목재'},{key:'metal',label:'철재'},{key:'glass',label:'유리'},{key:'cement',label:'시멘트/벽돌'}];
+const HC_SWATCHES=[{key:'all',label:'인기',sub:'BEST SELLER'},{key:'wallpaper',label:'벽지',sub:'도배·시트·풀'},{key:'wood',label:'목재',sub:'우드·마루'},{key:'metal',label:'철재',sub:'메탈·방청'},{key:'glass',label:'유리',sub:'글래스·코팅'},{key:'cement',label:'시멘트/벽돌',sub:'벽돌·균열·보수'}];
+const HC_SRC_DEFAULT={wallpaper:'98',wood:'99',metal:'100',glass:'101',cement:'102'};   // 카페24 홈데코 분류번호 기본값
+function HomeCardsPage({showToast}){
+  const { audit } = useActiveStaffContext();
+  const normHero=(v)=>Array.isArray(v)?v.map(x=>({image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',kicker:x.kicker||'',title:x.title||'',desc:x.desc||'',tags:x.tags||'',cta:x.cta||''})):[];
+  const normMat=(v)=>{ if(Array.isArray(v)) return {filters:HC_DEFAULT_FILTERS.slice(),cards:v.map(c=>({image:c.image||'',link:c.link||'',title:c.title||'',cat:c.cat||''}))}; v=v||{}; return {filters:(Array.isArray(v.filters)&&v.filters.length)?v.filters.filter(Boolean):HC_DEFAULT_FILTERS.slice(),cards:Array.isArray(v.cards)?v.cards.map(c=>({image:c.image||'',link:c.link||'',title:c.title||'',cat:c.cat||''})):[]}; };
+  const normGrid=(v)=>Array.isArray(v)?v.map(c=>({image:c.image||'',title:c.title||'',meta:c.meta||'',price:c.price||'',unit:c.unit||'',link:c.link||'',cat:c.cat||'',brand:c.brand||'',badge:c.badge||''})):[];
+  const normSw=(v)=>{ v=v||{}; const o={}; HC_SWATCHES.forEach(s=>{ const x=v[s.key]||{}; o[s.key]={image:x.image||'',label:x.label||'',sub:x.sub||''}; }); return o; };
+  const normSrc=(v)=>{ v=v||{}; const c=v.cats||{}; const stored=HC_GRID_CATS.some(g=>String(c[g.key]||'').trim()); const cats={}; HC_GRID_CATS.forEach(g=>{ cats[g.key]= stored ? String(c[g.key]||'').trim() : (HC_SRC_DEFAULT[g.key]||''); }); return {limit:Number(v.limit)>0?Number(v.limit):8, cats}; };
+  const [data,setData]=useState({hero:[],metal:normMat(),wood:normMat(),stone:normMat(),homeGrid:[],homeSwatches:normSw(),homeGridSource:normSrc()});
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [uploading,setUploading]=useState(null);
+
+  useEffect(()=>{ (async()=>{
+    try{
+      const d=await db.collection('config').doc('pourstoreHomeCards').get();
+      if(d.exists){ const v=d.data()||{}; setData({hero:normHero(v.hero),metal:normMat(v.metal),wood:normMat(v.wood),stone:normMat(v.stone),homeGrid:normGrid(v.homeGrid),homeSwatches:normSw(v.homeSwatches),homeGridSource:normSrc(v.homeGridSource)}); }
+      console.log('[homecards] 로드', d.exists);
+    }catch(e){ console.error('[homecards] 로드 실패:',e); showToast('로드 실패: '+e.message,'error'); }
+    setLoading(false);
+  })(); },[]);
+
+  // 히어로 ops
+  const heroAdd=()=>setData(p=>({...p,hero:[...p.hero,{image:'',imageMobile:'',link:'',kicker:'',title:'',desc:'',tags:'',cta:''}]}));
+  const heroRemove=(i)=>setData(p=>({...p,hero:p.hero.filter((_,x)=>x!==i)}));
+  const heroPatch=(i,part)=>setData(p=>({...p,hero:p.hero.map((h,x)=>x===i?{...h,...part}:h)}));
+  const heroMove=(i,dir)=>setData(p=>{const a=[...p.hero];const j=i+dir;if(j<0||j>=a.length)return p;const t=a[i];a[i]=a[j];a[j]=t;return{...p,hero:a};});
+
+  // 소재 ops
+  const matSet=(key,part)=>setData(p=>({...p,[key]:{...p[key],...part}}));
+  const filterAdd=(key)=>matSet(key,{filters:[...data[key].filters,'']});
+  const filterPatch=(key,i,val)=>matSet(key,{filters:data[key].filters.map((f,x)=>x===i?val:f)});
+  const filterRemove=(key,i)=>matSet(key,{filters:data[key].filters.filter((_,x)=>x!==i)});
+  const filterMove=(key,i,dir)=>{const a=[...data[key].filters];const j=i+dir;if(j<0||j>=a.length)return;const t=a[i];a[i]=a[j];a[j]=t;matSet(key,{filters:a});};
+  const cardAdd=(key)=>matSet(key,{cards:[...data[key].cards,{image:'',link:'',title:'',cat:''}]});
+  const cardRemove=(key,i)=>matSet(key,{cards:data[key].cards.filter((_,x)=>x!==i)});
+  const cardPatch=(key,i,part)=>matSet(key,{cards:data[key].cards.map((c,x)=>x===i?{...c,...part}:c)});
+  const cardMove=(key,i,dir)=>{const a=[...data[key].cards];const j=i+dir;if(j<0||j>=a.length)return;const t=a[i];a[i]=a[j];a[j]=t;matSet(key,{cards:a});};
+
+  // 재질별 진열(홈 그리드) ops
+  const gridAdd=()=>setData(p=>({...p,homeGrid:[...p.homeGrid,{image:'',title:'',meta:'',price:'',unit:'',link:'',cat:'',brand:'',badge:''}]}));
+  const gridRemove=(i)=>setData(p=>({...p,homeGrid:p.homeGrid.filter((_,x)=>x!==i)}));
+  const gridPatch=(i,part)=>setData(p=>({...p,homeGrid:p.homeGrid.map((c,x)=>x===i?{...c,...part}:c)}));
+  const gridMove=(i,dir)=>setData(p=>{const a=[...p.homeGrid];const j=i+dir;if(j<0||j>=a.length)return p;const t=a[i];a[i]=a[j];a[j]=t;return{...p,homeGrid:a};});
+
+  // 재질 스와치(동그란 아이콘) ops
+  const swPatch=(key,part)=>setData(p=>({...p,homeSwatches:{...p.homeSwatches,[key]:{...p.homeSwatches[key],...part}}}));
+
+  // 재질별 카페24 분류 연결 ops
+  const srcCat=(key,val)=>setData(p=>({...p,homeGridSource:{...p.homeGridSource,cats:{...p.homeGridSource.cats,[key]:val}}}));
+  const srcLimit=(val)=>setData(p=>({...p,homeGridSource:{...p.homeGridSource,limit:val}}));
+
+  const upload=async(uid,file,cb)=>{
+    if(!file)return;
+    if(!file.type.startsWith('image/')){ showToast('이미지(png/jpg)만 가능','error'); return; }
+    if(file.size>20*1024*1024){ showToast('20MB 이하 이미지만 가능','error'); return; }
+    setUploading(uid);
+    try{
+      const ts=Date.now(); const safe=file.name.replace(/[^\w.\-]/g,'_');
+      const snap=await storage.ref(`POUR스토어_리뉴얼/homecards/${uid.replace(/[^\w]/g,'_')}_${ts}_${safe}`).put(file);
+      cb(await snap.ref.getDownloadURL());
+      showToast('이미지 업로드 완료 — 하단 저장을 눌러 반영');
+    }catch(e){ console.error('[homecards] 업로드 실패:',e); showToast('업로드 실패: '+e.message,'error'); }
+    setUploading(null);
+  };
+
+  const save=async()=>{
+    setSaving(true);
+    try{
+      const hero=data.hero.filter(h=>h.image||h.title||h.kicker).map(h=>({image:h.image||'',imageMobile:h.imageMobile||'',link:(h.link||'').trim(),kicker:(h.kicker||'').trim(),title:(h.title||'').trim(),desc:(h.desc||'').trim(),tags:(h.tags||'').trim(),cta:(h.cta||'').trim()}));
+      const mat=(m)=>({filters:m.filters.map(f=>(f||'').trim()).filter(Boolean),cards:m.cards.filter(c=>c.image).map(c=>({image:c.image,link:(c.link||'').trim(),title:(c.title||'').trim(),cat:(c.cat||'').trim()}))});
+      const homeGrid=data.homeGrid.filter(c=>c.image).map(c=>({image:c.image,title:(c.title||'').trim(),meta:(c.meta||'').trim(),price:(c.price||'').trim(),unit:(c.unit||'').trim(),link:(c.link||'').trim(),cat:(c.cat||'').trim(),brand:(c.brand||'').trim(),badge:(c.badge||'').trim()}));
+      const homeSwatches={}; HC_SWATCHES.forEach(s=>{ const x=data.homeSwatches[s.key]||{}; homeSwatches[s.key]={image:x.image||'',label:(x.label||'').trim(),sub:(x.sub||'').trim()}; });
+      const gsCats={}; HC_GRID_CATS.forEach(g=>{ gsCats[g.key]=String((data.homeGridSource.cats||{})[g.key]||'').replace(/[^0-9]/g,''); });
+      const homeGridSource={limit:Number(data.homeGridSource.limit)>0?Number(data.homeGridSource.limit):8, cats:gsCats};
+      await db.collection('config').doc('pourstoreHomeCards').set({hero,metal:mat(data.metal),wood:mat(data.wood),stone:mat(data.stone),homeGrid,homeSwatches,homeGridSource,...audit.update()},{merge:true});
+      showToast('저장되었습니다 — 스토어에 반영됩니다');
+    }catch(e){ console.error('[homecards] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
+    setSaving(false);
+  };
+
+  if(loading)return <div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>;
+  const inp={width:'100%',padding:'8px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12.5,outline:'none',boxSizing:'border-box',marginTop:6};
+
+  return (
+    <div style={{padding:'24px 32px',maxWidth:1100}}>
+      <div style={{marginBottom:18}}>
+        <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>🏠 홈 소재별 카드 관리</h1>
+        <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>히어로 멘트·사진과 철재/목재/돌 라인의 필터·썸네일을 관리합니다. (내용을 넣지 않은 부분은 기존 기본 화면이 그대로 유지됩니다)</div>
+      </div>
+
+      {/* ===== 히어로 ===== */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>
+        <div style={{fontSize:15,fontWeight:900,color:'var(--navy)',marginBottom:2}}>홈리페어×홈데코 히어로 <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>({data.hero.length}장)</span></div>
+        <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:12}}>상단 큰 슬라이드 — 사진 + 멘트(라벨/제목/설명/태그/버튼)를 슬라이드별로 관리 · 권장 1200×720</div>
+        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+          {data.hero.length===0 && <div style={{padding:'20px',textAlign:'center',color:'var(--text-sm)',fontSize:12.5,fontWeight:700,background:'var(--bg)',borderRadius:10,border:'1px dashed var(--border)'}}>슬라이드가 없습니다 — 아래 '+ 슬라이드 추가' (없으면 기존 기본 히어로 유지)</div>}
+          {data.hero.map((h,i)=>{ const up=uploading==='hero:'+i;
+            return (
+              <div key={i} style={{display:'flex',gap:12,padding:12,background:'var(--bg)',borderRadius:10,border:'1px solid var(--border)'}}>
+                <div style={{width:150,flexShrink:0}}>
+                  <div style={{position:'relative',width:'100%',aspectRatio:'16/9',borderRadius:8,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    {h.image?<img src={h.image} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontSize:11,color:'var(--text-sm)',fontWeight:700}}>없음</span>}
+                    {up&&<div style={{position:'absolute',inset:0,background:'rgba(255,255,255,.7)',display:'grid',placeItems:'center',fontSize:11,fontWeight:800,color:'var(--or-d)'}}>업로드중</div>}
+                  </div>
+                  <label style={{display:'block',textAlign:'center',padding:'7px',marginTop:6,borderRadius:8,border:'1.5px solid var(--or)',color:'var(--or-d)',background:'#fff',fontSize:11,fontWeight:800,cursor:up?'wait':'pointer'}}>
+                    {h.image?'사진 교체':'사진 업로드'}
+                    <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload('hero:'+i,f,url=>heroPatch(i,{image:url})); e.target.value='';}} style={{display:'none'}}/>
+                  </label>
+                  <div style={{display:'flex',gap:5,marginTop:6}}>
+                    <button onClick={()=>heroMove(i,-1)} disabled={i===0} style={{flex:1,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontWeight:800,cursor:'pointer',opacity:i===0?.4:1}}>↑</button>
+                    <button onClick={()=>heroMove(i,1)} disabled={i===data.hero.length-1} style={{flex:1,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontWeight:800,cursor:'pointer',opacity:i===data.hero.length-1?.4:1}}>↓</button>
+                    <button onClick={()=>heroRemove(i)} style={{flex:1,borderRadius:7,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontWeight:900,cursor:'pointer'}}>×</button>
+                  </div>
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <input value={h.kicker} onChange={e=>heroPatch(i,{kicker:e.target.value})} placeholder="상단 라벨 (예: HOME REPAIR · 홈리페어)" style={inp}/>
+                  <textarea value={h.title} onChange={e=>heroPatch(i,{title:e.target.value})} placeholder={'제목 (줄바꿈 가능 · 마지막 줄은 색 강조)\n예: 고치는 건,\n어렵지 않아요'} style={{...inp,minHeight:52,resize:'vertical',fontWeight:800}}/>
+                  <textarea value={h.desc} onChange={e=>heroPatch(i,{desc:e.target.value})} placeholder="설명 문구" style={{...inp,minHeight:44,resize:'vertical'}}/>
+                  <input value={h.tags} onChange={e=>heroPatch(i,{tags:e.target.value})} placeholder="태그 (쉼표로 구분 · 예: 속건성, 곰팡이 방지, 초보자 OK)" style={inp}/>
+                  <div style={{display:'flex',gap:6}}>
+                    <input value={h.cta} onChange={e=>heroPatch(i,{cta:e.target.value})} placeholder="버튼 문구 (예: 홈리페어 자재 보기)" style={{...inp,flex:1}}/>
+                    <input value={h.link} onChange={e=>heroPatch(i,{link:e.target.value})} placeholder="버튼·사진 클릭 링크" style={{...inp,flex:1.4}}/>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <button onClick={heroAdd} style={{marginTop:12,width:'100%',padding:10,borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>+ 슬라이드 추가</button>
+      </div>
+
+      {/* ===== 소재별 라인 ===== */}
+      {HC_MATERIALS.map(m=>{ const md=data[m.key];
+        return (
+          <div key={m.key} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>
+            <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}>{m.label} <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>({md.cards.length}장 · 필터 {md.filters.length}개)</span></div>
+            <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:10}}>{m.hint} — 가격 없이 <b>썸네일+제목만</b> 노출. 카드에 필터를 지정하면 위 필터 버튼으로 걸러집니다.</div>
+
+            {/* 필터 카테고리 편집 */}
+            <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:10,padding:'10px 12px',marginBottom:12}}>
+              <div style={{fontSize:11.5,fontWeight:800,color:'var(--text-md)',marginBottom:8}}>필터 카테고리 <span style={{fontWeight:700,color:'var(--text-sm)'}}>(추가·수정·삭제·순서 · '전체'는 스토어에서 자동으로 맨 앞에 붙습니다)</span></div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                {md.filters.map((f,i)=>(
+                  <div key={i} style={{display:'inline-flex',alignItems:'center',gap:3,background:'#fff',border:'1.5px solid var(--or-l)',borderRadius:999,padding:'3px 5px 3px 10px'}}>
+                    <input value={f} onChange={e=>filterPatch(m.key,i,e.target.value)} placeholder="이름" style={{border:'none',outline:'none',width:Math.max(46,(String(f).length+1)*11),fontSize:12,fontWeight:700,color:'var(--navy)',background:'transparent'}}/>
+                    <button onClick={()=>filterMove(m.key,i,-1)} disabled={i===0} title="앞으로" style={{border:'none',background:'transparent',color:'var(--text-sm)',cursor:'pointer',fontWeight:800,fontSize:15,opacity:i===0?.3:1}}>‹</button>
+                    <button onClick={()=>filterMove(m.key,i,1)} disabled={i===md.filters.length-1} title="뒤로" style={{border:'none',background:'transparent',color:'var(--text-sm)',cursor:'pointer',fontWeight:800,fontSize:15,opacity:i===md.filters.length-1?.3:1}}>›</button>
+                    <button onClick={()=>filterRemove(m.key,i)} title="삭제" style={{border:'none',background:'var(--red-l)',color:'var(--red)',borderRadius:'50%',width:18,height:18,cursor:'pointer',fontWeight:900,fontSize:11}}>×</button>
+                  </div>
+                ))}
+                <button onClick={()=>filterAdd(m.key)} style={{border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',borderRadius:999,padding:'5px 12px',fontSize:12,fontWeight:800,cursor:'pointer'}}>+ 필터 추가</button>
+              </div>
+            </div>
+
+            {/* 카드 목록 */}
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:12}}>
+              {md.cards.length===0 && <div style={{padding:'18px',textAlign:'center',color:'var(--text-sm)',fontSize:12.5,fontWeight:700,background:'var(--bg)',borderRadius:10,border:'1px dashed var(--border)'}}>카드가 없습니다 — 아래 '+ 카드 추가' (없으면 기존 기본 카드 유지)</div>}
+              {md.cards.map((c,i)=>{ const up=uploading===m.key+':card:'+i;
+                return (
+                  <div key={i} style={{display:'flex',gap:10,padding:10,background:'var(--bg)',borderRadius:10,border:'1px solid var(--border)'}}>
+                    <div style={{width:84,flexShrink:0}}>
+                      <div style={{position:'relative',width:84,height:84,borderRadius:8,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                        {c.image?<img src={c.image} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontSize:10,color:'var(--text-sm)',fontWeight:700}}>없음</span>}
+                        {up&&<div style={{position:'absolute',inset:0,background:'rgba(255,255,255,.7)',display:'grid',placeItems:'center',fontSize:10,fontWeight:800,color:'var(--or-d)'}}>업로드</div>}
+                      </div>
+                      <label style={{display:'block',textAlign:'center',padding:'6px',marginTop:5,borderRadius:7,border:'1.5px solid var(--or)',color:'var(--or-d)',background:'#fff',fontSize:10.5,fontWeight:800,cursor:up?'wait':'pointer'}}>
+                        {c.image?'교체':'사진'}
+                        <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload(m.key+':card:'+i,f,url=>cardPatch(m.key,i,{image:url})); e.target.value='';}} style={{display:'none'}}/>
+                      </label>
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <input value={c.title} onChange={e=>cardPatch(m.key,i,{title:e.target.value})} placeholder="제목 (예: 옥상 누수 풀패키지)" style={inp}/>
+                      <input value={c.link} onChange={e=>cardPatch(m.key,i,{link:e.target.value})} placeholder="상품 링크" style={inp}/>
+                      <div style={{display:'flex',gap:6,marginTop:6,alignItems:'center'}}>
+                        <select value={c.cat} onChange={e=>cardPatch(m.key,i,{cat:e.target.value})} style={{flex:1,padding:'7px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,fontWeight:700,color:'var(--navy)',background:'#fff'}}>
+                          <option value="">필터 없음(전체만)</option>
+                          {md.filters.map((f,x)=><option key={x} value={f}>{f}</option>)}
+                        </select>
+                        <button onClick={()=>cardMove(m.key,i,-1)} disabled={i===0} style={{width:28,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontWeight:800,cursor:'pointer',opacity:i===0?.4:1}}>↑</button>
+                        <button onClick={()=>cardMove(m.key,i,1)} disabled={i===md.cards.length-1} style={{width:28,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontWeight:800,cursor:'pointer',opacity:i===md.cards.length-1?.4:1}}>↓</button>
+                        <button onClick={()=>cardRemove(m.key,i)} style={{width:28,borderRadius:7,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontWeight:900,cursor:'pointer'}}>×</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <button onClick={()=>cardAdd(m.key)} style={{marginTop:12,width:'100%',padding:10,borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>+ 카드 추가</button>
+          </div>
+        );
+      })}
+
+      {/* ===== 재질 스와치(동그란 아이콘) ===== */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>
+        <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}>재질 스와치 아이콘 <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>(7개 동그란 버튼)</span></div>
+        <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:12}}>"재질로 골라보세요" 위 <b>동그란 아이콘</b>(인기·벽지·목재·철재·유리·시멘트/벽돌)을 사진으로 교체. 이름·소제목도 바꿀 수 있어요. <b>사진을 안 넣으면 기존 기본 아이콘이 그대로 유지</b>됩니다. (권장: 정사각형 이미지)</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:12}}>
+          {HC_SWATCHES.map(s=>{ const sd=data.homeSwatches[s.key]||{image:'',label:'',sub:''}; const up=uploading==='sw:'+s.key;
+            return (
+              <div key={s.key} style={{display:'flex',gap:10,padding:10,background:'var(--bg)',borderRadius:10,border:'1px solid var(--border)',alignItems:'flex-start'}}>
+                <div style={{width:72,flexShrink:0,textAlign:'center'}}>
+                  <div style={{position:'relative',width:72,height:72,borderRadius:'50%',overflow:'hidden',background:'var(--or-pale)',border:'2px solid #fff',boxShadow:'0 4px 12px rgba(0,0,0,.12)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto'}}>
+                    {sd.image?<img src={sd.image} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontSize:10,color:'var(--text-sm)',fontWeight:800}}>기본</span>}
+                    {up&&<div style={{position:'absolute',inset:0,background:'rgba(255,255,255,.7)',display:'grid',placeItems:'center',fontSize:9.5,fontWeight:800,color:'var(--or-d)'}}>업로드</div>}
+                  </div>
+                  <label style={{display:'block',textAlign:'center',padding:'6px',marginTop:6,borderRadius:7,border:'1.5px solid var(--or)',color:'var(--or-d)',background:'#fff',fontSize:10.5,fontWeight:800,cursor:up?'wait':'pointer'}}>
+                    {sd.image?'교체':'사진'}
+                    <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload('sw:'+s.key,f,url=>swPatch(s.key,{image:url})); e.target.value='';}} style={{display:'none'}}/>
+                  </label>
+                  {sd.image && <button onClick={()=>swPatch(s.key,{image:''})} style={{marginTop:4,width:'100%',borderRadius:7,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontSize:10,fontWeight:800,cursor:'pointer',padding:'4px'}}>기본으로</button>}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:11,fontWeight:800,color:'var(--text-md)',marginBottom:2}}>{s.label} 자리</div>
+                  <input value={sd.label} onChange={e=>swPatch(s.key,{label:e.target.value})} placeholder={'이름 ('+s.label+')'} style={inp}/>
+                  <input value={sd.sub} onChange={e=>swPatch(s.key,{sub:e.target.value})} placeholder={'소제목 ('+s.sub+')'} style={inp}/>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ===== 재질별 카페24 상품 연결(자동 노출) ===== */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>
+        <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}>재질별 상품 진열 <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>(카페24 등록상품 자동 노출)</span></div>
+        <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:6}}>홈 "<b>재질로 골라보세요</b>" 아래 그리드에, <b>카페24에 등록한 실제 상품</b>이 자동으로 뜹니다. 상품을 여기서 하나하나 넣지 않아요.</div>
+        <div style={{fontSize:11.5,color:'var(--text-md)',fontWeight:700,background:'var(--or-pale)',border:'1px solid #FED7AA',borderRadius:9,padding:'10px 12px',marginBottom:12,lineHeight:1.7}}>
+          <b>설정 방법</b><br/>
+          ① 카페24에서 재질별 <b>상품분류(카테고리)</b>를 만들고 상품을 넣습니다.<br/>
+          ② 각 분류의 <b>분류번호(cate_no)</b>를 아래 칸에 입력 → 저장. (분류번호는 카페24 상품분류 관리 화면 주소의 <code>cate_no=</code> 뒤 숫자)<br/>
+          ③ 이후 상품을 추가/수정하면 홈에 <b>자동 반영</b>됩니다. (한 칸도 안 넣으면 기존 기본 8종 카드 유지)
+        </div>
+
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+          <span style={{fontSize:12,fontWeight:800,color:'var(--text-md)'}}>재질당 최대 카드 수</span>
+          <input type="number" min="1" max="40" value={data.homeGridSource.limit} onChange={e=>srcLimit(e.target.value)} style={{width:80,padding:'7px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12.5,fontWeight:700,textAlign:'center'}}/>
+          <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>개 ("인기"는 전체 재질을 합쳐 보여줍니다)</span>
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:10}}>
+          {HC_GRID_CATS.map(g=>{ const v=(data.homeGridSource.cats||{})[g.key]||'';
+            return (
+              <div key={g.key} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',background:'var(--bg)',borderRadius:10,border:'1px solid var(--border)'}}>
+                <div style={{width:58,flexShrink:0,fontSize:13.5,fontWeight:900,color:'var(--navy)'}}>{g.label}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:10.5,fontWeight:700,color:'var(--text-sm)',marginBottom:3}}>카페24 분류번호 (cate_no)</div>
+                  <input value={v} onChange={e=>srcCat(g.key,e.target.value.replace(/[^0-9]/g,''))} inputMode="numeric" placeholder="예: 88" style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1.5px solid '+(v?'var(--or)':'var(--border)'),fontSize:13,fontWeight:800,color:'var(--navy)',outline:'none',boxSizing:'border-box'}}/>
+                </div>
+                {v && <span style={{fontSize:10.5,fontWeight:800,color:'var(--or-d)',background:'#fff',border:'1px solid var(--or-l)',borderRadius:999,padding:'3px 8px',whiteSpace:'nowrap'}}>연결됨</span>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div style={{marginTop:20,display:'flex',justifyContent:'flex-end'}}>
         <button onClick={save} disabled={saving} style={{padding:'12px 28px',borderRadius:10,fontSize:13.5,fontWeight:900,color:'#fff',background:saving?'var(--text-sm)':'linear-gradient(135deg, var(--or), var(--or-d))',cursor:saving?'wait':'pointer'}}>{saving?'저장 중...':'저장'}</button>
       </div>
@@ -11697,8 +12540,11 @@ function App() {
         {active === 'recokeywords' && <RecoKeywordsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'postings' && <PostingsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'events' && <EventsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'best' && <BestPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'guidedetail' && <GuideDetailPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'packages' && <PackagesPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'banners' && <BannersPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'homecards' && <HomeCardsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'staff' && <StaffPage onToast={setToast} />}
         {active === 'firebase-usage' && <FirebaseUsagePage />}
         {active === 'settings' && <Settings onToast={setToast} />}

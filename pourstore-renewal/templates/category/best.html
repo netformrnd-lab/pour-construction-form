@@ -1,6 +1,8 @@
 <!-- ============================================================
-  event.html — POUR스토어 기획전(이벤트) 페이지 (오늘의집 스타일 · 공용 헤더 embed 포함)
-  데이터: Firestore config/pourstoreEvents {events:[...]} (어드민 '기획전(이벤트) 관리')
+  best.html — POUR스토어 베스트(판매량 랭킹) 페이지 (공용 헤더 embed 포함)
+  용도: 카페24 pourstore_renewal/category/best.html
+  데이터: Firestore config/pourstoreBest (카페24 판매량 동기화 결과) — 없으면 products 임시표시
+  카테고리 탭 + 일간/주간/월간 + 판매 개수 기준 랭킹 카드
  ============================================================ -->
 <!-- ★ 모바일 반응형 필수: 뷰포트 meta 보장 (카페24가 head에서 누락/무효화 시 강제 주입·교정)
      — 이게 없으면 모바일이 ~980px로 렌더되어 모든 반응형(@media)이 발동 안 함 -->
@@ -473,7 +475,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 <!-- 2) 카테고리 탭 (복구) — 목적지는 CMS 페이지 제작 후 연결 예정(임시 #) -->
 <nav class="psm1-tabs" aria-label="카테고리 탭">
   <div class="psm1-tabs-inner">
-    <a href="/pourstore_renewal/category/best.html" class="psm1-tab hot"><span class="psm1-tab-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11M2 13v7a2 2 0 0 0 2 2h13.3a2 2 0 0 0 2-1.7l1.4-9a2 2 0 0 0-2-2.3H14V5a3 3 0 0 0-3-3l-4 9"/></svg></span>베스트</a>
+    <a href="/pourstore_renewal/category/best.html" class="psm1-tab hot on"><span class="psm1-tab-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11M2 13v7a2 2 0 0 0 2 2h13.3a2 2 0 0 0 2-1.7l1.4-9a2 2 0 0 0-2-2.3H14V5a3 3 0 0 0-3-3l-4 9"/></svg></span>베스트</a>
     <a href="/pourstore_renewal/category/pour-products.html" class="psm1-tab pcatnav-btn" data-pcatnav-btn aria-haspopup="true" aria-expanded="false"><span class="pcatnav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.3"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.3"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.3"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.3"/></svg></span>카테고리</a>
     <a href="/pourstore_renewal/story/pour-story.html" class="psm1-tab story"><span class="psm1-tab-mega"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5v3a1 1 0 0 0 1 1h2l10 4.5V5L6 9.5H4a1 1 0 0 0-1 1z"/><path d="M6 14.5V18a1.5 1.5 0 0 0 3 0v-2"/><path d="M19 9.8a3.4 3.4 0 0 1 0 4.4"/></svg></span>POUR이야기</a>
     <a href="/guide/guide.html" class="psm1-tab">셀프시공</a>
@@ -1373,83 +1375,70 @@ var PM_POSTS = [];
 </script>
 </section>
 
-
-<!-- ===== 기획전 본문 ===== -->
+<!-- ===== 베스트 본문 (config/pourstoreBest · 판매량 랭킹) ===== -->
 <style>
-  .pev *{box-sizing:border-box;margin:0;padding:0;}
-  .pev{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;max-width:1080px;margin:0 auto;padding:24px 16px 70px;-webkit-font-smoothing:antialiased;}
-  .pev-head{padding:6px 4px 20px;}
-  .pev-head h1{font-size:26px;font-weight:900;letter-spacing:-.04em;color:#111;}
-  .pev-head p{margin-top:7px;font-size:14px;color:#8a8f98;font-weight:600;letter-spacing:-.02em;}
-  .pev-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 24px;}
-  .pev-card{display:block;cursor:pointer;text-decoration:none;color:inherit;}
-  .pev-hero{position:relative;width:100%;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#f1f3f5;box-shadow:0 6px 20px rgba(0,0,0,.06);}
-  .pev-hero>img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease;}
-  .pev-card:hover .pev-hero>img{transform:scale(1.03);}
-  .pev-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.45),rgba(0,0,0,0) 55%);}
-  .pev-badge{position:absolute;top:14px;left:14px;background:rgba(0,0,0,.55);color:#fff;font-size:11.5px;font-weight:800;letter-spacing:-.02em;padding:5px 11px;border-radius:999px;backdrop-filter:blur(2px);}
-  .pev-period{position:absolute;top:14px;right:14px;background:rgba(232,120,15,.95);color:#fff;font-size:11px;font-weight:800;letter-spacing:-.02em;padding:4px 10px;border-radius:999px;}
-  .pev-hero-tt{position:absolute;left:18px;right:18px;bottom:16px;color:#fff;}
-  .pev-hero-tt b{display:block;font-size:20px;font-weight:900;letter-spacing:-.04em;line-height:1.28;text-shadow:0 2px 10px rgba(0,0,0,.35);word-break:keep-all;}
-  .pev-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px;}
-  .pev-th{position:relative;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#f1f3f5;}
-  .pev-th>img{width:100%;height:100%;object-fit:cover;display:block;}
-  .pev-th.empty{background:#f4f5f7;}
-  .pev-more{position:absolute;inset:0;background:rgba(20,22,28,.62);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;font-weight:900;letter-spacing:-.03em;}
-  .pev-catchip{margin-top:10px;display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:800;color:#E8780F;background:#FFF3E9;padding:7px 12px;border-radius:999px;}
-  .pev-empty,.pev-loading{padding:70px 0;text-align:center;color:#adb2bb;font-size:14px;font-weight:600;}
-  /* 상세 오버레이 */
-  .pev-detail{position:fixed;inset:0;z-index:100020;background:#fff;overflow-y:auto;-webkit-overflow-scrolling:touch;}
-  .pev-detail[hidden]{display:none;}
-  .pev-dt-top{position:sticky;top:0;z-index:5;height:54px;display:flex;align-items:center;gap:8px;padding:0 12px;background:rgba(255,255,255,.96);backdrop-filter:blur(6px);border-bottom:1px solid #F2F3F5;}
-  .pev-dt-back{width:38px;height:38px;display:grid;place-items:center;border:0;background:none;cursor:pointer;color:#333;flex-shrink:0;}
-  .pev-dt-back svg{width:24px;height:24px;}
-  .pev-dt-title{font-size:16px;font-weight:800;letter-spacing:-.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .pev-dt-body{padding:0 0 60px;}
-  .pev-dt-imgs{max-width:1280px;margin:0 auto;}
-  .pev-dt-imgs img{width:100%;display:block;}
-  .pev-dt-text{padding:16px 20px;line-height:1.7;color:#2a2e33;letter-spacing:-.02em;word-break:keep-all;}
-  .pev-dt-prods{max-width:1080px;margin:0 auto;padding:26px 16px 0;}
-  .pev-dt-prods h2{font-size:18px;font-weight:900;letter-spacing:-.03em;margin-bottom:14px;}
-  .pev-dt-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px 14px;}
-  .pev-dp{display:block;text-decoration:none;color:inherit;}
-  .pev-dp-th{aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#f1f3f5;}
-  .pev-dp-th>img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease;}
-  .pev-dp:hover .pev-dp-th>img{transform:scale(1.04);}
-  .pev-dp-nm{margin-top:8px;font-size:13.5px;font-weight:600;color:#333;line-height:1.4;letter-spacing:-.02em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  .pev-dp-price{margin-top:4px;font-size:15px;font-weight:900;color:#111;letter-spacing:-.02em;}
-  .pev-dt-catbtn{display:block;max-width:420px;margin:22px auto 0;text-align:center;background:#E8780F;color:#fff;font-size:15px;font-weight:800;padding:15px;border-radius:12px;text-decoration:none;letter-spacing:-.02em;}
+  .pb{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;max-width:1180px;margin:0 auto;padding:24px 20px 80px;-webkit-font-smoothing:antialiased;}
+  .pb-head{text-align:center;padding:6px 2px 16px;}
+  .pb-head h1{font-size:38px;font-weight:900;letter-spacing:-.04em;color:#111;}
+  .pb-tabs{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid #EEF0F2;margin:0 -20px 16px;padding:10px 20px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;text-align:center;}
+  .pb-tabs::-webkit-scrollbar{display:none;}
+  .pb-tabs-inner{display:inline-flex;gap:32px;white-space:nowrap;}
+  .pb-tab{flex:0 0 auto;display:inline-flex;align-items:center;padding:9px 18px;border-radius:999px;background:transparent;color:#111;font-size:17.5px;font-weight:700;letter-spacing:-.02em;cursor:pointer;transition:background .15s,color .15s;font-family:inherit;border:0;}
+  .pb-tab:hover{background:#F2F3F7;}
+  .pb-tab.on{background:#33373D;color:#fff;}
+  .pb-periodrow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 2px 18px;flex-wrap:wrap;}
+  .pb-periods{display:inline-flex;align-items:center;gap:10px;}
+  .pb-period{background:transparent;border:0;font-family:inherit;font-size:16px;font-weight:600;color:#B7BBC2;cursor:pointer;padding:2px;letter-spacing:-.02em;}
+  .pb-period.on{color:#111;font-weight:800;}
+  .pb-sep{color:#E5E7EB;font-size:12px;}
+  .pb-basis{font-size:12.5px;color:#9CA3AF;font-weight:600;letter-spacing:-.01em;}
+  .pb-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:34px 20px;}
+  .pb-card{position:relative;display:block;text-decoration:none;color:inherit;}
+  .pb-rank{position:absolute;top:0;left:0;z-index:2;width:30px;height:30px;padding:0;box-sizing:border-box;display:flex;align-items:center;justify-content:center;background:#111;color:#fff;font-size:15px;font-weight:800;letter-spacing:-.01em;}
+  .pb-th{position:relative;width:100%;aspect-ratio:1/1;border-radius:3px;overflow:hidden;background:#f3f4f6;}
+  .pb-th>img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease;}
+  .pb-card:hover .pb-th>img{transform:scale(1.045);}
+  .pb-th .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#c4c8ce;}
+  .pb-th .ph svg{width:40px;height:40px;}
+  .pb-soldout .pb-th::after{content:"품절";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(17,17,17,.5);color:#fff;font-size:14px;font-weight:800;}
+  .pb-brand{margin:12px 0 3px;font-size:13.5px;font-weight:800;color:#111;letter-spacing:-.02em;}
+  .pb-name{font-size:13.5px;font-weight:500;color:#6B7280;letter-spacing:-.02em;line-height:1.42;word-break:keep-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.84em;}
+  .pb-priceline{margin-top:8px;display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;}
+  .pb-price{font-size:15.5px;font-weight:800;color:#111;letter-spacing:-.02em;}
+  .pb-price .won{font-size:13px;font-weight:700;margin-left:1px;}
+  .pb-dc{font-size:15.5px;font-weight:800;color:#FF4800;}
+  .pb-ask{font-size:13.5px;font-weight:700;color:#8a8f98;}
+  .pb-sold{margin-top:5px;font-size:12px;color:#9CA3AF;font-weight:600;letter-spacing:-.01em;}
+  .pb-empty,.pb-loading{grid-column:1/-1;padding:80px 0;text-align:center;color:#adb2bb;font-size:14px;font-weight:600;}
+  .pb-note{grid-column:1/-1;margin:0 0 6px;padding:11px 14px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;color:#C2410C;font-size:12.5px;font-weight:700;text-align:center;letter-spacing:-.01em;}
+  @media (max-width:1000px){ .pb-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:30px 16px;} }
   @media (max-width:640px){
-    .pev{padding:20px 16px 56px;}
-    .pev-grid{grid-template-columns:1fr;gap:24px;}
-    .pev-head h1{font-size:22px;}
-    .pev-hero-tt b{font-size:18px;}
-    .pev-dt-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 10px;}
-    .pev-dp-nm{font-size:12.5px;}
+    .pb{padding:18px 14px 60px;}
+    .pb-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 12px;}
+    .pb-head h1{font-size:30px;}
+    .pb-tabs{margin:0 -14px 14px;padding:9px 14px;text-align:left;}
+    .pb-tabs-inner{gap:20px;} .pb-tab{font-size:16px;padding:8px 14px;}
+    .pb-rank{width:26px;height:26px;font-size:13px;}
   }
 </style>
 
-<div class="pev">
-  <div class="pev-head">
-    <h1>기획전</h1>
-    <p>POUR스토어가 준비한 특별한 기획전을 만나보세요.</p>
+<div class="pb">
+  <div class="pb-head"><h1>베스트</h1></div>
+  <div class="pb-tabs" data-pb-tabs><div class="pb-tabs-inner" data-pb-tabs-inner></div></div>
+  <div class="pb-periodrow">
+    <div class="pb-periods" data-pb-periods>
+      <button class="pb-period on" data-p="daily">일간</button><span class="pb-sep">|</span>
+      <button class="pb-period" data-p="weekly">주간</button><span class="pb-sep">|</span>
+      <button class="pb-period" data-p="monthly">월간</button>
+    </div>
+    <div class="pb-basis" data-pb-basis></div>
   </div>
-  <div class="pev-loading" data-pev-loading>불러오는 중…</div>
-  <div class="pev-grid" data-pev-grid hidden></div>
-  <div class="pev-empty" data-pev-empty hidden>진행 중인 기획전이 없습니다.</div>
-</div>
-
-<div class="pev-detail" data-pev-detail hidden>
-  <div class="pev-dt-top">
-    <button class="pev-dt-back" data-pev-back type="button" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <div class="pev-dt-title" data-pev-dt-title></div>
-  </div>
-  <div class="pev-dt-body" data-pev-dt-body></div>
+  <div class="pb-grid" data-pb-grid><div class="pb-loading">불러오는 중…</div></div>
 </div>
 
 <script type="module">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 const firebaseConfig = {
   apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
   authDomain: "pour-app-new.firebaseapp.com", projectId: "pour-app-new",
@@ -1460,101 +1449,121 @@ const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
-function attrLink(u){ return (u && String(u).trim()) ? String(u).trim() : ''; }
-function within(ev){
-  var now=Date.now();
-  var s=ev.startAt?Date.parse(ev.startAt):NaN;
-  var e=ev.endAt?Date.parse(ev.endAt):NaN;
-  if(!isNaN(s)&&now<s) return false;
-  if(!isNaN(e)&&now>e) return false;
-  return true;
-}
-function periodLabel(ev){
-  function d(x){ var m=String(x||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[2]+'.'+m[3]):''; }
-  var a=d(ev.startAt), b=d(ev.endAt);
-  if(a&&b) return a+'~'+b; if(b) return '~'+b; if(a) return a+'~'; return '';
-}
-function thumbTile(p, moreN, isLast){
-  const img = (p && p.thumb) ? '<img src="'+esc(p.thumb)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : '';
-  const overlay = (isLast && moreN>0) ? '<span class="pev-more">+'+moreN+'</span>' : '';
-  const cls = 'pev-th'+((p&&p.thumb)?'':' empty');
-  return '<div class="'+cls+'">'+img+overlay+'</div>';
-}
-function cardHtml(ev, idx){
-  const heroImg = ev.thumbnail ? '<img src="'+esc(ev.thumbnail)+'" alt="'+esc(ev.title||'')+'" onerror="this.style.display=\'none\'">' : '';
-  const badge = ev.badge ? '<span class="pev-badge">'+esc(ev.badge)+'</span>' : '';
-  const per = periodLabel(ev);
-  const perEl = per ? '<span class="pev-period">'+esc(per)+'</span>' : '';
-  const heroInner = heroImg+'<div class="pev-hero-grad"></div>'+badge+perEl+'<div class="pev-hero-tt"><b>'+esc(ev.title||'')+'</b></div>';
-  var products = Array.isArray(ev.products)?ev.products:[];
-  var strip='';
-  if(products.length){
-    var show=products.slice(0,4);
-    var moreN = ev.moreCount ? Number(ev.moreCount) : (products.length>4?products.length-4:0);
-    var inner=''; for(let i=0;i<4;i++){ inner += thumbTile(show[i], moreN, i===3); }
-    strip = '<div class="pev-strip">'+inner+'</div>';
-  } else if(ev.categoryNo){
-    strip = '<div class="pev-catchip">🏷 카테고리 상품 보기</div>';
-  }
-  return '<a class="pev-card" href="#ev-'+esc(ev.id)+'" data-ev="'+idx+'"><div class="pev-hero">'+heroInner+'</div>'+strip+'</a>';
-}
+var PH_SVG='<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5h16v14H4z"/><path d="M4 15l4-4 3 3 4-5 5 6"/></svg></div>';
 
-var EVENTS=[];
-function openDetail(ev){
-  var detail=document.querySelector('[data-pev-detail]');
-  var body=document.querySelector('[data-pev-dt-body]');
-  var titleEl=document.querySelector('[data-pev-dt-title]');
-  titleEl.textContent=ev.title||'기획전';
-  var blocks=Array.isArray(ev.mainBlocks)?ev.mainBlocks:(Array.isArray(ev.mainImages)?ev.mainImages.filter(Boolean).map(function(u){return {type:'image',url:u};}):[]);
-  var TSZ={normal:'15px',large:'18px',title:'24px'};
-  var inner = blocks.length ? blocks.map(function(b){
-    if(b&&b.type==='text'){ var sz=TSZ[b.size||'normal']||'15px'; var fw=(b.size==='title')?'800':'500'; return '<div class="pev-dt-text" style="text-align:'+(b.align||'left')+';font-size:'+sz+';font-weight:'+fw+'">'+esc(b.text||'').replace(/\n/g,'<br>')+'</div>'; }
-    return '<img src="'+esc((b&&b.url)||'')+'" alt="" onerror="this.style.display=\'none\'">';
-  }).join('') : (ev.thumbnail ? '<img src="'+esc(ev.thumbnail)+'" alt="">' : '<div style="padding:60px 20px;text-align:center;color:#adb2bb;font-weight:600">기획전 내용이 준비 중입니다.</div>');
-  var h='<div class="pev-dt-imgs">'+inner+'</div>';
-  var products=Array.isArray(ev.products)?ev.products:[];
-  if(products.length){
-    h+='<div class="pev-dt-prods"><h2>이벤트 상품</h2><div class="pev-dt-grid">'+products.map(function(p){
-      var link=attrLink(p.link)||'#';
-      var im=p.thumb?'<img src="'+esc(p.thumb)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
-      var pr=''; if(p.price!=null && String(p.price).trim()!==''){ var n=Number(String(p.price).replace(/[^0-9.]/g,'')); pr=(!isNaN(n)&&n>0)?(n.toLocaleString()+'원'):esc(String(p.price)); }
-      return '<a class="pev-dp" href="'+esc(link)+'"><div class="pev-dp-th">'+im+'</div>'+(p.name?'<div class="pev-dp-nm">'+esc(p.name)+'</div>':'')+(pr?'<div class="pev-dp-price">'+pr+'</div>':'')+'</a>';
-    }).join('')+'</div></div>';
-  }
-  if(ev.categoryNo){
-    h+='<div class="pev-dt-prods"><a class="pev-dt-catbtn" href="/product/list.html?cate_no='+esc(ev.categoryNo)+'">이 카테고리 상품 전체보기 →</a></div>';
-  }
-  body.innerHTML=h;
-  detail.hidden=false; detail.scrollTop=0;
-  document.documentElement.style.overflow='hidden';
+// 카테고리(제품보기와 동일 규칙 — fallback 분류용)
+var TAB_RULES = [
+  ['패키지',   ['패키지','세트','키트','도구세트']],
+  ['안전용품', ['안전','세이프티','절연화','현장화','작업화','주방화','크린룸화','안전화','마스크','장갑','방진','안전모','벨트','칼라콘','꼬깔','목토시','넥워머','보안경','글러브','조끼','발등보호대','압박밴드','보안면','귀마개','각반']],
+  ['보강자재', ['탄성강화','모체강화','강화파우더','후커','드라이비트','코너비드','보강매쉬','드라이비트매쉬','페이퍼팬벤트','팬벤트']],
+  ['방수',     ['방수','우레탄','실란트','PVC시트','씰코트','씰패치','씰코팅','방수밀대','방수페인트','드림코트']],
+  ['균열보수', ['균열','크랙','퍼티','씰프로','인젝션','후레슁','후레싱','포트홀','아스콘','유화프라이머','아스팔트프라이머']],
+  ['페인트',   ['제비스코','에폭시','우방코트','프라이머','도료','락카','에나멜','바니쉬','매직칼라','라이닝','실러','코트재','써밋페인트','강화재','방청','녹방지']],
+  ['도장·도색',['붓','로라','롤러','로러','하나로','리필','트레이','도색통','공캔','신나통','스프레이건','스프레이','도색','풀솔','빽붓','극세사','로라대','노즐','코킹건','펌프','믹서','샌더','교반','브러쉬']],
+  ['부자재',   ['헤라','스크래퍼','스크레퍼','바닥칼','밀대','고대','미장','흙손','사포','연마','테이프','커버링','보양','마스킹','한냉사','아사','빠데판','여과지','와이어브러쉬','록타이트','접착제','비드','골판지']],
+];
+function classify(name){
+  var n=String(name||'').replace(/\s+/g,'');
+  for(var i=0;i<TAB_RULES.length;i++){ var kws=TAB_RULES[i][1];
+    for(var j=0;j<kws.length;j++){ if(n.indexOf(kws[j].replace(/\s+/g,''))>=0) return TAB_RULES[i][0]; } }
+  return '기타';
 }
-function closeDetail(){
-  var d=document.querySelector('[data-pev-detail]'); if(!d) return; d.hidden=true;
-  document.documentElement.style.overflow='';
-  if(location.hash){ try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} }
+var TAB_ORDER=['패키지','방수','균열보수','도장·도색','페인트','보강자재','부자재','안전용품'];
+var CATS=['전체'].concat(TAB_ORDER);
+
+function isJunk(name){ var n=String(name||''); return /자재대금|개인\s*결제|업체전용|님\s*개인|대금/.test(n); }
+function codeOf(p){ var c=(p.code!=null?p.code:((p.channels&&p.channels.imweb)||p.imwebId))||''; return String(c).trim(); }
+function isSoldout(p){ return /품절|판매중지|중지|불가/.test(String(p.salesStatus||p.displayStatus||'')); }
+
+function priceHtml(p){
+  var sale=p.salePrice, base=p.price;
+  var sN=Number(String(sale==null?'':sale).replace(/[^0-9.]/g,''));
+  var bN=Number(String(base==null?'':base).replace(/[^0-9.]/g,''));
+  var main=(!isNaN(sN)&&sN>0)?sN:((!isNaN(bN)&&bN>0)?bN:0);
+  if(!main) return '<div class="pb-priceline"><span class="pb-ask">가격문의</span></div>';
+  var dc=(!isNaN(bN)&&bN>main)?Math.round((bN-main)/bN*100):0;
+  return '<div class="pb-priceline"><span class="pb-price">'+main.toLocaleString()+'<span class="won">원</span></span>'
+    + (dc>0?'<span class="pb-dc">'+dc+'%</span>':'') + '</div>';
+}
+function cardHtml(p, rank){
+  var code=codeOf(p);
+  var link='/product/search.html?keyword='+encodeURIComponent((p.name||'').trim());  // 카페24 상품명 검색 → 실제 카페24 상품
+  var th=(p.thumb||p.thumbnail||'').trim();
+  var img=th ? '<img src="'+esc(th)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' : PH_SVG;
+  var sold=(p.soldQty!=null && Number(p.soldQty)>0) ? '<div class="pb-sold">판매 '+Number(p.soldQty).toLocaleString()+'개</div>' : '';
+  return '<a class="pb-card'+(isSoldout(p)?' pb-soldout':'')+'" href="'+esc(link)+'">'
+    + '<span class="pb-rank">'+rank+'</span>'
+    + '<div class="pb-th">'+img+'</div>'
+    + '<div class="pb-brand">'+esc(p.brand||'POUR스토어')+'</div>'
+    + '<div class="pb-name">'+esc(p.name||'')+'</div>'
+    + priceHtml(p) + sold + '</a>';
 }
 
 (async function(){
-  const grid=document.querySelector('[data-pev-grid]');
-  const loading=document.querySelector('[data-pev-loading]');
-  const empty=document.querySelector('[data-pev-empty]');
+  var grid=document.querySelector('[data-pb-grid]');
+  var tabsInner=document.querySelector('[data-pb-tabs-inner]');
+  var basisEl=document.querySelector('[data-pb-basis]');
+  var periodsBox=document.querySelector('[data-pb-periods]');
+  var state={cat:'전체', period:'daily'};
+  var BEST=null, fallback=null, usingFallback=false;
+
+  // 카테고리 탭 렌더
+  tabsInner.innerHTML=CATS.map(function(c){ return '<button class="pb-tab'+(c==='전체'?' on':'')+'" data-cat="'+esc(c)+'">'+esc(c)+'</button>'; }).join('');
+
+  // config/pourstoreBest 로드 (판매량 동기화 결과)
   try{
-    const snap=await getDoc(doc(db,'config','pourstoreEvents'));
-    let list=(snap.exists() && Array.isArray(snap.data().events)?snap.data().events:[]).filter(e=>e && e.active!==false && within(e));
-    list.sort((a,b)=>((a.order||0)-(b.order||0)) || String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
-    console.log('[events] '+list.length+'건 노출');
-    EVENTS=list;
-    loading.hidden=true;
-    if(!list.length){ empty.hidden=false; return; }
-    grid.innerHTML=list.map((ev,i)=>cardHtml(ev,i)).join('');
-    grid.hidden=false;
-    grid.addEventListener('click',function(e){ var a=e.target.closest('[data-ev]'); if(!a) return; e.preventDefault(); var ev=EVENTS[+a.getAttribute('data-ev')]; if(ev){ try{ location.hash='ev-'+ev.id; }catch(_){} openDetail(ev); } });
-    var back=document.querySelector('[data-pev-back]'); if(back) back.addEventListener('click', closeDetail);
-    window.addEventListener('hashchange',function(){ var m=String(location.hash||'').match(/#ev-(.+)/); if(m){ var ev=EVENTS.filter(x=>String(x.id)===m[1])[0]; if(ev) openDetail(ev); } else closeDetail(); });
-    var m0=String(location.hash||'').match(/#ev-(.+)/); if(m0){ var ev0=EVENTS.filter(x=>String(x.id)===m0[1])[0]; if(ev0) openDetail(ev0); }
-  }catch(e){
-    console.error('[events] 로드 실패(빈 상태로 표시):', e);
-    loading.hidden=true; empty.hidden=false;   // 문서 없음/일시 오류 → 빈 상태로(에러문구 대신)
+    var snap=await getDoc(doc(db,'config','pourstoreBest'));
+    if(snap.exists()){ var d=snap.data()||{}; if(d.periods && typeof d.periods==='object'){ BEST=d.periods; if(d.basisDate) basisEl.textContent=String(d.basisDate).replace(/-/g,'.')+' 기준'; } }
+    console.log('[베스트] config/pourstoreBest 로드:', BEST?('periods 있음'):'비어있음/없음');
+  }catch(e){ console.warn('[베스트] pourstoreBest 로드 실패(무시, fallback):', e && e.message); }
+
+  function bestHasAny(){ if(!BEST) return false;
+    return ['daily','weekly','monthly'].some(function(pr){ var g=BEST[pr]; return g && Object.keys(g).some(function(k){ return Array.isArray(g[k]) && g[k].length; }); }); }
+
+  async function ensureFallback(){
+    if(fallback) return fallback;
+    var loader=function(){ return getDocs(collection(db,'products')).then(function(sn){ return sn.docs.map(function(x){ return Object.assign({id:x.id}, x.data()); }); }); };
+    var all=(window.__pcache ? await window.__pcache.wrap('col:products',300000,loader) : await loader());
+    var list=all.filter(function(p){ return p && p.isActive!==false && p.name && !isJunk(p.name) && p.displayStatus!=='N' && p.salesStatus!=='숨김'; });
+    list.forEach(function(p){ p._tab=classify(p.name); });
+    list.sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''),'ko'); });
+    fallback=list; console.log('[베스트] fallback products '+list.length+'건'); return list;
   }
+
+  function listFor(cat, period){
+    if(BEST && bestHasAny()){
+      var g=BEST[period]||{}; var arr=g[cat]||(cat==='전체'?[]:[]);
+      // 전체가 비어있고 카테고리별만 있으면 합쳐서 상위로
+      if(cat==='전체' && (!arr || !arr.length)){
+        var merged=[]; Object.keys(g).forEach(function(k){ if(Array.isArray(g[k])) merged=merged.concat(g[k]); });
+        merged.sort(function(a,b){ return (Number(b.soldQty)||0)-(Number(a.soldQty)||0); });
+        arr=merged;
+      }
+      return (arr||[]).slice(0,100);
+    }
+    return null; // fallback 신호
+  }
+
+  async function render(){
+    // 탭/기간 활성표시
+    Array.prototype.forEach.call(tabsInner.querySelectorAll('.pb-tab'),function(b){ b.classList.toggle('on', b.getAttribute('data-cat')===state.cat); });
+    Array.prototype.forEach.call(periodsBox.querySelectorAll('.pb-period'),function(b){ b.classList.toggle('on', b.getAttribute('data-p')===state.period); });
+
+    var items=listFor(state.cat, state.period);
+    var note='';
+    if(items===null){
+      usingFallback=true;
+      var fl=await ensureFallback();
+      items=(state.cat==='전체')?fl:fl.filter(function(p){ return p._tab===state.cat; });
+      items=items.slice(0,100);
+    }
+    if(!items || !items.length){ grid.innerHTML=note+'<div class="pb-empty">해당 카테고리 베스트가 아직 없어요.</div>'; return; }
+    grid.innerHTML=note+items.map(function(p,i){ return cardHtml(p, i+1); }).join('');
+  }
+
+  tabsInner.addEventListener('click',function(e){ var b=e.target.closest('.pb-tab'); if(!b)return; state.cat=b.getAttribute('data-cat'); render(); });
+  periodsBox.addEventListener('click',function(e){ var b=e.target.closest('.pb-period'); if(!b)return; state.period=b.getAttribute('data-p'); render(); });
+
+  render();
 })();
 </script>

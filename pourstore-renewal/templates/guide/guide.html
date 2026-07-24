@@ -1,6 +1,8 @@
 <!-- ============================================================
-  event.html — POUR스토어 기획전(이벤트) 페이지 (오늘의집 스타일 · 공용 헤더 embed 포함)
-  데이터: Firestore config/pourstoreEvents {events:[...]} (어드민 '기획전(이벤트) 관리')
+  guide.html — POUR스토어 시공가이드(가이드북) 랜딩 (공용 헤더 embed 포함)
+  용도: 카페24 guide/guide.html (스킨 루트의 guide 폴더)
+  구성: 안내문 + 주제 카드 4종(셀프시공 A TO Z). 원본 pourstore.net/140 재현
+  카드 클릭 → (추후) 각 주제 상세 페이지 연결 예정
  ============================================================ -->
 <!-- ★ 모바일 반응형 필수: 뷰포트 meta 보장 (카페24가 head에서 누락/무효화 시 강제 주입·교정)
      — 이게 없으면 모바일이 ~980px로 렌더되어 모든 반응형(@media)이 발동 안 함 -->
@@ -1373,188 +1375,86 @@ var PM_POSTS = [];
 </script>
 </section>
 
-
-<!-- ===== 기획전 본문 ===== -->
+<!-- ===== 시공가이드(가이드북) 본문 ===== -->
 <style>
-  .pev *{box-sizing:border-box;margin:0;padding:0;}
-  .pev{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;max-width:1080px;margin:0 auto;padding:24px 16px 70px;-webkit-font-smoothing:antialiased;}
-  .pev-head{padding:6px 4px 20px;}
-  .pev-head h1{font-size:26px;font-weight:900;letter-spacing:-.04em;color:#111;}
-  .pev-head p{margin-top:7px;font-size:14px;color:#8a8f98;font-weight:600;letter-spacing:-.02em;}
-  .pev-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 24px;}
-  .pev-card{display:block;cursor:pointer;text-decoration:none;color:inherit;}
-  .pev-hero{position:relative;width:100%;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#f1f3f5;box-shadow:0 6px 20px rgba(0,0,0,.06);}
-  .pev-hero>img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease;}
-  .pev-card:hover .pev-hero>img{transform:scale(1.03);}
-  .pev-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.45),rgba(0,0,0,0) 55%);}
-  .pev-badge{position:absolute;top:14px;left:14px;background:rgba(0,0,0,.55);color:#fff;font-size:11.5px;font-weight:800;letter-spacing:-.02em;padding:5px 11px;border-radius:999px;backdrop-filter:blur(2px);}
-  .pev-period{position:absolute;top:14px;right:14px;background:rgba(232,120,15,.95);color:#fff;font-size:11px;font-weight:800;letter-spacing:-.02em;padding:4px 10px;border-radius:999px;}
-  .pev-hero-tt{position:absolute;left:18px;right:18px;bottom:16px;color:#fff;}
-  .pev-hero-tt b{display:block;font-size:20px;font-weight:900;letter-spacing:-.04em;line-height:1.28;text-shadow:0 2px 10px rgba(0,0,0,.35);word-break:keep-all;}
-  .pev-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px;}
-  .pev-th{position:relative;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#f1f3f5;}
-  .pev-th>img{width:100%;height:100%;object-fit:cover;display:block;}
-  .pev-th.empty{background:#f4f5f7;}
-  .pev-more{position:absolute;inset:0;background:rgba(20,22,28,.62);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;font-weight:900;letter-spacing:-.03em;}
-  .pev-catchip{margin-top:10px;display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:800;color:#E8780F;background:#FFF3E9;padding:7px 12px;border-radius:999px;}
-  .pev-empty,.pev-loading{padding:70px 0;text-align:center;color:#adb2bb;font-size:14px;font-weight:600;}
-  /* 상세 오버레이 */
-  .pev-detail{position:fixed;inset:0;z-index:100020;background:#fff;overflow-y:auto;-webkit-overflow-scrolling:touch;}
-  .pev-detail[hidden]{display:none;}
-  .pev-dt-top{position:sticky;top:0;z-index:5;height:54px;display:flex;align-items:center;gap:8px;padding:0 12px;background:rgba(255,255,255,.96);backdrop-filter:blur(6px);border-bottom:1px solid #F2F3F5;}
-  .pev-dt-back{width:38px;height:38px;display:grid;place-items:center;border:0;background:none;cursor:pointer;color:#333;flex-shrink:0;}
-  .pev-dt-back svg{width:24px;height:24px;}
-  .pev-dt-title{font-size:16px;font-weight:800;letter-spacing:-.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .pev-dt-body{padding:0 0 60px;}
-  .pev-dt-imgs{max-width:1280px;margin:0 auto;}
-  .pev-dt-imgs img{width:100%;display:block;}
-  .pev-dt-text{padding:16px 20px;line-height:1.7;color:#2a2e33;letter-spacing:-.02em;word-break:keep-all;}
-  .pev-dt-prods{max-width:1080px;margin:0 auto;padding:26px 16px 0;}
-  .pev-dt-prods h2{font-size:18px;font-weight:900;letter-spacing:-.03em;margin-bottom:14px;}
-  .pev-dt-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px 14px;}
-  .pev-dp{display:block;text-decoration:none;color:inherit;}
-  .pev-dp-th{aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#f1f3f5;}
-  .pev-dp-th>img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease;}
-  .pev-dp:hover .pev-dp-th>img{transform:scale(1.04);}
-  .pev-dp-nm{margin-top:8px;font-size:13.5px;font-weight:600;color:#333;line-height:1.4;letter-spacing:-.02em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  .pev-dp-price{margin-top:4px;font-size:15px;font-weight:900;color:#111;letter-spacing:-.02em;}
-  .pev-dt-catbtn{display:block;max-width:420px;margin:22px auto 0;text-align:center;background:#E8780F;color:#fff;font-size:15px;font-weight:800;padding:15px;border-radius:12px;text-decoration:none;letter-spacing:-.02em;}
-  @media (max-width:640px){
-    .pev{padding:20px 16px 56px;}
-    .pev-grid{grid-template-columns:1fr;gap:24px;}
-    .pev-head h1{font-size:22px;}
-    .pev-hero-tt b{font-size:18px;}
-    .pev-dt-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 10px;}
-    .pev-dp-nm{font-size:12.5px;}
+  .pg{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#111;max-width:1180px;margin:0 auto;padding:36px 20px 90px;-webkit-font-smoothing:antialiased;}
+  .pg-head h1{font-size:30px;font-weight:900;letter-spacing:-.04em;color:#111;}
+  .pg-head p{margin-top:14px;font-size:15px;line-height:1.7;color:#4B5563;font-weight:500;word-break:keep-all;}
+  .pg-ask{text-align:center;margin:56px 0 30px;}
+  .pg-ask h2{font-size:23px;font-weight:900;letter-spacing:-.03em;color:#111;}
+  .pg-ask p{margin-top:8px;font-size:15px;color:#4B5563;font-weight:600;}
+  .pg-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}
+  .pg-card{position:relative;display:flex;flex-direction:column;align-items:center;aspect-ratio:.52;border-radius:6px;overflow:hidden;padding:30px 18px 0;background:var(--bg);color:#fff;text-decoration:none;transition:transform .18s ease,box-shadow .18s ease;box-shadow:0 6px 20px rgba(0,0,0,.10);}
+  .pg-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.22);}
+  .pg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:5;display:block;}
+  /* 이미지가 로드되면: 원본 비율 그대로(안 잘림) + 디자인 요소 숨김 */
+  .pg-card.has-img{aspect-ratio:auto;display:block;padding:0;}
+  .pg-card.has-img > :not(.pg-img){display:none;}
+  .pg-card.has-img .pg-img{position:relative;inset:auto;width:100%;height:auto;object-fit:contain;}
+  .pg-logo{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--logo);}
+  .pg-sky-wrap{--acc:#E8780F;width:112px;display:block;}
+  .pg-sky{width:100%;height:auto;display:block;}
+  .pg-logo-t{font-size:15px;font-weight:800;letter-spacing:.02em;}
+  .pg-title-wrap{position:relative;margin-top:16%;width:78%;display:flex;flex-direction:column;align-items:center;color:#fff;}
+  .pg-roof-svg{width:100%;height:26px;display:block;color:#fff;margin-bottom:12px;}
+  .pg-title{font-size:22px;font-weight:900;line-height:1.32;letter-spacing:.06em;text-align:center;color:#fff;word-break:keep-all;}
+  .pg-atoz{margin-top:12%;display:flex;flex-direction:column;align-items:center;gap:12px;color:#fff;}
+  .pg-atoz-line{width:52px;height:2px;background:#fff;opacity:.9;}
+  .pg-atoz span:last-child{font-size:14px;font-weight:800;letter-spacing:.04em;}
+  .pg-bar{position:absolute;left:0;bottom:0;width:62%;height:46px;background:var(--bar);}
+  .pg-foot{position:absolute;right:14px;bottom:12px;display:flex;flex-direction:column;align-items:center;gap:5px;}
+  .pg-watch{font-size:10px;font-weight:800;color:#fff;letter-spacing:-.01em;}
+  .pg-qr{width:58px;height:58px;background:#fff;border-radius:4px;padding:4px;box-sizing:border-box;}
+  .pg-qr-svg{width:100%;height:100%;display:block;}
+  @media (max-width:900px){
+    .pg-cards{grid-template-columns:repeat(2,1fr);gap:14px;}
+    .pg-head h1{font-size:25px;} .pg-ask h2{font-size:20px;}
+  }
+  @media (max-width:900px){
+    .pg-title-wrap{margin-top:12%;} .pg-atoz{margin-top:9%;}
+  }
+  @media (max-width:480px){
+    .pg{padding:26px 14px 70px;}
+    .pg-card{padding:24px 12px 0;}
+    .pg-title{font-size:17px;letter-spacing:.03em;} .pg-logo-t{font-size:12px;} .pg-sky-wrap{width:84px;}
+    .pg-title-wrap{margin-top:9%;width:88%;} .pg-roof-svg{height:20px;margin-bottom:8px;}
+    .pg-atoz{margin-top:8%;gap:8px;} .pg-atoz span:last-child{font-size:11.5px;}
+    .pg-qr{width:44px;height:44px;} .pg-bar{height:34px;width:58%;} .pg-watch{font-size:9px;}
+    .pg-foot{right:10px;bottom:9px;}
   }
 </style>
 
-<div class="pev">
-  <div class="pev-head">
-    <h1>기획전</h1>
-    <p>POUR스토어가 준비한 특별한 기획전을 만나보세요.</p>
+<div class="pg">
+  <div class="pg-head">
+    <h1>POUR스토어 가이드북</h1>
+    <p>POUR스토어 가이드북은 눈높이 교육을 통해 다양한 시공 전문 정보를 제공합니다.<br>제품 사용을 위한 방법부터, 유형별 필요한 보수방법까지 전반적인 시공을 이해하기 쉽게 안내합니다.</p>
   </div>
-  <div class="pev-loading" data-pev-loading>불러오는 중…</div>
-  <div class="pev-grid" data-pev-grid hidden></div>
-  <div class="pev-empty" data-pev-empty hidden>진행 중인 기획전이 없습니다.</div>
+  <div class="pg-ask">
+    <h2>시공방법에 대해 궁금하신가요?</h2>
+    <p>아래 해당 주제를 클릭해주세요.</p>
+  </div>
+  <div class="pg-cards">
+<a class="pg-card" style="--bg:#1F3A2A;--bar:#E8780F;--logo:#fff" href="/guide/guide-detail.html?type=1"><img class="pg-img" data-gi="0" alt="" loading="lazy"><div class="pg-logo"><span class="pg-sky-wrap"><svg class="pg-sky" viewBox="0 0 132 40" fill="none" xmlns="http://www.w3.org/2000/svg"><g fill="var(--acc,#E8780F)"><rect x="2" y="20" width="10" height="20"/><rect x="14" y="12" width="10" height="28"/><path d="M26 40V16l6-5 6 5v24z"/><rect x="38" y="8" width="10" height="32"/><rect x="50" y="18" width="10" height="22"/><path d="M62 40V14l6-6 6 6v26z"/><rect x="76" y="10" width="10" height="30"/><rect x="88" y="20" width="10" height="20"/><rect x="100" y="14" width="10" height="26"/></g></svg></span><span class="pg-logo-t">POUR스토어</span></div><div class="pg-title-wrap"><svg class="pg-roof-svg" viewBox="0 0 220 34" preserveAspectRatio="none" fill="none"><polyline points="5,32 5,17 110,5 215,17 215,32" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><h3 class="pg-title">평형옥상지붕<br>방수보강공사</h3></div><div class="pg-atoz"><span class="pg-atoz-line"></span><span>셀프시공 A TO Z 설명서</span></div><span class="pg-bar"></span><div class="pg-foot"><span class="pg-watch">시공영상 시청하기</span><span class="pg-qr"><svg class="pg-qr-svg" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" fill="#fff"/><g fill="#111"><path d="M8 8h26v26H8zm6 6v14h14V14z"/><rect x="18" y="18" width="6" height="6"/><path d="M66 8h26v26H66zm6 6v14h14V14z"/><rect x="76" y="18" width="6" height="6"/><path d="M8 66h26v26H8zm6 6v14h14V14z" transform="translate(0 0)"/><path d="M8 66h26v26H8zm6 6v14h14V72z"/><rect x="18" y="76" width="6" height="6"/><rect x="42" y="10" width="6" height="6"/><rect x="52" y="16" width="6" height="6"/><rect x="42" y="24" width="6" height="6"/><rect x="42" y="42" width="6" height="6"/><rect x="52" y="42" width="6" height="6"/><rect x="62" y="42" width="6" height="6"/><rect x="42" y="52" width="6" height="6"/><rect x="42" y="62" width="6" height="6"/><rect x="54" y="54" width="6" height="6"/><rect x="66" y="52" width="6" height="6"/><rect x="76" y="52" width="6" height="6"/><rect x="88" y="52" width="6" height="6"/><rect x="66" y="66" width="6" height="6"/><rect x="78" y="66" width="6" height="6"/><rect x="88" y="66" width="6" height="6"/><rect x="66" y="78" width="6" height="6"/><rect x="76" y="86" width="6" height="6"/><rect x="88" y="80" width="6" height="6"/></g></svg></span></div></a>
+    <a class="pg-card" style="--bg:#5C2318;--bar:#E8780F;--logo:#fff" href="/guide/guide-detail.html?type=2"><img class="pg-img" data-gi="1" alt="" loading="lazy"><div class="pg-logo"><span class="pg-sky-wrap"><svg class="pg-sky" viewBox="0 0 132 40" fill="none" xmlns="http://www.w3.org/2000/svg"><g fill="var(--acc,#E8780F)"><rect x="2" y="20" width="10" height="20"/><rect x="14" y="12" width="10" height="28"/><path d="M26 40V16l6-5 6 5v24z"/><rect x="38" y="8" width="10" height="32"/><rect x="50" y="18" width="10" height="22"/><path d="M62 40V14l6-6 6 6v26z"/><rect x="76" y="10" width="10" height="30"/><rect x="88" y="20" width="10" height="20"/><rect x="100" y="14" width="10" height="26"/></g></svg></span><span class="pg-logo-t">POUR스토어</span></div><div class="pg-title-wrap"><svg class="pg-roof-svg" viewBox="0 0 220 34" preserveAspectRatio="none" fill="none"><polyline points="5,32 5,17 110,5 215,17 215,32" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><h3 class="pg-title">아스팔트슁글<br>방수보강공사</h3></div><div class="pg-atoz"><span class="pg-atoz-line"></span><span>셀프시공 A TO Z 설명서</span></div><span class="pg-bar"></span><div class="pg-foot"><span class="pg-watch">시공영상 시청하기</span><span class="pg-qr"><svg class="pg-qr-svg" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" fill="#fff"/><g fill="#111"><path d="M8 8h26v26H8zm6 6v14h14V14z"/><rect x="18" y="18" width="6" height="6"/><path d="M66 8h26v26H66zm6 6v14h14V14z"/><rect x="76" y="18" width="6" height="6"/><path d="M8 66h26v26H8zm6 6v14h14V14z" transform="translate(0 0)"/><path d="M8 66h26v26H8zm6 6v14h14V72z"/><rect x="18" y="76" width="6" height="6"/><rect x="42" y="10" width="6" height="6"/><rect x="52" y="16" width="6" height="6"/><rect x="42" y="24" width="6" height="6"/><rect x="42" y="42" width="6" height="6"/><rect x="52" y="42" width="6" height="6"/><rect x="62" y="42" width="6" height="6"/><rect x="42" y="52" width="6" height="6"/><rect x="42" y="62" width="6" height="6"/><rect x="54" y="54" width="6" height="6"/><rect x="66" y="52" width="6" height="6"/><rect x="76" y="52" width="6" height="6"/><rect x="88" y="52" width="6" height="6"/><rect x="66" y="66" width="6" height="6"/><rect x="78" y="66" width="6" height="6"/><rect x="88" y="66" width="6" height="6"/><rect x="66" y="78" width="6" height="6"/><rect x="76" y="86" width="6" height="6"/><rect x="88" y="80" width="6" height="6"/></g></svg></span></div></a>
+    <a class="pg-card" style="--bg:#8CA06E;--bar:#14303E;--logo:#14303E" href="/guide/guide-detail.html?type=3"><img class="pg-img" data-gi="2" alt="" loading="lazy"><div class="pg-logo"><span class="pg-sky-wrap"><svg class="pg-sky" viewBox="0 0 132 40" fill="none" xmlns="http://www.w3.org/2000/svg"><g fill="var(--acc,#E8780F)"><rect x="2" y="20" width="10" height="20"/><rect x="14" y="12" width="10" height="28"/><path d="M26 40V16l6-5 6 5v24z"/><rect x="38" y="8" width="10" height="32"/><rect x="50" y="18" width="10" height="22"/><path d="M62 40V14l6-6 6 6v26z"/><rect x="76" y="10" width="10" height="30"/><rect x="88" y="20" width="10" height="20"/><rect x="100" y="14" width="10" height="26"/></g></svg></span><span class="pg-logo-t">POUR스토어</span></div><div class="pg-title-wrap"><svg class="pg-roof-svg" viewBox="0 0 220 34" preserveAspectRatio="none" fill="none"><polyline points="5,32 5,17 110,5 215,17 215,32" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><h3 class="pg-title">금속기와 및<br>칼라강판<br>방수보강공사</h3></div><div class="pg-atoz"><span class="pg-atoz-line"></span><span>셀프시공 A TO Z 설명서</span></div><span class="pg-bar"></span><div class="pg-foot"><span class="pg-watch">시공영상 시청하기</span><span class="pg-qr"><svg class="pg-qr-svg" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" fill="#fff"/><g fill="#111"><path d="M8 8h26v26H8zm6 6v14h14V14z"/><rect x="18" y="18" width="6" height="6"/><path d="M66 8h26v26H66zm6 6v14h14V14z"/><rect x="76" y="18" width="6" height="6"/><path d="M8 66h26v26H8zm6 6v14h14V14z" transform="translate(0 0)"/><path d="M8 66h26v26H8zm6 6v14h14V72z"/><rect x="18" y="76" width="6" height="6"/><rect x="42" y="10" width="6" height="6"/><rect x="52" y="16" width="6" height="6"/><rect x="42" y="24" width="6" height="6"/><rect x="42" y="42" width="6" height="6"/><rect x="52" y="42" width="6" height="6"/><rect x="62" y="42" width="6" height="6"/><rect x="42" y="52" width="6" height="6"/><rect x="42" y="62" width="6" height="6"/><rect x="54" y="54" width="6" height="6"/><rect x="66" y="52" width="6" height="6"/><rect x="76" y="52" width="6" height="6"/><rect x="88" y="52" width="6" height="6"/><rect x="66" y="66" width="6" height="6"/><rect x="78" y="66" width="6" height="6"/><rect x="88" y="66" width="6" height="6"/><rect x="66" y="78" width="6" height="6"/><rect x="76" y="86" width="6" height="6"/><rect x="88" y="80" width="6" height="6"/></g></svg></span></div></a>
+    <a class="pg-card" style="--bg:#14303E;--bar:#E8780F;--logo:#fff" href="/guide/guide-detail.html?type=4"><img class="pg-img" data-gi="3" alt="" loading="lazy"><div class="pg-logo"><span class="pg-sky-wrap"><svg class="pg-sky" viewBox="0 0 132 40" fill="none" xmlns="http://www.w3.org/2000/svg"><g fill="var(--acc,#E8780F)"><rect x="2" y="20" width="10" height="20"/><rect x="14" y="12" width="10" height="28"/><path d="M26 40V16l6-5 6 5v24z"/><rect x="38" y="8" width="10" height="32"/><rect x="50" y="18" width="10" height="22"/><path d="M62 40V14l6-6 6 6v26z"/><rect x="76" y="10" width="10" height="30"/><rect x="88" y="20" width="10" height="20"/><rect x="100" y="14" width="10" height="26"/></g></svg></span><span class="pg-logo-t">POUR스토어</span></div><div class="pg-title-wrap"><svg class="pg-roof-svg" viewBox="0 0 220 34" preserveAspectRatio="none" fill="none"><polyline points="5,32 5,17 110,5 215,17 215,32" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><h3 class="pg-title">균열, 크렉<br>보수방법</h3></div><div class="pg-atoz"><span class="pg-atoz-line"></span><span>셀프시공 A TO Z 설명서</span></div><span class="pg-bar"></span><div class="pg-foot"><span class="pg-watch">시공영상 시청하기</span><span class="pg-qr"><svg class="pg-qr-svg" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" fill="#fff"/><g fill="#111"><path d="M8 8h26v26H8zm6 6v14h14V14z"/><rect x="18" y="18" width="6" height="6"/><path d="M66 8h26v26H66zm6 6v14h14V14z"/><rect x="76" y="18" width="6" height="6"/><path d="M8 66h26v26H8zm6 6v14h14V14z" transform="translate(0 0)"/><path d="M8 66h26v26H8zm6 6v14h14V72z"/><rect x="18" y="76" width="6" height="6"/><rect x="42" y="10" width="6" height="6"/><rect x="52" y="16" width="6" height="6"/><rect x="42" y="24" width="6" height="6"/><rect x="42" y="42" width="6" height="6"/><rect x="52" y="42" width="6" height="6"/><rect x="62" y="42" width="6" height="6"/><rect x="42" y="52" width="6" height="6"/><rect x="42" y="62" width="6" height="6"/><rect x="54" y="54" width="6" height="6"/><rect x="66" y="52" width="6" height="6"/><rect x="76" y="52" width="6" height="6"/><rect x="88" y="52" width="6" height="6"/><rect x="66" y="66" width="6" height="6"/><rect x="78" y="66" width="6" height="6"/><rect x="88" y="66" width="6" height="6"/><rect x="66" y="78" width="6" height="6"/><rect x="76" y="86" width="6" height="6"/><rect x="88" y="80" width="6" height="6"/></g></svg></span></div></a>
+  </div>
 </div>
 
-<div class="pev-detail" data-pev-detail hidden>
-  <div class="pev-dt-top">
-    <button class="pev-dt-back" data-pev-back type="button" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <div class="pev-dt-title" data-pev-dt-title></div>
-  </div>
-  <div class="pev-dt-body" data-pev-dt-body></div>
-</div>
-
-<script type="module">
-import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-const firebaseConfig = {
-  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
-  authDomain: "pour-app-new.firebaseapp.com", projectId: "pour-app-new",
-  storageBucket: "pour-app-new.firebasestorage.app", messagingSenderId: "411031141847",
-  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
-};
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
-function attrLink(u){ return (u && String(u).trim()) ? String(u).trim() : ''; }
-function within(ev){
-  var now=Date.now();
-  var s=ev.startAt?Date.parse(ev.startAt):NaN;
-  var e=ev.endAt?Date.parse(ev.endAt):NaN;
-  if(!isNaN(s)&&now<s) return false;
-  if(!isNaN(e)&&now>e) return false;
-  return true;
-}
-function periodLabel(ev){
-  function d(x){ var m=String(x||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[2]+'.'+m[3]):''; }
-  var a=d(ev.startAt), b=d(ev.endAt);
-  if(a&&b) return a+'~'+b; if(b) return '~'+b; if(a) return a+'~'; return '';
-}
-function thumbTile(p, moreN, isLast){
-  const img = (p && p.thumb) ? '<img src="'+esc(p.thumb)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : '';
-  const overlay = (isLast && moreN>0) ? '<span class="pev-more">+'+moreN+'</span>' : '';
-  const cls = 'pev-th'+((p&&p.thumb)?'':' empty');
-  return '<div class="'+cls+'">'+img+overlay+'</div>';
-}
-function cardHtml(ev, idx){
-  const heroImg = ev.thumbnail ? '<img src="'+esc(ev.thumbnail)+'" alt="'+esc(ev.title||'')+'" onerror="this.style.display=\'none\'">' : '';
-  const badge = ev.badge ? '<span class="pev-badge">'+esc(ev.badge)+'</span>' : '';
-  const per = periodLabel(ev);
-  const perEl = per ? '<span class="pev-period">'+esc(per)+'</span>' : '';
-  const heroInner = heroImg+'<div class="pev-hero-grad"></div>'+badge+perEl+'<div class="pev-hero-tt"><b>'+esc(ev.title||'')+'</b></div>';
-  var products = Array.isArray(ev.products)?ev.products:[];
-  var strip='';
-  if(products.length){
-    var show=products.slice(0,4);
-    var moreN = ev.moreCount ? Number(ev.moreCount) : (products.length>4?products.length-4:0);
-    var inner=''; for(let i=0;i<4;i++){ inner += thumbTile(show[i], moreN, i===3); }
-    strip = '<div class="pev-strip">'+inner+'</div>';
-  } else if(ev.categoryNo){
-    strip = '<div class="pev-catchip">🏷 카테고리 상품 보기</div>';
+<!-- 가이드 카드 이미지: Firebase Storage guide-images/ 에서 여러 파일명 자동 시도 -->
+<script>
+(function(){
+  var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'
+           + encodeURIComponent('POUR스토어_리뉴얼') + '%2F' + encodeURIComponent('guide-images') + '%2F';
+  function tryLoad(im, cands, k){
+    if(k>=cands.length){ im.remove(); return; }        // 다 실패 → 디자인 카드
+    im.onerror=function(){ tryLoad(im, cands, k+1); };
+    im.onload=function(){ var c=im.closest('.pg-card'); if(c) c.classList.add('has-img'); };  // 성공 → 원본비율 표시
+    im.src=BASE+encodeURIComponent(cands[k])+'?alt=media';
   }
-  return '<a class="pev-card" href="#ev-'+esc(ev.id)+'" data-ev="'+idx+'"><div class="pev-hero">'+heroInner+'</div>'+strip+'</a>';
-}
-
-var EVENTS=[];
-function openDetail(ev){
-  var detail=document.querySelector('[data-pev-detail]');
-  var body=document.querySelector('[data-pev-dt-body]');
-  var titleEl=document.querySelector('[data-pev-dt-title]');
-  titleEl.textContent=ev.title||'기획전';
-  var blocks=Array.isArray(ev.mainBlocks)?ev.mainBlocks:(Array.isArray(ev.mainImages)?ev.mainImages.filter(Boolean).map(function(u){return {type:'image',url:u};}):[]);
-  var TSZ={normal:'15px',large:'18px',title:'24px'};
-  var inner = blocks.length ? blocks.map(function(b){
-    if(b&&b.type==='text'){ var sz=TSZ[b.size||'normal']||'15px'; var fw=(b.size==='title')?'800':'500'; return '<div class="pev-dt-text" style="text-align:'+(b.align||'left')+';font-size:'+sz+';font-weight:'+fw+'">'+esc(b.text||'').replace(/\n/g,'<br>')+'</div>'; }
-    return '<img src="'+esc((b&&b.url)||'')+'" alt="" onerror="this.style.display=\'none\'">';
-  }).join('') : (ev.thumbnail ? '<img src="'+esc(ev.thumbnail)+'" alt="">' : '<div style="padding:60px 20px;text-align:center;color:#adb2bb;font-weight:600">기획전 내용이 준비 중입니다.</div>');
-  var h='<div class="pev-dt-imgs">'+inner+'</div>';
-  var products=Array.isArray(ev.products)?ev.products:[];
-  if(products.length){
-    h+='<div class="pev-dt-prods"><h2>이벤트 상품</h2><div class="pev-dt-grid">'+products.map(function(p){
-      var link=attrLink(p.link)||'#';
-      var im=p.thumb?'<img src="'+esc(p.thumb)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
-      var pr=''; if(p.price!=null && String(p.price).trim()!==''){ var n=Number(String(p.price).replace(/[^0-9.]/g,'')); pr=(!isNaN(n)&&n>0)?(n.toLocaleString()+'원'):esc(String(p.price)); }
-      return '<a class="pev-dp" href="'+esc(link)+'"><div class="pev-dp-th">'+im+'</div>'+(p.name?'<div class="pev-dp-nm">'+esc(p.name)+'</div>':'')+(pr?'<div class="pev-dp-price">'+pr+'</div>':'')+'</a>';
-    }).join('')+'</div></div>';
-  }
-  if(ev.categoryNo){
-    h+='<div class="pev-dt-prods"><a class="pev-dt-catbtn" href="/product/list.html?cate_no='+esc(ev.categoryNo)+'">이 카테고리 상품 전체보기 →</a></div>';
-  }
-  body.innerHTML=h;
-  detail.hidden=false; detail.scrollTop=0;
-  document.documentElement.style.overflow='hidden';
-}
-function closeDetail(){
-  var d=document.querySelector('[data-pev-detail]'); if(!d) return; d.hidden=true;
-  document.documentElement.style.overflow='';
-  if(location.hash){ try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} }
-}
-
-(async function(){
-  const grid=document.querySelector('[data-pev-grid]');
-  const loading=document.querySelector('[data-pev-loading]');
-  const empty=document.querySelector('[data-pev-empty]');
-  try{
-    const snap=await getDoc(doc(db,'config','pourstoreEvents'));
-    let list=(snap.exists() && Array.isArray(snap.data().events)?snap.data().events:[]).filter(e=>e && e.active!==false && within(e));
-    list.sort((a,b)=>((a.order||0)-(b.order||0)) || String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
-    console.log('[events] '+list.length+'건 노출');
-    EVENTS=list;
-    loading.hidden=true;
-    if(!list.length){ empty.hidden=false; return; }
-    grid.innerHTML=list.map((ev,i)=>cardHtml(ev,i)).join('');
-    grid.hidden=false;
-    grid.addEventListener('click',function(e){ var a=e.target.closest('[data-ev]'); if(!a) return; e.preventDefault(); var ev=EVENTS[+a.getAttribute('data-ev')]; if(ev){ try{ location.hash='ev-'+ev.id; }catch(_){} openDetail(ev); } });
-    var back=document.querySelector('[data-pev-back]'); if(back) back.addEventListener('click', closeDetail);
-    window.addEventListener('hashchange',function(){ var m=String(location.hash||'').match(/#ev-(.+)/); if(m){ var ev=EVENTS.filter(x=>String(x.id)===m[1])[0]; if(ev) openDetail(ev); } else closeDetail(); });
-    var m0=String(location.hash||'').match(/#ev-(.+)/); if(m0){ var ev0=EVENTS.filter(x=>String(x.id)===m0[1])[0]; if(ev0) openDetail(ev0); }
-  }catch(e){
-    console.error('[events] 로드 실패(빈 상태로 표시):', e);
-    loading.hidden=true; empty.hidden=false;   // 문서 없음/일시 오류 → 빈 상태로(에러문구 대신)
-  }
+  Array.prototype.forEach.call(document.querySelectorAll('.pg-img'), function(im){
+    var n=Number(im.getAttribute('data-gi'))+1;
+    tryLoad(im, ['guide-'+n+'.jpg.png','guide-'+n+'.png','guide-'+n+'.jpg','guide-'+n+'.png.png','guide-'+n+'.jpeg','guide-'+n+'.webp'], 0);
+  });
 })();
 </script>

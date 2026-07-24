@@ -1,15 +1,12 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>POUR스토어 — 집안도 튼튼하고, 아름답게 (v14)</title>
+<!-- ============================================================
+  pour-04-home — 메인 '집안도 튼튼하고, 아름답게'(홈리페어 × 홈데코) 섹션
+  ※ 조각(fragment) 파일 — 공통 레이아웃 @contents 안으로 @import 되므로
+     <!DOCTYPE>·<html>·<head>·<title>·<body> 등 문서 골격 태그를 두지 않는다.
+     (문서 골격이 있으면 조립 시 </body></html>가 페이지를 중간에서 닫아 푸터가 사라진다.)
+  ============================================================ -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css" rel="stylesheet">
-<style>body{margin:0;padding:0;background:#F9FAFB;}</style>
-</head>
-<body>
 
 <section data-section="집안도 튼튼하고, 아름답게">
 <style>
@@ -404,12 +401,6 @@
         <div class="swatch-sub">글래스·코팅</div>
       </button>
 
-      <button class="swatch-btn" data-cat="tile">
-        <div class="swatch tile tex-only"></div>
-        <div class="swatch-label">타일</div>
-        <div class="swatch-sub">줄눈·욕실</div>
-      </button>
-
       <button class="swatch-btn" data-cat="cement">
         <div class="swatch svg-inside" style="background:#78716C;">
           <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
@@ -460,7 +451,6 @@
       <a class="psh-card" href="#" data-cat="wood"><div class="img wood"><span class="brand pour">POUR</span><span class="status new">NEW</span><span class="cat">목재</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 7c2.2 1.4 2.2 8.6 0 10M12 7c2.2 1.4 2.2 8.6 0 10"/></svg></div></div><div class="body"><div class="meta">무광·발수 · 5색</div><div class="name">POUR 우드 스테인 페인트</div><div class="price-row"><div class="price">18,500<span class="won">원</span></div><span class="unit">/ 0.5L</span></div></div></a>
       <a class="psh-card" href="#" data-cat="metal"><div class="img metal"><span class="brand pour">POUR</span><span class="status best">★ BEST</span><span class="cat">철재</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg></div></div><div class="body"><div class="meta">직접 도포 · 1액형</div><div class="name">POUR 녹제거·방청 페인트</div><div class="price-row"><div class="price">22,000<span class="won">원</span></div><span class="unit">/ 1L</span></div></div></a>
       <a class="psh-card" href="#" data-cat="glass"><div class="img glass"><span class="brand pour">POUR</span><span class="cat">유리</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="1"/><path d="M12 4v16M4 12h16"/></svg></div></div><div class="body"><div class="meta">김서림·물방울 차단</div><div class="name">POUR 글래스 발수 코팅재</div><div class="price-row"><div class="price">15,800<span class="won">원</span></div><span class="unit">/ 500ml</span></div></div></a>
-      <a class="psh-card" href="#" data-cat="tile"><div class="img tile"><span class="brand gro">GROHOME</span><span class="status best">★ BEST</span><span class="cat">타일</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 12h18M12 5v3M8 8h8M8 8v4M16 8v4M3 16h18M7 16v3M17 16v3"/></svg></div></div><div class="body"><div class="meta">백색·회색 / 욕실 OK</div><div class="name">GROHOME 줄눈 보수 키트</div><div class="price-row"><div class="price">9,500<span class="won">원</span></div><span class="unit">/ 세트</span></div></div></a>
       <a class="psh-card" href="#" data-cat="cement"><div class="img cement"><span class="brand gro">GROHOME</span><span class="status best">★ BEST</span><span class="cat">시멘트</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8l1 4c1 4-1 12-5 12s-6-8-5-12l1-4z"/><path d="M9 8h6"/></svg></div></div><div class="body"><div class="meta">1액형 · 셀프 시공</div><div class="name">GROHOME 균열보수 시멘트</div><div class="price-row"><div class="price">9,800<span class="won">원</span></div><span class="unit">/ 1kg</span></div></div></a>
       <a class="psh-card" href="#" data-cat="cement"><div class="img cement"><span class="brand gro">GROHOME</span><span class="status new">NEW</span><span class="cat">시멘트</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.3 11.6a1 1 0 0 1-1 .9H7.3a1 1 0 0 1-1-.9L5 8z"/><path d="M5 8c0-2.1 3.1-3.3 7-3.3s7 1.2 7 3.3"/></svg></div></div><div class="body"><div class="meta">방수·내수성 / 욕실·베란다</div><div class="name">GROHOME 베란다 바닥 보수재</div><div class="price-row"><div class="price">18,500<span class="won">원</span></div><span class="unit">/ 4kg</span></div></div></a>
     </div>
@@ -509,7 +499,172 @@
   resetTimer();
 })();
 </script>
-</section>
 
-</body>
-</html>
+<!-- ===== 홈리페어×홈데코 히어로 + 재질별 진열 — 관리(config/pourstoreHomeCards) 실사 사진으로 교체 ===== -->
+<style>.slide-right img{display:block;width:100%;height:100%;object-fit:cover}
+.psh-card.psh-managed .img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.psh-card.psh-soldout{opacity:.55}.psh-card.psh-soldout .img::after{content:'품절';position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.5);color:#111;font-weight:900;font-size:14px;z-index:3}</style>
+<script>
+(function(){
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function apply(data){
+    var hero=(data&&data.hero)||[]; if(!hero.length) return; var used=false;
+    document.querySelectorAll('#carousel .slide').forEach(function(slide,i){
+      var h=hero[i]; if(!h) return;
+      if(h.image){ var right=slide.querySelector('.slide-right'); if(right){ right.innerHTML='<img src="'+esc(h.image)+'" alt="" loading="lazy">'; used=true; } }
+      var left=slide.querySelector('.slide-left'); if(!left) return;
+      // 상단 라벨(아이콘 유지)
+      if(h.kicker){ var k=left.querySelector('.slide-kicker'); if(k){ var svg=k.querySelector('svg'); k.innerHTML=(svg?svg.outerHTML:'')+esc(h.kicker); } }
+      // 제목(줄바꿈 → <br>, 마지막 줄은 기존 강조색 유지)
+      if(h.title){ var t=left.querySelector('h3'); if(t){ var hs=t.querySelector('span'); var hl=(hs&&hs.className)?hs.className:'hl-orange'; var lines=String(h.title).split(/\r?\n/); if(lines.length>1){ t.innerHTML=lines.slice(0,-1).map(esc).join('<br>')+'<br><span class="'+hl+'">'+esc(lines[lines.length-1])+'</span>'; } else { t.innerHTML='<span class="'+hl+'">'+esc(lines[0])+'</span>'; } } }
+      // 설명
+      if(h.desc){ var p=left.querySelector('p'); if(p) p.textContent=h.desc; }
+      // 태그(쉼표 구분)
+      if(h.tags){ var tg=left.querySelector('.slide-tags'); if(tg){ tg.innerHTML=String(h.tags).split(',').map(function(x){ x=x.trim(); return x?'<span>'+esc(x)+'</span>':''; }).join(''); } }
+      // 버튼 문구·링크
+      var cta=left.querySelector('.slide-cta'); if(cta){ if(h.cta) cta.innerHTML=esc(h.cta)+' <span class="ar">→</span>'; if((h.link||'').trim()) cta.setAttribute('href',(h.link||'').trim()); }
+    });
+    if(used){ var note=document.querySelector('.carousel-mockup-note'); if(note) note.style.display='none'; }
+  }
+  // ===== 재질 스와치 아이콘 — 관리에서 올린 사진으로 교체(없으면 기본 유지) =====
+  function applySwatch(data){
+    var sw=(data&&data.homeSwatches)||{};
+    document.querySelectorAll('.swatch-btn').forEach(function(b){
+      var s=sw[b.dataset.cat]; if(!s) return;
+      if(s.image){ var box=b.querySelector('.swatch'); if(box){ box.className='swatch'; box.removeAttribute('style'); box.innerHTML='<img src="'+esc(s.image)+'" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block">'; } }
+      if(s.label){ var l=b.querySelector('.swatch-label'); if(l) l.textContent=s.label; }
+      if(s.sub){ var sb=b.querySelector('.swatch-sub'); if(sb) sb.textContent=s.sub; }
+    });
+  }
+  // ===== 재질별 진열(홈 그리드) — 관리에서 등록한 상품만 노출 =====
+  var GRID_CAT_LABEL={wallpaper:'벽지',wood:'목재',metal:'철재',glass:'유리',cement:'시멘트'};
+  function gridCardHtml(c){
+    var cat=c.cat||'';
+    var brandCls=c.brand==='POUR'?'pour':(c.brand==='GROHOME'?'gro':'');
+    var brand=(c.brand&&brandCls)?'<span class="brand '+brandCls+'">'+esc(c.brand)+'</span>':'';
+    var badge=c.badge==='best'?'<span class="status best">★ BEST</span>':(c.badge==='new'?'<span class="status new">NEW</span>':'');
+    var catSpan=cat?'<span class="cat">'+esc(GRID_CAT_LABEL[cat]||cat)+'</span>':'';
+    var img=c.image?'<img src="'+esc(c.image)+'" alt="" loading="lazy">':'';
+    var meta=c.meta?'<div class="meta">'+esc(c.meta)+'</div>':'';
+    var name='<div class="name">'+esc(c.title||'')+'</div>';
+    var price='';
+    if(c.price){ price='<div class="price-row"><div class="price">'+esc(c.price)+'<span class="won">원</span></div>'+(c.unit?'<span class="unit">/ '+esc(c.unit)+'</span>':'')+'</div>'; }
+    var href=(c.link||'').trim()||'#';
+    return '<a class="psh-card psh-managed" href="'+esc(href)+'" data-cat="'+esc(cat)+'"><div class="img '+esc(cat)+'">'+brand+badge+catSpan+img+'</div><div class="body">'+meta+name+price+'</div></a>';
+  }
+  function applyGrid(data){
+    var grid=(data&&data.homeGrid)||[]; if(!grid.length) return;
+    var wrap=document.querySelector('.psh-grid'); if(!wrap) return;
+    wrap.innerHTML=grid.map(gridCardHtml).join('');
+    // 스와치 필터 재바인딩: 기존 리스너는 사라진 카드를 참조 → 스와치 버튼 복제로 리스너 제거 후 새 카드로 재연결
+    var oldSw=document.querySelectorAll('.swatch-btn');
+    oldSw.forEach(function(b){ b.parentNode.replaceChild(b.cloneNode(true),b); });
+    var sw=document.querySelectorAll('.swatch-btn');
+    var cards=wrap.querySelectorAll('.psh-card');
+    sw.forEach(function(b){
+      b.addEventListener('click', function(){
+        sw.forEach(function(x){ x.classList.remove('on'); });
+        b.classList.add('on');
+        var cat=b.dataset.cat;
+        cards.forEach(function(c){
+          if(cat==='all'||c.dataset.cat===cat){ c.classList.remove('hide'); }
+          else { c.classList.add('hide'); }
+        });
+      });
+    });
+    // 현재 켜진 스와치 기준으로 초기 필터 반영
+    var on=document.querySelector('.swatch-btn.on'); var initCat=on?on.dataset.cat:'all';
+    cards.forEach(function(c){ if(initCat==='all'||c.dataset.cat===initCat){ c.classList.remove('hide'); } else { c.classList.add('hide'); } });
+  }
+  // ===== 카페24 등록상품 자동 노출 — 재질별 분류(cate_no)에서 실제 상품을 불러와 그리드에 렌더 =====
+  // (검증된 '제품보기(pour-products)' 방식 재사용: 같은 도메인의 /product/list.html 을 fetch → 상품 li 파싱)
+  var _cafeCache={};
+  function parseProducts(html){
+    var doc; try{ doc=new DOMParser().parseFromString(html,'text/html'); }catch(e){ return []; }
+    var lis=doc.querySelectorAll('div[module="product_listnormal"] ul.prdList>li, .xans-product-listnormal ul.prdList>li, ul.prdList>li');
+    var arr=Array.prototype.slice.call(lis).filter(function(li){ return !li.closest('.main_product_slide') && !li.closest('.swiper-wrapper'); });
+    if(!arr.length){ arr=Array.prototype.slice.call(doc.querySelectorAll('li')).filter(function(li){ return li.querySelector('a[href*="product_no="]') && !li.closest('.main_product_slide') && !li.closest('.swiper-wrapper'); }); }
+    var out=[], seen={};
+    arr.forEach(function(li){
+      var a=li.querySelector('a[href*="product_no="]'); if(!a) return;
+      var href=a.getAttribute('href')||''; var m=href.match(/product_no=(\d+)/); var no=m?m[1]:''; if(!no||seen[no]) return; seen[no]=1;
+      var img=''; var ims=li.querySelectorAll('img');
+      for(var k=0;k<ims.length;k++){ var s=ims[k].getAttribute('ec-data-src')||ims[k].getAttribute('data-original')||ims[k].getAttribute('src')||''; s=(s||'').trim(); if(s && !/base64|blank|no_?image|noimg|loading/i.test(s)){ img=s; break; } }
+      if(img.indexOf('//')===0) img='https:'+img;
+      var name=''; var ne=li.querySelector('.name a, p.name a, strong.name, .name, [class*="name"] a, [class*="name"]');
+      if(ne) name=(ne.textContent||'').replace(/\s+/g,' ').trim();
+      name=name.replace(/^상품명\s*:?\s*/,'');
+      if(!name){ var al=li.querySelector('img'); if(al) name=(al.getAttribute('alt')||'').trim(); }
+      var txt=(li.textContent||''); var price=''; var pm=txt.match(/([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{3,})\s*원/); if(pm) price=pm[1].replace(/[^0-9]/g,'');
+      var soldout=/품절|sold\s*out|판매완료|판매중지/i.test(txt) || !!li.querySelector('.icon_soldout,.soldout,[class*="soldout"]');
+      var link=href; if(link.indexOf('http')!==0 && link.indexOf('/')!==0) link='/'+link;
+      out.push({productNo:no, link:link, img:img, name:name, price:price, soldout:soldout});
+    });
+    return out;
+  }
+  async function fetchCate(cateNo){
+    cateNo=String(cateNo||'').replace(/[^0-9]/g,''); if(!cateNo) return [];
+    if(_cafeCache[cateNo]) return _cafeCache[cateNo];
+    var out=[], seen={}, page=1, MAXP=6;
+    while(page<=MAXP){
+      var url='/product/list.html?cate_no='+cateNo+'&page='+page, html;
+      try{ var r=await fetch(url,{credentials:'same-origin'}); if(!r.ok){ break; } html=await r.text(); }
+      catch(e){ console.warn('[pour-04-home] fetch 실패 cate='+cateNo+' page='+page, e&&e.message); break; }
+      var items=parseProducts(html); if(!items.length) break;
+      var added=0; items.forEach(function(it){ if(!seen[it.productNo]){ seen[it.productNo]=1; out.push(it); added++; } });
+      if(added===0) break; if(items.length<10) break; page++;
+    }
+    _cafeCache[cateNo]=out; return out;
+  }
+  function srcCard(p, cat){
+    var img=p.img?'<img src="'+esc(p.img)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
+    var catSpan=cat&&GRID_CAT_LABEL[cat]?'<span class="cat">'+esc(GRID_CAT_LABEL[cat])+'</span>':'';
+    var price=p.price?'<div class="price-row"><div class="price">'+Number(p.price).toLocaleString()+'<span class="won">원</span></div></div>':'';
+    return '<a class="psh-card psh-managed'+(p.soldout?' psh-soldout':'')+'" href="'+esc(p.link)+'" data-cat="'+esc(cat)+'"><div class="img '+esc(cat)+'">'+catSpan+img+'</div><div class="body"><div class="name">'+esc(p.name||'')+'</div>'+price+'</div></a>';
+  }
+  // 재질별 카페24 분류번호 기본값(관리에서 미설정 시 사용) — 홈데코 분류
+  var DEFAULT_SRC={wallpaper:'98',wood:'99',metal:'100',glass:'101',cement:'102'};
+  async function applyGridSource(data){
+    var src=(data&&data.homeGridSource)||{}; var cats=src.cats||{};
+    var limit=Number(src.limit)>0?Number(src.limit):8;
+    var MATS=['wallpaper','wood','metal','glass','cement'];
+    var configured=MATS.filter(function(m){ return String(cats[m]||'').replace(/[^0-9]/g,''); });
+    if(!configured.length){ cats=DEFAULT_SRC; configured=MATS.filter(function(m){ return String(cats[m]||'').replace(/[^0-9]/g,''); }); }  // 미설정 → 기본 분류번호
+    var wrap=document.querySelector('.psh-grid'); if(!wrap) return false;
+    var backup=wrap.innerHTML;   // 실패 시 기본 카드 복원용
+    wrap.innerHTML='<div style="grid-column:1/-1;text-align:center;color:#9CA3AF;padding:36px;font-weight:700">상품을 불러오는 중…</div>';
+    var byCat={};
+    await Promise.all(configured.map(async function(m){ try{ byCat[m]=(await fetchCate(cats[m])).slice(0,limit); }catch(e){ byCat[m]=[]; } }));
+    var all=[], seen={};
+    configured.forEach(function(m){ (byCat[m]||[]).forEach(function(p){ if(!seen[p.productNo]){ seen[p.productNo]=1; all.push({p:p,cat:m}); } }); });
+    if(!all.length){ console.warn('[pour-04-home] 카페24 상품 0건 → 기본 카드 유지'); wrap.innerHTML=backup; return false; }
+    function render(cat){
+      var list = (cat==='all') ? all : (byCat[cat]||[]).map(function(p){ return {p:p,cat:cat}; });
+      wrap.innerHTML = list.length ? list.map(function(x){ return srcCard(x.p,x.cat); }).join('')
+        : '<div style="grid-column:1/-1;text-align:center;color:#9CA3AF;padding:36px;font-weight:700">이 재질에 등록된 상품이 없습니다</div>';
+    }
+    // 스와치 재바인딩(기존 리스너 제거)
+    var oldSw=document.querySelectorAll('.swatch-btn');
+    oldSw.forEach(function(b){ b.parentNode.replaceChild(b.cloneNode(true),b); });
+    var sw=document.querySelectorAll('.swatch-btn');
+    sw.forEach(function(b){ b.addEventListener('click', function(){ sw.forEach(function(x){ x.classList.remove('on'); }); b.classList.add('on'); render(b.dataset.cat==='all'?'all':b.dataset.cat); }); });
+    var on=document.querySelector('.swatch-btn.on'); render(on?(on.dataset.cat==='all'?'all':on.dataset.cat):'all');
+    console.log('[pour-04-home] ✅ 카페24 상품 자동 노출 ('+configured.length+'개 재질, 총 '+all.length+'건)');
+    return true;
+  }
+  (async function(){
+    try{
+      var a=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      var fs=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      var cfg={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
+      var app=a.getApps().length?a.getApps()[0]:a.initializeApp(cfg);
+      var snap=await fs.getDoc(fs.doc(fs.getFirestore(app),'config','pourstoreHomeCards'));
+      if(snap.exists()){ var d=snap.data()||{}; apply(d); applySwatch(d);
+        var used=await applyGridSource(d);   // 카페24 분류 연결 시 실제 상품 자동 노출
+        if(!used) applyGrid(d);              // 미연결 시 기존 방식(수기 카드/기본 카드)
+      }
+    }catch(e){ console.error('[pour-04-home] 홈카드 로드 실패:',e); }
+  })();
+})();
+</script>
+</section>

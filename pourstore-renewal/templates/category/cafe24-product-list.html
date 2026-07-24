@@ -265,6 +265,29 @@
 </div>
 
 
+
+<!-- ▼ 슬라이더 상품을 격자로 (숨기지 않음 → 상품 안 사라짐). 이 테마는 상품이 슬라이더에 있음 ▼ -->
+<style>
+.main_product_slide .swiper-wrapper.prdList{
+  display:grid !important;
+  grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  gap:30px 22px !important;
+  transform:none !important;
+  width:100% !important;
+  margin:0 !important;
+  padding:0 !important;
+  list-style:none !important;
+}
+.main_product_slide .swiper-wrapper.prdList > li{
+  width:auto !important; min-width:0 !important; max-width:none !important;
+  margin:0 !important; float:none !important; flex:none !important; left:auto !important;
+}
+.main_product_slide .swiper-button-prev, .main_product_slide .swiper-button-next{ display:none !important; }
+@media (max-width:900px){ .main_product_slide .swiper-wrapper.prdList{ grid-template-columns:repeat(3,minmax(0,1fr)) !important; gap:24px 16px !important; } }
+@media (max-width:640px){ .main_product_slide .swiper-wrapper.prdList{ grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:20px 12px !important; } }
+</style>
+
+
 <!--@css(/han/css/timesale.css)-->
 
 

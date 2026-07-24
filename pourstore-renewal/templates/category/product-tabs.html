@@ -1,15 +1,10 @@
 <!-- ============================================================
   product-tabs — 카페24 상품페이지(product/list.html)를 pour-products.html처럼 보이게 하는 '덧칠' 조각
-  삽입: 카페24 product/list.html 스킨의 titleArea 아래(네이티브 typeMenu 위)에 한 번만 붙여넣기.
-  동작:
-   · ?cate_no=NN(제품 분류) → "제품 보기" + 탭바, 카페24 기본 상단·툴바 숨김, 상품 4열 격자화.
-   · ?cate_no=(베스트 분류)  → "베스트" + 순위 뱃지(진열순=순위), 탭바 숨김, 4열 격자화.
-   · 분류 없는 /product/list.html → 아무것도 안 함(패키지 쇼케이스 그대로).
-  ★ 설정 2가지:
-     1) BEST_CATE 에 카페24 '베스트' 분류번호 입력. 없으면 베스트 모드 꺼짐.
-     2) TABS 의 cate_no 확인(방수 없음).
-  격자 대상은 ul.prdList.grid4(일반 상품리스트)만 → 베스트/신상품 슬라이더(swiper-wrapper prdList)는 영향 없음.
-  상품 링크는 카페24가 준 detail.html?product_no=… 그대로 → 항상 정상, 새 상품 자동 반영.
+  삽입: product/list.html 스킨의 titleArea 아래(네이티브 typeMenu 위)에 한 번만.
+  동작: 이 페이지가 열리면 항상 → "제품 보기" + 탭 + 상단정리 + 상품 4열 격자.
+        ?cate_no=(베스트 분류)면 → "베스트" + 순위 뱃지, 탭 숨김.
+  상품 링크는 카페24 detail.html?product_no=… 그대로 → 정상, 새 상품 자동 반영.
+  ★ 설정: BEST_CATE(베스트 분류번호), TABS(방수 없음).
   ============================================================ -->
 <div class="ptv" data-ptv hidden>
   <h2 class="ptv-title" data-ptv-title>제품 보기</h2>
@@ -32,7 +27,7 @@
   .ptv-tabs{ gap:10px; } .ptv-tab{ font-size:15px; padding:8px 14px; }
 }
 
-/* ▼ 제품보기/베스트 모드: 카페24 기본 상단·툴바 숨김 */
+/* ▼ 카페24 기본 상단·툴바 숨김 */
 html.ptv-browse .section.path,
 html.ptv-browse .section.titleArea,
 html.ptv-browse .ec-base-tab.typeMenu,
@@ -42,42 +37,52 @@ html.ptv-browse .xans-product-normalmenu,
 html.ptv-browse .prdCount,
 html.ptv-browse .ec-base-prdSort{ display:none !important; }
 
-/* ▼ 일반 상품리스트를 4열 격자로 강제 (슬라이더는 grid4가 없어 영향 없음) */
+/* ▼ 일반 상품리스트를 4열 격자로 강제 (슬라이더는 grid4/listnormal이 아니라 영향 없음) */
 html.ptv-browse .product_scrollx{ overflow:visible !important; }
-html.ptv-browse ul.prdList.grid4{
+html.ptv-browse ul.prdList.grid4,
+html.ptv-browse .xans-product-listnormal ul.prdList{
   display:grid !important; grid-template-columns:repeat(4,minmax(0,1fr)) !important;
-  gap:30px 22px !important; margin:0 auto !important; padding:0 20px !important; max-width:1256px; }
-html.ptv-browse ul.prdList.grid4 > li{
-  width:auto !important; margin:0 !important; padding:0 !important; float:none !important; }
-@media (max-width:900px){ html.ptv-browse ul.prdList.grid4{ grid-template-columns:repeat(3,minmax(0,1fr)) !important; gap:24px 16px !important; } }
-@media (max-width:640px){ html.ptv-browse ul.prdList.grid4{ grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:20px 12px !important; padding:0 14px !important; } }
+  gap:30px 22px !important; margin:0 auto !important; padding:0 20px !important; max-width:1256px;
+  list-style:none !important; }
+html.ptv-browse ul.prdList.grid4 > li,
+html.ptv-browse .xans-product-listnormal ul.prdList > li{
+  width:auto !important; margin:0 !important; padding:0 !important; float:none !important; display:block !important; }
+@media (max-width:900px){
+  html.ptv-browse ul.prdList.grid4,
+  html.ptv-browse .xans-product-listnormal ul.prdList{ grid-template-columns:repeat(3,minmax(0,1fr)) !important; gap:24px 16px !important; } }
+@media (max-width:640px){
+  html.ptv-browse ul.prdList.grid4,
+  html.ptv-browse .xans-product-listnormal ul.prdList{ grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:20px 12px !important; padding:0 14px !important; } }
 
 /* ▼ 베스트 모드: 카드에 순위 뱃지(진열 순서 = 순위) */
-html.ptv-best ul.prdList.grid4{ counter-reset:pvrank; }
-html.ptv-best ul.prdList.grid4 > li{ counter-increment:pvrank; position:relative; }
-html.ptv-best ul.prdList.grid4 > li::before{ content:counter(pvrank); position:absolute; top:10px; left:10px; z-index:6;
+html.ptv-best ul.prdList.grid4 > li,
+html.ptv-best .xans-product-listnormal ul.prdList > li{ counter-increment:pvrank; position:relative; }
+html.ptv-best ul.prdList.grid4,
+html.ptv-best .xans-product-listnormal ul.prdList{ counter-reset:pvrank; }
+html.ptv-best ul.prdList.grid4 > li::before,
+html.ptv-best .xans-product-listnormal ul.prdList > li::before{ content:counter(pvrank); position:absolute; top:10px; left:10px; z-index:6;
   min-width:30px; height:30px; padding:0 7px; background:#111; color:#fff; font-size:15px; font-weight:800;
   display:inline-flex; align-items:center; justify-content:center; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.25); }
 </style>
 <script>
 (function(){
-  // ★ 1) 카페24 '베스트' 분류번호 입력(만든 뒤). 비우면 베스트 뱃지 안 씀.
+  // ★ 1) 카페24 '베스트' 분류번호(만든 뒤 입력). 비우면 베스트 뱃지 안 씀.
   var BEST_CATE = '';
-  // ★ 2) 제품 분류 탭 (방수 없음). 전체=73(제품메인카테고리)
+  // ★ 2) 제품 분류 탭 (방수 없음). 전체=73
   var TABS = [
     ['전체','73'],['패키지','71'],['균열보수','88'],['도장·도색','74'],
     ['페인트','75'],['보강자재','92'],['부자재','84'],['안전용품','63']
   ];
   var p; try{ p = new URLSearchParams(location.search); }catch(e){ p = { get:function(){return null;} }; }
   var cate = p.get('cate_no');
-  if(!cate) return;                        // 분류 없음 = 패키지 쇼케이스 → 관여 안 함
+  var cur  = cate || '73';                 // 분류 없으면 '전체'로 취급
+  // 이 블록은 product/list.html 전용 → 항상 제품보기 스타일 켬(격자 포함)
   document.documentElement.classList.add('ptv-browse');
   var wrap = document.querySelector('[data-ptv]'); if(wrap){ wrap.hidden = false; wrap.removeAttribute('hidden'); }
   var titleEl = document.querySelector('[data-ptv-title]');
   var box = document.querySelector('[data-ptv-tabs]');
 
-  var isBest = BEST_CATE && String(cate)===String(BEST_CATE);
-  if(isBest){                              // 베스트 분류: 순위 뱃지 + 탭 없음
+  if(BEST_CATE && String(cate)===String(BEST_CATE)){   // 베스트 분류: 순위 뱃지 + 탭 없음
     document.documentElement.classList.add('ptv-best');
     if(titleEl) titleEl.textContent = '베스트';
     if(box) box.style.display = 'none';
@@ -87,7 +92,7 @@ html.ptv-best ul.prdList.grid4 > li::before{ content:counter(pvrank); position:a
   if(box){
     box.innerHTML = TABS.map(function(t){
       var href = '/product/list.html?cate_no='+t[1];
-      var on = (String(cate)===String(t[1]));
+      var on = (String(cur)===String(t[1]));
       return '<a class="ptv-tab'+(on?' on':'')+'" href="'+href+'">'+t[0]+'</a>';
     }).join('');
   }

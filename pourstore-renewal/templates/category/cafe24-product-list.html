@@ -61,7 +61,86 @@
 <!-- (패키지 쇼케이스는 별도 페이지 pour-package.html로 이동 — 리스트에서 제거됨) -->
 
 
-<!-- (BEST ITEMS / NEW ARRIVALS 슬라이더 제거 — 카테고리 상품만 표시) -->
+<div class="section main_product_slide">
+
+
+  <div module="product_listrecommend" class="ec-base-product swiper-container swiperPRO swiperPRO1">
+
+
+	<div class="main_title ez-align-left"><!-- 타이틀 수정하는곳 -->
+		<div class="main_title_txt01">BEST ITEMS</div>
+		<div class="main_title_txt02" module="product_headcategory">{$title_text_or_image} 베스트</div>
+	</div><!-- //main_title -->
+
+
+    <!--
+		    $count = 10
+		    $basket_result = /product/add_basket.html
+		    $basket_option = /product/basket_option.html
+		    -->
+
+    <ul class="swiper-wrapper prdList">
+      <!--@import(/product/list_product_slide.html)-->
+    </ul>
+
+
+    <!-- CSS 화살표 -좌 -->
+    <div class="hanarrL swiper-button-prev">
+      <div class="bar top"></div>
+      <div class="bar middle"></div>
+      <div class="bar bottom"></div>
+    </div>
+
+    <!-- CSS 화살표 -우 -->
+    <div class="hanarrR swiper-button-next">
+      <div class="bar top"></div>
+      <div class="bar middle"></div>
+      <div class="bar bottom"></div>
+    </div>
+
+
+  </div>
+</div>
+
+
+<div class="section main_product_slide">
+
+  <div module="product_listnew" class="ec-base-product swiper-container swiperPRO swiperPRO2">
+
+
+	<div class="main_title ez-align-left"><!-- 타이틀 수정하는곳 -->
+		<div class="main_title_txt01">NEW ARRIVALS</div>
+		<div class="main_title_txt02" module="product_headcategory">{$title_text_or_image} 신상품</div>
+	</div><!-- //main_title -->
+
+    <!--
+		    $count = 10
+		    $basket_result = /product/add_basket.html
+		    $basket_option = /product/basket_option.html
+		    -->
+
+    <ul class="swiper-wrapper prdList">
+      <!--@import(/product/list_product_slide.html)-->
+    </ul>
+
+
+    <!-- CSS 화살표 -좌 -->
+    <div class="hanarrL swiper-button-prev">
+      <div class="bar top"></div>
+      <div class="bar middle"></div>
+      <div class="bar bottom"></div>
+    </div>
+
+    <!-- CSS 화살표 -우 -->
+    <div class="hanarrR swiper-button-next">
+      <div class="bar top"></div>
+      <div class="bar middle"></div>
+      <div class="bar bottom"></div>
+    </div>
+
+
+  </div>
+</div>
 
 
 <div class="normalpackage_box section">

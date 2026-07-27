@@ -33,35 +33,35 @@
 .psh-head .desc { font-size:13.5px; color:#6B7280; max-width:540px; margin:0 auto 18px; line-height:1.75; font-weight:500; }
 .psh-head .desc b { color:#111111; font-weight:800; }
 
-.psh-meta { display:inline-flex; align-items:center; gap:14px; padding:8px 16px; background:#fff; border:1px solid #FED7AA; border-radius:0; font-size:11.5px; color:#6B7280; font-weight:700; }
+.psh-meta { display:inline-flex; align-items:center; gap:14px; padding:9px 18px; background:#fff; border:1px solid #FCE7D2; border-radius:999px; font-size:11.5px; color:#6B7280; font-weight:700; box-shadow:0 2px 10px rgba(234,88,12,.06); }
 .psh-meta b { color:#EA580C; font-weight:900; }
 .psh-meta .vs { color:#D1D5DB; }
 
 /* 카루셀 */
-.psh-carousel { position:relative; height:300px; border-radius:0; overflow:hidden; margin:32px 0; box-shadow:0 14px 36px rgba(15,31,92,.1); border:1px solid #F0E8DC; }
+.psh-carousel { position:relative; height:310px; border-radius:24px; overflow:hidden; margin:32px 0; box-shadow:0 18px 46px rgba(15,31,92,.10); border:1px solid #F3ECE1; }
 .carousel-track { position:relative; width:100%; height:100%; }
 .slide { position:absolute; inset:0; display:grid; grid-template-columns:1fr 1.3fr; opacity:0; pointer-events:none; transition:opacity .6s ease; }
 .slide.active { opacity:1; pointer-events:auto; }
 .slide.deco-slide { background:linear-gradient(90deg,#FAF4EA 0%,#F5EFE6 100%); }
 .slide.repair-slide { background:linear-gradient(90deg,#F0F7F2 0%,#E0EFE5 100%); }
 .slide.cement-slide { background:linear-gradient(90deg,#F5F3EE 0%,#E8E2D5 100%); }
-.slide-left { padding:40px 36px; display:flex; flex-direction:column; justify-content:center; position:relative; z-index:2; }
+.slide-left { padding:46px 46px; display:flex; flex-direction:column; justify-content:center; position:relative; z-index:2; }
 .slide-left::after { content:''; position:absolute; top:0; right:-60px; bottom:0; width:90px; pointer-events:none; z-index:-1; }
 .slide.deco-slide .slide-left::after { background:linear-gradient(90deg,#F5EFE6,transparent); }
 .slide.repair-slide .slide-left::after { background:linear-gradient(90deg,#E8F1EB,transparent); }
 .slide.cement-slide .slide-left::after { background:linear-gradient(90deg,#E8E2D5,transparent); }
-.slide-kicker { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:900; letter-spacing:1.2px; margin-bottom:14px; padding:6px 13px; background:#fff; border-radius:0; align-self:flex-start; }
+.slide-kicker { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:900; letter-spacing:1.2px; margin-bottom:16px; padding:7px 15px; background:#fff; border-radius:999px; align-self:flex-start; box-shadow:0 3px 12px rgba(0,0,0,.06); }
 .slide.deco-slide .slide-kicker { color:#EA580C; border:1px solid #FED7AA; }
 .slide.repair-slide .slide-kicker { color:#047857; border:1px solid #A7F3D0; }
 .slide.cement-slide .slide-kicker { color:#57534E; border:1px solid #D6D3D1; }
-.slide h3 { font-size:28px; font-weight:900; color:#111111; line-height:1.3; letter-spacing:-.8px; margin-bottom:10px; }
+.slide h3 { font-size:31px; font-weight:900; color:#111111; line-height:1.27; letter-spacing:-1px; margin-bottom:13px; }
 .slide h3 .hl-orange { color:#EA580C; }
 .slide h3 .hl-green { color:#047857; }
 .slide h3 .hl-yellow { color:#A16207; }
 .slide h3 .hl-stone { color:#57534E; }
 .slide p { font-size:13.5px; color:#6B7280; line-height:1.7; font-weight:600; max-width:340px; margin-bottom:16px; }
 .slide-tags { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:18px; }
-.slide-tags span { padding:4px 10px; background:#fff; border-radius:0; font-size:10.5px; font-weight:700; }
+.slide-tags span { padding:5px 13px; background:rgba(255,255,255,.8); border-radius:999px; font-size:10.5px; font-weight:700; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
 .slide.deco-slide .slide-tags span { border:1px solid #E8D5B7; color:#7C2D12; }
 .slide.repair-slide .slide-tags span { border:1px solid #A7F3D0; color:#065F46; }
 .slide.cement-slide .slide-tags span { border:1px solid #D6D3D1; color:#44403C; }
@@ -77,10 +77,10 @@
 .carousel-nav { position:absolute; bottom:18px; left:0; right:0; display:flex; align-items:center; justify-content:center; gap:14px; z-index:5; }
 .carousel-dots { display:flex; gap:6px; }
 .carousel-dot { width:8px; height:8px; border-radius:50%; background:rgba(15,31,92,.25); border:0; cursor:pointer; transition:all .25s; padding:0; }
-.carousel-dot.active { width:24px; border-radius:0; background:#0F1F5C; }
+.carousel-dot.active { width:24px; border-radius:4px; background:#0F1F5C; }
 .carousel-btn { width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.9); border:1px solid #E5E7EB; cursor:pointer; display:grid; place-items:center; color:#111111; font-size:14px; font-weight:700; transition:all .2s; }
 .carousel-btn:hover { background:#0F1F5C; color:#fff; border-color:#111111; }
-.carousel-counter { position:absolute; top:18px; right:18px; padding:5px 11px; background:rgba(255,255,255,.9); border-radius:0; font-size:11px; font-weight:800; color:#111111; backdrop-filter:blur(6px); z-index:5; letter-spacing:.5px; }
+.carousel-counter { position:absolute; top:16px; right:16px; padding:6px 13px; background:rgba(255,255,255,.92); border-radius:999px; font-size:11px; font-weight:800; color:#111111; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); z-index:5; letter-spacing:.5px; box-shadow:0 2px 10px rgba(0,0,0,.08); }
 .carousel-counter .cur { color:#EA580C; }
 
 /* 재질 스와치 */
@@ -199,7 +199,6 @@
             <h3>오늘의 무드,<br/><span class="hl-orange">새롭게 꾸며요</span></h3>
             <p>POUR 친환경 페인트·스테인·시트지로 공간 분위기를 바꾸는 가장 쉬운 방법.</p>
             <div class="slide-tags"><span>친환경 1등급</span><span>80+ 컬러</span><span>셀프 OK</span></div>
-            <a class="slide-cta" href="#">홈데코 자재 보기 <span class="ar">→</span></a>
           </div>
           <div class="slide-right">
             <svg viewBox="0 0 600 300" preserveAspectRatio="xMidYMid slice">
@@ -222,7 +221,6 @@
             <h3>고치는 건,<br/><span class="hl-green">어렵지 않아요</span></h3>
             <p>균열·곰팡이·줄눈 보수까지 — GROHOME 보수재로 직접 고치는 법.</p>
             <div class="slide-tags"><span>속건성</span><span>곰팡이 방지</span><span>초보자 OK</span></div>
-            <a class="slide-cta" href="#">홈리페어 자재 보기 <span class="ar">→</span></a>
           </div>
           <div class="slide-right">
             <svg viewBox="0 0 600 300" preserveAspectRatio="xMidYMid slice">
@@ -243,7 +241,6 @@
             <h3>약한 곳부터,<br/><span class="hl-stone">다시 단단하게</span></h3>
             <p>POUR의 보수 노하우 — 시멘트·벽돌 보수재로 균열·베란다 직접 회복.</p>
             <div class="slide-tags"><span>균열보수</span><span>베란다 OK</span><span>셀프 시공</span></div>
-            <a class="slide-cta" href="#">시멘트·벽돌 자재 보기 <span class="ar">→</span></a>
           </div>
           <div class="slide-right">
             <svg viewBox="0 0 600 300" preserveAspectRatio="xMidYMid slice">
@@ -325,6 +322,9 @@
         <button class="carousel-btn" id="cs-next" aria-label="다음">▸</button>
       </div>
     </div>
+
+    <!-- SKU 부족으로 재질 필터 임시 숨김 — 재노출 시 아래 style 한 줄만 삭제 -->
+    <style>.psh-swatch-head, .psh-swatches { display:none !important; }</style>
 
     <!-- ===== 재질 스와치 ===== -->
     <div class="psh-swatch-head">
@@ -684,6 +684,21 @@
     console.log('[pour-04-home] ✅ 카페24 상품 자동 노출 ('+configured.length+'개 재질, 총 '+all.length+'건)');
     return true;
   }
+  // ── 상품 그리드 = 카페24 분류(cate_no) 자동 노출 (재질 필터 임시 숨김) ──
+  // 나중에 재질 필터 다시 켤 때: 위 임시 숨김 <style> 삭제 + 아래 블록을 applyGridSource 방식으로 교체
+  var HOME_CATE='43';   // ← 노출할 상품분류 번호(변경만 하면 됨). 상품 추가 시 자동 반영.
+  (async function(){
+    try{
+      var wrap=document.querySelector('.psh-grid'); if(!wrap) return;
+      wrap.innerHTML='<div style="grid-column:1/-1;text-align:center;color:#9CA3AF;padding:40px;font-weight:700">상품을 불러오는 중…</div>';
+      var ps=await fetchCate(HOME_CATE);
+      wrap.innerHTML = ps.length
+        ? ps.slice(0,12).map(function(p){ return srcCard(p,''); }).join('')
+        : '<div style="grid-column:1/-1;text-align:center;color:#9CA3AF;padding:40px;font-weight:700">등록된 상품이 없습니다</div>';
+      console.log('[pour-04-home] ✅ cate_no='+HOME_CATE+' 상품 '+ps.length+'건 노출');
+    }catch(e){ console.error('[pour-04-home] 상품 로드 실패:',e); }
+  })();
+  // ── 배너(히어로) 실사 사진: Firestore 설정 있으면 반영(없어도 무방) ──
   (async function(){
     try{
       var a=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
@@ -691,11 +706,8 @@
       var cfg={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
       var app=a.getApps().length?a.getApps()[0]:a.initializeApp(cfg);
       var snap=await fs.getDoc(fs.doc(fs.getFirestore(app),'config','pourstoreHomeCards'));
-      if(snap.exists()){ var d=snap.data()||{}; apply(d); applySwatch(d);
-        var used=await applyGridSource(d);   // 카페24 분류 연결 시 실제 상품 자동 노출
-        if(!used) applyGrid(d);              // 미연결 시 기존 방식(수기 카드/기본 카드)
-      }
-    }catch(e){ console.error('[pour-04-home] 홈카드 로드 실패:',e); }
+      if(snap.exists()){ apply(snap.data()||{}); }
+    }catch(e){ console.warn('[pour-04-home] 배너 사진 로드 스킵:',e&&e.message); }
   })();
 })();
 </script>

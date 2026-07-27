@@ -1,0 +1,217 @@
+<!-- ============================================================
+  POUR스토어 — 카페24 하단 공용 푸터 (layout/basic/footer.html)
+  ────────────────────────────────────────────────────────────
+  ▸ 이 파일을 카페24 [디자인 편집 → layout/basic/footer.html]에 통째로 붙여넣으세요.
+  ▸ 디자인/폰트/레이아웃(UI)만 개편했고, 카페24 기능 훅은 그대로 유지:
+      · 모바일 하단바(bottom-navigation) · 팝업 검색(Layout_SearchHeader)
+      · 사업자정보는 {$변수} 자동표기(Layout_Info) · 저작권 {$mall_name}
+      · 구매안전/푸터링크/SNS는 카페24 @import 유지(법적 배지)
+  ▸ 고객센터/입금계좌/푸터로고 내용은 아래 3개 조각으로 분리:
+      /han/html/csarea.html · /han/html/bt_bank.html · /han/html/footerlogo.html
+      (세 조각도 POUR스토어용으로 새로 만들어 함께 커밋됨)
+  ▸ 폰트: Pretendard (pour-header가 이미 로드). 색: 네이비 #0F1F5C · 오렌지 #E8780F
+============================================================ -->
+<!--@css(/css/module/layout/footer.css)-->
+
+<!-- 모바일 하단바 (기능 유지 · 건드리지 않음) -->
+<div class="bottom-nav RMB RTB" ez-module="bottom-navigation">
+  <ul class="bottom-nav__tabBar">
+    <li><button type="button" class="btnNav eNavFold"><i aria-hidden="true" class="icon icoNav"></i>네비게이션</button></li>
+    <li><button type="button" class="btnSearch eSearch"><!--@import(/svg/icon-search.html)-->검색</button></li>
+    <li><a href="/"><!--@import(/svg/icon-home.html)-->홈</a></li>
+    <li module="Layout_stateLogon"><a href="/order/basket.html"><!--@import(/svg/icon-cart.html)-->Cart <span class="count {$basket_count_display|display} {$basket_count_display_class}"><span class="{$basket_count_class}">{$basket_count}</span></span></a></li>
+    <li module="Layout_stateLogoff"><a href="/order/basket.html"><!--@import(/svg/icon-cart.html)-->Cart <span class="count {$basket_count_display|display} {$basket_count_display_class}"><span class="{$basket_count_class}">{$basket_count}</span></span></a></li>
+    <li><a href="/myshop/index.html"><!--@import(/svg/icon-user.html)-->마이쇼핑</a></li>
+  </ul>
+  <div class="bottom-nav__top">
+    <!--@import(/han/html/snslink.html)-->
+    <a href="#wrap" title="화면 최상단으로 이동하기"><!--@import(/svg/icon-quick-arrow.html)--></a> </div>
+</div>
+
+
+<footer id="footer">
+<style>
+/* ===== POUR스토어 푸터 (namespace: .pf2) ================================ */
+#footer{background:none;border:0}
+.pf2, .pf2 *{box-sizing:border-box;margin:0;padding:0;font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;letter-spacing:-0.02em}
+.pf2{color:#111111;-webkit-font-smoothing:antialiased}
+.pf2 a{color:inherit;text-decoration:none;transition:color .15s ease}
+.pf2-in{max-width:1256px;margin:0 auto;padding:0 24px}
+
+/* 상단 메인 */
+.pf2-main{background:#FFFFFF;border-top:1px solid #ECEEF1;padding:48px 0 34px}
+.pf2-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1.1fr;gap:32px 40px}
+.pf2-h{font-size:12px;font-weight:800;color:#111111;letter-spacing:0.02em;margin-bottom:15px;display:inline-flex;align-items:center;gap:7px}
+.pf2-h::before{content:'';width:14px;height:2px;border-radius:2px;background:#E8780F}
+
+/* 고객센터 */
+.pf2-tel{font-size:28px;font-weight:900;color:#111111;letter-spacing:-0.04em;line-height:1.1}
+.pf2-tel a{color:#111111}
+.pf2-hours{margin-top:11px;font-size:12.5px;font-weight:500;color:#333333;line-height:1.75}
+.pf2-hours b{color:#111111;font-weight:700}
+.pf2-cta{display:inline-flex;align-items:center;gap:6px;margin-top:16px;padding:9px 15px;border:1px solid #FBE2C4;background:#FFF7ED;border-radius:10px;font-size:12.5px;font-weight:700;color:#C8650D}
+.pf2-cta:hover{background:#E8780F;border-color:#E8780F;color:#fff}
+
+/* 링크/텍스트 컬럼 (bt_util 등 카페24 @import도 이 규칙으로 정돈됨) */
+.pf2-col ul{list-style:none}
+.pf2-col li{margin-bottom:9px}
+.pf2-col li:last-child{margin-bottom:0}
+.pf2-col a, .pf2-col .pf2-link{font-size:13.5px;font-weight:600;color:#111111}
+.pf2-col a:hover, .pf2-col .pf2-link:hover{color:#E8780F}
+
+/* 입금계좌 */
+.pf2-bank{font-size:13px;line-height:1.5}
+.pf2-bank .row{margin-bottom:10px}
+.pf2-bank .lbl{display:block;font-size:11px;font-weight:700;color:#555555;letter-spacing:0.02em;margin-bottom:3px}
+.pf2-bank .val{display:block;font-size:14px;font-weight:800;color:#111111;letter-spacing:-0.02em;word-break:keep-all}
+.pf2-bank .holder{display:block;margin-top:2px;font-size:12px;font-weight:500;color:#333333;word-break:keep-all}
+
+/* 사업자정보 */
+.pf2-biz{margin-top:36px;padding-top:26px;border-top:1px solid #EFF1F4;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}
+.pf2-bizlist{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:12.5px;font-weight:500;color:#111111;line-height:1.7}
+.pf2-bizlist > div{display:inline-flex;gap:7px;white-space:nowrap}
+.pf2-bizlist span:first-child{color:#555555;font-weight:600}
+.pf2-bizlist span:last-child{color:#111111;font-weight:600}
+.pf2-bizlist a{color:#E8780F;font-weight:700;text-decoration:underline;text-underline-offset:2px}
+
+/* 중단: 구매안전 + SNS */
+.pf2-sub{background:#F7F8FA;border-top:1px solid #EDEFF2}
+.pf2-subin{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:15px 24px}
+.pf2-badges{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.pf2-badges a, .pf2-badges .pf2-link{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#111111}
+.pf2-badges a:hover{color:#E8780F}
+.pf2-badges img{max-height:20px;width:auto;filter:grayscale(1);opacity:.7;transition:filter .15s,opacity .15s}
+.pf2-badges a:hover img{filter:none;opacity:1}
+.pf2-sns{display:flex;align-items:center;gap:10px}
+.pf2-sns a{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;border-radius:50%;background:#E7EAEE;color:#7A828C;transition:background .15s,color .15s}
+.pf2-sns a:hover{background:#E8780F;color:#fff}
+.pf2-sns img{width:15px;height:15px;filter:grayscale(1);opacity:.85}
+.pf2-sns a:hover img{filter:none;opacity:1}
+
+/* 하단: 저작권 (다크 네이비) */
+.pf2-copy{background:#0D1B2A;color:#8A93A5}
+.pf2-copyin{padding:15px 24px;font-size:12px;font-weight:500;text-align:center;line-height:1.6;max-width:1256px;margin:0 auto}
+.pf2-copy .or{color:#F49A3A;font-weight:700}
+.pf2-copy .dim{color:#5E6B7D}
+
+/* ===== 반응형 ===== */
+@media (max-width:900px){
+  .pf2-grid{grid-template-columns:1fr 1fr;gap:28px 32px}
+  .pf2-main{padding:40px 0 30px}
+}
+@media (max-width:620px){
+  .pf2-in{padding:0 18px}
+  .pf2-grid{grid-template-columns:1fr;gap:26px}
+  .pf2-main{padding:34px 0 28px}
+  .pf2-tel{font-size:25px}
+  .pf2-biz{margin-top:28px;padding-top:22px}
+  .pf2-bizlist > div{white-space:normal}
+  .pf2-subin{justify-content:center;text-align:center;padding:16px 18px 18px}
+  .pf2-badges{justify-content:center}
+}
+</style>
+
+  <div class="pf2" module="Layout_footer">
+
+    <!-- ─────────── 상단 메인 ─────────── -->
+    <div class="pf2-main">
+      <div class="pf2-in">
+        <div class="pf2-grid">
+
+          <!-- 고객센터 -->
+          <div class="pf2-col pf2-col--cs" module="Layout_Info">
+            <div class="pf2-h">고객센터</div>
+            <!-- 푸터/게시판메인/우측바 cs 정보 -->
+            <!--@import(/han/html/csarea.html)-->
+          </div>
+
+          <!-- COMPANY (회사소개/브랜드소개/포트폴리오 등 · 카페24 관리) -->
+          <div class="pf2-col">
+            <div class="pf2-h">COMPANY</div>
+            <!--@import(/han/html/bt_util.html)-->
+          </div>
+
+          <!-- 고객지원 바로가기 -->
+          <div class="pf2-col">
+            <div class="pf2-h">고객지원</div>
+            <ul>
+              <li><a href="/product/list.html">전체상품</a></li>
+              <li><a href="/order/orderlist.html">주문·배송조회</a></li>
+              <li><a href="/myshop/index.html">마이쇼핑</a></li>
+              <li><a href="/member/agreement.html">이용약관</a></li>
+              <li><a href="/member/privacy_guide.html">개인정보처리방침</a></li>
+            </ul>
+          </div>
+
+          <!-- 입금계좌 -->
+          <div class="pf2-col">
+            <div class="pf2-h">입금계좌</div>
+            <!-- 무통장 계좌정보 -->
+            <!--@import(/han/html/bt_bank.html)-->
+          </div>
+
+        </div>
+
+        <!-- 사업자정보 (카페24 {$변수} 자동) -->
+        <div class="pf2-biz">
+          <div class="pf2-bizlist" data-ez-role="list">
+            <div><span>상호</span><span>{$company_name}</span></div>
+            <div><span>대표</span><span>{$president_name}</span></div>
+            <div><span>주소</span><span>{$mall_zipcode} {$mall_addr1} {$mall_addr2}</span></div>
+            <div><span>대표전화</span><span>{$phone}</span></div>
+            <div><span>사업자등록번호</span><span>{$company_regno}</span></div>
+            <div><span>통신판매업신고</span><span>{$network_regno} {$biz_no_link}</span></div>
+            <div><span>개인정보보호책임자</span><span>{$cpo_name}</span></div>
+          </div>
+          <!-- 푸터로고 -->
+          <!--@import(/han/html/footerlogo.html)-->
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────── 중단: 구매안전 + SNS ─────────── -->
+    <div class="pf2-sub">
+      <div class="pf2-subin">
+        <div class="pf2-badges">
+          <!-- 구매안전서비스 배너/링크 -->
+          <!--@import(/han/html/bt_escrow.html)-->
+          <!-- 푸터링크아이콘 (공정위 표준약관, 현금영수증 등) -->
+          <!--@import(/han/html/bt_footlink.html)-->
+        </div>
+        <div class="pf2-sns">
+          <!-- sns -->
+          <!--@import(/han/html/bt_sns.html)-->
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────── 하단: 저작권 ─────────── -->
+    <div class="pf2-copy">
+      <div class="pf2-copyin">
+        Copyright © <span class="or">{$mall_name}</span>. All Rights Reserved.
+        <span class="dim">Hosting by Cafe24 Corp.</span>
+      </div>
+    </div>
+
+  </div>
+  <!-- //pf2 -->
+</footer>
+
+
+<!-- 팝업 검색창 (기능 유지 · 건드리지 않음) -->
+<div module="Layout_SearchHeader" class="popsearch">
+  <!--
+		$product_page=/product/detail.html
+		$category_page=/product/list.html
+	-->
+  <div class="title">SEARCH</div>
+  <fieldset>
+    <legend>검색</legend>
+    {$form.keyword}
+    <button type="button" class="btnDelete">삭제</button>
+    <button type="button" class="btnSearch" onClick="{$action_search_submit}"><!--@import(/svg/icon-search.html)--> 검색</button>
+    <ul class="autoDrop" id="{$search_auto_id}">
+    </ul>
+  </fieldset>
+  <button type="button" class="btnClose"><i aria-hidden="true" class="icon icoClose"></i>닫기</button>
+</div>

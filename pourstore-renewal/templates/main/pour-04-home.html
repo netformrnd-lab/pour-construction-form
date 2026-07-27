@@ -684,18 +684,19 @@
     console.log('[pour-04-home] ✅ 카페24 상품 자동 노출 ('+configured.length+'개 재질, 총 '+all.length+'건)');
     return true;
   }
-  // ── 상품 그리드 = 카페24 분류(cate_no) 자동 노출 (재질 필터 임시 숨김) ──
-  // 나중에 재질 필터 다시 켤 때: 위 임시 숨김 <style> 삭제 + 아래 블록을 applyGridSource 방식으로 교체
-  var HOME_CATE='43';   // ← 노출할 상품분류 번호(변경만 하면 됨). 상품 추가 시 자동 반영.
+  // ── 상품 그리드 = 카페24 분류(cate_no) 실제 상품 자동 노출 ──
+  //  같은 도메인 /product/list.html?cate_no=N 을 fetch → 상품 파싱(제품보기 방식과 동일).
+  //  ⚠️ 이 스킨이 상품을 JS로 렌더하면 raw HTML엔 상품이 없어 0건이 될 수 있음(진단 중).
+  var HOME_CATE='43';   // ← 노출할 카페24 상품분류 번호. 상품 추가 시 자동 반영.
   (async function(){
+    var wrap=document.querySelector('.psh-grid'); if(!wrap) return;
+    wrap.innerHTML='<div style="grid-column:1/-1;text-align:center;color:#9CA3AF;padding:40px;font-weight:700">상품을 불러오는 중…</div>';
     try{
-      var wrap=document.querySelector('.psh-grid'); if(!wrap) return;
-      wrap.innerHTML='<div style="grid-column:1/-1;text-align:center;color:#9CA3AF;padding:40px;font-weight:700">상품을 불러오는 중…</div>';
       var ps=await fetchCate(HOME_CATE);
+      console.log('[pour-04-home] cate_no='+HOME_CATE+' → 상품 '+ps.length+'건 (0이면 스킨이 JS로 렌더한다는 뜻)');
       wrap.innerHTML = ps.length
-        ? ps.slice(0,12).map(function(p){ return srcCard(p,''); }).join('')
+        ? ps.slice(0,8).map(function(p){ return srcCard(p,''); }).join('')
         : '<div style="grid-column:1/-1;text-align:center;color:#9CA3AF;padding:40px;font-weight:700">등록된 상품이 없습니다</div>';
-      console.log('[pour-04-home] ✅ cate_no='+HOME_CATE+' 상품 '+ps.length+'건 노출');
     }catch(e){ console.error('[pour-04-home] 상품 로드 실패:',e); }
   })();
   // ── 배너(히어로) 실사 사진: Firestore 설정 있으면 반영(없어도 무방) ──

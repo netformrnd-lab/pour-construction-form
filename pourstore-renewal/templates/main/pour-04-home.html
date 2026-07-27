@@ -444,6 +444,32 @@
 
     </div>
 
+    <!-- 재질 스와치 사진 자동교체 — Storage(material-swatches/<재질명>.png)에 올리면 사진, 없으면 기존 텍스처 유지 -->
+    <style>
+    .swatch img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2;}
+    .swatch.has-img{background:transparent !important;}
+    .swatch.has-img::before,.swatch.has-img::after{display:none !important;}
+    .swatch.has-img svg{display:none !important;}
+    .swatch.has-img img{display:block;}
+    </style>
+    <script>
+    (function(){
+      // 파일명(재질명) — 스토리지 POUR스토어_리뉴얼/material-swatches/ 에 이 이름으로 업로드
+      var NAME={all:'인기',wallpaper:'벽지',wood:'목재',metal:'철재',glass:'유리',tile:'타일',cement:'시멘트'};
+      var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'
+        +encodeURIComponent('POUR스토어_리뉴얼')+'%2F'+encodeURIComponent('material-swatches')+'%2F';
+      var btns=document.querySelectorAll('.psh-swatches .swatch-btn');
+      Array.prototype.forEach.call(btns,function(btn){
+        var cat=btn.getAttribute('data-cat')||''; var box=btn.querySelector('.swatch'); if(!box) return;
+        var nm=NAME[cat]||cat;
+        var cands=[nm+'.png',nm+'.jpg',nm+'.jpeg',nm+'.webp',nm+'.png.png'];
+        var img=document.createElement('img'); img.alt='';
+        function tryLoad(k){ if(k>=cands.length) return; img.onerror=function(){ tryLoad(k+1); }; img.onload=function(){ box.classList.add('has-img'); }; img.src=BASE+encodeURIComponent(cands[k])+'?alt=media'; }
+        tryLoad(0); box.appendChild(img);
+      });
+    })();
+    </script>
+
     <!-- Product grid -->
     <div class="psh-grid">
       <a class="psh-card" href="#" data-cat="wallpaper"><div class="img wallpaper"><span class="brand gro">GROHOME</span><span class="status best">★ BEST</span><span class="cat">벽지</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3h4v2.5l1.2 2.2V19a2 2 0 0 1-2 2h-2.4a2 2 0 0 1-2-2V7.7L10 5.5V3z"/><path d="M10 6.5h4"/></svg></div></div><div class="body"><div class="meta">친환경 · 강력 접착</div><div class="name">GROHOME 친환경 도배풀</div><div class="price-row"><div class="price">8,200<span class="won">원</span></div><span class="unit">/ 1kg</span></div></div></a>

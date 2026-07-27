@@ -4,9 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>대리점 조회 | POUR스토어</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
 :root{
   --or:#F25C05; --navy:#0F1F5C; --brick:#8B3A1F;
@@ -26,9 +24,9 @@ body{
 .head p{margin-top:14px;font-size:17px;color:var(--muted)}
 
 .finder{border-top:2px solid var(--line);border-bottom:1px solid var(--border);padding:22px 0}
-.fields{display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr auto;gap:8px}
+.fields{display:grid;grid-template-columns:1fr 1fr 1.6fr auto;gap:8px}
 .field label{display:block;font-size:13px;font-weight:700;color:var(--muted);
-  letter-spacing:.04em;margin-bottom:6px}
+  letter-spacing:.04em;margin-bottom:5px}
 select,input[type=search]{
   width:100%;height:48px;border:1px solid var(--border);border-radius:6px;
   padding:0 14px;font-family:inherit;font-size:16px;color:var(--ink);background:#fff;
@@ -61,22 +59,27 @@ select:focus,input:focus{outline:none;border-color:var(--or)}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .thumb.blank{display:flex;align-items:center;justify-content:center;
   font-size:13px;color:#B6BAC2;font-weight:600}
+.thumb.logo{display:flex;align-items:center;justify-content:center;background:#fff}
+.logobox{font-size:18px;font-weight:800;color:var(--or);letter-spacing:-.02em}
+.logobox b{color:var(--navy);font-weight:800}
+.hours{font-size:14px;color:var(--muted);margin-top:6px}
+.tag.muted{border-color:#D6D3CE;color:#9AA0AB}
 .name{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .name h3{font-size:19px;font-weight:700;letter-spacing:-.01em}
-.tag{font-size:12px;font-weight:700;padding:3px 9px;border-radius:4px;white-space:nowrap;
+.tag{font-size:12px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;
   border:1px solid var(--or);color:var(--or)}
 .tag.t2{border-color:var(--brick);color:var(--brick)}
 .tag.t3{border-color:var(--navy);color:var(--navy)}
 .items{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
-.items span{font-size:13px;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:3px 8px}
+.items span{font-size:13px;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 6px}
 .addr{font-size:15px;color:var(--ink2)}
-.tel{display:block;font-size:14px;color:var(--muted);margin-top:4px}
+.tel{display:block;font-size:14px;color:var(--muted);margin-top:3px}
 .go{display:block;text-align:center;text-decoration:none;border:1px solid var(--border);
   border-radius:6px;padding:10px 0;font-size:14px;font-weight:700;color:var(--ink2)}
 .go + .go{margin-top:6px;background:var(--or);border-color:var(--or);color:#fff}
 
 .msg{padding:64px 20px;text-align:center;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
-.msg p{font-size:18px;font-weight:700;margin-bottom:8px}
+.msg p{font-size:18px;font-weight:600;margin-bottom:6px}
 .msg small{font-size:15px;color:var(--muted)}
 .msg.err p{color:var(--red)}
 .msg button{margin-top:14px;border:1px solid var(--border);background:#fff;border-radius:6px;
@@ -87,14 +90,14 @@ select:focus,input:focus{outline:none;border-color:var(--or)}
 .skel div:nth-child(2){width:56%}
 
 .notice{padding:32px 0 0}
-.notice h4{font-size:15px;font-weight:700;margin-bottom:10px}
-.notice li{font-size:15px;color:var(--muted);margin-left:18px;margin-bottom:6px;line-height:1.7}
+.notice h4{font-size:15px;font-weight:700;margin-bottom:9px}
+.notice li{font-size:15px;color:var(--muted);margin-left:17px;margin-bottom:4px}
 .cta{margin:40px 0 72px;padding:28px 24px;border:1px solid var(--border);border-radius:10px;
   display:flex;align-items:center;gap:20px;flex-wrap:wrap}
 .cta div{flex:1;min-width:220px}
-.cta h3{font-size:21px;font-weight:900;letter-spacing:-.01em;margin-bottom:7px}
-.cta p{font-size:15px;color:var(--muted);line-height:1.7}
-.cta a{background:var(--navy);color:#fff;text-decoration:none;padding:15px 28px;
+.cta h3{font-size:21px;font-weight:800;letter-spacing:-.01em;margin-bottom:5px}
+.cta p{font-size:15px;color:var(--muted)}
+.cta a{background:var(--navy);color:#fff;text-decoration:none;padding:13px 26px;
   border-radius:6px;font-size:16px;font-weight:700;white-space:nowrap}
 
 @media (max-width:760px){
@@ -130,18 +133,9 @@ select:focus,input:focus{outline:none;border-color:var(--or)}
         <label for="fCity">시 · 군 · 구</label>
         <select id="fCity" disabled><option value="">전체</option></select>
       </div>
-      <div class="field">
-        <label for="fType">매장 유형</label>
-        <select id="fType">
-          <option value="">전체</option>
-          <option>페인트점</option>
-          <option>철물점</option>
-          <option>오프라인몰</option>
-        </select>
-      </div>
       <div class="field kw">
-        <label for="fKw">상호명 · 주소</label>
-        <input id="fKw" type="search" placeholder="예) 대성페인트">
+        <label for="fKw">매장명 · 주소</label>
+        <input id="fKw" type="search" placeholder="예) POUR스토어 오산점">
       </div>
       <button class="submit" id="go" disabled>조회</button>
     </div>
@@ -187,19 +181,24 @@ import { getFirestore, collection, query, where, getDocs }
    → 일반 탭 → 맨 아래 "내 앱" → 웹 앱 → firebaseConfig 값 복사
    ══════════════════════════════════════════════════════════ */
 const firebaseConfig = {
-  apiKey:            "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
-  authDomain:        "pour-app-new.firebaseapp.com",
-  projectId:         "pour-app-new",
-  storageBucket:     "pour-app-new.firebasestorage.app",
-  messagingSenderId: "411031141847",
-  appId:             "1:411031141847:web:e658174fd4b9652cdadf92"
+  apiKey:            "AIzaSyDAQLBECvSDHqG2ciC7MM0MADdEYLrSyZ0",
+  authDomain:        "pourstorecrm.firebaseapp.com",
+  projectId:         "pourstorecrm",
+  storageBucket:     "pourstorecrm.firebasestorage.app",
+  messagingSenderId: "814387236246",
+  appId:             "1:814387236246:web:a17bec34f3c992007aa1b7"
 };
-const COLLECTION = "store-dealers";   // Firestore 컬렉션 이름
+const COLLECTION = "public_dealers";   // POUR CRM 공개 미러 컬렉션
+/* 매장 사진이 없는 멀티브랜드 매장에 대신 보여줄 로고 (비우면 주황 POUR 박스로 표시) */
+const LOGO_URL = "";
 /* ▲▲▲ 여기까지 ▲▲▲ */
 
 const REGIONS = ["서울","부산","대구","인천","광주","대전","울산","세종",
                  "경기","강원","충북","충남","전북","전남","경북","경남","제주"];
-const TAGCLS = { "페인트점":"", "철물점":"t2", "오프라인몰":"t3" };
+/* 사진 없는 매장에 표시할 로고 (LOGO_URL 있으면 이미지, 없으면 주황 POUR 박스) */
+window.__LOGO = LOGO_URL
+  ? `<img src="${LOGO_URL}" alt="POUR스토어" style="width:100%;height:100%;object-fit:contain;padding:16px;background:#fff">`
+  : `<div class="logobox">POUR<b>스토어</b></div>`;
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -219,11 +218,11 @@ async function load(){
       name:   v.name   || "",
       region: v.region || "",
       city:   v.city   || "",
-      type:   v.type   || "",
       addr:   v.addr   || "",
       tel:    v.tel    || "",
-      photo:  v.photo  || "",
-      items:  Array.isArray(v.items) ? v.items : []
+      hours:  v.hours  || "",
+      canConstruct: !!v.canConstruct,
+      photo:  v.photo  || ""
     });
   });
 
@@ -259,10 +258,9 @@ $("fRegion").onchange = () => {
 };
 
 $("go").onclick = search;
-$("fType").onchange = search;
 $("fKw").onkeydown = e => { if (e.key === "Enter") search(); };
 $("clear").onclick = () => {
-  $("fRegion").value = ""; $("fType").value = ""; $("fKw").value = "";
+  $("fRegion").value = ""; $("fKw").value = "";
   $("fCity").innerHTML = '<option value="">전체</option>'; $("fCity").disabled = true;
   search();
 };
@@ -270,39 +268,37 @@ $("clear").onclick = () => {
 function search(){
   const r  = $("fRegion").value;
   const c  = $("fCity").value.replace(/\s*\(\d+\)$/, "");
-  const t  = $("fType").value;
   const kw = $("fKw").value.trim();
 
   const rows = DEALERS.filter(d =>
     (!r  || d.region === r) &&
     (!c  || d.city === c) &&
-    (!t  || d.type === t) &&
     (!kw || (d.name + d.addr).includes(kw)));
 
   $("cnt").textContent = rows.length;
-  $("cond").textContent = [r || "전체 지역", c, t, kw && `"${kw}"`].filter(Boolean).join(" · ");
+  $("cond").textContent = [r || "전체 지역", c, kw && `"${kw}"`].filter(Boolean).join(" · ");
 
   $("list").innerHTML = rows.length ? rows.map(d => `
     <div class="row">
       <div>
         <div class="name">
           <h3>${esc(d.name)}</h3>
-          <span class="tag ${TAGCLS[d.type] || ""}">${esc(d.type)}</span>
+          <span class="tag ${d.canConstruct ? "" : "muted"}">${d.canConstruct ? "시공 가능" : "판매 전용"}</span>
         </div>
-        <div class="items">${d.items.map(i => `<span>${esc(i)}</span>`).join("")}</div>
+        ${d.hours ? `<div class="hours">🕒 ${esc(d.hours)}</div>` : ""}
       </div>
       <div>
         <div class="addr">${esc(d.addr)}</div>
         <span class="tel">${esc(d.tel)}</span>
       </div>
       <div>
-        <a class="go" href="https://map.kakao.com/link/search/${encodeURIComponent(d.addr)}" target="_blank" rel="noopener">길찾기</a>
-        <a class="go" href="tel:${esc(d.tel).replace(/-/g,"")}">전화하기</a>
+        ${d.addr ? `<a class="go" href="https://map.kakao.com/link/search/${encodeURIComponent(d.addr)}" target="_blank" rel="noopener">길찾기</a>` : ""}
+        ${d.tel ? `<a class="go" href="tel:${esc(d.tel).replace(/-/g,"")}">전화하기</a>` : ""}
       </div>
       ${d.photo
         ? `<div class="thumb"><img src="${esc(d.photo)}" alt="${esc(d.name)} 매장 사진" loading="lazy"
-             onerror="this.parentNode.classList.add('blank');this.remove();this.parentNode.textContent='사진 준비중'"></div>`
-        : `<div class="thumb blank">사진 준비중</div>`}
+             onerror="this.parentNode.classList.add('logo');this.remove();this.parentNode.innerHTML=window.__LOGO"></div>`
+        : `<div class="thumb logo">${window.__LOGO}</div>`}
     </div>`).join("")
     : `<div class="msg">
          <p>조건에 맞는 대리점이 없습니다</p>
@@ -333,28 +329,6 @@ async function start(){
   }
 }
 start();
-</script>
-<script>
-  /* ============================================================
-     iframe 임베드용 — 부모(카페24) 페이지에 이 문서의 실제 높이를 전달.
-     조회 결과가 바뀌면 높이도 바뀌므로 주기적으로 재전송.
-     iframe 안에서 로드됐을 때만 동작 (단독 접속 시 영향 없음).
-     ============================================================ */
-  (function(){
-    if(window.self === window.top) return;
-    function postHeight(){
-      var h = Math.max(
-        document.documentElement ? document.documentElement.scrollHeight : 0,
-        document.body ? document.body.scrollHeight : 0
-      );
-      try{ window.parent.postMessage({ pourDealersHeight: h }, '*'); }catch(e){}
-    }
-    window.addEventListener('load', postHeight);
-    window.addEventListener('resize', postHeight);
-    setInterval(postHeight, 800);           // 조회 결과 렌더링 후 높이 갱신
-    document.addEventListener('click', function(){ setTimeout(postHeight, 300); });
-    setTimeout(postHeight, 300);
-  })();
 </script>
 </body>
 </html>

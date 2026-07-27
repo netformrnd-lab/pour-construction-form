@@ -444,6 +444,38 @@
 
     </div>
 
+    <!-- 재질 스와치 3D 사진 — Storage(POUR스토어_리뉴얼/메인페이지/icon3d_*.png). 사진 바꾸려면 같은 파일명으로 덮어쓰거나 아래 URL만 교체 -->
+    <style>
+    .swatch img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2;}
+    .swatch.has-img{background:transparent !important;}
+    .swatch.has-img::before,.swatch.has-img::after{display:none !important;}
+    .swatch.has-img svg{display:none !important;}
+    .swatch.has-img img{display:block;}
+    </style>
+    <script>
+    (function(){
+      var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'
+        +encodeURIComponent('POUR스토어_리뉴얼')+'%2F'+encodeURIComponent('메인페이지')+'%2F';
+      // data-cat → 스토리지 3D 아이콘 URL (타일은 이미지 없어 기존 텍스처 유지)
+      var URLS={
+        all:      BASE+'icon3d_hit_v2.png?alt=media&token=51449d2d-7076-463e-aace-9e73e0a714fd',
+        wallpaper:BASE+'icon3d_wallpaper_v2.png?alt=media&token=fc9d8210-9a76-40b1-9dd8-fbd490d238e0',
+        wood:     BASE+'icon3d_wood.png?alt=media&token=615257d7-e409-4e75-94c3-2dddffafd261',
+        metal:    BASE+'icon3d_metal.png?alt=media&token=5bfadabb-cef6-4011-b031-e3f8abf21414',
+        glass:    BASE+'icon3d_glass.png?alt=media&token=f480f491-a0de-4c7f-9c79-5b0039a9ef68',
+        cement:   BASE+'icon3d_brick.png?alt=media&token=be3ca5f8-a174-4510-bda4-4c3faac8fb84'
+      };
+      var btns=document.querySelectorAll('.psh-swatches .swatch-btn');
+      Array.prototype.forEach.call(btns,function(btn){
+        var cat=btn.getAttribute('data-cat')||''; var url=URLS[cat]; if(!url) return;
+        var box=btn.querySelector('.swatch'); if(!box) return;
+        var img=document.createElement('img'); img.alt='';
+        img.onload=function(){ box.classList.add('has-img'); };
+        img.src=url; box.appendChild(img);
+      });
+    })();
+    </script>
+
     <!-- Product grid -->
     <div class="psh-grid">
       <a class="psh-card" href="#" data-cat="wallpaper"><div class="img wallpaper"><span class="brand gro">GROHOME</span><span class="status best">★ BEST</span><span class="cat">벽지</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3h4v2.5l1.2 2.2V19a2 2 0 0 1-2 2h-2.4a2 2 0 0 1-2-2V7.7L10 5.5V3z"/><path d="M10 6.5h4"/></svg></div></div><div class="body"><div class="meta">친환경 · 강력 접착</div><div class="name">GROHOME 친환경 도배풀</div><div class="price-row"><div class="price">8,200<span class="won">원</span></div><span class="unit">/ 1kg</span></div></div></a>

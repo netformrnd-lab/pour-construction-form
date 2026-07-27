@@ -330,5 +330,24 @@ async function start(){
 }
 start();
 </script>
+<script>
+  /* iframe 임베드용 — 부모(카페24)에 문서 높이 전달해 iframe 높이 자동조절.
+     조회 결과가 바뀌면 높이도 바뀌므로 주기적으로 재전송. iframe 안에서만 동작. */
+  (function(){
+    if(window.self === window.top) return;
+    function postHeight(){
+      var h = Math.max(
+        document.documentElement ? document.documentElement.scrollHeight : 0,
+        document.body ? document.body.scrollHeight : 0
+      );
+      try{ window.parent.postMessage({ pourDealersHeight: h }, '*'); }catch(e){}
+    }
+    window.addEventListener('load', postHeight);
+    window.addEventListener('resize', postHeight);
+    setInterval(postHeight, 800);
+    document.addEventListener('click', function(){ setTimeout(postHeight, 300); });
+    setTimeout(postHeight, 300);
+  })();
+</script>
 </body>
 </html>

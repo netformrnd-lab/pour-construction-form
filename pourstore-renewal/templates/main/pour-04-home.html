@@ -488,8 +488,8 @@
     </div>
 
     <div class="psh-cta-wrap">
-      <a class="psh-cta" href="#"><span>홈리페어 × 홈데코 전체 보기</span><span class="ar">→</span></a>
-      <div class="psh-cta-note">POUR + GROHOME 라벨 120+ SKU 모두 확인</div>
+      <a class="psh-cta" href="/product/list.html?cate_no=43"><span>홈리페어 × 홈데코 전체 보기</span><span class="ar">→</span></a>
+      <div class="psh-cta-note">POUR + GROHOME 라벨 상품 모두 확인</div>
     </div>
   </div>
 </section>
@@ -684,31 +684,46 @@
     console.log('[pour-04-home] ✅ 카페24 상품 자동 노출 ('+configured.length+'개 재질, 총 '+all.length+'건)');
     return true;
   }
-  // ── 상품 그리드 = 카페24 분류(cate_no) 실제 상품 자동 노출 ──
-  //  같은 도메인 /product/list.html?cate_no=N 을 fetch → 상품 파싱(제품보기 방식과 동일).
-  //  ⚠️ 이 스킨이 상품을 JS로 렌더하면 raw HTML엔 상품이 없어 0건이 될 수 있음(진단 중).
-  var HOME_CATE='43';   // ← 노출할 카페24 상품분류 번호. 상품 추가 시 자동 반영.
+  // ── 상품 그리드 = 홈/그로홈 라인 상품 자동 노출 ──
+  //  카페24 cate_no=43(제품보기의 그로홈 라인) = Firestore products의 분류코드 "CATE35".
+  //  이 스킨은 /product/list.html 을 JS로 렌더해 fetch로 못 읽으므로(콘솔 0건 확인됨),
+  //  스토어 상품 원본인 Firestore products 컬렉션에서 해당 분류만 필터해 노출.
+  //  링크는 카페24 상품명 검색 → 실제 상품 페이지. 분류에 상품 추가 시 자동 반영.
+  var HOME_CATE_CODE='CATE35';   // ← 노출 분류(카페24 cate_no=43에 대응하는 Firestore 코드)
+  var GRID_LIMIT=8;
+  function _isJunkP(n){ return /자재대금|개인\s*결제|업체전용|님\s*개인|대금/.test(String(n||'')); }
+  function _inCate(p,code){ return String(p.category||'').split(',').map(function(s){return s.trim();}).indexOf(code)>=0; }
+  function _prodCard(p){
+    var name=(p.name||'').trim();
+    var link='/product/search.html?keyword='+encodeURIComponent(name);
+    var th=(p.thumbnail||p.thumb||p.image||'').toString().trim();
+    var img=th?'<img src="'+esc(th)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
+    var raw=p.salePrice||p.price||''; var n=Number(String(raw).replace(/[^0-9.]/g,''));
+    var price=(!isNaN(n)&&n>0)?'<div class="price-row"><div class="price">'+n.toLocaleString()+'<span class="won">원</span></div></div>':'';
+    var sold=/품절|판매중지|중지|불가/.test(String(p.salesStatus||''));
+    return '<a class="psh-card psh-managed'+(sold?' psh-soldout':'')+'" href="'+esc(link)+'"><div class="img">'+img+'</div><div class="body"><div class="name">'+esc(name)+'</div>'+price+'</div></a>';
+  }
   (async function(){
     var wrap=document.querySelector('.psh-grid'); if(!wrap) return;
     wrap.innerHTML='<div style="grid-column:1/-1;text-align:center;color:#9CA3AF;padding:40px;font-weight:700">상품을 불러오는 중…</div>';
-    try{
-      var ps=await fetchCate(HOME_CATE);
-      console.log('[pour-04-home] cate_no='+HOME_CATE+' → 상품 '+ps.length+'건 (0이면 스킨이 JS로 렌더한다는 뜻)');
-      wrap.innerHTML = ps.length
-        ? ps.slice(0,8).map(function(p){ return srcCard(p,''); }).join('')
-        : '<div style="grid-column:1/-1;text-align:center;color:#9CA3AF;padding:40px;font-weight:700">등록된 상품이 없습니다</div>';
-    }catch(e){ console.error('[pour-04-home] 상품 로드 실패:',e); }
-  })();
-  // ── 배너(히어로) 실사 사진: Firestore 설정 있으면 반영(없어도 무방) ──
-  (async function(){
     try{
       var a=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       var fs=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       var cfg={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
       var app=a.getApps().length?a.getApps()[0]:a.initializeApp(cfg);
-      var snap=await fs.getDoc(fs.doc(fs.getFirestore(app),'config','pourstoreHomeCards'));
-      if(snap.exists()){ apply(snap.data()||{}); }
-    }catch(e){ console.warn('[pour-04-home] 배너 사진 로드 스킵:',e&&e.message); }
+      var db=fs.getFirestore(app);
+      // 배너 실사 사진(설정 있으면)
+      try{ var cs=await fs.getDoc(fs.doc(db,'config','pourstoreHomeCards')); if(cs.exists()) apply(cs.data()||{}); }catch(_e){}
+      // 상품(해당 분류, 진열/판매중만)
+      var sn=await fs.getDocs(fs.collection(db,'products'));
+      var list=sn.docs.map(function(d){ return d.data(); })
+        .filter(function(p){ return p && p.isActive!==false && p.name && !_isJunkP(p.name) && p.displayStatus!=='N' && p.salesStatus!=='숨김' && _inCate(p,HOME_CATE_CODE); });
+      list.sort(function(x,y){ return String(y.createdAt||'').localeCompare(String(x.createdAt||'')); });
+      console.log('[pour-04-home] '+HOME_CATE_CODE+' 상품 '+list.length+'건 노출');
+      wrap.innerHTML = list.length
+        ? list.slice(0,GRID_LIMIT).map(_prodCard).join('')
+        : '<div style="grid-column:1/-1;text-align:center;color:#9CA3AF;padding:40px;font-weight:700">등록된 상품이 없습니다</div>';
+    }catch(e){ console.error('[pour-04-home] 상품 로드 실패:',e); wrap.innerHTML='<div style="grid-column:1/-1;text-align:center;color:#9CA3AF;padding:40px;font-weight:700">상품을 불러오지 못했어요</div>'; }
   })();
 })();
 </script>

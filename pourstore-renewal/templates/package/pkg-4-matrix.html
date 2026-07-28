@@ -98,7 +98,7 @@ function itemHtml(p){
     html+='<div class="ppr4-section"><div class="group-head"><div class="badge">'+a.icon+'</div><h3>'+esc(a.label)+'</h3><span class="self '+a.self+'">'+a.selfIcon+' '+esc(a.selfLabel)+'</span></div>';
     TIERS.forEach(t=>{
       const items=inArea.filter(p=>p.tier===t.key).sort((x,y)=>((x.order??999)-(y.order??999)));
-      html+='<div class="ppr4-row"><div class="ppr4-tier'+(t.full?' full':'')+'"><div class="name">'+(t.full?(STAR+' '+t.label):t.label)+'</div><div class="scope">'+t.scope+'</div></div><div class="ppr4-items">'+(items.length?items.map(itemHtml).join(''):'<a class="ppr4-item empty">현재 없음</a>')+'</div></div>';
+      html+='<div class="ppr4-row"><div class="ppr4-tier'+(t.full?' full':'')+'"><div class="name">'+(t.full?(STAR+' '+t.label):t.label)+'</div><div class="scope">'+t.scope+'</div></div><div class="ppr4-items">'+(items.length?items.map(itemHtml).join(''):'<a class="ppr4-item empty">상품 준비중</a>')+'</div></div>';
     });
     html+='</div>';
   });

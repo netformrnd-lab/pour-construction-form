@@ -779,7 +779,7 @@ var PM_POSTS = [];
     var rawPosts = await pPosts;
     posts = rawPosts.filter(function(p){ return p && p.active !== false; })
                     .map(function(p){ return p.type==='case' ? Object.assign({}, p, {type:'advanced'}) : p; })  // 구 시공사례(case)를 신 시공사례(advanced)로 통합 노출(어드민 '시공사례' = type:case)
-                    .sort(function(a,b){ return ((a.order==null?999:a.order) - (b.order==null?999:b.order)); });
+                    .sort(function(a,b){ function so(p){ return p.storyOrder!=null?p.storyOrder:(p.order!=null?p.order+1000:9999); } return so(a)-so(b); });
     console.log("[psm1] 관련 콘텐츠 " + posts.length + "건 로드");
   } catch (e) { console.log("[psm1] 관련 콘텐츠 로드 스킵:", e && e.message ? e.message : e); }
   PM_POSTS = posts;   // 유튜브 재생 모달의 '관련 콘텐츠'용 공유
@@ -1926,7 +1926,8 @@ var PC_TTL = 300000;
     var rawPosts = await window.__pcache.wrap('col:postings', PC_TTL, function(){ return getDocs(collection(db,"pourstore-postings")).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); });
     posts = rawPosts.filter(function(p){ return p && p.active !== false; })
       .map(function(p){ return p.type==='case' ? Object.assign({}, p, {type:'advanced'}) : p; })  // 구 시공사례(case)를 신 시공사례(advanced)로 통합 노출(어드민 '시공사례' = type:case)
-      .sort(function(a,b){ var o=(a.order==null?999:a.order)-(b.order==null?999:b.order); return o!==0?o:String(b.createdAt||'').localeCompare(String(a.createdAt||'')); });
+      .sort(function(a,b){ function so(p){ return p.storyOrder!=null?p.storyOrder:(p.order!=null?p.order+1000:9999); }  // POUR이야기 페이지 전용 순서(어드민 'POUR이야기 페이지 순서') 우선
+             var o=so(a)-so(b); return o!==0?o:String(b.createdAt||'').localeCompare(String(a.createdAt||'')); });
     console.log("[pstory] 글 " + posts.length + "건 로드");
   } catch (e) {
     console.error("[pstory] 로드 실패:", e && e.message ? e.message : e);

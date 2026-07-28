@@ -5440,9 +5440,12 @@ function PostingsPage({showToast}){
   const isVideoPost=(p)=>p.type!=='short'&&(p.type==='video'||/youtu\.?be/.test(p.link||''));
   const magEff=(p)=>p.magazineOrder!=null?p.magazineOrder:(p.order!=null?p.order+1000:9999);
   const vidEff=(p)=>p.videoOrder!=null?p.videoOrder:(p.order!=null?p.order+1000:9999);
-  const ORDER_FIELD = sectionMode==='magazine'?'magazineOrder':sectionMode==='video'?'videoOrder':'order';
-  // 실제 자사몰에 노출되는 상위 개수(그 위는 강조 배지) — 매거진 4(대표1+사이드3), 동영상 5(추천1+사이드4)
-  const EXPOSE_N = sectionMode==='magazine'?4:sectionMode==='video'?5:0;
+  const storyEff=(p)=>p.storyOrder!=null?p.storyOrder:(p.order!=null?p.order+1000:9999);
+  const ORDER_FIELD = sectionMode==='magazine'?'magazineOrder':sectionMode==='video'?'videoOrder':sectionMode==='story'?'storyOrder':'order';
+  // 실제 자사몰에 강조 노출되는 상위 개수(그 위는 강조 배지) — 매거진 4·동영상 5·POUR이야기 허브 3(특집)
+  const EXPOSE_N = sectionMode==='magazine'?4:sectionMode==='video'?5:sectionMode==='story'?3:0;
+  const EXPOSE_WORD = sectionMode==='story'?'특집':'노출';   // 허브는 상위 3개가 '특집' 크게 노출
+  const SHOW_WAIT = sectionMode==='magazine'||sectionMode==='video';   // 매거진·동영상은 상위 N개만 노출(그 외 '대기'), 허브는 전체 노출
 
   // 드래그로 순서 변경 (전역: 전체 보기+검색 없을 때 / 섹션모드: 항상 가능)
   const dragFrom=useRef(null);
@@ -5456,6 +5459,8 @@ function PostingsPage({showToast}){
     viewList=list.filter(p=>p.active!==false).slice().sort((a,b)=>(magEff(a)-magEff(b))||(b.createdAt||'').localeCompare(a.createdAt||''));
   }else if(sectionMode==='video'){
     viewList=list.filter(p=>p.active!==false&&isVideoPost(p)).slice().sort((a,b)=>(vidEff(a)-vidEff(b))||(b.createdAt||'').localeCompare(a.createdAt||''));
+  }else if(sectionMode==='story'){
+    viewList=list.filter(p=>p.active!==false).slice().sort((a,b)=>(storyEff(a)-storyEff(b))||(b.createdAt||'').localeCompare(a.createdAt||''));
   }else{
     viewList=list.filter(p=>(filter==='all'||p.type===filter) && (!search || (p.title||'').includes(search) || (p.tags||[]).some(t=>t.includes(search))));
   }
@@ -5496,7 +5501,7 @@ function PostingsPage({showToast}){
 
       {/* 노출 순서 큐레이션 대상 선택 — 전역 / 자사몰 메인 매거진(POUR이야기) / 동영상 가이드 */}
       <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',margin:'16px 0 10px'}}>
-        {[{k:null,label:'▦ 전역 순서'},{k:'magazine',label:'📖 매거진(POUR이야기) 순서'},{k:'video',label:'🎬 동영상 가이드 순서'}].map(m=>{
+        {[{k:null,label:'▦ 전역 순서'},{k:'magazine',label:'📖 메인 매거진 순서'},{k:'video',label:'🎬 동영상 가이드 순서'},{k:'story',label:'📰 POUR이야기 페이지 순서'}].map(m=>{
           const on=sectionMode===m.k;
           return <button key={String(m.k)} onClick={()=>{setSectionMode(m.k);}} style={{padding:'8px 14px',borderRadius:10,fontSize:12.5,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'linear-gradient(135deg,var(--or),var(--or-d))':'#fff',color:on?'#fff':'var(--text-md)',boxShadow:on?'0 3px 10px rgba(249,115,22,.22)':'none'}}>{m.label}</button>;
         })}
@@ -5511,8 +5516,8 @@ function PostingsPage({showToast}){
       </div>}
 
       {sectionMode && <div style={{margin:'0 0 12px',padding:'11px 14px',background:'var(--or-pale)',border:'1.5px solid #FED7AA',borderRadius:10,fontSize:12,color:'var(--or-d)',fontWeight:700,lineHeight:1.6}}>
-        {sectionMode==='magazine'?'📖 자사몰 메인 ‘POUR이야기(매거진)’ 섹션의 노출 순서입니다.':'🎬 자사몰 메인/POUR이야기 ‘동영상 가이드’ 섹션의 노출 순서입니다. (영상·유튜브 글만)'}
-        {' '}드래그로 순서를 바꾸면 <b>맨 위 {EXPOSE_N}개</b>가 실제로 노출됩니다. (전역 순서와 별개로 저장)
+        {sectionMode==='magazine'?'📖 자사몰 메인 ‘POUR이야기(매거진)’ 섹션의 노출 순서입니다.':sectionMode==='video'?'🎬 자사몰 메인/POUR이야기 ‘동영상 가이드’ 섹션의 노출 순서입니다. (영상·유튜브 글만)':'📰 자사몰 ‘POUR이야기’ 페이지(특집·BEST·콘텐츠 전체)의 배치 순서입니다.'}
+        {' '}드래그로 순서를 바꾸면 {sectionMode==='story'?<span><b>맨 위 3개</b>가 상단 ‘특집’으로 크게 노출되고, 나머지도 이 순서대로 BEST·콘텐츠 전체에 배치됩니다.</span>:<span><b>맨 위 {EXPOSE_N}개</b>가 실제로 노출됩니다.</span>} (전역 순서와 별개로 저장)
       </div>}
 
       {viewList.length===0 && <div style={{padding:'50px 0',textAlign:'center',color:'var(--text-sm)',fontSize:13,background:'var(--card)',borderRadius:12,border:'1px solid var(--border)'}}>{sectionMode==='video'?'노출할 영상 글이 없습니다.':'포스팅이 없습니다. "+ 새 포스팅"으로 추가하세요.'}</div>}
@@ -5534,8 +5539,9 @@ function PostingsPage({showToast}){
             </div>
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:3}}>
-                {sectionMode && exposed && <span style={{fontSize:10,fontWeight:900,color:'#fff',background:'var(--green)',padding:'1px 7px',borderRadius:5,flexShrink:0}}>노출 {idx+1}</span>}
-                {sectionMode && !exposed && <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',background:'var(--bg)',border:'1px solid var(--border)',padding:'1px 7px',borderRadius:5,flexShrink:0}}>대기</span>}
+                {sectionMode && exposed && <span style={{fontSize:10,fontWeight:900,color:'#fff',background:'var(--green)',padding:'1px 7px',borderRadius:5,flexShrink:0}}>{EXPOSE_WORD} {idx+1}</span>}
+                {sectionMode==='story' && !exposed && <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',background:'var(--bg)',border:'1px solid var(--border)',padding:'1px 7px',borderRadius:5,flexShrink:0}}>{idx+1}위</span>}
+                {SHOW_WAIT && !exposed && <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',background:'var(--bg)',border:'1px solid var(--border)',padding:'1px 7px',borderRadius:5,flexShrink:0}}>대기</span>}
                 <span style={{fontSize:10.5,fontWeight:800,color:'#fff',background:t.color,padding:'1px 7px',borderRadius:5,flexShrink:0}}>{t.icon} {t.label}</span>
                 <span style={{fontSize:13.5,fontWeight:800,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.title}</span>
               </div>

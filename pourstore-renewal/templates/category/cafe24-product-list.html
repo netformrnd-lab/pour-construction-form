@@ -22,6 +22,7 @@
 <div class="ptv" data-ptv hidden>
   <h2 class="ptv-title" data-ptv-title>제품 보기</h2>
   <nav class="ptv-tabs" data-ptv-tabs aria-label="제품 카테고리"></nav>
+  <nav class="ptv-subtabs" data-ptv-subtabs aria-label="하위 카테고리" style="display:none"></nav>
 </div>
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css');
@@ -33,7 +34,13 @@
 .ptv-tab{ padding:9px 18px; border-radius:999px; font-size:17px; font-weight:700; color:#111; text-decoration:none; letter-spacing:-0.02em; white-space:nowrap; transition:background .15s,color .15s; }
 .ptv-tab:hover{ background:#F2F3F7; }
 .ptv-tab.on{ background:#33373D; color:#fff; }
-@media (max-width:700px){ .ptv{ padding:20px 14px 4px; } .ptv-title{ font-size:25px; margin-bottom:16px; } .ptv-tabs{ gap:10px; } .ptv-tab{ font-size:15px; padding:8px 14px; } }
+/* 하위 카테고리 탭 줄(방수 전체·방수재·방수시트·보강자재 등) */
+.ptv-subtabs{ display:flex; flex-wrap:wrap; justify-content:center; gap:6px 30px; margin-top:20px; padding-top:16px; border-top:1px solid #EEEFF2; }
+.ptv-subtab{ position:relative; padding:6px 2px; font-size:16px; font-weight:600; color:#8A8F98; text-decoration:none; letter-spacing:-0.02em; white-space:nowrap; transition:color .15s; }
+.ptv-subtab:hover{ color:#111; }
+.ptv-subtab.on{ color:#111; font-weight:800; }
+.ptv-subtab.on::after{ content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:#111; border-radius:2px; }
+@media (max-width:700px){ .ptv{ padding:20px 14px 4px; } .ptv-title{ font-size:25px; margin-bottom:16px; } .ptv-tabs{ gap:10px; } .ptv-tab{ font-size:15px; padding:8px 14px; } .ptv-subtabs{ gap:4px 18px; margin-top:14px; padding-top:12px; } .ptv-subtab{ font-size:14px; } }
 html.ptv-browse .section.path, html.ptv-browse .section.titleArea, html.ptv-browse .ec-base-tab.typeMenu, html.ptv-browse .product_top_image, html.ptv-browse .main_product_slide, html.ptv-browse .xans-product-normalmenu, html.ptv-browse .prdCount, html.ptv-browse .ec-base-prdSort{ display:none !important; }
 html.ptv-browse .product_scrollx{ overflow:visible !important; }
 html.ptv-browse ul.prdList.grid4{ display:grid !important; grid-template-columns:repeat(3,minmax(0,1fr)) !important; gap:40px 38px !important; margin:0 auto !important; padding:0 20px !important; max-width:1256px; }
@@ -47,16 +54,30 @@ html.ptv-best ul.prdList.grid4 > li::before{ content:counter(pvrank); position:a
 <script>
 (function(){
   var BEST_CATE = '104';
-  var TABS = [['전체','73'],['패키지','71'],['균열보수','88'],['도장·도색','74'],['페인트','75'],['보강자재','92'],['부자재','84'],['안전용품','63']];
+  var TABS = [['전체','73'],['패키지','71'],['방수','86'],['균열보수','88'],['도장·도색','74'],['페인트','75'],['보강자재','92'],['부자재','84'],['안전용품','63']];
+  // 하위 카테고리 그룹: 그룹에 속한 cate_no로 들어오면 하위 탭 줄을 보여줌
+  var SUBGROUPS = [
+    { mainCate:'86', members:['86','87','91','92'], subs:[['방수 전체','86'],['방수재','87'],['방수시트','91'],['보강자재','92']] }
+  ];
   var p; try{ p = new URLSearchParams(location.search); }catch(e){ p = { get:function(){return null;} }; }
   var cate = p.get('cate_no'); if(!cate) return;
   document.documentElement.classList.add('ptv-browse');
   var wrap = document.querySelector('[data-ptv]'); if(wrap){ wrap.hidden=false; wrap.removeAttribute('hidden'); }
   var titleEl = document.querySelector('[data-ptv-title]'); var box = document.querySelector('[data-ptv-tabs]');
+  var subBox = document.querySelector('[data-ptv-subtabs]');
   var isBest = BEST_CATE && String(cate)===String(BEST_CATE);
-  if(isBest){ document.documentElement.classList.add('ptv-best'); if(titleEl) titleEl.textContent='베스트'; if(box) box.style.display='none'; return; }
+  if(isBest){ document.documentElement.classList.add('ptv-best'); if(titleEl) titleEl.textContent='베스트'; if(box) box.style.display='none'; if(subBox) subBox.style.display='none'; return; }
   if(titleEl) titleEl.textContent='제품 보기';
-  if(box){ box.innerHTML = TABS.map(function(t){ var href='/product/list.html?cate_no='+t[1]; var on=(String(cate)===String(t[1])); return '<a class="ptv-tab'+(on?' on':'')+'" href="'+href+'">'+t[0]+'</a>'; }).join(''); }
+  // 현재 cate가 속한 하위그룹 찾기
+  var sg = null;
+  for(var i=0;i<SUBGROUPS.length;i++){ if(SUBGROUPS[i].members.indexOf(String(cate))>=0){ sg=SUBGROUPS[i]; break; } }
+  var exact = TABS.some(function(t){ return String(t[1])===String(cate); });
+  if(box){ box.innerHTML = TABS.map(function(t){ var href='/product/list.html?cate_no='+t[1]; var on = String(cate)===String(t[1]) || (!exact && sg && String(t[1])===String(sg.mainCate)); return '<a class="ptv-tab'+(on?' on':'')+'" href="'+href+'">'+t[0]+'</a>'; }).join(''); }
+  // 하위 탭 줄 (3번 이미지처럼)
+  if(subBox){
+    if(sg){ subBox.innerHTML = sg.subs.map(function(s){ var href='/product/list.html?cate_no='+s[1]; var on=(String(cate)===String(s[1])); return '<a class="ptv-subtab'+(on?' on':'')+'" href="'+href+'">'+s[0]+'</a>'; }).join(''); subBox.style.display=''; }
+    else { subBox.style.display='none'; }
+  }
 })();
 </script>
 <div class="section ec-base-tab typeMenu">

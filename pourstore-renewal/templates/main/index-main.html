@@ -518,7 +518,7 @@
   var cats=document.querySelectorAll('.psm1-cats .psm1-cat');
   Array.prototype.forEach.call(cats,function(cat,i){
     var box=cat.querySelector('.psm1-cat-ico'); if(!box) return;
-    var n=i+1, cands=['icon-'+n+'.png','icon-'+n+'.jpg','icon-'+n+'.png.png','icon-'+n+'.jpg.png','icon-'+n+'.webp'];
+    var n=(function(s){s=s||'';if(s.indexOf('제품구매')>=0)return 1;if(s.indexOf('시공가이드')>=0)return 2;if(s.indexOf('패키지')>=0)return 3;if(s.indexOf('후기')>=0)return 4;if(s.indexOf('배송')>=0)return 5;if(s.indexOf('부자재')>=0)return 9;if(s.indexOf('공급제휴')>=0)return 11;if(s.indexOf('파트너')>=0)return 10;if(s.indexOf('대리점')>=0)return 12;if(s.indexOf('전시장')>=0)return 6;return 0;})((cat.querySelector('.psm1-cat-name')||{}).textContent||'')||parseInt(cat.getAttribute('data-icon'),10)||(i+1), cands=['icon-'+n+'.png','icon-'+n+'.jpg','icon-'+n+'.png.png','icon-'+n+'.jpg.png','icon-'+n+'.webp'];
     var img=document.createElement('img'); img.alt='';
     function tryLoad(k){ if(k>=cands.length) return; img.onerror=function(){ tryLoad(k+1); }; img.onload=function(){ box.classList.add('has-img'); }; img.src=BASE+encodeURIComponent(cands[k])+'?alt=media'; }
     tryLoad(0); box.appendChild(img);

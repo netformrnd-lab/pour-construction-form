@@ -150,21 +150,44 @@
 .psh-cta-note { font-size:11px; color:#9CA3AF; margin-top:10px; font-weight:600; }
 
 @media (max-width:880px) {
-  .psh-carousel { height:auto; }
+  .psh { padding:52px 16px; }
+  .psh-head { margin-bottom:18px; }
+  .psh-head h2 { font-size:28px; margin-bottom:10px; }
+  .psh-head .sub-tag { margin-bottom:12px; }
+  .psh-head .desc { margin-bottom:14px; }
+  .psh-carousel { height:auto; margin:20px 0; border-radius:18px; }
   .slide { grid-template-columns:1fr; position:relative; display:none; opacity:1; pointer-events:auto; }
   .slide.active { display:grid; }
-  .slide-left { padding:24px 22px 18px; }
+  .slide-left { padding:22px 20px 16px; }
   .slide-left::after { display:none; }
   .slide h3 { font-size:21px; }
-  .slide-right { height:160px; }
+  .slide p { margin-bottom:12px; }
+  .slide-tags { margin-bottom:0; }
+  .slide-right { height:150px; }
   .psh-swatches { justify-content:flex-start; }
   .psh-grid { grid-template-columns:repeat(3,1fr); }
   .psh-card:nth-child(n+7) { display:none; }
 }
 @media (max-width:600px) {
-  .psh-grid { grid-template-columns:repeat(2,1fr); }
+  .psh { padding:38px 14px; }
+  .psh-head { margin-bottom:14px; }
+  .psh-zonebar { margin-bottom:14px; padding:7px 13px; }
+  .psh-head h2 { font-size:25px; margin-bottom:8px; }
+  .psh-head .sub-tag { font-size:13px; margin-bottom:8px; }
+  .psh-head .desc { font-size:12.5px; margin-bottom:12px; line-height:1.6; }
+  .psh-meta { flex-wrap:wrap; justify-content:center; row-gap:4px; gap:10px; font-size:11px; }
+  .psh-carousel { margin:14px 0; border-radius:16px; }
+  .slide-left { padding:18px 18px 14px; }
+  .slide-kicker { margin-bottom:11px; }
+  .slide h3 { font-size:19px; margin-bottom:9px; }
+  .slide p { font-size:12.5px; margin-bottom:11px; }
+  .slide-right { height:120px; }
+  .psh-grid { grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:20px; }
   .psh-card:nth-child(n+5) { display:none; }
-  .psh-head h2 { font-size:30px; }
+  .psh-card .name { min-height:34px; font-size:13px; }
+  .psh-card .body { padding:12px 13px 14px; }
+  .psh-cta-wrap { padding-top:16px; }
+  .psh-cta { padding:12px 22px; font-size:12.5px; }
   .swatch { width:64px; height:64px; }
   .swatch-btn { min-width:78px; }
 }

@@ -645,11 +645,13 @@ const db = getFirestore(app);
    window에 1회만 정의(다른 프래그먼트와 공유·중복 정의 방지). ===== */
 window.__pcache = window.__pcache || (function(){
   var mem = {};
-  return { wrap: function(key, ttl, fetcher){
+  // URL에 ?nocache / ?__fresh / ?preview 있으면 캐시 무시하고 항상 최신 fetch(어드민 즉시 확인용)
+  var _bust = /nocache|__fresh|preview/i.test((location.search||'') + (location.hash||''));
+  return { bust: _bust, wrap: function(key, ttl, fetcher){
     if (mem[key]) return mem[key];
-    try { var raw = sessionStorage.getItem('pc:'+key);
+    if (!_bust) { try { var raw = sessionStorage.getItem('pc:'+key);
       if (raw){ var o = JSON.parse(raw); if (o && (Date.now()-o.t) < ttl){ return (mem[key] = Promise.resolve(o.v)); } }
-    } catch(e){}
+    } catch(e){} }
     var p = Promise.resolve().then(fetcher).then(function(v){
       try { sessionStorage.setItem('pc:'+key, JSON.stringify({ t: Date.now(), v: v })); } catch(e){}
       return v;
@@ -658,7 +660,7 @@ window.__pcache = window.__pcache || (function(){
     return (mem[key] = p);
   }};
 })();
-var PC_TTL = 300000; // 5분
+var PC_TTL = 60000; // 1분(어드민 변경 반영 지연 완화)
 
 /* ===== 유튜브 자사몰 내 재생: 페이지 어디서든 유튜브 링크 클릭을 가로채 watch식 모달로 재생 =====
    (메인의 모든 프래그먼트가 한 document를 공유하므로, 여기 한 곳의 캡처 리스너가 전 영역 커버)

@@ -86,8 +86,8 @@ const firebaseConfig = {
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 /* 공유 로딩 캐시(성능) — 메인의 다른 섹션이 이미 받은 pourstore-postings 재사용(중복 fetch 제거). define-if-absent. */
-window.__pcache = window.__pcache || (function(){ var mem={}; return { wrap:function(key,ttl,fetcher){ if(mem[key])return mem[key]; try{var raw=sessionStorage.getItem('pc:'+key); if(raw){var o=JSON.parse(raw); if(o&&(Date.now()-o.t)<ttl){return (mem[key]=Promise.resolve(o.v));}}}catch(e){} var p=Promise.resolve().then(fetcher).then(function(v){try{sessionStorage.setItem('pc:'+key,JSON.stringify({t:Date.now(),v:v}));}catch(e){} return v;}); p.catch(function(){delete mem[key];}); return (mem[key]=p); }}; })();
-var PC_TTL = 300000;
+window.__pcache = window.__pcache || (function(){ var mem={}; var _bust=/nocache|__fresh|preview/i.test((location.search||'')+(location.hash||'')); return { bust:_bust, wrap:function(key,ttl,fetcher){ if(mem[key])return mem[key]; if(!_bust){try{var raw=sessionStorage.getItem('pc:'+key); if(raw){var o=JSON.parse(raw); if(o&&(Date.now()-o.t)<ttl){return (mem[key]=Promise.resolve(o.v));}}}catch(e){}} var p=Promise.resolve().then(fetcher).then(function(v){try{sessionStorage.setItem('pc:'+key,JSON.stringify({t:Date.now(),v:v}));}catch(e){} return v;}); p.catch(function(){delete mem[key];}); return (mem[key]=p); }}; })();
+var PC_TTL = 60000;
 
 (async function(){
   var sec = document.querySelector('[data-psg4]');

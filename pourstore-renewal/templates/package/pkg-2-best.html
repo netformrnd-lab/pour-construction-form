@@ -19,11 +19,14 @@
   .ppr2-head p { font-size:13.5px; color:#6B7280; }
   .ppr2-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; transition:all .25s; }
   .ppr2-head .more:hover { background:#FFF7ED; }
-  .ppr2-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:30px 16px; }
-  /* 참고 이미지(커머스 그리드) 스타일: 한 줄 최대 4개, 가로 넓은 사진 → 해시태그 → 이름 → 설명 → 가격(평균 단위). 뱃지 없음. */
+  .ppr2-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:30px 16px; align-items:start; }
+  /* 참고 이미지(커머스 그리드) 스타일: 한 줄 최대 4개, 원본 이미지 그대로(잘림 없음) → 해시태그 → 이름 → 설명 → 가격. 뱃지 없음. */
   .ppr2-card { background:#fff; overflow:visible; transition:all .3s; text-decoration:none; display:flex; flex-direction:column; }
   .ppr2-card:hover .ppr2-thumb { transform:translateY(-4px); box-shadow:0 18px 38px rgba(0,0,0,.12); }
-  .ppr2-thumb { aspect-ratio:4/5; background-size:cover; background-position:center; position:relative; border-radius:6px; overflow:hidden; background-color:#F5F5F5; transition:transform .3s, box-shadow .3s; }
+  /* ★ 비율 고정 없음 — 원본 이미지의 세로/가로 비율 그대로 표시(잘리지 않음) */
+  .ppr2-thumb { position:relative; border-radius:6px; overflow:hidden; background-color:#F5F5F5; transition:transform .3s, box-shadow .3s; line-height:0; }
+  .ppr2-thumb img { display:block; width:100%; height:auto; }
+  .ppr2-thumb.noimg { aspect-ratio:4/5; }
   .ppr2-info { padding:14px 2px 2px; flex:1; display:flex; flex-direction:column; }
   .ppr2-info .tags { font-size:12px; font-weight:700; color:#EA580C; letter-spacing:-.2px; margin-bottom:6px; line-height:1.45; }
   .ppr2-info .name { font-size:15px; font-weight:700; color:#111111; margin-bottom:5px; line-height:1.4; letter-spacing:-.3px; }
@@ -70,14 +73,16 @@ function fmtPrice(pr, unitOverride){
   return '<span class="now">'+esc(num)+'</span>'+(unit?'<span class="unit">'+esc(unit)+'</span>':'');
 }
 function card(p,i){
-  const th=p.thumbnail?("url('"+esc(p.thumbnail)+"') center/cover no-repeat, "):"";
+  const thumb = p.thumbnail
+    ? ('<div class="ppr2-thumb"><img src="'+esc(p.thumbnail)+'" alt="" loading="lazy"></div>')
+    : ('<div class="ppr2-thumb noimg" style="background:linear-gradient('+GRAD[i%GRAD.length]+')"></div>');
   let nm=esc(p.name||''); if(nm && !/패키지|세트/.test(nm)) nm=nm+' 패키지';
   let tags;
   if(p.tags){ tags = Array.isArray(p.tags) ? p.tags.map(t=>{ t=esc(t); return t.charAt(0)==='#'?t:('#'+t); }).join(' · ') : esc(p.tags); }
   else { tags = AREA_TAGS[p.area]||'#POUR R&D 시너지 패키지'; }
   const desc = p.desc ? esc(p.desc) : (AREA_DESC[p.area]||'현장에서 자주 찾는 R&D 조합으로 오래가는 유지보수를 한 번에.');
   return '<a class="ppr2-card" href="/product/detail.html?product_no='+esc(p.productNo)+'&cate_no=71">'
-    +'<div class="ppr2-thumb" style="background:'+th+'linear-gradient('+GRAD[i%GRAD.length]+')"></div>'
+    +thumb
     +'<div class="ppr2-info">'
     +'<div class="tags">'+tags+'</div>'
     +'<div class="name">'+nm+'</div>'

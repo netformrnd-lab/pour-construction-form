@@ -5348,6 +5348,7 @@ function PostingsPage({showToast}){
   const [saving,setSaving]=useState(false);
   // 섹션별 노출 순서 큐레이션 모드 — null(전역 order) | 'magazine'(POUR이야기 매거진) | 'video'(동영상 가이드)
   const [sectionMode,setSectionMode]=useState(null);
+  const [storySub,setStorySub]=useState('featured');  // POUR이야기 하위 섹션: featured|shorts|best|all
 
   const load=async()=>{
     try{
@@ -5440,12 +5441,14 @@ function PostingsPage({showToast}){
   const isVideoPost=(p)=>p.type!=='short'&&(p.type==='video'||/youtu\.?be/.test(p.link||''));
   const magEff=(p)=>p.magazineOrder!=null?p.magazineOrder:(p.order!=null?p.order+1000:9999);
   const vidEff=(p)=>p.videoOrder!=null?p.videoOrder:(p.order!=null?p.order+1000:9999);
-  const storyEff=(p)=>p.storyOrder!=null?p.storyOrder:(p.order!=null?p.order+1000:9999);
-  const ORDER_FIELD = sectionMode==='magazine'?'magazineOrder':sectionMode==='video'?'videoOrder':sectionMode==='story'?'storyOrder':'order';
-  // 실제 자사몰에 강조 노출되는 상위 개수(그 위는 강조 배지) — 매거진 4·동영상 5·POUR이야기 허브 3(특집)
-  const EXPOSE_N = sectionMode==='magazine'?4:sectionMode==='video'?5:sectionMode==='story'?3:0;
-  const EXPOSE_WORD = sectionMode==='story'?'특집':'노출';   // 허브는 상위 3개가 '특집' 크게 노출
-  const SHOW_WAIT = sectionMode==='magazine'||sectionMode==='video';   // 매거진·동영상은 상위 N개만 노출(그 외 '대기'), 허브는 전체 노출
+  // POUR이야기 하위 섹션별 순서 필드(특집/쇼츠/BEST/전체) — 값 없으면 storyOrder→order 폴백
+  const STORY_FIELD = {featured:'featuredOrder',shorts:'shortsOrder',best:'bestOrder',all:'allOrder'}[storySub];
+  const storyEff=(p)=>{ var v=p[STORY_FIELD]; return v!=null?v:(p.storyOrder!=null?p.storyOrder:(p.order!=null?p.order+1000:9999)); };
+  const ORDER_FIELD = sectionMode==='magazine'?'magazineOrder':sectionMode==='video'?'videoOrder':sectionMode==='story'?STORY_FIELD:'order';
+  // 실제 자사몰에 강조 노출되는 상위 개수(그 위는 강조 배지) — 매거진 4·동영상 5·POUR이야기 특집 3
+  const EXPOSE_N = sectionMode==='magazine'?4:sectionMode==='video'?5:(sectionMode==='story'&&storySub==='featured')?3:0;
+  const EXPOSE_WORD = (sectionMode==='story'&&storySub==='featured')?'특집':'노출';   // 특집 탭은 상위 3개가 '특집' 크게 노출
+  const SHOW_WAIT = sectionMode==='magazine'||sectionMode==='video';   // 매거진·동영상은 상위 N개만 노출(그 외 '대기'), 이야기는 전체 노출
 
   // 드래그로 순서 변경 (전역: 전체 보기+검색 없을 때 / 섹션모드: 항상 가능)
   const dragFrom=useRef(null);
@@ -5460,7 +5463,7 @@ function PostingsPage({showToast}){
   }else if(sectionMode==='video'){
     viewList=list.filter(p=>p.active!==false&&isVideoPost(p)).slice().sort((a,b)=>(vidEff(a)-vidEff(b))||(b.createdAt||'').localeCompare(a.createdAt||''));
   }else if(sectionMode==='story'){
-    viewList=list.filter(p=>p.active!==false).slice().sort((a,b)=>(storyEff(a)-storyEff(b))||(b.createdAt||'').localeCompare(a.createdAt||''));
+    viewList=list.filter(p=>p.active!==false && (storySub!=='shorts' || p.type==='short')).slice().sort((a,b)=>(storyEff(a)-storyEff(b))||(b.createdAt||'').localeCompare(a.createdAt||''));
   }else{
     viewList=list.filter(p=>(filter==='all'||p.type===filter) && (!search || (p.title||'').includes(search) || (p.tags||[]).some(t=>t.includes(search))));
   }
@@ -5507,6 +5510,13 @@ function PostingsPage({showToast}){
         })}
       </div>
 
+      {sectionMode==='story' && <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',margin:'0 0 10px'}}>
+        {[{k:'featured',label:'⭐ 특집'},{k:'shorts',label:'🎬 쇼츠'},{k:'best',label:'🏆 BEST'},{k:'all',label:'▦ 전체'}].map(s=>{
+          const on=storySub===s.k;
+          return <button key={s.k} onClick={()=>setStorySub(s.k)} style={{padding:'7px 13px',borderRadius:999,fontSize:12,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or-pale)':'#fff',color:on?'var(--or-d)':'var(--text-md)'}}>{s.label}</button>;
+        })}
+      </div>}
+
       {!sectionMode && <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',margin:'0 0 16px'}}>
         {[{key:'all',label:'전체',icon:'▦'},...POSTING_TYPES].map(t=>{
           const on=filter===t.key; const n=t.key==='all'?list.length:counts[t.key];
@@ -5516,8 +5526,8 @@ function PostingsPage({showToast}){
       </div>}
 
       {sectionMode && <div style={{margin:'0 0 12px',padding:'11px 14px',background:'var(--or-pale)',border:'1.5px solid #FED7AA',borderRadius:10,fontSize:12,color:'var(--or-d)',fontWeight:700,lineHeight:1.6}}>
-        {sectionMode==='magazine'?'📖 자사몰 메인 ‘POUR이야기(매거진)’ 섹션의 노출 순서입니다.':sectionMode==='video'?'🎬 자사몰 메인/POUR이야기 ‘동영상 가이드’ 섹션의 노출 순서입니다. (영상·유튜브 글만)':'📰 자사몰 ‘POUR이야기’ 페이지(특집·BEST·콘텐츠 전체)의 배치 순서입니다.'}
-        {' '}드래그로 순서를 바꾸면 {sectionMode==='story'?<span><b>맨 위 3개</b>가 상단 ‘특집’으로 크게 노출되고, 나머지도 이 순서대로 BEST·콘텐츠 전체에 배치됩니다.</span>:<span><b>맨 위 {EXPOSE_N}개</b>가 실제로 노출됩니다.</span>} (전역 순서와 별개로 저장)
+        {sectionMode==='magazine'?'📖 자사몰 메인 ‘POUR이야기(매거진)’ 섹션의 노출 순서입니다.':sectionMode==='video'?'🎬 자사몰 메인/POUR이야기 ‘동영상 가이드’ 섹션의 노출 순서입니다. (영상·유튜브 글만)':(storySub==='featured'?'⭐ POUR이야기 상단 ‘특집’ 카드 순서입니다.':storySub==='shorts'?'🎬 POUR이야기 ‘POUR 쇼츠’ 줄의 노출 순서입니다. (숏츠 유형만)':storySub==='best'?'🏆 POUR이야기 ‘BEST 콘텐츠’ 랭킹 순서입니다.':'▦ POUR이야기 ‘콘텐츠 전체’ 그리드의 노출 순서입니다.')}
+        {' '}드래그로 순서를 바꾸면 {sectionMode==='story'?(storySub==='featured'?<span><b>맨 위 3개</b>가 상단 ‘특집’으로 크게 노출됩니다.</span>:<span>이 순서대로 해당 섹션에 배치됩니다.</span>):<span><b>맨 위 {EXPOSE_N}개</b>가 실제로 노출됩니다.</span>} (섹션별 별개로 저장)
       </div>}
 
       {viewList.length===0 && <div style={{padding:'50px 0',textAlign:'center',color:'var(--text-sm)',fontSize:13,background:'var(--card)',borderRadius:12,border:'1px solid var(--border)'}}>{sectionMode==='video'?'노출할 영상 글이 없습니다.':'포스팅이 없습니다. "+ 새 포스팅"으로 추가하세요.'}</div>}

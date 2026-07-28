@@ -57,7 +57,8 @@ html.ptv-best ul.prdList.grid4 > li::before{ content:counter(pvrank); position:a
   var TABS = [['전체','73'],['패키지','71'],['방수','86'],['균열보수','88'],['도장·도색','74'],['페인트','75'],['보강자재','92'],['부자재','84'],['안전용품','63']];
   // 하위 카테고리 그룹: 그룹에 속한 cate_no로 들어오면 하위 탭 줄을 보여줌
   var SUBGROUPS = [
-    { mainCate:'86', members:['86','87','91','92'], subs:[['방수 전체','86'],['방수재','87'],['방수시트','91'],['보강자재','92']] }
+    { mainCate:'86', members:['86','87','91'], subs:[['방수 전체','86'],['방수재','87'],['방수시트','91']] },
+    { mainCate:'92', members:['92','93','66','94','96','95'], subs:[['보강자재 전체','92'],['에어벤트','93'],['배관트랩','66'],['파우더','94'],['아스콘보강','96'],['후커','95']] }
   ];
   var p; try{ p = new URLSearchParams(location.search); }catch(e){ p = { get:function(){return null;} }; }
   var cate = p.get('cate_no'); if(!cate) return;

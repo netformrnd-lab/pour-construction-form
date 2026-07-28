@@ -219,7 +219,7 @@
     if (!scroller) return;
 
     // ── 자동 슬라이드(→) 상태 ──
-    var SPEED = 0.28;         // 프레임당 이동 px (천천히)
+    var SPEED = 0.15;         // 프레임당 이동 px (아주 천천히)
     var visible = true, holdUntil = 0, hover = false, raf = null, needSync = false;
     var pos = 0;              // 실수 누적 위치 (scrollLeft는 정수로 잘려 읽히므로 별도 관리)
     var dragging = false, startX = 0, startLeft = 0, moved = false;

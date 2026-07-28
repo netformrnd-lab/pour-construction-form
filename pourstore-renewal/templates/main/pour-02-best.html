@@ -218,21 +218,38 @@
     });
     if (!scroller) return;
 
-    // ── 자동 슬라이드: 3초마다 한 칸씩(부드럽게) — 연속 이동 없이 덜 어지럽게 ──
+    // ── 자동 슬라이드: 3초마다 한 칸씩(부드럽게) + 무한 루프(끊김 없음) ──
+    // 원본 카드를 한 벌 복제해 뒤에 붙여, 마지막 다음에 첫 카드가 자연스럽게 이어짐.
+    // 복제 구간(loopW)에 들어서면 동일 화면 위치로 순간 되돌려 끊김 없이 반복.
     var STEP_MS = 3000;
-    var visible = true, holdUntil = 0, hover = false;
+    var visible = true, holdUntil = 0, hover = false, loopW = 0, cloning = false, mo = null;
     var dragging = false, startX = 0, startLeft = 0, moved = false;
     function maxScroll(){ return scroller.scrollWidth - scroller.clientWidth; }
-    function cardStep(){ var c = scroller.querySelector('.psm2-card'); return c ? (c.getBoundingClientRect().width + 16) : 240; }
+    function cardStep(){ var c = scroller.querySelector('.psm2-card:not([data-psm2-clone])'); return c ? (c.getBoundingClientRect().width + 16) : 240; }
     function pauseAuto(ms){ var t = Date.now() + (ms||1500); if (t > holdUntil) holdUntil = t; }
+    function removeClones(){ var cs = scroller.querySelectorAll('[data-psm2-clone]'); for (var i=0;i<cs.length;i++) cs[i].parentNode.removeChild(cs[i]); }
+    function ensureClones(){
+      loopW = 0; removeClones();
+      if (scroller.scrollWidth <= scroller.clientWidth + 4) return;           // 스크롤 안 되면 복제 불필요
+      var reals = scroller.querySelectorAll('.psm2-card:not([data-psm2-clone])');
+      if (reals.length < 2) return;
+      var frag = document.createDocumentFragment();
+      for (var i=0;i<reals.length;i++){ var cl = reals[i].cloneNode(true); cl.setAttribute('data-psm2-clone','1'); cl.setAttribute('aria-hidden','true'); frag.appendChild(cl); }
+      scroller.appendChild(frag);
+      var fc = scroller.querySelector('[data-psm2-clone]');
+      loopW = fc ? (fc.offsetLeft - reals[0].offsetLeft) : 0;                 // 원본 한 벌의 스크롤 폭
+    }
+    function refresh(){ if (cloning) return; cloning = true; if (mo) mo.disconnect(); ensureClones(); if (mo) mo.observe(scroller, {childList:true}); cloning = false; }
     function step(){
       if (dragging || hover || !visible || Date.now() < holdUntil) return;   // 일시정지 조건
       var ms = maxScroll();
       if (ms < 4) return;                                  // 넘길 게 없으면 정지
       var w = cardStep();
-      var next = Math.round(scroller.scrollLeft / w) * w + w;                 // 현재 칸 기준 다음 칸
-      if (next > ms + 2) scroller.scrollTo({ left: 0, behavior: 'auto' });    // 끝 → 처음으로(즉시)
-      else scroller.scrollTo({ left: next, behavior: 'smooth' });             // 한 칸 부드럽게
+      var cur = scroller.scrollLeft;
+      if (loopW > 4 && cur >= loopW - 1){ scroller.scrollTo({ left: cur - loopW, behavior: 'auto' }); cur -= loopW; }  // 복제 경계 → 순간 되감기(동일 화면)
+      var next = Math.round(cur / w) * w + w;
+      if (loopW <= 4 && next > ms + 2){ scroller.scrollTo({ left: 0, behavior: 'auto' }); return; }  // 복제 없을 때 폴백
+      scroller.scrollTo({ left: next, behavior: 'smooth' });                  // 한 칸 부드럽게 (마지막 다음=첫 카드 복제로 이어짐)
     }
 
     // ── 화살표 ──
@@ -274,6 +291,7 @@
       if (!dragging) return; dragging = false;
       scroller.classList.remove('is-dragging');
       try{ scroller.releasePointerCapture(pid); }catch(_){}
+      if (loopW > 4 && scroller.scrollLeft >= loopW) scroller.scrollLeft -= loopW;   // 복제 구간이면 원본 위치로 정규화
       pauseAuto(1500);
     }
     scroller.addEventListener('pointerup', endDrag);
@@ -289,6 +307,10 @@
     if ('IntersectionObserver' in window){
       new IntersectionObserver(function(es){ es.forEach(function(en){ visible = en.isIntersecting; }); }, {threshold:0.05}).observe(scroller);
     }
+    // 카드 세트가 바뀔 때(관리 카드/Firestore 반영 등)마다 복제 재생성
+    if ('MutationObserver' in window){ mo = new MutationObserver(function(){ refresh(); }); }
+    refresh();                                                   // 최초 1회 복제 구성
+    window.addEventListener('resize', function(){ refresh(); }); // 폭 변화 시 재계산
     setInterval(step, STEP_MS);
   });
 })();
@@ -333,8 +355,12 @@
     document.querySelectorAll('.psm2-group[data-material]').forEach(function(group){
       var key=MAP[group.getAttribute('data-material')];
       var md=key && data[key]; if(!md) return;
+      if(!Array.isArray(md)){                                  // 라인 제목·멘트(소제목) — 값 있으면 교체(비면 기본 유지)
+        if((md.title||'').trim()){ var tEl=group.querySelector('.psm2-title'); if(tEl) tEl.textContent=md.title.trim(); }
+        if((md.sub||'').trim()){ var sEl=group.querySelector('.psm2-subtitle'); if(sEl) sEl.textContent=md.sub.trim(); }
+      }
       var cards=Array.isArray(md)?md:md.cards;                 // 구/신 포맷 호환
-      if(!cards || !cards.length) return;                      // 관리 카드 없으면 기존 기본 유지
+      if(!cards || !cards.length) return;                      // 관리 카드 없으면 기존 기본 유지(제목·멘트만 반영)
       var scroll=group.querySelector('.psm2-scroll'); if(!scroll) return;
       scroll.innerHTML=cards.map(cardHtml).join('');
       var fbar=group.querySelector('.psm2-filters'); if(fbar) fbar.style.display='none';   // 카테고리 필터 제거

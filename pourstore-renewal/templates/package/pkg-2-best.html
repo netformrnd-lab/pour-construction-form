@@ -4,10 +4,12 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
 <section data-section="베스트 패키지">
 <style>
-  .ppr2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+  .ppr2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo',sans-serif; }
   .ppr2 { background:#fff; padding:72px 18px; }
   .ppr2-inner { max-width:1200px; margin:0 auto; }
   .ppr2-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:14px; }
@@ -15,41 +17,30 @@
   .ppr2-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
   .ppr2-head h2 { font-size:30px; font-weight:900; color:#111111; letter-spacing:-1px; line-height:1.2; margin-bottom:6px; }
   .ppr2-head p { font-size:13.5px; color:#6B7280; }
-  .ppr2-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:0; transition:all .25s; }
+  .ppr2-head .more { font-size:19px; font-weight:800; color:#EA580C; text-decoration:none; padding:11px 20px; border:1px solid #FED7AA; border-radius:999px; transition:all .25s; }
   .ppr2-head .more:hover { background:#FFF7ED; }
-  .ppr2-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:18px; }
-  .ppr2-card { background:#fff; border:1.5px solid #F3F4F6; border-radius:0; overflow:hidden; transition:all .3s; text-decoration:none; display:flex; flex-direction:column; }
-  .ppr2-card:hover { transform:translateY(-4px); box-shadow:0 22px 48px rgba(15,31,92,.1); border-color:#FED7AA; }
-  .ppr2-thumb { aspect-ratio:5/4; background-size:cover; background-position:center; position:relative; }
-  .ppr2-thumb::after { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(15,31,92,.55) 0%, transparent 50%); }
-  .ppr2-thumb .rank { position:absolute; top:12px; left:12px; width:32px; height:32px; border-radius:0; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; font-size:17px; font-weight:900; display:grid; place-items:center; box-shadow:0 4px 14px rgba(249,115,22,.45); letter-spacing:.5px; z-index:1; }
-  .ppr2-thumb .tier { position:absolute; top:12px; right:12px; padding:5px 11px; background:rgba(15,31,92,.92); color:#fff; font-size:10.5px; font-weight:900; border-radius:0; letter-spacing:.4px; backdrop-filter:blur(4px); z-index:1; }
-  .ppr2-thumb .tier.full { background:linear-gradient(135deg,#F97316,#EA580C); }
-  .ppr2-thumb .compose { position:absolute; bottom:10px; left:12px; right:12px; display:flex; flex-wrap:wrap; gap:4px; z-index:1; }
-  .ppr2-thumb .compose span { padding:3px 8px; background:rgba(255,255,255,.92); color:#111111; font-size:10px; font-weight:800; border-radius:0; letter-spacing:-.2px; backdrop-filter:blur(4px); }
-  .ppr2-info { padding:16px 18px; flex:1; display:flex; flex-direction:column; }
-  .ppr2-info .area { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
-  .ppr2-info .name { font-size:15px; font-weight:900; color:#111111; margin-bottom:6px; line-height:1.35; letter-spacing:-.3px; }
-  .ppr2-info .desc { font-size:11.5px; color:#6B7280; line-height:1.55; margin-bottom:12px; min-height:34px; }
-  .ppr2-info .price { display:flex; align-items:baseline; gap:8px; margin-bottom:12px; }
-  .ppr2-info .sale { font-size:11px; font-weight:800; color:#DC2626; }
-  .ppr2-info .now { font-size:18px; font-weight:900; color:#111111; letter-spacing:-.3px; }
-  .ppr2-info .meta { display:flex; align-items:center; gap:6px; font-size:11px; color:#9CA3AF; font-weight:700; margin-bottom:12px; }
-  .ppr2-info .star { color:#F59E0B; }
-  .ppr2-info .footer { display:flex; gap:6px; align-items:center; padding-top:12px; border-top:1px solid #F3F4F6; flex-wrap:wrap; }
-  .ppr2-info .self { padding:4px 9px; font-size:10px; font-weight:800; border-radius:0; }
-  .ppr2-info .self.ok { background:#ECFDF5; border:1px solid #A7F3D0; color:#059669; }
-  .ppr2-info .self.pro { background:#FEE2E2; border:1px solid #FCA5A5; color:#DC2626; }
-  .ppr2-info .media { display:inline-flex; align-items:center; gap:5px; font-size:10.5px; color:#6B7280; font-weight:700; padding:4px 9px; background:#FFFBF5; border:1px solid #FED7AA; border-radius:0; }
-  .ppr2-info .media.video { color:#EA580C; }
-  @media (max-width:640px) { .ppr2-head h2 { font-size:22px; } }
+  .ppr2-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:30px 16px; align-items:start; }
+  /* 참고 이미지(커머스 그리드) 스타일: 한 줄 최대 4개, 원본 이미지 그대로(잘림 없음) → 해시태그 → 이름 → 설명 → 가격. 뱃지 없음. */
+  .ppr2-card { background:#fff; overflow:visible; transition:all .3s; text-decoration:none; display:flex; flex-direction:column; }
+  .ppr2-card:hover .ppr2-thumb { transform:translateY(-4px); box-shadow:0 18px 38px rgba(0,0,0,.12); }
+  /* ★ 이미지 박스(칸)를 정사각(1:1)으로 고정. 사진은 박스를 꽉 채움(cover) */
+  .ppr2-thumb { aspect-ratio:1/1; position:relative; border-radius:6px; overflow:hidden; background-color:#F5F5F5; transition:transform .3s, box-shadow .3s; line-height:0; }
+  .ppr2-thumb img { display:block; width:100%; height:100%; object-fit:cover; }
+  .ppr2-info { padding:14px 2px 2px; flex:1; display:flex; flex-direction:column; }
+  .ppr2-info .tags { font-size:12px; font-weight:700; color:#EA580C; letter-spacing:-.2px; margin-bottom:6px; line-height:1.45; }
+  .ppr2-info .name { font-size:15px; font-weight:700; color:#111111; margin-bottom:5px; line-height:1.4; letter-spacing:-.3px; }
+  .ppr2-info .desc { font-size:13px; color:#6B7280; line-height:1.55; margin-bottom:10px; }
+  .ppr2-info .price { display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; margin-top:auto; }
+  .ppr2-info .now { font-size:17px; font-weight:700; color:#111111; letter-spacing:-.3px; }
+  .ppr2-info .unit { font-size:12px; font-weight:500; color:#9CA3AF; }
+  @media (max-width:640px) { .ppr2 { padding:52px 14px; } .ppr2-head h2 { font-size:22px; } .ppr2-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px 10px; } .ppr2-info { padding:11px 2px 2px; } .ppr2-info .name { font-size:14px; } .ppr2-info .now { font-size:16px; } }
   </style>
   <section class="ppr2">
     <div class="ppr2-inner">
       <div class="ppr2-head">
         <div class="left">
           <div class="kicker"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="#F59E0B" style="vertical-align:-0.14em"><path d="M12 3l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 18l-5.8 3 1.1-6.5L2.6 9.8l6.5-.9z"/></svg> BEST PACKAGES</div>
-          <h2>대표 방수·보강 패키지</h2>
+          <h2>인기 BEST 방수·보강 패키지</h2>
           <p>현장에서 자주 찾는 R&D 시너지 조합 패키지</p>
         </div>
         <a class="more" href="/product/list.html?cate_no=71">전체 패키지 →</a>
@@ -69,22 +60,34 @@ const db = getFirestore(app);
 window.__pcache = window.__pcache || (function(){ var mem={}; return { wrap:function(key,ttl,fetcher){ if(mem[key])return mem[key]; try{var raw=sessionStorage.getItem('pc:'+key); if(raw){var o=JSON.parse(raw); if(o&&(Date.now()-o.t)<ttl){return (mem[key]=Promise.resolve(o.v));}}}catch(e){} var p=Promise.resolve().then(fetcher).then(function(v){try{sessionStorage.setItem('pc:'+key,JSON.stringify({t:Date.now(),v:v}));}catch(e){} return v;}); p.catch(function(){delete mem[key];}); return (mem[key]=p); }}; })();
 var PC_TTL = 300000;
 const esc=(s)=>(s||'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const STAR='<svg viewBox="0 0 24 24" width="1em" height="1em" fill="#F59E0B" style="vertical-align:-0.14em"><path d="M12 3l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 18l-5.8 3 1.1-6.5L2.6 9.8l6.5-.9z"/></svg>';
-const CHK='<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>';
-const SHIELD='<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><path d="M3 15a9 9 0 0 1 18 0"/><path d="M2 15h20v3H2z"/><path d="M12 6v3M9 7v2M15 7v2"/></svg>';
-const AREA_L={slab:'옥상 슬라브',roof:'금속·슁글 지붕',wall:'균열·외벽',drain:'배수·베란다·이음부'};
-const TIER_L={full:'풀패키지',partial:'부분 패키지',coating:'단순 코팅'};
 const GRAD=['135deg,#F97316,#EA580C','135deg,#EA580C,#9A3412','135deg,#0F1F5C,#1E3A8A','135deg,#059669,#065F46'];
+// 부위(area)별 기본 해시태그·설명 — 상품에 tags/desc가 없을 때 자동 사용(있으면 상품값 우선)
+const AREA_TAGS={ slab:'#물고임 · 조인트 · 에어포켓 대응', roof:'#지붕 탈락 방지 · 방수층 일체화', wall:'#거동 대응력 · 재균열 방지', drain:'#배수 · 베란다 · 이음부 누수' };
+const AREA_DESC={ slab:'우레탄보다 쉽고 간편하게 셀프로도 튼튼한 옥상 방수!', roof:'교체·철거 없이 새 지붕처럼 방수 기능과 미관까지 UP!', wall:'터지고 갈라진 균열·크랙 모든 부위를 셀프로 쉽고 간편하게 보강!', drain:'배수구·이음부 취약 부위를 한 번에 방수 보강!' };
+function fmtPrice(pr, unitOverride){
+  pr=(pr||'').toString().trim(); if(!pr) return '';
+  var num=pr, unit=unitOverride||'';
+  var m=pr.match(/^(.*?)\s*\/\s*(㎡|m2|m²|평|m)\s*$/i);
+  if(m){ num=m[1].trim(); var u=m[2].toLowerCase(); if(!unit) unit = (u==='m')?'(평균 m당)':((u==='평')?'(평균 평당)':'(평균 ㎡당)'); }
+  return '<span class="now">'+esc(num)+'</span>'+(unit?'<span class="unit">'+esc(unit)+'</span>':'');
+}
 function card(p,i){
-  const th=p.thumbnail?("url('"+esc(p.thumbnail)+"') center/cover no-repeat, "):"";
-  const full=p.tier==='full';
-  const tier=full?('<div class="tier full">'+STAR+' 풀패키지</div>'):('<div class="tier">'+esc(TIER_L[p.tier]||'부분 패키지')+'</div>');
-  const pro=p.area==='roof';
-  const self=pro?('<span class="self pro">'+SHIELD+' 안전 시공 권장</span>'):('<span class="self ok">'+CHK+' 셀프 OK</span>');
+  const thumb = p.thumbnail
+    ? ('<div class="ppr2-thumb"><img src="'+esc(p.thumbnail)+'" alt="" loading="lazy"></div>')
+    : ('<div class="ppr2-thumb noimg" style="background:linear-gradient('+GRAD[i%GRAD.length]+')"></div>');
+  let nm=esc(p.name||''); if(nm && !/패키지|세트/.test(nm)) nm=nm+' 패키지';
+  let tags;
+  if(p.tags){ tags = Array.isArray(p.tags) ? p.tags.map(t=>{ t=esc(t); return t.charAt(0)==='#'?t:('#'+t); }).join(' · ') : esc(p.tags); }
+  else { tags = AREA_TAGS[p.area]||'#POUR R&D 시너지 패키지'; }
+  const desc = p.desc ? esc(p.desc) : (AREA_DESC[p.area]||'현장에서 자주 찾는 R&D 조합으로 오래가는 유지보수를 한 번에.');
   return '<a class="ppr2-card" href="/product/detail.html?product_no='+esc(p.productNo)+'&cate_no=71">'
-    +'<div class="ppr2-thumb" style="background:'+th+'linear-gradient('+GRAD[i%GRAD.length]+')"><div class="rank">'+(i+1)+'</div>'+tier+'</div>'
-    +'<div class="ppr2-info"><div class="area">'+esc(AREA_L[p.area]||'패키지')+'</div><div class="name">'+esc(p.name)+'</div>'
-    +'<div class="price"><span class="now">'+esc(p.price||'')+'</span></div><div class="footer">'+self+'</div></div></a>';
+    +thumb
+    +'<div class="ppr2-info">'
+    +'<div class="tags">'+tags+'</div>'
+    +'<div class="name">'+nm+'</div>'
+    +'<div class="desc">'+desc+'</div>'
+    +'<div class="price">'+fmtPrice(p.price, p.priceUnit)+'</div>'
+    +'</div></a>';
 }
 (async function(){
   const grid=document.querySelector('[data-ppr2-grid]'); if(!grid) return;

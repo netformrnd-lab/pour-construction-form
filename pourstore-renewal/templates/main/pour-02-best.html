@@ -22,9 +22,11 @@
 .psm2-filter.on:hover { background:#C8650D; border-color:#C8650D; }
 /* 가로 스크롤 카드 */
 .psm2-scroll-wrap { position:relative; }
-.psm2-scroll { display:grid; grid-auto-flow:column; grid-auto-columns:calc((100% - 48px) / 4); gap:16px; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:8px; scrollbar-width:none; -ms-overflow-style:none; }
+.psm2-scroll { display:grid; grid-auto-flow:column; grid-auto-columns:calc((100% - 48px) / 4); gap:16px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none; -ms-overflow-style:none; cursor:grab; }
 .psm2-scroll::-webkit-scrollbar { display:none; }
-.psm2-card { position:relative; scroll-snap-align:start; cursor:pointer; }
+.psm2-scroll.is-dragging { cursor:grabbing; user-select:none; }
+.psm2-scroll.is-dragging a { pointer-events:none; }
+.psm2-card { position:relative; cursor:pointer; }
 .psm2-card-img { position:relative; aspect-ratio:1/1; border-radius:0; overflow:hidden; background:#F5F6F8; }
 .psm2-card-img svg, .psm2-card-img img { width:100%; height:100%; object-fit:cover; display:block; }
 .psm2-card-tag { position:absolute; left:12px; top:12px; padding:5px 10px; background:rgba(232,120,15,.95); color:#fff; font-size:11.5px; font-weight:700; border-radius:0; letter-spacing:-0.02em; }
@@ -203,9 +205,10 @@
 (function(){
   var root = document.currentScript && document.currentScript.parentElement;
   if (!root) return;
-  // 각 그룹별로 필터 토글·화살표 스크롤을 독립 스코프로 설정
+  // 각 그룹별로 필터 토글·화살표·자동슬라이드·드래그를 독립 스코프로 설정
   root.querySelectorAll('.psm2-group').forEach(function(group){
     var scroller = group.querySelector('.psm2-scroll');
+    // 필터 토글(기본 데모용 — 관리 카드에선 숨김)
     var filters = group.querySelectorAll('.psm2-filter');
     filters.forEach(function(b){
       b.addEventListener('click', function(){
@@ -213,15 +216,76 @@
         b.classList.add('on');
       });
     });
+    if (!scroller) return;
+
+    // ── 자동 슬라이드(→) 상태 ──
+    var SPEED = 0.28;         // 프레임당 이동 px (천천히)
+    var visible = true, holdUntil = 0, hover = false, raf = null, needSync = false;
+    var pos = 0;              // 실수 누적 위치 (scrollLeft는 정수로 잘려 읽히므로 별도 관리)
+    var dragging = false, startX = 0, startLeft = 0, moved = false;
+    function maxScroll(){ return scroller.scrollWidth - scroller.clientWidth; }
+    function pauseAuto(ms){ var t = Date.now() + (ms||1500); if (t > holdUntil) holdUntil = t; needSync = true; }
+    function tick(){
+      raf = requestAnimationFrame(tick);
+      if (dragging || hover || !visible || Date.now() < holdUntil) return;
+      var ms = maxScroll();
+      if (ms < 4) return;                                 // 스크롤할 게 없으면 정지
+      if (needSync){ pos = scroller.scrollLeft; needSync = false; }  // 수동 조작 후 현재 위치 이어받기
+      pos += SPEED;
+      if (pos >= ms - 0.5) pos = 0;                       // 끝 → 처음으로 루프
+      scroller.scrollLeft = pos;
+    }
+
+    // ── 화살표 ──
     group.querySelectorAll('[data-psm2-scroll]').forEach(function(btn){
       btn.addEventListener('click', function(){
-        if (!scroller) return;
         var dir = btn.dataset.psm2Scroll === 'next' ? 1 : -1;
         var card = scroller.querySelector('.psm2-card');
         var step = card ? (card.getBoundingClientRect().width + 16) * 2 : 300;
+        pauseAuto(2500);
         scroller.scrollBy({ left: dir * step, behavior: 'smooth' });
       });
     });
+
+    // ── 마우스 호버 시 일시정지 ──
+    scroller.addEventListener('mouseenter', function(){ hover = true; });
+    scroller.addEventListener('mouseleave', function(){ hover = false; });
+
+    // ── 손/마우스 드래그로 직접 이동 ──
+    scroller.addEventListener('pointerdown', function(e){
+      pauseAuto(2000);
+      if (e.pointerType !== 'mouse') return;              // 터치는 네이티브 스크롤 사용
+      dragging = true; moved = false;
+      startX = e.clientX; startLeft = scroller.scrollLeft;
+      scroller.classList.add('is-dragging');
+      try{ scroller.setPointerCapture(e.pointerId); }catch(_){}
+    });
+    scroller.addEventListener('pointermove', function(e){
+      if (!dragging) return;
+      var dx = e.clientX - startX;
+      if (Math.abs(dx) > 4) moved = true;
+      scroller.scrollLeft = startLeft - dx;
+    });
+    function endDrag(e){
+      if (!dragging) return; dragging = false;
+      scroller.classList.remove('is-dragging');
+      try{ scroller.releasePointerCapture(e.pointerId); }catch(_){}
+      pauseAuto(1500);
+    }
+    scroller.addEventListener('pointerup', endDrag);
+    scroller.addEventListener('pointercancel', endDrag);
+    // 드래그 직후 카드 클릭(링크 이동) 방지
+    scroller.addEventListener('click', function(e){
+      if (moved){ e.preventDefault(); e.stopPropagation(); moved = false; }
+    }, true);
+    // 터치 스와이프 시 잠깐 정지
+    scroller.addEventListener('touchstart', function(){ pauseAuto(2500); }, {passive:true});
+
+    // ── 화면 밖이면 정지(성능) ──
+    if ('IntersectionObserver' in window){
+      new IntersectionObserver(function(es){ es.forEach(function(en){ visible = en.isIntersecting; }); }, {threshold:0.05}).observe(scroller);
+    }
+    raf = requestAnimationFrame(tick);
   });
 })();
 </script>
@@ -231,16 +295,34 @@
 .psm2-card.psm2-managed{text-decoration:none;color:inherit;cursor:pointer}
 .psm2-card.psm2-managed .psm2-card-img{position:relative;overflow:hidden}
 .psm2-card.psm2-managed .psm2-card-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+/* 카테고리 필터 제거 — 해시태그+멘트로 대체 */
+.psm2-filters{display:none !important}
+.psm2-card.psm2-managed .psm2-card-info{margin-top:10px}
+.psm2-card.psm2-managed .psm2-card-title{min-height:0;line-height:1.35;margin-bottom:0}   /* 기본 2줄 예약(min-height 39px) 해제 → 멘트가 제목 바로 아래로 */
+.psm2-card-hash{font-size:12px;font-weight:800;color:#E8780F;letter-spacing:-0.02em;line-height:1.4;margin-bottom:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+.psm2-card-ment{margin-top:3px;font-size:12.5px;font-weight:500;color:#8A9099;letter-spacing:-0.02em;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+@media (max-width:700px){ .psm2-card-hash{font-size:11px} .psm2-card-ment{font-size:11.5px} }
 </style>
 <script>
 (function(){
   var MAP={ '철재':'metal', '목재':'wood', '돌·시멘트':'stone' };
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function hashHtml(s){
+    s=(s||'').toString().trim(); if(!s) return '';
+    // 쉼표(,·，)로 구분된 토큰을 각각 #태그로 — 이미 #가 있으면 유지
+    var parts=s.split(/[,，]/).map(function(t){return t.trim();}).filter(Boolean);
+    if(!parts.length) return '';
+    var txt=parts.map(function(t){return t.charAt(0)==='#'?t:'#'+t;}).join(' ');
+    return '<div class="psm2-card-hash">'+esc(txt)+'</div>';
+  }
   function cardHtml(c){
-    var link=(c.link||'').trim(), title=c.title||'', cat=c.cat||'';
-    var h='<a class="psm2-card psm2-managed" data-cat="'+esc(cat)+'" href="'+(link?esc(link):'#')+'"'+(link?'':' onclick="return false"')+'>';
+    var link=(c.link||'').trim(), title=c.title||'';
+    var h='<a class="psm2-card psm2-managed" href="'+(link?esc(link):'#')+'"'+(link?'':' onclick="return false"')+'>';
     h+='<div class="psm2-card-img"><img src="'+esc(c.image)+'" alt="'+esc(title)+'" loading="lazy"></div>';
-    if(title) h+='<div class="psm2-card-info"><div class="psm2-card-title">'+esc(title)+'</div></div>';   // 가격 없이 썸네일+제목만
+    var info=hashHtml(c.hashtags);                                       // 썸네일 아래: 해시태그
+    if(title) info+='<div class="psm2-card-title">'+esc(title)+'</div>'; // 제목
+    if((c.ment||'').trim()) info+='<div class="psm2-card-ment">'+esc(c.ment)+'</div>'; // 멘트
+    if(info) h+='<div class="psm2-card-info">'+info+'</div>';
     return h+'</a>';
   }
   function apply(data){
@@ -249,23 +331,9 @@
       var md=key && data[key]; if(!md) return;
       var cards=Array.isArray(md)?md:md.cards;                 // 구/신 포맷 호환
       if(!cards || !cards.length) return;                      // 관리 카드 없으면 기존 기본 유지
-      var filters=(!Array.isArray(md) && Array.isArray(md.filters))?md.filters:[];
       var scroll=group.querySelector('.psm2-scroll'); if(!scroll) return;
       scroll.innerHTML=cards.map(cardHtml).join('');
-      var fbar=group.querySelector('.psm2-filters'); if(!fbar) return;
-      if(!filters.length){ fbar.style.display='none'; return; }   // 필터 없으면 필터바 숨김
-      fbar.style.display='';
-      fbar.innerHTML=['전체'].concat(filters).map(function(f,i){ return '<button class="psm2-filter'+(i===0?' on':'')+'" type="button" data-f="'+esc(f)+'">'+esc(f)+'</button>'; }).join('');
-      fbar.querySelectorAll('.psm2-filter').forEach(function(btn){
-        btn.addEventListener('click',function(){
-          fbar.querySelectorAll('.psm2-filter').forEach(function(x){ x.classList.remove('on'); });
-          btn.classList.add('on');
-          var f=btn.getAttribute('data-f');
-          scroll.querySelectorAll('.psm2-card').forEach(function(card){
-            card.style.display=(f==='전체'||card.getAttribute('data-cat')===f)?'':'none';
-          });
-        });
-      });
+      var fbar=group.querySelector('.psm2-filters'); if(fbar) fbar.style.display='none';   // 카테고리 필터 제거
     });
   }
   (async function(){

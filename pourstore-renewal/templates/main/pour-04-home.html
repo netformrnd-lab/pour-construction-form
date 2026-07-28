@@ -716,9 +716,26 @@
   var GRID_LIMIT=8;
   function _isJunkP(n){ return /자재대금|개인\s*결제|업체전용|님\s*개인|대금/.test(String(n||'')); }
   function _inCate(p,code){ return String(p.category||'').split(',').map(function(s){return s.trim();}).indexOf(code)>=0; }
+  // 아임웹ID → 카페24 상품번호(product_no) 매핑 → 카드 클릭 시 상세페이지로 직접 이동.
+  // 새 상품 추가 시 여기 'imwebId':'product_no' 한 줄만 넣으면 됨(없으면 상품명 검색으로 폴백).
+  var CAFE_PNO = {
+    '332':'316',   // [그로홈] 보수용 커버 롤러 일체형 페인트
+    '1041':'1022', // [그로홈] 미끄럼 방지 롤러페인트
+    '353':'334',   // [그로홈] 유리블러 올인원
+    '333':'317',   // [그로홈] DIY 보수 롤러 일체형 소형 페인트
+    '1039':'1020', // [그로홈] 벽체용 브러쉬 페인트
+    '1038':'1019', // [그로홈] 철제용 브러쉬 페인트
+    '1040':'1021'  // [그로홈] 목재용 브러쉬 페인트
+  };
+  function _prodLink(p){
+    var iw=String((p.channels&&p.channels.imweb)||p.imwebId||'').trim();
+    var no=CAFE_PNO[iw];
+    if(no) return '/product/detail.html?product_no='+no+'&cate_no=43';   // 상세페이지 직접
+    return '/product/search.html?keyword='+encodeURIComponent((p.name||'').trim()); // 폴백(미매핑 상품)
+  }
   function _prodCard(p){
     var name=(p.name||'').trim();
-    var link='/product/search.html?keyword='+encodeURIComponent(name);
+    var link=_prodLink(p);
     var th=(p.thumbnail||p.thumb||p.image||'').toString().trim();
     var img=th?'<img src="'+esc(th)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
     var raw=p.salePrice||p.price||''; var n=Number(String(raw).replace(/[^0-9.]/g,''));

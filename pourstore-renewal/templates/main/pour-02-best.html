@@ -22,9 +22,11 @@
 .psm2-filter.on:hover { background:#C8650D; border-color:#C8650D; }
 /* 가로 스크롤 카드 */
 .psm2-scroll-wrap { position:relative; }
-.psm2-scroll { display:grid; grid-auto-flow:column; grid-auto-columns:calc((100% - 48px) / 4); gap:16px; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:8px; scrollbar-width:none; -ms-overflow-style:none; }
+.psm2-scroll { display:grid; grid-auto-flow:column; grid-auto-columns:calc((100% - 48px) / 4); gap:16px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none; -ms-overflow-style:none; cursor:grab; }
 .psm2-scroll::-webkit-scrollbar { display:none; }
-.psm2-card { position:relative; scroll-snap-align:start; cursor:pointer; }
+.psm2-scroll.is-dragging { cursor:grabbing; user-select:none; }
+.psm2-scroll.is-dragging a { pointer-events:none; }
+.psm2-card { position:relative; cursor:pointer; }
 .psm2-card-img { position:relative; aspect-ratio:1/1; border-radius:0; overflow:hidden; background:#F5F6F8; }
 .psm2-card-img svg, .psm2-card-img img { width:100%; height:100%; object-fit:cover; display:block; }
 .psm2-card-tag { position:absolute; left:12px; top:12px; padding:5px 10px; background:rgba(232,120,15,.95); color:#fff; font-size:11.5px; font-weight:700; border-radius:0; letter-spacing:-0.02em; }
@@ -203,9 +205,10 @@
 (function(){
   var root = document.currentScript && document.currentScript.parentElement;
   if (!root) return;
-  // 각 그룹별로 필터 토글·화살표 스크롤을 독립 스코프로 설정
+  // 각 그룹별로 필터 토글·화살표·자동슬라이드·드래그를 독립 스코프로 설정
   root.querySelectorAll('.psm2-group').forEach(function(group){
     var scroller = group.querySelector('.psm2-scroll');
+    // 필터 토글(기본 데모용 — 관리 카드에선 숨김)
     var filters = group.querySelectorAll('.psm2-filter');
     filters.forEach(function(b){
       b.addEventListener('click', function(){
@@ -213,15 +216,74 @@
         b.classList.add('on');
       });
     });
+    if (!scroller) return;
+
+    // ── 자동 슬라이드(→) 상태 ──
+    var SPEED = 0.5;          // 프레임당 이동 px
+    var visible = true, holdUntil = 0, hover = false, raf = null;
+    var dragging = false, startX = 0, startLeft = 0, moved = false;
+    function maxScroll(){ return scroller.scrollWidth - scroller.clientWidth; }
+    function pauseAuto(ms){ var t = Date.now() + (ms||1500); if (t > holdUntil) holdUntil = t; }
+    function tick(){
+      raf = requestAnimationFrame(tick);
+      if (dragging || hover || !visible || Date.now() < holdUntil) return;
+      var ms = maxScroll();
+      if (ms < 4) return;                                 // 스크롤할 게 없으면 정지
+      var next = scroller.scrollLeft + SPEED;
+      if (next >= ms - 0.5) next = 0;                     // 끝 → 처음으로 루프
+      scroller.scrollLeft = next;
+    }
+
+    // ── 화살표 ──
     group.querySelectorAll('[data-psm2-scroll]').forEach(function(btn){
       btn.addEventListener('click', function(){
-        if (!scroller) return;
         var dir = btn.dataset.psm2Scroll === 'next' ? 1 : -1;
         var card = scroller.querySelector('.psm2-card');
         var step = card ? (card.getBoundingClientRect().width + 16) * 2 : 300;
+        pauseAuto(2500);
         scroller.scrollBy({ left: dir * step, behavior: 'smooth' });
       });
     });
+
+    // ── 마우스 호버 시 일시정지 ──
+    scroller.addEventListener('mouseenter', function(){ hover = true; });
+    scroller.addEventListener('mouseleave', function(){ hover = false; });
+
+    // ── 손/마우스 드래그로 직접 이동 ──
+    scroller.addEventListener('pointerdown', function(e){
+      pauseAuto(2000);
+      if (e.pointerType !== 'mouse') return;              // 터치는 네이티브 스크롤 사용
+      dragging = true; moved = false;
+      startX = e.clientX; startLeft = scroller.scrollLeft;
+      scroller.classList.add('is-dragging');
+      try{ scroller.setPointerCapture(e.pointerId); }catch(_){}
+    });
+    scroller.addEventListener('pointermove', function(e){
+      if (!dragging) return;
+      var dx = e.clientX - startX;
+      if (Math.abs(dx) > 4) moved = true;
+      scroller.scrollLeft = startLeft - dx;
+    });
+    function endDrag(e){
+      if (!dragging) return; dragging = false;
+      scroller.classList.remove('is-dragging');
+      try{ scroller.releasePointerCapture(e.pointerId); }catch(_){}
+      pauseAuto(1500);
+    }
+    scroller.addEventListener('pointerup', endDrag);
+    scroller.addEventListener('pointercancel', endDrag);
+    // 드래그 직후 카드 클릭(링크 이동) 방지
+    scroller.addEventListener('click', function(e){
+      if (moved){ e.preventDefault(); e.stopPropagation(); moved = false; }
+    }, true);
+    // 터치 스와이프 시 잠깐 정지
+    scroller.addEventListener('touchstart', function(){ pauseAuto(2500); }, {passive:true});
+
+    // ── 화면 밖이면 정지(성능) ──
+    if ('IntersectionObserver' in window){
+      new IntersectionObserver(function(es){ es.forEach(function(en){ visible = en.isIntersecting; }); }, {threshold:0.05}).observe(scroller);
+    }
+    raf = requestAnimationFrame(tick);
   });
 })();
 </script>

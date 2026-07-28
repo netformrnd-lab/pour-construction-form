@@ -267,7 +267,7 @@ const isYt=(u)=>/youtu\.?be/.test(u||'');
       const th=ytThumb(p.link)||p.thumbnail||p.thumb;
       const img=th?'<img src="'+esc(th)+'" alt="" loading="lazy" onerror="this.remove()"/>':'';
       const play=yt?'<div class="psrc-play2"><span>'+IC_PLAY+'</span></div>':'';
-      const dt=(p.displayDate||p.date||'').replace(/-/g,'.');
+      const dt='';
       const inner='<div class="psrc-thumb"><div class="ph">'+t.icon+'</div>'+img+play+'</div>'
         +'<div class="psrc-body"><div class="psrc-ct">'+esc(t.label)+'</div><div class="psrc-title">'+esc(p.title||'')+'</div>'
         +(p.summary?'<div class="psrc-sum">'+esc(p.summary)+'</div>':'')

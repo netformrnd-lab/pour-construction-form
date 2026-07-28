@@ -664,7 +664,7 @@ var PM_POSTS = [];
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   function ytThumb(u){ var id=ytId(u); return id?('https://img.youtube.com/vi/'+id+'/hqdefault.jpg'):''; }
   function typeLabel(t){ return (typeof POST_TYPE!=='undefined' && POST_TYPE[t]) || '영상'; }
-  function dOf(p){ var m=String((p&&(p.displayDate||p.createdAt||p.updatedAt))||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[1]+'.'+m[2]+'.'+m[3]):''; }
+  function dOf(p){ return ''; }
   function thumbOf(p){ var y=ytThumb(p&&p.link); if(y) return y; var t=p&&(p.thumbnail||p.thumb||p.image); return (t&&String(t).trim())?t:''; }
   function findPost(href){ var id=ytId(href); return PM_POSTS.filter(function(p){ return id && ytId(p.link)===id; })[0] || PM_POSTS.filter(function(p){ return p.link===href; })[0] || null; }
 

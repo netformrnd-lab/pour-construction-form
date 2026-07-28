@@ -5346,6 +5346,8 @@ function PostingsPage({showToast}){
   const [search,setSearch]=useState('');
   const [editing,setEditing]=useState(null);
   const [saving,setSaving]=useState(false);
+  // 섹션별 노출 순서 큐레이션 모드 — null(전역 order) | 'magazine'(POUR이야기 매거진) | 'video'(동영상 가이드)
+  const [sectionMode,setSectionMode]=useState(null);
 
   const load=async()=>{
     try{
@@ -5434,29 +5436,51 @@ function PostingsPage({showToast}){
     }catch(e){ console.error(e); showToast('삭제 실패: '+e.message,'error'); }
   };
 
-  // 드래그로 순서 변경 (전체 보기 + 검색 없을 때만 — order는 전역 순서)
+  // 섹션 노출 판별/유효순서 — 자사몰 pour-07(매거진)·pour-08(동영상)과 동일 규칙
+  const isVideoPost=(p)=>p.type!=='short'&&(p.type==='video'||/youtu\.?be/.test(p.link||''));
+  const magEff=(p)=>p.magazineOrder!=null?p.magazineOrder:(p.order!=null?p.order+1000:9999);
+  const vidEff=(p)=>p.videoOrder!=null?p.videoOrder:(p.order!=null?p.order+1000:9999);
+  const ORDER_FIELD = sectionMode==='magazine'?'magazineOrder':sectionMode==='video'?'videoOrder':'order';
+  // 실제 자사몰에 노출되는 상위 개수(그 위는 강조 배지) — 매거진 4(대표1+사이드3), 동영상 5(추천1+사이드4)
+  const EXPOSE_N = sectionMode==='magazine'?4:sectionMode==='video'?5:0;
+
+  // 드래그로 순서 변경 (전역: 전체 보기+검색 없을 때 / 섹션모드: 항상 가능)
   const dragFrom=useRef(null);
   const [dragOver,setDragOver]=useState(null);
-  const canReorder = filter==='all' && !search.trim();
-  const persistOrder=async(newList)=>{
+  const canReorder = sectionMode ? true : (filter==='all' && !search.trim());
+
+  const counts=POSTING_TYPES.reduce((a,t)=>{a[t.key]=list.filter(p=>p.type===t.key).length;return a;},{});
+  // 화면에 보여줄 목록 — 섹션모드면 해당 섹션 후보를 섹션 순서로, 아니면 유형필터+검색
+  let viewList;
+  if(sectionMode==='magazine'){
+    viewList=list.filter(p=>p.active!==false).slice().sort((a,b)=>(magEff(a)-magEff(b))||(b.createdAt||'').localeCompare(a.createdAt||''));
+  }else if(sectionMode==='video'){
+    viewList=list.filter(p=>p.active!==false&&isVideoPost(p)).slice().sort((a,b)=>(vidEff(a)-vidEff(b))||(b.createdAt||'').localeCompare(a.createdAt||''));
+  }else{
+    viewList=list.filter(p=>(filter==='all'||p.type===filter) && (!search || (p.title||'').includes(search) || (p.tags||[]).some(t=>t.includes(search))));
+  }
+
+  // 순서 저장 — 보여준 목록(viewList) 순서대로 ORDER_FIELD에 0..n 기록
+  const persistOrder=async(orderedView)=>{
+    const field=ORDER_FIELD;
+    const idMap={}; orderedView.forEach((p,i)=>{ idMap[p.id]=i; });
+    const newList=list.map(p=> idMap[p.id]!=null ? {...p,[field]:idMap[p.id]} : p);
+    if(!sectionMode) newList.sort((a,b)=>((a.order??999)-(b.order??999))||(b.createdAt||'').localeCompare(a.createdAt||''));
     setList(newList);
     try{
       const batch=db.batch();
-      newList.forEach((p,i)=>{ if(p.order!==i){ batch.set(db.collection(COLLECTIONS.POURSTORE_POSTINGS).doc(p.id),{order:i,...audit.update()},{merge:true}); } });
+      orderedView.forEach((p,i)=>{ if(p[field]!==i){ batch.set(db.collection(COLLECTIONS.POURSTORE_POSTINGS).doc(p.id),{[field]:i,...audit.update()},{merge:true}); } });
       await batch.commit();
-      console.log(`[${COLLECTIONS.POURSTORE_POSTINGS}] 순서 저장 ${newList.length}건`);
+      console.log(`[${COLLECTIONS.POURSTORE_POSTINGS}] ${field} 순서 저장 ${orderedView.length}건`);
       showToast('순서가 저장되었습니다');
     }catch(e){ console.error('순서 저장 실패:',e); showToast('순서 저장 실패: '+e.message,'error'); load(); }
   };
   const onRowDrop=(toIdx)=>{
     const from=dragFrom.current; dragFrom.current=null; setDragOver(null);
     if(from==null||from===toIdx) return;
-    const nl=list.slice(); const [m]=nl.splice(from,1); nl.splice(toIdx,0,m);
-    persistOrder(nl.map((p,i)=>({...p,order:i})));
+    const nl=viewList.slice(); const [m]=nl.splice(from,1); nl.splice(toIdx,0,m);
+    persistOrder(nl);
   };
-
-  const counts=POSTING_TYPES.reduce((a,t)=>{a[t.key]=list.filter(p=>p.type===t.key).length;return a;},{});
-  const filtered=list.filter(p=>(filter==='all'||p.type===filter) && (!search || (p.title||'').includes(search) || (p.tags||[]).some(t=>t.includes(search))));
 
   if(loading)return <div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>;
 
@@ -5470,19 +5494,32 @@ function PostingsPage({showToast}){
         <button onClick={startNew} style={{padding:'12px 22px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',background:'linear-gradient(135deg, var(--or), var(--or-d))',boxShadow:'0 4px 12px rgba(249,115,22,.25)',cursor:'pointer'}}>+ 새 포스팅</button>
       </div>
 
-      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',margin:'16px 0'}}>
+      {/* 노출 순서 큐레이션 대상 선택 — 전역 / 자사몰 메인 매거진(POUR이야기) / 동영상 가이드 */}
+      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',margin:'16px 0 10px'}}>
+        {[{k:null,label:'▦ 전역 순서'},{k:'magazine',label:'📖 매거진(POUR이야기) 순서'},{k:'video',label:'🎬 동영상 가이드 순서'}].map(m=>{
+          const on=sectionMode===m.k;
+          return <button key={String(m.k)} onClick={()=>{setSectionMode(m.k);}} style={{padding:'8px 14px',borderRadius:10,fontSize:12.5,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'linear-gradient(135deg,var(--or),var(--or-d))':'#fff',color:on?'#fff':'var(--text-md)',boxShadow:on?'0 3px 10px rgba(249,115,22,.22)':'none'}}>{m.label}</button>;
+        })}
+      </div>
+
+      {!sectionMode && <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',margin:'0 0 16px'}}>
         {[{key:'all',label:'전체',icon:'▦'},...POSTING_TYPES].map(t=>{
           const on=filter===t.key; const n=t.key==='all'?list.length:counts[t.key];
           return <button key={t.key} onClick={()=>setFilter(t.key)} style={{padding:'7px 13px',borderRadius:999,fontSize:12,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'var(--or-pale)':'#fff',color:on?'var(--or-d)':'var(--text-md)'}}>{t.icon} {t.label} {n}</button>;
         })}
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="제목·태그 검색..." style={{marginLeft:'auto',padding:'8px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:12.5,outline:'none',minWidth:180}}/>
-      </div>
+      </div>}
 
-      {filtered.length===0 && <div style={{padding:'50px 0',textAlign:'center',color:'var(--text-sm)',fontSize:13,background:'var(--card)',borderRadius:12,border:'1px solid var(--border)'}}>포스팅이 없습니다. "+ 새 포스팅"으로 추가하세요.</div>}
+      {sectionMode && <div style={{margin:'0 0 12px',padding:'11px 14px',background:'var(--or-pale)',border:'1.5px solid #FED7AA',borderRadius:10,fontSize:12,color:'var(--or-d)',fontWeight:700,lineHeight:1.6}}>
+        {sectionMode==='magazine'?'📖 자사몰 메인 ‘POUR이야기(매거진)’ 섹션의 노출 순서입니다.':'🎬 자사몰 메인/POUR이야기 ‘동영상 가이드’ 섹션의 노출 순서입니다. (영상·유튜브 글만)'}
+        {' '}드래그로 순서를 바꾸면 <b>맨 위 {EXPOSE_N}개</b>가 실제로 노출됩니다. (전역 순서와 별개로 저장)
+      </div>}
+
+      {viewList.length===0 && <div style={{padding:'50px 0',textAlign:'center',color:'var(--text-sm)',fontSize:13,background:'var(--card)',borderRadius:12,border:'1px solid var(--border)'}}>{sectionMode==='video'?'노출할 영상 글이 없습니다.':'포스팅이 없습니다. "+ 새 포스팅"으로 추가하세요.'}</div>}
       {canReorder && <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,margin:'0 2px 8px'}}>↕ 왼쪽 손잡이를 잡고 드래그하면 노출 순서를 바꿀 수 있어요 (자동 저장).</div>}
       {!canReorder && <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,margin:'0 2px 8px'}}>ℹ 순서 변경(드래그)은 <b>전체</b> 필터 + 검색어 없을 때 가능합니다.</div>}
       <div style={{display:'flex',flexDirection:'column',gap:8}}>
-        {filtered.map((p,idx)=>{ const t=postingType(p.type); const on=p.active!==false; return(
+        {viewList.map((p,idx)=>{ const t=postingType(p.type); const on=p.active!==false; const exposed=EXPOSE_N>0&&idx<EXPOSE_N; return(
           <div key={p.id}
             onDragOver={canReorder?(e=>{e.preventDefault(); if(dragOver!==idx)setDragOver(idx);}):undefined}
             onDrop={canReorder?(e=>{e.preventDefault(); onRowDrop(idx);}):undefined}
@@ -5497,6 +5534,8 @@ function PostingsPage({showToast}){
             </div>
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:3}}>
+                {sectionMode && exposed && <span style={{fontSize:10,fontWeight:900,color:'#fff',background:'var(--green)',padding:'1px 7px',borderRadius:5,flexShrink:0}}>노출 {idx+1}</span>}
+                {sectionMode && !exposed && <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',background:'var(--bg)',border:'1px solid var(--border)',padding:'1px 7px',borderRadius:5,flexShrink:0}}>대기</span>}
                 <span style={{fontSize:10.5,fontWeight:800,color:'#fff',background:t.color,padding:'1px 7px',borderRadius:5,flexShrink:0}}>{t.icon} {t.label}</span>
                 <span style={{fontSize:13.5,fontWeight:800,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.title}</span>
               </div>
@@ -6593,12 +6632,6 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
         <label style={lbl}>연결 상품 URL (선택) — 영상·숏츠 재생화면의 <b style={{color:'var(--or-d)'}}>'제품 보러가기'</b> 버튼 링크</label>
         <input value={form.productLink||''} onChange={e=>set({productLink:e.target.value})} placeholder="/product/detail.html?product_no=123  또는  /product/list.html?cate_no=71" style={field}/>
         <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:700,marginTop:4}}>ℹ 비우면 '제품 보러가기' 버튼이 숨겨집니다. (카페24 상품/카테고리 URL 붙여넣기)</div>
-        <div style={{height:12}}/>
-        <label style={lbl}>노출 날짜 (선택) — 화면에 표시할 날짜. 비우면 등록일</label>
-        <div style={{display:'flex',gap:6,alignItems:'center'}}>
-          <input type="date" value={form.displayDate||''} onChange={e=>set({displayDate:e.target.value})} style={{...field,flex:1}}/>
-          {form.displayDate && <button type="button" onClick={()=>set({displayDate:''})} style={{padding:'0 11px',height:39,borderRadius:8,border:'1px solid var(--border)',background:'var(--bg)',fontSize:11,fontWeight:800,color:'var(--text-md)',cursor:'pointer',flexShrink:0}}>지우기</button>}
-        </div>
         <div style={{height:12}}/>
         <label style={lbl}>본문 (자사몰 아티클) — 글/사진 블록으로 구성. <b style={{color:'var(--or-d)'}}>사진을 클릭하면 상품 점(핫스팟)</b>이 추가됩니다</label>
         <div style={{marginTop:6}}>

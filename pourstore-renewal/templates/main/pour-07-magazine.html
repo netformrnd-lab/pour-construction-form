@@ -121,16 +121,19 @@ var PC_TTL = 300000;
   function isYt(u){ return /youtu\.?be/.test(u||''); }
   function thumbOf(p){ var t=p.thumbnail||p.thumb||p.image; if(t&&String(t).trim())return t; var id=ytId(p.link); return id?('https://img.youtube.com/vi/'+id+'/hqdefault.jpg'):''; }
   function typeLabel(t){ return TYPE[t] || '이야기'; }
-  function dateOf(p){ var m=String(p.displayDate||p.createdAt||p.updatedAt||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[1]+'.'+m[2]+'.'+m[3]):''; }
+  function dateOf(p){ return ''; }
   function hrefOf(p){ return (p.link && /^https?:\/\//.test(p.link)) ? { h:p.link, t:' target="_blank" rel="noopener"' } : { h:HUB, t:'' }; }
   function bgStyle(p){ var t=thumbOf(p); return t ? ' style="background-image:url(\''+esc(t)+'\')"' : ''; }
   function playHtml(p){ return isYt(p.link) ? '<div class="play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>' : ''; }
 
+  // 매거진 섹션 전용 노출 순서(magazineOrder) 우선 — 어드민 'POUR이야기 관리 > 매거진 순서'에서 지정.
+  // 미지정 글은 전역 order 뒤로(+1000) 밀려 큐레이션한 글이 항상 위. 둘 다 없으면 최신 등록 우선.
+  function magOrd(p){ return p.magazineOrder!=null ? p.magazineOrder : (p.order!=null ? p.order+1000 : 9999); }
   var posts = [];
   try {
     var rawPosts = await window.__pcache.wrap('col:postings', PC_TTL, function(){ return getDocs(collection(db,"pourstore-postings")).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); });
     posts = rawPosts.filter(function(p){ return p && p.active !== false; })
-      .sort(function(a,b){ var o=(a.order==null?999:a.order)-(b.order==null?999:b.order); return o!==0?o:String(b.createdAt||'').localeCompare(String(a.createdAt||'')); });
+      .sort(function(a,b){ var o=magOrd(a)-magOrd(b); return o!==0?o:String(b.createdAt||'').localeCompare(String(a.createdAt||'')); });
     console.log("[psg3] 매거진 글 " + posts.length + "건 로드");
   } catch (e) {
     console.error("[psg3] 로드 실패:", e && e.message ? e.message : e);

@@ -4812,6 +4812,15 @@ const POSTING_TYPES=[
 const POSTING_PLACEMENTS=[
   {key:'pkg-video', label:'패키지 시공영상'},
 ];
+// POUR이야기 페이지(허브) 섹션 구성 — config/pourstoreStorySections 에 sections:[{key,on}] 저장.
+// 자사몰 pour-story.html이 이 순서/on-off로 섹션을 배치·노출한다.
+const STORY_SECTIONS=[
+  {key:'feature', label:'특집',        icon:'⭐', desc:'상단 큰 카드 3개(맨 위 3건)'},
+  {key:'shorts',  label:'POUR 쇼츠',   icon:'🎬', desc:'숏츠 가로 스크롤'},
+  {key:'best',    label:'BEST 콘텐츠',  icon:'🏆', desc:'랭킹 리스트 10건'},
+  {key:'all',     label:'콘텐츠 전체',  icon:'▦', desc:'유형 탭 + 전체 그리드'},
+];
+const storySectionDef=(k)=>STORY_SECTIONS.find(s=>s.key===k)||{key:k,label:k,icon:'▦',desc:''};
 const postingType=(k)=>POSTING_TYPES.find(t=>t.key===k)||POSTING_TYPES[0];
 const ytId=(url)=>{const m=(url||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/);return m?m[1]:null;};
 const ytThumb=(url)=>{const id=ytId(url);return id?('https://img.youtube.com/vi/'+id+'/hqdefault.jpg'):'';};
@@ -5338,6 +5347,70 @@ function EventEditor({form,setForm,onClose,onSave,showToast}){
   );
 }
 
+// POUR이야기 페이지(허브) 섹션 구성 관리 — 순서변경(드래그) + 켜기/끄기(삭제=끄기).
+// config/pourstoreStorySections 문서에 {sections:[{key,on}]} 저장 → 자사몰 pour-story가 읽음.
+function StorySectionManager({showToast}){
+  const { audit } = useActiveStaffContext();
+  const [rows,setRows]=useState(null);   // [{key,on}]
+  const dragFrom=useRef(null);
+  const [dragOver,setDragOver]=useState(null);
+
+  useEffect(()=>{ (async()=>{
+    try{
+      const snap=await db.collection('config').doc('pourstoreStorySections').get();
+      let saved = snap.exists && Array.isArray(snap.data().sections) ? snap.data().sections : [];
+      // 저장값 + 누락된 기본 섹션 보정(항상 4개 노출)
+      const merged = saved.filter(s=>s&&STORY_SECTIONS.some(d=>d.key===s.key)).map(s=>({key:s.key,on:s.on!==false}));
+      STORY_SECTIONS.forEach(d=>{ if(!merged.some(s=>s.key===d.key)) merged.push({key:d.key,on:true}); });
+      console.log(`[storySections] ${merged.length}개 섹션 로드`);
+      setRows(merged);
+    }catch(e){ console.error('[storySections] 로드 실패:',e); setRows(STORY_SECTIONS.map(d=>({key:d.key,on:true}))); }
+  })(); },[]);
+
+  const persist=async(next)=>{
+    setRows(next);
+    try{
+      await db.collection('config').doc('pourstoreStorySections').set({ sections:next.map(s=>({key:s.key,on:s.on!==false})), ...audit.update() },{merge:true});
+      console.log('[storySections] 저장', next.map(s=>s.key+(s.on?'':'(off)')).join(', '));
+      showToast('섹션 구성이 저장되었습니다');
+    }catch(e){ console.error('[storySections] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
+  };
+  const toggle=(i)=>{ const nx=rows.map((s,j)=>j===i?{...s,on:!(s.on!==false)}:s); persist(nx); };
+  const onDrop=(toIdx)=>{ const from=dragFrom.current; dragFrom.current=null; setDragOver(null); if(from==null||from===toIdx)return; const nx=rows.slice(); const [m]=nx.splice(from,1); nx.splice(toIdx,0,m); persist(nx); };
+
+  if(!rows) return <div style={{padding:40,textAlign:'center',color:'var(--text-sm)'}}>섹션 구성 불러오는 중…</div>;
+  const onCount=rows.filter(s=>s.on!==false).length;
+  return(
+    <div>
+      <div style={{margin:'0 0 12px',padding:'11px 14px',background:'var(--or-pale)',border:'1.5px solid #FED7AA',borderRadius:10,fontSize:12,color:'var(--or-d)',fontWeight:700,lineHeight:1.6}}>
+        🧩 자사몰 <b>‘POUR이야기’ 페이지</b>에 어떤 섹션을, 어떤 순서로 보여줄지 구성합니다.
+        {' '}손잡이를 잡고 드래그하면 <b>노출 순서</b>가 바뀌고, 토글을 끄면 그 섹션이 <b>페이지에서 사라집니다(삭제)</b>. 다시 켜면 노출(추가). <b>현재 {onCount}개 노출</b>.
+      </div>
+      <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,margin:'0 2px 8px'}}>↕ 드래그로 섹션 순서 변경 · 토글로 켜기/끄기 (자동 저장)</div>
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        {rows.map((s,idx)=>{ const d=storySectionDef(s.key); const on=s.on!==false; return(
+          <div key={s.key}
+            onDragOver={e=>{e.preventDefault(); if(dragOver!==idx)setDragOver(idx);}}
+            onDrop={e=>{e.preventDefault(); onDrop(idx);}}
+            style={{display:'flex',gap:12,alignItems:'center',background:'var(--card)',border:'1px solid '+(dragOver===idx?'var(--or)':'var(--border)'),borderRadius:12,padding:'12px 14px',opacity:on?1:0.55,boxShadow:dragOver===idx?'0 0 0 2px var(--or-pale)':'none'}}>
+            <div draggable onDragStart={()=>{dragFrom.current=idx;}} onDragEnd={()=>{dragFrom.current=null;setDragOver(null);}}
+              title="드래그로 순서 변경" style={{flexShrink:0,cursor:'grab',color:'var(--text-sm)',fontSize:17,lineHeight:1,padding:'0 2px',userSelect:'none'}}>⠿</div>
+            <span style={{fontSize:10,fontWeight:900,color:'#fff',background:on?'var(--or)':'var(--text-sm)',padding:'2px 8px',borderRadius:6,flexShrink:0}}>{idx+1}</span>
+            <div style={{fontSize:20,flexShrink:0,width:26,textAlign:'center'}}>{d.icon}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:14,fontWeight:900,color:'var(--text)'}}>{d.label}{!on&&<span style={{marginLeft:8,fontSize:11,fontWeight:800,color:'var(--text-sm)'}}>· 숨김</span>}</div>
+              <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:600,marginTop:2}}>{d.desc}</div>
+            </div>
+            <button onClick={()=>toggle(idx)} title="켜기/끄기" style={{width:44,height:24,borderRadius:12,border:'none',cursor:'pointer',position:'relative',flexShrink:0,background:on?'var(--green)':'var(--border)'}}>
+              <span style={{position:'absolute',top:2,left:on?22:2,width:20,height:20,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 2px rgba(0,0,0,.2)',transition:'left .15s'}}/>
+            </button>
+          </div>);
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PostingsPage({showToast}){
   const { audit } = useActiveStaffContext();
   const [list,setList]=useState([]);
@@ -5504,7 +5577,7 @@ function PostingsPage({showToast}){
 
       {/* 노출 순서 큐레이션 대상 선택 — 전역 / 자사몰 메인 매거진(POUR이야기) / 동영상 가이드 */}
       <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',margin:'16px 0 10px'}}>
-        {[{k:null,label:'▦ 전역 순서'},{k:'magazine',label:'📖 메인 매거진 순서'},{k:'video',label:'🎬 동영상 가이드 순서'},{k:'story',label:'📰 POUR이야기 페이지 순서'}].map(m=>{
+        {[{k:null,label:'▦ 전역 순서'},{k:'magazine',label:'📖 메인 매거진 순서'},{k:'video',label:'🎬 동영상 가이드 순서'},{k:'story',label:'📰 POUR이야기 글 순서'},{k:'sections',label:'🧩 POUR이야기 섹션 구성'}].map(m=>{
           const on=sectionMode===m.k;
           return <button key={String(m.k)} onClick={()=>{setSectionMode(m.k);}} style={{padding:'8px 14px',borderRadius:10,fontSize:12.5,fontWeight:800,cursor:'pointer',border:'1.5px solid '+(on?'var(--or)':'var(--border)'),background:on?'linear-gradient(135deg,var(--or),var(--or-d))':'#fff',color:on?'#fff':'var(--text-md)',boxShadow:on?'0 3px 10px rgba(249,115,22,.22)':'none'}}>{m.label}</button>;
         })}
@@ -5525,11 +5598,14 @@ function PostingsPage({showToast}){
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="제목·태그 검색..." style={{marginLeft:'auto',padding:'8px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:12.5,outline:'none',minWidth:180}}/>
       </div>}
 
-      {sectionMode && <div style={{margin:'0 0 12px',padding:'11px 14px',background:'var(--or-pale)',border:'1.5px solid #FED7AA',borderRadius:10,fontSize:12,color:'var(--or-d)',fontWeight:700,lineHeight:1.6}}>
+      {sectionMode && sectionMode!=='sections' && <div style={{margin:'0 0 12px',padding:'11px 14px',background:'var(--or-pale)',border:'1.5px solid #FED7AA',borderRadius:10,fontSize:12,color:'var(--or-d)',fontWeight:700,lineHeight:1.6}}>
         {sectionMode==='magazine'?'📖 자사몰 메인 ‘POUR이야기(매거진)’ 섹션의 노출 순서입니다.':sectionMode==='video'?'🎬 자사몰 메인/POUR이야기 ‘동영상 가이드’ 섹션의 노출 순서입니다. (영상·유튜브 글만)':(storySub==='featured'?'⭐ POUR이야기 상단 ‘특집’ 카드 순서입니다.':storySub==='shorts'?'🎬 POUR이야기 ‘POUR 쇼츠’ 줄의 노출 순서입니다. (숏츠 유형만)':storySub==='best'?'🏆 POUR이야기 ‘BEST 콘텐츠’ 랭킹 순서입니다.':'▦ POUR이야기 ‘콘텐츠 전체’ 그리드의 노출 순서입니다.')}
         {' '}드래그로 순서를 바꾸면 {sectionMode==='story'?(storySub==='featured'?<span><b>맨 위 3개</b>가 상단 ‘특집’으로 크게 노출됩니다.</span>:<span>이 순서대로 해당 섹션에 배치됩니다.</span>):<span><b>맨 위 {EXPOSE_N}개</b>가 실제로 노출됩니다.</span>} (섹션별 별개로 저장)
       </div>}
 
+      {sectionMode==='sections' && <StorySectionManager showToast={showToast} />}
+
+      {sectionMode!=='sections' && <React.Fragment>
       {viewList.length===0 && <div style={{padding:'50px 0',textAlign:'center',color:'var(--text-sm)',fontSize:13,background:'var(--card)',borderRadius:12,border:'1px solid var(--border)'}}>{sectionMode==='video'?'노출할 영상 글이 없습니다.':'포스팅이 없습니다. "+ 새 포스팅"으로 추가하세요.'}</div>}
       {canReorder && <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,margin:'0 2px 8px'}}>↕ 왼쪽 손잡이를 잡고 드래그하면 노출 순서를 바꿀 수 있어요 (자동 저장).</div>}
       {!canReorder && <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,margin:'0 2px 8px'}}>ℹ 순서 변경(드래그)은 <b>전체</b> 필터 + 검색어 없을 때 가능합니다.</div>}
@@ -5568,6 +5644,7 @@ function PostingsPage({showToast}){
           </div>);
         })}
       </div>
+      </React.Fragment>}
 
       {editing && <PostingEditor form={editing} setForm={setEditing} onSave={saveEditing} onClose={()=>setEditing(null)} saving={saving} />}
     </div>

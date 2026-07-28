@@ -1,153 +1,102 @@
-<!-- 성능 힌트: 폰트·Firebase SDK 조기 로딩 (FOUC 감소 + 첫 응답 단축) -->
-<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
-<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
-<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css">
-<section data-section="시공 가이드 (영상·코칭)">
+<!-- 성능 힌트: 폰트 조기 로딩 (FOUC 감소) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<section data-section="전화 상담 (POUR 닥터)">
 <style>
-  .ppr5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
-  .ppr5 { background:#FFFBF5; padding:72px 18px; }
-  .ppr5-inner { max-width:1200px; margin:0 auto; }
-  .ppr5-head { text-align:center; margin-bottom:28px; }
-  .ppr5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
-  .ppr5-head h2 { font-size:32px; font-weight:900; color:#111111; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
-  .ppr5-head p { font-size:14px; color:#6B7280; max-width:580px; margin:0 auto; }
-  .ppr5-tabs { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:28px; }
-  .ppr5-tab { padding:10px 20px; background:#fff; border:1.5px solid #F3F4F6; border-radius:0; font-size:13px; font-weight:700; color:#6B7280; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:6px; }
-  .ppr5-tab:hover { border-color:#FED7AA; color:#EA580C; }
-  .ppr5-tab.active { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border-color:transparent; box-shadow:0 6px 16px rgba(249,115,22,.3); }
-  .ppr5-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:18px; margin-bottom:32px; }
-  .ppr5-feature { position:relative; aspect-ratio:16/10; border-radius:8px; overflow:hidden; background-size:cover; background-position:center; text-decoration:none; transition:transform .3s; }
-  .ppr5-feature:hover { transform:translateY(-3px); }
-  .ppr5-feature::after { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(15,31,92,.88) 0%, rgba(15,31,92,.2) 50%, transparent 100%); }
-  .ppr5-feature .play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:72px; height:72px; border-radius:50%; background:rgba(255,255,255,.95); display:grid; place-items:center; box-shadow:0 12px 32px rgba(0,0,0,.3); z-index:1; transition:transform .3s; }
-  .ppr5-feature:hover .play { transform:translate(-50%,-50%) scale(1.1); }
-  .ppr5-feature .play svg { width:28px; height:28px; fill:#EA580C; margin-left:4px; }
-  .ppr5-feature .info { position:absolute; bottom:24px; left:24px; right:24px; z-index:1; color:#fff; }
-  .ppr5-feature .badge { display:inline-block; padding:4px 10px; background:#F97316; font-size:10.5px; font-weight:900; letter-spacing:.5px; border-radius:0; margin-bottom:10px; }
-  .ppr5-feature .title { font-size:20px; font-weight:900; line-height:1.3; margin-bottom:8px; letter-spacing:-.5px; }
-  .ppr5-feature .meta { font-size:12px; opacity:.9; font-weight:700; }
-  .ppr5-list { display:flex; flex-direction:column; gap:12px; }
-  .ppr5-mini { display:flex; gap:12px; padding:12px; background:#fff; border:1px solid #F3F4F6; border-radius:8px; transition:all .25s; text-decoration:none; }
-  .ppr5-mini:hover { transform:translateX(3px); box-shadow:0 10px 24px rgba(15,31,92,.08); border-color:#FED7AA; }
-  .ppr5-mini .thumb { width:120px; aspect-ratio:16/10; flex-shrink:0; border-radius:8px; background-size:cover; background-position:center; position:relative; }
-  .ppr5-mini .thumb .dur { position:absolute; bottom:5px; right:5px; padding:2px 6px; background:rgba(0,0,0,.7); color:#fff; font-size:10px; font-weight:800; border-radius:8px; letter-spacing:.3px; }
-  .ppr5-mini .text { flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; }
-  .ppr5-mini .sub { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:4px; }
-  .ppr5-mini .title { font-size:13px; font-weight:800; color:#111111; line-height:1.4; margin-bottom:4px; letter-spacing:-.3px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  .ppr5-mini .meta { font-size:10.5px; color:#9CA3AF; font-weight:700; }
-  .ppr5-divider { height:1px; background:linear-gradient(90deg, transparent, #FED7AA, transparent); margin:32px 0 24px; }
-  .ppr5-docs-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:12px; }
-  .ppr5-docs-head .left .label { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:1px; margin-bottom:4px; }
-  .ppr5-docs-head .left h3 { font-size:22px; font-weight:900; color:#111111; letter-spacing:-.4px; }
-  .ppr5-docs-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:0; background:#fff; }
-  .ppr5-docs { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px; }
-  .ppr5-doc { display:flex; gap:14px; align-items:center; padding:16px 18px; background:#fff; border:1px solid #F3F4F6; border-radius:0; text-decoration:none; transition:all .25s; }
-  .ppr5-doc:hover { transform:translateY(-2px); border-color:#FED7AA; box-shadow:0 12px 28px rgba(15,31,92,.06); }
-  .ppr5-doc .pdf-icon { width:42px; height:48px; background:linear-gradient(135deg,#FEE2E2,#FECACA); border-radius:0; display:grid; place-items:center; font-size:11px; font-weight:900; color:#DC2626; flex-shrink:0; letter-spacing:.3px; }
-  .ppr5-doc .info { flex:1; min-width:0; }
-  .ppr5-doc .area { font-size:10px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:3px; }
-  .ppr5-doc .name { font-size:13px; font-weight:800; color:#111111; margin-bottom:4px; line-height:1.35; letter-spacing:-.3px; }
-  .ppr5-doc .meta { font-size:10.5px; color:#9CA3AF; font-weight:700; }
-  .ppr5-coach { margin-top:20px; padding:18px 22px; background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border:1px solid #FED7AA; border-radius:0; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
-  .ppr5-coach .ico { font-size:26px; flex-shrink:0; }
-  .ppr5-coach .text { flex:1; font-size:13px; color:#4B5563; line-height:1.65; min-width:240px; }
-  .ppr5-coach .text b { color:#111111; font-weight:900; }
-  .ppr5-coach .btn { padding:10px 18px; background:#fff; border:1.5px solid #F97316; color:#EA580C; font-size:13px; font-weight:900; border-radius:0; text-decoration:none; transition:all .2s; }
-  .ppr5-coach .btn:hover { background:#F97316; color:#fff; }
-  @media (max-width:880px) { .ppr5-grid { grid-template-columns:1fr; } .ppr5-head h2 { font-size:24px; } }
+  .ppr5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo',sans-serif; }
+  .ppr5 { background:#fff; padding:72px 18px; }
+  .ppr5-inner { max-width:1200px; margin:0 auto; background:linear-gradient(180deg,#FFF6EE 0%,#FDEFE3 100%); border-radius:32px; padding:52px 56px 32px; }
+  .ppr5-hero { display:flex; align-items:center; gap:40px; }
+  .ppr5-copy { flex:1; min-width:0; }
+  .ppr5-eyebrow { display:inline-flex; align-items:center; gap:8px; font-size:16px; font-weight:700; color:#EA580C; margin-bottom:20px; }
+  .ppr5-eyebrow .ic { width:34px; height:34px; border-radius:50%; background:#fff; display:grid; place-items:center; color:#EA580C; box-shadow:0 3px 10px rgba(234,88,12,.18); }
+  .ppr5-copy h2 { font-size:46px; font-weight:900; color:#0F1F5C; letter-spacing:-1.5px; line-height:1.15; margin-bottom:16px; }
+  .ppr5-sub { font-size:24px; font-weight:700; color:#0F1F5C; letter-spacing:-.6px; line-height:1.4; margin-bottom:26px; }
+  .ppr5-sub b { font-weight:900; }
+  .ppr5-sub .or { color:#EA580C; }
+  .ppr5-divider { width:56px; height:2px; background:#F2C9A8; margin-bottom:22px; }
+  .ppr5-desc { font-size:16px; color:#6B7280; line-height:1.6; margin-bottom:32px; }
+  .ppr5-btns { display:flex; gap:14px; flex-wrap:wrap; }
+  .ppr5-btn { display:inline-flex; align-items:center; gap:10px; padding:17px 34px; border-radius:999px; font-size:18px; font-weight:800; text-decoration:none; transition:all .2s; white-space:nowrap; }
+  .ppr5-btn.primary { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; box-shadow:0 10px 24px rgba(234,88,12,.32); }
+  .ppr5-btn.primary:hover { transform:translateY(-2px); box-shadow:0 14px 30px rgba(234,88,12,.4); }
+  .ppr5-btn.ghost { background:#fff; color:#EA580C; border:2px solid #F6C6A2; }
+  .ppr5-btn.ghost:hover { border-color:#EA580C; background:#FFF7F0; }
+  .ppr5-visual { flex-shrink:0; width:42%; max-width:440px; display:flex; justify-content:center; }
+  .ppr5-visual img { width:100%; height:auto; display:block; }
+  /* 하단 정보 바 */
+  .ppr5-bar { display:flex; align-items:center; gap:20px; margin-top:40px; padding:22px 30px; background:#FBEADB; border-radius:20px; flex-wrap:wrap; }
+  .ppr5-bar-item { display:flex; align-items:center; gap:14px; flex:1; min-width:230px; }
+  .ppr5-bar-item .cic { width:52px; height:52px; border-radius:50%; background:#fff; display:grid; place-items:center; color:#EA580C; flex-shrink:0; box-shadow:0 3px 10px rgba(234,88,12,.15); }
+  .ppr5-bar-item .t1 { font-size:15px; font-weight:800; color:#0F1F5C; margin-bottom:3px; }
+  .ppr5-bar-item .t2 { font-size:13px; color:#6B7280; font-weight:500; }
+  .ppr5-bar-item.center { flex-direction:column; align-items:center; text-align:center; gap:2px; border-left:1px solid #F1D6BF; border-right:1px solid #F1D6BF; }
+  .ppr5-bar-item.center .t1 { font-size:13px; font-weight:700; color:#9A6A45; margin-bottom:2px; }
+  .ppr5-bar-item.center .tel { font-size:28px; font-weight:900; color:#EA580C; letter-spacing:-.5px; }
+  @media (max-width:860px){
+    .ppr5-inner { padding:40px 26px 24px; border-radius:24px; }
+    .ppr5-hero { flex-direction:column-reverse; gap:24px; text-align:center; }
+    .ppr5-eyebrow { justify-content:center; }
+    .ppr5-btns { justify-content:center; }
+    .ppr5-visual { width:70%; max-width:300px; }
+    .ppr5-copy h2 { font-size:34px; }
+    .ppr5-sub { font-size:20px; }
+    .ppr5-divider { margin-left:auto; margin-right:auto; }
+    .ppr5-bar-item.center { border-left:none; border-right:none; border-top:1px solid #F1D6BF; border-bottom:1px solid #F1D6BF; padding:14px 0; width:100%; }
+  }
+  @media (max-width:640px){ .ppr5 { padding:52px 14px; } .ppr5-copy h2 { font-size:28px; } .ppr5-btn { font-size:16px; padding:15px 26px; } }
   </style>
   <section class="ppr5">
     <div class="ppr5-inner">
-      <div class="ppr5-head">
-        <div class="kicker"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" style="vertical-align:-0.14em"><path d="M8 5v14l11-7z"/></svg> HOW TO INSTALL</div>
-        <h2>패키지별 시공 영상</h2>
-        <p>모든 패키지에 영상 가이드와 전화 코칭이 포함됩니다 — 셀프 시공도, 발주 검토도 OK</p>
-      </div>
-      <div class="ppr5-tabs">
-        <button class="ppr5-tab active"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" style="vertical-align:-0.14em"><path d="M8 5v14l11-7z"/></svg> 영상 가이드</button>
-        <button class="ppr5-tab"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2z"/></svg> 전화 코칭</button>
+      <div class="ppr5-hero">
+        <div class="ppr5-copy">
+          <div class="ppr5-eyebrow"><span class="ic"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2z"/></svg></span> 전화 상담으로 빠르고 정확하게!</div>
+          <h2>패키지 시공이<br>어려울 땐?</h2>
+          <p class="ppr5-sub">잘 모르겠다면 <b>POUR <span class="or">닥터</span></b>가<br>친절하게 안내해드려요</p>
+          <div class="ppr5-divider"></div>
+          <p class="ppr5-desc">전화로 시공 순서부터 사용 방법까지 쉽게 상담해드립니다.</p>
+          <div class="ppr5-btns">
+            <a class="ppr5-btn primary" href="tel:1800-8203"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2z"/></svg> 전화 상담하기 &nbsp;›</a>
+            <a class="ppr5-btn ghost" href="/board/product/list.html?board_no=6"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-3.2A8.4 8.4 0 1 1 21 11.5z"/></svg> 문의 남기기 &nbsp;›</a>
+          </div>
+        </div>
+        <div class="ppr5-visual">
+          <!-- ▼ 캐릭터 이미지: 파이어베이스 업로드 후 아래 스크립트의 파일명만 바꾸면 자동 적용 -->
+          <img data-doctor-img alt="POUR 닥터" onerror="this.closest('.ppr5-visual').style.display='none'">
+        </div>
       </div>
 
-      <div class="ppr5-grid" data-ppr5-grid>
-        <div data-ppr5-empty style="grid-column:1/-1;text-align:center;color:#9CA3AF;font-size:13px;font-weight:700;padding:34px 0">영상 준비 중입니다</div>
-      </div>
-
-      <div class="ppr5-coach">
-        <div class="ico"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2z"/></svg></div>
-        <div class="text"><b>전화 1:1 코칭 — 풀패키지 구매 시 무료</b><br>시공 중 막히는 부분이 생기면 평일 09-18시 언제든 전화. 위험한 부위라면 시공 연결 매칭으로 안내해 드려요.</div>
-        <a class="btn" href="tel:1577-0000">1577-0000 →</a>
+      <div class="ppr5-bar">
+        <div class="ppr5-bar-item">
+          <span class="cic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2z"/></svg></span>
+          <div><div class="t1">1:1 전화 상담 무료</div><div class="t2">전문 상담원이 친절하게 도와드립니다.</div></div>
+        </div>
+        <div class="ppr5-bar-item center">
+          <div class="t1">고객센터</div>
+          <a class="tel" href="tel:1800-8203" style="text-decoration:none;">1800-8203</a>
+        </div>
+        <div class="ppr5-bar-item">
+          <span class="cic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+          <div><div class="t1">평일 09:00 - 18:00</div><div class="t2">상담 가능</div></div>
+        </div>
       </div>
     </div>
-<script type="module">
-// 패키지 시공영상 — 어드민 '포스팅 관리'에서 placements에 'pkg-video' 지정한 콘텐츠를 노출
-import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-const firebaseConfig = {
-  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
-  authDomain: "pour-app-new.firebaseapp.com",
-  projectId: "pour-app-new",
-  storageBucket: "pour-app-new.firebasestorage.app",
-  messagingSenderId: "411031141847",
-  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
-};
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-const db = getFirestore(app);
-/* 공유 로딩 캐시(성능) — 중복 fetch 제거 + 페이지 이동 시 재사용. define-if-absent. */
-window.__pcache = window.__pcache || (function(){ var mem={}; return { wrap:function(key,ttl,fetcher){ if(mem[key])return mem[key]; try{var raw=sessionStorage.getItem('pc:'+key); if(raw){var o=JSON.parse(raw); if(o&&(Date.now()-o.t)<ttl){return (mem[key]=Promise.resolve(o.v));}}}catch(e){} var p=Promise.resolve().then(fetcher).then(function(v){try{sessionStorage.setItem('pc:'+key,JSON.stringify({t:Date.now(),v:v}));}catch(e){} return v;}); p.catch(function(){delete mem[key];}); return (mem[key]=p); }}; })();
-var PC_TTL = 300000;
-const ytId = (u)=>{ const m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/); return m?m[1]:null; };
-const ytThumb = (u)=>{ const id=ytId(u); return id?('https://img.youtube.com/vi/'+id+'/hqdefault.jpg'):''; };
-const esc = (s)=>(s||'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-(async function(){
-  const grid = document.querySelector('[data-ppr5-grid]');
-  if (!grid) return;
-  let posts = [];
-  try {
-    posts = await window.__pcache.wrap('col:postings',PC_TTL,()=>getDocs(collection(db,"pourstore-postings")).then(sn=>sn.docs.map(d=>({id:d.id,...d.data()}))));
-    console.log('[ppr5] 포스팅 ' + posts.length + '건 로드');
-  } catch(e){ console.log('[ppr5] 포스팅 로드 실패:', e && e.message); return; }
-  const vids = posts
-    .filter(p => p.active !== false)
-    .filter(p => Array.isArray(p.placements) && p.placements.includes('pkg-video'))
-    .sort((a,b) => ((a.order??999)-(b.order??999)));
-  console.log('[ppr5] 패키지 시공영상 ' + vids.length + '건');
-  if (!vids.length) return; // 없으면 '준비 중' 유지
-  const thumbOf = p => (p.thumbnail || ytThumb(p.link) || '');
-  const linkAttr = p => (/youtu\.?be/.test(p.link||'') ? ' target="_blank" rel="noopener"' : '');
-  const f = vids[0];
-  const rest = vids.slice(1, 5);
-  let html =
-    '<a class="ppr5-feature" href="'+esc(f.link||'#')+'"'+linkAttr(f)+' style="background-image:url(\''+esc(thumbOf(f))+'\')">'+
-      '<div class="play">'+PLAY+'</div>'+
-      '<div class="info"><span class="badge">FEATURED</span>'+
-        '<div class="title">'+esc(f.title||'')+'</div>'+
-        ((f.duration||f.summary) ? '<div class="meta">'+esc([f.duration,f.summary].filter(Boolean).join(' · '))+'</div>' : '')+
-      '</div>'+
-    '</a>';
-  if (rest.length){
-    html += '<div class="ppr5-list">';
-    rest.forEach(p => {
-      const sub = (Array.isArray(p.tags)&&p.tags[0]) ? ('#'+p.tags[0]) : '시공 영상';
-      html +=
-        '<a class="ppr5-mini" href="'+esc(p.link||'#')+'"'+linkAttr(p)+'>'+
-          '<div class="thumb" style="background-image:url(\''+esc(thumbOf(p))+'\')">'+
-            (p.duration ? '<div class="dur">'+esc(p.duration)+'</div>' : '')+
-          '</div>'+
-          '<div class="text"><div class="sub">'+esc(sub)+'</div>'+
-            '<div class="title">'+esc(p.title||'')+'</div>'+
-            (p.summary ? '<div class="meta">'+esc(p.summary)+'</div>' : '')+
-          '</div>'+
-        '</a>';
-    });
-    html += '</div>';
-  } else {
-    grid.style.gridTemplateColumns = '1fr';
-  }
-  grid.innerHTML = html;
+
+<script>
+(function(){
+  // ▼▼▼ 캐릭터(POUR 닥터) 이미지 경로 — 파이어베이스 Storage에 올린 뒤 여기 2줄만 바꾸세요 ▼▼▼
+  var IMG_FOLDER = 'POUR스토어_리뉴얼/package';   // ← Storage에 만든 폴더 경로
+  var IMG_FILE   = 'pour-doctor.png';             // ← 업로드한 파일 이름 (png/jpg/webp)
+  // ▲▲▲ 여기까지만 수정하면 됩니다 ▲▲▲
+  var BUCKET = 'pour-app-new.firebasestorage.app';
+  var path = encodeURIComponent(IMG_FOLDER + '/' + IMG_FILE);
+  var url = 'https://firebasestorage.googleapis.com/v0/b/' + BUCKET + '/o/' + path + '?alt=media';
+  var el = document.querySelector('[data-doctor-img]');
+  if(el) el.src = url;
 })();
 </script>
   </section>
+</section>
+
+<!-- [끝] -->

@@ -250,30 +250,35 @@
     scroller.addEventListener('mouseenter', function(){ hover = true; });
     scroller.addEventListener('mouseleave', function(){ hover = false; });
 
-    // ── 손/마우스 드래그로 직접 이동 ──
+    // ── 손/마우스 드래그로 직접 이동 (문턱 넘을 때만 드래그 시작 → 단순 클릭은 링크로 이동) ──
+    var pend = false, pid = null;
     scroller.addEventListener('pointerdown', function(e){
       pauseAuto(2000);
       if (e.pointerType !== 'mouse') return;              // 터치는 네이티브 스크롤 사용
-      dragging = true; moved = false;
-      startX = e.clientX; startLeft = scroller.scrollLeft;
-      scroller.classList.add('is-dragging');
-      try{ scroller.setPointerCapture(e.pointerId); }catch(_){}
+      pend = true; dragging = false; moved = false;
+      startX = e.clientX; startLeft = scroller.scrollLeft; pid = e.pointerId;
     });
     scroller.addEventListener('pointermove', function(e){
-      if (!dragging) return;
+      if (!pend && !dragging) return;
       var dx = e.clientX - startX;
-      if (Math.abs(dx) > 4) moved = true;
+      if (!dragging){
+        if (Math.abs(dx) <= 5) return;                    // 문턱 전 = 클릭 후보(링크 이동 허용)
+        dragging = true; moved = true;                    // 이제부터 실제 드래그
+        scroller.classList.add('is-dragging');
+        try{ scroller.setPointerCapture(pid); }catch(_){}
+      }
       scroller.scrollLeft = startLeft - dx;
     });
-    function endDrag(e){
+    function endDrag(){
+      pend = false;
       if (!dragging) return; dragging = false;
       scroller.classList.remove('is-dragging');
-      try{ scroller.releasePointerCapture(e.pointerId); }catch(_){}
+      try{ scroller.releasePointerCapture(pid); }catch(_){}
       pauseAuto(1500);
     }
     scroller.addEventListener('pointerup', endDrag);
     scroller.addEventListener('pointercancel', endDrag);
-    // 드래그 직후 카드 클릭(링크 이동) 방지
+    // 실제 드래그가 있었을 때만 카드 클릭(링크 이동) 취소
     scroller.addEventListener('click', function(e){
       if (moved){ e.preventDefault(); e.stopPropagation(); moved = false; }
     }, true);

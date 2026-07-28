@@ -1949,11 +1949,16 @@ var PC_TTL = 300000;
     return;
   }
 
-  // POUR 쇼츠 섹션: '숏츠' 유형으로 등록된 것만 노출 (일반 영상은 제외)
-  var videos = posts.filter(function(p){ return p.type==='short'; });
+  // 섹션별 독립 순서(어드민 특집/쇼츠/BEST/전체) — 값 없으면 storyOrder→order 폴백
+  function _ord(p,f){ var v=p[f]; return v!=null?v:(p.storyOrder!=null?p.storyOrder:(p.order!=null?p.order+1000:9999)); }
+  function bySec(f){ return posts.slice().sort(function(a,b){ var o=_ord(a,f)-_ord(b,f); return o!==0?o:String(b.createdAt||'').localeCompare(String(a.createdAt||'')); }); }
+  var allPosts = bySec('allOrder');   // '콘텐츠 전체' 섹션 순서
 
-  // ===== 특집 (상위 3) =====
-  var feat = posts.slice(0,3);
+  // POUR 쇼츠 섹션: '숏츠' 유형만, 쇼츠 순서로
+  var videos = bySec('shortsOrder').filter(function(p){ return p.type==='short'; });
+
+  // ===== 특집 (상위 3, 특집 순서) =====
+  var feat = bySec('featuredOrder').slice(0,3);
   $('[data-feat]').innerHTML = feat.map(function(p){
     return '<a class="pstory-feat-card" href="'+esc(p.link||'#')+'"'+tgt(p)+clickAttrs(p)+'>'
       + '<div class="pstory-feat-th">'+imgOrPh(p)+playSpan(p)+'</div>'
@@ -2082,7 +2087,7 @@ var PC_TTL = 300000;
 
   // ===== BEST 콘텐츠 (순번 랭킹, 4건 이상일 때) =====
   if (posts.length >= 4){
-    $('[data-best]').innerHTML = posts.slice(0,10).map(function(p,i){
+    $('[data-best]').innerHTML = bySec('bestOrder').slice(0,10).map(function(p,i){
       return '<a class="pstory-best-item" href="'+esc(p.link||'#')+'"'+tgt(p)+clickAttrs(p)+'>'
         + '<span class="pstory-best-rank">'+(i+1)+'</span>'
         + '<div class="pstory-best-body"><div class="pstory-best-tt">'+esc(p.title||'')+'</div>'
@@ -2094,7 +2099,7 @@ var PC_TTL = 300000;
   }
 
   // ===== 콘텐츠 전체 (칩 + 그리드) =====
-  function countFor(cat){ return cat==='all' ? posts.length : posts.filter(function(p){ return p.type===cat; }).length; }
+  function countFor(cat){ return cat==='all' ? allPosts.length : allPosts.filter(function(p){ return p.type===cat; }).length; }
   var cats = [{key:'all',label:'전체'}].concat(CAT_ORDER.filter(function(k){ return countFor(k)>0; }).map(function(k){ return {key:k,label:TYPE[k].l}; }));
   var cur = 'all';
   function cardHtml(p){
@@ -2113,7 +2118,7 @@ var PC_TTL = 300000;
     }).join('');
   }
   function renderGrid(){
-    var arr = (cur==='all') ? posts : posts.filter(function(p){ return p.type===cur; });
+    var arr = (cur==='all') ? allPosts : allPosts.filter(function(p){ return p.type===cur; });
     $('[data-grid]').innerHTML = arr.length ? arr.map(cardHtml).join('') : '<div class="pstory-empty" style="grid-column:1/-1">이 분류엔 아직 글이 없습니다.</div>';
   }
   $('[data-chips]').addEventListener('click', function(e){

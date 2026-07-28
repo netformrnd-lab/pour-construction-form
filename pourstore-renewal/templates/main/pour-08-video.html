@@ -99,7 +99,8 @@ var PC_TTL = 300000;
   function esc(s){ return (s||'').toString().replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function ytId(u){ var m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/); return m?m[1]:null; }
   function isYt(u){ return /youtu\.?be/.test(u||''); }
-  function thumbOf(p){ var t=p.thumbnail||p.thumb||p.image; if(t&&String(t).trim())return t; var id=ytId(p.link); return id?('https://img.youtube.com/vi/'+id+'/hqdefault.jpg'):''; }
+  // 유튜브 글은 유튜브 JPG 우선(업로드 썸네일이 AVIF면 카톡·네이버 인앱브라우저·구형기기에서 안 보임). 없을 때만 저장 썸네일.
+  function thumbOf(p){ var id=ytId(p.link); if(id) return 'https://img.youtube.com/vi/'+id+'/hqdefault.jpg'; var t=p.thumbnail||p.thumb||p.image; return (t&&String(t).trim())?t:''; }
   function typeLabel(t){ return TYPE[t] || '영상'; }
   function dateOf(p){ return ''; }
   function hrefOf(p){ return (p.link && /^https?:\/\//.test(p.link)) ? { h:p.link, t:' target="_blank" rel="noopener"' } : { h:HUB, t:'' }; }

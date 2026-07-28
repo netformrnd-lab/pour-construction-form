@@ -219,19 +219,21 @@
     if (!scroller) return;
 
     // ── 자동 슬라이드(→) 상태 ──
-    var SPEED = 0.5;          // 프레임당 이동 px
-    var visible = true, holdUntil = 0, hover = false, raf = null;
+    var SPEED = 0.28;         // 프레임당 이동 px (천천히)
+    var visible = true, holdUntil = 0, hover = false, raf = null, needSync = false;
+    var pos = 0;              // 실수 누적 위치 (scrollLeft는 정수로 잘려 읽히므로 별도 관리)
     var dragging = false, startX = 0, startLeft = 0, moved = false;
     function maxScroll(){ return scroller.scrollWidth - scroller.clientWidth; }
-    function pauseAuto(ms){ var t = Date.now() + (ms||1500); if (t > holdUntil) holdUntil = t; }
+    function pauseAuto(ms){ var t = Date.now() + (ms||1500); if (t > holdUntil) holdUntil = t; needSync = true; }
     function tick(){
       raf = requestAnimationFrame(tick);
       if (dragging || hover || !visible || Date.now() < holdUntil) return;
       var ms = maxScroll();
       if (ms < 4) return;                                 // 스크롤할 게 없으면 정지
-      var next = scroller.scrollLeft + SPEED;
-      if (next >= ms - 0.5) next = 0;                     // 끝 → 처음으로 루프
-      scroller.scrollLeft = next;
+      if (needSync){ pos = scroller.scrollLeft; needSync = false; }  // 수동 조작 후 현재 위치 이어받기
+      pos += SPEED;
+      if (pos >= ms - 0.5) pos = 0;                       // 끝 → 처음으로 루프
+      scroller.scrollLeft = pos;
     }
 
     // ── 화살표 ──
@@ -295,8 +297,10 @@
 .psm2-card.psm2-managed .psm2-card-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 /* 카테고리 필터 제거 — 해시태그+멘트로 대체 */
 .psm2-filters{display:none !important}
-.psm2-card-hash{font-size:12px;font-weight:800;color:#E8780F;letter-spacing:-0.02em;line-height:1.45;margin-bottom:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
-.psm2-card-ment{margin-top:4px;font-size:12.5px;font-weight:500;color:#6B7280;letter-spacing:-0.02em;line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.psm2-card.psm2-managed .psm2-card-info{margin-top:10px}
+.psm2-card.psm2-managed .psm2-card-title{min-height:0;line-height:1.35;margin-bottom:0}   /* 기본 2줄 예약(min-height 39px) 해제 → 멘트가 제목 바로 아래로 */
+.psm2-card-hash{font-size:12px;font-weight:800;color:#E8780F;letter-spacing:-0.02em;line-height:1.4;margin-bottom:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+.psm2-card-ment{margin-top:3px;font-size:12.5px;font-weight:500;color:#8A9099;letter-spacing:-0.02em;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 @media (max-width:700px){ .psm2-card-hash{font-size:11px} .psm2-card-ment{font-size:11.5px} }
 </style>
 <script>

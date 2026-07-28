@@ -2114,6 +2114,30 @@ var PC_TTL = 300000;
   });
   renderChips(); renderGrid();
   $('[data-sec-all]').hidden = false;
+
+  // ===== POUR이야기 섹션 구성(순서·on/off) — 어드민 config/pourstoreStorySections =====
+  // sections:[{key,on}] · key: feature|shorts|best|all. 미설정 시 기본 순서/전부 노출.
+  try {
+    var _secCfg = await window.__pcache.wrap('cfg:storySections', PC_TTL, function(){ return getDoc(doc(db,'config','pourstoreStorySections')).then(function(s){ return (s.exists()&&Array.isArray(s.data().sections))?s.data().sections:null; }); });
+    var SEC_EL = { feature:'[data-sec-feat]', shorts:'[data-sec-shorts]', best:'[data-sec-best]', all:'[data-sec-all]' };
+    var DEF_SEC = [{key:'feature',on:true},{key:'shorts',on:true},{key:'best',on:true},{key:'all',on:true}];
+    var secList = (_secCfg && _secCfg.length) ? _secCfg.slice() : DEF_SEC.slice();
+    DEF_SEC.forEach(function(d){ if(!secList.some(function(s){ return s && s.key===d.key; })) secList.push(d); });  // 누락 보정
+    // DOM상 첫 섹션 위치에 마커를 두고, 설정 순서대로 그 앞에 재삽입(안심밴드 등 다른 요소는 그대로) — 지지밴드 부모 가정 없이 안전.
+    var domEls = ['feature','shorts','best','all'].map(function(k){ return $(SEC_EL[k]); }).filter(Boolean);
+    if (domEls.length) {
+      var parent = domEls[0].parentNode;
+      var marker = document.createComment('pstory-sec');
+      parent.insertBefore(marker, domEls[0]);
+      secList.forEach(function(s){
+        var el = s && SEC_EL[s.key] ? $(SEC_EL[s.key]) : null; if(!el || el.parentNode!==parent) return;
+        if (s.on===false) el.hidden = true;                // 끔 = 페이지에서 숨김(삭제)
+        parent.insertBefore(el, marker);                   // 설정한 순서대로 재배치
+      });
+      parent.removeChild(marker);
+    }
+  } catch(e){ console.log('[pstory] 섹션 구성 스킵:', e && e.message); }
+
   // URL 해시(#cat=advanced 등)로 분류 자동 선택 + 콘텐츠 전체로 스크롤 (시공사례 메뉴 랜딩용)
   function applyCatHash(scroll){
     var m=(location.hash||'').match(/cat=([a-z]+)/i); if(!m) return;

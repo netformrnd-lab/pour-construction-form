@@ -225,7 +225,7 @@
     // ── 자동 슬라이드: 3초마다 한 칸씩(부드럽게) + 무한 루프(끊김 없음) ──
     // 원본 카드를 한 벌 복제해 뒤에 붙여, 마지막 다음에 첫 카드가 자연스럽게 이어짐.
     // 복제 구간(loopW)에 들어서면 동일 화면 위치로 순간 되돌려 끊김 없이 반복.
-    var STEP_MS = 6000;       // 60대 대상: 6초에 한 칸 (아주 천천히)
+    var STEP_MS = 12000;      // 60대 대상: 12초에 한 칸 (아주 천천히)
     var visible = true, holdUntil = 0, hover = false, loopW = 0, cloning = false, mo = null;
     var dragging = false, startX = 0, startLeft = 0, moved = false;
     function maxScroll(){ return scroller.scrollWidth - scroller.clientWidth; }

@@ -14,12 +14,11 @@
 .psrc-inner { display:none; }
 .psrc-inner.on { display:block; animation:psrc-in .3s ease; }
 @keyframes psrc-in { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
-.psrc-head { display:flex; align-items:baseline; gap:7px; margin:2px 2px 12px; }
-.psrc-head .ico { display:inline-flex; color:#E8780F; align-self:center; }
-.psrc-head .ico svg { width:17px; height:17px; }
-.psrc-head .k { font-size:16px; font-weight:800; color:#111827; letter-spacing:-0.02em; }
+.psrc-head { display:flex; align-items:baseline; gap:8px; margin:2px 2px 14px; }
+.psrc-head .k { font-size:18px; font-weight:800; color:#111827; letter-spacing:-0.03em; }
 .psrc-head .k b { color:#E8780F; }
-.psrc-head .sub { font-size:12px; font-weight:700; color:#9AA0A6; }
+.psrc-head .sub { font-size:12.5px; font-weight:600; color:#ADB2BB; }
+.psrc-row[data-psrc-rest] { display:none !important; } /* 콘텐츠 1줄만(숏츠) — 그 외 행 숨김 */
 .psrc-row { display:flex; gap:10px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; padding-bottom:2px; }
 .psrc-row::-webkit-scrollbar { display:none; }
 .psrc-row + .psrc-row { margin-top:12px; }
@@ -112,8 +111,7 @@
 </style>
 <div class="psrc-inner" data-psrc-inner>
   <div class="psrc-head">
-    <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
-    <span class="k">'<b data-psrc-kw></b>' <span data-psrc-label>관련 콘텐츠</span></span>
+    <span class="k"><b data-psrc-kw></b> <span data-psrc-label>관련 콘텐츠</span></span>
     <span class="sub" data-psrc-sub></span>
   </div>
   <div class="psrc-row" data-psrc-shorts hidden></div>

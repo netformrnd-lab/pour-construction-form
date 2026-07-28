@@ -41,12 +41,12 @@
 .psm2-card-price { margin-top:5px; display:flex; align-items:baseline; gap:6px; }
 .psm2-card-price .disc { font-size:14px; font-weight:800; color:#E8780F; letter-spacing:-0.02em; }
 .psm2-card-price .now { font-size:14px; font-weight:700; color:#111111; letter-spacing:-0.02em; }
-/* 좌우 화살표 */
-.psm2-arrow { position:absolute; top:calc(50% - 30px); transform:translateY(-50%); width:42px; height:42px; background:#fff; border-radius:50%; box-shadow:0 4px 16px rgba(0,0,0,.16); display:grid; place-items:center; cursor:pointer; z-index:2; transition:.15s; border:1px solid #F2F3F5; color:#2F3438; }
-.psm2-arrow:hover { background:#FAFAFA; box-shadow:0 6px 22px rgba(0,0,0,.22); }
-.psm2-arrow.prev { left:-14px; }
-.psm2-arrow.next { right:-14px; }
-.psm2-arrow svg { width:18px; height:18px; }
+/* 좌우 화살표 — 60대 대상: 크고 항상 잘 보이게 */
+.psm2-arrow { position:absolute; top:calc(50% - 30px); transform:translateY(-50%); width:54px; height:54px; background:#fff; border-radius:50%; box-shadow:0 6px 20px rgba(0,0,0,.20); display:grid; place-items:center; cursor:pointer; z-index:2; transition:.15s; border:1.5px solid #E9E3D8; color:#E8780F; }
+.psm2-arrow:hover { background:#FFF7ED; box-shadow:0 8px 26px rgba(0,0,0,.26); border-color:#E8780F; }
+.psm2-arrow.prev { left:-16px; }
+.psm2-arrow.next { right:-16px; }
+.psm2-arrow svg { width:24px; height:24px; }
 /* 카드 컬러 — 철재 (메탈 그레이/네이비) */
 .thb-m1 { background:linear-gradient(135deg,#7B8794 0%,#3E4C59 100%); }
 .thb-m2 { background:linear-gradient(135deg,#A0AEC0 0%,#4A5568 100%); }
@@ -77,7 +77,11 @@
 /* 모바일 반응형 */
 @media (max-width: 900px) {
   .psm2-scroll { grid-auto-columns:calc((100% - 32px) / 3); }
-  .psm2-arrow { display:none; }
+  /* 60대 대상: 모바일에서도 화살표 유지(작게, 안쪽으로) */
+  .psm2-arrow { width:44px; height:44px; }
+  .psm2-arrow.prev { left:2px; }
+  .psm2-arrow.next { right:2px; }
+  .psm2-arrow svg { width:20px; height:20px; }
 }
 @media (max-width: 700px) {
   .psm2 { padding:24px 14px 28px; }
@@ -221,7 +225,7 @@
     // ── 자동 슬라이드: 3초마다 한 칸씩(부드럽게) + 무한 루프(끊김 없음) ──
     // 원본 카드를 한 벌 복제해 뒤에 붙여, 마지막 다음에 첫 카드가 자연스럽게 이어짐.
     // 복제 구간(loopW)에 들어서면 동일 화면 위치로 순간 되돌려 끊김 없이 반복.
-    var STEP_MS = 3000;
+    var STEP_MS = 6000;       // 60대 대상: 6초에 한 칸 (아주 천천히)
     var visible = true, holdUntil = 0, hover = false, loopW = 0, cloning = false, mo = null;
     var dragging = false, startX = 0, startLeft = 0, moved = false;
     function maxScroll(){ return scroller.scrollWidth - scroller.clientWidth; }
@@ -256,10 +260,13 @@
     group.querySelectorAll('[data-psm2-scroll]').forEach(function(btn){
       btn.addEventListener('click', function(){
         var dir = btn.dataset.psm2Scroll === 'next' ? 1 : -1;
-        var card = scroller.querySelector('.psm2-card');
-        var step = card ? (card.getBoundingClientRect().width + 16) * 2 : 300;
-        pauseAuto(2500);
-        scroller.scrollBy({ left: dir * step, behavior: 'smooth' });
+        pauseAuto(4000);
+        var card = scroller.querySelector('.psm2-card:not([data-psm2-clone])');
+        var stepPx = card ? (card.getBoundingClientRect().width + 16) * 2 : 300;
+        // 복제 구간을 이용해 화살표도 끊김 없이 무한 이동
+        if (dir > 0 && loopW > 4 && scroller.scrollLeft + stepPx >= loopW) scroller.scrollLeft -= loopW;
+        else if (dir < 0 && loopW > 4 && scroller.scrollLeft <= 2) scroller.scrollLeft += loopW;
+        scroller.scrollBy({ left: dir * stepPx, behavior: 'smooth' });
       });
     });
 

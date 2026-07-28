@@ -6821,10 +6821,10 @@ function BannersPage({showToast}){
   );
 }
 // ============================================================
-// 홈 소재별 카드 관리 (히어로 멘트·사진 + 철재/목재/돌 라인: 필터 카테고리 + 썸네일 카드)
+// 홈 소재별 카드 관리 (히어로 멘트·사진 + 철재/목재/돌 라인: 썸네일 + 해시태그 + 멘트 카드)
 //   저장: config/pourstoreHomeCards {
 //     hero:[{image,imageMobile,link,kicker,title,desc,tags,cta}],
-//     metal/wood/stone:{filters:[..], cards:[{image,link,title,cat}]} }
+//     metal/wood/stone:{cards:[{image,link,title,hashtags,ment}]} }
 //   → 스토어 pour-04-home 히어로 / pour-02-best 소재별 라인에 자동 반영. (config 규칙 → 새 보안규칙 불필요)
 // ============================================================
 const HC_MATERIALS=[
@@ -6832,14 +6832,14 @@ const HC_MATERIALS=[
   {key:'wood',  label:'목재 라인', hint:'"목재를 고치고 싶다면?" 줄'},
   {key:'stone', label:'돌·시멘트 라인', hint:'"돌·시멘트를 고치고 싶다면?" 줄'},
 ];
-const HC_DEFAULT_FILTERS=['방수','코팅','보수','단열·차열','밑칠'];
 const HC_GRID_CATS=[{key:'wallpaper',label:'벽지'},{key:'wood',label:'목재'},{key:'metal',label:'철재'},{key:'glass',label:'유리'},{key:'cement',label:'시멘트/벽돌'}];
 const HC_SWATCHES=[{key:'all',label:'인기',sub:'BEST SELLER'},{key:'wallpaper',label:'벽지',sub:'도배·시트·풀'},{key:'wood',label:'목재',sub:'우드·마루'},{key:'metal',label:'철재',sub:'메탈·방청'},{key:'glass',label:'유리',sub:'글래스·코팅'},{key:'cement',label:'시멘트/벽돌',sub:'벽돌·균열·보수'}];
 const HC_SRC_DEFAULT={wallpaper:'98',wood:'99',metal:'100',glass:'101',cement:'102'};   // 카페24 홈데코 분류번호 기본값
 function HomeCardsPage({showToast}){
   const { audit } = useActiveStaffContext();
   const normHero=(v)=>Array.isArray(v)?v.map(x=>({image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',kicker:x.kicker||'',title:x.title||'',desc:x.desc||'',tags:x.tags||'',cta:x.cta||''})):[];
-  const normMat=(v)=>{ if(Array.isArray(v)) return {filters:HC_DEFAULT_FILTERS.slice(),cards:v.map(c=>({image:c.image||'',link:c.link||'',title:c.title||'',cat:c.cat||''}))}; v=v||{}; return {filters:(Array.isArray(v.filters)&&v.filters.length)?v.filters.filter(Boolean):HC_DEFAULT_FILTERS.slice(),cards:Array.isArray(v.cards)?v.cards.map(c=>({image:c.image||'',link:c.link||'',title:c.title||'',cat:c.cat||''})):[]}; };
+  const mapCard=(c)=>({image:c.image||'',link:c.link||'',title:c.title||'',hashtags:c.hashtags||'',ment:c.ment||''});
+  const normMat=(v)=>{ if(Array.isArray(v)) return {cards:v.map(mapCard)}; v=v||{}; return {cards:Array.isArray(v.cards)?v.cards.map(mapCard):[]}; };
   const normGrid=(v)=>Array.isArray(v)?v.map(c=>({image:c.image||'',title:c.title||'',meta:c.meta||'',price:c.price||'',unit:c.unit||'',link:c.link||'',cat:c.cat||'',brand:c.brand||'',badge:c.badge||''})):[];
   const normSw=(v)=>{ v=v||{}; const o={}; HC_SWATCHES.forEach(s=>{ const x=v[s.key]||{}; o[s.key]={image:x.image||'',label:x.label||'',sub:x.sub||''}; }); return o; };
   const normSrc=(v)=>{ v=v||{}; const c=v.cats||{}; const stored=HC_GRID_CATS.some(g=>String(c[g.key]||'').trim()); const cats={}; HC_GRID_CATS.forEach(g=>{ cats[g.key]= stored ? String(c[g.key]||'').trim() : (HC_SRC_DEFAULT[g.key]||''); }); return {limit:Number(v.limit)>0?Number(v.limit):8, cats}; };
@@ -6865,11 +6865,7 @@ function HomeCardsPage({showToast}){
 
   // 소재 ops
   const matSet=(key,part)=>setData(p=>({...p,[key]:{...p[key],...part}}));
-  const filterAdd=(key)=>matSet(key,{filters:[...data[key].filters,'']});
-  const filterPatch=(key,i,val)=>matSet(key,{filters:data[key].filters.map((f,x)=>x===i?val:f)});
-  const filterRemove=(key,i)=>matSet(key,{filters:data[key].filters.filter((_,x)=>x!==i)});
-  const filterMove=(key,i,dir)=>{const a=[...data[key].filters];const j=i+dir;if(j<0||j>=a.length)return;const t=a[i];a[i]=a[j];a[j]=t;matSet(key,{filters:a});};
-  const cardAdd=(key)=>matSet(key,{cards:[...data[key].cards,{image:'',link:'',title:'',cat:''}]});
+  const cardAdd=(key)=>matSet(key,{cards:[...data[key].cards,{image:'',link:'',title:'',hashtags:'',ment:''}]});
   const cardRemove=(key,i)=>matSet(key,{cards:data[key].cards.filter((_,x)=>x!==i)});
   const cardPatch=(key,i,part)=>matSet(key,{cards:data[key].cards.map((c,x)=>x===i?{...c,...part}:c)});
   const cardMove=(key,i,dir)=>{const a=[...data[key].cards];const j=i+dir;if(j<0||j>=a.length)return;const t=a[i];a[i]=a[j];a[j]=t;matSet(key,{cards:a});};
@@ -6905,7 +6901,7 @@ function HomeCardsPage({showToast}){
     setSaving(true);
     try{
       const hero=data.hero.filter(h=>h.image||h.title||h.kicker).map(h=>({image:h.image||'',imageMobile:h.imageMobile||'',link:(h.link||'').trim(),kicker:(h.kicker||'').trim(),title:(h.title||'').trim(),desc:(h.desc||'').trim(),tags:(h.tags||'').trim(),cta:(h.cta||'').trim()}));
-      const mat=(m)=>({filters:m.filters.map(f=>(f||'').trim()).filter(Boolean),cards:m.cards.filter(c=>c.image).map(c=>({image:c.image,link:(c.link||'').trim(),title:(c.title||'').trim(),cat:(c.cat||'').trim()}))});
+      const mat=(m)=>({cards:m.cards.filter(c=>c.image).map(c=>({image:c.image,link:(c.link||'').trim(),title:(c.title||'').trim(),hashtags:(c.hashtags||'').trim(),ment:(c.ment||'').trim()}))});
       const homeGrid=data.homeGrid.filter(c=>c.image).map(c=>({image:c.image,title:(c.title||'').trim(),meta:(c.meta||'').trim(),price:(c.price||'').trim(),unit:(c.unit||'').trim(),link:(c.link||'').trim(),cat:(c.cat||'').trim(),brand:(c.brand||'').trim(),badge:(c.badge||'').trim()}));
       const homeSwatches={}; HC_SWATCHES.forEach(s=>{ const x=data.homeSwatches[s.key]||{}; homeSwatches[s.key]={image:x.image||'',label:(x.label||'').trim(),sub:(x.sub||'').trim()}; });
       const gsCats={}; HC_GRID_CATS.forEach(g=>{ gsCats[g.key]=String((data.homeGridSource.cats||{})[g.key]||'').replace(/[^0-9]/g,''); });
@@ -6971,24 +6967,8 @@ function HomeCardsPage({showToast}){
       {HC_MATERIALS.map(m=>{ const md=data[m.key];
         return (
           <div key={m.key} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>
-            <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}>{m.label} <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>({md.cards.length}장 · 필터 {md.filters.length}개)</span></div>
-            <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:10}}>{m.hint} — 가격 없이 <b>썸네일+제목만</b> 노출. 카드에 필터를 지정하면 위 필터 버튼으로 걸러집니다.</div>
-
-            {/* 필터 카테고리 편집 */}
-            <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:10,padding:'10px 12px',marginBottom:12}}>
-              <div style={{fontSize:11.5,fontWeight:800,color:'var(--text-md)',marginBottom:8}}>필터 카테고리 <span style={{fontWeight:700,color:'var(--text-sm)'}}>(추가·수정·삭제·순서 · '전체'는 스토어에서 자동으로 맨 앞에 붙습니다)</span></div>
-              <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-                {md.filters.map((f,i)=>(
-                  <div key={i} style={{display:'inline-flex',alignItems:'center',gap:3,background:'#fff',border:'1.5px solid var(--or-l)',borderRadius:999,padding:'3px 5px 3px 10px'}}>
-                    <input value={f} onChange={e=>filterPatch(m.key,i,e.target.value)} placeholder="이름" style={{border:'none',outline:'none',width:Math.max(46,(String(f).length+1)*11),fontSize:12,fontWeight:700,color:'var(--navy)',background:'transparent'}}/>
-                    <button onClick={()=>filterMove(m.key,i,-1)} disabled={i===0} title="앞으로" style={{border:'none',background:'transparent',color:'var(--text-sm)',cursor:'pointer',fontWeight:800,fontSize:15,opacity:i===0?.3:1}}>‹</button>
-                    <button onClick={()=>filterMove(m.key,i,1)} disabled={i===md.filters.length-1} title="뒤로" style={{border:'none',background:'transparent',color:'var(--text-sm)',cursor:'pointer',fontWeight:800,fontSize:15,opacity:i===md.filters.length-1?.3:1}}>›</button>
-                    <button onClick={()=>filterRemove(m.key,i)} title="삭제" style={{border:'none',background:'var(--red-l)',color:'var(--red)',borderRadius:'50%',width:18,height:18,cursor:'pointer',fontWeight:900,fontSize:11}}>×</button>
-                  </div>
-                ))}
-                <button onClick={()=>filterAdd(m.key)} style={{border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',borderRadius:999,padding:'5px 12px',fontSize:12,fontWeight:800,cursor:'pointer'}}>+ 필터 추가</button>
-              </div>
-            </div>
+            <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}>{m.label} <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>({md.cards.length}장)</span></div>
+            <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:10}}>{m.hint} — 썸네일 아래 <b>해시태그 + 멘트</b>가 노출됩니다. (가격·필터 없음)</div>
 
             {/* 카드 목록 */}
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:12}}>
@@ -7007,13 +6987,11 @@ function HomeCardsPage({showToast}){
                       </label>
                     </div>
                     <div style={{flex:1,minWidth:0}}>
-                      <input value={c.title} onChange={e=>cardPatch(m.key,i,{title:e.target.value})} placeholder="제목 (예: 옥상 누수 풀패키지)" style={inp}/>
+                      <input value={c.title} onChange={e=>cardPatch(m.key,i,{title:e.target.value})} placeholder="제목 (예: 평형 슬라브 옥상 방수 보강 패키지)" style={inp}/>
+                      <input value={c.hashtags} onChange={e=>cardPatch(m.key,i,{hashtags:e.target.value})} placeholder="해시태그 (쉼표로 구분 · 예: 물고임, 조인트, 에어포켓 대응)" style={{...inp,color:'var(--or-d)',fontWeight:700}}/>
+                      <input value={c.ment} onChange={e=>cardPatch(m.key,i,{ment:e.target.value})} placeholder="멘트 (예: 우레탄보다 쉽고 간편하게 셀프로도 튼튼한 옥상 방수!)" style={inp}/>
                       <input value={c.link} onChange={e=>cardPatch(m.key,i,{link:e.target.value})} placeholder="상품 링크" style={inp}/>
-                      <div style={{display:'flex',gap:6,marginTop:6,alignItems:'center'}}>
-                        <select value={c.cat} onChange={e=>cardPatch(m.key,i,{cat:e.target.value})} style={{flex:1,padding:'7px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,fontWeight:700,color:'var(--navy)',background:'#fff'}}>
-                          <option value="">필터 없음(전체만)</option>
-                          {md.filters.map((f,x)=><option key={x} value={f}>{f}</option>)}
-                        </select>
+                      <div style={{display:'flex',gap:6,marginTop:6,alignItems:'center',justifyContent:'flex-end'}}>
                         <button onClick={()=>cardMove(m.key,i,-1)} disabled={i===0} style={{width:28,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontWeight:800,cursor:'pointer',opacity:i===0?.4:1}}>↑</button>
                         <button onClick={()=>cardMove(m.key,i,1)} disabled={i===md.cards.length-1} style={{width:28,borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontWeight:800,cursor:'pointer',opacity:i===md.cards.length-1?.4:1}}>↓</button>
                         <button onClick={()=>cardRemove(m.key,i)} style={{width:28,borderRadius:7,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontWeight:900,cursor:'pointer'}}>×</button>

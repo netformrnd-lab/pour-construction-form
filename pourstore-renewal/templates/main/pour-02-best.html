@@ -231,16 +231,32 @@
 .psm2-card.psm2-managed{text-decoration:none;color:inherit;cursor:pointer}
 .psm2-card.psm2-managed .psm2-card-img{position:relative;overflow:hidden}
 .psm2-card.psm2-managed .psm2-card-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+/* 카테고리 필터 제거 — 해시태그+멘트로 대체 */
+.psm2-filters{display:none !important}
+.psm2-card-hash{font-size:12px;font-weight:800;color:#E8780F;letter-spacing:-0.02em;line-height:1.45;margin-bottom:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+.psm2-card-ment{margin-top:4px;font-size:12.5px;font-weight:500;color:#6B7280;letter-spacing:-0.02em;line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+@media (max-width:700px){ .psm2-card-hash{font-size:11px} .psm2-card-ment{font-size:11.5px} }
 </style>
 <script>
 (function(){
   var MAP={ '철재':'metal', '목재':'wood', '돌·시멘트':'stone' };
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function hashHtml(s){
+    s=(s||'').toString().trim(); if(!s) return '';
+    // 쉼표(,·，)로 구분된 토큰을 각각 #태그로 — 이미 #가 있으면 유지
+    var parts=s.split(/[,，]/).map(function(t){return t.trim();}).filter(Boolean);
+    if(!parts.length) return '';
+    var txt=parts.map(function(t){return t.charAt(0)==='#'?t:'#'+t;}).join(' ');
+    return '<div class="psm2-card-hash">'+esc(txt)+'</div>';
+  }
   function cardHtml(c){
-    var link=(c.link||'').trim(), title=c.title||'', cat=c.cat||'';
-    var h='<a class="psm2-card psm2-managed" data-cat="'+esc(cat)+'" href="'+(link?esc(link):'#')+'"'+(link?'':' onclick="return false"')+'>';
+    var link=(c.link||'').trim(), title=c.title||'';
+    var h='<a class="psm2-card psm2-managed" href="'+(link?esc(link):'#')+'"'+(link?'':' onclick="return false"')+'>';
     h+='<div class="psm2-card-img"><img src="'+esc(c.image)+'" alt="'+esc(title)+'" loading="lazy"></div>';
-    if(title) h+='<div class="psm2-card-info"><div class="psm2-card-title">'+esc(title)+'</div></div>';   // 가격 없이 썸네일+제목만
+    var info=hashHtml(c.hashtags);                                       // 썸네일 아래: 해시태그
+    if(title) info+='<div class="psm2-card-title">'+esc(title)+'</div>'; // 제목
+    if((c.ment||'').trim()) info+='<div class="psm2-card-ment">'+esc(c.ment)+'</div>'; // 멘트
+    if(info) h+='<div class="psm2-card-info">'+info+'</div>';
     return h+'</a>';
   }
   function apply(data){
@@ -249,23 +265,9 @@
       var md=key && data[key]; if(!md) return;
       var cards=Array.isArray(md)?md:md.cards;                 // 구/신 포맷 호환
       if(!cards || !cards.length) return;                      // 관리 카드 없으면 기존 기본 유지
-      var filters=(!Array.isArray(md) && Array.isArray(md.filters))?md.filters:[];
       var scroll=group.querySelector('.psm2-scroll'); if(!scroll) return;
       scroll.innerHTML=cards.map(cardHtml).join('');
-      var fbar=group.querySelector('.psm2-filters'); if(!fbar) return;
-      if(!filters.length){ fbar.style.display='none'; return; }   // 필터 없으면 필터바 숨김
-      fbar.style.display='';
-      fbar.innerHTML=['전체'].concat(filters).map(function(f,i){ return '<button class="psm2-filter'+(i===0?' on':'')+'" type="button" data-f="'+esc(f)+'">'+esc(f)+'</button>'; }).join('');
-      fbar.querySelectorAll('.psm2-filter').forEach(function(btn){
-        btn.addEventListener('click',function(){
-          fbar.querySelectorAll('.psm2-filter').forEach(function(x){ x.classList.remove('on'); });
-          btn.classList.add('on');
-          var f=btn.getAttribute('data-f');
-          scroll.querySelectorAll('.psm2-card').forEach(function(card){
-            card.style.display=(f==='전체'||card.getAttribute('data-cat')===f)?'':'none';
-          });
-        });
-      });
+      var fbar=group.querySelector('.psm2-filters'); if(fbar) fbar.style.display='none';   // 카테고리 필터 제거
     });
   }
   (async function(){

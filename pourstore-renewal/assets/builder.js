@@ -1833,7 +1833,7 @@ show('entry');
       <div class="pdq-sub">사진 한 장이면 <b>R&D 박사</b>가 직접 답해드려요.</div>
       <div class="pdq-chips">
         <span class="pdq-chip">🩺 박사 직접 답변</span>
-        <span class="pdq-chip">⏱ 평균 응답 <b>3분</b></span>
+        <span class="pdq-chip">⏱ <b>신속</b> 응답</span>
       </div>
     </div>
     <div class="pdq-action">
@@ -1888,7 +1888,7 @@ show('entry');
 </style>
 <div class="pdfab-wrap">
   <div class="pdfab-tip" id="pdfabTip">
-    <span class="pdfab-tip-text">증상만 알려주세요 — <b>3분 안에</b> 처방서 받아보세요 🩺</span>
+    <span class="pdfab-tip-text">증상만 알려주세요 — <b>신속하게</b> 처방서 받아보세요 🩺</span>
     <button class="pdfab-tip-close" type="button" aria-label="알림 닫기" onclick="this.parentElement.classList.add('hidden')">✕</button>
   </div>
   <a class="pdfab-btn" href="./pour-doctor.html" aria-label="POUR닥터 무료 진단">
@@ -1979,7 +1979,7 @@ show('entry');
       <div class="pdh-trust-item"><span class="pdh-trust-num">50+</span><span class="pdh-trust-label">자체 특허·기술</span></div>
       <div class="pdh-trust-item"><span class="pdh-trust-num">700+</span><span class="pdh-trust-label">진단한 단지</span></div>
       <div class="pdh-trust-item"><span class="pdh-trust-num">250+</span><span class="pdh-trust-label">전국 시공 파트너</span></div>
-      <div class="pdh-trust-item"><span class="pdh-trust-num">3분</span><span class="pdh-trust-label">평균 응답</span></div>
+      <div class="pdh-trust-item"><span class="pdh-trust-num">신속</span><span class="pdh-trust-label">응답 안내</span></div>
     </div>
   </div>
   <div class="pdh-display">
@@ -2080,7 +2080,7 @@ show('entry');
         <div class="pdp-step-list-item">AI 하자유형·심각도 자동 분류</div>
         <div class="pdp-step-list-item">R&D 박사 1차 검수</div>
       </div>
-      <span class="pdp-step-time">⏱ 평균 3분</span>
+      <span class="pdp-step-time">⏱ 신속 응답</span>
     </div>
     <div class="pdp-step">
       <div class="pdp-step-num">02</div>
@@ -2287,7 +2287,7 @@ show('entry');
   <div class="pdf-head">
     <span class="pdf-kicker">FREE DIAGNOSIS</span>
     <h2 class="pdf-title">지금 <b>무료 진단</b>을 시작해보세요</h2>
-    <p class="pdf-sub">아래 정보만 입력하시면 R&D 박사가 직접 처방서를 작성해<br/><b>카카오톡으로 3분 이내</b> 보내드립니다.</p>
+    <p class="pdf-sub">아래 정보만 입력하시면 R&D 박사가 직접 처방서를 작성해<br/><b>카카오톡으로 신속하게</b> 보내드립니다.</p>
   </div>
   <form class="pdf-card" onsubmit="return false;">
     <div class="pdf-step">
@@ -2339,7 +2339,7 @@ show('entry');
       <input type="checkbox" id="pdf-agree-1" checked/>
       <label for="pdf-agree-1"><b>개인정보 수집·이용 동의</b> — 진단 결과 안내 목적으로만 사용되며, 마케팅 수신은 별도 동의 시에만 적용됩니다. 보관 기간: 진단 완료 후 6개월.</label>
     </div>
-    <button type="submit" class="pdf-submit">🩺 무료 진단 처방서 받기 (3분 이내)</button>
+    <button type="submit" class="pdf-submit">🩺 무료 진단 처방서 받기</button>
     <div class="pdf-trust">
       <span class="pdf-trust-item">SSL 암호화</span>
       <span class="pdf-trust-item">개인정보 6개월 후 자동 파기</span>
@@ -4402,7 +4402,7 @@ show('entry');
           <h2>카카오톡으로<br/>지금 바로 상담받으세요</h2>
           <p>전화·이메일이 어려우시면 카카오톡 채널로 편하게 문의주세요. 평일 09-18시 실시간 응답.</p>
           <div class="stats">
-            <div class="stat">평균 응답 <b>3분 이내</b></div>
+            <div class="stat"><b>신속</b> 응답 안내</div>
             <div class="stat">누적 채널 친구 <b>4,800+</b></div>
           </div>
         </div>

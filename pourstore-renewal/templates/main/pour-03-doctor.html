@@ -7,9 +7,10 @@
 .pdq-inner { max-width:820px; margin:0 auto; }
 /* 밴드: 은은한 웜 오프화이트 + 얇은 테두리(라운드 0, 형제 섹션과 통일) */
 .pdq-band { display:flex; align-items:center; gap:26px; background:#FCFBF9; border:1px solid #EFEAE3; padding:26px 32px; }
-/* 마스코트 — 좌측, 차분하게(후광 제거·느린 소폭 부유만) */
-.pdq-char { flex-shrink:0; width:104px; display:grid; place-items:center; }
-.pdq-char-img { display:block; width:104px; height:auto; filter:drop-shadow(0 8px 14px rgba(15,31,92,.14)); animation:pdqFloat 6s ease-in-out infinite; }
+/* 마스코트 — 좌측, 차분하게(은은한 정적 후광 + 느린 소폭 부유) */
+.pdq-char { position:relative; flex-shrink:0; width:120px; display:grid; place-items:center; }
+.pdq-char::after { content:''; position:absolute; left:50%; top:52%; transform:translate(-50%,-50%); width:118px; height:118px; border-radius:50%; background:radial-gradient(circle, rgba(244,154,58,.14) 0%, transparent 64%); z-index:0; }
+.pdq-char-img { position:relative; z-index:1; display:block; width:120px; height:auto; filter:drop-shadow(0 8px 14px rgba(15,31,92,.14)); animation:pdqFloat 6s ease-in-out infinite; }
 @keyframes pdqFloat { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-4px); } }
 /* 본문 */
 .pdq-body { flex:1; min-width:0; }
@@ -29,8 +30,9 @@
 @media (max-width:700px) {
   .pdq { padding:48px 14px 52px; }
   .pdq-band { flex-direction:column; text-align:center; gap:14px; padding:26px 20px; }
-  .pdq-char { width:88px; }
-  .pdq-char-img { width:88px; }
+  .pdq-char { width:100px; }
+  .pdq-char::after { width:100px; height:100px; }
+  .pdq-char-img { width:100px; }
   .pdq-body { width:100%; }
   .pdq-title { font-size:21px; }
   .pdq-act { flex-direction:column; align-items:center; gap:10px; margin-top:16px; }

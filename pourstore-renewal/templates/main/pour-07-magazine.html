@@ -6,11 +6,13 @@
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css">
 <!-- ============================================================
-  pour-07-magazine — 메인 '자사몰 매거진' 섹션
-  데이터: Firestore pourstore-postings (어드민 '포스팅 관리') → 등록/수정 시 자동 반영.
-  구성: 정렬 상위 4건 = 대표(feature) 1 + 사이드 3. 글 없으면 섹션 자동 숨김.
+  pour-07-magazine — 메인 '자사몰 매거진(POUR이야기)' 섹션
+  데이터: Firestore pourstore-postings (어드민 'POUR이야기 관리') → 등록/수정 시 자동 반영.
+  구성: 정렬 상위 4건을 '같은 크기 카드 한 줄'로 노출(대표 카드 없음). 글 없으면 섹션 자동 숨김.
+  정렬: magazineOrder(섹션 전용) 우선 → 없으면 전역 order → 최신 등록.
+  썸네일: 유튜브 글은 유튜브 JPG 우선(업로드 AVIF 인앱브라우저 미표시 회피).
   클릭: 외부링크 있으면 그 링크(새 탭), 없으면 POUR이야기 허브로 이동.
-  주의: 이모지 미사용(인라인 SVG). @import 폰트만 CSS import(카페24 @import 아님).
+  반응형: PC 4열 · 태블릿 2열 · 모바일 가로 스크롤(스와이프). 이모지 미사용(인라인 SVG).
   ============================================================ -->
 <style>
 .psg3 *, .psg3 *::before, .psg3 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
@@ -24,58 +26,42 @@
 .psg3-head p { font-size:13.5px; font-weight:500; color:#6B7280; margin-top:6px; }
 .psg3-head .more { display:inline-flex; align-items:center; gap:6px; padding:10px 18px; background:#fff; border:1.5px solid #E5E7EB; border-radius:0; color:#111111; font-size:13px; font-weight:800; text-decoration:none; transition:all .2s; letter-spacing:-0.02em; }
 .psg3-head .more:hover { border-color:#111111; background:#0F1F5C; color:#fff; }
-.psg3-grid { display:grid; grid-template-columns:1.5fr 1fr 1fr; grid-template-rows:auto auto; gap:14px; }
-.psg3-list { display:contents; }
-.psg3-card { background:#fff; border-radius:8px; overflow:hidden; cursor:pointer; transition:all .3s; text-decoration:none; color:inherit; display:flex; flex-direction:column; border:1px solid #F3F4F6; }
-.psg3-card:hover { transform:translateY(-4px); box-shadow:0 20px 44px rgba(15,31,92,.1); border-color:transparent; }
-.psg3-card.feature { grid-row:span 2; }
-.psg3-card .img { background:linear-gradient(135deg,#FED7AA,#FB923C) center/cover no-repeat; position:relative; flex-shrink:0; }
-.psg3-card .img::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,transparent 50%, rgba(0,0,0,.05) 100%); }
-.psg3-card.feature .img { flex:1 1 auto; min-height:300px; }
-.psg3-card:not(.feature) .img { aspect-ratio:16/10; }
-.psg3-card .tag { position:absolute; top:14px; left:14px; padding:5px 11px; background:rgba(15,31,92,.95); color:#fff; font-size:10.5px; font-weight:800; border-radius:0; -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); letter-spacing:0.04em; }
-.psg3-card.feature .tag { background:#F97316; }
-.psg3-card .play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:46px; height:46px; border-radius:50%; background:rgba(15,23,42,.5); display:grid; place-items:center; -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
+
+/* 균등 카드 4열 그리드 */
+.psg3-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; align-items:stretch; }
+.psg3-card { background:#fff; border-radius:12px; overflow:hidden; cursor:pointer; transition:transform .28s, box-shadow .28s, border-color .28s; text-decoration:none; color:inherit; display:flex; flex-direction:column; border:1px solid #F0EBE3; }
+.psg3-card:hover { transform:translateY(-5px); box-shadow:0 18px 40px rgba(15,31,92,.12); border-color:transparent; }
+.psg3-card .img { aspect-ratio:16/10; background:linear-gradient(135deg,#FED7AA,#FB923C) center/cover no-repeat; position:relative; flex-shrink:0; }
+.psg3-card .img::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,transparent 55%, rgba(0,0,0,.16) 100%); }
+.psg3-card .tag { position:absolute; top:12px; left:12px; z-index:2; padding:5px 11px; background:rgba(15,31,92,.95); color:#fff; font-size:10.5px; font-weight:800; -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); letter-spacing:0.04em; }
+.psg3-card .play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2; width:46px; height:46px; border-radius:50%; background:rgba(15,23,42,.5); display:grid; place-items:center; -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); transition:transform .25s, background .25s; }
+.psg3-card:hover .play { transform:translate(-50%,-50%) scale(1.08); background:#F97316; }
 .psg3-card .play svg { width:19px; height:19px; color:#fff; margin-left:2px; }
-.psg3-card .body { padding:18px 20px 22px; flex:1; display:flex; flex-direction:column; }
-.psg3-card.feature .body { padding:24px 26px 26px; flex:0 0 auto; }
-.psg3-card .title { font-size:14.5px; font-weight:800; color:#111111; line-height:1.45; margin-bottom:8px; letter-spacing:-0.03em; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-.psg3-card.feature .title { font-size:20px; line-height:1.3; letter-spacing:-0.04em; -webkit-line-clamp:3; }
-.psg3-card .desc { font-size:12.5px; font-weight:500; color:#6B7280; line-height:1.65; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; flex:1; letter-spacing:-0.02em; }
-.psg3-card.feature .desc { font-size:13.5px; -webkit-line-clamp:3; flex:0 0 auto; }
-.psg3-card .meta-bot { display:flex; gap:10px; align-items:center; margin-top:14px; padding-top:14px; border-top:1px solid #F3F4F6; font-size:11.5px; color:#9CA3AF; font-weight:600; letter-spacing:-0.02em; }
-.psg3-card .meta-bot .dot { width:3px; height:3px; background:#D1D5DB; border-radius:50%; }
-.psg3-card .psg3-prog { position:absolute; left:0; right:0; bottom:0; height:3px; background:rgba(232,120,15,.15); overflow:hidden; opacity:0; transition:opacity .3s; pointer-events:none; }
-.psg3-card[data-psg3-active] .psg3-prog { opacity:1; }
-.psg3-card .psg3-prog::after { content:''; position:absolute; left:0; top:0; bottom:0; width:0; background:linear-gradient(90deg,#F49A3A,#E8780F); }
-.psg3-card[data-psg3-active] .psg3-prog::after { animation:psg3Fill var(--psg3-d, 6s) linear forwards; }
-@keyframes psg3Fill { to { width:100%; } }
+.psg3-card .body { padding:16px 18px 18px; flex:1; display:flex; flex-direction:column; }
+.psg3-card .title { font-size:15px; font-weight:800; color:#111111; line-height:1.45; letter-spacing:-0.03em; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.psg3-card .desc { margin-top:8px; font-size:12.5px; font-weight:500; color:#6B7280; line-height:1.6; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; letter-spacing:-0.02em; }
+.psg3-card .meta-bot { display:flex; gap:8px; align-items:center; margin-top:auto; padding-top:13px; font-size:11.5px; color:#9CA3AF; font-weight:700; letter-spacing:-0.02em; }
+.psg3-card .meta-bot .kind { color:#E8780F; }
 .psg3-loading { grid-column:1/-1; text-align:center; padding:50px 0; color:#9AA0A6; font-size:14px; font-weight:500; }
 .psg3-swipe { display:none; }
 @keyframes psg3SwipeAr { 0%,100% { transform:translateX(0); } 50% { transform:translateX(4px); } }
+
 @media (max-width:1080px) {
-  .psg3-grid { grid-template-columns:1fr 1fr; }
-  .psg3-card.feature { grid-row:auto; grid-column:span 2; }
-  .psg3-card.feature .img { aspect-ratio:2.4/1; flex:0 0 auto; min-height:0; }
+  .psg3-grid { grid-template-columns:repeat(2,1fr); gap:16px; }
 }
 @media (max-width:700px) {
-  .psg3 { padding:48px 0 56px; }
+  .psg3 { padding:48px 0 52px; }
   .psg3-inner { max-width:none; }
-  .psg3-head { padding:0 18px; margin-bottom:18px; }
+  .psg3-head { padding:0 18px; margin-bottom:16px; }
   .psg3-head h2 { font-size:24px; }
   .psg3-head p { font-size:12.5px; }
   .psg3-head .more { font-size:12px; padding:9px 14px; }
-  .psg3-grid { grid-template-columns:1fr; gap:14px; padding:0 18px; }
-  .psg3-card.feature { grid-column:auto; }
-  .psg3-card.feature .img { aspect-ratio:16/10; flex:0 0 auto; min-height:0; }
-  .psg3-card.feature .body { padding:18px 20px 22px; }
-  .psg3-card.feature .title { font-size:17px; }
-  .psg3-card.feature .desc { font-size:13px; -webkit-line-clamp:2; }
-  .psg3-list { display:flex !important; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; gap:12px; padding:0 18px 8px; margin:0 -18px; -webkit-overflow-scrolling:touch; grid-column:auto; }
-  .psg3-list::-webkit-scrollbar { display:none; }
-  .psg3-list .psg3-card { flex:0 0 76%; max-width:300px; scroll-snap-align:center; position:relative; transition:.25s; }
-  .psg3-list .psg3-card[data-psg3-active] { outline:2px solid #E8780F; outline-offset:-2px; box-shadow:0 14px 32px rgba(232,120,15,.22); }
-  .psg3-swipe { display:flex; align-items:center; justify-content:center; gap:6px; margin:6px 18px 0; font-size:12px; font-weight:700; color:#E8780F; letter-spacing:-0.02em; }
+  /* 모바일: 같은 크기 카드 가로 스크롤(스와이프) */
+  .psg3-grid { display:flex; grid-template-columns:none; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; gap:12px; padding:0 18px 6px; }
+  .psg3-grid::-webkit-scrollbar { display:none; }
+  .psg3-card { flex:0 0 76%; max-width:300px; scroll-snap-align:center; }
+  .psg3-card .img { aspect-ratio:16/9; }
+  .psg3-swipe { display:flex; align-items:center; justify-content:center; gap:6px; margin:8px 18px 0; font-size:12px; font-weight:700; color:#E8780F; letter-spacing:-0.02em; }
   .psg3-swipe .ar { display:inline-block; animation:psg3SwipeAr 1.3s ease-in-out infinite; }
 }
 </style>
@@ -122,7 +108,6 @@ var PC_TTL = 300000;
   // 유튜브 글은 유튜브 JPG 우선(업로드 썸네일이 AVIF면 카톡·네이버 인앱브라우저·구형기기에서 안 보임). 없을 때만 저장 썸네일.
   function thumbOf(p){ var id=ytId(p.link); if(id) return 'https://img.youtube.com/vi/'+id+'/hqdefault.jpg'; var t=p.thumbnail||p.thumb||p.image; return (t&&String(t).trim())?t:''; }
   function typeLabel(t){ return TYPE[t] || '이야기'; }
-  function dateOf(p){ return ''; }
   function hrefOf(p){ return (p.link && /^https?:\/\//.test(p.link)) ? { h:p.link, t:' target="_blank" rel="noopener"' } : { h:HUB, t:'' }; }
   function bgStyle(p){ var t=thumbOf(p); return t ? ' style="background-image:url(\''+esc(t)+'\')"' : ''; }
   function playHtml(p){ return isYt(p.link) ? '<div class="play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>' : ''; }
@@ -143,52 +128,15 @@ var PC_TTL = 300000;
   if (!posts.length){ sec.hidden = true; return; }
   sec.hidden = false;
 
-  var feat = posts[0], rest = posts.slice(1, 5);
-  var fl = hrefOf(feat);
-  var featHtml = '<a class="psg3-card feature" href="'+fl.h+'"'+fl.t+'>'
-    + '<div class="img"'+bgStyle(feat)+'><span class="tag">'+esc(typeLabel(feat.type))+'</span>'+playHtml(feat)+'</div>'
-    + '<div class="body"><div class="title">'+esc(feat.title||'')+'</div>'
-    +   '<div class="desc">'+esc(feat.summary||'')+'</div>'
-    +   '<div class="meta-bot"><span>POUR 편집팀</span>'+(dateOf(feat)?'<span class="dot"></span><span>'+dateOf(feat)+'</span>':'')+'</div></div></a>';
-  var listHtml = rest.map(function(p){
+  var items = posts.slice(0, 4);   // 같은 크기 카드 4개 한 줄
+  grid.innerHTML = items.map(function(p){
     var l = hrefOf(p);
-    return '<a class="psg3-card" data-psg3-dur="6" href="'+l.h+'"'+l.t+'>'
+    return '<a class="psg3-card" href="'+l.h+'"'+l.t+'>'
       + '<div class="img"'+bgStyle(p)+'><span class="tag">'+esc(typeLabel(p.type))+'</span>'+playHtml(p)+'</div>'
       + '<div class="body"><div class="title">'+esc(p.title||'')+'</div>'
-      +   '<div class="desc">'+esc(p.summary||'')+'</div>'
-      +   '<div class="meta-bot">'+(dateOf(p)?'<span>'+dateOf(p)+'</span>':'<span>POUR스토어</span>')+'</div></div>'
-      + '<span class="psg3-prog"></span></a>';
+      +   (p.summary ? '<div class="desc">'+esc(p.summary)+'</div>' : '')
+      +   '<div class="meta-bot"><span class="kind">'+esc(typeLabel(p.type))+'</span><span>POUR스토어</span></div></div></a>';
   }).join('');
-  grid.innerHTML = featHtml + '<div class="psg3-list" data-psg3-scroll>' + listHtml + '</div>';
-  if (swipe) swipe.hidden = rest.length < 2;
-
-  // ===== 모바일 자동 순환 강조 =====
-  var scroller = sec.querySelector('[data-psg3-scroll]');
-  var cards = scroller ? Array.prototype.slice.call(scroller.querySelectorAll('.psg3-card')) : [];
-  if (scroller && cards.length){
-    var current=0, paused=false, inView=false, advanceT=null, resumeT=null;
-    var mq = window.matchMedia('(max-width:700px)');
-    function durMs(i){ var d=parseFloat(cards[i].getAttribute('data-psg3-dur')||'6'); return Math.min(Math.max(d,3),12)*1000; }
-    function clearAdvance(){ if(advanceT){ clearTimeout(advanceT); advanceT=null; } }
-    function activate(i){
-      clearAdvance();
-      current=((i%cards.length)+cards.length)%cards.length;
-      cards.forEach(function(c,idx){
-        if(idx===current){ c.style.setProperty('--psg3-d',(durMs(current)/1000)+'s'); c.removeAttribute('data-psg3-active'); void c.offsetWidth; c.setAttribute('data-psg3-active',''); }
-        else c.removeAttribute('data-psg3-active');
-      });
-      if(mq.matches){ try{ cards[current].scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}); }catch(_){ scroller.scrollLeft=cards[current].offsetLeft-(scroller.clientWidth-cards[current].clientWidth)/2; } }
-      if(!paused && inView && !document.hidden){ advanceT=setTimeout(function(){ activate(current+1); }, durMs(current)); }
-    }
-    function pauseFor(ms){ paused=true; clearAdvance(); if(resumeT)clearTimeout(resumeT); resumeT=setTimeout(function(){ paused=false; if(inView)activate(current); }, ms||7000); }
-    scroller.addEventListener('touchstart', function(){ pauseFor(8000); }, {passive:true});
-    scroller.addEventListener('pointerdown', function(){ pauseFor(8000); });
-    scroller.addEventListener('mouseenter', function(){ pauseFor(10000); });
-    document.addEventListener('visibilitychange', function(){ if(document.hidden)clearAdvance(); else if(inView&&!paused)activate(current); });
-    if('IntersectionObserver' in window){
-      var io=new IntersectionObserver(function(entries){ entries.forEach(function(e){ inView=e.isIntersecting; if(inView&&!paused&&mq.matches)activate(current); else clearAdvance(); }); }, {threshold:0.3});
-      io.observe(scroller);
-    } else if(mq.matches){ inView=true; activate(0); }
-  }
+  if (swipe) swipe.hidden = items.length < 2;
 })();
 </script>

@@ -218,22 +218,21 @@
     });
     if (!scroller) return;
 
-    // ── 자동 슬라이드(→) 상태 ──
-    var SPEED = 0.15;         // 프레임당 이동 px (아주 천천히)
-    var visible = true, holdUntil = 0, hover = false, raf = null, needSync = false;
-    var pos = 0;              // 실수 누적 위치 (scrollLeft는 정수로 잘려 읽히므로 별도 관리)
+    // ── 자동 슬라이드: 3초마다 한 칸씩(부드럽게) — 연속 이동 없이 덜 어지럽게 ──
+    var STEP_MS = 3000;
+    var visible = true, holdUntil = 0, hover = false;
     var dragging = false, startX = 0, startLeft = 0, moved = false;
     function maxScroll(){ return scroller.scrollWidth - scroller.clientWidth; }
-    function pauseAuto(ms){ var t = Date.now() + (ms||1500); if (t > holdUntil) holdUntil = t; needSync = true; }
-    function tick(){
-      raf = requestAnimationFrame(tick);
-      if (dragging || hover || !visible || Date.now() < holdUntil) return;
+    function cardStep(){ var c = scroller.querySelector('.psm2-card'); return c ? (c.getBoundingClientRect().width + 16) : 240; }
+    function pauseAuto(ms){ var t = Date.now() + (ms||1500); if (t > holdUntil) holdUntil = t; }
+    function step(){
+      if (dragging || hover || !visible || Date.now() < holdUntil) return;   // 일시정지 조건
       var ms = maxScroll();
-      if (ms < 4) return;                                 // 스크롤할 게 없으면 정지
-      if (needSync){ pos = scroller.scrollLeft; needSync = false; }  // 수동 조작 후 현재 위치 이어받기
-      pos += SPEED;
-      if (pos >= ms - 0.5) pos = 0;                       // 끝 → 처음으로 루프
-      scroller.scrollLeft = pos;
+      if (ms < 4) return;                                  // 넘길 게 없으면 정지
+      var w = cardStep();
+      var next = Math.round(scroller.scrollLeft / w) * w + w;                 // 현재 칸 기준 다음 칸
+      if (next > ms + 2) scroller.scrollTo({ left: 0, behavior: 'auto' });    // 끝 → 처음으로(즉시)
+      else scroller.scrollTo({ left: next, behavior: 'smooth' });             // 한 칸 부드럽게
     }
 
     // ── 화살표 ──
@@ -285,7 +284,7 @@
     if ('IntersectionObserver' in window){
       new IntersectionObserver(function(es){ es.forEach(function(en){ visible = en.isIntersecting; }); }, {threshold:0.05}).observe(scroller);
     }
-    raf = requestAnimationFrame(tick);
+    setInterval(step, STEP_MS);
   });
 })();
 </script>

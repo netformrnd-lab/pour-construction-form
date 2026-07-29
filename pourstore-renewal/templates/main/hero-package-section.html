@@ -1,109 +1,113 @@
 <!-- ============================================================
-  POUR스토어 메인 히어로 — [패키지 시공] 섹션
-  ▸ 메인 히어로 배너의 "섹션2(주말 셀프보수)" 바로 뒤에 이 블록을 붙여넣으세요.
-  ▸ 자체 스코프 CSS(.pshp-*)라 주변 섹션과 충돌하지 않습니다.
+  POUR스토어 메인 — [패키지 시공] 풀폭 배너 (1장)
+  ▸ 위치: 섹션2(상품카드 캐러셀) 아래, POUR닥터 진단 섹션 위.
+  ▸ 가로: 화면 처음~끝까지 풀폭(full-bleed). 세로: 콘텐츠 기준(아래 --pshp-pad 로 조절).
+  ▸ 자체 스코프 CSS/JS(.pshp-*)라 주변 섹션과 충돌하지 않습니다.
   ▸ 랜딩: /pourstore_renewal/package/pour-package.html
   ▸ 폰트: Pretendard (헤더가 이미 로드). 테마: POUR 블루 #1A72E8
+
+  ★ 세로 높이 조절: 아래 .pshp 의 --pshp-pad 값(위아래 여백)만 바꾸면 됩니다. (기본 48px)
+  ★ 사진 교체(어드민) — quick-icons 와 동일 방식:
+    Firebase Storage 경로  POUR스토어_리뉴얼/main-sections/  아래에
+      · package-hero.png (또는 .jpg/.webp)  ← 배너 오른쪽 사진 (권장 560×360, 투명 PNG 가능)
+    파일을 올리면 자동으로 기본 일러스트를 대체합니다. 없으면 아래 SVG가 표시됩니다.
 ============================================================ -->
-<section class="pshp">
+<section class="pshp" style="--pshp-pad:48px">
 <style>
 .pshp, .pshp *{box-sizing:border-box;margin:0;padding:0;font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;letter-spacing:-0.02em}
-.pshp{display:block;background:#fff;padding:10px 24px}
-.pshp-in{max-width:1256px;margin:0 auto;display:grid;grid-template-columns:1fr 320px;gap:20px}
+/* 풀폭 밴드: 가로 처음~끝, 세로는 --pshp-pad 로 조절 */
+.pshp{display:block;width:100%;background:linear-gradient(120deg,#EAF2FF 0%,#F3F8FF 52%,#E8F0FF 100%);border-top:1px solid #E3ECFA;border-bottom:1px solid #E3ECFA}
+.pshp-in{max-width:1256px;margin:0 auto;padding:var(--pshp-pad) 24px;display:flex;align-items:center;gap:36px;text-decoration:none}
 
-/* 큰 히어로 카드 */
-.pshp-hero{position:relative;display:flex;align-items:center;gap:18px;overflow:hidden;border-radius:22px;padding:44px 40px;text-decoration:none;
-  background:linear-gradient(120deg,#EAF2FF 0%,#F3F8FF 55%,#EAF0FF 100%);border:1px solid #DCE8FB}
-.pshp-hero-txt{flex:1 1 auto;min-width:0;position:relative;z-index:2}
+/* 왼쪽 텍스트 */
+.pshp-txt{flex:1 1 auto;min-width:0}
+.pshp-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .pshp-badge{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #DCE8FB;color:#1A72E8;font-size:12.5px;font-weight:800;padding:7px 13px;border-radius:999px;box-shadow:0 2px 8px rgba(26,114,232,.10)}
-.pshp-title{margin-top:16px;font-size:31px;font-weight:900;color:#0F1F5C;line-height:1.24;letter-spacing:-0.035em}
+.pshp-badge.free{background:#1A72E8;border-color:#1A72E8;color:#fff;box-shadow:0 4px 12px rgba(26,114,232,.28)}
+.pshp-title{margin-top:15px;font-size:32px;font-weight:900;color:#0F1F5C;line-height:1.24;letter-spacing:-0.035em}
 .pshp-title .hl{color:#1A72E8}
-.pshp-desc{margin-top:14px;font-size:14.5px;font-weight:500;color:#4B5563;line-height:1.62}
+.pshp-desc{margin-top:13px;font-size:15px;font-weight:500;color:#4B5563;line-height:1.62}
 .pshp-desc b{color:#1A72E8;font-weight:800}
-.pshp-sub{margin-top:12px;font-size:13.5px;font-weight:700;color:#1A72E8;line-height:1.5}
-.pshp-cta{display:inline-flex;align-items:center;gap:7px;margin-top:22px;background:#1A72E8;color:#fff;font-size:14px;font-weight:800;padding:12px 20px;border-radius:11px;box-shadow:0 6px 16px rgba(26,114,232,.28);transition:transform .12s,box-shadow .12s}
-.pshp-hero:hover .pshp-cta{transform:translateY(-1px);box-shadow:0 10px 22px rgba(26,114,232,.34)}
-.pshp-hero-img{flex:0 0 232px;width:232px;position:relative;z-index:1}
-.pshp-hero-img svg{width:100%;height:auto;display:block}
+.pshp-cta{display:inline-flex;align-items:center;gap:7px;margin-top:22px;background:#1A72E8;color:#fff;font-size:14.5px;font-weight:800;padding:13px 22px;border-radius:12px;box-shadow:0 6px 16px rgba(26,114,232,.28);transition:transform .12s,box-shadow .12s}
+.pshp-in:hover .pshp-cta{transform:translateY(-1px);box-shadow:0 10px 22px rgba(26,114,232,.34)}
 
-/* 작은 사이드 카드 (무료 반환) */
-.pshp-side{position:relative;display:flex;flex-direction:column;overflow:hidden;border-radius:22px;padding:26px 24px;text-decoration:none;
-  background:linear-gradient(150deg,#1A72E8 0%,#2C63D8 60%,#0F1F5C 100%);border:1px solid #1A5FCF}
-.pshp-badge2{align-self:flex-start;background:rgba(255,255,255,.16);color:#fff;font-size:11.5px;font-weight:800;padding:5px 11px;border-radius:999px;backdrop-filter:blur(2px)}
-.pshp-side-h{margin-top:14px;font-size:20px;font-weight:900;color:#fff;line-height:1.32;letter-spacing:-0.03em}
-.pshp-side-h span{color:#BFD8FF}
-.pshp-side-sub{margin-top:9px;font-size:12.5px;font-weight:600;color:#CFE0FB;line-height:1.5}
-.pshp-side-img{margin-top:auto;align-self:flex-end;width:96px}
-.pshp-side-img svg{width:100%;height:auto;display:block}
+/* 오른쪽 사진 슬롯 */
+.pshp-photo{flex:0 0 380px;width:380px;position:relative}
+.pshp-photo svg{width:100%;height:auto;display:block}
+.pshp-photo img{display:none}
+.pshp-photo.has-img svg{display:none}
+.pshp-photo.has-img img{display:block;width:100%;height:auto;border-radius:18px}
 
 /* ===== 반응형 ===== */
-@media (max-width:960px){
-  .pshp-in{grid-template-columns:1fr 240px;gap:14px}
-  .pshp-hero{padding:34px 28px;gap:10px}
-  .pshp-title{font-size:26px}
-  .pshp-hero-img{flex-basis:170px;width:170px}
+@media (max-width:1000px){
+  .pshp-in{gap:24px}
+  .pshp-title{font-size:27px}
+  .pshp-photo{flex-basis:300px;width:300px}
 }
-@media (max-width:700px){
-  .pshp{padding:8px 14px}
-  .pshp-in{grid-template-columns:1fr;gap:10px}
-  .pshp-hero{padding:26px 20px}
+@media (max-width:760px){
+  .pshp{--pshp-pad:28px}
+  .pshp-in{flex-direction:column;align-items:flex-start;gap:18px;padding:var(--pshp-pad) 18px}
   .pshp-title{font-size:23px}
   .pshp-desc{font-size:13.5px}
-  .pshp-hero-img{flex-basis:120px;width:120px;position:absolute;right:14px;bottom:14px;opacity:.9}
-  .pshp-side{padding:22px 20px}
-  .pshp-side .pshp-side-img{margin-top:14px;width:82px}
-  .pshp-side-h{font-size:19px}
+  .pshp-photo{flex-basis:auto;width:100%;max-width:340px;align-self:center}
 }
 </style>
-<div class="pshp-in">
+<a class="pshp-in" href="/pourstore_renewal/package/pour-package.html">
 
-  <!-- 큰 히어로 카드 -->
-  <a class="pshp-hero" href="/pourstore_renewal/package/pour-package.html">
-    <div class="pshp-hero-txt">
+  <div class="pshp-txt">
+    <div class="pshp-chips">
       <span class="pshp-badge">📦 올인원 패키지</span>
-      <h3 class="pshp-title">패키지로 쉽게,<br><span class="hl">부담 없이 시공해요</span></h3>
-      <p class="pshp-desc">필요한 자재만 패키지로 한 번에. 편하게 구매하고,<br>쓰고 <b>남은 자재는 무료로 반환</b>해 드려요.</p>
-      <p class="pshp-sub">쉽고 · 빠르게 · 부담 없이 — 딱 필요한 만큼만 🙆</p>
-      <span class="pshp-cta">패키지 보러가기 →</span>
+      <span class="pshp-badge free">남은 자재 무료 반환</span>
     </div>
-    <div class="pshp-hero-img" aria-hidden="true">
-      <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="120" cy="182" rx="92" ry="12" fill="#1A72E8" opacity=".10"/>
-        <!-- 택배 박스 -->
-        <path d="M60 96l60-26 60 26-60 26-60-26z" fill="#4A93F5"/>
-        <path d="M60 96v56l60 26v-56L60 96z" fill="#1A72E8"/>
-        <path d="M180 96v56l-60 26v-56l60-26z" fill="#155FC7"/>
-        <path d="M90 83l60 26v20l-12 5v-17l-48-21v-13z" fill="#0F1F5C" opacity=".85"/>
-        <!-- 롤러 -->
-        <rect x="150" y="40" width="42" height="20" rx="5" fill="#E8780F"/>
-        <rect x="168" y="58" width="5" height="20" fill="#0F1F5C"/>
-        <rect x="162" y="76" width="17" height="9" rx="3" fill="#0F1F5C"/>
-        <!-- 붓 -->
-        <rect x="52" y="34" width="9" height="40" rx="4" fill="#0F1F5C" transform="rotate(18 56 54)"/>
-        <path d="M44 78l12 4 6-14-12-4-6 14z" fill="#E8780F" transform="rotate(18 52 78)"/>
-        <!-- 반짝임 -->
-        <circle cx="200" cy="96" r="4" fill="#F49A3A"/>
-        <circle cx="40" cy="120" r="3" fill="#4A93F5"/>
-      </svg>
-    </div>
-  </a>
+    <h3 class="pshp-title">패키지로 쉽게, <span class="hl">부담 없이 시공해요</span></h3>
+    <p class="pshp-desc">필요한 자재만 패키지로 한 번에 — 편하게 구매하고, 쓰고 <b>남은 자재는 무료로 반환</b>.<br>쉽고 · 빠르게 · 부담 없이, 딱 필요한 만큼만 쓰세요.</p>
+    <span class="pshp-cta">패키지 보러가기 →</span>
+  </div>
 
-  <!-- 작은 사이드 카드 : 무료 반환 -->
-  <a class="pshp-side" href="/pourstore_renewal/package/pour-package.html">
-    <span class="pshp-badge2">무료 반환</span>
-    <div class="pshp-side-h">쓴 만큼만 결제,<br><span>남으면 그대로 반품</span></div>
-    <div class="pshp-side-sub">부담 없이 넉넉하게 받고, 남은 건 돌려주세요.</div>
-    <div class="pshp-side-img" aria-hidden="true">
-      <svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M20 40l28-13 28 13-28 13-28-13z" fill="#BFD8FF"/>
-        <path d="M20 40v26l28 13V53L20 40z" fill="#fff" opacity=".9"/>
-        <path d="M76 40v26L48 79V53l28-13z" fill="#DCE8FB"/>
-        <!-- 반환 화살표 -->
-        <path d="M54 20a16 16 0 1 1-14 8" stroke="#fff" stroke-width="5" stroke-linecap="round" fill="none"/>
-        <path d="M38 16l2 14 13-6-15-8z" fill="#fff"/>
-      </svg>
-    </div>
-  </a>
+  <div class="pshp-photo" data-pkg-slot="package-hero" aria-hidden="true">
+    <svg viewBox="0 0 380 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="380" height="240" rx="18" fill="#fff" opacity=".55"/>
+      <ellipse cx="190" cy="212" rx="120" ry="14" fill="#1A72E8" opacity=".10"/>
+      <!-- 택배 박스 -->
+      <path d="M120 118l70-30 70 30-70 30-70-30z" fill="#4A93F5"/>
+      <path d="M120 118v64l70 30v-64l-70-30z" fill="#1A72E8"/>
+      <path d="M260 118v64l-70 30v-64l70-30z" fill="#155FC7"/>
+      <path d="M155 103l70 30v22l-13 5v-19l-57-25v-13z" fill="#0F1F5C" opacity=".85"/>
+      <!-- 롤러 -->
+      <rect x="238" y="52" width="48" height="22" rx="6" fill="#E8780F"/>
+      <rect x="259" y="72" width="6" height="22" fill="#0F1F5C"/>
+      <rect x="252" y="92" width="20" height="10" rx="3" fill="#0F1F5C"/>
+      <!-- 붓 -->
+      <rect x="104" y="44" width="10" height="46" rx="5" fill="#0F1F5C" transform="rotate(18 109 67)"/>
+      <path d="M92 92l14 5 7-16-14-5-7 16z" fill="#E8780F" transform="rotate(18 102 92)"/>
+      <!-- 무료반환 화살표 배지 -->
+      <circle cx="300" cy="150" r="26" fill="#1A72E8"/>
+      <path d="M304 134a14 14 0 1 1-12 7" stroke="#fff" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+      <path d="M290 131l1.5 12 11-5-12.5-7z" fill="#fff"/>
+      <!-- 반짝임 -->
+      <circle cx="330" cy="86" r="4" fill="#F49A3A"/>
+      <circle cx="78" cy="140" r="3" fill="#4A93F5"/>
+    </svg>
+  </div>
 
-</div>
+</a>
+<!-- 어드민 사진 자동 교체: Storage POUR스토어_리뉴얼/main-sections/package-hero.* -->
+<script>
+(function(){
+  var sec = document.currentScript.closest('.pshp'); if(!sec) return;
+  var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'
+    + encodeURIComponent('POUR스토어_리뉴얼') + '%2F' + encodeURIComponent('main-sections') + '%2F';
+  Array.prototype.forEach.call(sec.querySelectorAll('[data-pkg-slot]'), function(box){
+    var key = box.getAttribute('data-pkg-slot');
+    var cands = [key+'.png', key+'.jpg', key+'.webp', key+'.png.png', key+'.jpg.png'];
+    var img = document.createElement('img'); img.alt=''; img.loading='lazy'; img.decoding='async';
+    function tryLoad(k){ if(k>=cands.length) return;
+      img.onerror=function(){ tryLoad(k+1); };
+      img.onload=function(){ box.classList.add('has-img'); };
+      img.src = BASE + encodeURIComponent(cands[k]) + '?alt=media';
+    }
+    tryLoad(0); box.appendChild(img);
+  });
+})();
+</script>
 </section>

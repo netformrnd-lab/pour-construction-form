@@ -23,10 +23,11 @@
 .pqc-lbl{display:flex;flex-direction:column;background:#fff;border:1px solid #F1E3D3;border-radius:14px;padding:8px 13px;box-shadow:0 6px 20px rgba(15,31,92,.14);line-height:1.25;text-align:right;cursor:pointer}
 .pqc-lbl .t{font-size:13px;font-weight:800;color:#111;letter-spacing:-0.03em}
 .pqc-lbl .s{font-size:11px;font-weight:600;color:#E8780F;letter-spacing:-0.02em;margin-top:1px}
-.pqc-fab{position:relative;width:64px;height:64px;flex-shrink:0;border-radius:50%;background:#fff;box-shadow:0 0 0 3px #E8780F,0 8px 24px rgba(232,120,15,.36);cursor:pointer;display:block;transition:transform .18s ease}
-.pqc-fab:hover{transform:translateY(-3px) scale(1.04)}
+.pqc-fab{position:relative;width:64px;height:64px;flex-shrink:0;border-radius:50%;background:#fff;box-shadow:0 0 0 3px #E8780F,0 8px 24px rgba(232,120,15,.36);cursor:pointer;display:block;animation:pqcFloat 2.8s ease-in-out infinite;transition:filter .18s ease}
+.pqc-fab:hover{filter:brightness(1.06)}
 .pqc-fab::before{content:'';position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 3px #E8780F;animation:pqcPulse 2.2s ease-out infinite;pointer-events:none}
 @keyframes pqcPulse{0%{transform:scale(1);opacity:.7}70%{transform:scale(1.32);opacity:0}100%{opacity:0}}
+@keyframes pqcFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
 .pqc-ico{position:relative;z-index:1;width:100%;height:100%;border-radius:50%;object-fit:cover;object-position:center;display:block}
 .pqc-badge{position:absolute;top:-2px;right:-2px;z-index:2;min-width:19px;height:19px;padding:0 5px;border-radius:10px;background:#EF4444;color:#fff;font-size:10.5px;font-weight:800;display:none;place-items:center;border:2px solid #fff;line-height:1}
 .pqc-launcher.pqc-unread .pqc-badge{display:grid;animation:pqcBadge 1.4s ease-in-out infinite}
@@ -134,7 +135,7 @@
   /* iOS: 입력창 글자 16px 미만이면 포커스 시 화면이 확대돼 불편 → 16px로 고정해 자동확대 방지 */
   .pqc-inbar textarea,.pqc-notify-in{font-size:16px}
 }
-@media (prefers-reduced-motion:reduce){ .pqc-fab::before{animation:none;opacity:0} }
+@media (prefers-reduced-motion:reduce){ .pqc-fab::before{animation:none;opacity:0} .pqc-fab{animation:none} }
 </style>
 
 <div class="pqc-launcher" data-pqc-launcher>

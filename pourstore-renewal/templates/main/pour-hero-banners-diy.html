@@ -47,6 +47,11 @@ body{
 .b-title{font-weight:900;letter-spacing:-0.04em;line-height:1.22;font-size:33px;}
 .b-title .or{color:var(--or);}
 .b-sub{margin-top:12px;font-weight:500;font-size:15px;letter-spacing:-0.02em;line-height:1.55;color:var(--ink2);max-width:24em;}
+/* 신뢰 칩(실적/검증) — 굵기 아닌 색으로 강조 */
+.chips{margin-top:14px;display:flex;flex-wrap:wrap;gap:7px;max-width:30em;}
+.chip{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:11.5px;letter-spacing:-0.02em;color:var(--navy);background:rgba(255,255,255,.78);border:1px solid rgba(15,31,92,.1);padding:5px 10px;border-radius:999px;}
+.chip b{color:var(--or);font-weight:900;}
+.h2 .chip b{color:var(--green);}
 .b-cta{margin-top:22px;align-self:flex-start;display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:14px;letter-spacing:-0.02em;padding:11px 20px;border-radius:999px;background:var(--navy);color:#fff;}
 .b-cta.or{background:var(--or);}
 .jua{font-family:'Jua','Pretendard Variable',sans-serif;font-weight:400;letter-spacing:-0.01em;}
@@ -129,10 +134,10 @@ body{
 <body>
 <div class="wrap">
   <div class="doc-h">POUR스토어 메인 히어로 배너 — B2C DIY 리뉴얼 시안</div>
-  <div class="doc-sub">큰것(히어로 16:9) + 작은것(사이드 카드) × 3세트 · 안전모·협력업체 등 B2B 요소 제거, 셀프시공·후기·초보자 친화 톤</div>
+  <div class="doc-sub">큰것(히어로 16:9) + 작은것(사이드 카드) × 3세트 · 안전모·협력업체 요소 제거 + <b>검증된 자재(아파트 260만 세대)</b> 신뢰축 결합 → "셀프로 해도 시공품질 그대로"</div>
 
   <!-- ============ 세트 1 ============ -->
-  <div class="set-label"><span class="num">1</span>혼자서도 충분해요 <span class="concept">· 올인원 셀프패키지 · 자신감/안심</span></div>
+  <div class="set-label"><span class="num">1</span>아파트가 쓰던 검증 자재 <span class="concept">· 260만 세대 시공이력 · 셀프 전환</span></div>
   <div class="hero"><div class="hero-inner">
     <!-- 큰것 -->
     <a class="bnr h1" href="javascript:void(0)">
@@ -154,11 +159,16 @@ body{
         </svg>
       </div>
       <div class="bnr-in">
-        <span class="eyebrow">🎨 올인원 셀프패키지</span>
-        <div class="b-title">건축물 유지보수,<br><span class="or">혼자서도</span> 충분해요</div>
-        <div class="b-sub">자재 + 상세 설명서 + 시공 매칭까지. 필요한 걸 한 번에 담은 셀프시공 패키지.</div>
-        <span class="jua" style="margin-top:14px;font-size:15px;color:#B45309;">혼자 하는 게 아니에요, POUR가 함께해요 😊</span>
-        <span class="b-cta or" style="margin-top:18px;">패키지 보러가기 →</span>
+        <span class="eyebrow">🏢 아파트 260만 세대가 검증한 자재</span>
+        <div class="b-title">아파트가 쓰던 그 자재,<br>이제 <span class="or">집에서 셀프로</span></div>
+        <div class="chips">
+          <span class="chip">🏢 아파트 <b>260만 세대</b> 시공</span>
+          <span class="chip">🏅 특허 <b>70+</b></span>
+          <span class="chip">🔬 공인시험 검증</span>
+        </div>
+        <div class="b-sub">관리소장님들이 따로 찾던 전문가용 자재. 이제 누구나 소량으로 만나보세요.</div>
+        <span class="jua" style="margin-top:12px;font-size:15px;color:#B45309;">검증은 저희가, 시공은 쉽게 도와드릴게요 😊</span>
+        <span class="b-cta or" style="margin-top:16px;">검증 자재 보러가기 →</span>
       </div>
     </a>
     <!-- 작은것 -->
@@ -182,7 +192,7 @@ body{
   </div></div>
 
   <!-- ============ 세트 2 ============ -->
-  <div class="set-label"><span class="num">2</span>주말 셀프보수 도전 <span class="concept">· 초보자 친화 · 가이드 영상</span></div>
+  <div class="set-label"><span class="num">2</span>셀프도 시공품질 그대로 <span class="concept">· 전문가용 자재 + 가이드 · 품질 보증</span></div>
   <div class="hero"><div class="hero-inner">
     <a class="bnr h2" href="javascript:void(0)">
       <div class="art" aria-hidden="true">
@@ -201,9 +211,13 @@ body{
       </div>
       <div class="bnr-in">
         <span class="eyebrow">🛠 이번 주말 DIY</span>
-        <div class="b-title">누수·균열 걱정,<br>주말에 <span class="or">셀프로</span> 끝내요</div>
-        <div class="b-sub">가이드 영상 그대로 따라 하면 처음이어도 OK. 실패 없는 소용량 패키지부터 시작하세요.</div>
-        <span class="jua" style="margin-top:14px;font-size:15px;color:#047857;">처음이어도 괜찮아요, 천천히 같이 해봐요 👍</span>
+        <div class="b-title">가이드대로만 하면<br><span class="or">셀프도 시공품질 그대로</span></div>
+        <div class="chips">
+          <span class="chip">🎥 영상 가이드 제공</span>
+          <span class="chip">🧰 현장에서 쓰는 <b>전문가용 자재</b></span>
+        </div>
+        <div class="b-sub">아파트 현장에 납품하는 그 자재 그대로. 누수·균열도 초보가 프로처럼 마감해요.</div>
+        <span class="jua" style="margin-top:12px;font-size:15px;color:#047857;">처음이어도 괜찮아요, 천천히 같이 해봐요 👍</span>
         <span class="b-cta" style="margin-top:18px;">시공가이드 보기 →</span>
       </div>
     </a>
@@ -228,7 +242,7 @@ body{
   </div></div>
 
   <!-- ============ 세트 3 ============ -->
-  <div class="set-label"><span class="num">3</span>후기가 증명해요 <span class="concept">· 리뷰 중심 · 동네 시공 매칭(소비자)</span></div>
+  <div class="set-label"><span class="num">3</span>후기로 증명된 우리 집 <span class="concept">· B2B→B2C 스토리 · 리뷰 · 동네 매칭</span></div>
   <div class="hero"><div class="hero-inner">
     <a class="bnr h3" href="javascript:void(0)">
       <div class="art" aria-hidden="true">
@@ -246,10 +260,10 @@ body{
         </svg>
       </div>
       <div class="bnr-in">
-        <span class="eyebrow">⭐ 리얼 후기</span>
-        <div class="b-title">후기가 증명해요,<br><span class="or">셀프로 끝낸</span> 우리 집</div>
+        <span class="eyebrow">⭐ B2B→B2C 오픈 · 리얼 후기</span>
+        <div class="b-title">아파트에만 납품하던 자재,<br><span class="or">후기로 증명된</span> 우리 집 셀프</div>
         <div class="stars"><span class="st">★★★★★</span><span class="sc">4.9</span><span class="rv">셀프시공 후기 1,200+</span></div>
-        <div class="b-sub">먼저 해본 이웃들의 진짜 후기로 자재를 고르세요. 사진 후기·시공 팁까지 한눈에.</div>
+        <div class="b-sub">관리소장님 구매 요청이 많아 이제 집으로. 먼저 해본 이웃 후기로 안심하고 고르세요.</div>
         <span class="b-cta" style="margin-top:18px;">후기 보러가기 →</span>
       </div>
     </a>

@@ -6924,7 +6924,7 @@ function HomeCardsPage({showToast}){
   const normGrid=(v)=>Array.isArray(v)?v.map(c=>({image:c.image||'',title:c.title||'',meta:c.meta||'',price:c.price||'',unit:c.unit||'',link:c.link||'',cat:c.cat||'',brand:c.brand||'',badge:c.badge||''})):[];
   const normSw=(v)=>{ v=v||{}; const o={}; HC_SWATCHES.forEach(s=>{ const x=v[s.key]||{}; o[s.key]={image:x.image||'',label:x.label||'',sub:x.sub||''}; }); return o; };
   const normSrc=(v)=>{ v=v||{}; const c=v.cats||{}; const stored=HC_GRID_CATS.some(g=>String(c[g.key]||'').trim()); const cats={}; HC_GRID_CATS.forEach(g=>{ cats[g.key]= stored ? String(c[g.key]||'').trim() : (HC_SRC_DEFAULT[g.key]||''); }); return {limit:Number(v.limit)>0?Number(v.limit):8, cats}; };
-  const [data,setData]=useState({hero:[],metal:normMat(),wood:normMat(),stone:normMat(),extraMaterials:[],matOrder:normMatOrder(),homeGrid:[],homeSwatches:normSw(),homeGridSource:normSrc()});
+  const [data,setData]=useState({hero:[],packageBg:'',metal:normMat(),wood:normMat(),stone:normMat(),extraMaterials:[],matOrder:normMatOrder(),homeGrid:[],homeSwatches:normSw(),homeGridSource:normSrc()});
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState(null);
@@ -6932,7 +6932,7 @@ function HomeCardsPage({showToast}){
   useEffect(()=>{ (async()=>{
     try{
       const d=await db.collection('config').doc('pourstoreHomeCards').get();
-      if(d.exists){ const v=d.data()||{}; const extra=normExtra(v.extraMaterials); setData({hero:normHero(v.hero),metal:normMat(v.metal),wood:normMat(v.wood),stone:normMat(v.stone),extraMaterials:extra,matOrder:normMatOrder(v.matOrder,extra.map(e=>e.key)),homeGrid:normGrid(v.homeGrid),homeSwatches:normSw(v.homeSwatches),homeGridSource:normSrc(v.homeGridSource)}); }
+      if(d.exists){ const v=d.data()||{}; const extra=normExtra(v.extraMaterials); setData({hero:normHero(v.hero),packageBg:v.packageBg||'',metal:normMat(v.metal),wood:normMat(v.wood),stone:normMat(v.stone),extraMaterials:extra,matOrder:normMatOrder(v.matOrder,extra.map(e=>e.key)),homeGrid:normGrid(v.homeGrid),homeSwatches:normSw(v.homeSwatches),homeGridSource:normSrc(v.homeGridSource)}); }
       console.log('[homecards] 로드', d.exists);
     }catch(e){ console.error('[homecards] 로드 실패:',e); showToast('로드 실패: '+e.message,'error'); }
     setLoading(false);
@@ -6997,7 +6997,7 @@ function HomeCardsPage({showToast}){
       const homeGridSource={limit:Number(data.homeGridSource.limit)>0?Number(data.homeGridSource.limit):8, cats:gsCats};
       const extraMaterials=data.extraMaterials.filter(e=>e.key).map(e=>({key:e.key,label:(e.label||'').trim(),title:(e.title||'').trim(),sub:(e.sub||'').trim(),cards:e.cards.filter(c=>c.image).map(c=>({image:c.image,link:(c.link||'').trim(),title:(c.title||'').trim(),hashtags:(c.hashtags||'').trim(),ment:(c.ment||'').trim()}))}));
       const extraKeys=extraMaterials.map(e=>e.key);
-      await db.collection('config').doc('pourstoreHomeCards').set({hero,metal:mat(data.metal),wood:mat(data.wood),stone:mat(data.stone),extraMaterials,matOrder:normMatOrder(data.matOrder,extraKeys),homeGrid,homeSwatches,homeGridSource,...audit.update()},{merge:true});
+      await db.collection('config').doc('pourstoreHomeCards').set({hero,packageBg:(data.packageBg||'').trim(),metal:mat(data.metal),wood:mat(data.wood),stone:mat(data.stone),extraMaterials,matOrder:normMatOrder(data.matOrder,extraKeys),homeGrid,homeSwatches,homeGridSource,...audit.update()},{merge:true});
       showToast('저장되었습니다 — 스토어에 반영됩니다');
     }catch(e){ console.error('[homecards] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
     setSaving(false);
@@ -7052,6 +7052,28 @@ function HomeCardsPage({showToast}){
           })}
         </div>
         <button onClick={heroAdd} style={{marginTop:12,width:'100%',padding:10,borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>+ 슬라이드 추가</button>
+      </div>
+
+      {/* ===== 패키지 배너 배경사진 (메인 섹션2 아래 풀폭 배너) ===== */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>
+        <div style={{fontSize:15,fontWeight:900,color:'var(--navy)',marginBottom:2}}>📦 패키지 배너 배경사진</div>
+        <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:12}}>메인 "패키지로 쉽게 시공" 풀폭 배너의 전체 배경입니다. 올리면 자동으로 블러+밝은 스크림 처리되어 글자·도형이 잘 보입니다 · 권장 1920×420(가로로 넓은 사진) · 비우면 기본 파란 그라데이션</div>
+        {(()=>{ const up=uploading==='pkgbg'; return (
+        <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
+          <div style={{position:'relative',width:280,flexShrink:0,aspectRatio:'1920 / 420',borderRadius:8,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            {data.packageBg?<img src={data.packageBg} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontSize:11,color:'var(--text-sm)',fontWeight:700}}>기본 그라데이션</span>}
+            {up&&<div style={{position:'absolute',inset:0,background:'rgba(255,255,255,.7)',display:'grid',placeItems:'center',fontSize:11,fontWeight:800,color:'var(--or-d)'}}>업로드중</div>}
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <label style={{display:'inline-block',padding:'9px 14px',borderRadius:8,border:'1.5px solid var(--or)',color:'var(--or-d)',background:'#fff',fontSize:12,fontWeight:800,cursor:up?'wait':'pointer'}}>
+              {data.packageBg?'배경 교체':'배경 업로드'}
+              <input type="file" accept="image/png,image/jpeg,image/webp" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload('pkgbg',f,url=>setData(p=>({...p,packageBg:url}))); e.target.value='';}} style={{display:'none'}}/>
+            </label>
+            {data.packageBg&&<button onClick={()=>setData(p=>({...p,packageBg:''}))} style={{marginLeft:8,padding:'9px 14px',borderRadius:8,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontSize:12,fontWeight:800,cursor:'pointer'}}>제거</button>}
+            <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginTop:10,lineHeight:1.6}}>· 사진을 올린 뒤 <b>하단 저장 버튼</b>을 눌러야 스토어에 반영됩니다.<br/>· 확인은 스토어 메인에서 <b>시크릿창(Ctrl+Shift+R)</b>.</div>
+          </div>
+        </div>
+        ); })()}
       </div>
 
       {/* ===== 소재별 라인 (순서 변경 가능 → 스토어 노출 순서 반영) ===== */}

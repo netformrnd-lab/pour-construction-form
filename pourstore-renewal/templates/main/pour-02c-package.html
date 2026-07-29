@@ -8,11 +8,9 @@
   ▸ 폰트: Pretendard (헤더가 이미 로드). 테마: POUR 블루 #1A72E8
 
   ★ 세로 높이 조절: 아래 .pshp 의 --pshp-pad 값(위아래 여백)만 바꾸면 됩니다. (기본 48px)
-  ★ 배경사진 교체(어드민) — quick-icons 와 동일 방식:
-    Firebase Storage 경로  POUR스토어_리뉴얼/main-sections/  아래에
-      · package-bg.png (또는 .jpg/.webp)  ← 배너 전체 배경사진 (권장 1920×420, 가로 넓은 현장사진)
-        └ 자동으로 블러 + 밝은 스크림 처리되어 글자·도형이 잘 보입니다.
-    파일을 올리면 배경으로 자동 적용, 없으면 파란 그라데이션 유지.
+  ★ 배경사진 교체(어드민): 어드민 → "홈 소재별 카드 관리" → 📦 패키지 배너 배경사진 에서 업로드.
+    (config/pourstoreHomeCards.packageBg 에 저장 → 이 섹션이 읽어 자동 적용)
+    자동으로 블러 + 밝은 스크림 처리되어 글자·도형이 잘 보입니다. 없으면 파란 그라데이션 유지.
 ============================================================ -->
 <section class="pshp" style="--pshp-pad:48px">
 <style>
@@ -59,7 +57,7 @@
   .pshp-cta{margin-top:14px;padding:11px 18px;font-size:13.5px}
 }
 </style>
-<div class="pshp-bg" data-pkg-slot="package-bg" data-bg aria-hidden="true"></div>
+<div class="pshp-bg" aria-hidden="true"></div>
 <div class="pshp-scrim" aria-hidden="true"></div>
 <a class="pshp-in" href="https://pourstore.cafe24.com/pourstore_renewal/package/pour-package.html">
 
@@ -78,29 +76,23 @@
   </div>
 
 </a>
-<!-- 어드민 배경사진 자동 교체: Storage POUR스토어_리뉴얼/main-sections/package-bg.* -->
+<!-- 배경사진: 어드민 '홈 소재별 카드 관리' → 패키지 배너 배경사진 (config/pourstoreHomeCards.packageBg) -->
 <script>
 (function(){
   var sec = document.currentScript.closest('.pshp'); if(!sec) return;
-  var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'
-    + encodeURIComponent('POUR스토어_리뉴얼') + '%2F' + encodeURIComponent('main-sections') + '%2F';
-  Array.prototype.forEach.call(sec.querySelectorAll('[data-pkg-slot]'), function(box){
-    var key = box.getAttribute('data-pkg-slot');
-    var isBg = box.hasAttribute('data-bg');
-    var cands = [key+'.png', key+'.jpg', key+'.webp', key+'.png.png', key+'.jpg.png'];
-    var probe = new Image();
-    function ok(url){
-      if(isBg){ box.style.backgroundImage='url("'+url+'")'; box.classList.add('has-img'); sec.classList.add('has-bg'); }
-      else { var im=document.createElement('img'); im.alt=''; im.loading='lazy'; im.decoding='async'; im.src=url; box.appendChild(im); box.classList.add('has-img'); }
-    }
-    function tryLoad(k){ if(k>=cands.length) return;
-      var url = BASE + encodeURIComponent(cands[k]) + '?alt=media';
-      probe.onerror=function(){ tryLoad(k+1); };
-      probe.onload=function(){ ok(url); };
-      probe.src = url;
-    }
-    tryLoad(0);
-  });
+  var bg = sec.querySelector('.pshp-bg'); if(!bg) return;
+  (async function(){
+    try{
+      var a=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      var fs=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      var cfg={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
+      var app=a.getApps().length?a.getApps()[0]:a.initializeApp(cfg);
+      var snap=await fs.getDoc(fs.doc(fs.getFirestore(app),'config','pourstoreHomeCards'));
+      var url=snap.exists()?((snap.data()||{}).packageBg||''):'';
+      if(url){ bg.style.backgroundImage='url("'+url+'")'; bg.classList.add('has-img'); sec.classList.add('has-bg'); }
+      else { console.log('[pkg-banner] 배경사진 없음 — 기본 그라데이션'); }
+    }catch(e){ console.log('[pkg-banner] 배경 로드 스킵:', e&&e.message?e.message:e); }
+  })();
 })();
 </script>
 </section>

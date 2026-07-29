@@ -6909,6 +6909,9 @@ const HC_MATERIALS=[
   {key:'wood',  label:'목재 라인', hint:'"목재를 고치고 싶다면?" 줄', dtitle:'목재를 고치고 싶다면?', dsub:'갈라짐·변색·습기까지 — POUR 자재로 한 번에 해결하세요'},
   {key:'stone', label:'돌·시멘트 라인', hint:'"돌·시멘트를 고치고 싶다면?" 줄', dtitle:'돌·시멘트를 고치고 싶다면?', dsub:'균열·박락·백화까지 — POUR 자재로 한 번에 해결하세요'},
 ];
+const HC_MAT_BY={}; HC_MATERIALS.forEach(m=>{HC_MAT_BY[m.key]=m;});
+const HC_MAT_KEYS=HC_MATERIALS.map(m=>m.key);   // ['metal','wood','stone']
+const normMatOrder=(v)=>{ const a=Array.isArray(v)?v.filter(k=>HC_MAT_KEYS.includes(k)):[]; HC_MAT_KEYS.forEach(k=>{ if(!a.includes(k)) a.push(k); }); return a; };
 const HC_GRID_CATS=[{key:'wallpaper',label:'벽지'},{key:'wood',label:'목재'},{key:'metal',label:'철재'},{key:'glass',label:'유리'},{key:'cement',label:'시멘트/벽돌'}];
 const HC_SWATCHES=[{key:'all',label:'인기',sub:'BEST SELLER'},{key:'wallpaper',label:'벽지',sub:'도배·시트·풀'},{key:'wood',label:'목재',sub:'우드·마루'},{key:'metal',label:'철재',sub:'메탈·방청'},{key:'glass',label:'유리',sub:'글래스·코팅'},{key:'cement',label:'시멘트/벽돌',sub:'벽돌·균열·보수'}];
 const HC_SRC_DEFAULT={wallpaper:'98',wood:'99',metal:'100',glass:'101',cement:'102'};   // 카페24 홈데코 분류번호 기본값
@@ -6920,7 +6923,7 @@ function HomeCardsPage({showToast}){
   const normGrid=(v)=>Array.isArray(v)?v.map(c=>({image:c.image||'',title:c.title||'',meta:c.meta||'',price:c.price||'',unit:c.unit||'',link:c.link||'',cat:c.cat||'',brand:c.brand||'',badge:c.badge||''})):[];
   const normSw=(v)=>{ v=v||{}; const o={}; HC_SWATCHES.forEach(s=>{ const x=v[s.key]||{}; o[s.key]={image:x.image||'',label:x.label||'',sub:x.sub||''}; }); return o; };
   const normSrc=(v)=>{ v=v||{}; const c=v.cats||{}; const stored=HC_GRID_CATS.some(g=>String(c[g.key]||'').trim()); const cats={}; HC_GRID_CATS.forEach(g=>{ cats[g.key]= stored ? String(c[g.key]||'').trim() : (HC_SRC_DEFAULT[g.key]||''); }); return {limit:Number(v.limit)>0?Number(v.limit):8, cats}; };
-  const [data,setData]=useState({hero:[],metal:normMat(),wood:normMat(),stone:normMat(),homeGrid:[],homeSwatches:normSw(),homeGridSource:normSrc()});
+  const [data,setData]=useState({hero:[],metal:normMat(),wood:normMat(),stone:normMat(),matOrder:normMatOrder(),homeGrid:[],homeSwatches:normSw(),homeGridSource:normSrc()});
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState(null);
@@ -6928,7 +6931,7 @@ function HomeCardsPage({showToast}){
   useEffect(()=>{ (async()=>{
     try{
       const d=await db.collection('config').doc('pourstoreHomeCards').get();
-      if(d.exists){ const v=d.data()||{}; setData({hero:normHero(v.hero),metal:normMat(v.metal),wood:normMat(v.wood),stone:normMat(v.stone),homeGrid:normGrid(v.homeGrid),homeSwatches:normSw(v.homeSwatches),homeGridSource:normSrc(v.homeGridSource)}); }
+      if(d.exists){ const v=d.data()||{}; setData({hero:normHero(v.hero),metal:normMat(v.metal),wood:normMat(v.wood),stone:normMat(v.stone),matOrder:normMatOrder(v.matOrder),homeGrid:normGrid(v.homeGrid),homeSwatches:normSw(v.homeSwatches),homeGridSource:normSrc(v.homeGridSource)}); }
       console.log('[homecards] 로드', d.exists);
     }catch(e){ console.error('[homecards] 로드 실패:',e); showToast('로드 실패: '+e.message,'error'); }
     setLoading(false);
@@ -6946,6 +6949,8 @@ function HomeCardsPage({showToast}){
   const cardRemove=(key,i)=>matSet(key,{cards:data[key].cards.filter((_,x)=>x!==i)});
   const cardPatch=(key,i,part)=>matSet(key,{cards:data[key].cards.map((c,x)=>x===i?{...c,...part}:c)});
   const cardMove=(key,i,dir)=>{const a=[...data[key].cards];const j=i+dir;if(j<0||j>=a.length)return;const t=a[i];a[i]=a[j];a[j]=t;matSet(key,{cards:a});};
+  // 소재 라인(철재/목재/돌·시멘트) 순서 이동 — 스토어 pour-02-best 노출 순서에 반영
+  const matMove=(i,dir)=>setData(p=>{const a=[...p.matOrder];const j=i+dir;if(j<0||j>=a.length)return p;const t=a[i];a[i]=a[j];a[j]=t;return{...p,matOrder:a};});
 
   // 재질별 진열(홈 그리드) ops
   const gridAdd=()=>setData(p=>({...p,homeGrid:[...p.homeGrid,{image:'',title:'',meta:'',price:'',unit:'',link:'',cat:'',brand:'',badge:''}]}));
@@ -6983,7 +6988,7 @@ function HomeCardsPage({showToast}){
       const homeSwatches={}; HC_SWATCHES.forEach(s=>{ const x=data.homeSwatches[s.key]||{}; homeSwatches[s.key]={image:x.image||'',label:(x.label||'').trim(),sub:(x.sub||'').trim()}; });
       const gsCats={}; HC_GRID_CATS.forEach(g=>{ gsCats[g.key]=String((data.homeGridSource.cats||{})[g.key]||'').replace(/[^0-9]/g,''); });
       const homeGridSource={limit:Number(data.homeGridSource.limit)>0?Number(data.homeGridSource.limit):8, cats:gsCats};
-      await db.collection('config').doc('pourstoreHomeCards').set({hero,metal:mat(data.metal),wood:mat(data.wood),stone:mat(data.stone),homeGrid,homeSwatches,homeGridSource,...audit.update()},{merge:true});
+      await db.collection('config').doc('pourstoreHomeCards').set({hero,metal:mat(data.metal),wood:mat(data.wood),stone:mat(data.stone),matOrder:normMatOrder(data.matOrder),homeGrid,homeSwatches,homeGridSource,...audit.update()},{merge:true});
       showToast('저장되었습니다 — 스토어에 반영됩니다');
     }catch(e){ console.error('[homecards] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
     setSaving(false);
@@ -7040,12 +7045,21 @@ function HomeCardsPage({showToast}){
         <button onClick={heroAdd} style={{marginTop:12,width:'100%',padding:10,borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>+ 슬라이드 추가</button>
       </div>
 
-      {/* ===== 소재별 라인 ===== */}
-      {HC_MATERIALS.map(m=>{ const md=data[m.key];
+      {/* ===== 소재별 라인 (순서 변경 가능 → 스토어 노출 순서 반영) ===== */}
+      <div style={{fontSize:12.5,color:'var(--text-md)',fontWeight:800,margin:'4px 2px 10px'}}>📐 소재 라인 순서 <span style={{fontWeight:700,color:'var(--text-sm)'}}>— 각 라인 우측 ↑↓ 로 "고치고 싶다면?" 줄 순서를 바꿉니다 (저장 시 스토어에 그대로 반영)</span></div>
+      {data.matOrder.map((mk,oi)=>{ const m=HC_MAT_BY[mk]; if(!m) return null; const md=data[m.key];
         return (
           <div key={m.key} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>
-            <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}>{m.label} <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>({md.cards.length}장)</span></div>
-            <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:10}}>{m.hint} — 썸네일 아래 <b>해시태그 + 멘트</b>가 노출됩니다. (가격·필터 없음)</div>
+            <div style={{display:'flex',alignItems:'flex-start',gap:10,marginBottom:10}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}><span style={{display:'inline-grid',placeItems:'center',width:22,height:22,borderRadius:'50%',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12,fontWeight:900,marginRight:7,verticalAlign:'middle'}}>{oi+1}</span>{m.label} <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>({md.cards.length}장)</span></div>
+                <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginTop:3}}>{m.hint} — 썸네일 아래 <b>해시태그 + 멘트</b>가 노출됩니다. (가격·필터 없음)</div>
+              </div>
+              <div style={{display:'flex',gap:5,flexShrink:0}}>
+                <button onClick={()=>matMove(oi,-1)} disabled={oi===0} title="위로" style={{width:34,height:34,borderRadius:8,border:'1px solid var(--border)',background:'#fff',fontWeight:800,fontSize:14,cursor:oi===0?'default':'pointer',opacity:oi===0?.35:1}}>↑</button>
+                <button onClick={()=>matMove(oi,1)} disabled={oi===data.matOrder.length-1} title="아래로" style={{width:34,height:34,borderRadius:8,border:'1px solid var(--border)',background:'#fff',fontWeight:800,fontSize:14,cursor:oi===data.matOrder.length-1?'default':'pointer',opacity:oi===data.matOrder.length-1?.35:1}}>↓</button>
+              </div>
+            </div>
 
             {/* 라인 제목·멘트(소제목) 편집 */}
             <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:10,padding:'10px 12px',marginBottom:12}}>

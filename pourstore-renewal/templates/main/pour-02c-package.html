@@ -11,14 +11,22 @@
   ★ 사진 교체(어드민) — quick-icons 와 동일 방식:
     Firebase Storage 경로  POUR스토어_리뉴얼/main-sections/  아래에
       · package-hero.png (또는 .jpg/.webp)  ← 배너 오른쪽 사진 (권장 560×360, 투명 PNG 가능)
-    파일을 올리면 자동으로 기본 일러스트를 대체합니다. 없으면 아래 SVG가 표시됩니다.
+      · package-bg.png   (또는 .jpg/.webp)  ← 배너 전체 배경사진 (권장 1920×420, 가로 넓은 현장사진)
+        └ 자동으로 블러 + 밝은 스크림 처리되어 글자·도형이 잘 보입니다. 없으면 파란 그라데이션 유지.
+    파일을 올리면 자동으로 기본(일러스트/그라데이션)을 대체합니다.
 ============================================================ -->
 <section class="pshp" style="--pshp-pad:48px">
 <style>
 .pshp, .pshp *{box-sizing:border-box;margin:0;padding:0;font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;letter-spacing:-0.02em}
 /* 풀폭 밴드: 가로 처음~끝, 세로는 --pshp-pad 로 조절 */
-.pshp{display:block;width:100%;background:linear-gradient(120deg,#EAF2FF 0%,#F3F8FF 52%,#E8F0FF 100%);border-top:1px solid #E3ECFA;border-bottom:1px solid #E3ECFA}
-.pshp-in{max-width:1256px;margin:0 auto;padding:var(--pshp-pad) 24px;display:flex;align-items:center;gap:36px;text-decoration:none}
+.pshp{position:relative;overflow:hidden;display:block;width:100%;background:linear-gradient(120deg,#EAF2FF 0%,#F3F8FF 52%,#E8F0FF 100%);border-top:1px solid #E3ECFA;border-bottom:1px solid #E3ECFA}
+/* 전체 배경사진 레이어 (어드민 교체, 블러) + 스크림(글자 가독성) — 사진 없으면 둘 다 숨김 */
+.pshp-bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;filter:blur(4px);transform:scale(1.06);opacity:0;transition:opacity .4s}
+.pshp-bg.has-img{opacity:1}
+.pshp-scrim{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;transition:opacity .4s;
+  background:linear-gradient(120deg,rgba(238,244,255,.86) 0%,rgba(246,250,255,.74) 52%,rgba(236,243,255,.86) 100%)}
+.pshp.has-bg .pshp-scrim{opacity:1}
+.pshp-in{position:relative;z-index:2;max-width:1256px;margin:0 auto;padding:var(--pshp-pad) 24px;display:flex;align-items:center;gap:36px;text-decoration:none}
 
 /* 왼쪽 텍스트 */
 .pshp-txt{flex:1 1 auto;min-width:0}
@@ -29,6 +37,11 @@
 .pshp-title .hl{color:#1A72E8}
 .pshp-desc{margin-top:13px;font-size:15px;font-weight:500;color:#4B5563;line-height:1.62}
 .pshp-desc b{color:#1A72E8;font-weight:800}
+/* 혜택 pill (잘 보이게) */
+.pshp-feats{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;list-style:none}
+.pshp-feats li{display:inline-flex;align-items:center;gap:9px;background:#fff;border:1px solid #DCE8FB;border-radius:12px;padding:10px 15px;font-size:13.5px;font-weight:600;color:#0F1F5C;box-shadow:0 2px 10px rgba(26,114,232,.10)}
+.pshp-feats li b{font-weight:800;color:#1A72E8}
+.pshp-feats .ic{flex:0 0 26px;width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:#EFF4FF;font-size:14px}
 .pshp-cta{display:inline-flex;align-items:center;gap:7px;margin-top:22px;background:#1A72E8;color:#fff;font-size:14.5px;font-weight:800;padding:13px 22px;border-radius:12px;box-shadow:0 6px 16px rgba(26,114,232,.28);transition:transform .12s,box-shadow .12s}
 .pshp-in:hover .pshp-cta{transform:translateY(-1px);box-shadow:0 10px 22px rgba(26,114,232,.34)}
 
@@ -53,6 +66,8 @@
   .pshp-photo{flex-basis:auto;width:100%;max-width:340px;align-self:center}
 }
 </style>
+<div class="pshp-bg" data-pkg-slot="package-bg" data-bg aria-hidden="true"></div>
+<div class="pshp-scrim" aria-hidden="true"></div>
 <a class="pshp-in" href="https://pourstore.cafe24.com/pourstore_renewal/package/pour-package.html">
 
   <div class="pshp-txt">
@@ -62,6 +77,10 @@
     </div>
     <h3 class="pshp-title">패키지로 쉽게, <span class="hl">부담 없이 시공해요</span></h3>
     <p class="pshp-desc">필요한 자재만 패키지로 한 번에 — 편하게 구매하고, 쓰고 <b>남은 자재는 무료로 반환</b>.<br>쉽고 · 빠르게 · 부담 없이, 딱 필요한 만큼만 쓰세요.</p>
+    <ul class="pshp-feats">
+      <li><span class="ic">💳</span>쓴 만큼만 결제, <b>남으면 그대로 반품</b></li>
+      <li><span class="ic">🕒</span><b>원하시는 시간</b>에 맞춰 보내드려요</li>
+    </ul>
     <span class="pshp-cta">패키지 보러가기 →</span>
   </div>
 
@@ -100,14 +119,20 @@
     + encodeURIComponent('POUR스토어_리뉴얼') + '%2F' + encodeURIComponent('main-sections') + '%2F';
   Array.prototype.forEach.call(sec.querySelectorAll('[data-pkg-slot]'), function(box){
     var key = box.getAttribute('data-pkg-slot');
+    var isBg = box.hasAttribute('data-bg');
     var cands = [key+'.png', key+'.jpg', key+'.webp', key+'.png.png', key+'.jpg.png'];
-    var img = document.createElement('img'); img.alt=''; img.loading='lazy'; img.decoding='async';
-    function tryLoad(k){ if(k>=cands.length) return;
-      img.onerror=function(){ tryLoad(k+1); };
-      img.onload=function(){ box.classList.add('has-img'); };
-      img.src = BASE + encodeURIComponent(cands[k]) + '?alt=media';
+    var probe = new Image();
+    function ok(url){
+      if(isBg){ box.style.backgroundImage='url("'+url+'")'; box.classList.add('has-img'); sec.classList.add('has-bg'); }
+      else { var im=document.createElement('img'); im.alt=''; im.loading='lazy'; im.decoding='async'; im.src=url; box.appendChild(im); box.classList.add('has-img'); }
     }
-    tryLoad(0); box.appendChild(img);
+    function tryLoad(k){ if(k>=cands.length) return;
+      var url = BASE + encodeURIComponent(cands[k]) + '?alt=media';
+      probe.onerror=function(){ tryLoad(k+1); };
+      probe.onload=function(){ ok(url); };
+      probe.src = url;
+    }
+    tryLoad(0);
   });
 })();
 </script>

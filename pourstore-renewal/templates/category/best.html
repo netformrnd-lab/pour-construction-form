@@ -139,14 +139,16 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 .psm1-hot-item:hover { color:#E8780F; }
 .psm1-hot-item .psm1-hot-rank { font-size:12px; font-weight:800; color:#E8780F; }
 .psm1-hot-thumb { width:18px; height:18px; border-radius:4px; object-fit:cover; flex-shrink:0; background:#F5F6F8; }
-.psm1-hd-util { flex-shrink:0; display:flex; align-items:center; gap:6px; }
-.psm1-hd-util .psm1-cart-link { position:relative; display:inline-flex; width:40px; height:40px; align-items:center; justify-content:center; }
-.psm1-hd-util .psm1-cart { width:24px; height:24px; color:#374151; }
-.psm1-hd-util .psm1-cart-link .count { position:absolute; top:2px; right:0; min-width:17px; height:17px; padding:0 4px; background:#E8780F; color:#fff; font-size:10px; font-weight:800; border-radius:9px; display:grid; place-items:center; line-height:1; }
-.psm1-hd-util .psm1-util-ico { position:relative; display:inline-flex; width:40px; height:40px; align-items:center; justify-content:center; color:#374151; }
+.psm1-hd-util { flex-shrink:0; display:flex; align-items:flex-start; gap:2px; }
+.psm1-hd-util .psm1-cart-link { position:relative; display:inline-flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:4px; min-width:52px; padding:3px 5px 2px; color:#374151; }
+.psm1-hd-util .psm1-cart { width:23px; height:23px; color:#374151; }
+.psm1-hd-util .psm1-cart-link .count { position:absolute; top:-1px; right:9px; min-width:17px; height:17px; padding:0 4px; background:#E8780F; color:#fff; font-size:10px; font-weight:800; border-radius:9px; display:grid; place-items:center; line-height:1; }
+.psm1-hd-util .psm1-util-ico { position:relative; display:inline-flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:4px; min-width:52px; padding:3px 5px 2px; color:#374151; }
 .psm1-hd-util .psm1-util-ico svg { width:21px; height:21px; }
-.psm1-hd-util .psm1-util-ico:hover { color:#E8780F; }
-.psm1-hd-util .psm1-util-sep { width:1px; height:16px; background:#E5E7EB; margin:0 2px; }
+.psm1-hd-util .psm1-util-lb { font-size:10.5px; font-weight:600; color:#6B7280; letter-spacing:-0.04em; line-height:1; white-space:nowrap; }
+.psm1-hd-util .psm1-util-ico:hover, .psm1-hd-util .psm1-cart-link:hover { color:#E8780F; }
+.psm1-hd-util .psm1-util-ico:hover .psm1-util-lb, .psm1-hd-util .psm1-cart-link:hover .psm1-util-lb { color:#E8780F; }
+.psm1-hd-util .psm1-util-sep { align-self:center; width:1px; height:24px; background:#E5E7EB; margin:0 2px; }
 .psm1-hd-mb { display:none; }
 /* 2) 카테고리 탭 */
 .psm1-tabs { border-bottom:1px solid #F2F3F5; background:#fff; }
@@ -441,16 +443,17 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
       <div class="psm1-hot-list" data-psm1-hot-list></div>
     </div>
     <div class="psm1-hd-util">
-      <a module="Layout_statelogoff" href="/member/login.html" class="psm1-util-ico" aria-label="로그인" title="로그인"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg></a>
-      <a module="Layout_statelogoff" href="/member/agreement.html" class="psm1-util-ico" aria-label="회원가입" title="회원가입"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="8" r="4"/><path d="M19 8v6M22 11h-6"/></svg></a>
-      <a module="Layout_stateLogon" href="/myshop/index.html" class="psm1-util-ico" aria-label="마이페이지" title="마이페이지"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></a>
-      <a module="Layout_stateLogon" href="{$action_logout}" class="psm1-util-ico" aria-label="로그아웃" title="로그아웃"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></a>
-      <a href="/myshop/order/list.html" class="psm1-util-ico" aria-label="주문조회" title="주문조회"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6a1 1 0 0 1 1 1v1h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2V4a1 1 0 0 1 1-1z"/><path d="M9 12h6M9 16h4"/></svg></a>
-      <a href="/board/index.html" class="psm1-util-ico" aria-label="고객센터" title="고객센터"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19a4 4 0 0 1-4 3h-2"/></svg></a>
+      <a module="Layout_statelogoff" href="/member/login.html" class="psm1-util-ico" aria-label="로그인" title="로그인"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg><span class="psm1-util-lb">로그인</span></a>
+      <a module="Layout_statelogoff" href="/member/agreement.html" class="psm1-util-ico" aria-label="회원가입" title="회원가입"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="8" r="4"/><path d="M19 8v6M22 11h-6"/></svg><span class="psm1-util-lb">회원가입</span></a>
+      <a module="Layout_stateLogon" href="/myshop/index.html" class="psm1-util-ico" aria-label="마이페이지" title="마이페이지"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg><span class="psm1-util-lb">마이페이지</span></a>
+      <a module="Layout_stateLogon" href="{$action_logout}" class="psm1-util-ico" aria-label="로그아웃" title="로그아웃"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span class="psm1-util-lb">로그아웃</span></a>
+      <a href="/myshop/order/list.html" class="psm1-util-ico" aria-label="주문조회" title="주문조회"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6a1 1 0 0 1 1 1v1h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2V4a1 1 0 0 1 1-1z"/><path d="M9 12h6M9 16h4"/></svg><span class="psm1-util-lb">주문조회</span></a>
+      <a href="/board/index.html" class="psm1-util-ico" aria-label="고객센터" title="고객센터"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19a4 4 0 0 1-4 3h-2"/></svg><span class="psm1-util-lb">고객센터</span></a>
       <span class="psm1-util-sep"></span>
       <a href="/order/basket.html" module="Layout_orderBasketcount" class="psm1-cart-link" aria-label="장바구니">
         <svg class="psm1-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg>
         <span class="count {$basket_count_display|display} {$basket_count_display_class}"><span class="{$basket_count_class}">{$basket_count}</span></span>
+        <span class="psm1-util-lb">장바구니</span>
       </a>
     </div>
   </div>

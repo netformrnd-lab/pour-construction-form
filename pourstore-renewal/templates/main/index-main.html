@@ -189,6 +189,9 @@
   .psm1-bnr-arrow { display:none; } /* 모바일은 스와이프로 넘김 */
   /* 모바일: 서브(사이드) 배너는 가로형으로 (JS 높이동기화 무시, 16:9) */
   .psm1-banner-side.psm1-has-carousel { aspect-ratio:5/2; min-height:0 !important; height:auto !important; } /* 모바일 서브배너 2.5:1 (권장 이미지 1080×432) */
+  /* 디자인형 배너(텍스트 포함)면 모바일 최소높이 확보 */
+  .psm1-banner.psm1-bnr-hasdesign { aspect-ratio:auto !important; min-height:220px; }
+  .psm1-banner-side.psm1-bnr-hasdesign.psm1-has-carousel { aspect-ratio:auto !important; min-height:300px; height:auto !important; }
 }
 /* 4) 카테고리 아이콘 */
 .psm1-cats { padding:30px 24px 36px; }
@@ -892,16 +895,60 @@ var PM_POSTS = [];
 
   // ===== 메인 배너 캐러셀 (config/pourstoreBanners) — 어드민 '메인 배너 관리' =====
   function normBanners(v){
-    if (Array.isArray(v)) return v.filter(function(x){ return x && x.image; }).map(function(x){ return { image:x.image, imageMobile:(x.imageMobile||''), link:(x.link||'') }; });
-    if (v && v.image) return [{ image:v.image, imageMobile:(v.imageMobile||''), link:(v.link||'') }]; // 구버전 단일 호환
+    function one(x){ return {
+      mode:(x.mode==='design'?'design':'image'),
+      image:(x.image||''), imageMobile:(x.imageMobile||''), link:(x.link||''),
+      badge:(x.badge||''), title:(x.title||''), desc:(x.desc||''), tags:(x.tags||''), cta:(x.cta||''), theme:(x.theme==='dark'?'dark':'light') }; }
+    function keep(x){ return x && (x.image || (x.mode==='design' && (x.title||x.badge||x.desc||x.cta))); }
+    if (Array.isArray(v)) return v.filter(keep).map(one);
+    if (keep(v)) return [one(v)]; // 구버전 단일 호환
     return [];
   }
-  function renderCarousel(sel, banners, intervalSec){
+  // 디자인형 배너 슬라이드 — Noto Sans KR, 굵기(weight)만으로 위계, 폰트 clamp 반응형
+  function escB(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function buildDesignSlide(b, shape){
+    var side = shape==='side', dark = (b.theme==='dark');
+    var ink = dark ? '#ffffff' : '#0F1F5C', sub = dark ? 'rgba(255,255,255,.90)' : '#3A4A66';
+    var a = document.createElement('a'); a.className='psm1-bnr-slide psm1-bnr-design';
+    var link=(b.link||'').trim();
+    if (link){ a.href=link; if (/^https?:\/\//.test(link) && link.indexOf(location.host)===-1){ a.target='_blank'; a.rel='noopener'; } }
+    else { a.href='javascript:void(0)'; }
+    a.style.cssText='position:relative;flex:0 0 100%;width:100%;height:100%;display:block;overflow:hidden;text-decoration:none;'+
+      "font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;letter-spacing:-0.02em;"+
+      (dark?'background:linear-gradient(120deg,#0F1F5C,#1A2E52 60%,#0F1F5C);':'background:linear-gradient(120deg,#EAF2FF,#F3F8FF 55%,#FFF3E8);');
+    if (b.image){
+      var bg=document.createElement('div');
+      bg.style.cssText='position:absolute;inset:0;background-image:url("'+b.image+'");background-size:cover;background-position:center;';
+      a.appendChild(bg);
+      var sc=document.createElement('div');
+      sc.style.cssText=side
+        ? 'position:absolute;inset:0;background:linear-gradient(180deg,'+(dark?'rgba(9,16,40,.82)':'rgba(255,255,255,.90)')+' 0%,'+(dark?'rgba(9,16,40,.35)':'rgba(255,255,255,.42)')+' 52%,'+(dark?'rgba(9,16,40,.60)':'rgba(255,255,255,.62)')+' 100%);'
+        : 'position:absolute;inset:0;background:linear-gradient(90deg,'+(dark?'rgba(9,16,40,.85)':'rgba(255,255,255,.90)')+' 0%,'+(dark?'rgba(9,16,40,.58)':'rgba(255,255,255,.64)')+' 44%,'+(dark?'rgba(9,16,40,.12)':'rgba(255,255,255,.12)')+' 100%);';
+      a.appendChild(sc);
+    }
+    var t=document.createElement('div');
+    t.style.cssText='position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;'+
+      (side?'justify-content:flex-start;':'justify-content:center;')+'gap:'+(side?'2.2vw':'1.2vh')+';box-sizing:border-box;padding:'+(side?'6% 7%':'0 6%')+';'+(side?'':'max-width:66%;')+'overflow:hidden;';
+    var F=side
+      ? {bd:'clamp(10px,3vw,12px)',ti:'clamp(16px,5.2vw,21px)',de:'clamp(11px,3.2vw,13px)',tg:'clamp(10px,3vw,12px)',ct:'clamp(11.5px,3.4vw,13px)'}
+      : {bd:'clamp(10px,1.7vw,12.5px)',ti:'clamp(16px,4vw,30px)',de:'clamp(11px,2.1vw,15px)',tg:'clamp(10px,1.7vw,12.5px)',ct:'clamp(11.5px,2.1vw,14px)'};
+    var pp=side?'clamp(3px,1.2vw,5px) clamp(7px,2.4vw,10px)':'6px 12px';
+    var h='';
+    if (b.badge) h+='<span style="align-self:flex-start;font-weight:700;font-size:'+F.bd+';padding:'+pp+';border-radius:999px;'+(dark?'background:rgba(255,255,255,.18);color:#fff;':'background:#fff;color:#E8780F;border:1px solid rgba(232,120,15,.28);')+'">'+escB(b.badge)+'</span>';
+    if (b.title) h+='<div style="font-weight:900;color:'+ink+';line-height:1.22;font-size:'+F.ti+';">'+escB(b.title).replace(/\n/g,'<br>')+'</div>';
+    if (b.desc) h+='<div style="font-weight:400;color:'+sub+';line-height:1.5;font-size:'+F.de+';">'+escB(b.desc).replace(/\n/g,'<br>')+'</div>';
+    if (b.tags){ var ps=b.tags.split(',').map(function(s){return s.trim();}).filter(Boolean).map(function(s){return '<span style="font-weight:700;font-size:'+F.tg+';padding:'+pp+';border-radius:8px;'+(dark?'background:rgba(255,255,255,.15);color:#fff;':'background:rgba(255,255,255,.72);color:#0F1F5C;border:1px solid rgba(15,31,92,.10);')+'">'+escB(s)+'</span>';}).join(''); if(ps) h+='<div style="display:flex;flex-wrap:wrap;gap:5px;">'+ps+'</div>'; }
+    if (b.cta) h+='<span style="align-self:flex-start;margin-top:2px;font-weight:800;font-size:'+F.ct+';padding:'+(side?'9px 15px':'11px 20px')+';border-radius:11px;background:'+(dark?'#E8780F':'#0F1F5C')+';color:#fff;">'+escB(b.cta)+' →</span>';
+    t.innerHTML=h; a.appendChild(t);
+    return a;
+  }
+  function renderCarousel(sel, banners, intervalSec, shape){
     if (!banners.length) return;
     var el = section.querySelector(sel);
     if (!el) return;
     el.style.padding = '0';
     el.classList.add('psm1-has-carousel');
+    if (banners.some(function(b){ return b.mode === 'design'; })) el.classList.add('psm1-bnr-hasdesign');
     var n = banners.length;
     // 인라인 스타일 병행 — 카페24 스킨 전역 CSS(img{height:auto} 등)에 밀리지 않도록
     var box = document.createElement('div'); box.className = 'psm1-bnr-carousel';
@@ -909,6 +956,7 @@ var PM_POSTS = [];
     var track = document.createElement('div'); track.className = 'psm1-bnr-track';
     track.style.cssText = 'display:flex;height:100%;will-change:transform;';
     banners.forEach(function(b){
+      if (b.mode === 'design'){ track.appendChild(buildDesignSlide(b, shape)); return; }
       var a = document.createElement('a'); a.className = 'psm1-bnr-slide';
       a.style.cssText = 'flex:0 0 100%;width:100%;height:100%;display:block;';
       var link = (b.link||'').trim();
@@ -966,9 +1014,9 @@ var PM_POSTS = [];
     try {
       var iv = Number(bd.intervalSec) || 5;
       var heroBn = normBanners(bd.hero);
-      renderCarousel('.psm1-banner', heroBn, iv);
+      renderCarousel('.psm1-banner', heroBn, iv, 'hero');
       var sideBn = normBanners(bd.side);
-      renderCarousel('.psm1-banner-side', sideBn, iv);
+      renderCarousel('.psm1-banner-side', sideBn, iv, 'side');
       console.log('[psm1] 배너 로드 — 히어로 ' + heroBn.length + '건, 사이드 ' + sideBn.length + '건');
       if (sideBn.length) { // 사이드 높이를 히어로에 맞춤 (그리드 aspect 행높이 미반영 보정)
         var syncH = function(){ var h = section.querySelector('.psm1-banner'), s = section.querySelector('.psm1-banner-side'); if (!h || !s) return; if (window.innerWidth > 700) { if (h.offsetHeight) s.style.height = h.offsetHeight + 'px'; } else { s.style.height = ''; } };

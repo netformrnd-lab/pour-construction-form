@@ -83,6 +83,15 @@
 .pl-links a { font-size:13.5px; font-weight:600; color:#4B5563; text-decoration:none; }
 .pl-links a:hover { color:#E8780F; }
 
+/* --- 비회원 구매 (회원가입 없이 바로 주문) --- */
+.pl-guest-buy {
+  display:flex; align-items:center; justify-content:center;
+  height:50px; width:100%; margin-top:14px;
+  border:1.5px solid #E8780F; border-radius:10px; background:#fff; color:#E8780F;
+  font-size:15px; font-weight:700; text-decoration:none; cursor:pointer; transition:.15s;
+}
+.pl-guest-buy:hover { background:#FFF6EE; }
+
 /* --- 비회원 주문조회 --- */
 .pl-guest-btn {
   display:flex; align-items:center; justify-content:center;
@@ -150,6 +159,9 @@
           <a href="/member/agreement.html">회원가입</a>
           <a href="/member/id/find_id.html">아이디 · 비밀번호 찾기</a>
         </div>
+
+        <!-- 비회원 구매: 회원가입 없이 바로 주문 (카페24 관리자 '비회원 주문 허용' ON 필요, 꺼져있으면 자동 숨김) -->
+        <a href="{$returnUrl}" onclick="{$action_nomember_order}" class="pl-guest-buy {$display_nomember|display}">비회원으로 구매하기</a>
       </fieldset>
     </div>
 

@@ -1,0 +1,194 @@
+<!--@layout(/layout/basic/layout.html)-->
+<!--@js(/js/module/member/login.js)-->
+<!-- ============================================================
+  POUR스토어 로그인 페이지 (카페24 member/login.html 스킨)
+  · 디자인: 자사몰 로그인 모달 기반 (카카오/네이버 + 이메일 로그인)
+  · 실제 로그인은 카페24 치환코드({$form...}, {$action_func_login})로 동작
+  · 이 파일은 카페24 [디자인관리 > 스마트디자인 편집 > member/login.html]에 붙여넣기
+============================================================ -->
+<!-- Noto Sans KR 폰트 로딩 -->
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
+/* ===== POUR 로그인 페이지 (scoped: .pour-login) ===== */
+.pour-login *,
+.pour-login *::before,
+.pour-login *::after { box-sizing:border-box; }
+/* ★ 카페24 스킨 기본 폰트(Pretendard)를 이기려면 전체 요소에 !important 강제 */
+.pour-login, .pour-login *:not(svg):not(path) {
+  font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif !important;
+}
+.pour-login {
+  letter-spacing:-0.02em; color:#2F3438;
+  display:flex; justify-content:center;
+  padding:56px 16px 80px; background:#fff;
+}
+.pour-login button, .pour-login input, .pour-login a { letter-spacing:inherit; }
+.pour-login .path,
+.pour-login .titleArea { display:none; }             /* 카페24 기본 경로/제목 숨김(카드 안에서 제목 표시) */
+.pour-login-card {
+  width:100%; max-width:400px;
+  background:#fff; padding:8px 0 0;                   /* 페이지형: 카드 테두리·그림자 없이 본문에 자연스럽게 */
+}
+.pl-title { margin:0 0 24px; text-align:center; font-size:22px; font-weight:800; color:#111827; letter-spacing:-0.03em; }
+.pour-login fieldset { border:0; margin:0; padding:0; min-width:0; }
+.pour-login legend { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+
+/* --- SNS 로그인 --- */
+.pl-sns { display:flex; flex-direction:column; gap:10px; }
+.pl-btn {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  height:50px; border-radius:10px; font-size:15px; font-weight:700;
+  text-decoration:none; transition:.15s; cursor:pointer; position:relative;
+}
+.pl-btn .pl-ic { position:absolute; left:18px; display:inline-flex; align-items:center; font-size:16px; font-weight:900; }
+.pl-kakao { background:#FEE500; color:#191600; }
+.pl-kakao:hover { background:#F2DA00; }
+.pl-naver { background:#03C75A; color:#fff; }
+.pl-naver:hover { background:#02B350; }
+.pl-naver .pl-ic { font-family:Arial,sans-serif; }
+
+/* --- 구분선 (또는) --- */
+.pl-divider { display:flex; align-items:center; gap:12px; margin:22px 0; color:#B0B6BE; font-size:12.5px; font-weight:600; }
+.pl-divider::before, .pl-divider::after { content:""; flex:1; height:1px; background:#ECEEF1; }
+
+/* --- 이메일/비밀번호 입력 --- */
+.pl-fields { display:flex; flex-direction:column; gap:10px; }
+.pl-input { display:block; margin:0; }
+.pl-input input {
+  width:100% !important; height:52px !important;
+  background:#F4F7FC !important; border:1px solid #E6EBF3 !important; border-radius:10px !important;
+  padding:0 16px !important; font-size:15px !important; color:#2F3438 !important;
+  letter-spacing:-0.02em; outline:none !important; -webkit-appearance:none; appearance:none;
+  transition:.15s;
+}
+.pl-input input:focus { border-color:#E8780F !important; background:#fff !important; box-shadow:0 0 0 3px rgba(232,120,15,.12) !important; }
+.pl-input input::placeholder { color:#9AA0A6 !important; }
+
+/* --- 로그인 상태 유지 --- */
+.pl-keep { display:flex; align-items:center; gap:8px; margin:14px 2px 18px; font-size:13.5px; font-weight:600; color:#4B5563; cursor:pointer; }
+.pl-keep input[type="checkbox"] {
+  -webkit-appearance:none; appearance:none; width:19px; height:19px; margin:0; cursor:pointer; flex-shrink:0;
+  border:1.5px solid #C9CED4; border-radius:5px; background:#fff; transition:.12s;
+}
+.pl-keep input[type="checkbox"]:checked {
+  border-color:#E8780F; background:#fff;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E8780F' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:center; background-size:12px 12px;
+}
+
+/* --- 로그인 버튼 --- */
+.pl-login-btn {
+  display:flex; align-items:center; justify-content:center;
+  height:52px; border-radius:10px; background:#3A3F47; color:#fff;
+  font-size:15.5px; font-weight:700; text-decoration:none; cursor:pointer; transition:.15s; border:0; width:100%;
+}
+.pl-login-btn:hover { background:#2A2E34; }
+
+/* --- 하단 링크 (회원가입 / 아이디·비번찾기) --- */
+.pl-links { display:flex; align-items:center; justify-content:space-between; margin-top:16px; }
+.pl-links a { font-size:13.5px; font-weight:600; color:#4B5563; text-decoration:none; }
+.pl-links a:hover { color:#E8780F; }
+
+/* --- 회원 링크 아래 경계선 --- */
+.pl-hr { height:1px; background:#ECEEF1; margin:18px 0 16px; }
+
+/* --- 비회원 영역 (구매 + 주문조회) : 차분한 회색 그룹, 회원 로그인/가입보다 덜 강조 --- */
+.pl-guest-buy, .pl-guest-btn {
+  display:flex; align-items:center; justify-content:center;
+  height:48px; width:100%; border:1px solid #DFE3E8; border-radius:10px;
+  background:#fff; color:#5B636D; font-size:14px; font-weight:600;
+  text-decoration:none; cursor:pointer; transition:.15s;
+}
+.pl-guest-buy:hover, .pl-guest-btn:hover { background:#F7F8FA; border-color:#CBD1D8; color:#3A3F47; }
+.pl-guest-wrap { margin-top:8px; }              /* 구매 버튼 바로 아래 → 한 그룹으로 붙임 */
+.pl-guest-form { margin-top:12px; display:flex; flex-direction:column; gap:9px; padding:16px; background:#F7F8FA; border-radius:12px; }
+.pl-guest-form .txtInfo { font-size:12.5px; color:#8A94A6; font-weight:500; margin-bottom:2px; }
+.pl-guest-form input {
+  width:100% !important; height:46px !important; background:#fff !important;
+  border:1px solid #E6EBF3 !important; border-radius:9px !important; padding:0 14px !important;
+  font-size:14px !important; outline:none !important; -webkit-appearance:none; appearance:none;
+}
+.pl-guest-form input:focus { border-color:#8A94A6 !important; }
+.pl-guest-confirm { height:46px; border:0; border-radius:9px; background:#3A3F47; color:#fff; font-size:14px; font-weight:700; cursor:pointer; }
+
+/* --- 모바일 --- */
+@media (max-width:480px){
+  .pour-login { padding:24px 14px 48px; }
+  .pour-login-card { max-width:none; border:0; box-shadow:none; padding:16px 4px 24px; }
+  .pl-input input, .pl-login-btn { font-size:16px !important; } /* iOS 자동확대 방지 */
+}
+</style>
+
+<div class="pour-login">
+  <div class="pour-login-card">
+    <h2 class="pl-title">로그인</h2>
+
+    <!-- ▼ 카페24 회원 로그인 모듈 (이 안의 {$...} 코드가 실제 로그인 동작) -->
+    <div module="member_login" id="{$member_login_module_id}">
+      <!--
+        $defaultReturnUrl = /index.html
+        $forbidIpUrl = member/adminFail.html
+      -->
+      <fieldset>
+        <legend>회원 로그인</legend>
+
+        <!-- SNS 간편 로그인 (카카오 / 네이버) — 관리자에서 사용설정된 것만 노출됨 -->
+        <div class="pl-sns">
+          <a href="#none" class="pl-btn pl-kakao {$display_kakao|display}" onclick="{$kakao_func_login}"><span class="pl-ic">●</span>카카오로 시작하기</a>
+          <a href="#none" class="pl-btn pl-naver {$display_naver|display}" onclick="{$naver_func_login}"><span class="pl-ic">N</span>네이버로 시작하기</a>
+        </div>
+
+        <div class="pl-divider">또는</div>
+
+        <!-- 아이디(이메일) / 비밀번호 -->
+        <div class="pl-fields">
+          <label class="pl-input ePlaceholder" title="{$login_id_type_text}">{$form.member_id}</label>
+          <label class="pl-input ePlaceholder" title="비밀번호">{$form.member_passwd}</label>
+        </div>
+
+        <!-- 로그인 상태 유지 (= 카페24 '아이디 저장' 체크박스) -->
+        <label class="pl-keep">
+          {$form.member_check_save_id}
+          <span>로그인 상태 유지</span>
+        </label>
+
+        <!-- 로그인 버튼 -->
+        <a href="#none" class="pl-login-btn" onclick="{$action_func_login}">로그인</a>
+
+        <!-- 하단 링크 -->
+        <div class="pl-links">
+          <a href="/member/agreement.html">회원가입</a>
+          <a href="/member/id/find_id.html">아이디 · 비밀번호 찾기</a>
+        </div>
+
+        <!-- 회원 링크 아래 경계선 -->
+        <div class="pl-hr"></div>
+
+        <!-- 비회원 구매: 회원가입 없이 바로 주문 (카페24 관리자 '비회원 주문 허용' ON 필요, 꺼져있으면 자동 숨김) -->
+        <a href="{$returnUrl}" onclick="{$action_nomember_order}" class="pl-guest-buy {$display_nomember|display}">비회원으로 구매하기</a>
+      </fieldset>
+    </div>
+
+    <!-- ▼ 비회원 주문배송 조회 (비회원 구매 버튼 바로 아래, 같은 그룹) -->
+    <div class="pl-guest-wrap">
+      <button type="button" class="pl-guest-btn" onclick="var g=document.getElementById('plGuest'); g.hidden=!g.hidden;">비회원 주문배송 조회</button>
+      <div id="plGuest" hidden>
+        <div module="MyShop_OrderHistoryNologin" id="order_history_nologin_id">
+          <!--
+            $orderDetailUrl = /myshop/order/list.html
+          -->
+          <div class="pl-guest-form">
+            <p class="txtInfo">비회원은 주문 시의 주문번호로 조회 가능합니다.</p>
+            {$form.order_name}
+            {$form.order_id}
+            {$form.order_password}
+            <button type="submit" class="pl-guest-confirm">주문조회</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

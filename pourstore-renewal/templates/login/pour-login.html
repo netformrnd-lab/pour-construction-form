@@ -6,13 +6,16 @@
   · 실제 로그인은 카페24 치환코드({$form...}, {$action_func_login})로 동작
   · 이 파일은 카페24 [디자인관리 > 스마트디자인 편집 > member/login.html]에 붙여넣기
 ============================================================ -->
+<!-- Noto Sans KR 폰트 로딩 -->
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap">
 <style>
 /* ===== POUR 로그인 페이지 (scoped: .pour-login) ===== */
 .pour-login *,
 .pour-login *::before,
 .pour-login *::after { box-sizing:border-box; }
 .pour-login {
-  font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
   letter-spacing:-0.02em; color:#2F3438;
   display:flex; justify-content:center;
   padding:56px 16px 80px; background:#fff;

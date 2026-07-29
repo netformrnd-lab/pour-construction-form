@@ -210,7 +210,8 @@
   var root = document.currentScript && document.currentScript.parentElement;
   if (!root) return;
   // 각 그룹별로 필터 토글·화살표·자동슬라이드·드래그를 독립 스코프로 설정
-  root.querySelectorAll('.psm2-group').forEach(function(group){
+  // (동적으로 추가되는 소재 라인에서도 재사용하도록 함수로 노출)
+  function initGroup(group){
     var scroller = group.querySelector('.psm2-scroll');
     // 필터 토글(기본 데모용 — 관리 카드에선 숨김)
     var filters = group.querySelectorAll('.psm2-filter');
@@ -319,7 +320,9 @@
     refresh();                                                   // 최초 1회 복제 구성
     window.addEventListener('resize', function(){ refresh(); }); // 폭 변화 시 재계산
     setInterval(step, STEP_MS);
-  });
+  }
+  window.__psm2InitGroup = initGroup;                          // 동적 소재 라인용
+  root.querySelectorAll('.psm2-group').forEach(initGroup);
 })();
 </script>
 
@@ -358,22 +361,48 @@
     if(info) h+='<div class="psm2-card-info">'+info+'</div>';
     return h+'</a>';
   }
+  // 그룹의 data-material 값을 데이터 key로 (기본 라벨이면 매핑, 아니면 key 그대로=추가 소재)
+  function keyOf(dm){ return MAP[dm]||dm; }
+  function labelOf(key){ for(var k in MAP){ if(MAP[k]===key) return k; } return key; }  // key→data-material
   function reorder(data){
     var order=Array.isArray(data.matOrder)?data.matOrder:null;
     if(!order||!order.length) return;
     var inner=document.querySelector('.psm2-inner'); if(!inner) return;
-    var REV={}; for(var k in MAP){ REV[MAP[k]]=k; }                 // key→라벨 (metal→철재)
     order.forEach(function(key){                                    // matOrder 순서대로 뒤에 재배치
-      var lbl=REV[key]; if(!lbl) return;
-      var g=inner.querySelector('.psm2-group[data-material="'+lbl+'"]');
+      var g=inner.querySelector('.psm2-group[data-material="'+labelOf(key)+'"]');
       if(g) inner.appendChild(g);
     });
   }
+  // 추가 소재 라인: 기본 그룹을 복제해 DOM 생성 + 슬라이더 초기화
+  function ensureExtraGroups(data){
+    var extra=Array.isArray(data.extraMaterials)?data.extraMaterials:[];
+    if(!extra.length) return;
+    var inner=document.querySelector('.psm2-inner'); if(!inner) return;
+    var tpl=inner.querySelector('.psm2-group'); if(!tpl) return;      // 그룹1(철재)을 형틀로
+    extra.forEach(function(em){
+      if(!em||!em.key) return;
+      if(inner.querySelector('.psm2-group[data-material="'+em.key+'"]')) return;  // 이미 있으면 skip
+      var g=tpl.cloneNode(true);
+      g.setAttribute('data-material', em.key);
+      var t=g.querySelector('.psm2-title');    if(t) t.textContent=(em.title||em.label||'').trim();
+      var s=g.querySelector('.psm2-subtitle'); if(s) s.textContent=(em.sub||'').trim();
+      var sc=g.querySelector('.psm2-scroll');  if(sc) sc.innerHTML='';  // 형틀의 기본 카드 제거
+      inner.appendChild(g);
+      if(typeof window.__psm2InitGroup==='function') window.__psm2InitGroup(g);  // 화살표·자동슬라이드·드래그 바인딩
+    });
+  }
   function apply(data){
-    reorder(data);
+    // 데이터 통합: 기본(metal/wood/stone) + 추가(extraMaterials)
+    var byKey={};
+    ['metal','wood','stone'].forEach(function(k){ if(data[k]!=null) byKey[k]=data[k]; });
+    (Array.isArray(data.extraMaterials)?data.extraMaterials:[]).forEach(function(em){
+      if(em&&em.key) byKey[em.key]={title:em.title||em.label||'',sub:em.sub||'',cards:Array.isArray(em.cards)?em.cards:[]};
+    });
+    ensureExtraGroups(data);                                    // 추가 라인 DOM 먼저 생성
+    reorder(data);                                              // 순서 반영
     document.querySelectorAll('.psm2-group[data-material]').forEach(function(group){
-      var key=MAP[group.getAttribute('data-material')];
-      var md=key && data[key]; if(!md) return;
+      var key=keyOf(group.getAttribute('data-material'));
+      var md=byKey[key]; if(md==null) return;
       if(!Array.isArray(md)){                                  // 라인 제목·멘트(소제목) — 값 있으면 교체(비면 기본 유지)
         if((md.title||'').trim()){ var tEl=group.querySelector('.psm2-title'); if(tEl) tEl.textContent=md.title.trim(); }
         if((md.sub||'').trim()){ var sEl=group.querySelector('.psm2-subtitle'); if(sEl) sEl.textContent=md.sub.trim(); }
@@ -385,6 +414,7 @@
       var fbar=group.querySelector('.psm2-filters'); if(fbar) fbar.style.display='none';   // 카테고리 필터 제거
     });
   }
+  window.__psm2Apply=apply;                                    // 디버그/테스트용 훅
   (async function(){
     try{
       var a=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');

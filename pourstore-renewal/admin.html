@@ -6911,7 +6911,7 @@ const HC_MATERIALS=[
 ];
 const HC_MAT_BY={}; HC_MATERIALS.forEach(m=>{HC_MAT_BY[m.key]=m;});
 const HC_MAT_KEYS=HC_MATERIALS.map(m=>m.key);   // ['metal','wood','stone']
-const normMatOrder=(v)=>{ const a=Array.isArray(v)?v.filter(k=>HC_MAT_KEYS.includes(k)):[]; HC_MAT_KEYS.forEach(k=>{ if(!a.includes(k)) a.push(k); }); return a; };
+const normMatOrder=(v,extraKeys)=>{ const ex=Array.isArray(extraKeys)?extraKeys:[]; const valid=new Set([...HC_MAT_KEYS,...ex]); const a=Array.isArray(v)?v.filter(k=>valid.has(k)):[]; HC_MAT_KEYS.forEach(k=>{ if(!a.includes(k)) a.push(k); }); ex.forEach(k=>{ if(!a.includes(k)) a.push(k); }); return a; };
 const HC_GRID_CATS=[{key:'wallpaper',label:'벽지'},{key:'wood',label:'목재'},{key:'metal',label:'철재'},{key:'glass',label:'유리'},{key:'cement',label:'시멘트/벽돌'}];
 const HC_SWATCHES=[{key:'all',label:'인기',sub:'BEST SELLER'},{key:'wallpaper',label:'벽지',sub:'도배·시트·풀'},{key:'wood',label:'목재',sub:'우드·마루'},{key:'metal',label:'철재',sub:'메탈·방청'},{key:'glass',label:'유리',sub:'글래스·코팅'},{key:'cement',label:'시멘트/벽돌',sub:'벽돌·균열·보수'}];
 const HC_SRC_DEFAULT={wallpaper:'98',wood:'99',metal:'100',glass:'101',cement:'102'};   // 카페24 홈데코 분류번호 기본값
@@ -6920,10 +6920,11 @@ function HomeCardsPage({showToast}){
   const normHero=(v)=>Array.isArray(v)?v.map(x=>({image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',kicker:x.kicker||'',title:x.title||'',desc:x.desc||'',tags:x.tags||'',cta:x.cta||''})):[];
   const mapCard=(c)=>({image:c.image||'',link:c.link||'',title:c.title||'',hashtags:c.hashtags||'',ment:c.ment||''});
   const normMat=(v)=>{ if(Array.isArray(v)) return {title:'',sub:'',cards:v.map(mapCard)}; v=v||{}; return {title:v.title||'',sub:v.sub||'',cards:Array.isArray(v.cards)?v.cards.map(mapCard):[]}; };
+  const normExtra=(v)=>Array.isArray(v)?v.filter(e=>e&&e.key).map(e=>({key:String(e.key),label:e.label||'',title:e.title||'',sub:e.sub||'',cards:Array.isArray(e.cards)?e.cards.map(mapCard):[]})):[];
   const normGrid=(v)=>Array.isArray(v)?v.map(c=>({image:c.image||'',title:c.title||'',meta:c.meta||'',price:c.price||'',unit:c.unit||'',link:c.link||'',cat:c.cat||'',brand:c.brand||'',badge:c.badge||''})):[];
   const normSw=(v)=>{ v=v||{}; const o={}; HC_SWATCHES.forEach(s=>{ const x=v[s.key]||{}; o[s.key]={image:x.image||'',label:x.label||'',sub:x.sub||''}; }); return o; };
   const normSrc=(v)=>{ v=v||{}; const c=v.cats||{}; const stored=HC_GRID_CATS.some(g=>String(c[g.key]||'').trim()); const cats={}; HC_GRID_CATS.forEach(g=>{ cats[g.key]= stored ? String(c[g.key]||'').trim() : (HC_SRC_DEFAULT[g.key]||''); }); return {limit:Number(v.limit)>0?Number(v.limit):8, cats}; };
-  const [data,setData]=useState({hero:[],metal:normMat(),wood:normMat(),stone:normMat(),matOrder:normMatOrder(),homeGrid:[],homeSwatches:normSw(),homeGridSource:normSrc()});
+  const [data,setData]=useState({hero:[],metal:normMat(),wood:normMat(),stone:normMat(),extraMaterials:[],matOrder:normMatOrder(),homeGrid:[],homeSwatches:normSw(),homeGridSource:normSrc()});
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState(null);
@@ -6931,7 +6932,7 @@ function HomeCardsPage({showToast}){
   useEffect(()=>{ (async()=>{
     try{
       const d=await db.collection('config').doc('pourstoreHomeCards').get();
-      if(d.exists){ const v=d.data()||{}; setData({hero:normHero(v.hero),metal:normMat(v.metal),wood:normMat(v.wood),stone:normMat(v.stone),matOrder:normMatOrder(v.matOrder),homeGrid:normGrid(v.homeGrid),homeSwatches:normSw(v.homeSwatches),homeGridSource:normSrc(v.homeGridSource)}); }
+      if(d.exists){ const v=d.data()||{}; const extra=normExtra(v.extraMaterials); setData({hero:normHero(v.hero),metal:normMat(v.metal),wood:normMat(v.wood),stone:normMat(v.stone),extraMaterials:extra,matOrder:normMatOrder(v.matOrder,extra.map(e=>e.key)),homeGrid:normGrid(v.homeGrid),homeSwatches:normSw(v.homeSwatches),homeGridSource:normSrc(v.homeGridSource)}); }
       console.log('[homecards] 로드', d.exists);
     }catch(e){ console.error('[homecards] 로드 실패:',e); showToast('로드 실패: '+e.message,'error'); }
     setLoading(false);
@@ -6943,12 +6944,18 @@ function HomeCardsPage({showToast}){
   const heroPatch=(i,part)=>setData(p=>({...p,hero:p.hero.map((h,x)=>x===i?{...h,...part}:h)}));
   const heroMove=(i,dir)=>setData(p=>{const a=[...p.hero];const j=i+dir;if(j<0||j>=a.length)return p;const t=a[i];a[i]=a[j];a[j]=t;return{...p,hero:a};});
 
-  // 소재 ops
-  const matSet=(key,part)=>setData(p=>({...p,[key]:{...p[key],...part}}));
-  const cardAdd=(key)=>matSet(key,{cards:[...data[key].cards,{image:'',link:'',title:'',hashtags:'',ment:''}]});
-  const cardRemove=(key,i)=>matSet(key,{cards:data[key].cards.filter((_,x)=>x!==i)});
-  const cardPatch=(key,i,part)=>matSet(key,{cards:data[key].cards.map((c,x)=>x===i?{...c,...part}:c)});
-  const cardMove=(key,i,dir)=>{const a=[...data[key].cards];const j=i+dir;if(j<0||j>=a.length)return;const t=a[i];a[i]=a[j];a[j]=t;matSet(key,{cards:a});};
+  // 소재 ops — 기본 3종(metal/wood/stone)과 추가 소재(extraMaterials) 모두 지원
+  const matGet=(key)=> HC_MAT_KEYS.includes(key) ? data[key] : (data.extraMaterials.find(e=>e.key===key)||{title:'',sub:'',cards:[]});
+  const matSet=(key,part)=> HC_MAT_KEYS.includes(key)
+    ? setData(p=>({...p,[key]:{...p[key],...part}}))
+    : setData(p=>({...p,extraMaterials:p.extraMaterials.map(e=>e.key===key?{...e,...part}:e)}));
+  const cardAdd=(key)=>{const md=matGet(key); matSet(key,{cards:[...md.cards,{image:'',link:'',title:'',hashtags:'',ment:''}]});};
+  const cardRemove=(key,i)=>{const md=matGet(key); matSet(key,{cards:md.cards.filter((_,x)=>x!==i)});};
+  const cardPatch=(key,i,part)=>{const md=matGet(key); matSet(key,{cards:md.cards.map((c,x)=>x===i?{...c,...part}:c)});};
+  const cardMove=(key,i,dir)=>{const md=matGet(key);const a=[...md.cards];const j=i+dir;if(j<0||j>=a.length)return;const t=a[i];a[i]=a[j];a[j]=t;matSet(key,{cards:a});};
+  // 추가 소재 라인 add/remove (matOrder에도 반영)
+  const extraAdd=()=>setData(p=>{ const key='m'+Date.now().toString(36)+Math.floor(Math.random()*46656).toString(36); return {...p, extraMaterials:[...p.extraMaterials,{key,label:'',title:'',sub:'',cards:[]}], matOrder:[...p.matOrder,key]}; });
+  const extraRemove=(key)=>setData(p=>({...p, extraMaterials:p.extraMaterials.filter(e=>e.key!==key), matOrder:p.matOrder.filter(k=>k!==key)}));
   // 소재 라인(철재/목재/돌·시멘트) 순서 이동 — 스토어 pour-02-best 노출 순서에 반영
   const matMove=(i,dir)=>setData(p=>{const a=[...p.matOrder];const j=i+dir;if(j<0||j>=a.length)return p;const t=a[i];a[i]=a[j];a[j]=t;return{...p,matOrder:a};});
 
@@ -6988,7 +6995,9 @@ function HomeCardsPage({showToast}){
       const homeSwatches={}; HC_SWATCHES.forEach(s=>{ const x=data.homeSwatches[s.key]||{}; homeSwatches[s.key]={image:x.image||'',label:(x.label||'').trim(),sub:(x.sub||'').trim()}; });
       const gsCats={}; HC_GRID_CATS.forEach(g=>{ gsCats[g.key]=String((data.homeGridSource.cats||{})[g.key]||'').replace(/[^0-9]/g,''); });
       const homeGridSource={limit:Number(data.homeGridSource.limit)>0?Number(data.homeGridSource.limit):8, cats:gsCats};
-      await db.collection('config').doc('pourstoreHomeCards').set({hero,metal:mat(data.metal),wood:mat(data.wood),stone:mat(data.stone),matOrder:normMatOrder(data.matOrder),homeGrid,homeSwatches,homeGridSource,...audit.update()},{merge:true});
+      const extraMaterials=data.extraMaterials.filter(e=>e.key).map(e=>({key:e.key,label:(e.label||'').trim(),title:(e.title||'').trim(),sub:(e.sub||'').trim(),cards:e.cards.filter(c=>c.image).map(c=>({image:c.image,link:(c.link||'').trim(),title:(c.title||'').trim(),hashtags:(c.hashtags||'').trim(),ment:(c.ment||'').trim()}))}));
+      const extraKeys=extraMaterials.map(e=>e.key);
+      await db.collection('config').doc('pourstoreHomeCards').set({hero,metal:mat(data.metal),wood:mat(data.wood),stone:mat(data.stone),extraMaterials,matOrder:normMatOrder(data.matOrder,extraKeys),homeGrid,homeSwatches,homeGridSource,...audit.update()},{merge:true});
       showToast('저장되었습니다 — 스토어에 반영됩니다');
     }catch(e){ console.error('[homecards] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
     setSaving(false);
@@ -7047,25 +7056,39 @@ function HomeCardsPage({showToast}){
 
       {/* ===== 소재별 라인 (순서 변경 가능 → 스토어 노출 순서 반영) ===== */}
       <div style={{fontSize:12.5,color:'var(--text-md)',fontWeight:800,margin:'4px 2px 10px'}}>📐 소재 라인 순서 <span style={{fontWeight:700,color:'var(--text-sm)'}}>— 각 라인 우측 ↑↓ 로 "고치고 싶다면?" 줄 순서를 바꿉니다 (저장 시 스토어에 그대로 반영)</span></div>
-      {data.matOrder.map((mk,oi)=>{ const m=HC_MAT_BY[mk]; if(!m) return null; const md=data[m.key];
+      {data.matOrder.map((mk,oi)=>{
+        const bi=HC_MAT_BY[mk];
+        const em=bi?null:data.extraMaterials.find(e=>e.key===mk);
+        if(!bi&&!em) return null;
+        const m=bi||em;                                      // m.key === mk (기본/추가 공통) → 아래 카드목록에서 사용
+        const md=bi?data[mk]:em;
+        const label=bi?bi.label:((em.label||'').trim()||'새 소재 라인');
+        const dtitle=bi?bi.dtitle:'예: 유리를 고치고 싶다면?';
+        const dsub=bi?bi.dsub:'예: 긁힘·김서림·코팅까지 — POUR 자재로 한 번에 해결하세요';
         return (
-          <div key={m.key} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>
+          <div key={mk} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>
             <div style={{display:'flex',alignItems:'flex-start',gap:10,marginBottom:10}}>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}><span style={{display:'inline-grid',placeItems:'center',width:22,height:22,borderRadius:'50%',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12,fontWeight:900,marginRight:7,verticalAlign:'middle'}}>{oi+1}</span>{m.label} <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>({md.cards.length}장)</span></div>
-                <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginTop:3}}>{m.hint} — 썸네일 아래 <b>해시태그 + 멘트</b>가 노출됩니다. (가격·필터 없음)</div>
+                <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}><span style={{display:'inline-grid',placeItems:'center',width:22,height:22,borderRadius:'50%',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12,fontWeight:900,marginRight:7,verticalAlign:'middle'}}>{oi+1}</span>{label} <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>({md.cards.length}장)</span>{!bi&&<span style={{marginLeft:6,fontSize:10.5,fontWeight:800,color:'var(--or-d)',background:'var(--or-pale)',border:'1px solid #FED7AA',borderRadius:6,padding:'2px 6px',verticalAlign:'middle'}}>추가 라인</span>}</div>
+                <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginTop:3}}>{bi?(bi.hint+' — 썸네일 아래 '):'스토어에 새 "고치고 싶다면?" 줄로 노출 — 썸네일 아래 '}<b>해시태그 + 멘트</b>가 노출됩니다. (가격·필터 없음)</div>
               </div>
               <div style={{display:'flex',gap:5,flexShrink:0}}>
                 <button onClick={()=>matMove(oi,-1)} disabled={oi===0} title="위로" style={{width:34,height:34,borderRadius:8,border:'1px solid var(--border)',background:'#fff',fontWeight:800,fontSize:14,cursor:oi===0?'default':'pointer',opacity:oi===0?.35:1}}>↑</button>
                 <button onClick={()=>matMove(oi,1)} disabled={oi===data.matOrder.length-1} title="아래로" style={{width:34,height:34,borderRadius:8,border:'1px solid var(--border)',background:'#fff',fontWeight:800,fontSize:14,cursor:oi===data.matOrder.length-1?'default':'pointer',opacity:oi===data.matOrder.length-1?.35:1}}>↓</button>
+                {!bi&&<button onClick={()=>{ if(window.confirm('이 소재 라인을 삭제할까요? 저장하면 스토어에서도 사라집니다.')) extraRemove(mk); }} title="라인 삭제" style={{height:34,padding:'0 10px',borderRadius:8,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontWeight:900,fontSize:12,cursor:'pointer'}}>라인 삭제</button>}
               </div>
             </div>
 
+            {!bi && <div style={{background:'var(--or-pale)',border:'1px solid #FED7AA',borderRadius:10,padding:'10px 12px',marginBottom:12}}>
+              <div style={{fontSize:11.5,fontWeight:800,color:'var(--or-d)',marginBottom:6}}>라인 이름 <span style={{fontWeight:700,color:'var(--text-md)'}}>(아래 제목을 비우면 이 이름이 스토어 제목이 됩니다)</span></div>
+              <input value={em.label} onChange={e=>matSet(mk,{label:e.target.value})} placeholder="예: 유리 / 벽지 / 타일" style={{...inp,marginTop:0,fontWeight:800}}/>
+            </div>}
+
             {/* 라인 제목·멘트(소제목) 편집 */}
             <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:10,padding:'10px 12px',marginBottom:12}}>
-              <div style={{fontSize:11.5,fontWeight:800,color:'var(--text-md)',marginBottom:6}}>라인 제목·멘트 <span style={{fontWeight:700,color:'var(--text-sm)'}}>(비워두면 기본 문구 그대로 노출)</span></div>
-              <input value={md.title} onChange={e=>matSet(m.key,{title:e.target.value})} placeholder={'제목 — '+m.dtitle} style={{...inp,marginTop:0,fontWeight:800,color:'var(--navy)'}}/>
-              <input value={md.sub} onChange={e=>matSet(m.key,{sub:e.target.value})} placeholder={'멘트(소제목) — '+m.dsub} style={inp}/>
+              <div style={{fontSize:11.5,fontWeight:800,color:'var(--text-md)',marginBottom:6}}>라인 제목·멘트 <span style={{fontWeight:700,color:'var(--text-sm)'}}>({bi?'비워두면 기본 문구 그대로 노출':'비워두면 위 라인 이름이 제목으로'})</span></div>
+              <input value={md.title} onChange={e=>matSet(mk,{title:e.target.value})} placeholder={'제목 — '+dtitle} style={{...inp,marginTop:0,fontWeight:800,color:'var(--navy)'}}/>
+              <input value={md.sub} onChange={e=>matSet(mk,{sub:e.target.value})} placeholder={'멘트(소제목) — '+dsub} style={inp}/>
             </div>
 
             {/* 카드 목록 */}
@@ -7103,6 +7126,9 @@ function HomeCardsPage({showToast}){
           </div>
         );
       })}
+
+      {/* 소재 라인 추가 (유리·벽지·타일 등 무제한) */}
+      <button onClick={extraAdd} style={{width:'100%',padding:14,marginBottom:18,borderRadius:12,border:'2px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:13.5,fontWeight:900,cursor:'pointer'}}>+ 소재 라인 추가 <span style={{fontWeight:700,fontSize:11.5,color:'var(--text-md)'}}>(유리·벽지·타일 등 — 스토어에 새 "고치고 싶다면?" 줄이 생깁니다)</span></button>
 
       {/* ===== 재질 스와치(동그란 아이콘) ===== */}
       <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>

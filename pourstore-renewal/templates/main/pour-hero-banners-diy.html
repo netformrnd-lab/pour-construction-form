@@ -75,8 +75,15 @@ body{background:#F5F6F8;color:var(--ink);font-family:'Pretendard Variable',Prete
 .sb-art{position:absolute;right:14px;bottom:12px;width:96px;height:82px;z-index:1;}
 .sb-art svg{width:100%;height:100%;}
 .sb-stars{margin-top:10px;color:#F59E0B;font-size:16px;letter-spacing:2px;}
-.sb1{background:linear-gradient(160deg,#F3F1FF 0%,#E6E1FF 100%);} .sb1 .sb-badge{background:var(--purple);} .sb1 .sb-title .ac{color:var(--purple);}
+.sb1{background:linear-gradient(160deg,#EAF1FF 0%,#D6E4FF 100%);} .sb1 .sb-badge{background:var(--blue);} .sb1 .sb-title{color:var(--navy);} .sb1 .sb-title .ac{color:var(--blue);}
+.sb1 .sb-pts{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;}
+.sb1 .pt{display:inline-flex;align-items:baseline;gap:3px;background:#fff;border:1px solid #C7D7FA;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700;color:var(--ink2);letter-spacing:-0.02em;}
+.sb1 .pt b{color:var(--blue);font-weight:900;font-size:12.5px;}
 .sb2{background:linear-gradient(160deg,#FFF3E9 0%,#FFE1C8 100%);} .sb2 .sb-badge{background:var(--or);} .sb2 .sb-title{color:#7C2D12;} .sb2 .sb-title .ac{color:var(--or);}
+.sb2 .sb-benes{margin-top:10px;display:flex;flex-direction:column;gap:5px;}
+.sb2 .bene{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#7C2D12;letter-spacing:-0.02em;}
+.sb2 .bene .em{width:18px;text-align:center;}
+.sb2 .bene b{color:var(--or);font-weight:900;}
 .sb3{background:linear-gradient(160deg,#EAF7EF 0%,#D2F0DF 100%);} .sb3 .sb-badge{background:var(--green2);} .sb3 .sb-title{color:#0B4B2C;} .sb3 .sb-title .ac{color:var(--green);}
 
 /* ============ 모바일 ============ */
@@ -207,39 +214,34 @@ body{background:#F5F6F8;color:var(--ink);font-family:'Pretendard Variable',Prete
   <div class="grp"><span class="bar"></span>서브 배너 (작은것) — 3슬라이드</div>
   <div class="sb-row">
 
-    <!-- 서브1 : 포토후기 -->
+    <!-- 서브1 : 리뷰 포인트 이벤트 (참고 이미지 1·2) -->
     <a class="sb sb1" href="javascript:void(0)">
       <div class="sb-in">
-        <span class="sb-badge">포토후기</span>
-        <div class="sb-title">먼저 해본 이웃들의<br><span class="ac">진짜 포토후기</span></div>
+        <span class="sb-badge">REVIEW EVENT</span>
+        <div class="sb-title">리뷰 쓰고<br><span class="ac">포인트 받아가세요</span></div>
         <div class="sb-stars">★★★★★</div>
-        <div class="sb-small">사진 후기 1,200+ · 평점 4.9</div>
+        <div class="sb-pts"><span class="pt">포토후기 전원 <b>3,000P</b></span><span class="pt">베스트 <b>10,000P</b></span></div>
       </div>
       <div class="sb-art" aria-hidden="true">
         <svg viewBox="0 0 96 82" fill="none">
-          <rect x="8" y="10" width="60" height="46" rx="8" fill="#fff" stroke="#6D28D9" stroke-width="3"/>
-          <circle cx="26" cy="28" r="8" fill="#EDE9FE"/><rect x="40" y="22" width="22" height="6" rx="3" fill="#DDD6FE"/><rect x="40" y="34" width="16" height="5" rx="2.5" fill="#EDE9FE"/>
-          <g fill="#F59E0B"><path d="M20 64l2 5 5 .5-4 3.5 1.5 5-4.5-3-4.5 3 1.5-5-4-3.5 5-.5z"/><path d="M40 64l2 5 5 .5-4 3.5 1.5 5-4.5-3-4.5 3 1.5-5-4-3.5 5-.5z"/><path d="M60 64l2 5 5 .5-4 3.5 1.5 5-4.5-3-4.5 3 1.5-5-4-3.5 5-.5z"/></g>
-          <circle cx="78" cy="20" r="12" fill="#6D28D9"/><path d="M78 26c-6-4-9-7-9-11a3.5 3.5 0 0 1 6.5-2 3.5 3.5 0 0 1 6.5 2c0 4-3 7-9 11z" fill="#fff" transform="translate(-1.5 -2)"/>
+          <rect x="14" y="24" width="68" height="46" rx="10" fill="#2563EB"/>
+          <rect x="36" y="16" width="24" height="12" rx="4" fill="#2563EB"/>
+          <circle cx="48" cy="47" r="15" fill="#fff"/><circle cx="48" cy="47" r="8" fill="#93B4F2"/>
+          <circle cx="70" cy="36" r="3" fill="#FFD34E"/>
         </svg>
       </div>
     </a>
 
-    <!-- 서브2 : NEW 소용량 (제안) -->
+    <!-- 서브2 : 가입·등급·무료배송 혜택 (참고 이미지 3) -->
     <a class="sb sb2" href="javascript:void(0)">
       <div class="sb-in">
-        <span class="sb-badge">NEW · 100개 한정</span>
-        <div class="sb-title">한 통도 부담 없이<br><span class="ac">소용량 균열보수</span></div>
-        <div class="sb-small">셀프 보수 딱 필요한 만큼만</div>
-      </div>
-      <div class="sb-art" aria-hidden="true">
-        <svg viewBox="0 0 96 82" fill="none">
-          <rect x="26" y="14" width="44" height="56" rx="8" fill="#fff" stroke="#E8780F" stroke-width="3"/>
-          <rect x="26" y="14" width="44" height="18" rx="8" fill="#0F1F5C"/>
-          <rect x="34" y="40" width="28" height="13" rx="3" fill="#FFE2C7"/><text x="38" y="50" font-family="Pretendard Variable,sans-serif" font-weight="900" font-size="8" fill="#7C2D12">코트재</text>
-          <rect x="37" y="58" width="22" height="7" rx="2" fill="#F49A3A"/>
-          <circle cx="80" cy="22" r="12" fill="#E8780F"/><text x="72" y="26" font-family="Jua" font-size="10" fill="#fff">NEW</text>
-        </svg>
+        <span class="sb-badge">MEMBERSHIP</span>
+        <div class="sb-title">가입만 해도<br><span class="ac">혜택이 가득해요</span></div>
+        <div class="sb-benes">
+          <div class="bene"><span class="em">🎁</span>회원가입 <b>3천원</b> 쿠폰</div>
+          <div class="bene"><span class="em">👑</span>등급별 최대 <b>35%</b> 혜택</div>
+          <div class="bene"><span class="em">🚚</span><b>무료배송</b>&nbsp;(조건 충족 시)</div>
+        </div>
       </div>
     </a>
 

@@ -7,9 +7,12 @@
       2) 니즈 나열 → "이제 고민 그만!" → 260만 세대 검증 솔루션 후킹
       3) POUR스토어 풀케어 서비스 5혜택
   ▸ 세로: 슬라이드 중 가장 큰 콘텐츠에 맞춰 자동(트랙 stretch). --pkgh-pad 로 위아래 여백 조절.
-  ▸ 어드민 사진 교체(선택): Firebase Storage  POUR스토어_리뉴얼/main-sections/ 아래
-      · pkg-hero-1.png  ← 슬라이드1 오른쪽 사진 (권장 560×360, 투명 PNG 가능)
-      없으면 기본 SVG 표시. (슬라이드2·3은 일러스트/타일형이라 사진 슬롯 없음)
+  ▸ 배경사진(풀블리드) — 어드민 '홈 소재별 카드 관리' → config/pourstoreHomeCards.packageBanner
+      · packageBanner:[{bg, bgMobile}] (슬라이드 순서대로). bg 설정 시 해당 슬라이드가
+        풀블리드 배경사진 + 왼쪽 밝은 오버레이 + 좌측 텍스트로 표시(스크린샷 느낌).
+      · 미설정 슬라이드는 기본 블루 그라데이션(+슬라이드1 우측 박스 일러스트) 유지.
+      · 권장 이미지 1920×420 이상(가로 넓게), bgMobile은 세로형(선택).
+  ▸ (구)우측 박스 사진 슬롯: Storage POUR스토어_리뉴얼/main-sections/pkg-hero-1.* (배경 미설정 시에만 노출)
   ============================================================ -->
 <section class="pkgh" style="--pkgh-pad:52px">
 <style>
@@ -19,8 +22,14 @@
 .pkgh a{text-decoration:none;color:inherit}
 .pkgh-viewport{position:relative;overflow:hidden}
 .pkgh-track{display:flex;will-change:transform;transition:transform .45s cubic-bezier(.4,0,.2,1)}
-.pkgh-slide{flex:0 0 100%;min-width:100%;display:flex;align-items:center;justify-content:center;padding:var(--pkgh-pad) 24px}
-.pkgh-in{width:100%;max-width:1256px;margin:0 auto}
+.pkgh-slide{position:relative;flex:0 0 100%;min-width:100%;display:flex;align-items:center;justify-content:center;padding:var(--pkgh-pad) 24px;overflow:hidden}
+/* 풀블리드 배경사진 + 왼쪽 밝은 오버레이 (어드민 배경 설정 시 표시) */
+.pkgh-bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;background-repeat:no-repeat;display:none}
+.pkgh-ov{position:absolute;inset:0;z-index:1;display:none;background:linear-gradient(90deg,rgba(247,250,255,.97) 0%,rgba(247,250,255,.88) 40%,rgba(247,250,255,.5) 64%,rgba(247,250,255,.08) 100%)}
+.pkgh-slide.has-bg .pkgh-bg,.pkgh-slide.has-bg .pkgh-ov{display:block}
+.pkgh-slide.has-bg .pkgh-photo{display:none}          /* 배경 있으면 슬라이드1 우측 박스 숨김 */
+.pkgh-slide.has-bg .pkgh-hero{display:block;max-width:640px}
+.pkgh-in{position:relative;z-index:2;width:100%;max-width:1256px;margin:0 auto}
 
 /* 공통 텍스트 */
 .pkgh-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -100,6 +109,9 @@
   .pkgh-tiles{grid-template-columns:repeat(2,1fr)}
   .pkgh-tile:last-child{grid-column:1 / -1}
   .pkgh-arw{display:none}
+  /* 모바일: 배경사진 위 가독성 위해 오버레이 더 진하게(세로) */
+  .pkgh-slide.has-bg .pkgh-ov{background:linear-gradient(180deg,rgba(247,250,255,.86) 0%,rgba(247,250,255,.93) 55%,rgba(247,250,255,.97) 100%)}
+  .pkgh-slide.has-bg .pkgh-hero{max-width:none}
 }
 </style>
 
@@ -107,7 +119,7 @@
   <div class="pkgh-track">
 
     <!-- 슬라이드 1: 히어로 -->
-    <div class="pkgh-slide"><div class="pkgh-in">
+    <div class="pkgh-slide"><div class="pkgh-bg"></div><div class="pkgh-ov"></div><div class="pkgh-in">
       <div class="pkgh-hero">
         <div class="t">
           <div class="pkgh-chips">
@@ -145,7 +157,7 @@
     </div></div>
 
     <!-- 슬라이드 2: 니즈 → 이제 그만 → 후킹 -->
-    <div class="pkgh-slide"><div class="pkgh-in">
+    <div class="pkgh-slide"><div class="pkgh-bg"></div><div class="pkgh-ov"></div><div class="pkgh-in">
       <div class="pkgh-solve">
         <div class="l">
           <div class="pkgh-eyebrow">🔍 이런 고민, 있으셨죠?</div>
@@ -177,7 +189,7 @@
     </div></div>
 
     <!-- 슬라이드 3: 풀케어 서비스 -->
-    <div class="pkgh-slide"><div class="pkgh-in">
+    <div class="pkgh-slide"><div class="pkgh-bg"></div><div class="pkgh-ov"></div><div class="pkgh-in">
       <div class="pkgh-care">
         <div class="cap">POUR스토어가 끝까지 함께합니다</div>
         <h3>구매부터 시공까지, 풀케어 서비스</h3>
@@ -269,6 +281,30 @@
     var nx = sec.nextElementSibling; if(nx && nx.scrollIntoView) nx.scrollIntoView({behavior:'smooth', block:'start'}); });
 
   apply(false); start();
+
+  // ── 배경사진: 어드민 '홈 소재별 카드 관리' → config/pourstoreHomeCards.packageBanner[i] {bg,bgMobile} ──
+  //    (설정 없으면 기본 블루 그라데이션 + 슬라이드1 우측 박스 일러스트 그대로 유지)
+  (async function(){
+    try{
+      var a=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      var fs=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      var cfg={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
+      var app=a.getApps().length?a.getApps()[0]:a.initializeApp(cfg);
+      var db=fs.getFirestore(app);
+      var snap=await fs.getDoc(fs.doc(db,'config','pourstoreHomeCards'));
+      if(!snap.exists()) return;
+      var pb=(snap.data()||{}).packageBanner;
+      if(!Array.isArray(pb)) return;
+      var mob = window.matchMedia && window.matchMedia('(max-width:760px)').matches;
+      for(var i=0;i<slides.length;i++){
+        var o=pb[i]||{}; var url=(mob&&(o.bgMobile||'').trim())?(o.bgMobile||'').trim():(((o.bg||'').trim())||((o.bgMobile||'').trim()));
+        if(!url) continue;
+        var bg=slides[i].querySelector('.pkgh-bg');
+        if(bg){ bg.style.backgroundImage="url('"+url.replace(/'/g,'%27')+"')"; slides[i].classList.add('has-bg'); }
+      }
+      console.log('[pkg-0-hero] 배경 적용 슬롯 '+pb.length);
+    }catch(e){ /* firebase 미로드/네트워크 → 기본 배경 유지 */ }
+  })();
 })();
 </script>
 </section>

@@ -6918,13 +6918,16 @@ const HC_SRC_DEFAULT={wallpaper:'98',wood:'99',metal:'100',glass:'101',cement:'1
 function HomeCardsPage({showToast}){
   const { audit } = useActiveStaffContext();
   const normHero=(v)=>Array.isArray(v)?v.map(x=>({image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',kicker:x.kicker||'',title:x.title||'',desc:x.desc||'',tags:x.tags||'',cta:x.cta||''})):[];
+  // 패키지 페이지 상단 배너 슬라이더(pkg-0-hero) 배경 — 슬라이드 3개 고정 {bg(PC),bgMobile}
+  const normPkg=(v)=>{ const a=Array.isArray(v)?v:[]; return [0,1,2].map(i=>({bg:(a[i]&&a[i].bg)||'',bgMobile:(a[i]&&a[i].bgMobile)||''})); };
+  const HC_PKG_LABELS=['1. 히어로(패키지로 쉽게)','2. 니즈→이제 그만!','3. 풀케어 서비스'];
   const mapCard=(c)=>({image:c.image||'',link:c.link||'',title:c.title||'',hashtags:c.hashtags||'',ment:c.ment||''});
   const normMat=(v)=>{ if(Array.isArray(v)) return {title:'',sub:'',cards:v.map(mapCard)}; v=v||{}; return {title:v.title||'',sub:v.sub||'',cards:Array.isArray(v.cards)?v.cards.map(mapCard):[]}; };
   const normExtra=(v)=>Array.isArray(v)?v.filter(e=>e&&e.key).map(e=>({key:String(e.key),label:e.label||'',title:e.title||'',sub:e.sub||'',cards:Array.isArray(e.cards)?e.cards.map(mapCard):[]})):[];
   const normGrid=(v)=>Array.isArray(v)?v.map(c=>({image:c.image||'',title:c.title||'',meta:c.meta||'',price:c.price||'',unit:c.unit||'',link:c.link||'',cat:c.cat||'',brand:c.brand||'',badge:c.badge||''})):[];
   const normSw=(v)=>{ v=v||{}; const o={}; HC_SWATCHES.forEach(s=>{ const x=v[s.key]||{}; o[s.key]={image:x.image||'',label:x.label||'',sub:x.sub||''}; }); return o; };
   const normSrc=(v)=>{ v=v||{}; const c=v.cats||{}; const stored=HC_GRID_CATS.some(g=>String(c[g.key]||'').trim()); const cats={}; HC_GRID_CATS.forEach(g=>{ cats[g.key]= stored ? String(c[g.key]||'').trim() : (HC_SRC_DEFAULT[g.key]||''); }); return {limit:Number(v.limit)>0?Number(v.limit):8, cats}; };
-  const [data,setData]=useState({hero:[],metal:normMat(),wood:normMat(),stone:normMat(),extraMaterials:[],matOrder:normMatOrder(),homeGrid:[],homeSwatches:normSw(),homeGridSource:normSrc()});
+  const [data,setData]=useState({hero:[],metal:normMat(),wood:normMat(),stone:normMat(),extraMaterials:[],matOrder:normMatOrder(),homeGrid:[],homeSwatches:normSw(),homeGridSource:normSrc(),packageBanner:normPkg()});
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState(null);
@@ -6932,7 +6935,7 @@ function HomeCardsPage({showToast}){
   useEffect(()=>{ (async()=>{
     try{
       const d=await db.collection('config').doc('pourstoreHomeCards').get();
-      if(d.exists){ const v=d.data()||{}; const extra=normExtra(v.extraMaterials); setData({hero:normHero(v.hero),metal:normMat(v.metal),wood:normMat(v.wood),stone:normMat(v.stone),extraMaterials:extra,matOrder:normMatOrder(v.matOrder,extra.map(e=>e.key)),homeGrid:normGrid(v.homeGrid),homeSwatches:normSw(v.homeSwatches),homeGridSource:normSrc(v.homeGridSource)}); }
+      if(d.exists){ const v=d.data()||{}; const extra=normExtra(v.extraMaterials); setData({hero:normHero(v.hero),metal:normMat(v.metal),wood:normMat(v.wood),stone:normMat(v.stone),extraMaterials:extra,matOrder:normMatOrder(v.matOrder,extra.map(e=>e.key)),homeGrid:normGrid(v.homeGrid),homeSwatches:normSw(v.homeSwatches),homeGridSource:normSrc(v.homeGridSource),packageBanner:normPkg(v.packageBanner)}); }
       console.log('[homecards] 로드', d.exists);
     }catch(e){ console.error('[homecards] 로드 실패:',e); showToast('로드 실패: '+e.message,'error'); }
     setLoading(false);
@@ -6943,6 +6946,9 @@ function HomeCardsPage({showToast}){
   const heroRemove=(i)=>setData(p=>({...p,hero:p.hero.filter((_,x)=>x!==i)}));
   const heroPatch=(i,part)=>setData(p=>({...p,hero:p.hero.map((h,x)=>x===i?{...h,...part}:h)}));
   const heroMove=(i,dir)=>setData(p=>{const a=[...p.hero];const j=i+dir;if(j<0||j>=a.length)return p;const t=a[i];a[i]=a[j];a[j]=t;return{...p,hero:a};});
+
+  // 패키지 배너 배경 ops
+  const pkgPatch=(i,part)=>setData(p=>({...p,packageBanner:p.packageBanner.map((s,x)=>x===i?{...s,...part}:s)}));
 
   // 소재 ops — 기본 3종(metal/wood/stone)과 추가 소재(extraMaterials) 모두 지원
   const matGet=(key)=> HC_MAT_KEYS.includes(key) ? data[key] : (data.extraMaterials.find(e=>e.key===key)||{title:'',sub:'',cards:[]});
@@ -6997,7 +7003,8 @@ function HomeCardsPage({showToast}){
       const homeGridSource={limit:Number(data.homeGridSource.limit)>0?Number(data.homeGridSource.limit):8, cats:gsCats};
       const extraMaterials=data.extraMaterials.filter(e=>e.key).map(e=>({key:e.key,label:(e.label||'').trim(),title:(e.title||'').trim(),sub:(e.sub||'').trim(),cards:e.cards.filter(c=>c.image).map(c=>({image:c.image,link:(c.link||'').trim(),title:(c.title||'').trim(),hashtags:(c.hashtags||'').trim(),ment:(c.ment||'').trim()}))}));
       const extraKeys=extraMaterials.map(e=>e.key);
-      await db.collection('config').doc('pourstoreHomeCards').set({hero,metal:mat(data.metal),wood:mat(data.wood),stone:mat(data.stone),extraMaterials,matOrder:normMatOrder(data.matOrder,extraKeys),homeGrid,homeSwatches,homeGridSource,...audit.update()},{merge:true});
+      const packageBanner=data.packageBanner.map(s=>({bg:(s.bg||'').trim(),bgMobile:(s.bgMobile||'').trim()}));
+      await db.collection('config').doc('pourstoreHomeCards').set({hero,metal:mat(data.metal),wood:mat(data.wood),stone:mat(data.stone),extraMaterials,matOrder:normMatOrder(data.matOrder,extraKeys),homeGrid,homeSwatches,homeGridSource,packageBanner,...audit.update()},{merge:true});
       showToast('저장되었습니다 — 스토어에 반영됩니다');
     }catch(e){ console.error('[homecards] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
     setSaving(false);
@@ -7052,6 +7059,54 @@ function HomeCardsPage({showToast}){
           })}
         </div>
         <button onClick={heroAdd} style={{marginTop:12,width:'100%',padding:10,borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>+ 슬라이드 추가</button>
+      </div>
+
+      {/* ===== 패키지 배너 배경 (패키지 페이지 상단 슬라이더 pkg-0-hero) ===== */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:18,marginBottom:18}}>
+        <div style={{fontSize:15,fontWeight:900,color:'var(--navy)',marginBottom:2}}>📦 패키지 배너 배경 <span style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700}}>(패키지 페이지 상단 슬라이더 3장)</span></div>
+        <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,marginBottom:12}}>슬라이드별 배경사진 — 넣으면 <b>풀블리드 배경 + 왼쪽 밝은 오버레이</b>로 표시(비우면 기본 파란 그라데이션). PC 권장 1920×420 이상(가로 넓게), 모바일은 세로형(선택).</div>
+        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+          {data.packageBanner.map((s,i)=>{ const upPc=uploading==='pkgbg:'+i+':pc'; const upMo=uploading==='pkgbg:'+i+':mo';
+            return (
+              <div key={i} style={{display:'flex',gap:12,padding:12,background:'var(--bg)',borderRadius:10,border:'1px solid var(--border)',alignItems:'flex-start'}}>
+                <div style={{width:70,flexShrink:0,fontSize:12,fontWeight:900,color:'var(--navy)',paddingTop:4}}>{HC_PKG_LABELS[i]}</div>
+                {/* PC 배경 */}
+                <div style={{width:190,flexShrink:0}}>
+                  <div style={{position:'relative',width:'100%',aspectRatio:'32/9',borderRadius:8,overflow:'hidden',background:'var(--blue-l,#EFF6FF)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    {s.bg?<img src={s.bg} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontSize:11,color:'var(--text-sm)',fontWeight:700}}>PC 배경 없음</span>}
+                    {upPc&&<div style={{position:'absolute',inset:0,background:'rgba(255,255,255,.7)',display:'grid',placeItems:'center',fontSize:11,fontWeight:800,color:'var(--accent)'}}>업로드중</div>}
+                  </div>
+                  <div style={{display:'flex',gap:5,marginTop:6}}>
+                    <label style={{flex:1,textAlign:'center',padding:'7px',borderRadius:8,border:'1.5px solid var(--accent)',color:'var(--accent)',background:'#fff',fontSize:11,fontWeight:800,cursor:upPc?'wait':'pointer'}}>
+                      {s.bg?'PC 교체':'PC 업로드'}
+                      <input type="file" accept="image/png,image/jpeg,image/webp" disabled={upPc} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload('pkgbg:'+i+':pc',f,url=>pkgPatch(i,{bg:url})); e.target.value='';}} style={{display:'none'}}/>
+                    </label>
+                    {s.bg&&<button onClick={()=>pkgPatch(i,{bg:''})} style={{width:34,borderRadius:8,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontWeight:900,cursor:'pointer'}}>×</button>}
+                  </div>
+                </div>
+                {/* 모바일 배경 */}
+                <div style={{width:110,flexShrink:0}}>
+                  <div style={{position:'relative',width:'100%',aspectRatio:'3/4',borderRadius:8,overflow:'hidden',background:'var(--blue-l,#EFF6FF)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    {s.bgMobile?<img src={s.bgMobile} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontSize:10.5,color:'var(--text-sm)',fontWeight:700,textAlign:'center'}}>모바일<br/>(선택)</span>}
+                    {upMo&&<div style={{position:'absolute',inset:0,background:'rgba(255,255,255,.7)',display:'grid',placeItems:'center',fontSize:11,fontWeight:800,color:'var(--accent)'}}>업로드중</div>}
+                  </div>
+                  <div style={{display:'flex',gap:5,marginTop:6}}>
+                    <label style={{flex:1,textAlign:'center',padding:'7px',borderRadius:8,border:'1.5px solid var(--border)',color:'var(--text-md)',background:'#fff',fontSize:11,fontWeight:800,cursor:upMo?'wait':'pointer'}}>
+                      {s.bgMobile?'교체':'모바일'}
+                      <input type="file" accept="image/png,image/jpeg,image/webp" disabled={upMo} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload('pkgbg:'+i+':mo',f,url=>pkgPatch(i,{bgMobile:url})); e.target.value='';}} style={{display:'none'}}/>
+                    </label>
+                    {s.bgMobile&&<button onClick={()=>pkgPatch(i,{bgMobile:''})} style={{width:34,borderRadius:8,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontWeight:900,cursor:'pointer'}}>×</button>}
+                  </div>
+                </div>
+                <div style={{flex:1,minWidth:0,fontSize:11.5,color:'var(--text-sm)',fontWeight:700,lineHeight:1.6,paddingTop:2}}>
+                  {i===0&&'히어로 슬라이드 배경. 사진 넣으면 우측 박스 일러스트 대신 사진이 꽉 차게 나오고, 왼쪽 문구는 오버레이 위에 그대로 유지돼요.'}
+                  {i===1&&'"이제 고민 그만!" 슬라이드 배경(선택). 텍스트·카드가 많아 밝은 사진 권장.'}
+                  {i===2&&'"풀케어 서비스" 슬라이드 배경(선택). 타일이 흰색이라 밝은 사진 권장.'}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* ===== 소재별 라인 (순서 변경 가능 → 스토어 노출 순서 반영) ===== */}

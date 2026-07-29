@@ -18,7 +18,7 @@
 <style>
 :root{
   --or:#E8780F; --or2:#F49A3A; --navy:#0F1F5C; --ink:#111111; --ink2:#374151; --muted:#6B7280;
-  --green:#16A34A; --green2:#03C75A; --blue:#2563EB; --purple:#6D28D9;
+  --green:#16A34A; --green2:#03C75A; --blue:#2563EB; --purple:#6D28D9; --teal:#0D9488;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 a{text-decoration:none;color:inherit;}
@@ -63,27 +63,25 @@ body{background:#F5F6F8;color:var(--ink);font-family:'Pretendard Variable',Prete
 .t-blue .mb-eyebrow{color:var(--blue);} .t-blue .mb-title .ac{color:var(--blue);} .t-blue .mb-tag b{color:var(--blue);} .t-blue .mb-jua{color:#1E40AF;}
 
 /* ============ 서브 배너 (작은것) ============ */
-.sb-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
-.sb{position:relative;border-radius:14px;overflow:hidden;aspect-ratio:16/10;display:flex;box-shadow:0 1px 8px rgba(0,0,0,.06);}
-.sb-in{position:relative;z-index:2;padding:20px 20px;display:flex;flex-direction:column;width:100%;}
+.sb-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(224px,1fr));gap:14px;}
+.sb{position:relative;border-radius:14px;overflow:hidden;aspect-ratio:4/3;display:flex;box-shadow:0 1px 8px rgba(0,0,0,.06);}
+.sb-in{position:relative;z-index:2;padding:18px 18px;display:flex;flex-direction:column;width:100%;}
 .sb-badge{align-self:flex-start;font-weight:800;font-size:11px;letter-spacing:0.02em;padding:5px 11px;border-radius:7px;color:#fff;}
-.sb-title{margin-top:14px;font-weight:900;font-size:18px;letter-spacing:-0.035em;line-height:1.3;color:var(--navy);}
+.sb-title{margin-top:13px;font-weight:900;font-size:17px;letter-spacing:-0.035em;line-height:1.3;color:var(--navy);}
 .sb-title .ac{color:var(--or);}
-.sb-small{margin-top:6px;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:-0.02em;}
-.sb-note{margin-top:8px;font-size:10.5px;line-height:1.5;color:var(--muted);letter-spacing:-0.01em;}
+.sb-small{margin-top:6px;font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:-0.02em;max-width:calc(100% - 56px);}
+.sb-note{margin-top:7px;font-size:10.5px;line-height:1.5;color:var(--muted);letter-spacing:-0.01em;max-width:calc(100% - 52px);}
 .sb-note .lnk{font-weight:800;text-decoration:underline;}
-.sb-art{position:absolute;right:14px;bottom:12px;width:96px;height:82px;z-index:1;}
+.sb-art{position:absolute;right:12px;bottom:12px;width:60px;height:54px;z-index:1;}
 .sb-art svg{width:100%;height:100%;}
 .sb-stars{margin-top:10px;color:#F59E0B;font-size:16px;letter-spacing:2px;}
 .sb1{background:linear-gradient(160deg,#EAF1FF 0%,#D6E4FF 100%);} .sb1 .sb-badge{background:var(--blue);} .sb1 .sb-title{color:var(--navy);} .sb1 .sb-title .ac{color:var(--blue);}
-.sb1 .sb-pts{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;}
+.sb1 .sb-pts{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100% - 52px);}
 .sb1 .pt{display:inline-flex;align-items:baseline;gap:3px;background:#fff;border:1px solid #C7D7FA;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700;color:var(--ink2);letter-spacing:-0.02em;}
 .sb1 .pt b{color:var(--blue);font-weight:900;font-size:12.5px;}
-.sb2{background:linear-gradient(160deg,#FFF3E9 0%,#FFE1C8 100%);} .sb2 .sb-badge{background:var(--or);} .sb2 .sb-title{color:#7C2D12;} .sb2 .sb-title .ac{color:var(--or);}
-.sb2 .sb-benes{margin-top:10px;display:flex;flex-direction:column;gap:5px;}
-.sb2 .bene{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#7C2D12;letter-spacing:-0.02em;}
-.sb2 .bene .em{width:18px;text-align:center;}
-.sb2 .bene b{color:var(--or);font-weight:900;}
+.sb-signup{background:linear-gradient(160deg,#FFF3E9 0%,#FFE1C8 100%);} .sb-signup .sb-badge{background:var(--or);} .sb-signup .sb-title{color:#7C2D12;} .sb-signup .sb-title .ac{color:var(--or);}
+.sb-grade{background:linear-gradient(160deg,#F3F1FF 0%,#E6E1FF 100%);} .sb-grade .sb-badge{background:var(--purple);} .sb-grade .sb-title .ac{color:var(--purple);}
+.sb-ship{background:linear-gradient(160deg,#E7F7F6 0%,#CDEDEB 100%);} .sb-ship .sb-badge{background:var(--teal);} .sb-ship .sb-title{color:#0B4A46;} .sb-ship .sb-title .ac{color:var(--teal);}
 .sb3{background:linear-gradient(160deg,#EAF7EF 0%,#D2F0DF 100%);} .sb3 .sb-badge{background:var(--green2);} .sb3 .sb-title{color:#0B4B2C;} .sb3 .sb-title .ac{color:var(--green);}
 
 /* ============ 모바일 ============ */
@@ -211,7 +209,7 @@ body{background:#F5F6F8;color:var(--ink);font-family:'Pretendard Variable',Prete
   </a>
 
   <!-- ==================== 서브 배너 (작은것) ==================== -->
-  <div class="grp"><span class="bar"></span>서브 배너 (작은것) — 3슬라이드</div>
+  <div class="grp"><span class="bar"></span>서브 배너 (작은것) — 5슬라이드 (개별 카드)</div>
   <div class="sb-row">
 
     <!-- 서브1 : 리뷰 포인트 이벤트 (참고 이미지 1·2) -->
@@ -220,7 +218,7 @@ body{background:#F5F6F8;color:var(--ink);font-family:'Pretendard Variable',Prete
         <span class="sb-badge">REVIEW EVENT</span>
         <div class="sb-title">리뷰 쓰고<br><span class="ac">포인트 받아가세요</span></div>
         <div class="sb-stars">★★★★★</div>
-        <div class="sb-pts"><span class="pt">포토후기 전원 <b>3,000P</b></span><span class="pt">베스트 <b>10,000P</b></span></div>
+        <div class="sb-small">포토후기 전원 <b style="color:var(--blue)">3,000P</b> · 베스트 <b style="color:var(--blue)">10,000P</b></div>
       </div>
       <div class="sb-art" aria-hidden="true">
         <svg viewBox="0 0 96 82" fill="none">
@@ -232,20 +230,58 @@ body{background:#F5F6F8;color:var(--ink);font-family:'Pretendard Variable',Prete
       </div>
     </a>
 
-    <!-- 서브2 : 가입·등급·무료배송 혜택 (참고 이미지 3) -->
-    <a class="sb sb2" href="javascript:void(0)">
+    <!-- 서브2 : 회원가입 3천원 -->
+    <a class="sb sb-signup" href="javascript:void(0)">
       <div class="sb-in">
-        <span class="sb-badge">MEMBERSHIP</span>
-        <div class="sb-title">가입만 해도<br><span class="ac">혜택이 가득해요</span></div>
-        <div class="sb-benes">
-          <div class="bene"><span class="em">🎁</span>회원가입 <b>3천원</b> 쿠폰</div>
-          <div class="bene"><span class="em">👑</span>등급별 최대 <b>35%</b> 혜택</div>
-          <div class="bene"><span class="em">🚚</span><b>무료배송</b>&nbsp;(조건 충족 시)</div>
-        </div>
+        <span class="sb-badge">가입 혜택</span>
+        <div class="sb-title">회원가입만 해도<br><span class="ac">3천원 쿠폰</span></div>
+        <div class="sb-small">첫 가입 시 전원 즉시 지급</div>
+      </div>
+      <div class="sb-art" aria-hidden="true">
+        <svg viewBox="0 0 96 82" fill="none">
+          <rect x="24" y="38" width="48" height="34" rx="5" fill="#fff" stroke="#E8780F" stroke-width="3"/>
+          <rect x="20" y="28" width="56" height="14" rx="4" fill="#F49A3A"/>
+          <path d="M48 28v44" stroke="#E8780F" stroke-width="3"/>
+          <path d="M48 28c-10-14-26-4-14 6 4 3 10 2 14-6zM48 28c10-14 26-4 14 6-4 3-10 2-14-6z" fill="#FFB86B"/>
+        </svg>
       </div>
     </a>
 
-    <!-- 서브3 : 시공매칭 -->
+    <!-- 서브3 : 등급별 최대 35% -->
+    <a class="sb sb-grade" href="javascript:void(0)">
+      <div class="sb-in">
+        <span class="sb-badge">등급 혜택</span>
+        <div class="sb-title">등급 오를수록<br><span class="ac">최대 35% 혜택</span></div>
+        <div class="sb-small">등급별 할인쿠폰 + 추가 적립</div>
+      </div>
+      <div class="sb-art" aria-hidden="true">
+        <svg viewBox="0 0 96 82" fill="none">
+          <path d="M24 62l-4-30 15 12 13-22 13 22 15-12-4 30z" fill="#6D28D9"/>
+          <rect x="24" y="62" width="48" height="10" rx="3" fill="#4C1D95"/>
+          <circle cx="35" cy="34" r="3" fill="#EDE9FE"/><circle cx="61" cy="34" r="3" fill="#EDE9FE"/><circle cx="48" cy="24" r="3.5" fill="#F6C650"/>
+        </svg>
+      </div>
+    </a>
+
+    <!-- 서브4 : 무료배송 -->
+    <a class="sb sb-ship" href="javascript:void(0)">
+      <div class="sb-in">
+        <span class="sb-badge">무료배송</span>
+        <div class="sb-title">조건 충족 시<br><span class="ac">무료로 배송</span></div>
+        <div class="sb-small">20kg 1통도 무료 · 10kg↓ 5만원↑</div>
+      </div>
+      <div class="sb-art" aria-hidden="true">
+        <svg viewBox="0 0 96 82" fill="none">
+          <rect x="12" y="34" width="44" height="30" rx="4" fill="#0D9488"/>
+          <path d="M56 42h16l12 12v10H56z" fill="#5EC8C0"/>
+          <rect x="60" y="46" width="12" height="9" rx="2" fill="#fff"/>
+          <circle cx="30" cy="66" r="8" fill="#0B4A46"/><circle cx="30" cy="66" r="3" fill="#fff"/>
+          <circle cx="70" cy="66" r="8" fill="#0B4A46"/><circle cx="70" cy="66" r="3" fill="#fff"/>
+        </svg>
+      </div>
+    </a>
+
+    <!-- 서브5 : 시공매칭 -->
     <a class="sb sb3" href="javascript:void(0)">
       <div class="sb-in">
         <span class="sb-badge">시공 매칭</span>

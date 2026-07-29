@@ -10,18 +10,21 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
 /* ===== POUR 로그인 페이지 (scoped: .pour-login) ===== */
 .pour-login *,
 .pour-login *::before,
 .pour-login *::after { box-sizing:border-box; }
+/* ★ 카페24 스킨 기본 폰트(Pretendard)를 이기려면 전체 요소에 !important 강제 */
+.pour-login, .pour-login *:not(svg):not(path) {
+  font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif !important;
+}
 .pour-login {
-  font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
   letter-spacing:-0.02em; color:#2F3438;
   display:flex; justify-content:center;
   padding:56px 16px 80px; background:#fff;
 }
-/* button/input/a 는 font-family를 자동 상속 안 하므로 강제 상속 → 전체 폰트 통일 */
-.pour-login button, .pour-login input, .pour-login a { font-family:inherit; letter-spacing:inherit; }
+.pour-login button, .pour-login input, .pour-login a { letter-spacing:inherit; }
 .pour-login .path,
 .pour-login .titleArea { display:none; }             /* 카페24 기본 경로/제목 숨김(카드 안에서 제목 표시) */
 .pour-login-card {

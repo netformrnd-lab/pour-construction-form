@@ -1,0 +1,275 @@
+<!--
+  POUR스토어 메인 히어로 배너 — B2C DIY 리뉴얼 시안 (큰것=히어로16:9 + 작은것=사이드카드) × 3세트
+  - 목적: 기존 B2B/안전모/협력업체 톤 배너를 GROHOME·스토어 B2C DIY 톤으로 재기획
+  - 원칙(FONT-SYSTEM.md): 구조=Pretendard 900 / 감성 한 줄만=Jua / 강조=색(#E8780F)만
+  - 사진 대신 밝은 일러스트형 CSS → 안전모·협력업체 모집 등 B2B 요소 원천 제거
+  - 레이아웃: 실제 pour-01-main .psm1-hero (1fr 320px), 700px 이하 모바일 반응형(히어로 4:3 / 사이드 가로 2.5:1)
+  - 사용: 이 시안으로 방향 확정 → 각 슬라이드를 이미지로 export → 어드민 '메인 배너 관리'에 업로드
+-->
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>POUR스토어 메인 히어로 배너 — B2C DIY 시안 3세트</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"/>
+<style>
+:root{
+  --or:#E8780F; --or2:#F49A3A; --or3:#FFB86B;
+  --navy:#0F1F5C; --ink:#111111; --ink2:#374151; --muted:#6B7280;
+  --green:#03C75A; --blue:#2563EB;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+a{text-decoration:none;color:inherit;}
+body{
+  background:#F5F6F8; color:var(--ink);
+  font-family:'Pretendard Variable',Pretendard,'Apple SD Gothic Neo',sans-serif;
+  -webkit-font-smoothing:antialiased; line-height:1.5; padding:32px 16px 80px;
+}
+.wrap{max-width:1256px;margin:0 auto;}
+.doc-h{font-weight:900;font-size:22px;letter-spacing:-0.035em;color:var(--navy);margin-bottom:4px;}
+.doc-sub{font-size:13px;color:var(--muted);letter-spacing:-0.02em;margin-bottom:28px;}
+.set-label{display:flex;align-items:center;gap:8px;margin:36px 0 12px;font-weight:900;font-size:15px;letter-spacing:-0.03em;color:var(--navy);}
+.set-label .num{width:24px;height:24px;border-radius:8px;background:linear-gradient(135deg,var(--or2),var(--or));color:#fff;display:grid;place-items:center;font-size:12px;font-weight:900;}
+.set-label .concept{font-weight:600;font-size:12px;color:var(--muted);}
+
+/* ===== 실제 히어로 레이아웃 (pour-01-main 미러) ===== */
+.hero{background:#fff;border-radius:14px;padding:14px;box-shadow:0 1px 6px rgba(0,0,0,.06);}
+.hero-inner{display:grid;grid-template-columns:1fr 320px;gap:16px;}
+.bnr{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:16/9;display:flex;}
+.side{position:relative;border-radius:12px;overflow:hidden;display:flex;}
+
+/* 공통 배너 내부 */
+.bnr-in{position:relative;z-index:2;padding:44px 48px;display:flex;flex-direction:column;justify-content:center;height:100%;width:100%;}
+.eyebrow{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;font-weight:800;font-size:12px;letter-spacing:0.02em;padding:5px 11px;border-radius:999px;margin-bottom:14px;}
+.b-title{font-weight:900;letter-spacing:-0.04em;line-height:1.22;font-size:33px;}
+.b-title .or{color:var(--or);}
+.b-sub{margin-top:12px;font-weight:500;font-size:15px;letter-spacing:-0.02em;line-height:1.55;color:var(--ink2);max-width:24em;}
+.b-cta{margin-top:22px;align-self:flex-start;display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:14px;letter-spacing:-0.02em;padding:11px 20px;border-radius:999px;background:var(--navy);color:#fff;}
+.b-cta.or{background:var(--or);}
+.jua{font-family:'Jua','Pretendard Variable',sans-serif;font-weight:400;letter-spacing:-0.01em;}
+
+/* 일러스트 레이어 (오른쪽) */
+.art{position:absolute;right:-10px;bottom:-10px;top:0;width:46%;z-index:1;pointer-events:none;display:flex;align-items:center;justify-content:center;}
+.art svg{width:100%;height:100%;max-height:100%;}
+.blob{position:absolute;border-radius:50%;filter:blur(2px);opacity:.6;}
+
+/* ===== 세트1 — 히어로: 올인원 셀프패키지 (크림) ===== */
+.h1{background:linear-gradient(120deg,#FFF6EA 0%,#FFE9D2 100%);}
+.h1 .eyebrow{background:#fff;color:var(--or);box-shadow:0 1px 4px rgba(232,120,15,.18);}
+/* 세트1 — 사이드: 무료반품 이벤트 (연블루) */
+.s1{background:linear-gradient(160deg,#EAF1FF 0%,#DCE8FF 100%);}
+.side-in{position:relative;z-index:2;padding:22px 22px;display:flex;flex-direction:column;height:100%;width:100%;}
+.s-badge{align-self:flex-start;font-weight:800;font-size:11px;letter-spacing:0.02em;padding:4px 10px;border-radius:6px;}
+.s-label{margin-top:16px;font-weight:600;font-size:12px;letter-spacing:-0.02em;color:var(--muted);}
+.s-title{margin-top:6px;font-weight:900;font-size:19px;letter-spacing:-0.035em;line-height:1.32;color:var(--navy);}
+.s-title .or{color:var(--or);}
+.s-art{margin-top:auto;align-self:center;padding-top:12px;width:120px;height:104px;}
+.s-art svg{width:100%;height:100%;}
+.s1 .s-badge{background:var(--navy);color:#fff;}
+
+/* ===== 세트2 — 히어로: 주말 셀프보수 (민트그린) ===== */
+.h2{background:linear-gradient(120deg,#EAFBF1 0%,#D3F4E6 100%);}
+.h2 .eyebrow{background:#fff;color:var(--green);box-shadow:0 1px 4px rgba(3,199,90,.2);}
+.h2 .b-title .or{color:var(--green);}
+.h2 .b-cta{background:var(--green);}
+/* 세트2 — 사이드: 소용량 코트재 NEW (연피치) */
+.s2{background:linear-gradient(160deg,#FFF3E9 0%,#FFE3CC 100%);}
+.s2 .s-badge{background:var(--or);color:#fff;}
+.s2 .s-title{color:#7C2D12;}
+
+/* ===== 세트3 — 히어로: 리얼 후기 (라벤더) ===== */
+.h3{background:linear-gradient(120deg,#F1F0FF 0%,#E4E2FF 100%);}
+.h3 .eyebrow{background:#fff;color:#6D28D9;box-shadow:0 1px 4px rgba(109,40,217,.18);}
+.h3 .b-title .or{color:#6D28D9;}
+.h3 .b-cta{background:#6D28D9;}
+.stars{margin-top:14px;display:flex;align-items:center;gap:8px;}
+.stars .st{color:#F59E0B;font-size:20px;letter-spacing:2px;}
+.stars .sc{font-weight:900;font-size:16px;color:var(--navy);}
+.stars .rv{font-weight:600;font-size:12px;color:var(--muted);}
+/* 세트3 — 사이드: 동네 시공 매칭 (연그린) */
+.s3{background:linear-gradient(160deg,#E9FBF1 0%,#CFF3DF 100%);}
+.s3 .s-badge{background:var(--green);color:#fff;}
+.s3 .s-title{color:#0B4B2C;}
+.s-note{margin-top:10px;font-size:10.5px;line-height:1.5;letter-spacing:-0.01em;color:#3B7A57;}
+.s-note .lnk{color:#0B4B2C;font-weight:700;text-decoration:underline;}
+.side[role=link]{cursor:pointer;}
+
+/* ===== 모바일 반응형 (실제 pour-01-main과 동일 규칙) ===== */
+@media (max-width:900px){
+  .hero-inner{grid-template-columns:1fr 240px;gap:12px;}
+  .b-title{font-size:26px;}
+  .bnr-in{padding:30px 30px;}
+  .s-title{font-size:17px;}
+}
+@media (max-width:700px){
+  body{padding:20px 12px 60px;}
+  .hero-inner{grid-template-columns:1fr;gap:12px;}
+  /* 프리뷰에선 콘텐츠가 잘리지 않게 높이 자동 — 실제 모바일 export 이미지는 4:3로 재구성 권장 */
+  .bnr{aspect-ratio:auto;min-height:56vw;}
+  .bnr-in{padding:26px 24px;}
+  .b-title{font-size:24px;max-width:64%;}
+  .b-sub{font-size:13px;max-width:60%;}
+  .art{width:40%;opacity:.9;right:-6px;}
+  /* 사이드 → 가로 2.5:1 카드 (1080×432 권장) */
+  .side{aspect-ratio:5/2;}
+  .side-in{flex-direction:row;align-items:center;gap:14px;padding:18px 20px;}
+  .s-label{margin-top:0;}
+  .s-art{margin:0 0 0 auto;padding:0;width:88px;height:78px;flex-shrink:0;}
+  .s-note{display:none;}
+}
+@media (max-width:380px){
+  .b-title{font-size:21px;}
+  .s-title{font-size:15px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="doc-h">POUR스토어 메인 히어로 배너 — B2C DIY 리뉴얼 시안</div>
+  <div class="doc-sub">큰것(히어로 16:9) + 작은것(사이드 카드) × 3세트 · 안전모·협력업체 등 B2B 요소 제거, 셀프시공·후기·초보자 친화 톤</div>
+
+  <!-- ============ 세트 1 ============ -->
+  <div class="set-label"><span class="num">1</span>혼자서도 충분해요 <span class="concept">· 올인원 셀프패키지 · 자신감/안심</span></div>
+  <div class="hero"><div class="hero-inner">
+    <!-- 큰것 -->
+    <a class="bnr h1" href="javascript:void(0)">
+      <div class="art" aria-hidden="true">
+        <svg viewBox="0 0 240 240" fill="none">
+          <ellipse cx="120" cy="212" rx="92" ry="14" fill="#E8780F" opacity=".12"/>
+          <!-- 페인트통 -->
+          <path d="M70 120h84l-8 78a10 10 0 0 1-10 9H88a10 10 0 0 1-10-9z" fill="#fff" stroke="#E8780F" stroke-width="4"/>
+          <rect x="66" y="108" width="92" height="18" rx="6" fill="#E8780F"/>
+          <path d="M78 108c0-20 68-20 68 0" stroke="#0F1F5C" stroke-width="4" fill="none"/>
+          <path d="M84 150c22 12 40 12 60 0" stroke="#F49A3A" stroke-width="7" stroke-linecap="round"/>
+          <!-- 롤러 -->
+          <rect x="150" y="44" width="60" height="22" rx="8" fill="#0F1F5C"/>
+          <rect x="176" y="62" width="7" height="40" rx="3" fill="#94A3B8"/>
+          <rect x="168" y="98" width="24" height="46" rx="7" fill="#F49A3A"/>
+          <!-- 붓 -->
+          <rect x="44" y="52" width="14" height="52" rx="5" fill="#0F1F5C" transform="rotate(20 51 78)"/>
+          <path d="M30 96l16-8 10 16-14 10z" fill="#FFB86B"/>
+        </svg>
+      </div>
+      <div class="bnr-in">
+        <span class="eyebrow">🎨 올인원 셀프패키지</span>
+        <div class="b-title">건축물 유지보수,<br><span class="or">혼자서도</span> 충분해요</div>
+        <div class="b-sub">자재 + 상세 설명서 + 시공 매칭까지. 필요한 걸 한 번에 담은 셀프시공 패키지.</div>
+        <span class="jua" style="margin-top:14px;font-size:15px;color:#B45309;">혼자 하는 게 아니에요, POUR가 함께해요 😊</span>
+        <span class="b-cta or" style="margin-top:18px;">패키지 보러가기 →</span>
+      </div>
+    </a>
+    <!-- 작은것 -->
+    <a class="side s1" href="javascript:void(0)">
+      <div class="side-in">
+        <span class="s-badge">이벤트</span>
+        <div class="s-label">패키지 상품 무료반품 이벤트</div>
+        <div class="s-title">패키지 남으면?<br><span class="or">한 통도 무료 반품 OK!</span></div>
+        <div class="s-art" aria-hidden="true">
+          <svg viewBox="0 0 120 104" fill="none">
+            <rect x="8" y="46" width="62" height="40" rx="6" fill="#2563EB"/>
+            <path d="M70 56h22l16 16v14H70z" fill="#F472B6"/>
+            <rect x="76" y="60" width="16" height="12" rx="3" fill="#FBBF24"/>
+            <circle cx="30" cy="90" r="10" fill="#0F1F5C"/><circle cx="30" cy="90" r="4" fill="#fff"/>
+            <circle cx="90" cy="90" r="10" fill="#0F1F5C"/><circle cx="90" cy="90" r="4" fill="#fff"/>
+            <text x="20" y="74" font-family="Jua" font-size="18" fill="#fff">FREE</text>
+          </svg>
+        </div>
+      </div>
+    </a>
+  </div></div>
+
+  <!-- ============ 세트 2 ============ -->
+  <div class="set-label"><span class="num">2</span>주말 셀프보수 도전 <span class="concept">· 초보자 친화 · 가이드 영상</span></div>
+  <div class="hero"><div class="hero-inner">
+    <a class="bnr h2" href="javascript:void(0)">
+      <div class="art" aria-hidden="true">
+        <svg viewBox="0 0 240 240" fill="none">
+          <ellipse cx="120" cy="212" rx="92" ry="14" fill="#03C75A" opacity=".12"/>
+          <!-- 집 -->
+          <path d="M56 118l64-52 64 52v92a8 8 0 0 1-8 8H64a8 8 0 0 1-8-8z" fill="#fff" stroke="#03C75A" stroke-width="4"/>
+          <path d="M46 122l74-60 74 60" stroke="#0F1F5C" stroke-width="5" fill="none" stroke-linecap="round"/>
+          <rect x="104" y="150" width="32" height="68" rx="4" fill="#A7F3D0"/>
+          <!-- 물방울(누수 해결 체크) -->
+          <circle cx="168" cy="70" r="26" fill="#03C75A"/>
+          <path d="M158 70l7 8 15-16" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- 붓 포인트 -->
+          <rect x="70" y="150" width="10" height="34" rx="4" fill="#0F1F5C" transform="rotate(-18 75 167)"/>
+        </svg>
+      </div>
+      <div class="bnr-in">
+        <span class="eyebrow">🛠 이번 주말 DIY</span>
+        <div class="b-title">누수·균열 걱정,<br>주말에 <span class="or">셀프로</span> 끝내요</div>
+        <div class="b-sub">가이드 영상 그대로 따라 하면 처음이어도 OK. 실패 없는 소용량 패키지부터 시작하세요.</div>
+        <span class="jua" style="margin-top:14px;font-size:15px;color:#047857;">처음이어도 괜찮아요, 천천히 같이 해봐요 👍</span>
+        <span class="b-cta" style="margin-top:18px;">시공가이드 보기 →</span>
+      </div>
+    </a>
+    <a class="side s2" href="javascript:void(0)">
+      <div class="side-in">
+        <span class="s-badge">NEW · 100개 한정</span>
+        <div class="s-label">셀프 보수도 부담 없이</div>
+        <div class="s-title">작은 용량으로<br><span class="or">간편한 균열보수</span></div>
+        <div class="s-art" aria-hidden="true">
+          <svg viewBox="0 0 120 104" fill="none">
+            <rect x="34" y="30" width="52" height="66" rx="8" fill="#fff" stroke="#E8780F" stroke-width="3"/>
+            <rect x="34" y="30" width="52" height="20" rx="8" fill="#0F1F5C"/>
+            <rect x="42" y="56" width="36" height="14" rx="3" fill="#FFE2C7"/>
+            <text x="47" y="67" font-family="Pretendard Variable,sans-serif" font-weight="900" font-size="9" fill="#7C2D12">코트재</text>
+            <rect x="46" y="76" width="28" height="8" rx="2" fill="#F49A3A"/>
+            <circle cx="98" cy="40" r="12" fill="#E8780F"/>
+            <text x="90" y="44" font-family="Jua" font-size="10" fill="#fff">NEW</text>
+          </svg>
+        </div>
+      </div>
+    </a>
+  </div></div>
+
+  <!-- ============ 세트 3 ============ -->
+  <div class="set-label"><span class="num">3</span>후기가 증명해요 <span class="concept">· 리뷰 중심 · 동네 시공 매칭(소비자)</span></div>
+  <div class="hero"><div class="hero-inner">
+    <a class="bnr h3" href="javascript:void(0)">
+      <div class="art" aria-hidden="true">
+        <svg viewBox="0 0 240 240" fill="none">
+          <ellipse cx="120" cy="212" rx="92" ry="14" fill="#6D28D9" opacity=".1"/>
+          <!-- 후기 카드 -->
+          <rect x="60" y="60" width="120" height="86" rx="14" fill="#fff" stroke="#6D28D9" stroke-width="4"/>
+          <circle cx="86" cy="88" r="12" fill="#EDE9FE"/>
+          <rect x="106" y="80" width="58" height="9" rx="4" fill="#DDD6FE"/>
+          <rect x="106" y="96" width="40" height="8" rx="4" fill="#EDE9FE"/>
+          <g fill="#F59E0B"><path d="M78 116l3 7 8 1-6 5 2 8-7-4-7 4 2-8-6-5 8-1z"/><path d="M104 116l3 7 8 1-6 5 2 8-7-4-7 4 2-8-6-5 8-1z"/><path d="M130 116l3 7 8 1-6 5 2 8-7-4-7 4 2-8-6-5 8-1z"/><path d="M156 116l3 7 8 1-6 5 2 8-7-4-7 4 2-8-6-5 8-1z"/></g>
+          <!-- 말풍선 하트 -->
+          <circle cx="178" cy="66" r="20" fill="#6D28D9"/>
+          <path d="M178 74c-8-6-12-10-12-15a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5-4 9-12 15z" fill="#fff" transform="translate(-4 -4) scale(1)"/>
+        </svg>
+      </div>
+      <div class="bnr-in">
+        <span class="eyebrow">⭐ 리얼 후기</span>
+        <div class="b-title">후기가 증명해요,<br><span class="or">셀프로 끝낸</span> 우리 집</div>
+        <div class="stars"><span class="st">★★★★★</span><span class="sc">4.9</span><span class="rv">셀프시공 후기 1,200+</span></div>
+        <div class="b-sub">먼저 해본 이웃들의 진짜 후기로 자재를 고르세요. 사진 후기·시공 팁까지 한눈에.</div>
+        <span class="b-cta" style="margin-top:18px;">후기 보러가기 →</span>
+      </div>
+    </a>
+    <div class="side s3" role="link" tabindex="0">
+      <div class="side-in">
+        <span class="s-badge">서비스</span>
+        <div class="s-label">셀프가 고민될 땐</div>
+        <div class="s-title">셀프가 어렵다면?<br><span style="color:var(--green)">우리 동네 시공 매칭</span></div>
+        <div class="s-note">* 시공사·대리점 등 <span class="lnk">파트너 문의는 파트너센터</span>에서 안내드려요.</div>
+        <div class="s-art" aria-hidden="true">
+          <svg viewBox="0 0 120 104" fill="none">
+            <path d="M60 22c18 0 32 14 32 32 0 22-32 46-32 46S28 76 28 54c0-18 14-32 32-32z" fill="#03C75A"/>
+            <circle cx="60" cy="52" r="13" fill="#fff"/>
+            <path d="M54 52l4 5 9-10" stroke="#03C75A" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div></div>
+
+</div>
+</body>
+</html>

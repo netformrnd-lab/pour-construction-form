@@ -8,12 +8,11 @@
   ▸ 폰트: Pretendard (헤더가 이미 로드). 테마: POUR 블루 #1A72E8
 
   ★ 세로 높이 조절: 아래 .pshp 의 --pshp-pad 값(위아래 여백)만 바꾸면 됩니다. (기본 48px)
-  ★ 사진 교체(어드민) — quick-icons 와 동일 방식:
+  ★ 배경사진 교체(어드민) — quick-icons 와 동일 방식:
     Firebase Storage 경로  POUR스토어_리뉴얼/main-sections/  아래에
-      · package-hero.png (또는 .jpg/.webp)  ← 배너 오른쪽 사진 (권장 560×360, 투명 PNG 가능)
-      · package-bg.png   (또는 .jpg/.webp)  ← 배너 전체 배경사진 (권장 1920×420, 가로 넓은 현장사진)
-        └ 자동으로 블러 + 밝은 스크림 처리되어 글자·도형이 잘 보입니다. 없으면 파란 그라데이션 유지.
-    파일을 올리면 자동으로 기본(일러스트/그라데이션)을 대체합니다.
+      · package-bg.png (또는 .jpg/.webp)  ← 배너 전체 배경사진 (권장 1920×420, 가로 넓은 현장사진)
+        └ 자동으로 블러 + 밝은 스크림 처리되어 글자·도형이 잘 보입니다.
+    파일을 올리면 배경으로 자동 적용, 없으면 파란 그라데이션 유지.
 ============================================================ -->
 <section class="pshp" style="--pshp-pad:48px">
 <style>
@@ -45,25 +44,19 @@
 .pshp-cta{display:inline-flex;align-items:center;gap:7px;margin-top:22px;background:#1A72E8;color:#fff;font-size:14.5px;font-weight:800;padding:13px 22px;border-radius:12px;box-shadow:0 6px 16px rgba(26,114,232,.28);transition:transform .12s,box-shadow .12s}
 .pshp-in:hover .pshp-cta{transform:translateY(-1px);box-shadow:0 10px 22px rgba(26,114,232,.34)}
 
-/* 오른쪽 사진 슬롯 */
-.pshp-photo{flex:0 0 380px;width:380px;position:relative}
-.pshp-photo svg{width:100%;height:auto;display:block}
-.pshp-photo img{display:none}
-.pshp-photo.has-img svg{display:none}
-.pshp-photo.has-img img{display:block;width:100%;height:auto;border-radius:18px}
-
 /* ===== 반응형 ===== */
 @media (max-width:1000px){
-  .pshp-in{gap:24px}
   .pshp-title{font-size:27px}
-  .pshp-photo{flex-basis:300px;width:300px}
 }
 @media (max-width:760px){
-  .pshp{--pshp-pad:28px}
-  .pshp-in{flex-direction:column;align-items:flex-start;gap:18px;padding:var(--pshp-pad) 18px}
-  .pshp-title{font-size:23px}
-  .pshp-desc{font-size:13.5px}
-  .pshp-photo{flex-basis:auto;width:100%;max-width:340px;align-self:center}
+  /* 모바일 세로 높이 절반 수준으로 컴팩트 */
+  .pshp{--pshp-pad:16px}
+  .pshp-in{padding:var(--pshp-pad) 18px}
+  .pshp-title{font-size:22px;margin-top:11px}
+  .pshp-desc{font-size:12.5px;margin-top:8px;line-height:1.5}
+  .pshp-feats{margin-top:11px;gap:7px}
+  .pshp-feats li{padding:8px 12px;font-size:12px}
+  .pshp-cta{margin-top:14px;padding:11px 18px;font-size:13.5px}
 }
 </style>
 <div class="pshp-bg" data-pkg-slot="package-bg" data-bg aria-hidden="true"></div>
@@ -84,34 +77,8 @@
     <span class="pshp-cta">패키지 보러가기 →</span>
   </div>
 
-  <div class="pshp-photo" data-pkg-slot="package-hero" aria-hidden="true">
-    <svg viewBox="0 0 380 240" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="0" y="0" width="380" height="240" rx="18" fill="#fff" opacity=".55"/>
-      <ellipse cx="190" cy="212" rx="120" ry="14" fill="#1A72E8" opacity=".10"/>
-      <!-- 택배 박스 -->
-      <path d="M120 118l70-30 70 30-70 30-70-30z" fill="#4A93F5"/>
-      <path d="M120 118v64l70 30v-64l-70-30z" fill="#1A72E8"/>
-      <path d="M260 118v64l-70 30v-64l70-30z" fill="#155FC7"/>
-      <path d="M155 103l70 30v22l-13 5v-19l-57-25v-13z" fill="#0F1F5C" opacity=".85"/>
-      <!-- 롤러 -->
-      <rect x="238" y="52" width="48" height="22" rx="6" fill="#E8780F"/>
-      <rect x="259" y="72" width="6" height="22" fill="#0F1F5C"/>
-      <rect x="252" y="92" width="20" height="10" rx="3" fill="#0F1F5C"/>
-      <!-- 붓 -->
-      <rect x="104" y="44" width="10" height="46" rx="5" fill="#0F1F5C" transform="rotate(18 109 67)"/>
-      <path d="M92 92l14 5 7-16-14-5-7 16z" fill="#E8780F" transform="rotate(18 102 92)"/>
-      <!-- 무료반환 화살표 배지 -->
-      <circle cx="300" cy="150" r="26" fill="#1A72E8"/>
-      <path d="M304 134a14 14 0 1 1-12 7" stroke="#fff" stroke-width="4.5" stroke-linecap="round" fill="none"/>
-      <path d="M290 131l1.5 12 11-5-12.5-7z" fill="#fff"/>
-      <!-- 반짝임 -->
-      <circle cx="330" cy="86" r="4" fill="#F49A3A"/>
-      <circle cx="78" cy="140" r="3" fill="#4A93F5"/>
-    </svg>
-  </div>
-
 </a>
-<!-- 어드민 사진 자동 교체: Storage POUR스토어_리뉴얼/main-sections/package-hero.* -->
+<!-- 어드민 배경사진 자동 교체: Storage POUR스토어_리뉴얼/main-sections/package-bg.* -->
 <script>
 (function(){
   var sec = document.currentScript.closest('.pshp'); if(!sec) return;

@@ -83,23 +83,18 @@
 .pl-links a { font-size:13.5px; font-weight:600; color:#4B5563; text-decoration:none; }
 .pl-links a:hover { color:#E8780F; }
 
-/* --- 비회원 구매 (회원가입 없이 바로 주문) --- */
-.pl-guest-buy {
-  display:flex; align-items:center; justify-content:center;
-  height:50px; width:100%; margin-top:14px;
-  border:1.5px solid #E8780F; border-radius:10px; background:#fff; color:#E8780F;
-  font-size:15px; font-weight:700; text-decoration:none; cursor:pointer; transition:.15s;
-}
-.pl-guest-buy:hover { background:#FFF6EE; }
+/* --- 회원 링크 아래 경계선 --- */
+.pl-hr { height:1px; background:#ECEEF1; margin:18px 0 16px; }
 
-/* --- 비회원 주문조회 --- */
-.pl-guest-btn {
+/* --- 비회원 영역 (구매 + 주문조회) : 차분한 회색 그룹, 회원 로그인/가입보다 덜 강조 --- */
+.pl-guest-buy, .pl-guest-btn {
   display:flex; align-items:center; justify-content:center;
-  height:50px; width:100%; border-radius:10px; background:#8A94A6; color:#fff;
-  font-size:14.5px; font-weight:700; text-decoration:none; cursor:pointer; transition:.15s; border:0;
+  height:48px; width:100%; border:1px solid #DFE3E8; border-radius:10px;
+  background:#fff; color:#5B636D; font-size:14px; font-weight:600;
+  text-decoration:none; cursor:pointer; transition:.15s;
 }
-.pl-guest-btn:hover { background:#77828F; }
-.pl-guest-wrap { margin-top:14px; }
+.pl-guest-buy:hover, .pl-guest-btn:hover { background:#F7F8FA; border-color:#CBD1D8; color:#3A3F47; }
+.pl-guest-wrap { margin-top:8px; }              /* 구매 버튼 바로 아래 → 한 그룹으로 붙임 */
 .pl-guest-form { margin-top:12px; display:flex; flex-direction:column; gap:9px; padding:16px; background:#F7F8FA; border-radius:12px; }
 .pl-guest-form .txtInfo { font-size:12.5px; color:#8A94A6; font-weight:500; margin-bottom:2px; }
 .pl-guest-form input {
@@ -160,14 +155,15 @@
           <a href="/member/id/find_id.html">아이디 · 비밀번호 찾기</a>
         </div>
 
+        <!-- 회원 링크 아래 경계선 -->
+        <div class="pl-hr"></div>
+
         <!-- 비회원 구매: 회원가입 없이 바로 주문 (카페24 관리자 '비회원 주문 허용' ON 필요, 꺼져있으면 자동 숨김) -->
         <a href="{$returnUrl}" onclick="{$action_nomember_order}" class="pl-guest-buy {$display_nomember|display}">비회원으로 구매하기</a>
       </fieldset>
     </div>
 
-    <div class="pl-divider">또는</div>
-
-    <!-- ▼ 비회원 주문배송 조회 (버튼 클릭 시 조회폼 열림) -->
+    <!-- ▼ 비회원 주문배송 조회 (비회원 구매 버튼 바로 아래, 같은 그룹) -->
     <div class="pl-guest-wrap">
       <button type="button" class="pl-guest-btn" onclick="var g=document.getElementById('plGuest'); g.hidden=!g.hidden;">비회원 주문배송 조회</button>
       <div id="plGuest" hidden>

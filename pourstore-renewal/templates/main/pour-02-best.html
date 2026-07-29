@@ -358,7 +358,19 @@
     if(info) h+='<div class="psm2-card-info">'+info+'</div>';
     return h+'</a>';
   }
+  function reorder(data){
+    var order=Array.isArray(data.matOrder)?data.matOrder:null;
+    if(!order||!order.length) return;
+    var inner=document.querySelector('.psm2-inner'); if(!inner) return;
+    var REV={}; for(var k in MAP){ REV[MAP[k]]=k; }                 // key→라벨 (metal→철재)
+    order.forEach(function(key){                                    // matOrder 순서대로 뒤에 재배치
+      var lbl=REV[key]; if(!lbl) return;
+      var g=inner.querySelector('.psm2-group[data-material="'+lbl+'"]');
+      if(g) inner.appendChild(g);
+    });
+  }
   function apply(data){
+    reorder(data);
     document.querySelectorAll('.psm2-group[data-material]').forEach(function(group){
       var key=MAP[group.getAttribute('data-material')];
       var md=key && data[key]; if(!md) return;

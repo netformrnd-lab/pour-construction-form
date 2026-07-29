@@ -1,0 +1,274 @@
+<!-- ============================================================
+  pkg-0-hero  —  패키지 페이지 상단 [패키지 배너 슬라이더] (3슬라이드 자동)  ▸ 파일: package/pkg-0-hero.html
+  ▸ 조립: pour-package.html 최상단에서 @import.
+  ▸ 톤: POUR 블루 #1A72E8 (pour-02c 고도화). 자체 스코프(.pkgh-*)라 아래 pkg-* 섹션과 충돌 없음.
+  ▸ 슬라이드
+      1) 히어로 — 패키지로 쉽게, 부담 없이 시공해요 (+ 피처 필 2개)
+      2) 니즈 나열 → "이제 고민 그만!" → 260만 세대 검증 솔루션 후킹
+      3) POUR스토어 풀케어 서비스 5혜택
+  ▸ 세로: 슬라이드 중 가장 큰 콘텐츠에 맞춰 자동(트랙 stretch). --pkgh-pad 로 위아래 여백 조절.
+  ▸ 어드민 사진 교체(선택): Firebase Storage  POUR스토어_리뉴얼/main-sections/ 아래
+      · pkg-hero-1.png  ← 슬라이드1 오른쪽 사진 (권장 560×360, 투명 PNG 가능)
+      없으면 기본 SVG 표시. (슬라이드2·3은 일러스트/타일형이라 사진 슬롯 없음)
+  ============================================================ -->
+<section class="pkgh" style="--pkgh-pad:52px">
+<style>
+.pkgh, .pkgh *{box-sizing:border-box;margin:0;padding:0;font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;letter-spacing:-0.02em}
+.pkgh{--blue:#1A72E8;--blue-d:#155FC7;--navy:#0F1F5C;--ink2:#4B5563}
+.pkgh{display:block;width:100%;position:relative;background:linear-gradient(120deg,#EAF2FF 0%,#F3F8FF 52%,#E8F0FF 100%);border-top:1px solid #E3ECFA;border-bottom:1px solid #E3ECFA;overflow:hidden}
+.pkgh a{text-decoration:none;color:inherit}
+.pkgh-viewport{position:relative;overflow:hidden}
+.pkgh-track{display:flex;will-change:transform;transition:transform .45s cubic-bezier(.4,0,.2,1)}
+.pkgh-slide{flex:0 0 100%;min-width:100%;display:flex;align-items:center;justify-content:center;padding:var(--pkgh-pad) 24px}
+.pkgh-in{width:100%;max-width:1256px;margin:0 auto}
+
+/* 공통 텍스트 */
+.pkgh-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pkgh-badge{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #DCE8FB;color:var(--blue);font-size:12.5px;font-weight:800;padding:7px 13px;border-radius:999px;box-shadow:0 2px 8px rgba(26,114,232,.10)}
+.pkgh-badge.solid{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 4px 12px rgba(26,114,232,.28)}
+.pkgh-title{margin-top:15px;font-size:32px;font-weight:900;color:var(--navy);line-height:1.24;letter-spacing:-0.035em}
+.pkgh-title .hl{color:var(--blue)}
+.pkgh-desc{margin-top:13px;font-size:15px;font-weight:500;color:var(--ink2);line-height:1.62}
+.pkgh-desc b{color:var(--blue);font-weight:800}
+.pkgh-cta{display:inline-flex;align-items:center;gap:7px;margin-top:22px;background:var(--blue);color:#fff;font-size:14.5px;font-weight:800;padding:13px 22px;border-radius:12px;box-shadow:0 6px 16px rgba(26,114,232,.28);cursor:pointer;transition:transform .12s,box-shadow .12s;border:none}
+.pkgh-cta:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(26,114,232,.34)}
+
+/* ── 슬라이드1: 히어로 (텍스트 + 사진) ── */
+.pkgh-hero{display:flex;align-items:center;gap:40px}
+.pkgh-hero .t{flex:1 1 auto;min-width:0}
+.pkgh-feats{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.pkgh-feat{display:inline-flex;align-items:center;gap:9px;background:#fff;border:1px solid #E3ECFA;border-radius:12px;padding:11px 15px;font-size:13.5px;font-weight:700;color:var(--navy);box-shadow:0 2px 8px rgba(15,31,92,.05)}
+.pkgh-feat b{color:var(--blue)}
+.pkgh-feat .ic{width:26px;height:26px;flex:0 0 26px;border-radius:8px;background:#EAF2FF;display:grid;place-items:center;color:var(--blue)}
+.pkgh-photo{flex:0 0 380px;width:380px;position:relative}
+.pkgh-photo svg{width:100%;height:auto;display:block}
+.pkgh-photo img{display:none}
+.pkgh-photo.has-img svg{display:none}
+.pkgh-photo.has-img img{display:block;width:100%;height:auto;border-radius:18px}
+
+/* ── 슬라이드2: 니즈 → 이제 그만 → 후킹 ── */
+.pkgh-solve{display:flex;align-items:center;gap:40px}
+.pkgh-solve .l{flex:1 1 56%;min-width:0}
+.pkgh-solve .r{flex:0 0 300px;width:300px;display:grid;place-items:center}
+.pkgh-solve .r svg{width:100%;height:auto}
+.pkgh-eyebrow{font-size:14px;font-weight:800;color:var(--blue)}
+.pkgh-h2{margin-top:8px;font-size:27px;font-weight:900;color:var(--navy);line-height:1.28;letter-spacing:-0.035em}
+.pkgh-needs{margin-top:18px;display:flex;flex-direction:column;gap:9px}
+.pkgh-need{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid #E6EEF9;border-radius:12px;padding:11px 14px;font-size:13.5px;font-weight:600;color:#374151;box-shadow:0 1px 6px rgba(15,31,92,.04)}
+.pkgh-need .q{flex:0 0 20px;color:var(--blue)}
+.pkgh-hook{margin-top:20px}
+.pkgh-hook .stop{font-size:19px;font-weight:900;color:var(--blue);letter-spacing:-0.03em}
+.pkgh-hook .sol{display:inline;font-size:15px;font-weight:800;color:#fff;background:var(--blue);border-radius:6px;padding:3px 9px;line-height:2.1;box-decoration-break:clone;-webkit-box-decoration-break:clone;letter-spacing:-0.02em}
+.pkgh-hook .sub{margin-top:10px;font-size:13.5px;font-weight:500;color:var(--ink2);line-height:1.6}
+
+/* ── 슬라이드3: 풀케어 서비스 5혜택 ── */
+.pkgh-care{width:100%;text-align:center}
+.pkgh-care .cap{font-size:14px;font-weight:800;color:var(--blue)}
+.pkgh-care h3{margin-top:7px;font-size:26px;font-weight:900;color:var(--navy);letter-spacing:-0.035em}
+.pkgh-tiles{margin-top:26px;display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.pkgh-tile{background:#fff;border:1px solid #E6EEF9;border-radius:16px;padding:22px 14px;box-shadow:0 3px 12px rgba(15,31,92,.05);display:flex;flex-direction:column;align-items:center;gap:11px}
+.pkgh-tile .ic{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#EAF2FF,#DCE8FB);display:grid;place-items:center;color:var(--blue)}
+.pkgh-tile .tt{font-size:14px;font-weight:800;color:var(--navy);line-height:1.35}
+.pkgh-tile .tt b{color:var(--blue)}
+
+/* 컨트롤 */
+.pkgh-dots{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:7px;z-index:4}
+.pkgh-dots button{width:8px;height:8px;border-radius:50%;border:none;background:rgba(26,114,232,.28);cursor:pointer;padding:0;transition:.2s}
+.pkgh-dots button.on{width:22px;border-radius:999px;background:var(--blue)}
+.pkgh-arw{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.92);box-shadow:0 3px 12px rgba(15,31,92,.14);color:#334155;font-size:19px;cursor:pointer;z-index:4;display:grid;place-items:center;opacity:0;transition:opacity .2s}
+.pkgh:hover .pkgh-arw{opacity:1}
+.pkgh-arw.prev{left:14px}.pkgh-arw.next{right:14px}
+.pkgh-count{position:absolute;top:14px;right:16px;background:rgba(255,255,255,.9);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:800;color:#94A3B8;z-index:4}
+.pkgh-count b{color:var(--navy)}
+
+/* ── 반응형 ── */
+@media (max-width:1000px){
+  .pkgh-hero,.pkgh-solve{gap:24px}
+  .pkgh-title{font-size:27px}.pkgh-h2{font-size:23px}
+  .pkgh-photo{flex-basis:300px;width:300px}
+  .pkgh-solve .r{flex-basis:220px;width:220px}
+  .pkgh-tiles{gap:10px}.pkgh-tile{padding:18px 10px}
+}
+@media (max-width:760px){
+  .pkgh{--pkgh-pad:30px}
+  .pkgh-slide{padding:var(--pkgh-pad) 16px 40px}
+  .pkgh-hero,.pkgh-solve{flex-direction:column;align-items:flex-start;gap:20px}
+  .pkgh-title{font-size:23px}.pkgh-desc{font-size:13.5px}
+  .pkgh-photo{flex-basis:auto;width:100%;max-width:320px;align-self:center;order:-1}
+  .pkgh-solve .r{flex-basis:auto;width:150px;align-self:center}
+  .pkgh-h2{font-size:21px}
+  .pkgh-tiles{grid-template-columns:repeat(2,1fr)}
+  .pkgh-tile:last-child{grid-column:1 / -1}
+  .pkgh-arw{display:none}
+}
+</style>
+
+<div class="pkgh-viewport">
+  <div class="pkgh-track">
+
+    <!-- 슬라이드 1: 히어로 -->
+    <div class="pkgh-slide"><div class="pkgh-in">
+      <div class="pkgh-hero">
+        <div class="t">
+          <div class="pkgh-chips">
+            <span class="pkgh-badge">📦 올인원 패키지</span>
+            <span class="pkgh-badge solid">남은 자재 무료 반환</span>
+          </div>
+          <h3 class="pkgh-title">패키지로 쉽게, <span class="hl">부담 없이 시공해요</span></h3>
+          <p class="pkgh-desc">필요한 자재만 패키지로 한 번에 — 편하게 구매하고, 쓰고 <b>남은 자재는 무료로 반환</b>.</p>
+          <div class="pkgh-feats">
+            <span class="pkgh-feat"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span>쓴 만큼만 결제, <b>남으면 그대로 반품</b></span>
+            <span class="pkgh-feat"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span><b>원하시는 시간</b>에 맞춰 보내드려요</span>
+          </div>
+          <button class="pkgh-cta" data-scroll>패키지 보러가기 →</button>
+        </div>
+        <div class="pkgh-photo" data-pkg-slot="pkg-hero-1" aria-hidden="true">
+          <svg viewBox="0 0 380 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="380" height="240" rx="18" fill="#fff" opacity=".55"/>
+            <ellipse cx="190" cy="212" rx="120" ry="14" fill="#1A72E8" opacity=".10"/>
+            <path d="M120 118l70-30 70 30-70 30-70-30z" fill="#4A93F5"/>
+            <path d="M120 118v64l70 30v-64l-70-30z" fill="#1A72E8"/>
+            <path d="M260 118v64l-70 30v-64l70-30z" fill="#155FC7"/>
+            <path d="M155 103l70 30v22l-13 5v-19l-57-25v-13z" fill="#0F1F5C" opacity=".85"/>
+            <rect x="238" y="52" width="48" height="22" rx="6" fill="#E8780F"/>
+            <rect x="259" y="72" width="6" height="22" fill="#0F1F5C"/>
+            <rect x="252" y="92" width="20" height="10" rx="3" fill="#0F1F5C"/>
+            <rect x="104" y="44" width="10" height="46" rx="5" fill="#0F1F5C" transform="rotate(18 109 67)"/>
+            <path d="M92 92l14 5 7-16-14-5-7 16z" fill="#E8780F" transform="rotate(18 102 92)"/>
+            <circle cx="300" cy="150" r="26" fill="#1A72E8"/>
+            <path d="M304 134a14 14 0 1 1-12 7" stroke="#fff" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+            <path d="M290 131l1.5 12 11-5-12.5-7z" fill="#fff"/>
+            <circle cx="330" cy="86" r="4" fill="#F49A3A"/><circle cx="78" cy="140" r="3" fill="#4A93F5"/>
+          </svg>
+        </div>
+      </div>
+    </div></div>
+
+    <!-- 슬라이드 2: 니즈 → 이제 그만 → 후킹 -->
+    <div class="pkgh-slide"><div class="pkgh-in">
+      <div class="pkgh-solve">
+        <div class="l">
+          <div class="pkgh-eyebrow">🔍 이런 고민, 있으셨죠?</div>
+          <h3 class="pkgh-h2">얼마나 사는지, 어떻게 쓰는지<br>고민되셨죠?</h3>
+          <div class="pkgh-needs">
+            <div class="pkgh-need"><span class="q">💬</span>30평 옥상 방수, 얼마나 사야 하죠?</div>
+            <div class="pkgh-need"><span class="q">💬</span>직접 시공하려는데 설명서를 봐도 모르겠어요</div>
+            <div class="pkgh-need"><span class="q">💬</span>외벽에 균열이 생겼는데 어떤 제품을 써야 할지…</div>
+            <div class="pkgh-need"><span class="q">💬</span>경사 지붕이라 직접 시공이 어려워요</div>
+          </div>
+          <div class="pkgh-hook">
+            <div class="stop">이제 고민은 그만하세요!</div>
+            <div style="margin-top:9px"><span class="sol">누적 260만 세대 아파트·관공서·일반건물 현장에서 전문가가 검증한 솔루션만 골라 담았습니다.</span></div>
+            <div class="sub">지금 이 패키지 하나면, 고민 대신 해결에 집중하실 수 있어요.</div>
+          </div>
+        </div>
+        <div class="r" aria-hidden="true">
+          <svg viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="120" cy="216" rx="86" ry="12" fill="#1A72E8" opacity=".10"/>
+            <circle cx="104" cy="104" r="60" fill="#fff" stroke="#1A72E8" stroke-width="10"/>
+            <circle cx="104" cy="104" r="42" fill="#EAF2FF"/>
+            <path d="M104 80a24 24 0 0 0-24 24" stroke="#4A93F5" stroke-width="8" stroke-linecap="round" fill="none"/>
+            <rect x="150" y="150" width="20" height="70" rx="10" fill="#155FC7" transform="rotate(-45 160 185)"/>
+            <path d="M92 104l8 9 18-20" stroke="#1A72E8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <circle cx="186" cy="70" r="5" fill="#F49A3A"/><circle cx="44" cy="150" r="4" fill="#4A93F5"/>
+          </svg>
+        </div>
+      </div>
+    </div></div>
+
+    <!-- 슬라이드 3: 풀케어 서비스 -->
+    <div class="pkgh-slide"><div class="pkgh-in">
+      <div class="pkgh-care">
+        <div class="cap">POUR스토어가 끝까지 함께합니다</div>
+        <h3>구매부터 시공까지, 풀케어 서비스</h3>
+        <div class="pkgh-tiles">
+          <div class="pkgh-tile">
+            <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="13" height="10" rx="1.5"/><path d="M14 9h4l3 3v4h-7z"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span>
+            <div class="tt">쓰다 남은 자재<br><b>무료 반품</b></div>
+          </div>
+          <div class="pkgh-tile">
+            <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h5"/></svg></span>
+            <div class="tt">필요한 자재를<br><b>계산</b>해 드려요</div>
+          </div>
+          <div class="pkgh-tile">
+            <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="15" rx="2"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/></svg></span>
+            <div class="tt">쉬운 시공<br><b>콘텐츠</b> 제공</div>
+          </div>
+          <div class="pkgh-tile">
+            <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="2" y="13" width="4" height="7" rx="2"/><rect x="18" y="13" width="4" height="7" rx="2"/><path d="M20 18v1a3 3 0 0 1-3 3h-3"/></svg></span>
+            <div class="tt"><b>전문가 상담</b><br>받아보세요</div>
+          </div>
+          <div class="pkgh-tile">
+            <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11l3 3 2-2 3 3"/><circle cx="6" cy="7" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M2 20v-1a4 4 0 0 1 4-4M22 20v-1a4 4 0 0 0-4-4"/></svg></span>
+            <div class="tt">시공이 어렵다면<br><b>시공자 연결</b></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+
+  </div>
+
+  <div class="pkgh-count"><b class="cur">1</b> / 3</div>
+  <button class="pkgh-arw prev" type="button" aria-label="이전">‹</button>
+  <button class="pkgh-arw next" type="button" aria-label="다음">›</button>
+  <div class="pkgh-dots"></div>
+</div>
+
+<script>
+(function(){
+  var sec = document.currentScript.closest('.pkgh'); if(!sec || sec.__pkghBooted) return; sec.__pkghBooted = true;
+
+  // 어드민 사진 자동 교체 (Storage POUR스토어_리뉴얼/main-sections/*)
+  var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'
+    + encodeURIComponent('POUR스토어_리뉴얼') + '%2F' + encodeURIComponent('main-sections') + '%2F';
+  Array.prototype.forEach.call(sec.querySelectorAll('[data-pkg-slot]'), function(box){
+    var key = box.getAttribute('data-pkg-slot');
+    var cands = [key+'.png', key+'.jpg', key+'.webp'];
+    var img = document.createElement('img'); img.alt=''; img.loading='lazy'; img.decoding='async';
+    (function tryLoad(k){ if(k>=cands.length) return;
+      img.onerror=function(){ tryLoad(k+1); };
+      img.onload=function(){ box.classList.add('has-img'); };
+      img.src = BASE + encodeURIComponent(cands[k]) + '?alt=media';
+    })(0);
+    box.appendChild(img);
+  });
+
+  // 슬라이더
+  var track = sec.querySelector('.pkgh-track');
+  var slides = sec.querySelectorAll('.pkgh-slide');
+  var n = slides.length, cur = 0, timer = null;
+  var dotsBox = sec.querySelector('.pkgh-dots');
+  var curLabel = sec.querySelector('.pkgh-count .cur');
+  var dots = [];
+  for (var i=0;i<n;i++){ (function(idx){
+    var d = document.createElement('button'); d.type='button'; d.setAttribute('aria-label','슬라이드 '+(idx+1));
+    if(idx===0) d.className='on';
+    d.addEventListener('click', function(){ go(idx); reset(); });
+    dotsBox.appendChild(d); dots.push(d);
+  })(i); }
+  function apply(anim){ track.style.transition = anim===false ? 'none' : ''; track.style.transform='translateX(-'+(cur*100)+'%)';
+    for(var i=0;i<n;i++) dots[i].className = (i===cur?'on':''); if(curLabel) curLabel.textContent = (cur+1); }
+  function go(i){ cur=((i%n)+n)%n; apply(true); }
+  function start(){ if(n>1 && !timer) timer=setInterval(function(){ go(cur+1); }, 5000); }
+  function stop(){ if(timer){ clearInterval(timer); timer=null; } }
+  function reset(){ stop(); start(); }
+  sec.querySelector('.pkgh-arw.prev').addEventListener('click', function(){ go(cur-1); reset(); });
+  sec.querySelector('.pkgh-arw.next').addEventListener('click', function(){ go(cur+1); reset(); });
+  sec.addEventListener('mouseenter', stop); sec.addEventListener('mouseleave', start);
+
+  // 스와이프
+  var vp = sec.querySelector('.pkgh-viewport'), sx=0, mv=0, drag=false, wasDrag=false;
+  vp.addEventListener('pointerdown', function(e){ drag=true; wasDrag=false; sx=e.clientX; mv=0; track.style.transition='none'; stop(); });
+  vp.addEventListener('pointermove', function(e){ if(!drag) return; mv=e.clientX-sx; if(Math.abs(mv)>6) wasDrag=true; track.style.transform='translateX(calc(-'+(cur*100)+'% + '+mv+'px))'; });
+  var end=function(){ if(!drag) return; drag=false; if(mv<-45) go(cur+1); else if(mv>45) go(cur-1); else apply(true); reset(); };
+  vp.addEventListener('pointerup', end); vp.addEventListener('pointercancel', end);
+
+  // CTA: 배너 아래 콘텐츠로 스크롤
+  var cta = sec.querySelector('[data-scroll]');
+  if(cta) cta.addEventListener('click', function(e){ e.preventDefault(); if(wasDrag) return;
+    var nx = sec.nextElementSibling; if(nx && nx.scrollIntoView) nx.scrollIntoView({behavior:'smooth', block:'start'}); });
+
+  apply(false); start();
+})();
+</script>
+</section>

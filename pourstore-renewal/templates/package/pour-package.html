@@ -3,13 +3,14 @@
   원본 패키지페이지.html을 6섹션으로 분할해 @import (413 회피).
   이모지 미사용(SVG 교체 완료), §3-5 표시광고 치환 완료.
   ※ 카페24 파일은 pourstore_renewal/package/ 하위폴더에 위치 → @import 경로도 package/ 포함.
-  ※ 최상단: 메인 페이지와 동일한 [패키지 시공] 풀폭 배너(pour-02c-package.html)를 @import.
-     - pour-02c-package.html은 메인(/pourstore_renewal/) flat 위치라 경로에 package/ 없음.
-     - 자체 스코프(.pshp)라 아래 pkg-* 섹션과 충돌 없음. 배너 사진도 메인과 같은 어드민 슬롯 공유.
+  ※ 최상단: 패키지 전용 [배너 슬라이더 3장](pkg-0-hero.html)을 @import.
+     - 슬라이드 1) 히어로  2) 니즈→"이제 그만!"→260만 검증 후킹  3) 풀케어 서비스 5혜택
+     - POUR 블루 톤(pour-02c 고도화), 자체 스코프(.pkgh)라 아래 pkg-* 섹션과 충돌 없음.
+     - 메인 페이지 pour-02c-package.html과는 별도(패키지 페이지 전용).
   ============================================================ -->
 <!--@layout(/layout/basic/layout.html)-->
 <div class="mainpage">
-<!--@import(/pourstore_renewal/pour-02c-package.html)--><!-- ▲ 상단 패키지 시공 풀폭 배너(메인과 동일) -->
+<!--@import(/pourstore_renewal/package/pkg-0-hero.html)--><!-- ▲ 상단 패키지 배너 슬라이더(3장 자동) -->
 <!--@import(/pourstore_renewal/package/pkg-1-check.html)-->
 <!--@import(/pourstore_renewal/package/pkg-t-scope.html)-->
 <!--@import(/pourstore_renewal/package/pkg-2-best.html)-->

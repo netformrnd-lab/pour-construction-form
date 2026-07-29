@@ -1,5 +1,7 @@
 <!-- 성능 힌트: 폰트·Firebase SDK 조기 로딩 (FOUC 감소 + 첫 응답 단축) -->
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>
+<link rel="dns-prefetch" href="https://firebasestorage.googleapis.com">
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
@@ -483,6 +485,36 @@
     <div class="psm1-banner-side" data-side-banner></div>
   </div>
 </div>
+<!-- 배너 즉시 페인트: 직전 방문에 저장한 '첫 배너 이미지'를 Firebase SDK·Firestore 로딩 전(파싱 시점)에 미리 그림
+     → 재방문/새로고침 시 회색 박스 대기 제거. 어드민 최신본이 도착하면 아래 캐러셀이 교체(같은 URL이면 캐시라 깜빡임 없음). -->
+<script>
+(function(){
+  try{
+    var c = JSON.parse(localStorage.getItem('pcb:hero1')||'null');
+    if(!c) return;
+    var st='width:100%;height:100%;object-fit:cover;display:block;pointer-events:none';
+    // URL은 DOM 프로퍼티로 주입(문자열 innerHTML 금지) → 어떤 문자가 와도 안전
+    function makeImg(url){
+      var img=document.createElement('img'); img.src=url; img.alt='배너';
+      img.decoding='async'; img.setAttribute('fetchpriority','high');
+      img.style.cssText=st; return img;
+    }
+    function paint(sel, url, mob){
+      if(!url) return;
+      var el=document.querySelector(sel); if(!el || el.children.length) return;
+      el.style.padding='0'; // 캐러셀과 동일하게 이미지 풀블리드(사이드 배너 기본 패딩 제거)
+      if(mob){
+        var pic=document.createElement('picture'); pic.style.cssText='display:block;width:100%;height:100%';
+        var s=document.createElement('source'); s.media='(max-width:700px)'; s.srcset=mob;
+        pic.appendChild(s); pic.appendChild(makeImg(url)); el.appendChild(pic);
+      } else { el.appendChild(makeImg(url)); }
+      el.setAttribute('data-prepainted','1');
+    }
+    paint('[data-hero-banner]', c.h, c.hm);
+    paint('[data-side-banner]', c.s, c.sm);
+  }catch(e){}
+})();
+</script>
 <!-- 4) 카테고리 아이콘 -->
 <nav class="psm1-cats" aria-label="빠른 메뉴">
   <div class="psm1-cats-inner">
@@ -508,12 +540,21 @@
 <script>
 (function(){
   var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'+encodeURIComponent('POUR스토어_리뉴얼')+'%2F'+encodeURIComponent('quick-icons')+'%2F';
+  // 성공한 확장자를 기억해 재방문 시 프로빙(불필요한 404 요청) 제거
+  var HIT={}; try { HIT=JSON.parse(localStorage.getItem('pcb:qicon')||'{}')||{}; } catch(e){}
+  function save(){ try { localStorage.setItem('pcb:qicon', JSON.stringify(HIT)); } catch(e){} }
   var cats=document.querySelectorAll('.psm1-cats .psm1-cat');
   Array.prototype.forEach.call(cats,function(cat,i){
     var box=cat.querySelector('.psm1-cat-ico'); if(!box) return;
-    var n=i+1, cands=['icon-'+n+'.png','icon-'+n+'.jpg','icon-'+n+'.png.png','icon-'+n+'.jpg.png','icon-'+n+'.webp'];
-    var img=document.createElement('img'); img.alt='';
-    function tryLoad(k){ if(k>=cands.length) return; img.onerror=function(){ tryLoad(k+1); }; img.onload=function(){ box.classList.add('has-img'); }; img.src=BASE+encodeURIComponent(cands[k])+'?alt=media'; }
+    var n=i+1;
+    // 알려진 성공 파일명이 있으면 그것부터, 없으면 실사용 포맷 순서로 시도(이중확장자 업로드 폴백 유지)
+    var cands=['icon-'+n+'.png','icon-'+n+'.webp','icon-'+n+'.jpg','icon-'+n+'.png.png','icon-'+n+'.jpg.png'];
+    if(HIT[n]){ cands=[HIT[n]].concat(cands.filter(function(c){return c!==HIT[n];})); }
+    var img=document.createElement('img'); img.alt=''; img.loading='lazy'; img.decoding='async';
+    function tryLoad(k){ if(k>=cands.length){ if(HIT[n]){ delete HIT[n]; save(); } return; }
+      img.onerror=function(){ tryLoad(k+1); };
+      img.onload=function(){ box.classList.add('has-img'); if(HIT[n]!==cands[k]){ HIT[n]=cands[k]; save(); } };
+      img.src=BASE+encodeURIComponent(cands[k])+'?alt=media'; }
     tryLoad(0); box.appendChild(img);
   });
 })();
@@ -913,14 +954,18 @@ var PM_POSTS = [];
     box.style.cssText = 'position:absolute;inset:0;overflow:hidden;z-index:1;';
     var track = document.createElement('div'); track.className = 'psm1-bnr-track';
     track.style.cssText = 'display:flex;height:100%;will-change:transform;';
-    banners.forEach(function(b){
+    banners.forEach(function(b, idx){
       if (b.mode === 'design'){ track.appendChild(buildDesignSlide(b, shape)); return; }
       var a = document.createElement('a'); a.className = 'psm1-bnr-slide';
       a.style.cssText = 'flex:0 0 100%;width:100%;height:100%;display:block;';
       var link = (b.link||'').trim();
       if (link){ a.href = link; if (/^https?:\/\//.test(link) && link.indexOf(location.host) === -1){ a.target='_blank'; a.rel='noopener'; } }
       else { a.href = 'javascript:void(0)'; }
-      var img = document.createElement('img'); img.src = b.image; img.alt = '배너'; img.loading = 'lazy'; img.draggable = false;
+      // 첫 슬라이드(최상단·above-the-fold)는 즉시 로딩+높은 우선순위 → 회색 박스 대기 최소화. 나머지는 lazy.
+      var eager = (idx === 0);
+      var img = document.createElement('img'); img.src = b.image; img.alt = '배너'; img.draggable = false;
+      img.loading = eager ? 'eager' : 'lazy'; img.decoding = 'async';
+      if (eager){ try { img.fetchPriority = 'high'; } catch(e){} img.setAttribute('fetchpriority','high'); }
       img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;';
       if (b.imageMobile) { // 모바일용 가로 이미지가 있으면 <picture>로 전환
         var pic = document.createElement('picture');
@@ -972,8 +1017,16 @@ var PM_POSTS = [];
     try {
       var iv = Number(bd.intervalSec) || 5;
       var heroBn = normBanners(bd.hero);
-      renderCarousel('.psm1-banner', heroBn, iv, 'hero');
       var sideBn = normBanners(bd.side);
+      // 다음 방문 즉시-페인트용 캐시: 첫 슬라이드가 '이미지형'일 때만 URL 저장(디자인형은 CSS로 빨리 그려져 불필요)
+      try {
+        var h0 = (heroBn[0] && heroBn[0].mode === 'image' && heroBn[0].image) ? heroBn[0] : null;
+        var s0 = (sideBn[0] && sideBn[0].mode === 'image' && sideBn[0].image) ? sideBn[0] : null;
+        localStorage.setItem('pcb:hero1', JSON.stringify({
+          h: h0 ? h0.image : '', hm: h0 ? h0.imageMobile : '',
+          s: s0 ? s0.image : '', sm: s0 ? s0.imageMobile : '', t: Date.now() }));
+      } catch (e) {}
+      renderCarousel('.psm1-banner', heroBn, iv, 'hero');
       renderCarousel('.psm1-banner-side', sideBn, iv, 'side');
       console.log('[psm1] 배너 로드 — 히어로 ' + heroBn.length + '건, 사이드 ' + sideBn.length + '건');
       if (sideBn.length) { // 사이드 높이를 히어로에 맞춤 (그리드 aspect 행높이 미반영 보정)

@@ -2,6 +2,8 @@
   pkg-0-hero  —  패키지 페이지 상단 [패키지 배너 슬라이더] (3슬라이드 자동)  ▸ 파일: package/pkg-0-hero.html
   ▸ 조립: pour-package.html 최상단에서 @import.
   ▸ 톤: POUR 블루 #1A72E8 (pour-02c 고도화). 자체 스코프(.pkgh-*)라 아래 pkg-* 섹션과 충돌 없음.
+  ▸ ⚠️ 스크립트는 반드시 <script type="module"> — 일반 <script>면 카페24 optimizer.php가 번들하다 깨져
+      레이아웃(상단 헤더·하단 고정 푸터·메뉴) JS까지 죽습니다. (pkg-2-best와 동일 규칙)
   ▸ 슬라이드
       1) 히어로 — 패키지로 쉽게, 부담 없이 시공해요 (+ 피처 필 2개)
       2) 니즈 나열 → "이제 고민 그만!" → 260만 세대 검증 솔루션 후킹
@@ -226,9 +228,12 @@
   <div class="pkgh-dots"></div>
 </div>
 
-<script>
+<script type="module">
+/* ⚠️ 반드시 type="module" — 카페24 optimizer.php는 모듈 스크립트를 번들링하지 않음.
+   일반 <script>로 두면 optimizer가 동적 import()/최신문법을 번들하다 깨져 레이아웃(헤더/푸터·메뉴) JS까지 죽습니다.
+   모듈에선 document.currentScript가 null이라 .pkgh는 querySelector로 찾습니다. (README-sections '레이아웃 스크립트 주의' 참고) */
 (function(){
-  var sec = document.currentScript.closest('.pkgh'); if(!sec || sec.__pkghBooted) return; sec.__pkghBooted = true;
+  var sec = document.querySelector('.pkgh'); if(!sec || sec.__pkghBooted) return; sec.__pkghBooted = true;
 
   // 어드민 사진 자동 교체 (Storage POUR스토어_리뉴얼/main-sections/*)
   var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'

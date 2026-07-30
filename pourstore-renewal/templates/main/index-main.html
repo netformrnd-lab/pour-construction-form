@@ -194,7 +194,12 @@
   /* 디자인형 배너(텍스트 포함)면 모바일 최소높이 확보 */
   .psm1-banner.psm1-bnr-hasdesign { aspect-ratio:auto !important; min-height:220px; }
   .psm1-banner-side.psm1-bnr-hasdesign.psm1-has-carousel { aspect-ratio:auto !important; min-height:300px; height:auto !important; }
+  /* 자유배치(글상자): 모바일에서도 고정 비율 유지 → 어드민 미리보기와 동일 구도 */
+  .psm1-banner.psm1-bnr-hasfree { aspect-ratio:16/9 !important; min-height:0 !important; }
+  .psm1-banner-side.psm1-bnr-hasfree { aspect-ratio:64/106 !important; min-height:0 !important; height:auto !important; }
 }
+/* 자유배치 사이드 배너: 데스크톱에서도 고정 비율(높이 JS동기화 대신 비율로) → 구도 일관 */
+.psm1-banner-side.psm1-bnr-hasfree { aspect-ratio:64/106; min-height:0; }
 /* 4) 카테고리 아이콘 */
 .psm1-cats { padding:30px 24px 36px; }
 .psm1-cats-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit, minmax(86px, 1fr)); gap:16px 6px; }
@@ -939,8 +944,9 @@ var PM_POSTS = [];
     function one(x){ return {
       mode:(x.mode==='design'?'design':'image'),
       image:(x.image||''), imageMobile:(x.imageMobile||''), link:(x.link||''),
-      badge:(x.badge||''), title:(x.title||''), desc:(x.desc||''), tags:(x.tags||''), cta:(x.cta||''), theme:(x.theme==='dark'?'dark':'light') }; }
-    function keep(x){ return x && (x.image || (x.mode==='design' && (x.title||x.badge||x.desc||x.cta))); }
+      badge:(x.badge||''), title:(x.title||''), desc:(x.desc||''), tags:(x.tags||''), cta:(x.cta||''), theme:(x.theme==='dark'?'dark':'light'),
+      texts:(Array.isArray(x.texts)?x.texts:[]) }; }
+    function keep(x){ return x && (x.image || (x.mode==='design' && (x.title||x.badge||x.desc||x.cta||(Array.isArray(x.texts)&&x.texts.length)))); }
     if (Array.isArray(v)) return v.filter(keep).map(one);
     if (keep(v)) return [one(v)]; // 구버전 단일 호환
     return [];
@@ -950,11 +956,15 @@ var PM_POSTS = [];
   function buildDesignSlide(b, shape){
     var side = shape==='side', dark = (b.theme==='dark');
     var ink = dark ? '#ffffff' : '#0F1F5C', sub = dark ? 'rgba(255,255,255,.92)' : '#33415C';
+    // 자유배치(글상자) — 어드민에서 위치·크기 직접 조정한 텍스트 박스가 있으면 그것을 우선 렌더
+    var freeTexts = Array.isArray(b.texts) ? b.texts.filter(function(x){ return x && (''+(x.t==null?'':x.t)).trim(); }) : [];
+    var free = freeTexts.length > 0;
     var a = document.createElement('a'); a.className='psm1-bnr-slide psm1-bnr-design';
     var link=(b.link||'').trim();
     if (link){ a.href=link; if (/^https?:\/\//.test(link) && link.indexOf(location.host)===-1){ a.target='_blank'; a.rel='noopener'; } }
     else { a.href='javascript:void(0)'; }
     a.style.cssText='position:relative;flex:0 0 100%;width:100%;height:100%;display:block;overflow:hidden;text-decoration:none;'+
+      (free?'container-type:inline-size;':'')+
       "font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;letter-spacing:-0.02em;"+
       (dark?'background:linear-gradient(120deg,#0F1F5C,#1A2E52 60%,#0F1F5C);':'background:linear-gradient(120deg,#EAF2FF,#F3F8FF 55%,#FFF3E8);');
     if (b.image){
@@ -962,11 +972,32 @@ var PM_POSTS = [];
       bg.style.cssText='position:absolute;inset:0;background-image:url("'+b.image+'");background-size:cover;background-position:center;';
       a.appendChild(bg);
       var sc=document.createElement('div');
+      if (free){
+        // 자유배치: 글자를 어디든 둘 수 있어 은은한 균일 스크림만(배경 최대한 살림)
+        sc.style.cssText='position:absolute;inset:0;background:'+(dark?'rgba(9,16,40,.30)':'rgba(255,255,255,.22)')+';';
+      } else {
       // 오버레이 강화(텍스트 영역을 더 진하게) — 글자·도형이 배경 위에서 확실히 떠 보이도록
       sc.style.cssText=side
         ? 'position:absolute;inset:0;background:linear-gradient(180deg,'+(dark?'rgba(9,16,40,.92)':'rgba(255,255,255,.96)')+' 0%,'+(dark?'rgba(9,16,40,.60)':'rgba(255,255,255,.72)')+' 46%,'+(dark?'rgba(9,16,40,.44)':'rgba(255,255,255,.32)')+' 100%);'
         : 'position:absolute;inset:0;background:linear-gradient(90deg,'+(dark?'rgba(9,16,40,.94)':'rgba(255,255,255,.96)')+' 0%,'+(dark?'rgba(9,16,40,.66)':'rgba(255,255,255,.76)')+' 42%,'+(dark?'rgba(9,16,40,.08)':'rgba(255,255,255,.04)')+' 100%);';
+      }
       a.appendChild(sc);
+    }
+    if (free){
+      var cl=function(v,mn,mx,dv){ v=parseFloat(v); return isNaN(v)?dv:Math.max(mn,Math.min(mx,v)); };
+      freeTexts.forEach(function(x){
+        var el=document.createElement('div');
+        var col=(x.color && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(x.color))?x.color:ink;
+        var al=(x.align==='center'||x.align==='right')?x.align:'left';
+        var sz=cl(x.size,1.5,24,6), wt=([300,400,500,600,700,800,900].indexOf(Number(x.weight))>=0?Number(x.weight):800);
+        el.style.cssText='position:absolute;left:'+cl(x.x,0,99,10)+'%;top:'+cl(x.y,0,99,10)+'%;width:'+cl(x.w,5,100,70)+'%;'
+          +'font-size:'+Math.round(sz*3.4)+'px;font-size:'+sz+'cqw;font-weight:'+wt+';color:'+col+';'
+          +'line-height:'+cl(x.lh,1,2.2,1.25)+';text-align:'+al+';white-space:pre-wrap;word-break:keep-all;z-index:3;'
+          +(dark?'text-shadow:0 2px 10px rgba(0,0,0,.5);':'text-shadow:0 1px 8px rgba(255,255,255,.72);');
+        el.textContent=''+(x.t==null?'':x.t);
+        a.appendChild(el);
+      });
+      return a;
     }
     var t=document.createElement('div');
     t.style.cssText='position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;'+
@@ -992,6 +1023,8 @@ var PM_POSTS = [];
     el.style.padding = '0';
     el.classList.add('psm1-has-carousel');
     if (banners.some(function(b){ return b.mode === 'design'; })) el.classList.add('psm1-bnr-hasdesign');
+    // 자유배치(글상자) 슬라이드가 있으면 고정 비율 클래스 → 어드민 미리보기와 데스크톱·모바일이 동일 구도로 보이게
+    if (banners.some(function(b){ return b.mode === 'design' && Array.isArray(b.texts) && b.texts.some(function(x){ return x && (''+(x.t==null?'':x.t)).trim(); }); })) el.classList.add('psm1-bnr-hasfree');
     var n = banners.length;
     // 인라인 스타일 병행 — 카페24 스킨 전역 CSS(img{height:auto} 등)에 밀리지 않도록
     var box = document.createElement('div'); box.className = 'psm1-bnr-carousel';
@@ -1074,7 +1107,7 @@ var PM_POSTS = [];
       renderCarousel('.psm1-banner-side', sideBn, iv, 'side');
       console.log('[psm1] 배너 로드 — 히어로 ' + heroBn.length + '건, 사이드 ' + sideBn.length + '건');
       if (sideBn.length) { // 사이드 높이를 히어로에 맞춤 (그리드 aspect 행높이 미반영 보정)
-        var syncH = function(){ var h = section.querySelector('.psm1-banner'), s = section.querySelector('.psm1-banner-side'); if (!h || !s) return; if (window.innerWidth > 700) { if (h.offsetHeight) s.style.height = h.offsetHeight + 'px'; } else { s.style.height = ''; } };
+        var syncH = function(){ var h = section.querySelector('.psm1-banner'), s = section.querySelector('.psm1-banner-side'); if (!h || !s) return; if (s.classList.contains('psm1-bnr-hasfree')) { s.style.height=''; return; } if (window.innerWidth > 700) { if (h.offsetHeight) s.style.height = h.offsetHeight + 'px'; } else { s.style.height = ''; } };
         syncH(); window.addEventListener('resize', syncH);
         var hImg = section.querySelector('.psm1-banner img'); if (hImg) hImg.addEventListener('load', syncH);
         setTimeout(syncH, 300);

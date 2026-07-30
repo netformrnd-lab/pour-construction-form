@@ -6784,112 +6784,9 @@ const BANNER_SLOTS=[
   {key:'hero', label:'메인 히어로 배너', desc:'검색바 아래 좌측 큰 배너', size:'권장 1280 × 720 px (가로형 16:9)', ratio:'16 / 9'},
   {key:'side', label:'추천(사이드) 배너', desc:'히어로 우측 세로 배너 (높이는 좌측에 맞춰 표시)', size:'권장 640 × 1060 px (세로형)', ratio:'64 / 106'},
 ];
-// 글상자(자유배치) 1개 정규화 — 저장/로드 공통
-const bannerNormText=(t)=>{ const n=(v,mn,mx,dv)=>{ v=parseFloat(v); return isNaN(v)?dv:Math.max(mn,Math.min(mx,v)); };
-  const kind=(['text','tags','cta'].indexOf(t&&t.kind)>=0?t.kind:'text');
-  return { kind, t:(''+((t&&t.t!=null)?t.t:'')), x:n(t&&t.x,0,99,10), y:n(t&&t.y,0,99,10), w:n(t&&t.w,5,100,70),
-    size:n(t&&t.size,1.5,24,(kind==='text'?6:4)), weight:([300,400,500,600,700,800,900].indexOf(Number(t&&t.weight))>=0?Number(t.weight):800),
-    color:((t&&/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t.color))?t.color:''),
-    align:((t&&(t.align==='center'||t.align==='right'))?t.align:'left'), lh:n(t&&t.lh,1,2.2,1.25) }; };
-
-// 글상자 자유 배치 편집기 (글자·태그·버튼을 드래그로 배치 · 크기/너비/색/정렬 · WYSIWYG 미리보기)
-function BannerTextEditor({banner, ratio, onChange}){
-  const texts = Array.isArray(banner.texts)?banner.texts:[];
-  const dark = (banner.theme==='dark');
-  const [sel,setSel]=useState(-1);
-  const stageRef=useRef(null); const drag=useRef(null);
-  const clamp=(v,mn,mx)=>Math.max(mn,Math.min(mx,v));
-  const setTexts=(arr)=>onChange({texts:arr});
-  const patchBox=(i,part)=>setTexts(texts.map((t,idx)=>idx===i?{...t,...part}:t));
-  const delBox=(i)=>{ setTexts(texts.filter((_,idx)=>idx!==i)); setSel(-1); };
-  const push=(box)=>{ const arr=[...texts,box]; setTexts(arr); setSel(arr.length-1); };
-  const addText=()=>push({kind:'text',t:'새 글상자',x:10,y:10,w:70,size:6,weight:900,color:dark?'#ffffff':'#0F1F5C',align:'left',lh:1.25});
-  const addTags=()=>push({kind:'tags',t:(banner.tags||'무료반환, 사용한 만큼, 빠른시공'),x:8,y:74,w:90,size:3.6,align:'left',color:''});
-  const addCta =()=>push({kind:'cta', t:(banner.cta||'자세히 보기'),x:8,y:86,w:60,size:4,align:'left',color:dark?'#F97316':'#0F1F5C'});
-  const seedFromFields=()=>{ const arr=[]; let y=8;
-    if((banner.title||'').trim()){ arr.push({kind:'text',t:banner.title,x:8,y,w:86,size:8,weight:900,color:dark?'#ffffff':'#0F1F5C',align:'left',lh:1.2}); y+=30; }
-    if((banner.desc||'').trim()){ arr.push({kind:'text',t:banner.desc,x:8,y,w:86,size:4.2,weight:500,color:dark?'#ffffff':'#33415C',align:'left',lh:1.5}); }
-    if((banner.tags||'').trim()){ arr.push({kind:'tags',t:banner.tags,x:8,y:74,w:90,size:3.6,align:'left',color:''}); }
-    if((banner.cta||'').trim()){ arr.push({kind:'cta',t:banner.cta,x:8,y:86,w:60,size:4,align:'left',color:dark?'#F97316':'#0F1F5C'}); }
-    if(arr.length){ setTexts(arr); setSel(0); } };
-  const onDown=(i,e)=>{ e.preventDefault(); e.stopPropagation(); setSel(i);
-    const r=stageRef.current.getBoundingClientRect();
-    drag.current={i,r,sx:e.clientX,sy:e.clientY,ox:texts[i].x,oy:texts[i].y};
-    try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(_){} };
-  const onMove=(e)=>{ const d=drag.current; if(!d)return;
-    const dx=(e.clientX-d.sx)/d.r.width*100, dy=(e.clientY-d.sy)/d.r.height*100;
-    patchBox(d.i,{x:Math.round(clamp(d.ox+dx,0,99)*10)/10, y:Math.round(clamp(d.oy+dy,0,99)*10)/10}); };
-  const onUp=()=>{ drag.current=null; };
-  const cur = sel>=0?texts[sel]:null;
-  const kindOf=(t)=>(t&&(t.kind==='tags'||t.kind==='cta'))?t.kind:'text';
-  const jc=(al)=>al==='center'?'center':(al==='right'?'flex-end':'flex-start');
-  // 미리보기 박스 내용 (스토어 렌더러와 동일한 모양)
-  const boxInner=(t)=>{ const k=kindOf(t), al=t.align||'left';
-    if(k==='tags'){ const chips=(t.t||'').split(',').map(s=>s.trim()).filter(Boolean);
-      return <div style={{display:'flex',flexWrap:'wrap',gap:'0.6cqw',justifyContent:jc(al)}}>{(chips.length?chips:['태그']).map((c,ci)=><span key={ci} style={{fontWeight:700,fontSize:t.size+'cqw',padding:'0.7cqw 1.4cqw',borderRadius:'2cqw',whiteSpace:'nowrap',...(dark?{background:'rgba(255,255,255,.18)',color:'#fff'}:{background:'#fff',color:'#0F1F5C',border:'1px solid rgba(15,31,92,.14)'})}}>{c}</span>)}</div>; }
-    if(k==='cta'){ const bg=t.color||(dark?'#F97316':'#0F1F5C');
-      return <div style={{display:'flex',justifyContent:jc(al)}}><span style={{display:'inline-block',fontWeight:800,fontSize:t.size+'cqw',padding:'1.1cqw 2.4cqw',borderRadius:'2.6cqw',background:bg,color:'#fff',whiteSpace:'nowrap'}}>{(t.t||'버튼')+' →'}</span></div>; }
-    return <div style={{fontSize:t.size+'cqw',fontWeight:t.weight,color:t.color||(dark?'#fff':'#0F1F5C'),lineHeight:t.lh,textAlign:al,whiteSpace:'pre-wrap',wordBreak:'keep-all',fontFamily:"'Noto Sans KR',sans-serif",letterSpacing:'-0.02em',textShadow:dark?'0 2px 10px rgba(0,0,0,.5)':'0 1px 8px rgba(255,255,255,.72)'}}>{t.t||'글상자'}</div>; };
-  const KIND_LABEL={text:'글상자',tags:'태그',cta:'버튼'};
-  const COLORS = dark ? [['#ffffff','흰'],['#FFE7C7','살구'],['#BFD4FF','연파랑'],['#F97316','주황']]
-                      : [['#0F1F5C','남색'],['#F97316','주황'],['#111827','검정'],['#33415C','회색'],['#ffffff','흰']];
-  const fld={width:'100%',padding:'7px 9px',borderRadius:7,border:'1.5px solid var(--border)',fontSize:12,outline:'none',boxSizing:'border-box'};
-  const curKind = cur?kindOf(cur):'text';
-  return (
-    <div style={{marginTop:10,padding:10,background:'#fff',border:'1px solid var(--border)',borderRadius:10}}>
-      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8,flexWrap:'wrap'}}>
-        <b style={{fontSize:12,color:'var(--navy)'}}>🎯 글상자 자유 배치</b>
-        <span style={{fontSize:10.5,color:'var(--text-sm)',fontWeight:700}}>글자·태그·버튼을 끌어 배치 · 크기·색 조정 (있으면 이 배치가 기본 필드보다 우선 노출)</span>
-        <div style={{flex:1}}/>
-        {texts.length===0 && (banner.title||banner.desc||banner.tags||banner.cta) && <button onClick={seedFromFields} style={{padding:'5px 10px',borderRadius:7,border:'1px solid var(--navy)',background:'#EEF2FF',color:'var(--navy)',fontSize:11,fontWeight:800,cursor:'pointer'}}>필드값 가져오기</button>}
-        <button onClick={addText} style={{padding:'5px 10px',borderRadius:7,border:'1px solid var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:11,fontWeight:800,cursor:'pointer'}}>+ 글상자</button>
-        <button onClick={addTags} style={{padding:'5px 10px',borderRadius:7,border:'1px solid var(--navy)',background:'#EEF2FF',color:'var(--navy)',fontSize:11,fontWeight:800,cursor:'pointer'}}>+ 태그</button>
-        <button onClick={addCta} style={{padding:'5px 10px',borderRadius:7,border:'1px solid #7C3AED',background:'#F5F3FF',color:'#6D28D9',fontSize:11,fontWeight:800,cursor:'pointer'}}>+ 버튼</button>
-      </div>
-      <div style={{display:'flex',gap:12,alignItems:'flex-start',flexWrap:'wrap'}}>
-        <div ref={stageRef} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp} onPointerDown={()=>setSel(-1)}
-          style={{position:'relative',width:200,aspectRatio:ratio,flexShrink:0,borderRadius:8,overflow:'hidden',containerType:'inline-size',userSelect:'none',touchAction:'none',border:'1px solid var(--border)',background:dark?'#0F1F5C':'#EAF2FF',...(banner.image?{backgroundImage:`url("${banner.image}")`,backgroundSize:'cover',backgroundPosition:'center'}:{})}}>
-          <div style={{position:'absolute',inset:0,background:dark?'rgba(9,16,40,.30)':'rgba(255,255,255,.22)'}}/>
-          {texts.map((t,i)=>(
-            <div key={i} onPointerDown={e=>onDown(i,e)} style={{position:'absolute',left:t.x+'%',top:t.y+'%',width:t.w+'%',textAlign:t.align,cursor:'move',outline:sel===i?'2px solid var(--or)':'1px dashed rgba(120,120,120,.55)',outlineOffset:2}}>{boxInner(t)}</div>
-          ))}
-          {texts.length===0 && <div style={{position:'absolute',inset:0,display:'grid',placeItems:'center',color:dark?'rgba(255,255,255,.85)':'var(--text-sm)',fontSize:11,fontWeight:700,textAlign:'center',padding:12}}>‘+ 글상자 · 태그 · 버튼’으로<br/>배너를 채워보세요</div>}
-        </div>
-        <div style={{flex:1,minWidth:190}}>
-          {!cur ? <div style={{fontSize:11.5,color:'var(--text-sm)',fontWeight:700,padding:'8px 2px'}}>미리보기에서 요소를 클릭하면 편집할 수 있어요.</div> : (
-            <div style={{display:'flex',flexDirection:'column',gap:8}}>
-              <div style={{fontSize:11,fontWeight:900,color:'var(--navy)'}}>선택: {KIND_LABEL[curKind]}</div>
-              <textarea value={cur.t} onChange={e=>patchBox(sel,{t:e.target.value})} placeholder={curKind==='tags'?'태그 (쉼표로 구분 · 예: 무료반환, 빠른시공)':curKind==='cta'?'버튼 문구 (예: 자세히 보기)':'글 내용 (줄바꿈 가능)'} style={{...fld,minHeight:curKind==='text'?46:34,resize:'vertical',fontWeight:700,fontFamily:'inherit',lineHeight:1.4}}/>
-              <label style={{fontSize:11,fontWeight:800,color:'var(--text-md)'}}>{curKind==='text'?'글자 크기':'크기'} <b style={{color:'var(--or-d)'}}>{cur.size}</b>
-                <input type="range" min="2" max="16" step="0.5" value={cur.size} onChange={e=>patchBox(sel,{size:Number(e.target.value)})} style={{width:'100%'}}/></label>
-              <label style={{fontSize:11,fontWeight:800,color:'var(--text-md)'}}>박스 너비 <b style={{color:'var(--or-d)'}}>{cur.w}%</b>
-                <input type="range" min="20" max="100" step="1" value={cur.w} onChange={e=>patchBox(sel,{w:Number(e.target.value)})} style={{width:'100%'}}/></label>
-              {curKind==='text' && <div style={{display:'flex',gap:5,alignItems:'center'}}>
-                <span style={{fontSize:11,fontWeight:800,color:'var(--text-md)'}}>굵기</span>
-                <select value={cur.weight} onChange={e=>patchBox(sel,{weight:Number(e.target.value)})} style={{...fld,padding:'6px',flex:1}}>
-                  {[[400,'보통'],[500,'중간'],[700,'굵게'],[800,'더 굵게'],[900,'가장 굵게']].map(([w,l])=><option key={w} value={w}>{l}</option>)}
-                </select></div>}
-              <div style={{display:'flex',gap:5,alignItems:'center',flexWrap:'wrap'}}>
-                <span style={{fontSize:11,fontWeight:800,color:'var(--text-md)'}}>정렬</span>
-                {[['left','⬅'],['center','↔'],['right','➡']].map(([al,ic])=>(<button key={al} onClick={()=>patchBox(sel,{align:al})} style={{padding:'5px 9px',borderRadius:6,border:'1px solid '+(cur.align===al?'var(--or)':'var(--border)'),background:cur.align===al?'var(--or-pale)':'#fff',fontSize:11,fontWeight:800,cursor:'pointer'}}>{ic}</button>))}
-                {curKind!=='tags' && <>
-                  <div style={{flex:1}}/>
-                  <span style={{fontSize:11,fontWeight:800,color:'var(--text-md)'}}>{curKind==='cta'?'버튼색':'글자색'}</span>
-                  {COLORS.map(([c,l])=>(<button key={c} onClick={()=>patchBox(sel,{color:c})} title={l} style={{width:20,height:20,borderRadius:'50%',border:cur.color===c?'2px solid var(--or)':'1px solid var(--border)',background:c,cursor:'pointer',padding:0}}/>))}
-                </>}
-              </div>
-              <button onClick={()=>delBox(sel)} style={{padding:'6px',borderRadius:7,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',fontSize:11,fontWeight:800,cursor:'pointer'}}>이 {KIND_LABEL[curKind]} 삭제</button>
-            </div>
-          )}
-        </div>
-      </div>
-      <div style={{fontSize:10,color:'var(--text-sm)',fontWeight:600,marginTop:7,lineHeight:1.4}}>※ 위치·크기는 배너 비율 기준이라 데스크톱·모바일에서 같은 구도로 보입니다. 크기는 배너 폭에 맞춰 자동 확대/축소돼요.</div>
-    </div>
-  );
-}
 function BannersPage({showToast}){
   const { audit } = useActiveStaffContext();
-  const oneB=(x)=>({mode:(x.mode==='design'?'design':'image'),image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',badge:x.badge||'',title:x.title||'',desc:x.desc||'',tags:x.tags||'',cta:x.cta||'',theme:(x.theme==='dark'?'dark':'light'),texts:(Array.isArray(x.texts)?x.texts.map(bannerNormText):[])});
+  const oneB=(x)=>({mode:(x.mode==='design'?'design':'image'),image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',badge:x.badge||'',title:x.title||'',desc:x.desc||'',tags:x.tags||'',cta:x.cta||'',theme:(x.theme==='dark'?'dark':'light')});
   const normSlot=(v)=>{ if(Array.isArray(v)) return v.map(oneB); if(v && (v.image||v.link||v.title||v.badge)) return [oneB(v)]; return []; };
   const [data,setData]=useState({hero:[], side:[], intervalSec:5});
   const [loading,setLoading]=useState(true);
@@ -6930,9 +6827,8 @@ function BannersPage({showToast}){
   const save=async()=>{
     setSaving(true);
     try{
-      const cleanTexts=(arr)=>(Array.isArray(arr)?arr:[]).map(bannerNormText).filter(t=>t.t.trim());
-      const clean=(arr)=>arr.filter(b=> b.mode==='design' ? (b.title||b.badge||b.desc||b.cta||b.image||(b.texts&&b.texts.length)) : b.image ).map(b=> b.mode==='design'
-        ? {mode:'design',image:b.image||'',imageMobile:(b.imageMobile||''),link:(b.link||'').trim(),badge:(b.badge||'').trim(),title:(b.title||'').trim(),desc:(b.desc||'').trim(),tags:(b.tags||'').trim(),cta:(b.cta||'').trim(),theme:(b.theme==='dark'?'dark':'light'),texts:cleanTexts(b.texts)}
+      const clean=(arr)=>arr.filter(b=> b.mode==='design' ? (b.title||b.badge||b.desc||b.cta||b.image) : b.image ).map(b=> b.mode==='design'
+        ? {mode:'design',image:b.image||'',imageMobile:(b.imageMobile||''),link:(b.link||'').trim(),badge:(b.badge||'').trim(),title:(b.title||'').trim(),desc:(b.desc||'').trim(),tags:(b.tags||'').trim(),cta:(b.cta||'').trim(),theme:(b.theme==='dark'?'dark':'light')}
         : {mode:'image',image:b.image,imageMobile:(b.imageMobile||''),link:(b.link||'').trim()} );
       await db.collection('config').doc('pourstoreBanners').set({hero:clean(data.hero), side:clean(data.side), intervalSec:Number(data.intervalSec)||5, ...audit.update()},{merge:true});
       showToast('저장되었습니다 — 스토어에 반영됩니다');
@@ -7006,7 +6902,6 @@ function BannersPage({showToast}){
                         </div>
                       ) : (
                         /* ===== 디자인형 (배경사진 + 필드 / 폰트 Noto Sans) ===== */
-                        <>
                         <div style={{display:'flex',gap:12,alignItems:'flex-start'}}>
                           <div style={{width:120,flexShrink:0}}>
                             <div style={{position:'relative',width:'100%',aspectRatio:slot.ratio,borderRadius:8,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -7036,8 +6931,6 @@ function BannersPage({showToast}){
                             </div>
                           </div>
                         </div>
-                        <BannerTextEditor banner={b} ratio={slot.ratio} onChange={part=>patchBanner(slot.key,i,part)}/>
-                        </>
                       )}
                     </div>
                   );

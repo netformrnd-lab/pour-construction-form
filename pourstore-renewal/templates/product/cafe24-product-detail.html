@@ -263,16 +263,16 @@
 
               <!-- ------------------------------------------// mvarea 스크롤시 상세정보 이동영역 ------------------------------------------------------- -->
 
-              <table border="1" module="product_option">
+              <table border="1">
                 <!--
                 $use_per_add_option = yes
                 -->
                 <caption>
                 상품 옵션
                 </caption>
-                <!-- ★[넷폼 수정] 중복 module="product_option" 제거: table에만 남기고 tbody에선 삭제.
-                     (table+tbody 이중 선언 시 옵션 모듈이 두 번 렌더→select id 중복→값 미노출) -->
-                <tbody>
+                <!-- ★[넷폼 수정] 중복 module="product_option" 제거: 옵션을 실제로 렌더하는 tbody에만 남기고
+                     상위 table의 중복 선언을 삭제(GPT 방식). tbody의 module은 절대 지우면 안 됨(옵션 통째로 사라짐). -->
+                <tbody module="product_option">
                   <tr>
                     <th scope="row">{$option_name}</th>
                     <td>{$form.option}

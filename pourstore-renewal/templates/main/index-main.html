@@ -1429,14 +1429,8 @@ var PM_POSTS = [];
 
 </div><!-- //mainpage -->
 
-<!-- 하단 푸터 — 메인이 layout(공통 레이아웃)을 타지 않고 raw로 서빙되므로 여기서 직접 삽입.
-     (라이브 확인 결과 메인 body 첫 요소가 .mainpage = layout의 #wrap/footer 미적용) -->
-<style>
-/* 메인은 layout CSS 미로드 → footer에 딸려온 카페24 팝업/모바일바가 스타일 없이 노출됨 → 숨김.
-   (.bottom-nav=모바일 하단내비, #searchBarForm=검색 팝업). 메인 내비·검색은 pour-header가 담당. */
-body > .bottom-nav, .mainpage ~ .bottom-nav, #searchBarForm { display:none !important; }
-</style>
-<!--@import(/layout/basic/footer.html)-->
+<!-- ※ 하단 푸터는 상단 @layout(공통 레이아웃) 안에서 이미 1회 불러오므로 여기서 다시 import하지 않는다.
+     (중복 import 시 카페24 팝업/공지가 2번 실행되어 팝업이 두 개 뜨고 닫기가 꼬임) -->
 
 	<!-- 전 페이지 고정 실시간 채팅(POUR닥터) — 원본: common/pour-quickbtn.html -->
 <!-- ============================================================

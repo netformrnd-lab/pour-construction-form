@@ -1064,7 +1064,9 @@ var PM_POSTS = [];
         var syncH = function(){ var h = section.querySelector('.psm1-banner'), s = section.querySelector('.psm1-banner-side'); if (!h || !s) return; if (window.innerWidth > 700) { if (h.offsetHeight) s.style.height = h.offsetHeight + 'px'; } else { s.style.height = ''; } };
         syncH(); window.addEventListener('resize', syncH);
         var hImg = section.querySelector('.psm1-banner img'); if (hImg) hImg.addEventListener('load', syncH);
-        setTimeout(syncH, 300);
+        // 히어로 높이 변화를 추적해 사이드와 항상 일치 → 단차(높이 어긋남) 방지
+        var hEl = section.querySelector('.psm1-banner'); if (hEl && window.ResizeObserver){ try { new ResizeObserver(syncH).observe(hEl); } catch(e){} }
+        setTimeout(syncH, 300); setTimeout(syncH, 900);
       }
     } catch (e) { console.log('[psm1] 배너 렌더 스킵:', e && e.message ? e.message : e); }
   }

@@ -539,23 +539,23 @@
 </style>
 <script>
 (function(){
-  var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'+encodeURIComponent('POUR스토어_리뉴얼')+'%2F'+encodeURIComponent('quick-icons')+'%2F';
-  // 성공한 확장자를 기억해 재방문 시 프로빙(불필요한 404 요청) 제거
-  var HIT={}; try { HIT=JSON.parse(localStorage.getItem('pcb:qicon')||'{}')||{}; } catch(e){}
-  function save(){ try { localStorage.setItem('pcb:qicon', JSON.stringify(HIT)); } catch(e){} }
+  // 퀵메뉴 아이콘: Storage(quick-icons/icon-N.png) 직접 로드.
+  // ★ lazy·다중확장자 프로빙·localStorage 캐시 제거 → 기본 아이콘으로 되돌아가는 문제 해결.
+  //   (display:none 이미지는 loading=lazy면 브라우저가 로드를 미뤄 has-img가 안 붙던 버그)
+  var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'+encodeURIComponent('POUR스토어_리뉴얼/quick-icons')+'%2F';
+  // 메뉴명 → Storage 아이콘 번호(icon-번호.png). 위치가 아니라 '이름'으로 매칭(순서 바뀌어도 안전).
+  var NMAP={ '제품구매':1, '시공가이드':2, '패키지':3, '후기참여':4, '배송안내':5, '전시장':6, '부자재·안전용품':9, '파트너사협약':10, '공급제휴':11, '대리점':12 };
   var cats=document.querySelectorAll('.psm1-cats .psm1-cat');
   Array.prototype.forEach.call(cats,function(cat,i){
     var box=cat.querySelector('.psm1-cat-ico'); if(!box) return;
-    var n=(function(s){s=s||'';if(s.indexOf('제품구매')>=0)return 1;if(s.indexOf('시공가이드')>=0)return 2;if(s.indexOf('패키지')>=0)return 3;if(s.indexOf('후기')>=0)return 4;if(s.indexOf('배송')>=0)return 5;if(s.indexOf('부자재')>=0)return 9;if(s.indexOf('공급제휴')>=0)return 11;if(s.indexOf('파트너')>=0)return 10;if(s.indexOf('대리점')>=0)return 12;if(s.indexOf('전시장')>=0)return 6;return 0;})((cat.querySelector('.psm1-cat-name')||{}).textContent||'')||parseInt(cat.getAttribute('data-icon'),10)||(i+1);
-    // 실사용 포맷 순서(이중확장자 업로드 폴백 유지). 알려진 성공 파일명이 있으면 그것부터 → 프로빙 0회
-    var cands=['icon-'+n+'.png','icon-'+n+'.webp','icon-'+n+'.jpg','icon-'+n+'.png.png','icon-'+n+'.jpg.png'];
-    if(HIT[n]){ cands=[HIT[n]].concat(cands.filter(function(c){return c!==HIT[n];})); }
-    var img=document.createElement('img'); img.alt=''; img.loading='lazy'; img.decoding='async';
-    function tryLoad(k){ if(k>=cands.length){ if(HIT[n]){ delete HIT[n]; save(); } return; }
-      img.onerror=function(){ tryLoad(k+1); };
-      img.onload=function(){ box.classList.add('has-img'); if(HIT[n]!==cands[k]){ HIT[n]=cands[k]; save(); } };
-      img.src=BASE+encodeURIComponent(cands[k])+'?alt=media'; }
-    tryLoad(0); box.appendChild(img);
+    var nm=((cat.querySelector('.psm1-cat-name')||{}).textContent||'').trim();
+    var n=NMAP[nm]||parseInt(cat.getAttribute('data-icon'),10)||(i+1);
+    var img=document.createElement('img'); img.alt=''; img.decoding='async';
+    try{ img.fetchPriority='low'; }catch(e){} img.setAttribute('fetchpriority','low'); // 본문보다 나중에 받도록(첫 화면 가볍게)
+    img.onload=function(){ box.classList.add('has-img'); };    // 성공 시에만 이미지 노출
+    img.onerror=function(){ box.classList.remove('has-img'); }; // 실패하면 기본 SVG 유지
+    img.src=BASE+encodeURIComponent('icon-'+n+'.png')+'?alt=media';
+    box.appendChild(img);
   });
 })();
 </script>

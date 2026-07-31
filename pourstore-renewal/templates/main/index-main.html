@@ -564,6 +564,7 @@
     var nm=((cat.querySelector('.psm1-cat-name')||{}).textContent||'').trim();
     var n=NMAP[nm]||parseInt(cat.getAttribute('data-icon'),10)||(i+1);
     var img=document.createElement('img'); img.alt=''; img.decoding='async';
+    try{ img.fetchPriority='low'; }catch(e){} img.setAttribute('fetchpriority','low'); // 본문보다 나중에 받도록(첫 화면 가볍게)
     img.onload=function(){ box.classList.add('has-img'); };    // 성공 시에만 이미지 노출
     img.onerror=function(){ box.classList.remove('has-img'); }; // 실패하면 기본 SVG 유지
     img.src=BASE+encodeURIComponent('icon-'+n+'.png')+'?alt=media';
@@ -1440,29 +1441,26 @@ var PM_POSTS = [];
 ============================================================ -->
 <script>
 (function(){
+  // 경량화: 성공 시 즉시 중단 + 최대 4회만(0→0.6→1.2→1.8s). 값싼 indexOf 사전필터로 대부분 div 건너뜀.
+  var done=false, runs=0;
   function popupRoots(){
     if(!document.body) return [];
-    var cand=[], divs=document.body.querySelectorAll('div');
+    var cand=[], divs=document.body.getElementsByTagName('div');
     for(var i=0;i<divs.length;i++){
-      var d=divs[i], t=d.textContent||'';
-      if(/오늘\s*하루\s*열지\s*않음/.test(t) && /닫기/.test(t)){
-        var pos=''; try{ pos=getComputedStyle(d).position; }catch(e){}
-        if(pos==='fixed'||pos==='absolute') cand.push(d);
-      }
+      var d=divs[i], t=d.textContent;
+      if(!t || t.indexOf('오늘')<0 || t.indexOf('닫기')<0) continue;      // 값싼 1차 필터
+      if(!/오늘\s*하루\s*열지\s*않음/.test(t)) continue;
+      var pos=''; try{ pos=getComputedStyle(d).position; }catch(e){}
+      if(pos==='fixed'||pos==='absolute') cand.push(d);
     }
-    // 서로 포함관계면 가장 바깥(팝업 컨테이너)만 남김
     return cand.filter(function(d){ return !cand.some(function(o){ return o!==d && o.contains(d); }); });
   }
   function dedupe(){
     var roots=popupRoots();
-    if(roots.length>1){
-      for(var i=1;i<roots.length;i++){ try{ roots[i].remove(); }catch(e){} }
-      console.log('[popup-dedupe] 중복 팝업 '+(roots.length-1)+'개 제거');
-    }
+    if(roots.length>1){ for(var i=1;i<roots.length;i++){ try{ roots[i].remove(); }catch(e){} } done=true; console.log('[popup-dedupe] 중복 팝업 제거'); }
   }
-  var n=0, timer=setInterval(function(){ dedupe(); if(++n>25) clearInterval(timer); }, 350);
-  if(document.readyState!=='loading') dedupe();
-  document.addEventListener('DOMContentLoaded', dedupe);
+  function tick(){ if(done) return; dedupe(); if(!done && ++runs<4) setTimeout(tick, 600); }
+  if(document.readyState!=='loading') tick(); else document.addEventListener('DOMContentLoaded', tick);
 })();
 </script>
 

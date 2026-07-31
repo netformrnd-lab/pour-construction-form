@@ -270,7 +270,9 @@
                 <caption>
                 상품 옵션
                 </caption>
-                <tbody module="product_option">
+                <!-- ★[넷폼 수정] 중복 module="product_option" 제거: table에만 남기고 tbody에선 삭제.
+                     (table+tbody 이중 선언 시 옵션 모듈이 두 번 렌더→select id 중복→값 미노출) -->
+                <tbody>
                   <tr>
                     <th scope="row">{$option_name}</th>
                     <td>{$form.option}

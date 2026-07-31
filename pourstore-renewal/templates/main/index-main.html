@@ -1432,6 +1432,40 @@ var PM_POSTS = [];
 <!-- ※ 하단 푸터는 상단 @layout(공통 레이아웃) 안에서 이미 1회 불러오므로 여기서 다시 import하지 않는다.
      (중복 import 시 카페24 팝업/공지가 2번 실행되어 팝업이 두 개 뜨고 닫기가 꼬임) -->
 
+<!-- ============================================================
+  카페24 팝업 중복 제거 (안전장치)
+  - 같은 팝업이 2개 이상 뜨면(원인 불문) 첫 번째만 남기고 제거
+  - '오늘 하루 열지 않음' + '닫기' 텍스트를 가진 고정/절대배치 요소로 팝업을 식별
+  - 중복 팝업의 동일 ID 때문에 '닫기'가 안 눌리던 문제도 함께 해소
+============================================================ -->
+<script>
+(function(){
+  function popupRoots(){
+    if(!document.body) return [];
+    var cand=[], divs=document.body.querySelectorAll('div');
+    for(var i=0;i<divs.length;i++){
+      var d=divs[i], t=d.textContent||'';
+      if(/오늘\s*하루\s*열지\s*않음/.test(t) && /닫기/.test(t)){
+        var pos=''; try{ pos=getComputedStyle(d).position; }catch(e){}
+        if(pos==='fixed'||pos==='absolute') cand.push(d);
+      }
+    }
+    // 서로 포함관계면 가장 바깥(팝업 컨테이너)만 남김
+    return cand.filter(function(d){ return !cand.some(function(o){ return o!==d && o.contains(d); }); });
+  }
+  function dedupe(){
+    var roots=popupRoots();
+    if(roots.length>1){
+      for(var i=1;i<roots.length;i++){ try{ roots[i].remove(); }catch(e){} }
+      console.log('[popup-dedupe] 중복 팝업 '+(roots.length-1)+'개 제거');
+    }
+  }
+  var n=0, timer=setInterval(function(){ dedupe(); if(++n>25) clearInterval(timer); }, 350);
+  if(document.readyState!=='loading') dedupe();
+  document.addEventListener('DOMContentLoaded', dedupe);
+})();
+</script>
+
 	<!-- 전 페이지 고정 실시간 채팅(POUR닥터) — 원본: common/pour-quickbtn.html -->
 <!-- ============================================================
   pour-livechat — 오른쪽 하단 고정 실시간 채팅 (채널톡식)

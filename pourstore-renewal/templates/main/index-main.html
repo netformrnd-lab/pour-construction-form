@@ -30,33 +30,53 @@
      (중복 import 시 카페24 팝업/공지가 2번 실행되어 팝업이 두 개 뜨고 닫기가 꼬임) -->
 
 <!-- ============================================================
-  카페24 팝업 중복 제거 (안전장치)
-  - 같은 팝업이 2개 이상 뜨면(원인 불문) 첫 번째만 남기고 제거
-  - '오늘 하루 열지 않음' + '닫기' 텍스트를 가진 고정/절대배치 요소로 팝업을 식별
-  - 중복 팝업의 동일 ID 때문에 '닫기'가 안 눌리던 문제도 함께 해소
+  카페24 팝업 중복 제거 (안전장치) — 내용 기준(위치 무관)
+  - 같은 팝업이 2개 이상 뜨면(원인 불문) 첫 번째만 남기고 나머지 제거
+  - '오늘 하루 열지 않음' + '닫기' 텍스트를 가진 팝업을 찾아, 그 팝업의 바깥 박스까지 올라간 뒤
+    '내용이 같은' 팝업을 중복으로 보고 제거 (fixed/absolute 여부와 무관 → 어떤 팝업 구조든 잡힘)
+  - 늦게 뜨는 팝업까지 잡도록 MutationObserver로 몇 초간 감시
 ============================================================ -->
 <script>
 (function(){
-  // 경량화: 성공 시 즉시 중단 + 최대 4회만(0→0.6→1.2→1.8s). 값싼 indexOf 사전필터로 대부분 div 건너뜀.
-  var done=false, runs=0;
-  function popupRoots(){
+  function norm(s){ return (s||'').replace(/\s+/g,' ').trim(); }
+  // '오늘 하루 열지 않음' + '닫기'를 모두 가진 '가장 안쪽' 요소들(=각 팝업의 본문)
+  function innerMarks(){
     if(!document.body) return [];
-    var cand=[], divs=document.body.getElementsByTagName('div');
-    for(var i=0;i<divs.length;i++){
-      var d=divs[i], t=d.textContent;
-      if(!t || t.indexOf('오늘')<0 || t.indexOf('닫기')<0) continue;      // 값싼 1차 필터
+    var all=document.body.getElementsByTagName('*'), hit=[];
+    for(var i=0;i<all.length;i++){
+      var t=all[i].textContent;
+      if(!t || t.indexOf('오늘')<0 || t.indexOf('닫기')<0) continue;   // 값싼 1차 필터
       if(!/오늘\s*하루\s*열지\s*않음/.test(t)) continue;
-      var pos=''; try{ pos=getComputedStyle(d).position; }catch(e){}
-      if(pos==='fixed'||pos==='absolute') cand.push(d);
+      hit.push(all[i]);
     }
-    return cand.filter(function(d){ return !cand.some(function(o){ return o!==d && o.contains(d); }); });
+    // 자식 중에 같은 마커가 또 있으면 제외 → 가장 안쪽(팝업 본문)만 남김
+    return hit.filter(function(m){ return !hit.some(function(o){ return o!==m && m.contains(o); }); });
+  }
+  // 팝업 본문에서, '내용이 그대로'인 동안 부모로 올라가 팝업 바깥 박스를 찾음
+  function outerBox(el){
+    while(el.parentElement && el.parentElement!==document.body && norm(el.parentElement.textContent)===norm(el.textContent)){
+      el=el.parentElement;
+    }
+    return el;
   }
   function dedupe(){
-    var roots=popupRoots();
-    if(roots.length>1){ for(var i=1;i<roots.length;i++){ try{ roots[i].remove(); }catch(e){} } done=true; console.log('[popup-dedupe] 중복 팝업 제거'); }
+    var marks=innerMarks(); if(marks.length<2) return;
+    var seen={}, removed=0;
+    marks.forEach(function(m){
+      var box=outerBox(m), key=norm(box.textContent);
+      if(seen[key]){ try{ box.remove(); removed++; }catch(e){} }  // 같은 내용 = 중복 → 제거
+      else seen[key]=1;                                           // 첫 번째만 유지
+    });
+    if(removed) console.log('[popup-dedupe] 중복 팝업 '+removed+'개 제거');
   }
-  function tick(){ if(done) return; dedupe(); if(!done && ++runs<4) setTimeout(tick, 600); }
-  if(document.readyState!=='loading') tick(); else document.addEventListener('DOMContentLoaded', tick);
+  var runs=0, mo=null;
+  function stop(){ if(mo){ try{ mo.disconnect(); }catch(e){} mo=null; } }
+  function tick(){ dedupe(); if(++runs<8) setTimeout(tick, 400); else stop(); } // 0~3.2s 반복
+  function start(){
+    tick();
+    if(window.MutationObserver){ mo=new MutationObserver(dedupe); try{ mo.observe(document.body,{childList:true,subtree:true}); }catch(e){} setTimeout(stop, 6000); }
+  }
+  if(document.readyState!=='loading') start(); else document.addEventListener('DOMContentLoaded', start);
 })();
 </script>
 

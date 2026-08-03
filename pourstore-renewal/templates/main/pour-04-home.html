@@ -159,7 +159,7 @@
   .slide h3 { font-size:21px; }
   .slide p { margin-bottom:12px; }
   .slide-tags { margin-bottom:0; }
-  .slide-right { height:150px; }
+  .slide-right { height:auto; aspect-ratio:16/9; }   /* ★ 고정 높이 대신 배너 비율 → 이미지 짤림 완화 */
   .psh-swatches { justify-content:flex-start; }
   .psh-grid { grid-template-columns:repeat(3,1fr); }
   .psh-card:nth-child(n+7) { display:none; }
@@ -180,7 +180,7 @@
   .slide h3 { font-size:18px; margin-bottom:7px; }
   .slide p { font-size:12px; margin-bottom:9px; line-height:1.5; }
   .slide-tags { margin-bottom:0; }
-  .slide-right { height:104px; }
+  .slide-right { height:auto; aspect-ratio:2/1; }   /* ★ 작은폰: 배너 비율(2:1)로 — 짤림 줄이고 너무 크지 않게 */
   .psh-grid { grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:20px; }
   .psh-card:nth-child(n+5) { display:none; }
   .psh-card .name { min-height:34px; font-size:13px; }

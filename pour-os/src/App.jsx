@@ -1470,7 +1470,11 @@ function TeamToday({D,cu,nav,onEdit,up}){
   const [sel,setSel]=useState(null);     // 선택 담당자(개인 화면 바로 보기) — null=전체
   const today=todayDay(); const todayStr=ymdLocal(new Date()); const todayIdx=WEEK_DAYS.indexOf(today);
   const weekMonStr=(()=>{const x=new Date();const off=(x.getDay()+6)%7;x.setDate(x.getDate()-off);x.setHours(0,0,0,0);return ymdLocal(x);})();   // 이번 주 월요일(밀린 업무 하한 — 전주 업무 유입 차단)
-  const isTodayTask=(t)=>!t.isFixed&&t.status!=="hold"&&(t.status==="inprogress"||t.workDate===todayStr||(!t.workDate&&t.weekDay===today));
+  const isTodayTask=(t)=>!t.isFixed&&t.status!=="hold"&&(
+    t.status==="inprogress" ||
+    (t.status==="done"
+      ? (t.workDate||(t.doneAt?String(t.doneAt).slice(0,10):""))===todayStr   // 완료 업무는 실제 완료일(또는 목표일) 기준 — 요일만으로 매주 재노출 방지
+      : (t.workDate===todayStr||(!t.workDate&&t.weekDay===today))));
   // 밀린 업무(이월) = 이번 주 안에서 오늘 이전에 배치했지만 아직 '할일'인 것. 지난주 이전은 제외(진행중은 오늘 업무로 이어 노출).
   const isOverdueTodo=(t)=>!t.isFixed&&t.status==="todo"&&((t.workDate&&t.workDate<todayStr&&t.workDate>=weekMonStr)||(!t.workDate&&t.weekDay&&WEEK_DAYS.indexOf(t.weekDay)>=0&&WEEK_DAYS.indexOf(t.weekDay)<todayIdx));
   const order=["todo","inprogress","done","hold"];
@@ -1586,7 +1590,12 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const fixedDueToday=(t)=>{const rt=t.recurType||"daily";if(rt==="weekly")return t.weekDay===today;if(rt==="monthly")return Number(t.monthDay||1)===todayDate;return true;};
   const fixed=D.tasks.filter(t=>t.isFixed&&fixedIsMine(t,cu.id)&&fixedDueToday(t));
   // 오늘 업무 = 진행날짜가 오늘 / 날짜 없이 오늘 요일 / 또는 '진행중'(완료·보류 전까지 매일 이어서 노출) · 보류 제외
-  const todayT=myT.filter(t=>!t.isFixed&&t.status!=="hold"&&(t.status==="inprogress"||t.workDate===todayStr||(!t.workDate&&t.weekDay===today)));
+  const todayT=myT.filter(t=>!t.isFixed&&t.status!=="hold"&&(
+      t.status==="inprogress" ||
+      (t.status==="done"
+        ? (t.workDate||(t.doneAt?String(t.doneAt).slice(0,10):""))===todayStr   // 완료 업무는 실제 완료일(또는 목표일) 기준 — 요일만으로 매주 재노출 방지
+        : (t.workDate===todayStr||(!t.workDate&&t.weekDay===today)))
+    ));
   const urgent=myT.filter(t=>t.status!=="done"&&t.status!=="hold"&&t.dueDate&&(()=>{const dd=Math.ceil((new Date(t.dueDate)-new Date())/86400000);return dd>=0&&dd<=3;})());
   // 밀린 업무(이월): 이번 주 안에서 진행날짜가 오늘 이전인데 아직 '할일'인 것 (지난주 이전 유입 차단 · 진행중은 오늘 업무로 이어 노출 · 미래 주 배치 제외)
   const todayIdx=WEEK_DAYS.indexOf(today);

@@ -198,8 +198,8 @@
   .psm1-bnr-arrow { display:none; } /* 모바일은 스와이프로 넘김 */
   /* 모바일: 서브(사이드) 배너는 가로형으로 (JS 높이동기화 무시, 16:9) */
   .psm1-banner-side.psm1-has-carousel { aspect-ratio:5/2; min-height:0 !important; height:auto !important; } /* 모바일 서브배너 2.5:1 (권장 이미지 1080×432) */
-  /* 디자인형 배너(텍스트 포함)면 모바일 최소높이 확보 */
-  .psm1-banner.psm1-bnr-hasdesign { aspect-ratio:auto !important; min-height:220px; }
+  /* 디자인형 배너가 섞여도 모바일 히어로는 항상 4:3 고정 → 박스 비율이 폰 크기마다 달라져 이미지가 잘리던 문제 방지(권장 이미지 1080×810) */
+  .psm1-banner.psm1-bnr-hasdesign { aspect-ratio:4/3 !important; min-height:0 !important; }
   .psm1-banner-side.psm1-bnr-hasdesign.psm1-has-carousel { aspect-ratio:auto !important; min-height:300px; height:auto !important; }
 }
 /* 4) 카테고리 아이콘 */

@@ -141,31 +141,9 @@
 .psm1-tab:hover { color:#2F3438; }
 .psm1-tab .psm1-tab-new { display:inline-block; font-size:10px; font-weight:800; color:#E8780F; vertical-align:top; margin-left:2px; letter-spacing:0; }
 /* 3) 히어로 */
-.psm1-hero { background:#fff; padding:0; }   /* ★ 와이드 풀폭: 좌우 여백 제거 */
-.psm1-hero-inner { max-width:none; margin:0; }   /* ★ 히어로 풀폭(한 장, 화면 끝까지) */
-/* 추천(사이드) 배너 — 아이콘 아래, 작은 카드 여러 개(쿠쿠몰식 그리드) */
-.psm1-sidebelow { max-width:1256px; margin:34px auto 0; padding:0 24px 10px; }
-.psm1-sidebelow-head { text-align:center; margin:0 0 22px; padding:0 2px; }  /* 가운데 정렬 + 위(섹션 margin-top)·아래 여백 */
-.psm1-sidebelow-title { font-size:26px; font-weight:900; color:#111111; letter-spacing:-0.035em; line-height:1.3; }  /* '목재를 고치고 싶다면?'(.psm2-title)와 동일 */
-.psm1-sidecards { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px; }
-.psm1-sidecard { position:relative; display:block; border-radius:12px; overflow:hidden; background:#F5F6F8; aspect-ratio:16/9; box-shadow:0 1px 6px rgba(15,31,92,.06); }
-.psm1-sidecard img { width:100%; height:100%; object-fit:cover; display:block; }
-.psm1-sidecard > a { display:block; width:100%; height:100%; }
-@media(max-width:700px){ .psm1-sidebelow{ padding:0 14px 8px; margin:24px auto 0; } .psm1-sidebelow-head{ margin-bottom:14px; } .psm1-sidebelow-title{ font-size:20px; } .psm1-sidecards{ grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:8px; } }
-.psm1-banner { position:relative; border-radius:0; overflow:hidden; aspect-ratio:3/1; background:#F5F6F8; cursor:pointer; display:block; }  /* 와이드 풀폭 + 세로 축소(3:1) */
-/* ★ 초광폭(1681px↑) 화면 높이 상한: max-height 대신 명시 height 사용 → aspect-ratio+max-height 조합이 폭을 줄여 오른쪽에 빈칸이 생기던 문제 방지(폭은 항상 100%) */
-@media (min-width:1681px){ .psm1-banner { aspect-ratio:auto; height:560px; } }
-/* 히어로 하단 컨트롤바(쿠쿠몰식): 진행바 + 이전/순번/다음/일시정지 */
-.psm1-bnr-bar{ position:absolute; left:0; right:0; bottom:16px; z-index:4; display:flex; align-items:center; gap:14px; padding:0 max(24px, calc((100% - 1256px)/2 + 24px)); }
-.psm1-bnr-prog{ flex:1; height:3px; background:rgba(255,255,255,.45); border-radius:2px; overflow:hidden; }
-.psm1-bnr-prog i{ display:block; height:100%; width:0; background:#fff; border-radius:2px; transition:width .4s ease; }
-.psm1-bnr-pill{ flex-shrink:0; display:inline-flex; align-items:center; gap:2px; background:rgba(15,23,42,.5); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); border-radius:999px; padding:5px 8px; color:#fff; }
-.psm1-bnr-pill button{ background:none; border:0; color:#fff; cursor:pointer; width:26px; height:26px; display:grid; place-items:center; font-size:15px; line-height:1; border-radius:50%; }
-.psm1-bnr-pill button:hover{ background:rgba(255,255,255,.18); }
-.psm1-bnr-pill .cn{ font-size:12.5px; font-weight:600; letter-spacing:.02em; padding:0 6px; white-space:nowrap; }
-.psm1-bnr-pill .cn b{ font-weight:800; }
-.psm1-bnr-pill .ps{ font-size:12px; }
-@media(max-width:700px){ .psm1-bnr-bar{ bottom:10px; gap:10px; padding:0 14px; } .psm1-bnr-pill button{ width:24px; height:24px; } }
+.psm1-hero { background:#fff; padding:20px 24px 0; }
+.psm1-hero-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:1fr 320px; gap:20px; }
+.psm1-banner { position:relative; border-radius:8px; overflow:hidden; aspect-ratio:16/9; background:#F5F6F8; cursor:pointer; display:block; }
 .psm1-banner-img { width:100%; height:100%; object-fit:cover; }
 .psm1-banner-grad { position:absolute; inset:0; background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,.55) 100%); }
 .psm1-banner-cap { position:absolute; left:24px; right:24px; bottom:24px; color:#fff; }
@@ -200,8 +178,8 @@
   .psm1-bnr-arrow { display:none; } /* 모바일은 스와이프로 넘김 */
   /* 모바일: 서브(사이드) 배너는 가로형으로 (JS 높이동기화 무시, 16:9) */
   .psm1-banner-side.psm1-has-carousel { aspect-ratio:5/2; min-height:0 !important; height:auto !important; } /* 모바일 서브배너 2.5:1 (권장 이미지 1080×432) */
-  /* 디자인형 배너가 섞여도 모바일 히어로는 항상 4:3 고정 → 박스 비율이 폰 크기마다 달라져 이미지가 잘리던 문제 방지(권장 이미지 1080×810) */
-  .psm1-banner.psm1-bnr-hasdesign { aspect-ratio:4/3 !important; min-height:0 !important; }
+  /* 디자인형 배너(텍스트 포함)면 모바일 최소높이 확보 */
+  .psm1-banner.psm1-bnr-hasdesign { aspect-ratio:auto !important; min-height:220px; }
   .psm1-banner-side.psm1-bnr-hasdesign.psm1-has-carousel { aspect-ratio:auto !important; min-height:300px; height:auto !important; }
 }
 /* 4) 카테고리 아이콘 */
@@ -504,6 +482,7 @@
   <div class="psm1-hero-inner">
     <!-- 로딩 전엔 빈 배너(회색) — 어드민 배너가 로드되면 캐러셀이 채움 -->
     <div class="psm1-banner" data-hero-banner></div>
+    <div class="psm1-banner-side" data-side-banner></div>
   </div>
 </div>
 <!-- 배너 즉시 페인트: 직전 방문에 저장한 '첫 배너 이미지'를 Firebase SDK·Firestore 로딩 전(파싱 시점)에 미리 그림
@@ -532,7 +511,7 @@
       el.setAttribute('data-prepainted','1');
     }
     paint('[data-hero-banner]', c.h, c.hm);
-    // 사이드는 카드 그리드로 렌더 → 단일 이미지 프리페인트 생략(레이아웃 깜빡임 방지)
+    paint('[data-side-banner]', c.s, c.sm);
   }catch(e){}
 })();
 </script>
@@ -551,13 +530,6 @@
     <a href="/pourstore_renewal/showroom/pour-showroom.html" class="psm1-cat" data-icon="7"><span class="psm1-cat-ico c9" style="color:#0891B2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 10h.01M15 10h.01"/></svg></span><span class="psm1-cat-name">전시장</span></a>
   </div>
 </nav>
-<!-- 추천(사이드) 배너 — 히어로 옆이 아니라 아이콘 아래 풀폭으로 이동 -->
-<div class="psm1-sidebelow">
-  <div class="psm1-sidebelow-head">
-    <h2 class="psm1-sidebelow-title">POUR스토어만의 특별한 혜택 ✨</h2>
-  </div>
-  <div class="psm1-sidecards" data-side-banner></div>
-</div>
 <!-- 퀵메뉴 아이콘 이미지 교체(Storage quick-icons/icon-N.*) — 있으면 이미지, 없으면 기본 아이콘 -->
 <style>
 .psm1-cat-ico img{display:none;}
@@ -1039,79 +1011,37 @@ var PM_POSTS = [];
     });
     box.appendChild(track); el.innerHTML = ''; el.appendChild(box);
 
-    var cur = 0, timer = null, ds = null, paused = false, updCnt = function(){};
-    function apply(anim){ track.style.transition = anim===false ? 'none' : 'transform .4s ease'; track.style.transform = 'translateX(-' + (cur*100) + '%)'; if (ds){ for (var i=0;i<ds.length;i++) ds[i].classList.toggle('on', i===cur); } updCnt(); }
+    var cur = 0, timer = null, ds = null;
+    function apply(anim){ track.style.transition = anim===false ? 'none' : 'transform .4s ease'; track.style.transform = 'translateX(-' + (cur*100) + '%)'; if (ds){ for (var i=0;i<ds.length;i++) ds[i].classList.toggle('on', i===cur); } }
     function go(i){ cur = ((i % n) + n) % n; apply(true); }
-    function start(){ if (paused) return; if (n>1 && !timer) timer = setInterval(function(){ go(cur+1); }, Math.max(2, intervalSec||5)*1000); }
+    function start(){ if (n>1 && !timer) timer = setInterval(function(){ go(cur+1); }, Math.max(2, intervalSec||5)*1000); }
     function stop(){ if (timer){ clearInterval(timer); timer=null; } }
     function reset(){ stop(); start(); }
 
     if (n > 1){
-      // 하단 컨트롤 바 — [진행바] ······ [‹ n/총 › ❚❚]
-      var bar = document.createElement('div'); bar.className = 'psm1-bnr-bar';
-      var prog = document.createElement('div'); prog.className = 'psm1-bnr-prog';
-      var progFill = document.createElement('i'); prog.appendChild(progFill);
-      var pill = document.createElement('div'); pill.className = 'psm1-bnr-pill';
-      var prev = document.createElement('button'); prev.type='button'; prev.setAttribute('aria-label','이전 배너'); prev.textContent='‹';
-      var cnt = document.createElement('span'); cnt.className = 'cn';
-      var next = document.createElement('button'); next.type='button'; next.setAttribute('aria-label','다음 배너'); next.textContent='›';
-      var ps = document.createElement('button'); ps.type='button'; ps.className='ps'; ps.setAttribute('aria-label','자동전환 정지'); ps.textContent='❚❚';
-      pill.appendChild(prev); pill.appendChild(cnt); pill.appendChild(next); pill.appendChild(ps);
-      bar.appendChild(prog); bar.appendChild(pill);
-      el.appendChild(bar);
-      // 순번/진행바 갱신을 apply()에 연결
-      updCnt = function(){ cnt.innerHTML = '<b>' + (cur+1) + '</b> / ' + n; progFill.style.width = ((cur+1)/n*100).toFixed(2) + '%'; };
+      // 하단 점(O) — 총 개수 표시 + 클릭 시 해당 슬라이드
+      var dots = document.createElement('div'); dots.className = 'psm1-bnr-dots';
+      banners.forEach(function(_, i){ var d = document.createElement('button'); d.type='button'; d.className='psm1-bnr-dot'+(i===0?' on':''); d.setAttribute('aria-label','배너 '+(i+1));
+        d.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); go(i); reset(); }); dots.appendChild(d); });
+      el.appendChild(dots); ds = dots.children;
+      // 좌우 화살표
+      var prev = document.createElement('button'); prev.type='button'; prev.className='psm1-bnr-arrow prev'; prev.setAttribute('aria-label','이전 배너'); prev.textContent='‹';
+      var next = document.createElement('button'); next.type='button'; next.className='psm1-bnr-arrow next'; next.setAttribute('aria-label','다음 배너'); next.textContent='›';
       prev.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); go(cur-1); reset(); });
       next.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); go(cur+1); reset(); });
-      ps.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation();
-        paused = !paused;
-        if (paused){ stop(); ps.textContent = '▶'; ps.setAttribute('aria-label','자동전환 시작'); }
-        else { ps.textContent = '❚❚'; ps.setAttribute('aria-label','자동전환 정지'); start(); }
-      });
-      el.addEventListener('mouseenter', stop);
-      el.addEventListener('mouseleave', function(){ if (!paused) start(); });
+      el.appendChild(prev); el.appendChild(next);
+      el.addEventListener('mouseenter', stop); el.addEventListener('mouseleave', start);
 
       // 스와이프/드래그로 직접 넘기기 (터치+마우스 = pointer events)
       var startX = 0, moved = 0, dragging = false, wasDrag = false;
-      // ★ setPointerCapture는 '드래그가 시작된 뒤'에만 건다. pointerdown에서 바로 캡처하면
-      //   브라우저가 이후 click 이벤트를 캡처 대상(div)으로 보내 <a> 링크 이동이 막힘(순수 클릭 무반응).
-      box.addEventListener('pointerdown', function(e){ dragging = true; wasDrag = false; startX = e.clientX; moved = 0; track.style.transition = 'none'; stop(); });
-      box.addEventListener('pointermove', function(e){ if (!dragging) return; moved = e.clientX - startX; if (Math.abs(moved) > 6){ if (!wasDrag && box.setPointerCapture){ try { box.setPointerCapture(e.pointerId); } catch(_){} } wasDrag = true; } track.style.transform = 'translateX(calc(-' + (cur*100) + '% + ' + moved + 'px))'; });
+      box.addEventListener('pointerdown', function(e){ dragging = true; wasDrag = false; startX = e.clientX; moved = 0; track.style.transition = 'none'; stop(); if (box.setPointerCapture) { try { box.setPointerCapture(e.pointerId); } catch(_){} } });
+      box.addEventListener('pointermove', function(e){ if (!dragging) return; moved = e.clientX - startX; if (Math.abs(moved) > 6) wasDrag = true; track.style.transform = 'translateX(calc(-' + (cur*100) + '% + ' + moved + 'px))'; });
       var endDrag = function(){ if (!dragging) return; dragging = false; if (moved < -45) go(cur+1); else if (moved > 45) go(cur-1); else apply(true); reset(); };
       box.addEventListener('pointerup', endDrag); box.addEventListener('pointercancel', endDrag);
       // 드래그로 넘긴 경우엔 슬라이드 링크 클릭 무시(캡처 단계에서 차단)
       track.addEventListener('click', function(e){ if (wasDrag){ e.preventDefault(); e.stopPropagation(); } }, true);
     }
     apply(false); start();
-  }
-  // 추천(사이드) 배너 — 작은 카드 여러 개로 렌더(캐러셀 아님)
-  function renderSideCards(banners){
-    var el = section.querySelector('[data-side-banner]');
-    if (!el) return;
-    var wrap = (el.closest && el.closest('.psm1-sidebelow')) || el.parentNode; // 배너 없으면 제목까지 통째로 숨김
-    el.innerHTML = '';
-    if (!banners.length){ if (wrap) wrap.style.display = 'none'; return; }
-    if (wrap) wrap.style.display = '';
-    banners.forEach(function(b){
-      var card = document.createElement('div'); card.className = 'psm1-sidecard';
-      if (b.mode === 'design'){
-        card.appendChild(buildDesignSlide(b, 'side'));
-      } else {
-        var a = document.createElement('a');
-        var link = (b.link||'').trim();
-        if (link){ a.href = link; if (/^https?:\/\//.test(link) && link.indexOf(location.host) === -1){ a.target='_blank'; a.rel='noopener'; } }
-        else { a.href = 'javascript:void(0)'; }
-        var img = document.createElement('img'); img.src = b.image; img.alt = '추천 배너'; img.loading = 'lazy'; img.decoding = 'async'; img.draggable = false;
-        if (b.imageMobile){
-          var pic = document.createElement('picture'); pic.style.cssText = 'display:block;width:100%;height:100%;';
-          var src = document.createElement('source'); src.media = '(max-width:700px)'; src.srcset = b.imageMobile;
-          pic.appendChild(src); pic.appendChild(img); a.appendChild(pic);
-        } else { a.appendChild(img); }
-        card.appendChild(a);
-      }
-      el.appendChild(card);
-    });
-    console.log('[psm1] 사이드 카드 렌더 — ' + banners.length + '개');
   }
   // 배너 렌더는 함수로 분리 — 위에서 pBanners 도착 즉시 호출(다른 데이터 대기 없이 상단 먼저 표시)
   function applyBanners(bd){
@@ -1128,10 +1058,13 @@ var PM_POSTS = [];
           s: s0 ? s0.image : '', sm: s0 ? s0.imageMobile : '', t: Date.now() }));
       } catch (e) {}
       renderCarousel('.psm1-banner', heroBn, iv, 'hero');
-      renderSideCards(sideBn);
+      renderCarousel('.psm1-banner-side', sideBn, iv, 'side');
       console.log('[psm1] 배너 로드 — 히어로 ' + heroBn.length + '건, 사이드 ' + sideBn.length + '건');
       if (sideBn.length) { // 사이드 높이를 히어로에 맞춤 (그리드 aspect 행높이 미반영 보정)
-        /* [사이드 배너 아이콘 아래로 이동] 히어로 높이에 맞추던 동기화 제거 — 이제 사이드는 자체 비율(aspect-ratio)로 표시 */
+        var syncH = function(){ var h = section.querySelector('.psm1-banner'), s = section.querySelector('.psm1-banner-side'); if (!h || !s) return; if (window.innerWidth > 700) { if (h.offsetHeight) s.style.height = h.offsetHeight + 'px'; } else { s.style.height = ''; } };
+        syncH(); window.addEventListener('resize', syncH);
+        var hImg = section.querySelector('.psm1-banner img'); if (hImg) hImg.addEventListener('load', syncH);
+        setTimeout(syncH, 300);
       }
     } catch (e) { console.log('[psm1] 배너 렌더 스킵:', e && e.message ? e.message : e); }
   }

@@ -144,15 +144,14 @@
 .psm1-hero { background:#fff; padding:0; }   /* ★ 와이드 풀폭: 좌우 여백 제거 */
 .psm1-hero-inner { max-width:none; margin:0; }   /* ★ 히어로 풀폭(한 장, 화면 끝까지) */
 /* 추천(사이드) 배너 — 아이콘 아래, 작은 카드 여러 개(쿠쿠몰식 그리드) */
-.psm1-sidebelow { max-width:1256px; margin:10px auto 0; padding:0 24px 8px; }
-.psm1-sidebelow-head { margin:0 0 12px; padding:0 2px; }
-.psm1-sidebelow-title { font-size:19px; font-weight:800; color:#1F2937; letter-spacing:-0.045em; line-height:1.3; }
-.psm1-sidebelow-title b { color:#E8780F; font-weight:800; }
+.psm1-sidebelow { max-width:1256px; margin:34px auto 0; padding:0 24px 10px; }
+.psm1-sidebelow-head { text-align:center; margin:0 0 22px; padding:0 2px; }  /* 가운데 정렬 + 위(섹션 margin-top)·아래 여백 */
+.psm1-sidebelow-title { font-size:26px; font-weight:900; color:#111111; letter-spacing:-0.035em; line-height:1.3; }  /* '목재를 고치고 싶다면?'(.psm2-title)와 동일 */
 .psm1-sidecards { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px; }
 .psm1-sidecard { position:relative; display:block; border-radius:12px; overflow:hidden; background:#F5F6F8; aspect-ratio:16/9; box-shadow:0 1px 6px rgba(15,31,92,.06); }
 .psm1-sidecard img { width:100%; height:100%; object-fit:cover; display:block; }
 .psm1-sidecard > a { display:block; width:100%; height:100%; }
-@media(max-width:700px){ .psm1-sidebelow{ padding:0 14px 6px; margin:6px auto 0; } .psm1-sidebelow-head{ margin-bottom:8px; } .psm1-sidebelow-title{ font-size:16px; } .psm1-sidecards{ grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:8px; } }
+@media(max-width:700px){ .psm1-sidebelow{ padding:0 14px 8px; margin:24px auto 0; } .psm1-sidebelow-head{ margin-bottom:14px; } .psm1-sidebelow-title{ font-size:20px; } .psm1-sidecards{ grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:8px; } }
 .psm1-banner { position:relative; border-radius:0; overflow:hidden; aspect-ratio:3/1; background:#F5F6F8; cursor:pointer; display:block; }  /* 와이드 풀폭 + 세로 축소(3:1) */
 /* ★ 초광폭(1681px↑) 화면 높이 상한: max-height 대신 명시 height 사용 → aspect-ratio+max-height 조합이 폭을 줄여 오른쪽에 빈칸이 생기던 문제 방지(폭은 항상 100%) */
 @media (min-width:1681px){ .psm1-banner { aspect-ratio:auto; height:560px; } }
@@ -555,7 +554,7 @@
 <!-- 추천(사이드) 배너 — 히어로 옆이 아니라 아이콘 아래 풀폭으로 이동 -->
 <div class="psm1-sidebelow">
   <div class="psm1-sidebelow-head">
-    <h2 class="psm1-sidebelow-title">POUR스토어만의 <b>특별한 혜택</b></h2>
+    <h2 class="psm1-sidebelow-title">POUR스토어만의 특별한 혜택 ✨</h2>
   </div>
   <div class="psm1-sidecards" data-side-banner></div>
 </div>

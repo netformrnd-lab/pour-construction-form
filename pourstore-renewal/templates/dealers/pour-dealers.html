@@ -24,7 +24,11 @@ body{
 .head p{margin-top:14px;font-size:17px;color:var(--muted)}
 
 .finder{border-top:2px solid var(--line);border-bottom:1px solid var(--border);padding:22px 0}
-.fields{display:grid;grid-template-columns:1fr 1fr 1.6fr auto;gap:8px}
+/* ★ iframe 임베드 시 미디어쿼리가 안 먹어도 안 깨지도록: 고정 그리드 대신 flex-wrap.
+   폭이 모자라면 열이 겹치지 않고 다음 줄로 자동 줄바꿈된다. */
+.fields{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.field{flex:1 1 140px;min-width:0}
+.field.kw{flex:2 1 220px}
 .field label{display:block;font-size:13px;font-weight:700;color:var(--muted);
   letter-spacing:.04em;margin-bottom:5px}
 select,input[type=search]{
@@ -38,7 +42,7 @@ select{
 }
 select:disabled{background-color:#F7F7F7;color:#B6BAC2;cursor:not-allowed}
 select:focus,input:focus{outline:none;border-color:var(--or)}
-.submit{height:48px;align-self:end;padding:0 30px;border:none;border-radius:6px;
+.submit{height:48px;flex:1 1 120px;min-width:96px;align-self:end;padding:0 30px;border:none;border-radius:6px;
   background:var(--or);color:#fff;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer}
 .submit:hover{background:#D94F02}
 .submit:disabled{background:#D6D3CE;cursor:not-allowed}
@@ -103,9 +107,8 @@ select:focus,input:focus{outline:none;border-color:var(--or)}
 @media (max-width:760px){
   .head{padding:40px 0 22px}
   .head h1{font-size:28px}
-  .fields{grid-template-columns:1fr 1fr}
-  .field.kw{grid-column:1/-1}
-  .submit{grid-column:1/-1;width:100%}
+  .field.kw{flex-basis:100%}
+  .submit{flex-basis:100%}
   .row{grid-template-columns:1fr;gap:12px}
   .thumb{order:-1;width:100%;aspect-ratio:16/7}
   .go{display:inline-block;padding:9px 22px}

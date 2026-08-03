@@ -1143,11 +1143,7 @@ var PM_POSTS = [];
           return '<span class="psm1-ac-chip"><a href="'+SEARCH_URL+encodeURIComponent(kw)+'" data-ackw="'+escHtml(kw)+'">'+escHtml(kw)+'</a><button type="button" data-acdel="'+escHtml(kw)+'" aria-label="삭제"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>';
         }).join('') + '</div>';
       }
-      if (typeof OV_CATS !== 'undefined' && OV_CATS.length){
-        html += '<div class="psm1-ac-sec">추천 카테고리</div><div class="psm1-ac-cats">' + OV_CATS.map(function(c){
-          return '<a class="psm1-ac-cat" href="'+c.link+'"><span class="psm1-ac-cat-ico">'+c.svg+'</span><span class="psm1-ac-cat-nm">'+escHtml(c.name)+'</span></a>';
-        }).join('') + '</div>';
-      }
+      // [추천 카테고리 제거 — 요청] 검색 드롭다운에서 표출하지 않음
       if (items.length){
         html += '<div class="psm1-ac-sec">급상승 검색어</div><div class="psm1-ac-rank">' + items.slice(0,8).map(function(o,i){
           var t = o.thumb||o.thumbnail||o.image||ytThumbUrl(o.link);
@@ -1261,10 +1257,7 @@ var PM_POSTS = [];
       h += '<div class="psm1-ov-empty-line">최근 검색 내역이 없습니다.</div>';
     }
     h += '</div>';
-    // 추천 카테고리
-    h += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">추천 카테고리</span></div><div class="psm1-ov-cats">';
-    OV_CATS.forEach(function(c){ h += '<a class="psm1-ov-cat" href="'+c.link+'"><span class="psm1-ov-cat-ico">'+c.svg+'</span><span class="psm1-ov-cat-name">'+escHtml(c.name)+'</span></a>'; });
-    h += '</div></div>';
+    // [추천 카테고리 제거 — 요청] 검색 오버레이에서 표출하지 않음
     // 급상승 검색어 (인기검색어 — 시간 미표시)
     if (items.length){
       h += '<div class="psm1-ov-sec"><div class="psm1-ov-sec-head"><span class="psm1-ov-sec-title">급상승 검색어</span></div><div class="psm1-ov-rank">';

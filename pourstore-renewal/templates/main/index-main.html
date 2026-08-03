@@ -9,8 +9,10 @@
 <!-- ★ 메인은 layout/pour-header를 안 타므로 뷰포트 meta를 여기서 강제 주입(모바일 반응형 필수) -->
 <script>(function(){try{var m=document.querySelector('meta[name=viewport]');var v='width=device-width, initial-scale=1';if(!m){m=document.createElement('meta');m.setAttribute('name','viewport');m.setAttribute('content',v);document.head.appendChild(m);}else if(!/width=device-width/i.test(m.getAttribute('content')||'')){m.setAttribute('content',v);}}catch(e){}})();</script>
 <style>
-/* 가로 오버플로(옆으로 스크롤) 차단 — 어떤 섹션이 화면 폭을 조금 넘겨도 페이지가 좌우로 밀리지 않게.
-   overflow-x:clip은 세로 스크롤·고정헤더(position:fixed)·하단 채팅버튼에 영향을 주지 않는 안전한 방식. */
+/* 가로 오버플로(옆으로 스크롤) 차단 — 어떤 섹션/위젯이 화면 폭을 조금 넘겨도 페이지가 좌우로 밀리지 않게.
+   overflow-x:clip은 세로 스크롤·고정헤더(position:fixed)·하단 채팅버튼에 영향을 주지 않는 안전한 방식.
+   html,body에도 걸어 .mainpage 바깥(챗봇 등)까지 전부 커버. */
+html, body{ overflow-x:clip; }
 .mainpage{ overflow-x:clip; max-width:100%; }
 </style>
 <div class="mainpage">

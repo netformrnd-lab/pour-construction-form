@@ -142,7 +142,11 @@
 .psm1-tab .psm1-tab-new { display:inline-block; font-size:10px; font-weight:800; color:#E8780F; vertical-align:top; margin-left:2px; letter-spacing:0; }
 /* 3) 히어로 */
 .psm1-hero { background:#fff; padding:20px 24px 0; }
-.psm1-hero-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:1fr 320px; gap:20px; }
+.psm1-hero-inner { max-width:1256px; margin:0 auto; }   /* ★ 히어로 풀폭(한 장) — 기존 1fr+320px 2열 제거 */
+/* 추천(사이드) 배너 — 아이콘 아래로 이동한 풀폭 띠배너 */
+.psm1-sidebelow { max-width:1256px; margin:2px auto 0; padding:0 24px 6px; }
+.psm1-sidebelow .psm1-banner-side { min-height:0 !important; height:auto !important; aspect-ratio:1256/236; padding:0 !important; border-radius:8px; flex-direction:column !important; }
+@media(max-width:700px){ .psm1-sidebelow{ padding:0 14px 4px; } .psm1-sidebelow .psm1-banner-side{ aspect-ratio:5/2 !important; border-radius:8px !important; } }
 .psm1-banner { position:relative; border-radius:8px; overflow:hidden; aspect-ratio:16/9; background:#F5F6F8; cursor:pointer; display:block; }
 .psm1-banner-img { width:100%; height:100%; object-fit:cover; }
 .psm1-banner-grad { position:absolute; inset:0; background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,.55) 100%); }
@@ -482,7 +486,6 @@
   <div class="psm1-hero-inner">
     <!-- 로딩 전엔 빈 배너(회색) — 어드민 배너가 로드되면 캐러셀이 채움 -->
     <div class="psm1-banner" data-hero-banner></div>
-    <div class="psm1-banner-side" data-side-banner></div>
   </div>
 </div>
 <!-- 배너 즉시 페인트: 직전 방문에 저장한 '첫 배너 이미지'를 Firebase SDK·Firestore 로딩 전(파싱 시점)에 미리 그림
@@ -530,6 +533,10 @@
     <a href="/pourstore_renewal/showroom/pour-showroom.html" class="psm1-cat" data-icon="7"><span class="psm1-cat-ico c9" style="color:#0891B2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 10h.01M15 10h.01"/></svg></span><span class="psm1-cat-name">전시장</span></a>
   </div>
 </nav>
+<!-- 추천(사이드) 배너 — 히어로 옆이 아니라 아이콘 아래 풀폭으로 이동 -->
+<div class="psm1-sidebelow">
+  <div class="psm1-banner-side" data-side-banner></div>
+</div>
 <!-- 퀵메뉴 아이콘 이미지 교체(Storage quick-icons/icon-N.*) — 있으면 이미지, 없으면 기본 아이콘 -->
 <style>
 .psm1-cat-ico img{display:none;}
@@ -1061,10 +1068,7 @@ var PM_POSTS = [];
       renderCarousel('.psm1-banner-side', sideBn, iv, 'side');
       console.log('[psm1] 배너 로드 — 히어로 ' + heroBn.length + '건, 사이드 ' + sideBn.length + '건');
       if (sideBn.length) { // 사이드 높이를 히어로에 맞춤 (그리드 aspect 행높이 미반영 보정)
-        var syncH = function(){ var h = section.querySelector('.psm1-banner'), s = section.querySelector('.psm1-banner-side'); if (!h || !s) return; if (window.innerWidth > 700) { if (h.offsetHeight) s.style.height = h.offsetHeight + 'px'; } else { s.style.height = ''; } };
-        syncH(); window.addEventListener('resize', syncH);
-        var hImg = section.querySelector('.psm1-banner img'); if (hImg) hImg.addEventListener('load', syncH);
-        setTimeout(syncH, 300);
+        /* [사이드 배너 아이콘 아래로 이동] 히어로 높이에 맞추던 동기화 제거 — 이제 사이드는 자체 비율(aspect-ratio)로 표시 */
       }
     } catch (e) { console.log('[psm1] 배너 렌더 스킵:', e && e.message ? e.message : e); }
   }

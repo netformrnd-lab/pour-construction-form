@@ -150,7 +150,9 @@
 .psm1-sidecard img { width:100%; height:100%; object-fit:cover; display:block; }
 .psm1-sidecard > a { display:block; width:100%; height:100%; }
 @media(max-width:700px){ .psm1-sidebelow{ padding:0 14px 6px; margin:6px auto 0; } .psm1-sidecards{ grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:8px; } }
-.psm1-banner { position:relative; border-radius:0; overflow:hidden; aspect-ratio:3/1; max-height:560px; background:#F5F6F8; cursor:pointer; display:block; }  /* 와이드 풀폭 + 세로 축소(3:1, 최대 560px) */
+.psm1-banner { position:relative; border-radius:0; overflow:hidden; aspect-ratio:3/1; background:#F5F6F8; cursor:pointer; display:block; }  /* 와이드 풀폭 + 세로 축소(3:1) */
+/* ★ 초광폭(1681px↑) 화면 높이 상한: max-height 대신 명시 height 사용 → aspect-ratio+max-height 조합이 폭을 줄여 오른쪽에 빈칸이 생기던 문제 방지(폭은 항상 100%) */
+@media (min-width:1681px){ .psm1-banner { aspect-ratio:auto; height:560px; } }
 /* 히어로 하단 컨트롤바(쿠쿠몰식): 진행바 + 이전/순번/다음/일시정지 */
 .psm1-bnr-bar{ position:absolute; left:0; right:0; bottom:16px; z-index:4; display:flex; align-items:center; gap:14px; padding:0 max(24px, calc((100% - 1256px)/2 + 24px)); }
 .psm1-bnr-prog{ flex:1; height:3px; background:rgba(255,255,255,.45); border-radius:2px; overflow:hidden; }

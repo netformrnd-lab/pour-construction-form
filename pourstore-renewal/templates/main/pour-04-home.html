@@ -752,9 +752,15 @@
       var db=fs.getFirestore(app);
       // 배너 실사 사진(설정 있으면)
       try{ var cs=await fs.getDoc(fs.doc(db,'config','pourstoreHomeCards')); if(cs.exists()) apply(cs.data()||{}); }catch(_e){}
-      // 상품(해당 분류, 진열/판매중만)
-      var sn=await fs.getDocs(fs.collection(db,'products'));
-      var list=sn.docs.map(function(d){ return d.data(); })
+      // 상품(해당 분류, 진열/판매중만) — 공유 캐시(__pcache)로 중복 로딩 제거: pour-01이 이미 불러온 상품 재사용.
+      // 캐시가 아직 없으면(로드 순서 등) 직접 로드로 폴백 → 어떤 경우에도 정상 동작.
+      var _raw;
+      if(window.__pcache && window.__pcache.wrap){
+        _raw = await window.__pcache.wrap('col:products', 300000, function(){ return fs.getDocs(fs.collection(db,'products')).then(function(s){ return s.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); });
+      } else {
+        _raw = (await fs.getDocs(fs.collection(db,'products'))).docs.map(function(d){ return d.data(); });
+      }
+      var list=_raw
         .filter(function(p){ return p && p.isActive!==false && p.name && !_isJunkP(p.name) && p.displayStatus!=='N' && p.salesStatus!=='숨김' && _inCate(p,HOME_CATE_CODE); });
       list.sort(function(x,y){ return String(y.createdAt||'').localeCompare(String(x.createdAt||'')); });
       console.log('[pour-04-home] '+HOME_CATE_CODE+' 상품 '+list.length+'건 노출');

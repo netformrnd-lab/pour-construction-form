@@ -76,14 +76,11 @@ html, body{ overflow-x:clip; }
     });
     if(removed) console.log('[popup-dedupe] 중복 팝업 '+removed+'개 제거');
   }
-  var runs=0, mo=null;
-  function stop(){ if(mo){ try{ mo.disconnect(); }catch(e){} mo=null; } }
-  function tick(){ dedupe(); if(++runs<8) setTimeout(tick, 400); else stop(); } // 0~3.2s 반복
-  function start(){
-    tick();
-    if(window.MutationObserver){ mo=new MutationObserver(dedupe); try{ mo.observe(document.body,{childList:true,subtree:true}); }catch(e){} setTimeout(stop, 6000); }
-  }
-  if(document.readyState!=='loading') start(); else document.addEventListener('DOMContentLoaded', start);
+  // 렉 방지: 로딩 중 매 DOM 변경마다 전체 요소를 훑던 MutationObserver 제거.
+  // 카페24 팝업은 로드 직후 뜨므로, 몇 번의 타이머 점검(0/0.5/1.0/2.2/3.4s)만으로 충분(부하 최소).
+  var runs=0;
+  function tick(){ dedupe(); if(++runs<5) setTimeout(tick, runs<3?500:1200); }
+  if(document.readyState!=='loading') tick(); else document.addEventListener('DOMContentLoaded', tick);
 })();
 </script>
 

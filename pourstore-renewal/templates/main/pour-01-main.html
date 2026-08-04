@@ -1034,8 +1034,9 @@ var PM_POSTS = [];
 
       // 스와이프/드래그로 직접 넘기기 (터치+마우스 = pointer events)
       var startX = 0, moved = 0, dragging = false, wasDrag = false;
-      box.addEventListener('pointerdown', function(e){ dragging = true; wasDrag = false; startX = e.clientX; moved = 0; track.style.transition = 'none'; stop(); if (box.setPointerCapture) { try { box.setPointerCapture(e.pointerId); } catch(_){} } });
-      box.addEventListener('pointermove', function(e){ if (!dragging) return; moved = e.clientX - startX; if (Math.abs(moved) > 6) wasDrag = true; track.style.transform = 'translateX(calc(-' + (cur*100) + '% + ' + moved + 'px))'; });
+      // ★ setPointerCapture는 '드래그 시작 후'에만 → pointerdown에서 바로 캡처하면 이후 click이 캡처 대상(div)으로 가서 배너 링크 이동이 막힘
+      box.addEventListener('pointerdown', function(e){ dragging = true; wasDrag = false; startX = e.clientX; moved = 0; track.style.transition = 'none'; stop(); });
+      box.addEventListener('pointermove', function(e){ if (!dragging) return; moved = e.clientX - startX; if (Math.abs(moved) > 6){ if (!wasDrag && box.setPointerCapture){ try { box.setPointerCapture(e.pointerId); } catch(_){} } wasDrag = true; } track.style.transform = 'translateX(calc(-' + (cur*100) + '% + ' + moved + 'px))'; });
       var endDrag = function(){ if (!dragging) return; dragging = false; if (moved < -45) go(cur+1); else if (moved > 45) go(cur-1); else apply(true); reset(); };
       box.addEventListener('pointerup', endDrag); box.addEventListener('pointercancel', endDrag);
       // 드래그로 넘긴 경우엔 슬라이드 링크 클릭 무시(캡처 단계에서 차단)

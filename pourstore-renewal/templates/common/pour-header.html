@@ -914,7 +914,7 @@ var PM_POSTS = [];
 
   // ===== 메인 배너 캐러셀 (config/pourstoreBanners) — 어드민 '메인 배너 관리' =====
   function normBanners(v){
-    if (Array.isArray(v)) return v.filter(function(x){ return x && x.image; }).map(function(x){ return { image:x.image, imageMobile:(x.imageMobile||''), link:(x.link||'') }; });
+    if (Array.isArray(v)) return v.filter(function(x){ return x && !x.hidden && x.image; }).map(function(x){ return { image:x.image, imageMobile:(x.imageMobile||''), link:(x.link||'') }; });
     if (v && v.image) return [{ image:v.image, imageMobile:(v.imageMobile||''), link:(v.link||'') }]; // 구버전 단일 호환
     return [];
   }

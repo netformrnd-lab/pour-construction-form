@@ -927,7 +927,7 @@ var PM_POSTS = [];
       mode:(x.mode==='design'?'design':'image'),
       image:(x.image||''), imageMobile:(x.imageMobile||''), link:(x.link||''),
       badge:(x.badge||''), title:(x.title||''), desc:(x.desc||''), tags:(x.tags||''), cta:(x.cta||''), theme:(x.theme==='dark'?'dark':'light') }; }
-    function keep(x){ return x && (x.image || (x.mode==='design' && (x.title||x.badge||x.desc||x.cta))); }
+    function keep(x){ return x && !x.hidden && (x.image || (x.mode==='design' && (x.title||x.badge||x.desc||x.cta))); }  /* hidden=true 배너는 노출 제외(어드민 숨기기 토글) */
     if (Array.isArray(v)) return v.filter(keep).map(one);
     if (keep(v)) return [one(v)]; // 구버전 단일 호환
     return [];

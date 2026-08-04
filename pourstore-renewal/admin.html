@@ -6786,7 +6786,7 @@ const BANNER_SLOTS=[
 ];
 function BannersPage({showToast}){
   const { audit } = useActiveStaffContext();
-  const oneB=(x)=>({mode:(x.mode==='design'?'design':'image'),image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',badge:x.badge||'',title:x.title||'',desc:x.desc||'',tags:x.tags||'',cta:x.cta||'',theme:(x.theme==='dark'?'dark':'light')});
+  const oneB=(x)=>({mode:(x.mode==='design'?'design':'image'),image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',badge:x.badge||'',title:x.title||'',desc:x.desc||'',tags:x.tags||'',cta:x.cta||'',theme:(x.theme==='dark'?'dark':'light'),hidden:!!x.hidden});
   const normSlot=(v)=>{ if(Array.isArray(v)) return v.map(oneB); if(v && (v.image||v.link||v.title||v.badge)) return [oneB(v)]; return []; };
   const [data,setData]=useState({hero:[], side:[], intervalSec:5});
   const [loading,setLoading]=useState(true);
@@ -6828,8 +6828,8 @@ function BannersPage({showToast}){
     setSaving(true);
     try{
       const clean=(arr)=>arr.filter(b=> b.mode==='design' ? (b.title||b.badge||b.desc||b.cta||b.image) : b.image ).map(b=> b.mode==='design'
-        ? {mode:'design',image:b.image||'',imageMobile:(b.imageMobile||''),link:(b.link||'').trim(),badge:(b.badge||'').trim(),title:(b.title||'').trim(),desc:(b.desc||'').trim(),tags:(b.tags||'').trim(),cta:(b.cta||'').trim(),theme:(b.theme==='dark'?'dark':'light')}
-        : {mode:'image',image:b.image,imageMobile:(b.imageMobile||''),link:(b.link||'').trim()} );
+        ? {mode:'design',image:b.image||'',imageMobile:(b.imageMobile||''),link:(b.link||'').trim(),badge:(b.badge||'').trim(),title:(b.title||'').trim(),desc:(b.desc||'').trim(),tags:(b.tags||'').trim(),cta:(b.cta||'').trim(),theme:(b.theme==='dark'?'dark':'light'),hidden:!!b.hidden}
+        : {mode:'image',image:b.image,imageMobile:(b.imageMobile||''),link:(b.link||'').trim(),hidden:!!b.hidden} );
       await db.collection('config').doc('pourstoreBanners').set({hero:clean(data.hero), side:clean(data.side), intervalSec:Number(data.intervalSec)||5, ...audit.update()},{merge:true});
       showToast('저장되었습니다 — 스토어에 반영됩니다');
     }catch(e){ console.error('[banners] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
@@ -6860,7 +6860,7 @@ function BannersPage({showToast}){
                 {list.length===0 && <div style={{padding:'22px 0',textAlign:'center',color:'var(--text-sm)',fontSize:12.5,fontWeight:700,background:'var(--bg)',borderRadius:10,border:'1px dashed var(--border)'}}>배너가 없습니다. 아래 '+ 배너 추가'</div>}
                 {list.map((b,i)=>{ const up=uploading===slot.key+':'+i; const design=(b.mode==='design');
                   return(
-                    <div key={i} style={{padding:'10px',background:'var(--bg)',borderRadius:10,border:'1px solid var(--border)'}}>
+                    <div key={i} style={{padding:'10px',background:'var(--bg)',borderRadius:10,border:b.hidden?'1px dashed #9CA3AF':'1px solid var(--border)',opacity:b.hidden?0.6:1}}>
                       {/* 모드 토글 + 이동/삭제 */}
                       <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:9}}>
                         <div style={{display:'flex',gap:3,background:'#fff',border:'1px solid var(--border)',borderRadius:8,padding:3}}>
@@ -6871,6 +6871,7 @@ function BannersPage({showToast}){
                         <div style={{flex:1}}/>
                         <button onClick={()=>moveBanner(slot.key,i,-1)} disabled={i===0} title="위로" style={{width:28,borderRadius:7,border:'1px solid var(--border)',background:'#fff',cursor:i===0?'default':'pointer',opacity:i===0?0.4:1,fontWeight:800}}>↑</button>
                         <button onClick={()=>moveBanner(slot.key,i,1)} disabled={i===list.length-1} title="아래로" style={{width:28,borderRadius:7,border:'1px solid var(--border)',background:'#fff',cursor:i===list.length-1?'default':'pointer',opacity:i===list.length-1?0.4:1,fontWeight:800}}>↓</button>
+                        <button onClick={()=>patchBanner(slot.key,i,{hidden:!b.hidden})} title={b.hidden?'숨김 상태 · 클릭하면 다시 노출':'노출 중 · 클릭하면 사이트에서 숨김(이미지는 보관)'} style={{padding:'0 9px',height:28,borderRadius:7,border:'1px solid '+(b.hidden?'#9CA3AF':'var(--border)'),background:b.hidden?'#6B7280':'#fff',color:b.hidden?'#fff':'var(--text-md)',cursor:'pointer',fontWeight:800,fontSize:11,whiteSpace:'nowrap'}}>{b.hidden?'🙈 숨김':'👁 노출'}</button>
                         <button onClick={()=>removeBanner(slot.key,i)} title="삭제" style={{width:28,borderRadius:7,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',cursor:'pointer',fontWeight:900}}>×</button>
                       </div>
 

@@ -425,7 +425,7 @@ const COLLECTION = "construction-requests"; // 시공의뢰 접수 (관리센터
 
 /* ── 이미지: 파이어베이스 Storage '시공의뢰/' 폴더에서 로드. 안 올라와도 자리 유지 ── */
 const IMG_BASE = "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/";
-const cimg = (n) => IMG_BASE + encodeURIComponent("시공의뢰/" + n) + "?alt=media";
+const cimg = (n) => IMG_BASE + encodeURIComponent("POUR스토어_리뉴얼/시공의뢰/" + n) + "?alt=media";
 document.querySelectorAll("img[data-img]").forEach((el) => {
   el.addEventListener("error", () => { const ph = el.closest(".cr-ph"); if (ph) ph.classList.add("is-empty"); el.style.display = "none"; });
   el.src = cimg(el.getAttribute("data-img"));

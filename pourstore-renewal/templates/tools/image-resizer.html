@@ -136,21 +136,36 @@
     });
   }
 
+  function newCanvas(w, h){
+    var c = document.createElement('canvas'); c.width = w; c.height = h;
+    var x = c.getContext('2d'); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+    return { c: c, x: x };
+  }
+
   async function process(file){
     var maxw = parseInt($('maxw').value, 10);
     var q = parseFloat($('q').value);
     var src = await decode(file);
     var sw = src.width, sh = src.height;
     var scale = Math.min(1, maxw / sw);          // 확대는 하지 않음(축소만)
-    var w = Math.round(sw * scale), h = Math.round(sh * scale);
-    var cv = document.createElement('canvas');
-    cv.width = w; cv.height = h;
-    var ctx = cv.getContext('2d');
-    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(src, 0, 0, w, h);
+    var tw = Math.round(sw * scale), th = Math.round(sh * scale);
+
+    // ★ 다단계 축소(절반씩) → 촘촘한 패턴의 모아레/울룩불룩(에일리어싱) 최소화.
+    //   한 번에 크게 줄이면 저역통과 필터가 부족해 물결 무늬가 생김.
+    var cur = newCanvas(sw, sh);
+    cur.x.drawImage(src, 0, 0);
     if(src.close) src.close();
-    var blob = await new Promise(function(res){ cv.toBlob(res, 'image/jpeg', q); });
-    return { blob: blob, w: w, h: h, sw: sw, sh: sh };
+    var cw = sw, ch = sh;
+    while(cw > tw * 2 && ch > th * 2){
+      var nw = Math.max(tw, Math.round(cw / 2)), nh = Math.max(th, Math.round(ch / 2));
+      var nx = newCanvas(nw, nh);
+      nx.x.drawImage(cur.c, 0, 0, cw, ch, 0, 0, nw, nh);
+      cur = nx; cw = nw; ch = nh;
+    }
+    var out = newCanvas(tw, th);
+    out.x.drawImage(cur.c, 0, 0, cw, ch, 0, 0, tw, th);
+    var blob = await new Promise(function(res){ out.c.toBlob(res, 'image/jpeg', q); });
+    return { blob: blob, w: tw, h: th, sw: sw, sh: sh };
   }
 
   function render(){

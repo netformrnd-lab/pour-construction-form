@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POUR 사진 줄이기 — 업로드용 웹 최적화</title>
+<style>
+  :root{ --or:#F25C05; --or2:#D94F02; --navy:#0F1F5C; --ink:#111827; --muted:#6B7280;
+    --border:#E5E7EB; --bg:#F7F6F4; --card:#fff; --ok:#059669; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic','맑은 고딕',system-ui,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:720px;margin:0 auto;padding:24px 16px 64px}
+  header{text-align:center;padding:12px 0 20px}
+  header .badge{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.1em;
+    color:var(--or);border:1px solid var(--or);border-radius:999px;padding:4px 12px;margin-bottom:12px}
+  header h1{font-size:24px;font-weight:900;letter-spacing:-.02em}
+  header p{margin-top:8px;font-size:14px;color:var(--muted)}
+
+  /* 드롭존 */
+  .drop{background:var(--card);border:2px dashed var(--or);border-radius:16px;
+    padding:38px 20px;text-align:center;cursor:pointer;transition:.15s;position:relative}
+  .drop.hover{background:#FFF6F0;border-color:var(--or2)}
+  .drop .ic{font-size:40px;line-height:1}
+  .drop b{display:block;margin-top:12px;font-size:16px;font-weight:800}
+  .drop small{display:block;margin-top:6px;font-size:13px;color:var(--muted)}
+  .drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+  /* 옵션 */
+  .opts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:16px 0 4px}
+  .opt{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);
+    border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700}
+  .opt select{font-family:inherit;font-size:13px;font-weight:700;border:none;background:none;color:var(--or);cursor:pointer}
+
+  .bar{display:flex;gap:8px;margin:18px 0 8px;align-items:center;flex-wrap:wrap}
+  .bar .cnt{font-size:14px;font-weight:700;color:var(--muted)}
+  .btn{border:none;border-radius:10px;padding:11px 16px;font-family:inherit;font-size:14px;
+    font-weight:800;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+  .btn-primary{background:var(--or);color:#fff}
+  .btn-primary:hover{background:var(--or2)}
+  .btn-ghost{background:var(--card);color:var(--ink);border:1px solid var(--border)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .push{margin-left:auto}
+
+  /* 결과 카드 */
+  .list{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+  .item{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;
+    display:grid;grid-template-columns:76px 1fr auto;gap:12px;align-items:center}
+  .item .thumb{width:76px;height:76px;border-radius:10px;overflow:hidden;background:#EEE;
+    border:1px solid var(--border)}
+  .item .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .item .meta{min-width:0}
+  .item .nm{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .sz{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .item .sz b{color:var(--ok)}
+  .item .arrow{color:var(--muted)}
+  .item .dl{white-space:nowrap}
+  .item.working .sz{color:var(--or)}
+
+  .note{margin-top:22px;background:#FFF6F0;border:1px solid #F6D3BE;border-radius:12px;
+    padding:14px 16px;font-size:13px;color:#7a3b16}
+  .note b{color:var(--or2)}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="badge">POUR 사진 줄이기</span>
+    <h1>업로드용 사진 최적화</h1>
+    <p>사진을 끌어다 놓으면 <b>웹용 크기</b>로 자동으로 줄여줍니다.<br>설치·업로드 없이 이 화면 안에서 처리돼요. (폰에서도 가능)</p>
+  </header>
+
+  <label class="drop" id="drop">
+    <div class="ic">🖼️</div>
+    <b>여기로 사진을 끌어다 놓기</b>
+    <small>또는 눌러서 사진 선택 (여러 장 가능)</small>
+    <input id="file" type="file" accept="image/*" multiple>
+  </label>
+
+  <div class="opts">
+    <label class="opt">가로 최대
+      <select id="maxw">
+        <option value="1200">1200px</option>
+        <option value="1600" selected>1600px (권장)</option>
+        <option value="2000">2000px</option>
+      </select>
+    </label>
+    <label class="opt">화질
+      <select id="q">
+        <option value="0.72">보통(더 가볍게)</option>
+        <option value="0.82" selected>좋음(권장)</option>
+        <option value="0.9">최상</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="bar hidden" id="bar">
+    <span class="cnt" id="cnt"></span>
+    <a class="btn btn-primary push" id="dlall" href="#">⬇ 전체 저장</a>
+    <button class="btn btn-ghost" id="clear">비우기</button>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <div class="note">
+    💡 <b>사용법</b> — ① 사진을 여기 넣으면 자동으로 줄어듭니다 → ② <b>저장</b> 눌러 다운로드 →
+    ③ 그 파일을 <b>CRM 대리점 사진</b>으로 업로드하세요.<br>
+    큰 원본(수 MB)을 그대로 올리면 모바일에서 뿌옇게 보이고 느려집니다. 이렇게 줄여서 올리면 <b>선명하고 빠릅니다</b>.
+  </div>
+</div>
+
+<script>
+  var $ = function(id){ return document.getElementById(id); };
+  var listEl = $('list'), items = [];
+
+  function humanKB(bytes){
+    if(bytes >= 1024*1024) return (bytes/1024/1024).toFixed(1)+'MB';
+    return Math.round(bytes/1024)+'KB';
+  }
+  function baseName(name){ return name.replace(/\.[^.]+$/,''); }
+
+  // EXIF 회전까지 반영해 디코딩 → 캔버스 리사이즈 → JPEG 반환
+  async function decode(file){
+    // createImageBitmap(imageOrientation:'from-image') 가 EXIF 회전을 자동 반영
+    if('createImageBitmap' in window){
+      try{ return await createImageBitmap(file, { imageOrientation:'from-image' }); }catch(e){}
+      try{ return await createImageBitmap(file); }catch(e){}
+    }
+    // 폴백: <img> (최신 브라우저는 자체적으로 EXIF 회전 반영)
+    return await new Promise(function(res, rej){
+      var img = new Image();
+      img.onload = function(){ res(img); };
+      img.onerror = rej;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  async function process(file){
+    var maxw = parseInt($('maxw').value, 10);
+    var q = parseFloat($('q').value);
+    var src = await decode(file);
+    var sw = src.width, sh = src.height;
+    var scale = Math.min(1, maxw / sw);          // 확대는 하지 않음(축소만)
+    var w = Math.round(sw * scale), h = Math.round(sh * scale);
+    var cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    var ctx = cv.getContext('2d');
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(src, 0, 0, w, h);
+    if(src.close) src.close();
+    var blob = await new Promise(function(res){ cv.toBlob(res, 'image/jpeg', q); });
+    return { blob: blob, w: w, h: h, sw: sw, sh: sh };
+  }
+
+  function render(){
+    listEl.innerHTML = '';
+    items.forEach(function(it, i){
+      var el = document.createElement('div');
+      el.className = 'item' + (it.done ? '' : ' working');
+      var thumb = it.url ? '<img src="'+it.url+'" alt="">' : '';
+      var info = it.done
+        ? (it.sw+'×'+it.sh+' · '+humanKB(it.origSize)+'  <span class="arrow">→</span>  '+it.w+'×'+it.h+' · <b>'+humanKB(it.newSize)+'</b>')
+        : '최적화 중…';
+      var dl = it.done
+        ? '<a class="btn btn-primary dl" download="'+it.outName+'" href="'+it.out+'">⬇ 저장</a>'
+        : '';
+      el.innerHTML =
+        '<div class="thumb">'+thumb+'</div>'+
+        '<div class="meta"><div class="nm">'+it.name+'</div><div class="sz">'+info+'</div></div>'+
+        dl;
+      listEl.appendChild(el);
+    });
+    var done = items.filter(function(x){ return x.done; }).length;
+    $('bar').classList.toggle('hidden', items.length === 0);
+    $('cnt').textContent = done + ' / ' + items.length + '장 완료';
+    $('dlall').style.opacity = (done === items.length && done>0) ? 1 : .5;
+  }
+
+  async function addFiles(files){
+    var arr = Array.prototype.slice.call(files).filter(function(f){ return /^image\//.test(f.type); });
+    for(var i=0;i<arr.length;i++){
+      var f = arr[i];
+      var it = { name:f.name, origSize:f.size, done:false, url:URL.createObjectURL(f) };
+      items.push(it); render();
+      try{
+        var r = await process(f);
+        it.w=r.w; it.h=r.h; it.sw=r.sw; it.sh=r.sh;
+        it.newSize=r.blob.size;
+        it.out=URL.createObjectURL(r.blob);
+        it.outName = baseName(f.name) + '_web.jpg';
+        it.done = true;
+      }catch(e){
+        it.done = true; it.name = '⚠ 실패: ' + f.name;
+      }
+      render();
+    }
+  }
+
+  // 파일 선택
+  $('file').addEventListener('change', function(e){ addFiles(e.target.files); e.target.value=''; });
+
+  // 드래그&드롭
+  var drop = $('drop');
+  ['dragenter','dragover'].forEach(function(ev){
+    drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('hover'); });
+  });
+  ['dragleave','drop'].forEach(function(ev){
+    drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('hover'); });
+  });
+  drop.addEventListener('drop', function(e){ if(e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files); });
+
+  // 전체 저장 (하나씩 순차 다운로드)
+  $('dlall').addEventListener('click', function(e){
+    e.preventDefault();
+    var ready = items.filter(function(x){ return x.done && x.out; });
+    ready.forEach(function(it, i){
+      setTimeout(function(){
+        var a = document.createElement('a');
+        a.href = it.out; a.download = it.outName;
+        document.body.appendChild(a); a.click(); a.remove();
+      }, i * 350);
+    });
+  });
+
+  // 비우기
+  $('clear').addEventListener('click', function(){ items = []; render(); });
+</script>
+</body>
+</html>

@@ -990,6 +990,34 @@
     setTimeout(postHeight, 300);
   })();
 </script>
+<script>
+  /* ============================================================
+     페이지 내 앵커 버튼(#apply / #benefits 등) 스크롤 처리.
+     iframe 임베드 시 부모(카페24)가 스크롤을 담당하므로, 기본 #앵커 이동이
+     부모창까지 전달되지 않아 '파트너 신청하기' 버튼이 폼으로 "랜딩 안 되던"
+     문제 해결. (iframe·부모가 서로 다른 도메인이라 iframe이 부모를 직접
+     스크롤할 수 없어 postMessage 로 위치를 전달한다.)
+       · iframe  : 대상 위치(Y)를 부모에 postMessage → 부모가 그 위치로 스크롤
+       · 단독 접속: 그대로 부드럽게 스크롤
+     ============================================================ */
+  (function(){
+    document.addEventListener('click', function(e){
+      var a = (e.target && e.target.closest) ? e.target.closest('a[href^="#"]') : null;
+      if(!a) return;
+      var id = (a.getAttribute('href') || '').slice(1);
+      if(!id) return;
+      var el = document.getElementById(id);
+      if(!el) return;
+      e.preventDefault();
+      var y = el.getBoundingClientRect().top + (window.pageYOffset || 0);
+      if(window.self !== window.top){
+        try{ window.parent.postMessage({ pourPartnerScrollTo: y }, '*'); }catch(err){}
+      } else {
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    });
+  })();
+</script>
 
 </body>
 </html>

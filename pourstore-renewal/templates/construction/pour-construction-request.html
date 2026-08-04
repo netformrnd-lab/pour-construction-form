@@ -112,36 +112,16 @@ body{
 .cr-notice-img{flex:none;width:240px}
 .cr-notice-img .cr-ph{background:transparent;width:240px;height:170px}
 
-/* ===== 6) 상담 신청 폼 ===== */
-.cr-form-sec{padding:0 0 76px}
-.cr-form-panel{background:var(--cream2);border-radius:26px;padding:44px;display:grid;grid-template-columns:0.85fr 1.15fr;gap:36px;align-items:start}
-.cr-form-intro h2{font-size:30px;font-weight:900;letter-spacing:-.04em;color:var(--ink);line-height:1.35}
-.cr-form-intro h2 .or{color:var(--or)}
-.cr-form-intro p{margin-top:14px;font-size:15.5px;color:var(--ink2);font-weight:500;line-height:1.6}
-.cr-form-char{margin-top:22px;width:230px}
-.cr-form-char .cr-ph{background:transparent;width:230px;height:230px}
-.cr-form{background:#fff;border-radius:18px;padding:28px 26px;box-shadow:var(--shadow)}
-.cr-field{display:grid;grid-template-columns:88px 1fr;align-items:start;gap:14px;padding:13px 0;border-bottom:1px solid #F3F1EE}
-.cr-field:first-child{padding-top:2px}
-.cr-field > label{font-size:15px;font-weight:800;color:var(--ink);padding-top:12px;letter-spacing:-.02em}
-.cr-field > label .req{color:var(--or);margin-left:2px}
-.cr-input,.cr-select,.cr-textarea{width:100%;border:1px solid #E4E7EB;border-radius:10px;padding:12px 14px;font-size:15px;font-family:inherit;color:var(--ink);background:#fff;letter-spacing:-.02em;outline:none;transition:.12s}
-.cr-input::placeholder,.cr-textarea::placeholder{color:#B6BCC4}
-.cr-input:focus,.cr-select:focus,.cr-textarea:focus{border-color:var(--or);box-shadow:0 0 0 3px rgba(237,106,26,.12)}
-.cr-select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%238A93A0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:38px;cursor:pointer;color:var(--ink)}
-.cr-select.placeholder{color:#B6BCC4}
-.cr-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.cr-textarea{resize:vertical;min-height:96px;line-height:1.55}
-.cr-agree{display:flex;align-items:flex-start;gap:9px;margin:16px 0 4px;font-size:13.5px;color:var(--ink2);font-weight:500;cursor:pointer;padding-top:6px}
-.cr-agree input{width:18px;height:18px;margin-top:1px;accent-color:var(--or);flex:none;cursor:pointer}
-.cr-agree a{color:var(--muted);text-decoration:underline;text-underline-offset:2px}
-.cr-form-msg{margin-top:12px;font-size:13.5px;font-weight:700;display:none}
-.cr-form-msg.err{display:block;color:var(--or-d)}
-.cr-form-done{display:none;text-align:center;padding:40px 20px}
-.cr-form-done.on{display:block}
-.cr-form-done .em{font-size:46px}
-.cr-form-done h3{margin-top:12px;font-size:22px;font-weight:900;color:var(--ink)}
-.cr-form-done p{margin-top:10px;font-size:15px;color:var(--ink2);font-weight:500;line-height:1.6}
+/* ===== 6) 상담 신청 CTA (마스코트 + 버튼 · 흰 배경) ===== */
+.cr-cta-sec{padding:0 0 76px}
+.cr-cta-panel{background:#fff;border:1px solid var(--border2);border-radius:26px;padding:44px 52px;display:grid;grid-template-columns:minmax(0,0.85fr) minmax(0,1.15fr);gap:40px;align-items:center;box-shadow:var(--shadow)}
+.cr-cta-char{display:flex;justify-content:center}
+.cr-cta-char .cr-ph{background:transparent;width:250px;height:250px}
+.cr-cta-body h2{font-size:30px;font-weight:900;letter-spacing:-.04em;color:var(--ink);line-height:1.35}
+.cr-cta-body h2 .or{color:var(--or)}
+.cr-cta-body p{margin-top:14px;font-size:16px;color:var(--ink2);font-weight:500;line-height:1.6}
+.cr-cta-btn{margin-top:26px;padding:17px 46px;font-size:17px}
+@media(max-width:760px){ .cr-cta-panel{grid-template-columns:1fr;text-align:center;padding:32px 20px;gap:16px} .cr-cta-char{order:-1} .cr-cta-char .cr-ph{width:180px;height:180px} .cr-cta-body h2{font-size:24px} .cr-cta-btn{display:inline-flex} }
 
 /* ===== 7) FAQ ===== */
 .cr-faq{padding:0 0 90px}
@@ -211,7 +191,7 @@ body{
         <p class="cr-hero-kicker">셀프로 어려운 작업,</p>
         <h1 class="cr-hero-title">신뢰할 수 있는<br><span class="or">파트너</span>와 진행하세요</h1>
         <p class="cr-hero-sub">의뢰서를 접수해주시면, 지역과 공사 유형을 검토하여<br>가장 적합한 POUR 파트너사를 연결해드립니다.</p>
-        <div class="cr-hero-cta"><a href="https://pourstorecrm.web.app/form/consult_1785110362722" target="_blank" rel="noopener" class="cr-btn">시공 의뢰하기 <span class="chev">›</span></a></div>
+        <div class="cr-hero-cta"><a href="https://pourstorecrm.web.app/apply" target="_blank" rel="noopener" class="cr-btn">시공 의뢰하기 <span class="chev">›</span></a></div>
       </div>
       <div class="cr-hero-side" aria-hidden="true"></div>
     </div>
@@ -336,48 +316,14 @@ body{
   </section>
 
   <!-- ===== 6) 상담 신청 폼 ===== -->
-  <section class="cr-form-sec" id="cr-form">
+  <section class="cr-cta-sec" id="cr-form">
     <div class="cr-wrap">
-      <div class="cr-form-panel">
-        <div class="cr-form-intro">
+      <div class="cr-cta-panel">
+        <div class="cr-cta-char"><span class="cr-ph" data-label=""><img data-img="form-character.png" alt=""></span></div>
+        <div class="cr-cta-body">
           <h2>시공의뢰 <span class="or">상담 신청</span></h2>
-          <p>간단한 정보만 남겨주시면<br>담당자가 빠르게 확인 후 연락드릴게요.</p>
-          <div class="cr-form-char"><span class="cr-ph" data-label=""><img data-img="form-character.png" alt=""></span></div>
-        </div>
-        <div>
-          <form class="cr-form" id="crForm" novalidate>
-            <div class="cr-field">
-              <label>이름<span class="req">*</span></label>
-              <input class="cr-input" type="text" name="name" placeholder="이름을 입력해주세요">
-            </div>
-            <div class="cr-field">
-              <label>연락처<span class="req">*</span></label>
-              <input class="cr-input" type="tel" name="phone" inputmode="numeric" placeholder="010-1234-5678" maxlength="13">
-            </div>
-            <div class="cr-field">
-              <label>시공 지역</label>
-              <div class="cr-row2">
-                <select class="cr-select placeholder" name="sido" id="crSido"><option value="">시/도 선택</option></select>
-                <select class="cr-select placeholder" name="sigungu" id="crSigungu"><option value="">시/군/구 선택</option></select>
-              </div>
-            </div>
-            <div class="cr-field">
-              <label>시공 유형</label>
-              <select class="cr-select placeholder" name="type" id="crType"><option value="">선택해주세요</option></select>
-            </div>
-            <div class="cr-field">
-              <label>상세 내용</label>
-              <textarea class="cr-textarea" name="detail" placeholder="시공이 필요한 부위와 고민 내용을 자세히 적어주세요. (선택)"></textarea>
-            </div>
-            <label class="cr-agree"><input type="checkbox" name="agree"><span>개인정보 수집·이용에 동의합니다. <a href="#" onclick="return false">(자세히 보기)</a></span></label>
-            <div class="cr-form-msg" id="crMsg"></div>
-            <button type="submit" class="cr-btn cr-btn-full" id="crSubmit">상담 신청하기 <span class="chev">›</span></button>
-          </form>
-          <div class="cr-form-done" id="crDone">
-            <div class="em">✅</div>
-            <h3>상담 신청이 접수되었습니다</h3>
-            <p>담당자가 빠르게 확인 후 연락드리겠습니다.<br>감사합니다.</p>
-          </div>
+          <p>간단한 정보만 남겨주시면 담당자가 빠르게 확인 후 연락드릴게요.<br>아래 버튼을 누르면 신청 폼으로 이동합니다.</p>
+          <a href="https://pourstorecrm.web.app/apply" target="_blank" rel="noopener" class="cr-btn cr-cta-btn">상담 신청하기 <span class="chev">›</span></a>
         </div>
       </div>
     </div>
@@ -410,21 +356,7 @@ body{
 
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
-  authDomain: "pour-app-new.firebaseapp.com",
-  projectId: "pour-app-new",
-  storageBucket: "pour-app-new.firebasestorage.app",
-  messagingSenderId: "411031141847",
-  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
-};
-const db = getFirestore(initializeApp(firebaseConfig));
-const COLLECTION = "construction-requests"; // 시공의뢰 접수 (관리센터에서 읽어 처리)
-
+<script>
 /* ── 이미지: 파이어베이스 Storage '시공의뢰/' 폴더에서 로드. 안 올라와도 자리 유지 ── */
 const IMG_BASE = "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/";
 const cimg = (n) => IMG_BASE + encodeURIComponent("POUR스토어_리뉴얼/시공의뢰/" + n) + "?alt=media";
@@ -442,94 +374,6 @@ document.querySelectorAll(".cr-faq-q").forEach((q) => {
     const open = item.classList.toggle("open");
     a.style.maxHeight = open ? a.scrollHeight + "px" : "0";
   });
-});
-
-/* ── 시공 유형 ── */
-const TYPES = ["방수 (옥상·지하·베란다)","균열·크랙 보수","도장·페인트","외벽 시공","지붕·옥상","바닥·주차장","줄눈·실란트","기타"];
-const typeSel = document.getElementById("crType");
-TYPES.forEach((t) => { const o = document.createElement("option"); o.value = t; o.textContent = t; typeSel.appendChild(o); });
-
-/* ── 시공 지역: 시/도 → 시/군/구 연동 ── */
-const REGIONS = {
-  "서울특별시":["종로구","중구","용산구","성동구","광진구","동대문구","중랑구","성북구","강북구","도봉구","노원구","은평구","서대문구","마포구","양천구","강서구","구로구","금천구","영등포구","동작구","관악구","서초구","강남구","송파구","강동구"],
-  "부산광역시":["중구","서구","동구","영도구","부산진구","동래구","남구","북구","해운대구","사하구","금정구","강서구","연제구","수영구","사상구","기장군"],
-  "대구광역시":["중구","동구","서구","남구","북구","수성구","달서구","달성군","군위군"],
-  "인천광역시":["중구","동구","미추홀구","연수구","남동구","부평구","계양구","서구","강화군","옹진군"],
-  "광주광역시":["동구","서구","남구","북구","광산구"],
-  "대전광역시":["동구","중구","서구","유성구","대덕구"],
-  "울산광역시":["중구","남구","동구","북구","울주군"],
-  "세종특별자치시":["세종시"],
-  "경기도":["수원시","성남시","고양시","용인시","부천시","안산시","안양시","남양주시","화성시","평택시","의정부시","시흥시","파주시","광명시","김포시","군포시","광주시","이천시","양주시","오산시","구리시","안성시","포천시","의왕시","하남시","여주시","동두천시","과천시","가평군","양평군","연천군"],
-  "강원특별자치도":["춘천시","원주시","강릉시","동해시","태백시","속초시","삼척시","홍천군","횡성군","영월군","평창군","정선군","철원군","화천군","양구군","인제군","고성군","양양군"],
-  "충청북도":["청주시","충주시","제천시","보은군","옥천군","영동군","증평군","진천군","괴산군","음성군","단양군"],
-  "충청남도":["천안시","공주시","보령시","아산시","서산시","논산시","계룡시","당진시","금산군","부여군","서천군","청양군","홍성군","예산군","태안군"],
-  "전북특별자치도":["전주시","군산시","익산시","정읍시","남원시","김제시","완주군","진안군","무주군","장수군","임실군","순창군","고창군","부안군"],
-  "전라남도":["목포시","여수시","순천시","나주시","광양시","담양군","곡성군","구례군","고흥군","보성군","화순군","장흥군","강진군","해남군","영암군","무안군","함평군","영광군","장성군","완도군","진도군","신안군"],
-  "경상북도":["포항시","경주시","김천시","안동시","구미시","영주시","영천시","상주시","문경시","경산시","의성군","청송군","영양군","영덕군","청도군","고령군","성주군","칠곡군","예천군","봉화군","울진군","울릉군"],
-  "경상남도":["창원시","진주시","통영시","사천시","김해시","밀양시","거제시","양산시","의령군","함안군","창녕군","고성군","남해군","하동군","산청군","함양군","거창군","합천군"],
-  "제주특별자치도":["제주시","서귀포시"]
-};
-const sidoSel = document.getElementById("crSido");
-const sgSel = document.getElementById("crSigungu");
-Object.keys(REGIONS).forEach((s) => { const o = document.createElement("option"); o.value = s; o.textContent = s; sidoSel.appendChild(o); });
-function syncPlaceholder(sel){ sel.classList.toggle("placeholder", !sel.value); }
-sidoSel.addEventListener("change", () => {
-  syncPlaceholder(sidoSel);
-  sgSel.innerHTML = '<option value="">시/군/구 선택</option>';
-  (REGIONS[sidoSel.value] || []).forEach((g) => { const o = document.createElement("option"); o.value = g; o.textContent = g; sgSel.appendChild(o); });
-  syncPlaceholder(sgSel);
-});
-sgSel.addEventListener("change", () => syncPlaceholder(sgSel));
-typeSel.addEventListener("change", () => syncPlaceholder(typeSel));
-
-/* ── 연락처 자동 하이픈 ── */
-const phoneEl = document.querySelector('input[name="phone"]');
-phoneEl.addEventListener("input", () => {
-  let v = phoneEl.value.replace(/[^0-9]/g, "").slice(0, 11);
-  if (v.length >= 8) v = v.replace(/(\d{3})(\d{3,4})(\d{4})/, "$1-$2-$3");
-  else if (v.length >= 4) v = v.replace(/(\d{3})(\d{0,4})/, "$1-$2");
-  phoneEl.value = v;
-});
-
-/* ── 폼 제출 ── */
-const form = document.getElementById("crForm");
-const msg = document.getElementById("crMsg");
-const submitBtn = document.getElementById("crSubmit");
-function showErr(t){ msg.textContent = t; msg.className = "cr-form-msg err"; }
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  msg.className = "cr-form-msg";
-  const f = new FormData(form);
-  const name = (f.get("name") || "").trim();
-  const phone = (f.get("phone") || "").trim();
-  const agree = form.querySelector('input[name="agree"]').checked;
-  if (!name) return showErr("이름을 입력해주세요.");
-  if (phone.replace(/[^0-9]/g, "").length < 10) return showErr("연락처를 정확히 입력해주세요.");
-  if (!agree) return showErr("개인정보 수집·이용에 동의해주세요.");
-
-  const data = {
-    name, phone,
-    sido: (f.get("sido") || "").trim(),
-    sigungu: (f.get("sigungu") || "").trim(),
-    region: [(f.get("sido") || "").trim(), (f.get("sigungu") || "").trim()].filter(Boolean).join(" "),
-    type: (f.get("type") || "").trim(),
-    detail: (f.get("detail") || "").trim(),
-    agreed: true,
-    status: "신규",
-    source: "construction-request",
-    createdAt: new Date().toISOString()
-  };
-  submitBtn.disabled = true; submitBtn.textContent = "접수 중...";
-  try {
-    await addDoc(collection(db, COLLECTION), data);
-    console.log("[construction-request] 접수 완료");
-    form.style.display = "none";
-    document.getElementById("crDone").classList.add("on");
-  } catch (err) {
-    console.error("[construction-request] 접수 실패:", err);
-    showErr("접수 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-    submitBtn.disabled = false; submitBtn.innerHTML = '상담 신청하기 <span class="chev">›</span>';
-  }
 });
 </script>
 </body>

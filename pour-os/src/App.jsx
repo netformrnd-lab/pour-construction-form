@@ -1374,7 +1374,7 @@ function WorkCalendar({D,userId,up,onEditTask}){
   const fd=new Date(y,m,1).getDay(), dim=new Date(y,m+1,0).getDate();
   const team=!userId;
   const dsOf=(dd)=>`${y}-${String(m+1).padStart(2,"0")}-${String(dd).padStart(2,"0")}`;
-  const taskDate=(t)=> t.workDate || (t.doneAt?String(t.doneAt).slice(0,10):"") || t.dueDate || "";
+  const taskDate=(t)=> t.workDate || (t.doneAt?ymdLocal(new Date(t.doneAt)):"") || t.dueDate || "";
   const evMine=(e)=> (e.attendeeIds||[]).includes(userId) || (e.attendeeIds||[]).length===0;
   const monthEvents=D.events.filter(e=>{const d=new Date(e.date);return d.getFullYear()===y&&d.getMonth()===m&&(team||evMine(e));});
   const todayStr=ymdLocal(new Date());
@@ -1473,7 +1473,7 @@ function TeamToday({D,cu,nav,onEdit,up}){
   const isTodayTask=(t)=>!t.isFixed&&t.status!=="hold"&&(
     t.status==="inprogress" ||
     (t.status==="done"
-      ? (t.workDate||(t.doneAt?String(t.doneAt).slice(0,10):""))===todayStr   // 완료 업무는 실제 완료일(또는 목표일) 기준 — 요일만으로 매주 재노출 방지
+      ? (t.workDate||(t.doneAt?ymdLocal(new Date(t.doneAt)):""))===todayStr   // 완료 업무는 실제 완료일(또는 목표일) 기준 — 요일만으로 매주 재노출 방지
       : (t.workDate===todayStr||(!t.workDate&&t.weekDay===today))));
   // 밀린 업무(이월) = 이번 주 안에서 오늘 이전에 배치했지만 아직 '할일'인 것. 지난주 이전은 제외(진행중은 오늘 업무로 이어 노출).
   const isOverdueTodo=(t)=>!t.isFixed&&t.status==="todo"&&((t.workDate&&t.workDate<todayStr&&t.workDate>=weekMonStr)||(!t.workDate&&t.weekDay&&WEEK_DAYS.indexOf(t.weekDay)>=0&&WEEK_DAYS.indexOf(t.weekDay)<todayIdx));
@@ -1593,7 +1593,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const todayT=myT.filter(t=>!t.isFixed&&t.status!=="hold"&&(
       t.status==="inprogress" ||
       (t.status==="done"
-        ? (t.workDate||(t.doneAt?String(t.doneAt).slice(0,10):""))===todayStr   // 완료 업무는 실제 완료일(또는 목표일) 기준 — 요일만으로 매주 재노출 방지
+        ? (t.workDate||(t.doneAt?ymdLocal(new Date(t.doneAt)):""))===todayStr   // 완료 업무는 실제 완료일(또는 목표일) 기준 — 요일만으로 매주 재노출 방지
         : (t.workDate===todayStr||(!t.workDate&&t.weekDay===today)))
     ));
   const urgent=myT.filter(t=>t.status!=="done"&&t.status!=="hold"&&t.dueDate&&(()=>{const dd=Math.ceil((new Date(t.dueDate)-new Date())/86400000);return dd>=0&&dd<=3;})());
@@ -1627,7 +1627,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     up("tasks",dr.id,{weekDay:d,workDate:ds,weekSlot:nextSlot(d)});
   };
   // 업무 표시 기준일 — 월간 캘린더와 동일: 목표일(workDate) → 완료일(doneAt) → 마감일(dueDate)
-  const taskDate=(t)=> t.workDate || (t.doneAt?String(t.doneAt).slice(0,10):"") || t.dueDate || "";
+  const taskDate=(t)=> t.workDate || (t.doneAt?ymdLocal(new Date(t.doneAt)):"") || t.dueDate || "";
   // 요일별 목록 — 그 날짜가 표시기준일인 업무 + 진행중(시작~오늘 이어짐). 할일·진행중·보류·완료 모두 노출(월간과 동일).
   // 날짜가 아무것도 없는 '미배치'만 그리드에서 빠져 하단 트레이로 → 떠다니는 문제는 없음.
   const dayOrdered=(d)=>{const ds=dateOfDay(d);return myT.filter(t=>!t.isFixed&&(taskDate(t)===ds||taskInprogSpan(t,ds,todayStr)))

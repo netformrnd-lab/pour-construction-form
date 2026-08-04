@@ -58,12 +58,16 @@ select:focus,input:focus{outline:none;border-color:var(--or)}
 .row{display:grid;grid-template-columns:1fr 220px 126px 116px;gap:18px;align-items:center;
   padding:20px 0;border-top:1px solid var(--border)}
 .row:last-child{border-bottom:1px solid var(--border)}
-.thumb{width:116px;aspect-ratio:4/3;border-radius:8px;overflow:hidden;
-  border:1px solid var(--border);background:#F7F6F4}
-.thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.thumb.blank{display:flex;align-items:center;justify-content:center;
-  font-size:13px;color:#B6BAC2;font-weight:600}
-.thumb.logo{display:flex;align-items:center;justify-content:center;background:#fff}
+/* ★ 사진 썸네일: aspect-ratio 대신 padding-top 비율박스 사용.
+   구형 웹뷰/카페24 환경에서 aspect-ratio 미지원 시 사진이 원본 비율대로 제각각
+   크기로 렌더돼 "깨져" 보이던 문제 해결. 이미지는 절대배치 + object-fit:cover 로
+   원본 비율이 달라도 왜곡·찌그러짐 없이 항상 균일한 박스에 꽉 채운다(잘림만 발생). */
+.thumb{position:relative;width:116px;padding-top:75%;   /* 4:3 비율 고정 */
+  border-radius:8px;overflow:hidden;border:1px solid var(--border);background:#F7F6F4}
+.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.thumb.logo{background:#fff}
+.thumb.blank>*,.thumb.logo>*{position:absolute;inset:0;display:flex;
+  align-items:center;justify-content:center;font-size:13px;color:#B6BAC2;font-weight:600}
 .logobox{font-size:18px;font-weight:800;color:var(--or);letter-spacing:-.02em}
 .logobox b{color:var(--navy);font-weight:800}
 .hours{font-size:14px;color:var(--muted);margin-top:6px}
@@ -110,7 +114,7 @@ select:focus,input:focus{outline:none;border-color:var(--or)}
   .field.kw{flex-basis:100%}
   .submit{flex-basis:100%}
   .row{grid-template-columns:1fr;gap:12px}
-  .thumb{order:-1;width:100%;aspect-ratio:16/7}
+  .thumb{order:-1;width:100%;padding-top:56.25%}  /* 16:9 (기존 16:7보다 조금 높여 건물이 덜 잘림) */
   .go{display:inline-block;padding:9px 22px}
   .go + .go{margin-top:0;margin-left:6px}
 }

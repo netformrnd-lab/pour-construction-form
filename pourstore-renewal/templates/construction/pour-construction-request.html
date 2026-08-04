@@ -54,6 +54,15 @@ body{
 .cr-hero-sub{margin-top:20px;font-size:17px;line-height:1.65;color:var(--ink2);font-weight:500}
 .cr-hero-cta{margin-top:26px}
 .cr-hero-cta .cr-btn{padding:16px 46px}  /* 히어로 '시공 의뢰하기' 버튼 가로 확대 */
+/* ★ 헤더 전체 이미지(비클릭) + 그 위 '시공 의뢰하기' 버튼만 클릭 → CRM */
+.cr-hero-img{display:block;width:100%;height:auto}
+.cr-hero.is-empty{min-height:340px;display:flex;align-items:center;justify-content:center;background:var(--cream)}
+.cr-hero.is-empty .cr-hero-img{display:none}
+.cr-hero.is-empty::after{content:'헤더 이미지 자리 — hero-pc.png / hero-mobile.png (버튼은 빼고 제작)';color:#B9AE9F;font-size:14px;font-weight:700;text-align:center;padding:0 20px;line-height:1.6}
+.cr-hero-btn{position:absolute;left:max(24px,calc((100% - 1140px)/2 + 24px));bottom:24%;z-index:3;display:inline-flex;align-items:center;gap:8px;background:var(--or);color:#fff;font-weight:800;font-size:16px;border-radius:13px;padding:16px 46px;letter-spacing:-.02em;box-shadow:0 10px 24px rgba(237,106,26,.32);transition:.15s}
+.cr-hero-btn:hover{background:var(--or-d)}
+.cr-hero-btn .chev{font-size:18px;font-weight:700;line-height:1}
+@media(max-width:760px){ .cr-hero-btn{left:50%;transform:translateX(-50%);bottom:7%;padding:13px 34px;font-size:15px} }
 .cr-hero-chips{margin-top:24px;display:flex;flex-wrap:wrap;gap:10px}
 .cr-chip{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 15px;font-size:14px;font-weight:700;color:var(--ink2);box-shadow:var(--shadow)}
 .cr-chip .cr-chip-ico{width:20px;height:20px;flex:none;border-radius:5px;background:var(--or-pale);display:flex;align-items:center;justify-content:center;overflow:hidden}
@@ -197,18 +206,11 @@ body{
 
   <!-- ===== 1) 히어로 ===== -->
   <section class="cr-hero">
-    <div class="cr-hero-inner">
-      <div class="cr-hero-text">
-        <p class="cr-hero-kicker">셀프로 어려운 작업,</p>
-        <h1 class="cr-hero-title">신뢰할 수 있는<br><span class="or">파트너</span>와 진행하세요</h1>
-        <p class="cr-hero-sub">의뢰서를 접수해주시면, 지역과 공사 유형을 검토하여<br>가장 적합한 POUR 파트너사를 연결해드립니다.</p>
-        <div class="cr-hero-cta"><a href="https://pourstorecrm.web.app/form/consult_1785110362722" target="_blank" rel="noopener" class="cr-btn">시공 의뢰하기 <span class="chev">›</span></a></div>
-      </div>
-      <div class="cr-hero-visual">
-        <div class="cr-hero-photo"><span class="cr-ph cover" data-label="현장 사진"><img data-img="hero-photo.png" alt=""></span></div>
-        <img class="cr-hero-char" data-img="hero-character.png" alt="POUR Doctor">
-      </div>
-    </div>
+    <picture>
+      <source data-src-mo="hero-mobile.png" media="(max-width:760px)">
+      <img class="cr-hero-img" data-img="hero-pc.png" alt="시공의뢰 — 신뢰할 수 있는 파트너와 진행하세요">
+    </picture>
+    <a class="cr-hero-btn" href="https://pourstorecrm.web.app/form/consult_1785110362722" target="_blank" rel="noopener">시공 의뢰하기 <span class="chev">›</span></a>
   </section>
 
   <!-- ===== 2) 이런 고민 ===== -->
@@ -422,8 +424,9 @@ const COLLECTION = "construction-requests"; // 시공의뢰 접수 (관리센터
 /* ── 이미지: 파이어베이스 Storage '시공의뢰/' 폴더에서 로드. 안 올라와도 자리 유지 ── */
 const IMG_BASE = "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/";
 const cimg = (n) => IMG_BASE + encodeURIComponent("POUR스토어_리뉴얼/시공의뢰/" + n) + "?alt=media";
+document.querySelectorAll("source[data-src-mo]").forEach((s) => { s.srcset = cimg(s.getAttribute("data-src-mo")); }); // 모바일용 헤더 이미지
 document.querySelectorAll("img[data-img]").forEach((el) => {
-  el.addEventListener("error", () => { const ph = el.closest(".cr-ph"); if (ph) ph.classList.add("is-empty"); el.style.display = "none"; });
+  el.addEventListener("error", () => { const box = el.closest(".cr-ph, .cr-hero"); if (box) box.classList.add("is-empty"); el.style.display = "none"; });
   el.src = cimg(el.getAttribute("data-img"));
 });
 

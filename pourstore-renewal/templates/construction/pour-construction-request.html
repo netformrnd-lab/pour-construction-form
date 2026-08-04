@@ -89,16 +89,22 @@ body{
 .cr-step-d{margin-top:10px;font-size:13px;color:var(--muted);font-weight:500;line-height:1.5;word-break:keep-all}
 .cr-step-arrow{flex:none;align-self:center;color:#D8CFC3;font-size:26px;font-weight:400}
 
-/* ===== 4) 파트너 신뢰 ===== */
-.cr-trust{padding:0 0 26px}
-.cr-trust-panel{background:var(--cream2);border-radius:26px;padding:44px 40px;position:relative;overflow:hidden}
-.cr-trust-grid{margin-top:30px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:78%}
-.cr-trust-item{background:#fff;border-radius:16px;padding:18px 18px 20px;box-shadow:var(--shadow)}
-.cr-trust-item .cr-ph{width:58px;height:40px;background:transparent;margin-bottom:12px}
-.cr-trust-item b{display:block;font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-.03em}
-.cr-trust-item p{margin-top:7px;font-size:13px;color:var(--muted);font-weight:500;line-height:1.5;word-break:keep-all}
-.cr-trust-char{position:absolute;right:26px;bottom:0;width:200px;pointer-events:none}
-.cr-trust-char .cr-ph{background:transparent}
+/* ===== 4) 파트너 혜택/신뢰 — 좌우 번갈이 + 이미지 박스 · 흰 배경 ===== */
+.cr-trust{background:#fff;padding:72px 0 44px}
+.cr-bf-head{text-align:center;margin-bottom:46px}
+.cr-bf-eyebrow{font-size:13px;font-weight:800;letter-spacing:.14em;color:var(--or);margin-bottom:10px}
+.cr-bf-sub{margin-top:12px;font-size:16px;color:var(--muted);font-weight:500}
+.cr-bf-list{max-width:960px;margin:0 auto}
+.cr-bf-row{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center;padding:42px 0;border-top:1px solid var(--border2)}
+.cr-bf-row:first-child{border-top:none}
+.cr-bf-row.rev .cr-bf-text{order:2}
+.cr-bf-row.rev .cr-bf-img{order:1}
+.cr-bf-no{font-size:14px;font-weight:800;color:var(--or);letter-spacing:.03em;margin-bottom:10px}
+.cr-bf-t{font-size:24px;font-weight:900;color:var(--ink);letter-spacing:-.03em;line-height:1.35}
+.cr-bf-d{margin-top:12px;font-size:15.5px;color:var(--ink2);font-weight:500;line-height:1.65;word-break:keep-all}
+.cr-bf-d b{color:var(--ink);font-weight:700}
+.cr-bf-img .cr-ph{width:100%;aspect-ratio:16/10;border-radius:16px;background:var(--cream);box-shadow:var(--shadow)}
+@media(max-width:760px){ .cr-trust{padding:46px 0 22px} .cr-bf-head{margin-bottom:30px} .cr-bf-row{grid-template-columns:1fr;gap:16px;padding:28px 0} .cr-bf-row .cr-bf-text{order:2} .cr-bf-row .cr-bf-img{order:1} .cr-bf-t{font-size:20px} }
 
 /* ===== 5) 비용 안내 ===== */
 .cr-notice{padding:26px 0 76px}
@@ -275,27 +281,44 @@ body{
   <!-- ===== 4) 파트너 신뢰 ===== -->
   <section class="cr-trust">
     <div class="cr-wrap">
-      <div class="cr-trust-panel">
+      <div class="cr-bf-head">
+        <p class="cr-bf-eyebrow">WHY POUR</p>
         <h2 class="cr-sec-title">POUR 파트너사는 믿고 맡길 수 있어요</h2>
-        <div class="cr-trust-grid">
-          <div class="cr-trust-item">
-            <span class="cr-ph" data-label="아이콘"><img data-img="feat-1.png" alt=""></span>
-            <b>POUR 자재 사용</b><p>검증된 POUR 자재만을 사용하여 시공합니다.</p>
+        <p class="cr-bf-sub">검증된 자재와 기준, 전국 네트워크로 믿고 맡기실 수 있습니다.</p>
+      </div>
+      <div class="cr-bf-list">
+        <div class="cr-bf-row">
+          <div class="cr-bf-text">
+            <p class="cr-bf-no">POINT 01</p>
+            <h3 class="cr-bf-t">POUR 자재 사용</h3>
+            <p class="cr-bf-d"><b>검증된 POUR 자재</b>만을 사용하여 시공합니다.</p>
           </div>
-          <div class="cr-trust-item">
-            <span class="cr-ph" data-label="아이콘"><img data-img="feat-2.png" alt=""></span>
-            <b>POUR 기준 교육</b><p>POUR 시공 기준과 안전교육을 이수한 파트너사입니다.</p>
-          </div>
-          <div class="cr-trust-item">
-            <span class="cr-ph" data-label="아이콘"><img data-img="feat-3.png" alt=""></span>
-            <b>지역과 시공건에 맞는 연결</b><p>전국 네트워크를 통해 가장 적합한 파트너사를 연결합니다.</p>
-          </div>
-          <div class="cr-trust-item">
-            <span class="cr-ph" data-label="아이콘"><img data-img="feat-4.png" alt=""></span>
-            <b>방문견적으로 정확한 안내</b><p>현장을 직접 확인하고 정확한 공정과 비용 안내.</p>
-          </div>
+          <div class="cr-bf-img"><span class="cr-ph cover" data-label="이미지"><img data-img="benefit-1.png" alt=""></span></div>
         </div>
-        <div class="cr-trust-char"><span class="cr-ph" data-label=""><img data-img="feature-character.png" alt=""></span></div>
+        <div class="cr-bf-row rev">
+          <div class="cr-bf-text">
+            <p class="cr-bf-no">POINT 02</p>
+            <h3 class="cr-bf-t">POUR 기준 교육</h3>
+            <p class="cr-bf-d">POUR 시공 기준과 <b>안전교육을 이수한 파트너사</b>입니다.</p>
+          </div>
+          <div class="cr-bf-img"><span class="cr-ph cover" data-label="이미지"><img data-img="benefit-2.png" alt=""></span></div>
+        </div>
+        <div class="cr-bf-row">
+          <div class="cr-bf-text">
+            <p class="cr-bf-no">POINT 03</p>
+            <h3 class="cr-bf-t">지역과 시공건에 맞는 연결</h3>
+            <p class="cr-bf-d">전국 네트워크를 통해 <b>가장 적합한 파트너사</b>를 연결합니다.</p>
+          </div>
+          <div class="cr-bf-img"><span class="cr-ph cover" data-label="이미지"><img data-img="benefit-3.png" alt=""></span></div>
+        </div>
+        <div class="cr-bf-row rev">
+          <div class="cr-bf-text">
+            <p class="cr-bf-no">POINT 04</p>
+            <h3 class="cr-bf-t">방문견적으로 정확한 안내</h3>
+            <p class="cr-bf-d">현장을 직접 확인하고 <b>정확한 공정과 비용</b>을 안내합니다.</p>
+          </div>
+          <div class="cr-bf-img"><span class="cr-ph cover" data-label="이미지"><img data-img="benefit-4.png" alt=""></span></div>
+        </div>
       </div>
     </div>
   </section>

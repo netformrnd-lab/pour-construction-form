@@ -1,0 +1,307 @@
+<!--@layout(/layout/basic/layout.html)-->
+
+<!--@js(/han/js/selectbox2.js)-->
+<!--@js(/han/js/warp_bar2.js)-->
+<!--@css(/han/css/warp_bar2.css)-->
+
+<div class="section" module="Board_ListPackage_3">
+  <div module="board_title_3">
+    <div class="path"> <span>현재 위치</span>
+      <ol>
+        <li><a href="/">홈</a></li>
+        <li title="현재 위치"><strong>고객센터</strong></li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section titleArea">
+	  <h2>고객센터</h2>
+  </div>
+
+
+
+
+
+
+  <div class="hanblank_10"></div>  <!-- 영역 사이 간격 소스입니다. [ madehan.css 파일 최하단 참고 ] -->
+
+
+
+  <div class="boardArea">
+
+
+    <div class="csarea hangrd_1">
+      <h3>고객센터 이용안내</h3>
+
+
+
+    	<!-- 푸터/게시판메인/우측바 cs 정보 -->
+		<!--@import(/han/html/csarea.html)-->
+
+
+
+      <div class="csareabtn hangrd_2"><a href="/board/product/list.html?board_no=6">게시글로 문의하기 <i class="fa fa-angle-right  fa-2x" aria-hidden="true"></i><a/></div>
+    </div>
+    <!-- // csarea -->
+
+
+
+
+
+    <div module="board_search_3">
+      <fieldset class="boardSearch">
+        <legend>게시물 검색</legend>
+        <div class="textarea">FAQ SEARCH</div>
+        <p>
+        <div style="display:none;">{$form.search_key}</div>
+        {$form.search} <a href="#none" onClick="{$action_search}" class="serbtn pogrd_hov">검색</a>
+        </p>
+      </fieldset>
+      <div class="seward"> * FAQ 게시판 내에서 검색됩니다. </div>
+    </div>
+    <!-- // board_search_3 -->
+
+
+    <div class="hanblank_60"></div>    <!-- 영역 사이 간격 소스입니다. [ madehan.css 파일 최하단 참고 ] -->
+
+
+    <div class="boardSort">
+        <span module="board_category_3">{$form.board_category}</span>
+    </div>
+
+
+    <div class="boardList">
+      <table border="1" summary="">
+        <tbody module="board_list_3">
+          <!--
+				$count = 10
+                $login_page_url = /member/login.html
+                $deny_access_url = /index.html
+            -->
+
+        <div id="warp_bar2">
+          <div id="warp_bar2_inner">
+            <dl>
+              <dt class="warp_bar_tap" >
+                <div class="barItap">
+                  <div class="barItap_1">Q.</div>
+                  <div class="barItap_2">{$category_name}</div>
+                  <div class="barItap_3">{$subject}</div>
+                </div>
+              </dt>
+              <dd class="slide_tap">
+                <ul>
+                  <div class="slide_in">
+                    <div class="slide1"> A. </div>
+                    <div class="slide2"> {$content_image}{$content} </div>
+                  </div>
+                </ul>
+                <div class="bar_arrow"><img src="/han/images/bar_down_arrow.png" /></div>
+              </dd>
+            </dl>
+            <dl>
+              <dt class="warp_bar_tap" >
+                <div class="barItap">
+                  <div class="barItap_1">Q.</div>
+                  <div class="barItap_2">{$category_name}</div>
+                  <div class="barItap_3">{$subject}</div>
+                </div>
+              </dt>
+              <dd class="slide_tap">
+                <ul>
+                  <div class="slide_in">
+                    <div class="slide1"> A. </div>
+                    <div class="slide2"> {$content_image}{$content} </div>
+                  </div>
+                </ul>
+                <div class="bar_arrow"><img src="/han/images/bar_down_arrow.png" /></div>
+              </dd>
+            </dl>
+          </div>
+        </div>
+          </tbody>
+
+      </table>
+    </div>
+
+    <div class="boardListEmpty {$empty_display|display}" module="board_empty_3">
+      <p>{$empty_message}</p>
+    </div>
+
+    <div module="board_ButtonList_3" class="ec-base-button typeBG {$write_display|display}"> <span class="gRight"> <a href="/board/free/write.html{$param_write}" class="btnSubmitFix sizeS {$write_display|display}">글쓰기</a> </span> </div>
+    <div module="board_paging_3" class="section ec-base-paginate typeList"> <a href="{$param_prev}">이전 페이지</a>
+      <ol>
+        <li><a href="{$param_num}" class="{$param_class}">{$page_num}</a></li>
+        <li><a href="{$param_num}" class="{$param_class}">{$page_num}</a></li>
+      </ol>
+      <a href="{$param_next}">다음 페이지</a> </div>
+
+
+
+    <!-- Admin only -->
+    <div class="section" module="board_catemove_1002">
+      <!--@css(/css/module/board/catemove.css)-->
+      <span class="gColumn">{$board_catemove_selectbox}</span> <span class="gColumn"><a href="#none" class="btnNormal sizeS" onClick="{$action_category_move}">{$category_move}</a></span> </div>
+    <div class="section" module="board_function_1002">
+      <!--@css(/css/module/board/function.css)-->
+      <span class="gColumn">{$board_function_selectbox}</span> <span class="gColumn"> <a href="#none" class="btnNormal sizeS" onClick="{$action_article_move}">{$article_move}</a> <a href="#none" class="btnNormal sizeS" onClick="{$action_article_copy}">{$article_copy}</a> </span> <span class="ec-base-help">{$board_function_help|replace:*,}</span> </div>
+    <!-- // Admin only -->
+
+
+
+    <div class="hanblank_100"></div>    <!-- 영역 사이 간격 소스입니다. [ madehan.css 파일 최하단 참고 ] -->
+
+
+
+
+    <!-- 공지사항 & 뉴스/이벤트 -->
+    <div class="boardMain">
+
+      <!-- ----------------------- -->
+
+      <div class="board boardleft" module="board_listpackage_1">
+        <h2 class="h2_han_small"> 공지사항 <a href="/board/free/list.html?board_no=1" class="more">+ MORE</a> </h2>
+        <table border="1" summary="">
+          <tbody module="board_notice_1">
+            <!--
+                    $count = 3
+                    $main_list = yes
+                    $subject_cut = 25
+                    $main_list_reply_view = no
+                 -->
+            <tr class="{$block_target_class}" {$block_data_attr}>
+              <td class="no">{$checkbox} {$notice_icon}</td>
+              <td class="title"><a href="/board/free/read.html{$param_read}"  class="{$block_content_class}">{$subject}</a> {$icon_new}{$icon_hit}{$icon_file}{$comment_count}</td>
+            </tr>
+            <tr class="{$block_target_class}" {$block_data_attr}>
+              <td class="no">{$checkbox} {$notice_icon}</td>
+              <td class="title"><a href="/board/free/read.html{$param_read}"  class="{$block_content_class}">{$subject}</a> {$icon_new}{$icon_hit}{$icon_file}{$comment_count}</td>
+            </tr>
+          </tbody>
+        </table>
+        <table border="1" summary="">
+          <tbody module="board_list_1">
+            <!--
+                    $count = 5
+                    $main_list = yes
+                    $subject_cut = 25
+                    $main_list_reply_view = no
+                 -->
+            <tr class="{$block_target_class}" {$block_data_attr}>
+              <td class="no">{$checkbox} {$no}</td>
+              <td class="title"><a href="/board/free/read.html{$param_read}"  class="{$block_content_class}">{$subject}</a> {$icon_new}{$icon_hit}{$icon_file}{$comment_count}</td>
+            </tr>
+            <tr class="{$block_target_class}" {$block_data_attr}>
+              <td class="no">{$checkbox} {$no}</td>
+              <td class="title"><a href="/board/free/read.html{$param_read}"  class="{$block_content_class}">{$subject}</a> {$icon_new}{$icon_hit}{$icon_file}{$comment_count}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ----------------------- -->
+
+      <div class="board boardright" module="board_listpackage_2">
+        <h2 class="h2_han_small"> 뉴스&이벤트 <a href="/board/free/list.html?board_no=2" class="more">+ MORE</a> </h2>
+        <table border="1" summary="">
+          <tbody module="board_list_2">
+            <!--
+                    $count = 7
+                    $main_list = yes
+                    $subject_cut = 25
+                    $main_list_reply_view = no
+                 -->
+           <tr class="{$block_target_class}" {$block_data_attr}>
+              <td class="no">{$checkbox} {$no}</td>
+              <td class="title"><a href="/board/free/read.html{$param_read}"  class="{$block_content_class}">{$subject}</a> {$icon_new}{$icon_hit}{$icon_file}{$comment_count}</td>
+            </tr>
+          <tr class="{$block_target_class}" {$block_data_attr}>
+              <td class="no">{$checkbox} {$no}</td>
+              <td class="title"><a href="/board/free/read.html{$param_read}"  class="{$block_content_class}">{$subject}</a> {$icon_new}{$icon_hit}{$icon_file}{$comment_count}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ----------------------- -->
+
+    </div>
+
+    <!-- //공지사항 & 뉴스/이벤트 -->
+
+
+
+
+    <div class="hanblank_50"></div>    <!--   영역 사이 간격 소스입니다. [ madehan.css 파일 최하단 참고 ] -->
+
+
+
+
+    <!-- 상품문의 & 상품후기 -->
+    <div class="boardMain">
+
+      <!-- ----------------------- -->
+
+      <div class="board boardleft" module="board_listpackage_1">
+        <h2 class="h2_han_small"> 상품문의<a href="/board/product/list.html?board_no=6" class="more">+ MORE</a> </h2>
+        <div class="galleryList" module="board_list_6">
+          <!--
+                    $count = 6
+                    $main_list = yes
+                    $subject_cut = 25
+                    $main_list_reply_view = no
+                 -->
+          <li class="{$block_target_class}" {$block_data_attr}> <a href="/board/product/read.html{$param_read}" class="imgLink {$block_content_class}">{$image_medium}</a> <a href="/board/product/read.html{$param_read}" class="textLink">{$subject} {$comment_count}</a> <span>{$write_date|date:Y-m-d}</span> </li>
+          <li class="{$block_target_class}" {$block_data_attr}> <a href="/board/product/read.html{$param_read}" class="imgLink {$block_content_class}">{$image_medium}</a> <a href="/board/product/read.html{$param_read}" class="textLink">{$subject} {$comment_count}</a> <span>{$write_date|date:Y-m-d}</span> </li>
+        </div>
+      </div>
+
+      <!-- ----------------------- -->
+
+      <div class="board boardright" module="board_listpackage_1">
+        <h2 class="h2_han_small"> 상품후기 <a href="/board/product2/listhan.html?board_no=4" class="more">+ MORE</a> </h2>
+        <div class="galleryList" module="board_list_4">
+          <!--
+                    $count = 6
+                    $main_list = yes
+                    $subject_cut = 25
+                    $main_list_reply_view = no
+                 -->
+          <li class="{$block_target_class}" {$block_data_attr}> <a href="/board/product/read.html{$param_read}" class="imgLink {$block_content_class}">{$image_medium}</a> <a href="/board/product/read.html{$param_read}" class="textLink">{$subject} {$comment_count}</a> <span>{$write_date|date:Y-m-d}</span> </li>
+          <li class="{$block_target_class}" {$block_data_attr}> <a href="/board/product/read.html{$param_read}" class="imgLink {$block_content_class}">{$image_medium}</a> <a href="/board/product/read.html{$param_read}" class="textLink">{$subject} {$comment_count}</a> <span>{$write_date|date:Y-m-d}</span> </li>
+        </div>
+      </div>
+
+      <!-- ----------------------- -->
+
+    </div>
+
+    <!-- //상품문의 & 상품후기 -->
+
+
+
+
+    <div class="hanblank_50"></div>    <!--   영역 사이 간격 소스입니다. [ madehan.css 파일 최하단 참고 ] -->
+
+
+
+
+    <!-- 이벤트 - 갤러리 게시판  -->
+    <div class="boardMain">
+      <div class="board" module="board_listpackage_8">
+        <h2 class="h2_han_small"> 갤러리 <a href="/board/gallery/list.html?board_no=8" class="more">+ MORE</a> </h2>
+        <div class="galleryList gallerygrid4" module="board_list_8">
+          <!--
+                    $count = 12
+                    $main_list = yes
+                    $subject_cut = 25
+                -->
+          <ul>
+            <li class="{$block_target_class}" {$block_data_attr}> <a href="/board/gallery/read.html{$param_read}" class="imgLink {$block_content_class}"><img src="{$img_src}" alt="" /></a> <a href="/board/gallery/read.html{$param_read}" class="textLink">{$subject} {$comment_count}</a> <span>{$write_date|date:Y-m-d}</span> </li>
+            <li class="{$block_target_class}" {$block_data_attr}> <a href="/board/gallery/read.html{$param_read}" class="imgLink {$block_content_class}"><img src="{$img_src}" alt="" /></a> <a href="/board/gallery/read.html{$param_read}" class="textLink">{$subject} {$comment_count}</a> <span>{$write_date|date:Y-m-d}</span> </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

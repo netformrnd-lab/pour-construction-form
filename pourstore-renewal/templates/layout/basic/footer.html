@@ -33,6 +33,9 @@
 <style>
 /* ===== POUR스토어 푸터 (namespace: .pf2) ================================ */
 #footer{background:none;border:0}
+/* 팝업 검색창은 하단 '검색' 버튼으로 열 때만 표시 — 평소엔 숨김(페이지 하단에 잘못 노출되던 문제 방지).
+   카페24 검색 열기 JS는 인라인 style(display:block)로 열어서 이 규칙에 영향받지 않음. */
+.popsearch{display:none}
 .pf2, .pf2 *{box-sizing:border-box;margin:0;padding:0;font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;letter-spacing:-0.02em}
 .pf2{color:#111111;-webkit-font-smoothing:antialiased}
 .pf2 a{color:inherit;text-decoration:none;transition:color .15s ease}

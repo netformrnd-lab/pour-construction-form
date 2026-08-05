@@ -39,6 +39,7 @@ body{
 .cr-sec-title{text-align:center;font-weight:900;color:var(--ink);font-size:30px;letter-spacing:-.04em;line-height:1.3}
 .cr-btn{display:inline-flex;align-items:center;gap:8px;justify-content:center;background:var(--or);color:#fff;font-weight:800;font-size:16px;border:none;cursor:pointer;border-radius:13px;padding:16px 26px;letter-spacing:-.02em;transition:.15s;box-shadow:0 8px 20px rgba(237,106,26,.24)}
 .cr-btn:hover{background:var(--or-d)}
+.cr a.cr-btn,.cr a.cr-btn:hover,.cr a.cr-btn:visited{color:#fff}  /* 버튼 글씨 흰색 강제(.cr a inherit 규칙 덮기) */
 .cr-btn .chev{font-size:18px;font-weight:700;line-height:1}
 .cr-btn-full{width:100%;padding:17px;font-size:17px}
 
@@ -272,7 +273,7 @@ body{
           <div class="cr-step-no">05</div>
           <span class="cr-ph" data-label="아이콘"><img data-img="step-5.png" alt=""></span>
           <div class="cr-step-t">현장 확인 및 견적 안내</div>
-          <div class="cr-step-d">현장을 직접 확인한 후 공정과 비용을 안내합니다.<br>시공 면적과 바탕면 상태, 작업 난이도를 반영해 견적을 산정합니다.</div>
+          <div class="cr-step-d">현장 방문 또는 시공 면적, 바탕면 상태, 작업 난이도를 종합적으로 검토하여 견적을 산정합니다.</div>
         </div>
       </div>
     </div>
@@ -330,7 +331,7 @@ body{
         <div class="cr-notice-left">
           <span class="cr-notice-badge">꼭 확인해주세요</span>
           <h3>시공의뢰는 <b>시공비(노무비)</b>가 추가됩니다.</h3>
-          <p>셀프 시공과 달리 전문가의 인건비·장비비·안전보험 등이 포함되며, 현장 조건(면적, 상태, 접근성 등)에 따라 비용이 달라집니다.</p>
+          <p>시공을 의뢰하실 경우 자재비 외에 인건비 등 별도의 시공비가 추가됩니다. 시공비는 시공 면적, 바탕면 상태, 작업 난이도 및 현장 접근성에 따라 달라질 수 있으며, 정확한 비용은 현장 방문 후 견적을 통해 안내드립니다.</p>
           <p class="hl">정확한 비용은 반드시 방문견적을 통해 확인하실 수 있습니다.</p>
         </div>
         <div class="cr-notice-img"><span class="cr-ph" data-label="이미지"><img data-img="notice.png" alt=""></span></div>
@@ -359,11 +360,11 @@ body{
         <div class="cr-faq-head"><h2>자주 묻는 질문</h2><a class="cr-faq-more" href="#">더보기 ›</a></div>
         <div class="cr-faq-item">
           <button class="cr-faq-q" type="button">시공의뢰 비용은 어떻게 되나요? <span class="ic">+</span></button>
-          <div class="cr-faq-a"><div class="cr-faq-a-in">시공의뢰는 자재비 외에 전문 작업자의 인건비, 장비 사용료, 안전관리 비용 등이 포함됩니다. 시공 면적과 현장 상태, 작업 난이도, 접근성, 필요한 공정에 따라 금액이 달라지며, 정확한 비용은 현장 방문 후 안내드립니다.</div></div>
+          <div class="cr-faq-a"><div class="cr-faq-a-in">시공 비용은 현장 조건과 작업 범위에 따라 파트너사에서 개별 산정하고 있습니다. 시공 접수 후 배정된 파트너사를 통해 현장 확인 및 정확한 견적 안내를 받아보실 수 있습니다.</div></div>
         </div>
         <div class="cr-faq-item">
           <button class="cr-faq-q" type="button">견적은 언제 받을 수 있나요? <span class="ic">+</span></button>
-          <div class="cr-faq-a"><div class="cr-faq-a-in">파트너사 연결 후 고객님과 방문 일정을 조율합니다. 현장에서 시공 면적과 바탕면 상태, 누수 원인, 작업 환경 등을 확인한 뒤 필요한 공정과 자재를 반영한 견적을 안내드립니다.</div></div>
+          <div class="cr-faq-a"><div class="cr-faq-a-in">파트너사 연결 후 고객님과 방문 일정을 조율합니다. 이후 현장 방문 또는 고객님께서 제공해주신 자료를 바탕으로 필요한 공정과 자재를 검토하여 견적을 안내드립니다.</div></div>
         </div>
         <div class="cr-faq-item">
           <button class="cr-faq-q" type="button">시공의뢰 후 언제 파트너사가 연결되나요? <span class="ic">+</span></button>

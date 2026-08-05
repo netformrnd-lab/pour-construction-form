@@ -305,3 +305,34 @@
     </div>
   </div>
 </div>
+
+<!-- ★ 고객센터(FAQ)에서 '시공사례' 분류 글/탭 숨김 (프론트 처리) -->
+<script>
+(function(){
+  function norm(s){ return (s||'').replace(/\s+/g,'').trim(); }
+  var TARGET = '시공사례';
+  function hideCase(){
+    // 1) FAQ 목록에서 분류가 '시공사례'인 글(dl) 숨김
+    var dls = document.querySelectorAll('#warp_bar2_inner dl');
+    for (var i=0;i<dls.length;i++){
+      var cat = dls[i].querySelector('.barItap_2');
+      if (cat && norm(cat.textContent).indexOf(TARGET) > -1){ dls[i].style.display = 'none'; }
+    }
+    // 2) 상단 분류(카테고리) 목록에서 '시공사례' 탭 숨김
+    var sort = document.querySelector('.boardSort');
+    if (sort){
+      var els = sort.querySelectorAll('a,li,span,option');
+      for (var j=0;j<els.length;j++){
+        var el = els[j];
+        if (el.children.length === 0 && norm(el.textContent) === TARGET){
+          if (el.tagName === 'OPTION'){ if (el.parentNode) el.parentNode.removeChild(el); }
+          else { var box = el.closest('li') || el; box.style.display = 'none'; }
+        }
+      }
+    }
+  }
+  if (document.readyState !== 'loading') hideCase();
+  else document.addEventListener('DOMContentLoaded', hideCase);
+  setTimeout(hideCase, 300); setTimeout(hideCase, 1200);
+})();
+</script>

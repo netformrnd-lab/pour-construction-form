@@ -7,4 +7,28 @@
   <b>평일</b> 09:00 ~ 17:00 · <b>점심</b> 12:00 ~ 13:00<br>
   토 · 일 · 공휴일 휴무
 </div>
-<a class="pf2-cta" href="javascript:pourDoctorOpen&&pourDoctorOpen();void 0;">💬 1:1 실시간 상담</a>
+<a class="pf2-cta" id="csChatBtn" href="#none" role="button">💬 1:1 실시간 상담</a>
+<script>
+/* '1:1 실시간 상담' 버튼 → POUR닥터 채팅 열기 (위젯 로드 순서와 무관하게 튼튼하게) */
+(function(){
+  var btn=document.getElementById('csChatBtn'); if(!btn) return;
+  function openChat(){
+    // 1) 전역 함수가 있으면 그걸로 연다
+    if(typeof window.pourDoctorOpen==='function'){ window.pourDoctorOpen(); return true; }
+    // 2) 없으면 챗봇 런처 버튼을 직접 클릭
+    var opener=document.querySelector('[data-pqc-open]');
+    if(opener){ opener.click(); return true; }
+    return false;
+  }
+  btn.addEventListener('click',function(e){
+    e.preventDefault();
+    if(openChat()) return;
+    // 3) 아직 위젯이 로드 전이면 잠깐 기다렸다 재시도
+    var tries=0, t=setInterval(function(){
+      tries++;
+      if(openChat()){ clearInterval(t); return; }
+      if(tries>30){ clearInterval(t); alert('실시간 상담 준비 중입니다. 잠시 후 다시 시도해주세요.'); }
+    },150);
+  });
+})();
+</script>

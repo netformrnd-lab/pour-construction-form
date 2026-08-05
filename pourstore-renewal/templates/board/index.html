@@ -1,8 +1,84 @@
 <!--@layout(/layout/basic/layout.html)-->
 
 <!--@js(/han/js/selectbox2.js)-->
-<!--@js(/han/js/warp_bar2.js)-->
+<!-- 기존 warp_bar2.js 제거: 아래 스크립트로 아코디언 직접 제어 -->
 <!--@css(/han/css/warp_bar2.css)-->
+
+<style>
+/* FAQ 구조 보정 및 게시글 내부 이미지/표 넘침 방지 */
+#warp_bar2,
+#warp_bar2_inner,
+#warp_bar2_inner dl,
+#warp_bar2_inner dt,
+#warp_bar2_inner dd {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+#warp_bar2_inner dl {
+  margin: 0;
+}
+
+#warp_bar2_inner .warp_bar_tap {
+  cursor: pointer;
+}
+
+/* 처음에는 답변을 닫아 둡니다. */
+#warp_bar2_inner .slide_tap {
+  display: none;
+  overflow: hidden;
+}
+
+#warp_bar2_inner dl.is-open > .slide_tap {
+  display: block;
+}
+
+#warp_bar2_inner .slide_in {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+#warp_bar2_inner .slide2 {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 게시글에 고정 폭 이미지/표가 들어 있어도 FAQ 영역 밖으로 튀어나오지 않게 처리 */
+#warp_bar2_inner .slide2 img,
+#warp_bar2_inner .slide2 video,
+#warp_bar2_inner .slide2 iframe {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+#warp_bar2_inner .slide2 table {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+#warp_bar2_inner .slide2 td,
+#warp_bar2_inner .slide2 th {
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 767px) {
+  #warp_bar2_inner .slide_in {
+    display: block;
+  }
+
+  #warp_bar2_inner .slide1,
+  #warp_bar2_inner .slide2 {
+    width: 100%;
+  }
+}
+</style>
 
 <div class="section" module="Board_ListPackage_3">
   <div module="board_title_3">
@@ -40,7 +116,7 @@
 
 
 
-      <div class="csareabtn hangrd_2"><a href="/board/product/list.html?board_no=6">게시글로 문의하기 <i class="fa fa-angle-right  fa-2x" aria-hidden="true"></i><a/></div>
+      <div class="csareabtn hangrd_2"><a href="/board/product/list.html?board_no=6">게시글로 문의하기 <i class="fa fa-angle-right fa-2x" aria-hidden="true"></i></a></div>
     </div>
     <!-- // csarea -->
 
@@ -52,9 +128,9 @@
       <fieldset class="boardSearch">
         <legend>게시물 검색</legend>
         <div class="textarea">FAQ SEARCH</div>
-        <p>
         <div style="display:none;">{$form.search_key}</div>
-        {$form.search} <a href="#none" onClick="{$action_search}" class="serbtn pogrd_hov">검색</a>
+        <p>
+          {$form.search} <a href="#none" onClick="{$action_search}" class="serbtn pogrd_hov">검색</a>
         </p>
       </fieldset>
       <div class="seward"> * FAQ 게시판 내에서 검색됩니다. </div>
@@ -71,57 +147,49 @@
 
 
     <div class="boardList">
-      <table border="1" summary="">
-        <tbody module="board_list_3">
+      <div id="warp_bar2">
+        <div id="warp_bar2_inner" module="board_list_3">
           <!--
-				$count = 10
+                $count = 10
                 $login_page_url = /member/login.html
                 $deny_access_url = /index.html
-            -->
+          -->
 
-        <div id="warp_bar2">
-          <div id="warp_bar2_inner">
-            <dl>
-              <dt class="warp_bar_tap" >
-                <div class="barItap">
-                  <div class="barItap_1">Q.</div>
-                  <div class="barItap_2">{$category_name}</div>
-                  <div class="barItap_3">{$subject}</div>
-                </div>
-              </dt>
-              <dd class="slide_tap">
-                <ul>
-                  <div class="slide_in">
-                    <div class="slide1"> A. </div>
-                    <div class="slide2"> {$content_image}{$content} </div>
-                  </div>
-                </ul>
-                <div class="bar_arrow"><img src="/han/images/bar_down_arrow.png" /></div>
-              </dd>
-            </dl>
-            <dl>
-              <dt class="warp_bar_tap" >
-                <div class="barItap">
-                  <div class="barItap_1">Q.</div>
-                  <div class="barItap_2">{$category_name}</div>
-                  <div class="barItap_3">{$subject}</div>
-                </div>
-              </dt>
-              <dd class="slide_tap">
-                <ul>
-                  <div class="slide_in">
-                    <div class="slide1"> A. </div>
-                    <div class="slide2"> {$content_image}{$content} </div>
-                  </div>
-                </ul>
-                <div class="bar_arrow"><img src="/han/images/bar_down_arrow.png" /></div>
-              </dd>
-            </dl>
-          </div>
+          <dl>
+            <dt class="warp_bar_tap" role="button" tabindex="0" aria-expanded="false">
+              <div class="barItap">
+                <div class="barItap_1">Q.</div>
+                <div class="barItap_2">{$category_name}</div>
+                <div class="barItap_3">{$subject}</div>
+              </div>
+            </dt>
+            <dd class="slide_tap">
+              <div class="slide_in">
+                <div class="slide1">A.</div>
+                <div class="slide2">{$content_image}{$content}</div>
+              </div>
+              <div class="bar_arrow"><img src="/han/images/bar_down_arrow.png" alt="" /></div>
+            </dd>
+          </dl>
+
+          <dl>
+            <dt class="warp_bar_tap" role="button" tabindex="0" aria-expanded="false">
+              <div class="barItap">
+                <div class="barItap_1">Q.</div>
+                <div class="barItap_2">{$category_name}</div>
+                <div class="barItap_3">{$subject}</div>
+              </div>
+            </dt>
+            <dd class="slide_tap">
+              <div class="slide_in">
+                <div class="slide1">A.</div>
+                <div class="slide2">{$content_image}{$content}</div>
+              </div>
+              <div class="bar_arrow"><img src="/han/images/bar_down_arrow.png" alt="" /></div>
+            </dd>
+          </dl>
         </div>
-          </tbody>
-
-      </table>
+      </div>
     </div>
 
     <div class="boardListEmpty {$empty_display|display}" module="board_empty_3">
@@ -306,38 +374,112 @@
   </div>
 </div>
 
-<!-- ★ 고객센터(FAQ)에서 '시공사례' 글/탭 숨김 (프론트 처리 · 분류명+본문특징 감지) -->
+<!-- FAQ 아코디언 + '시공사례' 분류 숨김 -->
 <script>
-(function(){
-  function norm(s){ return (s||'').replace(/\s+/g,'').trim(); }
-  var CAT = '시공사례';
-  var MARKERS = ['자재입고','아파트명','시공정황','하자유형','시공사례']; // 시공사례 글 본문/표 특징
-  function looksCase(el){
-    var c = el.querySelector('.barItap_2, .barItap_3');
-    if (c && norm(c.textContent).indexOf(CAT) > -1) return true;
-    var t = norm(el.textContent);
-    for (var i=0;i<MARKERS.length;i++){ if (t.indexOf(MARKERS[i]) > -1) return true; }
-    return false;
+(function () {
+  function norm(s) {
+    return (s || '').replace(/\s+/g, '').trim();
   }
-  function hideCase(){
-    // 1) FAQ 목록의 글(dl)에서 시공사례로 보이면 통째로 숨김
-    var items = document.querySelectorAll('.boardList dl, #warp_bar2_inner dl');
-    for (var i=0;i<items.length;i++){ if (looksCase(items[i])) items[i].style.display = 'none'; }
-    // 2) 상단 분류 탭에서 '시공사례' 항목 숨김
+
+  function closeItem(dl) {
+    if (!dl) return;
+    dl.classList.remove('is-open');
+    var tap = dl.querySelector('.warp_bar_tap');
+    var panel = dl.querySelector('.slide_tap');
+    if (tap) tap.setAttribute('aria-expanded', 'false');
+    if (panel) panel.style.display = 'none';
+  }
+
+  function openItem(dl) {
+    if (!dl) return;
+    dl.classList.add('is-open');
+    var tap = dl.querySelector('.warp_bar_tap');
+    var panel = dl.querySelector('.slide_tap');
+    if (tap) tap.setAttribute('aria-expanded', 'true');
+    if (panel) panel.style.display = 'block';
+  }
+
+  function initAccordion() {
+    var root = document.getElementById('warp_bar2_inner');
+    if (!root || root.getAttribute('data-faq-ready') === 'true') return;
+
+    root.setAttribute('data-faq-ready', 'true');
+
+    var items = root.querySelectorAll('dl');
+    for (var i = 0; i < items.length; i++) closeItem(items[i]);
+
+    function toggleFrom(target) {
+      var tap = target.closest ? target.closest('.warp_bar_tap') : null;
+      if (!tap || !root.contains(tap)) return;
+
+      var current = tap.closest('dl');
+      var isOpen = current && current.classList.contains('is-open');
+
+      /* 다른 답변은 닫고 선택한 답변만 엽니다. */
+      var opened = root.querySelectorAll('dl.is-open');
+      for (var j = 0; j < opened.length; j++) closeItem(opened[j]);
+
+      if (!isOpen) openItem(current);
+    }
+
+    root.addEventListener('click', function (e) {
+      toggleFrom(e.target);
+    });
+
+    root.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        var tap = e.target.closest ? e.target.closest('.warp_bar_tap') : null;
+        if (tap && root.contains(tap)) {
+          e.preventDefault();
+          toggleFrom(e.target);
+        }
+      }
+    });
+  }
+
+  function hideCase() {
+    var TARGET = '시공사례';
+
+    /* FAQ 목록에서 분류가 '시공사례'인 항목 숨김 */
+    var dls = document.querySelectorAll('#warp_bar2_inner dl');
+    for (var i = 0; i < dls.length; i++) {
+      var cat = dls[i].querySelector('.barItap_2');
+      if (cat && norm(cat.textContent).indexOf(TARGET) > -1) {
+        dls[i].style.display = 'none';
+      }
+    }
+
+    /* 상단 분류 목록에서 '시공사례' 탭 숨김 */
     var sort = document.querySelector('.boardSort');
-    if (sort){
-      var els = sort.querySelectorAll('a,li,span,option');
-      for (var j=0;j<els.length;j++){
+    if (sort) {
+      var els = sort.querySelectorAll('a, li, span, option');
+      for (var j = 0; j < els.length; j++) {
         var el = els[j];
-        if (el.children.length === 0 && norm(el.textContent) === CAT){
-          if (el.tagName === 'OPTION'){ if (el.parentNode) el.parentNode.removeChild(el); }
-          else { var box = el.closest('li') || el; box.style.display = 'none'; }
+        if (el.children.length === 0 && norm(el.textContent) === TARGET) {
+          if (el.tagName === 'OPTION') {
+            if (el.parentNode) el.parentNode.removeChild(el);
+          } else {
+            var box = el.closest('li') || el;
+            box.style.display = 'none';
+          }
         }
       }
     }
   }
-  if (document.readyState !== 'loading') hideCase();
-  else document.addEventListener('DOMContentLoaded', hideCase);
-  setTimeout(hideCase, 300); setTimeout(hideCase, 1200); setTimeout(hideCase, 2500);
+
+  function init() {
+    initAccordion();
+    hideCase();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  /* 카페24 모듈 렌더링이 늦는 경우를 대비 */
+  setTimeout(init, 300);
+  setTimeout(init, 1200);
 })();
 </script>

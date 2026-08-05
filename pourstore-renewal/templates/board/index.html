@@ -306,25 +306,30 @@
   </div>
 </div>
 
-<!-- ★ 고객센터(FAQ)에서 '시공사례' 분류 글/탭 숨김 (프론트 처리) -->
+<!-- ★ 고객센터(FAQ)에서 '시공사례' 글/탭 숨김 (프론트 처리 · 분류명+본문특징 감지) -->
 <script>
 (function(){
   function norm(s){ return (s||'').replace(/\s+/g,'').trim(); }
-  var TARGET = '시공사례';
+  var CAT = '시공사례';
+  var MARKERS = ['자재입고','아파트명','시공정황','하자유형','시공사례']; // 시공사례 글 본문/표 특징
+  function looksCase(el){
+    var c = el.querySelector('.barItap_2, .barItap_3');
+    if (c && norm(c.textContent).indexOf(CAT) > -1) return true;
+    var t = norm(el.textContent);
+    for (var i=0;i<MARKERS.length;i++){ if (t.indexOf(MARKERS[i]) > -1) return true; }
+    return false;
+  }
   function hideCase(){
-    // 1) FAQ 목록에서 분류가 '시공사례'인 글(dl) 숨김
-    var dls = document.querySelectorAll('#warp_bar2_inner dl');
-    for (var i=0;i<dls.length;i++){
-      var cat = dls[i].querySelector('.barItap_2');
-      if (cat && norm(cat.textContent).indexOf(TARGET) > -1){ dls[i].style.display = 'none'; }
-    }
-    // 2) 상단 분류(카테고리) 목록에서 '시공사례' 탭 숨김
+    // 1) FAQ 목록의 글(dl)에서 시공사례로 보이면 통째로 숨김
+    var items = document.querySelectorAll('.boardList dl, #warp_bar2_inner dl');
+    for (var i=0;i<items.length;i++){ if (looksCase(items[i])) items[i].style.display = 'none'; }
+    // 2) 상단 분류 탭에서 '시공사례' 항목 숨김
     var sort = document.querySelector('.boardSort');
     if (sort){
       var els = sort.querySelectorAll('a,li,span,option');
       for (var j=0;j<els.length;j++){
         var el = els[j];
-        if (el.children.length === 0 && norm(el.textContent) === TARGET){
+        if (el.children.length === 0 && norm(el.textContent) === CAT){
           if (el.tagName === 'OPTION'){ if (el.parentNode) el.parentNode.removeChild(el); }
           else { var box = el.closest('li') || el; box.style.display = 'none'; }
         }
@@ -333,6 +338,6 @@
   }
   if (document.readyState !== 'loading') hideCase();
   else document.addEventListener('DOMContentLoaded', hideCase);
-  setTimeout(hideCase, 300); setTimeout(hideCase, 1200);
+  setTimeout(hideCase, 300); setTimeout(hideCase, 1200); setTimeout(hideCase, 2500);
 })();
 </script>

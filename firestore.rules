@@ -170,6 +170,13 @@ service cloud.firestore {
     match /sourcing-os/{doc=**}     { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
+    // OS 템플릿 (Sourcing/template-os.html) — 타 부서용 빈 껍데기
+    // 앱 상태를 template-os/state 문서에 저장. 소싱-OS와 완전 분리.
+    // ⚠ 부서가 CLOUD_ROOT/FS_COLL을 새 값으로 바꾸면 이 규칙도 같은 이름으로 추가 필요.
+    // ─────────────────────────────────────────────
+    match /template-os/{doc=**}     { allow read, write: if true; }
+
+    // ─────────────────────────────────────────────
     // 기본 정책: 명시되지 않은 컬렉션은 차단
     // ─────────────────────────────────────────────
     match /{document=**} {

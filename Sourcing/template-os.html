@@ -3904,24 +3904,11 @@ function doLogin(){
     .finally(()=>{btn.disabled=false;btn.textContent='로그인';});
 }
 function logout(){localStorage.removeItem('tmpl_loginAt');if(FA)FA.signOut();}
-if(FA){
-  $('#lg_btn').onclick=doLogin;
-  $('#lg_pw').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doLogin();}});
-  $('#lg_email').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#lg_pw').focus();}});
-  const lo=$('#lg_logout');if(lo)lo.onclick=()=>{if(confirm('로그아웃 할까요?'))logout();};
-  FA.onAuthStateChanged(user=>{
-    const who=$('#lg_who');if(who)who.textContent=user?('로그인: '+(user.email||'')):'';
-    if(user){
-      const t=Number(localStorage.getItem('tmpl_loginAt')||0);
-      if(t&&Date.now()-t>LOGIN_DAYS*864e5){logout();showLogin();return;} // 1개월 경과 → 재로그인
-      if(!t)localStorage.setItem('tmpl_loginAt',String(Date.now()));
-      hideLogin();
-      if(!appStarted){appStarted=true;bootstrap();}
-    }else{ showLogin(); }
-  });
-}else{
-  // 인증 모듈 없으면(오프라인 등) 게이트 없이 로컬로 동작
-  bootstrap();
+/* ⚙ 템플릿 정책: 로그인 없이 바로 사용.
+   보호가 필요한 부서는 아래 블록을 원본(Sourcing-os.html)처럼 되돌려 로그인 게이트를 켜세요. */
+{
+  hideLogin();
+  if(!appStarted){appStarted=true;bootstrap();}
 }
 </script>
 </body>

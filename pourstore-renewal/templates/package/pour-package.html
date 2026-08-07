@@ -7,33 +7,51 @@
 <!--@layout(/layout/basic/layout.html)-->
 <div class="mainpage">
 
-<!-- ===== 상단 배너 (파이어베이스 이미지) — 잘림 없이 폭에 맞춰 표시 ===== -->
+<!-- ===== 상단 배너 (파이어베이스 이미지 · 세로로 여러 장 쌓기) — 잘림 없이 폭에 맞춰 표시 ===== -->
 <style>
 .pkg-topbnr{max-width:1256px;margin:0 auto;padding:16px 24px 4px;box-sizing:border-box;}
-.pkg-topbnr a{display:block;text-decoration:none;}
+.pkg-topbnr .row{display:none;text-decoration:none;margin-bottom:10px;}
 .pkg-topbnr img{width:100%;height:auto;display:block;border-radius:14px;}
 .pkg-topbnr .ph{width:100%;aspect-ratio:1256/300;background:#F6F1EA;border:1px dashed #E3D8C9;border-radius:14px;display:flex;align-items:center;justify-content:center;text-align:center;color:#B7A891;font-weight:700;font-size:14px;padding:0 16px;box-sizing:border-box;}
-@media(max-width:700px){ .pkg-topbnr{padding:12px 14px 2px;} .pkg-topbnr img,.pkg-topbnr .ph{border-radius:10px;} .pkg-topbnr .ph{font-size:12.5px;aspect-ratio:1080/520;} }
+@media(max-width:700px){ .pkg-topbnr{padding:12px 14px 2px;} .pkg-topbnr img,.pkg-topbnr .ph{border-radius:10px;} .pkg-topbnr .row{margin-bottom:7px;} .pkg-topbnr .ph{font-size:12.5px;aspect-ratio:1080/520;} }
 </style>
-<div class="pkg-topbnr">
-  <a href="javascript:void(0)" data-pkg-bnr-link>
-    <picture>
-      <source data-src-mo="package-top-mobile.png" media="(max-width:700px)">
-      <img data-img="package-top-pc.png" alt="패키지 상단 배너">
-    </picture>
-    <div class="ph">여기에 상단 배너 이미지가 표시됩니다<br>(파이어베이스 · POUR스토어_리뉴얼/package/ 에 업로드)</div>
-  </a>
-</div>
+<div class="pkg-topbnr" id="pkgTopBnr"></div>
 <script>
 (function(){
-  var wrap=document.querySelector('.pkg-topbnr'); if(!wrap) return;
+  var wrap=document.getElementById('pkgTopBnr'); if(!wrap) return;
   var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/';
   function cimg(n){ return BASE+encodeURIComponent('POUR스토어_리뉴얼/package/'+n)+'?alt=media'; }
-  var img=wrap.querySelector('img[data-img]'), ph=wrap.querySelector('.ph'), src=wrap.querySelector('source[data-src-mo]');
-  if(src) src.srcset=cimg(src.getAttribute('data-src-mo'));
-  img.addEventListener('load',function(){ if(ph) ph.style.display='none'; });
-  img.addEventListener('error',function(){ img.style.display='none'; if(ph) ph.style.display='flex'; });
-  img.src=cimg(img.getAttribute('data-img'));
+
+  /* ▼ 사진을 더 넣으려면 이 목록에 파일명만 순서대로 추가하세요 (위→아래로 쌓임).
+       업로드 안 한 파일은 자동으로 숨겨집니다. mo(모바일용)는 선택 — 없으면 PC 이미지가 대신 나와요.
+       특정 배너에 링크 걸려면 { pc:'...', link:'/주소' } 처럼 link 를 넣으면 됩니다. */
+  var IMAGES=[
+    { pc:'package-top-pc.png', mo:'package-top-mobile.png' },
+    { pc:'package-top-2.png',  mo:'package-top-2-mobile.png' },
+    { pc:'package-top-3.png',  mo:'package-top-3-mobile.png' },
+    { pc:'package-top-4.png',  mo:'package-top-4-mobile.png' },
+    { pc:'package-top-5.png',  mo:'package-top-5-mobile.png' },
+    { pc:'package-top-6.png',  mo:'package-top-6-mobile.png' }
+  ];
+
+  var isMobile=window.matchMedia('(max-width:700px)').matches;
+  var ph=document.createElement('div'); ph.className='ph';
+  ph.innerHTML='여기에 상단 배너 이미지가 표시됩니다<br>(파이어베이스 · POUR스토어_리뉴얼/package/ 에 업로드)';
+  wrap.appendChild(ph);
+
+  IMAGES.forEach(function(it){
+    var row=document.createElement(it.link?'a':'div'); row.className='row';
+    if(it.link){ row.href=it.link; if(/^https?:/.test(it.link)&&it.link.indexOf(location.host)===-1){ row.target='_blank'; row.rel='noopener'; } }
+    var img=document.createElement('img'); img.alt='패키지 배너';
+    img.onload=function(){ row.style.display='block'; ph.style.display='none'; };
+    img.onerror=function(){
+      if(img.getAttribute('data-fb')!=='1' && it.mo){ img.setAttribute('data-fb','1'); img.src=cimg(it.pc); }  // 모바일 파일 없으면 PC로 폴백
+      else { row.style.display='none'; }                                                                       // PC도 없으면 숨김
+    };
+    if(isMobile && it.mo){ img.src=cimg(it.mo); }
+    else { img.setAttribute('data-fb','1'); img.src=cimg(it.pc); }
+    row.appendChild(img); wrap.appendChild(row);
+  });
 })();
 </script>
 <!-- ===== //상단 배너 ===== -->

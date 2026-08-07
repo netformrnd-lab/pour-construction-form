@@ -21,14 +21,14 @@
       <source data-src-mo="package-top-mobile.png" media="(max-width:700px)">
       <img data-img="package-top-pc.png" alt="패키지 상단 배너">
     </picture>
-    <div class="ph">여기에 상단 배너 이미지가 표시됩니다<br>(파이어베이스 · POUR스토어_리뉴얼/패키지/ 에 업로드)</div>
+    <div class="ph">여기에 상단 배너 이미지가 표시됩니다<br>(파이어베이스 · POUR스토어_리뉴얼/package/ 에 업로드)</div>
   </a>
 </div>
 <script>
 (function(){
   var wrap=document.querySelector('.pkg-topbnr'); if(!wrap) return;
   var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/';
-  function cimg(n){ return BASE+encodeURIComponent('POUR스토어_리뉴얼/패키지/'+n)+'?alt=media'; }
+  function cimg(n){ return BASE+encodeURIComponent('POUR스토어_리뉴얼/package/'+n)+'?alt=media'; }
   var img=wrap.querySelector('img[data-img]'), ph=wrap.querySelector('.ph'), src=wrap.querySelector('source[data-src-mo]');
   if(src) src.srcset=cimg(src.getAttribute('data-src-mo'));
   img.addEventListener('load',function(){ if(ph) ph.style.display='none'; });

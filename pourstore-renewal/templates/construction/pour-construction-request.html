@@ -1571,10 +1571,7 @@ var PM_POSTS = [];
 
   <!-- ===== 1) 히어로 ===== -->
   <section class="cr-hero">
-    <picture class="cr-hero-bg">
-      <source data-src-mo="hero-mobile.png" media="(max-width:760px)">
-      <img data-img="hero-pc.png" alt="">
-    </picture>
+    <div class="cr-hero-bg"><img data-hero-pc="hero-pc.png" data-hero-mo="hero-mobile.png" alt=""></div>
     <div class="cr-hero-inner">
       <div class="cr-hero-text">
         <p class="cr-hero-kicker">혼자 하기 어렵다면,</p>
@@ -1762,7 +1759,17 @@ var PM_POSTS = [];
 /* ── 이미지: 파이어베이스 Storage '시공의뢰/' 폴더에서 로드. 안 올라와도 자리 유지 ── */
 const IMG_BASE = "https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/";
 const cimg = (n) => IMG_BASE + encodeURIComponent("POUR스토어_리뉴얼/시공의뢰/" + n) + "?alt=media";
-document.querySelectorAll("source[data-src-mo]").forEach((s) => { s.srcset = cimg(s.getAttribute("data-src-mo")); }); // 모바일용 헤더 이미지
+/* 히어로 배경: 모바일이면 hero-mobile 먼저 → 없으면 hero-pc 폴백 → 그것도 없으면 숨김(깨진 아이콘 방지) */
+(function(){
+  const h = document.querySelector(".cr-hero-bg img[data-hero-pc]"); if(!h) return;
+  const pc = h.getAttribute("data-hero-pc"), mo = h.getAttribute("data-hero-mo");
+  const isMobile = window.matchMedia("(max-width:760px)").matches;
+  h.addEventListener("error", () => {
+    if (h.getAttribute("data-fb") !== "1" && mo) { h.setAttribute("data-fb","1"); h.src = cimg(pc); }  // 모바일 파일 없으면 PC로
+    else { h.style.display = "none"; }                                                                  // PC도 없으면 숨김
+  });
+  if (isMobile && mo) { h.src = cimg(mo); } else { h.setAttribute("data-fb","1"); h.src = cimg(pc); }
+})();
 document.querySelectorAll("img[data-img]").forEach((el) => {
   el.addEventListener("error", () => { const box = el.closest(".cr-ph"); if (box) box.classList.add("is-empty"); el.style.display = "none"; });
   el.src = cimg(el.getAttribute("data-img"));

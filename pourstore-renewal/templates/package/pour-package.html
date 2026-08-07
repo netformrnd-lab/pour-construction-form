@@ -6,6 +6,38 @@
   ============================================================ -->
 <!--@layout(/layout/basic/layout.html)-->
 <div class="mainpage">
+
+<!-- ===== 상단 배너 (파이어베이스 이미지) — 잘림 없이 폭에 맞춰 표시 ===== -->
+<style>
+.pkg-topbnr{max-width:1256px;margin:0 auto;padding:16px 24px 4px;box-sizing:border-box;}
+.pkg-topbnr a{display:block;text-decoration:none;}
+.pkg-topbnr img{width:100%;height:auto;display:block;border-radius:14px;}
+.pkg-topbnr .ph{width:100%;aspect-ratio:1256/300;background:#F6F1EA;border:1px dashed #E3D8C9;border-radius:14px;display:flex;align-items:center;justify-content:center;text-align:center;color:#B7A891;font-weight:700;font-size:14px;padding:0 16px;box-sizing:border-box;}
+@media(max-width:700px){ .pkg-topbnr{padding:12px 14px 2px;} .pkg-topbnr img,.pkg-topbnr .ph{border-radius:10px;} .pkg-topbnr .ph{font-size:12.5px;aspect-ratio:1080/520;} }
+</style>
+<div class="pkg-topbnr">
+  <a href="javascript:void(0)" data-pkg-bnr-link>
+    <picture>
+      <source data-src-mo="package-top-mobile.png" media="(max-width:700px)">
+      <img data-img="package-top-pc.png" alt="패키지 상단 배너">
+    </picture>
+    <div class="ph">여기에 상단 배너 이미지가 표시됩니다<br>(파이어베이스 · POUR스토어_리뉴얼/패키지/ 에 업로드)</div>
+  </a>
+</div>
+<script>
+(function(){
+  var wrap=document.querySelector('.pkg-topbnr'); if(!wrap) return;
+  var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/';
+  function cimg(n){ return BASE+encodeURIComponent('POUR스토어_리뉴얼/패키지/'+n)+'?alt=media'; }
+  var img=wrap.querySelector('img[data-img]'), ph=wrap.querySelector('.ph'), src=wrap.querySelector('source[data-src-mo]');
+  if(src) src.srcset=cimg(src.getAttribute('data-src-mo'));
+  img.addEventListener('load',function(){ if(ph) ph.style.display='none'; });
+  img.addEventListener('error',function(){ img.style.display='none'; if(ph) ph.style.display='flex'; });
+  img.src=cimg(img.getAttribute('data-img'));
+})();
+</script>
+<!-- ===== //상단 배너 ===== -->
+
 <!--@import(/pourstore_renewal/package/pkg-1-check.html)-->
 <!--@import(/pourstore_renewal/package/pkg-t-scope.html)-->
 <!--@import(/pourstore_renewal/package/pkg-2-best.html)-->

@@ -1390,54 +1390,69 @@ var PM_POSTS = [];
 <!-- ===== //공용 헤더 ===== -->
 
 
-<!-- ===== 상단 배너 (파이어베이스 이미지 · 세로로 여러 장 쌓기) — 잘림 없이 폭에 맞춰 표시 ===== -->
+<!-- ===== 상단 슬라이드 배너 (어드민 '메인 배너 관리 > 패키지 페이지 상단 배너'에서 등록) ===== -->
 <style>
-.pkg-topbnr{max-width:1256px;margin:0 auto;padding:16px 24px 4px;box-sizing:border-box;}
-.pkg-topbnr .row{display:none;text-decoration:none;margin-bottom:10px;}
-.pkg-topbnr img{width:100%;height:auto;display:block;border-radius:14px;}
-.pkg-topbnr .ph{width:100%;aspect-ratio:1256/300;background:#F6F1EA;border:1px dashed #E3D8C9;border-radius:14px;display:flex;align-items:center;justify-content:center;text-align:center;color:#B7A891;font-weight:700;font-size:14px;padding:0 16px;box-sizing:border-box;}
-@media(max-width:700px){ .pkg-topbnr{padding:12px 14px 2px;} .pkg-topbnr img,.pkg-topbnr .ph{border-radius:10px;} .pkg-topbnr .row{margin-bottom:7px;} .pkg-topbnr .ph{font-size:12.5px;aspect-ratio:1080/520;} }
+.pkgbnr{max-width:1256px;margin:0 auto;padding:16px 24px 4px;box-sizing:border-box;}
+.pkgbnr-box{position:relative;width:100%;aspect-ratio:1256/400;border-radius:14px;overflow:hidden;background:#F6F1EA;}
+.pkgbnr-track{position:absolute;inset:0;display:flex;transition:transform .45s ease;will-change:transform;}
+.pkgbnr-slide{position:relative;flex:0 0 100%;width:100%;height:100%;display:block;}
+.pkgbnr-slide img{width:100%;height:100%;object-fit:cover;display:block;}
+.pkgbnr-dots{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:7px;z-index:3;background:rgba(15,23,42,.32);padding:6px 11px;border-radius:999px;}
+.pkgbnr-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.6);border:0;padding:0;cursor:pointer;transition:.2s;}
+.pkgbnr-dot.on{background:#fff;width:22px;border-radius:5px;}
+.pkgbnr-ar{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;background:rgba(15,23,42,.4);color:#fff;border:0;cursor:pointer;font-size:20px;line-height:1;z-index:3;opacity:0;transition:opacity .2s;display:grid;place-items:center;}
+.pkgbnr-box:hover .pkgbnr-ar{opacity:1;}
+.pkgbnr-ar.prev{left:10px;} .pkgbnr-ar.next{right:10px;}
+@media(max-width:700px){ .pkgbnr{padding:12px 14px 2px;} .pkgbnr-box{aspect-ratio:3/2;border-radius:10px;} .pkgbnr-ar{display:none;} }
 </style>
-<div class="pkg-topbnr" id="pkgTopBnr"></div>
-<script>
-(function(){
-  var wrap=document.getElementById('pkgTopBnr'); if(!wrap) return;
-  var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/';
-  function cimg(n){ return BASE+encodeURIComponent('POUR스토어_리뉴얼/package/'+n)+'?alt=media'; }
-
-  /* ▼ 사진을 더 넣으려면 이 목록에 파일명만 순서대로 추가하세요 (위→아래로 쌓임).
-       업로드 안 한 파일은 자동으로 숨겨집니다. mo(모바일용)는 선택 — 없으면 PC 이미지가 대신 나와요.
-       특정 배너에 링크 걸려면 { pc:'...', link:'/주소' } 처럼 link 를 넣으면 됩니다. */
-  var IMAGES=[
-    { pc:'package-top-pc.png', mo:'package-top-mobile.png' },
-    { pc:'package-top-2.png',  mo:'package-top-2-mobile.png' },
-    { pc:'package-top-3.png',  mo:'package-top-3-mobile.png' },
-    { pc:'package-top-4.png',  mo:'package-top-4-mobile.png' },
-    { pc:'package-top-5.png',  mo:'package-top-5-mobile.png' },
-    { pc:'package-top-6.png',  mo:'package-top-6-mobile.png' }
-  ];
-
+<div class="pkgbnr" id="pkgBnr" hidden>
+  <div class="pkgbnr-box"><div class="pkgbnr-track" data-track></div></div>
+</div>
+<script type="module">
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+(async function(){
+  var wrap=document.getElementById('pkgBnr'); if(!wrap) return;
+  var cfg={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
+  var app=getApps().some(function(a){return a.name==='pour-main';})?getApp('pour-main'):initializeApp(cfg,'pour-main');
+  var db=getFirestore(app);
+  var list=[], iv=5;
+  try{
+    var snap=await getDoc(doc(db,'config','pourstoreBanners'));
+    if(snap.exists()){ var v=snap.data()||{}; list=(Array.isArray(v.package)?v.package:[]).filter(function(b){ return b && b.image && !b.hidden; }); iv=Number(v.intervalSec)||5; }
+  }catch(e){ console.error('[pkgbnr] 배너 로드 실패:',e); }
+  if(!list.length) return;                 // 등록된 배너 없으면 아무것도 안 보임
+  wrap.hidden=false;
+  var track=wrap.querySelector('[data-track]'), box=wrap.querySelector('.pkgbnr-box');
   var isMobile=window.matchMedia('(max-width:700px)').matches;
-  var ph=document.createElement('div'); ph.className='ph';
-  ph.innerHTML='여기에 상단 배너 이미지가 표시됩니다<br>(파이어베이스 · POUR스토어_리뉴얼/package/ 에 업로드)';
-  wrap.appendChild(ph);
-
-  IMAGES.forEach(function(it){
-    var row=document.createElement(it.link?'a':'div'); row.className='row';
-    if(it.link){ row.href=it.link; if(/^https?:/.test(it.link)&&it.link.indexOf(location.host)===-1){ row.target='_blank'; row.rel='noopener'; } }
-    var img=document.createElement('img'); img.alt='패키지 배너';
-    img.onload=function(){ row.style.display='block'; ph.style.display='none'; };
-    img.onerror=function(){
-      if(img.getAttribute('data-fb')!=='1' && it.mo){ img.setAttribute('data-fb','1'); img.src=cimg(it.pc); }  // 모바일 파일 없으면 PC로 폴백
-      else { row.style.display='none'; }                                                                       // PC도 없으면 숨김
-    };
-    if(isMobile && it.mo){ img.src=cimg(it.mo); }
-    else { img.setAttribute('data-fb','1'); img.src=cimg(it.pc); }
-    row.appendChild(img); wrap.appendChild(row);
+  list.forEach(function(b){
+    var a=document.createElement(b.link?'a':'div'); a.className='pkgbnr-slide';
+    if(b.link){ a.href=b.link; if(/^https?:/.test(b.link)&&b.link.indexOf(location.host)===-1){ a.target='_blank'; a.rel='noopener'; } }
+    var img=document.createElement('img'); img.alt='패키지 배너'; img.src=(isMobile&&b.imageMobile)?b.imageMobile:b.image;
+    a.appendChild(img); track.appendChild(a);
   });
+  var n=list.length, cur=0, timer=null, dots=null;
+  function go(i){ cur=((i%n)+n)%n; track.style.transform='translateX(-'+(cur*100)+'%)'; if(dots){ for(var k=0;k<dots.length;k++) dots[k].classList.toggle('on',k===cur);} }
+  function start(){ if(n>1 && !timer) timer=setInterval(function(){ go(cur+1); }, Math.max(2,iv)*1000); }
+  function stop(){ if(timer){ clearInterval(timer); timer=null; } }
+  function reset(){ stop(); start(); }
+  if(n>1){
+    var dc=document.createElement('div'); dc.className='pkgbnr-dots';
+    list.forEach(function(_,i){ var d=document.createElement('button'); d.type='button'; d.className='pkgbnr-dot'+(i===0?' on':''); d.addEventListener('click',function(){ go(i); reset(); }); dc.appendChild(d); });
+    box.appendChild(dc); dots=dc.children;
+    var pv=document.createElement('button'); pv.type='button'; pv.className='pkgbnr-ar prev'; pv.textContent='‹'; pv.addEventListener('click',function(){ go(cur-1); reset(); });
+    var nx=document.createElement('button'); nx.type='button'; nx.className='pkgbnr-ar next'; nx.textContent='›'; nx.addEventListener('click',function(){ go(cur+1); reset(); });
+    box.appendChild(pv); box.appendChild(nx);
+    box.addEventListener('mouseenter',stop); box.addEventListener('mouseleave',start);
+    var sx=0,dx=0,drag=false;
+    box.addEventListener('touchstart',function(e){ drag=true; sx=e.touches[0].clientX; dx=0; stop(); },{passive:true});
+    box.addEventListener('touchmove',function(e){ if(drag) dx=e.touches[0].clientX-sx; },{passive:true});
+    box.addEventListener('touchend',function(){ if(drag){ if(Math.abs(dx)>40) go(cur+(dx<0?1:-1)); drag=false; reset(); } });
+    start();
+  }
 })();
 </script>
-<!-- ===== //상단 배너 ===== -->
+<!-- ===== //상단 슬라이드 배너 ===== -->
 
 <!--@import(/pourstore_renewal/package/pkg-1-check.html)-->
 <!--@import(/pourstore_renewal/package/pkg-t-scope.html)-->

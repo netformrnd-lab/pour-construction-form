@@ -6783,12 +6783,13 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
 const BANNER_SLOTS=[
   {key:'hero', label:'메인 히어로 배너', desc:'검색바 아래 좌측 큰 배너', size:'PC 권장 1280 × 720 px (가로형 16:9)', ratio:'16 / 9', mobileSize:'모바일 권장 716 × 432 px (가로 약 5:3)', mobileRatio:'716 / 432'},
   {key:'side', label:'추천(사이드) 배너', desc:'히어로 우측 세로 배너 (높이는 좌측에 맞춰 표시)', size:'PC 권장 640 × 960 px (세로형 · 2:3)', ratio:'2 / 3', mobileSize:'모바일 권장 1080 × 432 px (가로 2.5:1)', mobileRatio:'5 / 2'},
+  {key:'package', label:'패키지 페이지 상단 배너', desc:'패키지 페이지 맨 위 슬라이드 배너 (여러 장 올리면 자동 슬라이드)', size:'PC 권장 1256 × 400 px (가로형 · 넓은화면 안전)', ratio:'1256 / 400', mobileSize:'모바일 권장 1080 × 720 px (3:2)', mobileRatio:'3 / 2'},
 ];
 function BannersPage({showToast}){
   const { audit } = useActiveStaffContext();
   const oneB=(x)=>({mode:(x.mode==='design'?'design':'image'),image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',badge:x.badge||'',title:x.title||'',desc:x.desc||'',tags:x.tags||'',cta:x.cta||'',theme:(x.theme==='dark'?'dark':'light'),hidden:!!x.hidden});
   const normSlot=(v)=>{ if(Array.isArray(v)) return v.map(oneB); if(v && (v.image||v.link||v.title||v.badge)) return [oneB(v)]; return []; };
-  const [data,setData]=useState({hero:[], side:[], intervalSec:5});
+  const [data,setData]=useState({hero:[], side:[], package:[], intervalSec:5});
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState(null);
@@ -6796,7 +6797,7 @@ function BannersPage({showToast}){
   useEffect(()=>{ (async()=>{
     try{
       const d=await db.collection('config').doc('pourstoreBanners').get();
-      if(d.exists){ const v=d.data()||{}; setData({hero:normSlot(v.hero), side:normSlot(v.side), intervalSec:Number(v.intervalSec)||5}); }
+      if(d.exists){ const v=d.data()||{}; setData({hero:normSlot(v.hero), side:normSlot(v.side), package:normSlot(v.package), intervalSec:Number(v.intervalSec)||5}); }
       console.log('[banners] 로드', d.exists);
     }catch(e){ console.error('[banners] 로드 실패:',e); showToast('배너 로드 실패: '+e.message,'error'); }
     setLoading(false);
@@ -6830,7 +6831,7 @@ function BannersPage({showToast}){
       const clean=(arr)=>arr.filter(b=> b.mode==='design' ? (b.title||b.badge||b.desc||b.cta||b.image) : b.image ).map(b=> b.mode==='design'
         ? {mode:'design',image:b.image||'',imageMobile:(b.imageMobile||''),link:(b.link||'').trim(),badge:(b.badge||'').trim(),title:(b.title||'').trim(),desc:(b.desc||'').trim(),tags:(b.tags||'').trim(),cta:(b.cta||'').trim(),theme:(b.theme==='dark'?'dark':'light'),hidden:!!b.hidden}
         : {mode:'image',image:b.image,imageMobile:(b.imageMobile||''),link:(b.link||'').trim(),hidden:!!b.hidden} );
-      await db.collection('config').doc('pourstoreBanners').set({hero:clean(data.hero), side:clean(data.side), intervalSec:Number(data.intervalSec)||5, ...audit.update()},{merge:true});
+      await db.collection('config').doc('pourstoreBanners').set({hero:clean(data.hero), side:clean(data.side), package:clean(data.package), intervalSec:Number(data.intervalSec)||5, ...audit.update()},{merge:true});
       showToast('저장되었습니다 — 스토어에 반영됩니다');
     }catch(e){ console.error('[banners] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
     setSaving(false);

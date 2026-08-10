@@ -5,7 +5,7 @@
 .pdq { background:#fff; padding:68px 24px; color:#2A2E33; letter-spacing:-0.02em; }
 .pdq-inner { max-width:1060px; margin:0 auto; }
 /* 가운데 크림 카드 */
-.pdq-band { display:flex; align-items:center; gap:46px; background:#fff; border:1px solid #EEEEEE; border-radius:28px; padding:44px 54px; box-shadow:0 12px 34px rgba(15,31,92,.06); }
+.pdq-band { display:flex; align-items:center; gap:46px; }
 /* 마스코트 — 은은한 원형 배경 + 둥둥 부유 */
 .pdq-char { position:relative; flex-shrink:0; width:230px; height:230px; display:grid; place-items:center; }
 .pdq-char::before { content:''; position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle at 50% 45%, #FBEADA 0%, rgba(251,234,218,0) 68%); }
@@ -29,7 +29,7 @@
 /* 모바일 — 마스코트 위, 본문 아래 (가운데 정렬) */
 @media (max-width:760px) {
   .pdq { padding:44px 16px 48px; }
-  .pdq-band { flex-direction:column; gap:10px; padding:30px 22px 34px; border-radius:24px; }
+  .pdq-band { flex-direction:column; gap:10px; }
   .pdq-char { width:168px; height:168px; }
   .pdq-char-img { width:162px; height:162px; }
   .pdq-body { text-align:center; width:100%; }

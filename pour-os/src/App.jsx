@@ -1583,6 +1583,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [weekOffset,setWeekOffset]=useState(0);   // 주간배치 주 이동(0=이번주, -1=저번주, +1=다음주)
   const [trayOpen,setTrayOpen]=useState(true);   // 미배치(목표일 없는 할일) 트레이 펼침
   const [showDoneToday,setShowDoneToday]=useState(false);   // 오늘 업무 — 완료 항목 펼침(기본 접힘: 완료 업무가 목록을 어지럽히지 않게)
+  const [taskQuery,setTaskQuery]=useState("");   // 내 업무 검색어 — 있으면 상태탭 무시하고 제목·메모·프로젝트명으로 전체 검색
   const weekMon=(()=>{const x=new Date();const off=(x.getDay()+6)%7;x.setDate(x.getDate()-off);x.setHours(0,0,0,0);return x;})();   // 이번 주 월요일
   const selMon=(()=>{const m=new Date(weekMon);m.setDate(m.getDate()+weekOffset*7);return m;})();   // 선택된 주의 월요일
   const dateOfDay=(d)=>{const i=WEEK_DAYS.indexOf(d);if(i<0)return"";const dt=new Date(selMon);dt.setDate(dt.getDate()+i);return ymdLocal(dt);};   // 선택 주의 그 요일 실제 날짜
@@ -2166,13 +2167,26 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         const FILTERS=[["todo","미완료","#EA580C"],["inprogress","진행중","#3182F6"],["done","완료","#00C073"],["hold","보류","#FF9500"]];
         const mine=myT.filter(t=>!t.isFixed);
         const cnt=(s)=>mine.filter(t=>t.status===s).length;
-        const list=mine.filter(t=>t.status===taskFilter).sort((a,b)=>(a.weekDay?1:0)-(b.weekDay?1:0));   // 미배치(요일없음) 먼저
+        const q=taskQuery.trim().toLowerCase();
+        const searching=q.length>0;
+        // 검색어가 있으면 상태탭 무시하고 제목·메모·프로젝트명으로 내 업무 전체 검색
+        const matchQ=(t)=>{const proj=D.projects.find(p=>p.id===t.projectId);return [t.title,t.memo,proj&&proj.title].filter(Boolean).some(s=>String(s).toLowerCase().includes(q));};
+        const STORD={todo:0,inprogress:1,hold:2,done:3};
+        const list=searching
+          ? mine.filter(matchQ).sort((a,b)=>(STORD[a.status]??9)-(STORD[b.status]??9)||(a.weekDay?1:0)-(b.weekDay?1:0))
+          : mine.filter(t=>t.status===taskFilter).sort((a,b)=>(a.weekDay?1:0)-(b.weekDay?1:0));   // 미배치(요일없음) 먼저
         const cur=FILTERS.find(f=>f[0]===taskFilter);
         return(
           <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",marginBottom:14}}>
             <div style={{marginBottom:10}}>
               <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📋 내 업무</h3>
               <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>상태별로 모아 보기 · 미배치는 오늘로 배치할 수 있어요</p>
+            </div>
+            {/* 업무 검색 — 제목·메모·프로젝트명으로 내 업무 전체에서 찾기(입력하면 상태탭 대신 검색결과 노출) */}
+            <div style={{position:"relative",marginBottom:10}}>
+              <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"#9CA3AF",pointerEvents:"none"}}>🔍</span>
+              <input value={taskQuery} onChange={e=>setTaskQuery(e.target.value)} placeholder="업무 검색 (제목·메모·프로젝트명)" style={{width:"100%",padding:"10px 34px 10px 32px",borderRadius:10,border:`1.5px solid ${searching?"#F97316":"#E5E8EB"}`,fontSize:13,outline:"none",fontFamily:"inherit",backgroundColor:searching?"#FFF7ED":"#F9FAFB",boxSizing:"border-box"}}/>
+              {searching&&<button onClick={()=>setTaskQuery("")} title="검색 지우기" style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",width:22,height:22,borderRadius:"50%",border:"none",background:"#E5E8EB",color:"#6B7280",fontSize:12,fontWeight:900,cursor:"pointer",lineHeight:1}}>×</button>}
             </div>
             <div style={{marginBottom:12,padding:"11px 12px",borderRadius:12,background:"#FFF7ED",border:"1.5px solid #FED7AA"}}>
               <div style={{display:"flex",gap:8}}>
@@ -2206,6 +2220,9 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                 <p style={{margin:"6px 2px 0",fontSize:10,fontWeight:700,color:"#9A3412"}}>{qa.status!=="todo"?`🚦 ${STATUS_MAP[qa.status].label}`:""}{qa.status!=="todo"&&qa.projectId?" · ":""}{qa.projectId?`📁 ${(D.projects.find(p=>p.id===qa.projectId)||{}).title||""}`:""}</p>
               )}
             </div>
+            {searching?(
+              <div style={{marginBottom:12,fontSize:11.5,fontWeight:700,color:"#EA580C"}}>🔍 “{taskQuery.trim()}” 검색결과 {list.length}건 <span style={{fontWeight:600,color:"#9CA3AF"}}>· 모든 상태에서 찾음</span></div>
+            ):(
             <div style={{display:"flex",gap:6,marginBottom:12}}>
               {FILTERS.map(([k,l,c])=>{const on=taskFilter===k;const n=cnt(k);return(
                 <button key={k} onClick={()=>setTaskFilter(k)} style={{flex:1,padding:"7px 4px",borderRadius:9,border:`1.5px solid ${on?c:"#E5E8EB"}`,background:on?c+"14":"#fff",cursor:"pointer",fontFamily:"inherit",display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
@@ -2213,8 +2230,9 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                   <span style={{fontSize:13,fontWeight:900,color:on?c:"#C4C9D0"}}>{n}</span>
                 </button>);})}
             </div>
+            )}
             {list.length===0?(
-              <p style={{margin:0,padding:"16px 0",textAlign:"center",fontSize:12.5,color:"#B0B8C1"}}>{cur[1]} 업무가 없어요</p>
+              <p style={{margin:0,padding:"16px 0",textAlign:"center",fontSize:12.5,color:"#B0B8C1"}}>{searching?`“${taskQuery.trim()}”에 맞는 업무가 없어요`:`${cur[1]} 업무가 없어요`}</p>
             ):(
               <div style={{display:"flex",flexDirection:"column",gap:7}}>
                 {list.map(t=>{const proj=D.projects.find(p=>p.id===t.projectId);const placed=!!t.weekDay;const st=STATUS_MAP[t.status];return(

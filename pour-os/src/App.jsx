@@ -1582,6 +1582,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const todayStr=ymdLocal(new Date());
   const [weekOffset,setWeekOffset]=useState(0);   // 주간배치 주 이동(0=이번주, -1=저번주, +1=다음주)
   const [trayOpen,setTrayOpen]=useState(true);   // 미배치(목표일 없는 할일) 트레이 펼침
+  const [showDoneToday,setShowDoneToday]=useState(false);   // 오늘 업무 — 완료 항목 펼침(기본 접힘: 완료 업무가 목록을 어지럽히지 않게)
   const weekMon=(()=>{const x=new Date();const off=(x.getDay()+6)%7;x.setDate(x.getDate()-off);x.setHours(0,0,0,0);return x;})();   // 이번 주 월요일
   const selMon=(()=>{const m=new Date(weekMon);m.setDate(m.getDate()+weekOffset*7);return m;})();   // 선택된 주의 월요일
   const dateOfDay=(d)=>{const i=WEEK_DAYS.indexOf(d);if(i<0)return"";const dt=new Date(selMon);dt.setDate(dt.getDate()+i);return ymdLocal(dt);};   // 선택 주의 그 요일 실제 날짜
@@ -1730,7 +1731,38 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     setQa({title:"",status:"todo",workDate:"",weekDay:"",weekSlot:null,projectId:""});
   };
   const doneToday=todayT.filter(t=>t.status==="done").length;
+  const activeToday=todayT.filter(t=>t.status!=="done");   // 오늘 업무 중 아직 안 끝난 것(할일·진행중) — 목록 상단 노출
+  const doneTodayList=todayT.filter(t=>t.status==="done");   // 오늘 완료 — 기본 접힘 섹션으로
   const doneFixed=fixed.filter(fixedDone).length;
+  // 오늘 업무 카드 1개 렌더(할일·진행중·완료 공용) — 활성 목록과 완료 접힘 섹션에서 재사용
+  const todayCard=(t)=>{
+    const proj=D.projects.find(p=>p.id===t.projectId);
+    return(
+      <div key={t.id} style={{borderRadius:12,backgroundColor:t.status==="done"?"rgba(232,250,241,0.34)":"#F9FAFB",border:`1px solid ${t.status==="done"?"rgba(0,192,115,0.2)":"#E5E8EB"}`}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,padding:"11px 12px"}}>
+        <button onClick={()=>toggle(t)} style={{width:22,height:22,borderRadius:6,border:`2px solid ${t.status==="done"?"#00C073":"#D1D5DB"}`,backgroundColor:t.status==="done"?"#00C073":"#FFFFFF",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>
+          {t.status==="done"&&<span style={{color:"#FFFFFF",fontSize:12,fontWeight:900}}>✓</span>}
+        </button>
+        <div style={{flex:1,minWidth:0}}>
+          <p style={{margin:0,fontSize:13.5,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#111827",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.eventId?"📅 ":""}{t.title}</p>
+          {(()=>{const chain=taskParentChain(D,t);const ru=taskRollup(D,t.id);const pathTxt=[proj&&`📁 ${proj.title}`,...chain.map(c=>c.title)].filter(Boolean).join(" ▸ ");return (proj||chain.length>0||ru.total>0||(t.status==="done"&&t.doneAt))?(<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.status==="done"&&t.doneAt?<span style={{color:"#00A862",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료{(pathTxt||ru.total)?" · ":""}</span>:null}{pathTxt}{ru.total>0?<button onClick={()=>setExpandedCards(e=>({...e,[t.id]:!e[t.id]}))} style={{marginLeft:pathTxt?6:0,fontWeight:800,color:ru.done>=ru.total?"#00A862":"#7C3AED",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",fontSize:10.5}}>{pathTxt?"· ":""}하위 {ru.done}/{ru.total} {expandedCards[t.id]?"▾":"▸"}</button>:null}</p>):null;})()}
+          {(()=>{const ms=taskTimeSpent(t);const sa=inprogressStartAt(t);if(!ms&&!sa)return null;const live=t.status==="inprogress";return(<p style={{margin:"2px 0 0",fontSize:10.5,fontWeight:800,color:live?"#3182F6":"#00A862"}}>{ms>0?`⏱ ${live?"진행 ":"총 "}${fmtDur(ms)}`:""}{sa&&live?`${ms>0?" · ":""}🔵 시작 ${fmtStart(sa)}`:""}</p>);})()}
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+          {t.weekSlot&&<span style={{fontSize:10,fontWeight:800,color:"#9CA3AF"}}>{t.weekSlot}순위</span>}
+          {t.status==="todo"&&<button onClick={()=>up("tasks",t.id,statusPatch(D,t,"inprogress"))} style={{padding:"7px 13px",borderRadius:9,border:"none",background:"#3182F6",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>▶ 진행 시작</button>}
+          {t.status==="inprogress"&&<>
+            <button onClick={()=>up("tasks",t.id,statusPatch(D,t,"done"))} style={{padding:"4px 9px",borderRadius:7,border:"none",background:"#00C073",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>✓ 완료</button>
+            <button onClick={()=>holdTask(t)} style={{padding:"4px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#F8F9FA",color:"#9CA3AF",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>⏸ 보류</button>
+          </>}
+          {t.status==="done"&&<span style={{fontSize:11,fontWeight:800,color:"#00A862",backgroundColor:"#E8FAF1",padding:"3px 9px",borderRadius:6}}>완료</span>}
+          <button onClick={()=>setEditTask(t)} title="상세·수정" style={{background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#9CA3AF",padding:8}}>✎</button>
+        </div>
+        </div>
+        {expandedCards[t.id]&&<div style={{padding:"0 12px 11px"}}><CardSubtree tid={t.id}/></div>}
+      </div>
+    );
+  };
   const myProjs=D.projects.filter(p=>p.assigneeId===cu.id||(p.collaboratorIds||[]).includes(cu.id));
   const myGoals=myWeekGoals(D,cu.id);
   // 출시 인계 — 앞 단계가 끝나 내 차례가 된 출시 단계
@@ -2052,35 +2084,19 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         ):(
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
-            {todayT.map(t=>{
-              const proj=D.projects.find(p=>p.id===t.projectId);
-              const st=STATUS_MAP[t.status];
-              return(
-                <div key={t.id} style={{borderRadius:12,backgroundColor:t.status==="done"?"rgba(232,250,241,0.34)":"#F9FAFB",border:`1px solid ${t.status==="done"?"rgba(0,192,115,0.2)":"#E5E8EB"}`}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,padding:"11px 12px"}}>
-                  <button onClick={()=>toggle(t)} style={{width:22,height:22,borderRadius:6,border:`2px solid ${t.status==="done"?"#00C073":"#D1D5DB"}`,backgroundColor:t.status==="done"?"#00C073":"#FFFFFF",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>
-                    {t.status==="done"&&<span style={{color:"#FFFFFF",fontSize:12,fontWeight:900}}>✓</span>}
-                  </button>
-                  <div style={{flex:1,minWidth:0}}>
-                    <p style={{margin:0,fontSize:13.5,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#111827",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.eventId?"📅 ":""}{t.title}</p>
-                    {(()=>{const chain=taskParentChain(D,t);const ru=taskRollup(D,t.id);const pathTxt=[proj&&`📁 ${proj.title}`,...chain.map(c=>c.title)].filter(Boolean).join(" ▸ ");return (proj||chain.length>0||ru.total>0||(t.status==="done"&&t.doneAt))?(<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.status==="done"&&t.doneAt?<span style={{color:"#00A862",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료{(pathTxt||ru.total)?" · ":""}</span>:null}{pathTxt}{ru.total>0?<button onClick={()=>setExpandedCards(e=>({...e,[t.id]:!e[t.id]}))} style={{marginLeft:pathTxt?6:0,fontWeight:800,color:ru.done>=ru.total?"#00A862":"#7C3AED",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",fontSize:10.5}}>{pathTxt?"· ":""}하위 {ru.done}/{ru.total} {expandedCards[t.id]?"▾":"▸"}</button>:null}</p>):null;})()}
-                    {(()=>{const ms=taskTimeSpent(t);const sa=inprogressStartAt(t);if(!ms&&!sa)return null;const live=t.status==="inprogress";return(<p style={{margin:"2px 0 0",fontSize:10.5,fontWeight:800,color:live?"#3182F6":"#00A862"}}>{ms>0?`⏱ ${live?"진행 ":"총 "}${fmtDur(ms)}`:""}{sa&&live?`${ms>0?" · ":""}🔵 시작 ${fmtStart(sa)}`:""}</p>);})()}
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                    {t.weekSlot&&<span style={{fontSize:10,fontWeight:800,color:"#9CA3AF"}}>{t.weekSlot}순위</span>}
-                    {t.status==="todo"&&<button onClick={()=>up("tasks",t.id,statusPatch(D,t,"inprogress"))} style={{padding:"7px 13px",borderRadius:9,border:"none",background:"#3182F6",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>▶ 진행 시작</button>}
-                    {t.status==="inprogress"&&<>
-                      <button onClick={()=>up("tasks",t.id,statusPatch(D,t,"done"))} style={{padding:"4px 9px",borderRadius:7,border:"none",background:"#00C073",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>✓ 완료</button>
-                      <button onClick={()=>holdTask(t)} style={{padding:"4px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#F8F9FA",color:"#9CA3AF",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>⏸ 보류</button>
-                    </>}
-                    {t.status==="done"&&<span style={{fontSize:11,fontWeight:800,color:"#00A862",backgroundColor:"#E8FAF1",padding:"3px 9px",borderRadius:6}}>완료</span>}
-                    <button onClick={()=>setEditTask(t)} title="상세·수정" style={{background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#9CA3AF",padding:8}}>✎</button>
-                  </div>
-                  </div>
-                  {expandedCards[t.id]&&<div style={{padding:"0 12px 11px"}}><CardSubtree tid={t.id}/></div>}
-                </div>
-              );
-            })}
+            {activeToday.length===0
+              ? <div style={{padding:"14px 0",textAlign:"center"}}><p style={{margin:0,fontSize:13,fontWeight:800,color:"#00A862"}}>오늘 할 일 다 끝냈어요 🎉</p><p style={{margin:"3px 0 0",fontSize:11.5,color:"#B0B8C1"}}>완료 {doneTodayList.length}건 · 아래에서 볼 수 있어요</p></div>
+              : activeToday.map(todayCard)}
+            {/* 오늘 완료 — 기본 접힘. 완료 업무가 목록을 어지럽히지 않되, 기록은 접힌 섹션에 그대로 남는다(데이터 자산화). */}
+            {doneTodayList.length>0&&(
+              <div style={{marginTop:activeToday.length?4:0}}>
+                <button onClick={()=>setShowDoneToday(v=>!v)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,padding:"9px 12px",borderRadius:11,border:"1px solid #E8FAF1",background:"#F2FBF6",cursor:"pointer",fontFamily:"inherit"}}>
+                  <span style={{fontSize:12,fontWeight:800,color:"#00A862"}}>✓ 오늘 완료 {doneTodayList.length}건</span>
+                  <span style={{fontSize:11,fontWeight:800,color:"#00A862"}}>{showDoneToday?"숨기기 ▾":"보기 ▸"}</span>
+                </button>
+                {showDoneToday&&<div style={{display:"flex",flexDirection:"column",gap:7,marginTop:7}}>{doneTodayList.map(todayCard)}</div>}
+              </div>
+            )}
           </div>
         )}
         <div style={{marginTop:10}}>

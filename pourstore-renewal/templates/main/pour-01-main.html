@@ -939,7 +939,7 @@ var PM_POSTS = [];
     var side = shape==='side', dark = (b.theme==='dark');
     var ink = dark ? '#ffffff' : '#0F1F5C', sub = dark ? 'rgba(255,255,255,.92)' : '#33415C';
     var a = document.createElement('a'); a.className='psm1-bnr-slide psm1-bnr-design';
-    var link=(b.link||'').trim();
+    var link=(b.link||'').trim().replace(/^https?:\/\/(www\.)?(pourstore\.cafe24\.com|pourstore\.net)/i,'');  // 네이버페이 도메인 보류 방지: 절대링크→상대경로
     if (link){ a.href=link; if (/^https?:\/\//.test(link) && link.indexOf(location.host)===-1){ a.target='_blank'; a.rel='noopener'; } }
     else { a.href='javascript:void(0)'; }
     a.style.cssText='position:relative;flex:0 0 100%;width:100%;height:100%;display:block;overflow:hidden;text-decoration:none;'+
@@ -990,7 +990,7 @@ var PM_POSTS = [];
       if (b.mode === 'design'){ track.appendChild(buildDesignSlide(b, shape)); return; }
       var a = document.createElement('a'); a.className = 'psm1-bnr-slide';
       a.style.cssText = 'flex:0 0 100%;width:100%;height:100%;display:block;';
-      var link = (b.link||'').trim();
+      var link = (b.link||'').trim().replace(/^https?:\/\/(www\.)?(pourstore\.cafe24\.com|pourstore\.net)/i,'');  // 네이버페이 도메인 보류 방지: 절대링크→상대경로
       if (link){ a.href = link; if (/^https?:\/\//.test(link) && link.indexOf(location.host) === -1){ a.target='_blank'; a.rel='noopener'; } }
       else { a.href = 'javascript:void(0)'; }
       // 첫 슬라이드(최상단·above-the-fold)는 즉시 로딩+높은 우선순위 → 회색 박스 대기 최소화. 나머지는 lazy.

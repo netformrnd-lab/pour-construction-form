@@ -352,7 +352,8 @@
     return '<div class="psm2-card-hash">'+esc(txt)+'</div>';
   }
   function cardHtml(c){
-    var link=(c.link||'').trim(), title=c.title||'';
+    // ★ 네이버페이 도메인 보류 방지: 절대링크(cafe24.com/pourstore.net)는 도메인을 떼어 '상대경로'로 → 클릭해도 같은 도메인 유지
+    var link=(c.link||'').trim().replace(/^https?:\/\/(www\.)?(pourstore\.cafe24\.com|pourstore\.net)/i,''), title=c.title||'';
     var h='<a class="psm2-card psm2-managed" href="'+(link?esc(link):'#')+'"'+(link?'':' onclick="return false"')+'>';
     h+='<div class="psm2-card-img"><img src="'+esc(c.image)+'" alt="'+esc(title)+'" loading="lazy"></div>';
     var info=hashHtml(c.hashtags);                                       // 썸네일 아래: 해시태그

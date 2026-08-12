@@ -1053,7 +1053,8 @@ let curUser=null;         // 현재 로그인 사용자 (Firebase Auth)
 /* secAllowed: "마스터 계정 + 이메일 인증" 일 때만 공급업체·매칭 노출.
    최종 판정은 Firestore 규칙(서버)에서 강제 — 클라이언트 수정으로 우회 불가. */
 let secAllowed=false;    // 마스터 + 이메일 인증 → 공급업체·매칭(암호문)
-let dataAllowed=false;   // 허용목록(또는 마스터) → 채널·제품·마진 등 일반 데이터
+let dataAllowed=false;   // 허용목록(또는 마스터) → 채널·제품 등 일반 데이터
+let costAllowed=false;   // 부마스터/마스터(+이메일 인증) → 원가·마진 열람 (일반 허용계정은 판매가만)
 function _emailLc(){ return ((curUser&&curUser.email)||'').toLowerCase(); }
 function _masterLc(){ return (ACCESS&&ACCESS.masterEmail)?String(ACCESS.masterEmail).toLowerCase():''; }
 /* 마스터 계정 목록(소문자): 소유자(masterEmail) + 추가 마스터(masterEmails[]) */
@@ -1063,6 +1064,8 @@ function _masterListLc(){
   return Array.from(new Set(all));
 }
 function _allowLc(){ return (ACCESS&&Array.isArray(ACCESS.allowedEmails)?ACCESS.allowedEmails:[]).map(e=>String(e).toLowerCase()); }
+/* 부마스터 목록(소문자): 판매가에 더해 원가·마진까지 열람 (공급업체·제조사·매입처는 마스터 전용) */
+function _subMasterListLc(){ return (ACCESS&&Array.isArray(ACCESS.subMasterEmails)?ACCESS.subMasterEmails:[]).map(e=>String(e).toLowerCase()); }
 function recomputeSecAllowed(){
   const email=_emailLc();
   // 보안구역: 마스터 목록(소유자·추가마스터 누구든) + 이메일 인증
@@ -1071,8 +1074,16 @@ function recomputeSecAllowed(){
 }
 function recomputeDataAllowed(){
   const email=_emailLc();
-  dataAllowed = !!email && ( _masterListLc().includes(email) || _allowLc().includes(email) );
+  dataAllowed = !!email && ( _masterListLc().includes(email) || _subMasterListLc().includes(email) || _allowLc().includes(email) );
   return dataAllowed;
+}
+/* 원가·마진 열람: 마스터(소유자·추가) 또는 부마스터 + 이메일 인증. 그 외(일반 허용계정)는 판매가만.
+   ※ A단계는 화면 차단 — 서버(규칙)엔 원가가 남아 있음. B단계에서 원가를 별도 컬렉션으로 분리해 서버 강제 예정. */
+function recomputeCostAllowed(){
+  const email=_emailLc();
+  costAllowed = !!email && !!(curUser&&curUser.emailVerified)
+    && ( _masterListLc().includes(email) || _subMasterListLc().includes(email) );
+  return costAllowed;
 }
 
 /* ── Firestore 로더 (orderBy 미사용 → 클라이언트 정렬 · 개수 로그 · 실패는 throw) ── */
@@ -1096,8 +1107,8 @@ async function fetchAccess(){
     .then(d=>d.exists?d.data():null)
     .catch(e=>{ console.warn('[config/access] 로드 실패:', e.code||e.message||e); return null; });
   ACCESS = access;
-  recomputeSecAllowed(); recomputeDataAllowed();
-  console.log(`[access] master:${(ACCESS&&ACCESS.masterEmail)||'-'} · dataAllowed:${dataAllowed} · secAllowed:${secAllowed}`);
+  recomputeSecAllowed(); recomputeDataAllowed(); recomputeCostAllowed();
+  console.log(`[access] master:${(ACCESS&&ACCESS.masterEmail)||'-'} · dataAllowed:${dataAllowed} · costAllowed:${costAllowed} · secAllowed:${secAllowed}`);
 }
 async function fetchConfig(){
   // calc(공통 상수) + secure(대외비 암호문 — 마스터+이메일인증만 규칙상 읽기 가능)
@@ -1335,6 +1346,28 @@ function applySecGating(){
   const mfgFld=$('#apMfgFld'); if(mfgFld) mfgFld.style.display=secAllowed?'':'none';
   renderAccess();
 }
+/* 원가·마진 노출 제어(A단계·화면 차단): 일반계정은 판매가만 — 마진 뷰·원가탭 숨김, 가격정책표로 이동 */
+function applyCostGating(){
+  // 마진액·마진율 뷰 토글: 원가 열람 계정만
+  $$('#viewSeg button').forEach(b=>{ if(b.dataset.v!=='price') b.style.display=costAllowed?'':'none'; });
+  // 마진계산기 FAB(원가·마진 협의 도구): 일반계정 숨김
+  const fab=$('#calcFab'); if(fab) fab.style.display=costAllowed?'':'none';
+  const cpan=$('#calcPanel'); if(cpan){ if(!costAllowed){ cpan.classList.remove('open'); cpan.style.display='none'; } else { cpan.style.display=''; } }
+  if(!costAllowed && viewMode!=='price'){
+    viewMode='price';
+    $$('#viewSeg button').forEach(x=>x.classList.toggle('on',x.dataset.v==='price'));
+  }
+  // 그룹 네비: 표시할 탭이 하나도 없는 그룹 버튼 숨김
+  $$('#tabGroups .tgrp').forEach(g=>{
+    const has=[...document.querySelectorAll('.stab[data-grp="'+g.dataset.grp+'"]')].some(b=>!tabHidden(b));
+    g.style.display=has?'':'none';
+  });
+  // 현재 탭이 일반계정에 허용되지 않으면 가격정책표로 이동
+  if(!costAllowed){
+    const cur=document.querySelector('.stab.on');
+    if(cur && !GEN_TABS.includes(cur.dataset.sh)) gotoTab('sh-price');
+  }
+}
 
 /* ══════════ 계정 관리 (마스터 계정) ══════════ */
 async function reloadAccess(){
@@ -1342,12 +1375,12 @@ async function reloadAccess(){
     const d=await db.collection('config').doc('access').get();
     ACCESS=d.exists?d.data():null;
   }catch(e){ console.warn('[config/access] 재로드 실패:', e.code||e); }
-  recomputeSecAllowed(); recomputeDataAllowed();
+  recomputeSecAllowed(); recomputeDataAllowed(); recomputeCostAllowed();
 }
 async function refreshVerifyState(){                // 이메일 인증 링크 클릭 후 토큰 최신화
   if(!curUser)return;
   try{ await curUser.reload(); await curUser.getIdToken(true); curUser=auth.currentUser; }catch(e){ console.warn('reload 실패',e.code||e); }
-  recomputeSecAllowed(); recomputeDataAllowed();
+  recomputeSecAllowed(); recomputeDataAllowed(); recomputeCostAllowed();
 }
 function accMsg(t,ok){ const el=$('#accMsg'); if(el){ el.style.color=ok?'var(--xl-green-dark)':'var(--red)'; el.textContent=t; } }
 function renderAccess(){
@@ -1418,25 +1451,52 @@ function renderAccess(){
       ${verified?'':'<br>· 편집하려면 먼저 이메일 인증이 필요합니다.'}</p>
     </div></div>`;
   }
+  // 부마스터 관리 (원가·마진 열람) — 소유자만 추가/해제
+  let subPanel='';
+  if(master){
+    const subs=(ACCESS&&Array.isArray(ACCESS.subMasterEmails))?ACCESS.subMasterEmails:[];
+    const masterLc3=allMasters.map(m=>String(m).toLowerCase());
+    const srows = subs.length
+      ? subs.map(e=>{
+          const isM=masterLc3.includes(String(e).toLowerCase());
+          return `<tr><td class="name">${esc(e)}${isM?' <span class="pill g">마스터</span>':' <span class="pill a">부마스터</span>'}</td>
+            <td style="text-align:center;width:80px">${(isPrimary&&!isM)?`<button class="tbtn" data-subdel="${esc(e)}" style="color:var(--red);padding:2px 9px;font-size:11px">해제</button>`:'—'}</td></tr>`;
+        }).join('')
+      : `<tr><td class="dim" colspan="2" style="padding:10px">부마스터가 없습니다. 부마스터는 판매가에 더해 <b>원가·마진</b>까지 볼 수 있습니다.</td></tr>`;
+    subPanel=`<div class="panel"><h3>부마스터 계정 <span class="tag">원가·마진 열람 · 공급업체·제조사 제외</span></h3><div class="bd">
+      ${isPrimary?`<div class="formgrid" style="grid-template-columns:minmax(220px,1fr) auto;align-items:end;margin-bottom:12px">
+        <div class="fld"><label>부마스터로 추가할 계정 이메일 (미리 Firebase Authentication에 계정 생성 필요)</label><input type="email" id="subAddEmail" placeholder="submaster@netformrnd.com"></div>
+        <button class="tbtn primary" id="btnSubAdd" style="height:42px" ${verified?'':'disabled'}>부마스터 추가</button>
+      </div>`:`<p class="footnote" style="margin-bottom:10px">· 부마스터 추가/해제는 <b>소유자(기본) 마스터</b> 계정만 할 수 있습니다.</p>`}
+      <table class="grid" style="width:100%"><thead><tr><th>부마스터 계정</th><th style="width:80px">해제</th></tr></thead><tbody>${srows}</tbody></table>
+      <p class="footnote">· 부마스터는 <b>판매가·제품목록 + 원가·마진</b>까지 열람합니다. <b>공급업체(매입처)·제조사</b>는 마스터 전용이라 부마스터에게도 보이지 않습니다.
+      <br>· 각 부마스터는 본인 기기에서 <b>이메일 인증</b>을 완료해야 원가가 열립니다(인증 전에는 일반계정과 동일하게 판매가만).
+      <br>· 부마스터 추가 시 열람 허용목록에도 자동 등록됩니다(데이터 열람 허용).
+      ${verified?'':'<br>· 편집하려면 먼저 이메일 인증이 필요합니다.'}</p>
+    </div></div>`;
+  }
   // 열람 허용목록 (마스터만 편집 가능)
   const list=(ACCESS&&Array.isArray(ACCESS.allowedEmails))?ACCESS.allowedEmails:[];
   let allowPanel='';
   if(master){
     const masterLc=allMasters.map(m=>String(m).toLowerCase());
+    const subLc=_subMasterListLc();
     const rows = list.length
       ? list.map(e=>{
-          const isM=masterLc.includes(String(e).toLowerCase());
-          return `<tr><td class="name">${esc(e)}${isM?' <span class="pill g">마스터</span>':''}</td>
+          const eLc=String(e).toLowerCase();
+          const isM=masterLc.includes(eLc), isSub=!isM&&subLc.includes(eLc);
+          return `<tr><td class="name">${esc(e)}${isM?' <span class="pill g">마스터</span>':(isSub?' <span class="pill a">부마스터</span>':'')}</td>
             <td style="text-align:center;width:80px">${(isPrimary&&!isM)?`<button class="tbtn" data-allowdel="${esc(e)}" style="color:var(--red);padding:2px 9px;font-size:11px">삭제</button>`:'—'}</td></tr>`;
         }).join('')
       : `<tr><td class="dim" colspan="2" style="padding:10px">허용된 계정이 없습니다. 마스터는 항상 접근할 수 있습니다.</td></tr>`;
-    allowPanel=`<div class="panel"><h3>④ 열람 허용 계정 <span class="tag">보안구역 제외 · 데이터만 열람</span></h3><div class="bd">
+    allowPanel=`<div class="panel"><h3>④ 열람 허용 계정 <span class="tag">판매가·제품목록만 · 원가/마진 제외</span></h3><div class="bd">
       ${isPrimary?`<div class="formgrid" style="grid-template-columns:minmax(220px,1fr) auto;align-items:end;margin-bottom:12px">
         <div class="fld"><label>허용할 계정 이메일 (미리 Firebase Authentication에 계정 생성 필요)</label><input type="email" id="allowEmail" placeholder="teammate@netformrnd.com"></div>
         <button class="tbtn primary" id="btnAllowAdd" style="height:42px" ${verified?'':'disabled'}>추가</button>
       </div>`:`<p class="footnote" style="margin-bottom:10px">· 허용목록 편집은 <b>소유자(기본) 마스터</b> 계정만 가능합니다.</p>`}
       <table class="grid" style="width:100%"><thead><tr><th>이메일</th><th style="width:80px">삭제</th></tr></thead><tbody>${rows}</tbody></table>
-      <p class="footnote">· 목록에 없는 계정은 로그인해도 데이터가 보이지 않습니다(서버에서 차단). 공급업체·매칭은 이 중 <b>마스터</b>만 볼 수 있습니다.
+      <p class="footnote">· 목록에 없는 계정은 로그인해도 데이터가 보이지 않습니다(서버에서 차단). 이 목록의 <b>일반계정</b>은 <b>판매가·제품목록</b>만 봅니다.
+      <br>· <b>원가·마진</b>은 부마스터·마스터만, <b>공급업체(매입처)·제조사·매칭</b>은 마스터만 볼 수 있습니다.
       ${verified?'':'<br>· 편집하려면 먼저 이메일 인증이 필요합니다.'}</p>
     </div></div>`;
   }
@@ -1474,6 +1534,7 @@ function renderAccess(){
     <div class="cards" style="margin-bottom:14px">
       <div class="card"><h4>현재 로그인 계정</h4><div class="big" style="font-size:15px;word-break:break-all">${esc(email)}</div><div class="foot" style="margin-top:6px">${vBadge}</div></div>
       <div class="card"><h4>마스터 계정${allMasters.length>1?` (${allMasters.length})`:''}</h4><div class="big" style="font-size:15px;word-break:break-all">${master?esc(master):'미설정'}${allMasters.length>1?` <span class="pill a">+${allMasters.length-1}</span>`:''}</div><div class="foot" style="margin-top:6px">${mBadge}</div></div>
+      <div class="card"><h4>원가·마진 열람</h4><div class="big" style="font-size:15px">${costAllowed?'🔓 열람 가능':'🔒 비공개'}</div><div class="foot">${isMaster?'마스터':(_subMasterListLc().includes(email.toLowerCase())?'부마스터':'일반계정 · 판매가만')}</div></div>
       <div class="card"><h4>보안구역 접근</h4><div class="big" style="font-size:15px">${secAllowed?'🔓 허용':'🔒 차단'}</div><div class="foot">공급업체·매입처·제품상품매칭</div></div>
     </div>
     <div class="panel"><h3>이메일 인증 <span class="tag">보안구역 접근·마스터 변경 조건</span></h3><div class="bd">
@@ -1485,6 +1546,7 @@ function renderAccess(){
     </div></div>
     ${actions}
     ${mastersPanel}
+    ${subPanel}
     ${allowPanel}
     ${smsPanel}
     <p id="accMsg" style="font-size:12px;margin-top:6px;min-height:16px"></p>
@@ -1595,6 +1657,30 @@ function renderAccess(){
       const nl=cur.filter(x=>String(x).toLowerCase()!==String(em).toLowerCase());
       await db.collection('config').doc('access').set({masterEmails:nl,updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
       await reloadAccess(); refreshAll(); accMsg(`${em} 을(를) 마스터에서 해제했습니다.`,true);
+    }catch(e){ accMsg('해제 실패: '+(e.code||e.message||e)); }
+  }));
+  on('btnSubAdd',async()=>{
+    const ne=($('#subAddEmail').value||'').trim();
+    if(!ne||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ne)){ accMsg('올바른 이메일을 입력하세요.'); return; }
+    if(String(ne).toLowerCase()===String(master).toLowerCase()){ accMsg('이미 소유자(기본) 마스터입니다.'); return; }
+    try{
+      const curSub=(ACCESS&&Array.isArray(ACCESS.subMasterEmails))?ACCESS.subMasterEmails:[];
+      const nSub=Array.from(new Set([...curSub,ne]));
+      // 부마스터는 일반 데이터도 읽어야 하므로 허용목록에도 함께 등록(서버 read 허용 · 규칙 변경 없이 동작)
+      const curAllow=(ACCESS&&Array.isArray(ACCESS.allowedEmails))?ACCESS.allowedEmails:[];
+      const nAllow=Array.from(new Set([...curAllow,ne]));
+      await db.collection('config').doc('access').set({subMasterEmails:nSub,allowedEmails:nAllow,updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
+      await reloadAccess(); refreshAll(); accMsg(`${ne} 을(를) 부마스터로 추가했습니다. (로그인 후 이메일 인증 시 원가·마진 열람)`,true);
+    }catch(e){ accMsg('추가 실패: '+(e.code||e.message||e)+' (소유자 마스터·이메일 인증 여부 확인)'); }
+  });
+  box.querySelectorAll('[data-subdel]').forEach(b=>b.addEventListener('click',async()=>{
+    const em=b.dataset.subdel;
+    if(!confirm(`${em} 을(를) 부마스터에서 해제할까요?\n(원가·마진 열람 권한이 사라지고, 판매가만 보이는 일반계정이 됩니다)`))return;
+    try{
+      const curSub=(ACCESS&&Array.isArray(ACCESS.subMasterEmails))?ACCESS.subMasterEmails:[];
+      const nSub=curSub.filter(x=>String(x).toLowerCase()!==String(em).toLowerCase());
+      await db.collection('config').doc('access').set({subMasterEmails:nSub,updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
+      await reloadAccess(); refreshAll(); accMsg(`${em} 을(를) 부마스터에서 해제했습니다. (판매가만 보이는 일반계정으로 전환)`,true);
     }catch(e){ accMsg('해제 실패: '+(e.code||e.message||e)); }
   }));
   on('btnAllowAdd',async()=>{
@@ -1762,14 +1848,23 @@ function avgRate(uid){
   return n?s/n:null;
 }
 function renderRibbon(){
-  const alerts=detectAlerts();
   const rc=chBy('retail'), dc=chBy('dealer');
-  const items=[
-    {lb:'등록 품목 / 판매 채널', vl:P.length+'개 / '+CHANNELS.length+'개', sub:'가격열 표시 채널 '+COLS().length+'개'},
-    {lb:'평균 마진율 ('+(rc?rc.short:'정가')+')', vl:pct(avgRate(retailUid())), sub:'매입원가 대비'},
-    {lb:'평균 마진율 ('+(dc?dc.short:'대리점')+' 공급)', vl:pct(avgRate(dealerUid())), sub:dc?('['+dc.code+'] '+dc.name+' 기준'):'MOQ 하한 채널 미지정'},
-    {lb:'가격 점검 필요', vl:alerts.length+'건', sub:'역마진·가격역전 자동 감지'}
-  ];
+  let items;
+  if(!costAllowed){
+    // 일반계정: 마진·원가 지표 숨김 — 판매가·채널 요약만
+    items=[
+      {lb:'등록 품목 / 판매 채널', vl:P.length+'개 / '+CHANNELS.length+'개', sub:'가격열 표시 채널 '+COLS().length+'개'},
+      {lb:'표시 판매 채널', vl:COLS().length+'개', sub:'가격정책표에서 채널별 판매가 확인'}
+    ];
+  }else{
+    const alerts=detectAlerts();
+    items=[
+      {lb:'등록 품목 / 판매 채널', vl:P.length+'개 / '+CHANNELS.length+'개', sub:'가격열 표시 채널 '+COLS().length+'개'},
+      {lb:'평균 마진율 ('+(rc?rc.short:'정가')+')', vl:pct(avgRate(retailUid())), sub:'매입원가 대비'},
+      {lb:'평균 마진율 ('+(dc?dc.short:'대리점')+' 공급)', vl:pct(avgRate(dealerUid())), sub:dc?('['+dc.code+'] '+dc.name+' 기준'):'MOQ 하한 채널 미지정'},
+      {lb:'가격 점검 필요', vl:alerts.length+'건', sub:'역마진·가격역전 자동 감지'}
+    ];
+  }
   $('#ribbonKpis').innerHTML=items.map(k=>`<div class="kpi"><div class="lb">${k.lb}</div><div class="vl">${k.vl}</div><div class="sub">${k.sub}</div></div>`).join('');
 }
 function renderDash(){
@@ -1809,7 +1904,7 @@ let viewMode='price', selCell=null;
 function cellDisplay(p,uid){
   const pr=gp(p,uid);
   if(pr==null)return'—';
-  if(viewMode==='price')return won(pr);
+  if(viewMode==='price'||!costAllowed)return won(pr);
   const m=margin(pr,p.cost);
   if(m==null)return won(pr)+'<span class="mrate">원가?</span>';
   if(viewMode==='margin')return won(m);
@@ -1820,16 +1915,17 @@ function renderGrid(){
   const cat=$('#catSel').value;
   const cols=COLS(), rUid=retailUid();
   const showSup=secAllowed;                 // 공급업체 열: 마스터+이메일인증 계정만
-  const nCols=(showSup?5:4)+cols.length+1;
+  const showCost=costAllowed;               // 매입원가·마진율 열: 부마스터/마스터만 (일반계정은 판매가만)
+  const nCols=3+(showSup?1:0)+(showCost?1:0)+cols.length+(showCost?1:0);
   let html=`<thead><tr>
     <th class="sticky1" style="left:0;min-width:36px">No</th>
     <th class="sticky2" style="left:36px;min-width:230px">제품명</th>
     <th style="min-width:90px">규격</th>
     ${showSup?'<th style="min-width:96px">공급업체</th>':''}
-    <th class="num" style="min-width:86px">매입원가</th>
+    ${showCost?'<th class="num" style="min-width:86px">매입원가</th>':''}
     ${cols.map(c=>`<th class="num" style="min-width:96px;height:38px" title="${esc(c.desc)}">
       <div style="font-size:9.5px;font-family:var(--mono);color:var(--amber);line-height:1.2">${esc(c.g)} · ${esc(c.code)}</div>${esc(c.name)}</th>`).join('')}
-    <th class="num" style="min-width:88px">정가 마진율</th>
+    ${showCost?'<th class="num" style="min-width:88px">정가 마진율</th>':''}
   </tr></thead><tbody>`;
   let lastCat=null,no=0;
   P.forEach(p=>{
@@ -1843,13 +1939,13 @@ function renderGrid(){
       <td class="sticky2 name" style="left:36px">${p.name}</td>
       <td class="dim">${p.spec}</td>
       ${showSup?`<td class="dim" title="${unlocked?esc(p.mgr||''):''}">${unlocked?esc(p.sup||'—'):'🔒'}</td>`:''}
-      <td class="num cost editable" data-id="${p.id}" data-f="cost">${won(p.cost)}</td>
+      ${showCost?`<td class="num cost editable" data-id="${p.id}" data-f="cost">${won(p.cost)}</td>`:''}
       ${cols.map(c=>{
         const pr=gp(p,c.uid), m=margin(pr,p.cost);
         const cls=['num','editable']; if(m!=null&&m<0)cls.push('neg','warn');
         return `<td class="${cls.join(' ')}" data-id="${p.id}" data-f="u${c.uid}">${cellDisplay(p,c.uid)}</td>`;
       }).join('')}
-      <td class="num" style="font-weight:600;color:${r7!=null&&r7<0.15?'var(--amber)':'var(--xl-green-dark)'}">${pct(r7)}</td>
+      ${showCost?`<td class="num" style="font-weight:600;color:${r7!=null&&r7<0.15?'var(--amber)':'var(--xl-green-dark)'}">${pct(r7)}</td>`:''}
     </tr>`;
   });
   $('#priceGrid').innerHTML=html+'</tbody>';
@@ -1857,6 +1953,7 @@ function renderGrid(){
 /* 셀 선택 → 수식줄 + 이익배분 */
 function showSplit(p,uid){
   const box=$('#fxSplit');
+  if(!costAllowed){ box.classList.remove('on'); return; }   // 일반계정: 원가·마진 배분 숨김
   const c=chByUid(uid), rUid=retailUid();
   const pr=gp(p,uid), retail=gp(p,rUid);
   if(pr==null||p.cost==null){ box.classList.remove('on'); return; }
@@ -1896,10 +1993,15 @@ document.addEventListener('click',e=>{
   }else{
     const uid=f.slice(1), c=chByUid(uid), pr=gp(p,uid), m=margin(pr,p.cost), r=mrate(pr,p.cost);
     $('#fxRef').textContent=p.name+' · '+(c?c.code:'');
-    $('#fxExpr').innerHTML = pr==null ? '가격 미등록 — 더블클릭하여 입력'
-      : p.cost==null ? `<b>${wonU(pr)}</b> (매입원가 미등록 → 마진 계산 불가)`
-      : `= ${won(pr)} − ${won(p.cost)} → <b style="color:var(--xl-green-dark)">POUR스토어 마진</b> <span class="${m<0?'neg':'pos'}">${wonU(m)}</span> · <span class="${m<0?'neg':'pos'}">${pct(r)}</span>`;
-    showSplit(p,uid);
+    if(!costAllowed){                                      // 일반계정: 판매가만
+      $('#fxExpr').innerHTML = pr==null ? '가격 미등록' : `판매가 <b>${wonU(pr)}</b>`;
+      $('#fxSplit').classList.remove('on');
+    }else{
+      $('#fxExpr').innerHTML = pr==null ? '가격 미등록 — 더블클릭하여 입력'
+        : p.cost==null ? `<b>${wonU(pr)}</b> (매입원가 미등록 → 마진 계산 불가)`
+        : `= ${won(pr)} − ${won(p.cost)} → <b style="color:var(--xl-green-dark)">POUR스토어 마진</b> <span class="${m<0?'neg':'pos'}">${wonU(m)}</span> · <span class="${m<0?'neg':'pos'}">${pct(r)}</span>`;
+      showSplit(p,uid);
+    }
   }
 });
 document.addEventListener('dblclick',e=>{
@@ -1934,10 +2036,10 @@ $('#btnReset').addEventListener('click',()=>{
 });
 $('#btnCsv').addEventListener('click',()=>{
   const cols=COLS(), rUid=retailUid();
-  const head=['분류','제품명','규격',...(unlocked?['공급업체','담당자']:[]),'매입원가',...cols.map(c=>`[${c.code}] ${c.name}`),'정가 마진액','정가 마진율(%)'];
+  const head=['분류','제품명','규격',...(unlocked?['공급업체','담당자']:[]),...(costAllowed?['매입원가']:[]),...cols.map(c=>`[${c.code}] ${c.name}`),...(costAllowed?['정가 마진액','정가 마진율(%)']:[])];
   const rows=P.map(p=>{
     const m=margin(gp(p,rUid),p.cost), r=mrate(gp(p,rUid),p.cost);
-    return [p.cat,p.name,p.spec,...(unlocked?[p.sup||'',p.mgr||'']:[]),p.cost??'',...cols.map(c=>gp(p,c.uid)??''),m??'',r!=null?(r*100).toFixed(2):''];
+    return [p.cat,p.name,p.spec,...(unlocked?[p.sup||'',p.mgr||'']:[]),...(costAllowed?[p.cost??'']:[]),...cols.map(c=>gp(p,c.uid)??''),...(costAllowed?[m??'',r!=null?(r*100).toFixed(2):'']:[])];
   });
   const csv='\uFEFF'+[head,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');
@@ -2495,7 +2597,13 @@ function runCalc(){
 
 /* ══════════ 제조사·제품·상품 등록 ══════════ */
 let activeGrp='sum';
-function tabHidden(b){ return b.dataset.sh==='sh-match' && !secAllowed; }   // 보안탭은 마스터만
+/* 일반계정(원가 미열람)에 보이는 탭: 가격정책표(판매가) + 계정 관리만 */
+const GEN_TABS=['sh-price','sh-access'];
+function tabHidden(b){
+  if(b.dataset.sh==='sh-match' && !secAllowed) return true;          // 보안탭: 마스터만
+  if(!costAllowed && !GEN_TABS.includes(b.dataset.sh)) return true;  // 원가 미열람 → 판매가·계정만
+  return false;
+}
 function renderTabs(){
   $$('.tgrp').forEach(g=>g.classList.toggle('on',g.dataset.grp===activeGrp));
   $$('.stab').forEach(b=>{ b.style.display=(b.dataset.grp===activeGrp && !tabHidden(b))?'':'none'; });
@@ -3023,6 +3131,7 @@ function refreshAll(){
   fillRegDatalists(); renderMfg(); renderAddProd(); renderAddItem(); renderFixed();
   renderMktAll();
   applySecGating();
+  applyCostGating();
 }
 function syncStickyTop(){
   const tr=$('#sh-price .toolrow'); if(!tr)return;

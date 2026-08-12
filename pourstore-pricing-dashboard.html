@@ -364,8 +364,8 @@ thead .sticky1,thead .sticky2{z-index:25}
     <div style="background:#0B5C30;color:#fff;padding:16px 20px;font-weight:800;font-size:15px">POUR스토어 가격·마진 대시보드</div>
     <div style="padding:22px">
 
-      <!-- ── SMS 코드 로그인 (기본) ── -->
-      <div id="loginSms">
+      <!-- ── SMS 코드 로그인 (현재 비활성 · 코드 보존) ── -->
+      <div id="loginSms" style="display:none">
         <p style="font-size:12px;color:#5A6572;line-height:1.6;margin-bottom:14px">문자(SMS) 인증코드로 로그인합니다. 이메일을 입력하면 <b>등록된 휴대폰</b>으로 코드가 전송됩니다.</p>
         <label style="font-size:11px;color:#5A6572;font-weight:600">이메일</label>
         <input id="smsEmail" type="email" autocomplete="username" style="width:100%;border:1px solid #D5D9DE;border-radius:5px;padding:9px 11px;font-size:13px;margin:4px 0 10px">
@@ -381,21 +381,20 @@ thead .sticky1,thead .sticky2{z-index:25}
         </div>
       </div>
 
-      <!-- ── 비밀번호 로그인 (fallback) ── -->
-      <div id="loginPw" style="display:none">
-        <p style="font-size:12px;color:#5A6572;line-height:1.6;margin-bottom:14px">비밀번호로 로그인합니다. (SMS 발송이 안 될 때 사용)</p>
+      <!-- ── 비밀번호 로그인 (Firebase · 기본) ── -->
+      <div id="loginPw">
+        <p style="font-size:12px;color:#5A6572;line-height:1.6;margin-bottom:14px">대외비 데이터에 접근하려면 로그인하세요. 계정은 관리자에게 문의하세요.</p>
         <label style="font-size:11px;color:#5A6572;font-weight:600">이메일</label>
         <input id="authEmail" type="email" autocomplete="username" style="width:100%;border:1px solid #D5D9DE;border-radius:5px;padding:9px 11px;font-size:13px;margin:4px 0 10px">
         <label style="font-size:11px;color:#5A6572;font-weight:600">비밀번호</label>
         <input id="authPw" type="password" autocomplete="current-password" style="width:100%;border:1px solid #D5D9DE;border-radius:5px;padding:9px 11px;font-size:13px;margin:4px 0 14px">
         <button id="authBtn" class="tbtn primary" style="width:100%;padding:10px;font-size:13.5px">로그인</button>
-        <div style="margin-top:12px"><span id="toSms" style="font-size:12px;color:#0B5C30;cursor:pointer;text-decoration:underline">← SMS 코드로 로그인</span></div>
       </div>
 
       <p id="authMsg" style="font-size:12px;color:#C0392B;margin-top:10px;min-height:16px"></p>
 
-      <!-- ── SMS 서버(Worker) URL 설정 (관리자 1회) ── -->
-      <div style="border-top:1px dashed #E5E7EB;margin-top:12px;padding-top:10px">
+      <!-- ── SMS 서버(Worker) URL 설정 (SMS 로그인용 · 현재 비활성) ── -->
+      <div style="display:none;border-top:1px dashed #E5E7EB;margin-top:12px;padding-top:10px">
         <span id="cfgToggle" style="font-size:11px;color:#8A94A0;cursor:pointer">⚙ SMS 서버 설정</span>
         <div id="cfgBox" style="display:none;margin-top:8px">
           <label style="font-size:11px;color:#5A6572;font-weight:600">Login OTP Worker URL</label>
@@ -3319,8 +3318,8 @@ auth.onAuthStateChanged(async user=>{
     finally{ $('#loadingOverlay').style.display='none'; }
   }else{
     hideSessionUI(); resetSmsUI();
-    const s=$('#loginSms'); if(s)s.style.display='block';
-    const p=$('#loginPw'); if(p)p.style.display='none';
+    const s=$('#loginSms'); if(s)s.style.display='none';
+    const p=$('#loginPw'); if(p)p.style.display='block';
     $('#authGate').style.display='flex';
   }
 });

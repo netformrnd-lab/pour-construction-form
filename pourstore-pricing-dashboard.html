@@ -353,6 +353,7 @@ thead .sticky1,thead .sticky2{z-index:25}
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
+    <button id="btnAccountGear" title="계정 관리" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:4px;padding:5px 10px;font-size:11.5px">⚙️ 계정</button>
     <span id="authWho" style="font-size:11px;opacity:.85"></span>
     <button id="btnSignOut" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:4px;padding:5px 10px;font-size:11.5px">로그아웃</button>
   </div>
@@ -964,20 +965,18 @@ thead .sticky1,thead .sticky2{z-index:25}
 
 <!-- ═══ 시트 탭 (그룹 2단 네비게이션) ═══ -->
 <div id="tabGroups">
-  <button class="tgrp on" data-grp="sum">📊 요약</button>
-  <button class="tgrp" data-grp="price">💰 가격·채널</button>
+  <button class="tgrp on" data-grp="price">💰 가격·채널</button>
   <button class="tgrp" data-grp="prod">📦 제품·매입</button>
   <button class="tgrp" data-grp="profit">📈 판매·손익</button>
   <button class="tgrp" data-grp="mkt">📣 마케팅</button>
-  <button class="tgrp" data-grp="set">⚙️ 설정</button>
 </div>
 <div id="tabs">
-  <button class="stab on" data-grp="sum" data-sh="sh-dash"><span class="dot"></span>경영요약</button>
+  <button class="stab on" data-grp="price" data-sh="sh-dash"><span class="dot"></span>경영요약</button>
   <button class="stab" data-grp="price" data-sh="sh-product"><span class="dot"></span>상품 기준</button>
   <button class="stab" data-grp="price" data-sh="sh-price"><span class="dot"></span>가격정책표</button>
   <button class="stab" data-grp="price" data-sh="sh-chman"><span class="dot"></span>채널 관리</button>
   <button class="stab" data-grp="price" data-sh="sh-channel"><span class="dot"></span>채널 수익분석</button>
-  <button class="stab" data-grp="prod" data-sh="sh-reg"><span class="dot"></span>제조사·제품·상품 등록</button>
+  <button class="stab" data-grp="prod" data-sh="sh-reg"><span class="dot"></span>제품·상품 등록</button>
   <button class="stab" data-grp="prod" data-sh="sh-match"><span class="dot"></span>제품·상품 매칭 <span id="tabLockIcon" style="font-size:10px">🔒</span></button>
   <button class="stab" data-grp="profit" data-sh="sh-moq"><span class="dot"></span>MOQ 대량판매</button>
   <button class="stab" data-grp="profit" data-sh="sh-pl"><span class="dot"></span>손익·공헌이익</button>
@@ -985,7 +984,7 @@ thead .sticky1,thead .sticky2{z-index:25}
   <button class="stab" data-grp="mkt" data-sh="sh-mkt"><span class="dot"></span>마케팅 개요</button>
   <button class="stab" data-grp="mkt" data-sh="sh-mktlink"><span class="dot"></span>추적링크</button>
   <button class="stab" data-grp="mkt" data-sh="sh-mktpromo"><span class="dot"></span>프로모션 성과</button>
-  <button class="stab" data-grp="set" data-sh="sh-access"><span class="dot"></span>계정 관리</button>
+  <button class="stab" data-grp="none" data-sh="sh-access"><span class="dot"></span>계정 관리</button>
 </div>
 
 <!-- ═══ 모바일 메뉴 (폰 전용) ═══ -->
@@ -2596,7 +2595,7 @@ function runCalc(){
 }
 
 /* ══════════ 제조사·제품·상품 등록 ══════════ */
-let activeGrp='sum';
+let activeGrp='price';
 /* 일반계정(원가 미열람)에 보이는 탭: 가격정책표(판매가) + 계정 관리만 */
 const GEN_TABS=['sh-price','sh-access'];
 function tabHidden(b){
@@ -3411,6 +3410,7 @@ $('#authPw').addEventListener('keydown',e=>{ if(e.key==='Enter')doSignIn(); });
 $('#authEmail').addEventListener('keydown',e=>{ if(e.key==='Enter')$('#authPw').focus(); });
 $('#btnSignOut').addEventListener('click',async()=>{ try{ await auth.signOut(); }catch(e){ console.error(e); } location.reload(); });
 $('#btnGoAccess')&&$('#btnGoAccess').addEventListener('click',()=>gotoTab('sh-access'));
+$('#btnAccountGear')&&$('#btnAccountGear').addEventListener('click',()=>gotoTab('sh-access'));
 auth.onAuthStateChanged(async user=>{
   if(user){
     // 3일 인증창이 만료됐으면 강제 재인증(로그아웃 → SMS 로그인)

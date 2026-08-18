@@ -1411,7 +1411,8 @@ var PM_POSTS = [];
   .pev-catchip{margin-top:10px;display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:800;color:#E8780F;background:#FFF3E9;padding:7px 12px;border-radius:999px;}
   .pev-empty,.pev-loading{padding:70px 0;text-align:center;color:#adb2bb;font-size:14px;font-weight:600;}
   /* 상세 오버레이 */
-  .pev-detail{position:fixed;inset:0;z-index:100020;background:#fff;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  /* 헤더 아래에서 시작하도록 top을 JS가 --pev-top(헤더 높이)로 지정. z-index는 헤더(1000)/카테고리패널(1200)보다 낮게 → 헤더·드롭다운이 위에 유지 */
+  .pev-detail{position:fixed;top:var(--pev-top,0px);left:0;right:0;bottom:0;z-index:900;background:#fff;overflow-y:auto;-webkit-overflow-scrolling:touch;}
   .pev-detail[hidden]{display:none;}
   .pev-dt-top{position:sticky;top:0;z-index:5;height:54px;display:flex;align-items:center;gap:8px;padding:0 12px;background:rgba(255,255,255,.96);backdrop-filter:blur(6px);border-bottom:1px solid #F2F3F5;}
   .pev-dt-back{width:38px;height:38px;display:grid;place-items:center;border:0;background:none;cursor:pointer;color:#333;flex-shrink:0;}
@@ -1537,9 +1538,18 @@ function openDetail(ev){
     h+='<div class="pev-dt-prods"><a class="pev-dt-catbtn" href="/product/list.html?cate_no='+esc(ev.categoryNo)+'">이 카테고리 상품 전체보기 →</a></div>';
   }
   body.innerHTML=h;
+  pevSyncTop(detail);                 // 헤더 높이만큼 오버레이를 아래로 → 헤더가 위에 남음
   detail.hidden=false; detail.scrollTop=0;
   document.documentElement.style.overflow='hidden';
 }
+// 상세 오버레이가 공용 헤더 아래에서 시작하도록 --pev-top 을 헤더 높이로 설정
+function pevSyncTop(d){
+  d=d||document.querySelector('[data-pev-detail]'); if(!d) return;
+  var hdr=document.querySelector('[data-pour-gh]');
+  var top = hdr ? Math.max(0, Math.round(hdr.getBoundingClientRect().bottom)) : 0;
+  d.style.setProperty('--pev-top', top+'px');
+}
+window.addEventListener('resize', function(){ var d=document.querySelector('[data-pev-detail]'); if(d && !d.hidden) pevSyncTop(d); });
 function closeDetail(){
   var d=document.querySelector('[data-pev-detail]'); if(!d) return; d.hidden=true;
   document.documentElement.style.overflow='';

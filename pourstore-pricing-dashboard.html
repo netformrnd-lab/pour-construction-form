@@ -967,6 +967,53 @@ thead .sticky1,thead .sticky2{z-index:25}
     <div class="sheet-pad" id="accessBody"></div>
   </section>
 
+  <!-- ── Sheet: 입고예정 CRM 송신 (발주 담당 → CRM 대시보드 글 알림) ── -->
+  <section class="sheet" id="sh-inbound">
+    <div class="toolrow">
+      <span class="ttl">입고예정 CRM 송신</span>
+      <span class="hint">발주 시 물류담당자가 CRM 대시보드에서 입고예정을 바로 알 수 있게 글 알림을 보냅니다</span>
+    </div>
+    <div class="sheet-pad">
+      <div class="panel">
+        <h3>📦 입고예정 보내기 <span class="tag">제조사·원가 제외 (대외비)</span></h3>
+        <div class="bd">
+          <div class="formgrid">
+            <div class="fld" style="grid-column:1/-1">
+              <label>제품 *</label>
+              <input type="text" id="ibProduct" list="ibProdList" placeholder="제품명 (목록 선택 또는 직접 입력)" autocomplete="off">
+              <datalist id="ibProdList"></datalist>
+            </div>
+            <div class="fld">
+              <label>수량 *</label>
+              <input type="number" id="ibQty" min="1" step="1" placeholder="예: 100">
+            </div>
+            <div class="fld">
+              <label>입고예정일 *</label>
+              <input type="date" id="ibEta">
+            </div>
+            <div class="fld">
+              <label>입고처</label>
+              <input type="text" id="ibPlace" placeholder="예: 본사 창고 / 김해 물류">
+            </div>
+            <div class="fld" style="grid-column:1/-1">
+              <label>메모 (선택)</label>
+              <input type="text" id="ibMemo" placeholder="예: 스티커라벨 동봉 · 오전 도착">
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap">
+            <button class="tbtn" id="ibSend" style="background:var(--xl-green);color:#fff;border-color:var(--xl-green);font-weight:700">📤 CRM에 입고예정 보내기</button>
+            <span id="ibStatus" class="footnote" style="margin-top:0"></span>
+          </div>
+          <p class="footnote">· <b>제조사·매입처·원가·마진·고객정보는 전송되지 않습니다</b> — CRM 대시보드는 공용 화면이라 대외비를 담지 않습니다.<br>· 전송 항목: <b>제품·수량·입고예정일·입고처·메모</b>. 문자·개인알림·팝업 없이 CRM 대시보드 <b>입고 예정</b> 위젯에 글로만 표시됩니다.<br>· 제조사와의 소통(스티커라벨·부자재 발송 등)은 종전대로 직접 진행하세요.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>이번 세션에 보낸 내역</h3>
+        <div class="bd" id="ibSentBox"><p class="footnote" style="margin-top:0">아직 보낸 내역이 없습니다.</p></div>
+      </div>
+    </div>
+  </section>
+
 </div>
 
 <!-- ═══ 시트 탭 (그룹 2단 네비게이션) ═══ -->
@@ -984,6 +1031,7 @@ thead .sticky1,thead .sticky2{z-index:25}
   <button class="stab" data-grp="price" data-sh="sh-channel"><span class="dot"></span>채널 수익분석</button>
   <button class="stab" data-grp="prod" data-sh="sh-reg"><span class="dot"></span>제품·상품 등록</button>
   <button class="stab" data-grp="prod" data-sh="sh-match"><span class="dot"></span>제품·상품 매칭 <span id="tabLockIcon" style="font-size:10px">🔒</span></button>
+  <button class="stab" data-grp="prod" data-sh="sh-inbound"><span class="dot"></span>입고예정 CRM 송신</button>
   <button class="stab" data-grp="profit" data-sh="sh-moq"><span class="dot"></span>MOQ 대량판매</button>
   <button class="stab" data-grp="profit" data-sh="sh-pl"><span class="dot"></span>손익·공헌이익</button>
   <button class="stab" data-grp="profit" data-sh="sh-fixed"><span class="dot"></span>고정지출 관리</button>
@@ -2128,6 +2176,7 @@ function fillProductSelects(){
   const opts=P.filter(p=>p.cat!=='패키지').map(p=>`<option value="${p.id}">[${p.cat}] ${p.name} · ${p.spec}</option>`).join('');
   ['#chProd','#moqProd','#plProd'].forEach(s=>$(s).innerHTML=opts);
   $('#calcProd').innerHTML='<option value="">직접 입력</option>'+opts;
+  const ibl=$('#ibProdList'); if(ibl) ibl.innerHTML=P.map(p=>`<option value="${esc(p.name)}${p.spec?' '+esc(p.spec):''}">`).join('');
   const d=P.findIndex(p=>p.name.includes('코트재Ⅰ(회색)'));
   if(d>=0){['#chProd','#moqProd','#plProd'].forEach(s=>$(s).value=d);}
 }
@@ -2611,6 +2660,67 @@ function runCalc(){
   }
   $('#calcRes').innerHTML=rows.map(r=>`<div class="row ${r[3]?'hl':''}"><span>${r[0]}</span><span class="${r[2]?'neg':''}">${r[1]}</span></div>`).join('');
 }
+
+/* ══════════ 입고예정 CRM 송신 (가격대시보드 → pourstorecrm) ══════════
+   별도 Firebase 앱('crm')으로 pourstorecrm 프로젝트의 inbound_requests에 create만.
+   ⚠ 제조사·매입처·원가·마진·고객정보는 절대 담지 않는다(공용 CRM 화면, 대외비). */
+const CRM_FB_CONFIG={
+  apiKey:"AIzaSyDAQLBECvSDHqG2ciC7MM0MADdEYLrSyZ0",
+  authDomain:"pourstorecrm.firebaseapp.com",
+  projectId:"pourstorecrm",
+  storageBucket:"pourstorecrm.firebasestorage.app",
+  messagingSenderId:"814387236246",
+  appId:"1:814387236246:web:a17bec34f3c992007aa1b7"
+};
+let _crmDb=null;
+function crmDB(){
+  if(_crmDb) return _crmDb;
+  try{
+    const app = (firebase.apps||[]).find(a=>a.name==='crm') || firebase.initializeApp(CRM_FB_CONFIG,'crm');
+    _crmDb = app.firestore();
+  }catch(e){ console.error('[crm] 초기화 실패', e.code||e.message||e); return null; }
+  return _crmDb;
+}
+let IB_SENT=[];   // 이번 세션에 보낸 내역(로컬) — CRM 읽기는 규칙상 불가(create 전용)
+function renderInboundSent(){
+  const box=$('#ibSentBox'); if(!box)return;
+  if(!IB_SENT.length){ box.innerHTML='<p class="footnote" style="margin-top:0">아직 보낸 내역이 없습니다.</p>'; return; }
+  box.innerHTML='<table class="grid" style="width:100%"><thead><tr><th>보낸시각</th><th>제품</th><th class="num">수량</th><th>입고예정일</th><th>입고처</th><th>메모</th></tr></thead><tbody>'+
+    IB_SENT.map(r=>{ const t=new Date(r.at); const hh=String(t.getHours()).padStart(2,'0'), mm=String(t.getMinutes()).padStart(2,'0');
+      return `<tr><td>${hh}:${mm}</td><td>${esc(r.product)}</td><td class="num">${r.qty}</td><td>${esc(r.eta)}</td><td>${esc(r.place||'-')}</td><td>${esc(r.memo||'-')}</td></tr>`;
+    }).join('')+'</tbody></table>';
+}
+function ibSetStatus(msg,ok){ const s=$('#ibStatus'); if(!s)return; s.textContent=msg||''; s.style.color=ok===false?'var(--xl-red,#c0392b)':ok===true?'var(--xl-green-dark,#1a7a4a)':'var(--ink-faint)'; }
+async function sendInbound(){
+  const product=($('#ibProduct').value||'').trim();
+  const qty=Math.floor(+$('#ibQty').value||0);
+  const eta=$('#ibEta').value||'';
+  const place=($('#ibPlace').value||'').trim();
+  const memo=($('#ibMemo').value||'').trim();
+  if(!product){ ibSetStatus('제품을 입력하세요.',false); $('#ibProduct').focus(); return; }
+  if(!qty||qty<=0){ ibSetStatus('수량을 1 이상 입력하세요.',false); $('#ibQty').focus(); return; }
+  if(!eta){ ibSetStatus('입고예정일을 선택하세요.',false); $('#ibEta').focus(); return; }
+  const d=crmDB(); if(!d){ ibSetStatus('CRM 연결에 실패했습니다.',false); return; }
+  const btn=$('#ibSend'); btn.disabled=true; const old=btn.textContent; btn.textContent='보내는 중…'; ibSetStatus('');
+  try{
+    // ⚠ 화이트리스트 필드만. 제조사·원가·매입처 등 대외비는 담지 않는다.
+    await d.collection('inbound_requests').add({
+      product, qty, eta, place, memo,
+      src:'price-dashboard', handled:false,
+      createdAt:new Date().toISOString(),
+      createdBy:(curUser&&curUser.email)||''
+    });
+    IB_SENT.unshift({product,qty,eta,place,memo,at:new Date().toISOString()});
+    renderInboundSent();
+    $('#ibQty').value=''; $('#ibMemo').value='';
+    ibSetStatus('✅ CRM 대시보드로 전송했습니다. (제조사·원가 미포함)',true);
+  }catch(e){
+    console.error('[inbound] 전송 실패', e);
+    const code=e.code||e.message||e;
+    ibSetStatus('전송 실패: '+code+(String(code).includes('permission')?' — CRM 규칙 배포(firestore:rules) 필요할 수 있습니다.':''),false);
+  }finally{ btn.disabled=false; btn.textContent=old; }
+}
+$('#ibSend')&&$('#ibSend').addEventListener('click',sendInbound);
 
 /* ══════════ 제조사·제품·상품 등록 ══════════ */
 let activeGrp='price';

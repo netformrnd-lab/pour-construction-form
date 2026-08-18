@@ -353,11 +353,13 @@ thead .sticky1,thead .sticky2{z-index:25}
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
+    <button id="btnViewAsGeneral" title="팀원(일반계정)에게 보이는 화면 미리보기" style="display:none;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:4px;padding:5px 10px;font-size:11.5px">👁 팀원 화면</button>
     <button id="btnAccountGear" title="계정 관리" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:4px;padding:5px 10px;font-size:11.5px">⚙️ 계정</button>
     <span id="authWho" style="font-size:11px;opacity:.85"></span>
     <button id="btnSignOut" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:4px;padding:5px 10px;font-size:11.5px">로그아웃</button>
   </div>
 </div>
+<div id="viewAsBanner" style="display:none"></div>
 
 <!-- ═══ 로그인 게이트 (대외비 접근 · Firebase Auth) ═══ -->
 <div id="authGate" style="position:fixed;inset:0;z-index:5000;background:linear-gradient(180deg,#107C41,#0A4A27);display:flex;align-items:center;justify-content:center;padding:20px">
@@ -1056,6 +1058,7 @@ let curUser=null;         // 현재 로그인 사용자 (Firebase Auth)
 let secAllowed=false;    // 마스터 + 이메일 인증 → 공급업체·매칭(암호문)
 let dataAllowed=false;   // 허용목록(또는 마스터) → 채널·제품 등 일반 데이터
 let costAllowed=false;   // 부마스터/마스터(+이메일 인증) → 원가·마진 열람 (일반 허용계정은 판매가만)
+let VIEW_AS_GENERAL=false, CAN_PREVIEW=false;   // 팀원(일반계정) 보기 미리보기 모드
 function _emailLc(){ return ((curUser&&curUser.email)||'').toLowerCase(); }
 function _masterLc(){ return (ACCESS&&ACCESS.masterEmail)?String(ACCESS.masterEmail).toLowerCase():''; }
 /* 마스터 계정 목록(소문자): 소유자(masterEmail) + 추가 마스터(masterEmails[]) */
@@ -1070,7 +1073,7 @@ function _subMasterListLc(){ return (ACCESS&&Array.isArray(ACCESS.subMasterEmail
 function recomputeSecAllowed(){
   const email=_emailLc();
   // 보안구역: 마스터 목록(소유자·추가마스터 누구든) + 이메일 인증
-  secAllowed = !!email && _masterListLc().includes(email) && !!(curUser&&curUser.emailVerified);
+  secAllowed = !VIEW_AS_GENERAL && !!email && _masterListLc().includes(email) && !!(curUser&&curUser.emailVerified);
   return secAllowed;
 }
 function recomputeDataAllowed(){
@@ -1082,8 +1085,10 @@ function recomputeDataAllowed(){
    ※ A단계는 화면 차단 — 서버(규칙)엔 원가가 남아 있음. B단계에서 원가를 별도 컬렉션으로 분리해 서버 강제 예정. */
 function recomputeCostAllowed(){
   const email=_emailLc();
-  costAllowed = !!email && !!(curUser&&curUser.emailVerified)
+  const raw = !!email && !!(curUser&&curUser.emailVerified)
     && ( _masterListLc().includes(email) || _subMasterListLc().includes(email) );
+  CAN_PREVIEW = raw;                    // 실제 원가열람 자격 (미리보기 버튼 노출 기준)
+  costAllowed = raw && !VIEW_AS_GENERAL;
   return costAllowed;
 }
 
@@ -3107,6 +3112,16 @@ async function approveDraft(){
 }
 async function rejectDraft(){ if(!isApprover()){ alert('반려는 상급자(마스터)만 가능합니다.'); return; } if(!confirm('이 개정안을 반려(폐기)할까요?'))return; draftDiscard(); await saveDraft(); refreshAll(); }
 async function appendHistory(rev){ try{ const d=await db.collection('product-meta').doc('pricing-history').get(); const arr=(d.exists&&Array.isArray(d.data().revisions))?d.data().revisions:[]; arr.push(rev); await db.collection('product-meta').doc('pricing-history').set({revisions:arr.slice(-500)}); }catch(e){ console.warn('[pricing-history] 저장 실패',e.code||e); } }
+/* ── 팀원(일반계정) 보기 미리보기 ── */
+function toggleViewAsGeneral(){ VIEW_AS_GENERAL=!VIEW_AS_GENERAL; if(VIEW_AS_GENERAL)PREVIEW=false; recomputeSecAllowed(); recomputeCostAllowed(); recomputeDataAllowed(); refreshAll(); }
+function renderViewChrome(){
+  const btn=$('#btnViewAsGeneral');
+  if(btn){ btn.style.display=CAN_PREVIEW?'':'none'; btn.textContent=VIEW_AS_GENERAL?'✖ 원래 화면으로':'👁 팀원 화면'; btn.style.background=VIEW_AS_GENERAL?'#B45309':'rgba(255,255,255,.14)'; btn.style.fontWeight=VIEW_AS_GENERAL?'700':'400'; }
+  const ban=$('#viewAsBanner');
+  if(!ban) return;
+  if(VIEW_AS_GENERAL){ ban.style.display=''; ban.innerHTML=`<div style="background:#FEF3C7;border-bottom:1px solid #F5C36B;padding:8px 14px;font-size:12.5px;color:#92400E;text-align:center">👁 <b>팀원(일반계정) 보기 모드</b> — 지금은 일반 팀원에게 보이는 그대로입니다 (원가·마진·업체단가편집·승인 숨김). <button class="tbtn" id="btnExitViewAs" style="margin-left:8px;padding:2px 10px;font-size:11px">원래 화면으로</button></div>`; const ex=$('#btnExitViewAs'); if(ex)ex.addEventListener('click',toggleViewAsGeneral); }
+  else { ban.style.display='none'; ban.innerHTML=''; }
+}
 /* ── 가격정책표 상단 개정안 배너 ── */
 function renderPricingBanner(){
   const box=$('#pricingBanner'); if(!box) return;
@@ -3277,6 +3292,7 @@ function refreshAll(){
   renderMktAll();
   applySecGating();
   applyCostGating();
+  renderViewChrome();
 }
 function syncStickyTop(){
   const tr=$('#sh-price .toolrow'); if(!tr)return;
@@ -3558,6 +3574,7 @@ $('#authEmail').addEventListener('keydown',e=>{ if(e.key==='Enter')$('#authPw').
 $('#btnSignOut').addEventListener('click',async()=>{ try{ await auth.signOut(); }catch(e){ console.error(e); } location.reload(); });
 $('#btnGoAccess')&&$('#btnGoAccess').addEventListener('click',()=>gotoTab('sh-access'));
 $('#btnAccountGear')&&$('#btnAccountGear').addEventListener('click',()=>gotoTab('sh-access'));
+$('#btnViewAsGeneral')&&$('#btnViewAsGeneral').addEventListener('click',toggleViewAsGeneral);
 auth.onAuthStateChanged(async user=>{
   if(user){
     // 3일 인증창이 만료됐으면 강제 재인증(로그아웃 → SMS 로그인)

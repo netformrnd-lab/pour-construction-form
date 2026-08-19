@@ -339,8 +339,11 @@ thead .sticky1,thead .sticky2{z-index:25}
   #ribbon .brand b{font-size:13px}
 }
 /* 파일 업로드 → 업체단가 개정안 모달 */
-#impOverlay{position:fixed;inset:0;background:rgba(15,20,25,.55);z-index:3000;display:none;align-items:center;justify-content:center;padding:16px}
-#impOverlay.on{display:flex}
+#impOverlay,#addOverlay{position:fixed;inset:0;background:rgba(15,20,25,.55);z-index:3000;display:none;align-items:center;justify-content:center;padding:16px}
+#impOverlay.on,#addOverlay.on{display:flex}
+tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
+.gridadd{padding:4px 12px;border:1px dashed var(--xl-green);border-radius:6px;background:#fff;color:var(--xl-green-dark);font-weight:700;font-size:12px;cursor:pointer}
+.gridadd:hover{background:#EAF7EF}
 .imp-panel{background:#fff;border-radius:12px;width:min(920px,100%);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35)}
 .imp-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--xl-grid);font-weight:700;font-size:15px}
 .imp-head button{border:none;background:none;font-size:18px;cursor:pointer;color:var(--ink-faint)}
@@ -1126,6 +1129,35 @@ thead .sticky1,thead .sticky2{z-index:25}
       <div style="display:flex;gap:8px">
         <button id="impCancel" class="tbtn">취소</button>
         <button id="impApply" class="tbtn" style="background:var(--xl-green);color:#fff;border-color:var(--xl-green);font-weight:700" disabled>✔ 완료 · 개정안에 반영</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 제품 추가 모달 ═══ -->
+<div id="addOverlay">
+  <div class="imp-panel" style="max-width:640px">
+    <div class="imp-head"><span>＋ 제품 추가 <span style="font-size:11px;color:var(--ink-faint);font-weight:400">· 원가·제조사·앵커만 넣으면 채널가는 사다리로 자동</span></span><button id="addClose" aria-label="닫기">✕</button></div>
+    <div class="imp-body">
+      <div class="formgrid">
+        <div class="fld"><label>분류 *</label><input id="adCat" list="catList" placeholder="예: 수용성 도료" autocomplete="off"></div>
+        <div class="fld"><label>제품명 *</label><input id="adName" placeholder="예: POUR 신규 코트재" autocomplete="off"></div>
+        <div class="fld"><label>규격</label><input id="adSpec" placeholder="예: 20kg/통" autocomplete="off"></div>
+        <div class="fld"><label>매입원가 (원) <span style="color:var(--ink-faint)">대외비</span></label><input type="number" id="adCost" placeholder="예: 60000"></div>
+        <div class="fld"><label>제조사 <span style="color:var(--ink-faint)">대외비</span></label><input id="adMfg" list="mfgList" placeholder="선택/입력" autocomplete="off"></div>
+        <div class="fld"><label>유형</label><select id="adType"><option value="단품">단품</option><option value="세트">세트(패키지)</option></select></div>
+        <div class="fld"><label>업체단가 (원) <span style="color:var(--ink-faint)">사다리 하한</span></label><input type="number" id="adVbase" placeholder="예: 144400"></div>
+        <div class="fld"><label>자사몰정가 (원) <span style="color:var(--ink-faint)">사다리 상한</span></label><input type="number" id="adRetail" placeholder="예: 177500"></div>
+        <div class="fld" id="adSetFld" style="grid-column:1/-1;display:none"><label>세트 구성 (구성품명, 쉼표로 구분)</label><input id="adSetItems" placeholder="구성품명, 구성품명" autocomplete="off"></div>
+      </div>
+      <p class="footnote">· 총판·대리점·시공·위탁·도매·쿠팡은 <b>업체단가~정가 사다리로 자동 계산</b>됩니다. 업체단가 없이 정가만 넣어도 총판까지 자동으로 채워집니다.<br>· 원가·제조사는 대외비라 일반 팀원 화면엔 표시되지 않습니다.</p>
+      <div id="adStatus" class="footnote" style="margin-top:6px"></div>
+    </div>
+    <div class="imp-foot">
+      <span class="footnote" style="margin:0">등록하면 가격정책표·손익에 바로 반영됩니다</span>
+      <div style="display:flex;gap:8px">
+        <button id="addCancel" class="tbtn">취소</button>
+        <button id="addSubmit" class="tbtn" style="background:var(--xl-green);color:#fff;border-color:var(--xl-green);font-weight:700">＋ 추가</button>
       </div>
     </div>
   </div>
@@ -2079,6 +2111,7 @@ function renderGrid(){
       ${tdPrice}
     </tr>`;
   });
+  if(costAllowed){ html+=`<tr class="addrow"><td class="sticky1" style="left:0"></td><td class="sticky2" style="left:36px"><button class="gridadd" data-cat="${esc(cat||'')}">＋ 제품 추가</button></td><td colspan="${Math.max(1,nCols-2)}"></td></tr>`; }
   $('#priceGrid').innerHTML=html+'</tbody>';
 }
 /* 셀 선택 → 수식줄 + 이익배분 */
@@ -3419,9 +3452,44 @@ function applyImport(){
   closeImportModal();
   alert(`업체단가 ${sel.length}개를 개정안에 반영했습니다.\n(표에 주황색 '개정안' 표시 · 실제 적용은 상급자 승인 후)`);
 }
+/* ── 제품 추가 모달 (엑셀식 빠른 등록 → products-added, 앵커는 사다리로 자동) ── */
+function openAddModal(cat){
+  ['adName','adSpec','adCost','adMfg','adVbase','adRetail','adSetItems'].forEach(id=>{ const el=$('#'+id); if(el)el.value=''; });
+  $('#adCat').value=cat||''; $('#adType').value='단품'; $('#adSetFld').style.display='none'; $('#adStatus').textContent='';
+  $('#addOverlay').classList.add('on'); setTimeout(()=>{ const el=$(cat?'#adName':'#adCat'); if(el)el.focus(); }, 50);
+}
+function closeAddModal(){ $('#addOverlay').classList.remove('on'); }
+async function submitAddProduct(){
+  const cat=($('#adCat').value||'').trim()||'기타', name=($('#adName').value||'').trim();
+  if(!name){ $('#adStatus').innerHTML='<span style="color:var(--red)">제품명은 필수입니다.</span>'; $('#adName').focus(); return; }
+  const spec=($('#adSpec').value||'').trim()||'-';
+  const cost=$('#adCost').value===''?null:+$('#adCost').value;
+  const mfg=($('#adMfg').value||'').trim();
+  const vbase=$('#adVbase').value===''?null:+$('#adVbase').value;
+  const retail=$('#adRetail').value===''?null:+$('#adRetail').value;
+  const type=$('#adType').value||'단품';
+  const rUid=(typeof retailUid==='function')?retailUid():null;
+  const pr={}; if(rUid && retail>0) pr[rUid]=retail;
+  const key=`${cat}|${name}|${spec}`;
+  const doc={ cat,name,spec,cost,pr,mfg,concept:'',type,status:'출시',setItems:($('#adSetItems').value||'').trim(),
+    seq:P.length, updatedAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'' };
+  const btn=$('#addSubmit'); btn.disabled=true; const old=btn.textContent; btn.textContent='추가 중…'; $('#adStatus').textContent='';
+  try{
+    if(mfg && typeof MFG!=='undefined' && !MFG.some(m=>m.name===mfg)){ MFG.push({id:mfgSeq++,name:mfg,mgr:'',tel:'',memo:'(제품 추가 시 자동)'}); persist(); }
+    await db.collection('products-added').add(doc);
+    if(vbase>0){ VBASE[key]=vbase; await saveVendorPrices(); }
+    closeAddModal();   // onSnapshot(products-added)이 대시보드에 실시간 반영
+  }catch(e){ console.error('[add] 등록 실패',e); $('#adStatus').innerHTML='<span style="color:var(--red)">추가 실패: '+esc(e.code||e.message||e)+' (마스터/허용목록·규칙 확인)</span>'; }
+  finally{ btn.disabled=false; btn.textContent=old; }
+}
 function wireImportModal(){
   const on=(id,ev,fn)=>{ const el=$('#'+id); if(el)el.addEventListener(ev,fn); };
-  on('btnAddProd','click',()=>{ gotoTab('sh-reg'); setTimeout(()=>{ const el=$('#apName'); if(el){ el.focus(); el.scrollIntoView({block:'center'}); } }, 60); });
+  on('btnAddProd','click',()=>openAddModal());
+  on('addClose','click',closeAddModal); on('addCancel','click',closeAddModal);
+  on('addSubmit','click',submitAddProduct);
+  on('addOverlay','click',e=>{ if(e.target.id==='addOverlay')closeAddModal(); });
+  on('adType','change',e=>{ $('#adSetFld').style.display=e.target.value==='세트'?'':'none'; });
+  document.addEventListener('click',e=>{ const b=e.target.closest('.gridadd'); if(b){ openAddModal(b.dataset.cat||''); } });
   on('btnImportFile','click',openImportModal);
   on('impClose','click',closeImportModal);
   on('impCancel','click',closeImportModal);
@@ -3672,6 +3740,7 @@ function refreshAll(){
   applySecGating();
   applyCostGating();
   renderViewChrome();
+  requestAnimationFrame(syncStickyTop);   // 도구줄 높이에 맞춰 헤더 고정 오프셋 갱신(버튼 줄바꿈 대비)
 }
 function syncStickyTop(){
   const tr=$('#sh-price .toolrow'); if(!tr)return;

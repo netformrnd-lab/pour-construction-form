@@ -124,6 +124,12 @@ tr.catrow td{
   background:var(--xl-green-deep)!important;color:#fff;font-weight:700;font-size:12px;
   letter-spacing:.3px;border-right:0;
 }
+tr.catrow.l1 td{background:#0A3D22!important;font-size:13px}
+tr.catrow.l2 td{background:#15683B!important;font-size:12.5px;font-weight:600}
+tr.catrow .gridadd,tr.catrow .catedit{margin-left:10px;padding:2px 9px;font-size:11px;border-radius:5px;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.16);color:#fff;cursor:pointer;font-weight:600}
+tr.catrow .gridadd:hover,tr.catrow .catedit:hover{background:rgba(255,255,255,.3)}
+.catmgr{padding:4px 12px;border:1px dashed var(--muted,#9aa);border-radius:6px;background:#fff;color:var(--ink-soft);font-weight:600;font-size:12px;cursor:pointer;margin-left:6px}
+.catmgr:hover{border-color:var(--xl-green);color:var(--xl-green-dark)}
 td.cost{background:#FFF8E7}
 td.editable{cursor:cell}
 td.editable:hover{outline:1.5px solid var(--xl-green);outline-offset:-1.5px}
@@ -339,8 +345,13 @@ thead .sticky1,thead .sticky2{z-index:25}
   #ribbon .brand b{font-size:13px}
 }
 /* 파일 업로드 → 업체단가 개정안 모달 */
-#impOverlay,#addOverlay{position:fixed;inset:0;background:rgba(15,20,25,.55);z-index:3000;display:none;align-items:center;justify-content:center;padding:16px}
-#impOverlay.on,#addOverlay.on{display:flex}
+#impOverlay,#addOverlay,#catOverlay{position:fixed;inset:0;background:rgba(15,20,25,.55);z-index:3000;display:none;align-items:center;justify-content:center;padding:16px}
+#impOverlay.on,#addOverlay.on,#catOverlay.on{display:flex}
+#catTable{width:100%;border-collapse:collapse;font-size:12.5px}
+#catTable th,#catTable td{padding:6px 8px;border-bottom:1px solid var(--xl-grid);text-align:left}
+#catTable th{position:sticky;top:0;background:#F4F6F8;font-size:11px;color:var(--ink-soft)}
+#catTable input{border:1px solid var(--xl-grid);border-radius:5px;padding:4px 7px;font-size:12.5px}
+#catTable button{border:1px solid var(--xl-grid);background:#fff;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:11px}
 tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
 .gridadd{padding:4px 12px;border:1px dashed var(--xl-green);border-radius:6px;background:#fff;color:var(--xl-green-dark);font-weight:700;font-size:12px;cursor:pointer}
 .gridadd:hover{background:#EAF7EF}
@@ -1158,6 +1169,26 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
       <div style="display:flex;gap:8px">
         <button id="addCancel" class="tbtn">취소</button>
         <button id="addSubmit" class="tbtn" style="background:var(--xl-green);color:#fff;border-color:var(--xl-green);font-weight:700">＋ 추가</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 분류 관리 모달 (대·중·소분류) ═══ -->
+<div id="catOverlay">
+  <div class="imp-panel" style="max-width:780px">
+    <div class="imp-head"><span>🗂 분류 관리 <span style="font-size:11px;color:var(--ink-faint);font-weight:400">· 대·중·소분류 정리 · 이름 편집 · 순서</span></span><button id="catClose" aria-label="닫기">✕</button></div>
+    <div class="imp-body">
+      <p class="footnote">· <b>표시명</b>을 바꾸거나 <b>대분류·중분류</b>를 적어 계층으로 묶습니다(같은 이름끼리 자동 그룹). 순서는 ▲▼로 조정.<br>· 제품 데이터는 그대로 유지되고 <b>표시·정렬만</b> 바뀝니다. 대·중분류를 비우면 소분류만 단독 표시됩니다.</p>
+      <div class="imp-tablewrap" style="max-height:56vh"><table id="catTable"></table></div>
+      <datalist id="l1List"></datalist><datalist id="l2List"></datalist>
+      <div id="catMsg" class="footnote" style="margin-top:6px"></div>
+    </div>
+    <div class="imp-foot">
+      <button id="catAddNew" class="tbtn">＋ 새 분류</button>
+      <div style="display:flex;gap:8px">
+        <button id="catCancel" class="tbtn">취소</button>
+        <button id="catSave" class="tbtn" style="background:var(--xl-green);color:#fff;border-color:var(--xl-green);font-weight:700">저장 · 반영</button>
       </div>
     </div>
   </div>
@@ -2058,6 +2089,7 @@ function cellDisplay(p,uid){
   return won(pr)+(m==null?'<span class="mrate">원가?</span>':`<span class="mrate">마진 ${pct(mrate(pr,p.cost))}</span>`);
 }
 function renderGrid(){
+  ensureCatCfg();   // 새 분류 자동 시딩(표시·정렬용, 저장은 분류 관리에서)
   const impBtn=$('#btnImportFile'); if(impBtn) impBtn.style.display=costAllowed?'':'none';   // 파일 업로드: 원가열람 계정만
   const addBtn=$('#btnAddProd'); if(addBtn) addBtn.style.display=costAllowed?'':'none';       // 제품 추가: 원가열람 계정만
   const q=($('#q').value||'').trim().toLowerCase();
@@ -2082,11 +2114,20 @@ function renderGrid(){
     ${showCost?'<th class="num" style="min-width:86px">매입원가</th>':''}
     ${thPrice}
   </tr></thead><tbody>`;
-  let lastCat=null,no=0;
-  P.forEach(p=>{
-    if(cat&&p.cat!==cat)return;
-    if(q&&!(p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||(p.sup||'').toLowerCase().includes(q)))return;
-    if(p.cat!==lastCat){ lastCat=p.cat; html+=`<tr class="catrow"><td colspan="${nCols}">■ ${p.cat}</td></tr>`; }
+  const shown=P.filter(p=>{
+    if(cat&&p.cat!==cat)return false;
+    if(q&&!(p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||(p.sup||'').toLowerCase().includes(q)))return false;
+    return true;
+  }).slice().sort((a,b)=>(catOrder(a.cat)-catOrder(b.cat))||((a.seq??a.id??0)-(b.seq??b.id??0)));
+  let lastL1=null,lastL2=null,lastCat=null,no=0;
+  shown.forEach(p=>{
+    const m=catMeta(p.cat), L1=m.l1||'', L2=m.l2||'';
+    if(L1!==lastL1){ lastL1=L1; lastL2=null; lastCat=null; if(L1) html+=`<tr class="catrow l1"><td colspan="${nCols}">▣ ${esc(L1)}</td></tr>`; }
+    if(L2!==lastL2){ lastL2=L2; lastCat=null; if(L2) html+=`<tr class="catrow l2"><td colspan="${nCols}">▸ ${esc(L2)}</td></tr>`; }
+    if(p.cat!==lastCat){ lastCat=p.cat;
+      const btns=costAllowed?` <button class="gridadd" data-cat="${esc(p.cat)}">＋ 제품 추가</button> <button class="catedit" data-cat="${esc(p.cat)}" title="분류 편집">✏️ 편집</button>`:'';
+      html+=`<tr class="catrow" data-cat="${esc(p.cat)}"><td colspan="${nCols}">■ ${esc(m.name)}${btns}</td></tr>`;
+    }
     no++;
     const tdPrice=priceCols.map(pc=>{
       if(pc.t==='vbase'){
@@ -2111,7 +2152,7 @@ function renderGrid(){
       ${tdPrice}
     </tr>`;
   });
-  if(costAllowed){ html+=`<tr class="addrow"><td class="sticky1" style="left:0"></td><td class="sticky2" style="left:36px"><button class="gridadd" data-cat="${esc(cat||'')}">＋ 제품 추가</button></td><td colspan="${Math.max(1,nCols-2)}"></td></tr>`; }
+  if(costAllowed){ html+=`<tr class="addrow"><td colspan="${nCols}"><button class="gridadd" data-cat="">＋ 새 제품·분류 추가</button> &nbsp; <button class="catmgr">🗂 분류 관리(대·중·소분류)</button></td></tr>`; }
   $('#priceGrid').innerHTML=html+'</tbody>';
 }
 /* 셀 선택 → 수식줄 + 이익배분 */
@@ -3277,6 +3318,17 @@ const VENDOR_PRICE_RAW="코트재Ⅰ(회색) 20 kg/통|144400;슈퍼복합압축
 function vNorm(s){ return String(s||'').replace(/^POUR\s*/i,'').replace(/(kg|l|ml|㎏)\s*\/\s*(통|포|개)/gi,'').replace(/(ea|set|롤|kg)\s*\/\s*개/gi,'').replace(/[\s()·・_\-]/g,'').toLowerCase(); }
 const VENDOR_BOOK=(()=>{ const m={}; VENDOR_PRICE_RAW.split(';').forEach(s=>{ const i=s.lastIndexOf('|'); if(i<0)return; const nm=s.slice(0,i).trim(), pr=s.slice(i+1).trim(); const k=vNorm(nm); if(k)m[k]={name:nm, price:pr===''?null:+pr}; }); return m; })();
 /* ── 적용본(applied): 실제 가격에 반영된 값 ── */
+/* ── 분류(카테고리) 설정: 표시명·대분류·중분류·순서. key=제품 cat(불변, 그룹키). ← product-meta/cat-config ── */
+let CATCFG=[];   // [{key, name, l1, l2}]
+function catMeta(key){ return CATCFG.find(c=>c.key===key) || {key, name:key, l1:'', l2:''}; }
+function catOrder(key){ const i=CATCFG.findIndex(c=>c.key===key); return i<0?9999:i; }
+/* 현재 제품들의 분류를 CATCFG에 없으면 뒤에 자동 추가(시딩) */
+function ensureCatCfg(){
+  let added=false;
+  P.forEach(p=>{ const k=p.cat||'기타'; if(!CATCFG.some(c=>c.key===k)){ CATCFG.push({key:k,name:k,l1:'',l2:''}); added=true; } });
+  return added;
+}
+async function saveCatConfig(){ try{ await db.collection('product-meta').doc('cat-config').set({list:CATCFG, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[cat-config] 저장 실패', e.code||e); } }
 let VBASE={};      // 업체단가 {pKey:원}          ← product-meta/vendor-prices
 let VRETAIL={};    // 자사몰정가 override {pKey:원} ← product-meta/retail-prices
 let VCOEFF={};     // 채널 계수 {code:{a,f}}       ← product-meta/channel-markup
@@ -3482,6 +3534,47 @@ async function submitAddProduct(){
   }catch(e){ console.error('[add] 등록 실패',e); $('#adStatus').innerHTML='<span style="color:var(--red)">추가 실패: '+esc(e.code||e.message||e)+' (마스터/허용목록·규칙 확인)</span>'; }
   finally{ btn.disabled=false; btn.textContent=old; }
 }
+/* ── 분류 관리 모달 (대·중·소분류 · 이름 · 순서) ── */
+let CATEDIT=[];
+function openCatMgr(){ ensureCatCfg(); CATEDIT=CATCFG.map(c=>({key:c.key,name:c.name||c.key,l1:c.l1||'',l2:c.l2||''})); $('#catMsg').textContent=''; renderCatMgr(); $('#catOverlay').classList.add('on'); }
+function closeCatMgr(){ $('#catOverlay').classList.remove('on'); }
+function renderCatMgr(){
+  const cnt={}; P.forEach(p=>{ const k=p.cat||'기타'; cnt[k]=(cnt[k]||0)+1; });
+  let h='<thead><tr><th style="width:56px">순서</th><th>표시명</th><th>대분류</th><th>중분류</th><th class="num" style="width:60px">제품수</th><th style="width:44px"></th></tr></thead><tbody>';
+  CATEDIT.forEach((c,i)=>{
+    const used=cnt[c.key]||0;
+    h+=`<tr><td style="white-space:nowrap"><button class="cmup" data-i="${i}">▲</button> <button class="cmdn" data-i="${i}">▼</button></td>
+      <td><input class="cmName" data-i="${i}" value="${esc(c.name||c.key)}" style="width:160px"></td>
+      <td><input class="cmL1" data-i="${i}" list="l1List" value="${esc(c.l1||'')}" placeholder="예: 도료" style="width:120px"></td>
+      <td><input class="cmL2" data-i="${i}" list="l2List" value="${esc(c.l2||'')}" placeholder="예: 수용성" style="width:120px"></td>
+      <td class="num">${used}</td>
+      <td>${used===0?`<button class="cmDel" data-i="${i}" title="삭제">🗑</button>`:'<span style="color:#bbb;font-size:11px">사용중</span>'}</td></tr>`;
+  });
+  $('#catTable').innerHTML=h+'</tbody>';
+  $('#l1List').innerHTML=[...new Set(CATEDIT.map(c=>c.l1).filter(Boolean))].map(v=>`<option value="${esc(v)}">`).join('');
+  $('#l2List').innerHTML=[...new Set(CATEDIT.map(c=>c.l2).filter(Boolean))].map(v=>`<option value="${esc(v)}">`).join('');
+}
+async function saveCatMgr(){
+  CATEDIT.forEach(c=>{ c.name=(c.name||'').trim()||c.key; c.l1=(c.l1||'').trim(); c.l2=(c.l2||'').trim(); });
+  CATCFG=CATEDIT.map(c=>({key:c.key,name:c.name,l1:c.l1,l2:c.l2}));
+  await saveCatConfig(); refreshAll(); closeCatMgr();
+}
+function wireCatMgr(){
+  const on=(id,ev,fn)=>{ const el=$('#'+id); if(el)el.addEventListener(ev,fn); };
+  on('catClose','click',closeCatMgr); on('catCancel','click',closeCatMgr); on('catSave','click',saveCatMgr);
+  on('catOverlay','click',e=>{ if(e.target.id==='catOverlay')closeCatMgr(); });
+  on('catAddNew','click',()=>{ const name=(prompt('새 분류 이름을 입력하세요','새 분류')||'').trim(); if(!name)return; if(CATEDIT.some(c=>c.key===name)){ $('#catMsg').innerHTML='<span style="color:var(--red)">이미 있는 분류명입니다.</span>'; return; } CATEDIT.push({key:name,name,l1:'',l2:''}); renderCatMgr(); });
+  const t=$('#catTable');
+  if(t){
+    t.addEventListener('input',e=>{ const el=e.target; const i=+el.dataset.i; if(isNaN(i)||!CATEDIT[i])return; if(el.classList.contains('cmName'))CATEDIT[i].name=el.value; else if(el.classList.contains('cmL1'))CATEDIT[i].l1=el.value; else if(el.classList.contains('cmL2'))CATEDIT[i].l2=el.value; });
+    t.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b)return; const i=+b.dataset.i; if(isNaN(i))return;
+      if(b.classList.contains('cmup')&&i>0){ [CATEDIT[i-1],CATEDIT[i]]=[CATEDIT[i],CATEDIT[i-1]]; renderCatMgr(); }
+      else if(b.classList.contains('cmdn')&&i<CATEDIT.length-1){ [CATEDIT[i+1],CATEDIT[i]]=[CATEDIT[i],CATEDIT[i+1]]; renderCatMgr(); }
+      else if(b.classList.contains('cmDel')){ CATEDIT.splice(i,1); renderCatMgr(); } });
+  }
+  // 표 안의 분류 편집(✏️)·분류 관리(🗂) 버튼
+  document.addEventListener('click',e=>{ if(e.target.closest('.catedit')||e.target.closest('.catmgr')) openCatMgr(); });
+}
 function wireImportModal(){
   const on=(id,ev,fn)=>{ const el=$('#'+id); if(el)el.addEventListener(ev,fn); };
   on('btnAddProd','click',()=>openAddModal());
@@ -3507,6 +3600,7 @@ function wireImportModal(){
   }
 }
 wireImportModal();
+wireCatMgr();
 async function saveVendorPrices(){ try{ await db.collection('product-meta').doc('vendor-prices').set({map:VBASE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[vendor-prices] 저장 실패', e.code||e); } }
 async function saveRetailPrices(){ try{ await db.collection('product-meta').doc('retail-prices').set({map:VRETAIL, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[retail-prices] 저장 실패', e.code||e); } }
 async function saveChannelMarkup(){ try{ await db.collection('product-meta').doc('channel-markup').set({coeff:VCOEFF, auto:VAUTO, ladBase:LAD_BASE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[channel-markup] 저장 실패', e.code||e); } }
@@ -3514,8 +3608,9 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('vendor-prices').get(); if(d.exists&&d.data().map) VBASE=d.data().map; }catch(e){ console.warn('[vendor-prices] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('retail-prices').get(); if(d.exists&&d.data().map) VRETAIL=d.data().map; }catch(e){ console.warn('[retail-prices] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('channel-markup').get(); if(d.exists){ if(d.data().coeff)VCOEFF=d.data().coeff; if(typeof d.data().auto==='boolean')VAUTO=d.data().auto; if(typeof d.data().ladBase==='number'&&d.data().ladBase>0&&d.data().ladBase<1)LAD_BASE=d.data().ladBase; } }catch(e){ console.warn('[channel-markup] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('cat-config').get(); if(d.exists&&Array.isArray(d.data().list)) CATCFG=d.data().list.map(c=>({key:c.key,name:c.name||c.key,l1:c.l1||'',l2:c.l2||''})); }catch(e){ console.warn('[cat-config] 로드 실패', e.code||e); }
   await loadDraft();
-  console.log(`[vendor] 업체단가 ${Object.keys(VBASE).length} · 정가override ${Object.keys(VRETAIL).length} · 개정안 ${draftCount()}건(${DRAFT_META.status||'없음'})`);
+  console.log(`[vendor] 업체단가 ${Object.keys(VBASE).length} · 정가override ${Object.keys(VRETAIL).length} · 분류 ${CATCFG.length}개 · 개정안 ${draftCount()}건(${DRAFT_META.status||'없음'})`);
 }
 /* ── 개정안(draft) API ── */
 function draftCount(){ return Object.keys(DVBASE).length+Object.keys(DRETAIL).length+Object.keys(DCOEFF).length; }

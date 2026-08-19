@@ -128,7 +128,8 @@ td.cost{background:#FFF8E7}
 td.editable{cursor:cell}
 td.editable:hover{outline:1.5px solid var(--xl-green);outline-offset:-1.5px}
 td.selcell{outline:2px solid var(--xl-green);outline-offset:-2px;background:var(--xl-sel)!important}
-td .mrate{font-size:10.5px;color:var(--ink-faint);margin-left:4px}
+td .mrate{display:block;font-size:10px;color:var(--ink-faint);margin-top:1px;font-weight:600;line-height:1.15}
+td.neg .mrate{color:var(--red)}
 td.neg{color:var(--red);font-weight:600}
 td.warn{background:#FDEBE7}
 tr:hover td{background:#F4FAF6}
@@ -337,6 +338,26 @@ thead .sticky1,thead .sticky2{z-index:25}
   .cards{grid-template-columns:1fr}
   #ribbon .brand b{font-size:13px}
 }
+/* 파일 업로드 → 업체단가 개정안 모달 */
+#impOverlay{position:fixed;inset:0;background:rgba(15,20,25,.55);z-index:3000;display:none;align-items:center;justify-content:center;padding:16px}
+#impOverlay.on{display:flex}
+.imp-panel{background:#fff;border-radius:12px;width:min(920px,100%);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.imp-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--xl-grid);font-weight:700;font-size:15px}
+.imp-head button{border:none;background:none;font-size:18px;cursor:pointer;color:var(--ink-faint)}
+.imp-body{padding:16px 18px;overflow:auto;flex:1}
+.imp-drop{border:2px dashed var(--xl-grid);border-radius:10px;padding:26px 16px;text-align:center;background:var(--xl-sel);transition:border-color .15s}
+.imp-drop.drag{border-color:var(--xl-green);background:#EAF7EF}
+.imp-drop .pick{border:1px solid var(--xl-green);color:var(--xl-green-dark);background:#fff;border-radius:6px;padding:7px 14px;font-weight:700;cursor:pointer;margin-top:6px}
+.imp-tools{display:flex;align-items:center;gap:14px;margin:12px 0 8px;flex-wrap:wrap}
+.imp-tablewrap{border:1px solid var(--xl-grid);border-radius:8px;overflow:auto;max-height:52vh}
+#impTable{width:100%;border-collapse:collapse;font-size:12.5px}
+#impTable th,#impTable td{padding:6px 8px;border-bottom:1px solid var(--xl-grid);white-space:nowrap}
+#impTable th{position:sticky;top:0;background:#F4F6F8;text-align:left;font-size:11px;color:var(--ink-soft);z-index:1}
+#impTable td.num{text-align:right;font-family:var(--mono)}
+#impTable tr[data-skip="1"]{opacity:.45}
+.imp-badge{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:9px}
+.imp-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-top:1px solid var(--xl-grid);flex-wrap:wrap}
+@media(max-width:640px){ .imp-foot{flex-direction:column;align-items:stretch} .imp-foot>div{display:flex;gap:8px} .imp-foot .tbtn{flex:1} }
 </style>
 <!-- Firebase 10.12.0 compat (Analytics 제외) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -517,6 +538,7 @@ thead .sticky1,thead .sticky2{z-index:25}
         <button data-v="margin">마진액</button>
         <button data-v="rate">마진율</button>
       </div>
+      <button class="tbtn" id="btnImportFile" style="display:none;background:var(--xl-green);color:#fff;border-color:var(--xl-green)">📄 파일로 업체단가 입력</button>
       <button class="tbtn" id="btnSave">변경사항 저장</button>
       <button class="tbtn" id="btnCsv">CSV 내보내기</button>
       <button class="tbtn" id="btnReset">원본 복원</button>
@@ -1077,6 +1099,36 @@ thead .sticky1,thead .sticky2{z-index:25}
     <p class="note">마진율 = 마진 ÷ 공급가(매출) 기준. 협상 중 상대 화면에 바로 보여주며 쓸 수 있습니다.</p>
   </div>
 </div>
+
+<!-- ═══ 파일 업로드 → 업체단가 개정안 모달 ═══ -->
+<div id="impOverlay">
+  <div class="imp-panel">
+    <div class="imp-head"><span>📄 파일로 업체단가 일괄 입력 <span style="font-size:11px;color:var(--ink-faint);font-weight:400">· 개정안(승인 대기)에 담깁니다</span></span><button id="impClose" aria-label="닫기">✕</button></div>
+    <div class="imp-body">
+      <div class="imp-drop" id="impDrop">
+        <input type="file" id="impFile" accept=".pdf,.xlsx,.xls,.csv" style="display:none">
+        <div style="font-size:26px">📥</div>
+        <p style="margin:6px 0 2px;font-weight:600">단가표 파일을 여기에 끌어놓거나 <button class="pick" id="impPick" type="button">파일 선택</button></p>
+        <p class="footnote" style="margin-top:4px">PDF · Excel(xlsx/xls) · CSV 지원 · 넷폼알앤디 업체단가표 형식 자동 인식</p>
+      </div>
+      <div id="impStatus" class="footnote" style="margin-top:10px"></div>
+      <div id="impResult" style="display:none">
+        <div class="imp-tools">
+          <label style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:13px"><input type="checkbox" id="impAll"> 전체선택</label>
+          <span id="impCount" class="footnote" style="margin:0"></span>
+        </div>
+        <div class="imp-tablewrap"><table id="impTable"></table></div>
+      </div>
+    </div>
+    <div class="imp-foot">
+      <span class="footnote" style="margin:0">체크한 항목만 개정안에 반영됩니다 · 실제 적용은 <b>상급자 승인</b> 후</span>
+      <div style="display:flex;gap:8px">
+        <button id="impCancel" class="tbtn">취소</button>
+        <button id="impApply" class="tbtn" style="background:var(--xl-green);color:#fff;border-color:var(--xl-green);font-weight:700" disabled>✔ 완료 · 개정안에 반영</button>
+      </div>
+    </div>
+  </div>
+</div>
 <script>
 /* ══════════ Firebase (신규 프로젝트: pourstoreproject) ══════════ */
 firebase.initializeApp({
@@ -1246,7 +1298,12 @@ let FX=[];     let fxSeq=1;          // {id,g,name,amt,cycle:'월간'|'연간',m
 const FX_GROUPS_SEED=['인건비','플랫폼·서비스','임대·관리','기타'];
 
 /* 채널 헬퍼 */
-const COLS=()=>CHANNELS.filter(c=>c.col);
+/* 채널 열 표시 순서(낮은 단가→높은 단가, 사용자 지정): 알리바바→(업체단가)→총판→대리점→시공→위탁→온라인도매→쿠팡→자사몰정가 */
+const CH_ORDER=['P1','P2','P3','P4','P5','P6','P8','OWN'];
+const COLS=()=>{
+  const rank=c=>{ const i=CH_ORDER.indexOf(c.code); return i<0?99:i; };
+  return CHANNELS.filter(c=>c.col).sort((a,b)=>(rank(a)-rank(b))||((a.ord??0)-(b.ord??0)));
+};
 const chBy=r=>CHANNELS.find(c=>c.role===r)||null;
 const chByUid=u=>CHANNELS.find(c=>c.uid===u)||null;
 const retailUid=()=>{const c=chBy('retail');return c?c.uid:null;};
@@ -1960,29 +2017,36 @@ let viewMode='price', selCell=null;
 function cellDisplay(p,uid){
   const pr=gp(p,uid);
   if(pr==null)return'—';
-  if(viewMode==='price'||!costAllowed)return won(pr);
+  if(!costAllowed)return won(pr);                       // 일반계정: 판매가만
   const m=margin(pr,p.cost);
-  if(m==null)return won(pr)+'<span class="mrate">원가?</span>';
-  if(viewMode==='margin')return won(m);
-  return pct(mrate(pr,p.cost));
+  if(viewMode==='margin')return m==null?won(pr)+'<span class="mrate">원가?</span>':won(m);
+  if(viewMode==='rate')  return m==null?'—':pct(mrate(pr,p.cost));
+  // 판매가 뷰: 판매가 + 마진%(원가 대비, 고정비·물류비 등 부대비 제외 = 판매가−매입원가)
+  return won(pr)+(m==null?'<span class="mrate">원가?</span>':`<span class="mrate">마진 ${pct(mrate(pr,p.cost))}</span>`);
 }
 function renderGrid(){
+  const impBtn=$('#btnImportFile'); if(impBtn) impBtn.style.display=costAllowed?'':'none';   // 파일 업로드: 원가열람 계정만
   const q=($('#q').value||'').trim().toLowerCase();
   const cat=$('#catSel').value;
   const cols=COLS(), rUid=retailUid();
   const showSup=secAllowed;                 // 공급업체 열: 마스터+이메일인증 계정만
   const showCost=costAllowed;               // 매입원가·마진율 열: 부마스터/마스터만 (일반계정은 판매가만)
-  const nCols=3+(showSup?1:0)+(showCost?1:0)+cols.length+(showCost?1:0)+1;  // +1 = 업체단가(공개)
+  // 가격 열 순서: 채널(낮은단가→높은단가) 사이에 업체단가(pour공법)를 알리바바(P1) 바로 뒤에 삽입
+  const priceCols=[];
+  cols.forEach(c=>{ priceCols.push({t:'ch',c}); if(c.code==='P1') priceCols.push({t:'vbase'}); });
+  if(!priceCols.some(x=>x.t==='vbase')) priceCols.unshift({t:'vbase'});   // P1 열 숨김 시 맨 앞에
+  const nCols=3+(showSup?1:0)+(showCost?1:0)+priceCols.length;
+  const thPrice=priceCols.map(pc=> pc.t==='vbase'
+    ? `<th class="num" style="min-width:104px;background:var(--xl-sel)">업체단가<div style="font-size:9px;color:var(--ink-faint);font-weight:400">pour공법·총판기준</div></th>`
+    : `<th class="num" style="min-width:100px;height:38px" title="${esc(pc.c.desc)}"><div style="font-size:9.5px;font-family:var(--mono);color:var(--amber);line-height:1.2">${esc(pc.c.g)} · ${esc(pc.c.code)}</div>${esc(pc.c.name)}</th>`
+  ).join('');
   let html=`<thead><tr>
     <th class="sticky1" style="left:0;min-width:36px">No</th>
     <th class="sticky2" style="left:36px;min-width:230px">제품명</th>
     <th style="min-width:90px">규격</th>
     ${showSup?'<th style="min-width:96px">공급업체</th>':''}
     ${showCost?'<th class="num" style="min-width:86px">매입원가</th>':''}
-    ${cols.map(c=>`<th class="num" style="min-width:96px;height:38px" title="${esc(c.desc)}">
-      <div style="font-size:9.5px;font-family:var(--mono);color:var(--amber);line-height:1.2">${esc(c.g)} · ${esc(c.code)}</div>${esc(c.name)}</th>`).join('')}
-    ${showCost?'<th class="num" style="min-width:88px">정가 마진율</th>':''}
-    <th class="num" style="min-width:96px;background:var(--xl-sel)">업체단가<div style="font-size:9px;color:var(--ink-faint);font-weight:400">pour공법</div></th>
+    ${thPrice}
   </tr></thead><tbody>`;
   let lastCat=null,no=0;
   P.forEach(p=>{
@@ -1990,20 +2054,26 @@ function renderGrid(){
     if(q&&!(p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||(p.sup||'').toLowerCase().includes(q)))return;
     if(p.cat!==lastCat){ lastCat=p.cat; html+=`<tr class="catrow"><td colspan="${nCols}">■ ${p.cat}</td></tr>`; }
     no++;
-    const r7=mrate(gp(p,rUid),p.cost);
+    const tdPrice=priceCols.map(pc=>{
+      if(pc.t==='vbase'){
+        const k=pKey(p), val=effVbase(k), isDraft=PREVIEW&&(k in DVBASE);
+        const neg=showCost && val!=null && p.cost!=null && val<p.cost;
+        let inner=won(val);
+        if(showCost && val!=null && p.cost!=null && val>0) inner+=`<span class="mrate">마진 ${pct((val-p.cost)/val)}</span>`;
+        if(isDraft) inner+=`<span class="mrate" style="color:var(--amber);font-weight:700">개정안</span>`;
+        return `<td class="num editable${neg?' neg':''}" data-id="${p.id}" data-f="vbase" style="background:var(--xl-sel);font-weight:600${isDraft?';color:var(--amber)':''}">${inner}</td>`;
+      }
+      const c=pc.c, pr=gp(p,c.uid), m=margin(pr,p.cost);
+      const cls=['num','editable']; if(m!=null&&m<0)cls.push('neg','warn');
+      return `<td class="${cls.join(' ')}" data-id="${p.id}" data-f="u${c.uid}">${cellDisplay(p,c.uid)}</td>`;
+    }).join('');
     html+=`<tr data-id="${p.id}">
       <td class="sticky1 dim" style="left:0">${no}</td>
       <td class="sticky2 name" style="left:36px">${p.name}</td>
       <td class="dim">${p.spec}</td>
       ${showSup?`<td class="dim" title="${unlocked?esc(p.mgr||''):''}">${unlocked?esc(p.sup||'—'):'🔒'}</td>`:''}
       ${showCost?`<td class="num cost editable" data-id="${p.id}" data-f="cost">${won(p.cost)}</td>`:''}
-      ${cols.map(c=>{
-        const pr=gp(p,c.uid), m=margin(pr,p.cost);
-        const cls=['num','editable']; if(m!=null&&m<0)cls.push('neg','warn');
-        return `<td class="${cls.join(' ')}" data-id="${p.id}" data-f="u${c.uid}">${cellDisplay(p,c.uid)}</td>`;
-      }).join('')}
-      ${showCost?`<td class="num" style="font-weight:600;color:${r7!=null&&r7<0.15?'var(--amber)':'var(--xl-green-dark)'}">${pct(r7)}</td>`:''}
-      <td class="num editable" data-id="${p.id}" data-f="vbase" style="background:var(--xl-sel);font-weight:600${(PREVIEW && (pKey(p) in DVBASE))?';color:var(--amber)':''}">${won(effVbase(pKey(p)))}${(PREVIEW && (pKey(p) in DVBASE))?'<span class="mrate">개정</span>':''}</td>
+      ${tdPrice}
     </tr>`;
   });
   $('#priceGrid').innerHTML=html+'</tbody>';
@@ -3201,18 +3271,159 @@ function recalcVendor(){
   });
 }
 /* PDF 업체단가 → 대상 맵(개정안)으로 이름 매칭 반영 (기존 적용값과 다를 때만) */
-function importVendorPricesTo(target){
+/* 제품 p 를 단가북(book: {vNorm키:{name,price}})에서 이름 매칭 → hit 반환(없으면 null) */
+function findInBook(p, book){
+  const nk=vNorm(p.name), full=nk+vNorm(p.spec);
+  let hit=book[full]||book[nk];
+  if(!hit){ const cand=Object.keys(book).filter(x=>x.startsWith(nk)&&nk.length>=2);
+    if(cand.length===1) hit=book[cand[0]];
+    else if(cand.length>1){ const sp=vNorm(p.spec); const c2=cand.find(x=>sp&&x.includes(sp)); if(c2)hit=book[c2]; } }
+  return hit||null;
+}
+function importVendorPricesTo(target, book){
+  book=book||VENDOR_BOOK;
   let matched=0; const unmatched=[];
   P.forEach(p=>{
-    const nk=vNorm(p.name), full=nk+vNorm(p.spec);
-    let hit=VENDOR_BOOK[full]||VENDOR_BOOK[nk];
-    if(!hit){ const cand=Object.keys(VENDOR_BOOK).filter(x=>x.startsWith(nk)&&nk.length>=2);
-      if(cand.length===1) hit=VENDOR_BOOK[cand[0]];
-      else if(cand.length>1){ const sp=vNorm(p.spec); const c2=cand.find(x=>sp&&x.includes(sp)); if(c2)hit=VENDOR_BOOK[c2]; } }
+    const hit=findInBook(p, book);
     if(hit&&hit.price!=null){ if(hit.price!==VBASE[pKey(p)]) target[pKey(p)]=hit.price; matched++; } else unmatched.push(p.name);
   });
   return {matched, unmatched};
 }
+
+/* ══════════ 파일 업로드 → 업체단가 개정안 (PDF/Excel/CSV) ══════════ */
+function loadScript(src){ return new Promise((res,rej)=>{ if([...document.scripts].some(s=>s.src===src))return res(); const s=document.createElement('script'); s.src=src; s.onload=()=>res(); s.onerror=()=>rej(new Error('스크립트 로드 실패: '+src)); document.head.appendChild(s); }); }
+async function ensurePDFJS(){ if(window.pdfjsLib)return; await loadScript('https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js'); if(window.pdfjsLib&&window.pdfjsLib.GlobalWorkerOptions) window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'; }
+async function ensureXLSX(){ if(window.XLSX)return; await loadScript('https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'); }
+/* 숫자 셀 → 원(₩) 값. 단가로 볼 수 있는 값(>=1000)만 반환, 아니면 null */
+function parseWon(v){ if(v==null)return null; if(typeof v==='number')return (isFinite(v)&&v>=1000)?Math.round(v):null; let s=String(v).replace(/[₩,\s]/g,''); if(!/^\d+(\.\d+)?$/.test(s))return null; const n=+s; return (isFinite(n)&&n>=1000)?Math.round(n):null; }
+/* PDF 한 줄(텍스트)에서 'POUR…숫자' 세그먼트를 (이름,단가) 쌍으로 추출 */
+function pdfLineToPairs(line, out){
+  if(!/POUR/.test(line)) return;
+  line.split(/(?=POUR)/).forEach(seg=>{
+    seg=seg.trim(); if(!seg) return;
+    // 단가 = 세그먼트에서 '가장 오른쪽'의 1000 이상 숫자(제품명·규격의 숫자는 그대로 보존)
+    const re=/[\d,]{3,}/g; let m, price=null, at=-1;
+    while((m=re.exec(seg))){ const n=+m[0].replace(/,/g,''); if(isFinite(n)&&n>=1000){ price=n; at=m.index; } }
+    if(price==null) return;                        // '-'·'준비중' → 단가 없음
+    const name=seg.slice(0, at).replace(/₩/g,'').replace(/준비중|비고/g,'').replace(/\s+/g,' ').trim();
+    if(name) out.push({name, price});
+  });
+}
+async function pdfToPairs(buf){
+  await ensurePDFJS();
+  const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
+  const out=[];
+  for(let pn=1;pn<=pdf.numPages;pn++){
+    const page=await pdf.getPage(pn); const tc=await page.getTextContent();
+    const items=tc.items.filter(it=>it.str&&it.str.trim()).map(it=>({x:it.transform[4], y:it.transform[5], s:it.str}));
+    items.sort((a,b)=>(b.y-a.y)||(a.x-b.x));          // 위→아래, 왼→오른
+    const TOL=3, lines=[]; let cur=null;               // 같은 행(y ±3px) 묶기 — 베이스라인 흔들림 허용
+    items.forEach(it=>{ if(!cur || Math.abs(it.y-cur.y)>TOL){ cur={y:it.y, items:[it]}; lines.push(cur); } else cur.items.push(it); });
+    lines.forEach(ln=>{ const line=ln.items.sort((a,b)=>a.x-b.x).map(o=>o.s).join(' ').replace(/\s+/g,' ').trim(); pdfLineToPairs(line, out); });
+  }
+  return out;
+}
+/* Excel/CSV rows(배열의 배열) → (이름,단가) 쌍: 각 단가셀에서 왼쪽으로 가장 가까운 제품명셀과 짝 (규격셀은 건너뜀) */
+function rowsToPairs(rows){
+  const out=[]; const HEAD=/^(수용성|유성|특수|파우더|보수|아스팔트|토목|규격|판매|비고|단가|㈜|넷폼|합계|품목|제품)/;
+  const UNIT=/(cm|mm|kg|ml|㎏|리터|롤|ea|set|직경|지름|규격)/i;
+  const isName=s=>!!s && !HEAD.test(s) && parseWon(s)==null && (/POUR/i.test(s) || (/[가-힣]{2,}/.test(s) && !/\d/.test(s) && !UNIT.test(s)));
+  rows.forEach(cells=>{
+    if(!Array.isArray(cells))return;
+    for(let j=0;j<cells.length;j++){
+      const pv=parseWon(cells[j]); if(pv==null) continue;
+      for(let i=j-1;i>=0;i--){ const s=String(cells[i]==null?'':cells[i]).trim(); if(!s)continue; if(isName(s)){ out.push({name:s, price:pv}); break; } if(parseWon(s)!=null) break; }
+    }
+  });
+  return out;
+}
+function pairsToBook(pairs){ const book={}; pairs.forEach(({name,price})=>{ const k=vNorm(name); if(k && !(k in book)) book[k]={name,price}; }); return book; }
+let IMP_ROWS=[];   // [{p,key,name,spec,cost,cur,price,status,check}]
+async function readImportFile(file){
+  const name=(file.name||'').toLowerCase();
+  const buf=await file.arrayBuffer();
+  let pairs=[];
+  if(name.endsWith('.pdf')){ pairs=await pdfToPairs(buf); }
+  else if(name.endsWith('.csv')){ const txt=new TextDecoder('utf-8').decode(buf); pairs=rowsToPairs(txt.split(/\r?\n/).map(l=>l.split(','))); }
+  else if(/\.xlsx?$/.test(name)){ await ensureXLSX(); const wb=window.XLSX.read(buf,{type:'array'}); pairs=[]; wb.SheetNames.forEach(sn=>{ pairs=pairs.concat(rowsToPairs(window.XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''}))); }); }
+  else throw new Error('지원하지 않는 형식입니다 (PDF·xlsx·xls·csv)');
+  return pairsToBook(pairs);
+}
+function buildImportRows(book){
+  const rows=[];
+  P.forEach(p=>{
+    const hit=findInBook(p, book);
+    if(!hit||hit.price==null) return;
+    const key=pKey(p), cur=(key in DVBASE)?DVBASE[key]:VBASE[key];
+    const status=(cur==null||isNaN(cur))?'new':(Number(cur)===Number(hit.price)?'same':'diff');
+    rows.push({p, key, name:p.name, spec:p.spec, cost:p.cost, cur, price:hit.price, status, check:status!=='same'});
+  });
+  return rows;
+}
+function impBadge(st){ const m={new:['신규','#EAF3FF','#1976D2'],diff:['변경','#FFF7E6','#AD6800'],same:['동일','#F0F0F0','#777']}; const b=m[st]||m.same; return `<span class="imp-badge" style="background:${b[1]};color:${b[2]}">${b[0]}</span>`; }
+function renderImportTable(){
+  const wrap=$('#impResult');
+  if(!IMP_ROWS.length){ wrap.style.display='none'; $('#impStatus').innerHTML='<span style="color:var(--red)">매칭된 제품이 없습니다. 파일에 제품명과 단가가 함께 있는지 확인하세요.</span>'; $('#impApply').disabled=true; return; }
+  wrap.style.display='';
+  let h='<thead><tr><th style="width:34px"></th><th>제품 · 규격</th><th class="num">현재 업체단가</th><th class="num">파일 단가</th><th class="num">마진%</th><th>상태</th></tr></thead><tbody>';
+  IMP_ROWS.forEach((r,i)=>{
+    const mr=(r.cost!=null&&r.price>0)?pct((r.price-r.cost)/r.price):'—';
+    h+=`<tr data-skip="${r.check?0:1}"><td style="text-align:center"><input type="checkbox" class="impChk" data-i="${i}" ${r.check?'checked':''} ${r.status==='same'?'disabled':''}></td>
+      <td>${esc(r.name)} <span style="color:var(--ink-faint)">${esc(r.spec||'')}</span></td>
+      <td class="num">${won(r.cur)}</td>
+      <td class="num" style="font-weight:700">${won(r.price)}</td>
+      <td class="num">${mr}</td>
+      <td>${impBadge(r.status)}</td></tr>`;
+  });
+  $('#impTable').innerHTML=h+'</tbody>';
+  updateImportCount();
+}
+function updateImportCount(){
+  const n=IMP_ROWS.filter(r=>r.check).length;
+  const nNew=IMP_ROWS.filter(r=>r.check&&r.status==='new').length, nDiff=IMP_ROWS.filter(r=>r.check&&r.status==='diff').length;
+  $('#impCount').textContent=`매칭 ${IMP_ROWS.length}개 · 선택 ${n}개 (신규 ${nNew}·변경 ${nDiff})`;
+  $('#impApply').disabled=(n===0);
+  const selectable=IMP_ROWS.filter(r=>r.status!=='same'); $('#impAll').checked=selectable.length>0 && selectable.every(r=>r.check);
+}
+function openImportModal(){ IMP_ROWS=[]; $('#impResult').style.display='none'; $('#impStatus').textContent=''; $('#impFile').value=''; $('#impApply').disabled=true; $('#impAll').checked=false; $('#impOverlay').classList.add('on'); }
+function closeImportModal(){ $('#impOverlay').classList.remove('on'); }
+async function handleImportFile(file){
+  if(!file) return;
+  $('#impStatus').innerHTML='⏳ 파일 읽는 중…'; $('#impResult').style.display='none';
+  try{
+    const book=await readImportFile(file);
+    IMP_ROWS=buildImportRows(book);
+    $('#impStatus').innerHTML=`✅ <b>${esc(file.name)}</b> · 파일에서 단가 ${Object.keys(book).length}개 인식 · 앱 제품과 <b>${IMP_ROWS.length}개</b> 매칭`;
+    renderImportTable();
+  }catch(e){ console.error('[import] 실패',e); $('#impStatus').innerHTML='<span style="color:var(--red)">읽기 실패: '+esc(e.message||String(e))+'</span>'; IMP_ROWS=[]; $('#impResult').style.display='none'; $('#impApply').disabled=true; }
+}
+function applyImport(){
+  const sel=IMP_ROWS.filter(r=>r.check);
+  if(!sel.length){ alert('선택된 항목이 없습니다.'); return; }
+  sel.forEach(r=>{ if(Number(r.price)===Number(VBASE[r.key])) delete DVBASE[r.key]; else DVBASE[r.key]=Number(r.price); });
+  DRAFT_META.status=DRAFT_META.status||'작성중'; PREVIEW=true; saveDraft(); recalcVendor(); refreshAll();
+  closeImportModal();
+  alert(`업체단가 ${sel.length}개를 개정안에 반영했습니다.\n(표에 주황색 '개정안' 표시 · 실제 적용은 상급자 승인 후)`);
+}
+function wireImportModal(){
+  const on=(id,ev,fn)=>{ const el=$('#'+id); if(el)el.addEventListener(ev,fn); };
+  on('btnImportFile','click',openImportModal);
+  on('impClose','click',closeImportModal);
+  on('impCancel','click',closeImportModal);
+  on('impApply','click',applyImport);
+  on('impPick','click',()=>$('#impFile').click());
+  on('impFile','change',e=>handleImportFile(e.target.files&&e.target.files[0]));
+  on('impOverlay','click',e=>{ if(e.target.id==='impOverlay')closeImportModal(); });
+  on('impAll','change',e=>{ const v=e.target.checked; IMP_ROWS.forEach(r=>{ if(r.status!=='same')r.check=v; }); renderImportTable(); });
+  on('impTable','change',e=>{ const c=e.target.closest('.impChk'); if(!c)return; const i=+c.dataset.i; if(IMP_ROWS[i]){ IMP_ROWS[i].check=c.checked; const tr=c.closest('tr'); if(tr)tr.dataset.skip=c.checked?0:1; updateImportCount(); } });
+  const dz=$('#impDrop');
+  if(dz){
+    ['dragover','dragenter'].forEach(ev=>dz.addEventListener(ev,e=>{ e.preventDefault(); dz.classList.add('drag'); }));
+    ['dragleave'].forEach(ev=>dz.addEventListener(ev,e=>{ e.preventDefault(); dz.classList.remove('drag'); }));
+    dz.addEventListener('drop',e=>{ e.preventDefault(); dz.classList.remove('drag'); handleImportFile(e.dataTransfer.files&&e.dataTransfer.files[0]); });
+  }
+}
+wireImportModal();
 async function saveVendorPrices(){ try{ await db.collection('product-meta').doc('vendor-prices').set({map:VBASE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[vendor-prices] 저장 실패', e.code||e); } }
 async function saveRetailPrices(){ try{ await db.collection('product-meta').doc('retail-prices').set({map:VRETAIL, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[retail-prices] 저장 실패', e.code||e); } }
 async function saveChannelMarkup(){ try{ await db.collection('product-meta').doc('channel-markup').set({coeff:VCOEFF, auto:VAUTO, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[channel-markup] 저장 실패', e.code||e); } }

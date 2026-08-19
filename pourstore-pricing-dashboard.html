@@ -135,6 +135,9 @@ tr.catrow .gridadd:hover,tr.catrow .catedit:hover{background:rgba(255,255,255,.3
 .grip:active{cursor:grabbing}
 tr.dragging td{opacity:.4}
 tr.dragover td{box-shadow:inset 0 2px 0 0 var(--xl-green)}
+.prodedit{border:0;background:none;cursor:pointer;font-size:11px;opacity:0;margin-left:4px;padding:0 2px}
+tr:hover .prodedit{opacity:.55}
+.prodedit:hover{opacity:1!important}
 td.cost{background:#FFF8E7}
 td.editable{cursor:cell}
 td.editable:hover{outline:1.5px solid var(--xl-green);outline-offset:-1.5px}
@@ -1152,31 +1155,42 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
 
 <!-- ═══ 제품 추가 모달 ═══ -->
 <div id="addOverlay">
-  <div class="imp-panel" style="max-width:640px">
-    <div class="imp-head"><span>＋ 제품 추가 <span style="font-size:11px;color:var(--ink-faint);font-weight:400">· 원가·제조사·앵커만 넣으면 채널가는 사다리로 자동</span></span><button id="addClose" aria-label="닫기">✕</button></div>
+  <div class="imp-panel" style="max-width:680px">
+    <div class="imp-head"><span id="adTitle">＋ 제품 추가</span><button id="addClose" aria-label="닫기">✕</button></div>
     <div class="imp-body">
+      <div style="border:1px solid var(--xl-grid);border-radius:8px;padding:10px 12px;margin-bottom:12px;background:#FAFBFC">
+        <div style="font-size:11px;color:var(--ink-soft);font-weight:700;margin-bottom:6px">분류 태그 <span style="color:var(--ink-faint);font-weight:400">· # 대분류 › 중분류 › 소분류 (자동완성)</span></div>
+        <div class="formgrid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="fld"><label># 대분류</label><input id="adL1" list="tagL1" placeholder="POUR공법" autocomplete="off"></div>
+          <div class="fld"><label># 중분류</label><input id="adL2" list="tagL2" placeholder="예: 보강제품" autocomplete="off"></div>
+          <div class="fld"><label># 소분류 <span style="color:var(--ink-faint)">(선택)</span></label><input id="adL3" list="tagL3" placeholder="예: 후커류" autocomplete="off"></div>
+        </div>
+      </div>
       <div class="formgrid">
-        <div class="fld"><label>분류 *</label><input id="adCat" list="catList" placeholder="예: 수용성 도료" autocomplete="off"></div>
         <div class="fld"><label>제품명 *</label><input id="adName" placeholder="예: POUR 신규 코트재" autocomplete="off"></div>
         <div class="fld"><label>규격</label><input id="adSpec" placeholder="예: 20kg/통" autocomplete="off"></div>
+        <div class="fld"><label>유형</label><select id="adType"><option value="단품">단품</option><option value="세트">세트(패키지)</option></select></div>
         <div class="fld"><label>매입원가 (원) <span style="color:var(--ink-faint)">대외비</span></label><input type="number" id="adCost" placeholder="예: 60000"></div>
         <div class="fld"><label>제조사 <span style="color:var(--ink-faint)">대외비</span></label><input id="adMfg" list="mfgList" placeholder="선택/입력" autocomplete="off"></div>
-        <div class="fld"><label>유형</label><select id="adType"><option value="단품">단품</option><option value="세트">세트(패키지)</option></select></div>
+        <div class="fld" id="adSetFld" style="display:none"><label>세트 구성 (구성품명, 쉼표)</label><input id="adSetItems" placeholder="구성품명, 구성품명" autocomplete="off"></div>
+      </div>
+      <div class="formgrid" id="adAnchorRow" style="margin-top:8px">
         <div class="fld"><label>업체단가 (원) <span style="color:var(--ink-faint)">사다리 하한</span></label><input type="number" id="adVbase" placeholder="예: 144400"></div>
         <div class="fld"><label>자사몰정가 (원) <span style="color:var(--ink-faint)">사다리 상한</span></label><input type="number" id="adRetail" placeholder="예: 177500"></div>
-        <div class="fld" id="adSetFld" style="grid-column:1/-1;display:none"><label>세트 구성 (구성품명, 쉼표로 구분)</label><input id="adSetItems" placeholder="구성품명, 구성품명" autocomplete="off"></div>
       </div>
-      <p class="footnote">· 총판·대리점·시공·위탁·도매·쿠팡은 <b>업체단가~정가 사다리로 자동 계산</b>됩니다. 업체단가 없이 정가만 넣어도 총판까지 자동으로 채워집니다.<br>· 원가·제조사는 대외비라 일반 팀원 화면엔 표시되지 않습니다.</p>
+      <p class="footnote" id="adFootAdd">· 총판·대리점·시공·위탁·도매·쿠팡은 <b>업체단가~정가 사다리로 자동 계산</b>됩니다. 업체단가 없이 정가만 넣어도 총판까지 자동으로 채워집니다.<br>· 원가·제조사는 대외비라 일반 팀원 화면엔 표시되지 않습니다.</p>
+      <p class="footnote" id="adFootEdit" style="display:none">· 업체단가·정가는 가격정책표 셀에서 <b>상급자 승인</b>을 통해 변경합니다.<br>· 제품명·규격은 여기서 바꾸지 않습니다(분류·원가·제조사만 수정).</p>
       <div id="adStatus" class="footnote" style="margin-top:6px"></div>
     </div>
     <div class="imp-foot">
-      <span class="footnote" style="margin:0">등록하면 가격정책표·손익에 바로 반영됩니다</span>
+      <span class="footnote" style="margin:0">가격정책표·손익에 바로 반영됩니다</span>
       <div style="display:flex;gap:8px">
         <button id="addCancel" class="tbtn">취소</button>
         <button id="addSubmit" class="tbtn" style="background:var(--xl-green);color:#fff;border-color:var(--xl-green);font-weight:700">＋ 추가</button>
       </div>
     </div>
   </div>
+  <datalist id="tagL1"></datalist><datalist id="tagL2"></datalist><datalist id="tagL3"></datalist>
 </div>
 
 <!-- ═══ 분류 관리 모달 (대·중·소분류) ═══ -->
@@ -2120,20 +2134,21 @@ function renderGrid(){
     ${showCost?'<th class="num" style="min-width:86px">매입원가</th>':''}
     ${thPrice}
   </tr></thead><tbody>`;
-  const shown=P.filter(p=>{
-    if(cat&&p.cat!==cat)return false;
-    if(q&&!(p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||(p.sup||'').toLowerCase().includes(q)))return false;
-    return true;
-  }).slice().sort((a,b)=>(catOrder(a.cat)-catOrder(b.cat))||(porderIdx(pKey(a))-porderIdx(pKey(b)))||((a.seq??a.id??0)-(b.seq??b.id??0)));
-  let lastL1=null,lastL2=null,lastCat=null,no=0;
+  const SEP='';
+  const passes=p=> !(cat&&p.cat!==cat) && !(q&&!(p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||(p.sup||'').toLowerCase().includes(q)));
+  const ordered=P.slice().sort((a,b)=>(porderIdx(pKey(a))-porderIdx(pKey(b)))||((a.seq??a.id??0)-(b.seq??b.id??0)));
+  const l1i={},l2i={},l3i={};   // 그룹 순서 = 최초 등장 순서
+  ordered.forEach((p,idx)=>{ const c=pcat(p),k1=c.l1,k2=c.l1+SEP+c.l2,k3=k2+SEP+c.l3; if(!(k1 in l1i))l1i[k1]=idx; if(!(k2 in l2i))l2i[k2]=idx; if(!(k3 in l3i))l3i[k3]=idx; });
+  const gk=(c,lv)=> lv===1?c.l1 : lv===2?(c.l1+SEP+c.l2) : (c.l1+SEP+c.l2+SEP+c.l3);
+  const shown=ordered.filter(passes).sort((a,b)=>{ const ca=pcat(a),cb=pcat(b);
+    return (l1i[gk(ca,1)]-l1i[gk(cb,1)]) || (l2i[gk(ca,2)]-l2i[gk(cb,2)]) || (l3i[gk(ca,3)]-l3i[gk(cb,3)]) || (porderIdx(pKey(a))-porderIdx(pKey(b))); });
+  const catAddBtn=(l1,l2,l3)=> costAllowed?` <button class="gridadd" data-l1="${esc(l1)}" data-l2="${esc(l2)}" data-l3="${esc(l3||'')}">＋ 제품 추가</button>`:'';
+  let lastL1=null,lastL2=null,lastL3=null,no=0;
   shown.forEach(p=>{
-    const m=catMeta(p.cat), L1=m.l1||'', L2=m.l2||'';
-    if(L1!==lastL1){ lastL1=L1; lastL2=null; lastCat=null; if(L1) html+=`<tr class="catrow l1"><td colspan="${nCols}">▣ ${esc(L1)}</td></tr>`; }
-    if(L2!==lastL2){ lastL2=L2; lastCat=null; if(L2) html+=`<tr class="catrow l2"><td colspan="${nCols}">▸ ${esc(L2)}</td></tr>`; }
-    if(p.cat!==lastCat){ lastCat=p.cat;
-      const btns=costAllowed?` <button class="gridadd" data-cat="${esc(p.cat)}">＋ 제품 추가</button> <button class="catedit" data-cat="${esc(p.cat)}" title="분류 편집">✏️ 편집</button>`:'';
-      html+=`<tr class="catrow" data-cat="${esc(p.cat)}"><td colspan="${nCols}">■ ${esc(m.name)}${btns}</td></tr>`;
-    }
+    const c=pcat(p), L1=c.l1, L2=c.l2, L3=c.l3;
+    if(L1!==lastL1){ lastL1=L1; lastL2=null; lastL3=null; html+=`<tr class="catrow l1"><td colspan="${nCols}">▣ ${esc(L1||'미분류')}</td></tr>`; }
+    if(L2!==lastL2){ lastL2=L2; lastL3=null; html+=`<tr class="catrow l2"><td colspan="${nCols}">▸ ${esc(L2||'중분류 미지정')}${L3?'':catAddBtn(L1,L2,'')}</td></tr>`; }
+    if(L3!==lastL3){ lastL3=L3; if(L3) html+=`<tr class="catrow"><td colspan="${nCols}">■ ${esc(L3)}${catAddBtn(L1,L2,L3)}</td></tr>`; }
     no++;
     const tdPrice=priceCols.map(pc=>{
       if(pc.t==='vbase'){
@@ -2151,14 +2166,14 @@ function renderGrid(){
     }).join('');
     html+=`<tr data-id="${p.id}" data-key="${esc(pKey(p))}" data-cat="${esc(p.cat)}">
       <td class="sticky1 dim" style="left:0">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span>`:''}${no}</td>
-      <td class="sticky2 name" style="left:36px">${p.name}</td>
+      <td class="sticky2 name" style="left:36px">${esc(p.name)}${costAllowed?` <button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·제조사)">✏️</button>`:''}</td>
       <td class="dim">${p.spec}</td>
       ${showSup?`<td class="dim" title="${unlocked?esc(p.mgr||''):''}">${unlocked?esc(p.sup||'—'):'🔒'}</td>`:''}
       ${showCost?`<td class="num cost" data-id="${p.id}" data-f="cost" title="원가는 '제품·상품 등록'에서 수정">${won(p.cost)}</td>`:''}
       ${tdPrice}
     </tr>`;
   });
-  if(costAllowed){ html+=`<tr class="addrow"><td colspan="${nCols}"><button class="gridadd" data-cat="">＋ 새 제품·분류 추가</button> &nbsp; <button class="catmgr">🗂 분류 관리(대·중·소분류)</button></td></tr>`; }
+  if(costAllowed){ html+=`<tr class="addrow"><td colspan="${nCols}"><button class="gridadd" data-l1="POUR공법" data-l2="" data-l3="">＋ 새 제품 추가</button> <span style="color:var(--ink-faint);font-size:11px;margin-left:8px">· 분류(대·중·소)는 제품 추가/수정 시 태그로 지정</span></td></tr>`; }
   $('#priceGrid').innerHTML=html+'</tbody>';
 }
 /* 셀 선택 → 수식줄 + 이익배분 */
@@ -3335,6 +3350,12 @@ function ensureCatCfg(){
   return added;
 }
 async function saveCatConfig(){ try{ await db.collection('product-meta').doc('cat-config').set({list:CATCFG, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[cat-config] 저장 실패', e.code||e); } }
+/* ── 제품별 분류(대/중/소): pKey → {l1,l2,l3}. 기본 대분류=POUR공법·중분류=현재 cat. ← product-meta/prod-cat ── */
+let PCAT={};
+function pcat(p){ const m=PCAT[pKey(p)]||{}; return { l1:(m.l1||'POUR공법'), l2:(m.l2!=null&&m.l2!=='')?m.l2:(p.cat||'기타'), l3:(m.l3||'') }; }
+function setPcat(p,l1,l2,l3){ PCAT[pKey(p)]={ l1:(l1||'').trim()||'POUR공법', l2:(l2||'').trim()||(p.cat||'기타'), l3:(l3||'').trim() }; }
+async function savePcat(){ try{ await db.collection('product-meta').doc('prod-cat').set({map:PCAT, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-cat] 저장 실패', e.code||e); } }
+function allTags(level){ const s=new Set(); P.forEach(p=>{ const c=pcat(p); const v=level===1?c.l1:level===2?c.l2:c.l3; if(v)s.add(v); }); return [...s]; }
 /* ── 제품 표시 순서(드래그 재정렬): pKey 배열. ← product-meta/prod-order ── */
 let PORDER=[];
 function porderIdx(key){ const i=PORDER.indexOf(key); return i<0?99999:i; }
@@ -3524,33 +3545,65 @@ function applyImport(){
   alert(`업체단가 ${sel.length}개를 개정안에 반영했습니다.\n(표에 주황색 '개정안' 표시 · 실제 적용은 상급자 승인 후)`);
 }
 /* ── 제품 추가 모달 (엑셀식 빠른 등록 → products-added, 앵커는 사다리로 자동) ── */
-function openAddModal(cat){
-  ['adName','adSpec','adCost','adMfg','adVbase','adRetail','adSetItems'].forEach(id=>{ const el=$('#'+id); if(el)el.value=''; });
-  $('#adCat').value=cat||''; $('#adType').value='단품'; $('#adSetFld').style.display='none'; $('#adStatus').textContent='';
-  $('#addOverlay').classList.add('on'); setTimeout(()=>{ const el=$(cat?'#adName':'#adCat'); if(el)el.focus(); }, 50);
+let AD_EDIT=null;   // 수정 중인 제품(null이면 신규)
+function fillTagLists(){ $('#tagL1').innerHTML=allTags(1).map(v=>`<option value="${esc(v)}">`).join(''); $('#tagL2').innerHTML=allTags(2).map(v=>`<option value="${esc(v)}">`).join(''); $('#tagL3').innerHTML=allTags(3).map(v=>`<option value="${esc(v)}">`).join(''); }
+function openAddModal(prefill){   // prefill: {l1,l2,l3}
+  AD_EDIT=null;
+  ['adName','adSpec','adCost','adMfg','adVbase','adRetail','adSetItems'].forEach(id=>{ const el=$('#'+id); if(el)el.value=''; el&&(el.disabled=false); });
+  const pf=prefill||{};
+  $('#adL1').value=pf.l1||'POUR공법'; $('#adL2').value=pf.l2||''; $('#adL3').value=pf.l3||'';
+  $('#adType').value='단품'; $('#adSetFld').style.display='none'; $('#adStatus').textContent='';
+  $('#adTitle').textContent='＋ 제품 추가'; $('#addSubmit').textContent='＋ 추가';
+  $('#adName').disabled=false; $('#adSpec').disabled=false;
+  $('#adAnchorRow').style.display=''; $('#adFootAdd').style.display=''; $('#adFootEdit').style.display='none';
+  fillTagLists(); $('#addOverlay').classList.add('on'); setTimeout(()=>{ const el=$(pf.l2?'#adName':'#adL2'); if(el)el.focus(); }, 50);
 }
-function closeAddModal(){ $('#addOverlay').classList.remove('on'); }
+function openEditModal(p){   // 기존 제품 수정: 분류(전체)·원가·제조사(등록상품만)
+  if(!p)return; AD_EDIT=p; const c=pcat(p), added=!!p.docId;
+  $('#adL1').value=c.l1; $('#adL2').value=c.l2; $('#adL3').value=c.l3;
+  $('#adName').value=p.name; $('#adSpec').value=p.spec||'';
+  $('#adCost').value=(p.cost==null?'':p.cost); $('#adMfg').value=p.mfg||''; $('#adType').value=p.ptype||p.type||'단품';
+  $('#adSetItems').value=p.setItems||''; $('#adSetFld').style.display=($('#adType').value==='세트')?'':'none';
+  $('#adName').disabled=true; $('#adSpec').disabled=true;              // 이름·규격은 키라서 여기서 변경 불가
+  $('#adCost').disabled=!added; $('#adMfg').disabled=!added; $('#adType').disabled=!added;  // 등록상품만 편집
+  $('#adAnchorRow').style.display='none'; $('#adFootAdd').style.display='none'; $('#adFootEdit').style.display='';
+  $('#adStatus').innerHTML=added?'':'<span style="color:var(--ink-faint)">기본 제품이라 분류만 수정됩니다(원가·제조사는 등록상품만).</span>';
+  $('#adTitle').textContent='✏️ 제품 수정 — '+esc(p.name); $('#addSubmit').textContent='저장';
+  fillTagLists(); $('#addOverlay').classList.add('on'); setTimeout(()=>{ const el=$('#adL2'); if(el)el.focus(); }, 50);
+}
+function closeAddModal(){ AD_EDIT=null; $('#addOverlay').classList.remove('on'); }
 async function submitAddProduct(){
-  const cat=($('#adCat').value||'').trim()||'기타', name=($('#adName').value||'').trim();
-  if(!name){ $('#adStatus').innerHTML='<span style="color:var(--red)">제품명은 필수입니다.</span>'; $('#adName').focus(); return; }
-  const spec=($('#adSpec').value||'').trim()||'-';
+  const l1=($('#adL1').value||'').trim()||'POUR공법', l2=($('#adL2').value||'').trim(), l3=($('#adL3').value||'').trim();
   const cost=$('#adCost').value===''?null:+$('#adCost').value;
   const mfg=($('#adMfg').value||'').trim();
-  const vbase=$('#adVbase').value===''?null:+$('#adVbase').value;
-  const retail=$('#adRetail').value===''?null:+$('#adRetail').value;
   const type=$('#adType').value||'단품';
-  const rUid=(typeof retailUid==='function')?retailUid():null;
-  const pr={}; if(rUid && retail>0) pr[rUid]=retail;
-  const key=`${cat}|${name}|${spec}`;
-  const doc={ cat,name,spec,cost,pr,mfg,concept:'',type,status:'출시',setItems:($('#adSetItems').value||'').trim(),
-    seq:P.length, updatedAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'' };
-  const btn=$('#addSubmit'); btn.disabled=true; const old=btn.textContent; btn.textContent='추가 중…'; $('#adStatus').textContent='';
+  const btn=$('#addSubmit'); btn.disabled=true; const old=btn.textContent; btn.textContent='저장 중…'; $('#adStatus').textContent='';
   try{
+    if(AD_EDIT){   // ── 수정 ──
+      setPcat(AD_EDIT, l1, l2, l3); await savePcat();
+      if(AD_EDIT.docId){ const patch={cost,mfg,type,updatedAt:new Date().toISOString()};
+        if(mfg && typeof MFG!=='undefined' && !MFG.some(m=>m.name===mfg)){ MFG.push({id:mfgSeq++,name:mfg,mgr:'',tel:'',memo:'(수정 시 자동)'}); persist(); }
+        await db.collection('products-added').doc(AD_EDIT.docId).set(patch,{merge:true}); }
+      else { refreshAll(); }   // RAW: 분류만 저장됨 → onSnapshot 없으니 직접 갱신
+      closeAddModal(); return;
+    }
+    // ── 신규 등록 ──
+    const name=($('#adName').value||'').trim();
+    if(!name){ $('#adStatus').innerHTML='<span style="color:var(--red)">제품명은 필수입니다.</span>'; $('#adName').focus(); btn.disabled=false; btn.textContent=old; return; }
+    const spec=($('#adSpec').value||'').trim()||'-';
+    const vbase=$('#adVbase').value===''?null:+$('#adVbase').value;
+    const retail=$('#adRetail').value===''?null:+$('#adRetail').value;
+    const rUid=(typeof retailUid==='function')?retailUid():null;
+    const pr={}; if(rUid && retail>0) pr[rUid]=retail;
+    const cat=l2||'기타', key=`${cat}|${name}|${spec}`;
+    const doc={ cat,name,spec,cost,pr,mfg,concept:'',type,status:'출시',setItems:($('#adSetItems').value||'').trim(),
+      seq:P.length, updatedAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'' };
     if(mfg && typeof MFG!=='undefined' && !MFG.some(m=>m.name===mfg)){ MFG.push({id:mfgSeq++,name:mfg,mgr:'',tel:'',memo:'(제품 추가 시 자동)'}); persist(); }
     await db.collection('products-added').add(doc);
+    PCAT[key]={l1,l2:cat,l3}; await savePcat();     // 분류 태그 저장
     if(vbase>0){ VBASE[key]=vbase; await saveVendorPrices(); }
     closeAddModal();   // onSnapshot(products-added)이 대시보드에 실시간 반영
-  }catch(e){ console.error('[add] 등록 실패',e); $('#adStatus').innerHTML='<span style="color:var(--red)">추가 실패: '+esc(e.code||e.message||e)+' (마스터/허용목록·규칙 확인)</span>'; }
+  }catch(e){ console.error('[제품 저장] 실패',e); $('#adStatus').innerHTML='<span style="color:var(--red)">저장 실패: '+esc(e.code||e.message||e)+' (마스터/허용목록·규칙 확인)</span>'; }
   finally{ btn.disabled=false; btn.textContent=old; }
 }
 /* ── 분류 관리 모달 (대·중·소분류 · 이름 · 순서) ── */
@@ -3610,7 +3663,10 @@ function wireImportModal(){
   on('addSubmit','click',submitAddProduct);
   on('addOverlay','click',e=>{ if(e.target.id==='addOverlay')closeAddModal(); });
   on('adType','change',e=>{ $('#adSetFld').style.display=e.target.value==='세트'?'':'none'; });
-  document.addEventListener('click',e=>{ const b=e.target.closest('.gridadd'); if(b){ openAddModal(b.dataset.cat||''); } });
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('.gridadd'); if(b){ openAddModal({l1:b.dataset.l1||'POUR공법', l2:b.dataset.l2||'', l3:b.dataset.l3||''}); return; }
+    const ed=e.target.closest('.prodedit'); if(ed){ const p=P.find(x=>x.id==ed.dataset.id); if(p)openEditModal(p); }
+  });
   on('btnImportFile','click',openImportModal);
   on('impClose','click',closeImportModal);
   on('impCancel','click',closeImportModal);
@@ -3639,6 +3695,7 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('channel-markup').get(); if(d.exists){ if(d.data().coeff)VCOEFF=d.data().coeff; if(typeof d.data().auto==='boolean')VAUTO=d.data().auto; if(typeof d.data().ladBase==='number'&&d.data().ladBase>0&&d.data().ladBase<1)LAD_BASE=d.data().ladBase; } }catch(e){ console.warn('[channel-markup] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('cat-config').get(); if(d.exists&&Array.isArray(d.data().list)) CATCFG=d.data().list.map(c=>({key:c.key,name:c.name||c.key,l1:c.l1||'',l2:c.l2||''})); }catch(e){ console.warn('[cat-config] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-order').get(); if(d.exists&&Array.isArray(d.data().list)) PORDER=d.data().list; }catch(e){ console.warn('[prod-order] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('prod-cat').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PCAT=d.data().map; }catch(e){ console.warn('[prod-cat] 로드 실패', e.code||e); }
   await loadDraft();
   console.log(`[vendor] 업체단가 ${Object.keys(VBASE).length} · 정가override ${Object.keys(VRETAIL).length} · 분류 ${CATCFG.length}개 · 개정안 ${draftCount()}건(${DRAFT_META.status||'없음'})`);
 }

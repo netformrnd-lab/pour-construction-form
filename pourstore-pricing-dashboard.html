@@ -130,6 +130,11 @@ tr.catrow .gridadd,tr.catrow .catedit{margin-left:10px;padding:2px 9px;font-size
 tr.catrow .gridadd:hover,tr.catrow .catedit:hover{background:rgba(255,255,255,.3)}
 .catmgr{padding:4px 12px;border:1px dashed var(--muted,#9aa);border-radius:6px;background:#fff;color:var(--ink-soft);font-weight:600;font-size:12px;cursor:pointer;margin-left:6px}
 .catmgr:hover{border-color:var(--xl-green);color:var(--xl-green-dark)}
+.grip{cursor:grab;color:#c2c8cc;user-select:none;margin-right:4px;font-size:13px;letter-spacing:-2px}
+.grip:hover{color:var(--xl-green)}
+.grip:active{cursor:grabbing}
+tr.dragging td{opacity:.4}
+tr.dragover td{box-shadow:inset 0 2px 0 0 var(--xl-green)}
 td.cost{background:#FFF8E7}
 td.editable{cursor:cell}
 td.editable:hover{outline:1.5px solid var(--xl-green);outline-offset:-1.5px}
@@ -2090,6 +2095,7 @@ function cellDisplay(p,uid){
 }
 function renderGrid(){
   ensureCatCfg();   // 새 분류 자동 시딩(표시·정렬용, 저장은 분류 관리에서)
+  ensurePorder();   // 제품 순서 시딩(드래그 재정렬용)
   const impBtn=$('#btnImportFile'); if(impBtn) impBtn.style.display=costAllowed?'':'none';   // 파일 업로드: 원가열람 계정만
   const addBtn=$('#btnAddProd'); if(addBtn) addBtn.style.display=costAllowed?'':'none';       // 제품 추가: 원가열람 계정만
   const q=($('#q').value||'').trim().toLowerCase();
@@ -2118,7 +2124,7 @@ function renderGrid(){
     if(cat&&p.cat!==cat)return false;
     if(q&&!(p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||(p.sup||'').toLowerCase().includes(q)))return false;
     return true;
-  }).slice().sort((a,b)=>(catOrder(a.cat)-catOrder(b.cat))||((a.seq??a.id??0)-(b.seq??b.id??0)));
+  }).slice().sort((a,b)=>(catOrder(a.cat)-catOrder(b.cat))||(porderIdx(pKey(a))-porderIdx(pKey(b)))||((a.seq??a.id??0)-(b.seq??b.id??0)));
   let lastL1=null,lastL2=null,lastCat=null,no=0;
   shown.forEach(p=>{
     const m=catMeta(p.cat), L1=m.l1||'', L2=m.l2||'';
@@ -2143,8 +2149,8 @@ function renderGrid(){
       const cls=['num']; if(editable)cls.push('editable'); if(m!=null&&m<0)cls.push('neg','warn');
       return `<td class="${cls.join(' ')}" data-id="${p.id}" data-f="u${c.uid}">${cellDisplay(p,c.uid)}</td>`;
     }).join('');
-    html+=`<tr data-id="${p.id}">
-      <td class="sticky1 dim" style="left:0">${no}</td>
+    html+=`<tr data-id="${p.id}" data-key="${esc(pKey(p))}" data-cat="${esc(p.cat)}">
+      <td class="sticky1 dim" style="left:0">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span>`:''}${no}</td>
       <td class="sticky2 name" style="left:36px">${p.name}</td>
       <td class="dim">${p.spec}</td>
       ${showSup?`<td class="dim" title="${unlocked?esc(p.mgr||''):''}">${unlocked?esc(p.sup||'—'):'🔒'}</td>`:''}
@@ -3329,6 +3335,19 @@ function ensureCatCfg(){
   return added;
 }
 async function saveCatConfig(){ try{ await db.collection('product-meta').doc('cat-config').set({list:CATCFG, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[cat-config] 저장 실패', e.code||e); } }
+/* ── 제품 표시 순서(드래그 재정렬): pKey 배열. ← product-meta/prod-order ── */
+let PORDER=[];
+function porderIdx(key){ const i=PORDER.indexOf(key); return i<0?99999:i; }
+function ensurePorder(){ P.slice().sort((a,b)=>(catOrder(a.cat)-catOrder(b.cat))||((a.seq??a.id??0)-(b.seq??b.id??0))).forEach(p=>{ const k=pKey(p); if(!PORDER.includes(k))PORDER.push(k); }); }
+async function savePorder(){ try{ await db.collection('product-meta').doc('prod-order').set({list:PORDER, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-order] 저장 실패', e.code||e); } }
+function reorderProd(fromKey,toKey){
+  if(fromKey===toKey)return;
+  const from=PORDER.indexOf(fromKey); if(from<0)return;
+  PORDER.splice(from,1);
+  let to=PORDER.indexOf(toKey); if(to<0)to=PORDER.length;
+  PORDER.splice(to,0,fromKey);
+  savePorder(); refreshAll();
+}
 let VBASE={};      // 업체단가 {pKey:원}          ← product-meta/vendor-prices
 let VRETAIL={};    // 자사몰정가 override {pKey:원} ← product-meta/retail-prices
 let VCOEFF={};     // 채널 계수 {code:{a,f}}       ← product-meta/channel-markup
@@ -3575,6 +3594,15 @@ function wireCatMgr(){
   // 표 안의 분류 편집(✏️)·분류 관리(🗂) 버튼
   document.addEventListener('click',e=>{ if(e.target.closest('.catedit')||e.target.closest('.catmgr')) openCatMgr(); });
 }
+/* ── 제품 행 드래그 재정렬 (같은 분류 내) ── */
+function wireDnd(){
+  const g=$('#priceGrid'); if(!g)return;
+  let dragKey=null, dragCat=null;
+  g.addEventListener('dragstart',e=>{ const grip=e.target.closest('.grip'); if(!grip){ return; } const tr=grip.closest('tr[data-key]'); if(!tr)return; dragKey=tr.dataset.key; dragCat=tr.dataset.cat; tr.classList.add('dragging'); if(e.dataTransfer){ e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain',dragKey); }catch(_){} } });
+  g.addEventListener('dragend',()=>{ dragKey=null; g.querySelectorAll('.dragging,.dragover').forEach(el=>el.classList.remove('dragging','dragover')); });
+  g.addEventListener('dragover',e=>{ if(!dragKey)return; const tr=e.target.closest('tr[data-key]'); if(!tr||tr.dataset.cat!==dragCat)return; e.preventDefault(); g.querySelectorAll('tr.dragover').forEach(el=>el.classList.remove('dragover')); tr.classList.add('dragover'); });
+  g.addEventListener('drop',e=>{ if(!dragKey)return; const tr=e.target.closest('tr[data-key]'); const from=dragKey; dragKey=null; if(!tr||tr.dataset.cat!==dragCat)return; e.preventDefault(); if(from!==tr.dataset.key) reorderProd(from, tr.dataset.key); });
+}
 function wireImportModal(){
   const on=(id,ev,fn)=>{ const el=$('#'+id); if(el)el.addEventListener(ev,fn); };
   on('btnAddProd','click',()=>openAddModal());
@@ -3601,6 +3629,7 @@ function wireImportModal(){
 }
 wireImportModal();
 wireCatMgr();
+wireDnd();
 async function saveVendorPrices(){ try{ await db.collection('product-meta').doc('vendor-prices').set({map:VBASE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[vendor-prices] 저장 실패', e.code||e); } }
 async function saveRetailPrices(){ try{ await db.collection('product-meta').doc('retail-prices').set({map:VRETAIL, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[retail-prices] 저장 실패', e.code||e); } }
 async function saveChannelMarkup(){ try{ await db.collection('product-meta').doc('channel-markup').set({coeff:VCOEFF, auto:VAUTO, ladBase:LAD_BASE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[channel-markup] 저장 실패', e.code||e); } }
@@ -3609,6 +3638,7 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('retail-prices').get(); if(d.exists&&d.data().map) VRETAIL=d.data().map; }catch(e){ console.warn('[retail-prices] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('channel-markup').get(); if(d.exists){ if(d.data().coeff)VCOEFF=d.data().coeff; if(typeof d.data().auto==='boolean')VAUTO=d.data().auto; if(typeof d.data().ladBase==='number'&&d.data().ladBase>0&&d.data().ladBase<1)LAD_BASE=d.data().ladBase; } }catch(e){ console.warn('[channel-markup] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('cat-config').get(); if(d.exists&&Array.isArray(d.data().list)) CATCFG=d.data().list.map(c=>({key:c.key,name:c.name||c.key,l1:c.l1||'',l2:c.l2||''})); }catch(e){ console.warn('[cat-config] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('prod-order').get(); if(d.exists&&Array.isArray(d.data().list)) PORDER=d.data().list; }catch(e){ console.warn('[prod-order] 로드 실패', e.code||e); }
   await loadDraft();
   console.log(`[vendor] 업체단가 ${Object.keys(VBASE).length} · 정가override ${Object.keys(VRETAIL).length} · 분류 ${CATCFG.length}개 · 개정안 ${draftCount()}건(${DRAFT_META.status||'없음'})`);
 }

@@ -3265,7 +3265,7 @@ function recalcVendor(){
     const rov=effRetail(k); if(rUid && rov>0) p.pr[rUid]=rov;   // 자사몰정가 override
     const vb=effVbase(k), own=rUid?p.pr[rUid]:null;
     CHANNELS.forEach(c=>{ if(!c.col) return; const cf=coeffFor(c.code);
-      if(cf.a==='vbase'){ if(vb>0) p.pr[c.uid]=round100(vb*(1+(+cf.f||0)/100)); }
+      if(cf.a==='vbase'){ if(vb>0){ const f=+cf.f||0; p.pr[c.uid]= f===0 ? vb : round100(vb*(1+f/100)); } }   // 업체단가+0%(총판)는 100원 반올림 없이 업체단가와 '정확히' 동일
       else if(cf.a==='retail'){ if(own>0 && c.uid!==rUid) p.pr[c.uid]=round100(own*(+cf.f||0)/100); }
     });
   });

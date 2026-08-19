@@ -2003,7 +2003,7 @@ function renderGrid(){
         return `<td class="${cls.join(' ')}" data-id="${p.id}" data-f="u${c.uid}">${cellDisplay(p,c.uid)}</td>`;
       }).join('')}
       ${showCost?`<td class="num" style="font-weight:600;color:${r7!=null&&r7<0.15?'var(--amber)':'var(--xl-green-dark)'}">${pct(r7)}</td>`:''}
-      <td class="num editable" data-id="${p.id}" data-f="vbase" style="background:var(--xl-sel);font-weight:600">${won(VBASE[pKey(p)])}</td>
+      <td class="num editable" data-id="${p.id}" data-f="vbase" style="background:var(--xl-sel);font-weight:600${(PREVIEW && (pKey(p) in DVBASE))?';color:var(--amber)':''}">${won(effVbase(pKey(p)))}${(PREVIEW && (pKey(p) in DVBASE))?'<span class="mrate">개정</span>':''}</td>
     </tr>`;
   });
   $('#priceGrid').innerHTML=html+'</tbody>';
@@ -2050,7 +2050,7 @@ document.addEventListener('click',e=>{
     $('#fxSplit').classList.remove('on');
   }else if(f==='vbase'){
     $('#fxRef').textContent=p.name+' · 업체단가(pour공법)';
-    $('#fxExpr').innerHTML=`업체단가 = <b>${wonU(VBASE[pKey(p)])}</b> <span style="color:var(--ink-faint)">· 채널가 계산 기준(가장 저렴)</span>`;
+    $('#fxExpr').innerHTML=`업체단가 = <b>${wonU(effVbase(pKey(p)))}</b>${(PREVIEW && (pKey(p) in DVBASE))?' <span style="color:var(--amber)">(개정안 미리보기 · 승인 전)</span>':''} <span style="color:var(--ink-faint)">· 채널가 계산 기준(가장 저렴)</span>`;
     $('#fxSplit').classList.remove('on');
   }else{
     const uid=f.slice(1), c=chByUid(uid), pr=gp(p,uid), m=margin(pr,p.cost), r=mrate(pr,p.cost);
@@ -2069,7 +2069,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('dblclick',e=>{
   const td=e.target.closest('#priceGrid td.editable'); if(!td||td.querySelector('input'))return;
   const p=P[+td.dataset.id], f=td.dataset.f;
-  const cur=f==='cost'?p.cost:(f==='vbase'?VBASE[pKey(p)]:gp(p,f.slice(1)));
+  const cur=f==='cost'?p.cost:(f==='vbase'?effVbase(pKey(p)):gp(p,f.slice(1)));
   td.innerHTML=`<input class="cellinput" type="number" value="${cur==null?'':cur}">`;
   const inp=td.querySelector('input'); inp.focus(); inp.select();
   const commit=()=>{

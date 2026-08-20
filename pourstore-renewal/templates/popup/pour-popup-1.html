@@ -88,18 +88,31 @@
   if(todayBtn) todayBtn.addEventListener('click',function(){ closePopup(true); });
   if(closeBtn) closeBtn.addEventListener('click',function(){ closePopup(false); });
 
-  // 오늘 하루 닫아둔 상태면 바로 닫고 종료
+  // ── Firestore REST 값(타입 래핑) → JS 값 변환 ──
+  function fromVal(v){
+    if(v==null) return null;
+    if('stringValue' in v) return v.stringValue;
+    if('integerValue' in v) return parseInt(v.integerValue,10);
+    if('doubleValue' in v) return v.doubleValue;
+    if('booleanValue' in v) return v.booleanValue;
+    if('nullValue' in v) return null;
+    if('mapValue' in v){ var o={}, f=(v.mapValue.fields)||{}; for(var k in f) o[k]=fromVal(f[k]); return o; }
+    if('arrayValue' in v){ return ((v.arrayValue.values)||[]).map(fromVal); }
+    return null;
+  }
+  // 오늘 하루 닫아둔 상태면 바로 닫고 종료 (네트워크 요청 없이)
   if(isHiddenToday()){ console.log('[popup] 오늘 하루 열지 않음 상태'); closePopup(false); return; }
 
   (async function(){
     var items=[];
     try{
-      var a=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-      var fs=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      var cfg={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
-      var app=a.getApps().length?a.getApps()[0]:a.initializeApp(cfg);
-      var snap=await fs.getDoc(fs.doc(fs.getFirestore(app),'config','pourstorePopups'));
-      var arr=snap.exists()?(((snap.data()||{}).popups)||[]):[];
+      // Firebase SDK 로딩 없이 REST 한 번으로 팝업 목록만 조회 → 훨씬 빠름
+      var KEY="AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU";
+      var URL="https://firestore.googleapis.com/v1/projects/pour-app-new/databases/(default)/documents/config/pourstorePopups?key="+KEY;
+      var res=await fetch(URL,{cache:'no-store'});
+      var arr=[];
+      if(res.ok){ var doc=await res.json(); arr=fromVal(((doc||{}).fields||{}).popups)||[]; }
+      else if(res.status!==404){ console.log('[popup] HTTP '+res.status); }
       items=arr.filter(function(p){ return p && p.active!==false && p.image; })
                .sort(function(x,y){ return (x.order||0)-(y.order||0); });
     }catch(e){ console.log('[popup] 로드 스킵:', e&&e.message?e.message:e); }
@@ -109,10 +122,12 @@
     // 이미지가 있으면 하단 버튼 바 노출
     foot.hidden=false;
 
-    // 슬라이드 렌더
-    track.innerHTML=items.map(function(p){
+    // 슬라이드 렌더 (첫 장은 즉시 로드, 나머지는 넘길 때 로드 → 첫 화면 빠르게)
+    track.innerHTML=items.map(function(p,i){
       return '<a class="pp-slide" href="#none">'+
-             '<img src="'+esc(p.image)+'" alt="이벤트 팝업" onerror="this.style.display=\'none\'">'+
+             '<img src="'+esc(p.image)+'" alt="이벤트 팝업" decoding="async" '+
+             'loading="'+(i===0?'eager':'lazy')+'" fetchpriority="'+(i===0?'high':'low')+'" '+
+             'onerror="this.style.display=\'none\'">'+
              '</a>';
     }).join('');
     var slides=track.querySelectorAll('.pp-slide');

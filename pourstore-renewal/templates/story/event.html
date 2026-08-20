@@ -1419,7 +1419,7 @@ var PM_POSTS = [];
   .pev-dt-back svg{width:24px;height:24px;}
   .pev-dt-title{font-size:16px;font-weight:800;letter-spacing:-.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .pev-dt-body{padding:0 0 60px;}
-  .pev-dt-imgs{max-width:1280px;margin:0 auto;}
+  .pev-dt-imgs{max-width:1080px;margin:0 auto;padding:0 16px;}  /* 아래 상품 그리드(.pev-dt-prods)와 같은 폭·여백으로 정렬 */
   .pev-dt-imgs img{width:100%;display:block;}
   .pev-dt-text{padding:16px 20px;line-height:1.7;color:#2a2e33;letter-spacing:-.02em;word-break:keep-all;}
   .pev-dt-prods{max-width:1080px;margin:0 auto;padding:26px 16px 0;}
@@ -1535,7 +1535,7 @@ function openDetail(ev){
     }).join('')+'</div></div>';
   }
   if(ev.categoryNo){
-    h+='<div class="pev-dt-prods pev-cat-wrap"><h2>이 카테고리 상품</h2>'+
+    h+='<div class="pev-dt-prods pev-cat-wrap"><h2>얼리버드 프로모션 할인 상품</h2>'+
        '<div class="pev-dt-grid" data-pev-cat="'+esc(ev.categoryNo)+'">'+
          '<div style="grid-column:1/-1;padding:26px 10px;text-align:center;color:#adb2bb;font-weight:600">상품을 불러오는 중…</div>'+
        '</div>'+

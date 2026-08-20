@@ -5146,6 +5146,7 @@ function PopupsPage({showToast}){
                     <input value={s.image} onChange={e=>setSlot(s.slot,{image:e.target.value})} placeholder="이미지 URL 또는 업로드" style={field}/>
                     <label style={{padding:'0 12px',borderRadius:8,border:'1px solid var(--border)',background:uploading===('s'+s.slot)?'var(--or-pale)':'var(--bg)',fontSize:11.5,fontWeight:800,color:'var(--or-d)',cursor:'pointer',display:'flex',alignItems:'center',flexShrink:0,whiteSpace:'nowrap'}}>{uploading===('s'+s.slot)?'…':'업로드'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)upload('s'+s.slot,f,url=>setSlot(s.slot,{image:url})); e.target.value='';}}/></label>
                   </div>
+                  <div style={{fontSize:11.5,color:'var(--text-sm)',marginTop:7,lineHeight:1.55}}>📐 권장 크기: 가로 <b>400~500px</b> · <b>세로형(4:5)</b> 또는 정사각형(1:1) · 고해상도는 2배(예: <b>800×1000</b> / 900×900) · JPG·PNG, 2MB 이하 <span style={{color:'var(--text-md)'}}>· 카페24 "팝업크기"를 이미지 비율에 맞춰 설정</span></div>
                   <div style={{...lbl,marginTop:12}}>클릭 시 이동할 링크</div>
                   <input value={s.link} onChange={e=>setSlot(s.slot,{link:e.target.value})} placeholder="예: /pourstore_renewal/story/event.html  (비우면 이동 없음)" style={{...field,marginTop:6}}/>
                 </div>

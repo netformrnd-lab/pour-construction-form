@@ -135,6 +135,11 @@ tr.catrow .gridadd:hover,tr.catrow .catedit:hover{background:rgba(255,255,255,.3
 .grip:active{cursor:grabbing}
 tr.dragging td{opacity:.4}
 tr.dragover td{box-shadow:inset 0 2px 0 0 var(--xl-green)}
+.setrow{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.setrow .setname{flex:1;border:1px solid var(--xl-grid);border-radius:5px;padding:7px 9px;font-size:13px;min-width:0}
+.setrow .setqty{width:66px;border:1px solid var(--xl-grid);border-radius:5px;padding:7px 8px;text-align:right;font-size:13px}
+.setrow .setdel{border:1px solid var(--xl-grid);background:#fff;border-radius:5px;padding:5px 9px;cursor:pointer;flex-shrink:0}
+.setrow .setdel:hover{border-color:var(--red);color:var(--red)}
 .prodedit{border:0;background:none;cursor:pointer;font-size:11px;opacity:0;margin-left:4px;padding:0 2px}
 tr:hover .prodedit{opacity:.55}
 .prodedit:hover{opacity:1!important}
@@ -1172,7 +1177,12 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
         <div class="fld"><label>유형</label><select id="adType"><option value="단품">단품</option><option value="세트">세트(패키지)</option></select></div>
         <div class="fld"><label>매입원가 (원) <span style="color:var(--ink-faint)">대외비</span></label><input type="number" id="adCost" placeholder="예: 60000"></div>
         <div class="fld"><label>제조사 <span style="color:var(--ink-faint)">대외비</span></label><input id="adMfg" list="mfgList" placeholder="선택/입력" autocomplete="off"></div>
-        <div class="fld" id="adSetFld" style="display:none;grid-column:1/-1"><label>구성 단품 <span style="color:var(--ink-faint)">제품명×수량, 쉼표로 구분 (예: 코트재Ⅰ(회색)×2, 슈퍼복합압축시트 0.3T 10cm*100m×1)</span></label><input id="adSetItems" list="prodNameList" placeholder="코트재Ⅰ(회색)×2, 슈퍼복합압축시트×1" autocomplete="off"><span class="unit" id="adSetPreview"></span></div>
+        <div id="adSetFld" style="display:none;grid-column:1/-1">
+          <label style="display:block;font-size:11px;color:var(--ink-soft);margin-bottom:5px;font-weight:600">구성 단품 <span style="color:var(--ink-faint);font-weight:400">· 단품을 골라 담으면 원가·판매가가 자동 합산됩니다</span></label>
+          <div id="adSetBuilder"></div>
+          <button type="button" id="adSetAdd" class="tbtn" style="margin-top:2px">＋ 구성 추가</button>
+          <div id="adSetPreview" class="footnote" style="margin-top:8px"></div>
+        </div>
       </div>
       <div class="formgrid" id="adAnchorRow" style="margin-top:8px">
         <div class="fld"><label>업체단가 (원) <span style="color:var(--ink-faint)">사다리 하한</span></label><input type="number" id="adVbase" placeholder="예: 144400"></div>
@@ -3566,27 +3576,47 @@ function applyImport(){
 let AD_EDIT=null;   // 수정 중인 제품(null이면 신규)
 function fillTagLists(){ $('#tagL1').innerHTML=allTags(1).map(v=>`<option value="${esc(v)}">`).join(''); $('#tagL2').innerHTML=allTags(2).map(v=>`<option value="${esc(v)}">`).join(''); $('#tagL3').innerHTML=allTags(3).map(v=>`<option value="${esc(v)}">`).join('');
   const pl=$('#prodNameList'); if(pl) pl.innerHTML=P.filter(x=>!isPackage(x)).map(x=>`<option value="${esc(x.name)}">`).join(''); }
+/* ── 구성 빌더 (드롭다운으로 단품 골라 담기) ── */
+let SET_ROWS=[];   // [{name, qty}]
+function findProd(name){ const n=(name||'').trim(); return P.find(x=>x.name===n)||P.find(x=>x.name.replace(/\s/g,'')===n.replace(/\s/g,'')); }
+function setRowsFromStr(str){ SET_ROWS=parseSetItems(str).map(it=>({name:it.name,qty:it.qty})); }
+function setItemsStr(){ return SET_ROWS.filter(r=>(r.name||'').trim()).map(r=>`${r.name.trim()}×${Math.max(1,+r.qty||1)}`).join(', '); }
+function renderSetBuilder(){
+  const box=$('#adSetBuilder'); if(!box)return;
+  box.innerHTML = SET_ROWS.length ? SET_ROWS.map((r,i)=>{
+    const ok=(r.name||'').trim() && findProd(r.name);
+    return `<div class="setrow">
+      <input class="setname" list="prodNameList" data-i="${i}" value="${esc(r.name||'')}" placeholder="제품 검색/선택" autocomplete="off" style="${(r.name&&!ok)?'border-color:var(--red)':''}">
+      <span style="color:var(--ink-faint)">×</span>
+      <input class="setqty" type="number" min="1" step="1" data-i="${i}" value="${r.qty||1}">
+      <button type="button" class="setdel" data-i="${i}" title="삭제">🗑</button></div>`;
+  }).join('') : '<div class="footnote" style="margin:2px 0 0">아래 ＋ 구성 추가 로 단품을 담으세요</div>';
+  setPreview();
+}
 function setPreview(){
   const el=$('#adSetPreview'); if(!el)return;
-  const comps=parseSetItems($('#adSetItems').value).map(it=>({prod:P.find(x=>x.name===it.name)||P.find(x=>x.name.replace(/\s/g,'')===it.name.replace(/\s/g,'')),qty:it.qty}));
-  const matched=comps.filter(c=>c.prod), miss=parseSetItems($('#adSetItems').value).filter(it=>!(P.find(x=>x.name===it.name)||P.find(x=>x.name.replace(/\s/g,'')===it.name.replace(/\s/g,''))));
+  const rows=SET_ROWS.filter(r=>(r.name||'').trim());
+  const matched=rows.map(r=>({prod:findProd(r.name),qty:r.qty})).filter(c=>c.prod);
+  const miss=rows.filter(r=>!findProd(r.name));
   if(!matched.length){ el.textContent=miss.length?('⚠ 매칭 안 됨: '+miss.map(m=>m.name).join(', ')):''; el.style.color='var(--red)'; return; }
   const rUid=(typeof retailUid==='function')?retailUid():null;
   const cost=matched.reduce((s,c)=>s+((c.prod.cost||0)*c.qty),0);
   const own=rUid?matched.reduce((s,c)=>s+((gp(c.prod,rUid)||0)*c.qty),0):0;
-  el.style.color=miss.length?'var(--red)':'var(--ink-faint)';
-  el.textContent=`✓ ${matched.length}종 합산 — 원가 ${won(cost)} · 정가 ${won(own)}`+(miss.length?` (미매칭 ${miss.length}: ${miss.map(m=>m.name).join(', ')})`:'');
+  el.style.color=miss.length?'var(--red)':'var(--xl-green-dark)';
+  el.innerHTML=`✓ <b>${matched.length}종</b> 합산 — 원가 <b>${won(cost)}</b> · 정가 <b>${won(own)}</b>`+(miss.length?` <span style="color:var(--red)">(미매칭 ${miss.length}: ${esc(miss.map(m=>m.name).join(', '))})</span>`:'');
 }
 function openAddModal(prefill){   // prefill: {l1,l2,l3}
   AD_EDIT=null;
-  ['adName','adSpec','adCost','adMfg','adVbase','adRetail','adSetItems'].forEach(id=>{ const el=$('#'+id); if(el)el.value=''; el&&(el.disabled=false); });
+  ['adName','adSpec','adCost','adMfg','adVbase','adRetail'].forEach(id=>{ const el=$('#'+id); if(el){ el.value=''; el.disabled=false; } });
   const pf=prefill||{};
   $('#adL1').value=pf.l1||'POUR공법'; $('#adL2').value=pf.l2||''; $('#adL3').value=pf.l3||'';
   $('#adType').value='단품'; $('#adSetFld').style.display='none'; $('#adStatus').textContent='';
+  $('#adType').disabled=false;
   $('#adTitle').textContent='＋ 제품 추가'; $('#addSubmit').textContent='＋ 추가';
   $('#adName').disabled=false; $('#adSpec').disabled=false;
   $('#adAnchorRow').style.display=''; $('#adFootAdd').style.display=''; $('#adFootEdit').style.display='none';
-  fillTagLists(); setPreview(); $('#addOverlay').classList.add('on'); setTimeout(()=>{ const el=$(pf.l2?'#adName':'#adL2'); if(el)el.focus(); }, 50);
+  SET_ROWS=[]; renderSetBuilder();
+  fillTagLists(); $('#addOverlay').classList.add('on'); setTimeout(()=>{ const el=$(pf.l2?'#adName':'#adL2'); if(el)el.focus(); }, 50);
 }
 function openEditModal(p){   // 기존 제품 수정: 분류(전체)·원가·제조사(등록상품만)
   if(!p)return; AD_EDIT=p; const c=pcat(p), added=!!p.docId;
@@ -3594,7 +3624,7 @@ function openEditModal(p){   // 기존 제품 수정: 분류(전체)·원가·�
   $('#adName').value=p.name; $('#adSpec').value=p.spec||'';
   $('#adCost').value=(p.cost==null?'':p.cost); $('#adMfg').value=p.mfg||''; $('#adType').value=p.ptype||p.type||'단품';
   const isPkg=isPackage(p);
-  $('#adSetItems').value=pkgSetItems(p)||''; $('#adSetItems').disabled=false; $('#adSetFld').style.display=(isPkg||$('#adType').value==='세트')?'':'none';
+  setRowsFromStr(pkgSetItems(p)||''); renderSetBuilder(); $('#adSetFld').style.display=(isPkg||$('#adType').value==='세트')?'':'none';
   $('#adName').disabled=true; $('#adSpec').disabled=true;              // 이름·규격은 키라서 여기서 변경 불가
   $('#adCost').disabled=!added || isPkg; $('#adMfg').disabled=!added; $('#adType').disabled=!added;  // 패키지 원가는 합산(수정 불가)
   $('#adAnchorRow').style.display='none'; $('#adFootAdd').style.display='none'; $('#adFootEdit').style.display='';
@@ -3612,7 +3642,7 @@ async function submitAddProduct(){
   try{
     if(AD_EDIT){   // ── 수정 ──
       setPcat(AD_EDIT, l1, l2, l3); await savePcat();
-      const setStr=($('#adSetItems').value||'').trim();       // 구성(패키지) — 모든 제품 config 저장
+      const setStr=setItemsStr();       // 구성(패키지) — 모든 제품 config 저장
       if(setStr || isPackage(AD_EDIT)){ PKGSET[pKey(AD_EDIT)]=setStr; await savePkgSet(); }
       if(AD_EDIT.docId){ const patch={mfg,type,updatedAt:new Date().toISOString()};
         if(!isPackage(AD_EDIT)) patch.cost=cost;
@@ -3630,7 +3660,7 @@ async function submitAddProduct(){
     const rUid=(typeof retailUid==='function')?retailUid():null;
     const pr={}; if(rUid && retail>0) pr[rUid]=retail;
     const cat=l2||'기타', key=`${cat}|${name}|${spec}`;
-    const doc={ cat,name,spec,cost,pr,mfg,concept:'',type,status:'출시',setItems:($('#adSetItems').value||'').trim(),
+    const doc={ cat,name,spec,cost,pr,mfg,concept:'',type,status:'출시',setItems:setItemsStr(),
       seq:P.length, updatedAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'' };
     if(mfg && typeof MFG!=='undefined' && !MFG.some(m=>m.name===mfg)){ MFG.push({id:mfgSeq++,name:mfg,mgr:'',tel:'',memo:'(제품 추가 시 자동)'}); persist(); }
     await db.collection('products-added').add(doc);
@@ -3697,7 +3727,12 @@ function wireImportModal(){
   on('addSubmit','click',submitAddProduct);
   on('addOverlay','click',e=>{ if(e.target.id==='addOverlay')closeAddModal(); });
   on('adType','change',e=>{ $('#adSetFld').style.display=e.target.value==='세트'?'':'none'; setPreview(); });
-  on('adSetItems','input',setPreview);
+  on('adSetAdd','click',()=>{ SET_ROWS.push({name:'',qty:1}); renderSetBuilder(); setTimeout(()=>{ const ins=$$('#adSetBuilder .setname'); if(ins.length)ins[ins.length-1].focus(); },20); });
+  const sb=$('#adSetBuilder');
+  if(sb){
+    sb.addEventListener('input',e=>{ const el=e.target, i=+el.dataset.i; if(isNaN(i)||!SET_ROWS[i])return; if(el.classList.contains('setname')){ SET_ROWS[i].name=el.value; setPreview(); const ok=el.value.trim()&&findProd(el.value); el.style.borderColor=(el.value&&!ok)?'var(--red)':''; } else if(el.classList.contains('setqty')){ SET_ROWS[i].qty=Math.max(1,+el.value||1); setPreview(); } });
+    sb.addEventListener('click',e=>{ const b=e.target.closest('.setdel'); if(!b)return; const i=+b.dataset.i; if(!isNaN(i)){ SET_ROWS.splice(i,1); renderSetBuilder(); } });
+  }
   document.addEventListener('click',e=>{
     const b=e.target.closest('.gridadd'); if(b){ openAddModal({l1:b.dataset.l1||'POUR공법', l2:b.dataset.l2||'', l3:b.dataset.l3||''}); return; }
     const ed=e.target.closest('.prodedit'); if(ed){ const p=P.find(x=>x.id==ed.dataset.id); if(p)openEditModal(p); }

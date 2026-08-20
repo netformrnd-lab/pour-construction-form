@@ -135,7 +135,10 @@ tr.catrow .gridadd:hover,tr.catrow .catedit:hover{background:rgba(255,255,255,.3
 .grip:active{cursor:grabbing}
 tr.dragging td{opacity:.4}
 tr.dragover td{box-shadow:inset 0 2px 0 0 var(--xl-green)}
-.setrow{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.setitem{margin-bottom:8px}
+.setrow{display:flex;gap:8px;align-items:center;margin-bottom:2px}
+.setinfo{font-size:11px;color:var(--ink-soft);margin:0 0 2px 4px}
+.setinfo.err{color:var(--red)}
 .setrow .setname{flex:1;border:1px solid var(--xl-grid);border-radius:5px;padding:7px 9px;font-size:13px;min-width:0}
 .setrow .setqty{width:66px;border:1px solid var(--xl-grid);border-radius:5px;padding:7px 8px;text-align:right;font-size:13px}
 .setrow .setdel{border:1px solid var(--xl-grid);background:#fff;border-radius:5px;padding:5px 9px;cursor:pointer;flex-shrink:0}
@@ -1214,8 +1217,8 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
         <div class="fld"><label>제품명 *</label><input id="adName" placeholder="예: POUR 신규 코트재" autocomplete="off"></div>
         <div class="fld"><label>규격</label><input id="adSpec" placeholder="예: 20kg/통" autocomplete="off"></div>
         <div class="fld"><label>유형</label><select id="adType"><option value="단품">단품</option><option value="세트">세트(패키지)</option></select></div>
-        <div class="fld"><label>매입원가 (원) <span style="color:var(--ink-faint)">대외비</span></label><input type="number" id="adCost" placeholder="예: 60000"></div>
-        <div class="fld"><label>제조사 <span style="color:var(--ink-faint)">대외비</span></label><input id="adMfg" list="mfgList" placeholder="선택/입력" autocomplete="off"></div>
+        <div class="fld" id="adCostFld"><label>매입원가 (원) <span style="color:var(--ink-faint)">대외비</span></label><input type="number" id="adCost" placeholder="예: 60000"></div>
+        <div class="fld" id="adMfgFld"><label>제조사 <span style="color:var(--ink-faint)">대외비</span></label><input id="adMfg" list="mfgList" placeholder="선택/입력" autocomplete="off"></div>
         <div id="adSetFld" style="display:none;grid-column:1/-1">
           <label style="display:block;font-size:11px;color:var(--ink-soft);margin-bottom:5px;font-weight:600">구성 단품 <span style="color:var(--ink-faint);font-weight:400">· 단품을 골라 담으면 원가·판매가가 자동 합산됩니다</span></label>
           <div id="adSetBuilder"></div>
@@ -1228,6 +1231,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
         <div class="fld"><label>자사몰정가 (원) <span style="color:var(--ink-faint)">사다리 상한</span></label><input type="number" id="adRetail" placeholder="예: 177500"></div>
       </div>
       <p class="footnote" id="adFootAdd">· 총판·대리점·시공·위탁·도매·쿠팡은 <b>업체단가~정가 사다리로 자동 계산</b>됩니다. 업체단가 없이 정가만 넣어도 총판까지 자동으로 채워집니다.<br>· 원가·제조사는 대외비라 일반 팀원 화면엔 표시되지 않습니다.</p>
+      <p class="footnote" id="adFootSet" style="display:none">· 세트는 <b>구성 단품의 원가·업체단가·채널가를 수량대로 자동 합산</b>합니다. 매입원가·제조사·업체단가·정가는 구성 단품에서 가져오므로 여기서 입력하지 않습니다.</p>
       <p class="footnote" id="adFootEdit" style="display:none">· 업체단가·정가는 가격정책표 셀에서 <b>상급자 승인</b>을 통해 변경합니다.<br>· 제품명·규격은 여기서 바꾸지 않습니다(분류·원가·제조사만 수정).</p>
       <div id="adStatus" class="footnote" style="margin-top:6px"></div>
     </div>
@@ -1523,13 +1527,18 @@ function chRank(c){
 }
 /* 채널 열 사용자 지정 순서(가로 드래그). 없으면 chRank(단가순) 유지. 새 채널은 rank 위치에 삽입 */
 let CHORD=[];   // 표시 순서 uid 배열 ← product-meta/chan-order
+const VBASE_COL='__vbase__';   // 업체단가 열도 CHORD에서 위치 이동 가능(가상 uid)
 const colOrderIdx=c=>{ const i=CHORD.indexOf(c.uid); return i<0?9999:i; };
 function ensureChord(){
-  CHORD=CHORD.filter(u=>{ const c=chByUid(u); return c && c.col; });   // 사라진/숨긴 채널 제거
+  CHORD=CHORD.filter(u=>{ if(u===VBASE_COL)return true; const c=chByUid(u); return c && c.col; });   // 사라진/숨긴 채널 제거(업체단가 가상열은 유지)
   const missing=CHANNELS.filter(c=>c.col && !CHORD.includes(c.uid)).sort((a,b)=>chRank(a)-chRank(b));
   missing.forEach(c=>{ const r=chRank(c); let idx=CHORD.length;
     for(let i=0;i<CHORD.length;i++){ const cc=chByUid(CHORD[i]); if(cc && chRank(cc)>r){ idx=i; break; } }
     CHORD.splice(idx,0,c.uid); });
+  if(!CHORD.includes(VBASE_COL)){   // 업체단가 가상열: 기본 위치 = 알리바바(P1) 바로 뒤
+    const p1=CHANNELS.find(c=>c.code==='P1'&&c.col); const at=p1?CHORD.indexOf(p1.uid)+1:0;
+    CHORD.splice(at<0?0:at,0,VBASE_COL);
+  }
 }
 function reorderChan(fromUid,toUid){
   if(fromUid===toUid)return; ensureChord();
@@ -2274,14 +2283,15 @@ function renderGrid(){
   const cols=COLS(), rUid=retailUid();
   const showSup=secAllowed;                 // 공급업체 열: 마스터+이메일인증 계정만
   const showCost=costAllowed;               // 매입원가·마진율 열: 부마스터/마스터만 (일반계정은 판매가만)
-  // 가격 열 순서: 채널(낮은단가→높은단가) 사이에 업체단가(pour공법)를 알리바바(P1) 바로 뒤에 삽입
+  // 가격 열 순서: CHORD(사용자 드래그 순서) 그대로 — 업체단가(가상열)도 위치 이동 가능
   const priceCols=[];
-  cols.forEach(c=>{ priceCols.push({t:'ch',c}); if(c.code==='P1') priceCols.push({t:'vbase'}); });
-  if(!priceCols.some(x=>x.t==='vbase')) priceCols.unshift({t:'vbase'});   // P1 열 숨김 시 맨 앞에
+  CHORD.forEach(uid=>{ if(uid===VBASE_COL){ priceCols.push({t:'vbase'}); return; } const c=cols.find(x=>x.uid===uid); if(c) priceCols.push({t:'ch',c}); });
+  cols.forEach(c=>{ if(!priceCols.some(x=>x.t==='ch'&&x.c.uid===c.uid)) priceCols.push({t:'ch',c}); });  // 누락 채널 보정
+  if(!priceCols.some(x=>x.t==='vbase')) priceCols.unshift({t:'vbase'});   // 업체단가 누락 시 맨 앞에
   const nCols=3+(showSup?1:0)+(showCost?1:0)+priceCols.length;
   const canOrderCh=costAllowed;   // 채널 열 드래그 재정렬: 원가열람 계정만
   const thPrice=priceCols.map(pc=> pc.t==='vbase'
-    ? `<th class="num" style="min-width:104px;background:var(--xl-sel)">업체단가<div style="font-size:9px;color:var(--ink-faint);font-weight:400">pour공법·총판기준</div></th>`
+    ? `<th class="num${canOrderCh?' chdrag':''}"${canOrderCh?` draggable="true" data-cuid="${VBASE_COL}"`:''} style="min-width:104px;background:var(--xl-sel)" title="${canOrderCh?'헤더를 좌우로 끌어 순서 변경':''}">${canOrderCh?'<span class="chgrip" style="color:#9db3a0">⠿</span>':''}업체단가<div style="font-size:9px;color:var(--ink-faint);font-weight:400">pour공법·총판기준</div></th>`
     : `<th class="num${canOrderCh?' chdrag':''}"${canOrderCh?` draggable="true" data-cuid="${esc(pc.c.uid)}"`:''} style="min-width:100px;height:38px" title="${canOrderCh?'헤더를 좌우로 끌어 순서 변경 · ':''}${esc(pc.c.desc)}"><div style="font-size:9.5px;font-family:var(--mono);color:var(--amber);line-height:1.2">${canOrderCh?'<span class="chgrip">⠿</span>':''}${esc(pc.c.g)} · ${esc(pc.c.code)}</div>${esc(pc.c.name)}</th>`
   ).join('');
   const lastFrz = showCost ? 'cost' : (showSup ? 'sup' : 'spec');   // 고정 블록의 마지막(경계선) 열
@@ -3749,12 +3759,17 @@ function setItemsStr(){ return SET_ROWS.filter(r=>(r.name||'').trim()).map(r=>`$
 function renderSetBuilder(){
   const box=$('#adSetBuilder'); if(!box)return;
   box.innerHTML = SET_ROWS.length ? SET_ROWS.map((r,i)=>{
-    const ok=(r.name||'').trim() && findProd(r.name);
-    return `<div class="setrow">
+    const prod=(r.name||'').trim()?findProd(r.name):null, ok=!!prod;
+    let info='';
+    if(prod){ const parts=[`규격 ${esc(prod.spec||'-')}`, `원가 ${won(prod.cost)}`];
+      const maker=prod.mfg||(unlocked?prod.sup:''); if(maker)parts.push(`제조사 ${esc(maker)}`);
+      info=`<div class="setinfo">↳ ${parts.join(' · ')}</div>`;
+    } else if((r.name||'').trim()){ info=`<div class="setinfo err">↳ 매칭되는 단품이 없습니다 — 이름을 정확히 선택하세요</div>`; }
+    return `<div class="setitem"><div class="setrow">
       <input class="setname" list="prodNameList" data-i="${i}" value="${esc(r.name||'')}" placeholder="제품 검색/선택" autocomplete="off" style="${(r.name&&!ok)?'border-color:var(--red)':''}">
       <span style="color:var(--ink-faint)">×</span>
       <input class="setqty" type="number" min="1" step="1" data-i="${i}" value="${r.qty||1}">
-      <button type="button" class="setdel" data-i="${i}" title="삭제">🗑</button></div>`;
+      <button type="button" class="setdel" data-i="${i}" title="삭제">🗑</button></div>${info}</div>`;
   }).join('') : '<div class="footnote" style="margin:2px 0 0">아래 ＋ 구성 추가 로 단품을 담으세요</div>';
   setPreview();
 }
@@ -3770,11 +3785,17 @@ function setPreview(){
   el.style.color=miss.length?'var(--red)':'var(--xl-green-dark)';
   el.innerHTML=`✓ <b>${matched.length}종</b> 합산 — 원가 <b>${won(cost)}</b> · 정가 <b>${won(own)}</b>`+(miss.length?` <span style="color:var(--red)">(미매칭 ${miss.length}: ${esc(miss.map(m=>m.name).join(', '))})</span>`:'');
 }
-/* 유형(단품/세트)에 따라 구성 빌더·앵커(업체단가/정가) 표시 토글 */
+/* 유형(단품/세트)에 따라 입력 항목 표시 토글.
+   세트는 원가·제조사·업체단가·정가를 구성 단품에서 자동 합산하므로 숨긴다. */
 function syncAdType(){
   const isSet=$('#adType').value==='세트';
   $('#adSetFld').style.display=isSet?'':'none';
-  $('#adAnchorRow').style.display=(!isSet && !AD_EDIT)?'':'none';   // 앵커는 신규 '단품' 등록에서만
+  $('#adCostFld').style.display=isSet?'none':'';      // 매입원가: 세트는 구성 합산 → 숨김
+  $('#adMfgFld').style.display=isSet?'none':'';        // 제조사: 세트는 구성에서 → 숨김
+  $('#adAnchorRow').style.display=(!isSet && !AD_EDIT)?'':'none';   // 앵커(업체단가/정가)는 신규 '단품' 등록에서만
+  $('#adFootSet').style.display=isSet?'':'none';
+  $('#adFootAdd').style.display=(!isSet && !AD_EDIT)?'':'none';
+  $('#adFootEdit').style.display=(!isSet && AD_EDIT)?'':'none';
   setPreview();
 }
 function openAddModal(prefill){   // prefill: {l1,l2,l3}
@@ -3822,9 +3843,10 @@ function openCopyModal(p){
 function closeAddModal(){ AD_EDIT=null; $('#addOverlay').classList.remove('on'); }
 async function submitAddProduct(){
   const l1=($('#adL1').value||'').trim()||'POUR공법', l2=($('#adL2').value||'').trim(), l3=($('#adL3').value||'').trim();
-  const cost=$('#adCost').value===''?null:+$('#adCost').value;
-  const mfg=($('#adMfg').value||'').trim();
   const type=$('#adType').value||'단품';
+  const isSet=type==='세트';
+  const cost=isSet?null:($('#adCost').value===''?null:+$('#adCost').value);   // 세트 원가는 구성 합산 → 저장 안 함
+  const mfg=isSet?'':($('#adMfg').value||'').trim();                            // 세트 제조사는 구성에서
   const btn=$('#addSubmit'); btn.disabled=true; const old=btn.textContent; btn.textContent='저장 중…'; $('#adStatus').textContent='';
   try{
     if(AD_EDIT){   // ── 수정 ──
@@ -3928,6 +3950,8 @@ function wireImportModal(){
   on('addSubmit','click',submitAddProduct);
   on('addOverlay','click',e=>{ if(e.target.id==='addOverlay')closeAddModal(); });
   on('adType','change',syncAdType);
+  // 중분류를 '패키지'로 선택하면 자동으로 유형=세트 전환
+  on('adL2','input',()=>{ if(($('#adL2').value||'').trim()==='패키지' && $('#adType').value!=='세트'){ $('#adType').value='세트'; syncAdType(); } });
   on('adSetAdd','click',()=>{ SET_ROWS.push({name:'',qty:1}); renderSetBuilder(); setTimeout(()=>{ const ins=$$('#adSetBuilder .setname'); if(ins.length)ins[ins.length-1].focus(); },20); });
   const sb=$('#adSetBuilder');
   if(sb){

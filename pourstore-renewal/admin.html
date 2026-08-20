@@ -5075,14 +5075,12 @@ function BestPage({showToast}){
   );
 }
 // ============================================================
-// 📢 팝업 관리 — 카페24 팝업(직접만든 팝업)에 들어갈 이미지·링크 관리
-//   저장: config/pourstorePopups {popups:[{slot,image,link,active}]}
-//   노출: pour-popup-1.html(슬롯1) / pour-popup-2.html(슬롯2) 가 읽어 표시
+// 📢 팝업 관리 — 카페24 팝업(직접만든 팝업) 안에서 슬라이드될 이미지들을 관리
+//   저장: config/pourstorePopups {popups:[{id,image,link,active,order}]}
+//   노출: pour-popup-1.html 이 읽어 슬라이드(캐러셀)로 표시
 // ============================================================
 function PopupsPage({showToast}){
-  const SLOTS=[1,2];
-  const emptySlot=(n)=>({slot:n,image:'',link:'',active:false});
-  const [slots,setSlots]=useState(SLOTS.map(emptySlot));
+  const [items,setItems]=useState([]);
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState('');
@@ -5092,13 +5090,17 @@ function PopupsPage({showToast}){
     try{
       const snap=await POPREF().get();
       const arr=(snap.exists && Array.isArray(snap.data().popups))?snap.data().popups:[];
+      arr.sort((a,b)=>((a.order||0)-(b.order||0)));
       console.log('[popups] '+arr.length+'건 로드');
-      setSlots(SLOTS.map(n=>{ const f=arr.filter(x=>x&&Number(x.slot)===n)[0]||arr[n-1]; return f?{slot:n,image:f.image||'',link:f.link||'',active:f.active!==false&&!!(f.image)}:emptySlot(n); }));
-    }catch(e){ console.error('[popups] 로드 실패:',e); setSlots(SLOTS.map(emptySlot)); }
+      setItems(arr.map(p=>({id:p.id||('pop_'+Math.random().toString(36).slice(2,8)),image:p.image||'',link:p.link||'',active:p.active!==false})));
+    }catch(e){ console.error('[popups] 로드 실패:',e); setItems([]); }
     setLoading(false);
   };
   useEffect(()=>{ load(); },[]);
-  const setSlot=(n,patch)=>setSlots(s=>s.map(x=>x.slot===n?{...x,...patch}:x));
+  const setItem=(id,patch)=>setItems(a=>a.map(x=>x.id===id?{...x,...patch}:x));
+  const addItem=()=>setItems(a=>[...a,{id:'pop_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),image:'',link:'',active:true}]);
+  const removeItem=(id)=>setItems(a=>a.filter(x=>x.id!==id));
+  const move=(id,dir)=>setItems(a=>{ const i=a.findIndex(x=>x.id===id); if(i<0)return a; const j=i+dir; if(j<0||j>=a.length)return a; const b=a.slice(); const t=b[i]; b[i]=b[j]; b[j]=t; return b; });
   const upload=async(key,file,cb)=>{
     if(!file) return;
     setUploading(key);
@@ -5113,7 +5115,7 @@ function PopupsPage({showToast}){
   const save=async()=>{
     setSaving(true);
     try{
-      const popups=slots.map(s=>({slot:s.slot,image:(s.image||'').trim(),link:(s.link||'').trim(),active:!!s.active&&!!(s.image||'').trim()}));
+      const popups=items.map((p,i)=>({id:p.id,image:(p.image||'').trim(),link:(p.link||'').trim(),active:!!p.active&&!!(p.image||'').trim(),order:i}));
       await POPREF().set({popups:popups,updatedAt:new Date().toISOString()},{merge:true});
       showToast('저장했어요','success');
     }catch(e){ console.error('[popups] 저장 실패:',e); showToast('저장 실패: '+(e&&e.message||e),'error'); }
@@ -5121,38 +5123,48 @@ function PopupsPage({showToast}){
   };
   const lbl={fontSize:12.5,fontWeight:800,color:'var(--text-md)'};
   const field={width:'100%',padding:'10px 12px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit'};
+  const activeCnt=items.filter(p=>p.active&&(p.image||'').trim()).length;
   return (
     <div style={{padding:'8px 4px'}}>
-      <div style={{marginBottom:16}}>
-        <h1 style={{fontSize:20,fontWeight:900,color:'var(--navy)'}}>📢 팝업 관리</h1>
-        <p style={{fontSize:12.5,color:'var(--text-md)',marginTop:4}}>메인 진입 팝업 <b>이미지·링크</b>를 등록해요. 팝업 창 노출·"오늘 하루 열지 않음"·기간은 <b>카페24 팝업 설정</b>에서 관리합니다. 슬롯1=<b>pour-popup-1.html</b>, 슬롯2=<b>pour-popup-2.html</b> 와 연결됩니다.</p>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16,flexWrap:'wrap',gap:10}}>
+        <div>
+          <h1 style={{fontSize:20,fontWeight:900,color:'var(--navy)'}}>📢 팝업 관리</h1>
+          <p style={{fontSize:12.5,color:'var(--text-md)',marginTop:4,lineHeight:1.6}}>이미지를 여러 장 등록하면 팝업 안에서 <b>자동으로 슬라이드</b>됩니다(점·스와이프·자동넘김). 한 장만 등록하면 그 이미지만 떠요.<br/>팝업 창 노출·"오늘 하루 열지 않음"·기간은 <b>카페24 팝업 설정</b>에서, 화면 파일은 <b>pour-popup-1.html</b> 입니다. <b style={{color:'var(--or-d)'}}>현재 노출 {activeCnt}장</b></p>
+        </div>
+        <button onClick={addItem} style={{padding:'12px 20px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',background:'linear-gradient(135deg, var(--or), var(--or-d))',boxShadow:'0 4px 12px rgba(249,115,22,.25)',cursor:'pointer',whiteSpace:'nowrap'}}>+ 슬라이드 추가</button>
       </div>
       {loading && <div style={{padding:'40px 0',textAlign:'center',color:'var(--text-sm)'}}>불러오는 중…</div>}
-      {!loading && (
-        <div style={{display:'flex',flexDirection:'column',gap:16}}>
-          {slots.map(s=>(
-            <div key={s.slot} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:16}}>
+      {!loading && items.length===0 && <div style={{padding:'46px 0',textAlign:'center',color:'var(--text-sm)',fontSize:13,background:'var(--card)',borderRadius:12,border:'1px solid var(--border)'}}>등록된 팝업 이미지가 없습니다. "+ 슬라이드 추가"로 등록하세요.</div>}
+      {!loading && items.length>0 && (
+        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+          {items.map((p,idx)=>(
+            <div key={p.id} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:16}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-                <div style={{fontSize:15,fontWeight:900,color:'var(--navy)'}}>슬롯 {s.slot} <span style={{fontSize:11.5,fontWeight:700,color:'var(--text-sm)'}}>(pour-popup-{s.slot}.html)</span></div>
-                <label style={{...lbl,display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}><input type="checkbox" checked={!!s.active} onChange={e=>setSlot(s.slot,{active:e.target.checked})}/> 노출</label>
+                <div style={{fontSize:14,fontWeight:900,color:'var(--navy)'}}>슬라이드 {idx+1}</div>
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <button onClick={()=>move(p.id,-1)} disabled={idx===0} title="위로" style={{width:28,height:28,borderRadius:6,border:'1px solid var(--border)',background:'#fff',color:idx===0?'var(--border)':'var(--text-md)',cursor:idx===0?'default':'pointer',fontSize:13}}>▲</button>
+                  <button onClick={()=>move(p.id,1)} disabled={idx===items.length-1} title="아래로" style={{width:28,height:28,borderRadius:6,border:'1px solid var(--border)',background:'#fff',color:idx===items.length-1?'var(--border)':'var(--text-md)',cursor:idx===items.length-1?'default':'pointer',fontSize:13}}>▼</button>
+                  <label style={{...lbl,display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}><input type="checkbox" checked={!!p.active} onChange={e=>setItem(p.id,{active:e.target.checked})}/> 노출</label>
+                  <button onClick={()=>removeItem(p.id)} title="삭제" style={{width:28,height:28,borderRadius:6,border:'1px solid var(--border)',background:'#fff',color:'var(--red)',cursor:'pointer',fontSize:15}}>×</button>
+                </div>
               </div>
               <div style={{display:'flex',gap:14,flexWrap:'wrap'}}>
-                <div style={{width:150,height:150,borderRadius:10,overflow:'hidden',background:'var(--bg)',border:'1px solid var(--border)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                  {s.image?<img src={s.image} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}}/>:<span style={{fontSize:11.5,color:'var(--text-sm)'}}>이미지 없음</span>}
+                <div style={{width:130,height:150,borderRadius:10,overflow:'hidden',background:'var(--bg)',border:'1px solid var(--border)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  {p.image?<img src={p.image} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}}/>:<span style={{fontSize:11.5,color:'var(--text-sm)'}}>이미지 없음</span>}
                 </div>
                 <div style={{flex:1,minWidth:220}}>
                   <div style={lbl}>이미지</div>
                   <div style={{display:'flex',gap:8,marginTop:6}}>
-                    <input value={s.image} onChange={e=>setSlot(s.slot,{image:e.target.value})} placeholder="이미지 URL 또는 업로드" style={field}/>
-                    <label style={{padding:'0 12px',borderRadius:8,border:'1px solid var(--border)',background:uploading===('s'+s.slot)?'var(--or-pale)':'var(--bg)',fontSize:11.5,fontWeight:800,color:'var(--or-d)',cursor:'pointer',display:'flex',alignItems:'center',flexShrink:0,whiteSpace:'nowrap'}}>{uploading===('s'+s.slot)?'…':'업로드'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)upload('s'+s.slot,f,url=>setSlot(s.slot,{image:url})); e.target.value='';}}/></label>
+                    <input value={p.image} onChange={e=>setItem(p.id,{image:e.target.value})} placeholder="이미지 URL 또는 업로드" style={field}/>
+                    <label style={{padding:'0 12px',borderRadius:8,border:'1px solid var(--border)',background:uploading===p.id?'var(--or-pale)':'var(--bg)',fontSize:11.5,fontWeight:800,color:'var(--or-d)',cursor:'pointer',display:'flex',alignItems:'center',flexShrink:0,whiteSpace:'nowrap'}}>{uploading===p.id?'…':'업로드'}<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files&&e.target.files[0]; if(f)upload(p.id,f,url=>setItem(p.id,{image:url})); e.target.value='';}}/></label>
                   </div>
-                  <div style={{fontSize:11.5,color:'var(--text-sm)',marginTop:7,lineHeight:1.55}}>📐 권장 크기: 가로 <b>400~500px</b> · <b>세로형(4:5)</b> 또는 정사각형(1:1) · 고해상도는 2배(예: <b>800×1000</b> / 900×900) · JPG·PNG, 2MB 이하 <span style={{color:'var(--text-md)'}}>· 카페24 "팝업크기"를 이미지 비율에 맞춰 설정</span></div>
                   <div style={{...lbl,marginTop:12}}>클릭 시 이동할 링크</div>
-                  <input value={s.link} onChange={e=>setSlot(s.slot,{link:e.target.value})} placeholder="예: /pourstore_renewal/story/event.html  (비우면 이동 없음)" style={{...field,marginTop:6}}/>
+                  <input value={p.link} onChange={e=>setItem(p.id,{link:e.target.value})} placeholder="예: /pourstore_renewal/story/event.html  (비우면 이동 없음)" style={{...field,marginTop:6}}/>
                 </div>
               </div>
             </div>
           ))}
+          <div style={{fontSize:11.5,color:'var(--text-sm)',lineHeight:1.6,background:'var(--bg)',border:'1px dashed var(--border)',borderRadius:10,padding:'12px 14px'}}>📐 권장 크기: <b>모든 슬라이드 이미지를 같은 크기</b>로 맞추세요(안 그러면 넘길 때 높이가 들쭉날쭉). 가로 <b>400~500px</b> · 세로형(4:5) 또는 정사각형(1:1) · 고해상도 2배(예: 800×1000 / 900×900) · JPG·PNG, 2MB 이하. 카페24 "팝업크기"도 이 이미지 비율에 맞춰 입력하세요.</div>
           <div>
             <button onClick={save} disabled={saving} style={{padding:'13px 28px',borderRadius:10,border:'none',background:saving?'var(--text-sm)':'linear-gradient(135deg, var(--or), var(--or-d))',color:'#fff',fontSize:14,fontWeight:900,cursor:saving?'wait':'pointer'}}>{saving?'저장 중...':'저장'}</button>
           </div>

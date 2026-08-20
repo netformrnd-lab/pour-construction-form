@@ -1,33 +1,40 @@
 <!-- ============================================================
-  pour-popup-1.html — 카페24 팝업 화면 (슬롯 1)
-  ▸ 사용법(카페24): 디자인 > 팝업 > "직접만든 팝업 선택하기" 에서 이 파일 선택
-  ▸ 팝업 창/오늘 하루 열지 않음/노출기간/닫기 = 카페24가 자동 처리
-  ▸ 이미지·링크 = 어드민 "📢 팝업 관리 > 슬롯 1" 에서 등록/교체 (config/pourstorePopups)
-  ▸ 슬롯 2 팝업이 필요하면 pour-popup-2.html 사용
+  pour-popup-1.html — 카페24 팝업 화면 (이미지 슬라이드 팝업)
+  ▸ 사용법(카페24): 디자인 편집창 > 화면추가(저장경로 '팝업(popup)') > 이 내용 붙여넣기 > 저장
+  ▸ 팝업 관리 > "직접만든 팝업 선택하기" 에서 이 화면 선택
+  ▸ 팝업 창/오늘 하루 열지 않음/닫기/노출기간 = 카페24가 자동 처리
+  ▸ 이미지 여러 장 + 링크 = 어드민 "📢 팝업 관리" 에서 등록 (config/pourstorePopups.popups[])
+    → 등록한 이미지들이 이 팝업 안에서 자동으로 슬라이드됩니다 (점 · 스와이프 · 자동넘김)
+  ▸ 이미지 없으면 아무것도 안 뜸
 ============================================================ -->
 <script>(function(){try{var m=document.querySelector('meta[name=viewport]');var v='width=device-width, initial-scale=1';if(!m){m=document.createElement('meta');m.setAttribute('name','viewport');m.setAttribute('content',v);document.head.appendChild(m);}else if(!/width=device-width/i.test(m.getAttribute('content')||'')){m.setAttribute('content',v);}}catch(e){}})();</script>
-<div class="pourpop" data-slot="1">
+<div class="pourpop">
 <style>
 .pourpop, .pourpop *{box-sizing:border-box;margin:0;padding:0;}
-.pourpop{font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#fff;}
-.pourpop a.pourpop-link{display:none;text-decoration:none;line-height:0;cursor:pointer;}
-.pourpop img.pourpop-img{display:block;width:100%;height:auto;}
+.pourpop{font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#fff;width:100%;}
+.pp-view{position:relative;width:100%;overflow:hidden;touch-action:pan-y;background:#fff;}
+.pp-track{display:flex;transition:transform .4s cubic-bezier(.4,0,.2,1);will-change:transform;}
+.pp-slide{flex:0 0 100%;line-height:0;display:block;text-decoration:none;-webkit-user-select:none;user-select:none;}
+.pp-slide img{width:100%;height:auto;display:block;pointer-events:none;-webkit-user-drag:none;user-drag:none;}
+.pp-dots{display:flex;justify-content:center;align-items:center;gap:7px;padding:10px 0 6px;background:#fff;}
+.pp-dot{width:8px;height:8px;border-radius:50%;background:#d5d8de;border:0;padding:0;cursor:pointer;transition:width .2s,background .2s;}
+.pp-dot.on{background:#E8780F;width:20px;border-radius:4px;}
+.pp-dots[hidden]{display:none;}
 </style>
-<a class="pourpop-link" href="#none" rel="noopener"><img class="pourpop-img" src="" alt="이벤트 팝업"></a>
+<div class="pp-view" data-pp-view>
+  <div class="pp-track" data-pp-track></div>
+</div>
+<div class="pp-dots" data-pp-dots hidden></div>
 <script>
 (function(){
   var root=document.currentScript.closest('.pourpop'); if(!root) return;
-  var SLOT=parseInt(root.getAttribute('data-slot')||'1',10);
-  var link=root.querySelector('.pourpop-link'), img=root.querySelector('.pourpop-img');
-  var HREF='';
-  // 카페24 레이어/윈도우 팝업 모두 대응 → 스토어(부모/최상위) 창을 이동
-  link.addEventListener('click',function(e){
-    e.preventDefault();
-    if(!HREF) return;
-    var w=(window.opener&&!window.opener.closed)?window.opener:window.top;
-    try{ (w||window).location.href=HREF; }catch(_){ window.location.href=HREF; }
-  });
+  var view=root.querySelector('[data-pp-view]'), track=root.querySelector('[data-pp-track]'), dotsBox=root.querySelector('[data-pp-dots]');
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  // 클릭 시 스토어(부모/최상위) 창을 이동 → 레이어/윈도우 팝업 모두 대응
+  function goLink(href){ if(!href) return; var w=(window.opener&&!window.opener.closed)?window.opener:window.top; try{ (w||window).location.href=href; }catch(_){ window.location.href=href; } }
+
   (async function(){
+    var items=[];
     try{
       var a=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       var fs=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
@@ -35,16 +42,54 @@
       var app=a.getApps().length?a.getApps()[0]:a.initializeApp(cfg);
       var snap=await fs.getDoc(fs.doc(fs.getFirestore(app),'config','pourstorePopups'));
       var arr=snap.exists()?(((snap.data()||{}).popups)||[]):[];
-      var p=arr.filter(function(x){return x&&Number(x.slot)===SLOT;})[0]||arr[SLOT-1];
-      if(p&&p.active!==false&&p.image){
-        img.src=p.image;
-        HREF=(p.link||'').trim();
-        link.style.cursor=HREF?'pointer':'default';
-        link.style.display='block';
-      } else {
-        console.log('[popup] 슬롯 '+SLOT+' — 비활성 또는 이미지 없음');
-      }
+      items=arr.filter(function(p){ return p && p.active!==false && p.image; })
+               .sort(function(x,y){ return (x.order||0)-(y.order||0); });
     }catch(e){ console.log('[popup] 로드 스킵:', e&&e.message?e.message:e); }
+
+    if(!items.length){ console.log('[popup] 노출할 이미지 없음'); return; }
+
+    // 슬라이드 렌더
+    track.innerHTML=items.map(function(p){
+      return '<a class="pp-slide" href="#none">'+
+             '<img src="'+esc(p.image)+'" alt="이벤트 팝업" onerror="this.style.display=\'none\'">'+
+             '</a>';
+    }).join('');
+    var slides=track.querySelectorAll('.pp-slide');
+    var N=slides.length, cur=0, timer=null, dragging=false, moved=false, startX=0, dx=0;
+
+    // 각 슬라이드 링크 연결(스와이프 후에는 이동 안 함 → moved 로 구분)
+    slides.forEach(function(sl,i){
+      sl.addEventListener('click',function(e){ e.preventDefault(); if(moved) return; goLink((items[i].link||'').trim()); });
+    });
+
+    function render(){ track.style.transform='translateX('+(-cur*100)+'%)'; if(N>1){ Array.prototype.forEach.call(dotsBox.children,function(d,i){ d.classList.toggle('on', i===cur); }); } }
+    function go(i){ cur=(i%N+N)%N; render(); }
+
+    // 점(dots)
+    if(N>1){
+      dotsBox.hidden=false;
+      dotsBox.innerHTML=items.map(function(_,i){ return '<button class="pp-dot'+(i===0?' on':'')+'" type="button" aria-label="'+(i+1)+'"></button>'; }).join('');
+      Array.prototype.forEach.call(dotsBox.children,function(d,i){ d.addEventListener('click',function(){ go(i); restart(); }); });
+    }
+    render();
+
+    // 자동 넘김
+    function play(){ if(N<=1) return; stop(); timer=setInterval(function(){ go(cur+1); },3500); }
+    function stop(){ if(timer){ clearInterval(timer); timer=null; } }
+    function restart(){ stop(); play(); }
+    view.addEventListener('pointerenter',stop);
+    view.addEventListener('pointerleave',play);
+
+    // 스와이프/드래그
+    view.addEventListener('pointerdown',function(e){ if(N<=1) return; dragging=true; moved=false; startX=e.clientX; dx=0; stop(); track.style.transition='none'; try{ view.setPointerCapture(e.pointerId); }catch(_){}});
+    view.addEventListener('pointermove',function(e){ if(!dragging) return; dx=e.clientX-startX; if(Math.abs(dx)>6) moved=true; track.style.transform='translateX('+(-cur*100 + (dx/Math.max(1,view.clientWidth))*100)+'%)'; });
+    function endDrag(){ if(!dragging) return; dragging=false; track.style.transition=''; if(Math.abs(dx)>view.clientWidth*0.15){ go(dx<0?cur+1:cur-1); } else { render(); } play(); }
+    view.addEventListener('pointerup',endDrag);
+    view.addEventListener('pointercancel',endDrag);
+    // 드래그 직후의 클릭 이동 방지: 다음 tick 에 moved 리셋
+    view.addEventListener('click',function(){ setTimeout(function(){ moved=false; },0); }, true);
+
+    play();
   })();
 })();
 </script>

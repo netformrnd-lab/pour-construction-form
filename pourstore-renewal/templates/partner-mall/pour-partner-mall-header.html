@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POUR스토어 파트너사전용몰 — 상단 안내 섹션</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<!--
+  ▣ POUR스토어 파트너사전용몰 상단 안내 섹션 (카페24 상품분류 페이지 상단에 붙여넣기용)
+  ─ 카페24 스킨 CSS와 충돌 방지를 위해 모든 클래스에 ppm- 접두사 사용
+  ─ 이 파일 전체(<style>~마지막 </div>)를 복사해 카페24 '상품분류 > 분류 상단 내용(HTML)'에 붙여넣으세요.
+  ─ 아래 [★수정] 표시된 부분(링크/문구)만 실제 값으로 바꾸면 됩니다.
+-->
+<style>
+  .ppm, .ppm *{box-sizing:border-box;margin:0;padding:0}
+  .ppm{
+    --or:#E1782D; --or2:#c95214; --navy:#0F1F5C; --navy2:#1A2E73;
+    --ink:#14203a; --muted:#6B7280; --line:#E7E3DD; --card:#fff;
+    font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    color:var(--ink); line-height:1.6; max-width:1180px; margin:0 auto; padding:0 16px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .ppm a{text-decoration:none;color:inherit}
+
+  /* ── 필독사항 히어로 ── */
+  .ppm-hero{position:relative;overflow:hidden;border-radius:18px;
+    background:linear-gradient(120deg,#0c1a4a 0%, #14235f 55%, #1d2f74 100%);
+    color:#fff;padding:34px 30px;display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+  .ppm-hero-main{flex:1 1 320px;min-width:0;position:relative;z-index:2}
+  .ppm-eyebrow{display:inline-block;font-size:13px;font-weight:700;letter-spacing:.02em;
+    color:#ffd9c0;background:rgba(225,120,45,.18);border:1px solid rgba(225,120,45,.5);
+    padding:5px 12px;border-radius:999px;margin-bottom:14px}
+  .ppm-title{font-size:30px;font-weight:900;letter-spacing:-.02em;line-height:1.25}
+  .ppm-title b{color:var(--or)}
+  .ppm-cau{margin-top:12px;font-size:13.5px;color:#c9d2e6;line-height:1.7}
+  .ppm-cau b{color:#fff}
+
+  .ppm-links{flex:0 0 auto;position:relative;z-index:2;display:flex;flex-direction:column;gap:10px;
+    min-width:220px}
+  .ppm-links a{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;color:#fff;
+    padding:12px 16px;border:1px solid rgba(255,255,255,.22);border-radius:10px;
+    background:rgba(255,255,255,.06);transition:.15s}
+  .ppm-links a:hover{background:var(--or);border-color:var(--or)}
+  .ppm-links a::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--or);flex:0 0 auto}
+  .ppm-links a:hover::before{background:#fff}
+
+  /* 배경 장식 원 */
+  .ppm-deco{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.9}
+  .ppm-deco i{position:absolute;border-radius:50%;display:block}
+  .ppm-deco .d1{width:130px;height:130px;left:-30px;top:-40px;
+    background:radial-gradient(circle at 30% 30%, #7c4bd0, #3a1f80)}
+  .ppm-deco .d2{width:90px;height:90px;left:10px;bottom:-30px;
+    background:linear-gradient(135deg,var(--or),#f4a35a)}
+  .ppm-deco .d3{width:60px;height:60px;left:70px;top:60px;border:2px solid rgba(255,255,255,.18);background:none}
+
+  /* ── 전용몰 타이틀 ── */
+  .ppm-head{text-align:center;padding:34px 0 6px}
+  .ppm-head h3{font-size:24px;font-weight:900;letter-spacing:-.02em}
+  .ppm-head p{margin-top:8px;font-size:14.5px;color:var(--muted)}
+
+  /* ── 유형 필터 칩 ── */
+  .ppm-filters{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;
+    padding:16px 0 8px;border-bottom:1px solid var(--line)}
+  .ppm-chip{flex:0 1 auto;display:inline-flex;align-items:center;gap:7px;
+    font-size:15px;font-weight:700;color:var(--navy);background:var(--card);
+    border:1.5px solid var(--line);border-radius:999px;padding:11px 20px;transition:.15s;white-space:nowrap}
+  .ppm-chip:hover{border-color:var(--or);color:var(--or2)}
+  .ppm-chip .ppm-dot{width:8px;height:8px;border-radius:50%;background:var(--or);flex:0 0 auto}
+  .ppm-chip.ppm-all{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .ppm-chip.ppm-all .ppm-dot{background:#fff}
+  .ppm-chip.ppm-all:hover{background:var(--navy2);color:#fff}
+
+  /* ── 필독사항 상세(앵커 대상) ── */
+  .ppm-notice{margin:22px 0 8px;background:#FBF7F2;border:1px solid #F0E4D6;border-radius:14px;padding:20px 22px}
+  .ppm-notice h4{font-size:16px;font-weight:800;color:var(--navy);margin-bottom:10px}
+  .ppm-notice li{list-style:none;position:relative;padding-left:18px;font-size:14px;color:#5b4a39;margin-bottom:7px}
+  .ppm-notice li::before{content:"※";position:absolute;left:0;color:var(--or)}
+
+  /* ── 모바일 ── */
+  @media (max-width:760px){
+    .ppm-hero{padding:26px 20px}
+    .ppm-title{font-size:24px}
+    .ppm-links{flex-basis:100%;min-width:0;flex-direction:row;flex-wrap:wrap}
+    .ppm-links a{flex:1 1 46%;justify-content:center;font-size:13.5px;padding:11px 10px}
+    .ppm-head h3{font-size:20px}
+    .ppm-chip{font-size:14px;padding:10px 16px}
+  }
+</style>
+</head>
+<body>
+<!-- ▼▼▼ 여기부터 카페24에 붙여넣기 ▼▼▼ -->
+<div class="ppm">
+
+  <!-- 필독사항 히어로 -->
+  <section class="ppm-hero">
+    <div class="ppm-deco" aria-hidden="true"><i class="d1"></i><i class="d2"></i><i class="d3"></i></div>
+    <div class="ppm-hero-main">
+      <span class="ppm-eyebrow">시공 · 대리점 · 자재판매 · 위탁판매 · 관리주체</span>
+      <h2 class="ppm-title">파트너 <b>구매 전 필독사항</b></h2>
+      <p class="ppm-cau"><b>※</b> 구매 전 필독사항 미확인으로 발생하는 불이익에 대해 POUR스토어는 책임을 지지 않습니다.</p>
+      <p class="ppm-cau"><b>※</b> 파트너 전용 공급가는 승인된 사업자 회원 등급에게만 적용됩니다. <!--[★수정] 세금계산서/부가세 정책 문구가 있으면 여기에--></p>
+    </div>
+    <nav class="ppm-links">
+      <a href="#ppm-notice">필독사항 바로가기</a>
+      <a href="#" target="_blank" rel="noopener">상세페이지 다운로드</a><!--[★수정] 링크-->
+      <a href="#" target="_blank" rel="noopener">콘텐츠 다운로드</a><!--[★수정] 링크-->
+    </nav>
+  </section>
+
+  <!-- 전용몰 타이틀 -->
+  <div class="ppm-head">
+    <h3>파트너사전용몰</h3>
+    <p>파트너 유형을 선택하면 전용 상품만 모아서 볼 수 있습니다.</p>
+  </div>
+
+  <!-- 유형 필터 (각 href를 해당 하위 상품분류 주소로 교체) -->
+  <nav class="ppm-filters">
+    <a class="ppm-chip ppm-all" href="#"><span class="ppm-dot"></span>전체</a><!--[★수정] 파트너몰 전체 분류-->
+    <a class="ppm-chip" href="#"><span class="ppm-dot"></span>시공파트너</a><!--[★수정] cate_no-->
+    <a class="ppm-chip" href="#"><span class="ppm-dot"></span>대리점</a><!--[★수정]-->
+    <a class="ppm-chip" href="#"><span class="ppm-dot"></span>자재판매</a><!--[★수정]-->
+    <a class="ppm-chip" href="#"><span class="ppm-dot"></span>위탁판매</a><!--[★수정]-->
+    <a class="ppm-chip" href="#"><span class="ppm-dot"></span>관리주체</a><!--[★수정]-->
+  </nav>
+
+  <!-- 필독사항 상세 -->
+  <div class="ppm-notice" id="ppm-notice">
+    <h4>구매 전 필독사항</h4>
+    <ul>
+      <li>파트너 전용 공급가는 승인된 사업자(파트너 등급) 회원 로그인 시에만 적용됩니다.</li>
+      <li>대량구매·소량구매·위탁 조건은 유형별로 상이하니 상품 상세를 확인해 주세요.</li>
+      <li>배송·정산·세금계산서 관련 안내는 상세페이지를 참고해 주세요. <!--[★수정] 실제 정책으로--></li>
+    </ul>
+  </div>
+
+</div>
+<!-- ▲▲▲ 여기까지 붙여넣기 ▲▲▲ -->
+</body>
+</html>

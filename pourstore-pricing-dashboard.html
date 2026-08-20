@@ -143,9 +143,9 @@ tr.dragover td{box-shadow:inset 0 2px 0 0 var(--xl-green)}
 .setrow .setqty{width:66px;border:1px solid var(--xl-grid);border-radius:5px;padding:7px 8px;text-align:right;font-size:13px}
 .setrow .setdel{border:1px solid var(--xl-grid);background:#fff;border-radius:5px;padding:5px 9px;cursor:pointer;flex-shrink:0}
 .setrow .setdel:hover{border-color:var(--red);color:var(--red)}
-.prodedit,.prodcopy{border:0;background:none;cursor:pointer;font-size:11px;opacity:0;margin-left:3px;padding:0 2px}
-tr:hover .prodedit,tr:hover .prodcopy{opacity:.55}
-.prodedit:hover,.prodcopy:hover{opacity:1!important}
+.prodedit,.prodcopy,.proddel{border:0;background:none;cursor:pointer;font-size:11px;opacity:0;margin-left:3px;padding:0 2px}
+tr:hover .prodedit,tr:hover .prodcopy,tr:hover .proddel{opacity:.55}
+.prodedit:hover,.prodcopy:hover,.proddel:hover{opacity:1!important}
 td.cost{background:#FFF8E7}
 td.editable{cursor:cell}
 td.editable:hover{outline:1.5px solid var(--xl-green);outline-offset:-1.5px}
@@ -1106,6 +1106,31 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     </div>
   </section>
 
+  <!-- ── Sheet: 데이터 관리(휴지통 + 활동이력) ── -->
+  <section class="sheet" id="sh-data">
+    <div class="toolrow">
+      <span class="ttl">데이터 관리 <span class="tag">휴지통 · 활동이력 · 영구삭제 없음</span></span>
+      <button class="tbtn" id="dataReload">↻ 새로고침</button>
+      <button class="tbtn" id="actCsv">활동이력 CSV</button>
+      <button class="tbtn" id="actXls" style="background:var(--xl-green);color:#fff;border-color:var(--xl-green)">활동이력 엑셀</button>
+      <span class="hint">삭제는 모두 '휴지통 이동'이며 원본은 지워지지 않습니다. 활동이력은 감사용으로 삭제할 수 없습니다.</span>
+    </div>
+    <div class="sheet-pad">
+      <div class="cols2">
+        <div class="panel"><h3>🗑 휴지통 — 제품 <span class="tag" id="trashProdCnt">0</span></h3>
+          <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="trashProdTable" style="width:100%"></table></div>
+        </div>
+        <div class="panel"><h3>🗑 휴지통 — 채널 <span class="tag" id="trashChanCnt">0</span></h3>
+          <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="trashChanTable" style="width:100%"></table></div>
+        </div>
+      </div>
+      <div class="panel"><h3>📝 활동 이력 <span class="tag" id="actCnt">0</span> <span style="margin-left:auto;font-size:11px;color:var(--ink-faint);font-weight:400">이 대시보드에서 일어난 제품·채널·가격 변경 기록 (append-only)</span></h3>
+        <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="actTable" style="width:100%"></table></div>
+        <p class="footnote" style="padding:8px 14px">· 활동이력은 <b>영구 보관</b>되며 화면에서 삭제할 수 없습니다(감사 로그). 필요 시 CSV·엑셀로 추출해 보관하세요.</p>
+      </div>
+    </div>
+  </section>
+
 </div>
 
 <!-- ═══ 시트 탭 (그룹 2단 네비게이션) ═══ -->
@@ -1124,6 +1149,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
   <button class="stab" data-grp="prod" data-sh="sh-reg"><span class="dot"></span>제품·상품 등록</button>
   <button class="stab" data-grp="prod" data-sh="sh-match"><span class="dot"></span>제품·상품 매칭 <span id="tabLockIcon" style="font-size:10px">🔒</span></button>
   <button class="stab" data-grp="prod" data-sh="sh-inbound"><span class="dot"></span>입고예정 CRM 송신</button>
+  <button class="stab" data-grp="prod" data-sh="sh-data"><span class="dot"></span>데이터 관리 · 휴지통</button>
   <button class="stab" data-grp="profit" data-sh="sh-moq"><span class="dot"></span>MOQ 대량판매</button>
   <button class="stab" data-grp="profit" data-sh="sh-pl"><span class="dot"></span>손익·공헌이익</button>
   <button class="stab" data-grp="profit" data-sh="sh-fixed"><span class="dot"></span>고정지출 관리</button>
@@ -1531,8 +1557,8 @@ let CHORD=[];   // 표시 순서 uid 배열 ← product-meta/chan-order
 const VBASE_COL='__vbase__';   // 업체단가 열도 CHORD에서 위치 이동 가능(가상 uid)
 const colOrderIdx=c=>{ const i=CHORD.indexOf(c.uid); return i<0?9999:i; };
 function ensureChord(){
-  CHORD=CHORD.filter(u=>{ if(u===VBASE_COL)return true; const c=chByUid(u); return c && c.col; });   // 사라진/숨긴 채널 제거(업체단가 가상열은 유지)
-  const missing=CHANNELS.filter(c=>c.col && !CHORD.includes(c.uid)).sort((a,b)=>chRank(a)-chRank(b));
+  CHORD=CHORD.filter(u=>{ if(u===VBASE_COL)return true; const c=chByUid(u); return c && c.col && !isDeletedChan(u); });   // 사라진/숨긴/삭제 채널 제거(업체단가 가상열은 유지)
+  const missing=CHANNELS.filter(c=>c.col && !isDeletedChan(c.uid) && !CHORD.includes(c.uid)).sort((a,b)=>chRank(a)-chRank(b));
   missing.forEach(c=>{ const r=chRank(c); let idx=CHORD.length;
     for(let i=0;i<CHORD.length;i++){ const cc=chByUid(CHORD[i]); if(cc && chRank(cc)>r){ idx=i; break; } }
     CHORD.splice(idx,0,c.uid); });
@@ -1547,7 +1573,7 @@ function reorderChan(fromUid,toUid){
   let to=CHORD.indexOf(toUid); if(to<0)to=CHORD.length; CHORD.splice(to,0,fromUid);
   saveChanOrder(); persist(); refreshAll();
 }
-const COLS=()=>CHANNELS.filter(c=>c.col).sort((a,b)=>(colOrderIdx(a)-colOrderIdx(b))||(chRank(a)-chRank(b))||((a.ord??0)-(b.ord??0)));
+const COLS=()=>CHANNELS.filter(c=>c.col&&!isDeletedChan(c.uid)).sort((a,b)=>(colOrderIdx(a)-colOrderIdx(b))||(chRank(a)-chRank(b))||((a.ord??0)-(b.ord??0)));
 const chBy=r=>CHANNELS.find(c=>c.role===r)||null;
 const chByUid=u=>CHANNELS.find(c=>c.uid===u)||null;
 const retailUid=()=>{const c=chBy('retail');return c?c.uid:null;};
@@ -2096,10 +2122,11 @@ $('#btnPwApply').addEventListener('click',async()=>{
 /* ══════════ 채널 관리 ══════════ */
 const GRP_COLOR=g=>g==='KR1'?'g':(g==='KR2'?'a':'r');
 function renderChMan(){
-  const groups=[...new Set(CHANNELS.map(c=>c.g))];
+  const live=CHANNELS.filter(c=>!isDeletedChan(c.uid));   // 삭제된 채널은 휴지통으로
+  const groups=[...new Set(live.map(c=>c.g))];
   $('#grpList').innerHTML=groups.map(g=>`<option value="${esc(g)}">`).join('');
   $('#chGroups').innerHTML=groups.map(g=>{
-    const list=CHANNELS.filter(c=>c.g===g);
+    const list=live.filter(c=>c.g===g);
     let rows=list.map(c=>`
       <tr data-uid="${c.uid}">
         <td class="editable" data-cf="code" style="font-weight:700;color:var(--amber);font-family:var(--mono)">${esc(c.code)}</td>
@@ -2153,10 +2180,11 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-cdel]'); if(!b)return;
-  const c=chByUid(b.dataset.cdel);
-  if(!confirm(`[${c.code}] ${c.name} 채널을 삭제할까요?\n이 채널에 입력된 제품별 가격도 함께 삭제됩니다.`))return;
-  CHANNELS=CHANNELS.filter(x=>x.uid!==c.uid);
-  P.forEach(p=>{ delete p.pr[c.uid]; });
+  const c=chByUid(b.dataset.cdel); if(!c)return;
+  if(c.role==='retail'){ alert('자사몰 직판(정가) 채널은 모든 계산의 기준이라 삭제할 수 없습니다.'); return; }
+  if(!confirm(`[${c.code}] ${c.name} 채널을 휴지통으로 보낼까요?\n· 가격정책표에서 숨겨지지만 입력한 가격은 보존되며,\n· '데이터 관리 › 휴지통'에서 언제든 복원할 수 있습니다. (영구삭제 아님)`))return;
+  CHDEL[c.uid]={at:new Date().toISOString(), by:(curUser&&curUser.email)||'', code:c.code, name:c.name};
+  saveChdel(); logAct('채널삭제', `[${c.code}] ${c.name}`, '휴지통 이동');
   plState=null; refreshAll();
 });
 $('#btnChAdd').addEventListener('click',()=>{
@@ -2176,7 +2204,7 @@ function detectAlerts(){
   const out=[], rUid=retailUid();
   const rankCols=COLS().filter(c=>CODE_RANK[c.code]).sort((a,b)=>CODE_RANK[a.code]-CODE_RANK[b.code]);
   P.forEach(p=>{
-    if(p.cat==='패키지')return;
+    if(p.cat==='패키지'||isDeletedProd(p))return;
     COLS().forEach(c=>{
       const pr=gp(p,c.uid);
       if(pr!=null&&p.cost!=null&&pr<p.cost)
@@ -2202,7 +2230,7 @@ function detectAlerts(){
 function avgRate(uid){
   if(!uid)return null;
   let s=0,n=0;
-  P.forEach(p=>{ if(p.cat==='패키지')return; const r=mrate(gp(p,uid),p.cost); if(r!=null){s+=r;n++;} });
+  P.forEach(p=>{ if(p.cat==='패키지'||isDeletedProd(p))return; const r=mrate(gp(p,uid),p.cost); if(r!=null){s+=r;n++;} });
   return n?s/n:null;
 }
 function renderRibbon(){
@@ -2211,13 +2239,13 @@ function renderRibbon(){
   if(!costAllowed){
     // 일반계정: 마진·원가 지표 숨김 — 판매가·채널 요약만
     items=[
-      {lb:'등록 품목 / 판매 채널', vl:P.length+'개 / '+CHANNELS.length+'개', sub:'가격열 표시 채널 '+COLS().length+'개'},
+      {lb:'등록 품목 / 판매 채널', vl:P.filter(p=>!isDeletedProd(p)).length+'개 / '+CHANNELS.filter(c=>!isDeletedChan(c.uid)).length+'개', sub:'가격열 표시 채널 '+COLS().length+'개'},
       {lb:'표시 판매 채널', vl:COLS().length+'개', sub:'가격정책표에서 채널별 판매가 확인'}
     ];
   }else{
     const alerts=detectAlerts();
     items=[
-      {lb:'등록 품목 / 판매 채널', vl:P.length+'개 / '+CHANNELS.length+'개', sub:'가격열 표시 채널 '+COLS().length+'개'},
+      {lb:'등록 품목 / 판매 채널', vl:P.filter(p=>!isDeletedProd(p)).length+'개 / '+CHANNELS.filter(c=>!isDeletedChan(c.uid)).length+'개', sub:'가격열 표시 채널 '+COLS().length+'개'},
       {lb:'평균 마진율 ('+(rc?rc.short:'정가')+')', vl:pct(avgRate(retailUid())), sub:'매입원가 대비'},
       {lb:'평균 마진율 ('+(dc?dc.short:'대리점')+' 공급)', vl:pct(avgRate(dealerUid())), sub:dc?('['+dc.code+'] '+dc.name+' 기준'):'MOQ 하한 채널 미지정'},
       {lb:'가격 점검 필요', vl:alerts.length+'건', sub:'역마진·가격역전 자동 감지'}
@@ -2227,7 +2255,7 @@ function renderRibbon(){
 }
 function renderDash(){
   const alerts=detectAlerts(), rUid=retailUid(), dc=chBy('dealer');
-  const rated=P.filter(p=>p.cat!=='패키지'&&mrate(gp(p,rUid),p.cost)!=null)
+  const rated=P.filter(p=>p.cat!=='패키지'&&!isDeletedProd(p)&&mrate(gp(p,rUid),p.cost)!=null)
                .map(p=>({p,r:mrate(gp(p,rUid),p.cost),m:margin(gp(p,rUid),p.cost)}));
   rated.sort((a,b)=>b.r-a.r);
   const best=rated[0], worst=rated[rated.length-1];
@@ -2306,7 +2334,7 @@ function renderGrid(){
   </tr></thead><tbody>`;
   const SEP='';
   const passes=p=> !(cat&&p.cat!==cat) && !(q&&!(p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||(p.sup||'').toLowerCase().includes(q)));
-  const ordered=P.slice().sort((a,b)=>(porderIdx(pKey(a))-porderIdx(pKey(b)))||((a.seq??a.id??0)-(b.seq??b.id??0)));
+  const ordered=P.filter(p=>!isDeletedProd(p)).sort((a,b)=>(porderIdx(pKey(a))-porderIdx(pKey(b)))||((a.seq??a.id??0)-(b.seq??b.id??0)));
   const l1i={},l2i={},l3i={};   // 그룹 순서 = 최초 등장 순서
   ordered.forEach((p,idx)=>{ const c=pcat(p),k1=c.l1,k2=c.l1+SEP+c.l2,k3=k2+SEP+c.l3; if(!(k1 in l1i))l1i[k1]=idx; if(!(k2 in l2i))l2i[k2]=idx; if(!(k3 in l3i))l3i[k3]=idx; });
   const gk=(c,lv)=> lv===1?c.l1 : lv===2?(c.l1+SEP+c.l2) : (c.l1+SEP+c.l2+SEP+c.l3);
@@ -2338,7 +2366,7 @@ function renderGrid(){
     }).join('');
     html+=`<tr data-id="${p.id}" data-key="${esc(pKey(p))}" data-cat="${esc(p.cat)}">
       <td class="frz frz-no dim">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span>`:''}${no}</td>
-      <td class="frz frz-name name">${esc(p.name)}${costAllowed?` <button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button>`:''}</td>
+      <td class="frz frz-name name">${esc(p.name)}${costAllowed?` <button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button>`:''}</td>
       <td class="frz frz-spec dim${lastFrz==='spec'?' frz-edge':''}">${esc(p.spec)}${pkg?` <span style="color:var(--xl-green-dark);font-size:10.5px;font-weight:600">📦구성 ${pkgComps(p).length}종</span>`:''}</td>
       ${showSup?`<td class="frz frz-sup dim${lastFrz==='sup'?' frz-edge':''}" title="${unlocked?esc(p.mgr||''):''}">${unlocked?esc(p.sup||'—'):'🔒'}</td>`:''}
       ${showCost?`<td class="frz frz-cost num cost${lastFrz==='cost'?' frz-edge':''}" title="${pkg?'구성 단품 원가 합':"원가는 '제품 수정'에서"}">${won(pcost)}${pkg?'<span class="mrate">합산</span>':''}</td>`:''}
@@ -2526,10 +2554,10 @@ $('#btnSaveMatch').addEventListener('click',()=>{ persist(); persistSecure(); $(
 
 /* ══════════ 채널 수익분석 ══════════ */
 function fillProductSelects(){
-  const opts=P.filter(p=>p.cat!=='패키지').map(p=>`<option value="${p.id}">[${p.cat}] ${p.name} · ${p.spec}</option>`).join('');
+  const opts=P.filter(p=>p.cat!=='패키지'&&!isDeletedProd(p)).map(p=>`<option value="${p.id}">[${p.cat}] ${p.name} · ${p.spec}</option>`).join('');
   ['#chProd','#moqProd','#plProd'].forEach(s=>$(s).innerHTML=opts);
   $('#calcProd').innerHTML='<option value="">직접 입력</option>'+opts;
-  const ibl=$('#ibProdList'); if(ibl) ibl.innerHTML=P.map(p=>`<option value="${esc(p.name)}${p.spec?' '+esc(p.spec):''}">`).join('');
+  const ibl=$('#ibProdList'); if(ibl) ibl.innerHTML=P.filter(p=>!isDeletedProd(p)).map(p=>`<option value="${esc(p.name)}${p.spec?' '+esc(p.spec):''}">`).join('');
   const d=P.findIndex(p=>p.name.includes('코트재Ⅰ(회색)'));
   if(d>=0){['#chProd','#moqProd','#plProd'].forEach(s=>$(s).value=d);}
 }
@@ -2743,7 +2771,7 @@ function renderPlanGrid(){
   </tr></thead><tbody>`;
   let lastCat=null;
   P.forEach(p=>{
-    if(cat&&p.cat!==cat)return;
+    if((cat&&p.cat!==cat)||isDeletedProd(p))return;
     if(q&&!(p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)))return;
     if(p.cat!==lastCat){ lastCat=p.cat; html+=`<tr class="catrow"><td colspan="11">■ ${p.cat}</td></tr>`; }
     const l=getLine(p.id,uid);
@@ -3110,6 +3138,7 @@ function gotoTab(sh){
   $$('.stab').forEach(x=>x.classList.toggle('on',x.dataset.sh===sh));
   $$('.sheet').forEach(s=>s.classList.toggle('on',s.id===sh));
   renderTabs();
+  if(sh==='sh-data' && typeof openDataTab==='function') openDataTab();
 }
 function selectGroup(grp){
   activeGrp=grp;
@@ -3402,7 +3431,7 @@ async function promoAdd(){
 async function promoSet(id,patch){ try{ await db.collection('promotions').doc(id).set({...patch,updatedAt:new Date().toISOString()},{merge:true}); }catch(e){ alert('저장 실패: '+(e.code||e.message||e)); } }
 async function promoDel(id){ const p=PROMOS.find(x=>x.id===id); if(!confirm(`"${(p&&p.name)||''}" 삭제할까요?`))return; try{ await db.collection('promotions').doc(id).delete(); await fetchMkt(); refreshAll(); }catch(e){ alert('삭제 실패: '+(e.code||e.message||e)); } }
 function fillMktSelects(){
-  const pl=$('#mlProdList'); if(pl) pl.innerHTML=P.filter(p=>p.cat!=='패키지').map(p=>`<option value="${esc(p.name)}">`).join('');
+  const pl=$('#mlProdList'); if(pl) pl.innerHTML=P.filter(p=>p.cat!=='패키지'&&!isDeletedProd(p)).map(p=>`<option value="${esc(p.name)}">`).join('');
   const ts=$('#mlTypeIn'); if(ts&&!ts.options.length) ts.innerHTML=MKT_TYPES.map(t=>`<option>${t}</option>`).join('');
   const cl=$('#mlChanList'); if(cl&&!cl.options.length) cl.innerHTML=MKT_CHAN_SUGGEST.map(c=>`<option value="${esc(c)}">`).join('');
   const cm=$('#mlCampList'); if(cm){ const ex=[...new Set(MKT_LINKS.map(l=>l.campaign).filter(Boolean))]; cm.innerHTML=[...new Set([...MKT_CAMP_SUGGEST,...ex])].map(c=>`<option value="${esc(c)}">`).join(''); }
@@ -3535,6 +3564,93 @@ function ensureCatCfg(){
   return added;
 }
 async function saveCatConfig(){ try{ await db.collection('product-meta').doc('cat-config').set({list:CATCFG, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[cat-config] 저장 실패', e.code||e); } }
+/* ══════════ 소프트 삭제(휴지통) + 활동 이력 — 영구삭제 없음 ══════════
+   제품·채널은 '삭제표시'만 하고 원본 레코드는 절대 지우지 않는다. 휴지통에서 복원 가능. */
+let PDEL={};   // pKey → {at,by,name} 삭제된 제품 ← product-meta/prod-deleted
+let CHDEL={};  // uid  → {at,by,code,name} 삭제된 채널 ← product-meta/chan-deleted
+function isDeletedProd(p){ return !!PDEL[pKey(p)]; }
+function isDeletedChan(uid){ return !!CHDEL[uid]; }
+async function savePdel(){ try{ await db.collection('product-meta').doc('prod-deleted').set({map:PDEL, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-deleted] 저장 실패', e.code||e); } }
+async function saveChdel(){ try{ await db.collection('product-meta').doc('chan-deleted').set({map:CHDEL, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[chan-deleted] 저장 실패', e.code||e); } }
+/* 활동 이력: append-only. 수동 삭제 제공 안 함(감사 로그). */
+let ACTLOG=[];   // 표시용 캐시(최근 로드분)
+function logAct(type, target, detail){
+  const rec={ ts:new Date().toISOString(), by:(curUser&&curUser.email)||'', type:String(type||''), target:String(target||''), detail:String(detail||'') };
+  ACTLOG.unshift(rec);   // 화면 즉시 반영
+  db.collection('dashboard-activity').add(rec).catch(e=>console.warn('[activity] 기록 실패', e.code||e));
+}
+async function loadActLog(limit){
+  try{ const snap=await db.collection('dashboard-activity').get();
+    const arr=snap.docs.map(d=>({id:d.id, ...d.data()}));
+    arr.sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));   // 클라이언트 정렬(orderBy 미사용)
+    ACTLOG=limit?arr.slice(0,limit):arr;
+    console.log(`[activity] ${arr.length}건 로드`);
+  }catch(e){ console.warn('[activity] 로드 실패', e.code||e); }
+  return ACTLOG;
+}
+/* 소프트 삭제 / 복원 — 원본은 절대 지우지 않음 */
+function softDeleteProduct(p){
+  if(!p||isDeletedProd(p))return;
+  if(!confirm(`제품 "${p.name}${p.spec?' ('+p.spec+')':''}"을(를) 휴지통으로 보낼까요?\n· 가격정책표에서 숨겨지지만 영구삭제가 아닙니다.\n· '데이터 관리 › 휴지통'에서 언제든 복원할 수 있습니다.`))return;
+  PDEL[pKey(p)]={at:new Date().toISOString(), by:(curUser&&curUser.email)||'', name:p.name, spec:p.spec||'', cat:p.cat};
+  savePdel(); logAct('제품삭제', `${p.name}${p.spec?' ('+p.spec+')':''}`, isPackage(p)?'세트':'단품');
+  plState=null; refreshAll();
+}
+function restoreProduct(key){
+  if(!(key in PDEL))return; const info=PDEL[key]||{}; delete PDEL[key];
+  savePdel(); logAct('제품복원', info.name||key, ''); plState=null; refreshAll();
+}
+function restoreChannel(uid){
+  if(!(uid in CHDEL))return; const info=CHDEL[uid]||{}; delete CHDEL[uid];
+  saveChdel(); logAct('채널복원', `[${info.code||''}] ${info.name||uid}`, ''); plState=null; refreshAll();
+}
+/* ── 데이터 관리 화면(휴지통 + 활동이력) ── */
+function fmtTs(ts){ if(!ts)return '—'; const d=new Date(ts); if(isNaN(d))return esc(String(ts)); const z=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`; }
+function actColor(t){ if(/삭제/.test(t))return 'r'; if(/복원|추가/.test(t))return 'g'; return 'a'; }
+function renderData(){
+  const pk=Object.keys(PDEL); const el=id=>$('#'+id);
+  if(el('trashProdCnt'))el('trashProdCnt').textContent=pk.length+'개';
+  if(el('trashProdTable'))el('trashProdTable').innerHTML = pk.length
+    ? '<thead><tr><th>제품</th><th>규격</th><th>분류</th><th>삭제일시</th><th>삭제자</th><th style="width:64px"></th></tr></thead><tbody>'
+      + pk.map(k=>{ const d=PDEL[k]||{}; return `<tr><td class="name">${esc(d.name||k)}</td><td class="dim">${esc(d.spec||'')}</td><td class="dim">${esc(d.cat||'')}</td><td class="dim">${fmtTs(d.at)}</td><td class="dim">${esc(d.by||'')}</td><td><button class="tbtn dataRestoreP" data-k="${esc(k)}" style="padding:2px 10px">복원</button></td></tr>`; }).join('') + '</tbody>'
+    : '<tbody><tr><td class="dim" style="padding:12px">휴지통이 비어 있습니다.</td></tr></tbody>';
+  const ck=Object.keys(CHDEL);
+  if(el('trashChanCnt'))el('trashChanCnt').textContent=ck.length+'개';
+  if(el('trashChanTable'))el('trashChanTable').innerHTML = ck.length
+    ? '<thead><tr><th>코드</th><th>채널명</th><th>삭제일시</th><th>삭제자</th><th style="width:64px"></th></tr></thead><tbody>'
+      + ck.map(u=>{ const d=CHDEL[u]||{}; return `<tr><td style="font-weight:700;color:var(--amber);font-family:var(--mono)">${esc(d.code||'')}</td><td class="name">${esc(d.name||u)}</td><td class="dim">${fmtTs(d.at)}</td><td class="dim">${esc(d.by||'')}</td><td><button class="tbtn dataRestoreC" data-u="${esc(u)}" style="padding:2px 10px">복원</button></td></tr>`; }).join('') + '</tbody>'
+    : '<tbody><tr><td class="dim" style="padding:12px">휴지통이 비어 있습니다.</td></tr></tbody>';
+  if(el('actCnt'))el('actCnt').textContent=ACTLOG.length+'건';
+  if(el('actTable'))el('actTable').innerHTML = ACTLOG.length
+    ? '<thead><tr><th style="width:140px">일시</th><th style="width:84px">유형</th><th>대상</th><th>내용</th><th style="width:150px">담당</th></tr></thead><tbody>'
+      + ACTLOG.slice(0,500).map(a=>`<tr><td class="dim">${fmtTs(a.ts)}</td><td><span class="pill ${actColor(a.type)}">${esc(a.type)}</span></td><td class="name">${esc(a.target||'')}</td><td class="dim">${esc(a.detail||'')}</td><td class="dim">${esc(a.by||'')}</td></tr>`).join('') + '</tbody>'
+    : '<tbody><tr><td class="dim" style="padding:12px">기록된 활동이 없습니다.</td></tr></tbody>';
+}
+async function openDataTab(){ await loadActLog(); renderData(); }
+function actExport(kind){
+  if(!ACTLOG.length){ alert('추출할 활동이력이 없습니다.'); return; }
+  const head=['일시','유형','대상','내용','담당'];
+  const rows=ACTLOG.map(a=>[fmtTs(a.ts), a.type||'', a.target||'', a.detail||'', a.by||'']);
+  const d=new Date(), ymd=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  if(kind==='xls'){
+    const th='<tr style="background:#0D1B2A;color:#fff;font-weight:700">'+head.map(h=>`<th>${h}</th>`).join('')+'</tr>';
+    const body=rows.map(r=>'<tr>'+r.map(c=>`<td>${esc(c)}</td>`).join('')+'</tr>').join('');
+    const html='﻿<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"><style>td,th{border:0.5pt solid #999;padding:3px 6px;mso-number-format:"\\@"}</style></head><body><table>'+th+body+'</table></body></html>';
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'application/vnd.ms-excel;charset=utf-8'})); a.download=`활동이력_${ymd}.xls`; document.body.appendChild(a); a.click(); a.remove();
+  } else {
+    const csv='\uFEFF'+[head,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=`활동이력_${ymd}.csv`; a.click();
+  }
+}
+function wireData(){
+  const on=(id,fn)=>{ const el=$('#'+id); if(el)el.addEventListener('click',fn); };
+  on('dataReload',openDataTab); on('actCsv',()=>actExport('csv')); on('actXls',()=>actExport('xls'));
+  const sec=$('#sh-data'); if(sec)sec.addEventListener('click',e=>{
+    const rp=e.target.closest('.dataRestoreP'); if(rp){ restoreProduct(rp.dataset.k); renderData(); return; }
+    const rc=e.target.closest('.dataRestoreC'); if(rc){ restoreChannel(rc.dataset.u); renderData(); return; }
+  });
+}
+wireData();
 /* ── 제품별 분류(대/중/소): pKey → {l1,l2,l3}. 기본 대분류=POUR공법·중분류=현재 cat. ← product-meta/prod-cat ── */
 let PCAT={};
 function pcat(p){ const m=PCAT[pKey(p)]||{}; return { l1:(m.l1||'POUR공법'), l2:(m.l2!=null&&m.l2!=='')?m.l2:(p.cat||'기타'), l3:(m.l3||'') }; }
@@ -3751,7 +3867,7 @@ function applyImport(){
 /* ── 제품 추가 모달 (엑셀식 빠른 등록 → products-added, 앵커는 사다리로 자동) ── */
 let AD_EDIT=null;   // 수정 중인 제품(null이면 신규)
 function fillTagLists(){ $('#tagL1').innerHTML=allTags(1).map(v=>`<option value="${esc(v)}">`).join(''); $('#tagL2').innerHTML=allTags(2).map(v=>`<option value="${esc(v)}">`).join(''); $('#tagL3').innerHTML=allTags(3).map(v=>`<option value="${esc(v)}">`).join('');
-  const pl=$('#prodNameList'); if(pl) pl.innerHTML=P.filter(x=>!isPackage(x)).map(x=>`<option value="${esc(x.name)}">`).join(''); }
+  const pl=$('#prodNameList'); if(pl) pl.innerHTML=P.filter(x=>!isPackage(x)&&!isDeletedProd(x)).map(x=>`<option value="${esc(x.name)}">`).join(''); }
 /* ── 구성 빌더 (드롭다운으로 단품 골라 담기) ── */
 let SET_ROWS=[];   // [{name, qty}]
 function findProd(name){ const n=(name||'').trim(); return P.find(x=>x.name===n)||P.find(x=>x.name.replace(/\s/g,'')===n.replace(/\s/g,'')); }
@@ -3861,6 +3977,7 @@ async function submitAddProduct(){
         if(mfg && typeof MFG!=='undefined' && !MFG.some(m=>m.name===mfg)){ MFG.push({id:mfgSeq++,name:mfg,mgr:'',tel:'',memo:'(수정 시 자동)'}); persist(); }
         await db.collection('products-added').doc(AD_EDIT.docId).set(patch,{merge:true}); }
       else { refreshAll(); }   // RAW: config만 저장됨 → onSnapshot 없으니 직접 갱신
+      logAct('제품수정', `${AD_EDIT.name}${AD_EDIT.spec?' ('+AD_EDIT.spec+')':''}`, `유형 ${type} · 분류 ${[l1,l2,l3].filter(Boolean).join('›')}`);
       closeAddModal(); return;
     }
     // ── 신규 등록 ──
@@ -3880,6 +3997,7 @@ async function submitAddProduct(){
     PTYPE[key]=type; await savePtype();             // 유형(단품/세트) 명시 저장
     if(type==='세트'){ PKGSET[key]=setItemsStr(); await savePkgSet(); }
     if(vbase>0){ VBASE[key]=vbase; await saveVendorPrices(); }
+    logAct('제품추가', `${name}${spec&&spec!=='-'?' ('+spec+')':''}`, `유형 ${type} · 분류 ${[l1,cat,l3].filter(Boolean).join('›')}`);
     closeAddModal();   // onSnapshot(products-added)이 대시보드에 실시간 반영
   }catch(e){ console.error('[제품 저장] 실패',e); $('#adStatus').innerHTML='<span style="color:var(--red)">저장 실패: '+esc(e.code||e.message||e)+' (마스터/허용목록·규칙 확인)</span>'; }
   finally{ btn.disabled=false; btn.textContent=old; }
@@ -3962,7 +4080,8 @@ function wireImportModal(){
   document.addEventListener('click',e=>{
     const b=e.target.closest('.gridadd'); if(b){ openAddModal({l1:b.dataset.l1||'POUR공법', l2:b.dataset.l2||'', l3:b.dataset.l3||''}); return; }
     const ed=e.target.closest('.prodedit'); if(ed){ const p=P.find(x=>x.id==ed.dataset.id); if(p)openEditModal(p); return; }
-    const cp=e.target.closest('.prodcopy'); if(cp){ const p=P.find(x=>x.id==cp.dataset.id); if(p)openCopyModal(p); }
+    const cp=e.target.closest('.prodcopy'); if(cp){ const p=P.find(x=>x.id==cp.dataset.id); if(p)openCopyModal(p); return; }
+    const dl=e.target.closest('.proddel'); if(dl){ const p=P.find(x=>x.id==dl.dataset.id); if(p)softDeleteProduct(p); }
   });
   on('btnImportFile','click',openImportModal);
   // ── 채널 추가 모달
@@ -4051,12 +4170,13 @@ function submitChannel(){
   saveChannelMarkup(); recalcVendor(); plState=null; persist(); refreshAll();
   closeChanModal();
   const ruleTxt = a==='ladder'?`업체단가~정가 ${f}% 위치`:a==='vbase'?`업체단가 +${f}%`:a==='retail'?`정가 ×${f}%`:'수동 입력';
+  logAct('채널추가', `[${code}] ${name}`, ruleTxt);
   alert(`✅ [${code}] ${name} 채널 등록 완료\n· 판매가 규칙: ${ruleTxt}\n· 가격정책표에 열이 ${$('#ncCol2')?'표시됩니다':''}\n\n이제 '🖨 단가표 PDF'로 이 채널 공급가표를 뽑을 수 있습니다.`);
 }
 /* ══════════ 단가표 PDF (순번·상품명·규격·공급가·판매가) ══════════ */
 function psOrderedProducts(){
   ensurePorder();
-  return P.slice().sort((a,b)=>(porderIdx(pKey(a))-porderIdx(pKey(b)))||((a.seq??a.id??0)-(b.seq??b.id??0)));
+  return P.filter(p=>!isDeletedProd(p)).sort((a,b)=>(porderIdx(pKey(a))-porderIdx(pKey(b)))||((a.seq??a.id??0)-(b.seq??b.id??0)));
 }
 function openPsModal(){
   const sel=$('#psChan'); const rUid=retailUid();
@@ -4143,6 +4263,8 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('prod-cat').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PCAT=d.data().map; }catch(e){ console.warn('[prod-cat] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('pkg-set').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PKGSET=d.data().map; }catch(e){ console.warn('[pkg-set] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-type').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PTYPE=d.data().map; }catch(e){ console.warn('[prod-type] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('prod-deleted').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PDEL=d.data().map; }catch(e){ console.warn('[prod-deleted] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('chan-deleted').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') CHDEL=d.data().map; }catch(e){ console.warn('[chan-deleted] 로드 실패', e.code||e); }
   await loadDraft();
   console.log(`[vendor] 업체단가 ${Object.keys(VBASE).length} · 정가override ${Object.keys(VRETAIL).length} · 분류 ${CATCFG.length}개 · 개정안 ${draftCount()}건(${DRAFT_META.status||'없음'})`);
 }
@@ -4275,7 +4397,7 @@ function pvCollect(){
     promo:{ disc:+($('#pvDisc')?.value)||0, logi:+($('#pvLogi')?.value)||0, deli:+($('#pvDeli')?.value)||0, pg:+($('#pvPg')?.value)||0,
       gifts:($('#pvGifts')?.value||'').split(',').map(s=>+s.trim()||0).filter(x=>x>0), gifticon:+($('#pvGifticon')?.value)||0, join:+($('#pvJoin')?.value)||0, qty:+($('#pvQty')?.value)||0 } };
 }
-function fillPvSel(){ const sel=$('#pvSel'); if(!sel)return; sel.innerHTML=P.map(p=>`<option value="${p.id}">${esc(p.cat)} · ${esc(p.name)}${p.spec?' ('+esc(p.spec)+')':''}</option>`).join(''); if(pvCur!=null&&P.some(p=>p.id===pvCur)) sel.value=pvCur; }
+function fillPvSel(){ const sel=$('#pvSel'); if(!sel)return; sel.innerHTML=P.filter(p=>!isDeletedProd(p)).map(p=>`<option value="${p.id}">${esc(p.cat)} · ${esc(p.name)}${p.spec?' ('+esc(p.spec)+')':''}</option>`).join(''); if(pvCur!=null&&P.some(p=>p.id===pvCur)) sel.value=pvCur; }
 function recalcPvMkt(){
   const rows=[...document.querySelectorAll('#pvMkBody tr[data-mk]')]; let ts=0,tu=0,tc=0;
   rows.forEach(tr=>{ const g=f=>tr.querySelector(`[data-mkf="${f}"]`), o=k=>tr.querySelector(`[data-mko="${k}"]`);

@@ -2,36 +2,94 @@
   pour-popup-1.html — 카페24 팝업 화면 (이미지 슬라이드 팝업)
   ▸ 사용법(카페24): 디자인 편집창 > 화면추가(저장경로 '팝업(popup)') > 이 내용 붙여넣기 > 저장
   ▸ 팝업 관리 > "직접만든 팝업 선택하기" 에서 이 화면 선택
-  ▸ 팝업 창/오늘 하루 열지 않음/닫기/노출기간 = 카페24가 자동 처리
   ▸ 이미지 여러 장 + 링크 = 어드민 "📢 팝업 관리" 에서 등록 (config/pourstorePopups.popups[])
-    → 등록한 이미지들이 이 팝업 안에서 자동으로 슬라이드됩니다 (점 · 스와이프 · 자동넘김)
+    → 등록한 이미지들이 이 팝업 안에서 자동 슬라이드 (화살표 · 점 · 스와이프 · 자동넘김)
+  ▸ 좌우 화살표(◄ ►) / 하단 "오늘 하루 열지 않음" · "닫기" 버튼 = 이 팝업이 직접 처리
   ▸ 이미지 없으면 아무것도 안 뜸
 ============================================================ -->
 <script>(function(){try{var m=document.querySelector('meta[name=viewport]');var v='width=device-width, initial-scale=1';if(!m){m=document.createElement('meta');m.setAttribute('name','viewport');m.setAttribute('content',v);document.head.appendChild(m);}else if(!/width=device-width/i.test(m.getAttribute('content')||'')){m.setAttribute('content',v);}}catch(e){}})();</script>
 <div class="pourpop">
 <style>
 .pourpop, .pourpop *{box-sizing:border-box;margin:0;padding:0;}
-.pourpop{font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#fff;width:100%;}
+.pourpop{font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#fff;width:100%;overflow:hidden;}
 .pp-view{position:relative;width:100%;overflow:hidden;touch-action:pan-y;background:#fff;}
 .pp-track{display:flex;transition:transform .4s cubic-bezier(.4,0,.2,1);will-change:transform;}
 .pp-slide{flex:0 0 100%;line-height:0;display:block;text-decoration:none;-webkit-user-select:none;user-select:none;}
 .pp-slide img{width:100%;height:auto;display:block;pointer-events:none;-webkit-user-drag:none;user-drag:none;}
+/* 좌우 화살표 */
+.pp-arrow{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;border:0;background:rgba(0,0,0,.4);color:#fff;font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;transition:background .18s;-webkit-tap-highlight-color:transparent;}
+.pp-arrow:hover{background:rgba(0,0,0,.62);}
+.pp-arrow:active{background:rgba(0,0,0,.72);}
+.pp-prev{left:10px;} .pp-next{right:10px;}
+.pp-arrow[hidden]{display:none;}
+/* 점 */
 .pp-dots{display:flex;justify-content:center;align-items:center;gap:7px;padding:10px 0 6px;background:#fff;}
 .pp-dot{width:8px;height:8px;border-radius:50%;background:#d5d8de;border:0;padding:0;cursor:pointer;transition:width .2s,background .2s;}
 .pp-dot.on{background:#E8780F;width:20px;border-radius:4px;}
 .pp-dots[hidden]{display:none;}
+/* 하단 버튼 바 */
+.pp-foot{display:flex;align-items:stretch;border-top:1px solid #eceef1;background:#fff;}
+.pp-foot[hidden]{display:none;}
+.pp-today,.pp-close{flex:1;border:0;background:#fff;padding:14px 10px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;}
+.pp-today{color:#8b9099;border-right:1px solid #eceef1;}
+.pp-close{color:#111;font-weight:800;}
+.pp-today:hover,.pp-today:active{background:#f6f7f9;}
+.pp-close:hover,.pp-close:active{background:#f6f7f9;}
 </style>
 <div class="pp-view" data-pp-view>
   <div class="pp-track" data-pp-track></div>
+  <button class="pp-arrow pp-prev" data-pp-prev type="button" aria-label="이전" hidden>&#8249;</button>
+  <button class="pp-arrow pp-next" data-pp-next type="button" aria-label="다음" hidden>&#8250;</button>
 </div>
 <div class="pp-dots" data-pp-dots hidden></div>
+<div class="pp-foot" data-pp-foot hidden>
+  <button class="pp-today" data-pp-today type="button">오늘 하루 열지 않음</button>
+  <button class="pp-close" data-pp-close type="button">닫기 &#10005;</button>
+</div>
 <script>
 (function(){
   var root=document.currentScript.closest('.pourpop'); if(!root) return;
-  var view=root.querySelector('[data-pp-view]'), track=root.querySelector('[data-pp-track]'), dotsBox=root.querySelector('[data-pp-dots]');
+  var view=root.querySelector('[data-pp-view]'), track=root.querySelector('[data-pp-track]'),
+      dotsBox=root.querySelector('[data-pp-dots]'), foot=root.querySelector('[data-pp-foot]'),
+      prevBtn=root.querySelector('[data-pp-prev]'), nextBtn=root.querySelector('[data-pp-next]'),
+      todayBtn=root.querySelector('[data-pp-today]'), closeBtn=root.querySelector('[data-pp-close]');
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   // 클릭 시 스토어(부모/최상위) 창을 이동 → 레이어/윈도우 팝업 모두 대응
   function goLink(href){ if(!href) return; var w=(window.opener&&!window.opener.closed)?window.opener:window.top; try{ (w||window).location.href=href; }catch(_){ window.location.href=href; } }
+
+  // ── "오늘 하루 열지 않음" 저장/확인 (쿠키 → 실패 시 localStorage) ──
+  function todayKey(){ var d=new Date(); return ''+d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2); }
+  function setHideToday(){
+    try{ var d=new Date(); d.setHours(23,59,59,0); document.cookie='pourpopHide='+todayKey()+'; expires='+d.toUTCString()+'; path=/'; }catch(_){}
+    try{ localStorage.setItem('pourpopHide', todayKey()); }catch(_){}
+  }
+  function isHiddenToday(){
+    try{ if((document.cookie||'').indexOf('pourpopHide='+todayKey())>=0) return true; }catch(_){}
+    try{ if(localStorage.getItem('pourpopHide')===todayKey()) return true; }catch(_){}
+    return false;
+  }
+  // ── 팝업 닫기: 윈도우 팝업이면 창 닫기, 레이어면 DOM 숨김 (둘 다 시도) ──
+  function closePopup(hideToday){
+    if(hideToday) setHideToday();
+    try{ if(window.opener && !window.opener.closed){ window.close(); } }catch(_){}
+    try{ root.style.display='none'; }catch(_){}
+    // 레이어 팝업 래퍼까지 숨김 (position 지정된 조상)
+    try{
+      var el=root.parentElement, hops=0;
+      while(el && el!==document.body && hops<4){
+        var pos=(window.getComputedStyle?getComputedStyle(el).position:'');
+        if(pos==='fixed'||pos==='absolute'){ el.style.display='none'; break; }
+        el=el.parentElement; hops++;
+      }
+    }catch(_){}
+    try{ window.close(); }catch(_){}
+  }
+  // 하단 버튼은 이미지 유무와 무관하게 항상 동작
+  if(todayBtn) todayBtn.addEventListener('click',function(){ closePopup(true); });
+  if(closeBtn) closeBtn.addEventListener('click',function(){ closePopup(false); });
+
+  // 오늘 하루 닫아둔 상태면 바로 닫고 종료
+  if(isHiddenToday()){ console.log('[popup] 오늘 하루 열지 않음 상태'); closePopup(false); return; }
 
   (async function(){
     var items=[];
@@ -47,6 +105,9 @@
     }catch(e){ console.log('[popup] 로드 스킵:', e&&e.message?e.message:e); }
 
     if(!items.length){ console.log('[popup] 노출할 이미지 없음'); return; }
+
+    // 이미지가 있으면 하단 버튼 바 노출
+    foot.hidden=false;
 
     // 슬라이드 렌더
     track.innerHTML=items.map(function(p){
@@ -65,8 +126,14 @@
     function render(){ track.style.transform='translateX('+(-cur*100)+'%)'; if(N>1){ Array.prototype.forEach.call(dotsBox.children,function(d,i){ d.classList.toggle('on', i===cur); }); } }
     function go(i){ cur=(i%N+N)%N; render(); }
 
-    // 점(dots)
+    // 여러 장일 때: 화살표 + 점 노출
     if(N>1){
+      prevBtn.hidden=false; nextBtn.hidden=false;
+      prevBtn.addEventListener('click',function(){ go(cur-1); restart(); });
+      nextBtn.addEventListener('click',function(){ go(cur+1); restart(); });
+      // 화살표 클릭이 스와이프 드래그로 잡히지 않도록
+      [prevBtn,nextBtn].forEach(function(b){ b.addEventListener('pointerdown',function(e){ e.stopPropagation(); }); });
+
       dotsBox.hidden=false;
       dotsBox.innerHTML=items.map(function(_,i){ return '<button class="pp-dot'+(i===0?' on':'')+'" type="button" aria-label="'+(i+1)+'"></button>'; }).join('');
       Array.prototype.forEach.call(dotsBox.children,function(d,i){ d.addEventListener('click',function(){ go(i); restart(); }); });

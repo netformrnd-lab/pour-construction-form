@@ -431,6 +431,13 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
 #printArea tr.grp td{background:#EAF0F6;font-weight:800;color:#0D1B2A}
 #printArea tbody tr:nth-child(even) td{background:#F7F9FB}
 #printArea .ps-foot{margin-top:12px;font-size:11px;color:#666;line-height:1.6}
+#psChanBox{border:1px solid var(--xl-grid);border-radius:6px;padding:8px 10px;max-height:146px;overflow:auto;background:#fff;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:6px 12px}
+#psChanBox label{display:flex;gap:6px;align-items:center;font-size:12.5px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 모달 폼의 전역 input 폭(100%) 상속 방지 — 체크박스는 고유 크기 유지 */
+#psChanBox input[type=checkbox]{width:auto;min-width:0;flex:0 0 auto;margin:0}
+#psChanBox .cd{font-family:var(--mono);color:var(--amber);font-weight:700;font-size:11px}
+@media(max-width:640px){ #psChanBox{grid-template-columns:1fr;max-height:180px} }
 @media print{
   @page{size:A4;margin:12mm}
   body{background:#fff!important}
@@ -1355,15 +1362,26 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <div class="imp-head"><span>🖨 단가표 PDF · 채널 배포용</span><button id="psClose" aria-label="닫기">✕</button></div>
     <div class="imp-body">
       <p class="footnote" style="margin-top:0">· 출력 항목: <b>순번 · 상품명 · 규격 · 공급가 · 판매가(정가)</b> 만. 원가·제조사·마진은 나가지 않습니다(대외비).</p>
+      <div class="fld" style="margin-bottom:9px">
+        <label>공급가 채널 * <span style="font-weight:400;color:var(--ink-faint)">— 여러 개 선택하면 채널별로 열이 생깁니다</span></label>
+        <div id="psChanBox"></div>
+        <div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap">
+          <button type="button" class="tbtn" id="psChanAll" style="padding:3px 10px;font-size:11.5px">전체 선택</button>
+          <button type="button" class="tbtn" id="psChanNone" style="padding:3px 10px;font-size:11.5px">전체 해제</button>
+          <span class="footnote" id="psChanCnt" style="margin:0"></span>
+        </div>
+      </div>
       <div class="formgrid" style="grid-template-columns:1fr 1fr">
-        <div class="fld"><label>공급가 채널 *</label><select id="psChan"></select></div>
         <div class="fld"><label>분류</label><select id="psCat"><option value="">전체 분류</option></select></div>
       </div>
       <div class="formgrid" style="grid-template-columns:1fr 1fr;margin-top:2px">
         <div class="fld"><label>표 제목</label><input id="psTitle" placeholder="POUR스토어 공급 단가표"></div>
         <div class="fld"><label>수신처(선택)</label><input id="psTo" placeholder="예: ○○총판 귀중"></div>
       </div>
-      <label style="display:flex;gap:7px;align-items:center;margin-top:10px;font-size:12.5px"><input type="checkbox" id="psZero"> 공급가 미설정(빈값) 제품도 포함</label>
+      <div style="display:flex;gap:16px;align-items:center;margin-top:10px;flex-wrap:wrap;font-size:12.5px">
+        <label style="display:flex;gap:7px;align-items:center"><input type="checkbox" id="psZero"> 공급가 미설정(빈값) 제품도 포함</label>
+        <label style="display:flex;gap:7px;align-items:center"><input type="checkbox" id="psRetail" checked> 판매가(정가) 열 포함</label>
+      </div>
       <div id="psStatus" class="footnote" style="margin-top:8px"></div>
     </div>
     <div class="imp-foot">
@@ -4173,6 +4191,9 @@ function wireImportModal(){
   on('btnPriceSheet','click',openPsModal);
   on('psClose','click',closePsModal); on('psCancel','click',closePsModal);
   on('psOverlay','click',e=>{ if(e.target.id==='psOverlay')closePsModal(); });
+  on('psChanAll','click',()=>{ $$('#psChanBox input').forEach(i=>i.checked=true); psUpdChanCnt(); });
+  on('psChanNone','click',()=>{ $$('#psChanBox input').forEach(i=>i.checked=false); psUpdChanCnt(); });
+  on('psChanBox','change',psUpdChanCnt);
   on('psPrint','click',doPrintPriceSheet);
   on('psExcel','click',doExcelPriceSheet);
   on('impClose','click',closeImportModal);
@@ -4256,10 +4277,19 @@ function psOrderedProducts(){
   ensurePorder();
   return P.filter(p=>!isDeletedProd(p)).sort((a,b)=>(porderIdx(pKey(a))-porderIdx(pKey(b)))||((a.seq??a.id??0)-(b.seq??b.id??0)));
 }
+function psChanOpts(){ const rUid=retailUid(); return COLS().filter(c=>c.uid!==rUid); }   // 공급가 채널(정가 제외) · 표 열 순서 그대로
+function psUpdChanCnt(){
+  const n=$$('#psChanBox input:checked').length, t=$$('#psChanBox input').length;
+  const el=$('#psChanCnt'); if(el) el.textContent=`${n}/${t}개 선택`+(n>1?` · 열 ${n}개로 출력`:'');
+}
 function openPsModal(){
-  const sel=$('#psChan'); const rUid=retailUid();
-  const opts=COLS().filter(c=>c.uid!==rUid);   // 공급가 채널(정가 제외)
-  sel.innerHTML=opts.map(c=>`<option value="${c.uid}">[${esc(c.code)}] ${esc(c.name)}</option>`).join('')||'<option value="">공급 채널 없음</option>';
+  const box=$('#psChanBox'); const opts=psChanOpts();
+  const prev=new Set($$('#psChanBox input:checked').map(i=>i.value));   // 다시 열어도 직전 선택 유지
+  box.innerHTML=opts.length
+    ? opts.map((c,i)=>{ const on=prev.size?prev.has(c.uid):i===0;      // 최초엔 첫 채널만(기존 동작 유지)
+        return `<label title="${esc(c.desc||'')}"><input type="checkbox" value="${esc(c.uid)}" ${on?'checked':''}><span class="cd">${esc(c.code)}</span> ${esc(c.name)}</label>`; }).join('')
+    : '<span class="footnote" style="margin:0">공급 채널이 없습니다.</span>';
+  psUpdChanCnt();
   const cats=[...new Set(psOrderedProducts().map(p=>p.cat))];
   $('#psCat').innerHTML='<option value="">전체 분류</option>'+cats.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
   if(!$('#psTitle').value) $('#psTitle').value='POUR스토어 공급 단가표';
@@ -4268,60 +4298,83 @@ function openPsModal(){
 function closePsModal(){ $('#psOverlay').classList.remove('on'); }
 /* 단가표 데이터 수집(PDF·엑셀 공용): 순번·상품명·규격·공급가·판매가(정가) */
 function priceSheetData(){
-  const rUid=retailUid(), chUid=$('#psChan').value, ch=chByUid(chUid);
-  if(!ch) return {err:'공급가 채널을 선택하세요.'};
+  const rUid=retailUid();
+  const picked=new Set($$('#psChanBox input:checked').map(i=>i.value));
+  const chs=psChanOpts().filter(c=>picked.has(c.uid));       // 표 열 순서대로 정렬됨
+  if(!chs.length) return {err:'공급가 채널을 1개 이상 선택하세요.'};
+  const incRetail=!$('#psRetail')||$('#psRetail').checked;
   const catF=$('#psCat').value, incZero=$('#psZero').checked;
   const title=$('#psTitle').value.trim()||'POUR스토어 공급 단가표', to=$('#psTo').value.trim();
   const list=psOrderedProducts().filter(p=>!(catF&&p.cat!==catF));
   const rows=[]; let no=0, lastG=null;
   list.forEach(p=>{
-    const sup=effPrice(p,chUid), own=effPrice(p,rUid);
-    if(sup==null && !incZero) return;
+    const sup=chs.map(c=>effPrice(p,c.uid)), own=effPrice(p,rUid);
+    if(sup.every(v=>v==null) && !incZero) return;            // 선택한 채널이 전부 빈값일 때만 제외
     const c=pcat(p), g=[c.l1,c.l2].filter(Boolean).join(' › ')||p.cat||'기타';
     if(g!==lastG){ lastG=g; rows.push({group:g}); }
     no++; rows.push({no,name:p.name,spec:p.spec||'',sup,own});
   });
   if(!no) return {err:'출력할 제품이 없습니다. (공급가 미설정 제품 포함을 켜보세요)'};
   const d=new Date(), ymd=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
-  return {ch,title,to,rows,count:no,ymd,rUid,chUid};
+  const ncol=3+chs.length+(incRetail?1:0);
+  return {chs,ch:chs[0],title,to,rows,count:no,ymd,rUid,incRetail,ncol};
 }
+/* 파일명: 1개면 채널명, 여러 개면 개수 표기 */
+function psFileBase(D){
+  const nm = D.chs.length===1 ? (D.chs[0].name||D.chs[0].code)
+           : (D.chs.length===psChanOpts().length ? '전체채널' : D.chs.length+'개채널');
+  return `단가표_${String(nm).replace(/[\\/:*?"<>|]/g,'')}_${D.ymd.replace(/\./g,'')}`;
+}
+const psChanLine=D=>D.chs.map(c=>`[${esc(c.code)}] ${esc(c.name)}`).join(' · ');
 function doExcelPriceSheet(){
   const D=priceSheetData();
   if(D.err){ $('#psStatus').innerHTML=`<span style="color:var(--red)">${esc(D.err)}</span>`; return; }
-  const th='<tr style="background:#0D1B2A;color:#fff;font-weight:700"><th>순번</th><th>상품명</th><th>규격</th><th>공급가</th><th>판매가(정가)</th></tr>';
+  const N=D.ncol;
+  const th='<tr style="background:#0D1B2A;color:#fff;font-weight:700"><th>순번</th><th>상품명</th><th>규격</th>'
+    +D.chs.map(c=>`<th>${esc(c.name)} 공급가</th>`).join('')
+    +(D.incRetail?'<th>판매가(정가)</th>':'')+'</tr>';
+  const num=v=>v==null?'':v;
   const body=D.rows.map(r=> r.group
-    ? `<tr><td colspan="5" style="background:#EAF0F6;font-weight:700">${esc(r.group)}</td></tr>`
-    : `<tr><td>${r.no}</td><td>${esc(r.name)}</td><td>${esc(r.spec)}</td><td>${r.sup==null?'':r.sup}</td><td>${r.own==null?'':r.own}</td></tr>`).join('');
-  const meta=`<tr><td colspan="5" style="font-weight:700;font-size:14px">${esc(D.title)}</td></tr>`
-    +`<tr><td colspan="5">공급가 기준: [${esc(D.ch.code)}] ${esc(D.ch.name)} · 판매가: 자사몰 직판 정가</td></tr>`
-    +`<tr><td colspan="5">${D.to?('수신: '+esc(D.to)):'㈜넷폼알앤디 · POUR스토어'} · 발행일 ${D.ymd} · 총 ${D.count}개 품목</td></tr><tr><td colspan="5"></td></tr>`;
+    ? `<tr><td colspan="${N}" style="background:#EAF0F6;font-weight:700">${esc(r.group)}</td></tr>`
+    : `<tr><td>${r.no}</td><td>${esc(r.name)}</td><td>${esc(r.spec)}</td>`
+      +r.sup.map(v=>`<td>${num(v)}</td>`).join('')
+      +(D.incRetail?`<td>${num(r.own)}</td>`:'')+'</tr>').join('');
+  const meta=`<tr><td colspan="${N}" style="font-weight:700;font-size:14px">${esc(D.title)}</td></tr>`
+    +`<tr><td colspan="${N}">공급가 기준: ${psChanLine(D)}${D.incRetail?' · 판매가: 자사몰 직판 정가':''}</td></tr>`
+    +`<tr><td colspan="${N}">${D.to?('수신: '+esc(D.to)):'㈜넷폼알앤디 · POUR스토어'} · 발행일 ${D.ymd} · 총 ${D.count}개 품목</td></tr><tr><td colspan="${N}"></td></tr>`;
   // HTML 테이블 기반 .xls (엑셀이 그대로 열림, 한글 UTF-8 BOM)
   const html='﻿<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8">'
     +'<style>table{border-collapse:collapse}td,th{border:0.5pt solid #999;padding:3px 6px;mso-number-format:"\\#\\,\\#\\#0"}</style></head>'
     +`<body><table>${meta}${th}${body}</table></body></html>`;
-  const fname=`단가표_${(D.ch.name||D.ch.code).replace(/[\\/:*?"<>|]/g,'')}_${D.ymd.replace(/\./g,'')}.xls`;
+  const fname=psFileBase(D)+'.xls';
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([html],{type:'application/vnd.ms-excel;charset=utf-8'}));
   a.download=fname; document.body.appendChild(a); a.click(); a.remove();
-  $('#psStatus').innerHTML=`✅ 엑셀 다운로드: <b>${esc(fname)}</b> (${D.count}개 품목)`;
+  $('#psStatus').innerHTML=`✅ 엑셀 다운로드: <b>${esc(fname)}</b> — 채널 ${D.chs.length}개 · ${D.count}개 품목`;
 }
 function doPrintPriceSheet(){
   const D=priceSheetData();
   if(D.err){ $('#psStatus').innerHTML=`<span style="color:var(--red)">${esc(D.err)}</span>`; return; }
-  const ch=D.ch, title=D.title, to=D.to, no=D.count, ymd=D.ymd;
+  const title=D.title, to=D.to, no=D.count, ymd=D.ymd, N=D.ncol;
+  const wide=D.chs.length>=3;                       // 열이 많으면 가로 용지 + 글자 축소
+  const priceW=D.chs.length>=5?76:(D.chs.length>=3?92:110);
   const body=D.rows.map(r=> r.group
-    ? `<tr class="grp"><td colspan="5">${esc(r.group)}</td></tr>`
-    : `<tr><td class="c">${r.no}</td><td>${esc(r.name)}</td><td>${esc(r.spec)}</td><td class="n">${r.sup==null?'—':won(r.sup)}</td><td class="n">${r.own==null?'—':won(r.own)}</td></tr>`).join('');
+    ? `<tr class="grp"><td colspan="${N}">${esc(r.group)}</td></tr>`
+    : `<tr><td class="c">${r.no}</td><td>${esc(r.name)}</td><td>${esc(r.spec)}</td>`
+      +r.sup.map(v=>`<td class="n">${v==null?'—':won(v)}</td>`).join('')
+      +(D.incRetail?`<td class="n">${r.own==null?'—':won(r.own)}</td>`:'')+'</tr>').join('');
   $('#printArea').innerHTML=`
+    ${wide?'<style>@media print{@page{size:A4 landscape;margin:10mm}}#printArea table{font-size:10.5px}</style>':''}
     <div class="ps-title">${esc(title)}</div>
-    <div class="ps-sub">공급가 기준: [${esc(ch.code)}] ${esc(ch.name)} · 판매가: 자사몰 직판 정가</div>
+    <div class="ps-sub">공급가 기준: ${psChanLine(D)}${D.incRetail?' · 판매가: 자사몰 직판 정가':''}</div>
     <div class="ps-meta"><span>${to?('수신: '+esc(to)):'㈜넷폼알앤디 · POUR스토어'}</span><span>발행일 ${ymd} · 총 ${no}개 품목</span></div>
     <table><thead><tr>
-      <th style="width:46px">순번</th><th>상품명</th><th style="width:120px">규격</th>
-      <th style="width:110px">공급가</th><th style="width:110px">판매가(정가)</th>
+      <th style="width:46px">순번</th><th>상품명</th><th style="width:110px">규격</th>
+      ${D.chs.map(c=>`<th style="width:${priceW}px">${esc(c.name)}<br><span style="font-weight:400;font-size:9.5px">공급가</span></th>`).join('')}
+      ${D.incRetail?`<th style="width:${priceW}px">판매가<br><span style="font-weight:400;font-size:9.5px">정가</span></th>`:''}
     </tr></thead><tbody>${body}</tbody></table>
-    <div class="ps-foot">· 공급가 = 본사가 [${esc(ch.code)}] ${esc(ch.name)} 채널에 납품하는 가격 · 판매가 = 소비자 자사몰 직판 정가.<br>· 본 단가표는 협의용이며 물량·계약 조건에 따라 변동될 수 있습니다. 무단 배포를 금합니다.</div>`;
-  $('#psStatus').innerHTML='인쇄창을 여는 중… 대상에서 <b>PDF로 저장</b>을 선택하세요.';
+    <div class="ps-foot">· 공급가 = 본사가 해당 채널에 납품하는 가격${D.incRetail?' · 판매가 = 소비자 자사몰 직판 정가':''}.<br>· 본 단가표는 협의용이며 물량·계약 조건에 따라 변동될 수 있습니다. 무단 배포를 금합니다.</div>`;
+  $('#psStatus').innerHTML=`인쇄창을 여는 중… 대상에서 <b>PDF로 저장</b>을 선택하세요. (채널 ${D.chs.length}개${wide?' · 가로 용지':''})`;
   setTimeout(()=>{ window.print(); },120);
 }
 wireImportModal();

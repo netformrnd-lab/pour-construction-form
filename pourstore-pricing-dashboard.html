@@ -157,9 +157,22 @@ td input.cellinput{
   width:100%;border:0;outline:2px solid var(--xl-green);outline-offset:-2px;
   height:24px;text-align:right;font-size:12.3px;background:#fff;font-variant-numeric:tabular-nums;
 }
-.sticky1{position:sticky;left:0;z-index:15}
-.sticky2{position:sticky;z-index:15}
-thead .sticky1,thead .sticky2{z-index:25}
+/* 좌측 고정(freeze): No·제품명·규격·공급업체·매입원가까지 가로스크롤에도 고정. left는 렌더 후 실측값을 CSS변수로 주입 */
+.frz{position:sticky;z-index:16;background:#fff}
+.frz-no{left:var(--frzNo,0)}
+.frz-name{left:var(--frzName,40px)}
+.frz-spec{left:var(--frzSpec,264px)}
+.frz-sup{left:var(--frzSup,340px)}
+.frz-cost{left:var(--frzCost,428px)}
+thead .frz{z-index:24}
+.frz-edge{border-right:2px solid #c3ccd4!important;box-shadow:6px 0 8px -6px rgba(0,0,0,.18)}
+/* 채널 열 헤더 드래그(가로 순서 변경) */
+th.chdrag{cursor:grab}
+th.chdrag:active{cursor:grabbing}
+th.chdrag .chgrip{color:#b7c0c8;font-size:11px;letter-spacing:-2px;margin-right:2px}
+th.chdrag:hover .chgrip{color:var(--xl-green)}
+th.chdragging{opacity:.45}
+th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
 
 /* ── 카드/패널 ─────────────────────────── */
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:16px}
@@ -1508,7 +1521,23 @@ function chRank(c){
   if(cf.a==='retail') return 6.6;    // 정가 계열 → 자사몰정가 앞
   return 6.7;                         // 수동 신규 → 정가 앞
 }
-const COLS=()=>CHANNELS.filter(c=>c.col).sort((a,b)=>(chRank(a)-chRank(b))||((a.ord??0)-(b.ord??0)));
+/* 채널 열 사용자 지정 순서(가로 드래그). 없으면 chRank(단가순) 유지. 새 채널은 rank 위치에 삽입 */
+let CHORD=[];   // 표시 순서 uid 배열 ← product-meta/chan-order
+const colOrderIdx=c=>{ const i=CHORD.indexOf(c.uid); return i<0?9999:i; };
+function ensureChord(){
+  CHORD=CHORD.filter(u=>{ const c=chByUid(u); return c && c.col; });   // 사라진/숨긴 채널 제거
+  const missing=CHANNELS.filter(c=>c.col && !CHORD.includes(c.uid)).sort((a,b)=>chRank(a)-chRank(b));
+  missing.forEach(c=>{ const r=chRank(c); let idx=CHORD.length;
+    for(let i=0;i<CHORD.length;i++){ const cc=chByUid(CHORD[i]); if(cc && chRank(cc)>r){ idx=i; break; } }
+    CHORD.splice(idx,0,c.uid); });
+}
+function reorderChan(fromUid,toUid){
+  if(fromUid===toUid)return; ensureChord();
+  const from=CHORD.indexOf(fromUid); if(from<0)return; CHORD.splice(from,1);
+  let to=CHORD.indexOf(toUid); if(to<0)to=CHORD.length; CHORD.splice(to,0,fromUid);
+  saveChanOrder(); persist(); refreshAll();
+}
+const COLS=()=>CHANNELS.filter(c=>c.col).sort((a,b)=>(colOrderIdx(a)-colOrderIdx(b))||(chRank(a)-chRank(b))||((a.ord??0)-(b.ord??0)));
 const chBy=r=>CHANNELS.find(c=>c.role===r)||null;
 const chByUid=u=>CHANNELS.find(c=>c.uid===u)||null;
 const retailUid=()=>{const c=chBy('retail');return c?c.uid:null;};
@@ -1532,6 +1561,7 @@ function loadSaved(){                        // buildState() 에서 호출 (Fire
   } else {
     try{
       if(s.CH){ CHANNELS=s.CH; uidSeq=s.seq||100; }
+      if(Array.isArray(s.CHORD)) CHORD=s.CHORD;
       if(s.Pedit) s.Pedit.forEach((r,i)=>{ if(P[i]){ P[i].cost=r.c; P[i].pr=r.pr||{}; if(r.mfg!=null)P[i].mfg=r.mfg; if(r.cat)P[i].cat=r.cat; if(r.name)P[i].name=r.name; if(r.spec!=null)P[i].spec=r.spec; } });
       if(s.Padd) s.Padd.forEach(r=>{ P.push({id:P.length,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:r.pr||{},sup:'',mgr:'',mfg:r.mfg||'',added:true}); });
       if(Array.isArray(s.MFG)){ MFG=s.MFG; mfgSeq=s.mfgSeq||(MFG.reduce((m,x)=>Math.max(m,x.id),0)+1); }
@@ -1546,7 +1576,7 @@ function loadSaved(){                        // buildState() 에서 호출 (Fire
 }
 function persist(){
   localStorage.setItem(LS_KEY, JSON.stringify({
-    CH:CHANNELS, seq:uidSeq,
+    CH:CHANNELS, seq:uidSeq, CHORD,
     Pedit:P.slice(0,BASE_N).map(x=>({c:x.cost,pr:x.pr,mfg:x.mfg||'',cat:x.cat,name:x.name,spec:x.spec})),
     Padd:P.slice(BASE_N).filter(x=>!x.docId).map(x=>({cat:x.cat,name:x.name,spec:x.spec,cost:x.cost,pr:x.pr,mfg:x.mfg||''})),  // 공유 원장(docId) 제외 — 로컬 전용만
     MFG, mfgSeq, FX, fxSeq
@@ -2234,6 +2264,7 @@ function cellDisplay(p,uid){
 function renderGrid(){
   ensureCatCfg();   // 새 분류 자동 시딩(표시·정렬용, 저장은 분류 관리에서)
   ensurePorder();   // 제품 순서 시딩(드래그 재정렬용)
+  ensureChord();    // 채널 열 순서 시딩(가로 드래그 재정렬용)
   const impBtn=$('#btnImportFile'); if(impBtn) impBtn.style.display=costAllowed?'':'none';   // 파일 업로드: 원가열람 계정만
   const addBtn=$('#btnAddProd'); if(addBtn) addBtn.style.display=costAllowed?'':'none';       // 제품 추가: 원가열람 계정만
   const chanBtn=$('#btnAddChan'); if(chanBtn) chanBtn.style.display=costAllowed?'':'none';    // 채널 추가: 원가열람 계정만
@@ -2248,16 +2279,18 @@ function renderGrid(){
   cols.forEach(c=>{ priceCols.push({t:'ch',c}); if(c.code==='P1') priceCols.push({t:'vbase'}); });
   if(!priceCols.some(x=>x.t==='vbase')) priceCols.unshift({t:'vbase'});   // P1 열 숨김 시 맨 앞에
   const nCols=3+(showSup?1:0)+(showCost?1:0)+priceCols.length;
+  const canOrderCh=costAllowed;   // 채널 열 드래그 재정렬: 원가열람 계정만
   const thPrice=priceCols.map(pc=> pc.t==='vbase'
     ? `<th class="num" style="min-width:104px;background:var(--xl-sel)">업체단가<div style="font-size:9px;color:var(--ink-faint);font-weight:400">pour공법·총판기준</div></th>`
-    : `<th class="num" style="min-width:100px;height:38px" title="${esc(pc.c.desc)}"><div style="font-size:9.5px;font-family:var(--mono);color:var(--amber);line-height:1.2">${esc(pc.c.g)} · ${esc(pc.c.code)}</div>${esc(pc.c.name)}</th>`
+    : `<th class="num${canOrderCh?' chdrag':''}"${canOrderCh?` draggable="true" data-cuid="${esc(pc.c.uid)}"`:''} style="min-width:100px;height:38px" title="${canOrderCh?'헤더를 좌우로 끌어 순서 변경 · ':''}${esc(pc.c.desc)}"><div style="font-size:9.5px;font-family:var(--mono);color:var(--amber);line-height:1.2">${canOrderCh?'<span class="chgrip">⠿</span>':''}${esc(pc.c.g)} · ${esc(pc.c.code)}</div>${esc(pc.c.name)}</th>`
   ).join('');
+  const lastFrz = showCost ? 'cost' : (showSup ? 'sup' : 'spec');   // 고정 블록의 마지막(경계선) 열
   let html=`<thead><tr>
-    <th class="sticky1" style="left:0;min-width:36px">No</th>
-    <th class="sticky2" style="left:36px;min-width:230px">제품명</th>
-    <th style="min-width:90px">규격</th>
-    ${showSup?'<th style="min-width:96px">공급업체</th>':''}
-    ${showCost?'<th class="num" style="min-width:86px">매입원가</th>':''}
+    <th class="frz frz-no" style="min-width:40px">No</th>
+    <th class="frz frz-name" style="min-width:200px">제품명</th>
+    <th class="frz frz-spec${lastFrz==='spec'?' frz-edge':''}" style="min-width:78px">규격</th>
+    ${showSup?`<th class="frz frz-sup${lastFrz==='sup'?' frz-edge':''}" style="min-width:88px">공급업체</th>`:''}
+    ${showCost?`<th class="frz frz-cost num${lastFrz==='cost'?' frz-edge':''}" style="min-width:92px">매입원가</th>`:''}
     ${thPrice}
   </tr></thead><tbody>`;
   const SEP='';
@@ -2293,17 +2326,30 @@ function renderGrid(){
       return `<td class="${cls.join(' ')}"${editable?` data-id="${p.id}" data-f="u${c.uid}"`:''}>${cellDisplay(p,c.uid)}</td>`;
     }).join('');
     html+=`<tr data-id="${p.id}" data-key="${esc(pKey(p))}" data-cat="${esc(p.cat)}">
-      <td class="sticky1 dim" style="left:0">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span>`:''}${no}</td>
-      <td class="sticky2 name" style="left:36px">${esc(p.name)}${costAllowed?` <button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·제조사)">✏️</button>`:''}</td>
-      <td class="dim">${esc(p.spec)}${pkg?` <span style="color:var(--xl-green-dark);font-size:10.5px;font-weight:600">📦구성 ${pkgComps(p).length}종</span>`:''}</td>
-      ${showSup?`<td class="dim" title="${unlocked?esc(p.mgr||''):''}">${unlocked?esc(p.sup||'—'):'🔒'}</td>`:''}
-      ${showCost?`<td class="num cost" title="${pkg?'구성 단품 원가 합':"원가는 '제품 수정'에서"}">${won(pcost)}${pkg?'<span class="mrate">합산</span>':''}</td>`:''}
+      <td class="frz frz-no dim">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span>`:''}${no}</td>
+      <td class="frz frz-name name">${esc(p.name)}${costAllowed?` <button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·제조사)">✏️</button>`:''}</td>
+      <td class="frz frz-spec dim${lastFrz==='spec'?' frz-edge':''}">${esc(p.spec)}${pkg?` <span style="color:var(--xl-green-dark);font-size:10.5px;font-weight:600">📦구성 ${pkgComps(p).length}종</span>`:''}</td>
+      ${showSup?`<td class="frz frz-sup dim${lastFrz==='sup'?' frz-edge':''}" title="${unlocked?esc(p.mgr||''):''}">${unlocked?esc(p.sup||'—'):'🔒'}</td>`:''}
+      ${showCost?`<td class="frz frz-cost num cost${lastFrz==='cost'?' frz-edge':''}" title="${pkg?'구성 단품 원가 합':"원가는 '제품 수정'에서"}">${won(pcost)}${pkg?'<span class="mrate">합산</span>':''}</td>`:''}
       ${tdPrice}
     </tr>`;
   });
   if(costAllowed){ html+=`<tr class="addrow"><td colspan="${nCols}"><button class="gridadd" data-l1="POUR공법" data-l2="" data-l3="">＋ 새 제품 추가</button> <span style="color:var(--ink-faint);font-size:11px;margin-left:8px">· 분류(대·중·소)는 제품 추가/수정 시 태그로 지정</span></td></tr>`; }
   $('#priceGrid').innerHTML=html+'</tbody>';
+  layoutFrozen();
 }
+/* 좌측 고정 열의 left 오프셋을 실측 폭으로 주입(열 폭이 달라도 정확히 고정) */
+function layoutFrozen(){
+  const g=$('#priceGrid'); if(!g)return;
+  const head=g.querySelector('thead tr'); if(!head)return;
+  const vmap={no:'--frzNo',name:'--frzName',spec:'--frzSpec',sup:'--frzSup',cost:'--frzCost'};
+  let L=0;
+  ['no','name','spec','sup','cost'].forEach(key=>{
+    const th=head.querySelector('.frz-'+key); if(!th)return;
+    g.style.setProperty(vmap[key], L+'px'); L+=th.offsetWidth;
+  });
+}
+window.addEventListener('resize',()=>{ if(document.querySelector('#sh-price.on')) layoutFrozen(); });
 /* 셀 선택 → 수식줄 + 이익배분 */
 function showSplit(p,uid){
   const box=$('#fxSplit');
@@ -2391,7 +2437,7 @@ $('#btnSave').addEventListener('click',()=>{ persist(); persistSecure(); $('#btn
 $('#btnReset').addEventListener('click',()=>{
   if(!confirm('편집한 값·채널 설정을 모두 버리고 원본 데이터로 복원할까요? (보안 편집분·변경한 비밀번호도 초기화되고 다시 잠깁니다)'))return;
   localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_SEC); localStorage.removeItem(LS_BASE);
-  CHANNELS=CH_DEF.map(c=>({...c})); uidSeq=100;
+  CHANNELS=CH_DEF.map(c=>({...c})); uidSeq=100; CHORD=[];
   P=RAW.map((r,i)=>({id:i,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:{...r.pr},sup:'',mgr:'',mfg:'',added:false}));
   fillProductSelects(); plState=null; lock();
 });
@@ -3503,6 +3549,7 @@ let PORDER=[];
 function porderIdx(key){ const i=PORDER.indexOf(key); return i<0?99999:i; }
 function ensurePorder(){ P.slice().sort((a,b)=>(catOrder(a.cat)-catOrder(b.cat))||((a.seq??a.id??0)-(b.seq??b.id??0))).forEach(p=>{ const k=pKey(p); if(!PORDER.includes(k))PORDER.push(k); }); }
 async function savePorder(){ try{ await db.collection('product-meta').doc('prod-order').set({list:PORDER, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-order] 저장 실패', e.code||e); } }
+async function saveChanOrder(){ try{ await db.collection('product-meta').doc('chan-order').set({list:CHORD, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[chan-order] 저장 실패', e.code||e); } }
 function reorderProd(fromKey,toKey){
   if(fromKey===toKey)return;
   const from=PORDER.indexOf(fromKey); if(from<0)return;
@@ -3835,6 +3882,16 @@ function wireDnd(){
   g.addEventListener('dragover',e=>{ if(!dragKey)return; const tr=e.target.closest('tr[data-key]'); if(!tr||tr.dataset.cat!==dragCat)return; e.preventDefault(); g.querySelectorAll('tr.dragover').forEach(el=>el.classList.remove('dragover')); tr.classList.add('dragover'); });
   g.addEventListener('drop',e=>{ if(!dragKey)return; const tr=e.target.closest('tr[data-key]'); const from=dragKey; dragKey=null; if(!tr||tr.dataset.cat!==dragCat)return; e.preventDefault(); if(from!==tr.dataset.key) reorderProd(from, tr.dataset.key); });
 }
+/* ── 채널 열 헤더 가로 드래그 재정렬 ── */
+function wireColDnd(){
+  const g=$('#priceGrid'); if(!g)return;
+  let dragUid=null;
+  const clear=()=>g.querySelectorAll('th.chdragging,th.chdragover').forEach(el=>el.classList.remove('chdragging','chdragover'));
+  g.addEventListener('dragstart',e=>{ const th=e.target.closest('th.chdrag'); if(!th)return; dragUid=th.dataset.cuid; th.classList.add('chdragging'); if(e.dataTransfer){ e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain',dragUid); }catch(_){} } });
+  g.addEventListener('dragend',()=>{ dragUid=null; clear(); });
+  g.addEventListener('dragover',e=>{ if(!dragUid)return; const th=e.target.closest('th.chdrag'); if(!th)return; e.preventDefault(); g.querySelectorAll('th.chdragover').forEach(el=>el.classList.remove('chdragover')); if(th.dataset.cuid!==dragUid)th.classList.add('chdragover'); });
+  g.addEventListener('drop',e=>{ if(!dragUid)return; const th=e.target.closest('th.chdrag'); const from=dragUid; dragUid=null; clear(); if(!th)return; e.preventDefault(); if(th.dataset.cuid!==from) reorderChan(from, th.dataset.cuid); });
+}
 function wireImportModal(){
   const on=(id,ev,fn)=>{ const el=$('#'+id); if(el)el.addEventListener(ev,fn); };
   on('btnAddProd','click',()=>openAddModal());
@@ -3987,6 +4044,7 @@ function doPrintPriceSheet(){
 wireImportModal();
 wireCatMgr();
 wireDnd();
+wireColDnd();
 async function saveVendorPrices(){ try{ await db.collection('product-meta').doc('vendor-prices').set({map:VBASE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[vendor-prices] 저장 실패', e.code||e); } }
 async function saveRetailPrices(){ try{ await db.collection('product-meta').doc('retail-prices').set({map:VRETAIL, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[retail-prices] 저장 실패', e.code||e); } }
 async function saveChannelMarkup(){ try{ await db.collection('product-meta').doc('channel-markup').set({coeff:VCOEFF, auto:VAUTO, ladBase:LAD_BASE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[channel-markup] 저장 실패', e.code||e); } }
@@ -3996,6 +4054,7 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('channel-markup').get(); if(d.exists){ if(d.data().coeff)VCOEFF=d.data().coeff; if(typeof d.data().auto==='boolean')VAUTO=d.data().auto; if(typeof d.data().ladBase==='number'&&d.data().ladBase>0&&d.data().ladBase<1)LAD_BASE=d.data().ladBase; } }catch(e){ console.warn('[channel-markup] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('cat-config').get(); if(d.exists&&Array.isArray(d.data().list)) CATCFG=d.data().list.map(c=>({key:c.key,name:c.name||c.key,l1:c.l1||'',l2:c.l2||''})); }catch(e){ console.warn('[cat-config] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-order').get(); if(d.exists&&Array.isArray(d.data().list)) PORDER=d.data().list; }catch(e){ console.warn('[prod-order] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('chan-order').get(); if(d.exists&&Array.isArray(d.data().list)) CHORD=d.data().list; }catch(e){ console.warn('[chan-order] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-cat').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PCAT=d.data().map; }catch(e){ console.warn('[prod-cat] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('pkg-set').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PKGSET=d.data().map; }catch(e){ console.warn('[pkg-set] 로드 실패', e.code||e); }
   await loadDraft();
@@ -4261,7 +4320,7 @@ function init(){
 /* ══════════ 로그인 게이트 + 부팅 ══════════ */
 let appStarted=false;
 function buildState(){                        // Firestore 로드본으로 앱 상태 구성
-  CHANNELS=CH_DEF.map(c=>({...c})); uidSeq=100;
+  CHANNELS=CH_DEF.map(c=>({...c})); uidSeq=100; CHORD=[];
   P=RAW.map((r,i)=>({id:i,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:{...r.pr},sup:'',mgr:'',mfg:'',added:false}));
   BASE_N=P.length;
   loadSaved();                                // localStorage 편집 오버레이 적용

@@ -5404,7 +5404,7 @@ function EventEditor({form,setForm,onClose,onSave,showToast}){
             <div>
               <div style={sub}>카테고리 번호 (cate_no)</div>
               <input value={form.categoryNo||''} onChange={e=>set({categoryNo:e.target.value})} placeholder="예: 71 (카페24 상품분류 번호)" style={field}/>
-              <div style={help}>이벤트 상세에서 그 카테고리 <b>상품이 그리드로 자동 표시</b>되고, 맨 아래 <b>‘전체보기’</b> 버튼도 함께 나와요. (/product/list.html?cate_no=번호)</div>
+              <div style={help}>이벤트 상세 맨 아래에 <b>“이 카테고리 상품 전체보기”</b> 버튼으로 연결돼요. (/product/list.html?cate_no=번호)</div>
             </div>
           ) : (
             <div>

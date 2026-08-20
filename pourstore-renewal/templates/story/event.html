@@ -1506,8 +1506,6 @@ function cardHtml(ev, idx){
     var moreN = ev.moreCount ? Number(ev.moreCount) : (products.length>4?products.length-4:0);
     var inner=''; for(let i=0;i<4;i++){ inner += thumbTile(show[i], moreN, i===3); }
     strip = '<div class="pev-strip">'+inner+'</div>';
-  } else if(ev.categoryNo){
-    strip = '<div class="pev-catchip">🏷 카테고리 상품 보기</div>';
   }
   return '<a class="pev-card" href="#ev-'+esc(ev.id)+'" data-ev="'+idx+'"><div class="pev-hero">'+heroInner+'</div>'+strip+'</a>';
 }
@@ -1535,14 +1533,9 @@ function openDetail(ev){
     }).join('')+'</div></div>';
   }
   if(ev.categoryNo){
-    h+='<div class="pev-dt-prods pev-cat-wrap"><h2>얼리버드 프로모션 할인 상품</h2>'+
-       '<div class="pev-dt-grid" data-pev-cat="'+esc(ev.categoryNo)+'">'+
-         '<div style="grid-column:1/-1;padding:26px 10px;text-align:center;color:#adb2bb;font-weight:600">상품을 불러오는 중…</div>'+
-       '</div>'+
-       '<a class="pev-dt-catbtn" href="/product/list.html?cate_no='+esc(ev.categoryNo)+'">이 카테고리 상품 전체보기 →</a></div>';
+    h+='<div class="pev-dt-prods"><a class="pev-dt-catbtn" href="/product/list.html?cate_no='+esc(ev.categoryNo)+'">이 카테고리 상품 전체보기 →</a></div>';
   }
   body.innerHTML=h;
-  loadCategoryProducts(body);          // 카테고리 상품을 실제로 불러와 그리드로 채움(실패 시 버튼만 유지)
   pevSyncTop(detail);                 // 헤더 높이만큼 오버레이를 아래로 → 헤더가 위에 남음
   detail.hidden=false; detail.scrollTop=0;
   document.documentElement.style.overflow='hidden';
@@ -1559,42 +1552,6 @@ function closeDetail(){
   var d=document.querySelector('[data-pev-detail]'); if(!d) return; d.hidden=true;
   document.documentElement.style.overflow='';
   if(location.hash){ try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} }
-}
-// 카테고리 번호 → 그 카테고리 상품을 카페24 목록에서 가져와 그리드로 표시
-// (같은 도메인일 때 동작. 실패/타도메인이면 그리드 자리만 지우고 아래 '전체보기' 버튼 유지)
-async function loadCategoryProducts(scope){
-  var box=scope&&scope.querySelector('[data-pev-cat]'); if(!box) return;
-  var cate=(box.getAttribute('data-pev-cat')||'').trim(); if(!cate) return;
-  try{
-    var res=await fetch('/product/list.html?cate_no='+encodeURIComponent(cate), {credentials:'same-origin'});
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    var doc=new DOMParser().parseFromString(await res.text(),'text/html');
-    var lis=doc.querySelectorAll('ul.prdList > li'), cards=[];
-    Array.prototype.forEach.call(lis,function(li){
-      var a=li.querySelector('.description .name a')||li.querySelector('a.image-container')||li.querySelector('a[href*="product_no="]');
-      var href=a?(a.getAttribute('href')||''):'';
-      var img=li.querySelector('.prdImg img')||li.querySelector('.thumbnail img');
-      var src=img?(img.getAttribute('src')||''):'';
-      var nameEl=li.querySelector('.description .name a');
-      var name=nameEl?nameEl.textContent.replace(/\s+/g,' ').trim():'';
-      var spec=li.querySelector('.spec'), nums=[];
-      if(spec){ var re=/([0-9][0-9,]*)\s*원/g,m; while((m=re.exec(spec.textContent||''))){ var v=parseInt(m[1].replace(/[^0-9]/g,''),10); if(v>=100) nums.push(v); } }
-      var price=nums.length?(Math.min.apply(null,nums).toLocaleString()+'원'):'';
-      if(!href&&!name) return;
-      if(href&&href.charAt(0)!=='/'&&!/^https?:/i.test(href)) href='/'+href.replace(/^\.?\//,'');
-      cards.push({href:href,src:src,name:name,price:price});
-    });
-    if(!cards.length){ if(box.parentNode) box.parentNode.removeChild(box); return; }
-    box.innerHTML=cards.slice(0,20).map(function(p){
-      var im=p.src?'<img src="'+esc(p.src)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
-      return '<a class="pev-dp" href="'+esc(p.href||'#')+'"><div class="pev-dp-th">'+im+'</div>'+
-             (p.name?'<div class="pev-dp-nm">'+esc(p.name)+'</div>':'')+
-             (p.price?'<div class="pev-dp-price">'+esc(p.price)+'</div>':'')+'</a>';
-    }).join('');
-  }catch(e){
-    console.log('[event] 카테고리 상품 로드 실패(전체보기 버튼으로 대체):', e&&e.message?e.message:e);
-    if(box.parentNode) box.parentNode.removeChild(box);
-  }
 }
 
 (async function(){

@@ -235,18 +235,25 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
   box-shadow:0 2px 8px rgba(11,92,48,.25);
 }
 #tabs{
-  flex:0 0 auto;background:#fff;border-top:1px solid var(--xl-grid);
-  display:flex;align-items:stretch;height:34px;padding-left:8px;gap:2px;overflow-x:auto;
+  flex:0 0 auto;background:var(--xl-sel);border-top:2px solid var(--xl-green);
+  display:flex;align-items:stretch;height:36px;padding-left:6px;gap:3px;overflow-x:auto;
 }
+.tabslead{
+  display:flex;align-items:center;align-self:center;white-space:nowrap;
+  font-size:12px;font-weight:800;color:var(--xl-green-dark);padding:0 4px 0 8px;
+}
+.tabslead::after{content:'›';margin:0 2px 0 8px;color:var(--xl-green);font-weight:700;opacity:.7}
 .stab{
-  border:1px solid var(--xl-grid);border-bottom:0;border-radius:5px 5px 0 0;
-  margin-top:5px;padding:0 16px;font-size:12px;color:var(--ink-soft);background:var(--xl-head);
-  display:flex;align-items:center;gap:6px;white-space:nowrap;
+  border:1px solid var(--xl-grid);border-bottom:0;border-radius:6px 6px 0 0;
+  margin-top:6px;padding:0 15px;font-size:12px;color:var(--ink-soft);background:#EEF1F3;
+  display:flex;align-items:center;gap:6px;white-space:nowrap;transition:all .1s ease;
 }
+.stab:hover{color:var(--xl-green-dark);background:#fff}
 .stab .dot{width:7px;height:7px;border-radius:2px;background:var(--ink-faint);opacity:.5}
 .stab.on{
-  background:#fff;color:var(--xl-green-dark);font-weight:700;margin-top:2px;
-  border-top:3px solid var(--xl-green);
+  background:#fff;color:var(--xl-green-dark);font-weight:800;margin-top:2px;
+  border:1px solid var(--xl-green);border-bottom:0;border-top:3px solid var(--xl-green);
+  box-shadow:0 -2px 6px rgba(11,92,48,.10);
 }
 .stab.on .dot{background:var(--xl-green);opacity:1}
 /* 모바일 메뉴는 기본(데스크톱)에서 숨김 — 폰 media query 에서만 노출 */
@@ -1141,6 +1148,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
   <button class="tgrp" data-grp="mkt">📣 마케팅</button>
 </div>
 <div id="tabs">
+  <span id="tabsLead" class="tabslead"></span>
   <button class="stab on" data-grp="price" data-sh="sh-dash"><span class="dot"></span>경영요약</button>
   <button class="stab" data-grp="price" data-sh="sh-product"><span class="dot"></span>상품 기준</button>
   <button class="stab" data-grp="price" data-sh="sh-price"><span class="dot"></span>가격정책표</button>
@@ -3117,6 +3125,9 @@ function renderTabs(){
   $$('.stab').forEach(b=>{ b.style.display=(b.dataset.grp===activeGrp && !tabHidden(b))?'':'none'; });
   const cur=document.querySelector('.stab.on'), mc=$('#mmCurrent');
   if(mc&&cur) mc.textContent=cur.textContent.trim();
+  // 현재 위치 안내: 활성 그룹명을 세부탭 앞에 표시 (어느 묶음의 페이지인지 항상 보이게)
+  const ag=document.querySelector('.tgrp.on'), lead=$('#tabsLead');
+  if(lead){ lead.textContent = ag?ag.textContent.trim():''; }
 }
 /* 모바일 메뉴: 그룹별 시트 목록을 현재 DOM(보안 게이팅 포함)에서 생성 */
 function buildMobileMenu(){

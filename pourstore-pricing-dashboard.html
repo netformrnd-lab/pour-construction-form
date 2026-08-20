@@ -3686,10 +3686,12 @@ function actExport(kind){
   const rows=ACTLOG.map(a=>[fmtTs(a.ts), a.type||'', a.target||'', a.detail||'', a.by||'']);
   const d=new Date(), ymd=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   if(kind==='xls'){
-    const th='<tr style="background:#0D1B2A;color:#fff;font-weight:700">'+head.map(h=>`<th>${h}</th>`).join('')+'</tr>';
-    const body=rows.map(r=>'<tr>'+r.map(c=>`<td>${esc(c)}</td>`).join('')+'</tr>').join('');
-    const html='﻿<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"><style>td,th{border:0.5pt solid #999;padding:3px 6px;mso-number-format:"\\@"}</style></head><body><table>'+th+body+'</table></body></html>';
-    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'application/vnd.ms-excel;charset=utf-8'})); a.download=`활동이력_${ymd}.xls`; document.body.appendChild(a); a.click(); a.remove();
+    // 진짜 .xlsx (OOXML) — Numbers·구글시트·리브레오피스에서도 열림
+    const sheet=[head.map(h=>({v:h,s:1})), ...rows.map(r=>r.map(c=>({v:c,s:0})))];
+    const blob=xlsxBlob(sheet,{sheet:'활동이력',widths:[20,10,26,46,20]});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`활동이력_${ymd}.xlsx`; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
   } else {
     const csv='\uFEFF'+[head,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
     const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=`활동이력_${ymd}.csv`; a.click();
@@ -4326,30 +4328,110 @@ function psFileBase(D){
   return `단가표_${String(nm).replace(/[\\/:*?"<>|]/g,'')}_${D.ymd.replace(/\./g,'')}`;
 }
 const psChanLine=D=>D.chs.map(c=>`[${esc(c.code)}] ${esc(c.name)}`).join(' · ');
+/* ══════════ 진짜 .xlsx 생성기 (외부 라이브러리 없음) ══════════
+   기존 '.xls'는 HTML 테이블에 확장자만 xls를 붙인 파일이라 MS Excel만 열 수 있었다.
+   (Numbers·Google Sheets·LibreOffice는 열지 못함) → OOXML(ZIP) 규격으로 직접 생성한다. */
+const _crcTab=(()=>{ const t=new Uint32Array(256);
+  for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); t[n]=c>>>0; }
+  return t; })();
+function _crc32(buf){ let c=0xFFFFFFFF; for(let i=0;i<buf.length;i++) c=_crcTab[(c^buf[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function _zip(files){                                  // files:[{name,data:Uint8Array}] · 무압축(store)
+  const enc=new TextEncoder(), parts=[], central=[]; let off=0;
+  const u16=v=>[v&255,(v>>8)&255], u32=v=>[v&255,(v>>8)&255,(v>>16)&255,(v>>24)&255];
+  files.forEach(f=>{
+    const nm=enc.encode(f.name), crc=_crc32(f.data), n=f.data.length;
+    const lh=new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),
+      ...u32(crc),...u32(n),...u32(n),...u16(nm.length),...u16(0)]);
+    parts.push(lh,nm,f.data);
+    central.push(new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),
+      ...u32(crc),...u32(n),...u32(n),...u16(nm.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)]),nm);
+    off+=lh.length+nm.length+n;
+  });
+  const cdStart=off; let cdLen=0; central.forEach(c=>cdLen+=c.length);
+  const eocd=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(files.length),...u16(files.length),
+    ...u32(cdLen),...u32(cdStart),...u16(0)]);
+  const all=[...parts,...central,eocd]; let total=0; all.forEach(a=>total+=a.length);
+  const out=new Uint8Array(total); let p=0; all.forEach(a=>{ out.set(a,p); p+=a.length; });
+  return out;
+}
+const _xe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]))
+                      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'');
+function _colName(i){ let s=''; i++; while(i>0){ const m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=(i-m-1)/26; } return s; }
+/* rows: [[cell,...],...] · cell = {v, s} | 숫자 | 문자열 | null
+   s: 0=일반 1=굵게 2=숫자(#,##0) 3=제목(굵게 크게) 4=그룹머리(굵게+음영) */
+function xlsxBlob(rows, opts){
+  opts=opts||{}; const sheet=(opts.sheet||'단가표').slice(0,31).replace(/[\\\/?*\[\]:]/g,'');
+  const enc=new TextEncoder(), E=s=>enc.encode(s);
+  const body=rows.map((row,ri)=>{
+    const cells=row.map((cell,ci)=>{
+      if(cell==null||cell==='') return '';
+      const o=(typeof cell==='object')?cell:{v:cell};
+      const ref=_colName(ci)+(ri+1), st=o.s?` s="${o.s}"`:'';
+      return (typeof o.v==='number' && isFinite(o.v))
+        ? `<c r="${ref}"${st}><v>${o.v}</v></c>`
+        : `<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${_xe(o.v)}</t></is></c>`;
+    }).join('');
+    return `<row r="${ri+1}">${cells}</row>`;
+  }).join('');
+  const cols=(opts.widths||[]).map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('');
+  const merges=(opts.merges||[]);
+  const sheetXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${cols?`<cols>${cols}</cols>`:''}<sheetData>${body}</sheetData>${merges.length?`<mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>`:''}</worksheet>`;
+  const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0"/></numFmts>
+<fonts count="4"><font><sz val="11"/><name val="맑은 고딕"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="맑은 고딕"/></font><font><b/><sz val="14"/><name val="맑은 고딕"/></font><font><b/><sz val="11"/><name val="맑은 고딕"/></font></fonts>
+<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0D1B2A"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEAF0F6"/><bgColor indexed="64"/></patternFill></fill></fills>
+<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFBFC7CF"/></left><right style="thin"><color rgb="FFBFC7CF"/></right><top style="thin"><color rgb="FFBFC7CF"/></top><bottom style="thin"><color rgb="FFBFC7CF"/></bottom><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="5">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>
+</cellXfs></styleSheet>`;
+  const files=[
+    {name:'[Content_Types].xml', data:E(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`)},
+    {name:'_rels/.rels', data:E(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`)},
+    {name:'xl/workbook.xml', data:E(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${_xe(sheet)}" sheetId="1" r:id="rId1"/></sheets></workbook>`)},
+    {name:'xl/_rels/workbook.xml.rels', data:E(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`)},
+    {name:'xl/styles.xml', data:E(styles)},
+    {name:'xl/worksheets/sheet1.xml', data:E(sheetXml)}
+  ];
+  return new Blob([_zip(files)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
 function doExcelPriceSheet(){
   const D=priceSheetData();
   if(D.err){ $('#psStatus').innerHTML=`<span style="color:var(--red)">${esc(D.err)}</span>`; return; }
-  const N=D.ncol;
-  const th='<tr style="background:#0D1B2A;color:#fff;font-weight:700"><th>순번</th><th>상품명</th><th>규격</th>'
-    +D.chs.map(c=>`<th>${esc(c.name)} 공급가</th>`).join('')
-    +(D.incRetail?'<th>판매가(정가)</th>':'')+'</tr>';
-  const num=v=>v==null?'':v;
-  const body=D.rows.map(r=> r.group
-    ? `<tr><td colspan="${N}" style="background:#EAF0F6;font-weight:700">${esc(r.group)}</td></tr>`
-    : `<tr><td>${r.no}</td><td>${esc(r.name)}</td><td>${esc(r.spec)}</td>`
-      +r.sup.map(v=>`<td>${num(v)}</td>`).join('')
-      +(D.incRetail?`<td>${num(r.own)}</td>`:'')+'</tr>').join('');
-  const meta=`<tr><td colspan="${N}" style="font-weight:700;font-size:14px">${esc(D.title)}</td></tr>`
-    +`<tr><td colspan="${N}">공급가 기준: ${psChanLine(D)}${D.incRetail?' · 판매가: 자사몰 직판 정가':''}</td></tr>`
-    +`<tr><td colspan="${N}">${D.to?('수신: '+esc(D.to)):'㈜넷폼알앤디 · POUR스토어'} · 발행일 ${D.ymd} · 총 ${D.count}개 품목</td></tr><tr><td colspan="${N}"></td></tr>`;
-  // HTML 테이블 기반 .xls (엑셀이 그대로 열림, 한글 UTF-8 BOM)
-  const html='﻿<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8">'
-    +'<style>table{border-collapse:collapse}td,th{border:0.5pt solid #999;padding:3px 6px;mso-number-format:"\\#\\,\\#\\#0"}</style></head>'
-    +`<body><table>${meta}${th}${body}</table></body></html>`;
-  const fname=psFileBase(D)+'.xls';
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([html],{type:'application/vnd.ms-excel;charset=utf-8'}));
-  a.download=fname; document.body.appendChild(a); a.click(); a.remove();
+  const N=D.ncol, last=_colName(N-1);
+  const rows=[], merges=[];
+  const span=(txt,style)=>{ merges.push(`A${rows.length+1}:${last}${rows.length+1}`); rows.push([{v:txt,s:style}]); };
+  span(D.title,3);
+  span(`공급가 기준: ${D.chs.map(c=>`[${c.code}] ${c.name}`).join(' · ')}${D.incRetail?' · 판매가: 자사몰 직판 정가':''}`,0);
+  span(`${D.to?('수신: '+D.to):'㈜넷폼알앤디 · POUR스토어'} · 발행일 ${D.ymd} · 총 ${D.count}개 품목`,0);
+  rows.push([]);
+  rows.push([{v:'순번',s:1},{v:'상품명',s:1},{v:'규격',s:1},
+    ...D.chs.map(c=>({v:c.name+'\n공급가',s:1})),
+    ...(D.incRetail?[{v:'판매가\n(정가)',s:1}]:[])]);
+  D.rows.forEach(r=>{
+    if(r.group){ span(r.group,4); return; }
+    rows.push([{v:r.no,s:0},{v:r.name,s:0},{v:r.spec,s:0},
+      ...r.sup.map(v=>({v:v==null?'—':v, s:v==null?0:2})),
+      ...(D.incRetail?[{v:r.own==null?'—':r.own, s:r.own==null?0:2}]:[])]);
+  });
+  const widths=[6,34,14,...D.chs.map(()=>13),...(D.incRetail?[13]:[])];
+  const blob=xlsxBlob(rows,{sheet:'단가표',widths,merges});
+  const fname=psFileBase(D)+'.xlsx';
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=fname;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
   $('#psStatus').innerHTML=`✅ 엑셀 다운로드: <b>${esc(fname)}</b> — 채널 ${D.chs.length}개 · ${D.count}개 품목`;
 }
 function doPrintPriceSheet(){

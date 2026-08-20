@@ -147,6 +147,11 @@ tr.dragover td{box-shadow:inset 0 2px 0 0 var(--xl-green)}
 tr:hover .prodedit,tr:hover .prodcopy,tr:hover .proddel{opacity:.55}
 .prodedit:hover,.prodcopy:hover,.proddel:hover{opacity:1!important}
 td.cost{background:#FFF8E7}
+.edithint{color:var(--xl-green-dark);font-size:10.5px;font-weight:700;opacity:.55;border:1px dashed var(--xl-green);border-radius:4px;padding:0 5px}
+td.editable:hover .edithint{opacity:1}
+td.pkglock,td.autolock{cursor:not-allowed}
+#gridToast{position:fixed;left:50%;bottom:74px;transform:translateX(-50%);background:#0D1B2A;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .2s;z-index:4000;max-width:90vw;text-align:center;line-height:1.5}
+#gridToast.show{opacity:1}
 td.editable{cursor:cell}
 td.editable:hover{outline:1.5px solid var(--xl-green);outline-offset:-1.5px}
 td.selcell{outline:2px solid var(--xl-green);outline-offset:-2px;background:var(--xl-sel)!important}
@@ -2361,16 +2366,18 @@ function renderGrid(){
       if(pc.t==='vbase'){
         const k=pKey(p), val=pkg?pkgVbase(p):effVbase(k), isDraft=!pkg&&PREVIEW&&(k in DVBASE);
         const neg=showCost && val!=null && pcost!=null && val<pcost;
-        let inner=won(val);
-        if(showCost && val!=null && pcost!=null && val>0) inner+=`<span class="mrate">마진 ${pct((val-pcost)/val)}</span>`;
+        let inner = (!pkg && val==null) ? '<span class="edithint">＋ 입력</span>' : won(val);   // 빈 앵커: 클릭해 입력
+        if(val!=null && showCost && pcost!=null && val>0) inner+=`<span class="mrate">마진 ${pct((val-pcost)/val)}</span>`;
         if(isDraft) inner+=`<span class="mrate" style="color:var(--amber);font-weight:700">개정안</span>`;
-        const ed=pkg?'':' editable';   // 패키지 업체단가는 합산값 → 수정 불가
+        const ed=pkg?' pkglock':' editable';   // 패키지 업체단가는 합산값 → 수정 불가(안내)
         return `<td class="num${ed}${neg?' neg':''}"${pkg?'':` data-id="${p.id}" data-f="vbase"`} style="background:var(--xl-sel);font-weight:600${isDraft?';color:var(--amber)':''}">${inner}</td>`;
       }
       const c=pc.c, pr=effPrice(p,c.uid), m=(pr==null||pcost==null)?null:pr-pcost;
-      const editable=!pkg && coeffFor(c.code).a==='manual';   // 패키지·사다리 채널은 잠금, 앵커(자사몰정가·알리바바)만 수정
-      const cls=['num']; if(editable)cls.push('editable'); if(m!=null&&m<0)cls.push('neg','warn');
-      return `<td class="${cls.join(' ')}"${editable?` data-id="${p.id}" data-f="u${c.uid}"`:''}>${cellDisplay(p,c.uid)}</td>`;
+      const isAnchor = c.uid===rUid;   // 자사몰정가는 항상 수동 앵커 → 규칙과 무관하게 편집 허용
+      const editable=!pkg && (isAnchor || coeffFor(c.code).a==='manual');   // 패키지·사다리 채널은 잠금
+      const cls=['num']; if(editable)cls.push('editable'); else if(pkg)cls.push('pkglock'); else cls.push('autolock'); if(m!=null&&m<0)cls.push('neg','warn');
+      const disp = (editable && pr==null) ? '<span class="edithint">＋ 입력</span>' : cellDisplay(p,c.uid);
+      return `<td class="${cls.join(' ')}"${editable?` data-id="${p.id}" data-f="u${c.uid}"`:''}>${disp}</td>`;
     }).join('');
     html+=`<tr data-id="${p.id}" data-key="${esc(pKey(p))}" data-cat="${esc(p.cat)}">
       <td class="frz frz-no dim">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span>`:''}${no}</td>
@@ -2472,6 +2479,17 @@ document.addEventListener('dblclick',e=>{
   };
   inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')commit(); if(ev.key==='Escape')renderGrid(); });
   inp.addEventListener('blur',commit);
+});
+/* 잠긴 가격 셀(세트 합산·자동계산 채널)을 더블클릭하면 왜 안 되는지 안내 */
+let _toastTimer=null;
+function gridToast(msg){
+  let t=$('#gridToast'); if(!t){ t=document.createElement('div'); t.id='gridToast'; document.body.appendChild(t); }
+  t.textContent=msg; t.classList.add('show'); clearTimeout(_toastTimer); _toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+}
+document.addEventListener('dblclick',e=>{
+  const td=e.target.closest('#priceGrid td'); if(!td || td.classList.contains('editable') || td.querySelector('input')) return;
+  if(td.classList.contains('pkglock')) gridToast('세트 가격은 구성 단품에서 자동 합산됩니다 — 구성 단품(단품 행)의 업체단가·정가를 수정하세요.');
+  else if(td.classList.contains('autolock')) gridToast('이 채널은 업체단가~정가 사다리로 자동 계산됩니다 — 업체단가나 자사몰정가를 더블클릭해 수정하세요.');
 });
 $('#q').addEventListener('input',renderGrid);
 $('#catSel').addEventListener('change',renderGrid);

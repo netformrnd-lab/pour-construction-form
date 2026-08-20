@@ -3,22 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>POUR스토어 파트너 전용관 — 상단 안내 섹션</title>
+<title>POUR스토어 파트너 전용몰 — 상단 안내</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <!--
-  ▣ POUR스토어 파트너 전용관 상단 안내 섹션 (카페24 상품분류 상단 붙여넣기용)
-  ─ 구조: 같은 상품 / 회원등급별 공급가 → 파트너는 '자기 등급 가격'만 노출.
-    유형 필터를 두지 않아 다른 유형 상품/가격으로 넘어갈 통로가 없음(단가 유출 차단).
+  ▣ POUR스토어 파트너 전용몰 상단 안내 (카페24 상품분류 상단 붙여넣기용) — 실용형
+  ─ 필독사항 + 자료 다운로드만. 마케팅 문구 없음.
   ─ 카페24 스킨 CSS 충돌 방지: 전 클래스 ppm- 접두사.
   ─ [★수정] 표시된 링크/문구만 실제 값으로 교체.
 -->
 <style>
   .ppm, .ppm *{box-sizing:border-box;margin:0;padding:0}
   .ppm{
-    --or:#E1782D; --or2:#c95214; --navy:#0F1F5C; --navy2:#1A2E73;
-    --ink:#14203a; --muted:#6B7280; --line:#E7E3DD; --card:#fff; --bg:#F7F5F1;
+    --or:#E1782D; --or2:#c95214; --navy:#0F1F5C;
+    --ink:#1b2233; --muted:#6B7280; --line:#E5E1DA; --card:#fff; --bg:#F7F5F1;
     font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
     color:var(--ink); line-height:1.6; max-width:1180px; margin:0 auto; padding:0 16px;
     -webkit-font-smoothing:antialiased;
@@ -26,51 +25,40 @@
   .ppm a{text-decoration:none;color:inherit}
   .ppm svg{display:block}
 
-  /* ── 인증 바 (전용관 표시) ── */
-  .ppm-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-    background:var(--navy);color:#fff;border-radius:12px;padding:14px 20px}
-  .ppm-bar .ppm-lock{width:34px;height:34px;flex:0 0 auto;border-radius:8px;
-    background:rgba(225,120,45,.18);border:1px solid rgba(225,120,45,.5);
-    display:flex;align-items:center;justify-content:center;color:var(--or)}
-  .ppm-bar b{font-size:16px;font-weight:800;letter-spacing:-.01em}
-  .ppm-bar .ppm-bar-sub{margin-left:auto;font-size:13px;color:#c9d2e6;font-weight:500}
-  .ppm-bar .ppm-bar-sub em{color:#ffd9c0;font-style:normal;font-weight:700}
+  /* 제목 줄 */
+  .ppm-top{display:flex;align-items:center;gap:10px;padding:2px 2px 14px}
+  .ppm-top h2{font-size:20px;font-weight:900;letter-spacing:-.02em;color:var(--navy)}
+  .ppm-top .ppm-line{flex:1;height:1px;background:var(--line)}
 
-  /* ── 타이틀 ── */
-  .ppm-head{text-align:center;padding:30px 0 4px}
-  .ppm-head h3{font-size:25px;font-weight:900;letter-spacing:-.02em}
-  .ppm-head h3 span{color:var(--or)}
-  .ppm-head p{margin-top:9px;font-size:14.5px;color:var(--muted)}
-  .ppm-head p b{color:var(--navy);font-weight:700}
+  /* 2열 패널: 필독 | 자료 */
+  .ppm-panel{display:flex;flex-wrap:wrap;gap:14px;align-items:stretch}
+  .ppm-box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
+  .ppm-notice{flex:1 1 420px;min-width:0;background:var(--bg)}
+  .ppm-files{flex:1 1 260px;min-width:0;display:flex;flex-direction:column}
 
-  /* ── 3 정보 카드 ── */
-  .ppm-cards{display:flex;flex-wrap:wrap;gap:12px;margin:20px 0 6px}
-  .ppm-cardl{flex:1 1 240px;min-width:0;display:flex;gap:13px;align-items:flex-start;
-    background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 18px}
-  .ppm-ico{width:40px;height:40px;flex:0 0 auto;border-radius:10px;
-    background:var(--bg);color:var(--navy);display:flex;align-items:center;justify-content:center}
-  .ppm-cardl.ppm-accent .ppm-ico{background:#FBEEE2;color:var(--or2)}
-  .ppm-ct{min-width:0}
-  .ppm-ct h4{font-size:15px;font-weight:800;letter-spacing:-.01em}
-  .ppm-ct p{margin-top:4px;font-size:13px;color:var(--muted);line-height:1.55}
-  .ppm-ct .ppm-mini{display:inline-flex;gap:12px;margin-top:9px;flex-wrap:wrap}
-  .ppm-ct .ppm-mini a{font-size:13px;font-weight:700;color:var(--or2)}
-  .ppm-ct .ppm-mini a:hover{text-decoration:underline}
+  .ppm-h{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;color:var(--navy);margin-bottom:12px}
+  .ppm-h .ppm-tag{font-size:11px;font-weight:700;color:#fff;background:var(--or);border-radius:5px;padding:2px 7px;letter-spacing:.02em}
 
-  /* ── 필독사항 ── */
-  .ppm-notice{margin:16px 0 8px;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
-  .ppm-notice h4{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;color:var(--navy);margin-bottom:11px}
-  .ppm-notice h4 .ppm-tag{font-size:11px;font-weight:700;color:#fff;background:var(--or);border-radius:5px;padding:2px 7px}
-  .ppm-notice li{list-style:none;position:relative;padding-left:17px;font-size:13.5px;color:#5b4a39;margin-bottom:7px}
-  .ppm-notice li::before{content:"";position:absolute;left:2px;top:9px;width:5px;height:5px;border-radius:50%;background:var(--or)}
+  .ppm-notice ul{margin:0}
+  .ppm-notice li{list-style:none;position:relative;padding-left:16px;font-size:13.5px;color:#4a4a4a;margin-bottom:8px;line-height:1.6}
   .ppm-notice li:last-child{margin-bottom:0}
+  .ppm-notice li::before{content:"";position:absolute;left:2px;top:9px;width:5px;height:5px;border-radius:50%;background:var(--or)}
+  .ppm-notice b{color:var(--navy);font-weight:700}
 
-  /* ── 모바일 ── */
+  /* 다운로드 버튼 */
+  .ppm-dl{display:flex;flex-direction:column;gap:8px}
+  .ppm-dl a{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;color:var(--navy);
+    border:1px solid var(--line);border-radius:10px;padding:12px 14px;transition:.15s}
+  .ppm-dl a:hover{border-color:var(--or);background:#FCF3EA;color:var(--or2)}
+  .ppm-dl a .ppm-dico{flex:0 0 auto;color:var(--or)}
+  .ppm-dl a .ppm-arr{margin-left:auto;color:#b8b2a8}
+  .ppm-dl a:hover .ppm-arr{color:var(--or)}
+
   @media (max-width:760px){
-    .ppm-bar{padding:13px 16px}
-    .ppm-bar .ppm-bar-sub{margin-left:0;flex-basis:100%;font-size:12.5px}
-    .ppm-head h3{font-size:21px}
-    .ppm-cardl{flex-basis:100%}
+    .ppm-top{padding-bottom:12px}
+    .ppm-top h2{font-size:18px}
+    .ppm-notice,.ppm-files{flex-basis:100%}
+    .ppm-box{padding:18px}
   }
 </style>
 </head>
@@ -78,67 +66,38 @@
 <!-- ▼▼▼ 여기부터 카페24에 붙여넣기 ▼▼▼ -->
 <div class="ppm">
 
-  <!-- 인증 바 -->
-  <div class="ppm-bar">
-    <span class="ppm-lock" aria-hidden="true">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    </span>
-    <b>POUR 파트너 전용관</b>
-    <span class="ppm-bar-sub">승인된 파트너 등급만 접근 · <em>내 등급 전용 공급가</em> 자동 적용</span>
+  <div class="ppm-top">
+    <h2>파트너 전용몰</h2>
+    <span class="ppm-line"></span>
   </div>
 
-  <!-- 타이틀 -->
-  <div class="ppm-head">
-    <h3>파트너사<span>전용몰</span></h3>
-    <p>로그인하신 <b>파트너 등급의 전용 공급가</b>로 자동 표시됩니다. 다른 등급의 가격은 노출되지 않습니다.</p>
-  </div>
+  <div class="ppm-panel">
 
-  <!-- 정보 카드 3 -->
-  <div class="ppm-cards">
-    <div class="ppm-cardl ppm-accent">
-      <span class="ppm-ico" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l7 4v6c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
-      </span>
-      <div class="ppm-ct">
-        <h4>내 등급 전용가 자동 적용</h4>
-        <p>파트너 등급별로 공급가가 다르게 적용되며, 다른 등급의 단가는 화면에 표시되지 않습니다.</p>
+    <!-- 구매 전 필독사항 -->
+    <div class="ppm-box ppm-notice">
+      <div class="ppm-h"><span class="ppm-tag">필독</span> 구매 전 확인사항</div>
+      <ul>
+        <li>전용 공급가는 <b>승인된 파트너 등급 로그인 시</b>에만 적용됩니다.</li>
+        <li>등급별 공급가·<b>최소 주문수량</b> 조건은 상품 상세에서 확인해 주세요.</li>
+        <li>배송·정산·세금계산서 안내는 아래 <b>자료</b>를 확인해 주세요. <!--[★수정] 실제 정책으로--></li>
+      </ul>
+    </div>
+
+    <!-- 자료 다운로드 -->
+    <div class="ppm-box ppm-files">
+      <div class="ppm-h">자료 다운로드</div>
+      <div class="ppm-dl">
+        <a href="#" target="_blank" rel="noopener"><!--[★수정] 링크-->
+          <span class="ppm-dico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>
+          상세페이지 자료<span class="ppm-arr"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="M7 12l5 5 5-5"/><path d="M5 21h14"/></svg></span>
+        </a>
+        <a href="#" target="_blank" rel="noopener"><!--[★수정] 링크-->
+          <span class="ppm-dico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span>
+          콘텐츠 자료<span class="ppm-arr"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="M7 12l5 5 5-5"/><path d="M5 21h14"/></svg></span>
+        </a>
       </div>
     </div>
 
-    <div class="ppm-cardl">
-      <span class="ppm-ico" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg>
-      </span>
-      <div class="ppm-ct">
-        <h4>구매 전 필독사항</h4>
-        <p>주문 전 꼭 확인해 주세요.</p>
-        <span class="ppm-mini"><a href="#ppm-notice">필독사항 바로가기 →</a></span>
-      </div>
-    </div>
-
-    <div class="ppm-cardl">
-      <span class="ppm-ico" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-      </span>
-      <div class="ppm-ct">
-        <h4>자료 다운로드</h4>
-        <p>상세페이지·콘텐츠 자료를 받아보세요.</p>
-        <span class="ppm-mini">
-          <a href="#" target="_blank" rel="noopener">상세페이지 →</a><!--[★수정] 링크-->
-          <a href="#" target="_blank" rel="noopener">콘텐츠 →</a><!--[★수정] 링크-->
-        </span>
-      </div>
-    </div>
-  </div>
-
-  <!-- 필독사항 상세 -->
-  <div class="ppm-notice" id="ppm-notice">
-    <h4><span class="ppm-tag">필독</span> 구매 전 반드시 확인</h4>
-    <ul>
-      <li>전용 공급가는 승인된 파트너 등급 회원 <b>로그인 시</b>에만 적용됩니다. (비회원·일반회원은 접근 불가)</li>
-      <li>등급별 공급가·수량 조건이 상이하니 상품 상세를 확인해 주세요.</li>
-      <li>배송·정산·세금계산서 안내는 상세페이지를 참고해 주세요. <!--[★수정] 실제 정책으로--></li>
-    </ul>
   </div>
 
 </div>

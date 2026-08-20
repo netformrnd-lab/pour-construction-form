@@ -171,25 +171,36 @@
     return Math.max.apply(null,pool);
   }
 
+  var busy=false;
   function run(){
-    var cate=curCate(), cards=document.querySelectorAll('li.pour-card');
-    for (var i=0;i<cards.length;i++){
-      var li=cards[i];
-      if (li.getAttribute('data-cp')) continue; li.setAttribute('data-cp','1');
-      var pno=((li.id||'').match(/anchorBoxId_(\d+)/)||[])[1]||'';
-      var ok = (COUPON.cates.indexOf(cate)!==-1) || inList(COUPON.products,pno);
-      if (!ok) continue;
-      var spec=li.querySelector('.spec'); if(!spec) continue;
-      var base=salePrice(spec); if(!base) continue;
-      var disc = (COUPON.amount>0) ? (base-COUPON.amount) : Math.floor(base*(1-COUPON.rate));
-      if (disc<0) disc=0; if (disc>=base) continue;
-      var desc=li.querySelector('.description')||spec.parentNode;
-      var box=document.createElement('div'); box.className='pour-coupon';
-      box.innerHTML='<span class="cp-price">쿠폰가 <b>'+fmt(disc)+'</b></span>'+
-                    '<span class="cp-badge">'+(COUPON.label||'쿠폰')+'</span>';
-      if (spec.nextSibling) desc.insertBefore(box, spec.nextSibling); else desc.appendChild(box);
-    }
+    if (busy) return; busy=true;
+    try{
+      var cate=curCate(), cards=document.querySelectorAll('li.pour-card');
+      for (var i=0;i<cards.length;i++){
+        var li=cards[i];
+        if (li.getAttribute('data-cp')) continue;
+        var spec=li.querySelector('.spec'); if(!spec) continue; // 아직 안 그려진 카드는 다음 기회에
+        li.setAttribute('data-cp','1');
+        var pno=((li.id||'').match(/anchorBoxId_(\d+)/)||[])[1]||'';
+        var ok = (COUPON.cates.indexOf(cate)!==-1) || inList(COUPON.products,pno);
+        if (!ok) continue;
+        var base=salePrice(spec); if(!base) continue;
+        var disc = (COUPON.amount>0) ? (base-COUPON.amount) : Math.floor(base*(1-COUPON.rate));
+        if (disc<0) disc=0; if (disc>=base) continue;
+        var desc=li.querySelector('.description')||spec.parentNode;
+        var box=document.createElement('div'); box.className='pour-coupon';
+        box.innerHTML='<span class="cp-price">쿠폰가 <b>'+fmt(disc)+'</b></span>'+
+                      '<span class="cp-badge">'+(COUPON.label||'쿠폰')+'</span>';
+        if (spec.nextSibling) desc.insertBefore(box, spec.nextSibling); else desc.appendChild(box);
+      }
+    } finally { busy=false; }
   }
-  if (document.readyState!=='loading') run(); else document.addEventListener('DOMContentLoaded', run);
+  function boot(){
+    run();
+    // 목록이 비동기/더보기로 나중에 그려지는 경우까지: 변화 감지 + 짧은 재시도로 모든 카드 처리
+    try{ new MutationObserver(function(){ run(); }).observe(document.body,{childList:true,subtree:true}); }catch(e){}
+    var t=0, iv=setInterval(function(){ run(); if(++t>=16) clearInterval(iv); }, 500); // 약 8초간 보강
+  }
+  if (document.readyState!=='loading') boot(); else document.addEventListener('DOMContentLoaded', boot);
 })();
 </script>

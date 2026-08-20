@@ -1265,7 +1265,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
         <div style="font-size:12px;font-weight:700;color:#1E5FBF;margin-bottom:8px">판매가(공급가) 계산 규칙</div>
         <div id="ncRuleChips" style="display:flex;gap:7px;flex-wrap:wrap">
           <span class="rulechip on" data-a="ladder">업체단가~정가 비율(%)</span>
-          <span class="rulechip" data-a="vbase">업체단가 +%</span>
+          <span class="rulechip" data-a="vbase">업체단가 ±% (낮추기 가능)</span>
           <span class="rulechip" data-a="retail">정가 ×%</span>
           <span class="rulechip" data-a="manual">수동 입력</span>
         </div>
@@ -3891,7 +3891,7 @@ function syncChanRuleUI(){
   if(a==='manual'){ if(row)row.style.display='none'; }
   else{
     if(row)row.style.display='flex';
-    if(unit)unit.textContent = a==='ladder' ? '% (총판=0 · 정가=100 사이 위치)' : a==='vbase' ? '% (업체단가 대비 가산)' : '% (자사몰정가 대비)';
+    if(unit)unit.textContent = a==='ladder' ? '% (총판=0 · 정가=100 사이 위치)' : a==='vbase' ? '% (업체단가 대비 · 낮추려면 음수, 예: -10)' : '% (자사몰정가 대비)';
     if(val&&(val.value===''||+val.value===0)&&a!=='ladder') val.value = a==='retail'?90:5;
   }
   renderChanPreview();
@@ -4086,7 +4086,7 @@ function renderVendorPanel(){
     return `<tr${changed?' style="background:#FFF7E6"':''}><td style="font-family:var(--mono);color:var(--amber);font-weight:700">${esc(c.code)}</td><td class="name">${esc(c.name)}${changed?' <span class="pill a">변경</span>':''}</td>
       <td><select class="vca" data-code="${esc(c.code)}" style="border:1px solid var(--xl-grid);border-radius:5px;padding:4px 6px;font-size:12px">
         <option value="ladder" ${cf.a==='ladder'?'selected':''}>업체단가~정가 비율(%)</option>
-        <option value="vbase" ${cf.a==='vbase'?'selected':''}>업체단가 +%</option>
+        <option value="vbase" ${cf.a==='vbase'?'selected':''}>업체단가 ±%(음수=낮춤)</option>
         <option value="retail" ${cf.a==='retail'?'selected':''}>자사몰정가 ×%</option>
         <option value="manual" ${cf.a==='manual'?'selected':''}>수동(앵커)</option></select></td>
       <td class="num"><input type="number" step="1" class="vcf" data-code="${esc(c.code)}" value="${+cf.f||0}" ${cf.a==='manual'?'disabled':''} style="width:72px;text-align:right;border:1px solid var(--xl-grid);border-radius:5px;padding:5px 7px"></td>

@@ -3884,20 +3884,24 @@ let SET_ROWS=[];   // [{name, qty}]
 function findProd(name){ const n=(name||'').trim(); return P.find(x=>x.name===n)||P.find(x=>x.name.replace(/\s/g,'')===n.replace(/\s/g,'')); }
 function setRowsFromStr(str){ SET_ROWS=parseSetItems(str).map(it=>({name:it.name,qty:it.qty})); }
 function setItemsStr(){ return SET_ROWS.filter(r=>(r.name||'').trim()).map(r=>`${r.name.trim()}×${Math.max(1,+r.qty||1)}`).join(', '); }
+/* 구성행의 매칭 결과(규격·원가·제조사) — renderSetBuilder와 실시간 입력 갱신이 공용 */
+function compInfo(name){
+  const prod=(name||'').trim()?findProd(name):null;
+  if(prod){ const parts=[`규격 ${esc(prod.spec||'-')}`, `원가 ${won(prod.cost)}`];
+    const maker=prod.mfg||(unlocked?prod.sup:''); if(maker)parts.push(`제조사 ${esc(maker)}`);
+    return {ok:true, cls:'setinfo', html:'↳ '+parts.join(' · ')}; }
+  if((name||'').trim()) return {ok:false, cls:'setinfo err', html:'↳ 매칭되는 단품이 없습니다 — 목록에서 정확히 선택하세요'};
+  return {ok:true, cls:'setinfo', html:''};
+}
 function renderSetBuilder(){
   const box=$('#adSetBuilder'); if(!box)return;
   box.innerHTML = SET_ROWS.length ? SET_ROWS.map((r,i)=>{
-    const prod=(r.name||'').trim()?findProd(r.name):null, ok=!!prod;
-    let info='';
-    if(prod){ const parts=[`규격 ${esc(prod.spec||'-')}`, `원가 ${won(prod.cost)}`];
-      const maker=prod.mfg||(unlocked?prod.sup:''); if(maker)parts.push(`제조사 ${esc(maker)}`);
-      info=`<div class="setinfo">↳ ${parts.join(' · ')}</div>`;
-    } else if((r.name||'').trim()){ info=`<div class="setinfo err">↳ 매칭되는 단품이 없습니다 — 이름을 정확히 선택하세요</div>`; }
+    const info=compInfo(r.name);
     return `<div class="setitem"><div class="setrow">
-      <input class="setname" list="prodNameList" data-i="${i}" value="${esc(r.name||'')}" placeholder="제품 검색/선택" autocomplete="off" style="${(r.name&&!ok)?'border-color:var(--red)':''}">
+      <input class="setname" list="prodNameList" data-i="${i}" value="${esc(r.name||'')}" placeholder="제품 검색/선택" autocomplete="off" style="${(r.name&&!info.ok)?'border-color:var(--red)':''}">
       <span style="color:var(--ink-faint)">×</span>
       <input class="setqty" type="number" min="1" step="1" data-i="${i}" value="${r.qty||1}">
-      <button type="button" class="setdel" data-i="${i}" title="삭제">🗑</button></div>${info}</div>`;
+      <button type="button" class="setdel" data-i="${i}" title="삭제">🗑</button></div><div class="${info.cls}" data-info="${i}">${info.html}</div></div>`;
   }).join('') : '<div class="footnote" style="margin:2px 0 0">아래 ＋ 구성 추가 로 단품을 담으세요</div>';
   setPreview();
 }
@@ -4085,7 +4089,12 @@ function wireImportModal(){
   on('adSetAdd','click',()=>{ SET_ROWS.push({name:'',qty:1}); renderSetBuilder(); setTimeout(()=>{ const ins=$$('#adSetBuilder .setname'); if(ins.length)ins[ins.length-1].focus(); },20); });
   const sb=$('#adSetBuilder');
   if(sb){
-    sb.addEventListener('input',e=>{ const el=e.target, i=+el.dataset.i; if(isNaN(i)||!SET_ROWS[i])return; if(el.classList.contains('setname')){ SET_ROWS[i].name=el.value; setPreview(); const ok=el.value.trim()&&findProd(el.value); el.style.borderColor=(el.value&&!ok)?'var(--red)':''; } else if(el.classList.contains('setqty')){ SET_ROWS[i].qty=Math.max(1,+el.value||1); setPreview(); } });
+    sb.addEventListener('input',e=>{ const el=e.target, i=+el.dataset.i; if(isNaN(i)||!SET_ROWS[i])return;
+      if(el.classList.contains('setname')){ SET_ROWS[i].name=el.value; setPreview();
+        const info=compInfo(el.value);                                   // 행 안내(규격·원가·제조사) 실시간 갱신
+        const box=sb.querySelector(`[data-info="${i}"]`); if(box){ box.className=info.cls; box.innerHTML=info.html; }
+        el.style.borderColor=(el.value&&!info.ok)?'var(--red)':''; }
+      else if(el.classList.contains('setqty')){ SET_ROWS[i].qty=Math.max(1,+el.value||1); setPreview(); } });
     sb.addEventListener('click',e=>{ const b=e.target.closest('.setdel'); if(!b)return; const i=+b.dataset.i; if(!isNaN(i)){ SET_ROWS.splice(i,1); renderSetBuilder(); } });
   }
   document.addEventListener('click',e=>{

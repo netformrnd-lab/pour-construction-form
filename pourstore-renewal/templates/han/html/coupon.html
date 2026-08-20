@@ -1,0 +1,95 @@
+<!-- ============================================================
+  /han/html/coupon.html — 상품상세 '쿠폰 다운로드' 버튼 + 팝업
+  ▸ 상세페이지에서 <!--@import(/han/html/coupon.html)--> 로 불러옴
+  ▸ [넷폼 수정] 팝업 쿠폰 '이름 잘림' 해결
+      - 원인: {$coupon_name|cut:13,...} → 13글자에서 잘리고 '…' 붙음
+      - 조치: |cut 제거해 전체 이름 표시 + .title 인라인 스타일로 최대 2줄 노출
+              (han/css/coupon.css 의 1줄 말줄임을 인라인으로 덮음)
+  ▸ 배너 문구는 .couponbtnL 텍스트에서 바꾸면 됨.
+  ▸ 카페24 변수/모듈/기능(coupon_productdetail·coupon_productdetailajax·전체다운)은 그대로.
+============================================================ -->
+<!-- 쿠폰 다운로드 -->
+
+<!--@js(/han/js/coupon.js)-->
+<!--@css(/han/css/coupon.css)-->
+
+<!-- 쿠폰 다운로드 - 버튼 영역 -->
+<div class="coupondetail">
+  <div module="coupon_productdetail">
+
+    <div class="couponbtn">
+        <div class="couponbtnL">최대 할인 쿠폰을 확인하세요!</div>
+        <div class="couponbtnR"><p><!--@import(/svg/download20.svg)--></p> 쿠폰다운로드</div>
+    </div>
+
+  </div>
+</div>
+<!-- // 쿠폰 다운로드 - 버튼 영역 -->
+
+
+
+
+    <!--------------------------------///-------------------------------->
+    <!--------------------------------///-------------------------------->
+    <!--------------------------------///-------------------------------->
+
+
+
+
+<!-- 쿠폰 다운로드 - 팝업 영역 -->
+<div id="coupon_popup">
+
+   <!-- 오픈시 블랙 배경 -->
+   <div class="reveal-modal-bg"></div>
+
+<div class="coupon_popupin">
+
+    <h2>쿠폰 다운로드</h2>
+
+    <!-- 닫기 btn -->
+    <div class="coupon_close">
+      <!--@import(/svg/x24.svg)-->
+    </div>
+
+
+  <div module="coupon_productdetailajax">
+	<!-- 카페24 쿠폰 -->
+    <div class="couponSkinArea">
+        <!--
+            1 row : ul class="grid1"
+            2 row : ul class="grid2"
+            3 row : ul class="grid3"
+        -->
+        <ul class="grid1">
+            <li>
+                <div class="coupon {$background_class}" style="background-image:url('{$background_url}')">
+                    <div class="detail" {$call_coupon_detail}>
+                        <strong class="title" style="white-space:normal; overflow:visible; text-overflow:clip; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.3; word-break:keep-all;">{$coupon_name}</strong>
+                        <p class="discount"><span style="">{$coupon_content}</span></p>
+                        <p class="period">{$coupon_period}</p>
+                    </div>
+                    <div class="button"><a href="{$coupon_issue_url}"><img src="{$download_url}" alt="다운받기"></a></div>
+                </div>
+            </li>
+            <li>
+                <div class="coupon {$background_class}" style="background-image:url('{$background_url}')">
+                    <div class="detail" {$call_coupon_detail}>
+                        <strong class="title" style="white-space:normal; overflow:visible; text-overflow:clip; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.3; word-break:keep-all;">{$coupon_name}</strong>
+                        <p class="discount"><span style="">{$coupon_content}</span></p>
+                        <p class="period">{$coupon_period}</p>
+                    </div>
+                    <div class="button"><a href="{$coupon_issue_url}"><img src="{$download_url}" alt="다운받기"></a></div>
+                </div>
+            </li>
+        </ul>
+    </div>
+	<!-- // 카페24 쿠폰 -->
+  </div>
+
+
+  <p class="button"><a href="#none" id="btn_all_coupondown" class="">전체쿠폰다운받기</a></p>
+
+
+</div><!-- //coupon_popupin -->
+
+</div><!-- //coupon_popup -->

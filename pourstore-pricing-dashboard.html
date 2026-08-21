@@ -1604,6 +1604,46 @@ function chRank(c){
   if(cf.a==='retail') return 6.6;    // 정가 계열 → 자사몰정가 앞
   return 6.7;                         // 수동 신규 → 정가 앞
 }
+/* ══ 앱에서 만든 채널 공유 저장소 ══
+   channels 컬렉션은 시딩 전용(앱은 읽기만) → 앱에서 추가·수정한 채널은
+   product-meta/custom-channels 에 저장해 모든 계정·기기에서 동일하게 보이게 한다.
+   (예전에는 localStorage 에만 남아 만든 브라우저에서만 보였다) */
+let CHCUSTOM=[];   // 앱에서 추가한 채널 [{uid,g,code,name,short,st,tgt,desc,col,role,ord}]
+let CHPATCH={};    // 시딩 채널 수정분 uid → {name,short,tgt,st,col,role,desc,code}
+async function saveCustomChannels(){
+  try{ await db.collection('product-meta').doc('custom-channels').set({
+    list:CHCUSTOM, patch:CHPATCH, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||'' }); }
+  catch(e){ console.error('[custom-channels] 저장 실패 — 이 채널은 다른 계정에 보이지 않습니다:', e.code||e); alert('채널 저장 실패: '+(e.code||e.message||e)+'\n다른 계정에서는 이 채널이 보이지 않습니다.'); }
+}
+/* 예전 버전이 이 브라우저에만 저장해 둔 채널을 찾아 공유 저장소로 올린다.
+   서버·공유목록 어디에도 없는 uid 만 대상 — 다른 사람이 지운 채널을 되살리지 않도록
+   휴지통(CHDEL)에 있는 것은 제외한다. */
+let _chMigrated=false;
+function migrateLocalChannels(localCH){
+  if(_chMigrated) return; _chMigrated=true;
+  const add=localCH.filter(c=>c&&c.uid
+    && !CH_DEF.some(d=>d.uid===c.uid)
+    && !CHCUSTOM.some(d=>d.uid===c.uid)
+    && !CHDEL[c.uid]);
+  if(!add.length) return;
+  add.forEach(c=>{
+    const rec={uid:c.uid,g:c.g||'KR2',code:c.code,name:c.name,short:c.short||'',
+      st:c.st||'운영',tgt:c.tgt??null,desc:c.desc||'',col:!!c.col,role:c.role||'',ord:c.ord??0};
+    CHCUSTOM.push(rec);
+    if(!CHANNELS.some(x=>x.uid===rec.uid)) CHANNELS.push({...rec});   // buildState 이후 호출 → 화면에 즉시 반영
+  });
+  console.log('[custom-channels] 이 기기에만 있던 채널 '+add.length+'개 승격:', add.map(c=>c.code+'·'+c.name).join(', '));
+  saveCustomChannels().then(()=>{
+    try{ gridToast(`이 기기에만 있던 채널 ${add.length}개(${add.map(c=>c.name).join(', ')})를 서버에 올렸습니다 — 이제 모든 계정에서 보입니다.`); }catch(e){}
+  });
+}
+/* 시딩 채널 수정분 기록 · 앱에서 만든 채널이면 그 항목을 직접 갱신 */
+function noteChannelEdit(c){
+  const cu=CHCUSTOM.find(x=>x.uid===c.uid);
+  if(cu){ Object.assign(cu,{g:c.g,code:c.code,name:c.name,short:c.short,st:c.st,tgt:c.tgt,desc:c.desc,col:c.col,role:c.role,ord:c.ord}); }
+  else { CHPATCH[c.uid]={code:c.code,name:c.name,short:c.short,st:c.st,tgt:c.tgt,desc:c.desc,col:c.col,role:c.role}; }
+  saveCustomChannels();
+}
 /* 채널 열 사용자 지정 순서(가로 드래그). 없으면 chRank(단가순) 유지. 새 채널은 rank 위치에 삽입 */
 let CHORD=[];   // 표시 순서 uid 배열 ← product-meta/chan-order
 const VBASE_COL='__vbase__';   // 업체단가 열도 CHORD에서 위치 이동 가능(가상 uid)
@@ -1642,13 +1682,14 @@ function loadSaved(){                        // buildState() 에서 호출 (Fire
     try{
       const old=JSON.parse(localStorage.getItem(LS_LEGACY)||'null');
       if(old){
-        if(old.CH){ CHANNELS=old.CH; uidSeq=old.seq||100; }
+        if(Array.isArray(old.CH)) migrateLocalChannels(old.CH);
         if(old.P&&old.P.length===BASE_N) old.P.forEach((r,i)=>{ P[i].cost=r.c; P[i].pr=r.pr||{}; });
       }
     }catch(e){}
   } else {
     try{
-      if(s.CH){ CHANNELS=s.CH; uidSeq=s.seq||100; }
+      // 예전 버전이 localStorage 에만 남긴 채널 → 공유 저장소로 승격(서버 목록을 덮지 않는다)
+      if(Array.isArray(s.CH)) migrateLocalChannels(s.CH);
       if(Array.isArray(s.CHORD)) CHORD=s.CHORD;
       if(s.Pedit) s.Pedit.forEach((r,i)=>{ if(P[i]){ P[i].cost=r.c; P[i].pr=r.pr||{}; if(r.mfg!=null)P[i].mfg=r.mfg; if(r.cat)P[i].cat=r.cat; if(r.name)P[i].name=r.name; if(r.spec!=null)P[i].spec=r.spec; } });
       if(s.Padd) s.Padd.forEach(r=>{ P.push({id:P.length,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:r.pr||{},sup:'',mgr:'',mfg:r.mfg||'',added:true}); });
@@ -2215,7 +2256,7 @@ document.addEventListener('dblclick',e=>{
   const isNum=f==='tgt';
   td.innerHTML=`<input class="cellinput" style="text-align:${isNum?'right':'left'}" type="${isNum?'number':'text'}" value="${esc(c[f]==null?'':c[f])}">`;
   const inp=td.querySelector('input'); inp.focus(); if(isNum)inp.select();
-  const commit=()=>{ c[f]=isNum?(inp.value===''?null:+inp.value):inp.value; refreshAll(); };
+  const commit=()=>{ c[f]=isNum?(inp.value===''?null:+inp.value):inp.value; noteChannelEdit(c); refreshAll(); };
   inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')commit(); if(ev.key==='Escape')renderChMan(); });
   inp.addEventListener('blur',commit);
 });
@@ -2228,7 +2269,7 @@ document.addEventListener('change',e=>{
     if(v==='retail'||v==='dealer') CHANNELS.forEach(x=>{ if(x!==c&&x.role===v)x.role=''; });
     c.role=v;
   }else{ c[f]=el.value; }
-  plState=null; refreshAll();
+  noteChannelEdit(c); plState=null; refreshAll();
 });
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-cdel]'); if(!b)return;
@@ -4579,15 +4620,17 @@ function submitChannel(){
   if(CHANNELS.some(c=>c.code===code)){ st.innerHTML=`<span style="color:var(--red)">코드 ${esc(code)} 는 이미 사용 중입니다. 다른 코드를 쓰세요.</span>`; return; }
   const a=chanRuleA(), f=+($('#ncVal2')?.value)||0;
   const uid='c'+(++uidSeq);
-  CHANNELS.push({uid,g:$('#ncG2').value||'KR2',code,name,short:$('#ncShort2').value.trim()||name.slice(0,3),
-    st:'운영',tgt:$('#ncTgt2').value===''?null:+$('#ncTgt2').value,desc:'',col:$('#ncCol2').checked,role:'',ord:uidSeq});
+  const ch={uid,g:$('#ncG2').value||'KR2',code,name,short:$('#ncShort2').value.trim()||name.slice(0,3),
+    st:'운영',tgt:$('#ncTgt2').value===''?null:+$('#ncTgt2').value,desc:'',col:$('#ncCol2').checked,role:'',ord:uidSeq};
+  CHANNELS.push(ch);
+  CHCUSTOM.push({...ch}); saveCustomChannels();   // 공유 저장소 → 모든 계정·기기에서 보임
   // 판매가 규칙 즉시 적용(신규 채널 → 승인 불필요)
   VCOEFF[code] = a==='manual' ? {a:'manual',f:0} : {a,f};
   saveChannelMarkup(); recalcVendor(); plState=null; persist(); refreshAll();
   closeChanModal();
   const ruleTxt = a==='ladder'?`업체단가~정가 ${f}% 위치`:a==='vbase'?`업체단가 +${f}%`:a==='retail'?`정가 ×${f}%`:'수동 입력';
   logAct('채널추가', `[${code}] ${name}`, ruleTxt);
-  alert(`✅ [${code}] ${name} 채널 등록 완료\n· 판매가 규칙: ${ruleTxt}\n· 가격정책표에 열이 ${$('#ncCol2')?'표시됩니다':''}\n\n이제 '🖨 단가표 PDF'로 이 채널 공급가표를 뽑을 수 있습니다.`);
+  alert(`✅ [${code}] ${name} 채널 등록 완료\n· 판매가 규칙: ${ruleTxt}\n· 가격정책표에 열이 ${$('#ncCol2')?'표시됩니다':''}\n· 모든 계정(팀원·부마스터 포함)에서 보입니다\n\n이제 '🖨 단가표 PDF'로 이 채널 공급가표를 뽑을 수 있습니다.`);
 }
 /* ══════════ 단가표 PDF (순번·상품명·규격·공급가·판매가) ══════════ */
 function psOrderedProducts(){
@@ -4809,6 +4852,10 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('cat-config').get(); if(d.exists&&Array.isArray(d.data().list)) CATCFG=d.data().list.map(c=>({key:c.key,name:c.name||c.key,l1:c.l1||'',l2:c.l2||''})); }catch(e){ console.warn('[cat-config] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-order').get(); if(d.exists&&Array.isArray(d.data().list)) PORDER=d.data().list; }catch(e){ console.warn('[prod-order] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('chan-order').get(); if(d.exists&&Array.isArray(d.data().list)) CHORD=d.data().list; }catch(e){ console.warn('[chan-order] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('custom-channels').get();
+    if(d.exists){ const x=d.data()||{}; if(Array.isArray(x.list))CHCUSTOM=x.list; if(x.patch&&typeof x.patch==='object')CHPATCH=x.patch; }
+    console.log(`[custom-channels] 추가채널 ${CHCUSTOM.length}개 · 수정분 ${Object.keys(CHPATCH).length}개`);
+  }catch(e){ console.warn('[custom-channels] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-cat').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PCAT=d.data().map; }catch(e){ console.warn('[prod-cat] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('pkg-set').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PKGSET=d.data().map; }catch(e){ console.warn('[pkg-set] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-type').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PTYPE=d.data().map; }catch(e){ console.warn('[prod-type] 로드 실패', e.code||e); }
@@ -5078,7 +5125,11 @@ function init(){
 /* ══════════ 로그인 게이트 + 부팅 ══════════ */
 let appStarted=false;
 function buildState(){                        // Firestore 로드본으로 앱 상태 구성
-  CHANNELS=CH_DEF.map(c=>({...c})); uidSeq=100; CHORD=[];
+  // 서버 채널(시딩) + 수정분 + 앱에서 추가한 채널 → 모든 계정에서 동일
+  CHANNELS=CH_DEF.map(c=>({...c, ...(CHPATCH[c.uid]||{})}))
+    .concat(CHCUSTOM.filter(c=>c&&c.uid&&!CH_DEF.some(d=>d.uid===c.uid)).map(c=>({...c})));
+  uidSeq=CHANNELS.reduce((m,c)=>{ const n=+String(c.uid).replace(/^c/,''); return isFinite(n)?Math.max(m,n):m; },100);
+  CHORD=[];
   P=RAW.map((r,i)=>({id:i,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:{...r.pr},sup:'',mgr:'',mfg:'',added:false}));
   BASE_N=P.length;
   loadSaved();                                // localStorage 편집 오버레이 적용
@@ -5133,6 +5184,11 @@ function startLiveSync(){
     PROMOS=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.deleted).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
     scheduleMkt();
   }, onErr('promotions'));
+  db.collection('product-meta').doc('custom-channels').onSnapshot(d=>{
+    if(!d.exists) return; const x=d.data()||{};
+    CHCUSTOM=Array.isArray(x.list)?x.list:[]; CHPATCH=(x.patch&&typeof x.patch==='object')?x.patch:{};
+    scheduleRebuild('custom-channels('+CHCUSTOM.length+')');
+  }, onErr('custom-channels'));
   db.collection('product-meta').doc('all').onSnapshot(d=>{
     if(editingNow()) return;                    // 입력 중엔 덮어쓰지 않음
     PMETA=d.exists?(d.data()||{}):{}; renderProductView();

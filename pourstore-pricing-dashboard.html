@@ -176,6 +176,7 @@ td .ovrbadge{position:absolute;left:3px;top:2px;font-size:9px;font-weight:800;co
 #ovrPanel .ovr-row.on{background:#EEF2FF;box-shadow:inset 3px 0 0 #4F46E5;font-weight:800}
 #ovrPanel .ovr-row .cd{font-family:var(--mono);font-size:10.5px;color:var(--amber);font-weight:700;min-width:30px}
 #ovrPanel .ovr-row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#ovrPanel .ovr-row .nm em{font-style:normal;font-size:9.5px;color:var(--xl-green-dark,#0B5C30);font-weight:700}
 #ovrPanel .ovr-row .vl{font-variant-numeric:tabular-nums;font-weight:600}
 #ovrPanel .ovr-row .vl i{color:#5B4BB5;font-style:normal;margin-left:3px}
 #ovrPanel .ovr-lb{display:block;font-size:11px;color:var(--ink-soft);font-weight:700;margin-bottom:3px}
@@ -662,7 +663,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
       <button class="tbtn" id="btnSave">변경사항 저장</button>
       <button class="tbtn" id="btnCsv">CSV 내보내기</button>
       <button class="tbtn" id="btnReset">원본 복원</button>
-      <span class="hint">업체단가·자사몰정가·알리바바만 더블클릭 수정(Enter 확정) · 총판~쿠팡은 사다리 자동계산 · 원가는 제품등록에서</span>
+      <span class="hint">업체단가·자사몰정가·알리바바만 더블클릭 수정(Enter 확정) · 총판~쿠팡은 사다리 자동계산 · 원가는 제품등록에서<span id="twinNote"></span></span>
     </div>
     <div id="pricingBanner"></div>
     <table class="grid" id="priceGrid"></table>
@@ -1675,6 +1676,13 @@ function noteChannelEdit(c){
 /* 채널 열 사용자 지정 순서(가로 드래그). 없으면 chRank(단가순) 유지. 새 채널은 rank 위치에 삽입 */
 let CHORD=[];   // 표시 순서 uid 배열 ← product-meta/chan-order
 const VBASE_COL='__vbase__';   // 업체단가 열도 CHORD에서 위치 이동 가능(가상 uid)
+/* 업체단가와 값이 '항상 같은' 채널 = 사다리 하한(비율 0%) 채널.
+   업체단가는 입력 앵커, 그 채널은 계산 결과라서 열이 둘로 보이므로 서로 같음을 표기한다. */
+function vbaseTwin(){
+  return COLS().find(c=>{ if(isDeletedChan(c.uid))return false;
+    let cf={a:'manual',f:0}; try{ cf=coeffFor(c.code); }catch(e){}
+    return cf.a==='ladder' && (+cf.f||0)===0; })||null;
+}
 const colOrderIdx=c=>{ const i=CHORD.indexOf(c.uid); return i<0?9999:i; };
 function ensureChord(){
   CHORD=CHORD.filter(u=>{ if(u===VBASE_COL)return true; const c=chByUid(u); return c && c.col && !isDeletedChan(u); });   // 사라진/숨긴/삭제 채널 제거(업체단가 가상열은 유지)
@@ -2450,9 +2458,11 @@ function renderGrid(){
   if(!priceCols.some(x=>x.t==='vbase')) priceCols.unshift({t:'vbase'});   // 업체단가 누락 시 맨 앞에
   const nCols=3+(showSup?1:0)+(showCost?1:0)+priceCols.length;
   const canOrderCh=costAllowed;   // 채널 열 드래그 재정렬: 원가열람 계정만
+  const twin=vbaseTwin();   // 업체단가와 값이 같은 채널(사다리 0%)
+  const twinTip=twin?`업체단가와 값이 같습니다 — [${twin.code}] ${twin.name}은 사다리 0%(하한)이라 업체단가 그대로입니다. 업체단가 칸이 '입력', 이 칸이 '결과'입니다.`:'';
   const thPrice=priceCols.map(pc=> pc.t==='vbase'
-    ? `<th class="num${canOrderCh?' chdrag':''}"${canOrderCh?` draggable="true" data-cuid="${VBASE_COL}"`:''} style="min-width:104px;background:var(--xl-sel)" title="${canOrderCh?'헤더를 좌우로 끌어 순서 변경':''}">${canOrderCh?'<span class="chgrip" style="color:#9db3a0">⠿</span>':''}업체단가<div style="font-size:9px;color:var(--ink-faint);font-weight:400">pour공법·총판기준</div></th>`
-    : `<th class="num${canOrderCh?' chdrag':''}"${canOrderCh?` draggable="true" data-cuid="${esc(pc.c.uid)}"`:''} style="min-width:100px;height:38px" title="${canOrderCh?'헤더를 좌우로 끌어 순서 변경 · ':''}${esc(pc.c.desc)}"><div style="font-size:9.5px;font-family:var(--mono);color:var(--amber);line-height:1.2">${canOrderCh?'<span class="chgrip">⠿</span>':''}${esc(pc.c.g)} · ${esc(pc.c.code)}</div>${esc(pc.c.name)}</th>`
+    ? `<th class="num${canOrderCh?' chdrag':''}"${canOrderCh?` draggable="true" data-cuid="${VBASE_COL}"`:''} style="min-width:104px;background:var(--xl-sel)" title="${twin?esc(twinTip)+' · ':''}${canOrderCh?'헤더를 좌우로 끌어 순서 변경':''}">${canOrderCh?'<span class="chgrip" style="color:#9db3a0">⠿</span>':''}업체단가<div style="font-size:9px;color:var(--ink-faint);font-weight:400">${twin?`입력칸 · <b style="color:var(--xl-green-dark)">= ${esc(twin.code)} ${esc(twin.name)}</b>`:'pour공법·총판기준'}</div></th>`
+    : `<th class="num${canOrderCh?' chdrag':''}"${canOrderCh?` draggable="true" data-cuid="${esc(pc.c.uid)}"`:''} style="min-width:100px;height:38px" title="${(twin&&pc.c.uid===twin.uid)?esc(twinTip)+' · ':''}${canOrderCh?'헤더를 좌우로 끌어 순서 변경 · ':''}${esc(pc.c.desc)}"><div style="font-size:9.5px;font-family:var(--mono);color:var(--amber);line-height:1.2">${canOrderCh?'<span class="chgrip">⠿</span>':''}${esc(pc.c.g)} · ${esc(pc.c.code)}</div>${esc(pc.c.name)}${(twin&&pc.c.uid===twin.uid)?'<div style="font-size:9px;color:var(--xl-green-dark);font-weight:700">= 업체단가</div>':''}</th>`
   ).join('');
   const lastFrz = showCost ? 'cost' : (showSup ? 'sup' : 'spec');   // 고정 블록의 마지막(경계선) 열
   let html=`<thead><tr>
@@ -2515,6 +2525,7 @@ function renderGrid(){
   });
   if(costAllowed){ html+=`<tr class="addrow"><td colspan="${nCols}"><button class="gridadd" data-l1="POUR공법" data-l2="" data-l3="">＋ 새 제품 추가</button> <span style="color:var(--ink-faint);font-size:11px;margin-left:8px">· 분류(대·중·소)는 제품 추가/수정 시 태그로 지정</span></td></tr>`; }
   $('#priceGrid').innerHTML=html+'</tbody>';
+  const tn=$('#twinNote'); if(tn) tn.innerHTML = twin?`<br>· <b>업체단가 = [${esc(twin.code)} ${esc(twin.name)}]</b> — 같은 값입니다. 업체단가 칸이 <b>입력</b>, ${esc(twin.name)} 칸이 <b>계산 결과</b>입니다.`:'';
   layoutFrozen();
 }
 /* 좌측 고정 열의 left 오프셋을 실측 폭으로 주입(열 폭이 달라도 정확히 고정) */
@@ -4982,8 +4993,9 @@ function renderOvrPanel(){
   const cost=effCost(p);
   const rows=N.list.map((x,j)=>{
     const on=x.c.uid===uid, o=hasOvr(p,x.c.uid);
+    const tw=(typeof vbaseTwin==='function')&&vbaseTwin()&&vbaseTwin().uid===x.c.uid;
     return `<div class="ovr-row${on?' on':''}">
-      <span class="cd">${esc(x.c.code)}</span><span class="nm">${esc(x.c.name)}</span>
+      <span class="cd">${esc(x.c.code)}</span><span class="nm">${esc(x.c.name)}${tw?' <em>= 업체단가</em>':''}</span>
       <span class="vl">${x.v==null?'—':won(x.v)}${o?'<i title="직접 조정됨">✎</i>':''}</span></div>`;
   }).join('');
   $('#ovrPanel').innerHTML=`

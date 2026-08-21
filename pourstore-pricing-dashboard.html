@@ -159,6 +159,34 @@ td .mrate{display:block;font-size:10px;color:var(--ink-faint);margin-top:1px;fon
 td.estcell{position:relative;color:#6B7A87;background:repeating-linear-gradient(135deg,transparent,transparent 5px,rgba(107,122,135,.07) 5px,rgba(107,122,135,.07) 10px)}
 /* 숫자는 우측 정렬 → 배지는 좌측 상단에 겹쳐 놓아 행 높이를 늘리지 않는다 */
 td .estbadge{position:absolute;left:3px;top:2px;font-size:8.5px;font-weight:800;color:#6B7A87;opacity:.9;line-height:1;pointer-events:none}
+td.ovrcell{position:relative;box-shadow:inset 0 0 0 1.5px #7C6BD1}
+td .ovrbadge{position:absolute;left:3px;top:2px;font-size:9px;font-weight:800;color:#5B4BB5;line-height:1;pointer-events:none}
+#priceGrid td.autolock{cursor:cell}
+/* 채널 단가 직접 조정 패널 */
+#ovrPanel{display:none;position:fixed;z-index:3500;width:326px;max-width:calc(100vw - 16px);background:#fff;border:1px solid var(--xl-grid);
+  border-radius:10px;box-shadow:0 14px 44px rgba(0,0,0,.24);font-size:12.5px;overflow:hidden}
+#ovrPanel .ovr-hd{display:flex;align-items:center;gap:8px;background:var(--xl-head,#0B5C30);color:#fff;padding:9px 12px;font-size:12.5px}
+#ovrPanel .ovr-hd b{font-weight:800}
+#ovrPanel .ovr-hd button{margin-left:auto;background:transparent;border:0;color:#fff;font-size:14px;cursor:pointer;line-height:1}
+#ovrPanel .ovr-bd{padding:11px 12px}
+#ovrPanel .ovr-prod{font-weight:700;margin-bottom:8px;line-height:1.35}
+#ovrPanel .ovr-list{border:1px solid var(--xl-grid);border-radius:7px;overflow:hidden;margin-bottom:10px;max-height:190px;overflow-y:auto}
+#ovrPanel .ovr-row{display:flex;align-items:center;gap:7px;padding:4px 8px;border-bottom:1px solid var(--xl-grid,#E5E7EB);background:#fff}
+#ovrPanel .ovr-row:last-child{border-bottom:0}
+#ovrPanel .ovr-row.on{background:#EEF2FF;box-shadow:inset 3px 0 0 #4F46E5;font-weight:800}
+#ovrPanel .ovr-row .cd{font-family:var(--mono);font-size:10.5px;color:var(--amber);font-weight:700;min-width:30px}
+#ovrPanel .ovr-row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#ovrPanel .ovr-row .vl{font-variant-numeric:tabular-nums;font-weight:600}
+#ovrPanel .ovr-row .vl i{color:#5B4BB5;font-style:normal;margin-left:3px}
+#ovrPanel .ovr-lb{display:block;font-size:11px;color:var(--ink-soft);font-weight:700;margin-bottom:3px}
+#ovrPanel #ovrInput{width:100%;border:1.5px solid var(--xl-grid);border-radius:6px;padding:8px 10px;font-size:14px;text-align:right;font-weight:700}
+#ovrPanel .ovr-msg{margin-top:7px;font-size:11.5px;line-height:1.5;color:var(--xl-green-dark,#0B5C30)}
+#ovrPanel .ovr-msg.bad{color:#B0281A}
+#ovrPanel .ovr-ft{display:flex;gap:7px;margin-top:11px}
+#ovrPanel .ovr-ft .tbtn{flex:1;padding:8px;font-size:12.5px}
+#ovrPanel .ovr-ft .tbtn.primary{background:var(--xl-green,#107C41);color:#fff;border-color:var(--xl-green,#107C41);font-weight:700}
+#ovrPanel .ovr-note{margin-top:9px;font-size:10.5px;color:var(--ink-faint);line-height:1.55}
+@media(max-width:640px){ #ovrPanel{width:calc(100vw - 16px);left:8px!important} }
 td.neg .mrate{color:var(--red)}
 td.neg{color:var(--red);font-weight:600}
 td.warn{background:#FDEBE7}
@@ -2295,7 +2323,17 @@ $('#btnChSave').addEventListener('click',()=>{ persist(); $('#btnChSave').textCo
 /* ══════════ 알림 감지 ══════════ */
 function detectAlerts(){
   const out=[], rUid=retailUid();
-  const rankCols=COLS().filter(c=>CODE_RANK[c.code]).sort((a,b)=>CODE_RANK[a.code]-CODE_RANK[b.code]);
+  /* 가격 역전 검사 대상 = 화면 순서(사다리 순)의 '사다리 채널 + 앵커(총판·정가)'.
+     · 예전엔 config/calc.codeRank 에 등록된 채널만 검사해 앱에서 새로 만든 채널이나
+       직접 조정(오버라이드)한 칸의 역전을 놓쳤다.
+     · 알리바바·시온산업처럼 값을 따로 정하는 수동 채널은 사다리 순서와 무관하므로
+       줄세우기 비교에서 빼고(경고 남발 방지), 수출 채널은 아래 별도 규칙으로 본다. */
+  const rankCols=COLS().filter(c=>{
+    if(c.role==='export' || isDeletedChan(c.uid)) return false;
+    if(c.role==='retail' || c.role==='dealer') return true;          // 앵커는 항상 포함
+    let a='manual'; try{ a=coeffFor(c.code).a; }catch(e){}
+    return a==='ladder';                                             // 사다리 채널만
+  });
   P.forEach(p=>{
     if(p.cat==='패키지'||isDeletedProd(p))return;
     COLS().forEach(c=>{
@@ -2456,10 +2494,15 @@ function renderGrid(){
       const isAnchor = c.uid===rUid;   // 자사몰정가는 항상 수동 앵커 → 규칙과 무관하게 편집 허용
       const editable=!pkg && (isAnchor || coeffFor(c.code).a==='manual');   // 패키지·사다리 채널은 잠금
       const est=!pkg && isEst(p,c.uid);   // 정가 기반 추정값 → 확정가와 구분
-      const cls=['num']; if(editable)cls.push('editable'); else if(pkg)cls.push('pkglock'); else cls.push('autolock'); if(m!=null&&m<0)cls.push('neg','warn'); if(est)cls.push('estcell');
+      const ovr=!pkg && hasOvr(p,c.uid), ovrD=!pkg && isOvrDraft(p,c.uid);
+      const cls=['num']; if(editable)cls.push('editable'); else if(pkg)cls.push('pkglock'); else cls.push('autolock'); if(m!=null&&m<0)cls.push('neg','warn'); if(est)cls.push('estcell'); if(ovr)cls.push('ovrcell');
       let disp = (editable && pr==null) ? '<span class="edithint">＋ 입력</span>' : cellDisplay(p,c.uid);
       if(est) disp+='<span class="estbadge">추정</span>';
-      return `<td class="${cls.join(' ')}"${editable?` data-id="${p.id}" data-f="u${c.uid}"`:''}${est?` title="정가 기준 추정값입니다 — 실제 값을 입력하면 대체됩니다"`:''}>${disp}</td>`;
+      if(ovr) disp+=`<span class="ovrbadge"${ovrD?' style="color:var(--amber)"':''}>✎${ovrD?' 개정안':''}</span>`;
+      const tt = est?'정가 기준 추정값입니다 — 실제 값을 입력하면 대체됩니다'
+               : ovr?'직접 조정된 단가입니다 — 더블클릭해 수정·해제'
+               : (!pkg&&!editable)?'더블클릭하면 이 제품만 단가를 직접 조정할 수 있습니다':'';
+      return `<td class="${cls.join(' ')}"${editable?` data-id="${p.id}" data-f="u${c.uid}"`:''}${(!editable&&!pkg)?` data-cuid="${esc(c.uid)}"`:''}${tt?` title="${tt}"`:''}>${disp}</td>`;
     }).join('');
     html+=`<tr data-id="${p.id}" data-key="${esc(pKey(p))}" data-cat="${esc(p.cat)}">
       <td class="frz frz-no dim">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span>`:''}${no}</td>
@@ -2571,9 +2614,15 @@ function gridToast(msg){
 }
 document.addEventListener('dblclick',e=>{
   const td=e.target.closest('#priceGrid td'); if(!td || td.classList.contains('editable') || td.querySelector('input')) return;
-  if(td.classList.contains('pkglock')) gridToast('세트 가격은 구성 단품에서 자동 합산됩니다 — 구성 단품(단품 행)의 업체단가·정가를 수정하세요.');
-  else if(td.classList.contains('autolock')) gridToast('이 채널은 업체단가~정가 사다리로 자동 계산됩니다 — 업체단가나 자사몰정가를 더블클릭해 수정하세요.');
+  if(td.classList.contains('pkglock')){ gridToast('세트 가격은 구성 단품에서 자동 합산됩니다 — 구성 단품(단품 행)의 업체단가·정가를 수정하세요.'); return; }
+  if(td.classList.contains('autolock')){
+    // 자동계산 채널이라도 이 제품만 직접 조정할 수 있게 — 앞뒤 채널을 보며 입력(가격 역전 방지)
+    if(!costAllowed){ gridToast('이 채널은 업체단가~정가 사다리로 자동 계산됩니다.'); return; }
+    const tr=td.closest('tr'), p=P.find(x=>x.id==tr.dataset.id), uid=(td.dataset.cuid||'');
+    if(p && uid) openOvrPanel(p, uid, td); else gridToast('이 채널은 업체단가~정가 사다리로 자동 계산됩니다 — 업체단가나 자사몰정가를 더블클릭해 수정하세요.');
+  }
 });
+document.addEventListener('mousedown',e=>{ const el=$('#ovrPanel'); if(el&&el.style.display==='block'&&!e.target.closest('#ovrPanel')&&!e.target.closest('#priceGrid td.autolock')) closeOvrPanel(); });
 $('#q').addEventListener('input',renderGrid);
 $('#catSel').addEventListener('change',renderGrid);
 $('#viewSeg').addEventListener('click',e=>{
@@ -3844,6 +3893,7 @@ function recalcVendor(){
     });
   });
   estimateFromRetail(rUid);
+  applyOverrides();          // 제품별 직접 조정값이 사다리·추정보다 우선
 }
 /* ══ 정가 기반 추정 ══
    업체단가(공법가)가 없어 규칙으로 값이 안 나오는 채널(수동 앵커 등)을,
@@ -4848,6 +4898,7 @@ async function saveChannelMarkup(){ try{ await db.collection('product-meta').doc
 async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('vendor-prices').get(); if(d.exists&&d.data().map) VBASE=d.data().map; }catch(e){ console.warn('[vendor-prices] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('retail-prices').get(); if(d.exists&&d.data().map) VRETAIL=d.data().map; }catch(e){ console.warn('[retail-prices] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('price-overrides').get(); if(d.exists&&d.data().map) POVR=d.data().map; console.log(`[price-overrides] 직접 조정 ${Object.keys(POVR).length}칸`); }catch(e){ console.warn('[price-overrides] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('channel-markup').get(); if(d.exists){ if(d.data().coeff)VCOEFF=d.data().coeff; if(typeof d.data().auto==='boolean')VAUTO=d.data().auto; if(typeof d.data().ladBase==='number'&&d.data().ladBase>0&&d.data().ladBase<1)LAD_BASE=d.data().ladBase; } }catch(e){ console.warn('[channel-markup] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('cat-config').get(); if(d.exists&&Array.isArray(d.data().list)) CATCFG=d.data().list.map(c=>({key:c.key,name:c.name||c.key,l1:c.l1||'',l2:c.l2||''})); }catch(e){ console.warn('[cat-config] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-order').get(); if(d.exists&&Array.isArray(d.data().list)) PORDER=d.data().list; }catch(e){ console.warn('[prod-order] 로드 실패', e.code||e); }
@@ -4864,22 +4915,139 @@ async function loadVendorConfig(){
   await loadDraft();
   console.log(`[vendor] 업체단가 ${Object.keys(VBASE).length} · 정가override ${Object.keys(VRETAIL).length} · 분류 ${CATCFG.length}개 · 개정안 ${draftCount()}건(${DRAFT_META.status||'없음'})`);
 }
+/* ══════════ 제품별 채널 단가 직접 조정(오버라이드) ══════════
+   자동계산(사다리) 채널이라도 특정 제품만 값을 고정할 수 있다.
+   · 저장: product-meta/price-overrides {map:{"pKey|uid":값}}
+   · 개정안(DPOVR)에 담겨 상급자 승인 후 실제 반영 — 다른 가격 수정과 동일
+   · recalcVendor 마지막에 덮어써서 사다리보다 우선 */
+let POVR={};    // 적용본  "pKey|uid" → 값
+let DPOVR={};   // 개정안
+const ovrKey=(p,uid)=>pKey(p)+'|'+uid;
+async function saveOverrides(){ try{ await db.collection('product-meta').doc('price-overrides').set({map:POVR, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[price-overrides] 저장 실패', e.code||e); } }
+function effOvr(k){ return (PREVIEW && (k in DPOVR)) ? DPOVR[k] : POVR[k]; }
+function hasOvr(p,uid){ const k=ovrKey(p,uid); return effOvr(k)!=null; }
+function isOvrDraft(p,uid){ return PREVIEW && (ovrKey(p,uid) in DPOVR); }
+function draftSetOvr(p,uid,val){
+  const k=ovrKey(p,uid);
+  if(val==null){ if(POVR[k]==null) delete DPOVR[k]; else DPOVR[k]=null; }   // null = 해제(자동계산으로 복귀)
+  else if(Number(val)===Number(POVR[k])) delete DPOVR[k];
+  else DPOVR[k]=Number(val);
+  DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft();
+}
+/* 사다리 계산 뒤 오버라이드 덮어쓰기 (recalcVendor 끝에서 호출) */
+function applyOverrides(){
+  P.forEach(p=>{
+    if(isPackage(p)) return;
+    CHANNELS.forEach(c=>{
+      const k=ovrKey(p,c.uid), v=effOvr(k);
+      if(v!=null && v>0){ p.pr[c.uid]=Number(v); delete EST[estKey(p,c.uid)]; }
+    });
+  });
+}
+/* ── 조정 패널: 이 제품의 채널 가격을 한눈에 보며 값 넣기 (가격 역전 방지) ── */
+let OVR_CTX=null;   // {p, uid}
+function ovrNeighbors(p, uid){
+  // 표시 순서(사다리 오름차순)대로 나열해 앞/뒤 채널을 찾는다
+  const cols=COLS().filter(c=>!isDeletedChan(c.uid));
+  const list=cols.map(c=>({c, v:effPrice(p,c.uid)}));
+  const i=list.findIndex(x=>x.c.uid===uid);
+  let prev=null, next=null;
+  for(let j=i-1;j>=0;j--){ if(list[j].v!=null){ prev=list[j]; break; } }
+  for(let j=i+1;j<list.length;j++){ if(list[j].v!=null){ next=list[j]; break; } }
+  return {list, i, prev, next};
+}
+function openOvrPanel(p, uid, td){
+  OVR_CTX={p, uid};
+  let el=$('#ovrPanel');
+  if(!el){ el=document.createElement('div'); el.id='ovrPanel'; document.body.appendChild(el);
+    el.addEventListener('click',e=>{ const b=e.target.closest('[data-ovr]'); if(!b)return;
+      if(b.dataset.ovr==='save') ovrSave(); else if(b.dataset.ovr==='clear') ovrClear(); else if(b.dataset.ovr==='close') closeOvrPanel(); });
+    el.addEventListener('input',e=>{ if(e.target.id==='ovrInput') ovrValidate(); });
+    el.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();ovrSave();} if(e.key==='Escape')closeOvrPanel(); });
+  }
+  renderOvrPanel();
+  el.style.display='block';
+  // 셀 근처에 띄우되 화면 밖으로 나가지 않게
+  const r=td.getBoundingClientRect(), w=el.offsetWidth||320, h=el.offsetHeight||280;
+  let left=Math.min(Math.max(8, r.left+r.width/2-w/2), innerWidth-w-8);
+  let top=r.bottom+6; if(top+h>innerHeight-8) top=Math.max(8, r.top-h-6);
+  el.style.left=left+'px'; el.style.top=top+'px';
+  const inp=$('#ovrInput'); if(inp){ inp.focus(); inp.select(); }
+}
+function closeOvrPanel(){ const el=$('#ovrPanel'); if(el)el.style.display='none'; OVR_CTX=null; }
+function renderOvrPanel(){
+  if(!OVR_CTX) return;
+  const {p,uid}=OVR_CTX, c=chByUid(uid); if(!c) return;
+  const N=ovrNeighbors(p,uid), cur=effPrice(p,uid), ov=effOvr(ovrKey(p,uid));
+  const cost=effCost(p);
+  const rows=N.list.map((x,j)=>{
+    const on=x.c.uid===uid, o=hasOvr(p,x.c.uid);
+    return `<div class="ovr-row${on?' on':''}">
+      <span class="cd">${esc(x.c.code)}</span><span class="nm">${esc(x.c.name)}</span>
+      <span class="vl">${x.v==null?'—':won(x.v)}${o?'<i title="직접 조정됨">✎</i>':''}</span></div>`;
+  }).join('');
+  $('#ovrPanel').innerHTML=`
+    <div class="ovr-hd"><b>${esc(c.code)} · ${esc(c.name)}</b> 단가 직접 조정<button data-ovr="close" aria-label="닫기">✕</button></div>
+    <div class="ovr-bd">
+      <div class="ovr-prod">${esc(p.name)} <span class="dim">${esc(p.spec||'')}</span></div>
+      <div class="ovr-list">${rows}</div>
+      <label class="ovr-lb">이 채널 단가</label>
+      <input type="number" id="ovrInput" value="${ov!=null?ov:(cur??'')}" placeholder="${cur??''}" step="100">
+      <div id="ovrMsg" class="ovr-msg"></div>
+      <div class="ovr-ft">
+        <button class="tbtn" data-ovr="clear"${ov==null?' disabled':''}>자동계산으로 되돌리기</button>
+        <button class="tbtn primary" data-ovr="save">확정</button>
+      </div>
+      <p class="ovr-note">· 앞 채널보다 싸거나 뒤 채널보다 비싸면 경고합니다(가격 역전 방지).<br>· 실제 반영은 <b>상급자 승인 후</b>입니다.</p>
+    </div>`;
+  ovrValidate();
+}
+function ovrValidate(){
+  if(!OVR_CTX) return true;
+  const {p,uid}=OVR_CTX, N=ovrNeighbors(p,uid), cost=effCost(p);
+  const inp=$('#ovrInput'), msg=$('#ovrMsg'); if(!inp||!msg) return true;
+  const v=inp.value===''?null:+inp.value;
+  const warn=[], info=[];
+  if(v!=null && v>0){
+    if(N.prev && v<N.prev.v) warn.push(`앞 채널 <b>${esc(N.prev.c.name)} ${won(N.prev.v)}</b>보다 <b>싸게</b> 설정됩니다`);
+    if(N.next && v>N.next.v) warn.push(`뒤 채널 <b>${esc(N.next.c.name)} ${won(N.next.v)}</b>보다 <b>비싸게</b> 설정됩니다`);
+    if(costAllowed && cost!=null){ if(v<cost) warn.push(`매입원가 <b>${won(cost)}</b>보다 낮습니다 — <b>역마진</b>`); else info.push(`마진 ${pct((v-cost)/v)}`); }
+  }
+  const ok=!warn.length;
+  msg.className='ovr-msg'+(ok?'':' bad');
+  msg.innerHTML = v==null||!(v>0) ? '<span class="dim">비우고 확정하면 자동계산으로 되돌아갑니다.</span>'
+    : (warn.length? '⚠️ '+warn.join('<br>⚠️ ') : '✅ 앞뒤 채널과 순서가 맞습니다'+(info.length?' · '+info.join(' · '):''));
+  return ok;
+}
+function ovrSave(){
+  if(!OVR_CTX) return;
+  const {p,uid}=OVR_CTX, inp=$('#ovrInput');
+  const v=inp.value===''?null:+inp.value;
+  if(v!=null && v>0 && !ovrValidate()){
+    if(!confirm('가격 순서가 어긋납니다.\n그래도 이 값으로 확정할까요?')) return;
+  }
+  draftSetOvr(p, uid, (v!=null&&v>0)?v:null);
+  PREVIEW=true; recalcVendor(); refreshAll(); closeOvrPanel();
+}
+function ovrClear(){ if(!OVR_CTX) return; const {p,uid}=OVR_CTX; draftSetOvr(p,uid,null); PREVIEW=true; recalcVendor(); refreshAll(); closeOvrPanel(); }
+
 /* ── 개정안(draft) API ── */
-function draftCount(){ return Object.keys(DVBASE).length+Object.keys(DRETAIL).length+Object.keys(DCOEFF).length; }
+function draftCount(){ return Object.keys(DVBASE).length+Object.keys(DRETAIL).length+Object.keys(DCOEFF).length+Object.keys(DPOVR).length; }
 function draftSetVbase(p,val){ const k=pKey(p); if(val==null||val===VBASE[k])delete DVBASE[k]; else DVBASE[k]=val; DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); }
 function draftSetRetail(p,val){ const k=pKey(p); if(val==null||val===VRETAIL[k])delete DRETAIL[k]; else DRETAIL[k]=val; DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); }
 function draftSetCoeff(code,obj){ const cur=VCOEFF[code]||VCOEFF_DEFAULT[code]||{a:'manual',f:0}; if(obj.a===cur.a && (+obj.f)===(+cur.f))delete DCOEFF[code]; else DCOEFF[code]={a:obj.a,f:+obj.f||0}; DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); }
 function draftImport(){ const r=importVendorPricesTo(DVBASE); DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); return r; }
-function draftDiscard(){ DVBASE={};DRETAIL={};DCOEFF={};DRAFT_META={status:'',by:'',at:'',note:''};PREVIEW=false; saveDraft(); }
-async function saveDraft(){ try{ await db.collection('product-meta').doc('pricing-draft').set({vbase:DVBASE,retail:DRETAIL,coeff:DCOEFF,meta:DRAFT_META,updatedAt:new Date().toISOString()}); }catch(e){ console.warn('[pricing-draft] 저장 실패',e.code||e); } }
-async function loadDraft(){ try{ const d=await db.collection('product-meta').doc('pricing-draft').get(); if(d.exists){ const x=d.data(); DVBASE=x.vbase||{}; DRETAIL=x.retail||{}; DCOEFF=x.coeff||{}; DRAFT_META=x.meta||{status:'',by:'',at:'',note:''}; } }catch(e){ console.warn('[pricing-draft] 로드 실패',e.code||e); } }
+function draftDiscard(){ DVBASE={};DRETAIL={};DCOEFF={};DPOVR={};DRAFT_META={status:'',by:'',at:'',note:''};PREVIEW=false; saveDraft(); }
+async function saveDraft(){ try{ await db.collection('product-meta').doc('pricing-draft').set({vbase:DVBASE,retail:DRETAIL,coeff:DCOEFF,ovr:DPOVR,meta:DRAFT_META,updatedAt:new Date().toISOString()}); }catch(e){ console.warn('[pricing-draft] 저장 실패',e.code||e); } }
+async function loadDraft(){ try{ const d=await db.collection('product-meta').doc('pricing-draft').get(); if(d.exists){ const x=d.data(); DVBASE=x.vbase||{}; DRETAIL=x.retail||{}; DCOEFF=x.coeff||{}; DPOVR=x.ovr||{}; DRAFT_META=x.meta||{status:'',by:'',at:'',note:''}; } }catch(e){ console.warn('[pricing-draft] 로드 실패',e.code||e); } }
 /* ── 승인요청 / 승인 / 반려 ── */
 async function submitDraft(){ if(!draftCount()){ alert('변경된 내용이 없습니다.'); return; } DRAFT_META={status:'대기', by:(curUser&&curUser.email)||'', at:new Date().toISOString(), note:($('#draftNote')&&$('#draftNote').value)||''}; await saveDraft(); refreshAll(); alert('상급자에게 승인을 요청했습니다.\n승인 전까지 실제 가격은 바뀌지 않습니다.'); }
 async function approveDraft(){
   if(!isApprover()){ alert('승인은 상급자(마스터) 계정만 가능합니다.'); return; }
   Object.assign(VBASE, DVBASE); Object.assign(VRETAIL, DRETAIL); Object.entries(DCOEFF).forEach(([c,o])=>{ VCOEFF[c]=o; });
-  const rev={ ts:new Date().toISOString(), approvedBy:(curUser&&curUser.email)||'', proposedBy:DRAFT_META.by, note:DRAFT_META.note||'', vbase:{...DVBASE}, retail:{...DRETAIL}, coeff:{...DCOEFF} };
-  await saveVendorPrices(); await saveRetailPrices(); await saveChannelMarkup(); await appendHistory(rev);
+  Object.entries(DPOVR).forEach(([k,v])=>{ if(v==null) delete POVR[k]; else POVR[k]=v; });   // null=해제
+  const rev={ ts:new Date().toISOString(), approvedBy:(curUser&&curUser.email)||'', proposedBy:DRAFT_META.by, note:DRAFT_META.note||'', vbase:{...DVBASE}, retail:{...DRETAIL}, coeff:{...DCOEFF}, ovr:{...DPOVR} };
+  await saveVendorPrices(); await saveRetailPrices(); await saveChannelMarkup(); await saveOverrides(); await appendHistory(rev);
   draftDiscard(); await saveDraft(); recalcVendor(); refreshAll(); alert('개정안을 승인·적용했습니다.\n변동이력에 기록되었습니다.');
 }
 async function rejectDraft(){ if(!isApprover()){ alert('반려는 상급자(마스터)만 가능합니다.'); return; } if(!confirm('이 개정안을 반려(폐기)할까요?'))return; draftDiscard(); await saveDraft(); refreshAll(); }

@@ -671,6 +671,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
         <button data-v="margin">마진액</button>
         <button data-v="rate">마진율</button>
       </div>
+      <button class="tbtn" id="btnSecCols" style="display:none" title="매입원가·공급업체(제조사) 열과 마진 표시를 접었다 폈다 합니다. 이 기기에만 저장됩니다.">🔒 원가·제조사</button>
       <button class="tbtn" id="btnAddProd" style="display:none">＋ 제품 추가</button>
       <button class="tbtn" id="btnAddChan" style="display:none;background:#1E5FBF;color:#fff;border-color:#1E5FBF">＋ 채널 추가</button>
       <button class="tbtn" id="btnImportFile" style="display:none;background:var(--xl-green);color:#fff;border-color:var(--xl-green)">📄 파일로 업체단가 입력</button>
@@ -1491,6 +1492,12 @@ let secAllowed=false;    // 마스터 + 이메일 인증 → 공급업체·매�
 let dataAllowed=false;   // 허용목록(또는 마스터) → 채널·제품 등 일반 데이터
 let costAllowed=false;   // 부마스터/마스터(+이메일 인증) → 원가·마진 열람 (일반 허용계정은 판매가만)
 let VIEW_AS='', CAN_PREVIEW=false;   // 미리보기: ''(내계정) | 'general'(팀원) | 'submaster'(부마스터)
+/* 원가·제조사(공급업체) 열 접기 — 권한과 무관한 '보기' 스위치.
+   어깨너머 노출을 막으려면 마진 표시도 함께 가려야 원가가 역산되지 않는다. 이 기기에만 저장. */
+const LS_SECCOLS='pour-seccols-open';
+let SECCOLS_OPEN = localStorage.getItem(LS_SECCOLS)!=='0';
+const costVisible=()=>costAllowed && SECCOLS_OPEN;   // 화면 표시용(권한 판정은 costAllowed 그대로)
+const supVisible =()=>secAllowed  && SECCOLS_OPEN;
 function _emailLc(){ return ((curUser&&curUser.email)||'').toLowerCase(); }
 function _masterLc(){ return (ACCESS&&ACCESS.masterEmail)?String(ACCESS.masterEmail).toLowerCase():''; }
 /* 마스터 계정 목록(소문자): 소유자(masterEmail) + 추가 마스터(masterEmails[]) */
@@ -1879,11 +1886,11 @@ function applySecGating(){
 /* 원가·마진 노출 제어(A단계·화면 차단): 일반계정은 판매가만 — 마진 뷰·원가탭 숨김, 가격정책표로 이동 */
 function applyCostGating(){
   // 마진액·마진율 뷰 토글: 원가 열람 계정만
-  $$('#viewSeg button').forEach(b=>{ if(b.dataset.v!=='price') b.style.display=costAllowed?'':'none'; });
+  $$('#viewSeg button').forEach(b=>{ if(b.dataset.v!=='price') b.style.display=costVisible()?'':'none'; });   // 접은 상태에선 마진 뷰도 감춤
   // 마진계산기 FAB(원가·마진 협의 도구): 일반계정 숨김
   const fab=$('#calcFab'); if(fab) fab.style.display=costAllowed?'':'none';
   const cpan=$('#calcPanel'); if(cpan){ if(!costAllowed){ cpan.classList.remove('open'); cpan.style.display='none'; } else { cpan.style.display=''; } }
-  if(!costAllowed && viewMode!=='price'){
+  if(!costVisible() && viewMode!=='price'){
     viewMode='price';
     $$('#viewSeg button').forEach(x=>x.classList.toggle('on',x.dataset.v==='price'));
   }
@@ -2446,7 +2453,7 @@ let viewMode='price', selCell=null;
 function cellDisplay(p,uid){
   const pr=effPrice(p,uid);                             // 패키지는 구성 단품 채널가 합
   if(pr==null)return'—';
-  if(!costAllowed)return won(pr);                       // 일반계정: 판매가만
+  if(!costVisible())return won(pr);                     // 일반계정 또는 '원가·제조사 접기' 상태: 판매가만
   const cost=effCost(p);
   const m=(pr==null||cost==null)?null:pr-cost;
   const r=(m==null||!pr)?null:m/pr;
@@ -2466,8 +2473,12 @@ function renderGrid(){
   const q=($('#q').value||'').trim().toLowerCase();
   const cat=$('#catSel').value;
   const cols=COLS(), rUid=retailUid();
-  const showSup=secAllowed;                 // 공급업체 열: 마스터+이메일인증 계정만
-  const showCost=costAllowed;               // 매입원가·마진율 열: 부마스터/마스터만 (일반계정은 판매가만)
+  const showSup=supVisible();                // 공급업체 열: 마스터+이메일인증 계정만 (접기 스위치 반영)
+  const showCost=costVisible();              // 매입원가·마진 열: 부마스터/마스터만 (접기 스위치 반영)
+  const secBtn=$('#btnSecCols');
+  if(secBtn){ secBtn.style.display=costAllowed?'':'none';
+    secBtn.textContent=(SECCOLS_OPEN?'🔓 원가·제조사 접기':'🔒 원가·제조사 펼치기');
+    secBtn.style.background=SECCOLS_OPEN?'':'#FDEBE7'; secBtn.style.borderColor=SECCOLS_OPEN?'':'#F1B7AD'; }
   // 가격 열 순서: CHORD(사용자 드래그 순서) 그대로 — 업체단가(가상열)도 위치 이동 가능
   const priceCols=[];
   CHORD.forEach(uid=>{ if(uid===VBASE_COL){ priceCols.push({t:'vbase'}); return; } const c=cols.find(x=>x.uid===uid); if(c) priceCols.push({t:'ch',c}); });
@@ -2512,7 +2523,7 @@ function renderGrid(){
         const k=pKey(p), val=pkg?pkgVbase(p):effVbase(k), isDraft=!pkg&&PREVIEW&&(k in DVBASE);
         const neg=showCost && val!=null && pcost!=null && val<pcost;
         let inner = (!pkg && val==null) ? '<span class="edithint">＋ 입력</span>' : won(val);   // 빈 앵커: 클릭해 입력
-        if(val!=null && showCost && pcost!=null && val>0) inner+=`<span class="mrate">마진 ${pct((val-pcost)/val)}</span>`;
+        if(val!=null && showCost && pcost!=null && val>0) inner+=`<span class="mrate">마진 ${pct((val-pcost)/val)}</span>`;   // showCost 에 접기 반영됨
         if(isDraft) inner+=`<span class="mrate" style="color:var(--amber);font-weight:700">개정안</span>`;
         const ed=pkg?' pkglock':' editable';   // 패키지 업체단가는 합산값 → 수정 불가(안내)
         return `<td class="num${ed}${neg?' neg':''}"${pkg?'':` data-id="${p.id}" data-f="vbase"`} style="background:var(--xl-sel);font-weight:600${isDraft?';color:var(--amber)':''}">${inner}</td>`;
@@ -4637,6 +4648,15 @@ function wireImportModal(){
     const ed=e.target.closest('.prodedit'); if(ed){ const p=P.find(x=>x.id==ed.dataset.id); if(p)openEditModal(p); return; }
     const cp=e.target.closest('.prodcopy'); if(cp){ const p=P.find(x=>x.id==cp.dataset.id); if(p)openCopyModal(p); return; }
     const dl=e.target.closest('.proddel'); if(dl){ const p=P.find(x=>x.id==dl.dataset.id); if(p)softDeleteProduct(p); }
+  });
+  on('btnSecCols','click',()=>{
+    SECCOLS_OPEN=!SECCOLS_OPEN;
+    localStorage.setItem(LS_SECCOLS, SECCOLS_OPEN?'1':'0');
+    if(!SECCOLS_OPEN && viewMode!=='price'){        // 접은 상태에서 마진 뷰는 의미가 없으므로 판매가로 복귀
+      viewMode='price'; $$('#viewSeg button').forEach(x=>x.classList.toggle('on',x.dataset.v==='price'));
+    }
+    applyCostGating(); refreshAll();
+    gridToast(SECCOLS_OPEN?'원가·제조사를 폈습니다.':'원가·제조사를 접었습니다 — 마진 표시도 함께 가려집니다(원가 역산 방지).');
   });
   on('btnImportFile','click',openImportModal);
   // ── 채널 추가 모달

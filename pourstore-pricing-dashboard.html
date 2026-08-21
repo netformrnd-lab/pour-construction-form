@@ -86,7 +86,8 @@ input,select{font-family:inherit;font-size:13px}
 .toolrow{
   display:flex;gap:8px;align-items:center;flex-wrap:wrap;
   padding:10px 18px;border-bottom:1px solid var(--xl-grid);
-  background:var(--xl-head);position:sticky;top:0;z-index:30;
+  background:var(--xl-head);position:sticky;top:0;left:0;z-index:30;
+  /* left:0 — 표를 오른쪽으로 스크롤해도 검색·제품추가·채널추가·단가표 버튼이 따라 사라지지 않게 */
 }
 .toolrow .ttl{font-size:14px;font-weight:700;margin-right:6px}
 .toolrow input[type=text]{
@@ -120,6 +121,7 @@ table.grid thead tr.chsub th{top:73px}
 td.num,th.num{text-align:right}
 td.name{min-width:220px;font-weight:500}
 td.dim{color:var(--ink-faint)}
+tr.catrow td>span.catlabel{position:sticky;left:10px;display:inline-block}   /* 가로 스크롤 시에도 분류명이 보이게 */
 tr.catrow td{
   background:var(--xl-green-deep)!important;color:#fff;font-weight:700;font-size:12px;
   letter-spacing:.3px;border-right:0;
@@ -204,7 +206,9 @@ td input.cellinput{
 .frz-spec{left:var(--frzSpec,264px)}
 .frz-sup{left:var(--frzSup,340px)}
 .frz-cost{left:var(--frzCost,428px)}
-thead .frz{z-index:24}
+/* table.grid thead th{z-index:20} 과 특이도가 같아 무시되던 규칙 — 선택자를 맞춰 확실히 위로 올린다.
+   (가로 스크롤 시 채널 헤더가 제품명·매입원가 헤더를 덮던 문제) */
+table.grid thead th.frz{z-index:26}
 .frz-edge{border-right:2px solid #c3ccd4!important;box-shadow:6px 0 8px -6px rgba(0,0,0,.18)}
 /* 채널 열 헤더 드래그(가로 순서 변경) */
 th.chdrag{cursor:grab}
@@ -354,7 +358,9 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
   body{font-size:13px}
   /* 리본: 컴팩트 */
   #ribbon{padding:8px 12px;gap:8px}
-  #ribbon .brand{min-width:0;flex:1}
+  /* brand 가 버튼 줄과 같은 flex 줄에 들어가 17px 로 눌리면서 제목이 한 글자씩 세로로 쪼개졌다.
+     한 줄을 통째로 차지하게 해 정상 표시. */
+  #ribbon .brand{min-width:0;flex:1 0 100%}
   #ribbon .brand b{font-size:14px}
   #ribbon .brand span{font-size:10px}
   #btnSignOut{padding:5px 9px;font-size:11px}
@@ -412,6 +418,15 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
   #calcFab{right:12px;bottom:72px;padding:11px 15px;font-size:13px;border-radius:24px}
   #calcPanel{right:8px;left:8px;width:auto;bottom:auto;top:50%;transform:translateY(-50%);max-height:82vh}
   #calcPanel.open{display:block}
+}
+@media(max-width:640px){
+  /* 고정 열을 No·제품명만 남긴다 — 규격·공급업체·매입원가까지 고정하면 합계 535px 라
+     375px 화면에서는 아무리 스크롤해도 가격 열이 화면 밖에 머문다. */
+  #priceGrid .frz-spec,#priceGrid .frz-sup,#priceGrid .frz-cost{position:static!important;z-index:auto!important}
+  #priceGrid .frz-edge{border-right:0!important;box-shadow:none!important}
+  #priceGrid .frz-name{min-width:150px!important;max-width:150px;border-right:2px solid #c3ccd4!important;box-shadow:6px 0 8px -6px rgba(0,0,0,.18)}
+  #priceGrid td,#priceGrid th{padding-left:6px;padding-right:6px}
+  #priceGrid .prodcopy,#priceGrid .proddel{display:none}   /* 좁은 화면에선 수정(✏️)만 남김 */
 }
 @media(max-width:400px){
   .cards{grid-template-columns:1fr}
@@ -1857,6 +1872,8 @@ function applySecGating(){
   // 제조사(공급업체) 정보: 마스터 전용 — 일반계정에선 등록 패널·제조사 입력칸 숨김
   const mfgPanel=$('#regMfgPanel'); if(mfgPanel) mfgPanel.style.display=secAllowed?'':'none';
   const mfgFld=$('#apMfgFld'); if(mfgFld) mfgFld.style.display=secAllowed?'':'none';
+  const mfgFld2=$('#adMfgFld'); if(mfgFld2) mfgFld2.style.display=secAllowed?'':'none';   // 제품 추가·수정 모달
+  if(!secAllowed){ const mi=$('#adMfg'); if(mi) mi.value=''; }                             // 값 자체를 담지 않음(노출 방지)
   renderAccess();
 }
 /* 원가·마진 노출 제어(A단계·화면 차단): 일반계정은 판매가만 — 마진 뷰·원가탭 숨김, 가격정책표로 이동 */
@@ -2485,9 +2502,9 @@ function renderGrid(){
   let lastL1=null,lastL2=null,lastL3=null,no=0;
   shown.forEach(p=>{
     const c=pcat(p), L1=c.l1, L2=c.l2, L3=c.l3;
-    if(L1!==lastL1){ lastL1=L1; lastL2=null; lastL3=null; html+=`<tr class="catrow l1"><td colspan="${nCols}">▣ ${esc(L1||'미분류')}</td></tr>`; }
-    if(L2!==lastL2){ lastL2=L2; lastL3=null; html+=`<tr class="catrow l2"><td colspan="${nCols}">▸ ${esc(L2||'중분류 미지정')}${L3?'':catAddBtn(L1,L2,'')}</td></tr>`; }
-    if(L3!==lastL3){ lastL3=L3; if(L3) html+=`<tr class="catrow"><td colspan="${nCols}">■ ${esc(L3)}${catAddBtn(L1,L2,L3)}</td></tr>`; }
+    if(L1!==lastL1){ lastL1=L1; lastL2=null; lastL3=null; html+=`<tr class="catrow l1"><td colspan="${nCols}"><span class="catlabel">▣ ${esc(L1||'미분류')}</span></td></tr>`; }
+    if(L2!==lastL2){ lastL2=L2; lastL3=null; html+=`<tr class="catrow l2"><td colspan="${nCols}"><span class="catlabel">▸ ${esc(L2||'중분류 미지정')}${L3?'':catAddBtn(L1,L2,'')}</span></td></tr>`; }
+    if(L3!==lastL3){ lastL3=L3; if(L3) html+=`<tr class="catrow"><td colspan="${nCols}"><span class="catlabel">■ ${esc(L3)}${catAddBtn(L1,L2,L3)}</span></td></tr>`; }
     no++;
     const pkg=isPackage(p), pcost=effCost(p);
     const tdPrice=priceCols.map(pc=>{
@@ -2532,10 +2549,16 @@ function renderGrid(){
 function layoutFrozen(){
   const g=$('#priceGrid'); if(!g)return;
   const head=g.querySelector('thead tr'); if(!head)return;
+  /* 시트가 숨겨진 상태(display:none)에서 렌더되면 offsetWidth 가 전부 0이라
+     고정 열 left 가 모두 0px 로 저장되고, 다시 열어도 복구되지 않아
+     제품명·규격·공급업체·매입원가가 서로 겹쳐 보였다. 보일 때만 계산한다. */
+  if(!g.offsetParent || !g.offsetWidth) return;
   const vmap={no:'--frzNo',name:'--frzName',spec:'--frzSpec',sup:'--frzSup',cost:'--frzCost'};
+  const keys=['no','name','spec','sup','cost'];
+  const cells=keys.map(k=>head.querySelector('.frz-'+k));
+  if(cells.some(th=>th && !th.offsetWidth)) return;   // 폭을 못 재면 이전 값을 유지
   let L=0;
-  ['no','name','spec','sup','cost'].forEach(key=>{
-    const th=head.querySelector('.frz-'+key); if(!th)return;
+  keys.forEach((key,i)=>{ const th=cells[i]; if(!th)return;
     g.style.setProperty(vmap[key], L+'px'); L+=th.offsetWidth;
   });
 }
@@ -3310,6 +3333,8 @@ function gotoTab(sh){
   $$('.stab').forEach(x=>x.classList.toggle('on',x.dataset.sh===sh));
   $$('.sheet').forEach(s=>s.classList.toggle('on',s.id===sh));
   renderTabs();
+  // 숨김 상태로 렌더된 경우를 대비해 보이는 시점에 고정 열 좌표를 다시 잡는다
+  if(sh==='sh-price') requestAnimationFrame(()=>{ if(typeof layoutFrozen==='function') layoutFrozen(); });
   if(sh==='sh-data' && typeof openDataTab==='function') openDataTab();
 }
 function selectGroup(grp){
@@ -3841,11 +3866,16 @@ function parseSetItems(str){ return String(str||'').split(',').map(s=>s.trim()).
 function isPackage(p){ const t=PTYPE[pKey(p)]; if(t==='세트')return true; if(t==='단품')return false;   // 명시 전환 우선
   return p.cat==='패키지' || p.ptype==='세트' || p.type==='세트' || !!(pkgSetItems(p)&&String(pkgSetItems(p)).trim()); }
 function pkgComps(p){ return parseSetItems(pkgSetItems(p)).map(it=>({prod:P.find(x=>x.name===it.name)||P.find(x=>x.name.replace(/\s/g,'')===it.name.replace(/\s/g,'')), qty:it.qty})).filter(x=>x.prod); }
-function pkgCost(p){ const cs=pkgComps(p); if(!cs.length)return null; let s=0,any=false; cs.forEach(c=>{ if(c.prod.cost!=null){s+=c.prod.cost*c.qty;any=true;} }); return any?s:null; }
+function pkgCost(p){ const cs=pkgComps(p); if(!cs.length)return null; let s=0,any=false; cs.forEach(c=>{ const uc=unitCost(c.prod); if(uc!=null){s+=uc*c.qty;any=true;} }); return any?s:null; }
 function pkgPrice(p,uid){ const cs=pkgComps(p); if(!cs.length)return null; let s=0,any=false; cs.forEach(c=>{ const v=gp(c.prod,uid); if(v!=null){s+=v*c.qty;any=true;} }); return any?s:null; }
 function pkgVbase(p){ const cs=pkgComps(p); if(!cs.length)return null; let s=0,any=false; cs.forEach(c=>{ const v=effVbase(pKey(c.prod)); if(v!=null){s+=v*c.qty;any=true;} }); return any?s:null; }
 /* 패키지면 합산값, 아니면 원래값 */
-function effCost(p){ return isPackage(p)?pkgCost(p):p.cost; }
+/* 매입원가 덮어쓰기 — products 컬렉션은 앱이 읽기만 하므로, 기본 제품의 원가 수정분은
+   공유 문서(product-meta/prod-cost)에 저장한다. 예전엔 등록상품(docId)만 원가 수정이 가능했다. */
+let PCOST={};   // pKey → 원가
+async function saveProdCost(){ try{ await db.collection('product-meta').doc('prod-cost').set({map:PCOST, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-cost] 저장 실패', e.code||e); alert('원가 저장 실패: '+(e.code||e.message||e)); } }
+function unitCost(p){ const k=pKey(p); return (k in PCOST)?PCOST[k]:p.cost; }
+function effCost(p){ return isPackage(p)?pkgCost(p):unitCost(p); }
 function effPrice(p,uid){ return isPackage(p)?pkgPrice(p,uid):gp(p,uid); }
 function effVb(p){ return isPackage(p)?pkgVbase(p):effVbase(pKey(p)); }
 /* ── 제품 표시 순서(드래그 재정렬): pKey 배열. ← product-meta/prod-order ── */
@@ -4415,7 +4445,8 @@ function syncAdType(){
   const isSet=$('#adType').value==='세트';
   $('#adSetFld').style.display=isSet?'':'none';
   $('#adCostFld').style.display=isSet?'none':'';      // 매입원가: 세트는 구성 합산 → 숨김
-  $('#adMfgFld').style.display=isSet?'none':'';        // 제조사: 세트는 구성에서 → 숨김
+  $('#adMfgFld').style.display=(isSet||!secAllowed)?'none':'';   // 제조사: 세트는 구성에서 · 마스터 전용
+  if(!secAllowed){ const mi=$('#adMfg'); if(mi)mi.value=''; }     // 권한 없으면 값도 담지 않음
   $('#adAnchorRow').style.display=(!isSet && !AD_EDIT)?'':'none';   // 앵커(업체단가/정가)는 신규 '단품' 등록에서만
   $('#adFootSet').style.display=isSet?'':'none';
   $('#adFootAdd').style.display=(!isSet && !AD_EDIT)?'':'none';
@@ -4439,13 +4470,17 @@ function openEditModal(p){   // 기존 제품 수정: 분류(전체)·원가·�
   if(!p)return; AD_EDIT=p; const c=pcat(p), added=!!p.docId, isPkg=isPackage(p);
   $('#adL1').value=c.l1; $('#adL2').value=c.l2; $('#adL3').value=c.l3;
   $('#adName').value=p.name; $('#adSpec').value=p.spec||'';
-  $('#adCost').value=(p.cost==null?'':p.cost); $('#adMfg').value=p.mfg||''; $('#adType').value=isPkg?'세트':'단품';
+  $('#adCost').value=(p.cost==null?'':p.cost);
+  $('#adMfg').value=secAllowed?(p.mfg||''):'';                       // 제조사는 마스터 전용 — 값도 담지 않음
+  const _mf=$('#adMfgFld'); if(_mf)_mf.style.display=secAllowed?'':'none';
+  $('#adType').value=isPkg?'세트':'단품';
   setRowsFromStr(pkgSetItems(p)||''); renderSetBuilder();
   $('#adName').disabled=true; $('#adSpec').disabled=true;              // 이름·규격은 키라서 여기서 변경 불가
-  $('#adCost').disabled=(!added && !isPkg) ? true : isPkg;             // 원가: 등록상품만 수정, 패키지는 합산(수정불가)
+  $('#adCost').value=(unitCost(p)==null?'':unitCost(p));
+  $('#adCost').disabled=isPkg;                                         // 원가: 모든 단품 수정 가능(공유 저장), 패키지는 합산이라 잠김
   $('#adMfg').disabled=!added; $('#adType').disabled=false;            // 유형(단품↔세트)은 기본 제품도 전환 허용
   $('#adFootAdd').style.display='none'; $('#adFootEdit').style.display='';
-  $('#adStatus').innerHTML=added?'':'<span style="color:var(--ink-faint)">기본 제품이라 분류·유형·구성만 저장됩니다(원가·제조사는 등록상품만).</span>';
+  $('#adStatus').innerHTML=added?'':'<span style="color:var(--ink-faint)">기본 제품입니다 — 분류·유형·구성·<b>매입원가</b>를 저장할 수 있습니다'+(secAllowed?' (제조사는 등록상품만)':'')+'.</span>';
   $('#adTitle').textContent='✏️ 제품 수정 — '+esc(p.name); $('#addSubmit').textContent='저장';
   fillTagLists(); syncAdType(); $('#addOverlay').classList.add('on'); setTimeout(()=>{ const el=$('#adType'); if(el)el.focus(); }, 50);
 }
@@ -4455,7 +4490,9 @@ function openCopyModal(p){
   openAddModal({l1:c.l1,l2:c.l2,l3:c.l3});      // add 모드로 초기화
   $('#adType').value=isSet?'세트':'단품';
   $('#adName').value=(p.name||'')+' 복사'; $('#adSpec').value=p.spec||'';
-  $('#adCost').value=(p.cost==null?'':p.cost); $('#adMfg').value=p.mfg||'';
+  $('#adCost').value=(p.cost==null?'':p.cost);
+  $('#adMfg').value=secAllowed?(p.mfg||''):'';
+  { const _m=$('#adMfgFld'); if(_m)_m.style.display=secAllowed?'':'none'; }
   if(isSet){ setRowsFromStr(pkgSetItems(p)||''); renderSetBuilder(); }
   else{ const rUid=(typeof retailUid==='function')?retailUid():null; const vb=effVbase(pKey(p)); const rt=rUid?gp(p,rUid):null;
     $('#adVbase').value=(vb==null?'':vb); $('#adRetail').value=(rt==null?'':rt); }
@@ -4470,7 +4507,8 @@ async function submitAddProduct(){
   const type=$('#adType').value||'단품';
   const isSet=type==='세트';
   const cost=isSet?null:($('#adCost').value===''?null:+$('#adCost').value);   // 세트 원가는 구성 합산 → 저장 안 함
-  const mfg=isSet?'':($('#adMfg').value||'').trim();                            // 세트 제조사는 구성에서
+  // 세트 제조사는 구성에서 · 마스터가 아니면 제조사를 건드리지 않고 기존 값을 그대로 유지
+  const mfg = isSet ? '' : (secAllowed ? ($('#adMfg').value||'').trim() : ((AD_EDIT&&AD_EDIT.mfg)||''));
   const btn=$('#addSubmit'); btn.disabled=true; const old=btn.textContent; btn.textContent='저장 중…'; $('#adStatus').textContent='';
   try{
     if(AD_EDIT){   // ── 수정 ──
@@ -4479,6 +4517,11 @@ async function submitAddProduct(){
       PTYPE[pKey(AD_EDIT)]=type; await savePtype();                  // 단품↔세트 전환 저장(기본 제품 포함)
       if(type==='세트'){ PKGSET[pKey(AD_EDIT)]=setStr; await savePkgSet(); }
       else if((pKey(AD_EDIT) in PKGSET) || (pkgSetItems(AD_EDIT)||'').trim()){ PKGSET[pKey(AD_EDIT)]=''; await savePkgSet(); }  // 단품 전환 → 구성 제거
+      if(!isPackage(AD_EDIT)){                       // 원가는 기본/등록 제품 모두 공유 문서에 기록
+        const k=pKey(AD_EDIT);
+        if(cost==null) delete PCOST[k]; else PCOST[k]=cost;
+        AD_EDIT.cost=cost; await saveProdCost();
+      }
       if(AD_EDIT.docId){ const patch={mfg,type,updatedAt:new Date().toISOString()};
         if(!isPackage(AD_EDIT)) patch.cost=cost;
         if(mfg && typeof MFG!=='undefined' && !MFG.some(m=>m.name===mfg)){ MFG.push({id:mfgSeq++,name:mfg,mgr:'',tel:'',memo:'(수정 시 자동)'}); persist(); }
@@ -4910,6 +4953,7 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('vendor-prices').get(); if(d.exists&&d.data().map) VBASE=d.data().map; }catch(e){ console.warn('[vendor-prices] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('retail-prices').get(); if(d.exists&&d.data().map) VRETAIL=d.data().map; }catch(e){ console.warn('[retail-prices] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('price-overrides').get(); if(d.exists&&d.data().map) POVR=d.data().map; console.log(`[price-overrides] 직접 조정 ${Object.keys(POVR).length}칸`); }catch(e){ console.warn('[price-overrides] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('prod-cost').get(); if(d.exists&&d.data().map) PCOST=d.data().map; console.log(`[prod-cost] 원가 수정 ${Object.keys(PCOST).length}건`); }catch(e){ console.warn('[prod-cost] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('channel-markup').get(); if(d.exists){ if(d.data().coeff)VCOEFF=d.data().coeff; if(typeof d.data().auto==='boolean')VAUTO=d.data().auto; if(typeof d.data().ladBase==='number'&&d.data().ladBase>0&&d.data().ladBase<1)LAD_BASE=d.data().ladBase; } }catch(e){ console.warn('[channel-markup] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('cat-config').get(); if(d.exists&&Array.isArray(d.data().list)) CATCFG=d.data().list.map(c=>({key:c.key,name:c.name||c.key,l1:c.l1||'',l2:c.l2||''})); }catch(e){ console.warn('[cat-config] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-order').get(); if(d.exists&&Array.isArray(d.data().list)) PORDER=d.data().list; }catch(e){ console.warn('[prod-order] 로드 실패', e.code||e); }
@@ -5156,10 +5200,16 @@ function renderVendorPanel(){
     recalcVendor(); refreshAll();
   };
   $$('.vca').forEach(sel=>sel.addEventListener('change',()=>{ const code=sel.dataset.code; const fInp=box.querySelector(`.vcf[data-code="${code}"]`); const f=sel.value==='manual'?0:(+fInp.value||0); applyCoeff(code,{a:sel.value,f}); }));
-  $$('.vcf').forEach(inp=>inp.addEventListener('change',()=>{ const code=inp.dataset.code; const sel=box.querySelector(`.vca[data-code="${code}"]`); applyCoeff(code,{a:sel.value,f:+inp.value||0}); }));
+  $$('.vcf').forEach(inp=>{
+    inp.addEventListener('change',()=>{ const code=inp.dataset.code; const sel=box.querySelector(`.vca[data-code="${code}"]`); applyCoeff(code,{a:sel.value,f:+inp.value||0}); });
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } });   // 표 셀과 동일하게 Enter 확정
+  });
   const nowChk=$('#coeffNowChk'); if(nowChk)nowChk.addEventListener('change',()=>{ COEFF_NOW=nowChk.checked; if(COEFF_NOW && draftCount()>0){ /* 안내 */ } renderVendorPanel(); });
   const chk=$('#vAutoChk'); if(chk)chk.addEventListener('change',()=>{ VAUTO=chk.checked; saveChannelMarkup(); recalcVendor(); refreshAll(); });
-  const lb=$('#ladBaseInp'); if(lb)lb.addEventListener('change',()=>{ const v=Math.min(99,Math.max(50,+lb.value||81))/100; LAD_BASE=v; saveChannelMarkup(); recalcVendor(); refreshAll(); });
+  const lb=$('#ladBaseInp'); if(lb){
+    lb.addEventListener('change',()=>{ const v=Math.min(99,Math.max(50,+lb.value||81))/100; LAD_BASE=v; saveChannelMarkup(); recalcVendor(); refreshAll(); });
+    lb.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); lb.blur(); } });
+  }
   const imp=$('#btnVendorImport'); if(imp)imp.addEventListener('click',()=>{ const r=draftImport(); PREVIEW=true; recalcVendor(); refreshAll(); alert(`업체단가를 개정안에 반영\n매칭 ${r.matched}개 · 미매칭 ${r.unmatched.length}개\n(실제 적용은 상급자 승인 후)`+(r.unmatched.length?`\n\n미매칭: `+r.unmatched.slice(0,30).join(', '):'')); });
 }
 let PMETA={};                       // product-meta/all: {키:{marketMin,mkts:[],promo:{}}}

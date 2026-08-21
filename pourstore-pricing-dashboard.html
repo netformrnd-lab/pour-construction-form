@@ -1238,6 +1238,16 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
         </div>
         <div class="imp-tablewrap"><table id="impTable"></table></div>
       </div>
+      <div id="impNewBox" style="display:none;margin-top:14px;border:1px solid var(--xl-grid);border-radius:8px;padding:10px 12px;background:#FAFBFC">
+        <div class="imp-tools" style="margin:0 0 8px">
+          <span id="impNewHead" style="font-size:13px;font-weight:700"></span>
+          <span style="margin-left:auto;display:flex;gap:6px">
+            <button type="button" class="tbtn" id="impNewAll" style="padding:3px 10px;font-size:11.5px">전체 선택</button>
+            <button type="button" class="tbtn" id="impNewNone" style="padding:3px 10px;font-size:11.5px">전체 해제</button>
+          </span>
+        </div>
+        <div class="imp-tablewrap" style="max-height:220px"><table id="impNewTable"></table></div>
+      </div>
     </div>
     <div class="imp-foot">
       <span class="footnote" style="margin:0">체크한 항목만 개정안에 반영됩니다 · 실제 적용은 <b>상급자 승인</b> 후</span>
@@ -3930,20 +3940,28 @@ function detectChannelLayout(rows){
   }
   return null;
 }
-/* 채널 단가표 → {키: {name, spec, prices:{CODE:원}}} */
+let IMP_FILE_ROWS=[];   // 파일에서 읽은 품목 원본 [{name,spec,cat,prices}] · 신제품 판별용
+/* 채널 단가표 → {키: {name, spec, cat, prices:{CODE:원}}} · 분류 구분행은 그 아래 품목의 분류로 사용 */
 function sheetToChannelBook(rows, L){
-  const book={};
+  const book={}; IMP_FILE_ROWS=[];
+  let cat='';
+  const firstCh=Math.min(...Object.values(L.cols));
   for(let r=L.headerRow+1;r<rows.length;r++){
     const cells=rows[r]||[];
     const name=String(cells[L.nameCol]==null?'':cells[L.nameCol]).trim();
-    if(!name || /^[■▣▶●]/.test(name)) continue;                    // 분류 구분행 건너뜀
+    // 분류 구분행: 이름칸이 비고 왼쪽 어딘가에 ■/▣ 로 시작하는 제목이 있는 행
+    const head=(cells.slice(0,firstCh).map(v=>String(v==null?'':v).trim()).find(v=>/^[■▣▶●]/.test(v))||'');
+    if(head){ cat=head.replace(/^[■▣▶●]\s*/,'').trim(); continue; }
+    if(!name || /^[■▣▶●]/.test(name)) continue;
     const prices={}; let any=false;
     L.codes.forEach(code=>{ const v=parseWon(cells[L.cols[code]]); if(v!=null){ prices[code]=v; any=true; } });
     if(!any) continue;
     const spec=L.specCols.map(i=>String(cells[i]==null?'':cells[i]).trim()).filter(Boolean).join('');
+    const rec={name,spec,cat:cat||'기타',prices};
+    IMP_FILE_ROWS.push(rec);
     const k=vNorm(name)+vNorm(spec), k2=vNorm(name);
-    if(!(k in book)) book[k]={name,spec,prices};
-    if(!(k2 in book)) book[k2]={name,spec,prices};
+    if(!(k in book)) book[k]=rec;
+    if(!(k2 in book)) book[k2]=rec;
   }
   return book;
 }
@@ -4099,9 +4117,81 @@ function applyImportChannel(sel){
   return {nVb,nRt,nMan};
 }
 
+/* ── 파일에만 있는 품목(신제품) 추리기 ── */
+let IMP_NEW=[];   // [{name,spec,cat,prices,check}]
+function buildImportNew(){
+  IMP_NEW=[];
+  if(IMP_MODE!=='channel') return;
+  const seen=new Set();
+  IMP_FILE_ROWS.forEach(rec=>{
+    const k=vNorm(rec.name)+vNorm(rec.spec);
+    if(seen.has(k)) return; seen.add(k);
+    // 앱에 이미 있는 제품이면 신제품 아님 (삭제된 제품도 있는 것으로 간주 — 휴지통에서 복원 대상)
+    const exists=P.some(p=>{ const nk=vNorm(p.name); return nk===vNorm(rec.name) || (nk+vNorm(p.spec))===k; });
+    if(exists) return;
+    IMP_NEW.push({...rec, check:false});
+  });
+}
+function impNewCount(){ return IMP_NEW.filter(r=>r.check).length; }
+function renderImportNew(){
+  const box=$('#impNewBox'); if(!box) return;
+  if(!IMP_NEW.length){ box.style.display='none'; return; }
+  box.style.display='';
+  const A=impAnchorCodes();
+  const n=impNewCount();
+  $('#impNewHead').innerHTML=`＋ 파일에만 있는 <b>신제품 ${IMP_NEW.length}개</b> — 선택 <b>${n}개</b>`
+    +`<span class="footnote" style="margin-left:8px">· 체크한 품목을 새 제품으로 등록합니다(분류·규격·가격 포함). 가격은 신규라 <b>즉시 반영</b>됩니다.</span>`;
+  let h='<thead><tr><th style="width:34px"></th><th>제품 · 규격</th><th>분류</th>'
+    +`<th class="num">업체단가<div style="font-weight:400;font-size:9.5px">← ${esc(A.dealer)}</div></th>`
+    +`<th class="num">자사몰정가<div style="font-weight:400;font-size:9.5px">← ${esc(A.retail)}</div></th></tr></thead><tbody>`;
+  IMP_NEW.forEach((r,i)=>{
+    h+=`<tr><td style="text-align:center"><input type="checkbox" class="impNewChk" data-i="${i}" ${r.check?'checked':''}></td>
+      <td>${esc(r.name)} <span style="color:var(--ink-faint)">${esc(r.spec||'')}</span></td>
+      <td class="dim">${esc(r.cat||'기타')}</td>
+      <td class="num">${r.prices[A.dealer]!=null?won(r.prices[A.dealer]):'<span class="dim">—</span>'}</td>
+      <td class="num">${r.prices[A.retail]!=null?won(r.prices[A.retail]):'<span class="dim">—</span>'}</td></tr>`;
+  });
+  $('#impNewTable').innerHTML=h+'</tbody>';
+}
+/* 신제품을 공유 원장(products-added)에 등록 + 분류·가격 저장 */
+async function createImportedProducts(list){
+  const A=impAnchorCodes(), rUid=retailUid();
+  let made=0, failed=0;
+  for(const rec of list){
+    const cat=(rec.cat||'기타').trim()||'기타';
+    const name=rec.name.trim(), spec=(rec.spec||'').trim()||'-';
+    const key=`${cat}|${name}|${spec}`;
+    const pr={}; const rt=rec.prices[A.retail];
+    if(rUid && rt>0) pr[rUid]=rt;
+    // 수동 채널(알리바바 등)은 파일 값 그대로
+    IMP_CODES.forEach(code=>{
+      if(code===A.dealer||code===A.retail) return;
+      const c=chByCode(code); if(!c) return;
+      if(coeffFor(c.code).a!=='manual') return;
+      const v=rec.prices[code]; if(v!=null) pr[c.uid]=v;
+    });
+    try{
+      await db.collection('products-added').add({ cat,name,spec,cost:null,pr,mfg:'',concept:'',type:'단품',status:'출시',
+        setItems:'', seq:P.length+made, updatedAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'', source:'단가표 가져오기' });
+      PCAT[key]={l1:'POUR공법',l2:cat,l3:''};
+      PTYPE[key]='단품';
+      const vb=rec.prices[A.dealer]; if(vb>0) VBASE[key]=vb;
+      if(rt>0) VRETAIL[key]=rt;
+      made++;
+    }catch(e){ console.error('[신제품 등록 실패]', name, e.code||e); failed++; }
+  }
+  if(made){ await savePcat(); await savePtype(); await saveVendorPrices(); await saveRetailPrices();
+    logAct('제품추가', `단가표 가져오기 ${made}개`, '파일에만 있던 신제품 일괄 등록'); }
+  return {made, failed};
+}
+
 function impBadge(st){ const m={new:['신규','#EAF3FF','#1976D2'],diff:['변경','#FFF7E6','#AD6800'],same:['동일','#F0F0F0','#777']}; const b=m[st]||m.same; return `<span class="imp-badge" style="background:${b[1]};color:${b[2]}">${b[0]}</span>`; }
 function renderImportTable(){
   const wrap=$('#impResult');
+  renderImportNew();
+  if(!IMP_ROWS.length && IMP_NEW.length){   // 매칭 0건이어도 신제품이 있으면 등록 가능
+    wrap.style.display='none'; $('#impApply').disabled=impNewCount()===0; return;
+  }
   if(!IMP_ROWS.length){ wrap.style.display='none'; $('#impStatus').innerHTML='<span style="color:var(--red)">매칭된 제품이 없습니다. 파일에 제품명과 단가가 함께 있는지 확인하세요.</span>'; $('#impApply').disabled=true; return; }
   wrap.style.display='';
   if(IMP_MODE==='channel'){ renderImportTableChannel(); updateImportCount(); return; }
@@ -4121,11 +4211,12 @@ function renderImportTable(){
 function updateImportCount(){
   const n=IMP_ROWS.filter(r=>r.check).length;
   const nNew=IMP_ROWS.filter(r=>r.check&&r.status==='new').length, nDiff=IMP_ROWS.filter(r=>r.check&&r.status==='diff').length;
-  $('#impCount').textContent=`매칭 ${IMP_ROWS.length}개 · 선택 ${n}개 (신규 ${nNew}·변경 ${nDiff})`;
-  $('#impApply').disabled=(n===0);
+  const nAdd=impNewCount();
+  $('#impCount').textContent=`매칭 ${IMP_ROWS.length}개 · 선택 ${n}개 (신규 ${nNew}·변경 ${nDiff})`+(nAdd?` · 신제품 등록 ${nAdd}개`:'');
+  $('#impApply').disabled=(n===0 && nAdd===0);
   const selectable=IMP_ROWS.filter(r=>r.status!=='same'); $('#impAll').checked=selectable.length>0 && selectable.every(r=>r.check);
 }
-function openImportModal(){ IMP_ROWS=[]; IMP_MODE='vbase'; IMP_CODES=[]; $('#impResult').style.display='none'; $('#impStatus').textContent=''; $('#impFile').value=''; $('#impApply').disabled=true; $('#impAll').checked=false; $('#impOverlay').classList.add('on'); }
+function openImportModal(){ IMP_ROWS=[]; IMP_MODE='vbase'; IMP_CODES=[]; IMP_NEW=[]; IMP_FILE_ROWS=[]; const nb=$('#impNewBox'); if(nb)nb.style.display='none'; $('#impResult').style.display='none'; $('#impStatus').textContent=''; $('#impFile').value=''; $('#impApply').disabled=true; $('#impAll').checked=false; $('#impOverlay').classList.add('on'); }
 function closeImportModal(){ $('#impOverlay').classList.remove('on'); }
 async function handleImportFile(file){
   if(!file) return;
@@ -4133,6 +4224,7 @@ async function handleImportFile(file){
   try{
     const book=await readImportFile(file);
     IMP_ROWS=buildImportRows(book);
+    buildImportNew();
     if(IMP_MODE==='channel'){
       const gap=impLadderGap(), unk=impUnknownCodes();
       let h=`✅ <b>${esc(file.name)}</b> — <b>채널 단가표</b>로 인식 (채널 ${IMP_CODES.length}개: ${IMP_CODES.map(esc).join(' · ')}) · 앱 제품과 <b>${IMP_ROWS.length}개</b> 매칭`;
@@ -4146,11 +4238,19 @@ async function handleImportFile(file){
     renderImportTable();
   }catch(e){ console.error('[import] 실패',e); $('#impStatus').innerHTML='<span style="color:var(--red)">읽기 실패: '+esc(e.message||String(e))+'</span>'; IMP_ROWS=[]; $('#impResult').style.display='none'; $('#impApply').disabled=true; }
 }
-function applyImport(){
+async function applyImport(){
   const sel=IMP_ROWS.filter(r=>r.check);
-  if(!sel.length){ alert('선택된 항목이 없습니다.'); return; }
-  let msg;
-  if(IMP_MODE==='channel'){
+  const add=IMP_NEW.filter(r=>r.check);
+  if(!sel.length && !add.length){ alert('선택된 항목이 없습니다.'); return; }
+  if(add.length && !confirm(`신제품 ${add.length}개를 새로 등록합니다.\n· 공유 원장에 저장되어 모든 계정에 보입니다\n· 잘못 등록해도 휴지통에서 되돌릴 수 있습니다\n\n계속할까요?`)) return;
+  const btn=$('#impApply'), oldTxt=btn.textContent;
+  if(add.length){ btn.disabled=true; btn.textContent=`신제품 등록 중… 0/${add.length}`; }
+  let made={made:0,failed:0};
+  if(add.length){ made=await createImportedProducts(add); }
+  btn.disabled=false; btn.textContent=oldTxt;
+  let msg='';
+  if(!sel.length){ /* 신제품만 등록하는 경우 */ }
+  else if(IMP_MODE==='channel'){
     const n=applyImportChannel(sel);
     msg=`제품 ${sel.length}개를 개정안에 반영했습니다.\n· 업체단가 ${n.nVb}개 · 자사몰정가 ${n.nRt}개`
       +(n.nMan?`\n· 수동 채널 ${n.nMan}칸(알리바바 등)은 즉시 반영`:'')
@@ -4159,7 +4259,10 @@ function applyImport(){
     sel.forEach(r=>{ if(Number(r.price)===Number(VBASE[r.key])) delete DVBASE[r.key]; else DVBASE[r.key]=Number(r.price); });
     msg=`업체단가 ${sel.length}개를 개정안에 반영했습니다.\n(표에 주황색 '개정안' 표시 · 실제 적용은 상급자 승인 후)`;
   }
-  DRAFT_META.status=DRAFT_META.status||'작성중'; PREVIEW=true; saveDraft(); recalcVendor(); refreshAll();
+  if(sel.length){ DRAFT_META.status=DRAFT_META.status||'작성중'; PREVIEW=true; saveDraft(); }
+  recalcVendor(); refreshAll();
+  if(made.made) msg=(sel.length?msg+'\n\n':'')+`신제품 ${made.made}개를 등록했습니다 (가격 즉시 반영).`+(made.failed?`\n※ ${made.failed}개는 등록 실패 — 콘솔을 확인하세요.`:'');
+  else if(!sel.length) msg='반영할 항목이 없습니다.';
   closeImportModal(); alert(msg);
 }
 /* ── 제품 추가 모달 (엑셀식 빠른 등록 → products-added, 앵커는 사다리로 자동) ── */
@@ -4414,6 +4517,9 @@ function wireImportModal(){
   on('impFile','change',e=>handleImportFile(e.target.files&&e.target.files[0]));
   on('impOverlay','click',e=>{ if(e.target.id==='impOverlay')closeImportModal(); });
   on('impAll','change',e=>{ const v=e.target.checked; IMP_ROWS.forEach(r=>{ if(r.status!=='same')r.check=v; }); renderImportTable(); });
+  on('impNewAll','click',()=>{ IMP_NEW.forEach(r=>r.check=true); renderImportNew(); updateImportCount(); });
+  on('impNewNone','click',()=>{ IMP_NEW.forEach(r=>r.check=false); renderImportNew(); updateImportCount(); });
+  on('impNewTable','change',e=>{ const c=e.target.closest('.impNewChk'); if(!c)return; const i=+c.dataset.i; if(IMP_NEW[i]){ IMP_NEW[i].check=c.checked; renderImportNew(); updateImportCount(); } });
   on('impTable','change',e=>{ const c=e.target.closest('.impChk'); if(!c)return; const i=+c.dataset.i; if(IMP_ROWS[i]){ IMP_ROWS[i].check=c.checked; const tr=c.closest('tr'); if(tr)tr.dataset.skip=c.checked?0:1; updateImportCount(); } });
   const dz=$('#impDrop');
   if(dz){

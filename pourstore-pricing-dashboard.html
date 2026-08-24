@@ -475,6 +475,10 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
 #printArea tr.grp td{background:#EAF0F6;font-weight:800;color:#0D1B2A}
 #printArea tbody tr:nth-child(even) td{background:#F7F9FB}
 #printArea .ps-foot{margin-top:12px;font-size:11px;color:#666;line-height:1.6}
+/* 개정안 변경내역 표: .grid 의 헤더 sticky 기준(--toolh)이 작은 스크롤 박스에선
+   헤더를 아래로 밀어버리므로 이 표에서만 상단에 고정 */
+#draftDetails table.grid thead th{top:0}
+#draftDetails table.grid{font-size:12px}
 #psChanBox{border:1px solid var(--xl-grid);border-radius:6px;padding:8px 10px;max-height:146px;overflow:auto;background:#fff;
   display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:6px 12px}
 #psChanBox label{display:flex;gap:6px;align-items:center;font-size:12.5px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2531,12 +2535,14 @@ function renderGrid(){
       const c=pc.c, pr=effPrice(p,c.uid), m=(pr==null||pcost==null)?null:pr-pcost;
       const isAnchor = c.uid===rUid;   // 자사몰정가는 항상 수동 앵커 → 규칙과 무관하게 편집 허용
       const editable=!pkg && (isAnchor || coeffFor(c.code).a==='manual');   // 패키지·사다리 채널은 잠금
+      const rtDraft=!pkg && isAnchor && PREVIEW && (pKey(p) in DRETAIL);   // 자사몰정가 개정안 표시
       const est=!pkg && isEst(p,c.uid);   // 정가 기반 추정값 → 확정가와 구분
       const ovr=!pkg && hasOvr(p,c.uid), ovrD=!pkg && isOvrDraft(p,c.uid);
       const cls=['num']; if(editable)cls.push('editable'); else if(pkg)cls.push('pkglock'); else cls.push('autolock'); if(m!=null&&m<0)cls.push('neg','warn'); if(est)cls.push('estcell'); if(ovr)cls.push('ovrcell');
       let disp = (editable && pr==null) ? '<span class="edithint">＋ 입력</span>' : cellDisplay(p,c.uid);
       if(est) disp+='<span class="estbadge">추정</span>';
       if(ovr) disp+=`<span class="ovrbadge"${ovrD?' style="color:var(--amber)"':''}>✎${ovrD?' 개정안':''}</span>`;
+      if(rtDraft) disp+='<span class="mrate" style="color:var(--amber);font-weight:700">개정안</span>';
       const tt = est?'정가 기준 추정값입니다 — 실제 값을 입력하면 대체됩니다'
                : ovr?'직접 조정된 단가입니다 — 더블클릭해 수정·해제'
                : (!pkg&&!editable)?'더블클릭하면 이 제품만 단가를 직접 조정할 수 있습니다':'';
@@ -2545,7 +2551,16 @@ function renderGrid(){
     html+=`<tr data-id="${p.id}" data-key="${esc(pKey(p))}" data-cat="${esc(p.cat)}">
       <td class="frz frz-no dim">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span>`:''}${no}</td>
       <td class="frz frz-name name">${esc(p.name)}${costAllowed?` <button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button>`:''}</td>
-      <td class="frz frz-spec dim${lastFrz==='spec'?' frz-edge':''}">${esc(p.spec)}${pkg?` <span style="color:var(--xl-green-dark);font-size:10.5px;font-weight:600">📦구성 ${pkgComps(p).length}종</span>`:''}</td>
+      <td class="frz frz-spec dim${lastFrz==='spec'?' frz-edge':''}">${esc(p.spec)}${pkg?(()=>{
+        /* 세트는 값이 전부 비어 있으면 이유를 행에서 바로 알 수 있게 표시한다
+           (예전에는 더블클릭해야 안내가 떠서 '고장난 줄' 알기 쉬웠다) */
+        const comps=pkgComps(p), declared=parseSetItems(pkgSetItems(p)||'').length;
+        if(!comps.length) return ` <span style="color:var(--red);font-size:10.5px;font-weight:700" title="구성 단품을 찾지 못했습니다 — ✏️ 제품 수정에서 구성을 지정하세요">📦구성 없음</span>`;
+        const empty = pkgVbase(p)==null && COLS().every(c=>effPrice(p,c.uid)==null);
+        const miss = declared>comps.length ? ` <span style="color:var(--red);font-size:10px;font-weight:700" title="구성에 적힌 이름과 일치하는 제품을 못 찾았습니다">·${declared-comps.length}개 미매칭</span>` : '';
+        return ` <span style="color:var(--xl-green-dark);font-size:10.5px;font-weight:600">📦구성 ${comps.length}종</span>${miss}`
+          + (empty?` <span style="color:#B45309;font-size:10px;font-weight:700" title="구성 단품(${comps.map(c=>c.prod.name).join(', ')})에 업체단가·정가가 없어 합산할 값이 없습니다">값없음 · 구성단품 입력필요</span>`:'');
+      })():''}</td>
       ${showSup?`<td class="frz frz-sup dim${lastFrz==='sup'?' frz-edge':''}" title="${unlocked?esc(p.mgr||''):''}">${unlocked?esc(p.sup||'—'):'🔒'}</td>`:''}
       ${showCost?`<td class="frz frz-cost num cost${lastFrz==='cost'?' frz-edge':''}" title="${pkg?'구성 단품 원가 합':"원가는 '제품 수정'에서"}">${won(pcost)}${pkg?'<span class="mrate">합산</span>':''}</td>`:''}
       ${tdPrice}
@@ -2686,9 +2701,15 @@ $('#btnReset').addEventListener('click',()=>{
 $('#btnCsv').addEventListener('click',()=>{
   const cols=COLS(), rUid=retailUid();
   const head=['분류','제품명','규격',...(unlocked?['공급업체','담당자']:[]),...(costAllowed?['매입원가']:[]),...cols.map(c=>`[${c.code}] ${c.name}`),...(costAllowed?['정가 마진액','정가 마진율(%)']:[])];
-  const rows=P.map(p=>{
-    const m=margin(gp(p,rUid),p.cost), r=mrate(gp(p,rUid),p.cost);
-    return [p.cat,p.name,p.spec,...(unlocked?[p.sup||'',p.mgr||'']:[]),...(costAllowed?[p.cost??'']:[]),...cols.map(c=>gp(p,c.uid)??''),...(costAllowed?[m??'',r!=null?(r*100).toFixed(2):'']:[])];
+  /* 화면과 같은 값·같은 순서로 내보낸다.
+     · 휴지통(소프트 삭제) 제품은 제외 — 표에 없는 행이 파일에만 나오던 문제
+     · effCost/effPrice 사용 — 세트(패키지)는 구성 단품 합산, 원가 수정분(PCOST)도 반영
+       (예전엔 p.cost/gp() 를 써서 세트 행이 통째로 빈칸이었다) */
+  const list=psOrderedProducts();
+  const rows=list.map(p=>{
+    const cost=effCost(p), rp=effPrice(p,rUid);
+    const m=margin(rp,cost), r=mrate(rp,cost);
+    return [p.cat,p.name,p.spec,...(unlocked?[p.sup||'',p.mgr||'']:[]),...(costAllowed?[cost??'']:[]),...cols.map(c=>effPrice(p,c.uid)??''),...(costAllowed?[m??'',r!=null?(r*100).toFixed(2):'']:[])];
   });
   const csv='\uFEFF'+[head,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');
@@ -5137,7 +5158,8 @@ function renderViewChrome(){
     else{
       ctl.style.display='inline-flex';
       const bs='background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:4px;padding:5px 10px;font-size:11.5px';
-      if(VIEW_AS){ ctl.innerHTML=`<button id="btnViewExit" style="${bs};background:#B45309;font-weight:700">✖ 원래 화면으로</button>`; }
+      // 미리보기 중에는 현재 모드만 표시 — 나가기 버튼은 아래 노란 배너에 하나만 둔다(중복 제거)
+      if(VIEW_AS){ ctl.innerHTML=`<span style="${bs};background:#B45309;font-weight:700;display:inline-block">👁 ${VIEW_AS==='submaster'?'부마스터':'팀원'} 보기 중</span>`; }
       else{
         const isMasterReal=_masterListLc().includes(_emailLc());
         let h=`<button data-va="general" title="일반 팀원에게 보이는 화면" style="${bs}">👁 팀원 보기</button>`;
@@ -5157,6 +5179,33 @@ function renderViewChrome(){
   else { ban.style.display='none'; ban.innerHTML=''; }
 }
 /* ── 가격정책표 상단 개정안 배너 ── */
+/* 개정안에 담긴 변경 내역을 사람이 읽는 목록으로 — 승인자가 무엇을 승인하는지 보이게 */
+function draftChangeList(){
+  const items=[];
+  const nameOf=k=>{ const p=P.find(x=>pKey(x)===k); return p?`${p.name}${p.spec?' ('+p.spec+')':''}`:k.split('|').slice(1).join(' '); };
+  Object.entries(DVBASE).forEach(([k,v])=>items.push({t:'업체단가', n:nameOf(k), from:VBASE[k], to:v}));
+  Object.entries(DRETAIL).forEach(([k,v])=>items.push({t:'자사몰정가', n:nameOf(k), from:VRETAIL[k], to:v}));
+  Object.entries(DPOVR).forEach(([k,v])=>{ const i=k.lastIndexOf('|'), pk=k.slice(0,i), uid=k.slice(i+1);
+    const c=chByUid(uid); items.push({t:(c?c.name:uid)+' 직접조정', n:nameOf(pk), from:POVR[k], to:v}); });
+  Object.entries(DCOEFF).forEach(([code,o])=>{ const c=chByCode(code); const cur=VCOEFF[code]||VCOEFF_DEFAULT[code]||{a:'manual',f:0};
+    const fmt=x=>x.a==='ladder'?`업체단가~정가 ${+x.f||0}%`:x.a==='vbase'?`업체단가 ${(+x.f||0)>=0?'+':''}${+x.f||0}%`:x.a==='retail'?`정가 ×${+x.f||0}%`:'수동';
+    items.push({t:'채널 계산규칙', n:(c?`[${c.code}] ${c.name}`:code), from:fmt(cur), to:fmt(o), txt:true}); });
+  return items;
+}
+function draftChangeHtml(){
+  const items=draftChangeList(); if(!items.length) return '';
+  const cell=(v,txt)=> v==null||v===''? '<span class="dim">—</span>' : (txt? esc(String(v)) : won(v));
+  const rows=items.slice(0,80).map(it=>`<tr><td class="dim" style="white-space:nowrap">${esc(it.t)}</td><td>${esc(it.n)}</td>
+    <td class="num dim">${cell(it.from,it.txt)}</td><td class="num" style="font-weight:700">${cell(it.to,it.txt)}</td></tr>`).join('');
+  return `<details id="draftDetails" style="flex:1 0 100%;margin-top:8px">
+    <summary style="cursor:pointer;font-size:12px;font-weight:700;color:#1E40AF">변경 내역 ${items.length}건 보기</summary>
+    <div class="imp-tablewrap" style="max-height:210px;margin-top:6px"><table class="grid" style="width:100%">
+      <thead><tr><th style="width:104px">항목</th><th>대상</th><th class="num" style="width:96px">현재</th><th class="num" style="width:96px">변경</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+    ${items.length>80?'<p class="footnote" style="margin:4px 0 0">· 80건까지만 표시합니다.</p>':''}
+  </details>`;
+}
+
 function renderPricingBanner(){
   const box=$('#pricingBanner'); if(!box) return;
   const dc=draftCount();
@@ -5168,6 +5217,7 @@ function renderPricingBanner(){
       <b style="color:#B45309">🔔 승인 대기 개정안 · 변경 ${dc}건</b>
       <span class="footnote">제안: ${esc(DRAFT_META.by||'-')}${DRAFT_META.note?' · "'+esc(DRAFT_META.note)+'"':''}</span> ${preBtn}
       ${isApprover()?`<button class="tbtn primary" id="btnDraftApprove">✔ 승인·적용</button><button class="tbtn" id="btnDraftReject" style="color:var(--red)">✖ 반려</button>`:`<span class="pill a">상급자 승인 대기 중</span>`}
+      ${draftChangeHtml()}
     </div>`;
   }else{
     box.innerHTML=`<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px 14px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -5176,6 +5226,7 @@ function renderPricingBanner(){
       <input id="draftNote" placeholder="변경 사유(선택)" style="border:1px solid var(--border);border-radius:5px;padding:5px 9px;font-size:12px;min-width:150px">
       <button class="tbtn primary" id="btnDraftSubmit">📤 상급자 승인요청</button>
       <button class="tbtn" id="btnDraftDiscard" style="color:var(--red)">취소</button>
+      ${draftChangeHtml()}
     </div>`;
   }
   const on=(id,fn)=>{const el=$('#'+id);if(el)el.addEventListener('click',fn);};

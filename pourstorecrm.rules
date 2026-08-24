@@ -1,30 +1,351 @@
+// 🔒 POUR스토어 CRM Firestore 보안 규칙
+//
+// 원칙
+// - CRM 사용자(admin/staff/viewer): 모든 데이터 읽기/쓰기 (기존 모델 유지)
+// - 대리점(role=dealer): CRM 데이터 접근 차단. 오직 "본인 발주(dealer_orders)"만
+//   생성/조회 가능. 역할 확인용 users 문서만 읽기 허용.
+// - 고객용 공개 페이지가 접근하는 컬렉션은 미인증도 일부 허용 (기존과 동일)
+//
+// 공개 페이지
+// - /quote/:id     → public_quotes (읽기)
+// - /form/:id      → public_forms / public_submissions (제출)
+// - /public/sales  → products / shipments / legacy_shipments / manual_sales / sales_records (읽기)
+//
+// ─────────────────────────────────────────────────────────────
+// 📌 2026-08 변경분 (가격대시보드 연동)
+//   1) price-book 컬렉션 추가 — 가격대시보드(pourstoreproject)가 승인된 단가를
+//      밀어 넣는 곳. 대시보드는 CRM 프로젝트에 로그인하지 않으므로(별도 프로젝트)
+//      inbound_requests 와 동일하게 "미인증 + 필드 화이트리스트" 방식으로 허용.
+//   2) inbound_requests 타입 검증 소폭 강화 (qty/eta/문자열 길이)
+//   ※ 그 외 기존 규칙은 손대지 않았습니다.
+// ─────────────────────────────────────────────────────────────
+
 rules_version = '2';
-// ══════════════════════════════════════════════════════════════
-// POUR스토어 CRM (프로젝트: pourstorecrm) — 가격대시보드 연동분 규칙
-//
-// ⚠ 이 파일은 CRM 프로젝트에서 "가격대시보드가 쓰는 컬렉션"만 정의한 조각입니다.
-//    CRM 에 이미 다른 규칙이 있다면 통째로 덮지 말고, 아래 match 블록만
-//    기존 `match /databases/{database}/documents { ... }` 안에 붙여 넣으세요.
-//
-// 배포: Firebase 콘솔 → pourstorecrm → Firestore → 규칙 → 붙여넣기 → 게시
-// ══════════════════════════════════════════════════════════════
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── 단가북: 가격대시보드(pourstoreproject)가 승인된 단가를 밀어 넣는 곳 ──
-    //  · 대시보드는 write, CRM 화면은 read 만 하면 됩니다.
-    //  · 담기는 항목: 제품명·규격·분류·기준가(정가)·공급가(정가÷1.1)·플랫폼별 판매가
-    //  · 매입원가·제조사·공급업체·마진은 담기지 않습니다(대시보드에서 원천 차단).
-    match /price-book/{docId} {
-      allow read: if true;
-      allow write: if true;
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 역할 판별 헬퍼 (pour_data/users 문서의 byEmail 매핑 조회)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    function usersExists() {
+      return exists(/databases/$(database)/documents/pour_data/users);
+    }
+    function usersData() {
+      return get(/databases/$(database)/documents/pour_data/users).data;
+    }
+    function myEmail() {
+      return request.auth.token.email;
+    }
+    // 현재 사용자의 역할 (users 문서 없거나 미등록이면 null → 부트스트랩 첫 사용자는 CRM으로 취급)
+    function myRole() {
+      return request.auth != null
+        && usersExists()
+        && 'byEmail' in usersData()
+        && (myEmail() in usersData().byEmail)
+        ? usersData().byEmail[myEmail()].role
+        : null;
+    }
+    function isDealer() {
+      return request.auth != null && myRole() == 'dealer';
+    }
+    // 🏭 본사 1층 창고 앱 전용 계정
+    function isWarehouse() {
+      return request.auth != null && myRole() == 'warehouse';
+    }
+    // CRM 사용자 = 로그인했고 대리점/창고 역할이 아님 (admin/staff/viewer, 부트스트랩 첫 사용자 포함)
+    function isCrm() {
+      return request.auth != null && myRole() != 'dealer' && myRole() != 'warehouse';
     }
 
-    // ── 입고예정 요청: 대시보드 → CRM (이미 사용 중) ──
-    match /inbound_requests/{docId} {
-      allow read: if true;
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 💰 가격대시보드 → CRM 단가북 검증 헬퍼
+    //   대시보드는 pourstoreproject 소속이라 이 프로젝트에는 로그인하지 않는다.
+    //   따라서 "누가" 대신 "무엇을" 검사한다 — 허용 필드 밖은 한 글자도 못 들어온다.
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    function pb() { return request.resource.data; }
+    function pbNum(f) {              // 숫자이거나 null 이어야 함
+      return !(f in pb()) || pb()[f] == null || pb()[f] is number;
+    }
+    // 제품 1건 문서
+    function isPriceBookItem() {
+      return pb().src == 'price-dashboard'
+        && pb().keys().hasOnly([
+             'key','name','spec','cat','group','base','supply','isSet','prices','updatedAt','src'
+           ])
+        && pb().name is string  && pb().name.size()  <= 200
+        && pb().key  is string  && pb().key.size()   <= 400
+        && pbNum('base') && pbNum('supply')
+        && pb().prices is map && pb().prices.size() <= 40
+        && pb().updatedAt is string;
+    }
+    // 동기화 메타 문서(_meta)
+    function isPriceBookMeta() {
+      return pb().src == 'price-dashboard'
+        && pb().keys().hasOnly(['updatedAt','updatedBy','productCount','platforms','map','src'])
+        && pb().productCount is int
+        && pb().platforms is list && pb().platforms.size() <= 60
+        && pb().updatedAt is string;
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 기본: CRM 사용자만 (대리점은 차단)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    match /{document=**} {
+      allow read, write: if isCrm();
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 💰 단가북 — 가격대시보드가 1차 관리, CRM은 읽어서 참조
+    //   · 담기는 항목: 제품명·규격·분류·기준가(정가)·공급가(정가÷1.1)·플랫폼별 판매가
+    //   · 매입원가·제조사·공급업체·마진은 담기지 않는다 (대시보드에서 원천 차단 +
+    //     위 hasOnly 화이트리스트로 서버에서도 차단)
+    //   · 읽기는 CRM만 — 채널별 공급단가는 대외비라 대리점·창고·미인증에 열지 않는다.
+    //     (대리점 앱에 노출이 필요하면 안전 필드만 담은 공개 미러를 따로 만들 것)
+    //   · 삭제는 CRM만. 대시보드는 덮어쓰기(set)만 한다.
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    match /price-book/{docId} {
+      allow read: if isCrm();
+      allow create, update: if isCrm()
+        || (docId == '_meta' ? isPriceBookMeta() : isPriceBookItem());
+      allow delete: if isCrm();
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 🏪 대리점 발주 — 대리점별 데이터 격리
+    //   - 대리점: 본인(dealerEmail==내이메일) 발주만 생성/조회. 수정·삭제 불가.
+    //   - CRM: 전체 조회 + 상태 변경(수정) + 삭제
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    match /dealer_orders/{docId} {
+      allow read:   if isCrm() || (isDealer() && resource.data.dealerEmail == myEmail());
+      allow create: if isCrm() || (isDealer() && request.resource.data.dealerEmail == myEmail());
+      // 대리점: 본인 발주의 '견적 수락' 필드만 갱신 가능 (그 외 수정·삭제는 CRM)
+      allow update: if isCrm() || (isDealer()
+        && resource.data.dealerEmail == myEmail()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quoteAccepted', 'quoteAcceptedAt']));
+      allow delete: if isCrm();
+    }
+
+    // 💬 대리점 문의 — 대리점별 격리 (본인 생성/조회, CRM 전체+답변)
+    match /dealer_inquiries/{docId} {
+      allow read:   if isCrm() || (isDealer() && resource.data.dealerEmail == myEmail());
+      allow create: if isCrm() || (isDealer() && request.resource.data.dealerEmail == myEmail());
+      allow update, delete: if isCrm();
+    }
+
+    // 🏪 대리점 프로필(발주처 사업자 목록) — docId = 이메일
+    //   - 대리점: 본인 프로필만 읽기/쓰기(자기 사업자 등록) · CRM: 전체 조회
+    match /dealer_profiles/{docId} {
+      allow read:          if isCrm() || (isDealer() && docId == myEmail());
+      allow create, update: if isCrm() || (isDealer() && docId == myEmail() && request.resource.data.dealerEmail == myEmail());
+      allow delete:        if isCrm();
+    }
+
+    // 🗓️ 대리점 개인 일정 — docId = 이메일. 본인만 읽기/쓰기, CRM 읽기
+    match /dealer_schedules/{docId} {
+      allow read:           if isCrm() || (request.auth != null && docId == myEmail());
+      allow create, update: if (request.auth != null && docId == myEmail() && request.resource.data.email == myEmail());
+      allow delete:         if isCrm();
+    }
+
+    // 🔔 웹 푸시 토큰 — docId = 이메일. 본인(대리점/CRM)만 자기 토큰 저장, CRM 읽기
+    //   functions(admin)는 규칙 우회하여 발송 시 조회
+    match /dealer_push_tokens/{docId} {
+      allow read:           if isCrm();
+      allow create, update: if (request.auth != null && docId == myEmail() && request.resource.data.email == myEmail());
+      allow delete:         if isCrm();
+    }
+
+    // 💬 대리점 1:1 채팅 — docId = 이메일 (dealer_profiles와 동일 격리)
+    //   - 대리점: 본인 스레드만 읽기/쓰기(메시지 append) · CRM: 전체 읽기/쓰기(답장)
+    match /dealer_chats/{docId} {
+      allow read:          if isCrm() || (isDealer() && docId == myEmail());
+      allow create, update: if isCrm() || (isDealer() && docId == myEmail() && request.resource.data.dealerEmail == myEmail());
+      allow delete:        if isCrm();
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 🏗️ 시공의뢰 인앱 전달 — 파트너별 데이터 격리
+    //   - CRM: 생성(앱 전송) + 전체 조회 + 상태 변경 + 삭제
+    //   - 파트너(dealer): 본인(partnerEmail==내이메일) 시공의뢰만 조회 + 상태 변경(수락/진행/완료)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    match /construction_requests/{docId} {
+      allow read:   if isCrm() || (isDealer() && resource.data.partnerEmail == myEmail());
+      // CRM은 전체 생성. 대리점은 본인 '자체수주(계약관리)' 건만 생성 가능(source=="self").
+      allow create: if isCrm() || (isDealer() && request.resource.data.partnerEmail == myEmail() && request.resource.data.source == "self");
+      allow update: if isCrm() || (isDealer() && resource.data.partnerEmail == myEmail());
+      // 대리점은 본인 자체수주 건만 삭제 가능(CRM 수주건은 CRM만 삭제)
+      allow delete: if isCrm() || (isDealer() && resource.data.partnerEmail == myEmail() && resource.data.source == "self");
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 🧮 파트너 견적 — 파트너별 데이터 격리 (본인 것만 생성/조회/수정/삭제)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    match /partner_quotes/{docId} {
+      allow read:          if isCrm() || (isDealer() && resource.data.partnerEmail == myEmail());
+      allow create:        if isCrm() || (isDealer() && request.resource.data.partnerEmail == myEmail());
+      allow update, delete: if isCrm() || (isDealer() && resource.data.partnerEmail == myEmail());
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 🏭 본사 1층 창고 앱 (role=warehouse) — 최소 권한
+    //   - 읽기: 재고 계산에 필요한 문서만
+    //   - 쓰기: pour_data/inventory 의 movements(출고 기록) 추가만 허용
+    //           (기록 삭제·임계값·baseline 변경 불가)
+    //   - 그 외 CRM 데이터는 최상단 isCrm() 규칙에서 차단됨
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    match /pour_data/{whDocId} {
+      allow read: if isWarehouse() && whDocId in [
+        'products', 'inventory', 'inventory_only_items', 'shipments', 'warehouse_config'
+      ];
+      allow update: if isWarehouse()
+        && whDocId == 'inventory'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['movements', 'updatedAt'])
+        && (!('movements' in resource.data)
+            || request.resource.data.movements.size() >= resource.data.movements.size());
+    }
+
+    // 👥 사용자 역할 매핑 — 모든 로그인 사용자가 읽기 가능(본인 역할 확인용).
+    //    쓰기는 CRM만 (대리점은 역할 변경 불가). 부트스트랩 첫 사용자는 isCrm()=true.
+    match /pour_data/users {
+      allow read:  if request.auth != null;
+      allow write: if isCrm();
+    }
+
+    // 📚 대리점 교육자료 — 로그인 사용자(대리점 포함) 읽기, 쓰기는 CRM만
+    match /pour_data/dealer_education {
+      allow read:  if request.auth != null;
+      allow write: if isCrm();
+    }
+
+    // 📚 공법교육 미디어(공법별 영상·자료) — 로그인 읽기, CRM 쓰기
+    match /pour_data/method_media {
+      allow read:  if request.auth != null;
+      allow write: if isCrm();
+    }
+
+    // 📁 자료실(시방서·제안서·시공가이드·시험성적서·MSDS) — 로그인 읽기, CRM 쓰기
+    match /pour_data/resources {
+      allow read:  if request.auth != null;
+      allow write: if isCrm();
+    }
+
+    // 🏗️ 시공사례(추천 사례) — 로그인 읽기(전체 파트너 공유), CRM 쓰기(선정)
+    match /pour_data/showcases {
+      allow read:  if request.auth != null;
+      allow write: if isCrm();
+    }
+
+    // 📰 POUR 뉴스 — 로그인 읽기(대리점 앱 노출), CRM 쓰기(등록·수정)
+    match /pour_data/news {
+      allow read:  if request.auth != null;
+      allow write: if isCrm();
+    }
+
+    // 📺 키오스크 재생목록 — 공개 읽기(매장 태블릿 비로그인), CRM 쓰기
+    match /pour_data/kiosk {
+      allow read:  if true;
+      allow write: if isCrm();
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 공개 페이지용 (미인증/CRM)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    // 견적 방 — CRM 전용
+    match /pour_data/quotes {
+      allow read, write: if isCrm();
+    }
+
+    // 공개 견적서 보기 (/quote/:id) — id 아는 사람만 1건(get). 목록·쓰기는 CRM만.
+    match /public_quotes/{docId} {
+      allow get: if true;
+      allow list, write: if isCrm();
+    }
+
+    // 🔒 공개 폼 제출함 — 고객은 create만, 읽기/수정/삭제는 CRM만
+    match /public_submissions/{docId} {
       allow create: if true;
-      allow update, delete: if false;
+      allow read, update, delete: if isCrm();
+    }
+
+    // 🟢 NPS 설문(/nps) — 고객은 create만, 읽기/수정/삭제는 CRM만
+    match /nps_surveys/{docId} {
+      allow create: if true;
+      allow read, update, delete: if isCrm();
+    }
+
+    // 📨 가격대시보드 → CRM 입고예정 송신 (별도 앱·미인증 create만)
+    //   - 대외비(제조사·원가·고객정보)는 담지 않음. 허용 필드만 화이트리스트로 강제.
+    //   - 읽기/확인처리(update)/삭제는 CRM만 (기본 규칙과 동일).
+    //   - 2026-08: 타입·길이 검증 추가 (qty 숫자, 문자열 길이 상한)
+    match /inbound_requests/{docId} {
+      allow create: if request.resource.data.src == 'price-dashboard'
+        && request.resource.data.keys().hasOnly(['product','qty','eta','place','memo','src','createdAt','createdBy','handled'])
+        && request.resource.data.product is string
+        && request.resource.data.product.size() <= 200
+        && request.resource.data.qty is number
+        && request.resource.data.qty > 0
+        && request.resource.data.eta is string
+        && request.resource.data.handled == false;
+      allow read, update, delete: if isCrm();
+    }
+
+    // 📝 NPS 설문 질문 config — 공개 읽기(고객 설문 페이지 비로그인), CRM 쓰기(질문 편집)
+    match /pour_data/nps_config {
+      allow read:  if true;
+      allow write: if isCrm();
+    }
+
+    // 매출 공개 페이지 (/public/sales) - 읽기 전용 공유 페이지 (미인증 허용)
+    match /pour_data/products         { allow read: if true; }
+    match /pour_data/shipments        { allow read: if true; }
+    match /pour_data/legacy_shipments { allow read: if true; }
+    match /pour_data/manual_sales     { allow read: if true; }
+    match /pour_data/sales_records    { allow read: if true; }
+
+    // 상담 방 — CRM 전용
+    match /pour_data/consultations {
+      allow read, write: if isCrm();
+    }
+
+    // 공개 시공폼 (/form/:id) — id 아는 사람만 1건(get). 목록·쓰기는 CRM만.
+    match /public_forms/{docId} {
+      allow get: if true;
+      allow list, write: if isCrm();
+    }
+
+    // 공급제휴 신청 폼 (공개 랜딩페이지) → dealerApplications
+    // 신청 제출(create)만 공개, 조회/수정/삭제는 CRM만 (기본 규칙)
+    match /dealerApplications/{docId} {
+      allow create: if true;
+    }
+
+    // 🤖 챗봇 봇 상담 (자사몰 POUR닥터 위젯)
+    //  - 고객: create + 자기 상담 get + 후속 답변 이어쓰기(update, 메시지 1건 추가)
+    //  - 목록·삭제는 CRM만. 상담원 답변/상태변경은 CRM.
+    match /pour_chatbot_threads/{docId} {
+      allow create: if true;
+      allow get: if true;
+      allow list, delete: if isCrm();
+      allow update: if isCrm()
+        || (request.resource.data.createdAt == resource.data.createdAt
+            && request.resource.data.messages.size() == resource.data.messages.size() + 1
+            && request.resource.data.messages[request.resource.data.messages.size() - 1].role == 'customer');
+    }
+
+    // 파트너사 모집 신청 폼 (공개 랜딩페이지) → partnerApplications
+    // 신청 제출(create)만 공개 허용, 조회/수정/삭제는 CRM 로그인 사용자만 (기본 규칙 적용)
+    match /partnerApplications/{docId} {
+      allow create: if true;
+    }
+
+    // 🌐 자사몰 대리점 조회 공개 미러 (public_dealers)
+    //  - 공개 읽기(자사몰 페이지), 쓰기는 CRM 로그인 사용자만
+    //  - 안전 정보만 담김 (매장명·지역·주소·연락처·영업시간·시공가능·사진)
+    match /public_dealers/{docId} {
+      allow read: if true;
+      allow write: if isCrm();
     }
   }
 }

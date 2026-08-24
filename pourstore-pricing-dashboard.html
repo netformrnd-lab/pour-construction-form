@@ -52,9 +52,10 @@ input,select{font-family:inherit;font-size:13px}
   font-family:var(--mono);font-style:italic;font-weight:700;
 }
 #fxbar .cellref{
-  width:120px;display:flex;align-items:center;padding:0 10px;
+  /* 120px 고정이라 긴 제품명이 잘렸다 → 내용에 맞춰 늘리되 상한만 둔다(넘치면 … + 툴팁) */
+  flex:0 1 auto;min-width:120px;max-width:44%;display:flex;align-items:center;padding:0 10px;
   border-right:1px solid var(--xl-grid);color:var(--xl-green-dark);font-weight:600;
-  white-space:nowrap;overflow:hidden;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 #fxbar .expr{
   flex:1;display:flex;align-items:center;padding:0 12px;
@@ -152,8 +153,10 @@ td.cost{background:#FFF8E7}
 .edithint{color:var(--xl-green-dark);font-size:10.5px;font-weight:700;opacity:.55;border:1px dashed var(--xl-green);border-radius:4px;padding:0 5px}
 td.editable:hover .edithint{opacity:1}
 td.pkglock,td.autolock{cursor:not-allowed}
-#gridToast{position:fixed;left:50%;bottom:74px;transform:translateX(-50%);background:#0D1B2A;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .2s;z-index:4000;max-width:90vw;text-align:center;line-height:1.5}
-#gridToast.show{opacity:1}
+/* 하단 탭바 바로 위에 붙여 표를 덜 가리고, 눌러서 바로 닫을 수 있게 한다 */
+#gridToast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:#0D1B2A;color:#fff;padding:8px 16px;border-radius:9px;font-size:12.5px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .18s;z-index:4000;max-width:min(560px,92vw);text-align:center;line-height:1.45;cursor:pointer}
+#gridToast.show{opacity:1;pointer-events:auto}
+#gridToast::after{content:'  ✕';opacity:.55;font-weight:400}
 td.editable{cursor:cell}
 td.editable:hover{outline:1.5px solid var(--xl-green);outline-offset:-1.5px}
 td.selcell{outline:2px solid var(--xl-green);outline-offset:-2px;background:var(--xl-sel)!important}
@@ -1578,7 +1581,8 @@ async function fetchConfig(){
 /* Firestore 로드본을 앱 자료구조로 변환 */
 function applyLoaded(channels, products, config){
   CH_DEF = channels;
-  RAW = products.map(p=>({cat:p.cat,name:p.name,spec:p.spec,cost:p.cost,pr:p.pr||{}}));
+  // setItems·type 을 버리면 products 에 정의한 세트가 '구성 0종' 으로 조용히 비어 버린다(죽은 코드였음)
+  RAW = products.map(p=>({cat:p.cat,name:p.name,spec:p.spec,cost:p.cost,pr:p.pr||{},setItems:p.setItems||'',ptype:p.type||p.ptype||''}));
   if(config){
     SEC_BLOB = (config.secure&&config.secure.blob)||'';
     if(config.calc){
@@ -2316,6 +2320,7 @@ function renderChMan(){
 /* 채널 셀 편집 / 상태·역할·가격열 변경 / 삭제 */
 document.addEventListener('dblclick',e=>{
   const td=e.target.closest('#chGroups td.editable'); if(!td||td.querySelector('input'))return;
+  clearDblSel();
   const c=chByUid(td.closest('tr').dataset.uid), f=td.dataset.cf;
   const isNum=f==='tgt';
   td.innerHTML=`<input class="cellinput" style="text-align:${isNum?'right':'left'}" type="${isNum?'number':'text'}" value="${esc(c[f]==null?'':c[f])}">`;
@@ -2647,8 +2652,12 @@ document.addEventListener('click',e=>{
     }
   }
 });
+/* 더블클릭은 편집을 여는 동작이라 브라우저 기본 '단어 선택'(파란 하이라이트)이 남는다.
+   평소 드래그 선택·복사는 그대로 두고, 편집을 열 때만 선택을 지운다. */
+const clearDblSel=()=>{ const sel=window.getSelection&&window.getSelection(); if(sel&&sel.removeAllRanges) sel.removeAllRanges(); };
 document.addEventListener('dblclick',e=>{
   const td=e.target.closest('#priceGrid td.editable'); if(!td||td.querySelector('input'))return;
+  clearDblSel();
   const p=P[+td.dataset.id], f=td.dataset.f;
   const cur=f==='cost'?p.cost:(f==='vbase'?effVbase(pKey(p)):gp(p,f.slice(1)));
   td.innerHTML=`<input class="cellinput" type="number" value="${cur==null?'':cur}">`;
@@ -2669,11 +2678,15 @@ document.addEventListener('dblclick',e=>{
 /* 잠긴 가격 셀(세트 합산·자동계산 채널)을 더블클릭하면 왜 안 되는지 안내 */
 let _toastTimer=null;
 function gridToast(msg){
-  let t=$('#gridToast'); if(!t){ t=document.createElement('div'); t.id='gridToast'; document.body.appendChild(t); }
-  t.textContent=msg; t.classList.add('show'); clearTimeout(_toastTimer); _toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+  let t=$('#gridToast');
+  if(!t){ t=document.createElement('div'); t.id='gridToast'; document.body.appendChild(t);
+    t.addEventListener('click',()=>{ t.classList.remove('show'); clearTimeout(_toastTimer); });   // 눌러서 즉시 닫기
+    t.title='눌러서 닫기'; }
+  t.textContent=msg; t.classList.add('show'); clearTimeout(_toastTimer); _toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
 }
 document.addEventListener('dblclick',e=>{
   const td=e.target.closest('#priceGrid td'); if(!td || td.classList.contains('editable') || td.querySelector('input')) return;
+  clearDblSel();
   if(td.classList.contains('pkglock')){ gridToast('세트 가격은 구성 단품에서 자동 합산됩니다 — 구성 단품(단품 행)의 업체단가·정가를 수정하세요.'); return; }
   if(td.classList.contains('autolock')){
     // 자동계산 채널이라도 이 제품만 직접 조정할 수 있게 — 앞뒤 채널을 보며 입력(가격 역전 방지)
@@ -2695,7 +2708,8 @@ $('#btnReset').addEventListener('click',()=>{
   if(!confirm('편집한 값·채널 설정을 모두 버리고 원본 데이터로 복원할까요? (보안 편집분·변경한 비밀번호도 초기화되고 다시 잠깁니다)'))return;
   localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_SEC); localStorage.removeItem(LS_BASE);
   CHANNELS=CH_DEF.map(c=>({...c})); uidSeq=100; CHORD=[];
-  P=RAW.map((r,i)=>({id:i,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:{...r.pr},sup:'',mgr:'',mfg:'',added:false}));
+  P=RAW.map((r,i)=>({id:i,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:{...r.pr},sup:'',mgr:'',mfg:'',added:false,
+    setItems:r.setItems||'', ptype:r.ptype||''}));
   fillProductSelects(); plState=null; lock();
 });
 $('#btnCsv').addEventListener('click',()=>{
@@ -5431,7 +5445,8 @@ function buildState(){                        // Firestore 로드본으로 앱 �
     .concat(CHCUSTOM.filter(c=>c&&c.uid&&!CH_DEF.some(d=>d.uid===c.uid)).map(c=>({...c})));
   uidSeq=CHANNELS.reduce((m,c)=>{ const n=+String(c.uid).replace(/^c/,''); return isFinite(n)?Math.max(m,n):m; },100);
   CHORD=[];
-  P=RAW.map((r,i)=>({id:i,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:{...r.pr},sup:'',mgr:'',mfg:'',added:false}));
+  P=RAW.map((r,i)=>({id:i,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:{...r.pr},sup:'',mgr:'',mfg:'',added:false,
+    setItems:r.setItems||'', ptype:r.ptype||''}));   // products 에 정의된 세트 구성 유지
   BASE_N=P.length;
   loadSaved();                                // localStorage 편집 오버레이 적용
 }
@@ -5464,7 +5479,7 @@ function startLiveSync(){
   }, onErr('channels'));
   db.collection('products').onSnapshot(s=>{
     const arr=s.docs.map(d=>d.data()).sort((a,b)=>(a.seq??0)-(b.seq??0));
-    RAW=arr.map(p=>({cat:p.cat,name:p.name,spec:p.spec,cost:p.cost,pr:p.pr||{}}));
+    RAW=arr.map(p=>({cat:p.cat,name:p.name,spec:p.spec,cost:p.cost,pr:p.pr||{},setItems:p.setItems||'',ptype:p.type||p.ptype||''}));
     scheduleRebuild('products('+s.size+')');
   }, onErr('products'));
   db.collection('config').doc('calc').onSnapshot(d=>{

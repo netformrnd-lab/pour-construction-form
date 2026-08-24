@@ -1,0 +1,30 @@
+rules_version = '2';
+// ══════════════════════════════════════════════════════════════
+// POUR스토어 CRM (프로젝트: pourstorecrm) — 가격대시보드 연동분 규칙
+//
+// ⚠ 이 파일은 CRM 프로젝트에서 "가격대시보드가 쓰는 컬렉션"만 정의한 조각입니다.
+//    CRM 에 이미 다른 규칙이 있다면 통째로 덮지 말고, 아래 match 블록만
+//    기존 `match /databases/{database}/documents { ... }` 안에 붙여 넣으세요.
+//
+// 배포: Firebase 콘솔 → pourstorecrm → Firestore → 규칙 → 붙여넣기 → 게시
+// ══════════════════════════════════════════════════════════════
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── 단가북: 가격대시보드(pourstoreproject)가 승인된 단가를 밀어 넣는 곳 ──
+    //  · 대시보드는 write, CRM 화면은 read 만 하면 됩니다.
+    //  · 담기는 항목: 제품명·규격·분류·기준가(정가)·공급가(정가÷1.1)·플랫폼별 판매가
+    //  · 매입원가·제조사·공급업체·마진은 담기지 않습니다(대시보드에서 원천 차단).
+    match /price-book/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // ── 입고예정 요청: 대시보드 → CRM (이미 사용 중) ──
+    match /inbound_requests/{docId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+  }
+}

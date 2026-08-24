@@ -478,9 +478,10 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
 #printArea tr.grp td{background:#EAF0F6;font-weight:800;color:#0D1B2A}
 #printArea tbody tr:nth-child(even) td{background:#F7F9FB}
 #printArea .ps-foot{margin-top:12px;font-size:11px;color:#666;line-height:1.6}
-/* 개정안 변경내역 표: .grid 의 헤더 sticky 기준(--toolh)이 작은 스크롤 박스에선
-   헤더를 아래로 밀어버리므로 이 표에서만 상단에 고정 */
-#draftDetails table.grid thead th{top:0}
+/* 패널·모달 안의 작은 스크롤 표(.imp-tablewrap)에서는 .grid 의 헤더 sticky 기준(--toolh)이
+   헤더를 컨테이너 한참 아래로 밀어버린다 → 그 안에서는 상단에 고정.
+   (개정안 변경내역·CRM 매핑·가져오기 미리보기·신제품 목록 등 공통) */
+.imp-tablewrap table.grid thead th{top:0}
 #draftDetails table.grid{font-size:12px}
 #psChanBox{border:1px solid var(--xl-grid);border-radius:6px;padding:8px 10px;max-height:146px;overflow:auto;background:#fff;
   display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:6px 12px}
@@ -1136,10 +1137,14 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
   <!-- ── Sheet: 입고예정 CRM 송신 (발주 담당 → CRM 대시보드 글 알림) ── -->
   <section class="sheet" id="sh-inbound">
     <div class="toolrow">
-      <span class="ttl">입고예정 CRM 송신</span>
-      <span class="hint">발주 시 물류담당자가 CRM 대시보드에서 입고예정을 바로 알 수 있게 글 알림을 보냅니다</span>
+      <span class="ttl">CRM 연동</span>
+      <span class="hint">단가는 이 대시보드가 1차 관리 → CRM으로 보내 참조합니다 · 입고예정도 CRM 대시보드에 알립니다</span>
     </div>
     <div class="sheet-pad">
+      <div class="panel">
+        <h3>💰 CRM 단가 동기화 <span class="tag">가격대시보드 → CRM · 단방향</span></h3>
+        <div class="bd"><div id="crmSyncBox"></div></div>
+      </div>
       <div class="panel">
         <h3>📦 입고예정 보내기 <span class="tag">제조사·원가 제외 (대외비)</span></h3>
         <div class="bd">
@@ -1223,7 +1228,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
   <button class="stab" data-grp="price" data-sh="sh-channel"><span class="dot"></span>채널 수익분석</button>
   <button class="stab" data-grp="prod" data-sh="sh-reg"><span class="dot"></span>제품·상품 등록</button>
   <button class="stab" data-grp="prod" data-sh="sh-match"><span class="dot"></span>제품·상품 매칭 <span id="tabLockIcon" style="font-size:10px">🔒</span></button>
-  <button class="stab" data-grp="prod" data-sh="sh-inbound"><span class="dot"></span>입고예정 CRM 송신</button>
+  <button class="stab" data-grp="prod" data-sh="sh-inbound"><span class="dot"></span>CRM 연동 (단가·입고예정)</button>
   <button class="stab" data-grp="prod" data-sh="sh-data"><span class="dot"></span>데이터 관리 · 휴지통</button>
   <button class="stab" data-grp="profit" data-sh="sh-moq"><span class="dot"></span>MOQ 대량판매</button>
   <button class="stab" data-grp="profit" data-sh="sh-pl"><span class="dot"></span>손익·공헌이익</button>
@@ -1766,7 +1771,7 @@ function loadSaved(){                        // buildState() 에서 호출 (Fire
   // 공유 원장(Firestore products-added) — 로컬 유무와 무관하게 항상 append. 중복 제거 + docId 로 등록/수정/삭제 대상 식별.
   { const seen=new Set(P.map(p=>`${p.cat}|${p.name}|${p.spec}`));
     PADD.forEach(r=>{ const k=`${r.cat}|${r.name}|${r.spec}`; if(seen.has(k))return; seen.add(k);
-      P.push({id:P.length,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:r.pr||{},sup:'',mgr:'',mfg:r.mfg||'',added:true,
+      P.push({id:P.length,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:r.pr||{},pr0:{...(r.pr||{})},sup:'',mgr:'',mfg:r.mfg||'',added:true,
         docId:r.docId,concept:r.concept||'',ptype:r.type||'단품',status:r.status||'',setItems:r.setItems||''}); }); }
 }
 function persist(){
@@ -3300,6 +3305,109 @@ function crmDB(){
   }catch(e){ console.error('[crm] 초기화 실패', e.code||e.message||e); return null; }
   return _crmDb;
 }
+/* ══════════ CRM(pourstorecrm) 단가 동기화 ══════════
+   가격대시보드가 단가의 1차 관리처. 승인된 값만 CRM 프로젝트의 price-book 컬렉션으로 보낸다.
+   · 단방향(대시보드 → CRM) — CRM 은 읽어서 참조만 한다
+   · 대외비(매입원가·제조사·공급업체·마진)는 절대 담지 않는다 (입고예정 송신과 동일 원칙)
+   · CRM 의 기존 '제품 마스터'는 건드리지 않는다 — 별도 컬렉션이라 양쪽이 따로 움직여도 안전 */
+const CRM_PLATFORMS=['자사몰','쿠팡','스마트스토어','11번가','옥션','지마켓','오늘의집','도매꾹','나비엠알오','파트너사','대리점','위탁판매'];
+/* CRM 플랫폼 → 대시보드 채널 코드. 대응이 없으면 정가(OWN)를 쓴다. */
+const CRM_MAP_DEFAULT={ '자사몰':'OWN','쿠팡':'P8','대리점':'P3','위탁판매':'P5','도매꾹':'P6','파트너사':'P2',
+  '스마트스토어':'OWN','11번가':'OWN','옥션':'OWN','지마켓':'OWN','오늘의집':'OWN','나비엠알오':'OWN' };
+let CRMMAP={};   // product-meta/crm-map 에 저장(대시보드 쪽)
+function crmMap(){ return Object.assign({}, CRM_MAP_DEFAULT, CRMMAP); }
+async function saveCrmMap(){ try{ await db.collection('product-meta').doc('crm-map').set({map:CRMMAP, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[crm-map] 저장 실패', e.code||e); } }
+
+/* 보낼 데이터 만들기 — 대외비 제외, 승인된 값(PREVIEW 무관) 기준 */
+function crmPriceBook(){
+  const wasPreview=PREVIEW;
+  if(wasPreview){ PREVIEW=false; recalcVendor(); }        // 개정안 미리보기 값이 아니라 '승인된 값'을 보낸다
+  const map=crmMap(), rUid=retailUid();
+  const byCode={}; CHANNELS.forEach(c=>{ if(!isDeletedChan(c.uid)) byCode[String(c.code).toUpperCase()]=c.uid; });
+  const rows=psOrderedProducts().map(p=>{
+    const base=effPrice(p,rUid);                          // 기준가 = 자사몰 정가
+    const prices={};
+    CRM_PLATFORMS.forEach(pf=>{ const code=map[pf]; const uid=code?byCode[String(code).toUpperCase()]:null;
+      const v=uid?effPrice(p,uid):null; if(v!=null) prices[pf]=Math.round(v); });
+    const c=pcat(p);
+    return { key:pKey(p), name:p.name, spec:p.spec||'', cat:p.cat||'',
+      group:[c.l1,c.l2].filter(Boolean).join(' › '),
+      base:base==null?null:Math.round(base),
+      supply:base==null?null:Math.round(base/1.1),        // 부가세 제외 공급가(원가 아님)
+      isSet:isPackage(p), prices };
+  }).filter(r=>r.base!=null || Object.keys(r.prices).length);
+  if(wasPreview){ PREVIEW=true; recalcVendor(); }
+  return rows;
+}
+let CRM_SYNC_BUSY=false;
+async function syncPriceBookToCrm(silent){
+  if(CRM_SYNC_BUSY) return;
+  const d=crmDB(); if(!d){ if(!silent)alert('CRM 연결에 실패했습니다.'); return; }
+  const rows=crmPriceBook();
+  if(!rows.length){ if(!silent)alert('보낼 단가가 없습니다.'); return; }
+  CRM_SYNC_BUSY=true; crmSetStatus(`전송 중… 0/${rows.length}`);
+  let ok=0, fail=0, firstErr='';
+  try{
+    const col=d.collection('price-book');
+    for(let i=0;i<rows.length;i+=20){                      // 20건씩 병렬 — 문서 수가 많아도 안정적으로
+      const chunk=rows.slice(i,i+20);
+      const res=await Promise.allSettled(chunk.map(r=>col.doc(crmDocId(r.key)).set({
+        ...r, updatedAt:new Date().toISOString(), src:'price-dashboard' })));
+      res.forEach(x=>{ if(x.status==='fulfilled')ok++; else { fail++; if(!firstErr)firstErr=(x.reason&&(x.reason.code||x.reason.message))||String(x.reason); } });
+      crmSetStatus(`전송 중… ${ok+fail}/${rows.length}`);
+    }
+    await col.doc('_meta').set({ updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||'',
+      productCount:ok, platforms:CRM_PLATFORMS, map:crmMap(), src:'price-dashboard' }).catch(()=>{});
+    const msg = fail? `⚠️ ${ok}건 전송 · ${fail}건 실패 (${esc(firstErr)})` : `✅ ${ok}건 전송 완료`;
+    crmSetStatus(msg, !fail);
+    if(!silent) alert(fail
+      ? `CRM 전송 일부 실패\n· 성공 ${ok}건 / 실패 ${fail}건\n· 오류: ${firstErr}\n\n권한 오류라면 CRM 보안규칙에 price-book 쓰기 허용이 필요합니다.`
+      : `CRM으로 단가 ${ok}건을 보냈습니다.\n· 매입원가·제조사는 포함되지 않습니다.\n· CRM 화면에서 참조로 사용할 수 있습니다.`);
+    if(!fail) logAct('CRM동기화', `단가 ${ok}건`, 'price-book 전송');
+  }catch(e){ console.error('[crm price-book] 실패', e); crmSetStatus('전송 실패: '+(e.code||e.message||e), false);
+    if(!silent) alert('CRM 전송 실패: '+(e.code||e.message||e)); }
+  finally{ CRM_SYNC_BUSY=false; }
+}
+const crmDocId=k=>String(k).replace(/\//g,'／').slice(0,1400);   // Firestore 문서ID 에 '/' 금지
+function crmSetStatus(msg,ok){ const s=$('#crmSyncStatus'); if(!s)return; s.innerHTML=msg||'';
+  s.style.color = ok===false?'var(--red)' : ok===true?'var(--xl-green-dark)' : 'var(--ink-faint)'; }
+/* 매핑 편집 UI */
+function renderCrmSync(){
+  const box=$('#crmSyncBox'); if(!box) return;
+  if(!costAllowed){ box.innerHTML='<p class="footnote">CRM 단가 동기화는 원가 열람 권한이 있는 계정만 사용할 수 있습니다.</p>'; return; }
+  const map=crmMap();
+  const opts=[{code:'',name:'— 보내지 않음'}].concat(COLS().filter(c=>!isDeletedChan(c.uid)).map(c=>({code:c.code,name:`[${c.code}] ${c.name}`})));
+  box.innerHTML=`
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+      <button class="tbtn primary" id="btnCrmSync" style="background:var(--xl-green);color:#fff;border-color:var(--xl-green);font-weight:700">☁ CRM으로 단가 보내기</button>
+      <label style="display:flex;gap:6px;align-items:center;font-size:12.5px"><input type="checkbox" id="crmAuto" ${CRM_AUTO?'checked':''}> 승인할 때 자동으로 보내기</label>
+      <span class="footnote" id="crmSyncStatus" style="margin:0"></span>
+    </div>
+    <p class="footnote" style="margin:0 0 8px">· 보내는 항목: <b>제품명 · 규격 · 분류 · 기준가(정가) · 공급가(정가÷1.1) · 플랫폼별 판매가</b><br>
+      · <b>매입원가·제조사·공급업체·마진은 보내지 않습니다</b> — CRM은 공용 화면이라 대외비를 담지 않습니다.<br>
+      · 개정안 미리보기 중이어도 <b>승인된 값</b>만 나갑니다.</p>
+    <div class="imp-tablewrap" style="max-height:260px"><table class="grid" style="width:100%">
+      <thead><tr><th>CRM 플랫폼</th><th style="width:210px">대시보드 채널</th><th class="num" style="width:120px">예시(첫 제품)</th></tr></thead>
+      <tbody>${CRM_PLATFORMS.map(pf=>{
+        const cur=map[pf]||'';
+        const p=psOrderedProducts()[0];
+        const c=COLS().find(x=>String(x.code).toUpperCase()===String(cur).toUpperCase());
+        const v=(p&&c)?effPrice(p,c.uid):null;
+        return `<tr><td class="name">${esc(pf)}</td>
+          <td><select class="crmsel" data-pf="${esc(pf)}" style="width:100%;border:1px solid var(--xl-grid);border-radius:5px;padding:4px 6px;font-size:12px">
+            ${opts.map(o=>`<option value="${esc(o.code)}" ${String(o.code).toUpperCase()===String(cur).toUpperCase()?'selected':''}>${esc(o.name)}</option>`).join('')}
+          </select></td>
+          <td class="num dim">${v==null?'—':won(v)}</td></tr>`; }).join('')}</tbody></table></div>`;
+  $$('.crmsel').forEach(sel=>sel.addEventListener('change',()=>{
+    const pf=sel.dataset.pf;
+    if(sel.value===(CRM_MAP_DEFAULT[pf]||'')) delete CRMMAP[pf]; else CRMMAP[pf]=sel.value;
+    saveCrmMap(); renderCrmSync();
+  }));
+  const b=$('#btnCrmSync'); if(b)b.addEventListener('click',()=>syncPriceBookToCrm(false));
+  const a=$('#crmAuto'); if(a)a.addEventListener('change',()=>{ CRM_AUTO=a.checked; localStorage.setItem('pour-crm-auto',CRM_AUTO?'1':'0'); });
+}
+let CRM_AUTO = localStorage.getItem('pour-crm-auto')==='1';
+
 let IB_SENT=[];   // 이번 세션에 보낸 내역(로컬) — CRM 읽기는 규칙상 불가(create 전용)
 function renderInboundSent(){
   const box=$('#ibSentBox'); if(!box)return;
@@ -3964,7 +4072,13 @@ function recalcVendor(){
   const base=(LAD_BASE>0&&LAD_BASE<1)?LAD_BASE:0.81;
   P.forEach(p=>{
     const k=pKey(p);
-    const rov=effRetail(k); if(rUid && rov>0) p.pr[rUid]=rov;   // 자사몰정가 override
+    /* 자사몰정가: override 가 있으면 그 값, 없으면 서버 원본(pr0)으로 되돌린다.
+       예전엔 override 가 없을 때 손대지 않아, 개정안 미리보기로 올린 값이 취소 후에도
+       그대로 박혀 있었다(승인하지 않은 가격이 화면·CRM 전송에 남는 문제). */
+    const rov=effRetail(k);
+    if(rUid){ if(rov>0) p.pr[rUid]=rov;
+              else if(p.pr0 && p.pr0[rUid]!=null) p.pr[rUid]=p.pr0[rUid];
+              else if(p.pr0) delete p.pr[rUid]; }
     const vb=effVbase(k), own=rUid?p.pr[rUid]:null;
     const hasVb=vb>0, hasOwn=own>0;
     // 사다리 앵커: 하한=업체단가(=총판), 상한=자사몰정가. 한쪽만 있으면 LAD_BASE로 반대편 보완
@@ -5009,6 +5123,7 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('retail-prices').get(); if(d.exists&&d.data().map) VRETAIL=d.data().map; }catch(e){ console.warn('[retail-prices] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('price-overrides').get(); if(d.exists&&d.data().map) POVR=d.data().map; console.log(`[price-overrides] 직접 조정 ${Object.keys(POVR).length}칸`); }catch(e){ console.warn('[price-overrides] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-cost').get(); if(d.exists&&d.data().map) PCOST=d.data().map; console.log(`[prod-cost] 원가 수정 ${Object.keys(PCOST).length}건`); }catch(e){ console.warn('[prod-cost] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('crm-map').get(); if(d.exists&&d.data().map) CRMMAP=d.data().map; }catch(e){ console.warn('[crm-map] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('channel-markup').get(); if(d.exists){ if(d.data().coeff)VCOEFF=d.data().coeff; if(typeof d.data().auto==='boolean')VAUTO=d.data().auto; if(typeof d.data().ladBase==='number'&&d.data().ladBase>0&&d.data().ladBase<1)LAD_BASE=d.data().ladBase; } }catch(e){ console.warn('[channel-markup] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('cat-config').get(); if(d.exists&&Array.isArray(d.data().list)) CATCFG=d.data().list.map(c=>({key:c.key,name:c.name||c.key,l1:c.l1||'',l2:c.l2||''})); }catch(e){ console.warn('[cat-config] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-order').get(); if(d.exists&&Array.isArray(d.data().list)) PORDER=d.data().list; }catch(e){ console.warn('[prod-order] 로드 실패', e.code||e); }
@@ -5159,7 +5274,9 @@ async function approveDraft(){
   Object.entries(DPOVR).forEach(([k,v])=>{ if(v==null) delete POVR[k]; else POVR[k]=v; });   // null=해제
   const rev={ ts:new Date().toISOString(), approvedBy:(curUser&&curUser.email)||'', proposedBy:DRAFT_META.by, note:DRAFT_META.note||'', vbase:{...DVBASE}, retail:{...DRETAIL}, coeff:{...DCOEFF}, ovr:{...DPOVR} };
   await saveVendorPrices(); await saveRetailPrices(); await saveChannelMarkup(); await saveOverrides(); await appendHistory(rev);
-  draftDiscard(); await saveDraft(); recalcVendor(); refreshAll(); alert('개정안을 승인·적용했습니다.\n변동이력에 기록되었습니다.');
+  draftDiscard(); await saveDraft(); recalcVendor(); refreshAll();
+  alert('개정안을 승인·적용했습니다.\n변동이력에 기록되었습니다.'+(CRM_AUTO?'\n· CRM으로 단가를 보내는 중입니다.':''));
+  if(CRM_AUTO) syncPriceBookToCrm(true);   // 승인된 값만 CRM 으로 (설정에서 끌 수 있음)
 }
 async function rejectDraft(){ if(!isApprover()){ alert('반려는 상급자(마스터)만 가능합니다.'); return; } if(!confirm('이 개정안을 반려(폐기)할까요?'))return; draftDiscard(); await saveDraft(); refreshAll(); }
 async function appendHistory(rev){ try{ const d=await db.collection('product-meta').doc('pricing-history').get(); const arr=(d.exists&&Array.isArray(d.data().revisions))?d.data().revisions:[]; arr.push(rev); await db.collection('product-meta').doc('pricing-history').set({revisions:arr.slice(-500)}); }catch(e){ console.warn('[pricing-history] 저장 실패',e.code||e); } }
@@ -5406,7 +5523,7 @@ function refreshAll(){
   renderRibbon(); renderDash(); renderProductView(); renderGrid(); renderPricingBanner(); renderChMan(); renderVendorPanel(); renderSup(); renderMatch();
   renderChannel(); renderMoq(); ensurePl(); renderPlInput();
   fillPlanChSel(); sanitizePlan(); renderPlanGrid(); renderAgg(); renderPl();
-  fillRegDatalists(); renderMfg(); renderAddProd(); renderAddItem(); renderFixed();
+  fillRegDatalists(); renderMfg(); renderAddProd(); renderAddItem(); renderFixed(); renderCrmSync();
   renderMktAll();
   applySecGating();
   applyCostGating();
@@ -5446,7 +5563,8 @@ function buildState(){                        // Firestore 로드본으로 앱 �
   uidSeq=CHANNELS.reduce((m,c)=>{ const n=+String(c.uid).replace(/^c/,''); return isFinite(n)?Math.max(m,n):m; },100);
   CHORD=[];
   P=RAW.map((r,i)=>({id:i,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:{...r.pr},sup:'',mgr:'',mfg:'',added:false,
-    setItems:r.setItems||'', ptype:r.ptype||''}));   // products 에 정의된 세트 구성 유지
+    setItems:r.setItems||'', ptype:r.ptype||'',
+    pr0:{...r.pr}}));   // pr0 = 서버 원본 가격. 개정안 미리보기를 껐을 때 되돌릴 기준
   BASE_N=P.length;
   loadSaved();                                // localStorage 편집 오버레이 적용
 }

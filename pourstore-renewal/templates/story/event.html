@@ -1419,7 +1419,7 @@ var PM_POSTS = [];
   .pev-dt-back svg{width:24px;height:24px;}
   .pev-dt-title{font-size:16px;font-weight:800;letter-spacing:-.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .pev-dt-body{padding:0 0 60px;}
-  .pev-dt-imgs{max-width:1280px;margin:0 auto;}
+  .pev-dt-imgs{max-width:1080px;margin:0 auto;padding:0 16px;}  /* 아래 상품 그리드(.pev-dt-prods)와 같은 폭·여백으로 정렬 */
   .pev-dt-imgs img{width:100%;display:block;}
   .pev-dt-text{padding:16px 20px;line-height:1.7;color:#2a2e33;letter-spacing:-.02em;word-break:keep-all;}
   .pev-dt-prods{max-width:1080px;margin:0 auto;padding:26px 16px 0;}
@@ -1506,8 +1506,6 @@ function cardHtml(ev, idx){
     var moreN = ev.moreCount ? Number(ev.moreCount) : (products.length>4?products.length-4:0);
     var inner=''; for(let i=0;i<4;i++){ inner += thumbTile(show[i], moreN, i===3); }
     strip = '<div class="pev-strip">'+inner+'</div>';
-  } else if(ev.categoryNo){
-    strip = '<div class="pev-catchip">🏷 카테고리 상품 보기</div>';
   }
   return '<a class="pev-card" href="#ev-'+esc(ev.id)+'" data-ev="'+idx+'"><div class="pev-hero">'+heroInner+'</div>'+strip+'</a>';
 }
@@ -1528,6 +1526,7 @@ function openDetail(ev){
   var products=Array.isArray(ev.products)?ev.products:[];
   if(products.length){
     h+='<div class="pev-dt-prods"><h2>이벤트 상품</h2><div class="pev-dt-grid">'+products.map(function(p){
+      // 어드민에서 넣은 링크 사용(카페24 상품 링크를 직접 넣으면 그 상품페이지로, 안 넣으면 상품명 검색으로 연결)
       var link=attrLink(p.link)||'#';
       var im=p.thumb?'<img src="'+esc(p.thumb)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
       var pr=''; if(p.price!=null && String(p.price).trim()!==''){ var n=Number(String(p.price).replace(/[^0-9.]/g,'')); pr=(!isNaN(n)&&n>0)?(n.toLocaleString()+'원'):esc(String(p.price)); }

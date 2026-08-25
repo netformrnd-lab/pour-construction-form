@@ -47,6 +47,11 @@
         /* 해시태그(셀프OK·풀패키지 등 — 상품 '간략설명'에서 생성) */
         .pour-card .pour-tags{ display:flex; flex-wrap:wrap; gap:3px 9px; margin-top:9px; }
         .pour-card .pour-tag{ font-size:11.5px; font-weight:600; color:#6B7280; letter-spacing:-0.01em; }
+        /* 쿠폰 적용가(가격 밑, 주황 강조) */
+        .pour-card .pour-coupon{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 8px; margin-top:7px; }
+        .pour-card .pour-coupon .cp-price{ font-size:15px; font-weight:800; color:#E8780F; letter-spacing:-0.02em; }
+        .pour-card .pour-coupon .cp-price b{ font-weight:800; }
+        .pour-card .pour-coupon .cp-badge{ font-size:11px; font-weight:700; color:#E8780F; background:rgba(232,120,15,.10); border-radius:999px; padding:2px 8px; letter-spacing:-0.01em; white-space:nowrap; }
         </style>
         <div class="prdList__item">
           <div class="thumbnail">
@@ -120,5 +125,82 @@
     }
   }
   if (document.readyState!=='loading') build(); else document.addEventListener('DOMContentLoaded', build);
+})();
+</script>
+<script>
+/* ── 쿠폰 적용가 표시 (목록 카드) ───────────────────────────────────────────────
+   ⚠️ 실제 쿠폰에 맞게 아래 COUPON 한 줄만 고치면 됩니다.  (지금은 예시값: 패키지 10%)
+     on      : true=켜기 / false=끄기
+     label   : 카드에 붙는 배지 문구
+     rate    : 할인율 (0.10 = 10%)   ← 정률 할인일 때
+     amount  : 정액 할인(원)         ← 금액 할인이면 rate 대신 이 값 사용(0이면 무시)
+     base    : 'sale' = 현재 판매가(할인 적용된 가격) 기준  (권장)
+     cates   : 적용 '카테고리 번호' 배열 (예: ['71']=패키지)
+               ※ 카테고리 지정은 "그 카테고리 목록을 볼 때만" 표시됨.
+                 전체/베스트 등 어디서나 뜨게 하려면 products 에 상품번호를 넣으세요.
+     products: 적용 '상품 번호' 배열 (예: [1024,1030]) — 어느 목록에서든 표시됨
+   여러 쿠폰이 겹치면 대표 1개만(이 설정) 표시합니다. 실제 할인은 결제 시 쿠폰 적용으로 반영됩니다. */
+(function(){
+  var COUPON = { on:true, label:'🎟 10% 쿠폰', rate:0.10, amount:0, base:'sale', cates:['71'], products:[] };
+  if (!COUPON.on) return;
+  if (window.__pourCouponInit) return; window.__pourCouponInit = true;
+
+  function curCate(){
+    try{
+      var q=(location.search.match(/[?&]cate_no=(\d+)/)||[])[1]; if(q) return q;
+      var p=(location.pathname.match(/\/category\/[^/]+\/(\d+)/)||[])[1]; if(p) return p;
+      var p2=(location.pathname.match(/\/(\d+)\/?$/)||[])[1]; return p2||'';
+    }catch(e){ return ''; }
+  }
+  function num(t){ var m=String(t).replace(/[^0-9]/g,''); return m?parseInt(m,10):0; }
+  function fmt(n){ return n.toLocaleString('ko-KR')+'원'; }
+  function inList(arr,pno){ if(!pno) return false; return arr.indexOf(pno)!==-1 || arr.indexOf(parseInt(pno,10))!==-1; }
+
+  // .spec 안에서 '판매가' 추정: 취소선(정가) 제외한 값들 중 최대(적립금 등 소액 제외)
+  // 텍스트 노드를 직접 훑어 '값(원)'을 모으므로 감싸는 태그 유무와 무관하게 잡힘.
+  function struckUp(node,stop){ var p=node.parentNode; while(p&&p!==stop){ var cs=getComputedStyle(p); if(/line-through/.test(cs.textDecorationLine||cs.textDecoration||'')) return true; p=p.parentNode; } return false; }
+  function salePrice(spec){
+    var cand=[], w=document.createTreeWalker(spec, NodeFilter.SHOW_TEXT, null), n;
+    while((n=w.nextNode())){
+      var t=n.nodeValue||'', re=/([0-9][0-9,]*)\s*원/g, m;
+      while((m=re.exec(t))){ var v=num(m[1]); if(v<100) continue; cand.push({v:v,struck:struckUp(n,spec)}); }
+    }
+    if(!cand.length) return 0;
+    var pool=cand.filter(function(c){return !c.struck;}).map(function(c){return c.v;});
+    if(!pool.length) pool=cand.map(function(c){return c.v;});
+    return Math.max.apply(null,pool);
+  }
+
+  var busy=false;
+  function run(){
+    if (busy) return; busy=true;
+    try{
+      var cate=curCate(), cards=document.querySelectorAll('li.pour-card');
+      for (var i=0;i<cards.length;i++){
+        var li=cards[i];
+        if (li.getAttribute('data-cp')) continue;
+        var spec=li.querySelector('.spec'); if(!spec) continue; // 아직 안 그려진 카드는 다음 기회에
+        li.setAttribute('data-cp','1');
+        var pno=((li.id||'').match(/anchorBoxId_(\d+)/)||[])[1]||'';
+        var ok = (COUPON.cates.indexOf(cate)!==-1) || inList(COUPON.products,pno);
+        if (!ok) continue;
+        var base=salePrice(spec); if(!base) continue;
+        var disc = (COUPON.amount>0) ? (base-COUPON.amount) : Math.floor(base*(1-COUPON.rate));
+        if (disc<0) disc=0; if (disc>=base) continue;
+        var desc=li.querySelector('.description')||spec.parentNode;
+        var box=document.createElement('div'); box.className='pour-coupon';
+        box.innerHTML='<span class="cp-price">쿠폰가 <b>'+fmt(disc)+'</b></span>'+
+                      '<span class="cp-badge">'+(COUPON.label||'쿠폰')+'</span>';
+        if (spec.nextSibling) desc.insertBefore(box, spec.nextSibling); else desc.appendChild(box);
+      }
+    } finally { busy=false; }
+  }
+  function boot(){
+    run();
+    // 목록이 비동기/더보기로 나중에 그려지는 경우까지: 변화 감지 + 짧은 재시도로 모든 카드 처리
+    try{ new MutationObserver(function(){ run(); }).observe(document.body,{childList:true,subtree:true}); }catch(e){}
+    var t=0, iv=setInterval(function(){ run(); if(++t>=16) clearInterval(iv); }, 500); // 약 8초간 보강
+  }
+  if (document.readyState!=='loading') boot(); else document.addEventListener('DOMContentLoaded', boot);
 })();
 </script>

@@ -1,0 +1,128 @@
+<!-- ============================================================
+  /han/html/coupon.html — 상품상세 '쿠폰 다운로드' 버튼 + 팝업
+  ▸ 상세페이지에서 <!--@import(/han/html/coupon.html)--> 로 불러옴
+  ▸ [넷폼 수정] 쿠폰 카드를 '티켓형'으로 재디자인
+    - 왼쪽 세로 브랜드 띠(POURSTORE) + 가운데(할인·쿠폰명·기간) + 오른쪽 점선/받기 버튼
+    - 쿠폰명은 한 줄 말줄임(…). 카드 높이 자동, 겹침 없음.
+    - han/css/coupon.css 를 !important 로 덮으므로 css 파일 없이도 적용됨.
+    - 왼쪽 띠 문구는 .cp-brand span 텍스트에서 변경 가능.
+  ▸ 카페24 변수/모듈/기능(coupon_productdetail·coupon_productdetailajax·전체다운·쿠폰발급 링크)은 그대로.
+============================================================ -->
+<!-- 쿠폰 다운로드 -->
+
+<!--@js(/han/js/coupon.js)-->
+<!--@css(/han/css/coupon.css)-->
+
+<!-- [넷폼] 쿠폰 카드 티켓형 디자인 (겹침/잘림 방지) -->
+<style>
+/* 카드가 팝업 전체 너비를 채우도록(오른쪽 여백 제거) */
+#coupon_popup [module="coupon_productdetailajax"]{ width:100% !important; }
+#coupon_popup .couponSkinArea{ width:100% !important; }
+#coupon_popup .couponSkinArea ul{ display:block !important; width:100% !important; margin:0 !important; padding:0 !important; }
+#coupon_popup .couponSkinArea li{ list-style:none !important; margin:0 0 12px !important; padding:0 !important; float:none !important; width:100% !important; }
+/* 티켓 카드 */
+#coupon_popup .couponSkinArea .coupon{
+  position:relative !important; display:flex !important; align-items:stretch !important;
+  background:#fff !important; background-image:none !important;
+  border:1px solid #EDEDED !important; border-radius:10px !important; overflow:hidden !important;
+  height:auto !important; min-height:92px !important; width:100% !important; max-width:none !important;
+  box-shadow:0 1px 5px rgba(0,0,0,.07) !important; box-sizing:border-box !important;
+}
+/* 왼쪽 세로 브랜드 띠 */
+#coupon_popup .couponSkinArea .coupon .cp-brand{ flex:0 0 32px; background:linear-gradient(160deg,#F5502A,#E8780F) !important; display:flex; align-items:center; justify-content:center; }
+#coupon_popup .couponSkinArea .coupon .cp-brand span{ writing-mode:vertical-rl; transform:rotate(180deg); color:#fff; font-size:10.5px; font-weight:800; letter-spacing:1.5px; white-space:nowrap; }
+/* 가운데 본문 */
+#coupon_popup .couponSkinArea .coupon .detail{ position:static !important; flex:1 1 auto !important; min-width:0 !important; text-align:left !important; padding:12px 14px !important; display:flex !important; flex-direction:column !important; justify-content:center !important; }
+#coupon_popup .couponSkinArea .coupon .discount{ position:static !important; display:block !important; font-size:23px !important; font-weight:900 !important; color:#111 !important; line-height:1.1 !important; margin:0 0 4px !important; padding:0 !important; }
+#coupon_popup .couponSkinArea .coupon .discount span{ color:inherit !important; font:inherit !important; }
+#coupon_popup .couponSkinArea .coupon .title{ position:static !important; display:block !important; float:none !important; font-size:12.5px !important; font-weight:600 !important; color:#666 !important; line-height:1.35 !important; margin:0 !important; padding:0 !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; max-width:100% !important; }
+#coupon_popup .couponSkinArea .coupon .period{ position:static !important; display:block !important; font-size:11px !important; color:#aaa !important; margin:5px 0 0 !important; padding:0 !important; }
+/* 오른쪽 받기 버튼(점선 구분) */
+#coupon_popup .couponSkinArea .coupon .button{ position:static !important; flex:0 0 62px !important; margin:0 !important; padding:0 !important; border-left:1px dashed #DADADA !important; display:flex !important; align-items:center !important; justify-content:center !important; }
+#coupon_popup .couponSkinArea .coupon .button a{ display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:center !important; gap:4px !important; color:#8A8F98 !important; text-decoration:none !important; font-size:12px !important; font-weight:700 !important; width:100% !important; height:100% !important; }
+#coupon_popup .couponSkinArea .coupon .button a .ico{ display:flex; align-items:center; justify-content:center; }
+#coupon_popup .couponSkinArea .coupon .button a .ico svg{ width:20px; height:20px; }
+</style>
+
+<!-- 쿠폰 다운로드 - 버튼 영역 -->
+<div class="coupondetail">
+  <div module="coupon_productdetail">
+
+    <div class="couponbtn">
+        <div class="couponbtnL">최대 할인 쿠폰을 확인하세요!</div>
+        <div class="couponbtnR"><p><!--@import(/svg/download20.svg)--></p> 쿠폰다운로드</div>
+    </div>
+
+  </div>
+</div>
+<!-- // 쿠폰 다운로드 - 버튼 영역 -->
+
+
+
+
+    <!--------------------------------///-------------------------------->
+    <!--------------------------------///-------------------------------->
+    <!--------------------------------///-------------------------------->
+
+
+
+
+<!-- 쿠폰 다운로드 - 팝업 영역 -->
+<div id="coupon_popup">
+
+   <!-- 오픈시 블랙 배경 -->
+   <div class="reveal-modal-bg"></div>
+
+<div class="coupon_popupin">
+
+    <h2>쿠폰 다운로드</h2>
+
+    <!-- 닫기 btn -->
+    <div class="coupon_close">
+      <!--@import(/svg/x24.svg)-->
+    </div>
+
+
+  <div module="coupon_productdetailajax">
+	<!-- 카페24 쿠폰 -->
+    <div class="couponSkinArea">
+        <!--
+            1 row : ul class="grid1"
+            2 row : ul class="grid2"
+            3 row : ul class="grid3"
+        -->
+        <ul class="grid1">
+            <li>
+                <div class="coupon {$background_class}" style="background-image:url('{$background_url}')">
+                    <div class="cp-brand"><span>POURSTORE</span></div>
+                    <div class="detail" {$call_coupon_detail}>
+                        <p class="discount"><span style="">{$coupon_content}</span></p>
+                        <strong class="title">{$coupon_name}</strong>
+                        <p class="period">{$coupon_period}</p>
+                    </div>
+                    <div class="button"><a href="{$coupon_issue_url}"><span class="ico"><!--@import(/svg/download20.svg)--></span><span class="txt">받기</span></a></div>
+                </div>
+            </li>
+            <li>
+                <div class="coupon {$background_class}" style="background-image:url('{$background_url}')">
+                    <div class="cp-brand"><span>POURSTORE</span></div>
+                    <div class="detail" {$call_coupon_detail}>
+                        <p class="discount"><span style="">{$coupon_content}</span></p>
+                        <strong class="title">{$coupon_name}</strong>
+                        <p class="period">{$coupon_period}</p>
+                    </div>
+                    <div class="button"><a href="{$coupon_issue_url}"><span class="ico"><!--@import(/svg/download20.svg)--></span><span class="txt">받기</span></a></div>
+                </div>
+            </li>
+        </ul>
+    </div>
+	<!-- // 카페24 쿠폰 -->
+  </div>
+
+
+  <p class="button"><a href="#none" id="btn_all_coupondown" class="">전체쿠폰다운받기</a></p>
+
+
+</div><!-- //coupon_popupin -->
+
+</div><!-- //coupon_popup -->

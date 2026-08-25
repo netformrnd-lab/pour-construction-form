@@ -57,6 +57,11 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 .psm1-hd-inner { max-width:1256px; margin:0 auto; padding:18px 24px; display:flex; align-items:center; gap:28px; }
 .psm1-logo { display:flex; align-items:center; font-weight:800; font-size:24px; color:#111827; letter-spacing:-0.045em; flex-shrink:0; }
 .psm1-logo .psm1-logo-or { color:#111827; }
+/* 로고 이미지(원형 엠블럼) — 글자 로고 대신 이미지 사용. 크기는 아래 height 값만 바꾸면 됨 */
+.psm1-logo img { height:64px; width:auto; display:block; }
+.psm1-hd-mb .psm1-mb-logo img { height:46px; width:auto; display:block; }
+.psm1-drawer-logo img { height:40px; width:auto; display:block; vertical-align:middle; }
+.psm1-ytm-brand img { height:34px; width:auto; display:block; }
 .psm1-searchwrap { flex:1; max-width:620px; position:relative; }
 .psm1-slogan { position:relative; display:inline-block; margin-top:11px; margin-left:20px; font-family:'Gothic A1','Pretendard Variable',Pretendard,sans-serif; font-weight:600; font-size:15px; letter-spacing:-0.02em; color:#2A2E33; line-height:1.3; word-break:keep-all; }
 .psm1-slogan b { font-family:inherit; font-weight:inherit; color:#E8780F; }
@@ -420,7 +425,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 <!-- 1) 메인 헤더 -->
 <header class="psm1-hd">
   <div class="psm1-hd-inner">
-    <a href="/" class="psm1-logo"><span class="psm1-logo-or">POUR</span><span>스토어</span></a>
+    <a href="/" class="psm1-logo"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fpour-logo.png?alt=media&amp;token=01389d80-e284-4587-9ac7-53394ae3cabe" alt="POUR스토어"></a>
     <div class="psm1-searchwrap">
       <div class="psm1-search">
         <form action="/product/search.html" method="get" role="search">
@@ -457,7 +462,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
   <div class="psm1-hd-mb">
     <div class="psm1-mb-top">
       <button class="psm1-mb-menu" aria-label="메뉴"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-      <a href="/" class="psm1-mb-logo"><span class="psm1-logo-or">POUR</span><span>스토어</span></a>
+      <a href="/" class="psm1-mb-logo"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fpour-logo.png?alt=media&amp;token=01389d80-e284-4587-9ac7-53394ae3cabe" alt="POUR스토어"></a>
       <a href="/order/basket.html" module="Layout_orderBasketcount" class="psm1-mb-cart" aria-label="장바구니">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg>
         <span class="count {$basket_count_display|display} {$basket_count_display_class}"><span class="{$basket_count_class}">{$basket_count}</span></span>
@@ -588,7 +593,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 <div class="psm1-drawer-bk" data-mb-backdrop hidden></div>
 <aside class="psm1-drawer" data-mb-drawer hidden aria-label="전체 메뉴">
   <div class="psm1-drawer-head">
-    <a href="/" class="psm1-drawer-logo"><span class="or">POUR</span>스토어</a>
+    <a href="/" class="psm1-drawer-logo"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fpour-logo.png?alt=media&amp;token=01389d80-e284-4587-9ac7-53394ae3cabe" alt="POUR스토어"></a>
     <button class="psm1-drawer-close" data-mb-close type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div class="psm1-drawer-body">
@@ -617,7 +622,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 <!-- 유튜브 영상 자사몰 내 재생 모달 (페이지 어디서든 유튜브 링크 클릭 시 · 유튜브 watch식) -->
 <div class="psm1-ytm" data-psm1-ytm hidden>
   <div class="psm1-ytm-top">
-    <a class="psm1-ytm-brand" href="/" aria-label="POUR스토어 홈"><span class="or">POUR</span>스토어</a>
+    <a class="psm1-ytm-brand" href="/" aria-label="POUR스토어 홈"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fpour-logo.png?alt=media&amp;token=01389d80-e284-4587-9ac7-53394ae3cabe" alt="POUR스토어"></a>
     <span class="psm1-ytm-label">영상</span>
     <button class="psm1-ytm-x" data-psm1-ytm-x type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>

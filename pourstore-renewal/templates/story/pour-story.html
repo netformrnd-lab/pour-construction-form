@@ -1648,6 +1648,13 @@ var PM_POSTS = [];
   .pstory-rel-th { border-radius:10px; }
   .pstory-art-tt { font-size:21px; } .pstory-art-body p { font-size:15px; } .pstory-art-rel-list { grid-template-columns:1fr 1fr; }
 }
+/* 좁은 폰: 01·02·03 스텝을 줄바꿈 없이 세로로 깔끔하게 정렬(구분선 제거) */
+@media (max-width:480px){
+  .pstory-philo-steps { flex-direction:column; align-items:flex-start; gap:12px; margin-top:16px; }
+  .pstory-philo-steps .pstory-step { padding:0; font-size:14px; }
+  .pstory-philo-steps .pstory-step:not(:last-child)::after { display:none; }
+  .pstory-philo-steps .pstory-step em { font-size:15px; }
+}
 /* 숏츠 확대 피드 (인스타그램 스토리식 가로 캐러셀) */
 .psfs { position:fixed; inset:0; z-index:100001; background:#2B2B2B; overflow:hidden; }
 .psfs, .psfs * { box-sizing:border-box; }

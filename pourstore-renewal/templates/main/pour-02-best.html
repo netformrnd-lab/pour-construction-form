@@ -88,7 +88,9 @@
         var a=li.querySelector('.description .name a')||li.querySelector('a.image-container')||li.querySelector('a[href*="product_no="]');
         var link=href(a?(a.getAttribute('href')||''):'');
         var img=li.querySelector('.prdImg img')||li.querySelector('.thumbnail img'); var src=img?(img.getAttribute('src')||''):'';
-        var nEl=li.querySelector('.description .name a'); var name=nEl?nEl.textContent.replace(/\s+/g,' ').trim():'';
+        var nEl=li.querySelector('.description .name a'); var name='';
+        if(nEl){ var cl=nEl.cloneNode(true); var tt=cl.querySelector('.title'); if(tt) tt.remove(); name=cl.textContent.replace(/\s+/g,' ').trim(); }  // 숨김 라벨(.title '상품명') 제외
+        name=name.replace(/^\s*상품명\s*[:：]\s*/,'').trim();
         var pp=priceOf(li.querySelector('.spec'));
         if(!link&&!name) return;
         cards.push({link:link,src:src,name:name,sale:pp.sale,orig:pp.orig,rate:pp.rate});
@@ -97,8 +99,9 @@
 
     if(!cards.length){ root.hidden=true; return; }   // 못 불러오면 섹션 숨김
 
-    track.innerHTML=cards.slice(0,MAX).map(function(p){
-      var im=p.src?'<img src="'+esc(p.src)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
+    track.innerHTML=cards.slice(0,MAX).map(function(p,i){
+      var eg=i<6;   // 첫 줄(보이는 카드)은 즉시 로드, 나머지는 지연 → 첫 화면 빠르게
+      var im=p.src?'<img src="'+esc(p.src)+'" alt="" decoding="async" loading="'+(eg?'eager':'lazy')+'" fetchpriority="'+(eg?'high':'low')+'" onerror="this.style.display=\'none\'">':'';
       var pr=p.sale?('<div class="pdeal-price">'+(p.rate?'<span class="rate">'+p.rate+'%</span>':'')+'<b>'+p.sale.toLocaleString()+'원</b>'+((p.orig&&p.orig>p.sale)?'<span class="orig">'+p.orig.toLocaleString()+'원</span>':'')+'</div>'):'';
       return '<a class="pdeal-card" href="'+esc(p.link||'#')+'">'+
              '<div class="pdeal-th">'+im+'<span class="pdeal-tag">'+esc(DEAL_TAG)+'</span></div>'+

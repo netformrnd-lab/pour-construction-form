@@ -1,0 +1,117 @@
+<!-- ============================================================
+  pour-05-deal.html — 메인 "오직 지금, POUR스토어에서만 · 특별한 혜택" 상품 캐러셀
+  ▸ 카페24 특정 카테고리 상품을 실시간으로 가져와 카드로 표시(초특가+정가취소선+할인율)
+  ▸ 설치: 메인 페이지에서 "목재를 고치고 싶다면?" 섹션 '위'에 이 소스를 넣으세요.
+  ▸ 노출할 카테고리는 아래 DEAL_CATE 값만 바꾸면 됩니다.
+  ▸ 같은 도메인(pourstore.net)에서 동작. 상품을 못 불러오면 섹션이 자동으로 숨습니다.
+============================================================ -->
+<section class="pdeal" data-pdeal>
+<style>
+.pdeal, .pdeal *{box-sizing:border-box;margin:0;padding:0;}
+.pdeal{font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#fff;padding:34px 24px;color:#111;letter-spacing:-0.02em;-webkit-font-smoothing:antialiased;}
+.pdeal[hidden]{display:none;}
+.pdeal a{color:inherit;text-decoration:none;}
+.pdeal-inner{max-width:1256px;margin:0 auto;}
+.pdeal-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:20px;}
+.pdeal-tt{font-size:26px;font-weight:900;color:#111;letter-spacing:-0.04em;line-height:1.25;}
+.pdeal-tt b{color:#E8780F;font-weight:900;}
+.pdeal-sub{margin-top:6px;font-size:14.5px;font-weight:500;color:#8A8F98;letter-spacing:-0.02em;}
+.pdeal-more{flex-shrink:0;font-size:13.5px;font-weight:700;color:#8A8F98;white-space:nowrap;padding-bottom:2px;}
+.pdeal-more:hover{color:#E8780F;}
+.pdeal-wrap{position:relative;}
+.pdeal-track{display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 4*16px)/5);gap:16px;overflow-x:auto;scroll-behavior:smooth;scrollbar-width:none;-ms-overflow-style:none;padding-bottom:6px;}
+.pdeal-track::-webkit-scrollbar{display:none;}
+.pdeal-loading{grid-column:1/-1;padding:40px 0;text-align:center;color:#c2c6cc;font-weight:600;}
+.pdeal-card{display:block;}
+.pdeal-th{position:relative;width:100%;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:#f2f3f5;}
+.pdeal-th img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease;}
+.pdeal-card:hover .pdeal-th img{transform:scale(1.04);}
+.pdeal-tag{position:absolute;left:0;bottom:0;background:#03C75A;color:#fff;font-size:11.5px;font-weight:800;padding:4px 9px;letter-spacing:-0.01em;}
+.pdeal-nm{margin-top:9px;font-size:13.5px;font-weight:600;color:#333;line-height:1.4;letter-spacing:-0.02em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.pdeal-price{margin-top:6px;display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 7px;}
+.pdeal-price b{font-size:16px;font-weight:900;color:#111;}
+.pdeal-price .rate{font-size:15px;font-weight:900;color:#E8780F;}
+.pdeal-price .orig{font-size:12.5px;font-weight:500;color:#b0b5bd;text-decoration:line-through;}
+/* 좌우 화살표 */
+.pdeal-arw{position:absolute;top:calc(50% - 40px);transform:translateY(-50%);width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #EAECEF;box-shadow:0 4px 14px rgba(15,23,42,.14);display:grid;place-items:center;cursor:pointer;z-index:3;color:#333;}
+.pdeal-arw:hover{background:#FAFAFA;}
+.pdeal-arw svg{width:20px;height:20px;}
+.pdeal-arw.prev{left:-18px;} .pdeal-arw.next{right:-18px;}
+.pdeal-arw[hidden]{display:none;}
+@media (max-width:1100px){ .pdeal-track{grid-auto-columns:calc((100% - 3*14px)/4);gap:14px;} }
+@media (max-width:820px){ .pdeal-track{grid-auto-columns:calc((100% - 2*12px)/3);gap:12px;} .pdeal-arw{display:none;} }
+@media (max-width:560px){ .pdeal{padding:26px 14px;} .pdeal-tt{font-size:21px;} .pdeal-sub{font-size:13px;} .pdeal-track{grid-auto-columns:46%;gap:10px;} }
+</style>
+<div class="pdeal-inner">
+  <div class="pdeal-head">
+    <div>
+      <h2 class="pdeal-tt">오직 지금, <b>POUR스토어</b>에서만,</h2>
+      <p class="pdeal-sub">만날 수 있는 특별한 혜택</p>
+    </div>
+    <a class="pdeal-more" data-pdeal-more href="#none">전체보기</a>
+  </div>
+  <div class="pdeal-wrap">
+    <button class="pdeal-arw prev" type="button" data-pdeal-prev hidden aria-label="이전"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="pdeal-track" data-pdeal-track><div class="pdeal-loading">상품을 불러오는 중…</div></div>
+    <button class="pdeal-arw next" type="button" data-pdeal-next hidden aria-label="다음"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+  </div>
+</div>
+<script>
+(function(){
+  // ▼▼ 노출할 카테고리 번호만 바꾸세요 (카페24 상품분류 번호). 태그 문구도 아래에서 변경 가능 ▼▼
+  var DEAL_CATE = '71';      // 예: 71=패키지
+  var DEAL_TAG  = '혜택';    // 카드 이미지 위 초록 태그 문구
+  var MAX = 20;              // 최대 노출 개수
+  // ▲▲ 여기까지만 만지면 됩니다 ▲▲
+
+  var root=document.currentScript.closest('.pdeal'); if(!root) return;
+  var track=root.querySelector('[data-pdeal-track]'), more=root.querySelector('[data-pdeal-more]'),
+      prev=root.querySelector('[data-pdeal-prev]'), next=root.querySelector('[data-pdeal-next]');
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function href(h){ if(!h) return ''; if(h.charAt(0)!=='/'&&!/^https?:/i.test(h)) h='/'+h.replace(/^\.?\//,''); return h; }
+  function priceOf(spec){
+    var nums=[]; if(spec){ var re=/([0-9][0-9,]*)\s*원/g,m; while((m=re.exec(spec.textContent||''))){ var v=parseInt(m[1].replace(/[^0-9]/g,''),10); if(v>=100) nums.push(v); } }
+    nums=nums.filter(function(v,i,a){return a.indexOf(v)===i;}).sort(function(a,b){return b-a;});
+    var orig=nums.length>=2?nums[0]:0, sale=nums.length>=2?nums[1]:(nums[0]||0);
+    return { sale:sale, orig:orig, rate:(orig&&sale&&orig>sale)?Math.round((1-sale/orig)*100):0 };
+  }
+
+  if(more) more.href='/product/list.html?cate_no='+encodeURIComponent(DEAL_CATE);
+
+  (async function(){
+    var cards=[];
+    try{
+      var res=await fetch('/product/list.html?cate_no='+encodeURIComponent(DEAL_CATE), {credentials:'same-origin'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      var doc=new DOMParser().parseFromString(await res.text(),'text/html');
+      Array.prototype.forEach.call(doc.querySelectorAll('ul.prdList > li'),function(li){
+        var a=li.querySelector('.description .name a')||li.querySelector('a.image-container')||li.querySelector('a[href*="product_no="]');
+        var link=href(a?(a.getAttribute('href')||''):'');
+        var img=li.querySelector('.prdImg img')||li.querySelector('.thumbnail img'); var src=img?(img.getAttribute('src')||''):'';
+        var nEl=li.querySelector('.description .name a'); var name=nEl?nEl.textContent.replace(/\s+/g,' ').trim():'';
+        var pp=priceOf(li.querySelector('.spec'));
+        if(!link&&!name) return;
+        cards.push({link:link,src:src,name:name,sale:pp.sale,orig:pp.orig,rate:pp.rate});
+      });
+    }catch(e){ console.log('[pdeal] 로드 실패:', e&&e.message?e.message:e); }
+
+    if(!cards.length){ root.hidden=true; return; }   // 못 불러오면 섹션 숨김
+
+    track.innerHTML=cards.slice(0,MAX).map(function(p){
+      var im=p.src?'<img src="'+esc(p.src)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
+      var pr=p.sale?('<div class="pdeal-price">'+(p.rate?'<span class="rate">'+p.rate+'%</span>':'')+'<b>'+p.sale.toLocaleString()+'원</b>'+((p.orig&&p.orig>p.sale)?'<span class="orig">'+p.orig.toLocaleString()+'원</span>':'')+'</div>'):'';
+      return '<a class="pdeal-card" href="'+esc(p.link||'#')+'">'+
+             '<div class="pdeal-th">'+im+'<span class="pdeal-tag">'+esc(DEAL_TAG)+'</span></div>'+
+             (p.name?'<div class="pdeal-nm">'+esc(p.name)+'</div>':'')+pr+'</a>';
+    }).join('');
+
+    // 화살표 스크롤(카드가 넘칠 때만)
+    function step(){ var c=track.querySelector('.pdeal-card'); return c?(c.getBoundingClientRect().width+16)*2:track.clientWidth*0.8; }
+    function upd(){ var sc=track.scrollWidth>track.clientWidth+4; if(prev) prev.hidden=!sc; if(next) next.hidden=!sc; }
+    if(prev) prev.addEventListener('click',function(){ track.scrollBy({left:-step(),behavior:'smooth'}); });
+    if(next) next.addEventListener('click',function(){ track.scrollBy({left:step(),behavior:'smooth'}); });
+    upd(); window.addEventListener('resize', upd);
+  })();
+})();
+</script>
+</section>

@@ -189,11 +189,10 @@
 (function(){
   // ▼▼ 노출할 카테고리 번호만 바꾸세요 (카페24 상품분류 번호) ▼▼
   var LEAK_CATES = [
-    {cate:'86', tag:'방수'},    // 방수
-    {cate:'88', tag:'균열보강'} // 균열보수
+    {cate:'122', tag:''}   // 누수(방수·균열) 큐레이션 카테고리. tag를 넣으면 카드 좌상단에 배지 표시
   ];
   var MAX = 20;                          // 최대 노출 개수
-  var MORE_CATE = '86';                  // "더보기" 링크 카테고리
+  var MORE_CATE = '122';                 // "더보기" 링크 카테고리
   // ▲▲ 여기까지만 만지면 됩니다 ▲▲
 
   var root=document.currentScript.closest('.pleak'); if(!root) return;
@@ -244,7 +243,7 @@
       var im=p.src?'<img src="'+esc(p.src)+'" alt="" decoding="async" loading="'+(eg?'eager':'lazy')+'" fetchpriority="'+(eg?'high':'low')+'" onerror="this.style.display=\'none\'">':'';
       var pr=p.sale?('<div class="pleak-price">'+(p.rate?'<span class="rate">'+p.rate+'%</span>':'')+'<b>'+p.sale.toLocaleString()+'원</b>'+((p.orig&&p.orig>p.sale)?'<span class="orig">'+p.orig.toLocaleString()+'원</span>':'')+'</div>'):'';
       return '<a class="pleak-card" href="'+esc(p.link||'#')+'">'+
-             '<div class="pleak-th">'+im+'<span class="pleak-tag">'+esc(p.tag)+'</span></div>'+
+             '<div class="pleak-th">'+im+(p.tag?'<span class="pleak-tag">'+esc(p.tag)+'</span>':'')+'</div>'+
              (p.name?'<div class="pleak-nm">'+esc(p.name)+'</div>':'')+pr+'</a>';
     }).join('');
 

@@ -1430,7 +1430,10 @@ var PM_POSTS = [];
   .pev-dp-th>img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease;}
   .pev-dp:hover .pev-dp-th>img{transform:scale(1.04);}
   .pev-dp-nm{margin-top:8px;font-size:13.5px;font-weight:600;color:#333;line-height:1.4;letter-spacing:-.02em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  .pev-dp-price{margin-top:4px;font-size:15px;font-weight:900;color:#111;letter-spacing:-.02em;}
+  .pev-dp-price{margin-top:4px;font-size:15px;font-weight:900;color:#111;letter-spacing:-.02em;display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 6px;}
+  .pev-dp-price .pev-dp-rate{color:#E8780F;font-weight:900;}
+  .pev-dp-price b{color:#111;font-weight:900;}
+  .pev-dp-price .pev-dp-orig{color:#b0b5bd;font-weight:500;text-decoration:line-through;font-size:.84em;}
   .pev-dt-catbtn{display:block;max-width:420px;margin:22px auto 0;text-align:center;background:#E8780F;color:#fff;font-size:15px;font-weight:800;padding:15px;border-radius:12px;text-decoration:none;letter-spacing:-.02em;}
   @media (max-width:640px){
     .pev{padding:20px 16px 56px;}
@@ -1578,17 +1581,19 @@ async function loadCategoryProducts(scope){
       var name=nameEl?nameEl.textContent.replace(/\s+/g,' ').trim():'';
       var spec=li.querySelector('.spec'), nums=[];
       if(spec){ var re=/([0-9][0-9,]*)\s*원/g,m; while((m=re.exec(spec.textContent||''))){ var v=parseInt(m[1].replace(/[^0-9]/g,''),10); if(v>=100) nums.push(v); } }
-      var price=nums.length?(Math.min.apply(null,nums).toLocaleString()+'원'):'';
+      nums=nums.filter(function(v,i,a){return a.indexOf(v)===i;}).sort(function(a,b){return b-a;});   // 큰 값 순(=정가, 판매가, 적립금…)
+      var orig=nums.length>=2?nums[0]:0, sale=nums.length>=2?nums[1]:(nums[0]||0);                    // 두 최대값 = 정가/판매가
+      var rate=(orig&&sale&&orig>sale)?Math.round((1-sale/orig)*100):0;
       if(!href&&!name) return;
       if(href&&href.charAt(0)!=='/'&&!/^https?:/i.test(href)) href='/'+href.replace(/^\.?\//,'');
-      cards.push({href:href,src:src,name:name,price:price});
+      cards.push({href:href,src:src,name:name,sale:sale,orig:orig,rate:rate});
     });
     if(!cards.length){ if(box.parentNode) box.parentNode.removeChild(box); return; }
     box.innerHTML=cards.slice(0,20).map(function(p){
       var im=p.src?'<img src="'+esc(p.src)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
+      var pr=p.sale?('<div class="pev-dp-price">'+(p.rate?'<span class="pev-dp-rate">'+p.rate+'%</span>':'')+'<b>'+p.sale.toLocaleString()+'원</b>'+((p.orig&&p.orig>p.sale)?'<span class="pev-dp-orig">'+p.orig.toLocaleString()+'원</span>':'')+'</div>'):'';
       return '<a class="pev-dp" href="'+esc(p.href||'#')+'"><div class="pev-dp-th">'+im+'</div>'+
-             (p.name?'<div class="pev-dp-nm">'+esc(p.name)+'</div>':'')+
-             (p.price?'<div class="pev-dp-price">'+esc(p.price)+'</div>':'')+'</a>';
+             (p.name?'<div class="pev-dp-nm">'+esc(p.name)+'</div>':'')+pr+'</a>';
     }).join('');
   }catch(e){
     console.log('[event] 카테고리 상품 로드 실패(전체보기 버튼으로 대체):', e&&e.message?e.message:e);

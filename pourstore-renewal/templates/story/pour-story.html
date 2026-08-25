@@ -1,3 +1,7 @@
+<!-- 모바일 반응형 생명줄: 카페24 스킨 head에 뷰포트 meta가 없으면 폰이 ~980px로 렌더돼
+     모든 @media 반응형이 통째로 무력화됨. 이 페이지는 독립 조각이므로 최상단에서 뷰포트를 강제 보장한다.
+     (원본: common/pour-header.html 최상단 스크립트와 동일) -->
+<script>(function(){try{var m=document.querySelector('meta[name=viewport]');var v='width=device-width, initial-scale=1';if(!m){m=document.createElement('meta');m.setAttribute('name','viewport');m.setAttribute('content',v);(document.head||document.documentElement).appendChild(m);}else if(!/width=device-width/i.test(m.getAttribute('content')||'')){m.setAttribute('content',v);}}catch(e){}})();</script>
 <!-- 성능 힌트: 폰트·Firebase SDK 조기 로딩 (FOUC 감소 + 첫 응답 단축) -->
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>

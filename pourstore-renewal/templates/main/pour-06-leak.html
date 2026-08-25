@@ -1,0 +1,143 @@
+<!-- ============================================================
+  pour-06-leak.html — 메인 "누수가 되고 있다면? · 방수시공부터 균열보강까지" 솔루션 섹션
+  ▸ 방수(cate_no=86) + 균열보수(cate_no=88) 카테고리 상품을 실시간으로 가져와 카드로 표시
+  ▸ 설치: 메인 "특가(특별한 혜택)" 섹션 '아래'에 이 소스를 넣으세요.
+  ▸ 노출할 카테고리는 아래 LEAK_CATES 값만 바꾸면 됩니다.
+  ▸ 같은 도메인(pourstore.net)에서 동작. 상품을 못 불러오면 캐러셀만 숨고 안내 배너는 남습니다.
+============================================================ -->
+<section class="pleak" data-pleak>
+<style>
+.pleak, .pleak *{box-sizing:border-box;margin:0;padding:0;}
+.pleak{font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:linear-gradient(180deg,#F3F7FC 0%,#EAF1FA 100%);padding:38px 24px;color:#111;letter-spacing:-0.02em;-webkit-font-smoothing:antialiased;}
+.pleak a{color:inherit;text-decoration:none;}
+.pleak-inner{max-width:1256px;margin:0 auto;}
+.pleak-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px;}
+.pleak-kicker{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;color:#1A72E8;letter-spacing:-0.01em;margin-bottom:8px;}
+.pleak-kicker svg{width:15px;height:15px;}
+.pleak-tt{font-size:27px;font-weight:900;color:#0D1B2A;letter-spacing:-0.04em;line-height:1.22;}
+.pleak-tt b{color:#1A72E8;font-weight:900;}
+.pleak-sub{margin-top:7px;font-size:14.5px;font-weight:500;color:#5B6673;letter-spacing:-0.02em;}
+.pleak-more{flex-shrink:0;font-size:13.5px;font-weight:700;color:#8A8F98;white-space:nowrap;padding-bottom:2px;}
+.pleak-more:hover{color:#1A72E8;}
+/* 방수/균열 바로가기 칩 */
+.pleak-chips{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
+.pleak-chip{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid #D7E3F2;border-radius:999px;padding:9px 16px;font-size:13.5px;font-weight:700;color:#0D1B2A;box-shadow:0 2px 8px rgba(26,114,232,.06);transition:all .15s ease;}
+.pleak-chip:hover{border-color:#1A72E8;color:#1A72E8;transform:translateY(-1px);}
+.pleak-chip svg{width:16px;height:16px;color:#1A72E8;}
+.pleak-wrap{position:relative;}
+.pleak-track{display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 4*16px)/5);gap:16px;overflow-x:auto;scroll-behavior:smooth;scrollbar-width:none;-ms-overflow-style:none;padding-bottom:6px;}
+.pleak-track::-webkit-scrollbar{display:none;}
+.pleak-loading{grid-column:1/-1;padding:36px 0;text-align:center;color:#9BB0CC;font-weight:600;}
+.pleak-card{display:block;}
+.pleak-th{position:relative;width:100%;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:#e8eef6;}
+.pleak-th img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease;}
+.pleak-card:hover .pleak-th img{transform:scale(1.04);}
+.pleak-tag{position:absolute;left:0;bottom:0;color:#fff;font-size:11.5px;font-weight:800;padding:4px 9px;letter-spacing:-0.01em;}
+.pleak-tag.wp{background:#1A72E8;} .pleak-tag.cr{background:#0EA5A5;}
+.pleak-nm{margin-top:9px;font-size:13.5px;font-weight:600;color:#333;line-height:1.4;letter-spacing:-0.02em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.pleak-price{margin-top:6px;display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 7px;}
+.pleak-price b{font-size:16px;font-weight:900;color:#111;}
+.pleak-price .rate{font-size:15px;font-weight:900;color:#E8780F;}
+.pleak-price .orig{font-size:12.5px;font-weight:500;color:#b0b5bd;text-decoration:line-through;}
+/* 좌우 화살표 */
+.pleak-arw{position:absolute;top:calc(50% - 40px);transform:translateY(-50%);width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #E1E9F2;box-shadow:0 4px 14px rgba(15,23,42,.14);display:grid;place-items:center;cursor:pointer;z-index:3;color:#333;}
+.pleak-arw:hover{background:#F5F9FF;}
+.pleak-arw svg{width:20px;height:20px;}
+.pleak-arw.prev{left:-18px;} .pleak-arw.next{right:-18px;}
+.pleak-arw[hidden]{display:none;}
+@media (max-width:1100px){ .pleak-track{grid-auto-columns:calc((100% - 3*14px)/4);gap:14px;} }
+@media (max-width:820px){ .pleak-track{grid-auto-columns:calc((100% - 2*12px)/3);gap:12px;} .pleak-arw{display:none;} }
+@media (max-width:560px){ .pleak{padding:28px 14px;} .pleak-tt{font-size:21px;} .pleak-sub{font-size:13px;} .pleak-track{grid-auto-columns:46%;gap:10px;} .pleak-chip{font-size:12.5px;padding:8px 13px;} }
+</style>
+<div class="pleak-inner">
+  <div class="pleak-head">
+    <div>
+      <span class="pleak-kicker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.7S6 9.4 6 13.5a6 6 0 0 0 12 0C18 9.4 12 2.7 12 2.7z"/></svg>LEAK CARE</span>
+      <h2 class="pleak-tt">누수가 <b>되고 있다면?</b></h2>
+      <p class="pleak-sub">방수시공부터 균열보강까지, POUR스토어가 해결합니다</p>
+    </div>
+    <a class="pleak-more" data-pleak-more href="#none">전체보기</a>
+  </div>
+  <div class="pleak-chips">
+    <a class="pleak-chip" href="/product/list.html?cate_no=86"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.7S6 9.4 6 13.5a6 6 0 0 0 12 0C18 9.4 12 2.7 12 2.7z"/></svg>방수 시공</a>
+    <a class="pleak-chip" href="/product/list.html?cate_no=88"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3 4 14h6l-1 7 9-11h-6l1-7z"/></svg>균열 보강</a>
+  </div>
+  <div class="pleak-wrap">
+    <button class="pleak-arw prev" type="button" data-pleak-prev hidden aria-label="이전"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="pleak-track" data-pleak-track><div class="pleak-loading">상품을 불러오는 중…</div></div>
+    <button class="pleak-arw next" type="button" data-pleak-next hidden aria-label="다음"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+  </div>
+</div>
+<script>
+(function(){
+  // ▼▼ 노출할 카테고리 번호만 바꾸세요 (카페24 상품분류 번호) ▼▼
+  var LEAK_CATES = [
+    {cate:'86', tag:'방수', cls:'wp'},   // 방수
+    {cate:'88', tag:'균열보강', cls:'cr'} // 균열보수
+  ];
+  var MAX = 20;                          // 최대 노출 개수
+  var MORE_CATE = '86';                  // "전체보기" 링크 카테고리
+  // ▲▲ 여기까지만 만지면 됩니다 ▲▲
+
+  var root=document.currentScript.closest('.pleak'); if(!root) return;
+  var track=root.querySelector('[data-pleak-track]'), more=root.querySelector('[data-pleak-more]'),
+      prev=root.querySelector('[data-pleak-prev]'), next=root.querySelector('[data-pleak-next]');
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function href(h){ if(!h) return ''; if(h.charAt(0)!=='/'&&!/^https?:/i.test(h)) h='/'+h.replace(/^\.?\//,''); return h; }
+  function priceOf(spec){
+    var nums=[]; if(spec){ var re=/([0-9][0-9,]*)\s*원/g,m; while((m=re.exec(spec.textContent||''))){ var v=parseInt(m[1].replace(/[^0-9]/g,''),10); if(v>=100) nums.push(v); } }
+    nums=nums.filter(function(v,i,a){return a.indexOf(v)===i;}).sort(function(a,b){return b-a;});
+    var orig=nums.length>=2?nums[0]:0, sale=nums.length>=2?nums[1]:(nums[0]||0);
+    return { sale:sale, orig:orig, rate:(orig&&sale&&orig>sale)?Math.round((1-sale/orig)*100):0 };
+  }
+
+  if(more) more.href='/product/list.html?cate_no='+encodeURIComponent(MORE_CATE);
+
+  async function loadCate(c){
+    var out=[];
+    try{
+      var res=await fetch('/product/list.html?cate_no='+encodeURIComponent(c.cate), {credentials:'same-origin'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      var doc=new DOMParser().parseFromString(await res.text(),'text/html');
+      Array.prototype.forEach.call(doc.querySelectorAll('ul.prdList > li'),function(li){
+        var a=li.querySelector('.description .name a')||li.querySelector('a.image-container')||li.querySelector('a[href*="product_no="]');
+        var link=href(a?(a.getAttribute('href')||''):'');
+        var img=li.querySelector('.prdImg img')||li.querySelector('.thumbnail img'); var src=img?(img.getAttribute('src')||''):'';
+        var nEl=li.querySelector('.description .name a'); var name='';
+        if(nEl){ var cl=nEl.cloneNode(true); var tt=cl.querySelector('.title'); if(tt) tt.remove(); name=cl.textContent.replace(/\s+/g,' ').trim(); }  // 숨김 라벨(.title '상품명') 제외
+        name=name.replace(/^\s*상품명\s*[:：]\s*/,'').trim();
+        var pp=priceOf(li.querySelector('.spec'));
+        if(!link&&!name) return;
+        out.push({link:link,src:src,name:name,sale:pp.sale,orig:pp.orig,rate:pp.rate,tag:c.tag,cls:c.cls});
+      });
+    }catch(e){ console.log('[pleak] 로드 실패(cate '+c.cate+'):', e&&e.message?e.message:e); }
+    return out;
+  }
+
+  (async function(){
+    var lists=await Promise.all(LEAK_CATES.map(loadCate));
+    // 카테고리 번갈아 섞기(방수/균열 고루 노출) + 링크 기준 중복 제거
+    var cards=[], seen={}, max=0; lists.forEach(function(l){ if(l.length>max) max=l.length; });
+    for(var i=0;i<max;i++){ for(var j=0;j<lists.length;j++){ var p=lists[j][i]; if(!p) continue; var k=p.link||p.name; if(k&&seen[k]) continue; if(k) seen[k]=1; cards.push(p); } }
+
+    if(!cards.length){ track.closest('.pleak-wrap').style.display='none'; return; }  // 상품 없으면 캐러셀만 숨김(안내 배너는 유지)
+
+    track.innerHTML=cards.slice(0,MAX).map(function(p,i){
+      var eg=i<6;   // 첫 줄(보이는 카드)은 즉시 로드, 나머지는 지연 → 첫 화면 빠르게
+      var im=p.src?'<img src="'+esc(p.src)+'" alt="" decoding="async" loading="'+(eg?'eager':'lazy')+'" fetchpriority="'+(eg?'high':'low')+'" onerror="this.style.display=\'none\'">':'';
+      var pr=p.sale?('<div class="pleak-price">'+(p.rate?'<span class="rate">'+p.rate+'%</span>':'')+'<b>'+p.sale.toLocaleString()+'원</b>'+((p.orig&&p.orig>p.sale)?'<span class="orig">'+p.orig.toLocaleString()+'원</span>':'')+'</div>'):'';
+      return '<a class="pleak-card" href="'+esc(p.link||'#')+'">'+
+             '<div class="pleak-th">'+im+'<span class="pleak-tag '+esc(p.cls)+'">'+esc(p.tag)+'</span></div>'+
+             (p.name?'<div class="pleak-nm">'+esc(p.name)+'</div>':'')+pr+'</a>';
+    }).join('');
+
+    // 화살표 스크롤(카드가 넘칠 때만)
+    function step(){ var c=track.querySelector('.pleak-card'); return c?(c.getBoundingClientRect().width+16)*2:track.clientWidth*0.8; }
+    function upd(){ var sc=track.scrollWidth>track.clientWidth+4; if(prev) prev.hidden=!sc; if(next) next.hidden=!sc; }
+    if(prev) prev.addEventListener('click',function(){ track.scrollBy({left:-step(),behavior:'smooth'}); });
+    if(next) next.addEventListener('click',function(){ track.scrollBy({left:step(),behavior:'smooth'}); });
+    upd(); window.addEventListener('resize', upd);
+  })();
+})();
+</script>
+</section>

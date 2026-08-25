@@ -1566,6 +1566,8 @@ function closeDetail(){
 }
 // 상품명 매칭키: 대괄호[...]·공백·괄호·기호 제거 후 소문자 → "[그로홈] 미끄럼 방지…" ↔ "[초특가 9,900원]미끄럼 방지…" 매칭
 function pevKey(s){ return String(s==null?'':s).replace(/\[[^\]]*\]/g,'').replace(/[\s()·・,\-_/]/g,'').toLowerCase(); }
+// 상품명 추출: 숨김 라벨(.title '상품명') 제외 + '상품명 :' 접두어 제거
+function pevName(a){ if(!a) return ''; var cl=a.cloneNode(true); var t=cl.querySelector('.title'); if(t) t.remove(); return cl.textContent.replace(/\s+/g,' ').trim().replace(/^\s*상품명\s*[:：]\s*/,'').trim(); }
 // .spec 텍스트 → {sale,orig,rate}: 큰 값 2개 = 정가/판매가(적립금 등 소액 제외)
 function pevPrice(spec){
   var nums=[]; if(spec){ var re=/([0-9][0-9,]*)\s*원/g,m; while((m=re.exec(spec.textContent||''))){ var v=parseInt(m[1].replace(/[^0-9]/g,''),10); if(v>=100) nums.push(v); } }
@@ -1581,7 +1583,7 @@ function pevParseCards(doc){
   var out=[]; Array.prototype.forEach.call(doc.querySelectorAll('ul.prdList > li'),function(li){
     var a=li.querySelector('.description .name a')||li.querySelector('a.image-container')||li.querySelector('a[href*="product_no="]');
     var href=pevHref(a?(a.getAttribute('href')||''):'');
-    var nEl=li.querySelector('.description .name a'); var name=nEl?nEl.textContent.replace(/\s+/g,' ').trim():'';
+    var nEl=li.querySelector('.description .name a'); var name=pevName(nEl);
     var pp=pevPrice(li.querySelector('.spec'));
     if(!href&&!name) return;
     out.push({ key:pevKey(name), name:name, href:href, sale:pp.sale, orig:pp.orig, rate:pp.rate });
@@ -1619,8 +1621,7 @@ async function loadCategoryProducts(scope){
       var href=a?(a.getAttribute('href')||''):'';
       var img=li.querySelector('.prdImg img')||li.querySelector('.thumbnail img');
       var src=img?(img.getAttribute('src')||''):'';
-      var nameEl=li.querySelector('.description .name a');
-      var name=nameEl?nameEl.textContent.replace(/\s+/g,' ').trim():'';
+      var name=pevName(li.querySelector('.description .name a'));
       var spec=li.querySelector('.spec'), nums=[];
       if(spec){ var re=/([0-9][0-9,]*)\s*원/g,m; while((m=re.exec(spec.textContent||''))){ var v=parseInt(m[1].replace(/[^0-9]/g,''),10); if(v>=100) nums.push(v); } }
       nums=nums.filter(function(v,i,a){return a.indexOf(v)===i;}).sort(function(a,b){return b-a;});   // 큰 값 순(=정가, 판매가, 적립금…)

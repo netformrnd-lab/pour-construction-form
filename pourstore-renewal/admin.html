@@ -5275,7 +5275,7 @@ function EventEditor({form,setForm,onClose,onSave,showToast}){
   },[]);
   const prodCode=(p)=>{ var c=(p.channels&&p.channels.imweb)||p.imwebId||''; return String(c).trim(); };
   // 링크는 카페24 상품명 검색으로 연결 → 실제 카페24 상품 상세로 이동(자사몰 코드는 카페24 product_no와 달라 직접링크 불가). 스토어 제품목록과 동일 방식.
-  const addFromProduct=(p)=>{ var code=prodCode(p); if(code && prods.some(function(x){return x.code===code;})) return; var price=p.salePrice||p.price||''; var nm=(p.name||'').trim(); set({products:[...prods,{code:code,name:p.name||'',thumb:p.thumbnail||'',price:price!==''?String(price):'',link:nm?('/product/search.html?keyword='+encodeURIComponent(nm)):(p.imwebUrl||'')}]}); };
+  const addFromProduct=(p)=>{ var code=prodCode(p); if(code && prods.some(function(x){return x.code===code;})) return; var price=p.salePrice||p.price||''; var nm=(p.name||'').trim(); set({products:[...prods,{code:code,name:p.name||'',thumb:p.thumbnail||'',price:price!==''?String(price):'',link:code?('/product/detail.html?product_no='+encodeURIComponent(code)):(nm?('/product/search.html?keyword='+encodeURIComponent(nm)):(p.imwebUrl||''))}]}); };
   const filteredProds=(function(){ var q=prodQ.trim().toLowerCase(); var base=q?allProds.filter(function(p){return String(p.name||'').toLowerCase().indexOf(q)!==-1;}):allProds; return base.slice(0,60); })();
   const save=async()=>{
     if(!(form.title||'').trim()){ showToast('제목을 입력하세요','error'); return; }

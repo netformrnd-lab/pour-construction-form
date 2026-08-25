@@ -1526,7 +1526,8 @@ function openDetail(ev){
   var products=Array.isArray(ev.products)?ev.products:[];
   if(products.length){
     h+='<div class="pev-dt-prods"><h2>이벤트 상품</h2><div class="pev-dt-grid">'+products.map(function(p){
-      var link=attrLink(p.link)||'#';
+      // 카페24 상품번호(code)가 있으면 실제 상품 상세페이지로 연결(검색결과 아님). 없으면 저장된 link 사용
+      var link = (p.code!=null && String(p.code).trim()) ? ('/product/detail.html?product_no='+encodeURIComponent(String(p.code).trim())) : (attrLink(p.link)||'#');
       var im=p.thumb?'<img src="'+esc(p.thumb)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
       var pr=''; if(p.price!=null && String(p.price).trim()!==''){ var n=Number(String(p.price).replace(/[^0-9.]/g,'')); pr=(!isNaN(n)&&n>0)?(n.toLocaleString()+'원'):esc(String(p.price)); }
       return '<a class="pev-dp" href="'+esc(link)+'"><div class="pev-dp-th">'+im+'</div>'+(p.name?'<div class="pev-dp-nm">'+esc(p.name)+'</div>':'')+(pr?'<div class="pev-dp-price">'+pr+'</div>':'')+'</a>';

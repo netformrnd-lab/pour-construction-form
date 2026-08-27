@@ -31,7 +31,13 @@
   +'.adv-host .pv-pop .pv-desc{color:#555;font-size:13px;margin-top:6px;line-height:1.5;}'
   +'.adv-host .pv-hl-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:5;}'
   +'.adv-host .pv-hl-svg polygon,.adv-host .pv-hl-svg polyline{fill:rgba(255,90,0,.12);stroke:#ff5a00;stroke-width:2.5;stroke-linejoin:round;vector-effect:non-scaling-stroke;animation:advHlBlink 1.1s ease-in-out infinite;}'
-  +'@keyframes advHlBlink{0%,100%{stroke-opacity:.95}50%{stroke-opacity:.25}}';
+  +'@keyframes advHlBlink{0%,100%{stroke-opacity:.95}50%{stroke-opacity:.25}}'
+  // 모바일: 핀 설명 팝업이 사진 위로 겹치고 넘치던 문제 → 화면 하단 고정 카드(바텀시트)로 표시해 항상 깔끔히 읽히게
+  +'@media (max-width:640px){'
+  +'  .adv-host .pv-pop{position:fixed;left:12px;right:12px;bottom:14px;top:auto;width:auto;max-width:none;transform:none;z-index:100050;padding:14px 16px;box-shadow:0 -6px 28px rgba(0,0,0,.22),0 10px 34px rgba(0,0,0,.22);}'
+  +'  .adv-host .pv-pop img{height:150px;}'
+  +'  .adv-host .pv-pop b{font-size:15px;} .adv-host .pv-pop .pv-desc{font-size:13.5px;}'
+  +'}';
   var s=document.createElement('style'); s.id='adv-view-style'; s.textContent=BASE+(window.ADV_EXTRA_CSS||''); (document.head||document.documentElement).appendChild(s);
 })();
 </script>

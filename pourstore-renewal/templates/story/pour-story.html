@@ -2159,7 +2159,7 @@ var PC_TTL = 60000;
   }
   var chipsEl=$('[data-chips]'); if(chipsEl) chipsEl.style.display='none';   // 칩 필터 제거 → 카테고리 나열식
   var gridEl=$('[data-grid]'); gridEl.className='pstory-catwrap';            // 그리드 → 블록(카테고리 섹션 쌓기)
-  var catHtml = CAT_ORDER.filter(function(k){ return allPosts.some(function(p){ return p.type===k; }); }).map(function(k){
+  var catHtml = CAT_ORDER.filter(function(k){ return k!=='short' && allPosts.some(function(p){ return p.type===k; }); }).map(function(k){   // 숏츠는 상단 'POUR 쇼츠' 전용 섹션에서만 노출(콘텐츠 전체 중복 제거)
     var items=allPosts.filter(function(p){ return p.type===k; }); var ty=TYPE[k];
     return '<div class="pstory-catsec" data-cat-sec="'+k+'">'
       + '<div class="pstory-cat-h"><span class="dot" style="background:'+ty.c+'"></span><span class="lb">'+esc(ty.l)+'</span><span class="n">'+items.length+'</span></div>'

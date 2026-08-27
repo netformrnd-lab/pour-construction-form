@@ -509,7 +509,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 .pcatnav-ico{width:15px;height:15px;flex-shrink:0;display:inline-flex;}
 .pcatnav-ico svg{width:100%;height:100%;display:block;}
 .psm1-tabs{position:relative;}
-.pcatnav-panel{position:absolute;left:0;right:0;top:100%;z-index:1200;background:#fff;border-top:1px solid #F2F3F5;border-bottom:1px solid #EEF0F2;box-shadow:0 14px 30px rgba(15,31,92,.13);}
+.pcatnav-panel{position:absolute;left:0;right:0;top:100%;z-index:100000;background:#fff;border-top:1px solid #F2F3F5;border-bottom:1px solid #EEF0F2;box-shadow:0 14px 30px rgba(15,31,92,.13);}
 .pcatnav-panel[hidden]{display:none;}
 .pcatnav-panel-inner{max-width:1256px;margin:0 auto;padding:14px 24px 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:2px 20px;}
 .pcatnav-panel-inner a{display:block;padding:11px 12px;border-radius:8px;font-size:15px;font-weight:600;color:#333;letter-spacing:-.02em;text-decoration:none;white-space:nowrap;}
@@ -2549,6 +2549,7 @@ var PC_TTL = 60000;
         + relBlock;
     }
     if (artModal.hidden){ artModal.hidden=false; _aOverflow=document.documentElement.style.overflow; document.documentElement.style.overflow='hidden'; }
+    positionArtBelowHeader();   // 공용헤더(로고·검색·카테고리 탭)가 글 위에 계속 보이도록 오버레이를 헤더 아래에서 시작
     artModal.scrollTop=0;
     var av=artScroll.querySelector('.adv-view'); if(av) renderAdvView(av);
     try{ pengageSetup(artScroll, p); }catch(e){ console.error('[engage] setup 실패:', e); }
@@ -2602,7 +2603,15 @@ var PC_TTL = 60000;
     });
     if(!root.__advBound){ root.__advBound=true; root.addEventListener('click',function(e){ if(!e.target.closest('.pv-point,.pv-pop')) root.querySelectorAll('.pv-pop.open').forEach(function(x){x.classList.remove('open');}); }); }
   }
-  function closeArticle(){ if(!artModal) return; artModal.hidden=true; artScroll.innerHTML=''; document.documentElement.style.overflow=_aOverflow; }
+  // 글 상세 오버레이를 공용헤더 높이만큼 아래에서 시작시켜 헤더가 항상 보이게 함(헤더의 검색/드로어는 z-99999로 오버레이 위에서 정상 동작)
+  function positionArtBelowHeader(){
+    if(!artModal || artModal.hidden) return;
+    try{ var hd=document.querySelector('.psm1-sticky'); artModal.style.top=(hd?Math.round(hd.getBoundingClientRect().height):0)+'px'; }
+    catch(e){ artModal.style.top='0px'; }
+  }
+  window.addEventListener('resize', positionArtBelowHeader);
+  window.addEventListener('orientationchange', function(){ setTimeout(positionArtBelowHeader, 250); });
+  function closeArticle(){ if(!artModal) return; artModal.hidden=true; artModal.style.top=''; artScroll.innerHTML=''; document.documentElement.style.overflow=_aOverflow; }
 
   // 닫기 + 클릭 라우팅(영상=재생 / 아티클=본문 / 그외=외부이동)
   if ($('[data-art-close]')) $('[data-art-close]').addEventListener('click', closeArticle);

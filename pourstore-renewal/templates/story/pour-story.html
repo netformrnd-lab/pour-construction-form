@@ -18,7 +18,7 @@
   var BASE=''
   +'.pstory-art-body .adv-view{max-width:860px;margin:0 auto;color:#222;line-height:1.7;font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;}'
   +'.adv-host *{box-sizing:border-box;}'
-  +'.adv-host .uie-box{position:relative;width:100%;height:360px;overflow:visible;border-radius:14px;background:#f3f4f6;margin-bottom:26px;}'
+  +'.adv-host .uie-box{position:relative;width:100%;height:475px;overflow:visible;border-radius:14px;background:#f3f4f6;margin-bottom:26px;}'   /* 어드민 편집기와 동일한 박스 크기(792×475 기준) → 저장된 크롭 transform(px)·핀·하이라이트 위치 일치 */
   +'.adv-host .uie-crop{position:absolute;inset:0;overflow:hidden;border-radius:inherit;}'
   +'.adv-host .uie-crop>img{position:absolute;left:50%;top:50%;width:100%;height:100%;object-fit:cover;transform-origin:center center;}'
   +'.adv-host .pv-point{position:absolute;transform:translate(-50%,-50%);z-index:6;width:26px;height:26px;border-radius:50%;background:#ff5a00;color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.3);border:2px solid #fff;font-size:14px;}'
@@ -37,7 +37,10 @@
   +'  .adv-host .pv-pop{position:fixed;left:12px;right:12px;bottom:14px;top:auto;width:auto;max-width:none;transform:none;z-index:100050;padding:14px 16px;box-shadow:0 -6px 28px rgba(0,0,0,.22),0 10px 34px rgba(0,0,0,.22);}'
   +'  .adv-host .pv-pop img{height:150px;}'
   +'  .adv-host .pv-pop b{font-size:15px;} .adv-host .pv-pop .pv-desc{font-size:13.5px;}'
-  +'}';
+  +'}'
+  // 어드민 편집기와 동일한 박스 높이 브레이크포인트(편집기: 475/285/245 @ 700/420) → 크롭·핀 위치 일치
+  +'@media (max-width:700px){ .adv-host .uie-box{height:285px;} }'
+  +'@media (max-width:420px){ .adv-host .uie-box{height:245px;} }';
   var s=document.createElement('style'); s.id='adv-view-style'; s.textContent=BASE+(window.ADV_EXTRA_CSS||''); (document.head||document.documentElement).appendChild(s);
 })();
 </script>
@@ -1540,7 +1543,8 @@ var PM_POSTS = [];
 .pstory-art-hero { width:calc(100% - 40px); max-width:720px; margin:18px auto 2px; aspect-ratio:16/9; max-height:280px; background:#F3F4F6; overflow:hidden; border-radius:14px; }
 .pstory-art-hero img { width:100%; height:100%; object-fit:cover; }
 @media (max-width:600px){ .pstory-art-hero { width:calc(100% - 28px); margin:14px auto 2px; max-height:200px; border-radius:11px; } }
-.pstory-art-wrap { max-width:720px; margin:0 auto; padding:28px 20px 40px; }
+.pstory-art-wrap { max-width:860px; margin:0 auto; padding:34px 34px 54px; }   /* 어드민 편집기 .wrap과 동일(860/34px → 콘텐츠 792px) → 고도화 콘텐츠 박스 폭·크롭 일치 */
+@media (max-width:700px){ .pstory-art-wrap { padding:24px 18px 40px; } }
 .pstory-art-ct { font-size:13px; font-weight:800; color:#E8780F; }
 .pstory-art-tt { margin-top:10px; font-size:26px; font-weight:800; color:#111111; letter-spacing:-0.04em; line-height:1.32; }
 .pstory-art-dt { margin-top:12px; font-size:13px; color:#AEB4BC; font-weight:500; padding-bottom:20px; border-bottom:1px solid #F0F1F3; }

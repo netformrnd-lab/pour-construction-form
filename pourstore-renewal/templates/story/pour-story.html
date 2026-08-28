@@ -1465,7 +1465,7 @@ var PM_POSTS = [];
 .pstory-chip.on .n { opacity:.85; }
 .pstory-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:30px 22px; }
 .pstory-card { display:flex; flex-direction:column; cursor:pointer; }
-.pstory-thumb { position:relative; width:100%; aspect-ratio:4/3; border-radius:8px; overflow:hidden; background:#F3F4F6; }
+.pstory-thumb { position:relative; width:100%; aspect-ratio:4/3; border-radius:12px; overflow:hidden; background:#F3F4F6; }
 .pstory-thumb img { width:100%; height:100%; object-fit:cover; transition:transform .3s ease; }
 .pstory-card:hover .pstory-thumb img { transform:scale(1.05); }
 .pstory-thumb .ph { width:100%; height:100%; display:grid; place-items:center; color:#D1D5DB; }
@@ -1492,6 +1492,13 @@ var PM_POSTS = [];
 .pstory-cat-row .pstory-card { flex:0 0 232px; scroll-snap-align:start; }
 .pstory-cat-row .pstory-ct { display:none; }
 @media (max-width:700px){ .pstory-catsec { margin-bottom:30px; } .pstory-cat-h .lb { font-size:17px; } .pstory-cat-row { gap:12px; } .pstory-cat-row .pstory-card { flex:0 0 66%; max-width:280px; } }
+/* 시공가이드 섹션: 참고 디자인(제목+더보기, 4열 그리드로 폭 채움) */
+.pstory-guidesec .pstory-sec-h { margin-bottom:20px; }
+.pstory-guide-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:26px 22px; }
+.pstory-guide-grid .pstory-card { flex:none; }
+.pstory-guide-grid .pstory-ct { display:none; }
+@media (max-width:1000px){ .pstory-guide-grid { grid-template-columns:repeat(3,1fr); gap:24px 18px; } }
+@media (max-width:700px){ .pstory-guide-grid { grid-template-columns:repeat(2,1fr); gap:20px 12px; } }
 /* 영상 시청 모달 (유튜브 watch식) */
 .pstory-modal { position:fixed; inset:0; z-index:99999; background:#0F0F0F; overflow-y:auto; -webkit-overflow-scrolling:touch; }
 .pstory-modal[hidden] { display:none; }
@@ -2198,6 +2205,12 @@ var PC_TTL = 60000;
   var gridEl=$('[data-grid]'); gridEl.className='pstory-catwrap';            // 그리드 → 블록(카테고리 섹션 쌓기)
   var catHtml = CAT_ORDER.filter(function(k){ return k!=='short' && allPosts.some(function(p){ return p.type===k; }); }).map(function(k){   // 숏츠는 상단 'POUR 쇼츠' 전용 섹션에서만 노출(콘텐츠 전체 중복 제거)
     var items=allPosts.filter(function(p){ return p.type===k; }); var ty=TYPE[k];
+    if(k==='guide'){   // 시공가이드: 참고 디자인(제목+더보기 헤더, 폭 채우는 그리드)
+      return '<div class="pstory-catsec pstory-guidesec" data-cat-sec="guide">'
+        + '<div class="pstory-sec-h"><h2>POUR시공 가이드 A to Z</h2><a class="pstory-more" href="/guide/guide.html" style="color:#8B95A1">더보기 ›</a></div>'
+        + '<div class="pstory-guide-grid">'+items.map(cardHtml).join('')+'</div>'
+        + '</div>';
+    }
     return '<div class="pstory-catsec" data-cat-sec="'+k+'">'
       + '<div class="pstory-cat-h"><span class="dot" style="background:'+ty.c+'"></span><span class="lb">'+esc(ty.l)+'</span><span class="n">'+items.length+'</span></div>'
       + '<div class="pstory-cat-row">'+items.map(cardHtml).join('')+'</div>'

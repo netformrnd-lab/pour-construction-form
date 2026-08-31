@@ -1,0 +1,12 @@
+# Cloudflare Pages 응답 헤더
+#
+# 가격·마진 대시보드는 브라우저가 옛날 파일을 붙들고 있어서, 코드를 올려도
+# 화면이 안 바뀌고 시크릿창으로 열어야 하는 일이 반복됐다.
+# 이 화면은 사내 관리용(로그인 필수)이라 캐시로 아낄 트래픽이 없으므로,
+# 매번 서버에서 새로 받도록 한다. 스토어프론트 페이지는 건드리지 않는다.
+
+/pourstore-pricing-dashboard
+  Cache-Control: no-store, must-revalidate
+
+/pourstore-pricing-dashboard.html
+  Cache-Control: no-store, must-revalidate

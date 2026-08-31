@@ -1305,6 +1305,10 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
         </div>
         <div class="imp-tablewrap" style="max-height:220px"><table id="impNewTable"></table></div>
       </div>
+      <div id="impSkipBox" style="display:none;margin-top:14px;border:1px solid #F1B7AD;border-radius:8px;padding:10px 12px;background:#FDF6F4">
+        <div id="impSkipHead" style="font-size:13px;font-weight:700;color:#8A2B1E;margin-bottom:8px"></div>
+        <div id="impSkipList" style="max-height:300px;overflow-y:auto"></div>
+      </div>
     </div>
     <div class="imp-foot">
       <span class="footnote" style="margin:0">체크한 항목만 개정안에 반영됩니다 · 실제 적용은 <b>상급자 승인</b> 후</span>
@@ -4207,8 +4211,17 @@ function chanCodeOf(cellText){
   const t=s.replace(/[\s()·]/g,'');
   const byName=(typeof CHANNELS!=='undefined'?CHANNELS:[]).find(c=>{
     const n=String(c.name||'').replace(/[\s()·]/g,''), sh=String(c.short||'').replace(/[\s()·]/g,'');
-    return (n&&(t===n||t.includes(n))) || (sh&&t===sh); });
-  return byName?String(byName.code).toUpperCase():null;
+    // 양방향 포함: 머리글이 채널명보다 짧아도('도매' ↔ '온라인 도매') 찾도록
+    return (n&&(t===n||t.includes(n)||(t.length>=2&&n.includes(t)))) || (sh&&t===sh); });
+  if(byName) return String(byName.code).toUpperCase();
+  /* 이름이 안 맞아도 '정가·판매가·소비자가' 계열 머리글은 정가 채널로 본다.
+     [단가표 엑셀] 내보내기의 정가 열 머리글이 '판매가(정가)' 라서 채널명('자사몰정가')과
+     이름 매칭이 안 돼, 정가 열이 통째로 인식되지 않고 빈 열로 올라오던 문제. */
+  if(/(정가|판매가|소비자가)/.test(t) && !/(마진|이익)/.test(t)){
+    const r=(typeof chBy==='function')?chBy('retail'):null;
+    if(r) return String(r.code).toUpperCase();
+  }
+  return null;
 }
 const IMP_NAME_HDR=/(제품\s*명|상품\s*명|품\s*명|품목)/;
 const IMP_SPEC_HDR=/(규격|포장|용량|단위)/;
@@ -4233,9 +4246,16 @@ function detectChannelLayout(rows){
   return null;
 }
 let IMP_FILE_ROWS=[];   // 파일에서 읽은 품목 원본 [{name,spec,cat,prices}] · 신제품 판별용
+/* ══ 미반영 사유 수집 ══
+   예전엔 파싱·매칭 단계에서 탈락한 행이 화면 어디에도 안 나와서, 파일에 100줄을 넣어도
+   "몇 건 매칭"만 보이고 나머지가 왜 빠졌는지 알 수 없었다. 이제 사유를 모아 표시한다. */
+let IMP_SKIP_FILE=[];   // 파일 파싱 단계 탈락 [{name,spec,why}]
+let IMP_SKIP_ROW=[];    // 제품 매칭·반영 단계 탈락 [{name,spec,why}]
+function impSkipFile(name,spec,why){ if(IMP_SKIP_FILE.length<400) IMP_SKIP_FILE.push({name,spec,why}); }
+function impSkipRow(p,why){ if(IMP_SKIP_ROW.length<400) IMP_SKIP_ROW.push({name:p.name,spec:p.spec,why}); }
 /* 채널 단가표 → {키: {name, spec, cat, prices:{CODE:원}}} · 분류 구분행은 그 아래 품목의 분류로 사용 */
 function sheetToChannelBook(rows, L){
-  const book={}; IMP_FILE_ROWS=[];
+  const book={}; IMP_FILE_ROWS=[]; IMP_SKIP_FILE=[];
   let cat='';
   const firstCh=Math.min(...Object.values(L.cols));
   for(let r=L.headerRow+1;r<rows.length;r++){
@@ -4247,8 +4267,15 @@ function sheetToChannelBook(rows, L){
     if(!name || /^[■▣▶●]/.test(name)) continue;
     const prices={}; let any=false;
     L.codes.forEach(code=>{ const v=parseWon(cells[L.cols[code]]); if(v!=null){ prices[code]=v; any=true; } });
-    if(!any) continue;
     const spec=L.specCols.map(i=>String(cells[i]==null?'':cells[i]).trim()).filter(Boolean).join('');
+    if(!any){                                        // 단가를 하나도 못 읽은 행 — 사유를 남긴다
+      const raw=L.codes.map(code=>String(cells[L.cols[code]]==null?'':cells[L.cols[code]]).trim()).filter(Boolean);
+      const num=raw.filter(x=>/^[\u20a9,\d.\s]+$/.test(x));
+      impSkipFile(name, spec, num.length
+        ? `단가가 1,000원 미만이라 숫자로 인식하지 않습니다 (${num.slice(0,3).join(', ')})`
+        : '이 행의 채널 열에 단가 숫자가 없습니다');
+      continue;
+    }
     const rec={name,spec,cat:cat||'기타',prices};
     IMP_FILE_ROWS.push(rec);
     const k=vNorm(name)+vNorm(spec), k2=vNorm(name);
@@ -4275,7 +4302,7 @@ async function fileToSheets(file){
 }
 async function readImportFile(file){
   const name=(file.name||'').toLowerCase();
-  IMP_MODE='vbase'; IMP_CODES=[];
+  IMP_MODE='vbase'; IMP_CODES=[]; IMP_SKIP_FILE=[]; IMP_SKIP_ROW=[];   // 연속 업로드 시 이전 사유 잔존 방지
   if(name.endsWith('.pdf')){ const buf=await file.arrayBuffer(); return pairsToBook(await pdfToPairs(buf)); }
   const sheets=await fileToSheets(file);
   if(!sheets) throw new Error('지원하지 않는 형식입니다 (PDF·xlsx·xls·csv)');
@@ -4305,13 +4332,21 @@ function buildImportRows(book){
    업체단가 ← 총판(role:dealer) · 자사몰정가 ← 정가(role:retail) · 그 외 수동채널은 값 그대로.
    사다리 채널(대리점·시공·위탁·도매·쿠팡)은 업체단가~정가로 자동 재계산되므로 직접 넣지 않는다. */
 function impAnchorCodes(){
-  const d=chBy('dealer'), r=chBy('retail');
+  /* 업체단가와 '항상 같은 값'인 채널 = 사다리 0% 채널(보통 총판) — 이게 업체단가 앵커다.
+     예전엔 role:dealer 를 썼는데, 그 역할은 화면상 'MOQ 하한'(보통 대리점)이라
+     대리점 단가가 업체단가 칸으로 들어가 총판가가 대리점가로 덮이는 사고가 났다. */
+  const tw=(typeof vbaseTwin==='function')?vbaseTwin():null;
+  const d=tw||chBy('dealer'), r=chBy('retail');
   return { dealer:d?String(d.code).toUpperCase():'P2', retail:r?String(r.code).toUpperCase():'OWN' };
 }
 function buildImportRowsChannel(book){
-  const A=impAnchorCodes(), rows=[];
+  const A=impAnchorCodes(), rows=[]; IMP_SKIP_ROW=[];
   P.forEach(p=>{
-    if(isPackage(p)) return;                       // 세트는 구성 단품 합산 — 직접 입력 대상 아님
+    if(isPackage(p)){                              // 세트는 구성 단품 합산 — 직접 입력 대상 아님
+      const h=findInBook(p, book);                 // 파일에 실제로 들어있던 세트만 사유로 알린다
+      if(h&&h.prices) impSkipRow(p,'세트(패키지) 제품 — 구성 단품의 합계로 계산되므로 직접 반영하지 않습니다. 구성 단품의 단가를 고치세요');
+      return;
+    }
     const hit=findInBook(p, book); if(!hit||!hit.prices) return;
     const key=pKey(p), pr=hit.prices;
     const vbVal=pr[A.dealer]!=null?pr[A.dealer]:null;
@@ -4327,7 +4362,16 @@ function buildImportRowsChannel(book){
       const v=pr[code]; if(v==null) return;
       man.push({code, uid:c.uid, name:c.name, cur:p.pr[c.uid]??null, val:v});
     });
-    if(vbVal==null && rtVal==null && !man.length) return;
+    if(vbVal==null && rtVal==null && !man.length){
+      // 파일에 값은 있는데 반영 대상 열이 아니었던 경우 — 사다리 채널만 채운 실수가 대부분이다
+      const lad=IMP_CODES.filter(code=>{ if(pr[code]==null) return false;
+        const c=chByCode(code); return c && coeffFor(c.code).a==='ladder' && code!==A.dealer; })
+        .map(code=>{ const c=chByCode(code); return `[${code}] ${c.name}`; });
+      impSkipRow(p, lad.length
+        ? `${lad.join(' · ')} 열에만 값이 있습니다 — 이 채널은 업체단가~정가 사다리로 자동계산되므로 무시됩니다. 업체단가([${A.dealer}]) 또는 자사몰정가([${A.retail}]) 열에 값을 넣으세요`
+        : `파일의 이 행에 업체단가([${A.dealer}])·자사몰정가([${A.retail}]) 값이 비어 있습니다`);
+      return;
+    }
     const same = (vbVal==null||Number(vbCur)===Number(vbVal))
               && (rtVal==null||Number(rtCur)===Number(rtVal))
               && man.every(m=>Number(m.cur)===Number(m.val));
@@ -4382,9 +4426,10 @@ function renderImportTableChannel(){
   const manCols=[]; IMP_ROWS.forEach(r=>r.man.forEach(m=>{ if(!manCols.some(x=>x.code===m.code)) manCols.push({code:m.code,name:m.name}); }));
   const arrow=(cur,val)=> val==null?'<span class="dim">—</span>'
     : (cur==null? `<b>${won(val)}</b>` : (Number(cur)===Number(val)? `${won(val)}` : `<span class="dim" style="text-decoration:line-through">${won(cur)}</span> <b>${won(val)}</b>`));
+  const miss=code=>IMP_CODES.includes(code)?'' : ' <span style="color:var(--red)">· 파일에 없음</span>';
   let h='<thead><tr><th style="width:34px"></th><th>제품 · 규격</th>'
-    +`<th class="num">업체단가<div style="font-weight:400;font-size:9.5px">← ${esc(A.dealer)}</div></th>`
-    +`<th class="num">자사몰정가<div style="font-weight:400;font-size:9.5px">← ${esc(A.retail)}</div></th>`
+    +`<th class="num">업체단가<div style="font-weight:400;font-size:9.5px">← ${esc(A.dealer)}${miss(A.dealer)}</div></th>`
+    +`<th class="num">자사몰정가<div style="font-weight:400;font-size:9.5px">← ${esc(A.retail)}${miss(A.retail)}</div></th>`
     +manCols.map(c=>`<th class="num">${esc(c.name)}<div style="font-weight:400;font-size:9.5px">← ${esc(c.code)}</div></th>`).join('')
     +'<th class="num" title="파일의 대리점~쿠팡 값과, 앱이 사다리로 계산할 값의 최대 차이">사다리<div style="font-weight:400;font-size:9.5px">차이</div></th>'
     +'<th>상태</th></tr></thead><tbody>';
@@ -4481,6 +4526,7 @@ function impBadge(st){ const m={new:['신규','#EAF3FF','#1976D2'],diff:['변경
 function renderImportTable(){
   const wrap=$('#impResult');
   renderImportNew();
+  renderImportSkip();          // 표에 못 올라간 행의 사유 — 아래 경로 어디로 빠져도 항상 보이게
   if(!IMP_ROWS.length && IMP_NEW.length){   // 매칭 0건이어도 신제품이 있으면 등록 가능
     wrap.style.display='none'; $('#impApply').disabled=impNewCount()===0; return;
   }
@@ -4500,6 +4546,28 @@ function renderImportTable(){
   $('#impTable').innerHTML=h+'</tbody>';
   updateImportCount();
 }
+/* 미반영 사유 표시 — 파일에 있었는데 표에 안 올라온 행을 사유별로 묶어 보여준다 */
+function renderImportSkip(){
+  const box=$('#impSkipBox'); if(!box) return;
+  const all=[...IMP_SKIP_FILE, ...IMP_SKIP_ROW];
+  if(!all.length){ box.style.display='none'; return; }
+  box.style.display='';
+  const byWhy=new Map();
+  all.forEach(x=>{ if(!byWhy.has(x.why)) byWhy.set(x.why,[]); byWhy.get(x.why).push(x); });
+  $('#impSkipHead').innerHTML=`⚠️ 미반영 <b>${all.length}건</b> — 아래 사유로 이번 업로드에 반영되지 않았습니다`;
+  // 표(3열)는 좁은 화면에서 사유 칸이 무너져 세로 스택으로 쌓는다
+  $('#impSkipList').innerHTML=[...byWhy.entries()].sort((a,b)=>b[1].length-a[1].length).map(([why,list])=>{
+    const names=list.map(x=>esc(x.name)+(x.spec?` <span style="color:var(--ink-faint)">${esc(x.spec)}</span>`:''));
+    const shown=names.slice(0,12).join(' &nbsp;· ')+(names.length>12?` <span style="color:var(--ink-faint)">외 ${names.length-12}개</span>`:'');
+    return `<div style="border:1px solid #F1B7AD;border-radius:6px;background:#fff;padding:9px 11px;margin-bottom:8px">
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <span style="flex:0 0 auto;background:#8A2B1E;color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700;white-space:nowrap">${list.length}건</span>
+        <b style="font-size:12.5px;color:#8A2B1E;line-height:1.55">${esc(why)}</b>
+      </div>
+      <div style="font-size:11.5px;color:var(--ink-soft);line-height:1.75;margin-top:6px;word-break:break-all">${shown}</div>
+    </div>`;
+  }).join('');
+}
 function updateImportCount(){
   const n=IMP_ROWS.filter(r=>r.check).length;
   const nNew=IMP_ROWS.filter(r=>r.check&&r.status==='new').length, nDiff=IMP_ROWS.filter(r=>r.check&&r.status==='diff').length;
@@ -4508,7 +4576,7 @@ function updateImportCount(){
   $('#impApply').disabled=(n===0 && nAdd===0);
   const selectable=IMP_ROWS.filter(r=>r.status!=='same'); $('#impAll').checked=selectable.length>0 && selectable.every(r=>r.check);
 }
-function openImportModal(){ IMP_ROWS=[]; IMP_MODE='vbase'; IMP_CODES=[]; IMP_NEW=[]; IMP_FILE_ROWS=[]; const nb=$('#impNewBox'); if(nb)nb.style.display='none'; $('#impResult').style.display='none'; $('#impStatus').textContent=''; $('#impFile').value=''; $('#impApply').disabled=true; $('#impAll').checked=false; $('#impOverlay').classList.add('on'); }
+function openImportModal(){ IMP_ROWS=[]; IMP_MODE='vbase'; IMP_CODES=[]; IMP_NEW=[]; IMP_FILE_ROWS=[]; IMP_SKIP_FILE=[]; IMP_SKIP_ROW=[]; const nb=$('#impNewBox'); if(nb)nb.style.display='none'; const sb=$('#impSkipBox'); if(sb)sb.style.display='none'; $('#impResult').style.display='none'; $('#impStatus').textContent=''; $('#impFile').value=''; $('#impApply').disabled=true; $('#impAll').checked=false; $('#impOverlay').classList.add('on'); }
 function closeImportModal(){ $('#impOverlay').classList.remove('on'); }
 async function handleImportFile(file){
   if(!file) return;
@@ -4523,12 +4591,18 @@ async function handleImportFile(file){
       h+=`<br>· 반영: <b>업체단가 ← ${esc(impAnchorCodes().dealer)}</b> · <b>자사몰정가 ← ${esc(impAnchorCodes().retail)}</b> · 수동 채널은 파일 값 그대로`;
       if(gap.max>0) h+=`<br>· ${esc(gap.names.join('·'))}은 업체단가~정가 <b>사다리로 자동 계산</b>됩니다 — 파일 값과 <b>최대 ${won(gap.max)}원</b> 차이 (반올림)`;
       if(unk.length) h+=`<br>· <span style="color:var(--red)">앱에 없는 채널: ${unk.map(esc).join(' · ')} — 이 열은 반영되지 않습니다</span>`;
+      // 앵커 열이 파일에 없으면 그 값은 통째로 안 들어간다 — 조용히 빈 열로 두지 않고 크게 알린다
+      const A2=impAnchorCodes();
+      if(!IMP_CODES.includes(A2.dealer))
+        h+=`<br>· <b style="color:var(--red)">파일에 업체단가로 쓸 [${esc(A2.dealer)}] 열이 없습니다 — 업체단가는 하나도 반영되지 않습니다.</b>`;
+      if(!IMP_CODES.includes(A2.retail))
+        h+=`<br>· <b style="color:var(--red)">파일에 자사몰정가 [${esc(A2.retail)}] 열이 없습니다 — 정가가 반영되지 않고, 중간 채널은 업체단가 ÷ ${Math.round(LAD_BASE*100)}% 로 <u>추정</u>됩니다.</b> 사다리 차이가 크게 나오는 원인이니, 정가 열을 넣어 다시 올리세요.`;
       $('#impStatus').innerHTML=h;
     } else {
       $('#impStatus').innerHTML=`✅ <b>${esc(file.name)}</b> · 파일에서 단가 ${Object.keys(book).length}개 인식 · 앱 제품과 <b>${IMP_ROWS.length}개</b> 매칭`;
     }
     renderImportTable();
-  }catch(e){ console.error('[import] 실패',e); $('#impStatus').innerHTML='<span style="color:var(--red)">읽기 실패: '+esc(e.message||String(e))+'</span>'; IMP_ROWS=[]; $('#impResult').style.display='none'; $('#impApply').disabled=true; }
+  }catch(e){ console.error('[import] 실패',e); $('#impStatus').innerHTML='<span style="color:var(--red)">읽기 실패: '+esc(e.message||String(e))+'</span>'; IMP_ROWS=[]; IMP_SKIP_FILE=[]; IMP_SKIP_ROW=[]; $('#impResult').style.display='none'; const sb=$('#impSkipBox'); if(sb)sb.style.display='none'; $('#impApply').disabled=true; }
 }
 async function applyImport(){
   const sel=IMP_ROWS.filter(r=>r.check);

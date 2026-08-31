@@ -4211,8 +4211,17 @@ function chanCodeOf(cellText){
   const t=s.replace(/[\s()·]/g,'');
   const byName=(typeof CHANNELS!=='undefined'?CHANNELS:[]).find(c=>{
     const n=String(c.name||'').replace(/[\s()·]/g,''), sh=String(c.short||'').replace(/[\s()·]/g,'');
-    return (n&&(t===n||t.includes(n))) || (sh&&t===sh); });
-  return byName?String(byName.code).toUpperCase():null;
+    // 양방향 포함: 머리글이 채널명보다 짧아도('도매' ↔ '온라인 도매') 찾도록
+    return (n&&(t===n||t.includes(n)||(t.length>=2&&n.includes(t)))) || (sh&&t===sh); });
+  if(byName) return String(byName.code).toUpperCase();
+  /* 이름이 안 맞아도 '정가·판매가·소비자가' 계열 머리글은 정가 채널로 본다.
+     [단가표 엑셀] 내보내기의 정가 열 머리글이 '판매가(정가)' 라서 채널명('자사몰정가')과
+     이름 매칭이 안 돼, 정가 열이 통째로 인식되지 않고 빈 열로 올라오던 문제. */
+  if(/(정가|판매가|소비자가)/.test(t) && !/(마진|이익)/.test(t)){
+    const r=(typeof chBy==='function')?chBy('retail'):null;
+    if(r) return String(r.code).toUpperCase();
+  }
+  return null;
 }
 const IMP_NAME_HDR=/(제품\s*명|상품\s*명|품\s*명|품목)/;
 const IMP_SPEC_HDR=/(규격|포장|용량|단위)/;

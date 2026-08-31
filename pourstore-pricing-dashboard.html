@@ -4323,7 +4323,11 @@ function buildImportRows(book){
    업체단가 ← 총판(role:dealer) · 자사몰정가 ← 정가(role:retail) · 그 외 수동채널은 값 그대로.
    사다리 채널(대리점·시공·위탁·도매·쿠팡)은 업체단가~정가로 자동 재계산되므로 직접 넣지 않는다. */
 function impAnchorCodes(){
-  const d=chBy('dealer'), r=chBy('retail');
+  /* 업체단가와 '항상 같은 값'인 채널 = 사다리 0% 채널(보통 총판) — 이게 업체단가 앵커다.
+     예전엔 role:dealer 를 썼는데, 그 역할은 화면상 'MOQ 하한'(보통 대리점)이라
+     대리점 단가가 업체단가 칸으로 들어가 총판가가 대리점가로 덮이는 사고가 났다. */
+  const tw=(typeof vbaseTwin==='function')?vbaseTwin():null;
+  const d=tw||chBy('dealer'), r=chBy('retail');
   return { dealer:d?String(d.code).toUpperCase():'P2', retail:r?String(r.code).toUpperCase():'OWN' };
 }
 function buildImportRowsChannel(book){
@@ -4413,9 +4417,10 @@ function renderImportTableChannel(){
   const manCols=[]; IMP_ROWS.forEach(r=>r.man.forEach(m=>{ if(!manCols.some(x=>x.code===m.code)) manCols.push({code:m.code,name:m.name}); }));
   const arrow=(cur,val)=> val==null?'<span class="dim">—</span>'
     : (cur==null? `<b>${won(val)}</b>` : (Number(cur)===Number(val)? `${won(val)}` : `<span class="dim" style="text-decoration:line-through">${won(cur)}</span> <b>${won(val)}</b>`));
+  const miss=code=>IMP_CODES.includes(code)?'' : ' <span style="color:var(--red)">· 파일에 없음</span>';
   let h='<thead><tr><th style="width:34px"></th><th>제품 · 규격</th>'
-    +`<th class="num">업체단가<div style="font-weight:400;font-size:9.5px">← ${esc(A.dealer)}</div></th>`
-    +`<th class="num">자사몰정가<div style="font-weight:400;font-size:9.5px">← ${esc(A.retail)}</div></th>`
+    +`<th class="num">업체단가<div style="font-weight:400;font-size:9.5px">← ${esc(A.dealer)}${miss(A.dealer)}</div></th>`
+    +`<th class="num">자사몰정가<div style="font-weight:400;font-size:9.5px">← ${esc(A.retail)}${miss(A.retail)}</div></th>`
     +manCols.map(c=>`<th class="num">${esc(c.name)}<div style="font-weight:400;font-size:9.5px">← ${esc(c.code)}</div></th>`).join('')
     +'<th class="num" title="파일의 대리점~쿠팡 값과, 앱이 사다리로 계산할 값의 최대 차이">사다리<div style="font-weight:400;font-size:9.5px">차이</div></th>'
     +'<th>상태</th></tr></thead><tbody>';
@@ -4577,6 +4582,12 @@ async function handleImportFile(file){
       h+=`<br>· 반영: <b>업체단가 ← ${esc(impAnchorCodes().dealer)}</b> · <b>자사몰정가 ← ${esc(impAnchorCodes().retail)}</b> · 수동 채널은 파일 값 그대로`;
       if(gap.max>0) h+=`<br>· ${esc(gap.names.join('·'))}은 업체단가~정가 <b>사다리로 자동 계산</b>됩니다 — 파일 값과 <b>최대 ${won(gap.max)}원</b> 차이 (반올림)`;
       if(unk.length) h+=`<br>· <span style="color:var(--red)">앱에 없는 채널: ${unk.map(esc).join(' · ')} — 이 열은 반영되지 않습니다</span>`;
+      // 앵커 열이 파일에 없으면 그 값은 통째로 안 들어간다 — 조용히 빈 열로 두지 않고 크게 알린다
+      const A2=impAnchorCodes();
+      if(!IMP_CODES.includes(A2.dealer))
+        h+=`<br>· <b style="color:var(--red)">파일에 업체단가로 쓸 [${esc(A2.dealer)}] 열이 없습니다 — 업체단가는 하나도 반영되지 않습니다.</b>`;
+      if(!IMP_CODES.includes(A2.retail))
+        h+=`<br>· <b style="color:var(--red)">파일에 자사몰정가 [${esc(A2.retail)}] 열이 없습니다 — 정가가 반영되지 않고, 중간 채널은 업체단가 ÷ ${Math.round(LAD_BASE*100)}% 로 <u>추정</u>됩니다.</b> 사다리 차이가 크게 나오는 원인이니, 정가 열을 넣어 다시 올리세요.`;
       $('#impStatus').innerHTML=h;
     } else {
       $('#impStatus').innerHTML=`✅ <b>${esc(file.name)}</b> · 파일에서 단가 ${Object.keys(book).length}개 인식 · 앱 제품과 <b>${IMP_ROWS.length}개</b> 매칭`;

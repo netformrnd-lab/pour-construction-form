@@ -163,7 +163,8 @@ td.selcell{outline:2px solid var(--xl-green);outline-offset:-2px;background:var(
 td .mrate{display:block;font-size:10px;color:var(--ink-faint);margin-top:1px;font-weight:600;line-height:1.15}
 td.estcell{position:relative;color:#6B7A87;background:repeating-linear-gradient(135deg,transparent,transparent 5px,rgba(107,122,135,.07) 5px,rgba(107,122,135,.07) 10px)}
 /* 숫자는 우측 정렬 → 배지는 좌측 상단에 겹쳐 놓아 행 높이를 늘리지 않는다 */
-td .estbadge{position:absolute;left:3px;top:2px;font-size:8.5px;font-weight:800;color:#6B7A87;opacity:.9;line-height:1;pointer-events:none}
+td .todohint{color:#8A94A0;font-style:italic;font-size:11.5px}
+.estbadge{position:absolute;left:3px;top:2px;font-size:8.5px;font-weight:800;color:#6B7A87;opacity:.9;line-height:1;pointer-events:none}
 td.ovrcell{position:relative;box-shadow:inset 0 0 0 1.5px #7C6BD1}
 td .ovrbadge{position:absolute;left:3px;top:2px;font-size:9px;font-weight:800;color:#5B4BB5;line-height:1;pointer-events:none}
 #priceGrid td.autolock{cursor:cell}
@@ -1291,6 +1292,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
       <div id="impResult" style="display:none">
         <div class="imp-tools">
           <label style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:13px"><input type="checkbox" id="impAll"> 전체선택</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:12.5px;color:#8A2B1E;background:#FDF6F4;border:1px solid #F1B7AD;border-radius:6px;padding:3px 9px" title="켜면 파일에서 비어 있는 칸을 '아직 단가 미정'으로 표시해 빈칸으로 둡니다. 파일에 아예 없는 열은 건드리지 않습니다."><input type="checkbox" id="impBlankClear"> 파일의 빈칸 = <u>단가 미정</u></label>
           <span id="impCount" class="footnote" style="margin:0"></span>
         </div>
         <div class="imp-tablewrap"><table id="impTable"></table></div>
@@ -2540,7 +2542,9 @@ function renderGrid(){
       if(pc.t==='vbase'){
         const k=pKey(p), val=pkg?pkgVbase(p):effVbase(k), isDraft=!pkg&&PREVIEW&&(k in DVBASE);
         const neg=showCost && val!=null && pcost!=null && val<pcost;
-        let inner = (!pkg && val==null) ? '<span class="edithint">＋ 입력</span>' : won(val);   // 빈 앵커: 클릭해 입력
+        const vTodo = !pkg && isTodo(p, VBASE_COL);
+        let inner = vTodo ? '<span class="todohint">미정</span>'
+                  : ((!pkg && val==null) ? '<span class="edithint">＋ 입력</span>' : won(val));   // 빈 앵커: 클릭해 입력
         if(val!=null && showCost && pcost!=null && val>0) inner+=`<span class="mrate">마진 ${pct((val-pcost)/val)}</span>`;   // showCost 에 접기 반영됨
         if(isDraft) inner+=`<span class="mrate" style="color:var(--amber);font-weight:700">개정안</span>`;
         const ed=pkg?' pkglock':' editable';   // 패키지 업체단가는 합산값 → 수정 불가(안내)
@@ -2551,13 +2555,16 @@ function renderGrid(){
       const editable=!pkg && (isAnchor || coeffFor(c.code).a==='manual');   // 패키지·사다리 채널은 잠금
       const rtDraft=!pkg && isAnchor && PREVIEW && (pKey(p) in DRETAIL);   // 자사몰정가 개정안 표시
       const est=!pkg && isEst(p,c.uid);   // 정가 기반 추정값 → 확정가와 구분
+      const todo=!pkg && isTodo(p,c.uid);   // 아직 단가 미책정 → 숫자 대신 '미정'
       const ovr=!pkg && hasOvr(p,c.uid), ovrD=!pkg && isOvrDraft(p,c.uid);
       const cls=['num']; if(editable)cls.push('editable'); else if(pkg)cls.push('pkglock'); else cls.push('autolock'); if(m!=null&&m<0)cls.push('neg','warn'); if(est)cls.push('estcell'); if(ovr)cls.push('ovrcell');
-      let disp = (editable && pr==null) ? '<span class="edithint">＋ 입력</span>' : cellDisplay(p,c.uid);
+      let disp = todo ? '<span class="todohint">미정</span>'
+               : ((editable && pr==null) ? '<span class="edithint">＋ 입력</span>' : cellDisplay(p,c.uid));
       if(est) disp+='<span class="estbadge">추정</span>';
       if(ovr) disp+=`<span class="ovrbadge"${ovrD?' style="color:var(--amber)"':''}>✎${ovrD?' 개정안':''}</span>`;
       if(rtDraft) disp+='<span class="mrate" style="color:var(--amber);font-weight:700">개정안</span>';
-      const tt = est?'정가 기준 추정값입니다 — 실제 값을 입력하면 대체됩니다'
+      const tt = todo?'아직 단가를 정하지 않은 칸입니다 — 값을 입력하면 미정이 풀립니다'
+               : est?'정가 기준 추정값입니다 — 실제 값을 입력하면 대체됩니다'
                : ovr?'직접 조정된 단가입니다 — 더블클릭해 수정·해제'
                : (!pkg&&!editable)?'더블클릭하면 이 제품만 단가를 직접 조정할 수 있습니다':'';
       return `<td class="${cls.join(' ')}"${editable?` data-id="${p.id}" data-f="u${c.uid}"`:''}${(!editable&&!pkg)?` data-cuid="${esc(c.uid)}"`:''}${tt?` title="${tt}"`:''}>${disp}</td>`;
@@ -2674,8 +2681,10 @@ document.addEventListener('dblclick',e=>{
   const commit=()=>{
     const v=inp.value===''?null:+inp.value;
     if(f==='cost')p.cost=v;
-    else if(f==='vbase'){ draftSetVbase(p,v); PREVIEW=true; recalcVendor(); }   // 업체단가 → 개정안
+    else if(f==='vbase'){ if(v!=null&&isTodo(p,VBASE_COL)) draftSetTodo(p,VBASE_COL,false);   // 값을 넣으면 미정 해제
+                          draftSetVbase(p,v); PREVIEW=true; recalcVendor(); }   // 업체단가 → 개정안
     else{ const uid=f.slice(1); const rUid=(typeof retailUid==='function')?retailUid():null;
+      if(v!=null && isTodo(p,uid)) draftSetTodo(p,uid,false);                     // 값을 넣으면 미정 해제
       if(uid===rUid){ draftSetRetail(p,v); PREVIEW=true; recalcVendor(); }        // 자사몰 정가 → 개정안
       else{ delete EST[estKey(p,uid)];                                            // 직접 입력 → 더는 추정값이 아님
             if(v==null)delete p.pr[uid]; else p.pr[uid]=v; } }                    // 그 외 수동 채널
@@ -4069,7 +4078,8 @@ let PREVIEW=false;   // 가격정책표에 개정안 미리보기 오버레이
 const VCOEFF_DEFAULT={ P2:{a:'ladder',f:0}, P3:{a:'ladder',f:4}, P4:{a:'ladder',f:9}, P5:{a:'ladder',f:13}, P6:{a:'ladder',f:47}, P8:{a:'ladder',f:73}, OWN:{a:'manual',f:0}, P1:{a:'manual',f:0} };
 function round100(n){ return Math.round(n/100)*100; }
 const isApprover=()=> !!_emailLc() && _masterListLc().includes(_emailLc());   // 상급자(마스터)
-function effVbase(k){ return (PREVIEW && (k in DVBASE))?DVBASE[k]:VBASE[k]; }
+function effVbase(k){ if(effTodo(k+'|'+VBASE_COL)) return undefined;   // 미정이면 값 자체를 내주지 않는다(표·내보내기·CRM 공통)
+  return (PREVIEW && (k in DVBASE))?DVBASE[k]:VBASE[k]; }
 function effRetail(k){ return (PREVIEW && (k in DRETAIL))?DRETAIL[k]:VRETAIL[k]; }
 function coeffFor(code){ const src=(PREVIEW && DCOEFF[code])?DCOEFF[code]:(VCOEFF[code]||VCOEFF_DEFAULT[code]); return src||{a:'manual',f:0}; }
 /* 2-레버 자동계산: 업체단가 기준(+%) + 자사몰정가 기준(×%). manual은 그대로. */
@@ -4083,22 +4093,29 @@ function recalcVendor(){
     /* 자사몰정가: override 가 있으면 그 값, 없으면 서버 원본(pr0)으로 되돌린다.
        예전엔 override 가 없을 때 손대지 않아, 개정안 미리보기로 올린 값이 취소 후에도
        그대로 박혀 있었다(승인하지 않은 가격이 화면·CRM 전송에 남는 문제). */
+    // 미정 표시: 업체단가·정가가 미정이면 앵커가 없는 것으로 보고, 그 칸도 비운다
+    const vbTodo = effTodo(k+'|'+VBASE_COL);
+    const rtTodo = rUid ? effTodo(k+'|'+rUid) : false;
     const rov=effRetail(k);
-    if(rUid){ if(rov>0) p.pr[rUid]=rov;
+    if(rUid){ if(rtTodo) delete p.pr[rUid];                       // 정가 미정 → 서버 원본도 되살리지 않는다
+              else if(rov>0) p.pr[rUid]=rov;
               else if(p.pr0 && p.pr0[rUid]!=null) p.pr[rUid]=p.pr0[rUid];
               else if(p.pr0) delete p.pr[rUid]; }
-    const vb=effVbase(k), own=rUid?p.pr[rUid]:null;
+    const vb=vbTodo?null:effVbase(k), own=(rUid&&!rtTodo)?p.pr[rUid]:null;
     const hasVb=vb>0, hasOwn=own>0;
-    // 사다리 앵커: 하한=업체단가(=총판), 상한=자사몰정가. 한쪽만 있으면 LAD_BASE로 반대편 보완
-    const bottom = hasVb ? vb : (hasOwn ? own*base : null);
-    const top    = hasOwn ? own : (hasVb ? vb/base : null);
+    /* 사다리 앵커: 하한=업체단가(=총판), 상한=자사몰정가. 한쪽만 있으면 LAD_BASE로 반대편 보완.
+       단, 미정으로 '표시한' 쪽은 짐작하지 않는다 — 안 정한 값을 근거로 숫자를 만들면 안 된다. */
+    const bottom = hasVb ? vb : ((!vbTodo && hasOwn) ? own*base : null);
+    const top    = hasOwn ? own : ((!rtTodo && hasVb) ? vb/base : null);
     CHANNELS.forEach(c=>{ if(!c.col) return; const cf=coeffFor(c.code);
+      if(effTodo(k+'|'+c.uid)){ delete p.pr[c.uid]; return; }     // 이 칸 자체가 미정
       if(cf.a==='ladder'){
         if(bottom!=null && top!=null && top>=bottom){ const r=(+cf.f||0)/100;
           p.pr[c.uid]= r<=0 ? Math.round(bottom) : (r>=1 ? Math.round(top) : round100(bottom + r*(top-bottom))); }   // 총판(r=0)은 업체단가와 정확히 동일
+        else if(vbTodo || rtTodo) delete p.pr[c.uid];             // 앵커가 미정이라 계산 불가 → 빈칸
       }
-      else if(cf.a==='vbase'){ if(hasVb){ const f=+cf.f||0; p.pr[c.uid]= f===0 ? vb : round100(vb*(1+f/100)); } }
-      else if(cf.a==='retail'){ if(hasOwn && c.uid!==rUid) p.pr[c.uid]=round100(own*(+cf.f||0)/100); }
+      else if(cf.a==='vbase'){ if(hasVb){ const f=+cf.f||0; p.pr[c.uid]= f===0 ? vb : round100(vb*(1+f/100)); } else if(vbTodo) delete p.pr[c.uid]; }
+      else if(cf.a==='retail'){ if(hasOwn && c.uid!==rUid) p.pr[c.uid]=round100(own*(+cf.f||0)/100); else if(rtTodo) delete p.pr[c.uid]; }
     });
   });
   if(VEST) estimateFromRetail(rUid);   // 끄면 빈 칸을 그대로 둔다
@@ -4129,6 +4146,7 @@ function estimateFromRetail(rUid){
       if(own>0 && pr>0) ratios.push(pr/own); });
     const r=median(ratios); if(r==null||!(r>0)) return;
     P.forEach(p=>{ if(isDeletedProd(p)||isPackage(p))return;   // 세트는 구성 단품 합산이므로 제외
+      if(isTodo(p,c.uid)) return;                             // 미정 칸은 짐작해서 채우지 않는다
       const own=p.pr[rUid];
       if(!(own>0) || p.pr[c.uid]>0) return;                    // 정가 없거나 이미 값 있으면 건너뜀
       p.pr[c.uid]=round100(own*r); EST[estKey(p,c.uid)]=true; });
@@ -4272,12 +4290,20 @@ function sheetToChannelBook(rows, L){
     const prices={}; let any=false;
     L.codes.forEach(code=>{ const v=parseWon(cells[L.cols[code]]); if(v!=null){ prices[code]=v; any=true; } });
     const spec=L.specCols.map(i=>String(cells[i]==null?'':cells[i]).trim()).filter(Boolean).join('');
-    if(!any){                                        // 단가를 하나도 못 읽은 행 — 사유를 남긴다
+    if(!any){                                        // 단가를 하나도 못 읽은 행
       const raw=L.codes.map(code=>String(cells[L.cols[code]]==null?'':cells[L.cols[code]]).trim()).filter(Boolean);
       const num=raw.filter(x=>/^[\u20a9,\d.\s]+$/.test(x));
-      impSkipFile(name, spec, num.length
-        ? `단가가 1,000원 미만이라 숫자로 인식하지 않습니다 (${num.slice(0,3).join(', ')})`
-        : '이 행의 채널 열에 단가 숫자가 없습니다');
+      if(num.length){                                // 숫자가 있는데 1,000 미만 — 잘못 적은 값이므로 버린다
+        impSkipFile(name, spec, `단가가 1,000원 미만이라 숫자로 인식하지 않습니다 (${num.slice(0,3).join(', ')})`);
+        continue;
+      }
+      /* 칸이 진짜로 비어 있는 행 — 예전엔 여기서 버렸다. 그러면 '빈칸=지우기' 를 켜도
+         지울 대상 자체가 안 잡힌다. 값 없는 행(noPrice)으로 남겨 두고, 지우기가 꺼져 있으면
+         buildImportRowsChannel 에서 사유를 남기고 건너뛴다. */
+      const blank={name,spec,cat:cat||'기타',prices:{},noPrice:true};
+      const bk=vNorm(name)+vNorm(spec), bk2=vNorm(name);
+      if(!(bk in book)) book[bk]=blank;
+      if(!(bk2 in book)) book[bk2]=blank;           // IMP_FILE_ROWS 에는 넣지 않음(신제품 후보 아님)
       continue;
     }
     const rec={name,spec,cat:cat||'기타',prices};
@@ -4294,6 +4320,11 @@ const chByCode=code=>(typeof CHANNELS!=='undefined'?CHANNELS:[]).find(c=>String(
 function pairsToBook(pairs){ const book={}; pairs.forEach(({name,price})=>{ const k=vNorm(name); if(k && !(k in book)) book[k]={name,price}; }); return book; }
 let IMP_ROWS=[];   // [{p,key,name,spec,cost,cur,price,status,check}] · 채널모드면 prices/plan 추가
 let IMP_MODE='vbase';   // 'vbase'(단가 1열) | 'channel'(채널 여러 열)
+/* 파일의 공란을 '지우기'로 볼지 여부. 기본 꺼짐(공란=건드리지 않음).
+   켜면 파일에 열이 있는데 값이 비어 있는 칸을 실제로 비운다.
+   ※ 파일에 아예 없는 열은 절대 지우지 않는다 — 정가 열 없는 파일이 전 제품 정가를 날리는 사고 방지 */
+let IMP_BLANK_CLEAR=false;
+let IMP_LAST_BOOK=null;   // 방금 읽은 파일 내용 — '빈칸=지우기' 를 켜고 끌 때 재사용
 let IMP_CODES=[];       // 채널모드에서 파일에 있던 채널 코드
 /* 파일 → 시트별 rows(배열의 배열) */
 async function fileToSheets(file){
@@ -4363,10 +4394,19 @@ function buildImportRowsChannel(book){
       if(code===A.dealer||code===A.retail) return;
       const c=chByCode(code); if(!c) return;
       if(coeffFor(c.code).a!=='manual') return;    // 사다리 채널은 자동계산 → 건너뜀
-      const v=pr[code]; if(v==null) return;
+      const v=pr[code];
+      if(v==null){                                  // 파일에 열은 있는데 칸이 비어 있음
+        if(!IMP_BLANK_CLEAR) return;                //  기본: 건드리지 않음
+        if(p.pr[c.uid]==null) return;               //  원래도 비어 있으면 지울 게 없음
+        man.push({code, uid:c.uid, name:c.name, cur:p.pr[c.uid], val:null, clear:true});
+        return;
+      }
       man.push({code, uid:c.uid, name:c.name, cur:p.pr[c.uid]??null, val:v});
     });
-    if(vbVal==null && rtVal==null && !man.length){
+    /* 앵커(업체단가·정가) 지우기 — 파일에 그 열이 실제로 있을 때만 */
+    const vbClear = IMP_BLANK_CLEAR && IMP_CODES.includes(A.dealer) && vbVal==null && vbCur!=null;
+    const rtClear = IMP_BLANK_CLEAR && IMP_CODES.includes(A.retail) && rtVal==null && rtCur!=null;
+    if(vbVal==null && rtVal==null && !man.length && !vbClear && !rtClear){
       // 파일에 값은 있는데 반영 대상 열이 아니었던 경우 — 사다리 채널만 채운 실수가 대부분이다
       const lad=IMP_CODES.filter(code=>{ if(pr[code]==null) return false;
         const c=chByCode(code); return c && coeffFor(c.code).a==='ladder' && code!==A.dealer; })
@@ -4376,13 +4416,15 @@ function buildImportRowsChannel(book){
         : `파일의 이 행에 업체단가([${A.dealer}])·자사몰정가([${A.retail}]) 값이 비어 있습니다`);
       return;
     }
-    const same = (vbVal==null||Number(vbCur)===Number(vbVal))
+    const hasClear = vbClear || rtClear || man.some(m=>m.clear);
+    const same = !hasClear
+              && (vbVal==null||Number(vbCur)===Number(vbVal))
               && (rtVal==null||Number(rtCur)===Number(rtVal))
               && man.every(m=>Number(m.cur)===Number(m.val));
-    const isNew = (vbVal!=null&&vbCur==null) || (rtVal!=null&&rtCur==null) || man.some(m=>m.cur==null);
-    const status = same?'same':(isNew?'new':'diff');
+    const isNew = (vbVal!=null&&vbCur==null) || (rtVal!=null&&rtCur==null) || man.some(m=>!m.clear&&m.cur==null);
+    const status = same?'same':(hasClear?'clear':(isNew?'new':'diff'));
     rows.push({p,key,name:p.name,spec:p.spec,cost:p.cost,
-      vbCur,vbVal,rtCur,rtVal,man,status,check:status!=='same',
+      vbCur,vbVal,rtCur,rtVal,vbClear,rtClear,hasClear,man,status,check:status!=='same',
       fileName:hit.name, filePrices:pr, gap:rowLadderGap(vbVal,rtVal,pr)});
   });
   return rows;
@@ -4428,7 +4470,8 @@ function impUnknownCodes(){ return IMP_CODES.filter(code=>!chByCode(code)); }
 function renderImportTableChannel(){
   const A=impAnchorCodes();
   const manCols=[]; IMP_ROWS.forEach(r=>r.man.forEach(m=>{ if(!manCols.some(x=>x.code===m.code)) manCols.push({code:m.code,name:m.name}); }));
-  const arrow=(cur,val)=> val==null?'<span class="dim">—</span>'
+  const arrow=(cur,val,clear)=> clear? `<span class="dim" style="text-decoration:line-through">${won(cur)}</span> <b style="color:#8A2B1E">미정</b>`
+    : val==null?'<span class="dim">—</span>'
     : (cur==null? `<b>${won(val)}</b>` : (Number(cur)===Number(val)? `${won(val)}` : `<span class="dim" style="text-decoration:line-through">${won(cur)}</span> <b>${won(val)}</b>`));
   const miss=code=>IMP_CODES.includes(code)?'' : ' <span style="color:var(--red)">· 파일에 없음</span>';
   let h='<thead><tr><th style="width:34px"></th><th>제품 · 규격</th>'
@@ -4440,22 +4483,30 @@ function renderImportTableChannel(){
   IMP_ROWS.forEach((r,i)=>{
     h+=`<tr><td style="text-align:center"><input type="checkbox" class="impChk" data-i="${i}" ${r.check?'checked':''} ${r.status==='same'?'disabled':''}></td>
       <td>${esc(r.name)} <span style="color:var(--ink-faint)">${esc(r.spec||'')}</span></td>
-      <td class="num">${arrow(r.vbCur,r.vbVal)}</td>
-      <td class="num">${arrow(r.rtCur,r.rtVal)}</td>`
-      +manCols.map(c=>{ const m=r.man.find(x=>x.code===c.code); return `<td class="num">${m?arrow(m.cur,m.val):'<span class="dim">—</span>'}</td>`; }).join('')
+      <td class="num">${arrow(r.vbCur,r.vbVal,r.vbClear)}</td>
+      <td class="num">${arrow(r.rtCur,r.rtVal,r.rtClear)}</td>`
+      +manCols.map(c=>{ const m=r.man.find(x=>x.code===c.code); return `<td class="num">${m?arrow(m.cur,m.val,m.clear):'<span class="dim">—</span>'}</td>`; }).join('')
       +`<td class="num">${!r.gap?'<span class="dim">일치</span>':`<span style="color:${r.gap>=1000?'var(--red)':'var(--amber)'};font-weight:700">±${won(r.gap)}</span>`}</td>`
       +`<td>${impBadge(r.status)}</td></tr>`;
   });
   $('#impTable').innerHTML=h+'</tbody>';
 }
 function applyImportChannel(sel){
-  let nVb=0,nRt=0,nMan=0;
+  let nVb=0,nRt=0,nMan=0,nClear=0;
+  const rUid=(typeof retailUid==='function')?retailUid():null;
   sel.forEach(r=>{
-    if(r.vbVal!=null){ if(Number(r.vbVal)===Number(VBASE[r.key])) delete DVBASE[r.key]; else DVBASE[r.key]=Number(r.vbVal); nVb++; }
-    if(r.rtVal!=null){ if(Number(r.rtVal)===Number(VRETAIL[r.key])) delete DRETAIL[r.key]; else DRETAIL[r.key]=Number(r.rtVal); nRt++; }
-    r.man.forEach(m=>{ delete EST[estKey(r.p,m.uid)]; r.p.pr[m.uid]=Number(m.val); nMan++; });
+    // 빈칸 → '아직 단가 미정' 표시. 값이 들어오면 미정을 풀고 그 값으로.
+    if(r.vbClear){ draftSetTodo(r.p, VBASE_COL, true); DVBASE[r.key]=null; nClear++; }
+    else if(r.vbVal!=null){ if(isTodo(r.p,VBASE_COL)) draftSetTodo(r.p,VBASE_COL,false);
+      if(Number(r.vbVal)===Number(VBASE[r.key])) delete DVBASE[r.key]; else DVBASE[r.key]=Number(r.vbVal); nVb++; }
+    if(r.rtClear){ if(rUid) draftSetTodo(r.p, rUid, true); DRETAIL[r.key]=null; nClear++; }
+    else if(r.rtVal!=null){ if(rUid && isTodo(r.p,rUid)) draftSetTodo(r.p,rUid,false);
+      if(Number(r.rtVal)===Number(VRETAIL[r.key])) delete DRETAIL[r.key]; else DRETAIL[r.key]=Number(r.rtVal); nRt++; }
+    r.man.forEach(m=>{ delete EST[estKey(r.p,m.uid)];
+      if(m.clear){ draftSetTodo(r.p, m.uid, true); delete r.p.pr[m.uid]; nClear++; }
+      else { if(isTodo(r.p,m.uid)) draftSetTodo(r.p,m.uid,false); r.p.pr[m.uid]=Number(m.val); nMan++; } });
   });
-  return {nVb,nRt,nMan};
+  return {nVb,nRt,nMan,nClear};
 }
 
 /* ── 파일에만 있는 품목(신제품) 추리기 ── */
@@ -4526,7 +4577,7 @@ async function createImportedProducts(list){
   return {made, failed};
 }
 
-function impBadge(st){ const m={new:['신규','#EAF3FF','#1976D2'],diff:['변경','#FFF7E6','#AD6800'],same:['동일','#F0F0F0','#777']}; const b=m[st]||m.same; return `<span class="imp-badge" style="background:${b[1]};color:${b[2]}">${b[0]}</span>`; }
+function impBadge(st){ const m={new:['신규','#EAF3FF','#1976D2'],diff:['변경','#FFF7E6','#AD6800'],same:['동일','#F0F0F0','#777'],clear:['미정','#FDE8E4','#8A2B1E']}; const b=m[st]||m.same; return `<span class="imp-badge" style="background:${b[1]};color:${b[2]}">${b[0]}</span>`; }
 function renderImportTable(){
   const wrap=$('#impResult');
   renderImportNew();
@@ -4576,17 +4627,20 @@ function updateImportCount(){
   const n=IMP_ROWS.filter(r=>r.check).length;
   const nNew=IMP_ROWS.filter(r=>r.check&&r.status==='new').length, nDiff=IMP_ROWS.filter(r=>r.check&&r.status==='diff').length;
   const nAdd=impNewCount();
-  $('#impCount').textContent=`매칭 ${IMP_ROWS.length}개 · 선택 ${n}개 (신규 ${nNew}·변경 ${nDiff})`+(nAdd?` · 신제품 등록 ${nAdd}개`:'');
+  const nClr=IMP_ROWS.filter(r=>r.check&&r.status==='clear').length;
+  $('#impCount').textContent=`매칭 ${IMP_ROWS.length}개 · 선택 ${n}개 (신규 ${nNew}·변경 ${nDiff}${nClr?`·미정 ${nClr}`:''})`+(nAdd?` · 신제품 등록 ${nAdd}개`:'');
   $('#impApply').disabled=(n===0 && nAdd===0);
   const selectable=IMP_ROWS.filter(r=>r.status!=='same'); $('#impAll').checked=selectable.length>0 && selectable.every(r=>r.check);
 }
-function openImportModal(){ IMP_ROWS=[]; IMP_MODE='vbase'; IMP_CODES=[]; IMP_NEW=[]; IMP_FILE_ROWS=[]; IMP_SKIP_FILE=[]; IMP_SKIP_ROW=[]; const nb=$('#impNewBox'); if(nb)nb.style.display='none'; const sb=$('#impSkipBox'); if(sb)sb.style.display='none'; $('#impResult').style.display='none'; $('#impStatus').textContent=''; $('#impFile').value=''; $('#impApply').disabled=true; $('#impAll').checked=false; $('#impOverlay').classList.add('on'); }
+function openImportModal(){ IMP_ROWS=[]; IMP_MODE='vbase'; IMP_CODES=[]; IMP_NEW=[]; IMP_FILE_ROWS=[]; IMP_SKIP_FILE=[]; IMP_SKIP_ROW=[];
+  IMP_BLANK_CLEAR=false; IMP_LAST_BOOK=null; const bc=$('#impBlankClear'); if(bc)bc.checked=false; const nb=$('#impNewBox'); if(nb)nb.style.display='none'; const sb=$('#impSkipBox'); if(sb)sb.style.display='none'; $('#impResult').style.display='none'; $('#impStatus').textContent=''; $('#impFile').value=''; $('#impApply').disabled=true; $('#impAll').checked=false; $('#impOverlay').classList.add('on'); }
 function closeImportModal(){ $('#impOverlay').classList.remove('on'); }
 async function handleImportFile(file){
   if(!file) return;
   $('#impStatus').innerHTML='⏳ 파일 읽는 중…'; $('#impResult').style.display='none';
   try{
     const book=await readImportFile(file);
+    IMP_LAST_BOOK=book;                        // 옵션을 바꿀 때 파일을 다시 읽지 않기 위해 보관
     IMP_ROWS=buildImportRows(book);
     buildImportNew();
     if(IMP_MODE==='channel'){
@@ -4909,6 +4963,12 @@ function wireImportModal(){
   on('impFile','change',e=>handleImportFile(e.target.files&&e.target.files[0]));
   on('impOverlay','click',e=>{ if(e.target.id==='impOverlay')closeImportModal(); });
   on('impAll','change',e=>{ const v=e.target.checked; IMP_ROWS.forEach(r=>{ if(r.status!=='same')r.check=v; }); renderImportTable(); });
+  on('impBlankClear','change',e=>{
+    IMP_BLANK_CLEAR=e.target.checked;
+    if(IMP_BLANK_CLEAR && !confirm('파일에서 비어 있는 칸을 "아직 단가 미정"으로 표시합니다.\n표에는 숫자 대신 빈칸(미정)으로 보이고, 자동계산·추정에서도 빠집니다.\n\n· 파일에 아예 없는 열은 건드리지 않습니다.\n· 파일에 없는 제품도 건드리지 않습니다.\n· 나중에 값을 입력하면 미정이 자동으로 풀립니다.\n· 실제 적용은 상급자 승인 후입니다.\n\n계속할까요?')){
+      IMP_BLANK_CLEAR=false; e.target.checked=false; return; }
+    if(IMP_LAST_BOOK){ IMP_ROWS=buildImportRows(IMP_LAST_BOOK); renderImportTable(); }   // 파일 다시 읽지 않고 다시 계산
+  });
   on('impNewAll','click',()=>{ IMP_NEW.forEach(r=>r.check=true); renderImportNew(); updateImportCount(); });
   on('impNewNone','click',()=>{ IMP_NEW.forEach(r=>r.check=false); renderImportNew(); updateImportCount(); });
   on('impNewTable','change',e=>{ const c=e.target.closest('.impNewChk'); if(!c)return; const i=+c.dataset.i; if(IMP_NEW[i]){ IMP_NEW[i].check=c.checked; renderImportNew(); updateImportCount(); } });
@@ -5200,6 +5260,7 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('vendor-prices').get(); if(d.exists&&d.data().map) VBASE=d.data().map; }catch(e){ console.warn('[vendor-prices] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('retail-prices').get(); if(d.exists&&d.data().map) VRETAIL=d.data().map; }catch(e){ console.warn('[retail-prices] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('price-overrides').get(); if(d.exists&&d.data().map) POVR=d.data().map; console.log(`[price-overrides] 직접 조정 ${Object.keys(POVR).length}칸`); }catch(e){ console.warn('[price-overrides] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('price-todo').get(); if(d.exists&&d.data().map) PTODO=d.data().map; console.log(`[price-todo] 단가 미정 ${Object.keys(PTODO).length}칸`); }catch(e){ console.warn('[price-todo] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-cost').get(); if(d.exists&&d.data().map) PCOST=d.data().map; console.log(`[prod-cost] 원가 수정 ${Object.keys(PCOST).length}건`); }catch(e){ console.warn('[prod-cost] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('crm-map').get(); if(d.exists&&d.data().map) CRMMAP=d.data().map; }catch(e){ console.warn('[crm-map] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('channel-markup').get(); if(d.exists){ if(d.data().coeff)VCOEFF=d.data().coeff; if(typeof d.data().auto==='boolean')VAUTO=d.data().auto; if(typeof d.data().est==='boolean')VEST=d.data().est; if(typeof d.data().ladBase==='number'&&d.data().ladBase>0&&d.data().ladBase<1)LAD_BASE=d.data().ladBase; } }catch(e){ console.warn('[channel-markup] 로드 실패', e.code||e); }
@@ -5226,6 +5287,28 @@ async function loadVendorConfig(){
 let POVR={};    // 적용본  "pKey|uid" → 값
 let DPOVR={};   // 개정안
 const ovrKey=(p,uid)=>pKey(p)+'|'+uid;
+
+/* ══════════ 단가 미정(아직 책정 안 함) ══════════
+   "아직 가격을 안 정한 칸"을 빈칸으로 두기 위한 표시.
+   값이 없다는 것만으로는 부족했다 — 정가는 서버 원본(pr0)이 되살아나고,
+   사다리 채널은 한쪽 앵커만 있어도 계속 계산돼서 엉뚱한 숫자가 찍혔다.
+   미정으로 표시하면 계산·추정·표시·내보내기에서 모두 빠진다.
+   · 키: "pKey|<채널uid>"  · 업체단가는 "pKey|__vbase__"
+   · 저장: product-meta/price-todo {map:{키:true}}
+   · 다른 가격 변경과 같이 개정안(DTODO) → 상급자 승인 후 반영 */
+let PTODO={};   // 적용본
+let DTODO={};   // 개정안 (true=미정으로, false=미정 해제)
+const todoKey=(p,uid)=>pKey(p)+'|'+uid;
+async function saveTodo(){ try{ await db.collection('product-meta').doc('price-todo').set({map:PTODO, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[price-todo] 저장 실패', e.code||e); } }
+function effTodo(k){ return (PREVIEW && (k in DTODO)) ? !!DTODO[k] : !!PTODO[k]; }
+function isTodo(p,uid){ return effTodo(todoKey(p,uid)); }
+function isTodoDraft(p,uid){ return PREVIEW && (todoKey(p,uid) in DTODO); }
+function draftSetTodo(p,uid,on){
+  const k=todoKey(p,uid);
+  if(!!on === !!PTODO[k]) delete DTODO[k]; else DTODO[k]=!!on;
+  DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft();
+}
+function todoCount(){ return Object.keys(PTODO).length; }
 async function saveOverrides(){ try{ await db.collection('product-meta').doc('price-overrides').set({map:POVR, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[price-overrides] 저장 실패', e.code||e); } }
 function effOvr(k){ return (PREVIEW && (k in DPOVR)) ? DPOVR[k] : POVR[k]; }
 function hasOvr(p,uid){ const k=ovrKey(p,uid); return effOvr(k)!=null; }
@@ -5242,6 +5325,7 @@ function applyOverrides(){
   P.forEach(p=>{
     if(isPackage(p)) return;
     CHANNELS.forEach(c=>{
+      if(isTodo(p,c.uid)) return;                       // 미정 칸은 조정값으로도 채우지 않는다
       const k=ovrKey(p,c.uid), v=effOvr(k);
       if(v!=null && v>0){ p.pr[c.uid]=Number(v); delete EST[estKey(p,c.uid)]; }
     });
@@ -5336,22 +5420,26 @@ function ovrSave(){
 function ovrClear(){ if(!OVR_CTX) return; const {p,uid}=OVR_CTX; draftSetOvr(p,uid,null); PREVIEW=true; recalcVendor(); refreshAll(); closeOvrPanel(); }
 
 /* ── 개정안(draft) API ── */
-function draftCount(){ return Object.keys(DVBASE).length+Object.keys(DRETAIL).length+Object.keys(DCOEFF).length+Object.keys(DPOVR).length; }
+function draftCount(){ return Object.keys(DVBASE).length+Object.keys(DRETAIL).length+Object.keys(DCOEFF).length+Object.keys(DPOVR).length+Object.keys(DTODO).length; }
 function draftSetVbase(p,val){ const k=pKey(p); if(val==null||val===VBASE[k])delete DVBASE[k]; else DVBASE[k]=val; DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); }
 function draftSetRetail(p,val){ const k=pKey(p); if(val==null||val===VRETAIL[k])delete DRETAIL[k]; else DRETAIL[k]=val; DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); }
 function draftSetCoeff(code,obj){ const cur=VCOEFF[code]||VCOEFF_DEFAULT[code]||{a:'manual',f:0}; if(obj.a===cur.a && (+obj.f)===(+cur.f))delete DCOEFF[code]; else DCOEFF[code]={a:obj.a,f:+obj.f||0}; DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); }
 function draftImport(){ const r=importVendorPricesTo(DVBASE); DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); return r; }
-function draftDiscard(){ DVBASE={};DRETAIL={};DCOEFF={};DPOVR={};DRAFT_META={status:'',by:'',at:'',note:''};PREVIEW=false; saveDraft(); }
-async function saveDraft(){ try{ await db.collection('product-meta').doc('pricing-draft').set({vbase:DVBASE,retail:DRETAIL,coeff:DCOEFF,ovr:DPOVR,meta:DRAFT_META,updatedAt:new Date().toISOString()}); }catch(e){ console.warn('[pricing-draft] 저장 실패',e.code||e); } }
-async function loadDraft(){ try{ const d=await db.collection('product-meta').doc('pricing-draft').get(); if(d.exists){ const x=d.data(); DVBASE=x.vbase||{}; DRETAIL=x.retail||{}; DCOEFF=x.coeff||{}; DPOVR=x.ovr||{}; DRAFT_META=x.meta||{status:'',by:'',at:'',note:''}; } }catch(e){ console.warn('[pricing-draft] 로드 실패',e.code||e); } }
+function draftDiscard(){ DVBASE={};DRETAIL={};DCOEFF={};DPOVR={};DTODO={};DRAFT_META={status:'',by:'',at:'',note:''};PREVIEW=false; saveDraft(); }
+async function saveDraft(){ try{ await db.collection('product-meta').doc('pricing-draft').set({vbase:DVBASE,retail:DRETAIL,coeff:DCOEFF,ovr:DPOVR,todo:DTODO,meta:DRAFT_META,updatedAt:new Date().toISOString()}); }catch(e){ console.warn('[pricing-draft] 저장 실패',e.code||e); } }
+async function loadDraft(){ try{ const d=await db.collection('product-meta').doc('pricing-draft').get(); if(d.exists){ const x=d.data(); DVBASE=x.vbase||{}; DRETAIL=x.retail||{}; DCOEFF=x.coeff||{}; DPOVR=x.ovr||{}; DTODO=x.todo||{}; DRAFT_META=x.meta||{status:'',by:'',at:'',note:''}; } }catch(e){ console.warn('[pricing-draft] 로드 실패',e.code||e); } }
 /* ── 승인요청 / 승인 / 반려 ── */
 async function submitDraft(){ if(!draftCount()){ alert('변경된 내용이 없습니다.'); return; } DRAFT_META={status:'대기', by:(curUser&&curUser.email)||'', at:new Date().toISOString(), note:($('#draftNote')&&$('#draftNote').value)||''}; await saveDraft(); refreshAll(); alert('상급자에게 승인을 요청했습니다.\n승인 전까지 실제 가격은 바뀌지 않습니다.'); }
 async function approveDraft(){
   if(!isApprover()){ alert('승인은 상급자(마스터) 계정만 가능합니다.'); return; }
-  Object.assign(VBASE, DVBASE); Object.assign(VRETAIL, DRETAIL); Object.entries(DCOEFF).forEach(([c,o])=>{ VCOEFF[c]=o; });
+  // null = 지우기(빈칸으로) · 그 외 = 그 값으로 변경 — DPOVR 과 같은 규칙
+  Object.entries(DVBASE).forEach(([k,v])=>{ if(v==null) delete VBASE[k]; else VBASE[k]=v; });
+  Object.entries(DRETAIL).forEach(([k,v])=>{ if(v==null) delete VRETAIL[k]; else VRETAIL[k]=v; });
+  Object.entries(DCOEFF).forEach(([c,o])=>{ VCOEFF[c]=o; });
   Object.entries(DPOVR).forEach(([k,v])=>{ if(v==null) delete POVR[k]; else POVR[k]=v; });   // null=해제
-  const rev={ ts:new Date().toISOString(), approvedBy:(curUser&&curUser.email)||'', proposedBy:DRAFT_META.by, note:DRAFT_META.note||'', vbase:{...DVBASE}, retail:{...DRETAIL}, coeff:{...DCOEFF}, ovr:{...DPOVR} };
-  await saveVendorPrices(); await saveRetailPrices(); await saveChannelMarkup(); await saveOverrides(); await appendHistory(rev);
+  Object.entries(DTODO).forEach(([k,v])=>{ if(v) PTODO[k]=true; else delete PTODO[k]; });    // true=미정 · false=미정 해제
+  const rev={ ts:new Date().toISOString(), approvedBy:(curUser&&curUser.email)||'', proposedBy:DRAFT_META.by, note:DRAFT_META.note||'', vbase:{...DVBASE}, retail:{...DRETAIL}, coeff:{...DCOEFF}, ovr:{...DPOVR}, todo:{...DTODO} };
+  await saveVendorPrices(); await saveRetailPrices(); await saveChannelMarkup(); await saveOverrides(); await saveTodo(); await appendHistory(rev);
   draftDiscard(); await saveDraft(); recalcVendor(); refreshAll();
   alert('개정안을 승인·적용했습니다.\n변동이력에 기록되었습니다.'+(CRM_AUTO?'\n· CRM으로 단가를 보내는 중입니다.':''));
   if(CRM_AUTO) syncPriceBookToCrm(true);   // 승인된 값만 CRM 으로 (설정에서 끌 수 있음)

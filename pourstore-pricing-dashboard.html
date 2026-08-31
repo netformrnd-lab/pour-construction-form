@@ -4054,6 +4054,10 @@ let VBASE={};      // 업체단가 {pKey:원}          ← product-meta/vendor-p
 let VRETAIL={};    // 자사몰정가 override {pKey:원} ← product-meta/retail-prices
 let VCOEFF={};     // 채널 계수 {code:{a,f}}       ← product-meta/channel-markup
 let VAUTO=true;
+/* 정가 기준 추정 채우기 사용 여부 ← product-meta/channel-markup.est
+   빈 칸을 '채널가÷정가 중앙값'으로 자동으로 메우는 기능. 끄면 빈 칸은 빈 칸으로 둔다.
+   기본 끔 — 짐작한 숫자가 실제 단가처럼 보이는 걸 원치 않는다는 요청. */
+let VEST=false;
 let COEFF_NOW=false; // 채널 비율 '즉시 적용' 모드(마스터 전용) — 개정안 대신 VCOEFF에 바로 반영
 let LAD_BASE=0.81; // 사다리 하한/상한 비율(총판=업체단가 ÷ 자사몰정가). 한쪽 앵커만 있을 때 반대편을 이 비율로 보완 ← product-meta/channel-markup.ladBase
 /* ── 개정안(draft): 승인 전 제안값. 여기만 바뀌고 실제(applied)는 승인해야 반영 ── */
@@ -4097,7 +4101,7 @@ function recalcVendor(){
       else if(cf.a==='retail'){ if(hasOwn && c.uid!==rUid) p.pr[c.uid]=round100(own*(+cf.f||0)/100); }
     });
   });
-  estimateFromRetail(rUid);
+  if(VEST) estimateFromRetail(rUid);   // 끄면 빈 칸을 그대로 둔다
   applyOverrides();          // 제품별 직접 조정값이 사다리·추정보다 우선
 }
 /* ══ 정가 기반 추정 ══
@@ -5191,14 +5195,14 @@ wireDnd();
 wireColDnd();
 async function saveVendorPrices(){ try{ await db.collection('product-meta').doc('vendor-prices').set({map:VBASE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[vendor-prices] 저장 실패', e.code||e); } }
 async function saveRetailPrices(){ try{ await db.collection('product-meta').doc('retail-prices').set({map:VRETAIL, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[retail-prices] 저장 실패', e.code||e); } }
-async function saveChannelMarkup(){ try{ await db.collection('product-meta').doc('channel-markup').set({coeff:VCOEFF, auto:VAUTO, ladBase:LAD_BASE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[channel-markup] 저장 실패', e.code||e); } }
+async function saveChannelMarkup(){ try{ await db.collection('product-meta').doc('channel-markup').set({coeff:VCOEFF, auto:VAUTO, est:VEST, ladBase:LAD_BASE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[channel-markup] 저장 실패', e.code||e); } }
 async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('vendor-prices').get(); if(d.exists&&d.data().map) VBASE=d.data().map; }catch(e){ console.warn('[vendor-prices] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('retail-prices').get(); if(d.exists&&d.data().map) VRETAIL=d.data().map; }catch(e){ console.warn('[retail-prices] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('price-overrides').get(); if(d.exists&&d.data().map) POVR=d.data().map; console.log(`[price-overrides] 직접 조정 ${Object.keys(POVR).length}칸`); }catch(e){ console.warn('[price-overrides] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-cost').get(); if(d.exists&&d.data().map) PCOST=d.data().map; console.log(`[prod-cost] 원가 수정 ${Object.keys(PCOST).length}건`); }catch(e){ console.warn('[prod-cost] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('crm-map').get(); if(d.exists&&d.data().map) CRMMAP=d.data().map; }catch(e){ console.warn('[crm-map] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('channel-markup').get(); if(d.exists){ if(d.data().coeff)VCOEFF=d.data().coeff; if(typeof d.data().auto==='boolean')VAUTO=d.data().auto; if(typeof d.data().ladBase==='number'&&d.data().ladBase>0&&d.data().ladBase<1)LAD_BASE=d.data().ladBase; } }catch(e){ console.warn('[channel-markup] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('channel-markup').get(); if(d.exists){ if(d.data().coeff)VCOEFF=d.data().coeff; if(typeof d.data().auto==='boolean')VAUTO=d.data().auto; if(typeof d.data().est==='boolean')VEST=d.data().est; if(typeof d.data().ladBase==='number'&&d.data().ladBase>0&&d.data().ladBase<1)LAD_BASE=d.data().ladBase; } }catch(e){ console.warn('[channel-markup] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('cat-config').get(); if(d.exists&&Array.isArray(d.data().list)) CATCFG=d.data().list.map(c=>({key:c.key,name:c.name||c.key,l1:c.l1||'',l2:c.l2||''})); }catch(e){ console.warn('[cat-config] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-order').get(); if(d.exists&&Array.isArray(d.data().list)) PORDER=d.data().list; }catch(e){ console.warn('[prod-order] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('chan-order').get(); if(d.exists&&Array.isArray(d.data().list)) CHORD=d.data().list; }catch(e){ console.warn('[chan-order] 로드 실패', e.code||e); }
@@ -5458,14 +5462,16 @@ function renderVendorPanel(){
   box.innerHTML=`<div class="panel"><h3>🏭 채널가 자동계산 규칙 <span class="tag">가격 사다리: 업체단가(총판) ~ 자사몰정가</span></h3><div class="bd">
     <p class="footnote" style="margin-bottom:10px">· <b>업체단가~정가 비율(%)</b>: 총판(0%)부터 정가(100%) 사이 위치. 업체단가나 정가를 바꾸면 사이 채널이 자동으로 다시 정렬(항상 오름차순).
     <br>· <b>수동(앵커)</b>: 자사몰정가·알리바바는 직접 입력. &nbsp; 업체단가 없이 정가만 있으면 아래 '총판/정가 비율'로 총판까지 자동으로 채웁니다.
-    <br>· <b>정가 기준 추정</b>: 업체단가(공법가)가 없어 값이 안 나오는 채널은, 같은 채널의 실측 <b>채널가÷정가 중앙값</b>으로 <b>빈 칸만</b> 채웁니다. 직접 입력한 값은 덮지 않으며, 표에서 <b>추정</b> 뱃지로 구분됩니다.
+    <br>· <b>빈 칸 추정으로 채우기</b>(선택): 켜면 값이 없는 칸을 같은 채널의 실측 <b>채널가÷정가 중앙값</b>으로 짐작해 채우고 <b>추정</b> 뱃지를 붙입니다. 직접 입력한 값은 덮지 않습니다.
+    <br>&nbsp;&nbsp;<b>꺼두면 빈 칸은 빈 칸 그대로</b> 남습니다 — 짐작한 숫자를 실제 단가로 오해하지 않으려면 꺼두세요.
     <br>· 값을 바꾸면 <b>개정안</b>에 담기고, <b>실제 가격은 상급자 승인 후 적용</b>됩니다(가격정책표 상단 배너에서 승인요청).</p>
     <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
       <label style="display:flex;gap:6px;align-items:center;font-size:13px;font-weight:600"><input type="checkbox" id="vAutoChk" ${VAUTO?'checked':''}> 자동계산 사용</label>
+      <label style="display:flex;gap:6px;align-items:center;font-size:13px;font-weight:600" title="켜면 값이 없는 칸을 '채널가÷정가 중앙값'으로 짐작해 채웁니다(추정 뱃지 표시). 끄면 빈 칸을 그대로 둡니다."><input type="checkbox" id="vEstChk" ${VEST?'checked':''}> 빈 칸 추정으로 채우기</label>
       <label style="display:flex;gap:6px;align-items:center;font-size:12px;color:var(--ink-soft)">총판/정가 비율 <input type="number" id="ladBaseInp" value="${Math.round(LAD_BASE*100)}" min="50" max="99" step="1" style="width:60px;text-align:right;border:1px solid var(--xl-grid);border-radius:5px;padding:4px 6px"> %</label>
       <button class="tbtn" id="btnVendorImport">📥 PDF 업체단가 개정안에 반영</button>
       ${isApprover()?`<label style="display:flex;gap:6px;align-items:center;font-size:12.5px;font-weight:700;color:${COEFF_NOW?'#B45309':'var(--ink-soft)'};background:${COEFF_NOW?'#FFF7E6':'transparent'};padding:4px 8px;border-radius:6px" title="켜면 값을 바꾸는 즉시 실제 가격에 반영됩니다(승인 생략·마스터 전용)"><input type="checkbox" id="coeffNowChk" ${COEFF_NOW?'checked':''}> ⚡ 즉시 적용(승인 생략)</label>`:''}
-      <span class="footnote">업체단가 설정된 제품 <b>${nBase}</b>개 · 개정안 <b>${draftCount()}</b>건 · 정가 기준 추정 <b>${estCount()}</b>칸</span>
+      <span class="footnote">업체단가 설정된 제품 <b>${nBase}</b>개 · 개정안 <b>${draftCount()}</b>건 · 빈 칸 추정 ${VEST?`<b>${estCount()}</b>칸`:'<b>끔</b>'}</span>
     </div>
     <table class="grid" style="width:100%"><thead><tr><th style="width:64px">코드</th><th>채널</th><th style="width:150px">기준</th><th class="num" style="width:90px">값</th><th class="num">계산식</th></tr></thead><tbody>${rows}</tbody></table>
   </div></div>`;
@@ -5482,6 +5488,8 @@ function renderVendorPanel(){
   });
   const nowChk=$('#coeffNowChk'); if(nowChk)nowChk.addEventListener('change',()=>{ COEFF_NOW=nowChk.checked; if(COEFF_NOW && draftCount()>0){ /* 안내 */ } renderVendorPanel(); });
   const chk=$('#vAutoChk'); if(chk)chk.addEventListener('change',()=>{ VAUTO=chk.checked; saveChannelMarkup(); recalcVendor(); refreshAll(); });
+  const ec=$('#vEstChk'); if(ec)ec.addEventListener('change',()=>{ VEST=ec.checked; saveChannelMarkup(); recalcVendor(); refreshAll();
+    gridToast(VEST?'빈 칸을 추정값으로 채웁니다 — 표에 추정 뱃지가 붙습니다.':'빈 칸 추정을 껐습니다 — 값이 없는 칸은 빈 칸으로 둡니다.'); });
   const lb=$('#ladBaseInp'); if(lb){
     lb.addEventListener('change',()=>{ const v=Math.min(99,Math.max(50,+lb.value||81))/100; LAD_BASE=v; saveChannelMarkup(); recalcVendor(); refreshAll(); });
     lb.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); lb.blur(); } });

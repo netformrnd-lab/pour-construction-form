@@ -1291,6 +1291,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
       <div id="impResult" style="display:none">
         <div class="imp-tools">
           <label style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:13px"><input type="checkbox" id="impAll"> 전체선택</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:12.5px;color:#8A2B1E;background:#FDF6F4;border:1px solid #F1B7AD;border-radius:6px;padding:3px 9px" title="켜면 파일에서 비어 있는 칸의 기존 단가를 지웁니다. 파일에 아예 없는 열은 지우지 않습니다."><input type="checkbox" id="impBlankClear"> 파일의 빈칸 = 지우기</label>
           <span id="impCount" class="footnote" style="margin:0"></span>
         </div>
         <div class="imp-tablewrap"><table id="impTable"></table></div>
@@ -4272,12 +4273,20 @@ function sheetToChannelBook(rows, L){
     const prices={}; let any=false;
     L.codes.forEach(code=>{ const v=parseWon(cells[L.cols[code]]); if(v!=null){ prices[code]=v; any=true; } });
     const spec=L.specCols.map(i=>String(cells[i]==null?'':cells[i]).trim()).filter(Boolean).join('');
-    if(!any){                                        // 단가를 하나도 못 읽은 행 — 사유를 남긴다
+    if(!any){                                        // 단가를 하나도 못 읽은 행
       const raw=L.codes.map(code=>String(cells[L.cols[code]]==null?'':cells[L.cols[code]]).trim()).filter(Boolean);
       const num=raw.filter(x=>/^[\u20a9,\d.\s]+$/.test(x));
-      impSkipFile(name, spec, num.length
-        ? `단가가 1,000원 미만이라 숫자로 인식하지 않습니다 (${num.slice(0,3).join(', ')})`
-        : '이 행의 채널 열에 단가 숫자가 없습니다');
+      if(num.length){                                // 숫자가 있는데 1,000 미만 — 잘못 적은 값이므로 버린다
+        impSkipFile(name, spec, `단가가 1,000원 미만이라 숫자로 인식하지 않습니다 (${num.slice(0,3).join(', ')})`);
+        continue;
+      }
+      /* 칸이 진짜로 비어 있는 행 — 예전엔 여기서 버렸다. 그러면 '빈칸=지우기' 를 켜도
+         지울 대상 자체가 안 잡힌다. 값 없는 행(noPrice)으로 남겨 두고, 지우기가 꺼져 있으면
+         buildImportRowsChannel 에서 사유를 남기고 건너뛴다. */
+      const blank={name,spec,cat:cat||'기타',prices:{},noPrice:true};
+      const bk=vNorm(name)+vNorm(spec), bk2=vNorm(name);
+      if(!(bk in book)) book[bk]=blank;
+      if(!(bk2 in book)) book[bk2]=blank;           // IMP_FILE_ROWS 에는 넣지 않음(신제품 후보 아님)
       continue;
     }
     const rec={name,spec,cat:cat||'기타',prices};
@@ -4294,6 +4303,11 @@ const chByCode=code=>(typeof CHANNELS!=='undefined'?CHANNELS:[]).find(c=>String(
 function pairsToBook(pairs){ const book={}; pairs.forEach(({name,price})=>{ const k=vNorm(name); if(k && !(k in book)) book[k]={name,price}; }); return book; }
 let IMP_ROWS=[];   // [{p,key,name,spec,cost,cur,price,status,check}] · 채널모드면 prices/plan 추가
 let IMP_MODE='vbase';   // 'vbase'(단가 1열) | 'channel'(채널 여러 열)
+/* 파일의 공란을 '지우기'로 볼지 여부. 기본 꺼짐(공란=건드리지 않음).
+   켜면 파일에 열이 있는데 값이 비어 있는 칸을 실제로 비운다.
+   ※ 파일에 아예 없는 열은 절대 지우지 않는다 — 정가 열 없는 파일이 전 제품 정가를 날리는 사고 방지 */
+let IMP_BLANK_CLEAR=false;
+let IMP_LAST_BOOK=null;   // 방금 읽은 파일 내용 — '빈칸=지우기' 를 켜고 끌 때 재사용
 let IMP_CODES=[];       // 채널모드에서 파일에 있던 채널 코드
 /* 파일 → 시트별 rows(배열의 배열) */
 async function fileToSheets(file){
@@ -4363,10 +4377,19 @@ function buildImportRowsChannel(book){
       if(code===A.dealer||code===A.retail) return;
       const c=chByCode(code); if(!c) return;
       if(coeffFor(c.code).a!=='manual') return;    // 사다리 채널은 자동계산 → 건너뜀
-      const v=pr[code]; if(v==null) return;
+      const v=pr[code];
+      if(v==null){                                  // 파일에 열은 있는데 칸이 비어 있음
+        if(!IMP_BLANK_CLEAR) return;                //  기본: 건드리지 않음
+        if(p.pr[c.uid]==null) return;               //  원래도 비어 있으면 지울 게 없음
+        man.push({code, uid:c.uid, name:c.name, cur:p.pr[c.uid], val:null, clear:true});
+        return;
+      }
       man.push({code, uid:c.uid, name:c.name, cur:p.pr[c.uid]??null, val:v});
     });
-    if(vbVal==null && rtVal==null && !man.length){
+    /* 앵커(업체단가·정가) 지우기 — 파일에 그 열이 실제로 있을 때만 */
+    const vbClear = IMP_BLANK_CLEAR && IMP_CODES.includes(A.dealer) && vbVal==null && vbCur!=null;
+    const rtClear = IMP_BLANK_CLEAR && IMP_CODES.includes(A.retail) && rtVal==null && rtCur!=null;
+    if(vbVal==null && rtVal==null && !man.length && !vbClear && !rtClear){
       // 파일에 값은 있는데 반영 대상 열이 아니었던 경우 — 사다리 채널만 채운 실수가 대부분이다
       const lad=IMP_CODES.filter(code=>{ if(pr[code]==null) return false;
         const c=chByCode(code); return c && coeffFor(c.code).a==='ladder' && code!==A.dealer; })
@@ -4376,13 +4399,15 @@ function buildImportRowsChannel(book){
         : `파일의 이 행에 업체단가([${A.dealer}])·자사몰정가([${A.retail}]) 값이 비어 있습니다`);
       return;
     }
-    const same = (vbVal==null||Number(vbCur)===Number(vbVal))
+    const hasClear = vbClear || rtClear || man.some(m=>m.clear);
+    const same = !hasClear
+              && (vbVal==null||Number(vbCur)===Number(vbVal))
               && (rtVal==null||Number(rtCur)===Number(rtVal))
               && man.every(m=>Number(m.cur)===Number(m.val));
-    const isNew = (vbVal!=null&&vbCur==null) || (rtVal!=null&&rtCur==null) || man.some(m=>m.cur==null);
-    const status = same?'same':(isNew?'new':'diff');
+    const isNew = (vbVal!=null&&vbCur==null) || (rtVal!=null&&rtCur==null) || man.some(m=>!m.clear&&m.cur==null);
+    const status = same?'same':(hasClear?'clear':(isNew?'new':'diff'));
     rows.push({p,key,name:p.name,spec:p.spec,cost:p.cost,
-      vbCur,vbVal,rtCur,rtVal,man,status,check:status!=='same',
+      vbCur,vbVal,rtCur,rtVal,vbClear,rtClear,hasClear,man,status,check:status!=='same',
       fileName:hit.name, filePrices:pr, gap:rowLadderGap(vbVal,rtVal,pr)});
   });
   return rows;
@@ -4428,7 +4453,8 @@ function impUnknownCodes(){ return IMP_CODES.filter(code=>!chByCode(code)); }
 function renderImportTableChannel(){
   const A=impAnchorCodes();
   const manCols=[]; IMP_ROWS.forEach(r=>r.man.forEach(m=>{ if(!manCols.some(x=>x.code===m.code)) manCols.push({code:m.code,name:m.name}); }));
-  const arrow=(cur,val)=> val==null?'<span class="dim">—</span>'
+  const arrow=(cur,val,clear)=> clear? `<span class="dim" style="text-decoration:line-through">${won(cur)}</span> <b style="color:#8A2B1E">지움</b>`
+    : val==null?'<span class="dim">—</span>'
     : (cur==null? `<b>${won(val)}</b>` : (Number(cur)===Number(val)? `${won(val)}` : `<span class="dim" style="text-decoration:line-through">${won(cur)}</span> <b>${won(val)}</b>`));
   const miss=code=>IMP_CODES.includes(code)?'' : ' <span style="color:var(--red)">· 파일에 없음</span>';
   let h='<thead><tr><th style="width:34px"></th><th>제품 · 규격</th>'
@@ -4440,22 +4466,25 @@ function renderImportTableChannel(){
   IMP_ROWS.forEach((r,i)=>{
     h+=`<tr><td style="text-align:center"><input type="checkbox" class="impChk" data-i="${i}" ${r.check?'checked':''} ${r.status==='same'?'disabled':''}></td>
       <td>${esc(r.name)} <span style="color:var(--ink-faint)">${esc(r.spec||'')}</span></td>
-      <td class="num">${arrow(r.vbCur,r.vbVal)}</td>
-      <td class="num">${arrow(r.rtCur,r.rtVal)}</td>`
-      +manCols.map(c=>{ const m=r.man.find(x=>x.code===c.code); return `<td class="num">${m?arrow(m.cur,m.val):'<span class="dim">—</span>'}</td>`; }).join('')
+      <td class="num">${arrow(r.vbCur,r.vbVal,r.vbClear)}</td>
+      <td class="num">${arrow(r.rtCur,r.rtVal,r.rtClear)}</td>`
+      +manCols.map(c=>{ const m=r.man.find(x=>x.code===c.code); return `<td class="num">${m?arrow(m.cur,m.val,m.clear):'<span class="dim">—</span>'}</td>`; }).join('')
       +`<td class="num">${!r.gap?'<span class="dim">일치</span>':`<span style="color:${r.gap>=1000?'var(--red)':'var(--amber)'};font-weight:700">±${won(r.gap)}</span>`}</td>`
       +`<td>${impBadge(r.status)}</td></tr>`;
   });
   $('#impTable').innerHTML=h+'</tbody>';
 }
 function applyImportChannel(sel){
-  let nVb=0,nRt=0,nMan=0;
+  let nVb=0,nRt=0,nMan=0,nClear=0;
   sel.forEach(r=>{
-    if(r.vbVal!=null){ if(Number(r.vbVal)===Number(VBASE[r.key])) delete DVBASE[r.key]; else DVBASE[r.key]=Number(r.vbVal); nVb++; }
-    if(r.rtVal!=null){ if(Number(r.rtVal)===Number(VRETAIL[r.key])) delete DRETAIL[r.key]; else DRETAIL[r.key]=Number(r.rtVal); nRt++; }
-    r.man.forEach(m=>{ delete EST[estKey(r.p,m.uid)]; r.p.pr[m.uid]=Number(m.val); nMan++; });
+    if(r.vbClear){ DVBASE[r.key]=null; nClear++; }        // null = 승인 시 지우기
+    else if(r.vbVal!=null){ if(Number(r.vbVal)===Number(VBASE[r.key])) delete DVBASE[r.key]; else DVBASE[r.key]=Number(r.vbVal); nVb++; }
+    if(r.rtClear){ DRETAIL[r.key]=null; nClear++; }
+    else if(r.rtVal!=null){ if(Number(r.rtVal)===Number(VRETAIL[r.key])) delete DRETAIL[r.key]; else DRETAIL[r.key]=Number(r.rtVal); nRt++; }
+    r.man.forEach(m=>{ delete EST[estKey(r.p,m.uid)];
+      if(m.clear){ delete r.p.pr[m.uid]; nClear++; } else { r.p.pr[m.uid]=Number(m.val); nMan++; } });
   });
-  return {nVb,nRt,nMan};
+  return {nVb,nRt,nMan,nClear};
 }
 
 /* ── 파일에만 있는 품목(신제품) 추리기 ── */
@@ -4526,7 +4555,7 @@ async function createImportedProducts(list){
   return {made, failed};
 }
 
-function impBadge(st){ const m={new:['신규','#EAF3FF','#1976D2'],diff:['변경','#FFF7E6','#AD6800'],same:['동일','#F0F0F0','#777']}; const b=m[st]||m.same; return `<span class="imp-badge" style="background:${b[1]};color:${b[2]}">${b[0]}</span>`; }
+function impBadge(st){ const m={new:['신규','#EAF3FF','#1976D2'],diff:['변경','#FFF7E6','#AD6800'],same:['동일','#F0F0F0','#777'],clear:['지움','#FDE8E4','#8A2B1E']}; const b=m[st]||m.same; return `<span class="imp-badge" style="background:${b[1]};color:${b[2]}">${b[0]}</span>`; }
 function renderImportTable(){
   const wrap=$('#impResult');
   renderImportNew();
@@ -4576,17 +4605,20 @@ function updateImportCount(){
   const n=IMP_ROWS.filter(r=>r.check).length;
   const nNew=IMP_ROWS.filter(r=>r.check&&r.status==='new').length, nDiff=IMP_ROWS.filter(r=>r.check&&r.status==='diff').length;
   const nAdd=impNewCount();
-  $('#impCount').textContent=`매칭 ${IMP_ROWS.length}개 · 선택 ${n}개 (신규 ${nNew}·변경 ${nDiff})`+(nAdd?` · 신제품 등록 ${nAdd}개`:'');
+  const nClr=IMP_ROWS.filter(r=>r.check&&r.status==='clear').length;
+  $('#impCount').textContent=`매칭 ${IMP_ROWS.length}개 · 선택 ${n}개 (신규 ${nNew}·변경 ${nDiff}${nClr?`·지움 ${nClr}`:''})`+(nAdd?` · 신제품 등록 ${nAdd}개`:'');
   $('#impApply').disabled=(n===0 && nAdd===0);
   const selectable=IMP_ROWS.filter(r=>r.status!=='same'); $('#impAll').checked=selectable.length>0 && selectable.every(r=>r.check);
 }
-function openImportModal(){ IMP_ROWS=[]; IMP_MODE='vbase'; IMP_CODES=[]; IMP_NEW=[]; IMP_FILE_ROWS=[]; IMP_SKIP_FILE=[]; IMP_SKIP_ROW=[]; const nb=$('#impNewBox'); if(nb)nb.style.display='none'; const sb=$('#impSkipBox'); if(sb)sb.style.display='none'; $('#impResult').style.display='none'; $('#impStatus').textContent=''; $('#impFile').value=''; $('#impApply').disabled=true; $('#impAll').checked=false; $('#impOverlay').classList.add('on'); }
+function openImportModal(){ IMP_ROWS=[]; IMP_MODE='vbase'; IMP_CODES=[]; IMP_NEW=[]; IMP_FILE_ROWS=[]; IMP_SKIP_FILE=[]; IMP_SKIP_ROW=[];
+  IMP_BLANK_CLEAR=false; IMP_LAST_BOOK=null; const bc=$('#impBlankClear'); if(bc)bc.checked=false; const nb=$('#impNewBox'); if(nb)nb.style.display='none'; const sb=$('#impSkipBox'); if(sb)sb.style.display='none'; $('#impResult').style.display='none'; $('#impStatus').textContent=''; $('#impFile').value=''; $('#impApply').disabled=true; $('#impAll').checked=false; $('#impOverlay').classList.add('on'); }
 function closeImportModal(){ $('#impOverlay').classList.remove('on'); }
 async function handleImportFile(file){
   if(!file) return;
   $('#impStatus').innerHTML='⏳ 파일 읽는 중…'; $('#impResult').style.display='none';
   try{
     const book=await readImportFile(file);
+    IMP_LAST_BOOK=book;                        // 옵션을 바꿀 때 파일을 다시 읽지 않기 위해 보관
     IMP_ROWS=buildImportRows(book);
     buildImportNew();
     if(IMP_MODE==='channel'){
@@ -4909,6 +4941,12 @@ function wireImportModal(){
   on('impFile','change',e=>handleImportFile(e.target.files&&e.target.files[0]));
   on('impOverlay','click',e=>{ if(e.target.id==='impOverlay')closeImportModal(); });
   on('impAll','change',e=>{ const v=e.target.checked; IMP_ROWS.forEach(r=>{ if(r.status!=='same')r.check=v; }); renderImportTable(); });
+  on('impBlankClear','change',e=>{
+    IMP_BLANK_CLEAR=e.target.checked;
+    if(IMP_BLANK_CLEAR && !confirm('파일에서 비어 있는 칸의 기존 단가를 지웁니다.\n\n· 파일에 아예 없는 열은 지우지 않습니다.\n· 파일에 없는 제품도 건드리지 않습니다.\n· 실제 적용은 상급자 승인 후입니다.\n\n계속할까요?')){
+      IMP_BLANK_CLEAR=false; e.target.checked=false; return; }
+    if(IMP_LAST_BOOK){ IMP_ROWS=buildImportRows(IMP_LAST_BOOK); renderImportTable(); }   // 파일 다시 읽지 않고 다시 계산
+  });
   on('impNewAll','click',()=>{ IMP_NEW.forEach(r=>r.check=true); renderImportNew(); updateImportCount(); });
   on('impNewNone','click',()=>{ IMP_NEW.forEach(r=>r.check=false); renderImportNew(); updateImportCount(); });
   on('impNewTable','change',e=>{ const c=e.target.closest('.impNewChk'); if(!c)return; const i=+c.dataset.i; if(IMP_NEW[i]){ IMP_NEW[i].check=c.checked; renderImportNew(); updateImportCount(); } });
@@ -5348,7 +5386,10 @@ async function loadDraft(){ try{ const d=await db.collection('product-meta').doc
 async function submitDraft(){ if(!draftCount()){ alert('변경된 내용이 없습니다.'); return; } DRAFT_META={status:'대기', by:(curUser&&curUser.email)||'', at:new Date().toISOString(), note:($('#draftNote')&&$('#draftNote').value)||''}; await saveDraft(); refreshAll(); alert('상급자에게 승인을 요청했습니다.\n승인 전까지 실제 가격은 바뀌지 않습니다.'); }
 async function approveDraft(){
   if(!isApprover()){ alert('승인은 상급자(마스터) 계정만 가능합니다.'); return; }
-  Object.assign(VBASE, DVBASE); Object.assign(VRETAIL, DRETAIL); Object.entries(DCOEFF).forEach(([c,o])=>{ VCOEFF[c]=o; });
+  // null = 지우기(빈칸으로) · 그 외 = 그 값으로 변경 — DPOVR 과 같은 규칙
+  Object.entries(DVBASE).forEach(([k,v])=>{ if(v==null) delete VBASE[k]; else VBASE[k]=v; });
+  Object.entries(DRETAIL).forEach(([k,v])=>{ if(v==null) delete VRETAIL[k]; else VRETAIL[k]=v; });
+  Object.entries(DCOEFF).forEach(([c,o])=>{ VCOEFF[c]=o; });
   Object.entries(DPOVR).forEach(([k,v])=>{ if(v==null) delete POVR[k]; else POVR[k]=v; });   // null=해제
   const rev={ ts:new Date().toISOString(), approvedBy:(curUser&&curUser.email)||'', proposedBy:DRAFT_META.by, note:DRAFT_META.note||'', vbase:{...DVBASE}, retail:{...DRETAIL}, coeff:{...DCOEFF}, ovr:{...DPOVR} };
   await saveVendorPrices(); await saveRetailPrices(); await saveChannelMarkup(); await saveOverrides(); await appendHistory(rev);

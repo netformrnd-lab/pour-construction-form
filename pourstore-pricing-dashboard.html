@@ -2725,7 +2725,7 @@ document.addEventListener('dblclick',e=>{
       if(v!=null && isTodo(p,uid)) draftSetTodo(p,uid,false);                     // 값을 넣으면 미정 해제
       if(uid===rUid){ draftSetRetail(p,v); PREVIEW=true; recalcVendor(); }        // 자사몰 정가 → 개정안
       else{ delete EST[estKey(p,uid)];                                            // 직접 입력 → 더는 추정값이 아님
-            if(v==null)delete p.pr[uid]; else p.pr[uid]=v; } }                    // 그 외 수동 채널
+            if(v==null)delete p.pr[uid]; else p.pr[uid]=ceil100(v); } }           // 그 외 수동 채널(100원 올림)
     refreshAll();
   };
   inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')commit(); if(ev.key==='Escape')renderGrid(); });
@@ -4096,7 +4096,10 @@ let PCOST={};   // pKey → 원가
 async function saveProdCost(){ try{ await db.collection('product-meta').doc('prod-cost').set({map:PCOST, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-cost] 저장 실패', e.code||e); alert('원가 저장 실패: '+(e.code||e.message||e)); } }
 function unitCost(p){ const k=pKey(p); return (k in PCOST)?PCOST[k]:p.cost; }
 function effCost(p){ return isPackage(p)?pkgCost(p):unitCost(p); }
-function effPrice(p,uid){ return isPackage(p)?pkgPrice(p,uid):gp(p,uid); }
+/* 단가는 출처와 무관하게 100원 단위 올림으로 내보낸다.
+   앵커(업체단가·자사몰정가)까지 포함 — 예전엔 앵커를 예외로 둬서 32,643 처럼
+   1원 단위가 그대로 표에 나왔다. 표·CSV·단가표·CRM 이 전부 이 함수를 쓴다. */
+function effPrice(p,uid){ const v=isPackage(p)?pkgPrice(p,uid):gp(p,uid); return v==null?null:ceil100(v); }
 function effVb(p){ return isPackage(p)?pkgVbase(p):effVbase(pKey(p)); }
 /* ── 제품 표시 순서(드래그 재정렬): pKey 배열. ← product-meta/prod-order ── */
 let PORDER=[];
@@ -4134,7 +4137,8 @@ const VCOEFF_DEFAULT={ P2:{a:'ladder',f:0}, P3:{a:'ladder',f:4}, P4:{a:'ladder',
 function ceil100(n){ return Math.ceil(n/100)*100; }
 const isApprover=()=> !!_emailLc() && _masterListLc().includes(_emailLc());   // 상급자(마스터)
 function effVbase(k){ if(effTodo(k+'|'+VBASE_COL)) return undefined;   // 미정이면 값 자체를 내주지 않는다(표·내보내기·CRM 공통)
-  return (PREVIEW && (k in DVBASE))?DVBASE[k]:VBASE[k]; }
+  const v=(PREVIEW && (k in DVBASE))?DVBASE[k]:VBASE[k];
+  return (v==null||isNaN(v))?v:ceil100(v); }                          // 업체단가도 100원 올림
 function effRetail(k){ return (PREVIEW && (k in DRETAIL))?DRETAIL[k]:VRETAIL[k]; }
 function coeffFor(code){ const src=(PREVIEW && DCOEFF[code])?DCOEFF[code]:(VCOEFF[code]||VCOEFF_DEFAULT[code]); return src||{a:'manual',f:0}; }
 /* 2-레버 자동계산: 업체단가 기준(+%) + 자사몰정가 기준(×%). manual은 그대로. */
@@ -4572,13 +4576,13 @@ function applyImportChannel(sel){
     // 빈칸 → '아직 단가 미정' 표시. 값이 들어오면 미정을 풀고 그 값으로.
     if(r.vbClear){ draftSetTodo(r.p, VBASE_COL, true); DVBASE[r.key]=null; nClear++; }
     else if(r.vbVal!=null){ if(isTodo(r.p,VBASE_COL)) draftSetTodo(r.p,VBASE_COL,false);
-      if(Number(r.vbVal)===Number(VBASE[r.key])) delete DVBASE[r.key]; else DVBASE[r.key]=Number(r.vbVal); nVb++; }
+      const v=ceil100(r.vbVal); if(v===Number(VBASE[r.key])) delete DVBASE[r.key]; else DVBASE[r.key]=v; nVb++; }
     if(r.rtClear){ if(rUid) draftSetTodo(r.p, rUid, true); DRETAIL[r.key]=null; nClear++; }
     else if(r.rtVal!=null){ if(rUid && isTodo(r.p,rUid)) draftSetTodo(r.p,rUid,false);
-      if(Number(r.rtVal)===Number(VRETAIL[r.key])) delete DRETAIL[r.key]; else DRETAIL[r.key]=Number(r.rtVal); nRt++; }
+      const v=ceil100(r.rtVal); if(v===Number(VRETAIL[r.key])) delete DRETAIL[r.key]; else DRETAIL[r.key]=v; nRt++; }
     r.man.forEach(m=>{ delete EST[estKey(r.p,m.uid)];
       if(m.clear){ draftSetTodo(r.p, m.uid, true); delete r.p.pr[m.uid]; nClear++; }
-      else { if(isTodo(r.p,m.uid)) draftSetTodo(r.p,m.uid,false); r.p.pr[m.uid]=Number(m.val); nMan++; } });
+      else { if(isTodo(r.p,m.uid)) draftSetTodo(r.p,m.uid,false); r.p.pr[m.uid]=ceil100(m.val); nMan++; } });
     /* 파일의 사다리 채널 값을 받은 제품은 '📌 파일값 고정'으로 바꾼다.
        안 그러면 다음 자동계산에서 방금 넣은 값이 곧바로 계산값으로 덮인다. */
     if(IMP_USE_FILE_CH && r.man.some(m=>!m.clear) && !isFixed(r.p)){ PFIX[pKey(r.p)]=true; nFix++; }
@@ -5408,8 +5412,8 @@ function isOvrDraft(p,uid){ return PREVIEW && (ovrKey(p,uid) in DPOVR); }
 function draftSetOvr(p,uid,val){
   const k=ovrKey(p,uid);
   if(val==null){ if(POVR[k]==null) delete DPOVR[k]; else DPOVR[k]=null; }   // null = 해제(자동계산으로 복귀)
-  else if(Number(val)===Number(POVR[k])) delete DPOVR[k];
-  else DPOVR[k]=Number(val);
+  else if(Number(ceil100(val))===Number(POVR[k])) delete DPOVR[k];
+  else DPOVR[k]=ceil100(val);
   DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft();
 }
 /* 사다리 계산 뒤 오버라이드 덮어쓰기 (recalcVendor 끝에서 호출) */
@@ -5513,8 +5517,10 @@ function ovrClear(){ if(!OVR_CTX) return; const {p,uid}=OVR_CTX; draftSetOvr(p,u
 
 /* ── 개정안(draft) API ── */
 function draftCount(){ return Object.keys(DVBASE).length+Object.keys(DRETAIL).length+Object.keys(DCOEFF).length+Object.keys(DPOVR).length+Object.keys(DTODO).length; }
-function draftSetVbase(p,val){ const k=pKey(p); if(val==null||val===VBASE[k])delete DVBASE[k]; else DVBASE[k]=val; DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); }
-function draftSetRetail(p,val){ const k=pKey(p); if(val==null||val===VRETAIL[k])delete DRETAIL[k]; else DRETAIL[k]=val; DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); }
+function draftSetVbase(p,val){ const k=pKey(p); const v=(val==null)?null:ceil100(val);   // 저장값도 100원 올림
+  if(v==null||v===VBASE[k])delete DVBASE[k]; else DVBASE[k]=v; DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); }
+function draftSetRetail(p,val){ const k=pKey(p); const v=(val==null)?null:ceil100(val);
+  if(v==null||v===VRETAIL[k])delete DRETAIL[k]; else DRETAIL[k]=v; DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); }
 function draftSetCoeff(code,obj){ const cur=VCOEFF[code]||VCOEFF_DEFAULT[code]||{a:'manual',f:0}; if(obj.a===cur.a && (+obj.f)===(+cur.f))delete DCOEFF[code]; else DCOEFF[code]={a:obj.a,f:+obj.f||0}; DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); }
 function draftImport(){ const r=importVendorPricesTo(DVBASE); DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); return r; }
 function draftDiscard(){ DVBASE={};DRETAIL={};DCOEFF={};DPOVR={};DTODO={};DRAFT_META={status:'',by:'',at:'',note:''};PREVIEW=false; saveDraft(); }

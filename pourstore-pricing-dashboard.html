@@ -146,9 +146,16 @@ tr.dragover td{box-shadow:inset 0 2px 0 0 var(--xl-green)}
 .setrow .setqty{width:66px;border:1px solid var(--xl-grid);border-radius:5px;padding:7px 8px;text-align:right;font-size:13px}
 .setrow .setdel{border:1px solid var(--xl-grid);background:#fff;border-radius:5px;padding:5px 9px;cursor:pointer;flex-shrink:0}
 .setrow .setdel:hover{border-color:var(--red);color:var(--red)}
-.prodedit,.prodcopy,.proddel{border:0;background:none;cursor:pointer;font-size:11px;opacity:0;margin-left:3px;padding:0 2px}
+/* 행 도구는 제품명 '앞'에 폭을 고정해 두어, 아이콘이 있든 없든 이름이 같은 자리에서 시작한다.
+   모드(⚙️/📌)만 상시 표시하고 나머지는 행에 마우스를 올릴 때만 나타난다. */
+.rowtools{display:inline-flex;align-items:center;gap:0;width:62px;margin-right:5px;vertical-align:middle}
+.prodedit,.prodcopy,.proddel{border:0;background:none;cursor:pointer;font-size:11px;opacity:0;padding:0 2px}
 tr:hover .prodedit,tr:hover .prodcopy,tr:hover .proddel{opacity:.55}
 .prodedit:hover,.prodcopy:hover,.proddel:hover{opacity:1!important}
+.prodfix{border:0;background:none;cursor:pointer;font-size:11px;opacity:.28;padding:0 2px;filter:grayscale(1)}
+tr:hover .prodfix{opacity:.7}
+.prodfix.on{opacity:1;filter:none}          /* 파일값 고정된 제품만 또렷하게 */
+.prodfix:hover{opacity:1!important;filter:none}
 td.cost{background:#FFF8E7}
 .edithint{color:var(--xl-green-dark);font-size:10.5px;font-weight:700;opacity:.55;border:1px dashed var(--xl-green);border-radius:4px;padding:0 5px}
 td.editable:hover .edithint{opacity:1}
@@ -164,7 +171,6 @@ td .mrate{display:block;font-size:10px;color:var(--ink-faint);margin-top:1px;fon
 td.estcell{position:relative;color:#6B7A87;background:repeating-linear-gradient(135deg,transparent,transparent 5px,rgba(107,122,135,.07) 5px,rgba(107,122,135,.07) 10px)}
 /* 숫자는 우측 정렬 → 배지는 좌측 상단에 겹쳐 놓아 행 높이를 늘리지 않는다 */
 td .todohint{color:#8A94A0;font-style:italic;font-size:11.5px}
-.fixbadge{background:#EFF6FF;color:#1B6AC9;border:1px solid #BFDBFE;border-radius:3px;padding:0 4px;font-size:9.5px;font-weight:700;vertical-align:middle}
 .estbadge{position:absolute;left:3px;top:2px;font-size:8.5px;font-weight:800;color:#6B7A87;opacity:.9;line-height:1;pointer-events:none}
 td.ovrcell{position:relative;box-shadow:inset 0 0 0 1.5px #7C6BD1}
 td .ovrbadge{position:absolute;left:3px;top:2px;font-size:9px;font-weight:800;color:#5B4BB5;line-height:1;pointer-events:none}
@@ -431,7 +437,8 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
   #priceGrid .frz-edge{border-right:0!important;box-shadow:none!important}
   #priceGrid .frz-name{min-width:150px!important;max-width:150px;border-right:2px solid #c3ccd4!important;box-shadow:6px 0 8px -6px rgba(0,0,0,.18)}
   #priceGrid td,#priceGrid th{padding-left:6px;padding-right:6px}
-  #priceGrid .prodcopy,#priceGrid .proddel{display:none}   /* 좁은 화면에선 수정(✏️)만 남김 */
+  #priceGrid .prodcopy,#priceGrid .proddel{display:none}   /* 좁은 화면에선 모드(⚙️)·수정(✏️)만 남김 */
+  #priceGrid .rowtools{width:34px;margin-right:4px}
 }
 @media(max-width:400px){
   .cards{grid-template-columns:1fr}
@@ -2574,7 +2581,7 @@ function renderGrid(){
     }).join('');
     html+=`<tr data-id="${p.id}" data-key="${esc(pKey(p))}" data-cat="${esc(p.cat)}">
       <td class="frz frz-no dim">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span>`:''}${no}</td>
-      <td class="frz frz-name name">${esc(p.name)}${isFixed(p)?` <span class="fixbadge" title="파일값 고정 — 업로드한 단가를 그대로 씁니다">📌파일값</span>`:''}${costAllowed?` <button class="prodfix" data-id="${p.id}" title="${isFixed(p)?'지금: 파일값 고정 — 누르면 자동계산으로 바꿉니다':'지금: 자동계산 — 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button><button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button>`:''}</td>
+      <td class="frz frz-name name">${costAllowed?`<span class="rowtools"><button class="prodfix${isFixed(p)?' on':''}" data-id="${p.id}" title="${isFixed(p)?'📌 파일값 고정 — 업로드한 단가를 그대로 씁니다. 누르면 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사다리로 계산합니다. 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button><button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button></span>`:''}${esc(p.name)}</td>
       <td class="frz frz-spec dim${lastFrz==='spec'?' frz-edge':''}">${esc(p.spec)}${pkg?(()=>{
         /* 세트는 값이 전부 비어 있으면 이유를 행에서 바로 알 수 있게 표시한다
            (예전에는 더블클릭해야 안내가 떠서 '고장난 줄' 알기 쉬웠다) */

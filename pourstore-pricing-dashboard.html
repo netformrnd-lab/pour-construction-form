@@ -164,6 +164,7 @@ td .mrate{display:block;font-size:10px;color:var(--ink-faint);margin-top:1px;fon
 td.estcell{position:relative;color:#6B7A87;background:repeating-linear-gradient(135deg,transparent,transparent 5px,rgba(107,122,135,.07) 5px,rgba(107,122,135,.07) 10px)}
 /* 숫자는 우측 정렬 → 배지는 좌측 상단에 겹쳐 놓아 행 높이를 늘리지 않는다 */
 td .todohint{color:#8A94A0;font-style:italic;font-size:11.5px}
+.fixbadge{background:#EFF6FF;color:#1B6AC9;border:1px solid #BFDBFE;border-radius:3px;padding:0 4px;font-size:9.5px;font-weight:700;vertical-align:middle}
 .estbadge{position:absolute;left:3px;top:2px;font-size:8.5px;font-weight:800;color:#6B7A87;opacity:.9;line-height:1;pointer-events:none}
 td.ovrcell{position:relative;box-shadow:inset 0 0 0 1.5px #7C6BD1}
 td .ovrbadge{position:absolute;left:3px;top:2px;font-size:9px;font-weight:800;color:#5B4BB5;line-height:1;pointer-events:none}
@@ -2573,7 +2574,7 @@ function renderGrid(){
     }).join('');
     html+=`<tr data-id="${p.id}" data-key="${esc(pKey(p))}" data-cat="${esc(p.cat)}">
       <td class="frz frz-no dim">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span>`:''}${no}</td>
-      <td class="frz frz-name name">${esc(p.name)}${costAllowed?` <button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button>`:''}</td>
+      <td class="frz frz-name name">${esc(p.name)}${isFixed(p)?` <span class="fixbadge" title="파일값 고정 — 업로드한 단가를 그대로 씁니다">📌파일값</span>`:''}${costAllowed?` <button class="prodfix" data-id="${p.id}" title="${isFixed(p)?'지금: 파일값 고정 — 누르면 자동계산으로 바꿉니다':'지금: 자동계산 — 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button><button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button>`:''}</td>
       <td class="frz frz-spec dim${lastFrz==='spec'?' frz-edge':''}">${esc(p.spec)}${pkg?(()=>{
         /* 세트는 값이 전부 비어 있으면 이유를 행에서 바로 알 수 있게 표시한다
            (예전에는 더블클릭해야 안내가 떠서 '고장난 줄' 알기 쉬웠다) */
@@ -4027,6 +4028,21 @@ async function savePcat(){ try{ await db.collection('product-meta').doc('prod-ca
 function allTags(level){ const s=new Set(); P.forEach(p=>{ const c=pcat(p); const v=level===1?c.l1:level===2?c.l2:c.l3; if(v)s.add(v); }); return [...s]; }
 /* ── 패키지(세트) 자동합산: 구성 단품의 원가·업체단가·채널가 합 ── */
 let PKGSET={};   // pKey → 구성 문자열(RAW 제품도 구성 지정 가능) ← product-meta/pkg-set
+/* 제품별 단가 반영 방식 ← product-meta/price-fixed
+   true  = 파일값 고정 — 업로드한 채널 단가를 그대로 쓰고 사다리 자동계산을 하지 않는다
+   없음  = 자동계산   — 업체단가~정가 사다리로 중간 채널을 계산한다(기본) */
+let PFIX={};
+async function savePfix(){ try{ await db.collection('product-meta').doc('price-fixed').set({map:PFIX, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[price-fixed] 저장 실패', e.code||e); alert('반영 방식 저장 실패: '+(e.code||e.message||e)); } }
+function isFixed(p){ return !!PFIX[pKey(p)]; }
+function fixedCount(){ return Object.keys(PFIX).length; }
+async function toggleFixed(p){
+  const k=pKey(p);
+  if(PFIX[k]) delete PFIX[k]; else PFIX[k]=true;
+  await savePfix(); recalcVendor(); refreshAll();
+  gridToast(PFIX[k] ? `${p.name} — 파일값 고정: 업로드한 단가를 그대로 씁니다(자동계산 안 함).`
+                    : `${p.name} — 자동계산: 업체단가~정가 사다리로 중간 단가를 계산합니다.`);
+  logAct('반영방식', `${p.name}${p.spec?' ('+p.spec+')':''}`, PFIX[k]?'파일값 고정':'자동계산');
+}
 let PTYPE={};    // pKey → '단품'|'세트' 강제 지정(분류·구성과 무관하게 유형 전환) ← product-meta/prod-type
 async function savePtype(){ try{ await db.collection('product-meta').doc('prod-type').set({map:PTYPE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-type] 저장 실패', e.code||e); } }
 function pkgSetItems(p){ const k=pKey(p); return (k in PKGSET)?PKGSET[k]:(p.setItems||''); }
@@ -4078,7 +4094,9 @@ let PREVIEW=false;   // 가격정책표에 개정안 미리보기 오버레이
 /* 사다리(ladder) 기본 계수: 업체단가(=총판, 0%) ~ 자사몰정가(100%) 사이 '위치 비율'
    기본값은 현재 가격을 대략 보존하도록 설정(대리점4·시공9·위탁13·도매47·쿠팡73). 정가/알리바바는 수동(앵커). */
 const VCOEFF_DEFAULT={ P2:{a:'ladder',f:0}, P3:{a:'ladder',f:4}, P4:{a:'ladder',f:9}, P5:{a:'ladder',f:13}, P6:{a:'ladder',f:47}, P8:{a:'ladder',f:73}, OWN:{a:'manual',f:0}, P1:{a:'manual',f:0} };
-function round100(n){ return Math.round(n/100)*100; }
+/* 자동계산 결과는 100원 단위 '올림'. 내림·반올림하면 마진이 깎여서, 사내 규칙상 항상 올린다.
+   ※ 총판(사다리 0%)=업체단가, 정가(100%)=자사몰정가 는 앵커 값 그대로 써야 하므로 여기 적용하지 않는다. */
+function ceil100(n){ return Math.ceil(n/100)*100; }
 const isApprover=()=> !!_emailLc() && _masterListLc().includes(_emailLc());   // 상급자(마스터)
 function effVbase(k){ if(effTodo(k+'|'+VBASE_COL)) return undefined;   // 미정이면 값 자체를 내주지 않는다(표·내보내기·CRM 공통)
   return (PREVIEW && (k in DVBASE))?DVBASE[k]:VBASE[k]; }
@@ -4103,6 +4121,9 @@ function recalcVendor(){
               else if(rov>0) p.pr[rUid]=rov;
               else if(p.pr0 && p.pr0[rUid]!=null) p.pr[rUid]=p.pr0[rUid];
               else if(p.pr0) delete p.pr[rUid]; }
+    /* 파일값 고정 제품: 업로드한 값을 그대로 둔다. 미정 칸 비우기는 위에서 이미 처리됐고,
+       아래 사다리·비율 계산만 건너뛴다. */
+    if(isFixed(p)){ CHANNELS.forEach(c=>{ if(c.col && effTodo(k+'|'+c.uid)) delete p.pr[c.uid]; }); return; }
     const vb=vbTodo?null:effVbase(k), own=(rUid&&!rtTodo)?p.pr[rUid]:null;
     const hasVb=vb>0, hasOwn=own>0;
     /* 사다리 앵커: 하한=업체단가(=총판), 상한=자사몰정가. 한쪽만 있으면 LAD_BASE로 반대편 보완.
@@ -4113,11 +4134,11 @@ function recalcVendor(){
       if(effTodo(k+'|'+c.uid)){ delete p.pr[c.uid]; return; }     // 이 칸 자체가 미정
       if(cf.a==='ladder'){
         if(bottom!=null && top!=null && top>=bottom){ const r=(+cf.f||0)/100;
-          p.pr[c.uid]= r<=0 ? Math.round(bottom) : (r>=1 ? Math.round(top) : round100(bottom + r*(top-bottom))); }   // 총판(r=0)은 업체단가와 정확히 동일
+          p.pr[c.uid]= r<=0 ? Math.round(bottom) : (r>=1 ? Math.round(top) : ceil100(bottom + r*(top-bottom))); }   // 총판(r=0)은 업체단가와 정확히 동일
         else if(vbTodo || rtTodo) delete p.pr[c.uid];             // 앵커가 미정이라 계산 불가 → 빈칸
       }
-      else if(cf.a==='vbase'){ if(hasVb){ const f=+cf.f||0; p.pr[c.uid]= f===0 ? vb : round100(vb*(1+f/100)); } else if(vbTodo) delete p.pr[c.uid]; }
-      else if(cf.a==='retail'){ if(hasOwn && c.uid!==rUid) p.pr[c.uid]=round100(own*(+cf.f||0)/100); else if(rtTodo) delete p.pr[c.uid]; }
+      else if(cf.a==='vbase'){ if(hasVb){ const f=+cf.f||0; p.pr[c.uid]= f===0 ? vb : ceil100(vb*(1+f/100)); } else if(vbTodo) delete p.pr[c.uid]; }
+      else if(cf.a==='retail'){ if(hasOwn && c.uid!==rUid) p.pr[c.uid]=ceil100(own*(+cf.f||0)/100); else if(rtTodo) delete p.pr[c.uid]; }
     });
   });
   if(VEST) estimateFromRetail(rUid);   // 끄면 빈 칸을 그대로 둔다
@@ -4148,10 +4169,10 @@ function estimateFromRetail(rUid){
       if(own>0 && pr>0) ratios.push(pr/own); });
     const r=median(ratios); if(r==null||!(r>0)) return;
     P.forEach(p=>{ if(isDeletedProd(p)||isPackage(p))return;   // 세트는 구성 단품 합산이므로 제외
-      if(isTodo(p,c.uid)) return;                             // 미정 칸은 짐작해서 채우지 않는다
+      if(isTodo(p,c.uid) || isFixed(p)) return;                // 미정 칸·파일값 고정 제품은 짐작하지 않는다
       const own=p.pr[rUid];
       if(!(own>0) || p.pr[c.uid]>0) return;                    // 정가 없거나 이미 값 있으면 건너뜀
-      p.pr[c.uid]=round100(own*r); EST[estKey(p,c.uid)]=true; });
+      p.pr[c.uid]=ceil100(own*r); EST[estKey(p,c.uid)]=true; });
   });
 }
 const isEst=(p,uid)=>!!EST[estKey(p,uid)];
@@ -4395,7 +4416,8 @@ function buildImportRowsChannel(book){
     IMP_CODES.forEach(code=>{
       if(code===A.dealer||code===A.retail) return;
       const c=chByCode(code); if(!c) return;
-      if(coeffFor(c.code).a!=='manual') return;    // 사다리 채널은 자동계산 → 건너뜀
+      if(coeffFor(c.code).a!=='manual' && !isFixed(p)) return;   // 사다리 채널은 자동계산 → 건너뜀
+                                                                 //  (단 '파일값 고정' 제품은 파일 값을 그대로 받는다)
       const v=pr[code];
       if(v==null){                                  // 파일에 열은 있는데 칸이 비어 있음
         if(!IMP_BLANK_CLEAR) return;                //  기본: 건드리지 않음
@@ -4414,7 +4436,7 @@ function buildImportRowsChannel(book){
         const c=chByCode(code); return c && coeffFor(c.code).a==='ladder' && code!==A.dealer; })
         .map(code=>{ const c=chByCode(code); return `[${code}] ${c.name}`; });
       impSkipRow(p, lad.length
-        ? `${lad.join(' · ')} 열에만 값이 있습니다 — 이 채널은 업체단가~정가 사다리로 자동계산되므로 무시됩니다. 업체단가([${A.dealer}]) 또는 자사몰정가([${A.retail}]) 열에 값을 넣으세요`
+        ? `${lad.join(' · ')} 열에만 값이 있습니다 — 이 채널은 업체단가~정가 사다리로 자동계산되므로 무시됩니다. 업체단가([${A.dealer}]) 또는 자사몰정가([${A.retail}]) 열에 값을 넣거나, 가격정책표에서 이 제품을 ⚙️→📌 <b>파일값 고정</b>으로 바꾸세요`
         : `파일의 이 행에 업체단가([${A.dealer}])·자사몰정가([${A.retail}]) 값이 비어 있습니다`);
       return;
     }
@@ -4443,7 +4465,7 @@ function rowLadderGap(vb,own,pr){
     const cf=coeffFor(c.code); if(cf.a!=='ladder') return;
     const fv=pr[code]; if(fv==null) return;
     const r=(+cf.f||0)/100;
-    const exp = r<=0?Math.round(bottom):(r>=1?Math.round(top):round100(bottom+r*(top-bottom)));
+    const exp = r<=0?Math.round(bottom):(r>=1?Math.round(top):ceil100(bottom+r*(top-bottom)));
     const d=Math.abs(exp-fv); if(d>max)max=d;
   });
   return max;
@@ -4461,7 +4483,7 @@ function impLadderGap(){
       const cf=coeffFor(c.code); if(cf.a!=='ladder') return;
       const fv=r.filePrices[code]; if(fv==null) return;
       const rr=(+cf.f||0)/100;
-      const exp = rr<=0?Math.round(bottom):(rr>=1?Math.round(top):round100(bottom+rr*(top-bottom)));
+      const exp = rr<=0?Math.round(bottom):(rr>=1?Math.round(top):ceil100(bottom+rr*(top-bottom)));
       const d=Math.abs(exp-fv); if(d>0){ codes.add(c.name); if(d>max)max=d; }
     });
   });
@@ -4930,6 +4952,7 @@ function wireImportModal(){
     const b=e.target.closest('.gridadd'); if(b){ openAddModal({l1:b.dataset.l1||'POUR공법', l2:b.dataset.l2||'', l3:b.dataset.l3||''}); return; }
     const ed=e.target.closest('.prodedit'); if(ed){ const p=P.find(x=>x.id==ed.dataset.id); if(p)openEditModal(p); return; }
     const cp=e.target.closest('.prodcopy'); if(cp){ const p=P.find(x=>x.id==cp.dataset.id); if(p)openCopyModal(p); return; }
+    const fx=e.target.closest('.prodfix'); if(fx){ const p=P.find(x=>x.id==fx.dataset.id); if(p)toggleFixed(p); return; }
     const dl=e.target.closest('.proddel'); if(dl){ const p=P.find(x=>x.id==dl.dataset.id); if(p)softDeleteProduct(p); }
   });
   on('btnSecCols','click',()=>{
@@ -5001,9 +5024,9 @@ function syncChanRuleUI(){
 function chanCalc(rule,f,vb,own){
   const base=(LAD_BASE>0&&LAD_BASE<1)?LAD_BASE:0.81, hasVb=vb>0, hasOwn=own>0;
   const bottom=hasVb?vb:(hasOwn?own*base:null), top=hasOwn?own:(hasVb?vb/base:null);
-  if(rule==='ladder'){ if(bottom==null||top==null||top<bottom)return null; const r=(+f||0)/100; return r<=0?Math.round(bottom):(r>=1?Math.round(top):round100(bottom+r*(top-bottom))); }
-  if(rule==='vbase'){ if(!hasVb)return null; const ff=+f||0; return ff===0?vb:round100(vb*(1+ff/100)); }
-  if(rule==='retail'){ if(!hasOwn)return null; return round100(own*(+f||0)/100); }
+  if(rule==='ladder'){ if(bottom==null||top==null||top<bottom)return null; const r=(+f||0)/100; return r<=0?Math.round(bottom):(r>=1?Math.round(top):ceil100(bottom+r*(top-bottom))); }
+  if(rule==='vbase'){ if(!hasVb)return null; const ff=+f||0; return ff===0?vb:ceil100(vb*(1+ff/100)); }
+  if(rule==='retail'){ if(!hasOwn)return null; return ceil100(own*(+f||0)/100); }
   return null;
 }
 function renderChanPreview(){
@@ -5263,6 +5286,7 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('retail-prices').get(); if(d.exists&&d.data().map) VRETAIL=d.data().map; }catch(e){ console.warn('[retail-prices] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('price-overrides').get(); if(d.exists&&d.data().map) POVR=d.data().map; console.log(`[price-overrides] 직접 조정 ${Object.keys(POVR).length}칸`); }catch(e){ console.warn('[price-overrides] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('price-todo').get(); if(d.exists&&d.data().map) PTODO=d.data().map; console.log(`[price-todo] 단가 미정 ${Object.keys(PTODO).length}칸`); }catch(e){ console.warn('[price-todo] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('price-fixed').get(); if(d.exists&&d.data().map) PFIX=d.data().map; console.log(`[price-fixed] 파일값 고정 ${Object.keys(PFIX).length}개 제품`); }catch(e){ console.warn('[price-fixed] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-cost').get(); if(d.exists&&d.data().map) PCOST=d.data().map; console.log(`[prod-cost] 원가 수정 ${Object.keys(PCOST).length}건`); }catch(e){ console.warn('[prod-cost] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('crm-map').get(); if(d.exists&&d.data().map) CRMMAP=d.data().map; }catch(e){ console.warn('[crm-map] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('channel-markup').get(); if(d.exists){ if(d.data().coeff)VCOEFF=d.data().coeff; if(typeof d.data().auto==='boolean')VAUTO=d.data().auto; if(typeof d.data().est==='boolean')VEST=d.data().est; if(typeof d.data().ladBase==='number'&&d.data().ladBase>0&&d.data().ladBase<1)LAD_BASE=d.data().ladBase; } }catch(e){ console.warn('[channel-markup] 로드 실패', e.code||e); }

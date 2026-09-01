@@ -696,6 +696,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
         <button data-v="rate">마진율</button>
       </div>
       <button class="tbtn" id="btnSecCols" style="display:none" title="매입원가·공급업체(제조사) 열과 마진 표시를 접었다 폈다 합니다. 이 기기에만 저장됩니다.">🔒 원가·제조사</button>
+      <button class="tbtn" id="btnClearTodo" style="display:none;background:#FDF6F4;border-color:#F1B7AD;color:#8A2B1E" title="지금 표에 보이는 제품의 '단가 미정' 표시를 모두 해제합니다. 업체단가·정가가 있으면 총판~쿠팡이 다시 계산됩니다.">미정 해제</button>
       <button class="tbtn" id="btnBulkFix" style="display:none" title="지금 표에 보이는 제품을 모두 '파일값 고정(📌)'으로 — 업로드한 단가를 그대로 씁니다">📌 일괄 고정</button>
       <button class="tbtn" id="btnBulkAuto" style="display:none" title="지금 표에 보이는 제품을 모두 '자동계산(⚙️)'으로 — 업체단가~정가 사다리로 계산합니다">⚙️ 일괄 자동</button>
       <button class="tbtn" id="btnAddProd" style="display:none">＋ 제품 추가</button>
@@ -2510,6 +2511,22 @@ function visibleProducts(){
 }
 /* 보이는 제품을 한꺼번에 '파일값 고정(📌)' ↔ '자동계산(⚙️)' 으로 바꾼다.
    139개를 하나씩 누르는 건 현실적이지 않아서 넣었다. */
+/* 표에 보이는 제품의 '단가 미정' 표시를 한꺼번에 해제한다.
+   업체단가·정가에 미정이 찍혀 있으면 사다리 계산이 통째로 막히는데,
+   그 칸은 잠겨 있어 하나씩 풀 방법이 마땅치 않았다. */
+async function bulkClearTodo(){
+  const list=visibleProducts();
+  const keys=[];
+  list.forEach(p=>{ const k=pKey(p);
+    if(PTODO[k+'|'+VBASE_COL]) keys.push(k+'|'+VBASE_COL);
+    CHANNELS.forEach(c=>{ if(PTODO[k+'|'+c.uid]) keys.push(k+'|'+c.uid); }); });
+  if(!keys.length){ alert('표에 보이는 제품 중 「단가 미정」으로 표시된 칸이 없습니다.'); return; }
+  if(!confirm(`「단가 미정」 표시 ${keys.length}칸을 해제합니다.\n(제품 ${list.length}개 중)\n\n· 업체단가·정가에 값이 있으면 총판~쿠팡이 다시 계산됩니다.\n· 값이 없는 칸은 그냥 빈칸으로 남습니다.\n\n계속할까요?`)) return;
+  keys.forEach(k=>delete PTODO[k]);
+  await saveTodo(); recalcVendor(); refreshAll();
+  gridToast(`「단가 미정」 ${keys.length}칸을 해제했습니다.`);
+  logAct('단가미정', `일괄 해제 ${keys.length}칸`, `제품 ${list.length}개 대상`);
+}
 async function bulkFix(on){
   const list=visibleProducts();
   const target=list.filter(p=>isFixed(p)!==on);
@@ -2530,7 +2547,8 @@ function renderGrid(){
   ensureChord();    // 채널 열 순서 시딩(가로 드래그 재정렬용)
   const impBtn=$('#btnImportFile'); if(impBtn) impBtn.style.display=costAllowed?'':'none';   // 파일 업로드: 원가열람 계정만
   const addBtn=$('#btnAddProd'); if(addBtn) addBtn.style.display=costAllowed?'':'none';       // 제품 추가: 원가열람 계정만
-  ['btnBulkFix','btnBulkAuto'].forEach(id=>{ const b=$('#'+id); if(b) b.style.display=costAllowed?'':'none'; });
+  ['btnBulkFix','btnBulkAuto','btnClearTodo'].forEach(id=>{ const b=$('#'+id); if(b) b.style.display=costAllowed?'':'none'; });
+  const ct=$('#btnClearTodo'); if(ct){ const n=todoCount(); ct.textContent=n?`미정 해제 (${n})`:'미정 해제'; ct.disabled=!n; ct.style.opacity=n?'':'.45'; }
   const chanBtn=$('#btnAddChan'); if(chanBtn) chanBtn.style.display=costAllowed?'':'none';    // 채널 추가: 원가열람 계정만
   const psBtn=$('#btnPriceSheet'); if(psBtn) psBtn.style.display=costAllowed?'':'none';        // 단가표 PDF: 원가열람 계정만
   const q=($('#q').value||'').trim().toLowerCase();
@@ -5053,6 +5071,7 @@ function wireImportModal(){
     gridToast(SECCOLS_OPEN?'원가·제조사를 폈습니다.':'원가·제조사를 접었습니다 — 마진 표시도 함께 가려집니다(원가 역산 방지).');
   });
   on('btnImportFile','click',openImportModal);
+  on('btnClearTodo','click',bulkClearTodo);
   on('btnBulkFix','click',()=>bulkFix(true));
   on('btnBulkAuto','click',()=>bulkFix(false));
   // ── 채널 추가 모달

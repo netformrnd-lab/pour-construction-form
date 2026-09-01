@@ -4626,9 +4626,19 @@ function applyImportChannel(sel){
     if(r.rtClear){ if(rUid) draftSetTodo(r.p, rUid, true); DRETAIL[r.key]=null; nClear++; }
     else if(r.rtVal!=null){ if(rUid && isTodo(r.p,rUid)) draftSetTodo(r.p,rUid,false);
       const v=ceil100(r.rtVal); if(v===Number(VRETAIL[r.key])) delete DRETAIL[r.key]; else DRETAIL[r.key]=v; nRt++; }
+    /* 채널 단가는 개정안(DPOVR)에 담는다 — 서버에 저장되고 승인 흐름을 탄다.
+       예전엔 p.pr 에 바로 써서 이 브라우저에만 남았다(시크릿 창을 닫으면 소멸,
+       다른 계정에는 아예 안 보임). 게다가 업체단가·정가는 승인 대기인데 이 값만
+       즉시 반영돼, 채널가가 정가를 넘어 보이는 등 표가 뒤죽박죽이었다. */
     r.man.forEach(m=>{ delete EST[estKey(r.p,m.uid)];
-      if(m.clear){ draftSetTodo(r.p, m.uid, true); delete r.p.pr[m.uid]; nClear++; }
-      else { if(isTodo(r.p,m.uid)) draftSetTodo(r.p,m.uid,false); r.p.pr[m.uid]=ceil100(m.val); nMan++; } });
+      const ok=ovrKey(r.p,m.uid);
+      if(m.clear){ draftSetTodo(r.p, m.uid, true);
+        if(POVR[ok]==null) delete DPOVR[ok]; else DPOVR[ok]=null;   // null=조정 해제
+        nClear++; }
+      else { if(isTodo(r.p,m.uid)) draftSetTodo(r.p,m.uid,false);
+        const v=ceil100(m.val);
+        if(Number(v)===Number(POVR[ok])) delete DPOVR[ok]; else DPOVR[ok]=v;
+        nMan++; } });
     /* 파일의 사다리 채널 값을 받은 제품은 '📌 파일값 고정'으로 바꾼다.
        안 그러면 다음 자동계산에서 방금 넣은 값이 곧바로 계산값으로 덮인다. */
     if(IMP_USE_FILE_CH && r.man.some(m=>!m.clear) && !isFixed(r.p)){ PFIX[pKey(r.p)]=true; nFix++; }
@@ -4809,8 +4819,10 @@ async function applyImport(){
   else if(IMP_MODE==='channel'){
     const n=applyImportChannel(sel);
     msg=`제품 ${sel.length}개를 개정안에 반영했습니다.\n· 업체단가 ${n.nVb}개 · 자사몰정가 ${n.nRt}개`
-      +(n.nMan?`\n· 수동 채널 ${n.nMan}칸(알리바바 등)은 즉시 반영`:'')
-      +`\n\n대리점·시공·위탁·도매·쿠팡은 업체단가~정가 사다리로 자동 계산됩니다.\n실제 적용은 상급자 승인 후입니다.`;
+      +(n.nMan?`\n· 채널 단가 ${n.nMan}칸`:'')
+      +(n.nClear?`\n· 단가 미정 ${n.nClear}칸`:'')
+      +(n.nFix?`\n· 파일값 고정(📌)으로 전환 ${n.nFix}개`:'')
+      +`\n\n모두 개정안에 담겼습니다. 화면은 미리보기이고,\n실제 적용은 상급자 승인 후입니다.`;
   }else{
     sel.forEach(r=>{ if(Number(r.price)===Number(VBASE[r.key])) delete DVBASE[r.key]; else DVBASE[r.key]=Number(r.price); });
     msg=`업체단가 ${sel.length}개를 개정안에 반영했습니다.\n(표에 주황색 '개정안' 표시 · 실제 적용은 상급자 승인 후)`;

@@ -4460,10 +4460,16 @@ function buildImportRows(book){
    사다리 채널(대리점·시공·위탁·도매·쿠팡)은 업체단가~정가로 자동 재계산되므로 직접 넣지 않는다. */
 function impAnchorCodes(){
   /* 업체단가와 '항상 같은 값'인 채널 = 사다리 0% 채널(보통 총판) — 이게 업체단가 앵커다.
-     예전엔 role:dealer 를 썼는데, 그 역할은 화면상 'MOQ 하한'(보통 대리점)이라
-     대리점 단가가 업체단가 칸으로 들어가 총판가가 대리점가로 덮이는 사고가 났다. */
-  const tw=(typeof vbaseTwin==='function')?vbaseTwin():null;
-  const d=tw||chBy('dealer'), r=chBy('retail');
+     · role:dealer 는 화면상 'MOQ 하한'(보통 대리점)이라 앵커로 쓰면 대리점 단가가
+       업체단가로 들어간다.
+     · vbaseTwin() 은 '가격열이 켜진' 채널만 보기 때문에, 총판의 가격열을 꺼두면
+       null 이 되어 대리점으로 넘어가는 사고가 났다. 여기서는 가격열 표시 여부와
+       무관하게 사다리 0% 채널을 찾는다(보이는 것 우선). */
+  const all=(typeof CHANNELS!=='undefined'?CHANNELS:[]).filter(c=>!isDeletedChan(c.uid));
+  const lad0=c=>{ let cf={a:'manual',f:0}; try{ cf=coeffFor(c.code); }catch(e){}
+                  return cf.a==='ladder' && (+cf.f||0)===0; };
+  const d = all.find(c=>c.col&&lad0(c)) || all.find(lad0) || chBy('dealer');
+  const r = chBy('retail');
   return { dealer:d?String(d.code).toUpperCase():'P2', retail:r?String(r.code).toUpperCase():'OWN' };
 }
 function buildImportRowsChannel(book){

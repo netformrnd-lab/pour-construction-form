@@ -1303,10 +1303,10 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <div class="imp-head"><span>📄 파일로 업체단가 일괄 입력 <span style="font-size:11px;color:var(--ink-faint);font-weight:400">· 개정안(승인 대기)에 담깁니다</span></span><button id="impClose" aria-label="닫기">✕</button></div>
     <div class="imp-body">
       <div class="imp-drop" id="impDrop">
-        <input type="file" id="impFile" accept=".pdf,.xlsx,.xls,.csv" style="display:none">
+        <input type="file" id="impFile" accept=".pdf,.xlsx,.xls,.csv,.tsv" style="display:none">
         <div style="font-size:26px">📥</div>
         <p style="margin:6px 0 2px;font-weight:600">단가표 파일을 여기에 끌어놓거나 <button class="pick" id="impPick" type="button">파일 선택</button></p>
-        <p class="footnote" style="margin-top:4px">PDF · Excel(xlsx/xls) · CSV 지원<br>· <b>채널 단가표</b>(제품명 + 채널별 가격 열)를 넣으면 채널을 자동 인식해 업체단가·자사몰정가를 한 번에 채웁니다<br>· 단가 1열짜리 업체단가표도 종전대로 인식합니다</p>
+        <p class="footnote" style="margin-top:4px">PDF · Excel(xlsx/xls) · CSV/TSV 지원<br>· <b>채널 단가표</b>(제품명 + 채널별 가격 열)를 넣으면 채널을 자동 인식해 업체단가·자사몰정가를 한 번에 채웁니다<br>· 단가 1열짜리 업체단가표도 종전대로 인식합니다</p>
       </div>
       <div id="impStatus" class="footnote" style="margin-top:10px"></div>
       <div id="impResult" style="display:none">
@@ -4442,11 +4442,35 @@ let IMP_LAST_BOOK=null;   // 방금 읽은 파일 내용 — 옵션을 켜고 �
    켜면 파일 값을 그대로 넣고, 그 제품을 '📌 파일값 고정'으로 바꿔 다시 계산되지 않게 한다. */
 let IMP_USE_FILE_CH=false;
 let IMP_CODES=[];       // 채널모드에서 파일에 있던 채널 코드
+/* CSV/TSV 본문 → rows(배열의 배열).
+   예전엔 줄을 그냥 ','로 잘라서, 제품명·규격에 쉼표가 하나만 있어도 그 줄의 열이
+   통째로 밀렸다(따옴표 안의 쉼표를 구분 못 함). 큰따옴표·이중따옴표("")·
+   따옴표 안 줄바꿈을 제대로 처리하고, 구분자도 자동으로 고른다. */
+function parseCsvText(txt){
+  if(txt.charCodeAt(0)===0xFEFF) txt=txt.slice(1);   // 엑셀이 붙이는 BOM 제거(첫 머리글이 깨짐)
+  const head=(txt.split(/\r?\n/)[0]||'');
+  const cnt=ch=>(head.split(ch).length-1);
+  const D = cnt('\t')>cnt(',') ? '\t' : (cnt(';')>cnt(',') ? ';' : ',');
+  const rows=[]; let row=[], cell='', q=false;
+  for(let i=0;i<txt.length;i++){
+    const ch=txt[i];
+    if(q){
+      if(ch==='"'){ if(txt[i+1]==='"'){ cell+='"'; i++; } else q=false; }
+      else cell+=ch;
+    }
+    else if(ch==='"') q=true;
+    else if(ch===D){ row.push(cell); cell=''; }
+    else if(ch==='\n'){ row.push(cell); rows.push(row); row=[]; cell=''; }
+    else if(ch!=='\r') cell+=ch;
+  }
+  if(cell!=='' || row.length){ row.push(cell); rows.push(row); }
+  return rows;
+}
 /* 파일 → 시트별 rows(배열의 배열) */
 async function fileToSheets(file){
   const name=(file.name||'').toLowerCase(), buf=await file.arrayBuffer();
-  if(name.endsWith('.csv')){ const txt=new TextDecoder('utf-8').decode(buf);
-    return [txt.split(/\r?\n/).map(l=>l.split(',').map(c=>c.replace(/^"|"$/g,'')))]; }
+  if(name.endsWith('.csv')||name.endsWith('.tsv')||name.endsWith('.txt')){
+    return [parseCsvText(new TextDecoder('utf-8').decode(buf))]; }
   if(/\.xlsx?$/.test(name)){ await ensureXLSX(); const wb=window.XLSX.read(buf,{type:'array'});
     return wb.SheetNames.map(sn=>window.XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''})); }
   return null;   // PDF 등

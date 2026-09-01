@@ -2598,7 +2598,7 @@ function renderGrid(){
       const editable=!pkg && (isAnchor || coeffFor(c.code).a==='manual');   // 패키지·사다리 채널은 잠금
       const rtDraft=!pkg && isAnchor && PREVIEW && (pKey(p) in DRETAIL);   // 자사몰정가 개정안 표시
       const est=!pkg && isEst(p,c.uid);   // 정가 기반 추정값 → 확정가와 구분
-      const todo=!pkg && isTodo(p,c.uid);   // 아직 단가 미책정 → 숫자 대신 '미정'
+      const todo=!pkg && isTodo(p,c.uid) && pr==null;   // 값이 채워졌으면 '미정' 표시를 거둔다
       const ovr=!pkg && hasOvr(p,c.uid), ovrD=!pkg && isOvrDraft(p,c.uid);
       const cls=['num']; if(editable)cls.push('editable'); else if(pkg)cls.push('pkglock'); else cls.push('autolock'); if(m!=null&&m<0)cls.push('neg','warn'); if(est)cls.push('estcell'); if(ovr)cls.push('ovrcell');
       let disp = todo ? '<span class="todohint">미정</span>'
@@ -4185,11 +4185,15 @@ function recalcVendor(){
     const bottom = hasVb ? vb : ((!vbTodo && hasOwn) ? own*base : null);
     const top    = hasOwn ? own : ((!rtTodo && hasVb) ? vb/base : null);
     CHANNELS.forEach(c=>{ if(!c.col) return; const cf=coeffFor(c.code);
-      if(effTodo(k+'|'+c.uid)){ delete p.pr[c.uid]; return; }     // 이 칸 자체가 미정
+      const cTodo=effTodo(k+'|'+c.uid);
+      /* 사다리 채널은 '계산되는 값'이라 미정 표시가 계산을 막지 않는다.
+         업체단가·정가가 채워지면 곧바로 계산해 넣는다. 앵커가 없을 때만 빈칸으로 둔다.
+         (파일 빈칸으로 미정이 찍힌 뒤 단가를 넣어도 영영 안 채워지던 문제) */
+      if(cTodo && cf.a!=='ladder'){ delete p.pr[c.uid]; return; }   // 수동 채널은 값을 넣어야 풀린다
       if(cf.a==='ladder'){
         if(bottom!=null && top!=null && top>=bottom){ const r=(+cf.f||0)/100;
           p.pr[c.uid]= r<=0 ? Math.round(bottom) : (r>=1 ? Math.round(top) : ceil100(bottom + r*(top-bottom))); }   // 총판(r=0)은 업체단가와 정확히 동일
-        else if(vbTodo || rtTodo) delete p.pr[c.uid];             // 앵커가 미정이라 계산 불가 → 빈칸
+        else delete p.pr[c.uid];                                   // 앵커가 없거나 미정 → 빈칸
       }
       else if(cf.a==='vbase'){ if(hasVb){ const f=+cf.f||0; p.pr[c.uid]= f===0 ? vb : ceil100(vb*(1+f/100)); } else if(vbTodo) delete p.pr[c.uid]; }
       else if(cf.a==='retail'){ if(hasOwn && c.uid!==rUid) p.pr[c.uid]=ceil100(own*(+cf.f||0)/100); else if(rtTodo) delete p.pr[c.uid]; }

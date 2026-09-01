@@ -529,7 +529,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.08.31</b></span>
+    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.01</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2795,7 +2795,17 @@ $('#btnReset').addEventListener('click',()=>{
 });
 $('#btnCsv').addEventListener('click',()=>{
   const cols=COLS(), rUid=retailUid();
-  const head=['분류','제품명','규격',...(unlocked?['공급업체','담당자']:[]),...(costAllowed?['매입원가']:[]),...cols.map(c=>`[${c.code}] ${c.name}`),...(costAllowed?['정가 마진액','정가 마진율(%)']:[])];
+  /* 가격 열: 화면(가격정책표)과 똑같은 순서 — 업체단가 가상열 포함.
+     예전엔 COLS()(실제 채널)만 내보내서 '업체단가' 열이 파일에 아예 없었다.
+     → 내보내기→엑셀 수정→다시 올리기 를 해도 업체단가는 영영 못 채웠다. */
+  if(typeof ensureChord==='function') ensureChord();
+  const vbCode=impAnchorCodes().dealer;   // 올릴 때 업체단가로 인식되는 코드(사다리 0% 채널)
+  const pcs=[];
+  CHORD.forEach(uid=>{ if(uid===VBASE_COL){ pcs.push({v:true}); return; } const c=cols.find(x=>x.uid===uid); if(c) pcs.push({c}); });
+  cols.forEach(c=>{ if(!pcs.some(x=>x.c&&x.c.uid===c.uid)) pcs.push({c}); });
+  if(!pcs.some(x=>x.v)) pcs.unshift({v:true});
+  const vbOf=p=>{ const v=isPackage(p)?pkgVbase(p):effVbase(pKey(p)); return v==null?'':v; };   // 미정·미입력은 빈칸
+  const head=['분류','제품명','규격',...(unlocked?['공급업체','담당자']:[]),...(costAllowed?['매입원가']:[]),...pcs.map(x=>x.v?`[${vbCode}] 업체단가`:`[${x.c.code}] ${x.c.name}`),...(costAllowed?['정가 마진액','정가 마진율(%)']:[])];
   /* 화면과 같은 값·같은 순서로 내보낸다.
      · 휴지통(소프트 삭제) 제품은 제외 — 표에 없는 행이 파일에만 나오던 문제
      · effCost/effPrice 사용 — 세트(패키지)는 구성 단품 합산, 원가 수정분(PCOST)도 반영
@@ -2804,7 +2814,7 @@ $('#btnCsv').addEventListener('click',()=>{
   const rows=list.map(p=>{
     const cost=effCost(p), rp=effPrice(p,rUid);
     const m=margin(rp,cost), r=mrate(rp,cost);
-    return [p.cat,p.name,p.spec,...(unlocked?[p.sup||'',p.mgr||'']:[]),...(costAllowed?[cost??'']:[]),...cols.map(c=>effPrice(p,c.uid)??''),...(costAllowed?[m??'',r!=null?(r*100).toFixed(2):'']:[])];
+    return [p.cat,p.name,p.spec,...(unlocked?[p.sup||'',p.mgr||'']:[]),...(costAllowed?[cost??'']:[]),...pcs.map(x=>x.v?vbOf(p):(effPrice(p,x.c.uid)??'')),...(costAllowed?[m??'',r!=null?(r*100).toFixed(2):'']:[])];
   });
   const csv='\uFEFF'+[head,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');

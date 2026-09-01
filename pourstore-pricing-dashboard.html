@@ -4308,15 +4308,26 @@ function chanCodeOf(cellText){
   if(m) return m[1].toUpperCase();
   m=s.match(/\b(OWN|P\d{1,2})\b/i); if(m) return m[1].toUpperCase();
   const t=s.replace(/[\s()·]/g,'');
+  const notPrice=/(마진|이익|원가|수량|개수|비고|순번)/.test(t);   // 값 열이 아닌 머리글은 채널로 보지 않는다
   const byName=(typeof CHANNELS!=='undefined'?CHANNELS:[]).find(c=>{
     const n=String(c.name||'').replace(/[\s()·]/g,''), sh=String(c.short||'').replace(/[\s()·]/g,'');
     // 양방향 포함: 머리글이 채널명보다 짧아도('도매' ↔ '온라인 도매') 찾도록
-    return (n&&(t===n||t.includes(n)||(t.length>=2&&n.includes(t)))) || (sh&&t===sh); });
+    if(n&&(t===n||t.includes(n)||(t.length>=2&&n.includes(t)))) return true;
+    // 짧은이름으로도: '총판 공급가' 처럼 채널명 전체가 아닌 짧은이름만 쓴 머리글
+    return !!(sh&&sh.length>=2&&!notPrice&&(t===sh||t.includes(sh)));
+  });
   if(byName) return String(byName.code).toUpperCase();
+  /* '업체단가' 계열 머리글 → 업체단가 앵커(사다리 0% 채널)로 본다.
+     표에서는 '업체단가'라고 부르는데 실제 채널명은 '총판·유통' 이라, 엑셀에
+     업체단가라고 적으면 어느 채널인지 못 찾고 통째로 무시됐다. */
+  if(/(업체단가|업체가|공법가)/.test(t) && !notPrice){
+    const tw=(typeof vbaseTwin==='function')?vbaseTwin():null;
+    if(tw) return String(tw.code).toUpperCase();
+  }
   /* 이름이 안 맞아도 '정가·판매가·소비자가' 계열 머리글은 정가 채널로 본다.
      [단가표 엑셀] 내보내기의 정가 열 머리글이 '판매가(정가)' 라서 채널명('자사몰정가')과
      이름 매칭이 안 돼, 정가 열이 통째로 인식되지 않고 빈 열로 올라오던 문제. */
-  if(/(정가|판매가|소비자가)/.test(t) && !/(마진|이익)/.test(t)){
+  if(/(정가|판매가|소비자가)/.test(t) && !notPrice){
     const r=(typeof chBy==='function')?chBy('retail'):null;
     if(r) return String(r.code).toUpperCase();
   }

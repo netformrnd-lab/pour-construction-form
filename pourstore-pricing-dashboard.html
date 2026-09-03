@@ -529,7 +529,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.03</b></span>
+    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.03b</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -4873,7 +4873,7 @@ function fillTagLists(){ $('#tagL1').innerHTML=allTags(1).map(v=>`<option value=
   /* 구성 검색 목록: '제품명 [규격]' — 규격으로도 검색되고, 같은 이름 다른 규격을 골라 담을 수 있다 */
   const pl=$('#prodNameList');
   if(pl) pl.innerHTML=P.filter(x=>!isPackage(x)&&!isDeletedProd(x))
-    .map(x=>`<option value="${esc(compLabel(x))}" label="${esc(x.cost!=null?'원가 '+won(x.cost)+'원':(x.cat||''))}">`).join(''); }
+    .map(x=>`<option value="${esc(compLabel(x))}" label="${esc(costVisible()&&x.cost!=null?'원가 '+won(x.cost)+'원':(x.cat||''))}">`).join(''); }
 /* ── 구성 빌더 (드롭다운으로 단품 골라 담기) ── */
 let SET_ROWS=[];   // [{name, qty}]
 /* 구성행 텍스트 ↔ 제품.  '제품명 [규격]' 형식으로 적어 규격까지 구분한다.
@@ -4905,8 +4905,11 @@ function setItemsStr(){ return SET_ROWS.filter(r=>(r.name||'').trim()).map(r=>`$
 /* 구성행의 매칭 결과(규격·원가·제조사) — renderSetBuilder와 실시간 입력 갱신이 공용 */
 function compInfo(name){
   const prod=(name||'').trim()?findProd(name):null;
-  if(prod){ const parts=[`규격 ${esc(prod.spec||'-')}`, `원가 ${won(prod.cost)}`];
-    const maker=prod.mfg||(unlocked?prod.sup:''); if(maker)parts.push(`제조사 ${esc(maker)}`);
+  /* 원가·제조사는 표(가격정책표)와 같은 권한 규칙을 그대로 따른다.
+     예전엔 여기만 권한 검사가 없어서, 원가 접기 상태나 제조사 비열람 계정에도 값이 보였다. */
+  if(prod){ const parts=[`규격 ${esc(prod.spec||'-')}`];
+    if(costVisible()) parts.push(`원가 ${won(prod.cost)}`);
+    const maker=secAllowed?(prod.mfg||(unlocked?prod.sup:'')):''; if(maker)parts.push(`제조사 ${esc(maker)}`);
     return {ok:true, cls:'setinfo', html:'↳ '+parts.join(' · ')}; }
   if((name||'').trim()) return {ok:false, cls:'setinfo err', html:'↳ 매칭되는 단품이 없습니다 — 목록에서 정확히 선택하세요'};
   return {ok:true, cls:'setinfo', html:''};
@@ -4933,7 +4936,7 @@ function setPreview(){
   const cost=matched.reduce((s,c)=>s+((c.prod.cost||0)*c.qty),0);
   const own=rUid?matched.reduce((s,c)=>s+((gp(c.prod,rUid)||0)*c.qty),0):0;
   el.style.color=miss.length?'var(--red)':'var(--xl-green-dark)';
-  el.innerHTML=`✓ <b>${matched.length}종</b> 합산 — 원가 <b>${won(cost)}</b> · 정가 <b>${won(own)}</b>`+(miss.length?` <span style="color:var(--red)">(미매칭 ${miss.length}: ${esc(miss.map(m=>m.name).join(', '))})</span>`:'');
+  el.innerHTML=`✓ <b>${matched.length}종</b> 합산 — ${costVisible()?`원가 <b>${won(cost)}</b> · `:''}정가 <b>${won(own)}</b>`+(miss.length?` <span style="color:var(--red)">(미매칭 ${miss.length}: ${esc(miss.map(m=>m.name).join(', '))})</span>`:'');
 }
 /* 유형(단품/세트)에 따라 입력 항목 표시 토글.
    세트는 원가·제조사·업체단가·정가를 구성 단품에서 자동 합산하므로 숨긴다. */

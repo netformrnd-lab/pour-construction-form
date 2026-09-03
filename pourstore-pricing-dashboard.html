@@ -529,7 +529,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.01</b></span>
+    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.03</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2643,7 +2643,7 @@ function renderGrid(){
         const empty = pkgVbase(p)==null && COLS().every(c=>effPrice(p,c.uid)==null);
         const miss = declared>comps.length ? ` <span style="color:var(--red);font-size:10px;font-weight:700" title="구성에 적힌 이름과 일치하는 제품을 못 찾았습니다">·${declared-comps.length}개 미매칭</span>` : '';
         return ` <span style="color:var(--xl-green-dark);font-size:10.5px;font-weight:600">📦구성 ${comps.length}종</span>${miss}`
-          + (empty?` <span style="color:#B45309;font-size:10px;font-weight:700" title="구성 단품(${comps.map(c=>c.prod.name).join(', ')})에 업체단가·정가가 없어 합산할 값이 없습니다">값없음 · 구성단품 입력필요</span>`:'');
+          + (empty?` <span style="color:#B45309;font-size:10px;font-weight:700" title="구성 단품(${comps.map(c=>compLabel(c.prod)).join(', ')})에 업체단가·정가가 없어 합산할 값이 없습니다">값없음 · 구성단품 입력필요</span>`:'');
       })():''}</td>
       ${showSup?`<td class="frz frz-sup dim${lastFrz==='sup'?' frz-edge':''}" title="${unlocked?esc(p.mgr||''):''}">${unlocked?esc(p.sup||'—'):'🔒'}</td>`:''}
       ${showCost?`<td class="frz frz-cost num cost${lastFrz==='cost'?' frz-edge':''}" title="${pkg?'구성 단품 원가 합':"원가는 '제품 수정'에서"}">${won(pcost)}${pkg?'<span class="mrate">합산</span>':''}</td>`:''}
@@ -4120,7 +4120,7 @@ async function savePkgSet(){ try{ await db.collection('product-meta').doc('pkg-s
 function parseSetItems(str){ return String(str||'').split(',').map(s=>s.trim()).filter(Boolean).map(s=>{ const m=s.match(/^(.*?)\s*[\u00D7\u2715xX*]\s*(\d+)\s*$/); return m?{name:m[1].trim(),qty:+m[2]||1}:{name:s,qty:1}; }); }
 function isPackage(p){ const t=PTYPE[pKey(p)]; if(t==='세트')return true; if(t==='단품')return false;   // 명시 전환 우선
   return p.cat==='패키지' || p.ptype==='세트' || p.type==='세트' || !!(pkgSetItems(p)&&String(pkgSetItems(p)).trim()); }
-function pkgComps(p){ return parseSetItems(pkgSetItems(p)).map(it=>({prod:P.find(x=>x.name===it.name)||P.find(x=>x.name.replace(/\s/g,'')===it.name.replace(/\s/g,'')), qty:it.qty})).filter(x=>x.prod); }
+function pkgComps(p){ return parseSetItems(pkgSetItems(p)).map(it=>({prod:findProd(it.name), qty:it.qty})).filter(x=>x.prod); }
 function pkgCost(p){ const cs=pkgComps(p); if(!cs.length)return null; let s=0,any=false; cs.forEach(c=>{ const uc=unitCost(c.prod); if(uc!=null){s+=uc*c.qty;any=true;} }); return any?s:null; }
 function pkgPrice(p,uid){ const cs=pkgComps(p); if(!cs.length)return null; let s=0,any=false; cs.forEach(c=>{ const v=gp(c.prod,uid); if(v!=null){s+=v*c.qty;any=true;} }); return any?s:null; }
 function pkgVbase(p){ const cs=pkgComps(p); if(!cs.length)return null; let s=0,any=false; cs.forEach(c=>{ const v=effVbase(pKey(c.prod)); if(v!=null){s+=v*c.qty;any=true;} }); return any?s:null; }
@@ -4870,11 +4870,37 @@ async function applyImport(){
 /* ── 제품 추가 모달 (엑셀식 빠른 등록 → products-added, 앵커는 사다리로 자동) ── */
 let AD_EDIT=null;   // 수정 중인 제품(null이면 신규)
 function fillTagLists(){ $('#tagL1').innerHTML=allTags(1).map(v=>`<option value="${esc(v)}">`).join(''); $('#tagL2').innerHTML=allTags(2).map(v=>`<option value="${esc(v)}">`).join(''); $('#tagL3').innerHTML=allTags(3).map(v=>`<option value="${esc(v)}">`).join('');
-  const pl=$('#prodNameList'); if(pl) pl.innerHTML=P.filter(x=>!isPackage(x)&&!isDeletedProd(x)).map(x=>`<option value="${esc(x.name)}">`).join(''); }
+  /* 구성 검색 목록: '제품명 [규격]' — 규격으로도 검색되고, 같은 이름 다른 규격을 골라 담을 수 있다 */
+  const pl=$('#prodNameList');
+  if(pl) pl.innerHTML=P.filter(x=>!isPackage(x)&&!isDeletedProd(x))
+    .map(x=>`<option value="${esc(compLabel(x))}" label="${esc(x.cost!=null?'원가 '+won(x.cost)+'원':(x.cat||''))}">`).join(''); }
 /* ── 구성 빌더 (드롭다운으로 단품 골라 담기) ── */
 let SET_ROWS=[];   // [{name, qty}]
-function findProd(name){ const n=(name||'').trim(); return P.find(x=>x.name===n)||P.find(x=>x.name.replace(/\s/g,'')===n.replace(/\s/g,'')); }
-function setRowsFromStr(str){ SET_ROWS=parseSetItems(str).map(it=>({name:it.name,qty:it.qty})); }
+/* 구성행 텍스트 ↔ 제품.  '제품명 [규격]' 형식으로 적어 규격까지 구분한다.
+   (예전에는 제품명만 저장해서, 같은 이름에 규격만 다른 제품을 구분할 수 없었다.
+    옛 데이터('제품명'만)도 그대로 읽히도록 이름만으로도 찾는다.) */
+function _sq(v){ return String(v==null?'':v).replace(/\s/g,'').toLowerCase(); }
+function splitNameSpec(str){
+  const t=String(str||'').trim();
+  const m=t.match(/^(.*?)\s*[\[(]\s*([^\])]*)\s*[\])]$/);
+  return m?{name:m[1].trim(), spec:m[2].trim(), raw:t}:{name:t, spec:'', raw:t};
+}
+function compLabel(p){ return p?(p.name+(p.spec?` [${p.spec}]`:'')):''; }
+function _pickProd(pool,it){
+  if(it.spec){
+    const h=pool.find(x=>x.name===it.name&&String(x.spec||'')===it.spec)
+        || pool.find(x=>_sq(x.name)===_sq(it.name)&&_sq(x.spec)===_sq(it.spec));
+    if(h) return h;
+  }
+  return pool.find(x=>x.name===it.raw) || pool.find(x=>_sq(x.name)===_sq(it.raw))
+      || pool.find(x=>x.name===it.name) || pool.find(x=>_sq(x.name)===_sq(it.name)) || null;
+}
+function findProd(str){
+  const it=splitNameSpec(str); if(!it.raw) return null;
+  const live=P.filter(x=>!isDeletedProd(x));
+  return _pickProd(live,it) || _pickProd(P,it);   // 휴지통 제품도 마지막에 한 번 (기존 구성이 깨지지 않게)
+}
+function setRowsFromStr(str){ SET_ROWS=parseSetItems(str).map(it=>{ const pr=findProd(it.name); return {name:pr?compLabel(pr):it.name, qty:it.qty}; }); }
 function setItemsStr(){ return SET_ROWS.filter(r=>(r.name||'').trim()).map(r=>`${r.name.trim()}×${Math.max(1,+r.qty||1)}`).join(', '); }
 /* 구성행의 매칭 결과(규격·원가·제조사) — renderSetBuilder와 실시간 입력 갱신이 공용 */
 function compInfo(name){
@@ -4890,7 +4916,7 @@ function renderSetBuilder(){
   box.innerHTML = SET_ROWS.length ? SET_ROWS.map((r,i)=>{
     const info=compInfo(r.name);
     return `<div class="setitem"><div class="setrow">
-      <input class="setname" list="prodNameList" data-i="${i}" value="${esc(r.name||'')}" placeholder="제품 검색/선택" autocomplete="off" style="${(r.name&&!info.ok)?'border-color:var(--red)':''}">
+      <input class="setname" list="prodNameList" data-i="${i}" value="${esc(r.name||'')}" placeholder="제품명·규격으로 검색" autocomplete="off" style="${(r.name&&!info.ok)?'border-color:var(--red)':''}">
       <span style="color:var(--ink-faint)">×</span>
       <input class="setqty" type="number" min="1" step="1" data-i="${i}" value="${r.qty||1}">
       <button type="button" class="setdel" data-i="${i}" title="삭제">🗑</button></div><div class="${info.cls}" data-info="${i}">${info.html}</div></div>`;

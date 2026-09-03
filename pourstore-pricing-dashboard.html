@@ -529,7 +529,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.03b</b></span>
+    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.03c</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1737,6 +1737,16 @@ function noteChannelEdit(c){
 }
 /* 채널 열 사용자 지정 순서(가로 드래그). 없으면 chRank(단가순) 유지. 새 채널은 rank 위치에 삽입 */
 let CHORD=[];   // 표시 순서 uid 배열 ← product-meta/chan-order
+/* 모달 바깥(어두운 배경) 클릭으로 닫기 — 단, 누르기가 모달 '안'에서 시작됐으면 닫지 않는다.
+   텍스트를 드래그하다가 손을 모달 밖에서 떼면 창이 통째로 닫혀 입력이 날아가던 문제. */
+function bindOverlayClose(id, close){
+  const el=document.getElementById(id); if(!el) return;
+  let fromBg=false;
+  const down=e=>{ fromBg = (e.target===el); };
+  el.addEventListener('pointerdown',down);
+  el.addEventListener('mousedown',down);          // 구형 브라우저 대비
+  el.addEventListener('click',e=>{ if(e.target===el && fromBg) close(); fromBg=false; });
+}
 const VBASE_COL='__vbase__';   // 업체단가 열도 CHORD에서 위치 이동 가능(가상 uid)
 /* 업체단가와 값이 '항상 같은' 채널 = 사다리 하한(비율 0%) 채널.
    업체단가는 입력 앵커, 그 채널은 계산 결과라서 열이 둘로 보이므로 서로 같음을 표기한다. */
@@ -5079,7 +5089,7 @@ async function saveCatMgr(){
 function wireCatMgr(){
   const on=(id,ev,fn)=>{ const el=$('#'+id); if(el)el.addEventListener(ev,fn); };
   on('catClose','click',closeCatMgr); on('catCancel','click',closeCatMgr); on('catSave','click',saveCatMgr);
-  on('catOverlay','click',e=>{ if(e.target.id==='catOverlay')closeCatMgr(); });
+  bindOverlayClose('catOverlay',closeCatMgr);
   on('catAddNew','click',()=>{ const name=(prompt('새 분류 이름을 입력하세요','새 분류')||'').trim(); if(!name)return; if(CATEDIT.some(c=>c.key===name)){ $('#catMsg').innerHTML='<span style="color:var(--red)">이미 있는 분류명입니다.</span>'; return; } CATEDIT.push({key:name,name,l1:'',l2:''}); renderCatMgr(); });
   const t=$('#catTable');
   if(t){
@@ -5116,7 +5126,7 @@ function wireImportModal(){
   on('btnAddProd','click',()=>openAddModal());
   on('addClose','click',closeAddModal); on('addCancel','click',closeAddModal);
   on('addSubmit','click',submitAddProduct);
-  on('addOverlay','click',e=>{ if(e.target.id==='addOverlay')closeAddModal(); });
+  bindOverlayClose('addOverlay',closeAddModal);
   on('adType','change',syncAdType);
   // 중분류를 '패키지'로 선택하면 자동으로 유형=세트 전환
   on('adL2','input',()=>{ if(($('#adL2').value||'').trim()==='패키지' && $('#adType').value!=='세트'){ $('#adType').value='세트'; syncAdType(); } });
@@ -5154,14 +5164,14 @@ function wireImportModal(){
   // ── 채널 추가 모달
   on('btnAddChan','click',openChanModal);
   on('chanClose','click',closeChanModal); on('chanCancel','click',closeChanModal);
-  on('chanOverlay','click',e=>{ if(e.target.id==='chanOverlay')closeChanModal(); });
+  bindOverlayClose('chanOverlay',closeChanModal);
   on('chanSubmit','click',submitChannel);
   const rc=$('#ncRuleChips'); if(rc)rc.addEventListener('click',e=>{ const c=e.target.closest('.rulechip'); if(!c)return; $$('#ncRuleChips .rulechip').forEach(x=>x.classList.toggle('on',x===c)); syncChanRuleUI(); });
   ['ncVal2','ncName2','ncCode2'].forEach(id=>on(id,'input',renderChanPreview));
   // ── 단가표 PDF 모달
   on('btnPriceSheet','click',openPsModal);
   on('psClose','click',closePsModal); on('psCancel','click',closePsModal);
-  on('psOverlay','click',e=>{ if(e.target.id==='psOverlay')closePsModal(); });
+  bindOverlayClose('psOverlay',closePsModal);
   on('psChanAll','click',()=>{ $$('#psChanBox input').forEach(i=>i.checked=true); psUpdChanCnt(); });
   on('psChanNone','click',()=>{ $$('#psChanBox input').forEach(i=>i.checked=false); psUpdChanCnt(); });
   on('psChanBox','change',psUpdChanCnt);
@@ -5172,7 +5182,7 @@ function wireImportModal(){
   on('impApply','click',applyImport);
   on('impPick','click',()=>$('#impFile').click());
   on('impFile','change',e=>handleImportFile(e.target.files&&e.target.files[0]));
-  on('impOverlay','click',e=>{ if(e.target.id==='impOverlay')closeImportModal(); });
+  bindOverlayClose('impOverlay',closeImportModal);
   on('impAll','change',e=>{ const v=e.target.checked; IMP_ROWS.forEach(r=>{ if(r.status!=='same')r.check=v; }); renderImportTable(); });
   on('impUseFileCh','change',e=>{
     IMP_USE_FILE_CH=e.target.checked;

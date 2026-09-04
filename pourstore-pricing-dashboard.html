@@ -529,7 +529,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.03d</b></span>
+    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.03e</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -5104,6 +5104,17 @@ async function submitAddProduct(){
     const rUid=(typeof retailUid==='function')?retailUid():null;
     const pr={}; if(rUid && retail>0) pr[rUid]=retail;
     const cat=l2||'기타', key=`${cat}|${name}|${spec}`;
+    /* 같은 제품명·규격이 이미 있으면 등록해도 표에 새 줄이 생기지 않는다(제품명|규격이 열쇠라 한 줄로 합쳐짐).
+       예전에는 조용히 저장만 되고 화면엔 아무 변화가 없어 '복사 등록이 안 된다'로 보였고,
+       게다가 원본의 분류·유형·구성을 이 폼 값으로 덮어써 버렸다. 그래서 먼저 막는다. */
+    const dup=P.find(x=>pKey(x)===key);
+    if(dup){
+      $('#adStatus').innerHTML='<span style="color:var(--red)">'+(isDeletedProd(dup)
+        ? '같은 제품명·규격이 <b>휴지통</b>에 있습니다 — 복원하거나 이름·규격을 바꿔주세요.'
+        : '같은 <b>제품명·규격</b>이 이미 있습니다 — 이름이나 규격을 바꿔주세요.')+'</span>';
+      const el=$('#adName'); if(el){ el.focus(); el.select(); }
+      btn.disabled=false; btn.textContent=old; return;
+    }
     const doc={ cat,name,spec,cost,pr,mfg,concept:'',type,status:'출시',setItems:setItemsStr(),
       seq:P.length, updatedAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'' };
     if(mfg && typeof MFG!=='undefined' && !MFG.some(m=>m.name===mfg)){ MFG.push({id:mfgSeq++,name:mfg,mgr:'',tel:'',memo:'(제품 추가 시 자동)'}); persist(); }

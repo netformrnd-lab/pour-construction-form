@@ -529,7 +529,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.03c</b></span>
+    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.03d</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -4013,6 +4013,11 @@ function ensureCatCfg(){
 async function saveCatConfig(){ try{ await db.collection('product-meta').doc('cat-config').set({list:CATCFG, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[cat-config] 저장 실패', e.code||e); } }
 /* ══════════ 소프트 삭제(휴지통) + 활동 이력 — 영구삭제 없음 ══════════
    제품·채널은 '삭제표시'만 하고 원본 레코드는 절대 지우지 않는다. 휴지통에서 복원 가능. */
+/* ── 제품명·규격 변경 ← product-meta/prod-rename ──
+   기본 제품(products 컬렉션)은 이 앱이 읽기만 하므로, 바뀐 이름을 여기에 따로 적어 덮어쓴다.
+   키는 '원래' 이름(분류|제품명|규격) 이라서 여러 번 바꿔도 원본을 계속 찾아간다. */
+let PNAME={};
+async function savePname(){ try{ await db.collection('product-meta').doc('prod-rename').set({map:PNAME, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-rename] 저장 실패', e.code||e); alert('이름 변경 저장 실패: '+(e.code||e.message||e)); } }
 let PDEL={};   // pKey → {at,by,name} 삭제된 제품 ← product-meta/prod-deleted
 let CHDEL={};  // uid  → {at,by,code,name} 삭제된 채널 ← product-meta/chan-deleted
 function isDeletedProd(p){ return !!PDEL[pKey(p)]; }
@@ -4984,12 +4989,13 @@ function openEditModal(p){   // 기존 제품 수정: 분류(전체)·원가·�
   const _mf=$('#adMfgFld'); if(_mf)_mf.style.display=secAllowed?'':'none';
   $('#adType').value=isPkg?'세트':'단품';
   setRowsFromStr(pkgSetItems(p)||''); renderSetBuilder();
-  $('#adName').disabled=true; $('#adSpec').disabled=true;              // 이름·규격은 키라서 여기서 변경 불가
+  $('#adName').disabled=false; $('#adSpec').disabled=false;            // 이름·규격 변경 가능 — 저장 시 값·구성까지 함께 옮긴다
   $('#adCost').value=(unitCost(p)==null?'':unitCost(p));
   $('#adCost').disabled=isPkg;                                         // 원가: 모든 단품 수정 가능(공유 저장), 패키지는 합산이라 잠김
   $('#adMfg').disabled=!added; $('#adType').disabled=false;            // 유형(단품↔세트)은 기본 제품도 전환 허용
   $('#adFootAdd').style.display='none'; $('#adFootEdit').style.display='';
-  $('#adStatus').innerHTML=added?'':'<span style="color:var(--ink-faint)">기본 제품입니다 — 분류·유형·구성·<b>매입원가</b>를 저장할 수 있습니다'+(secAllowed?' (제조사는 등록상품만)':'')+'.</span>';
+  $('#adStatus').innerHTML='<span style="color:var(--ink-faint)"><b>제품명·규격</b>을 바꾸면 이 제품의 단가·원가·분류·구성도 함께 옮겨집니다.'
+    +(added?'':' 기본 제품이라 분류·유형·구성·<b>매입원가</b>까지 저장됩니다'+(secAllowed?' (제조사는 등록상품만)':''))+'</span>';
   $('#adTitle').textContent='✏️ 제품 수정 — '+esc(p.name); $('#addSubmit').textContent='저장';
   fillTagLists(); syncAdType(); $('#addOverlay').classList.add('on'); setTimeout(()=>{ const el=$('#adType'); if(el)el.focus(); }, 50);
 }
@@ -5010,6 +5016,47 @@ function openCopyModal(p){
   $('#adStatus').innerHTML='<span style="color:var(--ink-faint)">원본을 복사했습니다. 제품명·규격을 바꿔 새로 등록하세요.</span>';
   setTimeout(()=>{ const el=$('#adName'); if(el){ el.focus(); el.select(); } },60);
 }
+/* ══ 제품명·규격 변경 ══
+   제품명|규격이 그 제품에 붙은 모든 값(업체단가·정가·직접조정·미정·고정·원가·분류·유형·구성·순서)의
+   열쇠라서, 이름만 바꾸면 값이 통째로 미아가 된다. 그래서 이름을 바꿀 때 값도 같이 옮긴다.
+   이 제품을 구성으로 쓰는 패키지의 구성 문자열도 새 이름으로 고쳐 쓴다. */
+async function renameProduct(p, newName, newSpec){
+  const nm=String(newName||'').trim(), sp=String(newSpec||'').trim()||'-';
+  if(!nm) return {err:'제품명은 필수입니다.'};
+  const oldName=p.name, oldSpec=p.spec||'';
+  if(nm===oldName && sp===oldSpec) return {ok:false};              // 바뀐 것 없음
+  const oldKey=pKey(p), newKey=`${p.cat}|${nm}|${sp}`;
+  if(P.some(x=>x!==p && !isDeletedProd(x) && pKey(x)===newKey)) return {err:'같은 제품명·규격이 이미 있습니다.'};
+  // 1) 이 제품에 붙은 값들을 새 열쇠로 옮긴다
+  const move=m=>{ if(m && (oldKey in m)){ m[newKey]=m[oldKey]; delete m[oldKey]; } };
+  [VBASE,VRETAIL,PCOST,PFIX,PKGSET,PTYPE,PCAT,PDEL,DVBASE,DRETAIL].forEach(move);
+  const movePfx=m=>{ if(!m)return; Object.keys(m).forEach(k=>{ if(k===oldKey||k.indexOf(oldKey+'|')===0){ m[newKey+k.slice(oldKey.length)]=m[k]; delete m[k]; } }); };
+  [POVR,PTODO,DPOVR,DTODO].forEach(movePfx);
+  if(Array.isArray(PORDER)){ const i=PORDER.indexOf(oldKey); if(i>=0) PORDER[i]=newKey; }
+  // 2) 이 제품을 구성으로 쓰는 패키지의 구성 문자열
+  const label=nm+((sp&&sp!=='-')?` [${sp}]`:'');
+  Object.keys(PKGSET).forEach(k=>{
+    const items=parseSetItems(PKGSET[k]); if(!items.length) return;
+    let hit=false;
+    const out=items.map(it=>{ const t=splitNameSpec(it.name);
+      if(t.name===oldName && (t.spec==='' || t.spec===oldSpec)){ hit=true; return `${label}×${it.qty}`; }
+      return `${it.name}×${it.qty}`; });
+    if(hit) PKGSET[k]=out.join(', ');
+  });
+  // 3) 화면 상태
+  p.name=nm; p.spec=sp;
+  // 4) 저장 — 등록상품은 문서 자체를, 기본 제품은 이름 변경 기록(PNAME)을 쓴다
+  if(p.docId){ await db.collection('products-added').doc(p.docId).set({name:nm,spec:sp,updatedAt:new Date().toISOString()},{merge:true});
+    const r=PADD.find(x=>x.docId===p.docId); if(r){ r.name=nm; r.spec=sp; } }
+  else { const ok0=`${p.cat}|${p.origName||oldName}|${p.origSpec!=null?p.origSpec:oldSpec}`;
+    PNAME[ok0]={name:nm,spec:sp}; await savePname(); }
+  await Promise.all([saveVendorPrices(),saveRetailPrices(),saveProdCost(),savePfix(),savePkgSet(),
+                     savePtype(),savePcat(),savePdel(),saveOverrides(),saveTodo(),savePorder()]);
+  if(draftCount()) await saveDraft();
+  persist();
+  logAct('제품명변경', `${oldName}${oldSpec&&oldSpec!=='-'?' ('+oldSpec+')':''} → ${nm}${sp&&sp!=='-'?' ('+sp+')':''}`, '값·구성 함께 이동');
+  return {ok:true};
+}
 function closeAddModal(){ AD_EDIT=null; $('#addOverlay').classList.remove('on'); }
 async function submitAddProduct(){
   const l1=($('#adL1').value||'').trim()||'POUR공법', l2=($('#adL2').value||'').trim(), l3=($('#adL3').value||'').trim();
@@ -5021,6 +5068,15 @@ async function submitAddProduct(){
   const btn=$('#addSubmit'); btn.disabled=true; const old=btn.textContent; btn.textContent='저장 중…'; $('#adStatus').textContent='';
   try{
     if(AD_EDIT){   // ── 수정 ──
+      // 제품명·규격이 바뀌었으면 먼저 옮긴다(이후 저장이 새 열쇠로 기록되도록)
+      const nName=($('#adName').value||'').trim(), nSpec=($('#adSpec').value||'').trim()||'-';
+      if(nName!==AD_EDIT.name || nSpec!==(AD_EDIT.spec||'')){
+        const from=`${AD_EDIT.name}${AD_EDIT.spec&&AD_EDIT.spec!=='-'?' ('+AD_EDIT.spec+')':''}`;
+        const to=`${nName}${nSpec!=='-'?' ('+nSpec+')':''}`;
+        if(!confirm(`제품명·규격을 바꿉니다.\n\n${from}\n  → ${to}\n\n이 제품의 업체단가·채널 단가·원가·분류·구성도 함께 옮겨집니다.`)){ btn.disabled=false; btn.textContent=old; return; }
+        const rr=await renameProduct(AD_EDIT, nName, nSpec);
+        if(rr&&rr.err){ $('#adStatus').innerHTML=`<span style="color:var(--red)">${esc(rr.err)}</span>`; btn.disabled=false; btn.textContent=old; return; }
+      }
       setPcat(AD_EDIT, l1, l2, l3); await savePcat();
       const setStr=setItemsStr();       // 구성(패키지) — 모든 제품 config 저장
       PTYPE[pKey(AD_EDIT)]=type; await savePtype();                  // 단품↔세트 전환 저장(기본 제품 포함)
@@ -5503,6 +5559,7 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('pkg-set').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PKGSET=d.data().map; }catch(e){ console.warn('[pkg-set] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-type').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PTYPE=d.data().map; }catch(e){ console.warn('[prod-type] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-deleted').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PDEL=d.data().map; }catch(e){ console.warn('[prod-deleted] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('prod-rename').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object'){ PNAME=d.data().map; console.log(`[prod-rename] 이름 변경 ${Object.keys(PNAME).length}건`); } }catch(e){ console.warn('[prod-rename] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('chan-deleted').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') CHDEL=d.data().map; }catch(e){ console.warn('[chan-deleted] 로드 실패', e.code||e); }
   await loadDraft();
   console.log(`[vendor] 업체단가 ${Object.keys(VBASE).length} · 정가override ${Object.keys(VRETAIL).length} · 분류 ${CATCFG.length}개 · 개정안 ${draftCount()}건(${DRAFT_META.status||'없음'})`);
@@ -5995,9 +6052,21 @@ function buildState(){                        // Firestore 로드본으로 앱 �
   CHORD=[];
   P=RAW.map((r,i)=>({id:i,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:{...r.pr},sup:'',mgr:'',mfg:'',added:false,
     setItems:r.setItems||'', ptype:r.ptype||'',
+    origName:r.name, origSpec:r.spec,          // 서버 원본 이름 — 이름 변경 기록(PNAME)을 찾는 열쇠
     pr0:{...r.pr}}));   // pr0 = 서버 원본 가격. 개정안 미리보기를 껐을 때 되돌릴 기준
   BASE_N=P.length;
   loadSaved();                                // localStorage 편집 오버레이 적용
+  applyRenames();                             // 바뀐 제품명·규격 반영(옛 로컬 캐시보다 우선)
+}
+/* 저장된 이름 변경을 화면 제품에 입힌다. 등록상품(products-added)은 문서 자체가 바뀌므로 제외. */
+function applyRenames(){
+  P.forEach(p=>{ if(p.docId) return;
+    const ok=`${p.cat}|${p.origName||p.name}|${p.origSpec!=null?p.origSpec:p.spec}`;
+    const nm=PNAME[ok]; if(!nm) return;
+    if(p.origName==null){ p.origName=p.name; p.origSpec=p.spec; }
+    if(nm.name) p.name=nm.name;
+    if(nm.spec!=null) p.spec=nm.spec;
+  });
 }
 
 /* ── 실시간 동기화(onSnapshot): 서버 변경을 새로고침 없이 화면에 반영 ──

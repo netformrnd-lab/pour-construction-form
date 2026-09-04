@@ -529,7 +529,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.03e</b></span>
+    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.03f</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -5104,16 +5104,32 @@ async function submitAddProduct(){
     const rUid=(typeof retailUid==='function')?retailUid():null;
     const pr={}; if(rUid && retail>0) pr[rUid]=retail;
     const cat=l2||'기타', key=`${cat}|${name}|${spec}`;
-    /* 같은 제품명·규격이 이미 있으면 등록해도 표에 새 줄이 생기지 않는다(제품명|규격이 열쇠라 한 줄로 합쳐짐).
-       예전에는 조용히 저장만 되고 화면엔 아무 변화가 없어 '복사 등록이 안 된다'로 보였고,
-       게다가 원본의 분류·유형·구성을 이 폼 값으로 덮어써 버렸다. 그래서 먼저 막는다. */
+    /* 같은 제품명·규격이 이미 있으면 새 줄이 생기지 않는다(제품명|규격이 열쇠라 한 줄로 합쳐짐).
+       예전에는 조용히 저장만 되고 화면엔 아무 변화가 없었다(=등록 안 된 것처럼 보임).
+       이제는 물어보고, '덮어쓰기'를 고르면 그 제품을 이 창의 값으로 제대로 갱신한다. */
     const dup=P.find(x=>pKey(x)===key);
     if(dup){
-      $('#adStatus').innerHTML='<span style="color:var(--red)">'+(isDeletedProd(dup)
-        ? '같은 제품명·규격이 <b>휴지통</b>에 있습니다 — 복원하거나 이름·규격을 바꿔주세요.'
-        : '같은 <b>제품명·규격</b>이 이미 있습니다 — 이름이나 규격을 바꿔주세요.')+'</span>';
-      const el=$('#adName'); if(el){ el.focus(); el.select(); }
-      btn.disabled=false; btn.textContent=old; return;
+      const del=isDeletedProd(dup);
+      const line=`${name}${spec!=='-'?' ('+spec+')':''}`;
+      if(!confirm(`같은 제품명·규격이 이미 있습니다${del?' (휴지통)':''}.\n\n${line}\n\n그 제품에 덮어쓸까요?\n· 분류·유형·구성·매입원가·업체단가·정가가 이 창의 값으로 바뀝니다${del?'\n· 휴지통에서 다시 꺼냅니다':''}\n· [취소] 하면 이름·규격을 바꿔 새로 등록할 수 있습니다`)){
+        $('#adStatus').innerHTML='<span style="color:var(--red)">같은 <b>제품명·규격</b>이 이미 있습니다 — 이름이나 규격을 바꿔주세요.</span>';
+        const el=$('#adName'); if(el){ el.focus(); el.select(); }
+        btn.disabled=false; btn.textContent=old; return;
+      }
+      if(del){ delete PDEL[key]; await savePdel(); }                       // 휴지통에서 되살리기
+      PCAT[key]={l1,l2:cat,l3}; await savePcat();
+      PTYPE[key]=type; await savePtype();
+      if(type==='세트') PKGSET[key]=setItemsStr(); else if(key in PKGSET) PKGSET[key]='';
+      await savePkgSet();
+      if(type!=='세트'){ if(cost==null) delete PCOST[key]; else PCOST[key]=cost; dup.cost=cost; await saveProdCost(); }
+      if(vbase>0){ VBASE[key]=vbase; await saveVendorPrices(); }
+      if(rUid && retail>0){ VRETAIL[key]=retail; await saveRetailPrices(); }
+      if(dup.docId){ const patch={mfg,type,updatedAt:new Date().toISOString()};
+        if(type!=='세트') patch.cost=cost;
+        await db.collection('products-added').doc(dup.docId).set(patch,{merge:true}); }
+      else { if(mfg&&secAllowed) dup.mfg=mfg; recalcVendor(); refreshAll(); }
+      logAct('제품덮어쓰기', line, `유형 ${type} · 분류 ${[l1,cat,l3].filter(Boolean).join('›')}`);
+      closeAddModal(); return;
     }
     const doc={ cat,name,spec,cost,pr,mfg,concept:'',type,status:'출시',setItems:setItemsStr(),
       seq:P.length, updatedAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'' };

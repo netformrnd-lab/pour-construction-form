@@ -1479,7 +1479,7 @@ body:not(.locked) .auth-userbox{display:flex}
           <summary>📄 견적서 정보 (인쇄 양식)</summary>
           <div class="qinfo-grid">
             <div class="qinfo-sec">공급자 (우리)</div>
-            <input type="text" class="qinfo-in" id="qSupplier"  data-strat="q" placeholder="회사명" value="넷폼알앤디 (POUR스토어)">
+            <input type="text" class="qinfo-in" id="qSupplier"  data-strat="q" placeholder="회사명" value="넷폼 (POUR스토어)">
             <input type="text" class="qinfo-in" id="qBizNo"     data-strat="q" placeholder="사업자등록번호">
             <input type="text" class="qinfo-in" id="qSupTel"    data-strat="q" placeholder="연락처">
             <input type="text" class="qinfo-in" id="qSupAddr"   data-strat="q" placeholder="주소">
@@ -4370,7 +4370,7 @@ function qv(id){ var el=document.getElementById(id); return el?el.value.trim():'
 function printQuoteDoc(lines, info){
   if(!lines.length){ alert('견적 상품을 추가하세요.'); return; }
   var w=window.open('','_blank'); if(!w) return;
-  var supplier=info.supplier||'넷폼알앤디 (POUR스토어)';
+  var supplier=info.supplier||'넷폼 (POUR스토어)';
   var bizNo=info.bizNo||'', supTel=info.supTel||'', supAddr=info.supAddr||'';
   var customer=info.customer||'', contact=info.contact||'', note=info.note||'';
   var validDays=info.validDays||30;

@@ -535,7 +535,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.10</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.10</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -818,7 +818,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
         <h3>① 제조사(공급업체) ↔ 제품명 매칭 <span class="tag">매입처 관리 · 보안</span></h3>
         <div class="bd">
           <table class="grid" id="supTable" style="width:100%"></table>
-          <p class="footnote">· 업로드하신 "㈜넷폼알앤디 메인 제품 리스트"의 공급업체·담당자 정보를 제품마다 자동 매칭했습니다. 틀린 곳은 더블클릭으로 바로잡으세요.</p>
+          <p class="footnote">· 업로드하신 "㈜넷폼 메인 제품 리스트"의 공급업체·담당자 정보를 제품마다 자동 매칭했습니다. 틀린 곳은 더블클릭으로 바로잡으세요.</p>
         </div>
       </div>
       <div class="panel">
@@ -907,7 +907,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
         <div class="bd" style="border-top:1px solid var(--xl-grid)">
           <div class="formgrid">
             <div class="fld"><label>수신처</label><input id="qtTo" placeholder="예: ○○아파트 관리사무소 귀중"></div>
-            <div class="fld"><label>공급자 표기</label><input id="qtFrom" placeholder="㈜넷폼알앤디 · POUR스토어"></div>
+            <div class="fld"><label>공급자 표기</label><input id="qtFrom" placeholder="㈜넷폼 · POUR스토어"></div>
             <div class="fld"><label>담당자 · 연락처</label><input id="qtMgr" placeholder="예: 홍길동 010-0000-0000"></div>
             <div class="fld"><label>견적 유효기간</label><input id="qtValid" placeholder="30일"></div>
             <div class="fld"><label>부가세</label><select id="qtVat">
@@ -1016,7 +1016,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
         <h3>① 제조사(공급업체) 등록 <span class="tag">매입처 마스터 · 마스터 전용</span></h3>
         <div class="bd">
           <div class="formgrid" style="grid-template-columns:1fr 130px 150px 1fr auto;align-items:end">
-            <div class="fld"><label>제조사명</label><input type="text" id="mfName" placeholder="예: ㈜넷폼알앤디"></div>
+            <div class="fld"><label>제조사명</label><input type="text" id="mfName" placeholder="예: ㈜넷폼"></div>
             <div class="fld"><label>담당자</label><input type="text" id="mfMgr" placeholder="선택"></div>
             <div class="fld"><label>연락처</label><input type="text" id="mfTel" placeholder="선택"></div>
             <div class="fld"><label>메모</label><input type="text" id="mfMemo" placeholder="결제조건·비고 등"></div>
@@ -1687,7 +1687,7 @@ function applyLoaded(channels, products, config){
 let SUPPLIERS=null; /* 잠금 해제 시 복호화되어 채워짐 */
 function matchSupplier(p){
   if(!SUPPLIERS)return["",""];
-  if(p.cat==='패키지')return["㈜넷폼알앤디 (세트 구성)",""];
+  if(p.cat==='패키지')return["㈜넷폼 (세트 구성)",""];
   for(const[k,x,m]of SUPPLIERS)if(p.name.includes(k))return[x,m];
   return["",""];
 }
@@ -3189,7 +3189,7 @@ function doExcelQuote(){
   const miss=R.filter(r=>r.unit==null);
   if(miss.length){ st.innerHTML=`<span style="color:var(--red)">단가가 비어 있는 품목이 ${miss.length}건 있습니다 — 단가를 넣고 다시 시도하세요.</span>`; return; }
   const d=new Date(), ymd=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
-  const to=(QT.to||'').trim(), from=(QT.from||'').trim()||'㈜넷폼알앤디 · POUR스토어';
+  const to=(QT.to||'').trim(), from=(QT.from||'').trim()||'㈜넷폼 · POUR스토어';
   const mgr=(QT.mgr||'').trim(), valid=(QT.valid||'').trim()||'30일';
   const sup=R.reduce((a,r)=>a+r.amt,0), vat=Math.round(sup/10);
   const rows=[], merges=[], LAST='G';
@@ -5767,7 +5767,7 @@ function doExcelPriceSheet(){
   const span=(txt,style)=>{ merges.push(`A${rows.length+1}:${last}${rows.length+1}`); rows.push([{v:txt,s:style}]); };
   span(D.title+(D.secret?'   [대외비 · 내부용]':''),3);
   span(`공급가 기준: ${D.chs.map(c=>`[${c.code}] ${c.name}`).join(' · ')}${D.incRetail?' · 판매가: 자사몰 직판 정가':''}`,0);
-  span(`${D.to?('수신: '+D.to):'㈜넷폼알앤디 · POUR스토어'} · 발행일 ${D.ymd} · 총 ${D.count}개 품목`,0);
+  span(`${D.to?('수신: '+D.to):'㈜넷폼 · POUR스토어'} · 발행일 ${D.ymd} · 총 ${D.count}개 품목`,0);
   if(D.secret) span('※ 대외비 — 매입원가·제조사가 포함된 내부용 자료입니다. 외부 배포를 금합니다.',4);
   rows.push([]);
   rows.push([{v:'순번',s:1},{v:'상품명',s:1},{v:'규격',s:1},
@@ -5810,7 +5810,7 @@ function doPrintPriceSheet(){
     ${wide?'<style>@media print{@page{size:A4 landscape;margin:10mm}}#printArea table{font-size:10.5px}</style>':''}
     <div class="ps-title">${esc(title)}${D.secret?' <span style="color:#B0281A;font-size:13px;border:1.5px solid #B0281A;border-radius:4px;padding:1px 7px;vertical-align:middle">대외비 · 내부용</span>':''}</div>
     <div class="ps-sub">공급가 기준: ${psChanLine(D)}${D.incRetail?' · 판매가: 자사몰 직판 정가':''}</div>
-    <div class="ps-meta"><span>${to?('수신: '+esc(to)):'㈜넷폼알앤디 · POUR스토어'}</span><span>발행일 ${ymd} · 총 ${no}개 품목</span></div>
+    <div class="ps-meta"><span>${to?('수신: '+esc(to)):'㈜넷폼 · POUR스토어'}</span><span>발행일 ${ymd} · 총 ${no}개 품목</span></div>
     <table><thead><tr>
       <th style="width:46px">순번</th><th>상품명</th><th style="width:110px">규격</th>
       ${D.incMfg?'<th style="width:110px">제조사</th>':''}
@@ -6314,7 +6314,7 @@ function syncStickyTop(){
 }
 window.addEventListener('resize',syncStickyTop);
 function init(){
-  if(!MFG.length) MFG=[{id:mfgSeq++,name:'㈜넷폼알앤디',mgr:'',tel:'',memo:'자사 브랜드'}];
+  if(!MFG.length) MFG=[{id:mfgSeq++,name:'㈜넷폼',mgr:'',tel:'',memo:'자사 브랜드'}];
   if(!FX.length) FX=[
     {id:fxSeq++,g:'인건비',name:'(예시) 대표 급여',amt:0,cycle:'월간',memo:'금액을 수정하세요',on:true},
     {id:fxSeq++,g:'플랫폼·서비스',name:'사방넷 (통합관리)',amt:0,cycle:'월간',memo:'',on:true},

@@ -64,7 +64,7 @@ pour-construction-form/
 ### 전체 레이아웃
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  ■ 넷폼알앤디 영업관리센터              [담당자명] [로그아웃] │  ← 헤더 (56px)
+│  ■ 넷폼 영업관리센터              [담당자명] [로그아웃] │  ← 헤더 (56px)
 ├──────────────┬──────────────────────────────────────────┤
 │              │                                          │
 │  📊 대시보드   │          메인 콘텐츠 영역                  │
@@ -204,7 +204,7 @@ pour-construction-form/
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{브랜드명} — 넷폼알앤디</title>
+  <title>{브랜드명} — 넷폼</title>
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>

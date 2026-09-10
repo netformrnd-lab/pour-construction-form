@@ -55,7 +55,7 @@ input::placeholder, textarea::placeholder { color: var(--text-xs); }
 <script type="text/plain" id="pourstoreMaster">
 # PART 5. 마스터프롬프트 — POUR스토어
 
-> 넷폼알앤디(Netform R&D)의 B2C·B2B 자재 유통 브랜드.
+> 넷폼(Netform)의 B2C·B2B 자재 유통 브랜드.
 > "쉽고 오래가는 건축물 유지보수 자재의 모든 것"
 >
 > 본 문서는 POUR스토어 단독 운영(자사몰·매장·파트너사·마켓플레이스)에 필요한
@@ -841,7 +841,7 @@ input::placeholder, textarea::placeholder { color: var(--text-xs); }
 | POUR솔루션 (시공 진단) | https://www.poursolution.net | 규모 큰 시공으로 전환 |
 | POUR공법 (시방서) | https://www.pour1.net | 자재 시방·기술 근거 |
 | POUR AI (하자 진단) | https://www.pour-ai.com | 자가 진단 후 자재 추천 |
-| 넷폼알앤디 | https://www.netformrnd.com | 회사 신뢰 |
+| 넷폼 | https://www.netformrnd.com | 회사 신뢰 |
 | 그로홈 | https://www.grohome.co.kr | 인테리어 영역 분기 |
 
 ### G채널 협회·학회 (건축사 대상 광고)
@@ -948,7 +948,7 @@ input::placeholder, textarea::placeholder { color: var(--text-xs); }
 
 ---
 
-*넷폼알앤디 | POUR스토어 마스터 프롬프트 v3.0*
+*넷폼 | POUR스토어 마스터 프롬프트 v3.0*
 *상위 문서: `CLAUDE.md` (통합 마스터 프롬프트)*
 *형제 문서: `prompts/01-business-master.md`, `02-development-rules.md`, `03-file-templates.md`, `04-firestore-schema.md`*
 *KPI 기준: v6 (2026.05.21) — 목표 10억 / KR1 5억 + KR2 5억 + KR3 4모듈*
@@ -1001,7 +1001,7 @@ const USD_KRW = 1400;
 
 // 대상별 기본 페르소나(시스템 프롬프트) — 봇 생성 시 시드, 이후 자유 편집
 const PERSONA_SEED = {
-  internal: '당신은 넷폼알앤디 POUR스토어 CS대행팀의 내부 업무 어시스턴트입니다. 팀원이 업무 절차·응대 매뉴얼·상품/주문/대리점/CS 처리 방법을 물으면, 사내 매뉴얼과 아래 지식베이스를 근거로 정확하고 실무적으로 안내합니다. 친근하되 정확하게, 단계별로 설명하세요.',
+  internal: '당신은 넷폼 POUR스토어 CS대행팀의 내부 업무 어시스턴트입니다. 팀원이 업무 절차·응대 매뉴얼·상품/주문/대리점/CS 처리 방법을 물으면, 사내 매뉴얼과 아래 지식베이스를 근거로 정확하고 실무적으로 안내합니다. 친근하되 정확하게, 단계별로 설명하세요.',
   b2c: '당신은 POUR스토어 고객센터 상담원입니다. 건축물 유지보수 자재를 직접 구매·시공하려는 일반 고객을 친절하고 쉽게 안내합니다. 어려운 기술용어는 풀어서 설명하고, 고객 상황에 맞는 패키지·제품과 시공가이드를 추천합니다. 실패 없이 따라할 수 있다는 안심을 주세요.',
   b2b: '당신은 POUR스토어 B2B 상담원입니다. 대리점·시공업체·대량구매 고객을 응대하며, 패키지 구성·거래 절차·납기·세금계산서 등 실무 문의를 안내합니다. 구체적인 단가·금액은 담당자 연결로 안내하세요.',
   store: '당신은 POUR스토어 자사몰에 삽입된 문제진단·추천 봇입니다. 먼저 고객의 건물유형과 증상을 한두 가지 질문으로 파악하고, 문제의 본질 원인을 쉽게 설명한 뒤, 적합한 POUR 공법/제품을 1~2가지 추천하고 시공가이드·상담으로 연결합니다.',

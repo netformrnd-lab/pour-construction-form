@@ -888,6 +888,42 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
           <p class="footnote">· <b>POUR 마진</b> = 구간 납품가 − 매입원가 &nbsp;/&nbsp; <b>공급받는이 마진</b> = 정가 − 구간 납품가 (정가 재판매 가정).</p>
         </div>
       </div>
+
+      <!-- ── 견적서 만들기 (고객 배포용) ──
+           MOQ 구간가를 그대로 쓰되, 매입원가·POUR 마진은 절대 파일에 넣지 않는다. -->
+      <div class="panel">
+        <h3>견적서 만들기 <span class="tag">고객 배포용 · 원가·마진 미포함</span></h3>
+        <div class="bd">
+          <div class="formgrid">
+            <div class="fld" style="grid-column:span 2"><label>품목</label><select id="qtPick"></select></div>
+            <div class="fld"><label>수량 (개)</label><input type="number" id="qtQty" value="100" min="1"></div>
+            <div class="fld" style="display:flex;flex-direction:column;justify-content:flex-end">
+              <button class="tbtn primary" id="qtAdd" style="width:100%;justify-content:center">＋ 견적에 담기</button>
+            </div>
+          </div>
+          <p class="footnote" id="qtHint" style="margin-top:8px"></p>
+        </div>
+        <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="qtTable" style="width:100%"></table></div>
+        <div class="bd" style="border-top:1px solid var(--xl-grid)">
+          <div class="formgrid">
+            <div class="fld"><label>수신처</label><input id="qtTo" placeholder="예: ○○아파트 관리사무소 귀중"></div>
+            <div class="fld"><label>공급자 표기</label><input id="qtFrom" placeholder="㈜넷폼알앤디 · POUR스토어"></div>
+            <div class="fld"><label>담당자 · 연락처</label><input id="qtMgr" placeholder="예: 홍길동 010-0000-0000"></div>
+            <div class="fld"><label>견적 유효기간</label><input id="qtValid" placeholder="30일"></div>
+            <div class="fld"><label>부가세</label><select id="qtVat">
+              <option value="sep">별도 — 10% 따로 표기</option>
+              <option value="inc">포함 — 단가에 포함</option>
+              <option value="none">표기 안 함</option></select></div>
+            <div class="fld"><label>비고</label><input id="qtNote" placeholder="예: 운임 별도 · 결제조건 협의"></div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px">
+            <button class="tbtn primary" id="qtExcel">⬇ 엑셀 견적서 다운로드</button>
+            <button class="tbtn" id="qtClear">비우기</button>
+            <span class="footnote" id="qtStatus" style="margin:0"></span>
+          </div>
+          <p class="footnote">· 단가는 <b>담은 수량의 MOQ 구간가</b>가 자동으로 붙습니다. 표의 <b>수량·단가 칸은 직접 고칠 수 있고</b>, 단가를 고치면 그 줄은 <b>협의가</b>로 표시됩니다.<br>· 고객에게 주는 문서라 <b>매입원가·POUR 마진은 파일에 들어가지 않습니다.</b> 담아둔 견적은 이 브라우저에 저장돼 새로고침해도 유지됩니다.</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -3059,6 +3095,165 @@ function renderMoq(){
   $('#moqTable').innerHTML=t+'</tbody>';
 }
 ['#moqProd','#moqQty','#moqCustom'].forEach(s=>$(s).addEventListener('input',renderMoq));
+
+/* ══════════ MOQ 견적서 (고객 배포용) ══════════
+   · 단가 = 담은 수량의 MOQ 구간가(정가 ↔ 하한가 보간). 줄마다 협의가로 덮어쓸 수 있다.
+   · 파일에는 매입원가·POUR 마진을 절대 넣지 않는다 — 고객에게 그대로 건네는 문서다.
+   · 패키지(세트)도 담을 수 있다: effPrice() 가 구성 단품 합으로 정가·하한가를 만들어 준다. */
+const LS_QUOTE='pour-moq-quote-v1';
+let QT={items:[],to:'',from:'',mgr:'',valid:'',vat:'sep',note:''};
+function qtLoad(){ try{ const o=JSON.parse(localStorage.getItem(LS_QUOTE)||'null');
+  if(o&&Array.isArray(o.items)) QT=Object.assign(QT,o); }catch(e){ console.warn('[견적서] 복원 실패',e); } }
+function qtSave(){ try{ localStorage.setItem(LS_QUOTE,JSON.stringify(QT)); }catch(e){ console.warn('[견적서] 저장 실패',e); } }
+const qtProd=k=>P.find(p=>pKey(p)===k&&!isDeletedProd(p))||null;
+function qtTierOf(qty){ return MOQ_TIERS.find(t=>qty>=t.min&&qty<=t.max)||MOQ_TIERS[MOQ_TIERS.length-1]||null; }
+/* 자동 단가 — 하한가가 정가 이상(역전·동일)이면 할인 없이 정가로 둔다.
+   MOQ 표(tierPrice)와 달리 여기서 막지 않으면 '많이 살수록 비싼 견적서'가 고객에게 나간다. */
+function qtUnitAuto(p,qty){
+  const r=effPrice(p,retailUid()), d=effPrice(p,dealerUid()), t=qtTierOf(qty);
+  if(r==null||!t) return null;
+  if(d==null||d>=r) return r;
+  return Math.round((r-t.f*(r-d))/10)*10;
+}
+function qtRows(){
+  return QT.items.map((it,i)=>{
+    const p=qtProd(it.key); if(!p) return {i,gone:true,name:it.name||it.key,spec:it.spec||'',qty:it.qty};
+    const qty=Math.max(1,+it.qty||1), t=qtTierOf(qty);
+    const auto=qtUnitAuto(p,qty), custom=(it.unit==null||it.unit==='')?null:+it.unit;
+    const unit=custom!=null?custom:auto;
+    return {i,p,name:p.name,spec:p.spec||'',qty,tier:t,custom:custom!=null,
+            unit,amt:unit==null?null:unit*qty};
+  });
+}
+function qtFillPick(){
+  const sel=$('#qtPick'); if(!sel) return;
+  const list=P.filter(p=>!isDeletedProd(p));
+  if(sel.dataset.n===String(list.length)&&sel.options.length) return;   // 목록 그대로면 다시 안 그림(선택 유지)
+  sel.dataset.n=String(list.length);
+  sel.innerHTML=list.map(p=>`<option value="${esc(pKey(p))}">[${esc(p.cat)}] ${esc(p.name)}${p.spec?' · '+esc(p.spec):''}</option>`).join('');
+}
+function renderQuote(){
+  if(!$('#qtTable')) return;
+  qtFillPick();
+  ['to','from','mgr','valid','note'].forEach(k=>{ const el=$('#qt'+k[0].toUpperCase()+k.slice(1)); if(el&&el.value!==QT[k])el.value=QT[k]||''; });
+  const vs=$('#qtVat'); if(vs&&vs.value!==QT.vat)vs.value=QT.vat||'sep';
+  /* 담기 힌트: 지금 고른 품목·수량이면 단가가 얼마로 붙는지 미리 보여준다 */
+  const hp=qtProd($('#qtPick')?$('#qtPick').value:''), hq=Math.max(1,+($('#qtQty')?$('#qtQty').value:0)||1);
+  const hu=hp?qtUnitAuto(hp,hq):null, ht=qtTierOf(hq);
+  $('#qtHint').innerHTML = !hp ? ''
+    : (hu==null ? `<span style="color:var(--red)">이 품목은 정가가 없어 단가가 자동으로 붙지 않습니다 — 담은 뒤 단가를 직접 넣어 주세요.</span>`
+      : `담으면 <b>${esc(ht?ht.label:'')}</b> 구간가 <b>${wonU(hu)}</b> 이 적용됩니다.`);
+
+  const R=qtRows();
+  if(!R.length){
+    $('#qtTable').innerHTML='<tbody><tr><td style="padding:18px;text-align:center;color:var(--ink-faint)">담긴 품목이 없습니다. 위에서 품목과 수량을 골라 <b>＋ 견적에 담기</b> 를 누르세요.</td></tr></tbody>';
+  } else {
+    let t=`<thead><tr><th style="width:44px">No</th><th>품명</th><th style="width:110px">규격</th>
+      <th class="num" style="width:88px">수량</th><th style="width:110px">적용 구간</th>
+      <th class="num" style="width:110px">단가</th><th class="num" style="width:120px">금액</th><th style="width:44px"></th></tr></thead><tbody>`;
+    R.forEach(r=>{
+      if(r.gone){ t+=`<tr><td>${r.i+1}</td><td colspan="6" style="color:var(--red)">${esc(r.name)} — 삭제된 제품입니다. 견적에서 빼주세요.</td>
+        <td><button class="tbtn qt-del" data-i="${r.i}" style="padding:2px 8px">✕</button></td></tr>`; return; }
+      t+=`<tr>
+        <td>${r.i+1}</td>
+        <td>${esc(r.name)}</td>
+        <td class="dim">${esc(r.spec)}</td>
+        <td class="num"><input class="qt-qty" data-i="${r.i}" type="number" min="1" value="${r.qty}" style="width:76px;text-align:right"></td>
+        <td class="dim">${r.custom?'<span class="pill a">협의가</span>':esc(r.tier?r.tier.label:'—')}</td>
+        <td class="num"><input class="qt-unit" data-i="${r.i}" type="number" min="0" placeholder="자동" value="${r.custom?r.unit:''}" style="width:96px;text-align:right"></td>
+        <td class="num" style="font-weight:600">${r.unit==null?'<span style="color:var(--red)">단가 필요</span>':won(r.amt)}</td>
+        <td><button class="tbtn qt-del" data-i="${r.i}" style="padding:2px 8px">✕</button></td></tr>`;
+    });
+    const sup=R.reduce((a,r)=>a+(r.amt||0),0), vat=Math.round(sup/10);
+    const totLabel=QT.vat==='inc'?'합계금액 (부가세 포함)':QT.vat==='none'?'합계금액':'공급가액';
+    t+=`<tr><td colspan="5"></td><td class="num" style="font-weight:700;background:var(--xl-head)">${totLabel}</td>
+        <td class="num" style="font-weight:700;background:var(--xl-head)">${won(sup)}</td><td style="background:var(--xl-head)"></td></tr>`;
+    if(QT.vat==='sep'){
+      t+=`<tr><td colspan="5"></td><td class="num" style="background:var(--xl-head)">부가세 (10%)</td>
+          <td class="num" style="background:var(--xl-head)">${won(vat)}</td><td style="background:var(--xl-head)"></td></tr>
+        <tr><td colspan="5"></td><td class="num" style="font-weight:700;background:var(--xl-sel)">합계금액</td>
+          <td class="num" style="font-weight:700;background:var(--xl-sel)">${won(sup+vat)}</td><td style="background:var(--xl-sel)"></td></tr>`;
+    }
+    $('#qtTable').innerHTML=t+'</tbody>';
+  }
+  const bad=R.filter(r=>!r.gone&&r.unit==null).length, gone=R.filter(r=>r.gone).length;
+  $('#qtStatus').innerHTML = R.length
+    ? `${R.length}개 품목${bad?` · <span style="color:var(--red)">단가 없는 줄 ${bad}건</span>`:''}${gone?` · <span style="color:var(--red)">삭제된 제품 ${gone}건</span>`:''}`
+    : '';
+}
+/* ── 견적서 .xlsx ── 단가표 내보내기와 같은 생성기(xlsxBlob) 사용 */
+function doExcelQuote(){
+  const R=qtRows().filter(r=>!r.gone);
+  const st=$('#qtStatus');
+  if(!R.length){ st.innerHTML='<span style="color:var(--red)">견적에 담긴 품목이 없습니다.</span>'; return; }
+  const miss=R.filter(r=>r.unit==null);
+  if(miss.length){ st.innerHTML=`<span style="color:var(--red)">단가가 비어 있는 품목이 ${miss.length}건 있습니다 — 단가를 넣고 다시 시도하세요.</span>`; return; }
+  const d=new Date(), ymd=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+  const to=(QT.to||'').trim(), from=(QT.from||'').trim()||'㈜넷폼알앤디 · POUR스토어';
+  const mgr=(QT.mgr||'').trim(), valid=(QT.valid||'').trim()||'30일';
+  const sup=R.reduce((a,r)=>a+r.amt,0), vat=Math.round(sup/10);
+  const rows=[], merges=[], LAST='G';
+  const span=(txt,style)=>{ merges.push(`A${rows.length+1}:${LAST}${rows.length+1}`); rows.push([{v:txt,s:style}]); };
+  span('견 적 서',3);
+  rows.push([]);
+  rows.push([{v:'수신',s:4},{v:to||'—'},null,null,{v:'발행일',s:4},{v:ymd}]);
+  rows.push([{v:'공급자',s:4},{v:from},null,null,{v:'견적 유효기간',s:4},{v:valid}]);
+  if(mgr) rows.push([{v:'담당',s:4},{v:mgr}]);
+  rows.push([]);
+  rows.push([{v:'No',s:1},{v:'품명',s:1},{v:'규격',s:1},{v:'수량',s:1},{v:'적용 수량구간',s:1},{v:'단가',s:1},{v:'금액',s:1}]);
+  R.forEach((r,i)=>rows.push([{v:i+1,s:0},{v:r.name,s:0},{v:r.spec||'—',s:0},{v:r.qty,s:2},
+    {v:r.custom?'협의가':(r.tier?r.tier.label:'—'),s:0},{v:r.unit,s:2},{v:r.amt,s:2}]));
+  rows.push([]);
+  const tot=(lb,v,st)=>rows.push([null,null,null,null,null,{v:lb,s:st||4},{v:v,s:2}]);
+  if(QT.vat==='sep'){ tot('공급가액',sup); tot('부가세 (10%)',vat); tot('합계금액',sup+vat); }
+  else if(QT.vat==='inc'){ tot('합계금액 (부가세 포함)',sup); }
+  else { tot('합계금액',sup); }
+  rows.push([]);
+  const notes=['※ 단가는 주문 수량 구간에 따라 적용된 금액입니다. 수량이 바뀌면 단가도 달라집니다.'];
+  if(QT.vat==='sep') notes.push('※ 부가세 별도.');
+  if((QT.note||'').trim()) notes.push('※ '+QT.note.trim());
+  notes.forEach(n=>span(n,0));
+  const blob=xlsxBlob(rows,{sheet:'견적서',widths:[6,34,14,9,15,13,15],merges});
+  const clean=x=>String(x||'').replace(/[\\/:*?"<>|]/g,'').slice(0,24);
+  const fname=`견적서_${clean(to)||'POUR스토어'}_${ymd.replace(/\./g,'')}.xlsx`;
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=fname;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+  console.log(`[견적서] ${R.length}개 품목 · 합계 ${sup+ (QT.vat==='sep'?vat:0)}`);
+  st.innerHTML=`✅ 다운로드: <b>${esc(fname)}</b> — ${R.length}개 품목`;
+}
+/* ── 견적서 이벤트 ── */
+(function bindQuote(){
+  qtLoad();
+  const on=(id,ev,fn)=>{ const el=$('#'+id); if(el)el.addEventListener(ev,fn); };
+  on('qtPick','change',renderQuote);
+  on('qtQty','input',renderQuote);
+  on('qtAdd','click',()=>{
+    const key=$('#qtPick').value, p=qtProd(key);
+    if(!p){ $('#qtStatus').innerHTML='<span style="color:var(--red)">품목을 고르세요.</span>'; return; }
+    const qty=Math.max(1,+$('#qtQty').value||1);
+    const ex=QT.items.find(x=>x.key===key);
+    if(ex) ex.qty=qty; else QT.items.push({key,qty,unit:null});   // 같은 품목은 수량만 갱신
+    qtSave(); renderQuote();
+  });
+  on('qtClear','click',()=>{ if(!QT.items.length)return;
+    if(!confirm('담긴 품목을 모두 비웁니다. 계속할까요?'))return;
+    QT.items=[]; qtSave(); renderQuote(); });
+  on('qtExcel','click',doExcelQuote);
+  ['to','from','mgr','valid','note'].forEach(k=>on('qt'+k[0].toUpperCase()+k.slice(1),'input',e=>{ QT[k]=e.target.value; qtSave(); }));
+  on('qtVat','change',e=>{ QT.vat=e.target.value; qtSave(); renderQuote(); });
+  const tb=$('#qtTable');
+  if(tb){
+    tb.addEventListener('click',e=>{ const b=e.target.closest('.qt-del'); if(!b)return;
+      QT.items.splice(+b.dataset.i,1); qtSave(); renderQuote(); });
+    tb.addEventListener('change',e=>{
+      const q=e.target.closest('.qt-qty'), u=e.target.closest('.qt-unit');
+      if(q){ const it=QT.items[+q.dataset.i]; if(it){ it.qty=Math.max(1,+q.value||1); qtSave(); renderQuote(); } }
+      else if(u){ const it=QT.items[+u.dataset.i]; if(it){ it.unit=(u.value===''?null:Math.max(0,+u.value||0)); qtSave(); renderQuote(); } }
+    });
+  }
+})();
 
 /* ══════════ 손익 · 공헌이익 ══════════ */
 let plState=null, plMode='prod', PLAN=window.__PLAN||[], planSeq=window.__planSeq||0;
@@ -6104,7 +6299,7 @@ function pvToast(t){ const b=$('#pvSave'); if(b){ const o=b.textContent; b.textC
 function refreshAll(){
   recalcVendor();
   renderRibbon(); renderDash(); renderProductView(); renderGrid(); renderPricingBanner(); renderChMan(); renderVendorPanel(); renderSup(); renderMatch();
-  renderChannel(); renderMoq(); ensurePl(); renderPlInput();
+  renderChannel(); renderMoq(); renderQuote(); ensurePl(); renderPlInput();
   fillPlanChSel(); sanitizePlan(); renderPlanGrid(); renderAgg(); renderPl();
   fillRegDatalists(); renderMfg(); renderAddProd(); renderAddItem(); renderFixed(); renderCrmSync();
   renderMktAll();

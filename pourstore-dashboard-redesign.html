@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<!-- 뷰포트는 생명줄 — 없으면 모바일이 ~980px로 렌더되어 @media가 통째로 무력화된다 -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POUR스토어 대시보드 — UX 개선 시안</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{
+  /* 색은 '의미' 하나씩만 갖는다 — 현재 대시보드의 가장 큰 혼란 원인 */
+  --ok:#107C41;        /* 초록 = 정상 · 저장 · 실행 */
+  --ok-d:#0B5C30; --ok-l:#E8F3ED;
+  --warn:#B45309;      /* 주황 = 확인 필요 */
+  --warn-l:#FDF3E7;
+  --danger:#C0392B;    /* 빨강 = 되돌리기 어려운 일 */
+  --danger-l:#FBEDEB;
+  --ink:#1F2733; --ink2:#5A6572; --ink3:#98A1AC;
+  --line:#E3E7EB; --line2:#F0F2F5;
+  --paper:#FFFFFF; --canvas:#F4F6F8; --head:#F7F9FA;
+  --sel:#E8F3ED;
+  --mono:'SF Mono','D2Coding',Consolas,monospace;
+  --r:8px;
+  --navw:236px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:Pretendard,-apple-system,system-ui,sans-serif;
+  background:var(--canvas); color:var(--ink); font-size:13.5px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; font-variant-numeric:tabular-nums;
+}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none}
+.mono{font-family:var(--mono)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.dim{color:var(--ink3)}
+
+/* ══ 시안 배너 ══ */
+#proto{
+  background:#1F2733;color:#fff;padding:7px 14px;font-size:12px;display:flex;
+  gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:60
+}
+#proto b{color:#FFD79A}
+#proto .sp{margin-left:auto;color:#A9B3BE}
+
+/* ══ 레이아웃: 헤더 1층 + 좌측 네비 ══ */
+.shell{display:flex;min-height:calc(100vh - 32px)}
+
+/* ── 좌측 네비 ── */
+#nav{
+  width:var(--navw);flex:0 0 var(--navw);background:var(--paper);
+  border-right:1px solid var(--line);display:flex;flex-direction:column;
+  position:sticky;top:32px;height:calc(100vh - 32px);transition:width .18s ease,flex-basis .18s ease
+}
+body.navmini #nav{--navw:60px}
+.brand{display:flex;align-items:center;gap:9px;padding:14px 14px 10px;border-bottom:1px solid var(--line2)}
+.brand .mk{width:26px;height:26px;border-radius:6px;background:var(--ok);color:#fff;font-weight:800;
+  display:grid;place-items:center;font-size:12px;flex:0 0 26px}
+.brand .nm{font-weight:800;font-size:13.5px;white-space:nowrap;overflow:hidden}
+.brand .nm small{display:block;font-weight:500;font-size:10.5px;color:var(--ink3)}
+body.navmini .brand .nm{display:none}
+
+.navscroll{flex:1;overflow-y:auto;padding:8px 8px 14px}
+.navlbl{font-size:10.5px;font-weight:700;color:var(--ink3);padding:11px 8px 5px;letter-spacing:.02em}
+body.navmini .navlbl{text-align:center;font-size:9px;padding:9px 0 4px}
+.navitem{
+  display:flex;align-items:center;gap:10px;width:100%;padding:8px 9px;border-radius:var(--r);
+  font-size:13px;color:var(--ink2);text-align:left;white-space:nowrap
+}
+.navitem .ic{width:19px;flex:0 0 19px;text-align:center;font-size:14.5px}
+.navitem:hover{background:var(--line2);color:var(--ink)}
+.navitem.on{background:var(--sel);color:var(--ok-d);font-weight:700}
+.navitem .badge{margin-left:auto;background:var(--warn);color:#fff;font-size:10px;font-weight:700;
+  border-radius:999px;padding:1px 6px;min-width:18px;text-align:center}
+body.navmini .navitem{justify-content:center;padding:9px 0}
+body.navmini .navitem .tx,body.navmini .navitem .badge{display:none}
+.navgrp{width:100%;display:flex;align-items:center;gap:8px;padding:7px 9px;font-size:11.5px;
+  font-weight:700;color:var(--ink3);border-radius:var(--r)}
+.navgrp:hover{background:var(--line2)}
+.navgrp .ar{margin-left:auto;transition:transform .15s;font-size:10px}
+.navgrp.open .ar{transform:rotate(90deg)}
+.navsub{display:none;padding-left:4px}
+.navsub.open{display:block}
+body.navmini .navgrp{display:none}
+body.navmini .navsub{display:block!important;padding:0}
+.navfoot{border-top:1px solid var(--line2);padding:8px}
+
+/* ── 본문 ── */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{
+  background:var(--paper);border-bottom:1px solid var(--line);padding:0 16px;
+  height:52px;display:flex;align-items:center;gap:10px;position:sticky;top:32px;z-index:40
+}
+.iconbtn{width:32px;height:32px;border-radius:var(--r);display:grid;place-items:center;font-size:15px;color:var(--ink2)}
+.iconbtn:hover{background:var(--line2)}
+.topbar h1{font-size:15px;font-weight:800;letter-spacing:-.01em;white-space:nowrap}
+.topbar .sub{font-size:11.5px;color:var(--ink3);white-space:nowrap}
+.gsearch{
+  margin-left:auto;display:flex;align-items:center;gap:7px;background:var(--canvas);
+  border:1px solid var(--line);border-radius:999px;padding:6px 13px;width:260px;max-width:32vw
+}
+.gsearch input{border:none;background:none;outline:none;width:100%;font-size:12.5px}
+.alertbtn{display:flex;align-items:center;gap:6px;border:1px solid var(--warn);color:var(--warn);
+  background:var(--warn-l);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700;white-space:nowrap}
+.acct{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink2);white-space:nowrap}
+.acct .av{width:26px;height:26px;border-radius:50%;background:var(--ok);color:#fff;display:grid;
+  place-items:center;font-size:11px;font-weight:700}
+
+.body{padding:16px;flex:1}
+.screen{display:none}
+.screen.on{display:block}
+
+/* ══ 카드·패널 ══ */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:11px;margin-bottom:14px}
+.kpi{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:13px 15px}
+.kpi h4{font-size:11.5px;font-weight:600;color:var(--ink3);margin-bottom:5px}
+.kpi .v{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.kpi .f{font-size:11px;color:var(--ink3);margin-top:3px}
+.kpi.warn{border-color:#F0D2A8;background:var(--warn-l)}
+.kpi.warn .v{color:var(--warn)}
+
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);margin-bottom:14px;overflow:hidden}
+.panel>h3{font-size:12.5px;font-weight:700;padding:11px 14px;border-bottom:1px solid var(--line2);
+  display:flex;align-items:center;gap:8px}
+.panel>h3 .tag{font-size:10.5px;font-weight:700;color:var(--ok-d);background:var(--sel);border-radius:4px;padding:2px 7px}
+.panel .bd{padding:14px}
+.note{font-size:11.5px;color:var(--ink3);line-height:1.65}
+
+/* ══ 버튼: 위계를 눈으로 구분 ══ */
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--paper);
+  border-radius:var(--r);padding:7px 12px;font-size:12.5px;font-weight:600;color:var(--ink2);white-space:nowrap}
+.btn:hover{border-color:var(--ink3);color:var(--ink)}
+.btn.pri{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.pri:hover{background:var(--ok-d)}
+.btn.danger{color:var(--danger);border-color:#EDC4BF}
+.btn.danger:hover{background:var(--danger-l)}
+.btn.sm{padding:4px 9px;font-size:11.5px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ══ 툴바: [보기] | [작업] | [⋯] 세 덩어리 ══ */
+.toolbar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+.tgroup{display:flex;align-items:center;gap:7px}
+.tgroup+.tgroup{padding-left:9px;border-left:1px solid var(--line)}
+.tgroup.right{margin-left:auto;border-left:none;padding-left:0}
+.field{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:var(--r);
+  padding:5px 10px;background:var(--paper)}
+.field input,.field select{border:none;outline:none;background:none;font-size:12.5px;min-width:90px}
+.switch{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink2);cursor:pointer;user-select:none}
+.switch input{display:none}
+.switch .tr{width:32px;height:18px;border-radius:999px;background:#D3D9DF;position:relative;transition:.15s;flex:0 0 32px}
+.switch .tr::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+  background:#fff;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch input:checked+.tr{background:var(--ok)}
+.switch input:checked+.tr::after{transform:translateX(14px)}
+
+/* 더보기 메뉴 — 위험한 작업은 전부 여기 안으로 */
+.more{position:relative}
+.menu{position:absolute;right:0;top:calc(100% + 6px);background:var(--paper);border:1px solid var(--line);
+  border-radius:10px;box-shadow:0 12px 32px rgba(20,28,38,.16);padding:6px;min-width:228px;z-index:50;display:none}
+.menu.on{display:block}
+.menu .mlbl{font-size:10.5px;font-weight:700;color:var(--ink3);padding:7px 10px 4px}
+.menu button{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border-radius:6px;
+  font-size:12.5px;color:var(--ink2);text-align:left}
+.menu button:hover{background:var(--line2);color:var(--ink)}
+.menu .sep{height:1px;background:var(--line2);margin:5px 2px}
+.menu button.danger{color:var(--danger)}
+.menu button.danger:hover{background:var(--danger-l)}
+
+/* ══ 표 ══ */
+.tblwrap{overflow-x:auto}
+table.grid{border-collapse:separate;border-spacing:0;width:100%;min-width:820px;font-size:12.5px}
+table.grid th,table.grid td{padding:8px 10px;border-bottom:1px solid var(--line2);white-space:nowrap}
+table.grid thead th{background:var(--head);font-size:11.5px;font-weight:700;color:var(--ink2);
+  position:sticky;top:0;z-index:2;border-bottom:1px solid var(--line);text-align:left}
+table.grid thead th.num,table.grid td.num{text-align:right}
+table.grid tbody tr:hover td{background:#FAFCFB}
+table.grid .pname{font-weight:600}
+table.grid .spec{color:var(--ink3);font-size:11.5px}
+/* 열 머리글은 코드 하나만 — KR2·P3 이중 표기가 매번 해독 부담을 준다 */
+th .code{display:block;font-family:var(--mono);font-size:10px;color:var(--warn);font-weight:700}
+/* 마진은 숫자를 또 찍는 대신 셀 배경 농도로 */
+td.m1{background:#F4FAF6} td.m2{background:#E9F5EE} td.m3{background:#DDF0E5}
+td .mr{display:block;font-size:10.5px;color:var(--ok-d);font-weight:600;margin-top:1px}
+body:not(.showmargin) td .mr{display:none}
+/* 첫 열(제품명) 고정 — 가로로 밀어도 '지금 어느 줄인지'를 놓치지 않는다. 좁은 화면에서 특히 중요 */
+table.freeze1 th:first-child,table.freeze1 td:first-child{
+  position:sticky;left:0;background:var(--paper);z-index:1;border-right:1px solid var(--line)}
+table.freeze1 thead th:first-child{background:var(--head);z-index:3}
+table.freeze1 tbody tr:hover td:first-child{background:#FAFCFB}
+/* 문제 있는 칸은 표에서 바로 보이게 — 경영요약까지 갔다 오지 않도록 */
+.flag{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-left:5px;
+  vertical-align:middle;cursor:help}
+tr.hasflag td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+
+/* ══ 변경사항 바 — 저장 전에 '무엇이 바뀌었는지'를 항상 보여준다 ══ */
+#dirty{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(120%);
+  background:#1F2733;color:#fff;border-radius:999px;padding:9px 10px 9px 18px;display:flex;align-items:center;
+  gap:12px;box-shadow:0 12px 36px rgba(20,28,38,.3);z-index:70;transition:transform .22s ease;font-size:12.5px}
+#dirty.on{transform:translateX(-50%) translateY(0)}
+#dirty b{color:#FFD79A}
+
+/* ══ 토스트: 삭제는 항상 '실행취소'와 함께 ══ */
+#toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%) translateY(20px);opacity:0;
+  background:#1F2733;color:#fff;border-radius:10px;padding:11px 12px 11px 16px;display:flex;align-items:center;
+  gap:14px;box-shadow:0 12px 36px rgba(20,28,38,.3);z-index:80;transition:.2s;font-size:12.5px;pointer-events:none}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+#toast button{color:#8FE0B0;font-weight:700;font-size:12.5px}
+
+/* ══ 모달 ══ */
+.ov{position:fixed;inset:0;background:rgba(20,28,38,.5);z-index:90;display:none;align-items:center;justify-content:center;padding:16px}
+.ov.on{display:flex}
+.modal{background:var(--paper);border-radius:14px;width:min(460px,100%);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.modal h3{padding:15px 18px;font-size:14.5px;font-weight:800;border-bottom:1px solid var(--line2)}
+.modal .mb{padding:16px 18px}
+.modal .mf{padding:12px 18px;border-top:1px solid var(--line2);display:flex;gap:8px;justify-content:flex-end}
+.warnbox{background:var(--danger-l);border:1px solid #EDC4BF;border-radius:var(--r);padding:11px 13px;
+  font-size:12.5px;color:#8A2B1E;line-height:1.6}
+.modal input[type=text]{width:100%;border:1px solid var(--line);border-radius:var(--r);padding:9px 11px;
+  font-size:13px;margin-top:10px;outline:none}
+.modal input[type=text]:focus{border-color:var(--ok);outline:2px solid var(--sel);outline-offset:-1px}
+
+/* ══ 안내 스텝 ══ */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.step{border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--paper)}
+.step .n{width:20px;height:20px;border-radius:50%;background:var(--sel);color:var(--ok-d);font-size:11px;
+  font-weight:800;display:grid;place-items:center;margin-bottom:7px}
+.step h5{font-size:12.5px;font-weight:700;margin-bottom:3px}
+.step p{font-size:11.5px;color:var(--ink3);line-height:1.6}
+
+.alertrow{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line2);font-size:12.5px}
+.alertrow:last-child{border-bottom:none}
+.alertrow .pill{flex:0 0 auto;font-size:10.5px;font-weight:700;border-radius:4px;padding:2px 7px;
+  background:var(--warn-l);color:var(--warn)}
+.alertrow .go{margin-left:auto;color:var(--ok-d);font-weight:700;font-size:11.5px;white-space:nowrap}
+
+#scrim{position:fixed;inset:0;background:rgba(20,28,38,.45);z-index:44;display:none}
+
+/* ══ 모바일 ══ */
+@media(max-width:900px){
+  .gsearch{width:180px}
+}
+@media(max-width:760px){
+  body{font-size:13px}
+  /* 네비는 드로어로 — PC 가로 메뉴를 그대로 두지 않는다 */
+  #nav{position:fixed;left:0;top:0;height:100vh;z-index:45;transform:translateX(-100%);
+    transition:transform .2s ease;box-shadow:0 0 40px rgba(0,0,0,.18);--navw:250px}
+  body.drawer #nav{transform:translateX(0)}
+  body.drawer #scrim{display:block}
+  body.navmini #nav{--navw:250px}
+  body.navmini .brand .nm,body.navmini .navitem .tx,body.navmini .navitem .badge{display:block}
+  body.navmini .navgrp{display:flex}
+  body.navmini .navitem{justify-content:flex-start;padding:8px 9px}
+  .topbar{padding:0 11px;gap:7px}
+  .topbar h1{font-size:14px}
+  .topbar .sub,.acct span{display:none}
+  .gsearch{width:auto;flex:1;min-width:0;max-width:none}
+  .body{padding:11px}
+  .toolbar{padding:9px 11px;gap:7px}
+  .tgroup+.tgroup{padding-left:0;border-left:none}
+  .tgroup.right{margin-left:0;width:100%}
+  .field input,.field select{min-width:0;width:100%}
+  .tgroup:first-child{width:100%}
+  .tgroup:first-child .field{flex:1}
+  #dirty{left:11px;right:11px;transform:translateY(120%);border-radius:12px}
+  #dirty.on{transform:translateY(0)}
+  #toast{left:11px;right:11px;transform:translateY(20px)}
+  #toast.on{transform:translateY(0)}
+}
+</style>
+</head>
+<body class="showmargin">
+
+<div id="proto">
+  <b>개선 시안</b> · 샘플 숫자 · <b>실제 데이터에 연결되어 있지 않습니다</b> (Firebase 연결 없음 — 여기서 무엇을 눌러도 실제 값은 바뀌지 않습니다)
+  <span class="sp">현재 대시보드는 그대로 운영 중</span>
+</div>
+
+<div id="scrim"></div>
+
+<div class="shell">
+  <!-- ══ 좌측 네비 ══ -->
+  <aside id="nav">
+    <div class="brand">
+      <div class="mk">P</div>
+      <div class="nm">POUR스토어<small>㈜넷폼 가격·마진</small></div>
+    </div>
+    <div class="navscroll">
+      <div class="navlbl">자주 쓰는 화면</div>
+      <button class="navitem on" data-sc="dash"><span class="ic">📊</span><span class="tx">경영요약</span></button>
+      <button class="navitem" data-sc="price"><span class="ic">📋</span><span class="tx">가격정책표</span><span class="badge">6</span></button>
+      <button class="navitem" data-sc="moq"><span class="ic">🧾</span><span class="tx">MOQ · 견적서</span></button>
+      <button class="navitem" data-sc="trash"><span class="ic">🗑</span><span class="tx">휴지통 · 이력</span></button>
+
+      <div class="navlbl">전체 화면</div>
+      <button class="navgrp" data-g="g1"><span>💰 가격 · 채널</span><span class="ar">›</span></button>
+      <div class="navsub" id="g1">
+        <button class="navitem" data-sc="price"><span class="ic">·</span><span class="tx">가격정책표</span></button>
+        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">채널 관리</span></button>
+        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">채널 수익분석</span></button>
+        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">상품 기준</span></button>
+      </div>
+      <button class="navgrp" data-g="g2"><span>📦 제품 · 매입</span><span class="ar">›</span></button>
+      <div class="navsub" id="g2">
+        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">제품 등록</span></button>
+        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">제품 매칭 🔒</span></button>
+        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">CRM 연동</span></button>
+      </div>
+      <button class="navgrp" data-g="g3"><span>📈 판매 · 손익</span><span class="ar">›</span></button>
+      <div class="navsub" id="g3">
+        <button class="navitem" data-sc="moq"><span class="ic">·</span><span class="tx">MOQ · 견적서</span></button>
+        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">손익 · 공헌이익</span></button>
+        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">고정지출</span></button>
+      </div>
+      <button class="navgrp" data-g="g4"><span>📣 마케팅</span><span class="ar">›</span></button>
+      <div class="navsub" id="g4">
+        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">마케팅 개요</span></button>
+        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">추적링크</span></button>
+        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">프로모션 성과</span></button>
+      </div>
+    </div>
+    <div class="navfoot">
+      <button class="navitem" data-sc="soon"><span class="ic">⚙️</span><span class="tx">계정 · 설정</span></button>
+    </div>
+  </aside>
+
+  <!-- ══ 본문 ══ -->
+  <div class="main">
+    <div class="topbar">
+      <button class="iconbtn" id="navToggle" title="메뉴 접기/펴기">☰</button>
+      <h1 id="scTitle">경영요약</h1>
+      <span class="sub" id="scSub">전 품목 기준 · 자동 재계산</span>
+      <div class="gsearch"><span class="dim">🔎</span><input placeholder="제품·채널 검색 (모든 화면)"></div>
+      <button class="alertbtn" data-sc="price">⚠ 점검 6건</button>
+      <div class="acct"><div class="av">송</div><span>송희</span></div>
+    </div>
+
+    <div class="body">
+
+      <!-- ── 경영요약 ── -->
+      <section class="screen on" id="sc-dash">
+        <div class="kpis">
+          <div class="kpi"><h4>정가 평균 마진율</h4><div class="v">69.7%</div><div class="f">매입원가 대비 · 단품 137개</div></div>
+          <div class="kpi"><h4>대리점 공급 평균 마진율</h4><div class="v">64.0%</div><div class="f">하한 공급가 기준</div></div>
+          <div class="kpi warn"><h4>확인이 필요한 가격</h4><div class="v">6건</div><div class="f">아래에서 바로 고칠 수 있습니다</div></div>
+          <div class="kpi"><h4>이번 주 만든 견적서</h4><div class="v">4건</div><div class="f">합계 1억 2,340만원</div></div>
+        </div>
+
+        <div class="panel">
+          <h3>지금 해야 할 일 <span class="tag">클릭하면 그 칸으로 바로 이동</span></h3>
+          <div class="bd" style="padding:4px 14px">
+            <div class="alertrow"><span class="pill">가격 역전</span><span>POUR 듀얼복합시트 1.5T (50cm*25m) — 자사몰 정가가 쿠팡가보다 낮습니다</span><span class="go">고치기 ›</span></div>
+            <div class="alertrow"><span class="pill">하한 확인</span><span>트랩100 연장시트 — 정가와 하한가가 같아 수량을 늘려도 할인이 0원입니다</span><span class="go">고치기 ›</span></div>
+            <div class="alertrow"><span class="pill">값 없음</span><span>POUR 코트재 1L·5L·10L — 대리점가가 비어 견적서에 담을 수 없습니다</span><span class="go">고치기 ›</span></div>
+            <div class="alertrow"><span class="pill">순서 뒤바뀜</span><span>POUR옥상배관방수트랩100 — 대리점가가 시공업체가보다 비쌉니다</span><span class="go">고치기 ›</span></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>이 화면에서 할 수 있는 일</h3>
+          <div class="bd">
+            <div class="steps">
+              <div class="step"><div class="n">1</div><h5>가격을 고친다</h5><p>가격정책표에서 칸을 눌러 바로 입력. 저장 전까지는 언제든 되돌릴 수 있습니다.</p></div>
+              <div class="step"><div class="n">2</div><h5>견적서를 만든다</h5><p>MOQ·견적서에서 품목과 수량만 담으면 단가·합계가 자동으로 붙습니다.</p></div>
+              <div class="step"><div class="n">3</div><h5>실수를 되돌린다</h5><p>지운 것은 모두 휴지통에 남습니다. 영구삭제 버튼은 없습니다.</p></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── 가격정책표 ── -->
+      <section class="screen" id="sc-price">
+        <div class="panel">
+          <div class="toolbar">
+            <!-- [보기] 매일 쓰는 것만 밖에 -->
+            <div class="tgroup">
+              <div class="field"><span class="dim">🔎</span><input id="q" placeholder="제품명 검색"></div>
+              <div class="field"><select id="cat"><option>전체 분류</option><option>수용성 도료</option><option>유성 도료</option><option>보강시트</option><option>파우더</option></select></div>
+              <label class="switch"><input type="checkbox" id="mgToggle" checked><span class="tr"></span>마진율 함께 보기</label>
+            </div>
+            <!-- [작업] -->
+            <div class="tgroup right">
+              <button class="btn" id="btnAdd">＋ 제품</button>
+              <button class="btn pri" id="btnSave" disabled>저장</button>
+              <div class="more">
+                <button class="btn" id="btnMore" title="그 밖의 기능">⋯</button>
+                <div class="menu" id="moreMenu">
+                  <div class="mlbl">내보내기</div>
+                  <button>🖨 단가표 PDF</button>
+                  <button>⬇ 엑셀 내보내기</button>
+                  <button>⬇ CSV 내보내기</button>
+                  <div class="sep"></div>
+                  <div class="mlbl">불러오기 · 일괄</div>
+                  <button>📄 파일로 업체단가 입력</button>
+                  <button>📌 일괄 고정</button>
+                  <button>⚙️ 일괄 자동계산</button>
+                  <button>＋ 채널 추가</button>
+                  <div class="sep"></div>
+                  <div class="mlbl">되돌리기 어려운 작업</div>
+                  <button class="danger" id="btnReset">↺ 원본으로 되돌리기…</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tblwrap">
+            <table class="grid freeze1" id="ptable">
+              <thead><tr>
+                <th style="min-width:210px">제품</th>
+                <th class="num">매입원가</th>
+                <th class="num">대리점<span class="code">P3</span></th>
+                <th class="num">시공업체<span class="code">P4</span></th>
+                <th class="num">온라인 도매<span class="code">P6</span></th>
+                <th class="num">쿠팡<span class="code">P8</span></th>
+                <th class="num">자사몰 정가<span class="code">OWN</span></th>
+                <th style="width:40px"></th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="bd" style="border-top:1px solid var(--line2)">
+            <p class="note">· 칸을 눌러 바로 고칠 수 있습니다. <b>저장을 누르기 전까지는 아무것도 반영되지 않고</b>, 아래 막대에서 한 번에 되돌릴 수 있습니다.<br>
+            · <span class="flag" style="cursor:default"></span> 표시가 있는 줄은 확인이 필요한 값입니다 — 마우스를 올리면 이유가 나옵니다.<br>
+            · 제품을 지우면 <b>휴지통으로 갑니다.</b> 영구삭제 버튼은 어디에도 없습니다.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── MOQ · 견적서 ── -->
+      <section class="screen" id="sc-moq">
+        <div class="panel">
+          <h3>수량을 넣으면 단가가 나옵니다 <span class="tag">1단계</span></h3>
+          <div class="bd">
+            <div class="toolbar" style="padding:0;border:none">
+              <div class="tgroup">
+                <div class="field"><select id="mProd"></select></div>
+                <div class="field"><input type="number" id="mQty" value="600" style="width:90px"> <span class="dim">개</span></div>
+              </div>
+              <div class="tgroup right"><button class="btn pri" id="mAdd">＋ 견적에 담기</button></div>
+            </div>
+            <p class="note" id="mHint" style="margin-top:10px"></p>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>견적서 <span class="tag">2단계 · 고객에게 그대로 보내는 문서</span></h3>
+          <div class="tblwrap">
+            <table class="grid freeze1" id="qtable" style="min-width:660px">
+              <thead><tr><th style="width:40px">No</th><th>품명</th><th class="num">수량</th><th>적용 구간</th><th class="num">단가</th><th class="num">금액</th><th style="width:40px"></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="bd" style="border-top:1px solid var(--line2)">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <button class="btn pri">⬇ 엑셀 견적서</button>
+              <button class="btn">🖨 PDF</button>
+              <span class="note" style="margin-left:auto">매입원가·마진은 파일에 들어가지 않습니다 🔒</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── 휴지통 ── -->
+      <section class="screen" id="sc-trash">
+        <div class="panel">
+          <h3>휴지통 <span class="tag">지운 것은 여기 남습니다</span></h3>
+          <div class="bd" style="padding:0 14px">
+            <table class="grid" id="ttable" style="min-width:520px">
+              <thead><tr><th>이름</th><th>지운 날짜</th><th>지운 사람</th><th style="width:80px"></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="bd" style="border-top:1px solid var(--line2)">
+            <p class="note">· 휴지통에는 <b>비우기 버튼이 없습니다.</b> 실수로 지운 것이 사라질 길 자체를 없앴습니다.<br>
+            · 지금 대시보드에는 <b>바로 영구삭제되는 곳이 4군데</b> 있습니다 (앱에서 등록한 상품, 추적링크, 프로모션, "원본 복원"). 이것들도 전부 휴지통을 거치게 바꿉니다.</p>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>변경 이력</h3>
+          <div class="bd" style="padding:4px 14px">
+            <div class="alertrow"><span class="pill" style="background:var(--sel);color:var(--ok-d)">가격</span><span>POUR 코트재Ⅰ(회색) 자사몰 정가 177,500 → 179,000</span><span class="go dim">오늘 14:22 · 송희</span></div>
+            <div class="alertrow"><span class="pill" style="background:var(--sel);color:var(--ok-d)">복원</span><span>POUR 에어쉘시트 휴지통에서 되살림</span><span class="go dim">어제 17:05 · 송희</span></div>
+            <div class="alertrow"><span class="pill" style="background:var(--sel);color:var(--ok-d)">견적</span><span>○○아파트 관리사무소 견적서 발행 (3품목)</span><span class="go dim">어제 11:40 · 송희</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── 준비중 ── -->
+      <section class="screen" id="sc-soon">
+        <div class="panel"><div class="bd" style="padding:44px;text-align:center">
+          <div style="font-size:30px;margin-bottom:8px">🧩</div>
+          <div style="font-weight:700;margin-bottom:5px">이 화면은 시안에 아직 안 그렸습니다</div>
+          <p class="note">지금은 <b>경영요약 · 가격정책표 · MOQ/견적서 · 휴지통</b> 네 화면으로 구조와 느낌을 확인하는 단계입니다.</p>
+        </div></div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- 변경사항 바 -->
+<div id="dirty">
+  <span>저장하지 않은 변경 <b id="dirtyN">0</b>건</span>
+  <button class="btn sm" id="undoAll" style="background:#39424E;border-color:#4A5560;color:#fff">되돌리기</button>
+  <button class="btn sm pri" id="saveNow">저장</button>
+</div>
+
+<!-- 토스트 -->
+<div id="toast"><span id="toastMsg"></span><button id="toastUndo">실행취소</button></div>
+
+<!-- 원본 복원 확인 -->
+<div class="ov" id="resetOv">
+  <div class="modal">
+    <h3>원본으로 되돌리기</h3>
+    <div class="mb">
+      <div class="warnbox">
+        직접 입력한 <b>매입원가·제조사·채널 설정</b>이 모두 사라지고 서버 원본으로 돌아갑니다.<br>
+        이 작업은 <b>되돌릴 수 없습니다.</b>
+      </div>
+      <p class="note" style="margin-top:11px">계속하려면 아래에 <b>되돌리기</b> 라고 입력하세요.</p>
+      <input type="text" id="resetWord" placeholder="되돌리기" autocomplete="off">
+    </div>
+    <div class="mf">
+      <button class="btn" id="resetCancel">취소</button>
+      <button class="btn danger" id="resetGo" disabled>되돌리기 실행</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   시안 전용 스크립트 — Firebase 연결 없음. 아래 숫자는 전부 샘플.
+   localStorage 키도 'pour-proto-' 로 분리해 실제 앱과 절대 섞이지 않는다.
+   ══════════════════════════════════════════════════════════ */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const won=v=>v==null?'—':Math.round(v).toLocaleString('ko-KR');
+
+/* ── 샘플 데이터 (실제 원가·공급가 아님) ── */
+const ROWS=[
+ {n:'POUR 코트재Ⅰ(회색)',s:'20kg/통',cost:52000,p3:144400,p4:147300,p6:159800,p8:168700,own:177500},
+ {n:'POUR 상도코트재(회색)',s:'20kg/통',cost:60000,p3:172300,p4:174000,p6:179200,p8:183700,own:187500,
+  flag:'정가와 대리점가 차이가 8%뿐 — 대량 할인 여지가 거의 없습니다'},
+ {n:'POUR 탄성강화 파우더(측구)',s:'20kg/포',cost:7000,p3:32300,p4:33000,p6:38900,p8:44300,own:48000},
+ {n:'POUR 듀얼복합시트 1.5T',s:'50cm*25m',cost:70000,p3:154700,p4:156000,p6:160800,p8:165700,own:165600,
+  flag:'자사몰 정가가 쿠팡가보다 낮습니다 · 가격 역전'},
+ {n:'POUR써밋우레탄 하도',s:'17kg/통',cost:59500,p3:88000,p4:88200,p6:89700,p8:91000,own:91400,
+  flag:'정가와 대리점가 차이가 3.7%뿐 — 대량 할인 여지가 거의 없습니다'},
+ {n:'POUR 슈퍼복합압축시트 0.3T',s:'30cm*100m',cost:31000,p3:70300,p4:71600,p6:77000,p8:81500,own:84300},
+ {n:'트랩100 연장시트',s:'-',cost:1070,p3:3200,p4:3200,p6:3200,p8:3200,own:3200,
+  flag:'정가와 하한가가 같아 수량을 늘려도 할인이 0원입니다'},
+ {n:'POUR 코트재 1L (회색)',s:'1kg/통',cost:3000,p3:null,p4:null,p6:22800,p8:25000,own:26300,
+  flag:'대리점가가 비어 있어 견적서에 담을 수 없습니다'},
+];
+const TIERS=[{l:'1~9개',f:0,min:1,max:9},{l:'10~50개',f:.25,min:10,max:50},{l:'51~80개',f:.45,min:51,max:80},
+ {l:'81~150개',f:.65,min:81,max:150},{l:'151~300개',f:.85,min:151,max:300},{l:'301개 이상',f:1,min:301,max:1e9}];
+let TRASH=[{n:'POUR 에어쉘시트 · 1m*100m',at:'2026.09.09 17:05',by:'송희'}];
+let dirty=0, lastDeleted=null, toastT=null, UNDO=[];   // UNDO: 저장 전 편집분(원복용)
+
+/* ── 화면 전환 ── */
+const TITLES={dash:['경영요약','전 품목 기준 · 자동 재계산'],price:['가격정책표','채널별 공급가 · 정가'],
+ moq:['MOQ · 견적서','수량 구간 단가로 견적서 만들기'],trash:['휴지통 · 이력','지운 것 되살리기'],soon:['준비중','']};
+function go(sc){
+  $$('.screen').forEach(x=>x.classList.toggle('on',x.id==='sc-'+sc));
+  $$('.navitem').forEach(b=>b.classList.toggle('on',b.dataset.sc===sc));
+  const t=TITLES[sc]||TITLES.soon; $('#scTitle').textContent=t[0]; $('#scSub').textContent=t[1];
+  document.body.classList.remove('drawer');
+  window.scrollTo(0,0);
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-sc]'); if(b){ go(b.dataset.sc); return; }
+  const g=e.target.closest('.navgrp');
+  if(g){ g.classList.toggle('open'); $('#'+g.dataset.g).classList.toggle('open'); return; }
+  if(!e.target.closest('.more')) $('#moreMenu').classList.remove('on');
+});
+$('#navToggle').addEventListener('click',()=>{
+  if(window.matchMedia('(max-width:760px)').matches) document.body.classList.toggle('drawer');
+  else document.body.classList.toggle('navmini');
+});
+$('#scrim').addEventListener('click',()=>document.body.classList.remove('drawer'));
+$('#btnMore').addEventListener('click',()=>$('#moreMenu').classList.toggle('on'));
+
+/* ── 가격정책표 ── */
+function mcls(v,cost){ if(v==null||!cost)return''; const r=(v-cost)/v; return r>=.7?'m3':r>=.5?'m2':'m1'; }
+function cell(v,cost,ri,key){
+  const a=`data-edit data-r="${ri}" data-k="${key}"`;
+  if(v==null) return `<td class="num dim" ${a}>—</td>`;
+  const r=cost?Math.round((v-cost)/v*1000)/10:null;
+  return `<td class="num ${mcls(v,cost)}" ${a}>${won(v)}${r!=null?`<span class="mr">${r}%</span>`:''}</td>`;
+}
+function renderPrice(){
+  const q=($('#q').value||'').trim();
+  const tb=$('#ptable tbody'); tb.innerHTML='';
+  ROWS.filter(r=>!r.gone && (!q || r.n.includes(q))).forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    if(r.flag) tr.className='hasflag';
+    tr.innerHTML=`<td><span class="pname">${r.n}</span>${r.flag?`<span class="flag" title="${r.flag}"></span>`:''}
+        <div class="spec">${r.s}</div></td>
+      <td class="num dim">${won(r.cost)}</td>
+      ${['p3','p4','p6','p8','own'].map(k=>cell(r[k],r.cost,ROWS.indexOf(r),k)).join('')}
+      <td><button class="btn sm" data-del="${ROWS.indexOf(r)}" title="휴지통으로 보내기">🗑</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+$('#q').addEventListener('input',renderPrice);
+$('#mgToggle').addEventListener('change',e=>document.body.classList.toggle('showmargin',e.target.checked));
+
+/* 칸 편집 — 저장 전까지는 아무것도 확정되지 않는다 */
+$('#ptable').addEventListener('click',e=>{
+  const del=e.target.closest('[data-del]');
+  if(del){ softDelete(+del.dataset.del); return; }
+  const td=e.target.closest('td[data-edit]'); if(!td||td.querySelector('input'))return;
+  const ri=+td.dataset.r, key=td.dataset.k, before=ROWS[ri][key];
+  const cur=before==null?'':before;
+  td.innerHTML=`<input value="${cur}" style="width:88px;text-align:right;border:1px solid var(--ok);border-radius:6px;padding:4px 7px;outline:none">`;
+  const inp=td.querySelector('input'); inp.focus(); inp.select();
+  let closed=false;
+  const done=()=>{
+    if(closed)return; closed=true;
+    const v=inp.value===''?null:(+inp.value||0);
+    if(v!==before){ ROWS[ri][key]=v; UNDO.push({ri,key,before}); bump(); }
+    renderPrice();                       // 마진율·색 농도까지 같이 다시 계산
+  };
+  inp.addEventListener('blur',done);
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ done(); } if(ev.key==='Escape'){ closed=true; renderPrice(); } });
+});
+function bump(){ dirty++; $('#dirtyN').textContent=dirty; $('#dirty').classList.add('on'); $('#btnSave').disabled=false; }
+function clearDirty(){ dirty=0; $('#dirty').classList.remove('on'); $('#btnSave').disabled=true; }
+$('#undoAll').addEventListener('click',()=>{
+  while(UNDO.length){ const u=UNDO.pop(); ROWS[u.ri][u.key]=u.before; }   // 편집 전 값으로 정확히 원복
+  renderPrice(); clearDirty(); toast('되돌렸습니다 — 저장 전이라 원래 값 그대로입니다',false);
+});
+$('#saveNow').addEventListener('click',save);
+$('#btnSave').addEventListener('click',save);
+function save(){ UNDO=[]; clearDirty(); toast('저장했습니다 · 변경 이력에 남았습니다',false); }
+
+/* ── 삭제는 언제나 휴지통 + 실행취소 ── */
+function softDelete(i){
+  const r=ROWS[i]; r.gone=true;
+  const d=new Date(), ts=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  TRASH.unshift({n:r.n+' · '+r.s,at:ts,by:'송희',i});
+  lastDeleted=i; renderPrice(); renderTrash();
+  toast(`"${r.n}" 을(를) 휴지통으로 보냈습니다`,true);
+}
+function toast(msg,undo){
+  $('#toastMsg').textContent=msg; $('#toastUndo').style.display=undo?'':'none';
+  $('#toast').classList.add('on'); clearTimeout(toastT);
+  toastT=setTimeout(()=>$('#toast').classList.remove('on'),5000);
+}
+$('#toastUndo').addEventListener('click',()=>{
+  if(lastDeleted==null)return;
+  ROWS[lastDeleted].gone=false; TRASH=TRASH.filter(t=>t.i!==lastDeleted);
+  lastDeleted=null; renderPrice(); renderTrash(); $('#toast').classList.remove('on');
+});
+function renderTrash(){
+  $('#ttable tbody').innerHTML = TRASH.length
+    ? TRASH.map((t,k)=>`<tr><td class="pname">${t.n}</td><td class="dim">${t.at}</td><td class="dim">${t.by}</td>
+        <td><button class="btn sm" data-res="${k}">되살리기</button></td></tr>`).join('')
+    : `<tr><td colspan="4" style="padding:22px;text-align:center;color:var(--ink3)">휴지통이 비어 있습니다</td></tr>`;
+}
+$('#ttable').addEventListener('click',e=>{
+  const b=e.target.closest('[data-res]'); if(!b)return;
+  const t=TRASH[+b.dataset.res];
+  if(t.i!=null) ROWS[t.i].gone=false;
+  TRASH.splice(+b.dataset.res,1); renderPrice(); renderTrash();
+  toast(`"${t.n}" 을(를) 되살렸습니다`,false);
+});
+
+/* ── 되돌리기 어려운 작업은 '단어 입력' 한 단계를 더 둔다 ── */
+$('#btnReset').addEventListener('click',()=>{ $('#moreMenu').classList.remove('on'); $('#resetWord').value='';
+  $('#resetGo').disabled=true; $('#resetOv').classList.add('on'); });
+$('#resetCancel').addEventListener('click',()=>$('#resetOv').classList.remove('on'));
+$('#resetOv').addEventListener('click',e=>{ if(e.target===$('#resetOv'))$('#resetOv').classList.remove('on'); });
+$('#resetWord').addEventListener('input',e=>{ $('#resetGo').disabled = e.target.value.trim()!=='되돌리기'; });
+$('#resetGo').addEventListener('click',()=>{ $('#resetOv').classList.remove('on'); toast('시안이라 실제로는 아무것도 지우지 않았습니다',false); });
+
+/* ── MOQ · 견적서 ── */
+let QT=[];
+function tierOf(q){ return TIERS.find(t=>q>=t.min&&q<=t.max)||TIERS[TIERS.length-1]; }
+function unitOf(r,q){
+  if(r.own==null) return null;
+  if(r.p3==null||r.p3>=r.own) return r.own;          /* 하한이 정가 이상이면 할인 없음 — 많이 살수록 비싼 견적을 막는다 */
+  return Math.round((r.own - tierOf(q).f*(r.own-r.p3))/10)*10;
+}
+function fillProd(){
+  $('#mProd').innerHTML=ROWS.map((r,i)=>`<option value="${i}">${r.n} · ${r.s}</option>`).join('');
+}
+function hint(){
+  const r=ROWS[+$('#mProd').value], q=Math.max(1,+$('#mQty').value||1), u=unitOf(r,q);
+  $('#mHint').innerHTML = u==null
+    ? `<span style="color:var(--danger)">이 품목은 정가가 없어 단가가 자동으로 붙지 않습니다.</span>`
+    : `담으면 <b>${tierOf(q).l}</b> 구간가 <b>${won(u)}원</b> 이 적용됩니다.`;
+}
+function renderQt(){
+  const tb=$('#qtable tbody');
+  if(!QT.length){ tb.innerHTML=`<tr><td colspan="7" style="padding:22px;text-align:center;color:var(--ink3)">위에서 품목과 수량을 골라 <b>＋ 견적에 담기</b> 를 눌러보세요</td></tr>`; return; }
+  let sup=0;
+  tb.innerHTML=QT.map((it,k)=>{
+    const r=ROWS[it.i], u=unitOf(r,it.q), amt=u==null?0:u*it.q; sup+=amt;
+    return `<tr><td>${k+1}</td><td><span class="pname">${r.n}</span><div class="spec">${r.s}</div></td>
+      <td class="num">${won(it.q)}</td><td class="dim">${tierOf(it.q).l}</td>
+      <td class="num">${won(u)}</td><td class="num" style="font-weight:700">${won(amt)}</td>
+      <td><button class="btn sm" data-qdel="${k}">✕</button></td></tr>`;
+  }).join('')
+   +`<tr><td colspan="4"></td><td class="num" style="background:var(--head);font-weight:700">공급가액</td><td class="num" style="background:var(--head);font-weight:700">${won(sup)}</td><td style="background:var(--head)"></td></tr>
+     <tr><td colspan="4"></td><td class="num" style="background:var(--head)">부가세 10%</td><td class="num" style="background:var(--head)">${won(Math.round(sup/10))}</td><td style="background:var(--head)"></td></tr>
+     <tr><td colspan="4"></td><td class="num" style="background:var(--sel);font-weight:800">합계금액</td><td class="num" style="background:var(--sel);font-weight:800">${won(sup+Math.round(sup/10))}</td><td style="background:var(--sel)"></td></tr>`;
+}
+$('#mAdd').addEventListener('click',()=>{
+  const i=+$('#mProd').value, q=Math.max(1,+$('#mQty').value||1);
+  const ex=QT.find(x=>x.i===i); if(ex)ex.q=q; else QT.push({i,q});
+  renderQt(); toast('견적에 담았습니다',false);
+});
+$('#qtable').addEventListener('click',e=>{ const b=e.target.closest('[data-qdel]'); if(!b)return;
+  QT.splice(+b.dataset.qdel,1); renderQt(); });
+['#mProd','#mQty'].forEach(s=>$(s).addEventListener('input',hint));
+
+/* ── 시작 ── */
+$$('.navgrp').forEach(g=>{ if(g.dataset.g==='g1'){ g.classList.add('open'); $('#g1').classList.add('open'); } });
+fillProd(); renderPrice(); renderTrash(); renderQt(); hint();
+console.log('[시안] 샘플 데이터로만 동작합니다 · Firebase 연결 없음');
+</script>
+</body>
+</html>

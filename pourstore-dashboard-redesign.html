@@ -207,7 +207,7 @@ tr.hasflag td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 #dirty b{color:#FFD79A}
 
 /* ══ 토스트: 삭제는 항상 '실행취소'와 함께 ══ */
-#toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%) translateY(20px);opacity:0;
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);opacity:0;
   background:#1F2733;color:#fff;border-radius:10px;padding:11px 12px 11px 16px;display:flex;align-items:center;
   gap:14px;box-shadow:0 12px 36px rgba(20,28,38,.3);z-index:80;transition:.2s;font-size:12.5px;pointer-events:none}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
@@ -234,7 +234,12 @@ tr.hasflag td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 .step h5{font-size:12.5px;font-weight:700;margin-bottom:3px}
 .step p{font-size:11.5px;color:var(--ink3);line-height:1.6}
 
-.alertrow{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line2);font-size:12.5px}
+.alertrow{display:flex;gap:10px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line2);
+  font-size:12.5px;width:100%;text-align:left;border-radius:6px}
+button.alertrow:hover{background:var(--line2)}
+/* 고치러 온 줄은 잠깐 노랗게 — 247줄 중 어디로 왔는지 바로 보이게 */
+@keyframes findme{0%,60%{background:#FFF3C4}100%{background:transparent}}
+tr.findme td{animation:findme 2.4s ease-out}
 .alertrow:last-child{border-bottom:none}
 .alertrow .pill{flex:0 0 auto;font-size:10.5px;font-weight:700;border-radius:4px;padding:2px 7px;
   background:var(--warn-l);color:var(--warn)}
@@ -272,7 +277,7 @@ tr.hasflag td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
   .tgroup:first-child .field select{min-width:96px}       /* 좁은 화면에서 '전체 분류'가 물음표로 찌그러지던 문제 */
   #dirty{left:11px;right:11px;transform:translateY(120%);border-radius:12px}
   #dirty.on{transform:translateY(0)}
-  #toast{left:11px;right:11px;transform:translateY(20px)}
+  #toast{left:11px;right:11px;bottom:104px;transform:translateY(20px)}
   #toast.on{transform:translateY(0)}
 }
 </style>
@@ -357,10 +362,10 @@ tr.hasflag td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
         <div class="panel">
           <h3>지금 해야 할 일 <span class="tag">클릭하면 그 칸으로 바로 이동</span></h3>
           <div class="bd" style="padding:4px 14px">
-            <div class="alertrow"><span class="pill">가격 역전</span><span>POUR 듀얼복합시트 1.5T (50cm*25m) — 자사몰 정가가 쿠팡가보다 낮습니다</span><span class="go">고치기 ›</span></div>
-            <div class="alertrow"><span class="pill">하한 확인</span><span>트랩100 연장시트 — 정가와 하한가가 같아 수량을 늘려도 할인이 0원입니다</span><span class="go">고치기 ›</span></div>
-            <div class="alertrow"><span class="pill">값 없음</span><span>POUR 코트재 1L·5L·10L — 대리점가가 비어 견적서에 담을 수 없습니다</span><span class="go">고치기 ›</span></div>
-            <div class="alertrow"><span class="pill">순서 뒤바뀜</span><span>POUR옥상배관방수트랩100 — 대리점가가 시공업체가보다 비쌉니다</span><span class="go">고치기 ›</span></div>
+            <button class="alertrow" data-fix="POUR 듀얼복합시트"><span class="pill">가격 역전</span><span>POUR 듀얼복합시트 1.5T (50cm*25m) — 자사몰 정가가 쿠팡가보다 낮습니다</span><span class="go">고치기 ›</span></button>
+            <button class="alertrow" data-fix="트랩100 연장시트"><span class="pill">하한 확인</span><span>트랩100 연장시트 — 정가와 하한가가 같아 수량을 늘려도 할인이 0원입니다</span><span class="go">고치기 ›</span></button>
+            <button class="alertrow" data-fix="POUR 코트재 1L"><span class="pill">값 없음</span><span>POUR 코트재 1L — 대리점가가 비어 견적서에 담을 수 없습니다</span><span class="go">고치기 ›</span></button>
+            <button class="alertrow" data-fix="POUR 상도코트재"><span class="pill">하한 확인</span><span>POUR 상도코트재(회색) — 정가와 대리점가 차이가 8%뿐입니다</span><span class="go">고치기 ›</span></button>
           </div>
         </div>
 
@@ -574,6 +579,12 @@ function go(sc){
   window.scrollTo(0,0);
 }
 document.addEventListener('click',e=>{
+  const fx=e.target.closest('[data-fix]');
+  if(fx){ go('price'); $('#q').value=''; renderPrice();
+    const i=ROWS.filter(r=>!r.gone).findIndex(r=>r.n.includes(fx.dataset.fix));
+    const tr=[...document.querySelectorAll('#ptable tbody tr')][i];
+    if(tr){ tr.classList.add('findme'); tr.scrollIntoView({block:'center'}); setTimeout(()=>tr.classList.remove('findme'),2600); }
+    return; }
   const b=e.target.closest('[data-sc]'); if(b){ go(b.dataset.sc); return; }
   const g=e.target.closest('.navgrp');
   if(g){ g.classList.toggle('open'); $('#'+g.dataset.g).classList.toggle('open'); return; }
@@ -598,6 +609,12 @@ function renderPrice(){
   const q=($('#q').value||'').trim();
   const tb=$('#ptable tbody'); tb.innerHTML='';
   const shown=ROWS.filter(r=>!r.gone && (!q || r.n.includes(q))).length;
+  if(!shown){   // 빈 표만 남으면 '고장난 건가' 싶어진다 — 빠져나갈 길을 같이 준다
+    tb.innerHTML=`<tr><td colspan="8" style="padding:36px;text-align:center;color:var(--ink3)">
+      ${q?`<b>"${q}"</b> 에 맞는 제품이 없습니다`:'표시할 제품이 없습니다'}
+      ${q?'<div style="margin-top:9px"><button class="btn sm" id="qclear">검색어 지우기</button></div>':''}</td></tr>`;
+    const c=$('#qclear'); if(c) c.addEventListener('click',()=>{ $('#q').value=''; renderPrice(); $('#q').focus(); });
+  }
   const cnt=$('#pcount'); if(cnt) cnt.textContent=`${shown}개 / 전체 ${ROWS.filter(r=>!r.gone).length}개`;
   ROWS.filter(r=>!r.gone && (!q || r.n.includes(q))).forEach((r,i)=>{
     const tr=document.createElement('tr');
@@ -606,7 +623,7 @@ function renderPrice(){
         <div class="spec">${r.s}</div></td>
       <td class="num dim">${won(r.cost)}</td>
       ${['p3','p4','p6','p8','own'].map(k=>cell(r[k],r.cost,ROWS.indexOf(r),k)).join('')}
-      <td><button class="btn sm" data-del="${ROWS.indexOf(r)}" title="휴지통으로 보내기">🗑</button></td>`;
+      <td><button class="btn sm" tabindex="-1" data-del="${ROWS.indexOf(r)}" title="휴지통으로 보내기">🗑</button></td>`;
     tb.appendChild(tr);
   });
 }
@@ -622,21 +639,52 @@ $('#ptable').addEventListener('click',e=>{
   const cur=before==null?'':before;
   td.innerHTML=`<input value="${cur}" style="width:88px;text-align:right;border:1px solid var(--ok);border-radius:6px;padding:4px 7px;outline:none">`;
   const inp=td.querySelector('input'); inp.focus(); inp.select();
-  let closed=false;
+  let closed=false, move=null;
   const done=()=>{
     if(closed)return; closed=true;
-    const v=inp.value===''?null:(+inp.value||0);
-    if(v!==before){ ROWS[ri][key]=v; UNDO.push({ri,key,before}); bump(); }
+    const res=validate(inp.value);
+    if(res.msg) toast(res.msg,false);
+    if(res.v!==before){ ROWS[ri][key]=res.v; UNDO.push({ri,key,before}); bump(); }
     renderPrice();                       // 마진율·색 농도까지 같이 다시 계산
+    if(move) openCell(move);             // Tab·Enter 로 옮겨갈 칸을 바로 이어서 연다
   };
   inp.addEventListener('blur',done);
-  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ done(); } if(ev.key==='Escape'){ closed=true; renderPrice(); } });
+  inp.addEventListener('keydown',ev=>{
+    if(ev.key==='Escape'){ closed=true; renderPrice(); return; }
+    if(ev.key==='Enter'){ ev.preventDefault(); move=nextCell(td,'down'); done(); return; }
+    if(ev.key==='Tab'){ ev.preventDefault(); move=nextCell(td, ev.shiftKey?'left':'right'); done(); return; }
+  });
 });
+/* 값 검증 — 표에 들어가면 안 되는 값을 막는다.
+   직접 테스트해보니 'abc'→0원, 음수, 소수점, 12자리 숫자가 그대로 저장되고
+   마진율 칸에 -Infinity% 가 찍혔다. */
+function validate(raw){
+  const t=String(raw).trim();
+  if(t==='') return {v:null};
+  if(!/^[0-9]+(\.[0-9]+)?$/.test(t)) return {v:null, msg:'숫자만 넣을 수 있습니다 — 빈칸으로 두었습니다'};
+  const n=Math.round(+t);
+  if(n>100000000) return {v:100000000, msg:'1억원을 넘을 수 없어 1억원으로 맞췄습니다'};
+  return {v:n, msg:(+t!==n)?'원 단위로 반올림했습니다':null};
+}
+/* 다음 편집 칸 — 줄 끝이면 다음 줄 첫 칸으로 넘어간다 */
+function nextCell(td,dir){
+  const cells=[...document.querySelectorAll('#ptable td[data-edit]')];
+  const i=cells.indexOf(td); if(i<0)return null;
+  const perRow=document.querySelectorAll('#ptable thead th').length-3;   // 제품·매입원가·삭제 열 제외
+  const j = dir==='right'? i+1 : dir==='left'? i-1 : i+perRow;
+  return (j>=0&&j<cells.length) ? {r:cells[j].dataset.r, k:cells[j].dataset.k} : null;
+}
+function openCell(pos){
+  const td=document.querySelector(`#ptable td[data-edit][data-r="${pos.r}"][data-k="${pos.k}"]`);
+  if(td) td.click();
+}
 function bump(){ dirty++; $('#dirtyN').textContent=dirty; $('#dirty').classList.add('on'); $('#btnSave').disabled=false; }
 function clearDirty(){ dirty=0; $('#dirty').classList.remove('on'); $('#btnSave').disabled=true; }
 $('#undoAll').addEventListener('click',()=>{
-  while(UNDO.length){ const u=UNDO.pop(); ROWS[u.ri][u.key]=u.before; }   // 편집 전 값으로 정확히 원복
-  renderPrice(); clearDirty(); toast('되돌렸습니다 — 저장 전이라 원래 값 그대로입니다',false);
+  while(UNDO.length){ const u=UNDO.pop(); ROWS[u.ri][u.key]=u.before;
+    if(u.key==='gone') TRASH=TRASH.filter(t=>t.i!==u.ri); }               // 편집 전 값으로 정확히 원복(삭제 포함)
+  renderPrice(); renderTrash(); clearDirty();
+  toast('되돌렸습니다 — 저장 전이라 원래 값 그대로입니다',false);
 });
 $('#saveNow').addEventListener('click',save);
 $('#btnSave').addEventListener('click',save);
@@ -647,13 +695,27 @@ function softDelete(i){
   const r=ROWS[i]; r.gone=true;
   const d=new Date(), ts=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   TRASH.unshift({n:r.n+' · '+r.s,at:ts,by:'송희',i});
-  lastDeleted=i; renderPrice(); renderTrash();
+  UNDO.push({ri:i,key:'gone',before:false});    // 삭제도 '변경 N건' 에 함께 잡아 되돌리기에 포함
+  lastDeleted=i; bump(); renderPrice(); renderTrash();
   toast(`"${r.n}" 을(를) 휴지통으로 보냈습니다`,true);
 }
+/* 되돌릴 기회는 넉넉히 준다 — 5초로 뒀더니 직접 테스트에서 두 번 다 놓쳤다.
+   남은 시간을 같이 보여주고, 사라진 뒤에도 어디서 되살리는지 알려준다. */
+let toastTick=null;
 function toast(msg,undo){
-  $('#toastMsg').textContent=msg; $('#toastUndo').style.display=undo?'':'none';
-  $('#toast').classList.add('on'); clearTimeout(toastT);
-  toastT=setTimeout(()=>$('#toast').classList.remove('on'),5000);
+  clearTimeout(toastT); clearInterval(toastTick);
+  $('#toastMsg').textContent=msg;
+  $('#toastUndo').style.display=undo?'':'none';
+  $('#toast').classList.add('on');
+  if(!undo){ toastT=setTimeout(()=>$('#toast').classList.remove('on'),4000); return; }
+  let left=12;
+  const paint=()=>{ $('#toastUndo').textContent=`실행취소 (${left}초)`; };
+  paint();
+  toastTick=setInterval(()=>{ left--; if(left<=0){ clearInterval(toastTick); return; } paint(); },1000);
+  toastT=setTimeout(()=>{
+    clearInterval(toastTick); $('#toast').classList.remove('on');
+    toast('되살리려면 왼쪽 [휴지통 · 이력] 에서 언제든 꺼낼 수 있습니다',false);
+  },12000);
 }
 $('#toastUndo').addEventListener('click',()=>{
   if(lastDeleted==null)return;

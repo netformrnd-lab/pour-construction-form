@@ -452,8 +452,14 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
   #ribbon .brand b{font-size:13px}
 }
 /* 파일 업로드 → 업체단가 개정안 모달 */
-#impOverlay,#addOverlay,#catOverlay,#chanOverlay,#psOverlay{position:fixed;inset:0;background:rgba(15,20,25,.55);z-index:3000;display:none;align-items:center;justify-content:center;padding:16px}
-#impOverlay.on,#addOverlay.on,#catOverlay.on,#chanOverlay.on,#psOverlay.on{display:flex}
+#impOverlay,#addOverlay,#catOverlay,#chanOverlay,#psOverlay,#expOverlay{position:fixed;inset:0;background:rgba(15,20,25,.55);z-index:3000;display:none;align-items:center;justify-content:center;padding:16px}
+#impOverlay.on,#addOverlay.on,#catOverlay.on,#chanOverlay.on,#psOverlay.on,#expOverlay.on{display:flex}
+/* 내보내기 구성 고르기 — 카드 하나가 곧 '이 구성으로 받기' 버튼 */
+.expcard{display:block;width:100%;text-align:left;border:1px solid var(--xl-grid);border-radius:10px;background:#fff;padding:13px 15px;cursor:pointer;margin-bottom:10px}
+.expcard:hover{border-color:var(--xl-green);background:#F5FBF7}
+.expcard b{display:block;font-size:14px;margin-bottom:3px}
+.expcard span{display:block;font-size:11.5px;color:var(--ink-soft);line-height:1.55}
+.expcard code{font-size:11px;color:var(--ink-faint);background:#F4F6F8;border-radius:4px;padding:1px 5px}
 .rulechip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--xl-grid);border-radius:16px;padding:5px 11px;font-size:12px;font-weight:600;background:#fff;cursor:pointer}
 .rulechip.on{background:#1E5FBF;color:#fff;border-color:#1E5FBF}
 #catTable{width:100%;border-collapse:collapse;font-size:12.5px}
@@ -529,7 +535,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.08</b></span>
+    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.10</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -707,8 +713,6 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
       <button class="tbtn" id="btnPriceSheet" style="display:none;background:#0D1B2A;color:#fff;border-color:#0D1B2A">🖨 단가표 PDF</button>
       <button class="tbtn" id="btnSave">변경사항 저장</button>
       <button class="tbtn" id="btnCsv">CSV 내보내기</button>
-      <button class="tbtn" id="btnCsvRetail">🏷 판매가만 CSV</button>
-      <button class="tbtn" id="btnPkgCsv">📦 패키지 구성 CSV</button>
       <button class="tbtn" id="btnReset">원본 복원</button>
       <span class="hint">업체단가·자사몰정가·알리바바만 더블클릭 수정(Enter 확정) · 총판~쿠팡은 사다리 자동계산 · 원가는 제품등록에서<span id="twinNote"></span></span>
     </div>
@@ -1389,6 +1393,22 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     </div>
   </div>
   <datalist id="tagL1"></datalist><datalist id="tagL2"></datalist><datalist id="tagL3"></datalist><datalist id="prodNameList"></datalist>
+</div>
+
+<!-- ═══ 내보내기 구성 선택 모달 ═══ -->
+<div id="expOverlay">
+  <div class="imp-panel" style="max-width:560px">
+    <div class="imp-head"><span>⬇ CSV 내보내기 <span style="font-size:11px;color:var(--ink-faint);font-weight:400">· 어떤 구성으로 받을지 고르세요</span></span><button id="expClose" aria-label="닫기">✕</button></div>
+    <div class="imp-body">
+      <button type="button" class="expcard" id="expAll"><b>📋 가격정책표 (전체)</b>
+        <span>업체단가 · 모든 채널 단가 · 매입원가 · 마진까지 전부. 수정해서 다시 올릴 때 쓰는 파일입니다.<br><code>POUR_가격정책표.csv</code></span></button>
+      <button type="button" class="expcard" id="expRetail"><b>🏷 판매가만</b>
+        <span>자사몰 정가 한 열만. 공급가·원가·마진이 빠져 있어 거래처·쇼핑몰에 그대로 보내도 됩니다.<br><code>POUR_판매가.csv</code></span></button>
+      <button type="button" class="expcard" id="expPkg"><b>📦 패키지 구성</b>
+        <span>세트에 든 단품·수량·정가·소계를 한 줄씩 펼쳐서. 세트 안을 확인할 때 씁니다.<br><code>POUR_패키지구성_정가.csv</code></span></button>
+      <p class="footnote" style="margin:2px 0 0">· 세 파일 모두 <b>대분류·중분류·소분류</b>가 각각 다른 열로 나옵니다.<br>· 휴지통에 넣은 제품은 빠집니다.</p>
+    </div>
+  </div>
 </div>
 
 <!-- ═══ 분류 관리 모달 (대·중·소분류) ═══ -->
@@ -2805,7 +2825,17 @@ $('#btnReset').addEventListener('click',()=>{
     setItems:r.setItems||'', ptype:r.ptype||''}));
   fillProductSelects(); plState=null; lock();
 });
-$('#btnCsv').addEventListener('click',()=>{
+/* ⬇ 내보내기 — 버튼 하나로 모아 구성을 고르게 한다(전체·판매가만·패키지구성) */
+function openExportModal(){ $('#expOverlay').classList.add('on'); }
+function closeExportModal(){ $('#expOverlay').classList.remove('on'); }
+function dlCsv(head, rows, fname){
+  const csv='\uFEFF'+[head,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=fname; a.click();
+}
+$('#btnCsv').addEventListener('click',openExportModal);
+function exportAll(){
   const cols=COLS(), rUid=retailUid();
   /* 가격 열: 화면(가격정책표)과 똑같은 순서 — 업체단가 가상열 포함.
      예전엔 COLS()(실제 채널)만 내보내서 '업체단가' 열이 파일에 아예 없었다.
@@ -2829,14 +2859,11 @@ $('#btnCsv').addEventListener('click',()=>{
     const pc=pcat(p);
     return [pc.l1,pc.l2,pc.l3,p.name,p.spec,...(unlocked?[p.sup||'',p.mgr||'']:[]),...(costAllowed?[cost??'']:[]),...pcs.map(x=>x.v?vbOf(p):(effPrice(p,x.c.uid)??'')),...(costAllowed?[m??'',r!=null?(r*100).toFixed(2):'']:[])];
   });
-  const csv='\uFEFF'+[head,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download='POUR_가격정책표.csv'; a.click();
-});
+  dlCsv(head, rows, 'POUR_가격정책표.csv');
+}
 /* 🏷 판매가만 CSV — 자사몰 정가(판매가) 한 열만. 총판·대리점 등 공급가는 빼고 뽑는다.
    쇼핑몰·거래처에 판매가만 넘겨야 할 때 가격정책표 전체를 주면 공급가가 그대로 노출된다. */
-$('#btnCsvRetail').addEventListener('click',()=>{
+function exportRetail(){
   const rUid=retailUid(), rc=chByUid(rUid);
   if(!rc){ alert('정가(자사몰) 채널을 찾지 못했습니다.'); return; }
   const head=['대분류','중분류','소분류','제품명','규격',`[${rc.code}] ${rc.name}`];
@@ -2844,14 +2871,11 @@ $('#btnCsvRetail').addEventListener('click',()=>{
     const c=pcat(p);
     return [c.l1,c.l2,c.l3,p.name,p.spec||'',effPrice(p,rUid)??''];
   });
-  const csv='\uFEFF'+[head,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download='POUR_판매가.csv'; a.click();
-});
+  dlCsv(head, rows, 'POUR_판매가.csv');
+}
 /* 📦 패키지 구성 CSV — 세트를 구성 단품까지 펼쳐 '정가'로 뽑는다.
    가격정책표 CSV 는 세트를 한 줄(합계)로만 보여줘서, 안에 무엇이 몇 개 들었는지 알 수 없었다. */
-$('#btnPkgCsv').addEventListener('click',()=>{
+function exportPkg(){
   const rUid=retailUid();
   const pkgs=psOrderedProducts().filter(p=>isPackage(p));
   if(!pkgs.length){ alert('패키지(세트) 제품이 없습니다.'); return; }
@@ -2868,11 +2892,13 @@ $('#btnPkgCsv').addEventListener('click',()=>{
     });
     if(declared>comps.length) rows.push([...cat,p.name,p.spec||'',sum??'','',`(미매칭 ${declared-comps.length}개 — 제품 수정에서 구성 확인)`,'','','','']);
   });
-  const csv='\uFEFF'+[head,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download='POUR_패키지구성_정가.csv'; a.click();
-});
+  dlCsv(head, rows, 'POUR_패키지구성_정가.csv');
+}
+/* 카드 선택 → 그 구성으로 내려받고 닫기 */
+{ const pick=(id,fn)=>{ const el=$('#'+id); if(el) el.addEventListener('click',()=>{ try{ fn(); }finally{ closeExportModal(); } }); };
+  pick('expAll',exportAll); pick('expRetail',exportRetail); pick('expPkg',exportPkg);
+  const x=$('#expClose'); if(x) x.addEventListener('click',closeExportModal);
+  bindOverlayClose('expOverlay', closeExportModal); }
 
 /* ══════════ 제품·상품 매칭 ══════════ */
 function renderSup(){

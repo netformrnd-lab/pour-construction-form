@@ -107,9 +107,24 @@ body.navmini .navsub{display:block!important;padding:0}
 .gsearch input{border:none;background:none;outline:none;width:100%;font-size:12.5px}
 .alertbtn{display:flex;align-items:center;gap:6px;border:1px solid var(--warn);color:var(--warn);
   background:var(--warn-l);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700;white-space:nowrap}
-.acct{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink2);white-space:nowrap}
+.acct{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink2);white-space:nowrap;
+  border:1px solid transparent;border-radius:999px;padding:3px 9px 3px 3px}
+.acct:hover{border-color:var(--line);background:var(--canvas)}
 .acct .av{width:26px;height:26px;border-radius:50%;background:var(--ok);color:#fff;display:grid;
   place-items:center;font-size:11px;font-weight:700}
+.rolechip{font-size:10.5px;font-weight:700;border-radius:4px;padding:1px 6px;background:var(--sel);color:var(--ok-d)}
+.rolechip.sub{background:#E7EEF7;color:#1B4F8A}
+.rolechip.mem{background:var(--line2);color:var(--ink2)}
+
+/* ── 전체 검색 결과 ── */
+.gsearch{position:relative}
+.gres{position:absolute;left:0;right:0;top:calc(100% + 7px);background:var(--paper);border:1px solid var(--line);
+  border-radius:10px;box-shadow:0 12px 32px rgba(20,28,38,.16);padding:5px;display:none;z-index:55;max-height:320px;overflow:auto}
+.gres.on{display:block}
+.gres button{display:block;width:100%;text-align:left;padding:8px 10px;border-radius:6px;font-size:12.5px;color:var(--ink2)}
+.gres button:hover,.gres button.sel{background:var(--sel);color:var(--ok-d)}
+.gres button small{display:block;color:var(--ink3);font-size:11px}
+.gres .none{padding:14px 10px;text-align:center;color:var(--ink3);font-size:12.5px}
 
 .body{padding:16px;flex:1;min-height:0;overflow-y:auto}
 .screen{display:none}
@@ -189,6 +204,36 @@ th .code{display:block;font-family:var(--mono);font-size:10px;color:var(--warn);
 td.m1{background:#F4FAF6} td.m2{background:#E9F5EE} td.m3{background:#DDF0E5}
 td .mr{display:block;font-size:10.5px;color:var(--ok-d);font-weight:600;margin-top:1px}
 body:not(.showmargin) td .mr{display:none}
+/* 색만으로 마진을 읽게 하면 색각 이상·흑백 인쇄에서 구분이 사라진다.
+   숫자를 끈 순간에만 채움 개수로 읽히는 문자 단서를 대신 띄운다. */
+.mlv{display:none;font-size:10px;letter-spacing:1px;color:var(--ok-d);margin-top:1px}
+body:not(.showmargin) .mlv{display:block}
+/* 역마진은 색이 아니라 글자로도 말한다 */
+td.neg{background:#FDF0EE!important}
+td.neg .mr,td.neg .mlv{color:var(--danger)}
+td.neg .negtag{display:inline-block;font-size:9.5px;font-weight:800;color:#fff;background:var(--danger);
+  border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:middle}
+.legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--ink3)}
+.legend b{font-weight:700;color:var(--ink2)}
+.legend .sw{display:inline-block;width:13px;height:13px;border-radius:3px;border:1px solid var(--line);
+  vertical-align:-2px;margin-right:4px}
+
+/* ── 권한: 원가를 볼 수 없는 계정에서는 원가·마진 흔적을 전부 지운다.
+      마진율만 남겨도 판매가에서 원가가 역산되므로 색 농도·단계표시까지 함께 감춘다. ── */
+body.no-cost .costcol{display:none}
+body.no-cost .costonly{display:none!important}
+body.no-cost td .mr,body.no-cost .mlv{display:none!important}
+body.no-cost td.m1,body.no-cost td.m2,body.no-cost td.m3,body.no-cost td.neg{background:transparent!important}
+body.no-cost tbody tr:hover td{background:#FAFCFB!important}
+.permnote{display:none;font-size:11.5px;color:var(--ink3);background:var(--canvas);border:1px solid var(--line);
+  border-radius:var(--r);padding:9px 12px;margin-bottom:12px}
+body.no-cost .permnote{display:block}
+.pmtx{width:100%;border-collapse:collapse;font-size:12.5px}
+.pmtx th,.pmtx td{padding:9px 10px;border-bottom:1px solid var(--line2);text-align:left}
+.pmtx thead th{background:var(--head);font-size:11.5px;color:var(--ink2)}
+.pmtx td.y{color:var(--ok-d);font-weight:700}
+.pmtx td.n{color:var(--ink3)}
+.pmtx tr.cur{background:var(--sel)}
 /* 첫 열(제품명) 고정 — 가로로 밀어도 '지금 어느 줄인지'를 놓치지 않는다. 좁은 화면에서 특히 중요 */
 table.freeze1 th:first-child,table.freeze1 td:first-child{
   position:sticky;left:0;background:var(--paper);z-index:1;border-right:1px solid var(--line)}
@@ -333,7 +378,7 @@ tr.findme td{animation:findme 2.4s ease-out}
       </div>
     </div>
     <div class="navfoot">
-      <button class="navitem" data-sc="soon"><span class="ic">⚙️</span><span class="tx">계정 · 설정</span></button>
+      <button class="navitem" data-sc="account"><span class="ic">⚙️</span><span class="tx">계정 · 설정</span></button>
     </div>
   </aside>
 
@@ -343,18 +388,33 @@ tr.findme td{animation:findme 2.4s ease-out}
       <button class="iconbtn" id="navToggle" title="메뉴 접기/펴기">☰</button>
       <h1 id="scTitle">경영요약</h1>
       <span class="sub" id="scSub">전 품목 기준 · 자동 재계산</span>
-      <div class="gsearch"><span class="dim">🔎</span><input placeholder="제품·채널 검색 (모든 화면)"></div>
+      <div class="gsearch">
+        <span class="dim">🔎</span>
+        <input id="gq" placeholder="제품 검색 (모든 화면)" autocomplete="off">
+        <div class="gres" id="gres"></div>
+      </div>
       <button class="alertbtn" data-sc="price">⚠ 점검 6건</button>
-      <div class="acct"><div class="av">송</div><span>송희</span></div>
+      <div class="more" id="acctWrap">
+        <button class="acct" id="acctBtn"><div class="av">송</div><span>송희</span><span class="rolechip" id="roleChip">마스터</span></button>
+        <div class="menu" id="acctMenu">
+          <div class="mlbl">지금 보는 권한</div>
+          <button data-role="master">👑 마스터 — 원가·마진·공급업체 전부</button>
+          <button data-role="submaster">🛡 부마스터 — 원가·마진 (공급업체 제외)</button>
+          <button data-role="member">👤 팀원 — 판매가만 (원가·마진 안 보임)</button>
+          <div class="sep"></div>
+          <button data-sc="account">⚙️ 계정 · 설정 열기</button>
+        </div>
+      </div>
     </div>
 
     <div class="body">
 
       <!-- ── 경영요약 ── -->
       <section class="screen on" id="sc-dash">
+        <div class="permnote">👤 <b>팀원 권한</b>으로 보고 있습니다 — 매입원가·마진은 표시되지 않습니다. 판매가·공급가는 그대로 보고 고칠 수 있습니다.</div>
         <div class="kpis">
-          <div class="kpi"><h4>정가 평균 마진율</h4><div class="v">69.7%</div><div class="f">매입원가 대비 · 단품 137개</div></div>
-          <div class="kpi"><h4>대리점 공급 평균 마진율</h4><div class="v">64.0%</div><div class="f">하한 공급가 기준</div></div>
+          <div class="kpi costonly"><h4>정가 평균 마진율</h4><div class="v">69.7%</div><div class="f">매입원가 대비 · 단품 137개</div></div>
+          <div class="kpi costonly"><h4>대리점 공급 평균 마진율</h4><div class="v">64.0%</div><div class="f">하한 공급가 기준</div></div>
           <div class="kpi warn"><h4>확인이 필요한 가격</h4><div class="v">6건</div><div class="f">아래에서 바로 고칠 수 있습니다</div></div>
           <div class="kpi"><h4>이번 주 만든 견적서</h4><div class="v">4건</div><div class="f">합계 1억 2,340만원</div></div>
         </div>
@@ -383,13 +443,14 @@ tr.findme td{animation:findme 2.4s ease-out}
 
       <!-- ── 가격정책표 ── -->
       <section class="screen" id="sc-price">
+        <div class="permnote">👤 <b>팀원 권한</b>으로 보고 있습니다 — 매입원가·마진 열이 숨겨져 있습니다.</div>
         <div class="panel">
           <div class="toolbar">
             <!-- [보기] 매일 쓰는 것만 밖에 -->
             <div class="tgroup">
               <div class="field"><span class="dim">🔎</span><input id="q" placeholder="제품명 검색"></div>
               <div class="field"><select id="cat"><option>전체 분류</option><option>수용성 도료</option><option>유성 도료</option><option>보강시트</option><option>파우더</option></select></div>
-              <label class="switch"><input type="checkbox" id="mgToggle" checked><span class="tr"></span>마진율 함께 보기</label>
+              <label class="switch costonly"><input type="checkbox" id="mgToggle" checked><span class="tr"></span>마진율 함께 보기</label>
               <span class="note" id="pcount" style="margin:0"></span>
             </div>
             <!-- [작업] -->
@@ -420,7 +481,7 @@ tr.findme td{animation:findme 2.4s ease-out}
             <table class="grid freeze1" id="ptable">
               <thead><tr>
                 <th style="min-width:210px">제품</th>
-                <th class="num">매입원가</th>
+                <th class="num costcol">매입원가</th>
                 <th class="num">대리점<span class="code">P3</span></th>
                 <th class="num">시공업체<span class="code">P4</span></th>
                 <th class="num">온라인 도매<span class="code">P6</span></th>
@@ -435,6 +496,14 @@ tr.findme td{animation:findme 2.4s ease-out}
             <p class="note">· 칸을 눌러 바로 고칠 수 있습니다. <b>저장을 누르기 전까지는 아무것도 반영되지 않고</b>, 아래 막대에서 한 번에 되돌릴 수 있습니다.<br>
             · <span class="flag" style="cursor:default"></span> 표시가 있는 줄은 확인이 필요한 값입니다 — 마우스를 올리면 이유가 나옵니다.<br>
             · 제품을 지우면 <b>휴지통으로 갑니다.</b> 영구삭제 버튼은 어디에도 없습니다.</p>
+            <div class="legend costonly" style="margin-top:10px">
+              <span><b>마진 표시</b></span>
+              <span><span class="sw" style="background:#DDF0E5"></span>▪▪▪ 높음 (70%↑)</span>
+              <span><span class="sw" style="background:#E9F5EE"></span>▪▪▫ 보통 (50~70%)</span>
+              <span><span class="sw" style="background:#F4FAF6"></span>▪▫▫ 낮음 (50%↓)</span>
+              <span><span class="sw" style="background:#FDF0EE"></span><span style="color:var(--danger);font-weight:700">역마진</span> 원가보다 쌈</span>
+              <span class="dim">— 색이 안 보여도 ▪ 개수로 읽을 수 있습니다</span>
+            </div>
           </div>
         </div>
       </section>
@@ -493,6 +562,53 @@ tr.findme td{animation:findme 2.4s ease-out}
             <div class="alertrow"><span class="pill" style="background:var(--sel);color:var(--ok-d)">가격</span><span>POUR 코트재Ⅰ(회색) 자사몰 정가 177,500 → 179,000</span><span class="go dim">오늘 14:22 · 송희</span></div>
             <div class="alertrow"><span class="pill" style="background:var(--sel);color:var(--ok-d)">복원</span><span>POUR 에어쉘시트 휴지통에서 되살림</span><span class="go dim">어제 17:05 · 송희</span></div>
             <div class="alertrow"><span class="pill" style="background:var(--sel);color:var(--ok-d)">견적</span><span>○○아파트 관리사무소 견적서 발행 (3품목)</span><span class="go dim">어제 11:40 · 송희</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── 계정 · 설정 ── -->
+      <section class="screen" id="sc-account">
+        <div class="panel">
+          <h3>지금 보는 권한 <span class="tag">미리보기로 바꿔볼 수 있습니다</span></h3>
+          <div class="bd">
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn" data-role="master">👑 마스터로 보기</button>
+              <button class="btn" data-role="submaster">🛡 부마스터로 보기</button>
+              <button class="btn" data-role="member">👤 팀원으로 보기</button>
+            </div>
+            <p class="note">· 바꾸면 <b>화면이 즉시 그 권한으로 보입니다.</b> 팀원으로 보면 매입원가·마진이 어떻게 가려지는지 직접 확인할 수 있습니다.<br>
+            · 실제 앱에서는 이 판정을 <b>서버(보안규칙)에서 강제</b>하므로, 개발자도구로 화면을 고쳐도 원가 데이터 자체가 내려오지 않습니다.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>역할별로 볼 수 있는 것</h3>
+          <div class="bd" style="padding:0;overflow-x:auto">
+            <table class="pmtx" style="min-width:560px">
+              <thead><tr><th>보이는 항목</th><th>👑 마스터</th><th>🛡 부마스터</th><th>👤 팀원</th></tr></thead>
+              <tbody>
+                <tr><td>판매가 · 채널 공급가</td><td class="y">보임</td><td class="y">보임</td><td class="y">보임</td></tr>
+                <tr><td>가격 수정 · 견적서</td><td class="y">가능</td><td class="y">가능</td><td class="y">가능</td></tr>
+                <tr><td><b>매입원가</b></td><td class="y">보임</td><td class="y">보임</td><td class="n">가려짐</td></tr>
+                <tr><td><b>마진 · 마진율</b></td><td class="y">보임</td><td class="y">보임</td><td class="n">가려짐</td></tr>
+                <tr><td><b>공급업체 · 매입처</b></td><td class="y">보임</td><td class="n">가려짐</td><td class="n">가려짐</td></tr>
+                <tr><td>계정 추가 · 권한 변경</td><td class="y">가능</td><td class="n">불가</td><td class="n">불가</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="bd" style="border-top:1px solid var(--line2)">
+            <p class="note">· 팀원에게는 마진율뿐 아니라 <b>마진 색 농도·단계 표시까지 함께</b> 가립니다. 하나라도 남기면 판매가에서 원가가 역산됩니다.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>이 대시보드를 볼 수 있는 계정 <span class="tag">마스터만 편집</span></h3>
+          <div class="bd" style="padding:0;overflow-x:auto">
+            <table class="grid" id="acctTable" style="min-width:520px"></table>
+          </div>
+          <div class="bd" style="border-top:1px solid var(--line2)">
+            <p class="note">· 계정을 빼도 <b>그 사람이 남긴 기록·가격 이력은 지워지지 않습니다.</b> 접근만 막힙니다.<br>
+            · 목록에 없는 계정은 로그인해도 아무것도 못 봅니다.</p>
           </div>
         </div>
       </section>
@@ -570,7 +686,39 @@ let dirty=0, lastDeleted=null, toastT=null, UNDO=[];   // UNDO: 저장 전 편�
 
 /* ── 화면 전환 ── */
 const TITLES={dash:['경영요약','전 품목 기준 · 자동 재계산'],price:['가격정책표','채널별 공급가 · 정가'],
- moq:['MOQ · 견적서','수량 구간 단가로 견적서 만들기'],trash:['휴지통 · 이력','지운 것 되살리기'],soon:['준비중','']};
+ moq:['MOQ · 견적서','수량 구간 단가로 견적서 만들기'],trash:['휴지통 · 이력','지운 것 되살리기'],
+ account:['계정 · 설정','권한 · 허용 계정'],soon:['준비중','']};
+
+/* ══ 권한 ══
+   master   : 원가·마진·공급업체 전부
+   submaster: 원가·마진 (공급업체 제외)
+   member   : 판매가만 — 원가·마진은 흔적까지 가린다 */
+const ROLES={master:['마스터','',true],submaster:['부마스터','sub',true],member:['팀원','mem',false]};
+let ROLE='master';
+const ACCOUNTS=[
+  {n:'송희',e:'songhee44@netformrnd.com',r:'master'},
+  {n:'김실장',e:'submaster@netformrnd.com',r:'submaster'},
+  {n:'박대리',e:'staff@netformrnd.com',r:'member'},
+  {n:'이사원',e:'teammate@netformrnd.com',r:'member'},
+];
+function applyRole(r){
+  ROLE=r; const [label,cls,canCost]=ROLES[r];
+  document.body.classList.toggle('no-cost',!canCost);
+  const chip=$('#roleChip'); chip.textContent=label; chip.className='rolechip '+cls;
+  $$('[data-role]').forEach(b=>b.classList.toggle('pri', b.dataset.role===r && b.classList.contains('btn')));
+  renderAccounts(); renderPrice();
+}
+function renderAccounts(){
+  const t=$('#acctTable'); if(!t)return;
+  t.innerHTML=`<thead><tr><th>이름</th><th>계정</th><th>권한</th><th style="width:150px"></th></tr></thead><tbody>`
+   + ACCOUNTS.map(a=>{ const [lb,cls]=ROLES[a.r];
+      return `<tr><td class="pname">${a.n}</td><td class="dim">${a.e}</td>
+        <td><span class="rolechip ${cls}">${lb}</span></td>
+        <td>${ROLE==='master'
+          ? '<button class="btn sm" tabindex="-1">권한 변경</button> <button class="btn sm" tabindex="-1">접근 해제</button>'
+          : '<span class="dim" style="font-size:11.5px">마스터만 가능</span>'}</td></tr>`; }).join('')
+   + '</tbody>';
+}
 function go(sc){
   $$('.screen').forEach(x=>x.classList.toggle('on',x.id==='sc-'+sc));
   $$('.navitem').forEach(b=>b.classList.toggle('on',b.dataset.sc===sc));
@@ -580,16 +728,48 @@ function go(sc){
 }
 document.addEventListener('click',e=>{
   const fx=e.target.closest('[data-fix]');
-  if(fx){ go('price'); $('#q').value=''; renderPrice();
-    const i=ROWS.filter(r=>!r.gone).findIndex(r=>r.n.includes(fx.dataset.fix));
-    const tr=[...document.querySelectorAll('#ptable tbody tr')][i];
-    if(tr){ tr.classList.add('findme'); tr.scrollIntoView({block:'center'}); setTimeout(()=>tr.classList.remove('findme'),2600); }
-    return; }
+  if(fx){ jumpTo(fx.dataset.fix); return; }
   const b=e.target.closest('[data-sc]'); if(b){ go(b.dataset.sc); return; }
   const g=e.target.closest('.navgrp');
   if(g){ g.classList.toggle('open'); $('#'+g.dataset.g).classList.toggle('open'); return; }
-  if(!e.target.closest('.more')) $('#moreMenu').classList.remove('on');
+  const r=e.target.closest('[data-role]');
+  if(r){ applyRole(r.dataset.role); $('#acctMenu').classList.remove('on'); return; }
+  // 열린 메뉴 중 '지금 누른 곳이 아닌' 것만 닫는다
+  ['moreMenu','acctMenu'].forEach(id=>{ const m=$('#'+id); if(m && !m.contains(e.target) && !e.target.closest('.more')?.contains(m)) m.classList.remove('on'); });
+  if(!e.target.closest('.gsearch')) $('#gres').classList.remove('on');
 });
+$('#acctBtn').addEventListener('click',e=>{ e.stopPropagation(); $('#moreMenu').classList.remove('on'); $('#acctMenu').classList.toggle('on'); });
+/* 가격정책표의 그 줄로 데려가서 잠깐 노랗게 — '고치기'와 전체 검색이 함께 쓴다 */
+function jumpTo(nameFrag){
+  go('price'); $('#q').value=''; renderPrice();
+  const i=ROWS.filter(r=>!r.gone).findIndex(r=>r.n.includes(nameFrag));
+  const tr=[...document.querySelectorAll('#ptable tbody tr')][i];
+  if(tr){ tr.classList.add('findme'); tr.scrollIntoView({block:'center'});
+    setTimeout(()=>tr.classList.remove('findme'),2600); }
+}
+/* ══ 상단 전체 검색 ══ 어느 화면에 있든 제품을 찾아 그 줄로 데려간다 */
+let gsel=-1;
+function gsearch(){
+  const q=($('#gq').value||'').trim(); const box=$('#gres');
+  if(!q){ box.classList.remove('on'); box.innerHTML=''; gsel=-1; return; }
+  const hits=ROWS.filter(r=>!r.gone && r.n.includes(q)).slice(0,8);
+  box.innerHTML = hits.length
+    ? hits.map((r,i)=>`<button data-jump="${r.n}" class="${i===0?'sel':''}">${r.n}<small>${r.s} · 정가 ${won(r.own)}원</small></button>`).join('')
+    : `<div class="none"><b>"${q}"</b> 에 맞는 제품이 없습니다</div>`;
+  gsel = hits.length?0:-1; box.classList.add('on');
+}
+$('#gq').addEventListener('input',gsearch);
+$('#gq').addEventListener('keydown',e=>{
+  const items=$$('#gres button'); if(!items.length)return;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault();
+    gsel=(gsel+(e.key==='ArrowDown'?1:-1)+items.length)%items.length;
+    items.forEach((b,i)=>b.classList.toggle('sel',i===gsel)); items[gsel].scrollIntoView({block:'nearest'}); return; }
+  if(e.key==='Enter'&&gsel>=0){ e.preventDefault(); items[gsel].click(); return; }
+  if(e.key==='Escape'){ $('#gres').classList.remove('on'); $('#gq').blur(); }
+});
+$('#gres').addEventListener('click',e=>{ const b=e.target.closest('[data-jump]'); if(!b)return;
+  $('#gres').classList.remove('on'); $('#gq').value=''; jumpTo(b.dataset.jump); });
+
 $('#navToggle').addEventListener('click',()=>{
   if(window.matchMedia('(max-width:760px)').matches) document.body.classList.toggle('drawer');
   else document.body.classList.toggle('navmini');
@@ -599,11 +779,19 @@ $('#btnMore').addEventListener('click',()=>$('#moreMenu').classList.toggle('on')
 
 /* ── 가격정책표 ── */
 function mcls(v,cost){ if(v==null||!cost)return''; const r=(v-cost)/v; return r>=.7?'m3':r>=.5?'m2':'m1'; }
+/* 색을 못 읽어도 채움 개수로 읽히는 단계 표시 */
+function mlevel(v,cost){ if(v==null||!cost)return null; const r=(v-cost)/v;
+  return r>=.7?{g:'▪▪▪',t:'높음'}:r>=.5?{g:'▪▪▫',t:'보통'}:{g:'▪▫▫',t:'낮음'}; }
 function cell(v,cost,ri,key){
   const a=`data-edit data-r="${ri}" data-k="${key}"`;
   if(v==null) return `<td class="num dim" ${a}>—</td>`;
   const r=cost?Math.round((v-cost)/v*1000)/10:null;
-  return `<td class="num ${mcls(v,cost)}" ${a}>${won(v)}${r!=null?`<span class="mr">${r}%</span>`:''}</td>`;
+  const neg = r!=null && r<0;                       // 원가보다 싸게 파는 칸 — 색만으로 넘기지 않는다
+  const lv = (!neg && cost) ? mlevel(v,cost) : null;
+  return `<td class="num ${neg?'neg':mcls(v,cost)}" ${a}>${won(v)}${neg?'<span class="negtag">역마진</span>':''}`
+    + (r!=null?`<span class="mr">${r}%</span>`:'')
+    + (lv?`<span class="mlv" title="마진 ${lv.t}">${lv.g}</span>`:'')
+    + `</td>`;
 }
 function renderPrice(){
   const q=($('#q').value||'').trim();
@@ -621,7 +809,7 @@ function renderPrice(){
     if(r.flag) tr.className='hasflag';
     tr.innerHTML=`<td><span class="pname">${r.n}</span>${r.flag?`<span class="flag" title="${r.flag}"></span>`:''}
         <div class="spec">${r.s}</div></td>
-      <td class="num dim">${won(r.cost)}</td>
+      <td class="num dim costcol">${won(r.cost)}</td>
       ${['p3','p4','p6','p8','own'].map(k=>cell(r[k],r.cost,ROWS.indexOf(r),k)).join('')}
       <td><button class="btn sm" tabindex="-1" data-del="${ROWS.indexOf(r)}" title="휴지통으로 보내기">🗑</button></td>`;
     tb.appendChild(tr);
@@ -787,7 +975,7 @@ $('#qtable').addEventListener('click',e=>{ const b=e.target.closest('[data-qdel]
 
 /* ── 시작 ── */
 $$('.navgrp').forEach(g=>{ if(g.dataset.g==='g1'){ g.classList.add('open'); $('#g1').classList.add('open'); } });
-fillProd(); renderPrice(); renderTrash(); renderQt(); hint();
+fillProd(); applyRole('master'); renderTrash(); renderQt(); hint();
 console.log('[시안] 샘플 데이터로만 동작합니다 · Firebase 연결 없음');
 </script>
 </body>

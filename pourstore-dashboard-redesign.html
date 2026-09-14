@@ -393,9 +393,9 @@ tr.findme td{animation:findme 2.4s ease-out}
       </div>
       <button class="navgrp" data-g="g4"><span>📣 마케팅</span><span class="ar">›</span></button>
       <div class="navsub" id="g4">
-        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">마케팅 개요</span></button>
-        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">추적링크</span></button>
-        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">프로모션 성과</span></button>
+        <button class="navitem" data-sc="mkt"><span class="ic">·</span><span class="tx">마케팅 개요</span></button>
+        <button class="navitem" data-sc="links"><span class="ic">·</span><span class="tx">추적링크</span></button>
+        <button class="navitem" data-sc="promo"><span class="ic">·</span><span class="tx">프로모션 성과</span></button>
       </div>
     </div>
     <div class="navfoot">
@@ -779,6 +779,59 @@ tr.findme td{animation:findme 2.4s ease-out}
         </div>
       </section>
 
+      <!-- ── 마케팅 개요 ── -->
+      <section class="screen" id="sc-mkt">
+        <div class="kpis" id="mkCards"></div>
+        <div class="panel">
+          <h3>링크별 성과 <span class="tag">ROAS 높은 순</span></h3>
+          <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="mkTable" style="min-width:720px"></table></div>
+          <div class="bd" style="border-top:1px solid var(--line2)">
+            <p class="note">· <b>ROAS</b> = 매출 ÷ 광고비 &nbsp;·&nbsp; <b>CPA</b> = 광고비 ÷ 주문수 &nbsp;·&nbsp; <b>전환율</b> = 주문수 ÷ 클릭수<br>
+            <span class="costonly">· <b>손익분기 ROAS</b> = 1 ÷ 공헌이익률. 이 값을 넘겨야 광고비를 벌고도 남습니다 — <b>매출만 커도 밑질 수 있습니다.</b></span></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── 추적링크 ── -->
+      <section class="screen" id="sc-links">
+        <div class="panel">
+          <h3>추적링크 <span class="tag">숫자는 직접 넣습니다</span></h3>
+          <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="lkTable" style="min-width:820px"></table></div>
+          <div class="bd" style="border-top:1px solid var(--line2)">
+            <div class="toolbar" style="padding:0;border:none">
+              <div class="tgroup">
+                <div class="field"><input id="lkLabel" placeholder="링크 이름 (예: 블로그 9월)" style="width:190px"></div>
+                <div class="field"><select id="lkProd"></select></div>
+                <div class="field"><select id="lkChan"></select></div>
+              </div>
+              <div class="tgroup right"><button class="btn pri" id="lkAdd">＋ 링크 추가</button></div>
+            </div>
+            <p class="note" style="margin-top:10px">· 클릭·주문·매출·광고비 칸을 직접 고치면 <b>“변경 N건”</b>에 잡힙니다.<br>
+            · 링크를 지우면 <b>휴지통으로 갑니다</b> — 실제 대시보드에서는 지금 <b>바로 영구삭제</b>되는 자리입니다.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── 프로모션 성과 ── -->
+      <section class="screen" id="sc-promo">
+        <div class="panel">
+          <h3>프로모션 성과 <span class="tag">기준매출 대비 얼마나 더 팔았나</span></h3>
+          <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="pmTable" style="min-width:780px"></table></div>
+          <div class="bd" style="border-top:1px solid var(--line2)">
+            <div class="toolbar" style="padding:0;border:none">
+              <div class="tgroup">
+                <div class="field"><input id="pmName" placeholder="프로모션 이름" style="width:190px"></div>
+                <div class="field"><input id="pmFrom" placeholder="시작 (09.01)" style="width:110px"></div>
+                <div class="field"><input id="pmTo" placeholder="종료 (09.14)" style="width:110px"></div>
+              </div>
+              <div class="tgroup right"><button class="btn pri" id="pmAdd">＋ 프로모션 추가</button></div>
+            </div>
+            <p class="note" style="margin-top:10px">· <b>증분매출</b> = 실제매출 − 기준매출. 프로모션이 없었어도 팔렸을 몫을 빼고 봅니다.<br>
+            · <b>증분 ROAS</b> = 증분매출 ÷ 광고비. 여기도 지우면 <b>휴지통</b>으로 갑니다.</p>
+          </div>
+        </div>
+      </section>
+
       <!-- ── 계정 · 설정 ── -->
       <section class="screen" id="sc-account">
         <div class="panel">
@@ -903,7 +956,22 @@ const TITLES={dash:['경영요약','전 품목 기준 · 자동 재계산'],pric
  account:['계정 · 설정','권한 · 허용 계정'],chan:['채널 관리','가격표의 열 · 역할'],
  chprofit:['채널 수익분석','채널별 마진 · 배분'],reg:['제품 등록','새 제품 만들기'],
  match:['제품 매칭','매입처 · 대외비'],pl:['손익 · 공헌이익','공헌이익 · 손익분기'],
- fixed:['고정지출','월 고정비'],basis:['상품 기준','제품 한 종의 근거'],soon:['준비중','']};
+ fixed:['고정지출','월 고정비'],basis:['상품 기준','제품 한 종의 근거'],
+ mkt:['마케팅 개요','ROAS · 전환율'],links:['추적링크','링크별 실적'],
+ promo:['프로모션 성과','증분매출'],soon:['준비중','']};
+
+/* 마케팅 — 시안용 샘플 실적입니다(수기 입력 가정) */
+let LINKS=[
+  {label:'블로그 9월',prod:0,chan:'own',clicks:2400,orders:96,revenue:17040000,spend:1200000},
+  {label:'인스타 리타겟',prod:2,chan:'own',clicks:5100,orders:143,revenue:6864000,spend:2400000},
+  {label:'쿠팡 검색광고',prod:0,chan:'p8',clicks:8800,orders:210,revenue:35427000,spend:9800000},
+];
+let PROMOS=[
+  {name:'가을 옥상방수 기획전',from:'09.01',to:'09.14',baseline:12000000,actual:19400000,spend:2600000},
+  {name:'파우더 묶음 할인',from:'08.12',to:'08.25',baseline:5200000,actual:6100000,spend:1500000},
+];
+const lkLive=()=>LINKS.filter(x=>!x.gone);
+const pmLive=()=>PROMOS.filter(x=>!x.gone);
 
 /* 월 고정지출 — 손익분기 계산의 분모. 시안용 샘플 금액입니다. */
 let FIXED=[
@@ -987,7 +1055,7 @@ function applyRole(r){
   const cur=[...document.querySelectorAll('.screen')].find(x=>x.classList.contains('on'));
   if(!canCost && cur && ['sc-chprofit','sc-pl','sc-fixed'].includes(cur.id)) go('dash');
   if(!canSecret && cur && cur.id==='sc-match') go('dash');
-  renderAccounts(); renderPrice(); renderChProfit(); renderReg(); renderMatch(); renderFixed(); renderPl(); renderBasis();
+  renderAccounts(); renderPrice(); renderChProfit(); renderReg(); renderMatch(); renderFixed(); renderPl(); renderBasis(); renderLinks(); renderPromo(); renderMkt();
 }
 function renderAccounts(){
   const t=$('#acctTable'); if(!t)return;
@@ -1172,6 +1240,16 @@ function clearDirty(){ dirty=0; $('#dirtyN').textContent='0';   // 숫자까지 
   $('#dirty').classList.remove('on'); $('#btnSave').disabled=true; }
 $('#undoAll').addEventListener('click',()=>{
   while(UNDO.length){ const u=UNDO.pop();
+    if(u.li!=null){                                                       // 추적링크
+      if(u.key==='__newlink'){ LINKS.splice(u.li,1); continue; }
+      LINKS[u.li][u.key]=u.before;
+      if(u.key==='gone') TRASH=TRASH.filter(t=>t.li!==u.li);
+      continue; }
+    if(u.pi!=null){                                                       // 프로모션
+      if(u.key==='__newpromo'){ PROMOS.splice(u.pi,1); continue; }
+      PROMOS[u.pi][u.key]=u.before;
+      if(u.key==='gone') TRASH=TRASH.filter(t=>t.pi!==u.pi);
+      continue; }
     if(u.chFee!=null){ CHS[u.chFee].fee=u.before; continue; }             // 채널 수수료율
     if(u.fi!=null){                                                       // 고정지출
       if(u.key==='__newfix'){ FIXED.splice(u.fi,1); continue; }
@@ -1181,7 +1259,7 @@ $('#undoAll').addEventListener('click',()=>{
     if(u.key==='__new'){ ROWS.splice(u.ri,1); continue; }                 // 등록은 '없던 일' 로
     ROWS[u.ri][u.key]=u.before;
     if(u.key==='gone') TRASH=TRASH.filter(t=>t.i!==u.ri); }               // 편집 전 값으로 정확히 원복(삭제 포함)
-  fillProd(); renderPrice(); renderTrash(); renderChProfit(); renderQt(); hint(); renderMatch(); renderFixed(); renderPl(); renderBasis(); clearDirty();
+  fillProd(); renderPrice(); renderTrash(); renderChProfit(); renderQt(); hint(); renderMatch(); renderFixed(); renderPl(); renderBasis(); renderLinks(); renderPromo(); renderMkt(); clearDirty();
   toast('되돌렸습니다 — 저장 전이라 원래 값 그대로입니다',false);
 });
 $('#saveNow').addEventListener('click',save);
@@ -1232,7 +1310,9 @@ $('#ttable').addEventListener('click',e=>{
   if(t.i!=null) ROWS[t.i].gone=false;
   if(t.ci!=null) CHS[t.ci].gone=false;               // 채널은 값을 지운 적이 없으니 그대로 돌아온다
   if(t.fi!=null) FIXED[t.fi].gone=false;
-  TRASH.splice(+b.dataset.res,1); renderChan(); renderPrice(); renderTrash(); hint(); renderQt(); renderFixed(); renderPl(); renderBasis();
+  if(t.li!=null) LINKS[t.li].gone=false;
+  if(t.pi!=null) PROMOS[t.pi].gone=false;
+  TRASH.splice(+b.dataset.res,1); renderChan(); renderPrice(); renderTrash(); hint(); renderQt(); renderFixed(); renderPl(); renderBasis(); renderLinks(); renderPromo(); renderMkt();
   toast(`"${t.n}" 을(를) 되살렸습니다`,false);
 });
 
@@ -1334,6 +1414,130 @@ function renderChProfit(){
   }).join('') + '<p class="note">· 매입원가 대비 평균입니다. 공급 순서(하한 → 정가)로 갈수록 높아지는 것이 정상입니다.</p>';
 }
 $('#cpProd').addEventListener('change',renderChProfit);
+
+/* ══ 마케팅 ══
+   추적링크·프로모션은 실제 대시보드에서 '바로 영구삭제' 되는 자리다.
+   여기서는 둘 다 휴지통을 거치게 해서, 옮길 때의 본보기로 삼는다. */
+const nowTs=()=>{ const d=new Date();
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+const roas=(rev,sp)=>sp?rev/sp:null;
+/* 손익분기 ROAS = 1 ÷ 공헌이익률. 매출만 커도 밑질 수 있다는 걸 숫자로 보여준다. */
+function avgCmr(){
+  const R=chByRole('retail'); if(!R)return null;
+  const shipEl=$('#plShip'); const ship=Math.max(0,+((shipEl&&shipEl.value)||0));
+  const a=ROWS.filter(r=>!r.gone&&r[R.k]!=null&&r.cost!=null).map(r=>{
+    const v=r[R.k]; if(!v)return null;
+    return (v-(r.cost+v*((+R.fee||0)/100)+ship))/v; }).filter(x=>x!=null);
+  return a.length? a.reduce((x,y)=>x+y,0)/a.length : null;
+}
+function renderMkt(){
+  if(!$('#mkTable'))return;
+  const L=lkLive();
+  const sum=L.reduce((a,b)=>({clicks:a.clicks+b.clicks,orders:a.orders+b.orders,revenue:a.revenue+b.revenue,spend:a.spend+b.spend}),{clicks:0,orders:0,revenue:0,spend:0});
+  const cmr=avgCmr(), beRoas=(cmr&&cmr>0)?1/cmr:null, R=roas(sum.revenue,sum.spend);
+  $('#mkCards').innerHTML=[
+    {h:'클릭',v:won(sum.clicks),f:'링크 '+L.length+'개',cls:''},
+    {h:'주문',v:won(sum.orders),f:'전환율 '+pct1(sum.clicks?sum.orders/sum.clicks:null),cls:''},
+    {h:'매출 / 광고비',v:won(sum.revenue)+' / '+won(sum.spend),f:'CPA '+(sum.orders?won(Math.round(sum.spend/sum.orders))+'원':'—'),cls:''},
+    {h:'ROAS',v:R?R.toFixed(2)+'x':'—',f:beRoas?('손익분기 '+beRoas.toFixed(2)+'x · 공헌이익률 '+pct1(cmr)):'—',cls:'costonly'},
+  ].map(c=>`<div class="kpi ${c.cls}"><h4>${c.h}</h4><div class="v" style="font-size:19px">${c.v}</div><div class="f">${c.f}</div></div>`).join('');
+
+  const rows=L.map(l=>({l,r:roas(l.revenue,l.spend)})).sort((a,b)=>(b.r||0)-(a.r||0));
+  $('#mkTable').innerHTML=`<thead><tr><th>링크</th><th>제품 · 채널</th><th class="num">클릭</th><th class="num">주문</th>
+      <th class="num">전환율</th><th class="num">매출</th><th class="num">광고비</th><th class="num">ROAS</th>
+      <th class="num costonly">손익분기 대비</th></tr></thead><tbody>`
+   + rows.map(({l,r})=>{ const p=ROWS[l.prod], c=CHS.find(x=>x.k===l.chan);
+      const ok=(beRoas!=null&&r!=null)?r>=beRoas:null;
+      return `<tr><td class="pname">${l.label}</td>
+        <td class="dim">${p?p.n:'—'} · ${c?c.code:'—'}</td>
+        <td class="num">${won(l.clicks)}</td><td class="num">${won(l.orders)}</td>
+        <td class="num dim">${pct1(l.clicks?l.orders/l.clicks:null)}</td>
+        <td class="num">${won(l.revenue)}</td><td class="num">${won(l.spend)}</td>
+        <td class="num" style="font-weight:700">${r?r.toFixed(2)+'x':'—'}</td>
+        <td class="num costonly ${ok===false?'neg':''}">${ok==null?'—':(ok?'넘김':'<span class="negtag">미달</span>')}</td></tr>`; }).join('')
+   + '</tbody>';
+}
+function lkFill(){
+  const p=$('#lkProd'); if(!p)return;
+  p.innerHTML=ROWS.filter(r=>!r.gone).map(r=>`<option value="${ROWS.indexOf(r)}">${r.n}</option>`).join('');
+  $('#lkChan').innerHTML=chVisible().map(c=>`<option value="${c.k}">[${c.code}] ${c.name}</option>`).join('');
+}
+function renderLinks(){
+  const t=$('#lkTable'); if(!t)return;
+  lkFill();
+  t.innerHTML=`<thead><tr><th>링크</th><th>제품 · 채널</th><th class="num" style="width:92px">클릭</th>
+      <th class="num" style="width:88px">주문</th><th class="num" style="width:128px">매출</th>
+      <th class="num" style="width:120px">광고비</th><th class="num">ROAS</th><th style="width:80px"></th></tr></thead><tbody>`
+   + lkLive().map(l=>{ const li=LINKS.indexOf(l), p=ROWS[l.prod], c=CHS.find(x=>x.k===l.chan), r=roas(l.revenue,l.spend);
+      const inp=(k,w)=>`<input type="number" min="0" data-lk="${li}" data-f="${k}" value="${l[k]}" style="width:${w}px;text-align:right;border:1px solid var(--line);border-radius:6px;padding:3px 6px">`;
+      return `<tr><td class="pname">${l.label}</td><td class="dim">${p?p.n:'—'} · ${c?c.code:'—'}</td>
+        <td class="num">${inp('clicks',76)}</td><td class="num">${inp('orders',72)}</td>
+        <td class="num">${inp('revenue',112)}</td><td class="num">${inp('spend',104)}</td>
+        <td class="num" style="font-weight:600">${r?r.toFixed(2)+'x':'—'}</td>
+        <td><button class="btn sm" tabindex="-1" data-lkdel="${li}">🗑 지우기</button></td></tr>`; }).join('')
+   + '</tbody>';
+}
+$('#lkTable').addEventListener('change',e=>{
+  const i=e.target.closest('[data-lk]'); if(!i)return;
+  const li=+i.dataset.lk, k=i.dataset.f, before=LINKS[li][k], v=Math.max(0,Math.round(+i.value||0));
+  if(v===before)return;
+  LINKS[li][k]=v; UNDO.push({li,key:k,before}); bump(); renderLinks(); renderMkt();
+});
+$('#lkTable').addEventListener('click',e=>{
+  const d=e.target.closest('[data-lkdel]'); if(!d)return;
+  const li=+d.dataset.lkdel, l=LINKS[li]; l.gone=true;
+  TRASH.unshift({kind:'추적링크',n:l.label,at:nowTs(),by:'송희',li});
+  UNDO.push({li,key:'gone',before:false});
+  bump(); renderLinks(); renderMkt(); renderTrash();
+  toast(`링크 "${l.label}" 을(를) 휴지통으로 보냈습니다`,false);
+});
+$('#lkAdd').addEventListener('click',()=>{
+  const label=($('#lkLabel').value||'').trim();
+  if(!label){ toast('링크 이름을 넣어 주세요',false); return; }
+  LINKS.push({label,prod:+$('#lkProd').value||0,chan:$('#lkChan').value,clicks:0,orders:0,revenue:0,spend:0});
+  UNDO.push({li:LINKS.length-1,key:'__newlink'});
+  $('#lkLabel').value='';
+  bump(); renderLinks(); renderMkt();
+  toast(`링크 "${label}" 을(를) 추가했습니다 — 실적은 0 부터`,false);
+});
+function renderPromo(){
+  const t=$('#pmTable'); if(!t)return;
+  t.innerHTML=`<thead><tr><th>프로모션</th><th>기간</th><th class="num" style="width:126px">기준매출</th>
+      <th class="num" style="width:126px">실제매출</th><th class="num">증분매출</th>
+      <th class="num" style="width:120px">광고비</th><th class="num">증분 ROAS</th><th style="width:80px"></th></tr></thead><tbody>`
+   + pmLive().map(p=>{ const pi=PROMOS.indexOf(p), inc=p.actual-p.baseline, r=roas(inc,p.spend);
+      const inp=(k,w)=>`<input type="number" min="0" data-pm="${pi}" data-f="${k}" value="${p[k]}" style="width:${w}px;text-align:right;border:1px solid var(--line);border-radius:6px;padding:3px 6px">`;
+      return `<tr><td class="pname">${p.name}</td><td class="dim">${p.from} ~ ${p.to}</td>
+        <td class="num">${inp('baseline',110)}</td><td class="num">${inp('actual',110)}</td>
+        <td class="num ${inc<0?'neg':''}" style="font-weight:600">${won(inc)}${inc<0?'<span class="negtag">감소</span>':''}</td>
+        <td class="num">${inp('spend',104)}</td>
+        <td class="num" style="font-weight:700">${r?r.toFixed(2)+'x':'—'}</td>
+        <td><button class="btn sm" tabindex="-1" data-pmdel="${pi}">🗑 지우기</button></td></tr>`; }).join('')
+   + '</tbody>';
+}
+$('#pmTable').addEventListener('change',e=>{
+  const i=e.target.closest('[data-pm]'); if(!i)return;
+  const pi=+i.dataset.pm, k=i.dataset.f, before=PROMOS[pi][k], v=Math.max(0,Math.round(+i.value||0));
+  if(v===before)return;
+  PROMOS[pi][k]=v; UNDO.push({pi,key:k,before}); bump(); renderPromo();
+});
+$('#pmTable').addEventListener('click',e=>{
+  const d=e.target.closest('[data-pmdel]'); if(!d)return;
+  const pi=+d.dataset.pmdel, p=PROMOS[pi]; p.gone=true;
+  TRASH.unshift({kind:'프로모션',n:p.name,at:nowTs(),by:'송희',pi});
+  UNDO.push({pi,key:'gone',before:false});
+  bump(); renderPromo(); renderTrash();
+  toast(`프로모션 "${p.name}" 을(를) 휴지통으로 보냈습니다`,false);
+});
+$('#pmAdd').addEventListener('click',()=>{
+  const name=($('#pmName').value||'').trim();
+  if(!name){ toast('프로모션 이름을 넣어 주세요',false); return; }
+  PROMOS.push({name,from:($('#pmFrom').value||'—').trim(),to:($('#pmTo').value||'—').trim(),baseline:0,actual:0,spend:0});
+  UNDO.push({pi:PROMOS.length-1,key:'__newpromo'});
+  $('#pmName').value=''; $('#pmFrom').value=''; $('#pmTo').value='';
+  bump(); renderPromo();
+  toast(`프로모션 "${name}" 을(를) 추가했습니다`,false);
+});
 
 /* ══ 상품 기준 ══ 한 제품의 근거를 한 화면에.
    권한별로 화면을 통째로 막는 대신, 같은 화면에서 볼 수 있는 줄만 남긴다:
@@ -1574,7 +1778,7 @@ $('#qtable').addEventListener('click',e=>{ const b=e.target.closest('[data-qdel]
 
 /* ── 시작 ── */
 $$('.navgrp').forEach(g=>{ if(g.dataset.g==='g1'){ g.classList.add('open'); $('#g1').classList.add('open'); } });
-fillProd(); renderChan(); renderReg(); renderMatch(); renderFixed(); applyRole('master'); renderTrash(); renderQt(); hint(); renderChProfit(); renderPl(); renderBasis();
+fillProd(); renderChan(); renderReg(); renderMatch(); renderFixed(); renderLinks(); renderPromo(); applyRole('master'); renderTrash(); renderQt(); hint(); renderChProfit(); renderPl(); renderBasis(); renderMkt();
 console.log('[시안] 샘플 데이터로만 동작합니다 · Firebase 연결 없음');
 </script>
 </body>

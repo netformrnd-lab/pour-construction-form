@@ -377,7 +377,7 @@ tr.findme td{animation:findme 2.4s ease-out}
         <button class="navitem" data-sc="price"><span class="ic">·</span><span class="tx">가격정책표</span></button>
         <button class="navitem" data-sc="chan"><span class="ic">·</span><span class="tx">채널 관리</span></button>
         <button class="navitem costonly" data-sc="chprofit"><span class="ic">·</span><span class="tx">채널 수익분석</span></button>
-        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">상품 기준</span></button>
+        <button class="navitem" data-sc="basis"><span class="ic">·</span><span class="tx">상품 기준</span></button>
       </div>
       <button class="navgrp" data-g="g2"><span>📦 제품 · 매입</span><span class="ar">›</span></button>
       <div class="navsub" id="g2">
@@ -659,6 +659,35 @@ tr.findme td{animation:findme 2.4s ease-out}
         </div>
       </section>
 
+      <!-- ── 상품 기준 (제품 한 종을 한눈에) ── -->
+      <section class="screen" id="sc-basis">
+        <div class="panel">
+          <h3>제품 한 종을 한눈에 <span class="tag">읽기 전용 · 고치기는 가격정책표에서</span></h3>
+          <div class="bd">
+            <div class="formgrid">
+              <div class="fld" style="grid-column:span 2"><label>제품</label><select id="bsProd"></select></div>
+              <div class="fld" style="display:flex;flex-direction:column;justify-content:flex-end">
+                <button class="btn" id="bsEdit" style="width:100%;justify-content:center">가격정책표에서 고치기 ›</button></div>
+            </div>
+            <p class="note" style="margin-top:9px" id="bsFlag"></p>
+          </div>
+        </div>
+        <div id="bsBody">
+          <div class="kpis" id="bsCards"></div>
+          <div class="panel">
+            <h3>채널별 가격</h3>
+            <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="bsChan" style="min-width:560px"></table></div>
+          </div>
+          <div class="panel">
+            <h3>수량을 늘리면 <span class="tag">MOQ 구간가</span></h3>
+            <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="bsMoq" style="min-width:460px"></table></div>
+            <div class="bd" style="border-top:1px solid var(--line2)">
+              <p class="note">· 이 표는 <b>정가</b>와 <b>MOQ 하한</b> 역할을 맡은 채널에서 계산됩니다. 역할을 옮기면 여기도 함께 바뀝니다.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- ── 손익 · 공헌이익 ── -->
       <section class="screen" id="sc-pl">
         <div class="permblock">
@@ -874,7 +903,7 @@ const TITLES={dash:['경영요약','전 품목 기준 · 자동 재계산'],pric
  account:['계정 · 설정','권한 · 허용 계정'],chan:['채널 관리','가격표의 열 · 역할'],
  chprofit:['채널 수익분석','채널별 마진 · 배분'],reg:['제품 등록','새 제품 만들기'],
  match:['제품 매칭','매입처 · 대외비'],pl:['손익 · 공헌이익','공헌이익 · 손익분기'],
- fixed:['고정지출','월 고정비'],soon:['준비중','']};
+ fixed:['고정지출','월 고정비'],basis:['상품 기준','제품 한 종의 근거'],soon:['준비중','']};
 
 /* 월 고정지출 — 손익분기 계산의 분모. 시안용 샘플 금액입니다. */
 let FIXED=[
@@ -958,7 +987,7 @@ function applyRole(r){
   const cur=[...document.querySelectorAll('.screen')].find(x=>x.classList.contains('on'));
   if(!canCost && cur && ['sc-chprofit','sc-pl','sc-fixed'].includes(cur.id)) go('dash');
   if(!canSecret && cur && cur.id==='sc-match') go('dash');
-  renderAccounts(); renderPrice(); renderChProfit(); renderReg(); renderMatch(); renderFixed(); renderPl();
+  renderAccounts(); renderPrice(); renderChProfit(); renderReg(); renderMatch(); renderFixed(); renderPl(); renderBasis();
 }
 function renderAccounts(){
   const t=$('#acctTable'); if(!t)return;
@@ -993,10 +1022,10 @@ document.addEventListener('click',e=>{
 $('#chTable').addEventListener('click',e=>{ const d=e.target.closest('[data-chdel]'); if(d) chDelete(+d.dataset.chdel); });
 $('#chTable').addEventListener('change',e=>{
   const col=e.target.closest('[data-chcol]'), rl=e.target.closest('[data-chrole]');
-  if(col){ chLive()[+col.dataset.chcol].col=col.checked; renderChan(); renderPrice(); hint(); renderQt(); renderChProfit(); renderReg(); renderPl(); return; }
+  if(col){ chLive()[+col.dataset.chcol].col=col.checked; renderChan(); renderPrice(); hint(); renderQt(); renderChProfit(); renderReg(); renderPl(); renderBasis(); return; }
   if(rl){ const c=chLive()[+rl.dataset.chrole], v=rl.value;
     if(v) CHS.forEach(x=>{ if(x.role===v) x.role=''; });   // 정가·하한은 한 채널만
-    c.role=v; renderChan(); renderPrice(); hint(); renderQt(); renderChProfit(); renderReg(); renderPl(); }
+    c.role=v; renderChan(); renderPrice(); hint(); renderQt(); renderChProfit(); renderReg(); renderPl(); renderBasis(); }
 });
 $('#ncAdd').addEventListener('click',()=>{
   const code=($('#ncCode').value||'').trim().toUpperCase(), name=($('#ncName').value||'').trim();
@@ -1152,7 +1181,7 @@ $('#undoAll').addEventListener('click',()=>{
     if(u.key==='__new'){ ROWS.splice(u.ri,1); continue; }                 // 등록은 '없던 일' 로
     ROWS[u.ri][u.key]=u.before;
     if(u.key==='gone') TRASH=TRASH.filter(t=>t.i!==u.ri); }               // 편집 전 값으로 정확히 원복(삭제 포함)
-  fillProd(); renderPrice(); renderTrash(); renderChProfit(); renderQt(); hint(); renderMatch(); renderFixed(); renderPl(); clearDirty();
+  fillProd(); renderPrice(); renderTrash(); renderChProfit(); renderQt(); hint(); renderMatch(); renderFixed(); renderPl(); renderBasis(); clearDirty();
   toast('되돌렸습니다 — 저장 전이라 원래 값 그대로입니다',false);
 });
 $('#saveNow').addEventListener('click',save);
@@ -1203,7 +1232,7 @@ $('#ttable').addEventListener('click',e=>{
   if(t.i!=null) ROWS[t.i].gone=false;
   if(t.ci!=null) CHS[t.ci].gone=false;               // 채널은 값을 지운 적이 없으니 그대로 돌아온다
   if(t.fi!=null) FIXED[t.fi].gone=false;
-  TRASH.splice(+b.dataset.res,1); renderChan(); renderPrice(); renderTrash(); hint(); renderQt(); renderFixed(); renderPl();
+  TRASH.splice(+b.dataset.res,1); renderChan(); renderPrice(); renderTrash(); hint(); renderQt(); renderFixed(); renderPl(); renderBasis();
   toast(`"${t.n}" 을(를) 되살렸습니다`,false);
 });
 
@@ -1305,6 +1334,50 @@ function renderChProfit(){
   }).join('') + '<p class="note">· 매입원가 대비 평균입니다. 공급 순서(하한 → 정가)로 갈수록 높아지는 것이 정상입니다.</p>';
 }
 $('#cpProd').addEventListener('change',renderChProfit);
+
+/* ══ 상품 기준 ══ 한 제품의 근거를 한 화면에.
+   권한별로 화면을 통째로 막는 대신, 같은 화면에서 볼 수 있는 줄만 남긴다:
+   판매가·MOQ 는 팀원도 보고, 매입원가는 감추고, 매입처는 마스터만. */
+function renderBasis(){
+  const sel=$('#bsProd'); if(!sel)return;
+  const prev=sel.value;
+  sel.innerHTML=ROWS.filter(r=>!r.gone).map(r=>`<option value="${ROWS.indexOf(r)}">${r.n} · ${r.s}</option>`).join('');
+  if(prev && ROWS[+prev] && !ROWS[+prev].gone) sel.value=prev;
+  const r=ROWS[+(sel.value||0)]; if(!r)return;
+  const own=retailOf(r), low=lowOf(r), sp=supById(r.sup);
+
+  $('#bsFlag').innerHTML = r.flag
+    ? `<span class="flag" style="cursor:default"></span> <b style="color:var(--warn)">확인 필요</b> — ${r.flag}`
+    : '<span class="dim">확인이 필요한 값은 없습니다.</span>';
+
+  $('#bsCards').innerHTML=[
+    {h:'규격',v:r.s||'—',f:r.n,cls:''},
+    {h:'매입원가',v:r.cost!=null?won(r.cost)+'원':'—',f:'대외비',cls:'costonly'},
+    {h:'정가',v:own!=null?won(own)+'원':'—',f:chByRole('retail')?('['+chByRole('retail').code+'] 기준'):'정가 채널 없음',cls:''},
+    {h:'매입처',v:sp?sp.name:'— 아직 안 정함',f:sp?(sp.mgr+' · '+sp.tel):'제품 매칭에서 지정',cls:'secretonly'},
+  ].map(c=>`<div class="kpi ${c.cls}"><h4>${c.h}</h4><div class="v" style="font-size:18px">${c.v}</div><div class="f">${c.f}</div></div>`).join('');
+
+  $('#bsChan').innerHTML=`<thead><tr><th>채널</th><th class="num">공급가</th>
+      <th class="num">정가 대비</th><th class="num costonly">원가 대비 마진율</th></tr></thead><tbody>`
+   + chVisible().map(c=>{ const v=r[c.k];
+      const disc=(own&&v!=null&&c.k!==(chByRole('retail')||{}).k)?(own-v)/own:null;
+      const mr=(v!=null&&r.cost!=null&&v)?(v-r.cost)/v:null;
+      return `<tr><td><b class="mono" style="color:var(--warn);font-size:10.5px">${c.code}</b> ${c.name}</td>
+        <td class="num">${won(v)}</td>
+        <td class="num dim">${disc==null?'—':pct1(disc)+' ↓'}</td>
+        <td class="num costonly ${mr!=null&&mr<0?'neg':''}">${pct1(mr)}</td></tr>`; }).join('')
+   + '</tbody>';
+
+  $('#bsMoq').innerHTML = (own==null)
+    ? '<tbody><tr><td style="padding:20px;text-align:center;color:var(--ink3)">정가가 없어 구간가를 계산할 수 없습니다.</td></tr></tbody>'
+    : `<thead><tr><th>수량 구간</th><th class="num">납품가</th><th class="num">정가 대비</th></tr></thead><tbody>`
+      + TIERS.map(t=>{ const u=unitOf(r,t.min);
+          return `<tr><td>${t.l}</td><td class="num" style="font-weight:600">${won(u)}</td>
+            <td class="num dim">${(u!=null&&own)?pct1((own-u)/own)+' ↓':'—'}</td></tr>`; }).join('')
+      + '</tbody>';
+}
+$('#bsProd').addEventListener('change',renderBasis);
+$('#bsEdit').addEventListener('click',()=>{ const r=ROWS[+($('#bsProd').value||0)]; if(r) jumpTo(r.n); });
 
 /* ══ 손익 · 공헌이익 ══
    공헌이익 = 공급가 − (원가 + 수수료 + 배송비). 고정지출을 갚기 전에 남는 돈.
@@ -1460,7 +1533,7 @@ function addProduct(){
   $$('#rgChans input').forEach(i=>{ const v=validate(i.value); row[i.dataset.k]=v.v; });
   ROWS.push(row);
   UNDO.push({ri:ROWS.length-1,key:'__new'});     // 되돌리면 '없던 일' 이 된다
-  bump(); fillProd(); renderPrice(); renderChProfit(); renderQt(); hint(); renderMatch(); renderPl();   // 매칭·손익 표에도 새 제품이 바로 서야 한다
+  bump(); fillProd(); renderPrice(); renderChProfit(); renderQt(); hint(); renderMatch(); renderPl(); renderBasis();   // 매칭·손익·기준 화면에도 새 제품이 바로 서야 한다
   rgReset();
   toast(`"${name}" 을(를) 등록했습니다 — 저장 전이라 되돌릴 수 있습니다`,false);
   jumpTo(name);
@@ -1501,7 +1574,7 @@ $('#qtable').addEventListener('click',e=>{ const b=e.target.closest('[data-qdel]
 
 /* ── 시작 ── */
 $$('.navgrp').forEach(g=>{ if(g.dataset.g==='g1'){ g.classList.add('open'); $('#g1').classList.add('open'); } });
-fillProd(); renderChan(); renderReg(); renderMatch(); renderFixed(); applyRole('master'); renderTrash(); renderQt(); hint(); renderChProfit(); renderPl();
+fillProd(); renderChan(); renderReg(); renderMatch(); renderFixed(); applyRole('master'); renderTrash(); renderQt(); hint(); renderChProfit(); renderPl(); renderBasis();
 console.log('[시안] 샘플 데이터로만 동작합니다 · Firebase 연결 없음');
 </script>
 </body>

@@ -354,7 +354,7 @@ tr.findme td{animation:findme 2.4s ease-out}
       <button class="navgrp" data-g="g1"><span>💰 가격 · 채널</span><span class="ar">›</span></button>
       <div class="navsub" id="g1">
         <button class="navitem" data-sc="price"><span class="ic">·</span><span class="tx">가격정책표</span></button>
-        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">채널 관리</span></button>
+        <button class="navitem" data-sc="chan"><span class="ic">·</span><span class="tx">채널 관리</span></button>
         <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">채널 수익분석</span></button>
         <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">상품 기준</span></button>
       </div>
@@ -479,16 +479,7 @@ tr.findme td{animation:findme 2.4s ease-out}
           </div>
           <div class="tblwrap">
             <table class="grid freeze1" id="ptable">
-              <thead><tr>
-                <th style="min-width:210px">제품</th>
-                <th class="num costcol">매입원가</th>
-                <th class="num">대리점<span class="code">P3</span></th>
-                <th class="num">시공업체<span class="code">P4</span></th>
-                <th class="num">온라인 도매<span class="code">P6</span></th>
-                <th class="num">쿠팡<span class="code">P8</span></th>
-                <th class="num">자사몰 정가<span class="code">OWN</span></th>
-                <th style="width:40px"></th>
-              </tr></thead>
+              <thead><tr id="pthead"></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -562,6 +553,29 @@ tr.findme td{animation:findme 2.4s ease-out}
             <div class="alertrow"><span class="pill" style="background:var(--sel);color:var(--ok-d)">가격</span><span>POUR 코트재Ⅰ(회색) 자사몰 정가 177,500 → 179,000</span><span class="go dim">오늘 14:22 · 송희</span></div>
             <div class="alertrow"><span class="pill" style="background:var(--sel);color:var(--ok-d)">복원</span><span>POUR 에어쉘시트 휴지통에서 되살림</span><span class="go dim">어제 17:05 · 송희</span></div>
             <div class="alertrow"><span class="pill" style="background:var(--sel);color:var(--ok-d)">견적</span><span>○○아파트 관리사무소 견적서 발행 (3품목)</span><span class="go dim">어제 11:40 · 송희</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── 채널 관리 ── -->
+      <section class="screen" id="sc-chan">
+        <div class="panel">
+          <h3>채널 <span class="tag">가격정책표의 열이 여기서 만들어집니다</span></h3>
+          <div class="bd" style="padding:0;overflow-x:auto">
+            <table class="grid" id="chTable" style="min-width:660px"></table>
+          </div>
+          <div class="bd" style="border-top:1px solid var(--line2)">
+            <div class="toolbar" style="padding:0;border:none">
+              <div class="tgroup">
+                <div class="field"><input id="ncCode" placeholder="코드 (예: P9)" style="width:110px"></div>
+                <div class="field"><input id="ncName" placeholder="채널 이름" style="width:170px"></div>
+              </div>
+              <div class="tgroup right"><button class="btn pri" id="ncAdd">＋ 채널 추가</button></div>
+            </div>
+            <p class="note" style="margin-top:10px">
+            · <b>표시</b>를 끄면 가격표에서 열만 숨깁니다 — <b>입력해 둔 가격은 그대로 남습니다.</b><br>
+            · <b>지우기</b>도 휴지통으로 갑니다. 되살리면 그 채널의 가격이 <b>값 그대로</b> 돌아옵니다.<br>
+            · <b>정가</b>와 <b>MOQ 하한</b>은 각각 한 채널만 맡을 수 있습니다. 옮기면 견적서 단가가 그 기준으로 다시 계산됩니다.</p>
           </div>
         </div>
       </section>
@@ -687,7 +701,49 @@ let dirty=0, lastDeleted=null, toastT=null, UNDO=[];   // UNDO: 저장 전 편�
 /* ── 화면 전환 ── */
 const TITLES={dash:['경영요약','전 품목 기준 · 자동 재계산'],price:['가격정책표','채널별 공급가 · 정가'],
  moq:['MOQ · 견적서','수량 구간 단가로 견적서 만들기'],trash:['휴지통 · 이력','지운 것 되살리기'],
- account:['계정 · 설정','권한 · 허용 계정'],soon:['준비중','']};
+ account:['계정 · 설정','권한 · 허용 계정'],chan:['채널 관리','가격표의 열 · 역할'],soon:['준비중','']};
+
+/* ══ 채널 ══ 가격표의 '열'이 곧 채널이다. 열을 여기서 만들고 숨기고 지운다.
+   지워도 그 채널에 입력한 가격은 남겨 둔다 — 되살리면 값 그대로 돌아온다. */
+let CHS=[
+  {k:'p3', code:'P3', name:'대리점·오프라인몰', role:'dealer', col:true},
+  {k:'p4', code:'P4', name:'시공업체 파트너사', role:'',       col:true},
+  {k:'p6', code:'P6', name:'온라인 도매',      role:'',       col:true},
+  {k:'p8', code:'P8', name:'쿠팡 위너가',      role:'',       col:true},
+  {k:'own',code:'OWN',name:'자사몰 직판(정가)', role:'retail', col:true},
+];
+const chLive=()=>CHS.filter(c=>!c.gone);
+const chVisible=()=>CHS.filter(c=>c.col&&!c.gone);
+const chByRole=r=>CHS.find(c=>c.role===r&&!c.gone&&c.col);
+const ROLE_LB={retail:'정가',dealer:'MOQ 하한'};
+function renderChan(){
+  const t=$('#chTable'); if(!t)return;
+  t.innerHTML=`<thead><tr><th style="width:70px">코드</th><th>채널 이름</th><th style="width:140px">역할</th>
+    <th style="width:70px">표시</th><th style="width:90px"></th></tr></thead><tbody>`
+   + chLive().map((c,i)=>`<tr>
+      <td><b class="mono" style="color:var(--warn)">${c.code}</b></td>
+      <td class="pname">${c.name}</td>
+      <td><select data-chrole="${i}" style="border:1px solid var(--line);border-radius:6px;padding:4px 7px">
+        <option value=""${c.role?'':' selected'}>—</option>
+        <option value="retail"${c.role==='retail'?' selected':''}>정가</option>
+        <option value="dealer"${c.role==='dealer'?' selected':''}>MOQ 하한</option></select></td>
+      <td><label class="switch"><input type="checkbox" data-chcol="${i}" ${c.col?'checked':''}><span class="tr"></span></label></td>
+      <td><button class="btn sm" tabindex="-1" data-chdel="${i}" title="휴지통으로 보내기">🗑 지우기</button></td></tr>`).join('')
+   + '</tbody>';
+  const warn=[];
+  if(!chByRole('retail')) warn.push('정가');
+  if(!chByRole('dealer')) warn.push('MOQ 하한');
+  if(warn.length) t.insertAdjacentHTML('beforeend',
+    `<tfoot><tr><td colspan="5" style="background:var(--warn-l);color:var(--warn);font-weight:600">
+      ⚠ ${warn.join('·')} 을(를) 맡은 채널이 없습니다 — 견적서 단가가 계산되지 않습니다.</td></tr></tfoot>`);
+}
+function chDelete(i){
+  const c=chLive()[i]; const gi=CHS.indexOf(c); c.gone=true;
+  const d=new Date(), ts=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  TRASH.unshift({kind:'채널',n:`[${c.code}] ${c.name}`,at:ts,by:'송희',ci:gi});
+  renderChan(); renderPrice(); renderTrash(); hint(); renderQt();
+  toast(`채널 "${c.name}" 을(를) 휴지통으로 보냈습니다 — 가격은 그대로 보관됩니다`,false);
+}
 
 /* ══ 권한 ══
    master   : 원가·마진·공급업체 전부
@@ -738,6 +794,22 @@ document.addEventListener('click',e=>{
   ['moreMenu','acctMenu'].forEach(id=>{ const m=$('#'+id); if(m && !m.contains(e.target) && !e.target.closest('.more')?.contains(m)) m.classList.remove('on'); });
   if(!e.target.closest('.gsearch')) $('#gres').classList.remove('on');
 });
+$('#chTable').addEventListener('click',e=>{ const d=e.target.closest('[data-chdel]'); if(d) chDelete(+d.dataset.chdel); });
+$('#chTable').addEventListener('change',e=>{
+  const col=e.target.closest('[data-chcol]'), rl=e.target.closest('[data-chrole]');
+  if(col){ chLive()[+col.dataset.chcol].col=col.checked; renderChan(); renderPrice(); hint(); renderQt(); return; }
+  if(rl){ const c=chLive()[+rl.dataset.chrole], v=rl.value;
+    if(v) CHS.forEach(x=>{ if(x.role===v) x.role=''; });   // 정가·하한은 한 채널만
+    c.role=v; renderChan(); renderPrice(); hint(); renderQt(); }
+});
+$('#ncAdd').addEventListener('click',()=>{
+  const code=($('#ncCode').value||'').trim().toUpperCase(), name=($('#ncName').value||'').trim();
+  if(!code||!name){ toast('코드와 이름을 모두 넣어 주세요',false); return; }
+  if(CHS.some(c=>c.code===code)){ toast(`코드 ${code} 는 이미 있습니다`,false); return; }
+  CHS.push({k:'c'+Date.now(), code, name, role:'', col:true});
+  $('#ncCode').value=''; $('#ncName').value='';
+  renderChan(); renderPrice(); toast(`채널 "${name}" 을(를) 추가했습니다 — 값은 비어 있습니다`,false);
+});
 $('#acctBtn').addEventListener('click',e=>{ e.stopPropagation(); $('#moreMenu').classList.remove('on'); $('#acctMenu').classList.toggle('on'); });
 /* 가격정책표의 그 줄로 데려가서 잠깐 노랗게 — '고치기'와 전체 검색이 함께 쓴다 */
 function jumpTo(nameFrag){
@@ -754,7 +826,7 @@ function gsearch(){
   if(!q){ box.classList.remove('on'); box.innerHTML=''; gsel=-1; return; }
   const hits=ROWS.filter(r=>!r.gone && r.n.includes(q)).slice(0,8);
   box.innerHTML = hits.length
-    ? hits.map((r,i)=>`<button data-jump="${r.n}" class="${i===0?'sel':''}">${r.n}<small>${r.s} · 정가 ${won(r.own)}원</small></button>`).join('')
+    ? hits.map((r,i)=>`<button data-jump="${r.n}" class="${i===0?'sel':''}">${r.n}<small>${r.s} · 정가 ${won(retailOf(r))}원</small></button>`).join('')
     : `<div class="none"><b>"${q}"</b> 에 맞는 제품이 없습니다</div>`;
   gsel = hits.length?0:-1; box.classList.add('on');
 }
@@ -795,10 +867,14 @@ function cell(v,cost,ri,key){
 }
 function renderPrice(){
   const q=($('#q').value||'').trim();
+  const hd=$('#pthead');
+  if(hd) hd.innerHTML=`<th style="min-width:210px">제품</th><th class="num costcol">매입원가</th>`
+    + chVisible().map(c=>`<th class="num">${c.name}<span class="code">${c.code}</span></th>`).join('')
+    + `<th style="width:40px"></th>`;
   const tb=$('#ptable tbody'); tb.innerHTML='';
   const shown=ROWS.filter(r=>!r.gone && (!q || r.n.includes(q))).length;
   if(!shown){   // 빈 표만 남으면 '고장난 건가' 싶어진다 — 빠져나갈 길을 같이 준다
-    tb.innerHTML=`<tr><td colspan="8" style="padding:36px;text-align:center;color:var(--ink3)">
+    tb.innerHTML=`<tr><td colspan="${chVisible().length+3}" style="padding:36px;text-align:center;color:var(--ink3)">
       ${q?`<b>"${q}"</b> 에 맞는 제품이 없습니다`:'표시할 제품이 없습니다'}
       ${q?'<div style="margin-top:9px"><button class="btn sm" id="qclear">검색어 지우기</button></div>':''}</td></tr>`;
     const c=$('#qclear'); if(c) c.addEventListener('click',()=>{ $('#q').value=''; renderPrice(); $('#q').focus(); });
@@ -810,7 +886,7 @@ function renderPrice(){
     tr.innerHTML=`<td><span class="pname">${r.n}</span>${r.flag?`<span class="flag" title="${r.flag}"></span>`:''}
         <div class="spec">${r.s}</div></td>
       <td class="num dim costcol">${won(r.cost)}</td>
-      ${['p3','p4','p6','p8','own'].map(k=>cell(r[k],r.cost,ROWS.indexOf(r),k)).join('')}
+      ${chVisible().map(c=>cell(r[c.k],r.cost,ROWS.indexOf(r),c.k)).join('')}
       <td><button class="btn sm" tabindex="-1" data-del="${ROWS.indexOf(r)}" title="휴지통으로 보내기">🗑</button></td>`;
     tb.appendChild(tr);
   });
@@ -858,7 +934,7 @@ function validate(raw){
 function nextCell(td,dir){
   const cells=[...document.querySelectorAll('#ptable td[data-edit]')];
   const i=cells.indexOf(td); if(i<0)return null;
-  const perRow=document.querySelectorAll('#ptable thead th').length-3;   // 제품·매입원가·삭제 열 제외
+  const perRow=chVisible().length;   // 편집 가능한 칸 = 보이는 채널 수
   const j = dir==='right'? i+1 : dir==='left'? i-1 : i+perRow;
   return (j>=0&&j<cells.length) ? {r:cells[j].dataset.r, k:cells[j].dataset.k} : null;
 }
@@ -882,7 +958,7 @@ function save(){ UNDO=[]; clearDirty(); toast('저장했습니다 · 변경 이�
 function softDelete(i){
   const r=ROWS[i]; r.gone=true;
   const d=new Date(), ts=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-  TRASH.unshift({n:r.n+' · '+r.s,at:ts,by:'송희',i});
+  TRASH.unshift({kind:'제품',n:r.n+' · '+r.s,at:ts,by:'송희',i});
   UNDO.push({ri:i,key:'gone',before:false});    // 삭제도 '변경 N건' 에 함께 잡아 되돌리기에 포함
   lastDeleted=i; bump(); renderPrice(); renderTrash();
   toast(`"${r.n}" 을(를) 휴지통으로 보냈습니다`,true);
@@ -912,7 +988,7 @@ $('#toastUndo').addEventListener('click',()=>{
 });
 function renderTrash(){
   $('#ttable tbody').innerHTML = TRASH.length
-    ? TRASH.map((t,k)=>`<tr><td class="pname">${t.n}</td><td class="dim">${t.at}</td><td class="dim">${t.by}</td>
+    ? TRASH.map((t,k)=>`<tr><td><span class="rolechip ${t.kind==='채널'?'sub':'mem'}">${t.kind||'제품'}</span> <span class="pname">${t.n}</span></td><td class="dim">${t.at}</td><td class="dim">${t.by}</td>
         <td><button class="btn sm" data-res="${k}">되살리기</button></td></tr>`).join('')
     : `<tr><td colspan="4" style="padding:22px;text-align:center;color:var(--ink3)">휴지통이 비어 있습니다</td></tr>`;
 }
@@ -920,7 +996,8 @@ $('#ttable').addEventListener('click',e=>{
   const b=e.target.closest('[data-res]'); if(!b)return;
   const t=TRASH[+b.dataset.res];
   if(t.i!=null) ROWS[t.i].gone=false;
-  TRASH.splice(+b.dataset.res,1); renderPrice(); renderTrash();
+  if(t.ci!=null) CHS[t.ci].gone=false;               // 채널은 값을 지운 적이 없으니 그대로 돌아온다
+  TRASH.splice(+b.dataset.res,1); renderChan(); renderPrice(); renderTrash(); hint(); renderQt();
   toast(`"${t.n}" 을(를) 되살렸습니다`,false);
 });
 
@@ -935,10 +1012,13 @@ $('#resetGo').addEventListener('click',()=>{ $('#resetOv').classList.remove('on'
 /* ── MOQ · 견적서 ── */
 let QT=[];
 function tierOf(q){ return TIERS.find(t=>q>=t.min&&q<=t.max)||TIERS[TIERS.length-1]; }
+function retailOf(r){ const c=chByRole('retail'); return c?r[c.k]:null; }
+function lowOf(r){ const c=chByRole('dealer'); return c?r[c.k]:null; }
 function unitOf(r,q){
-  if(r.own==null) return null;
-  if(r.p3==null||r.p3>=r.own) return r.own;          /* 하한이 정가 이상이면 할인 없음 — 많이 살수록 비싼 견적을 막는다 */
-  return Math.round((r.own - tierOf(q).f*(r.own-r.p3))/10)*10;
+  const own=retailOf(r), low=lowOf(r);
+  if(own==null) return null;
+  if(low==null||low>=own) return own;                /* 하한이 정가 이상이면 할인 없음 — 많이 살수록 비싼 견적을 막는다 */
+  return Math.round((own - tierOf(q).f*(own-low))/10)*10;
 }
 function fillProd(){
   $('#mProd').innerHTML=ROWS.map((r,i)=>`<option value="${i}">${r.n} · ${r.s}</option>`).join('');
@@ -975,7 +1055,7 @@ $('#qtable').addEventListener('click',e=>{ const b=e.target.closest('[data-qdel]
 
 /* ── 시작 ── */
 $$('.navgrp').forEach(g=>{ if(g.dataset.g==='g1'){ g.classList.add('open'); $('#g1').classList.add('open'); } });
-fillProd(); applyRole('master'); renderTrash(); renderQt(); hint();
+fillProd(); renderChan(); applyRole('master'); renderTrash(); renderQt(); hint();
 console.log('[시안] 샘플 데이터로만 동작합니다 · Firebase 연결 없음');
 </script>
 </body>

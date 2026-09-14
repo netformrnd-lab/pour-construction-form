@@ -373,7 +373,7 @@ tr.findme td{animation:findme 2.4s ease-out}
       </div>
       <button class="navgrp" data-g="g2"><span>📦 제품 · 매입</span><span class="ar">›</span></button>
       <div class="navsub" id="g2">
-        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">제품 등록</span></button>
+        <button class="navitem" data-sc="reg"><span class="ic">·</span><span class="tx">제품 등록</span></button>
         <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">제품 매칭 🔒</span></button>
         <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">CRM 연동</span></button>
       </div>
@@ -593,6 +593,41 @@ tr.findme td{animation:findme 2.4s ease-out}
         </div>
       </section>
 
+      <!-- ── 제품 등록 ── -->
+      <section class="screen" id="sc-reg">
+        <div class="panel">
+          <h3>새 제품 등록 <span class="tag">가격은 나중에 채워도 됩니다</span></h3>
+          <div class="bd">
+            <div class="formgrid">
+              <div class="fld"><label>제품명 <span style="color:var(--danger)">*</span></label>
+                <input id="rgName" placeholder="예: POUR 코트재Ⅲ(회색)" autocomplete="off"></div>
+              <div class="fld"><label>규격 <span style="color:var(--danger)">*</span></label>
+                <input id="rgSpec" placeholder="예: 20kg/통" autocomplete="off"></div>
+              <div class="fld costonly"><label>매입원가</label>
+                <input id="rgCost" type="number" min="0" placeholder="비워도 됩니다"></div>
+            </div>
+            <p class="note" style="margin-top:10px">· <b>제품명과 규격만</b> 있으면 등록됩니다. 가격은 비워 두면 가격정책표에 <b>—</b> 로 남고 나중에 채우면 됩니다.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>채널별 가격 <span class="tag">선택 입력</span></h3>
+          <div class="bd"><div class="formgrid" id="rgChans"></div></div>
+        </div>
+
+        <div class="panel">
+          <div class="bd">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <button class="btn pri" id="rgSave">＋ 등록하기</button>
+              <button class="btn" id="rgClear">입력 비우기</button>
+              <span class="note" id="rgStatus" style="margin:0"></span>
+            </div>
+            <p class="note">· 같은 <b>제품명 + 규격</b>이 이미 있으면 등록하지 않고 <b>그 행으로 안내</b>합니다 — 조용히 덮어쓰지 않습니다.<br>
+            · 등록도 <b>“저장하지 않은 변경”에 잡힙니다.</b> 잘못 넣었으면 아래 막대의 [되돌리기]로 없던 일로 만들 수 있습니다.</p>
+          </div>
+        </div>
+      </section>
+
       <!-- ── 채널 수익분석 ── -->
       <section class="screen" id="sc-chprofit">
         <div class="permblock">
@@ -748,7 +783,7 @@ let dirty=0, lastDeleted=null, toastT=null, UNDO=[];   // UNDO: 저장 전 편�
 const TITLES={dash:['경영요약','전 품목 기준 · 자동 재계산'],price:['가격정책표','채널별 공급가 · 정가'],
  moq:['MOQ · 견적서','수량 구간 단가로 견적서 만들기'],trash:['휴지통 · 이력','지운 것 되살리기'],
  account:['계정 · 설정','권한 · 허용 계정'],chan:['채널 관리','가격표의 열 · 역할'],
- chprofit:['채널 수익분석','채널별 마진 · 배분'],soon:['준비중','']};
+ chprofit:['채널 수익분석','채널별 마진 · 배분'],reg:['제품 등록','새 제품 만들기'],soon:['준비중','']};
 
 /* ══ 채널 ══ 가격표의 '열'이 곧 채널이다. 열을 여기서 만들고 숨기고 지운다.
    지워도 그 채널에 입력한 가격은 남겨 둔다 — 되살리면 값 그대로 돌아온다. */
@@ -788,7 +823,7 @@ function chDelete(i){
   const c=chLive()[i]; const gi=CHS.indexOf(c); c.gone=true;
   const d=new Date(), ts=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   TRASH.unshift({kind:'채널',n:`[${c.code}] ${c.name}`,at:ts,by:'송희',ci:gi});
-  renderChan(); renderPrice(); renderTrash(); hint(); renderQt();
+  renderChan(); renderPrice(); renderTrash(); hint(); renderQt(); renderReg();
   toast(`채널 "${c.name}" 을(를) 휴지통으로 보냈습니다 — 가격은 그대로 보관됩니다`,false);
 }
 
@@ -812,7 +847,7 @@ function applyRole(r){
   // 팀원으로 내려오면 원가 전용 화면에 머물지 않게 한다(메뉴에서도 사라지므로)
   const cur=[...document.querySelectorAll('.screen')].find(x=>x.classList.contains('on'));
   if(!canCost && cur && cur.id==='sc-chprofit') go('dash');
-  renderAccounts(); renderPrice(); renderChProfit();
+  renderAccounts(); renderPrice(); renderChProfit(); renderReg();
 }
 function renderAccounts(){
   const t=$('#acctTable'); if(!t)return;
@@ -847,10 +882,10 @@ document.addEventListener('click',e=>{
 $('#chTable').addEventListener('click',e=>{ const d=e.target.closest('[data-chdel]'); if(d) chDelete(+d.dataset.chdel); });
 $('#chTable').addEventListener('change',e=>{
   const col=e.target.closest('[data-chcol]'), rl=e.target.closest('[data-chrole]');
-  if(col){ chLive()[+col.dataset.chcol].col=col.checked; renderChan(); renderPrice(); hint(); renderQt(); renderChProfit(); return; }
+  if(col){ chLive()[+col.dataset.chcol].col=col.checked; renderChan(); renderPrice(); hint(); renderQt(); renderChProfit(); renderReg(); return; }
   if(rl){ const c=chLive()[+rl.dataset.chrole], v=rl.value;
     if(v) CHS.forEach(x=>{ if(x.role===v) x.role=''; });   // 정가·하한은 한 채널만
-    c.role=v; renderChan(); renderPrice(); hint(); renderQt(); renderChProfit(); }
+    c.role=v; renderChan(); renderPrice(); hint(); renderQt(); renderChProfit(); renderReg(); }
 });
 $('#ncAdd').addEventListener('click',()=>{
   const code=($('#ncCode').value||'').trim().toUpperCase(), name=($('#ncName').value||'').trim();
@@ -858,7 +893,7 @@ $('#ncAdd').addEventListener('click',()=>{
   if(CHS.some(c=>c.code===code)){ toast(`코드 ${code} 는 이미 있습니다`,false); return; }
   CHS.push({k:'c'+Date.now(), code, name, role:'', col:true});
   $('#ncCode').value=''; $('#ncName').value='';
-  renderChan(); renderPrice(); toast(`채널 "${name}" 을(를) 추가했습니다 — 값은 비어 있습니다`,false);
+  renderChan(); renderPrice(); renderReg(); toast(`채널 "${name}" 을(를) 추가했습니다 — 값은 비어 있습니다`,false);
 });
 $('#acctBtn').addEventListener('click',e=>{ e.stopPropagation(); $('#moreMenu').classList.remove('on'); $('#acctMenu').classList.toggle('on'); });
 /* 가격정책표의 그 줄로 데려가서 잠깐 노랗게 — '고치기'와 전체 검색이 함께 쓴다 */
@@ -993,11 +1028,14 @@ function openCell(pos){
   if(td) td.click();
 }
 function bump(){ dirty++; $('#dirtyN').textContent=dirty; $('#dirty').classList.add('on'); $('#btnSave').disabled=false; }
-function clearDirty(){ dirty=0; $('#dirty').classList.remove('on'); $('#btnSave').disabled=true; }
+function clearDirty(){ dirty=0; $('#dirtyN').textContent='0';   // 숫자까지 같이 되돌린다 — 막대만 숨기면 상태와 화면이 어긋난다
+  $('#dirty').classList.remove('on'); $('#btnSave').disabled=true; }
 $('#undoAll').addEventListener('click',()=>{
-  while(UNDO.length){ const u=UNDO.pop(); ROWS[u.ri][u.key]=u.before;
+  while(UNDO.length){ const u=UNDO.pop();
+    if(u.key==='__new'){ ROWS.splice(u.ri,1); continue; }                 // 등록은 '없던 일' 로
+    ROWS[u.ri][u.key]=u.before;
     if(u.key==='gone') TRASH=TRASH.filter(t=>t.i!==u.ri); }               // 편집 전 값으로 정확히 원복(삭제 포함)
-  renderPrice(); renderTrash(); clearDirty();
+  fillProd(); renderPrice(); renderTrash(); renderChProfit(); renderQt(); hint(); clearDirty();
   toast('되돌렸습니다 — 저장 전이라 원래 값 그대로입니다',false);
 });
 $('#saveNow').addEventListener('click',save);
@@ -1149,6 +1187,45 @@ function renderChProfit(){
   }).join('') + '<p class="note">· 매입원가 대비 평균입니다. 공급 순서(하한 → 정가)로 갈수록 높아지는 것이 정상입니다.</p>';
 }
 $('#cpProd').addEventListener('change',renderChProfit);
+
+/* ══ 제품 등록 ══
+   여기서 정한 규칙을 다른 '만드는' 화면들도 따라간다:
+   · 필수값은 이름·규격뿐 — 가격은 나중에 채운다(빈칸을 0 으로 만들지 않는다)
+   · 중복이면 조용히 덮어쓰지 않고 기존 행으로 데려간다
+   · 등록도 '변경 N건' 에 잡아 되돌릴 수 있게 한다 */
+function renderReg(){
+  const box=$('#rgChans'); if(!box)return;
+  const prev={}; $$('#rgChans input').forEach(i=>prev[i.dataset.k]=i.value);
+  box.innerHTML=chVisible().map(c=>`<div class="fld">
+      <label>${c.name} <span class="mono" style="color:var(--warn);font-size:10px">${c.code}</span></label>
+      <input type="number" min="0" data-k="${c.k}" value="${prev[c.k]||''}" placeholder="비워도 됩니다"></div>`).join('');
+}
+function rgReset(){
+  $('#rgName').value=''; $('#rgSpec').value=''; $('#rgCost').value='';
+  $$('#rgChans input').forEach(i=>i.value=''); $('#rgStatus').textContent='';
+}
+function addProduct(){
+  const name=($('#rgName').value||'').trim(), spec=($('#rgSpec').value||'').trim();
+  const st=$('#rgStatus');
+  if(!name||!spec){ st.innerHTML='<span style="color:var(--danger)">제품명과 규격은 반드시 넣어야 합니다.</span>';
+    (!name?$('#rgName'):$('#rgSpec')).focus(); return; }
+  const dup=ROWS.find(r=>!r.gone && r.n===name && r.s===spec);
+  if(dup){ st.innerHTML='<span style="color:var(--warn)">같은 제품명·규격이 이미 있습니다 — 그 행으로 갑니다.</span>';
+    toast('이미 등록된 제품입니다 — 기존 행을 열었습니다',false); jumpTo(name); return; }
+  const row={n:name,s:spec};
+  const cv=validate($('#rgCost').value); row.cost=cv.v;
+  $$('#rgChans input').forEach(i=>{ const v=validate(i.value); row[i.dataset.k]=v.v; });
+  ROWS.push(row);
+  UNDO.push({ri:ROWS.length-1,key:'__new'});     // 되돌리면 '없던 일' 이 된다
+  bump(); fillProd(); renderPrice(); renderChProfit(); renderQt(); hint();
+  rgReset();
+  toast(`"${name}" 을(를) 등록했습니다 — 저장 전이라 되돌릴 수 있습니다`,false);
+  jumpTo(name);
+}
+$('#rgSave').addEventListener('click',addProduct);
+$('#rgClear').addEventListener('click',rgReset);
+['#rgName','#rgSpec'].forEach(sel=>$(sel).addEventListener('keydown',e=>{ if(e.key==='Enter') addProduct(); }));
+$('#btnAdd').addEventListener('click',()=>go('reg'));   // 가격정책표의 '＋ 제품' 은 여기로
 function hint(){
   const r=ROWS[+$('#mProd').value], q=Math.max(1,+$('#mQty').value||1), u=unitOf(r,q);
   $('#mHint').innerHTML = u==null
@@ -1181,7 +1258,7 @@ $('#qtable').addEventListener('click',e=>{ const b=e.target.closest('[data-qdel]
 
 /* ── 시작 ── */
 $$('.navgrp').forEach(g=>{ if(g.dataset.g==='g1'){ g.classList.add('open'); $('#g1').classList.add('open'); } });
-fillProd(); renderChan(); applyRole('master'); renderTrash(); renderQt(); hint(); renderChProfit();
+fillProd(); renderChan(); renderReg(); applyRole('master'); renderTrash(); renderQt(); hint(); renderChProfit();
 console.log('[시안] 샘플 데이터로만 동작합니다 · Firebase 연결 없음');
 </script>
 </body>

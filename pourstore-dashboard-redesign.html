@@ -213,6 +213,19 @@ td.neg{background:#FDF0EE!important}
 td.neg .mr,td.neg .mlv{color:var(--danger)}
 td.neg .negtag{display:inline-block;font-size:9.5px;font-weight:800;color:#fff;background:var(--danger);
   border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:middle}
+/* 배분 막대 — 정가 100% 를 원가·POUR마진·채널마진으로 쪼개 보여준다 */
+.bar-row{display:grid;grid-template-columns:158px 1fr 210px;gap:10px;align-items:center;padding:6px 0;font-size:12px}
+.bar-row+.bar-row{border-top:1px solid var(--line2)}
+.bar-track{background:var(--line2);border-radius:4px;height:18px;position:relative;overflow:hidden}
+.bar-fill{position:absolute;top:0;bottom:0}
+.bar-val{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink2)}
+.bar-name b{font-family:var(--mono);font-size:10.5px;color:var(--warn)}
+@media(max-width:760px){ .bar-row{grid-template-columns:1fr;gap:4px} .bar-val{text-align:left} }
+/* 원가·마진이 전부인 화면은 팀원에게 아예 열어주지 않는다 */
+.permblock{display:none;background:var(--canvas);border:1px solid var(--line);border-radius:var(--r);
+  padding:34px;text-align:center;color:var(--ink2)}
+body.no-cost .permblock{display:block}
+body.no-cost .costbody{display:none}
 .legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--ink3)}
 .legend b{font-weight:700;color:var(--ink2)}
 .legend .sw{display:inline-block;width:13px;height:13px;border-radius:3px;border:1px solid var(--line);
@@ -355,7 +368,7 @@ tr.findme td{animation:findme 2.4s ease-out}
       <div class="navsub" id="g1">
         <button class="navitem" data-sc="price"><span class="ic">·</span><span class="tx">가격정책표</span></button>
         <button class="navitem" data-sc="chan"><span class="ic">·</span><span class="tx">채널 관리</span></button>
-        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">채널 수익분석</span></button>
+        <button class="navitem costonly" data-sc="chprofit"><span class="ic">·</span><span class="tx">채널 수익분석</span></button>
         <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">상품 기준</span></button>
       </div>
       <button class="navgrp" data-g="g2"><span>📦 제품 · 매입</span><span class="ar">›</span></button>
@@ -580,6 +593,39 @@ tr.findme td{animation:findme 2.4s ease-out}
         </div>
       </section>
 
+      <!-- ── 채널 수익분석 ── -->
+      <section class="screen" id="sc-chprofit">
+        <div class="permblock">
+          <div style="font-size:30px;margin-bottom:8px">🔒</div>
+          <div style="font-weight:700;margin-bottom:5px">이 화면은 팀원 권한으로 볼 수 없습니다</div>
+          <p class="note">매입원가와 마진이 전부인 화면이라 권한이 있는 계정에서만 열립니다.<br>
+          필요하시면 마스터에게 권한을 요청하세요.</p>
+        </div>
+        <div class="costbody">
+          <div class="panel">
+            <h3>제품 고르기 <span class="tag">읽기 전용 · 여기서는 값을 바꾸지 않습니다</span></h3>
+            <div class="bd">
+              <div class="field" style="max-width:380px"><select id="cpProd"></select></div>
+            </div>
+          </div>
+          <div class="kpis" id="cpCards"></div>
+          <div class="panel">
+            <h3>채널별 수익</h3>
+            <div class="bd" style="padding:0;overflow-x:auto">
+              <table class="grid" id="cpTable" style="min-width:720px"></table>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>정가 100% 를 누가 가져가나 <span class="tag">원가 · POUR · 채널</span></h3>
+            <div class="bd" id="cpBars"></div>
+          </div>
+          <div class="panel">
+            <h3>전 품목 채널별 평균 마진율</h3>
+            <div class="bd" id="cpAvg"></div>
+          </div>
+        </div>
+      </section>
+
       <!-- ── 계정 · 설정 ── -->
       <section class="screen" id="sc-account">
         <div class="panel">
@@ -701,7 +747,8 @@ let dirty=0, lastDeleted=null, toastT=null, UNDO=[];   // UNDO: 저장 전 편�
 /* ── 화면 전환 ── */
 const TITLES={dash:['경영요약','전 품목 기준 · 자동 재계산'],price:['가격정책표','채널별 공급가 · 정가'],
  moq:['MOQ · 견적서','수량 구간 단가로 견적서 만들기'],trash:['휴지통 · 이력','지운 것 되살리기'],
- account:['계정 · 설정','권한 · 허용 계정'],chan:['채널 관리','가격표의 열 · 역할'],soon:['준비중','']};
+ account:['계정 · 설정','권한 · 허용 계정'],chan:['채널 관리','가격표의 열 · 역할'],
+ chprofit:['채널 수익분석','채널별 마진 · 배분'],soon:['준비중','']};
 
 /* ══ 채널 ══ 가격표의 '열'이 곧 채널이다. 열을 여기서 만들고 숨기고 지운다.
    지워도 그 채널에 입력한 가격은 남겨 둔다 — 되살리면 값 그대로 돌아온다. */
@@ -762,7 +809,10 @@ function applyRole(r){
   document.body.classList.toggle('no-cost',!canCost);
   const chip=$('#roleChip'); chip.textContent=label; chip.className='rolechip '+cls;
   $$('[data-role]').forEach(b=>b.classList.toggle('pri', b.dataset.role===r && b.classList.contains('btn')));
-  renderAccounts(); renderPrice();
+  // 팀원으로 내려오면 원가 전용 화면에 머물지 않게 한다(메뉴에서도 사라지므로)
+  const cur=[...document.querySelectorAll('.screen')].find(x=>x.classList.contains('on'));
+  if(!canCost && cur && cur.id==='sc-chprofit') go('dash');
+  renderAccounts(); renderPrice(); renderChProfit();
 }
 function renderAccounts(){
   const t=$('#acctTable'); if(!t)return;
@@ -797,10 +847,10 @@ document.addEventListener('click',e=>{
 $('#chTable').addEventListener('click',e=>{ const d=e.target.closest('[data-chdel]'); if(d) chDelete(+d.dataset.chdel); });
 $('#chTable').addEventListener('change',e=>{
   const col=e.target.closest('[data-chcol]'), rl=e.target.closest('[data-chrole]');
-  if(col){ chLive()[+col.dataset.chcol].col=col.checked; renderChan(); renderPrice(); hint(); renderQt(); return; }
+  if(col){ chLive()[+col.dataset.chcol].col=col.checked; renderChan(); renderPrice(); hint(); renderQt(); renderChProfit(); return; }
   if(rl){ const c=chLive()[+rl.dataset.chrole], v=rl.value;
     if(v) CHS.forEach(x=>{ if(x.role===v) x.role=''; });   // 정가·하한은 한 채널만
-    c.role=v; renderChan(); renderPrice(); hint(); renderQt(); }
+    c.role=v; renderChan(); renderPrice(); hint(); renderQt(); renderChProfit(); }
 });
 $('#ncAdd').addEventListener('click',()=>{
   const code=($('#ncCode').value||'').trim().toUpperCase(), name=($('#ncName').value||'').trim();
@@ -1021,8 +1071,84 @@ function unitOf(r,q){
   return Math.round((own - tierOf(q).f*(own-low))/10)*10;
 }
 function fillProd(){
-  $('#mProd').innerHTML=ROWS.map((r,i)=>`<option value="${i}">${r.n} · ${r.s}</option>`).join('');
+  const opts=ROWS.map((r,i)=>`<option value="${i}">${r.n} · ${r.s}</option>`).join('');
+  $('#mProd').innerHTML=opts;
+  const cp=$('#cpProd'); if(cp) cp.innerHTML=opts;
 }
+
+/* ══ 채널 수익분석 ══ 읽기 전용. 값을 바꾸는 버튼을 두지 않는다. */
+function cpRows(p){
+  const R=chByRole('retail'), own=R?p[R.k]:null;
+  return chVisible().map(c=>{
+    const v=p[c.k];
+    const pm=(v!=null&&p.cost!=null)?v-p.cost:null;          // POUR 가 남기는 몫
+    const pr=(pm!=null&&v)?pm/v:null;
+    const isR=!!(R&&c.k===R.k);
+    const cm=(!isR&&own!=null&&v!=null)?own-v:null;          // 공급받는 쪽이 정가로 되팔 때 남기는 몫
+    const disc=(own&&v!=null)?(own-v)/own:null;
+    return {c,v,pm,pr,cm,cmr:(cm!=null&&own)?cm/own:null,disc,isR,own};
+  });
+}
+const pct1=v=>v==null||!isFinite(v)?'—':(v*100).toFixed(1)+'%';
+function renderChProfit(){
+  if(!$('#cpTable'))return;
+  const p=ROWS[+($('#cpProd').value||0)]; if(!p)return;
+  const R=chByRole('retail'), D=chByRole('dealer');
+  const own=R?p[R.k]:null, low=D?p[D.k]:null;
+  $('#cpCards').innerHTML=[
+    {h:'매입원가',v:won(p.cost)+'원',f:p.s},
+    {h:'정가 (기준 100%)',v:won(own)+'원',f:R?`[${R.code}] ${R.name}`:'정가 채널 없음'},
+    {h:'정가 판매 시 POUR 마진',v:(p.cost!=null&&own!=null)?won(own-p.cost)+'원':'—',f:'마진율 '+pct1((own-p.cost)/own)},
+    {h:(D?`[${D.code}] 공급 시`:'MOQ 하한 공급 시')+' POUR 마진',v:(p.cost!=null&&low!=null)?won(low-p.cost)+'원':'—',f:'마진율 '+pct1((low-p.cost)/low)},
+  ].map(c=>`<div class="kpi"><h4>${c.h}</h4><div class="v" style="font-size:19px">${c.v}</div><div class="f">${c.f}</div></div>`).join('');
+
+  const rows=cpRows(p);
+  $('#cpTable').innerHTML=`<thead><tr><th>공급 채널</th><th class="num">공급가</th>
+    <th class="num">POUR 마진</th><th class="num">POUR 마진율</th>
+    <th class="num">채널 마진<br><span class="dim" style="font-weight:400">정가 재판매 시</span></th>
+    <th class="num">채널 마진율</th><th class="num">정가 대비</th></tr></thead><tbody>`
+   + rows.map(r=>`<tr>
+      <td><b class="mono" style="color:var(--warn);font-size:10.5px">${r.c.code}</b> ${r.c.name}${r.isR?' <span class="rolechip">기준</span>':''}</td>
+      <td class="num">${won(r.v)}</td>
+      <td class="num ${r.pm!=null&&r.pm<0?'neg':''}" style="font-weight:600">${won(r.pm)}${r.pm!=null&&r.pm<0?'<span class="negtag">역마진</span>':''}</td>
+      <td class="num">${pct1(r.pr)}</td>
+      <td class="num" style="color:var(--blue-x,#1B6AC9);font-weight:600">${r.isR?'(직접 판매)':won(r.cm)}</td>
+      <td class="num">${r.isR?'—':pct1(r.cmr)}</td>
+      <td class="num dim">${r.isR?'—':pct1(r.disc)}</td></tr>`).join('')
+   + '</tbody>';
+
+  $('#cpBars').innerHTML = (own==null||p.cost==null)
+    ? '<p class="note">정가 또는 매입원가가 없어 배분을 그릴 수 없습니다.</p>'
+    : rows.filter(r=>r.v!=null).map(r=>{
+        const cw=Math.max(0,Math.min(100,p.cost/own*100));
+        const pw=Math.max(0,Math.min(100-cw,(r.v-p.cost)/own*100));
+        const kw=Math.max(0,100-cw-pw);
+        return `<div class="bar-row">
+          <span class="bar-name"><b>${r.c.code}</b> ${r.c.name}</span>
+          <div class="bar-track">
+            <div class="bar-fill" style="left:0;width:${cw}%;background:#B7BEC7"></div>
+            <div class="bar-fill" style="left:${cw}%;width:${pw}%;background:var(--ok)"></div>
+            <div class="bar-fill" style="left:${cw+pw}%;width:${kw}%;background:#1B6AC9"></div>
+          </div>
+          <span class="bar-val">POUR <b>${won(r.pm)}</b> / 채널 <b style="color:#1B6AC9">${r.isR?'—':won(r.cm)}</b></span>
+        </div>`; }).join('')
+      + `<div class="legend" style="margin-top:10px">
+           <span><span class="sw" style="background:#B7BEC7"></span>매입원가</span>
+           <span><span class="sw" style="background:var(--ok)"></span>POUR 마진</span>
+           <span><span class="sw" style="background:#1B6AC9"></span>채널 마진</span>
+           <span class="dim">— 정가 100% 기준 배분</span></div>`;
+
+  const live=ROWS.filter(r=>!r.gone);
+  $('#cpAvg').innerHTML = chVisible().map(c=>{
+    const rs=live.map(r=>(r[c.k]!=null&&r.cost!=null&&r[c.k])?(r[c.k]-r.cost)/r[c.k]:null).filter(x=>x!=null);
+    const avg=rs.length?rs.reduce((a,b)=>a+b,0)/rs.length:null;
+    return `<div class="bar-row">
+      <span class="bar-name"><b>${c.code}</b> ${c.name}</span>
+      <div class="bar-track"><div class="bar-fill" style="left:0;width:${avg?Math.max(0,Math.min(100,avg*100)):0}%;background:var(--ok)"></div></div>
+      <span class="bar-val">${pct1(avg)} <span class="dim">· ${rs.length}개 품목</span></span></div>`;
+  }).join('') + '<p class="note">· 매입원가 대비 평균입니다. 공급 순서(하한 → 정가)로 갈수록 높아지는 것이 정상입니다.</p>';
+}
+$('#cpProd').addEventListener('change',renderChProfit);
 function hint(){
   const r=ROWS[+$('#mProd').value], q=Math.max(1,+$('#mQty').value||1), u=unitOf(r,q);
   $('#mHint').innerHTML = u==null
@@ -1055,7 +1181,7 @@ $('#qtable').addEventListener('click',e=>{ const b=e.target.closest('[data-qdel]
 
 /* ── 시작 ── */
 $$('.navgrp').forEach(g=>{ if(g.dataset.g==='g1'){ g.classList.add('open'); $('#g1').classList.add('open'); } });
-fillProd(); renderChan(); applyRole('master'); renderTrash(); renderQt(); hint();
+fillProd(); renderChan(); applyRole('master'); renderTrash(); renderQt(); hint(); renderChProfit();
 console.log('[시안] 샘플 데이터로만 동작합니다 · Firebase 연결 없음');
 </script>
 </body>

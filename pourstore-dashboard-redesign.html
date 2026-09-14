@@ -383,7 +383,7 @@ tr.findme td{animation:findme 2.4s ease-out}
       <div class="navsub" id="g2">
         <button class="navitem" data-sc="reg"><span class="ic">·</span><span class="tx">제품 등록</span></button>
         <button class="navitem secretonly" data-sc="match"><span class="ic">·</span><span class="tx">제품 매칭 🔒</span></button>
-        <button class="navitem" data-sc="soon"><span class="ic">·</span><span class="tx">CRM 연동</span></button>
+        <button class="navitem" data-sc="crm"><span class="ic">·</span><span class="tx">CRM 연동</span></button>
       </div>
       <button class="navgrp" data-g="g3"><span>📈 판매 · 손익</span><span class="ar">›</span></button>
       <div class="navsub" id="g3">
@@ -832,6 +832,25 @@ tr.findme td{animation:findme 2.4s ease-out}
         </div>
       </section>
 
+      <!-- ── CRM 연동 ── -->
+      <section class="screen" id="sc-crm">
+        <div class="panel">
+          <h3>밖에서 들어온 값 <span class="tag">아직 아무것도 반영되지 않았습니다</span></h3>
+          <div class="bd">
+            <p class="note" style="margin-top:0">· CRM·시트에서 넘어온 <b>정가와 입고예정</b>입니다. <b>자동으로 덮어쓰지 않습니다</b> — 무엇이 달라지는지 먼저 보여주고, <b>고른 것만</b> 반영합니다.<br>
+            · 반영해도 <b>“저장하지 않은 변경”</b>에 잡혀 [되돌리기]로 한 번에 물릴 수 있습니다.<br>
+            · 우리 목록에 없는 제품은 <b>반영하지 않습니다</b> — 이름이 어긋난 채 새 제품이 생기는 것을 막습니다.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px">
+              <button class="btn" id="crmAll">달라진 것만 고르기</button>
+              <button class="btn" id="crmNone">모두 해제</button>
+              <button class="btn pri" id="crmApply">고른 것 반영</button>
+              <span class="note" id="crmStatus" style="margin:0"></span>
+            </div>
+          </div>
+          <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="crmTable" style="min-width:780px"></table></div>
+        </div>
+      </section>
+
       <!-- ── 계정 · 설정 ── -->
       <section class="screen" id="sc-account">
         <div class="panel">
@@ -958,7 +977,15 @@ const TITLES={dash:['경영요약','전 품목 기준 · 자동 재계산'],pric
  match:['제품 매칭','매입처 · 대외비'],pl:['손익 · 공헌이익','공헌이익 · 손익분기'],
  fixed:['고정지출','월 고정비'],basis:['상품 기준','제품 한 종의 근거'],
  mkt:['마케팅 개요','ROAS · 전환율'],links:['추적링크','링크별 실적'],
- promo:['프로모션 성과','증분매출'],soon:['준비중','']};
+ promo:['프로모션 성과','증분매출'],crm:['CRM 연동','들어온 단가 · 입고예정'],soon:['준비중','']};
+
+/* CRM·시트에서 넘어왔다고 가정한 값 — 시안용 샘플 */
+const CRMIN=[
+  {name:'POUR 코트재Ⅰ(회색)',      spec:'20kg/통', price:179000, eta:'09.20'},
+  {name:'POUR 탄성강화 파우더(측구)', spec:'20kg/포', price:48000,  eta:'09.18'},
+  {name:'POUR써밋우레탄 하도',      spec:'17kg/통', price:92000,  eta:'09.25'},
+  {name:'POUR 신규 코팅제',         spec:'18kg/통', price:88000,  eta:'10.02'},
+];
 
 /* 마케팅 — 시안용 샘플 실적입니다(수기 입력 가정) */
 let LINKS=[
@@ -1055,7 +1082,7 @@ function applyRole(r){
   const cur=[...document.querySelectorAll('.screen')].find(x=>x.classList.contains('on'));
   if(!canCost && cur && ['sc-chprofit','sc-pl','sc-fixed'].includes(cur.id)) go('dash');
   if(!canSecret && cur && cur.id==='sc-match') go('dash');
-  renderAccounts(); renderPrice(); renderChProfit(); renderReg(); renderMatch(); renderFixed(); renderPl(); renderBasis(); renderLinks(); renderPromo(); renderMkt();
+  renderAccounts(); renderPrice(); renderChProfit(); renderReg(); renderMatch(); renderFixed(); renderPl(); renderBasis(); renderLinks(); renderPromo(); renderMkt(); renderCrm();
 }
 function renderAccounts(){
   const t=$('#acctTable'); if(!t)return;
@@ -1090,10 +1117,10 @@ document.addEventListener('click',e=>{
 $('#chTable').addEventListener('click',e=>{ const d=e.target.closest('[data-chdel]'); if(d) chDelete(+d.dataset.chdel); });
 $('#chTable').addEventListener('change',e=>{
   const col=e.target.closest('[data-chcol]'), rl=e.target.closest('[data-chrole]');
-  if(col){ chLive()[+col.dataset.chcol].col=col.checked; renderChan(); renderPrice(); hint(); renderQt(); renderChProfit(); renderReg(); renderPl(); renderBasis(); return; }
+  if(col){ chLive()[+col.dataset.chcol].col=col.checked; renderChan(); renderPrice(); hint(); renderQt(); renderChProfit(); renderReg(); renderPl(); renderBasis(); renderCrm(); return; }
   if(rl){ const c=chLive()[+rl.dataset.chrole], v=rl.value;
     if(v) CHS.forEach(x=>{ if(x.role===v) x.role=''; });   // 정가·하한은 한 채널만
-    c.role=v; renderChan(); renderPrice(); hint(); renderQt(); renderChProfit(); renderReg(); renderPl(); renderBasis(); }
+    c.role=v; renderChan(); renderPrice(); hint(); renderQt(); renderChProfit(); renderReg(); renderPl(); renderBasis(); renderCrm(); }
 });
 $('#ncAdd').addEventListener('click',()=>{
   const code=($('#ncCode').value||'').trim().toUpperCase(), name=($('#ncName').value||'').trim();
@@ -1259,7 +1286,7 @@ $('#undoAll').addEventListener('click',()=>{
     if(u.key==='__new'){ ROWS.splice(u.ri,1); continue; }                 // 등록은 '없던 일' 로
     ROWS[u.ri][u.key]=u.before;
     if(u.key==='gone') TRASH=TRASH.filter(t=>t.i!==u.ri); }               // 편집 전 값으로 정확히 원복(삭제 포함)
-  fillProd(); renderPrice(); renderTrash(); renderChProfit(); renderQt(); hint(); renderMatch(); renderFixed(); renderPl(); renderBasis(); renderLinks(); renderPromo(); renderMkt(); clearDirty();
+  fillProd(); renderPrice(); renderTrash(); renderChProfit(); renderQt(); hint(); renderMatch(); renderFixed(); renderPl(); renderBasis(); renderLinks(); renderPromo(); renderMkt(); renderCrm(); clearDirty();
   toast('되돌렸습니다 — 저장 전이라 원래 값 그대로입니다',false);
 });
 $('#saveNow').addEventListener('click',save);
@@ -1414,6 +1441,64 @@ function renderChProfit(){
   }).join('') + '<p class="note">· 매입원가 대비 평균입니다. 공급 순서(하한 → 정가)로 갈수록 높아지는 것이 정상입니다.</p>';
 }
 $('#cpProd').addEventListener('change',renderChProfit);
+
+/* ══ CRM 연동 ══
+   밖에서 들어온 값이 우리 가격을 덮어쓰는 유일한 길이다.
+   조용히 덮지 않는다: 무엇이 달라지는지 먼저 보이고 → 고른 것만 반영 → 되돌릴 수 있게. */
+function crmRows(){
+  const R=chByRole('retail');
+  return CRMIN.map((c,i)=>{
+    const p=ROWS.find(r=>!r.gone && r.n===c.name && r.s===c.spec);
+    if(!p) return {i,c,p:null,state:'nomatch'};
+    const cur=R?p[R.k]:null;
+    return {i,c,p,ri:ROWS.indexOf(p),cur,state:(cur===c.price?'same':'diff')};
+  });
+}
+function renderCrm(){
+  const t=$('#crmTable'); if(!t)return;
+  const R=chByRole('retail');
+  const keep={}; $$('#crmTable input[data-crm]').forEach(x=>keep[x.dataset.crm]=x.checked);
+  const rows=crmRows();
+  t.innerHTML=`<thead><tr><th style="width:44px"></th><th>들어온 제품</th><th class="num">지금 정가</th>
+      <th class="num">들어온 정가</th><th class="num">차이</th><th>입고예정</th><th>상태</th></tr></thead><tbody>`
+   + rows.map(r=>{
+      const lb={diff:'<span class="rolechip" style="background:var(--warn-l);color:var(--warn)">값 다름</span>',
+                same:'<span class="rolechip mem">같음</span>',
+                nomatch:'<span class="rolechip" style="background:var(--danger-l);color:var(--danger)">우리 목록에 없음</span>'}[r.state];
+      const dif=(r.state==='diff')?(r.c.price-r.cur):null;
+      const checked = keep[r.i]!==undefined ? keep[r.i] : (r.state==='diff');
+      return `<tr><td>${r.state==='nomatch'
+          ? '<span class="dim" title="반영 대상이 아닙니다">—</span>'
+          : `<input type="checkbox" data-crm="${r.i}" ${checked?'checked':''}>`}</td>
+        <td><span class="pname">${r.c.name}</span><div class="spec">${r.c.spec}</div></td>
+        <td class="num dim">${r.state==='nomatch'?'—':won(r.cur)}</td>
+        <td class="num" style="font-weight:600">${won(r.c.price)}</td>
+        <td class="num ${dif!=null&&dif<0?'neg':''}">${dif==null?'—':(dif>0?'+':'')+won(dif)}</td>
+        <td class="dim">${r.c.eta}</td>
+        <td>${lb}</td></tr>`; }).join('')
+   + '</tbody>';
+  const n=rows.filter(r=>r.state==='diff').length, bad=rows.filter(r=>r.state==='nomatch').length;
+  $('#crmStatus').innerHTML=`달라진 것 ${n}건${bad?` · <span style="color:var(--danger)">반영 불가 ${bad}건</span>`:''}`
+    + (R?'':' · <span style="color:var(--danger)">정가 채널이 없어 반영할 수 없습니다</span>');
+}
+$('#crmAll').addEventListener('click',()=>{ const rows=crmRows();
+  $$('#crmTable input[data-crm]').forEach(x=>{ const r=rows.find(y=>String(y.i)===x.dataset.crm); x.checked=(r&&r.state==='diff'); }); });
+$('#crmNone').addEventListener('click',()=>{ $$('#crmTable input[data-crm]').forEach(x=>x.checked=false); });
+$('#crmApply').addEventListener('click',()=>{
+  const R=chByRole('retail');
+  if(!R){ toast('정가 채널이 없어 반영할 수 없습니다',false); return; }
+  const picked=$$('#crmTable input[data-crm]:checked').map(x=>+x.dataset.crm);
+  if(!picked.length){ toast('반영할 항목을 골라 주세요',false); return; }
+  const rows=crmRows(); let n=0;
+  picked.forEach(i=>{
+    const r=rows.find(y=>y.i===i); if(!r||r.state==='nomatch')return;
+    if(r.p[R.k]!==r.c.price){ UNDO.push({ri:r.ri,key:R.k,before:r.p[R.k]}); r.p[R.k]=r.c.price; n++; }
+    if(r.p.eta!==r.c.eta){ UNDO.push({ri:r.ri,key:'eta',before:r.p.eta}); r.p.eta=r.c.eta; }
+  });
+  if(!n){ toast('바뀐 값이 없습니다',false); renderCrm(); return; }
+  bump(); renderCrm(); renderPrice(); renderBasis(); renderChProfit(); renderPl(); renderQt(); hint();
+  toast(`${n}건 반영했습니다 — 저장 전이라 되돌릴 수 있습니다`,false);
+});
 
 /* ══ 마케팅 ══
    추적링크·프로모션은 실제 대시보드에서 '바로 영구삭제' 되는 자리다.
@@ -1778,7 +1863,7 @@ $('#qtable').addEventListener('click',e=>{ const b=e.target.closest('[data-qdel]
 
 /* ── 시작 ── */
 $$('.navgrp').forEach(g=>{ if(g.dataset.g==='g1'){ g.classList.add('open'); $('#g1').classList.add('open'); } });
-fillProd(); renderChan(); renderReg(); renderMatch(); renderFixed(); renderLinks(); renderPromo(); applyRole('master'); renderTrash(); renderQt(); hint(); renderChProfit(); renderPl(); renderBasis(); renderMkt();
+fillProd(); renderChan(); renderReg(); renderMatch(); renderFixed(); renderLinks(); renderPromo(); applyRole('master'); renderTrash(); renderQt(); hint(); renderChProfit(); renderPl(); renderBasis(); renderMkt(); renderCrm();
 console.log('[시안] 샘플 데이터로만 동작합니다 · Firebase 연결 없음');
 </script>
 </body>

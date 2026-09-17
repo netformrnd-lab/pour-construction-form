@@ -18,8 +18,14 @@
 .psm1 img { display:block; max-width:100%; }
 .psm1 ul, .psm1 li { list-style:none; }
 /* 헤더 고정 래퍼: fixed로 어떤 래퍼(overflow) 안에서도 스크롤 끝까지 상단 고정 */
-.psm1-sticky { position:fixed; top:0; left:0; right:0; z-index:1000; background:#fff; }
+/* 헤더 고정 래퍼: fixed로 어떤 래퍼(overflow) 안에서도 스크롤 끝까지 상단 고정.
+   z-index 9990 = 카페24 레이아웃(layout.html)의 상단 요소가 우리 헤더 왼쪽 탭 위를 덮어
+   클릭이 안 먹던 문제 방지(우리 검색/드로어 팝업은 z-99998↑이라 영향 없음). */
+.psm1-sticky { position:fixed; top:0; left:0; right:0; z-index:9990; background:#fff; }
 .psm1-sticky.psm1-scrolled { box-shadow:0 2px 12px rgba(15,31,92,.08); }
+/* 탭 자체도 헤더 내부 다른 레이어보다 확실히 위에서 클릭 받도록 */
+.psm1-tabs{ position:relative; z-index:2; }
+.psm1-tab{ position:relative; z-index:1; }
 .psm1 { padding-top:0; } /* JS가 헤더 실제 높이만큼 padding-top 설정(본문이 헤더에 안 가림) */
 /* 0) 상단 유틸바 */
 .psm1-topbar { background:#FAFAFB; border-bottom:1px solid #F2F3F5; }

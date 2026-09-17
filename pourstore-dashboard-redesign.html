@@ -308,6 +308,36 @@ tr.hasflag td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 #dirty b{color:#FFD79A}
 
 /* ══ 토스트: 삭제는 항상 '실행취소'와 함께 ══ */
+/* 저장 전 변경 목록 */
+#pendBox{position:fixed;left:50%;bottom:74px;transform:translateX(-50%);width:min(560px,calc(100vw - 22px));
+  max-height:46vh;overflow:auto;background:var(--paper);border:1px solid var(--line);border-radius:12px;
+  box-shadow:0 16px 40px rgba(20,28,38,.22);z-index:72;padding:8px 6px}
+#pendBox .pr{display:flex;gap:9px;align-items:baseline;padding:6px 10px;font-size:12.5px;border-bottom:1px solid var(--line2)}
+#pendBox .pr:last-child{border-bottom:none}
+.actpill{flex:0 0 auto;font-size:10.5px;font-weight:700;border-radius:4px;padding:1px 7px;background:var(--sel);color:var(--ok-d)}
+.actpill.del{background:var(--danger-l);color:var(--danger)} .actpill.add{background:#E7EEF7;color:#1B4F8A}
+.actpill.rule{background:var(--warn-l);color:var(--warn)}
+/* 원가·제조사 접기 — 권한이 있는 사람이 어깨너머 노출을 막을 때 */
+body.role-nocost .canfold{display:none!important}
+#foldBar{display:none;background:#2B3440;color:#fff;font-size:12px;padding:6px 14px;align-items:center;gap:10px}
+body.folded #foldBar{display:flex}
+#foldBar button{color:#9FE3BA;font-weight:700;font-size:12px}
+.permblock .foldhint{display:none;margin-top:8px}
+body.folded .permblock .foldhint{display:block}
+/* 마진계산기 */
+.fab{position:fixed;right:20px;bottom:20px;z-index:65;background:var(--ok);color:#fff;border-radius:999px;
+  padding:11px 16px;font-weight:800;font-size:13px;box-shadow:0 10px 26px rgba(16,124,65,.35)}
+.fab:hover{background:var(--ok-d)}
+#calc{position:fixed;right:20px;bottom:74px;z-index:66;width:min(340px,calc(100vw - 24px));background:var(--paper);
+  border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 46px rgba(20,28,38,.24);padding:14px}
+#calc h4{font-size:13.5px;font-weight:800;margin-bottom:10px;display:flex;align-items:center}
+#calc h4 button{margin-left:auto;color:var(--ink3);font-size:15px}
+#calc .cg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#calc label{display:block;font-size:11px;color:var(--ink3);font-weight:600;margin-bottom:3px}
+#calc input,#calc select{width:100%;border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12.5px}
+#calc .res{margin-top:11px;border-top:1px solid var(--line2);padding-top:10px;display:grid;grid-template-columns:1fr auto;gap:5px 10px;font-size:12.5px}
+#calc .res b{text-align:right;font-variant-numeric:tabular-nums}
+@media(max-width:760px){ .fab{bottom:160px;right:12px;padding:10px 13px} #calc{bottom:214px;right:12px} }
 #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);opacity:0;
   background:#1F2733;color:#fff;border-radius:10px;padding:11px 12px 11px 16px;display:flex;align-items:center;
   gap:14px;box-shadow:0 12px 36px rgba(20,28,38,.3);z-index:80;transition:.2s;font-size:12.5px;pointer-events:none}
@@ -392,6 +422,9 @@ tr.findme td{animation:findme 2.4s ease-out}
 
 <div id="scrim"></div>
 
+<div id="foldBar">🔒 원가·제조사를 접어 둔 상태입니다 — 옆 사람이 화면을 봐도 원가·마진·매입처가 보이지 않습니다
+  <button id="unfoldBtn">펼치기</button></div>
+
 <div class="shell">
   <!-- ══ 좌측 네비 ══ -->
   <aside id="nav">
@@ -448,6 +481,7 @@ tr.findme td{animation:findme 2.4s ease-out}
         <input id="gq" placeholder="제품 검색 (모든 화면)" autocomplete="off">
         <div class="gres" id="gres"></div>
       </div>
+      <button class="iconbtn canfold" id="foldBtn" title="원가·제조사 접기 — 어깨너머 노출 방지 (이 기기에서만)">🔓</button>
       <button class="alertbtn" data-sc="price">⚠ 점검 6건</button>
       <div class="more" id="acctWrap">
         <button class="acct" id="acctBtn"><div class="av">송</div><span>송희</span><span class="rolechip" id="roleChip">마스터</span></button>
@@ -613,11 +647,14 @@ tr.findme td{animation:findme 2.4s ease-out}
           </div>
         </div>
         <div class="panel">
-          <h3>변경 이력</h3>
-          <div class="bd" style="padding:4px 14px">
-            <div class="alertrow"><span class="pill" style="background:var(--sel);color:var(--ok-d)">가격</span><span>POUR 코트재Ⅰ(회색) 자사몰 정가 177,500 → 179,000</span><span class="go dim">오늘 14:22 · 송희</span></div>
-            <div class="alertrow"><span class="pill" style="background:var(--sel);color:var(--ok-d)">복원</span><span>POUR 에어쉘시트 휴지통에서 되살림</span><span class="go dim">어제 17:05 · 송희</span></div>
-            <div class="alertrow"><span class="pill" style="background:var(--sel);color:var(--ok-d)">견적</span><span>○○아파트 관리사무소 견적서 발행 (3품목)</span><span class="go dim">어제 11:40 · 송희</span></div>
+          <h3>변경 이력 <span class="tag">저장한 것만 · 지울 수 없습니다</span></h3>
+          <div class="bd" style="padding:10px 14px 0">
+            <div class="field" style="max-width:320px"><span class="dim">🔎</span><input id="actQ" placeholder="제품·채널·사람으로 찾기"></div>
+          </div>
+          <div class="bd" style="padding:4px 14px" id="actList"></div>
+          <div class="bd" style="border-top:1px solid var(--line2)">
+            <p class="note">· <b>저장</b>을 누른 변경만 남습니다 — 저장 전에 되돌린 것은 없던 일이라 적지 않습니다.<br>
+            · 누가·언제·무엇을 무엇에서 무엇으로 바꿨는지 한 줄씩 남고, <b>지우는 버튼이 없습니다.</b></p>
           </div>
         </div>
       </section>
@@ -772,6 +809,7 @@ tr.findme td{animation:findme 2.4s ease-out}
           <div style="font-size:30px;margin-bottom:8px">🔒</div>
           <div style="font-weight:700;margin-bottom:5px">이 화면은 팀원 권한으로 볼 수 없습니다</div>
           <p class="note">매입원가와 마진이 있어야 계산되는 화면입니다.</p>
+          <p class="note foldhint">원가·제조사를 접어 둔 상태라면 위쪽 <b>펼치기</b>를 누르세요.</p>
         </div>
         <div class="costbody">
           <div class="panel">
@@ -804,6 +842,7 @@ tr.findme td{animation:findme 2.4s ease-out}
           <div style="font-size:30px;margin-bottom:8px">🔒</div>
           <div style="font-weight:700;margin-bottom:5px">이 화면은 팀원 권한으로 볼 수 없습니다</div>
           <p class="note">회사 고정비는 원가와 같은 등급의 자료입니다.</p>
+          <p class="note foldhint">원가·제조사를 접어 둔 상태라면 위쪽 <b>펼치기</b>를 누르세요.</p>
         </div>
         <div class="costbody">
           <div class="panel">
@@ -957,10 +996,28 @@ tr.findme td{animation:findme 2.4s ease-out}
 </div>
 
 <!-- 변경사항 바 -->
+<div id="pendBox" hidden></div>
 <div id="dirty">
   <span>저장하지 않은 변경 <b id="dirtyN">0</b>건</span>
+  <button class="btn sm" id="pendShow" style="background:transparent;border-color:#4A5560;color:#D6DCE2">무엇이?</button>
   <button class="btn sm" id="undoAll" style="background:#39424E;border-color:#4A5560;color:#fff">되돌리기</button>
   <button class="btn sm pri" id="saveNow">저장</button>
+</div>
+
+<!-- 마진계산기 -->
+<button class="fab costonly" id="calcBtn" title="마진계산기">fx 마진계산기</button>
+<div id="calc" class="costonly" hidden>
+  <h4>fx 마진계산기 <button id="calcClose" aria-label="닫기">✕</button></h4>
+  <div class="cg">
+    <div style="grid-column:span 2"><label>제품에서 불러오기 (선택)</label><select id="cProd"></select></div>
+    <div style="grid-column:span 2"><label>채널</label><select id="cChan"></select></div>
+    <div><label>판매가</label><input id="cPrice" type="number" min="0"></div>
+    <div><label>매입원가</label><input id="cCost" type="number" min="0"></div>
+    <div><label>채널 수수료 (%)</label><input id="cFee" type="number" min="0" max="100" step="0.5"></div>
+    <div><label>건당 배송비</label><input id="cShip" type="number" min="0" value="3000"></div>
+    <div style="grid-column:span 2"><label>목표 마진율 (%) — 필요한 판매가 계산</label><input id="cTarget" type="number" min="0" max="99" value="60"></div>
+  </div>
+  <div class="res" id="cRes"></div>
 </div>
 
 <!-- 토스트 -->
@@ -1106,7 +1163,7 @@ function renderChan(){
 function chDelete(i){
   const c=chLive()[i]; const gi=CHS.indexOf(c); c.gone=true;
   const d=new Date(), ts=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-  TRASH.unshift({kind:'채널',n:`[${c.code}] ${c.name}`,at:ts,by:'송희',ci:gi});
+  TRASH.unshift({kind:'채널',n:`[${c.code}] ${c.name}`,at:ts,by:curName(),ci:gi});
   renderChan(); renderPrice(); renderTrash(); hint(); renderQt(); renderReg();
   toast(`채널 "${c.name}" 을(를) 휴지통으로 보냈습니다 — 가격은 그대로 보관됩니다`,false);
 }
@@ -1131,16 +1188,24 @@ const ACCOUNTS=[
   {n:'박대리',e:'staff@netformrnd.com',r:'member'},
   {n:'이사원',e:'teammate@netformrnd.com',r:'member'},
 ];
+let FOLD=false;   // 원가·제조사 접기 (권한과 별개 — 보여줄지 말지만)
+const curName=()=>{ const a=ACCOUNTS.find(x=>x.r===ROLE); return a?a.n:'—'; };
 function applyRole(r){
-  ROLE=r; const [label,cls,canCost,canSecret]=ROLES[r];
+  ROLE=r; const [label,cls,canCostRole,canSecretRole]=ROLES[r];
+  if(!canCostRole) FOLD=false;
+  const canCost=canCostRole && !FOLD, canSecret=canSecretRole && !FOLD;
+  document.body.classList.toggle('role-nocost',!canCostRole);
+  document.body.classList.toggle('folded',FOLD);
   document.body.classList.toggle('no-cost',!canCost);
   document.body.classList.toggle('no-secret',!canSecret);
+  const fb=$('#foldBtn'); if(fb){ fb.textContent=FOLD?'🔒':'🔓'; fb.title=FOLD?'원가·제조사 펼치기':'원가·제조사 접기 — 어깨너머 노출 방지'; }
   const chip=$('#roleChip'); chip.textContent=label; chip.className='rolechip '+cls;
   $$('[data-role]').forEach(b=>b.classList.toggle('pri', b.dataset.role===r && b.classList.contains('btn')));
   // 팀원으로 내려오면 원가 전용 화면에 머물지 않게 한다(메뉴에서도 사라지므로)
   const cur=[...document.querySelectorAll('.screen')].find(x=>x.classList.contains('on'));
-  if(!canCost && cur && ['sc-pl','sc-fixed'].includes(cur.id)) go('dash');
-  if(!canSecret && cur && cur.id==='sc-match') go('dash');
+  if(!canCostRole && cur && ['sc-pl','sc-fixed'].includes(cur.id)) go('dash');
+  if(!canSecretRole && cur && cur.id==='sc-match') go('dash');
+  if($('#calc')&&!canCost) $('#calc').hidden=true;
   renderAccounts(); renderPrice(); renderAnalysis(); renderReg(); renderMatch(); renderFixed(); renderPl(); renderLinks(); renderPromo(); renderMkt(); renderCrm();
 }
 function renderAccounts(){
@@ -1202,6 +1267,34 @@ $('#ncAdd').addEventListener('click',()=>{
   $('#ncCode').value=''; $('#ncName').value='';
   renderChan(); renderPrice(); renderReg(); toast(`채널 "${name}" 을(를) 추가했습니다 — 값은 비어 있습니다`,false);
 });
+$('#foldBtn').addEventListener('click',()=>{ FOLD=!FOLD; applyRole(ROLE);
+  toast(FOLD?'🔒 원가·제조사를 접었습니다 — 권한은 그대로, 화면에서만 가립니다':'🔓 원가·제조사를 다시 펼쳤습니다',false); });
+$('#unfoldBtn').addEventListener('click',()=>{ FOLD=false; applyRole(ROLE); });
+function calcFill(){
+  const p=$('#cProd'), c=$('#cChan'), pv=p.value, cv=c.value;
+  p.innerHTML='<option value="">직접 입력</option>'+ROWS.map((r,i)=>r.gone?'':`<option value="${i}">${r.n} · ${r.s}</option>`).join('');
+  c.innerHTML=chVisible().map(x=>`<option value="${x.k}">[${x.code}] ${x.name}</option>`).join('');
+  p.value=pv; if(cv) c.value=cv;
+}
+function calcRun(){
+  const n=id=>{ const v=$(id).value; return v===''?null:+v; };
+  const price=n('#cPrice'), cost=n('#cCost'), fee=n('#cFee')||0, ship=n('#cShip')||0, tgt=n('#cTarget');
+  const rows=[];
+  if(price!=null&&cost!=null&&price>0){
+    const m=price-cost, cm=price-cost-price*fee/100-ship;
+    rows.push(['마진 (판매가−원가)',`${won(m)}원 · ${pct1(m/price)}`]);
+    rows.push(['수수료·배송비 빼면',`<span style="color:${cm<0?'var(--danger)':'inherit'}">${won(cm)}원 · ${pct1(cm/price)}</span>`]);
+  } else rows.push(['마진','<span class="dim">판매가·원가를 넣으세요</span>']);
+  if(cost!=null && tgt!=null && tgt<100) rows.push([`마진율 ${tgt}% 가 되려면`,`${won(ceil100(cost/(1-tgt/100)))}원 이상`]);
+  $('#cRes').innerHTML=rows.map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join('');
+}
+$('#calcBtn').addEventListener('click',()=>{ const c=$('#calc'); c.hidden=!c.hidden; if(!c.hidden){ calcFill(); calcRun(); } });
+$('#calcClose').addEventListener('click',()=>$('#calc').hidden=true);
+$('#cProd').addEventListener('change',()=>{ recalcAll(); const r=ROWS[+$('#cProd').value]; if(!r){ calcRun(); return; }
+  const k=$('#cChan').value, ch=CHS.find(x=>x.k===k);
+  $('#cCost').value=r.cost??''; $('#cPrice').value=r[k]??''; $('#cFee').value=ch?(ch.fee||0):0; calcRun(); });
+$('#cChan').addEventListener('change',()=>$('#cProd').dispatchEvent(new Event('change')));
+['#cPrice','#cCost','#cFee','#cShip','#cTarget'].forEach(id=>$(id).addEventListener('input',calcRun));
 $('#acctBtn').addEventListener('click',e=>{ e.stopPropagation(); $('#moreMenu').classList.remove('on'); $('#acctMenu').classList.toggle('on'); });
 /* 가격정책표의 그 줄로 데려가서 잠깐 노랗게 — '고치기'와 전체 검색이 함께 쓴다 */
 function jumpTo(nameFrag){
@@ -1489,9 +1582,9 @@ function openCell(pos){
   const td=document.querySelector(`#ptable td[data-edit][data-r="${pos.r}"][data-k="${pos.k}"]`);
   if(td) td.click();
 }
-function bump(){ dirty++; $('#dirtyN').textContent=dirty; $('#dirty').classList.add('on'); $('#btnSave').disabled=false; }
+function bump(){ dirty++; $('#dirtyN').textContent=dirty; $('#dirty').classList.add('on'); $('#btnSave').disabled=false; renderPend(); }
 function clearDirty(){ dirty=0; $('#dirtyN').textContent='0';   // 숫자까지 같이 되돌린다 — 막대만 숨기면 상태와 화면이 어긋난다
-  $('#dirty').classList.remove('on'); $('#btnSave').disabled=true; }
+  $('#dirty').classList.remove('on'); $('#btnSave').disabled=true; const pb=$('#pendBox'); if(pb) pb.hidden=true; }
 $('#undoAll').addEventListener('click',()=>{
   while(UNDO.length){ const u=UNDO.pop();
     if(u.li!=null){                                                       // 추적링크
@@ -1520,13 +1613,81 @@ $('#undoAll').addEventListener('click',()=>{
 });
 $('#saveNow').addEventListener('click',save);
 $('#btnSave').addEventListener('click',save);
-function save(){ UNDO=[]; clearDirty(); toast('저장했습니다 · 변경 이력에 남았습니다',false); }
+/* ══ 변경 설명 ══ UNDO 항목만 보고 사람이 읽는 한 줄을 만든다.
+   같은 칸을 여러 번 고쳤으면 '그다음 이전값'을 이번 결과값으로 삼아 한 단계씩 정확히 적는다. */
+const chName=k=>{ if(k==='vb') return '업체단가'; const c=CHS.find(x=>x.k===k); return c?`[${c.code}] ${c.name}`:k; };
+const fmtAny=v=> v==null||v===undefined ? '빈칸' : (typeof v==='number' ? won(v) : (typeof v==='boolean' ? (v?'예':'아니오') : String(v)));
+function undoTarget(u){
+  if(u.li!=null) return {obj:LINKS[u.li], id:'L'+u.li, who:`링크 "${(LINKS[u.li]||{}).label}"`};
+  if(u.pi!=null) return {obj:PROMOS[u.pi], id:'P'+u.pi, who:`프로모션 "${(PROMOS[u.pi]||{}).name}"`};
+  if(u.fi!=null) return {obj:FIXED[u.fi], id:'F'+u.fi, who:`고정지출 "${(FIXED[u.fi]||{}).n}"`};
+  if(u.chFee!=null) return {obj:CHS[u.chFee], id:'CF'+u.chFee, who:chName(CHS[u.chFee].k)};
+  if(u.chRule!=null) return {obj:CHS[u.chRule], id:'CR'+u.chRule, who:chName(CHS[u.chRule].k)};
+  return {obj:ROWS[u.ri], id:'R'+u.ri, who:(ROWS[u.ri]||{}).n};
+}
+function describeAll(list){
+  const nextBefore={}, out=[];
+  for(let i=list.length-1;i>=0;i--){
+    const u=list[i], t=undoTarget(u), fid=t.id+'|'+(u.key||(u.chFee!=null?'fee':'rule'));
+    let after;
+    if(u.chFee!=null)      after = fid in nextBefore ? nextBefore[fid] : t.obj.fee;
+    else if(u.chRule!=null)after = fid in nextBefore ? nextBefore[fid] : t.obj.rule;
+    else                   after = fid in nextBefore ? nextBefore[fid] : (t.obj?getField(t.obj,u.key):undefined);
+    nextBefore[fid]=u.before;
+    const k=u.key||'';
+    let type='가격', text;
+    const rl=x=>x? (x.a==='ladder'?`사다리 ${x.f}%`:'직접 입력') : '—';
+    if(u.chRule!=null){ type='규칙'; text=`${t.who} 단가 규칙 ${rl(u.before)} → ${rl(after)}`; }
+    else if(u.chFee!=null){ text=`${t.who} 수수료율 ${u.before}% → ${after}%`; }
+    else if(k==='__new'){ type='등록'; text=`${t.who} 새로 등록`; }
+    else if(k==='__newlink'||k==='__newfix'||k==='__newpromo'){ type='등록'; text=`${t.who} 추가`; }
+    else if(k==='gone'){ type='삭제'; text=`${t.who} 휴지통으로 보냄`; }
+    else if(k==='fixed'){ text=`${t.who} 반영 방식 ${u.before?'📌 고정':'⚙️ 자동계산'} → ${after?'📌 고정':'⚙️ 자동계산'}`; }
+    else if(k.startsWith('ovr:')){ text=`${t.who} ${chName(k.slice(4))} ✎ 직접 조정 ${fmtAny(u.before)} → ${fmtAny(after)}`; }
+    else if(k.startsWith('file:')){ text=`${t.who} ${chName(k.slice(5))} 📌 고정값 ${fmtAny(u.before)} → ${fmtAny(after)}`; }
+    else if(k.startsWith('todo:')){ text=`${t.who} ${chName(k.slice(5))} '미정' 표시 해제`; }
+    else if(k==='sup'){ type='매입처'; const nm=id=>(supById(id)||{}).name||'미지정'; text=`${t.who} 매입처 ${nm(u.before)} → ${nm(after)}`; }
+    else { const lb={cost:'매입원가',n:'제품명',s:'규격',l2:'분류',amt:'월 금액',clicks:'클릭',orders:'주문',revenue:'매출',spend:'광고비',baseline:'기준매출',actual:'실제매출',set:'구성'}[k] || chName(k);
+      text=`${t.who} ${lb} ${fmtAny(u.before)} → ${fmtAny(after)}`; }
+    out.unshift({type,text});
+  }
+  return out;
+}
+const pillCls=t=>({삭제:'del',등록:'add',규칙:'rule',복원:'add',개정안:'rule'}[t]||'');
+let ACT=[
+  {at:'2026.09.16 17:05',by:'송희',type:'복원',text:'POUR 에어쉘시트 휴지통에서 되살림'},
+  {at:'2026.09.16 14:22',by:'송희',type:'가격',text:'POUR 코트재Ⅰ(회색) [OWN] 자사몰 직판(정가) 176,000 → 177,500'},
+  {at:'2026.09.15 11:40',by:'김실장',type:'규칙',text:'[P6] 온라인 도매 단가 규칙 사다리 45% → 사다리 47%'},
+];
+function logAct(type,text){ ACT.unshift({at:nowTs(),by:curName(),type,text}); renderAct(); }
+function renderAct(){
+  const box=$('#actList'); if(!box)return;
+  const q=(($('#actQ')||{}).value||'').trim();
+  const rows=ACT.filter(a=>!q || (a.text+a.by+a.type).includes(q));
+  box.innerHTML = rows.length ? rows.map(a=>`<div class="alertrow"><span class="actpill ${pillCls(a.type)}">${a.type}</span>
+      <span>${a.text}</span><span class="go dim">${a.at} · ${a.by}</span></div>`).join('')
+    : '<p class="note" style="padding:14px 0">맞는 이력이 없습니다.</p>';
+}
+$('#actQ').addEventListener('input',renderAct);
+function renderPend(){
+  const box=$('#pendBox'); if(box.hidden) return;
+  const d=describeAll(UNDO);
+  box.innerHTML = d.length ? d.map(x=>`<div class="pr"><span class="actpill ${pillCls(x.type)}">${x.type}</span><span>${x.text}</span></div>`).join('')
+    : '<div class="pr dim">저장하지 않은 변경이 없습니다</div>';
+}
+$('#pendShow').addEventListener('click',()=>{ const b=$('#pendBox'); b.hidden=!b.hidden; renderPend(); });
+function save(){
+  const d=describeAll(UNDO), ts=nowTs(), by=curName();
+  d.forEach(x=>ACT.unshift({at:ts,by,type:x.type,text:x.text}));
+  UNDO=[]; clearDirty(); $('#pendBox').hidden=true; renderAct();
+  toast(`저장했습니다 · 변경 ${d.length}건이 이력에 남았습니다`,false);
+}
 
 /* ── 삭제는 언제나 휴지통 + 실행취소 ── */
 function softDelete(i){
   const r=ROWS[i]; r.gone=true;
   const d=new Date(), ts=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-  TRASH.unshift({kind:'제품',n:r.n+' · '+r.s,at:ts,by:'송희',i});
+  TRASH.unshift({kind:'제품',n:r.n+' · '+r.s,at:ts,by:curName(),i});
   UNDO.push({ri:i,key:'gone',before:false});    // 삭제도 '변경 N건' 에 함께 잡아 되돌리기에 포함
   lastDeleted=i; bump(); renderPrice(); renderTrash();
   toast(`"${r.n}" 을(를) 휴지통으로 보냈습니다`,true);
@@ -1568,6 +1729,7 @@ $('#ttable').addEventListener('click',e=>{
   if(t.fi!=null) FIXED[t.fi].gone=false;
   if(t.li!=null) LINKS[t.li].gone=false;
   if(t.pi!=null) PROMOS[t.pi].gone=false;
+  logAct('복원',`${t.kind||'제품'} ${t.n} 휴지통에서 되살림`);
   TRASH.splice(+b.dataset.res,1); renderChan(); renderPrice(); renderTrash(); hint(); renderQt(); renderFixed(); renderPl(); renderLinks(); renderPromo(); renderMkt();
   toast(`"${t.n}" 을(를) 되살렸습니다`,false);
 });
@@ -1900,7 +2062,7 @@ $('#lkTable').addEventListener('change',e=>{
 $('#lkTable').addEventListener('click',e=>{
   const d=e.target.closest('[data-lkdel]'); if(!d)return;
   const li=+d.dataset.lkdel, l=LINKS[li]; l.gone=true;
-  TRASH.unshift({kind:'추적링크',n:l.label,at:nowTs(),by:'송희',li});
+  TRASH.unshift({kind:'추적링크',n:l.label,at:nowTs(),by:curName(),li});
   UNDO.push({li,key:'gone',before:false});
   bump(); renderLinks(); renderMkt(); renderTrash();
   toast(`링크 "${l.label}" 을(를) 휴지통으로 보냈습니다`,false);
@@ -1938,7 +2100,7 @@ $('#pmTable').addEventListener('change',e=>{
 $('#pmTable').addEventListener('click',e=>{
   const d=e.target.closest('[data-pmdel]'); if(!d)return;
   const pi=+d.dataset.pmdel, p=PROMOS[pi]; p.gone=true;
-  TRASH.unshift({kind:'프로모션',n:p.name,at:nowTs(),by:'송희',pi});
+  TRASH.unshift({kind:'프로모션',n:p.name,at:nowTs(),by:curName(),pi});
   UNDO.push({pi,key:'gone',before:false});
   bump(); renderPromo(); renderTrash();
   toast(`프로모션 "${p.name}" 을(를) 휴지통으로 보냈습니다`,false);
@@ -2034,7 +2196,7 @@ $('#fxTable').addEventListener('click',e=>{
   const d=e.target.closest('[data-fxdel]'); if(!d)return;
   const fi=+d.dataset.fxdel, x=FIXED[fi]; x.gone=true;
   const dt=new Date(), ts=`${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
-  TRASH.unshift({kind:'고정지출',n:`${x.n} · 월 ${won(x.amt)}원`,at:ts,by:'송희',fi});
+  TRASH.unshift({kind:'고정지출',n:`${x.n} · 월 ${won(x.amt)}원`,at:ts,by:curName(),fi});
   UNDO.push({fi,key:'gone',before:false});
   bump(); renderFixed(); renderPl(); renderTrash();
   toast(`"${x.n}" 을(를) 휴지통으로 보냈습니다`,false);
@@ -2164,7 +2326,7 @@ $('#qtable').addEventListener('click',e=>{ const b=e.target.closest('[data-qdel]
 
 /* ── 시작 ── */
 $$('.navgrp').forEach(g=>{ if(g.dataset.g==='g1'){ g.classList.add('open'); $('#g1').classList.add('open'); } });
-fillProd(); renderChan(); setRegMode('auto'); renderReg(); renderMatch(); renderFixed(); renderLinks(); renderPromo(); applyRole('master'); renderTrash(); renderQt(); hint(); renderAnalysis(); renderPl(); renderMkt(); renderCrm();
+renderAct(); fillProd(); renderChan(); setRegMode('auto'); renderReg(); renderMatch(); renderFixed(); renderLinks(); renderPromo(); applyRole('master'); renderTrash(); renderQt(); hint(); renderAnalysis(); renderPl(); renderMkt(); renderCrm();
 console.log('[시안] 샘플 데이터로만 동작합니다 · Firebase 연결 없음');
 </script>
 </body>

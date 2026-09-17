@@ -235,6 +235,24 @@ table.grid thead th.vbcol{background:#E1F0E6}
 .todo{font-size:11px;color:var(--warn);font-weight:700;background:var(--warn-l);border-radius:4px;padding:1px 7px}
 td.ovrcell{box-shadow:inset 0 0 0 1px #C9B8F2}
 .ovrb{font-size:10px;color:#6D28D9;margin-left:3px;font-weight:700}
+/* ⬇ 내보내기 */
+.exbox{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}
+.exbox h5{font-size:12px;font-weight:700;margin-bottom:7px;display:flex;align-items:center;gap:8px}
+.exbox h5 button{font-size:11px;color:var(--ok-d);font-weight:600}
+.exchecks{display:flex;flex-wrap:wrap;gap:6px 14px}
+.exchecks label{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;cursor:pointer}
+.exbox.secret{border-color:#EDC4BF;background:var(--danger-l)}
+#printArea{display:none}
+@media print{
+  html,body{height:auto!important;overflow:visible!important;display:block!important;background:#fff!important}
+  body > *:not(#printArea){display:none!important}
+  #printArea{display:block!important;padding:0;font-family:Pretendard,sans-serif;color:#111}
+  #printArea h1{font-size:18px;margin-bottom:4px} #printArea .meta{font-size:11px;color:#555;margin-bottom:10px;display:flex;justify-content:space-between}
+  #printArea table{width:100%;border-collapse:collapse;font-size:10.5px}
+  #printArea th,#printArea td{border:1px solid #bbb;padding:4px 6px} #printArea th{background:#eee}
+  #printArea td.n{text-align:right} #printArea tr.g td{background:#f4f4f4;font-weight:700}
+  @page{size:A4 landscape;margin:10mm}
+}
 /* 📝 개정안 */
 .drafttag{display:block;font-size:10px;color:#B45309;font-weight:800;margin-top:1px;white-space:nowrap}
 td.draftcell{box-shadow:inset 0 0 0 2px #F5C36B}
@@ -581,9 +599,7 @@ tr.findme td{animation:findme 2.4s ease-out}
                 <button class="btn" id="btnMore" title="그 밖의 기능">⋯</button>
                 <div class="menu" id="moreMenu">
                   <div class="mlbl">내보내기</div>
-                  <button>🖨 단가표 PDF</button>
-                  <button>⬇ 엑셀 내보내기</button>
-                  <button>⬇ CSV 내보내기</button>
+                  <button id="btnExport">⬇ 내보내기… <span class="dim" style="font-size:11px">PDF · 엑셀 · CSV</span></button>
                   <div class="sep"></div>
                   <div class="mlbl">불러오기 · 일괄</div>
                   <button id="btnImport">📄 파일로 업체단가 입력…</button>
@@ -651,8 +667,8 @@ tr.findme td{animation:findme 2.4s ease-out}
           </div>
           <div class="bd" style="border-top:1px solid var(--line2)">
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-              <button class="btn pri">⬇ 엑셀 견적서</button>
-              <button class="btn">🖨 PDF</button>
+              <button class="btn pri" id="qtXlsx">⬇ 엑셀 견적서</button>
+              <button class="btn" id="qtPdf">🖨 PDF</button>
               <span class="note" style="margin-left:auto">매입원가·마진은 파일에 들어가지 않습니다 🔒</span>
             </div>
           </div>
@@ -1073,6 +1089,37 @@ tr.findme td{animation:findme 2.4s ease-out}
 
 <!-- 토스트 -->
 <div id="toast"><span id="toastMsg"></span><button id="toastUndo">실행취소</button></div>
+
+<!-- 내보내기 -->
+<div class="ov" id="expOv">
+  <div class="modal" style="width:min(940px,100%);max-height:94vh;display:flex;flex-direction:column">
+    <h3>⬇ 내보내기</h3>
+    <div class="mb" style="overflow:auto">
+      <div class="formgrid">
+        <div class="fld"><label>무엇을</label><div class="seg" id="exKind"><button data-v="sheet" class="on">채널 공급 단가표</button><button data-v="retail">판매가(정가)만</button></div></div>
+        <div class="fld"><label>형식</label><div class="seg" id="exFmt"><button data-v="xlsx" class="on">엑셀</button><button data-v="csv">CSV</button><button data-v="pdf">PDF(인쇄)</button></div></div>
+        <div class="fld"><label>표 제목</label><input id="exTitle" value="POUR스토어 공급 단가표"></div>
+        <div class="fld"><label>수신처 (선택)</label><input id="exTo" placeholder="예: ○○총판 귀중"></div>
+      </div>
+      <div class="exbox" id="exChanWrap"><h5>공급가 채널 <button data-exall="exChan">전체</button><button data-exnone="exChan">해제</button></h5><div class="exchecks" id="exChan"></div></div>
+      <div class="exbox"><h5>분류 <button data-exall="exCat">전체</button><button data-exnone="exCat">해제</button></h5><div class="exchecks" id="exCat"></div></div>
+      <div class="exbox"><h5>포함할 것</h5><div class="exchecks">
+        <label><input type="checkbox" id="exOwn" checked> 판매가(정가) 열</label>
+        <label id="exVbWrap"><input type="checkbox" id="exVb"> 업체단가 열</label>
+        <label><input type="checkbox" id="exExpand"> 📦 세트 구성까지 펼치기</label>
+        <label><input type="checkbox" id="exEmpty"> 값이 비어 있는 제품도 넣기</label>
+      </div></div>
+      <div class="exbox secret costonly"><h5 style="color:#8A2B1E">🔒 대외비 — 내부용일 때만</h5><div class="exchecks">
+        <label><input type="checkbox" id="exCost"> 매입원가 열</label>
+        <label class="secretonly"><input type="checkbox" id="exSup"> 공급업체 열</label>
+      </div><p class="note" style="margin:6px 0 0;color:#8A2B1E">· 하나라도 켜면 제목에 <b>[대외비 · 내부용]</b>, 파일명에 <b>_대외비</b>가 붙습니다. 거래처에 보낼 때는 켜지 마세요.</p></div>
+      <p class="note" id="exNote"></p>
+      <div class="tblwrap" style="max-height:30vh;min-height:0;margin-top:6px"><table class="grid" id="exPrev" style="min-width:640px"></table></div>
+    </div>
+    <div class="mf"><span class="note" id="exStatus" style="margin:0 auto 0 0"></span><button class="btn" id="exClose">닫기</button><button class="btn pri" id="exGo">⬇ 내려받기</button></div>
+  </div>
+</div>
+<div id="printArea"></div>
 
 <!-- 파일로 업체단가 입력 -->
 <div class="ov" id="impOv">
@@ -1698,6 +1745,212 @@ function bulkPin(on){
   afterPriceChange();
   toast(`${list.length}개 제품을 ${on?'📌 고정':'⚙️ 자동계산'} 으로 바꿨습니다${!on&&cells?` · 단가 ${cells}칸 재계산`:''} (되돌리기 가능)`,false);
 }
+/* ══════════ 진짜 .xlsx 생성기 (외부 라이브러리 없음) ══════════
+   기존 '.xls'는 HTML 테이블에 확장자만 xls를 붙인 파일이라 MS Excel만 열 수 있었다.
+   (Numbers·Google Sheets·LibreOffice는 열지 못함) → OOXML(ZIP) 규격으로 직접 생성한다. */
+const _crcTab=(()=>{ const t=new Uint32Array(256);
+  for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); t[n]=c>>>0; }
+  return t; })();
+function _crc32(buf){ let c=0xFFFFFFFF; for(let i=0;i<buf.length;i++) c=_crcTab[(c^buf[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function _zip(files){                                  // files:[{name,data:Uint8Array}] · 무압축(store)
+  const enc=new TextEncoder(), parts=[], central=[]; let off=0;
+  const u16=v=>[v&255,(v>>8)&255], u32=v=>[v&255,(v>>8)&255,(v>>16)&255,(v>>24)&255];
+  files.forEach(f=>{
+    const nm=enc.encode(f.name), crc=_crc32(f.data), n=f.data.length;
+    const lh=new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),
+      ...u32(crc),...u32(n),...u32(n),...u16(nm.length),...u16(0)]);
+    parts.push(lh,nm,f.data);
+    central.push(new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),
+      ...u32(crc),...u32(n),...u32(n),...u16(nm.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)]),nm);
+    off+=lh.length+nm.length+n;
+  });
+  const cdStart=off; let cdLen=0; central.forEach(c=>cdLen+=c.length);
+  const eocd=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(files.length),...u16(files.length),
+    ...u32(cdLen),...u32(cdStart),...u16(0)]);
+  const all=[...parts,...central,eocd]; let total=0; all.forEach(a=>total+=a.length);
+  const out=new Uint8Array(total); let p=0; all.forEach(a=>{ out.set(a,p); p+=a.length; });
+  return out;
+}
+const _xe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]))
+                      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'');
+function _colName(i){ let s=''; i++; while(i>0){ const m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=(i-m-1)/26; } return s; }
+/* rows: [[cell,...],...] · cell = {v, s} | 숫자 | 문자열 | null
+   s: 0=일반 1=굵게 2=숫자(#,##0) 3=제목(굵게 크게) 4=그룹머리(굵게+음영) */
+function xlsxBlob(rows, opts){
+  opts=opts||{}; const sheet=(opts.sheet||'단가표').slice(0,31).replace(/[\\\/?*\[\]:]/g,'');
+  const enc=new TextEncoder(), E=s=>enc.encode(s);
+  const body=rows.map((row,ri)=>{
+    const cells=row.map((cell,ci)=>{
+      if(cell==null||cell==='') return '';
+      const o=(typeof cell==='object')?cell:{v:cell};
+      const ref=_colName(ci)+(ri+1), st=o.s?` s="${o.s}"`:'';
+      return (typeof o.v==='number' && isFinite(o.v))
+        ? `<c r="${ref}"${st}><v>${o.v}</v></c>`
+        : `<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${_xe(o.v)}</t></is></c>`;
+    }).join('');
+    return `<row r="${ri+1}">${cells}</row>`;
+  }).join('');
+  const cols=(opts.widths||[]).map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('');
+  const merges=(opts.merges||[]);
+  const sheetXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${cols?`<cols>${cols}</cols>`:''}<sheetData>${body}</sheetData>${merges.length?`<mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>`:''}</worksheet>`;
+  const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0"/></numFmts>
+<fonts count="4"><font><sz val="11"/><name val="맑은 고딕"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="맑은 고딕"/></font><font><b/><sz val="14"/><name val="맑은 고딕"/></font><font><b/><sz val="11"/><name val="맑은 고딕"/></font></fonts>
+<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0D1B2A"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEAF0F6"/><bgColor indexed="64"/></patternFill></fill></fills>
+<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFBFC7CF"/></left><right style="thin"><color rgb="FFBFC7CF"/></right><top style="thin"><color rgb="FFBFC7CF"/></top><bottom style="thin"><color rgb="FFBFC7CF"/></bottom><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="5">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>
+</cellXfs></styleSheet>`;
+  const files=[
+    {name:'[Content_Types].xml', data:E(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`)},
+    {name:'_rels/.rels', data:E(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`)},
+    {name:'xl/workbook.xml', data:E(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${_xe(sheet)}" sheetId="1" r:id="rId1"/></sheets></workbook>`)},
+    {name:'xl/_rels/workbook.xml.rels', data:E(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`)},
+    {name:'xl/styles.xml', data:E(styles)},
+    {name:'xl/worksheets/sheet1.xml', data:E(sheetXml)}
+  ];
+  return new Blob([_zip(files)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
+
+/* ══ ⬇ 내보내기 ══ 실제 대시보드의 '구성 선택 모달' 과 같은 선택지.
+   대외비 열은 화면 권한이 있을 때만 — 체크돼 있어도 권한이 없으면 넣지 않는다. */
+const ymdNow=()=>{ const d=new Date(); return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`; };
+function download(blob,name){ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); }
+const seg=(id)=>($(`#${id} button.on`)||{}).dataset?.v;
+$$('#exKind,#exFmt').forEach(g=>g.addEventListener('click',e=>{ const b=e.target.closest('button[data-v]'); if(!b)return;
+  $$(`#${g.id} button`).forEach(x=>x.classList.toggle('on',x===b)); exSync(); }));
+function exFill(){
+  recalcAll();
+  const R=chByRole('retail'), keepC={}, keepK={};
+  $$('#exChan input').forEach(i=>keepC[i.value]=i.checked); $$('#exCat input').forEach(i=>keepK[i.value]=i.checked);
+  $('#exChan').innerHTML=chVisible().filter(c=>!(R&&c.k===R.k)).map(c=>`<label><input type="checkbox" value="${c.k}" ${keepC[c.k]!==false?'checked':''}> <b class="mono" style="color:var(--warn);font-size:10.5px">${c.code}</b> ${c.name}</label>`).join('');
+  const cats=[]; ROWS.forEach(r=>{ if(r.gone)return; const k=(r.l1||'미분류')+'|'+(r.l2||'기타'); if(!cats.includes(k)) cats.push(k); });
+  $('#exCat').innerHTML=cats.map(k=>`<label><input type="checkbox" value="${k}" ${keepK[k]!==false?'checked':''}> ${k.split('|')[1]} <span class="dim">· ${k.split('|')[0]}</span></label>`).join('');
+}
+function exData(){
+  recalcAll();
+  const kind=seg('exKind'), R=chByRole('retail');
+  const chans = kind==='sheet' ? $$('#exChan input:checked').map(i=>CHS.find(c=>c.k===i.value)).filter(Boolean) : [];
+  const cats  = new Set($$('#exCat input:checked').map(i=>i.value));
+  const incRetail = kind==='retail' || $('#exOwn').checked;
+  const incVb   = kind==='sheet' && $('#exVb').checked;
+  const incCost = $('#exCost').checked && canSeeCost();
+  const incSup  = $('#exSup').checked && !document.body.classList.contains('no-secret');
+  const expand=$('#exExpand').checked, incEmpty=$('#exEmpty').checked;
+  const secret = incCost||incSup;
+  const head=['No','분류','제품명','규격', ...(incSup?['공급업체']:[]), ...(incCost?['매입원가']:[]), ...(incVb?['업체단가']:[]),
+              ...chans.map(c=>`${c.name} 공급가`), ...(incRetail?['판매가(정가)']:[])];
+  const numStart=4+(incSup?1:0);
+  const g1={},g2={}; ROWS.forEach((r,i)=>{ const a=r.l1||'미분류', b=a+'|'+(r.l2||'기타'); if(!(a in g1))g1[a]=i; if(!(b in g2))g2[b]=i; });
+  const list=ROWS.map((r,ri)=>({r,ri})).filter(x=>!x.r.gone && cats.has((x.r.l1||'미분류')+'|'+(x.r.l2||'기타')))
+    .sort((x,y)=>{ const a=x.r.l1||'미분류', b=y.r.l1||'미분류'; return (g1[a]-g1[b])||(g2[a+'|'+(x.r.l2||'기타')]-g2[b+'|'+(y.r.l2||'기타')])||(x.ri-y.ri); });
+  const vals=(p,mult)=>[ ...(incCost?[p.cost==null?null:p.cost*mult]:[]), ...(incVb?[p.vb==null?null:p.vb*mult]:[]),
+      ...chans.map(c=>p[c.k]==null?null:p[c.k]*mult), ...(incRetail?[R&&p[R.k]!=null?p[R.k]*mult:null]:[]) ];
+  const rows=[]; let no=0, skipped=0;
+  list.forEach(({r})=>{
+    const v=vals(r,1), priceVals=v.slice(incCost?1:0);
+    if(!incEmpty && priceVals.every(x=>x==null)){ skipped++; return; }
+    no++;
+    rows.push({cells:[no, `${r.l1||'미분류'} › ${r.l2||'기타'}`, r.n+(r.set?' 📦':''), r.s, ...(incSup?[r.set?'구성품별':((supById(r.sup)||{}).name||'')]:[]), ...v]});
+    if(r.set && expand) r.set.forEach(x=>{ const p=ROWS[x.ri]; if(!p) return;
+      rows.push({sub:true, cells:['', '', `  └ ${p.n} × ${x.q}`, p.s, ...(incSup?[(supById(p.sup)||{}).name||'']:[]), ...vals(p,x.q)]}); });
+  });
+  const title=($('#exTitle').value||'').trim()||(kind==='retail'?'POUR스토어 판매가표':'POUR스토어 공급 단가표');
+  return {kind,head,rows,numStart,title,to:($('#exTo').value||'').trim(),secret,count:no,skipped,ymd:ymdNow(),chans};
+}
+function exSync(){
+  const kind=seg('exKind');
+  $('#exChanWrap').hidden = kind!=='sheet'; $('#exVbWrap').hidden = kind!=='sheet';
+  if(kind==='retail' && $('#exTitle').value==='POUR스토어 공급 단가표') $('#exTitle').value='POUR스토어 판매가표';
+  if(kind==='sheet' && $('#exTitle').value==='POUR스토어 판매가표') $('#exTitle').value='POUR스토어 공급 단가표';
+  const D=exData();
+  $('#exNote').innerHTML = `· ${D.count}개 제품${D.skipped?` · 값이 없어 빠진 제품 ${D.skipped}개(‘값이 비어 있는 제품도 넣기’로 포함)`:''}`
+    + (D.secret?' · <b style="color:var(--danger)">대외비 열 포함</b>':'') + (D.kind==='sheet'&&!D.chans.length?' · <b style="color:var(--danger)">채널을 하나 이상 고르세요</b>':'');
+  $('#exPrev').innerHTML=`<thead><tr>${D.head.map((h,i)=>`<th class="${i>=D.numStart?'num':''}">${h}</th>`).join('')}</tr></thead><tbody>`
+    + D.rows.slice(0,12).map(r=>`<tr${r.sub?' class="dim"':''}>${r.cells.map((c,i)=>`<td class="${i>=D.numStart?'num':''}">${i>=D.numStart?(c==null?'—':won(c)):(c??'')}</td>`).join('')}</tr>`).join('')
+    + (D.rows.length>12?`<tr><td colspan="${D.head.length}" class="dim" style="text-align:center">… 외 ${D.rows.length-12}줄</td></tr>`:'') + '</tbody>';
+  $('#exGo').textContent = seg('exFmt')==='pdf' ? '🖨 인쇄 · PDF로 저장' : '⬇ 내려받기';
+  $('#exGo').disabled = !D.count || (D.kind==='sheet'&&!D.chans.length);
+}
+function exRun(){
+  const D=exData(), fmt=seg('exFmt');
+  const base=`${D.kind==='retail'?'판매가표':'공급단가표'}_${D.ymd.replace(/\./g,'')}${D.secret?'_대외비':''}`;
+  const titleLine=D.title+(D.secret?'   [대외비 · 내부용]':'');
+  const metaLine=`${D.to?('수신: '+D.to+' · '):''}㈜넷폼 · POUR스토어 · 발행일 ${D.ymd} · ${D.count}개 제품`;
+  if(fmt==='csv'){
+    const q=v=>{ const t=v==null?'':String(v); return /[",\n]/.test(t)?`"${t.replace(/"/g,'""')}"`:t; };
+    const text='﻿'+[D.head, ...D.rows.map(r=>r.cells)].map(r=>r.map(q).join(',')).join('\r\n');
+    download(new Blob([text],{type:'text/csv;charset=utf-8'}), base+'.csv');
+  } else if(fmt==='xlsx'){
+    const N=D.head.length, last=_colName(N-1), rows=[], merges=[];
+    const span=(t,st)=>{ merges.push(`A${rows.length+1}:${last}${rows.length+1}`); rows.push([{v:t,s:st}]); };
+    span(titleLine,3); span(metaLine,0);
+    if(D.secret) span('※ 대외비 — 매입원가·공급업체가 포함된 내부용 자료입니다. 외부 배포를 금합니다.',4);
+    rows.push([]); rows.push(D.head.map(h=>({v:h,s:1})));
+    D.rows.forEach(r=>rows.push(r.cells.map((c,i)=> i>=D.numStart ? (c==null?{v:'—',s:0}:{v:c,s:2}) : {v:c??'',s:0})));
+    download(xlsxBlob(rows,{sheet:D.kind==='retail'?'판매가':'단가표',widths:[6,18,34,14,...D.head.slice(4).map(()=>14)],merges}), base+'.xlsx');
+  } else {
+    $('#printArea').innerHTML=`<h1>${titleLine}</h1><div class="meta"><span>${D.to?('수신: '+D.to):'㈜넷폼 · POUR스토어'}</span><span>발행일 ${D.ymd} · ${D.count}개 제품</span></div>
+      <table><thead><tr>${D.head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${D.rows.map(r=>`<tr>${r.cells.map((c,i)=>`<td class="${i>=D.numStart?'n':''}">${i>=D.numStart?(c==null?'—':won(c)):(c??'')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    window.print();
+  }
+  logAct('내보내기',`${D.title} · ${fmt==='pdf'?'PDF':fmt.toUpperCase()} · ${D.count}개 제품${D.secret?' · 대외비':''}`);
+  $('#exStatus').innerHTML = fmt==='pdf' ? '인쇄창에서 <b>PDF로 저장</b>을 고르세요' : `✅ ${base}.${fmt} 내려받기`;
+}
+$('#btnExport').addEventListener('click',()=>{ $('#moreMenu').classList.remove('on'); $('#expOv').classList.add('on'); $('#exStatus').textContent=''; exFill(); exSync(); });
+$('#exClose').addEventListener('click',()=>$('#expOv').classList.remove('on'));
+$('#expOv').addEventListener('click',e=>{ if(e.target===$('#expOv')) $('#expOv').classList.remove('on');
+  const a=e.target.closest('[data-exall]'), n=e.target.closest('[data-exnone]');
+  if(a||n){ $$(`#${(a||n).dataset[a?'exall':'exnone']} input`).forEach(i=>i.checked=!!a); exSync(); } });
+$('#expOv').addEventListener('change',e=>{ if(e.target.matches('input')) exSync(); });
+$('#exTitle').addEventListener('input',()=>{}); $('#exGo').addEventListener('click',exRun);
+
+/* 견적서 — 원가·마진은 절대 넣지 않는다(고객에게 그대로 건네는 문서) */
+function quoteData(){
+  recalcAll(); let sup=0;
+  const lines=QT.map((it,k)=>{ const r=ROWS[it.i], u=unitOf(r,it.q), amt=u==null?0:u*it.q; sup+=amt;
+    return [k+1, r.n, r.s, it.q, tierOf(it.q).l, u, amt]; });
+  return {lines, sup, vat:Math.round(sup/10), ymd:ymdNow()};
+}
+$('#qtXlsx').addEventListener('click',()=>{
+  if(!QT.length){ toast('견적에 담긴 품목이 없습니다',false); return; }
+  const Q=quoteData(), rows=[], merges=[];
+  const span=(t,st)=>{ merges.push(`A${rows.length+1}:G${rows.length+1}`); rows.push([{v:t,s:st}]); };
+  span('견 적 서',3); span(`㈜넷폼 · POUR스토어 · 발행일 ${Q.ymd} · 견적 유효기간 30일`,0); rows.push([]);
+  rows.push(['No','품명','규격','수량','적용 수량구간','단가','금액'].map(h=>({v:h,s:1})));
+  Q.lines.forEach(l=>rows.push([{v:l[0]},{v:l[1]},{v:l[2]},{v:l[3],s:2},{v:l[4]},{v:l[5]??'—',s:l[5]==null?0:2},{v:l[6],s:2}]));
+  rows.push([]);
+  [['공급가액',Q.sup],['부가세 (10%)',Q.vat],['합계금액',Q.sup+Q.vat]].forEach(([a,b])=>rows.push([null,null,null,null,null,{v:a,s:4},{v:b,s:2}]));
+  rows.push([]); span('※ 단가는 주문 수량 구간에 따라 적용된 금액입니다. 부가세 별도.',0);
+  download(xlsxBlob(rows,{sheet:'견적서',widths:[6,34,14,9,15,13,15],merges}), `견적서_${Q.ymd.replace(/\./g,'')}.xlsx`);
+  logAct('견적',`견적서 엑셀 · ${QT.length}품목 · 합계 ${won(Q.sup+Q.vat)}원`);
+  toast('⬇ 견적서 엑셀을 내려받았습니다 — 원가·마진은 들어가지 않습니다',false);
+});
+$('#qtPdf').addEventListener('click',()=>{
+  if(!QT.length){ toast('견적에 담긴 품목이 없습니다',false); return; }
+  const Q=quoteData();
+  $('#printArea').innerHTML=`<h1>견 적 서</h1><div class="meta"><span>㈜넷폼 · POUR스토어</span><span>발행일 ${Q.ymd} · 유효기간 30일</span></div>
+    <table><thead><tr><th>No</th><th>품명</th><th>규격</th><th>수량</th><th>적용 구간</th><th>단가</th><th>금액</th></tr></thead><tbody>
+    ${Q.lines.map(l=>`<tr><td>${l[0]}</td><td>${l[1]}</td><td>${l[2]}</td><td class="n">${won(l[3])}</td><td>${l[4]}</td><td class="n">${won(l[5])}</td><td class="n">${won(l[6])}</td></tr>`).join('')}
+    <tr class="g"><td colspan="6" class="n">공급가액</td><td class="n">${won(Q.sup)}</td></tr>
+    <tr><td colspan="6" class="n">부가세 (10%)</td><td class="n">${won(Q.vat)}</td></tr>
+    <tr class="g"><td colspan="6" class="n">합계금액</td><td class="n">${won(Q.sup+Q.vat)}</td></tr></tbody></table>`;
+  window.print(); logAct('견적',`견적서 PDF · ${QT.length}품목`);
+});
+
 /* ══ 📄 파일로 업체단가 입력 ══ 실제 대시보드의 업로드와 같은 순서: 비교 → 고른 것만 → (마스터 아니면 개정안) */
 function parseCsv(text){
   const rows=[]; let row=[], cur='', q=false;
@@ -1946,7 +2199,7 @@ function describeAll(list){
   }
   return out;
 }
-const pillCls=t=>({삭제:'del',등록:'add',규칙:'rule',복원:'add',개정안:'rule'}[t]||'');
+const pillCls=t=>({삭제:'del',등록:'add',규칙:'rule',복원:'add',개정안:'rule',내보내기:'add',견적:'add'}[t]||'');
 let ACT=[
   {at:'2026.09.16 17:05',by:'송희',type:'복원',text:'POUR 에어쉘시트 휴지통에서 되살림'},
   {at:'2026.09.16 14:22',by:'송희',type:'가격',text:'POUR 코트재Ⅰ(회색) [OWN] 자사몰 직판(정가) 176,000 → 177,500'},

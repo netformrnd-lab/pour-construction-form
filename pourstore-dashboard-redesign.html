@@ -235,6 +235,18 @@ table.grid thead th.vbcol{background:#E1F0E6}
 .todo{font-size:11px;color:var(--warn);font-weight:700;background:var(--warn-l);border-radius:4px;padding:1px 7px}
 td.ovrcell{box-shadow:inset 0 0 0 1px #C9B8F2}
 .ovrb{font-size:10px;color:#6D28D9;margin-left:3px;font-weight:700}
+/* 📝 개정안 */
+.drafttag{display:block;font-size:10px;color:#B45309;font-weight:800;margin-top:1px;white-space:nowrap}
+td.draftcell{box-shadow:inset 0 0 0 2px #F5C36B}
+.dbanner{border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12.5px}
+.dbanner.work{background:#EFF6FF;border:1px solid #BFDBFE}
+.dbanner.wait{background:#FFF7E6;border:1px solid #F5C36B}
+.dbanner b.t{font-size:13px}
+.dbanner input{border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:12.5px;min-width:170px}
+.dbanner details{flex-basis:100%;font-size:12px}
+.dbanner details summary{cursor:pointer;color:var(--ink2);font-weight:600}
+.dbanner details li{margin:3px 0 3px 18px}
+body.previewing #sc-price .panel{outline:2px dashed #F5C36B;outline-offset:2px}
 /* 📦 세트 */
 .setbadge{font-size:10.5px;font-weight:700;color:var(--ok-d);background:var(--sel);border-radius:4px;padding:1px 6px;margin-left:5px;vertical-align:middle}
 .setmiss{font-size:10.5px;font-weight:700;color:var(--danger);background:var(--danger-l);border-radius:4px;padding:1px 6px;margin-left:4px;vertical-align:middle}
@@ -525,6 +537,7 @@ tr.findme td{animation:findme 2.4s ease-out}
         <div class="panel">
           <h3>지금 해야 할 일 <span class="tag">클릭하면 그 칸으로 바로 이동</span></h3>
           <div class="bd" style="padding:4px 14px">
+            <div id="dashDraft"></div>
             <button class="alertrow" data-fix="POUR 듀얼복합시트"><span class="pill">가격 역전</span><span>POUR 듀얼복합시트 1.5T (50cm*25m) — 자사몰 정가가 쿠팡가보다 낮습니다</span><span class="go">고치기 ›</span></button>
             <button class="alertrow" data-fix="트랩100 연장시트"><span class="pill">하한 확인</span><span>트랩100 연장시트 — 정가와 하한가가 같아 수량을 늘려도 할인이 0원입니다</span><span class="go">고치기 ›</span></button>
             <button class="alertrow" data-fix="POUR 코트재 1L"><span class="pill">값 없음</span><span>POUR 코트재 1L — 업체단가·대리점가가 '미정'이라 견적서 할인이 붙지 않습니다</span><span class="go">고치기 ›</span></button>
@@ -547,6 +560,7 @@ tr.findme td{animation:findme 2.4s ease-out}
       <!-- ── 가격정책표 ── -->
       <section class="screen" id="sc-price">
         <div class="permnote">👤 <b>팀원 권한</b>으로 보고 있습니다 — 매입원가·마진 열이 숨겨져 있습니다.</div>
+        <div id="draftBanner"></div>
         <div class="panel">
           <div class="toolbar">
             <!-- [보기] 매일 쓰는 것만 밖에 -->
@@ -572,7 +586,7 @@ tr.findme td{animation:findme 2.4s ease-out}
                   <button>⬇ CSV 내보내기</button>
                   <div class="sep"></div>
                   <div class="mlbl">불러오기 · 일괄</div>
-                  <button>📄 파일로 업체단가 입력</button>
+                  <button id="btnImport">📄 파일로 업체단가 입력…</button>
                   <button id="btnBulkFix">📌 보이는 제품 일괄 고정</button>
                   <button id="btnBulkAuto">⚙️ 보이는 제품 일괄 자동계산</button>
                   <button>＋ 채널 추가</button>
@@ -1060,6 +1074,30 @@ tr.findme td{animation:findme 2.4s ease-out}
 <!-- 토스트 -->
 <div id="toast"><span id="toastMsg"></span><button id="toastUndo">실행취소</button></div>
 
+<!-- 파일로 업체단가 입력 -->
+<div class="ov" id="impOv">
+  <div class="modal" style="width:min(900px,100%)">
+    <h3>📄 파일로 업체단가 입력</h3>
+    <div class="mb">
+      <p class="note" style="margin-top:0">· CSV(<b>제품명, 규격, 업체단가, 자사몰 정가</b>)를 고르면 <b>지금 값과 나란히</b> 보여줍니다. <b>고른 줄만</b> 반영하고, 마스터가 아니면 <b>개정안</b>으로 담깁니다.<br>
+      · 파일의 <b>빈칸은 기본적으로 지금 값을 그대로 둡니다.</b> 지우고 싶을 때만 아래 스위치를 켜세요.<br>
+      · 시안은 CSV만 읽습니다(실제 대시보드는 PDF·엑셀도 읽습니다).</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">
+        <label class="btn" style="cursor:pointer"><input type="file" id="impFile" accept=".csv,.txt" hidden>📂 CSV 고르기</label>
+        <button class="btn" id="impSample">예시 파일로 해보기</button>
+        <label class="switch"><input type="checkbox" id="impBlank"><span class="tr"></span>파일의 빈칸으로 지금 값 지우기</label>
+        <span class="note" id="impInfo" style="margin:0"></span>
+      </div>
+      <div class="tblwrap" style="margin-top:10px;max-height:50vh;min-height:0"><table class="grid" id="impTable" style="min-width:720px"></table></div>
+    </div>
+    <div class="mf">
+      <button class="btn" id="impAll" style="margin-right:auto">달라진 것만 고르기</button>
+      <button class="btn" id="impClose">닫기</button>
+      <button class="btn pri" id="impApply" disabled>고른 것 반영</button>
+    </div>
+  </div>
+</div>
+
 <!-- 원본 복원 확인 -->
 <div class="ov" id="resetOv">
   <div class="modal">
@@ -1184,7 +1222,8 @@ function renderChan(){
             <option value="ladder"${rl.a==='ladder'?' selected':''}>사다리 (업체단가~정가)</option>
             <option value="manual"${rl.a!=='ladder'?' selected':''}>직접 입력</option></select>
           ${rl.a==='ladder'?`<input type="number" data-chf="${i}" value="${rl.f}" min="0" max="100" step="1"
-            style="width:58px;text-align:right;border:1px solid var(--line);border-radius:6px;padding:4px 6px"> %`:''}`}</td>
+            style="width:58px;text-align:right;border:1px solid var(--line);border-radius:6px;padding:4px 6px"> %`:''}
+          ${(()=>{ const d=draftRule(CHS.indexOf(c)); return d?`<div class="drafttag">개정안 → ${d.a==='ladder'?'사다리 '+d.f+'%':'직접 입력'}</div>`:''; })()}`}</td>
       <td><select data-chrole="${i}" style="border:1px solid var(--line);border-radius:6px;padding:4px 7px">
         <option value=""${c.role?'':' selected'}>—</option>
         <option value="retail"${c.role==='retail'?' selected':''}>정가</option>
@@ -1245,7 +1284,7 @@ function applyRole(r){
   if(!canCostRole && cur && ['sc-pl','sc-fixed'].includes(cur.id)) go('dash');
   if(!canSecretRole && cur && cur.id==='sc-match') go('dash');
   if($('#calc')&&!canCost) $('#calc').hidden=true;
-  renderAccounts(); renderPrice(); renderAnalysis(); renderReg(); renderMatch(); renderFixed(); renderPl(); renderLinks(); renderPromo(); renderMkt(); renderCrm();
+  renderAccounts(); renderPrice(); renderDraft(); renderAnalysis(); renderReg(); renderMatch(); renderFixed(); renderPl(); renderLinks(); renderPromo(); renderMkt(); renderCrm();
 }
 function renderAccounts(){
   const t=$('#acctTable'); if(!t)return;
@@ -1259,6 +1298,7 @@ function renderAccounts(){
    + '</tbody>';
 }
 function go(sc){
+  if(PREVIEW && sc!=='price'){ PREVIEW=false; recalcAll(); renderDraft(); }   // 미리보기는 가격표에서만 — 다른 화면이 섞인 값을 쓰지 않게
   $$('.screen').forEach(x=>x.classList.toggle('on',x.id==='sc-'+sc));
   $$('.navitem').forEach(b=>b.classList.toggle('on',b.dataset.sc===sc));
   const t=TITLES[sc]||TITLES.soon; $('#scTitle').textContent=t[0]; $('#scSub').textContent=t[1];
@@ -1286,6 +1326,10 @@ $('#chTable').addEventListener('change',e=>{
     const next={...before};
     if(ru){ next.a=ru.value; if(next.a==='ladder' && !(next.f>=0)) next.f=0; }
     else { next.f=Math.max(0,Math.min(100,Math.round(+rf.value||0))); }
+    if(needsApproval()){
+      draftRulePut(CHS.indexOf(c),next); renderChan(); renderPrice();
+      toast(draftRule(CHS.indexOf(c))?`📝 [${c.code}] 규칙 변경을 개정안에 담았습니다 — 마스터 승인 후 적용`:'개정안에서 뺐습니다 — 지금 규칙과 같습니다',false);
+      return; }
     if(next.a===before.a && next.f===before.f){ renderChan(); return; }
     const snap=ROWS.map(r=>r[c.k]);
     c.rule=next; UNDO.push({chRule:CHS.indexOf(c),before}); recalcAll();
@@ -1386,8 +1430,8 @@ const LAD_BASE=0.81;
 const ceil100=n=>Math.ceil(n/100)*100;
 function recalcRow(r){
   const R=chByRole('retail'), todo=r.todo||{};
-  const vb = todo.vb ? null : r.vb;
-  const own = R ? (todo[R.k] ? null : r[R.k]) : null;
+  const vb = todo.vb ? null : srcVal(r,'vb');                    // 미리보기면 개정안 값으로 계산
+  const own = R ? (todo[R.k] ? null : srcVal(r,R.k)) : null;
   const hasVb=vb>0, hasOwn=own>0;
   const bottom = hasVb ? vb : ((hasOwn && !todo.vb) ? own*LAD_BASE : null);
   const top    = hasOwn ? own : ((hasVb && !(R&&todo[R.k])) ? vb/LAD_BASE : null);
@@ -1395,7 +1439,7 @@ function recalcRow(r){
     if(R && c.k===R.k) return;                                     // 정가는 앵커 — 손대지 않는다
     const inFile = r.file && (c.k in r.file);
     if(r.fixed){ r[c.k] = inFile ? r.file[c.k] : (r[c.k]??null); return; }
-    const rule=c.rule||{a:'manual',f:0};
+    const rule=(PREVIEW && draftRule(CHS.indexOf(c))) || c.rule || {a:'manual',f:0};
     let v;
     if(rule.a==='ladder'){
       v=null;
@@ -1404,7 +1448,8 @@ function recalcRow(r){
         v = f<=0 ? Math.round(bottom) : (f>=1 ? Math.round(top) : ceil100(bottom+f*(top-bottom)));
       }
     } else v = inFile ? r.file[c.k] : (r[c.k]??null);              // 직접 입력 채널: 마지막 값 유지
-    if(r.ovr && r.ovr[c.k]!=null) v=r.ovr[c.k];
+    const ov=srcVal(r,'ovr:'+c.k);
+    if(ov!=null) v=ov;
     r[c.k]=v;
   });
 }
@@ -1426,6 +1471,90 @@ function setField(r,f,v){ const i=f.indexOf(':'); if(i<0){ r[f]=v; return; }
   if(v===undefined || (v==null && a!=='file')) delete r[a][b]; else r[a][b]=v; }
 
 let VIEW='price';
+
+/* ══ 📝 개정안 ══ 실제 대시보드와 같은 통제.
+   마스터가 아니면 업체단가·정가·✎ 직접 조정·채널 규칙은 바로 바뀌지 않고 개정안에 담긴다.
+   → 승인 요청 → 마스터가 미리보기로 확인하고 승인·적용(이때 '변경 N건' 에 잡혀 저장 전 되돌릴 수 있다) 또는 반려.
+   개정안은 계정을 바꿔도 남는다(공유 문서처럼). */
+let DRAFT={items:[],rules:[],status:'',by:'',note:''}, PREVIEW=false;
+const needsApproval=()=>ROLE!=='master';
+const draftIdx=(ri,field)=>DRAFT.items.findIndex(x=>x.ri===ri&&x.field===field);
+const draftHas=(ri,field)=>draftIdx(ri,field)>=0;
+const draftVal=(ri,field)=>{ const i=draftIdx(ri,field); return i<0?undefined:DRAFT.items[i].val; };
+const draftRule=ci=>{ const x=DRAFT.rules.find(y=>y.ci===ci); return x?x.rule:null; };
+const draftCount=()=>DRAFT.items.length+DRAFT.rules.length;
+/* 미리보기 중이면 개정안 값을, 아니면 실제 값을 돌려준다 */
+const srcVal=(r,field)=>{ const ri=ROWS.indexOf(r); return (PREVIEW && draftHas(ri,field)) ? draftVal(ri,field) : getField(r,field); };
+function draftPut(ri,field,val){
+  const r=ROWS[ri], actual=getField(r,field), i=draftIdx(ri,field);
+  const same=JSON.stringify(actual??null)===JSON.stringify(val??null);
+  if(same){ if(i>=0) DRAFT.items.splice(i,1); }
+  else if(i>=0) DRAFT.items[i].val=val; else DRAFT.items.push({ri,field,val});
+  if(DRAFT.status==='대기'){ DRAFT.status='작성중'; toast('개정안이 바뀌어 승인 요청을 다시 보내야 합니다',false); }
+  if(!draftCount()) clearDraft(); else if(!DRAFT.status) DRAFT.status='작성중';
+}
+function draftRulePut(ci,rule){
+  const c=CHS[ci], i=DRAFT.rules.findIndex(y=>y.ci===ci);
+  const same=c.rule && c.rule.a===rule.a && (+c.rule.f||0)===(+rule.f||0);
+  if(same){ if(i>=0) DRAFT.rules.splice(i,1); } else if(i>=0) DRAFT.rules[i].rule=rule; else DRAFT.rules.push({ci,rule});
+  if(DRAFT.status==='대기') DRAFT.status='작성중';
+  if(!draftCount()) clearDraft(); else if(!DRAFT.status) DRAFT.status='작성중';
+}
+function clearDraft(){ DRAFT={items:[],rules:[],status:'',by:'',note:''}; PREVIEW=false; document.body.classList.remove('previewing'); }
+function draftLines(){
+  const rl=x=>x?(x.a==='ladder'?`사다리 ${x.f}%`:'직접 입력'):'—';
+  return DRAFT.items.map(it=>{ const r=ROWS[it.ri]||{}; const k=it.field;
+      const lb = k==='vb'?'업체단가' : k.startsWith('ovr:')?`${chName(k.slice(4))} ✎ 직접 조정` : chName(k);
+      return `${r.n} ${lb} ${fmtAny(getField(r,k))} → <b>${fmtAny(it.val)}</b>`; })
+    .concat(DRAFT.rules.map(x=>`${chName(CHS[x.ci].k)} 단가 규칙 ${rl(CHS[x.ci].rule)} → <b>${rl(x.rule)}</b>`));
+}
+function renderDraft(){
+  const n=draftCount(), box=$('#draftBanner'), dash=$('#dashDraft');
+  document.body.classList.toggle('previewing',PREVIEW);
+  if(!n){ box.innerHTML=''; if(dash) dash.innerHTML=''; return; }
+  const pre=`<button class="btn sm" data-dr="preview">${PREVIEW?'✅ 미리보기 켜짐 (끄기)':'👁 개정안 미리보기'}</button>`;
+  const list=`<details><summary>무엇이 바뀌나 (${n}건)</summary><ul>${draftLines().map(x=>`<li>${x}</li>`).join('')}</ul></details>`;
+  if(DRAFT.status==='대기'){
+    box.innerHTML=`<div class="dbanner wait"><b class="t" style="color:#B45309">🔔 승인 대기 개정안 · ${n}건</b>
+      <span class="dim">제안 ${DRAFT.by}${DRAFT.note?' · “'+DRAFT.note+'”':''}</span> ${pre}
+      ${ROLE==='master'?`<button class="btn sm pri" data-dr="approve">✔ 승인·적용</button><button class="btn sm danger" data-dr="reject">✖ 반려</button>`
+                       :`<span class="rolechip" style="background:var(--warn-l);color:var(--warn)">마스터 승인 대기 중</span>`}${list}</div>`;
+  } else {
+    box.innerHTML=`<div class="dbanner work"><b class="t" style="color:#1E40AF">📝 개정안 작성중 · ${n}건</b>
+      <span class="dim">실제 가격은 <b>마스터 승인 후</b> 바뀝니다.</span> ${pre}
+      <input id="draftNote" placeholder="변경 사유 (선택)" value="${DRAFT.note||''}">
+      <button class="btn sm pri" data-dr="submit">📤 승인 요청</button><button class="btn sm danger" data-dr="discard">개정안 버리기</button>${list}</div>`;
+  }
+  if(dash) dash.innerHTML = (DRAFT.status==='대기' && ROLE==='master')
+    ? `<button class="alertrow" data-sc="price"><span class="pill" style="background:var(--warn-l)">승인 대기</span><span>${DRAFT.by} 님의 가격 개정안 ${n}건이 승인을 기다립니다</span><span class="go">보러 가기 ›</span></button>` : '';
+}
+function approveDraft(){
+  if(ROLE!=='master'){ toast('승인은 마스터만 할 수 있습니다',false); return; }
+  let n=0; const by=DRAFT.by, note=DRAFT.note;
+  PREVIEW=false;
+  DRAFT.items.forEach(it=>{ const r=ROWS[it.ri]; if(!r||r.gone) return;
+    const before=getField(r,it.field); if(JSON.stringify(before??null)===JSON.stringify(it.val??null)) return;
+    UNDO.push({ri:it.ri,key:it.field,before}); setField(r,it.field,it.val);
+    const k=it.field.startsWith('ovr:')?it.field.slice(4):it.field;
+    if(it.val!=null && r.todo && r.todo[k]){ UNDO.push({ri:it.ri,key:'todo:'+k,before:true}); delete r.todo[k]; }
+    bump(); n++; });
+  DRAFT.rules.forEach(x=>{ const c=CHS[x.ci]; UNDO.push({chRule:x.ci,before:{...c.rule}}); c.rule={...x.rule}; bump(); n++; });
+  logAct('개정안',`${by} 님 개정안 승인·적용 ${n}건${note?' · “'+note+'”':''} — 저장하면 항목별로 남습니다`);
+  clearDraft(); afterPriceChange(); renderChan(); renderDraft();
+  toast(`✔ 개정안 ${n}건을 적용했습니다 — 저장 전이라 되돌릴 수 있습니다`,false);
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-dr]'); if(!b) return;
+  const a=b.dataset.dr;
+  if(a==='preview'){ PREVIEW=!PREVIEW; afterPriceChange(); renderDraft(); return; }
+  if(a==='submit'){ DRAFT.status='대기'; DRAFT.by=curName(); DRAFT.note=(($('#draftNote')||{}).value||'').trim();
+    logAct('개정안',`승인 요청 ${draftCount()}건${DRAFT.note?' · “'+DRAFT.note+'”':''}`); renderDraft();
+    toast('📤 마스터에게 승인을 요청했습니다 — 승인 전까지 실제 가격은 바뀌지 않습니다',false); return; }
+  if(a==='discard'){ const n=draftCount(); clearDraft(); afterPriceChange(); renderChan(); renderDraft(); toast(`개정안 ${n}건을 버렸습니다`,false); return; }
+  if(a==='approve'){ approveDraft(); return; }
+  if(a==='reject'){ const n=draftCount(), by=DRAFT.by; logAct('개정안',`${by} 님 개정안 반려 ${n}건`); clearDraft(); afterPriceChange(); renderChan(); renderDraft();
+    toast(`✖ 개정안 ${n}건을 반려했습니다 — 실제 가격은 그대로입니다`,false); return; }
+});
 function fmtVal(v,cost){
   if(!canSeeCost()) return won(v);
   const mode=VIEW;
@@ -1434,17 +1563,23 @@ function fmtVal(v,cost){
   if(mode==='rate')   return rr==null ? '—' : pct1(rr);
   return won(v)+(rr!=null?`<span class="mr">마진 ${pct1(rr)}</span>`:'');
 }
+function draftMark(ri,field){
+  if(!draftHas(ri,field)) return {cls:'',tag:''};
+  return {cls:' draftcell', tag:`<span class="drafttag">${PREVIEW?'개정안 미리보기':'개정안 → '+fmtAny(draftVal(ri,field))}</span>`};
+}
 function vbCell(r,ri){
-  const a=`data-edit data-r="${ri}" data-k="vb"`;
+  const a=`data-edit data-r="${ri}" data-k="vb"`, dm=draftMark(ri,'vb'), vb=srcVal(r,'vb');
   const tip='업체단가 — 총판 기준. ⚙️ 자동계산 제품은 이 값과 정가 사이에서 채널 단가가 정해집니다';
-  if(r.vb==null) return `<td class="num vbcol" ${a} title="${tip}">${r.todo&&r.todo.vb?'<span class="todo">미정</span>':'<span class="inhint">＋ 입력</span>'}</td>`;
-  const neg=canSeeCost()&&r.cost!=null&&r.vb<r.cost;
-  return `<td class="num vbcol${neg?' neg':''}" ${a} title="${tip}" style="font-weight:600">${fmtVal(r.vb,r.cost)}${neg?'<span class="negtag">역마진</span>':''}</td>`;
+  if(vb==null) return `<td class="num vbcol${dm.cls}" ${a} title="${tip}">${r.todo&&r.todo.vb?'<span class="todo">미정</span>':'<span class="inhint">＋ 입력</span>'}${dm.tag}</td>`;
+  const neg=canSeeCost()&&r.cost!=null&&vb<r.cost;
+  return `<td class="num vbcol${neg?' neg':''}${dm.cls}" ${a} title="${tip}" style="font-weight:600">${fmtVal(vb,r.cost)}${neg?'<span class="negtag">역마진</span>':''}${dm.tag}</td>`;
 }
 function priceCell(r,ri,c,R){
-  const k=c.k, v=r[k], isAnchor=!!(R&&k===R.k);
-  const auto=!r.fixed && !isAnchor && (c.rule||{}).a==='ladder';
-  const ovr=auto && r.ovr && r.ovr[k]!=null;
+  const k=c.k, isAnchor=!!(R&&k===R.k), v=isAnchor?srcVal(r,k):r[k];
+  const rule=(PREVIEW && draftRule(CHS.indexOf(c))) || c.rule || {};
+  const auto=!r.fixed && !isAnchor && rule.a==='ladder';
+  const ovr=auto && srcVal(r,'ovr:'+k)!=null;
+  const dm=draftMark(ri, isAnchor?k:'ovr:'+k);
   const a=`data-edit data-r="${ri}" data-k="${k}"`;
   const todo=r.todo&&r.todo[k]&&v==null;
   const tip = todo ? '아직 단가를 정하지 않은 칸 — 값을 넣으면 미정이 풀립니다'
@@ -1452,10 +1587,10 @@ function priceCell(r,ri,c,R){
     : auto ? '⚙️ 자동계산된 단가 — 고치면 이 제품만 직접 조정(✎)됩니다'
     : isAnchor ? '정가 — ⚙️ 자동계산의 윗기준입니다'
     : r.fixed ? '📌 고정 — 넣은 값을 그대로 씁니다' : '직접 입력하는 채널';
-  if(v==null) return `<td class="num dim" ${a} title="${tip}">${todo?'<span class="todo">미정</span>':(auto?'—':'<span class="inhint">＋ 입력</span>')}</td>`;
+  if(v==null) return `<td class="num dim${dm.cls}" ${a} title="${tip}">${todo?'<span class="todo">미정</span>':(auto?'—':'<span class="inhint">＋ 입력</span>')}${dm.tag}</td>`;
   const see=canSeeCost(), neg=see && r.cost!=null && v<r.cost;
-  const cls=['num', neg?'neg':(see?mcls(v,r.cost):''), ovr?'ovrcell':''].filter(Boolean).join(' ');
-  return `<td class="${cls}" ${a} title="${tip}">${fmtVal(v,r.cost)}${neg?'<span class="negtag">역마진</span>':''}${ovr?'<span class="ovrb">✎</span>':''}</td>`;
+  const cls=['num', neg?'neg':(see?mcls(v,r.cost):''), ovr?'ovrcell':''].filter(Boolean).join(' ')+dm.cls;
+  return `<td class="${cls}" ${a} title="${tip}">${fmtVal(v,r.cost)}${neg?'<span class="negtag">역마진</span>':''}${ovr?'<span class="ovrb">✎</span>':''}${dm.tag}</td>`;
 }
 function setCell(r,ri,k){
   const v=r[k], why=(r._gone&&r._gone.length) ? `구성 중 휴지통에 있음: ${r._gone.join(', ')}`
@@ -1477,13 +1612,14 @@ function fillCatSelects(){
     if(cats.includes(p)||p==='__new') rc.value=p; $('#rgNewCat').hidden = rc.value!=='__new'; }
 }
 function renderPrice(){
-  recalcAll(); fillCatSelects();
+  recalcAll(); fillCatSelects(); renderDraft();
   const R=chByRole('retail'), vis=chVisible();
   const hd=$('#pthead');
   if(hd) hd.innerHTML=`<th style="min-width:250px">제품</th><th class="secretonly" style="min-width:96px">공급업체</th>
       <th class="num costcol">매입원가</th><th class="num vbcol" title="총판 기준 — 자동계산의 아랫기준">업체단가<span class="code">기준 0%</span></th>`
     + vis.map(c=>{ const rl=c.rule||{a:'manual'}, isA=!!(R&&R.k===c.k);
-        const sub=isA?'정가 100%':(rl.a==='ladder'?`사다리 ${rl.f}%`:'직접 입력');
+        const d=draftRule(CHS.indexOf(c)), fmtR=x=>x.a==='ladder'?`사다리 ${x.f}%`:'직접 입력';
+        const sub=isA?'정가 100%':(d?`${fmtR(rl)} → <b style="color:#B45309">${fmtR(d)} 개정안</b>`:fmtR(rl));
         return `<th class="num">${c.name}<span class="code">${c.code} · ${sub}</span></th>`; }).join('');
   const ncols=4+vis.length;
   const tb=$('#ptable tbody'); tb.innerHTML='';
@@ -1562,6 +1698,92 @@ function bulkPin(on){
   afterPriceChange();
   toast(`${list.length}개 제품을 ${on?'📌 고정':'⚙️ 자동계산'} 으로 바꿨습니다${!on&&cells?` · 단가 ${cells}칸 재계산`:''} (되돌리기 가능)`,false);
 }
+/* ══ 📄 파일로 업체단가 입력 ══ 실제 대시보드의 업로드와 같은 순서: 비교 → 고른 것만 → (마스터 아니면 개정안) */
+function parseCsv(text){
+  const rows=[]; let row=[], cur='', q=false;
+  for(let i=0;i<text.length;i++){ const ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===','){ row.push(cur); cur=''; }
+    else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&text[i+1]==='\n') i++; row.push(cur); rows.push(row); row=[]; cur=''; }
+    else cur+=ch; }
+  if(cur!==''||row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(r=>r.some(c=>c.trim()!==''));
+}
+const IMP_SAMPLE=`제품명,규격,업체단가,자사몰 정가
+POUR 코트재Ⅰ(회색),20kg/통,146000,179000
+POUR 상도코트재(회색),20kg/통,170700,187500
+"POUR 탄성강화 파우더(측구)",20kg/포,33000,
+POUR써밋우레탄 하도,17kg/통,abc,
+POUR 신규 방수시트,1m*10m,55000,72000`;
+let IMP=[];
+function impLoad(text,label){
+  const rows=parseCsv(text); if(!rows.length){ $('#impInfo').textContent='읽을 줄이 없습니다'; IMP=[]; renderImp(); return; }
+  const h=rows[0].map(x=>x.trim()), hasHead=h.some(x=>/제품|이름|규격|단가|정가/.test(x));
+  const col=(re,def)=>{ const i=h.findIndex(x=>re.test(x)); return hasHead&&i>=0?i:def; };
+  const cN=col(/제품|이름/,0), cS=col(/규격/,1), cV=col(/업체|총판/,2), cO=col(/정가/,3);
+  const R=chByRole('retail');
+  IMP=(hasHead?rows.slice(1):rows).map((c,j)=>{
+    const name=(c[cN]||'').trim(), spec=(c[cS]||'').trim();
+    let ri=ROWS.findIndex(r=>!r.gone&&r.n===name&&r.s===spec);
+    if(ri<0){ const same=ROWS.map((r,i)=>(!r.gone&&r.n===name)?i:-1).filter(i=>i>=0); if(same.length===1) ri=same[0]; }
+    const cell=(raw)=>{ const t=(raw||'').replace(/[,\s원]/g,''); if(t==='') return {raw:'',blank:true}; const n=Math.round(+t); return (/^\d+(\.\d+)?$/.test(t))?{raw,v:n}:{raw,bad:true}; };
+    return {line:j+1,name,spec,ri,vb:cell(c[cV]),own:cell(c[cO]), set:ri>=0&&!!ROWS[ri].set, rk:R?R.k:null};
+  });
+  $('#impInfo').textContent=`${label} · ${IMP.length}줄`;
+  renderImp(true);
+}
+function impChanges(x){
+  if(x.ri<0||x.set) return [];
+  const r=ROWS[x.ri], clear=$('#impBlank').checked, out=[];
+  const want=(c)=> c.bad?undefined : c.blank ? (clear?null:undefined) : c.v;
+  const cmp=(field,c)=>{ const w=want(c); if(w===undefined) return; const now=getField(r,field)??null; if(now!==w) out.push({field,from:now,to:w}); };
+  cmp('vb',x.vb); if(x.rk) cmp(x.rk,x.own);
+  return out;
+}
+function renderImp(resetChecks){
+  const t=$('#impTable'); const keep={}; $$('#impTable input[data-imp]').forEach(i=>keep[i.dataset.imp]=i.checked);
+  if(!IMP.length){ t.innerHTML='<tbody><tr><td style="padding:22px;text-align:center;color:var(--ink3)">파일을 고르거나 [예시 파일로 해보기]를 누르세요</td></tr></tbody>'; $('#impApply').disabled=true; return; }
+  const st=x=>{ const ch=impChanges(x);
+    if(x.ri<0) return ['nomatch','<span class="rolechip" style="background:var(--danger-l);color:var(--danger)">우리 목록에 없음</span>'];
+    if(x.set) return ['set','<span class="rolechip mem">세트 — 구성 단품을 고치세요</span>'];
+    if(x.vb.bad||x.own.bad) return [ch.length?'diff':'bad', '<span class="rolechip" style="background:var(--danger-l);color:var(--danger)">숫자가 아닌 칸 있음</span>'+(ch.length?' <span class="rolechip" style="background:var(--warn-l);color:var(--warn)">일부 다름</span>':'')];
+    return ch.length?['diff','<span class="rolechip" style="background:var(--warn-l);color:var(--warn)">값 다름</span>']:['same','<span class="rolechip mem">같음</span>']; };
+  t.innerHTML=`<thead><tr><th style="width:40px"></th><th>파일의 제품</th><th class="num">업체단가 지금 → 파일</th><th class="num">정가 지금 → 파일</th><th>상태</th></tr></thead><tbody>`
+   + IMP.map((x,j)=>{ const [s,lb]=st(x), r=ROWS[x.ri]||null;
+      const pair=(field,c)=>{ if(!r||x.set) return `<span class="dim">${c.raw||'—'}</span>`;
+        const now=getField(r,field)??null, w=c.bad?null:(c.blank?($('#impBlank').checked?null:now):c.v);
+        const diff=!c.bad && w!==now && !(c.blank&&!$('#impBlank').checked);
+        return `${fmtAny(now)} → ${c.bad?`<b style="color:var(--danger)">"${c.raw}"</b>`:c.blank?($('#impBlank').checked?'<b style="color:var(--danger)">지움</b>':'<span class="dim">빈칸(그대로)</span>'):(diff?`<b>${won(c.v)}</b>`:won(c.v))}`; };
+      const can=s==='diff', checked = resetChecks ? can : (keep[j]!==undefined?keep[j]&&can:can);
+      return `<tr><td>${can?`<input type="checkbox" data-imp="${j}" ${checked?'checked':''}>`:'<span class="dim">—</span>'}</td>
+        <td><span class="pname">${x.name||'(이름 없음)'}</span><div class="spec">${x.spec} · ${x.line}번째 줄</div></td>
+        <td class="num">${pair('vb',x.vb)}</td><td class="num">${x.rk?pair(x.rk,x.own):'—'}</td><td>${lb}</td></tr>`; }).join('')
+   + '</tbody>';
+  const nDiff=IMP.filter(x=>st(x)[0]==='diff').length;
+  $('#impApply').disabled=!nDiff;
+  $('#impApply').textContent=needsApproval()?'고른 것 개정안에 담기':'고른 것 반영';
+}
+$('#btnImport').addEventListener('click',()=>{ $('#moreMenu').classList.remove('on'); $('#impOv').classList.add('on'); renderImp(); });
+$('#impClose').addEventListener('click',()=>$('#impOv').classList.remove('on'));
+$('#impOv').addEventListener('click',e=>{ if(e.target===$('#impOv')) $('#impOv').classList.remove('on'); });
+$('#impSample').addEventListener('click',()=>impLoad(IMP_SAMPLE,'예시 파일'));
+$('#impFile').addEventListener('change',e=>{ const f=e.target.files&&e.target.files[0]; if(!f)return;
+  const rd=new FileReader(); rd.onload=()=>impLoad(String(rd.result||''),f.name); rd.readAsText(f,'utf-8'); e.target.value=''; });
+$('#impBlank').addEventListener('change',()=>renderImp(true));
+$('#impAll').addEventListener('click',()=>renderImp(true));
+$('#impApply').addEventListener('click',()=>{
+  const picked=$$('#impTable input[data-imp]:checked').map(i=>IMP[+i.dataset.imp]);
+  if(!picked.length){ toast('반영할 줄을 골라 주세요',false); return; }
+  let n=0; const staged=needsApproval();
+  picked.forEach(x=>impChanges(x).forEach(ch=>{
+    if(staged){ draftPut(x.ri,ch.field,ch.to); n++; return; }
+    const r=ROWS[x.ri]; UNDO.push({ri:x.ri,key:ch.field,before:getField(r,ch.field)}); setField(r,ch.field,ch.to);
+    if(ch.to!=null && r.todo && r.todo[ch.field]){ UNDO.push({ri:x.ri,key:'todo:'+ch.field,before:true}); delete r.todo[ch.field]; }
+    bump(); n++; }));
+  $('#impOv').classList.remove('on'); afterPriceChange(); renderDraft();
+  toast(staged?`📝 ${n}칸을 개정안에 담았습니다 — 마스터 승인 후 반영됩니다`:`📄 ${n}칸을 반영했습니다 — 저장 전이라 되돌릴 수 있습니다`,false);
+});
 $('#btnBulkFix').addEventListener('click',()=>bulkPin(true));
 $('#btnBulkAuto').addEventListener('click',()=>bulkPin(false));
 $('#btnTodo').addEventListener('click',()=>{
@@ -1598,7 +1820,8 @@ $('#ptable').addEventListener('click',e=>{
   const isAnchor = key==='vb' || !!(R&&key===R.k);
   const auto = !r.fixed && !isAnchor && !!ch && (ch.rule||{}).a==='ladder';
   const field = isAnchor ? key : (auto ? 'ovr:'+key : 'file:'+key);
-  const cur = r[key]??null;                               // 지금 보이는 값에서 시작한다
+  const staged = needsApproval() && (isAnchor || auto);   // 마스터가 아니면 기준값·✎ 는 개정안으로
+  const cur = (staged && draftHas(ri,field)) ? (draftVal(ri,field)??null) : (r[key]??null);   // 지금 보이는(또는 제안 중인) 값에서 시작
   td.innerHTML=`<input value="${cur??''}" style="width:88px;text-align:right;border:1px solid var(--ok);border-radius:6px;padding:4px 7px;outline:none">`;
   const inp=td.querySelector('input'); inp.focus(); inp.select();
   let closed=false, move=null;
@@ -1607,7 +1830,10 @@ $('#ptable').addEventListener('click',e=>{
     const res=validate(inp.value);
     if(res.msg) toast(res.msg,false);
     const nv=res.v;
-    if(nv!==cur){                                         // 그대로 지나가면 아무것도 만들지 않는다(✎ 오염 방지)
+    if(staged && nv!==cur){
+      draftPut(ri,field,nv); renderPrice(); renderChan();
+      toast(draftHas(ri,field)?'📝 개정안에 담았습니다 — 마스터 승인 후 실제 가격이 바뀝니다':'개정안에서 뺐습니다 — 지금 값과 같습니다',false);
+    } else if(nv!==cur){                                  // 그대로 지나가면 아무것도 만들지 않는다(✎ 오염 방지)
       UNDO.push({ri,key:field,before:getField(r,field)});
       setField(r,field,nv);
       if(nv!=null && r.todo && r.todo[key]){ UNDO.push({ri,key:'todo:'+key,before:true}); delete r.todo[key]; }

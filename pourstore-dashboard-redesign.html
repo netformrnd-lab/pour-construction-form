@@ -132,6 +132,12 @@ body.navmini .navsub{display:block!important;padding:0}
 
 /* hidden 속성이 .field{display:flex} 같은 규칙에 지지 않게 */
 [hidden]{display:none!important}
+/* 입력 폼 — 등록·손익 화면이 쓰는데 스타일이 없어 라벨과 칸이 한 줄로 늘어서 있었다 */
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.fld label{display:block;font-size:11.5px;color:var(--ink2);font-weight:600;margin-bottom:4px}
+.fld input,.fld select{width:100%;border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;
+  font-size:13px;background:var(--paper);outline:none}
+.fld input:focus,.fld select:focus{border-color:var(--ok);box-shadow:0 0 0 3px var(--sel)}
 /* 보는 축 고르기 (제품별 / 채널별) */
 .seg{display:inline-flex;background:var(--line2);border-radius:10px;padding:3px;gap:2px}
 .seg button{padding:7px 13px;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--ink3);white-space:nowrap}
@@ -229,6 +235,14 @@ table.grid thead th.vbcol{background:#E1F0E6}
 .todo{font-size:11px;color:var(--warn);font-weight:700;background:var(--warn-l);border-radius:4px;padding:1px 7px}
 td.ovrcell{box-shadow:inset 0 0 0 1px #C9B8F2}
 .ovrb{font-size:10px;color:#6D28D9;margin-left:3px;font-weight:700}
+/* 📦 세트 */
+.setbadge{font-size:10.5px;font-weight:700;color:var(--ok-d);background:var(--sel);border-radius:4px;padding:1px 6px;margin-left:5px;vertical-align:middle}
+.setmiss{font-size:10.5px;font-weight:700;color:var(--danger);background:var(--danger-l);border-radius:4px;padding:1px 6px;margin-left:4px;vertical-align:middle}
+.setmark{display:inline-grid;place-items:center;width:23px;height:23px;font-size:12.5px;cursor:help}
+td.setcell{background:#FAFBFC;cursor:help}
+#rgSetList .pr{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line2);font-size:12.5px}
+#rgSetList .pr:last-child{border-bottom:none}
+#rgSetList input{width:64px;text-align:right;border:1px solid var(--line);border-radius:6px;padding:3px 6px}
 /* 분류 묶음 머리글 */
 table.freeze1 tbody tr.grprow td,table.freeze1 tbody tr.grprow:hover td{background:#F1F5F2;font-weight:800;color:var(--ink);
   padding:7px 10px;border-bottom:1px solid var(--line)}
@@ -709,26 +723,48 @@ tr.findme td{animation:findme 2.4s ease-out}
       <!-- ── 제품 등록 ── -->
       <section class="screen" id="sc-reg">
         <div class="panel">
-          <h3>새 제품 등록 <span class="tag">가격은 나중에 채워도 됩니다</span></h3>
+          <h3><span id="rgTitle">새 제품 등록</span> <span class="tag" id="rgTag">가격은 나중에 채워도 됩니다</span></h3>
           <div class="bd">
+            <div class="seg" id="rgType" style="margin-bottom:12px">
+              <button data-v="single" class="on">단품</button><button data-v="set">📦 세트 (단품 묶음)</button>
+            </div>
             <div class="formgrid">
               <div class="fld"><label>제품명 <span style="color:var(--danger)">*</span></label>
                 <input id="rgName" placeholder="예: POUR 코트재Ⅲ(회색)" autocomplete="off"></div>
               <div class="fld"><label>규격 <span style="color:var(--danger)">*</span></label>
                 <input id="rgSpec" placeholder="예: 20kg/통" autocomplete="off"></div>
               <div class="fld"><label>분류</label><select id="rgCat"></select></div>
-              <div class="fld costonly"><label>매입원가</label>
+              <div class="fld" id="rgNewCat" hidden><label>새 분류 <span class="dim" style="font-weight:400">대분류 › 중분류</span></label>
+                <div style="display:flex;gap:6px"><input id="rgNewL1" placeholder="POUR공법" style="flex:1"><input id="rgNewL2" placeholder="예: 방수시트" style="flex:1"></div></div>
+              <div class="fld costonly onlysingle"><label>매입원가</label>
                 <input id="rgCost" type="number" min="0" placeholder="비워도 됩니다"></div>
-              <div class="fld"><label>업체단가 <span class="dim" style="font-weight:400">총판 기준</span></label>
+              <div class="fld onlysingle"><label>업체단가 <span class="dim" style="font-weight:400">총판 기준</span></label>
                 <input id="rgVb" type="number" min="0" placeholder="비워도 됩니다"></div>
-              <div class="fld"><label>자사몰 정가</label>
+              <div class="fld onlysingle"><label>자사몰 정가</label>
                 <input id="rgOwn" type="number" min="0" placeholder="비워도 됩니다"></div>
             </div>
             <p class="note" style="margin-top:10px">· <b>제품명과 규격만</b> 있으면 등록됩니다. 가격은 비워 두면 가격정책표에 <b>—</b> 로 남고 나중에 채우면 됩니다.</p>
           </div>
         </div>
 
-        <div class="panel">
+        <div class="panel" id="rgSetPanel" hidden>
+          <h3>무엇을 몇 개씩 묶나요 <span class="tag">세트 단가 = 구성 단품 합계</span></h3>
+          <div class="bd">
+            <div class="toolbar" style="padding:0;border:none">
+              <div class="tgroup">
+                <div class="field" style="min-width:220px"><select id="rgSetProd" aria-label="구성 단품"></select></div>
+                <div class="field"><input id="rgSetQty" type="number" min="1" value="1" style="width:70px" aria-label="수량"> <span class="dim">개</span></div>
+              </div>
+              <div class="tgroup right"><button class="btn" id="rgSetAdd">＋ 구성에 담기</button></div>
+            </div>
+            <div id="rgSetList" style="margin-top:10px"></div>
+            <p class="note" id="rgSetSum"></p>
+            <p class="note">· 세트의 원가·업체단가·채널 단가는 <b>구성 단품의 합계</b>로 계산됩니다 — 세트 칸을 직접 고치지 않고 <b>단품 가격을 고치면</b> 따라 바뀝니다.<br>
+            · 구성 단품 중 하나라도 값이 비었거나 휴지통에 있으면 그 칸은 <b>값 없음</b>으로 두고 이유를 보여줍니다.</p>
+          </div>
+        </div>
+
+        <div class="panel onlysingle" id="rgChanPanel">
           <h3>채널 단가는 어떻게 정할까요</h3>
           <div class="bd">
             <div class="seg" id="rgMode">
@@ -744,6 +780,7 @@ tr.findme td{animation:findme 2.4s ease-out}
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
               <button class="btn pri" id="rgSave">＋ 등록하기</button>
               <button class="btn" id="rgClear">입력 비우기</button>
+              <button class="btn" id="rgCancel" hidden>수정 그만두기</button>
               <span class="note" id="rgStatus" style="margin:0"></span>
             </div>
             <p class="note">· 같은 <b>제품명 + 규격</b>이 이미 있으면 등록하지 않고 <b>그 행으로 안내</b>합니다 — 조용히 덮어쓰지 않습니다.<br>
@@ -1069,6 +1106,8 @@ const ROWS=[
  {n:'POUR 슈퍼복합압축시트 0.3T',s:'30cm*100m',l1:'POUR공법',l2:'보강시트',cost:31000,vb:69700,own:84300},
  {n:'트랩100 연장시트',s:'-',l1:'POUR공법',l2:'보강 제품',cost:1070,vb:3200,own:3200,
   flag:'정가와 업체단가가 같아 수량을 늘려도 할인이 0원입니다'},
+ /* 📦 세트 — 구성 단품을 ROWS 위치(ri)로 가리킨다. 이름을 바꿔도 구성이 끊기지 않는다 */
+ {n:'옥상방수 기본 패키지',s:'1세트',l1:'POUR스토어',l2:'패키지',set:[{ri:0,q:2},{ri:6,q:1},{ri:4,q:3}]},
 ];
 ROWS.forEach(r=>{ r.file=r.file||{}; r.ovr=r.ovr||{}; r.todo=r.todo||{}; });
 const TIERS=[{l:'1~9개',f:0,min:1,max:9},{l:'10~50개',f:.25,min:10,max:50},{l:'51~80개',f:.45,min:51,max:80},
@@ -1097,7 +1136,7 @@ const CRMIN=[
 /* 마케팅 — 시안용 샘플 실적입니다(수기 입력 가정) */
 let LINKS=[
   {label:'블로그 9월',prod:0,chan:'own',clicks:2400,orders:96,revenue:17040000,spend:1200000},
-  {label:'인스타 리타겟',prod:2,chan:'own',clicks:5100,orders:143,revenue:6864000,spend:2400000},
+  {label:'인스타 리타겟',prod:4,chan:'own',clicks:5100,orders:143,revenue:6864000,spend:2400000},
   {label:'쿠팡 검색광고',prod:0,chan:'p8',clicks:8800,orders:210,revenue:35427000,spend:9800000},
 ];
 let PROMOS=[
@@ -1369,7 +1408,18 @@ function recalcRow(r){
     r[c.k]=v;
   });
 }
-function recalcAll(){ ROWS.forEach(recalcRow); }
+/* 세트 = 구성 단품 합계. 하나라도 빠지거나 값이 없으면 그 칸은 비워 두고 이유를 남긴다(부분합으로 속이지 않는다) */
+function recalcSet(r){
+  const comps=(r.set||[]).map(x=>({p:ROWS[x.ri],q:Math.max(1,+x.q||1)}));
+  r._gone=comps.filter(c=>!c.p||c.p.gone).map(c=>c.p?c.p.n:'(없는 제품)');
+  const live=comps.filter(c=>c.p&&!c.p.gone);
+  r._empty={};
+  const sum=f=>{ if(!live.length||r._gone.length) return null;
+    const miss=live.filter(c=>c.p[f]==null).map(c=>c.p.n); if(miss.length){ r._empty[f]=miss; return null; }
+    return live.reduce((a,c)=>a+c.p[f]*c.q,0); };
+  r.cost=sum('cost'); r.vb=sum('vb'); CHS.forEach(c=>{ r[c.k]=sum(c.k); });
+}
+function recalcAll(){ ROWS.forEach(r=>{ if(!r.set) recalcRow(r); }); ROWS.forEach(r=>{ if(r.set) recalcSet(r); }); }
 function getField(r,f){ const i=f.indexOf(':'); if(i<0) return r[f]; const o=r[f.slice(0,i)]; return o?o[f.slice(i+1)]:undefined; }
 function setField(r,f,v){ const i=f.indexOf(':'); if(i<0){ r[f]=v; return; }
   const a=f.slice(0,i), b=f.slice(i+1); r[a]=r[a]||{};
@@ -1407,6 +1457,14 @@ function priceCell(r,ri,c,R){
   const cls=['num', neg?'neg':(see?mcls(v,r.cost):''), ovr?'ovrcell':''].filter(Boolean).join(' ');
   return `<td class="${cls}" ${a} title="${tip}">${fmtVal(v,r.cost)}${neg?'<span class="negtag">역마진</span>':''}${ovr?'<span class="ovrb">✎</span>':''}</td>`;
 }
+function setCell(r,ri,k){
+  const v=r[k], why=(r._gone&&r._gone.length) ? `구성 중 휴지통에 있음: ${r._gone.join(', ')}`
+    : (r._empty&&r._empty[k]) ? `이 칸이 빈 구성 단품: ${r._empty[k].join(', ')}` : '';
+  const tip=`📦 세트 — 구성 단품 합계입니다. 단품 가격을 고치면 따라 바뀝니다${why?' · '+why:''}`;
+  if(v==null) return `<td class="num dim setcell" data-setcell="${ri}" title="${tip}"><span style="font-size:11px">값 없음</span></td>`;
+  const see=canSeeCost(), neg=see&&r.cost!=null&&v<r.cost;
+  return `<td class="num setcell${neg?' neg':''}" data-setcell="${ri}" title="${tip}">${fmtVal(v,r.cost)}${neg?'<span class="negtag">역마진</span>':''}</td>`;
+}
 function passesFilter(r){
   const q=($('#q').value||'').trim(), cat=($('#cat')&&$('#cat').value)||'';
   return !r.gone && (!q || r.n.includes(q) || (r.s||'').includes(q)) && (!cat || (r.l1+'|'+r.l2)===cat);
@@ -1415,7 +1473,8 @@ function fillCatSelects(){
   const cats=[]; ROWS.forEach(r=>{ if(r.gone)return; const k=(r.l1||'미분류')+'|'+(r.l2||'기타'); if(!cats.includes(k)) cats.push(k); });
   const opt=k=>`<option value="${k}">${k.split('|')[1]} <small>· ${k.split('|')[0]}</small></option>`;
   const cs=$('#cat'); if(cs){ const p=cs.value; cs.innerHTML='<option value="">전체 분류</option>'+cats.map(opt).join(''); if(cats.includes(p)) cs.value=p; }
-  const rc=$('#rgCat'); if(rc){ const p=rc.value; rc.innerHTML=cats.map(opt).join(''); if(cats.includes(p)) rc.value=p; }
+  const rc=$('#rgCat'); if(rc){ const p=rc.value; rc.innerHTML=cats.map(opt).join('')+'<option value="__new">＋ 새 분류…</option>';
+    if(cats.includes(p)||p==='__new') rc.value=p; $('#rgNewCat').hidden = rc.value!=='__new'; }
 }
 function renderPrice(){
   recalcAll(); fillCatSelects();
@@ -1455,15 +1514,19 @@ function renderPrice(){
     if(l2!==L2){ L2=l2; add(`<td colspan="${ncols}">▸ ${l2} <button class="btn sm" tabindex="-1" data-addcat="${l1}|${l2}">＋ 제품 추가</button></td>`,'grprow l2'); }
     const sp=supById(r.sup);
     const tools=`<span class="rtools">`
-      + `<button data-pin="${ri}" tabindex="-1" title="${r.fixed?'📌 값 고정 — 넣은 값을 그대로 씁니다. 누르면 ⚙️ 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사이로 계산합니다. 누르면 📌 지금 값으로 고정합니다'}">${r.fixed?'📌':'⚙️'}</button>`
+      + (r.set ? `<span class="setmark" title="📦 세트 — 구성 단품 합계로 계산됩니다">📦</span>`
+               : `<button data-pin="${ri}" tabindex="-1" title="${r.fixed?'📌 값 고정 — 넣은 값을 그대로 씁니다. 누르면 ⚙️ 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사이로 계산합니다. 누르면 📌 지금 값으로 고정합니다'}">${r.fixed?'📌':'⚙️'}</button>`)
+      + `<button class="soft" data-editprod="${ri}" tabindex="-1" title="제품 수정 (이름·규격·분류·가격${r.set?'·구성':''})">✏️</button>`
       + `<button class="soft" data-copy="${ri}" tabindex="-1" title="이 제품을 복사해서 새로 등록">📋</button>`
       + `<button class="soft" data-del="${ri}" tabindex="-1" title="휴지통으로 보내기 (영구삭제 아님)">🗑</button></span>`;
-    add(`<td>${tools}<span class="pname">${r.n}</span>${r.flag?`<span class="flag" title="${r.flag}"></span>`:''}
-          <div class="spec" style="padding-left:78px">${r.s}</div></td>
-        <td class="secretonly dim">${sp?sp.name:'—'}</td>
+    const setInfo = r.set ? `<span class="setbadge" title="${r.set.map(x=>(ROWS[x.ri]||{}).n+' ×'+x.q).join(' + ')}">구성 ${r.set.length}종</span>`
+      + (r._gone&&r._gone.length?`<span class="setmiss" title="휴지통에 있는 구성: ${r._gone.join(', ')}">구성 ${r._gone.length}개 휴지통</span>`:'') : '';
+    add(`<td>${tools}<span class="pname">${r.n}</span>${setInfo}${r.flag?`<span class="flag" title="${r.flag}"></span>`:''}
+          <div class="spec" style="padding-left:101px">${r.s}</div></td>
+        <td class="secretonly dim">${r.set?'구성품별':(sp?sp.name:'—')}</td>
         <td class="num dim costcol">${canSeeCost()?won(r.cost):''}</td>
-        ${vbCell(r,ri)}
-        ${vis.map(c=>priceCell(r,ri,c,R)).join('')}`, r.flag?'hasflag':'', {ri:String(ri)});
+        ${r.set ? setCell(r,ri,'vb') : vbCell(r,ri)}
+        ${vis.map(c=> r.set ? setCell(r,ri,c.k) : priceCell(r,ri,c,R)).join('')}`, r.flag?'hasflag':'', {ri:String(ri)});
   });
 }
 $('#q').addEventListener('input',renderPrice);
@@ -1493,7 +1556,7 @@ function togglePin(ri){
 }
 function bulkPin(on){
   $('#moreMenu').classList.remove('on');
-  const list=ROWS.map((r,ri)=>({r,ri})).filter(x=>passesFilter(x.r) && !!x.r.fixed!==on);
+  const list=ROWS.map((r,ri)=>({r,ri})).filter(x=>passesFilter(x.r) && !x.r.set && !!x.r.fixed!==on);
   if(!list.length){ toast(`보이는 제품이 이미 모두 ${on?'📌 고정':'⚙️ 자동계산'} 입니다`,false); return; }
   let cells=0; list.forEach(x=>{ cells+=setPin(x.ri,on); bump(); });
   afterPriceChange();
@@ -1509,7 +1572,8 @@ $('#btnTodo').addEventListener('click',()=>{
 });
 function copyProduct(ri){
   const r=ROWS[ri], R=chByRole('retail');
-  go('reg'); renderReg();
+  go('reg'); rgReset(); renderReg();
+  if(r.set){ setRegType('set'); RG_SET=r.set.map(x=>({...x})); renderSetBuilder(); }
   $('#rgName').value=r.n+' (복사)'; $('#rgSpec').value=r.s; $('#rgCost').value=r.cost??'';
   $('#rgVb').value=r.vb??''; $('#rgOwn').value=R?(r[R.k]??''):'';
   const k=(r.l1||'미분류')+'|'+(r.l2||'기타'); if([...$('#rgCat').options].some(o=>o.value===k)) $('#rgCat').value=k;
@@ -1523,6 +1587,8 @@ function copyProduct(ri){
 $('#ptable').addEventListener('click',e=>{
   const pin=e.target.closest('[data-pin]'); if(pin){ togglePin(+pin.dataset.pin); return; }
   const cp=e.target.closest('[data-copy]'); if(cp){ copyProduct(+cp.dataset.copy); return; }
+  const ep=e.target.closest('[data-editprod]'); if(ep){ openEdit(+ep.dataset.editprod); return; }
+  const sc=e.target.closest('[data-setcell]'); if(sc){ toast('📦 세트 단가는 구성 단품의 합계입니다 — 단품 가격을 고치거나 ✏️ 에서 구성을 바꾸세요',false); return; }
   const ac=e.target.closest('[data-addcat]'); if(ac){ go('reg'); renderReg(); rgReset(); $('#rgCat').value=ac.dataset.addcat; $('#rgName').focus(); return; }
   const del=e.target.closest('[data-del]');
   if(del){ softDelete(+del.dataset.del); return; }
@@ -1608,7 +1674,7 @@ $('#undoAll').addEventListener('click',()=>{
     if(u.key==='fixed'){ ROWS[u.ri].fixed=u.before; ROWS[u.ri].file=u.file; continue; }   // 📌↔⚙️ (고정값까지)
     setField(ROWS[u.ri],u.key,u.before);                                  // vb·정가·ovr:·file:·todo: 모두
     if(u.key==='gone') TRASH=TRASH.filter(t=>t.i!==u.ri); }               // 편집 전 값으로 정확히 원복(삭제 포함)
-  fillProd(); renderPrice(); renderTrash(); renderAnalysis(); renderQt(); hint(); renderMatch(); renderFixed(); renderPl(); renderLinks(); renderPromo(); renderMkt(); renderCrm(); renderChan(); clearDirty();
+  fillProd(); renderPrice(); renderTrash(); renderAnalysis(); renderQt(); hint(); renderMatch(); renderFixed(); renderPl(); renderLinks(); renderPromo(); renderMkt(); renderCrm(); renderChan(); renderSetBuilder(); clearDirty();
   toast('되돌렸습니다 — 저장 전이라 원래 값 그대로입니다',false);
 });
 $('#saveNow').addEventListener('click',save);
@@ -1646,6 +1712,7 @@ function describeAll(list){
     else if(k.startsWith('ovr:')){ text=`${t.who} ${chName(k.slice(4))} ✎ 직접 조정 ${fmtAny(u.before)} → ${fmtAny(after)}`; }
     else if(k.startsWith('file:')){ text=`${t.who} ${chName(k.slice(5))} 📌 고정값 ${fmtAny(u.before)} → ${fmtAny(after)}`; }
     else if(k.startsWith('todo:')){ text=`${t.who} ${chName(k.slice(5))} '미정' 표시 해제`; }
+    else if(k==='set'){ const f2=a=>(a||[]).map(x=>`${(ROWS[x.ri]||{}).n}×${x.q}`).join(' + ')||'없음'; text=`${t.who} 구성 ${f2(u.before)} → ${f2(after)}`; }
     else if(k==='sup'){ type='매입처'; const nm=id=>(supById(id)||{}).name||'미지정'; text=`${t.who} 매입처 ${nm(u.before)} → ${nm(after)}`; }
     else { const lb={cost:'매입원가',n:'제품명',s:'규격',l2:'분류',amt:'월 금액',clicks:'클릭',orders:'주문',revenue:'매출',spend:'광고비',baseline:'기준매출',actual:'실제매출',set:'구성'}[k] || chName(k);
       text=`${t.who} ${lb} ${fmtAny(u.before)} → ${fmtAny(after)}`; }
@@ -2216,7 +2283,7 @@ $('#fxAdd').addEventListener('click',()=>{
 const supById=id=>SUPPLIERS.find(x=>x.id===id)||null;
 function renderMatch(){
   const t=$('#mtTable'); if(!t)return;
-  const live=ROWS.filter(r=>!r.gone);
+  const live=ROWS.filter(r=>!r.gone && !r.set);   // 세트는 매입처가 구성품별이라 제외
   t.innerHTML=`<thead><tr><th style="min-width:200px">제품</th><th style="width:170px">매입처</th>
       <th style="width:90px">담당</th><th style="width:130px">연락처</th><th>메모</th></tr></thead><tbody>`
    + live.map(r=>{ const ri=ROWS.indexOf(r), sp=supById(r.sup);
@@ -2245,7 +2312,61 @@ $('#mtTable').addEventListener('change',e=>{
    · 필수값은 이름·규격뿐 — 가격은 나중에 채운다(빈칸을 0 으로 만들지 않는다)
    · 중복이면 조용히 덮어쓰지 않고 기존 행으로 데려간다
    · 등록도 '변경 N건' 에 잡아 되돌릴 수 있게 한다 */
-let RG_MODE='auto';
+let RG_MODE='auto', RG_TYPE='single', RG_SET=[], EDIT_RI=null;
+function setRegType(t){
+  RG_TYPE=t; $$('#rgType button').forEach(b=>b.classList.toggle('on',b.dataset.v===t));
+  $$('#sc-reg .onlysingle').forEach(el=>el.hidden = t==='set');
+  $('#rgSetPanel').hidden = t!=='set';
+  renderSetBuilder();
+}
+$('#rgType').addEventListener('click',e=>{ const b=e.target.closest('button[data-v]'); if(b && EDIT_RI==null) setRegType(b.dataset.v); });
+function renderSetBuilder(){
+  if(RG_TYPE!=='set') return;
+  recalcAll();
+  const sel=$('#rgSetProd'), pv=sel.value;
+  sel.innerHTML=ROWS.map((r,i)=>(r.gone||r.set)?'':`<option value="${i}">${r.n} · ${r.s}</option>`).join('');
+  if(pv) sel.value=pv;
+  $('#rgSetList').innerHTML = RG_SET.length ? RG_SET.map((x,j)=>{ const p=ROWS[x.ri]||{};
+      return `<div class="pr"><span class="pname" style="flex:1">${p.n||'(없는 제품)'} <span class="dim">· ${p.s||''}</span>${p.gone?' <span class="setmiss">휴지통</span>':''}</span>
+        <input type="number" min="1" data-setq="${j}" value="${x.q}"> 개 <button class="btn sm" data-setdel="${j}" tabindex="-1">✕</button></div>`; }).join('')
+    : '<p class="note" style="margin:0">아직 담은 단품이 없습니다.</p>';
+  const R=chByRole('retail'), tmp={set:RG_SET}; recalcSet(tmp);
+  $('#rgSetSum').innerHTML = RG_SET.length
+    ? `이 구성이면 <span class="costonly">원가 <b>${won(tmp.cost)}</b> · </span>업체단가 <b>${won(tmp.vb)}</b> · 정가 <b>${R?won(tmp[R.k]):'—'}</b>`
+    : '';
+}
+$('#rgSetAdd').addEventListener('click',()=>{
+  const ri=+$('#rgSetProd').value, q=Math.max(1,Math.round(+$('#rgSetQty').value||1));
+  if(isNaN(ri)) return;
+  const ex=RG_SET.find(x=>x.ri===ri); if(ex) ex.q=q; else RG_SET.push({ri,q});
+  $('#rgSetQty').value=1; renderSetBuilder();
+});
+$('#rgSetList').addEventListener('change',e=>{ const q=e.target.closest('[data-setq]'); if(!q)return; RG_SET[+q.dataset.setq].q=Math.max(1,Math.round(+q.value||1)); renderSetBuilder(); });
+$('#rgSetList').addEventListener('click',e=>{ const d=e.target.closest('[data-setdel]'); if(!d)return; RG_SET.splice(+d.dataset.setdel,1); renderSetBuilder(); });
+$('#rgCat').addEventListener('change',()=>{ $('#rgNewCat').hidden = $('#rgCat').value!=='__new'; });
+function readCat(){
+  if($('#rgCat').value==='__new'){ const a=($('#rgNewL1').value||'').trim()||'POUR공법', b=($('#rgNewL2').value||'').trim(); return b?[a,b]:null; }
+  return (($('#rgCat').value)||'POUR공법|기타').split('|');
+}
+function openEdit(ri){
+  const r=ROWS[ri], R=chByRole('retail');
+  go('reg'); rgReset(); EDIT_RI=ri;
+  $('#rgTitle').textContent='제품 수정'; $('#rgTag').textContent='이름을 바꿔도 가격·구성·매입처가 그대로 따라갑니다';
+  $('#rgSave').textContent='변경 적용'; $('#rgCancel').hidden=false; $('#rgClear').hidden=true;
+  setRegType(r.set?'set':'single');
+  $$('#rgType button').forEach(b=>b.disabled = b.dataset.v!==RG_TYPE);
+  $('#rgName').value=r.n; $('#rgSpec').value=r.s;
+  const k=(r.l1||'미분류')+'|'+(r.l2||'기타'); renderReg(); if([...$('#rgCat').options].some(o=>o.value===k)) $('#rgCat').value=k;
+  if(r.set){ RG_SET=r.set.map(x=>({...x})); renderSetBuilder(); }
+  else {
+    $('#rgCost').value=r.cost??''; $('#rgVb').value=r.vb??''; $('#rgOwn').value=R?(r[R.k]??''):'';
+    setRegMode(r.fixed?'fixed':'auto');
+    if(r.fixed) $$('#rgChans input').forEach(i=>{ const v=r[i.dataset.k]; i.value=v??''; });
+  }
+  $('#rgStatus').innerHTML='<span class="dim">고친 뒤 [변경 적용] — 바뀐 칸만 “변경 N건”에 잡힙니다.</span>';
+  $('#rgName').focus();
+}
+$('#rgCancel').addEventListener('click',()=>{ const ri=EDIT_RI; rgReset(); if(ri!=null) jumpTo(ROWS[ri].n); });
 function setRegMode(m){
   RG_MODE=m; $$('#rgMode button').forEach(b=>b.classList.toggle('on',b.dataset.v===m));
   $('#rgChans').hidden = m!=='fixed';
@@ -2257,6 +2378,7 @@ $('#rgMode').addEventListener('click',e=>{ const b=e.target.closest('button[data
 function renderReg(){
   const box=$('#rgChans'); if(!box)return;
   fillCatSelects();
+  renderSetBuilder();
   const R=chByRole('retail');
   const prev={}; $$('#rgChans input').forEach(i=>prev[i.dataset.k]=i.value);
   box.innerHTML=chVisible().filter(c=>!(R&&c.k===R.k)).map(c=>`<div class="fld">
@@ -2265,7 +2387,13 @@ function renderReg(){
 }
 function rgReset(){
   $('#rgName').value=''; $('#rgSpec').value=''; $('#rgCost').value=''; $('#rgVb').value=''; $('#rgOwn').value='';
-  setRegMode('auto');
+  $('#rgNewL1').value=''; $('#rgNewL2').value=''; $('#rgNewCat').hidden=true;
+  if($('#rgCat').value==='__new') $('#rgCat').selectedIndex=0;
+  EDIT_RI=null; RG_SET=[];
+  $('#rgTitle').textContent='새 제품 등록'; $('#rgTag').textContent='가격은 나중에 채워도 됩니다';
+  $('#rgSave').textContent='＋ 등록하기'; $('#rgCancel').hidden=true; $('#rgClear').hidden=false;
+  $$('#rgType button').forEach(b=>b.disabled=false);
+  setRegType('single'); setRegMode('auto');
   $$('#rgChans input').forEach(i=>i.value=''); $('#rgStatus').textContent='';
 }
 function addProduct(){
@@ -2273,20 +2401,45 @@ function addProduct(){
   const st=$('#rgStatus');
   if(!name||!spec){ st.innerHTML='<span style="color:var(--danger)">제품명과 규격은 반드시 넣어야 합니다.</span>';
     (!name?$('#rgName'):$('#rgSpec')).focus(); return; }
-  const dup=ROWS.find(r=>!r.gone && r.n===name && r.s===spec);
+  const cat=readCat();
+  if(!cat){ st.innerHTML='<span style="color:var(--danger)">새 분류의 중분류 이름을 넣어 주세요.</span>'; $('#rgNewL2').focus(); return; }
+  if(RG_TYPE==='set' && !RG_SET.length){ st.innerHTML='<span style="color:var(--danger)">세트에 담을 단품을 하나 이상 골라 주세요.</span>'; return; }
+  const dup=ROWS.find((r,i)=>!r.gone && r.n===name && r.s===spec && i!==EDIT_RI);
   if(dup){ st.innerHTML='<span style="color:var(--warn)">같은 제품명·규격이 이미 있습니다 — 그 행으로 갑니다.</span>';
     toast('이미 등록된 제품입니다 — 기존 행을 열었습니다',false); jumpTo(name); return; }
-  const [l1,l2]=(($('#rgCat').value)||'POUR공법|기타').split('|');
-  const R=chByRole('retail');
-  const row={n:name,s:spec,l1,l2,file:{},ovr:{},todo:{},fixed:RG_MODE==='fixed'};
-  row.cost=validate($('#rgCost').value).v;
-  row.vb=validate($('#rgVb').value).v;
-  if(R) row[R.k]=validate($('#rgOwn').value).v;
-  if(row.fixed) $$('#rgChans input').forEach(i=>{ const v=validate(i.value).v; if(v!=null) row.file[i.dataset.k]=v; });
+  const [l1,l2]=cat, R=chByRole('retail');
+  const rerender=()=>{ fillProd(); renderPrice(); renderAnalysis(); renderQt(); hint(); renderMatch(); renderPl(); renderCrm(); };
+
+  if(EDIT_RI!=null){                                 // ── 수정: 바뀐 칸만 되돌리기에 잡는다
+    const ri=EDIT_RI, r=ROWS[ri]; let n=0;
+    const norm=v=>v===undefined?null:v, same=(a,b)=>JSON.stringify(norm(a))===JSON.stringify(norm(b));
+    const put=(key,val)=>{ const b=getField(r,key); if(same(b,val)) return;
+      UNDO.push({ri,key,before:(b&&typeof b==='object')?JSON.parse(JSON.stringify(b)):b}); setField(r,key,val); bump(); n++; };
+    put('n',name); put('s',spec); put('l1',l1); put('l2',l2);
+    if(r.set) put('set',RG_SET.map(x=>({...x})));
+    else {
+      put('cost',validate($('#rgCost').value).v); put('vb',validate($('#rgVb').value).v);
+      if(R) put(R.k,validate($('#rgOwn').value).v);
+      const wantFixed=RG_MODE==='fixed';
+      if(!!r.fixed!==wantFixed){ setPin(ri,wantFixed); bump(); n++; }
+      if(wantFixed) $$('#rgChans input').forEach(i=>put('file:'+i.dataset.k, validate(i.value).v));
+    }
+    rgReset(); rerender();
+    toast(n?`"${name}" — ${n}칸을 고쳤습니다 (되돌리기 가능)`:'바뀐 내용이 없습니다',false);
+    jumpTo(name); return;
+  }
+  let row;
+  if(RG_TYPE==='set') row={n:name,s:spec,l1,l2,set:RG_SET.map(x=>({...x})),file:{},ovr:{},todo:{}};
+  else {
+    row={n:name,s:spec,l1,l2,file:{},ovr:{},todo:{},fixed:RG_MODE==='fixed'};
+    row.cost=validate($('#rgCost').value).v;
+    row.vb=validate($('#rgVb').value).v;
+    if(R) row[R.k]=validate($('#rgOwn').value).v;
+    if(row.fixed) $$('#rgChans input').forEach(i=>{ const v=validate(i.value).v; if(v!=null) row.file[i.dataset.k]=v; });
+  }
   ROWS.push(row);
   UNDO.push({ri:ROWS.length-1,key:'__new'});     // 되돌리면 '없던 일' 이 된다
-  bump(); fillProd(); renderPrice(); renderAnalysis(); renderQt(); hint(); renderMatch(); renderPl();   // 매칭·손익·분석 화면에도 새 제품이 바로 서야 한다
-  rgReset();
+  bump(); rgReset(); rerender();
   toast(`"${name}" 을(를) 등록했습니다 — 저장 전이라 되돌릴 수 있습니다`,false);
   jumpTo(name);
 }

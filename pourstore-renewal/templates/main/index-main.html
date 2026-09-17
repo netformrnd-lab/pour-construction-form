@@ -153,18 +153,18 @@ html, body{ overflow-x:clip; }
 <script>
 (function(){
   function norm(s){ return (s||'').replace(/\s+/g,' ').trim(); }
-  // '오늘 하루 열지 않음' + '닫기'를 모두 가진 '가장 안쪽' 요소들(=각 팝업의 본문)
+  // '오늘 하루 열지 않음' 마커를 '텍스트노드 탐색'으로만 싸게 찾음
+  // (기존: 전체 요소의 textContent를 5회 통째로 스캔 → 메인페이지에서 메인스레드 렉/클릭 지연 유발. 특히 엣지 효율성모드에서 심함)
   function innerMarks(){
     if(!document.body) return [];
-    var all=document.body.getElementsByTagName('*'), hit=[];
-    for(var i=0;i<all.length;i++){
-      var t=all[i].textContent;
-      if(!t || t.indexOf('오늘')<0 || t.indexOf('닫기')<0) continue;   // 값싼 1차 필터
-      if(!/오늘\s*하루\s*열지\s*않음/.test(t)) continue;
-      hit.push(all[i]);
+    var hit=[], w=document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null), n;
+    while((n=w.nextNode())){
+      var v=n.nodeValue;
+      if(v && v.indexOf('오늘')>=0 && /오늘\s*하루\s*열지\s*않음/.test(v)){ var el=n.parentElement; if(el && hit.indexOf(el)<0) hit.push(el); }
     }
-    // 자식 중에 같은 마커가 또 있으면 제외 → 가장 안쪽(팝업 본문)만 남김
-    return hit.filter(function(m){ return !hit.some(function(o){ return o!==m && m.contains(o); }); });
+    // 마커의 팝업 본문(‘닫기’까지 포함하는 조상)으로 승격 — 후보 소수에만 textContent 확인(저렴)
+    return hit.map(function(el){ var p=el, hops=0; while(p.parentElement && p.parentElement!==document.body && hops<8 && p.textContent.indexOf('닫기')<0){ p=p.parentElement; hops++; } return p; })
+              .filter(function(m,i,a){ return m.textContent.indexOf('닫기')>=0 && a.indexOf(m)===i && !a.some(function(o){ return o!==m && m.contains(o); }); });
   }
   // 팝업 본문에서, '내용이 그대로'인 동안 부모로 올라가 팝업 바깥 박스를 찾음
   function outerBox(el){
@@ -183,10 +183,9 @@ html, body{ overflow-x:clip; }
     });
     if(removed) console.log('[popup-dedupe] 중복 팝업 '+removed+'개 제거');
   }
-  // 렉 방지: 로딩 중 매 DOM 변경마다 전체 요소를 훑던 MutationObserver 제거.
-  // 카페24 팝업은 로드 직후 뜨므로, 몇 번의 타이머 점검(0/0.5/1.0/2.2/3.4s)만으로 충분(부하 최소).
+  // 팝업은 로드 직후 뜨므로 가벼운 텍스트노드 스캔을 몇 번만(0/0.7/1.6/2.8s) → 클릭 지연 없음
   var runs=0;
-  function tick(){ dedupe(); if(++runs<5) setTimeout(tick, runs<3?500:1200); }
+  function tick(){ dedupe(); if(++runs<4) setTimeout(tick, [700,900,1200][runs-1]||1200); }
   if(document.readyState!=='loading') tick(); else document.addEventListener('DOMContentLoaded', tick);
 })();
 </script>

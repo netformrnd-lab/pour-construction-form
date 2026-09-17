@@ -222,14 +222,29 @@ th .code{display:block;font-family:var(--mono);font-size:10px;color:var(--warn);
 /* 마진은 숫자를 또 찍는 대신 셀 배경 농도로 */
 td.m1{background:#F4FAF6} td.m2{background:#E9F5EE} td.m3{background:#DDF0E5}
 td .mr{display:block;font-size:10.5px;color:var(--ok-d);font-weight:600;margin-top:1px}
-body:not(.showmargin) td .mr{display:none}
-/* 색만으로 마진을 읽게 하면 색각 이상·흑백 인쇄에서 구분이 사라진다.
-   숫자를 끈 순간에만 채움 개수로 읽히는 문자 단서를 대신 띄운다. */
-.mlv{display:none;font-size:10px;letter-spacing:1px;color:var(--ok-d);margin-top:1px}
-body:not(.showmargin) .mlv{display:block}
+/* ── 가격 엔진 표시 (실제 대시보드와 같은 뜻) ── */
+.vbcol{background:#EEF7F1}
+table.grid thead th.vbcol{background:#E1F0E6}
+.inhint{font-size:11px;color:var(--ok-d);border:1px dashed #A9CFB6;border-radius:4px;padding:1px 6px;white-space:nowrap}
+.todo{font-size:11px;color:var(--warn);font-weight:700;background:var(--warn-l);border-radius:4px;padding:1px 7px}
+td.ovrcell{box-shadow:inset 0 0 0 1px #C9B8F2}
+.ovrb{font-size:10px;color:#6D28D9;margin-left:3px;font-weight:700}
+/* 분류 묶음 머리글 */
+table.freeze1 tbody tr.grprow td,table.freeze1 tbody tr.grprow:hover td{background:#F1F5F2;font-weight:800;color:var(--ink);
+  padding:7px 10px;border-bottom:1px solid var(--line)}
+table.freeze1 tbody tr.grprow.l2 td,table.freeze1 tbody tr.grprow.l2:hover td{background:#F8FAF9;font-weight:700;color:var(--ink2);padding-left:18px}
+.grprow .btn.sm{margin-left:8px;font-weight:600}
+/* 행 도구: 📌/⚙️ 는 상태라 늘 보이고, 복사·삭제는 줄에 올렸을 때 */
+.rtools{display:inline-flex;gap:1px;margin-right:6px;vertical-align:middle}
+.rtools button{width:23px;height:23px;border-radius:5px;font-size:12.5px;line-height:1}
+.rtools button:hover{background:var(--line2)}
+.rtools button:focus-visible{outline:2px solid var(--ok)}
+.rtools .soft{opacity:0}
+tr:hover .rtools .soft,.rtools .soft:focus-visible{opacity:.85}
+@media(hover:none){ .rtools .soft{opacity:.85} }
 /* 역마진은 색이 아니라 글자로도 말한다 */
 td.neg{background:#FDF0EE!important}
-td.neg .mr,td.neg .mlv{color:var(--danger)}
+td.neg .mr{color:var(--danger)}
 td.neg .negtag{display:inline-block;font-size:9.5px;font-weight:800;color:#fff;background:var(--danger);
   border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:middle}
 /* 배분 막대 — 정가 100% 를 원가·POUR마진·채널마진으로 쪼개 보여준다 */
@@ -240,6 +255,7 @@ td.neg .negtag{display:inline-block;font-size:9.5px;font-weight:800;color:#fff;b
 .bar-val{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink2)}
 .bar-name b{font-family:var(--mono);font-size:10.5px;color:var(--warn)}
 @media(max-width:760px){ .bar-row{grid-template-columns:1fr;gap:4px} .bar-val{text-align:left} }
+@media(max-width:760px){ #pthead th:first-child{min-width:176px!important} #ptable .spec{padding-left:0!important} }
 /* 매입처는 마스터만 — 부마스터도 못 본다. 원가 차단과 별개 층이다 */
 body.no-secret .secretonly{display:none!important}
 .secblock{display:none;background:var(--danger-l);border:1px solid #EDC4BF;border-radius:var(--r);
@@ -262,7 +278,7 @@ body.no-cost .costbody{display:none}
       마진율만 남겨도 판매가에서 원가가 역산되므로 색 농도·단계표시까지 함께 감춘다. ── */
 body.no-cost .costcol{display:none}
 body.no-cost .costonly{display:none!important}
-body.no-cost td .mr,body.no-cost .mlv{display:none!important}
+body.no-cost td .mr{display:none!important}
 body.no-cost td.m1,body.no-cost td.m2,body.no-cost td.m3,body.no-cost td.neg{background:transparent!important}
 body.no-cost tbody tr:hover td{background:#FAFCFB!important}
 .permnote{display:none;font-size:11.5px;color:var(--ink3);background:var(--canvas);border:1px solid var(--line);
@@ -367,7 +383,7 @@ tr.findme td{animation:findme 2.4s ease-out}
 }
 </style>
 </head>
-<body class="showmargin">
+<body>
 
 <div id="proto">
   <b>개선 시안</b> · 샘플 숫자 · <b>실제 데이터에 연결되어 있지 않습니다</b> (Firebase 연결 없음 — 여기서 무엇을 눌러도 실제 값은 바뀌지 않습니다)
@@ -463,8 +479,8 @@ tr.findme td{animation:findme 2.4s ease-out}
           <div class="bd" style="padding:4px 14px">
             <button class="alertrow" data-fix="POUR 듀얼복합시트"><span class="pill">가격 역전</span><span>POUR 듀얼복합시트 1.5T (50cm*25m) — 자사몰 정가가 쿠팡가보다 낮습니다</span><span class="go">고치기 ›</span></button>
             <button class="alertrow" data-fix="트랩100 연장시트"><span class="pill">하한 확인</span><span>트랩100 연장시트 — 정가와 하한가가 같아 수량을 늘려도 할인이 0원입니다</span><span class="go">고치기 ›</span></button>
-            <button class="alertrow" data-fix="POUR 코트재 1L"><span class="pill">값 없음</span><span>POUR 코트재 1L — 대리점가가 비어 견적서에 담을 수 없습니다</span><span class="go">고치기 ›</span></button>
-            <button class="alertrow" data-fix="POUR 상도코트재"><span class="pill">하한 확인</span><span>POUR 상도코트재(회색) — 정가와 대리점가 차이가 8%뿐입니다</span><span class="go">고치기 ›</span></button>
+            <button class="alertrow" data-fix="POUR 코트재 1L"><span class="pill">값 없음</span><span>POUR 코트재 1L — 업체단가·대리점가가 '미정'이라 견적서 할인이 붙지 않습니다</span><span class="go">고치기 ›</span></button>
+            <button class="alertrow" data-fix="POUR 상도코트재"><span class="pill">하한 확인</span><span>POUR 상도코트재(회색) — 정가와 대리점가 차이가 약 9%뿐입니다</span><span class="go">고치기 ›</span></button>
           </div>
         </div>
 
@@ -488,12 +504,15 @@ tr.findme td{animation:findme 2.4s ease-out}
             <!-- [보기] 매일 쓰는 것만 밖에 -->
             <div class="tgroup">
               <div class="field"><span class="dim">🔎</span><input id="q" placeholder="제품명 검색"></div>
-              <div class="field"><select id="cat"><option>전체 분류</option><option>수용성 도료</option><option>유성 도료</option><option>보강시트</option><option>파우더</option></select></div>
-              <label class="switch costonly"><input type="checkbox" id="mgToggle" checked><span class="tr"></span>마진율 함께 보기</label>
+              <div class="field"><select id="cat" aria-label="분류"></select></div>
+              <div class="seg costonly" id="viewSeg" title="표의 숫자를 무엇으로 볼지">
+                <button data-v="price" class="on">판매가</button><button data-v="margin">마진액</button><button data-v="rate">마진율</button>
+              </div>
               <span class="note" id="pcount" style="margin:0"></span>
             </div>
             <!-- [작업] -->
             <div class="tgroup right">
+              <button class="btn" id="btnTodo" hidden title="표에 보이는 제품의 '단가 미정' 표시를 한꺼번에 풉니다">미정 해제</button>
               <button class="btn" id="btnAdd">＋ 제품</button>
               <button class="btn pri" id="btnSave" disabled>저장</button>
               <div class="more">
@@ -506,8 +525,8 @@ tr.findme td{animation:findme 2.4s ease-out}
                   <div class="sep"></div>
                   <div class="mlbl">불러오기 · 일괄</div>
                   <button>📄 파일로 업체단가 입력</button>
-                  <button>📌 일괄 고정</button>
-                  <button>⚙️ 일괄 자동계산</button>
+                  <button id="btnBulkFix">📌 보이는 제품 일괄 고정</button>
+                  <button id="btnBulkAuto">⚙️ 보이는 제품 일괄 자동계산</button>
                   <button>＋ 채널 추가</button>
                   <div class="sep"></div>
                   <div class="mlbl">되돌리기 어려운 작업</div>
@@ -524,15 +543,22 @@ tr.findme td{animation:findme 2.4s ease-out}
           </div>
           <div class="bd" style="border-top:1px solid var(--line2)">
             <p class="note">· 칸을 눌러 바로 고칠 수 있습니다. <b>저장을 누르기 전까지는 아무것도 반영되지 않고</b>, 아래 막대에서 한 번에 되돌릴 수 있습니다.<br>
+            · <b>⚙️ 자동계산</b> 제품은 <b>업체단가 ~ 정가</b> 사이에서 채널마다 정한 비율로 단가가 정해집니다(100원 올림). 이 칸을 고치면 그 제품만 <b>✎ 직접 조정</b>되고, 비우면 자동계산으로 돌아갑니다.<br>
+            · <b>📌 고정</b> 제품은 넣은 값을 그대로 씁니다 — 업체단가·정가를 바꿔도 따라 움직이지 않습니다. 제품 이름 앞 아이콘을 누르면 바뀝니다.<br>
+            · <span class="todo">미정</span> 은 아직 단가를 정하지 않은 칸입니다. 값을 넣으면 풀립니다.<br>
             · <span class="flag" style="cursor:default"></span> 표시가 있는 줄은 확인이 필요한 값입니다 — 마우스를 올리면 이유가 나옵니다.<br>
             · 제품을 지우면 <b>휴지통으로 갑니다.</b> 영구삭제 버튼은 어디에도 없습니다.</p>
             <div class="legend costonly" style="margin-top:10px">
-              <span><b>마진 표시</b></span>
-              <span><span class="sw" style="background:#DDF0E5"></span>▪▪▪ 높음 (70%↑)</span>
-              <span><span class="sw" style="background:#E9F5EE"></span>▪▪▫ 보통 (50~70%)</span>
-              <span><span class="sw" style="background:#F4FAF6"></span>▪▫▫ 낮음 (50%↓)</span>
+              <span><b>마진</b></span>
+              <span><span class="sw" style="background:#DDF0E5"></span>70% 이상</span>
+              <span><span class="sw" style="background:#E9F5EE"></span>50~70%</span>
+              <span><span class="sw" style="background:#F4FAF6"></span>50% 미만</span>
               <span><span class="sw" style="background:#FDF0EE"></span><span style="color:var(--danger);font-weight:700">역마진</span> 원가보다 쌈</span>
-              <span class="dim">— 색이 안 보여도 ▪ 개수로 읽을 수 있습니다</span>
+              <span class="dim">— 색과 함께 '마진 64.0%' 숫자로도 적힙니다</span>
+            </div>
+            <div class="legend" style="margin-top:6px">
+              <span>⚙️ 자동계산</span><span>📌 값 고정</span><span><span class="ovrb" style="margin:0">✎</span> 직접 조정</span>
+              <span><span class="todo">미정</span> 단가 안 정함</span><span><span class="inhint">＋ 입력</span> 비어 있음</span>
             </div>
           </div>
         </div>
@@ -614,7 +640,8 @@ tr.findme td{animation:findme 2.4s ease-out}
             <p class="note" style="margin-top:10px">
             · <b>표시</b>를 끄면 가격표에서 열만 숨깁니다 — <b>입력해 둔 가격은 그대로 남습니다.</b><br>
             · <b>지우기</b>도 휴지통으로 갑니다. 되살리면 그 채널의 가격이 <b>값 그대로</b> 돌아옵니다.<br>
-            · <b>정가</b>와 <b>MOQ 하한</b>은 각각 한 채널만 맡을 수 있습니다. 옮기면 견적서 단가가 그 기준으로 다시 계산됩니다.</p>
+            · <b>정가</b>와 <b>MOQ 하한</b>은 각각 한 채널만 맡을 수 있습니다. 옮기면 견적서 단가가 그 기준으로 다시 계산됩니다.<br>
+            · <b>사다리 %</b> 는 업체단가(0%)와 정가(100%) 사이 어디에 둘지입니다. 바꾸면 ⚙️ 자동계산 제품의 그 채널 단가가 모두 다시 계산되고, <b>되돌리기</b>로 물릴 수 있습니다. 📌 고정 제품은 그대로입니다.</p>
           </div>
         </div>
       </section>
@@ -652,16 +679,27 @@ tr.findme td{animation:findme 2.4s ease-out}
                 <input id="rgName" placeholder="예: POUR 코트재Ⅲ(회색)" autocomplete="off"></div>
               <div class="fld"><label>규격 <span style="color:var(--danger)">*</span></label>
                 <input id="rgSpec" placeholder="예: 20kg/통" autocomplete="off"></div>
+              <div class="fld"><label>분류</label><select id="rgCat"></select></div>
               <div class="fld costonly"><label>매입원가</label>
                 <input id="rgCost" type="number" min="0" placeholder="비워도 됩니다"></div>
+              <div class="fld"><label>업체단가 <span class="dim" style="font-weight:400">총판 기준</span></label>
+                <input id="rgVb" type="number" min="0" placeholder="비워도 됩니다"></div>
+              <div class="fld"><label>자사몰 정가</label>
+                <input id="rgOwn" type="number" min="0" placeholder="비워도 됩니다"></div>
             </div>
             <p class="note" style="margin-top:10px">· <b>제품명과 규격만</b> 있으면 등록됩니다. 가격은 비워 두면 가격정책표에 <b>—</b> 로 남고 나중에 채우면 됩니다.</p>
           </div>
         </div>
 
         <div class="panel">
-          <h3>채널별 가격 <span class="tag">선택 입력</span></h3>
-          <div class="bd"><div class="formgrid" id="rgChans"></div></div>
+          <h3>채널 단가는 어떻게 정할까요</h3>
+          <div class="bd">
+            <div class="seg" id="rgMode">
+              <button data-v="auto" class="on">⚙️ 자동계산 (추천)</button><button data-v="fixed">📌 채널마다 직접 입력</button>
+            </div>
+            <p class="note" id="rgModeNote" style="margin-top:9px"></p>
+            <div class="formgrid" id="rgChans" hidden style="margin-top:10px"></div>
+          </div>
         </div>
 
         <div class="panel">
@@ -956,21 +994,26 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const won=v=>v==null?'—':Math.round(v).toLocaleString('ko-KR');
 
 /* ── 샘플 데이터 (실제 원가·공급가 아님) ── */
+/* 가격 원천값만 담는다 — 채널 단가는 recalcAll() 이 채운다.
+   vb=업체단가 · own=자사몰 정가(정가 앵커) · fixed=📌 값 고정 · file=고정/직접입력 값 · ovr=✎ 직접 조정 · todo=미정 */
 const ROWS=[
- {n:'POUR 코트재Ⅰ(회색)',s:'20kg/통',cost:52000,p3:144400,p4:147300,p6:159800,p8:168700,own:177500},
- {n:'POUR 상도코트재(회색)',s:'20kg/통',cost:60000,p3:172300,p4:174000,p6:179200,p8:183700,own:187500,
-  flag:'정가와 대리점가 차이가 8%뿐 — 대량 할인 여지가 거의 없습니다'},
- {n:'POUR 탄성강화 파우더(측구)',s:'20kg/포',cost:7000,p3:32300,p4:33000,p6:38900,p8:44300,own:48000},
- {n:'POUR 듀얼복합시트 1.5T',s:'50cm*25m',cost:70000,p3:154700,p4:156000,p6:160800,p8:165700,own:165600,
-  flag:'자사몰 정가가 쿠팡가보다 낮습니다 · 가격 역전'},
- {n:'POUR써밋우레탄 하도',s:'17kg/통',cost:59500,p3:88000,p4:88200,p6:89700,p8:91000,own:91400,
-  flag:'정가와 대리점가 차이가 3.7%뿐 — 대량 할인 여지가 거의 없습니다'},
- {n:'POUR 슈퍼복합압축시트 0.3T',s:'30cm*100m',cost:31000,p3:70300,p4:71600,p6:77000,p8:81500,own:84300},
- {n:'트랩100 연장시트',s:'-',cost:1070,p3:3200,p4:3200,p6:3200,p8:3200,own:3200,
-  flag:'정가와 하한가가 같아 수량을 늘려도 할인이 0원입니다'},
- {n:'POUR 코트재 1L (회색)',s:'1kg/통',cost:3000,p3:null,p4:null,p6:22800,p8:25000,own:26300,
-  flag:'대리점가가 비어 있어 견적서에 담을 수 없습니다'},
+ {n:'POUR 코트재Ⅰ(회색)',s:'20kg/통',l1:'POUR공법',l2:'수용성 도료',cost:52000,vb:144400,own:177500,sup:'s4'},
+ {n:'POUR 상도코트재(회색)',s:'20kg/통',l1:'POUR공법',l2:'수용성 도료',cost:60000,vb:170700,own:187500,sup:'s1',
+  flag:'정가와 대리점가 차이가 약 9%뿐 — 대량 할인 여지가 거의 없습니다'},
+ {n:'POUR 코트재 1L (회색)',s:'1kg/통',l1:'POUR공법',l2:'수용성 도료',cost:3000,vb:null,own:26300,sup:'s4',
+  fixed:true,file:{p4:22800,p5:23500,p6:24100,p8:25000},todo:{vb:true,p3:true},
+  flag:'업체단가·대리점가가 미정이라 견적서 할인이 붙지 않습니다'},
+ {n:'POUR써밋우레탄 하도',s:'17kg/통',l1:'POUR공법',l2:'유성 도료',cost:59500,vb:87900,own:91400,
+  flag:'정가와 대리점가 차이가 약 4%뿐 — 대량 할인 여지가 거의 없습니다'},
+ {n:'POUR 탄성강화 파우더(측구)',s:'20kg/포',l1:'POUR공법',l2:'파우더',cost:7000,vb:32000,own:48000},
+ {n:'POUR 듀얼복합시트 1.5T',s:'50cm*25m',l1:'POUR공법',l2:'보강시트',cost:70000,vb:153000,own:165600,
+  fixed:true,file:{p3:154700,p4:156000,p5:157500,p6:160800,p8:165700},
+  flag:'📌 고정값 중 쿠팡가가 자사몰 정가보다 높습니다 · 가격 역전'},
+ {n:'POUR 슈퍼복합압축시트 0.3T',s:'30cm*100m',l1:'POUR공법',l2:'보강시트',cost:31000,vb:69700,own:84300},
+ {n:'트랩100 연장시트',s:'-',l1:'POUR공법',l2:'보강 제품',cost:1070,vb:3200,own:3200,
+  flag:'정가와 업체단가가 같아 수량을 늘려도 할인이 0원입니다'},
 ];
+ROWS.forEach(r=>{ r.file=r.file||{}; r.ovr=r.ovr||{}; r.todo=r.todo||{}; });
 const TIERS=[{l:'1~9개',f:0,min:1,max:9},{l:'10~50개',f:.25,min:10,max:50},{l:'51~80개',f:.45,min:51,max:80},
  {l:'81~150개',f:.65,min:81,max:150},{l:'151~300개',f:.85,min:151,max:300},{l:'301개 이상',f:1,min:301,max:1e9}];
 let TRASH=[{n:'POUR 에어쉘시트 · 1m*100m',at:'2026.09.09 17:05',by:'송희'}];
@@ -1020,11 +1063,13 @@ const fixTotal=()=>fixLive().reduce((a,b)=>a+(b.amt||0),0);
 /* ══ 채널 ══ 가격표의 '열'이 곧 채널이다. 열을 여기서 만들고 숨기고 지운다.
    지워도 그 채널에 입력한 가격은 남겨 둔다 — 되살리면 값 그대로 돌아온다. */
 let CHS=[
-  {k:'p3', code:'P3', name:'대리점·오프라인몰', role:'dealer', col:true, fee:0},
-  {k:'p4', code:'P4', name:'시공업체 파트너사', role:'',       col:true, fee:0},
-  {k:'p6', code:'P6', name:'온라인 도매',      role:'',       col:true, fee:2},
-  {k:'p8', code:'P8', name:'쿠팡 위너가',      role:'',       col:true, fee:11},
-  {k:'own',code:'OWN',name:'자사몰 직판(정가)', role:'retail', col:true, fee:3},
+  /* rule: ladder = 업체단가(0%)~정가(100%) 사이 위치 · manual = 직접 입력 (실제 대시보드 기본값과 같음) */
+  {k:'p3', code:'P3', name:'대리점·오프라인몰', role:'dealer', col:true, fee:0,  rule:{a:'ladder',f:4}},
+  {k:'p4', code:'P4', name:'시공업체 파트너사', role:'',       col:true, fee:0,  rule:{a:'ladder',f:9}},
+  {k:'p5', code:'P5', name:'위탁·브로커',      role:'',       col:true, fee:0,  rule:{a:'ladder',f:13}},
+  {k:'p6', code:'P6', name:'온라인 도매',      role:'',       col:true, fee:2,  rule:{a:'ladder',f:47}},
+  {k:'p8', code:'P8', name:'쿠팡 위너가',      role:'',       col:true, fee:11, rule:{a:'ladder',f:73}},
+  {k:'own',code:'OWN',name:'자사몰 직판(정가)', role:'retail', col:true, fee:3,  rule:{a:'manual',f:0}},
 ];
 const chLive=()=>CHS.filter(c=>!c.gone);
 const chVisible=()=>CHS.filter(c=>c.col&&!c.gone);
@@ -1032,23 +1077,30 @@ const chByRole=r=>CHS.find(c=>c.role===r&&!c.gone&&c.col);
 const ROLE_LB={retail:'정가',dealer:'MOQ 하한'};
 function renderChan(){
   const t=$('#chTable'); if(!t)return;
-  t.innerHTML=`<thead><tr><th style="width:70px">코드</th><th>채널 이름</th><th style="width:140px">역할</th>
+  const RR=chByRole('retail');
+  t.innerHTML=`<thead><tr><th style="width:70px">코드</th><th>채널 이름</th><th style="width:230px">단가 정하는 방식</th><th style="width:140px">역할</th>
     <th style="width:70px">표시</th><th style="width:90px"></th></tr></thead><tbody>`
-   + chLive().map((c,i)=>`<tr>
+   + chLive().map((c,i)=>{ const rl=c.rule||{a:'manual',f:0}, isA=!!(RR&&RR.k===c.k); return `<tr>
       <td><b class="mono" style="color:var(--warn)">${c.code}</b></td>
       <td class="pname">${c.name}</td>
+      <td>${isA?'<span class="dim">정가 — 직접 입력하는 기준값</span>'
+        :`<select data-chrule="${i}" style="border:1px solid var(--line);border-radius:6px;padding:4px 7px">
+            <option value="ladder"${rl.a==='ladder'?' selected':''}>사다리 (업체단가~정가)</option>
+            <option value="manual"${rl.a!=='ladder'?' selected':''}>직접 입력</option></select>
+          ${rl.a==='ladder'?`<input type="number" data-chf="${i}" value="${rl.f}" min="0" max="100" step="1"
+            style="width:58px;text-align:right;border:1px solid var(--line);border-radius:6px;padding:4px 6px"> %`:''}`}</td>
       <td><select data-chrole="${i}" style="border:1px solid var(--line);border-radius:6px;padding:4px 7px">
         <option value=""${c.role?'':' selected'}>—</option>
         <option value="retail"${c.role==='retail'?' selected':''}>정가</option>
         <option value="dealer"${c.role==='dealer'?' selected':''}>MOQ 하한</option></select></td>
       <td><label class="switch"><input type="checkbox" data-chcol="${i}" ${c.col?'checked':''}><span class="tr"></span></label></td>
-      <td><button class="btn sm" tabindex="-1" data-chdel="${i}" title="휴지통으로 보내기">🗑 지우기</button></td></tr>`).join('')
+      <td><button class="btn sm" tabindex="-1" data-chdel="${i}" title="휴지통으로 보내기">🗑 지우기</button></td></tr>`; }).join('')
    + '</tbody>';
   const warn=[];
   if(!chByRole('retail')) warn.push('정가');
   if(!chByRole('dealer')) warn.push('MOQ 하한');
   if(warn.length) t.insertAdjacentHTML('beforeend',
-    `<tfoot><tr><td colspan="5" style="background:var(--warn-l);color:var(--warn);font-weight:600">
+    `<tfoot><tr><td colspan="6" style="background:var(--warn-l);color:var(--warn);font-weight:600">
       ⚠ ${warn.join('·')} 을(를) 맡은 채널이 없습니다 — 견적서 단가가 계산되지 않습니다.</td></tr></tfoot>`);
 }
 function chDelete(i){
@@ -1124,6 +1176,19 @@ document.addEventListener('click',e=>{
 $('#chTable').addEventListener('click',e=>{ const d=e.target.closest('[data-chdel]'); if(d) chDelete(+d.dataset.chdel); });
 $('#chTable').addEventListener('change',e=>{
   const col=e.target.closest('[data-chcol]'), rl=e.target.closest('[data-chrole]');
+  const ru=e.target.closest('[data-chrule]'), rf=e.target.closest('[data-chf]');
+  if(ru||rf){                                               // 단가 정하는 방식 — 되돌리기에 잡는다
+    const c=chLive()[+(ru||rf).dataset[ru?'chrule':'chf']], before={...(c.rule||{a:'manual',f:0})};
+    const next={...before};
+    if(ru){ next.a=ru.value; if(next.a==='ladder' && !(next.f>=0)) next.f=0; }
+    else { next.f=Math.max(0,Math.min(100,Math.round(+rf.value||0))); }
+    if(next.a===before.a && next.f===before.f){ renderChan(); return; }
+    const snap=ROWS.map(r=>r[c.k]);
+    c.rule=next; UNDO.push({chRule:CHS.indexOf(c),before}); recalcAll();
+    const changed=ROWS.filter((r,i)=>!r.gone && r[c.k]!==snap[i]).length;
+    bump(); renderChan(); renderPrice(); hint(); renderQt(); renderAnalysis(); renderReg(); renderPl(); renderCrm();
+    toast(`[${c.code}] ${next.a==='ladder'?'사다리 '+next.f+'%':'직접 입력'} — 단가 ${changed}칸이 바뀌었습니다 (되돌리기 가능)`,false);
+    return; }
   if(col){ chLive()[+col.dataset.chcol].col=col.checked; renderChan(); renderPrice(); hint(); renderQt(); renderAnalysis(); renderReg(); renderPl(); renderCrm(); return; }
   if(rl){ const c=chLive()[+rl.dataset.chrole], v=rl.value;
     if(v) CHS.forEach(x=>{ if(x.role===v) x.role=''; });   // 정가·하한은 한 채널만
@@ -1133,16 +1198,16 @@ $('#ncAdd').addEventListener('click',()=>{
   const code=($('#ncCode').value||'').trim().toUpperCase(), name=($('#ncName').value||'').trim();
   if(!code||!name){ toast('코드와 이름을 모두 넣어 주세요',false); return; }
   if(CHS.some(c=>c.code===code)){ toast(`코드 ${code} 는 이미 있습니다`,false); return; }
-  CHS.push({k:'c'+Date.now(), code, name, role:'', col:true, fee:0});
+  CHS.push({k:'c'+Date.now(), code, name, role:'', col:true, fee:0, rule:{a:'manual',f:0}});
   $('#ncCode').value=''; $('#ncName').value='';
   renderChan(); renderPrice(); renderReg(); toast(`채널 "${name}" 을(를) 추가했습니다 — 값은 비어 있습니다`,false);
 });
 $('#acctBtn').addEventListener('click',e=>{ e.stopPropagation(); $('#moreMenu').classList.remove('on'); $('#acctMenu').classList.toggle('on'); });
 /* 가격정책표의 그 줄로 데려가서 잠깐 노랗게 — '고치기'와 전체 검색이 함께 쓴다 */
 function jumpTo(nameFrag){
-  go('price'); $('#q').value=''; renderPrice();
-  const i=ROWS.filter(r=>!r.gone).findIndex(r=>r.n.includes(nameFrag));
-  const tr=[...document.querySelectorAll('#ptable tbody tr')][i];
+  go('price'); $('#q').value=''; if($('#cat')) $('#cat').value=''; renderPrice();
+  const ri=ROWS.findIndex(r=>!r.gone && r.n.includes(nameFrag));
+  const tr=document.querySelector(`#ptable tbody tr[data-ri="${ri}"]`);
   if(tr){ tr.classList.add('findme'); tr.scrollIntoView({block:'center'});
     setTimeout(()=>tr.classList.remove('findme'),2600); }
 }
@@ -1178,66 +1243,221 @@ $('#btnMore').addEventListener('click',()=>$('#moreMenu').classList.toggle('on')
 
 /* ── 가격정책표 ── */
 function mcls(v,cost){ if(v==null||!cost)return''; const r=(v-cost)/v; return r>=.7?'m3':r>=.5?'m2':'m1'; }
-/* 색을 못 읽어도 채움 개수로 읽히는 단계 표시 */
-function mlevel(v,cost){ if(v==null||!cost)return null; const r=(v-cost)/v;
-  return r>=.7?{g:'▪▪▪',t:'높음'}:r>=.5?{g:'▪▪▫',t:'보통'}:{g:'▪▫▫',t:'낮음'}; }
-function cell(v,cost,ri,key){
-  const a=`data-edit data-r="${ri}" data-k="${key}"`;
-  if(v==null) return `<td class="num dim" ${a}>—</td>`;
-  const r=cost?Math.round((v-cost)/v*1000)/10:null;
-  const neg = r!=null && r<0;                       // 원가보다 싸게 파는 칸 — 색만으로 넘기지 않는다
-  const lv = (!neg && cost) ? mlevel(v,cost) : null;
-  return `<td class="num ${neg?'neg':mcls(v,cost)}" ${a}>${won(v)}${neg?'<span class="negtag">역마진</span>':''}`
-    + (r!=null?`<span class="mr">${r}%</span>`:'')
-    + (lv?`<span class="mlv" title="마진 ${lv.t}">${lv.g}</span>`:'')
-    + `</td>`;
+
+/* ══ 가격 엔진 ══ 실제 대시보드(recalcVendor)와 같은 규칙.
+   · ⚙️ 자동계산 제품: 사다리 채널 = 업체단가 + f%×(정가−업체단가), 100원 올림.
+       f=0 이면 업체단가 그대로. 한쪽 앵커만 있으면 81% 비율로 반대편을 보완한다.
+       ✎ 직접 조정(ovr)이 있으면 그 칸은 그 값을 쓴다.
+   · 📌 고정 제품: 넣어 둔 값(file)을 그대로 쓴다 — 앵커가 바뀌어도 움직이지 않는다.
+   · 정가 채널은 늘 직접 입력하는 앵커. '미정'은 표시만 하고, 앵커가 미정이면 사다리를 막는다. */
+const LAD_BASE=0.81;
+const ceil100=n=>Math.ceil(n/100)*100;
+function recalcRow(r){
+  const R=chByRole('retail'), todo=r.todo||{};
+  const vb = todo.vb ? null : r.vb;
+  const own = R ? (todo[R.k] ? null : r[R.k]) : null;
+  const hasVb=vb>0, hasOwn=own>0;
+  const bottom = hasVb ? vb : ((hasOwn && !todo.vb) ? own*LAD_BASE : null);
+  const top    = hasOwn ? own : ((hasVb && !(R&&todo[R.k])) ? vb/LAD_BASE : null);
+  CHS.forEach(c=>{
+    if(R && c.k===R.k) return;                                     // 정가는 앵커 — 손대지 않는다
+    const inFile = r.file && (c.k in r.file);
+    if(r.fixed){ r[c.k] = inFile ? r.file[c.k] : (r[c.k]??null); return; }
+    const rule=c.rule||{a:'manual',f:0};
+    let v;
+    if(rule.a==='ladder'){
+      v=null;
+      if(bottom!=null && top!=null && top>=bottom){
+        const f=(+rule.f||0)/100;
+        v = f<=0 ? Math.round(bottom) : (f>=1 ? Math.round(top) : ceil100(bottom+f*(top-bottom)));
+      }
+    } else v = inFile ? r.file[c.k] : (r[c.k]??null);              // 직접 입력 채널: 마지막 값 유지
+    if(r.ovr && r.ovr[c.k]!=null) v=r.ovr[c.k];
+    r[c.k]=v;
+  });
+}
+function recalcAll(){ ROWS.forEach(recalcRow); }
+function getField(r,f){ const i=f.indexOf(':'); if(i<0) return r[f]; const o=r[f.slice(0,i)]; return o?o[f.slice(i+1)]:undefined; }
+function setField(r,f,v){ const i=f.indexOf(':'); if(i<0){ r[f]=v; return; }
+  const a=f.slice(0,i), b=f.slice(i+1); r[a]=r[a]||{};
+  if(v===undefined || (v==null && a!=='file')) delete r[a][b]; else r[a][b]=v; }
+
+let VIEW='price';
+function fmtVal(v,cost){
+  if(!canSeeCost()) return won(v);
+  const mode=VIEW;
+  const m=(cost!=null&&v!=null)?v-cost:null, rr=(m!=null&&v)?m/v:null;
+  if(mode==='margin') return m==null ? won(v)+'<span class="mr">원가?</span>' : won(m);
+  if(mode==='rate')   return rr==null ? '—' : pct1(rr);
+  return won(v)+(rr!=null?`<span class="mr">마진 ${pct1(rr)}</span>`:'');
+}
+function vbCell(r,ri){
+  const a=`data-edit data-r="${ri}" data-k="vb"`;
+  const tip='업체단가 — 총판 기준. ⚙️ 자동계산 제품은 이 값과 정가 사이에서 채널 단가가 정해집니다';
+  if(r.vb==null) return `<td class="num vbcol" ${a} title="${tip}">${r.todo&&r.todo.vb?'<span class="todo">미정</span>':'<span class="inhint">＋ 입력</span>'}</td>`;
+  const neg=canSeeCost()&&r.cost!=null&&r.vb<r.cost;
+  return `<td class="num vbcol${neg?' neg':''}" ${a} title="${tip}" style="font-weight:600">${fmtVal(r.vb,r.cost)}${neg?'<span class="negtag">역마진</span>':''}</td>`;
+}
+function priceCell(r,ri,c,R){
+  const k=c.k, v=r[k], isAnchor=!!(R&&k===R.k);
+  const auto=!r.fixed && !isAnchor && (c.rule||{}).a==='ladder';
+  const ovr=auto && r.ovr && r.ovr[k]!=null;
+  const a=`data-edit data-r="${ri}" data-k="${k}"`;
+  const todo=r.todo&&r.todo[k]&&v==null;
+  const tip = todo ? '아직 단가를 정하지 않은 칸 — 값을 넣으면 미정이 풀립니다'
+    : ovr ? '✎ 이 제품만 직접 조정한 단가 — 비우면 자동계산으로 돌아갑니다'
+    : auto ? '⚙️ 자동계산된 단가 — 고치면 이 제품만 직접 조정(✎)됩니다'
+    : isAnchor ? '정가 — ⚙️ 자동계산의 윗기준입니다'
+    : r.fixed ? '📌 고정 — 넣은 값을 그대로 씁니다' : '직접 입력하는 채널';
+  if(v==null) return `<td class="num dim" ${a} title="${tip}">${todo?'<span class="todo">미정</span>':(auto?'—':'<span class="inhint">＋ 입력</span>')}</td>`;
+  const see=canSeeCost(), neg=see && r.cost!=null && v<r.cost;
+  const cls=['num', neg?'neg':(see?mcls(v,r.cost):''), ovr?'ovrcell':''].filter(Boolean).join(' ');
+  return `<td class="${cls}" ${a} title="${tip}">${fmtVal(v,r.cost)}${neg?'<span class="negtag">역마진</span>':''}${ovr?'<span class="ovrb">✎</span>':''}</td>`;
+}
+function passesFilter(r){
+  const q=($('#q').value||'').trim(), cat=($('#cat')&&$('#cat').value)||'';
+  return !r.gone && (!q || r.n.includes(q) || (r.s||'').includes(q)) && (!cat || (r.l1+'|'+r.l2)===cat);
+}
+function fillCatSelects(){
+  const cats=[]; ROWS.forEach(r=>{ if(r.gone)return; const k=(r.l1||'미분류')+'|'+(r.l2||'기타'); if(!cats.includes(k)) cats.push(k); });
+  const opt=k=>`<option value="${k}">${k.split('|')[1]} <small>· ${k.split('|')[0]}</small></option>`;
+  const cs=$('#cat'); if(cs){ const p=cs.value; cs.innerHTML='<option value="">전체 분류</option>'+cats.map(opt).join(''); if(cats.includes(p)) cs.value=p; }
+  const rc=$('#rgCat'); if(rc){ const p=rc.value; rc.innerHTML=cats.map(opt).join(''); if(cats.includes(p)) rc.value=p; }
 }
 function renderPrice(){
-  const q=($('#q').value||'').trim();
+  recalcAll(); fillCatSelects();
+  const R=chByRole('retail'), vis=chVisible();
   const hd=$('#pthead');
-  if(hd) hd.innerHTML=`<th style="min-width:210px">제품</th><th class="num costcol">매입원가</th>`
-    + chVisible().map(c=>`<th class="num">${c.name}<span class="code">${c.code}</span></th>`).join('')
-    + `<th style="width:40px"></th>`;
+  if(hd) hd.innerHTML=`<th style="min-width:250px">제품</th><th class="secretonly" style="min-width:96px">공급업체</th>
+      <th class="num costcol">매입원가</th><th class="num vbcol" title="총판 기준 — 자동계산의 아랫기준">업체단가<span class="code">기준 0%</span></th>`
+    + vis.map(c=>{ const rl=c.rule||{a:'manual'}, isA=!!(R&&R.k===c.k);
+        const sub=isA?'정가 100%':(rl.a==='ladder'?`사다리 ${rl.f}%`:'직접 입력');
+        return `<th class="num">${c.name}<span class="code">${c.code} · ${sub}</span></th>`; }).join('');
+  const ncols=4+vis.length;
   const tb=$('#ptable tbody'); tb.innerHTML='';
-  const shown=ROWS.filter(r=>!r.gone && (!q || r.n.includes(q))).length;
-  if(!shown){   // 빈 표만 남으면 '고장난 건가' 싶어진다 — 빠져나갈 길을 같이 준다
-    tb.innerHTML=`<tr><td colspan="${chVisible().length+3}" style="padding:36px;text-align:center;color:var(--ink3)">
+  const list=ROWS.map((r,ri)=>({r,ri})).filter(x=>passesFilter(x.r));
+  const q=($('#q').value||'').trim();
+  const liveN=ROWS.filter(r=>!r.gone).length;
+  const cnt=$('#pcount'); if(cnt) cnt.textContent=`${list.length}개 / 전체 ${liveN}개`;
+  // 미정 해제 버튼: 보이는 제품의 미정 칸 수
+  const todoN=list.reduce((a,x)=>a+Object.keys(x.r.todo||{}).length,0);
+  const tbn=$('#btnTodo'); if(tbn){ tbn.hidden=!todoN; tbn.textContent=`미정 해제 (${todoN})`; }
+  if(!list.length){
+    tb.innerHTML=`<tr><td colspan="${ncols}" style="padding:36px;text-align:center;color:var(--ink3)">
       ${q?`<b>"${q}"</b> 에 맞는 제품이 없습니다`:'표시할 제품이 없습니다'}
       ${q?'<div style="margin-top:9px"><button class="btn sm" id="qclear">검색어 지우기</button></div>':''}</td></tr>`;
     const c=$('#qclear'); if(c) c.addEventListener('click',()=>{ $('#q').value=''; renderPrice(); $('#q').focus(); });
+    return;
   }
-  const cnt=$('#pcount'); if(cnt) cnt.textContent=`${shown}개 / 전체 ${ROWS.filter(r=>!r.gone).length}개`;
-  ROWS.filter(r=>!r.gone && (!q || r.n.includes(q))).forEach((r,i)=>{
-    const tr=document.createElement('tr');
-    if(r.flag) tr.className='hasflag';
-    tr.innerHTML=`<td><span class="pname">${r.n}</span>${r.flag?`<span class="flag" title="${r.flag}"></span>`:''}
-        <div class="spec">${r.s}</div></td>
-      <td class="num dim costcol">${won(r.cost)}</td>
-      ${chVisible().map(c=>cell(r[c.k],r.cost,ROWS.indexOf(r),c.k)).join('')}
-      <td><button class="btn sm" tabindex="-1" data-del="${ROWS.indexOf(r)}" title="휴지통으로 보내기">🗑</button></td>`;
-    tb.appendChild(tr);
+  // 분류 묶음: 처음 나온 순서대로 대분류 → 중분류
+  const g1={}, g2={};
+  ROWS.forEach((r,i)=>{ const a=r.l1||'미분류', b=a+'|'+(r.l2||'기타'); if(!(a in g1))g1[a]=i; if(!(b in g2))g2[b]=i; });
+  list.sort((x,y)=>{ const a1=x.r.l1||'미분류', b1=y.r.l1||'미분류';
+    return (g1[a1]-g1[b1]) || (g2[a1+'|'+(x.r.l2||'기타')]-g2[b1+'|'+(y.r.l2||'기타')]) || (x.ri-y.ri); });
+  let L1=null, L2=null;
+  const add=(html,cls,attrs)=>{ const tr=document.createElement('tr'); if(cls)tr.className=cls; if(attrs)Object.entries(attrs).forEach(([k,v])=>tr.dataset[k]=v); tr.innerHTML=html; tb.appendChild(tr); };
+  list.forEach(({r,ri})=>{
+    const l1=r.l1||'미분류', l2=r.l2||'기타';
+    if(l1!==L1){ L1=l1; L2=null; add(`<td colspan="${ncols}">▣ ${l1}</td>`,'grprow l1'); }
+    if(l2!==L2){ L2=l2; add(`<td colspan="${ncols}">▸ ${l2} <button class="btn sm" tabindex="-1" data-addcat="${l1}|${l2}">＋ 제품 추가</button></td>`,'grprow l2'); }
+    const sp=supById(r.sup);
+    const tools=`<span class="rtools">`
+      + `<button data-pin="${ri}" tabindex="-1" title="${r.fixed?'📌 값 고정 — 넣은 값을 그대로 씁니다. 누르면 ⚙️ 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사이로 계산합니다. 누르면 📌 지금 값으로 고정합니다'}">${r.fixed?'📌':'⚙️'}</button>`
+      + `<button class="soft" data-copy="${ri}" tabindex="-1" title="이 제품을 복사해서 새로 등록">📋</button>`
+      + `<button class="soft" data-del="${ri}" tabindex="-1" title="휴지통으로 보내기 (영구삭제 아님)">🗑</button></span>`;
+    add(`<td>${tools}<span class="pname">${r.n}</span>${r.flag?`<span class="flag" title="${r.flag}"></span>`:''}
+          <div class="spec" style="padding-left:78px">${r.s}</div></td>
+        <td class="secretonly dim">${sp?sp.name:'—'}</td>
+        <td class="num dim costcol">${canSeeCost()?won(r.cost):''}</td>
+        ${vbCell(r,ri)}
+        ${vis.map(c=>priceCell(r,ri,c,R)).join('')}`, r.flag?'hasflag':'', {ri:String(ri)});
   });
 }
 $('#q').addEventListener('input',renderPrice);
-$('#mgToggle').addEventListener('change',e=>document.body.classList.toggle('showmargin',e.target.checked));
+$('#cat').addEventListener('change',renderPrice);
+$('#viewSeg').addEventListener('click',e=>{ const b=e.target.closest('button[data-v]'); if(!b)return;
+  VIEW=b.dataset.v; $$('#viewSeg button').forEach(x=>x.classList.toggle('on',x===b)); renderPrice(); });
 
-/* 칸 편집 — 저장 전까지는 아무것도 확정되지 않는다 */
+/* 모든 가격 변경 뒤에 공통으로 다시 그릴 것 */
+function afterPriceChange(){ renderPrice(); renderAnalysis(); renderQt(); hint(); renderPl(); renderCrm(); renderMkt(); }
+
+/* 📌 ↔ ⚙️ — 고정할 때는 지금 보이는 값을 그대로 붙잡는다(누른 순간 숫자가 바뀌면 안 된다) */
+function setPin(ri,on){
+  const r=ROWS[ri]; if(!!r.fixed===on) return 0;
+  UNDO.push({ri,key:'fixed',before:!!r.fixed,file:{...(r.file||{})}});
+  const R=chByRole('retail'), snap={};
+  CHS.forEach(c=>snap[c.k]=r[c.k]);
+  if(on){ r.file={}; CHS.forEach(c=>{ if(R&&c.k===R.k) return; if(r[c.k]!=null) r.file[c.k]=r[c.k]; }); r.fixed=true; }
+  else { r.fixed=false; }
+  recalcRow(r);
+  return CHS.filter(c=>r[c.k]!==snap[c.k]).length;
+}
+function togglePin(ri){
+  const r=ROWS[ri], on=!r.fixed, n=setPin(ri,on);
+  bump(); afterPriceChange();
+  toast(on ? `📌 "${r.n}" — 지금 값으로 고정했습니다. 업체단가·정가를 바꿔도 따라 움직이지 않습니다`
+           : `⚙️ "${r.n}" — 자동계산으로 바꿨습니다${n?` · 단가 ${n}칸이 다시 계산됐습니다`:''} (되돌리기 가능)`,false);
+}
+function bulkPin(on){
+  $('#moreMenu').classList.remove('on');
+  const list=ROWS.map((r,ri)=>({r,ri})).filter(x=>passesFilter(x.r) && !!x.r.fixed!==on);
+  if(!list.length){ toast(`보이는 제품이 이미 모두 ${on?'📌 고정':'⚙️ 자동계산'} 입니다`,false); return; }
+  let cells=0; list.forEach(x=>{ cells+=setPin(x.ri,on); bump(); });
+  afterPriceChange();
+  toast(`${list.length}개 제품을 ${on?'📌 고정':'⚙️ 자동계산'} 으로 바꿨습니다${!on&&cells?` · 단가 ${cells}칸 재계산`:''} (되돌리기 가능)`,false);
+}
+$('#btnBulkFix').addEventListener('click',()=>bulkPin(true));
+$('#btnBulkAuto').addEventListener('click',()=>bulkPin(false));
+$('#btnTodo').addEventListener('click',()=>{
+  let n=0;
+  ROWS.forEach((r,ri)=>{ if(!passesFilter(r))return; Object.keys(r.todo||{}).forEach(k=>{ UNDO.push({ri,key:'todo:'+k,before:true}); delete r.todo[k]; n++; bump(); }); });
+  afterPriceChange();
+  toast(`'미정' ${n}칸을 풀었습니다 — 값이 없는 칸은 빈칸으로 남습니다 (되돌리기 가능)`,false);
+});
+function copyProduct(ri){
+  const r=ROWS[ri], R=chByRole('retail');
+  go('reg'); renderReg();
+  $('#rgName').value=r.n+' (복사)'; $('#rgSpec').value=r.s; $('#rgCost').value=r.cost??'';
+  $('#rgVb').value=r.vb??''; $('#rgOwn').value=R?(r[R.k]??''):'';
+  const k=(r.l1||'미분류')+'|'+(r.l2||'기타'); if([...$('#rgCat').options].some(o=>o.value===k)) $('#rgCat').value=k;
+  setRegMode(r.fixed?'fixed':'auto');
+  if(r.fixed) $$('#rgChans input').forEach(i=>{ const v=r[i.dataset.k]; i.value=v??''; });
+  $('#rgStatus').innerHTML='<span style="color:var(--ok-d)">복사할 내용을 채웠습니다 — 이름·규격을 바꾸고 등록하세요.</span>';
+  $('#rgName').focus(); $('#rgName').select();
+}
+
+/* 칸 편집 — 어느 원천값을 고치는지 정한다: 앵커(업체단가·정가) / ✎ 직접 조정 / 📌 고정값 */
 $('#ptable').addEventListener('click',e=>{
+  const pin=e.target.closest('[data-pin]'); if(pin){ togglePin(+pin.dataset.pin); return; }
+  const cp=e.target.closest('[data-copy]'); if(cp){ copyProduct(+cp.dataset.copy); return; }
+  const ac=e.target.closest('[data-addcat]'); if(ac){ go('reg'); renderReg(); rgReset(); $('#rgCat').value=ac.dataset.addcat; $('#rgName').focus(); return; }
   const del=e.target.closest('[data-del]');
   if(del){ softDelete(+del.dataset.del); return; }
   const td=e.target.closest('td[data-edit]'); if(!td||td.querySelector('input'))return;
-  const ri=+td.dataset.r, key=td.dataset.k, before=ROWS[ri][key];
-  const cur=before==null?'':before;
-  td.innerHTML=`<input value="${cur}" style="width:88px;text-align:right;border:1px solid var(--ok);border-radius:6px;padding:4px 7px;outline:none">`;
+  const ri=+td.dataset.r, key=td.dataset.k, r=ROWS[ri];
+  const R=chByRole('retail'), ch=CHS.find(c=>c.k===key);
+  const isAnchor = key==='vb' || !!(R&&key===R.k);
+  const auto = !r.fixed && !isAnchor && !!ch && (ch.rule||{}).a==='ladder';
+  const field = isAnchor ? key : (auto ? 'ovr:'+key : 'file:'+key);
+  const cur = r[key]??null;                               // 지금 보이는 값에서 시작한다
+  td.innerHTML=`<input value="${cur??''}" style="width:88px;text-align:right;border:1px solid var(--ok);border-radius:6px;padding:4px 7px;outline:none">`;
   const inp=td.querySelector('input'); inp.focus(); inp.select();
   let closed=false, move=null;
   const done=()=>{
     if(closed)return; closed=true;
     const res=validate(inp.value);
     if(res.msg) toast(res.msg,false);
-    if(res.v!==before){ ROWS[ri][key]=res.v; UNDO.push({ri,key,before}); bump(); }
-    renderPrice();                       // 마진율·색 농도까지 같이 다시 계산
-    if(move) openCell(move);             // Tab·Enter 로 옮겨갈 칸을 바로 이어서 연다
+    const nv=res.v;
+    if(nv!==cur){                                         // 그대로 지나가면 아무것도 만들지 않는다(✎ 오염 방지)
+      UNDO.push({ri,key:field,before:getField(r,field)});
+      setField(r,field,nv);
+      if(nv!=null && r.todo && r.todo[key]){ UNDO.push({ri,key:'todo:'+key,before:true}); delete r.todo[key]; }
+      bump();
+      if(auto) toast(nv==null?`⚙️ 자동계산으로 돌렸습니다`:`✎ 이 제품만 직접 조정했습니다 — 비우면 자동계산으로 돌아갑니다`,false);
+      else if(isAnchor && !r.fixed) toast(`${key==='vb'?'업체단가':'정가'}를 바꿔 ⚙️ 채널 단가가 다시 계산됐습니다`,false);
+      afterPriceChange();
+    } else renderPrice();
+    if(move) openCell(move);
   };
   inp.addEventListener('blur',done);
   inp.addEventListener('keydown',ev=>{
@@ -1261,7 +1481,7 @@ function validate(raw){
 function nextCell(td,dir){
   const cells=[...document.querySelectorAll('#ptable td[data-edit]')];
   const i=cells.indexOf(td); if(i<0)return null;
-  const perRow=chVisible().length;   // 편집 가능한 칸 = 보이는 채널 수
+  const perRow=td.parentElement.querySelectorAll('td[data-edit]').length;   // 업체단가 + 보이는 채널
   const j = dir==='right'? i+1 : dir==='left'? i-1 : i+perRow;
   return (j>=0&&j<cells.length) ? {r:cells[j].dataset.r, k:cells[j].dataset.k} : null;
 }
@@ -1285,15 +1505,17 @@ $('#undoAll').addEventListener('click',()=>{
       if(u.key==='gone') TRASH=TRASH.filter(t=>t.pi!==u.pi);
       continue; }
     if(u.chFee!=null){ CHS[u.chFee].fee=u.before; continue; }             // 채널 수수료율
+    if(u.chRule!=null){ CHS[u.chRule].rule=u.before; continue; }          // 채널 단가 규칙
     if(u.fi!=null){                                                       // 고정지출
       if(u.key==='__newfix'){ FIXED.splice(u.fi,1); continue; }
       FIXED[u.fi][u.key]=u.before;
       if(u.key==='gone') TRASH=TRASH.filter(t=>t.fi!==u.fi);
       continue; }
     if(u.key==='__new'){ ROWS.splice(u.ri,1); continue; }                 // 등록은 '없던 일' 로
-    ROWS[u.ri][u.key]=u.before;
+    if(u.key==='fixed'){ ROWS[u.ri].fixed=u.before; ROWS[u.ri].file=u.file; continue; }   // 📌↔⚙️ (고정값까지)
+    setField(ROWS[u.ri],u.key,u.before);                                  // vb·정가·ovr:·file:·todo: 모두
     if(u.key==='gone') TRASH=TRASH.filter(t=>t.i!==u.ri); }               // 편집 전 값으로 정확히 원복(삭제 포함)
-  fillProd(); renderPrice(); renderTrash(); renderAnalysis(); renderQt(); hint(); renderMatch(); renderFixed(); renderPl(); renderLinks(); renderPromo(); renderMkt(); renderCrm(); clearDirty();
+  fillProd(); renderPrice(); renderTrash(); renderAnalysis(); renderQt(); hint(); renderMatch(); renderFixed(); renderPl(); renderLinks(); renderPromo(); renderMkt(); renderCrm(); renderChan(); clearDirty();
   toast('되돌렸습니다 — 저장 전이라 원래 값 그대로입니다',false);
 });
 $('#saveNow').addEventListener('click',save);
@@ -1403,7 +1625,7 @@ const discHtml=d=> d==null ? '—'
 const canSeeCost=()=>!document.body.classList.contains('no-cost');
 const kpiHtml=c=>`<div class="kpi ${c.cls||''}"><h4>${c.h}</h4><div class="v" style="font-size:18px">${c.v}</div><div class="f">${c.f}</div></div>`;
 
-function renderAnalysis(){
+function renderAnalysis(){ recalcAll();
   if(!$('#apTable'))return;
   // 선택지를 다시 채우되 고른 값은 지킨다
   const ps=$('#anProd'), prevP=ps.value;
@@ -1561,7 +1783,7 @@ function crmRows(){
     return {i,c,p,ri:ROWS.indexOf(p),cur,state:(cur===c.price?'same':'diff')};
   });
 }
-function renderCrm(){
+function renderCrm(){ recalcAll();
   const t=$('#crmTable'); if(!t)return;
   const R=chByRole('retail');
   const keep={}; $$('#crmTable input[data-crm]').forEach(x=>keep[x.dataset.crm]=x.checked);
@@ -1622,7 +1844,7 @@ function avgCmr(){
     return (v-(r.cost+v*((+R.fee||0)/100)+ship))/v; }).filter(x=>x!=null);
   return a.length? a.reduce((x,y)=>x+y,0)/a.length : null;
 }
-function renderMkt(){
+function renderMkt(){ recalcAll();
   if(!$('#mkTable'))return;
   const L=lkLive();
   const sum=L.reduce((a,b)=>({clicks:a.clicks+b.clicks,orders:a.orders+b.orders,revenue:a.revenue+b.revenue,spend:a.spend+b.spend}),{clicks:0,orders:0,revenue:0,spend:0});
@@ -1750,7 +1972,7 @@ function plCalc(r,ch,qty,ship){
   return {v,fee,unitVar,cm,cmr:v?cm/v:null,rev:v*qty,varTot:unitVar*qty,cmTot:cm*qty,
           bep: cm>0 ? Math.ceil(fixTotal()/cm) : null};
 }
-function renderPl(){
+function renderPl(){ recalcAll();
   if(!$('#plTable'))return;
   plFill();
   const r=ROWS[+($('#plProd').value||0)]; if(!r)return;
@@ -1861,15 +2083,27 @@ $('#mtTable').addEventListener('change',e=>{
    · 필수값은 이름·규격뿐 — 가격은 나중에 채운다(빈칸을 0 으로 만들지 않는다)
    · 중복이면 조용히 덮어쓰지 않고 기존 행으로 데려간다
    · 등록도 '변경 N건' 에 잡아 되돌릴 수 있게 한다 */
+let RG_MODE='auto';
+function setRegMode(m){
+  RG_MODE=m; $$('#rgMode button').forEach(b=>b.classList.toggle('on',b.dataset.v===m));
+  $('#rgChans').hidden = m!=='fixed';
+  $('#rgModeNote').innerHTML = m==='auto'
+    ? '· <b>업체단가와 정가만</b> 넣으면 채널 단가가 사다리 비율로 자동으로 채워집니다. 나중에 한 칸만 다르게 하고 싶으면 가격정책표에서 그 칸을 고치면 됩니다(✎).'
+    : '· 채널마다 받은 단가를 그대로 넣습니다(📌 고정). 업체단가·정가를 바꿔도 따라 움직이지 않습니다. 비운 칸은 빈칸으로 남습니다.';
+}
+$('#rgMode').addEventListener('click',e=>{ const b=e.target.closest('button[data-v]'); if(b) setRegMode(b.dataset.v); });
 function renderReg(){
   const box=$('#rgChans'); if(!box)return;
+  fillCatSelects();
+  const R=chByRole('retail');
   const prev={}; $$('#rgChans input').forEach(i=>prev[i.dataset.k]=i.value);
-  box.innerHTML=chVisible().map(c=>`<div class="fld">
+  box.innerHTML=chVisible().filter(c=>!(R&&c.k===R.k)).map(c=>`<div class="fld">
       <label>${c.name} <span class="mono" style="color:var(--warn);font-size:10px">${c.code}</span></label>
       <input type="number" min="0" data-k="${c.k}" value="${prev[c.k]||''}" placeholder="비워도 됩니다"></div>`).join('');
 }
 function rgReset(){
-  $('#rgName').value=''; $('#rgSpec').value=''; $('#rgCost').value='';
+  $('#rgName').value=''; $('#rgSpec').value=''; $('#rgCost').value=''; $('#rgVb').value=''; $('#rgOwn').value='';
+  setRegMode('auto');
   $$('#rgChans input').forEach(i=>i.value=''); $('#rgStatus').textContent='';
 }
 function addProduct(){
@@ -1880,9 +2114,13 @@ function addProduct(){
   const dup=ROWS.find(r=>!r.gone && r.n===name && r.s===spec);
   if(dup){ st.innerHTML='<span style="color:var(--warn)">같은 제품명·규격이 이미 있습니다 — 그 행으로 갑니다.</span>';
     toast('이미 등록된 제품입니다 — 기존 행을 열었습니다',false); jumpTo(name); return; }
-  const row={n:name,s:spec};
-  const cv=validate($('#rgCost').value); row.cost=cv.v;
-  $$('#rgChans input').forEach(i=>{ const v=validate(i.value); row[i.dataset.k]=v.v; });
+  const [l1,l2]=(($('#rgCat').value)||'POUR공법|기타').split('|');
+  const R=chByRole('retail');
+  const row={n:name,s:spec,l1,l2,file:{},ovr:{},todo:{},fixed:RG_MODE==='fixed'};
+  row.cost=validate($('#rgCost').value).v;
+  row.vb=validate($('#rgVb').value).v;
+  if(R) row[R.k]=validate($('#rgOwn').value).v;
+  if(row.fixed) $$('#rgChans input').forEach(i=>{ const v=validate(i.value).v; if(v!=null) row.file[i.dataset.k]=v; });
   ROWS.push(row);
   UNDO.push({ri:ROWS.length-1,key:'__new'});     // 되돌리면 '없던 일' 이 된다
   bump(); fillProd(); renderPrice(); renderAnalysis(); renderQt(); hint(); renderMatch(); renderPl();   // 매칭·손익·분석 화면에도 새 제품이 바로 서야 한다
@@ -1894,13 +2132,13 @@ $('#rgSave').addEventListener('click',addProduct);
 $('#rgClear').addEventListener('click',rgReset);
 ['#rgName','#rgSpec'].forEach(sel=>$(sel).addEventListener('keydown',e=>{ if(e.key==='Enter') addProduct(); }));
 $('#btnAdd').addEventListener('click',()=>go('reg'));   // 가격정책표의 '＋ 제품' 은 여기로
-function hint(){
+function hint(){ recalcAll();
   const r=ROWS[+$('#mProd').value], q=Math.max(1,+$('#mQty').value||1), u=unitOf(r,q);
   $('#mHint').innerHTML = u==null
     ? `<span style="color:var(--danger)">이 품목은 정가가 없어 단가가 자동으로 붙지 않습니다.</span>`
     : `담으면 <b>${tierOf(q).l}</b> 구간가 <b>${won(u)}원</b> 이 적용됩니다.`;
 }
-function renderQt(){
+function renderQt(){ recalcAll();
   const tb=$('#qtable tbody');
   if(!QT.length){ tb.innerHTML=`<tr><td colspan="7" style="padding:22px;text-align:center;color:var(--ink3)">위에서 품목과 수량을 골라 <b>＋ 견적에 담기</b> 를 눌러보세요</td></tr>`; return; }
   let sup=0;
@@ -1926,7 +2164,7 @@ $('#qtable').addEventListener('click',e=>{ const b=e.target.closest('[data-qdel]
 
 /* ── 시작 ── */
 $$('.navgrp').forEach(g=>{ if(g.dataset.g==='g1'){ g.classList.add('open'); $('#g1').classList.add('open'); } });
-fillProd(); renderChan(); renderReg(); renderMatch(); renderFixed(); renderLinks(); renderPromo(); applyRole('master'); renderTrash(); renderQt(); hint(); renderAnalysis(); renderPl(); renderMkt(); renderCrm();
+fillProd(); renderChan(); setRegMode('auto'); renderReg(); renderMatch(); renderFixed(); renderLinks(); renderPromo(); applyRole('master'); renderTrash(); renderQt(); hint(); renderAnalysis(); renderPl(); renderMkt(); renderCrm();
 console.log('[시안] 샘플 데이터로만 동작합니다 · Firebase 연결 없음');
 </script>
 </body>

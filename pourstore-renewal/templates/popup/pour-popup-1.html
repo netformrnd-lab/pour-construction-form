@@ -71,19 +71,26 @@ html,body{margin:0;padding:0;height:100%;}
     try{ if(localStorage.getItem('pourpopHide')===todayKey()) return true; }catch(_){}
     return false;
   }
-  // ── 팝업 닫기: 윈도우 팝업이면 창 닫기, 레이어면 DOM 숨김 (둘 다 시도) ──
+  // ── 팝업 닫기: 윈도우 팝업이면 창 닫기, 레이어/아이프레임이면 DOM까지 완전 제거 ──
+  function hideWrap(start, doc){
+    try{ var el=start, hops=0;
+      while(el && el!==doc.body && hops<8){
+        var pos=(window.getComputedStyle?getComputedStyle(el).position:'');
+        if(pos==='fixed'||pos==='absolute'){ el.style.display='none'; return; }  // 레이어 래퍼 숨김
+        el=el.parentElement; hops++;
+      }
+    }catch(_){}
+  }
   function closePopup(hideToday){
     if(hideToday) setHideToday();
     try{ if(window.opener && !window.opener.closed){ window.close(); } }catch(_){}
     try{ root.style.display='none'; }catch(_){}
-    // 레이어 팝업 래퍼까지 숨김 (position 지정된 조상)
+    hideWrap(root.parentElement, document);   // 같은 문서 내 레이어 래퍼
+    // ★ 팝업이 iframe으로 삽입된 경우(카페24 '직접만든팝업' 기본): 부모 페이지의 iframe 요소와 그 래퍼까지 숨김
+    //   (이걸 안 하면 '닫아도' iframe이 그 자리에 남아 뒤의 헤더 탭(베스트·카테고리) 클릭을 막음)
     try{
-      var el=root.parentElement, hops=0;
-      while(el && el!==document.body && hops<4){
-        var pos=(window.getComputedStyle?getComputedStyle(el).position:'');
-        if(pos==='fixed'||pos==='absolute'){ el.style.display='none'; break; }
-        el=el.parentElement; hops++;
-      }
+      var fe=window.frameElement;
+      if(fe){ fe.style.display='none'; hideWrap(fe.parentElement, fe.ownerDocument); }
     }catch(_){}
     try{ window.close(); }catch(_){}
   }

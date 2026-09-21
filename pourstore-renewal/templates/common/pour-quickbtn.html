@@ -160,6 +160,8 @@
 </style>
 <script>
 (function(){
+  if(window.__pqtelBooted){ try{ var d=document.querySelectorAll('[data-pqtel]'); for(var i=1;i<d.length;i++) d[i].remove(); }catch(_){} return; }
+  window.__pqtelBooted=true;
   var wrap=document.querySelector('[data-pqtel]'); if(!wrap) return;
   var link=wrap.querySelector('.pqtel'), tip=wrap.querySelector('[data-pqtel-tip]');
   var TEL='1800-8203';

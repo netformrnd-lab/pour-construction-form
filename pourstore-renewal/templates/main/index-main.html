@@ -317,6 +317,19 @@ html, body{ overflow-x:clip; }
 @media (prefers-reduced-motion:reduce){ .pqc-fab::before{animation:none;opacity:0} }
 </style>
 
+<!-- 전화 상담 퀵버튼 (챗봇 위) — 누르면 고객센터로 바로 전화 연결 -->
+<a class="pqtel" href="tel:1800-8203" aria-label="전화 상담 1800-8203" title="전화 상담 1800-8203">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+  <span class="pqtel-lbl">전화문의</span>
+</a>
+<style>
+.pqtel{position:fixed;right:22px;bottom:100px;z-index:9998;width:60px;height:60px;border-radius:50%;background:#03C75A;box-shadow:0 8px 22px rgba(3,199,90,.42),0 2px 6px rgba(0,0,0,.16);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-decoration:none;transition:transform .15s ease,box-shadow .15s ease;font-family:'Pretendard Variable',Pretendard,-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif}
+.pqtel:hover{transform:translateY(-3px) scale(1.05);box-shadow:0 12px 28px rgba(3,199,90,.5)}
+.pqtel svg{width:25px;height:25px;display:block}
+.pqtel-lbl{font-size:8.5px;font-weight:800;letter-spacing:-0.04em;line-height:1;margin-top:2px}
+@media (max-width:640px){ .pqtel{right:16px;bottom:80px;width:54px;height:54px} .pqtel svg{width:22px;height:22px} .pqtel-lbl{font-size:8px;margin-top:1px} }
+</style>
+
 <div class="pqc-launcher" data-pqc-launcher>
   <button type="button" class="pqc-lbl" data-pqc-open><span class="t" data-pqc-lt>궁금하면 물어보세요</span><span class="s">POUR닥터 · 1:1 실시간 상담</span></button>
   <button type="button" class="pqc-fab" data-pqc-open aria-label="POUR닥터 채팅 상담 열기">

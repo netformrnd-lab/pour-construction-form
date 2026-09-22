@@ -225,7 +225,12 @@ td input.cellinput{
 /* 좌측 고정(freeze): No·제품명·규격·공급업체·매입원가까지 가로스크롤에도 고정. left는 렌더 후 실측값을 CSS변수로 주입 */
 .frz{position:sticky;z-index:16;background:#fff}
 .frz-no{left:var(--frzNo,0)}
+.frz-code{left:var(--frzCode,40px)}
 .frz-name{left:var(--frzName,40px)}
+td.frz-code{font-family:var(--mono);font-size:11px;color:#1E40AF;cursor:copy}
+td.frz-code.gh{color:#C2410C}
+th.frz-code .colx{border:0;background:none;color:var(--ink-faint);cursor:pointer;font-size:11px;padding:0 0 0 4px}
+th.frz-code .colx:hover{color:var(--red)}
 .frz-spec{left:var(--frzSpec,264px)}
 .frz-sup{left:var(--frzSup,340px)}
 .frz-cost{left:var(--frzCost,428px)}
@@ -445,7 +450,7 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
 @media(max-width:640px){
   /* 고정 열을 No·제품명만 남긴다 — 규격·공급업체·매입원가까지 고정하면 합계 535px 라
      375px 화면에서는 아무리 스크롤해도 가격 열이 화면 밖에 머문다. */
-  #priceGrid .frz-spec,#priceGrid .frz-sup,#priceGrid .frz-cost{position:static!important;z-index:auto!important}
+  #priceGrid .frz-spec,#priceGrid .frz-sup,#priceGrid .frz-cost,#priceGrid .frz-code{position:static!important;z-index:auto!important}
   #priceGrid .frz-edge{border-right:0!important;box-shadow:none!important}
   #priceGrid .frz-name{min-width:150px!important;max-width:150px;border-right:2px solid #c3ccd4!important;box-shadow:6px 0 8px -6px rgba(0,0,0,.18)}
   #priceGrid td,#priceGrid th{padding-left:6px;padding-right:6px}
@@ -587,7 +592,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.22d</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.22e</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -761,6 +766,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
       <button class="tbtn" id="btnBulkFix" style="display:none" title="지금 표에 보이는 제품을 모두 '파일값 고정(📌)'으로 — 업로드한 단가를 그대로 씁니다">📌 일괄 고정</button>
       <button class="tbtn" id="btnBulkAuto" style="display:none" title="지금 표에 보이는 제품을 모두 '자동계산(⚙️)'으로 — 업체단가~정가 사다리로 계산합니다">⚙️ 일괄 자동</button>
       <button class="tbtn" id="btnAddProd" style="display:none">＋ 제품 추가</button>
+      <button class="tbtn" id="btnCodeCol" style="display:none" title="제품명 왼쪽 '코드' 열을 숨기거나 보입니다 (이 기기에 기억)">🏷 코드 열 숨기기</button>
       <button class="tbtn" id="btnPcode" style="display:none;background:#EFF6FF;border-color:#BFDBFE;color:#1E40AF;font-weight:700" title="POUR스토어 자체상품코드(옵션 단위) 보기·수정·내보내기 — 오픈마켓 판매자관리코드에 넣는 값입니다">🏷 자체상품코드</button>
       <button class="tbtn" id="btnGhImport" style="display:none;background:#FFF1E6;border-color:#FDBA8C;color:#C2410C;font-weight:700" title="그로홈 대시보드의 [제품 관리 › 제품 마스터]를 읽어 GROHOME 브랜드 제품으로 등록·연결합니다">🏠 그로홈 제품 가져오기</button>
       <button class="tbtn" id="btnAddChan" style="display:none;background:#1E5FBF;color:#fff;border-color:#1E5FBF">＋ 채널 추가</button>
@@ -2009,7 +2015,7 @@ function loadSaved(){                        // buildState() 에서 호출 (Fire
   { const seen=new Set(P.map(p=>`${p.cat}|${p.name}|${p.spec}`));
     PADD.forEach(r=>{ const k=`${r.cat}|${r.name}|${r.spec}`; if(seen.has(k))return; seen.add(k);
       P.push({id:P.length,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:r.pr||{},pr0:{...(r.pr||{})},sup:'',mgr:'',mfg:r.mfg||'',added:true,
-        docId:r.docId,concept:r.concept||'',ptype:r.type||'단품',status:r.status||'',setItems:r.setItems||''}); }); }
+        docId:r.docId,concept:r.concept||'',ptype:r.type||'단품',status:r.status||'',setItems:r.setItems||'',ghCode:r.ghCode||''}); }); }
 }
 function persist(){
   localStorage.setItem(LS_KEY, JSON.stringify({
@@ -2782,7 +2788,9 @@ function renderGrid(){
   CHORD.forEach(uid=>{ if(uid===VBASE_COL){ priceCols.push({t:'vbase'}); return; } const c=cols.find(x=>x.uid===uid); if(c) priceCols.push({t:'ch',c}); });
   cols.forEach(c=>{ if(!priceCols.some(x=>x.t==='ch'&&x.c.uid===c.uid)) priceCols.push({t:'ch',c}); });  // 누락 채널 보정
   if(!priceCols.some(x=>x.t==='vbase')) priceCols.unshift({t:'vbase'});   // 업체단가 누락 시 맨 앞에
-  const nCols=3+(showSup?1:0)+(showCost?1:0)+priceCols.length;
+  const showCode=CODECOL_OPEN;               // 자체상품코드 열(숨김 가능 · 이 기기에 기억)
+  const ccb=$('#btnCodeCol'); if(ccb){ ccb.style.display=''; ccb.textContent=showCode?'🏷 코드 열 숨기기':'🏷 코드 열 보이기'; }
+  const nCols=3+(showCode?1:0)+(showSup?1:0)+(showCost?1:0)+priceCols.length;
   const canOrderCh=costAllowed;   // 채널 열 드래그 재정렬: 원가열람 계정만
   const twin=vbaseTwin();   // 업체단가와 값이 같은 채널(사다리 0%)
   const twinTip=twin?`업체단가와 값이 같습니다 — [${twin.code}] ${twin.name}은 사다리 0%(하한)이라 업체단가 그대로입니다. 업체단가 칸이 '입력', 이 칸이 '결과'입니다.`:'';
@@ -2793,6 +2801,7 @@ function renderGrid(){
   const lastFrz = showCost ? 'cost' : (showSup ? 'sup' : 'spec');   // 고정 블록의 마지막(경계선) 열
   let html=`<thead><tr>
     <th class="frz frz-no" style="min-width:40px">No</th>
+    ${showCode?'<th class="frz frz-code" style="min-width:86px" title="자체상품코드(POUR스토어 PS-…) · 그로홈 제품은 그로홈 코드">코드<button class="colx" id="codeColX" title="코드 열 숨기기">✕</button></th>':''}
     <th class="frz frz-name" style="min-width:200px">제품명</th>
     <th class="frz frz-spec${lastFrz==='spec'?' frz-edge':''}" style="min-width:78px">규격</th>
     ${showSup?`<th class="frz frz-sup${lastFrz==='sup'?' frz-edge':''}" style="min-width:88px">공급업체</th>`:''}
@@ -2849,7 +2858,9 @@ function renderGrid(){
     }).join('');
     html+=`<tr data-id="${p.id}" data-key="${esc(pKey(p))}" data-cat="${esc(p.cat)}" data-no="${no}">
       <td class="frz frz-no dim">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span><span class="nono" data-key="${esc(pKey(p))}" data-no="${no}" title="번호를 눌러 원하는 자리로 보냅니다 (기존 제품은 아래로 밀립니다)">${no}</span>`:no}</td>
-      <td class="frz frz-name name">${costAllowed?`<span class="rowtools"><button class="prodfix${isFixed(p)?' on':''}" data-id="${p.id}" title="${isFixed(p)?'📌 파일값 고정 — 업로드한 단가를 그대로 씁니다. 누르면 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사다리로 계산합니다. 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button><button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button></span>`:''}${brandChips(p)}${esc(p.name)}${pcodeOf(p)?`<span class="pcode" title="자체상품코드 — 눌러서 복사">${esc(pcodeOf(p))}</span>`:''}</td>
+      ${showCode?(()=>{ const pc=pcodeOf(p), gc=!pc?(p.ghCode||''):''; const v=pc||gc;
+        return `<td class="frz frz-code${gc?' gh':''}${v?' pcode-cell':' dim'}" title="${v?(gc?'그로홈 코드':'자체상품코드')+' — 눌러서 복사':'코드 없음'}">${v?esc(v):'—'}</td>`; })():''}
+      <td class="frz frz-name name">${costAllowed?`<span class="rowtools"><button class="prodfix${isFixed(p)?' on':''}" data-id="${p.id}" title="${isFixed(p)?'📌 파일값 고정 — 업로드한 단가를 그대로 씁니다. 누르면 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사다리로 계산합니다. 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button><button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button></span>`:''}${brandChips(p)}${esc(p.name)}</td>
       <td class="frz frz-spec dim${lastFrz==='spec'?' frz-edge':''}">${esc(p.spec)}${pkg?(()=>{
         /* 세트는 값이 전부 비어 있으면 이유를 행에서 바로 알 수 있게 표시한다
            (예전에는 더블클릭해야 안내가 떠서 '고장난 줄' 알기 쉬웠다) */
@@ -2878,13 +2889,14 @@ function layoutFrozen(){
      고정 열 left 가 모두 0px 로 저장되고, 다시 열어도 복구되지 않아
      제품명·규격·공급업체·매입원가가 서로 겹쳐 보였다. 보일 때만 계산한다. */
   if(!g.offsetParent || !g.offsetWidth) return;
-  const vmap={no:'--frzNo',name:'--frzName',spec:'--frzSpec',sup:'--frzSup',cost:'--frzCost'};
-  const keys=['no','name','spec','sup','cost'];
+  const vmap={no:'--frzNo',code:'--frzCode',name:'--frzName',spec:'--frzSpec',sup:'--frzSup',cost:'--frzCost'};
+  const keys=['no','code','name','spec','sup','cost'];
   const cells=keys.map(k=>head.querySelector('.frz-'+k));
   if(cells.some(th=>th && !th.offsetWidth)) return;   // 폭을 못 재면 이전 값을 유지
   let L=0;
   keys.forEach((key,i)=>{ const th=cells[i]; if(!th)return;
-    g.style.setProperty(vmap[key], L+'px'); L+=th.offsetWidth;
+    g.style.setProperty(vmap[key], L+'px');
+    if(getComputedStyle(th).position==='sticky') L+=th.offsetWidth;   // 모바일에서 고정 해제된 열(코드 등)은 폭에 넣지 않는다
   });
 }
 window.addEventListener('resize',()=>{ if(document.querySelector('#sh-price.on')) layoutFrozen(); });
@@ -4558,6 +4570,9 @@ function adBrandsValue(){ const l=$$('#adBrands input:checked').map(i=>i.value);
    · 오픈마켓 판매자관리코드에 넣어 매출 엑셀의 브랜드·제품 자동 분류 열쇠로 쓴다 */
 const PCODE_PREFIX='PS';
 let PCODE={}, PCODE_LOADED=false;
+const LS_CODECOL='pour-codecol-open';
+let CODECOL_OPEN=(()=>{ try{ return localStorage.getItem(LS_CODECOL)!=='0'; }catch(e){ return true; } })();
+function setCodeCol(on){ CODECOL_OPEN=!!on; try{ localStorage.setItem(LS_CODECOL,on?'1':'0'); }catch(e){} renderGrid(); }
 const PCODE_RE=/^PS-(\d{3,})-(\d{2,})$/;
 const PC_COLORS=/(백색|흰색|화이트|회색|그레이|녹색|초록|적갈색|갈색|파랑|파란색|청색|블루|블랙|검정|흑색|투명|아이보리|베이지|노랑|황색|빨강|적색)/g;
 function codeBase(name){
@@ -4647,7 +4662,7 @@ function exportPcodeCsv(){
 }
 (function wirePcode(){
   const on=(id,ev,fn)=>{ const el=document.getElementById(id); if(el) el.addEventListener(ev,fn); };
-  on('btnPcode','click',openPcode); on('pcClose','click',closePcode); on('pcDone','click',closePcode);
+  on('btnPcode','click',openPcode); on('btnCodeCol','click',()=>setCodeCol(!CODECOL_OPEN)); on('pcClose','click',closePcode); on('pcDone','click',closePcode);
   on('pcCsv','click',exportPcodeCsv); on('pcQ','input',renderPcodeTable);
   if(typeof bindOverlayClose==='function') bindOverlayClose('pcOverlay',closePcode);
   on('pcTable','change',async e=>{ const el=e.target.closest('.pcIn'); if(!el) return;
@@ -4655,7 +4670,8 @@ function exportPcodeCsv(){
     el.classList.toggle('bad',!!err); $('#pcStatus').innerHTML=err?`<span style="color:var(--red)">${esc(err)}</span>`:'저장됨 ✓';
     if(!err){ renderGrid(); } else el.value=PCODE[el.dataset.k]||''; });
   // 가격정책표의 코드 배지 클릭 → 복사
-  document.addEventListener('click',e=>{ const b=e.target.closest('.pcode'); if(!b) return; e.stopPropagation();
+  document.addEventListener('click',e=>{ if(e.target.closest('#codeColX')){ e.stopPropagation(); setCodeCol(false); return; }
+    const b=e.target.closest('.pcode,.pcode-cell'); if(!b) return; e.stopPropagation();
     try{ navigator.clipboard.writeText(b.textContent); if(typeof gridToast==='function') gridToast(`${b.textContent} 복사됨`); }catch(err){} },true);
 })();
 /* ── 패키지(세트) 자동합산: 구성 단품의 원가·업체단가·채널가 합 ── */

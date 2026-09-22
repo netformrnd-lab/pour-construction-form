@@ -459,6 +459,18 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
 /* 파일 업로드 → 업체단가 개정안 모달 */
 #impOverlay,#addOverlay,#catOverlay,#chanOverlay,#psOverlay,#expOverlay,#ghOverlay{position:fixed;inset:0;background:rgba(15,20,25,.55);z-index:3000;display:none;align-items:center;justify-content:center;padding:16px}
 #impOverlay.on,#addOverlay.on,#catOverlay.on,#chanOverlay.on,#psOverlay.on,#expOverlay.on,#ghOverlay.on{display:flex}
+/* ── 자체상품코드 ── */
+.pcode{display:inline-block;margin-left:6px;font-family:var(--mono);font-size:10.5px;color:#1E40AF;background:#EFF6FF;border-radius:3px;padding:0 4px;vertical-align:1px;cursor:copy}
+#pcTable{width:100%;border-collapse:collapse;font-size:12.5px}
+#pcTable th,#pcTable td{padding:5px 8px;border-bottom:1px solid var(--xl-grid);white-space:nowrap;vertical-align:middle}
+#pcTable th{position:sticky;top:0;background:#F4F6F8;text-align:left;font-size:11px;color:var(--ink-soft);z-index:1}
+#pcTable tr.pc-grp td{background:#F7FAF8;font-weight:700;color:var(--xl-green-dark)}
+#pcTable input{font-family:var(--mono);font-size:12px;border:1px solid var(--xl-grid);border-radius:4px;padding:3px 6px;width:120px}
+#pcTable input.bad{border-color:var(--red);background:#FDF6F4}
+#pcTable td.nm{white-space:normal;min-width:200px}
+#pcOverlay{position:fixed;inset:0;background:rgba(15,20,25,.55);z-index:3000;display:none;align-items:center;justify-content:center;padding:16px}
+#pcOverlay.on{display:flex}
+@media(max-width:700px){ #pcTable input{width:104px} }
 /* ── 브랜드·채널 매출 시트 ── */
 #sh-sales .toolrow input[type=date]{border:1px solid var(--xl-grid);border-radius:3px;padding:4px 6px;font-size:12.5px;background:#fff}
 .sl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -575,7 +587,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.22c</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.22d</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -749,6 +761,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
       <button class="tbtn" id="btnBulkFix" style="display:none" title="지금 표에 보이는 제품을 모두 '파일값 고정(📌)'으로 — 업로드한 단가를 그대로 씁니다">📌 일괄 고정</button>
       <button class="tbtn" id="btnBulkAuto" style="display:none" title="지금 표에 보이는 제품을 모두 '자동계산(⚙️)'으로 — 업체단가~정가 사다리로 계산합니다">⚙️ 일괄 자동</button>
       <button class="tbtn" id="btnAddProd" style="display:none">＋ 제품 추가</button>
+      <button class="tbtn" id="btnPcode" style="display:none;background:#EFF6FF;border-color:#BFDBFE;color:#1E40AF;font-weight:700" title="POUR스토어 자체상품코드(옵션 단위) 보기·수정·내보내기 — 오픈마켓 판매자관리코드에 넣는 값입니다">🏷 자체상품코드</button>
       <button class="tbtn" id="btnGhImport" style="display:none;background:#FFF1E6;border-color:#FDBA8C;color:#C2410C;font-weight:700" title="그로홈 대시보드의 [제품 관리 › 제품 마스터]를 읽어 GROHOME 브랜드 제품으로 등록·연결합니다">🏠 그로홈 제품 가져오기</button>
       <button class="tbtn" id="btnAddChan" style="display:none;background:#1E5FBF;color:#fff;border-color:#1E5FBF">＋ 채널 추가</button>
       <button class="tbtn" id="btnImportFile" style="display:none;background:var(--xl-green);color:#fff;border-color:var(--xl-green)">📄 파일로 업체단가 입력</button>
@@ -1459,6 +1472,29 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
   </div>
 </div>
 
+<!-- ═══ 자체상품코드 모달 ═══ -->
+<div id="pcOverlay">
+  <div class="imp-panel">
+    <div class="imp-head"><span>🏷 POUR스토어 자체상품코드 <span style="font-size:11px;color:var(--ink-faint);font-weight:400">· 옵션 단위 · 오픈마켓 판매자관리코드용</span></span><button id="pcClose" aria-label="닫기">✕</button></div>
+    <div class="imp-body">
+      <p class="footnote" style="margin:0 0 10px">· 형식 <b style="font-family:var(--mono)">PS-제품번호-옵션번호</b> (예: <span style="font-family:var(--mono)">PS-003-02</span> = 3번 제품의 2번 옵션). 같은 제품의 색상·용량·규격·시트 포함 여부는 <b>같은 제품번호에 옵션번호만 다르게</b> 붙습니다.<br>· 한 번 붙은 코드는 바뀌지 않습니다(제품명을 바꿔도 따라감). 새 제품은 열 때 자동으로 다음 번호가 붙습니다. 코드를 고치려면 칸을 직접 수정하세요.<br>· 오픈마켓(쿠팡·오늘의집·11번가·옥션/지마켓·나비엠알오·도매꾹) 옵션마다 <b>판매자관리코드</b>에 이 값을 넣으면 매출 엑셀에서 브랜드·제품이 자동으로 나뉩니다.</p>
+      <div class="imp-tools" style="margin-top:0">
+        <input type="text" id="pcQ" placeholder="제품명·코드 검색…" style="flex:1 1 200px;border:1px solid var(--xl-grid);border-radius:5px;padding:6px 9px">
+        <span id="pcCount" class="footnote" style="margin:0"></span>
+      </div>
+      <div class="imp-tablewrap"><table id="pcTable"></table></div>
+      <div id="pcStatus" class="footnote"></div>
+    </div>
+    <div class="imp-foot">
+      <span class="footnote" style="margin:0">GROHOME 전용 제품은 그로홈 코드를 그대로 쓰므로 여기 없습니다</span>
+      <div style="display:flex;gap:8px">
+        <button id="pcCsv" class="tbtn">CSV 내보내기</button>
+        <button id="pcDone" class="tbtn" style="background:#1E40AF;color:#fff;border-color:#1E40AF;font-weight:700">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ 그로홈 제품 마스터 가져오기 모달 ═══ -->
 <div id="ghOverlay">
   <div class="imp-panel">
@@ -1506,6 +1542,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
       <div class="formgrid">
         <div class="fld"><label>제품명 *</label><input id="adName" placeholder="예: POUR 신규 코트재" autocomplete="off"></div>
         <div class="fld"><label>규격</label><input id="adSpec" placeholder="예: 20kg/통" autocomplete="off"></div>
+        <div class="fld"><label>자체상품코드 <span style="color:var(--ink-faint)">비우면 자동</span></label><input id="adPcode" placeholder="예: PS-003-02" autocomplete="off" style="font-family:var(--mono)"></div>
         <div class="fld"><label>유형</label><select id="adType"><option value="단품">단품</option><option value="세트">세트(패키지)</option></select></div>
         <div class="fld" id="adCostFld"><label>매입원가 (원) <span style="color:var(--ink-faint)">대외비</span></label><input type="number" id="adCost" placeholder="예: 60000"></div>
         <div class="fld" id="adMfgFld"><label>제조사 <span style="color:var(--ink-faint)">대외비</span></label><input id="adMfg" list="mfgList" placeholder="선택/입력" autocomplete="off"></div>
@@ -2724,6 +2761,8 @@ function renderGrid(){
   const impBtn=$('#btnImportFile'); if(impBtn) impBtn.style.display=costAllowed?'':'none';   // 파일 업로드: 원가열람 계정만
   const addBtn=$('#btnAddProd'); if(addBtn) addBtn.style.display=costAllowed?'':'none';       // 제품 추가: 원가열람 계정만
   const ghBtn=$('#btnGhImport'); if(ghBtn) ghBtn.style.display=costAllowed?'':'none';        // 그로홈 가져오기: 원가열람 계정만
+  const pcBtn=$('#btnPcode'); if(pcBtn) pcBtn.style.display=costAllowed?'':'none';          // 자체상품코드: 원가열람 계정만
+  if(PCODE_LOADED && costAllowed && pcodeTargets().some(p=>!PCODE[pKey(p)])) schedulePcodeAuto();
   renderBrandSeg();
   ['btnBulkFix','btnBulkAuto','btnClearTodo'].forEach(id=>{ const b=$('#'+id); if(b) b.style.display=costAllowed?'':'none'; });
   const ct=$('#btnClearTodo'); if(ct){ const n=todoCount(); ct.textContent=n?`미정 해제 (${n})`:'미정 해제'; ct.disabled=!n; ct.style.opacity=n?'':'.45'; }
@@ -2761,7 +2800,7 @@ function renderGrid(){
     ${thPrice}
   </tr></thead><tbody>`;
   const SEP='';
-  const passes=p=> hasBrand(p,BRAND_FILTER) && !(cat&&p.cat!==cat) && !(q&&!(p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||(p.sup||'').toLowerCase().includes(q)));
+  const passes=p=> hasBrand(p,BRAND_FILTER) && !(cat&&p.cat!==cat) && !(q&&!(p.name.toLowerCase().includes(q)||pcodeOf(p).toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||(p.sup||'').toLowerCase().includes(q)));
   const ordered=P.filter(p=>!isDeletedProd(p)).sort((a,b)=>(porderIdx(pKey(a))-porderIdx(pKey(b)))||((a.seq??a.id??0)-(b.seq??b.id??0)));
   const l1i={},l2i={},l3i={};   // 그룹 순서 = 최초 등장 순서
   ordered.forEach((p,idx)=>{ const c=pcat(p),k1=c.l1,k2=c.l1+SEP+c.l2,k3=k2+SEP+c.l3; if(!(k1 in l1i))l1i[k1]=idx; if(!(k2 in l2i))l2i[k2]=idx; if(!(k3 in l3i))l3i[k3]=idx; });
@@ -2810,7 +2849,7 @@ function renderGrid(){
     }).join('');
     html+=`<tr data-id="${p.id}" data-key="${esc(pKey(p))}" data-cat="${esc(p.cat)}" data-no="${no}">
       <td class="frz frz-no dim">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span><span class="nono" data-key="${esc(pKey(p))}" data-no="${no}" title="번호를 눌러 원하는 자리로 보냅니다 (기존 제품은 아래로 밀립니다)">${no}</span>`:no}</td>
-      <td class="frz frz-name name">${costAllowed?`<span class="rowtools"><button class="prodfix${isFixed(p)?' on':''}" data-id="${p.id}" title="${isFixed(p)?'📌 파일값 고정 — 업로드한 단가를 그대로 씁니다. 누르면 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사다리로 계산합니다. 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button><button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button></span>`:''}${brandChips(p)}${esc(p.name)}</td>
+      <td class="frz frz-name name">${costAllowed?`<span class="rowtools"><button class="prodfix${isFixed(p)?' on':''}" data-id="${p.id}" title="${isFixed(p)?'📌 파일값 고정 — 업로드한 단가를 그대로 씁니다. 누르면 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사다리로 계산합니다. 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button><button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button></span>`:''}${brandChips(p)}${esc(p.name)}${pcodeOf(p)?`<span class="pcode" title="자체상품코드 — 눌러서 복사">${esc(pcodeOf(p))}</span>`:''}</td>
       <td class="frz frz-spec dim${lastFrz==='spec'?' frz-edge':''}">${esc(p.spec)}${pkg?(()=>{
         /* 세트는 값이 전부 비어 있으면 이유를 행에서 바로 알 수 있게 표시한다
            (예전에는 더블클릭해야 안내가 떠서 '고장난 줄' 알기 쉬웠다) */
@@ -4513,6 +4552,112 @@ function renderAdBrands(list){
   el.innerHTML=BRAND_LIST.map(b=>{ const st=BRAND_STYLE[b]||{}; return `<label><input type="checkbox" value="${esc(b)}"${list.includes(b)?' checked':''}><span style="color:${st.fg||'inherit'};font-weight:700">${esc(b)}</span></label>`; }).join('');
 }
 function adBrandsValue(){ const l=$$('#adBrands input:checked').map(i=>i.value); return l.length?l:[BRAND_DEFAULT]; }
+/* ── POUR스토어 자체상품코드 (옵션 단위): pKey → 'PS-003-02'  ← product-meta/prod-code
+   · 제품번호 = 같은 '기본 제품'(색상·용량·규격·괄호 옵션을 뺀 이름)끼리 공유, 옵션번호 = 그 안의 순번
+   · 한 번 붙으면 고정(이름 변경 시 함께 이동). POUR스토어 브랜드 제품만 대상(GROHOME 전용은 그로홈 코드 사용)
+   · 오픈마켓 판매자관리코드에 넣어 매출 엑셀의 브랜드·제품 자동 분류 열쇠로 쓴다 */
+const PCODE_PREFIX='PS';
+let PCODE={}, PCODE_LOADED=false;
+const PCODE_RE=/^PS-(\d{3,})-(\d{2,})$/;
+const PC_COLORS=/(백색|흰색|화이트|회색|그레이|녹색|초록|적갈색|갈색|파랑|파란색|청색|블루|블랙|검정|흑색|투명|아이보리|베이지|노랑|황색|빨강|적색)/g;
+function codeBase(name){
+  let t=String(name||'');
+  t=t.replace(/\([^)]*\)|\[[^\]]*\]/g,' ');
+  t=t.replace(/\d+(?:\.\d+)?\s*(?:kg|g|ℓ|l|ml|mm|cm|m|t|인치|개입|개|매|ea|롤|장|평|말)?(?:\s*[*x×]\s*\d+(?:\.\d+)?\s*(?:mm|cm|m|kg|g|l)?)*/gi,' ');
+  t=t.replace(PC_COLORS,' ').replace(/[\s\-_/·,+]+/g,' ').trim();
+  return t||String(name||'').trim();
+}
+function pcodeOf(p){ return PCODE[pKey(p)]||''; }
+function pcodeTargets(){ return P.filter(p=>!isDeletedProd(p) && pbrand(p).includes('POUR스토어')); }
+/* 코드 없는 POUR스토어 제품에 번호를 붙인다. 같은 기본 제품이 이미 번호를 갖고 있으면 그 번호의 다음 옵션으로. */
+function planPcodes(){
+  const list=pcodeTargets().slice().sort((a,b)=>(porderIdx(pKey(a))-porderIdx(pKey(b)))||((a.seq??a.id??0)-(b.seq??b.id??0)));
+  const used=new Set(Object.values(PCODE));
+  const baseGrp={}, grpMaxOpt={}; let maxGrp=0;
+  P.forEach(p=>{ const c=PCODE[pKey(p)]; const m=c&&c.match(PCODE_RE); if(!m) return; const g=+m[1], o=+m[2];
+    maxGrp=Math.max(maxGrp,g); grpMaxOpt[g]=Math.max(grpMaxOpt[g]||0,o); const b=codeBase(p.name); if(!(b in baseGrp)) baseGrp[b]=g; });
+  Object.values(PCODE).forEach(c=>{ const m=c&&c.match(PCODE_RE); if(m){ maxGrp=Math.max(maxGrp,+m[1]); grpMaxOpt[+m[1]]=Math.max(grpMaxOpt[+m[1]]||0,+m[2]); } });
+  const plan={};
+  list.forEach(p=>{ const k=pKey(p); if(PCODE[k]) return;
+    const b=codeBase(p.name); let g=baseGrp[b]; if(g==null){ g=++maxGrp; baseGrp[b]=g; }
+    let o=(grpMaxOpt[g]||0)+1, code; do{ code=`${PCODE_PREFIX}-${String(g).padStart(3,'0')}-${String(o).padStart(2,'0')}`; o++; }while(used.has(code));
+    grpMaxOpt[g]=o-1; used.add(code); plan[k]=code; });
+  return plan;
+}
+async function savePcodePatch(patch){   // 바뀐 칸만 병합 저장 — 다른 사람이 동시에 붙인 코드를 덮지 않게
+  const del=firebase.firestore.FieldValue.delete();
+  const map={}; Object.entries(patch).forEach(([k,v])=>{ map[k]=v?v:del; });
+  await db.collection('product-meta').doc('prod-code').set({map, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''},{merge:true});
+}
+let _pcTimer=null, _pcBusy=false;
+function schedulePcodeAuto(){ clearTimeout(_pcTimer); _pcTimer=setTimeout(autoAssignPcodes,800); }
+async function autoAssignPcodes(){
+  if(!PCODE_LOADED || !costAllowed || _pcBusy) return;
+  const plan=planPcodes(); const n=Object.keys(plan).length; if(!n) return;
+  _pcBusy=true;
+  try{
+    // 저장 직전 최신본을 다시 읽어, 그 사이 다른 기기가 붙인 코드와 겹치지 않게 한다
+    const d=await db.collection('product-meta').doc('prod-code').get();
+    if(d.exists&&d.data().map) PCODE={...d.data().map};
+    const plan2=planPcodes(); const n2=Object.keys(plan2).length; if(!n2) return;
+    await savePcodePatch(plan2); Object.assign(PCODE,plan2);
+    console.log(`[prod-code] 자체상품코드 자동 부여 ${n2}개`);
+    logAct('상품코드', `자동 부여 ${n2}개`, Object.entries(plan2).slice(0,3).map(([k,c])=>c+' '+k.split('|')[1]).join(', ')+(n2>3?' 외':''));
+    renderGrid(); if($('#pcOverlay').classList.contains('on')) renderPcodeTable();
+  }catch(e){ console.error('[prod-code] 자동 부여 실패', e); }
+  finally{ _pcBusy=false; }
+}
+function pcodeOwner(code){ return Object.keys(PCODE).find(k=>PCODE[k]===code)||null; }
+async function setPcodeFor(k,code){   // 수동 지정 — 형식·중복 검사. 반환: 오류 문구 또는 ''
+  code=String(code||'').trim().toUpperCase();
+  if(!code){ return '코드를 비울 수 없습니다(비우면 자동 부여로 다시 붙습니다).'; }
+  if(!/^[A-Z0-9][A-Z0-9\-_]{1,29}$/.test(code)) return '영문 대문자·숫자·하이픈만 30자 이내로 써 주세요.';
+  const o=pcodeOwner(code); if(o && o!==k) return `이미 다른 제품(${o.split('|')[1]})이 쓰는 코드입니다.`;
+  if(PCODE[k]===code) return '';
+  const old=PCODE[k]; PCODE[k]=code;
+  try{ await savePcodePatch({[k]:code}); logAct('상품코드', `${k.split('|')[1]} ${old||'—'} → ${code}`, '수동 변경'); return ''; }
+  catch(e){ if(old) PCODE[k]=old; else delete PCODE[k]; return '저장 실패: '+(e.code||e.message||e); }
+}
+function openPcode(){ $('#pcOverlay').classList.add('on'); $('#pcStatus').textContent=''; renderPcodeTable(); autoAssignPcodes(); }
+function closePcode(){ $('#pcOverlay').classList.remove('on'); }
+function pcodeRows(){
+  return pcodeTargets().map(p=>({p,k:pKey(p),code:pcodeOf(p)}))
+    .sort((a,b)=>(a.code||'~').localeCompare(b.code||'~')||a.p.name.localeCompare(b.p.name));
+}
+function renderPcodeTable(){
+  const q=(($('#pcQ').value)||'').trim().toLowerCase();
+  const rows=pcodeRows().filter(r=>!q || (r.p.name+' '+r.p.spec+' '+r.code).toLowerCase().includes(q));
+  let h='<thead><tr><th>자체상품코드</th><th>제품명</th><th>규격</th><th>브랜드</th><th>분류</th></tr></thead><tbody>', last=null, nGrp=new Set();
+  rows.forEach(r=>{ const m=r.code.match(PCODE_RE), g=m?m[1]:'';
+    if(g) nGrp.add(g);
+    if(g!==last){ last=g; h+=`<tr class="pc-grp"><td colspan="5">${g?`제품 ${esc(PCODE_PREFIX+'-'+g)} · ${esc(codeBase(r.p.name))}`:'코드 미부여 (잠시 후 자동 부여)'}</td></tr>`; }
+    const c=pcat(r.p);
+    h+=`<tr><td><input class="pcIn" data-k="${esc(r.k)}" value="${esc(r.code)}"></td><td class="nm">${esc(r.p.name)}</td><td class="dim">${esc(r.p.spec||'-')}</td><td class="dim">${esc(pbrand(r.p).join(' · '))}</td><td class="dim">${esc([c.l1,c.l2].filter(Boolean).join(' › '))}</td></tr>`; });
+  if(!rows.length) h+='<tr><td colspan="5" class="dim" style="padding:12px">해당하는 제품이 없습니다.</td></tr>';
+  $('#pcTable').innerHTML=h+'</tbody>';
+  const all=pcodeRows(); $('#pcCount').textContent=`제품 ${new Set(all.map(r=>(r.code.match(PCODE_RE)||[])[1]).filter(Boolean)).size}종 · 옵션 ${all.filter(r=>r.code).length}개${all.some(r=>!r.code)?` · 미부여 ${all.filter(r=>!r.code).length}개`:''}`;
+}
+function exportPcodeCsv(){
+  const rows=pcodeRows().filter(r=>r.code);
+  const out=[['자체상품코드','제품번호','옵션번호','기본제품명','제품명','규격','브랜드','대분류','중분류','소분류']];
+  rows.forEach(r=>{ const m=r.code.match(PCODE_RE)||[], c=pcat(r.p); out.push([r.code,m[1]||'',m[2]||'',codeBase(r.p.name),r.p.name,r.p.spec||'',pbrand(r.p).join('/'),c.l1,c.l2,c.l3]); });
+  const body=out.map(r=>r.map(v=>{ const t=String(v??''); return /[",\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t; }).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+body],{type:'text/csv;charset=utf-8'}));
+  a.download=`POUR스토어_자체상품코드_${slDay(new Date())}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+(function wirePcode(){
+  const on=(id,ev,fn)=>{ const el=document.getElementById(id); if(el) el.addEventListener(ev,fn); };
+  on('btnPcode','click',openPcode); on('pcClose','click',closePcode); on('pcDone','click',closePcode);
+  on('pcCsv','click',exportPcodeCsv); on('pcQ','input',renderPcodeTable);
+  if(typeof bindOverlayClose==='function') bindOverlayClose('pcOverlay',closePcode);
+  on('pcTable','change',async e=>{ const el=e.target.closest('.pcIn'); if(!el) return;
+    const err=await setPcodeFor(el.dataset.k, el.value);
+    el.classList.toggle('bad',!!err); $('#pcStatus').innerHTML=err?`<span style="color:var(--red)">${esc(err)}</span>`:'저장됨 ✓';
+    if(!err){ renderGrid(); } else el.value=PCODE[el.dataset.k]||''; });
+  // 가격정책표의 코드 배지 클릭 → 복사
+  document.addEventListener('click',e=>{ const b=e.target.closest('.pcode'); if(!b) return; e.stopPropagation();
+    try{ navigator.clipboard.writeText(b.textContent); if(typeof gridToast==='function') gridToast(`${b.textContent} 복사됨`); }catch(err){} },true);
+})();
 /* ── 패키지(세트) 자동합산: 구성 단품의 원가·업체단가·채널가 합 ── */
 let PKGSET={};   // pKey → 구성 문자열(RAW 제품도 구성 지정 가능) ← product-meta/pkg-set
 /* 제품별 단가 반영 방식 ← product-meta/price-fixed
@@ -5410,7 +5555,8 @@ function openAddModal(prefill){   // prefill: {l1,l2,l3}
   ['adName','adSpec','adCost','adMfg','adVbase','adRetail'].forEach(id=>{ const el=$('#'+id); if(el){ el.value=''; el.disabled=false; } });
   const pf=prefill||{};
   $('#adL1').value=pf.l1||'POUR공법'; $('#adL2').value=pf.l2||''; $('#adL3').value=pf.l3||'';
-  renderAdBrands(pf.brands || [BRAND_FILTER||BRAND_DEFAULT]);   // 브랜드 필터를 켠 채 추가하면 그 브랜드로
+  renderAdBrands(pf.brands || [BRAND_FILTER||BRAND_DEFAULT]);
+  $('#adPcode').value='';   // 브랜드 필터를 켠 채 추가하면 그 브랜드로
   const isPkgCtx=((pf.l2||'').trim()==='패키지')||((pf.l1||'').trim()==='패키지');   // 패키지 분류에서 추가 → 기본 '세트'
   $('#adType').value=isPkgCtx?'세트':'단품'; $('#adType').disabled=false; $('#adStatus').textContent='';
   $('#adTitle').textContent='＋ 제품 추가'; $('#addSubmit').textContent='＋ 추가';
@@ -5423,6 +5569,7 @@ function openEditModal(p){   // 기존 제품 수정: 분류(전체)·원가·�
   if(!p)return; AD_EDIT=p; const c=pcat(p), added=!!p.docId, isPkg=isPackage(p);
   $('#adL1').value=c.l1; $('#adL2').value=c.l2; $('#adL3').value=c.l3;
   renderAdBrands(pbrand(p));
+  $('#adPcode').value=pcodeOf(p);
   $('#adName').value=p.name; $('#adSpec').value=p.spec||'';
   $('#adCost').value=(p.cost==null?'':p.cost);
   $('#adMfg').value=secAllowed?(p.mfg||''):'';                       // 제조사는 마스터 전용 — 값도 담지 않음
@@ -5469,7 +5616,8 @@ async function renameProduct(p, newName, newSpec){
   if(P.some(x=>x!==p && !isDeletedProd(x) && pKey(x)===newKey)) return {err:'같은 제품명·규격이 이미 있습니다.'};
   // 1) 이 제품에 붙은 값들을 새 열쇠로 옮긴다
   const move=m=>{ if(m && (oldKey in m)){ m[newKey]=m[oldKey]; delete m[oldKey]; } };
-  [VBASE,VRETAIL,PCOST,PFIX,PKGSET,PTYPE,PCAT,PDEL,DVBASE,DRETAIL,PBRAND,PGHLINK].forEach(move);
+  const _oldCode=PCODE[oldKey];
+  [VBASE,VRETAIL,PCOST,PFIX,PKGSET,PTYPE,PCAT,PDEL,DVBASE,DRETAIL,PBRAND,PGHLINK,PCODE].forEach(move);
   const movePfx=m=>{ if(!m)return; Object.keys(m).forEach(k=>{ if(k===oldKey||k.indexOf(oldKey+'|')===0){ m[newKey+k.slice(oldKey.length)]=m[k]; delete m[k]; } }); };
   [POVR,PTODO,DPOVR,DTODO].forEach(movePfx);
   if(Array.isArray(PORDER)){ const i=PORDER.indexOf(oldKey); if(i>=0) PORDER[i]=newKey; }
@@ -5491,7 +5639,8 @@ async function renameProduct(p, newName, newSpec){
   else { const ok0=`${p.cat}|${p.origName||oldName}|${p.origSpec!=null?p.origSpec:oldSpec}`;
     PNAME[ok0]={name:nm,spec:sp}; await savePname(); }
   await Promise.all([saveVendorPrices(),saveRetailPrices(),saveProdCost(),savePfix(),savePkgSet(),
-                     savePtype(),savePcat(),savePdel(),saveOverrides(),saveTodo(),savePorder(),savePbrand()]);
+                     savePtype(),savePcat(),savePdel(),saveOverrides(),saveTodo(),savePorder(),savePbrand(),
+                     ...(_oldCode?[savePcodePatch({[oldKey]:'',[newKey]:_oldCode})]:[])]);
   if(draftCount()) await saveDraft();
   persist();
   logAct('제품명변경', `${oldName}${oldSpec&&oldSpec!=='-'?' ('+oldSpec+')':''} → ${nm}${sp&&sp!=='-'?' ('+sp+')':''}`, '값·구성 함께 이동');
@@ -5502,6 +5651,7 @@ async function submitAddProduct(){
   const l1=($('#adL1').value||'').trim()||'POUR공법', l2=($('#adL2').value||'').trim(), l3=($('#adL3').value||'').trim();
   const type=$('#adType').value||'단품';
   const brands=adBrandsValue();
+  const pcIn=(($('#adPcode')&&$('#adPcode').value)||'').trim().toUpperCase();
   const isSet=type==='세트';
   const cost=isSet?null:($('#adCost').value===''?null:+$('#adCost').value);   // 세트 원가는 구성 합산 → 저장 안 함
   // 세트 제조사는 구성에서 · 마스터가 아니면 제조사를 건드리지 않고 기존 값을 그대로 유지
@@ -5520,6 +5670,7 @@ async function submitAddProduct(){
       }
       setPcat(AD_EDIT, l1, l2, l3); await savePcat();
       setPbrandKey(pKey(AD_EDIT), brands); await savePbrand();
+      if(pcIn && pcIn!==(PCODE[pKey(AD_EDIT)]||'')){ const er=await setPcodeFor(pKey(AD_EDIT),pcIn); if(er){ $('#adStatus').innerHTML=`<span style="color:var(--red)">자체상품코드: ${esc(er)}</span>`; btn.disabled=false; btn.textContent=old; return; } }
       const setStr=setItemsStr();       // 구성(패키지) — 모든 제품 config 저장
       PTYPE[pKey(AD_EDIT)]=type; await savePtype();                  // 단품↔세트 전환 저장(기본 제품 포함)
       if(type==='세트'){ PKGSET[pKey(AD_EDIT)]=setStr; await savePkgSet(); }
@@ -5580,6 +5731,7 @@ async function submitAddProduct(){
     await db.collection('products-added').add(doc);
     PCAT[key]={l1,l2:cat,l3}; await savePcat();     // 분류 태그 저장
     setPbrandKey(key, brands); await savePbrand();  // 브랜드(POUR스토어·GROHOME)
+    if(pcIn){ const er=await setPcodeFor(key,pcIn); if(er) alert('자체상품코드는 자동으로 붙입니다: '+er); }   // 비우면 자동 부여
     PTYPE[key]=type; await savePtype();             // 유형(단품/세트) 명시 저장
     if(type==='세트'){ PKGSET[key]=setItemsStr(); await savePkgSet(); }
     if(vbase>0){ VBASE[key]=vbase; await saveVendorPrices(); }
@@ -6365,6 +6517,7 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('prod-type').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PTYPE=d.data().map; }catch(e){ console.warn('[prod-type] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-deleted').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PDEL=d.data().map; }catch(e){ console.warn('[prod-deleted] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-rename').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object'){ PNAME=d.data().map; console.log(`[prod-rename] 이름 변경 ${Object.keys(PNAME).length}건`); } }catch(e){ console.warn('[prod-rename] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('prod-code').get(); PCODE=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; PCODE_LOADED=true; console.log(`[prod-code] 자체상품코드 ${Object.keys(PCODE).length}개`); }catch(e){ console.warn('[prod-code] 로드 실패 — 자동 부여 보류', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-brand').get(); if(d.exists){ const x=d.data()||{}; if(x.map&&typeof x.map==='object') PBRAND=x.map; if(x.gh&&typeof x.gh==='object') PGHLINK=x.gh; } console.log(`[prod-brand] 브랜드 지정 ${Object.keys(PBRAND).length}건 · 그로홈 연결 ${Object.keys(PGHLINK).length}건`); }catch(e){ console.warn('[prod-brand] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('chan-deleted').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') CHDEL=d.data().map; }catch(e){ console.warn('[chan-deleted] 로드 실패', e.code||e); }
   await loadDraft();

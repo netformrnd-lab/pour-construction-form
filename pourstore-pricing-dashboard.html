@@ -592,7 +592,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.22f</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.22g</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -5827,7 +5827,14 @@ async function openGhImport(){
     if(!name){ r.act='skip'; r.note='제품명 없음'; return r; }
     /* 규격(size)이 따로 있으면 이름 끝의 같은 규격을 떼어, 같은 제품의 옵션끼리 이름이 같게 한다 (예: 앵글붓 1.5/2.0/2.5) */
     const det=spec?{opts:[],base:(name.endsWith(spec)?name.slice(0,-spec.length).trim():name)||name,hint:''}:ghDetectOpts(name);
-    r.base=det.base; r.optHint=det.hint; r.opts=det.opts.join(', '); r.optAuto=det.opts.length>1;
+    r.base=det.base; r.optHint=det.hint; r.opts=det.opts.join(', '); r.optAuto=det.opts.length>1; r.optCodes={};
+    /* 그로홈 대시보드 [제품 관리 › 가격·옵션]에 옵션·옵션별 제품코드가 있으면 그것을 우선 쓴다 (대표 품목명 + 옵션) */
+    const gOpts=Array.isArray(g.options)?g.options.filter(o=>o&&String(o.name||'').trim()):[];
+    if(gOpts.length){
+      r.base=name; r.optHint=''; r.optAuto=true; r.optFromGh=true;
+      r.opts=gOpts.map(o=>String(o.name).trim()+(+o.price>0?':'+(+o.price):'')).join(', ');
+      gOpts.forEach(o=>{ if(o.code) r.optCodes[String(o.name).trim()]=String(o.code).trim(); });
+    }
     const lk=linkedBy[g.id];
     if(lk){ const n=(GH_LINKED_ALL[g.id]||[]).length, p=P.find(x=>pKey(x)===lk);
       r.act='done'; r.note=n>1?`등록됨 · 옵션 ${n}개로 나뉨`:`등록됨 → ${p?prodLabel(p):lk}`;
@@ -5864,7 +5871,7 @@ function renderGhTable(){
     const nOpt=ghParseOpts(r.opts).length;
     const optTd = r.act==='link' ? '<td class="dim" style="font-size:11px">연결은 옵션 없이</td>'
       : `<td><input type="text" class="ghOpt" placeholder="예: 백색, 회색 / 4인치:6000, 7인치:9000" value="${esc(r.opts||'')}" style="width:230px${r.optHint&&!nOpt?';border-color:#F59E0B':''}">`
-        + (nOpt>1?`<span class="footnote" style="display:block;margin:2px 0 0">→ ${nOpt}개 제품으로 나눠 ${done?'정리':'등록'}${r.optAuto?' <b>(이름에서 자동 인식)</b>':''}</span>`:'')
+        + (nOpt>1?`<span class="footnote" style="display:block;margin:2px 0 0">→ ${nOpt}개 제품으로 나눠 ${done?'정리':'등록'}${r.optFromGh?' <b>(그로홈 옵션·코드)</b>':r.optAuto?' <b>(이름에서 자동 인식)</b>':''}</span>`:'')
         + (r.optHint&&!nOpt?`<span style="display:block;color:#B45309;font-size:11px">${esc(r.optHint)}</span>`:'')+'</td>';
     const act= done ? `<span class="imp-badge" style="background:#E3F2E8;color:#0B5C30">${esc(r.note)}</span>`
       : `<select class="ghAct"><option value="new"${r.act==='new'?' selected':''}>새로 등록</option><option value="link"${r.act==='link'?' selected':''}>기존 제품에 연결</option><option value="skip"${r.act==='skip'?' selected':''}>건너뛰기</option></select>`
@@ -5901,14 +5908,14 @@ async function applyGhImport(){
   const btn=$('#ghApply'); btn.disabled=true; const old=btn.textContent; btn.textContent='반영 중…';
   let made=0, linked=0, failed=0, split=0; const errs=[];
   const usedKeys=new Set(P.filter(p=>!isDeletedProd(p)).map(pKey));
-  const addOne=async(r,cat,name,spec,price)=>{   // 제품 1줄 등록(옵션 1개 = 1줄)
+  const addOne=async(r,cat,name,spec,price,optCode)=>{   // 제품 1줄 등록(옵션 1개 = 1줄) · optCode = 그로홈 옵션별 제품코드
     const key=`${cat}|${name}|${spec}`;
     if(usedKeys.has(key)){ setPbrandKey(key, [...pbrandKey(key), 'GROHOME']); PGHLINK[key]=r.id; linked++; return; }
     const pr={}; if(rUid && price) pr[rUid]=price;
     try{
       await db.collection('products-added').add({ cat,name,spec,cost:null,pr,mfg:'',concept:'',type:'단품',status:r.active?'출시':'단종',
         setItems:'', seq:P.length+made, updatedAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'',
-        source:'그로홈 제품마스터', brand:'GROHOME', ghId:r.id, ghCode:r.code||'', ghName:r.name });
+        source:'그로홈 제품마스터', brand:'GROHOME', ghId:r.id, ghCode:optCode||r.code||'', ghName:r.name });
       PCAT[key]={l1,l2:cat,l3:r.sub||''}; PTYPE[key]='단품';
       if(price) VRETAIL[key]=price;
       setPbrandKey(key, ['GROHOME']); PGHLINK[key]=r.id;
@@ -5924,15 +5931,15 @@ async function applyGhImport(){
         const nm=r.base||p.name;
         const rr=await renameProduct(p, nm, opts[0].label);
         if(rr&&rr.err){ failed++; errs.push(`${r.name}: ${rr.err}`); continue; }
-        for(const o of opts.slice(1)) await addOne(r, p.cat, nm, o.label, o.price||ghPrice(r.g));
+        for(const o of opts.slice(1)) await addOne(r, p.cat, nm, o.label, o.price||ghPrice(r.g), r.optCodes&&r.optCodes[o.label]);
+        if(p.docId && r.optCodes && r.optCodes[opts[0].label]){ p.ghCode=r.optCodes[opts[0].label]; await db.collection('products-added').doc(p.docId).set({ghCode:p.ghCode},{merge:true}).catch(e=>console.warn('[그로홈 옵션코드] 저장 실패',e)); }
         split++; continue;
       }
       if(r.act==='link'){
         const k=GH_LABEL2KEY[r.toLabel]; if(!k){ failed++; continue; }
         setPbrandKey(k, [...pbrandKey(k), 'GROHOME']); PGHLINK[k]=r.id; linked++; continue;
       }
-      if(opts.length>1){ for(const o of opts) await addOne(r, cat, r.base||r.name, (r.spec?r.spec+' ':'')+o.label, o.price||ghPrice(r.g)); continue; }
-      if(opts.length===1){ await addOne(r, cat, r.base||r.name, (r.spec?r.spec+' ':'')+opts[0].label, opts[0].price||ghPrice(r.g)); continue; }
+      if(opts.length>=1){ for(const o of opts) await addOne(r, cat, r.base||r.name, (r.spec?r.spec+' ':'')+o.label, o.price||ghPrice(r.g), r.optCodes&&r.optCodes[o.label]); continue; }
 
       if(r.act==='link'){
         const k=GH_LABEL2KEY[r.toLabel]; if(!k){ failed++; continue; }
@@ -6205,7 +6212,7 @@ function wireImportModal(){
       if(e.target.classList.contains('ghOn')){ r.on=e.target.checked; renderGhTable(); }
       else if(e.target.classList.contains('ghAct')){ r.act=e.target.value; r.on=true; renderGhTable(); }
       else if(e.target.classList.contains('ghTo')){ r.toLabel=e.target.value; renderGhTable(); }
-      else if(e.target.classList.contains('ghOpt')){ r.opts=e.target.value; r.optAuto=false; if(ghParseOpts(r.opts).length>1 || r.act!=='done') r.on=true; renderGhTable(); } });
+      else if(e.target.classList.contains('ghOpt')){ r.opts=e.target.value; r.optAuto=false; r.optFromGh=false; if(ghParseOpts(r.opts).length>1 || r.act!=='done') r.on=true; renderGhTable(); } });
   }
   on('addClose','click',closeAddModal); on('addCancel','click',closeAddModal);
   on('addSubmit','click',submitAddProduct);

@@ -593,7 +593,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.22h</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.23a</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -5857,7 +5857,11 @@ async function openGhImport(){
     r.base=det.base; r.optHint=det.hint; r.opts=det.opts.join(', '); r.optAuto=det.opts.length>1; r.optCodes={};
     /* 그로홈 대시보드 [제품 관리 › 가격·옵션]에 옵션·옵션별 제품코드가 있으면 그것을 우선 쓴다 (대표 품목명 + 옵션) */
     const gOpts=Array.isArray(g.options)?g.options.filter(o=>o&&String(o.name||'').trim()):[];
-    if(gOpts.length){
+    if(gOpts.length===1){   // SKU 하나뿐(예: 롤러일체형 페인트 03031) → 나누지 않고 코드만 가져온다
+      const o=gOpts[0], w=Array.isArray(o.wms)?o.wms:[];
+      r.singleCode=String(o.code||'').trim(); r.singleWms=w.join(', ');
+      const nm=String(o.name).trim(); if(nm && nm!=='기본' && !spec) r.spec=nm;
+    } else if(gOpts.length){
       r.base=name; r.optHint=''; r.optAuto=true; r.optFromGh=true;
       r.opts=gOpts.map(o=>String(o.name).trim()+(+o.price>0?':'+(+o.price):'')).join(', ');
       r.optWms={};
@@ -5976,7 +5980,7 @@ async function applyGhImport(){
         const k=GH_LABEL2KEY[r.toLabel]; if(!k){ failed++; continue; }
         setPbrandKey(k, [...pbrandKey(k), 'GROHOME']); PGHLINK[k]=r.id; linked++; continue;
       }
-      await addOne(r, cat, r.base||r.name, r.spec||'-', ghPrice(r.g));
+      await addOne(r, cat, r.base||r.name, r.spec||'-', ghPrice(r.g), r.singleCode||'', r.singleWms||'');
     }
     await savePbrand();
     if(Object.keys(p3Patch).length) await saveP3plPatch(p3Patch).catch(e=>console.warn('[prod-3pl] 저장 실패',e));

@@ -139,6 +139,11 @@ tr.catrow .gridadd:hover,tr.catrow .catedit:hover{background:rgba(255,255,255,.3
 .catmgr{padding:4px 12px;border:1px dashed var(--muted,#9aa);border-radius:6px;background:#fff;color:var(--ink-soft);font-weight:600;font-size:12px;cursor:pointer;margin-left:6px}
 .catmgr:hover{border-color:var(--xl-green);color:var(--xl-green-dark)}
 .grip{cursor:grab;color:#c2c8cc;user-select:none;margin-right:4px;font-size:13px;letter-spacing:-2px}
+/* No 칸: 번호를 눌러 순서 바꾸기 — 드래그가 어려운 긴 표에서 쓰는 방법 */
+.nono{cursor:pointer;border-bottom:1px dotted #b3bdc4;padding:0 2px;border-radius:2px}
+.nono:hover{color:var(--xl-green-dark);background:#EAF7EF;border-bottom-color:var(--xl-green)}
+.noedit{width:46px;padding:2px 4px;font-size:12px;text-align:right;border:1px solid var(--xl-green);border-radius:4px}
+.noedit::-webkit-outer-spin-button,.noedit::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .grip:hover{color:var(--xl-green)}
 .grip:active{cursor:grabbing}
 tr.dragging td{opacity:.4}
@@ -535,7 +540,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.10</b></span>
+    <span>㈜넷폼알앤디 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.22</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2664,8 +2669,8 @@ function renderGrid(){
                : (!pkg&&!editable)?'더블클릭하면 이 제품만 단가를 직접 조정할 수 있습니다':'';
       return `<td class="${cls.join(' ')}"${editable?` data-id="${p.id}" data-f="u${c.uid}"`:''}${(!editable&&!pkg)?` data-cuid="${esc(c.uid)}"`:''}${tt?` title="${tt}"`:''}>${disp}</td>`;
     }).join('');
-    html+=`<tr data-id="${p.id}" data-key="${esc(pKey(p))}" data-cat="${esc(p.cat)}">
-      <td class="frz frz-no dim">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span>`:''}${no}</td>
+    html+=`<tr data-id="${p.id}" data-key="${esc(pKey(p))}" data-cat="${esc(p.cat)}" data-no="${no}">
+      <td class="frz frz-no dim">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span><span class="nono" data-key="${esc(pKey(p))}" data-no="${no}" title="번호를 눌러 원하는 자리로 보냅니다 (기존 제품은 아래로 밀립니다)">${no}</span>`:no}</td>
       <td class="frz frz-name name">${costAllowed?`<span class="rowtools"><button class="prodfix${isFixed(p)?' on':''}" data-id="${p.id}" title="${isFixed(p)?'📌 파일값 고정 — 업로드한 단가를 그대로 씁니다. 누르면 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사다리로 계산합니다. 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button><button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button></span>`:''}${esc(p.name)}</td>
       <td class="frz frz-spec dim${lastFrz==='spec'?' frz-edge':''}">${esc(p.spec)}${pkg?(()=>{
         /* 세트는 값이 전부 비어 있으면 이유를 행에서 바로 알 수 있게 표시한다
@@ -4225,6 +4230,42 @@ function porderIdx(key){ const i=PORDER.indexOf(key); return i<0?99999:i; }
 function ensurePorder(){ P.slice().sort((a,b)=>(catOrder(a.cat)-catOrder(b.cat))||((a.seq??a.id??0)-(b.seq??b.id??0))).forEach(p=>{ const k=pKey(p); if(!PORDER.includes(k))PORDER.push(k); }); }
 async function savePorder(){ try{ await db.collection('product-meta').doc('prod-order').set({list:PORDER, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-order] 저장 실패', e.code||e); } }
 async function saveChanOrder(){ try{ await db.collection('product-meta').doc('chan-order').set({list:CHORD, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[chan-order] 저장 실패', e.code||e); } }
+/* 번호(No)를 고쳐 순서 바꾸기 — 적은 번호로 보내면 그 자리에 끼워지고 기존 제품들이 아래로 밀린다.
+   긴 표에서 드래그로 옮기기가 어려워서 만든 길. 드래그와 같은 규칙으로 '같은 분류 안'에서만 움직인다. */
+function moveProdToKey(fromKey,toKey,after){
+  if(fromKey===toKey)return;
+  const fi=PORDER.indexOf(fromKey); if(fi<0)return;
+  PORDER.splice(fi,1);
+  let ti=PORDER.indexOf(toKey);
+  if(ti<0) ti=PORDER.length; else if(after) ti+=1;
+  PORDER.splice(ti,0,fromKey);
+  savePorder(); refreshAll();
+}
+function startNoEdit(span){
+  if(span.querySelector('input'))return;
+  const curNo=+span.dataset.no||0, key=span.dataset.key, tr=span.closest('tr[data-key]');
+  const inp=document.createElement('input');
+  inp.type='number'; inp.min='1'; inp.className='noedit'; inp.value=curNo;
+  span.textContent=''; span.appendChild(inp); inp.focus(); inp.select();
+  let done=false;
+  const finish=ok=>{ if(done)return; done=true;
+    const v=Math.round(+inp.value);
+    if(!ok || !v || v===curNo){ renderGrid(); return; }
+    applyNoMove(key,curNo,v,tr); };
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){ e.preventDefault(); finish(true); }
+    else if(e.key==='Escape'){ e.preventDefault(); finish(false); } });
+  inp.addEventListener('blur',()=>finish(true));
+}
+function applyNoMove(key,curNo,toNo,tr){
+  const rows=[...document.querySelectorAll('#priceGrid tbody tr[data-key]')];
+  const target=rows.find(r=>+r.dataset.no===toNo);
+  if(!target){ alert(`지금 표에 보이는 번호는 1 ~ ${rows.length} 입니다.`); renderGrid(); return; }
+  if(!tr || target.dataset.cat!==tr.dataset.cat){
+    alert(`${toNo}번은 다른 분류의 제품입니다.\n번호 바꾸기는 같은 분류 안에서만 됩니다.\n\n분류를 옮기려면 ✏️ 제품 수정에서 분류를 고치세요.`);
+    renderGrid(); return; }
+  moveProdToKey(key, target.dataset.key, toNo>curNo);
+}
 function reorderProd(fromKey,toKey){
   if(fromKey===toKey)return;
   const from=PORDER.indexOf(fromKey); if(from<0)return;
@@ -5294,6 +5335,7 @@ function wireImportModal(){
   }
   document.addEventListener('click',e=>{
     const b=e.target.closest('.gridadd'); if(b){ openAddModal({l1:b.dataset.l1||'POUR공법', l2:b.dataset.l2||'', l3:b.dataset.l3||''}); return; }
+    const nn=e.target.closest('.nono'); if(nn){ startNoEdit(nn); return; }
     const ed=e.target.closest('.prodedit'); if(ed){ const p=P.find(x=>x.id==ed.dataset.id); if(p)openEditModal(p); return; }
     const cp=e.target.closest('.prodcopy'); if(cp){ const p=P.find(x=>x.id==cp.dataset.id); if(p)openCopyModal(p); return; }
     const fx=e.target.closest('.prodfix'); if(fx){ const p=P.find(x=>x.id==fx.dataset.id); if(p)toggleFixed(p); return; }

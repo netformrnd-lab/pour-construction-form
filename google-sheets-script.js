@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * 넷폼알앤디 — Google Sheets 자동 저장 Apps Script
+ * 넷폼 — Google Sheets 자동 저장 Apps Script
  * ============================================================
  *
  * [설정 방법]
@@ -97,6 +97,6 @@ function error(msg) {
 // GET 요청으로 동작 확인용
 function doGet() {
   return ContentService
-    .createTextOutput(JSON.stringify({ status: 'ok', message: '넷폼알앤디 시트 연동 활성화됨' }))
+    .createTextOutput(JSON.stringify({ status: 'ok', message: '넷폼 시트 연동 활성화됨' }))
     .setMimeType(ContentService.MimeType.JSON);
 }

@@ -459,6 +459,24 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
 /* 파일 업로드 → 업체단가 개정안 모달 */
 #impOverlay,#addOverlay,#catOverlay,#chanOverlay,#psOverlay,#expOverlay,#ghOverlay{position:fixed;inset:0;background:rgba(15,20,25,.55);z-index:3000;display:none;align-items:center;justify-content:center;padding:16px}
 #impOverlay.on,#addOverlay.on,#catOverlay.on,#chanOverlay.on,#psOverlay.on,#expOverlay.on,#ghOverlay.on{display:flex}
+/* ── 브랜드·채널 매출 시트 ── */
+#sh-sales .toolrow input[type=date]{border:1px solid var(--xl-grid);border-radius:3px;padding:4px 6px;font-size:12.5px;background:#fff}
+.sl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.sl-wrap table.grid{min-width:100%}
+.sl-wrap table.grid td.grp{background:#F4F6F8;font-weight:700;color:var(--ink)}
+.sl-wrap table.grid tr.sub td{background:#F7FAF8;font-weight:700}
+.sl-wrap table.grid tr.tot td{background:var(--xl-sel);font-weight:800}
+.sl-wrap table.grid th.b-pour,.sl-wrap table.grid td.b-pour{box-shadow:inset 0 3px 0 0 transparent}
+.sl-wrap table.grid thead th.b-pour{background:#E3F2E8;color:#0B5C30}
+.sl-wrap table.grid thead th.b-gro{background:#FFEAD9;color:#C2410C}
+.sl-cnt{display:block;font-size:10px;color:var(--ink-faint);line-height:1.1}
+.sl-bar{display:block;height:4px;border-radius:2px;margin-top:2px}
+.sl-note{border:1px solid #FDBA8C;background:#FFF7F0;color:#9A3412;border-radius:6px;padding:9px 12px;font-size:12px;line-height:1.6;margin-bottom:12px}
+.sl-rules{font-size:12.3px;line-height:1.75;color:var(--ink-soft)}
+.sl-rules b{color:var(--ink)}
+.sl-rules ul{margin:4px 0 10px 18px}
+.card.b-pour{border-top:3px solid #107C41}.card.b-gro{border-top:3px solid #C2410C}
+@media(max-width:700px){ #sh-sales .toolrow input[type=date]{flex:1 1 130px} #slQuick{flex-wrap:wrap} }
 /* ── 브랜드(POUR스토어·GROHOME) — 제품 소속 표시·필터 ── */
 .bchip{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.2px;padding:0 5px;border-radius:8px;margin-right:4px;vertical-align:1px;line-height:15px}
 #brandSeg button .n{font-size:10px;opacity:.75;margin-left:3px}
@@ -557,7 +575,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.22b</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.22c</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -951,6 +969,37 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     </div>
   </section>
 
+  <!-- ── Sheet: 브랜드·채널 매출 (그로홈 + POUR스토어 통합, 읽기 전용) ── -->
+  <section class="sheet" id="sh-sales">
+    <div class="toolrow">
+      <span class="ttl">브랜드·채널 매출</span>
+      <input type="date" id="slFrom" aria-label="시작일"><span class="dim">~</span><input type="date" id="slTo" aria-label="종료일">
+      <div class="seg" id="slQuick">
+        <button data-q="yday">어제</button><button data-q="mtd" class="on">이번 달</button><button data-q="prev">지난 달</button><button data-q="30">최근 30일</button><button data-q="ytd">올해</button>
+      </div>
+      <div class="seg" id="slUnit"><button data-u="amt" class="on">금액</button><button data-u="qty">수량</button></div>
+      <button class="tbtn" id="slReload">↻ 새로 불러오기</button>
+      <button class="tbtn" id="slCsv">CSV 내보내기</button>
+      <span class="hint" id="slInfo">결제(주문)일 · VAT 포함 결제액 기준</span>
+    </div>
+    <div class="sheet-pad">
+      <div id="slNotice"></div>
+      <div class="cards" id="slCards"></div>
+      <div class="panel">
+        <h3>채널별 매출 <span class="tag">브랜드별 구분 · 결제일 · VAT 포함</span></h3>
+        <div class="bd"><div class="sl-wrap"><table class="grid" id="slMatrix"></table></div></div>
+      </div>
+      <div class="panel">
+        <h3>월별 추이 <span class="tag">브랜드 × 온라인/오프라인</span></h3>
+        <div class="bd"><div class="sl-wrap"><table class="grid" id="slMonthly"></table></div></div>
+      </div>
+      <div class="panel">
+        <h3>집계 기준 · 점검</h3>
+        <div class="bd sl-rules" id="slRules"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ── Sheet 5: 손익·공헌이익 ── -->
   <section class="sheet" id="sh-pl">
     <div class="toolrow">
@@ -1317,6 +1366,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
   <button class="stab" data-grp="prod" data-sh="sh-match"><span class="dot"></span>제품·상품 매칭 <span id="tabLockIcon" style="font-size:10px">🔒</span></button>
   <button class="stab" data-grp="prod" data-sh="sh-inbound"><span class="dot"></span>CRM 연동 (단가·입고예정)</button>
   <button class="stab" data-grp="prod" data-sh="sh-data"><span class="dot"></span>데이터 관리 · 휴지통</button>
+  <button class="stab" data-grp="profit" data-sh="sh-sales"><span class="dot"></span>브랜드·채널 매출</button>
   <button class="stab" data-grp="profit" data-sh="sh-moq"><span class="dot"></span>MOQ 대량판매</button>
   <button class="stab" data-grp="profit" data-sh="sh-pl"><span class="dot"></span>손익·공헌이익</button>
   <button class="stab" data-grp="profit" data-sh="sh-fixed"><span class="dot"></span>고정지출 관리</button>
@@ -3910,6 +3960,7 @@ function gotoTab(sh){
   // 숨김 상태로 렌더된 경우를 대비해 보이는 시점에 고정 열 좌표를 다시 잡는다
   if(sh==='sh-price') requestAnimationFrame(()=>{ if(typeof layoutFrozen==='function') layoutFrozen(); });
   if(sh==='sh-data' && typeof openDataTab==='function') openDataTab();
+  if(sh==='sh-sales' && typeof openSalesTab==='function') openSalesTab();
 }
 function selectGroup(grp){
   activeGrp=grp;
@@ -5677,6 +5728,186 @@ async function applyGhImport(){
   }catch(e){ console.error('[그로홈 가져오기] 실패', e); alert('반영 실패: '+(e.code||e.message||e)); }
   finally{ btn.textContent=old; btn.disabled=false; }
 }
+/* ══════════ 브랜드·채널 매출 (그로홈 + POUR스토어 통합 · 읽기 전용) ══════════
+   원본 입력 방식은 그대로 두고, 두 곳의 매출을 '하나의 기준'으로 맞춰 합쳐 보여준다.
+   · 그로홈   : grohome-dashboard / salesRecords  — 판매채널 엑셀(결제일) · 판매가×수량(VAT 포함)
+   · POUR스토어: pourstorecrm / pour_data/sales_records — 출고등록 엑셀(출고일) · 공급가액(VAT 제외)
+   통일 기준(2026.09 결정)
+   ① 날짜 = 결제(주문)일 : POUR 출고 기록은 출고등록 엑셀의 '전산등록일'(주문 접수일)로 옮긴다
+   ② 금액 = 고객 결제액(VAT 포함) : POUR 금액 × 1.1
+   ③ 브랜드 = 자사몰·스마트스토어는 계정(입력한 쪽)으로, 공용 계정 오픈마켓은 '제품의 브랜드'로
+      (두 브랜드에 모두 걸린 제품은 POUR스토어로 — 제조 브랜드 기준) */
+const SL_BRANDS=['POUR스토어','GROHOME'];
+const SL_GROUPS=[
+  {key:'own',    label:'브랜드 전용 온라인', desc:'계정이 브랜드별로 따로', online:true},
+  {key:'shared', label:'공용 계정 오픈마켓', desc:'한 계정에서 두 브랜드 판매', online:true},
+  {key:'etcon',  label:'기타 온라인',       desc:'', online:true},
+  {key:'off',    label:'오프라인·B2B',      desc:'', online:false},
+];
+/* 원본 채널명 → [표시 채널, 구분]. 표기가 제각각이라(아임웹=옛 자사몰, G마켓/지마켓, '위탁 판매' 등) 여기서 하나로 모은다. */
+const SL_CH={
+  '자사몰':['자사몰','own'],'아임웹':['자사몰','own'],'카페24':['자사몰','own'],'스마트스토어':['스마트스토어','own'],
+  '쿠팡':['쿠팡','shared'],'오늘의집':['오늘의집','shared'],'11번가':['11번가','shared'],
+  '옥션':['옥션·지마켓','shared'],'지마켓':['옥션·지마켓','shared'],'G마켓':['옥션·지마켓','shared'],'g마켓':['옥션·지마켓','shared'],
+  '나비엠알오':['나비엠알오','shared'],'도매꾹':['도매꾹·도매매','shared'],'도매매':['도매꾹·도매매','shared'],
+  '카카오쇼핑':['카카오쇼핑','etcon'],'토스쇼핑':['토스쇼핑','etcon'],'쇼피':['쇼피(해외)','etcon'],'페이스북':['페이스북','etcon'],
+  '채널톡':['채널톡','etcon'],'공동구매':['공동구매','etcon'],
+  '전화':['전화 주문','off'],'파트너사':['파트너사','off'],'방문구매':['방문구매','off'],'오프라인':['오프라인','off'],
+  '박람회':['박람회','off'],'위탁판매':['위탁판매','off'],'위탁 판매':['위탁판매','off'],'부자재판매':['부자재판매','off'],'기타':['기타','off'],
+};
+const SL_CH_ORDER=['자사몰','스마트스토어','쿠팡','오늘의집','11번가','옥션·지마켓','나비엠알오','도매꾹·도매매','카카오쇼핑','토스쇼핑','공동구매','채널톡','페이스북','쇼피(해외)','전화 주문','파트너사','방문구매','위탁판매','오프라인','박람회','부자재판매','기타'];
+let SL={loaded:false,loading:null,rows:[],meta:{},unit:'amt',quick:'mtd'};
+const slDay=d=>{ const z=new Date(d.getTime()-d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); };
+function slChan(raw){ const r=String(raw||'').trim(); const m=SL_CH[r]; return m?{ch:m[0],grp:m[1],known:true}:{ch:r||'(채널 없음)',grp:'etcon',known:false}; }
+async function loadSales(){
+  if(SL.loading) return SL.loading;
+  SL.loading=(async()=>{
+    const cdb=crmDB(); if(!cdb) throw new Error('POUR스토어 CRM 연결 실패');
+    const [gSnap, pDoc, sDoc]=await Promise.all([
+      ghDB().collection('salesRecords').get(),
+      cdb.collection('pour_data').doc('sales_records').get(),
+      cdb.collection('pour_data').doc('shipments').get(),
+    ]);
+    const gRecs=gSnap.docs.map(d=>({id:d.id,...d.data()}));
+    const pRecs=(pDoc.exists&&Array.isArray(pDoc.data().records))?pDoc.data().records:[];
+    const ships=(sDoc.exists&&Array.isArray(sDoc.data().data))?sDoc.data().data:[];
+    console.log(`[매출] 그로홈 ${gRecs.length}건 · POUR스토어 ${pRecs.length}건 · 출고등록 ${ships.length}건 로드`);
+    if(!gRecs.length) console.warn('[매출] 그로홈 salesRecords 0건 — 컬렉션명/권한 확인');
+    if(!pRecs.length) console.warn('[매출] POUR스토어 sales_records 0건 — CRM 문서 확인');
+    // 출고요청번호 → 전산등록일(주문 접수일)
+    const regDate={}; ships.forEach(x=>{ const no=String(x['출고요청번호']||'').trim().replace(/^0+/,''), d=String(x['전산등록일']||'').slice(0,10); if(no&&/^\d{4}-\d\d-\d\d$/.test(d)) regDate[no]=d; });
+    // 제품 → 브랜드 연결: 그로홈 제품 id(PGHLINK 역방향), POUR 제품명(가격대시보드 제품명)
+    const gh2key={}; Object.entries(PGHLINK).forEach(([k,gid])=>{ gh2key[gid]=k; });
+    const name2key={}; P.filter(p=>!isDeletedProd(p)).forEach(p=>{ const a=ghNorm(p.name), b=ghNorm(p.name+(p.spec&&p.spec!=='-'?p.spec:'')); if(!(b in name2key)) name2key[b]=pKey(p); if(!(a in name2key)) name2key[a]=pKey(p); });
+    const prodBrand=k=>{ if(!k) return null; const l=pbrandKey(k); return l.includes('POUR스토어')?'POUR스토어':l[0]; };
+    const rows=[]; let redated=0, unknownCh={};
+    gRecs.forEach(r=>{ const c=slChan(r.platform); if(!c.known) unknownCh[c.ch]=(unknownCh[c.ch]||0)+1;
+      const k=gh2key[r.productId]||null, src='GROHOME';
+      const brand=(c.grp==='shared'&&prodBrand(k))||src;
+      rows.push({src,brand,date:String(r.date||'').slice(0,10),ch:c.ch,grp:c.grp,amt:Math.round(+r.totalPrice||((+r.unitPrice||0)*(+r.quantity||0))),qty:+r.quantity||0,name:r.productName||'',key:k}); });
+    pRecs.forEach(r=>{ const c=slChan(r.channel||r.platform); if(!c.known) unknownCh[c.ch]=(unknownCh[c.ch]||0)+1;
+      let date=String(r.date||'').slice(0,10);
+      if(r.recordSource==='shipment'){ const d=regDate[String(r.orderNo||'').trim().replace(/^0+/,'')]; if(d&&d!==date){ date=d; redated++; } }
+      const nm=String(r.productName||'').replace(/^%/,''), k=name2key[ghNorm(nm)]||null, src='POUR스토어';
+      const brand=(c.grp==='shared'&&prodBrand(k))||src;
+      const vatEx=+r.amount||+r.supplyPrice||+r.totalPrice||0;
+      rows.push({src,brand,date,ch:c.ch,grp:c.grp,amt:Math.round(vatEx*1.1),qty:+r.qty||+r.quantity||0,name:nm,key:k}); });
+    const maxDate=src=>rows.filter(r=>r.src===src&&r.date).reduce((m,r)=>r.date>m?r.date:m,'');
+    SL.rows=rows; SL.loaded=true;
+    SL.meta={gN:gRecs.length,pN:pRecs.length,shipN:ships.length,redated,unknownCh,gMax:maxDate('GROHOME'),pMax:maxDate('POUR스토어'),
+      pUpd:(pDoc.exists&&pDoc.data().updatedAt)||'',at:new Date().toISOString()};
+  })();
+  try{ await SL.loading; } finally{ SL.loading=null; }
+}
+function slSetQuick(q){
+  const t=new Date(), y=t.getFullYear(), m=t.getMonth(); let a,b;
+  if(q==='yday'){ const d=new Date(t); d.setDate(d.getDate()-1); a=b=slDay(d); }
+  else if(q==='prev'){ a=slDay(new Date(y,m-1,1)); b=slDay(new Date(y,m,0)); }
+  else if(q==='30'){ const d=new Date(t); d.setDate(d.getDate()-29); a=slDay(d); b=slDay(t); }
+  else if(q==='ytd'){ a=`${y}-01-01`; b=slDay(t); }
+  else { a=slDay(new Date(y,m,1)); b=slDay(t); }
+  $('#slFrom').value=a; $('#slTo').value=b; SL.quick=q;
+  $$('#slQuick button').forEach(x=>x.classList.toggle('on',x.dataset.q===q));
+}
+async function openSalesTab(force){
+  if(!$('#slFrom').value) slSetQuick(SL.quick);
+  if(SL.loaded && !force){ renderSales(); return; }
+  $('#slNotice').innerHTML='<div class="sl-note" style="border-color:var(--xl-grid);background:#fff;color:var(--ink-soft)">그로홈·POUR스토어 매출을 불러오는 중…</div>';
+  try{ await loadSales(); renderSales(); }
+  catch(e){ console.error('[매출] 로드 실패', e); $('#slNotice').innerHTML=`<div class="sl-note" style="border-color:#F1B7AD;background:#FDF6F4;color:#8A2B1E">매출을 불러오지 못했습니다: ${esc(e.code||e.message||e)}</div>`; }
+}
+function slSum(list){ let a=0,q=0; list.forEach(r=>{ a+=r.amt; q+=r.qty; }); return {a,q,n:list.length}; }
+function renderSales(){
+  if(!SL.loaded) return;
+  const from=$('#slFrom').value, to=$('#slTo').value, unit=SL.unit;
+  const inP=SL.rows.filter(r=>r.date && (!from||r.date>=from) && (!to||r.date<=to));
+  const val=s=> unit==='qty' ? s.q.toLocaleString()+'개' : won(s.a);
+  const M=SL.meta, today=slDay(new Date());
+  // 안내: 두 데이터의 마감일 차이
+  const notes=[];
+  if(to>=today || (M.gMax && to>M.gMax)) notes.push(`<b>그로홈</b>은 판매채널 엑셀을 다음 날 입력해서 <b>${esc(M.gMax||'—')}</b>까지 들어와 있습니다. 그 뒤 날짜는 그로홈 매출이 아직 비어 있을 수 있어요 (POUR스토어는 <b>${esc(M.pMax||'—')}</b>까지).`);
+  const unk=Object.entries(M.unknownCh||{}); if(unk.length) notes.push(`분류 규칙에 없는 채널명 ${unk.map(([c,n])=>`<b>${esc(c)}</b>(${n}건)`).join(', ')} — 기타 온라인으로 넣었습니다.`);
+  $('#slNotice').innerHTML=notes.length?`<div class="sl-note">${notes.join('<br>')}</div>`:'';
+  $('#slInfo').textContent=`결제(주문)일 · VAT 포함 결제액 · ${from||'처음'} ~ ${to||'오늘'}`;
+  // 카드
+  const tot=slSum(inP);
+  const card=(title,list,cls)=>{ const s=slSum(list), on=slSum(list.filter(r=>SL_GROUPS.find(g=>g.key===r.grp).online)), off=slSum(list.filter(r=>r.grp==='off'));
+    const share=tot.a?` · 비중 ${(s.a/tot.a*100).toFixed(1)}%`:'';
+    return `<div class="card ${cls}"><h4>${title}</h4><div class="big">${val(s)}</div><div class="foot">온라인 ${val(on)} · 오프라인·B2B ${val(off)}</div><div class="foot">${s.n.toLocaleString()}건${cls?share:''}</div></div>`; };
+  $('#slCards').innerHTML=card('전체 매출',inP,'')+card('POUR스토어',inP.filter(r=>r.brand==='POUR스토어'),'b-pour')+card('GROHOME',inP.filter(r=>r.brand==='GROHOME'),'b-gro');
+  // 채널 매트릭스
+  const cell=(list,max)=>{ const s=slSum(list); if(!s.n) return '<td class="num dim">—</td>';
+    const v=unit==='qty'?s.q:s.a, w=max?Math.max(2,Math.round(Math.abs(v)/max*100)):0;
+    return `<td class="num">${val(s)}<span class="sl-cnt">${s.n.toLocaleString()}건</span>${w?`<span class="sl-bar" style="width:${w}%;background:#CBD5DB"></span>`:''}</td>`; };
+  const pickV=l=>{ const s=slSum(l); return unit==='qty'?s.q:s.a; };
+  const chans=[...new Set(inP.map(r=>r.ch))].sort((a,b)=>{ const ia=SL_CH_ORDER.indexOf(a), ib=SL_CH_ORDER.indexOf(b); return (ia<0?999:ia)-(ib<0?999:ib) || a.localeCompare(b); });
+  let maxCell=0; chans.forEach(c=>SL_BRANDS.forEach(b=>{ maxCell=Math.max(maxCell,Math.abs(pickV(inP.filter(r=>r.ch===c&&r.brand===b)))); }));
+  const totV=pickV(inP);
+  const shareTd=l=>{ const v=pickV(l); return `<td class="num dim">${totV?(v/totV*100).toFixed(1)+'%':'—'}</td>`; };
+  let h=`<thead><tr><th style="text-align:left;min-width:120px">구분</th><th style="text-align:left;min-width:110px">채널</th>${SL_BRANDS.map(b=>`<th class="num ${b==='GROHOME'?'b-gro':'b-pour'}" style="min-width:120px">${esc(b)}</th>`).join('')}<th class="num" style="min-width:120px">합계</th><th class="num">비중</th></tr></thead><tbody>`;
+  const csv=[['구분','채널',...SL_BRANDS.flatMap(b=>[b+' 금액',b+' 수량',b+' 건수']),'합계 금액','합계 수량','합계 건수']];
+  const csvRow=(g,c,l)=>{ const r=[g,c]; SL_BRANDS.forEach(b=>{ const s=slSum(l.filter(x=>x.brand===b)); r.push(s.a,s.q,s.n); }); const s=slSum(l); r.push(s.a,s.q,s.n); csv.push(r); };
+  const subRow=(label,l,cls)=>`<tr class="${cls}"><td colspan="2">${label}</td>${SL_BRANDS.map(b=>cell(l.filter(r=>r.brand===b),0)).join('')}${cell(l,0)}${shareTd(l)}</tr>`;
+  let rowsN=0;
+  SL_GROUPS.forEach(g=>{
+    const gl=inP.filter(r=>r.grp===g.key); const cs=chans.filter(c=>gl.some(r=>r.ch===c)); if(!cs.length) return;
+    cs.forEach((c,i)=>{ const l=gl.filter(r=>r.ch===c); rowsN++;
+      h+=`<tr>${i===0?`<td class="grp" rowspan="${cs.length}">${esc(g.label)}${g.desc?`<span class="sl-cnt">${esc(g.desc)}</span>`:''}</td>`:''}<td>${esc(c)}</td>${SL_BRANDS.map(b=>cell(l.filter(r=>r.brand===b),maxCell)).join('')}${cell(l,0)}${shareTd(l)}</tr>`;
+      csvRow(g.label,c,l); });
+    h+=subRow(`${g.label} 소계`,gl,'sub'); csvRow(g.label,'소계',gl);
+  });
+  if(!rowsN) h+=`<tr><td colspan="${4+SL_BRANDS.length}" class="dim" style="padding:12px">이 기간에 매출 기록이 없습니다.</td></tr>`;
+  else {
+    const onl=inP.filter(r=>r.grp!=='off'), offl=inP.filter(r=>r.grp==='off');
+    h+=subRow('온라인 합계',onl,'sub')+subRow('오프라인·B2B 합계',offl,'sub')+subRow('전체 합계',inP,'tot');
+    csvRow('온라인','합계',onl); csvRow('오프라인·B2B','합계',offl); csvRow('전체','합계',inP);
+  }
+  $('#slMatrix').innerHTML=h+'</tbody>';
+  SL.csv=csv;
+  // 월별 추이 (기간 무관 · 올해+작년 전체)
+  const months=[...new Set(SL.rows.filter(r=>r.date).map(r=>r.date.slice(0,7)))].sort().reverse().slice(0,12);
+  const mcols=[['POUR스토어',true],['POUR스토어',false],['GROHOME',true],['GROHOME',false]];
+  let mh=`<thead><tr><th style="text-align:left">월</th>${mcols.map(([b,on])=>`<th class="num ${b==='GROHOME'?'b-gro':'b-pour'}" style="min-width:110px">${esc(b)}<br>${on?'온라인':'오프라인·B2B'}</th>`).join('')}<th class="num b-pour" style="min-width:110px">POUR스토어<br>계</th><th class="num b-gro" style="min-width:110px">GROHOME<br>계</th><th class="num" style="min-width:120px">합계</th></tr></thead><tbody>`;
+  months.forEach(mo=>{ const l=SL.rows.filter(r=>r.date&&r.date.slice(0,7)===mo);
+    const part=(b,on)=>l.filter(r=>r.brand===b && (on?r.grp!=='off':r.grp==='off'));
+    const partial = mo===today.slice(0,7) ? ' <span class="pill a">진행 중</span>' : '';
+    mh+=`<tr><td>${mo}${partial}</td>${mcols.map(([b,on])=>cell(part(b,on),0)).join('')}${cell(l.filter(r=>r.brand==='POUR스토어'),0)}${cell(l.filter(r=>r.brand==='GROHOME'),0)}${cell(l,0)}</tr>`; });
+  $('#slMonthly').innerHTML=mh+'</tbody>';
+  // 기준·점검
+  const moved=inP.filter(r=>r.brand!==r.src);
+  const unl=inP.filter(r=>r.grp==='shared'&&!r.key);
+  const unlByName={}; unl.forEach(r=>{ const k=r.src+' · '+r.name; unlByName[k]=(unlByName[k]||0)+1; });
+  const unlTop=Object.entries(unlByName).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  $('#slRules').innerHTML=`
+    <b>어떻게 합쳤나요</b>
+    <ul>
+      <li><b>날짜 = 결제(주문)일.</b> 그로홈은 판매채널 결제일 그대로. POUR스토어 출고 기록은 출고등록 엑셀의 <b>전산등록일(주문 접수일)</b>로 옮겼습니다 — 이번 불러오기에서 <b>${M.redated}건</b>이 출고일과 날짜가 달라 옮겨졌습니다.</li>
+      <li><b>금액 = 고객 결제액(VAT 포함).</b> POUR스토어 CRM 금액은 공급가액(VAT 제외)이라 <b>×1.1</b> 해서 맞췄습니다. 그로홈은 판매가×수량 그대로.</li>
+      <li><b>브랜드.</b> 자사몰·스마트스토어는 계정이 따로라 <b>입력한 쪽</b> 브랜드로. 공용 계정 오픈마켓(쿠팡·오늘의집·11번가·옥션/지마켓·나비엠알오·도매꾹)은 <b>제품의 브랜드</b>로 나눕니다(가격정책표 브랜드 태그 · 두 브랜드 모두면 POUR스토어).</li>
+      <li>원본 데이터는 <b>읽기만</b> 합니다. 그로홈 대시보드·POUR스토어 CRM 입력 방식은 바뀌지 않습니다.</li>
+    </ul>
+    <b>점검 (선택한 기간)</b>
+    <ul>
+      <li>제품 브랜드 때문에 입력한 쪽과 다른 브랜드로 옮겨진 매출: <b>${moved.length}건</b> ${moved.length?`(${val(slSum(moved))})`:''}</li>
+      <li>공용 오픈마켓 매출 중 가격대시보드 제품과 연결되지 않아 <b>입력한 쪽 브랜드로 둔</b> 것: <b>${unl.length}건</b>${unlTop.length?` — 많이 나온 이름: ${unlTop.map(([k,n])=>`${esc(k)}(${n})`).join(', ')}`:''}
+        <br><span class="dim">→ 그로홈 제품은 [🏠 그로홈 제품 가져오기]로 연결하면, POUR 제품은 가격정책표 제품명과 같게 맞추면 제품 브랜드로 정확히 나뉩니다.</span></li>
+      <li>데이터 마감: 그로홈 <b>${esc(M.gMax||'—')}</b> · POUR스토어 <b>${esc(M.pMax||'—')}</b> (CRM 갱신 ${esc((M.pUpd||'').slice(0,16).replace('T',' '))}) · 불러온 시각 ${esc(M.at.slice(11,16))}</li>
+      <li>원본 건수: 그로홈 ${M.gN.toLocaleString()}건 · POUR스토어 ${M.pN.toLocaleString()}건 (출고등록 ${M.shipN.toLocaleString()}건 참조)</li>
+    </ul>`;
+}
+function slExportCsv(){
+  if(!SL.csv){ alert('먼저 매출을 불러오세요.'); return; }
+  const body=SL.csv.map(r=>r.map(v=>{ const t=String(v); return /[",\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t; }).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+body],{type:'text/csv;charset=utf-8'}));
+  a.download=`브랜드채널매출_${$('#slFrom').value}_${$('#slTo').value}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+(function wireSales(){
+  const q=$('#slQuick'); if(q) q.addEventListener('click',e=>{ const b=e.target.closest('button[data-q]'); if(!b)return; slSetQuick(b.dataset.q); renderSales(); });
+  const u=$('#slUnit'); if(u) u.addEventListener('click',e=>{ const b=e.target.closest('button[data-u]'); if(!b)return; SL.unit=b.dataset.u; $$('#slUnit button').forEach(x=>x.classList.toggle('on',x===b)); renderSales(); });
+  ['slFrom','slTo'].forEach(id=>{ const el=$('#'+id); if(el) el.addEventListener('change',()=>{ SL.quick=''; $$('#slQuick button').forEach(x=>x.classList.remove('on')); renderSales(); }); });
+  const r=$('#slReload'); if(r) r.addEventListener('click',()=>openSalesTab(true));
+  const c=$('#slCsv'); if(c) c.addEventListener('click',slExportCsv);
+})();
 /* ── 분류 관리 모달 (대·중·소분류 · 이름 · 순서) ── */
 let CATEDIT=[];
 function openCatMgr(){ ensureCatCfg(); CATEDIT=CATCFG.map(c=>({key:c.key,name:c.name||c.key,l1:c.l1||'',l2:c.l2||''})); $('#catMsg').textContent=''; renderCatMgr(); $('#catOverlay').classList.add('on'); }

@@ -5862,6 +5862,7 @@ async function openGhImport(){
     const name=String(g.name||'').trim(), spec=String(g.size||'').trim();
     const r={id:g.id, g, name, spec, code:g.code||'', cat:String(g.category||'').trim(), sub:String(g.subCategory||'').trim(), active:g.active!==false, on:false, act:'new', toLabel:'', note:''};
     if(!name){ r.act='skip'; r.note='제품명 없음'; return r; }
+    if(g.nonSale){ r.act='skip'; r.note='비매품(샘플·부자재·진열) — 가격 관리 대상 아님'; r.on=false; return r; }
     /* 규격(size)이 따로 있으면 이름 끝의 같은 규격을 떼어, 같은 제품의 옵션끼리 이름이 같게 한다 (예: 앵글붓 1.5/2.0/2.5) */
     const det=spec?{opts:[],base:(name.endsWith(spec)?name.slice(0,-spec.length).trim():name)||name,hint:''}:ghDetectOpts(name);
     r.base=det.base; r.optHint=det.hint; r.opts=det.opts.join(', '); r.optAuto=det.opts.length>1; r.optCodes={};

@@ -789,7 +789,7 @@ body:has(#calcPanel.open) #calcFab{display:none}   /* 계산기를 열면 버튼
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24p</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24q</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -4106,7 +4106,7 @@ function runCalc(keepFocus){
       ${c.maxDisc!=null?`<div class="qc-kv"><span>공동구매 할인한도</span><b class="${c.maxDisc<c.listDisc?'neg':''}">정가에서 <span class="nw">최대 ${pct(Math.max(0,c.maxDisc))}까지 할인 ${c.maxDisc>0?'O':'X'}</span></b></div>
       <div class="qc-kv qc-sub"><span>손익분기가</span><b>${qcW(Math.ceil(c.be/10)*10)}</b></div>`:''}`;
   $('#qcNums').innerHTML=`
-      <div><span>개당 이익</span><b class="${c.profit<0?'neg':'pos'}">${qcW(c.profit)}</b><small>원가比 ${pct(c.mu)} · 판매가比 ${pct(c.rate)}</small></div>
+      <div><span>개당 이익</span><b class="${c.profit<0?'neg':'pos'}">${qcW(c.profit)}</b><small>원가 대비 ${pct(c.mu)} · 판매가 대비 ${pct(c.rate)}</small></div>
       <div><span>원가 (부대비용 포함)</span><b>${qcW(c.full)}</b><small>매입 ${won(cost)} · 물류 ${won(c.logi)} · 택배 ${won(o.deli)}${o.pack?' · 포장 '+won(o.pack):''} · 수수료 ${won(c.salesFee)} · PG ${won(c.pgFee)}${o.ad?' · 광고 '+won(c.adFee):''}</small></div>
       <div class="qc-span"><span>${qty>0?`${won(qty)}개 판매 시`:'수량 입력 → 총액'}</span>${qty>0?`<b>매출 ${qcT(c.price*qty)}</b><small>이익 <b class="${c.profit<0?'neg':'pos'}">${qcT(c.profit*qty)}</b> · 매입비 ${qcT(cost*qty)}</small>`:''}</div>`;
   // 채널별 한눈 비교 (같은 판매가·같은 마진 기준)

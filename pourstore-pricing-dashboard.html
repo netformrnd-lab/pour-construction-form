@@ -673,6 +673,36 @@ body[data-sh]:not([data-sh="sh-price"]) #fxbar,body[data-sh]:not([data-sh="sh-pr
   .sheet:not(#sh-price) .card{padding:12px 14px}
   .sheet:not(#sh-price) .card .big{font-size:18px}
 }
+
+/* ── 폰: 서랍 메뉴 · 요약 카드 가로 스크롤 ── */
+#snOpen,#snClose,#snBack{display:none}
+@media(max-width:640px){
+  #sideNav{display:flex!important;position:fixed;left:0;top:0;bottom:0;width:min(272px,84vw)!important;flex-basis:auto!important;z-index:260;transform:translateX(-105%);transition:transform .22s ease}
+  body.sn-open #sideNav{transform:none}
+  body.sn-open #snBack{display:block;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:250}
+  body.sn-fold #sideNav .sn-logo,body.sn-fold #sideNav .sn-t,body.sn-fold #sideNav .sn-item{display:revert}
+  body.sn-fold #sideNav .sn-gl{justify-content:flex-start;padding:10px 12px}
+  #snFold{display:none}
+  #snClose{display:block;background:rgba(255,255,255,.18);border:0;color:#fff;width:32px;height:32px;border-radius:8px;font-size:15px}
+  #sideNav .sn-item{padding:12px 12px 12px 44px;font-size:14.5px}
+  #sideNav .sn-gl{font-size:15px}
+  #ribbon #snOpen{display:flex;align-items:center;justify-content:center;flex:0 0 40px;width:40px;height:40px;border-radius:12px;border:0!important;
+    background:linear-gradient(135deg,#128A48,#0B5C30)!important;color:#fff!important;font-size:19px;padding:0!important;box-shadow:0 4px 12px rgba(11,92,48,.3)}
+  #ribbon{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+  #ribbon .brand{flex:1 1 0!important;min-width:0}
+  #ribbon .brand b{font-size:14.5px;line-height:1.3;display:block}
+  #ribbon .brand span{white-space:normal;font-size:10.5px}
+  #ribbon>div:not(.brand):not(.kpis){gap:6px!important}
+  #ribbon #btnAccountGear,#ribbon #btnSignOut{padding:6px 9px!important;font-size:11.5px!important}
+  #ribbon .kpis{display:flex!important;order:5;flex:1 0 100%;flex-wrap:nowrap!important;overflow-x:auto;gap:8px;margin:0;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+  #ribbon .kpi{flex:0 0 auto}
+  #ribbon .kpi .vl{font-size:15px}
+  /* 하단 메뉴 버튼은 서랍 메뉴가 대신함 → 계산기 버튼을 아래로 */
+  #mobileMenuBtn{display:none!important}
+  #calcFab{bottom:16px!important}
+  .sheet:not(#sh-price) .sheet-pad{padding-bottom:80px}
+  .toolrow .hint{display:block!important;flex:1 0 100%;margin:0;font-size:11px}
+}
 @media print{
   @page{size:A4;margin:12mm}
   body{background:#fff!important}
@@ -696,7 +726,7 @@ body[data-sh]:not([data-sh="sh-price"]) #fxbar,body[data-sh]:not([data-sh="sh-pr
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24g</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24h</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -4162,10 +4192,18 @@ function tabHidden(b){
 (function buildShell(){
   if($('#sideNav')) return;
   const side=document.createElement('aside'); side.id='sideNav';
+  /* 폰: ☰ 버튼으로 여는 서랍 메뉴(그로홈 대시보드와 같은 방식) */
+  const opener=document.createElement('button'); opener.id='snOpen'; opener.type='button'; opener.setAttribute('aria-label','메뉴 열기'); opener.textContent='☰';
+  const back=document.createElement('div'); back.id='snBack';
+  opener.addEventListener('click',()=>document.body.classList.add('sn-open'));
+  back.addEventListener('click',()=>document.body.classList.remove('sn-open'));
+  const rb=$('#ribbon'); if(rb) rb.insertBefore(opener, rb.firstChild);
+  document.body.appendChild(back);
   const main=document.createElement('div'); main.id='mainCol';
   const first=$('#ribbon'); document.body.insertBefore(side, first); document.body.insertBefore(main, first);
   ['ribbon','viewAsBanner','dataNotice','fxbar','fxSplit','sheetwrap','tabGroups','tabs'].forEach(id=>{ const el=document.getElementById(id); if(el) main.appendChild(el); });
-  side.addEventListener('click',e=>{ const b=e.target.closest('[data-sh]'); if(b){ gotoTab(b.dataset.sh); return; }
+  side.addEventListener('click',e=>{ const b=e.target.closest('[data-sh]'); if(b){ gotoTab(b.dataset.sh); document.body.classList.remove('sn-open'); try{ $('#sheetwrap .sheet.on').scrollTop=0; }catch(err){} return; }
+    if(e.target.closest('#snClose')){ document.body.classList.remove('sn-open'); return; }
     if(e.target.closest('#snFold')){ document.body.classList.toggle('sn-fold'); try{ localStorage.setItem('pour-sn-fold',document.body.classList.contains('sn-fold')?'1':'0'); }catch(err){} } });
   try{ if(localStorage.getItem('pour-sn-fold')==='1') document.body.classList.add('sn-fold'); }catch(e){}
 })();
@@ -4173,7 +4211,7 @@ function renderSide(){
   const el=$('#sideNav'); if(!el) return;
   const cur=document.querySelector('.stab.on'), curSh=cur?cur.dataset.sh:'';
   document.body.dataset.sh=curSh;
-  let h=`<div class="sn-head"><div class="sn-logo"><b>POUR 가격·마진</b><span>통합 관리</span></div><button id="snFold" title="메뉴 접기/펴기">☰</button></div><nav class="sn-menu">`;
+  let h=`<div class="sn-head"><div class="sn-logo"><b>POUR 가격·마진</b><span>통합 관리</span></div><button id="snFold" title="메뉴 접기/펴기">☰</button><button id="snClose" title="메뉴 닫기">✕</button></div><nav class="sn-menu">`;
   $$('#tabGroups .tgrp').forEach(g=>{
     const tabs=[...document.querySelectorAll('.stab[data-grp="'+g.dataset.grp+'"]')].filter(b=>!tabHidden(b));
     if(!tabs.length) return;

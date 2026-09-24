@@ -798,6 +798,26 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
   .tr-more{display:inline-flex;background:#F1F5F9!important;border-color:#E2E8F0!important;font-weight:700}
   .toolrow.tr-fold:not(.tr-open) .tbtn:not(.tr-more){display:none!important}
 }
+
+/* ── 알림 통일 ── */
+#uiToast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,12px);z-index:5000;display:flex;align-items:center;gap:8px;max-width:min(560px,92vw);
+  background:#0F172A;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 10px 30px rgba(15,23,42,.3);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;line-height:1.45}
+#uiToast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto;cursor:pointer}
+#uiToast .ic{flex:0 0 20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:rgba(255,255,255,.18)}
+#uiToast.ok .ic{background:#16A34A}#uiToast.err{background:#7F1D1D}#uiToast.err .ic{background:#DC2626}
+/* ── 브랜드 관리·채널 브랜드 ── */
+.brl{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.brc{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;border:1px solid;border-radius:12px;padding:8px 10px;background:#fff}
+.brc em{font-style:normal;font-size:11px;color:var(--ink-faint);flex:1 0 100%}
+.brnew{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.brnew input{flex:1 1 180px;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px;font:inherit}
+.chb{display:flex;flex-wrap:wrap;gap:3px}
+.chb button{border:1px solid #E2E8F0;background:#fff;color:var(--ink-faint);border-radius:10px;padding:1px 7px;font-size:10.5px;font-weight:700}
+#brandSeg{max-width:100%;overflow-x:auto;scrollbar-width:thin}
+#brandSeg button{white-space:nowrap}
+.card.b-x{border-top:3px solid #64748B}
+.brc [data-bredit]{border:0;background:none;color:var(--blue);font-size:11px;text-decoration:underline;padding:0}
+@media(max-width:640px){ #uiToast{bottom:calc(80px + env(safe-area-inset-bottom))} body.ui-modal #uiToast{bottom:calc(20px + env(safe-area-inset-bottom))} }
 @media print{
   @page{size:A4;margin:12mm}
   body{background:#fff!important}
@@ -856,7 +876,7 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24t</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24v</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1054,6 +1074,7 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
       <span class="hint">어드민 코드 체계 그대로 — 한 코드(P2 등)에 여러 채널을 둘 수 있습니다 · 셀 더블클릭으로 수정</span>
     </div>
     <div class="sheet-pad">
+      <div class="panel" id="brandPanel"></div>
       <div id="vendorPanel"></div>
       <div class="panel">
         <h3>새 채널 추가 <span class="tag">그룹·코드·명칭</span></h3>
@@ -1066,6 +1087,7 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
             <div class="fld"><label>목표 매출 (원)</label><input type="number" id="ncTgt" placeholder="선택"></div>
             <div class="fld"><label>설명</label><input type="text" id="ncDesc" placeholder="선택"></div>
             <div class="fld"><label>가격열 표시</label><select id="ncCol"><option value="1">표시</option><option value="0">숨김</option></select></div>
+            <div class="fld" style="grid-column:1/-1"><label>브랜드 (여러 개 가능 — 공용 계정 오픈마켓은 모두 체크)</label><div class="adbrands" id="ncBrands"></div></div>
             <button class="tbtn primary" id="btnChAdd" style="height:34px">＋ 추가</button>
           </div>
           <p class="footnote">"가격열 표시"를 켜면 가격정책표·채널분석·손익 시트에 해당 채널 열이 즉시 생기고, 제품별 공급가를 입력할 수 있습니다.</p>
@@ -2290,7 +2312,7 @@ function migrateLocalChannels(localCH){
   if(!add.length) return;
   add.forEach(c=>{
     const rec={uid:c.uid,g:c.g||'KR2',code:c.code,name:c.name,short:c.short||'',
-      st:c.st||'운영',tgt:c.tgt??null,desc:c.desc||'',col:!!c.col,role:c.role||'',ord:c.ord??0};
+      st:c.st||'운영',tgt:c.tgt??null,desc:c.desc||'',col:!!c.col,role:c.role||'',ord:c.ord??0,brands:c.brands||null};
     CHCUSTOM.push(rec);
     if(!CHANNELS.some(x=>x.uid===rec.uid)) CHANNELS.push({...rec});   // buildState 이후 호출 → 화면에 즉시 반영
   });
@@ -2300,10 +2322,14 @@ function migrateLocalChannels(localCH){
   });
 }
 /* 시딩 채널 수정분 기록 · 앱에서 만든 채널이면 그 항목을 직접 갱신 */
+/* 채널 브랜드: c.brands = ['POUR스토어','GROHOME',…] — 공용 계정 오픈마켓처럼 여러 브랜드가 함께 쓰는 채널은 여러 개.
+   기록이 없으면 POUR스토어(기존 채널은 모두 POUR스토어 채널이었음). 가격정책표는 고른 브랜드의 채널 열만 보여준다. */
+function chBrands(c){ const b=Array.isArray(c&&c.brands)?c.brands.filter(x=>BRAND_LIST.includes(x)):[]; return b.length?b:[BRAND_DEFAULT]; }
+function chHasBrand(c,b){ return !b || chBrands(c).includes(b); }
 function noteChannelEdit(c){
   const cu=CHCUSTOM.find(x=>x.uid===c.uid);
-  if(cu){ Object.assign(cu,{g:c.g,code:c.code,name:c.name,short:c.short,st:c.st,tgt:c.tgt,desc:c.desc,col:c.col,role:c.role,ord:c.ord}); }
-  else { CHPATCH[c.uid]={code:c.code,name:c.name,short:c.short,st:c.st,tgt:c.tgt,desc:c.desc,col:c.col,role:c.role}; }
+  if(cu){ Object.assign(cu,{g:c.g,code:c.code,name:c.name,short:c.short,st:c.st,tgt:c.tgt,desc:c.desc,col:c.col,role:c.role,ord:c.ord,brands:c.brands||null}); }
+  else { CHPATCH[c.uid]={code:c.code,name:c.name,short:c.short,st:c.st,tgt:c.tgt,desc:c.desc,col:c.col,role:c.role,brands:c.brands||null}; }
   saveCustomChannels();
 }
 /* 채널 열 사용자 지정 순서(가로 드래그). 없으면 chRank(단가순) 유지. 새 채널은 rank 위치에 삽입 */
@@ -2896,7 +2922,39 @@ $('#btnPwApply').addEventListener('click',async()=>{
 
 /* ══════════ 채널 관리 ══════════ */
 const GRP_COLOR=g=>g==='KR1'?'g':(g==='KR2'?'a':'r');
+function renderBrandPanel(){
+  const el=$('#brandPanel'); if(!el) return;
+  const live=P.filter(p=>!isDeletedProd(p)), chs=CHANNELS.filter(c=>!isDeletedChan(c.uid));
+  el.innerHTML=`<h3>브랜드 <span class="tag">${BRAND_LIST.length}개 · 제품·채널·가격정책표가 브랜드별로 나뉩니다</span></h3>
+    <div class="bd"><div class="brl">${BRAND_LIST.map(b=>{ const st=brandStyle(b); return `<div class="brc" style="border-color:${st.fg}33">
+      <span class="bchip" style="background:${st.bg};color:${st.fg}">${esc(st.short)}</span><b>${esc(b)}</b>
+      <em>제품 ${live.filter(p=>hasBrand(p,b)).length} · 채널 ${chs.filter(c=>chHasBrand(c,b)).length}</em>
+      <button class="qc-link" data-bredit="${esc(b)}">짧은이름</button></div>`; }).join('')}</div>
+    <div class="brnew"><input id="brName" placeholder="새 브랜드 이름 (예: POUR공법몰)"><input id="brShort" placeholder="짧은이름 (예: 공법)" style="max-width:130px"><button class="tbtn primary" id="brAdd">＋ 브랜드 추가</button></div>
+    <p class="footnote" style="margin-top:6px">· 추가한 브랜드는 제품 등록·채널의 브랜드 선택, 가격정책표 브랜드 버튼, 매출 화면에 바로 생깁니다. 이름은 데이터의 열쇠라 추가 후 바꿀 수 없어요(짧은이름·색은 가능).</p></div>`;
+}
+document.addEventListener('click',async e=>{
+  if(e.target.id==='brAdd'){
+    const name=($('#brName').value||'').trim(), short=($('#brShort').value||'').trim()||name.slice(0,4);
+    if(!name){ uiToast('브랜드 이름을 넣어 주세요','err'); return; }
+    if(BRAND_LIST.includes(name)){ uiToast('이미 있는 브랜드입니다','err'); return; }
+    const pal=BRAND_PALETTE[BRAND_LIST.length%BRAND_PALETTE.length], rec={name,short,bg:pal[0],fg:pal[1]};
+    const old=BRAND_REG.slice(); BRAND_REG=[...BRAND_REG,rec];
+    try{ await saveBrandReg(); applyBrandList(BRAND_REG); logAct('브랜드추가', name, short); uiToast(`브랜드 추가됨: ${name}`,'ok'); refreshAll(); }
+    catch(err){ BRAND_REG=old; console.error('[brands] 저장 실패', err); uiToast('브랜드 저장 실패: '+(err.code||err.message||err),'err'); }
+    return;
+  }
+  const be=e.target.closest('[data-bredit]'); if(be){
+    const b=be.dataset.bredit, cur=brandStyle(b).short, v=prompt(`[${b}] 짧은이름 (표 칩에 보이는 글자)`, cur); if(v==null||!v.trim()||v.trim()===cur) return;
+    const old=BRAND_REG.slice(); const i=BRAND_REG.findIndex(x=>x.name===b);
+    BRAND_REG = i>=0 ? BRAND_REG.map((x,j)=>j===i?{...x,short:v.trim()}:x) : [...BRAND_REG,{name:b,short:v.trim()}];
+    try{ await saveBrandReg(); applyBrandList(BRAND_REG); uiToast('짧은이름 저장됨','ok'); refreshAll(); }
+    catch(err){ BRAND_REG=old; uiToast('저장 실패: '+(err.code||err.message||err),'err'); }
+  }
+});
 function renderChMan(){
+  renderBrandPanel();
+  const nb=$('#ncBrands'); if(nb) nb.innerHTML=BRAND_LIST.map(b=>{ const st=brandStyle(b); return `<label><input type="checkbox" value="${esc(b)}"${b===(BRAND_FILTER||BRAND_DEFAULT)?' checked':''}><span style="color:${st.fg};font-weight:700">${esc(b)}</span></label>`; }).join('');
   const live=CHANNELS.filter(c=>!isDeletedChan(c.uid));   // 삭제된 채널은 휴지통으로
   const groups=[...new Set(live.map(c=>c.g))];
   $('#grpList').innerHTML=groups.map(g=>`<option value="${esc(g)}">`).join('');
@@ -2917,6 +2975,7 @@ function renderChMan(){
           <option value="dealer" ${c.role==='dealer'?'selected':''}>MOQ 하한</option>
           <option value="export" ${c.role==='export'?'selected':''}>수출(참고)</option>
         </select></td>
+        <td><div class="chb">${BRAND_LIST.map(b=>{ const st=brandStyle(b), on=chBrands(c).includes(b); return `<button type="button" data-chb="${esc(b)}" class="${on?'on':''}" style="${on?`background:${st.bg};color:${st.fg};border-color:${st.fg}`:''}" title="${esc(b)}">${esc(st.short)}</button>`; }).join('')}</div></td>
         <td class="editable dim" data-cf="desc" style="max-width:280px;overflow:hidden;text-overflow:ellipsis">${esc(c.desc)||'—'}</td>
         <td style="text-align:center"><button class="tbtn" data-cdel="${c.uid}" style="color:var(--red);padding:2px 9px;font-size:11px">삭제</button></td>
       </tr>`).join('');
@@ -2926,7 +2985,7 @@ function renderChMan(){
       <div class="bd" style="padding:0;overflow-x:auto">
         <table class="grid" style="width:100%"><thead><tr>
           <th style="min-width:56px">코드</th><th style="min-width:170px">채널명</th><th>짧은이름</th>
-          <th class="num" style="min-width:110px">목표 매출</th><th>상태</th><th>가격열</th><th style="min-width:100px">역할</th><th>설명</th><th></th>
+          <th class="num" style="min-width:110px">목표 매출</th><th>상태</th><th>가격열</th><th style="min-width:100px">역할</th><th style="min-width:120px">브랜드</th><th>설명</th><th></th>
         </tr></thead><tbody>${rows}</tbody></table>
       </div></div>`;
   }).join('');
@@ -2955,6 +3014,14 @@ document.addEventListener('change',e=>{
   noteChannelEdit(c); plState=null; refreshAll();
 });
 document.addEventListener('click',e=>{
+  const bb=e.target.closest('#chGroups [data-chb]'); if(!bb) return;
+  const c=chByUid(bb.closest('tr').dataset.uid); if(!c) return;
+  const b=bb.dataset.chb, cur=chBrands(c), next=cur.includes(b)?cur.filter(x=>x!==b):[...cur,b];
+  if(!next.length){ uiToast('채널은 브랜드가 하나 이상 있어야 합니다','err'); return; }
+  c.brands=BRAND_LIST.filter(x=>next.includes(x)); noteChannelEdit(c); refreshAll();
+  uiToast(`[${c.code}] ${c.name} → ${c.brands.join(' · ')}`,'ok');
+});
+document.addEventListener('click',e=>{
   const b=e.target.closest('[data-cdel]'); if(!b)return;
   const c=chByUid(b.dataset.cdel); if(!c)return;
   if(c.role==='retail'){ alert('자사몰 직판(정가) 채널은 모든 계산의 기준이라 삭제할 수 없습니다.'); return; }
@@ -2968,11 +3035,13 @@ $('#btnChAdd').addEventListener('click',()=>{
   if(!code||!name){ alert('코드와 채널명은 필수입니다.'); return; }
   CHANNELS.push({uid:'c'+(++uidSeq),g,code,name,short:$('#ncShort').value.trim()||name.slice(0,3),
     st:'준비',tgt:$('#ncTgt').value===''?null:+$('#ncTgt').value,desc:$('#ncDesc').value.trim(),
-    col:$('#ncCol').value==='1',role:''});
+    col:$('#ncCol').value==='1',role:'',brands:(()=>{ const l=$$('#ncBrands input:checked').map(i=>i.value); return l.length?l:[BRAND_FILTER||BRAND_DEFAULT]; })()});
+  { const nc=CHANNELS[CHANNELS.length-1]; if(!CHCUSTOM.some(x=>x.uid===nc.uid)){ CHCUSTOM.push({...nc}); saveCustomChannels(); } }
+  uiToast(`채널 추가됨: ${name}`,'ok');
   $('#ncCode').value='';$('#ncName').value='';$('#ncShort').value='';$('#ncTgt').value='';$('#ncDesc').value='';
   plState=null; refreshAll();
 });
-$('#btnChSave').addEventListener('click',()=>{ persist(); $('#btnChSave').textContent='저장됨 ✓'; setTimeout(()=>$('#btnChSave').textContent='채널 설정 저장',1400); });
+$('#btnChSave').addEventListener('click',()=>{ persist(); uiToast('채널 설정 저장됨','ok'); });
 </script>
 <script>
 /* ══════════ 알림 감지 ══════════ */
@@ -3126,7 +3195,7 @@ async function bulkFix(on){
   gridToast(`${target.length}개 제품을 ${on?'📌 파일값 고정':'⚙️ 자동계산'} 으로 바꿨습니다.`);
   logAct('반영방식', `일괄 ${target.length}개`, on?'파일값 고정':'자동계산');
 }
-function renderGrid(){
+function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산에 쓰는 COLS 는 그대로)
   ensureCatCfg();   // 새 분류 자동 시딩(표시·정렬용, 저장은 분류 관리에서)
   ensurePorder();   // 제품 순서 시딩(드래그 재정렬용)
   ensureChord();    // 채널 열 순서 시딩(가로 드래그 재정렬용)
@@ -3142,7 +3211,7 @@ function renderGrid(){
   const psBtn=$('#btnPriceSheet'); if(psBtn) psBtn.style.display=costAllowed?'':'none';        // 단가표 PDF: 원가열람 계정만
   const q=($('#q').value||'').trim().toLowerCase();
   const cat=$('#catSel').value;
-  const cols=COLS(), rUid=retailUid();
+  const cols=COLS().filter(c=>chHasBrand(c,BRAND_FILTER)), rUid=retailUid();
   const showSup=supVisible();                // 공급업체 열: 마스터+이메일인증 계정만 (접기 스위치 반영)
   const showCost=costVisible();              // 매입원가·마진 열: 부마스터/마스터만 (접기 스위치 반영)
   const secBtn=$('#btnSecCols');
@@ -3351,7 +3420,17 @@ document.addEventListener('dblclick',e=>{
 });
 /* 잠긴 가격 셀(세트 합산·자동계산 채널)을 더블클릭하면 왜 안 되는지 안내 */
 let _toastTimer=null;
-function gridToast(msg){
+/* 알림 통일: 화면 아래 짧은 알림 하나로(저장됨·실패·안내). kind: ok | err | info */
+let _uiToastT=null, _uiLastOk=0;
+function uiToast(msg,kind){
+  let t=$('#uiToast'); if(!t){ t=document.createElement('div'); t.id='uiToast'; t.setAttribute('role','status'); document.body.appendChild(t); t.addEventListener('click',()=>t.classList.remove('show')); }
+  t.className=kind||'info'; t.innerHTML=`<span class="ic">${kind==='ok'?'✓':kind==='err'?'!':'i'}</span>${esc(msg)}`;
+  void t.offsetWidth; t.classList.add('show'); clearTimeout(_uiToastT); _uiToastT=setTimeout(()=>t.classList.remove('show'), kind==='err'?5000:2200);
+}
+/* 자동 저장처럼 자주 일어나는 성공은 8초에 한 번만 알림 */
+function uiSaved(what){ const n=Date.now(); if(n-_uiLastOk<8000) return; _uiLastOk=n; uiToast((what?what+' ':'')+'저장됨','ok'); }
+function gridToast(msg){ uiToast(msg,'info'); }
+function __oldGridToast(msg){
   let t=$('#gridToast');
   if(!t){ t=document.createElement('div'); t.id='gridToast'; document.body.appendChild(t);
     t.addEventListener('click',()=>{ t.classList.remove('show'); clearTimeout(_toastTimer); });   // 눌러서 즉시 닫기
@@ -3383,7 +3462,7 @@ $('#viewSeg').addEventListener('click',e=>{
   $$('#viewSeg button').forEach(x=>x.classList.toggle('on',x===b));
   viewMode=b.dataset.v; renderGrid();
 });
-$('#btnSave').addEventListener('click',()=>{ persist(); persistSecure(); $('#btnSave').textContent='저장됨 ✓'; setTimeout(()=>$('#btnSave').textContent='변경사항 저장',1400); });
+$('#btnSave').addEventListener('click',()=>{ persist(); persistSecure(); uiToast('변경사항 저장됨','ok'); });
 $('#btnReset').addEventListener('click',()=>{
   if(!confirm('편집한 값·채널 설정을 모두 버리고 원본 데이터로 복원할까요? (보안 편집분·변경한 비밀번호도 초기화되고 다시 잠깁니다)'))return;
   localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_SEC); localStorage.removeItem(LS_BASE);
@@ -3524,7 +3603,7 @@ document.addEventListener('dblclick',e=>{
 });
 $('#mq').addEventListener('input',()=>{renderSup();renderMatch();});
 ['#mFee','#mShip','#mMkt'].forEach(s=>$(s).addEventListener('input',renderMatch));
-$('#btnSaveMatch').addEventListener('click',()=>{ persist(); persistSecure(); $('#btnSaveMatch').textContent='저장됨 ✓'; setTimeout(()=>$('#btnSaveMatch').textContent='변경사항 저장',1400); });
+$('#btnSaveMatch').addEventListener('click',()=>{ persist(); persistSecure(); uiToast('매칭 저장됨','ok'); });
 
 /* ══════════ 채널 수익분석 ══════════ */
 function fillProductSelects(){
@@ -4147,7 +4226,7 @@ $('#qcSplit').addEventListener('click',e=>{ const b=e.target.closest('[data-stg]
 /* 할인율 직접 조정: 숫자 칸·슬라이더 — 입력 중엔 숫자만 갱신(칸이 다시 그려져 커서가 튀지 않게) */
 $('#qcSplitOut').addEventListener('input',e=>{ if(e.target.id==='qcDisc'||e.target.id==='qcDRange'){ const v=+e.target.value; if(isFinite(v)){ QC_DISC=v; runCalc(e.target.id); } } });
 $('#qcSplitOut').addEventListener('click',e=>{ if(e.target.id==='qcDiscReset'){ QC_DISC=null; runCalc(); } });
-$('#qcSaveDef').addEventListener('click',()=>{ try{ localStorage.setItem(QC_LS,JSON.stringify(qcVals())); $('#qcSaveDef').textContent='저장됨 ✓'; setTimeout(()=>$('#qcSaveDef').textContent='이 값을 기본값으로 저장',1400); }catch(e){ alert('저장 실패: '+e.message); } });
+$('#qcSaveDef').addEventListener('click',()=>{ try{ localStorage.setItem(QC_LS,JSON.stringify(qcVals())); uiToast('계산기 기본값 저장됨 (이 기기)','ok'); }catch(e){ uiToast('저장 실패: '+e.message,'err'); } });
 $('#qcResetDef').addEventListener('click',()=>{ try{ localStorage.removeItem(QC_LS); }catch(e){} qcFill(qcDefaults()); QC_PRICE=null; runCalc(); });
 $('#calcRes').addEventListener('input',e=>{ if(e.target.id==='qcPrice'){ const v=+e.target.value; QC_PRICE=v>0?v:null; runCalc(true); } });
 $('#calcRes').addEventListener('change',e=>{ if(e.target.id==='qcPrice') runCalc(); });
@@ -4282,7 +4361,7 @@ const CRM_MAP_DEFAULT={ '자사몰':'OWN','쿠팡':'P8','대리점':'P3','위탁
   '스마트스토어':'OWN','11번가':'OWN','옥션':'OWN','지마켓':'OWN','오늘의집':'OWN','나비엠알오':'OWN' };
 let CRMMAP={};   // product-meta/crm-map 에 저장(대시보드 쪽)
 function crmMap(){ return Object.assign({}, CRM_MAP_DEFAULT, CRMMAP); }
-async function saveCrmMap(){ try{ await db.collection('product-meta').doc('crm-map').set({map:CRMMAP, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[crm-map] 저장 실패', e.code||e); } }
+async function saveCrmMap(){ try{ await db.collection('product-meta').doc('crm-map').set({map:CRMMAP, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[crm-map] 저장 실패', e.code||e); uiToast('저장 실패(crm-map): '+(e.code||e.message||e),'err'); } }
 
 /* 보낼 데이터 만들기 — 대외비 제외, 승인된 값(PREVIEW 무관) 기준 */
 function crmPriceBook(){
@@ -4593,7 +4672,7 @@ $('#btnAiAdd').addEventListener('click',()=>{
   ['#aiItem','#aiSrc','#aiColor','#aiCost','#aiPrice'].forEach(s=>$(s).value=''); refreshAll();
   $('#btnAiAdd').textContent='등록됨 ✓'; setTimeout(()=>$('#btnAiAdd').textContent='＋ 상품 등록',1200);
 });
-$('#btnRegSave').addEventListener('click',()=>{ persist(); persistSecure(); $('#btnRegSave').textContent='저장됨 ✓'; setTimeout(()=>$('#btnRegSave').textContent='변경사항 저장',1400); });
+$('#btnRegSave').addEventListener('click',()=>{ persist(); persistSecure(); uiToast('등록 정보 저장됨','ok'); });
 document.addEventListener('dblclick',e=>{
   const td=e.target.closest('#mfgTable td.editable'); if(!td||td.querySelector('input'))return;
   const m=MFG.find(x=>x.id==td.closest('tr').dataset.mfid), f=td.dataset.mff; if(!m)return;
@@ -4644,7 +4723,7 @@ $('#btnFxAdd').addEventListener('click',()=>{
   ['#fxName','#fxAmt','#fxMemo'].forEach(s=>$(s).value=''); fillRegDatalists(); renderFixed();
 });
 $('#btnFxApply').addEventListener('click',()=>{ $('#fixedCost').value=Math.round(fxMonthlyTotal()); gotoTab('sh-pl'); ensurePl(); renderPl(); $('#btnFxApply').textContent='적용됨 ✓'; setTimeout(()=>$('#btnFxApply').textContent='이 고정비를 손익에 적용 →',1400); });
-$('#btnFxSave').addEventListener('click',()=>{ persist(); $('#btnFxSave').textContent='저장됨 ✓'; setTimeout(()=>$('#btnFxSave').textContent='변경사항 저장',1400); });
+$('#btnFxSave').addEventListener('click',()=>{ persist(); uiToast('고정지출 저장됨','ok'); });
 $('#btnFxCsv').addEventListener('click',()=>{
   const rows=[['그룹','항목명','금액','주기','월환산','사용','메모']];
   FX.forEach(x=>rows.push([x.g,x.name,x.amt,x.cycle,Math.round(fxMonthly(x)),x.on===false?'중지':'사용',x.memo||'']));
@@ -4921,20 +5000,20 @@ function ensureCatCfg(){
   P.forEach(p=>{ const k=p.cat||'기타'; if(!CATCFG.some(c=>c.key===k)){ CATCFG.push({key:k,name:k,l1:'',l2:''}); added=true; } });
   return added;
 }
-async function saveCatConfig(){ try{ await db.collection('product-meta').doc('cat-config').set({list:CATCFG, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[cat-config] 저장 실패', e.code||e); } }
+async function saveCatConfig(){ try{ await db.collection('product-meta').doc('cat-config').set({list:CATCFG, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[cat-config] 저장 실패', e.code||e); uiToast('저장 실패(cat-config): '+(e.code||e.message||e),'err'); } }
 /* ══════════ 소프트 삭제(휴지통) + 활동 이력 — 영구삭제 없음 ══════════
    제품·채널은 '삭제표시'만 하고 원본 레코드는 절대 지우지 않는다. 휴지통에서 복원 가능. */
 /* ── 제품명·규격 변경 ← product-meta/prod-rename ──
    기본 제품(products 컬렉션)은 이 앱이 읽기만 하므로, 바뀐 이름을 여기에 따로 적어 덮어쓴다.
    키는 '원래' 이름(분류|제품명|규격) 이라서 여러 번 바꿔도 원본을 계속 찾아간다. */
 let PNAME={};
-async function savePname(){ try{ await db.collection('product-meta').doc('prod-rename').set({map:PNAME, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-rename] 저장 실패', e.code||e); alert('이름 변경 저장 실패: '+(e.code||e.message||e)); } }
+async function savePname(){ try{ await db.collection('product-meta').doc('prod-rename').set({map:PNAME, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-rename] 저장 실패', e.code||e); uiToast('저장 실패(prod-rename): '+(e.code||e.message||e),'err'); alert('이름 변경 저장 실패: '+(e.code||e.message||e)); } }
 let PDEL={};   // pKey → {at,by,name} 삭제된 제품 ← product-meta/prod-deleted
 let CHDEL={};  // uid  → {at,by,code,name} 삭제된 채널 ← product-meta/chan-deleted
 function isDeletedProd(p){ return !!PDEL[pKey(p)]; }
 function isDeletedChan(uid){ return !!CHDEL[uid]; }
-async function savePdel(){ try{ await db.collection('product-meta').doc('prod-deleted').set({map:PDEL, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-deleted] 저장 실패', e.code||e); } }
-async function saveChdel(){ try{ await db.collection('product-meta').doc('chan-deleted').set({map:CHDEL, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[chan-deleted] 저장 실패', e.code||e); } }
+async function savePdel(){ try{ await db.collection('product-meta').doc('prod-deleted').set({map:PDEL, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-deleted] 저장 실패', e.code||e); uiToast('저장 실패(prod-deleted): '+(e.code||e.message||e),'err'); } }
+async function saveChdel(){ try{ await db.collection('product-meta').doc('chan-deleted').set({map:CHDEL, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[chan-deleted] 저장 실패', e.code||e); uiToast('저장 실패(chan-deleted): '+(e.code||e.message||e),'err'); } }
 /* 활동 이력: append-only. 수동 삭제 제공 안 함(감사 로그). */
 let ACTLOG=[];   // 표시용 캐시(최근 로드분)
 function logAct(type, target, detail){
@@ -5020,14 +5099,27 @@ wireData();
 let PCAT={};
 function pcat(p){ const m=PCAT[pKey(p)]||{}; return { l1:(m.l1||'POUR공법'), l2:(m.l2!=null&&m.l2!=='')?m.l2:(p.cat||'기타'), l3:(m.l3||'') }; }
 function setPcat(p,l1,l2,l3){ PCAT[pKey(p)]={ l1:(l1||'').trim()||'POUR공법', l2:(l2||'').trim()||(p.cat||'기타'), l3:(l3||'').trim() }; }
-async function savePcat(){ try{ await db.collection('product-meta').doc('prod-cat').set({map:PCAT, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-cat] 저장 실패', e.code||e); } }
+async function savePcat(){ try{ await db.collection('product-meta').doc('prod-cat').set({map:PCAT, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-cat] 저장 실패', e.code||e); uiToast('저장 실패(prod-cat): '+(e.code||e.message||e),'err'); } }
 function allTags(level){ const s=new Set(); P.forEach(p=>{ const c=pcat(p); const v=level===1?c.l1:level===2?c.l2:c.l3; if(v)s.add(v); }); return [...s]; }
 /* ── 브랜드(제품 소속): pKey → ['POUR스토어','GROHOME',…]. 기록이 없으면 POUR스토어. ← product-meta/prod-brand
    한 제품이 두 브랜드에서 팔리면 둘 다 담는다(예: POUR 코트재를 그로홈에서도 판매).
    gh: pKey → 그로홈 대시보드(grohome-dashboard) products 문서 id — 가져오기 중복 방지·연결 추적용. */
 const BRAND_DEFAULT='POUR스토어';
-const BRAND_LIST=['POUR스토어','GROHOME'];
-const BRAND_STYLE={'POUR스토어':{bg:'#E3F2E8',fg:'#0B5C30',short:'POUR'},'GROHOME':{bg:'#FFEAD9',fg:'#C2410C',short:'GRO'}};
+/* 브랜드 목록 ← product-meta/brands {list:[{name, short, bg, fg}]} — [채널 관리 › 브랜드]에서 추가한다(10개 이상 가능).
+   이름은 제품·채널·매출에 그대로 저장되는 열쇠라 추가 후 바꾸지 않는다(짧은이름·색은 수정 가능). */
+let BRAND_LIST=['POUR스토어','GROHOME'];
+let BRAND_STYLE={'POUR스토어':{bg:'#E3F2E8',fg:'#0B5C30',short:'POUR'},'GROHOME':{bg:'#FFEAD9',fg:'#C2410C',short:'GRO'}};
+const BRAND_PALETTE=[['#E0F2FE','#0369A1'],['#EDE9FE','#6D28D9'],['#FCE7F3','#BE185D'],['#FEF3C7','#92400E'],['#DCFCE7','#15803D'],['#E0E7FF','#4338CA'],['#FFE4E6','#BE123C'],['#CCFBF1','#0F766E'],['#F5F5F4','#44403C'],['#FAE8FF','#A21CAF'],['#ECFCCB','#4D7C0F'],['#FFEDD5','#C2410C']];
+function applyBrandList(list){
+  const base=[{name:'POUR스토어',short:'POUR',bg:'#E3F2E8',fg:'#0B5C30'},{name:'GROHOME',short:'GRO',bg:'#FFEAD9',fg:'#C2410C'}];
+  const all=[...base]; (Array.isArray(list)?list:[]).forEach(b=>{ if(!b||!b.name) return; const i=all.findIndex(x=>x.name===b.name); if(i>=0) all[i]={...all[i],...b}; else all.push(b); });
+  BRAND_LIST=all.map(b=>b.name);
+  BRAND_STYLE={}; all.forEach((b,i)=>{ const pal=BRAND_PALETTE[i%BRAND_PALETTE.length]; BRAND_STYLE[b.name]={bg:b.bg||pal[0], fg:b.fg||pal[1], short:b.short||b.name.slice(0,4)}; });
+  try{ const v=localStorage.getItem(LS_BRAND)||''; BRAND_FILTER=BRAND_LIST.includes(v)?v:''; }catch(e){}
+}
+let BRAND_REG=[];   // 서버에 저장된 추가 브랜드(기본 2개 외 + 수정분)
+async function saveBrandReg(){ await db.collection('product-meta').doc('brands').set({list:BRAND_REG, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }
+function brandStyle(b){ return BRAND_STYLE[b]||{bg:'#EEE',fg:'#555',short:b}; }
 const LS_BRAND='pour-brand-filter';
 let PBRAND={}, PGHLINK={};
 let BRAND_FILTER=(()=>{ try{ const v=localStorage.getItem(LS_BRAND)||''; return BRAND_LIST.includes(v)?v:''; }catch(e){ return ''; } })();
@@ -5037,7 +5129,7 @@ function hasBrand(p,b){ return !b || pbrand(p).includes(b); }
 function setPbrandKey(k,list){ const l=BRAND_LIST.filter(b=>(list||[]).includes(b)); if(!l.length || (l.length===1&&l[0]===BRAND_DEFAULT)) delete PBRAND[k]; else PBRAND[k]=l; }
 function brandChips(p){ const l=pbrand(p); if(l.length===1&&l[0]===BRAND_DEFAULT) return '';   // 기본(POUR스토어 단독)은 표시 생략 — 표가 덜 붐비게
   return l.map(b=>{ const st=BRAND_STYLE[b]||{bg:'#EEE',fg:'#555',short:b}; return `<span class="bchip" style="background:${st.bg};color:${st.fg}" title="${esc(b)}">${esc(st.short)}</span>`; }).join(''); }
-async function savePbrand(){ try{ await db.collection('product-meta').doc('prod-brand').set({map:PBRAND, gh:PGHLINK, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-brand] 저장 실패', e.code||e); alert('브랜드 저장 실패: '+(e.code||e.message||e)); throw e; } }
+async function savePbrand(){ try{ await db.collection('product-meta').doc('prod-brand').set({map:PBRAND, gh:PGHLINK, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-brand] 저장 실패', e.code||e); uiToast('저장 실패(prod-brand): '+(e.code||e.message||e),'err'); alert('브랜드 저장 실패: '+(e.code||e.message||e)); throw e; } }
 function renderBrandSeg(){
   const el=$('#brandSeg'); if(!el) return;
   const live=P.filter(p=>!isDeletedProd(p) && !isPackage(p));
@@ -5046,7 +5138,7 @@ function renderBrandSeg(){
 }
 function renderAdBrands(list){
   const el=$('#adBrands'); if(!el) return;
-  el.innerHTML=BRAND_LIST.map(b=>{ const st=BRAND_STYLE[b]||{}; return `<label><input type="checkbox" value="${esc(b)}"${list.includes(b)?' checked':''}><span style="color:${st.fg||'inherit'};font-weight:700">${esc(b)}</span></label>`; }).join('');
+  el.innerHTML=BRAND_LIST.map(b=>{ const st=brandStyle(b); return `<label><input type="checkbox" value="${esc(b)}"${list.includes(b)?' checked':''}><span style="color:${st.fg||'inherit'};font-weight:700">${esc(b)}</span></label>`; }).join('');
 }
 function adBrandsValue(){ const l=$$('#adBrands input:checked').map(i=>i.value); return l.length?l:[BRAND_DEFAULT]; }
 /* ── 제품 상태 (출시 / 출시준비 / 단종) ← product-meta/prod-status {map: pKey → 상태}
@@ -5278,7 +5370,7 @@ let PKGSET={};   // pKey → 구성 문자열(RAW 제품도 구성 지정 가능
    true  = 파일값 고정 — 업로드한 채널 단가를 그대로 쓰고 사다리 자동계산을 하지 않는다
    없음  = 자동계산   — 업체단가~정가 사다리로 중간 채널을 계산한다(기본) */
 let PFIX={};
-async function savePfix(){ try{ await db.collection('product-meta').doc('price-fixed').set({map:PFIX, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[price-fixed] 저장 실패', e.code||e); alert('반영 방식 저장 실패: '+(e.code||e.message||e)); } }
+async function savePfix(){ try{ await db.collection('product-meta').doc('price-fixed').set({map:PFIX, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[price-fixed] 저장 실패', e.code||e); uiToast('저장 실패(price-fixed): '+(e.code||e.message||e),'err'); alert('반영 방식 저장 실패: '+(e.code||e.message||e)); } }
 function isFixed(p){ return !!PFIX[pKey(p)]; }
 function fixedCount(){ return Object.keys(PFIX).length; }
 async function toggleFixed(p){
@@ -5290,9 +5382,9 @@ async function toggleFixed(p){
   logAct('반영방식', `${p.name}${p.spec?' ('+p.spec+')':''}`, PFIX[k]?'파일값 고정':'자동계산');
 }
 let PTYPE={};    // pKey → '단품'|'세트' 강제 지정(분류·구성과 무관하게 유형 전환) ← product-meta/prod-type
-async function savePtype(){ try{ await db.collection('product-meta').doc('prod-type').set({map:PTYPE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-type] 저장 실패', e.code||e); } }
+async function savePtype(){ try{ await db.collection('product-meta').doc('prod-type').set({map:PTYPE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-type] 저장 실패', e.code||e); uiToast('저장 실패(prod-type): '+(e.code||e.message||e),'err'); } }
 function pkgSetItems(p){ const k=pKey(p); return (k in PKGSET)?PKGSET[k]:(p.setItems||''); }
-async function savePkgSet(){ try{ await db.collection('product-meta').doc('pkg-set').set({map:PKGSET, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[pkg-set] 저장 실패', e.code||e); } }
+async function savePkgSet(){ try{ await db.collection('product-meta').doc('pkg-set').set({map:PKGSET, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[pkg-set] 저장 실패', e.code||e); uiToast('저장 실패(pkg-set): '+(e.code||e.message||e),'err'); } }
 function parseSetItems(str){ return String(str||'').split(',').map(s=>s.trim()).filter(Boolean).map(s=>{ const m=s.match(/^(.*?)\s*[\u00D7\u2715xX*]\s*(\d+)\s*$/); return m?{name:m[1].trim(),qty:+m[2]||1}:{name:s,qty:1}; }); }
 function isPackage(p){ const t=PTYPE[pKey(p)]; if(t==='세트')return true; if(t==='단품')return false;   // 명시 전환 우선
   return p.cat==='패키지' || p.ptype==='세트' || p.type==='세트' || !!(pkgSetItems(p)&&String(pkgSetItems(p)).trim()); }
@@ -5304,7 +5396,7 @@ function pkgVbase(p){ const cs=pkgComps(p); if(!cs.length)return null; let s=0,a
 /* 매입원가 덮어쓰기 — products 컬렉션은 앱이 읽기만 하므로, 기본 제품의 원가 수정분은
    공유 문서(product-meta/prod-cost)에 저장한다. 예전엔 등록상품(docId)만 원가 수정이 가능했다. */
 let PCOST={};   // pKey → 원가
-async function saveProdCost(){ try{ await db.collection('product-meta').doc('prod-cost').set({map:PCOST, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-cost] 저장 실패', e.code||e); alert('원가 저장 실패: '+(e.code||e.message||e)); } }
+async function saveProdCost(){ try{ await db.collection('product-meta').doc('prod-cost').set({map:PCOST, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-cost] 저장 실패', e.code||e); uiToast('저장 실패(prod-cost): '+(e.code||e.message||e),'err'); alert('원가 저장 실패: '+(e.code||e.message||e)); } }
 function unitCost(p){ const k=pKey(p); return (k in PCOST)?PCOST[k]:p.cost; }
 function effCost(p){ return isPackage(p)?pkgCost(p):unitCost(p); }
 /* 단가는 출처와 무관하게 100원 단위 올림으로 내보낸다.
@@ -5316,8 +5408,8 @@ function effVb(p){ return isPackage(p)?pkgVbase(p):effVbase(pKey(p)); }
 let PORDER=[];
 function porderIdx(key){ const i=PORDER.indexOf(key); return i<0?99999:i; }
 function ensurePorder(){ P.slice().sort((a,b)=>(catOrder(a.cat)-catOrder(b.cat))||((a.seq??a.id??0)-(b.seq??b.id??0))).forEach(p=>{ const k=pKey(p); if(!PORDER.includes(k))PORDER.push(k); }); }
-async function savePorder(){ try{ await db.collection('product-meta').doc('prod-order').set({list:PORDER, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-order] 저장 실패', e.code||e); } }
-async function saveChanOrder(){ try{ await db.collection('product-meta').doc('chan-order').set({list:CHORD, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[chan-order] 저장 실패', e.code||e); } }
+async function savePorder(){ try{ await db.collection('product-meta').doc('prod-order').set({list:PORDER, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-order] 저장 실패', e.code||e); uiToast('저장 실패(prod-order): '+(e.code||e.message||e),'err'); } }
+async function saveChanOrder(){ try{ await db.collection('product-meta').doc('chan-order').set({list:CHORD, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[chan-order] 저장 실패', e.code||e); uiToast('저장 실패(chan-order): '+(e.code||e.message||e),'err'); } }
 /* 번호(No)를 고쳐 순서 바꾸기 — 적은 번호로 보내면 그 자리에 끼워지고 기존 제품들이 아래로 밀린다.
    긴 표에서 드래그로 옮기기가 어려워서 만든 길. 드래그와 같은 규칙으로 '같은 분류 안'에서만 움직인다. */
 function moveProdToKey(fromKey,toKey,after){
@@ -6596,7 +6688,8 @@ async function applyGhImport(){
    ② 금액 = 고객 결제액(VAT 포함) : POUR 금액 × 1.1
    ③ 브랜드 = 자사몰·스마트스토어는 계정(입력한 쪽)으로, 공용 계정 오픈마켓은 '제품의 브랜드'로
       (두 브랜드에 모두 걸린 제품은 POUR스토어로 — 제조 브랜드 기준) */
-const SL_BRANDS=['POUR스토어','GROHOME'];
+let SL_BRANDS=['POUR스토어','GROHOME'];   // renderSales 에서 데이터에 있는 브랜드로 다시 잡는다
+const slBCls=b=>b==='GROHOME'?'b-gro':b==='POUR스토어'?'b-pour':'';
 const SL_GROUPS=[
   {key:'own',    label:'브랜드 전용 온라인', desc:'계정이 브랜드별로 따로', online:true},
   {key:'shared', label:'공용 계정 오픈마켓', desc:'한 계정에서 두 브랜드 판매', online:true},
@@ -6693,7 +6786,8 @@ function renderSales(){
   const card=(title,list,cls)=>{ const s=slSum(list), on=slSum(list.filter(r=>SL_GROUPS.find(g=>g.key===r.grp).online)), off=slSum(list.filter(r=>r.grp==='off'));
     const share=tot.a?` · 비중 ${(s.a/tot.a*100).toFixed(1)}%`:'';
     return `<div class="card ${cls}"><h4>${title}</h4><div class="big">${val(s)}</div><div class="foot">온라인 ${val(on)} · 오프라인·B2B ${val(off)}</div><div class="foot">${s.n.toLocaleString()}건${cls?share:''}</div></div>`; };
-  $('#slCards').innerHTML=card('전체 매출',inP,'')+card('POUR스토어',inP.filter(r=>r.brand==='POUR스토어'),'b-pour')+card('GROHOME',inP.filter(r=>r.brand==='GROHOME'),'b-gro');
+  SL_BRANDS=BRAND_LIST.filter(b=>b==='POUR스토어'||b==='GROHOME'||SL.rows.some(r=>r.brand===b));
+  $('#slCards').innerHTML=card('전체 매출',inP,'')+SL_BRANDS.map(b=>card(b,inP.filter(r=>r.brand===b),slBCls(b)||'b-x')).join('');
   // 채널 매트릭스
   const cell=(list,max)=>{ const s=slSum(list); if(!s.n) return '<td class="num dim">—</td>';
     const v=unit==='qty'?s.q:s.a, w=max?Math.max(2,Math.round(Math.abs(v)/max*100)):0;
@@ -6703,7 +6797,7 @@ function renderSales(){
   let maxCell=0; chans.forEach(c=>SL_BRANDS.forEach(b=>{ maxCell=Math.max(maxCell,Math.abs(pickV(inP.filter(r=>r.ch===c&&r.brand===b)))); }));
   const totV=pickV(inP);
   const shareTd=l=>{ const v=pickV(l); return `<td class="num dim">${totV?(v/totV*100).toFixed(1)+'%':'—'}</td>`; };
-  let h=`<thead><tr><th style="text-align:left;min-width:120px">구분</th><th style="text-align:left;min-width:110px">채널</th>${SL_BRANDS.map(b=>`<th class="num ${b==='GROHOME'?'b-gro':'b-pour'}" style="min-width:120px">${esc(b)}</th>`).join('')}<th class="num" style="min-width:120px">합계</th><th class="num">비중</th></tr></thead><tbody>`;
+  let h=`<thead><tr><th style="text-align:left;min-width:120px">구분</th><th style="text-align:left;min-width:110px">채널</th>${SL_BRANDS.map(b=>`<th class="num ${slBCls(b)}" style="min-width:120px">${esc(b)}</th>`).join('')}<th class="num" style="min-width:120px">합계</th><th class="num">비중</th></tr></thead><tbody>`;
   const csv=[['구분','채널',...SL_BRANDS.flatMap(b=>[b+' 금액',b+' 수량',b+' 건수']),'합계 금액','합계 수량','합계 건수']];
   const csvRow=(g,c,l)=>{ const r=[g,c]; SL_BRANDS.forEach(b=>{ const s=slSum(l.filter(x=>x.brand===b)); r.push(s.a,s.q,s.n); }); const s=slSum(l); r.push(s.a,s.q,s.n); csv.push(r); };
   const subRow=(label,l,cls)=>`<tr class="${cls}"><td colspan="2">${label}</td>${SL_BRANDS.map(b=>cell(l.filter(r=>r.brand===b),0)).join('')}${cell(l,0)}${shareTd(l)}</tr>`;
@@ -6725,12 +6819,12 @@ function renderSales(){
   SL.csv=csv;
   // 월별 추이 (기간 무관 · 올해+작년 전체)
   const months=[...new Set(SL.rows.filter(r=>r.date).map(r=>r.date.slice(0,7)))].sort().reverse().slice(0,12);
-  const mcols=[['POUR스토어',true],['POUR스토어',false],['GROHOME',true],['GROHOME',false]];
-  let mh=`<thead><tr><th style="text-align:left">월</th>${mcols.map(([b,on])=>`<th class="num ${b==='GROHOME'?'b-gro':'b-pour'}" style="min-width:110px">${esc(b)}<br>${on?'온라인':'오프라인·B2B'}</th>`).join('')}<th class="num b-pour" style="min-width:110px">POUR스토어<br>계</th><th class="num b-gro" style="min-width:110px">GROHOME<br>계</th><th class="num" style="min-width:120px">합계</th></tr></thead><tbody>`;
+  const mcols=SL_BRANDS.flatMap(b=>[[b,true],[b,false]]);
+  let mh=`<thead><tr><th style="text-align:left">월</th>${mcols.map(([b,on])=>`<th class="num ${slBCls(b)}" style="min-width:110px">${esc(b)}<br>${on?'온라인':'오프라인·B2B'}</th>`).join('')}${SL_BRANDS.map(b=>`<th class="num ${slBCls(b)}" style="min-width:110px">${esc(b)}<br>계</th>`).join('')}<th class="num" style="min-width:120px">합계</th></tr></thead><tbody>`;
   months.forEach(mo=>{ const l=SL.rows.filter(r=>r.date&&r.date.slice(0,7)===mo);
     const part=(b,on)=>l.filter(r=>r.brand===b && (on?r.grp!=='off':r.grp==='off'));
     const partial = mo===today.slice(0,7) ? ' <span class="pill a">진행 중</span>' : '';
-    mh+=`<tr><td>${mo}${partial}</td>${mcols.map(([b,on])=>cell(part(b,on),0)).join('')}${cell(l.filter(r=>r.brand==='POUR스토어'),0)}${cell(l.filter(r=>r.brand==='GROHOME'),0)}${cell(l,0)}</tr>`; });
+    mh+=`<tr><td>${mo}${partial}</td>${mcols.map(([b,on])=>cell(part(b,on),0)).join('')}${SL_BRANDS.map(b=>cell(l.filter(r=>r.brand===b),0)).join('')}${cell(l,0)}</tr>`; });
   $('#slMonthly').innerHTML=mh+'</tbody>';
   // 기준·점검
   const moved=inP.filter(r=>r.brand!==r.src);
@@ -7201,9 +7295,9 @@ wireImportModal();
 wireCatMgr();
 wireDnd();
 wireColDnd();
-async function saveVendorPrices(){ try{ await db.collection('product-meta').doc('vendor-prices').set({map:VBASE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[vendor-prices] 저장 실패', e.code||e); } }
-async function saveRetailPrices(){ try{ await db.collection('product-meta').doc('retail-prices').set({map:VRETAIL, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[retail-prices] 저장 실패', e.code||e); } }
-async function saveChannelMarkup(){ try{ await db.collection('product-meta').doc('channel-markup').set({coeff:VCOEFF, auto:VAUTO, est:VEST, ladBase:LAD_BASE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[channel-markup] 저장 실패', e.code||e); } }
+async function saveVendorPrices(){ try{ await db.collection('product-meta').doc('vendor-prices').set({map:VBASE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[vendor-prices] 저장 실패', e.code||e); uiToast('저장 실패(vendor-prices): '+(e.code||e.message||e),'err'); } }
+async function saveRetailPrices(){ try{ await db.collection('product-meta').doc('retail-prices').set({map:VRETAIL, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[retail-prices] 저장 실패', e.code||e); uiToast('저장 실패(retail-prices): '+(e.code||e.message||e),'err'); } }
+async function saveChannelMarkup(){ try{ await db.collection('product-meta').doc('channel-markup').set({coeff:VCOEFF, auto:VAUTO, est:VEST, ladBase:LAD_BASE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[channel-markup] 저장 실패', e.code||e); uiToast('저장 실패(channel-markup): '+(e.code||e.message||e),'err'); } }
 async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('vendor-prices').get(); if(d.exists&&d.data().map) VBASE=d.data().map; }catch(e){ console.warn('[vendor-prices] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('retail-prices').get(); if(d.exists&&d.data().map) VRETAIL=d.data().map; }catch(e){ console.warn('[retail-prices] 로드 실패', e.code||e); }
@@ -7228,6 +7322,7 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('prod-code').get(); PCODE=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; PCODE_RULE=(d.exists&&d.data().rule)||''; PCODE_LOADED=true; console.log(`[prod-code] 자체상품코드 ${Object.keys(PCODE).length}개`); }catch(e){ console.warn('[prod-code] 로드 실패 — 자동 부여 보류', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-3pl').get(); P3PL=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-3pl] 3PL 코드 ${Object.keys(P3PL).length}개`); }catch(e){ console.warn('[prod-3pl] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-brand').get(); if(d.exists){ const x=d.data()||{}; if(x.map&&typeof x.map==='object') PBRAND=x.map; if(x.gh&&typeof x.gh==='object') PGHLINK=x.gh; } console.log(`[prod-brand] 브랜드 지정 ${Object.keys(PBRAND).length}건 · 그로홈 연결 ${Object.keys(PGHLINK).length}건`); }catch(e){ console.warn('[prod-brand] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('brands').get(); BRAND_REG=(d.exists&&Array.isArray(d.data().list))?d.data().list:[]; applyBrandList(BRAND_REG); console.log(`[brands] 브랜드 ${BRAND_LIST.length}개`); }catch(e){ console.warn('[brands] 로드 실패 — 기본 2개로', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-status').get(); PSTATUS=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-status] 상태 지정 ${Object.keys(PSTATUS).length}건`); }catch(e){ console.warn('[prod-status] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('promo-plans').get(); PRPLAN=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[promo-plans] 프로모션 설계 ${Object.keys(PRPLAN).length}건`); }catch(e){ console.warn('[promo-plans] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('launch-plans').get(); LPLAN=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[launch-plans] 신제품 검토 ${Object.keys(LPLAN).length}건`); }catch(e){ console.warn('[launch-plans] 로드 실패', e.code||e); }
@@ -7255,7 +7350,7 @@ const ovrKey=(p,uid)=>pKey(p)+'|'+uid;
 let PTODO={};   // 적용본
 let DTODO={};   // 개정안 (true=미정으로, false=미정 해제)
 const todoKey=(p,uid)=>pKey(p)+'|'+uid;
-async function saveTodo(){ try{ await db.collection('product-meta').doc('price-todo').set({map:PTODO, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[price-todo] 저장 실패', e.code||e); } }
+async function saveTodo(){ try{ await db.collection('product-meta').doc('price-todo').set({map:PTODO, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[price-todo] 저장 실패', e.code||e); uiToast('저장 실패(price-todo): '+(e.code||e.message||e),'err'); } }
 function effTodo(k){ return (PREVIEW && (k in DTODO)) ? !!DTODO[k] : !!PTODO[k]; }
 function isTodo(p,uid){ return effTodo(todoKey(p,uid)); }
 function isTodoDraft(p,uid){ return PREVIEW && (todoKey(p,uid) in DTODO); }
@@ -7265,7 +7360,7 @@ function draftSetTodo(p,uid,on){
   DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft();
 }
 function todoCount(){ return Object.keys(PTODO).length; }
-async function saveOverrides(){ try{ await db.collection('product-meta').doc('price-overrides').set({map:POVR, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[price-overrides] 저장 실패', e.code||e); } }
+async function saveOverrides(){ try{ await db.collection('product-meta').doc('price-overrides').set({map:POVR, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[price-overrides] 저장 실패', e.code||e); uiToast('저장 실패(price-overrides): '+(e.code||e.message||e),'err'); } }
 function effOvr(k){ return (PREVIEW && (k in DPOVR)) ? DPOVR[k] : POVR[k]; }
 function hasOvr(p,uid){ const k=ovrKey(p,uid); return effOvr(k)!=null; }
 function isOvrDraft(p,uid){ return PREVIEW && (ovrKey(p,uid) in DPOVR); }
@@ -7675,7 +7770,7 @@ async function savePMeta(){
   try{ await db.collection('product-meta').doc('all').set({[pKey(p)]:PMETA[pKey(p)]},{merge:true}); pvToast('저장됨 ✓'); }
   catch(e){ pvToast('저장 실패: '+(e.code||e.message||e)); }
 }
-function pvToast(t){ const b=$('#pvSave'); if(b){ const o=b.textContent; b.textContent=t; setTimeout(()=>b.textContent=o,1400);} }
+function pvToast(t){ uiToast(t, /실패/.test(t)?'err':'ok'); }
 
 /* ══════════ 신제품 검토 (출시준비) ══════════
    product-meta/launch-plans {map: pKey → plan}  — 입력하면 1초 뒤 자동 저장
@@ -7871,8 +7966,8 @@ function laQueueSave(){
   _laTimer=setTimeout(async()=>{
     try{ const pl={...LPLAN[k], updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''};
       await db.collection('product-meta').doc('launch-plans').set({map:{[k]:pl}},{merge:true});
-      $('#laSaved').textContent='저장됨 ✓ '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-    }catch(e){ console.error('[launch-plans] 저장 실패', e); $('#laSaved').innerHTML=`<span style="color:var(--red)">저장 실패: ${esc(e.code||e.message||e)}</span>`; }
+      $('#laSaved').textContent='저장됨 ✓ '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}); uiSaved('신제품 검토');
+    }catch(e){ console.error('[launch-plans] 저장 실패', e); uiToast('신제품 검토 저장 실패: '+(e.code||e.message||e),'err'); $('#laSaved').innerHTML=`<span style="color:var(--red)">저장 실패: ${esc(e.code||e.message||e)}</span>`; }
   }, 900);
 }
 (function bindLaunch(){
@@ -8054,8 +8149,8 @@ function prQueueSave(){
   const k=PR_KEY; $('#prSaved').textContent='저장 대기…'; clearTimeout(_prTimer);
   _prTimer=setTimeout(async()=>{
     try{ await db.collection('product-meta').doc('promo-plans').set({map:{[k]:{...PRPLAN[k],updatedAt:new Date().toISOString(),updatedBy:(curUser&&curUser.email)||''}}},{merge:true});
-      $('#prSaved').textContent='저장됨 ✓ '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}); }
-    catch(e){ console.error('[promo-plans] 저장 실패', e); $('#prSaved').innerHTML=`<span style="color:var(--red)">저장 실패: ${esc(e.code||e.message||e)}</span>`; }
+      $('#prSaved').textContent='저장됨 ✓ '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}); uiSaved('프로모션 설계'); }
+    catch(e){ console.error('[promo-plans] 저장 실패', e); uiToast('프로모션 설계 저장 실패: '+(e.code||e.message||e),'err'); $('#prSaved').innerHTML=`<span style="color:var(--red)">저장 실패: ${esc(e.code||e.message||e)}</span>`; }
   },900);
 }
 /* 다른 시트(유통기한 등)에서 제품·재고를 넘겨 받아 연다 */
@@ -8239,9 +8334,9 @@ async function renderExpiry(){
     if(!confirm(`POUR스토어 재고 ${lots.length}개 로트로 공용 DB의 POUR 재고를 바꿉니다.${skipped?`\n(읽지 못한 줄 ${skipped}개는 건너뜀)`:''}`)) return;
     try{ await centralDB().collection('expiryLots').doc('pour').set({brand:'POUR스토어', source:'pourstore-pricing-dashboard', updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||'',
         lots:lots.map(l=>({code:l.code,name:l.name,qty:l.qty,expiry:l.expiry||'',rawExpiry:l.rawExpiry||''}))});
-      logAct('유통기한', 'POUR스토어 재고 붙여넣기', `${lots.length}개 로트`);
+      logAct('유통기한', 'POUR스토어 재고 붙여넣기', `${lots.length}개 로트`); uiToast(`POUR스토어 재고 ${lots.length}개 로트 저장됨`,'ok');
       $('#exPasteText').value=''; $('#exPastePanel').style.display='none'; EX.lots=null; await renderExpiry();
-    }catch(e){ console.error('[expiryLots/pour] 저장 실패', e); $('#exPasteMsg').innerHTML=`<span style="color:var(--red)">저장 실패: ${esc(e.code||e.message||e)}</span>`; }
+    }catch(e){ console.error('[expiryLots/pour] 저장 실패', e); uiToast('재고 저장 실패: '+(e.code||e.message||e),'err'); $('#exPasteMsg').innerHTML=`<span style="color:var(--red)">저장 실패: ${esc(e.code||e.message||e)}</span>`; }
   });
   body.addEventListener('click',e=>{
     if(e.target.id==='exRetry'){ EX.err=''; EX.lots=null; renderExpiry(); return; }
@@ -8379,8 +8474,8 @@ async function pmSave(asNew){
   const btn=$('#pmSave'); btn.disabled=true;
   try{ await db.collection('product-meta').doc('promo-calc').set({map:{[id]:plan}},{merge:true});
     PM.plans[id]=plan; PM.planId=id; logAct('프로모션계산기', title, prev?'수정 저장':'새로 저장');
-    $('#pmMsg').innerHTML=`<span class="pos">${prev?'수정본으로 저장':'저장'}됨 ✓ ${esc(by.split('@')[0])}</span>`; pmRenderSaved(); }
-  catch(e){ console.error('[promo-calc] 저장 실패', e); $('#pmMsg').innerHTML=`<span class="neg">저장 실패: ${esc(e.code||e.message||e)}</span>`; }
+    $('#pmMsg').innerHTML=`<span class="pos">${prev?'수정본으로 저장':'저장'}됨 ✓ ${esc(by.split('@')[0])}</span>`; uiToast(`기획안 ${prev?'수정본으로 ':''}저장됨 · ${by.split('@')[0]}`,'ok'); pmRenderSaved(); }
+  catch(e){ console.error('[promo-calc] 저장 실패', e); uiToast('기획안 저장 실패: '+(e.code||e.message||e),'err'); $('#pmMsg').innerHTML=`<span class="neg">저장 실패: ${esc(e.code||e.message||e)}</span>`; }
   finally{ btn.disabled=false; }
 }
 function pmSetProduct(key){

@@ -351,24 +351,44 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
   display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:2;
 }
 #calcPanel .hd button{background:transparent;border:0;color:#fff;font-size:16px}
-#calcPanel .mode{display:flex;border-bottom:1px solid var(--xl-grid)}
-#calcPanel .mode button{
-  flex:1;border:0;background:var(--xl-head);padding:9px 4px;font-size:12px;color:var(--ink-soft);
-  border-right:1px solid var(--xl-grid);
-}
-#calcPanel .mode button:last-child{border-right:0}
-#calcPanel .mode button.on{background:#fff;color:var(--xl-green-dark);font-weight:700;box-shadow:inset 0 -2.5px 0 var(--xl-green)}
-#calcPanel .bd{padding:14px}
-#calcPanel .res{
-  margin-top:12px;border:1px solid var(--xl-grid);border-radius:5px;overflow:hidden;
-}
-#calcPanel .res .row{
-  display:flex;justify-content:space-between;padding:8px 12px;font-size:12.5px;
-  border-bottom:1px solid var(--xl-grid);font-variant-numeric:tabular-nums;
-}
-#calcPanel .res .row:last-child{border-bottom:0}
-#calcPanel .res .row.hl{background:var(--xl-sel);font-weight:800;font-size:14px}
-#calcPanel .res .row .neg{color:var(--red)}
+#calcPanel .bd{padding:14px 16px}
+#calcPanel .qc-in{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#calcPanel .qc-in3{grid-template-columns:1fr 1fr 1fr;margin-top:10px}
+#calcPanel .qc-wide{grid-column:1/-1}
+#calcPanel .qc-f{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--ink-soft);font-weight:600}
+#calcPanel .qc-f em{font-style:normal;font-weight:400;color:var(--ink-faint)}
+#calcPanel .qc-f input,#calcPanel .qc-f select{border:1px solid #E2E8F0;border-radius:8px;padding:9px 10px;font-size:14px;width:100%;background:#fff;font-variant-numeric:tabular-nums}
+#calcPanel .qc-empty{margin-top:14px;padding:14px;border-radius:12px;background:#F8FAFC;color:var(--ink-soft);font-size:12.5px;text-align:center}
+#calcPanel .qc-hero{margin-top:14px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#ECFDF3,#E3F2E8)}
+#calcPanel .qc-lb{font-size:12px;color:#0B5C30;font-weight:700}
+#calcPanel .qc-lb em{font-style:normal;font-weight:500;opacity:.75;margin-left:4px}
+#calcPanel .qc-price{display:flex;align-items:baseline;gap:4px;margin-top:4px}
+#calcPanel .qc-price input{border:0;border-bottom:2px dashed rgba(11,92,48,.35);background:transparent;font-size:28px;font-weight:800;color:#0B5C30;width:170px;padding:0;font-variant-numeric:tabular-nums}
+#calcPanel .qc-price input:focus{outline:0;border-bottom-color:#0B5C30}
+#calcPanel .qc-price span{font-size:15px;font-weight:700;color:#0B5C30}
+#calcPanel .qc-cur{font-size:11.5px;color:var(--ink-soft);margin-top:6px}
+#calcPanel .qc-link{border:0;background:none;color:var(--blue);font-size:11.5px;text-decoration:underline;padding:0 0 0 6px}
+#calcPanel .qc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+#calcPanel .qc-grid>div{background:#F8FAFC;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+#calcPanel .qc-grid span{font-size:11px;color:var(--ink-soft);font-weight:600}
+#calcPanel .qc-grid span em{font-style:normal;font-weight:400;color:var(--ink-faint)}
+#calcPanel .qc-grid b{font-size:17px;font-variant-numeric:tabular-nums}
+#calcPanel .qc-grid small{font-size:10.5px;color:var(--ink-faint);line-height:1.45}
+#calcPanel .qc-grid small b{font-size:10.5px}
+#calcPanel .qc-grid .qc-hl{grid-column:1/-1;background:#EFF6FF}
+#calcPanel .qc-grid .qc-hl b{font-size:22px;color:#1E40AF}
+#calcPanel .pos{color:var(--xl-green-dark)} #calcPanel .neg{color:var(--red)}
+#calcPanel .qc-sec{margin-top:16px;padding-top:14px;border-top:1px solid #EEF0F3}
+#calcPanel .qc-st{font-size:13px;font-weight:800}
+#calcPanel .qc-st em{font-style:normal;font-weight:500;font-size:11.5px;color:var(--ink-faint);margin-left:4px}
+#calcPanel .qc-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+#calcPanel .qc-chips button{border:1px solid #E2E8F0;background:#fff;border-radius:20px;padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
+#calcPanel .qc-chips button.on{background:var(--xl-green);border-color:var(--xl-green);color:#fff}
+#calcPanel .qc-adv{margin-top:16px;border-top:1px solid #EEF0F3;padding-top:12px}
+#calcPanel .qc-adv summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
+#calcPanel .qc-adv summary span{display:block;font-weight:400;font-size:11px;color:var(--ink-faint);margin-top:3px}
+#calcPanel .qc-row2{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+@media(max-width:640px){ #calcPanel .qc-in3{grid-template-columns:1fr 1fr} #calcPanel .qc-f input,#calcPanel .qc-f select{font-size:16px} }
 #calcPanel .note{font-size:10.5px;color:var(--ink-faint);margin-top:8px;line-height:1.5}
 
 .footnote{font-size:11px;color:var(--ink-faint);line-height:1.6;margin-top:10px}
@@ -731,7 +751,7 @@ body:has(#calcPanel.open) #calcFab{display:none}   /* 계산기를 열면 버튼
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24i</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24j</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1615,26 +1635,32 @@ body:has(#calcPanel.open) #calcFab{display:none}   /* 계산기를 열면 버튼
 <!-- ═══ 퀵 마진 계산기 ═══ -->
 <button id="calcFab"><span class="sym">fx</span> 마진계산기</button>
 <div id="calcPanel">
-  <div class="hd">퀵 마진 계산기 — 업체 협의용 <button id="calcClose">✕</button></div>
-  <div class="mode" id="calcMode">
-    <button data-m="fwd" class="on">공급가 → 마진</button>
-    <button data-m="rev">목표마진율 → 공급가</button>
-    <button data-m="split">이익 배분 점검</button>
-  </div>
+  <div class="hd">퀵 마진 계산기 <button id="calcClose">✕</button></div>
   <div class="bd">
-    <div class="formgrid" style="grid-template-columns:1fr 1fr">
-      <div class="fld"><label>제품 불러오기 (선택)</label>
-        <select id="calcProd" style="grid-column:1/-1"><option value="">직접 입력</option></select>
-      </div>
-      <div class="fld"><label>매입원가 (원/개)</label><input type="number" id="cCost" placeholder="예: 60000"></div>
-      <div class="fld" id="fldPrice"><label>공급가 (원/개)</label><input type="number" id="cPrice" placeholder="예: 145700"></div>
-      <div class="fld" id="fldTarget" style="display:none"><label>목표 마진율 (%)</label><input type="number" id="cTarget" value="35" step="0.5"></div>
-      <div class="fld" id="fldRetail" style="display:none"><label>소비자 정가 (원/개)</label><input type="number" id="cRetail" placeholder="예: 177500"></div>
-      <div class="fld"><label>수량 (개)</label><input type="number" id="cQty" value="1" min="1"></div>
-      <div class="fld"><label>수수료·기타 변동비 (%)</label><input type="number" id="cFee" value="0" step="0.1"></div>
+    <div class="qc-in">
+      <label class="qc-f qc-wide"><span>제품 불러오기 <em>(선택)</em></span><select id="calcProd"><option value="">직접 입력</option></select></label>
+      <label class="qc-f"><span>개당 원가</span><input type="number" id="cCost" inputmode="numeric" placeholder="예: 8000"></label>
+      <label class="qc-f"><span>수량 (MOQ)</span><input type="number" id="cQty" inputmode="numeric" placeholder="예: 1000"></label>
     </div>
-    <div class="res" id="calcRes"></div>
-    <p class="note">마진율 = 마진 ÷ 공급가(매출) 기준. 협상 중 상대 화면에 바로 보여주며 쓸 수 있습니다.</p>
+    <div id="calcRes"></div>
+    <div class="qc-sec">
+      <div class="qc-st">이익 배분 <em>우리 : 파트너(대리점·유통사)</em></div>
+      <div class="qc-chips" id="qcSplit"></div>
+      <div id="qcSplitOut"></div>
+    </div>
+    <details class="qc-adv" id="qcAdv">
+      <summary>자동으로 넣은 부대비용 <span id="qcAdvSum"></span></summary>
+      <div class="qc-in qc-in3">
+        <label class="qc-f"><span>목표 마진율 %</span><input type="number" id="qcTarget" step="1"></label>
+        <label class="qc-f"><span>판매 수수료+PG %</span><input type="number" id="qcFee" step="0.1"></label>
+        <label class="qc-f"><span>광고비 %</span><input type="number" id="qcAd" step="0.5"></label>
+        <label class="qc-f"><span>물류·보관 (원가의 %)</span><input type="number" id="qcLogi" step="0.5"></label>
+        <label class="qc-f"><span>택배비 (개당)</span><input type="number" id="qcDeli" step="100"></label>
+        <label class="qc-f"><span>포장비 (개당)</span><input type="number" id="qcPack" step="50"></label>
+      </div>
+      <div class="qc-row2"><button class="tbtn" id="qcSaveDef">이 값을 기본값으로 저장</button><button class="tbtn" id="qcResetDef">처음 값으로</button></div>
+      <p class="note">· 판매가는 VAT 포함 소비자가, 원가·비용은 VAT 제외로 계산합니다(순매출 = 판매가 ÷ 1.1).<br>· 수수료 기본값 = [채널 관리]에 입력된 채널 수수료 평균. 기본값은 이 기기에 저장됩니다.</p>
+    </details>
   </div>
 </div>
 
@@ -3956,66 +3982,74 @@ $('#pvSel')&&$('#pvSel').addEventListener('change',e=>{ const p=pvProduct(); if(
 $('#pvSave')&&$('#pvSave').addEventListener('click',savePMeta);
 
 /* ══════════ 퀵 마진 계산기 ══════════ */
-let calcM='fwd';
-$('#calcFab').addEventListener('click',()=>$('#calcPanel').classList.toggle('open'));
+/* ══════════ 퀵 마진 계산기 (한 화면) ══════════
+   원가·수량만 넣으면 부대비용을 기본값으로 채워 예상 판매가·이익을 바로 보여준다.
+   · 예상 판매가(VAT 포함) = (원가+물류+택배+포장) ÷ ((1−목표마진)/1.1 − 수수료 − 광고비), 100원 올림
+   · 판매가를 직접 넣으면 그 가격 기준으로 이익을 계산(자동값으로 되돌리기 가능)
+   · 이익 배분: 개당 이익(전체 몫)을 고른 비율로 나눠 파트너 공급가(VAT 별도)를 계산 — 저장·수정하는 데이터 없음 */
+const QC_LS='pour-quickcalc-def', QC_BASE={target:30, fee:null, ad:5, logi:5, deli:3500, pack:0};
+const QC_SPLITS=[80,70,60,50,40];
+let QC_SPLIT=70, QC_PRICE=null;   // QC_PRICE: 직접 입력한 판매가(없으면 자동)
+function qcAvgFee(){ const f=COLS().map(c=>+((CH_VAR_DEFAULT[c.code]||{}).fee)||0).filter(x=>x>0); return f.length?Math.round(f.reduce((a,b)=>a+b,0)/f.length*10)/10:10; }
+function qcDefaults(){ let d={}; try{ d=JSON.parse(localStorage.getItem(QC_LS)||'{}')||{}; }catch(e){} const o={...QC_BASE,...d}; if(o.fee==null) o.fee=qcAvgFee(); return o; }
+function qcFill(o){ $('#qcTarget').value=o.target; $('#qcFee').value=o.fee; $('#qcAd').value=o.ad; $('#qcLogi').value=o.logi; $('#qcDeli').value=o.deli; $('#qcPack').value=o.pack; }
+function qcVals(){ const n=id=>+$('#'+id).value||0; return {target:n('qcTarget'),fee:n('qcFee'),ad:n('qcAd'),logi:n('qcLogi'),deli:n('qcDeli'),pack:n('qcPack')}; }
+qcFill(qcDefaults());
+$('#qcSplit').innerHTML=QC_SPLITS.map(v=>`<button data-sp="${v}" class="${v===QC_SPLIT?'on':''}">${v} : ${100-v}</button>`).join('');
+$('#calcFab').addEventListener('click',()=>{ const on=$('#calcPanel').classList.toggle('open'); if(on){ const d=qcDefaults(); if(!$('#qcFee').value) qcFill(d); runCalc(); } });
 $('#calcClose').addEventListener('click',()=>$('#calcPanel').classList.remove('open'));
-$('#calcMode').addEventListener('click',e=>{
-  const b=e.target.closest('button'); if(!b)return;
-  $$('#calcMode button').forEach(x=>x.classList.toggle('on',x===b));
-  calcM=b.dataset.m;
-  $('#fldPrice').style.display = calcM==='rev'?'none':'';
-  $('#fldTarget').style.display = calcM==='rev'?'':'none';
-  $('#fldRetail').style.display = calcM==='split'?'':'none';
-  runCalc();
-});
 $('#calcProd').addEventListener('change',()=>{
-  const v=$('#calcProd').value; if(v==='')return;
-  const p=P[+v];
-  $('#cCost').value=p.cost??'';
-  $('#cPrice').value=gp(p,dealerUid())??gp(p,retailUid())??'';
-  $('#cRetail').value=gp(p,retailUid())??'';
+  const v=$('#calcProd').value; QC_PRICE=null;
+  const p=v===''?null:P.find(x=>String(x.id)===v);
+  if(p){ $('#cCost').value=p.cost??''; }
   runCalc();
 });
-['#cCost','#cPrice','#cTarget','#cRetail','#cQty','#cFee'].forEach(s=>$(s).addEventListener('input',runCalc));
-function runCalc(){
-  const cost=+$('#cCost').value||0, qty=Math.max(1,+$('#cQty').value||1), fee=(+$('#cFee').value||0)/100;
-  let rows=[];
-  if(calcM==='fwd'){
-    const price=+$('#cPrice').value||0;
-    const feeAmt=price*fee, m=price-feeAmt-cost, r=price?m/price:0;
-    rows=[
-      ['공급가(매출) / 개', wonU(price)],
-      ['수수료·변동비 / 개', '− '+wonU(feeAmt)],
-      ['매입원가 / 개', '− '+wonU(cost)],
-      ['개당 마진', wonU(m), m<0],
-      ['마진율', pct(r), m<0],
-      [qty+'개 총마진', wonU(m*qty), m<0, true],
-      ['원가율', pct(price?cost/price:0)]
-    ];
-  }else if(calcM==='rev'){
-    const tr=(+$('#cTarget').value||0)/100;
-    const denom=1-tr-fee;
-    const need=denom>0?cost/denom:null;
-    const m=need!=null?need*tr:null;
-    rows=[
-      ['매입원가 / 개', wonU(cost)],
-      ['목표 마진율', pct(tr)+(fee?` (+수수료 ${pct(fee)})`:'')],
-      ['필요 공급가 / 개', need==null?'계산 불가 (마진율+수수료 ≥ 100%)':wonU(Math.ceil(need/10)*10), false, true],
-      ['확보 마진 / 개', wonU(m)],
-      [qty+'개 총마진', wonU(m!=null?m*qty:null)]
-    ];
-  }else{
-    const price=+$('#cPrice').value||0, retail=+$('#cRetail').value||0;
-    const pm=price*(1-fee)-cost, bm=retail-price;
-    rows=[
-      ['매입원가 → 공급가 → 정가', `${won(cost)} → ${won(price)} → ${won(retail)}`],
-      ['POUR 마진 / 개', wonU(pm)+' ('+pct(price?pm/price:0)+')', pm<0],
-      ['공급받는이 마진 / 개', wonU(bm)+' ('+pct(retail?bm/retail:0)+')', bm<0],
-      ['이익 배분 (POUR : 채널)', (pm+bm)>0?`${Math.round(pm/(pm+bm)*100)}% : ${100-Math.round(pm/(pm+bm)*100)}%`:'—', false, true],
-      [qty+'개 기준 POUR 총마진', wonU(pm*qty), pm<0]
-    ];
+['#cCost','#cQty','#qcTarget','#qcFee','#qcAd','#qcLogi','#qcDeli','#qcPack'].forEach(s=>$(s).addEventListener('input',()=>{ if(s==='#qcTarget') QC_PRICE=null; runCalc(); }));
+$('#qcSplit').addEventListener('click',e=>{ const b=e.target.closest('[data-sp]'); if(!b) return; QC_SPLIT=+b.dataset.sp; $$('#qcSplit button').forEach(x=>x.classList.toggle('on',x===b)); runCalc(); });
+$('#qcSaveDef').addEventListener('click',()=>{ try{ localStorage.setItem(QC_LS,JSON.stringify(qcVals())); $('#qcSaveDef').textContent='저장됨 ✓'; setTimeout(()=>$('#qcSaveDef').textContent='이 값을 기본값으로 저장',1400); }catch(e){ alert('저장 실패: '+e.message); } });
+$('#qcResetDef').addEventListener('click',()=>{ try{ localStorage.removeItem(QC_LS); }catch(e){} qcFill(qcDefaults()); QC_PRICE=null; runCalc(); });
+$('#calcRes').addEventListener('input',e=>{ if(e.target.id==='qcPrice'){ const v=+e.target.value; QC_PRICE=v>0?v:null; runCalc(true); } });
+$('#calcRes').addEventListener('change',e=>{ if(e.target.id==='qcPrice') runCalc(); });   // 입력을 마치면 '직접 입력' 표시·자동값 버튼으로 다시 그림
+$('#calcRes').addEventListener('click',e=>{
+  if(e.target.id==='qcAuto'){ QC_PRICE=null; runCalc(); }
+  const r=e.target.closest('[data-useprice]'); if(r){ QC_PRICE=+r.dataset.useprice; runCalc(); }
+});
+function runCalc(keepFocus){
+  const out=$('#calcRes'); if(!out) return;
+  const cost=+$('#cCost').value||0, qty=Math.max(0,+$('#cQty').value||0), o=qcVals();
+  const logi=cost*o.logi/100, unitCost=cost+logi+o.deli+o.pack, f=o.fee/100, ad=o.ad/100, tgt=o.target/100, k=1/1.1;
+  const d=(1-tgt)*k-f-ad, auto=(cost>0&&d>0)?Math.ceil(unitCost/d/100)*100:null;
+  const price=QC_PRICE!=null?QC_PRICE:auto;
+  $('#qcAdvSum').textContent=`수수료 ${o.fee}% · 광고 ${o.ad}% · 물류 ${o.logi}% · 택배 ${won(o.deli)}원 · 목표 ${o.target}%`;
+  const p=$('#calcProd').value===''?null:P.find(x=>String(x.id)===$('#calcProd').value), cur=p?retailOf(p):null;
+  if(!(cost>0)){ out.innerHTML='<div class="qc-empty">개당 원가를 넣으면 바로 계산합니다.</div>'; $('#qcSplitOut').innerHTML=''; return; }
+  if(price==null){ out.innerHTML='<div class="qc-empty" style="color:var(--red)">목표 마진율 + 수수료 + 광고비가 너무 커서 판매가를 계산할 수 없습니다. 아래 부대비용을 낮춰 주세요.</div>'; $('#qcSplitOut').innerHTML=''; return; }
+  const net=price*k, feeAmt=price*(f+ad), profit=net-feeAmt-unitCost, rate=net?profit/net:0;
+  const pf=document.activeElement&&document.activeElement.id==='qcPrice';
+  const priceBox=`<input id="qcPrice" type="number" inputmode="numeric" value="${price}" title="직접 고치면 그 가격으로 계산합니다">`;
+  if(!(keepFocus&&pf)){
+    out.innerHTML=`
+      <div class="qc-hero">
+        <div class="qc-lb">${QC_PRICE!=null?'판매가 (직접 입력)':`예상 판매가 <em>목표 마진 ${o.target}%</em>`}</div>
+        <div class="qc-price">${priceBox}<span>원</span>${QC_PRICE!=null?'<button id="qcAuto" class="qc-link">자동값으로</button>':''}</div>
+        ${cur?`<div class="qc-cur">현재 정가 ${won(cur)}원 <button class="qc-link" data-useprice="${cur}">이 가격으로 보기</button></div>`:''}
+      </div>
+      <div class="qc-grid" id="qcNums"></div>`;
   }
-  $('#calcRes').innerHTML=rows.map(r=>`<div class="row ${r[3]?'hl':''}"><span>${r[0]}</span><span class="${r[2]?'neg':''}">${r[1]}</span></div>`).join('');
+  $('#qcNums').innerHTML=`
+      <div><span>개당 이익</span><b class="${profit<0?'neg':'pos'}">${wonU(profit)}</b></div>
+      <div><span>마진율</span><b class="${profit<0?'neg':''}">${pct(rate)}</b></div>
+      <div><span>개당 비용</span><b>${wonU(unitCost+feeAmt)}</b><small>원가 ${won(cost)} + 물류 ${won(logi)} + 택배 ${won(o.deli)}${o.pack?' + 포장 '+won(o.pack):''} + 수수료·광고 ${won(feeAmt)}</small></div>
+      <div><span>${qty>0?`${won(qty)}개 다 팔면`:'수량을 넣으면 총액'}</span><b>${qty>0?wonU(price*qty):'—'}</b><small>${qty>0?`이익 <b class="${profit<0?'neg':'pos'}">${wonU(profit*qty)}</b> · 원가 투입 ${wonU(cost*qty)}`:''}</small></div>`;
+  // 이익 배분: 개당 이익을 우리:파트너 비율로 → 파트너 공급가
+  const r=QC_SPLIT/100, ours=profit*r, theirs=profit-ours, supply=cost+logi+ours;
+  $('#qcSplitOut').innerHTML= profit<=0 ? '<div class="qc-empty" style="color:var(--red)">개당 이익이 없어 나눌 몫이 없습니다.</div>' : `
+    <div class="qc-grid">
+      <div class="qc-hl"><span>파트너 공급가 <em>VAT 별도</em></span><b>${wonU(Math.round(supply/10)*10)}</b><small>소비자가 ${won(price)}원의 ${pct(supply/price)}</small></div>
+      <div><span>우리 이익 / 개</span><b class="pos">${wonU(ours)}</b><small>${qty>0?`${won(qty)}개 ${wonU(ours*qty)}`:''}</small></div>
+      <div><span>파트너 이익 / 개</span><b>${wonU(theirs)}</b><small>${qty>0?`${won(qty)}개 ${wonU(theirs*qty)}`:''}</small></div>
+    </div>
+    <p class="note">· 파트너가 소비자가로 팔고 수수료·광고·택배를 부담한다고 보고, 개당 이익을 ${QC_SPLIT} : ${100-QC_SPLIT} 로 나눴습니다.</p>`;
 }
 
 /* ══════════ 입고예정 CRM 송신 (가격대시보드 → pourstorecrm) ══════════

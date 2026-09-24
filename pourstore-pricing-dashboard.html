@@ -512,6 +512,21 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
 #ghTable tr.off{opacity:.45}
 .gh-opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px}
 @media(max-width:700px){ .gh-opts{grid-template-columns:1fr} #ghTable input[type=text]{width:160px} }
+/* ── 신제품 검토 ── */
+.card .big.neg,#sh-launch .neg{color:var(--red)}
+.card .big.pos,#sh-launch b.pos{color:var(--xl-green-dark)}
+.la-tbl input{width:100%;min-width:64px;border:1px solid var(--xl-grid);border-radius:6px;padding:4px 6px;font:inherit;background:#fff}
+.la-tbl input.num{text-align:right}
+.la-tbl td{vertical-align:middle}
+.la-tbl .del{border:0;background:none;color:var(--red);cursor:pointer;font-size:14px}
+.la-verdict{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:10px;border:1px solid var(--xl-grid);margin-bottom:12px}
+.la-verdict .ic{font-size:26px;line-height:1}
+.la-verdict b{font-size:15px}
+.la-quad{display:grid;grid-template-columns:auto 1fr 1fr;gap:4px;font-size:12px;max-width:520px}
+.la-quad div{padding:6px 8px;border-radius:6px;background:#F9FAFB;text-align:center}
+.la-quad .on{outline:2px solid var(--ink);font-weight:800}
+@media(max-width:700px){ .la-tbl input{min-width:56px} #sh-launch .toolrow select{flex:1 1 100%} .la-quad{font-size:11px} }
+
 /* 내보내기 구성 고르기 — 카드 하나가 곧 '이 구성으로 받기' 버튼 */
 .expcard{display:block;width:100%;text-align:left;border:1px solid var(--xl-grid);border-radius:10px;background:#fff;padding:13px 15px;cursor:pointer;margin-bottom:10px}
 .expcard:hover{border-color:var(--xl-green);background:#F5FBF7}
@@ -593,7 +608,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24c</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24d</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -757,6 +772,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
       <input type="text" id="q" placeholder="제품명 검색…">
       <select id="catSel"><option value="">전체 분류</option></select>
       <div class="seg" id="brandSeg" title="브랜드별로 제품을 걸러 봅니다 (이 기기에 기억)"></div>
+      <div class="seg" id="statusSeg" title="출시 / 출시준비 / 단종 상태별로 걸러 봅니다 (이 기기에 기억)"></div>
       <div class="seg" id="viewSeg">
         <button data-v="price" class="on">판매가</button>
         <button data-v="margin">마진액</button>
@@ -986,6 +1002,36 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
           <p class="footnote">· 단가는 <b>담은 수량의 MOQ 구간가</b>가 자동으로 붙습니다. 표의 <b>수량·단가 칸은 직접 고칠 수 있고</b>, 단가를 고치면 그 줄은 <b>협의가</b>로 표시됩니다.<br>· 고객에게 주는 문서라 <b>매입원가·POUR 마진은 파일에 들어가지 않습니다.</b> 담아둔 견적은 이 브라우저에 저장돼 새로고침해도 유지됩니다.</p>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- ── Sheet: 신제품 검토 (출시준비) — MOQ·원가·물류·채널수수료로 예상 마진, 시장가 조사로 상품성 평가 ── -->
+  <section class="sheet" id="sh-launch">
+    <div class="toolrow">
+      <span class="ttl">신제품 검토</span>
+      <select id="laSel" style="min-width:240px;flex:0 1 340px"></select>
+      <select id="laStatus" title="이 제품의 상태"><option>출시준비</option><option>출시</option><option>단종</option></select>
+      <button class="tbtn" id="laNewBtn">＋ 새 검토 제품</button>
+      <span class="footnote" id="laSaved" style="margin:0 0 0 auto"></span>
+      <span class="hint">MOQ·원가·물류비·채널 수수료로 예상 마진을 보고, 시장가 조사와 비교해 상품성을 판단합니다 · 입력하면 자동 저장</span>
+    </div>
+    <div class="sheet-pad">
+      <div class="panel" id="laNewPanel" style="display:none">
+        <h3>새 검토 제품 <span class="tag">상태 '출시준비'로 등록 · 자체상품코드는 출시할 때 붙습니다</span></h3>
+        <div class="bd">
+          <div class="formgrid">
+            <div class="fld"><label>분류</label><input id="laNewCat" list="laCatList" placeholder="예: 수용성 도료"><datalist id="laCatList"></datalist></div>
+            <div class="fld"><label>제품명</label><input id="laNewName" placeholder="예: POUR 방수페인트"></div>
+            <div class="fld"><label>규격</label><input id="laNewSpec" placeholder="예: 4L/통"></div>
+            <div class="fld"><label>브랜드</label><select id="laNewBrand"></select></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+            <button class="tbtn primary" id="laNewSave">등록</button><button class="tbtn" id="laNewCancel">취소</button>
+            <span class="footnote" id="laNewMsg" style="margin:0;align-self:center"></span>
+          </div>
+        </div>
+      </div>
+      <div id="laBody"></div>
     </div>
   </section>
 
@@ -1383,6 +1429,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
   <button class="stab" data-grp="price" data-sh="sh-chman"><span class="dot"></span>채널 관리</button>
   <button class="stab" data-grp="price" data-sh="sh-channel"><span class="dot"></span>채널 수익분석</button>
   <button class="stab" data-grp="prod" data-sh="sh-reg"><span class="dot"></span>제품·상품 등록</button>
+  <button class="stab" data-grp="prod" data-sh="sh-launch"><span class="dot"></span>신제품 검토 (출시준비)</button>
   <button class="stab" data-grp="prod" data-sh="sh-match"><span class="dot"></span>제품·상품 매칭 <span id="tabLockIcon" style="font-size:10px">🔒</span></button>
   <button class="stab" data-grp="prod" data-sh="sh-inbound"><span class="dot"></span>CRM 연동 (단가·입고예정)</button>
   <button class="stab" data-grp="prod" data-sh="sh-data"><span class="dot"></span>데이터 관리 · 휴지통</button>
@@ -2727,7 +2774,7 @@ function visibleProducts(){
   const q=(($('#q')&&$('#q').value)||'').trim().toLowerCase();
   const cat=($('#catSel')&&$('#catSel').value)||'';
   return P.filter(p=>!isDeletedProd(p) && !isPackage(p)
-    && hasBrand(p,BRAND_FILTER)
+    && hasBrand(p,BRAND_FILTER) && hasStatus(p,STATUS_FILTER)
     && !(cat&&p.cat!==cat)
     && !(q&&!(p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||(p.sup||'').toLowerCase().includes(q))));
 }
@@ -2772,7 +2819,7 @@ function renderGrid(){
   const ghBtn=$('#btnGhImport'); if(ghBtn) ghBtn.style.display=costAllowed?'':'none';        // 그로홈 가져오기: 원가열람 계정만
   const pcBtn=$('#btnPcode'); if(pcBtn) pcBtn.style.display=costAllowed?'':'none';          // 자체상품코드: 원가열람 계정만
   if(PCODE_LOADED && costAllowed && (PCODE_RULE!==PCODE_RULE_VER || pcodeTargets().some(p=>!PCODE[pKey(p)]))) schedulePcodeAuto();
-  renderBrandSeg();
+  renderBrandSeg(); renderStatusSeg();
   ['btnBulkFix','btnBulkAuto','btnClearTodo'].forEach(id=>{ const b=$('#'+id); if(b) b.style.display=costAllowed?'':'none'; });
   const ct=$('#btnClearTodo'); if(ct){ const n=todoCount(); ct.textContent=n?`미정 해제 (${n})`:'미정 해제'; ct.disabled=!n; ct.style.opacity=n?'':'.45'; }
   const chanBtn=$('#btnAddChan'); if(chanBtn) chanBtn.style.display=costAllowed?'':'none';    // 채널 추가: 원가열람 계정만
@@ -2812,7 +2859,7 @@ function renderGrid(){
     ${thPrice}
   </tr></thead><tbody>`;
   const SEP='';
-  const passes=p=> hasBrand(p,BRAND_FILTER) && !(cat&&p.cat!==cat) && !(q&&!(p.name.toLowerCase().includes(q)||pcodeOf(p).toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||(p.sup||'').toLowerCase().includes(q)));
+  const passes=p=> hasBrand(p,BRAND_FILTER) && hasStatus(p,STATUS_FILTER) && !(cat&&p.cat!==cat) && !(q&&!(p.name.toLowerCase().includes(q)||pcodeOf(p).toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||(p.sup||'').toLowerCase().includes(q)));
   const ordered=P.filter(p=>!isDeletedProd(p)).sort((a,b)=>(porderIdx(pKey(a))-porderIdx(pKey(b)))||((a.seq??a.id??0)-(b.seq??b.id??0)));
   const l1i={},l2i={},l3i={};   // 그룹 순서 = 최초 등장 순서
   ordered.forEach((p,idx)=>{ const c=pcat(p),k1=c.l1,k2=c.l1+SEP+c.l2,k3=k2+SEP+c.l3; if(!(k1 in l1i))l1i[k1]=idx; if(!(k2 in l2i))l2i[k2]=idx; if(!(k3 in l3i))l3i[k3]=idx; });
@@ -2863,7 +2910,7 @@ function renderGrid(){
       <td class="frz frz-no dim">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span><span class="nono" data-key="${esc(pKey(p))}" data-no="${no}" title="번호를 눌러 원하는 자리로 보냅니다 (기존 제품은 아래로 밀립니다)">${no}</span>`:no}</td>
       ${showCode?(()=>{ const pc=pcodeOf(p), gc=!pc?(p.ghCode||''):''; const v=pc||gc, t=p3plOf(p);
         return `<td class="frz frz-code${gc?' gh':''}${v?'':' dim'}" title="${v?(gc?'그로홈 자체상품코드':'자체상품코드')+' — 눌러서 복사':'자체상품코드 없음'}${t?' · 3PL '+esc(t):''}">${v?`<span class="pcode-cell">${esc(v)}</span>`:'—'}${t?`<span class="c3pl" title="3PL(물류센터) 코드">3PL ${esc(t)}</span>`:''}</td>`; })():''}
-      <td class="frz frz-name name">${costAllowed?`<span class="rowtools"><button class="prodfix${isFixed(p)?' on':''}" data-id="${p.id}" title="${isFixed(p)?'📌 파일값 고정 — 업로드한 단가를 그대로 씁니다. 누르면 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사다리로 계산합니다. 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button><button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button></span>`:''}${brandChips(p)}${esc(p.name)}</td>
+      <td class="frz frz-name name">${costAllowed?`<span class="rowtools"><button class="prodfix${isFixed(p)?' on':''}" data-id="${p.id}" title="${isFixed(p)?'📌 파일값 고정 — 업로드한 단가를 그대로 씁니다. 누르면 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사다리로 계산합니다. 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button><button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button></span>`:''}${statusChip(p)+brandChips(p)}${esc(p.name)}</td>
       <td class="frz frz-spec dim${lastFrz==='spec'?' frz-edge':''}">${esc(p.spec)}${pkg?(()=>{
         /* 세트는 값이 전부 비어 있으면 이유를 행에서 바로 알 수 있게 표시한다
            (예전에는 더블클릭해야 안내가 떠서 '고장난 줄' 알기 쉬웠다) */
@@ -3009,6 +3056,9 @@ document.addEventListener('dblclick',e=>{
 document.addEventListener('mousedown',e=>{ const el=$('#ovrPanel'); if(el&&el.style.display==='block'&&!e.target.closest('#ovrPanel')&&!e.target.closest('#priceGrid td.autolock')) closeOvrPanel(); });
 $('#q').addEventListener('input',renderGrid);
 $('#catSel').addEventListener('change',renderGrid);
+$('#statusSeg').addEventListener('click',e=>{ const b=e.target.closest('button[data-s]'); if(!b)return;
+  STATUS_FILTER=b.dataset.s||''; try{ localStorage.setItem(LS_STATUS,STATUS_FILTER); }catch(err){}
+  renderGrid(); });
 $('#brandSeg').addEventListener('click',e=>{ const b=e.target.closest('button[data-b]'); if(!b)return;
   BRAND_FILTER=b.dataset.b||''; try{ localStorage.setItem(LS_BRAND,BRAND_FILTER); }catch(err){}
   renderGrid(); });
@@ -4015,6 +4065,7 @@ function gotoTab(sh){
   if(sh==='sh-price') requestAnimationFrame(()=>{ if(typeof layoutFrozen==='function') layoutFrozen(); });
   if(sh==='sh-data' && typeof openDataTab==='function') openDataTab();
   if(sh==='sh-sales' && typeof openSalesTab==='function') openSalesTab();
+  if(sh==='sh-launch' && typeof renderLaunch==='function') renderLaunch();
 }
 function selectGroup(grp){
   activeGrp=grp;
@@ -4567,6 +4618,33 @@ function renderAdBrands(list){
   el.innerHTML=BRAND_LIST.map(b=>{ const st=BRAND_STYLE[b]||{}; return `<label><input type="checkbox" value="${esc(b)}"${list.includes(b)?' checked':''}><span style="color:${st.fg||'inherit'};font-weight:700">${esc(b)}</span></label>`; }).join('');
 }
 function adBrandsValue(){ const l=$$('#adBrands input:checked').map(i=>i.value); return l.length?l:[BRAND_DEFAULT]; }
+/* ── 제품 상태 (출시 / 출시준비 / 단종) ← product-meta/prod-status {map: pKey → 상태}
+   기록이 없으면 등록상품(products-added)의 status 로 판단한다(소싱중 → 출시준비). 서버 원본 제품은 기본 '출시'.
+   출시준비 제품은 자체상품코드를 붙이지 않고, 출시로 바꾸는 순간 코드가 붙는다. */
+const STATUS_LIST=['출시','출시준비','단종'];
+const STATUS_STYLE={'출시준비':{bg:'#EDE9FE',fg:'#6D28D9',short:'준비'},'단종':{bg:'#F3F4F6',fg:'#6B7280',short:'단종'}};
+const LS_STATUS='pour-status-filter';
+let PSTATUS={};
+let STATUS_FILTER=(()=>{ try{ const v=localStorage.getItem(LS_STATUS)||''; return STATUS_LIST.includes(v)?v:''; }catch(e){ return ''; } })();
+function pstatusBase(p){ const s=String(p.status||''); return (s==='소싱중'||s==='출시준비')?'출시준비':s==='단종'?'단종':'출시'; }
+function pstatus(p){ const v=PSTATUS[pKey(p)]; return STATUS_LIST.includes(v)?v:pstatusBase(p); }
+function hasStatus(p,s){ return !s || pstatus(p)===s; }
+function statusChip(p){ const v=pstatus(p), st=STATUS_STYLE[v]; return st?`<span class="bchip" style="background:${st.bg};color:${st.fg}" title="${esc(v)}">${st.short}</span>`:''; }
+function renderStatusSeg(){
+  const el=$('#statusSeg'); if(!el) return;
+  const live=P.filter(p=>!isDeletedProd(p) && !isPackage(p) && hasBrand(p,BRAND_FILTER));
+  const n=v=>live.filter(p=>hasStatus(p,v)).length;
+  el.innerHTML=[['','전체'],...STATUS_LIST.map(v=>[v,v])].map(([v,l])=>`<button data-s="${esc(v)}" class="${STATUS_FILTER===v?'on':''}">${esc(l)}<span class="n">${n(v)}</span></button>`).join('');
+}
+async function savePstatus(){ await db.collection('product-meta').doc('prod-status').set({map:PSTATUS, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }
+async function setPstatus(p,v){
+  const k=pKey(p), had=(k in PSTATUS), old=PSTATUS[k], from=pstatus(p);
+  if(v===pstatusBase(p)) delete PSTATUS[k]; else PSTATUS[k]=v;
+  try{ await savePstatus(); }
+  catch(e){ if(had) PSTATUS[k]=old; else delete PSTATUS[k]; console.error('[prod-status] 저장 실패', e); alert('상태 저장 실패: '+(e.code||e.message||e)); throw e; }
+  logAct('상태변경', prodLabel(p), `${from} → ${v}`);
+  if(v==='출시') autoAssignPcodes();
+}
 /* ── POUR스토어 자체상품코드 (옵션 단위): pKey → 'PS-003-02'  ← product-meta/prod-code
    · 제품번호 = 같은 '기본 제품'(색상·용량·규격·괄호 옵션을 뺀 이름)끼리 공유, 옵션번호 = 그 안의 순번
    · 한 번 붙으면 고정(이름 변경 시 함께 이동). POUR스토어 브랜드 제품만 대상(GROHOME 전용은 그로홈 코드 사용)
@@ -4618,7 +4696,7 @@ function codeBase(name){
   return t||String(name||'').trim();
 }
 function pcodeOf(p){ return PCODE[pKey(p)]||''; }
-function pcodeTargets(){ return P.filter(p=>!isDeletedProd(p) && pbrand(p).includes('POUR스토어')); }
+function pcodeTargets(){ return P.filter(p=>!isDeletedProd(p) && pbrand(p).includes('POUR스토어') && pstatus(p)!=='출시준비'); }   // 출시준비 제품은 출시로 바꿀 때 코드가 붙는다
 /* 코드 없는 POUR스토어 제품에 번호를 붙인다. 같은 기본 제품이 이미 번호를 갖고 있으면 그 번호의 다음 옵션으로. */
 function planPcodes(orderHint){   // orderHint: {pKey: 옛 코드} — 다시 매길 때 옛 코드 순서를 지켜 번호가 예측 가능하게
   const oh=orderHint||{}, ohKey=p=>{ const c=oh[pKey(p)]||''; return c?c.replace('PS-S','PS-~'):'~'; };   // 옛 코드 없는 제품은 맨 뒤
@@ -6719,6 +6797,8 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('prod-code').get(); PCODE=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; PCODE_RULE=(d.exists&&d.data().rule)||''; PCODE_LOADED=true; console.log(`[prod-code] 자체상품코드 ${Object.keys(PCODE).length}개`); }catch(e){ console.warn('[prod-code] 로드 실패 — 자동 부여 보류', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-3pl').get(); P3PL=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-3pl] 3PL 코드 ${Object.keys(P3PL).length}개`); }catch(e){ console.warn('[prod-3pl] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-brand').get(); if(d.exists){ const x=d.data()||{}; if(x.map&&typeof x.map==='object') PBRAND=x.map; if(x.gh&&typeof x.gh==='object') PGHLINK=x.gh; } console.log(`[prod-brand] 브랜드 지정 ${Object.keys(PBRAND).length}건 · 그로홈 연결 ${Object.keys(PGHLINK).length}건`); }catch(e){ console.warn('[prod-brand] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('prod-status').get(); PSTATUS=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-status] 상태 지정 ${Object.keys(PSTATUS).length}건`); }catch(e){ console.warn('[prod-status] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('launch-plans').get(); LPLAN=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[launch-plans] 신제품 검토 ${Object.keys(LPLAN).length}건`); }catch(e){ console.warn('[launch-plans] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('chan-deleted').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') CHDEL=d.data().map; }catch(e){ console.warn('[chan-deleted] 로드 실패', e.code||e); }
   await loadDraft();
   console.log(`[vendor] 업체단가 ${Object.keys(VBASE).length} · 정가override ${Object.keys(VRETAIL).length} · 분류 ${CATCFG.length}개 · 개정안 ${draftCount()}건(${DRAFT_META.status||'없음'})`);
@@ -7165,6 +7245,265 @@ async function savePMeta(){
 }
 function pvToast(t){ const b=$('#pvSave'); if(b){ const o=b.textContent; b.textContent=t; setTimeout(()=>b.textContent=o,1400);} }
 
+/* ══════════ 신제품 검토 (출시준비) ══════════
+   product-meta/launch-plans {map: pKey → plan}  — 입력하면 1초 뒤 자동 저장
+   plan = { moq, cost, init, logi, deli, pack, price, vat, cship, target, ad, size, unit,
+            chs:[{name, fee, pg, share}], mkt:[{vendor, name, ch, price, ship, size, unit, url, date}], memo }
+   · 순매출 = 판매가 ÷ 1.1 (판매가가 VAT 포함일 때) — 원가·비용은 VAT 제외 금액으로 넣는다
+   · 수수료·PG·광고비는 판매가(고객 결제액) 기준으로 뗀다
+   · 개당 이익 = 순매출 − 수수료 − PG − 광고비 − (매입원가 + 입고·보관 + 택배 + 포장)
+   · MOQ 소진 총이익 = 채널 비중 가중 개당 이익 × MOQ − 초기 고정비 */
+let LPLAN={}, LA_KEY='', _laTimer=null;
+const LA_UNITS=['kg','L','g','ml','개','m','㎡','롤','세트'];
+const laNum=v=>{ const n=+String(v??'').replace(/[^0-9.\-]/g,''); return isFinite(n)?n:0; };
+function laDefaultChs(){
+  const rows=COLS().filter(c=>c.role!=='export').map(c=>({name:c.name||c.code||'', fee:+((CH_VAR_DEFAULT[c.code]||{}).fee)||0, pg:0, share:0}))
+    .filter(r=>r.name && r.fee>0);
+  if(!rows.length) rows.push({name:'자사몰',fee:0,pg:0,share:0});
+  rows[0].share=100;
+  return rows;
+}
+function laNewPlan(p){
+  return { moq:'', cost:(p&&p.cost>0)?p.cost:'', init:'', logi:'', deli:'', pack:'', price:(p&&retailOf(p)>0)?retailOf(p):'',
+    vat:true, cship:'', target:30, ad:'', size:'', unit:'kg', chs:laDefaultChs(), mkt:[], memo:'' };
+}
+function laPlan(k){ return LPLAN[k]; }
+function laCalc(pl, priceOverride){
+  const price=priceOverride!=null?priceOverride:laNum(pl.price), vat=pl.vat!==false, k=vat?1/1.1:1, net=price*k;
+  const unitCost=laNum(pl.cost)+laNum(pl.logi)+laNum(pl.deli)+laNum(pl.pack);
+  const ad=laNum(pl.ad)/100;
+  const chs=(pl.chs||[]).filter(c=>c && String(c.name||'').trim());
+  const tot=chs.reduce((a,c)=>a+Math.max(0,laNum(c.share)),0);
+  const rows=chs.map(c=>{ const f=(laNum(c.fee)+laNum(c.pg))/100, feeAmt=price*f, adAmt=price*ad, profit=net-feeAmt-adAmt-unitCost;
+    return {c, f, feeAmt, adAmt, profit, rate:net?profit/net:null, w: tot>0?Math.max(0,laNum(c.share))/tot:(chs.length?1/chs.length:0)}; });
+  const avgF=rows.reduce((a,r)=>a+r.f*r.w,0), avgProfit=rows.length?rows.reduce((a,r)=>a+r.profit*r.w,0):net-price*ad-unitCost;
+  const moq=laNum(pl.moq), init=laNum(pl.init), tgt=laNum(pl.target)/100;
+  const totRev=price*moq, totNet=net*moq, totProfit=avgProfit*moq-init;
+  const dT=(1-tgt)*k-avgF-ad, d0=k-avgF-ad;
+  return { price, net, k, unitCost, ad, rows, avgF, avgProfit, avgRate:net?avgProfit/net:null, moq, init, tgt,
+    totRev, totNet, totProfit, totRate:totNet?totProfit/totNet:null,
+    be: avgProfit>0?Math.ceil(init/avgProfit):null,
+    recPrice: dT>0&&unitCost>0?Math.ceil(unitCost/dT/100)*100:null,
+    bePrice: d0>0&&unitCost>0?Math.ceil(unitCost/d0/10)*10:null };
+}
+function laMedian(a){ if(!a.length) return null; const b=a.slice().sort((x,y)=>x-y), m=b.length>>1; return b.length%2?b[m]:(b[m-1]+b[m])/2; }
+function laMarket(pl){
+  const ourSize=laNum(pl.size);
+  const rows=(pl.mkt||[]).map(m=>{ const tot=laNum(m.price)+laNum(m.ship), sz=laNum(m.size), same=!m.unit||!pl.unit||m.unit===pl.unit;
+    return {m, tot, unitP:(laNum(m.price)>0&&sz>0&&same)?tot/sz:null, ok:laNum(m.price)>0}; });
+  const ok=rows.filter(r=>r.ok), ups=ok.map(r=>r.unitP).filter(v=>v!=null), tots=ok.map(r=>r.tot);
+  const stat=a=>a.length?{n:a.length, avg:a.reduce((x,y)=>x+y,0)/a.length, med:laMedian(a), min:Math.min(...a), max:Math.max(...a)}:null;
+  const su=stat(ups), st=stat(tots), byUnit=!!(su && ourSize>0);
+  const conv=v=>v==null?null:(byUnit?v*ourSize:v);   // 우리 용량으로 환산한 시장가(배송비 포함)
+  const ref=byUnit?su:st;
+  return { rows, n:ok.length, byUnit, ourSize,
+    avg:ref?conv(ref.avg):null, med:ref?conv(ref.med):null, min:ref?conv(ref.min):null, max:ref?conv(ref.max):null,
+    medUnit:su?su.med:null, unitN:ups.length };
+}
+function laVerdict(pl, cal, mk){
+  const ourTot=cal.price+laNum(pl.cship);
+  if(!(cal.price>0)) return {ic:'✏️', title:'판매가를 넣으면 평가합니다', body:'', q:null};
+  const tgt=cal.tgt>0?cal.tgt:0;
+  const mOk=cal.avgRate!=null && cal.avgRate>=tgt && cal.avgProfit>0;
+  if(!mk.med) return {ic:mOk?'🟢':'🔴', title:mOk?'마진 기준 충족 — 시장가 조사를 넣으면 가격 경쟁력까지 평가합니다':'목표 마진 미달 — 판매가·원가를 조정하세요', body:'', q:null};
+  const pos=ourTot/mk.med-1, pOk=pos<=0.05;
+  const q=(mOk?'m':'x')+(pOk?'p':'x');
+  const T={
+    mp:['✅','출시 추천','목표 마진을 넘기면서 가격도 시장 중앙가 수준 이하입니다.'],
+    mx:['🟡','차별점 필요','마진은 충분하지만 시장보다 비쌉니다. 성능·인증·용량·구성으로 비싼 이유를 보여주거나, 판매가를 시장가 쪽으로 낮춰 보세요.'],
+    xp:['🟡','원가 절감 필요','가격 경쟁력은 있지만 목표 마진에 못 미칩니다. 원가·물류비를 낮추거나 수수료가 낮은 채널 비중을 늘려 보세요.'],
+    xx:['🔴','재검토','마진도 부족하고 시장보다 비쌉니다. 원가 구조부터 다시 보는 것이 좋습니다.'] }[q];
+  return {ic:T[0], title:T[1], body:T[2], q, pos, ourTot};
+}
+function laProducts(){ return P.filter(p=>!isDeletedProd(p)); }
+function laFillSel(){
+  const sel=$('#laSel'); if(!sel) return;
+  const live=laProducts(), grp={'출시준비':[],'출시':[],'단종':[]};
+  live.forEach(p=>grp[pstatus(p)].push(p));
+  if(!LA_KEY || !live.some(p=>pKey(p)===LA_KEY)){ const f=grp['출시준비'][0]||Object.keys(LPLAN).map(k=>live.find(p=>pKey(p)===k)).find(Boolean)||live[0]; LA_KEY=f?pKey(f):''; }
+  sel.innerHTML=Object.entries(grp).filter(([,l])=>l.length).map(([g,l])=>`<optgroup label="${g} (${l.length})">${l.map(p=>{ const k=pKey(p);
+    return `<option value="${esc(k)}"${k===LA_KEY?' selected':''}>${LPLAN[k]?'📝 ':''}${esc(prodLabel(p))}</option>`; }).join('')}</optgroup>`).join('');
+}
+function laChRowsHtml(pl,cal){
+  return (pl.chs||[]).map((c,i)=>{ const r=cal.rows.find(x=>x.c===c);
+    return `<tr><td><input data-ch="${i}" data-cf="name" value="${esc(c.name)}"></td>
+      <td><input class="num" data-ch="${i}" data-cf="fee" type="number" step="0.1" value="${esc(c.fee)}"></td>
+      <td><input class="num" data-ch="${i}" data-cf="pg" type="number" step="0.1" value="${esc(c.pg)}"></td>
+      <td><input class="num" data-ch="${i}" data-cf="share" type="number" step="1" value="${esc(c.share)}"></td>
+      <td class="num" id="la-cf-${i}">${r?wonU(r.feeAmt+r.adAmt):'—'}</td>
+      <td class="num" id="la-cp-${i}">${r?`<b class="${r.profit<0?'neg':'pos'}">${wonU(r.profit)}</b>`:'—'}</td>
+      <td class="num" id="la-cr-${i}">${r?`<span class="${r.rate<0?'neg':''}">${pct(r.rate)}</span>`:'—'}</td>
+      <td><button class="del" data-chdel="${i}" title="이 채널 빼기">✕</button></td></tr>`; }).join('');
+}
+function laMkRowsHtml(pl,mk){
+  return (pl.mkt||[]).map((m,i)=>{ const r=mk.rows[i];
+    const unitSel=`<select data-mk="${i}" data-mf="unit">${['',...LA_UNITS].map(u=>`<option${u===(m.unit||'')?' selected':''}>${u}</option>`).join('')}</select>`;
+    return `<tr><td><input data-mk="${i}" data-mf="vendor" value="${esc(m.vendor)}" placeholder="업체"></td>
+      <td><input data-mk="${i}" data-mf="name" value="${esc(m.name)}" placeholder="상품명"></td>
+      <td><input data-mk="${i}" data-mf="ch" value="${esc(m.ch)}" placeholder="쿠팡 등"></td>
+      <td><input class="num" data-mk="${i}" data-mf="price" type="number" value="${esc(m.price)}"></td>
+      <td><input class="num" data-mk="${i}" data-mf="ship" type="number" value="${esc(m.ship)}" placeholder="0"></td>
+      <td><input class="num" data-mk="${i}" data-mf="size" type="number" step="0.01" value="${esc(m.size)}"></td>
+      <td>${unitSel}</td>
+      <td class="num" id="la-mt-${i}">${r&&r.ok?wonU(r.tot):'—'}</td>
+      <td class="num" id="la-mu-${i}">${r&&r.unitP!=null?wonU(r.unitP)+'/'+esc(m.unit||pl.unit||''):'—'}</td>
+      <td><input data-mk="${i}" data-mf="url" value="${esc(m.url)}" placeholder="링크">${m.url&&/^https?:\/\//.test(m.url)?` <a href="${esc(m.url)}" target="_blank" rel="noopener" title="열기">↗</a>`:''}</td>
+      <td><input data-mk="${i}" data-mf="date" type="date" value="${esc(m.date)}"></td>
+      <td><button class="del" data-mkdel="${i}" title="이 줄 빼기">✕</button></td></tr>`; }).join('');
+}
+function laOutHtml(pl){
+  const cal=laCalc(pl), mk=laMarket(pl), v=laVerdict(pl,cal,mk), card=(lb,val,cls,sub)=>`<div class="card"><h4>${lb}</h4><div class="big ${cls||''}">${val}</div>${sub?`<div class="footnote" style="margin:4px 0 0">${sub}</div>`:''}</div>`;
+  const beOk=cal.be!=null && cal.moq>0 ? (cal.be<=cal.moq?`MOQ ${won(cal.moq)}개 안에서 회수`:`MOQ보다 ${won(cal.be-cal.moq)}개 더 팔아야 회수`):'';
+  const atMed=mk.med?laCalc(pl, Math.max(0,mk.med-laNum(pl.cship))):null;
+  const Q=(k,t)=>`<div class="${v.q===k?'on':''}">${t}</div>`;
+  return `
+    <div class="cards">
+      ${card('개당 평균 이익 (채널 비중 가중)', wonU(cal.avgProfit), cal.avgProfit<0?'neg':'pos', `순매출 ${wonU(cal.net)} − 수수료·광고 ${wonU(cal.price*(cal.avgF+cal.ad))} − 원가·물류 ${wonU(cal.unitCost)}`)}
+      ${card('평균 마진율', pct(cal.avgRate), (cal.avgRate!=null&&cal.avgRate<cal.tgt)?'neg':'pos', cal.tgt>0?`목표 ${pct(cal.tgt)}`:'')}
+      ${card(`권장 판매가 (목표 마진 ${pct(cal.tgt)})`, cal.recPrice!=null?wonU(cal.recPrice):'계산 불가', '', '100원 단위 올림')}
+      ${card('손익분기 판매가 (이익 0원)', cal.bePrice!=null?wonU(cal.bePrice):'—', '', '이 가격 아래로 팔면 역마진')}
+    </div>
+    <div class="cards">
+      ${card(`MOQ ${won(cal.moq)}개 모두 팔면 — 총매출`, wonU(cal.totRev), '', pl.vat!==false?`VAT 제외 ${wonU(cal.totNet)}`:'')}
+      ${card('총이익 (초기 고정비 차감)', wonU(cal.totProfit), cal.totProfit<0?'neg':'pos', cal.init>0?`초기 고정비 ${wonU(cal.init)} 차감`:'')}
+      ${card('총 마진율', pct(cal.totRate), (cal.totRate!=null&&cal.totRate<0)?'neg':'pos')}
+      ${card('초기비용 회수 판매량', cal.init>0?(cal.be!=null?won(cal.be)+'개':'회수 불가'):'—', (cal.be!=null&&cal.moq>0&&cal.be>cal.moq)?'neg':'', beOk)}
+    </div>
+    <div class="panel"><h3>상품성 평가 <span class="tag">마진 × 시장가</span></h3><div class="bd">
+      <div class="la-verdict"><span class="ic">${v.ic}</span><div><b>${esc(v.title)}</b>${v.body?`<div class="footnote" style="margin:4px 0 0">${esc(v.body)}</div>`:''}
+        ${v.pos!=null?`<div class="footnote" style="margin:4px 0 0">우리 가격(배송비 포함) ${wonU(v.ourTot)} · 시장 중앙가 ${wonU(mk.med)} → <b class="${v.pos>0.05?'neg':'pos'}">${v.pos>=0?'+':''}${pct(v.pos)}</b></div>`:''}</div></div>
+      <div class="la-quad"><div></div><div><b>시장가 이하</b></div><div><b>시장가 초과</b></div>
+        <div><b>마진 충분</b></div>${Q('mp','✅ 출시 추천')}${Q('mx','🟡 차별점 필요')}
+        <div><b>마진 부족</b></div>${Q('xp','🟡 원가 절감')}${Q('xx','🔴 재검토')}</div>
+      <div class="cards" style="margin-top:14px">
+        ${card('조사한 곳', mk.n+'곳', '', mk.byUnit?`${esc(pl.unit)}당 가격으로 비교 (${mk.unitN}곳)`:(mk.n?'용량을 넣으면 용량당 가격으로 비교합니다':''))}
+        ${card(`시장 평균가${mk.byUnit?` (${esc(pl.size)}${esc(pl.unit)} 환산)`:''}`, wonU(mk.avg), '', mk.min!=null?`최저 ${wonU(mk.min)} · 최고 ${wonU(mk.max)}`:'')}
+        ${card('시장 중앙가', wonU(mk.med), '', mk.medUnit!=null?`${esc(pl.unit)}당 ${wonU(mk.medUnit)} · 배송비 포함`:'배송비 포함')}
+        ${card('시장 중앙가로 팔면 마진율', atMed?pct(atMed.avgRate):'—', atMed&&atMed.avgRate<cal.tgt?'neg':'pos', atMed?`개당 이익 ${wonU(atMed.avgProfit)}`:'')}
+      </div>
+    </div></div>`;
+}
+function renderLaunch(){
+  const body=$('#laBody'); if(!body) return;
+  if(!costAllowed){ body.innerHTML='<div class="panel"><div class="bd">원가 열람 권한이 있는 계정에서만 볼 수 있습니다.</div></div>'; return; }
+  laFillSel();
+  const p=laProducts().find(x=>pKey(x)===LA_KEY);
+  $('#laStatus').value=p?pstatus(p):'출시준비'; $('#laStatus').disabled=!p;
+  if(!p){ body.innerHTML='<div class="panel"><div class="bd">검토할 제품이 없습니다. [＋ 새 검토 제품]으로 추가하세요.</div></div>'; return; }
+  const pl=LPLAN[LA_KEY]||laNewPlan(p), cal=laCalc(pl);
+  const fld=(lb,f,ph,type,step)=>`<div class="fld"><label>${lb}</label><input data-f="${f}" type="${type||'number'}"${step?` step="${step}"`:''} value="${esc(pl[f])}" placeholder="${esc(ph||'')}"></div>`;
+  body.innerHTML=`
+    ${LPLAN[LA_KEY]?'':'<div class="panel" style="border-color:var(--amber)"><div class="bd">📝 아직 검토 기록이 없는 제품입니다. 값을 넣으면 자동 저장됩니다. (원가·판매가는 가격정책표 값으로 채웠습니다)</div></div>'}
+    <div class="panel"><h3>원가·판매가 <span class="tag">원가·비용은 VAT 제외 · 개당 금액</span></h3><div class="bd"><div class="formgrid">
+      ${fld('MOQ (최소 발주 수량, 개)','moq','예: 1000')}
+      ${fld('개당 매입원가','cost','제조 단가')}
+      ${fld('초기 고정비 (금형·디자인·인증·촬영 등)','init','합계 금액')}
+      ${fld('개당 입고·보관 물류비 (3PL)','logi','')}
+      ${fld('개당 택배비','deli','')}
+      ${fld('개당 포장비·부자재','pack','')}
+      ${fld('판매가 (소비자가)','price','')}
+      <div class="fld"><label>판매가 VAT</label><select data-f="vat"><option value="1"${pl.vat!==false?' selected':''}>포함 (÷1.1 해서 계산)</option><option value="0"${pl.vat===false?' selected':''}>제외</option></select></div>
+      ${fld('고객 부담 배송비 (무료배송이면 0)','cship','0')}
+      ${fld('목표 마진율 (%)','target','30','number','1')}
+      ${fld('광고비 (판매가 대비 %)','ad','0','number','0.1')}
+      <div class="fld"><label>용량 (시장가 비교용)</label><div style="display:flex;gap:6px"><input data-f="size" type="number" step="0.01" value="${esc(pl.size)}" placeholder="예: 4" style="flex:1;min-width:0"><select data-f="unit">${LA_UNITS.map(u=>`<option${u===pl.unit?' selected':''}>${u}</option>`).join('')}</select></div></div>
+    </div></div></div>
+    <div class="panel"><h3>판매 채널별 수수료·비중 <span class="tag">기본값 = 채널 관리의 수수료율</span></h3>
+      <div class="bd" style="padding:0;overflow-x:auto"><table class="grid la-tbl" style="width:100%;min-width:640px">
+        <thead><tr><th>채널</th><th class="num">판매수수료 %</th><th class="num">PG %</th><th class="num">판매 비중 %</th><th class="num">개당 수수료·광고</th><th class="num">개당 이익</th><th class="num">마진율</th><th></th></tr></thead>
+        <tbody id="laChBody">${laChRowsHtml(pl,cal)}</tbody></table></div>
+      <div class="bd" style="display:flex;gap:8px;flex-wrap:wrap"><button class="tbtn" id="laChAdd">＋ 채널 추가</button><button class="tbtn" id="laChReset" title="채널 관리에 입력된 수수료로 다시 채웁니다">↺ 채널 관리 수수료로 다시 채우기</button>
+        <span class="footnote" style="margin:0;align-self:center">· 비중을 모두 0으로 두면 채널을 똑같이 나눠 계산합니다.</span></div></div>
+    <div id="laOut">${laOutHtml(pl)}</div>
+    <div class="panel"><h3>시장가 조사 <span class="tag">타 업체 유사상품 · 배송비 포함 비교</span></h3>
+      <div class="bd" style="padding:0;overflow-x:auto"><table class="grid la-tbl" style="width:100%;min-width:1060px">
+        <thead><tr><th>업체</th><th>상품명</th><th>채널</th><th class="num">판매가</th><th class="num">배송비</th><th class="num">용량</th><th>단위</th><th class="num">합계</th><th class="num">용량당</th><th>링크</th><th>조사일</th><th></th></tr></thead>
+        <tbody id="laMkBody">${laMkRowsHtml(pl,laMarket(pl))}</tbody></table></div>
+      <div class="bd"><button class="tbtn" id="laMkAdd">＋ 조사 추가</button>
+        <p class="footnote">· 용량·단위를 넣으면 <b>용량당 가격</b>으로 바꿔 우리 용량 기준으로 비교합니다(1L와 4L를 그대로 비교하면 틀리기 때문). 단위가 다른 줄은 용량당 비교에서 빠집니다.<br>· 극단값에 덜 흔들리도록 판정은 <b>중앙값</b> 기준입니다. 우리 가격이 중앙값 +5% 이내면 '시장가 수준'으로 봅니다.</p></div></div>
+    <div class="panel"><h3>메모</h3><div class="bd"><textarea data-f="memo" rows="3" style="width:100%;font:inherit;padding:8px;border:1px solid var(--xl-grid);border-radius:8px" placeholder="예: 제조사 A 견적 기준 · 인증 일정 등">${esc(pl.memo)}</textarea></div></div>`;
+}
+function laRefreshOut(){
+  const pl=LPLAN[LA_KEY]; if(!pl) return;
+  const cal=laCalc(pl), mk=laMarket(pl);
+  cal.rows.forEach(r=>{ const i=(pl.chs||[]).indexOf(r.c); if(i<0) return;
+    const a=$('#la-cf-'+i), b=$('#la-cp-'+i), c=$('#la-cr-'+i);
+    if(a) a.textContent=wonU(r.feeAmt+r.adAmt); if(b) b.innerHTML=`<b class="${r.profit<0?'neg':'pos'}">${wonU(r.profit)}</b>`; if(c) c.innerHTML=`<span class="${r.rate<0?'neg':''}">${pct(r.rate)}</span>`; });
+  mk.rows.forEach((r,i)=>{ const a=$('#la-mt-'+i), b=$('#la-mu-'+i); if(a) a.textContent=r.ok?wonU(r.tot):'—'; if(b) b.textContent=r.unitP!=null?wonU(r.unitP)+'/'+(r.m.unit||pl.unit||''):'—'; });
+  const out=$('#laOut'); if(out) out.innerHTML=laOutHtml(pl);
+}
+function laEnsure(){ if(!LPLAN[LA_KEY]){ const p=laProducts().find(x=>pKey(x)===LA_KEY); LPLAN[LA_KEY]=laNewPlan(p); } return LPLAN[LA_KEY]; }
+function laQueueSave(){
+  const k=LA_KEY; $('#laSaved').textContent='저장 대기…';
+  clearTimeout(_laTimer);
+  _laTimer=setTimeout(async()=>{
+    try{ const pl={...LPLAN[k], updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''};
+      await db.collection('product-meta').doc('launch-plans').set({map:{[k]:pl}},{merge:true});
+      $('#laSaved').textContent='저장됨 ✓ '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+    }catch(e){ console.error('[launch-plans] 저장 실패', e); $('#laSaved').innerHTML=`<span style="color:var(--red)">저장 실패: ${esc(e.code||e.message||e)}</span>`; }
+  }, 900);
+}
+(function bindLaunch(){
+  const body=$('#laBody'); if(!body) return;
+  const onEdit=e=>{
+    const t=e.target, pl=()=>laEnsure();
+    if(t.dataset.f){ const f=t.dataset.f; pl()[f]= f==='vat' ? t.value==='1' : t.value; laQueueSave(); if(f!=='memo') laRefreshOut(); return; }
+    if(t.dataset.ch!=null){ const c=pl().chs[+t.dataset.ch]; if(c){ c[t.dataset.cf]=t.value; laQueueSave(); laRefreshOut(); } return; }
+    if(t.dataset.mk!=null){ const m=pl().mkt[+t.dataset.mk]; if(m){ m[t.dataset.mf]=t.value; laQueueSave(); laRefreshOut(); } return; }
+  };
+  body.addEventListener('input',onEdit);
+  body.addEventListener('change',e=>{ if(e.target.tagName==='SELECT') onEdit(e); });
+  body.addEventListener('click',e=>{
+    const t=e.target.closest('button'); if(!t) return;
+    if(t.id==='laChAdd'){ laEnsure().chs.push({name:'',fee:0,pg:0,share:0}); laQueueSave(); renderLaunch(); }
+    else if(t.id==='laChReset'){ if(!confirm('채널 표를 채널 관리의 수수료율로 다시 채웁니다. 지금 입력한 채널·비중은 사라집니다.')) return; laEnsure().chs=laDefaultChs(); laQueueSave(); renderLaunch(); }
+    else if(t.id==='laMkAdd'){ laEnsure().mkt.push({vendor:'',name:'',ch:'',price:'',ship:'',size:'',unit:laEnsure().unit||'',url:'',date:new Date().toISOString().slice(0,10)}); laQueueSave(); renderLaunch(); }
+    else if(t.dataset.chdel!=null){ laEnsure().chs.splice(+t.dataset.chdel,1); laQueueSave(); renderLaunch(); }
+    else if(t.dataset.mkdel!=null){ laEnsure().mkt.splice(+t.dataset.mkdel,1); laQueueSave(); renderLaunch(); }
+  });
+  $('#laSel').addEventListener('change',e=>{ LA_KEY=e.target.value; renderLaunch(); });
+  $('#laStatus').addEventListener('change',async e=>{
+    const p=laProducts().find(x=>pKey(x)===LA_KEY); if(!p) return;
+    const v=e.target.value, pl=LPLAN[LA_KEY];
+    try{
+      await setPstatus(p,v);
+      if(v==='출시' && pl && (laNum(pl.cost)>0 || laNum(pl.price)>0)
+        && confirm(`출시로 바꿨습니다. 검토한 값을 가격정책표에도 반영할까요?\n\n· 매입원가 ${laNum(pl.cost)>0?wonU(laNum(pl.cost)):'(없음)'}\n· 자사몰 정가 ${laNum(pl.price)>0?wonU(laNum(pl.price)):'(없음)'}`)){
+        const k=pKey(p), rUid=retailUid();
+        if(laNum(pl.cost)>0 && !isPackage(p)){ PCOST[k]=laNum(pl.cost); p.cost=laNum(pl.cost); await saveProdCost(); }
+        if(laNum(pl.price)>0 && rUid){ VRETAIL[k]=laNum(pl.price); await saveRetailPrices(); }
+        recalcVendor();
+      }
+      refreshAll(); gotoTab('sh-launch');
+    }catch(err){ e.target.value=pstatus(p); }
+  });
+  $('#laNewBtn').addEventListener('click',()=>{
+    const pn=$('#laNewPanel'); pn.style.display=pn.style.display==='none'?'':'none';
+    $('#laCatList').innerHTML=[...new Set(P.map(p=>p.cat).filter(Boolean))].map(c=>`<option value="${esc(c)}">`).join('');
+    $('#laNewBrand').innerHTML=BRAND_LIST.map(b=>`<option${b===(BRAND_FILTER||BRAND_DEFAULT)?' selected':''}>${esc(b)}</option>`).join('');
+    $('#laNewMsg').textContent='';
+  });
+  $('#laNewCancel').addEventListener('click',()=>{ $('#laNewPanel').style.display='none'; });
+  $('#laNewSave').addEventListener('click',async()=>{
+    const cat=$('#laNewCat').value.trim(), name=$('#laNewName').value.trim(), spec=$('#laNewSpec').value.trim()||'-', brand=$('#laNewBrand').value;
+    if(!cat||!name){ $('#laNewMsg').textContent='분류와 제품명을 넣어 주세요.'; return; }
+    const key=`${cat}|${name}|${spec}`;
+    if(P.some(p=>pKey(p)===key)){ $('#laNewMsg').textContent='같은 분류·이름·규격의 제품이 이미 있습니다.'; return; }
+    const btn=$('#laNewSave'); btn.disabled=true;
+    try{
+      await db.collection('products-added').add({ cat,name,spec,cost:null,pr:{},mfg:'',concept:'',type:'단품',status:'출시준비',setItems:'',
+        seq:P.length, updatedAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'', source:'신제품 검토' });
+      setPbrandKey(key,[brand]); await savePbrand();
+      LPLAN[key]=laNewPlan(null); LA_KEY=key;
+      await db.collection('product-meta').doc('launch-plans').set({map:{[key]:{...LPLAN[key],updatedAt:new Date().toISOString(),updatedBy:(curUser&&curUser.email)||''}}},{merge:true});
+      logAct('신제품검토', `${name}${spec!=='-'?' ('+spec+')':''}`, '출시준비로 등록');
+      $('#laNewPanel').style.display='none'; ['#laNewName','#laNewSpec'].forEach(s=>$(s).value='');
+      $('#laSaved').textContent='등록됨 — 목록에 곧 나타납니다';
+      setTimeout(renderLaunch, 800);
+    }catch(e){ console.error('[신제품 검토] 등록 실패', e); $('#laNewMsg').innerHTML=`<span style="color:var(--red)">등록 실패: ${esc(e.code||e.message||e)}</span>`; }
+    finally{ btn.disabled=false; }
+  });
+})();
 function refreshAll(){
   recalcVendor();
   renderRibbon(); renderDash(); renderProductView(); renderGrid(); renderPricingBanner(); renderChMan(); renderVendorPanel(); renderSup(); renderMatch();
@@ -7172,6 +7511,7 @@ function refreshAll(){
   fillPlanChSel(); sanitizePlan(); renderPlanGrid(); renderAgg(); renderPl();
   fillRegDatalists(); renderMfg(); renderAddProd(); renderAddItem(); renderFixed(); renderCrmSync();
   renderMktAll();
+  if($('#sh-launch')&&$('#sh-launch').classList.contains('on')) renderLaunch();
   applySecGating();
   applyCostGating();
   renderViewChrome();

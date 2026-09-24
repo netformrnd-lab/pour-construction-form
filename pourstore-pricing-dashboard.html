@@ -513,6 +513,15 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
 .gh-opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px}
 @media(max-width:700px){ .gh-opts{grid-template-columns:1fr} #ghTable input[type=text]{width:160px} }
 /* ── 신제품 검토 ── */
+.pr-tbl .prps{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.pr-tbl .prp{display:flex;flex-direction:column;font-size:10.5px;color:var(--ink-soft);gap:2px}
+.pr-tbl .prp input{width:78px;min-width:0}
+.pr-tbl .prp select{max-width:190px;font:inherit;font-size:12px}
+.pr-tbl tr.pr-bad td{background:#FEF2F2}
+.prb{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap}
+.prb.ok{background:#E3F2E8;color:#0B5C30}.prb.warn{background:#FEF3C7;color:#92400E}.prb.bad{background:#FEE2E2;color:#B91C1C}
+#sh-promo .neg{color:var(--red)} #sh-promo b.pos{color:var(--xl-green-dark)}
+@media(max-width:700px){ #sh-promo .toolrow select{flex:1 1 100%} }
 .card .big.neg,#sh-launch .neg{color:var(--red)}
 .card .big.pos,#sh-launch b.pos{color:var(--xl-green-dark)}
 .la-tbl input{width:100%;min-width:64px;border:1px solid var(--xl-grid);border-radius:6px;padding:4px 6px;font:inherit;background:#fff}
@@ -608,7 +617,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24d</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24e</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1003,6 +1012,17 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- ── Sheet: 프로모션 설계 — 할인·N+M·사은품·쿠폰·적립금 구성별 주문당 이익, 역마진·최소마진 판정, 재고 소진 vs 폐기 ── -->
+  <section class="sheet" id="sh-promo">
+    <div class="toolrow">
+      <span class="ttl">프로모션 설계</span>
+      <select id="prSel" style="min-width:240px;flex:0 1 340px"></select>
+      <span class="footnote" id="prSaved" style="margin:0 0 0 auto"></span>
+      <span class="hint">할인·1+1·2+1·사은품·쿠폰·적립금 구성마다 주문당 이익을 바로 계산해 역마진을 막습니다 · 입력하면 자동 저장</span>
+    </div>
+    <div class="sheet-pad"><div id="prBody"></div></div>
   </section>
 
   <!-- ── Sheet: 신제품 검토 (출시준비) — MOQ·원가·물류·채널수수료로 예상 마진, 시장가 조사로 상품성 평가 ── -->
@@ -1439,6 +1459,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
   <button class="stab" data-grp="profit" data-sh="sh-fixed"><span class="dot"></span>고정지출 관리</button>
   <button class="stab" data-grp="mkt" data-sh="sh-mkt"><span class="dot"></span>마케팅 개요</button>
   <button class="stab" data-grp="mkt" data-sh="sh-mktlink"><span class="dot"></span>추적링크</button>
+  <button class="stab" data-grp="mkt" data-sh="sh-promo"><span class="dot"></span>프로모션 설계</button>
   <button class="stab" data-grp="mkt" data-sh="sh-mktpromo"><span class="dot"></span>프로모션 성과</button>
   <button class="stab" data-grp="none" data-sh="sh-access"><span class="dot"></span>계정 관리</button>
 </div>
@@ -4066,6 +4087,7 @@ function gotoTab(sh){
   if(sh==='sh-data' && typeof openDataTab==='function') openDataTab();
   if(sh==='sh-sales' && typeof openSalesTab==='function') openSalesTab();
   if(sh==='sh-launch' && typeof renderLaunch==='function') renderLaunch();
+  if(sh==='sh-promo' && typeof renderPromo==='function') renderPromo();
 }
 function selectGroup(grp){
   activeGrp=grp;
@@ -6798,6 +6820,7 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('prod-3pl').get(); P3PL=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-3pl] 3PL 코드 ${Object.keys(P3PL).length}개`); }catch(e){ console.warn('[prod-3pl] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-brand').get(); if(d.exists){ const x=d.data()||{}; if(x.map&&typeof x.map==='object') PBRAND=x.map; if(x.gh&&typeof x.gh==='object') PGHLINK=x.gh; } console.log(`[prod-brand] 브랜드 지정 ${Object.keys(PBRAND).length}건 · 그로홈 연결 ${Object.keys(PGHLINK).length}건`); }catch(e){ console.warn('[prod-brand] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-status').get(); PSTATUS=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-status] 상태 지정 ${Object.keys(PSTATUS).length}건`); }catch(e){ console.warn('[prod-status] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('promo-plans').get(); PRPLAN=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[promo-plans] 프로모션 설계 ${Object.keys(PRPLAN).length}건`); }catch(e){ console.warn('[promo-plans] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('launch-plans').get(); LPLAN=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[launch-plans] 신제품 검토 ${Object.keys(LPLAN).length}건`); }catch(e){ console.warn('[launch-plans] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('chan-deleted').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') CHDEL=d.data().map; }catch(e){ console.warn('[chan-deleted] 로드 실패', e.code||e); }
   await loadDraft();
@@ -7504,6 +7527,154 @@ function laQueueSave(){
     finally{ btn.disabled=false; }
   });
 })();
+/* ══════════ 프로모션 설계 (역마진 방지 계산기) ══════════
+   product-meta/promo-plans {map: pKey → plan} — 입력하면 1초 뒤 자동 저장
+   · 결제액(고객이 낸 돈)은 VAT 포함, 원가·물류비는 VAT 제외로 보고 순매출 = 결제액 ÷ 1.1 (VAT 포함일 때)
+   · 주문 1건 이익 = 순매출 − 결제액×(수수료+PG) − 나간 수량×매입원가 − 사은품 원가 − 주문당 물류·택배비 − 적립금 비용
+   · 1+1 / 2+1 은 합포장(택배 1번)으로 계산
+   · 재고 소진: 남은 재고를 이 구성으로 모두 팔 때 총이익 vs 팔지 못해 폐기할 때 손실(재고×원가)을 비교 */
+let PRPLAN={}, PR_KEY='', _prTimer=null;
+const PR_TYPES={
+  base:{lb:'정가 판매 (기준)', ps:[]},
+  disc:{lb:'할인', ps:[['v','할인율 %',20]]},
+  nm:{lb:'N+M 증정 (1+1·2+1)', ps:[['n','구매 N개',1],['m','증정 M개',1]]},
+  second:{lb:'두 번째 상품 할인', ps:[['v','두 번째 할인율 %',50]]},
+  gift:{lb:'사은품 증정', ps:[['gift','사은품',''],['gc','사은품 원가',0],['gq','수량',1]]},
+  coupon:{lb:'금액 할인 쿠폰', ps:[['v','쿠폰 금액(원)',3000],['min','최소 구매 수량',1]]},
+  point:{lb:'적립금 지급', ps:[['v','적립률 %',10],['use','실제 사용률 %',60]]},
+};
+function prDefaultRows(){ return [{t:'base'},{t:'disc',v:10},{t:'disc',v:20},{t:'nm',n:1,m:1},{t:'nm',n:2,m:1},{t:'second',v:50},{t:'gift',gift:'',gc:0,gq:1},{t:'coupon',v:3000,min:1},{t:'point',v:10,use:60}]; }
+function prFeeOf(uid){ const c=CHANNELS.find(x=>x.uid===uid); return c?(+((CH_VAR_DEFAULT[c.code]||{}).fee)||0):0; }
+function prNewPlan(p){
+  const ch=COLS().find(c=>c.role==='retail')||COLS()[0];
+  return { price:(p&&retailOf(p)>0)?retailOf(p):'', cost:(p&&p.cost>0)?p.cost:'', ch:ch?ch.uid:'', fee:ch?prFeeOf(ch.uid):0, pg:0,
+    ship:3000, pack:'', vat:true, minRate:10, stock:'', days:'', daily:'', rows:prDefaultRows() };
+}
+function prRow(pl,r){
+  const P0=laNum(pl.price), C=laNum(pl.cost), f=(laNum(pl.fee)+laNum(pl.pg))/100, k=pl.vat!==false?1/1.1:1, L=laNum(pl.ship), pk=laNum(pl.pack);
+  let units=1, pay=P0, gift=0, extra=0, note='';
+  if(r.t==='disc'){ pay=P0*(1-laNum(r.v)/100); }
+  else if(r.t==='nm'){ const n=Math.max(1,laNum(r.n)), m=Math.max(0,laNum(r.m)); units=n+m; pay=P0*n; note=`${n}+${m} · 개당 ${pct(m/(n+m))} 할인 효과`; }
+  else if(r.t==='second'){ units=2; pay=P0*(2-laNum(r.v)/100); note=`2개 구매 · 평균 ${pct(laNum(r.v)/200)} 할인 효과`; }
+  else if(r.t==='gift'){ gift=laNum(r.gc)*Math.max(1,laNum(r.gq)||1); note=r.gift?`사은품: ${r.gift}`:''; }
+  else if(r.t==='coupon'){ units=Math.max(1,laNum(r.min)||1); pay=Math.max(0,P0*units-laNum(r.v)); note=units>1?`${units}개 이상 구매 시`:''; }
+  else if(r.t==='point'){ extra=P0*laNum(r.v)/100*laNum(r.use)/100; note=`적립 ${wonU(P0*laNum(r.v)/100)} 중 ${laNum(r.use)}%만 쓴다고 가정`; }
+  const net=pay*k, fee=pay*f, cogs=units*(C+pk)+gift, profit=net-fee-cogs-L-extra;
+  return { units, pay, net, fee, cogs, profit, rate:net>0?profit/net:null, unitPrice:pay/units, disc:P0>0?1-(pay/units)/P0:0, note };
+}
+function prMaxDisc(pl, minRate){   // 개당 1개 판매 기준, 마진율 minRate 를 지키는 최대 할인율
+  const P0=laNum(pl.price), C=laNum(pl.cost)+laNum(pl.pack), f=(laNum(pl.fee)+laNum(pl.pg))/100, k=pl.vat!==false?1/1.1:1, L=laNum(pl.ship);
+  if(!(P0>0)) return null; const d=(1-minRate)*k-f; if(d<=0) return 0;
+  const minPay=(C+L)/d; return Math.max(0,Math.min(1,1-minPay/P0));
+}
+function prProducts(){ return P.filter(p=>!isDeletedProd(p) && pstatus(p)!=='단종'); }
+function renderPromo(){
+  const body=$('#prBody'); if(!body) return;
+  if(!costAllowed){ body.innerHTML='<div class="panel"><div class="bd">원가 열람 권한이 있는 계정에서만 볼 수 있습니다.</div></div>'; return; }
+  const list=prProducts(), sel=$('#prSel');
+  if(!PR_KEY || !list.some(p=>pKey(p)===PR_KEY)){ const f=Object.keys(PRPLAN).map(k=>list.find(p=>pKey(p)===k)).find(Boolean)||list[0]; PR_KEY=f?pKey(f):''; }
+  sel.innerHTML=list.map(p=>{ const k=pKey(p); return `<option value="${esc(k)}"${k===PR_KEY?' selected':''}>${PRPLAN[k]?'📝 ':''}${esc(prodLabel(p))}</option>`; }).join('');
+  const p=list.find(x=>pKey(x)===PR_KEY); if(!p){ body.innerHTML='<div class="panel"><div class="bd">제품이 없습니다.</div></div>'; return; }
+  const pl=PRPLAN[PR_KEY]||prNewPlan(p);
+  const fld=(lb,f,ph,step)=>`<div class="fld"><label>${lb}</label><input data-pf="${f}" type="number"${step?` step="${step}"`:''} value="${esc(pl[f])}" placeholder="${esc(ph||'')}"></div>`;
+  const chOpts=COLS().filter(c=>c.role!=='export').map(c=>`<option value="${esc(c.uid)}"${c.uid===pl.ch?' selected':''}>${esc(c.name||c.code)} (${prFeeOf(c.uid)}%)</option>`).join('');
+  body.innerHTML=`
+    ${PRPLAN[PR_KEY]?'':'<div class="panel" style="border-color:var(--amber)"><div class="bd">📝 이 제품은 아직 설계 기록이 없습니다. 정가·원가는 가격정책표 값으로 채웠습니다. 값을 바꾸면 자동 저장됩니다.</div></div>'}
+    <div class="panel"><h3>기준값 <span class="tag">원가·물류비는 VAT 제외</span></h3><div class="bd"><div class="formgrid">
+      ${fld('정가 (소비자가)','price')}
+      ${fld('개당 매입원가','cost')}
+      <div class="fld"><label>판매 채널</label><select data-pf="ch">${chOpts}<option value=""${!pl.ch?' selected':''}>직접 입력</option></select></div>
+      ${fld('판매수수료 %','fee','','0.1')}
+      ${fld('PG 수수료 %','pg','0','0.1')}
+      ${fld('주문당 물류·택배비','ship')}
+      ${fld('개당 포장비','pack','0')}
+      <div class="fld"><label>정가 VAT</label><select data-pf="vat"><option value="1"${pl.vat!==false?' selected':''}>포함 (÷1.1)</option><option value="0"${pl.vat===false?' selected':''}>제외</option></select></div>
+      ${fld('지켜야 할 최소 마진율 %','minRate','10','1')}
+    </div></div></div>
+    <div class="panel"><h3>재고 소진 목표 <span class="tag">유통기한 임박 재고 등</span></h3><div class="bd"><div class="formgrid">
+      ${fld('남은 재고 (개)','stock')}
+      ${fld('판매 가능 일수 (기한 − 판매마감 여유)','days')}
+      ${fld('평소 하루 판매량 (개)','daily','','0.1')}
+    </div><div id="prNeed" class="footnote" style="margin-top:10px"></div></div></div>
+    <div id="prOut"></div>
+    <div class="panel"><h3>이런 기획도 해볼 수 있어요</h3><div class="bd"><ul class="footnote" style="margin:0;padding-left:18px;line-height:1.8">
+      <li><b>임박품을 다른 제품의 사은품으로</b> — 잘 팔리는 제품 구매 시 증정. 위 '사은품 증정' 줄에서 사은품 원가를 넣어 계산하세요(버릴 재고라면 실제 손실은 원가뿐).</li>
+      <li><b>두 번째 상품 50%</b> — 1+1보다 마진을 덜 깎고 여러 개 구매를 늘립니다.</li>
+      <li><b>구매 수량 조건 쿠폰</b> — '금액 할인 쿠폰'에서 최소 구매 수량을 2~3개로 두면 객단가를 올리고 택배비를 아낍니다.</li>
+      <li><b>묶음 기획세트</b> — 임박품 + 인기품. [제품·상품 등록]에서 세트로 만들면 구성품 가격 합으로 자동 계산됩니다.</li>
+      <li><b>대리점·B2B 대량 처분</b> — [MOQ 대량판매] 구간가로 한 번에 넘기기.</li>
+      <li><b>체험단·리뷰 이벤트</b> — 원가만 쓰고 리뷰를 모읍니다.</li>
+      <li><b>적립금</b> — 실제로 쓰는 비율만큼만 비용이라 같은 금액 할인보다 부담이 적습니다.</li>
+    </ul></div></div>`;
+  prRefreshOut();
+}
+function prRefreshOut(){
+  const pl=PRPLAN[PR_KEY]||prNewPlan(prProducts().find(x=>pKey(x)===PR_KEY)); const out=$('#prOut'); if(!out) return;
+  const minR=laNum(pl.minRate)/100, stock=laNum(pl.stock), days=laNum(pl.days), daily=laNum(pl.daily), C=laNum(pl.cost);
+  const need=$('#prNeed');
+  if(need){ if(stock>0&&days>0){ const nd=stock/days, x=daily>0?nd/daily:null;
+      need.innerHTML=`하루 <b>${(Math.round(nd*10)/10).toLocaleString('ko-KR')}개</b> 팔아야 기한 안에 소진됩니다${x!=null?` · 지금 속도의 <b style="color:${x>2?'var(--red)':x>1?'var(--amber)':'var(--xl-green-dark)'}">${(Math.round(x*10)/10)}배</b> ${x>2?'🔴 프로모션 필요':x>1?'🟡 속도를 올려야 함':'🟢 지금 속도로 충분'}`:''} · 다 못 팔고 버리면 손실 <b>${wonU(stock*C)}</b> (재고 × 원가)`; }
+    else need.textContent='재고·일수를 넣으면 필요한 판매 속도와 폐기 손실을 계산합니다.'; }
+  const mx0=prMaxDisc(pl,0), mxT=prMaxDisc(pl,minR);
+  const rows=(pl.rows||[]).map((r,i)=>({r,i,c:prRow(pl,r)}));
+  const giftOpts=g=>`<option value="">(직접 입력)</option>`+prProducts().filter(p=>p.cost>0).map(p=>`<option value="${esc(prodLabel(p))}" data-cost="${p.cost}"${prodLabel(p)===g?' selected':''}>${esc(prodLabel(p))} · 원가 ${won(p.cost)}</option>`).join('');
+  const paramHtml=(r,i)=>(PR_TYPES[r.t]||{ps:[]}).ps.map(([f,lb])=> f==='gift'
+      ? `<label class="prp">${lb}<select data-rw="${i}" data-rf="gift">${giftOpts(r.gift)}</select></label>`
+      : `<label class="prp">${lb}<input type="number" data-rw="${i}" data-rf="${f}" value="${esc(r[f])}"></label>`).join('');
+  const badge=c=> c.profit<0?'<span class="prb bad">🔴 역마진</span>':(c.rate!=null&&c.rate<minR)?'<span class="prb warn">⚠️ 마진 부족</span>':'<span class="prb ok">✅ 가능</span>';
+  const clear=c=>{ if(!(stock>0)) return '—'; const orders=Math.ceil(stock/c.units), tot=orders*c.profit, vsWaste=tot+stock*C;
+    return `<div>${wonU(tot)}</div><div class="footnote" style="margin:2px 0 0">주문 ${won(orders)}건${days>0?` · 하루 ${(Math.round(orders/days*10)/10)}건`:''}<br>폐기 대비 <b class="${vsWaste<0?'neg':'pos'}">${vsWaste>=0?'+':''}${wonU(vsWaste)}</b></div>`; };
+  out.innerHTML=`
+    <div class="cards">
+      <div class="card"><h4>적자 안 나는 최대 할인율</h4><div class="big">${mx0==null?'—':pct(mx0)}</div><div class="footnote" style="margin:4px 0 0">1개 주문 기준 · 이보다 깎으면 역마진</div></div>
+      <div class="card"><h4>최소 마진 ${pct(minR)} 지키는 최대 할인율</h4><div class="big pos">${mxT==null?'—':pct(mxT)}</div><div class="footnote" style="margin:4px 0 0">할인가 ${mxT==null?'—':wonU(laNum(pl.price)*(1-mxT))}</div></div>
+    </div>
+    <div class="panel"><h3>구성별 손익 <span class="tag">주문 1건 기준</span></h3>
+      <div class="bd" style="padding:0;overflow-x:auto"><table class="grid la-tbl pr-tbl" style="width:100%;min-width:980px">
+        <thead><tr><th style="min-width:210px">구성</th><th class="num">나가는 수량</th><th class="num">결제액</th><th class="num">개당 실판매가</th><th class="num">수수료</th><th class="num">원가·사은품</th><th class="num">주문당 이익</th><th class="num">마진율</th><th>판정</th><th class="num">재고 전량 판매 시</th><th></th></tr></thead>
+        <tbody>${rows.map(({r,i,c})=>`<tr class="${c.profit<0?'pr-bad':''}"><td><b>${esc((PR_TYPES[r.t]||{}).lb||r.t)}</b><div class="prps">${paramHtml(r,i)}</div>${c.note?`<div class="footnote" style="margin:2px 0 0">${esc(c.note)}</div>`:''}</td>
+          <td class="num">${c.units}개</td><td class="num">${wonU(c.pay)}</td><td class="num">${wonU(c.unitPrice)}${c.disc>0.0005?`<div class="footnote" style="margin:0">−${pct(c.disc)}</div>`:''}</td>
+          <td class="num">${wonU(c.fee)}</td><td class="num">${wonU(c.cogs)}</td>
+          <td class="num"><b class="${c.profit<0?'neg':'pos'}">${wonU(c.profit)}</b></td><td class="num">${pct(c.rate)}</td><td>${badge(c)}</td>
+          <td class="num">${clear(c)}</td><td>${r.t==='base'?'':`<button class="del" data-rdel="${i}" title="빼기">✕</button>`}</td></tr>`).join('')}</tbody></table></div>
+      <div class="bd" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="prAddType">${Object.entries(PR_TYPES).filter(([t])=>t!=='base').map(([t,d])=>`<option value="${t}">${esc(d.lb)}</option>`).join('')}</select><button class="tbtn" id="prAddRow">＋ 구성 추가</button><button class="tbtn" id="prResetRows">↺ 기본 구성으로</button>
+        <span class="footnote" style="margin:0">· 1+1·2+1·두 번째 할인은 합포장(택배 1번)으로 계산 · 적립금은 실제 사용률만큼만 비용</span></div></div>`;
+}
+function prEnsure(){ if(!PRPLAN[PR_KEY]) PRPLAN[PR_KEY]=prNewPlan(prProducts().find(x=>pKey(x)===PR_KEY)); return PRPLAN[PR_KEY]; }
+function prQueueSave(){
+  const k=PR_KEY; $('#prSaved').textContent='저장 대기…'; clearTimeout(_prTimer);
+  _prTimer=setTimeout(async()=>{
+    try{ await db.collection('product-meta').doc('promo-plans').set({map:{[k]:{...PRPLAN[k],updatedAt:new Date().toISOString(),updatedBy:(curUser&&curUser.email)||''}}},{merge:true});
+      $('#prSaved').textContent='저장됨 ✓ '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}); }
+    catch(e){ console.error('[promo-plans] 저장 실패', e); $('#prSaved').innerHTML=`<span style="color:var(--red)">저장 실패: ${esc(e.code||e.message||e)}</span>`; }
+  },900);
+}
+/* 다른 시트(유통기한 등)에서 제품·재고를 넘겨 받아 연다 */
+function openPromoFor(key, preset){
+  PR_KEY=key; const pl=prEnsure(); Object.assign(pl, preset||{}); prQueueSave(); gotoTab('sh-promo');
+}
+(function bindPromo(){
+  const body=$('#prBody'); if(!body) return;
+  const onEdit=e=>{ const t=e.target;
+    if(t.dataset.pf){ const pl=prEnsure(), f=t.dataset.pf;
+      if(f==='vat') pl.vat=t.value==='1';
+      else if(f==='ch'){ pl.ch=t.value; if(t.value){ pl.fee=prFeeOf(t.value); const fi=body.querySelector('input[data-pf=fee]'); if(fi) fi.value=pl.fee; } }
+      else pl[f]=t.value;
+      prQueueSave(); prRefreshOut(); return; }
+    if(t.dataset.rw!=null){ const r=prEnsure().rows[+t.dataset.rw]; if(!r) return;
+      if(t.dataset.rf==='gift'){ r.gift=t.value; const o=t.selectedOptions[0]; if(o&&o.dataset.cost) r.gc=+o.dataset.cost; }
+      else r[t.dataset.rf]=t.value;
+      prQueueSave(); if(t.tagName==='SELECT') prRefreshOut(); else { clearTimeout(body._rt); body._rt=setTimeout(()=>{ const a=document.activeElement, sel=a&&a.dataset&&a.dataset.rw!=null?`[data-rw="${a.dataset.rw}"][data-rf="${a.dataset.rf}"]`:null, pos=a&&a.selectionStart; prRefreshOut(); if(sel){ const n=body.querySelector(sel); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(_){} } } },350); } }
+  };
+  body.addEventListener('input',e=>{ if(e.target.tagName!=='SELECT') onEdit(e); });
+  body.addEventListener('change',e=>{ if(e.target.tagName==='SELECT') onEdit(e); });
+  body.addEventListener('click',e=>{ const t=e.target.closest('button'); if(!t) return;
+    if(t.id==='prAddRow'){ const ty=$('#prAddType').value, r={t:ty}; (PR_TYPES[ty].ps||[]).forEach(([f,,d])=>r[f]=d); prEnsure().rows.push(r); prQueueSave(); prRefreshOut(); }
+    else if(t.id==='prResetRows'){ if(!confirm('구성 목록을 기본 구성으로 되돌립니다.')) return; prEnsure().rows=prDefaultRows(); prQueueSave(); prRefreshOut(); }
+    else if(t.dataset.rdel!=null){ prEnsure().rows.splice(+t.dataset.rdel,1); prQueueSave(); prRefreshOut(); }
+  });
+  $('#prSel').addEventListener('change',e=>{ PR_KEY=e.target.value; renderPromo(); });
+})();
 function refreshAll(){
   recalcVendor();
   renderRibbon(); renderDash(); renderProductView(); renderGrid(); renderPricingBanner(); renderChMan(); renderVendorPanel(); renderSup(); renderMatch();
@@ -7512,6 +7683,7 @@ function refreshAll(){
   fillRegDatalists(); renderMfg(); renderAddProd(); renderAddItem(); renderFixed(); renderCrmSync();
   renderMktAll();
   if($('#sh-launch')&&$('#sh-launch').classList.contains('on')) renderLaunch();
+  if($('#sh-promo')&&$('#sh-promo').classList.contains('on')) renderPromo();
   applySecGating();
   applyCostGating();
   renderViewChrome();

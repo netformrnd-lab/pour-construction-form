@@ -751,7 +751,7 @@ body:has(#calcPanel.open) #calcFab{display:none}   /* 계산기를 열면 버튼
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24j</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24k</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1635,10 +1635,9 @@ body:has(#calcPanel.open) #calcFab{display:none}   /* 계산기를 열면 버튼
 <!-- ═══ 퀵 마진 계산기 ═══ -->
 <button id="calcFab"><span class="sym">fx</span> 마진계산기</button>
 <div id="calcPanel">
-  <div class="hd">퀵 마진 계산기 <button id="calcClose">✕</button></div>
+  <div class="hd">퀵 마진 계산기 · 공급사 협의용 <button id="calcClose">✕</button></div>
   <div class="bd">
     <div class="qc-in">
-      <label class="qc-f qc-wide"><span>제품 불러오기 <em>(선택)</em></span><select id="calcProd"><option value="">직접 입력</option></select></label>
       <label class="qc-f"><span>개당 원가</span><input type="number" id="cCost" inputmode="numeric" placeholder="예: 8000"></label>
       <label class="qc-f"><span>수량 (MOQ)</span><input type="number" id="cQty" inputmode="numeric" placeholder="예: 1000"></label>
     </div>
@@ -3399,7 +3398,6 @@ $('#btnSaveMatch').addEventListener('click',()=>{ persist(); persistSecure(); $(
 function fillProductSelects(){
   const opts=P.filter(p=>p.cat!=='패키지'&&!isDeletedProd(p)).map(p=>`<option value="${p.id}">[${p.cat}] ${p.name} · ${p.spec}</option>`).join('');
   ['#chProd','#moqProd','#plProd'].forEach(s=>$(s).innerHTML=opts);
-  $('#calcProd').innerHTML='<option value="">직접 입력</option>'+opts;
   const ibl=$('#ibProdList'); if(ibl) ibl.innerHTML=P.filter(p=>!isDeletedProd(p)).map(p=>`<option value="${esc(p.name)}${p.spec?' '+esc(p.spec):''}">`).join('');
   const d=P.findIndex(p=>p.name.includes('코트재Ⅰ(회색)'));
   if(d>=0){['#chProd','#moqProd','#plProd'].forEach(s=>$(s).value=d);}
@@ -3998,12 +3996,6 @@ qcFill(qcDefaults());
 $('#qcSplit').innerHTML=QC_SPLITS.map(v=>`<button data-sp="${v}" class="${v===QC_SPLIT?'on':''}">${v} : ${100-v}</button>`).join('');
 $('#calcFab').addEventListener('click',()=>{ const on=$('#calcPanel').classList.toggle('open'); if(on){ const d=qcDefaults(); if(!$('#qcFee').value) qcFill(d); runCalc(); } });
 $('#calcClose').addEventListener('click',()=>$('#calcPanel').classList.remove('open'));
-$('#calcProd').addEventListener('change',()=>{
-  const v=$('#calcProd').value; QC_PRICE=null;
-  const p=v===''?null:P.find(x=>String(x.id)===v);
-  if(p){ $('#cCost').value=p.cost??''; }
-  runCalc();
-});
 ['#cCost','#cQty','#qcTarget','#qcFee','#qcAd','#qcLogi','#qcDeli','#qcPack'].forEach(s=>$(s).addEventListener('input',()=>{ if(s==='#qcTarget') QC_PRICE=null; runCalc(); }));
 $('#qcSplit').addEventListener('click',e=>{ const b=e.target.closest('[data-sp]'); if(!b) return; QC_SPLIT=+b.dataset.sp; $$('#qcSplit button').forEach(x=>x.classList.toggle('on',x===b)); runCalc(); });
 $('#qcSaveDef').addEventListener('click',()=>{ try{ localStorage.setItem(QC_LS,JSON.stringify(qcVals())); $('#qcSaveDef').textContent='저장됨 ✓'; setTimeout(()=>$('#qcSaveDef').textContent='이 값을 기본값으로 저장',1400); }catch(e){ alert('저장 실패: '+e.message); } });
@@ -4012,7 +4004,6 @@ $('#calcRes').addEventListener('input',e=>{ if(e.target.id==='qcPrice'){ const v
 $('#calcRes').addEventListener('change',e=>{ if(e.target.id==='qcPrice') runCalc(); });   // 입력을 마치면 '직접 입력' 표시·자동값 버튼으로 다시 그림
 $('#calcRes').addEventListener('click',e=>{
   if(e.target.id==='qcAuto'){ QC_PRICE=null; runCalc(); }
-  const r=e.target.closest('[data-useprice]'); if(r){ QC_PRICE=+r.dataset.useprice; runCalc(); }
 });
 function runCalc(keepFocus){
   const out=$('#calcRes'); if(!out) return;
@@ -4021,7 +4012,6 @@ function runCalc(keepFocus){
   const d=(1-tgt)*k-f-ad, auto=(cost>0&&d>0)?Math.ceil(unitCost/d/100)*100:null;
   const price=QC_PRICE!=null?QC_PRICE:auto;
   $('#qcAdvSum').textContent=`수수료 ${o.fee}% · 광고 ${o.ad}% · 물류 ${o.logi}% · 택배 ${won(o.deli)}원 · 목표 ${o.target}%`;
-  const p=$('#calcProd').value===''?null:P.find(x=>String(x.id)===$('#calcProd').value), cur=p?retailOf(p):null;
   if(!(cost>0)){ out.innerHTML='<div class="qc-empty">개당 원가를 넣으면 바로 계산합니다.</div>'; $('#qcSplitOut').innerHTML=''; return; }
   if(price==null){ out.innerHTML='<div class="qc-empty" style="color:var(--red)">목표 마진율 + 수수료 + 광고비가 너무 커서 판매가를 계산할 수 없습니다. 아래 부대비용을 낮춰 주세요.</div>'; $('#qcSplitOut').innerHTML=''; return; }
   const net=price*k, feeAmt=price*(f+ad), profit=net-feeAmt-unitCost, rate=net?profit/net:0;
@@ -4032,7 +4022,6 @@ function runCalc(keepFocus){
       <div class="qc-hero">
         <div class="qc-lb">${QC_PRICE!=null?'판매가 (직접 입력)':`예상 판매가 <em>목표 마진 ${o.target}%</em>`}</div>
         <div class="qc-price">${priceBox}<span>원</span>${QC_PRICE!=null?'<button id="qcAuto" class="qc-link">자동값으로</button>':''}</div>
-        ${cur?`<div class="qc-cur">현재 정가 ${won(cur)}원 <button class="qc-link" data-useprice="${cur}">이 가격으로 보기</button></div>`:''}
       </div>
       <div class="qc-grid" id="qcNums"></div>`;
   }

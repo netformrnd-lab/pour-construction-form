@@ -773,6 +773,31 @@ body:has(:is(#calcPanel,#promoCalc).open) #calcFab{display:none}   /* 계산기�
   .sheet:not(#sh-price) .sheet-pad{padding-bottom:80px}
   .toolrow .hint{display:block!important;flex:1 0 100%;margin:0;font-size:11px}
 }
+
+/* ══════════ 앱처럼 쓰기 (배경 어둡게 · 바텀시트 · 누름 반응 · 터치 크기) ══════════ */
+#uiBack{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
+:is(#calcPanel,#promoCalc){z-index:102}
+#calcMenu{z-index:103}
+:is(#calcPanel,#promoCalc).open,#calcMenu.open{animation:uiUp .18s ease}
+@keyframes uiFade{from{opacity:0}to{opacity:1}}
+@keyframes uiUp{from{transform:translateY(18px);opacity:.5}to{transform:none;opacity:1}}
+.tbtn,.seg button,.qc-chips button,#sideNav .sn-item,#calcMenu button{transition:transform .08s ease}
+.tbtn:active,.seg button:active,.qc-chips button:active,#sideNav .sn-item:active,#calcMenu button:active,#calcFab:active{transform:scale(.96)}
+.tr-more{display:none}
+@media(max-width:640px){
+  :is(#calcPanel,#promoCalc){left:0!important;right:0!important;bottom:0!important;top:auto!important;transform:none!important;width:100%!important;max-width:100%!important;border:0!important;border-radius:20px 20px 0 0!important;max-height:90vh!important;padding-bottom:env(safe-area-inset-bottom)}
+  :is(#calcPanel,#promoCalc) .hd{padding-top:16px!important;border-radius:20px 20px 0 0}
+  :is(#calcPanel,#promoCalc) .hd::before{content:'';position:absolute;left:50%;top:6px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:rgba(255,255,255,.6)}
+  #calcMenu{left:0!important;right:0!important;bottom:0!important;min-width:0;background:#fff;border-radius:20px 20px 0 0;padding:18px 14px calc(16px + env(safe-area-inset-bottom));gap:10px}
+  #calcMenu::before{content:'계산기';font-size:15px;font-weight:800;color:#0F172A;padding:0 4px 4px}
+  #calcMenu button{box-shadow:none;border:1px solid #E2E8F0;padding:14px 16px}
+  #calcFab{bottom:calc(16px + env(safe-area-inset-bottom))!important}
+  .tbtn{min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+  .seg button{min-height:38px}
+  .tr-more{display:inline-flex;background:#F1F5F9!important;border-color:#E2E8F0!important;font-weight:700}
+  .toolrow.tr-fold:not(.tr-open) .tbtn:not(.tr-more){display:none!important}
+}
 @media print{
   @page{size:A4;margin:12mm}
   body{background:#fff!important}
@@ -831,7 +856,7 @@ body:has(:is(#calcPanel,#promoCalc).open) #calcFab{display:none}   /* 계산기�
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24s</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24t</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -8399,6 +8424,41 @@ async function openPromoCalc(key, preset){
   });
   box.addEventListener('change',e=>{ if(['pmPrice','pmCost'].includes(e.target.id)) renderPromoCalc(); });
 })();
+/* ══════════ 앱처럼 쓰기: 모달 배경 · 뒤로가기/ESC 닫기 · 폰 도구줄 접기 ══════════
+   · 계산기(선택 메뉴·단가·프로모션)가 열리면 뒤를 어둡게 하고, 배경을 누르거나 ESC·휴대폰 뒤로가기로 닫는다
+   · 폰에서 버튼이 많은 도구줄은 '도구 N개 ▾' 로 접어 둔다(누르면 전부 펼침 — 기능은 그대로) */
+(function appUx(){
+  const back=document.createElement('div'); back.id='uiBack'; document.body.appendChild(back);
+  const panels=()=>['#calcMenu','#calcPanel','#promoCalc'].map(x=>$(x)).filter(Boolean);
+  const anyOpen=()=>panels().some(p=>p.classList.contains('open'));
+  const drawerOpen=()=>document.body.classList.contains('sn-open');
+  const closeAll=()=>{ panels().forEach(p=>p.classList.remove('open')); document.body.classList.remove('sn-open'); };
+  back.addEventListener('click',closeAll);
+  let pushed=false;
+  const sync=()=>{
+    const m=anyOpen(); if(document.body.classList.contains('ui-modal')!==m) document.body.classList.toggle('ui-modal',m);
+    const open=m||drawerOpen();
+    if(open&&!pushed){ try{ history.pushState({uiModal:1},''); pushed=true; }catch(e){} }
+    else if(!open&&pushed){ pushed=false; try{ if(history.state&&history.state.uiModal) history.back(); }catch(e){} }
+  };
+  const mo=new MutationObserver(sync);
+  panels().forEach(p=>mo.observe(p,{attributes:true,attributeFilter:['class']}));
+  mo.observe(document.body,{attributes:true,attributeFilter:['class']});
+  window.addEventListener('popstate',()=>{ if(pushed||anyOpen()||drawerOpen()){ pushed=false; closeAll(); } });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&(anyOpen()||drawerOpen())) closeAll(); });
+  // 폰 도구줄 접기
+  const fold=()=>{ $$('.sheet .toolrow').forEach(tr=>{
+    const btns=[...tr.querySelectorAll('.tbtn')].filter(b=>!b.classList.contains('tr-more'));
+    let mb=tr.querySelector('.tr-more');
+    if(btns.length<=4){ tr.classList.remove('tr-fold'); if(mb) mb.remove(); return; }
+    tr.classList.add('tr-fold');
+    if(!mb){ mb=document.createElement('button'); mb.type='button'; mb.className='tbtn tr-more';
+      mb.addEventListener('click',()=>{ tr.classList.toggle('tr-open'); mb.textContent=(tr.classList.contains('tr-open')?'도구 접기 ▴':`도구 ${btns.length}개 ▾`); });
+      const hint=tr.querySelector('.hint'); tr.insertBefore(mb, hint||null); }
+    if(!tr.classList.contains('tr-open')) mb.textContent=`도구 ${btns.length}개 ▾`;
+  }); };
+  fold(); window.__uiFold=fold;
+})();
 function refreshAll(){
   recalcVendor();
   renderRibbon(); renderDash(); renderProductView(); renderGrid(); renderPricingBanner(); renderChMan(); renderVendorPanel(); renderSup(); renderMatch();
@@ -8412,6 +8472,7 @@ function refreshAll(){
   applyCostGating();
   renderViewChrome();
   requestAnimationFrame(syncStickyTop);   // 도구줄 높이에 맞춰 헤더 고정 오프셋 갱신(버튼 줄바꿈 대비)
+  if(window.__uiFold) window.__uiFold();
 }
 function syncStickyTop(){
   const tr=$('#sh-price .toolrow'); if(!tr)return;

@@ -396,6 +396,13 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
 #calcPanel .qc-stset{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:8px;font-size:11.5px;color:var(--ink-soft)}
 #calcPanel .qc-stset input{width:46px;border:1px solid #E2E8F0;border-radius:6px;padding:3px 5px;font-size:12px;text-align:right;margin:0 2px}
 #calcPanel .qc-stnote{font-size:10.5px;color:var(--ink-faint)}
+#calcPanel .qc-drow{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+#calcPanel .qc-drow b{font-size:22px;color:#1E40AF}
+#calcPanel .qc-drow label{font-size:13px;font-weight:700;color:#1E40AF;white-space:nowrap}
+#calcPanel .qc-drow input{width:64px;border:1px solid #BFDBFE;border-radius:8px;padding:5px 6px;font-size:15px;font-weight:700;text-align:right;margin:0 2px;color:#1E40AF;background:#fff}
+#calcPanel #qcDRange{width:100%;margin-top:8px;accent-color:#1E40AF}
+#calcPanel .qc-rlab{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-faint)}
+#calcPanel .qc-rlab span{font-size:10.5px!important;font-weight:500!important}
 #calcPanel .qc-mu button{padding:6px 2px;font-size:12px;white-space:nowrap}
 #calcPanel .qc-chs button{padding:5px 2px;font-size:11.5px;white-space:nowrap}
 #calcPanel .qc-chs button em{font-style:normal;font-weight:500;opacity:.75;margin-left:2px}
@@ -789,7 +796,7 @@ body:has(#calcPanel.open) #calcFab{display:none}   /* 계산기를 열면 버튼
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24q</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24r</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1681,14 +1688,8 @@ body:has(#calcPanel.open) #calcFab{display:none}   /* 계산기를 열면 버튼
     </div>
     <div id="calcRes"></div>
     <div class="qc-sec">
-      <div class="qc-st">할인 단계 <em>공동구매·파트너 · 나의 이익 vs 파트너 이익</em></div>
+      <div class="qc-st">할인 단계 <em>버튼 선택 → 할인율 직접 조정 가능</em></div>
       <div class="qc-chips qc-stg" id="qcSplit"></div>
-      <div class="qc-stset">
-        <label>소극 <input type="number" id="qcS1" step="5">%</label>
-        <label>보통 <input type="number" id="qcS2" step="5">%</label>
-        <span class="qc-stnote">= 내 이익 중 파트너 몫</span>
-        <label>적극 최소이익률 <input type="number" id="qcS3" step="1">%</label>
-      </div>
       <div id="qcSplitOut"></div>
     </div>
     <details class="qc-adv" id="qcAdv">
@@ -1702,6 +1703,13 @@ body:has(#calcPanel.open) #calcFab{display:none}   /* 계산기를 열면 버튼
         <label class="qc-f"><span>택배비 (개당)</span><input type="number" id="qcDeli" step="100"></label>
         <label class="qc-f"><span>포장비 (개당)</span><input type="number" id="qcPack" step="50"></label>
         <label class="qc-f"><span>소비자 정가 = 판매가 + %</span><input type="number" id="qcListUp" step="1"></label>
+      </div>
+      <div class="qc-st" style="margin-top:12px;font-size:12px">할인 단계 기준</div>
+      <div class="qc-stset" style="margin-top:4px">
+        <label>소극 <input type="number" id="qcS1" step="5">%</label>
+        <label>보통 <input type="number" id="qcS2" step="5">%</label>
+        <span class="qc-stnote">= 내 이익 중 파트너 몫</span>
+        <label>적극 최소이익률 <input type="number" id="qcS3" step="1">%</label>
       </div>
       <div class="qc-row2"><button class="tbtn" id="qcSaveDef">이 값을 기본값으로 저장</button><button class="tbtn" id="qcResetDef">처음 값으로</button></div>
       <p class="note">판매가 VAT 포함 · 원가·비용 VAT 제외 · 수수료 = 판매가 × (판매수수료+PG) · 기본값 이 기기 저장</p>
@@ -4034,7 +4042,7 @@ $('#pvSave')&&$('#pvSave').addEventListener('click',savePMeta);
 const QC_LS='pour-quickcalc-def-v2', QC_BASE={pg:4, feeOwn:4, feeCp:11, ad:0, logi:5, deli:3500, pack:0, listUp:11, s1:25, s2:50, s3:10};
 const QC_MARKUPS=[50,100,150,200], QC_CHS=[['own','자사몰·스마트스토어','feeOwn','자사몰·스마트'],['cp','쿠팡','feeCp','쿠팡']];
 const QC_STAGES=[['s1','소극'],['s2','보통'],['s3','적극']];
-let QC_STAGE='s2', QC_PRICE=null, QC_MU=150, QC_CH='own';   // QC_MU: 원가 대비 마진 %, QC_CH: 기준 채널
+let QC_STAGE='s2', QC_DISC=null, QC_PRICE=null, QC_MU=150, QC_CH='own';   // QC_MU: 원가 대비 마진 %, QC_CH: 기준 채널
 function qcDefaults(){ let d={}; try{ d=JSON.parse(localStorage.getItem(QC_LS)||'{}')||{}; }catch(e){} return {...QC_BASE,...d}; }
 const QC_IDS={pg:'qcPg',feeOwn:'qcFeeOwn',feeCp:'qcFeeCp',ad:'qcAd',logi:'qcLogi',deli:'qcDeli',pack:'qcPack',listUp:'qcListUp',s1:'qcS1',s2:'qcS2',s3:'qcS3'};
 /* 금액 표기 — 10만원 미만은 원 그대로.
@@ -4053,7 +4061,10 @@ qcFill(qcDefaults());
 $('#calcFab').addEventListener('click',()=>{ const on=$('#calcPanel').classList.toggle('open'); if(on) runCalc(); });
 $('#calcClose').addEventListener('click',()=>$('#calcPanel').classList.remove('open'));
 ['#cCost','#cQty',...Object.values(QC_IDS).map(id=>'#'+id)].forEach(s=>$(s).addEventListener('input',()=>runCalc()));
-$('#qcSplit').addEventListener('click',e=>{ const b=e.target.closest('[data-stg]'); if(!b) return; QC_STAGE=b.dataset.stg; runCalc(); });
+$('#qcSplit').addEventListener('click',e=>{ const b=e.target.closest('[data-stg]'); if(!b) return; QC_STAGE=b.dataset.stg; QC_DISC=null; runCalc(); });
+/* 할인율 직접 조정: 숫자 칸·슬라이더 — 입력 중엔 숫자만 갱신(칸이 다시 그려져 커서가 튀지 않게) */
+$('#qcSplitOut').addEventListener('input',e=>{ if(e.target.id==='qcDisc'||e.target.id==='qcDRange'){ const v=+e.target.value; if(isFinite(v)){ QC_DISC=v; runCalc(e.target.id); } } });
+$('#qcSplitOut').addEventListener('click',e=>{ if(e.target.id==='qcDiscReset'){ QC_DISC=null; runCalc(); } });
 $('#qcSaveDef').addEventListener('click',()=>{ try{ localStorage.setItem(QC_LS,JSON.stringify(qcVals())); $('#qcSaveDef').textContent='저장됨 ✓'; setTimeout(()=>$('#qcSaveDef').textContent='이 값을 기본값으로 저장',1400); }catch(e){ alert('저장 실패: '+e.message); } });
 $('#qcResetDef').addEventListener('click',()=>{ try{ localStorage.removeItem(QC_LS); }catch(e){} qcFill(qcDefaults()); QC_PRICE=null; runCalc(); });
 $('#calcRes').addEventListener('input',e=>{ if(e.target.id==='qcPrice'){ const v=+e.target.value; QC_PRICE=v>0?v:null; runCalc(true); } });
@@ -4079,6 +4090,7 @@ function qcChan(cost,o,chKey,priceIn){
     list, listDisc:list?1-price/list:0, be, maxDisc:(be!=null&&list)?1-be/list:null};
 }
 function runCalc(keepFocus){
+  const keep=typeof keepFocus==='string'?keepFocus:'';
   const out=$('#calcRes'); if(!out) return;
   const cost=+$('#cCost').value||0, qty=Math.max(0,+$('#cQty').value||0), o=qcVals();
   $('#qcAdvSum').textContent=`판매수수료 자사몰·스마트스토어 ${o.feeOwn}%·쿠팡 ${o.feeCp}% · PG ${o.pg}%(고정) · 광고 ${o.ad}% · 정가 = 판매가 +${o.listUp}% · 물류 원가의 ${o.logi}%·택배 ${won(o.deli)}원 (임시값)`;
@@ -4123,14 +4135,38 @@ function runCalc(keepFocus){
   const stg=QC_STAGES.map(([key,lb])=>{ const d=stageD(key); if(d==null) return {key,lb,d:null};
     const mine=prof(d), partner=Math.max(0,c.profit-mine); return {key,lb,d,mine,partner,disc:c.list?1-d/c.list:0,rate:d?mine/(d/1.1):null}; });
   $('#qcSplit').innerHTML=stg.map(x=>`<button data-stg="${x.key}" class="${x.key===QC_STAGE?'on':''}">${x.lb}<em>${x.d==null?'—':'정가 −'+pct(x.disc)}</em></button>`).join('');
-  const cur=stg.find(x=>x.key===QC_STAGE)||stg[1];
-  $('#qcSplitOut').innerHTML= (c.profit<=0||cur.d==null) ? '<div class="qc-empty" style="color:var(--red)">개당 이익 없음 → 할인 여력 없음</div>' : `
+  const cur0=stg.find(x=>x.key===QC_STAGE)||stg[1];
+  if(c.profit<=0||cur0.d==null||!c.list){ $('#qcSplit').innerHTML=stg.map(x=>`<button data-stg="${x.key}">${x.lb}</button>`).join(''); $('#qcSplitOut').innerHTML='<div class="qc-empty" style="color:var(--red)">개당 이익 없음 → 할인 여력 없음</div>'; return; }
+  // 직접 조정한 할인율이 있으면 그것으로, 없으면 고른 단계의 할인가로
+  const lo=Math.max(0,Math.round(c.listDisc*1000)/10), hi=Math.max(lo,Math.floor(Math.max(0,c.maxDisc)*1000)/10);
+  const disc=QC_DISC!=null?Math.min(95,Math.max(0,QC_DISC)):Math.round(cur0.disc*1000)/10;
+  const d=QC_DISC!=null?Math.ceil(c.list*(1-disc/100)/100)*100:cur0.d;
+  const mine=prof(d), partner=c.profit-mine, rate=d?mine/(d/1.1):null;
+  $('#qcSplit').innerHTML=stg.map(x=>`<button data-stg="${x.key}" class="${QC_DISC==null&&x.key===QC_STAGE?'on':''}">${x.lb}<em>${x.d==null?'—':'정가 −'+pct(x.disc)}</em></button>`).join('');
+  const typing=keep==='qcDisc'||keep==='qcDRange';
+  if(!typing||!$('#qcDPrice')){
+    $('#qcSplitOut').innerHTML=`
     <div class="qc-grid">
-      <div class="qc-hl"><span>${cur.lb} 할인가 <em>공동구매·파트너 판매가</em></span><b>${qcW(cur.d)}</b><small>정가 −${pct(cur.disc)} · 판매가 −${pct(1-cur.d/P0)}</small></div>
-      <div><span>나의 이익 / 개</span><b class="${cur.mine<0?'neg':'pos'}">${qcW(cur.mine)}</b><small>이익률 ${pct(cur.rate)}${qty>0?` · ${won(qty)}개 ${qcT(cur.mine*qty)}`:''}</small></div>
-      <div><span>파트너 이익 / 개</span><b>${qcW(cur.partner)}</b><small>${qty>0?`${won(qty)}개 ${qcT(cur.partner*qty)}`:'판매가와 할인가 차이'}</small></div>
+      <div class="qc-hl">
+        <span>할인가 <em id="qcDTag"></em></span>
+        <div class="qc-drow"><b id="qcDPrice"></b><label>정가 −<input id="qcDisc" type="number" inputmode="decimal" step="0.5" value="${disc}">%</label></div>
+        <input id="qcDRange" type="range" min="0" max="${Math.max(hi,disc,1)}" step="0.5" value="${disc}">
+        <div class="qc-rlab"><span>정가</span><span>손익분기 −${hi}%</span></div>
+      </div>
+      <div><span>나의 이익 / 개</span><b id="qcMine"></b><small id="qcMineS"></small></div>
+      <div><span>파트너 이익 / 개</span><b id="qcPart"></b><small id="qcPartS"></small></div>
     </div>
-    <p class="note">${QC_STAGE==='s3'?`적극: 내 이익률 최소 ${o.s3}% 유지`:`${cur.lb}: 내 이익의 ${o[QC_STAGE]}%를 할인(파트너 몫)으로`} · 나의 이익 + 파트너 이익 = 원래 개당 이익 ${qcW(c.profit)}</p>`;
+    <p class="note" id="qcDNote"></p>`;
+  } else {
+    if(keep==='qcDisc') $('#qcDRange').value=disc; else $('#qcDisc').value=disc;
+  }
+  $('#qcDTag').innerHTML=QC_DISC!=null?'직접 조정 <button id="qcDiscReset" class="qc-link">단계값으로</button>':`${cur0.lb} 단계`;
+  $('#qcDPrice').innerHTML=qcW(d);
+  $('#qcMine').className=mine<0?'neg':'pos'; $('#qcMine').innerHTML=qcW(mine);
+  $('#qcMineS').innerHTML=`이익률 ${pct(rate)}${qty>0?` · ${won(qty)}개 ${qcT(mine*qty)}`:''}`;
+  $('#qcPart').innerHTML=qcW(Math.max(0,partner));
+  $('#qcPartS').innerHTML=qty>0?`${won(qty)}개 ${qcT(Math.max(0,partner)*qty)}`:'판매가와 할인가 차이';
+  $('#qcDNote').innerHTML=mine<0?'<b class="neg">손익분기 아래 → 적자</b>':`나의 이익 + 파트너 이익 = 원래 개당 이익 ${qcW(c.profit)}`;
 }
 
 /* ══════════ 입고예정 CRM 송신 (가격대시보드 → pourstorecrm) ══════════

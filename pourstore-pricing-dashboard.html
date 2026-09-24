@@ -395,6 +395,8 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
 #calcPanel .qc-chs button em{font-style:normal;font-weight:500;opacity:.75;margin-left:2px}
 #calcPanel .qc-chs button.on{background:#0F172A;border-color:#0F172A}
 #calcPanel .qc-grid .qc-span{grid-column:1/-1}
+#calcPanel .qc-pg{font-size:11.5px;color:#0B5C30;margin:-2px 0 8px}
+#calcPanel .qc-pg em{font-style:normal;opacity:.7}
 #calcPanel .qc-cmp{margin-top:10px;background:#F8FAFC;border-radius:12px;padding:10px 12px}
 #calcPanel .qc-st2{font-size:12px;font-weight:800;margin-bottom:6px}
 #calcPanel .qc-st2 em{font-style:normal;font-weight:500;color:var(--ink-faint);margin-left:4px}
@@ -767,7 +769,7 @@ body:has(#calcPanel.open) #calcFab{display:none}   /* 계산기를 열면 버튼
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24l</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24m</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1666,7 +1668,7 @@ body:has(#calcPanel.open) #calcFab{display:none}   /* 계산기를 열면 버튼
     <details class="qc-adv" id="qcAdv">
       <summary>자동으로 넣은 부대비용 <span id="qcAdvSum"></span></summary>
       <div class="qc-in qc-in3">
-        <label class="qc-f"><span>PG 수수료 %</span><input type="number" id="qcPg" step="0.1"></label>
+        <label class="qc-f"><span>PG 수수료 % <em>(모든 채널 고정)</em></span><input type="number" id="qcPg" step="0.1"></label>
         <label class="qc-f"><span>자사몰 판매수수료 %</span><input type="number" id="qcFeeOwn" step="0.1"></label>
         <label class="qc-f"><span>스마트스토어 판매수수료 %</span><input type="number" id="qcFeeSs" step="0.1"></label>
         <label class="qc-f"><span>쿠팡 판매수수료 %</span><input type="number" id="qcFeeCp" step="0.1"></label>
@@ -4036,12 +4038,13 @@ function qcChan(cost,o,chKey,priceIn){
   const price=priceIn!=null?priceIn:auto;
   if(price==null) return {ch,f,logi,base,auto,price:null};
   const feeAmt=price*f, full=base+feeAmt, net=price*k, profit=net-full;
-  return {ch,f,logi,base,auto,price,feeAmt,full,net,profit,mu:full?profit/full:null,rate:net?profit/net:null};
+  const salesFee=price*o[ch[2]]/100, pgFee=price*o.pg/100, adFee=price*o.ad/100;
+  return {ch,f,logi,base,auto,price,feeAmt,salesFee,pgFee,adFee,full,net,profit,mu:full?profit/full:null,rate:net?profit/net:null};
 }
 function runCalc(keepFocus){
   const out=$('#calcRes'); if(!out) return;
   const cost=+$('#cCost').value||0, qty=Math.max(0,+$('#cQty').value||0), o=qcVals();
-  $('#qcAdvSum').textContent=`PG ${o.pg}% · 판매수수료 자사몰 ${o.feeOwn}%·스마트스토어 ${o.feeSs}%·쿠팡 ${o.feeCp}% · 광고 ${o.ad}% · 물류 원가의 ${o.logi}% · 택배 ${won(o.deli)}원`;
+  $('#qcAdvSum').textContent=`판매수수료 자사몰 ${o.feeOwn}%·스마트스토어 ${o.feeSs}%·쿠팡 ${o.feeCp}% · PG ${o.pg}%(고정) · 광고 ${o.ad}% · 물류 원가의 ${o.logi}% · 택배 ${won(o.deli)}원 (임시값)`;
   if(!(cost>0)){ out.innerHTML='<div class="qc-empty">개당 원가를 넣으면 바로 계산합니다.</div>'; $('#qcSplitOut').innerHTML=''; return; }
   const c=qcChan(cost,o,QC_CH,QC_PRICE);
   if(c.price==null){ out.innerHTML='<div class="qc-empty" style="color:var(--red)">수수료가 너무 커서 이 마진으로는 판매가를 계산할 수 없습니다. 마진을 낮추거나 부대비용을 확인해 주세요.</div>'; $('#qcSplitOut').innerHTML=''; return; }
@@ -4050,7 +4053,8 @@ function runCalc(keepFocus){
     out.innerHTML=`
       <div class="qc-hero">
         <div class="qc-chips qc-mu">${QC_MARKUPS.map(v=>`<button data-mu="${v}" class="${QC_PRICE==null&&v===QC_MU?'on':''}">마진 ${v}%</button>`).join('')}</div>
-        <div class="qc-chips qc-chs">${QC_CHS.map(([k,lb,fk])=>`<button data-qch="${k}" class="${k===QC_CH?'on':''}">${lb} <em>${o[fk]+o.pg}%</em></button>`).join('')}</div>
+        <div class="qc-chips qc-chs">${QC_CHS.map(([k,lb,fk])=>`<button data-qch="${k}" class="${k===QC_CH?'on':''}">${lb} <em>${o[fk]}%</em></button>`).join('')}</div>
+        <div class="qc-pg">＋ PG 수수료 <b>${o.pg}%</b> 고정 <em>(모든 채널 공통)</em></div>
         <div class="qc-lb">${QC_PRICE!=null?'판매가 (직접 입력)':`예상 판매가 <em>${c.ch[1]} · 원가 대비 마진 ${QC_MU}%</em>`}</div>
         <div class="qc-price"><input id="qcPrice" type="number" inputmode="numeric" value="${c.price}" title="직접 고치면 그 가격으로 계산합니다"><span>원</span>${QC_PRICE!=null?'<button id="qcAuto" class="qc-link">마진 버튼 값으로</button>':''}</div>
       </div>
@@ -4059,12 +4063,12 @@ function runCalc(keepFocus){
   }
   $('#qcNums').innerHTML=`
       <div><span>개당 이익</span><b class="${c.profit<0?'neg':'pos'}">${wonU(c.profit)}</b><small>원가 대비 ${pct(c.mu)} · 판매가 대비 ${pct(c.rate)}</small></div>
-      <div><span>원가 (부대비용 포함)</span><b>${wonU(c.full)}</b><small>매입 ${won(cost)} + 물류 ${won(c.logi)} + 택배 ${won(o.deli)}${o.pack?' + 포장 '+won(o.pack):''} + 수수료${o.ad?'·광고':''} ${won(c.feeAmt)}</small></div>
+      <div><span>원가 (부대비용 포함)</span><b>${wonU(c.full)}</b><small>매입 ${won(cost)} + 물류 ${won(c.logi)} + 택배 ${won(o.deli)}${o.pack?' + 포장 '+won(o.pack):''} + 판매수수료 ${won(c.salesFee)} + PG ${won(c.pgFee)}${o.ad?' + 광고 '+won(c.adFee):''}</small></div>
       <div class="qc-span"><span>${qty>0?`${won(qty)}개 다 팔면`:'수량을 넣으면 총액이 나옵니다'}</span>${qty>0?`<b>${wonU(c.price*qty)}</b><small>이익 <b class="${c.profit<0?'neg':'pos'}">${wonU(c.profit*qty)}</b> · 매입 원가 투입 ${wonU(cost*qty)}</small>`:''}</div>`;
   // 채널별 한눈 비교 (같은 판매가·같은 마진 기준)
   const rows=QC_CHS.map(([k,lb])=>{ const x=qcChan(cost,o,k,QC_PRICE); return {k,lb,x}; });
   $('#qcCmp').innerHTML=`<div class="qc-st2">채널별 비교 <em>${QC_PRICE!=null?`판매가 ${won(QC_PRICE)}원일 때`:`마진 ${QC_MU}% 맞추려면`}</em></div>
-    <table><thead><tr><th>채널</th><th>수수료</th><th>판매가</th><th>개당 이익</th></tr></thead><tbody>${rows.map(({k,lb,x})=>`<tr class="${k===QC_CH?'on':''}"><td>${lb}</td><td>${pct(x.f)}</td><td>${x.price==null?'—':won(x.price)}</td><td class="${x.profit<0?'neg':''}">${x.price==null?'—':won(x.profit)}</td></tr>`).join('')}</tbody></table>`;
+    <table><thead><tr><th>채널</th><th>판매수수료</th><th>PG</th><th>판매가</th><th>개당 이익</th></tr></thead><tbody>${rows.map(({k,lb,x})=>`<tr class="${k===QC_CH?'on':''}"><td>${lb}</td><td>${o[QC_CHS.find(y=>y[0]===k)[2]]}%</td><td>${o.pg}%</td><td>${x.price==null?'—':won(x.price)}</td><td class="${x.profit<0?'neg':''}">${x.price==null?'—':won(x.profit)}</td></tr>`).join('')}</tbody></table>`;
   // 이익 배분
   const r=QC_SPLIT/100, ours=c.profit*r, theirs=c.profit-ours, supply=cost+c.logi+ours;
   $('#qcSplitOut').innerHTML= c.profit<=0 ? '<div class="qc-empty" style="color:var(--red)">개당 이익이 없어 나눌 몫이 없습니다.</div>' : `

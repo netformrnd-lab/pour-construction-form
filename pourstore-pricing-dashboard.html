@@ -595,6 +595,84 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
 #psChanBox input[type=checkbox]{width:auto;min-width:0;flex:0 0 auto;margin:0}
 #psChanBox .cd{font-family:var(--mono);color:var(--amber);font-weight:700;font-size:11px}
 @media(max-width:640px){ #psChanBox{grid-template-columns:1fr;max-height:180px} }
+
+/* ══════════ 깔끔한 화면(그로홈 대시보드식) — 가격정책표·마진계산기는 Excel 모양 유지 ══════════ */
+:root{ --ui-bg:#F4F6F8; --ui-line:#EEF0F3; --ui-soft:#64748B; --ui-shadow:0 4px 20px rgba(15,23,42,.05); }
+body{flex-direction:row;background:var(--ui-bg)}
+#mainCol{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+#sideNav{width:232px;flex:0 0 232px;background:linear-gradient(180deg,#128A48 0%,#0B5C30 100%);color:#fff;display:flex;flex-direction:column;overflow-y:auto;box-shadow:4px 0 20px rgba(11,92,48,.12);z-index:50;transition:width .2s ease,flex-basis .2s ease}
+#sideNav .sn-head{display:flex;align-items:center;justify-content:space-between;padding:20px 16px 16px;border-bottom:1px solid rgba(255,255,255,.15)}
+#sideNav .sn-logo{display:flex;flex-direction:column;line-height:1.25}
+#sideNav .sn-logo b{font-size:17px;letter-spacing:-.4px}
+#sideNav .sn-logo span{font-size:11.5px;opacity:.75}
+#snFold{background:rgba(255,255,255,.18);border:0;color:#fff;width:30px;height:30px;border-radius:8px;font-size:14px}
+#snFold:hover{background:rgba(255,255,255,.3)}
+#sideNav .sn-menu{padding:12px 10px 24px}
+#sideNav .sn-grp{margin-bottom:10px}
+#sideNav .sn-gl{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;font-size:14px;font-weight:700;background:rgba(255,255,255,.08)}
+#sideNav .sn-grp.on .sn-gl{background:rgba(255,255,255,.16)}
+#sideNav .sn-ic{font-size:17px;width:22px;text-align:center}
+#sideNav .sn-item{display:block;width:100%;text-align:left;border:0;background:transparent;color:rgba(255,255,255,.82);padding:8px 12px 8px 44px;border-radius:9px;font-size:13px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sideNav .sn-item:hover{background:rgba(255,255,255,.14);color:#fff}
+#sideNav .sn-item.on{background:#fff;color:#0B5C30;font-weight:800;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+body.sn-fold #sideNav{width:64px;flex-basis:64px}
+body.sn-fold #sideNav .sn-logo,body.sn-fold #sideNav .sn-t,body.sn-fold #sideNav .sn-item{display:none}
+body.sn-fold #sideNav .sn-head{justify-content:center;padding:16px 8px}
+body.sn-fold #sideNav .sn-gl{justify-content:center;padding:10px 0}
+/* 아래 Excel식 탭은 왼쪽 메뉴가 대신한다(데스크톱) */
+#tabGroups,#tabs{display:none!important}
+/* 상단: 흰 머리줄 + 요약 카드 */
+#ribbon{background:#fff;color:var(--ink);border-bottom:1px solid var(--ui-line);padding:12px 22px}
+#ribbon .brand b{color:#0F172A;font-size:17px}
+#ribbon .brand span{color:var(--ui-soft);opacity:1}
+#ribbon .kpi{background:#F8FAFC;border:1px solid var(--ui-line);border-radius:12px;padding:7px 12px;min-width:0}
+#ribbon{flex-wrap:nowrap}
+#ribbon .kpi .lb,#ribbon .kpi .sub{white-space:nowrap}
+#ribbon .brand span{white-space:nowrap}
+#ribbon .brand{min-width:0;flex:0 1 auto}
+#ribbon .kpis{flex-wrap:nowrap;overflow-x:auto;min-width:0}
+@media(max-width:1100px){#ribbon{flex-wrap:wrap}#ribbon .kpis{flex-wrap:wrap}}
+#ribbon .kpi .lb{color:var(--ui-soft);opacity:1}
+#ribbon .kpi .vl{color:#0F172A}
+#ribbon .kpi .sub{color:var(--ink-faint);opacity:1}
+#ribbon button{background:#fff!important;border:1px solid #E2E8F0!important;color:#334155!important;border-radius:8px!important;padding:6px 12px!important}
+#ribbon button:hover{border-color:var(--xl-green)!important;color:var(--xl-green-dark)!important}
+#authWho{color:var(--ui-soft)}
+/* 수식줄은 가격정책표에서만(셀 선택 수식 표시용) */
+body[data-sh]:not([data-sh="sh-price"]) #fxbar,body[data-sh]:not([data-sh="sh-price"]) #fxSplit{display:none!important}
+#sheetwrap{background:var(--ui-bg)}
+#sh-price{background:var(--paper)}
+/* 가격정책표 외 시트: 카드형 */
+.sheet:not(#sh-price) .toolrow{background:#fff;border-bottom:1px solid var(--ui-line);padding:14px 24px;gap:10px}
+.sheet:not(#sh-price) .toolrow .ttl{font-size:18px;font-weight:800;color:#0F172A;letter-spacing:-.3px}
+.sheet:not(#sh-price) .sheet-pad{padding:22px 24px 90px}
+.sheet:not(#sh-price) .panel{border:0;border-radius:16px;box-shadow:var(--ui-shadow);margin-bottom:18px}
+.sheet:not(#sh-price) .panel>h3{background:#fff;border-bottom:1px solid var(--ui-line);font-size:15px;padding:14px 18px;color:#0F172A}
+.sheet:not(#sh-price) .panel>h3 .tag{border-radius:20px;padding:2px 9px}
+.sheet:not(#sh-price) .panel .bd{padding:16px 18px}
+.sheet:not(#sh-price) .card{border:0;border-radius:16px;box-shadow:var(--ui-shadow);padding:18px 20px}
+.sheet:not(#sh-price) .card h4{font-size:12.5px;color:var(--ui-soft)}
+.sheet:not(#sh-price) .card .big{font-size:24px}
+.sheet:not(#sh-price) table.grid th,.sheet:not(#sh-price) table.grid td{border-right:0;border-bottom:1px solid #F1F5F9;height:38px;padding:0 12px;font-size:12.8px}
+.sheet:not(#sh-price) table.grid thead th{background:#F8FAFC;color:var(--ui-soft);font-weight:700;height:38px;border-bottom:1px solid var(--ui-line)}
+.sheet:not(#sh-price) table.grid tbody tr:hover td{background:#FAFBFC}
+.sheet:not(#sh-price) .formgrid{gap:12px}
+.sheet:not(#sh-price) .fld input,.sheet:not(#sh-price) .fld select,.sheet:not(#sh-price) .toolrow select,.sheet:not(#sh-price) .toolrow input[type=text]{border-radius:8px;border-color:#E2E8F0}
+.sheet:not(#sh-price) .bar-track{border-radius:6px}
+.sheet:not(#sh-price) .bar-fill{border-radius:6px}
+.tbtn{border-radius:8px;padding:6px 13px;border-color:#E2E8F0}
+.seg{border-radius:8px;border-color:#E2E8F0}
+.card .big.neg{color:var(--red)}
+@media(max-width:640px){
+  #sideNav{display:none}
+  #ribbon{padding:10px 12px}
+  .sheet:not(#sh-price) .toolrow{padding:10px 12px}
+  .sheet:not(#sh-price) .toolrow .ttl{font-size:16px}
+  .sheet:not(#sh-price) .sheet-pad{padding:12px 12px 96px}
+  .sheet:not(#sh-price) .panel .bd{padding:12px}
+  .sheet:not(#sh-price) .card{padding:12px 14px}
+  .sheet:not(#sh-price) .card .big{font-size:18px}
+}
 @media print{
   @page{size:A4;margin:12mm}
   body{background:#fff!important}
@@ -618,7 +696,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24f</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24g</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2250,6 +2328,7 @@ function applyCostGating(){
     const has=[...document.querySelectorAll('.stab[data-grp="'+g.dataset.grp+'"]')].some(b=>!tabHidden(b));
     g.style.display=has?'':'none';
   });
+  renderSide();
   // 현재 탭이 일반계정에 허용되지 않으면 가격정책표로 이동
   if(!costAllowed){
     const cur=document.querySelector('.stab.on');
@@ -4077,6 +4156,34 @@ function tabHidden(b){
   if(!costAllowed && !GEN_TABS.includes(b.dataset.sh)) return true;  // 원가 미열람 → 판매가·계정만
   return false;
 }
+/* ══════════ 화면 틀: 왼쪽 메뉴(그로홈 대시보드식) ══════════
+   데스크톱에서는 아래 Excel식 그룹·시트 탭 대신 왼쪽 메뉴로 이동한다(같은 탭 버튼·같은 권한 규칙을 그대로 따름).
+   폰(≤640px)은 기존 하단 메뉴 버튼을 그대로 쓴다. 화면 요소는 옮기기만 하고 지우지 않는다. */
+(function buildShell(){
+  if($('#sideNav')) return;
+  const side=document.createElement('aside'); side.id='sideNav';
+  const main=document.createElement('div'); main.id='mainCol';
+  const first=$('#ribbon'); document.body.insertBefore(side, first); document.body.insertBefore(main, first);
+  ['ribbon','viewAsBanner','dataNotice','fxbar','fxSplit','sheetwrap','tabGroups','tabs'].forEach(id=>{ const el=document.getElementById(id); if(el) main.appendChild(el); });
+  side.addEventListener('click',e=>{ const b=e.target.closest('[data-sh]'); if(b){ gotoTab(b.dataset.sh); return; }
+    if(e.target.closest('#snFold')){ document.body.classList.toggle('sn-fold'); try{ localStorage.setItem('pour-sn-fold',document.body.classList.contains('sn-fold')?'1':'0'); }catch(err){} } });
+  try{ if(localStorage.getItem('pour-sn-fold')==='1') document.body.classList.add('sn-fold'); }catch(e){}
+})();
+function renderSide(){
+  const el=$('#sideNav'); if(!el) return;
+  const cur=document.querySelector('.stab.on'), curSh=cur?cur.dataset.sh:'';
+  document.body.dataset.sh=curSh;
+  let h=`<div class="sn-head"><div class="sn-logo"><b>POUR 가격·마진</b><span>통합 관리</span></div><button id="snFold" title="메뉴 접기/펴기">☰</button></div><nav class="sn-menu">`;
+  $$('#tabGroups .tgrp').forEach(g=>{
+    const tabs=[...document.querySelectorAll('.stab[data-grp="'+g.dataset.grp+'"]')].filter(b=>!tabHidden(b));
+    if(!tabs.length) return;
+    const t=g.textContent.trim(), ic=(t.match(/^\S+/)||[''])[0], lb=t.replace(/^\S+\s*/,'');
+    h+=`<div class="sn-grp${tabs.some(b=>b.dataset.sh===curSh)?' on':''}"><div class="sn-gl"><span class="sn-ic">${esc(ic)}</span><span class="sn-t">${esc(lb)}</span></div>`;
+    tabs.forEach(b=>{ h+=`<button class="sn-item${b.dataset.sh===curSh?' on':''}" data-sh="${esc(b.dataset.sh)}" title="${esc(b.textContent.trim())}">${esc(b.textContent.trim())}</button>`; });
+    h+='</div>';
+  });
+  el.innerHTML=h+'</nav>';
+}
 function renderTabs(){
   $$('.tgrp').forEach(g=>g.classList.toggle('on',g.dataset.grp===activeGrp));
   $$('.stab').forEach(b=>{ b.style.display=(b.dataset.grp===activeGrp && !tabHidden(b))?'':'none'; });
@@ -4085,6 +4192,7 @@ function renderTabs(){
   // 현재 위치 안내: 활성 그룹명을 세부탭 앞에 표시 (어느 묶음의 페이지인지 항상 보이게)
   const ag=document.querySelector('.tgrp.on'), lead=$('#tabsLead');
   if(lead){ lead.textContent = ag?ag.textContent.trim():''; }
+  renderSide();
 }
 /* 모바일 메뉴: 그룹별 시트 목록을 현재 DOM(보안 게이팅 포함)에서 생성 */
 function buildMobileMenu(){
@@ -7454,7 +7562,7 @@ function renderLaunch(){
       ${fld('고객 부담 배송비 (무료배송이면 0)','cship','0')}
       ${fld('목표 마진율 (%)','target','30','number','1')}
       ${fld('광고비 (판매가 대비 %)','ad','0','number','0.1')}
-      <div class="fld"><label>용량 (시장가 비교용)</label><div style="display:flex;gap:6px"><input data-f="size" type="number" step="0.01" value="${esc(pl.size)}" placeholder="예: 4" style="flex:1;min-width:0"><select data-f="unit">${LA_UNITS.map(u=>`<option${u===pl.unit?' selected':''}>${u}</option>`).join('')}</select></div></div>
+      <div class="fld"><label>용량 (시장가 비교용)</label><div style="display:flex;gap:6px"><input data-f="size" type="number" step="0.01" value="${esc(pl.size)}" placeholder="예: 4" style="flex:1;min-width:0"><select data-f="unit" style="width:84px;flex:0 0 84px">${LA_UNITS.map(u=>`<option${u===pl.unit?' selected':''}>${u}</option>`).join('')}</select></div></div>
     </div></div></div>
     <div class="panel"><h3>판매 채널별 수수료·비중 <span class="tag">기본값 = 채널 관리의 수수료율</span></h3>
       <div class="bd" style="padding:0;overflow-x:auto"><table class="grid la-tbl" style="width:100%;min-width:640px">

@@ -339,102 +339,102 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
 }
 #calcFab:hover{transform:translateY(-2px)}
 #calcFab .sym{font-family:var(--mono);font-size:16px;font-style:italic}
-:is(#calcPanel,#promoCalc){
+:is(#calcPanel,#promoCalc,#costCalc){
   position:fixed;right:20px;bottom:104px;z-index:100;width:400px;max-width:calc(100vw - 32px);
   background:#fff;border:1px solid var(--xl-grid);border-radius:8px;
   box-shadow:0 18px 48px rgba(31,39,51,.28);display:none;overflow:hidden;
   max-height:calc(100vh - 140px);overflow-y:auto;
 }
-:is(#calcPanel,#promoCalc).open{display:block}
-:is(#calcPanel,#promoCalc) .hd{
+:is(#calcPanel,#promoCalc,#costCalc).open{display:block}
+:is(#calcPanel,#promoCalc,#costCalc) .hd{
   background:var(--xl-green);color:#fff;padding:11px 14px;font-weight:700;font-size:13.5px;
   display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:2;
 }
-:is(#calcPanel,#promoCalc) .hd button{background:transparent;border:0;color:#fff;font-size:16px}
-:is(#calcPanel,#promoCalc) .bd{padding:14px 16px}
-:is(#calcPanel,#promoCalc) .qc-in{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-:is(#calcPanel,#promoCalc) .qc-in3{grid-template-columns:1fr 1fr 1fr;margin-top:10px}
-:is(#calcPanel,#promoCalc) .qc-wide{grid-column:1/-1}
-:is(#calcPanel,#promoCalc) .qc-f{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--ink-soft);font-weight:600}
-:is(#calcPanel,#promoCalc) .qc-f em{font-style:normal;font-weight:400;color:var(--ink-faint)}
-:is(#calcPanel,#promoCalc) .qc-f input,:is(#calcPanel,#promoCalc) .qc-f select{border:1px solid #E2E8F0;border-radius:8px;padding:9px 10px;font-size:14px;width:100%;background:#fff;font-variant-numeric:tabular-nums}
-:is(#calcPanel,#promoCalc) .qc-empty{margin-top:14px;padding:14px;border-radius:12px;background:#F8FAFC;color:var(--ink-soft);font-size:12.5px;text-align:center}
-:is(#calcPanel,#promoCalc) .qc-hero{margin-top:14px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#ECFDF3,#E3F2E8)}
-:is(#calcPanel,#promoCalc) .qc-lb{font-size:12px;color:#0B5C30;font-weight:700}
-:is(#calcPanel,#promoCalc) .qc-lb em{font-style:normal;font-weight:500;opacity:.75;margin-left:4px}
-:is(#calcPanel,#promoCalc) .qc-price{display:flex;align-items:baseline;gap:4px;margin-top:4px}
-:is(#calcPanel,#promoCalc) .qc-price input{border:0;border-bottom:2px dashed rgba(11,92,48,.35);background:transparent;font-size:28px;font-weight:800;color:#0B5C30;width:170px;padding:0;font-variant-numeric:tabular-nums}
-:is(#calcPanel,#promoCalc) .qc-price input:focus{outline:0;border-bottom-color:#0B5C30}
-:is(#calcPanel,#promoCalc) .qc-price span{font-size:15px;font-weight:700;color:#0B5C30}
-:is(#calcPanel,#promoCalc) .qc-cur{font-size:11.5px;color:var(--ink-soft);margin-top:6px}
-:is(#calcPanel,#promoCalc) .qc-link{border:0;background:none;color:var(--blue);font-size:11.5px;text-decoration:underline;padding:0 0 0 6px}
-:is(#calcPanel,#promoCalc) .qc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-:is(#calcPanel,#promoCalc) .qc-grid>div{background:#F8FAFC;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
-:is(#calcPanel,#promoCalc) .qc-grid>div>span{font-size:11px;color:var(--ink-soft);font-weight:600}
-:is(#calcPanel,#promoCalc) .qc-grid>div>span em{font-style:normal;font-weight:400;color:var(--ink-faint)}
-:is(#calcPanel,#promoCalc) .qc-grid b{font-size:17px;font-variant-numeric:tabular-nums}
-:is(#calcPanel,#promoCalc) .qc-grid small{font-size:10.5px;color:var(--ink-faint);line-height:1.45}
-:is(#calcPanel,#promoCalc) .qc-grid small b{font-size:10.5px}
-:is(#calcPanel,#promoCalc) .qc-grid .qc-hl{grid-column:1/-1;background:#EFF6FF}
-:is(#calcPanel,#promoCalc) .qc-grid .qc-hl b{font-size:22px;color:#1E40AF}
-:is(#calcPanel,#promoCalc) .pos{color:var(--xl-green-dark)} :is(#calcPanel,#promoCalc) .neg{color:var(--red)}
-:is(#calcPanel,#promoCalc) .qc-sec{margin-top:16px;padding-top:14px;border-top:1px solid #EEF0F3}
-:is(#calcPanel,#promoCalc) .qc-st{font-size:13px;font-weight:800}
-:is(#calcPanel,#promoCalc) .qc-st em{font-style:normal;font-weight:500;font-size:11.5px;color:var(--ink-faint);margin-left:4px}
-:is(#calcPanel,#promoCalc) .qc-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-:is(#calcPanel,#promoCalc) .qc-chips button{border:1px solid #E2E8F0;background:#fff;border-radius:20px;padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
-:is(#calcPanel,#promoCalc) .qc-chips button.on{background:var(--xl-green);border-color:var(--xl-green);color:#fff}
-:is(#calcPanel,#promoCalc) .qc-adv{margin-top:16px;border-top:1px solid #EEF0F3;padding-top:12px}
-:is(#calcPanel,#promoCalc) .qc-adv summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
-:is(#calcPanel,#promoCalc) .qc-adv summary span{display:block;font-weight:400;font-size:11px;color:var(--ink-faint);margin-top:3px}
-:is(#calcPanel,#promoCalc) .qc-hero .qc-chips{margin:0 0 8px}
-:is(#calcPanel,#promoCalc) .qc-mu{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
-:is(#calcPanel,#promoCalc) .qc-chs{display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
-:is(#calcPanel,#promoCalc) .qc-stg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-:is(#calcPanel,#promoCalc) .qc-stg button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 4px;border-radius:12px}
-:is(#calcPanel,#promoCalc) .qc-stg button em{font-style:normal;font-weight:500;font-size:10.5px;opacity:.8}
-:is(#calcPanel,#promoCalc) .qc-stset{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:8px;font-size:11.5px;color:var(--ink-soft)}
-:is(#calcPanel,#promoCalc) .qc-stset input{width:46px;border:1px solid #E2E8F0;border-radius:6px;padding:3px 5px;font-size:12px;text-align:right;margin:0 2px}
-:is(#calcPanel,#promoCalc) .qc-stnote{font-size:10.5px;color:var(--ink-faint)}
-:is(#calcPanel,#promoCalc) .qc-drow{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
-:is(#calcPanel,#promoCalc) .qc-drow b{font-size:22px;color:#1E40AF}
-:is(#calcPanel,#promoCalc) .qc-drow label{font-size:13px;font-weight:700;color:#1E40AF;white-space:nowrap}
-:is(#calcPanel,#promoCalc) .qc-drow input{width:64px;border:1px solid #BFDBFE;border-radius:8px;padding:5px 6px;font-size:15px;font-weight:700;text-align:right;margin:0 2px;color:#1E40AF;background:#fff}
-:is(#calcPanel,#promoCalc) #qcDRange{width:100%;margin-top:8px;accent-color:#1E40AF}
-:is(#calcPanel,#promoCalc) .qc-rlab{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-faint)}
-:is(#calcPanel,#promoCalc) .qc-rlab span{font-size:10.5px!important;font-weight:500!important}
-:is(#calcPanel,#promoCalc) .qc-mu button{padding:6px 2px;font-size:12px;white-space:nowrap}
-:is(#calcPanel,#promoCalc) .qc-chs button{padding:5px 2px;font-size:11.5px;white-space:nowrap}
-:is(#calcPanel,#promoCalc) .qc-chs button em{font-style:normal;font-weight:500;opacity:.75;margin-left:2px}
-:is(#calcPanel,#promoCalc) .qc-chs button.on{background:#0F172A;border-color:#0F172A}
-:is(#calcPanel,#promoCalc) .qc-grid .qc-span{grid-column:1/-1}
-:is(#calcPanel,#promoCalc) .qc-pg{font-size:11.5px;color:#0B5C30;margin:-2px 0 8px}
-:is(#calcPanel,#promoCalc) .qc-pw{font-size:12px;color:#0B5C30;font-weight:700;margin-top:2px;min-height:0}
-:is(#calcPanel,#promoCalc) .qc-list{margin-top:10px;padding-top:10px;border-top:1px dashed rgba(11,92,48,.25)}
-:is(#calcPanel,#promoCalc) .qc-lrow{display:flex;justify-content:space-between;align-items:baseline}
-:is(#calcPanel,#promoCalc) .qc-lrow span{font-size:12px;color:#0B5C30;font-weight:700}
-:is(#calcPanel,#promoCalc) .qc-lrow span em{font-style:normal;font-weight:500;opacity:.7;margin-left:3px}
-:is(#calcPanel,#promoCalc) .qc-lrow b{font-size:18px;color:#0F172A}
-:is(#calcPanel,#promoCalc) .qc-kv{font-size:12px;margin-top:4px;line-height:1.45}
-:is(#calcPanel,#promoCalc) .qc-kv>span{color:var(--ink-soft);font-weight:600}
-:is(#calcPanel,#promoCalc) .qc-kv>span::after{content:': '}
-:is(#calcPanel,#promoCalc) .qc-kv .nw{white-space:nowrap;color:inherit;font-weight:inherit}
-:is(#calcPanel,#promoCalc) .qc-kv b{color:#0F172A}
-:is(#calcPanel,#promoCalc) .qc-kv.qc-sub{font-size:11px}
-:is(#calcPanel,#promoCalc) .qc-kv.qc-sub b{color:var(--ink-soft);font-weight:600}
-:is(#calcPanel,#promoCalc) .qc-pg em{font-style:normal;opacity:.7}
-:is(#calcPanel,#promoCalc) .qc-cmp{margin-top:10px;background:#F8FAFC;border-radius:12px;padding:10px 12px}
-:is(#calcPanel,#promoCalc) .qc-st2{font-size:12px;font-weight:800;margin-bottom:2px}
-:is(#calcPanel,#promoCalc) .qc-unit{font-size:10.5px;color:var(--ink-faint);text-align:right;margin-bottom:2px}
-:is(#calcPanel,#promoCalc) .qc-st2 em{font-style:normal;font-weight:500;color:var(--ink-faint);margin-left:4px}
-:is(#calcPanel,#promoCalc) .qc-cmp table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
-:is(#calcPanel,#promoCalc) .qc-cmp th{font-size:11px;color:var(--ink-faint);font-weight:600;text-align:right;padding:3px 4px}
-:is(#calcPanel,#promoCalc) .qc-cmp td{text-align:right;padding:5px 4px;border-top:1px solid #EEF0F3}
-:is(#calcPanel,#promoCalc) .qc-cmp th:first-child,:is(#calcPanel,#promoCalc) .qc-cmp td:first-child{text-align:left;white-space:nowrap}
-:is(#calcPanel,#promoCalc) .qc-cmp tr.on td{font-weight:800;color:#0F172A}
-:is(#calcPanel,#promoCalc) .qc-row2{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
-@media(max-width:640px){ :is(#calcPanel,#promoCalc) .qc-in3{grid-template-columns:1fr 1fr} :is(#calcPanel,#promoCalc) .qc-f input,:is(#calcPanel,#promoCalc) .qc-f select{font-size:16px} }
-:is(#calcPanel,#promoCalc) .note{font-size:10.5px;color:var(--ink-faint);margin-top:8px;line-height:1.5}
+:is(#calcPanel,#promoCalc,#costCalc) .hd button{background:transparent;border:0;color:#fff;font-size:16px}
+:is(#calcPanel,#promoCalc,#costCalc) .bd{padding:14px 16px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-in{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-in3{grid-template-columns:1fr 1fr 1fr;margin-top:10px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-wide{grid-column:1/-1}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-f{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--ink-soft);font-weight:600}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-f em{font-style:normal;font-weight:400;color:var(--ink-faint)}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-f input,:is(#calcPanel,#promoCalc,#costCalc) .qc-f select{border:1px solid #E2E8F0;border-radius:8px;padding:9px 10px;font-size:14px;width:100%;background:#fff;font-variant-numeric:tabular-nums}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-empty{margin-top:14px;padding:14px;border-radius:12px;background:#F8FAFC;color:var(--ink-soft);font-size:12.5px;text-align:center}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-hero{margin-top:14px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#ECFDF3,#E3F2E8)}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-lb{font-size:12px;color:#0B5C30;font-weight:700}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-lb em{font-style:normal;font-weight:500;opacity:.75;margin-left:4px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-price{display:flex;align-items:baseline;gap:4px;margin-top:4px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-price input{border:0;border-bottom:2px dashed rgba(11,92,48,.35);background:transparent;font-size:28px;font-weight:800;color:#0B5C30;width:170px;padding:0;font-variant-numeric:tabular-nums}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-price input:focus{outline:0;border-bottom-color:#0B5C30}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-price span{font-size:15px;font-weight:700;color:#0B5C30}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-cur{font-size:11.5px;color:var(--ink-soft);margin-top:6px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-link{border:0;background:none;color:var(--blue);font-size:11.5px;text-decoration:underline;padding:0 0 0 6px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-grid>div{background:#F8FAFC;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-grid>div>span{font-size:11px;color:var(--ink-soft);font-weight:600}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-grid>div>span em{font-style:normal;font-weight:400;color:var(--ink-faint)}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-grid b{font-size:17px;font-variant-numeric:tabular-nums}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-grid small{font-size:10.5px;color:var(--ink-faint);line-height:1.45}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-grid small b{font-size:10.5px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-grid .qc-hl{grid-column:1/-1;background:#EFF6FF}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-grid .qc-hl b{font-size:22px;color:#1E40AF}
+:is(#calcPanel,#promoCalc,#costCalc) .pos{color:var(--xl-green-dark)} :is(#calcPanel,#promoCalc,#costCalc) .neg{color:var(--red)}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-sec{margin-top:16px;padding-top:14px;border-top:1px solid #EEF0F3}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-st{font-size:13px;font-weight:800}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-st em{font-style:normal;font-weight:500;font-size:11.5px;color:var(--ink-faint);margin-left:4px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-chips button{border:1px solid #E2E8F0;background:#fff;border-radius:20px;padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-chips button.on{background:var(--xl-green);border-color:var(--xl-green);color:#fff}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-adv{margin-top:16px;border-top:1px solid #EEF0F3;padding-top:12px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-adv summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-adv summary span{display:block;font-weight:400;font-size:11px;color:var(--ink-faint);margin-top:3px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-hero .qc-chips{margin:0 0 8px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-mu{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-chs{display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-stg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-stg button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 4px;border-radius:12px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-stg button em{font-style:normal;font-weight:500;font-size:10.5px;opacity:.8}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-stset{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:8px;font-size:11.5px;color:var(--ink-soft)}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-stset input{width:46px;border:1px solid #E2E8F0;border-radius:6px;padding:3px 5px;font-size:12px;text-align:right;margin:0 2px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-stnote{font-size:10.5px;color:var(--ink-faint)}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-drow{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-drow b{font-size:22px;color:#1E40AF}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-drow label{font-size:13px;font-weight:700;color:#1E40AF;white-space:nowrap}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-drow input{width:64px;border:1px solid #BFDBFE;border-radius:8px;padding:5px 6px;font-size:15px;font-weight:700;text-align:right;margin:0 2px;color:#1E40AF;background:#fff}
+:is(#calcPanel,#promoCalc,#costCalc) #qcDRange{width:100%;margin-top:8px;accent-color:#1E40AF}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-rlab{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-faint)}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-rlab span{font-size:10.5px!important;font-weight:500!important}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-mu button{padding:6px 2px;font-size:12px;white-space:nowrap}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-chs button{padding:5px 2px;font-size:11.5px;white-space:nowrap}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-chs button em{font-style:normal;font-weight:500;opacity:.75;margin-left:2px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-chs button.on{background:#0F172A;border-color:#0F172A}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-grid .qc-span{grid-column:1/-1}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-pg{font-size:11.5px;color:#0B5C30;margin:-2px 0 8px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-pw{font-size:12px;color:#0B5C30;font-weight:700;margin-top:2px;min-height:0}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-list{margin-top:10px;padding-top:10px;border-top:1px dashed rgba(11,92,48,.25)}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-lrow{display:flex;justify-content:space-between;align-items:baseline}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-lrow span{font-size:12px;color:#0B5C30;font-weight:700}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-lrow span em{font-style:normal;font-weight:500;opacity:.7;margin-left:3px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-lrow b{font-size:18px;color:#0F172A}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-kv{font-size:12px;margin-top:4px;line-height:1.45}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-kv>span{color:var(--ink-soft);font-weight:600}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-kv>span::after{content:': '}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-kv .nw{white-space:nowrap;color:inherit;font-weight:inherit}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-kv b{color:#0F172A}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-kv.qc-sub{font-size:11px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-kv.qc-sub b{color:var(--ink-soft);font-weight:600}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-pg em{font-style:normal;opacity:.7}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-cmp{margin-top:10px;background:#F8FAFC;border-radius:12px;padding:10px 12px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-st2{font-size:12px;font-weight:800;margin-bottom:2px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-unit{font-size:10.5px;color:var(--ink-faint);text-align:right;margin-bottom:2px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-st2 em{font-style:normal;font-weight:500;color:var(--ink-faint);margin-left:4px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-cmp table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-cmp th{font-size:11px;color:var(--ink-faint);font-weight:600;text-align:right;padding:3px 4px}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-cmp td{text-align:right;padding:5px 4px;border-top:1px solid #EEF0F3}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-cmp th:first-child,:is(#calcPanel,#promoCalc,#costCalc) .qc-cmp td:first-child{text-align:left;white-space:nowrap}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-cmp tr.on td{font-weight:800;color:#0F172A}
+:is(#calcPanel,#promoCalc,#costCalc) .qc-row2{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+@media(max-width:640px){ :is(#calcPanel,#promoCalc,#costCalc) .qc-in3{grid-template-columns:1fr 1fr} :is(#calcPanel,#promoCalc,#costCalc) .qc-f input,:is(#calcPanel,#promoCalc,#costCalc) .qc-f select{font-size:16px} }
+:is(#calcPanel,#promoCalc,#costCalc) .note{font-size:10.5px;color:var(--ink-faint);margin-top:8px;line-height:1.5}
 
 .footnote{font-size:11px;color:var(--ink-faint);line-height:1.6;margin-top:10px}
 .pill{display:inline-block;font-size:10.5px;border-radius:3px;padding:1px 7px;font-weight:600}
@@ -510,8 +510,8 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
   .mm-item.on{color:var(--xl-green-dark);font-weight:800;background:rgba(11,92,48,.07)}
   /* 마진계산기 FAB: 하단 메뉴 버튼 위로 */
   #calcFab{right:12px;bottom:72px;padding:11px 15px;font-size:13px;border-radius:24px}
-  :is(#calcPanel,#promoCalc){right:8px;left:8px;width:auto;bottom:auto;top:50%;transform:translateY(-50%);max-height:82vh}
-  :is(#calcPanel,#promoCalc).open{display:block}
+  :is(#calcPanel,#promoCalc,#costCalc){right:8px;left:8px;width:auto;bottom:auto;top:50%;transform:translateY(-50%);max-height:82vh}
+  :is(#calcPanel,#promoCalc,#costCalc).open{display:block}
 }
 @media(max-width:640px){
   /* 고정 열을 No·제품명만 남긴다 — 규격·공급업체·매입원가까지 고정하면 합계 535px 라
@@ -742,7 +742,7 @@ body[data-sh]:not([data-sh="sh-price"]) #fxbar,body[data-sh]:not([data-sh="sh-pr
 
 /* ── 폰: 서랍 메뉴 · 요약 카드 가로 스크롤 ── */
 #snOpen,#snClose,#snBack{display:none}
-body:has(:is(#calcPanel,#promoCalc).open) #calcFab{display:none}   /* 계산기를 열면 버튼이 결과를 가리지 않게 */
+body:has(:is(#calcPanel,#promoCalc,#costCalc).open) #calcFab{display:none}   /* 계산기를 열면 버튼이 결과를 가리지 않게 */
 @media(max-width:640px){
   #sideNav{display:flex!important;position:fixed;left:0;top:0;bottom:0;width:min(272px,84vw)!important;flex-basis:auto!important;z-index:260;transform:translateX(-105%);transition:transform .22s ease}
   body.sn-open #sideNav{transform:none}
@@ -777,18 +777,18 @@ body:has(:is(#calcPanel,#promoCalc).open) #calcFab{display:none}   /* 계산기�
 /* ══════════ 앱처럼 쓰기 (배경 어둡게 · 바텀시트 · 누름 반응 · 터치 크기) ══════════ */
 #uiBack{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
 body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
-:is(#calcPanel,#promoCalc){z-index:102}
+:is(#calcPanel,#promoCalc,#costCalc){z-index:102}
 #calcMenu{z-index:103}
-:is(#calcPanel,#promoCalc).open,#calcMenu.open{animation:uiUp .18s ease}
+:is(#calcPanel,#promoCalc,#costCalc).open,#calcMenu.open{animation:uiUp .18s ease}
 @keyframes uiFade{from{opacity:0}to{opacity:1}}
 @keyframes uiUp{from{transform:translateY(18px);opacity:.5}to{transform:none;opacity:1}}
 .tbtn,.seg button,.qc-chips button,#sideNav .sn-item,#calcMenu button{transition:transform .08s ease}
 .tbtn:active,.seg button:active,.qc-chips button:active,#sideNav .sn-item:active,#calcMenu button:active,#calcFab:active{transform:scale(.96)}
 .tr-more{display:none}
 @media(max-width:640px){
-  :is(#calcPanel,#promoCalc){left:0!important;right:0!important;bottom:0!important;top:auto!important;transform:none!important;width:100%!important;max-width:100%!important;border:0!important;border-radius:20px 20px 0 0!important;max-height:90vh!important;padding-bottom:env(safe-area-inset-bottom)}
-  :is(#calcPanel,#promoCalc) .hd{padding-top:16px!important;border-radius:20px 20px 0 0}
-  :is(#calcPanel,#promoCalc) .hd::before{content:'';position:absolute;left:50%;top:6px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:rgba(255,255,255,.6)}
+  :is(#calcPanel,#promoCalc,#costCalc){left:0!important;right:0!important;bottom:0!important;top:auto!important;transform:none!important;width:100%!important;max-width:100%!important;border:0!important;border-radius:20px 20px 0 0!important;max-height:90vh!important;padding-bottom:env(safe-area-inset-bottom)}
+  :is(#calcPanel,#promoCalc,#costCalc) .hd{padding-top:16px!important;border-radius:20px 20px 0 0}
+  :is(#calcPanel,#promoCalc,#costCalc) .hd::before{content:'';position:absolute;left:50%;top:6px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:rgba(255,255,255,.6)}
   #calcMenu{left:0!important;right:0!important;bottom:0!important;min-width:0;background:#fff;border-radius:20px 20px 0 0;padding:18px 14px calc(16px + env(safe-area-inset-bottom));gap:10px}
   #calcMenu::before{content:'계산기';font-size:15px;font-weight:800;color:#0F172A;padding:0 4px 4px}
   #calcMenu button{box-shadow:none;border:1px solid #E2E8F0;padding:14px 16px}
@@ -818,6 +818,20 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 .card.b-x{border-top:3px solid #64748B}
 .brc [data-bredit]{border:0;background:none;color:var(--blue);font-size:11px;text-decoration:underline;padding:0}
 @media(max-width:640px){ #uiToast{bottom:calc(80px + env(safe-area-inset-bottom))} body.ui-modal #uiToast{bottom:calc(20px + env(safe-area-inset-bottom))} }
+
+/* ── 생산원가 계산기 ── */
+#costCalc .cc-meth{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+#costCalc .cc-meth button{padding:7px 4px;font-size:12px;white-space:nowrap}
+#costCalc .cc-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:6px;padding:8px 10px;background:#F8FAFC;border-radius:10px;font-size:11.5px;color:var(--ink-soft)}
+#costCalc .cc-row input,#costCalc .cc-row select{border:1px solid #E2E8F0;border-radius:6px;padding:4px 6px;font-size:12.5px;background:#fff}
+#costCalc .cc-row label{display:flex;align-items:center;gap:3px}
+#costCalc .cc-row label input{width:78px;text-align:right}
+#costCalc .cc-row label em{font-style:normal;color:var(--ink-faint)}
+#costCalc .cc-nm{flex:1 1 150px;min-width:0;font-weight:700;color:#0F172A}
+#costCalc .cc-per{margin-left:auto;font-size:13px;color:#0F172A}
+#costCalc .cc-sm .cc-nm{font-weight:600}
+#costCalc .cc-stk{font-size:10.5px;font-weight:700;color:#0369A1;background:#E0F2FE;border-radius:8px;padding:1px 7px}
+@media(max-width:640px){ #costCalc .cc-row input,#costCalc .cc-row select{font-size:16px} #costCalc .cc-row label input{width:74px} }
 @media print{
   @page{size:A4;margin:12mm}
   body{background:#fff!important}
@@ -876,7 +890,7 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24v</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24w</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1764,6 +1778,20 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 <div id="calcMenu">
   <button data-open="calcPanel">🧮 단가 계산기<em>원가·수량 → 판매가·정가·할인 단계 (공급사 협의)</em></button>
   <button data-open="promoCalc">🎯 프로모션 계산기<em>기존 제품 할인·증정·체험단 기획 (유통기한 털기)</em></button>
+  <button data-open="costCalc">🏭 생산원가 계산기<em>ODM·OEM 원료·부자재·작업비 → 개당 원가 (가격정책표 자동 반영)</em></button>
+</div>
+<div id="costCalc">
+  <div class="hd">생산원가 계산기 <button id="ccClose">✕</button></div>
+  <div class="bd">
+    <label class="qc-f"><span>제품</span><input id="ccProd" list="ccProdList" placeholder="제품명 검색"><datalist id="ccProdList"></datalist></label>
+    <datalist id="ccMatList"></datalist>
+    <div class="qc-st" style="margin-top:12px">생산 방식</div>
+    <div class="qc-chips cc-meth" id="ccMethod"></div>
+    <div id="ccBody"></div>
+    <div class="pm-save"><button class="tbtn primary" id="ccSave">💾 저장 · 원가 반영</button><button class="tbtn" id="ccConfirm" title="이번 생산을 확정하고 부자재 재고를 늘리거나 줄입니다">🏭 생산 확정 (부자재 재고 반영)</button></div>
+    <div id="ccHist" style="margin-top:8px"></div>
+    <p class="note">재생산 원가(고정비 제외)를 가격정책표 원가로 저장 · 부자재 항목 이름에 재고 부자재를 고르면 단가 자동 · VAT 제외 금액</p>
+  </div>
 </div>
 <div id="promoCalc">
   <div class="hd">프로모션 계산기 · 기존 제품 <button id="pmClose">✕</button></div>
@@ -2536,7 +2564,7 @@ function applyCostGating(){
   $$('#viewSeg button').forEach(b=>{ if(b.dataset.v!=='price') b.style.display=costVisible()?'':'none'; });   // 접은 상태에선 마진 뷰도 감춤
   // 마진계산기 FAB(원가·마진 협의 도구): 일반계정 숨김
   const fab=$('#calcFab'); if(fab) fab.style.display=costAllowed?'':'none';
-  ['#calcPanel','#promoCalc','#calcMenu'].forEach(sel=>{ const cpan=$(sel); if(cpan){ if(!costAllowed){ cpan.classList.remove('open'); cpan.style.display='none'; } else { cpan.style.display=''; } } });
+  ['#calcPanel','#promoCalc','#costCalc','#calcMenu'].forEach(sel=>{ const cpan=$(sel); if(cpan){ if(!costAllowed){ cpan.classList.remove('open'); cpan.style.display='none'; } else { cpan.style.display=''; } } });
   if(!costVisible() && viewMode!=='price'){
     viewMode='price';
     $$('#viewSeg button').forEach(x=>x.classList.toggle('on',x.dataset.v==='price'));
@@ -4218,7 +4246,8 @@ qcFill(qcDefaults());
 $('#calcFab').addEventListener('click',()=>$('#calcMenu').classList.toggle('open'));
 $('#calcMenu').addEventListener('click',e=>{ const b=e.target.closest('[data-open]'); if(!b) return; $('#calcMenu').classList.remove('open');
   if(b.dataset.open==='promoCalc'){ openPromoCalc(PM.key||''); return; }
-  $('#promoCalc').classList.remove('open'); $('#calcPanel').classList.add('open'); runCalc(); });
+  if(b.dataset.open==='costCalc'){ openCostCalc(); return; }
+  $('#promoCalc').classList.remove('open'); $('#costCalc').classList.remove('open'); $('#calcPanel').classList.add('open'); runCalc(); });
 document.addEventListener('click',e=>{ const m=$('#calcMenu'); if(m&&m.classList.contains('open')&&!e.target.closest('#calcMenu')&&!e.target.closest('#calcFab')) m.classList.remove('open'); });
 $('#calcClose').addEventListener('click',()=>$('#calcPanel').classList.remove('open'));
 ['#cCost','#cQty',...Object.values(QC_IDS).map(id=>'#'+id)].forEach(s=>$(s).addEventListener('input',()=>runCalc()));
@@ -8485,7 +8514,7 @@ function pmSetProduct(key){
   $('#pmTitle').value='';
 }
 async function openPromoCalc(key, preset){
-  document.querySelectorAll('#calcPanel,#promoCalc').forEach(x=>x.classList.remove('open')); $('#calcMenu').classList.remove('open');
+  document.querySelectorAll('#calcPanel,#promoCalc,#costCalc').forEach(x=>x.classList.remove('open')); $('#calcMenu').classList.remove('open');
   $('#promoCalc').classList.add('open');
   if(key){ pmSetProduct(key); const p=pmProducts().find(x=>pKey(x)===key); $('#pmProd').value=p?prodLabel(p):''; }
   if(preset){ if(preset.goal) PM.goal=preset.goal; if(preset.stock!=null) PM.stock=preset.stock; }
@@ -8524,7 +8553,7 @@ async function openPromoCalc(key, preset){
    · 폰에서 버튼이 많은 도구줄은 '도구 N개 ▾' 로 접어 둔다(누르면 전부 펼침 — 기능은 그대로) */
 (function appUx(){
   const back=document.createElement('div'); back.id='uiBack'; document.body.appendChild(back);
-  const panels=()=>['#calcMenu','#calcPanel','#promoCalc'].map(x=>$(x)).filter(Boolean);
+  const panels=()=>['#calcMenu','#calcPanel','#promoCalc','#costCalc'].map(x=>$(x)).filter(Boolean);
   const anyOpen=()=>panels().some(p=>p.classList.contains('open'));
   const drawerOpen=()=>document.body.classList.contains('sn-open');
   const closeAll=()=>{ panels().forEach(p=>p.classList.remove('open')); document.body.classList.remove('sn-open'); };
@@ -8553,6 +8582,160 @@ async function openPromoCalc(key, preset){
     if(!tr.classList.contains('tr-open')) mb.textContent=`도구 ${btns.length}개 ▾`;
   }); };
   fold(); window.__uiFold=fold;
+})();
+/* ══════════ 생산원가 계산기 (ODM 라벨갈이 · OEM 레시피 · OEM+우리 원료) ══════════
+   개당 원가 = 개당 변동비 × (1 + 로스율) + 운송비 ÷ 수량   → '재생산 원가'(가격정책표 원가로 자동 반영)
+   첫 생산 원가 = 재생산 원가 + 고정비(디자인·동판·인증 등) ÷ 수량
+   · 부자재 줄은 여유분 %를 더하고, '이번 발주 수량'(MOQ)보다 덜 쓰면 남는 수량을 부자재 재고로 본다
+   · 부자재 재고(product-meta/materials)는 여러 제품이 같이 쓴다: 재고에서 쓰면(발주 0) 돈이 새로 나가지 않고, 원가는 등록 단가로 계산
+   · 저장: product-meta/cost-calc {map: pKey → 계산서 + history[누가·언제·원가 전→후]} */
+const CC_METHODS=[['odm','ODM 라벨갈이'],['oem','OEM 공장 레시피'],['oemsrc','OEM + 우리 원료']];
+const CC_KIND={goods:'매입·내용물', mat:'부자재', work:'작업비'};
+let CC={key:'', name:'', method:'oem', qty:1000, rows:[], trans:[], fixed:[], loss:2, spare:3, data:null, mats:null};
+function ccDefault(method){
+  const R=(name,kind,unit,use)=>({name,kind,unit,use:use??1,price:'',order:''});
+  let rows;
+  if(method==='odm') rows=[R('완제품 매입가','goods','개'),R('라벨','mat','장'),R('라벨 부착 작업비','work','개')];
+  else { rows=[R('내용물 (공장 레시피)','goods','L',1),R('용기·캡','mat','개'),R('라벨','mat','장'),R('박스·설명서','mat','개'),R('충진·포장 임가공비','work','개')];
+    if(method==='oemsrc') rows.splice(1,0,R('우리 원료(소스)','goods','kg',0.1)); }
+  const trans=method==='odm'?[{name:'공장 → 창고 입고 운송',amt:''}]:[{name:'부자재 → 공장 운송',amt:''},{name:'공장 → 창고 입고 운송',amt:''}];
+  const fixed=[{name:'디자인비',amt:''},{name:'인쇄 동판·목형',amt:''},{name:'시험성적서·인증',amt:''},{name:'샘플비',amt:''}];
+  return {rows,trans,fixed};
+}
+function ccCalc(){
+  const qty=Math.max(1,+CC.qty||1), loss=(+CC.loss||0)/100, spare=(+CC.spare||0)/100;
+  let unitVar=0, cash=0; const left=[];
+  CC.rows.forEach(r=>{ const price=+r.price||0, use=+r.use||0, isMat=r.kind==='mat';
+    const per=price*use*(isMat?1+spare:1); unitVar+=per;
+    const need=use*qty*(isMat?1+spare:1);
+    if(isMat){ const ord=+r.order||0; cash+=ord*price; if(ord>0||need>0) left.push({name:r.name, order:ord, need, rest:ord-need, unit:r.unit}); }
+    else cash+=per*qty; });
+  const trans=CC.trans.reduce((a,t)=>a+(+t.amt||0),0), fixed=CC.fixed.reduce((a,t)=>a+(+t.amt||0),0);
+  const repeat=unitVar*(1+loss)+trans/qty, first=repeat+fixed/qty;
+  return {qty,unitVar,repeat,first,trans,fixed,cash:cash+trans+fixed,left};
+}
+function ccProducts(){ return P.filter(p=>!isDeletedProd(p)); }
+async function ccLoad(){
+  if(CC.data&&CC.mats) return;
+  try{ const d=await db.collection('product-meta').doc('cost-calc').get(); CC.data=(d.exists&&d.data().map)?{...d.data().map}:{}; }
+  catch(e){ console.error('[cost-calc] 불러오기 실패',e); CC.data={}; uiToast('생산원가 불러오기 실패: '+(e.code||e.message||e),'err'); }
+  try{ const d=await db.collection('product-meta').doc('materials').get(); CC.mats=(d.exists&&Array.isArray(d.data().list))?d.data().list:[]; console.log(`[materials] 부자재 ${CC.mats.length}종`); }
+  catch(e){ console.error('[materials] 불러오기 실패',e); CC.mats=[]; }
+}
+function ccSetProduct(key){
+  CC.key=key; const saved=(CC.data||{})[key];
+  if(saved){ Object.assign(CC,{method:saved.method||'oem',qty:saved.qty||1000,rows:JSON.parse(JSON.stringify(saved.rows||[])),trans:JSON.parse(JSON.stringify(saved.trans||[])),fixed:JSON.parse(JSON.stringify(saved.fixed||[])),loss:saved.loss??2,spare:saved.spare??3}); }
+  else { const d=ccDefault(CC.method); CC.rows=d.rows; CC.trans=d.trans; CC.fixed=d.fixed; ccFillFromMats(); }
+}
+/* 부자재 재고에 같은 이름이 있으면 단가를 채운다(다른 제품에서 남은 부자재를 쓰는 경우) */
+function ccFillFromMats(){ (CC.rows||[]).forEach(r=>{ if(r.kind!=='mat'||(+r.price>0)) return; const m=(CC.mats||[]).find(x=>x.name===String(r.name||'').trim()); if(m){ r.price=m.price; r.unit=m.unit||r.unit; r.fromStock=true; } }); }
+function ccRowHtml(r,i){
+  return `<div class="cc-row" data-ri="${i}">
+    <input class="cc-nm" data-rf="name" value="${esc(r.name)}" list="ccMatList" placeholder="항목">
+    <select data-rf="kind">${Object.entries(CC_KIND).map(([k,l])=>`<option value="${k}"${k===r.kind?' selected':''}>${l}</option>`).join('')}</select>
+    <label>단가<input type="number" data-rf="price" value="${esc(r.price)}" placeholder="0"></label>
+    <label>1개당<input type="number" step="0.01" data-rf="use" value="${esc(r.use)}"><em>${esc(r.unit||'')}</em></label>
+    ${r.kind==='mat'?`<label>이번 발주<input type="number" data-rf="order" value="${esc(r.order)}" placeholder="0=재고사용"></label>`:''}
+    ${r.kind==='mat'?(()=>{ const m=(CC.mats||[]).find(x=>x.name===String(r.name||'').trim()); return m?`<span class="cc-stk" title="부자재 재고">재고 ${won(m.stock||0)}</span>`:''; })():''}
+    <b class="cc-per" id="ccPer${i}"></b>
+    <button class="pm-x" data-rrm="${i}" title="빼기">✕</button></div>`;
+}
+function renderCostCalc(){
+  const box=$('#ccBody'); if(!box) return;
+  $('#ccProdList').innerHTML=ccProducts().map(p=>`<option value="${esc(prodLabel(p))}">`).join('');
+  $('#ccMatList').innerHTML=(CC.mats||[]).map(m=>`<option value="${esc(m.name)}">${esc(m.name)} · ${won(m.price)}원/${esc(m.unit||'')} · 재고 ${won(m.stock||0)}</option>`).join('');
+  $('#ccMethod').innerHTML=CC_METHODS.map(([k,l])=>`<button data-ccm="${k}" class="${k===CC.method?'on':''}">${l}</button>`).join('');
+  if(!CC.key){ box.innerHTML='<div class="qc-empty">제품 선택 → 원가 계산 (저장하면 가격정책표 원가에 자동 반영)</div>'; $('#ccHist').innerHTML=''; return; }
+  box.innerHTML=`
+    <div class="qc-in"><label class="qc-f"><span>생산 수량 (개)</span><input type="number" id="ccQty" value="${esc(CC.qty)}"></label>
+      <label class="qc-f"><span>로스율 % · 부자재 여유 %</span><div style="display:flex;gap:6px"><input type="number" id="ccLoss" value="${esc(CC.loss)}" step="0.5"><input type="number" id="ccSpare" value="${esc(CC.spare)}" step="0.5"></div></label></div>
+    <div class="qc-st" style="margin-top:12px">개당 드는 돈 <em>원료·부자재·작업비 (VAT 제외)</em></div>
+    ${CC.rows.map(ccRowHtml).join('')}
+    <button class="tbtn" id="ccAddRow" style="margin-top:6px">＋ 항목 추가</button>
+    <div class="qc-st" style="margin-top:14px">운송비 <em>이번 생산 총액</em></div>
+    ${CC.trans.map((t,i)=>`<div class="cc-row cc-sm"><input class="cc-nm" data-tf="name" data-ti="${i}" value="${esc(t.name)}"><label>총액<input type="number" data-tf="amt" data-ti="${i}" value="${esc(t.amt)}" placeholder="0"></label></div>`).join('')}
+    <div class="qc-st" style="margin-top:14px">한 번만 드는 돈 <em>고정비 총액 · 첫 생산에만</em></div>
+    ${CC.fixed.map((t,i)=>`<div class="cc-row cc-sm"><input class="cc-nm" data-xf="name" data-xi="${i}" value="${esc(t.name)}"><label>총액<input type="number" data-xf="amt" data-xi="${i}" value="${esc(t.amt)}" placeholder="0"></label></div>`).join('')}
+    <div id="ccOut"></div>`;
+  ccRefresh(); ccRenderHist();
+}
+function ccRefresh(){
+  const r=ccCalc(), qty=r.qty, spare=(+CC.spare||0)/100;
+  CC.rows.forEach((x,i)=>{ const el=$('#ccPer'+i); if(el) el.textContent=qcW((+x.price||0)*(+x.use||0)*(x.kind==='mat'?1+spare:1)); });
+  const out=$('#ccOut'); if(!out) return;
+  const p=ccProducts().find(x=>pKey(x)===CC.key), cur=p&&p.cost>0?p.cost:null;
+  out.innerHTML=`<div class="qc-grid" style="margin-top:14px">
+      <div class="qc-hl"><span>재생산 원가 / 개 <em>가격정책표 원가로 반영</em></span><b>${qcW(r.repeat)}</b><small>변동비 ${qcW(r.unitVar)} × 로스 ${CC.loss||0}% + 운송 ${qcW(r.trans/qty)}${cur!=null?` · 지금 원가 ${qcW(cur)}`:''}</small></div>
+      <div><span>첫 생산 원가 / 개</span><b>${qcW(r.first)}</b><small>+ 고정비 ${qcW(r.fixed/qty)} (${qcT(r.fixed)} ÷ ${won(qty)}개)</small></div>
+      <div><span>이번 생산 투입 자금</span><b>${qcT(r.cash)}</b><small>부자재 발주 수량 기준 · 재고 사용분 제외</small></div>
+    </div>
+    ${r.left.length?`<div class="qc-cmp"><div class="qc-st2">부자재 남는 수량 <em>발주 − 사용(여유분 포함)</em></div><table><thead><tr><th>부자재</th><th>발주</th><th>사용</th><th>남음</th></tr></thead><tbody>${r.left.map(l=>`<tr><td>${esc(l.name)}</td><td>${won(l.order)}</td><td>${won(Math.ceil(l.need))}</td><td class="${l.rest<0?'neg':''}">${l.rest<0?'재고에서 '+won(Math.ceil(-l.rest)):won(Math.floor(l.rest))}</td></tr>`).join('')}</tbody></table></div>`:''}`;
+}
+function ccRenderHist(){
+  const el=$('#ccHist'); if(!el) return; const s=(CC.data||{})[CC.key];
+  const h=(s&&s.history)||[];
+  el.innerHTML=h.length?`<details><summary>변경 이력 ${h.length}건</summary>${h.slice().reverse().map(x=>`<div class="qc-kv qc-sub"><span>${esc(String(x.at||'').slice(0,16).replace('T',' '))} · ${esc(String(x.by||'').split('@')[0])}</span><b>${x.prev!=null?qcW(x.prev)+' → ':''}${qcW(x.cost)}${x.note?' · '+esc(x.note):''}</b></div>`).join('')}</details>`:'';
+}
+async function ccSave(note){
+  const p=ccProducts().find(x=>pKey(x)===CC.key); if(!p){ uiToast('제품을 먼저 고르세요','err'); return false; }
+  const r=ccCalc(), now=new Date().toISOString(), by=(curUser&&curUser.email)||'', cost=Math.round(r.repeat);
+  const prevRec=(CC.data||{})[CC.key], prevCost=p.cost>0?p.cost:null;
+  const rec={method:CC.method, qty:+CC.qty||0, rows:CC.rows, trans:CC.trans, fixed:CC.fixed, loss:+CC.loss||0, spare:+CC.spare||0,
+    result:{repeat:cost, first:Math.round(r.first), cash:Math.round(r.cash)}, prod:prodLabel(p), updatedAt:now, updatedBy:by,
+    history:[...((prevRec&&prevRec.history)||[]), {at:now, by, cost, prev:prevCost, note:note||(prevRec?'수정':'처음 계산')}].slice(-50)};
+  try{
+    await db.collection('product-meta').doc('cost-calc').set({map:{[CC.key]:rec}},{merge:true});
+    CC.data[CC.key]=rec;
+    // 가격정책표 원가 자동 반영(재생산 원가) — 세트는 구성품 합이라 제외
+    if(!isPackage(p) && cost>0 && cost!==prevCost){ PCOST[CC.key]=cost; p.cost=cost; await saveProdCost();
+      if(LPLAN[CC.key]){ LPLAN[CC.key].cost=cost; await db.collection('product-meta').doc('launch-plans').set({map:{[CC.key]:{cost}}},{merge:true}).catch(e=>console.warn('[launch-plans] 원가 반영 실패',e)); }
+      recalcVendor(); refreshAll(); }
+    logAct('생산원가', prodLabel(p), `${prevCost!=null?won(prevCost)+' → ':''}${won(cost)}원`);
+    uiToast(`원가 ${qcW(cost)} 저장·가격정책표 반영됨`,'ok'); ccRenderHist(); ccRefresh(); return true;
+  }catch(e){ console.error('[cost-calc] 저장 실패',e); uiToast('생산원가 저장 실패: '+(e.code||e.message||e),'err'); return false; }
+}
+/* 생산 확정: 부자재 재고 = 기존 + 이번 발주 − 이번 사용(여유분 포함). 재고 목록에 없던 부자재는 새로 만든다 */
+async function ccConfirm(){
+  const r=ccCalc(); if(!r.left.length){ uiToast('부자재 줄이 없습니다','info'); return; }
+  if(!confirm(`생산 ${won(r.qty)}개를 확정하고 부자재 재고를 반영할까요?\n\n${r.left.map(l=>`· ${l.name}: ${l.rest>=0?'+'+won(Math.floor(l.rest)):'−'+won(Math.ceil(-l.rest))}`).join('\n')}`)) return;
+  await ccLoad(); const mats=JSON.parse(JSON.stringify(CC.mats||[])), now=new Date().toISOString();
+  CC.rows.filter(x=>x.kind==='mat').forEach(x=>{ const l=r.left.find(y=>y.name===x.name); if(!l) return;
+    let m=mats.find(y=>y.name===x.name); if(!m){ m={id:'m'+Date.now().toString(36)+mats.length, name:x.name, unit:x.unit||'개', price:+x.price||0, stock:0}; mats.push(m); }
+    m.stock=Math.max(0,Math.round((+m.stock||0)+l.rest)); if(+x.order>0&&+x.price>0) m.price=+x.price; m.updatedAt=now; });
+  try{ await db.collection('product-meta').doc('materials').set({list:mats, updatedAt:now, updatedBy:(curUser&&curUser.email)||''});
+    CC.mats=mats; await ccSave(`생산 확정 ${won(r.qty)}개`); uiToast('부자재 재고 반영됨','ok'); renderCostCalc(); }
+  catch(e){ console.error('[materials] 저장 실패',e); uiToast('부자재 재고 저장 실패: '+(e.code||e.message||e),'err'); }
+}
+async function openCostCalc(){
+  document.querySelectorAll('#calcPanel,#promoCalc,#costCalc').forEach(x=>x.classList.remove('open')); $('#calcMenu').classList.remove('open');
+  $('#costCalc').classList.add('open'); await ccLoad(); renderCostCalc();
+}
+(function bindCostCalc(){
+  const box=$('#costCalc'); if(!box) return;
+  $('#ccClose').addEventListener('click',()=>box.classList.remove('open'));
+  $('#ccProd').addEventListener('change',e=>{ const p=ccProducts().find(x=>prodLabel(x)===e.target.value.trim()); if(p){ ccSetProduct(pKey(p)); renderCostCalc(); } });
+  box.addEventListener('click',e=>{
+    const m=e.target.closest('[data-ccm]'); if(m){ if(m.dataset.ccm===CC.method) return;
+      if(CC.rows.some(r=>+r.price>0) && !confirm('생산 방식을 바꾸면 항목이 그 방식의 기본 항목으로 바뀝니다. 계속할까요?')) return;
+      CC.method=m.dataset.ccm; const d=ccDefault(CC.method); CC.rows=d.rows; CC.trans=d.trans; if(!CC.fixed.some(x=>+x.amt>0)) CC.fixed=d.fixed; renderCostCalc(); return; }
+    const rm=e.target.closest('[data-rrm]'); if(rm){ CC.rows.splice(+rm.dataset.rrm,1); renderCostCalc(); return; }
+    if(e.target.id==='ccAddRow'){ CC.rows.push({name:'',kind:'mat',unit:'개',use:1,price:'',order:''}); renderCostCalc(); return; }
+    if(e.target.id==='ccSave'){ ccSave(); return; }
+    if(e.target.id==='ccConfirm'){ ccConfirm(); return; }
+  });
+  box.addEventListener('input',e=>{ const t=e.target;
+    const row=t.closest('[data-ri]');
+    if(row&&t.dataset.rf){ const r=CC.rows[+row.dataset.ri]; if(!r) return; r[t.dataset.rf]=t.value;
+      if(t.dataset.rf==='name'){ const mat=(CC.mats||[]).find(x=>x.name===t.value.trim()); if(mat){ r.kind='mat'; r.price=mat.price; r.unit=mat.unit||r.unit; r.fromStock=true; renderCostCalc(); const el=$(`#costCalc [data-ri="${row.dataset.ri}"] [data-rf="name"]`); if(el){ el.focus(); } uiToast(`부자재 재고에서: ${mat.name} ${won(mat.price)}원 · 재고 ${won(mat.stock||0)}`,'info'); return; } }
+      if(t.dataset.rf==='kind'){ renderCostCalc(); return; }
+      ccRefresh(); return; }
+    if(t.dataset.tf){ CC.trans[+t.dataset.ti][t.dataset.tf]=t.value; ccRefresh(); return; }
+    if(t.dataset.xf){ CC.fixed[+t.dataset.xi][t.dataset.xf]=t.value; ccRefresh(); return; }
+    if(t.id==='ccQty'){ CC.qty=t.value; ccRefresh(); return; }
+    if(t.id==='ccLoss'){ CC.loss=t.value; ccRefresh(); return; }
+    if(t.id==='ccSpare'){ CC.spare=t.value; ccRefresh(); return; }
+  });
+  box.addEventListener('change',e=>{ if(e.target.dataset&&e.target.dataset.rf==='kind') renderCostCalc(); });
 })();
 function refreshAll(){
   recalcVendor();

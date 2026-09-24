@@ -839,6 +839,28 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 #costCalc .cc-new-f .tbtn{flex:1 1 100%}
 @media(max-width:640px){ #costCalc .cc-new-f input,#costCalc .cc-new-f select{font-size:16px} }
 .la-cc{margin-left:6px;border:1px solid #BBF7D0;background:#F0FDF4;color:#166534;border-radius:14px;padding:1px 8px;font-size:11px;font-weight:700;cursor:pointer}
+#costCalc .cc-meth.cc-src{grid-template-columns:repeat(2,minmax(0,1fr))}
+#costCalc .cc-src button{font-size:13px;padding:9px 4px}
+#costCalc .cc-row .cc-per{white-space:nowrap}
+#costCalc .cc-impbox{margin-top:8px;padding:10px 12px;border:1px solid #BAE6FD;background:#F8FCFF;border-radius:12px}
+#costCalc .cc-impbox .cc-inco-note{margin:6px 0 0}
+#costCalc .cc-mdesc{margin-top:6px;font-size:12px;color:var(--ink-soft)}
+#costCalc .cc-sthd{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#costCalc .cc-dt{border:1px solid #E2E8F0;background:#fff;border-radius:14px;padding:3px 10px;font-size:11.5px;font-weight:700;color:var(--ink-soft);cursor:pointer;white-space:nowrap}
+#costCalc .cc-dt.on{border-color:var(--xl-green);color:var(--xl-green)}
+#costCalc .cc-dnote{font-size:11px;color:var(--ink-faint);margin-top:4px}
+#costCalc .cc-simple{flex-wrap:nowrap}
+#costCalc .cc-simple .cc-nm{flex:1 1 auto;min-width:0}
+#costCalc .cc-simple label input{width:76px}
+#costCalc .cc-simple label input.cc-use{width:50px}
+#costCalc .cc-sym{font-size:12px;color:var(--ink-soft);font-weight:700}
+#costCalc details.cc-sec{margin-top:14px}
+#costCalc details.cc-sec>summary{cursor:pointer;font-size:13px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:6px;list-style:none;padding:6px 0}
+#costCalc details.cc-sec>summary::before{content:'▸';color:var(--ink-faint);font-size:11px}
+#costCalc details.cc-sec[open]>summary::before{content:'▾'}
+#costCalc details.cc-sec>summary em{font-style:normal;font-weight:500;font-size:11.5px;color:var(--ink-faint)}
+#costCalc details.cc-sec>summary b{margin-left:auto;font-size:12px;color:var(--ink-soft)}
+@media(max-width:640px){ #costCalc .cc-simple{flex-wrap:wrap} #costCalc .cc-simple .cc-nm{flex:1 1 100%} #costCalc .cc-simple .cc-per{margin-left:auto} }
 #costCalc .cc-inco-note{margin:6px 0 4px;padding:8px 10px;border-radius:10px;background:#F0F9FF;color:#075985;font-size:12px;line-height:1.5}
 #costCalc .cc-var{font-size:11px;color:#6D28D9}
 #costCalc .cc-row .cc-var input{width:auto!important;margin:0}
@@ -904,7 +926,7 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24z</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.25a</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1800,12 +1822,11 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
     <label class="qc-f"><span>제품 <em>없는 제품은 이름만 쓰면 신제품으로 계산</em></span><input id="ccProd" list="ccProdList" placeholder="제품명 검색 또는 신제품 이름"><datalist id="ccProdList"></datalist></label>
     <div id="ccNewHint"></div>
     <datalist id="ccMatList"></datalist>
-    <div class="qc-st" style="margin-top:12px">생산 방식</div>
-    <div class="qc-chips cc-meth" id="ccMethod"></div>
+    <div id="ccTop"></div>
     <div id="ccBody"></div>
     <div class="pm-save"><button class="tbtn primary" id="ccSave">💾 저장 · 원가 반영</button><button class="tbtn" id="ccConfirm" title="이번 생산을 확정하고 부자재 재고를 늘리거나 줄입니다">🏭 생산 확정 (부자재 재고 반영)</button></div>
     <div id="ccHist" style="margin-top:8px"></div>
-    <p class="note">재생산 원가(고정비 제외)를 가격정책표 원가로 저장 · 부자재 항목 이름에 재고 부자재를 고르면 단가 자동 · VAT 제외 금액</p>
+    <p class="note">① 국내/수입 → ② 방식 → 단가만 넣으면 끝 · 재생산 원가(고정비 제외)가 가격정책표 원가로 저장 · VAT 제외 금액</p>
   </div>
 </div>
 <div id="promoCalc">
@@ -8625,8 +8646,10 @@ const CC_TPL={
   sheet:{lb:'시트·원단(롤·재단)', method:'oem', rows:[R_('원단','goods','m²',1,10,1),R_('지관','mat','개'),R_('포장 필름','mat','장'),R_('라벨','mat','장'),R_('재단·권취 가공비','work','롤')]},
   paper:{lb:'휴지·지류', method:'oem', rows:[R_('원지','goods','kg',0.8,3,1),R_('심지(지관)','mat','개'),R_('포장 필름','mat','장'),R_('박스','mat','개',0.1),R_('엠보·재단·포장 가공비','work','개')]},
   molded:{lb:'칫솔·사출 생활잡화', method:'oem', rows:[R_('레진(수지)','goods','g',15,5,1),R_('모(칫솔모 등)','goods','g',1,5),R_('사출 임가공비','work','개'),R_('식모·조립비','work','개'),R_('블리스터·카드','mat','개'),R_('인쇄','work','개')]},
-  import:{lb:'수입 완제품', method:'odm', rows:[Object.assign(R_('완제품 매입가','goods','개'),{cur:'USD'}),R_('한글 라벨','mat','장'),R_('라벨 부착비','work','개')]},
 };
+const CC_SRC=[['dom','🇰🇷 국내 (원화)'],['imp','🌏 해외 수입 (달러)']];
+const CC_MDESC={odm:'완성품을 사서 우리 라벨만 붙임 → 매입가 · 라벨 · 부착비만 입력', oem:'공장이 원료·용기까지 구해서 생산 → 항목별 단가 입력', oemsrc:'우리 원료·자재를 공장에 보내 생산 → 우리가 산 자재 + 임가공비'};
+let CC_DETAIL=false; try{ CC_DETAIL=localStorage.getItem('pour-cc-detail')==='1'; }catch(e){}
 /* 수입 조건(인코텀즈): 조건마다 '우리가 내는 돈' 줄이 달라짐.
    관세 = 과세가격 × 관세율, 과세가격 = 달러 물품가 + '관세포함' 체크한 운임·보험 (도착항 이후 비용 제외 — 한국 관세 CIF 기준)
    수입 부가세 10% = (과세가격+관세) × 10% → 매입세액 환급이라 원가 제외, 투입 자금에만 */
@@ -8634,20 +8657,36 @@ const CC_INCO=[['EXW','공장인도','판매자 공장에서 받음 · 현지운
 const CC_INCO_LN={origin:['현지 내륙운송·수출통관','USD',1],freight:['국제 운임 (해상·항공)','USD',1],ins:['적하보험','USD',1],dest:['도착항 비용 (THC·D/O·보관)','KRW',0],fwd:['포워더 수수료','KRW',0],broker:['수입통관 수수료 (관세사)','KRW',0],req:['요건확인·검사비 (KC·식약처 등)','KRW',0],inland:['국내 운송 (항구→창고)','KRW',0],etc:['기타 추가 비용 (하차 등)','KRW',0]};
 const CC_INCO_BUY={EXW:['origin','freight','ins','dest','fwd','broker','req','inland'],FCA:['freight','ins','dest','fwd','broker','req','inland'],FOB:['freight','ins','dest','fwd','broker','req','inland'],CFR:['ins','dest','fwd','broker','req','inland'],CIF:['dest','fwd','broker','req','inland'],DAP:['broker','req','etc'],DDP:['etc']};
 function ccIncoLines(code){ return (CC_INCO_BUY[code]||[]).map(k=>{ const [name,cur,cif]=CC_INCO_LN[k]; return {name,amt:'',cur,cif:!!cif}; }); }
-let CC={key:'', method:'oem', tpl:'basic', qty:1000, rows:[], trans:[], fixed:[], opts:[], loss:2, spare:3, fx:1400, duty:8, inco:'', data:null, mats:null};
+let CC={key:'', src:'dom', method:'odm', tpl:'basic', qty:1000, rows:[], trans:[], fixed:[], opts:[], loss:2, spare:3, fx:1400, duty:8, inco:'', data:null, mats:null};
 function ccDefault(method){
   let rows;
   if(method==='odm') rows=[R_('완제품 매입가','goods','개'),R_('라벨','mat','장'),R_('라벨 부착 작업비','work','개')];
   else { rows=[R_('내용물·원료','goods','L',1,'',1),R_('용기·캡','mat','개'),R_('라벨','mat','장'),R_('박스·설명서','mat','개'),R_('충진·포장 임가공비','work','개')];
     if(method==='oemsrc') rows.splice(1,0,R_('우리 원료(소스)','goods','kg',0.1,'',1)); }
   const trans=method==='odm'?[{name:'공장 → 창고 입고 운송',amt:''}]:[{name:'부자재 → 공장 운송',amt:''},{name:'공장 → 창고 입고 운송',amt:''}];
-  const fixed=[{name:'디자인비',amt:''},{name:'인쇄 동판·목형·금형',amt:''},{name:'시험성적서·인증',amt:''},{name:'샘플비',amt:''}];
+  const fixed=method==='odm'?[{name:'라벨 디자인비',amt:''},{name:'시험성적서·인증',amt:''},{name:'샘플비',amt:''}]:[{name:'디자인비',amt:''},{name:'인쇄 동판·목형·금형',amt:''},{name:'시험성적서·인증',amt:''},{name:'샘플비',amt:''}];
   return {rows,trans,fixed};
+}
+/* ①구매처 · ②생산 방식 · ③템플릿 → 항목 구성 */
+function ccBuildRows(){
+  const T=CC_TPL[CC.tpl], J=x=>JSON.parse(JSON.stringify(x));
+  const rows=CC.method==='odm'?ccDefault('odm').rows:(T&&T.rows?J(T.rows):ccDefault(CC.method).rows);
+  if(CC.src==='imp'){
+    if(CC.method==='odm'){ rows.forEach(r=>{ if(r.kind==='goods') r.cur='USD'; if(r.name==='라벨') r.name='한글 라벨'; }); }
+    else rows.forEach(r=>{ r.cur='USD'; });   // 해외 공장 위탁생산: 공장 견적이 달러
+  }
+  return rows;
+}
+function ccApplyStructure(){
+  const d=ccDefault(CC.method); CC.rows=ccBuildRows();
+  CC.trans=CC.src==='imp'?ccIncoLines(CC.inco||'FOB'):d.trans;
+  if(!CC.fixed.length||!CC.fixed.some(x=>+x.amt>0)) CC.fixed=d.fixed;
+  ccFillFromMats();
 }
 function ccRowLoss(r){ if(r.loss!==''&&r.loss!=null&&isFinite(+r.loss)) return (+r.loss)/100; const L=(+CC.loss||0)/100, S=(+CC.spare||0)/100; return r.kind==='mat'?(1+L)*(1+S)-1:L; }
 function ccUnitPrice(r){ const p=+r.price||0; return r.cur==='USD'?p*(+CC.fx||0):p; }
 function ccTransKrw(t){ const a=+t.amt||0; return t.cur==='USD'?a*(+CC.fx||0):a; }
-function ccIsImport(){ return !!CC.inco || CC.rows.some(r=>r.cur==='USD') || CC.trans.some(t=>t.cur==='USD'); }
+function ccIsImport(){ return CC.src==='imp' || CC.rows.some(r=>r.cur==='USD') || CC.trans.some(t=>t.cur==='USD'); }
 function ccCalc(mult){
   const m=mult??1, qty=Math.max(1,+CC.qty||1); let unitVar=0, cash=0; const left=[], per=[];
   let impGoods=0;
@@ -8678,11 +8717,18 @@ function ccFillFromMats(){ (CC.rows||[]).forEach(r=>{ if(r.kind!=='mat'||(+r.pri
 function ccSiblings(key){ const p=ccProducts().find(x=>pKey(x)===key); if(!p) return []; return ccProducts().filter(x=>x.name===p.name&&x.cat===p.cat&&pKey(x)!==key); }
 function ccSetProduct(key){
   CC.key=key; const s=(CC.data||{})[key], J=x=>JSON.parse(JSON.stringify(x||[]));
-  if(s){ Object.assign(CC,{method:s.method||'oem',tpl:s.tpl||'basic',qty:s.qty||1000,rows:J(s.rows).map(r=>({cur:'KRW',loss:'',var:false,...r})),trans:J(s.trans),fixed:J(s.fixed),opts:J(s.opts),loss:s.loss??2,spare:s.spare??3,fx:s.fx??1400,duty:s.duty??8,inco:s.inco||''}); CC.trans=CC.trans.map(t=>({cur:'KRW',cif:false,...t})); }
-  else { const d=ccDefault(CC.method); CC.tpl='basic'; CC.inco=''; CC.rows=d.rows; CC.trans=d.trans; CC.fixed=d.fixed; CC.opts=[]; ccFillFromMats(); }
+  if(s){ Object.assign(CC,{method:s.method||'oem',tpl:(s.tpl&&CC_TPL[s.tpl])?s.tpl:'basic',qty:s.qty||1000,rows:J(s.rows).map(r=>({cur:'KRW',loss:'',var:false,...r})),trans:J(s.trans),fixed:J(s.fixed),opts:J(s.opts),loss:s.loss??2,spare:s.spare??3,fx:s.fx??1400,duty:s.duty??8,inco:s.inco||''}); CC.trans=CC.trans.map(t=>({cur:'KRW',cif:false,...t}));
+    CC.src=s.src||((s.inco||CC.rows.some(r=>r.cur==='USD'))?'imp':'dom'); if(CC.src==='imp'&&!CC.inco) CC.inco='FOB'; }
+  else { CC.src='dom'; CC.tpl='basic'; CC.inco=''; CC.fixed=[]; CC.opts=[]; ccApplyStructure(); }
   if(!CC.opts.length){ const sib=ccSiblings(key); if(sib.length){ const p=ccProducts().find(x=>pKey(x)===key); CC.opts=[{label:(p&&p.spec)||'기준',mult:1,key}, ...sib.map(x=>({label:x.spec||x.name,mult:'',key:pKey(x)}))]; } }
 }
 function ccRowHtml(r,i,c){
+  if(!CC_DETAIL) return `<div class="cc-row cc-simple" data-ri="${i}">
+    <input class="cc-nm" data-rf="name" value="${esc(r.name)}" list="ccMatList" placeholder="항목">
+    <label>${r.cur==='USD'?'$':'₩'}<input type="number" data-rf="price" value="${esc(r.price)}" placeholder="단가" step="any"></label>
+    <label>×<input type="number" step="any" data-rf="use" value="${esc(r.use)}" class="cc-use">${esc(r.unit||'')}</label>
+    <b class="cc-per" id="ccPer${i}"></b>
+    <button class="pm-x" data-rrm="${i}" title="빼기">✕</button></div>`;
   return `<div class="cc-row" data-ri="${i}">
     <input class="cc-nm" data-rf="name" value="${esc(r.name)}" list="ccMatList" placeholder="항목">
     <select data-rf="kind">${Object.entries(CC_KIND).map(([k,l])=>`<option value="${k}"${k===r.kind?' selected':''}>${l}</option>`).join('')}</select>
@@ -8702,30 +8748,40 @@ function renderCostCalc(){
   if(CC.key&&$('#ccProd').value.trim()!==ccKeyLabel(CC.key)&&document.activeElement!==$('#ccProd')) $('#ccProd').value=ccKeyLabel(CC.key);
   ccRenderNewBar();
   $('#ccMatList').innerHTML=(CC.mats||[]).map(m=>`<option value="${esc(m.name)}">${esc(m.name)} · ${won(m.price)}원/${esc(m.unit||'')} · 재고 ${won(m.stock||0)}</option>`).join('');
-  $('#ccMethod').innerHTML=CC_METHODS.map(([k,l])=>`<button data-ccm="${k}" class="${k===CC.method?'on':''}">${l}</button>`).join('');
-  if(!CC.key){ box.innerHTML='<div class="qc-empty">제품을 고르거나 신제품 이름을 쓰면 원가 계산 시작 (기존 제품은 저장 시 가격정책표 원가에 자동 반영)</div>'; $('#ccHist').innerHTML=''; return; }
-  const imp=ccIsImport(), inco=CC_INCO.find(x=>x[0]===CC.inco);
+  const top=$('#ccTop');
+  if(!CC.key){ top.innerHTML=''; box.innerHTML='<div class="qc-empty">제품을 고르거나 신제품 이름을 쓰면 원가 계산 시작 (기존 제품은 저장 시 가격정책표 원가에 자동 반영)</div>'; $('#ccHist').innerHTML=''; return; }
+  const imp=ccIsImport(), inco=CC_INCO.find(x=>x[0]===CC.inco), D=CC_DETAIL, ddp=CC.inco==='DDP';
+  const sum=a=>a.reduce((x,t)=>x+(+t.amt||0),0);
+  top.innerHTML=`
+    <div class="qc-st" style="margin-top:12px">① 어디서 사나요</div>
+    <div class="qc-chips cc-meth cc-src">${CC_SRC.map(([k,l])=>`<button data-ccsrc="${k}" class="${k===CC.src?'on':''}">${l}</button>`).join('')}</div>
+    ${CC.src==='imp'?`<div class="cc-impbox">
+      <label class="qc-f"><span>수입 조건 (인코텀즈)</span><select id="ccInco">${CC_INCO.map(([k,l])=>`<option value="${k}"${k===CC.inco?' selected':''}>${k} · ${l}</option>`).join('')}</select></label>
+      ${inco?`<div class="cc-inco-note">${esc(inco[2])}</div>`:''}
+      <div class="qc-in" style="margin-top:6px"><label class="qc-f"><span>환율 (원/$)</span><input type="number" id="ccFx" value="${esc(CC.fx)}"></label><label class="qc-f"><span>관세 % ${ddp?'<em>판매자 부담</em>':''}</span><input type="number" id="ccDuty" value="${esc(CC.duty)}" step="0.5"${ddp?' disabled':''}></label></div></div>`:''}
+    <div class="qc-st" style="margin-top:12px">② 어떻게 만드나요</div>
+    <div class="qc-chips cc-meth" id="ccMethod">${CC_METHODS.map(([k,l])=>`<button data-ccm="${k}" class="${k===CC.method?'on':''}">${l}</button>`).join('')}</div>
+    <div class="cc-mdesc">${esc(CC_MDESC[CC.method]||'')}</div>
+    ${CC.method!=='odm'?`<label class="qc-f" style="margin-top:10px"><span>③ 품목 템플릿 <em>고르면 그 품목의 기본 항목으로</em></span><select id="ccTpl">${Object.entries(CC_TPL).map(([k,t])=>`<option value="${k}"${k===CC.tpl?' selected':''}>${t.lb}</option>`).join('')}</select></label>`:''}`;
   box.innerHTML=`
-    <label class="qc-f" style="margin-top:10px"><span>품목 템플릿 <em>(고르면 그 품목의 기본 항목으로)</em></span><select id="ccTpl">${Object.entries(CC_TPL).map(([k,t])=>`<option value="${k}"${k===CC.tpl?' selected':''}>${t.lb}</option>`).join('')}</select></label>
-    <div class="qc-in" style="margin-top:10px"><label class="qc-f"><span>생산 수량 (개)</span><input type="number" id="ccQty" value="${esc(CC.qty)}"></label>
-      <label class="qc-f"><span>전체 로스 % · 부자재 여유 %</span><div style="display:flex;gap:6px"><input type="number" id="ccLoss" value="${esc(CC.loss)}" step="0.5"><input type="number" id="ccSpare" value="${esc(CC.spare)}" step="0.5"></div></label></div>
-    ${imp?`<div class="qc-in" style="margin-top:8px"><label class="qc-f"><span>환율 (원/$)</span><input type="number" id="ccFx" value="${esc(CC.fx)}"></label><label class="qc-f"><span>관세 % ${CC.inco==='DDP'?'<em>판매자 부담</em>':'<em>과세가격 기준</em>'}</span><input type="number" id="ccDuty" value="${esc(CC.duty)}" step="0.5"${CC.inco==='DDP'?' disabled':''}></label></div>`:''}
-    <div class="qc-st" style="margin-top:12px">개당 드는 돈 <em>VAT 제외 · 로스 비우면 전체값</em></div>
+    <div class="qc-in" style="margin-top:12px"><label class="qc-f"><span>생산·매입 수량 (개)</span><input type="number" id="ccQty" value="${esc(CC.qty)}"></label>
+      ${D?`<label class="qc-f"><span>전체 로스 % · 부자재 여유 %</span><div style="display:flex;gap:6px"><input type="number" id="ccLoss" value="${esc(CC.loss)}" step="0.5"><input type="number" id="ccSpare" value="${esc(CC.spare)}" step="0.5"></div></label>`:''}</div>
+    <div class="qc-st cc-sthd" style="margin-top:14px"><span>개당 드는 돈 <em>VAT 제외 · 단가 × 1개당 수량</em></span><button class="cc-dt${D?' on':''}" id="ccDetail">${D?'간단히':'⚙ 세부 입력'}</button></div>
+    ${D?'<div class="cc-dnote">구분 · 통화 · 단위 · 로스 · 부자재 발주 수량까지 입력 (로스 비우면 전체값)</div>':''}
     ${CC.rows.map((r,i)=>ccRowHtml(r,i)).join('')}
     <button class="tbtn" id="ccAddRow" style="margin-top:6px">＋ 항목 추가</button>
-    <div class="qc-st" style="margin-top:14px">운송·통관 등 <em>이번 생산 총액</em></div>
-    <label class="qc-f" style="margin-top:6px"><span>수입 조건 (인코텀즈) <em>고르면 우리가 내는 항목이 채워짐 · 포워더 견적 금액 입력</em></span><select id="ccInco"><option value="">수입 아님 / 직접 입력</option>${CC_INCO.map(([k,l])=>`<option value="${k}"${k===CC.inco?' selected':''}>${k} · ${l}</option>`).join('')}</select></label>
-    ${inco?`<div class="cc-inco-note">${esc(inco[2])}${CC.inco!=='DDP'?' · 관세는 <b>물품가 + 관세포함 체크 항목</b>(운임·보험) 기준':''}</div>`:''}
-    ${CC.trans.map((t,i)=>`<div class="cc-row cc-sm${imp?' cc-imp':''}"><input class="cc-nm" data-tf="name" data-ti="${i}" value="${esc(t.name)}">${imp?`<select data-tf="cur" data-ti="${i}" class="cc-cur"><option value="KRW"${t.cur!=='USD'?' selected':''}>₩</option><option value="USD"${t.cur==='USD'?' selected':''}>$</option></select>`:''}<label>총액<input type="number" step="any" data-tf="amt" data-ti="${i}" value="${esc(t.amt)}" placeholder="0"></label>${imp?`<label class="cc-var" title="관세 과세가격에 포함 (도착항까지의 운임·보험)"><input type="checkbox" data-tf="cif" data-ti="${i}"${t.cif?' checked':''}>관세포함</label>`:''}<button class="pm-x" data-trm="${i}">✕</button></div>`).join('')}
-    <button class="tbtn" id="ccAddTrans" style="margin-top:6px">＋ 운송·통관 추가</button>
-    <div class="qc-st" style="margin-top:14px">한 번만 드는 돈 <em>고정비 총액 · 첫 생산에만</em></div>
+    <div class="qc-st" style="margin-top:14px">${imp?`수입 운송·통관 <em>${esc(CC.inco||'')} 기준 우리 부담 · 포워더 견적 총액</em>`:'운송비 <em>이번 생산 총액</em>'}</div>
+    ${CC.trans.map((t,i)=>`<div class="cc-row cc-sm${imp?' cc-imp':''}"><input class="cc-nm" data-tf="name" data-ti="${i}" value="${esc(t.name)}">${imp?(D?`<select data-tf="cur" data-ti="${i}" class="cc-cur"><option value="KRW"${t.cur!=='USD'?' selected':''}>₩</option><option value="USD"${t.cur==='USD'?' selected':''}>$</option></select>`:`<span class="cc-sym">${t.cur==='USD'?'$':'₩'}</span>`):''}<label>총액<input type="number" step="any" data-tf="amt" data-ti="${i}" value="${esc(t.amt)}" placeholder="0"></label>${imp&&D?`<label class="cc-var" title="관세 과세가격에 포함 (도착항까지의 운임·보험)"><input type="checkbox" data-tf="cif" data-ti="${i}"${t.cif?' checked':''}>관세포함</label>`:''}<button class="pm-x" data-trm="${i}">✕</button></div>`).join('')}
+    <button class="tbtn" id="ccAddTrans" style="margin-top:6px">＋ ${imp?'운송·통관':'운송비'} 추가</button>
+    <details class="cc-sec"${sum(CC.fixed)>0?' open':''}><summary>한 번만 드는 돈 <em>디자인·인증·샘플 등 · 첫 생산에만</em><b>${sum(CC.fixed)>0?qcT(sum(CC.fixed)):''}</b></summary>
     ${CC.fixed.map((t,i)=>`<div class="cc-row cc-sm"><input class="cc-nm" data-xf="name" data-xi="${i}" value="${esc(t.name)}"><label>총액<input type="number" data-xf="amt" data-xi="${i}" value="${esc(t.amt)}" placeholder="0"></label><button class="pm-x" data-xrm="${i}">✕</button></div>`).join('')}
-    <button class="tbtn" id="ccAddFixed" style="margin-top:6px">＋ 고정비 추가</button>
-    <div class="qc-st" style="margin-top:14px">옵션별 원가 <em>사이즈·용량·색 — '옵션따라' 항목 사용량 × 배수</em></div>
+    <button class="tbtn" id="ccAddFixed" style="margin-top:6px">＋ 고정비 추가</button></details>
+    <details class="cc-sec"${CC.opts.length?' open':''}><summary>옵션별 원가 <em>사이즈·용량이 여러 개일 때</em><b>${CC.opts.length?CC.opts.length+'개':''}</b></summary>
+    ${CC.opts.length?`<div class="cc-dnote">'옵션따라' 체크한 항목(세부 입력)의 사용량 × 배수</div>`:''}
     ${CC.opts.map((o,i)=>`<div class="cc-row cc-sm"><input class="cc-nm" data-of="label" data-oi="${i}" value="${esc(o.label)}" placeholder="옵션 (예: L)"><label>배수<input type="number" step="0.01" data-of="mult" data-oi="${i}" value="${esc(o.mult)}" placeholder="1"></label>
       <select data-of="key" data-oi="${i}" class="cc-okey"><option value="">연결 제품 없음</option>${[CC.key,...ccSiblings(CC.key).map(pKey)].map(k=>{ const p=ccProducts().find(x=>pKey(x)===k); return `<option value="${esc(k)}"${k===o.key?' selected':''}>${esc(p?prodLabel(p):k)}</option>`; }).join('')}</select>
       <b class="cc-per" id="ccOpt${i}"></b><button class="pm-x" data-orm="${i}">✕</button></div>`).join('')}
-    <button class="tbtn" id="ccAddOpt" style="margin-top:6px">＋ 옵션 추가</button>
+    <button class="tbtn" id="ccAddOpt" style="margin-top:6px">＋ 옵션 추가</button></details>
     <div id="ccOut"></div>`;
   ccRefresh(); ccRenderHist();
 }
@@ -8765,7 +8821,7 @@ function ccRenderNewBar(){
 function ccStartDraft(name){
   const key=CC_NEW+name.trim(); CC.key='';
   if((CC.data||{})[key]) ccSetProduct(key);
-  else { CC.key=key; CC.method='oem'; CC.inco=''; const d=ccDefault(CC.method); CC.tpl='basic'; CC.rows=d.rows; CC.trans=d.trans; CC.fixed=d.fixed; CC.opts=[]; ccFillFromMats(); }
+  else { CC.key=key; CC.src='dom'; CC.inco=''; CC.tpl='basic'; CC.fixed=[]; CC.opts=[]; ccApplyStructure(); }
   $('#ccProd').value=ccKeyLabel(key); renderCostCalc();
 }
 async function ccRegisterDraft(){
@@ -8804,7 +8860,7 @@ async function ccSave(note){
   const prevRec=(CC.data||{})[CC.key], prevCost=p.cost>0?p.cost:null;
   // 옵션별 원가 (연결한 제품이 있으면 그 제품 원가도 반영)
   const optRes=CC.opts.map(o=>({label:o.label, mult:+o.mult||1, key:o.key||'', cost:Math.round(ccCalc(+o.mult||1).repeat)}));
-  const rec={method:CC.method, tpl:CC.tpl, qty:+CC.qty||0, rows:CC.rows, trans:CC.trans, fixed:CC.fixed, opts:CC.opts, loss:+CC.loss||0, spare:+CC.spare||0, fx:+CC.fx||0, duty:+CC.duty||0, inco:CC.inco||'',
+  const rec={src:CC.src, method:CC.method, tpl:CC.tpl, qty:+CC.qty||0, rows:CC.rows, trans:CC.trans, fixed:CC.fixed, opts:CC.opts, loss:+CC.loss||0, spare:+CC.spare||0, fx:+CC.fx||0, duty:+CC.duty||0, inco:CC.inco||'',
     result:{repeat:cost, first:Math.round(base.first), cash:Math.round(base.cash), opts:optRes}, prod:draft?p.name:prodLabel(p), draft, updatedAt:now, updatedBy:by,
     history:[...((prevRec&&prevRec.history)||[]), {at:now, by, cost, prev:prevCost, note:note||(prevRec?'수정':'처음 계산')}].slice(-50)};
   try{
@@ -8847,11 +8903,15 @@ document.addEventListener('click',e=>{ const b=e.target.closest('[data-cc-open]'
   $('#ccProd').addEventListener('input',()=>{ if(!ccIsDraft(CC.key)) ccRenderNewBar(); });
   const filled=()=>CC.rows.some(r=>+r.price>0);
   box.addEventListener('click',e=>{
+    const dirty=()=>filled()||CC.trans.some(x=>+x.amt>0);
+    const sb=e.target.closest('[data-ccsrc]'); if(sb){ const v=sb.dataset.ccsrc; if(v===CC.src) return;
+      if(dirty() && !confirm(`'${v==='imp'?'해외 수입':'국내'}'으로 바꾸면 항목이 그에 맞게 바뀌고 입력한 단가·운송비는 사라져요. 계속할까요?`)) return;
+      CC.src=v; CC.inco=v==='imp'?(CC.inco||'FOB'):''; ccApplyStructure(); renderCostCalc(); return; }
     const m=e.target.closest('[data-ccm]'); if(m){ if(m.dataset.ccm===CC.method) return;
-      if(CC.tpl==='basic'){ if(filled() && !confirm('생산 방식을 바꾸면 항목이 그 방식의 기본 항목으로 바뀝니다. 계속할까요?')) return;
-        CC.method=m.dataset.ccm; const d=ccDefault(CC.method); CC.rows=d.rows; if(!CC.inco) CC.trans=d.trans; if(!CC.fixed.some(x=>+x.amt>0)) CC.fixed=d.fixed; ccFillFromMats(); }
-      else CC.method=m.dataset.ccm;
+      if(filled() && !confirm('생산 방식을 바꾸면 항목이 그 방식의 기본 항목으로 바뀌고 입력한 단가는 사라져요. 계속할까요?')) return;
+      CC.method=m.dataset.ccm; if(CC.method==='odm') CC.tpl='basic'; const keepTrans=CC.trans.some(x=>+x.amt>0)?CC.trans:null; ccApplyStructure(); if(keepTrans) CC.trans=keepTrans;
       renderCostCalc(); return; }
+    if(e.target.id==='ccDetail'){ CC_DETAIL=!CC_DETAIL; try{ localStorage.setItem('pour-cc-detail',CC_DETAIL?'1':'0'); }catch(err){} renderCostCalc(); return; }
     const rm=e.target.closest('[data-rrm]'); if(rm){ CC.rows.splice(+rm.dataset.rrm,1); renderCostCalc(); return; }
     const trm=e.target.closest('[data-trm]'); if(trm){ CC.trans.splice(+trm.dataset.trm,1); renderCostCalc(); return; }
     const xrm=e.target.closest('[data-xrm]'); if(xrm){ CC.fixed.splice(+xrm.dataset.xrm,1); renderCostCalc(); return; }
@@ -8878,11 +8938,9 @@ document.addEventListener('click',e=>{ const b=e.target.closest('[data-cc-open]'
   });
   box.addEventListener('change',e=>{ const t=e.target;
     if(t.id==='ccTpl'){ const T=CC_TPL[t.value]; if(!T) return; if(filled() && !confirm(`'${T.lb}' 템플릿의 기본 항목으로 바꿀까요? 지금 입력한 항목은 사라집니다.`)){ t.value=CC.tpl; return; }
-      CC.tpl=t.value; if(T.method) CC.method=T.method; const d=ccDefault(CC.method); CC.rows=T.rows?JSON.parse(JSON.stringify(T.rows)):d.rows; CC.trans=d.trans;
-      CC.inco=''; if(t.value==='import'){ CC.inco='FOB'; CC.trans=ccIncoLines('FOB'); }
-      ccFillFromMats(); renderCostCalc(); return; }
+      CC.tpl=t.value; const keepTrans=CC.trans.some(x=>+x.amt>0)?CC.trans:null; ccApplyStructure(); if(keepTrans) CC.trans=keepTrans; renderCostCalc(); return; }
     if(t.id==='ccInco'){ const code=t.value; if(CC.trans.some(x=>+x.amt>0) && !confirm('수입 조건을 바꾸면 운송·통관 항목이 그 조건에 맞게 바뀝니다. 입력한 금액은 사라져요. 계속할까요?')){ t.value=CC.inco; return; }
-      CC.inco=code; CC.trans=code?ccIncoLines(code):ccDefault(CC.method).trans; renderCostCalc(); return; }
+      CC.inco=code; CC.trans=ccIncoLines(code); renderCostCalc(); return; }
     if(t.dataset&&(t.dataset.rf==='kind'||t.dataset.rf==='cur')) renderCostCalc();
   });
 })();

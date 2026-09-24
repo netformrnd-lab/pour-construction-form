@@ -629,9 +629,10 @@ body.sn-fold #sideNav .sn-gl{justify-content:center;padding:10px 0}
 #ribbon{flex-wrap:nowrap}
 #ribbon .kpi .lb,#ribbon .kpi .sub{white-space:nowrap}
 #ribbon .brand span{white-space:nowrap}
-#ribbon .brand{min-width:0;flex:0 1 auto}
-#ribbon .kpis{flex-wrap:nowrap;overflow-x:auto;min-width:0}
-@media(max-width:1100px){#ribbon{flex-wrap:wrap}#ribbon .kpis{flex-wrap:wrap}}
+#ribbon .brand{min-width:max-content;flex:0 0 auto}
+#ribbon .kpis{flex:1 1 auto;flex-wrap:nowrap;overflow-x:auto;min-width:0;justify-content:flex-end}
+#ribbon .rb-acts{flex:0 0 auto}
+#ribbon{flex-wrap:wrap}#ribbon .kpis{order:5;flex:1 0 100%;justify-content:flex-start;margin-left:0}#ribbon .rb-acts{margin-left:auto}
 #ribbon .kpi .lb{color:var(--ui-soft);opacity:1}
 #ribbon .kpi .vl{color:#0F172A}
 #ribbon .kpi .sub{color:var(--ink-faint);opacity:1}
@@ -676,6 +677,7 @@ body[data-sh]:not([data-sh="sh-price"]) #fxbar,body[data-sh]:not([data-sh="sh-pr
 
 /* ── 폰: 서랍 메뉴 · 요약 카드 가로 스크롤 ── */
 #snOpen,#snClose,#snBack{display:none}
+body:has(#calcPanel.open) #calcFab{display:none}   /* 계산기를 열면 버튼이 결과를 가리지 않게 */
 @media(max-width:640px){
   #sideNav{display:flex!important;position:fixed;left:0;top:0;bottom:0;width:min(272px,84vw)!important;flex-basis:auto!important;z-index:260;transform:translateX(-105%);transition:transform .22s ease}
   body.sn-open #sideNav{transform:none}
@@ -689,9 +691,12 @@ body[data-sh]:not([data-sh="sh-price"]) #fxbar,body[data-sh]:not([data-sh="sh-pr
   #ribbon #snOpen{display:flex;align-items:center;justify-content:center;flex:0 0 40px;width:40px;height:40px;border-radius:12px;border:0!important;
     background:linear-gradient(135deg,#128A48,#0B5C30)!important;color:#fff!important;font-size:19px;padding:0!important;box-shadow:0 4px 12px rgba(11,92,48,.3)}
   #ribbon{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
-  #ribbon .brand{flex:1 1 0!important;min-width:0}
-  #ribbon .brand b{font-size:14.5px;line-height:1.3;display:block}
-  #ribbon .brand span{white-space:normal;font-size:10.5px}
+  #ribbon .brand{flex:1 1 0!important;min-width:0!important}
+  #ribbon .rb-acts{order:4;flex:1 0 100%!important;margin:0!important;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  #ribbon .rb-acts>*{flex:0 0 auto}
+  #viewAsCtl{flex:0 0 auto}
+  #ribbon .brand b{font-size:15px;line-height:1.3;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #ribbon .brand span{white-space:normal;font-size:10.5px;word-break:keep-all}
   #ribbon>div:not(.brand):not(.kpis){gap:6px!important}
   #ribbon #btnAccountGear,#ribbon #btnSignOut{padding:6px 9px!important;font-size:11.5px!important}
   #ribbon .kpis{display:flex!important;order:5;flex:1 0 100%;flex-wrap:nowrap!important;overflow-x:auto;gap:8px;margin:0;padding-bottom:2px;-webkit-overflow-scrolling:touch}
@@ -726,10 +731,10 @@ body[data-sh]:not([data-sh="sh-price"]) #fxbar,body[data-sh]:not([data-sh="sh-pr
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24h</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24i</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
-  <div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
+  <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
     <span id="viewAsCtl" style="display:none;gap:6px"></span>
     <button id="btnAccountGear" title="계정 관리" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:4px;padding:5px 10px;font-size:11.5px">⚙️ 계정</button>
     <span id="authWho" style="font-size:11px;opacity:.85"></span>
@@ -4006,7 +4011,7 @@ function runCalc(){
       ['매입원가 → 공급가 → 정가', `${won(cost)} → ${won(price)} → ${won(retail)}`],
       ['POUR 마진 / 개', wonU(pm)+' ('+pct(price?pm/price:0)+')', pm<0],
       ['공급받는이 마진 / 개', wonU(bm)+' ('+pct(retail?bm/retail:0)+')', bm<0],
-      ['이익 배분 (POUR : 채널)', (pm+bm)>0?`${Math.round(pm/(pm+bm)*100)}% : ${Math.round(bm/(pm+bm)*100)}%`:'—', false, true],
+      ['이익 배분 (POUR : 채널)', (pm+bm)>0?`${Math.round(pm/(pm+bm)*100)}% : ${100-Math.round(pm/(pm+bm)*100)}%`:'—', false, true],
       [qty+'개 기준 POUR 총마진', wonU(pm*qty), pm<0]
     ];
   }

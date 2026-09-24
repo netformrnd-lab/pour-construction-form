@@ -833,6 +833,12 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 #costCalc .cc-row .cc-unit{width:60px!important;text-align:left!important;margin-left:2px;padding-left:6px!important;padding-right:4px!important}
 #costCalc .cc-row .cc-loss{width:48px!important}
 #costCalc .cc-row .cc-cur{padding:3px 2px;font-size:12px}
+#costCalc .cc-new{margin-top:8px;padding:10px 12px;border-radius:12px;background:#FFFBEB;border:1px solid #FDE68A;font-size:12px;line-height:1.5;color:#78350F}
+#costCalc .cc-new-f{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+#costCalc .cc-new-f input,#costCalc .cc-new-f select{flex:1 1 110px;min-width:0;border:1px solid #E2E8F0;border-radius:8px;padding:6px 8px;font-size:13px;background:#fff}
+#costCalc .cc-new-f .tbtn{flex:1 1 100%}
+@media(max-width:640px){ #costCalc .cc-new-f input,#costCalc .cc-new-f select{font-size:16px} }
+.la-cc{margin-left:6px;border:1px solid #BBF7D0;background:#F0FDF4;color:#166534;border-radius:14px;padding:1px 8px;font-size:11px;font-weight:700;cursor:pointer}
 #costCalc .cc-inco-note{margin:6px 0 4px;padding:8px 10px;border-radius:10px;background:#F0F9FF;color:#075985;font-size:12px;line-height:1.5}
 #costCalc .cc-var{font-size:11px;color:#6D28D9}
 #costCalc .cc-row .cc-var input{width:auto!important;margin:0}
@@ -898,7 +904,7 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24y</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24z</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1786,12 +1792,13 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 <div id="calcMenu">
   <button data-open="calcPanel">🧮 단가 계산기<em>원가·수량 → 판매가·정가·할인 단계 (공급사 협의)</em></button>
   <button data-open="promoCalc">🎯 프로모션 계산기<em>기존 제품 할인·증정·체험단 기획 (유통기한 털기)</em></button>
-  <button data-open="costCalc">🏭 생산원가 계산기<em>ODM·OEM 원료·부자재·작업비 → 개당 원가 (가격정책표 자동 반영)</em></button>
+  <button data-open="costCalc">🏭 생산원가 계산기<em>기존·신제품 원료·부자재·작업비·수입비 → 개당 원가 (가격정책표 자동 반영)</em></button>
 </div>
 <div id="costCalc">
   <div class="hd">생산원가 계산기 <button id="ccClose">✕</button></div>
   <div class="bd">
-    <label class="qc-f"><span>제품</span><input id="ccProd" list="ccProdList" placeholder="제품명 검색"><datalist id="ccProdList"></datalist></label>
+    <label class="qc-f"><span>제품 <em>없는 제품은 이름만 쓰면 신제품으로 계산</em></span><input id="ccProd" list="ccProdList" placeholder="제품명 검색 또는 신제품 이름"><datalist id="ccProdList"></datalist></label>
+    <div id="ccNewHint"></div>
     <datalist id="ccMatList"></datalist>
     <div class="qc-st" style="margin-top:12px">생산 방식</div>
     <div class="qc-chips cc-meth" id="ccMethod"></div>
@@ -7832,6 +7839,18 @@ function laNewPlan(p){
     vat:true, cship:'', target:30, ad:'', size:'', unit:'kg', chs:laDefaultChs(), mkt:[], memo:'' };
 }
 function laPlan(k){ return LPLAN[k]; }
+/* 신제품을 '출시준비'로 등록 (products-added + 브랜드 + 출시 검토 기록) — 출시 검토·생산원가 계산기 공용 */
+async function registerLaunchProduct({cat,name,spec,brand,plan,source}){
+  spec=spec||'-'; const key=`${cat}|${name}|${spec}`, now=new Date().toISOString(), by=(curUser&&curUser.email)||'';
+  if(P.some(p=>pKey(p)===key)) throw new Error('같은 분류·이름·규격의 제품이 이미 있습니다');
+  await db.collection('products-added').add({ cat,name,spec,cost:(plan&&+plan.cost>0)?+plan.cost:null,pr:{},mfg:'',concept:'',type:'단품',status:'출시준비',setItems:'',
+    seq:P.length, updatedAt:now, createdBy:by, source:source||'신제품 검토' });
+  setPbrandKey(key,[brand||BRAND_DEFAULT]); await savePbrand();
+  LPLAN[key]={...laNewPlan(null), ...(plan||{})};
+  await db.collection('product-meta').doc('launch-plans').set({map:{[key]:{...LPLAN[key],updatedAt:now,updatedBy:by}}},{merge:true});
+  logAct('신제품검토', `${name}${spec!=='-'?' ('+spec+')':''}`, '출시준비로 등록'+(source?` (${source})`:''));
+  return key;
+}
 function laCalc(pl, priceOverride){
   const price=priceOverride!=null?priceOverride:laNum(pl.price), vat=pl.vat!==false, k=vat?1/1.1:1, net=price*k;
   const unitCost=laNum(pl.cost)+laNum(pl.logi)+laNum(pl.deli)+laNum(pl.pack);
@@ -7960,7 +7979,7 @@ function renderLaunch(){
     ${LPLAN[LA_KEY]?'':'<div class="panel" style="border-color:var(--amber)"><div class="bd">📝 아직 검토 기록이 없는 제품입니다. 값을 넣으면 자동 저장됩니다. (원가·판매가는 가격정책표 값으로 채웠습니다)</div></div>'}
     <div class="panel"><h3>원가·판매가 <span class="tag">원가·비용은 VAT 제외 · 개당 금액</span></h3><div class="bd"><div class="formgrid">
       ${fld('MOQ (최소 발주 수량, 개)','moq','예: 1000')}
-      ${fld('개당 매입원가','cost','제조 단가')}
+      <div class="fld"><label>개당 매입원가 <button type="button" class="la-cc" data-cc-open="${esc(LA_KEY)}" title="원료·부자재·작업비·수입비용으로 계산해서 채우기">🏭 생산원가로 계산</button></label><input data-f="cost" type="number" value="${esc(pl.cost)}" placeholder="제조 단가"></div>
       ${fld('초기 고정비 (금형·디자인·인증·촬영 등)','init','합계 금액')}
       ${fld('개당 입고·보관 물류비 (3PL)','logi','')}
       ${fld('개당 택배비','deli','')}
@@ -8055,12 +8074,7 @@ function laQueueSave(){
     if(P.some(p=>pKey(p)===key)){ $('#laNewMsg').textContent='같은 분류·이름·규격의 제품이 이미 있습니다.'; return; }
     const btn=$('#laNewSave'); btn.disabled=true;
     try{
-      await db.collection('products-added').add({ cat,name,spec,cost:null,pr:{},mfg:'',concept:'',type:'단품',status:'출시준비',setItems:'',
-        seq:P.length, updatedAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'', source:'신제품 검토' });
-      setPbrandKey(key,[brand]); await savePbrand();
-      LPLAN[key]=laNewPlan(null); LA_KEY=key;
-      await db.collection('product-meta').doc('launch-plans').set({map:{[key]:{...LPLAN[key],updatedAt:new Date().toISOString(),updatedBy:(curUser&&curUser.email)||''}}},{merge:true});
-      logAct('신제품검토', `${name}${spec!=='-'?' ('+spec+')':''}`, '출시준비로 등록');
+      await registerLaunchProduct({cat,name,spec,brand}); LA_KEY=key;
       $('#laNewPanel').style.display='none'; ['#laNewName','#laNewSpec'].forEach(s=>$(s).value='');
       $('#laSaved').textContent='등록됨 — 목록에 곧 나타납니다';
       setTimeout(renderLaunch, 800);
@@ -8648,6 +8662,11 @@ function ccCalc(mult){
   return {qty,unitVar,repeat,first:repeat+fixed/qty,trans,fixed,cash:cash+trans+fixed+(dutyU+vatU)*qty,left,per,impGoods,cifTrans,dutyBase,dutyU,vatU};
 }
 function ccProducts(){ return P.filter(p=>!isDeletedProd(p)); }
+/* 신제품 초안: 아직 제품 등록 전 — key 'new:이름' 으로 cost-calc 에만 저장, [출시 검토에 등록] 하면 실제 제품 키로 옮김 */
+const CC_NEW='new:', CC_NEWLB='신제품: ';
+const ccIsDraft=k=>String(k||'').startsWith(CC_NEW);
+function ccKeyLabel(k){ if(ccIsDraft(k)) return CC_NEWLB+k.slice(CC_NEW.length); const p=ccProducts().find(x=>pKey(x)===k); return p?prodLabel(p):k; }
+function ccDrafts(){ return Object.keys(CC.data||{}).filter(k=>ccIsDraft(k)&&CC.data[k]); }
 async function ccLoad(){
   if(CC.data&&CC.mats) return;
   try{ const d=await db.collection('product-meta').doc('cost-calc').get(); CC.data=(d.exists&&d.data().map)?{...d.data().map}:{}; }
@@ -8678,10 +8697,13 @@ function ccRowHtml(r,i,c){
 }
 function renderCostCalc(){
   const box=$('#ccBody'); if(!box) return;
-  $('#ccProdList').innerHTML=ccProducts().map(p=>`<option value="${esc(prodLabel(p))}">`).join('');
+  $('#ccProdList').innerHTML=ccDrafts().map(k=>`<option value="${esc(ccKeyLabel(k))}">초안 · 미등록</option>`).join('')
+    +ccProducts().map(p=>`<option value="${esc(prodLabel(p))}">${hasStatus(p,'출시준비')?'출시준비':''}</option>`).join('');
+  if(CC.key&&$('#ccProd').value.trim()!==ccKeyLabel(CC.key)&&document.activeElement!==$('#ccProd')) $('#ccProd').value=ccKeyLabel(CC.key);
+  ccRenderNewBar();
   $('#ccMatList').innerHTML=(CC.mats||[]).map(m=>`<option value="${esc(m.name)}">${esc(m.name)} · ${won(m.price)}원/${esc(m.unit||'')} · 재고 ${won(m.stock||0)}</option>`).join('');
   $('#ccMethod').innerHTML=CC_METHODS.map(([k,l])=>`<button data-ccm="${k}" class="${k===CC.method?'on':''}">${l}</button>`).join('');
-  if(!CC.key){ box.innerHTML='<div class="qc-empty">제품 선택 → 원가 계산 (저장하면 가격정책표 원가에 자동 반영)</div>'; $('#ccHist').innerHTML=''; return; }
+  if(!CC.key){ box.innerHTML='<div class="qc-empty">제품을 고르거나 신제품 이름을 쓰면 원가 계산 시작 (기존 제품은 저장 시 가격정책표 원가에 자동 반영)</div>'; $('#ccHist').innerHTML=''; return; }
   const imp=ccIsImport(), inco=CC_INCO.find(x=>x[0]===CC.inco);
   box.innerHTML=`
     <label class="qc-f" style="margin-top:10px"><span>품목 템플릿 <em>(고르면 그 품목의 기본 항목으로)</em></span><select id="ccTpl">${Object.entries(CC_TPL).map(([k,t])=>`<option value="${k}"${k===CC.tpl?' selected':''}>${t.lb}</option>`).join('')}</select></label>
@@ -8726,6 +8748,44 @@ function ccRefresh(){
       <div class="qc-kv qc-sub"><span>수입 부가세 10%(환급 · 원가 제외, 자금만)</span><b>${qcW(r.vatU)}</b></div></div>`:''}
     ${r.left.length?`<div class="qc-cmp"><div class="qc-st2">부자재 남는 수량 <em>발주 − 사용(로스 포함)</em></div><table><thead><tr><th>부자재</th><th>발주</th><th>사용</th><th>남음</th></tr></thead><tbody>${r.left.map(l=>`<tr><td>${esc(l.name)}</td><td>${won(l.order)}</td><td>${won(Math.ceil(l.need))}</td><td class="${l.rest<0?'neg':''}">${l.rest<0?'재고에서 '+won(Math.ceil(-l.rest)):won(Math.floor(l.rest))}</td></tr>`).join('')}</tbody></table></div>`:''}`;
 }
+function ccRenderNewBar(){
+  const el=$('#ccNewHint'); if(!el) return;
+  if(ccIsDraft(CC.key)){ const nm=CC.key.slice(CC_NEW.length);
+    const cats=[...new Set(P.map(p=>p.cat).filter(Boolean))];
+    el.innerHTML=`<div class="cc-new"><b>🆕 신제품 초안</b> — 저장은 되지만 가격정책표에는 아직 없어요. 원가가 정해지면 출시 검토에 등록하세요.
+      <div class="cc-new-f"><input id="ccNewCat" list="ccCatList" placeholder="분류 (예: 방수)"><datalist id="ccCatList">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+      <input id="ccNewSpec" placeholder="규격 (예: 4kg)"><select id="ccNewBrand">${BRAND_LIST.map(b=>`<option${b===(BRAND_FILTER||BRAND_DEFAULT)?' selected':''}>${esc(b)}</option>`).join('')}</select>
+      <button class="tbtn primary" id="ccRegister">📝 출시 검토에 등록</button></div><div id="ccNewMsg" class="qc-kv qc-sub"></div></div>`;
+    return; }
+  const v=($('#ccProd')&&$('#ccProd').value.trim())||'';
+  if(v && !v.startsWith(CC_NEWLB) && !ccProducts().some(p=>prodLabel(p)===v)){
+    const h=`<button class="tbtn" id="ccStartNew" style="margin-top:6px">🆕 '${esc(v)}' 신제품으로 계산 시작</button>`; if(el.innerHTML!==h) el.innerHTML=h; return; }
+  if(el.innerHTML) el.innerHTML='';
+}
+function ccStartDraft(name){
+  const key=CC_NEW+name.trim(); CC.key='';
+  if((CC.data||{})[key]) ccSetProduct(key);
+  else { CC.key=key; CC.method='oem'; CC.inco=''; const d=ccDefault(CC.method); CC.tpl='basic'; CC.rows=d.rows; CC.trans=d.trans; CC.fixed=d.fixed; CC.opts=[]; ccFillFromMats(); }
+  $('#ccProd').value=ccKeyLabel(key); renderCostCalc();
+}
+async function ccRegisterDraft(){
+  const nm=CC.key.slice(CC_NEW.length), cat=$('#ccNewCat').value.trim(), spec=$('#ccNewSpec').value.trim()||'-', brand=$('#ccNewBrand').value, msg=$('#ccNewMsg');
+  if(!cat){ msg.textContent='분류를 넣어 주세요.'; return; }
+  const r=ccCalc(1), cost=Math.round(r.repeat), btn=$('#ccRegister'); btn.disabled=true;
+  try{
+    const plan={cost:cost>0?cost:'', moq:+CC.qty||'', init:Math.round(r.fixed)||''};
+    const key=await registerLaunchProduct({cat,name:nm,spec,brand,plan,source:'생산원가 계산기'});
+    // 초안 기록을 실제 제품 키로 옮김
+    const old=CC.key, rec={...(CC.data[old]||{}), prod:`${nm}${spec!=='-'?' ('+spec+')':''}`, draft:false};
+    await db.collection('product-meta').doc('cost-calc').set({map:{[key]:rec,[old]:firebase.firestore.FieldValue.delete()}},{merge:true});
+    CC.data[key]=rec; delete CC.data[old];
+    if(cost>0){ PCOST[key]=cost; await saveProdCost(); }
+    uiToast(`출시 검토에 등록됨 — 원가 ${won(cost)}원 · MOQ ${won(+CC.qty||0)}개`,'ok');
+    // 제품 목록에 나타나면 그 제품으로 전환
+    let n=0; const wait=()=>{ const p=ccProducts().find(x=>pKey(x)===key); if(p){ CC.key=''; ccSetProduct(key); $('#ccProd').value=prodLabel(p); renderCostCalc(); refreshAll(); } else if(++n<25) setTimeout(wait,200); else { CC.key=key; renderCostCalc(); } };
+    wait();
+  }catch(e){ console.error('[생산원가] 신제품 등록 실패',e); msg.innerHTML=`<span style="color:var(--red)">등록 실패: ${esc(e.message||e.code||e)}</span>`; btn.disabled=false; }
+}
 function ccRenderHist(){
   const el=$('#ccHist'); if(!el) return; const s=(CC.data||{})[CC.key], h=(s&&s.history)||[];
   el.innerHTML=h.length?`<details><summary>변경 이력 ${h.length}건</summary>${h.slice().reverse().map(x=>`<div class="qc-kv qc-sub"><span>${esc(String(x.at||'').slice(0,16).replace('T',' '))} · ${esc(String(x.by||'').split('@')[0])}</span><b>${x.prev!=null?qcW(x.prev)+' → ':''}${qcW(x.cost)}${x.note?' · '+esc(x.note):''}</b></div>`).join('')}</details>`:'';
@@ -8738,17 +8798,19 @@ async function ccApplyCost(key,cost){
   return prev;
 }
 async function ccSave(note){
-  const p=ccProducts().find(x=>pKey(x)===CC.key); if(!p){ uiToast('제품을 먼저 고르세요','err'); return false; }
+  const draft=ccIsDraft(CC.key), p=draft?{name:CC.key.slice(CC_NEW.length),cost:(CC.data[CC.key]&&CC.data[CC.key].result&&CC.data[CC.key].result.repeat)||null}:ccProducts().find(x=>pKey(x)===CC.key);
+  if(!p){ uiToast('제품을 먼저 고르세요','err'); return false; }
   const base=ccCalc(1), now=new Date().toISOString(), by=(curUser&&curUser.email)||'', cost=Math.round(base.repeat);
   const prevRec=(CC.data||{})[CC.key], prevCost=p.cost>0?p.cost:null;
   // 옵션별 원가 (연결한 제품이 있으면 그 제품 원가도 반영)
   const optRes=CC.opts.map(o=>({label:o.label, mult:+o.mult||1, key:o.key||'', cost:Math.round(ccCalc(+o.mult||1).repeat)}));
   const rec={method:CC.method, tpl:CC.tpl, qty:+CC.qty||0, rows:CC.rows, trans:CC.trans, fixed:CC.fixed, opts:CC.opts, loss:+CC.loss||0, spare:+CC.spare||0, fx:+CC.fx||0, duty:+CC.duty||0, inco:CC.inco||'',
-    result:{repeat:cost, first:Math.round(base.first), cash:Math.round(base.cash), opts:optRes}, prod:prodLabel(p), updatedAt:now, updatedBy:by,
+    result:{repeat:cost, first:Math.round(base.first), cash:Math.round(base.cash), opts:optRes}, prod:draft?p.name:prodLabel(p), draft, updatedAt:now, updatedBy:by,
     history:[...((prevRec&&prevRec.history)||[]), {at:now, by, cost, prev:prevCost, note:note||(prevRec?'수정':'처음 계산')}].slice(-50)};
   try{
     await db.collection('product-meta').doc('cost-calc').set({map:{[CC.key]:rec}},{merge:true});
     CC.data[CC.key]=rec;
+    if(draft){ uiToast('신제품 초안 저장됨 — 출시 검토에 등록하면 가격정책표에 들어가요','ok'); ccRenderHist(); ccRefresh(); renderCostCalc(); return true; }
     const main=optRes.find(o=>o.key===CC.key), applied=[];
     await ccApplyCost(CC.key, main?main.cost:cost); applied.push(prodLabel(p));
     for(const o of optRes){ if(o.key&&o.key!==CC.key){ const prev=await ccApplyCost(o.key,o.cost); const op=ccProducts().find(x=>pKey(x)===o.key); if(op){ applied.push(prodLabel(op)); logAct('생산원가', prodLabel(op), `${prev!=null?won(prev)+' → ':''}${won(o.cost)}원 (옵션)`); } } }
@@ -8768,16 +8830,21 @@ async function ccConfirm(){
     CC.mats=mats; await ccSave(`생산 확정 ${won(r.qty)}개`); uiToast('부자재 재고 반영됨','ok'); renderCostCalc(); }
   catch(e){ console.error('[materials] 저장 실패',e); uiToast('부자재 재고 저장 실패: '+(e.code||e.message||e),'err'); }
 }
-async function openCostCalc(){
+async function openCostCalc(key){
   document.querySelectorAll('#calcPanel,#promoCalc,#costCalc').forEach(x=>x.classList.remove('open')); $('#calcMenu').classList.remove('open');
   $('#costCalc').classList.add('open'); await ccLoad();
   if(!$('#ccUnitList')){ const dl=document.createElement('datalist'); dl.id='ccUnitList'; dl.innerHTML=CC_UNITS.map(u=>`<option value="${u}">`).join(''); document.body.appendChild(dl); }
+  if(key&&key!==CC.key){ const p=ccProducts().find(x=>pKey(x)===key); if(p){ ccSetProduct(key); $('#ccProd').value=prodLabel(p); } }
   renderCostCalc();
 }
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-cc-open]'); if(b){ e.preventDefault(); openCostCalc(b.dataset.ccOpen); } });
 (function bindCostCalc(){
   const box=$('#costCalc'); if(!box) return;
   $('#ccClose').addEventListener('click',()=>box.classList.remove('open'));
-  $('#ccProd').addEventListener('change',e=>{ const p=ccProducts().find(x=>prodLabel(x)===e.target.value.trim()); if(p&&pKey(p)!==CC.key){ ccSetProduct(pKey(p)); renderCostCalc(); } });
+  $('#ccProd').addEventListener('change',e=>{ const v=e.target.value.trim();
+    if(v.startsWith(CC_NEWLB)){ const k=CC_NEW+v.slice(CC_NEWLB.length).trim(); if(k!==CC.key&&(CC.data||{})[k]){ CC.key=''; ccSetProduct(k); renderCostCalc(); } return; }
+    const p=ccProducts().find(x=>prodLabel(x)===v); if(p&&pKey(p)!==CC.key){ ccSetProduct(pKey(p)); renderCostCalc(); } else ccRenderNewBar(); });
+  $('#ccProd').addEventListener('input',()=>{ if(!ccIsDraft(CC.key)) ccRenderNewBar(); });
   const filled=()=>CC.rows.some(r=>+r.price>0);
   box.addEventListener('click',e=>{
     const m=e.target.closest('[data-ccm]'); if(m){ if(m.dataset.ccm===CC.method) return;
@@ -8794,6 +8861,8 @@ async function openCostCalc(){
     if(e.target.id==='ccAddFixed'){ CC.fixed.push({name:'',amt:''}); renderCostCalc(); return; }
     if(e.target.id==='ccAddOpt'){ if(!CC.opts.length){ const p=ccProducts().find(x=>pKey(x)===CC.key); CC.opts.push({label:(p&&p.spec)||'기준',mult:1,key:CC.key}); CC.rows.forEach(r=>{ if(r.kind==='goods') r.var=true; }); } CC.opts.push({label:'',mult:'',key:''}); renderCostCalc(); return; }
     if(e.target.id==='ccSave'){ ccSave(); return; }
+    if(e.target.id==='ccStartNew'){ ccStartDraft($('#ccProd').value); return; }
+    if(e.target.id==='ccRegister'){ ccRegisterDraft(); return; }
     if(e.target.id==='ccConfirm'){ ccConfirm(); return; }
   });
   box.addEventListener('input',e=>{ const t=e.target, row=t.closest('[data-ri]');

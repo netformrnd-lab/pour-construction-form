@@ -820,8 +820,8 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 @media(max-width:640px){ #uiToast{bottom:calc(80px + env(safe-area-inset-bottom))} body.ui-modal #uiToast{bottom:calc(20px + env(safe-area-inset-bottom))} }
 
 /* ── 생산원가 계산기 ── */
-#costCalc .cc-meth{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-#costCalc .cc-meth button{padding:7px 4px;font-size:12px;white-space:nowrap}
+#costCalc .cc-meth{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+#costCalc .cc-meth button{padding:7px 4px;font-size:12px;line-height:1.3;white-space:normal;word-break:keep-all;border-radius:12px}
 #costCalc .cc-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:6px;padding:8px 10px;background:#F8FAFC;border-radius:10px;font-size:11.5px;color:var(--ink-soft)}
 #costCalc .cc-row input,#costCalc .cc-row select{border:1px solid #E2E8F0;border-radius:6px;padding:4px 6px;font-size:12.5px;background:#fff}
 #costCalc .cc-row label{display:flex;align-items:center;gap:3px}
@@ -830,6 +830,11 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 #costCalc .cc-nm{flex:1 1 150px;min-width:0;font-weight:700;color:#0F172A}
 #costCalc .cc-per{margin-left:auto;font-size:13px;color:#0F172A}
 #costCalc .cc-sm .cc-nm{font-weight:600}
+#costCalc .cc-row .cc-unit{width:60px!important;text-align:left!important;margin-left:2px;padding-left:6px!important;padding-right:4px!important}
+#costCalc .cc-row .cc-loss{width:48px!important}
+#costCalc .cc-row .cc-cur{padding:3px 2px;font-size:12px}
+#costCalc .cc-var{font-size:11px;color:#6D28D9}
+#costCalc .cc-okey{max-width:150px;font-size:12px}
 #costCalc .cc-stk{font-size:10.5px;font-weight:700;color:#0369A1;background:#E0F2FE;border-radius:8px;padding:1px 7px}
 @media(max-width:640px){ #costCalc .cc-row input,#costCalc .cc-row select{font-size:16px} #costCalc .cc-row label input{width:74px} }
 @media print{
@@ -890,7 +895,7 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24w</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24x</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -8583,36 +8588,47 @@ async function openPromoCalc(key, preset){
   }); };
   fold(); window.__uiFold=fold;
 })();
-/* ══════════ 생산원가 계산기 (ODM 라벨갈이 · OEM 레시피 · OEM+우리 원료) ══════════
-   개당 원가 = 개당 변동비 × (1 + 로스율) + 운송비 ÷ 수량   → '재생산 원가'(가격정책표 원가로 자동 반영)
-   첫 생산 원가 = 재생산 원가 + 고정비(디자인·동판·인증 등) ÷ 수량
-   · 부자재 줄은 여유분 %를 더하고, '이번 발주 수량'(MOQ)보다 덜 쓰면 남는 수량을 부자재 재고로 본다
-   · 부자재 재고(product-meta/materials)는 여러 제품이 같이 쓴다: 재고에서 쓰면(발주 0) 돈이 새로 나가지 않고, 원가는 등록 단가로 계산
-   · 저장: product-meta/cost-calc {map: pKey → 계산서 + history[누가·언제·원가 전→후]} */
-const CC_METHODS=[['odm','ODM 라벨갈이'],['oem','OEM 공장 레시피'],['oemsrc','OEM + 우리 원료']];
-const CC_KIND={goods:'매입·내용물', mat:'부자재', work:'작업비'};
-let CC={key:'', name:'', method:'oem', qty:1000, rows:[], trans:[], fixed:[], loss:2, spare:3, data:null, mats:null};
+/* ══════════ 생산원가 계산기 (모든 품목: 페인트·세제·옷·시트·휴지·칫솔 …) ══════════
+   항목 1줄 원가 = 단가(원 · 달러면 × 환율 × (1+관세)) × 1개당 사용량 × (1 + 로스)
+     · 로스: 항목에 적으면 그 값, 비우면 전체 로스율(부자재는 + 여유분)
+   재생산 원가 = Σ 항목 원가 + 운송비 ÷ 수량   → 가격정책표 원가로 자동 반영
+   첫 생산 원가 = 재생산 원가 + 고정비 ÷ 수량
+   옵션(사이즈·용량·색): '옵션따라' 체크한 항목의 사용량에 배수를 곱해 옵션마다 원가 — 연결한 제품의 원가도 함께 반영
+   부자재 재고(product-meta/materials): 생산 확정 때 발주−사용만큼 늘고 줄며, 다른 제품에서 같은 이름을 쓰면 단가·재고 자동
+   저장: product-meta/cost-calc {map: pKey → 계산서 + history[누가·언제·원가 전→후]} */
+const CC_METHODS=[['odm','완제품 매입(라벨갈이)'],['oem','위탁생산(공장 자재)'],['oemsrc','위탁생산(우리 자재 공급)']];
+const CC_KIND={goods:'원료·내용물·원단', mat:'부자재', work:'작업비'};
+const CC_UNITS=['개','장','매','L','ml','kg','g','m','m²','yd','롤','세트','박스','벌'];
+const R_=(name,kind,unit,use,loss,v)=>({name,kind,unit,use:use??1,price:'',cur:'KRW',loss:loss??'',var:!!v,order:''});
+const CC_TPL={
+  basic:{lb:'기본', rows:null},
+  paint:{lb:'페인트·도료', method:'oem', rows:[R_('내용물','goods','L',1,'',1),R_('캔·뚜껑','mat','개'),R_('라벨','mat','장'),R_('박스','mat','개'),R_('충진·포장비','work','개')]},
+  liquid:{lb:'세제·액상', method:'oemsrc', rows:[R_('원료 A (계면활성제 등)','goods','kg',0.3,'',1),R_('원료 B','goods','kg',0.1,'',1),R_('향료·첨가제','goods','kg',0.01,'',1),R_('용기','mat','개'),R_('펌프·캡','mat','개'),R_('라벨','mat','장'),R_('박스','mat','개'),R_('충진·포장비','work','개')]},
+  cloth:{lb:'의류', method:'oemsrc', rows:[R_('겉감 원단','goods','m',1.5,8,1),R_('안감','goods','m',0.8,8,1),R_('단추','mat','개',4),R_('지퍼','mat','개'),R_('케어라벨·택','mat','세트'),R_('폴리백','mat','장'),R_('재단·봉제 임가공비','work','벌'),R_('검품·포장비','work','벌')]},
+  sheet:{lb:'시트·원단(롤·재단)', method:'oem', rows:[R_('원단','goods','m²',1,10,1),R_('지관','mat','개'),R_('포장 필름','mat','장'),R_('라벨','mat','장'),R_('재단·권취 가공비','work','롤')]},
+  paper:{lb:'휴지·지류', method:'oem', rows:[R_('원지','goods','kg',0.8,3,1),R_('심지(지관)','mat','개'),R_('포장 필름','mat','장'),R_('박스','mat','개',0.1),R_('엠보·재단·포장 가공비','work','개')]},
+  molded:{lb:'칫솔·사출 생활잡화', method:'oem', rows:[R_('레진(수지)','goods','g',15,5,1),R_('모(칫솔모 등)','goods','g',1,5),R_('사출 임가공비','work','개'),R_('식모·조립비','work','개'),R_('블리스터·카드','mat','개'),R_('인쇄','work','개')]},
+  import:{lb:'수입 완제품', method:'odm', rows:[Object.assign(R_('완제품 매입가','goods','개'),{cur:'USD'}),R_('한글 라벨','mat','장'),R_('라벨 부착비','work','개')]},
+};
+let CC={key:'', method:'oem', tpl:'basic', qty:1000, rows:[], trans:[], fixed:[], opts:[], loss:2, spare:3, fx:1400, duty:8, data:null, mats:null};
 function ccDefault(method){
-  const R=(name,kind,unit,use)=>({name,kind,unit,use:use??1,price:'',order:''});
   let rows;
-  if(method==='odm') rows=[R('완제품 매입가','goods','개'),R('라벨','mat','장'),R('라벨 부착 작업비','work','개')];
-  else { rows=[R('내용물 (공장 레시피)','goods','L',1),R('용기·캡','mat','개'),R('라벨','mat','장'),R('박스·설명서','mat','개'),R('충진·포장 임가공비','work','개')];
-    if(method==='oemsrc') rows.splice(1,0,R('우리 원료(소스)','goods','kg',0.1)); }
+  if(method==='odm') rows=[R_('완제품 매입가','goods','개'),R_('라벨','mat','장'),R_('라벨 부착 작업비','work','개')];
+  else { rows=[R_('내용물·원료','goods','L',1,'',1),R_('용기·캡','mat','개'),R_('라벨','mat','장'),R_('박스·설명서','mat','개'),R_('충진·포장 임가공비','work','개')];
+    if(method==='oemsrc') rows.splice(1,0,R_('우리 원료(소스)','goods','kg',0.1,'',1)); }
   const trans=method==='odm'?[{name:'공장 → 창고 입고 운송',amt:''}]:[{name:'부자재 → 공장 운송',amt:''},{name:'공장 → 창고 입고 운송',amt:''}];
-  const fixed=[{name:'디자인비',amt:''},{name:'인쇄 동판·목형',amt:''},{name:'시험성적서·인증',amt:''},{name:'샘플비',amt:''}];
+  const fixed=[{name:'디자인비',amt:''},{name:'인쇄 동판·목형·금형',amt:''},{name:'시험성적서·인증',amt:''},{name:'샘플비',amt:''}];
   return {rows,trans,fixed};
 }
-function ccCalc(){
-  const qty=Math.max(1,+CC.qty||1), loss=(+CC.loss||0)/100, spare=(+CC.spare||0)/100;
-  let unitVar=0, cash=0; const left=[];
-  CC.rows.forEach(r=>{ const price=+r.price||0, use=+r.use||0, isMat=r.kind==='mat';
-    const per=price*use*(isMat?1+spare:1); unitVar+=per;
-    const need=use*qty*(isMat?1+spare:1);
-    if(isMat){ const ord=+r.order||0; cash+=ord*price; if(ord>0||need>0) left.push({name:r.name, order:ord, need, rest:ord-need, unit:r.unit}); }
-    else cash+=per*qty; });
+function ccRowLoss(r){ if(r.loss!==''&&r.loss!=null&&isFinite(+r.loss)) return (+r.loss)/100; const L=(+CC.loss||0)/100, S=(+CC.spare||0)/100; return r.kind==='mat'?(1+L)*(1+S)-1:L; }
+function ccUnitPrice(r){ const p=+r.price||0; return r.cur==='USD'?p*(+CC.fx||0)*(1+(+CC.duty||0)/100):p; }
+function ccCalc(mult){
+  const m=mult??1, qty=Math.max(1,+CC.qty||1); let unitVar=0, cash=0; const left=[], per=[];
+  CC.rows.forEach(r=>{ const use=(+r.use||0)*(r.var?m:1), up=ccUnitPrice(r), L=ccRowLoss(r), c=up*use*(1+L); per.push(c); unitVar+=c;
+    const need=use*qty*(1+L);
+    if(r.kind==='mat'){ const ord=+r.order||0; cash+=ord*up; if(ord>0||need>0) left.push({name:r.name, order:ord, need, rest:ord-need}); } else cash+=c*qty; });
   const trans=CC.trans.reduce((a,t)=>a+(+t.amt||0),0), fixed=CC.fixed.reduce((a,t)=>a+(+t.amt||0),0);
-  const repeat=unitVar*(1+loss)+trans/qty, first=repeat+fixed/qty;
-  return {qty,unitVar,repeat,first,trans,fixed,cash:cash+trans+fixed,left};
+  const repeat=unitVar+trans/qty; return {qty,unitVar,repeat,first:repeat+fixed/qty,trans,fixed,cash:cash+trans+fixed,left,per};
 }
 function ccProducts(){ return P.filter(p=>!isDeletedProd(p)); }
 async function ccLoad(){
@@ -8622,19 +8638,22 @@ async function ccLoad(){
   try{ const d=await db.collection('product-meta').doc('materials').get(); CC.mats=(d.exists&&Array.isArray(d.data().list))?d.data().list:[]; console.log(`[materials] 부자재 ${CC.mats.length}종`); }
   catch(e){ console.error('[materials] 불러오기 실패',e); CC.mats=[]; }
 }
+function ccFillFromMats(){ (CC.rows||[]).forEach(r=>{ if(r.kind!=='mat'||(+r.price>0)) return; const m=(CC.mats||[]).find(x=>x.name===String(r.name||'').trim()); if(m){ r.price=m.price; r.unit=m.unit||r.unit; } }); }
+function ccSiblings(key){ const p=ccProducts().find(x=>pKey(x)===key); if(!p) return []; return ccProducts().filter(x=>x.name===p.name&&x.cat===p.cat&&pKey(x)!==key); }
 function ccSetProduct(key){
-  CC.key=key; const saved=(CC.data||{})[key];
-  if(saved){ Object.assign(CC,{method:saved.method||'oem',qty:saved.qty||1000,rows:JSON.parse(JSON.stringify(saved.rows||[])),trans:JSON.parse(JSON.stringify(saved.trans||[])),fixed:JSON.parse(JSON.stringify(saved.fixed||[])),loss:saved.loss??2,spare:saved.spare??3}); }
-  else { const d=ccDefault(CC.method); CC.rows=d.rows; CC.trans=d.trans; CC.fixed=d.fixed; ccFillFromMats(); }
+  CC.key=key; const s=(CC.data||{})[key], J=x=>JSON.parse(JSON.stringify(x||[]));
+  if(s){ Object.assign(CC,{method:s.method||'oem',tpl:s.tpl||'basic',qty:s.qty||1000,rows:J(s.rows).map(r=>({cur:'KRW',loss:'',var:false,...r})),trans:J(s.trans),fixed:J(s.fixed),opts:J(s.opts),loss:s.loss??2,spare:s.spare??3,fx:s.fx??1400,duty:s.duty??8}); }
+  else { const d=ccDefault(CC.method); CC.tpl='basic'; CC.rows=d.rows; CC.trans=d.trans; CC.fixed=d.fixed; CC.opts=[]; ccFillFromMats(); }
+  if(!CC.opts.length){ const sib=ccSiblings(key); if(sib.length){ const p=ccProducts().find(x=>pKey(x)===key); CC.opts=[{label:(p&&p.spec)||'기준',mult:1,key}, ...sib.map(x=>({label:x.spec||x.name,mult:'',key:pKey(x)}))]; } }
 }
-/* 부자재 재고에 같은 이름이 있으면 단가를 채운다(다른 제품에서 남은 부자재를 쓰는 경우) */
-function ccFillFromMats(){ (CC.rows||[]).forEach(r=>{ if(r.kind!=='mat'||(+r.price>0)) return; const m=(CC.mats||[]).find(x=>x.name===String(r.name||'').trim()); if(m){ r.price=m.price; r.unit=m.unit||r.unit; r.fromStock=true; } }); }
-function ccRowHtml(r,i){
+function ccRowHtml(r,i,c){
   return `<div class="cc-row" data-ri="${i}">
     <input class="cc-nm" data-rf="name" value="${esc(r.name)}" list="ccMatList" placeholder="항목">
     <select data-rf="kind">${Object.entries(CC_KIND).map(([k,l])=>`<option value="${k}"${k===r.kind?' selected':''}>${l}</option>`).join('')}</select>
-    <label>단가<input type="number" data-rf="price" value="${esc(r.price)}" placeholder="0"></label>
-    <label>1개당<input type="number" step="0.01" data-rf="use" value="${esc(r.use)}"><em>${esc(r.unit||'')}</em></label>
+    <label>단가<select data-rf="cur" class="cc-cur"><option value="KRW"${r.cur!=='USD'?' selected':''}>₩</option><option value="USD"${r.cur==='USD'?' selected':''}>$</option></select><input type="number" data-rf="price" value="${esc(r.price)}" placeholder="0" step="any"></label>
+    <label>1개당<input type="number" step="any" data-rf="use" value="${esc(r.use)}"><input class="cc-unit" data-rf="unit" value="${esc(r.unit||'')}" list="ccUnitList"></label>
+    <label>로스<input type="number" step="0.5" data-rf="loss" value="${esc(r.loss)}" placeholder="${Math.round(ccRowLoss({...r,loss:''})*1000)/10}" class="cc-loss">%</label>
+    ${CC.opts.length?`<label class="cc-var" title="옵션(사이즈·용량)에 따라 사용량이 달라지는 항목"><input type="checkbox" data-rf="var"${r.var?' checked':''}>옵션따라</label>`:''}
     ${r.kind==='mat'?`<label>이번 발주<input type="number" data-rf="order" value="${esc(r.order)}" placeholder="0=재고사용"></label>`:''}
     ${r.kind==='mat'?(()=>{ const m=(CC.mats||[]).find(x=>x.name===String(r.name||'').trim()); return m?`<span class="cc-stk" title="부자재 재고">재고 ${won(m.stock||0)}</span>`:''; })():''}
     <b class="cc-per" id="ccPer${i}"></b>
@@ -8646,96 +8665,130 @@ function renderCostCalc(){
   $('#ccMatList').innerHTML=(CC.mats||[]).map(m=>`<option value="${esc(m.name)}">${esc(m.name)} · ${won(m.price)}원/${esc(m.unit||'')} · 재고 ${won(m.stock||0)}</option>`).join('');
   $('#ccMethod').innerHTML=CC_METHODS.map(([k,l])=>`<button data-ccm="${k}" class="${k===CC.method?'on':''}">${l}</button>`).join('');
   if(!CC.key){ box.innerHTML='<div class="qc-empty">제품 선택 → 원가 계산 (저장하면 가격정책표 원가에 자동 반영)</div>'; $('#ccHist').innerHTML=''; return; }
+  const hasUsd=CC.rows.some(r=>r.cur==='USD');
   box.innerHTML=`
-    <div class="qc-in"><label class="qc-f"><span>생산 수량 (개)</span><input type="number" id="ccQty" value="${esc(CC.qty)}"></label>
-      <label class="qc-f"><span>로스율 % · 부자재 여유 %</span><div style="display:flex;gap:6px"><input type="number" id="ccLoss" value="${esc(CC.loss)}" step="0.5"><input type="number" id="ccSpare" value="${esc(CC.spare)}" step="0.5"></div></label></div>
-    <div class="qc-st" style="margin-top:12px">개당 드는 돈 <em>원료·부자재·작업비 (VAT 제외)</em></div>
-    ${CC.rows.map(ccRowHtml).join('')}
+    <label class="qc-f" style="margin-top:10px"><span>품목 템플릿 <em>(고르면 그 품목의 기본 항목으로)</em></span><select id="ccTpl">${Object.entries(CC_TPL).map(([k,t])=>`<option value="${k}"${k===CC.tpl?' selected':''}>${t.lb}</option>`).join('')}</select></label>
+    <div class="qc-in" style="margin-top:10px"><label class="qc-f"><span>생산 수량 (개)</span><input type="number" id="ccQty" value="${esc(CC.qty)}"></label>
+      <label class="qc-f"><span>전체 로스 % · 부자재 여유 %</span><div style="display:flex;gap:6px"><input type="number" id="ccLoss" value="${esc(CC.loss)}" step="0.5"><input type="number" id="ccSpare" value="${esc(CC.spare)}" step="0.5"></div></label></div>
+    ${hasUsd?`<div class="qc-in" style="margin-top:8px"><label class="qc-f"><span>환율 (원/$)</span><input type="number" id="ccFx" value="${esc(CC.fx)}"></label><label class="qc-f"><span>관세 %</span><input type="number" id="ccDuty" value="${esc(CC.duty)}" step="0.5"></label></div>`:''}
+    <div class="qc-st" style="margin-top:12px">개당 드는 돈 <em>VAT 제외 · 로스 비우면 전체값</em></div>
+    ${CC.rows.map((r,i)=>ccRowHtml(r,i)).join('')}
     <button class="tbtn" id="ccAddRow" style="margin-top:6px">＋ 항목 추가</button>
-    <div class="qc-st" style="margin-top:14px">운송비 <em>이번 생산 총액</em></div>
-    ${CC.trans.map((t,i)=>`<div class="cc-row cc-sm"><input class="cc-nm" data-tf="name" data-ti="${i}" value="${esc(t.name)}"><label>총액<input type="number" data-tf="amt" data-ti="${i}" value="${esc(t.amt)}" placeholder="0"></label></div>`).join('')}
+    <div class="qc-st" style="margin-top:14px">운송·통관 등 <em>이번 생산 총액</em></div>
+    ${CC.trans.map((t,i)=>`<div class="cc-row cc-sm"><input class="cc-nm" data-tf="name" data-ti="${i}" value="${esc(t.name)}"><label>총액<input type="number" data-tf="amt" data-ti="${i}" value="${esc(t.amt)}" placeholder="0"></label><button class="pm-x" data-trm="${i}">✕</button></div>`).join('')}
+    <button class="tbtn" id="ccAddTrans" style="margin-top:6px">＋ 운송·통관 추가</button>
     <div class="qc-st" style="margin-top:14px">한 번만 드는 돈 <em>고정비 총액 · 첫 생산에만</em></div>
-    ${CC.fixed.map((t,i)=>`<div class="cc-row cc-sm"><input class="cc-nm" data-xf="name" data-xi="${i}" value="${esc(t.name)}"><label>총액<input type="number" data-xf="amt" data-xi="${i}" value="${esc(t.amt)}" placeholder="0"></label></div>`).join('')}
+    ${CC.fixed.map((t,i)=>`<div class="cc-row cc-sm"><input class="cc-nm" data-xf="name" data-xi="${i}" value="${esc(t.name)}"><label>총액<input type="number" data-xf="amt" data-xi="${i}" value="${esc(t.amt)}" placeholder="0"></label><button class="pm-x" data-xrm="${i}">✕</button></div>`).join('')}
+    <button class="tbtn" id="ccAddFixed" style="margin-top:6px">＋ 고정비 추가</button>
+    <div class="qc-st" style="margin-top:14px">옵션별 원가 <em>사이즈·용량·색 — '옵션따라' 항목 사용량 × 배수</em></div>
+    ${CC.opts.map((o,i)=>`<div class="cc-row cc-sm"><input class="cc-nm" data-of="label" data-oi="${i}" value="${esc(o.label)}" placeholder="옵션 (예: L)"><label>배수<input type="number" step="0.01" data-of="mult" data-oi="${i}" value="${esc(o.mult)}" placeholder="1"></label>
+      <select data-of="key" data-oi="${i}" class="cc-okey"><option value="">연결 제품 없음</option>${[CC.key,...ccSiblings(CC.key).map(pKey)].map(k=>{ const p=ccProducts().find(x=>pKey(x)===k); return `<option value="${esc(k)}"${k===o.key?' selected':''}>${esc(p?prodLabel(p):k)}</option>`; }).join('')}</select>
+      <b class="cc-per" id="ccOpt${i}"></b><button class="pm-x" data-orm="${i}">✕</button></div>`).join('')}
+    <button class="tbtn" id="ccAddOpt" style="margin-top:6px">＋ 옵션 추가</button>
     <div id="ccOut"></div>`;
   ccRefresh(); ccRenderHist();
 }
 function ccRefresh(){
-  const r=ccCalc(), qty=r.qty, spare=(+CC.spare||0)/100;
-  CC.rows.forEach((x,i)=>{ const el=$('#ccPer'+i); if(el) el.textContent=qcW((+x.price||0)*(+x.use||0)*(x.kind==='mat'?1+spare:1)); });
+  const r=ccCalc(1), qty=r.qty;
+  r.per.forEach((c,i)=>{ const el=$('#ccPer'+i); if(el) el.textContent=qcW(c); });
+  CC.opts.forEach((o,i)=>{ const el=$('#ccOpt'+i); if(el){ const x=ccCalc(+o.mult||1); el.textContent=`재생산 ${qcW(x.repeat)}`; } });
   const out=$('#ccOut'); if(!out) return;
   const p=ccProducts().find(x=>pKey(x)===CC.key), cur=p&&p.cost>0?p.cost:null;
   out.innerHTML=`<div class="qc-grid" style="margin-top:14px">
-      <div class="qc-hl"><span>재생산 원가 / 개 <em>가격정책표 원가로 반영</em></span><b>${qcW(r.repeat)}</b><small>변동비 ${qcW(r.unitVar)} × 로스 ${CC.loss||0}% + 운송 ${qcW(r.trans/qty)}${cur!=null?` · 지금 원가 ${qcW(cur)}`:''}</small></div>
+      <div class="qc-hl"><span>재생산 원가 / 개 <em>가격정책표 원가로 반영</em></span><b>${qcW(r.repeat)}</b><small>항목 합 ${qcW(r.unitVar)} + 운송·통관 ${qcW(r.trans/qty)}${cur!=null?` · 지금 원가 ${qcW(cur)}`:''}</small></div>
       <div><span>첫 생산 원가 / 개</span><b>${qcW(r.first)}</b><small>+ 고정비 ${qcW(r.fixed/qty)} (${qcT(r.fixed)} ÷ ${won(qty)}개)</small></div>
       <div><span>이번 생산 투입 자금</span><b>${qcT(r.cash)}</b><small>부자재 발주 수량 기준 · 재고 사용분 제외</small></div>
     </div>
-    ${r.left.length?`<div class="qc-cmp"><div class="qc-st2">부자재 남는 수량 <em>발주 − 사용(여유분 포함)</em></div><table><thead><tr><th>부자재</th><th>발주</th><th>사용</th><th>남음</th></tr></thead><tbody>${r.left.map(l=>`<tr><td>${esc(l.name)}</td><td>${won(l.order)}</td><td>${won(Math.ceil(l.need))}</td><td class="${l.rest<0?'neg':''}">${l.rest<0?'재고에서 '+won(Math.ceil(-l.rest)):won(Math.floor(l.rest))}</td></tr>`).join('')}</tbody></table></div>`:''}`;
+    ${r.left.length?`<div class="qc-cmp"><div class="qc-st2">부자재 남는 수량 <em>발주 − 사용(로스 포함)</em></div><table><thead><tr><th>부자재</th><th>발주</th><th>사용</th><th>남음</th></tr></thead><tbody>${r.left.map(l=>`<tr><td>${esc(l.name)}</td><td>${won(l.order)}</td><td>${won(Math.ceil(l.need))}</td><td class="${l.rest<0?'neg':''}">${l.rest<0?'재고에서 '+won(Math.ceil(-l.rest)):won(Math.floor(l.rest))}</td></tr>`).join('')}</tbody></table></div>`:''}`;
 }
 function ccRenderHist(){
-  const el=$('#ccHist'); if(!el) return; const s=(CC.data||{})[CC.key];
-  const h=(s&&s.history)||[];
+  const el=$('#ccHist'); if(!el) return; const s=(CC.data||{})[CC.key], h=(s&&s.history)||[];
   el.innerHTML=h.length?`<details><summary>변경 이력 ${h.length}건</summary>${h.slice().reverse().map(x=>`<div class="qc-kv qc-sub"><span>${esc(String(x.at||'').slice(0,16).replace('T',' '))} · ${esc(String(x.by||'').split('@')[0])}</span><b>${x.prev!=null?qcW(x.prev)+' → ':''}${qcW(x.cost)}${x.note?' · '+esc(x.note):''}</b></div>`).join('')}</details>`:'';
+}
+async function ccApplyCost(key,cost){
+  const p=ccProducts().find(x=>pKey(x)===key); if(!p||isPackage(p)||!(cost>0)) return null;
+  const prev=p.cost>0?p.cost:null; if(prev===cost) return prev;
+  PCOST[key]=cost; p.cost=cost;
+  if(LPLAN[key]){ LPLAN[key].cost=cost; db.collection('product-meta').doc('launch-plans').set({map:{[key]:{cost}}},{merge:true}).catch(e=>console.warn('[launch-plans] 원가 반영 실패',e)); }
+  return prev;
 }
 async function ccSave(note){
   const p=ccProducts().find(x=>pKey(x)===CC.key); if(!p){ uiToast('제품을 먼저 고르세요','err'); return false; }
-  const r=ccCalc(), now=new Date().toISOString(), by=(curUser&&curUser.email)||'', cost=Math.round(r.repeat);
+  const base=ccCalc(1), now=new Date().toISOString(), by=(curUser&&curUser.email)||'', cost=Math.round(base.repeat);
   const prevRec=(CC.data||{})[CC.key], prevCost=p.cost>0?p.cost:null;
-  const rec={method:CC.method, qty:+CC.qty||0, rows:CC.rows, trans:CC.trans, fixed:CC.fixed, loss:+CC.loss||0, spare:+CC.spare||0,
-    result:{repeat:cost, first:Math.round(r.first), cash:Math.round(r.cash)}, prod:prodLabel(p), updatedAt:now, updatedBy:by,
+  // 옵션별 원가 (연결한 제품이 있으면 그 제품 원가도 반영)
+  const optRes=CC.opts.map(o=>({label:o.label, mult:+o.mult||1, key:o.key||'', cost:Math.round(ccCalc(+o.mult||1).repeat)}));
+  const rec={method:CC.method, tpl:CC.tpl, qty:+CC.qty||0, rows:CC.rows, trans:CC.trans, fixed:CC.fixed, opts:CC.opts, loss:+CC.loss||0, spare:+CC.spare||0, fx:+CC.fx||0, duty:+CC.duty||0,
+    result:{repeat:cost, first:Math.round(base.first), cash:Math.round(base.cash), opts:optRes}, prod:prodLabel(p), updatedAt:now, updatedBy:by,
     history:[...((prevRec&&prevRec.history)||[]), {at:now, by, cost, prev:prevCost, note:note||(prevRec?'수정':'처음 계산')}].slice(-50)};
   try{
     await db.collection('product-meta').doc('cost-calc').set({map:{[CC.key]:rec}},{merge:true});
     CC.data[CC.key]=rec;
-    // 가격정책표 원가 자동 반영(재생산 원가) — 세트는 구성품 합이라 제외
-    if(!isPackage(p) && cost>0 && cost!==prevCost){ PCOST[CC.key]=cost; p.cost=cost; await saveProdCost();
-      if(LPLAN[CC.key]){ LPLAN[CC.key].cost=cost; await db.collection('product-meta').doc('launch-plans').set({map:{[CC.key]:{cost}}},{merge:true}).catch(e=>console.warn('[launch-plans] 원가 반영 실패',e)); }
-      recalcVendor(); refreshAll(); }
-    logAct('생산원가', prodLabel(p), `${prevCost!=null?won(prevCost)+' → ':''}${won(cost)}원`);
-    uiToast(`원가 ${qcW(cost)} 저장·가격정책표 반영됨`,'ok'); ccRenderHist(); ccRefresh(); return true;
+    const main=optRes.find(o=>o.key===CC.key), applied=[];
+    await ccApplyCost(CC.key, main?main.cost:cost); applied.push(prodLabel(p));
+    for(const o of optRes){ if(o.key&&o.key!==CC.key){ const prev=await ccApplyCost(o.key,o.cost); const op=ccProducts().find(x=>pKey(x)===o.key); if(op){ applied.push(prodLabel(op)); logAct('생산원가', prodLabel(op), `${prev!=null?won(prev)+' → ':''}${won(o.cost)}원 (옵션)`); } } }
+    await saveProdCost(); recalcVendor(); refreshAll();
+    logAct('생산원가', prodLabel(p), `${prevCost!=null?won(prevCost)+' → ':''}${won(main?main.cost:cost)}원`);
+    uiToast(`원가 저장·가격정책표 반영됨 (${applied.length}개 제품)`,'ok'); ccRenderHist(); ccRefresh(); return true;
   }catch(e){ console.error('[cost-calc] 저장 실패',e); uiToast('생산원가 저장 실패: '+(e.code||e.message||e),'err'); return false; }
 }
-/* 생산 확정: 부자재 재고 = 기존 + 이번 발주 − 이번 사용(여유분 포함). 재고 목록에 없던 부자재는 새로 만든다 */
 async function ccConfirm(){
-  const r=ccCalc(); if(!r.left.length){ uiToast('부자재 줄이 없습니다','info'); return; }
+  const r=ccCalc(1); if(!r.left.length){ uiToast('부자재 줄이 없습니다','info'); return; }
   if(!confirm(`생산 ${won(r.qty)}개를 확정하고 부자재 재고를 반영할까요?\n\n${r.left.map(l=>`· ${l.name}: ${l.rest>=0?'+'+won(Math.floor(l.rest)):'−'+won(Math.ceil(-l.rest))}`).join('\n')}`)) return;
   await ccLoad(); const mats=JSON.parse(JSON.stringify(CC.mats||[])), now=new Date().toISOString();
   CC.rows.filter(x=>x.kind==='mat').forEach(x=>{ const l=r.left.find(y=>y.name===x.name); if(!l) return;
-    let m=mats.find(y=>y.name===x.name); if(!m){ m={id:'m'+Date.now().toString(36)+mats.length, name:x.name, unit:x.unit||'개', price:+x.price||0, stock:0}; mats.push(m); }
-    m.stock=Math.max(0,Math.round((+m.stock||0)+l.rest)); if(+x.order>0&&+x.price>0) m.price=+x.price; m.updatedAt=now; });
+    let m=mats.find(y=>y.name===x.name); if(!m){ m={id:'m'+Date.now().toString(36)+mats.length, name:x.name, unit:x.unit||'개', price:Math.round(ccUnitPrice(x)), stock:0}; mats.push(m); }
+    m.stock=Math.max(0,Math.round((+m.stock||0)+l.rest)); if(+x.order>0&&+x.price>0) m.price=Math.round(ccUnitPrice(x)); m.updatedAt=now; });
   try{ await db.collection('product-meta').doc('materials').set({list:mats, updatedAt:now, updatedBy:(curUser&&curUser.email)||''});
     CC.mats=mats; await ccSave(`생산 확정 ${won(r.qty)}개`); uiToast('부자재 재고 반영됨','ok'); renderCostCalc(); }
   catch(e){ console.error('[materials] 저장 실패',e); uiToast('부자재 재고 저장 실패: '+(e.code||e.message||e),'err'); }
 }
 async function openCostCalc(){
   document.querySelectorAll('#calcPanel,#promoCalc,#costCalc').forEach(x=>x.classList.remove('open')); $('#calcMenu').classList.remove('open');
-  $('#costCalc').classList.add('open'); await ccLoad(); renderCostCalc();
+  $('#costCalc').classList.add('open'); await ccLoad();
+  if(!$('#ccUnitList')){ const dl=document.createElement('datalist'); dl.id='ccUnitList'; dl.innerHTML=CC_UNITS.map(u=>`<option value="${u}">`).join(''); document.body.appendChild(dl); }
+  renderCostCalc();
 }
 (function bindCostCalc(){
   const box=$('#costCalc'); if(!box) return;
   $('#ccClose').addEventListener('click',()=>box.classList.remove('open'));
-  $('#ccProd').addEventListener('change',e=>{ const p=ccProducts().find(x=>prodLabel(x)===e.target.value.trim()); if(p){ ccSetProduct(pKey(p)); renderCostCalc(); } });
+  $('#ccProd').addEventListener('change',e=>{ const p=ccProducts().find(x=>prodLabel(x)===e.target.value.trim()); if(p&&pKey(p)!==CC.key){ ccSetProduct(pKey(p)); renderCostCalc(); } });
+  const filled=()=>CC.rows.some(r=>+r.price>0);
   box.addEventListener('click',e=>{
     const m=e.target.closest('[data-ccm]'); if(m){ if(m.dataset.ccm===CC.method) return;
-      if(CC.rows.some(r=>+r.price>0) && !confirm('생산 방식을 바꾸면 항목이 그 방식의 기본 항목으로 바뀝니다. 계속할까요?')) return;
-      CC.method=m.dataset.ccm; const d=ccDefault(CC.method); CC.rows=d.rows; CC.trans=d.trans; if(!CC.fixed.some(x=>+x.amt>0)) CC.fixed=d.fixed; renderCostCalc(); return; }
+      if(CC.tpl==='basic'){ if(filled() && !confirm('생산 방식을 바꾸면 항목이 그 방식의 기본 항목으로 바뀝니다. 계속할까요?')) return;
+        CC.method=m.dataset.ccm; const d=ccDefault(CC.method); CC.rows=d.rows; CC.trans=d.trans; if(!CC.fixed.some(x=>+x.amt>0)) CC.fixed=d.fixed; ccFillFromMats(); }
+      else CC.method=m.dataset.ccm;
+      renderCostCalc(); return; }
     const rm=e.target.closest('[data-rrm]'); if(rm){ CC.rows.splice(+rm.dataset.rrm,1); renderCostCalc(); return; }
-    if(e.target.id==='ccAddRow'){ CC.rows.push({name:'',kind:'mat',unit:'개',use:1,price:'',order:''}); renderCostCalc(); return; }
+    const trm=e.target.closest('[data-trm]'); if(trm){ CC.trans.splice(+trm.dataset.trm,1); renderCostCalc(); return; }
+    const xrm=e.target.closest('[data-xrm]'); if(xrm){ CC.fixed.splice(+xrm.dataset.xrm,1); renderCostCalc(); return; }
+    const orm=e.target.closest('[data-orm]'); if(orm){ CC.opts.splice(+orm.dataset.orm,1); renderCostCalc(); return; }
+    if(e.target.id==='ccAddRow'){ CC.rows.push(R_('','mat','개')); renderCostCalc(); return; }
+    if(e.target.id==='ccAddTrans'){ CC.trans.push({name:'',amt:''}); renderCostCalc(); return; }
+    if(e.target.id==='ccAddFixed'){ CC.fixed.push({name:'',amt:''}); renderCostCalc(); return; }
+    if(e.target.id==='ccAddOpt'){ if(!CC.opts.length){ const p=ccProducts().find(x=>pKey(x)===CC.key); CC.opts.push({label:(p&&p.spec)||'기준',mult:1,key:CC.key}); CC.rows.forEach(r=>{ if(r.kind==='goods') r.var=true; }); } CC.opts.push({label:'',mult:'',key:''}); renderCostCalc(); return; }
     if(e.target.id==='ccSave'){ ccSave(); return; }
     if(e.target.id==='ccConfirm'){ ccConfirm(); return; }
   });
-  box.addEventListener('input',e=>{ const t=e.target;
-    const row=t.closest('[data-ri]');
-    if(row&&t.dataset.rf){ const r=CC.rows[+row.dataset.ri]; if(!r) return; r[t.dataset.rf]=t.value;
-      if(t.dataset.rf==='name'){ const mat=(CC.mats||[]).find(x=>x.name===t.value.trim()); if(mat){ r.kind='mat'; r.price=mat.price; r.unit=mat.unit||r.unit; r.fromStock=true; renderCostCalc(); const el=$(`#costCalc [data-ri="${row.dataset.ri}"] [data-rf="name"]`); if(el){ el.focus(); } uiToast(`부자재 재고에서: ${mat.name} ${won(mat.price)}원 · 재고 ${won(mat.stock||0)}`,'info'); return; } }
-      if(t.dataset.rf==='kind'){ renderCostCalc(); return; }
+  box.addEventListener('input',e=>{ const t=e.target, row=t.closest('[data-ri]');
+    if(row&&t.dataset.rf){ const r=CC.rows[+row.dataset.ri]; if(!r) return;
+      r[t.dataset.rf]= t.type==='checkbox' ? t.checked : t.value;
+      if(t.dataset.rf==='name'){ const mat=(CC.mats||[]).find(x=>x.name===t.value.trim()); if(mat){ r.kind='mat'; r.price=mat.price; r.cur='KRW'; r.unit=mat.unit||r.unit; renderCostCalc(); uiToast(`부자재 재고에서: ${mat.name} ${won(mat.price)}원 · 재고 ${won(mat.stock||0)}`,'info'); return; } }
+      if(t.dataset.rf==='kind'||t.dataset.rf==='cur'){ renderCostCalc(); return; }
       ccRefresh(); return; }
     if(t.dataset.tf){ CC.trans[+t.dataset.ti][t.dataset.tf]=t.value; ccRefresh(); return; }
     if(t.dataset.xf){ CC.fixed[+t.dataset.xi][t.dataset.xf]=t.value; ccRefresh(); return; }
-    if(t.id==='ccQty'){ CC.qty=t.value; ccRefresh(); return; }
-    if(t.id==='ccLoss'){ CC.loss=t.value; ccRefresh(); return; }
-    if(t.id==='ccSpare'){ CC.spare=t.value; ccRefresh(); return; }
+    if(t.dataset.of){ CC.opts[+t.dataset.oi][t.dataset.of]=t.value; ccRefresh(); return; }
+    const map={ccQty:'qty',ccLoss:'loss',ccSpare:'spare',ccFx:'fx',ccDuty:'duty'}; if(map[t.id]){ CC[map[t.id]]=t.value; if(t.id==='ccLoss'||t.id==='ccSpare') renderCostCalc(); else ccRefresh(); return; }
   });
-  box.addEventListener('change',e=>{ if(e.target.dataset&&e.target.dataset.rf==='kind') renderCostCalc(); });
+  box.addEventListener('change',e=>{ const t=e.target;
+    if(t.id==='ccTpl'){ const T=CC_TPL[t.value]; if(!T) return; if(filled() && !confirm(`'${T.lb}' 템플릿의 기본 항목으로 바꿀까요? 지금 입력한 항목은 사라집니다.`)){ t.value=CC.tpl; return; }
+      CC.tpl=t.value; if(T.method) CC.method=T.method; const d=ccDefault(CC.method); CC.rows=T.rows?JSON.parse(JSON.stringify(T.rows)):d.rows; CC.trans=d.trans;
+      if(t.value==='import') CC.trans=[{name:'해외 운송(항공·해상)',amt:''},{name:'통관·검역비',amt:''},{name:'국내 입고 운송',amt:''}];
+      ccFillFromMats(); renderCostCalc(); return; }
+    if(t.dataset&&(t.dataset.rf==='kind'||t.dataset.rf==='cur')) renderCostCalc();
+  });
 })();
 function refreshAll(){
   recalcVendor();

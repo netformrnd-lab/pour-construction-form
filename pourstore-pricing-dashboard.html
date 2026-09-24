@@ -339,102 +339,102 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
 }
 #calcFab:hover{transform:translateY(-2px)}
 #calcFab .sym{font-family:var(--mono);font-size:16px;font-style:italic}
-#calcPanel{
+:is(#calcPanel,#promoCalc){
   position:fixed;right:20px;bottom:104px;z-index:100;width:400px;max-width:calc(100vw - 32px);
   background:#fff;border:1px solid var(--xl-grid);border-radius:8px;
   box-shadow:0 18px 48px rgba(31,39,51,.28);display:none;overflow:hidden;
   max-height:calc(100vh - 140px);overflow-y:auto;
 }
-#calcPanel.open{display:block}
-#calcPanel .hd{
+:is(#calcPanel,#promoCalc).open{display:block}
+:is(#calcPanel,#promoCalc) .hd{
   background:var(--xl-green);color:#fff;padding:11px 14px;font-weight:700;font-size:13.5px;
   display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:2;
 }
-#calcPanel .hd button{background:transparent;border:0;color:#fff;font-size:16px}
-#calcPanel .bd{padding:14px 16px}
-#calcPanel .qc-in{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-#calcPanel .qc-in3{grid-template-columns:1fr 1fr 1fr;margin-top:10px}
-#calcPanel .qc-wide{grid-column:1/-1}
-#calcPanel .qc-f{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--ink-soft);font-weight:600}
-#calcPanel .qc-f em{font-style:normal;font-weight:400;color:var(--ink-faint)}
-#calcPanel .qc-f input,#calcPanel .qc-f select{border:1px solid #E2E8F0;border-radius:8px;padding:9px 10px;font-size:14px;width:100%;background:#fff;font-variant-numeric:tabular-nums}
-#calcPanel .qc-empty{margin-top:14px;padding:14px;border-radius:12px;background:#F8FAFC;color:var(--ink-soft);font-size:12.5px;text-align:center}
-#calcPanel .qc-hero{margin-top:14px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#ECFDF3,#E3F2E8)}
-#calcPanel .qc-lb{font-size:12px;color:#0B5C30;font-weight:700}
-#calcPanel .qc-lb em{font-style:normal;font-weight:500;opacity:.75;margin-left:4px}
-#calcPanel .qc-price{display:flex;align-items:baseline;gap:4px;margin-top:4px}
-#calcPanel .qc-price input{border:0;border-bottom:2px dashed rgba(11,92,48,.35);background:transparent;font-size:28px;font-weight:800;color:#0B5C30;width:170px;padding:0;font-variant-numeric:tabular-nums}
-#calcPanel .qc-price input:focus{outline:0;border-bottom-color:#0B5C30}
-#calcPanel .qc-price span{font-size:15px;font-weight:700;color:#0B5C30}
-#calcPanel .qc-cur{font-size:11.5px;color:var(--ink-soft);margin-top:6px}
-#calcPanel .qc-link{border:0;background:none;color:var(--blue);font-size:11.5px;text-decoration:underline;padding:0 0 0 6px}
-#calcPanel .qc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-#calcPanel .qc-grid>div{background:#F8FAFC;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
-#calcPanel .qc-grid>div>span{font-size:11px;color:var(--ink-soft);font-weight:600}
-#calcPanel .qc-grid>div>span em{font-style:normal;font-weight:400;color:var(--ink-faint)}
-#calcPanel .qc-grid b{font-size:17px;font-variant-numeric:tabular-nums}
-#calcPanel .qc-grid small{font-size:10.5px;color:var(--ink-faint);line-height:1.45}
-#calcPanel .qc-grid small b{font-size:10.5px}
-#calcPanel .qc-grid .qc-hl{grid-column:1/-1;background:#EFF6FF}
-#calcPanel .qc-grid .qc-hl b{font-size:22px;color:#1E40AF}
-#calcPanel .pos{color:var(--xl-green-dark)} #calcPanel .neg{color:var(--red)}
-#calcPanel .qc-sec{margin-top:16px;padding-top:14px;border-top:1px solid #EEF0F3}
-#calcPanel .qc-st{font-size:13px;font-weight:800}
-#calcPanel .qc-st em{font-style:normal;font-weight:500;font-size:11.5px;color:var(--ink-faint);margin-left:4px}
-#calcPanel .qc-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-#calcPanel .qc-chips button{border:1px solid #E2E8F0;background:#fff;border-radius:20px;padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
-#calcPanel .qc-chips button.on{background:var(--xl-green);border-color:var(--xl-green);color:#fff}
-#calcPanel .qc-adv{margin-top:16px;border-top:1px solid #EEF0F3;padding-top:12px}
-#calcPanel .qc-adv summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
-#calcPanel .qc-adv summary span{display:block;font-weight:400;font-size:11px;color:var(--ink-faint);margin-top:3px}
-#calcPanel .qc-hero .qc-chips{margin:0 0 8px}
-#calcPanel .qc-mu{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
-#calcPanel .qc-chs{display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
-#calcPanel .qc-stg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-#calcPanel .qc-stg button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 4px;border-radius:12px}
-#calcPanel .qc-stg button em{font-style:normal;font-weight:500;font-size:10.5px;opacity:.8}
-#calcPanel .qc-stset{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:8px;font-size:11.5px;color:var(--ink-soft)}
-#calcPanel .qc-stset input{width:46px;border:1px solid #E2E8F0;border-radius:6px;padding:3px 5px;font-size:12px;text-align:right;margin:0 2px}
-#calcPanel .qc-stnote{font-size:10.5px;color:var(--ink-faint)}
-#calcPanel .qc-drow{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
-#calcPanel .qc-drow b{font-size:22px;color:#1E40AF}
-#calcPanel .qc-drow label{font-size:13px;font-weight:700;color:#1E40AF;white-space:nowrap}
-#calcPanel .qc-drow input{width:64px;border:1px solid #BFDBFE;border-radius:8px;padding:5px 6px;font-size:15px;font-weight:700;text-align:right;margin:0 2px;color:#1E40AF;background:#fff}
-#calcPanel #qcDRange{width:100%;margin-top:8px;accent-color:#1E40AF}
-#calcPanel .qc-rlab{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-faint)}
-#calcPanel .qc-rlab span{font-size:10.5px!important;font-weight:500!important}
-#calcPanel .qc-mu button{padding:6px 2px;font-size:12px;white-space:nowrap}
-#calcPanel .qc-chs button{padding:5px 2px;font-size:11.5px;white-space:nowrap}
-#calcPanel .qc-chs button em{font-style:normal;font-weight:500;opacity:.75;margin-left:2px}
-#calcPanel .qc-chs button.on{background:#0F172A;border-color:#0F172A}
-#calcPanel .qc-grid .qc-span{grid-column:1/-1}
-#calcPanel .qc-pg{font-size:11.5px;color:#0B5C30;margin:-2px 0 8px}
-#calcPanel .qc-pw{font-size:12px;color:#0B5C30;font-weight:700;margin-top:2px;min-height:0}
-#calcPanel .qc-list{margin-top:10px;padding-top:10px;border-top:1px dashed rgba(11,92,48,.25)}
-#calcPanel .qc-lrow{display:flex;justify-content:space-between;align-items:baseline}
-#calcPanel .qc-lrow span{font-size:12px;color:#0B5C30;font-weight:700}
-#calcPanel .qc-lrow span em{font-style:normal;font-weight:500;opacity:.7;margin-left:3px}
-#calcPanel .qc-lrow b{font-size:18px;color:#0F172A}
-#calcPanel .qc-kv{font-size:12px;margin-top:4px;line-height:1.45}
-#calcPanel .qc-kv>span{color:var(--ink-soft);font-weight:600}
-#calcPanel .qc-kv>span::after{content:': '}
-#calcPanel .qc-kv .nw{white-space:nowrap;color:inherit;font-weight:inherit}
-#calcPanel .qc-kv b{color:#0F172A}
-#calcPanel .qc-kv.qc-sub{font-size:11px}
-#calcPanel .qc-kv.qc-sub b{color:var(--ink-soft);font-weight:600}
-#calcPanel .qc-pg em{font-style:normal;opacity:.7}
-#calcPanel .qc-cmp{margin-top:10px;background:#F8FAFC;border-radius:12px;padding:10px 12px}
-#calcPanel .qc-st2{font-size:12px;font-weight:800;margin-bottom:2px}
-#calcPanel .qc-unit{font-size:10.5px;color:var(--ink-faint);text-align:right;margin-bottom:2px}
-#calcPanel .qc-st2 em{font-style:normal;font-weight:500;color:var(--ink-faint);margin-left:4px}
-#calcPanel .qc-cmp table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
-#calcPanel .qc-cmp th{font-size:11px;color:var(--ink-faint);font-weight:600;text-align:right;padding:3px 4px}
-#calcPanel .qc-cmp td{text-align:right;padding:5px 4px;border-top:1px solid #EEF0F3}
-#calcPanel .qc-cmp th:first-child,#calcPanel .qc-cmp td:first-child{text-align:left;white-space:nowrap}
-#calcPanel .qc-cmp tr.on td{font-weight:800;color:#0F172A}
-#calcPanel .qc-row2{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
-@media(max-width:640px){ #calcPanel .qc-in3{grid-template-columns:1fr 1fr} #calcPanel .qc-f input,#calcPanel .qc-f select{font-size:16px} }
-#calcPanel .note{font-size:10.5px;color:var(--ink-faint);margin-top:8px;line-height:1.5}
+:is(#calcPanel,#promoCalc) .hd button{background:transparent;border:0;color:#fff;font-size:16px}
+:is(#calcPanel,#promoCalc) .bd{padding:14px 16px}
+:is(#calcPanel,#promoCalc) .qc-in{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+:is(#calcPanel,#promoCalc) .qc-in3{grid-template-columns:1fr 1fr 1fr;margin-top:10px}
+:is(#calcPanel,#promoCalc) .qc-wide{grid-column:1/-1}
+:is(#calcPanel,#promoCalc) .qc-f{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--ink-soft);font-weight:600}
+:is(#calcPanel,#promoCalc) .qc-f em{font-style:normal;font-weight:400;color:var(--ink-faint)}
+:is(#calcPanel,#promoCalc) .qc-f input,:is(#calcPanel,#promoCalc) .qc-f select{border:1px solid #E2E8F0;border-radius:8px;padding:9px 10px;font-size:14px;width:100%;background:#fff;font-variant-numeric:tabular-nums}
+:is(#calcPanel,#promoCalc) .qc-empty{margin-top:14px;padding:14px;border-radius:12px;background:#F8FAFC;color:var(--ink-soft);font-size:12.5px;text-align:center}
+:is(#calcPanel,#promoCalc) .qc-hero{margin-top:14px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#ECFDF3,#E3F2E8)}
+:is(#calcPanel,#promoCalc) .qc-lb{font-size:12px;color:#0B5C30;font-weight:700}
+:is(#calcPanel,#promoCalc) .qc-lb em{font-style:normal;font-weight:500;opacity:.75;margin-left:4px}
+:is(#calcPanel,#promoCalc) .qc-price{display:flex;align-items:baseline;gap:4px;margin-top:4px}
+:is(#calcPanel,#promoCalc) .qc-price input{border:0;border-bottom:2px dashed rgba(11,92,48,.35);background:transparent;font-size:28px;font-weight:800;color:#0B5C30;width:170px;padding:0;font-variant-numeric:tabular-nums}
+:is(#calcPanel,#promoCalc) .qc-price input:focus{outline:0;border-bottom-color:#0B5C30}
+:is(#calcPanel,#promoCalc) .qc-price span{font-size:15px;font-weight:700;color:#0B5C30}
+:is(#calcPanel,#promoCalc) .qc-cur{font-size:11.5px;color:var(--ink-soft);margin-top:6px}
+:is(#calcPanel,#promoCalc) .qc-link{border:0;background:none;color:var(--blue);font-size:11.5px;text-decoration:underline;padding:0 0 0 6px}
+:is(#calcPanel,#promoCalc) .qc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+:is(#calcPanel,#promoCalc) .qc-grid>div{background:#F8FAFC;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+:is(#calcPanel,#promoCalc) .qc-grid>div>span{font-size:11px;color:var(--ink-soft);font-weight:600}
+:is(#calcPanel,#promoCalc) .qc-grid>div>span em{font-style:normal;font-weight:400;color:var(--ink-faint)}
+:is(#calcPanel,#promoCalc) .qc-grid b{font-size:17px;font-variant-numeric:tabular-nums}
+:is(#calcPanel,#promoCalc) .qc-grid small{font-size:10.5px;color:var(--ink-faint);line-height:1.45}
+:is(#calcPanel,#promoCalc) .qc-grid small b{font-size:10.5px}
+:is(#calcPanel,#promoCalc) .qc-grid .qc-hl{grid-column:1/-1;background:#EFF6FF}
+:is(#calcPanel,#promoCalc) .qc-grid .qc-hl b{font-size:22px;color:#1E40AF}
+:is(#calcPanel,#promoCalc) .pos{color:var(--xl-green-dark)} :is(#calcPanel,#promoCalc) .neg{color:var(--red)}
+:is(#calcPanel,#promoCalc) .qc-sec{margin-top:16px;padding-top:14px;border-top:1px solid #EEF0F3}
+:is(#calcPanel,#promoCalc) .qc-st{font-size:13px;font-weight:800}
+:is(#calcPanel,#promoCalc) .qc-st em{font-style:normal;font-weight:500;font-size:11.5px;color:var(--ink-faint);margin-left:4px}
+:is(#calcPanel,#promoCalc) .qc-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+:is(#calcPanel,#promoCalc) .qc-chips button{border:1px solid #E2E8F0;background:#fff;border-radius:20px;padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
+:is(#calcPanel,#promoCalc) .qc-chips button.on{background:var(--xl-green);border-color:var(--xl-green);color:#fff}
+:is(#calcPanel,#promoCalc) .qc-adv{margin-top:16px;border-top:1px solid #EEF0F3;padding-top:12px}
+:is(#calcPanel,#promoCalc) .qc-adv summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
+:is(#calcPanel,#promoCalc) .qc-adv summary span{display:block;font-weight:400;font-size:11px;color:var(--ink-faint);margin-top:3px}
+:is(#calcPanel,#promoCalc) .qc-hero .qc-chips{margin:0 0 8px}
+:is(#calcPanel,#promoCalc) .qc-mu{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+:is(#calcPanel,#promoCalc) .qc-chs{display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
+:is(#calcPanel,#promoCalc) .qc-stg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+:is(#calcPanel,#promoCalc) .qc-stg button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 4px;border-radius:12px}
+:is(#calcPanel,#promoCalc) .qc-stg button em{font-style:normal;font-weight:500;font-size:10.5px;opacity:.8}
+:is(#calcPanel,#promoCalc) .qc-stset{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:8px;font-size:11.5px;color:var(--ink-soft)}
+:is(#calcPanel,#promoCalc) .qc-stset input{width:46px;border:1px solid #E2E8F0;border-radius:6px;padding:3px 5px;font-size:12px;text-align:right;margin:0 2px}
+:is(#calcPanel,#promoCalc) .qc-stnote{font-size:10.5px;color:var(--ink-faint)}
+:is(#calcPanel,#promoCalc) .qc-drow{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+:is(#calcPanel,#promoCalc) .qc-drow b{font-size:22px;color:#1E40AF}
+:is(#calcPanel,#promoCalc) .qc-drow label{font-size:13px;font-weight:700;color:#1E40AF;white-space:nowrap}
+:is(#calcPanel,#promoCalc) .qc-drow input{width:64px;border:1px solid #BFDBFE;border-radius:8px;padding:5px 6px;font-size:15px;font-weight:700;text-align:right;margin:0 2px;color:#1E40AF;background:#fff}
+:is(#calcPanel,#promoCalc) #qcDRange{width:100%;margin-top:8px;accent-color:#1E40AF}
+:is(#calcPanel,#promoCalc) .qc-rlab{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-faint)}
+:is(#calcPanel,#promoCalc) .qc-rlab span{font-size:10.5px!important;font-weight:500!important}
+:is(#calcPanel,#promoCalc) .qc-mu button{padding:6px 2px;font-size:12px;white-space:nowrap}
+:is(#calcPanel,#promoCalc) .qc-chs button{padding:5px 2px;font-size:11.5px;white-space:nowrap}
+:is(#calcPanel,#promoCalc) .qc-chs button em{font-style:normal;font-weight:500;opacity:.75;margin-left:2px}
+:is(#calcPanel,#promoCalc) .qc-chs button.on{background:#0F172A;border-color:#0F172A}
+:is(#calcPanel,#promoCalc) .qc-grid .qc-span{grid-column:1/-1}
+:is(#calcPanel,#promoCalc) .qc-pg{font-size:11.5px;color:#0B5C30;margin:-2px 0 8px}
+:is(#calcPanel,#promoCalc) .qc-pw{font-size:12px;color:#0B5C30;font-weight:700;margin-top:2px;min-height:0}
+:is(#calcPanel,#promoCalc) .qc-list{margin-top:10px;padding-top:10px;border-top:1px dashed rgba(11,92,48,.25)}
+:is(#calcPanel,#promoCalc) .qc-lrow{display:flex;justify-content:space-between;align-items:baseline}
+:is(#calcPanel,#promoCalc) .qc-lrow span{font-size:12px;color:#0B5C30;font-weight:700}
+:is(#calcPanel,#promoCalc) .qc-lrow span em{font-style:normal;font-weight:500;opacity:.7;margin-left:3px}
+:is(#calcPanel,#promoCalc) .qc-lrow b{font-size:18px;color:#0F172A}
+:is(#calcPanel,#promoCalc) .qc-kv{font-size:12px;margin-top:4px;line-height:1.45}
+:is(#calcPanel,#promoCalc) .qc-kv>span{color:var(--ink-soft);font-weight:600}
+:is(#calcPanel,#promoCalc) .qc-kv>span::after{content:': '}
+:is(#calcPanel,#promoCalc) .qc-kv .nw{white-space:nowrap;color:inherit;font-weight:inherit}
+:is(#calcPanel,#promoCalc) .qc-kv b{color:#0F172A}
+:is(#calcPanel,#promoCalc) .qc-kv.qc-sub{font-size:11px}
+:is(#calcPanel,#promoCalc) .qc-kv.qc-sub b{color:var(--ink-soft);font-weight:600}
+:is(#calcPanel,#promoCalc) .qc-pg em{font-style:normal;opacity:.7}
+:is(#calcPanel,#promoCalc) .qc-cmp{margin-top:10px;background:#F8FAFC;border-radius:12px;padding:10px 12px}
+:is(#calcPanel,#promoCalc) .qc-st2{font-size:12px;font-weight:800;margin-bottom:2px}
+:is(#calcPanel,#promoCalc) .qc-unit{font-size:10.5px;color:var(--ink-faint);text-align:right;margin-bottom:2px}
+:is(#calcPanel,#promoCalc) .qc-st2 em{font-style:normal;font-weight:500;color:var(--ink-faint);margin-left:4px}
+:is(#calcPanel,#promoCalc) .qc-cmp table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+:is(#calcPanel,#promoCalc) .qc-cmp th{font-size:11px;color:var(--ink-faint);font-weight:600;text-align:right;padding:3px 4px}
+:is(#calcPanel,#promoCalc) .qc-cmp td{text-align:right;padding:5px 4px;border-top:1px solid #EEF0F3}
+:is(#calcPanel,#promoCalc) .qc-cmp th:first-child,:is(#calcPanel,#promoCalc) .qc-cmp td:first-child{text-align:left;white-space:nowrap}
+:is(#calcPanel,#promoCalc) .qc-cmp tr.on td{font-weight:800;color:#0F172A}
+:is(#calcPanel,#promoCalc) .qc-row2{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+@media(max-width:640px){ :is(#calcPanel,#promoCalc) .qc-in3{grid-template-columns:1fr 1fr} :is(#calcPanel,#promoCalc) .qc-f input,:is(#calcPanel,#promoCalc) .qc-f select{font-size:16px} }
+:is(#calcPanel,#promoCalc) .note{font-size:10.5px;color:var(--ink-faint);margin-top:8px;line-height:1.5}
 
 .footnote{font-size:11px;color:var(--ink-faint);line-height:1.6;margin-top:10px}
 .pill{display:inline-block;font-size:10.5px;border-radius:3px;padding:1px 7px;font-weight:600}
@@ -510,8 +510,8 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
   .mm-item.on{color:var(--xl-green-dark);font-weight:800;background:rgba(11,92,48,.07)}
   /* 마진계산기 FAB: 하단 메뉴 버튼 위로 */
   #calcFab{right:12px;bottom:72px;padding:11px 15px;font-size:13px;border-radius:24px}
-  #calcPanel{right:8px;left:8px;width:auto;bottom:auto;top:50%;transform:translateY(-50%);max-height:82vh}
-  #calcPanel.open{display:block}
+  :is(#calcPanel,#promoCalc){right:8px;left:8px;width:auto;bottom:auto;top:50%;transform:translateY(-50%);max-height:82vh}
+  :is(#calcPanel,#promoCalc).open{display:block}
 }
 @media(max-width:640px){
   /* 고정 열을 No·제품명만 남긴다 — 규격·공급업체·매입원가까지 고정하면 합계 535px 라
@@ -742,7 +742,7 @@ body[data-sh]:not([data-sh="sh-price"]) #fxbar,body[data-sh]:not([data-sh="sh-pr
 
 /* ── 폰: 서랍 메뉴 · 요약 카드 가로 스크롤 ── */
 #snOpen,#snClose,#snBack{display:none}
-body:has(#calcPanel.open) #calcFab{display:none}   /* 계산기를 열면 버튼이 결과를 가리지 않게 */
+body:has(:is(#calcPanel,#promoCalc).open) #calcFab{display:none}   /* 계산기를 열면 버튼이 결과를 가리지 않게 */
 @media(max-width:640px){
   #sideNav{display:flex!important;position:fixed;left:0;top:0;bottom:0;width:min(272px,84vw)!important;flex-basis:auto!important;z-index:260;transform:translateX(-105%);transition:transform .22s ease}
   body.sn-open #sideNav{transform:none}
@@ -782,6 +782,41 @@ body:has(#calcPanel.open) #calcFab{display:none}   /* 계산기를 열면 버튼
   #printArea tr{page-break-inside:avoid}
   #printArea thead{display:table-header-group}
 }
+
+/* ── 계산기 선택 메뉴 · 프로모션 계산기 ── */
+#calcMenu{position:fixed;right:20px;bottom:104px;z-index:101;display:none;flex-direction:column;gap:8px;min-width:250px}
+#calcMenu.open{display:flex}
+#calcMenu button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;border:0;background:#fff;border-radius:14px;padding:12px 16px;font-size:14.5px;font-weight:800;color:#0F172A;box-shadow:0 10px 28px rgba(15,23,42,.18);text-align:left}
+#calcMenu button em{font-style:normal;font-weight:500;font-size:11.5px;color:var(--ink-faint)}
+#calcMenu button:hover{outline:2px solid var(--xl-green)}
+#promoCalc .pm-goal{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+#promoCalc .pm-ex{margin-top:10px;background:#FFF7ED;border-radius:12px;padding:10px 12px}
+#promoCalc .pm-card{margin-top:10px;border:1.5px solid #EEF0F3;border-radius:14px;padding:10px 12px;cursor:pointer;background:#fff}
+#promoCalc .pm-card.on{border-color:var(--xl-green);box-shadow:0 0 0 3px rgba(16,124,65,.12)}
+#promoCalc .pm-hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#promoCalc .pm-hd>b{font-size:13.5px}
+#promoCalc .pm-ps{display:flex;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-soft)}
+#promoCalc .pm-ps input{width:70px;border:1px solid #E2E8F0;border-radius:6px;padding:3px 6px;font-size:12.5px;text-align:right;margin:0 2px}
+#promoCalc .pm-x{margin-left:auto;border:0;background:none;color:var(--ink-faint);font-size:13px}
+#promoCalc .pm-r{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+#promoCalc .pm-r>div{background:#F8FAFC;border-radius:10px;padding:7px 10px;display:flex;flex-direction:column}
+#promoCalc .pm-r span{font-size:10.5px;color:var(--ink-soft);font-weight:600}
+#promoCalc .pm-r b{font-size:16px;font-variant-numeric:tabular-nums}
+#promoCalc .pm-r small{font-size:10.5px;color:var(--ink-faint)}
+#promoCalc .pm-badge{margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#promoCalc .pm-badge em{font-style:normal;font-size:10.5px;color:var(--ink-faint)}
+#promoCalc .pm-add{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+#promoCalc .pm-add select{border:1px solid #E2E8F0;border-radius:8px;padding:5px 8px;font:inherit}
+#promoCalc .pm-save{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid #EEF0F3}
+#promoCalc .pm-save input{flex:1 1 160px;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px;font-size:13px}
+#promoCalc #pmSaved details{background:#F8FAFC;border-radius:12px;padding:8px 12px;margin-bottom:10px}
+#promoCalc #pmSaved summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
+#promoCalc .pm-sv button{display:flex;flex-direction:column;align-items:flex-start;width:100%;border:0;background:#fff;border-radius:8px;padding:7px 10px;margin-top:6px;text-align:left}
+#promoCalc .pm-sv.on button{outline:2px solid var(--xl-green)}
+#promoCalc .pm-sv em{font-style:normal;font-size:10.5px;color:var(--ink-faint)}
+#promoCalc .prb{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px}
+#promoCalc .prb.ok{background:#E3F2E8;color:#0B5C30}#promoCalc .prb.warn{background:#FEF3C7;color:#92400E}#promoCalc .prb.bad{background:#FEE2E2;color:#B91C1C}
+@media(max-width:640px){ #calcMenu{right:12px;left:12px;bottom:72px} #promoCalc .pm-ps input{font-size:16px;width:74px} }
 </style>
 <!-- Firebase 10.12.0 compat (Analytics 제외) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -796,7 +831,7 @@ body:has(#calcPanel.open) #calcFab{display:none}   /* 계산기를 열면 버튼
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24r</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.24s</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1678,9 +1713,27 @@ body:has(#calcPanel.open) #calcFab{display:none}   /* 계산기를 열면 버튼
 </div>
 
 <!-- ═══ 퀵 마진 계산기 ═══ -->
-<button id="calcFab"><span class="sym">fx</span> 마진계산기</button>
+<button id="calcFab"><span class="sym">fx</span> 계산기</button>
+<div id="calcMenu">
+  <button data-open="calcPanel">🧮 단가 계산기<em>원가·수량 → 판매가·정가·할인 단계 (공급사 협의)</em></button>
+  <button data-open="promoCalc">🎯 프로모션 계산기<em>기존 제품 할인·증정·체험단 기획 (유통기한 털기)</em></button>
+</div>
+<div id="promoCalc">
+  <div class="hd">프로모션 계산기 · 기존 제품 <button id="pmClose">✕</button></div>
+  <div class="bd">
+    <div id="pmSaved"></div>
+    <label class="qc-f"><span>제품</span><input id="pmProd" list="pmProdList" placeholder="제품명 검색"><datalist id="pmProdList"></datalist></label>
+    <div id="pmInfo"></div>
+    <div class="qc-st" style="margin-top:12px">목적</div>
+    <div class="qc-chips pm-goal" id="pmGoal"></div>
+    <div class="qc-chips qc-chs" id="pmCh" style="margin-top:8px"></div>
+    <div id="pmBody"></div>
+    <div class="pm-save"><input id="pmTitle" placeholder="기획안 이름 (비우면 자동)"><button class="tbtn primary" id="pmSave">💾 저장</button><button class="tbtn" id="pmSaveNew" title="지금 내용을 새 기획안으로 따로 저장">새로 저장</button><span id="pmMsg" class="note" style="margin:0"></span></div>
+    <p class="note">고른 카드(초록 테두리)를 저장 · 부대비용은 단가 계산기 설정 사용 · <button class="qc-link" id="pmMore">자세히: 프로모션 설계 화면</button></p>
+  </div>
+</div>
 <div id="calcPanel">
-  <div class="hd">퀵 마진 계산기 · 공급사 협의용 <button id="calcClose">✕</button></div>
+  <div class="hd">단가 계산기 · 공급사 협의용 <button id="calcClose">✕</button></div>
   <div class="bd">
     <div class="qc-in">
       <label class="qc-f"><span>개당 원가</span><input type="number" id="cCost" inputmode="numeric" placeholder="예: 8000"></label>
@@ -2432,7 +2485,7 @@ function applyCostGating(){
   $$('#viewSeg button').forEach(b=>{ if(b.dataset.v!=='price') b.style.display=costVisible()?'':'none'; });   // 접은 상태에선 마진 뷰도 감춤
   // 마진계산기 FAB(원가·마진 협의 도구): 일반계정 숨김
   const fab=$('#calcFab'); if(fab) fab.style.display=costAllowed?'':'none';
-  const cpan=$('#calcPanel'); if(cpan){ if(!costAllowed){ cpan.classList.remove('open'); cpan.style.display='none'; } else { cpan.style.display=''; } }
+  ['#calcPanel','#promoCalc','#calcMenu'].forEach(sel=>{ const cpan=$(sel); if(cpan){ if(!costAllowed){ cpan.classList.remove('open'); cpan.style.display='none'; } else { cpan.style.display=''; } } });
   if(!costVisible() && viewMode!=='price'){
     viewMode='price';
     $$('#viewSeg button').forEach(x=>x.classList.toggle('on',x.dataset.v==='price'));
@@ -4058,7 +4111,11 @@ function qcT(v){ if(v==null||!isFinite(v)) return '—'; const n=Math.round(v), 
 function qcFill(o){ Object.entries(QC_IDS).forEach(([k,id])=>{ $('#'+id).value=o[k]; }); }
 function qcVals(){ const o={}; Object.entries(QC_IDS).forEach(([k,id])=>{ o[k]=+$('#'+id).value||0; }); return o; }
 qcFill(qcDefaults());
-$('#calcFab').addEventListener('click',()=>{ const on=$('#calcPanel').classList.toggle('open'); if(on) runCalc(); });
+$('#calcFab').addEventListener('click',()=>$('#calcMenu').classList.toggle('open'));
+$('#calcMenu').addEventListener('click',e=>{ const b=e.target.closest('[data-open]'); if(!b) return; $('#calcMenu').classList.remove('open');
+  if(b.dataset.open==='promoCalc'){ openPromoCalc(PM.key||''); return; }
+  $('#promoCalc').classList.remove('open'); $('#calcPanel').classList.add('open'); runCalc(); });
+document.addEventListener('click',e=>{ const m=$('#calcMenu'); if(m&&m.classList.contains('open')&&!e.target.closest('#calcMenu')&&!e.target.closest('#calcFab')) m.classList.remove('open'); });
 $('#calcClose').addEventListener('click',()=>$('#calcPanel').classList.remove('open'));
 ['#cCost','#cQty',...Object.values(QC_IDS).map(id=>'#'+id)].forEach(s=>$(s).addEventListener('input',()=>runCalc()));
 $('#qcSplit').addEventListener('click',e=>{ const b=e.target.closest('[data-stg]'); if(!b) return; QC_STAGE=b.dataset.stg; QC_DISC=null; runCalc(); });
@@ -8164,8 +8221,183 @@ async function renderExpiry(){
   body.addEventListener('click',e=>{
     if(e.target.id==='exRetry'){ EX.err=''; EX.lots=null; renderExpiry(); return; }
     const b=e.target.closest('button[data-exi]'); if(!b) return; const r=(body._rows||[])[+b.dataset.exi]; if(!r||!r.p) return;
-    openPromoFor(pKey(r.p), { stock:r.cum, days:Math.max(1,r.avail||1), daily:r.avg!=null?Math.round(r.avg*10)/10:'' });
+    openPromoCalc(pKey(r.p), { goal:'clear', stock:r.cum });
   });
+})();
+/* ══════════ 프로모션 계산기 (기존 제품 · 유통기한 털기·매출·체험단·공동구매) ══════════
+   · 제품을 고르면 판매가(자사몰 정가)·원가·유통기한 재고를 채우고, 목적별 기획안 카드를 계산
+   · 부대비용(수수료·PG·물류·택배·포장)은 [단가 계산기] 설정값을 그대로 쓴다
+   · 주문 1건 이익 = 결제액÷1.1 − 결제액×(판매수수료+PG) − 수량×(원가+물류+포장) − 택배(결제 있을 때 1번) − 체험단 의뢰비
+   · 저장: product-meta/promo-calc {map: id → 기획안} — 다시 저장하면 같은 기획안에 덮고, 누가·언제 고쳤는지 기록(history) */
+const PM_GOALS=[['clear','유통기한 털기'],['sales','매출 늘리기'],['review','리뷰·체험단'],['group','공동구매']];
+const PM_T={disc:'할인',nm:'N+M 증정',second:'두 번째 할인',coupon:'수량 쿠폰',gift:'사은품으로 소진',review:'체험단'};
+let PM={key:'', goal:'clear', ch:'own', cards:{}, sel:0, planId:null, plans:null, price:null, cost:null, stock:null, exInfo:null};
+function pmDefaultCards(goal,price){
+  if(goal==='clear') return [{t:'disc',v:20},{t:'disc',v:40},{t:'nm',n:1,m:1},{t:'nm',n:2,m:1},{t:'gift'}];
+  if(goal==='sales') return [{t:'nm',n:2,m:1},{t:'second',v:50},{t:'coupon',v:3000,min:2},{t:'disc',v:10}];
+  if(goal==='review') return [{t:'review',price:'',fee:0},{t:'review',price:0,fee:0},{t:'disc',v:30}];   // price '' = 현재 판매가
+  // 공동구매: 단가 계산기의 할인 단계 기준(소극·보통)으로 할인율을 잡는다
+  return [{t:'disc',v:15},{t:'disc',v:25},{t:'disc',v:35}];
+}
+function pmBase(){
+  const o=qcVals(), cost=+PM.cost||0, ch=QC_CHS.find(x=>x[0]===PM.ch)||QC_CHS[0];
+  return {P:+PM.price||0, C:cost, lg:cost*o.logi/100, pk:o.pack, deli:o.deli, f:(o[ch[2]]+o.pg)/100, fs:o[ch[2]], pg:o.pg, chLb:ch[1], s3:o.s3};
+}
+function pmCalc(c,b){
+  let units=1, pay=b.P, extra=0, noDeli=false, note='';
+  if(c.t==='disc') pay=b.P*(1-(+c.v||0)/100);
+  else if(c.t==='nm'){ const n=Math.max(1,+c.n||1), m=Math.max(0,+c.m||0); units=n+m; pay=b.P*n; note=`개당 ${pct(m/(n+m))} 할인 효과`; }
+  else if(c.t==='second'){ units=2; pay=b.P*(2-(+c.v||0)/100); note=`평균 ${pct((+c.v||0)/200)} 할인 효과`; }
+  else if(c.t==='coupon'){ units=Math.max(1,+c.min||1); pay=Math.max(0,b.P*units-(+c.v||0)); note=`${units}개 이상 구매 시`; }
+  else if(c.t==='gift'){ pay=0; noDeli=true; note='다른 제품 주문에 함께 증정 (택배 합포장)'; }
+  else if(c.t==='review'){ pay=(c.price===''||c.price==null)?b.P:Math.max(0,+c.price||0); extra=Math.max(0,+c.fee||0); note=pay?'체험단 판매':'무료 제공(페이백)'; }
+  const net=pay/1.1, fee=pay*b.f, goods=units*(b.C+b.lg+b.pk), dl=(pay>0&&!noDeli)?b.deli:0, profit=net-fee-goods-dl-extra;
+  const r={units,pay,net,fee,goods,dl,extra,profit,rate:net>0?profit/net:null,unit:units?pay/units:0,disc:b.P?1-(pay/units)/b.P:0,note};
+  if(c.t==='review'){ const d=1/1.1-b.f; r.be=d>0?Math.ceil((b.C+b.lg+b.pk+b.deli+extra)/d/100)*100:null; r.freeCost=b.C+b.lg+b.pk+b.deli+extra; }
+  return r;
+}
+function pmBadge(r,goal,b){
+  if(r.pay===0) return '<span class="prb warn">마케팅 비용</span>';   // 무료 제공·사은품은 원래 비용
+  if(r.profit>=0 && (r.rate==null||r.rate>=0.1)) return '<span class="prb ok">가능</span>';
+  if(r.profit>=0) return '<span class="prb warn">마진 부족</span>';
+  if(goal==='clear' && r.profit+r.units*b.C>0) return '<span class="prb warn">역마진 · 폐기보다 이득</span>';
+  return '<span class="prb bad">역마진</span>';
+}
+function pmParams(c,i){
+  const inp=(f,lb,step,suf)=>`<label>${lb} <input type="number" data-pi="${i}" data-pf="${f}" value="${esc(c[f]??'')}" step="${step||1}">${suf||''}</label>`;
+  if(c.t==='disc') return inp('v','할인','1','%');
+  if(c.t==='nm') return inp('n','구매','1','개')+inp('m','증정','1','개');
+  if(c.t==='second') return inp('v','두 번째','5','% 할인');
+  if(c.t==='coupon') return inp('v','쿠폰','500','원')+inp('min','최소','1','개');
+  if(c.t==='review') return `<label>체험단 판매가 <input type="number" data-pi="${i}" data-pf="price" value="${esc(c.price??'')}" step="100" placeholder="${esc(PM.price||'')}">원</label>`+inp('fee','건당 의뢰비','500','원');
+  return '';
+}
+function pmResultHtml(c,i,b){
+  const r=pmCalc(c,b), stock=+PM.stock||0;
+  let h=`<div class="pm-r">
+    <div><span>고객 결제</span><b>${qcW(r.pay)}</b>${r.units>1?`<small>${r.units}개 · 개당 ${qcW(r.unit)}</small>`:''}</div>
+    <div><span>${r.units>1?'주문당 이익':'개당 이익'}</span><b class="${r.profit<0?'neg':'pos'}">${qcW(r.profit)}</b><small>${r.rate==null?'매출 없음':'이익률 '+pct(r.rate)}</small></div>
+  </div>`;
+  if(c.t==='review'){
+    h+=`<div class="qc-kv"><span>손익분기 체험단가</span><b>${r.be==null?'—':qcW(r.be)}</b></div>
+      <div class="qc-kv"><span>무료 제공 시 건당 비용</span><b>${qcW(r.freeCost)}</b></div>
+      <div class="qc-kv qc-sub"><span>건당 비용 내역</span><b>원가 ${won(b.C)} · 물류 ${won(b.lg)} · 택배 ${won(b.deli)}${b.pk?' · 포장 '+won(b.pk):''} · 의뢰비 ${won(r.extra)}${r.pay?' · 수수료 '+won(r.fee):''}</b></div>`;
+  }
+  if(PM.goal==='clear' && stock>0){
+    const orders=Math.ceil(stock/r.units), tot=orders*r.profit, vs=tot+stock*b.C, days=PM.exInfo&&PM.exInfo.days;
+    h+=`<div class="qc-kv"><span>재고 ${won(stock)}개 소진</span><b>주문 ${won(orders)}건${days>0?` · 하루 ${(Math.round(orders/days*10)/10)}건`:''}</b></div>
+      <div class="qc-kv"><span>폐기 대비</span><b class="${vs<0?'neg':'pos'}">${vs>=0?'+':''}${qcT(vs)}</b></div>`;
+  }
+  return h+`<div class="pm-badge">${pmBadge(r,PM.goal,b)}${r.note?`<em>${esc(r.note)}</em>`:''}</div>`;
+}
+function pmProducts(){ return P.filter(p=>!isDeletedProd(p) && pstatus(p)!=='단종'); }
+function pmCards(){ if(!PM.cards[PM.goal]) PM.cards[PM.goal]=pmDefaultCards(PM.goal,+PM.price||0); return PM.cards[PM.goal]; }
+function pmExInfo(){
+  PM.exInfo=null; if(!PM.key||!EX.lots) return;
+  const rows=exRows().filter(r=>r.p&&pKey(r.p)===PM.key&&r.l.qty>0&&r.v!=='expired');
+  if(!rows.length) return;
+  const qty=rows.reduce((a,r)=>a+r.l.qty,0), first=rows.slice().sort((a,b)=>String(a.l.expiry||'9').localeCompare(String(b.l.expiry||'9')))[0];
+  PM.exInfo={qty, expiry:first.l.expiry, rem:first.rem, days:first.avail, avg:first.avg, need:first.need, ratio:first.ratio};
+}
+function renderPromoCalc(){
+  const body=$('#pmBody'); if(!body) return;
+  $('#pmProdList').innerHTML=pmProducts().map(p=>`<option value="${esc(prodLabel(p))}">`).join('');
+  $('#pmGoal').innerHTML=PM_GOALS.map(([k,lb])=>`<button data-goal="${k}" class="${k===PM.goal?'on':''}">${lb}</button>`).join('');
+  $('#pmCh').innerHTML=QC_CHS.map(([k,lb,fk])=>`<button data-pch="${k}" class="${k===PM.ch?'on':''}">${lb} <em>${qcVals()[fk]}%</em></button>`).join('');
+  pmRenderSaved();
+  const p=pmProducts().find(x=>pKey(x)===PM.key);
+  if(!p){ $('#pmInfo').innerHTML=''; body.innerHTML='<div class="qc-empty">제품 선택 → 기획안 계산</div>'; return; }
+  const ex=PM.exInfo;
+  $('#pmInfo').innerHTML=`
+    <div class="qc-in">
+      <label class="qc-f"><span>현재 판매가</span><input type="number" id="pmPrice" value="${PM.price??''}"></label>
+      <label class="qc-f"><span>원가 ${(p.cost>0)?'':'<em>(가격정책표에 없음)</em>'}</span><input type="number" id="pmCost" value="${PM.cost??''}"></label>
+    </div>
+    ${PM.goal==='clear'?`<div class="pm-ex">${ex?`<div class="qc-kv"><span>유통기한 재고</span><b>${won(ex.qty)}개 · 가장 빠른 기한 ${esc(ex.expiry||'—')}${ex.rem!=null?` (D-${ex.rem})`:''}</b></div>
+      <div class="qc-kv"><span>하루 판매</span><b>요즘 ${ex.avg==null?'—':(Math.round(ex.avg*10)/10)}개 → 필요 ${ex.need==null?'—':(Math.round(ex.need*10)/10)}개${ex.ratio!=null&&isFinite(ex.ratio)?` (${Math.round(ex.ratio*10)/10}배)`:''}</b></div>`:
+      `<div class="qc-kv qc-sub"><span>유통기한 재고</span><b>${EX.lots?'연결된 재고 없음 — 아래에 직접 입력':'불러오는 중…'}</b></div>`}
+      <label class="qc-f" style="margin-top:6px"><span>털어낼 재고 (개)</span><input type="number" id="pmStock" value="${PM.stock??''}"></label></div>`:''}`;
+  const b=pmBase(), cards=pmCards();
+  if(!(b.P>0)||!(b.C>0)){ body.innerHTML='<div class="qc-empty">판매가·원가를 넣으면 계산합니다</div>'; return; }
+  body.innerHTML=cards.map((c,i)=>`<div class="pm-card${i===PM.sel?' on':''}" data-card="${i}">
+      <div class="pm-hd"><b>${esc(PM_T[c.t]||c.t)}</b><div class="pm-ps">${pmParams(c,i)}</div>${cards.length>1?`<button class="pm-x" data-rm="${i}" title="빼기">✕</button>`:''}</div>
+      <div id="pmR${i}">${pmResultHtml(c,i,b)}</div></div>`).join('')
+    +`<div class="pm-add"><select id="pmAddT">${Object.entries(PM_T).map(([t,lb])=>`<option value="${t}">${lb}</option>`).join('')}</select><button class="tbtn" id="pmAdd">＋ 추가</button><button class="tbtn" id="pmReset">↺ 기본 카드</button></div>`;
+}
+function pmRefresh(){ const b=pmBase(); pmCards().forEach((c,i)=>{ const el=$('#pmR'+i); if(el) el.innerHTML=pmResultHtml(c,i,b); }); }
+async function pmLoadPlans(force){
+  if(PM.plans&&!force) return;
+  try{ const d=await db.collection('product-meta').doc('promo-calc').get(); PM.plans=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[promo-calc] 저장된 기획안 ${Object.keys(PM.plans).length}건`); }
+  catch(e){ console.error('[promo-calc] 불러오기 실패', e); PM.plans={}; $('#pmMsg').innerHTML=`<span class="neg">기획안 불러오기 실패: ${esc(e.code||e.message||e)}</span>`; }
+  pmRenderSaved();
+}
+function pmRenderSaved(){
+  const el=$('#pmSaved'); if(!el) return;
+  const list=Object.values(PM.plans||{}).filter(x=>x&&x.id).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
+  const who=e=>String(e||'').split('@')[0]||'—', when=t=>t?String(t).slice(5,16).replace('T',' '):'';
+  el.innerHTML=`<details${PM.planId?' open':''}><summary>저장된 기획안 ${list.length}건${PM.planId?` · <b>수정 중: ${esc((PM.plans[PM.planId]||{}).title||'')}</b>`:''}</summary>
+    ${list.length?list.map(x=>`<div class="pm-sv${x.id===PM.planId?' on':''}"><button data-load="${esc(x.id)}"><b>${esc(x.title||'(이름 없음)')}</b><em>${esc(x.prod||'')} · ${esc((PM_GOALS.find(g=>g[0]===x.goal)||['',''])[1])}</em><em>${esc(who(x.updatedBy))} · ${esc(when(x.updatedAt))}${(x.history||[]).length>1?` · 수정 ${(x.history||[]).length-1}회`:''}</em></button></div>`).join(''):'<div class="qc-kv qc-sub"><span>없음</span><b>아래에서 저장하면 여기 쌓입니다</b></div>'}
+    ${PM.planId?'<button class="qc-link" id="pmNew">＋ 새 기획안으로 시작</button>':''}</details>`;
+}
+async function pmSave(asNew){
+  const p=pmProducts().find(x=>pKey(x)===PM.key); if(!p){ $('#pmMsg').textContent='제품을 먼저 고르세요'; return; }
+  const card=pmCards()[PM.sel]; if(!card){ $('#pmMsg').textContent='카드를 하나 고르세요'; return; }
+  await pmLoadPlans();
+  const now=new Date().toISOString(), by=(curUser&&curUser.email)||'', r=pmCalc(card,pmBase());
+  const id=(!asNew&&PM.planId&&PM.plans[PM.planId])?PM.planId:('pm'+Date.now().toString(36));
+  const prev=PM.plans[id]||null;
+  const title=($('#pmTitle').value||'').trim()||`${p.name} · ${(PM_GOALS.find(g=>g[0]===PM.goal)||['',''])[1]} · ${PM_T[card.t]}`;
+  const plan={ id, key:PM.key, prod:prodLabel(p), goal:PM.goal, ch:PM.ch, price:+PM.price||0, cost:+PM.cost||0, stock:+PM.stock||0, card:{...card}, title,
+    result:{pay:Math.round(r.pay), profit:Math.round(r.profit), rate:r.rate==null?null:Math.round(r.rate*1000)/1000},
+    createdAt:prev?prev.createdAt:now, createdBy:prev?prev.createdBy:by, updatedAt:now, updatedBy:by,
+    history:[...((prev&&prev.history)||[]), {at:now, by, note:prev?'수정':'처음 저장'}].slice(-30) };
+  const btn=$('#pmSave'); btn.disabled=true;
+  try{ await db.collection('product-meta').doc('promo-calc').set({map:{[id]:plan}},{merge:true});
+    PM.plans[id]=plan; PM.planId=id; logAct('프로모션계산기', title, prev?'수정 저장':'새로 저장');
+    $('#pmMsg').innerHTML=`<span class="pos">${prev?'수정본으로 저장':'저장'}됨 ✓ ${esc(by.split('@')[0])}</span>`; pmRenderSaved(); }
+  catch(e){ console.error('[promo-calc] 저장 실패', e); $('#pmMsg').innerHTML=`<span class="neg">저장 실패: ${esc(e.code||e.message||e)}</span>`; }
+  finally{ btn.disabled=false; }
+}
+function pmSetProduct(key){
+  const p=pmProducts().find(x=>pKey(x)===key); PM.key=p?key:''; PM.planId=null;
+  PM.price=p&&retailOf(p)>0?retailOf(p):null; PM.cost=p&&p.cost>0?p.cost:null; PM.cards={}; PM.sel=0; PM.stock=null;
+  pmExInfo(); if(PM.exInfo) PM.stock=PM.exInfo.qty;
+  $('#pmTitle').value='';
+}
+async function openPromoCalc(key, preset){
+  document.querySelectorAll('#calcPanel,#promoCalc').forEach(x=>x.classList.remove('open')); $('#calcMenu').classList.remove('open');
+  $('#promoCalc').classList.add('open');
+  if(key){ pmSetProduct(key); const p=pmProducts().find(x=>pKey(x)===key); $('#pmProd').value=p?prodLabel(p):''; }
+  if(preset){ if(preset.goal) PM.goal=preset.goal; if(preset.stock!=null) PM.stock=preset.stock; }
+  renderPromoCalc(); pmLoadPlans();
+  if(!EX.lots && !EX.loading){ exLoad().then(()=>{ if(PM.key){ const had=PM.stock; pmExInfo(); if(PM.exInfo&&!had) PM.stock=PM.exInfo.qty; } if($('#promoCalc').classList.contains('open')) renderPromoCalc(); }).catch(()=>{}); }
+}
+(function bindPromoCalc(){
+  const box=$('#promoCalc'); if(!box) return;
+  $('#pmClose').addEventListener('click',()=>box.classList.remove('open'));
+  $('#pmProd').addEventListener('change',e=>{ const v=e.target.value.trim(); const p=pmProducts().find(x=>prodLabel(x)===v); if(p){ pmSetProduct(pKey(p)); renderPromoCalc(); } });
+  box.addEventListener('click',e=>{
+    const g=e.target.closest('[data-goal]'); if(g){ PM.goal=g.dataset.goal; PM.sel=0; renderPromoCalc(); return; }
+    const c=e.target.closest('[data-pch]'); if(c){ PM.ch=c.dataset.pch; renderPromoCalc(); return; }
+    const rm=e.target.closest('[data-rm]'); if(rm){ pmCards().splice(+rm.dataset.rm,1); PM.sel=0; renderPromoCalc(); return; }
+    const ld=e.target.closest('[data-load]'); if(ld){ const x=(PM.plans||{})[ld.dataset.load]; if(!x) return;
+      pmSetProduct(x.key); PM.planId=x.id; PM.goal=x.goal||'clear'; PM.ch=x.ch||'own'; PM.price=x.price||PM.price; PM.cost=x.cost||PM.cost; PM.stock=x.stock||PM.stock;
+      PM.cards[PM.goal]=[{...x.card}]; PM.sel=0; const p=pmProducts().find(y=>pKey(y)===x.key); $('#pmProd').value=p?prodLabel(p):x.prod; $('#pmTitle').value=x.title||''; renderPromoCalc(); return; }
+    if(e.target.id==='pmNew'){ PM.planId=null; $('#pmTitle').value=''; pmRenderSaved(); return; }
+    if(e.target.id==='pmAdd'){ const t=$('#pmAddT').value, d={disc:{v:20},nm:{n:1,m:1},second:{v:50},coupon:{v:3000,min:2},gift:{},review:{price:'',fee:0}}[t]||{}; pmCards().push({t,...d}); PM.sel=pmCards().length-1; renderPromoCalc(); return; }
+    if(e.target.id==='pmReset'){ PM.cards[PM.goal]=null; PM.sel=0; renderPromoCalc(); return; }
+    if(e.target.id==='pmSave'){ pmSave(false); return; }
+    if(e.target.id==='pmSaveNew'){ pmSave(true); return; }
+    if(e.target.id==='pmMore'){ if(PM.key){ openPromoFor(PM.key,{price:PM.price,cost:PM.cost,stock:PM.stock||''}); box.classList.remove('open'); } return; }
+    const cd=e.target.closest('[data-card]'); if(cd && !e.target.closest('input')){ PM.sel=+cd.dataset.card; $$('#pmBody .pm-card').forEach((x,i)=>x.classList.toggle('on',i===PM.sel)); }
+  });
+  box.addEventListener('input',e=>{ const t=e.target;
+    if(t.dataset.pi!=null){ const c=pmCards()[+t.dataset.pi]; if(c){ c[t.dataset.pf]=t.value; pmRefresh(); } return; }
+    if(t.id==='pmPrice'){ PM.price=+t.value||null; pmRefresh(); return; }
+    if(t.id==='pmCost'){ PM.cost=+t.value||null; pmRefresh(); return; }
+    if(t.id==='pmStock'){ PM.stock=+t.value||null; pmRefresh(); return; }
+  });
+  box.addEventListener('change',e=>{ if(['pmPrice','pmCost'].includes(e.target.id)) renderPromoCalc(); });
 })();
 function refreshAll(){
   recalcVendor();

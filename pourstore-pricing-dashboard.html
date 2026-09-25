@@ -742,7 +742,8 @@ body[data-sh]:not([data-sh="sh-price"]) #fxbar,body[data-sh]:not([data-sh="sh-pr
 
 /* ── 폰: 서랍 메뉴 · 요약 카드 가로 스크롤 ── */
 #snOpen,#snClose,#snBack{display:none}
-body:has(:is(#calcPanel,#promoCalc,#costCalc).open) #calcFab{display:none}   /* 계산기를 열면 버튼이 결과를 가리지 않게 */
+body:has(:is(#calcPanel,#promoCalc,#costCalc).open) #calcFab{display:none}
+@media(max-width:640px){ body:has(#calcMenu.open) #calcFab{display:none} }   /* 계산기를 열면 버튼이 결과를 가리지 않게 */
 @media(max-width:640px){
   #sideNav{display:flex!important;position:fixed;left:0;top:0;bottom:0;width:min(272px,84vw)!important;flex-basis:auto!important;z-index:260;transform:translateX(-105%);transition:transform .22s ease}
   body.sn-open #sideNav{transform:none}
@@ -817,7 +818,7 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 #brandSeg button{white-space:nowrap}
 .card.b-x{border-top:3px solid #64748B}
 .brc [data-bredit]{border:0;background:none;color:var(--blue);font-size:11px;text-decoration:underline;padding:0}
-@media(max-width:640px){ #uiToast{bottom:calc(80px + env(safe-area-inset-bottom))} body.ui-modal #uiToast{bottom:calc(20px + env(safe-area-inset-bottom))} }
+@media(max-width:640px){ #uiToast{bottom:calc(80px + env(safe-area-inset-bottom))} body.ui-modal #uiToast{bottom:calc(92px + env(safe-area-inset-bottom))} }
 
 /* ── 생산원가 계산기 ── */
 #costCalc .cc-meth{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
@@ -839,14 +840,50 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 #costCalc .cc-new-f .tbtn{flex:1 1 100%}
 @media(max-width:640px){ #costCalc .cc-new-f input,#costCalc .cc-new-f select{font-size:16px} }
 .la-cc{margin-left:6px;border:1px solid #BBF7D0;background:#F0FDF4;color:#166534;border-radius:14px;padding:1px 8px;font-size:11px;font-weight:700;cursor:pointer}
-#costCalc .cc-prod{width:100%;margin-top:8px;border:1px solid #E2E8F0;border-radius:10px;padding:9px 12px;font-size:14px;background:#fff;box-sizing:border-box}
-#costCalc .cc-rc-hd{margin-top:10px;font-size:11.5px;font-weight:700;color:var(--ink-faint)}
-#costCalc .cc-rc{display:flex;gap:6px;overflow-x:auto;padding:4px 0 2px;-webkit-overflow-scrolling:touch}
-#costCalc .cc-rc button{flex:0 0 auto;max-width:180px;text-align:left;border:1px solid #E2E8F0;background:#fff;border-radius:10px;padding:6px 10px;display:flex;flex-direction:column;gap:1px;cursor:pointer}
-#costCalc .cc-rc button b{font-size:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#costCalc .cc-rc button em{font-style:normal;font-size:11px;color:var(--ink-soft);white-space:nowrap}
-#costCalc .cc-rc button.on{border-color:var(--xl-green);background:#F0FDF4}
-@media(max-width:640px){ #costCalc .cc-prod{font-size:16px} }
+#pmBar,#costCalc .cc-bar{position:sticky;bottom:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #E2E8F0;box-shadow:0 -6px 16px rgba(15,23,42,.06)}
+#pmBar span,#costCalc .cc-bar span{display:block;font-size:11px;color:var(--ink-soft);font-weight:700}
+#pmBar b,#costCalc .cc-bar b{font-size:20px;color:#1D4ED8}
+#pmBar b.neg{color:var(--red)}
+#pmBar span{max-width:210px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pmBar .tbtn,#costCalc .cc-bar .tbtn{min-width:110px;padding:10px 16px;font-size:14px}
+#costCalc .cc-seg2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+#costCalc .cc-seg{display:flex;background:#F1F5F9;border-radius:10px;padding:3px}
+#costCalc .cc-seg button{flex:1;border:0;background:transparent;border-radius:8px;padding:8px 4px;font-size:13px;font-weight:700;color:var(--ink-soft);cursor:pointer}
+#costCalc .cc-seg button.on{background:#fff;color:var(--xl-green);box-shadow:0 1px 3px rgba(15,23,42,.12)}
+#costCalc .cc-imp3{display:grid;grid-template-columns:1.6fr 1fr .8fr;gap:6px}
+#costCalc .cc-oemrow{display:flex;align-items:flex-end;gap:10px;margin-top:10px}
+#costCalc .cc-oemrow .qc-f{flex:1}
+#costCalc .cc-chk{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--ink-soft);padding-bottom:9px;white-space:nowrap}
+#costCalc .cc-qty{display:flex;gap:8px;margin-top:12px}
+#costCalc .cc-qty .qc-f{flex:1}
+#costCalc .cc-sthd{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:13px}
+#costCalc .cc-sthd em{font-style:normal;font-size:11.5px;color:var(--ink-faint)}
+#costCalc .cc-sthd .cc-dt{margin-left:auto}
+#costCalc .cc-add{margin-top:6px;padding:5px 12px;font-size:12px}
+#costCalc .cc-row .cc-amt{width:110px;text-align:right}
+#costCalc .cc-simple label i{white-space:nowrap;font-style:normal;font-size:10.5px;color:var(--ink-faint);margin-right:2px}
+#costCalc .cc-res{margin-top:16px;padding:12px 14px;border-radius:14px;background:#EFF6FF}
+#costCalc .cc-big span,#costCalc .cc-two span{display:block;font-size:11.5px;font-weight:700;color:var(--ink-soft)}
+#costCalc .cc-big b{font-size:26px;color:#1D4ED8}
+#costCalc .cc-big small{display:block;font-size:11px;color:var(--ink-soft)}
+#costCalc .cc-two{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+#costCalc .cc-two>div{background:#fff;border-radius:10px;padding:8px 10px}
+#costCalc .cc-two b{font-size:15px}
+#costCalc .cc-brk{margin-top:8px}
+#costCalc .cc-left{width:100%;margin-top:6px;font-size:12px;border-collapse:collapse}
+#costCalc .cc-left td,#costCalc .cc-left th{padding:3px 4px;text-align:right}
+#costCalc .cc-left td:first-child,#costCalc .cc-left th:first-child{text-align:left}
+#costCalc .cc-more{margin-top:10px}
+#costCalc .cc-more .tbtn{margin-top:6px}
+@media(max-width:640px){ #costCalc .cc-imp3{grid-template-columns:1fr 1fr} #costCalc .cc-imp3 .qc-f:first-child{grid-column:1/-1} #costCalc .cc-row .cc-amt{width:auto;flex:1;min-width:0} }
+:is(#costCalc,#promoCalc) .cc-prod{width:100%;margin-top:8px;border:1px solid #E2E8F0;border-radius:10px;padding:9px 12px;font-size:14px;background:#fff;box-sizing:border-box}
+:is(#costCalc,#promoCalc) .cc-rc-hd{margin-top:10px;font-size:11.5px;font-weight:700;color:var(--ink-faint)}
+:is(#costCalc,#promoCalc) .cc-rc{display:flex;gap:6px;overflow-x:auto;padding:4px 0 2px;-webkit-overflow-scrolling:touch}
+:is(#costCalc,#promoCalc) .cc-rc button{flex:0 0 auto;max-width:180px;text-align:left;border:1px solid #E2E8F0;background:#fff;border-radius:10px;padding:6px 10px;display:flex;flex-direction:column;gap:1px;cursor:pointer}
+:is(#costCalc,#promoCalc) .cc-rc button b{font-size:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:is(#costCalc,#promoCalc) .cc-rc button em{font-style:normal;font-size:11px;color:var(--ink-soft);white-space:nowrap}
+:is(#costCalc,#promoCalc) .cc-rc button.on{border-color:var(--xl-green);background:#F0FDF4}
+@media(max-width:640px){ :is(#costCalc,#promoCalc) .cc-prod{font-size:16px} }
 #costCalc .cc-meth.cc-src{grid-template-columns:repeat(2,minmax(0,1fr))}
 #costCalc .cc-src button{font-size:13px;padding:9px 4px}
 #costCalc .cc-row .cc-per{white-space:nowrap}
@@ -857,17 +894,21 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 #costCalc .cc-dt{border:1px solid #E2E8F0;background:#fff;border-radius:14px;padding:3px 10px;font-size:11.5px;font-weight:700;color:var(--ink-soft);cursor:pointer;white-space:nowrap}
 #costCalc .cc-dt.on{border-color:var(--xl-green);color:var(--xl-green)}
 #costCalc .cc-dnote{font-size:11px;color:var(--ink-faint);margin-top:4px}
-#costCalc .cc-simple{flex-wrap:nowrap}
-#costCalc .cc-simple .cc-nm{flex:1 1 auto;min-width:0}
+#costCalc .cc-simple{flex-wrap:wrap}
+#costCalc .cc-simple .cc-nm{flex:1 1 100%;min-width:0}
+#costCalc .cc-simple .cc-per{margin-left:auto}
+#costCalc .cc-sm .cc-nm{flex:1 1 100%;min-width:0}
+#costCalc .cc-sm .cc-amt{flex:1;min-width:0;width:auto}
+#costCalc .cc-row label{white-space:nowrap}
 #costCalc .cc-simple label input{width:76px}
 #costCalc .cc-simple label input.cc-use{width:50px}
 #costCalc .cc-sym{font-size:12px;color:var(--ink-soft);font-weight:700}
-#costCalc details.cc-sec{margin-top:14px}
-#costCalc details.cc-sec>summary{cursor:pointer;font-size:13px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:6px;list-style:none;padding:6px 0}
-#costCalc details.cc-sec>summary::before{content:'▸';color:var(--ink-faint);font-size:11px}
-#costCalc details.cc-sec[open]>summary::before{content:'▾'}
-#costCalc details.cc-sec>summary em{font-style:normal;font-weight:500;font-size:11.5px;color:var(--ink-faint)}
-#costCalc details.cc-sec>summary b{margin-left:auto;font-size:12px;color:var(--ink-soft)}
+:is(#costCalc,#promoCalc) details.cc-sec{margin-top:14px}
+:is(#costCalc,#promoCalc) details.cc-sec>summary{cursor:pointer;font-size:13px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:6px;list-style:none;padding:6px 0}
+:is(#costCalc,#promoCalc) details.cc-sec>summary::before{content:'▸';color:var(--ink-faint);font-size:11px}
+:is(#costCalc,#promoCalc) details.cc-sec[open]>summary::before{content:'▾'}
+:is(#costCalc,#promoCalc) details.cc-sec>summary em{font-style:normal;font-weight:500;font-size:11.5px;color:var(--ink-faint)}
+:is(#costCalc,#promoCalc) details.cc-sec>summary b{margin-left:auto;font-size:12px;color:var(--ink-soft)}
 @media(max-width:640px){ #costCalc .cc-simple{flex-wrap:wrap} #costCalc .cc-simple .cc-nm{flex:1 1 100%} #costCalc .cc-simple .cc-per{margin-left:auto} }
 #costCalc .cc-inco-note{margin:6px 0 4px;padding:8px 10px;border-radius:10px;background:#F0F9FF;color:#075985;font-size:12px;line-height:1.5}
 #costCalc .cc-var{font-size:11px;color:#6D28D9}
@@ -894,9 +935,19 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 #calcMenu button:hover{outline:2px solid var(--xl-green)}
 #promoCalc .pm-goal{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
 #promoCalc .pm-ex{margin-top:10px;background:#FFF7ED;border-radius:12px;padding:10px 12px}
-#promoCalc .pm-card{margin-top:10px;border:1.5px solid #EEF0F3;border-radius:14px;padding:10px 12px;cursor:pointer;background:#fff}
+#promoCalc .pm-card{position:relative;margin-top:10px;border:1.5px solid #EEF0F3;border-radius:14px;padding:10px 12px;cursor:pointer;background:#fff}
 #promoCalc .pm-card.on{border-color:var(--xl-green);box-shadow:0 0 0 3px rgba(16,124,65,.12)}
-#promoCalc .pm-hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#promoCalc .pm-hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-right:22px}
+#promoCalc .pm-card>.pm-hd>.pm-x{position:absolute;top:8px;right:8px}
+#promoCalc .pm-pick{width:18px;height:18px;border-radius:50%;border:1.5px solid #CBD5E1;color:transparent;font-size:11px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;flex:0 0 18px}
+#promoCalc .pm-card.on .pm-pick{background:var(--xl-green);border-color:var(--xl-green);color:#fff}
+#promoCalc .pm-hint{margin-top:12px;font-size:11.5px;color:var(--ink-faint)}
+#promoCalc .pm-chrow{display:flex;align-items:center;gap:8px;margin-top:8px}
+#promoCalc .pm-chrow>span{font-size:11.5px;font-weight:700;color:var(--ink-soft)}
+#promoCalc .pm-chrow .qc-chips{margin-top:0;flex:1}
+#promoCalc .pm-goal{margin-top:12px}
+#promoCalc .pm-editing{margin-top:8px;font-size:12px;color:#92400E;background:#FFFBEB;border-radius:8px;padding:6px 10px}
+#promoCalc #pmInfo .qc-in{margin-top:12px}
 #promoCalc .pm-hd>b{font-size:13.5px}
 #promoCalc .pm-ps{display:flex;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-soft)}
 #promoCalc .pm-ps input{width:70px;border:1px solid #E2E8F0;border-radius:6px;padding:3px 6px;font-size:12.5px;text-align:right;margin:0 2px}
@@ -934,7 +985,7 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.25b</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.25e</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1820,14 +1871,13 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 <!-- ═══ 퀵 마진 계산기 ═══ -->
 <button id="calcFab"><span class="sym">fx</span> 계산기</button>
 <div id="calcMenu">
-  <button data-open="calcPanel">🧮 단가 계산기<em>원가·수량 → 판매가·정가·할인 단계 (공급사 협의)</em></button>
-  <button data-open="promoCalc">🎯 프로모션 계산기<em>기존 제품 할인·증정·체험단 기획 (유통기한 털기)</em></button>
-  <button data-open="costCalc">🏭 생산원가 계산기<em>기존·신제품 원료·부자재·작업비·수입비 → 개당 원가 (가격정책표 자동 반영)</em></button>
+  <button data-open="calcPanel">🧮 단가 계산기<em>원가 → 판매가·할인 한도</em></button>
+  <button data-open="promoCalc">🎯 프로모션 계산기<em>할인·증정·체험단 → 이익</em></button>
+  <button data-open="costCalc">🏭 생산원가 계산기<em>매입·생산·수입 → 개당 원가</em></button>
 </div>
 <div id="costCalc">
   <div class="hd">생산원가 계산기 <button id="ccClose">✕</button></div>
   <div class="bd">
-    <div class="qc-st">제품</div>
     <div class="qc-chips cc-meth cc-src" id="ccPick"></div>
     <input id="ccProd" class="cc-prod" list="ccProdList" placeholder="제품명 검색"><datalist id="ccProdList"></datalist>
     <div id="ccNewHint"></div>
@@ -1835,27 +1885,30 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
     <datalist id="ccMatList"></datalist>
     <div id="ccTop"></div>
     <div id="ccBody"></div>
-    <div class="pm-save"><button class="tbtn primary" id="ccSave">💾 저장 · 원가 반영</button><button class="tbtn" id="ccConfirm" title="이번 생산을 확정하고 부자재 재고를 늘리거나 줄입니다">🏭 생산 확정 (부자재 재고 반영)</button></div>
     <div id="ccHist" style="margin-top:8px"></div>
-    <p class="note">① 국내/수입 → ② 방식 → 단가만 넣으면 끝 · 재생산 원가(고정비 제외)가 가격정책표 원가로 저장 · VAT 제외 금액</p>
+    <details class="cc-sec cc-more" id="ccMore"><summary>⋯ 더보기</summary><button class="tbtn" id="ccConfirm">🏭 생산 확정 · 포장재 재고 반영</button></details>
   </div>
+  <div class="cc-bar" id="ccBar"><div><span>개당 원가</span><b id="ccBarV">—</b></div><button class="tbtn primary" id="ccSave">저장</button></div>
 </div>
 <div id="promoCalc">
-  <div class="hd">프로모션 계산기 · 기존 제품 <button id="pmClose">✕</button></div>
+  <div class="hd">프로모션 계산기 <button id="pmClose">✕</button></div>
   <div class="bd">
+    <input id="pmProd" class="cc-prod" list="pmProdList" placeholder="제품 검색"><datalist id="pmProdList"></datalist>
     <div id="pmSaved"></div>
-    <label class="qc-f"><span>제품</span><input id="pmProd" list="pmProdList" placeholder="제품명 검색"><datalist id="pmProdList"></datalist></label>
-    <div id="pmInfo"></div>
-    <div class="qc-st" style="margin-top:12px">목적</div>
     <div class="qc-chips pm-goal" id="pmGoal"></div>
-    <div class="qc-chips qc-chs" id="pmCh" style="margin-top:8px"></div>
+    <div class="pm-chrow"><span>채널</span><div class="qc-chips qc-chs" id="pmCh"></div></div>
+    <div id="pmInfo"></div>
     <div id="pmBody"></div>
-    <div class="pm-save"><input id="pmTitle" placeholder="기획안 이름 (비우면 자동)"><button class="tbtn primary" id="pmSave">💾 저장</button><button class="tbtn" id="pmSaveNew" title="지금 내용을 새 기획안으로 따로 저장">새로 저장</button><span id="pmMsg" class="note" style="margin:0"></span></div>
-    <p class="note">고른 카드(초록 테두리)를 저장 · 부대비용은 단가 계산기 설정 사용 · <button class="qc-link" id="pmMore">자세히: 프로모션 설계 화면</button></p>
+    <details class="cc-sec" id="pmMoreBox"><summary>⋯ 더보기</summary>
+      <div class="pm-save"><input id="pmTitle" placeholder="기획안 이름 (비우면 자동)"><button class="tbtn" id="pmSaveNew">새 기획안으로 저장</button></div>
+      <button class="qc-link" id="pmMore">프로모션 설계 화면에서 자세히 →</button>
+      <div id="pmMsg" class="note" style="margin:6px 0 0"></div>
+    </details>
   </div>
+  <div class="cc-bar" id="pmBar"><div><span id="pmBarL">선택</span><b id="pmBarV">—</b></div><button class="tbtn primary" id="pmSave">저장</button></div>
 </div>
 <div id="calcPanel">
-  <div class="hd">단가 계산기 · 공급사 협의용 <button id="calcClose">✕</button></div>
+  <div class="hd">단가 계산기 <button id="calcClose">✕</button></div>
   <div class="bd">
     <div class="qc-in">
       <label class="qc-f"><span>개당 원가</span><input type="number" id="cCost" inputmode="numeric" placeholder="예: 8000"></label>
@@ -1863,12 +1916,12 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
     </div>
     <div id="calcRes"></div>
     <div class="qc-sec">
-      <div class="qc-st">할인 단계 <em>버튼 선택 → 할인율 직접 조정 가능</em></div>
+      <div class="qc-st">할인 단계</div>
       <div class="qc-chips qc-stg" id="qcSplit"></div>
       <div id="qcSplitOut"></div>
     </div>
     <details class="qc-adv" id="qcAdv">
-      <summary>자동으로 넣은 부대비용 <span id="qcAdvSum"></span></summary>
+      <summary>⚙ 부대비용 <span id="qcAdvSum"></span></summary>
       <div class="qc-in qc-in3">
         <label class="qc-f"><span>PG 수수료 % <em>(모든 채널 고정)</em></span><input type="number" id="qcPg" step="0.1"></label>
         <label class="qc-f"><span>자사몰·스마트스토어 판매수수료 %</span><input type="number" id="qcFeeOwn" step="0.1"></label>
@@ -1887,7 +1940,7 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
         <label>적극 최소이익률 <input type="number" id="qcS3" step="1">%</label>
       </div>
       <div class="qc-row2"><button class="tbtn" id="qcSaveDef">이 값을 기본값으로 저장</button><button class="tbtn" id="qcResetDef">처음 값으로</button></div>
-      <p class="note">판매가 VAT 포함 · 원가·비용 VAT 제외 · 수수료 = 판매가 × (판매수수료+PG) · 기본값 이 기기 저장</p>
+      <p class="note">판매가 VAT 포함 · 원가 VAT 제외 · 이 기기에 저장</p>
     </details>
   </div>
 </div>
@@ -4330,7 +4383,7 @@ function runCalc(keepFocus){
   const keep=typeof keepFocus==='string'?keepFocus:'';
   const out=$('#calcRes'); if(!out) return;
   const cost=+$('#cCost').value||0, qty=Math.max(0,+$('#cQty').value||0), o=qcVals();
-  $('#qcAdvSum').textContent=`판매수수료 자사몰·스마트스토어 ${o.feeOwn}%·쿠팡 ${o.feeCp}% · PG ${o.pg}%(고정) · 광고 ${o.ad}% · 정가 = 판매가 +${o.listUp}% · 물류 원가의 ${o.logi}%·택배 ${won(o.deli)}원 (임시값)`;
+  $('#qcAdvSum').textContent=`수수료 ${o.feeOwn}%·${o.feeCp}% · PG ${o.pg}% · 택배 ${won(o.deli)}원 · 정가 +${o.listUp}%`;
   if(!(cost>0)){ out.innerHTML='<div class="qc-empty">원가 입력 → 바로 계산</div>'; $('#qcSplitOut').innerHTML=''; return; }
   const c=qcChan(cost,o,QC_CH,QC_PRICE);
   if(c.price==null){ out.innerHTML='<div class="qc-empty" style="color:var(--red)">수수료 과다 → 계산 불가 · 마진↓ 또는 부대비용 확인</div>'; $('#qcSplitOut').innerHTML=''; return; }
@@ -4355,7 +4408,7 @@ function runCalc(keepFocus){
       ${c.maxDisc!=null?`<div class="qc-kv"><span>공동구매 할인한도</span><b class="${c.maxDisc<c.listDisc?'neg':''}">정가에서 <span class="nw">최대 ${pct(Math.max(0,c.maxDisc))}까지 할인 ${c.maxDisc>0?'O':'X'}</span></b></div>
       <div class="qc-kv qc-sub"><span>손익분기가</span><b>${qcW(Math.ceil(c.be/10)*10)}</b></div>`:''}`;
   $('#qcNums').innerHTML=`
-      <div><span>개당 이익</span><b class="${c.profit<0?'neg':'pos'}">${qcW(c.profit)}</b><small>원가 대비 ${pct(c.mu)} · 판매가 대비 ${pct(c.rate)}</small></div>
+      <div><span>개당 이익</span><b class="${c.profit<0?'neg':'pos'}">${qcW(c.profit)}</b><small>원가 대비 ${pct(c.mu)} · 이익률 ${pct(c.rate)}</small></div>
       <div><span>원가 (부대비용 포함)</span><b>${qcW(c.full)}</b><small>매입 ${won(cost)} · 물류 ${won(c.logi)} · 택배 ${won(o.deli)}${o.pack?' · 포장 '+won(o.pack):''} · 수수료 ${won(c.salesFee)} · PG ${won(c.pgFee)}${o.ad?' · 광고 '+won(c.adFee):''}</small></div>
       <div class="qc-span"><span>${qty>0?`${won(qty)}개 판매 시`:'수량 입력 → 총액'}</span>${qty>0?`<b>매출 ${qcT(c.price*qty)}</b><small>이익 <b class="${c.profit<0?'neg':'pos'}">${qcT(c.profit*qty)}</b> · 매입비 ${qcT(cost*qty)}</small>`:''}</div>`;
   // 채널별 한눈 비교 (같은 판매가·같은 마진 기준)
@@ -4403,7 +4456,7 @@ function runCalc(keepFocus){
   $('#qcMineS').innerHTML=`이익률 ${pct(rate)}${qty>0?` · ${won(qty)}개 ${qcT(mine*qty)}`:''}`;
   $('#qcPart').innerHTML=qcW(Math.max(0,partner));
   $('#qcPartS').innerHTML=qty>0?`${won(qty)}개 ${qcT(Math.max(0,partner)*qty)}`:'판매가와 할인가 차이';
-  $('#qcDNote').innerHTML=mine<0?'<b class="neg">손익분기 아래 → 적자</b>':`나의 이익 + 파트너 이익 = 원래 개당 이익 ${qcW(c.profit)}`;
+  $('#qcDNote').innerHTML=mine<0?'<b class="neg">손익분기 아래 → 적자</b>':`합계 = 개당 이익 ${qcW(c.profit)}`;
 }
 
 /* ══════════ 입고예정 CRM 송신 (가격대시보드 → pourstorecrm) ══════════
@@ -8509,25 +8562,37 @@ function renderPromoCalc(){
   $('#pmCh').innerHTML=QC_CHS.map(([k,lb,fk])=>`<button data-pch="${k}" class="${k===PM.ch?'on':''}">${lb} <em>${qcVals()[fk]}%</em></button>`).join('');
   pmRenderSaved();
   const p=pmProducts().find(x=>pKey(x)===PM.key);
-  if(!p){ $('#pmInfo').innerHTML=''; body.innerHTML='<div class="qc-empty">제품 선택 → 기획안 계산</div>'; return; }
+  if(!p){ $('#pmInfo').innerHTML=''; body.innerHTML=''; pmBar(); return; }
   const ex=PM.exInfo;
   $('#pmInfo').innerHTML=`
     <div class="qc-in">
       <label class="qc-f"><span>현재 판매가</span><input type="number" id="pmPrice" value="${PM.price??''}"></label>
-      <label class="qc-f"><span>원가 ${(p.cost>0)?'':'<em>(가격정책표에 없음)</em>'}</span><input type="number" id="pmCost" value="${PM.cost??''}"></label>
+      <label class="qc-f"><span>원가 ${(p.cost>0)?'':'<em>입력 필요</em>'}</span><input type="number" id="pmCost" value="${PM.cost??''}"></label>
     </div>
     ${PM.goal==='clear'?`<div class="pm-ex">${ex?`<div class="qc-kv"><span>유통기한 재고</span><b>${won(ex.qty)}개 · 가장 빠른 기한 ${esc(ex.expiry||'—')}${ex.rem!=null?` (D-${ex.rem})`:''}</b></div>
       <div class="qc-kv"><span>하루 판매</span><b>요즘 ${ex.avg==null?'—':(Math.round(ex.avg*10)/10)}개 → 필요 ${ex.need==null?'—':(Math.round(ex.need*10)/10)}개${ex.ratio!=null&&isFinite(ex.ratio)?` (${Math.round(ex.ratio*10)/10}배)`:''}</b></div>`:
-      `<div class="qc-kv qc-sub"><span>유통기한 재고</span><b>${EX.lots?'연결된 재고 없음 — 아래에 직접 입력':'불러오는 중…'}</b></div>`}
+      `<div class="qc-kv qc-sub"><span>유통기한 재고</span><b>${EX.lots?'연결 없음 · 직접 입력':'불러오는 중…'}</b></div>`}
       <label class="qc-f" style="margin-top:6px"><span>털어낼 재고 (개)</span><input type="number" id="pmStock" value="${PM.stock??''}"></label></div>`:''}`;
   const b=pmBase(), cards=pmCards();
-  if(!(b.P>0)||!(b.C>0)){ body.innerHTML='<div class="qc-empty">판매가·원가를 넣으면 계산합니다</div>'; return; }
-  body.innerHTML=cards.map((c,i)=>`<div class="pm-card${i===PM.sel?' on':''}" data-card="${i}">
-      <div class="pm-hd"><b>${esc(PM_T[c.t]||c.t)}</b><div class="pm-ps">${pmParams(c,i)}</div>${cards.length>1?`<button class="pm-x" data-rm="${i}" title="빼기">✕</button>`:''}</div>
+  if(!(b.P>0)||!(b.C>0)){ body.innerHTML='<div class="qc-empty">판매가 · 원가 입력</div>'; pmBar(); return; }
+  body.innerHTML=`<div class="pm-hint">카드를 눌러 선택 → 아래 [저장]</div>`+cards.map((c,i)=>`<div class="pm-card${i===PM.sel?' on':''}" data-card="${i}">
+      <div class="pm-hd"><span class="pm-pick">✓</span><b>${esc(PM_T[c.t]||c.t)}</b><div class="pm-ps">${pmParams(c,i)}</div>${cards.length>1?`<button class="pm-x" data-rm="${i}" title="빼기">✕</button>`:''}</div>
       <div id="pmR${i}">${pmResultHtml(c,i,b)}</div></div>`).join('')
-    +`<div class="pm-add"><select id="pmAddT">${Object.entries(PM_T).map(([t,lb])=>`<option value="${t}">${lb}</option>`).join('')}</select><button class="tbtn" id="pmAdd">＋ 추가</button><button class="tbtn" id="pmReset">↺ 기본 카드</button></div>`;
+    +`<div class="pm-add"><select id="pmAddT">${Object.entries(PM_T).map(([t,lb])=>`<option value="${t}">${lb}</option>`).join('')}</select><button class="tbtn" id="pmAdd">＋ 추가</button><button class="tbtn" id="pmReset">↺ 처음대로</button></div>`;
+  pmBar();
 }
-function pmRefresh(){ const b=pmBase(); pmCards().forEach((c,i)=>{ const el=$('#pmR'+i); if(el) el.innerHTML=pmResultHtml(c,i,b); }); }
+/* 하단 고정바: 고른 카드 · 이익 · 저장 */
+function pmCardLabel(c){ return c.t==='disc'?`할인 ${+c.v||0}%`:c.t==='nm'?`${+c.n||1}+${+c.m||0} 증정`:c.t==='second'?`두 번째 ${+c.v||0}% 할인`:c.t==='coupon'?`쿠폰 ${won(+c.v||0)}원`:c.t==='gift'?'사은품 소진':c.t==='review'?'체험단':(PM_T[c.t]||c.t); }
+function pmBar(){
+  const bar=$('#pmBar'), more=$('#pmMoreBox'); if(!bar) return;
+  const b=pmBase(), c=PM.key&&b.P>0&&b.C>0?pmCards()[PM.sel]:null;
+  bar.style.display=c?'':'none'; if(more) more.style.display=c?'':'none'; if(!c) return;
+  const r=pmCalc(c,b);
+  $('#pmBarL').textContent=`${PM.planId?'✎ ':''}${pmCardLabel(c)} · ${r.units>1?'주문당':'개당'} 이익`;
+  const v=$('#pmBarV'); v.textContent=qcW(r.profit); v.className=r.profit<0?'neg':'';
+  $('#pmSave').textContent=PM.planId?'수정 저장':'저장';
+}
+function pmRefresh(){ const b=pmBase(); pmCards().forEach((c,i)=>{ const el=$('#pmR'+i); if(el) el.innerHTML=pmResultHtml(c,i,b); }); pmBar(); }
 async function pmLoadPlans(force){
   if(PM.plans&&!force) return;
   try{ const d=await db.collection('product-meta').doc('promo-calc').get(); PM.plans=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[promo-calc] 저장된 기획안 ${Object.keys(PM.plans).length}건`); }
@@ -8538,13 +8603,14 @@ function pmRenderSaved(){
   const el=$('#pmSaved'); if(!el) return;
   const list=Object.values(PM.plans||{}).filter(x=>x&&x.id).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
   const who=e=>String(e||'').split('@')[0]||'—', when=t=>t?String(t).slice(5,16).replace('T',' '):'';
-  el.innerHTML=`<details${PM.planId?' open':''}><summary>저장된 기획안 ${list.length}건${PM.planId?` · <b>수정 중: ${esc((PM.plans[PM.planId]||{}).title||'')}</b>`:''}</summary>
-    ${list.length?list.map(x=>`<div class="pm-sv${x.id===PM.planId?' on':''}"><button data-load="${esc(x.id)}"><b>${esc(x.title||'(이름 없음)')}</b><em>${esc(x.prod||'')} · ${esc((PM_GOALS.find(g=>g[0]===x.goal)||['',''])[1])}</em><em>${esc(who(x.updatedBy))} · ${esc(when(x.updatedAt))}${(x.history||[]).length>1?` · 수정 ${(x.history||[]).length-1}회`:''}</em></button></div>`).join(''):'<div class="qc-kv qc-sub"><span>없음</span><b>아래에서 저장하면 여기 쌓입니다</b></div>'}
-    ${PM.planId?'<button class="qc-link" id="pmNew">＋ 새 기획안으로 시작</button>':''}</details>`;
+  const chip=x=>`<button data-load="${esc(x.id)}" class="${x.id===PM.planId?'on':''}"><b>${esc(x.title||'(이름 없음)')}</b><em>${x.result?qcW(x.result.profit):'—'} · ${esc(who(x.updatedBy))} ${esc(when(x.updatedAt).slice(0,5))}</em></button>`;
+  el.innerHTML=(list.length?`<div class="cc-rc-hd">최근 기획안</div><div class="cc-rc">${list.slice(0,5).map(chip).join('')}</div>`:'')
+    +(list.length>5?`<details class="cc-sec pm-all"><summary>전체 ${list.length}건</summary>${list.map(x=>`<div class="pm-sv${x.id===PM.planId?' on':''}"><button data-load="${esc(x.id)}"><b>${esc(x.title||'(이름 없음)')}</b><em>${esc(x.prod||'')} · ${esc((PM_GOALS.find(g=>g[0]===x.goal)||['',''])[1])} · ${esc(who(x.updatedBy))} ${esc(when(x.updatedAt))}${(x.history||[]).length>1?` · 수정 ${(x.history||[]).length-1}회`:''}</em></button></div>`).join('')}</details>`:'')
+    +(PM.planId?`<div class="pm-editing">✎ 수정 중 · ${esc((PM.plans[PM.planId]||{}).title||'')} <button class="qc-link" id="pmNew">새로 시작</button></div>`:'');
 }
 async function pmSave(asNew){
-  const p=pmProducts().find(x=>pKey(x)===PM.key); if(!p){ $('#pmMsg').textContent='제품을 먼저 고르세요'; return; }
-  const card=pmCards()[PM.sel]; if(!card){ $('#pmMsg').textContent='카드를 하나 고르세요'; return; }
+  const p=pmProducts().find(x=>pKey(x)===PM.key); if(!p){ uiToast('제품을 먼저 고르세요','err'); return; }
+  const card=pmCards()[PM.sel]; if(!card){ uiToast('카드를 하나 고르세요','err'); return; }
   await pmLoadPlans();
   const now=new Date().toISOString(), by=(curUser&&curUser.email)||'', r=pmCalc(card,pmBase());
   const id=(!asNew&&PM.planId&&PM.plans[PM.planId])?PM.planId:('pm'+Date.now().toString(36));
@@ -8557,7 +8623,7 @@ async function pmSave(asNew){
   const btn=$('#pmSave'); btn.disabled=true;
   try{ await db.collection('product-meta').doc('promo-calc').set({map:{[id]:plan}},{merge:true});
     PM.plans[id]=plan; PM.planId=id; logAct('프로모션계산기', title, prev?'수정 저장':'새로 저장');
-    $('#pmMsg').innerHTML=`<span class="pos">${prev?'수정본으로 저장':'저장'}됨 ✓ ${esc(by.split('@')[0])}</span>`; uiToast(`기획안 ${prev?'수정본으로 ':''}저장됨 · ${by.split('@')[0]}`,'ok'); pmRenderSaved(); }
+    $('#pmMsg').innerHTML=`<span class="pos">${prev?'수정본으로 저장':'저장'}됨 ✓ ${esc(by.split('@')[0])}</span>`; uiToast(`기획안 ${prev?'수정본으로 ':''}저장됨 · ${by.split('@')[0]}`,'ok'); pmRenderSaved(); pmBar(); }
   catch(e){ console.error('[promo-calc] 저장 실패', e); uiToast('기획안 저장 실패: '+(e.code||e.message||e),'err'); $('#pmMsg').innerHTML=`<span class="neg">저장 실패: ${esc(e.code||e.message||e)}</span>`; }
   finally{ btn.disabled=false; }
 }
@@ -8586,13 +8652,13 @@ async function openPromoCalc(key, preset){
     const ld=e.target.closest('[data-load]'); if(ld){ const x=(PM.plans||{})[ld.dataset.load]; if(!x) return;
       pmSetProduct(x.key); PM.planId=x.id; PM.goal=x.goal||'clear'; PM.ch=x.ch||'own'; PM.price=x.price||PM.price; PM.cost=x.cost||PM.cost; PM.stock=x.stock||PM.stock;
       PM.cards[PM.goal]=[{...x.card}]; PM.sel=0; const p=pmProducts().find(y=>pKey(y)===x.key); $('#pmProd').value=p?prodLabel(p):x.prod; $('#pmTitle').value=x.title||''; renderPromoCalc(); return; }
-    if(e.target.id==='pmNew'){ PM.planId=null; $('#pmTitle').value=''; pmRenderSaved(); return; }
+    if(e.target.id==='pmNew'){ PM.planId=null; $('#pmTitle').value=''; pmRenderSaved(); pmBar(); return; }
     if(e.target.id==='pmAdd'){ const t=$('#pmAddT').value, d={disc:{v:20},nm:{n:1,m:1},second:{v:50},coupon:{v:3000,min:2},gift:{},review:{price:'',fee:0}}[t]||{}; pmCards().push({t,...d}); PM.sel=pmCards().length-1; renderPromoCalc(); return; }
     if(e.target.id==='pmReset'){ PM.cards[PM.goal]=null; PM.sel=0; renderPromoCalc(); return; }
     if(e.target.id==='pmSave'){ pmSave(false); return; }
     if(e.target.id==='pmSaveNew'){ pmSave(true); return; }
     if(e.target.id==='pmMore'){ if(PM.key){ openPromoFor(PM.key,{price:PM.price,cost:PM.cost,stock:PM.stock||''}); box.classList.remove('open'); } return; }
-    const cd=e.target.closest('[data-card]'); if(cd && !e.target.closest('input')){ PM.sel=+cd.dataset.card; $$('#pmBody .pm-card').forEach((x,i)=>x.classList.toggle('on',i===PM.sel)); }
+    const cd=e.target.closest('[data-card]'); if(cd && !e.target.closest('input')){ PM.sel=+cd.dataset.card; $$('#pmBody .pm-card').forEach((x,i)=>x.classList.toggle('on',i===PM.sel)); pmBar(); }
   });
   box.addEventListener('input',e=>{ const t=e.target;
     if(t.dataset.pi!=null){ const c=pmCards()[+t.dataset.pi]; if(c){ c[t.dataset.pf]=t.value; pmRefresh(); } return; }
@@ -8646,7 +8712,8 @@ async function openPromoCalc(key, preset){
    부자재 재고(product-meta/materials): 생산 확정 때 발주−사용만큼 늘고 줄며, 다른 제품에서 같은 이름을 쓰면 단가·재고 자동
    저장: product-meta/cost-calc {map: pKey → 계산서 + history[누가·언제·원가 전→후]} */
 const CC_METHODS=[['odm','완제품 매입(라벨갈이)'],['oem','위탁생산(공장 자재)'],['oemsrc','위탁생산(우리 자재 공급)']];
-const CC_KIND={goods:'원료·내용물·원단', mat:'부자재', work:'작업비'};
+const CC_INCO_SHORT={EXW:'공장에서 인수',FCA:'수출통관까지',FOB:'배 선적까지',CFR:'운임 포함',CIF:'운임·보험 포함',DAP:'우리 창고까지',DDP:'관세까지 포함'};
+const CC_KIND={goods:'원료', mat:'포장재', work:'작업비'};
 const CC_UNITS=['개','장','매','L','ml','kg','g','m','m²','yd','롤','세트','박스','벌'];
 const R_=(name,kind,unit,use,loss,v)=>({name,kind,unit,use:use??1,price:'',cur:'KRW',loss:loss??'',var:!!v,order:''});
 const CC_TPL={
@@ -8667,14 +8734,17 @@ let CC_DETAIL=false; try{ CC_DETAIL=localStorage.getItem('pour-cc-detail')==='1'
 const CC_INCO=[['EXW','공장인도','판매자 공장에서 받음 · 현지운송·수출통관부터 전부 우리'],['FCA','운송인인도','판매자가 수출통관 후 우리 포워더에 인도 · 운임부터 우리'],['FOB','본선인도','판매자가 배 선적까지 · 운임·보험부터 우리'],['CFR','운임포함','판매자가 운임까지 · 보험·도착항부터 우리'],['CIF','운임·보험포함','판매자가 운임·보험까지 · 도착항부터 우리'],['DAP','도착지인도','판매자가 우리 창고까지 · 수입통관·관세는 우리'],['DDP','관세지급인도','판매자가 관세·통관까지 전부 · 추가 비용만']];
 const CC_INCO_LN={origin:['현지 내륙운송·수출통관','USD',1],freight:['국제 운임 (해상·항공)','USD',1],ins:['적하보험','USD',1],dest:['도착항 비용 (THC·D/O·보관)','KRW',0],fwd:['포워더 수수료','KRW',0],broker:['수입통관 수수료 (관세사)','KRW',0],req:['요건확인·검사비 (KC·식약처 등)','KRW',0],inland:['국내 운송 (항구→창고)','KRW',0],etc:['기타 추가 비용 (하차 등)','KRW',0]};
 const CC_INCO_BUY={EXW:['origin','freight','ins','dest','fwd','broker','req','inland'],FCA:['freight','ins','dest','fwd','broker','req','inland'],FOB:['freight','ins','dest','fwd','broker','req','inland'],CFR:['ins','dest','fwd','broker','req','inland'],CIF:['dest','fwd','broker','req','inland'],DAP:['broker','req','etc'],DDP:['etc']};
-function ccIncoLines(code){ return (CC_INCO_BUY[code]||[]).map(k=>{ const [name,cur,cif]=CC_INCO_LN[k]; return {name,amt:'',cur,cif:!!cif}; }); }
+const CC_INCO_SIMPLE={EXW:[['해외 운송·보험','USD',1],['통관·국내 비용','KRW',0]],FCA:[['운임·보험','USD',1],['통관·국내 비용','KRW',0]],FOB:[['운임·보험','USD',1],['통관·국내 비용','KRW',0]],CFR:[['보험','USD',1],['통관·국내 비용','KRW',0]],CIF:[['통관·국내 비용','KRW',0]],DAP:[['통관 비용','KRW',0]],DDP:[['추가 비용','KRW',0]]};
+function ccIncoLines(code,full){ if(!full) return (CC_INCO_SIMPLE[code]||CC_INCO_SIMPLE.FOB).map(([name,cur,cif])=>({name,amt:'',cur,cif:!!cif}));
+  return (CC_INCO_BUY[code]||[]).map(k=>{ const [name,cur,cif]=CC_INCO_LN[k]; return {name,amt:'',cur,cif:!!cif}; }); }
+function ccTransSimple(){ const sl=(CC_INCO_SIMPLE[CC.inco]||[]).map(x=>x[0]); return CC.trans.length<=sl.length && CC.trans.every(t=>sl.includes(t.name)); }
 let CC={key:'', pick:'live', src:'dom', method:'odm', tpl:'basic', qty:1000, rows:[], trans:[], fixed:[], opts:[], loss:2, spare:3, fx:1400, duty:8, inco:'', data:null, mats:null};
 function ccDefault(method){
   let rows;
   if(method==='odm') rows=[R_('완제품 매입가','goods','개'),R_('라벨','mat','장'),R_('라벨 부착 작업비','work','개')];
   else { rows=[R_('내용물·원료','goods','L',1,'',1),R_('용기·캡','mat','개'),R_('라벨','mat','장'),R_('박스·설명서','mat','개'),R_('충진·포장 임가공비','work','개')];
     if(method==='oemsrc') rows.splice(1,0,R_('우리 원료(소스)','goods','kg',0.1,'',1)); }
-  const trans=method==='odm'?[{name:'공장 → 창고 입고 운송',amt:''}]:[{name:'부자재 → 공장 운송',amt:''},{name:'공장 → 창고 입고 운송',amt:''}];
+  const trans=method==='odm'?[{name:'입고 운송',amt:''}]:[{name:'자재 → 공장 운송',amt:''},{name:'공장 → 창고 운송',amt:''}];
   const fixed=method==='odm'?[{name:'라벨 디자인비',amt:''},{name:'시험성적서·인증',amt:''},{name:'샘플비',amt:''}]:[{name:'디자인비',amt:''},{name:'인쇄 동판·목형·금형',amt:''},{name:'시험성적서·인증',amt:''},{name:'샘플비',amt:''}];
   return {rows,trans,fixed};
 }
@@ -8736,8 +8806,8 @@ function ccSetProduct(key){
 function ccRowHtml(r,i,c){
   if(!CC_DETAIL) return `<div class="cc-row cc-simple" data-ri="${i}">
     <input class="cc-nm" data-rf="name" value="${esc(r.name)}" list="ccMatList" placeholder="항목">
-    <label>${r.cur==='USD'?'$':'₩'}<input type="number" data-rf="price" value="${esc(r.price)}" placeholder="단가" step="any"></label>
-    <label>×<input type="number" step="any" data-rf="use" value="${esc(r.use)}" class="cc-use">${esc(r.unit||'')}</label>
+    <label><i>단가</i>${r.cur==='USD'?'$':'₩'}<input type="number" inputmode="decimal" data-rf="price" value="${esc(r.price)}" placeholder="0" step="any"></label>
+    <label><i>수량</i><input type="number" inputmode="decimal" step="any" data-rf="use" value="${esc(r.use)}" class="cc-use">${esc(r.unit||'')}</label>
     <b class="cc-per" id="ccPer${i}"></b>
     <button class="pm-x" data-rrm="${i}" title="빼기">✕</button></div>`;
   return `<div class="cc-row" data-ri="${i}">
@@ -8745,9 +8815,9 @@ function ccRowHtml(r,i,c){
     <select data-rf="kind">${Object.entries(CC_KIND).map(([k,l])=>`<option value="${k}"${k===r.kind?' selected':''}>${l}</option>`).join('')}</select>
     <label>단가<select data-rf="cur" class="cc-cur"><option value="KRW"${r.cur!=='USD'?' selected':''}>₩</option><option value="USD"${r.cur==='USD'?' selected':''}>$</option></select><input type="number" data-rf="price" value="${esc(r.price)}" placeholder="0" step="any"></label>
     <label>1개당<input type="number" step="any" data-rf="use" value="${esc(r.use)}"><input class="cc-unit" data-rf="unit" value="${esc(r.unit||'')}" list="ccUnitList"></label>
-    <label>로스<input type="number" step="0.5" data-rf="loss" value="${esc(r.loss)}" placeholder="${Math.round(ccRowLoss({...r,loss:''})*1000)/10}" class="cc-loss">%</label>
-    ${CC.opts.length?`<label class="cc-var" title="옵션(사이즈·용량)에 따라 사용량이 달라지는 항목"><input type="checkbox" data-rf="var"${r.var?' checked':''}>옵션따라</label>`:''}
-    ${r.kind==='mat'?`<label>이번 발주<input type="number" data-rf="order" value="${esc(r.order)}" placeholder="0=재고사용"></label>`:''}
+    <label>손실<input type="number" step="0.5" data-rf="loss" value="${esc(r.loss)}" placeholder="${Math.round(ccRowLoss({...r,loss:''})*1000)/10}" class="cc-loss">%</label>
+    ${CC.opts.length?`<label class="cc-var" title="옵션(사이즈·용량)에 따라 사용량이 달라지는 항목"><input type="checkbox" data-rf="var"${r.var?' checked':''}>옵션별</label>`:''}
+    ${r.kind==='mat'?`<label>발주<input type="number" data-rf="order" value="${esc(r.order)}" placeholder="0=재고"></label>`:''}
     ${r.kind==='mat'?(()=>{ const m=(CC.mats||[]).find(x=>x.name===String(r.name||'').trim()); return m?`<span class="cc-stk" title="부자재 재고">재고 ${won(m.stock||0)}</span>`:''; })():''}
     <b class="cc-per" id="ccPer${i}"></b>
     <button class="pm-x" data-rrm="${i}" title="빼기">✕</button></div>`;
@@ -8755,8 +8825,8 @@ function ccRowHtml(r,i,c){
 function renderCostCalc(){
   const box=$('#ccBody'); if(!box) return;
   if(CC.key) CC.pick=ccKeyPick(CC.key);
-  $('#ccPick').innerHTML=[['live','✅ 출시완료 제품'],['plan','🆕 출시예정 · 신제품']].map(([k,l])=>`<button data-ccpick="${k}" class="${k===CC.pick?'on':''}">${l}</button>`).join('');
-  $('#ccProd').placeholder=CC.pick==='plan'?'출시준비 제품 검색 또는 가칭 입력 (예: 신규 세제 A)':'출시된 제품명 검색';
+  $('#ccPick').innerHTML=[['live','출시완료'],['plan','출시예정 · 신제품']].map(([k,l])=>`<button data-ccpick="${k}" class="${k===CC.pick?'on':''}">${l}</button>`).join('');
+  $('#ccProd').placeholder=CC.pick==='plan'?'제품 검색 · 없으면 가칭 입력':'제품 검색';
   $('#ccProdList').innerHTML=CC.pick==='plan'
     ? ccDrafts().map(k=>`<option value="${esc(ccKeyLabel(k))}">가칭 · 미등록</option>`).join('')+ccProducts().filter(p=>pstatus(p)==='출시준비').map(p=>`<option value="${esc(prodLabel(p))}">출시준비</option>`).join('')
     : ccProducts().filter(p=>pstatus(p)!=='출시준비').map(p=>`<option value="${esc(prodLabel(p))}">${pstatus(p)==='단종'?'단종':''}</option>`).join('');
@@ -8764,61 +8834,56 @@ function renderCostCalc(){
   if(CC.key&&$('#ccProd').value.trim()!==ccKeyLabel(CC.key)&&document.activeElement!==$('#ccProd')) $('#ccProd').value=ccKeyLabel(CC.key);
   ccRenderNewBar();
   $('#ccMatList').innerHTML=(CC.mats||[]).map(m=>`<option value="${esc(m.name)}">${esc(m.name)} · ${won(m.price)}원/${esc(m.unit||'')} · 재고 ${won(m.stock||0)}</option>`).join('');
-  const top=$('#ccTop'); const sv=$('#costCalc .pm-save'); if(sv) sv.style.display=CC.key?'':'none';
-  if(!CC.key){ top.innerHTML=''; box.innerHTML=`<div class="qc-empty">${CC.pick==='plan'?'출시준비 제품을 고르거나, 없는 제품은 가칭을 쓰고 [계산 시작]':'출시된 제품을 고르면 원가 계산 시작 · 저장하면 가격정책표 원가에 반영'}</div>`; $('#ccHist').innerHTML=''; return; }
-  const imp=ccIsImport(), inco=CC_INCO.find(x=>x[0]===CC.inco), D=CC_DETAIL, ddp=CC.inco==='DDP';
+  const top=$('#ccTop'); const bar=$('#ccBar'), more=$('#ccMore'); if(bar) bar.style.display=CC.key?'':'none'; if(more) more.style.display=CC.key?'':'none';
+  if(!CC.key){ top.innerHTML=''; box.innerHTML=''; $('#ccHist').innerHTML=''; return; }
+  const imp=ccIsImport(), D=CC_DETAIL, ddp=CC.inco==='DDP', odm=CC.method==='odm';
   const sum=a=>a.reduce((x,t)=>x+(+t.amt||0),0);
+  const seg=(attr,list,cur)=>`<div class="cc-seg">${list.map(([k,l])=>`<button data-${attr}="${k}" class="${cur(k)?'on':''}">${l}</button>`).join('')}</div>`;
   top.innerHTML=`
-    <div class="qc-st" style="margin-top:12px">① 어디서 사나요</div>
-    <div class="qc-chips cc-meth cc-src">${CC_SRC.map(([k,l])=>`<button data-ccsrc="${k}" class="${k===CC.src?'on':''}">${l}</button>`).join('')}</div>
-    ${CC.src==='imp'?`<div class="cc-impbox">
-      <label class="qc-f"><span>수입 조건 (인코텀즈)</span><select id="ccInco">${CC_INCO.map(([k,l])=>`<option value="${k}"${k===CC.inco?' selected':''}>${k} · ${l}</option>`).join('')}</select></label>
-      ${inco?`<div class="cc-inco-note">${esc(inco[2])}</div>`:''}
-      <div class="qc-in" style="margin-top:6px"><label class="qc-f"><span>환율 (원/$)</span><input type="number" id="ccFx" value="${esc(CC.fx)}"></label><label class="qc-f"><span>관세 % ${ddp?'<em>판매자 부담</em>':''}</span><input type="number" id="ccDuty" value="${esc(CC.duty)}" step="0.5"${ddp?' disabled':''}></label></div></div>`:''}
-    <div class="qc-st" style="margin-top:12px">② 어떻게 만드나요</div>
-    <div class="qc-chips cc-meth" id="ccMethod">${CC_METHODS.map(([k,l])=>`<button data-ccm="${k}" class="${k===CC.method?'on':''}">${l}</button>`).join('')}</div>
-    <div class="cc-mdesc">${esc(CC_MDESC[CC.method]||'')}</div>
-    ${CC.method!=='odm'?`<label class="qc-f" style="margin-top:10px"><span>③ 품목 템플릿 <em>고르면 그 품목의 기본 항목으로</em></span><select id="ccTpl">${Object.entries(CC_TPL).map(([k,t])=>`<option value="${k}"${k===CC.tpl?' selected':''}>${t.lb}</option>`).join('')}</select></label>`:''}`;
+    <div class="cc-seg2">${seg('ccsrc',[['dom','국내'],['imp','수입']],k=>k===CC.src)}${seg('ccm',[['odm','완제품'],['oem','위탁생산']],k=>k==='odm'?odm:!odm)}</div>
+    ${CC.src==='imp'?`<div class="cc-impbox"><div class="cc-imp3">
+      <label class="qc-f"><span>조건</span><select id="ccInco">${CC_INCO.map(([k])=>`<option value="${k}"${k===CC.inco?' selected':''}>${k} · ${CC_INCO_SHORT[k]}</option>`).join('')}</select></label>
+      <label class="qc-f"><span>환율</span><input type="number" inputmode="decimal" id="ccFx" value="${esc(CC.fx)}"></label>
+      <label class="qc-f"><span>관세 %</span><input type="number" inputmode="decimal" id="ccDuty" value="${esc(ddp?0:CC.duty)}" step="0.5"${ddp?' disabled':''}></label></div></div>`:''}
+    ${!odm?`<div class="cc-oemrow"><label class="qc-f"><span>품목</span><select id="ccTpl">${Object.entries(CC_TPL).map(([k,t])=>`<option value="${k}"${k===CC.tpl?' selected':''}>${t.lb}</option>`).join('')}</select></label>
+      <label class="cc-chk"><input type="checkbox" id="ccOwnSrc"${CC.method==='oemsrc'?' checked':''}>원료 우리가 공급</label></div>`:''}`;
   box.innerHTML=`
-    <div class="qc-in" style="margin-top:12px"><label class="qc-f"><span>생산·매입 수량 (개)</span><input type="number" id="ccQty" value="${esc(CC.qty)}"></label>
-      ${D?`<label class="qc-f"><span>전체 로스 % · 부자재 여유 %</span><div style="display:flex;gap:6px"><input type="number" id="ccLoss" value="${esc(CC.loss)}" step="0.5"><input type="number" id="ccSpare" value="${esc(CC.spare)}" step="0.5"></div></label>`:''}</div>
-    <div class="qc-st cc-sthd" style="margin-top:14px"><span>개당 드는 돈 <em>VAT 제외 · 단가 × 1개당 수량</em></span><button class="cc-dt${D?' on':''}" id="ccDetail">${D?'간단히':'⚙ 세부 입력'}</button></div>
-    ${D?'<div class="cc-dnote">구분 · 통화 · 단위 · 로스 · 부자재 발주 수량까지 입력 (로스 비우면 전체값)</div>':''}
+    <div class="cc-qty"><label class="qc-f"><span>수량 (개)</span><input type="number" inputmode="numeric" id="ccQty" value="${esc(CC.qty)}"></label>
+      ${D?`<label class="qc-f"><span>손실 %</span><input type="number" id="ccLoss" value="${esc(CC.loss)}" step="0.5"></label><label class="qc-f"><span>포장재 여유 %</span><input type="number" id="ccSpare" value="${esc(CC.spare)}" step="0.5"></label>`:''}</div>
+    <div class="cc-sthd"><b>개당 비용</b><button class="cc-dt${D?' on':''}" id="ccDetail">${D?'간단히':'⚙ 세부'}</button></div>
     ${CC.rows.map((r,i)=>ccRowHtml(r,i)).join('')}
-    <button class="tbtn" id="ccAddRow" style="margin-top:6px">＋ 항목 추가</button>
-    <div class="qc-st" style="margin-top:14px">${imp?`수입 운송·통관 <em>${esc(CC.inco||'')} 기준 우리 부담 · 포워더 견적 총액</em>`:'운송비 <em>이번 생산 총액</em>'}</div>
-    ${CC.trans.map((t,i)=>`<div class="cc-row cc-sm${imp?' cc-imp':''}"><input class="cc-nm" data-tf="name" data-ti="${i}" value="${esc(t.name)}">${imp?(D?`<select data-tf="cur" data-ti="${i}" class="cc-cur"><option value="KRW"${t.cur!=='USD'?' selected':''}>₩</option><option value="USD"${t.cur==='USD'?' selected':''}>$</option></select>`:`<span class="cc-sym">${t.cur==='USD'?'$':'₩'}</span>`):''}<label>총액<input type="number" step="any" data-tf="amt" data-ti="${i}" value="${esc(t.amt)}" placeholder="0"></label>${imp&&D?`<label class="cc-var" title="관세 과세가격에 포함 (도착항까지의 운임·보험)"><input type="checkbox" data-tf="cif" data-ti="${i}"${t.cif?' checked':''}>관세포함</label>`:''}<button class="pm-x" data-trm="${i}">✕</button></div>`).join('')}
-    <button class="tbtn" id="ccAddTrans" style="margin-top:6px">＋ ${imp?'운송·통관':'운송비'} 추가</button>
-    <details class="cc-sec"${sum(CC.fixed)>0?' open':''}><summary>한 번만 드는 돈 <em>디자인·인증·샘플 등 · 첫 생산에만</em><b>${sum(CC.fixed)>0?qcT(sum(CC.fixed)):''}</b></summary>
-    ${CC.fixed.map((t,i)=>`<div class="cc-row cc-sm"><input class="cc-nm" data-xf="name" data-xi="${i}" value="${esc(t.name)}"><label>총액<input type="number" data-xf="amt" data-xi="${i}" value="${esc(t.amt)}" placeholder="0"></label><button class="pm-x" data-xrm="${i}">✕</button></div>`).join('')}
-    <button class="tbtn" id="ccAddFixed" style="margin-top:6px">＋ 고정비 추가</button></details>
-    <details class="cc-sec"${CC.opts.length?' open':''}><summary>옵션별 원가 <em>사이즈·용량이 여러 개일 때</em><b>${CC.opts.length?CC.opts.length+'개':''}</b></summary>
-    ${CC.opts.length?`<div class="cc-dnote">'옵션따라' 체크한 항목(세부 입력)의 사용량 × 배수</div>`:''}
+    <button class="tbtn cc-add" id="ccAddRow">＋ 항목</button>
+    <div class="cc-sthd"><b>${imp?'수입 비용':'운송비'}</b><em>총액</em>${imp&&ccTransSimple()&&CC_INCO_BUY[CC.inco]&&CC_INCO_BUY[CC.inco].length>2?`<button class="cc-dt" id="ccSplit">항목별로</button>`:''}</div>
+    ${CC.trans.map((t,i)=>`<div class="cc-row cc-sm${imp?' cc-imp':''}"><input class="cc-nm" data-tf="name" data-ti="${i}" value="${esc(t.name)}">${imp?(D?`<select data-tf="cur" data-ti="${i}" class="cc-cur"><option value="KRW"${t.cur!=='USD'?' selected':''}>₩</option><option value="USD"${t.cur==='USD'?' selected':''}>$</option></select>`:`<span class="cc-sym">${t.cur==='USD'?'$':'₩'}</span>`):'<span class="cc-sym">₩</span>'}<input type="number" inputmode="decimal" step="any" class="cc-amt" data-tf="amt" data-ti="${i}" value="${esc(t.amt)}" placeholder="0">${imp&&D?`<label class="cc-var"><input type="checkbox" data-tf="cif" data-ti="${i}"${t.cif?' checked':''}>관세 포함</label>`:''}<button class="pm-x" data-trm="${i}">✕</button></div>`).join('')}
+    <button class="tbtn cc-add" id="ccAddTrans">＋ 항목</button>
+    <details class="cc-sec"${sum(CC.fixed)>0?' open':''}><summary>첫 생산 비용 <em>디자인·인증·샘플</em><b>${sum(CC.fixed)>0?qcT(sum(CC.fixed)):''}</b></summary>
+    ${CC.fixed.map((t,i)=>`<div class="cc-row cc-sm"><input class="cc-nm" data-xf="name" data-xi="${i}" value="${esc(t.name)}"><span class="cc-sym">₩</span><input type="number" inputmode="numeric" class="cc-amt" data-xf="amt" data-xi="${i}" value="${esc(t.amt)}" placeholder="0"><button class="pm-x" data-xrm="${i}">✕</button></div>`).join('')}
+    <button class="tbtn cc-add" id="ccAddFixed">＋ 항목</button></details>
+    <details class="cc-sec"${CC.opts.length?' open':''}><summary>옵션별 원가 <em>사이즈·용량</em><b>${CC.opts.length?CC.opts.length+'개':''}</b></summary>
     ${CC.opts.map((o,i)=>`<div class="cc-row cc-sm"><input class="cc-nm" data-of="label" data-oi="${i}" value="${esc(o.label)}" placeholder="옵션 (예: L)"><label>배수<input type="number" step="0.01" data-of="mult" data-oi="${i}" value="${esc(o.mult)}" placeholder="1"></label>
       <select data-of="key" data-oi="${i}" class="cc-okey"><option value="">연결 제품 없음</option>${[CC.key,...ccSiblings(CC.key).map(pKey)].map(k=>{ const p=ccProducts().find(x=>pKey(x)===k); return `<option value="${esc(k)}"${k===o.key?' selected':''}>${esc(p?prodLabel(p):k)}</option>`; }).join('')}</select>
       <b class="cc-per" id="ccOpt${i}"></b><button class="pm-x" data-orm="${i}">✕</button></div>`).join('')}
-    <button class="tbtn" id="ccAddOpt" style="margin-top:6px">＋ 옵션 추가</button></details>
+    <button class="tbtn cc-add" id="ccAddOpt">＋ 옵션</button></details>
     <div id="ccOut"></div>`;
   ccRefresh(); ccRenderHist();
 }
 function ccRefresh(){
   const r=ccCalc(1), qty=r.qty;
   r.per.forEach((c,i)=>{ const el=$('#ccPer'+i); if(el) el.textContent=qcW(c); });
-  CC.opts.forEach((o,i)=>{ const el=$('#ccOpt'+i); if(el){ const x=ccCalc(+o.mult||1); el.textContent=`재생산 ${qcW(x.repeat)}`; } });
+  CC.opts.forEach((o,i)=>{ const el=$('#ccOpt'+i); if(el){ const x=ccCalc(+o.mult||1); el.textContent=qcW(x.repeat); } });
   const out=$('#ccOut'); if(!out) return;
   const p=ccProducts().find(x=>pKey(x)===CC.key), cur=p&&p.cost>0?p.cost:null;
-  out.innerHTML=`<div class="qc-grid" style="margin-top:14px">
-      <div class="qc-hl"><span>재생산 원가 / 개 <em>가격정책표 원가로 반영</em></span><b>${qcW(r.repeat)}</b><small>항목 합 ${qcW(r.unitVar)}${r.dutyU>0?` + 관세 ${qcW(r.dutyU)}`:''} + 운송·통관 ${qcW(r.trans/qty)}${cur!=null?` · 지금 원가 ${qcW(cur)}`:''}</small></div>
-      <div><span>첫 생산 원가 / 개</span><b>${qcW(r.first)}</b><small>+ 고정비 ${qcW(r.fixed/qty)} (${qcT(r.fixed)} ÷ ${won(qty)}개)</small></div>
-      <div><span>이번 생산 투입 자금</span><b>${qcT(r.cash)}</b><small>부자재 발주 수량 기준 · 재고 사용분 제외${r.vatU>0?` · 수입 부가세 ${qcT(r.vatU*qty)} 포함`:''}</small></div>
-    </div>
-    ${r.impGoods>0?`<div class="qc-cmp"><div class="qc-st2">수입 원가 <em>개당 · ${CC.inco||'조건 미선택'}</em></div>
-      <div class="qc-kv"><span>물품가 (원화 환산)</span><b>${qcW(r.impGoods)}</b></div>
-      <div class="qc-kv"><span>과세가격(물품가+운임·보험)</span><b>${qcW(r.dutyBase)}</b></div>
-      <div class="qc-kv"><span>관세 ${CC.inco==='DDP'?'(판매자 부담)':`${esc(CC.duty)}%`}</span><b>${qcW(r.dutyU)}</b></div>
-      <div class="qc-kv"><span>운송·통관(총액÷수량)</span><b>${qcW(r.trans/qty)}</b></div>
-      <div class="qc-kv qc-sub"><span>수입 부가세 10%(환급 · 원가 제외, 자금만)</span><b>${qcW(r.vatU)}</b></div></div>`:''}
-    ${r.left.length?`<div class="qc-cmp"><div class="qc-st2">부자재 남는 수량 <em>발주 − 사용(로스 포함)</em></div><table><thead><tr><th>부자재</th><th>발주</th><th>사용</th><th>남음</th></tr></thead><tbody>${r.left.map(l=>`<tr><td>${esc(l.name)}</td><td>${won(l.order)}</td><td>${won(Math.ceil(l.need))}</td><td class="${l.rest<0?'neg':''}">${l.rest<0?'재고에서 '+won(Math.ceil(-l.rest)):won(Math.floor(l.rest))}</td></tr>`).join('')}</tbody></table></div>`:''}`;
+  const bv=$('#ccBarV'); if(bv) bv.textContent=r.repeat>0?qcW(r.repeat):'—';
+  const kv=(a,b,c)=>`<div class="qc-kv${c?' qc-sub':''}"><span>${a}</span><b>${b}</b></div>`;
+  out.innerHTML=`<div class="cc-res">
+      <div class="cc-big"><span>개당 원가</span><b>${qcW(r.repeat)}</b>${cur!=null&&Math.round(cur)!==Math.round(r.repeat)?`<small>지금 가격표 ${qcW(cur)}</small>`:''}</div>
+      <div class="cc-two"><div><span>첫 생산 (개당)</span><b>${qcW(r.first)}</b></div><div><span>필요한 돈</span><b>${qcT(r.cash)}</b></div></div>
+      <details class="cc-sec cc-brk"><summary>내역 보기</summary>
+        ${kv('항목 합',qcW(r.unitVar))}${r.dutyU>0?kv(`관세 ${esc(CC.duty)}%`,qcW(r.dutyU)):''}${kv(ccIsImport()?'수입 비용 ÷ 수량':'운송비 ÷ 수량',qcW(r.trans/qty))}
+        ${kv('첫 생산 비용 ÷ 수량',qcW(r.fixed/qty))}
+        ${r.impGoods>0?kv('관세 기준 금액',qcW(r.dutyBase),1)+kv('수입 부가세 (환급·원가 제외)',qcW(r.vatU),1):''}
+        ${r.left.length?`<table class="cc-left"><thead><tr><th>포장재</th><th>발주</th><th>사용</th><th>남음</th></tr></thead><tbody>${r.left.map(l=>`<tr><td>${esc(l.name)}</td><td>${won(l.order)}</td><td>${won(Math.ceil(l.need))}</td><td class="${l.rest<0?'neg':''}">${l.rest<0?'재고 '+won(Math.ceil(-l.rest)):won(Math.floor(l.rest))}</td></tr>`).join('')}</tbody></table>`:''}
+      </details></div>`;
 }
 function ccKeyPick(k){ if(ccIsDraft(k)) return 'plan'; const p=ccProducts().find(x=>pKey(x)===k); return p&&pstatus(p)==='출시준비'?'plan':'live'; }
 /* 최근 계산 5개 (저장 기준) */
@@ -8826,22 +8891,22 @@ function ccRenderRecent(){
   const el=$('#ccRecent'); if(!el) return;
   const list=Object.entries(CC.data||{}).filter(([k,v])=>v&&v.updatedAt&&(ccIsDraft(k)||ccProducts().some(p=>pKey(p)===k)))
     .sort((a,b)=>String(b[1].updatedAt).localeCompare(String(a[1].updatedAt))).slice(0,5);
-  el.innerHTML=list.length?`<div class="cc-rc-hd">최근 계산</div><div class="cc-rc">${list.map(([k,v])=>{ const nm=ccIsDraft(k)?k.slice(CC_NEW.length):((ccProducts().find(p=>pKey(p)===k)||{}).name||k);
+  el.innerHTML=list.length?`<div class="cc-rc-hd">최근</div><div class="cc-rc">${list.map(([k,v])=>{ const nm=ccIsDraft(k)?k.slice(CC_NEW.length):((ccProducts().find(p=>pKey(p)===k)||{}).name||k);
       const c=v.result&&v.result.repeat; return `<button data-ccrecent="${esc(k)}" class="${k===CC.key?'on':''}"><b>${ccIsDraft(k)?'🆕 ':''}${esc(nm)}</b><em>${c?qcW(c):'—'} · ${esc(String(v.updatedAt).slice(5,10).replace('-','/'))}</em></button>`; }).join('')}</div>`:'';
 }
 function ccRenderNewBar(){
   const el=$('#ccNewHint'); if(!el) return;
   if(ccIsDraft(CC.key)){ const nm=CC.key.slice(CC_NEW.length);
     const cats=[...new Set(P.map(p=>p.cat).filter(Boolean))];
-    el.innerHTML=`<div class="cc-new"><b>🆕 신제품 초안</b> — 저장은 되지만 가격정책표에는 아직 없어요. 원가가 정해지면 출시 검토에 등록하세요.
+    el.innerHTML=`<div class="cc-new"><b>🆕 가칭</b> · 가격표 반영 전 · 확정되면 등록
       <div class="cc-new-f"><input id="ccNewCat" list="ccCatList" placeholder="분류 (예: 방수)"><datalist id="ccCatList">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
       <input id="ccNewSpec" placeholder="규격 (예: 4kg)"><select id="ccNewBrand">${BRAND_LIST.map(b=>`<option${b===(BRAND_FILTER||BRAND_DEFAULT)?' selected':''}>${esc(b)}</option>`).join('')}</select>
       <button class="tbtn primary" id="ccRegister">📝 출시 검토에 등록</button></div><div id="ccNewMsg" class="qc-kv qc-sub"></div></div>`;
     return; }
   const v=($('#ccProd')&&$('#ccProd').value.trim())||'';
   if(v && !v.startsWith(CC_NEWLB) && !ccProducts().some(p=>prodLabel(p)===v)){
-    const h=CC.pick==='plan'?`<button class="tbtn primary" id="ccStartNew" style="margin-top:6px;width:100%">🆕 '${esc(v)}' (가칭)으로 계산 시작</button>`
-      :`<div class="qc-kv qc-sub" style="margin-top:6px"><span>목록에 없는 제품</span><b>아직 없는 제품은 <a href="#" data-ccpick="plan">🆕 출시예정</a>에서 가칭으로 계산</b></div>`;
+    const h=CC.pick==='plan'?`<button class="tbtn primary" id="ccStartNew" style="margin-top:6px;width:100%">'${esc(v)}' 가칭으로 계산</button>`
+      :`<div class="qc-kv qc-sub" style="margin-top:6px"><span>없는 제품</span><b><a href="#" data-ccpick="plan">🆕 출시예정</a>에서 가칭으로</b></div>`;
     if(el.innerHTML!==h) el.innerHTML=h; return; }
   if(el.innerHTML) el.innerHTML='';
 }
@@ -8893,7 +8958,7 @@ async function ccSave(note){
   try{
     await db.collection('product-meta').doc('cost-calc').set({map:{[CC.key]:rec}},{merge:true});
     CC.data[CC.key]=rec;
-    if(draft){ uiToast('신제품 초안 저장됨 — 출시 검토에 등록하면 가격정책표에 들어가요','ok'); ccRenderHist(); ccRefresh(); renderCostCalc(); return true; }
+    if(draft){ uiToast('가칭 저장됨 · 가격표 반영은 등록 후','ok'); ccRenderHist(); ccRefresh(); renderCostCalc(); return true; }
     const main=optRes.find(o=>o.key===CC.key), applied=[];
     await ccApplyCost(CC.key, main?main.cost:cost); applied.push(prodLabel(p));
     for(const o of optRes){ if(o.key&&o.key!==CC.key){ const prev=await ccApplyCost(o.key,o.cost); const op=ccProducts().find(x=>pKey(x)===o.key); if(op){ applied.push(prodLabel(op)); logAct('생산원가', prodLabel(op), `${prev!=null?won(prev)+' → ':''}${won(o.cost)}원 (옵션)`); } } }
@@ -8937,7 +9002,8 @@ document.addEventListener('click',e=>{ const b=e.target.closest('[data-cc-open]'
     const sb=e.target.closest('[data-ccsrc]'); if(sb){ const v=sb.dataset.ccsrc; if(v===CC.src) return;
       if(dirty() && !confirm(`'${v==='imp'?'해외 수입':'국내'}'으로 바꾸면 항목이 그에 맞게 바뀌고 입력한 단가·운송비는 사라져요. 계속할까요?`)) return;
       CC.src=v; CC.inco=v==='imp'?(CC.inco||'FOB'):''; ccApplyStructure(); renderCostCalc(); return; }
-    const m=e.target.closest('[data-ccm]'); if(m){ if(m.dataset.ccm===CC.method) return;
+    if(e.target.id==='ccSplit'){ if(CC.trans.some(x=>+x.amt>0)&&!confirm('항목별로 나누면 입력한 수입 비용이 지워져요. 계속할까요?')) return; CC.trans=ccIncoLines(CC.inco,true); renderCostCalc(); return; }
+    const m=e.target.closest('[data-ccm]'); if(m){ if(m.dataset.ccm===CC.method||(m.dataset.ccm==='oem'&&CC.method==='oemsrc')) return;
       if(filled() && !confirm('생산 방식을 바꾸면 항목이 그 방식의 기본 항목으로 바뀌고 입력한 단가는 사라져요. 계속할까요?')) return;
       CC.method=m.dataset.ccm; if(CC.method==='odm') CC.tpl='basic'; const keepTrans=CC.trans.some(x=>+x.amt>0)?CC.trans:null; ccApplyStructure(); if(keepTrans) CC.trans=keepTrans;
       renderCostCalc(); return; }
@@ -8969,7 +9035,8 @@ document.addEventListener('click',e=>{ const b=e.target.closest('[data-cc-open]'
   box.addEventListener('change',e=>{ const t=e.target;
     if(t.id==='ccTpl'){ const T=CC_TPL[t.value]; if(!T) return; if(filled() && !confirm(`'${T.lb}' 템플릿의 기본 항목으로 바꿀까요? 지금 입력한 항목은 사라집니다.`)){ t.value=CC.tpl; return; }
       CC.tpl=t.value; const keepTrans=CC.trans.some(x=>+x.amt>0)?CC.trans:null; ccApplyStructure(); if(keepTrans) CC.trans=keepTrans; renderCostCalc(); return; }
-    if(t.id==='ccInco'){ const code=t.value; if(CC.trans.some(x=>+x.amt>0) && !confirm('수입 조건을 바꾸면 운송·통관 항목이 그 조건에 맞게 바뀝니다. 입력한 금액은 사라져요. 계속할까요?')){ t.value=CC.inco; return; }
+    if(t.id==='ccOwnSrc'){ CC.method=t.checked?'oemsrc':'oem'; if(CC.tpl==='basic'&&!filled()){ const keep=CC.trans; ccApplyStructure(); CC.trans=keep; } renderCostCalc(); return; }
+    if(t.id==='ccInco'){ const code=t.value; if(CC.trans.some(x=>+x.amt>0) && !confirm('조건을 바꾸면 수입 비용 항목이 바뀌고 입력한 금액이 지워져요. 계속할까요?')){ t.value=CC.inco; return; }
       CC.inco=code; CC.trans=ccIncoLines(code); renderCostCalc(); return; }
     if(t.dataset&&(t.dataset.rf==='kind'||t.dataset.rf==='cur')) renderCostCalc();
   });

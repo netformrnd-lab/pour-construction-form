@@ -518,7 +518,12 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
      375px 화면에서는 아무리 스크롤해도 가격 열이 화면 밖에 머문다. */
   #priceGrid .frz-spec,#priceGrid .frz-sup,#priceGrid .frz-cost,#priceGrid .frz-code{position:static!important;z-index:auto!important}
   #priceGrid .frz-edge{border-right:0!important;box-shadow:none!important}
-  #priceGrid .frz-name{min-width:150px!important;max-width:150px;border-right:2px solid #c3ccd4!important;box-shadow:6px 0 8px -6px rgba(0,0,0,.18)}
+  #priceGrid .frz-name{min-width:140px!important;max-width:140px;width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-right:2px solid #c3ccd4!important;box-shadow:6px 0 8px -6px rgba(0,0,0,.18)}
+  #priceGrid .frz-no,#priceGrid .frz-code{display:none!important}   /* 폰: No·코드 열 숨김 (PC에선 그대로) */
+  #priceGrid td{font-size:12px}
+  #priceGrid thead th.num{min-width:86px!important}
+  body[data-sh="sh-price"]:not(.fx-has) #fxbar{display:none!important}   /* 폰: 셀을 누르기 전엔 fx 줄 숨김 */
+  .tr-tools .tr-menu{left:0;right:auto;width:250px;max-height:60vh}
   #priceGrid td,#priceGrid th{padding-left:6px;padding-right:6px}
   #priceGrid .prodcopy,#priceGrid .proddel{display:none}   /* 좁은 화면에선 모드(⚙️)·수정(✏️)만 남김 */
   #priceGrid .rowtools{width:34px;margin-right:4px}
@@ -786,6 +791,27 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 .tbtn,.seg button,.qc-chips button,#sideNav .sn-item,#calcMenu button{transition:transform .08s ease}
 .tbtn:active,.seg button:active,.qc-chips button:active,#sideNav .sn-item:active,#calcMenu button:active,#calcFab:active{transform:scale(.96)}
 .tr-more{display:none}
+#sh-price .toolrow .tbtn.primary{background:var(--xl-green);border-color:var(--xl-green);color:#fff;font-weight:700}
+.tr-tools{position:relative;display:inline-block}
+.tr-tools .tr-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:60;min-width:220px;max-height:70vh;overflow:auto;background:#fff;border:1px solid #E2E8F0;border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.18);padding:6px}
+.tr-tools.open .tr-menu{display:block}
+.tr-tools .tr-menu .tbtn{width:100%;justify-content:flex-start;text-align:left;background:#fff!important;color:var(--ink)!important;border:0!important;border-radius:8px;padding:9px 12px;font-weight:600;margin:0}
+.tr-tools .tr-menu .tbtn:hover{background:#F1F5F9!important}
+.tr-tools .tr-menu .tbtn[style*="display:none"],.tr-tools .tr-menu .tbtn[style*="display: none"]{display:none!important}
+.tr-tools .tr-menu .tbtn:not([style*="display:none"]):not([style*="display: none"]){display:flex}
+.tr-info{width:32px;padding:0!important;justify-content:center;color:var(--ink-soft)}
+#priceHint{flex:1 1 100%}
+#priceHint[hidden]{display:none!important}
+#pricingBanner{display:flex;flex-wrap:wrap;gap:6px;align-items:center;position:sticky;left:0;z-index:20;width:fit-content;max-width:calc(100vw - 16px);padding:0 8px}
+@media(min-width:641px){ #pricingBanner{max-width:calc(100vw - 280px)} }
+.pb-chip{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0;padding:6px 10px;border-radius:10px;font-size:12.5px;font-weight:700}
+.pb-chip.warn{background:#FFF7E6;border:1px solid #F5C36B;color:#92400E}
+.pb-chip.bad{background:#FDEBE7;border:1px solid #F1B7AD;color:#8A2B1E}
+.pb-chip.info{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E40AF}
+.pb-chip button{border:0;background:rgba(255,255,255,.75);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:inherit;cursor:pointer}
+.pb-chip .pb-todo b{font-weight:900}
+.pb-chip .pb-x{background:none;padding:2px 4px;opacity:.6}
+body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 @media(max-width:640px){
   :is(#calcPanel,#promoCalc,#costCalc){left:0!important;right:0!important;bottom:0!important;top:auto!important;transform:none!important;width:100%!important;max-width:100%!important;border:0!important;border-radius:20px 20px 0 0!important;max-height:90vh!important;min-height:66vh;min-height:66dvh;padding-bottom:env(safe-area-inset-bottom)}
   :is(#calcPanel,#promoCalc,#costCalc) .hd{padding-top:16px!important;border-radius:20px 20px 0 0}
@@ -985,7 +1011,7 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.25e</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.25f</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1090,8 +1116,8 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 <!-- ═══ 수식 입력줄 ═══ -->
 <div id="fxbar">
   <div class="fx">fx</div>
-  <div class="cellref" id="fxRef">셀을 선택하세요</div>
-  <div class="expr" id="fxExpr">가격정책표에서 셀을 클릭하면 원가 대비 마진 수식이 여기에 표시됩니다.</div>
+  <div class="cellref" id="fxRef">—</div>
+  <div class="expr" id="fxExpr">셀을 누르면 계산식</div>
 </div>
 
 <!-- ═══ 이익배분 스트립 ═══ -->
@@ -1155,21 +1181,24 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
         <button data-v="margin">마진액</button>
         <button data-v="rate">마진율</button>
       </div>
-      <button class="tbtn" id="btnSecCols" style="display:none" title="매입원가·공급업체(제조사) 열과 마진 표시를 접었다 폈다 합니다. 이 기기에만 저장됩니다.">🔒 원가·제조사</button>
-      <button class="tbtn" id="btnClearTodo" style="display:none;background:#FDF6F4;border-color:#F1B7AD;color:#8A2B1E" title="지금 표에 보이는 제품의 '단가 미정' 표시를 모두 해제합니다. 업체단가·정가가 있으면 총판~쿠팡이 다시 계산됩니다.">미정 해제</button>
-      <button class="tbtn" id="btnBulkFix" style="display:none" title="지금 표에 보이는 제품을 모두 '파일값 고정(📌)'으로 — 업로드한 단가를 그대로 씁니다">📌 일괄 고정</button>
-      <button class="tbtn" id="btnBulkAuto" style="display:none" title="지금 표에 보이는 제품을 모두 '자동계산(⚙️)'으로 — 업체단가~정가 사다리로 계산합니다">⚙️ 일괄 자동</button>
       <button class="tbtn" id="btnAddProd" style="display:none">＋ 제품 추가</button>
-      <button class="tbtn" id="btnCodeCol" style="display:none" title="제품명 왼쪽 '코드' 열을 숨기거나 보입니다 (이 기기에 기억)">🏷 코드 열 숨기기</button>
-      <button class="tbtn" id="btnPcode" style="display:none;background:#EFF6FF;border-color:#BFDBFE;color:#1E40AF;font-weight:700" title="POUR스토어 자체상품코드(옵션 단위) 보기·수정·내보내기 — 오픈마켓 판매자관리코드에 넣는 값입니다">🏷 자체상품코드</button>
-      <button class="tbtn" id="btnGhImport" style="display:none;background:#FFF1E6;border-color:#FDBA8C;color:#C2410C;font-weight:700" title="그로홈 대시보드의 [제품 관리 › 제품 마스터]를 읽어 GROHOME 브랜드 제품으로 등록·연결합니다">🏠 그로홈 제품 가져오기</button>
-      <button class="tbtn" id="btnAddChan" style="display:none;background:#1E5FBF;color:#fff;border-color:#1E5FBF">＋ 채널 추가</button>
-      <button class="tbtn" id="btnImportFile" style="display:none;background:var(--xl-green);color:#fff;border-color:var(--xl-green)">📄 파일로 업체단가 입력</button>
-      <button class="tbtn" id="btnPriceSheet" style="display:none;background:#0D1B2A;color:#fff;border-color:#0D1B2A">🖨 단가표 PDF</button>
-      <button class="tbtn" id="btnSave">변경사항 저장</button>
-      <button class="tbtn" id="btnCsv">CSV 내보내기</button>
-      <button class="tbtn" id="btnReset">원본 복원</button>
-      <span class="hint">업체단가·자사몰정가·알리바바만 더블클릭 수정(Enter 확정) · 총판~쿠팡은 사다리 자동계산 · 원가는 제품등록에서<span id="twinNote"></span></span>
+      <button class="tbtn primary" id="btnSave">저장</button>
+      <div class="tr-tools" id="trTools"><button type="button" class="tbtn tr-tbtn" id="btnTools">도구 ▾</button><div class="tr-menu" id="toolMenu">
+        <button class="tbtn" id="btnSecCols" style="display:none" title="매입원가·공급업체(제조사) 열과 마진 표시를 접었다 폈다 합니다. 이 기기에만 저장됩니다.">🔒 원가·제조사</button>
+        <button class="tbtn" id="btnClearTodo" style="display:none;background:#FDF6F4;border-color:#F1B7AD;color:#8A2B1E" title="지금 표에 보이는 제품의 '단가 미정' 표시를 모두 해제합니다. 업체단가·정가가 있으면 총판~쿠팡이 다시 계산됩니다.">미정 해제</button>
+        <button class="tbtn" id="btnBulkFix" style="display:none" title="지금 표에 보이는 제품을 모두 '파일값 고정(📌)'으로 — 업로드한 단가를 그대로 씁니다">📌 일괄 고정</button>
+        <button class="tbtn" id="btnBulkAuto" style="display:none" title="지금 표에 보이는 제품을 모두 '자동계산(⚙️)'으로 — 업체단가~정가 사다리로 계산합니다">⚙️ 일괄 자동</button>
+        <button class="tbtn" id="btnCodeCol" style="display:none" title="제품명 왼쪽 '코드' 열을 숨기거나 보입니다 (이 기기에 기억)">🏷 코드 열 숨기기</button>
+        <button class="tbtn" id="btnPcode" style="display:none;background:#EFF6FF;border-color:#BFDBFE;color:#1E40AF;font-weight:700" title="POUR스토어 자체상품코드(옵션 단위) 보기·수정·내보내기 — 오픈마켓 판매자관리코드에 넣는 값입니다">🏷 자체상품코드</button>
+        <button class="tbtn" id="btnGhImport" style="display:none;background:#FFF1E6;border-color:#FDBA8C;color:#C2410C;font-weight:700" title="그로홈 대시보드의 [제품 관리 › 제품 마스터]를 읽어 GROHOME 브랜드 제품으로 등록·연결합니다">🏠 그로홈 제품 가져오기</button>
+        <button class="tbtn" id="btnAddChan" style="display:none;background:#1E5FBF;color:#fff;border-color:#1E5FBF">＋ 채널 추가</button>
+        <button class="tbtn" id="btnImportFile" style="display:none;background:var(--xl-green);color:#fff;border-color:var(--xl-green)">📄 파일로 업체단가 입력</button>
+        <button class="tbtn" id="btnPriceSheet" style="display:none;background:#0D1B2A;color:#fff;border-color:#0D1B2A">🖨 단가표 PDF</button>
+        <button class="tbtn" id="btnCsv">CSV 내보내기</button>
+        <button class="tbtn" id="btnReset">원본 복원</button>
+      </div></div>
+      <button type="button" class="tbtn tr-info" id="btnPriceInfo" title="사용법">ⓘ</button>
+      <span class="hint" id="priceHint" hidden>업체단가·자사몰정가·알리바바: 더블클릭 수정 (Enter 확정) · 총판~쿠팡: 자동계산 · 원가: 제품 수정(✏️)<span id="twinNote"></span></span>
     </div>
     <div id="pricingBanner"></div>
     <table class="grid" id="priceGrid"></table>
@@ -3372,7 +3401,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
     ${thPrice}
   </tr></thead><tbody>`;
   const SEP='';
-  const passes=p=> hasBrand(p,BRAND_FILTER) && hasStatus(p,STATUS_FILTER) && !(cat&&p.cat!==cat) && !(q&&!(p.name.toLowerCase().includes(q)||pcodeOf(p).toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||(p.sup||'').toLowerCase().includes(q)));
+  const passes=p=> hasBrand(p,BRAND_FILTER) && hasStatus(p,STATUS_FILTER) && !(TODO_FILTER&&!todoTest(p,TODO_FILTER)) && !(cat&&p.cat!==cat) && !(q&&!(p.name.toLowerCase().includes(q)||pcodeOf(p).toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||(p.sup||'').toLowerCase().includes(q)));
   const ordered=P.filter(p=>!isDeletedProd(p)).sort((a,b)=>(porderIdx(pKey(a))-porderIdx(pKey(b)))||((a.seq??a.id??0)-(b.seq??b.id??0)));
   const l1i={},l2i={},l3i={};   // 그룹 순서 = 최초 등장 순서
   ordered.forEach((p,idx)=>{ const c=pcat(p),k1=c.l1,k2=c.l1+SEP+c.l2,k3=k2+SEP+c.l3; if(!(k1 in l1i))l1i[k1]=idx; if(!(k2 in l2i))l2i[k2]=idx; if(!(k3 in l3i))l3i[k3]=idx; });
@@ -3423,7 +3452,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
       <td class="frz frz-no dim">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span><span class="nono" data-key="${esc(pKey(p))}" data-no="${no}" title="번호를 눌러 원하는 자리로 보냅니다 (기존 제품은 아래로 밀립니다)">${no}</span>`:no}</td>
       ${showCode?(()=>{ const pc=pcodeOf(p), gc=!pc?(p.ghCode||''):''; const v=pc||gc, t=p3plOf(p);
         return `<td class="frz frz-code${gc?' gh':''}${v?'':' dim'}" title="${v?(gc?'그로홈 자체상품코드':'자체상품코드')+' — 눌러서 복사':'자체상품코드 없음'}${t?' · 3PL '+esc(t):''}">${v?`<span class="pcode-cell">${esc(v)}</span>`:'—'}${t?`<span class="c3pl" title="3PL(물류센터) 코드">3PL ${esc(t)}</span>`:''}</td>`; })():''}
-      <td class="frz frz-name name">${costAllowed?`<span class="rowtools"><button class="prodfix${isFixed(p)?' on':''}" data-id="${p.id}" title="${isFixed(p)?'📌 파일값 고정 — 업로드한 단가를 그대로 씁니다. 누르면 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사다리로 계산합니다. 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button><button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button></span>`:''}${statusChip(p)+brandChips(p)}${esc(p.name)}</td>
+      <td class="frz frz-name name">${costAllowed?`<span class="rowtools"><button class="prodfix${isFixed(p)?' on':''}" data-id="${p.id}" title="${isFixed(p)?'📌 파일값 고정 — 업로드한 단가를 그대로 씁니다. 누르면 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사다리로 계산합니다. 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button><button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button></span>`:''}${statusChip(p)+brandChips(p)}<span class="pname" title="${esc(p.name)}">${esc(p.name)}</span></td>
       <td class="frz frz-spec dim${lastFrz==='spec'?' frz-edge':''}">${esc(p.spec)}${pkg?(()=>{
         /* 세트는 값이 전부 비어 있으면 이유를 행에서 바로 알 수 있게 표시한다
            (예전에는 더블클릭해야 안내가 떠서 '고장난 줄' 알기 쉬웠다) */
@@ -3455,9 +3484,10 @@ function layoutFrozen(){
   const vmap={no:'--frzNo',code:'--frzCode',name:'--frzName',spec:'--frzSpec',sup:'--frzSup',cost:'--frzCost'};
   const keys=['no','code','name','spec','sup','cost'];
   const cells=keys.map(k=>head.querySelector('.frz-'+k));
-  if(cells.some(th=>th && !th.offsetWidth)) return;   // 폭을 못 재면 이전 값을 유지
+  const hid=th=>!th||getComputedStyle(th).display==='none';
+  if(cells.some(th=>!hid(th) && !th.offsetWidth)) return;   // 폭을 못 재면 이전 값을 유지 (폰에서 숨긴 열은 제외)
   let L=0;
-  keys.forEach((key,i)=>{ const th=cells[i]; if(!th)return;
+  keys.forEach((key,i)=>{ const th=cells[i]; if(hid(th))return;
     g.style.setProperty(vmap[key], L+'px');
     if(getComputedStyle(th).position==='sticky') L+=th.offsetWidth;   // 모바일에서 고정 해제된 열(코드 등)은 폭에 넣지 않는다
   });
@@ -3497,7 +3527,7 @@ function showSplit(p,uid){
 document.addEventListener('click',e=>{
   const td=e.target.closest('#priceGrid td.editable'); if(!td)return;
   if(selCell)selCell.classList.remove('selcell');
-  selCell=td; td.classList.add('selcell');
+  selCell=td; td.classList.add('selcell'); document.body.classList.add('fx-has');
   const p=P[+td.dataset.id], f=td.dataset.f;
   if(f==='cost'){
     $('#fxRef').textContent=p.name+' · 매입원가';
@@ -7692,17 +7722,10 @@ function calcOffHtml(){
   const rUid=retailUid();
   const ladCols=COLS().filter(c=>{ let a='manual'; try{ a=coeffFor(c.code).a; }catch(e){} return a==='ladder'; });
   if(!VAUTO){
-    return `<div style="background:#FDEBE7;border:1px solid #F1B7AD;border-radius:10px;padding:12px 14px;margin-bottom:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-      <b style="color:#8A2B1E">⚠️ 채널 자동계산이 꺼져 있습니다</b>
-      <span class="footnote" style="margin:0">업체단가·정가를 넣어도 <b>총판~쿠팡 단가가 계산되지 않아 빈칸(—)</b>으로 남습니다.</span>
-      <button class="tbtn primary" id="btnCalcOn" style="margin-left:auto">자동계산 켜기</button>
-    </div>`;
+    return `<div class="pb-chip bad">⚠ 채널 자동계산 꺼짐 · 총판~쿠팡 빈칸 <button class="pb-go" id="btnCalcOn">켜기</button></div>`;
   }
-  if(!ladCols.length && COLS().length>2){
-    return `<div style="background:#FFF7E6;border:1px solid #F5C36B;border-radius:10px;padding:12px 14px;margin-bottom:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-      <b style="color:#B45309">⚠️ 자동계산 규칙이 없습니다</b>
-      <span class="footnote" style="margin:0">모든 채널이 <b>수동(앵커)</b>으로 되어 있어 중간 단가가 계산되지 않습니다. [채널 관리] &gt; 채널가 자동계산 규칙에서 기준을 <b>업체단가~정가 비율(%)</b> 로 바꾸세요.</span>
-    </div>`;
+  if(!ladCols.length && COLS().length>2 && !pbDismissed('calcrule')){
+    return `<div class="pb-chip warn">⚠ 자동계산 규칙 없음 <button class="pb-go" data-goto="sh-chman">설정</button><button class="pb-x" data-dismiss="calcrule" title="닫기">✕</button></div>`;
   }
   return '';
 }
@@ -7712,10 +7735,42 @@ function wireCalcOn(){
     gridToast('채널 자동계산을 켰습니다 — 업체단가~정가 사이 단가가 다시 계산됩니다.');
     logAct('설정변경','채널 자동계산','켬(가격정책표 배너)'); });
 }
+/* 준비 안내 (공통 규칙): 원가·정가·업체단가 빠진 제품 수 → 누르면 그 제품만 */
+let TODO_FILTER='';
+const PB_LS='pour-pb-dismiss';
+function pbDismissed(k){ try{ return (JSON.parse(localStorage.getItem(PB_LS)||'{}'))[k]===1; }catch(e){ return false; } }
+function pbDismiss(k){ try{ const o=JSON.parse(localStorage.getItem(PB_LS)||'{}'); o[k]=1; localStorage.setItem(PB_LS,JSON.stringify(o)); }catch(e){} }
+function todoTest(p,k){ if(isPackage(p)) return false; const rUid=retailUid();
+  if(k==='nocost') return !(effCost(p)>0);
+  if(k==='noprice') return rUid ? effPrice(p,rUid)==null : false;
+  if(k==='novbase') return effVbase(pKey(p))==null;
+  return false; }
+function todoHtml(){
+  if(!costAllowed) return '';
+  const base=P.filter(p=>!isDeletedProd(p) && hasBrand(p,BRAND_FILTER) && hasStatus(p,STATUS_FILTER));
+  const lad=VAUTO && COLS().some(c=>{ try{ return coeffFor(c.code).a==='ladder'; }catch(e){ return false; } });
+  const items=[['nocost','원가 없음'],['noprice','정가 없음'],...(lad?[['novbase','업체단가 없음']]:[])].map(([k,l])=>[k,l,base.filter(p=>todoTest(p,k)).length]).filter(x=>x[2]>0);
+  if(TODO_FILTER){ const it=[['nocost','원가 없음'],['noprice','정가 없음'],['novbase','업체단가 없음']].find(x=>x[0]===TODO_FILTER);
+    return `<div class="pb-chip info">🔎 ${esc(it?it[1]:'')}만 보는 중 <button class="pb-go" data-todo="">전체 보기</button></div>`; }
+  if(!items.length) return '';
+  return `<div class="pb-chip warn">⚠ ${items.map(([k,l,n])=>`<button class="pb-todo" data-todo="${k}">${l} <b>${n}</b></button>`).join(' · ')}</div>`;
+}
+(function bindPriceUx(){
+  document.addEventListener('click',e=>{
+    const tb=e.target.closest('#btnTools'), menu=$('#trTools');
+    if(tb){ menu.classList.toggle('open'); return; }
+    if(menu && menu.classList.contains('open') && (!e.target.closest('#toolMenu') || e.target.closest('#toolMenu .tbtn'))) menu.classList.remove('open');
+    if(e.target.closest('#btnPriceInfo')){ const h=$('#priceHint'); h.hidden=!h.hidden; return; }
+    const gt=e.target.closest('#pricingBanner [data-goto]'); if(gt){ gotoTab(gt.dataset.goto); return; }
+    const dm=e.target.closest('#pricingBanner [data-dismiss]'); if(dm){ pbDismiss(dm.dataset.dismiss); renderPricingBanner(); return; }
+    const td=e.target.closest('#pricingBanner [data-todo]'); if(td){ TODO_FILTER=td.dataset.todo||''; renderGrid(); renderPricingBanner(); return; }
+    const nm=e.target.closest('#priceGrid td.frz-name'); if(nm && !e.target.closest('button')){ const pn=nm.querySelector('.pname'); if(pn && pn.scrollWidth>pn.clientWidth+1) uiToast(pn.textContent,'info'); }
+  });
+})();
 function renderPricingBanner(){
   const box=$('#pricingBanner'); if(!box) return;
   const dc=draftCount();
-  const warn=calcOffHtml();
+  const warn=todoHtml()+calcOffHtml();
   if(!costAllowed || (!dc && DRAFT_META.status!=='대기')){ box.innerHTML=warn; box.style.display=warn?'':'none'; wireCalcOn(); return; }
   box.style.display='';
   const preBtn=`<button class="tbtn" id="btnDraftPreview">${PREVIEW?'✅ 미리보기 켜짐':'👁 개정안 미리보기'}</button>`;
@@ -8692,6 +8747,7 @@ async function openPromoCalc(key, preset){
   document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&(anyOpen()||drawerOpen())) closeAll(); });
   // 폰 도구줄 접기
   const fold=()=>{ $$('.sheet .toolrow').forEach(tr=>{
+    if(tr.querySelector('.tr-tools')){ tr.classList.remove('tr-fold'); const x=tr.querySelector('.tr-more'); if(x) x.remove(); return; }
     const btns=[...tr.querySelectorAll('.tbtn')].filter(b=>!b.classList.contains('tr-more'));
     let mb=tr.querySelector('.tr-more');
     if(btns.length<=4){ tr.classList.remove('tr-fold'); if(mb) mb.remove(); return; }

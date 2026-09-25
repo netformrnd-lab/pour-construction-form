@@ -860,6 +860,11 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 #dealPanel .dl-two>div:last-child b{color:#1D4ED8}
 #dealPanel .dl-two b.neg{color:var(--red)!important}
 #dealPanel .dl-two em{font-style:normal;font-size:11px;color:var(--ink-soft)}
+#dealPanel .dl-why{margin-top:8px;font-size:11.5px;color:var(--ink-soft);display:flex;flex-direction:column;gap:3px;background:#F8FAFC;border-radius:8px;padding:7px 9px}
+#dealPanel .dl-why .dw-l b{color:#0F172A}
+#dealPanel .dl-why em{font-style:normal;color:var(--ink-faint)}
+#dealPanel .dl-why .dw-why{color:#B45309;font-weight:800}
+#dealPanel .dl-why .dw-ok{color:#15803D;font-weight:800}
 #dealPanel .dl-split{height:6px;border-radius:3px;background:#93C5FD;margin-top:6px;overflow:hidden}
 #dealPanel .dl-split i{display:block;height:100%;background:#22C55E}
 #dealPanel .dl-sum{margin-top:14px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;background:#F0FDF4;border-radius:12px;padding:10px 12px}
@@ -1157,7 +1162,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26h</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26i</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -4277,7 +4282,21 @@ function dlCalc(r,it){
   const lo=cost!=null?Math.ceil(((cost+oc)/(1-o.minOur/100))/10)*10:null;
   const hi=net!=null?Math.floor((net*(1-o.minPt/100)-rs*pf)/10)*10:null;
   const win=(lo!=null&&hi!=null)?(lo<=hi):null, inWin=win&&u!=null&&u>=lo&&u<=hi;
-  return {cost,rs,net,oc,pf,u,our,ourR,pt,ptR,lo,hi,win,inWin};
+  const list=effPrice(p,rUid), disc=(list&&u!=null)?1-u/list:null;
+  return {cost,rs,net,oc,pf,u,our,ourR,pt,ptR,lo,hi,win,inWin,list,disc};
+}
+/* 근거: 원가·비용 → 최소 납품가 / 거래처 판매가·비용 → 최대 납품가, 벗어나면 이유 한 줄 */
+function dlWhy(d){
+  const o=dlOpt();
+  const lst=`<div class="dw-l"><b>정가</b> ${d.list==null?'—':won(d.list)}${d.disc!=null?` · 납품가는 정가의 <b>${pct(1-d.disc)}</b> (${pct(d.disc)} 할인)`:''}</div>`;
+  const our=`<div class="dw-l"><b>우리</b> 원가 ${d.cost==null?'<span class="neg">없음</span>':won(d.cost)}${d.oc?` + 비용 ${won(d.oc)}`:''} → <b>최소 ${d.lo==null?'—':won(d.lo)}</b> <em>(우리 ${o.minOur}%)</em></div>`;
+  const pt=`<div class="dw-l"><b>거래처</b> 판매가 ${d.rs==null?'—':won(d.rs)} → VAT 빼면 ${d.net==null?'—':won(Math.round(d.net))}${d.pf?` − 비용 ${won(Math.round(d.rs*d.pf))}`:''} → <b>최대 ${d.hi==null?'—':won(d.hi)}</b> <em>(거래처 ${o.minPt}%)</em></div>`;
+  let why='';
+  if(d.cost==null) why='원가가 없어 우리 이익을 계산할 수 없어요 → 가격정책표에서 원가 입력';
+  else if(d.win===false) why=`최소 ${won(d.lo)} > 최대 ${won(d.hi)} → 원가가 높거나 거래처 판매가가 낮아 둘 다 지킬 수 없음`;
+  else if(d.u!=null&&d.lo!=null&&d.u<d.lo) why=`납품가 ${won(d.u)} < 최소 ${won(d.lo)} → 우리 이익 ${d.ourR==null?'—':pct(d.ourR)} (목표 ${o.minOur}%)`;
+  else if(d.u!=null&&d.hi!=null&&d.u>d.hi) why=`납품가 ${won(d.u)} > 최대 ${won(d.hi)} → 거래처 이익 ${d.ptR==null?'—':pct(d.ptR)} (목표 ${o.minPt}%)`;
+  return lst+our+pt+(why?`<div class="dw-why">⚠ ${why}</div>`:'<div class="dw-ok">✅ 둘 다 목표 이상</div>');
 }
 function dlRows(){ return qtRows().map(r=>r.gone?r:({...r, d:dlCalc(r,QT.items[r.i])})); }
 function dlCount(){ const n=QT.items.length, el=$('#dealN'); if(el) el.textContent=n?n:''; }
@@ -4315,6 +4334,7 @@ function renderDeal(){
       <div class="dl-two"><div><span>우리</span><b class="${d.our!=null&&d.our<0?'neg':''}">${d.our==null?'—':won(d.our)}</b><em>${d.ourR==null?'원가 없음':pct(d.ourR)} · 총 ${d.our==null?'—':qcT(d.our*r.qty)}</em></div>
         <div><span>거래처</span><b class="${d.pt!=null&&d.pt<0?'neg':''}">${d.pt==null?'—':won(d.pt)}</b><em>${d.ptR==null?'—':pct(d.ptR)} · 총 ${d.pt==null?'—':qcT(d.pt*r.qty)}</em></div></div>
       ${ourW!=null?`<div class="dl-split"><i style="width:${ourW}%"></i></div>`:''}
+      <div class="dl-why">${dlWhy(d)}</div>
     </div>`;
   });
   if(live.length){
@@ -4414,6 +4434,7 @@ function dlAdd(key,qty){
     const sp=card.querySelector('.dl-split i'); if(sp&&d.our!=null&&d.pt!=null&&d.our+d.pt>0) sp.style.width=Math.max(0,Math.min(100,d.our/(d.our+d.pt)*100))+'%';
     const ui=card.querySelector('input[data-dlf="unit"]'); if(ui&&document.activeElement!==ui&&QT.items[i].unit!=null) ui.value=QT.items[i].unit;
     card.classList.remove('ok','warn','bad'); card.classList.add(d.win===false?'bad':d.inWin?'ok':'warn');
+    const wy=card.querySelector('.dl-why'); if(wy) wy.innerHTML=dlWhy(d);
     dlBar();
   }
   box.addEventListener('input',e=>upd(e,false));

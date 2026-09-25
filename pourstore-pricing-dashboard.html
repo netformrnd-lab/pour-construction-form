@@ -833,6 +833,35 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 #dealPanel .dl-how{margin-top:12px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--ink-soft);background:#F8FAFC;border-radius:10px;padding:12px}
 #dealPanel .dl-how b{color:#0F172A}
 @media(max-width:640px){ #dealPanel .dl-hd b{flex:1 1 100%} #dealPanel .dl-add{flex-wrap:wrap} #dealPanel .dl-add #dlPick{flex:1 1 100%;font-size:16px} #dealPanel .dl-add #dlQty{font-size:16px} }
+#dealPanel .dl-top2{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#dealPanel .dl-top2 #dlTo{flex:1 1 160px;min-width:0;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px;font-size:14px}
+#dealPanel .dl-goal{font-size:12px;color:var(--ink-soft)}
+#dealPanel .dl-goal summary{cursor:pointer;font-weight:700;padding:6px 8px;background:#F1F5F9;border-radius:8px;list-style:none}
+#dealPanel .dl-goal[open] summary{margin-bottom:6px}
+#dealPanel .dl-goal label{display:inline-flex;align-items:center;gap:4px;margin-right:10px}
+#dealPanel .dl-goal input{width:52px;border:1px solid #E2E8F0;border-radius:6px;padding:4px 6px;text-align:right;font-size:13px}
+#dealPanel .dl-ref{margin-top:4px;font-size:12px;color:var(--ink-soft)}
+#dealPanel .dl-ref b{color:#0F172A;font-weight:700}
+#dealPanel .dl-u2{display:flex;align-items:center;gap:8px;margin-top:8px}
+#dealPanel .dl-u2>span{font-size:12px;font-weight:800;color:var(--ink-soft)}
+#dealPanel .dl-u2 input{flex:1;min-width:0;border:1.5px solid #CBD5E1;border-radius:8px;padding:7px 10px;font-size:17px;font-weight:800}
+#dealPanel .dl-u2 em{font-style:normal;font-size:12px;color:var(--ink-soft);white-space:nowrap}
+#dealPanel .dl-res{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+#dealPanel .dl-res>div{display:flex;align-items:baseline;gap:6px;background:#F8FAFC;border-radius:8px;padding:6px 10px}
+#dealPanel .dl-res>div:last-child{background:#EFF6FF}
+#dealPanel .dl-res span{font-size:11.5px;font-weight:700;color:var(--ink-soft)}
+#dealPanel .dl-res b{font-size:15px;color:#15803D}
+#dealPanel .dl-res>div:last-child b{color:#1D4ED8}
+#dealPanel .dl-res b.neg{color:var(--red)!important}
+#dealPanel .dl-res em{font-style:normal;font-size:11.5px;color:var(--ink-soft);margin-left:auto}
+#dealPanel .dl-why{margin-top:6px;font-size:12.5px;font-weight:800}
+#dealPanel .dl-why .ok{color:#15803D}#dealPanel .dl-why .warn{color:#B45309}#dealPanel .dl-why .bad{color:#B91C1C}
+#dealPanel .dl-cond{margin-top:6px;font-size:12px}
+#dealPanel .dl-cond summary{cursor:pointer;color:var(--ink-soft);font-weight:700}
+#dealPanel .dl-cond summary em{font-style:normal;font-weight:500;color:var(--ink-faint)}
+#dealPanel .dl-sum2{margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;border-radius:10px;padding:10px 12px;font-size:13px}
+#dealPanel .dl-sum2.ok{background:#DCFCE7;color:#166534}#dealPanel .dl-sum2.warn{background:#FEF3C7;color:#92400E}#dealPanel .dl-sum2.bad{background:#FEE2E2;color:#991B1B}
+#dealPanel .dl-sum2 span{font-size:12px;opacity:.85}
 #dealPanel .dl-top{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
 #dealPanel .dl-it{margin-top:10px;border:1.5px solid #E2E8F0;border-left-width:5px;border-radius:12px;padding:10px 12px}
 #dealPanel .dl-it.ok{border-left-color:#16A34A}#dealPanel .dl-it.warn{border-left-color:#F59E0B}#dealPanel .dl-it.bad{border-left-color:#DC2626}
@@ -1162,7 +1191,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26i</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26j</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -4271,7 +4300,8 @@ function doExcelQuote(){
    · 윈윈 범위: 하한 = (원가+우리 비용) ÷ (1 − 우리 최소%)  ~  상한 = 판매가÷1.1 × (1 − 거래처 최소%) − 판매가 × 거래처 비용%
    · 딜 저장: product-meta/b2b-deals {map: id → 딜 + history(누가·언제)} — 고객용 엑셀 견적서에는 원가·이익이 들어가지 않는다 */
 const DL_DEF={minOur:20,minPt:15};
-let DL={plans:null, id:null};
+let DL={plans:null, id:null, open:new Set()};   // open: 펼쳐 둔 접기칸(다시 그려도 유지)
+const dlOpenAttr=k=>DL.open.has(k)?' open':'';
 function dlOpt(){ return {minOur:+(QT.minOur??DL_DEF.minOur), minPt:+(QT.minPt??DL_DEF.minPt)}; }
 function dlCalc(r,it){
   const p=r.p, cost=effCost(p), o=dlOpt(), rUid=retailUid();
@@ -4286,17 +4316,12 @@ function dlCalc(r,it){
   return {cost,rs,net,oc,pf,u,our,ourR,pt,ptR,lo,hi,win,inWin,list,disc};
 }
 /* 근거: 원가·비용 → 최소 납품가 / 거래처 판매가·비용 → 최대 납품가, 벗어나면 이유 한 줄 */
-function dlWhy(d){
-  const o=dlOpt();
-  const lst=`<div class="dw-l"><b>정가</b> ${d.list==null?'—':won(d.list)}${d.disc!=null?` · 납품가는 정가의 <b>${pct(1-d.disc)}</b> (${pct(d.disc)} 할인)`:''}</div>`;
-  const our=`<div class="dw-l"><b>우리</b> 원가 ${d.cost==null?'<span class="neg">없음</span>':won(d.cost)}${d.oc?` + 비용 ${won(d.oc)}`:''} → <b>최소 ${d.lo==null?'—':won(d.lo)}</b> <em>(우리 ${o.minOur}%)</em></div>`;
-  const pt=`<div class="dw-l"><b>거래처</b> 판매가 ${d.rs==null?'—':won(d.rs)} → VAT 빼면 ${d.net==null?'—':won(Math.round(d.net))}${d.pf?` − 비용 ${won(Math.round(d.rs*d.pf))}`:''} → <b>최대 ${d.hi==null?'—':won(d.hi)}</b> <em>(거래처 ${o.minPt}%)</em></div>`;
-  let why='';
-  if(d.cost==null) why='원가가 없어 우리 이익을 계산할 수 없어요 → 가격정책표에서 원가 입력';
-  else if(d.win===false) why=`최소 ${won(d.lo)} > 최대 ${won(d.hi)} → 원가가 높거나 거래처 판매가가 낮아 둘 다 지킬 수 없음`;
-  else if(d.u!=null&&d.lo!=null&&d.u<d.lo) why=`납품가 ${won(d.u)} < 최소 ${won(d.lo)} → 우리 이익 ${d.ourR==null?'—':pct(d.ourR)} (목표 ${o.minOur}%)`;
-  else if(d.u!=null&&d.hi!=null&&d.u>d.hi) why=`납품가 ${won(d.u)} > 최대 ${won(d.hi)} → 거래처 이익 ${d.ptR==null?'—':pct(d.ptR)} (목표 ${o.minPt}%)`;
-  return lst+our+pt+(why?`<div class="dw-why">⚠ ${why}</div>`:'<div class="dw-ok">✅ 둘 다 목표 이상</div>');
+function dlWhy(d){   // 한 줄: 지금 상태 + 어디로 옮기면 되는지
+  if(d.cost==null) return '<span class="bad">원가 없음 → 가격정책표에서 입력</span>';
+  if(d.win===false) return `<span class="bad">❌ 윈윈 불가 · 최소 ${won(d.lo)} > 최대 ${won(d.hi)}</span>`;
+  if(d.u!=null&&d.lo!=null&&d.u<d.lo) return `<span class="warn">⚠ 우리 이익 부족 → ${won(d.lo)} 이상으로</span>`;
+  if(d.u!=null&&d.hi!=null&&d.u>d.hi) return `<span class="warn">⚠ 거래처 이익 부족 → ${won(d.hi)} 이하로</span>`;
+  return `<span class="ok">✅ 윈윈 · ${won(d.lo)} ~ ${won(d.hi)}</span>`;
 }
 function dlRows(){ return qtRows().map(r=>r.gone?r:({...r, d:dlCalc(r,QT.items[r.i])})); }
 function dlCount(){ const n=QT.items.length, el=$('#dealN'); if(el) el.textContent=n?n:''; }
@@ -4308,11 +4333,9 @@ function renderDeal(){
   let h=`${plans.length?`<div class="cc-rc-hd">최근 딜</div><div class="cc-rc">${plans.slice(0,5).map(x=>`<button data-dlload="${esc(x.id)}" class="${x.id===DL.id?'on':''}"><b>${esc(x.title||'(거래처 없음)')}</b><em>${(x.items||[]).length}품목 · ${x.sum?qcT(x.sum.our):'—'} · ${esc(who(x.updatedBy))} ${esc(String(x.updatedAt||'').slice(5,10).replace('-','/'))}</em></button>`).join('')}</div>`:''}
     ${DL.id?`<div class="pm-editing">✎ 수정 중 · ${esc((DL.plans[DL.id]||{}).title||'')} <button class="qc-link" id="dlNew">새 딜</button></div>`:''}
     <div class="dl-basis"><span>단가 기준</span>${[...COLS().filter(c=>chHasBrand(c,BRAND_FILTER)).map(c=>[c.uid,c.short||c.name]),['moq','수량 구간']].map(([k,l])=>`<button data-dlbasis="${esc(k)}" class="${qtBasis()===k?'on':''}">${esc(l)}</button>`).join('')}</div>
-    <div class="dl-top">
-      <label class="qc-f"><span>거래처</span><input id="dlTo" value="${esc(QT.to||'')}" placeholder="예: ○○건재"></label>
-      <label class="qc-f"><span>우리 최소 %</span><input type="number" id="dlMinOur" value="${esc(o.minOur)}" step="1"></label>
-      <label class="qc-f"><span>거래처 최소 %</span><input type="number" id="dlMinPt" value="${esc(o.minPt)}" step="1"></label>
-    </div>`;
+    <div class="dl-top2"><input id="dlTo" value="${esc(QT.to||'')}" placeholder="거래처 이름">
+      <details class="dl-goal" data-dk="goal"${dlOpenAttr('goal')}><summary>목표 우리 ${esc(o.minOur)}% · 거래처 ${esc(o.minPt)}%</summary>
+        <label>우리 <input type="number" id="dlMinOur" value="${esc(o.minOur)}" step="1">%</label><label>거래처 <input type="number" id="dlMinPt" value="${esc(o.minPt)}" step="1">%</label></details></div>`;
   h+=`<div class="dl-add"><input id="dlPick" list="dlPickList" placeholder="🔍 제품 검색해서 담기" autocomplete="off"><datalist id="dlPickList">${P.filter(p=>!isDeletedProd(p)&&hasBrand(p,BRAND_FILTER)).map(p=>`<option value="${esc(prodLabel(p))}">`).join('')}</datalist>
       <input type="number" id="dlQty" min="1" value="1"><span>개</span><button type="button" class="tbtn primary" id="dlAddBtn">＋ 담기</button></div>`;
   if(!R.length) h+=`<div class="dl-how"><b>① 제품 검색 → 수량 → [＋ 담기]</b><span>(가격정책표에서 행을 누르고 🧾 견적에 담기도 가능)</span><b>② 품목마다 납품가·거래처 조건 조정 → 우리/거래처 이익 확인</b><b>③ [딜 저장] 또는 견적서 정보 → ⬇ 엑셀 견적서</b></div>`;
@@ -4320,29 +4343,27 @@ function renderDeal(){
     if(r.gone){ h+=`<div class="dl-it gone">${esc(r.name)} — 삭제된 제품 <button class="pm-x" data-dlrm="${r.i}">✕</button></div>`; return; }
     const d=r.d, it=QT.items[r.i], st=d.win===false?'bad':d.inWin?'ok':'warn';
     const smin=Math.max(0,Math.floor(Math.min(d.cost??0,d.u??0,d.lo??0)*0.9/10)*10), smax=Math.ceil(Math.max(d.net??0,d.u??0,d.hi??0)/10)*10;
-    const ourW=(d.our!=null&&d.pt!=null&&d.our+d.pt>0)?Math.max(0,Math.min(100,d.our/(d.our+d.pt)*100)):null;
+    const cond=[it.rs!==''&&it.rs!=null?`판매가 ${won(+it.rs)}`:'', +it.pf?`거래처비용 ${it.pf}%`:'', +it.oc?`우리비용 ${won(+it.oc)}`:''].filter(Boolean).join(' · ');
     h+=`<div class="dl-it ${st}" data-i="${r.i}">
       <div class="dl-hd"><b>${esc(r.name)}</b><span>${esc(r.spec)}</span><label class="dl-q">×<input type="number" min="1" data-dlf="qty" value="${r.qty}">개</label><button class="pm-x" data-dlrm="${r.i}" title="빼기">✕</button></div>
-      <div class="dl-row"><label class="qc-f dl-u"><span>납품가 <em>${r.custom?'협의가':esc(r.tier?r.tier.label+(qtBasis()==='moq'?' 구간':'가'):'')}</em></span><input type="number" data-dlf="unit" value="${r.custom?r.unit:''}" placeholder="${r.unit==null?'입력':won(r.unit)}"></label>
-        <div class="dl-win">${d.win===false?'<b class="neg">윈윈 불가</b><small>최소마진을 둘 다 지킬 수 없음</small>':`<span>윈윈 범위</span><b>${d.lo!=null?won(d.lo):'—'} ~ ${d.hi!=null?won(d.hi):'—'}</b>`}</div></div>
-      ${d.u!=null&&smax>smin?`<input type="range" class="dl-sl" data-dlf="slide" min="${smin}" max="${smax}" step="10" value="${d.u}" style="--lo:${d.lo!=null?((d.lo-smin)/(smax-smin)*100):0}%;--hi:${d.hi!=null?((d.hi-smin)/(smax-smin)*100):0}%"><div class="dl-leg"><span>◀ 우리 이익 부족</span><span>윈윈</span><span>거래처 이익 부족 ▶</span></div>`:''}
-      <div class="dl-in3">
-        <label class="qc-f"><span>거래처 판매가</span><input type="number" data-dlf="rs" value="${esc(it.rs??'')}" placeholder="${d.rs!=null?won(d.rs):'정가 없음'}"></label>
-        <label class="qc-f"><span>거래처 비용 %</span><input type="number" data-dlf="pf" value="${esc(it.pf??'')}" placeholder="0" step="0.5"></label>
-        <label class="qc-f"><span>우리 비용 원/개</span><input type="number" data-dlf="oc" value="${esc(it.oc??'')}" placeholder="화물·택배 0"></label>
-      </div>
-      <div class="dl-two"><div><span>우리</span><b class="${d.our!=null&&d.our<0?'neg':''}">${d.our==null?'—':won(d.our)}</b><em>${d.ourR==null?'원가 없음':pct(d.ourR)} · 총 ${d.our==null?'—':qcT(d.our*r.qty)}</em></div>
-        <div><span>거래처</span><b class="${d.pt!=null&&d.pt<0?'neg':''}">${d.pt==null?'—':won(d.pt)}</b><em>${d.ptR==null?'—':pct(d.ptR)} · 총 ${d.pt==null?'—':qcT(d.pt*r.qty)}</em></div></div>
-      ${ourW!=null?`<div class="dl-split"><i style="width:${ourW}%"></i></div>`:''}
-      <div class="dl-why">${dlWhy(d)}</div>
+      <div class="dl-ref">정가 <b>${d.list==null?'—':won(d.list)}</b> · 원가 <b>${d.cost==null?'—':won(d.cost)}</b></div>
+      <div class="dl-u2"><span>납품가</span><input type="number" data-dlf="unit" value="${r.custom?r.unit:''}" placeholder="${r.unit==null?'입력':won(r.unit)}"><em data-r="pl">${d.disc!=null?'정가의 '+pct(1-d.disc):''}</em></div>
+      ${d.u!=null&&smax>smin?`<input type="range" class="dl-sl" data-dlf="slide" min="${smin}" max="${smax}" step="10" value="${d.u}" style="--lo:${d.lo!=null?((d.lo-smin)/(smax-smin)*100):0}%;--hi:${d.hi!=null?((d.hi-smin)/(smax-smin)*100):0}%">`:''}
+      <div class="dl-res"><div><span>우리</span><b data-r="our" class="${d.our!=null&&d.our<0?'neg':''}">${d.our==null?'—':won(d.our)}</b><em data-r="ourR">${d.ourR==null?'':pct(d.ourR)}</em></div>
+        <div><span>거래처</span><b data-r="pt" class="${d.pt!=null&&d.pt<0?'neg':''}">${d.pt==null?'—':won(d.pt)}</b><em data-r="ptR">${d.ptR==null?'':pct(d.ptR)}</em></div></div>
+      <div class="dl-why" data-r="why">${dlWhy(d)}</div>
+      <details class="dl-cond" data-dk="c${r.i}"${dlOpenAttr('c'+r.i)}><summary>조건 <em>${cond?esc(cond):'기본 (거래처 판매가 = 정가)'}</em></summary>
+        <div class="dl-in3">
+          <label class="qc-f"><span>거래처 판매가</span><input type="number" data-dlf="rs" value="${esc(it.rs??'')}" placeholder="${d.rs!=null?won(d.rs):'정가 없음'}"></label>
+          <label class="qc-f"><span>거래처 비용 %</span><input type="number" data-dlf="pf" value="${esc(it.pf??'')}" placeholder="0" step="0.5"></label>
+          <label class="qc-f"><span>우리 비용 원/개</span><input type="number" data-dlf="oc" value="${esc(it.oc??'')}" placeholder="화물·택배"></label>
+        </div></details>
     </div>`;
   });
   if(live.length){
     const S=dlSum(live), okAll=live.every(r=>r.d.inWin), noWin=live.some(r=>r.d.win===false);
-    h+=`<div class="dl-sum"><div><span>품목</span><b>${live.length}개</b></div><div><span>공급가 합계</span><b>${qcT(S.amt)}</b></div>
-      <div><span>우리 총이익</span><b>${qcT(S.our)}</b><em>${S.amt>0?pct(S.our/S.amt):'—'}</em></div><div><span>거래처 총이익</span><b>${qcT(S.pt)}</b><em>${S.net>0?pct(S.pt/S.net):'—'}</em></div>
-      <div class="dl-verdict ${okAll?'ok':noWin?'bad':'warn'}">${okAll?'✅ 윈윈':noWin?'❌ 윈윈 불가 품목 있음':'⚠ 범위 밖 품목 있음'}</div></div>
-    <details class="cc-sec"><summary>견적서 정보 <em>고객용 엑셀 · 원가·이익 미포함</em></summary>
+    h+=`<div class="dl-sum2 ${okAll?'ok':noWin?'bad':'warn'}"><b>${okAll?'✅ 윈윈':noWin?'❌ 윈윈 불가 품목 있음':'⚠ 조정 필요 품목 있음'}</b><span>${live.length}품목 · 공급가 ${qcT(S.amt)}</span></div>
+    <details class="cc-sec" data-dk="qinfo"${dlOpenAttr('qinfo')}><summary>견적서 정보 <em>고객용 엑셀 · 원가·이익 미포함</em></summary>
       <div class="dl-in3">
         <label class="qc-f"><span>공급자 표기</span><input data-qt="from" value="${esc(QT.from||'')}" placeholder="㈜넷폼 · POUR스토어"></label>
         <label class="qc-f"><span>담당·연락처</span><input data-qt="mgr" value="${esc(QT.mgr||'')}"></label>
@@ -4428,15 +4449,15 @@ function dlAdd(key,qty){
   /* 끄는 중에는 그 품목 숫자만 바꾼다 (전체를 다시 그리면 슬라이더 끌기가 끊김) */
   function dlPatch(card){
     const i=+card.dataset.i, r=qtRows().find(x=>x.i===i); if(!r||r.gone) return; const d=dlCalc(r,QT.items[i]);
-    const two=card.querySelectorAll('.dl-two>div');
-    const put=(el,v,rt,tot)=>{ if(!el) return; const b=el.querySelector('b'), em=el.querySelector('em'); b.textContent=v==null?'—':won(v); b.classList.toggle('neg',v!=null&&v<0); em.textContent=`${rt==null?'—':pct(rt)} · 총 ${v==null?'—':qcT(v*r.qty)}`; };
-    put(two[0],d.our,d.ourR); put(two[1],d.pt,d.ptR);
-    const sp=card.querySelector('.dl-split i'); if(sp&&d.our!=null&&d.pt!=null&&d.our+d.pt>0) sp.style.width=Math.max(0,Math.min(100,d.our/(d.our+d.pt)*100))+'%';
+    const g=k=>card.querySelector(`[data-r="${k}"]`), txt=(k,v)=>{ const el=g(k); if(el) el.textContent=v; };
+    txt('our',d.our==null?'—':won(d.our)); txt('pt',d.pt==null?'—':won(d.pt)); txt('ourR',d.ourR==null?'':pct(d.ourR)); txt('ptR',d.ptR==null?'':pct(d.ptR)); txt('pl',d.disc!=null?'정가의 '+pct(1-d.disc):'');
+    ['our','pt'].forEach(k=>{ const el=g(k); if(el) el.classList.toggle('neg',d[k]!=null&&d[k]<0); });
+    const w=g('why'); if(w) w.innerHTML=dlWhy(d);
     const ui=card.querySelector('input[data-dlf="unit"]'); if(ui&&document.activeElement!==ui&&QT.items[i].unit!=null) ui.value=QT.items[i].unit;
     card.classList.remove('ok','warn','bad'); card.classList.add(d.win===false?'bad':d.inWin?'ok':'warn');
-    const wy=card.querySelector('.dl-why'); if(wy) wy.innerHTML=dlWhy(d);
     dlBar();
   }
+  box.addEventListener('toggle',e=>{ const d=e.target; if(d&&d.dataset&&d.dataset.dk){ if(d.open) DL.open.add(d.dataset.dk); else DL.open.delete(d.dataset.dk); } },true);
   box.addEventListener('input',e=>upd(e,false));
   box.addEventListener('change',e=>upd(e,true));
 })();

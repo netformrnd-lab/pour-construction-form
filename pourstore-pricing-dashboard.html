@@ -120,7 +120,7 @@ table.grid thead th{
 /* 머리글 고정(sticky)은 툴바 아래로 길게 이어지는 가격정책표에만 쓴다.
    예전엔 모든 .grid 표에 걸려서, 채널 관리처럼 짧은 표에서는 머리글이
    툴바 높이만큼 내려와 데이터 줄 한가운데에 떠 있었다. */
-#priceGrid thead th{ position:sticky; top:var(--toolh,49px) }
+#priceGrid thead th{ position:sticky; top:var(--toolh,49px); z-index:18 }   /* 스크롤 시 본문(고정 열 z16·분류줄)보다 위 */
 #priceGrid thead tr.chgrp th{top:49px;height:24px;background:#E7ECEF;color:var(--ink);font-size:11px}
 #priceGrid thead tr.chsub th{top:73px}
 table.grid thead tr.chgrp th{height:24px;background:#E7ECEF;color:var(--ink);font-size:11px}
@@ -517,6 +517,7 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
   /* 고정 열을 No·제품명만 남긴다 — 규격·공급업체·매입원가까지 고정하면 합계 535px 라
      375px 화면에서는 아무리 스크롤해도 가격 열이 화면 밖에 머문다. */
   #priceGrid .frz-spec,#priceGrid .frz-sup,#priceGrid .frz-cost,#priceGrid .frz-code{position:static!important;z-index:auto!important}
+  #priceGrid thead th.frz-spec,#priceGrid thead th.frz-sup,#priceGrid thead th.frz-cost{position:sticky!important;left:auto!important;z-index:18!important}   /* 머리줄은 위로 고정 유지 */
   #priceGrid .frz-edge{border-right:0!important;box-shadow:none!important}
   #priceGrid .frz-name{min-width:140px!important;max-width:140px;width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-right:2px solid #c3ccd4!important;box-shadow:6px 0 8px -6px rgba(0,0,0,.18)}
   #priceGrid .frz-no,#priceGrid .frz-code{display:none!important}   /* 폰: No·코드 열 숨김 (PC에선 그대로) */
@@ -791,6 +792,18 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 .tbtn,.seg button,.qc-chips button,#sideNav .sn-item,#calcMenu button{transition:transform .08s ease}
 .tbtn:active,.seg button:active,.qc-chips button:active,#sideNav .sn-item:active,#calcMenu button:active,#calcFab:active{transform:scale(.96)}
 .tr-more{display:none}
+.pz-mini{display:none}
+@media(max-width:900px){
+  body.pz-fold[data-sh="sh-price"] #ribbon .kpis{display:none!important}
+  body.pz-fold #sh-price .toolrow>:not(.pz-mini){display:none!important}
+  body.pz-fold #sh-price .toolrow{padding:6px 12px}
+  body.pz-fold #sh-price .pz-mini{display:flex;align-items:center;gap:8px;width:100%}
+  body.pz-fold #sh-price .pz-mini b{font-size:14px}
+  body.pz-fold #sh-price .pz-mini span{font-size:12px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+  body.pz-fold #sh-price .pz-mini .tbtn{margin-left:auto;min-height:34px;padding:4px 12px;font-weight:700;background:#F1F5F9}
+  body.pz-fold #pricingBanner{display:none!important}
+  body.pz-fold[data-sh="sh-price"] #fxbar{display:none!important}
+}
 #sh-price .toolrow .tbtn.primary{background:var(--xl-green);border-color:var(--xl-green);color:#fff;font-weight:700}
 .tr-tools{position:relative;display:inline-block}
 .tr-tools .tr-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:60;min-width:220px;max-height:70vh;overflow:auto;background:#fff;border:1px solid #E2E8F0;border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.18);padding:6px}
@@ -1011,7 +1024,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.25f</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.25g</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1171,6 +1184,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
   <!-- ── Sheet 2: 가격정책표 ── -->
   <section class="sheet" id="sh-price">
     <div class="toolrow">
+      <div class="pz-mini"><b>가격정책표</b><span id="pzCount"></span><button type="button" class="tbtn" id="pzOpen">▾ 펼치기</button></div>
       <span class="ttl">가격정책표</span>
       <input type="text" id="q" placeholder="제품명 검색…">
       <select id="catSel"><option value="">전체 분류</option></select>
@@ -3472,6 +3486,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   $('#priceGrid').innerHTML=html+'</tbody>';
   const tn=$('#twinNote'); if(tn) tn.innerHTML = twin?`<br>· <b>업체단가 = [${esc(twin.code)} ${esc(twin.name)}]</b> — 같은 값입니다. 업체단가 칸이 <b>입력</b>, ${esc(twin.name)} 칸이 <b>계산 결과</b>입니다.`:'';
   layoutFrozen();
+  if(window.__pzCount) window.__pzCount();
 }
 /* 좌측 고정 열의 left 오프셋을 실측 폭으로 주입(열 폭이 달라도 정확히 고정) */
 function layoutFrozen(){
@@ -9112,6 +9127,20 @@ function refreshAll(){
   requestAnimationFrame(syncStickyTop);   // 도구줄 높이에 맞춰 헤더 고정 오프셋 갱신(버튼 줄바꿈 대비)
   if(window.__uiFold) window.__uiFold();
 }
+/* 가격정책표 스크롤 접기 (폰·태블릿): 아래로 내리면 KPI·도구줄을 접고 표 머리줄(제품명…)만 위에 고정.
+   위로 올려도 풀리지 않고 [▾ 펼치기]를 눌러야 풀린다. */
+(function pzFold(){
+  const sh=$('#sh-price'); if(!sh) return;
+  const mq=window.matchMedia('(max-width:900px)'); let base=0;
+  const count=()=>{ const n=document.querySelectorAll('#priceGrid tbody tr[data-id]').length, q=($('#q').value||'').trim(); const el=$('#pzCount'); if(el) el.textContent=`${n}개${q?` · "${q}"`:''}`; };
+  const set=on=>{ if(document.body.classList.contains('pz-fold')===on) return; document.body.classList.toggle('pz-fold',on); count(); requestAnimationFrame(syncStickyTop); };
+  sh.addEventListener('scroll',()=>{ if(!mq.matches||document.body.classList.contains('pz-fold')) return; if(sh.scrollTop>base+60) set(true); },{passive:true});
+  document.addEventListener('click',e=>{ if(e.target.closest('#pzOpen')){ set(false); base=sh.scrollTop; } });
+  mq.addEventListener&&mq.addEventListener('change',()=>{ if(!mq.matches) set(false); });
+  window.__pzCount=count;
+  // 도구줄 높이가 바뀌면(줄바꿈·접힘) 머리줄 고정 위치를 바로 맞춘다
+  try{ new ResizeObserver(()=>syncStickyTop()).observe(sh.querySelector('.toolrow')); }catch(e){}
+})();
 function syncStickyTop(){
   const tr=$('#sh-price .toolrow'); if(!tr)return;
   document.documentElement.style.setProperty('--toolh', tr.offsetHeight+'px');

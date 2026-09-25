@@ -796,6 +796,36 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 .tbtn:active,.seg button:active,.qc-chips button:active,#sideNav .sn-item:active,#calcMenu button:active,#calcFab:active{transform:scale(.96)}
 .tr-more{display:none}
 .pz-mini{display:none}
+#priceCards{display:none}
+body.pv-card #priceGrid{display:none}
+body.pv-card #priceCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px;padding:10px 16px 90px;align-items:start}
+#priceCards .pc-cat{grid-column:1/-1;font-weight:800;color:#fff;background:var(--xl-green-dark,#0B5C30);border-radius:10px;padding:7px 12px;margin-top:6px;font-size:13px}
+#priceCards .pc-cat.l2{background:#107C41}
+#priceCards .pc-cat.l3{background:#E8F3EC;color:#0B5C30}
+#priceCards .pc-cat .gridadd{margin-left:8px}
+#priceCards .pc-add{grid-column:1/-1}
+#priceCards .pcard{background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:10px 12px;box-shadow:0 1px 3px rgba(15,23,42,.05)}
+#priceCards .pc-hd{display:flex;flex-direction:column;gap:2px}
+#priceCards .pc-name{font-size:14px;font-weight:800;color:#0F172A;line-height:1.35}
+#priceCards .pc-name{display:flex;align-items:center;gap:6px;flex-wrap:wrap;text-align:left}
+#priceCards .pc-name .rowtools{display:inline-flex;gap:4px;width:auto;margin:0;order:2;margin-left:auto}
+#priceCards .pc-name .pname{order:1;flex:1 1 auto;min-width:0}
+#priceCards .pc-name .rowtools button{opacity:.75;filter:none;border:0;background:#F1F5F9;border-radius:6px;padding:3px 6px;font-size:12px;cursor:pointer}
+#priceCards .pc-name .rowtools .prodfix:not(.on){opacity:.45;filter:grayscale(1)}
+@media(max-width:640px){ #priceCards .pc-name .prodcopy,#priceCards .pc-name .proddel{display:none} }
+#priceCards .pc-name .pname{white-space:normal}
+#priceCards .pc-sub{font-size:11.5px;color:var(--ink-soft)}
+#priceCards .pc-sub b{color:#0F172A}
+#priceCards .pc-sub .mrate{display:none}
+#priceCards .pc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}
+#priceCards .pc-v{display:flex;flex-direction:column;gap:1px;background:#F8FAFC;border:1px solid #EEF2F6;border-radius:10px;padding:6px 8px;text-align:right;cursor:pointer;min-height:48px}
+#priceCards .pc-v.editable{background:#F0FDF4;border-color:#BBF7D0}
+#priceCards .pc-v .pc-l{font-size:11px;color:var(--ink-soft);text-align:left;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#priceCards .pc-v .pc-l i{font-style:normal;font-family:var(--mono);color:var(--amber);margin-right:4px;font-size:10px}
+#priceCards .pc-v .pc-x{font-size:14px;font-weight:800;color:#0F172A}
+#priceCards .pc-v .pc-x .mrate{display:block;font-size:10.5px;font-weight:600}
+#priceCards .pc-v .cellinput{width:100%;font-size:16px;text-align:right;border:1.5px solid var(--xl-green);border-radius:6px;padding:4px 6px}
+@media(max-width:640px){ body.pv-card #priceCards{grid-template-columns:1fr;padding:8px 10px 90px} }
 @media(max-width:900px){
   body.pz-fold[data-sh="sh-price"] #ribbon .kpis{display:none!important}
   body.pz-fold #sh-price .toolrow>:not(.pz-mini){display:none!important}
@@ -1027,7 +1057,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.25h</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26a</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1198,6 +1228,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
         <button data-v="margin">마진액</button>
         <button data-v="rate">마진율</button>
       </div>
+      <div class="seg" id="pvSeg" title="카드 / 표 보기 (이 기기에 기억)"><button data-pv="card">▦ 카드</button><button data-pv="table">▤ 표</button></div>
       <button class="tbtn" id="btnAddProd" style="display:none">＋ 제품 추가</button>
       <button class="tbtn primary" id="btnSave">저장</button>
       <div class="tr-tools" id="trTools"><button type="button" class="tbtn tr-tbtn" id="btnTools">도구 ▾</button><div class="tr-menu" id="toolMenu">
@@ -1219,6 +1250,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     </div>
     <div id="pricingBanner"></div>
     <table class="grid" id="priceGrid"></table>
+    <div id="priceCards"></div>
   </section>
 
   <!-- ── Sheet 2.2: 채널 관리 ── -->
@@ -3397,6 +3429,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   CHORD.forEach(uid=>{ if(uid===VBASE_COL){ priceCols.push({t:'vbase'}); return; } const c=cols.find(x=>x.uid===uid); if(c) priceCols.push({t:'ch',c}); });
   cols.forEach(c=>{ if(!priceCols.some(x=>x.t==='ch'&&x.c.uid===c.uid)) priceCols.push({t:'ch',c}); });  // 누락 채널 보정
   if(!priceCols.some(x=>x.t==='vbase')) priceCols.unshift({t:'vbase'});   // 업체단가 누락 시 맨 앞에
+  window.__pvCols=priceCols.map(pc=>pc.t==='vbase'?{lb:'업체단가',code:''}:{lb:pc.c.short||pc.c.name,code:pc.c.code,retail:pc.c.uid===rUid});
   const showCode=CODECOL_OPEN;               // 자체상품코드 열(숨김 가능 · 이 기기에 기억)
   const ccb=$('#btnCodeCol'); if(ccb){ ccb.style.display=''; ccb.textContent=showCode?'🏷 코드 열 숨기기':'🏷 코드 열 보이기'; }
   const nCols=3+(showCode?1:0)+(showSup?1:0)+(showCost?1:0)+priceCols.length;
@@ -3489,6 +3522,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   $('#priceGrid').innerHTML=html+'</tbody>';
   const tn=$('#twinNote'); if(tn) tn.innerHTML = twin?`<br>· <b>업체단가 = [${esc(twin.code)} ${esc(twin.name)}]</b> — 같은 값입니다. 업체단가 칸이 <b>입력</b>, ${esc(twin.name)} 칸이 <b>계산 결과</b>입니다.`:'';
   layoutFrozen();
+  renderPriceCards();
   if(window.__pzCount) window.__pzCount();
 }
 /* 좌측 고정 열의 left 오프셋을 실측 폭으로 주입(열 폭이 달라도 정확히 고정) */
@@ -3579,8 +3613,11 @@ document.addEventListener('dblclick',e=>{
   const cur=f==='cost'?p.cost:(f==='vbase'?effVbase(pKey(p)):gp(p,f.slice(1)));
   td.innerHTML=`<input class="cellinput" type="number" value="${cur==null?'':cur}">`;
   const inp=td.querySelector('input'); inp.focus(); inp.select();
-  const commit=()=>{
-    const v=inp.value===''?null:+inp.value;
+  const commit=()=>cellCommit(p,f,inp.value===''?null:+inp.value);
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')commit(); if(ev.key==='Escape')renderGrid(); });
+  inp.addEventListener('blur',commit);
+});
+function cellCommit(p,f,v){
     if(f==='cost')p.cost=v;
     else if(f==='vbase'){ if(v!=null&&isTodo(p,VBASE_COL)) draftSetTodo(p,VBASE_COL,false);   // 값을 넣으면 미정 해제
                           draftSetVbase(p,v); PREVIEW=true; recalcVendor(); }   // 업체단가 → 개정안
@@ -3590,10 +3627,49 @@ document.addEventListener('dblclick',e=>{
       else{ delete EST[estKey(p,uid)];                                            // 직접 입력 → 더는 추정값이 아님
             if(v==null)delete p.pr[uid]; else p.pr[uid]=ceil100(v); } }           // 그 외 수동 채널(100원 올림)
     refreshAll();
-  };
-  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')commit(); if(ev.key==='Escape')renderGrid(); });
-  inp.addEventListener('blur',commit);
-});
+}
+/* ══════════ 가격정책표 카드 보기 ══════════
+   표(#priceGrid)를 그린 뒤 같은 행·같은 셀 내용으로 카드를 만든다 → 값·규칙·권한이 표와 100% 같다.
+   카드에서 가격을 누르면 바로 입력(표의 더블클릭과 같은 저장 규칙), 자동계산 채널은 조정 패널. */
+const PV_LS='pour-pv-mode';
+let PV_MODE=(()=>{ try{ const v=localStorage.getItem(PV_LS); if(v==='card'||v==='table') return v; }catch(e){} return 'card'; })();
+function renderPriceCards(){
+  const box=$('#priceCards'), g=$('#priceGrid'); if(!box||!g) return;
+  $$('#pvSeg button').forEach(b=>b.classList.toggle('on',b.dataset.pv===PV_MODE));
+  document.body.classList.toggle('pv-card',PV_MODE==='card');
+  if(PV_MODE!=='card'){ box.innerHTML=''; return; }
+  const cols=window.__pvCols||[]; let h='';
+  g.querySelectorAll('tbody tr').forEach(tr=>{
+    if(tr.classList.contains('catrow')){ const lv=tr.classList.contains('l1')?1:tr.classList.contains('l2')?2:3; const lab=tr.querySelector('.catlabel'); h+=`<div class="pc-cat l${lv}">${lab?lab.innerHTML:''}</div>`; return; }
+    if(tr.classList.contains('addrow')){ const b=tr.querySelector('.gridadd'); if(b) h+=`<div class="pc-add">${b.outerHTML}</div>`; return; }
+    const id=tr.dataset.id; if(id==null) return;
+    const tds=[...tr.children], name=tr.querySelector('td.frz-name'), spec=tr.querySelector('td.frz-spec'), cost=tr.querySelector('td.frz-cost'), sup=tr.querySelector('td.frz-sup');
+    const price=tds.filter(td=>!td.classList.contains('frz'));
+    h+=`<div class="pcard" data-id="${esc(id)}">
+      <div class="pc-hd"><div class="pc-name">${name?name.innerHTML:''}</div>
+        <div class="pc-sub">${spec?spec.innerHTML:''}${sup&&sup.textContent.trim()&&sup.textContent.trim()!=='—'?` · ${esc(sup.textContent.trim())}`:''}${cost?` · 원가 <b>${cost.innerHTML}</b>`:''}</div></div>
+      <div class="pc-grid">${price.map((td,i)=>{ const c=cols[i]||{lb:''};
+        const attrs=['data-id','data-f','data-cuid','title'].filter(a=>td.hasAttribute(a)).map(a=>` ${a}="${esc(td.getAttribute(a))}"`).join('');
+        return `<div class="pc-v ${td.className}"${attrs}><span class="pc-l">${c.code?`<i>${esc(c.code)}</i>`:''}${esc(c.lb)}${c.retail?' ★':''}</span><span class="pc-x">${td.innerHTML}</span></div>`; }).join('')}</div></div>`;
+  });
+  box.innerHTML=h||'<div class="qc-empty">표시할 제품이 없습니다</div>';
+}
+(function bindPriceCards(){
+  document.addEventListener('click',e=>{
+    const pv=e.target.closest('#pvSeg button[data-pv]'); if(pv){ PV_MODE=pv.dataset.pv; try{ localStorage.setItem(PV_LS,PV_MODE); }catch(err){} renderPriceCards(); if(PV_MODE==='table') layoutFrozen(); return; }
+    const cell=e.target.closest('#priceCards .pc-v'); if(!cell || e.target.closest('input')) return;
+    const card=cell.closest('.pcard'), p=P.find(x=>String(x.id)===String(card.dataset.id)); if(!p) return;
+    if(cell.classList.contains('editable')){
+      const f=cell.dataset.f, cur=f==='cost'?p.cost:(f==='vbase'?effVbase(pKey(p)):gp(p,f.slice(1))), x=cell.querySelector('.pc-x');
+      x.innerHTML=`<input class="cellinput" type="number" inputmode="numeric" value="${cur==null?'':cur}">`;
+      const inp=x.querySelector('input'); inp.focus(); inp.select(); let done=false;
+      const commit=()=>{ if(done) return; done=true; cellCommit(p,f,inp.value===''?null:+inp.value); };
+      inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter') commit(); if(ev.key==='Escape'){ done=true; renderPriceCards(); } });
+      inp.addEventListener('blur',commit); return; }
+    if(cell.classList.contains('pkglock')){ gridToast('세트 가격은 구성 단품에서 자동 합산됩니다'); return; }
+    if(cell.classList.contains('autolock')){ if(!costAllowed){ gridToast('자동 계산 채널입니다'); return; } const uid=cell.dataset.cuid||''; if(uid) openOvrPanel(p,uid,cell); }
+  });
+})();
 /* 잠긴 가격 셀(세트 합산·자동계산 채널)을 더블클릭하면 왜 안 되는지 안내 */
 let _toastTimer=null;
 /* 알림 통일: 화면 아래 짧은 알림 하나로(저장됨·실패·안내). kind: ok | err | info */
@@ -3624,7 +3700,7 @@ document.addEventListener('dblclick',e=>{
     if(p && uid) openOvrPanel(p, uid, td); else gridToast('이 채널은 업체단가~정가 사다리로 자동 계산됩니다 — 업체단가나 자사몰정가를 더블클릭해 수정하세요.');
   }
 });
-document.addEventListener('mousedown',e=>{ const el=$('#ovrPanel'); if(el&&el.style.display==='block'&&!e.target.closest('#ovrPanel')&&!e.target.closest('#priceGrid td.autolock')) closeOvrPanel(); });
+document.addEventListener('mousedown',e=>{ const el=$('#ovrPanel'); if(el&&el.style.display==='block'&&!e.target.closest('#ovrPanel')&&!e.target.closest('#priceGrid td.autolock')&&!e.target.closest('#priceCards .pc-v.autolock')) closeOvrPanel(); });
 $('#q').addEventListener('input',renderGrid);
 $('#catSel').addEventListener('change',renderGrid);
 $('#statusSeg').addEventListener('click',e=>{ const b=e.target.closest('button[data-s]'); if(!b)return;

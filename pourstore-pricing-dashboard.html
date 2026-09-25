@@ -825,6 +825,14 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 #dealPanel .qc-link{border:1px solid #FCD34D;background:#fff;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:700;color:#92400E;cursor:pointer;margin-left:6px}
 #dealPanel .dl-leg{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-faint)}
 #dealPanel .pm-editing{margin:0 0 8px;font-size:12px;color:#92400E;background:#FFFBEB;border-radius:8px;padding:6px 10px}
+#dealPanel .dl-add{display:flex;gap:6px;align-items:center;margin-top:12px;padding:10px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px}
+#dealPanel .dl-add #dlPick{flex:1;min-width:0;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px;font-size:14px}
+#dealPanel .dl-add #dlQty{width:64px;border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;font-size:14px;text-align:right}
+#dealPanel .dl-add span{font-size:12px;color:var(--ink-soft)}
+#dealPanel .dl-add .tbtn{white-space:nowrap}
+#dealPanel .dl-how{margin-top:12px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--ink-soft);background:#F8FAFC;border-radius:10px;padding:12px}
+#dealPanel .dl-how b{color:#0F172A}
+@media(max-width:640px){ #dealPanel .dl-hd b{flex:1 1 100%} #dealPanel .dl-add{flex-wrap:wrap} #dealPanel .dl-add #dlPick{flex:1 1 100%;font-size:16px} #dealPanel .dl-add #dlQty{font-size:16px} }
 #dealPanel .dl-top{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
 #dealPanel .dl-it{margin-top:10px;border:1.5px solid #E2E8F0;border-left-width:5px;border-radius:12px;padding:10px 12px}
 #dealPanel .dl-it.ok{border-left-color:#16A34A}#dealPanel .dl-it.warn{border-left-color:#F59E0B}#dealPanel .dl-it.bad{border-left-color:#DC2626}
@@ -1149,7 +1157,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26g</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26h</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -4286,7 +4294,9 @@ function renderDeal(){
       <label class="qc-f"><span>우리 최소 %</span><input type="number" id="dlMinOur" value="${esc(o.minOur)}" step="1"></label>
       <label class="qc-f"><span>거래처 최소 %</span><input type="number" id="dlMinPt" value="${esc(o.minPt)}" step="1"></label>
     </div>`;
-  if(!R.length) h+=`<div class="qc-empty">가격정책표에서 행을 누르고 <b>🧾 견적에 담기</b></div>`;
+  h+=`<div class="dl-add"><input id="dlPick" list="dlPickList" placeholder="🔍 제품 검색해서 담기" autocomplete="off"><datalist id="dlPickList">${P.filter(p=>!isDeletedProd(p)&&hasBrand(p,BRAND_FILTER)).map(p=>`<option value="${esc(prodLabel(p))}">`).join('')}</datalist>
+      <input type="number" id="dlQty" min="1" value="1"><span>개</span><button type="button" class="tbtn primary" id="dlAddBtn">＋ 담기</button></div>`;
+  if(!R.length) h+=`<div class="dl-how"><b>① 제품 검색 → 수량 → [＋ 담기]</b><span>(가격정책표에서 행을 누르고 🧾 견적에 담기도 가능)</span><b>② 품목마다 납품가·거래처 조건 조정 → 우리/거래처 이익 확인</b><b>③ [딜 저장] 또는 견적서 정보 → ⬇ 엑셀 견적서</b></div>`;
   R.forEach(r=>{
     if(r.gone){ h+=`<div class="dl-it gone">${esc(r.name)} — 삭제된 제품 <button class="pm-x" data-dlrm="${r.i}">✕</button></div>`; return; }
     const d=r.d, it=QT.items[r.i], st=d.win===false?'bad':d.inWin?'ok':'warn';
@@ -4376,10 +4386,14 @@ function dlAdd(key,qty){
       QT.items=(x.items||[]).map(i=>({...i})); QT.to=x.to||''; QT.minOur=x.minOur; QT.minPt=x.minPt; Object.assign(QT,x.quote||{}); DL.id=x.id; qtSave(); renderQuote(); renderDeal(); return; }
     if(e.target.id==='dlNew'){ DL.id=null; QT.items=[]; QT.to=''; qtSave(); renderQuote(); renderDeal(); return; }
     if(e.target.id==='dealSave'){ dlSave(); return; }
+    if(e.target.id==='dlAddBtn'){ const v=($('#dlPick').value||'').trim(), p=P.find(x=>!isDeletedProd(x)&&prodLabel(x)===v)||P.find(x=>!isDeletedProd(x)&&x.name===v);
+      if(!p){ uiToast('목록에서 제품을 골라 주세요','err'); $('#dlPick').focus(); return; }
+      dlAdd(pKey(p), $('#dlQty').value); uiToast(`담김 · ${p.name}`,'ok'); setTimeout(()=>{ const i=$('#dlPick'); if(i) i.focus(); },0); return; }
     if(e.target.id==='dlExcel'){ doExcelQuote(); const st=$('#qtStatus'); uiToast(st?st.textContent:'엑셀 견적서','info'); return; }
     if(e.target.id==='dlClear'){ if(!confirm('담긴 품목을 모두 비울까요?')) return; QT.items=[]; DL.id=null; qtSave(); renderQuote(); renderDeal(); return; }
   });
-  const upd=(e,final)=>{ const t=e.target;
+  box.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.target.id==='dlPick'||e.target.id==='dlQty')){ e.preventDefault(); $('#dlAddBtn').click(); } });
+  const upd=(e,final)=>{ const t=e.target; if(t.id==='dlPick'||t.id==='dlQty') return;
     if(t.id==='dlTo'){ QT.to=t.value; qtSave(); return; }
     if(t.id==='dlMinOur'||t.id==='dlMinPt'){ QT[t.id==='dlMinOur'?'minOur':'minPt']=t.value===''?null:+t.value; qtSave(); if(final) renderDeal(); return; }
     if(t.dataset.qt){ QT[t.dataset.qt]=t.value; qtSave(); return; }

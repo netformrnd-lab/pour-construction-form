@@ -796,7 +796,83 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 .tbtn:active,.seg button:active,.qc-chips button:active,#sideNav .sn-item:active,#calcMenu button:active,#calcFab:active{transform:scale(.96)}
 .tr-more{display:none}
 .pz-mini{display:none}
-body:not(.cost-ok) :is(#calcFab,#calcMenu,#calcPanel,#promoCalc,#costCalc){display:none!important}   /* 계산기: 부마스터·마스터만 (팀원 보기에서도 숨김) */
+#dealPanel{position:fixed;z-index:102;left:50%;top:50%;transform:translate(-50%,-50%);width:min(720px,calc(100vw - 32px));max-height:88vh;overflow-y:auto;background:#fff;border-radius:14px;box-shadow:0 18px 48px rgba(31,39,51,.28);display:none}
+#dealPanel.open{display:block;animation:uiUp .18s ease}
+#dealPanel .hd{background:var(--xl-green);color:#fff;padding:11px 14px;font-weight:700;font-size:13.5px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:4}
+#dealPanel .hd button{background:transparent;border:0;color:#fff;font-size:16px}
+#dealPanel .bd{padding:14px 16px}
+#dealPanel .qc-f{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--ink-soft);font-weight:700;min-width:0}
+#dealPanel .qc-f em{font-style:normal;font-weight:500;color:var(--ink-faint)}
+#dealPanel .qc-f input,#dealPanel .qc-f select{border:1px solid #E2E8F0;border-radius:8px;padding:7px 9px;font-size:13.5px;background:#fff;min-width:0;width:100%;box-sizing:border-box}
+#dealPanel .cc-rc-hd{margin-top:0;font-size:11.5px;font-weight:700;color:var(--ink-faint)}
+#dealPanel .cc-rc{display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px}
+#dealPanel .cc-rc button{flex:0 0 auto;max-width:200px;text-align:left;border:1px solid #E2E8F0;background:#fff;border-radius:10px;padding:6px 10px;display:flex;flex-direction:column;cursor:pointer}
+#dealPanel .cc-rc button b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dealPanel .cc-rc button em{font-style:normal;font-size:11px;color:var(--ink-soft);white-space:nowrap}
+#dealPanel .cc-rc button.on{border-color:var(--xl-green);background:#F0FDF4}
+#dealPanel .qc-link{border:1px solid #FCD34D;background:#fff;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:700;color:#92400E;cursor:pointer;margin-left:6px}
+#dealPanel .dl-leg{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-faint)}
+#dealPanel .pm-editing{margin:0 0 8px;font-size:12px;color:#92400E;background:#FFFBEB;border-radius:8px;padding:6px 10px}
+#dealPanel .dl-top{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+#dealPanel .dl-it{margin-top:10px;border:1.5px solid #E2E8F0;border-left-width:5px;border-radius:12px;padding:10px 12px}
+#dealPanel .dl-it.ok{border-left-color:#16A34A}#dealPanel .dl-it.warn{border-left-color:#F59E0B}#dealPanel .dl-it.bad{border-left-color:#DC2626}
+#dealPanel .dl-it.gone{color:var(--red);display:flex;justify-content:space-between}
+#dealPanel .dl-hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#dealPanel .dl-hd b{font-size:14px;color:#0F172A}
+#dealPanel .dl-hd span{font-size:11.5px;color:var(--ink-soft)}
+#dealPanel .dl-q{margin-left:auto;display:flex;align-items:center;gap:3px;font-size:12px;color:var(--ink-soft)}
+#dealPanel .dl-q input{width:70px;text-align:right;border:1px solid #E2E8F0;border-radius:6px;padding:4px 6px;font-size:13px}
+#dealPanel .pm-x{border:0;background:none;color:var(--ink-faint);font-size:13px;cursor:pointer}
+#dealPanel .dl-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;align-items:end}
+#dealPanel .dl-u input{font-size:16px;font-weight:800}
+#dealPanel .dl-win{display:flex;flex-direction:column;font-size:11.5px;color:var(--ink-soft);padding-bottom:4px}
+#dealPanel .dl-win b{font-size:13.5px;color:#15803D}
+#dealPanel .dl-win small{font-size:11px}
+#dealPanel .dl-sl{width:100%;margin:8px 0 2px;-webkit-appearance:none;appearance:none;height:8px;border-radius:4px;background:linear-gradient(90deg,#FECACA 0,#FECACA var(--lo),#BBF7D0 var(--lo),#BBF7D0 var(--hi),#BFDBFE var(--hi),#BFDBFE 100%)}
+#dealPanel .dl-sl::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid var(--xl-green);box-shadow:0 1px 4px rgba(0,0,0,.25)}
+#dealPanel .dl-sl::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--xl-green)}
+#dealPanel .dl-in3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+#dealPanel .dl-two{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+#dealPanel .dl-two>div{background:#F8FAFC;border-radius:10px;padding:7px 10px;display:flex;flex-direction:column}
+#dealPanel .dl-two>div:last-child{background:#EFF6FF}
+#dealPanel .dl-two>div>span{font-size:11px;font-weight:700;color:var(--ink-soft)}
+#dealPanel .dl-two b{font-size:16px;color:#15803D}
+#dealPanel .dl-two>div:last-child b{color:#1D4ED8}
+#dealPanel .dl-two b.neg{color:var(--red)!important}
+#dealPanel .dl-two em{font-style:normal;font-size:11px;color:var(--ink-soft)}
+#dealPanel .dl-split{height:6px;border-radius:3px;background:#93C5FD;margin-top:6px;overflow:hidden}
+#dealPanel .dl-split i{display:block;height:100%;background:#22C55E}
+#dealPanel .dl-sum{margin-top:14px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;background:#F0FDF4;border-radius:12px;padding:10px 12px}
+#dealPanel .dl-sum>div{display:flex;flex-direction:column}
+#dealPanel .dl-sum>div>span{font-size:11px;font-weight:700;color:var(--ink-soft)}
+#dealPanel .dl-sum b{font-size:15px;color:#0F172A}
+#dealPanel .dl-sum em{font-style:normal;font-size:11px;color:var(--ink-soft)}
+#dealPanel .dl-verdict{grid-column:1/-1;font-size:13px;font-weight:800;padding:6px 10px;border-radius:8px;text-align:center}
+#dealPanel .dl-verdict.ok{background:#DCFCE7;color:#166534}#dealPanel .dl-verdict.warn{background:#FEF3C7;color:#92400E}#dealPanel .dl-verdict.bad{background:#FEE2E2;color:#991B1B}
+#dealPanel details.cc-sec{margin-top:12px}
+#dealPanel details.cc-sec>summary{cursor:pointer;font-size:13px;font-weight:800;padding:6px 0}
+#dealPanel details.cc-sec>summary em{font-style:normal;font-weight:500;font-size:11.5px;color:var(--ink-faint)}
+#dealPanel .dl-bar{position:sticky;bottom:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #E2E8F0}
+#dealPanel .dl-bar>div>span{display:block;font-size:11px;color:var(--ink-soft);font-weight:700}
+#dealPanel .dl-bar b{font-size:18px;color:#15803D;white-space:nowrap}
+#dealPanel .dl-bar b small{color:var(--ink-faint);margin:0 4px}
+#dealPanel .dl-bar .tbtn{min-width:110px;padding:10px 16px;font-size:14px}
+#rowInfo .ri-moq{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:12px}
+#rowInfo .ri-t{font-weight:800;color:var(--ink-soft)}
+#rowInfo .ri-m{background:#fff;border-radius:6px;padding:2px 7px;font-weight:700;color:#0F172A}
+#rowInfo .ri-m i{font-style:normal;color:var(--ink-soft);font-weight:600;margin-right:4px}
+#rowInfo .ri-add{margin-left:auto;display:inline-flex;align-items:center;gap:4px;color:var(--ink-soft)}
+#rowInfo .ri-add input{width:64px;text-align:right;border:1px solid #BFDBFE;border-radius:6px;padding:3px 6px;font-size:13px}
+#rowInfo .ri-add .tbtn{padding:4px 10px;min-height:0}
+@media(max-width:640px){
+  #dealPanel{left:0;right:0;top:auto;bottom:0;transform:none;width:100%;max-height:92vh;min-height:66vh;border-radius:20px 20px 0 0}
+  #dealPanel .dl-top{grid-template-columns:1fr 1fr}#dealPanel .dl-top .qc-f:first-child{grid-column:1/-1}
+  #dealPanel .dl-in3{grid-template-columns:1fr 1fr}
+  #dealPanel .dl-sum{grid-template-columns:1fr 1fr}
+  #dealPanel .qc-f input,#dealPanel .qc-f select,#dealPanel .dl-q input,#rowInfo .ri-add input{font-size:16px}
+  #rowInfo .ri-add{margin-left:0;width:100%}
+}
+body:not(.cost-ok) :is(#calcFab,#calcMenu,#calcPanel,#promoCalc,#costCalc,#dealPanel,#btnDeal){display:none!important}   /* 계산기: 부마스터·마스터만 (팀원 보기에서도 숨김) */
 .findbox{display:inline-flex;align-items:center;gap:4px;position:relative}
 #findNav{display:inline-flex;align-items:center;gap:2px;font-size:12px;color:var(--ink-soft);font-weight:700}
 #findNav[hidden]{display:none}
@@ -1055,7 +1131,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26c</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26d</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1228,6 +1304,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
       </div>
       <button class="tbtn" id="btnAddProd" style="display:none">＋ 제품 추가</button>
       <button class="tbtn primary" id="btnSave">저장</button>
+      <button class="tbtn" id="btnDeal" title="견적 · B2B 딜 설계 (우리 이익·거래처 이익·윈윈 범위)">🧾 견적 <b id="dealN"></b></button>
       <div class="tr-tools" id="trTools"><button type="button" class="tbtn tr-tbtn" id="btnTools">도구 ▾</button><div class="tr-menu" id="toolMenu">
         <button class="tbtn" id="btnSecCols" style="display:none" title="매입원가·공급업체(제조사) 열과 마진 표시를 접었다 폈다 합니다. 이 기기에만 저장됩니다.">🔒 원가·제조사</button>
         <button class="tbtn" id="btnClearTodo" style="display:none;background:#FDF6F4;border-color:#F1B7AD;color:#8A2B1E" title="지금 표에 보이는 제품의 '단가 미정' 표시를 모두 해제합니다. 업체단가·정가가 있으면 총판~쿠팡이 다시 계산됩니다.">미정 해제</button>
@@ -1964,6 +2041,11 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <details class="cc-sec cc-more" id="ccMore"><summary>⋯ 더보기</summary><button class="tbtn" id="ccConfirm">🏭 생산 확정 · 포장재 재고 반영</button></details>
   </div>
   <div class="cc-bar" id="ccBar"><div><span>개당 원가</span><b id="ccBarV">—</b></div><button class="tbtn primary" id="ccSave">저장</button></div>
+</div>
+<div id="dealPanel">
+  <div class="hd">🧾 견적 · B2B 딜 설계 <button id="dealClose">✕</button></div>
+  <div class="bd" id="dealBody"></div>
+  <div class="cc-bar dl-bar" id="dealBar"><div><span>우리 총이익 · 거래처 총이익</span><b id="dealBarV">—</b></div><button class="tbtn primary" id="dealSave">딜 저장</button></div>
 </div>
 <div id="promoCalc">
   <div class="hd">프로모션 계산기 <button id="pmClose">✕</button></div>
@@ -3697,10 +3779,14 @@ function rowInfoRender(){
   el.hidden=false;
   el.innerHTML=`<div class="ri-hd"><b>${esc(p.name)}</b><span>${esc(p.spec||'')}${pcodeOf(p)?' · '+esc(pcodeOf(p)):''}${costAllowed?` · 원가 <b>${cost==null?'—':won(cost)}</b>`:''}</span>
       ${costAllowed?`<button type="button" class="ri-b" data-riedit="${p.id}" title="제품 수정">✏️</button>`:''}<button type="button" class="ri-b" id="rowInfoX" title="닫기">✕</button></div>
-    <div class="ri-row">${cols.map(chip).join('')}</div>`;
+    <div class="ri-row">${cols.map(chip).join('')}</div>
+    ${costAllowed&&MOQ_TIERS.length?(()=>{ const inQ=QT.items.find(x=>x.key===pKey(p)); const def=inQ?inQ.qty:((MOQ_TIERS[1]&&MOQ_TIERS[1].min)||1);
+      return `<div class="ri-moq"><span class="ri-t">수량별</span>${MOQ_TIERS.map(t=>{ const u=qtUnitAuto(p,t.min); return `<span class="ri-m"><i>${esc(t.label)}</i>${u==null?'—':won(u)}</span>`; }).join('')}
+        <span class="ri-add"><input type="number" min="1" id="riQty" value="${def}">개<button type="button" class="tbtn primary" data-riadd="${esc(pKey(p))}">🧾 ${inQ?'수량 변경':'견적에 담기'}</button></span></div>`; })():''}`;
 }
 document.addEventListener('click',e=>{
   if(e.target.closest('#rowInfoX')){ rowSelect(null); return; }
+  const ad=e.target.closest('[data-riadd]'); if(ad){ dlAdd(ad.dataset.riadd, $('#riQty')?$('#riQty').value:1); rowInfoRender(); uiToast(`견적에 담김 · ${QT.items.length}개 품목 (🧾 견적에서 보기)`,'ok'); return; }
   const ed=e.target.closest('[data-riedit]'); if(ed){ const p=P.find(x=>String(x.id)===ed.dataset.riedit); if(p&&typeof openEditModal==='function') openEditModal(p); return; }
   const td=e.target.closest('#priceGrid tbody tr[data-id] td'); if(!td || e.target.closest('button,input,.grip,.nono')) return;
   rowSelect(td.parentElement.dataset.id);
@@ -4119,6 +4205,151 @@ function doExcelQuote(){
   }
 })();
 
+/* ══════════ B2B 딜 설계 (견적 + 우리 이익 · 거래처 이익 · 윈윈 범위) ══════════
+   견적서(QT, 같은 저장소)를 그대로 쓰고, 품목마다 딜 조건을 더한다.
+   · 납품가(공급가, VAT 별도): 비우면 MOQ 구간가 자동, 입력·슬라이더로 협의가
+   · 우리 이익 = 납품가 − 매입원가 − 우리 비용(화물·택배·결제 등, 개당)          우리 이익률 = 우리 이익 ÷ 납품가
+   · 거래처 이익 = 거래처 판매가 ÷ 1.1 − 거래처 판매가 × 거래처 비용% − 납품가     거래처 이익률 = 거래처 이익 ÷ (판매가 ÷ 1.1)
+     (거래처 판매가 기본값 = 우리 정가, 소비자가 VAT 포함)
+   · 윈윈 범위: 하한 = (원가+우리 비용) ÷ (1 − 우리 최소%)  ~  상한 = 판매가÷1.1 × (1 − 거래처 최소%) − 판매가 × 거래처 비용%
+   · 딜 저장: product-meta/b2b-deals {map: id → 딜 + history(누가·언제)} — 고객용 엑셀 견적서에는 원가·이익이 들어가지 않는다 */
+const DL_DEF={minOur:20,minPt:15};
+let DL={plans:null, id:null};
+function dlOpt(){ return {minOur:+(QT.minOur??DL_DEF.minOur), minPt:+(QT.minPt??DL_DEF.minPt)}; }
+function dlCalc(r,it){
+  const p=r.p, cost=effCost(p), o=dlOpt(), rUid=retailUid();
+  const rs=(it.rs===''||it.rs==null)?effPrice(p,rUid):+it.rs, pf=(+it.pf||0)/100, oc=+it.oc||0, u=r.unit;
+  const net=rs!=null?rs/1.1:null;
+  const our=(u!=null&&cost!=null)?u-cost-oc:null, ourR=(our!=null&&u>0)?our/u:null;
+  const pt=(net!=null&&u!=null)?net-rs*pf-u:null, ptR=(pt!=null&&net>0)?pt/net:null;
+  const lo=cost!=null?Math.ceil(((cost+oc)/(1-o.minOur/100))/10)*10:null;
+  const hi=net!=null?Math.floor((net*(1-o.minPt/100)-rs*pf)/10)*10:null;
+  const win=(lo!=null&&hi!=null)?(lo<=hi):null, inWin=win&&u!=null&&u>=lo&&u<=hi;
+  return {cost,rs,net,oc,pf,u,our,ourR,pt,ptR,lo,hi,win,inWin};
+}
+function dlRows(){ return qtRows().map(r=>r.gone?r:({...r, d:dlCalc(r,QT.items[r.i])})); }
+function dlCount(){ const n=QT.items.length, el=$('#dealN'); if(el) el.textContent=n?n:''; }
+function renderDeal(){
+  const box=$('#dealBody'); if(!box) return; dlCount();
+  const o=dlOpt(), R=dlRows(), live=R.filter(r=>!r.gone);
+  const plans=Object.values(DL.plans||{}).filter(x=>x&&x.id).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
+  const who=e=>String(e||'').split('@')[0]||'—';
+  let h=`${plans.length?`<div class="cc-rc-hd">최근 딜</div><div class="cc-rc">${plans.slice(0,5).map(x=>`<button data-dlload="${esc(x.id)}" class="${x.id===DL.id?'on':''}"><b>${esc(x.title||'(거래처 없음)')}</b><em>${(x.items||[]).length}품목 · ${x.sum?qcT(x.sum.our):'—'} · ${esc(who(x.updatedBy))} ${esc(String(x.updatedAt||'').slice(5,10).replace('-','/'))}</em></button>`).join('')}</div>`:''}
+    ${DL.id?`<div class="pm-editing">✎ 수정 중 · ${esc((DL.plans[DL.id]||{}).title||'')} <button class="qc-link" id="dlNew">새 딜</button></div>`:''}
+    <div class="dl-top">
+      <label class="qc-f"><span>거래처</span><input id="dlTo" value="${esc(QT.to||'')}" placeholder="예: ○○건재"></label>
+      <label class="qc-f"><span>우리 최소 %</span><input type="number" id="dlMinOur" value="${esc(o.minOur)}" step="1"></label>
+      <label class="qc-f"><span>거래처 최소 %</span><input type="number" id="dlMinPt" value="${esc(o.minPt)}" step="1"></label>
+    </div>`;
+  if(!R.length) h+=`<div class="qc-empty">가격정책표에서 행을 누르고 <b>🧾 견적에 담기</b></div>`;
+  R.forEach(r=>{
+    if(r.gone){ h+=`<div class="dl-it gone">${esc(r.name)} — 삭제된 제품 <button class="pm-x" data-dlrm="${r.i}">✕</button></div>`; return; }
+    const d=r.d, it=QT.items[r.i], st=d.win===false?'bad':d.inWin?'ok':'warn';
+    const smin=Math.max(0,Math.floor(Math.min(d.cost??0,d.u??0,d.lo??0)*0.9/10)*10), smax=Math.ceil(Math.max(d.net??0,d.u??0,d.hi??0)/10)*10;
+    const ourW=(d.our!=null&&d.pt!=null&&d.our+d.pt>0)?Math.max(0,Math.min(100,d.our/(d.our+d.pt)*100)):null;
+    h+=`<div class="dl-it ${st}" data-i="${r.i}">
+      <div class="dl-hd"><b>${esc(r.name)}</b><span>${esc(r.spec)}</span><label class="dl-q">×<input type="number" min="1" data-dlf="qty" value="${r.qty}">개</label><button class="pm-x" data-dlrm="${r.i}" title="빼기">✕</button></div>
+      <div class="dl-row"><label class="qc-f dl-u"><span>납품가 <em>${r.custom?'협의가':esc(r.tier?r.tier.label+' 구간':'')}</em></span><input type="number" data-dlf="unit" value="${r.custom?r.unit:''}" placeholder="${r.unit==null?'입력':won(r.unit)}"></label>
+        <div class="dl-win">${d.win===false?'<b class="neg">윈윈 불가</b><small>최소마진을 둘 다 지킬 수 없음</small>':`<span>윈윈 범위</span><b>${d.lo!=null?won(d.lo):'—'} ~ ${d.hi!=null?won(d.hi):'—'}</b>`}</div></div>
+      ${d.u!=null&&smax>smin?`<input type="range" class="dl-sl" data-dlf="slide" min="${smin}" max="${smax}" step="10" value="${d.u}" style="--lo:${d.lo!=null?((d.lo-smin)/(smax-smin)*100):0}%;--hi:${d.hi!=null?((d.hi-smin)/(smax-smin)*100):0}%"><div class="dl-leg"><span>◀ 우리 이익 부족</span><span>윈윈</span><span>거래처 이익 부족 ▶</span></div>`:''}
+      <div class="dl-in3">
+        <label class="qc-f"><span>거래처 판매가</span><input type="number" data-dlf="rs" value="${esc(it.rs??'')}" placeholder="${d.rs!=null?won(d.rs):'정가 없음'}"></label>
+        <label class="qc-f"><span>거래처 비용 %</span><input type="number" data-dlf="pf" value="${esc(it.pf??'')}" placeholder="0" step="0.5"></label>
+        <label class="qc-f"><span>우리 비용 원/개</span><input type="number" data-dlf="oc" value="${esc(it.oc??'')}" placeholder="화물·택배 0"></label>
+      </div>
+      <div class="dl-two"><div><span>우리</span><b class="${d.our!=null&&d.our<0?'neg':''}">${d.our==null?'—':won(d.our)}</b><em>${d.ourR==null?'원가 없음':pct(d.ourR)} · 총 ${d.our==null?'—':qcT(d.our*r.qty)}</em></div>
+        <div><span>거래처</span><b class="${d.pt!=null&&d.pt<0?'neg':''}">${d.pt==null?'—':won(d.pt)}</b><em>${d.ptR==null?'—':pct(d.ptR)} · 총 ${d.pt==null?'—':qcT(d.pt*r.qty)}</em></div></div>
+      ${ourW!=null?`<div class="dl-split"><i style="width:${ourW}%"></i></div>`:''}
+    </div>`;
+  });
+  if(live.length){
+    const S=dlSum(live), okAll=live.every(r=>r.d.inWin), noWin=live.some(r=>r.d.win===false);
+    h+=`<div class="dl-sum"><div><span>품목</span><b>${live.length}개</b></div><div><span>공급가 합계</span><b>${qcT(S.amt)}</b></div>
+      <div><span>우리 총이익</span><b>${qcT(S.our)}</b><em>${S.amt>0?pct(S.our/S.amt):'—'}</em></div><div><span>거래처 총이익</span><b>${qcT(S.pt)}</b><em>${S.net>0?pct(S.pt/S.net):'—'}</em></div>
+      <div class="dl-verdict ${okAll?'ok':noWin?'bad':'warn'}">${okAll?'✅ 윈윈':noWin?'❌ 윈윈 불가 품목 있음':'⚠ 범위 밖 품목 있음'}</div></div>
+    <details class="cc-sec"><summary>견적서 정보 <em>고객용 엑셀 · 원가·이익 미포함</em></summary>
+      <div class="dl-in3">
+        <label class="qc-f"><span>공급자 표기</span><input data-qt="from" value="${esc(QT.from||'')}" placeholder="㈜넷폼 · POUR스토어"></label>
+        <label class="qc-f"><span>담당·연락처</span><input data-qt="mgr" value="${esc(QT.mgr||'')}"></label>
+        <label class="qc-f"><span>유효기간</span><input data-qt="valid" value="${esc(QT.valid||'')}" placeholder="30일"></label>
+        <label class="qc-f"><span>부가세</span><select data-qt="vat">${[['sep','별도'],['inc','포함'],['none','표기 안 함']].map(([k,l])=>`<option value="${k}"${(QT.vat||'sep')===k?' selected':''}>${l}</option>`).join('')}</select></label>
+        <label class="qc-f" style="grid-column:span 2"><span>비고</span><input data-qt="note" value="${esc(QT.note||'')}" placeholder="예: 운임 별도"></label>
+      </div>
+      <button class="tbtn" id="dlExcel" style="margin-top:8px">⬇ 엑셀 견적서</button> <button class="tbtn" id="dlClear" style="margin-top:8px">비우기</button></details>`;
+  }
+  box.innerHTML=h;
+  dlBar();
+}
+function dlSum(live){ return live.reduce((a,r)=>{ const q=r.qty, d=r.d; a.amt+=(r.unit||0)*q; a.our+=(d.our||0)*q; a.pt+=(d.pt||0)*q; a.net+=(d.net||0)*q; return a; },{amt:0,our:0,pt:0,net:0}); }
+function dlBar(){ const live=dlRows().filter(r=>!r.gone), bar=$('#dealBar'); if(!bar) return;
+  bar.style.display=live.length?'':'none'; if(!live.length) return;
+  const S=dlSum(live); $('#dealBarV').innerHTML=`${qcT(S.our)} <small>·</small> <span style="color:#1D4ED8">${qcT(S.pt)}</span>`; $('#dealSave').textContent=DL.id?'수정 저장':'딜 저장'; }
+async function dlLoadPlans(){ if(DL.plans) return;
+  try{ const d=await db.collection('product-meta').doc('b2b-deals').get(); DL.plans=(d.exists&&d.data().map)?{...d.data().map}:{}; console.log(`[b2b-deals] ${Object.keys(DL.plans).length}건`); }
+  catch(e){ console.error('[b2b-deals] 불러오기 실패',e); DL.plans={}; uiToast('딜 불러오기 실패: '+(e.code||e.message||e),'err'); } }
+async function dlSave(){
+  const live=dlRows().filter(r=>!r.gone); if(!live.length){ uiToast('담긴 품목이 없어요','err'); return; }
+  await dlLoadPlans();
+  const now=new Date().toISOString(), by=(curUser&&curUser.email)||'', id=DL.id&&DL.plans[DL.id]?DL.id:('dl'+Date.now().toString(36)), prev=DL.plans[id]||null;
+  const S=dlSum(live), o=dlOpt();
+  const deal={id, title:(QT.to||'').trim()||'(거래처 없음)', to:QT.to||'', minOur:o.minOur, minPt:o.minPt,
+    items:QT.items.map(x=>({...x})), sum:{amt:Math.round(S.amt),our:Math.round(S.our),pt:Math.round(S.pt)},
+    quote:{from:QT.from||'',mgr:QT.mgr||'',valid:QT.valid||'',vat:QT.vat||'sep',note:QT.note||''},
+    createdAt:prev?prev.createdAt:now, createdBy:prev?prev.createdBy:by, updatedAt:now, updatedBy:by,
+    history:[...((prev&&prev.history)||[]),{at:now,by,note:prev?'수정':'처음 저장',our:Math.round(S.our),pt:Math.round(S.pt)}].slice(-30)};
+  try{ await db.collection('product-meta').doc('b2b-deals').set({map:{[id]:deal}},{merge:true});
+    DL.plans[id]=deal; DL.id=id; logAct('B2B딜', deal.title, `${prev?'수정':'저장'} · 우리 ${won(deal.sum.our)} · 거래처 ${won(deal.sum.pt)}`);
+    uiToast(`딜 ${prev?'수정본으로 ':''}저장됨 · ${by.split('@')[0]}`,'ok'); renderDeal(); }
+  catch(e){ console.error('[b2b-deals] 저장 실패',e); uiToast('딜 저장 실패: '+(e.code||e.message||e),'err'); }
+}
+async function openDeal(){
+  document.querySelectorAll('#calcPanel,#promoCalc,#costCalc').forEach(x=>x.classList.remove('open')); $('#calcMenu')&&$('#calcMenu').classList.remove('open');
+  $('#dealPanel').classList.add('open'); renderDeal(); await dlLoadPlans(); renderDeal();
+}
+function dlAdd(key,qty){
+  const ex=QT.items.find(x=>x.key===key); qty=Math.max(1,+qty||1);
+  if(ex) ex.qty=qty; else QT.items.push({key,qty,unit:null});
+  qtSave(); renderQuote(); dlCount(); if($('#dealPanel').classList.contains('open')) renderDeal();
+}
+(function bindDeal(){
+  const box=$('#dealPanel'); if(!box) return; dlCount();
+  $('#dealClose').addEventListener('click',()=>box.classList.remove('open'));
+  document.addEventListener('click',e=>{ if(e.target.closest('#btnDeal')) openDeal(); });
+  box.addEventListener('click',e=>{
+    const rm=e.target.closest('[data-dlrm]'); if(rm){ QT.items.splice(+rm.dataset.dlrm,1); qtSave(); renderQuote(); renderDeal(); return; }
+    const ld=e.target.closest('[data-dlload]'); if(ld){ const x=(DL.plans||{})[ld.dataset.dlload]; if(!x) return;
+      QT.items=(x.items||[]).map(i=>({...i})); QT.to=x.to||''; QT.minOur=x.minOur; QT.minPt=x.minPt; Object.assign(QT,x.quote||{}); DL.id=x.id; qtSave(); renderQuote(); renderDeal(); return; }
+    if(e.target.id==='dlNew'){ DL.id=null; QT.items=[]; QT.to=''; qtSave(); renderQuote(); renderDeal(); return; }
+    if(e.target.id==='dealSave'){ dlSave(); return; }
+    if(e.target.id==='dlExcel'){ doExcelQuote(); const st=$('#qtStatus'); uiToast(st?st.textContent:'엑셀 견적서','info'); return; }
+    if(e.target.id==='dlClear'){ if(!confirm('담긴 품목을 모두 비울까요?')) return; QT.items=[]; DL.id=null; qtSave(); renderQuote(); renderDeal(); return; }
+  });
+  const upd=(e,final)=>{ const t=e.target;
+    if(t.id==='dlTo'){ QT.to=t.value; qtSave(); return; }
+    if(t.id==='dlMinOur'||t.id==='dlMinPt'){ QT[t.id==='dlMinOur'?'minOur':'minPt']=t.value===''?null:+t.value; qtSave(); if(final) renderDeal(); return; }
+    if(t.dataset.qt){ QT[t.dataset.qt]=t.value; qtSave(); return; }
+    const card=t.closest('.dl-it'); if(!card||!t.dataset.dlf) return; const it=QT.items[+card.dataset.i]; if(!it) return;
+    const f=t.dataset.dlf;
+    if(f==='qty') it.qty=Math.max(1,+t.value||1);
+    else if(f==='unit') it.unit=t.value===''?null:Math.max(0,+t.value||0);
+    else if(f==='slide') it.unit=+t.value;
+    else it[f]=t.value;
+    qtSave();
+    if(final) { renderQuote(); renderDeal(); } else dlPatch(card); };
+  /* 끄는 중에는 그 품목 숫자만 바꾼다 (전체를 다시 그리면 슬라이더 끌기가 끊김) */
+  function dlPatch(card){
+    const i=+card.dataset.i, r=qtRows().find(x=>x.i===i); if(!r||r.gone) return; const d=dlCalc(r,QT.items[i]);
+    const two=card.querySelectorAll('.dl-two>div');
+    const put=(el,v,rt,tot)=>{ if(!el) return; const b=el.querySelector('b'), em=el.querySelector('em'); b.textContent=v==null?'—':won(v); b.classList.toggle('neg',v!=null&&v<0); em.textContent=`${rt==null?'—':pct(rt)} · 총 ${v==null?'—':qcT(v*r.qty)}`; };
+    put(two[0],d.our,d.ourR); put(two[1],d.pt,d.ptR);
+    const sp=card.querySelector('.dl-split i'); if(sp&&d.our!=null&&d.pt!=null&&d.our+d.pt>0) sp.style.width=Math.max(0,Math.min(100,d.our/(d.our+d.pt)*100))+'%';
+    const ui=card.querySelector('input[data-dlf="unit"]'); if(ui&&document.activeElement!==ui&&QT.items[i].unit!=null) ui.value=QT.items[i].unit;
+    card.classList.remove('ok','warn','bad'); card.classList.add(d.win===false?'bad':d.inWin?'ok':'warn');
+    dlBar();
+  }
+  box.addEventListener('input',e=>upd(e,false));
+  box.addEventListener('change',e=>upd(e,true));
+})();
 /* ══════════ 손익 · 공헌이익 ══════════ */
 let plState=null, plMode='prod', PLAN=window.__PLAN||[], planSeq=window.__planSeq||0;
 
@@ -8825,7 +9056,7 @@ async function openPromoCalc(key, preset){
    · 폰에서 버튼이 많은 도구줄은 '도구 N개 ▾' 로 접어 둔다(누르면 전부 펼침 — 기능은 그대로) */
 (function appUx(){
   const back=document.createElement('div'); back.id='uiBack'; document.body.appendChild(back);
-  const panels=()=>['#calcMenu','#calcPanel','#promoCalc','#costCalc'].map(x=>$(x)).filter(Boolean);
+  const panels=()=>['#calcMenu','#calcPanel','#promoCalc','#costCalc','#dealPanel'].map(x=>$(x)).filter(Boolean);
   const anyOpen=()=>panels().some(p=>p.classList.contains('open'));
   const drawerOpen=()=>document.body.classList.contains('sn-open');
   const closeAll=()=>{ panels().forEach(p=>p.classList.remove('open')); document.body.classList.remove('sn-open'); };

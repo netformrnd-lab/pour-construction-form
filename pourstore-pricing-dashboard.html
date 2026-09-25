@@ -519,14 +519,15 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
      375px 화면에서는 아무리 스크롤해도 가격 열이 화면 밖에 머문다. */
   #priceGrid .frz-sup,#priceGrid .frz-cost,#priceGrid .frz-code{position:static!important;z-index:auto!important}
   /* 폰: 제품명 + 규격까지 고정 (좌우 스크롤해도 규격이 보이게) */
-  #priceGrid .frz-spec{min-width:66px!important;max-width:66px;width:66px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;border-right:2px solid #c3ccd4!important;box-shadow:6px 0 8px -6px rgba(0,0,0,.18)}
+  #priceGrid .frz-spec{min-width:66px!important;max-width:66px;width:66px;white-space:normal;word-break:break-all;line-height:1.25;font-size:11px;border-right:2px solid #c3ccd4!important;box-shadow:6px 0 8px -6px rgba(0,0,0,.18)}
   #priceGrid thead th.frz-sup,#priceGrid thead th.frz-cost{position:sticky!important;left:auto!important;z-index:18!important}   /* 머리줄은 위로 고정 유지 */
   #priceGrid .frz-edge{border-right:0!important;box-shadow:none!important}
-  #priceGrid .frz-name{min-width:128px!important;max-width:128px;width:128px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-right:1px solid var(--xl-grid)!important;box-shadow:none!important}
+  #priceGrid .frz-name{min-width:128px!important;max-width:128px;width:128px;white-space:normal;word-break:keep-all;overflow-wrap:anywhere;line-height:1.3;border-right:1px solid var(--xl-grid)!important;box-shadow:none!important}
+  #priceGrid .frz-name .pname{display:inline;white-space:normal}   /* 폰: 제품명 전체를 줄바꿈해서 보여줌 */
   #priceGrid .frz-no,#priceGrid .frz-code{display:none!important}   /* 폰: No·코드 열 숨김 (PC에선 그대로) */
   #priceGrid td{font-size:12px}
   #priceGrid thead th.num{min-width:86px!important}
-  body[data-sh="sh-price"]:not(.fx-has) #fxbar{display:none!important}   /* 폰: 셀을 누르기 전엔 fx 줄 숨김 */
+  body[data-sh="sh-price"] #fxbar,body[data-sh="sh-price"] #fxSplit{display:none!important}   /* 폰: fx 줄 숨김 — 선택 제품 요약줄이 대신 보여줌 (셀을 누를 때 표가 밀리지 않게) */
   .tr-tools .tr-menu{left:0;right:auto;width:250px;max-height:60vh}
   #priceGrid td,#priceGrid th{padding-left:6px;padding-right:6px}
   #priceGrid .prodcopy,#priceGrid .proddel{display:none}   /* 좁은 화면에선 모드(⚙️)·수정(✏️)만 남김 */
@@ -888,7 +889,13 @@ body:not(.cost-ok) :is(#calcFab,#calcMenu,#calcPanel,#promoCalc,#costCalc,#dealP
 #rowInfo .ri-hd>span{font-size:11.5px;color:var(--ink-soft);white-space:nowrap}
 #rowInfo .ri-hd>span b{color:#0F172A}
 #rowInfo .ri-b{border:0;background:#fff;border-radius:6px;padding:2px 7px;font-size:12px;cursor:pointer;flex:0 0 auto}
-#rowInfo .ri-b[data-riedit]{margin-left:auto}
+#rowInfo .ri-b[data-riedit]:not(.ri-done),#rowInfo .ri-editing{margin-left:auto}
+#rowInfo .ri-editing{font-size:11.5px;font-weight:800;color:#B45309;white-space:nowrap}
+#rowInfo .ri-done{background:var(--xl-green)!important;color:#fff;font-weight:800}
+#priceGrid tr.row-edit>td{background-color:#FFFBEB!important}
+#priceGrid tr.row-edit>td.editable,#priceGrid tr.row-edit>td.autolock{outline:1.5px dashed #F59E0B;outline-offset:-3px;cursor:text}
+#priceGrid tr:not(.row-edit) .prodcopy,#priceGrid tr:not(.row-edit) .proddel{display:none}
+#priceGrid tr.row-edit .prodedit{opacity:1!important;background:#FDE68A;border-radius:4px}
 #rowInfo .ri-row{display:flex;gap:6px;overflow-x:auto;margin-top:5px;padding-bottom:2px;-webkit-overflow-scrolling:touch}
 #rowInfo .ri-c{flex:0 0 auto;display:flex;flex-direction:column;background:#fff;border-radius:8px;padding:4px 9px;min-width:74px}
 #rowInfo .ri-c.rt{outline:1.5px solid #93C5FD}
@@ -896,7 +903,7 @@ body:not(.cost-ok) :is(#calcFab,#calcMenu,#calcPanel,#promoCalc,#costCalc,#dealP
 #rowInfo .ri-c b{font-size:13.5px;color:#0F172A}
 #rowInfo .ri-c em{font-style:normal;font-size:10.5px;color:var(--xl-green-dark);font-weight:700}
 #rowInfo .ri-c em.neg{color:var(--red)}
-@media(max-width:640px){ .findbox{flex:1 1 100%} .findbox #q{flex:1;width:auto!important;min-width:0} #rowInfo .ri-hd>span{display:none} }
+@media(max-width:640px){ .findbox{flex:1 1 100%} .findbox #q{flex:1;width:auto!important;min-width:0} #rowInfo .ri-hd>span:not(.ri-editing){display:none} }
 
 @media(max-width:900px){
   body.pz-fold[data-sh="sh-price"] #ribbon .kpis{display:none!important}
@@ -1131,7 +1138,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26d</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26f</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -3600,7 +3607,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   $('#priceGrid').innerHTML=html+'</tbody>';
   const tn=$('#twinNote'); if(tn) tn.innerHTML = twin?`<br>· <b>업체단가 = [${esc(twin.code)} ${esc(twin.name)}]</b> — 같은 값입니다. 업체단가 칸이 <b>입력</b>, ${esc(twin.name)} 칸이 <b>계산 결과</b>입니다.`:'';
   layoutFrozen();
-  findApply(false); rowInfoRender();
+  findApply(false); if(EDIT_ROW!=null){ const er=document.querySelector(`#priceGrid tbody tr[data-id="${EDIT_ROW}"]`); if(er) er.classList.add('row-edit'); else EDIT_ROW=null; } rowInfoRender();
   if(window.__pzCount) window.__pzCount();
 }
 /* 좌측 고정 열의 left 오프셋을 실측 폭으로 주입(열 폭이 달라도 정확히 고정) */
@@ -3684,9 +3691,18 @@ document.addEventListener('click',e=>{
 /* 더블클릭은 편집을 여는 동작이라 브라우저 기본 '단어 선택'(파란 하이라이트)이 남는다.
    평소 드래그 선택·복사는 그대로 두고, 편집을 열 때만 선택을 지운다. */
 const clearDblSel=()=>{ const sel=window.getSelection&&window.getSelection(); if(sel&&sel.removeAllRanges) sel.removeAllRanges(); };
+/* 편집 잠금: ✏️(연필)을 눌러 '편집 중'인 행만 가격·도구를 바꿀 수 있다 (실수로 더블클릭해 값이 바뀌는 것 방지) */
+let EDIT_ROW=null;
+function rowEditing(el){ const tr=el&&el.closest('tr[data-id]'); return !!tr && EDIT_ROW!=null && tr.dataset.id===EDIT_ROW; }
+function editLockToast(){ gridToast('✏️ 연필을 눌러야 편집할 수 있어요'); }
+function setEditRow(id){ EDIT_ROW=id==null?null:String(id);
+  $$('#priceGrid tr.row-edit').forEach(tr=>tr.classList.remove('row-edit'));
+  if(EDIT_ROW!=null){ const tr=document.querySelector(`#priceGrid tbody tr[data-id="${EDIT_ROW}"]`); if(tr) tr.classList.add('row-edit'); }
+  if(typeof rowSelect==='function') rowSelect(EDIT_ROW??SEL_ROW); }
 document.addEventListener('dblclick',e=>{
   const td=e.target.closest('#priceGrid td.editable'); if(!td||td.querySelector('input'))return;
   clearDblSel();
+  if(!rowEditing(td)){ editLockToast(); return; }
   const p=P[+td.dataset.id], f=td.dataset.f;
   const cur=f==='cost'?p.cost:(f==='vbase'?effVbase(pKey(p)):gp(p,f.slice(1)));
   td.innerHTML=`<input class="cellinput" type="number" value="${cur==null?'':cur}">`;
@@ -3729,6 +3745,7 @@ function __oldGridToast(msg){
 document.addEventListener('dblclick',e=>{
   const td=e.target.closest('#priceGrid td'); if(!td || td.classList.contains('editable') || td.querySelector('input')) return;
   clearDblSel();
+  if(td.classList.contains('autolock') && costAllowed && !rowEditing(td)){ editLockToast(); return; }
   if(td.classList.contains('pkglock')){ gridToast('세트 가격은 구성 단품에서 자동 합산됩니다 — 구성 단품(단품 행)의 업체단가·정가를 수정하세요.'); return; }
   if(td.classList.contains('autolock')){
     // 자동계산 채널이라도 이 제품만 직접 조정할 수 있게 — 앞뒤 채널을 보며 입력(가격 역전 방지)
@@ -3769,6 +3786,12 @@ function rowSelect(id){ SEL_ROW=id==null?null:String(id); $$('#priceGrid tr.row-
   if(SEL_ROW!=null){ const tr=document.querySelector(`#priceGrid tbody tr[data-id="${SEL_ROW}"]`); if(tr) tr.classList.add('row-sel'); } rowInfoRender(); }
 function rowInfoRender(){
   const el=$('#rowInfo'); if(!el) return;
+  /* 요약줄이 열리고 닫히며 도구줄 높이가 바뀌어도 표가 밀리지 않게(누른 행이 손가락 아래 그대로) 스크롤을 보정 */
+  const sh=$('#sh-price'), tr0=$('#sh-price .toolrow'), h0=tr0?tr0.offsetHeight:0;
+  const fix=()=>{ const h1=tr0?tr0.offsetHeight:0; if(sh&&h1!==h0&&sh.offsetParent){ window.__pzHold=Date.now(); sh.scrollTop+= (h1-h0); if(window.__pzRebase) window.__pzRebase(); } };
+  try{ rowInfoPaint(el); } finally { fix(); }
+}
+function rowInfoPaint(el){
   const p=SEL_ROW!=null?P.find(x=>String(x.id)===SEL_ROW):null;
   if(!p||isDeletedProd(p)){ el.hidden=true; el.innerHTML=''; return; }
   const tr=document.querySelector(`#priceGrid tbody tr[data-id="${SEL_ROW}"]`); if(tr) tr.classList.add('row-sel');
@@ -3778,19 +3801,22 @@ function rowInfoRender(){
     return `<span class="ri-c${c.retail?' rt':''}"><i>${c.code?esc(c.code)+' ':''}${esc(c.lb)}</i><b>${v==null?'—':won(v)}</b>${r!=null?`<em class="${r<0?'neg':''}">${pct(r)}</em>`:''}</span>`; };
   el.hidden=false;
   el.innerHTML=`<div class="ri-hd"><b>${esc(p.name)}</b><span>${esc(p.spec||'')}${pcodeOf(p)?' · '+esc(pcodeOf(p)):''}${costAllowed?` · 원가 <b>${cost==null?'—':won(cost)}</b>`:''}</span>
-      ${costAllowed?`<button type="button" class="ri-b" data-riedit="${p.id}" title="제품 수정">✏️</button>`:''}<button type="button" class="ri-b" id="rowInfoX" title="닫기">✕</button></div>
+      ${costAllowed?(EDIT_ROW===String(p.id)?`<span class="ri-editing">✏️ 편집 중 · 가격칸 더블클릭</span><button type="button" class="ri-b" data-rimodal="${p.id}" title="분류·원가·유형·구성">상세 수정</button><button type="button" class="ri-b ri-done" data-riedit="${p.id}">완료</button>`:`<button type="button" class="ri-b" data-riedit="${p.id}" title="이 제품 편집">✏️ 편집</button>`):''}<button type="button" class="ri-b" id="rowInfoX" title="닫기">✕</button></div>
     <div class="ri-row">${cols.map(chip).join('')}</div>
     ${costAllowed&&MOQ_TIERS.length?(()=>{ const inQ=QT.items.find(x=>x.key===pKey(p)); const def=inQ?inQ.qty:((MOQ_TIERS[1]&&MOQ_TIERS[1].min)||1);
       return `<div class="ri-moq"><span class="ri-t">수량별</span>${MOQ_TIERS.map(t=>{ const u=qtUnitAuto(p,t.min); return `<span class="ri-m"><i>${esc(t.label)}</i>${u==null?'—':won(u)}</span>`; }).join('')}
         <span class="ri-add"><input type="number" min="1" id="riQty" value="${def}">개<button type="button" class="tbtn primary" data-riadd="${esc(pKey(p))}">🧾 ${inQ?'수량 변경':'견적에 담기'}</button></span></div>`; })():''}`;
 }
 document.addEventListener('click',e=>{
-  if(e.target.closest('#rowInfoX')){ rowSelect(null); return; }
+  if(e.target.closest('#rowInfoX')){ EDIT_ROW=null; $$('#priceGrid tr.row-edit').forEach(tr=>tr.classList.remove('row-edit')); rowSelect(null); return; }
   const ad=e.target.closest('[data-riadd]'); if(ad){ dlAdd(ad.dataset.riadd, $('#riQty')?$('#riQty').value:1); rowInfoRender(); uiToast(`견적에 담김 · ${QT.items.length}개 품목 (🧾 견적에서 보기)`,'ok'); return; }
-  const ed=e.target.closest('[data-riedit]'); if(ed){ const p=P.find(x=>String(x.id)===ed.dataset.riedit); if(p&&typeof openEditModal==='function') openEditModal(p); return; }
+  const ed=e.target.closest('[data-riedit]'); if(ed){ const id=ed.dataset.riedit; setEditRow(EDIT_ROW===id?null:id); return; }
+  const md=e.target.closest('[data-rimodal]'); if(md){ const p=P.find(x=>String(x.id)===md.dataset.rimodal); if(p&&typeof openEditModal==='function') openEditModal(p); return; }
   const td=e.target.closest('#priceGrid tbody tr[data-id] td'); if(!td || e.target.closest('button,input,.grip,.nono')) return;
-  rowSelect(td.parentElement.dataset.id);
+  const id=td.parentElement.dataset.id; if(EDIT_ROW!=null&&EDIT_ROW!==id){ EDIT_ROW=null; $$('#priceGrid tr.row-edit').forEach(tr=>tr.classList.remove('row-edit')); }
+  rowSelect(id);
 });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&EDIT_ROW!=null&&!e.target.closest('input')){ setEditRow(null); } });
 $('#catSel').addEventListener('change',renderGrid);
 $('#statusSeg').addEventListener('click',e=>{ const b=e.target.closest('button[data-s]'); if(!b)return;
   STATUS_FILTER=b.dataset.s||''; try{ localStorage.setItem(LS_STATUS,STATUS_FILTER); }catch(err){}
@@ -7445,10 +7471,11 @@ function wireImportModal(){
   document.addEventListener('click',e=>{
     const b=e.target.closest('.gridadd'); if(b){ openAddModal({l1:b.dataset.l1||'POUR공법', l2:b.dataset.l2||'', l3:b.dataset.l3||''}); return; }
     const nn=e.target.closest('.nono'); if(nn){ startNoEdit(nn); return; }
-    const ed=e.target.closest('.prodedit'); if(ed){ const p=P.find(x=>x.id==ed.dataset.id); if(p)openEditModal(p); return; }
-    const cp=e.target.closest('.prodcopy'); if(cp){ const p=P.find(x=>x.id==cp.dataset.id); if(p)openCopyModal(p); return; }
-    const fx=e.target.closest('.prodfix'); if(fx){ const p=P.find(x=>x.id==fx.dataset.id); if(p)toggleFixed(p); return; }
-    const dl=e.target.closest('.proddel'); if(dl){ const p=P.find(x=>x.id==dl.dataset.id); if(p)softDeleteProduct(p); }
+    const ed=e.target.closest('.prodedit'); if(ed){ const id=String(ed.dataset.id); setEditRow(EDIT_ROW===id?null:id); return; }
+    const inGrid=el=>!!el.closest('#priceGrid');
+    const cp=e.target.closest('.prodcopy'); if(cp){ if(inGrid(cp)&&!rowEditing(cp)){ editLockToast(); return; } const p=P.find(x=>x.id==cp.dataset.id); if(p)openCopyModal(p); return; }
+    const fx=e.target.closest('.prodfix'); if(fx){ if(inGrid(fx)&&!rowEditing(fx)){ editLockToast(); return; } const p=P.find(x=>x.id==fx.dataset.id); if(p)toggleFixed(p); return; }
+    const dl=e.target.closest('.proddel'); if(dl){ if(inGrid(dl)&&!rowEditing(dl)){ editLockToast(); return; } const p=P.find(x=>x.id==dl.dataset.id); if(p)softDeleteProduct(p); }
   });
   on('btnSecCols','click',()=>{
     SECCOLS_OPEN=!SECCOLS_OPEN;
@@ -9447,7 +9474,8 @@ function refreshAll(){
   const mq=window.matchMedia('(max-width:900px)'); let base=0;
   const count=()=>{ const n=document.querySelectorAll('#priceGrid tbody tr[data-id]').length, q=($('#q').value||'').trim(); const el=$('#pzCount'); if(el) el.textContent=`${n}개${q&&FIND.ids.length?` · 🔍 ${FIND.i+1}/${FIND.ids.length}`:''}`; };
   const set=on=>{ if(document.body.classList.contains('pz-fold')===on) return; document.body.classList.toggle('pz-fold',on); count(); requestAnimationFrame(syncStickyTop); };
-  sh.addEventListener('scroll',()=>{ if(!mq.matches||document.body.classList.contains('pz-fold')) return; if(sh.scrollTop>base+60) set(true); },{passive:true});
+  sh.addEventListener('scroll',()=>{ if(!mq.matches||document.body.classList.contains('pz-fold')) return; if(Date.now()-(window.__pzHold||0)<400){ base=sh.scrollTop; return; } if(sh.scrollTop>base+60) set(true); },{passive:true});
+  window.__pzRebase=()=>{ base=sh.scrollTop; };   // 요약줄 보정 스크롤은 접기로 치지 않음
   document.addEventListener('click',e=>{ if(e.target.closest('#pzOpen')){ set(false); base=sh.scrollTop; } });
   mq.addEventListener&&mq.addEventListener('change',()=>{ if(!mq.matches) set(false); });
   window.__pzCount=count;

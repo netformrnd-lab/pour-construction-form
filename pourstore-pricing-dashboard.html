@@ -796,6 +796,7 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 .tbtn:active,.seg button:active,.qc-chips button:active,#sideNav .sn-item:active,#calcMenu button:active,#calcFab:active{transform:scale(.96)}
 .tr-more{display:none}
 .pz-mini{display:none}
+body:not(.cost-ok) :is(#calcFab,#calcMenu,#calcPanel,#promoCalc,#costCalc){display:none!important}   /* 계산기: 부마스터·마스터만 (팀원 보기에서도 숨김) */
 .findbox{display:inline-flex;align-items:center;gap:4px;position:relative}
 #findNav{display:inline-flex;align-items:center;gap:2px;font-size:12px;color:var(--ink-soft);font-weight:700}
 #findNav[hidden]{display:none}
@@ -1054,7 +1055,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26b</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26c</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2362,6 +2363,7 @@ function recomputeCostAllowed(){
     && ( _masterListLc().includes(email) || _subMasterListLc().includes(email) );
   CAN_PREVIEW = raw;                    // 실제 원가열람 자격 (미리보기 버튼 노출 기준)
   costAllowed = raw && VIEW_AS!=='general';
+  document.body.classList.toggle('cost-ok',costAllowed);   // 계산기(fx) 버튼: 부마스터·마스터만
   return costAllowed;
 }
 

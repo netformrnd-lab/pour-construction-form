@@ -1,0 +1,545 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>POUR 소싱 시제품</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<style>
+:root{
+  --bg:#F2F4F6; --card:#FFFFFF; --ink:#191F28; --ink2:#4E5968; --muted:#8B95A1; --line:#E5E8EB; --soft:#F7F8FA;
+  --accent:#3182F6; --accent-ink:#FFFFFF; --pale:#E8F3FF;
+  --good:#0F9D6B; --good-bg:#E6F6EF; --warn:#B45309; --warn-bg:#FFF4E0; --bad:#DC2626; --bad-bg:#FDECEC;
+  --shadow:0 1px 3px rgba(25,31,40,.06),0 4px 14px rgba(25,31,40,.05);
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0F1318; --card:#1A1F26; --ink:#EDEFF2; --ink2:#C3C9D1; --muted:#8B95A1; --line:#2A3038; --soft:#20262E;
+    --accent:#4A93FF; --accent-ink:#0B1220; --pale:#15263E;
+    --good:#34C38F; --good-bg:#10291F; --warn:#F5A524; --warn-bg:#2E2210; --bad:#F87171; --bad-bg:#3A1717;
+    --shadow:0 1px 3px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0F1318; --card:#1A1F26; --ink:#EDEFF2; --ink2:#C3C9D1; --muted:#8B95A1; --line:#2A3038; --soft:#20262E;
+  --accent:#4A93FF; --accent-ink:#0B1220; --pale:#15263E;
+  --good:#34C38F; --good-bg:#10291F; --warn:#F5A524; --warn-bg:#2E2210; --bad:#F87171; --bad-bg:#3A1717;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:"Pretendard","Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+#app{max-width:480px;margin:0 auto;padding:0 16px calc(96px + env(safe-area-inset-bottom,0px));min-height:100%}
+.proto{margin:12px 0 4px;font-size:11.5px;color:var(--warn);background:var(--warn-bg);border-radius:10px;padding:7px 10px;font-weight:700}
+.top{display:flex;align-items:center;gap:10px;padding:14px 0 10px}
+.top h1{font-size:20px;font-weight:800;letter-spacing:-.02em;margin:0;flex:1;text-wrap:balance}
+.back{border:0;background:none;font-size:20px;padding:4px 8px 4px 0;color:var(--ink)}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:14px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lbl{font-size:11.5px;font-weight:800;color:var(--muted);letter-spacing:.04em}
+.h2{font-size:15.5px;font-weight:800;margin:0}
+.sub{font-size:12.5px;color:var(--ink2)}
+.muted{color:var(--muted)}
+.btn{border:0;border-radius:11px;padding:11px 14px;font-weight:800;font-size:14px;background:var(--soft);color:var(--ink)}
+.btn.pri{background:var(--accent);color:var(--accent-ink)}
+.btn.sm{padding:7px 11px;font-size:12.5px;border-radius:9px}
+.btn.line{background:transparent;border:1px solid var(--line)}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.45;cursor:default}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--ink2)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;border-radius:6px;padding:2px 7px;background:var(--soft);color:var(--ink2);white-space:nowrap}
+.pill.good{background:var(--good-bg);color:var(--good)}
+.pill.warn{background:var(--warn-bg);color:var(--warn)}
+.pill.acc{background:var(--pale);color:var(--accent)}
+.in{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 11px;background:var(--soft);min-width:0}
+.in:focus{background:var(--card);border-color:var(--accent);outline:none}
+textarea.in{resize:vertical;min-height:64px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.f>span{font-size:11.5px;font-weight:700;color:var(--ink2)}
+/* 홈 */
+.todo{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line);width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left}
+.todo:first-of-type{border-top:0}
+.todo b{font-size:18px;min-width:26px;text-align:center}
+.todo .t{flex:1;min-width:0}
+.todo .t div:first-child{font-weight:700}
+.icard{display:flex;gap:12px;align-items:center;text-align:left;border:0;width:100%}
+.thumb{width:62px;height:62px;border-radius:12px;background:var(--soft);flex:0 0 auto;overflow:hidden;display:grid;place-items:center;font-size:22px}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.icard .t{flex:1;min-width:0}
+.icard .nm{font-weight:800;font-size:15px;overflow-wrap:anywhere}
+.bar{display:flex;gap:3px;margin-top:7px}
+.bar i{flex:1;height:5px;border-radius:3px;background:var(--line)}
+.bar i.on{background:var(--accent)}
+.next{font-size:12px;color:var(--accent);font-weight:700;margin-top:4px}
+/* 아이템 */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:10px}
+.steps div{text-align:center;font-size:10.5px;font-weight:700;color:var(--muted)}
+.steps div i{display:block;height:5px;border-radius:3px;background:var(--line);margin-bottom:5px}
+.steps div.on{color:var(--ink)}
+.steps div.on i{background:var(--accent)}
+.nextbox{display:flex;gap:10px;align-items:center;background:var(--pale);color:var(--ink);border-radius:12px;padding:10px 12px;margin-top:12px;border:0;width:100%;text-align:left}
+.nextbox b{color:var(--accent)}
+.nextbox>span{white-space:nowrap;font-size:12px;color:var(--ink2);font-weight:700}
+.tabs{display:flex;gap:4px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding:10px 0 8px;z-index:5;overflow-x:auto;scrollbar-width:none}
+.tabs button{flex:1 0 auto;border:0;background:var(--card);border-radius:10px;padding:9px 10px;font-size:13px;font-weight:800;color:var(--ink2);box-shadow:var(--shadow)}
+.tabs button.on{background:var(--ink);color:var(--card)}
+.tabs button em{font-style:normal;font-size:10.5px;opacity:.75;margin-left:3px}
+.media{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.media .m{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--soft);max-width:100%}
+.media .m img,.media .m video{width:100%;height:100%;object-fit:cover;display:block}
+.media .m .tg{position:absolute;left:4px;bottom:4px;font-size:10px;font-weight:800;background:rgba(0,0,0,.6);color:#fff;border-radius:5px;padding:1px 5px}
+.media .m button.x{position:absolute;right:3px;top:3px;border:0;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;font-size:11px;padding:1px 5px}
+.media .add{aspect-ratio:1;border:1.5px dashed var(--line);border-radius:10px;display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--ink2);background:transparent;text-align:center;line-height:1.3;padding:4px}
+.ref{display:flex;gap:10px;align-items:center}
+.ref .thumb{width:72px;height:72px}
+.ref a{color:var(--accent);font-weight:700;font-size:12.5px;text-decoration:none}
+.stars{display:flex;gap:2px}
+.stars button{border:0;background:none;font-size:19px;padding:0 1px;color:var(--line);line-height:1}
+.stars button.on{color:#F5A524}
+.score{display:grid;grid-template-columns:64px 1fr;gap:6px 8px;align-items:center}
+.req{display:flex;gap:8px;align-items:center;padding:7px 0;border-top:1px dashed var(--line)}
+.req span{flex:1;min-width:0;overflow-wrap:anywhere}
+.req .st{flex:0 0 auto}
+.cmpwrap{overflow-x:auto}
+table.cmp{border-collapse:collapse;width:100%;font-size:12.5px;min-width:340px}
+table.cmp th,table.cmp td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+table.cmp th:first-child,table.cmp td:first-child{text-align:left;color:var(--ink2);font-weight:700}
+table.cmp td.best{background:var(--good-bg);color:var(--good);font-weight:800}
+.picked{outline:2px solid var(--good)}
+.shot{display:flex;flex-direction:column;gap:8px}
+.shot .hd{display:flex;gap:8px;align-items:center}
+.shot .hd .no{width:26px;height:26px;border-radius:8px;background:var(--soft);display:grid;place-items:center;font-weight:800;font-size:12px;flex:0 0 auto}
+.shot.done .hd .no{background:var(--good-bg);color:var(--good)}
+.shot .hd .nm{flex:1;font-weight:800;min-width:0;overflow-wrap:anywhere}
+.refmini{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--ink2);background:var(--soft);border-radius:10px;padding:6px}
+.refmini img{width:40px;height:40px;border-radius:8px;object-fit:cover}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 10px;font-size:13.5px}
+.kv .v{text-align:right;font-weight:700}
+.kv .tot{border-top:1px solid var(--line);padding-top:6px;font-weight:800}
+.big{font-size:26px;font-weight:800;letter-spacing:-.02em}
+.check{display:flex;gap:8px;align-items:center;padding:6px 0;font-size:13.5px}
+.verdict{border-radius:12px;padding:12px;font-weight:800}
+.verdict.go{background:var(--good-bg);color:var(--good)}
+.verdict.hold{background:var(--warn-bg);color:var(--warn)}
+/* 하단 메뉴 */
+.nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));z-index:20}
+.nav .in2{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;align-items:end}
+.nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:700;color:var(--muted);padding:4px 0}
+.nav button b{font-size:19px;line-height:1.2}
+.nav button.on{color:var(--ink)}
+.nav button.add b{width:46px;height:46px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:24px;margin-top:-14px;box-shadow:0 6px 16px rgba(49,130,246,.35)}
+/* 시트 */
+.sheet{position:fixed;inset:0;background:rgba(15,19,24,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.sheet .pn{background:var(--card);width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));max-height:88vh;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--card);font-weight:800;font-size:13px;border-radius:11px;padding:10px 16px;z-index:60;max-width:calc(100vw - 32px);text-align:center}
+.seg{display:flex;background:var(--soft);border-radius:10px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;border-radius:8px;padding:7px;font-weight:800;font-size:12.5px;color:var(--ink2)}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+@media (prefers-reduced-motion:no-preference){.sheet .pn{animation:up .18s ease}@keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}}
+</style>
+
+<div id="app"></div>
+<nav class="nav" id="nav"></nav>
+<input type="file" id="fileIn" accept="image/*,video/*" hidden>
+
+<script>
+/* ═════════ POUR 소싱 시제품 ═════════
+   목적: 새 설계(아이템 한 페이지 · 레퍼런스 · 샘플비교 · 패킹 · 촬영 · 출시검토)를 폰에서 직접 눌러보는 용도.
+   데이터는 이 브라우저에만 저장(예시). 실제 소싱앱 데이터와 연결되지 않음. */
+const LS='pour-sourcing-proto-v1';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const won=n=>(n==null||isNaN(n))?'—':Math.round(n).toLocaleString('ko-KR')+'원';
+const pct=n=>(n==null||!isFinite(n))?'—':(n*100).toFixed(1)+'%';
+function ph(label,c1,c2){ // 예시 썸네일(색 블록 + 글자)
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><rect width="240" height="240" fill="url(#g)"/><text x="120" y="130" font-size="26" font-family="sans-serif" font-weight="700" fill="#fff" text-anchor="middle">${label}</text></svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+const CRIT=[['q','품질'],['f','마감'],['u','사용감'],['p','가격']];
+const REQ_ST=[['전달 전','warn'],['전달함','acc'],['반영됨','good']];
+const DEFAULT_CUTS=['제품 단독 (정면·측면)','사용 전 문제 상황','사용 장면 (바르기·붙이기)','비포 / 애프터','디테일 (질감·마감)','언박싱'];
+const CH=[['ss','스마트스토어',5.5],['cp','쿠팡',10.8],['own','자사몰',3.4]];
+const FX={원:1,'¥':195,'$':1380};
+const STEPS=['수집','샘플비교','제조사','패킹','출시검토'];
+
+function seed(){
+  const a={id:'it1',name:'욕실 줄눈 코팅제',brand:'GROHOME',createdAt:'2026-09-20',thumb:ph('줄눈 코팅','#5B8DEF','#3AC4B5'),
+    refs:[
+      {id:uid(),url:'https://www.tiktok.com/@example/video/1',kind:'틱톡',title:'줄눈 코팅 30초 전후 영상',img:ph('틱톡','#111','#FE2C55')},
+      {id:uid(),url:'https://www.youtube.com/shorts/example',kind:'유튜브',title:'셀프 줄눈 시공 쇼츠',img:ph('유튜브','#C4302B','#FF7A59')},
+      {id:uid(),url:'https://detail.1688.com/offer/example.html',kind:'1688',title:'瓷砖美缝剂 (1688 상품)',img:ph('1688','#FF6A00','#FFB347')}],
+    photos:[],
+    samples:[
+      {id:'s1',type:'maker',name:'칭다오 화공 (1688)',price:8.2,cur:'¥',moq:1000,media:[{id:uid(),src:ph('A 샘플','#6C7A89','#95A5A6')}],arrived:true,scores:{q:4,f:3,u:4,p:5},memo:'냄새 약함. 노즐이 굵어 선이 두껍게 나옴.',
+        reqs:[{id:uid(),text:'노즐 3mm로 교체',st:1},{id:uid(),text:'한글 라벨 인쇄 가능 여부',st:0}]},
+      {id:'s2',type:'maker',name:'○○케미칼 (국내)',price:3200,cur:'원',moq:500,media:[{id:uid(),src:ph('B 샘플','#34495E','#5D6D7E')}],arrived:true,scores:{q:5,f:4,u:4,p:3},memo:'마감 깔끔. 건조 빠름. 단가 높음.',
+        reqs:[{id:uid(),text:'MOQ 300 가능한지',st:0}]},
+      {id:'s3',type:'rival',name:'줄눈왕 (경쟁사)',where:'쿠팡',price:12900,cur:'원',media:[{id:uid(),src:ph('경쟁사 X','#8E44AD','#C39BD3')},{id:uid(),src:ph('X 패킹','#7D3C98','#AF7AC5'),tag:'패킹'}],arrived:true,scores:{q:4,f:4,u:3,p:3},memo:'박스+지퍼백, 헤라 동봉.',reqs:[]},
+      {id:'s4',type:'rival',name:'홈케어몰 줄눈펜',where:'스마트스토어',price:9900,cur:'원',media:[{id:uid(),src:ph('경쟁사 Y','#16A085','#48C9B0')}],arrived:true,scores:{q:3,f:3,u:4,p:4},memo:'블리스터 포장, 설명서 없음.',reqs:[]}],
+    makerId:'',
+    packing:{notes:{s3:'박스 + 지퍼백 이중, 헤라·장갑 동봉. 박스 뒷면에 사용법 4컷.'},form:'',size:'',parts:'',print:'',memo:'',media:[],done:false},
+    shots:DEFAULT_CUTS.map((t,i)=>({id:uid(),title:t,refId:'',memo:'',media:[],done:false})),
+    launch:{pack:350,ship:420,duty:8,certs:[{id:uid(),name:'MSDS / 안전확인',cost:300000,st:'확인 필요'}],sell:0,ch:'ss'},
+    sample:true};
+  a.shots[2].refId=a.refs[0].id; a.shots[2].memo='틱톡 영상처럼 위에서 내려다보는 구도';
+  const b={id:'it2',name:'실리콘 방수 테이프',brand:'POUR스토어',createdAt:'2026-09-25',thumb:ph('방수 테이프','#2C3E50','#4CA1AF'),
+    refs:[{id:uid(),url:'https://www.instagram.com/p/example/',kind:'인스타',title:'베란다 누수 셀프 보수 릴스',img:ph('인스타','#833AB4','#FD1D1D')}],photos:[],samples:[],makerId:'',
+    packing:{notes:{},form:'',size:'',parts:'',print:'',memo:'',media:[],done:false},shots:[],launch:{pack:0,ship:0,duty:0,certs:[],sell:0,ch:'ss'},sample:true};
+  return {items:[a,b],ui:{view:'home',itemId:'',tab:'ref'}};
+}
+let S;
+try{ S=JSON.parse(localStorage.getItem(LS)||'null'); }catch(e){ S=null; }
+if(!S||!Array.isArray(S.items)) S=seed();
+S.ui=S.ui||{view:'home',itemId:'',tab:'ref'};
+function save(){ try{ localStorage.setItem(LS,JSON.stringify(S,(k,v)=>k==='blob'?undefined:v)); }catch(e){ toast('이 브라우저에 저장 공간이 부족해요 (새로고침 시 일부 사라질 수 있어요)'); } }
+const cur=()=>S.items.find(x=>x.id===S.ui.itemId);
+function toast(t){ const el=document.createElement('div'); el.className='toast'; el.textContent=t; document.body.appendChild(el); setTimeout(()=>el.remove(),2200); }
+
+/* ── 진행 판정 · 다음 할 일 ── */
+function makers(it){ return it.samples.filter(s=>s.type==='maker'); }
+function rivals(it){ return it.samples.filter(s=>s.type==='rival'); }
+function scored(s){ return CRIT.every(([k])=>s.scores&&s.scores[k]); }
+function total(s){ return CRIT.reduce((a,[k])=>a+((s.scores&&s.scores[k])||0),0); }
+function toWon(s){ return s.price?(s.price*(FX[s.cur]||1)):null; }
+function progress(it){
+  const done=[true,
+    it.samples.filter(scored).length>=2,
+    !!it.makerId,
+    !!it.packing.done,
+    launchReady(it).ok];
+  return done;
+}
+function shotMeter(it){ const d=it.shots.filter(x=>x.done).length; return it.shots.length?`🎬 촬영 ${d}/${it.shots.length}컷`:'🎬 촬영 컷 없음'; }
+/* 살아 있는 요청사항: 제조사 확정 후에는 확정한 곳만 */
+function liveReqs(it){ return it.samples.filter(s=>s.type==='maker'&&(!it.makerId||s.id===it.makerId)).flatMap(s=>s.reqs); }
+function nextAction(it){
+  if(!it.refs.length&&!it.photos.length) return {t:'레퍼런스 링크나 사진을 하나 넣어보세요',tab:'ref'};
+  if(makers(it).length<2) return {t:'제조사 샘플을 2곳 이상 등록하세요',tab:'smp'};
+  const un=it.samples.find(s=>s.arrived!==false&&!scored(s)); if(un) return {t:`"${un.name}" 샘플 평가하기`,tab:'smp'};
+  const wait=makers(it).filter(s=>!s.arrived).length; if(!it.makerId&&wait) return {t:`샘플 도착 대기 ${wait}곳 · 오면 "도착"을 누르세요`,tab:'smp'};
+  const rq=liveReqs(it).filter(r=>r.st===0).length; if(rq) return {t:`제조사에 전달 안 한 요청사항 ${rq}개`,tab:'smp'};
+  if(!it.makerId) return {t:'샘플을 비교해서 제조사를 확정하세요',tab:'smp'};
+  if(!it.packing.done) return {t:'경쟁사 패킹을 보고 우리 패킹안을 정하세요',tab:'pack'};
+  const lr=launchReady(it); if(!lr.ok) return {t:'출시 검토: '+lr.miss[0],tab:'go'};
+  const left=it.shots.filter(x=>!x.done).length; if(left) return {t:`출시 준비 완료 · 촬영 남은 컷 ${left}개`,tab:'shot'};
+  return {t:'출시 검토 완료 · 가격 대시보드로 보내기',tab:'go'};
+}
+function launchCalc(it){
+  const m=it.samples.find(s=>s.id===it.makerId);
+  const L=it.launch, unit=m?toWon(m):null, moq=m?+m.moq||0:0;
+  const duty=unit!=null?unit*(+L.duty||0)/100:0;
+  const certSum=L.certs.reduce((a,c)=>a+(+c.cost||0),0);
+  const certPer=moq?certSum/moq:0;
+  const cost=unit==null?null:unit+duty+(+L.ship||0)+(+L.pack||0)+certPer;
+  const rp=rivals(it).map(toWon).filter(Boolean);
+  const avg=rp.length?rp.reduce((a,b)=>a+b,0)/rp.length:null;
+  const sell=+L.sell||(avg?Math.round(avg/100)*100:0);
+  const ch=CH.find(c=>c[0]===L.ch)||CH[0];
+  const net=sell/1.1, fee=sell*ch[2]/100;
+  const profit=cost==null||!sell?null:net-fee-cost;
+  return {m,unit,moq,duty,certSum,certPer,cost,rp,avg,min:rp.length?Math.min(...rp):null,max:rp.length?Math.max(...rp):null,sell,sellAuto:!+L.sell&&!!avg,ch,fee,net,profit,rate:profit==null?null:profit/sell};
+}
+function launchReady(it){
+  const c=launchCalc(it), miss=[];
+  if(!c.m) miss.push('제조사 확정 필요');
+  if(!c.sell) miss.push('판매가를 정하세요 (경쟁사 판매가를 넣으면 평균이 자동으로 들어가요)');
+  if(it.launch.certs.some(x=>x.st!=='완료'&&x.st!=='불필요')) miss.push('인증 확인이 남았어요');
+  if(!it.packing.done) miss.push('패킹 확정 필요');
+  return {ok:!miss.length,miss,c};
+}
+
+/* ── 화면 ── */
+function render(){
+  const v=S.ui.view;
+  $('#app').innerHTML='<div class="proto">시제품 · 예시 데이터예요. 여기서 넣은 내용은 이 폰에만 저장되고 실제 소싱앱과 연결되지 않아요.</div>'+
+    (v==='item'&&cur()?viewItem(cur()):v==='shoot'?viewShootAll():viewHome());
+  $('#nav').innerHTML=`<div class="in2">
+    <button data-act="go-home" class="${v==='home'?'on':''}"><b>🏠</b>홈</button>
+    <button data-act="open-add" class="add"><b>＋</b>수집</button>
+    <button data-act="open-cap"><b>📷</b>찍기</button>
+    <button data-act="go-shoot" class="${v==='shoot'?'on':''}"><b>🎬</b>촬영 목록</button></div>`;
+}
+function viewHome(){
+  const todos=[];
+  S.items.forEach(it=>{
+    const wait=it.makerId?0:makers(it).filter(s=>!s.arrived).length;
+    if(wait) todos.push({n:wait,t:'샘플 도착 대기',s:it.name,id:it.id,tab:'smp'});
+    const rq=liveReqs(it).filter(r=>r.st===0).length;
+    if(rq) todos.push({n:rq,t:'제조사 요청사항 전달 전',s:it.name,id:it.id,tab:'smp'});
+    const un=it.samples.filter(s=>s.arrived!==false&&!scored(s)).length;
+    if(un) todos.push({n:un,t:'샘플 평가 안 함',s:it.name,id:it.id,tab:'smp'});
+    const left=it.shots.filter(x=>!x.done).length;
+    if(left) todos.push({n:left,t:'촬영 남은 컷',s:it.name,id:it.id,tab:'shot'});
+  });
+  return `<div class="top"><h1>소싱</h1><button class="btn sm line" data-act="reset">↺ 예시 초기화</button></div>
+  <div class="stack">
+    <div class="card"><div class="row" style="justify-content:space-between"><span class="h2">오늘 할 일</span><span class="pill">${todos.length}</span></div>
+      ${todos.length?todos.map(d=>`<button class="todo" data-act="open-item" data-id="${d.id}" data-tab="${d.tab}"><b class="num">${d.n}</b><div class="t"><div>${esc(d.t)}</div><div class="sub">${esc(d.s)}</div></div><span class="muted">›</span></button>`).join(''):'<p class="sub">할 일이 없어요. ＋수집으로 새 아이템을 넣어보세요.</p>'}
+    </div>
+    <div class="row" style="justify-content:space-between"><span class="h2">아이템 ${S.items.length}</span></div>
+    ${S.items.map(it=>{ const pr=progress(it), na=nextAction(it); return `<button class="card icard" data-act="open-item" data-id="${it.id}" data-tab="${na.tab}">
+      <div class="thumb">${it.thumb?`<img src="${esc(it.thumb)}" alt="">`:'📦'}</div>
+      <div class="t"><div class="row" style="gap:6px"><span class="pill ${it.brand==='GROHOME'?'good':'acc'}">${esc(it.brand)}</span>${it.sample?'<span class="pill">예시</span>':''}</div>
+        <div class="nm">${esc(it.name)}</div>
+        <div class="bar">${pr.map(d=>`<i class="${d?'on':''}"></i>`).join('')}</div>
+        <div class="sub" style="margin-top:4px">${shotMeter(it)}</div><div class="next">→ ${esc(na.t)}</div></div></button>`; }).join('')}
+  </div>`;
+}
+function viewItem(it){
+  const pr=progress(it), na=nextAction(it), t=S.ui.tab;
+  const cnt={ref:it.refs.length+it.photos.length,smp:it.samples.length,pack:it.packing.done?'✓':'',shot:it.shots.length?`${it.shots.filter(x=>x.done).length}/${it.shots.length}`:'',go:launchReady(it).ok?'✓':''};
+  const tabs=[['ref','레퍼런스'],['smp','샘플비교'],['pack','패킹'],['shot','촬영'],['go','출시검토']];
+  return `<div class="top"><button class="back" data-act="go-home" aria-label="뒤로">‹</button><h1>${esc(it.name)}</h1></div>
+  <div class="card">
+    <div class="row" style="gap:12px;flex-wrap:nowrap"><div class="thumb">${it.thumb?`<img src="${esc(it.thumb)}" alt="">`:'📦'}</div>
+      <div style="min-width:0"><div class="row" style="gap:6px"><span class="pill ${it.brand==='GROHOME'?'good':'acc'}">${esc(it.brand)}</span>${it.makerId?`<span class="pill good">제조사 ${esc((it.samples.find(s=>s.id===it.makerId)||{}).name||'')}</span>`:''}</div>
+      <div class="sub" style="margin-top:4px">수집 ${esc(it.createdAt)}</div></div></div>
+    <div class="steps">${STEPS.map((s,i)=>`<div class="${pr[i]?'on':''}"><i></i>${s}</div>`).join('')}</div>
+    <button class="chip" style="margin-top:8px" data-act="tab" data-tab="shot">${shotMeter(it)} · 소싱과 함께 진행 ›</button>
+    <button class="nextbox" data-act="tab" data-tab="${na.tab}"><span>다음 할 일</span><b>${esc(na.t)} ›</b></button>
+  </div>
+  <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" class="${t===k?'on':''}" data-act="tab" data-tab="${k}">${l}${cnt[k]!==''&&cnt[k]!==0?`<em>${cnt[k]}</em>`:''}</button>`).join('')}</div>
+  ${t==='ref'?tabRef(it):t==='smp'?tabSmp(it):t==='pack'?tabPack(it):t==='shot'?tabShot(it):tabGo(it)}`;
+}
+function mediaGrid(list,addAct,addId,opts={}){
+  return `<div class="media">${list.map(m=>`<div class="m">${m.video?`<video src="${esc(m.src)}" muted playsinline></video>`:`<img src="${esc(m.src)}" alt="">`}${m.tag?`<span class="tg">${esc(m.tag)}</span>`:''}${opts.tagToggle?`<button class="x" style="left:3px;right:auto" data-act="tag-pack" data-id="${addId}" data-mid="${m.id}" title="패킹 자료로 표시">${m.tag?'패킹✓':'패킹?'}</button>`:''}<button class="x" data-act="del-media" data-where="${addAct}" data-id="${addId}" data-mid="${m.id}" aria-label="삭제">✕</button></div>`).join('')}
+    <button class="add" data-act="pick" data-where="${addAct}" data-id="${addId}">📷<br>찍기·추가</button></div>`;
+}
+function tabRef(it){
+  return `<div class="stack">
+    <div class="card stack"><div class="row"><input class="in" id="refIn" placeholder="🔗 영상·SNS·경쟁사 링크 붙여넣기" style="flex:1"><button class="btn pri sm" data-act="add-ref">추가</button></div>
+      <p class="sub" style="margin:0">실제 앱에서는 링크를 넣으면 썸네일·제목을 자동으로 가져와요.</p></div>
+    ${it.refs.map(r=>`<div class="card ref"><div class="thumb">${r.img?`<img src="${esc(r.img)}" alt="">`:'🔗'}</div>
+      <div style="flex:1;min-width:0"><span class="pill">${esc(r.kind)}</span><div style="font-weight:700;margin:3px 0;overflow-wrap:anywhere">${esc(r.title)}</div><a href="${esc(r.url)}" target="_blank" rel="noopener">열어보기 ↗</a></div>
+      <button class="btn sm" data-act="ref-to-shot" data-id="${r.id}">🎬 컷으로</button></div>`).join('')}
+    <div class="card stack"><span class="h2">캡처·사진</span>${mediaGrid(it.photos,'photos',it.id)}</div>
+  </div>`;
+}
+function stars(sid,k,v){ return `<div class="stars">${[1,2,3,4,5].map(n=>`<button class="${n<=v?'on':''}" data-act="star" data-id="${sid}" data-k="${k}" data-v="${n}" aria-label="${n}점">★</button>`).join('')}</div>`; }
+function tabSmp(it){
+  const ss=it.samples, best=Math.max(0,...ss.map(total));
+  const mk=makers(it), rv=rivals(it);
+  const cmp=ss.length?`<div class="card stack"><span class="h2">한눈에 비교</span><div class="cmpwrap"><table class="cmp num"><thead><tr><th></th>${ss.map(s=>`<th>${esc(s.name.split(' ')[0])}<br><span class="pill ${s.type==='maker'?'acc':''}">${s.type==='maker'?'제조사':'경쟁사'}</span></th>`).join('')}</tr></thead><tbody>
+    ${CRIT.map(([k,l])=>{ const mx=Math.max(...ss.map(s=>(s.scores||{})[k]||0)); return `<tr><td>${l}</td>${ss.map(s=>{ const v=(s.scores||{})[k]||0; return `<td class="${v&&v===mx?'best':''}">${v?'★'+v:'—'}</td>`; }).join('')}</tr>`; }).join('')}
+    <tr><td>합계</td>${ss.map(s=>`<td class="${total(s)&&total(s)===best?'best':''}">${total(s)||'—'}</td>`).join('')}</tr>
+    <tr><td>공급가(원)</td>${ss.map(s=>`<td>${s.type==='maker'&&toWon(s)?Math.round(toWon(s)).toLocaleString('ko-KR'):''}</td>`).join('')}</tr>
+    <tr><td>판매가(원)</td>${ss.map(s=>`<td>${s.type==='rival'&&toWon(s)?Math.round(toWon(s)).toLocaleString('ko-KR'):''}</td>`).join('')}</tr>
+  </tbody></table></div><p class="sub" style="margin:0">공급가는 원화 환산(¥195·$1,380 기준)이에요.</p></div>`:'';
+  const card=s=>`<div class="card stack ${it.makerId===s.id?'picked':''}" id="smp-${s.id}">
+    <div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div style="min-width:0"><span class="pill ${s.type==='maker'?'acc':''}">${s.type==='maker'?'제조사 샘플':'경쟁사 샘플'}</span> ${it.makerId===s.id?'<span class="pill good">확정</span>':''}
+      <input class="in" data-bind="s.name" data-id="${s.id}" value="${esc(s.name)}" style="margin-top:6px;font-weight:800"></div></div>
+    <div class="seg"><button class="${s.arrived?'':'on'}" data-act="arrive" data-id="${s.id}" data-v="0">📦 도착 대기</button><button class="${s.arrived?'on':''}" data-act="arrive" data-id="${s.id}" data-v="1">✅ 샘플 도착</button></div>
+    ${mediaGrid(s.media,'sample',s.id,{tagToggle:s.type==='rival'})}
+    <div class="fgrid">${s.type==='maker'?`
+      <label class="f"><span>개당 단가</span><div class="row" style="flex-wrap:nowrap;gap:4px"><input class="in num" inputmode="decimal" data-bind="s.price" data-id="${s.id}" value="${s.price||''}"><select class="in" style="width:62px" data-bind="s.cur" data-id="${s.id}">${Object.keys(FX).map(c=>`<option${c===s.cur?' selected':''}>${c}</option>`).join('')}</select></div></label>
+      <label class="f"><span>MOQ (개)</span><input class="in num" inputmode="numeric" data-bind="s.moq" data-id="${s.id}" value="${s.moq||''}"></label>`:`
+      <label class="f"><span>판매가 (원)</span><input class="in num" inputmode="numeric" data-bind="s.price" data-id="${s.id}" value="${s.price||''}"></label>
+      <label class="f"><span>판매처</span><input class="in" data-bind="s.where" data-id="${s.id}" value="${esc(s.where||'')}"></label>`}</div>
+    <div class="score">${CRIT.map(([k,l])=>`<span class="sub">${l}</span>${stars(s.id,k,(s.scores||{})[k]||0)}`).join('')}</div>
+    <label class="f"><span>메모</span><textarea class="in" data-bind="s.memo" data-id="${s.id}" placeholder="샘플 보고 느낀 점">${esc(s.memo||'')}</textarea></label>
+    ${s.type==='maker'?`<div><div class="row" style="justify-content:space-between"><span class="lbl">이 제조사에 요청할 것</span><span class="sub">누르면 상태가 바뀌어요</span></div>
+      ${s.reqs.map(r=>`<div class="req"><span>${esc(r.text)}</span><button class="pill ${REQ_ST[r.st][1]} st" data-act="req-st" data-id="${s.id}" data-rid="${r.id}" style="border:0">${REQ_ST[r.st][0]}</button><button class="btn sm line" data-act="req-del" data-id="${s.id}" data-rid="${r.id}" aria-label="삭제">✕</button></div>`).join('')}
+      <div class="row" style="margin-top:6px;flex-wrap:nowrap"><input class="in" id="rq-${s.id}" placeholder="예: 노즐 교체, 라벨 인쇄, 단가 재견적"><button class="btn sm" data-act="req-add" data-id="${s.id}">추가</button></div></div>
+      <button class="btn ${it.makerId===s.id?'':'pri'} wide" data-act="pick-maker" data-id="${s.id}">${it.makerId===s.id?'확정 취소':'이 제조사로 확정'}</button>`:''}
+  </div>`;
+  return `<div class="stack">${cmp}
+    <div class="row"><button class="btn sm" data-act="add-sample" data-type="maker">＋ 제조사 샘플</button><button class="btn sm" data-act="add-sample" data-type="rival">＋ 경쟁사 샘플</button></div>
+    ${mk.length?'<span class="lbl">제조사 샘플</span>':''}${mk.map(card).join('')}
+    ${rv.length?'<span class="lbl">경쟁사 샘플</span>':''}${rv.map(card).join('')}
+  </div>`;
+}
+function tabPack(it){
+  const P=it.packing, rv=rivals(it), mk=it.samples.find(s=>s.id===it.makerId);
+  return `<div class="stack">
+    <div class="card stack"><span class="h2">경쟁사는 이렇게 쌌어요</span>
+      ${rv.length?rv.map(s=>{ const pm=s.media.filter(m=>m.tag==='패킹'); return `<div class="stack" style="gap:6px"><div class="row" style="justify-content:space-between"><b>${esc(s.name)}</b><span class="sub">${pm.length?'패킹 사진 '+pm.length:'박스·구성품을 찍어두세요'}</span></div>
+        <div class="media">${pm.map(m=>`<div class="m"><img src="${esc(m.src)}" alt=""></div>`).join('')}<button class="add" data-act="pick" data-where="rivalpack" data-id="${s.id}">📷<br>패킹 찍기</button></div>
+        <textarea class="in" data-bind="pk.note" data-id="${s.id}" placeholder="박스·파우치·완충재·설명서·동봉품">${esc(P.notes[s.id]||'')}</textarea></div>`; }).join('<hr style="border:0;border-top:1px dashed var(--line);width:100%;margin:4px 0">'):'<p class="sub" style="margin:0">샘플비교에서 경쟁사 샘플을 먼저 넣으세요.</p>'}
+    </div>
+    <div class="card stack"><span class="h2">우리 패킹안</span>
+      <div class="fgrid"><label class="f"><span>포장 형태</span><input class="in" data-bind="pk.form" value="${esc(P.form)}" placeholder="예: 박스+지퍼백"></label>
+      <label class="f"><span>크기</span><input class="in" data-bind="pk.size" value="${esc(P.size)}" placeholder="예: 18×6×4cm"></label></div>
+      <label class="f"><span>구성품</span><input class="in" data-bind="pk.parts" value="${esc(P.parts)}" placeholder="예: 본품, 헤라, 장갑, 설명서"></label>
+      <label class="f"><span>인쇄·라벨</span><input class="in" data-bind="pk.print" value="${esc(P.print)}" placeholder="예: 한글 라벨, 뒷면 사용법 4컷"></label>
+      <label class="f"><span>메모</span><textarea class="in" data-bind="pk.memo" placeholder="개당 패킹비, 주의할 점">${esc(P.memo)}</textarea></label>
+      <span class="lbl">참고 사진·영상</span>${mediaGrid(P.media,'packing',it.id)}
+      <button class="btn line wide" data-act="pack-to-req" ${mk?'':'disabled'}>${mk?`"${esc(mk.name)}" 요청사항에 패킹안 추가`:'제조사를 확정하면 요청사항으로 보낼 수 있어요'}</button>
+      <button class="btn ${P.done?'':'pri'} wide" data-act="pack-done">${P.done?'패킹 확정 취소':'패킹 확정 → 촬영에 패킹 컷 추가'}</button>
+    </div></div>`;
+}
+function tabShot(it){
+  const done=it.shots.filter(x=>x.done).length;
+  return `<div class="stack">
+    <div class="card row" style="justify-content:space-between"><div><span class="h2">촬영 ${done}/${it.shots.length}컷</span><div class="sub">컷마다 참고 영상을 보고 여러 장 찍어 쌓아두세요</div></div>
+      ${it.shots.length?'':`<button class="btn sm pri" data-act="default-cuts">기본 컷 6개 넣기</button>`}</div>
+    ${it.shots.map((c,i)=>{ const r=it.refs.find(x=>x.id===c.refId); return `<div class="card shot ${c.done?'done':''}" id="cut-${c.id}">
+      <div class="hd"><span class="no num">${i+1}</span><input class="in nm" data-bind="c.title" data-id="${c.id}" value="${esc(c.title)}"><button class="pill ${c.done?'good':''}" style="border:0" data-act="cut-done" data-id="${c.id}">${c.done?'완료':'촬영 전'}</button></div>
+      <div class="row" style="flex-wrap:nowrap"><select class="in" data-bind="c.refId" data-id="${c.id}" style="flex:1"><option value="">참고 레퍼런스 고르기</option>${it.refs.map(x=>`<option value="${x.id}"${x.id===c.refId?' selected':''}>${esc(x.kind+' · '+x.title)}</option>`).join('')}</select></div>
+      ${r?`<a class="refmini" href="${esc(r.url)}" target="_blank" rel="noopener"><img src="${esc(r.img)}" alt=""><span>${esc(r.title)} ↗</span></a>`:''}
+      <input class="in" data-bind="c.memo" data-id="${c.id}" value="${esc(c.memo)}" placeholder="구도·소품·대사 메모">
+      ${mediaGrid(c.media,'cut',c.id)}</div>`; }).join('')}
+    <button class="btn wide" data-act="add-cut">＋ 컷 추가</button></div>`;
+}
+function tabGo(it){
+  const lr=launchReady(it), c=lr.c, L=it.launch;
+  return `<div class="stack">
+    <div class="verdict ${lr.ok?'go':'hold'}">${lr.ok?'✅ 출시 검토 준비 완료':'⏳ 아직 채울 것: '+esc(lr.miss.join(' · '))}</div>
+    <div class="card stack"><span class="h2">개당 원가</span>
+      <div class="kv num"><span>제조사 단가 ${c.m?`(${esc(c.m.name)}${c.m.cur!=='원'?' · '+c.m.price+c.m.cur+'×'+FX[c.m.cur]:''})`:''}</span><span class="v">${won(c.unit)}</span>
+      <span>관세 ${L.duty||0}%</span><span class="v">${won(c.duty)}</span>
+      <span>물류비 (개당)</span><span class="v">${won(+L.ship||0)}</span>
+      <span>패킹비 (개당)</span><span class="v">${won(+L.pack||0)}</span>
+      <span>인증비 ${won(c.certSum)} ÷ MOQ ${c.moq||'—'}</span><span class="v">${won(c.certPer)}</span>
+      <span class="tot">개당 원가</span><span class="v tot">${won(c.cost)}</span></div>
+      <div class="fgrid"><label class="f"><span>관세 (%)</span><input class="in num" inputmode="decimal" data-bind="l.duty" value="${L.duty||''}"></label>
+      <label class="f"><span>물류비 (원/개)</span><input class="in num" inputmode="numeric" data-bind="l.ship" value="${L.ship||''}"></label>
+      <label class="f"><span>패킹비 (원/개)</span><input class="in num" inputmode="numeric" data-bind="l.pack" value="${L.pack||''}"></label></div></div>
+    <div class="card stack"><div class="row" style="justify-content:space-between"><span class="h2">필요 인증</span><button class="btn sm" data-act="add-cert">＋ 인증</button></div>
+      ${L.certs.length?L.certs.map(x=>`<div class="stack" style="gap:6px;border-top:1px dashed var(--line);padding-top:8px"><div class="fgrid"><input class="in" data-bind="cert.name" data-id="${x.id}" value="${esc(x.name)}" placeholder="인증 이름"><input class="in num" inputmode="numeric" data-bind="cert.cost" data-id="${x.id}" value="${x.cost||''}" placeholder="비용(원)"></div>
+        <div class="seg">${['확인 필요','진행중','완료','불필요'].map(s=>`<button class="${x.st===s?'on':''}" data-act="cert-st" data-id="${x.id}" data-v="${s}">${s}</button>`).join('')}</div></div>`).join(''):'<p class="sub" style="margin:0">필요한 인증을 넣으면 비용이 원가에 나눠 들어가요.</p>'}</div>
+    <div class="card stack"><span class="h2">판매가 · 시장조사</span>
+      <div class="kv num"><span>경쟁사 판매가 ${c.rp.length}곳</span><span class="v">${c.rp.length?`${won(c.min)} ~ ${won(c.max)}`:'—'}</span><span>평균</span><span class="v">${won(c.avg)}</span></div>
+      <div class="fgrid"><label class="f"><span>우리 판매가 (원, 부가세 포함)</span><input class="in num" inputmode="numeric" data-bind="l.sell" value="${L.sell||''}" placeholder="${c.avg?'비우면 평균 '+won(Math.round(c.avg/100)*100):''}"></label>
+      <label class="f"><span>판매 채널</span><select class="in" data-bind="l.ch">${CH.map(x=>`<option value="${x[0]}"${x[0]===L.ch?' selected':''}>${x[1]} ${x[2]}%</option>`).join('')}</select></label></div>
+      <div class="kv num"><span>판매가 ${c.sellAuto?'(경쟁사 평균)':''}</span><span class="v">${won(c.sell)}</span><span>부가세 제외</span><span class="v">${won(c.net)}</span><span>채널 수수료 ${c.ch[2]}%</span><span class="v">−${won(c.fee)}</span><span>개당 원가</span><span class="v">−${won(c.cost)}</span>
+      <span class="tot">개당 이익</span><span class="v tot" style="color:${c.profit!=null&&c.profit<0?'var(--bad)':'var(--good)'}">${won(c.profit)}</span><span>마진율 (판매가 대비)</span><span class="v">${pct(c.rate)}</span></div></div>
+    <div class="card stack"><span class="h2">출시 체크</span>
+      ${[['샘플 비교 (2곳 이상 평가)',progress(it)[1]],['제조사 확정',!!it.makerId],['요청사항 반영',liveReqs(it).every(r=>r.st===2)],['패킹 확정',it.packing.done],['인증 확인',!L.certs.some(x=>x.st!=='완료'&&x.st!=='불필요')],[`촬영 ${it.shots.filter(x=>x.done).length}/${it.shots.length}컷 (병행)`,it.shots.length>0&&it.shots.every(x=>x.done)]].map(([t,ok])=>`<div class="check">${ok?'✅':'⬜'} ${esc(t)}</div>`).join('')}
+      <button class="btn pri wide" disabled>가격 대시보드 '출시준비'로 보내기 (다음 단계에서 연결)</button></div>
+  </div>`;
+}
+function viewShootAll(){
+  const list=[]; S.items.forEach(it=>it.shots.forEach((c,i)=>{ if(!c.done) list.push({it,c,i}); }));
+  return `<div class="top"><h1>촬영할 컷 ${list.length}</h1></div>
+  <div class="stack">${list.length?list.map(({it,c,i})=>`<button class="card icard" data-act="open-cut" data-id="${it.id}" data-cut="${c.id}">
+    <div class="thumb">${c.media[0]?`<img src="${esc(c.media[0].src)}" alt="">`:(it.refs.find(x=>x.id===c.refId)?`<img src="${esc(it.refs.find(x=>x.id===c.refId).img)}" alt="">`:'🎬')}</div>
+    <div class="t"><div class="sub">${esc(it.name)} · ${i+1}번 컷</div><div class="nm">${esc(c.title)}</div><div class="sub">찍은 것 ${c.media.length}장</div></div><span class="muted">›</span></button>`).join(''):'<div class="card"><p class="sub">남은 촬영 컷이 없어요.</p></div>'}</div>`;
+}
+function sheetCapture(itemId){
+  const old=$('#capSheet'); if(old) old.remove();
+  const it=S.items.find(x=>x.id===itemId)||cur()||S.items[0]; if(!it) return;
+  const T=[['photos',it.id,'📌 레퍼런스 사진']];
+  it.samples.forEach(s=>T.push(['sample',s.id,(s.type==='maker'?'🏭 ':'🆚 ')+s.name+' 샘플']));
+  rivals(it).forEach(s=>T.push(['rivalpack',s.id,'📦 '+s.name+' 패킹']));
+  T.push(['packing',it.id,'📦 우리 패킹 참고']);
+  it.shots.filter(c=>!c.done).forEach((c,i)=>T.push(['cut',c.id,'🎬 컷: '+c.title]));
+  const el=document.createElement('div'); el.className='sheet'; el.id='capSheet';
+  el.innerHTML=`<div class="pn" role="dialog" aria-label="찍기">
+    <div class="row" style="justify-content:space-between"><span class="h2">📷 찍어서 어디에 둘까요?</span><button class="btn sm" data-act="close-cap">닫기</button></div>
+    <div class="row" style="flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px">${S.items.map(x=>`<button class="chip ${x.id===it.id?'on':''}" data-act="cap-item" data-id="${x.id}" style="flex:0 0 auto">${esc(x.name)}</button>`).join('')}</div>
+    <div class="stack" style="gap:6px">${T.map(([w,id,l])=>`<button class="btn line wide" style="text-align:left" data-act="cap-go" data-where="${w}" data-id="${id}" data-item="${it.id}">${esc(l)}</button>`).join('')}</div>
+    <p class="sub" style="margin:0">고르면 바로 카메라·앨범이 열려요.</p></div>`;
+  document.body.appendChild(el);
+}
+function sheetAdd(){
+  const el=document.createElement('div'); el.className='sheet'; el.id='addSheet';
+  const brand=(()=>{ try{ return localStorage.getItem(LS+'-brand')||'POUR스토어'; }catch(e){ return 'POUR스토어'; } })();
+  el.innerHTML=`<div class="pn" role="dialog" aria-label="수집">
+    <div class="row" style="justify-content:space-between"><span class="h2">수집</span><button class="btn sm" data-act="close-sheet">닫기</button></div>
+    <div class="seg" id="brandSeg">${['POUR스토어','GROHOME'].map(b=>`<button class="${b===brand?'on':''}" data-act="brand" data-v="${b}">${b}</button>`).join('')}</div>
+    <textarea class="in" id="addIn" placeholder="링크 붙여넣기 또는 아이템 이름&#10;(길게 눌러 붙여넣기)"></textarea>
+    <button class="btn pri wide" data-act="add-item">＋ 추가</button>
+    <p class="sub" style="margin:0">실제 앱에서는 📋 한 번에 붙여넣고 추가돼요 (이 시제품 화면에서는 폰 보안상 길게 눌러 붙여넣기).</p></div>`;
+  document.body.appendChild(el);
+  setTimeout(()=>{ const t=$('#addIn'); if(t) t.focus(); },50);
+}
+
+/* ── 사진·영상 ── */
+let pickTarget=null;
+function shrink(file){ return new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>{ const img=new Image(); img.onload=()=>{ const k=Math.min(1,480/Math.max(img.width,img.height)); const cv=document.createElement('canvas'); cv.width=Math.round(img.width*k); cv.height=Math.round(img.height*k); cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height); res(cv.toDataURL('image/jpeg',.72)); }; img.onerror=rej; img.src=fr.result; }; fr.onerror=rej; fr.readAsDataURL(file); }); }
+function listFor(where,id,itemId){
+  const it=itemId?S.items.find(x=>x.id===itemId):cur(); if(!it) return null;
+  if(where==='rivalpack'){ const s=it.samples.find(x=>x.id===id); return s&&s.media; }
+  if(where==='photos') return it.photos;
+  if(where==='packing') return it.packing.media;
+  if(where==='sample'){ const s=it.samples.find(x=>x.id===id); return s&&s.media; }
+  if(where==='cut'){ const c=it.shots.find(x=>x.id===id); return c&&c.media; }
+  return null;
+}
+$('#fileIn').addEventListener('change',async e=>{
+  const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f||!pickTarget) return;
+  const list=listFor(pickTarget.where,pickTarget.id,pickTarget.itemId); if(!list) return;
+  try{
+    if(/^video\//.test(f.type)) list.push({id:uid(),src:URL.createObjectURL(f),video:true,tag:'영상'});
+    else list.push({id:uid(),src:await shrink(f),tag:pickTarget.where==='rivalpack'?'패킹':''});
+    const qs=$('#capSheet'); if(qs){ qs.remove(); save(); render(); toast(`저장했어요 · ${pickTarget.label||''}`); return; }
+    if(pickTarget.where==='cut'&&cur()){ const c=cur().shots.find(x=>x.id===pickTarget.id); if(c&&!c.done&&c.media.length>=1) toast('찍었어요 · 다 찍었으면 "완료"를 누르세요'); }
+    save(); render(); if(pickTarget.where==='cut') scrollToEl('cut-'+pickTarget.id);
+  }catch(err){ console.error('[시제품] 사진 읽기 실패',err); toast('사진을 읽지 못했어요. 다른 사진으로 해보세요'); }
+});
+function scrollToEl(id){ requestAnimationFrame(()=>{ const el=document.getElementById(id); if(el) el.scrollIntoView({block:'center'}); }); }
+function kindOf(u){ u=u.toLowerCase(); if(/tiktok/.test(u))return '틱톡'; if(/instagram/.test(u))return '인스타'; if(/youtu/.test(u))return '유튜브'; if(/1688|alibaba|aliexpress/.test(u))return '도매'; return '링크'; }
+
+/* ── 동작 ── */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  const a=b.dataset.act, it=cur();
+  if(a==='go-home'){ S.ui.view='home'; save(); render(); window.scrollTo(0,0); return; }
+  if(a==='go-shoot'){ S.ui.view='shoot'; save(); render(); window.scrollTo(0,0); return; }
+  if(a==='open-item'){ S.ui={view:'item',itemId:b.dataset.id,tab:b.dataset.tab||'ref'}; save(); render(); window.scrollTo(0,0); return; }
+  if(a==='open-cut'){ S.ui={view:'item',itemId:b.dataset.id,tab:'shot'}; save(); render(); scrollToEl('cut-'+b.dataset.cut); return; }
+  if(a==='tab'){ S.ui.tab=b.dataset.tab; save(); render(); const t=document.querySelector('.tabs'); if(t) t.scrollIntoView({block:'start'}); return; }
+  if(a==='reset'){ if(b.dataset.sure){ S=seed(); save(); render(); toast('예시로 되돌렸어요'); } else { b.dataset.sure='1'; b.textContent='⚠ 한 번 더 누르면 초기화'; setTimeout(()=>{ if(b.isConnected){ delete b.dataset.sure; b.textContent='↺ 예시 초기화'; } },2500); } return; }
+  if(a==='open-add'){ sheetAdd(); return; }
+  if(a==='open-cap'){ sheetCapture(S.ui.view==='item'?S.ui.itemId:''); return; }
+  if(a==='close-cap'||e.target.id==='capSheet'){ const s=$('#capSheet'); if(s) s.remove(); return; }
+  if(a==='cap-item'){ sheetCapture(b.dataset.id); return; }
+  if(a==='cap-go'){ pickTarget={where:b.dataset.where,id:b.dataset.id,itemId:b.dataset.item,label:b.textContent.trim()}; $('#fileIn').click(); return; }
+  if(a==='close-sheet'||e.target.id==='addSheet'){ const s=$('#addSheet'); if(s) s.remove(); return; }
+  if(a==='brand'){ try{ localStorage.setItem(LS+'-brand',b.dataset.v); }catch(err){} document.querySelectorAll('#brandSeg button').forEach(x=>x.classList.toggle('on',x===b)); return; }
+  if(a==='add-item'){
+    const v=($('#addIn').value||'').trim(); if(!v){ $('#addIn').focus(); return; }
+    const urls=v.match(/https?:\/\/\S+/g)||[], name=v.replace(/https?:\/\/\S+/g,'').trim();
+    const brand=(document.querySelector('#brandSeg .on')||{}).textContent||'POUR스토어';
+    const nit={id:uid(),name:name||(urls[0]?kindOf(urls[0])+'에서 찾은 아이템':'새 아이템'),brand,createdAt:new Date().toISOString().slice(0,10),thumb:urls[0]?ph(kindOf(urls[0]),'#3182F6','#8BB8FF'):'',
+      refs:urls.map(u=>({id:uid(),url:u,kind:kindOf(u),title:kindOf(u)+' 링크',img:ph(kindOf(u),'#3182F6','#8BB8FF')})),photos:[],samples:[],makerId:'',
+      packing:{notes:{},form:'',size:'',parts:'',print:'',memo:'',media:[],done:false},shots:[],launch:{pack:0,ship:0,duty:0,certs:[],sell:0,ch:'ss'}};
+    S.items.unshift(nit); $('#addSheet').remove(); S.ui={view:'item',itemId:nit.id,tab:'ref'}; save(); render(); window.scrollTo(0,0); toast('수집했어요'); return;
+  }
+  if(!it) return;
+  if(a==='pick'){ pickTarget={where:b.dataset.where,id:b.dataset.id}; $('#fileIn').click(); return; }
+  if(a==='del-media'){ const l=listFor(b.dataset.where,b.dataset.id); if(l){ const i=l.findIndex(m=>m.id===b.dataset.mid); if(i>=0) l.splice(i,1); save(); render(); } return; }
+  if(a==='tag-pack'){ const s=it.samples.find(x=>x.id===b.dataset.id); const m=s&&s.media.find(x=>x.id===b.dataset.mid); if(m){ m.tag=m.tag==='패킹'?'':'패킹'; save(); render(); toast(m.tag?'패킹 탭에 모였어요':'패킹 표시를 뺐어요'); } return; }
+  if(a==='add-ref'){ const v=($('#refIn').value||'').trim(); if(!/^https?:\/\//.test(v)){ toast('https:// 로 시작하는 링크를 넣어주세요'); return; } const k=kindOf(v); it.refs.push({id:uid(),url:v,kind:k,title:k+' 링크',img:ph(k,'#3182F6','#8BB8FF')}); if(!it.thumb) it.thumb=it.refs[it.refs.length-1].img; save(); render(); return; }
+  if(a==='ref-to-shot'){ const r=it.refs.find(x=>x.id===b.dataset.id); const c={id:uid(),title:r.title.slice(0,24)+' 따라 찍기',refId:r.id,memo:'',media:[],done:false}; it.shots.push(c); S.ui.tab='shot'; save(); render(); scrollToEl('cut-'+c.id); toast('촬영 컷으로 추가했어요'); return; }
+  if(a==='add-sample'){ const t=b.dataset.type; const s={id:uid(),type:t,name:t==='maker'?`제조사 ${makers(it).length+1}`:`경쟁사 ${rivals(it).length+1}`,price:0,cur:'원',moq:0,where:'',arrived:false,media:[],scores:{},memo:'',reqs:[]}; it.samples.push(s); save(); render(); scrollToEl('smp-'+s.id); return; }
+  if(a==='arrive'){ const s=it.samples.find(x=>x.id===b.dataset.id); s.arrived=b.dataset.v==='1'; save(); render(); scrollToEl('smp-'+s.id); if(s.arrived) toast('도착! 사진 찍고 별점을 매겨보세요'); return; }
+  if(a==='star'){ const s=it.samples.find(x=>x.id===b.dataset.id); s.scores=s.scores||{}; s.scores[b.dataset.k]=+b.dataset.v; save(); render(); return; }
+  if(a==='req-add'){ const inp=$('#rq-'+b.dataset.id); const v=(inp&&inp.value||'').trim(); if(!v){ inp&&inp.focus(); return; } it.samples.find(x=>x.id===b.dataset.id).reqs.push({id:uid(),text:v,st:0}); save(); render(); scrollToEl('smp-'+b.dataset.id); return; }
+  if(a==='req-st'){ const r=it.samples.find(x=>x.id===b.dataset.id).reqs.find(x=>x.id===b.dataset.rid); r.st=(r.st+1)%3; save(); render(); return; }
+  if(a==='req-del'){ const s=it.samples.find(x=>x.id===b.dataset.id); s.reqs=s.reqs.filter(x=>x.id!==b.dataset.rid); save(); render(); return; }
+  if(a==='pick-maker'){ it.makerId=it.makerId===b.dataset.id?'':b.dataset.id; save(); render(); toast(it.makerId?'제조사를 확정했어요 · 다음은 패킹':'확정을 취소했어요'); return; }
+  if(a==='pack-to-req'){ const mk=it.samples.find(x=>x.id===it.makerId); const P=it.packing; const t=['패킹: '+(P.form||'형태 미정'),P.size&&('크기 '+P.size),P.parts&&('구성 '+P.parts),P.print&&('인쇄 '+P.print)].filter(Boolean).join(' · '); mk.reqs.push({id:uid(),text:t,st:0}); save(); render(); toast(`"${mk.name}" 요청사항에 추가했어요`); return; }
+  if(a==='pack-done'){ const P=it.packing; P.done=!P.done;
+    if(P.done){ ['패킹 언박싱','패킹 디테일 (라벨·구성품)'].forEach(t=>{ if(!it.shots.some(x=>x.title===t)) it.shots.push({id:uid(),title:t,refId:'',memo:P.parts?('구성: '+P.parts):'',media:[],done:false}); }); toast('패킹 확정 · 촬영에 패킹 컷 2개를 넣었어요'); }
+    save(); render(); return; }
+  if(a==='default-cuts'){ DEFAULT_CUTS.forEach(t=>it.shots.push({id:uid(),title:t,refId:'',memo:'',media:[],done:false})); save(); render(); return; }
+  if(a==='add-cut'){ const c={id:uid(),title:'새 컷',refId:'',memo:'',media:[],done:false}; it.shots.push(c); save(); render(); scrollToEl('cut-'+c.id); return; }
+  if(a==='cut-done'){ const c=it.shots.find(x=>x.id===b.dataset.id); c.done=!c.done; save(); render(); scrollToEl('cut-'+c.id); return; }
+  if(a==='add-cert'){ it.launch.certs.push({id:uid(),name:'',cost:0,st:'확인 필요'}); save(); render(); return; }
+  if(a==='cert-st'){ const x=it.launch.certs.find(c=>c.id===b.dataset.id); x.st=b.dataset.v; save(); render(); return; }
+});
+/* 입력값 → 데이터 (포커스를 뺏지 않도록 change 때만 다시 그림) */
+function bind(el,final){
+  const it=cur(); if(!it) return; const k=el.dataset.bind, id=el.dataset.id, v=el.value;
+  const num=x=>x===''?0:+x;
+  if(k.startsWith('s.')){ const s=it.samples.find(x=>x.id===id); const f=k.slice(2); s[f]=(f==='price'||f==='moq')?num(v):v; }
+  else if(k==='pk.note') it.packing.notes[id]=v;
+  else if(k.startsWith('pk.')) it.packing[k.slice(3)]=v;
+  else if(k.startsWith('c.')){ const c=it.shots.find(x=>x.id===id); c[k.slice(2)]=v; }
+  else if(k.startsWith('l.')){ const f=k.slice(2); it.launch[f]=(f==='ch')?v:num(v); }
+  else if(k.startsWith('cert.')){ const x=it.launch.certs.find(c=>c.id===id); const f=k.slice(5); x[f]=f==='cost'?num(v):v; }
+  save(); if(final) { const y=window.scrollY; render(); window.scrollTo(0,y); }
+}
+document.addEventListener('input',e=>{ if(e.target.dataset.bind) bind(e.target,false); });
+document.addEventListener('change',e=>{ if(e.target.dataset.bind) bind(e.target,true); });
+render();
+</script>
+</body></html>

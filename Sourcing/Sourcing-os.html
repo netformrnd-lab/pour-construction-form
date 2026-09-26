@@ -5184,7 +5184,8 @@ function itemTabGo(p){
     <div class="it-card st-sec"><span class="it-h">결정</span>
       <div class="go-dec"><button class="go ${p.decision==='진행'?'on':''}" data-go="dec" data-v="진행">🚀 출시 진행</button><button class="hold ${p.decision==='보류'?'on':''}" data-go="dec" data-v="보류">⏸ 보류</button><button class="drop ${p.decision==='드롭'?'on':''}" data-go="dec" data-v="드롭">✕ 드롭</button></div>
       ${p.decision==='진행'&&!lr.ok?'<div class="it-sub">아직 채울 것이 남았지만 진행으로 표시했어요.</div>':''}
-      <button class="it-btn" style="padding:12px" disabled>📤 가격 대시보드 '출시준비'로 보내기 (다음 단계에서 연결)</button>
+      <button class="it-btn ${p.decision==='진행'?'pri':'line'}" style="padding:12px" data-go="send">📤 가격 대시보드 '출시준비'로 보내기</button>
+      <div class="it-sub">${p.sentToPricing?`보낸 날: ${esc(p.sentToPricing.at)} · 가격 대시보드에서 [등록]을 눌러야 들어가요`:'가격 대시보드가 열리고, 원가·판매가·MOQ·경쟁사 가격이 채워진 채로 확인 창이 떠요'}</div>
     </div>
   </div>
   <button class="it-fab" data-itact="cam">📷 이 아이템 찍기</button>`;
@@ -5192,6 +5193,7 @@ function itemTabGo(p){
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-go]');if(!b)return;const p=itemProd();if(!p)return;
   if(b.dataset.go==='tab'){setItemTab(b.dataset.t);return;}
+  if(b.dataset.go==='send'){sendToPricing(p);return;}
   if(b.dataset.go==='dec'){const v=b.dataset.v;p.decision=(p.decision===v)?'':v;if(p.decision)p.confirmedAt=new Date().toISOString();
     save();renderItem();updateStageCounts();flagMsg(p.decision?`"${p.decision}"(으)로 정했어요${p.decision==='진행'?' · 🚀 출시 탭에서도 보여요':''}`:'결정을 취소했어요','ok');}
 });
@@ -5201,6 +5203,26 @@ document.addEventListener('change',e=>{
   if(k!=='ch'){v=v.replace(/[^\d.]/g,'');v=v===''?'':Number(v);}
   p.launch[k]=v;save();renderItem();
 });
+
+/* 📤 가격 대시보드로 보내기 — 두 앱은 Firebase 프로젝트·로그인이 달라(보안규칙 변경 없이) 직접 쓰지 않고,
+   대시보드를 새 탭으로 열면서 주소 뒤(#srcimp=)에 상품 값을 실어 보낸다. 대시보드(로그인된 계정)에서 확인 후 [출시준비로 등록]. */
+function sendToPricing(p){
+  const c=goCalc(p),b=setBase(p),pl=planOfProd(b)||planOfProd(p);
+  const rivals=(p.samples||[]).concat(b&&b!==p?(b.samples||[]):[]).filter(x=>x.type==='rival'&&smpWon(x));
+  const payload={v:1,src:'sourcing',sid:p.id,
+    name:(p.goods||p.name||'').trim(),spec:(p.spec||'').trim()||'-',cat:(pl&&pl.category)||p.category||'신제품',brand:p.brand||b.brand||'',
+    plan:{moq:numOf(b.moq)||'',cost:c.unit!=null?Math.round(c.unit+c.duty):'',logi:c.ship||'',pack:c.pack||'',init:c.certSum||'',price:c.sell||'',unit:b.unitLabel||'개',
+      memo:[p.concept&&('컨셉: '+p.concept),p.target&&('타겟: '+p.target),p.diff&&('차별점: '+p.diff),b.maker&&('제조사: '+b.maker),b!==p&&('원본: '+dn(b)),'소싱앱에서 보냄 '+today()].filter(Boolean).join(' / '),
+      mkt:rivals.map(x=>({vendor:x.where||'',name:x.name,ch:x.where||'',price:Math.round(smpWon(x)),ship:'',size:'',unit:'',url:'',date:today()}))}};
+  let enc='';
+  try{enc=btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+  catch(e){console.error('[보내기] 값 만들기 실패:',e);alert('보낼 값을 만들지 못했어요: '+(e&&e.message||e));return;}
+  const url=new URL('../pourstore-pricing-dashboard.html',location.href).href+'#srcimp='+enc;
+  const w=window.open(url,'_blank');
+  if(!w){location.href=url;return;}
+  p.sentToPricing={at:today(),name:payload.name};save();renderItem();
+  flagMsg('가격 대시보드를 열었어요 · 거기서 [출시준비로 등록]을 눌러주세요','ok');
+}
 
 /* ══════════ 🏭 제조사 제품에서 시작 ══════════ */
 let msPhoto=null;

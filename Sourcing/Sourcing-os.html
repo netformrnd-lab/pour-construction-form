@@ -1159,6 +1159,15 @@
   .sh-refmini{display:flex;gap:8px;align-items:center;background:var(--cream);border-radius:10px;padding:6px;text-decoration:none;color:var(--ink2);font-size:12.5px}
   .sh-refmini img{width:44px;height:44px;border-radius:8px;object-fit:cover;flex:0 0 auto}
   .sh-refmini span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .go-verdict{border-radius:12px;padding:12px 14px;font-weight:800;font-size:14px}
+  .go-verdict.ok{background:var(--green-pale);color:#0B7A55}.go-verdict.wait{background:var(--amber-pale);color:var(--amber)}
+  .go-big{font-size:26px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .go-dec{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .go-dec button{border:1px solid var(--border2);background:var(--card);border-radius:11px;padding:12px 6px;font-weight:800;font-size:14px;font-family:inherit;cursor:pointer;color:var(--ink2)}
+  .go-dec button.on.go{background:var(--green);border-color:var(--green);color:#fff}.go-dec button.on.hold{background:var(--amber);border-color:var(--amber);color:#fff}.go-dec button.on.drop{background:var(--red);border-color:var(--red);color:#fff}
+  .go-chk{display:flex;gap:8px;align-items:center;padding:6px 0;font-size:13.5px;border-top:1px dashed var(--border2)}
+  .go-chk:first-of-type{border-top:0}
+  .go-chk button{margin-left:auto;border:0;background:none;color:var(--blue);font-weight:800;font-size:12.5px;cursor:pointer;font-family:inherit}
   /* 📷 찍기 시트 */
   #camPickOverlay{align-items:flex-end;padding:0}
   .cp-sheet{background:var(--card);width:100%;max-width:560px;margin:0 auto;border-radius:20px 20px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;max-height:88dvh;overflow:auto}
@@ -4630,7 +4639,7 @@ function itemProgress(p){
     p.decision==='진행'||p.stage==='출시완료'];
 }
 function itemNext(p){
-  const bb=setBase(p);if(bb&&bb!==p){const miss=setMissing(p);if(miss)return {t:'판매세팅: '+miss,go:()=>setItemTab('set')};if(!(p.packing&&p.packing.done))return {t:'패킹: 경쟁사 패킹 보고 우리 패킹안 정하기',go:()=>setItemTab('pack')};{const left=(p.shots||[]).filter(c=>!c.done).length;if(left)return {t:`촬영 남은 컷 ${left}개`,go:()=>setItemTab('shot')};}return {t:'패킹 완료 ✓ · 출시검토는 다음 업데이트에서 열려요',go:()=>setItemTab('pack')};}
+  const bb=setBase(p);if(bb&&bb!==p){const miss=setMissing(p);if(miss)return {t:'판매세팅: '+miss,go:()=>setItemTab('set')};if(!(p.packing&&p.packing.done))return {t:'패킹: 경쟁사 패킹 보고 우리 패킹안 정하기',go:()=>setItemTab('pack')};if(!p.decision){const lr=goReady(p);return {t:lr.ok?'출시검토 준비 완료 · 진행 여부 결정하기':'출시검토: '+lr.miss[0],go:()=>setItemTab('go')};}{const left=(p.shots||[]).filter(c=>!c.done).length;if(left)return {t:`촬영 남은 컷 ${left}개`,go:()=>setItemTab('shot')};}return {t:p.decision==='진행'?'출시 진행 ✓ · 가격 대시보드 연결은 다음 단계':'결정: '+p.decision,go:()=>setItemTab('go')};}
   const refs=(p.refs||[]).length, imgs=(p.attachments||[]).filter(a=>a.kind==='image').length;
   if(!refs&&!imgs&&!(p.samples||[]).length)return {t:'레퍼런스 링크나 사진을 넣어보세요',go:()=>setItemTab('ref')};
   const S=p.samples||[],mk=S.filter(x=>x.type==='maker');
@@ -4643,8 +4652,8 @@ function itemNext(p){
   if(!p.makerId)return {t:'샘플을 비교해서 제조사를 확정하세요',go:()=>setItemTab('smp')};
   {const miss=setMissing(p);if(miss)return {t:'판매세팅: '+miss,go:()=>setItemTab('set')};}
   if(!(p.packing&&p.packing.done))return {t:'패킹: 경쟁사 패킹 보고 우리 패킹안 정하기',go:()=>setItemTab('pack')};
+  if(!p.decision){const lr=goReady(p);return {t:lr.ok?'출시검토 준비 완료 · 진행 여부 결정하기':'출시검토: '+lr.miss[0],go:()=>setItemTab('go')};}
   {const left=(p.shots||[]).filter(c=>!c.done).length;if(left)return {t:`촬영 남은 컷 ${left}개`,go:()=>setItemTab('shot')};}
-  if(!derivOf(p).length&&!p.decision)return {t:'패킹 완료 ✓ · 컨셉별 파생 상품도 만들 수 있어요',go:()=>setItemTab('set')};
   if(!p.decision)return {t:'샘플을 보고 진행 여부 결정하기',go:()=>{closeOverlay();switchTab('confirm');}};
   return {t:'전체 정보에서 원가·인증·서류 확인하기',go:()=>openDetail(p.id)};
 }
@@ -4674,10 +4683,11 @@ function renderItem(){
     <button class="${itemTab==='smp'?'on':''}" data-itact="tab" data-tab="smp">🧪 샘플비교${(p.samples||[]).length?`<em>${(p.samples||[]).length}</em>`:''}</button>
     <button class="${itemTab==='set'?'on':''}" data-itact="tab" data-tab="set">🛠 판매세팅<em>${setDoneCount(p)}/4</em></button>
     <button class="${itemTab==='pack'?'on':''}" data-itact="tab" data-tab="pack">📦 패킹${p.packing&&p.packing.done?'<em>✓</em>':''}</button>
+    <button class="${itemTab==='go'?'on':''}" data-itact="tab" data-tab="go">💰 출시검토${p.decision==='진행'?'<em>✓</em>':''}</button>
     <button class="${itemTab==='shot'?'on':''}" data-itact="tab" data-tab="shot">🎬 촬영${(p.shots||[]).length?`<em>${(p.shots||[]).filter(c=>c.done).length}/${(p.shots||[]).length}</em>`:''}</button>
     <button data-itact="full" title="견적·테스트·인증·서류 등 기존 상세">⋯ 전체 정보</button>
   </div>
-  ${itemTab==='smp'?itemTabSmp(p):itemTab==='set'?itemTabSet(p):itemTab==='pack'?itemTabPack(p):itemTab==='shot'?itemTabShot(p):itemTabRef(p)}`;
+  ${itemTab==='smp'?itemTabSmp(p):itemTab==='set'?itemTabSet(p):itemTab==='pack'?itemTabPack(p):itemTab==='shot'?itemTabShot(p):itemTab==='go'?itemTabGo(p):itemTabRef(p)}`;
   {const tb=box.querySelector('.it-tabs'),on=tb&&tb.querySelector('button.on');if(tb&&on){const l=on.offsetLeft-tb.offsetLeft,r=l+on.offsetWidth;if(l<tb.scrollLeft||r>tb.scrollLeft+tb.clientWidth)tb.scrollLeft=Math.max(0,l-16);}}
   updateShootBadge();
 }
@@ -5106,6 +5116,90 @@ document.addEventListener('change',async e=>{
   const el=e.target;const p=itemProd();if(!p)return;
   if(el&&el.id==='shFile'){const fs=[...(el.files||[])];el.value='';const c=(p.shots||[]).find(x=>x.id===shFileTarget);if(!c||!fs.length)return;flagMsg('올리는 중…');await addMediaTo(c,'products/'+p.id+'/shots/'+c.id,fs);save();renderItem();updateShootBadge();cutScroll(c.id);flagMsg(`${fs.length}개 저장 · 다 찍었으면 "완료"를 누르세요`,'ok');return;}
   if(el&&el.dataset&&el.dataset.shf){const c=(p.shots||[]).find(x=>x.id===el.dataset.cid);if(!c)return;c[el.dataset.shf]=el.value.trim();save();if(el.dataset.shf==='refId'){renderItem();cutScroll(c.id);}}
+});
+
+/* ══════════ 💰 출시검토 (P5) ══════════
+   개당 원가 = 상품 원가(원본 단가 또는 파생 원가) + 관세 + 물류비 + 개당 패킹비 + 인증비 ÷ MOQ
+   판매가 기본값 = 경쟁사 판매가 평균(샘플비교·시장조사), 이익 = 판매가/1.1 − 채널 수수료 − 원가
+   값은 판매세팅·패킹·샘플비교에서 가져오고, 여기서만 넣는 값은 p.launch = {duty, ship, sell, ch}. 결정은 기존 p.decision(진행/보류/드롭) 그대로. */
+function goRivalPrices(p){const b=setBase(p);const list=(p.samples||[]).concat(b&&b!==p?(b.samples||[]):[]).filter(x=>x.type==='rival');return list.map(smpWon).filter(v=>v&&v>0);}
+function goCalc(p){
+  const b=setBase(p),L=p.launch||{};
+  const dc=derivCost(p),unit=dc.total;
+  const duty=unit!=null?unit*(Number(L.duty)||0)/100:0,ship=Number(L.ship)||0,pack=numOf((p.packing||{}).cost);
+  const certs=(p.certApps||[]).concat(b&&b!==p?(b.certApps||[]):[]);
+  const certSum=certs.reduce((a,x)=>a+(numOf(x.cost)||0),0),moq=numOf((b||p).moq)||0,certPer=moq?certSum/moq:0;
+  const cost=unit==null?null:unit+duty+ship+pack+certPer;
+  const rp=goRivalPrices(p),avg=rp.length?rp.reduce((a,v)=>a+v,0)/rp.length:null;
+  const sell=Number(L.sell)||(avg?Math.round(avg/100)*100:0);
+  const chans=state.channels||[];const ch=chans.find(c=>c.id===L.ch)||chans[0]||{id:'',name:'직접',fee:0};
+  const net=sell/1.1,fee=sell*(Number(ch.fee)||0)/100;
+  const profit=(cost==null||!sell)?null:net-fee-cost;
+  return {unit,dc,duty,ship,pack,certs,certSum,moq,certPer,cost,rp,avg,min:rp.length?Math.min(...rp):null,max:rp.length?Math.max(...rp):null,sell,sellAuto:!Number(L.sell)&&!!avg,ch,chans,net,fee,profit,rate:profit==null?null:profit/sell};
+}
+function goReady(p){
+  const c=goCalc(p),b=setBase(p),miss=[];
+  if(!(b.makerId||b.makerFirst||b.maker))miss.push('제조사 확정');
+  if(setDoneCount(p)<4)miss.push('판매세팅 채우기');
+  if(c.cost==null)miss.push('원가 (단가 또는 들어가는 양)');
+  if(!c.sell)miss.push('판매가 (경쟁사 판매가를 넣으면 평균이 들어가요)');
+  if(!(p.packing&&p.packing.done))miss.push('패킹 확정');
+  if(c.certs.some(x=>x.status!=='완료'))miss.push('인증 완료 확인');
+  return {ok:!miss.length,miss,c};
+}
+function itemTabGo(p){
+  const lr=goReady(p),c=lr.c,L=p.launch||{},b=setBase(p);
+  const won=n=>n==null?'—':Math.round(n).toLocaleString('ko-KR')+'원';
+  const pctS=n=>n==null?'—':(n*100).toFixed(1)+'%';
+  const reqs=smpLiveReqs(b===p?p:b);const shots=p.shots||[];
+  const chk=[['제조사 확정',!!(b.makerId||b.makerFirst||b.maker),'smp'],[`판매세팅 ${setDoneCount(p)}/4`,setDoneCount(p)===4,'set'],['패킹 확정',!!(p.packing&&p.packing.done),'pack'],
+    ['제조사 요청사항 반영',!reqs.length||reqs.every(r=>(r.st||0)===2),'smp'],['인증 완료',!c.certs.length||c.certs.every(x=>x.status==='완료'),'set'],[`촬영 ${shots.filter(x=>x.done).length}/${shots.length}컷 (병행)`,shots.length>0&&shots.every(x=>x.done),'shot']];
+  return `<div class="it-stack">
+    <div class="go-verdict ${lr.ok?'ok':'wait'}">${lr.ok?'✅ 출시 검토 준비 완료':'⏳ 아직 채울 것 · '+esc(lr.miss.join(' · '))}</div>
+    <div class="it-card st-sec"><span class="it-h">개당 이익</span>
+      <div class="it-row" style="align-items:baseline;gap:10px;flex-wrap:wrap"><span class="go-big" style="color:${c.profit!=null&&c.profit<0?'var(--red)':'var(--ink)'}">${won(c.profit)}</span><span class="it-pill ${c.rate!=null&&c.rate>=0.3?'gh':''}">마진 ${pctS(c.rate)}</span></div>
+      <div class="cost-line"><span>판매가${c.sellAuto?' (경쟁사 평균)':''}</span><span class="v">${won(c.sell)}</span><span>부가세 빼면</span><span class="v">${won(c.sell?c.net:null)}</span><span>${esc(c.ch.name||'채널')} 수수료 ${Number(c.ch.fee)||0}%</span><span class="v">−${won(c.fee)}</span><span>개당 원가</span><span class="v">−${won(c.cost)}</span></div>
+    </div>
+    <div class="it-card st-sec"><span class="it-h">개당 원가</span>
+      <div class="cost-line">
+        <span>${b===p?`단가 (${esc(p.unitLabel||'개')}당)`:`파생 원가 (원본 × ${esc(String(c.dc.qty||0))} + 추가비용)`}</span><span class="v">${won(c.unit)}</span>
+        <span>관세 ${Number(L.duty)||0}%</span><span class="v">${won(c.duty)}</span>
+        <span>물류비</span><span class="v">${won(c.ship)}</span>
+        <span>패킹비 <button class="it-btn line" style="padding:1px 6px;font-size:11px" data-go="tab" data-t="pack">패킹 ›</button></span><span class="v">${won(c.pack)}</span>
+        <span>인증비 ${won(c.certSum)} ÷ MOQ ${c.moq||'—'}</span><span class="v">${won(c.certPer)}</span>
+        <span class="tot">개당 원가</span><span class="v tot">${won(c.cost)}</span></div>
+      <div class="it-grid2"><label class="it-f"><span>관세 (%)</span><input class="it-in" inputmode="decimal" data-gof="duty" value="${esc(String(L.duty||''))}" placeholder="수입이면 입력"></label>
+      <label class="it-f"><span>물류비 (원/개)</span><input class="it-in" inputmode="numeric" data-gof="ship" value="${esc(String(L.ship||''))}" placeholder="운임·통관 나눈 값"></label></div>
+      ${c.unit==null?`<button class="it-btn line" data-go="tab" data-t="set">${b===p?'판매세팅에서 단가 넣기 ›':'판매세팅에서 들어가는 양 넣기 ›'}</button>`:''}
+    </div>
+    <div class="it-card st-sec"><span class="it-h">판매가 · 시장조사</span>
+      <div class="cost-line"><span>경쟁사 판매가 ${c.rp.length}곳</span><span class="v">${c.rp.length?`${won(c.min)} ~ ${won(c.max)}`:'—'}</span><span>평균</span><span class="v">${won(c.avg)}</span></div>
+      ${c.rp.length?'':`<button class="it-btn line" data-go="tab" data-t="smp">샘플비교에서 경쟁사 판매가 넣기 ›</button>`}
+      <div class="it-grid2"><label class="it-f"><span>우리 판매가 (원, 부가세 포함)</span><input class="it-in" inputmode="numeric" data-gof="sell" value="${esc(String(L.sell||''))}" placeholder="${c.avg?'비우면 평균 '+won(Math.round(c.avg/100)*100):'예: 19,900'}"></label>
+      <label class="it-f"><span>판매 채널</span><select class="it-in" data-gof="ch">${c.chans.map(x=>`<option value="${esc(x.id)}"${x.id===c.ch.id?' selected':''}>${esc(x.name)} ${Number(x.fee)||0}%</option>`).join('')}</select></label></div>
+    </div>
+    <div class="it-card st-sec"><span class="it-h">출시 체크</span>
+      <div>${chk.map(([t,ok,tab])=>`<div class="go-chk">${ok?'✅':'⬜'} ${esc(t)}${ok?'':`<button data-go="tab" data-t="${tab}">가기 ›</button>`}</div>`).join('')}</div>
+    </div>
+    <div class="it-card st-sec"><span class="it-h">결정</span>
+      <div class="go-dec"><button class="go ${p.decision==='진행'?'on':''}" data-go="dec" data-v="진행">🚀 출시 진행</button><button class="hold ${p.decision==='보류'?'on':''}" data-go="dec" data-v="보류">⏸ 보류</button><button class="drop ${p.decision==='드롭'?'on':''}" data-go="dec" data-v="드롭">✕ 드롭</button></div>
+      ${p.decision==='진행'&&!lr.ok?'<div class="it-sub">아직 채울 것이 남았지만 진행으로 표시했어요.</div>':''}
+      <button class="it-btn" style="padding:12px" disabled>📤 가격 대시보드 '출시준비'로 보내기 (다음 단계에서 연결)</button>
+    </div>
+  </div>
+  <button class="it-fab" data-itact="cam">📷 이 아이템 찍기</button>`;
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-go]');if(!b)return;const p=itemProd();if(!p)return;
+  if(b.dataset.go==='tab'){setItemTab(b.dataset.t);return;}
+  if(b.dataset.go==='dec'){const v=b.dataset.v;p.decision=(p.decision===v)?'':v;if(p.decision)p.confirmedAt=new Date().toISOString();
+    save();renderItem();updateStageCounts();flagMsg(p.decision?`"${p.decision}"(으)로 정했어요${p.decision==='진행'?' · 🚀 출시 탭에서도 보여요':''}`:'결정을 취소했어요','ok');}
+});
+document.addEventListener('change',e=>{
+  const el=e.target;if(!el||!el.dataset||!el.dataset.gof)return;const p=itemProd();if(!p)return;
+  if(!p.launch||typeof p.launch!=='object')p.launch={};const k=el.dataset.gof;let v=el.value.trim();
+  if(k!=='ch'){v=v.replace(/[^\d.]/g,'');v=v===''?'':Number(v);}
+  p.launch[k]=v;save();renderItem();
 });
 
 /* ══════════ 🏭 제조사 제품에서 시작 ══════════ */

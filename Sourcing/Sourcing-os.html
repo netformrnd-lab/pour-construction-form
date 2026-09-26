@@ -1039,6 +1039,59 @@
   .td-del{background:var(--red-pale);color:var(--red);border:none;border-radius:12px;padding:13px 18px;font-weight:800;font-size:14px;font-family:inherit;cursor:pointer}
   .td-save{flex:1;min-width:90px;background:var(--surface);color:var(--ink2);border:1px solid var(--border2);border-radius:12px;padding:13px;font-weight:800;font-size:14px;font-family:inherit;cursor:pointer}
   .td-next{background:var(--green);color:#fff;border:none;border-radius:12px;padding:13px 18px;font-weight:800;font-size:14px;font-family:inherit;cursor:pointer}
+  /* ── 💬 AI 정리함 · 🕘 변경 이력 ── */
+  #aiOverlay,#histOverlay{padding:0;background:var(--surface);align-items:stretch}
+  #aiOverlay{scroll-padding-bottom:calc(140px + env(safe-area-inset-bottom))}
+  #aiOverlay>.it-page,#histOverlay>.it-page{align-self:flex-start} /* 내용만큼 늘어나야 아래 입력창에 안 가림 */
+  .it-page.ai-page{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
+  .it-tools{display:flex;gap:6px;margin-top:8px}.it-tools .it-btn{flex:1;min-width:0;padding:8px 6px;font-size:12.5px;overflow:hidden;text-overflow:ellipsis}.it-tools .it-btn.ai{color:var(--blue);border-color:#BBD5FB;background:var(--blue-pale)}
+  .cp-go button.cp-ai{background:var(--blue-pale);border-color:#BBD5FB;color:var(--navy)}
+  .ai-lock{font-size:13px;color:var(--ink2);background:var(--card);border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.ai-lock .it-btn{padding:6px 9px;font-size:12px;margin-left:auto}
+  .ai-guide{display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:1.5;color:var(--ink2)}
+  .ai-thread{display:flex;flex-direction:column;gap:14px;margin-top:10px}
+  .ai-msg{display:flex;flex-direction:column;gap:8px}
+  .ai-me{align-self:flex-end;max-width:88%;background:var(--blue);color:#fff;border-radius:16px 16px 4px 16px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+  .ai-me .ai-to{font-size:11.5px;opacity:.85}.ai-me .ai-at{font-size:10.5px;opacity:.75;text-align:right}
+  .ai-tx{font-size:14px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+  .ai-atts{display:flex;gap:6px;flex-wrap:wrap}
+  .ai-att{position:relative;width:64px;height:64px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,.2);border:0;padding:0;display:grid;place-items:center;color:#fff;font-size:12px;text-decoration:none}
+  .ai-att img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.ai-att .tg{position:absolute;left:3px;bottom:3px;background:rgba(0,0,0,.55);border-radius:5px;padding:1px 4px;font-size:10px}
+  .ai-att.doc{flex-direction:column;gap:2px;font-size:18px}.ai-att.doc span{font-size:9.5px;padding:0 3px;text-align:center;line-height:1.2}
+  .ai-bot{align-self:stretch;background:var(--card);border-radius:16px 16px 16px 4px;box-shadow:var(--shadow);padding:12px;display:flex;flex-direction:column;gap:8px;font-size:13.5px}
+  .ai-wait{color:var(--ink2)}.ai-done{gap:6px}.ai-done .it-btn{padding:6px 10px;font-size:12px}
+  .ai-err{color:var(--red);font-weight:700}
+  .ai-sum{font-weight:800;font-size:14.5px;color:var(--navy)}
+  .ai-tg{display:flex;align-items:center;gap:8px}.ai-tg span{flex:0 0 auto;font-size:12px;font-weight:800;color:var(--muted)}.ai-tg select{padding:9px 10px;font-size:13.5px}
+  .ai-rows{display:flex;flex-direction:column;gap:6px}
+  .ai-row{display:flex;gap:9px;align-items:flex-start;border:1px solid var(--border2);border-radius:12px;padding:10px;cursor:pointer;background:var(--cream)}
+  .ai-row.on{border-color:#BBD5FB;background:var(--blue-pale)}
+  .ai-row>input{margin-top:2px;width:18px;height:18px;flex:0 0 auto;accent-color:var(--blue)}
+  .ai-row .ic{flex:0 0 auto;font-size:16px}
+  .ai-row .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}.ai-row .t b{font-size:13.5px;overflow-wrap:anywhere}
+  .ai-row .d{font-size:12.5px;color:var(--ink2);overflow-wrap:anywhere}
+  .ai-row .warn{font-size:12px;color:#B45309;font-weight:700}
+  .ai-row .ow{font-size:12px;color:var(--ink2);display:flex;gap:6px;align-items:center}
+  .ai-row .th{display:flex;gap:4px;margin-top:2px}.ai-row .th img,.ai-mi{width:40px;height:40px;border-radius:7px;object-fit:cover;background:var(--surface);display:grid;place-items:center;font-size:14px}
+  .ai-q{font-size:12.5px;color:var(--ink2);background:var(--amber-pale);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:3px}
+  .ai-acts{display:flex;gap:6px;flex-wrap:wrap}.ai-acts .it-btn{flex:1;min-width:0}.ai-acts .it-btn:disabled{opacity:.45}
+  .ai-lines{margin:0;padding-left:18px;font-size:12.5px;color:var(--ink2);display:flex;flex-direction:column;gap:2px}
+  .ai-compose{position:fixed;left:0;right:0;bottom:0;z-index:56;background:var(--card);border-top:1px solid var(--border2);padding:8px 12px calc(8px + env(safe-area-inset-bottom))}
+  .ai-cin{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:6px}
+  .ai-pend{display:flex;gap:6px;flex-wrap:wrap}.ai-pf{font-size:12px;background:var(--surface);border-radius:8px;padding:4px 4px 4px 8px;display:inline-flex;gap:4px;align-items:center}.ai-pf button{border:0;background:none;font-size:12px;cursor:pointer;color:var(--muted);padding:2px 5px}
+  .ai-crow{display:flex;gap:6px;align-items:flex-end}
+  .ai-ib{flex:0 0 42px;height:42px;border-radius:12px;border:1px solid var(--border2);background:var(--surface);font-size:18px;cursor:pointer}
+  #aiText{flex:1;min-width:0;border:1px solid var(--border2);border-radius:12px;padding:10px 12px;font-size:15px;resize:none;max-height:140px;background:var(--cream);font-family:inherit;line-height:1.4}
+  .ai-send{flex:0 0 auto;height:42px;border:0;border-radius:12px;background:var(--blue);color:#fff;font-weight:800;font-size:14px;padding:0 14px;font-family:inherit;cursor:pointer}.ai-send:disabled{opacity:.5}
+  .hv{padding:0;overflow:hidden}
+  .hv-h{width:100%;display:flex;align-items:center;gap:6px 8px;padding:12px 14px;border:0;background:none;font-family:inherit;cursor:pointer;text-align:left;flex-wrap:wrap}
+  .hv-t{font-weight:800;font-size:13.5px;color:var(--ink)}.hv-by{margin-left:auto;font-size:11.5px;color:var(--muted);white-space:nowrap}
+  .hv-ch{flex:1 0 100%;font-size:12.5px;color:var(--ink2);line-height:1.45}
+  .hv-det{border-top:1px solid var(--border);padding:10px 14px 14px;display:flex;flex-direction:column;gap:6px}
+  .hv-row{display:flex;align-items:center;gap:10px}.hv-row .t{flex:1;min-width:0;overflow-wrap:anywhere}.hv-row .it-btn{flex:0 0 auto;padding:7px 10px;font-size:12px}
+  .hv-det .hv-row{border-bottom:1px dashed var(--border2);padding-bottom:6px}
+  button.hv-link{width:100%;border:0;font-family:inherit;text-align:left;cursor:pointer;margin-bottom:8px}
+  #histBody .it-card+.it-card{margin-top:8px}
+  @media(max-width:380px){.it-tools .it-btn{font-size:12px;padding:8px 4px}.ai-send{padding:0 11px}.hv-row{flex-wrap:wrap}.hv-row .it-btn{width:100%}}
   /* ── 아이템 페이지 (새 설계) ── */
   #itemOverlay{padding:0;background:var(--surface);align-items:stretch}
   .it-page{width:100%;max-width:720px;margin:0 auto;padding:12px 16px calc(96px + env(safe-area-inset-bottom));min-height:100dvh}
@@ -1633,6 +1686,11 @@
 <div class="overlay" id="camPickOverlay"><div class="cp-sheet" id="camPickBody"></div></div>
 <input type="file" id="camPickFile" accept="image/*,video/*" multiple hidden>
 <input type="file" id="itemRefFile" accept="image/*,video/*" multiple hidden>
+<!-- 💬 AI 정리함 · 🕘 변경 이력 (아이템 페이지 위에 뜸) -->
+<div class="overlay" id="aiOverlay"><div class="it-page ai-page" id="aiBody"></div></div>
+<div class="overlay" id="histOverlay"><div class="it-page" id="histBody"></div></div>
+<input type="file" id="aiFile" accept="image/*,video/*,application/pdf" multiple hidden>
+<input type="file" id="aiCam" accept="image/*" capture="environment" hidden>
 
 <div class="overlay" id="planOverlay">
   <div class="modal" style="position:relative;max-height:88vh;overflow:auto;max-width:520px">
@@ -2260,6 +2318,7 @@ async function runCloudSync(){
   _syncing=true;setSync('동기화 중…','var(--amber)');
   try{
     const payload=JSON.parse(JSON.stringify(Object.assign({},state,{_w:CLIENT}))); // undefined 제거(Firestore 안전)
+    try{verWriteChanges();}catch(e){console.error('[이력] 버전 저장 준비 실패:',e);} // 🕘 바뀌기 전 모습 따로 보관
     await fsDoc.set(payload);
     cloudOK=true;setSync(localFull?'클라우드 저장됨 ✓ (로컬 부족)':'클라우드 저장됨 ✓','var(--green)');
   }catch(e){
@@ -2297,7 +2356,7 @@ function startRealtime(){
     if(document.querySelector('.overlay.on'))return; // 편집 중이면 보류(다음 변경 때 반영)
     const keep={tab:state.tab,sel:state.sel,viewMode:state.viewMode,adminSub:state.adminSub};
     applyingRemote=true;
-    state=data;normalizeState();
+    state=data;normalizeState();verSetBase(state.products);
     state.tab=keep.tab;state.sel=keep.sel;state.viewMode=keep.viewMode;state.adminSub=keep.adminSub;
     store.write(state); // 로컬 캐시만 (업로드 X)
     if(state.tab==='makers'){ if((state.adminSub||'makers')==='pricing')renderPricing(); else {makerSel=null;renderMakerList();} }
@@ -4676,7 +4735,7 @@ function renderItem(){
       <div class="it-sub" style="margin-top:4px">${esc(p.concept||'')}</div></div></div>
     <div class="it-steps">${['수집','샘플비교','제조사','판매세팅','패킹','출시검토'].map((t,i)=>`<div class="${pr[i]?'on':''}"><i></i>${t}</div>`).join('')}</div>
     <button class="it-next" data-itact="next"><span>다음 할 일</span><b>${esc(nx.t)} ›</b></button>
-    <button class="it-btn line" style="margin-top:8px;padding:8px 12px;font-size:12.5px" data-itact="tab" data-tab="shot">🎬 촬영 ${(p.shots||[]).length?`${(p.shots||[]).filter(c=>c.done).length}/${(p.shots||[]).length}컷`:'컷 없음'} · 소싱과 함께 진행 ›</button>
+    <div class="it-tools"><button class="it-btn line" data-itact="tab" data-tab="shot">🎬 촬영 ${(p.shots||[]).length?`${(p.shots||[]).filter(c=>c.done).length}/${(p.shots||[]).length}`:'0'}</button><button class="it-btn line ai" data-itact="ai">💬 AI로 넣기</button><button class="it-btn line" data-itact="hist" aria-label="변경 이력">🕘 이력</button></div>
   </div>
   <div class="it-tabs" role="tablist">
     <button class="${itemTab==='ref'?'on':''}" data-itact="tab" data-tab="ref">📌 레퍼런스${refN?`<em>${refN}</em>`:''}</button>
@@ -4721,6 +4780,8 @@ document.addEventListener('click',async e=>{
   if(a==='open-base'){openItem(b.dataset.id,'set');return;}
   if(a==='next'){itemNext(p).go();return;}
   if(a==='cam'){openCamPick(p.id,true);return;}
+  if(a==='ai'){openAi(p.id);return;}
+  if(a==='hist'){openHist(p.id);return;}
   if(a==='view'){if(b.dataset.src)openLightbox(b.dataset.src);return;}
   if(a==='ref-photo'){$('#itemRefFile').click();return;}
   if(a==='ref-paste'){
@@ -5414,6 +5475,7 @@ function openCollect(){
   const box=$('#collectBody');
   box.innerHTML=`<div class="it-row" style="justify-content:space-between"><span class="it-h">＋ 수집</span><button class="it-btn" data-col="close">닫기</button></div>
     <div class="cp-go">
+      <button data-col="ai" class="cp-ai">💬 AI에게 보내기<small>사진·영상·링크·메모를 한 번에 → 알아서 나눠 넣어요 (확인 후 반영)</small></button>
       <button data-col="paste">📋 링크 붙여넣기<small>틱톡·인스타·1688 링크를 복사해 뒀다면 바로 추가돼요</small></button>
       <button data-col="photo">📷 사진 찍어 수집<small>매장·전시회에서 본 제품을 찍으면 바로 추가돼요</small></button>
       <button data-col="name">✏️ 이름만 적기<small>생각난 아이템을 먼저 적어두기</small></button>
@@ -5426,6 +5488,7 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('[data-col]');if(!b)return;const a=b.dataset.col;
   if(a==='close'){closeOverlay();return;}
   if(a==='maker'){openMakerStart('');return;}
+  if(a==='ai'){closeOverlay();openAi(null);return;}
   if(a==='photo'){quickAutoAdd=true;const f=$('#planQuickFile');if(f)f.click();closeOverlay();closeAllItemPages();switchTab('plans');return;}
   closeOverlay();closeAllItemPages();switchTab('plans');
   if(a==='paste'){pasteQuick();return;}
@@ -5472,6 +5535,8 @@ function openMore(){
     <div class="cp-go">
       <button data-more="makers">🏭 제조사<small>거래처 목록 · 연락처 · 발주 담당자</small></button>
       <button data-more="pricing">💰 판매가 계산<small>채널 수수료 · 판매가 · 이익률</small></button>
+      <button data-more="ai">💬 AI 정리함<small>보낸 사진·메모와 정리 기록</small></button>
+      <button data-more="hist">🕘 변경 이력 · 지운 아이템<small>고치기 전 모습 보기 · 복구 · 되살리기</small></button>
       <button data-more="settings">⚙ 활동 기록 · 공유 설정 · 계정</button>
     </div>`;
   openOverlay('moreOverlay');
@@ -5483,6 +5548,8 @@ document.addEventListener('click',e=>{
   if(a==='makers'){switchTab('makers');showSub('makers');}
   if(a==='pricing'){switchTab('makers');showSub('pricing');}
   if(a==='settings')openActivity();
+  if(a==='ai')openAi(null);
+  if(a==='hist'){histView='recent';openHist(null);}
 });
 /* 할 일 목록(대시보드 맨 위) */
 function todoHtml(){
@@ -5563,6 +5630,7 @@ $('#camPickFile').onchange=async e=>{
 /* ---- overlay ---- */
 function openOverlay(id){document.getElementById(id).classList.add('on');document.body.style.overflow='hidden';}
 function closeOverlay(){
+  {const ho=document.getElementById('histOverlay'),ao=document.getElementById('aiOverlay');if(ho&&ao&&ho.classList.contains('on')&&ao.classList.contains('on')){ho.classList.remove('on');renderAi();return;}}
   // 닫히는 오버레이 정리: 카메라 스트림 중지 / 동영상 플레이어 정리
   if(document.getElementById('vrecOverlay').classList.contains('on'))vrecCleanup();
   if(document.getElementById('viewerOverlay').classList.contains('on')){const vb=$('#viewerBody');if(vb)vb.innerHTML='';}
@@ -6817,6 +6885,465 @@ if(upM)upM.onchange=e=>{const f=e.target.files[0];if(f){flagMsg('읽는 중…',
 if(upP)upP.onchange=e=>{const f=e.target.files[0];if(f){flagMsg('읽는 중…','');readRows(f,importProducts);}e.target.value='';};
 if(upPE)upPE.onchange=e=>{const f=e.target.files[0];if(f){flagMsg('읽는 중…','');readRows(f,importProducts);}e.target.value='';};
 
+/* ══════════ 🕘 변경 이력 (자동 버전 저장 · 복구) ══════════
+   아이템이 바뀌면 "바뀌기 전 모습"을 sourcing-os/history/versions 에 따로 저장한다(메인 문서 용량과 무관).
+   · 같은 아이템은 10분에 한 번 (연속 타이핑이 이력을 도배하지 않게). 삭제·AI 반영·복구는 항상 저장.
+   · 복구도 복구 직전 모습을 저장하므로 복구를 또 되돌릴 수 있다. 이력 문서는 지우지 않는다. */
+const VER_GAP=10*60*1000;
+let verBase=null;const verLastAt={},verForce={};
+function verColl(){return FS?FS.collection(FS_COLL).doc('history').collection('versions'):null;}
+function verSetBase(products){verBase={};(products||[]).forEach(p=>{if(p&&p.id)verBase[p.id]=JSON.stringify(p);});}
+function verMark(pid,reason){if(pid)verForce[pid]=reason;}
+function verStrip(json){ // 1MB 한도 대비: 기기에만 있던 사진(data:)은 이력에서 뺀다(원본 아이템엔 그대로)
+  if(json.length<850000)return {data:json,stripped:false};
+  try{const o=JSON.parse(json);const walk=v=>{if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object'){if(typeof v.data==='string'&&v.data.startsWith('data:'))v.data='';Object.values(v).forEach(walk);}};walk(o);return {data:JSON.stringify(o),stripped:true};}
+  catch(e){return {data:'',stripped:true};}
+}
+function verWriteChanges(){
+  const col=verColl();if(!col)return;
+  const cur={};(state.products||[]).forEach(p=>{if(p&&p.id)cur[p.id]=JSON.stringify(p);});
+  if(!verBase){verBase=cur;return;}
+  const now=Date.now(),by=curUser();let n=0;
+  for(const id of Object.keys(verBase)){
+    const prev=verBase[id];
+    const gone=!(id in cur);
+    if(!gone&&cur[id]===prev)continue;
+    const reason=gone?'delete':(verForce[id]||'edit');
+    if(!gone&&reason==='edit'&&verLastAt[id]&&now-verLastAt[id]<VER_GAP)continue;
+    if(n>=40){console.warn('[이력] 한 번에 40건 초과 — 나머지는 다음 저장 때');break;}
+    let name='';try{const o=JSON.parse(prev);name=dn(o);}catch(e){}
+    const st=verStrip(prev);
+    col.add({pid:id,name,reason,at:new Date(now).toISOString(),ts:now,by,data:st.data,stripped:st.stripped,ym:new Date(now).toISOString().slice(0,7)})
+      .then(()=>console.log(`[이력] ${reason} · ${name}`)).catch(e=>console.error('[이력] 저장 실패:',e));
+    verLastAt[id]=now;n++;
+  }
+  Object.keys(verForce).forEach(k=>delete verForce[k]);
+  verBase=cur;
+}
+const VER_RSN={edit:'고치기 전',delete:'지우기 전',ai:'AI 반영 전',ai_undo:'AI 되돌리기 전',restore:'복구 전'};
+const VER_KEY={name:'이름',goods:'판매 상품명',maker:'제조사',brand:'브랜드',type:'종류',concept:'컨셉',target:'타겟',diff:'차별점',spec:'대표 규격',specs:'스펙',cost:'단가',moq:'MOQ',lead:'납기',customs:'통관·물류',unitLabel:'단위',useQty:'들어가는 양',extras:'추가비용',refs:'레퍼런스',refsHidden:'숨긴 레퍼런스',attachments:'캡처·사진·파일',samples:'샘플비교',makerId:'확정 제조사',packing:'패킹',shots:'촬영 컷',shotsTrash:'지운 컷',certApps:'인증',docs:'서류',launch:'출시검토',decision:'진행 결정',stage:'단계',memo:'메모',quotes:'견적',competitors:'시장조사',tests:'테스트',notes:'노트',ideas:'아이디어',history:'단계 기록',pricing:'판매가',thumbId:'대표 사진',fav:'즐겨찾기',sentToPricing:'가격 대시보드 전송'};
+function verVal(k,v){
+  if(v==null||v==='')return '비어 있음';
+  if(Array.isArray(v)){if(!v.length)return '없음';const nm=v.map(x=>x&&(x.name||x.title||x.text||x.url||x.stage)).filter(Boolean).slice(0,3).map(s=>String(s).slice(0,14));return `${v.length}개${nm.length?' · '+nm.join(', '):''}`;}
+  if(typeof v==='object'){const ks=Object.keys(v).filter(x=>v[x]!==''&&v[x]!=null&&!(Array.isArray(v[x])&&!v[x].length)&&!(typeof v[x]==='object'&&!Array.isArray(v[x])&&!Object.keys(v[x]).length));return ks.length?ks.length+'개 항목':'없음';}
+  return String(v).slice(0,40);
+}
+function verDiff(a,b){ // 윗단 칸 기준 다른 곳
+  const ks=new Set([...Object.keys(a||{}),...Object.keys(b||{})]);const out=[];
+  ks.forEach(k=>{if(k==='id')return;if(JSON.stringify(a&&a[k]===undefined?null:a&&a[k])!==JSON.stringify(b&&b[k]===undefined?null:b&&b[k]))out.push(k);});
+  return out.sort((x,y)=>(VER_KEY[x]?0:1)-(VER_KEY[y]?0:1));
+}
+let histPid=null,histList=[],histView='recent',histOpen='',histLoading=false;
+async function histLoad(){
+  const col=verColl();if(!col){histList=[];return;}
+  histLoading=true;
+  try{
+    let snap;
+    if(histPid)snap=await col.where('pid','==',histPid).get();
+    else if(histView==='deleted')snap=await col.where('reason','==','delete').get();
+    else snap=await col.where('ts','>=',Date.now()-30*24*3600e3).get();
+    histList=snap.docs.map(d=>Object.assign({vid:d.id},d.data()));
+    histList.sort((a,b)=>(b.ts||0)-(a.ts||0));
+    console.log(`[이력] ${histList.length}건 로드 (${histPid?'아이템':histView})`);
+  }catch(e){console.error('[이력] 불러오기 실패:',e);histList=[];flagMsg('이력을 불러오지 못했어요: '+(e.code||e.message||e),'warn');}
+  finally{histLoading=false;}
+}
+async function openHist(pid){
+  histPid=pid||null;histOpen='';if(!histPid&&histView!=='deleted')histView='recent';
+  renderHist();openOverlay('histOverlay');$('#histOverlay').scrollTop=0;
+  await histLoad();renderHist();
+}
+function renderHist(){
+  const box=$('#histBody');if(!box)return;
+  const p=histPid?state.products.find(x=>x.id===histPid):null;
+  const head=`<div class="it-top"><button class="it-back" data-hist="close" aria-label="뒤로">‹</button><h2>🕘 ${histPid?'변경 이력':'변경 이력 · 지운 아이템'}</h2></div>`;
+  const note=`<div class="it-card it-sub" style="line-height:1.6">고치기 전 모습이 <b>자동으로</b> 저장돼요 (같은 아이템은 10분마다 · 지우기·AI 반영·복구는 매번). 복구해도 복구 직전 모습이 또 남아서 <b>언제든 다시 되돌릴 수 있어요.</b></div>`;
+  if(!verColl()){box.innerHTML=head+'<div class="it-card it-sub">클라우드에 연결돼야 이력을 볼 수 있어요.</div>';return;}
+  let body='';
+  if(histPid){
+    body=`<div class="it-card"><b style="font-size:15px">${esc(p?dn(p):'(지운 아이템)')}</b></div>`;
+    if(histLoading)body+='<div class="it-card it-sub">불러오는 중…</div>';
+    else if(!histList.length)body+='<div class="it-card it-sub">아직 저장된 이력이 없어요. 이 아이템을 고치면 그 전 모습부터 쌓여요.</div>';
+    else body+=histList.map((v,i)=>{
+      let then={};try{then=v.data?JSON.parse(v.data):{};}catch(e){}
+      let after=null;if(i>0){try{after=JSON.parse(histList[i-1].data||'{}');}catch(e){}}else after=p;
+      const changed=after?verDiff(then,after).filter(k=>VER_KEY[k]).map(k=>VER_KEY[k]):[];
+      const open=histOpen===v.vid;
+      let det='';
+      if(open){
+        const vsNow=p?verDiff(then,p):[];
+        det=`<div class="hv-det">${p?(vsNow.length?`<div class="it-sub" style="margin-bottom:4px">그때 → 지금</div>`+vsNow.map(k=>`<div class="hv-row"><div class="t"><b>${esc(VER_KEY[k]||k)}</b><div class="it-sub">${esc(verVal(k,then[k])===verVal(k,p[k])?'개수는 같고 안의 내용(메모·사진·값)이 달라요':verVal(k,then[k])+' → '+verVal(k,p[k]))}</div></div><button class="it-btn line" data-hist="part" data-vid="${esc(v.vid)}" data-k="${esc(k)}">이 부분만 되돌리기</button></div>`).join(''):'<div class="it-sub">지금과 같아요.</div>'):''}
+          ${v.stripped?'<div class="it-sub">※ 기기에만 있던 사진은 이력에 없어요.</div>':''}
+          <button class="it-btn pri" style="width:100%;margin-top:8px" data-hist="${p?'full':'revive'}" data-vid="${esc(v.vid)}">${p?'↩ 이 시점 모습으로 전체 복구':'↩ 이 아이템 되살리기'}</button></div>`;
+      }
+      return `<div class="it-card hv"><button class="hv-h" data-hist="toggle" data-vid="${esc(v.vid)}"><span class="hv-t">${esc(fmtDT(v.ts))}</span><span class="it-pill">${esc(VER_RSN[v.reason]||v.reason)}</span><span class="hv-by">${esc((v.by||'').split('@')[0])} ${open?'▴':'▾'}</span>${changed.length?`<span class="hv-ch">이때 바뀐 것: ${esc(changed.slice(0,5).join(', ')+(changed.length>5?' 외':''))}</span>`:''}</button>${det}</div>`;
+    }).join('');
+  }else{
+    body=`<div class="it-seg" style="margin-bottom:10px"><button class="${histView==='recent'?'on':''}" data-hist="view" data-v="recent">최근 30일 변경</button><button class="${histView==='deleted'?'on':''}" data-hist="view" data-v="deleted">🗑 지운 아이템</button></div>`;
+    if(histLoading)body+='<div class="it-card it-sub">불러오는 중…</div>';
+    else if(histView==='deleted'){
+      const seen=new Set();const gone=histList.filter(v=>{if(seen.has(v.pid)||state.products.some(x=>x.id===v.pid))return false;seen.add(v.pid);return true;});
+      body+=gone.length?gone.map(v=>`<div class="it-card hv-row"><div class="t"><b>${esc(v.name||'(이름 없음)')}</b><div class="it-sub">${esc(fmtDT(v.ts))} 지움 · ${esc((v.by||'').split('@')[0])}</div></div><button class="it-btn pri" data-hist="revive" data-vid="${esc(v.vid)}">↩ 되살리기</button></div>`).join(''):'<div class="it-card it-sub">지운 아이템이 없어요.</div>';
+    }else{
+      const byP=new Map();histList.forEach(v=>{if(!byP.has(v.pid))byP.set(v.pid,{v,n:0});byP.get(v.pid).n++;});
+      body+=byP.size?[...byP.values()].map(({v,n})=>{const alive=state.products.find(x=>x.id===v.pid);return `<button class="it-card hv-row hv-link" data-hist="${alive?'item':'revive'}" data-pid="${esc(v.pid)}" data-vid="${esc(v.vid)}"><div class="t"><b>${esc(alive?dn(alive):(v.name||'(지운 아이템)'))}</b><div class="it-sub">${esc(fmtDT(v.ts))} · ${esc(VER_RSN[v.reason]||v.reason)} · 저장 ${n}건</div></div><span class="it-sub">${alive?'이력 ›':'↩ 되살리기'}</span></button>`;}).join(''):'<div class="it-card it-sub">최근 30일 동안 저장된 이력이 없어요.</div>';
+    }
+  }
+  box.innerHTML=head+note+body;
+}
+function histAfterRestore(pid,msg){
+  save();render();
+  if($('#itemOverlay').classList.contains('on')&&itemId===pid)renderItem();
+  flagMsg(msg,'ok');
+  setTimeout(async()=>{if($('#histOverlay').classList.contains('on')){await histLoad();renderHist();}},1800);
+}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-hist]');if(!b)return;const a=b.dataset.hist;
+  if(a==='close'){closeOverlay();return;}
+  if(a==='view'){histView=b.dataset.v;histList=[];renderHist();await histLoad();renderHist();return;}
+  if(a==='item'){histPid=b.dataset.pid;histOpen='';histList=[];renderHist();await histLoad();renderHist();return;}
+  if(a==='toggle'){histOpen=histOpen===b.dataset.vid?'':b.dataset.vid;renderHist();return;}
+  const v=histList.find(x=>x.vid===b.dataset.vid);if(!v)return;
+  let data;try{data=JSON.parse(v.data||'');}catch(e){alert('이 이력은 내용을 읽을 수 없어요.');return;}
+  if(!data||typeof data!=='object'){alert('이 이력은 내용이 비어 있어요.');return;}
+  data.id=v.pid;
+  if(a==='revive'){
+    if(state.products.some(x=>x.id===v.pid)){flagMsg('이미 목록에 있는 아이템이에요','warn');return;}
+    if(!confirm(`"${v.name||'아이템'}"을(를) ${fmtDT(v.ts)} 모습으로 되살릴까요?`))return;
+    state.products.push(data);state.activity.unshift({id:uid(),type:'restore',pid:v.pid,name:(v.name||'')+' (이력에서 되살림)',date:today(),ts:Date.now(),snap:null});
+    histAfterRestore(v.pid,'되살렸어요 · 아이템 목록에서 볼 수 있어요');return;
+  }
+  const i=state.products.findIndex(x=>x.id===v.pid);if(i<0){flagMsg('지금 목록에 없는 아이템이에요 · 되살리기를 눌러주세요','warn');return;}
+  const p=state.products[i];
+  if(a==='full'){
+    if(!confirm(`${fmtDT(v.ts)} 모습으로 전체 복구할까요?\n지금 모습도 이력에 남아서 다시 되돌릴 수 있어요.`))return;
+    verMark(v.pid,'restore');state.products[i]=data;
+    state.activity.unshift({id:uid(),type:'restore',pid:v.pid,name:dn(data)+' (이력 복구)',date:today(),ts:Date.now(),snap:null});
+    histOpen='';histAfterRestore(v.pid,'복구했어요 · 복구 전 모습도 이력에 남았어요');return;
+  }
+  if(a==='part'){
+    const k=b.dataset.k;if(!k||k==='id')return;
+    if(!confirm(`"${VER_KEY[k]||k}"만 ${fmtDT(v.ts)} 모습으로 되돌릴까요?\n지금 모습도 이력에 남아요.`))return;
+    verMark(v.pid,'restore');
+    if(data[k]===undefined)delete p[k];else p[k]=JSON.parse(JSON.stringify(data[k]));
+    state.activity.unshift({id:uid(),type:'restore',pid:v.pid,name:dn(p)+` (${VER_KEY[k]||k} 되돌림)`,date:today(),ts:Date.now(),snap:null});
+    histAfterRestore(v.pid,`${VER_KEY[k]||k}을(를) 되돌렸어요`);return;
+  }
+});
+
+/* ══════════ 💬 AI 정리함 (사진·영상·PDF·링크·메모 → 알아서 나눠 넣기 제안) ══════════
+   · 보낸 원본은 Storage(소싱-os/ai-inbox/)와 sourcing-os/ai/log 에 그대로 남는다 (AI가 실패해도 원본 보존).
+   · AI는 "제안"만 한다. [넣기]를 눌러야 반영되고, 이미 값이 있는 칸은 기본으로 안 바꾼다.
+   · 넣기 직전 모습은 🕘 이력에 저장 + 메시지마다 [↩ 되돌리기]. 되돌리기도 이력에 남는다.
+   · 서버: functions/api/sourcing-ai.js (로그인한 사람만 · 키는 서버에만). */
+const AI_API='/api/sourcing-ai';
+const AI_OP={ref_link:['🔗','레퍼런스 링크','ref'],ref_media:['📌','레퍼런스 사진','ref'],sample:['🧪','샘플','smp'],request:['📝','제조사 요청','smp'],packing:['📦','패킹','pack'],shot:['🎬','촬영 컷','shot'],spec:['🛠','판매세팅','set'],cert:['🏷','인증','set'],doc:['📄','서류','set'],memo:['🗒','메모','ref']};
+const AI_FIELD={specLine:'스펙 한 줄',spec:'대표 규격',goods:'판매 상품명',concept:'컨셉',target:'타겟',diff:'차별점',cost:'단가(원)',moq:'MOQ',lead:'납기',unitLabel:'단위',customs:'통관·물류'};
+const AI_DOCS=['시험성적서','MSDS','인증서','추가서류'];
+const aiBusy=new Set();
+let aiMsgs=[],aiLoaded=false,aiLock=null,aiFiles=[],aiShowAll=false;const aiFrames={};const aiSel={};
+function aiLogColl(){return FS?FS.collection(FS_COLL).doc('ai').collection('log'):null;}
+async function aiSaveMsg(m){
+  const col=aiLogColl();if(!col)return;
+  try{await col.doc(m.id).set(JSON.parse(JSON.stringify(m)));}
+  catch(e){console.error('[AI 정리] 기록 저장 실패:',e);flagMsg('기록 저장 실패: '+(e.code||e.message||e),'warn');}
+}
+async function aiLoad(){
+  const col=aiLogColl();if(!col){aiLoaded=true;return;}
+  try{const snap=await col.get();aiMsgs=snap.docs.map(d=>d.data());aiMsgs.sort((a,b)=>(a.ts||0)-(b.ts||0));console.log(`[AI 정리] 기록 ${aiMsgs.length}건 로드`);}
+  catch(e){console.error('[AI 정리] 기록 불러오기 실패:',e);flagMsg('AI 정리 기록을 불러오지 못했어요','warn');}
+  aiLoaded=true;
+}
+async function openAi(lockId){
+  aiLock=lockId||null;aiShowAll=false;
+  renderAi();openOverlay('aiOverlay');
+  if(!aiLoaded){await aiLoad();renderAi();}
+  aiScrollEnd();
+}
+function aiScrollEnd(){requestAnimationFrame(()=>{const o=$('#aiOverlay');if(o)o.scrollTop=o.scrollHeight;});}
+function aiProd(id){return state.products.find(x=>x.id===id)||null;}
+function aiItemsCtx(){
+  const list=state.products.slice().reverse();
+  if(aiLock){const i=list.findIndex(x=>x.id===aiLock);if(i>0)list.unshift(list.splice(i,1)[0]);}
+  return list.slice(0,150).map(p=>({id:p.id,name:p.name||'',goods:p.goods||'',maker:p.maker||'',type:p.type||'',brand:p.brand||'',concept:p.concept||'',samples:(p.samples||[]).map(s=>({type:s.type,name:s.name||''}))}));
+}
+function aiMonthCost(){
+  const ym=today().slice(0,7);let n=0,usd=0;
+  aiMsgs.forEach(m=>{if(m.usage&&(m.at||'').slice(0,7)===ym){n++;usd+=((m.usage.input_tokens||0)+(m.usage.cache_creation_input_tokens||0)*1.25+(m.usage.cache_read_input_tokens||0)*0.1)*5/1e6+(m.usage.output_tokens||0)*25/1e6;}});
+  return {n,won:Math.round(usd*1400)};
+}
+function aiAttHtml(a){
+  if(a.kind==='image')return `<button class="ai-att" data-ai="view" data-src="${esc(a.url||'')}"><img src="${esc(a.url||'')}" alt=""></button>`;
+  if(a.kind==='video')return `<a class="ai-att" href="${esc(a.url||'#')}" target="_blank" rel="noopener">${a.thumb?`<img src="${esc(a.thumb)}" alt="">`:''}<span class="tg">▶ 영상</span></a>`;
+  return `<a class="ai-att doc" href="${esc(a.url||'#')}" target="_blank" rel="noopener">${a.kind==='pdf'?'📄':'📎'}<span>${esc((a.name||'파일').slice(0,14))}</span></a>`;
+}
+function aiFindSample(p,type,name){
+  const n=(name||'').trim().toLowerCase();const S=(p&&p.samples)||[];
+  if(!n)return type==='maker'?(S.find(s=>s.id===p.makerId)||S.find(s=>s.type==='maker')||null):null;
+  return S.find(s=>s.type===type&&(s.name||'').trim().toLowerCase()===n)||S.find(s=>s.type===type&&(s.name||'').trim()&&((s.name||'').toLowerCase().includes(n)||n.includes((s.name||'').trim().toLowerCase())))||null;
+}
+function aiPrice(a){return a.price!=null?(a.cur==='원'||!a.cur?Math.round(a.price).toLocaleString('ko-KR')+'원':a.cur+a.price):'';}
+/* 한 줄 미리보기: 무엇을 어디에 · 이미 있는 값과 부딪히는지 */
+function aiDescribe(p,a,m){
+  const [ic,lb]=AI_OP[a.op]||['·',a.op];const nMed=(a.media||[]).filter(i=>(m.atts||[]).some(x=>x.i===i)).length;
+  const med=nMed?` · 첨부 ${nMed}개`:'';let t=lb,d='',clash=[],dup=false;
+  if(a.op==='ref_link'){const l=(m.links||[]).find(x=>x.url===a.url);t='레퍼런스 링크';d=(l&&l.title)||a.url||'';dup=!!(p&&(p.refs||[]).some(r=>r.url===a.url));}
+  else if(a.op==='ref_media'){d=`캡처·사진${med}`;}
+  else if(a.op==='sample'){const s=p?aiFindSample(p,a.sampleType||'maker',a.name):null;t=`${a.sampleType==='rival'?'경쟁사':'제조사'} 샘플 · ${a.name||'(이름 없음)'}${s?' (기존 카드에)':' (새 카드)'}`;
+    d=[aiPrice(a),a.moq!=null?'MOQ '+Number(a.moq).toLocaleString('ko-KR'):'',a.where||'',a.text||''].filter(Boolean).join(' · ')+med;
+    if(s){if(a.price!=null&&numOf(s.price)&&Number(s.price)!==Number(a.price))clash.push(`가격 ${s.cur==='원'||!s.cur?Math.round(numOf(s.price)).toLocaleString('ko-KR')+'원':s.cur+s.price} → ${aiPrice(a)}`);
+      if(a.moq!=null&&numOf(s.moq)&&numOf(s.moq)!==Number(a.moq))clash.push(`MOQ ${s.moq} → ${a.moq}`);
+      if(a.where&&(s.where||'').trim()&&s.where.trim()!==a.where.trim())clash.push(`판매처 ${s.where} → ${a.where}`);}}
+  else if(a.op==='request'){const s=p?aiFindSample(p,'maker',a.name):null;t=`${(s&&s.name)||a.name||'제조사'}에 요청`;d=a.text||'';}
+  else if(a.op==='packing'){t=a.whose==='rival'?`경쟁사 패킹 · ${a.name||'경쟁사'}`:'우리 패킹 참고';d=(a.text||'')+med;}
+  else if(a.op==='shot'){t=`촬영 컷 · ${a.name||'새 컷'}`;d=(a.text||'')+med;}
+  else if(a.op==='spec'){t=AI_FIELD[a.field]||'판매세팅';d=a.text||'';
+    if(p&&a.field&&a.field!=='specLine'){const cur=String(p[a.field]==null?'':p[a.field]).trim();const nv=String(a.text||'').trim();if(cur&&nv&&cur!==nv&&!(['cost','moq'].includes(a.field)&&numOf(cur)===numOf(nv)))clash.push(`지금 "${cur.slice(0,20)}" → "${nv.slice(0,20)}"`);else if(cur&&cur===nv)dup=true;}}
+  else if(a.op==='cert'){t=`인증 · ${a.name||''}`;d=a.price!=null?Math.round(a.price).toLocaleString('ko-KR')+'원':'비용 미정';dup=!!(p&&(p.certApps||[]).some(x=>(x.name||'').trim()===(a.name||'').trim()));}
+  else if(a.op==='doc'){t=`서류 · ${AI_DOCS.includes(a.name)?a.name:'추가서류'}`;d=`파일${med}`;}
+  else if(a.op==='memo'){d=a.text||'';}
+  return {ic,t,d,clash,dup,why:a.why||''};
+}
+function aiTargetOf(m){
+  const pl=m.plan||{};const tg=m.pick||(m.lockId?{mode:'existing',itemId:m.lockId}:pl.target)||{};
+  if(tg.mode==='existing'&&aiProd(tg.itemId))return {mode:'existing',p:aiProd(tg.itemId),id:tg.itemId};
+  if(tg.mode==='new')return {mode:'new',name:tg.newName||(pl.target&&pl.target.newName)||'새 아이템'};
+  return {mode:'unsure'};
+}
+function aiCardHtml(m){
+  const pl=m.plan||{},acts=pl.actions||[];
+  if((m.status==='uploading'||m.status==='thinking')&&!aiBusy.has(m.id)&&Date.now()-(m.ts||0)>120000)return `<div class="ai-bot"><div class="ai-err">⚠ 정리가 중간에 끊겼어요 (앱을 닫았거나 연결이 끊김)</div><div class="it-sub">보낸 원본은 저장돼 있어요.</div><div class="ai-acts"><button class="it-btn pri" data-ai="retry" data-id="${esc(m.id)}">다시 정리하기</button><button class="it-btn line" data-ai="keep" data-id="${esc(m.id)}">보관만 하기</button></div></div>`;
+  if(m.status==='uploading')return `<div class="ai-bot ai-wait">⏳ 올리는 중…</div>`;
+  if(m.status==='thinking')return `<div class="ai-bot ai-wait">🤖 정리하는 중… <span class="it-sub">사진이 많으면 30초쯤 걸려요</span></div>`;
+  if(m.status==='error')return `<div class="ai-bot"><div class="ai-err">⚠ ${esc(m.error||'정리하지 못했어요')}</div><div class="it-sub">보낸 사진·메모는 여기 그대로 저장돼 있어요.</div><div class="ai-acts"><button class="it-btn pri" data-ai="retry" data-id="${esc(m.id)}">다시 정리하기</button><button class="it-btn line" data-ai="keep" data-id="${esc(m.id)}">보관만 하기</button></div></div>`;
+  if(m.status==='kept')return `<div class="ai-bot ai-done">🗂 넣지 않고 보관 중 <button class="it-btn line" data-ai="reopen" data-id="${esc(m.id)}">다시 보기</button></div>`;
+  if(m.status==='applied'){const ap=m.applied||{};const p=aiProd(ap.pid);
+    return `<div class="ai-bot ai-done"><div><b>✓ ${esc(p?dn(p):(ap.name||'아이템'))}</b>에 ${(ap.lines||[]).length}개 넣었어요 <span class="it-sub">${esc(fmtDT(ap.ts))}</span></div>
+      <ul class="ai-lines">${(ap.lines||[]).map(l=>`<li>${esc(l)}</li>`).join('')}</ul>
+      <div class="ai-acts">${p?`<button class="it-btn pri" data-ai="open" data-id="${esc(m.id)}">아이템 열기 ›</button>`:''}<button class="it-btn line" data-ai="undo" data-id="${esc(m.id)}">↩ 되돌리기</button>${p?`<button class="it-btn line" data-ai="hist" data-pid="${esc(p.id)}">🕘 이력</button>`:''}</div></div>`;}
+  if(m.status==='undone')return `<div class="ai-bot ai-done">↩ 되돌렸어요${m.undo&&m.undo.skipped&&m.undo.skipped.length?` <span class="it-sub">(그 뒤에 고친 ${esc(m.undo.skipped.join(', '))}은(는) 그대로 둠)</span>`:''} <button class="it-btn line" data-ai="reopen" data-id="${esc(m.id)}">다시 보기</button></div>`;
+  // proposed
+  const tg=aiTargetOf(m);const p=tg.mode==='existing'?tg.p:null;
+  const sel=aiSel[m.id]||(aiSel[m.id]=acts.map(a=>{const x=aiDescribe(p,a,m);return !x.dup&&!(a.op==='spec'&&x.clash.length);}));
+  const opts=state.products.slice().reverse().map(x=>`<option value="${esc(x.id)}"${tg.mode==='existing'&&tg.id===x.id?' selected':''}>${esc(dn(x))}</option>`).join('');
+  const newName=(pl.target&&pl.target.newName)||'';
+  const nSel=sel.filter(Boolean).length;
+  return `<div class="ai-bot"><div class="ai-sum">🤖 ${esc(pl.summary||'이렇게 정리했어요')}</div>
+    <label class="ai-tg"><span>넣을 곳</span><select class="it-in" data-ai="target" data-id="${esc(m.id)}">
+      ${tg.mode==='unsure'?'<option value="" selected>— 아이템을 골라주세요 —</option>':''}
+      <option value="__new"${tg.mode==='new'?' selected':''}>＋ 새 아이템${tg.mode==='new'?`: ${esc(tg.name)}`:newName?`: ${esc(newName)}`:''}</option>${opts}</select></label>
+    ${tg.mode==='unsure'&&pl.target&&pl.target.reason?`<div class="it-sub">AI: ${esc(pl.target.reason)}</div>`:''}
+    <div class="ai-rows">${acts.map((a,i)=>{const x=aiDescribe(p,a,m);const on=sel[i];const ow=!!(m.ow&&m.ow[i]);
+      const thumbs=(a.media||[]).map(k=>(m.atts||[]).find(t=>t.i===k)).filter(Boolean).slice(0,4).map(t=>t.kind==='image'?`<img src="${esc(t.url)}" alt="">`:t.kind==='video'&&t.thumb?`<img src="${esc(t.thumb)}" alt="">`:`<span class="ai-mi">${t.kind==='pdf'?'📄':t.kind==='video'?'▶':'📎'}</span>`).join('');
+      return `<label class="ai-row${on?' on':''}"><input type="checkbox" data-ai="sel" data-id="${esc(m.id)}" data-i="${i}"${on?' checked':''}><span class="ic">${x.ic}</span><span class="t"><b>${esc(x.t)}</b>${x.d?`<span class="d">${esc(x.d)}</span>`:''}${x.dup?'<span class="warn">이미 있어요</span>':''}
+        ${x.clash.length?`<span class="warn">⚠ 이미 값이 있어요: ${esc(x.clash.join(' · '))}${a.op==='spec'?' · 체크하면 바꿔요':''}</span>${a.op==='sample'?`<span class="ow"><input type="checkbox" data-ai="ow" data-id="${esc(m.id)}" data-i="${i}"${ow?' checked':''}> 새 값으로 바꾸기 (안 누르면 기존 값 유지)</span>`:''}`:''}
+        ${thumbs?`<span class="th">${thumbs}</span>`:''}</span></label>`;}).join('')||'<div class="it-sub">넣을 게 없다고 판단했어요. 보관만 해 둘게요.</div>'}</div>
+    ${(pl.questions||[]).length?`<div class="ai-q">${pl.questions.map(q=>`<div>❓ ${esc(q)}</div>`).join('')}</div>`:''}
+    <div class="ai-acts"><button class="it-btn pri" data-ai="apply" data-id="${esc(m.id)}"${!nSel||tg.mode==='unsure'?' disabled':''}>✓ ${nSel}개 넣기</button><button class="it-btn line" data-ai="keep" data-id="${esc(m.id)}">넣지 않고 보관</button></div>
+    ${tg.mode==='unsure'?'<div class="it-sub">넣을 아이템을 먼저 골라주세요.</div>':''}</div>`;
+}
+function renderAi(){
+  const box=$('#aiBody');if(!box)return;
+  const draft=(($('#aiText')||{}).value)||'';
+  const lp=aiLock?aiProd(aiLock):null;const cost=aiMonthCost();
+  const list=aiShowAll?aiMsgs:aiMsgs.slice(-30);
+  box.innerHTML=`<div class="it-top"><button class="it-back" data-ai="close" aria-label="뒤로">‹</button><h2>💬 AI 정리함</h2><span class="it-sub">${cost.n?`이번 달 ${cost.n}건 · 약 ${cost.won.toLocaleString('ko-KR')}원`:''}</span></div>
+    <div class="ai-lock">${lp?`📦 <b>${esc(dn(lp))}</b>에 넣기 <button class="it-btn line" data-ai="unlock">AI가 알아서 고르기</button>`:'🤖 보낸 내용을 보고 <b>어느 아이템</b>에 넣을지 AI가 골라요'}</div>
+    ${!aiLoaded?'<div class="it-card it-sub">기록 불러오는 중…</div>':''}
+    ${aiLoaded&&!aiMsgs.length?`<div class="it-card ai-guide"><b>이렇게 보내 보세요</b>
+      <div>📷 샘플 사진 3장 + "A제조사 샘플, 1.2달러 MOQ 500, 뚜껑 헐거워서 조여달라고 해야 함"</div>
+      <div>🔗 틱톡 링크 + "이 장면처럼 뿌리는 컷 찍자"</div>
+      <div>📦 경쟁사 박스 사진 + "완충재 이렇게, 우리는 지퍼백으로"</div>
+      <div>📄 시험성적서 PDF</div>
+      <div class="it-sub" style="margin-top:6px">AI가 나눈 걸 보여주고, <b>[넣기]를 눌러야</b> 들어가요. 넣은 뒤에도 되돌릴 수 있어요.</div></div>`:''}
+    ${!aiShowAll&&aiMsgs.length>30?`<button class="it-btn line" style="width:100%" data-ai="more">이전 기록 ${aiMsgs.length-30}개 더 보기</button>`:''}
+    <div class="ai-thread">${list.map(m=>`<div class="ai-msg" id="aim-${esc(m.id)}"><div class="ai-me">${m.lockId&&aiProd(m.lockId)?`<div class="ai-to">→ ${esc(dn(aiProd(m.lockId)))}</div>`:''}${(m.atts||[]).length?`<div class="ai-atts">${m.atts.map(aiAttHtml).join('')}</div>`:''}${m.text?`<div class="ai-tx">${esc(m.text)}</div>`:''}<div class="ai-at">${esc(fmtDT(m.ts))} · ${esc((m.by||'').split('@')[0])}</div></div>${aiCardHtml(m)}</div>`).join('')}</div>
+    <div class="ai-compose"><div class="ai-cin">
+      ${aiFiles.length?`<div class="ai-pend">${aiFiles.map((f,i)=>`<span class="ai-pf">${f.type.startsWith('image')?'📷':f.type.startsWith('video')?'🎞':'📄'} ${esc((f.name||'').slice(0,12))}<button data-ai="unfile" data-i="${i}" aria-label="빼기">✕</button></span>`).join('')}</div>`:''}
+      <div class="ai-crow"><button class="ai-ib" data-ai="file" aria-label="사진·영상·파일 첨부">📎</button><button class="ai-ib" data-ai="cam" aria-label="사진 찍기">📷</button>
+        <textarea id="aiText" rows="1" placeholder="메모·링크 적기"></textarea><button class="ai-send" data-ai="send">보내기</button></div></div></div>`;
+  const ta=$('#aiText');if(ta&&draft){ta.value=draft;ta.style.height=Math.min(140,ta.scrollHeight)+'px';}
+}
+/* 영상 → 장면 3장 (AI는 영상을 직접 못 봐서 장면 사진으로 보여준다) */
+function videoFrames(file,n){return new Promise(res=>{
+  const v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';
+  const url=URL.createObjectURL(file);const out=[];let done=false;
+  const fin=()=>{if(done)return;done=true;try{URL.revokeObjectURL(url);}catch(e){}res(out);};
+  setTimeout(fin,20000);
+  v.onloadedmetadata=async()=>{const d=v.duration;if(!isFinite(d)||!d){fin();return;}
+    for(let k=1;k<=n;k++){await new Promise(r=>{let ok=false;v.onseeked=()=>{ok=true;r();};v.currentTime=d*k/(n+1);setTimeout(()=>{if(!ok)r();},4000);});
+      try{const c=document.createElement('canvas');const s=Math.min(1,640/Math.max(v.videoWidth||1,v.videoHeight||1));c.width=Math.round((v.videoWidth||320)*s);c.height=Math.round((v.videoHeight||240)*s);c.getContext('2d').drawImage(v,0,0,c.width,c.height);out.push(c.toDataURL('image/jpeg',0.8));}catch(e){console.warn('[AI 정리] 장면 추출 실패',e);}}
+    fin();};
+  v.onerror=()=>{console.warn('[AI 정리] 영상을 열지 못함');fin();};v.src=url;
+});}
+function smallThumb(dataUrl){return new Promise(res=>{const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');const s=Math.min(1,200/Math.max(im.width,im.height));c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',0.7));}catch(e){res('');}};im.onerror=()=>res('');im.src=dataUrl;});}
+async function aiSend(){
+  const ta=$('#aiText');const text=((ta&&ta.value)||'').trim();
+  if(!text&&!aiFiles.length){if(ta)ta.focus();flagMsg('사진이나 메모를 넣어주세요','warn');return;}
+  if(!FS||!fbStore){alert('클라우드에 연결돼야 AI 정리를 쓸 수 있어요.');return;}
+  if(!FA||!FA.currentUser){alert('로그인이 필요해요. 새로고침 후 로그인해 주세요.');return;}
+  const now=Date.now();const m={id:now.toString(36)+uid(),ts:now,at:new Date(now).toISOString(),by:curUser(),text,lockId:aiLock||null,atts:[],links:[],status:'uploading'};
+  const files=aiFiles.slice();aiFiles=[];if(ta){ta.value='';ta.style.height='';}
+  aiMsgs.push(m);aiBusy.add(m.id);renderAi();aiScrollEnd();
+  const dir='ai-inbox/'+m.id;const frames={};
+  for(let i=0;i<files.length;i++){const f=files[i];const t=f.type||'';
+    try{
+      if(t.startsWith('image')){const d=await resizeImage(f);if(!d)continue;const ref=stRef(dir+'/'+i+'.jpg');const snap=await ref.putString(d,'data_url');m.atts.push({i,kind:'image',name:f.name||'사진.jpg',mime:'image/jpeg',url:await snap.ref.getDownloadURL(),path:ref.fullPath});}
+      else if(t.startsWith('video')){const fr=await videoFrames(f,3);frames[i]=fr;const ref=stRef(dir+'/'+i+'-'+(f.name||'video').replace(/[^\w.\-]+/g,'_').slice(0,40));const snap=await ref.put(f,{contentType:t||'video/mp4'});m.atts.push({i,kind:'video',name:f.name||'영상',mime:t,url:await snap.ref.getDownloadURL(),path:ref.fullPath,thumb:fr[0]?await smallThumb(fr[0]):''});}
+      else{const isPdf=t==='application/pdf'||/\.pdf$/i.test(f.name||'');const ref=stRef(dir+'/'+i+'-'+(f.name||'file').replace(/[^\w.\-가-힣]+/g,'_').slice(0,60));const snap=await ref.put(f,{contentType:t||'application/octet-stream'});m.atts.push({i,kind:isPdf?'pdf':'file',name:f.name||'파일',mime:t,url:await snap.ref.getDownloadURL(),path:ref.fullPath});}
+    }catch(e){console.error('[AI 정리] 첨부 업로드 실패:',e);flagMsg('못 올린 파일: '+(f.name||'')+' ('+(e.code||e.message||e)+')','warn');}
+  }
+  aiFrames[m.id]=frames;
+  const urls=[...new Set((text.match(/https?:\/\/[^\s<>"']+/gi)||[]).map(u=>u.replace(/[),.。，]+$/,'')))].slice(0,5);
+  for(const u of urls){let l={url:u,title:'',site:'',thumb:''};try{const j=await fetchLinkThumb(u);if(j)l={url:u,title:j.title||'',site:j.site||'',thumb:j.thumb||''};}catch(e){console.warn('[AI 정리] 링크 정보 실패',u,e);}m.links.push(l);}
+  m.status='thinking';renderAi();aiScrollEnd();
+  await aiSaveMsg(m);   // 원본 먼저 보관
+  await aiAsk(m);
+}
+async function aiAsk(m){
+  aiBusy.add(m.id);m.status='thinking';m.error='';renderAi();aiScrollEnd();
+  try{
+    const token=await FA.currentUser.getIdToken();
+    const fr=aiFrames[m.id]||{};
+    const body={text:m.text,atts:(m.atts||[]).map(a=>({i:a.i,kind:a.kind,name:a.name,url:a.url,frames:fr[a.i]||[]})),links:m.links||[],lockId:m.lockId||null,items:aiItemsCtx()};
+    const r=await fetch(AI_API,{method:'POST',headers:{'content-type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});
+    const j=await r.json().catch(()=>({ok:false,error:'응답을 읽지 못했어요 ('+r.status+')'}));
+    if(!j.ok)throw new Error(j.error||('HTTP '+r.status));
+    m.plan=j.plan;m.usage=j.usage||null;m.model=j.model||'';m.status='proposed';delete m.pick;delete m.ow;delete aiSel[m.id];
+    console.log('[AI 정리] 제안',(j.plan.actions||[]).length,'개',j.plan.target);
+  }catch(e){console.error('[AI 정리] 실패:',e);m.status='error';m.error=e.message||String(e);}
+  aiBusy.delete(m.id);await aiSaveMsg(m);renderAi();aiScrollEnd();
+}
+function aiMediaOf(m,idxs,tag,kinds){
+  return (idxs||[]).map(i=>(m.atts||[]).find(t=>t.i===i)).filter(t=>t&&(!kinds||kinds.includes(t.kind))).map(t=>{const o={id:uid(),kind:t.kind,name:t.name||'',url:t.url,path:t.path,mime:t.mime||'',from:'AI'};if(tag)o.tag=tag;return o;});
+}
+const AI_KEYS={ref_link:['refs'],ref_media:['attachments'],sample:['samples','quotes','competitors'],request:['samples'],packing:['packing','samples'],shot:['shots'],cert:['certApps'],doc:['docs','attachments'],memo:['memo']};
+function aiNewSample(p,type,name){const s={id:uid(),type,name:name||(type==='maker'?'제조사':'경쟁사'),price:'',cur:'원',moq:'',where:'',arrived:false,media:[],scores:{},memo:'',reqs:[],from:'AI'};if(!Array.isArray(p.samples))p.samples=[];p.samples.push(s);return s;}
+function aiRun(p,a,m,ow){ // 반영 1건 → 결과 한 줄
+  const add=(v,t)=>v?(v+'\n'+t):t;
+  if(a.op==='ref_link'){if(!a.url||!/^https?:\/\//i.test(a.url))return '';if(!Array.isArray(p.refs))p.refs=[];if(p.refs.some(r=>r.url===a.url))return '';const l=(m.links||[]).find(x=>x.url===a.url)||{};p.refs.unshift({id:uid(),url:a.url,kind:(refKind(a.url)||{}).tag||'링크',title:l.title||'',thumb:l.thumb||'',from:'AI',addedAt:new Date().toISOString()});return '🔗 레퍼런스 링크 '+(l.title||refHost(a.url));}
+  if(a.op==='ref_media'){const md=aiMediaOf(m,a.media);if(!md.length)return '';if(!Array.isArray(p.attachments))p.attachments=[];md.forEach(x=>p.attachments.push(x));return `📌 레퍼런스 사진 ${md.length}개`;}
+  if(a.op==='sample'){const type=a.sampleType==='rival'?'rival':'maker';let s=aiFindSample(p,type,a.name);const isNew=!s;if(!s)s=aiNewSample(p,type,a.name);
+    const setIf=(k,v)=>{if(v==null||v==='')return;if(!String(s[k]==null?'':s[k]).trim()||ow)s[k]=v;};
+    if(a.price!=null&&(!numOf(s.price)||ow)){s.price=a.price;s.cur=a.cur||'원';}
+    setIf('moq',a.moq!=null?a.moq:null);setIf('where',a.where);
+    if(a.text)s.memo=add(s.memo,a.text);
+    const md=aiMediaOf(m,a.media,'',['image','video']);if(md.length){s.media=(s.media||[]).concat(md);if(type==='maker')s.arrived=true;}
+    if(numOf(s.price))smpSyncOut(p,s);
+    return `🧪 ${type==='rival'?'경쟁사':'제조사'} 샘플 "${s.name}" ${isNew?'새로 만듦':'에 추가'}${md.length?` · 사진 ${md.length}`:''}`;}
+  if(a.op==='request'){if(!a.text)return '';let s=aiFindSample(p,'maker',a.name);if(!s)s=aiNewSample(p,'maker',a.name);(s.reqs=s.reqs||[]).push({id:uid(),text:a.text,st:0,at:today(),from:'AI'});return `📝 ${s.name}에 요청: ${a.text}`;}
+  if(a.op==='packing'){const k=packOf(p);
+    if(a.whose==='rival'){let s=aiFindSample(p,'rival',a.name);if(!s)s=aiNewSample(p,'rival',a.name);const md=aiMediaOf(m,a.media,'패킹',['image','video']);s.media=(s.media||[]).concat(md);if(a.text)k.notes[s.id]=add(k.notes[s.id],a.text);return `📦 ${s.name} 패킹${md.length?` 사진 ${md.length}`:''}${a.text?' · 메모':''}`;}
+    const md=aiMediaOf(m,a.media,'',['image','video']);k.media=k.media.concat(md);if(a.text)k.memo=add(k.memo,a.text);return `📦 우리 패킹 참고${md.length?` 사진 ${md.length}`:''}${a.text?' · 메모':''}`;}
+  if(a.op==='shot'){if(!Array.isArray(p.shots))p.shots=[];const md=aiMediaOf(m,a.media,'',['image','video']);p.shots.push({id:uid(),title:(a.name||'새 컷').slice(0,40),refId:'',memo:a.text||'',media:md,done:false,from:'AI'});return `🎬 촬영 컷 "${(a.name||'새 컷').slice(0,20)}"`;}
+  if(a.op==='spec'){const f=a.field;const v=String(a.text==null?'':a.text).trim();if(!f||!v)return '';
+    if(f==='specLine'){(p.specs=p.specs||[]).push({text:v,ts:Date.now()});return '🛠 스펙 추가: '+v;}
+    const val=['cost','moq'].includes(f)?String(numOf(v)||v):v;
+    if(String(p[f]==null?'':p[f]).trim()&&!ow)return '';
+    p[f]=val;return `🛠 ${AI_FIELD[f]||f}: ${val}`;}
+  if(a.op==='cert'){if(!a.name)return '';(p.certApps=p.certApps||[]).push({id:uid(),name:a.name,agency:'',status:'신청',date:today(),cost:a.price!=null?Math.round(a.price):'',from:'AI'});return `🏷 인증 ${a.name}`;}
+  if(a.op==='doc'){const md=aiMediaOf(m,a.media);if(!md.length)return '';const ty=AI_DOCS.includes(a.name)?a.name:'추가서류';
+    md.forEach(x=>{if(x.kind==='pdf'||x.kind==='image'||x.kind==='file')(p.docs=p.docs||[]).push({id:uid(),type:ty,name:(x.name||ty).replace(/\.[^.]+$/,''),maker:p.maker||'',href:x.url,isFile:true,path:x.path,from:'AI'});else (p.attachments=p.attachments||[]).push(x);});
+    return `📄 ${ty} ${md.length}개`;}
+  if(a.op==='memo'){if(!a.text)return '';p.memo=add(p.memo,`[AI ${today()}] ${a.text}`);return '🗒 메모 추가';}
+  return '';
+}
+function aiNewProduct(name){
+  const id=uid();
+  const np={id,name:(name||'새 아이템').slice(0,40),goods:'',maker:'',type:'단품',bundle:[],baseId:'',concept:'',target:'',diff:'',spec:'',specs:[],sample:'대기',memo:'',source:'국내 제조사',market:'',cost:'',moq:'',pricevar:'',lead:'',customs:'',fill:[],fillmaker:'확인중',cert:'확인중',patent:'확인중',stage:'후보',decision:'',fav:false,tests:[],docs:[],attachments:[],notes:[],ideas:[],quotes:[],competitors:[],certs:[],certApps:[],history:[{stage:'후보',date:today()}],pricing:{},thumbId:'',brand:(typeof quickBrand==='function'?quickBrand():''),samples:[],refs:[],from:'AI'};
+  state.products.push(np);logAct('add',np,null);return np;
+}
+async function aiApply(m){
+  const acts=(m.plan&&m.plan.actions)||[];const sel=aiSel[m.id]||[];const tg=aiTargetOf(m);
+  if(tg.mode==='unsure'){flagMsg('넣을 아이템을 먼저 골라주세요','warn');return;}
+  const idx=acts.map((_,i)=>i).filter(i=>sel[i]);if(!idx.length){flagMsg('넣을 항목을 체크해 주세요','warn');return;}
+  let p,created=false;
+  if(tg.mode==='new'){p=aiNewProduct(tg.name);created=true;}else p=tg.p;
+  const keys=[...new Set(idx.flatMap(i=>{const a=acts[i];return a.op==='spec'?[a.field==='specLine'?'specs':a.field]:(AI_KEYS[a.op]||[]);}))].filter(Boolean);
+  const snap=k=>JSON.stringify(p[k]===undefined?null:p[k]);
+  const pre={};keys.forEach(k=>pre[k]=snap(k));
+  if(!created)verMark(p.id,'ai');
+  const lines=[];
+  idx.forEach(i=>{try{const l=aiRun(p,acts[i],m,!!(m.ow&&m.ow[i])||acts[i].op==='spec');if(l)lines.push(l);}catch(e){console.error('[AI 정리] 반영 실패:',acts[i],e);lines.push('⚠ 못 넣음: '+((AI_OP[acts[i].op]||[])[1]||acts[i].op));}});
+  const post={};keys.forEach(k=>post[k]=snap(k));
+  const big=JSON.stringify(pre).length+JSON.stringify(post).length>700000;
+  m.applied={pid:p.id,name:dn(p),ts:Date.now(),by:curUser(),created,keys,pre:big?null:pre,post:big?null:post,big,lines,idx};
+  m.status='applied';
+  state.activity.unshift({id:uid(),type:'edit',pid:p.id,name:`${dn(p)} · AI 정리 ${lines.length}개`,date:today(),ts:Date.now(),snap:null});
+  if(state.activity.length>200)state.activity.length=200;
+  save();render();updateShootBadge();
+  if(idx.some(i=>acts[i].op==='ref_link'))try{fillRefThumbs(p.id);}catch(e){console.warn('[AI 정리] 썸네일 채우기 실패',e);}
+  await aiSaveMsg(m);renderAi();
+  flagMsg(`${dn(p)}에 ${lines.length}개 넣었어요 · 되돌리기 가능`,'ok');
+}
+function aiUndoArr(pre,post,cur){ // 그 뒤에 고친 게 있어도: AI가 더한 것만 빼고, AI가 바꾼 것 중 그대로인 것만 되돌림
+  const byId=a=>new Map((a||[]).filter(x=>x&&x.id).map(x=>[x.id,x]));
+  const P=byId(pre),Q=byId(post);let out=(cur||[]).slice(),left=false;
+  Q.forEach((q,id)=>{const ci=out.findIndex(x=>x&&x.id===id);if(ci<0)return;
+    if(!P.has(id)){if(JSON.stringify(out[ci])===JSON.stringify(q))out.splice(ci,1);else left=true;return;}   // AI가 넣은 뒤 사람이 고친 카드는 남김
+    const pv=P.get(id);if(JSON.stringify(pv)===JSON.stringify(q))return;
+    if(JSON.stringify(out[ci])===JSON.stringify(q))out[ci]=pv;else left=true;});
+  return {out,left};
+}
+async function aiUndo(m){
+  const ap=m.applied||{};const i=state.products.findIndex(x=>x.id===ap.pid);
+  if(i<0){flagMsg('이 아이템은 지금 목록에 없어요 · 🕘 이력에서 확인해 주세요','warn');return;}
+  const p=state.products[i];
+  if(ap.big||!ap.pre){if(confirm('되돌리기 정보가 커서 여기서는 못 되돌려요. 🕘 이력을 열까요?'))openHist(p.id);return;}
+  if(ap.created){
+    if(!confirm(`AI가 새로 만든 "${dn(p)}"을(를) 지울까요?\n지운 아이템은 🕘 이력 > 지운 아이템에서 되살릴 수 있어요.`))return;
+    state.products.splice(i,1);logAct('delete',p,p);
+    m.status='undone';m.undo={ts:Date.now(),by:curUser(),skipped:[]};
+    save();render();await aiSaveMsg(m);renderAi();flagMsg('되돌렸어요 · 지운 아이템에서 되살릴 수 있어요','ok');return;
+  }
+  if(!confirm(`"${dn(p)}"에 넣은 ${(ap.lines||[]).length}개를 되돌릴까요?\n지금 모습은 🕘 이력에 남아요.`))return;
+  verMark(p.id,'ai_undo');const skipped=[];
+  (ap.keys||[]).forEach(k=>{
+    const cur=JSON.stringify(p[k]===undefined?null:p[k]);if(cur===ap.pre[k])return;
+    const pre=JSON.parse(ap.pre[k]),post=JSON.parse(ap.post[k]);
+    if(cur===ap.post[k]){if(pre===null)delete p[k];else p[k]=pre;return;}
+    if(Array.isArray(post)&&Array.isArray(p[k])){const r=aiUndoArr(pre||[],post,p[k]);p[k]=r.out;if(r.left)skipped.push(VER_KEY[k]||k);return;}
+    if(k==='packing'&&post&&p.packing){const pk=p.packing,a=pre||{};
+      if(JSON.stringify(pk.media)===JSON.stringify(post.media))pk.media=a.media||[];else{const ids=new Set((a.media||[]).map(x=>x.id));const add=new Set((post.media||[]).filter(x=>!ids.has(x.id)).map(x=>x.id));pk.media=(pk.media||[]).filter(x=>!add.has(x.id));}
+      if(pk.memo===post.memo)pk.memo=a.memo||'';else if(post.memo!==a.memo)skipped.push('패킹 메모');
+      Object.keys(post.notes||{}).forEach(n=>{const was=(a.notes||{})[n];if(was===post.notes[n])return;if((pk.notes||{})[n]===post.notes[n]){if(was==null)delete pk.notes[n];else pk.notes[n]=was;}else skipped.push('패킹 메모');});
+      return;}
+    skipped.push(VER_KEY[k]||k);
+  });
+  m.status='undone';m.undo={ts:Date.now(),by:curUser(),skipped:[...new Set(skipped)]};
+  save();render();updateShootBadge();await aiSaveMsg(m);renderAi();
+  flagMsg(skipped.length?`되돌렸어요 · 그 뒤에 고친 ${[...new Set(skipped)].join(', ')}은(는) 그대로 뒀어요 (🕘 이력에서 복구 가능)`:'되돌렸어요 · 이 상태도 이력에 남았어요','ok');
+}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-ai]');if(!b||b.tagName==='SELECT'||b.type==='checkbox')return;const a=b.dataset.ai;
+  if(a==='close'){closeOverlay();return;}
+  if(a==='view'){if(b.dataset.src)openLightbox(b.dataset.src);return;}
+  if(a==='unlock'){aiLock=null;renderAi();return;}
+  if(a==='more'){aiShowAll=true;renderAi();return;}
+  if(a==='file'){$('#aiFile').click();return;}
+  if(a==='cam'){$('#aiCam').click();return;}
+  if(a==='unfile'){aiFiles.splice(+b.dataset.i,1);renderAi();return;}
+  if(a==='send'){if(b.disabled)return;b.disabled=true;try{await aiSend();}finally{b.disabled=false;}return;}
+  if(a==='hist'){openHist(b.dataset.pid);return;}
+  const m=aiMsgs.find(x=>x.id===b.dataset.id);if(!m)return;
+  if(a==='retry'){await aiAsk(m);return;}
+  if(a==='keep'){m.status='kept';await aiSaveMsg(m);renderAi();flagMsg('보관했어요 · 언제든 다시 볼 수 있어요','ok');return;}
+  if(a==='reopen'){m.status=m.plan?'proposed':'error';if(!m.plan)m.error=m.error||'아직 정리 전이에요';delete aiSel[m.id];await aiSaveMsg(m);renderAi();return;}
+  if(a==='apply'){if(b.disabled)return;b.disabled=true;try{await aiApply(m);}finally{b.disabled=false;}return;}
+  if(a==='undo'){await aiUndo(m);return;}
+  if(a==='open'){const ap=m.applied||{};const first=(m.plan.actions||[])[(ap.idx||[])[0]];closeOverlay();const io=$('#itemOverlay');if(io&&io.classList.contains('on')&&itemId===ap.pid){setItemTab((AI_OP[first&&first.op]||[])[2]||'ref');return;}openItem(ap.pid,(AI_OP[first&&first.op]||[])[2]||'ref');return;}
+});
+document.addEventListener('change',async e=>{
+  const el=e.target;if(!el)return;
+  if(el.id==='aiFile'||el.id==='aiCam'){const fs=[...(el.files||[])];el.value='';if(!fs.length)return;aiFiles=aiFiles.concat(fs).slice(0,10);if(aiFiles.length>=10)flagMsg('한 번에 10개까지 보낼 수 있어요','warn');renderAi();return;}
+  if(!el.dataset||!el.dataset.ai)return;
+  const m=aiMsgs.find(x=>x.id===el.dataset.id);if(!m)return;
+  if(el.dataset.ai==='sel'){(aiSel[m.id]=aiSel[m.id]||[])[+el.dataset.i]=el.checked;renderAi();return;}
+  if(el.dataset.ai==='ow'){m.ow=m.ow||{};m.ow[+el.dataset.i]=el.checked;renderAi();return;}
+  if(el.dataset.ai==='target'){const v=el.value;m.pick=v==='__new'?{mode:'new',newName:(m.plan&&m.plan.target&&m.plan.target.newName)||(prompt('새 아이템 이름','')||'새 아이템')}:v?{mode:'existing',itemId:v}:null;delete aiSel[m.id];await aiSaveMsg(m);renderAi();return;}
+});
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.id==='aiText'){t.style.height='auto';t.style.height=Math.min(140,t.scrollHeight)+'px';}});
+
 /* ---- 부트스트랩: 로컬 먼저 렌더 → 클라우드 우선 동기화 ---- */
 async function bootstrap(){
   // 1) 클라우드를 '먼저' 읽어 최신본을 채택한 뒤 렌더 (빈 로컬이 클라우드를 덮어쓰지 않도록 booting 동안 업로드 차단)
@@ -6825,6 +7352,7 @@ async function bootstrap(){
     setSync('불러오는 중…','var(--amber)');
     try{
       const cloud=await cloudLoadState();
+      verSetBase(cloud&&cloud.products?cloud.products:state.products); // 🕘 이력 기준점 = 클라우드에 있던 모습
       if(cloud){
         const localT=state.updatedAt||0, cloudT=cloud.updatedAt||0;
         const cloudHas=(cloud.products||[]).length>0, localHas=(state.products||[]).length>0;

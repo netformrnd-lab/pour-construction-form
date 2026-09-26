@@ -1110,6 +1110,25 @@
   .it-media .m{position:relative}
   .it-media .m .tg{position:absolute;left:4px;bottom:4px;font-size:10px;font-weight:800;background:rgba(0,0,0,.6);color:#fff;border-radius:5px;padding:1px 5px}
   .it-media video{width:100%;height:100%;object-fit:cover;display:block}
+  /* 하단바(새) */
+  .bn-btn .bn-ic{font-size:21px;line-height:1.1}
+  .bn-fab span{font-size:30px;line-height:1;font-weight:400}
+  .bn-fabcell{flex-direction:column;align-items:center!important}
+  .bn-fablb{font-size:10.5px;font-weight:800;color:var(--blue);margin-top:2px}
+  .bn-badge{position:absolute;top:5px;left:calc(50% + 8px);min-width:17px;height:17px;border-radius:9px;background:var(--red);color:#fff;font-size:10px;font-weight:800;font-style:normal;display:grid;place-items:center;padding:0 4px}
+  .bn-badge[hidden]{display:none}
+  #collectOverlay,#moreOverlay{align-items:flex-end;padding:0}
+  #shootOverlay{padding:0;background:var(--surface);align-items:stretch}
+  .snav-tools{display:none!important}
+  .snav-step .cnt{font-size:11px;font-weight:800;opacity:.75;margin-left:2px}
+  .sh-row{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:0;font-family:inherit;cursor:pointer}
+  .sh-row .t{flex:1;min-width:0}
+  .sh-row .nm{font-weight:800;font-size:14.5px;overflow-wrap:anywhere}
+  .sh-row .go{flex:0 0 auto;background:var(--blue);color:#fff;border-radius:10px;padding:9px 12px;font-weight:800;font-size:13px}
+  .dash-todo{display:flex;align-items:center;gap:12px;width:100%;padding:12px 2px;border:0;border-top:1px solid var(--border2);background:none;text-align:left;font-family:inherit;cursor:pointer}
+  .dash-todo:first-of-type{border-top:0}
+  .dash-todo b{font-size:19px;min-width:28px;text-align:center;color:var(--blue)}
+  .dash-todo .t{flex:1;min-width:0}.dash-todo .t div:first-child{font-weight:800;font-size:14px}
   /* 📷 찍기 시트 */
   #camPickOverlay{align-items:flex-end;padding:0}
   .cp-sheet{background:var(--card);width:100%;max-width:560px;margin:0 auto;border-radius:20px 20px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;max-height:88dvh;overflow:auto}
@@ -1203,7 +1222,7 @@
     .srcsub{display:flex;gap:6px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:4px;margin-bottom:14px}
     .srcsub button{flex:1;border:none;background:none;padding:10px;border-radius:9px;font-size:13.5px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;transition:.12s}
     .srcsub button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(17,24,39,.1)}
-    @media(max-width:640px){ .snav-step{display:none} .snav-tools{justify-content:stretch;gap:8px} .snav-tools button{flex:1;justify-content:center;padding:10px 12px} }
+    @media(max-width:640px){ .snav-step button{font-size:12.5px;padding:9px 4px;gap:3px} .snav-step button .sn{display:none} }
     .quote{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--cream);border:1.5px solid var(--border2);border-radius:12px;padding:11px 13px;margin-bottom:8px}
     .quote.on{border-color:var(--blue);background:var(--blue-pale)}
     .quote .q-nm{font-size:13.5px;font-weight:800;color:var(--ink)}
@@ -1370,9 +1389,9 @@
       <button id="snavPricing">💰 판매가</button>
     </div>
     <div class="snav-step">
-      <button data-tab="plans"><span class="sn">1단계</span> 📥 수집</button>
-      <button data-tab="products"><span class="sn">2단계</span> 🔍 검토</button>
-      <button data-tab="confirm"><span class="sn">3단계</span> 🚀 출시 결정</button>
+      <button data-tab="plans"><span class="sn">1단계</span> 📥 수집<span class="cnt" id="stCnt1"></span></button>
+      <button data-tab="products"><span class="sn">2단계</span> 🔍 검토<span class="cnt" id="stCnt2"></span></button>
+      <button data-tab="confirm"><span class="sn">3단계</span> 🚀 출시<span class="cnt" id="stCnt3"></span></button>
     </div>
   </div>
   <div id="sourceSub" class="srcsub" style="display:none">
@@ -1550,13 +1569,19 @@
 
 <nav class="bottomnav">
   <div class="bn-in">
-    <button class="bn-btn" data-tab="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>홈</button>
-    <button class="bn-btn" data-tab="plans"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>수집</button>
-    <div class="bn-fabcell"><button class="bn-fab" id="camFab" aria-label="사진 촬영·테스트 기록"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3.2"></circle></svg></button></div>
-    <button class="bn-btn" data-tab="products"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22" x2="12" y2="12"></line></svg>검토</button>
-    <button class="bn-btn" data-tab="confirm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>출시</button>
+    <button class="bn-btn" data-tab="dashboard"><span class="bn-ic" aria-hidden="true">🏠</span>할 일</button>
+    <button class="bn-btn" data-bnav="items"><span class="bn-ic" aria-hidden="true">📋</span>아이템</button>
+    <div class="bn-fabcell"><button class="bn-fab" id="camFab" aria-label="수집"><span aria-hidden="true">＋</span></button><span class="bn-fablb">수집</span></div>
+    <button class="bn-btn" data-bnav="shoot"><span class="bn-ic" aria-hidden="true">🎬</span>촬영<i class="bn-badge" id="shootBadge" hidden></i></button>
+    <button class="bn-btn" data-bnav="more"><span class="bn-ic" aria-hidden="true">⋯</span>더보기</button>
   </div>
 </nav>
+<!-- ＋ 수집 시트 -->
+<div class="overlay" id="collectOverlay"><div class="cp-sheet" id="collectBody"></div></div>
+<!-- 🎬 지금 찍어야 할 것 -->
+<div class="overlay" id="shootOverlay"><div class="it-page" id="shootBody"></div></div>
+<!-- ⋯ 더보기 -->
+<div class="overlay" id="moreOverlay"><div class="cp-sheet" id="moreBody"></div></div>
 
 <!-- 기획 편집 모달 -->
 <div class="overlay" id="planOverlay">
@@ -4039,7 +4064,7 @@ document.querySelectorAll('#vtoggle button').forEach(b=>b.onclick=()=>{state.vie
 
 /* ---- app tabs ---- */
 /* ⚙ 부서 용도에 맞게 각 탭 설명을 바꾸세요 */
-const TAB_SUB={dashboard:'단계별 현황 · 최근 활동',products:'제조처·시장가·마진·차별점 검토',makers:'거래처 등록 · 대시보드',plans:'링크·사진으로 빠르게 수집',test:'샘플 촬영 · 결과 기록',confirm:'테스트 완료 → 회의 결정(진행/보류/드롭)'};
+const TAB_SUB={dashboard:'오늘 할 일 · 단계별 현황',products:'제조처·시장가·마진·차별점 검토',makers:'거래처 등록 · 대시보드',plans:'링크·사진으로 빠르게 수집',test:'샘플 촬영 · 결과 기록',confirm:'테스트 완료 → 회의 결정(진행/보류/드롭)'};
 /* 3단계 확정 상세 — 계약조건 · 초도발주 · 판매준비 체크리스트 · 결정 */
 let cfdPid=null;
 function cfdDec(v){document.querySelectorAll('#cfd_dec button').forEach(b=>b.classList.toggle('on',b.dataset.dec===v));const d=$('#cfd_dec');if(d)d.dataset.val=v;}
@@ -4134,7 +4159,9 @@ function switchTab(t){
   {const vd=$('#view-dashboard');if(vd)vd.style.display=(t==='dashboard')?'':'none';}
   const shown=$('#view-'+t);if(shown){shown.classList.remove('vin');void shown.offsetWidth;shown.classList.add('vin');}
   const stageTab=(t==='test')?'products':t; // 테스트는 '선정·세팅'(제품) 단계로 하이라이트
-  document.querySelectorAll('.bn-btn').forEach(b=>b.classList.toggle('on',b.dataset.tab===stageTab));
+  document.querySelectorAll('.bn-btn').forEach(b=>b.classList.toggle('on',b.dataset.tab?b.dataset.tab===t:(b.dataset.bnav==='items'?['plans','products','test','confirm'].includes(t):(b.dataset.bnav==='more'&&t==='makers'))));
+  {const sn=document.querySelector('.snav');if(sn)sn.style.display=['plans','products','test','confirm'].includes(t)?'':'none';updateStageCounts();if(typeof updateShootBadge==='function')updateShootBadge();}
+  if(['plans','products','test','confirm'].includes(t))lastItemTab=(t==='test'?'products':t);
   document.querySelectorAll('.snav-step button').forEach(b=>b.classList.toggle('on',b.dataset.tab===stageTab));
   {const ss=$('#sourceSub');if(ss){const inStage=(t==='products'||t==='test');ss.style.display=inStage?'':'none';ss.querySelectorAll('[data-ssub]').forEach(b=>b.classList.toggle('on',b.dataset.ssub===t));}}
   if(t!=='makers'){const mk=$('#snavMakers');if(mk)mk.classList.remove('on');const prb=$('#snavPricing');if(prb)prb.classList.remove('on');}
@@ -4184,7 +4211,7 @@ function showSub(s){
   if(s==='pricing')renderPricing();
 }
 document.querySelectorAll('#adminSeg button').forEach(b=>b.onclick=()=>showSub(b.dataset.sub));
-document.querySelectorAll('.bn-btn').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+document.querySelectorAll('.bn-btn').forEach(b=>b.onclick=()=>{const n=b.dataset.bnav;if(n==='items')switchTab(lastItemTab||'products');else if(n==='shoot')openShoot();else if(n==='more')openMore();else switchTab(b.dataset.tab);});
 document.querySelectorAll('.snav-step button').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
 document.querySelectorAll('#sourceSub [data-ssub]').forEach(b=>b.onclick=()=>switchTab(b.dataset.ssub));
 (function(){
@@ -4202,7 +4229,7 @@ document.querySelectorAll('#sourceSub [data-ssub]').forEach(b=>b.onclick=()=>swi
   if(inp)inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addPlanQuick();}};
   if(lk)lk.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addPlanQuick();}};
   if(pb)pb.onclick=()=>$('#planQuickFile').click();
-  if(pf)pf.onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;flagMsg('사진 업로드 중…');try{const r=await uploadPlanFile('quick-'+uid(),f);planQuickPhoto={url:r.url,path:r.path};renderPlanQuickPhoto();flagMsg('사진 첨부됨','ok');}catch(err){console.error('[plan-quick] 사진 업로드 실패:',err);alert('사진 업로드에 실패했어요.');}};
+  if(pf)pf.onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;flagMsg('사진 업로드 중…');try{const r=await uploadPlanFile('quick-'+uid(),f);planQuickPhoto={url:r.url,path:r.path};renderPlanQuickPhoto();if(quickAutoAdd){quickAutoAdd=false;await addPlanQuick();}else flagMsg('사진 첨부됨','ok');}catch(err){console.error('[plan-quick] 사진 업로드 실패:',err);alert('사진 업로드에 실패했어요.');}};
   const nAdd=$('#planQuickNewAdd'),nCancel=$('#planQuickNewCancel'),nVal=$('#planQuickNewVal');
   if(nAdd)nAdd.onclick=()=>confirmPlanNew();
   if(nCancel)nCancel.onclick=()=>closePlanNew();
@@ -4492,7 +4519,7 @@ $('#cap_save').onclick=async()=>{
     state.sel=p.id;capPhotos=[];save();closeOverlay();switchTab('products');
   }finally{btn.disabled=false;btn.textContent=lbl;}
 };
-$('#camFab').onclick=()=>openCamPick('');
+$('#camFab').onclick=()=>openCollect();
 
 /* ══════════ 아이템 페이지 (새 설계 P1) ══════════
    아이템 하나 = 한 페이지: 진행바(수집→샘플비교→제조사→패킹→출시검토) · 다음 할 일 · 탭.
@@ -4601,6 +4628,7 @@ function renderItem(){
     <button data-itact="full" title="견적·테스트·인증·서류 등 기존 상세">⋯ 전체 정보</button>
   </div>
   ${itemTab==='smp'?itemTabSmp(p):itemTabRef(p)}`;
+  updateShootBadge();
 }
 function itemTabRef(p){
   const refs=p.refs||[];
@@ -4619,7 +4647,7 @@ function itemTabRef(p){
         <button class="add" data-itact="ref-photo">📷<br>찍기·추가</button></div>
     </div>
   </div>
-  <button class="it-fab" data-itact="cam">📷 찍기</button>`;
+  <button class="it-fab" data-itact="cam">📷 이 아이템 찍기</button>`;
 }
 document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-itact]');if(!b)return;
@@ -4629,7 +4657,7 @@ document.addEventListener('click',async e=>{
   if(a==='tab'){setItemTab(b.dataset.tab);return;}
   if(a==='full'){openDetail(p.id);return;}
   if(a==='next'){itemNext(p).go();return;}
-  if(a==='cam'){openCamPick(p.id);return;}
+  if(a==='cam'){openCamPick(p.id,true);return;}
   if(a==='view'){if(b.dataset.src)openLightbox(b.dataset.src);return;}
   if(a==='ref-photo'){$('#itemRefFile').click();return;}
   if(a==='ref-paste'){
@@ -4744,7 +4772,7 @@ function itemTabSmp(p){
     ${rv.length?'<span class="it-sub" style="font-weight:800">경쟁사 샘플</span>':''}${rv.map(card).join('')}
   </div>
   <input type="file" id="smpFile" accept="image/*,video/*" multiple hidden>
-  <button class="it-fab" data-itact="cam">📷 찍기</button>`;
+  <button class="it-fab" data-itact="cam">📷 이 아이템 찍기</button>`;
 }
 let smpFileTarget='';
 document.addEventListener('click',async e=>{
@@ -4786,10 +4814,116 @@ document.addEventListener('change',e=>{
   if(k==='price'||k==='cur'||k==='name'){renderItem();smpScroll(x.id);}
 });
 
+/* ══════════ 하단바: 할 일 · 아이템 · ＋수집 · 촬영 · 더보기 ══════════ */
+let lastItemTab='products',quickAutoAdd=false;
+function updateStageCounts(){
+  const c1=(typeof plans!=='undefined'&&plans&&plans.items)?plans.items.filter(p=>!(typeof planMoved==='function'&&planMoved(p))).length:'';
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v===''?'':' '+v;};
+  set('stCnt1',c1);set('stCnt2',state.products.filter(p=>p.decision!=='진행').length);set('stCnt3',state.products.filter(p=>p.decision==='진행').length);
+}
+function openCollect(){
+  const box=$('#collectBody');
+  box.innerHTML=`<div class="it-row" style="justify-content:space-between"><span class="it-h">＋ 수집</span><button class="it-btn" data-col="close">닫기</button></div>
+    <div class="cp-go">
+      <button data-col="paste">📋 링크 붙여넣기<small>틱톡·인스타·1688 링크를 복사해 뒀다면 바로 추가돼요</small></button>
+      <button data-col="photo">📷 사진 찍어 수집<small>매장·전시회에서 본 제품을 찍으면 바로 추가돼요</small></button>
+      <button data-col="name">✏️ 이름만 적기<small>생각난 아이템을 먼저 적어두기</small></button>
+    </div>
+    <div class="it-sub">브랜드는 마지막에 고른 값(${esc(typeof quickBrand==='function'?quickBrand():'')})으로 들어가요. 수집 화면에서 바꿀 수 있어요.</div>`;
+  openOverlay('collectOverlay');
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-col]');if(!b)return;const a=b.dataset.col;
+  if(a==='close'){closeOverlay();return;}
+  if(a==='photo'){quickAutoAdd=true;const f=$('#planQuickFile');if(f)f.click();closeOverlay();closeAllItemPages();switchTab('plans');return;}
+  closeOverlay();closeAllItemPages();switchTab('plans');
+  if(a==='paste'){pasteQuick();return;}
+  if(a==='name'){const i=$('#planQuickInput');if(i){i.scrollIntoView({block:'center'});i.focus();}}
+});
+function closeAllItemPages(){['detailOverlay','itemOverlay','shootOverlay'].forEach(id=>{const o=document.getElementById(id);if(o)o.classList.remove('on');});document.body.style.overflow='';}
+/* 🎬 지금 찍어야 할 것 — 누르면 바로 카메라, 찍으면 그 자리에 저장 */
+function shootTodos(){
+  const out=[];
+  state.products.forEach(p=>{
+    (p.samples||[]).forEach(x=>{
+      if(x.type==='maker'&&x.arrived&&!(x.media||[]).length)out.push({p,sid:x.id,ic:'🏭',t:`${x.name} 샘플 사진`,sub:'도착한 샘플 · 아직 사진 없음'});
+      if(x.type==='rival'&&x.arrived&&!(x.media||[]).length)out.push({p,sid:x.id,ic:'🆚',t:`${x.name} (경쟁사) 사진`,sub:'경쟁사 제품 · 패킹까지 찍어두세요'});
+    });
+    if(p.decision!=='진행'&&!prodThumb(p)&&!(p.refs||[]).length)out.push({p,sid:'',ic:'📌',t:'제품 사진·캡처',sub:'대표 이미지가 없어요'});
+  });
+  return out;
+}
+function updateShootBadge(){const b=$('#shootBadge');if(!b)return;let n=0;try{n=shootTodos().length;}catch(e){console.warn('[촬영] 목록 계산 실패',e);}b.hidden=!n;b.textContent=n>9?'9+':String(n);}
+function openShoot(){renderShoot();openOverlay('shootOverlay');$('#shootOverlay').scrollTop=0;}
+function renderShoot(){
+  const box=$('#shootBody');if(!box)return;const list=shootTodos();
+  box.innerHTML=`<div class="it-top"><button class="it-back" data-sh="close" aria-label="닫기">‹</button><h2>🎬 지금 찍어야 할 것 ${list.length}</h2></div>
+  <div class="it-stack">
+    ${list.length?list.map(x=>`<button class="it-card sh-row" data-sh="go" data-pid="${esc(x.p.id)}" data-sid="${esc(x.sid)}">
+      <div class="it-thumb" style="width:54px;height:54px">${prodThumb(x.p)?`<img src="${esc(prodThumb(x.p))}" alt="">`:x.ic}</div>
+      <div class="t"><div class="it-sub">${esc(dn(x.p))}</div><div class="nm">${x.ic} ${esc(x.t)}</div><div class="it-sub">${esc(x.sub)}</div></div><span class="go">📷 찍기</span></button>`).join('')
+      :'<div class="it-card it-sub">지금 찍어야 할 게 없어요. 샘플이 도착하면 여기에 떠요.</div>'}
+    <button class="it-btn line" style="padding:13px" data-sh="free">📷 그냥 찍기 (둘 곳 고르기)</button>
+    <div class="it-sub">촬영 컷(장면) 목록은 촬영 단계 개발 후 여기에 함께 나와요.</div>
+  </div>`;
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-sh]');if(!b)return;const a=b.dataset.sh;
+  if(a==='close'){closeOverlay();updateShootBadge();return;}
+  if(a==='free'){openCamPick('');return;}
+  if(a==='go'){camPickItem=b.dataset.pid;camPickTarget=b.dataset.sid||'';$('#camPickFile').click();}
+});
+function openMore(){
+  const box=$('#moreBody');
+  box.innerHTML=`<div class="it-row" style="justify-content:space-between"><span class="it-h">⋯ 더보기</span><button class="it-btn" data-more="close">닫기</button></div>
+    <div class="cp-go">
+      <button data-more="makers">🏭 제조사<small>거래처 목록 · 연락처 · 발주 담당자</small></button>
+      <button data-more="pricing">💰 판매가 계산<small>채널 수수료 · 판매가 · 이익률</small></button>
+      <button data-more="settings">⚙ 활동 기록 · 공유 설정 · 계정</button>
+    </div>`;
+  openOverlay('moreOverlay');
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-more]');if(!b)return;const a=b.dataset.more;
+  closeOverlay();if(a==='close')return;
+  closeAllItemPages();
+  if(a==='makers'){switchTab('makers');showSub('makers');}
+  if(a==='pricing'){switchTab('makers');showSub('pricing');}
+  if(a==='settings')openActivity();
+});
+/* 할 일 목록(대시보드 맨 위) */
+function todoHtml(){
+  const rows=[];
+  state.products.forEach(p=>{
+    const S=p.samples||[];
+    const wait=p.makerId?0:S.filter(x=>x.type==='maker'&&!x.arrived).length;
+    if(wait)rows.push({n:wait,t:'샘플 도착 대기',p});
+    const un=S.filter(x=>x.arrived&&!smpScored(x)).length;if(un)rows.push({n:un,t:'샘플 평가 안 함',p,tab:'smp'});
+    const rq=smpLiveReqs(p).filter(r=>(r.st||0)===0).length;if(rq)rows.push({n:rq,t:'제조사 요청사항 전달 전',p,tab:'smp'});
+  });
+  let shootN=0;try{shootN=shootTodos().length;}catch(e){}
+  const newPlans=(typeof plans!=='undefined'&&plans&&plans.items)?plans.items.filter(x=>x.status==='아이디어').length:0;
+  const html=[
+    ...rows.map(r=>`<button class="dash-todo" data-todo="item" data-pid="${esc(r.p.id)}" data-tab="${r.tab||'smp'}"><b>${r.n}</b><div class="t"><div>${esc(r.t)}</div><div class="it-sub">${esc(dn(r.p))}</div></div><span class="it-sub">›</span></button>`),
+    shootN?`<button class="dash-todo" data-todo="shoot"><b>${shootN}</b><div class="t"><div>찍어야 할 것</div><div class="it-sub">샘플·제품 사진</div></div><span class="it-sub">›</span></button>`:'',
+    newPlans?`<button class="dash-todo" data-todo="plans"><b>${newPlans}</b><div class="t"><div>새로 수집한 아이템 검토</div><div class="it-sub">수집 목록</div></div><span class="it-sub">›</span></button>`:''
+  ].filter(Boolean);
+  return `<div class="it-card" style="margin:12px 0 16px"><div class="it-row" style="justify-content:space-between"><span class="it-h">오늘 할 일</span><span class="it-pill">${html.length}</span></div>
+    ${html.length?html.join(''):'<div class="it-sub" style="padding:8px 0">할 일이 없어요. ＋ 수집으로 새 아이템을 넣어보세요.</div>'}</div>`;
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-todo]');if(!b)return;const a=b.dataset.todo;
+  if(a==='item'){openItem(b.dataset.pid,b.dataset.tab);return;}
+  if(a==='shoot'){openShoot();return;}
+  if(a==='plans'){switchTab('plans');}
+});
+
 /* ══════════ 📷 먼저 찍고 둘 곳 고르기 ══════════ */
 let camPickItem='',camPickTarget='';
 function recentProducts(){const l=state.products.slice().reverse();const s=l.find(x=>x.id===state.sel);return (s?[s,...l.filter(x=>x!==s)]:l).slice(0,12);}
-function openCamPick(id){
+let camPickLock=false;
+function openCamPick(id,lock){
+  camPickLock=!!lock;
   camPickItem=id||(itemProd()&&$('#itemOverlay').classList.contains('on')?itemId:'')||state.sel||(recentProducts()[0]||{}).id||'';
   renderCamPick();openOverlay('camPickOverlay');
 }
@@ -4798,7 +4932,7 @@ function renderCamPick(){
   const list=recentProducts();if(camPickItem&&!list.some(x=>x.id===camPickItem)){const c=state.products.find(x=>x.id===camPickItem);if(c)list.unshift(c);}
   const p=state.products.find(x=>x.id===camPickItem);
   box.innerHTML=`<div class="it-row" style="justify-content:space-between"><span class="it-h">📷 찍어서 어디에 둘까요?</span><button class="it-btn" data-cp="close">닫기</button></div>
-    ${list.length?`<div class="cp-items">${list.map(x=>`<button class="${x.id===camPickItem?'on':''}" data-cp="item" data-id="${esc(x.id)}">${esc(dn(x))}</button>`).join('')}</div>`:''}
+    ${list.length&&!camPickLock?`<div class="cp-items">${list.map(x=>`<button class="${x.id===camPickItem?'on':''}" data-cp="item" data-id="${esc(x.id)}">${esc(dn(x))}</button>`).join('')}</div>`:''}
     <div class="cp-go">
       ${p?`<button data-cp="ref">📌 레퍼런스 사진<small>${esc(dn(p))} · 캡처·참고 사진</small></button>
       ${(p.samples||[]).map(x=>`<button data-cp="smp" data-sid="${esc(x.id)}">${x.type==='maker'?'🏭':'🆚'} ${esc(x.name)} 샘플<small>${x.type==='maker'?'제조사 샘플':'경쟁사 샘플'} · 샘플비교에 저장</small></button>`).join('')}
@@ -4818,10 +4952,12 @@ document.addEventListener('click',e=>{
 });
 $('#camPickFile').onchange=async e=>{
   const fs=[...(e.target.files||[])];e.target.value='';const p=state.products.find(x=>x.id===camPickItem);if(!p||!fs.length)return;
-  closeOverlay();flagMsg('올리는 중…');
+  const fromShoot=$('#shootOverlay').classList.contains('on');
+  if(!fromShoot)closeOverlay();flagMsg('올리는 중…');
   const sm=camPickTarget&&(p.samples||[]).find(x=>x.id===camPickTarget);
   if(sm){await addSampleMedia(p,sm,fs);}else{await addOverviewFiles(p.id,fs);}
   if($('#itemOverlay').classList.contains('on')&&itemId===p.id)renderItem();
+  if(fromShoot)renderShoot();updateShootBadge();
   flagMsg(sm?`"${sm.name}" 샘플에 저장했어요`:`"${dn(p)}" 레퍼런스 사진에 저장했어요`,'ok');
 };
 
@@ -5061,15 +5197,16 @@ function renderDashboard(){
   const el=$('#view-dashboard');if(!el)return;
   if(!plansLoaded){loadPlans().then(renderDashboard);}
   const c1=plansLoaded?plans.items.length:'…';
-  const c2=state.products.length;
+  const c2=state.products.filter(p=>p.decision!=='진행').length;
   const c3=state.products.filter(p=>p.decision==='진행').length;
   const acts=(state.activity||[]).slice(0,8);
   const IC={add:'+',edit:'✎',delete:'✕',restore:'↩',bulkadd:'⇈',bulkedit:'✎',bulkdelete:'✕'},LBL={add:'추가',edit:'수정',delete:'삭제',restore:'복구',bulkadd:'일괄등록',bulkedit:'일괄수정',bulkdelete:'일괄삭제'};
   el.innerHTML=`
     <div class="dash-h" style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
-      <div><h2>대시보드</h2><p>신제품 출시 파이프라인 한눈에</p></div>
+      <div><h2>홈</h2><p>누르면 바로 그 화면으로 가요</p></div>
       <button id="dashReport" class="tbtn" style="flex:0 0 auto">📊 이번달 보고</button>
     </div>
+    ${todoHtml()}
     <div class="dash-cards">
       <div class="dash-card" data-dtab="plans"><div class="dc-k">1단계 · 수집</div><div class="dc-n">${c1}<small>건</small></div><div class="dc-s">발견·수집한 소싱 후보</div></div>
       <div class="dash-card" data-dtab="products"><div class="dc-k">2단계 · 검토</div><div class="dc-n">${c2}<small>건</small></div><div class="dc-s">제조처·샘플·원가마진 검증</div></div>

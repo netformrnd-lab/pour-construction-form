@@ -4622,7 +4622,7 @@ function itemProgress(p){
     p.decision==='진행'||p.stage==='출시완료'];
 }
 function itemNext(p){
-  const bb=setBase(p);if(bb&&bb!==p){const miss=setMissing(p);return miss?{t:'판매세팅: '+miss,go:()=>setItemTab('set')}:{t:'판매세팅 완료 ✓ · 패킹은 다음 업데이트에서 열려요',go:()=>setItemTab('set')};}
+  const bb=setBase(p);if(bb&&bb!==p){const miss=setMissing(p);if(miss)return {t:'판매세팅: '+miss,go:()=>setItemTab('set')};if(!(p.packing&&p.packing.done))return {t:'패킹: 경쟁사 패킹 보고 우리 패킹안 정하기',go:()=>setItemTab('pack')};{const left=(p.shots||[]).filter(c=>!c.done).length;if(left)return {t:`촬영 남은 컷 ${left}개`,go:()=>openShoot()};}return {t:'패킹 완료 ✓ · 출시검토는 다음 업데이트에서 열려요',go:()=>setItemTab('pack')};}
   const refs=(p.refs||[]).length, imgs=(p.attachments||[]).filter(a=>a.kind==='image').length;
   if(!refs&&!imgs&&!(p.samples||[]).length)return {t:'레퍼런스 링크나 사진을 넣어보세요',go:()=>setItemTab('ref')};
   const S=p.samples||[],mk=S.filter(x=>x.type==='maker');
@@ -4634,8 +4634,9 @@ function itemNext(p){
   const rq=smpLiveReqs(p).filter(r=>r.st===0).length;if(rq)return {t:`제조사에 전달 안 한 요청사항 ${rq}개`,go:()=>setItemTab('smp')};
   if(!p.makerId)return {t:'샘플을 비교해서 제조사를 확정하세요',go:()=>setItemTab('smp')};
   {const miss=setMissing(p);if(miss)return {t:'판매세팅: '+miss,go:()=>setItemTab('set')};}
-  if(!derivOf(p).length&&!p.decision)return {t:'판매세팅 완료 ✓ · 컨셉별 파생 상품도 만들 수 있어요',go:()=>setItemTab('set')};
-  if(!p.decision)return {t:'판매세팅 완료 ✓ · 패킹은 다음 업데이트에서 열려요',go:()=>setItemTab('set')};
+  if(!(p.packing&&p.packing.done))return {t:'패킹: 경쟁사 패킹 보고 우리 패킹안 정하기',go:()=>setItemTab('pack')};
+  {const left=(p.shots||[]).filter(c=>!c.done).length;if(left)return {t:`촬영 남은 컷 ${left}개`,go:()=>openShoot()};}
+  if(!derivOf(p).length&&!p.decision)return {t:'패킹 완료 ✓ · 컨셉별 파생 상품도 만들 수 있어요',go:()=>setItemTab('set')};
   if(!p.decision)return {t:'샘플을 보고 진행 여부 결정하기',go:()=>{closeOverlay();switchTab('confirm');}};
   return {t:'전체 정보에서 원가·인증·서류 확인하기',go:()=>openDetail(p.id)};
 }
@@ -4663,9 +4664,11 @@ function renderItem(){
     <button class="${itemTab==='ref'?'on':''}" data-itact="tab" data-tab="ref">📌 레퍼런스${refN?`<em>${refN}</em>`:''}</button>
     <button class="${itemTab==='smp'?'on':''}" data-itact="tab" data-tab="smp">🧪 샘플비교${(p.samples||[]).length?`<em>${(p.samples||[]).length}</em>`:''}</button>
     <button class="${itemTab==='set'?'on':''}" data-itact="tab" data-tab="set">🛠 판매세팅<em>${setDoneCount(p)}/4</em></button>
+    <button class="${itemTab==='pack'?'on':''}" data-itact="tab" data-tab="pack">📦 패킹${p.packing&&p.packing.done?'<em>✓</em>':''}</button>
     <button data-itact="full" title="견적·테스트·인증·서류 등 기존 상세">⋯ 전체 정보</button>
   </div>
-  ${itemTab==='smp'?itemTabSmp(p):itemTab==='set'?itemTabSet(p):itemTabRef(p)}`;
+  ${itemTab==='smp'?itemTabSmp(p):itemTab==='set'?itemTabSet(p):itemTab==='pack'?itemTabPack(p):itemTabRef(p)}`;
+  {const tb=box.querySelector('.it-tabs'),on=tb&&tb.querySelector('button.on');if(tb&&on){const l=on.offsetLeft-tb.offsetLeft,r=l+on.offsetWidth;if(l<tb.scrollLeft||r>tb.scrollLeft+tb.clientWidth)tb.scrollLeft=Math.max(0,l-16);}}
   updateShootBadge();
 }
 function itemTabRef(p){
@@ -4963,6 +4966,92 @@ document.addEventListener('change',async e=>{
   if(['cost','useQty','unitLabel','moq','concept','spec'].includes(k))renderItem();
 });
 
+/* ══════════ 📦 패킹 (P3) ══════════
+   p.packing = {notes:{샘플id:메모}, form,size,parts,print,cost,memo, media[], done, doneAt}  — 파생마다 따로.
+   경쟁사 패킹 사진은 경쟁사 샘플 media 에 tag:'패킹' 으로 저장(샘플비교에서도 같이 보임). 파생은 원본의 경쟁사도 함께 보여줌.
+   [요청사항에 추가] → 확정 제조사(파생은 원본의 확정 제조사) 샘플 reqs 에 한 줄. [패킹 확정] → p.shots 에 패킹 컷 2개(없을 때만). */
+function packOf(p){if(!p.packing||typeof p.packing!=='object')p.packing={};const k=p.packing;if(!k.notes)k.notes={};if(!Array.isArray(k.media))k.media=[];return k;}
+function packRivals(p){const b=setBase(p);const own=(p.samples||[]).filter(x=>x.type==='rival').map(x=>({x,owner:p}));const fromBase=(b&&b!==p)?(b.samples||[]).filter(x=>x.type==='rival').map(x=>({x,owner:b})):[];return own.concat(fromBase);}
+function packMaker(p){const b=setBase(p);const q=(b&&b.makerId)?b:p;const x=q.makerId&&(q.samples||[]).find(s=>s.id===q.makerId);return x?{x,owner:q}:null;}
+function packTargets(p){return packRivals(p).map(({x})=>({id:x.id,lb:`📦 ${x.name} 패킹`,sub:'경쟁사 패킹 사진'})).concat([{id:'ours',lb:'📦 우리 패킹 참고',sub:'박스·라벨·구성품 참고 사진'}]);}
+async function addPackOrCutMedia(p,tg,files){
+  if(tg.startsWith('cut:')){const c=(p.shots||[]).find(s=>s.id===tg.slice(4));if(!c)return;await addMediaTo(c,'products/'+p.id+'/shots/'+c.id,files);save();return;}
+  const sid=tg.slice(3);
+  if(sid==='ours'){await addMediaTo(packOf(p),'products/'+p.id+'/packing',files);save();return;}
+  const r=packRivals(p).find(o=>o.x.id===sid);if(r){await addSampleMedia(r.owner,r.x,files,'패킹');}
+}
+/* 공통: 사진은 줄여서 Storage, 영상은 그대로 Storage (클라우드 없으면 사진만 기기에 임시 보관) */
+async function addMediaTo(obj,dir,files){
+  if(!Array.isArray(obj.media))obj.media=[];
+  for(const f of files){if(!f)continue;const id=uid();const isVid=(f.type||'').indexOf('video')===0;
+    try{
+      if(isVid){if(!fbStore){alert('클라우드에 연결돼야 영상을 저장할 수 있어요.');continue;}
+        const ref=stRef(dir+'/'+id+'-'+(f.name||'video').replace(/[^\w.\-]+/g,'_').slice(0,40));const snap=await ref.put(f,{contentType:f.type||'video/mp4'});
+        obj.media.push({id,kind:'video',name:f.name||'영상',url:await snap.ref.getDownloadURL(),path:ref.fullPath});}
+      else{const dataUrl=await resizeImage(f);if(!dataUrl)continue;const m={id,kind:'image',name:f.name||'사진.jpg'};
+        if(fbStore){try{const ref=stRef(dir+'/'+id+'.jpg');const snap=await ref.putString(dataUrl,'data_url');m.url=await snap.ref.getDownloadURL();m.path=ref.fullPath;}catch(e){console.error('[사진] 업로드 실패 — 기기에 임시 보관:',e);m.data=dataUrl;}}
+        else m.data=dataUrl;
+        obj.media.push(m);}
+    }catch(e){console.error('[사진] 파일 처리 실패:',e);alert('파일을 올리지 못했어요: '+(f.name||'')+'\n'+(e&&(e.code||e.message)||''));}
+  }
+}
+function mediaGridHtml(list,addAttr){
+  return `<div class="it-media">${(list||[]).map(m=>m.kind==='video'?`<a class="m" href="${esc(m.url||'#')}" target="_blank" rel="noopener"><video src="${esc(m.url||'')}" muted playsinline preload="metadata"></video><span class="tg">영상</span></a>`:`<button class="m" data-itact="view" data-src="${esc(m.url||m.data||'')}"><img src="${esc(m.url||m.data||'')}" alt="">${m.tag?`<span class="tg">${esc(m.tag)}</span>`:''}</button>`).join('')}<button class="add" ${addAttr}>📷<br>찍기·추가</button></div>`;
+}
+function itemTabPack(p){
+  const k=packOf(p),rv=packRivals(p),mk=packMaker(p);
+  const pn=v=>esc(String(v==null?'':v));
+  return `<div class="it-stack">
+    <div class="it-card st-sec"><div class="st-h ${rv.some(o=>(o.x.media||[]).some(m=>m.tag==='패킹'))?'done':''}"><span class="no">1</span><span class="it-h">경쟁사는 이렇게 쌌어요</span></div>
+      ${rv.length?rv.map(({x,owner})=>{const pm=(x.media||[]).filter(m=>m.tag==='패킹');return `<div class="st-sec" style="gap:6px;border-top:1px dashed var(--border2);padding-top:10px">
+        <div class="it-row" style="justify-content:space-between"><b style="font-size:14px">🆚 ${esc(x.name)}</b>${owner!==p?'<span class="it-pill">원본에서</span>':''}</div>
+        ${mediaGridHtml(pm,`data-pk="shoot" data-sid="${esc(x.id)}"`)}
+        ${owner!==p&&owner.packing&&owner.packing.notes&&owner.packing.notes[x.id]?`<div class="st-inh"><span class="lbl">원본 메모</span>${esc(owner.packing.notes[x.id])}</div>`:''}
+        <textarea class="it-in" rows="2" data-pkn="${esc(x.id)}" placeholder="박스·파우치·완충재·설명서·동봉품">${esc(k.notes[x.id]||'')}</textarea></div>`;}).join('')
+        :'<div class="it-sub">경쟁사 제품을 넣고 패킹을 찍어두세요.</div>'}
+      <div class="it-row"><input class="it-in" id="pkRivalName" placeholder="경쟁사 제품 이름"><button class="it-btn" data-pk="rival-add">＋ 경쟁사</button></div>
+    </div>
+    <div class="it-card st-sec"><div class="st-h ${k.done?'done':''}"><span class="no">2</span><span class="it-h">우리 패킹안</span>${k.done?'<span class="it-pill gh">✓ 확정</span>':''}</div>
+      <div class="it-grid2"><label class="it-f"><span>포장 형태</span><input class="it-in" data-pkf="form" value="${pn(k.form)}" placeholder="예: 박스+지퍼백"></label>
+      <label class="it-f"><span>크기</span><input class="it-in" data-pkf="size" value="${pn(k.size)}" placeholder="예: 18×6×4cm"></label></div>
+      <label class="it-f"><span>구성품</span><input class="it-in" data-pkf="parts" value="${pn(k.parts)}" placeholder="예: 본품, 붓, 장갑, 설명서"></label>
+      <label class="it-f"><span>인쇄·라벨</span><input class="it-in" data-pkf="print" value="${pn(k.print)}" placeholder="예: 한글 라벨, 뒷면 사용법 4컷"></label>
+      <div class="it-grid2"><label class="it-f"><span>개당 패킹비 (원)</span><input class="it-in" inputmode="numeric" data-pkf="cost" value="${pn(k.cost)}" placeholder="출시검토 원가에 들어가요"></label><span></span></div>
+      <label class="it-f"><span>메모</span><textarea class="it-in" rows="2" data-pkf="memo" placeholder="주의할 점, 샘플 요청">${esc(k.memo||'')}</textarea></label>
+      <span class="it-sub" style="font-weight:800">참고 사진·영상</span>
+      ${mediaGridHtml(k.media,'data-pk="shoot" data-sid="ours"')}
+      <button class="it-btn line" style="padding:12px" data-pk="to-req" ${mk?'':'disabled'}>${mk?`🏭 "${esc(mk.x.name)}" 요청사항에 패킹안 추가`:'제조사를 확정하면 요청사항으로 보낼 수 있어요'}</button>
+      <button class="it-btn ${k.done?'line':'pri'}" style="padding:13px" data-pk="done">${k.done?'패킹 확정 취소':'패킹 확정 → 촬영 컷 추가'}</button>
+    </div>
+  </div>
+  <input type="file" id="pkFile" accept="image/*,video/*" multiple hidden>
+  <button class="it-fab" data-itact="cam">📷 이 아이템 찍기</button>`;
+}
+let pkFileTarget='';
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-pk]');if(!b)return;const p=itemProd();if(!p)return;const k=packOf(p);const a=b.dataset.pk;
+  if(a==='shoot'){pkFileTarget=b.dataset.sid;$('#pkFile').click();return;}
+  if(a==='rival-add'){const i=$('#pkRivalName');const v=((i&&i.value)||'').trim();if(!v){if(i)i.focus();return;}
+    (p.samples=p.samples||[]).push({id:uid(),type:'rival',name:v,price:'',cur:'원',moq:'',where:'',arrived:true,media:[],scores:{},memo:'',reqs:[]});save();renderItem();flagMsg('경쟁사를 추가했어요 · 📷로 패킹을 찍어두세요','ok');return;}
+  if(a==='to-req'){const mk=packMaker(p);if(!mk)return;
+    const t=['패킹'+(p.goods?'('+p.goods+')':''),k.form&&('형태 '+k.form),k.size&&('크기 '+k.size),k.parts&&('구성 '+k.parts),k.print&&('인쇄 '+k.print)].filter(Boolean).join(' · ');
+    if(t==='패킹'||t==='패킹('+p.goods+')'){flagMsg('패킹안을 먼저 적어주세요','warn');return;}
+    (mk.x.reqs=mk.x.reqs||[]).push({id:uid(),text:t,st:0,at:today()});save();renderItem();flagMsg(`"${mk.x.name}" 요청사항에 추가했어요`,'ok');return;}
+  if(a==='done'){
+    k.done=!k.done;
+    if(k.done){k.doneAt=today();if(!Array.isArray(p.shots))p.shots=[];let n=0;
+      [['패킹 언박싱',k.parts?('구성: '+k.parts):''],['패킹 디테일 (라벨·구성품)',k.print||'']].forEach(([t,m])=>{if(!p.shots.some(c=>c.title===t)){p.shots.push({id:uid(),title:t,refId:'',memo:m,media:[],done:false,from:'패킹'});n++;}});
+      save();renderItem();updateShootBadge();flagMsg(n?`패킹 확정 · 촬영 컷 ${n}개를 넣었어요 (🎬 촬영에서 바로 찍기)`:'패킹을 확정했어요','ok');}
+    else{save();renderItem();flagMsg('패킹 확정을 취소했어요 (촬영 컷은 그대로)','ok');}
+    return;}
+});
+document.addEventListener('change',async e=>{
+  const el=e.target;const p=itemProd();if(!p)return;
+  if(el&&el.id==='pkFile'){const fs=[...(el.files||[])];el.value='';if(!fs.length)return;flagMsg('올리는 중…');await addPackOrCutMedia(p,'pk:'+pkFileTarget,fs);save();renderItem();updateShootBadge();flagMsg('패킹 사진을 저장했어요','ok');return;}
+  if(el&&el.dataset&&el.dataset.pkn){packOf(p).notes[el.dataset.pkn]=el.value.trim();save();return;}
+  if(el&&el.dataset&&el.dataset.pkf){const k=packOf(p);let v=el.value.trim();if(el.dataset.pkf==='cost')v=v.replace(/[^\d]/g,'');k[el.dataset.pkf]=v;save();return;}
+});
+
 /* ══════════ 🏭 제조사 제품에서 시작 ══════════ */
 let msPhoto=null;
 function openMakerStart(maker){
@@ -5034,19 +5123,19 @@ function smpSyncOut(p,x){
     if(c){c.name=x.name;c.price=x.price?String(Math.round(smpWon(x)||0)):c.price;}
   }
 }
-async function addSampleMedia(p,x,files){
+async function addSampleMedia(p,x,files,tag){
   if(!Array.isArray(x.media))x.media=[];
   for(const f of files){
     if(!f)continue;const id=uid();const isVid=(f.type||'').indexOf('video')===0;
     try{
       if(isVid){
-        const m={id,kind:'video',name:f.name||'영상',mime:f.type||'video/mp4'};
+        const m={id,kind:'video',name:f.name||'영상',mime:f.type||'video/mp4'};if(tag)m.tag=tag;
         if(fbStore){const ref=stRef('products/'+p.id+'/samples/'+x.id+'/'+id+'-'+(f.name||'video').replace(/[^\w.\-]+/g,'_').slice(0,40));const snap=await ref.put(f,{contentType:f.type||'video/mp4'});m.url=await snap.ref.getDownloadURL();m.path=ref.fullPath;}
         else{alert('클라우드에 연결돼야 영상을 저장할 수 있어요.');continue;}
         x.media.push(m);
       }else{
         const dataUrl=await resizeImage(f);if(!dataUrl)continue;
-        const m={id,kind:'image',name:f.name||'사진.jpg',mime:'image/jpeg'};
+        const m={id,kind:'image',name:f.name||'사진.jpg',mime:'image/jpeg'};if(tag)m.tag=tag;
         if(fbStore){try{const ref=stRef('products/'+p.id+'/samples/'+x.id+'/'+id+'.jpg');const snap=await ref.putString(dataUrl,'data_url');m.url=await snap.ref.getDownloadURL();m.path=ref.fullPath;}catch(e){console.error('[샘플] 사진 업로드 실패 — 기기에 임시 보관:',e);m.data=dataUrl;}}
         else m.data=dataUrl;
         x.media.push(m);
@@ -5169,6 +5258,7 @@ function shootTodos(){
       if(x.type==='maker'&&x.arrived&&!(x.media||[]).length)out.push({p,sid:x.id,ic:'🏭',t:`${x.name} 샘플 사진`,sub:'도착한 샘플 · 아직 사진 없음'});
       if(x.type==='rival'&&x.arrived&&!(x.media||[]).length)out.push({p,sid:x.id,ic:'🆚',t:`${x.name} (경쟁사) 사진`,sub:'경쟁사 제품 · 패킹까지 찍어두세요'});
     });
+    (p.shots||[]).filter(c=>!c.done).forEach(c=>out.push({p,sid:'cut:'+c.id,ic:'🎬',t:'컷: '+c.title,sub:(c.media||[]).length?`${(c.media||[]).length}장 찍음 · 다 찍었으면 ✓ 완료`:(c.memo||'아직 안 찍음'),cut:c.id,n:(c.media||[]).length}));
     if(p.decision!=='진행'&&!prodThumb(p)&&!(p.refs||[]).length)out.push({p,sid:'',ic:'📌',t:'제품 사진·캡처',sub:'대표 이미지가 없어요'});
   });
   return out;
@@ -5181,7 +5271,7 @@ function renderShoot(){
   <div class="it-stack">
     ${list.length?list.map(x=>`<button class="it-card sh-row" data-sh="go" data-pid="${esc(x.p.id)}" data-sid="${esc(x.sid)}">
       <div class="it-thumb" style="width:54px;height:54px">${prodThumb(x.p)?`<img src="${esc(prodThumb(x.p))}" alt="">`:x.ic}</div>
-      <div class="t"><div class="it-sub">${esc(dn(x.p))}</div><div class="nm">${x.ic} ${esc(x.t)}</div><div class="it-sub">${esc(x.sub)}</div></div><span class="go">📷 찍기</span></button>`).join('')
+      <div class="t"><div class="it-sub">${esc(dn(x.p))}</div><div class="nm">${x.ic} ${esc(x.t)}</div><div class="it-sub">${esc(x.sub)}</div></div><span class="go">📷 찍기</span></button>${x.cut&&x.n?`<button class="it-btn line" style="margin-top:-6px;padding:10px" data-sh="cutdone" data-pid="${esc(x.p.id)}" data-cid="${esc(x.cut)}">✓ "${esc(x.t.replace('컷: ',''))}" 다 찍었어요</button>`:''}`).join('')
       :'<div class="it-card it-sub">지금 찍어야 할 게 없어요. 샘플이 도착하면 여기에 떠요.</div>'}
     <button class="it-btn line" style="padding:13px" data-sh="free">📷 그냥 찍기 (둘 곳 고르기)</button>
     <div class="it-sub">촬영 컷(장면) 목록은 촬영 단계 개발 후 여기에 함께 나와요.</div>
@@ -5191,6 +5281,7 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('[data-sh]');if(!b)return;const a=b.dataset.sh;
   if(a==='close'){closeOverlay();updateShootBadge();return;}
   if(a==='free'){openCamPick('');return;}
+  if(a==='cutdone'){const p=state.products.find(x=>x.id===b.dataset.pid);const c=p&&(p.shots||[]).find(x=>x.id===b.dataset.cid);if(c){c.done=true;c.doneAt=today();save();renderShoot();updateShootBadge();flagMsg('컷 완료 ✓','ok');}return;}
   if(a==='go'){camPickItem=b.dataset.pid;camPickTarget=b.dataset.sid||'';$('#camPickFile').click();}
 });
 function openMore(){
@@ -5256,6 +5347,8 @@ function renderCamPick(){
     <div class="cp-go">
       ${p?`<button data-cp="ref">📌 레퍼런스 사진<small>${esc(dn(p))} · 캡처·참고 사진</small></button>
       ${(p.samples||[]).map(x=>`<button data-cp="smp" data-sid="${esc(x.id)}">${x.type==='maker'?'🏭':'🆚'} ${esc(x.name)} 샘플<small>${x.type==='maker'?'제조사 샘플':'경쟁사 샘플'} · 샘플비교에 저장</small></button>`).join('')}
+      ${packTargets(p).map(t=>`<button data-cp="pk" data-sid="${esc(t.id)}">${esc(t.lb)}<small>${esc(t.sub)}</small></button>`).join('')}
+      ${(p.shots||[]).filter(c=>!c.done).map(c=>`<button data-cp="cut" data-sid="${esc(c.id)}">🎬 컷: ${esc(c.title)}<small>촬영 컷에 쌓여요</small></button>`).join('')}
       <button data-cp="test">🧪 샘플 테스트 기록<small>${esc(dn(p))} · 사진과 결과·메모를 한 번에 (기존 방식)</small></button>`:''}
       <button data-cp="new">📥 새 아이템으로 수집<small>처음 보는 아이템이면 사진부터 찍어서 수집</small></button>
     </div>
@@ -5267,6 +5360,8 @@ document.addEventListener('click',e=>{
   if(a==='item'){camPickItem=b.dataset.id;renderCamPick();return;}
   if(a==='ref'){camPickTarget='';$('#camPickFile').click();return;}
   if(a==='smp'){camPickTarget=b.dataset.sid;$('#camPickFile').click();return;}
+  if(a==='pk'){camPickTarget='pk:'+b.dataset.sid;$('#camPickFile').click();return;}
+  if(a==='cut'){camPickTarget='cut:'+b.dataset.sid;$('#camPickFile').click();return;}
   if(a==='test'){const id=camPickItem;closeOverlay();openCapture();fillCapProd(id);return;}
   if(a==='new'){closeOverlay();const io=$('#itemOverlay');if(io&&io.classList.contains('on'))closeOverlay();switchTab('plans');setTimeout(()=>{const f=$('#planQuickFile');if(f)f.click();},60);return;}
 });
@@ -5274,7 +5369,9 @@ $('#camPickFile').onchange=async e=>{
   const fs=[...(e.target.files||[])];e.target.value='';const p=state.products.find(x=>x.id===camPickItem);if(!p||!fs.length)return;
   const fromShoot=$('#shootOverlay').classList.contains('on');
   if(!fromShoot)closeOverlay();flagMsg('올리는 중…');
-  const sm=camPickTarget&&(p.samples||[]).find(x=>x.id===camPickTarget);
+  const tg=camPickTarget||'';
+  if(tg.startsWith('pk:')||tg.startsWith('cut:')){await addPackOrCutMedia(p,tg,fs);if($('#itemOverlay').classList.contains('on')&&itemId===p.id)renderItem();if(fromShoot)renderShoot();updateShootBadge();flagMsg('저장했어요','ok');return;}
+  const sm=tg&&(p.samples||[]).find(x=>x.id===tg);
   if(sm){await addSampleMedia(p,sm,fs);}else{await addOverviewFiles(p.id,fs);}
   if($('#itemOverlay').classList.contains('on')&&itemId===p.id)renderItem();
   if(fromShoot)renderShoot();updateShootBadge();

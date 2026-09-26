@@ -1311,24 +1311,28 @@
     @media(max-width:640px){
       .pgrid,.bases.cards{grid-template-columns:repeat(2,1fr);gap:11px}
       .pgcard{border-radius:16px}
-      .pg-thumb{aspect-ratio:4/3}
+      .pg-thumb{aspect-ratio:1/1}
+      .pg-add{min-height:120px}
       .cf-gcard{grid-column:1 / -1}
       .cf-gcard .pg-thumb{aspect-ratio:16/7}
     }
-    .pg-thumb img{width:100%;height:100%;object-fit:cover}
+    .pg-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+    .pgr-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+    .pg-thumb img.broken,.pgr-thumb img.broken{display:none}
     .pg-thumb .pg-ph{font-size:46px;opacity:.5}
     .pg-link{position:absolute;top:9px;right:9px;width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.92);border:1px solid var(--border);display:grid;place-items:center;font-size:14px;cursor:pointer;box-shadow:0 2px 7px rgba(17,24,39,.12)}
     .pg-link:hover{background:#fff;transform:scale(1.06)}
-    .pg-body{padding:13px 14px 14px}
+    .pg-body{padding:10px 12px 12px}
+    .pgrid .pg-body .pg-src{margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .pg-src{font-size:12px;font-weight:700;color:var(--muted)}
-    .pg-name{font-size:16.5px;font-weight:800;color:var(--ink);margin-top:3px;letter-spacing:-.01em}
-    .pg-price{font-size:15px;margin-top:10px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+    .pg-name{font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-.01em;line-height:1.35;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .pg-price{font-size:15px;margin-top:6px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
     .pg-price .pp{display:inline-flex;align-items:baseline;gap:4px}
     .pg-price .lab{font-size:11.5px;color:var(--muted);font-weight:700}
     .pg-price b{font-weight:800;color:var(--ink);font-size:18px;font-variant-numeric:tabular-nums}
     .pg-price.two b{font-size:15px}
     .pg-pdot{color:var(--border2);font-weight:700}
-    .pg-foot{margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .pg-foot{margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
     .pg-st{display:inline-block;font-size:12.5px;font-weight:800;border-radius:999px;padding:5px 12px}
     .pg-when{font-size:11px;font-weight:700;color:var(--muted)}
     .pg-add{border:1.5px dashed var(--border2);background:transparent;align-items:center;justify-content:center;color:var(--muted);font-weight:800;font-size:14px;min-height:190px}
@@ -1584,6 +1588,13 @@
 <div class="overlay" id="moreOverlay"><div class="cp-sheet" id="moreBody"></div></div>
 
 <!-- 기획 편집 모달 -->
+<!-- 아이템 페이지 (새 설계: 진행바 · 다음 할 일 · 탭) -->
+<div class="overlay" id="itemOverlay"><div class="it-page" id="itemBody"></div></div>
+<!-- 📷 먼저 찍고 둘 곳 고르기 -->
+<div class="overlay" id="camPickOverlay"><div class="cp-sheet" id="camPickBody"></div></div>
+<input type="file" id="camPickFile" accept="image/*,video/*" multiple hidden>
+<input type="file" id="itemRefFile" accept="image/*,video/*" multiple hidden>
+
 <div class="overlay" id="planOverlay">
   <div class="modal" style="position:relative;max-height:88vh;overflow:auto;max-width:520px">
     <button class="modal-x" data-close aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
@@ -1640,13 +1651,6 @@
     </div>
   </div>
 </div>
-
-<!-- 아이템 페이지 (새 설계: 진행바 · 다음 할 일 · 탭) -->
-<div class="overlay" id="itemOverlay"><div class="it-page" id="itemBody"></div></div>
-<!-- 📷 먼저 찍고 둘 곳 고르기 -->
-<div class="overlay" id="camPickOverlay"><div class="cp-sheet" id="camPickBody"></div></div>
-<input type="file" id="camPickFile" accept="image/*,video/*" multiple hidden>
-<input type="file" id="itemRefFile" accept="image/*,video/*" multiple hidden>
 
 <!-- product detail modal -->
 <div class="overlay" id="detailOverlay">
@@ -4525,10 +4529,11 @@ $('#camFab').onclick=()=>openCollect();
    아이템 하나 = 한 페이지: 진행바(수집→샘플비교→제조사→패킹→출시검토) · 다음 할 일 · 탭.
    P1: 📌 레퍼런스 탭 + '전체 정보'(기존 상세 그대로). 샘플비교·패킹·촬영·출시검토 탭은 다음 단계에서 추가.
    기존 필드는 건드리지 않고, 레퍼런스는 p.refs 배열(새 필드)에 모은다. 기존 refLink·prodLink·연결된 기획 링크는 읽어서 함께 보여준다. */
-let itemId=null,itemTab='ref';
+let itemId=null,itemTab='ref',itemKind='product',itemPlanId=null;
 function itemProd(){return state.products.find(x=>x.id===itemId)||null;}
 function planOfProd(p){return (typeof plans!=='undefined'&&plans&&Array.isArray(plans.items))?plans.items.find(x=>x.productId===p.id):null;}
 function openItem(id,tab){
+  itemKind='product';
   itemId=id;itemTab=tab||'ref';state.sel=id;
   if(typeof plansLoaded!=='undefined'&&!plansLoaded&&typeof loadPlans==='function'){loadPlans().then(()=>{if(itemId===id)renderItem();}).catch(e=>console.error('[아이템] 기획 로드 실패:',e));}
   adoptSamples(id);
@@ -4608,6 +4613,7 @@ function itemNext(p){
 function openDetailAt(id,grp){openDetail(id);if(grp){detailGrp=grp;renderMain();}}
 function setItemTab(t){itemTab=t;renderItem();const tb=document.querySelector('.it-tabs');if(tb)tb.scrollIntoView({block:'start'});}
 function renderItem(){
+  if(itemKind==='plan'){renderPlanItem();return;}
   const box=$('#itemBody');const p=itemProd();
   if(!box)return;
   if(!p){box.innerHTML='<div class="it-top"><button class="it-back" data-itact="back">‹</button><h2>삭제된 아이템</h2></div>';return;}
@@ -4652,7 +4658,8 @@ function itemTabRef(p){
 document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-itact]');if(!b)return;
   const a=b.dataset.itact,p=itemProd();
-  if(a==='back'){closeOverlay();if(state.tab==='products'&&typeof renderList==='function')renderList();return;}
+  if(a==='back'){closeOverlay();if(state.tab==='products'&&typeof renderList==='function')renderList();if(state.tab==='plans')renderPlans();return;}
+  if(a==='view'){if(b.dataset.src)openLightbox(b.dataset.src);return;}
   if(!p)return;
   if(a==='tab'){setItemTab(b.dataset.tab);return;}
   if(a==='full'){openDetail(p.id);return;}
@@ -4678,6 +4685,107 @@ function addItemRef(){
   save();renderItem();flagMsg('레퍼런스 추가 · 썸네일 찾는 중…','ok');fillRefThumbs(p.id);
 }
 $('#itemRefFile').onchange=async e=>{const fs=[...(e.target.files||[])];e.target.value='';const p=itemProd();if(!p||!fs.length)return;flagMsg('올리는 중…');await addOverviewFiles(p.id,fs);renderItem();flagMsg('사진을 저장했어요','ok');};
+
+/* ══════════ 수집 아이템 페이지 (기획) ══════════
+   수집 단계 아이템도 같은 틀로: 대표사진 · 브랜드 · 이름 · 레퍼런스(링크·사진) · 메모 · [🔍 검토 시작]
+   저장 위치는 기존 기획 문서(plans) 그대로. 예전 기획 화면은 '⋯ 전체 정보'로 남김. */
+function curPlanItem(){return (typeof plans!=='undefined'&&plans&&plans.items)?plans.items.find(x=>x.id===itemPlanId):null;}
+function openPlanItem(id){
+  const pl=plans.items.find(x=>x.id===id);if(!pl)return;
+  if(pl.productId&&state.products.some(x=>x.id===pl.productId)){openItem(pl.productId,'ref');return;}   // 이미 검토로 넘어간 아이템은 그 페이지로
+  itemKind='plan';itemPlanId=id;itemTab='ref';
+  renderPlanItem();openOverlay('itemOverlay');$('#itemOverlay').scrollTop=0;
+  fillPlanRefThumbs(id);
+}
+const planRefBusy=new Set();
+async function fillPlanRefThumbs(id){
+  const pl=plans.items.find(x=>x.id===id);if(!pl)return;
+  const links=[...(pl.refs||[]),pl.prodLink].map(x=>(x||'').trim()).filter(x=>/^https?:\/\//i.test(x));
+  pl.refMeta=pl.refMeta||{};let changed=false;
+  for(const u of links){
+    if(pl.refMeta[u]||planRefBusy.has(u))continue;planRefBusy.add(u);
+    try{let j=null;try{j=await fetchLinkThumb(u);}catch(e){console.warn('[수집] 썸네일 요청 실패:',e);}
+      pl.refMeta[u]=j?{thumb:(await keepThumb(id,j.thumb)).url,title:(j.title||'').slice(0,80)}:{none:true};changed=true;
+      if(itemKind==='plan'&&itemPlanId===id&&$('#itemOverlay').classList.contains('on'))renderPlanItem();
+    }finally{planRefBusy.delete(u);}
+  }
+  if(changed)await savePlans();
+  if(!(pl.photos||[]).length)autoLinkThumb(id);
+}
+function renderPlanItem(){
+  const box=$('#itemBody');const pl=curPlanItem();if(!box)return;
+  if(!pl){box.innerHTML='<div class="it-top"><button class="it-back" data-itact="back">‹</button><h2>삭제된 아이템</h2></div>';return;}
+  const ph=(pl.photos||[]).find(x=>x&&(x.url||x.data));const meta=pl.refMeta||{};
+  const links=[...(pl.refs||[]).map(u=>({u,prod:false})),...(pl.prodLink?[{u:pl.prodLink,prod:true}]:[])].filter(x=>/^https?:\/\//i.test(x.u||''));
+  const brand=pl.brand||'';
+  box.innerHTML=`<div class="it-top"><button class="it-back" data-itact="back" aria-label="뒤로">‹</button><h2>${esc(pl.title||'(제목 없음)')}</h2></div>
+  <div class="it-card">
+    <div class="it-head"><div class="it-thumb">${ph?`<img src="${esc(ph.url||ph.data)}" alt="">`:'🧩'}</div>
+      <div style="min-width:0;flex:1"><div class="it-pills"><span class="it-pill acc">📥 수집</span>${pl.source?`<span class="it-pill">${esc(pl.source)}</span>`:''}${pl.category?`<span class="it-pill">${esc(pl.category)}</span>`:''}</div>
+      <div class="it-sub" style="margin-top:4px">${pl.createdAt?esc(discDate(pl.createdAt))+' 수집':''}</div></div></div>
+    <label class="it-f" style="margin-top:12px"><span>이름</span><input class="it-in" data-plf="title" value="${esc(pl.title&&pl.title!=='(제목 없음)'?pl.title:'')}" placeholder="아이템 이름"></label>
+    <div class="it-seg" style="margin-top:8px">${['POUR스토어','GROHOME'].map(b=>`<button class="${brand===b?'on':''}" data-plact="brand" data-v="${b}">${b}</button>`).join('')}</div>
+    <div class="it-steps">${['수집','샘플비교','제조사','패킹','출시검토'].map((t,i)=>`<div class="${i===0?'on':''}"><i></i>${t}</div>`).join('')}</div>
+    <button class="it-btn pri" style="width:100%;margin-top:12px;padding:13px;font-size:14.5px" data-plact="start">🔍 검토 시작 · 샘플·제조사 비교하기</button>
+  </div>
+  <div class="it-tabs" role="tablist"><button class="on">📌 레퍼런스<em>${links.length+(pl.photos||[]).length}</em></button><button data-plact="full">⋯ 전체 정보</button></div>
+  <div class="it-stack">
+    <div class="it-card it-stack" style="gap:8px">
+      <div class="it-row"><input class="it-in" id="plRefIn" placeholder="🔗 영상·SNS·경쟁사 링크" autocomplete="off"><button class="it-btn" data-plact="paste">📋</button><button class="it-btn pri" data-plact="ref-add">추가</button></div>
+      <div class="it-sub">링크를 넣으면 썸네일·제목을 자동으로 가져와요.</div></div>
+    ${links.length?links.map(({u,prod})=>{const m=meta[u]||{};const k=refKind(u)||{};return `<div class="it-card it-ref"><div class="it-thumb">${m.thumb?`<img src="${esc(m.thumb)}" alt="" onerror="this.remove()">`:(k.ic||'🔗')}</div>
+      <div class="t"><div class="it-pills"><span class="it-pill">${esc(k.tag||'링크')}</span>${prod?'<span class="it-pill acc">상품 링크</span>':''}</div><div class="ttl" style="margin:3px 0">${esc(m.title||u)}</div><a href="${esc(u)}" target="_blank" rel="noopener">열어보기 ↗</a></div>
+      <button class="x" data-plact="ref-del" data-u="${esc(u)}" aria-label="빼기">✕</button></div>`;}).join(''):'<div class="it-card it-sub">아직 링크가 없어요.</div>'}
+    <div class="it-card it-stack" style="gap:8px"><div class="it-row" style="justify-content:space-between"><span class="it-h">사진</span><span class="it-sub">${(pl.photos||[]).length}장</span></div>
+      <div class="it-media">${(pl.photos||[]).filter(x=>x&&(x.url||x.data)).map(x=>`<button class="m" data-itact="view" data-src="${esc(x.url||x.data)}"><img src="${esc(x.url||x.data)}" alt="" onerror="this.parentNode.classList.add('doc');this.remove()"></button>`).join('')}<button class="add" data-plact="photo">📷<br>찍기·추가</button></div></div>
+    <div class="it-card it-stack" style="gap:8px"><span class="it-h">메모</span><textarea class="it-in" rows="3" data-plf="marketMemo" placeholder="어디서 봤는지, 왜 끌렸는지, 시장 반응">${esc(pl.marketMemo||'')}</textarea></div>
+  </div>
+  <input type="file" id="plItemFile" accept="image/*" multiple hidden>
+  <button class="it-fab" data-plact="photo">📷 이 아이템 찍기</button>`;
+}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-plact]');if(!b)return;
+  const pl=curPlanItem();if(!pl)return;const a=b.dataset.plact;
+  if(a==='brand'){pl.brand=b.dataset.v;try{localStorage.setItem(BRAND_LS,b.dataset.v);}catch(err){}pl.updatedAt=new Date().toISOString();await savePlans();renderPlanItem();return;}
+  if(a==='start'){curPlanObj=pl;planToProduct();flagMsg('검토를 시작했어요 · 샘플비교에 제조사 샘플을 넣어보세요','ok');return;}
+  if(a==='full'){openPlan(pl.id);return;}
+  if(a==='photo'){$('#plItemFile').click();return;}
+  if(a==='paste'){let t='';try{t=(await navigator.clipboard.readText())||'';}catch(err){console.warn('[수집] 클립보드 읽기 실패:',err);$('#plRefIn').focus();flagMsg('입력칸을 길게 눌러 붙여넣기 해주세요','warn');return;}$('#plRefIn').value=t.trim();if(/https?:\/\//i.test(t))planItemAddRef();return;}
+  if(a==='ref-add'){planItemAddRef();return;}
+  if(a==='ref-del'){const u=b.dataset.u;if(pl.prodLink===u)pl.prodLink='';pl.refs=(pl.refs||[]).filter(x=>x!==u);pl.updatedAt=new Date().toISOString();await savePlans();renderPlanItem();renderPlans();return;}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='plRefIn'){e.preventDefault();planItemAddRef();}});
+async function planItemAddRef(){
+  const pl=curPlanItem();if(!pl)return;const inp=$('#plRefIn');
+  const urls=((inp&&inp.value)||'').match(/https?:\/\/[^\s<>"']+/gi)||[];
+  if(!urls.length){flagMsg('https:// 로 시작하는 링크를 넣어주세요','warn');return;}
+  pl.refs=pl.refs||[];let n=0;
+  urls.forEach(u=>{u=u.replace(/[),.。，]+$/,'');if(SHOP_LINK.test(u)&&!pl.prodLink){pl.prodLink=u;n++;}else if(!pl.refs.includes(u)&&u!==pl.prodLink){pl.refs.push(u);n++;}});
+  if(!n){flagMsg('이미 있는 링크예요','warn');return;}
+  pl.updatedAt=new Date().toISOString();await savePlans();renderPlanItem();renderPlans();flagMsg('링크 추가 · 썸네일 찾는 중…','ok');fillPlanRefThumbs(pl.id);
+}
+document.addEventListener('change',async e=>{
+  const el=e.target;const pl=curPlanItem();
+  if(el&&el.id==='plItemFile'){const fs=[...(el.files||[])];el.value='';if(!pl||!fs.length)return;flagMsg('사진 올리는 중…');
+    for(const f of fs){try{const r=await uploadPlanFile(pl.id,f);(pl.photos=pl.photos||[]).push({url:r.url,path:r.path});}catch(err){console.error('[수집] 사진 업로드 실패:',err);alert('사진 업로드에 실패했어요: '+(err&&(err.code||err.message)||''));}}
+    pl.updatedAt=new Date().toISOString();await savePlans();renderPlanItem();renderPlans();flagMsg('사진을 저장했어요','ok');return;}
+  if(!el||!el.dataset||!el.dataset.plf||!pl)return;
+  const k=el.dataset.plf,v=el.value.trim();
+  if(k==='title')pl.title=v||'(제목 없음)';else pl[k]=v;
+  pl.updatedAt=new Date().toISOString();await savePlans();if(k==='title'){renderPlanItem();renderPlans();}
+});
+/* 목록 사진이 안 뜨면(만료된 링크 이미지 등) 숨기고, 링크에서 온 사진이면 한 번 다시 가져온다 */
+const planImgRetry=new Set();
+function planImgBroken(img,id){
+  img.classList.add('broken');
+  const pl=(plans.items||[]).find(x=>x.id===id);if(!pl||planImgRetry.has(id))return;planImgRetry.add(id);
+  const ph=(pl.photos||[])[0];
+  if(ph&&(ph.from==='link'||!ph.path)&&([...(pl.refs||[]),pl.prodLink].some(u=>/^https?:\/\//i.test(u||'')))){
+    console.warn('[수집] 대표이미지가 안 떠서 링크에서 다시 가져와요:',pl.title);
+    pl.photos=pl.photos.slice(1);pl.brokenPhotos=(pl.brokenPhotos||[]).concat([ph]);   // 원래 기록은 brokenPhotos 에 남김
+    autoLinkThumb(id);
+  }
+}
 
 /* ══════════ 🧪 샘플비교 (P2) ══════════
    p.samples[] (새 필드): {id,type:'maker'|'rival',name,price,cur,moq,where,arrived,media[],scores{q,f,u,p},memo,reqs[{id,text,st}],qMaker,compId}
@@ -5615,7 +5723,7 @@ function renderPlans(){
   empty.style.display='none';
   const stBadge=p=>{const col=PLAN_ST_COLOR[p.status]||PLAN_ST_COLOR['아이디어'];return `<span class="pg-st" style="background:${col[0]};color:${col[1]}">${esc(PLAN_ST_LABEL[p.status||'아이디어']||p.status||'신규')}</span>`;};
   const brandTag=p=>p.brand?`<span class="pg-brand${p.brand==='GROHOME'?' gh':''}">${esc(p.brand==='GROHOME'?'GROHOME':'POUR')}</span>`:'';
-  const thumbOf=p=>{const photo=(p.photos||[]).find(x=>x&&(x.url||x.data));return photo?`<img src="${esc(photo.url||photo.data)}" alt="">`:'<span class="pg-ph">🧩</span>';};
+  const thumbOf=p=>{const photo=(p.photos||[]).find(x=>x&&(x.url||x.data));return photo?`<span class="pg-ph">🧩</span><img src="${esc(photo.url||photo.data)}" alt="" loading="lazy" onerror="planImgBroken(this,'${esc(p.id)}')">`:'<span class="pg-ph">🧩</span>';};
   // 원가·판매가 둘 다 있으면 둘 다, 하나만 있으면 그것만, 없으면 원가 —
   const priceParts=p=>{
     const parts=[];
@@ -5647,17 +5755,17 @@ function renderPlans(){
       return `<div class="pgcard" data-pid="${esc(p.id)}">
         <div class="pg-thumb">${thumbOf(p)}${link?`<button class="pg-link" data-plref="${esc(link)}" title="링크 열기">🔗</button>`:''}</div>
         <div class="pg-body">
-          <div class="pg-src">${brandTag(p)}${esc(p.source||'기타')}${p.category?' · '+esc(p.category):''}</div>
           <div class="pg-name">${esc(p.title||'(제목 없음)')}</div>
-          <div class="pg-price${priceParts(p).length>1?' two':''}">${priceParts(p).map(x=>`<span class="pp"><span class="lab">${x.lab}</span> <b>${esc(x.v)}</b></span>`).join('<span class="pg-pdot">·</span>')}</div>
+          <div class="pg-src">${brandTag(p)}${esc(p.source||'기타')}${p.category?' · '+esc(p.category):''}${p.createdAt?' · '+esc(discDate(p.createdAt)):''}</div>
+          ${(p.cost||p.sellPrice)?`<div class="pg-price two">${priceParts(p).map(x=>`<span class="pp"><span class="lab">${x.lab}</span> <b>${esc(x.v)}</b></span>`).join('<span class="pg-pdot">·</span>')}</div>`:''}
           ${planDevBadge(p)}
-          <div class="pg-foot">${stBadge(p)}${p.createdAt?`<span class="pg-when">🔎 ${esc(discDate(p.createdAt))}</span>`:''}</div>
+          ${(p.status&&p.status!=='아이디어')?`<div class="pg-foot">${stBadge(p)}</div>`:''}
         </div>
       </div>`;
     }).join('');
     box.innerHTML='<div class="pgrid">'+cards+'<div class="pgcard pg-add" id="pgAdd">＋ 후보 추가</div></div>'+movedHtml;
   }
-  box.querySelectorAll('[data-pid]').forEach(c=>c.onclick=e=>{if(e.target.closest('[data-plref]'))return;openPlan(c.dataset.pid);});
+  box.querySelectorAll('[data-pid]').forEach(c=>c.onclick=e=>{if(e.target.closest('[data-plref]'))return;openPlanItem(c.dataset.pid);});
   box.querySelectorAll('[data-plref]').forEach(b=>b.onclick=e=>{e.stopPropagation();window.open(b.dataset.plref,'_blank','noopener');});
   const pm=$('#pgMoved');if(pm)pm.onclick=()=>switchTab('products');
   const pa=$('#pgAdd');if(pa)pa.onclick=()=>{const inp=$('#planQuickInput');if(inp){inp.scrollIntoView({behavior:'smooth',block:'center'});inp.focus();}};

@@ -698,7 +698,7 @@ body.sn-fold #sideNav .sn-gl{justify-content:center;padding:10px 0}
 #tabGroups,#tabs{display:none!important}
 /* 메뉴 v2: 안쪽 탭 · 준비 안내 · 바뀐 메뉴 안내 */
 #subTabs{flex:0 0 auto;display:flex;gap:6px;padding:8px 16px;background:#fff;border-bottom:1px solid var(--ui-line);overflow-x:auto;-webkit-overflow-scrolling:touch}
-#subTabs[hidden],#needBox[hidden],#menuNews[hidden]{display:none!important}
+#subTabs[hidden],#needBox[hidden]{display:none!important}
 #subTabs button{flex:0 0 auto;border:1px solid #E2E8F0;background:#F8FAFC;color:var(--ink-soft);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
 #subTabs button.on{background:var(--xl-green);border-color:var(--xl-green);color:#fff}
 #subTabs .st-dot,#sideNav .sn-dot,#mmList .sn-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#94A3B8;flex:0 0 auto}
@@ -709,19 +709,12 @@ body.sn-fold #sideNav .sn-gl{justify-content:center;padding:10px 0}
 #needBox .nd-ok{color:var(--xl-green-dark)}
 #needBox .nd-todo{border:1px solid #CBD5E1;background:#fff;border-radius:8px;padding:4px 10px;font-size:12.5px;font-weight:700;color:#0F172A;cursor:pointer}
 #needBox .nd-here{font-weight:700;color:#0F172A}
-#menuNews{flex:0 0 auto;padding:6px 16px;background:#EFF6FF;border-bottom:1px solid #BFDBFE;font-size:12.5px;color:#1E40AF}
-#menuNews summary{cursor:pointer;font-weight:700;display:flex;align-items:center;gap:8px;list-style:none}
-#menuNews summary::-webkit-details-marker{display:none}
-#menuNews .mn-x{margin-left:auto;border:0;background:none;color:inherit;font-size:14px;padding:2px 6px;cursor:pointer}
-#menuNews .mn-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 14px;padding:8px 0 4px}
-#menuNews .mn-list button{border:0;background:none;text-align:left;padding:4px 0;font-size:12.5px;color:#1E3A8A;cursor:pointer}
-#menuNews .mn-list s{color:#64748B}
 #ribbonKpis .kpi[data-goto]{cursor:pointer}
 #ribbonKpis .kpi[data-goto]:hover{border-color:var(--xl-green)}
 @media (max-width:640px){
-  #subTabs,#needBox,#menuNews{padding-left:12px;padding-right:12px}
+  #subTabs,#needBox{padding-left:12px;padding-right:12px}
   #subTabs button{padding:7px 14px;font-size:13.5px}
-  body.pz-fold[data-sh="sh-price"] #subTabs,body.pz-fold[data-sh="sh-price"] #needBox,body.pz-fold[data-sh="sh-price"] #menuNews{display:none!important}
+  body.pz-fold[data-sh="sh-price"] #subTabs,body.pz-fold[data-sh="sh-price"] #needBox{display:none!important}
 }
 /* 상단: 흰 머리줄 + 요약 카드 */
 #ribbon{background:#fff;color:var(--ink);border-bottom:1px solid var(--ui-line);padding:12px 22px}
@@ -826,6 +819,21 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 .pz-mini{display:none}
 #dealPanel{position:fixed;z-index:102;left:50%;top:50%;transform:translate(-50%,-50%);width:min(720px,calc(100vw - 32px));max-height:88vh;overflow-y:auto;background:#fff;border-radius:14px;box-shadow:0 18px 48px rgba(31,39,51,.28);display:none}
 #dealPanel.open{display:block;animation:uiUp .18s ease}
+/* 상세 패널(상품 기준 · 채널 수익분석) — 견적 창과 같은 틀 */
+#pdPanel{position:fixed;z-index:102;left:50%;top:50%;transform:translate(-50%,-50%);width:min(860px,calc(100vw - 32px));max-height:88vh;overflow-y:auto;background:#F8FAFC;border-radius:14px;box-shadow:0 18px 48px rgba(31,39,51,.28);display:none}
+#pdPanel.open{display:block;animation:uiUp .18s ease}
+#pdPanel .hd{background:var(--xl-green);color:#fff;padding:11px 14px;font-weight:700;font-size:13.5px;display:flex;justify-content:space-between;align-items:center;gap:8px;position:sticky;top:0;z-index:4}
+#pdPanel .hd span{min-width:0;overflow-wrap:anywhere}
+#pdPanel .hd button{background:transparent;border:0;color:#fff;font-size:16px;flex:0 0 auto}
+#pdPanel .dl-tabs{display:flex;gap:4px;padding:8px 16px 0;background:#fff;position:sticky;top:42px;z-index:4;border-bottom:1px solid #E2E8F0}
+#pdPanel .dl-tabs button{border:0;background:none;padding:8px 12px;font-size:13.5px;font-weight:700;color:var(--ink-soft);border-bottom:3px solid transparent;cursor:pointer}
+#pdPanel .dl-tabs button.on{color:var(--xl-green);border-bottom-color:var(--xl-green)}
+#pdPanel .bd{padding:14px 16px}
+#pdPanel .bd[hidden]{display:none}
+#pdPanel .panel{max-width:100%}
+#pdPanel .panel .bd{overflow-x:auto}
+#pdBar[hidden]{display:none!important}
+#rowInfo .ri-det{background:var(--xl-green);color:#fff;font-weight:700}
 #dealPanel .hd{background:var(--xl-green);color:#fff;padding:11px 14px;font-weight:700;font-size:13.5px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:4}
 #dealPanel .hd button{background:transparent;border:0;color:#fff;font-size:16px}
 #dealPanel .bd{padding:14px 16px}
@@ -947,6 +955,9 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 #rowInfo .ri-add .tbtn{padding:4px 10px;min-height:0}
 @media(max-width:640px){
   #dealPanel{left:0;right:0;top:auto;bottom:0;transform:none;width:100%;max-height:92vh;min-height:66vh;border-radius:20px 20px 0 0}
+  #pdPanel{left:0;right:0;top:auto;bottom:0;transform:none;width:100%;max-height:92vh;min-height:66vh;border-radius:20px 20px 0 0}
+  #pdPanel .bd{padding:12px}
+  #pdPanel .cards{grid-template-columns:1fr 1fr!important}
   #dealPanel .dl-top{grid-template-columns:1fr 1fr}#dealPanel .dl-top .qc-f:first-child{grid-column:1/-1}
   #dealPanel .dl-in3{grid-template-columns:1fr 1fr}
   #dealPanel .dl-sum{grid-template-columns:1fr 1fr}
@@ -1218,7 +1229,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26k</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26l</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2140,6 +2151,13 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <details class="cc-sec cc-more" id="ccMore"><summary>⋯ 더보기</summary><button class="tbtn" id="ccConfirm">🏭 생산 확정 · 포장재 재고 반영</button></details>
   </div>
   <div class="cc-bar" id="ccBar"><div><span>개당 원가</span><b id="ccBarV">—</b></div><button class="tbtn primary" id="ccSave">저장</button></div>
+</div>
+<div id="pdPanel">
+  <div class="hd"><span id="pdTitle">상세</span> <button id="pdClose">✕</button></div>
+  <div class="dl-tabs"><button data-pdtab="pv" class="on">상품 기준</button><button data-pdtab="ch">채널 수익분석</button></div>
+  <div class="bd" id="pdPv"></div>
+  <div class="bd" id="pdCh" hidden></div>
+  <div class="cc-bar dl-bar" id="pdBar"><div><span>마케팅 · 시장가 · 프로모션 입력값</span><b>이 상품에 저장</b></div></div>
 </div>
 <div id="dealPanel">
   <div class="hd">🧾 견적 · 단가표 <button id="dealClose">✕</button></div>
@@ -3895,7 +3913,7 @@ function rowInfoPaint(el){
     return `<span class="ri-c${c.retail?' rt':''}"><i>${c.code?esc(c.code)+' ':''}${esc(c.lb)}</i><b>${v==null?'—':won(v)}</b>${r!=null?`<em class="${r<0?'neg':''}">${pct(r)}</em>`:''}</span>`; };
   el.hidden=false;
   el.innerHTML=`<div class="ri-hd"><b>${esc(p.name)}</b><span>${esc(p.spec||'')}${pcodeOf(p)?' · '+esc(pcodeOf(p)):''}${costAllowed?` · 원가 <b>${cost==null?'—':won(cost)}</b>`:''}</span>
-      ${costAllowed?(EDIT_ROW===String(p.id)?`<span class="ri-editing">✏️ 편집 중 · 가격칸 더블클릭</span><button type="button" class="ri-b" data-rimodal="${p.id}" title="분류·원가·유형·구성">상세 수정</button><button type="button" class="ri-b ri-done" data-riedit="${p.id}">완료</button>`:`<button type="button" class="ri-b" data-riedit="${p.id}" title="이 제품 편집">✏️ 편집</button>`):''}<button type="button" class="ri-b" id="rowInfoX" title="닫기">✕</button></div>
+      ${costAllowed?(EDIT_ROW===String(p.id)?`<span class="ri-editing">✏️ 편집 중 · 가격칸 더블클릭</span><button type="button" class="ri-b" data-rimodal="${p.id}" title="분류·원가·유형·구성">상세 수정</button><button type="button" class="ri-b ri-done" data-riedit="${p.id}">완료</button>`:`<button type="button" class="ri-b" data-riedit="${p.id}" title="이 제품 편집">✏️ 편집</button>`):''}${costAllowed?`<button type="button" class="ri-b ri-det" data-ridet="${p.id}" title="상품 기준 · 채널 수익분석">상세 ▸</button>`:''}<button type="button" class="ri-b" id="rowInfoX" title="닫기">✕</button></div>
     <div class="ri-row">${cols.map(chip).join('')}</div>
     ${costAllowed&&MOQ_TIERS.length?(()=>{ const inQ=QT.items.find(x=>x.key===pKey(p)); const def=inQ?inQ.qty:((MOQ_TIERS[1]&&MOQ_TIERS[1].min)||1);
       return `<div class="ri-moq"><span class="ri-t">수량별</span>${MOQ_TIERS.map(t=>{ const u=qtUnitAuto(p,t.min); return `<span class="ri-m"><i>${esc(t.label)}</i>${u==null?'—':won(u)}</span>`; }).join('')}
@@ -3905,6 +3923,7 @@ document.addEventListener('click',e=>{
   if(e.target.closest('#rowInfoX')){ EDIT_ROW=null; $$('#priceGrid tr.row-edit').forEach(tr=>tr.classList.remove('row-edit')); rowSelect(null); return; }
   const ad=e.target.closest('[data-riadd]'); if(ad){ dlAdd(ad.dataset.riadd, $('#riQty')?$('#riQty').value:1); rowInfoRender(); uiToast(`견적에 담김 · ${QT.items.length}개 품목 (🧾 견적에서 보기)`,'ok'); return; }
   const ed=e.target.closest('[data-riedit]'); if(ed){ const id=ed.dataset.riedit; setEditRow(EDIT_ROW===id?null:id); return; }
+  const dt=e.target.closest('[data-ridet]'); if(dt){ const p=P.find(x=>String(x.id)===dt.dataset.ridet); if(p) openDetail(p); return; }
   const md=e.target.closest('[data-rimodal]'); if(md){ const p=P.find(x=>String(x.id)===md.dataset.rimodal); if(p&&typeof openEditModal==='function') openEditModal(p); return; }
   const td=e.target.closest('#priceGrid tbody tr[data-id] td'); if(!td || e.target.closest('button,input,.grip,.nono')) return;
   const id=td.parentElement.dataset.id; if(EDIT_ROW!=null&&EDIT_ROW!==id){ EDIT_ROW=null; $$('#priceGrid tr.row-edit').forEach(tr=>tr.classList.remove('row-edit')); }
@@ -5157,11 +5176,10 @@ function tabHidden(b){
   const main=document.createElement('div'); main.id='mainCol';
   const first=$('#ribbon'); document.body.insertBefore(side, first); document.body.insertBefore(main, first);
   ['ribbon','viewAsBanner','dataNotice','fxbar','fxSplit','sheetwrap','tabGroups','tabs'].forEach(id=>{ const el=document.getElementById(id); if(el) main.appendChild(el); });
-  ['menuNews','subTabs','needBox'].forEach(id=>{ const el=document.createElement('div'); el.id=id; el.hidden=true; main.insertBefore(el, $('#fxbar')); });
+  ['subTabs','needBox'].forEach(id=>{ const el=document.createElement('div'); el.id=id; el.hidden=true; main.insertBefore(el, $('#fxbar')); });
   main.addEventListener('click',e=>{
-    const g=e.target.closest('#subTabs [data-sh],#needBox [data-goto],#menuNews [data-goto],#ribbonKpis [data-goto]');
+    const g=e.target.closest('#subTabs [data-sh],#needBox [data-goto],#ribbonKpis [data-goto]');
     if(g){ gotoTab(g.dataset.sh||g.dataset.goto); try{ $('#sheetwrap .sheet.on').scrollTop=0; }catch(err){} return; }
-    if(e.target.closest('#menuNews .mn-x')){ e.preventDefault(); try{ localStorage.setItem(MENU_NEWS_LS,'1'); }catch(err){} renderMenuNews(); }
   });
   side.addEventListener('click',e=>{ const b=e.target.closest('[data-sh]'); if(b){ gotoTab(b.dataset.sh); document.body.classList.remove('sn-open'); try{ $('#sheetwrap .sheet.on').scrollTop=0; }catch(err){} return; }
     if(e.target.closest('#snClose')){ document.body.classList.remove('sn-open'); return; }
@@ -5172,7 +5190,7 @@ function tabHidden(b){
    시트 id 는 그대로 두고, 여러 시트를 한 메뉴 항목의 '안쪽 탭'으로 묶는다 → 기존 gotoTab 링크가 전부 그대로 동작.
    권한은 탭 단위(tabHidden)로 걸리고, 보이는 탭이 하나도 없으면 메뉴 항목도 숨는다. */
 const MENU=[
-  {g:'price',ic:'💰',lb:'가격',items:[{lb:'가격정책표',tabs:['sh-price','sh-product','sh-channel','sh-dash']}]},
+  {g:'price',ic:'💰',lb:'가격',items:[{lb:'가격정책표',tabs:['sh-price','sh-dash']}]},
   {g:'prod',ic:'📦',lb:'제품',items:[{lb:'제품 등록·검토',tabs:['sh-reg','sh-launch']}]},
   {g:'sales',ic:'📈',lb:'판매',items:[{lb:'매출',tabs:['sh-sales']},{lb:'유통기한',tabs:['sh-expiry']},{lb:'손익',tabs:['sh-pl','sh-fixed']}]},
   {g:'mkt',ic:'📣',lb:'마케팅',items:[{lb:'프로모션',tabs:['sh-promo','sh-mktpromo']},{lb:'마케팅',tabs:['sh-mkt','sh-mktlink']}]},
@@ -5213,7 +5231,7 @@ function renderSide(){
     h+='</div>';
   });
   el.innerHTML=h+'</nav>';
-  renderSub(); renderNeed(); renderMenuNews();
+  renderSub(); renderNeed();
 }
 /* 안쪽 탭: 지금 메뉴 항목에 보이는 탭이 2개 이상일 때만 */
 function renderSub(){
@@ -5231,23 +5249,6 @@ function renderNeed(){
   box.hidden=false;
   box.innerHTML='<b>먼저 준비하세요</b>'+need.map(([lb,go,ok])=> ok?`<span class="nd-ok">✅ ${esc(lb)}</span>`
     : (go&&go!==curSh ? `<button type="button" class="nd-todo" data-goto="${go}">⬜ ${esc(lb)} ▸</button>` : `<span class="nd-here">⬜ ${esc(lb)} · 이 화면 아래에서</span>`)).join('');
-}
-/* 바뀐 메뉴 안내: 2주(10/10까지) 또는 ✕ 누를 때까지 */
-const MENU_NEWS_LS='pour-menu-v2-news', MENU_NEWS_UNTIL='2026-10-10';
-const MENU_MOVED=[['경영요약','가격정책표 › 요약·알림','sh-dash'],['상품 기준 · 채널 수익분석','가격정책표 안쪽 탭','sh-product'],
-  ['MOQ 대량판매','가격정책표 🧾 견적·단가표 (구간표는 설정 › MOQ 구간)','sh-moq'],['신제품 검토','제품 › 제품 등록·검토 › 검토','sh-launch'],
-  ['고정지출 관리','판매 › 손익 › 고정지출','sh-fixed'],['프로모션 설계 · 성과','마케팅 › 프로모션 (기획 | 성과)','sh-promo'],
-  ['추적링크','마케팅 › 마케팅 › 추적링크','sh-mktlink'],['채널 관리','설정 › 채널·브랜드','sh-chman'],
-  ['계정 관리 · CRM 연동 · 데이터 관리','설정','sh-access'],['제품·상품 매칭 · 온라인 상품 등록','설정 (마스터 전용)','sh-match']];
-function renderMenuNews(){
-  const box=$('#menuNews'); if(!box) return;
-  let off=new Date().toISOString().slice(0,10)>MENU_NEWS_UNTIL; try{ off=off||localStorage.getItem(MENU_NEWS_LS)==='1'; }catch(e){}
-  if(off){ box.hidden=true; box.innerHTML=''; return; }
-  if(box.dataset.done) { box.hidden=false; return; }   // 펼침 상태 유지(다시 그리지 않음)
-  const rows=MENU_MOVED.filter(r=>{ const b=stabOf(r[2]); return b&&!tabHidden(b); });
-  box.dataset.done='1'; box.hidden=false;
-  box.innerHTML=`<details><summary>🆕 메뉴가 바뀌었어요 · 어디로? <button type="button" class="mn-x" title="다시 보지 않기">✕</button></summary>
-    <div class="mn-list">${rows.map(([o,n,sh])=>`<button type="button" data-goto="${sh}"><s>${esc(o)}</s> → <b>${esc(n)}</b></button>`).join('')}</div></details>`;
 }
 function renderTabs(){
   $$('.tgrp').forEach(g=>g.classList.toggle('on',g.dataset.grp===activeGrp));
@@ -5275,6 +5276,10 @@ function buildMobileMenu(){
 function openMobileMenu(){ buildMobileMenu(); $('#mobileMenu').classList.add('open'); }
 function closeMobileMenu(){ $('#mobileMenu').classList.remove('open'); }
 function gotoTab(sh){
+  if((sh==='sh-product'||sh==='sh-channel') && typeof openDetail==='function'){   // 상세 패널로 옮김 — 옛 링크는 패널로
+    const p=(SEL_ROW!=null&&P.find(x=>String(x.id)===SEL_ROW))||P.find(x=>x.id===pvCur)||P.find(x=>!isDeletedProd(x));
+    gotoTab('sh-price'); if(p&&costAllowed) openDetail(p, sh==='sh-channel'?'ch':'pv'); return;
+  }
   const b=document.querySelector('.stab[data-sh="'+sh+'"]');
   if(b) activeGrp=b.dataset.grp;
   $$('.stab').forEach(x=>x.classList.toggle('on',x.dataset.sh===sh));
@@ -8504,6 +8509,29 @@ function renderProductView(){
       <div id="pvPromoOut" style="margin-top:14px"></div></div></div>`;
   bindPvInputs(); recalcPvMkt(); recalcPvPromo();
 }
+/* ══════════ 상세 패널 (가격정책표 요약줄 [상세 ▸]) ══════════
+   상품 기준·채널 수익분석 시트의 본문을 통째로 패널로 옮겨 쓴다(id·계산·저장 로직은 그대로). */
+(function mountDetail(){
+  const pv=$('#pdPv'), ch=$('#pdCh'); if(!pv||!ch) return;
+  const body=$('#pvBody'); if(body) pv.appendChild(body);
+  const save=$('#pvSave'); if(save){ save.textContent='💾 저장'; save.style.marginLeft=''; $('#pdBar').appendChild(save); }
+  const pad=$('#sh-channel .sheet-pad'); if(pad) [...pad.children].forEach(c=>ch.appendChild(c));
+  $('#pdClose').addEventListener('click',()=>$('#pdPanel').classList.remove('open'));
+  $('#pdPanel .dl-tabs').addEventListener('click',e=>{ const b=e.target.closest('[data-pdtab]'); if(b) pdTab(b.dataset.pdtab); });
+})();
+function pdTab(t){
+  $$('#pdPanel [data-pdtab]').forEach(b=>b.classList.toggle('on',b.dataset.pdtab===t));
+  $('#pdPv').hidden=t!=='pv'; $('#pdCh').hidden=t!=='ch'; $('#pdBar').hidden=t!=='pv';
+  $('#pdPanel').scrollTop=0;
+}
+function openDetail(p,tab){
+  if(!p||!costAllowed) return;
+  const prev=pvProduct(); if(prev&&prev.id!==p.id&&$('#pvDisc')) PMETA[pKey(prev)]=pvCollect();   // 다른 상품으로 넘어가기 전 입력 보관(시트 선택과 같은 규칙)
+  pvCur=p.id; renderProductView();
+  const i=P.indexOf(p); if(i>=0){ $('#chProd').value=String(i); renderChannel(); }
+  $('#pdTitle').textContent=`${p.name}${p.spec&&p.spec!=='-'?' · '+p.spec:''}`;
+  pdTab(tab||'pv'); $('#pdPanel').classList.add('open');
+}
 async function savePMeta(){
   const p=pvProduct(); if(!p)return;
   PMETA[pKey(p)]=pvCollect();
@@ -9284,7 +9312,7 @@ async function openPromoCalc(key, preset){
    · 폰에서 버튼이 많은 도구줄은 '도구 N개 ▾' 로 접어 둔다(누르면 전부 펼침 — 기능은 그대로) */
 (function appUx(){
   const back=document.createElement('div'); back.id='uiBack'; document.body.appendChild(back);
-  const panels=()=>['#calcMenu','#calcPanel','#promoCalc','#costCalc','#dealPanel'].map(x=>$(x)).filter(Boolean);
+  const panels=()=>['#calcMenu','#calcPanel','#promoCalc','#costCalc','#dealPanel','#pdPanel'].map(x=>$(x)).filter(Boolean);
   const anyOpen=()=>panels().some(p=>p.classList.contains('open'));
   const drawerOpen=()=>document.body.classList.contains('sn-open');
   const closeAll=()=>{ panels().forEach(p=>p.classList.remove('open')); document.body.classList.remove('sn-open'); };

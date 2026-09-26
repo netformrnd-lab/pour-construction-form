@@ -481,6 +481,24 @@
   .plquick #planQuickPhoto:empty{display:none}
   .plquick input:focus{outline:none;border-color:var(--blue);background:#fff}
   .plquick-act{display:flex;gap:8px}
+  #sosToast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translate(-50%,12px);max-width:calc(100vw - 32px);padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:800;color:#fff;background:#111827;box-shadow:0 8px 24px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:9999;text-align:center}
+  #sosToast.on{opacity:1;transform:translate(-50%,0)}
+  #sosToast.ok{background:#0F9D6B}#sosToast.warn{background:#B45309}#sosToast.err{background:#DC2626}
+  .plq-brand{display:flex;gap:6px}
+  .plq-brand button{flex:1;border:1px solid var(--border2);background:var(--cream);color:var(--ink2);border-radius:10px;padding:8px 10px;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer}
+  .plq-brand button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .plq-main{display:flex;gap:8px;align-items:stretch}
+  .plq-main input{flex:1;min-width:0}
+  #planQuickPaste{flex:0 0 auto;border:1px solid var(--blue);background:var(--or-pale);color:var(--blue);border-radius:10px;padding:0 12px;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;white-space:nowrap}
+  .plq-more{border-top:1px dashed var(--border2);padding-top:8px}
+  .plq-more summary{cursor:pointer;font-size:12.5px;font-weight:800;color:var(--ink2);list-style:none;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+  .plq-more summary::-webkit-details-marker{display:none}
+  .plq-more summary span{font-weight:600;color:var(--muted);font-size:11.5px}
+  .plq-more[open]{display:flex;flex-direction:column;gap:10px}
+  .plq-more[open] summary{margin-bottom:2px}
+  .pg-brand{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 6px;border-radius:5px;background:#EEF2F7;color:#334155;margin-right:4px;vertical-align:1px}
+  .pg-brand.gh{background:#E7F7F0;color:#0B7A55}
+  .pg-moved{display:block;width:100%;margin-top:12px;padding:12px;border:1px dashed var(--border2);border-radius:12px;background:var(--card);color:var(--ink2);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;text-align:center}
   .plquick-act button{padding:11px 14px;border-radius:10px;font-size:13.5px;font-weight:800}
   #planQuickPhotoBtn{flex:0 0 auto;background:var(--surface);border:1px solid var(--border2);color:var(--ink2)}
   #planQuickAdd{flex:1;background:var(--or);color:#fff}
@@ -1272,9 +1290,9 @@
       <button id="snavPricing">💰 판매가</button>
     </div>
     <div class="snav-step">
-      <button data-tab="plans"><span class="sn">1단계</span> 🗒️ 기획·소싱</button>
-      <button data-tab="products"><span class="sn">2단계</span> 🔧 선정·세팅</button>
-      <button data-tab="confirm"><span class="sn">3단계</span> ✅ 확정</button>
+      <button data-tab="plans"><span class="sn">1단계</span> 📥 수집</button>
+      <button data-tab="products"><span class="sn">2단계</span> 🔍 검토</button>
+      <button data-tab="confirm"><span class="sn">3단계</span> 🚀 출시 결정</button>
     </div>
   </div>
   <div id="sourceSub" class="srcsub" style="display:none">
@@ -1396,10 +1414,17 @@
   <div id="view-plans" style="display:none">
   <div class="pl-srcrow" id="planSrcRow" style="display:none"></div>
   <div class="plquick">
-    <input id="planQuickInput" placeholder="기획 아이디어 입력 (예: 무광 블랙 패키지)">
+    <div class="plq-brand" id="planQuickBrand"></div>
+    <div class="plq-main">
+      <input id="planQuickInput" placeholder="🔗 링크 또는 아이템 이름" enterkeyhint="done" autocomplete="off">
+      <button type="button" id="planQuickPaste" title="복사한 링크 붙여넣고 바로 추가">📋 붙여넣기</button>
+    </div>
+    <div id="planQuickPhoto"></div>
+    <div class="plquick-act"><button type="button" id="planQuickPhotoBtn">📷 사진</button><button type="button" id="planQuickAdd">＋ 추가</button></div>
+    <details class="plq-more" id="planQuickMore"><summary>＋ 더 입력 <span>발견경로 · 카테고리 · 원가 · 판매가 · 링크</span></summary>
     <div class="plq-two">
       <select id="planQuickSrc"></select>
-      <select id="planQuickCat"><option value="">카테고리</option><option>방수</option><option>도장</option><option>보수·보강</option><option>홈데코</option><option>홈리페어</option><option>익스테리어</option><option>생활</option><option>기타</option></select>
+      <select id="planQuickCat"><option value="">카테고리</option></select>
     </div>
     <div class="plq-newwrap" id="planQuickNewWrap" style="display:none">
       <input id="planQuickNewVal" placeholder="새 항목 입력 후 추가">
@@ -1410,10 +1435,9 @@
       <input id="planQuickCost" placeholder="원가 (예: 8,500원/개)">
       <input id="planQuickPrice" placeholder="판매가 (시장가)">
     </div>
-    <input id="planQuickLink" placeholder="🔗 레퍼런스 링크 (경쟁사·예시)">
-    <input id="planQuickProd" placeholder="🛒 상품 링크 (1688·소싱처)">
-    <div id="planQuickPhoto"></div>
-    <div class="plquick-act"><button type="button" id="planQuickPhotoBtn">📷 사진</button><button type="button" id="planQuickAdd">＋ 후보 추가</button></div>
+    <input id="planQuickLink" placeholder="🎬 레퍼런스 링크 (영상·경쟁사)">
+    <input id="planQuickProd" placeholder="🛒 상품 링크 (1688·도매·소싱처)">
+    </details>
     <input type="file" id="planQuickFile" accept="image/*" hidden>
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
@@ -1447,10 +1471,10 @@
 <nav class="bottomnav">
   <div class="bn-in">
     <button class="bn-btn" data-tab="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>홈</button>
-    <button class="bn-btn" data-tab="plans"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>기획</button>
+    <button class="bn-btn" data-tab="plans"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>수집</button>
     <div class="bn-fabcell"><button class="bn-fab" id="camFab" aria-label="사진 촬영·테스트 기록"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3.2"></circle></svg></button></div>
-    <button class="bn-btn" data-tab="products"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22" x2="12" y2="12"></line></svg>선정</button>
-    <button class="bn-btn" data-tab="confirm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>확정</button>
+    <button class="bn-btn" data-tab="products"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22" x2="12" y2="12"></line></svg>검토</button>
+    <button class="bn-btn" data-tab="confirm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>출시</button>
   </div>
 </nav>
 
@@ -3681,24 +3705,65 @@ async function addTestMedia(pid,tid,file){
   }catch(e){console.error('[test-media] 첨부 실패:',e);alert('첨부에 실패했어요.');}
 }
 /* 기획 빠른 등록 (아이디어 + 링크 + 사진 한 번에) */
+/* 수집(빠른 추가): 칸 하나에 링크든 이름이든 넣으면
+   · 링크는 자동 분류 — 도매·쇼핑몰 링크 → 상품 링크, 영상·SNS 링크 → 레퍼런스
+   · 발견경로는 링크로 자동(틱톡·인스타·유튜브·도매사이트), '더 입력'에서 고르면 그 값 우선
+   · 브랜드(POUR스토어 / GROHOME)는 마지막 선택을 기억 */
+const PLAN_BRANDS=['POUR스토어','GROHOME'];
+const BRAND_LS='sos_quickBrand';
+function quickBrand(){ try{ const v=localStorage.getItem(BRAND_LS); return PLAN_BRANDS.includes(v)?v:PLAN_BRANDS[0]; }catch(e){ return PLAN_BRANDS[0]; } }
+function renderQuickBrand(){
+  const box=$('#planQuickBrand');if(!box)return;const cur=quickBrand();
+  box.innerHTML=PLAN_BRANDS.map(b=>`<button type="button" class="${b===cur?'on':''}" data-qbrand="${esc(b)}">${esc(b)}</button>`).join('');
+  box.querySelectorAll('[data-qbrand]').forEach(x=>x.onclick=()=>{try{localStorage.setItem(BRAND_LS,x.dataset.qbrand);}catch(e){}renderQuickBrand();});
+}
+const SHOP_LINK=/1688\.|alibaba\.|aliexpress\.|taobao\.|tmall\.|coupang\.|smartstore\.naver|shopping\.naver|brand\.naver|11st\.|gmarket\.|auction\.|temu\.|amazon\./i;
+function splitQuickText(txt){
+  const urls=(txt.match(/https?:\/\/[^\s<>"']+/gi)||[]).map(u=>u.replace(/[),.。，]+$/,''));
+  const rest=txt.replace(/https?:\/\/[^\s<>"']+/gi,' ').replace(/\s+/g,' ').trim();
+  return {urls,rest};
+}
+function sourceFromLinks(links){
+  for(const u of links){ const k=refKind(u); if(k&&['틱톡','인스타','유튜브'].includes(k.tag))return k.tag; }
+  if(links.some(u=>/1688\.|alibaba\.|aliexpress\.|taobao\.|tmall\.|temu\./i.test(u)))return '도매사이트';
+  if(links.length)return '검색';
+  return '';
+}
 async function addPlanQuick(){
   const inp=$('#planQuickInput'),lk=$('#planQuickLink'),pd=$('#planQuickProd'),pr=$('#planQuickPrice');
-  const v=((inp&&inp.value)||'').trim();
-  const link=((lk&&lk.value)||'').trim();
-  const prodLink=((pd&&pd.value)||'').trim();
+  const raw=((inp&&inp.value)||'').trim();
+  const {urls,rest}=splitQuickText(raw);
+  let link=((lk&&lk.value)||'').trim();
+  let prodLink=((pd&&pd.value)||'').trim();
   const sellPrice=((pr&&pr.value)||'').trim();
-  if(!v&&!link&&!prodLink&&!sellPrice&&!planQuickPhoto){if(inp)inp.focus();return;}
+  const refs=[];if(link)refs.push(link);
+  urls.forEach(u=>{ if(SHOP_LINK.test(u)&&!prodLink)prodLink=u; else if(!refs.includes(u)&&u!==prodLink)refs.push(u); });
+  const v=rest;
+  if(!v&&!refs.length&&!prodLink&&!sellPrice&&!planQuickPhoto){if(inp)inp.focus();return;}
   if(!plansLoaded)await loadPlans();
   const now=new Date().toISOString();
   const qs=$('#planQuickSrc'),qc=$('#planQuickCat'),qco=$('#planQuickCost');
-  const src=((qs&&qs.value)||quickSource||planSources()[0]);
-  const category=(qc&&qc.value)||'';
+  const chosen=(qs&&qs.value&&qs.value!=='__add__')?qs.value:'';
+  let src=chosen||sourceFromLinks([...refs,prodLink].filter(Boolean))||'기타';
+  const srcs=planSources();if(!srcs.includes(src)){const i=srcs.indexOf('기타');if(i>=0)srcs.splice(i,0,src);else srcs.push(src);}   // 새 발견경로는 목록에 추가(기존 값 유지)
+  const category=(qc&&qc.value&&qc.value!=='__add__')?qc.value:'';
   const cost=((qco&&qco.value)||'').trim();
   const newId='plan_'+uid();
-  plans.items.unshift({id:newId,title:v||'(제목 없음)',status:'아이디어',source:src,category,cost,marketMemo:'',vendorMemo:'',needs:[],links:[],photos:planQuickPhoto?[planQuickPhoto]:[],refs:link?[link]:[],prodLink,sellPrice,comments:[],createdBy:curUser(),createdAt:now,updatedAt:now});
-  if(inp)inp.value='';if(lk)lk.value='';if(pd)pd.value='';if(pr)pr.value='';if(qc)qc.value='';if(qco)qco.value='';planQuickPhoto=null;renderPlanQuickPhoto();
+  plans.items.unshift({id:newId,title:v||'(제목 없음)',status:'아이디어',brand:quickBrand(),source:src,category,cost,marketMemo:'',vendorMemo:'',needs:[],links:[],photos:planQuickPhoto?[planQuickPhoto]:[],refs,prodLink,sellPrice,comments:[],createdBy:curUser(),createdAt:now,updatedAt:now});
+  if(inp)inp.value='';if(lk)lk.value='';if(pd)pd.value='';if(pr)pr.value='';if(qc)qc.value='';if(qco)qco.value='';if(qs)qs.value='';planQuickPhoto=null;renderPlanQuickPhoto();
+  const mo=$('#planQuickMore');if(mo)mo.open=false;
   const ok=await savePlans();renderPlans();
-  if(ok){flagMsg('기획 추가됨','ok');autoClassify(newId);autoLinkThumb(newId);}
+  if(ok){flagMsg((refs.length||prodLink)&&!planQuickPhotoAdded(newId)?'추가됨 · 대표이미지 찾는 중…':'추가됨','ok');autoClassify(newId);autoLinkThumb(newId);}
+}
+function planQuickPhotoAdded(id){const p=plans.items.find(x=>x.id===id);return !!(p&&p.photos&&p.photos.length);}
+/* 📋 붙여넣기: 복사해 둔 링크를 넣고 링크면 바로 추가 */
+async function pasteQuick(){
+  const inp=$('#planQuickInput');let t='';
+  try{ t=(await navigator.clipboard.readText())||''; }
+  catch(e){ console.warn('[수집] 클립보드 읽기 실패:',e); if(inp){inp.focus();} flagMsg('입력칸을 길게 눌러 붙여넣기 해주세요','warn'); return; }
+  t=t.trim(); if(!t){flagMsg('복사된 내용이 없어요','warn');return;}
+  if(inp){ inp.value=(inp.value.trim()?inp.value.trim()+' ':'')+t; }
+  if(/https?:\/\//i.test(t)) await addPlanQuick(); else if(inp) inp.focus();
 }
 
 /* 상세 모달 열림 + 다른 입력 모달 없음일 때 붙여넣기 → 제품 개요 자료로 추가 */
@@ -3885,7 +3950,7 @@ document.querySelectorAll('#vtoggle button').forEach(b=>b.onclick=()=>{state.vie
 
 /* ---- app tabs ---- */
 /* ⚙ 부서 용도에 맞게 각 탭 설명을 바꾸세요 */
-const TAB_SUB={dashboard:'단계별 현황 · 최근 활동',products:'제조처 선정 · 원가·마진 · 시장조사',makers:'거래처 등록 · 대시보드',plans:'발견·수집 · 소싱 후보',test:'샘플 촬영 · 결과 기록',confirm:'테스트 완료 → 회의 결정(진행/보류/드롭)'};
+const TAB_SUB={dashboard:'단계별 현황 · 최근 활동',products:'제조처·시장가·마진·차별점 검토',makers:'거래처 등록 · 대시보드',plans:'링크·사진으로 빠르게 수집',test:'샘플 촬영 · 결과 기록',confirm:'테스트 완료 → 회의 결정(진행/보류/드롭)'};
 /* 3단계 확정 상세 — 계약조건 · 초도발주 · 판매준비 체크리스트 · 결정 */
 let cfdPid=null;
 function cfdDec(v){document.querySelectorAll('#cfd_dec button').forEach(b=>b.classList.toggle('on',b.dataset.dec===v));const d=$('#cfd_dec');if(d)d.dataset.val=v;}
@@ -4043,6 +4108,8 @@ document.querySelectorAll('#sourceSub [data-ssub]').forEach(b=>b.onclick=()=>swi
 (function(){
   const inp=$('#planQuickInput'),lk=$('#planQuickLink'),add=$('#planQuickAdd'),pb=$('#planQuickPhotoBtn'),pf=$('#planQuickFile');
   if(add)add.onclick=()=>addPlanQuick();
+  {const ps=$('#planQuickPaste');if(ps)ps.onclick=()=>pasteQuick();}
+  renderQuickBrand();
   if(inp)inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addPlanQuick();}};
   if(lk)lk.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addPlanQuick();}};
   if(pb)pb.onclick=()=>$('#planQuickFile').click();
@@ -4580,9 +4647,9 @@ function renderDashboard(){
       <button id="dashReport" class="tbtn" style="flex:0 0 auto">📊 이번달 보고</button>
     </div>
     <div class="dash-cards">
-      <div class="dash-card" data-dtab="plans"><div class="dc-k">1단계 · 기획·소싱</div><div class="dc-n">${c1}<small>건</small></div><div class="dc-s">발견·수집한 소싱 후보</div></div>
-      <div class="dash-card" data-dtab="products"><div class="dc-k">2단계 · 선정·세팅</div><div class="dc-n">${c2}<small>건</small></div><div class="dc-s">제조처·샘플·원가마진 검증</div></div>
-      <div class="dash-card" data-dtab="confirm"><div class="dc-k">3단계 · 확정</div><div class="dc-n">${c3}<small>건</small></div><div class="dc-s">진행 확정된 제품</div></div>
+      <div class="dash-card" data-dtab="plans"><div class="dc-k">1단계 · 수집</div><div class="dc-n">${c1}<small>건</small></div><div class="dc-s">발견·수집한 소싱 후보</div></div>
+      <div class="dash-card" data-dtab="products"><div class="dc-k">2단계 · 검토</div><div class="dc-n">${c2}<small>건</small></div><div class="dc-s">제조처·샘플·원가마진 검증</div></div>
+      <div class="dash-card" data-dtab="confirm"><div class="dc-k">3단계 · 출시 결정</div><div class="dc-n">${c3}<small>건</small></div><div class="dc-s">진행 확정된 제품</div></div>
     </div>
     <div class="dash-sec">
       <div class="dash-sec-h">최근 활동</div>
@@ -4789,7 +4856,7 @@ function renderPlanSrcRow(){
   if(!quickSource||!srcs.includes(quickSource))quickSource=srcs[0];
   // 폼 안 발견경로 드롭다운 채우기(프리뷰형)
   const qs=$('#planQuickSrc');
-  if(qs){const keep=qs.value&&qs.value!=='__add__'?qs.value:'';qs.innerHTML='<option value="">발견 경로</option>'+srcs.map(s=>`<option${s===keep?' selected':''}>${esc(s)}</option>`).join('')+'<option value="__add__">＋ 직접 입력…</option>';qs.onchange=()=>{
+  if(qs){const keep=qs.value&&qs.value!=='__add__'?qs.value:'';qs.innerHTML='<option value="">발견 경로 (링크로 자동)</option>'+srcs.map(s=>`<option${s===keep?' selected':''}>${esc(s)}</option>`).join('')+'<option value="__add__">＋ 직접 입력…</option>';qs.onchange=()=>{
     if(qs.value==='__add__'){qs.value=(keep&&srcs.includes(keep))?keep:'';openPlanNew('src');return;}
     if(qs.value)quickSource=qs.value;
   };}
@@ -4903,13 +4970,15 @@ async function uploadPlanFile(planId,file){
   const snap=await ref.put(file,{contentType:file.type||'image/jpeg'});
   return {url:await snap.ref.getDownloadURL(),path:ref.fullPath};
 }
+/* 검토(제품)로 넘어간 기획 — 수집 목록 '전체'에서는 빠짐 */
+function planMoved(p){return p.status==='승인'&&!!p.productId&&state.products.some(x=>x.id===p.productId);}
 function renderPlanStatusChips(){
   const box=$('#planStatusChips');if(!box)return;
   // 상태가 한 종류뿐이면(예: 다 신규) 상태 필터는 의미 없으니 숨김 — 필터 버튼만 남김
   const distinct=PLAN_STATUS.filter(s=>plans.items.some(p=>p.status===s)).length;
   if(distinct<=1&&planFilter==='전체'){box.innerHTML='';return;}
   // 0건 상태는 숨겨 단순화 (전체 + 현재 선택 + 건수>0만)
-  const all=[['전체',plans.items.length]].concat(PLAN_STATUS.map(s=>[s,plans.items.filter(p=>p.status===s).length]).filter(([s,c])=>c>0||planFilter===s));
+  const all=[['전체',plans.items.filter(p=>!planMoved(p)).length]].concat(PLAN_STATUS.map(s=>[s,plans.items.filter(p=>p.status===s).length]).filter(([s,c])=>c>0||planFilter===s));
   box.innerHTML=all.map(([s,c])=>`<button class="fchip${planFilter===s?' on':''}" data-pf="${s}">${s==='전체'?'전체':PLAN_ST_LABEL[s]} ${c}</button>`).join('');
   box.querySelectorAll('[data-pf]').forEach(b=>b.onclick=()=>{planFilter=b.dataset.pf;renderPlans();});
 }
@@ -4969,6 +5038,10 @@ function renderPlans(){
   const box=$('#planList'),empty=$('#planEmpty');if(!box)return;
   const fw=$('#planFilterWrap');if(fw)fw.style.display='';
   let list=plans.items.slice();
+  // 하나의 흐름: 검토(제품)로 넘어간 아이템은 수집 목록에서 빠지고 검토 탭에서 이어서 본다(상태 칩 '승격'을 누르면 여기서도 보임)
+  const isMoved=planMoved;
+  const movedN=plans.items.filter(isMoved).length;
+  if(planFilter==='전체')list=list.filter(p=>!isMoved(p));
   if(planFilter!=='전체')list=list.filter(p=>p.status===planFilter);
   if(planSrcFilter!=='전체')list=list.filter(p=>(p.source||'기타')===planSrcFilter);
   if(planDateFilter!=='전체')list=list.filter(p=>inDateFilter(p.createdAt,planDateFilter));
@@ -4977,9 +5050,10 @@ function renderPlans(){
   if(planAreaFilter!=='전체')list=list.filter(p=>matchArea(p,planAreaFilter));
   if(planQuery){const q=planQuery.toLowerCase();list=list.filter(p=>((p.title||'')+' '+(p.category||'')+' '+(p.marketMemo||'')+' '+(p.vendorMemo||'')+' '+(p.source||'')).toLowerCase().includes(q));}
   list.sort((a,b)=>(b.createdAt||b.updatedAt||'').localeCompare(a.createdAt||a.updatedAt||'')); // 등록(발견)일 최신순 — 수정해도 순서 유지
-  if(!list.length){box.innerHTML='';empty.style.display='';empty.innerHTML='<div class="tempty" style="padding:24px 16px;text-align:center;color:var(--muted)">'+(plans.items.length?'해당하는 기획이 없어요.':'아직 기획이 없어요. <b>위 입력칸</b>에 한 줄로 바로 등록해보세요.')+'</div>';return;}
+  if(!list.length){box.innerHTML=(planFilter==='전체'&&movedN)?`<button type="button" class="pg-moved" onclick="switchTab('products')">🔧 검토로 넘어간 아이템 ${movedN}개 · 검토에서 보기 ▸</button>`:'';empty.style.display='';empty.innerHTML='<div class="tempty" style="padding:24px 16px;text-align:center;color:var(--muted)">'+(plans.items.length?'해당하는 기획이 없어요.':'아직 기획이 없어요. <b>위 입력칸</b>에 한 줄로 바로 등록해보세요.')+'</div>';return;}
   empty.style.display='none';
   const stBadge=p=>{const col=PLAN_ST_COLOR[p.status]||PLAN_ST_COLOR['아이디어'];return `<span class="pg-st" style="background:${col[0]};color:${col[1]}">${esc(PLAN_ST_LABEL[p.status||'아이디어']||p.status||'신규')}</span>`;};
+  const brandTag=p=>p.brand?`<span class="pg-brand${p.brand==='GROHOME'?' gh':''}">${esc(p.brand==='GROHOME'?'GROHOME':'POUR')}</span>`:'';
   const thumbOf=p=>{const photo=(p.photos||[]).find(x=>x&&(x.url||x.data));return photo?`<img src="${esc(photo.url||photo.data)}" alt="">`:'<span class="pg-ph">🧩</span>';};
   // 원가·판매가 둘 다 있으면 둘 다, 하나만 있으면 그것만, 없으면 원가 —
   const priceParts=p=>{
@@ -4989,6 +5063,7 @@ function renderPlans(){
     if(!parts.length) parts.push({lab:'원가',v:'—'});
     return parts;
   };
+  const movedHtml=(planFilter==='전체'&&movedN)?`<button type="button" class="pg-moved" id="pgMoved">🔧 검토로 넘어간 아이템 ${movedN}개 · 검토에서 보기 ▸</button>`:'';
   if(planView==='list'){
     // 목록(리스트 행): 썸네일 · 제목 · 발견경로·상태 · 원가
     const rows=list.map(p=>{
@@ -4997,13 +5072,13 @@ function renderPlans(){
         <div class="pgr-thumb">${thumbOf(p)}${link?`<button class="pg-link" data-plref="${esc(link)}" title="링크 열기">🔗</button>`:''}</div>
         <div class="pgr-body">
           <div class="pgr-name">${esc(p.title||'(제목 없음)')}</div>
-          <div class="pgr-meta">${esc(p.source||'기타')}${p.category?' · '+esc(p.category):''} · ${stBadge(p)}</div>
+          <div class="pgr-meta">${brandTag(p)}${esc(p.source||'기타')}${p.category?' · '+esc(p.category):''} · ${stBadge(p)}</div>
           ${planDevBadge(p,'pgr-ai')}
         </div>
         <div class="pgr-price">${priceParts(p).map(x=>`<div class="pgr-pcell"><span class="lab">${x.lab}</span> <b>${esc(x.v)}</b></div>`).join('')}</div>
       </div>`;
     }).join('');
-    box.innerHTML='<div class="pgrows">'+rows+'<button class="pgrow pgrow-add" id="pgAdd">＋ 후보 추가</button></div>';
+    box.innerHTML='<div class="pgrows">'+rows+'<button class="pgrow pgrow-add" id="pgAdd">＋ 후보 추가</button></div>'+movedHtml;
   }else{
     // 카드(그리드)
     const cards=list.map(p=>{
@@ -5011,7 +5086,7 @@ function renderPlans(){
       return `<div class="pgcard" data-pid="${esc(p.id)}">
         <div class="pg-thumb">${thumbOf(p)}${link?`<button class="pg-link" data-plref="${esc(link)}" title="링크 열기">🔗</button>`:''}</div>
         <div class="pg-body">
-          <div class="pg-src">${esc(p.source||'기타')}${p.category?' · '+esc(p.category):''}</div>
+          <div class="pg-src">${brandTag(p)}${esc(p.source||'기타')}${p.category?' · '+esc(p.category):''}</div>
           <div class="pg-name">${esc(p.title||'(제목 없음)')}</div>
           <div class="pg-price${priceParts(p).length>1?' two':''}">${priceParts(p).map(x=>`<span class="pp"><span class="lab">${x.lab}</span> <b>${esc(x.v)}</b></span>`).join('<span class="pg-pdot">·</span>')}</div>
           ${planDevBadge(p)}
@@ -5019,10 +5094,11 @@ function renderPlans(){
         </div>
       </div>`;
     }).join('');
-    box.innerHTML='<div class="pgrid">'+cards+'<div class="pgcard pg-add" id="pgAdd">＋ 후보 추가</div></div>';
+    box.innerHTML='<div class="pgrid">'+cards+'<div class="pgcard pg-add" id="pgAdd">＋ 후보 추가</div></div>'+movedHtml;
   }
   box.querySelectorAll('[data-pid]').forEach(c=>c.onclick=e=>{if(e.target.closest('[data-plref]'))return;openPlan(c.dataset.pid);});
   box.querySelectorAll('[data-plref]').forEach(b=>b.onclick=e=>{e.stopPropagation();window.open(b.dataset.plref,'_blank','noopener');});
+  const pm=$('#pgMoved');if(pm)pm.onclick=()=>switchTab('products');
   const pa=$('#pgAdd');if(pa)pa.onclick=()=>{const inp=$('#planQuickInput');if(inp){inp.scrollIntoView({behavior:'smooth',block:'center'});inp.focus();}};
 }
 function renderPlanPhotos(){
@@ -5325,6 +5401,7 @@ function planToProduct(){
   const atts=(p.photos||[]).filter(ph=>ph&&(ph.url||ph.data)).map(attFromPlanPhoto);
   const thumbId=(atts.find(a=>a.kind==='image')||{}).id||'';
   const np={id,name:p.title||'(무제)',goods:'',maker:'',type:'단품',bundle:[],baseId:'',concept:p.category||'',spec:'',sample:'대기',memo,source:'국내 제조사',market:(p.sellPrice?('시장가 '+p.sellPrice):''),cost:(p.cost||''),refLink:((p.refs&&p.refs[0])||''),prodLink:(p.prodLink||''),moq:'',pricevar:'',lead:'',customs:'',fill:[],fillmaker:'확인중',container:'확인중',ibc:'해당없음',label:'',cert:'확인중',patent:'확인중',certs:[],patentinfo:'',attachments:atts,thumbId,notes:[],fav:false,tests:[],docs:[],stage:'후보',history:[{stage:'후보',date:today()}]};
+  if(p.brand)np.brand=p.brand;
   state.products.push(np);state.sel=id;logAct('add',np,null);save();
   p.productId=id;p.status='승인';p.promotedAt=new Date().toISOString();savePlans(); // 승격 시 상태 자동 전환(신규→승격)
   closeOverlay();switchTab('products');openDetail(id);
@@ -5487,7 +5564,14 @@ function exportProducts(){
   writeProductSheet(aoa,'제품_수정양식_'+today());
   flagMsg(`현재 제품 ${state.products.length}건을 받았어요. 셀을 수정 후 [수정 업로드]하면 제품ID 기준으로 반영돼요.`,'ok');
 }
-function flagMsg(t,cls){const m=$('#xlsxMsg');if(!m)return;m.className='xlsx-msg '+(cls||'');m.textContent=t;}
+function flagMsg(t,cls){const m=$('#xlsxMsg');if(m){m.className='xlsx-msg '+(cls||'');m.textContent=t;}sosToast(t,cls);}
+/* 화면 하단 알림(서랍 안 메시지는 평소에 안 보이므로 함께 띄움) */
+function sosToast(t,cls){
+  let el=document.getElementById('sosToast');
+  if(!el){el=document.createElement('div');el.id='sosToast';document.body.appendChild(el);}
+  el.className=(cls==='err'?'err':cls==='warn'?'warn':'ok')+' on';el.textContent=t;
+  clearTimeout(sosToast._t);sosToast._t=setTimeout(()=>el.classList.remove('on'),2600);
+}
 function csvParse(text){
   text=text.replace(/^\uFEFF/,'');const rows=[];let row=[],cur='',q=false;
   for(let i=0;i<text.length;i++){const ch=text[i];

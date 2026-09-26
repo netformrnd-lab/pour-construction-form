@@ -819,6 +819,23 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 .pz-mini{display:none}
 #dealPanel{position:fixed;z-index:102;left:50%;top:50%;transform:translate(-50%,-50%);width:min(720px,calc(100vw - 32px));max-height:88vh;overflow-y:auto;background:#fff;border-radius:14px;box-shadow:0 18px 48px rgba(31,39,51,.28);display:none}
 #dealPanel.open{display:block;animation:uiUp .18s ease}
+/* 출시 관리 목록 */
+#laList .la-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+#laList .la-chips button{border:1px solid #E2E8F0;background:#fff;border-radius:16px;padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--ink-soft);cursor:pointer}
+#laList .la-chips button.on{background:var(--xl-green);border-color:var(--xl-green);color:#fff}
+.la-row{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid #EEF2F6}
+.la-row:first-of-type{border-top:0}
+.la-row.on{background:#F0FBF4;border-radius:10px;padding:10px 8px;margin:0 -8px}
+.la-row .t{flex:1;min-width:0}
+.la-row .nm{font-weight:800;font-size:13.5px;overflow-wrap:anywhere}
+.la-row .sub{font-size:12px;color:var(--ink-soft);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.la-row .acts{display:flex;gap:6px;flex:0 0 auto}
+.la-row .acts .tbtn{padding:6px 10px;min-height:0;font-size:12.5px}
+.la-src{font-size:11px;font-weight:800;background:#EEF4FF;color:#1D4ED8;border-radius:6px;padding:2px 6px;text-decoration:none}
+.la-choose{display:flex;flex-direction:column;gap:8px}
+.la-choose .tbtn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;text-align:left;min-height:0}
+.la-choose .tbtn span{font-size:12px;color:var(--ink-soft);font-weight:500}
+@media(max-width:640px){ .la-row{flex-wrap:wrap} .la-row .acts{width:100%;justify-content:flex-end} }
 /* 상세 패널(상품 기준 · 채널 수익분석) — 견적 창과 같은 틀 */
 #pdPanel{position:fixed;z-index:102;left:50%;top:50%;transform:translate(-50%,-50%);width:min(860px,calc(100vw - 32px));max-height:88vh;overflow-y:auto;background:#F8FAFC;border-radius:14px;box-shadow:0 18px 48px rgba(31,39,51,.28);display:none}
 #pdPanel.open{display:block;animation:uiUp .18s ease}
@@ -1229,7 +1246,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26m</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26n</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1672,11 +1689,16 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
       <span class="ttl">신제품 검토</span>
       <select id="laSel" style="min-width:240px;flex:0 1 340px"></select>
       <select id="laStatus" title="이 제품의 상태"><option>출시준비</option><option>출시</option><option>단종</option></select>
-      <button class="tbtn" id="laNewBtn">＋ 새 검토 제품</button>
+      <button class="tbtn primary" id="laNewBtn">＋ 새 제품</button>
       <span class="footnote" id="laSaved" style="margin:0 0 0 auto"></span>
       <span class="hint">MOQ·원가·물류비·채널 수수료로 예상 마진을 보고, 시장가 조사와 비교해 상품성을 판단합니다 · 입력하면 자동 저장</span>
     </div>
     <div class="sheet-pad">
+      <div class="panel" id="laChoose" style="display:none"><h3>새 제품 어떻게 낼까요?</h3><div class="bd la-choose">
+        <button type="button" class="tbtn" id="laGoDirect"><b>🚀 바로 출시</b><span>원가·가격을 이미 알 때 · 등록하면 가격정책표에 바로</span></button>
+        <button type="button" class="tbtn" id="laGoReview"><b>🔍 검토 후 출시</b><span>시장조사·마진부터 · 출시준비로 두고 검토</span></button>
+        <button type="button" class="tbtn" id="laChooseX" style="justify-content:center">취소</button></div></div>
+      <div class="panel" id="laListPanel"><h3>출시 관리 <span class="tag">소싱앱에서 넘어온 상품은 🔗 표시</span></h3><div class="bd" id="laList"></div></div>
       <div class="panel" id="laNewPanel" style="display:none">
         <h3>새 검토 제품 <span class="tag">상태 '출시준비'로 등록 · 자체상품코드는 출시할 때 붙습니다</span></h3>
         <div class="bd">
@@ -8609,7 +8631,7 @@ function checkSourcingImport(){
   $('#siGo').onclick=async()=>{
     const cat=($('#siCat').value||'').trim()||'신제품', name=($('#siName').value||'').trim(), spec=($('#siSpec').value||'').trim()||'-';
     if(!name){ $('#siName').focus(); return; }
-    const key=`${cat}|${name}|${spec}`, plan={...pl};
+    const key=`${cat}|${name}|${spec}`, plan={...pl, srcId:j.sid||'', srcAt:new Date().toISOString().slice(0,10)};
     $('#siGo').disabled=true;
     try{
       if(P.some(p=>pKey(p)===key)){
@@ -8682,6 +8704,30 @@ function laVerdict(pl, cal, mk){
   return {ic:T[0], title:T[1], body:T[2], q, pos, ourTot};
 }
 function laProducts(){ return P.filter(p=>!isDeletedProd(p)); }
+/* 출시 관리 목록: 출시준비(기본)·출시·단종 칩 → 줄마다 원가·판매가·예상 마진, [검토 ›] [🚀 출시], 소싱앱에서 온 건 🔗 */
+let LA_LIST_F='출시준비';
+const SOURCING_URL='Sourcing/Sourcing-os.html';
+function laSrcOf(k){ const pl=LPLAN[k]||{}; const pa=PADD.find(r=>`${r.cat}|${r.name}|${r.spec}`===k); return (pl.srcId||(pa&&pa.source==='소싱앱'))?{id:pl.srcId||''}:null; }
+function renderLaunchList(){
+  const box=$('#laList'); if(!box) return;
+  if(!costAllowed){ $('#laListPanel').style.display='none'; return; }
+  $('#laListPanel').style.display='';
+  const live=laProducts(), grp={'출시준비':[],'출시':[],'단종':[]}; live.forEach(p=>grp[pstatus(p)].push(p));
+  const list=(grp[LA_LIST_F]||[]).slice().sort((a,b)=>(laSrcOf(pKey(b))?1:0)-(laSrcOf(pKey(a))?1:0));
+  const w=n=>n>0?Math.round(n).toLocaleString('ko-KR')+'원':'—';
+  box.innerHTML=`<div class="la-chips">${Object.keys(grp).map(g=>`<button type="button" class="${g===LA_LIST_F?'on':''}" data-laf="${g}">${g} ${grp[g].length}</button>`).join('')}</div>`+
+    (list.length?list.slice(0,60).map(p=>{ const k=pKey(p), pl=LPLAN[k], cal=pl?laCalc(pl):null, src=laSrcOf(k);
+      return `<div class="la-row${k===LA_KEY?' on':''}"><div class="t"><div class="nm">${esc(p.name)}${p.spec&&p.spec!=='-'?' <span style="font-weight:500;color:var(--ink-soft)">'+esc(p.spec)+'</span>':''}</div>
+        <div class="sub">${esc(pbrand(p).join(' · '))}${src?` · ${src.id?`<a class="la-src" href="${SOURCING_URL}#item=${encodeURIComponent(src.id)}" target="_blank" rel="noopener" title="소싱앱에서 이 상품 기록 열기">🔗 소싱 기록</a>`:'<span class="la-src">🔗 소싱앱</span>'}`:''}</div>
+          <div class="sub">원가 ${w(pl?laNum(pl.cost):p.cost)} · 판매가 ${w(pl?laNum(pl.price):0)}${cal&&cal.avgRate!=null&&laNum(pl.price)>0?` · 마진 <b style="color:${cal.avgRate<0?'var(--red)':'var(--xl-green-dark)'}">${(cal.avgRate*100).toFixed(1)}%</b>`:''}</div></div>
+        <div class="acts"><button type="button" class="tbtn" data-lago="${esc(k)}">검토 ›</button>${LA_LIST_F==='출시준비'?`<button type="button" class="tbtn primary" data-larel="${esc(k)}">🚀 출시</button>`:''}</div></div>`; }).join('')
+      :`<div class="footnote" style="margin:0">${LA_LIST_F} 제품이 없어요.${LA_LIST_F==='출시준비'?' [＋ 새 제품]이나 소싱앱의 [📤 보내기]로 넣을 수 있어요.':''}</div>`);
+}
+document.addEventListener('click',async e=>{
+  const f=e.target.closest('#laList [data-laf]'); if(f){ LA_LIST_F=f.dataset.laf; renderLaunchList(); return; }
+  const g=e.target.closest('#laList [data-lago]'); if(g){ LA_KEY=g.dataset.lago; renderLaunch(); const b=$('#laBody'); if(b) b.scrollIntoView({block:'start',behavior:'smooth'}); return; }
+  const r=e.target.closest('#laList [data-larel]'); if(r){ LA_KEY=r.dataset.larel; renderLaunch(); const s=$('#laStatus'); if(s){ s.value='출시'; s.dispatchEvent(new Event('change')); } return; }
+});
 function laFillSel(){
   const sel=$('#laSel'); if(!sel) return;
   const live=laProducts(), grp={'출시준비':[],'출시':[],'단종':[]};
@@ -8752,6 +8798,7 @@ function laOutHtml(pl){
 }
 function renderLaunch(){
   const body=$('#laBody'); if(!body) return;
+  try{ renderLaunchList(); }catch(e){ console.error('[출시 관리] 목록 그리기 실패:',e); }
   if(!costAllowed){ body.innerHTML='<div class="panel"><div class="bd">원가 열람 권한이 있는 계정에서만 볼 수 있습니다.</div></div>'; return; }
   laFillSel();
   const p=laProducts().find(x=>pKey(x)===LA_KEY);
@@ -8844,12 +8891,17 @@ function laQueueSave(){
       refreshAll(); gotoTab('sh-launch');
     }catch(err){ e.target.value=pstatus(p); }
   });
-  $('#laNewBtn').addEventListener('click',()=>{
-    const pn=$('#laNewPanel'); pn.style.display=pn.style.display==='none'?'':'none';
+  $('#laNewBtn').addEventListener('click',()=>{ const c=$('#laChoose'); c.style.display=c.style.display==='none'?'':'none'; if(c.style.display==='') c.scrollIntoView({block:'center',behavior:'smooth'}); });
+  $('#laChooseX').addEventListener('click',()=>{ $('#laChoose').style.display='none'; });
+  $('#laGoDirect').addEventListener('click',()=>{ $('#laChoose').style.display='none'; gotoTab('sh-reg'); const st=$('#apStatus'); if(st) st.value='출시'; const n=$('#apName'); if(n){ n.scrollIntoView({block:'center'}); n.focus(); } uiToast('상태가 "출시"로 맞춰져 있어요 · 제품 정보를 넣고 [＋ 제품 등록]','info'); });
+  $('#laGoReview').addEventListener('click',()=>{ $('#laChoose').style.display='none'; openLaNewPanel(); });
+  function openLaNewPanel(){
+    const pn=$('#laNewPanel'); pn.style.display='';
     $('#laCatList').innerHTML=[...new Set(P.map(p=>p.cat).filter(Boolean))].map(c=>`<option value="${esc(c)}">`).join('');
     $('#laNewBrand').innerHTML=BRAND_LIST.map(b=>`<option${b===(BRAND_FILTER||BRAND_DEFAULT)?' selected':''}>${esc(b)}</option>`).join('');
     $('#laNewMsg').textContent='';
-  });
+    const nm=$('#laNewName'); if(nm) nm.focus();
+  }
   $('#laNewCancel').addEventListener('click',()=>{ $('#laNewPanel').style.display='none'; });
   $('#laNewSave').addEventListener('click',async()=>{
     const cat=$('#laNewCat').value.trim(), name=$('#laNewName').value.trim(), spec=$('#laNewSpec').value.trim()||'-', brand=$('#laNewBrand').value;

@@ -5224,6 +5224,16 @@ function sendToPricing(p){
   flagMsg('가격 대시보드를 열었어요 · 거기서 [출시준비로 등록]을 눌러주세요','ok');
 }
 
+/* 가격 대시보드 '🔗 소싱 기록' 등에서 Sourcing-os.html#item=<제품id> 로 열면 데이터가 올라온 뒤 그 아이템 페이지를 연다 */
+(function deepLinkItem(){
+  const m=(location.hash||'').match(/^#item=([^&]+)/);if(!m)return;
+  const id=decodeURIComponent(m[1]);let n=0;
+  const t=setInterval(()=>{n++;
+    if(state&&Array.isArray(state.products)&&state.products.some(x=>x.id===id)){clearInterval(t);try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}openItem(id,'go');return;}
+    if(n>40){clearInterval(t);console.warn('[바로가기] 아이템을 찾지 못했어요:',id);flagMsg('소싱앱에서 이 아이템을 찾지 못했어요 (로그인 후 다시 열어주세요)','warn');}
+  },500);
+})();
+
 /* ══════════ 🏭 제조사 제품에서 시작 ══════════ */
 let msPhoto=null;
 function openMakerStart(maker){

@@ -1151,6 +1151,14 @@
   .cost-line{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:13.5px;font-variant-numeric:tabular-nums}
   .cost-line .v{text-align:right;font-weight:700}
   .cost-line .tot{border-top:1px solid var(--border2);padding-top:6px;font-weight:800}
+  .sh-cut{display:flex;flex-direction:column;gap:8px}
+  .sh-cut .hd{display:flex;gap:8px;align-items:center}
+  .sh-cut .no{width:26px;height:26px;border-radius:8px;background:var(--gray-pale);display:grid;place-items:center;font-weight:800;font-size:12px;flex:0 0 auto}
+  .sh-cut.done .no{background:var(--green-pale);color:#0B7A55}
+  .sh-cut .hd .it-in{font-weight:800}
+  .sh-refmini{display:flex;gap:8px;align-items:center;background:var(--cream);border-radius:10px;padding:6px;text-decoration:none;color:var(--ink2);font-size:12.5px}
+  .sh-refmini img{width:44px;height:44px;border-radius:8px;object-fit:cover;flex:0 0 auto}
+  .sh-refmini span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* 📷 찍기 시트 */
   #camPickOverlay{align-items:flex-end;padding:0}
   .cp-sheet{background:var(--card);width:100%;max-width:560px;margin:0 auto;border-radius:20px 20px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;max-height:88dvh;overflow:auto}
@@ -4622,7 +4630,7 @@ function itemProgress(p){
     p.decision==='진행'||p.stage==='출시완료'];
 }
 function itemNext(p){
-  const bb=setBase(p);if(bb&&bb!==p){const miss=setMissing(p);if(miss)return {t:'판매세팅: '+miss,go:()=>setItemTab('set')};if(!(p.packing&&p.packing.done))return {t:'패킹: 경쟁사 패킹 보고 우리 패킹안 정하기',go:()=>setItemTab('pack')};{const left=(p.shots||[]).filter(c=>!c.done).length;if(left)return {t:`촬영 남은 컷 ${left}개`,go:()=>openShoot()};}return {t:'패킹 완료 ✓ · 출시검토는 다음 업데이트에서 열려요',go:()=>setItemTab('pack')};}
+  const bb=setBase(p);if(bb&&bb!==p){const miss=setMissing(p);if(miss)return {t:'판매세팅: '+miss,go:()=>setItemTab('set')};if(!(p.packing&&p.packing.done))return {t:'패킹: 경쟁사 패킹 보고 우리 패킹안 정하기',go:()=>setItemTab('pack')};{const left=(p.shots||[]).filter(c=>!c.done).length;if(left)return {t:`촬영 남은 컷 ${left}개`,go:()=>setItemTab('shot')};}return {t:'패킹 완료 ✓ · 출시검토는 다음 업데이트에서 열려요',go:()=>setItemTab('pack')};}
   const refs=(p.refs||[]).length, imgs=(p.attachments||[]).filter(a=>a.kind==='image').length;
   if(!refs&&!imgs&&!(p.samples||[]).length)return {t:'레퍼런스 링크나 사진을 넣어보세요',go:()=>setItemTab('ref')};
   const S=p.samples||[],mk=S.filter(x=>x.type==='maker');
@@ -4635,7 +4643,7 @@ function itemNext(p){
   if(!p.makerId)return {t:'샘플을 비교해서 제조사를 확정하세요',go:()=>setItemTab('smp')};
   {const miss=setMissing(p);if(miss)return {t:'판매세팅: '+miss,go:()=>setItemTab('set')};}
   if(!(p.packing&&p.packing.done))return {t:'패킹: 경쟁사 패킹 보고 우리 패킹안 정하기',go:()=>setItemTab('pack')};
-  {const left=(p.shots||[]).filter(c=>!c.done).length;if(left)return {t:`촬영 남은 컷 ${left}개`,go:()=>openShoot()};}
+  {const left=(p.shots||[]).filter(c=>!c.done).length;if(left)return {t:`촬영 남은 컷 ${left}개`,go:()=>setItemTab('shot')};}
   if(!derivOf(p).length&&!p.decision)return {t:'패킹 완료 ✓ · 컨셉별 파생 상품도 만들 수 있어요',go:()=>setItemTab('set')};
   if(!p.decision)return {t:'샘플을 보고 진행 여부 결정하기',go:()=>{closeOverlay();switchTab('confirm');}};
   return {t:'전체 정보에서 원가·인증·서류 확인하기',go:()=>openDetail(p.id)};
@@ -4659,15 +4667,17 @@ function renderItem(){
       <div class="it-sub" style="margin-top:4px">${esc(p.concept||'')}</div></div></div>
     <div class="it-steps">${['수집','샘플비교','제조사','판매세팅','패킹','출시검토'].map((t,i)=>`<div class="${pr[i]?'on':''}"><i></i>${t}</div>`).join('')}</div>
     <button class="it-next" data-itact="next"><span>다음 할 일</span><b>${esc(nx.t)} ›</b></button>
+    <button class="it-btn line" style="margin-top:8px;padding:8px 12px;font-size:12.5px" data-itact="tab" data-tab="shot">🎬 촬영 ${(p.shots||[]).length?`${(p.shots||[]).filter(c=>c.done).length}/${(p.shots||[]).length}컷`:'컷 없음'} · 소싱과 함께 진행 ›</button>
   </div>
   <div class="it-tabs" role="tablist">
     <button class="${itemTab==='ref'?'on':''}" data-itact="tab" data-tab="ref">📌 레퍼런스${refN?`<em>${refN}</em>`:''}</button>
     <button class="${itemTab==='smp'?'on':''}" data-itact="tab" data-tab="smp">🧪 샘플비교${(p.samples||[]).length?`<em>${(p.samples||[]).length}</em>`:''}</button>
     <button class="${itemTab==='set'?'on':''}" data-itact="tab" data-tab="set">🛠 판매세팅<em>${setDoneCount(p)}/4</em></button>
     <button class="${itemTab==='pack'?'on':''}" data-itact="tab" data-tab="pack">📦 패킹${p.packing&&p.packing.done?'<em>✓</em>':''}</button>
+    <button class="${itemTab==='shot'?'on':''}" data-itact="tab" data-tab="shot">🎬 촬영${(p.shots||[]).length?`<em>${(p.shots||[]).filter(c=>c.done).length}/${(p.shots||[]).length}</em>`:''}</button>
     <button data-itact="full" title="견적·테스트·인증·서류 등 기존 상세">⋯ 전체 정보</button>
   </div>
-  ${itemTab==='smp'?itemTabSmp(p):itemTab==='set'?itemTabSet(p):itemTab==='pack'?itemTabPack(p):itemTabRef(p)}`;
+  ${itemTab==='smp'?itemTabSmp(p):itemTab==='set'?itemTabSet(p):itemTab==='pack'?itemTabPack(p):itemTab==='shot'?itemTabShot(p):itemTabRef(p)}`;
   {const tb=box.querySelector('.it-tabs'),on=tb&&tb.querySelector('button.on');if(tb&&on){const l=on.offsetLeft-tb.offsetLeft,r=l+on.offsetWidth;if(l<tb.scrollLeft||r>tb.scrollLeft+tb.clientWidth)tb.scrollLeft=Math.max(0,l-16);}}
   updateShootBadge();
 }
@@ -4682,7 +4692,7 @@ function itemTabRef(p){
     ${refs.length?refs.map(r=>`<div class="it-card it-ref"><div class="it-thumb">${r.thumb?`<img src="${esc(r.thumb)}" alt="">`:((refKind(r.url)||{}).ic||'🔗')}</div>
       <div class="t"><div class="it-pills"><span class="it-pill">${esc(r.kind||'링크')}</span>${r.from?`<span class="it-pill">${esc(r.from)}에서</span>`:''}</div>
         <div class="ttl" style="margin:3px 0">${esc(r.title||r.url)}</div><a href="${esc(r.url)}" target="_blank" rel="noopener">열어보기 ↗</a></div>
-      <button class="x" data-itact="ref-del" data-id="${esc(r.id)}" aria-label="목록에서 빼기">✕</button></div>`).join(''):'<div class="it-card it-sub">아직 레퍼런스가 없어요. 틱톡·유튜브·인스타·경쟁사 링크를 넣어보세요.</div>'}
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="x" data-itact="ref-del" data-id="${esc(r.id)}" aria-label="목록에서 빼기">✕</button><button class="it-btn" style="padding:6px 9px;font-size:12px" data-shot="from-ref" data-rid="${esc(r.id)}">🎬 컷으로</button></div></div>`).join(''):'<div class="it-card it-sub">아직 레퍼런스가 없어요. 틱톡·유튜브·인스타·경쟁사 링크를 넣어보세요.</div>'}
     <div class="it-card it-stack" style="gap:8px"><div class="it-row" style="justify-content:space-between"><span class="it-h">캡처·사진</span><span class="it-sub">${atts.length}개</span></div>
       <div class="it-media">${atts.map(a=>a.kind==='image'?`<button class="m" data-itact="view" data-src="${esc(a.url||a.data||'')}"><img src="${esc(a.url||a.data||'')}" alt=""></button>`:`<a class="m doc" href="${esc(a.url||a.data||'#')}" target="_blank" rel="noopener">${a.kind==='pdf'?'📄':'📎'} ${esc((a.name||'').slice(0,18))}</a>`).join('')}
         <button class="add" data-itact="ref-photo">📷<br>찍기·추가</button></div>
@@ -5052,6 +5062,52 @@ document.addEventListener('change',async e=>{
   if(el&&el.dataset&&el.dataset.pkf){const k=packOf(p);let v=el.value.trim();if(el.dataset.pkf==='cost')v=v.replace(/[^\d]/g,'');k[el.dataset.pkf]=v;save();return;}
 });
 
+/* ══════════ 🎬 촬영 (P4) ══════════
+   p.shots[] = {id,title,refId,memo,media[],done,from} — 컷(장면)마다 참고 레퍼런스·메모·찍은 것 쌓기. 소싱과 병행(진행바 밖).
+   파생은 자기 컷 + 원본 레퍼런스도 참고로 고를 수 있음. */
+const SHOT_DEFAULT=['제품 단독 (정면·측면)','사용 전 문제 상황','사용 장면 (바르기·붙이기)','비포 / 애프터','디테일 (질감·마감)','언박싱'];
+function shotRefs(p){const b=setBase(p);return (p.refs||[]).concat(b&&b!==p?(b.refs||[]).map(r=>Object.assign({},r,{fromBase:true})):[]);}
+function itemTabShot(p){
+  const S=p.shots||[],refs=shotRefs(p),done=S.filter(c=>c.done).length;
+  return `<div class="it-stack">
+    <div class="it-card it-row" style="justify-content:space-between;flex-wrap:wrap"><div><span class="it-h">촬영 ${done}/${S.length}컷</span><div class="it-sub">컷마다 참고 영상을 보고 여러 장 찍어 쌓아두세요</div></div>
+      ${S.length<3?`<button class="it-btn pri" data-shot="defaults">기본 컷 넣기</button>`:''}</div>
+    ${S.map((c,i)=>{const r=refs.find(x=>x.id===c.refId);return `<div class="it-card sh-cut ${c.done?'done':''}" id="cut-${esc(c.id)}">
+      <div class="hd"><span class="no">${c.done?'✓':i+1}</span><input class="it-in" data-shf="title" data-cid="${esc(c.id)}" value="${esc(c.title||'')}" aria-label="컷 이름"><button class="it-st ${c.done?'s2':'s0'}" data-shot="toggle" data-cid="${esc(c.id)}">${c.done?'완료':'촬영 전'}</button></div>
+      <select class="it-in" data-shf="refId" data-cid="${esc(c.id)}"><option value="">참고 레퍼런스 고르기 (선택)</option>${refs.map(x=>`<option value="${esc(x.id)}"${x.id===c.refId?' selected':''}>${esc((x.fromBase?'[원본] ':'')+(x.kind||'링크')+' · '+(x.title||x.url).slice(0,40))}</option>`).join('')}</select>
+      ${r?`<a class="sh-refmini" href="${esc(r.url)}" target="_blank" rel="noopener">${r.thumb?`<img src="${esc(r.thumb)}" alt="">`:''}<span>▶ ${esc(r.title||r.url)} ↗</span></a>`:''}
+      <input class="it-in" data-shf="memo" data-cid="${esc(c.id)}" value="${esc(c.memo||'')}" placeholder="구도·소품·대사 메모">
+      ${mediaGridHtml(c.media,`data-shot="shoot" data-cid="${esc(c.id)}"`)}
+      <div class="it-row" style="justify-content:flex-end;gap:6px">${i>0?`<button class="it-btn line" style="padding:6px 10px" data-shot="up" data-cid="${esc(c.id)}" aria-label="위로">↑</button>`:''}<button class="it-btn line" style="padding:6px 10px" data-shot="del" data-cid="${esc(c.id)}">삭제</button></div>
+    </div>`;}).join('')}
+    <div class="it-row"><input class="it-in" id="shNewTitle" placeholder="새 컷 이름 (예: 옥상 전체 시공 장면)"><button class="it-btn" data-shot="add">＋ 컷</button></div>
+    ${refs.length?'':'<div class="it-sub">📌 레퍼런스 탭에서 영상 링크를 넣으면 [🎬 컷으로] 한 번에 컷을 만들 수 있어요.</div>'}
+  </div>
+  <input type="file" id="shFile" accept="image/*,video/*" multiple hidden>
+  <button class="it-fab" data-itact="cam">📷 이 아이템 찍기</button>`;
+}
+let shFileTarget='';
+function cutScroll(id){requestAnimationFrame(()=>{const el=document.getElementById('cut-'+id);if(el)el.scrollIntoView({block:'center'});});}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-shot]');if(!b)return;const p=itemProd();if(!p)return;const a=b.dataset.shot;
+  if(!Array.isArray(p.shots))p.shots=[];
+  const c=p.shots.find(x=>x.id===b.dataset.cid);
+  if(a==='defaults'){let n=0;SHOT_DEFAULT.forEach(t=>{if(t==='언박싱'&&p.shots.some(x=>/언박싱/.test(x.title||'')))return;if(!p.shots.some(x=>x.title===t)){p.shots.push({id:uid(),title:t,refId:'',memo:'',media:[],done:false});n++;}});save();renderItem();updateShootBadge();flagMsg(`기본 컷 ${n}개를 넣었어요`,'ok');return;}
+  if(a==='add'){const i=$('#shNewTitle');const v=((i&&i.value)||'').trim()||'새 컷';const nc={id:uid(),title:v,refId:'',memo:'',media:[],done:false};p.shots.push(nc);save();renderItem();updateShootBadge();cutScroll(nc.id);return;}
+  if(a==='from-ref'){const r=(p.refs||[]).find(x=>x.id===b.dataset.rid);if(!r)return;const nc={id:uid(),title:((r.title||r.kind||'레퍼런스')+'').slice(0,24)+' 따라 찍기',refId:r.id,memo:'',media:[],done:false};p.shots.push(nc);itemTab='shot';save();renderItem();updateShootBadge();cutScroll(nc.id);flagMsg('촬영 컷을 만들었어요','ok');return;}
+  if(!c)return;
+  if(a==='shoot'){shFileTarget=c.id;$('#shFile').click();return;}
+  if(a==='toggle'){c.done=!c.done;if(c.done)c.doneAt=today();save();renderItem();updateShootBadge();cutScroll(c.id);if(c.done&&!(c.media||[]).length)flagMsg('찍은 사진 없이 완료했어요','warn');return;}
+  if(a==='up'){const i=p.shots.indexOf(c);if(i>0){p.shots.splice(i,1);p.shots.splice(i-1,0,c);save();renderItem();cutScroll(c.id);}return;}
+  if(a==='del'){if(b.dataset.sure!=='1'){b.dataset.sure='1';b.textContent=(c.media||[]).length?`사진 ${(c.media||[]).length}장도 같이 지워요 · 한 번 더`:'한 번 더 누르면 삭제';setTimeout(()=>{if(b.isConnected){b.dataset.sure='';b.textContent='삭제';}},2500);return;}
+    p.shots=p.shots.filter(x=>x!==c);(p.shotsTrash=p.shotsTrash||[]).push(Object.assign({},c,{deletedAt:new Date().toISOString()}));save();renderItem();updateShootBadge();flagMsg('컷을 지웠어요','ok');return;}
+});
+document.addEventListener('change',async e=>{
+  const el=e.target;const p=itemProd();if(!p)return;
+  if(el&&el.id==='shFile'){const fs=[...(el.files||[])];el.value='';const c=(p.shots||[]).find(x=>x.id===shFileTarget);if(!c||!fs.length)return;flagMsg('올리는 중…');await addMediaTo(c,'products/'+p.id+'/shots/'+c.id,fs);save();renderItem();updateShootBadge();cutScroll(c.id);flagMsg(`${fs.length}개 저장 · 다 찍었으면 "완료"를 누르세요`,'ok');return;}
+  if(el&&el.dataset&&el.dataset.shf){const c=(p.shots||[]).find(x=>x.id===el.dataset.cid);if(!c)return;c[el.dataset.shf]=el.value.trim();save();if(el.dataset.shf==='refId'){renderItem();cutScroll(c.id);}}
+});
+
 /* ══════════ 🏭 제조사 제품에서 시작 ══════════ */
 let msPhoto=null;
 function openMakerStart(maker){
@@ -5258,7 +5314,7 @@ function shootTodos(){
       if(x.type==='maker'&&x.arrived&&!(x.media||[]).length)out.push({p,sid:x.id,ic:'🏭',t:`${x.name} 샘플 사진`,sub:'도착한 샘플 · 아직 사진 없음'});
       if(x.type==='rival'&&x.arrived&&!(x.media||[]).length)out.push({p,sid:x.id,ic:'🆚',t:`${x.name} (경쟁사) 사진`,sub:'경쟁사 제품 · 패킹까지 찍어두세요'});
     });
-    (p.shots||[]).filter(c=>!c.done).forEach(c=>out.push({p,sid:'cut:'+c.id,ic:'🎬',t:'컷: '+c.title,sub:(c.media||[]).length?`${(c.media||[]).length}장 찍음 · 다 찍었으면 ✓ 완료`:(c.memo||'아직 안 찍음'),cut:c.id,n:(c.media||[]).length}));
+    (p.shots||[]).filter(c=>!c.done).forEach(c=>out.push({p,sid:'cut:'+c.id,ic:'🎬',t:'컷: '+c.title,sub:(c.media||[]).length?`${(c.media||[]).length}장 찍음 · 다 찍었으면 아래 ✓`:(c.memo||'아직 안 찍음'),cut:c.id,n:(c.media||[]).length}));
     if(p.decision!=='진행'&&!prodThumb(p)&&!(p.refs||[]).length)out.push({p,sid:'',ic:'📌',t:'제품 사진·캡처',sub:'대표 이미지가 없어요'});
   });
   return out;

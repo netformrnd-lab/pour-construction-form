@@ -1052,7 +1052,7 @@
   .it-pills{display:flex;gap:5px;flex-wrap:wrap}
   .it-pill{font-size:11px;font-weight:800;border-radius:6px;padding:2px 7px;background:var(--gray-pale);color:var(--ink2);white-space:nowrap}
   .it-pill.gh{background:var(--green-pale);color:#0B7A55}.it-pill.acc{background:var(--blue-pale);color:var(--blue)}
-  .it-steps{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:12px}
+  .it-steps{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:12px}
   .it-steps div{text-align:center;font-size:10.5px;font-weight:700;color:var(--muted)}
   .it-steps div i{display:block;height:5px;border-radius:3px;background:var(--border2);margin-bottom:5px}
   .it-steps div.on{color:var(--ink)}.it-steps div.on i{background:var(--blue)}
@@ -1129,6 +1129,28 @@
   .dash-todo:first-of-type{border-top:0}
   .dash-todo b{font-size:19px;min-width:28px;text-align:center;color:var(--blue)}
   .dash-todo .t{flex:1;min-width:0}.dash-todo .t div:first-child{font-weight:800;font-size:14px}
+  /* 판매세팅 */
+  .st-sec{display:flex;flex-direction:column;gap:10px}
+  .st-h{display:flex;align-items:center;gap:8px}
+  .st-h .no{width:24px;height:24px;border-radius:7px;background:var(--gray-pale);display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--ink2);flex:0 0 auto}
+  .st-h.done .no{background:var(--green-pale);color:#0B7A55}
+  .st-h .it-h{flex:1}
+  .st-inh{background:var(--cream);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--ink2);display:flex;flex-direction:column;gap:4px}
+  .st-inh .lbl{font-size:11px;font-weight:800;color:var(--muted)}
+  .st-inh button{align-self:flex-start;border:0;background:none;color:var(--blue);font-weight:800;font-size:12.5px;padding:2px 0;cursor:pointer;font-family:inherit}
+  .st-spec{display:flex;gap:8px;align-items:center;padding:6px 0;border-top:1px dashed var(--border2);font-size:13.5px}
+  .st-spec span{flex:1;min-width:0;overflow-wrap:anywhere}
+  .st-spec b{color:var(--blue);font-size:11.5px;margin-right:4px}
+  .dv-card{display:flex;gap:10px;align-items:center;width:100%;text-align:left;border:1px solid var(--border2);background:var(--card);border-radius:12px;padding:10px;cursor:pointer;font-family:inherit}
+  .dv-card .t{flex:1;min-width:0}
+  .dv-card .nm{font-weight:800;font-size:14px;overflow-wrap:anywhere}
+  .it-kind{font-size:12px;font-weight:800;border-radius:7px;padding:3px 8px}
+  .it-kind.base{background:#EEF2F7;color:#334155}.it-kind.der{background:#FFF3E0;color:#B45309}.it-kind.set{background:#F1ECFB;color:#6D28D9}
+  .it-crumb{display:flex;align-items:center;gap:6px;margin:-4px 0 10px;font-size:12.5px;color:var(--muted)}
+  .it-crumb button{border:0;background:none;color:var(--blue);font-weight:800;font-size:12.5px;padding:0;cursor:pointer;font-family:inherit}
+  .cost-line{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:13.5px;font-variant-numeric:tabular-nums}
+  .cost-line .v{text-align:right;font-weight:700}
+  .cost-line .tot{border-top:1px solid var(--border2);padding-top:6px;font-weight:800}
   /* 📷 찍기 시트 */
   #camPickOverlay{align-items:flex-end;padding:0}
   .cp-sheet{background:var(--card);width:100%;max-width:560px;margin:0 auto;border-radius:20px 20px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;max-height:88dvh;overflow:auto}
@@ -4011,7 +4033,7 @@ function renderMakerDetail(root,name){
     if(noP)listCard+=`<div class="rp-note">판매가 미설정 ${noP}종 제외 (원본에 파생/세트 가격이 있으면 원본 제외)</div>`;
   }
   const revCard=summaryCard+chips+listCard;
-  let html=`<button class="backbtn" id="mkBack">← 제조사 목록</button>
+  let html=`<button class="backbtn" id="mkBack">← 제조사 목록</button><button class="it-btn pri" id="mkStart" style="float:right">＋ 이 제조사 제품으로 시작</button>
     <div class="sec" style="display:flex;align-items:center;gap:14px">
       <div style="width:64px;height:64px;border-radius:14px;background:#F1F4F8;display:grid;place-items:center;font-size:32px;flex:0 0 auto">🏭</div>
       <div style="flex:1;min-width:0">
@@ -4041,6 +4063,7 @@ function renderMakerDetail(root,name){
   root.querySelectorAll('[data-rf]').forEach(b=>b.onclick=()=>{makerRevFilter=b.dataset.rf;renderMakerDetail(root,name);});
   const rl=$('#mkRevList');if(rl)rl.querySelectorAll('.prow').forEach(r=>r.onclick=()=>{state.sel=r.dataset.pid;save();switchTab('products');});
   $('#mkBack').onclick=()=>{makerSel=null;renderMakerList();window.scrollTo(0,0);};
+  {const ms=$('#mkStart');if(ms)ms.onclick=()=>openMakerStart(name);}
   root.querySelectorAll('#mk_status [data-mkst]').forEach(b=>b.onclick=()=>setMakerStatus(name,b.dataset.mkst));
   $('#mkDel').onclick=()=>{if(!confirm('"'+name+'" 제조사를 목록에서 삭제할까요?\n(제품의 제조사명·미팅 기록은 유지됩니다)'))return;state.makers=state.makers.filter(x=>x!==name);logMaker('delete',name);save();makerSel=null;renderMakerList();};
   root.querySelectorAll('.mp-card').forEach(c=>c.onclick=()=>{state.sel=c.dataset.pid;save();switchTab('products');});
@@ -4589,24 +4612,30 @@ async function keepRefThumb(pid,thumb){
   return thumb;
 }
 function itemProgress(p){
-  const pl=planOfProd(p);
+  const b=setBase(p);
+  if(b&&b!==p){const bp=itemProgress(b);return [true,bp[1],bp[2],setDoneCount(p)===4,!!(p.packing&&p.packing.done),p.decision==='진행'||p.stage==='출시완료'];}
   return [true,
-    (p.samples||[]).filter(smpScored).length>=2||(p.tests||[]).some(t=>t.result&&t.result!=='진행중'),
+    !!p.makerFirst||(p.samples||[]).filter(smpScored).length>=2||(p.tests||[]).some(t=>t.result&&t.result!=='진행중'),
     !!p.makerId||['검증완료'].includes((state.makerStatus||{})[p.maker])||(!!p.maker&&(p.decision==='진행')),
+    setDoneCount(p)===4,
     !!(p.packing&&p.packing.done),
     p.decision==='진행'||p.stage==='출시완료'];
 }
 function itemNext(p){
+  const bb=setBase(p);if(bb&&bb!==p){const miss=setMissing(p);return miss?{t:'판매세팅: '+miss,go:()=>setItemTab('set')}:{t:'판매세팅 완료 ✓ · 패킹은 다음 업데이트에서 열려요',go:()=>setItemTab('set')};}
   const refs=(p.refs||[]).length, imgs=(p.attachments||[]).filter(a=>a.kind==='image').length;
   if(!refs&&!imgs&&!(p.samples||[]).length)return {t:'레퍼런스 링크나 사진을 넣어보세요',go:()=>setItemTab('ref')};
   const S=p.samples||[],mk=S.filter(x=>x.type==='maker');
-  if(!p.makerId){
+  if(!p.makerId&&!p.makerFirst){
     if(mk.length<2)return {t:'제조사 샘플을 2곳 이상 등록하세요',go:()=>setItemTab('smp')};
     const wait=mk.filter(x=>!x.arrived).length;if(wait===mk.length)return {t:`샘플 도착 대기 ${wait}곳 · 오면 "도착"을 누르세요`,go:()=>setItemTab('smp')};
     const un=S.find(x=>x.arrived&&!smpScored(x));if(un)return {t:`"${un.name}" 샘플 평가하기`,go:()=>{setItemTab('smp');smpScroll(un.id);}};
   }
   const rq=smpLiveReqs(p).filter(r=>r.st===0).length;if(rq)return {t:`제조사에 전달 안 한 요청사항 ${rq}개`,go:()=>setItemTab('smp')};
   if(!p.makerId)return {t:'샘플을 비교해서 제조사를 확정하세요',go:()=>setItemTab('smp')};
+  {const miss=setMissing(p);if(miss)return {t:'판매세팅: '+miss,go:()=>setItemTab('set')};}
+  if(!derivOf(p).length&&!p.decision)return {t:'판매세팅 완료 ✓ · 컨셉별 파생 상품도 만들 수 있어요',go:()=>setItemTab('set')};
+  if(!p.decision)return {t:'판매세팅 완료 ✓ · 패킹은 다음 업데이트에서 열려요',go:()=>setItemTab('set')};
   if(!p.decision)return {t:'샘플을 보고 진행 여부 결정하기',go:()=>{closeOverlay();switchTab('confirm');}};
   return {t:'전체 정보에서 원가·인증·서류 확인하기',go:()=>openDetail(p.id)};
 }
@@ -4620,20 +4649,23 @@ function renderItem(){
   const pr=itemProgress(p),nx=itemNext(p),th=prodThumb(p);
   const brand=p.brand||'';const mk=p.maker||'';
   const refN=(p.refs||[]).length+(p.attachments||[]).filter(a=>a.kind==='image').length;
-  box.innerHTML=`<div class="it-top"><button class="it-back" data-itact="back" aria-label="뒤로">‹</button><h2>${esc(dn(p))}</h2></div>
+  const kind=itemKindOf(p),base=p.baseId?state.products.find(x=>x.id===p.baseId):null;
+  box.innerHTML=`<div class="it-top"><button class="it-back" data-itact="back" aria-label="뒤로">‹</button><h2>${esc(dn(p))}</h2><span class="it-kind ${kind[1]}">${kind[0]}</span></div>
+  ${base?`<div class="it-crumb">${kind[1]==='set'?'기준':'원본'}: <button data-itact="open-base" data-id="${esc(base.id)}">${esc(dn(base))} ›</button></div>`:''}
   <div class="it-card">
     <div class="it-head"><div class="it-thumb">${th?`<img src="${esc(th)}" alt="">`:'📦'}</div>
       <div style="min-width:0"><div class="it-pills">${brand?`<span class="it-pill ${brand==='GROHOME'?'gh':'acc'}">${esc(brand)}</span>`:''}${mk?`<span class="it-pill">🏭 ${esc(mk)}</span>`:''}${p.stage?`<span class="it-pill">${esc(p.stage)}</span>`:''}</div>
       <div class="it-sub" style="margin-top:4px">${esc(p.concept||'')}</div></div></div>
-    <div class="it-steps">${['수집','샘플비교','제조사','패킹','출시검토'].map((t,i)=>`<div class="${pr[i]?'on':''}"><i></i>${t}</div>`).join('')}</div>
+    <div class="it-steps">${['수집','샘플비교','제조사','판매세팅','패킹','출시검토'].map((t,i)=>`<div class="${pr[i]?'on':''}"><i></i>${t}</div>`).join('')}</div>
     <button class="it-next" data-itact="next"><span>다음 할 일</span><b>${esc(nx.t)} ›</b></button>
   </div>
   <div class="it-tabs" role="tablist">
     <button class="${itemTab==='ref'?'on':''}" data-itact="tab" data-tab="ref">📌 레퍼런스${refN?`<em>${refN}</em>`:''}</button>
     <button class="${itemTab==='smp'?'on':''}" data-itact="tab" data-tab="smp">🧪 샘플비교${(p.samples||[]).length?`<em>${(p.samples||[]).length}</em>`:''}</button>
+    <button class="${itemTab==='set'?'on':''}" data-itact="tab" data-tab="set">🛠 판매세팅<em>${setDoneCount(p)}/4</em></button>
     <button data-itact="full" title="견적·테스트·인증·서류 등 기존 상세">⋯ 전체 정보</button>
   </div>
-  ${itemTab==='smp'?itemTabSmp(p):itemTabRef(p)}`;
+  ${itemTab==='smp'?itemTabSmp(p):itemTab==='set'?itemTabSet(p):itemTabRef(p)}`;
   updateShootBadge();
 }
 function itemTabRef(p){
@@ -4663,6 +4695,7 @@ document.addEventListener('click',async e=>{
   if(!p)return;
   if(a==='tab'){setItemTab(b.dataset.tab);return;}
   if(a==='full'){openDetail(p.id);return;}
+  if(a==='open-base'){openItem(b.dataset.id,'set');return;}
   if(a==='next'){itemNext(p).go();return;}
   if(a==='cam'){openCamPick(p.id,true);return;}
   if(a==='view'){if(b.dataset.src)openLightbox(b.dataset.src);return;}
@@ -4725,7 +4758,7 @@ function renderPlanItem(){
       <div class="it-sub" style="margin-top:4px">${pl.createdAt?esc(discDate(pl.createdAt))+' 수집':''}</div></div></div>
     <label class="it-f" style="margin-top:12px"><span>이름</span><input class="it-in" data-plf="title" value="${esc(pl.title&&pl.title!=='(제목 없음)'?pl.title:'')}" placeholder="아이템 이름"></label>
     <div class="it-seg" style="margin-top:8px">${['POUR스토어','GROHOME'].map(b=>`<button class="${brand===b?'on':''}" data-plact="brand" data-v="${b}">${b}</button>`).join('')}</div>
-    <div class="it-steps">${['수집','샘플비교','제조사','패킹','출시검토'].map((t,i)=>`<div class="${i===0?'on':''}"><i></i>${t}</div>`).join('')}</div>
+    <div class="it-steps">${['수집','샘플비교','제조사','판매세팅','패킹','출시검토'].map((t,i)=>`<div class="${i===0?'on':''}"><i></i>${t}</div>`).join('')}</div>
     <button class="it-btn pri" style="width:100%;margin-top:12px;padding:13px;font-size:14.5px" data-plact="start">🔍 검토 시작 · 샘플·제조사 비교하기</button>
   </div>
   <div class="it-tabs" role="tablist"><button class="on">📌 레퍼런스<em>${links.length+(pl.photos||[]).length}</em></button><button data-plact="full">⋯ 전체 정보</button></div>
@@ -4786,6 +4819,183 @@ function planImgBroken(img,id){
     autoLinkThumb(id);
   }
 }
+
+/* ══════════ 🛠 판매세팅 · 원본/파생 ══════════
+   ① 스펙 ② 파생·컨셉 ③ 소싱 조건 ④ 성적서·인증 — 한 화면.
+   원본(단품): 제조사·단가·MOQ·기본 스펙·성적서를 여기서 한 번만. 파생(type '파생', baseId)·세트(type '패키지')는 원본 값을 가져와 보여주고(회색),
+   컨셉·판매 규격·구성·추가비용만 따로. 파생 원가 = 원본 단가 × 들어가는 양 + 추가비용. '제조사 따로 쓰기'(ownMaker)를 켜면 파생 자체 값 사용.
+   기존 필드(spec·specs·concept·target·diff·cost·moq·lead·customs·docs·certApps) 그대로 사용. 새 필드: unitLabel, useQty, extras[], ownMaker, makerFirst. */
+function itemKindOf(p){if(p.type==='파생')return ['🏷 파생','der'];if(p.type==='패키지')return ['🎁 세트','set'];return ['🏭 원본','base'];}
+function setBase(p){if(!p||!p.baseId||p.ownMaker)return p;const b=state.products.find(x=>x.id===p.baseId);return (b&&p.type==='파생')?b:p;}
+function derivOf(p){return state.products.filter(x=>x.baseId===p.id&&x.id!==p.id&&x.type==='파생');}
+function setsWith(p){return state.products.filter(x=>x.type==='패키지'&&x.id!==p.id&&((x.bundle||[]).includes(p.id)||x.baseId===p.id));}
+function unitCostOf(p){const n=numOf(p.cost);return n||null;}
+function derivCost(p){
+  const b=setBase(p);const extras=(p.extras||[]).reduce((a,x)=>a+(numOf(x.cost)||0),0);
+  if(p.type==='패키지'&&!p.ownMaker){
+    const parts=(p.bundle||[]).map(id=>state.products.find(x=>x.id===id)).filter(Boolean).filter(x=>x.id!==p.id);
+    const each=parts.map(x=>x.type==='패키지'?null:derivCost(x).total);
+    const ok=parts.length&&each.every(v=>v!=null);
+    return {base:ok?each.reduce((a,v)=>a+v,0):null,qty:1,extras,total:ok?each.reduce((a,v)=>a+v,0)+extras:null,parts:parts.length};
+  }
+  if(b===p)return {base:unitCostOf(p),qty:1,extras,total:unitCostOf(p)!=null?unitCostOf(p)+extras:null};
+  const bu=unitCostOf(b),q=Number(p.useQty)||0;
+  return {base:bu,qty:q,extras,total:(bu!=null&&q)?bu*q+extras:null};
+}
+function setChecks(p){
+  const b=setBase(p),own=b===p;
+  const specOk=!!((p.spec||'').trim()||(p.specs||[]).length||(!own&&((b.spec||'').trim()||(b.specs||[]).length)));
+  const conceptOk=!!((p.concept||'').trim()||(own&&derivOf(p).length));
+  const condOk=p.type==='패키지'?!!derivCost(p).total:own?!!(unitCostOf(p)&&numOf(p.moq)):!!derivCost(p).total;
+  const docOk=!!((p.docs||[]).length||(p.certApps||[]).length||(!own&&((b.docs||[]).length||(b.certApps||[]).length)));
+  return [specOk,conceptOk,condOk,docOk];
+}
+function setDoneCount(p){try{return setChecks(p).filter(Boolean).length;}catch(e){return 0;}}
+function setMissing(p){const c=setChecks(p),b=setBase(p);const L=['스펙 넣기',b===p?'컨셉 한 줄 · 파생 상품 만들기':'컨셉 한 줄 적기',b===p?'단가·MOQ 넣기':'들어가는 양 넣기 (원가 계산)','성적서·인증 올리기'];const i=c.findIndex(x=>!x);return i<0?'':L[i];}
+function setMakerAutoFill(p){
+  const x=p.makerId&&(p.samples||[]).find(s=>s.id===p.makerId);if(!x)return false;let ch=false;
+  if(!numOf(p.cost)&&smpWon(x)){p.cost=String(Math.round(smpWon(x)));ch=true;}
+  if(!numOf(p.moq)&&numOf(x.moq)){p.moq=String(x.moq);ch=true;}
+  return ch;
+}
+function itemTabSet(p){
+  if(setMakerAutoFill(p))save();
+  const b=setBase(p),own=b===p,c=setChecks(p);
+  const H=(i,t,sub)=>`<div class="st-h ${c[i]?'done':''}"><span class="no">${c[i]?'✓':i+1}</span><span class="it-h">${t}</span>${sub?`<span class="it-sub">${sub}</span>`:''}</div>`;
+  const inh=(lbl,html)=>`<div class="st-inh"><span class="lbl">원본에서 가져옴 · ${esc(lbl)}</span>${html}<button data-set="open-base">원본에서 수정 ›</button></div>`;
+  const specList=q=>(q.specs||[]).length?(q.specs||[]).map(x=>`<div class="st-spec"><span>${x.tag?`<b>[${esc(x.tag)}]</b>`:''}${esc(x.text)}</span>${q===p?`<button class="it-btn line" style="padding:4px 8px" data-set="spec-del" data-ts="${esc(String(x.ts||''))}" aria-label="삭제">✕</button>`:''}</div>`).join(''):'';
+  const docs=q=>(q.docs||[]).map(d=>`<a class="it-ref" style="text-decoration:none;color:inherit;padding:6px 0;border-top:1px dashed var(--border2)" href="${esc(d.href||'#')}" target="_blank" rel="noopener"><span class="it-pill">${esc(d.type||'서류')}</span><span class="t" style="font-size:13.5px;font-weight:700">${esc(d.name||'서류')}</span><span class="it-sub">열기 ↗</span></a>`).join('');
+  const certs=(q,edit)=>(q.certApps||[]).map(x=>`<div class="st-spec"><span><b>${esc(x.status||'신청')}</b>${esc(x.name)}${x.cost?` · ${Math.round(numOf(x.cost)).toLocaleString('ko-KR')}원`:''}</span>${edit?`<button class="it-st ${x.status==='완료'?'s2':x.status==='진행중'?'s1':'s0'}" data-set="cert-st" data-id="${esc(x.id)}">${esc(x.status||'신청')}</button><button class="it-btn line" style="padding:4px 8px" data-set="cert-del" data-id="${esc(x.id)}" aria-label="삭제">✕</button>`:''}</div>`).join('');
+  const dv=derivOf(p),sets=setsWith(p);
+  const dc=derivCost(p);
+  const won=n=>n==null?'—':Math.round(n).toLocaleString('ko-KR')+'원';
+  return `<div class="it-stack">
+    <div class="it-card it-sub">${own?'🏭 <b>원본</b>: 제조사·단가·기본 스펙·성적서를 여기서 한 번만 넣으면 파생 상품이 모두 같이 써요.':'🏷 <b>파생</b>: 제조사·단가·스펙·성적서는 원본 값을 써요. 이 상품의 컨셉·판매 규격·추가비용만 채우세요.'}</div>
+    <div class="it-card st-sec">${H(0,'제품 스펙',own?'성분·색상·용량·사용법':'')}
+      ${own?'':inh('기본 스펙',`${b.spec?`<div>${esc(b.spec)}</div>`:''}${specList(b)||(b.spec?'':'<div>아직 없음</div>')}`)}
+      <label class="it-f"><span>${own?'대표 규격':'판매 규격·구성'}</span><input class="it-in" data-setf="spec" value="${esc(p.spec||'')}" placeholder="${own?'예: 20kg/통, 회색':'예: 4kg + 붓·장갑'}"></label>
+      ${specList(p)}
+      <div class="it-row"><input class="it-in" id="stSpecIn" placeholder="스펙 한 줄 (예: 건조 2시간, 무취)"><button class="it-btn" data-set="spec-add">추가</button></div>
+    </div>
+    <div class="it-card st-sec">${H(1,own?'파생·컨셉 · 어떻게 팔까?':'컨셉')}
+      <label class="it-f"><span>컨셉 한 줄</span><input class="it-in" data-setf="concept" value="${esc(p.concept||'')}" placeholder="${own?'예: 옥상·지붕 셀프 방수':'예: 처음 하는 셀프 옥상방수 키트'}"></label>
+      <div class="it-grid2"><label class="it-f"><span>타겟</span><input class="it-in" data-setf="target" value="${esc(p.target||'')}" placeholder="예: 실거주 초보"></label>
+      <label class="it-f"><span>차별점</span><input class="it-in" data-setf="diff" value="${esc(p.diff||'')}" placeholder="예: 붓 포함, 무취"></label></div>
+      ${own?`<div class="it-row" style="justify-content:space-between;margin-top:4px"><span class="it-h" style="font-size:13.5px">이 제품으로 파는 상품 ${dv.length+sets.length}</span></div>
+      ${dv.map(x=>`<button class="dv-card" data-set="open" data-id="${esc(x.id)}"><div class="it-thumb" style="width:48px;height:48px">${prodThumb(x)?`<img src="${esc(prodThumb(x))}" alt="">`:'🏷'}</div><div class="t"><div class="nm">${esc(x.goods||dn(x))}</div><div class="it-sub">${esc(x.concept||'컨셉 미정')}${derivCost(x).total?` · 원가 ${won(derivCost(x).total)}`:''}</div></div><span class="it-kind der">파생</span></button>`).join('')}
+      ${sets.map(x=>`<button class="dv-card" data-set="open" data-id="${esc(x.id)}"><div class="it-thumb" style="width:48px;height:48px">🎁</div><div class="t"><div class="nm">${esc(x.goods||dn(x))}</div><div class="it-sub">${esc(x.concept||'세트')}</div></div><span class="it-kind set">세트</span></button>`).join('')}
+      <div class="it-row"><input class="it-in" id="stDvName" placeholder="새 판매 상품 이름 (예: 4kg 셀프 방수 키트)"></div>
+      <div class="it-row"><button class="it-btn pri" style="flex:1" data-set="dv-add">＋ 파생 상품</button><button class="it-btn" style="flex:1" data-set="set-add">＋ 세트</button></div>`:''}
+    </div>
+    <div class="it-card st-sec">${H(2,'소싱 조건',own?'확정 제조사 값이 자동으로 채워져요':'원가 = 원본 단가 × 양 + 추가비용')}
+      ${own?`<div class="it-grid2">
+        <label class="it-f"><span>제조사</span><input class="it-in" data-setf="maker" value="${esc(p.maker||'')}" list="stMakerList" placeholder="제조사"><datalist id="stMakerList">${(state.makers||[]).map(m=>`<option value="${esc(m)}">`).join('')}</datalist></label>
+        <label class="it-f"><span>단가 (원)</span><div class="it-row" style="gap:4px"><input class="it-in" inputmode="decimal" data-setf="cost" value="${esc(String(numOf(p.cost)||''))}"><select class="it-in" style="flex:0 0 64px;padding:10px 4px" data-setf="unitLabel">${['개','kg','L','m','통','박스'].map(u=>`<option${(p.unitLabel||'개')===u?' selected':''}>${u}</option>`).join('')}</select></div></label>
+        <label class="it-f"><span>MOQ</span><input class="it-in" inputmode="numeric" data-setf="moq" value="${esc(String(p.moq||''))}"></label>
+        <label class="it-f"><span>납기</span><input class="it-in" data-setf="lead" value="${esc(p.lead||'')}" placeholder="예: 30일"></label>
+        <label class="it-f" style="grid-column:1/-1"><span>통관·물류 메모</span><input class="it-in" data-setf="customs" value="${esc(p.customs||'')}" placeholder="예: FOB 칭다오, 해상 LCL"></label></div>
+        <div class="it-sub">단가는 ${esc(p.unitLabel||'개')}당 금액이에요. 파생 상품은 '들어가는 양'만 넣으면 원가가 계산돼요.</div>`
+      :p.type==='패키지'?`<div class="st-inh"><span class="lbl">세트 구성 ${dc.parts||0}개 · 구성품 원가 합</span>${(p.bundle||[]).map(id=>state.products.find(x=>x.id===id)).filter(Boolean).map(x=>`<div>· ${esc(x.goods||dn(x))} ${won(derivCost(x).total)}</div>`).join('')||'<div>구성품이 없어요 · 전체 정보에서 넣어주세요</div>'}</div>
+        <div><div class="it-row" style="justify-content:space-between"><span class="it-h" style="font-size:13.5px">세트만의 추가비용</span><span class="it-sub">박스·부자재</span></div>
+          ${(p.extras||[]).map(x=>`<div class="st-spec"><span>${esc(x.name)} · ${won(numOf(x.cost))}</span><button class="it-btn line" style="padding:4px 8px" data-set="ex-del" data-id="${esc(x.id)}" aria-label="삭제">✕</button></div>`).join('')}
+          <div class="it-row" style="margin-top:6px"><input class="it-in" id="stExName" placeholder="예: 세트 박스"><input class="it-in" id="stExCost" inputmode="numeric" placeholder="원" style="flex:0 0 84px"><button class="it-btn" data-set="ex-add">추가</button></div></div>
+        <div class="cost-line"><span>구성품 원가 합</span><span class="v">${won(dc.base)}</span><span>추가비용</span><span class="v">${won(dc.extras)}</span><span class="tot">세트 원가</span><span class="v tot">${won(dc.total)}</span></div>`
+      :`${inh('제조사·단가',`<div>🏭 ${esc(b.maker||'제조사 미정')} · ${unitCostOf(b)!=null?won(unitCostOf(b))+' / '+esc(b.unitLabel||'개'):'단가 미정'} · MOQ ${esc(String(b.moq||'—'))}</div>`)}
+        <label class="it-f"><span>들어가는 양 (원본 ${esc(b.unitLabel||'개')} 기준)</span><input class="it-in" inputmode="decimal" data-setf="useQty" value="${esc(String(p.useQty||''))}" placeholder="예: 4"></label>
+        <div><div class="it-row" style="justify-content:space-between"><span class="it-h" style="font-size:13.5px">이 상품만의 추가비용</span><span class="it-sub">용기·부자재·소분</span></div>
+          ${(p.extras||[]).map(x=>`<div class="st-spec"><span>${esc(x.name)} · ${won(numOf(x.cost))}</span><button class="it-btn line" style="padding:4px 8px" data-set="ex-del" data-id="${esc(x.id)}" aria-label="삭제">✕</button></div>`).join('')}
+          <div class="it-row" style="margin-top:6px"><input class="it-in" id="stExName" placeholder="예: 붓·장갑"><input class="it-in" id="stExCost" inputmode="numeric" placeholder="원" style="flex:0 0 84px"><button class="it-btn" data-set="ex-add">추가</button></div></div>
+        <div class="cost-line"><span>원본 단가 × ${esc(String(dc.qty||0))}</span><span class="v">${won(dc.base!=null&&dc.qty?dc.base*dc.qty:null)}</span><span>추가비용</span><span class="v">${won(dc.extras)}</span><span class="tot">이 상품 개당 원가</span><span class="v tot">${won(dc.total)}</span></div>
+        <label class="it-row" style="gap:8px;font-size:12.5px;color:var(--ink2)"><input type="checkbox" data-set="own-maker"> 이 상품만 제조사 따로 쓰기</label>`}
+    </div>
+    <div class="it-card st-sec">${H(3,'성적서·인증','사진·PDF 모두 돼요')}
+      ${own?'':inh('성적서·인증',`${docs(b)||''}${certs(b,false)||''}${!(b.docs||[]).length&&!(b.certApps||[]).length?'<div>아직 없음</div>':''}`)}
+      ${docs(p)}
+      <div class="it-seg" id="stDocType">${[['시험성적서','성적서'],['MSDS','MSDS'],['인증서','인증서'],['추가서류','기타']].map(([t,l],i)=>`<button class="${i===0?'on':''}" data-set="doc-type" data-v="${t}">${l}</button>`).join('')}</div>
+      <button class="it-btn line" style="padding:12px" data-set="doc-add">📎 서류 올리기 (사진·PDF)</button>
+      <div class="it-row" style="justify-content:space-between;margin-top:4px"><span class="it-h" style="font-size:13.5px">필요한 인증</span><span class="it-sub">비용은 출시검토 원가에 들어가요</span></div>
+      ${certs(p,true)}
+      <div class="it-row"><input class="it-in" id="stCertName" placeholder="예: KC 안전확인"><input class="it-in" id="stCertCost" inputmode="numeric" placeholder="비용(원)" style="flex:0 0 96px"><button class="it-btn" data-set="cert-add">추가</button></div>
+    </div>
+  </div>
+  <input type="file" id="stDocFile" accept="image/*,application/pdf" multiple hidden>
+  <button class="it-fab" data-itact="cam">📷 이 아이템 찍기</button>`;
+}
+let stDocType='시험성적서';
+function createVariant(base,kind,goods){
+  const id=uid();
+  const np={id,name:base.name,goods,maker:base.maker||'',type:kind==='세트'?'패키지':'파생',baseId:base.id,bundle:kind==='세트'?[base.id]:[],concept:'',target:'',diff:'',spec:'',specs:[],sample:base.sample||'대기',memo:'',source:base.source||'국내 제조사',market:'',cost:'',moq:'',pricevar:'',lead:'',customs:'',fill:[],fillmaker:'확인중',cert:base.cert||'확인중',patent:base.patent||'확인중',stage:'후보',decision:'',fav:false,tests:[],docs:[],attachments:[],notes:[],ideas:[],quotes:[],competitors:[],certs:[],certApps:[],history:[{stage:'후보',date:today()}],pricing:{},thumbId:'',brand:base.brand||'',useQty:'',extras:[]};
+  state.products.push(np);logAct('add',np,null);save();return np;
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-set]');if(!b)return;
+  const p=itemProd();if(!p)return;const a=b.dataset.set;const base=setBase(p);
+  if(a==='open'){openItem(b.dataset.id,'set');return;}
+  if(a==='open-base'){if(base&&base!==p)openItem(base.id,'set');return;}
+  if(a==='spec-add'){const i=$('#stSpecIn');const v=((i&&i.value)||'').trim();if(!v){if(i)i.focus();return;}(p.specs=p.specs||[]).push({text:v,ts:Date.now()});save();renderItem();return;}
+  if(a==='spec-del'){p.specs=(p.specs||[]).filter(x=>String(x.ts||'')!==b.dataset.ts);save();renderItem();return;}
+  if(a==='dv-add'||a==='set-add'){const i=$('#stDvName');const v=((i&&i.value)||'').trim();if(!v){if(i){i.focus();}flagMsg('판매 상품 이름을 먼저 적어주세요','warn');return;}
+    const np=createVariant(p,a==='set-add'?'세트':'파생',v);flagMsg(`"${v}" ${a==='set-add'?'세트':'파생 상품'}을 만들었어요 · 컨셉을 채워주세요`,'ok');openItem(np.id,'set');return;}
+  if(a==='ex-add'){const n=($('#stExName').value||'').trim(),c=($('#stExCost').value||'').replace(/[^\d.]/g,'');if(!n||!c){flagMsg('항목과 금액을 넣어주세요','warn');return;}(p.extras=p.extras||[]).push({id:uid(),name:n,cost:Number(c)});save();renderItem();return;}
+  if(a==='ex-del'){p.extras=(p.extras||[]).filter(x=>x.id!==b.dataset.id);save();renderItem();return;}
+  if(a==='doc-type'){stDocType=b.dataset.v;document.querySelectorAll('#stDocType button').forEach(x=>x.classList.toggle('on',x===b));return;}
+  if(a==='doc-add'){$('#stDocFile').click();return;}
+  if(a==='cert-add'){const n=($('#stCertName').value||'').trim();const c=($('#stCertCost').value||'').replace(/[^\d]/g,'');if(!n){$('#stCertName').focus();return;}(p.certApps=p.certApps||[]).push({id:uid(),name:n,agency:'',status:'신청',date:today(),cost:c?Number(c):''});save();renderItem();return;}
+  if(a==='cert-st'){const x=(p.certApps||[]).find(c=>c.id===b.dataset.id);if(x){const i=CERTAPP_FLOW.indexOf(x.status||'신청');x.status=CERTAPP_FLOW[(i+1)%CERTAPP_FLOW.length];save();renderItem();}return;}
+  if(a==='cert-del'){p.certApps=(p.certApps||[]).filter(c=>c.id!==b.dataset.id);save();renderItem();return;}
+});
+document.addEventListener('change',async e=>{
+  const el=e.target;const p=itemProd();if(!p)return;
+  if(el&&el.dataset&&el.dataset.set==='own-maker'){if(el.checked){p.ownMaker=true;save();renderItem();flagMsg('이 상품만 제조사를 따로 써요 · 전체 정보·샘플비교에서 넣으세요','ok');}return;}
+  if(el&&el.id==='stDocFile'){const fs=[...(el.files||[])];el.value='';if(!fs.length)return;flagMsg('서류 올리는 중…');
+    for(const f of fs){const docId=uid();try{let href='',path='',isFile=true;
+        if(fbStore){const r=await uploadDocFile(p.id,docId,f);href=r.url;path=r.path;}
+        else if(f.size<=1.5*1024*1024){href=await fileToDataURL(f);}
+        else{alert('클라우드에 연결돼야 큰 파일을 올릴 수 있어요: '+(f.name||''));continue;}
+        (p.docs=p.docs||[]).push({id:docId,type:stDocType,name:(f.name||stDocType).replace(/\.[^.]+$/,''),maker:p.maker||'',href,isFile,path});
+      }catch(err){console.error('[판매세팅] 서류 업로드 실패:',err);alert('서류를 올리지 못했어요: '+(f.name||'')+'\n'+(err&&(err.code||err.message)||''));}}
+    save();renderItem();flagMsg('서류를 저장했어요','ok');return;}
+  if(!el||!el.dataset||!el.dataset.setf)return;
+  const k=el.dataset.setf;let v=el.value;
+  if(k==='cost'||k==='useQty'){v=v.replace(/[^\d.]/g,'');}
+  if(k==='maker'){v=v.trim();if(v&&!state.makers.includes(v)){state.makers.push(v);state.makers.sort((a,b)=>a.localeCompare(b,'ko'));}}
+  p[k]=typeof v==='string'?v.trim():v;save();
+  if(['cost','useQty','unitLabel','moq','concept','spec'].includes(k))renderItem();
+});
+
+/* ══════════ 🏭 제조사 제품에서 시작 ══════════ */
+let msPhoto=null;
+function openMakerStart(maker){
+  msPhoto=null;
+  const box=$('#collectBody');
+  box.innerHTML=`<div class="it-row" style="justify-content:space-between"><span class="it-h">🏭 제조사 제품에서 시작</span><button class="it-btn" data-col="close">닫기</button></div>
+    <label class="it-f"><span>제조사</span><input class="it-in" id="msMaker" list="msMakerList" value="${esc(maker||'')}" placeholder="제조사 이름"><datalist id="msMakerList">${(state.makers||[]).map(m=>`<option value="${esc(m)}">`).join('')}</datalist></label>
+    <label class="it-f"><span>제품 이름</span><input class="it-in" id="msName" placeholder="예: 코트재 20kg"></label>
+    <label class="it-f"><span>떠오른 컨셉·아이디어 (선택)</span><input class="it-in" id="msIdea" placeholder="예: 소분해서 셀프 방수 키트로"></label>
+    <div class="it-row"><button class="it-btn" id="msPhotoBtn" data-ms="photo">📷 제품·카탈로그 사진</button><span class="it-sub" id="msPhotoLbl"></span></div>
+    <input type="file" id="msFile" accept="image/*" hidden>
+    <button class="it-btn pri" style="padding:13px" data-ms="go">시작 → 판매세팅</button>
+    <div class="it-sub">제조사가 정해진 상태로 시작해서, 판매세팅에서 컨셉별 파생 상품을 만들 수 있어요.</div>`;
+  openOverlay('collectOverlay');
+}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-ms]');if(!b)return;
+  if(b.dataset.ms==='photo'){$('#msFile').click();return;}
+  if(b.dataset.ms==='go'){
+    const mk=($('#msMaker').value||'').trim(),nm=($('#msName').value||'').trim(),idea=($('#msIdea').value||'').trim();
+    if(!mk){$('#msMaker').focus();flagMsg('제조사를 넣어주세요','warn');return;}
+    if(!nm){$('#msName').focus();flagMsg('제품 이름을 넣어주세요','warn');return;}
+    if(!state.makers.includes(mk)){state.makers.push(mk);state.makers.sort((a,c)=>a.localeCompare(c,'ko'));}
+    const id=uid(),sid=uid();
+    const np={id,name:nm,goods:'',maker:mk,type:'단품',bundle:[],baseId:'',concept:idea,target:'',diff:'',spec:'',specs:[],sample:'대기',memo:'',source:'국내 제조사',market:'',cost:'',moq:'',pricevar:'',lead:'',customs:'',fill:[],fillmaker:'확인중',cert:'확인중',patent:'확인중',stage:'후보',decision:'',fav:false,tests:[],docs:[],attachments:[],notes:[],ideas:idea?[{id:uid(),text:idea,link:''}]:[],quotes:[],competitors:[],certs:[],certApps:[],history:[{stage:'후보',date:today()}],pricing:{},thumbId:'',brand:(typeof quickBrand==='function'?quickBrand():''),
+      makerFirst:true,makerId:sid,samples:[{id:sid,type:'maker',name:mk,qMaker:mk,price:'',cur:'원',moq:'',where:'',arrived:true,media:[],scores:{},memo:'',reqs:[]}]};
+    state.products.push(np);logAct('add',np,null);save();
+    closeOverlay();closeAllItemPages();switchTab('products');
+    if(msPhoto){flagMsg('사진 올리는 중…');await addOverviewFiles(id,[msPhoto]);msPhoto=null;}
+    openItem(id,'set');flagMsg('시작했어요 · 스펙과 단가부터 넣어보세요','ok');
+  }
+});
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='msFile'){msPhoto=(e.target.files||[])[0]||null;e.target.value='';const l=$('#msPhotoLbl');if(l)l.textContent=msPhoto?'사진 1장 준비됨':'';}});
 
 /* ══════════ 🧪 샘플비교 (P2) ══════════
    p.samples[] (새 필드): {id,type:'maker'|'rival',name,price,cur,moq,where,arrived,media[],scores{q,f,u,p},memo,reqs[{id,text,st}],qMaker,compId}
@@ -4936,6 +5146,7 @@ function openCollect(){
       <button data-col="paste">📋 링크 붙여넣기<small>틱톡·인스타·1688 링크를 복사해 뒀다면 바로 추가돼요</small></button>
       <button data-col="photo">📷 사진 찍어 수집<small>매장·전시회에서 본 제품을 찍으면 바로 추가돼요</small></button>
       <button data-col="name">✏️ 이름만 적기<small>생각난 아이템을 먼저 적어두기</small></button>
+      <button data-col="maker">🏭 제조사 제품에서 시작<small>제조사 제품을 보고 컨셉을 떠올렸다면 · 파생 상품으로 여러 개</small></button>
     </div>
     <div class="it-sub">브랜드는 마지막에 고른 값(${esc(typeof quickBrand==='function'?quickBrand():'')})으로 들어가요. 수집 화면에서 바꿀 수 있어요.</div>`;
   openOverlay('collectOverlay');
@@ -4943,6 +5154,7 @@ function openCollect(){
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-col]');if(!b)return;const a=b.dataset.col;
   if(a==='close'){closeOverlay();return;}
+  if(a==='maker'){openMakerStart('');return;}
   if(a==='photo'){quickAutoAdd=true;const f=$('#planQuickFile');if(f)f.click();closeOverlay();closeAllItemPages();switchTab('plans');return;}
   closeOverlay();closeAllItemPages();switchTab('plans');
   if(a==='paste'){pasteQuick();return;}

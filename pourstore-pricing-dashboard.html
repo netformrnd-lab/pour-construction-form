@@ -859,6 +859,57 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 .la-choose .tbtn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;text-align:left;min-height:0}
 .la-choose .tbtn span{font-size:12px;color:var(--ink-soft);font-weight:500}
 @media(max-width:640px){ .la-row{flex-wrap:wrap} .la-row .acts{width:100%;justify-content:flex-end} }
+/* 출시 관리 v2: 네 칸 요약(=걸러보기) · 찾기 · 검토 진행 · 다음 할 일 */
+/* 등록·제조사 */
+.reg-hero{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.reg-hero .tbtn{min-height:48px;padding:0 22px;font-size:15px;font-weight:800;border-radius:12px}
+.reg-hero .footnote{margin:0;flex:1;min-width:200px}
+#regMfgPanel h3{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.mf-cards,.reg-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.mf-card,.reg-card{border:1px solid #E5E7EB;border-radius:12px;padding:10px 12px;background:#fff;cursor:pointer;position:relative;min-width:0}
+.mf-card:hover,.reg-card:hover{border-color:#A7D7B8}
+.mf-card.on{border-color:var(--xl-green);box-shadow:0 0 0 1px var(--xl-green) inset}
+.mf-card .nm,.reg-card .nm{font-weight:800;font-size:14px;overflow-wrap:anywhere}
+.mf-card .cnt{font-size:11px;font-weight:700;color:var(--ink-soft);background:#F3F4F6;border-radius:6px;padding:1px 6px;margin-left:4px}
+.mf-card .sub,.reg-card .sub{font-size:12.5px;color:var(--ink-soft);margin-top:3px;overflow-wrap:anywhere}
+.mf-tel{color:#1D4ED8;text-decoration:none;font-weight:700}
+.mf-form{border:1px solid var(--xl-green);background:#F6FBF8;border-radius:12px;padding:12px;margin-bottom:10px}
+.mf-ttl{font-weight:800;font-size:13px;margin-bottom:8px}
+.mf-form .formgrid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.mf-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+.mf-acts .tbtn{min-height:40px;padding:0 16px}
+.reg-card .top{display:flex;gap:8px;align-items:flex-start;padding-right:0}
+.reg-card .top .nm{flex:1;min-width:0}
+.reg-card .sp{font-weight:500;color:var(--ink-soft)}
+.reg-card .st{flex:0 0 auto;font-size:11px;font-weight:800;border-radius:6px;padding:2px 7px}
+.reg-card .sub:last-of-type{padding-right:54px}
+.reg-card .del{position:absolute;right:8px;bottom:8px;color:var(--red);padding:2px 9px;font-size:11px;min-height:0}
+.reg-q{width:100%;border:1px solid var(--xl-grid);border-radius:10px;padding:9px 12px;font:inherit;font-size:14px;margin-bottom:10px;background:#fff}
+@media(max-width:700px){ .mf-form .formgrid{grid-template-columns:1fr 1fr} .mf-cards,.reg-cards{grid-template-columns:1fr} .reg-hero .tbtn{width:100%} }
+.la-sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.la-sum button{border:1.5px solid #E5E7EB;background:#fff;border-radius:12px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font:inherit;min-height:64px}
+.la-sum button b{font-size:22px;line-height:1.1;color:var(--fg)}
+.la-sum button span{font-size:12px;font-weight:700;color:var(--ink-soft);white-space:nowrap}
+.la-sum button.on{border-color:var(--fg);background:var(--bg);box-shadow:0 0 0 1px var(--fg) inset}
+.la-sum button.on span{color:var(--fg)}
+.la-find{display:flex;gap:8px;margin-bottom:10px}
+.la-find input{flex:1;min-width:0;border:1px solid var(--xl-grid);border-radius:10px;padding:9px 12px;font:inherit;font-size:14px;background:#fff}
+.la-find .tbtn{flex:0 0 auto;min-height:40px}
+#laListPanel #laChoose,#laListPanel #laNewPanel{margin-bottom:10px}
+.la-steps{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.la-steps span{font-size:11.5px;font-weight:700;border-radius:6px;padding:2px 7px;background:#F3F4F6;color:#9CA3AF}
+.la-steps span.ok{background:#E3F2E8;color:#0B5C30}
+.la-next{font-size:12.5px;font-weight:700;color:#6D28D9;margin-top:5px}
+.la-next.go{color:var(--xl-green-dark)}
+.la-next.warn{color:var(--ink);font-weight:500}
+.la-row.off .nm{color:var(--ink-soft)}
+.la-row .mono{font-family:var(--mono);font-size:11.5px}
+#laDetailBar .ttl{min-width:0;overflow-wrap:anywhere}
+#laStatusSeg button{white-space:nowrap}
+@media(max-width:700px){
+  .la-sum{gap:6px} .la-sum button{padding:8px 2px;min-height:58px} .la-sum button b{font-size:19px} .la-sum button span{font-size:11px}
+  #laDetailBar{flex-wrap:wrap} #laDetailBar .ttl{flex:1 1 calc(100% - 90px)} #laStatusSeg{display:grid!important;grid-template-columns:repeat(4,1fr);width:100%} #laStatusSeg button{padding:8px 2px;font-size:12px}
+}
 /* 상세 패널(상품 기준 · 채널 수익분석) — 견적 창과 같은 틀 */
 #pdPanel{position:fixed;z-index:102;left:50%;top:50%;transform:translate(-50%,-50%);width:min(860px,calc(100vw - 32px));max-height:88vh;overflow-y:auto;background:#F8FAFC;border-radius:14px;box-shadow:0 18px 48px rgba(31,39,51,.28);display:none}
 #pdPanel.open{display:block;animation:uiUp .18s ease}
@@ -1269,7 +1320,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.26n</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.27a</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1708,20 +1759,24 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 
   <!-- ── Sheet: 신제품 검토 (출시준비) — MOQ·원가·물류·채널수수료로 예상 마진, 시장가 조사로 상품성 평가 ── -->
   <section class="sheet" id="sh-launch">
-    <div class="toolrow">
-      <span class="ttl">신제품 검토</span>
-      <select id="laSel" style="min-width:240px;flex:0 1 340px"></select>
-      <select id="laStatus" title="이 제품의 상태"><option>출시준비</option><option>출시</option><option>단종</option></select>
-      <button class="tbtn primary" id="laNewBtn">＋ 새 제품</button>
+    <div class="toolrow" id="laListBar">
+      <span class="ttl">출시 관리</span>
+      <span class="hint">출시준비 → 출시 → 단종예정 → 단종 · 단종예정 제품은 재고가 0개가 되면 자동으로 단종됩니다</span>
+    </div>
+    <div class="toolrow" id="laDetailBar" style="display:none">
+      <button type="button" class="tbtn" id="laBack">‹ 목록</button>
+      <span class="ttl" id="laDetailName"></span>
+      <div class="seg" id="laStatusSeg" title="이 제품의 상태"></div>
       <span class="footnote" id="laSaved" style="margin:0 0 0 auto"></span>
-      <span class="hint">MOQ·원가·물류비·채널 수수료로 예상 마진을 보고, 시장가 조사와 비교해 상품성을 판단합니다 · 입력하면 자동 저장</span>
     </div>
     <div class="sheet-pad">
+      <div id="laListPanel">
+        <div class="la-sum" id="laSum"></div>
+        <div class="la-find"><input type="search" id="laQ" placeholder="🔍 제품명·코드로 찾기" enterkeyhint="search" autocomplete="off"><button class="tbtn primary" id="laNewBtn">＋ 새 제품</button></div>
       <div class="panel" id="laChoose" style="display:none"><h3>새 제품 어떻게 낼까요?</h3><div class="bd la-choose">
         <button type="button" class="tbtn" id="laGoDirect"><b>🚀 바로 출시</b><span>원가·가격을 이미 알 때 · 등록하면 가격정책표에 바로</span></button>
         <button type="button" class="tbtn" id="laGoReview"><b>🔍 검토 후 출시</b><span>시장조사·마진부터 · 출시준비로 두고 검토</span></button>
         <button type="button" class="tbtn" id="laChooseX" style="justify-content:center">취소</button></div></div>
-      <div class="panel" id="laListPanel"><h3>출시 관리 <span class="tag">소싱앱에서 넘어온 상품은 🔗 표시</span></h3><div class="bd" id="laList"></div></div>
       <div class="panel" id="laNewPanel" style="display:none">
         <h3>새 검토 제품 <span class="tag">상태 '출시준비'로 등록 · 자체상품코드는 출시할 때 붙습니다</span></h3>
         <div class="bd">
@@ -1736,6 +1791,8 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
             <span class="footnote" id="laNewMsg" style="margin:0;align-self:center"></span>
           </div>
         </div>
+      </div>
+        <div class="panel"><div class="bd" id="laList"></div></div>
       </div>
       <div id="laBody"></div>
     </div>
@@ -1854,55 +1911,42 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
   <!-- ── Sheet: 제조사·제품·상품 등록 ── -->
   <section class="sheet" id="sh-reg">
     <div class="toolrow">
-      <span class="ttl">제조사 · 제품 · 상품 등록</span>
-      <button class="tbtn primary" id="btnRegSave">변경사항 저장</button>
-      <span class="hint">여기서 추가한 항목은 가격정책표·손익 등 모든 시트에 즉시 반영됩니다 · 저장은 이 브라우저에만 보관됩니다</span>
+      <span class="ttl">등록·제조사</span>
+      <span class="hint">제품은 등록하면 바로 팀 전체에 저장돼요 · 출시준비·출시·단종은 [출시 관리]에서 봐요</span>
     </div>
     <div class="sheet-pad">
+      <div class="reg-hero">
+        <button type="button" class="tbtn primary" id="regNewBtn">＋ 새 제품 등록</button>
+        <p class="footnote">가격정책표의 [＋ 제품 추가]와 같은 창이에요 · 상태(바로 출시 / 출시준비)도 거기서 골라요</p>
+      </div>
 
       <div class="panel" id="regMfgPanel">
-        <h3>① 제조사(공급업체) 등록 <span class="tag">매입처 마스터 · 마스터 전용</span></h3>
+        <h3>🏭 제조사 <span class="tag" id="mfgCount"></span><span class="tag">마스터 전용</span><button type="button" class="tbtn" id="mfAddOpen" style="margin-left:auto">＋ 제조사</button></h3>
         <div class="bd">
-          <div class="formgrid" style="grid-template-columns:1fr 130px 150px 1fr auto;align-items:end">
-            <div class="fld"><label>제조사명</label><input type="text" id="mfName" placeholder="예: ㈜넷폼"></div>
-            <div class="fld"><label>담당자</label><input type="text" id="mfMgr" placeholder="선택"></div>
-            <div class="fld"><label>연락처</label><input type="text" id="mfTel" placeholder="선택"></div>
-            <div class="fld"><label>메모</label><input type="text" id="mfMemo" placeholder="결제조건·비고 등"></div>
-            <button class="tbtn primary" id="btnMfAdd" style="height:34px">＋ 추가</button>
+          <div class="mf-form" id="mfForm" style="display:none">
+            <div class="mf-ttl" id="mfFormTtl">새 제조사</div>
+            <div class="formgrid">
+              <div class="fld"><label>제조사명 *</label><input type="text" id="mfName" placeholder="예: ㈜넷폼" autocomplete="off"></div>
+              <div class="fld"><label>담당자</label><input type="text" id="mfMgr" placeholder="선택" autocomplete="off"></div>
+              <div class="fld"><label>연락처</label><input type="tel" id="mfTel" placeholder="선택" autocomplete="off"></div>
+              <div class="fld"><label>메모</label><input type="text" id="mfMemo" placeholder="결제조건·비고 등" autocomplete="off"></div>
+            </div>
+            <div class="mf-acts"><button type="button" class="tbtn" id="mfDel" style="color:var(--red);margin-right:auto">삭제</button><button type="button" class="tbtn" id="mfCancel">취소</button><button type="button" class="tbtn primary" id="btnMfAdd">저장</button></div>
           </div>
-          <table class="grid" id="mfgTable" style="width:100%;margin-top:10px"></table>
-          <p class="footnote">· 제품 등록 시 이 목록에서 제조사를 고를 수 있습니다. 셀 더블클릭으로 수정 · "제품 수"는 그 제조사로 등록된 제품 개수입니다.</p>
+          <div id="mfgCards" class="mf-cards"></div>
+          <p class="footnote" id="mfgNote">· 제품 등록 창에서 이 목록의 제조사를 고를 수 있어요. 카드를 누르면 고칠 수 있어요.<br>· 제조사 목록은 지금 <b>이 기기(브라우저)에만</b> 저장돼요.</p>
         </div>
       </div>
 
       <div class="panel">
-        <h3>② 제품 등록 <span class="tag">제조사 원제품 · 채널 공급가</span></h3>
+        <h3>직접 등록한 제품 <span class="tag" id="regCnt"></span></h3>
         <div class="bd">
-          <div class="formgrid" style="grid-template-columns:150px 1fr 110px 130px 1fr;align-items:end">
-            <div class="fld"><label>분류</label><input type="text" id="apCat" list="catList" placeholder="예: 수용성 도료"><datalist id="catList"></datalist></div>
-            <div class="fld"><label>제품명</label><input type="text" id="apName" placeholder="예: POUR 신규 코트재"></div>
-            <div class="fld"><label>규격</label><input type="text" id="apSpec" placeholder="예: 20kg/통"></div>
-            <div class="fld"><label>매입원가 (원)</label><input type="number" id="apCost" placeholder="예: 60000"></div>
-            <div class="fld" id="apMfgFld"><label>제조사</label><input type="text" id="apMfg" list="mfgList" placeholder="선택/입력"><datalist id="mfgList"></datalist></div>
-          </div>
-          <div class="formgrid" style="grid-template-columns:1fr 120px 120px 1fr;align-items:end;margin-top:10px">
-            <div class="fld"><label>컨셉 <span style="color:var(--ink-faint)">(파생 기준)</span></label><input type="text" id="apConcept" placeholder="예: 옥상방수 세트"></div>
-            <div class="fld"><label>유형</label><select id="apType"><option value="단품">단품</option><option value="세트">세트</option></select></div>
-            <div class="fld"><label>상태</label><select id="apStatus"><option>소싱중</option><option>출시</option><option>단종</option></select></div>
-            <div class="fld"><label>세트 구성 <span style="color:var(--ink-faint)">(세트일 때, 쉼표)</span></label><input type="text" id="apSetItems" placeholder="구성품명, 구성품명"></div>
-          </div>
-          <div class="formgrid" id="apPriceRow" style="grid-template-columns:auto 150px 1fr auto;align-items:end;margin-top:10px;padding-top:10px;border-top:1px dashed var(--xl-grid)">
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);white-space:nowrap"><input type="checkbox" id="apAuto" checked style="width:auto">목표 마진율로 채널가 자동 산출</label>
-            <div class="fld" id="apTgtFld"><label>목표 마진율 (%)</label><input type="number" id="apTgt" value="35" step="0.5"></div>
-            <p class="footnote" id="apAutoNote" style="margin:0;align-self:center">가격열이 켜진 채널마다 <b>필요 공급가 = 매입원가 ÷ (1 − 목표마진율 − 채널수수료)</b>로 초기값을 채웁니다. 등록 후 가격정책표에서 개별 수정하세요.</p>
-            <button class="tbtn primary" id="btnApAdd" style="height:34px">＋ 제품 등록</button>
-          </div>
-          <table class="grid" id="addProdTable" style="width:100%;margin-top:12px"></table>
-          <p class="footnote">· 여기 표에는 <b>직접 추가한 제품</b>만 나옵니다. 기존 제품의 원가·가격 수정은 <b>가격정책표</b> 시트에서 하세요.</p>
+          <input type="search" id="regQ" class="reg-q" placeholder="🔍 제품명으로 찾기" enterkeyhint="search" autocomplete="off">
+          <div id="regProdCards" class="reg-cards"></div>
+          <p class="footnote">· 카드를 누르면 수정 창이 열려요. 기본 제품의 원가·가격은 <b>가격정책표</b>에서 고쳐요.</p>
         </div>
       </div>
-
-
+      <datalist id="catList"></datalist><datalist id="mfgList"></datalist>
     </div>
   </section>
 
@@ -2148,8 +2192,8 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
   <button class="stab" data-grp="price" data-sh="sh-product"><span class="dot"></span>상품 기준</button>
   <button class="stab" data-grp="price" data-sh="sh-channel"><span class="dot"></span>채널 수익분석</button>
   <button class="stab" data-grp="price" data-sh="sh-dash"><span class="dot"></span>요약·알림</button>
-  <button class="stab" data-grp="prod" data-sh="sh-reg"><span class="dot"></span>등록</button>
-  <button class="stab" data-grp="prod" data-sh="sh-launch"><span class="dot"></span>검토</button>
+  <button class="stab" data-grp="prod" data-sh="sh-launch"><span class="dot"></span>출시 관리</button>
+  <button class="stab" data-grp="prod" data-sh="sh-reg"><span class="dot"></span>등록·제조사</button>
   <button class="stab" data-grp="sales" data-sh="sh-sales"><span class="dot"></span>매출</button>
   <button class="stab" data-grp="sales" data-sh="sh-expiry"><span class="dot"></span>유통기한</button>
   <button class="stab" data-grp="sales" data-sh="sh-pl"><span class="dot"></span>손익</button>
@@ -2406,6 +2450,8 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
         <div class="fld"><label>자체상품코드 <span style="color:var(--ink-faint)">비우면 자동</span></label><input id="adPcode" placeholder="예: PS-003-02" autocomplete="off" style="font-family:var(--mono)"></div>
         <div class="fld"><label>3PL 코드 <span style="color:var(--ink-faint)">물류센터 · 선택</span></label><input id="adP3pl" placeholder="예: 03031 (여러 개면 쉼표)" autocomplete="off" style="font-family:var(--mono)"></div>
         <div class="fld"><label>유형</label><select id="adType"><option value="단품">단품</option><option value="세트">세트(패키지)</option></select></div>
+        <div class="fld" id="adLaunchFld"><label>상태</label><select id="adLaunch"><option value="출시">출시 (바로 판매)</option><option value="출시준비">출시준비 (검토 후 출시)</option></select></div>
+        <div class="fld" id="adConceptFld"><label>컨셉 <span style="color:var(--ink-faint)">파생 기준 · 선택</span></label><input id="adConcept" placeholder="예: 옥상방수 세트" autocomplete="off"></div>
         <div class="fld" id="adCostFld"><label>매입원가 (원) <span style="color:var(--ink-faint)">대외비</span></label><input type="number" id="adCost" placeholder="예: 60000"></div>
         <div class="fld" id="adMfgFld"><label>제조사 <span style="color:var(--ink-faint)">대외비</span></label><input id="adMfg" list="mfgList" placeholder="선택/입력" autocomplete="off"></div>
         <div id="adSetFld" style="display:none;grid-column:1/-1">
@@ -2995,7 +3041,6 @@ function applySecGating(){
   if(typeof renderTabs==='function') renderTabs();   // 보안탭 표시/숨김 반영(그룹 필터 유지)
   // 제조사(공급업체) 정보: 마스터 전용 — 일반계정에선 등록 패널·제조사 입력칸 숨김
   const mfgPanel=$('#regMfgPanel'); if(mfgPanel) mfgPanel.style.display=secAllowed?'':'none';
-  const mfgFld=$('#apMfgFld'); if(mfgFld) mfgFld.style.display=secAllowed?'':'none';
   const mfgFld2=$('#adMfgFld'); if(mfgFld2) mfgFld2.style.display=secAllowed?'':'none';   // 제품 추가·수정 모달
   if(!secAllowed){ const mi=$('#adMfg'); if(mi) mi.value=''; }                             // 값 자체를 담지 않음(노출 방지)
   renderAccess();
@@ -5219,7 +5264,7 @@ $('#ibSend')&&$('#ibSend').addEventListener('click',sendInbound);
 /* ══════════ 제조사·제품·상품 등록 ══════════ */
 let activeGrp='price';
 /* 일반계정(원가 미열람)에 보이는 탭: 가격정책표(판매가) + 계정 관리만 */
-const GEN_TABS=['sh-price','sh-access','sh-mkt','sh-mktlink','sh-mktpromo'];
+const GEN_TABS=['sh-price','sh-access','sh-mkt','sh-mktlink','sh-mktpromo','sh-launch'];   // 출시 관리 목록은 원가 없이 모두에게(원가·마진·검토는 숨김)
 function tabHidden(b){
   if((b.dataset.sh==='sh-match'||b.dataset.sh==='sh-items') && !secAllowed) return true;   // 보안탭(매칭·온라인 상품): 마스터만
   if(!costAllowed && !GEN_TABS.includes(b.dataset.sh)) return true;  // 원가 미열람 → 판매가·계정만
@@ -5256,7 +5301,7 @@ function tabHidden(b){
    권한은 탭 단위(tabHidden)로 걸리고, 보이는 탭이 하나도 없으면 메뉴 항목도 숨는다. */
 const MENU=[
   {g:'price',ic:'💰',lb:'가격',items:[{lb:'가격정책표',tabs:['sh-price','sh-dash']}]},
-  {g:'prod',ic:'📦',lb:'제품',items:[{lb:'제품 등록·검토',tabs:['sh-reg','sh-launch']}]},
+  {g:'prod',ic:'📦',lb:'제품',items:[{lb:'출시 관리·등록',tabs:['sh-launch','sh-reg']}]},
   {g:'sales',ic:'📈',lb:'판매',items:[{lb:'매출',tabs:['sh-sales']},{lb:'유통기한',tabs:['sh-expiry']},{lb:'손익',tabs:['sh-pl','sh-fixed']}]},
   {g:'mkt',ic:'📣',lb:'마케팅',items:[{lb:'프로모션',tabs:['sh-promo','sh-mktpromo']},{lb:'마케팅',tabs:['sh-mkt','sh-mktlink']}]},
   {g:'set',ic:'⚙',lb:'설정',items:[{lb:'채널·브랜드',tabs:['sh-chman']},{lb:'계정',tabs:['sh-access']},{lb:'CRM 연동',tabs:['sh-inbound']},{lb:'매칭',tabs:['sh-match']},{lb:'온라인 상품',tabs:['sh-items']},{lb:'MOQ 구간',tabs:['sh-moq']},{lb:'데이터·휴지통',tabs:['sh-data']}]}
@@ -5385,27 +5430,43 @@ function fillRegDatalists(){
   const gset=[...new Set([...FX_GROUPS_SEED,...FX.map(x=>x.g)])];
   $('#fxGrpList').innerHTML=gset.map(g=>`<option value="${esc(g)}">`).join('');
 }
+/* 제조사: 카드 목록 · 누르면 위 입력칸에서 고침(폰에서 더블클릭 불필요) · 바뀔 때마다 바로 저장 */
+let MF_EDIT=null;
 function renderMfg(){
-  if(!MFG.length){ $('#mfgTable').innerHTML='<tbody><tr><td class="dim" style="padding:10px">아직 등록된 제조사가 없습니다. 위에서 추가하세요.</td></tr></tbody>'; return; }
-  let h='<thead><tr><th style="min-width:160px">제조사명</th><th>담당자</th><th>연락처</th><th>메모</th><th class="num">제품 수</th><th></th></tr></thead><tbody>';
-  MFG.forEach(m=>{ h+=`<tr data-mfid="${m.id}">
-      <td class="editable name" data-mff="name">${esc(m.name)||'—'}</td>
-      <td class="editable dim" data-mff="mgr">${esc(m.mgr)||'—'}</td>
-      <td class="editable dim" data-mff="tel">${esc(m.tel)||'—'}</td>
-      <td class="editable dim" data-mff="memo">${esc(m.memo)||'—'}</td>
-      <td class="num">${mfgProductCount(m.name)}</td>
-      <td style="text-align:center"><button class="tbtn" data-mfdel="${m.id}" style="color:var(--red);padding:2px 9px;font-size:11px">삭제</button></td></tr>`; });
-  $('#mfgTable').innerHTML=h+'</tbody>';
+  const box=$('#mfgCards'); if(!box) return;
+  $('#mfgCount').textContent=MFG.length+'곳';
+  if(!MFG.length){ box.innerHTML='<div class="footnote" style="margin:0">아직 등록된 제조사가 없어요. [＋ 제조사]로 추가하세요.</div>'; return; }
+  box.innerHTML=MFG.map(m=>{ const n=mfgProductCount(m.name), tel=String(m.tel||'').replace(/[^0-9+]/g,'');
+    return `<div class="mf-card${MF_EDIT===m.id?' on':''}" data-mfid="${m.id}" role="button" tabindex="0">
+      <div class="nm">${esc(m.name)||'—'} <span class="cnt">제품 ${n}</span></div>
+      <div class="sub">${m.mgr?esc(m.mgr):'<span class="dim">담당자 없음</span>'}${tel?` · <a href="tel:${esc(tel)}" class="mf-tel">📞 ${esc(m.tel)}</a>`:''}</div>
+      ${m.memo?`<div class="sub dim">${esc(m.memo)}</div>`:''}</div>`; }).join('');
 }
+function mfOpenForm(m){
+  MF_EDIT=m?m.id:null;
+  $('#mfFormTtl').textContent=m?'제조사 고치기':'새 제조사';
+  $('#mfName').value=m?m.name||'':''; $('#mfMgr').value=m?m.mgr||'':''; $('#mfTel').value=m?m.tel||'':''; $('#mfMemo').value=m?m.memo||'':'';
+  $('#mfDel').style.display=m?'':'none';
+  $('#mfForm').style.display=''; renderMfg();
+  $('#mfForm').scrollIntoView({block:'nearest',behavior:'smooth'}); setTimeout(()=>$('#mfName').focus(),60);
+}
+function mfCloseForm(){ MF_EDIT=null; $('#mfForm').style.display='none'; renderMfg(); }
+let REG_Q='';
 function renderAddProd(){
-  const add=P.filter(p=>p.added);
-  if(!add.length){ $('#addProdTable').innerHTML='<tbody><tr><td class="dim" style="padding:10px">직접 등록한 제품이 여기에 표시됩니다. 기존 제품은 가격정책표에서 수정하세요.</td></tr></tbody>'; return; }
-  const cols=COLS(), showMfg=secAllowed;   // 제조사 열: 마스터 전용
-  let h='<thead><tr><th>브랜드</th><th>분류</th><th style="min-width:180px">제품명</th><th>규격</th>'+(showMfg?'<th>제조사</th>':'')+'<th class="num">매입원가</th>'+cols.map(c=>`<th class="num">${esc(c.code)}</th>`).join('')+'<th></th></tr></thead><tbody>';
-  add.forEach(p=>{ h+=`<tr><td class="dim" style="white-space:nowrap">${esc(pbrand(p).join(' · '))}</td><td class="dim">${esc(p.cat)}</td><td class="name">${esc(p.name)}</td><td class="dim">${esc(p.spec)}</td>`+(showMfg?`<td class="dim">${esc(p.mfg)||'—'}</td>`:'')+`<td class="num cost">${won(p.cost)}</td>`+
-      cols.map(c=>`<td class="num">${won(gp(p,c.uid))}</td>`).join('')+
-      `<td style="text-align:center"><button class="tbtn" data-pdel="${p.id}" style="color:var(--red);padding:2px 9px;font-size:11px">삭제</button></td></tr>`; });
-  $('#addProdTable').innerHTML=h+'</tbody>';
+  const box=$('#regProdCards'); if(!box) return;
+  const add=P.filter(p=>p.added && !isDeletedProd(p));
+  $('#regCnt').textContent=add.length+'개';
+  const q=REG_Q.trim().toLowerCase().replace(/\s+/g,'');
+  const list=add.filter(p=>!q||(p.name+(p.spec||'')).toLowerCase().replace(/\s+/g,'').includes(q)).reverse();   // 최근 등록이 위
+  if(!list.length){ box.innerHTML=`<div class="footnote" style="margin:0">${q?'찾는 제품이 없어요.':'직접 등록한 제품이 여기에 보여요. [＋ 새 제품 등록]으로 시작하세요.'}</div>`; return; }
+  const showCost=costAllowed, showMfg=secAllowed, rUid=retailUid();
+  box.innerHTML=list.slice(0,60).map(p=>{ const g=laGroupOf(p), st=LA_GSTYLE[g]||['#6B7280','#F3F4F6'], rt=rUid?gp(p,rUid):null;
+    return `<div class="reg-card" data-regp="${p.id}" role="button" tabindex="0">
+      <div class="top"><div class="nm">${esc(p.name)}${p.spec&&p.spec!=='-'?` <span class="sp">${esc(p.spec)}</span>`:''}</div><span class="st" style="color:${st[0]};background:${st[1]}">${g}</span></div>
+      <div class="sub">${esc(pbrand(p).join(' · '))} · ${esc(p.cat)}${showMfg&&p.mfg?` · 🏭 ${esc(p.mfg)}`:''}</div>
+      <div class="sub">${showCost?`원가 ${p.cost>0?won(p.cost)+'원':'—'} · `:''}정가 ${rt>0?won(rt)+'원':'—'}</div>
+      <button type="button" class="tbtn del" data-pdel="${p.id}" title="삭제">삭제</button></div>`; }).join('')
+    +(list.length>60?`<div class="footnote" style="margin:6px 0 0">${list.length-60}개 더 있어요 · 찾기로 좁혀 보세요</div>`:'');
 }
 function renderAddItem(){
   const box=$('#regItemForm'), lockMsg=$('#regItemLockMsg'), badge=$('#regItemLock');
@@ -5419,51 +5480,40 @@ function renderAddItem(){
   $('#addItemTable').innerHTML=h+'</tbody>';
 }
 /* 등록 이벤트 */
+$('#regNewBtn').addEventListener('click',()=>openAddModal());
+$('#regQ').addEventListener('input',e=>{ REG_Q=e.target.value; renderAddProd(); });
+$('#mfAddOpen').addEventListener('click',()=>mfOpenForm(null));
+$('#mfCancel').addEventListener('click',mfCloseForm);
 $('#btnMfAdd').addEventListener('click',()=>{
   const name=($('#mfName').value||'').trim();
-  if(!name){ alert('제조사명은 필수입니다.'); return; }
-  if(MFG.some(m=>m.name===name)){ alert('이미 등록된 제조사입니다.'); return; }
-  MFG.push({id:mfgSeq++,name,mgr:($('#mfMgr').value||'').trim(),tel:($('#mfTel').value||'').trim(),memo:($('#mfMemo').value||'').trim()});
-  ['#mfName','#mfMgr','#mfTel','#mfMemo'].forEach(s=>$(s).value=''); refreshAll();
+  if(!name){ alert('제조사명은 필수입니다.'); $('#mfName').focus(); return; }
+  if(MFG.some(m=>m.name===name && m.id!==MF_EDIT)){ alert('이미 등록된 제조사입니다.'); return; }
+  const v={name,mgr:($('#mfMgr').value||'').trim(),tel:($('#mfTel').value||'').trim(),memo:($('#mfMemo').value||'').trim()};
+  const m=MF_EDIT!=null?MFG.find(x=>x.id===MF_EDIT):null;
+  if(m) Object.assign(m,v); else MFG.push({id:mfgSeq++,...v});
+  persist(); MF_EDIT=null; $('#mfForm').style.display='none'; refreshAll(); uiToast(m?'제조사 고쳤어요':'제조사 추가했어요','ok');
 });
-$('#apAuto').addEventListener('change',()=>{ const on=$('#apAuto').checked; $('#apTgtFld').style.display=on?'':'none'; $('#apAutoNote').style.display=on?'':'none'; });
-$('#btnApAdd').addEventListener('click',()=>{
-  const cat=($('#apCat').value||'').trim()||'기타', name=($('#apName').value||'').trim();
-  if(!name){ alert('제품명은 필수입니다.'); return; }
-  const spec=($('#apSpec').value||'').trim()||'-';
-  const cost=$('#apCost').value===''?null:+$('#apCost').value;
-  const mfg=($('#apMfg').value||'').trim();
-  const auto=$('#apAuto').checked, tgt=(+$('#apTgt').value||0)/100;
-  const doc={ cat,name,spec,cost,pr:auto?autoPricesFor(cost,tgt):{},mfg,
-    concept:($('#apConcept').value||'').trim(), type:$('#apType').value||'단품',
-    status:$('#apStatus').value||'소싱중', setItems:($('#apSetItems').value||'').trim(),
-    seq:P.length, updatedAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'' };
-  if(mfg && !MFG.some(m=>m.name===mfg)){ MFG.push({id:mfgSeq++,name:mfg,mgr:'',tel:'',memo:'(제품 등록 시 자동 추가)'}); persist(); }
-  // 공유 원장(Firestore)에 등록 → onSnapshot 이 대시보드·소싱앱 모두에 실시간 반영
-  db.collection('products-added').add(doc).then(()=>{
-    ['#apName','#apSpec','#apCost','#apMfg','#apConcept','#apSetItems'].forEach(s=>$(s).value='');
-    $('#btnApAdd').textContent='등록됨 ✓'; setTimeout(()=>$('#btnApAdd').textContent='＋ 제품 등록',1200);
-  }).catch(e=>alert('등록 실패: '+(e.code||e.message||e)+'\n(마스터/허용목록 계정·규칙 게시 확인)'));
+$('#mfDel').addEventListener('click',()=>{
+  const m=MFG.find(x=>x.id===MF_EDIT); if(!m) return;
+  const n=mfgProductCount(m.name);
+  if(!confirm(`제조사 "${m.name}"를 목록에서 뺄까요?${n?`\n\n이 제조사로 등록된 제품 ${n}개의 제조사 값은 그대로 남아요.`:''}`)) return;
+  MFG=MFG.filter(x=>x.id!==m.id); persist(); MF_EDIT=null; $('#mfForm').style.display='none'; refreshAll();
 });
+document.addEventListener('click',e=>{
+  if(e.target.closest('.mf-tel')) return;
+  const mc=e.target.closest('#mfgCards .mf-card'); if(mc){ const m=MFG.find(x=>x.id==mc.dataset.mfid); if(m) mfOpenForm(m); return; }
+  if(e.target.closest('#regProdCards [data-pdel]')) return;   // 삭제는 아래 공통 삭제에서
+  const rc=e.target.closest('#regProdCards .reg-card'); if(rc){ const p=P.find(x=>String(x.id)===rc.dataset.regp); if(p) openEditModal(p); }
+});
+document.addEventListener('keydown',e=>{ if(e.key!=='Enter') return; const c=e.target.closest&&e.target.closest('.mf-card,.reg-card'); if(c&&e.target===c){ e.preventDefault(); c.click(); } });
 $('#btnAiAdd').addEventListener('click',()=>{
   if(!unlocked){ alert('보안 잠금을 먼저 해제하세요.'); return; }
   const item=($('#aiItem').value||'').trim();
   if(!item){ alert('상품명은 필수입니다.'); return; }
   M.push({id:M.length,item,src:($('#aiSrc').value||'').trim(),color:($('#aiColor').value||'').trim(),cost:+$('#aiCost').value||0,price:+$('#aiPrice').value||0,added:true});
-  ['#aiItem','#aiSrc','#aiColor','#aiCost','#aiPrice'].forEach(s=>$(s).value=''); refreshAll();
+  ['#aiItem','#aiSrc','#aiColor','#aiCost','#aiPrice'].forEach(s=>$(s).value=''); refreshAll(); persistSecure();
   $('#btnAiAdd').textContent='등록됨 ✓'; setTimeout(()=>$('#btnAiAdd').textContent='＋ 상품 등록',1200);
 });
-$('#btnRegSave').addEventListener('click',()=>{ persist(); persistSecure(); uiToast('등록 정보 저장됨','ok'); });
-document.addEventListener('dblclick',e=>{
-  const td=e.target.closest('#mfgTable td.editable'); if(!td||td.querySelector('input'))return;
-  const m=MFG.find(x=>x.id==td.closest('tr').dataset.mfid), f=td.dataset.mff; if(!m)return;
-  td.innerHTML=`<input class="cellinput" value="${esc(m[f]==null?'':m[f])}">`;
-  const inp=td.querySelector('input'); inp.focus();
-  const commit=()=>{ m[f]=inp.value; refreshAll(); };
-  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter')commit(); if(ev.key==='Escape')renderMfg(); });
-  inp.addEventListener('blur',commit);
-});
-
 /* ══════════ 고정지출 ══════════ */
 function fxMonthly(x){ return x.cycle==='연간' ? (x.amt||0)/12 : (x.amt||0); }
 function fxMonthlyTotal(){ return FX.filter(x=>x.on!==false).reduce((s,x)=>s+fxMonthly(x),0); }
@@ -5531,14 +5581,11 @@ document.addEventListener('change',e=>{
 /* 등록/지출 공통 삭제 */
 document.addEventListener('click',e=>{
   const md=e.target.closest('[data-mfdel]');
-  if(md){ const id=+md.dataset.mfdel, m=MFG.find(x=>x.id==id); if(confirm(`제조사 "${m?m.name:''}"를 삭제할까요?`)){ MFG=MFG.filter(x=>x.id!=id); refreshAll(); } return; }
+  if(md){ const id=+md.dataset.mfdel, m=MFG.find(x=>x.id==id); if(confirm(`제조사 "${m?m.name:''}"를 삭제할까요?`)){ MFG=MFG.filter(x=>x.id!=id); persist(); refreshAll(); } return; }
   const pd=e.target.closest('[data-pdel]');
-  if(pd){ const id=+pd.dataset.pdel, p=P.find(x=>x.id===id); if(p&&p.added&&confirm(`제품 "${p.name}"을(를) 삭제할까요?`)){
-      if(p.docId){ db.collection('products-added').doc(p.docId).delete().catch(e=>alert('삭제 실패: '+(e.code||e.message||e))); }   // 공유 원장 → onSnapshot 반영
-      else { P=P.filter(x=>x.id!==id); P.forEach((x,i)=>x.id=i); persist(); fillProductSelects(); plState=null; refreshAll(); }
-    } return; }
+  if(pd){ const id=+pd.dataset.pdel, p=P.find(x=>x.id===id); if(p&&p.added) softDeleteProduct(p); return; }   // 영구삭제 대신 휴지통(복원 가능)
   const idl=e.target.closest('[data-idel]');
-  if(idl){ const id=+idl.dataset.idel, r=M.find(x=>x.id===id); if(r&&r.added&&confirm(`상품 "${r.item}"을(를) 삭제할까요?`)){ M=M.filter(x=>x.id!==id); M.forEach((x,i)=>x.id=i); refreshAll(); } return; }
+  if(idl){ const id=+idl.dataset.idel, r=M.find(x=>x.id===id); if(r&&r.added&&confirm(`상품 "${r.item}"을(를) 삭제할까요?`)){ M=M.filter(x=>x.id!==id); M.forEach((x,i)=>x.id=i); refreshAll(); persistSecure(); } return; }
   const fd=e.target.closest('[data-fxdel]');
   if(fd){ const id=+fd.dataset.fxdel, x=FX.find(v=>v.id==id); if(confirm(`"${x?x.name:''}" 항목을 삭제할까요?`)){ FX=FX.filter(v=>v.id!=id); renderFixed(); } return; }
 });
@@ -7047,6 +7094,8 @@ function openAddModal(prefill){   // prefill: {l1,l2,l3}
   $('#adPcode').value=''; $('#adP3pl').value='';   // 브랜드 필터를 켠 채 추가하면 그 브랜드로
   const isPkgCtx=((pf.l2||'').trim()==='패키지')||((pf.l1||'').trim()==='패키지');   // 패키지 분류에서 추가 → 기본 '세트'
   $('#adType').value=isPkgCtx?'세트':'단품'; $('#adType').disabled=false; $('#adStatus').textContent='';
+  $('#adLaunch').value=pf.status==='출시준비'?'출시준비':'출시'; $('#adConcept').value='';
+  $('#adLaunchFld').style.display=''; $('#adConceptFld').style.display='';
   $('#adTitle').textContent='＋ 제품 추가'; $('#addSubmit').textContent='＋ 추가';
   $('#adName').disabled=false; $('#adSpec').disabled=false;
   $('#adFootAdd').style.display=''; $('#adFootEdit').style.display='none';
@@ -7055,6 +7104,7 @@ function openAddModal(prefill){   // prefill: {l1,l2,l3}
 }
 function openEditModal(p){   // 기존 제품 수정: 분류(전체)·원가·제조사·유형(단품↔세트)
   if(!p)return; AD_EDIT=p; const c=pcat(p), added=!!p.docId, isPkg=isPackage(p);
+  $('#adLaunchFld').style.display='none'; $('#adConceptFld').style.display='none';   // 상태는 출시 관리에서 바꾼다
   $('#adL1').value=c.l1; $('#adL2').value=c.l2; $('#adL3').value=c.l3;
   renderAdBrands(pbrand(p));
   $('#adPcode').value=pcodeOf(p); $('#adP3pl').value=p3plOf(p);
@@ -7217,7 +7267,8 @@ async function submitAddProduct(){
       logAct('제품덮어쓰기', line, `유형 ${type} · 분류 ${[l1,cat,l3].filter(Boolean).join('›')}`);
       closeAddModal(); return;
     }
-    const doc={ cat,name,spec,cost,pr,mfg,concept:'',type,status:'출시',setItems:setItemsStr(),
+    const launchSt=$('#adLaunch').value==='출시준비'?'출시준비':'출시';
+    const doc={ cat,name,spec,cost,pr,mfg,concept:($('#adConcept').value||'').trim(),type,status:launchSt,setItems:setItemsStr(),
       seq:P.length, updatedAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'' };
     if(mfg && typeof MFG!=='undefined' && !MFG.some(m=>m.name===mfg)){ MFG.push({id:mfgSeq++,name:mfg,mgr:'',tel:'',memo:'(제품 추가 시 자동)'}); persist(); }
     await db.collection('products-added').add(doc);
@@ -7236,8 +7287,11 @@ async function submitAddProduct(){
     PTYPE[key]=type; await savePtype();             // 유형(단품/세트) 명시 저장
     if(type==='세트'){ PKGSET[key]=setItemsStr(); await savePkgSet(); }
     if(vbase>0){ VBASE[key]=vbase; await saveVendorPrices(); }
-    logAct('제품추가', `${name}${spec&&spec!=='-'?' ('+spec+')':''}`, `유형 ${type} · 분류 ${[l1,cat,l3].filter(Boolean).join('›')}`);
+    logAct('제품추가', `${name}${spec&&spec!=='-'?' ('+spec+')':''}`, `유형 ${type} · 분류 ${[l1,cat,l3].filter(Boolean).join('›')}${launchSt==='출시준비'?' · 출시준비':''}`);
     closeAddModal();   // onSnapshot(products-added)이 대시보드에 실시간 반영
+    const onProd=['sh-launch','sh-reg'].some(id=>{ const el=$('#'+id); return el&&el.classList.contains('on'); });
+    if(launchSt==='출시준비'){ LA_WANT=key; LA_VIEW='detail'; if(onProd) gotoTab('sh-launch'); uiToast(`"${name}" 출시준비로 등록됐어요 · 다음: 원가·판매가 넣고 검토`,'ok'); }
+    else uiToast(`"${name}" 등록됐어요 · 다음: 가격정책표에서 채널가 확인`,'ok');
   }catch(e){ console.error('[제품 저장] 실패',e); $('#adStatus').innerHTML='<span style="color:var(--red)">저장 실패: '+esc(e.code||e.message||e)+' (마스터/허용목록·규칙 확인)</span>'; }
   finally{ btn.disabled=false; btn.textContent=old; }
 }
@@ -8354,6 +8408,8 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('prod-brand').get(); if(d.exists){ const x=d.data()||{}; if(x.map&&typeof x.map==='object') PBRAND=x.map; if(x.gh&&typeof x.gh==='object') PGHLINK=x.gh; } console.log(`[prod-brand] 브랜드 지정 ${Object.keys(PBRAND).length}건 · 그로홈 연결 ${Object.keys(PGHLINK).length}건`); }catch(e){ console.warn('[prod-brand] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('brands').get(); BRAND_REG=(d.exists&&Array.isArray(d.data().list))?d.data().list:[]; applyBrandList(BRAND_REG); console.log(`[brands] 브랜드 ${BRAND_LIST.length}개`); }catch(e){ console.warn('[brands] 로드 실패 — 기본 2개로', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-status').get(); PSTATUS=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-status] 상태 지정 ${Object.keys(PSTATUS).length}건`); }catch(e){ console.warn('[prod-status] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('prod-eol').get(); PEOL=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-eol] 단종예정 기록 ${Object.keys(PEOL).length}건`); }catch(e){ console.warn('[prod-eol] 로드 실패', e.code||e); }
+  setTimeout(()=>{ try{ eolAutoCheck(); }catch(e){ console.warn('[단종예정] 확인 실패', e); } }, 1500);
   try{ const d=await db.collection('product-meta').doc('promo-plans').get(); PRPLAN=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[promo-plans] 프로모션 설계 ${Object.keys(PRPLAN).length}건`); }catch(e){ console.warn('[promo-plans] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('launch-plans').get(); LPLAN=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[launch-plans] 신제품 검토 ${Object.keys(LPLAN).length}건`); }catch(e){ console.warn('[launch-plans] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('chan-deleted').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') CHDEL=d.data().map; }catch(e){ console.warn('[chan-deleted] 로드 실패', e.code||e); }
@@ -8899,7 +8955,7 @@ function checkSourcingImport(){
   box.style.cssText='position:fixed;inset:0;z-index:400;background:rgba(15,23,42,.45);display:flex;align-items:flex-end;justify-content:center';
   box.innerHTML=`<div style="background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;max-height:88vh;overflow:auto">
     <b style="font-size:16px">📥 소싱앱에서 넘어온 상품</b>
-    <div style="font-size:12.5px;color:#64748B">확인하고 [출시준비로 등록]을 누르면 제품 › 제품 등록·검토 › 검토(출시준비)에 들어가요.</div>
+    <div style="font-size:12.5px;color:#64748B">확인하고 [출시준비로 등록]을 누르면 제품 › 출시 관리의 출시준비에 들어가요.</div>
     <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:#475569">제품명<input id="siName" value="${esc(j.name)}" style="border:1px solid #E2E8F0;border-radius:9px;padding:9px 10px;font-size:14px"></label>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:#475569;min-width:0">규격<input id="siSpec" value="${esc(j.spec||'-')}" style="border:1px solid #E2E8F0;border-radius:9px;padding:9px 10px;font-size:14px;min-width:0"></label>
@@ -8994,38 +9050,157 @@ function laVerdict(pl, cal, mk){
   return {ic:T[0], title:T[1], body:T[2], q, pos, ourTot};
 }
 function laProducts(){ return P.filter(p=>!isDeletedProd(p)); }
-/* 출시 관리 목록: 출시준비(기본)·출시·단종 칩 → 줄마다 원가·판매가·예상 마진, [검토 ›] [🚀 출시], 소싱앱에서 온 건 🔗 */
-let LA_LIST_F='출시준비';
+/* ══ 출시 관리 목록 ══
+   네 칸(출시준비 · 출시 · 단종예정 · 단종) 요약 카드 = 걸러보기. 줄마다 검토 진행·다음 할 일·상태 버튼.
+   · 단종예정 = 상태는 '출시'(아직 판매 중) + product-meta/prod-eol 에 표시 → 재고가 0개가 되면 자동으로 '단종'
+   · 원가 권한이 없는 팀원도 목록·상태는 본다(원가·판매가·마진·검토 화면·상태 변경은 숨김) */
+let LA_LIST_F='출시준비', LA_VIEW='list', LA_Q='';
+const LA_GROUPS=['출시준비','출시','단종예정','단종'];
+const LA_GSTYLE={'출시준비':['#6D28D9','#F5F3FF'],'출시':['#0B7A3E','#ECFDF3'],'단종예정':['#B45309','#FFFBEB'],'단종':['#6B7280','#F3F4F6']};
 const SOURCING_URL='Sourcing/Sourcing-os.html';
 function laSrcOf(k){ const pl=LPLAN[k]||{}; const pa=PADD.find(r=>`${r.cat}|${r.name}|${r.spec}`===k); return (pl.srcId||(pa&&pa.source==='소싱앱'))?{id:pl.srcId||''}:null; }
+/* 단종예정 표시 ← product-meta/prod-eol {map: pKey → {at, by, doneAt?, auto?, stockAt?}} (지우지 않고 기록으로 남김) */
+let PEOL={}, EOL_STOCK={};
+async function savePeol(){ await db.collection('product-meta').doc('prod-eol').set({map:PEOL, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }
+function eolPending(p){ const e=PEOL[pKey(p)]; return !!(e && e.at && !e.doneAt && !e.off); }
+function laGroupOf(p){ const s=pstatus(p); return s==='출시' && eolPending(p) ? '단종예정' : s; }
+/* 검토 진행: 원가 · 판매가 · 마진(목표 이상) · 시장조사 → 다음 할 일 한 줄 */
+function laProgress(p){
+  const k=pKey(p), pl=LPLAN[k];
+  const cost=pl?laNum(pl.cost)>0:(p.cost>0), price=pl?laNum(pl.price)>0:false;
+  const cal=pl&&price?laCalc(pl):null, rateOk=!!(cal&&cal.avgRate!=null&&cal.avgRate>=(cal.tgt||0)&&cal.avgProfit>0);
+  const mkt=!!(pl&&laMarket(pl).n>0);
+  const steps=[['원가',cost],['판매가',price],['마진',cal?rateOk:false],['시장조사',mkt]];
+  const next=!pl?'검토 시작하기 — 원가·판매가 넣기':!cost?'원가 넣기':!price?'판매가 넣기':!rateOk?'목표 마진 미달 — 판매가·원가 조정':!mkt?'시장가 조사 넣기':'검토 끝 — 🚀 출시할 수 있어요';
+  return {steps, next, done:cost&&price&&rateOk, score:steps.filter(x=>x[1]).length, cal};
+}
+function laStockLine(p){
+  const st=EOL_STOCK[pKey(p)];
+  if(!st) return '<span class="dim">재고 확인 중…</span>';
+  if(!st.linked) return '<span style="color:#B45309">재고 연결 안 됨 · 3PL 코드나 그로홈 연결이 있어야 자동 단종돼요</span>';
+  if(st.qty>0) return `재고 <b>${won(st.qty)}개</b> 남음${st.at?` <span class="dim">(${esc(String(st.at).slice(5,10).replace('-','/'))} 재고 기준)</span>`:''}`;
+  return st.fresh?'<b style="color:var(--red)">재고 0개</b> — 곧 자동 단종돼요':'재고 0개 · <span class="dim">단종예정 이후 새 재고표가 올라오면 자동 단종돼요</span>';
+}
 function renderLaunchList(){
   const box=$('#laList'); if(!box) return;
-  if(!costAllowed){ $('#laListPanel').style.display='none'; return; }
-  $('#laListPanel').style.display='';
-  const live=laProducts(), grp={'출시준비':[],'출시':[],'단종':[]}; live.forEach(p=>grp[pstatus(p)].push(p));
-  const list=(grp[LA_LIST_F]||[]).slice().sort((a,b)=>(laSrcOf(pKey(b))?1:0)-(laSrcOf(pKey(a))?1:0));
+  const live=laProducts(), grp={}; LA_GROUPS.forEach(g=>grp[g]=[]);
+  live.forEach(p=>{ const g=laGroupOf(p); (grp[g]||grp['출시']).push(p); });
+  $('#laSum').innerHTML=LA_GROUPS.map(g=>{ const [fg,bg]=LA_GSTYLE[g];
+    return `<button type="button" class="${g===LA_LIST_F?'on':''}" data-laf="${g}" style="--fg:${fg};--bg:${bg}"><b>${grp[g].length}</b><span>${g}</span></button>`; }).join('');
+  const q=LA_Q.trim().toLowerCase().replace(/\s+/g,'');
+  let list=(grp[LA_LIST_F]||[]).filter(p=>!q || (p.name+(p.spec||'')+(PCODE[pKey(p)]||'')+(p.ghCode||'')).toLowerCase().replace(/\s+/g,'').includes(q));
+  const prog=new Map(); if(LA_LIST_F==='출시준비') list.forEach(p=>prog.set(p,laProgress(p)));
+  if(LA_LIST_F==='출시준비') list.sort((a,b)=>(prog.get(b).score-prog.get(a).score)||((laSrcOf(pKey(b))?1:0)-(laSrcOf(pKey(a))?1:0)));
+  else if(LA_LIST_F==='단종예정') list.sort((a,b)=>((EOL_STOCK[pKey(a)]||{}).qty??1e9)-((EOL_STOCK[pKey(b)]||{}).qty??1e9));
   const w=n=>n>0?Math.round(n).toLocaleString('ko-KR')+'원':'—';
-  box.innerHTML=`<div class="la-chips">${Object.keys(grp).map(g=>`<button type="button" class="${g===LA_LIST_F?'on':''}" data-laf="${g}">${g} ${grp[g].length}</button>`).join('')}</div>`+
-    (list.length?list.slice(0,60).map(p=>{ const k=pKey(p), pl=LPLAN[k], cal=pl?laCalc(pl):null, src=laSrcOf(k);
-      return `<div class="la-row${k===LA_KEY?' on':''}"><div class="t"><div class="nm">${esc(p.name)}${p.spec&&p.spec!=='-'?' <span style="font-weight:500;color:var(--ink-soft)">'+esc(p.spec)+'</span>':''}</div>
-        <div class="sub">${esc(pbrand(p).join(' · '))}${src?` · ${src.id?`<a class="la-src" href="${SOURCING_URL}#item=${encodeURIComponent(src.id)}" target="_blank" rel="noopener" title="소싱앱에서 이 상품 기록 열기">🔗 소싱 기록</a>`:'<span class="la-src">🔗 소싱앱</span>'}`:''}</div>
-          <div class="sub">원가 ${w(pl?laNum(pl.cost):p.cost)} · 판매가 ${w(pl?laNum(pl.price):0)}${cal&&cal.avgRate!=null&&laNum(pl.price)>0?` · 마진 <b style="color:${cal.avgRate<0?'var(--red)':'var(--xl-green-dark)'}">${(cal.avgRate*100).toFixed(1)}%</b>`:''}</div></div>
-        <div class="acts"><button type="button" class="tbtn" data-lago="${esc(k)}">검토 ›</button>${LA_LIST_F==='출시준비'?`<button type="button" class="tbtn primary" data-larel="${esc(k)}">🚀 출시</button>`:''}</div></div>`; }).join('')
-      :`<div class="footnote" style="margin:0">${LA_LIST_F} 제품이 없어요.${LA_LIST_F==='출시준비'?' [＋ 새 제품]이나 소싱앱의 [📤 보내기]로 넣을 수 있어요.':''}</div>`);
+  const can=costAllowed;
+  const MAX=80;
+  const rows=list.slice(0,MAX).map(p=>{ const k=pKey(p), pl=LPLAN[k], src=laSrcOf(k), code=PCODE[k]||p.ghCode||'';
+    const pr=prog.get(p);
+    const sub1=`${esc(pbrand(p).join(' · '))}${code?` · <span class="mono">${esc(code)}</span>`:''}${src?` · ${src.id?`<a class="la-src" href="${SOURCING_URL}#item=${encodeURIComponent(src.id)}" target="_blank" rel="noopener" title="소싱앱에서 이 상품 기록 열기">🔗 소싱 기록</a>`:'<span class="la-src">🔗 소싱앱</span>'}`:''}`;
+    let money='';
+    if(can){ const cal=pr?pr.cal:(pl?laCalc(pl):null), price=pl?laNum(pl.price):retailOf(p);
+      money=`<div class="sub">원가 ${w(pl?laNum(pl.cost):p.cost)} · 판매가 ${w(price)}${cal&&cal.avgRate!=null&&price>0?` · 마진 <b style="color:${cal.avgRate<0?'var(--red)':'var(--xl-green-dark)'}">${(cal.avgRate*100).toFixed(1)}%</b>`:''}</div>`; }
+    let extra='', acts='';
+    if(LA_LIST_F==='출시준비'){
+      extra=`<div class="la-steps">${pr.steps.map(([l,ok])=>`<span class="${ok?'ok':''}">${ok?'✓':'·'} ${l}</span>`).join('')}</div><div class="la-next${pr.done?' go':''}">다음: ${esc(pr.next)}</div>`;
+      if(can) acts=`<button type="button" class="tbtn" data-lago="${esc(k)}">검토 ›</button><button type="button" class="tbtn primary" data-larel="${esc(k)}">🚀 출시</button>`;
+    } else if(LA_LIST_F==='출시'){
+      if(can) acts=`<button type="button" class="tbtn" data-lago="${esc(k)}">검토 ›</button><button type="button" class="tbtn" data-laeol="${esc(k)}">단종예정으로</button>`;
+    } else if(LA_LIST_F==='단종예정'){
+      const e=PEOL[k]||{};
+      extra=`<div class="la-next warn">${laStockLine(p)}</div><div class="sub dim">단종예정 ${esc(String(e.at||'').slice(0,10))}${e.by?' · '+esc(String(e.by).split('@')[0]):''}</div>`;
+      if(can) acts=`<button type="button" class="tbtn" data-laeolx="${esc(k)}">예정 취소</button><button type="button" class="tbtn" data-laend="${esc(k)}">지금 단종</button>`;
+    } else {
+      const e=PEOL[k]; extra=e&&e.doneAt?`<div class="sub dim">${e.auto?'재고 소진으로 자동 단종':'단종'} ${esc(String(e.doneAt).slice(0,10))}</div>`:'';
+      if(can) acts=`<button type="button" class="tbtn" data-larev="${esc(k)}">다시 출시</button>`;
+    }
+    return `<div class="la-row${LA_LIST_F==='단종'?' off':''}"><div class="t"><div class="nm">${esc(p.name)}${p.spec&&p.spec!=='-'?' <span style="font-weight:500;color:var(--ink-soft)">'+esc(p.spec)+'</span>':''}</div>
+      <div class="sub">${sub1}</div>${money}${extra}</div>${acts?`<div class="acts">${acts}</div>`:''}</div>`; }).join('');
+  const empty={ '출시준비':'출시준비 제품이 없어요. [＋ 새 제품]이나 소싱앱의 [📤 보내기]로 넣을 수 있어요.',
+    '출시':'출시된 제품이 없어요.', '단종예정':'단종예정 제품이 없어요. 출시 목록에서 [단종예정으로]를 누르면 재고가 다 팔릴 때 자동으로 단종돼요.', '단종':'단종된 제품이 없어요.' }[LA_LIST_F];
+  box.innerHTML=(list.length?rows+(list.length>MAX?`<div class="footnote" style="margin:8px 0 0">${list.length-MAX}개 더 있어요 · 찾기로 좁혀 보세요</div>`:'')
+      :`<div class="footnote" style="margin:0">${q?'찾는 제품이 없어요.':empty}</div>`)
+    +(can?'':'<div class="footnote" style="margin:10px 0 0">· 원가·마진과 상태 바꾸기는 원가 권한이 있는 계정에서만 보여요.</div>');
 }
+/* 상태 바꾸기 — 목록·검토 화면 공용 */
+async function laSetStatus(p, v){
+  const k=pKey(p), pl=LPLAN[k];
+  await setPstatus(p,v);
+  if(v==='출시' && pl && (laNum(pl.cost)>0 || laNum(pl.price)>0)
+    && confirm(`출시로 바꿨습니다. 검토한 값을 가격정책표에도 반영할까요?\n\n· 매입원가 ${laNum(pl.cost)>0?wonU(laNum(pl.cost)):'(없음)'}\n· 자사몰 정가 ${laNum(pl.price)>0?wonU(laNum(pl.price)):'(없음)'}`)){
+    const rUid=retailUid();
+    if(laNum(pl.cost)>0 && !isPackage(p)){ PCOST[k]=laNum(pl.cost); p.cost=laNum(pl.cost); await saveProdCost(); }
+    if(laNum(pl.price)>0 && rUid){ VRETAIL[k]=laNum(pl.price); await saveRetailPrices(); }
+    recalcVendor();
+  }
+}
+async function laSetEol(p, on){
+  const k=pKey(p), old=PEOL[k]?{...PEOL[k]}:null;
+  if(on) PEOL[k]={...(PEOL[k]||{}), at:new Date().toISOString(), by:(curUser&&curUser.email)||'', doneAt:'', auto:false, off:false};
+  else if(PEOL[k]) PEOL[k]={...PEOL[k], off:true, offAt:new Date().toISOString(), offBy:(curUser&&curUser.email)||''};
+  try{ await savePeol(); }catch(e){ if(old) PEOL[k]=old; else delete PEOL[k]; console.error('[prod-eol] 저장 실패', e); alert('저장 실패: '+(e.code||e.message||e)); throw e; }
+  logAct(on?'단종예정':'단종예정취소', prodLabel(p), on?'재고 소진 시 자동 단종':'');
+}
+async function laEnd(p, auto, stockAt){
+  const k=pKey(p);
+  await setPstatus(p,'단종');
+  PEOL[k]={...(PEOL[k]||{at:new Date().toISOString(),by:''}), doneAt:new Date().toISOString(), auto:!!auto, stockAt:stockAt||'', off:false};
+  try{ await savePeol(); }catch(e){ console.error('[prod-eol] 기록 실패', e); }
+}
+async function laLaunchAgain(p){
+  const k=pKey(p);
+  await setPstatus(p,'출시');
+  if(PEOL[k]){ PEOL[k]={...PEOL[k], off:true, offAt:new Date().toISOString(), offBy:(curUser&&curUser.email)||'', relaunch:true}; try{ await savePeol(); }catch(e){ console.error('[prod-eol] 기록 실패', e); } }
+}
+/* 재고 확인 + 자동 단종: 공용 DB 재고(expiryLots)에서 단종예정 제품의 재고를 더해 본다.
+   자동 단종 조건(모두 만족할 때만): ① 재고와 연결됨(3PL 코드 또는 그로홈 연결) ② 연결된 재고 합계 0개
+   ③ 이 제품 브랜드의 재고표가 '단종예정으로 정한 뒤'에 새로 올라옴 (예전 재고표로 잘못 단종하지 않게) */
+let _eolRun=null;
+async function eolAutoCheck(opts){
+  if(_eolRun) return _eolRun;
+  _eolRun=(async()=>{
+    const pend=laProducts().filter(p=>pstatus(p)==='출시' && eolPending(p));
+    if(!pend.length){ EOL_STOCK={}; return; }
+    try{ await exLoadLots(); }catch(e){ console.warn('[단종예정] 재고 불러오기 실패', e.code||e); EOL_STOCK={}; pend.forEach(p=>EOL_STOCK[pKey(p)]={linked:false,qty:null,err:1}); return; }
+    const idx=exIndex(), sum={};
+    (EX.lots||[]).forEach(l=>{ const m=idx(l); if(m.key) sum[m.key]=(sum[m.key]||0)+(+l.qty||0); });
+    const ended=[];
+    for(const p of pend){
+      const k=pKey(p), e=PEOL[k]||{};
+      const linked=!!(String(P3PL[k]||'').trim() || PGHLINK[k]);
+      const bs=pbrand(p).filter(b=>b in EX.at), ats=bs.map(b=>EX.at[b]).filter(Boolean);
+      const fresh=ats.length>0 && ats.every(t=>t>(e.at||''));
+      const qty=sum[k]||0, at=ats.sort().slice(-1)[0]||'';
+      EOL_STOCK[k]={linked, qty, at, fresh};
+      if(linked && fresh && qty===0 ){
+        try{ await laEnd(p, true, at); logAct('자동단종', prodLabel(p), `재고 소진 (재고 기준 ${String(at).slice(0,16).replace('T',' ')})`); ended.push(p.name); }
+        catch(err){ console.error('[단종예정] 자동 단종 실패', err); }
+      }
+    }
+    if(ended.length){ uiToast(`재고 소진으로 ${ended.length}개 자동 단종: ${ended.slice(0,3).join(', ')}${ended.length>3?' 외':''}`,'info'); refreshAll(); }
+  })();
+  try{ await _eolRun; } finally{ _eolRun=null; }
+  if($('#sh-launch')&&$('#sh-launch').classList.contains('on')&&LA_VIEW==='list') renderLaunchList();
+}
+function laOpen(k){ LA_KEY=k; LA_VIEW='detail'; renderLaunch(); window.scrollTo({top:0}); }
 document.addEventListener('click',async e=>{
-  const f=e.target.closest('#laList [data-laf]'); if(f){ LA_LIST_F=f.dataset.laf; renderLaunchList(); return; }
-  const g=e.target.closest('#laList [data-lago]'); if(g){ LA_KEY=g.dataset.lago; renderLaunch(); const b=$('#laBody'); if(b) b.scrollIntoView({block:'start',behavior:'smooth'}); return; }
-  const r=e.target.closest('#laList [data-larel]'); if(r){ LA_KEY=r.dataset.larel; renderLaunch(); const s=$('#laStatus'); if(s){ s.value='출시'; s.dispatchEvent(new Event('change')); } return; }
+  const f=e.target.closest('#laSum [data-laf]'); if(f){ LA_LIST_F=f.dataset.laf; renderLaunchList(); if(LA_LIST_F==='단종예정') eolAutoCheck(); return; }
+  const g=e.target.closest('#laList [data-lago]'); if(g){ laOpen(g.dataset.lago); return; }
+  const pick=a=>laProducts().find(x=>pKey(x)===a);
+  const act=async(btn,fn)=>{ btn.disabled=true; try{ await fn(); refreshAll(); gotoTab('sh-launch'); }catch(err){ console.error('[출시 관리]', err); } finally{ btn.disabled=false; } };
+  const r=e.target.closest('#laList [data-larel]'); if(r){ const p=pick(r.dataset.larel); if(p&&confirm(`"${p.name}"을(를) 출시할까요?\n자체상품코드가 붙고 가격정책표에 판매 중으로 나옵니다.`)) act(r,()=>laSetStatus(p,'출시')); return; }
+  const eo=e.target.closest('#laList [data-laeol]'); if(eo){ const p=pick(eo.dataset.laeol); if(!p) return;
+    if(!confirm(`"${p.name}"을(를) 단종예정으로 정할까요?\n\n· 지금은 그대로 판매 중이에요\n· 재고가 0개가 되면 자동으로 단종돼요\n· 언제든 [예정 취소]할 수 있어요`)) return;
+    act(eo,async()=>{ await laSetEol(p,true); LA_LIST_F='단종예정'; setTimeout(eolAutoCheck,50); }); return; }
+  const ex=e.target.closest('#laList [data-laeolx]'); if(ex){ const p=pick(ex.dataset.laeolx); if(p&&confirm(`"${p.name}" 단종예정을 취소할까요? (계속 판매)`)) act(ex,()=>laSetEol(p,false)); return; }
+  const en=e.target.closest('#laList [data-laend]'); if(en){ const p=pick(en.dataset.laend); if(p&&confirm(`"${p.name}"을(를) 지금 단종할까요?\n재고가 남아 있어도 단종으로 바뀌어요. [다시 출시]로 되돌릴 수 있어요.`)) act(en,()=>laEnd(p,false)); return; }
+  const rv=e.target.closest('#laList [data-larev]'); if(rv){ const p=pick(rv.dataset.larev); if(p&&confirm(`"${p.name}"을(를) 다시 출시할까요?`)) act(rv,async()=>{ await laLaunchAgain(p); LA_LIST_F='출시'; }); return; }
 });
 function laFillSel(){
-  const sel=$('#laSel'); if(!sel) return;
-  const live=laProducts(), grp={'출시준비':[],'출시':[],'단종':[]};
-  live.forEach(p=>grp[pstatus(p)].push(p));
-  if(LA_WANT && live.some(p=>pKey(p)===LA_WANT)){ LA_KEY=LA_WANT; LA_WANT=''; }   // 방금 등록한 제품(서버 반영 뒤)으로 이동
-  if(!LA_KEY || !live.some(p=>pKey(p)===LA_KEY)){ const f=grp['출시준비'][0]||Object.keys(LPLAN).map(k=>live.find(p=>pKey(p)===k)).find(Boolean)||live[0]; LA_KEY=f?pKey(f):''; }
-  sel.innerHTML=Object.entries(grp).filter(([,l])=>l.length).map(([g,l])=>`<optgroup label="${g} (${l.length})">${l.map(p=>{ const k=pKey(p);
-    return `<option value="${esc(k)}"${k===LA_KEY?' selected':''}>${LPLAN[k]?'📝 ':''}${esc(prodLabel(p))}</option>`; }).join('')}</optgroup>`).join('');
+  const live=laProducts();
+  if(LA_WANT && live.some(p=>pKey(p)===LA_WANT)){ LA_KEY=LA_WANT; LA_WANT=''; LA_VIEW='detail'; }   // 방금 등록한 제품(서버 반영 뒤)으로 이동
+  if(!LA_KEY || !live.some(p=>pKey(p)===LA_KEY)){ LA_KEY=''; LA_VIEW='list'; }
 }
 function laChRowsHtml(pl,cal){
   return (pl.chs||[]).map((c,i)=>{ const r=cal.rows.find(x=>x.c===c);
@@ -9088,12 +9263,15 @@ function laOutHtml(pl){
 }
 function renderLaunch(){
   const body=$('#laBody'); if(!body) return;
-  try{ renderLaunchList(); }catch(e){ console.error('[출시 관리] 목록 그리기 실패:',e); }
-  if(!costAllowed){ body.innerHTML='<div class="panel"><div class="bd">원가 열람 권한이 있는 계정에서만 볼 수 있습니다.</div></div>'; return; }
   laFillSel();
-  const p=laProducts().find(x=>pKey(x)===LA_KEY);
-  $('#laStatus').value=p?pstatus(p):'출시준비'; $('#laStatus').disabled=!p;
-  if(!p){ body.innerHTML='<div class="panel"><div class="bd">검토할 제품이 없습니다. [＋ 새 검토 제품]으로 추가하세요.</div></div>'; return; }
+  if(!costAllowed) LA_VIEW='list';
+  const p=LA_VIEW==='detail'?laProducts().find(x=>pKey(x)===LA_KEY):null;
+  $('#laListBar').style.display=p?'none':''; $('#laListPanel').style.display=p?'none':'';
+  $('#laDetailBar').style.display=p?'':'none';
+  if(!p){ body.innerHTML=''; try{ renderLaunchList(); }catch(e){ console.error('[출시 관리] 목록 그리기 실패:',e); } return; }
+  const cur=laGroupOf(p);
+  $('#laDetailName').textContent=prodLabel(p);
+  $('#laStatusSeg').innerHTML=LA_GROUPS.map(g=>`<button type="button" data-lass="${g}" class="${g===cur?'on':''}">${g}</button>`).join('');
   const pl=LPLAN[LA_KEY]||laNewPlan(p), cal=laCalc(pl);
   const fld=(lb,f,ph,type,step)=>`<div class="fld"><label>${lb}</label><input data-f="${f}" type="${type||'number'}"${step?` step="${step}"`:''} value="${esc(pl[f])}" placeholder="${esc(ph||'')}"></div>`;
   body.innerHTML=`
@@ -9165,25 +9343,24 @@ function laQueueSave(){
     else if(t.dataset.chdel!=null){ laEnsure().chs.splice(+t.dataset.chdel,1); laQueueSave(); renderLaunch(); }
     else if(t.dataset.mkdel!=null){ laEnsure().mkt.splice(+t.dataset.mkdel,1); laQueueSave(); renderLaunch(); }
   });
-  $('#laSel').addEventListener('change',e=>{ LA_KEY=e.target.value; renderLaunch(); });
-  $('#laStatus').addEventListener('change',async e=>{
+  $('#laBack').addEventListener('click',()=>{ LA_VIEW='list'; renderLaunch(); });
+  $('#laStatusSeg').addEventListener('click',async e=>{
+    const b=e.target.closest('[data-lass]'); if(!b) return;
     const p=laProducts().find(x=>pKey(x)===LA_KEY); if(!p) return;
-    const v=e.target.value, pl=LPLAN[LA_KEY];
+    const v=b.dataset.lass, cur=laGroupOf(p); if(v===cur) return;
+    const msg={'출시준비':'출시준비로 돌릴까요?','출시':'출시할까요? 자체상품코드가 붙고 판매 중으로 나옵니다.','단종예정':'단종예정으로 정할까요? 재고가 0개가 되면 자동으로 단종돼요.','단종':'지금 단종할까요? [다시 출시]로 되돌릴 수 있어요.'}[v];
+    if(!confirm(`"${p.name}" — ${msg}`)) return;
     try{
-      await setPstatus(p,v);
-      if(v==='출시' && pl && (laNum(pl.cost)>0 || laNum(pl.price)>0)
-        && confirm(`출시로 바꿨습니다. 검토한 값을 가격정책표에도 반영할까요?\n\n· 매입원가 ${laNum(pl.cost)>0?wonU(laNum(pl.cost)):'(없음)'}\n· 자사몰 정가 ${laNum(pl.price)>0?wonU(laNum(pl.price)):'(없음)'}`)){
-        const k=pKey(p), rUid=retailUid();
-        if(laNum(pl.cost)>0 && !isPackage(p)){ PCOST[k]=laNum(pl.cost); p.cost=laNum(pl.cost); await saveProdCost(); }
-        if(laNum(pl.price)>0 && rUid){ VRETAIL[k]=laNum(pl.price); await saveRetailPrices(); }
-        recalcVendor();
-      }
-      refreshAll(); gotoTab('sh-launch');
-    }catch(err){ e.target.value=pstatus(p); }
+      if(v==='단종예정'){ if(pstatus(p)!=='출시') await setPstatus(p,'출시'); await laSetEol(p,true); setTimeout(eolAutoCheck,50); }
+      else if(v==='단종') await laEnd(p,false);
+      else { if(cur==='단종예정') await laSetEol(p,false); if(cur==='단종') await laLaunchAgain(p); if(pstatus(p)!==v) await laSetStatus(p,v); }
+      LA_LIST_F=v; refreshAll(); gotoTab('sh-launch');
+    }catch(err){ console.error('[출시 관리] 상태 변경 실패', err); }
   });
+  $('#laQ').addEventListener('input',e=>{ LA_Q=e.target.value; renderLaunchList(); });
   $('#laNewBtn').addEventListener('click',()=>{ const c=$('#laChoose'); c.style.display=c.style.display==='none'?'':'none'; if(c.style.display==='') c.scrollIntoView({block:'center',behavior:'smooth'}); });
   $('#laChooseX').addEventListener('click',()=>{ $('#laChoose').style.display='none'; });
-  $('#laGoDirect').addEventListener('click',()=>{ $('#laChoose').style.display='none'; gotoTab('sh-reg'); const st=$('#apStatus'); if(st) st.value='출시'; const n=$('#apName'); if(n){ n.scrollIntoView({block:'center'}); n.focus(); } uiToast('상태가 "출시"로 맞춰져 있어요 · 제품 정보를 넣고 [＋ 제품 등록]','info'); });
+  $('#laGoDirect').addEventListener('click',()=>{ $('#laChoose').style.display='none'; openAddModal({status:'출시'}); });
   $('#laGoReview').addEventListener('click',()=>{ $('#laChoose').style.display='none'; openLaNewPanel(); });
   function openLaNewPanel(){
     const pn=$('#laNewPanel'); pn.style.display='';
@@ -9200,7 +9377,7 @@ function laQueueSave(){
     if(P.some(p=>pKey(p)===key)){ $('#laNewMsg').textContent='같은 분류·이름·규격의 제품이 이미 있습니다.'; return; }
     const btn=$('#laNewSave'); btn.disabled=true;
     try{
-      await registerLaunchProduct({cat,name,spec,brand}); LA_KEY=key;
+      await registerLaunchProduct({cat,name,spec,brand}); LA_KEY=key; LA_WANT=key; LA_VIEW='detail';
       $('#laNewPanel').style.display='none'; ['#laNewName','#laNewSpec'].forEach(s=>$(s).value='');
       $('#laSaved').textContent='등록됨 — 목록에 곧 나타납니다';
       setTimeout(renderLaunch, 800);
@@ -9388,17 +9565,27 @@ function exParseText(text){
   const m=new Map(); lots.forEach(l=>{ const k=(l.code||exNorm(l.name))+'||'+(l.expiry||l.rawExpiry); const x=m.get(k); if(x) x.qty+=l.qty; else m.set(k,{...l}); });
   return {lots:[...m.values()], skipped};
 }
-async function exLoad(force){
-  if(EX.loading) return EX.loading;
-  if(EX.lots && !force) return;
-  EX.loading=(async()=>{
-    const [snap, gSnap]=await Promise.all([ centralDB().collection('expiryLots').get(), ghDB().collection('products').get() ]);
+/* 재고(로트)·그로홈 제품만 — 단종예정 자동 확인은 매출까지 부르지 않는다 */
+let _exLotsAt=0;
+async function exLoadLots(){
+  if(EX.lots && Date.now()-_exLotsAt<60000) return;
+  const [snap, gSnap]=await Promise.all([ centralDB().collection('expiryLots').get(), ghDB().collection('products').get() ]);
+  exTakeLots(snap, gSnap); _exLotsAt=Date.now();
+}
+function exTakeLots(snap, gSnap){
     EX.lots=[]; EX.at={};
     snap.docs.forEach(d=>{ const x=d.data()||{}, b=d.id==='grohome'?'GROHOME':d.id==='pour'?'POUR스토어':(x.brand||d.id);
       (Array.isArray(x.lots)?x.lots:[]).forEach(l=>EX.lots.push({...l, brand:b, expiry:exParseDate(l.expiry)||'', qty:+l.qty||0}));
       EX.at[b]=x.updatedAt||''; });
     EX.gh=gSnap.docs.map(d=>({id:d.id,...d.data()}));
     console.log(`[expiryLots] 로트 ${EX.lots.length}개 (${Object.keys(EX.at).join('·')||'없음'}) · 그로홈 제품 ${EX.gh.length}개`);
+}
+async function exLoad(force){
+  if(EX.loading) return EX.loading;
+  if(EX.lots && !force) return;
+  EX.loading=(async()=>{
+    const [snap, gSnap]=await Promise.all([ centralDB().collection('expiryLots').get(), ghDB().collection('products').get() ]);
+    exTakeLots(snap, gSnap); _exLotsAt=Date.now();
     if(!EX.lots.length) console.warn('[expiryLots] 공용 DB에 재고가 없습니다 — 그로홈 대시보드 [유통기한 관리]를 한 번 열거나 붙여넣기 하세요');
     if(!SL.loaded) await loadSales();
   })();
@@ -9512,7 +9699,7 @@ async function renderExpiry(){
     try{ await centralDB().collection('expiryLots').doc('pour').set({brand:'POUR스토어', source:'pourstore-pricing-dashboard', updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||'',
         lots:lots.map(l=>({code:l.code,name:l.name,qty:l.qty,expiry:l.expiry||'',rawExpiry:l.rawExpiry||''}))});
       logAct('유통기한', 'POUR스토어 재고 붙여넣기', `${lots.length}개 로트`); uiToast(`POUR스토어 재고 ${lots.length}개 로트 저장됨`,'ok');
-      $('#exPasteText').value=''; $('#exPastePanel').style.display='none'; EX.lots=null; await renderExpiry();
+      $('#exPasteText').value=''; $('#exPastePanel').style.display='none'; EX.lots=null; await renderExpiry(); eolAutoCheck();
     }catch(e){ console.error('[expiryLots/pour] 저장 실패', e); uiToast('재고 저장 실패: '+(e.code||e.message||e),'err'); $('#exPasteMsg').innerHTML=`<span style="color:var(--red)">저장 실패: ${esc(e.code||e.message||e)}</span>`; }
   });
   body.addEventListener('click',e=>{

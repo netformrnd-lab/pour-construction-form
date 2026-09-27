@@ -861,7 +861,17 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 @media(max-width:640px){ .la-row{flex-wrap:wrap} .la-row .acts{width:100%;justify-content:flex-end} }
 /* AI 비서 */
 #daiFab{position:fixed;right:20px;bottom:108px;z-index:100;background:#1D4ED8;color:#fff;border:0;border-radius:26px;padding:12px 18px;font-size:14px;font-weight:800;box-shadow:0 6px 18px rgba(29,78,216,.35);cursor:pointer}
-body:not(.cost-ok) #daiFab{display:none!important}   /* 관리자 전용 — 팀원은 팀 대시보드의 AI */
+body:not(.cost-ok) #daiFab{bottom:52px}
+body.cost-ok .dai-team,body:not(.cost-ok) .dai-adm{display:none}
+.dai-team{font-size:10.5px;font-weight:800;background:#0B7A3E;color:#fff;border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}
+body.team-mode #ribbon .kpis{display:none!important}
+.tp-wrap{overflow-x:auto;background:#fff;border:1px solid #E5E7EB;border-radius:12px}
+.tp-tbl{width:100%;border-collapse:collapse}
+.tp-tbl th.tp-nm,.tp-tbl td.tp-nm{position:sticky;left:0;background:#fff;z-index:1;min-width:210px;max-width:320px;text-align:left}
+.tp-tbl .tp-sub{font-size:11.5px;margin-top:2px}
+.tp-tbl .st{font-size:10.5px;font-weight:800;border-radius:6px;padding:1px 6px}
+.tp-tbl td.num{white-space:nowrap}
+.tp-tbl .mono{font-family:var(--mono)}
 .dai-adm{font-size:10.5px;font-weight:800;background:#DC2626;color:#fff;border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}
 body.dai-open #daiFab,body.dai-open #calcFab{display:none!important}
 #daiPanel{position:fixed;z-index:1200;right:0;top:0;bottom:0;width:440px;max-width:100%;background:#fff;box-shadow:-8px 0 30px rgba(15,23,42,.18);display:none;flex-direction:column}
@@ -896,6 +906,8 @@ body.dai-open #daiFab,body.dai-open #calcFab{display:none!important}
 @media(max-width:700px){
   #daiPanel{width:100%}
   #daiFab{right:12px;bottom:calc(72px + env(safe-area-inset-bottom));padding:11px 15px;font-size:13px}
+  body:not(.cost-ok) #daiFab{bottom:calc(16px + env(safe-area-inset-bottom))}
+  .tp-tbl th.tp-nm,.tp-tbl td.tp-nm{min-width:150px;max-width:190px}
 }
 /* 링크 v2 */
 .ml-rh{font-size:12px;font-weight:800;color:var(--ink-soft);margin-bottom:6px}
@@ -1468,10 +1480,10 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 <!-- ═══ 상단 리본 ═══ -->
 <div id="ribbon">
   <div class="brand">
-    <b>POUR스토어 가격·마진 통합 관리</b>
+    <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.27f</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28a</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1950,6 +1962,20 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
   </section>
 
   <!-- ── Sheet: 브랜드·채널 매출 (그로홈 + POUR스토어 통합, 읽기 전용) ── -->
+  <!-- ── Sheet: 단가표 (팀 대시보드 · 원가 없음) ── -->
+  <section class="sheet" id="sh-tprice">
+    <div class="toolrow">
+      <span class="ttl">단가표</span>
+      <div class="seg" id="tpBrand"></div>
+      <span class="hint" id="tpInfo">채널별 판매가 · 원가·업체단가는 없어요</span>
+    </div>
+    <div class="sheet-pad">
+      <div class="la-find"><input type="search" id="tpQ" placeholder="🔍 제품명·코드로 찾기" enterkeyhint="search" autocomplete="off"></div>
+      <div class="ml-fchips" id="tpSt"></div>
+      <div id="tpBody"></div>
+    </div>
+  </section>
+
   <section class="sheet" id="sh-sales">
     <div class="toolrow">
       <span class="ttl">브랜드·채널 매출</span>
@@ -2318,6 +2344,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 <div id="tabs">
   <span id="tabsLead" class="tabslead"></span>
   <button class="stab on" data-grp="price" data-sh="sh-price"><span class="dot"></span>가격정책표</button>
+  <button class="stab" data-grp="price" data-sh="sh-tprice"><span class="dot"></span>단가표</button>
   <button class="stab" data-grp="price" data-sh="sh-product"><span class="dot"></span>상품 기준</button>
   <button class="stab" data-grp="price" data-sh="sh-channel"><span class="dot"></span>채널 수익분석</button>
   <button class="stab" data-grp="price" data-sh="sh-dash"><span class="dot"></span>요약·알림</button>
@@ -2353,9 +2380,9 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 
 <!-- ═══ 퀵 마진 계산기 ═══ -->
 <button id="calcFab"><span class="sym">fx</span> 계산기</button>
-<button id="daiFab" type="button" aria-label="관리자 AI 비서 열기">💬 AI <span class="dai-adm">관리자</span></button>
+<button id="daiFab" type="button" aria-label="AI 비서 열기">💬 AI <span class="dai-adm">관리자</span><span class="dai-team">팀</span></button>
 <div id="daiPanel" role="dialog" aria-label="AI 비서">
-  <div class="dai-hd"><b>💬 AI 비서</b><span class="dai-adm">관리자 · 원가 포함</span><span class="dim">질문은 저장 안 함</span><button type="button" class="tbtn" id="daiNew">새 대화</button><button type="button" class="tbtn" id="daiClose" aria-label="닫기">✕</button></div>
+  <div class="dai-hd"><b>💬 AI 비서</b><span class="dai-adm">관리자 · 원가 포함</span><span class="dai-team">팀원용 · 원가 없음</span><span class="dim">질문은 저장 안 함</span><button type="button" class="tbtn" id="daiNew">새 대화</button><button type="button" class="tbtn" id="daiClose" aria-label="닫기">✕</button></div>
   <div id="daiMsgs"></div>
   <div class="dai-in"><textarea id="daiIn" rows="1" placeholder="물어보기 · 링크·행사·문구 만들어줘"></textarea><button type="button" class="tbtn primary" id="daiSend" aria-label="보내기">↑</button></div>
 </div>
@@ -2791,8 +2818,13 @@ function _masterListLc(){
 function _allowLc(){ return (ACCESS&&Array.isArray(ACCESS.allowedEmails)?ACCESS.allowedEmails:[]).map(e=>String(e).toLowerCase()); }
 /* 부마스터 목록(소문자): 판매가에 더해 원가·마진까지 열람 (공급업체·제조사·매입처는 마스터 전용) */
 function _subMasterListLc(){ return (ACCESS&&Array.isArray(ACCESS.subMasterEmails)?ACCESS.subMasterEmails:[]).map(e=>String(e).toLowerCase()); }
+/* 팀원(팀 대시보드 전용): config/access.teamEmails — 원가 자리는 규칙상 못 읽고, 팀 화면만 쓴다.
+   ?team=1 로 열면 관리자도 팀 화면을 미리 볼 수 있다(팀용 단가표만 읽음). */
+let TEAM_MODE=false;
+function _teamLc(){ return (ACCESS&&Array.isArray(ACCESS.teamEmails)?ACCESS.teamEmails:[]).map(e=>String(e).toLowerCase()); }
 function recomputeSecAllowed(){
   const email=_emailLc();
+  if(TEAM_MODE){ secAllowed=false; return secAllowed; }
   // 보안구역: 마스터 목록(소유자·추가마스터 누구든) + 이메일 인증
   secAllowed = VIEW_AS==='' && !!email && _masterListLc().includes(email) && !!(curUser&&curUser.emailVerified);
   return secAllowed;
@@ -2809,7 +2841,7 @@ function recomputeCostAllowed(){
   const raw = !!email && !!(curUser&&curUser.emailVerified)
     && ( _masterListLc().includes(email) || _subMasterListLc().includes(email) );
   CAN_PREVIEW = raw;                    // 실제 원가열람 자격 (미리보기 버튼 노출 기준)
-  costAllowed = raw && VIEW_AS!=='general';
+  costAllowed = raw && VIEW_AS!=='general' && !TEAM_MODE;
   document.body.classList.toggle('cost-ok',costAllowed);   // 계산기(fx) 버튼: 부마스터·마스터만
   return costAllowed;
 }
@@ -3404,6 +3436,22 @@ function renderAccess(){
       ${verified?'':'<br>· 편집하려면 먼저 이메일 인증이 필요합니다.'}</p>
     </div></div>`;
   }
+  // ── 팀원 (팀 대시보드 전용) ──
+  const tlist=(ACCESS&&Array.isArray(ACCESS.teamEmails))?ACCESS.teamEmails:[];
+  let teamPanel='';
+  if(master){
+    const allowLc=list.map(x=>String(x).toLowerCase());
+    const trows=tlist.length?tlist.map(e=>`<tr><td class="name">${esc(e)}${allowLc.includes(String(e).toLowerCase())?' <span class="pill a">허용목록에도 있음 → 원가 자리 읽기 가능</span>':''}</td><td style="text-align:center;width:80px">${isPrimary?`<button class="tbtn" data-teamdel="${esc(e)}" style="color:var(--red);padding:2px 9px;font-size:11px">빼기</button>`:'—'}</td></tr>`).join('')
+      :`<tr><td class="dim" colspan="2" style="padding:10px">아직 팀원이 없어요.</td></tr>`;
+    teamPanel=`<div class="panel"><h3>팀원 (팀 대시보드 전용) <span class="tag">단가표·전일 매출·프로모션·링크·팀원용 AI · 원가 자리는 서버가 막음</span></h3><div class="bd">
+      ${isPrimary?`<div class="formgrid" style="grid-template-columns:minmax(220px,1fr) auto;align-items:end;margin-bottom:12px">
+        <div class="fld"><label>팀원 이메일 (Firebase Authentication에 계정이 있어야 해요)</label><input type="email" id="teamEmail" placeholder="teammate@netformrnd.com"></div>
+        <button class="tbtn primary" id="btnTeamAdd" style="height:42px" ${verified?'':'disabled'}>팀원 추가</button></div>`:`<p class="footnote" style="margin-bottom:10px">· 팀원 편집은 <b>소유자(기본) 마스터</b> 계정만 가능해요.</p>`}
+      <table class="grid" style="width:100%"><thead><tr><th>이메일</th><th style="width:80px">빼기</th></tr></thead><tbody>${trows}</tbody></table>
+      <p class="footnote">· 팀원은 로그인하면 <b>팀 대시보드</b>로 열려요(주소: <code>pourstore-team.html</code>). 원가·업체단가·제조사 실제 이름이 든 자리는 서버 규칙이 막아요.
+      <br>· 원가 자리까지 완전히 막으려면 그 팀원을 <b>위 ④ 열람 허용 계정에서 빼 주세요</b>(빼기 전까지는 두 화면 다 쓸 수 있어요).</p>
+    </div></div>`;
+  }
   // ── ⑤ SMS 코드 로그인 설정 (Worker URL + 계정별 휴대폰) ──
   let smsPanel='';
   if(master){
@@ -3452,6 +3500,7 @@ function renderAccess(){
     ${mastersPanel}
     ${subPanel}
     ${allowPanel}
+    ${teamPanel}
     ${smsPanel}
     <p id="accMsg" style="font-size:12px;margin-top:6px;min-height:16px"></p>
     <p class="footnote">· 이 접근 제어는 <b>서버(Firestore 보안규칙)</b>에서 강제됩니다. 클라이언트 HTML/JS 를 수정하거나 개발자도구로 화면을 열어도, 허용목록·마스터 계정이 아니면 데이터를 서버가 내려주지 않습니다.
@@ -3586,6 +3635,21 @@ function renderAccess(){
       await db.collection('config').doc('access').set({subMasterEmails:nSub,updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
       await reloadAccess(); refreshAll(); accMsg(`${em} 을(를) 부마스터에서 해제했습니다. (판매가만 보이는 일반계정으로 전환)`,true);
     }catch(e){ accMsg('해제 실패: '+(e.code||e.message||e)); }
+  }));
+  on('btnTeamAdd',async()=>{
+    const ne=($('#teamEmail').value||'').trim();
+    if(!ne||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ne)){ accMsg('올바른 이메일을 입력하세요.'); return; }
+    try{ const nl=Array.from(new Set([...(tlist||[]),ne]));
+      await db.collection('config').doc('access').set({teamEmails:nl,updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
+      await reloadAccess(); refreshAll(); accMsg(`${ne} 을(를) 팀원으로 추가했어요.`,true);
+    }catch(e){ accMsg('추가 실패: '+(e.code||e.message||e)+' (소유자 마스터·이메일 인증 확인)'); }
+  });
+  box.querySelectorAll('[data-teamdel]').forEach(b=>b.addEventListener('click',async()=>{
+    const em=b.dataset.teamdel; if(!confirm(`${em} 을(를) 팀원에서 뺄까요?`)) return;
+    try{ const nl=(tlist||[]).filter(x=>String(x).toLowerCase()!==String(em).toLowerCase());
+      await db.collection('config').doc('access').set({teamEmails:nl,updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
+      await reloadAccess(); refreshAll(); accMsg(`${em} 을(를) 팀원에서 뺐어요.`,true);
+    }catch(e){ accMsg('실패: '+(e.code||e.message||e)); }
   }));
   on('btnAllowAdd',async()=>{
     const ne=($('#allowEmail').value||'').trim();
@@ -5469,7 +5533,10 @@ $('#ibSend')&&$('#ibSend').addEventListener('click',sendInbound);
 let activeGrp='price';
 /* 일반계정(원가 미열람)에 보이는 탭: 가격정책표(판매가) + 계정 관리만 */
 const GEN_TABS=['sh-price','sh-access','sh-mkt','sh-mktlink','sh-mktpromo','sh-launch'];   // 출시 관리 목록은 원가 없이 모두에게(원가·마진·검토는 숨김)
+const TEAM_TABS=['sh-tprice','sh-sales','sh-mktpromo','sh-mktlink','sh-mkt','sh-access'];
 function tabHidden(b){
+  if(TEAM_MODE) return !TEAM_TABS.includes(b.dataset.sh);
+  if(b.dataset.sh==='sh-tprice') return true;
   if((b.dataset.sh==='sh-match'||b.dataset.sh==='sh-items') && !secAllowed) return true;   // 보안탭(매칭·온라인 상품): 마스터만
   if(!costAllowed && !GEN_TABS.includes(b.dataset.sh)) return true;  // 원가 미열람 → 판매가·계정만
   return false;
@@ -5504,7 +5571,7 @@ function tabHidden(b){
    시트 id 는 그대로 두고, 여러 시트를 한 메뉴 항목의 '안쪽 탭'으로 묶는다 → 기존 gotoTab 링크가 전부 그대로 동작.
    권한은 탭 단위(tabHidden)로 걸리고, 보이는 탭이 하나도 없으면 메뉴 항목도 숨는다. */
 const MENU=[
-  {g:'price',ic:'💰',lb:'가격',items:[{lb:'가격정책표',tabs:['sh-price','sh-dash']}]},
+  {g:'price',ic:'💰',lb:'가격',items:[{lb:'단가표',tabs:['sh-tprice']},{lb:'가격정책표',tabs:['sh-price','sh-dash']}]},
   {g:'prod',ic:'📦',lb:'제품',items:[{lb:'출시 관리·등록',tabs:['sh-launch','sh-reg']}]},
   {g:'sales',ic:'📈',lb:'판매',items:[{lb:'매출',tabs:['sh-sales']},{lb:'유통기한',tabs:['sh-expiry']},{lb:'손익',tabs:['sh-pl','sh-fixed']}]},
   {g:'mkt',ic:'📣',lb:'마케팅',items:[{lb:'프로모션',tabs:['sh-mktpromo','sh-promo']},{lb:'링크·분석',tabs:['sh-mktlink','sh-mkt']}]},
@@ -5532,7 +5599,7 @@ function renderSide(){
   const el=$('#sideNav'); if(!el) return;
   const cur=document.querySelector('.stab.on'), curSh=cur?cur.dataset.sh:'';
   document.body.dataset.sh=curSh;
-  let h=`<div class="sn-head"><div class="sn-logo"><b>POUR 가격·마진</b><span>통합 관리</span></div><button id="snFold" title="메뉴 접기/펴기">☰</button><button id="snClose" title="메뉴 닫기">✕</button></div><nav class="sn-menu">`;
+  let h=`<div class="sn-head"><div class="sn-logo">${TEAM_MODE?'<b>POUR 팀</b><span>대시보드</span>':'<b>POUR 가격·마진</b><span>통합 관리</span>'}</div><button id="snFold" title="메뉴 접기/펴기">☰</button><button id="snClose" title="메뉴 닫기">✕</button></div><nav class="sn-menu">`;
   MENU.forEach(g=>{
     const its=g.items.map(it=>({it,tabs:miTabs(it)})).filter(x=>x.tabs.length);
     if(!its.length) return;
@@ -5541,6 +5608,7 @@ function renderSide(){
       h+=`<button class="sn-item${on?' on':''}" data-sh="${esc(on?curSh:tabs[0])}" title="${esc(it.lb)}${dot?' · 먼저 준비할 데이터가 있어요':''}">${esc(it.lb)}${dot?'<i class="sn-dot"></i>':''}</button>`; });
     h+='</div>';
   });
+  if(TEAM_MODE) h+=`<div class="sn-grp"><div class="sn-gl"><span class="sn-ic">🧭</span><span class="sn-t">바로가기</span></div><a class="sn-item" href="${SOURCING_URL}" target="_blank" rel="noopener">소싱앱 ↗</a></div>`;
   el.innerHTML=h+'</nav>';
   renderSub(); renderNeed();
 }
@@ -5603,6 +5671,7 @@ function gotoTab(sh){
   if(sh==='sh-launch' && typeof renderLaunch==='function') renderLaunch();
   if(sh==='sh-mktpromo' && typeof pcRender==='function') pcRender();
   if(sh==='sh-mktlink' && typeof mlRender==='function') mlRender();
+  if(sh==='sh-tprice' && typeof renderTeamPrice==='function') renderTeamPrice();
   if(sh==='sh-mkt' && typeof maRender==='function') maRender();
   if(sh==='sh-promo' && typeof renderPromo==='function') renderPromo();
   if(sh==='sh-expiry' && typeof renderExpiry==='function') renderExpiry();
@@ -6132,12 +6201,39 @@ document.addEventListener('click',e=>{
   const o=e.target.closest('#maBody [data-mlopen]'); if(o&&!e.target.closest('[data-mlcopy]')){ ML.open=o.dataset.mlopen; ML.make=null; gotoTab('sh-mktlink'); mlRender(); window.scrollTo({top:0}); }
 });
 
+/* ══════════ 단가표 (팀 대시보드) ══════════ 팀용 단가표(team-catalog)의 채널별 판매가만 — 원가 없음 */
+const TP={q:'', brand:'', st:'판매중'};
+const TP_ST={'판매중':g=>g==='출시'||g==='단종예정','출시준비':g=>g==='출시준비','단종':g=>g==='단종','전체':()=>true};
+function renderTeamPrice(){
+  const body=$('#tpBody'); if(!body) return;
+  if(!TEAMCAT||!(TEAMCAT.products||[]).length){ body.innerHTML=`<div class="panel"><div class="bd">${TEAMCAT&&TEAMCAT.err?'단가표를 불러오지 못했어요 ('+esc(TEAMCAT.err)+') · 관리자에게 팀원 등록을 확인해 달라고 해 주세요.':'아직 단가표가 없어요. 관리자가 마진 대시보드를 한 번 열면 자동으로 준비돼요.'}</div></div>`; return; }
+  const chs=(TEAMCAT.channels||[]).slice().sort((a,b)=>(a.ord??0)-(b.ord??0));
+  const brands=[...new Set((TEAMCAT.products||[]).flatMap(p=>p.brand||[]))];
+  $('#tpBrand').innerHTML=[['','전체'],...brands.map(b=>[b,b==='GROHOME'?'그로홈':b==='POUR스토어'?'스토어':b])].map(([v,l])=>`<button data-tpb="${esc(v)}" class="${TP.brand===v?'on':''}">${esc(l)}</button>`).join('');
+  const base=(TEAMCAT.products||[]).filter(p=>!TP.brand||(p.brand||[]).includes(TP.brand));
+  $('#tpSt').innerHTML=Object.keys(TP_ST).map(k=>`<button type="button" data-tps="${k}" class="${TP.st===k?'on':''}">${k} ${base.filter(p=>TP_ST[k](p.group||'출시')).length}</button>`).join('');
+  const q=TP.q.trim().toLowerCase().replace(/\s+/g,'');
+  const list=base.filter(p=>TP_ST[TP.st](p.group||'출시') && (!q||(p.name+(p.spec||'')+(p.code||'')).toLowerCase().replace(/\s+/g,'').includes(q)));
+  $('#tpInfo').textContent=`채널별 판매가 · 원가·업체단가 없음${TEAMCAT.updatedAt?' · '+String(TEAMCAT.updatedAt).slice(5,16).replace('T',' ')+' 기준':''}`;
+  const w=v=>v==null?'—':Math.round(v).toLocaleString('ko-KR');
+  const badge=g=>g==='단종예정'?'<span class="st" style="color:#B45309;background:#FFFBEB">단종예정</span>':g==='출시준비'?'<span class="st" style="color:#6D28D9;background:#F5F3FF">출시준비</span>':g==='단종'?'<span class="st" style="color:#6B7280;background:#F3F4F6">단종</span>':'';
+  const MAX=300;
+  body.innerHTML=!list.length?'<div class="panel"><div class="bd footnote" style="margin:0">찾는 제품이 없어요.</div></div>':
+    `<div class="tp-wrap"><table class="grid tp-tbl"><thead><tr><th class="tp-nm">제품</th>${chs.map(c=>`<th class="num">${esc(c.short||c.name||c.code)}</th>`).join('')}</tr></thead><tbody>`+
+    list.slice(0,MAX).map(p=>`<tr><td class="tp-nm"><b>${esc(p.name)}</b>${p.spec&&p.spec!=='-'?` <span class="dim">${esc(p.spec)}</span>`:''} ${badge(p.group)}<div class="dim tp-sub">${esc((p.brand||[]).join(' · '))}${p.code?` · <span class="mono">${esc(p.code)}</span>`:''}${p.alias?` · 🏭 ${esc(p.alias)}`:''}${p.type==='세트'?' · 세트':''}</div></td>${chs.map(c=>`<td class="num">${w((p.prices||{})[c.uid])}</td>`).join('')}</tr>`).join('')+
+    `</tbody></table></div>`+(list.length>MAX?`<div class="footnote">${list.length-MAX}개 더 있어요 · 찾기로 좁혀 보세요</div>`:'');
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('#tpBrand [data-tpb]'); if(b){ TP.brand=b.dataset.tpb; renderTeamPrice(); return; }
+  const st=e.target.closest('#tpSt [data-tps]'); if(st){ TP.st=st.dataset.tps; renderTeamPrice(); return; }
+});
+document.addEventListener('input',e=>{ if(e.target.id==='tpQ'){ TP.q=e.target.value; renderTeamPrice(); } });
 /* ══════════ 💬 AI 비서 (마진 대시보드) ══════════
    서버: functions/api/dashboard-ai.js (로그인·허용목록 확인, 키는 서버에만)
    · 질문 → 대시보드 현황(JSON)을 근거로 답. 질문은 저장하지 않음(이 화면에만, 새로고침하면 사라짐)
    · 링크·행사·문구 초안 → 카드. 사람이 [만들기]를 눌러야 저장되고, 만든 것엔 createdVia:'ai' + 활동 기록
    · 원가 권한이 없는 계정: 현황에서 원가·이익·마진·제조사 실제 이름을 빼고 보냄(서버에서도 한 번 더 지움) */
-const DAI_API='/api/dashboard-ai';
+const daiApi=()=>costAllowed?'/api/dashboard-ai':'/api/team-ai';   // 관리자(원가 포함) / 팀원(원가 없는 칸만) 통로를 나눔
 const DAI={msgs:[], hist:[], busy:false};
 const DAI_CHIPS=['어제 매출 브랜드별로 알려줘','이번 달 잘 된 링크는?','출시준비 중 뭐가 남았어?','단종예정 재고 소진 행사 짜줘','재구매 고객한테 보낼 문자 써줘'];
 function daiStatus(){
@@ -6185,7 +6281,7 @@ function daiRender(){
   const box=$('#daiMsgs'); if(!box) return;
   if(!DAI.msgs.length){ box.innerHTML=`<div class="dai-hello"><b>무엇이든 물어보거나 시켜 보세요</b><div>매출·마진·출시·행사·링크 현황을 답하고, 링크·행사·고객 문구 초안을 만들어요. 초안은 [만들기]를 눌러야 저장돼요.</div>
       <div class="dai-chips">${DAI_CHIPS.map(c=>`<button type="button" data-daichip="${esc(c)}">${esc(c)}</button>`).join('')}</div>
-      <div class="dim" style="margin-top:8px">· 관리자 전용이라 원가·이익·제조사 이름까지 알고 답해요. 화면 공유할 때 주의하세요.</div></div>`; }
+      <div class="dim" style="margin-top:8px">${costAllowed?'· 관리자용이라 원가·이익·제조사 이름까지 알고 답해요. 화면 공유할 때 주의하세요.':'· 팀원용이라 원가·이익·제조사 이름은 AI에게 아예 보내지 않아요.'}</div></div>`; }
   else box.innerHTML=DAI.msgs.map((m,mi)=>{ if(m.who==='me') return `<div class="dai-me">${esc(m.text).replace(/\n/g,'<br>')}</div>`;
     if(m.err) return `<div class="dai-ai err">⚠️ ${esc(m.err)}</div>`;
     if(m.wait) return `<div class="dai-ai wait"><span class="dai-dot"></span><span class="dai-dot"></span><span class="dai-dot"></span> 현황을 보고 있어요…</div>`;
@@ -6200,7 +6296,7 @@ async function daiSend(text){
   try{
     if(!SL.loaded&&typeof loadSales==='function'){ try{ await loadSales(); }catch(e){ console.warn('[AI] 매출 불러오기 실패', e); } }
     const token=await curUser.getIdToken();
-    const r=await fetch(DAI_API,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text,status:daiStatus(),history:DAI.hist.slice(-6)})});
+    const r=await fetch(daiApi(),{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text,status:daiStatus(),history:DAI.hist.slice(-6)})});
     const j=await r.json().catch(()=>null);
     if(!r.ok||!j||!j.ok) throw new Error((j&&j.error)||('HTTP '+r.status+(r.status===404?' — 서버 함수가 아직 배포되지 않았어요':'')));
     Object.assign(wait,{wait:false,plan:j.plan}); DAI.hist.push({나:text,AI:String(j.plan.reply||'').slice(0,800)});
@@ -6213,7 +6309,7 @@ function daiLinkDraftToMake(d){ const det=d.url&&/^https?:\/\//.test(d.url)?mlDe
   return {url:d.url||'', det, detUrl:d.url||'', brand:(det&&det.brand)||'', purpose:pu?d.purpose:'', place:pu&&!pu.named&&pu.places.some(x=>x[0]===d.place)?d.place:'', partner:pu&&pu.named?(d.partner||''):'', promoId:d.promoId||'', product:d.product||'', label:d.label||''}; }
 async function daiMakeLink(d){ const m=daiLinkDraftToMake(d); const r=await mlSaveLink(m,'ai'); d.done=r.id; return r; }
 document.addEventListener('click',async e=>{
-  if(e.target.closest('#daiFab')){ if(!costAllowed){ uiToast('관리자 전용이에요','err'); return; } daiOpen(); return; }
+  if(e.target.closest('#daiFab')){ daiOpen(); return; }
   if(!e.target.closest('#daiPanel')) return;
   if(e.target.closest('#daiClose')){ daiClose(); return; }
   if(e.target.closest('#daiNew')){ DAI.msgs=[]; DAI.hist=[]; daiRender(); return; }
@@ -10986,6 +11082,13 @@ document.addEventListener('click',e=>{ const b=e.target.closest('[data-cc-open]'
   });
 })();
 function refreshAll(){
+  if(TEAM_MODE){   // 팀 화면: 원가·계산 화면은 그리지 않는다(데이터도 없음)
+    const safe=(n,fn)=>{ try{ fn(); }catch(e){ console.warn('[team] '+n+' 그리기 실패', e); } };
+    safe('매출',()=>{ const on=$('#sh-sales'); if(on&&on.classList.contains('on')&&typeof openSalesTab==='function') openSalesTab(); });
+    safe('마케팅',renderMktAll); safe('단가표',renderTeamPrice); safe('권한',applyCostGating); safe('화면',renderViewChrome);
+    if(typeof renderTabs==='function') safe('탭',renderTabs);
+    requestAnimationFrame(syncStickyTop); return;
+  }
   recalcVendor();
   renderRibbon(); renderDash(); renderProductView(); renderGrid(); renderPricingBanner(); renderChMan(); renderVendorPanel(); renderSup(); renderMatch();
   renderChannel(); renderMoq(); renderQuote(); ensurePl(); renderPlInput();
@@ -10998,6 +11101,8 @@ function refreshAll(){
   applyCostGating();
   renderViewChrome();
   requestAnimationFrame(syncStickyTop);   // 도구줄 높이에 맞춰 헤더 고정 오프셋 갱신(버튼 줄바꿈 대비)
+  scheduleTeamCatalog();
+  if(TEAM_MODE && typeof renderTeamPrice==='function') renderTeamPrice();
   if(window.__uiFold) window.__uiFold();
 }
 /* 가격정책표 스크롤 접기 (폰·태블릿): 아래로 내리면 KPI·도구줄을 접고 표 머리줄(제품명…)만 위에 고정.
@@ -11135,6 +11240,8 @@ async function boot(){
   if(appStarted) return;
   // 1) 접근 권한 먼저 판정 (허용목록/마스터)
   await fetchAccess();
+  { const email=_emailLc(), isTeam=!!email&&_teamLc().includes(email), want=/[?&]team=1\b/.test(location.search);
+    if((!dataAllowed && isTeam) || (want && (dataAllowed||isTeam))){ await bootTeam(); return; } }
   if(!dataAllowed){
     // 허용목록에 없는 계정 → 데이터 로드 시도 없이 "권한 없음" 안내. 마스터 부트스트랩만 허용.
     appStarted=true;
@@ -11177,6 +11284,66 @@ async function boot(){
   // 4) 실시간 동기화 시작 — 이후 서버 변경은 새로고침 없이 반영
   startLiveSync();
   setTimeout(checkSourcingImport,400);   // 소싱앱에서 넘어온 상품이 있으면 확인 창
+}
+/* ══════════ 팀 모드 부팅 ══════════
+   원가가 든 자리(products·channels·product-meta 대부분)는 읽지 않는다 → 팀용 단가표(team-catalog/current)로 화면을 만든다. */
+let TEAMCAT=null;
+function applyTeamCatalog(c){
+  TEAMCAT=c||{products:[],channels:[]};
+  CH_DEF=(TEAMCAT.channels||[]).map(x=>({...x}));
+  RAW=(TEAMCAT.products||[]).map(p=>({cat:p.cat,name:p.name,spec:p.spec,cost:null,pr:{...(p.prices||{})},setItems:'',ptype:'단품'}));
+  PBRAND={}; PCODE={}; PGHLINK={}; PSTATUS={}; PEOL={}; MFG_ALIAS={}; PTYPE={};
+  (TEAMCAT.products||[]).forEach(p=>{ const k=`${p.cat}|${p.name}|${p.spec}`;
+    if(p.brand&&p.brand.length) PBRAND[k]=p.brand; if(p.code) PCODE[k]=p.code; if(p.gh) PGHLINK[k]=p.gh;
+    if(p.status&&p.status!=='출시') PSTATUS[k]=p.status; if(p.group==='단종예정') PEOL[k]={at:p.eolAt||'1970',by:''};
+    if(p.alias) MFG_ALIAS[k]=p.alias; PTYPE[k]='단품'; });
+  if(typeof applyBrandList==='function') applyBrandList([...new Set((TEAMCAT.products||[]).flatMap(p=>p.brand||[]))]);
+}
+async function bootTeam(){
+  TEAM_MODE=true; costAllowed=false; secAllowed=false; document.body.classList.remove('cost-ok'); document.body.classList.add('team-mode');
+  { const t=$('#appTitle'); if(t) t.textContent='POUR 팀 대시보드'; document.title='POUR 팀 대시보드'; }
+  renderAccessDenied(false);
+  try{ const d=await db.collection('team-catalog').doc('current').get(); applyTeamCatalog(d.exists?d.data():null);
+    console.log(`[team-catalog] 제품 ${(TEAMCAT.products||[]).length}개 · 채널 ${(TEAMCAT.channels||[]).length}개 · ${TEAMCAT.updatedAt||'아직 없음'}`); }
+  catch(e){ console.error('[team-catalog] 로드 실패', e); applyTeamCatalog(null); TEAMCAT.err=String(e.code||e.message||e); }
+  try{ const d=await db.collection('product-meta').doc('promo-types').get(); if(d.exists&&Array.isArray(d.data().order)) PC_ORDER=d.data().order; }catch(e){ console.warn('[promo-types] 로드 실패', e.code||e); }
+  await fetchMkt();
+  if(!MOQ_TIERS.length) MOQ_TIERS=[{label:'1+',f:1,min:1,max:Infinity}];
+  appStarted=true;
+  buildState();
+  try{ init(); }catch(e){ console.warn('[team] 초기 화면 일부 실패(원가 화면)', e); refreshAll(); }
+  const onErr=(n)=>(e)=>console.warn('[live] '+n+' 리스너 오류:', e.code||e.message||e);
+  db.collection('mkt-links').onSnapshot(s=>{ MKT_LINKS=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.deleted).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')); scheduleMkt(); }, onErr('mkt-links'));
+  db.collection('mkt-perf').onSnapshot(s=>{ MKT_PERF={}; s.docs.forEach(d=>{ MKT_PERF[d.id]=d.data(); }); scheduleMkt(); }, onErr('mkt-perf'));
+  db.collection('promotions').onSnapshot(s=>{ PROMOS=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.deleted).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')); scheduleMkt(); }, onErr('promotions'));
+  db.collection('team-catalog').doc('current').onSnapshot(d=>{ if(!d.exists||editingNow()) return; applyTeamCatalog(d.data()); buildState(); refreshAll(); }, onErr('team-catalog'));
+  gotoTab('sh-tprice');
+  console.log('[team] 팀 대시보드로 시작');
+}
+/* 관리자 화면 → 팀용 단가표 자동 저장 (원가·업체단가·제조사 실제 이름 없음 · 바뀐 게 있을 때만) */
+let _tcTimer=null, _tcHash='';
+function teamCatalogPayload(){
+  const chs=COLS().filter(c=>c.role!=='export').map(c=>({uid:c.uid,code:c.code||'',name:c.name||'',short:c.short||'',role:c.role||'',ord:c.ord??0,col:true}));
+  const uids=chs.map(c=>c.uid);
+  const products=P.filter(p=>!isDeletedProd(p)).map(p=>{ const k=pKey(p), prices={};
+    uids.forEach(u=>{ const v=effPrice(p,u); if(v!=null) prices[u]=v; });
+    const o={cat:p.cat,name:p.name,spec:p.spec,brand:pbrand(p),status:pstatus(p),group:laGroupOf(p),prices,type:isPackage(p)?'세트':'단품'};
+    const code=PCODE[k]||p.ghCode||''; if(code) o.code=code; if(PGHLINK[k]) o.gh=PGHLINK[k];
+    const al=mfgAliasOf(p); if(al) o.alias=al; if(o.group==='단종예정'&&PEOL[k]) o.eolAt=PEOL[k].at||'';
+    return o; });
+  return {channels:chs, products};
+}
+function scheduleTeamCatalog(){
+  if(TEAM_MODE||!costAllowed||!appStarted) return;
+  clearTimeout(_tcTimer);
+  _tcTimer=setTimeout(async()=>{
+    try{ const pl=teamCatalogPayload(), js=JSON.stringify(pl); let h=0; for(let i=0;i<js.length;i++) h=(h*31+js.charCodeAt(i))|0; const hash=String(h>>>0)+':'+js.length;
+      if(hash===_tcHash) return;
+      if(!_tcHash){ try{ const d=await db.collection('team-catalog').doc('current').get(); if(d.exists&&d.data().hash===hash){ _tcHash=hash; return; } }catch(e){} }
+      await db.collection('team-catalog').doc('current').set({...pl, hash, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''});
+      _tcHash=hash; console.log(`[team-catalog] 팀용 단가표 저장 · 제품 ${pl.products.length}개`);
+    }catch(e){ console.warn('[team-catalog] 저장 실패', e.code||e.message||e); }
+  }, 4000);
 }
 /* 허용목록에 없는 계정용 전체화면 안내 */
 function renderAccessDenied(show){

@@ -56,6 +56,16 @@ service cloud.firestore {
              || request.auth.token.email in get(/databases/$(database)/documents/config/access).data.get('allowedEmails', []) );
     }
 
+    // 팀원(팀 대시보드 전용): config/access.teamEmails — 원가가 든 자리는 못 읽고, 아래에 적힌 자리만 (2026-09 대표 동의로 추가)
+    function isTeam() {
+      return signedIn()
+        && accessExists()
+        && request.auth.token.email in get(/databases/$(database)/documents/config/access).data.get('teamEmails', []);
+    }
+    function canTeam() {
+      return isAllowedReader() || isTeam();
+    }
+
     match /channels/{uid} {
       allow read: if isAllowedReader();
       allow write: if false;
@@ -123,23 +133,32 @@ service cloud.firestore {
     //  + 날짜별 클릭(clicksByDay.{YYYY-MM-DD})은 한 번에 하루치 한 칸만 바꿀 수 있음 (2026-09 사용자 동의로 추가)
     match /mkt-links/{id} {
       allow read: if true;
-      allow create, delete: if isAllowedReader();
-      allow update: if isAllowedReader()
+      allow create: if canTeam();
+      allow delete: if isAllowedReader();
+      allow update: if canTeam()
         || ( request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicks','lastClickAt','clicksByDay'])
              && request.resource.data.clicks == resource.data.clicks + 1
              && request.resource.data.get('clicksByDay', {}).diff(resource.data.get('clicksByDay', {})).affectedKeys().size() <= 1 );
     }
     // 링크별 실측(주문·매출·광고비 등) — 허용목록 계정만(비공개)
     match /mkt-perf/{id} {
-      allow read, write: if isAllowedReader();
+      allow read, write: if canTeam();
     }
     // 프로모션 성과 — 허용목록 계정만
     match /promotions/{id} {
-      allow read, write: if isAllowedReader();
+      allow read, write: if canTeam();
     }
     // 상품 기준 메타(시장조사최저가·상품별 마케팅·프로모션 파라미터) — 허용목록 계정만
     match /product-meta/{doc} {
       allow read, write: if isAllowedReader();
+      // 팀원: 원가 없는 문서 3개만 (행사 구성 순서 · 제조사 가칭 · 판매 엑셀 상품 연결 기억)
+      allow read: if isTeam() && doc in ['promo-types', 'mfg-alias', 'sales-map'];
+      allow write: if isTeam() && doc in ['promo-types', 'sales-map'];
+    }
+    // 팀용 단가표(원가 없음) — 관리자 화면이 자동으로 만들어 저장, 팀원은 읽기만
+    match /team-catalog/{doc} {
+      allow read: if canTeam();
+      allow write: if isAllowedReader();
     }
     // 공유 상품 원장(앱에서 등록한 상품) — 대시보드·소싱앱 공용. 허용목록 계정 등록·수정·삭제
     match /products-added/{id} {
@@ -147,7 +166,7 @@ service cloud.firestore {
     }
     // 📥 판매 엑셀 업로드 기록 (날짜별 문서 · 묶음 기록 batch-*) — 허용목록 계정 (2026-09 대표와 협의 후 추가)
     match /sales-orders/{id} {
-      allow read, write: if isAllowedReader();
+      allow read, write: if canTeam();
     }
 
     // 그 외 모든 경로(다른 config 문서 포함) 금지

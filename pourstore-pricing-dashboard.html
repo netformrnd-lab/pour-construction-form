@@ -861,7 +861,8 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 @media(max-width:640px){ .la-row{flex-wrap:wrap} .la-row .acts{width:100%;justify-content:flex-end} }
 /* AI 비서 */
 #daiFab{position:fixed;right:20px;bottom:108px;z-index:100;background:#1D4ED8;color:#fff;border:0;border-radius:26px;padding:12px 18px;font-size:14px;font-weight:800;box-shadow:0 6px 18px rgba(29,78,216,.35);cursor:pointer}
-body:not(.cost-ok) #daiFab{bottom:52px}
+body:not(.cost-ok) #daiFab{display:none!important}   /* 관리자 전용 — 팀원은 팀 대시보드의 AI */
+.dai-adm{font-size:10.5px;font-weight:800;background:#DC2626;color:#fff;border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}
 body.dai-open #daiFab,body.dai-open #calcFab{display:none!important}
 #daiPanel{position:fixed;z-index:1200;right:0;top:0;bottom:0;width:440px;max-width:100%;background:#fff;box-shadow:-8px 0 30px rgba(15,23,42,.18);display:none;flex-direction:column}
 #daiPanel.on{display:flex}
@@ -895,7 +896,6 @@ body.dai-open #daiFab,body.dai-open #calcFab{display:none!important}
 @media(max-width:700px){
   #daiPanel{width:100%}
   #daiFab{right:12px;bottom:calc(72px + env(safe-area-inset-bottom));padding:11px 15px;font-size:13px}
-  body:not(.cost-ok) #daiFab{bottom:calc(16px + env(safe-area-inset-bottom))}
 }
 /* 링크 v2 */
 .ml-rh{font-size:12px;font-weight:800;color:var(--ink-soft);margin-bottom:6px}
@@ -1471,7 +1471,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.27e</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.27f</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2353,9 +2353,9 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 
 <!-- ═══ 퀵 마진 계산기 ═══ -->
 <button id="calcFab"><span class="sym">fx</span> 계산기</button>
-<button id="daiFab" type="button" aria-label="AI 비서 열기">💬 AI</button>
+<button id="daiFab" type="button" aria-label="관리자 AI 비서 열기">💬 AI <span class="dai-adm">관리자</span></button>
 <div id="daiPanel" role="dialog" aria-label="AI 비서">
-  <div class="dai-hd"><b>💬 AI 비서</b><span class="dim">질문은 저장하지 않아요</span><button type="button" class="tbtn" id="daiNew">새 대화</button><button type="button" class="tbtn" id="daiClose" aria-label="닫기">✕</button></div>
+  <div class="dai-hd"><b>💬 AI 비서</b><span class="dai-adm">관리자 · 원가 포함</span><span class="dim">질문은 저장 안 함</span><button type="button" class="tbtn" id="daiNew">새 대화</button><button type="button" class="tbtn" id="daiClose" aria-label="닫기">✕</button></div>
   <div id="daiMsgs"></div>
   <div class="dai-in"><textarea id="daiIn" rows="1" placeholder="물어보기 · 링크·행사·문구 만들어줘"></textarea><button type="button" class="tbtn primary" id="daiSend" aria-label="보내기">↑</button></div>
 </div>
@@ -6185,7 +6185,7 @@ function daiRender(){
   const box=$('#daiMsgs'); if(!box) return;
   if(!DAI.msgs.length){ box.innerHTML=`<div class="dai-hello"><b>무엇이든 물어보거나 시켜 보세요</b><div>매출·마진·출시·행사·링크 현황을 답하고, 링크·행사·고객 문구 초안을 만들어요. 초안은 [만들기]를 눌러야 저장돼요.</div>
       <div class="dai-chips">${DAI_CHIPS.map(c=>`<button type="button" data-daichip="${esc(c)}">${esc(c)}</button>`).join('')}</div>
-      ${costAllowed?'':'<div class="dim" style="margin-top:8px">· 이 계정의 AI는 원가·이익·제조사 이름을 모르는 상태로 답해요.</div>'}</div>`; }
+      <div class="dim" style="margin-top:8px">· 관리자 전용이라 원가·이익·제조사 이름까지 알고 답해요. 화면 공유할 때 주의하세요.</div></div>`; }
   else box.innerHTML=DAI.msgs.map((m,mi)=>{ if(m.who==='me') return `<div class="dai-me">${esc(m.text).replace(/\n/g,'<br>')}</div>`;
     if(m.err) return `<div class="dai-ai err">⚠️ ${esc(m.err)}</div>`;
     if(m.wait) return `<div class="dai-ai wait"><span class="dai-dot"></span><span class="dai-dot"></span><span class="dai-dot"></span> 현황을 보고 있어요…</div>`;
@@ -6213,7 +6213,7 @@ function daiLinkDraftToMake(d){ const det=d.url&&/^https?:\/\//.test(d.url)?mlDe
   return {url:d.url||'', det, detUrl:d.url||'', brand:(det&&det.brand)||'', purpose:pu?d.purpose:'', place:pu&&!pu.named&&pu.places.some(x=>x[0]===d.place)?d.place:'', partner:pu&&pu.named?(d.partner||''):'', promoId:d.promoId||'', product:d.product||'', label:d.label||''}; }
 async function daiMakeLink(d){ const m=daiLinkDraftToMake(d); const r=await mlSaveLink(m,'ai'); d.done=r.id; return r; }
 document.addEventListener('click',async e=>{
-  if(e.target.closest('#daiFab')){ daiOpen(); return; }
+  if(e.target.closest('#daiFab')){ if(!costAllowed){ uiToast('관리자 전용이에요','err'); return; } daiOpen(); return; }
   if(!e.target.closest('#daiPanel')) return;
   if(e.target.closest('#daiClose')){ daiClose(); return; }
   if(e.target.closest('#daiNew')){ DAI.msgs=[]; DAI.hist=[]; daiRender(); return; }

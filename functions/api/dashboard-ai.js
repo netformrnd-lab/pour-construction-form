@@ -9,8 +9,8 @@
  *     plan.reply   = 답변 글
  *     plan.links / plan.promos / plan.messages = 초안 (대시보드에서 사람이 [만들기]를 눌러야 저장)
  *
- * 권한: 로그인 확인 → config/access(허용목록)를 그 사람 토큰으로 읽어 허용 계정인지 확인.
- *   마스터·부마스터가 아니면(원가 권한 없음) 현황에서 원가·이익·마진·제조사 칸을 서버에서도 한 번 더 지운다.
+ * 권한: 관리자 전용 — 로그인 확인 → config/access 를 그 사람 토큰으로 읽어 마스터·부마스터인지 확인.
+ *   그 밖의 계정(팀원)은 거절한다. 팀원용 AI 는 팀 대시보드에서 따로(원가 없는 칸만 허락해서) 쓴다.
  *
  * 환경변수 (Cloudflare Pages > Settings > Variables and Secrets)
  *   ANTHROPIC_API_KEY        필수 (소싱앱 AI와 같은 키)
@@ -88,14 +88,6 @@ async function readAccess(projectId, token) {
     allowed: lc(fsVal(f.allowedEmails)),
   };
 }
-/* 원가 권한이 없으면 현황에서 원가성 칸을 지운다(대시보드가 이미 빼고 보내지만 한 번 더) */
-const COST_KEYS = new Set(['cost', 'costs', 'profit', 'incProfit', 'planProfit', 'margin', 'marginRate', 'rate', 'mfg', 'maker', 'vbase', 'supply']);
-function stripCost(x) {
-  if (Array.isArray(x)) return x.map(stripCost);
-  if (x && typeof x === 'object') { const o = {}; for (const [k, v] of Object.entries(x)) { if (!COST_KEYS.has(k)) o[k] = stripCost(v); } return o; }
-  return x;
-}
-
 /* ── 응답 형식 ── */
 const N = t => ({ anyOf: [{ type: t }, { type: 'null' }] });
 const PURPOSES = ['광고', '포스팅', '셀러·인플루언서', '공동구매', 'CS·고객문자', '기타'];
@@ -161,8 +153,7 @@ const SYSTEM = `당신은 넷폼의 커머스 브랜드 POUR스토어(건축 유
 [답하는 법]
 - "대시보드 현황(JSON)"만 근거로 답합니다. 없는 정보는 "대시보드에 아직 없어요"라고 말합니다. 숫자를 지어내지 않습니다.
 - 금액은 1,234,000원처럼 쉼표. 목록은 줄바꿈과 "· ". 중요한 이름은 **굵게**. 10줄 이내.
-- role.cost=false 이면 원가·이익·마진·제조사 실제 이름은 모르는 상태입니다. 물어보면 "원가 권한이 있는 계정에서 볼 수 있어요"라고 답합니다.
-- 제조사는 현황에 있는 이름(가칭 A사 등)만 씁니다.
+- 관리자(마스터·부마스터) 전용입니다. 원가·이익·마진·제조사 실제 이름까지 현황에 있으면 써도 됩니다.
 - 이전 대화(history)가 있으면 이어서 답합니다.
 
 [링크 초안 links]
@@ -192,14 +183,13 @@ export async function onRequestPost({ request, env }) {
   try { who = await verifyIdToken(token, projectId); } catch (e) { return json({ ok: false, error: e.message || '로그인 확인 실패' }, 401); }
   try { acc = await readAccess(projectId, token); } catch (e) { return json({ ok: false, error: e.message }, 403); }
   const isMaster = acc.masters.includes(who.email), isSub = acc.subs.includes(who.email);
-  if (!isMaster && !isSub && !acc.allowed.includes(who.email)) return json({ ok: false, error: '이 계정은 대시보드 허용목록에 없어요 (' + who.email + ')' }, 403);
-  const cost = isMaster || isSub;
+  if (!isMaster && !isSub) return json({ ok: false, error: '관리자(마스터·부마스터) 전용 AI예요 (' + who.email + ')' }, 403);
+  const cost = true;
   let body;
   try { body = await request.json(); } catch (e) { return json({ ok: false, error: '요청을 읽지 못했어요' }, 400); }
   const text = String(body.text || '').slice(0, MAX_TEXT).trim();
   if (!text) return json({ ok: false, error: '보낼 내용이 없어요' }, 400);
-  let status = body.status && typeof body.status === 'object' ? body.status : {};
-  if (!cost) status = stripCost(status);
+  const status = body.status && typeof body.status === 'object' ? body.status : {};
   status.role = { cost, email: who.email };
   const statusTxt = JSON.stringify(status).slice(0, 300000);
   const history = (Array.isArray(body.history) ? body.history : []).slice(-6).map(h => ({ 나: String((h && h.나) || '').slice(0, 400), AI: String((h && h.AI) || '').slice(0, 800) }));

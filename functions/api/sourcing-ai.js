@@ -4,8 +4,11 @@
  *   POST /api/sourcing-ai
  *   Authorization: Bearer <Firebase ID 토큰>   (소싱앱에 로그인한 사람만)
  *   body: { text, atts:[{i,kind,name,url?,data?,mime?,frames?:[dataURL]}], links:[{url,title,site}],
- *           lockId, items:[{id,name,goods,maker,type,brand,concept,samples:[{type,name}]}] }
- *   → { ok, plan, usage, model }   plan = 어느 아이템의 어느 칸에 무엇을 넣을지 "제안" (앱에서 확인 후 반영)
+ *           lockId, items:[{id,name,goods,maker,type,brand,concept,samples:[{type,name}]}],
+ *           status:{…현황 요약…}, history:[{나,AI}] }
+ *   → { ok, plan, usage, model }
+ *     plan.intent = answer(질문에 답) | organize(칸에 넣기) | collect(수집함에 새로) | start(제조사 제품에서 시작)
+ *     plan.reply  = 질문 답변 글, plan.actions = 넣을 것 "제안" (앱에서 확인 후에만 반영)
  *
  * 환경변수 (Cloudflare Pages > Settings > Variables and Secrets)
  *   ANTHROPIC_API_KEY      필수 (다른 AI 기능과 같은 키)
@@ -98,15 +101,20 @@ const NE = vals => ({ anyOf: [{ type: 'string', enum: vals }, { type: 'null' }] 
 const SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['target', 'summary', 'actions', 'questions'],
+  required: ['intent', 'reply', 'mentions', 'target', 'summary', 'actions', 'questions'],
   properties: {
+    intent: { type: 'string', enum: ['answer', 'organize', 'collect', 'start'] },
+    reply: N('string'),
+    mentions: { type: 'array', items: { type: 'string' } },
     target: {
       type: 'object', additionalProperties: false,
-      required: ['mode', 'itemId', 'newName', 'reason'],
+      required: ['mode', 'itemId', 'newName', 'maker', 'variants', 'reason'],
       properties: {
-        mode: { type: 'string', enum: ['existing', 'new', 'unsure'] },
+        mode: { type: 'string', enum: ['none', 'existing', 'new', 'start', 'unsure'] },
         itemId: N('string'),
         newName: N('string'),
+        maker: N('string'),
+        variants: { type: 'array', items: { type: 'string' } },
         reason: { type: 'string' },
       },
     },
@@ -137,38 +145,52 @@ const SCHEMA = {
   },
 };
 
-const SYSTEM = `당신은 넷폼(POUR스토어·GROHOME)의 소싱팀 앱 "소싱앱"의 정리 도우미입니다.
-담당자가 폰으로 보낸 사진·영상 장면·PDF·링크·짧은 메모를 보고, 어느 아이템의 어느 칸에 넣을지 "제안"을 만듭니다.
-제안은 담당자가 확인한 뒤에만 반영되므로, 확실하지 않은 것은 억지로 채우지 말고 memo 로 두거나 questions 에 묻습니다.
+const SYSTEM = `당신은 넷폼(POUR스토어·GROHOME) 소싱팀 앱 "소싱앱"의 AI 도우미입니다. 담당자는 주로 폰으로 짧게 씁니다.
+메시지를 보고 intent 를 하나 고릅니다.
 
-[대상 아이템 고르기]
-- lockId 가 있으면 target.mode="existing", itemId=lockId 로 고정합니다.
-- 없으면 items 목록(이름·판매명·제조사·컨셉·샘플 이름)과 보낸 내용을 비교해 가장 맞는 아이템을 고릅니다.
-- 맞는 게 없고 새 제품 이야기라면 mode="new", newName 에 짧은 제품 이름(한국어, 20자 이내)을 씁니다.
-- 판단이 어려우면 mode="unsure" 로 두고 reason 에 이유를 씁니다. itemId 는 반드시 items 안의 id 만 씁니다.
+[intent]
+- answer: 현황을 묻는 질문("샘플 기다리는 거 뭐 있어?", "이번 주 할 일", "코트재 마진 얼마야?", "KP방수재에 전달 안 한 요청").
+  → reply 에 답을 씁니다. actions 는 빈 배열, target.mode="none".
+- organize: 이미 있는 아이템에 정보를 넣는 것(샘플 가격·요청사항·패킹·촬영·스펙·인증·서류·참고 링크/사진).
+- collect: 새로 본 아이템을 수집함에 넣는 것(처음 보는 SNS·1688 링크, 매장 사진, "이거 괜찮아 보임", 이름만 적기).
+  → target.mode="new", newName 에 짧은 이름. 링크는 ref_link, 사진은 ref_media, 나머지 말은 memo 로.
+- start: 제조사 제품을 보고 판매 컨셉을 잡는 것("KP방수재 코트재 20kg으로 셀프 방수 키트 만들자").
+  → target.mode="start", maker=제조사명, newName=제조사 원래 제품명, variants=판매할 파생 상품 이름들(없으면 빈 배열).
+  제품 정보(단가·MOQ·스펙·컨셉)가 있으면 actions 로 함께 넣습니다(원본 제품에 들어감).
+질문과 정보가 섞여 있으면 정보 쪽 intent 를 고르고 reply 에 짧게 답도 씁니다.
+
+[answer 쓰는 법]
+- "앱 현황(JSON)"만 근거로 답합니다. 없는 정보는 "앱에 아직 없어요"라고 말합니다. 숫자를 지어내지 않습니다.
+- 한국어, 짧고 친절하게. 목록은 줄바꿈과 "· " 로. 중요한 이름은 **굵게**. 5~10줄 이내.
+- 이야기한 아이템 id 를 mentions 에 넣습니다(앱에서 바로 열기 버튼이 됨). id 는 앱 현황에 있는 것만.
+- 이전 대화(history)가 있으면 이어서 답합니다("그거 마진은?" → 앞에서 말한 아이템).
+
+[대상 아이템 고르기 — organize]
+- lockId 가 있으면 target.mode="existing", itemId=lockId.
+- 없으면 items(이름·판매명·제조사·컨셉·샘플 이름)와 비교해 가장 맞는 것. type "수집"은 수집함 아이템입니다.
+- 판단이 어려우면 mode="unsure" 와 reason. itemId 는 items 안의 id 만.
 
 [칸(op) 설명]
 - ref_link: 참고 링크(틱톡·유튜브·인스타·1688·알리바바·경쟁사 상품 페이지). url 필수. 링크마다 1개.
-- ref_media: 참고용 캡처·사진·영상(광고 장면, SNS 캡처, 매장 사진). media 에 첨부 번호.
+- ref_media: 참고용 캡처·사진·영상. media 에 첨부 번호.
 - sample: 샘플 카드. sampleType maker=제조사/공장 샘플, rival=경쟁사 제품(시장조사). name=제조사명 또는 경쟁 제품명.
   price·cur(원/$/¥)·moq·where(판매처·구매처·산지)·text(평가 메모)·media(샘플 사진) 를 아는 만큼만.
   판매처 가격(쿠팡·스마트스토어 등 시장가)은 rival 샘플로 넣습니다.
 - request: 제조사에 요청할 것("~해달라고", "~바꿔야", "~확인 필요"). name=제조사명, text=요청 한 줄. 요청마다 1개.
 - packing: 패킹 자료. whose=rival(경쟁사 패킹, name=경쟁 제품명) 또는 ours(우리 패킹 아이디어). text=메모, media=사진.
 - shot: 촬영 컷 아이디어("이런 장면 찍자"). name=컷 제목(짧게), text=연출 메모, media=참고 장면.
-- spec: 판매세팅 값. field=specLine(스펙 한 줄 추가: 성분·용량·건조시간 등), spec(대표 규격), goods(판매 상품명),
-  concept(컨셉 한 줄), target(타겟), diff(차별점), cost(단가 숫자, 원), moq(숫자), lead(납기), unitLabel(개·kg·L 등), customs(통관·물류). 값은 text 에.
+- spec: 판매세팅 값. field=specLine(스펙 한 줄 추가), spec(대표 규격), goods(판매 상품명), concept(컨셉 한 줄), target(타겟),
+  diff(차별점), cost(단가 숫자, 원), moq(숫자), lead(납기), unitLabel(개·kg·L 등), customs(통관·물류). 값은 text 에.
 - cert: 필요한 인증. name=인증 이름, price=비용(원, 모르면 null).
 - doc: 시험성적서·MSDS·인증서·견적서 같은 서류 사진/PDF. name 에 종류(시험성적서|MSDS|인증서|추가서류), media 에 첨부 번호.
 - memo: 위 어디에도 안 맞는 메모. text 에.
 
 [규칙]
-- 모든 첨부(번호)는 어떤 op 의 media 에 한 번 이상 넣습니다. 애매하면 ref_media 로 둡니다.
-- 한 메시지에 여러 정보가 있으면 op 를 여러 개로 나눕니다. 같은 정보를 두 번 넣지 않습니다.
-- 숫자는 메모에 적힌 값만 씁니다. 추측한 가격·MOQ 를 만들지 않습니다. 모르는 칸은 null.
-- 1달러=$ , 위안=¥ , 원=원. "1.2불"=1.2 $.
-- why 는 담당자가 보는 짧은 근거(15자 이내, 한국어).
-- summary 는 한 줄 요약(30자 이내, 한국어). 쓰지 않는 필드는 null, media 는 빈 배열.`;
+- 첨부가 있으면 모든 첨부 번호를 어떤 op 의 media 에 한 번 이상 넣습니다. 애매하면 ref_media.
+- 한 메시지의 여러 정보는 op 를 나눕니다. 같은 정보를 두 번 넣지 않습니다.
+- 숫자는 메시지에 적힌 값만. 추측한 가격·MOQ 를 만들지 않습니다. 모르는 칸은 null.
+- 1달러=$, 위안=¥, 원=원. "1.2불"=1.2 $.
+- why 는 짧은 근거(15자 이내). summary 는 한 줄 요약(30자 이내). 쓰지 않는 필드는 null, media 는 빈 배열.`;
 
 export async function onRequestOptions() { return new Response(null, { headers: CORS }); }
 
@@ -192,10 +214,13 @@ export async function onRequestPost({ request, env }) {
   const links = Array.isArray(body.links) ? body.links.slice(0, 10) : [];
   const items = Array.isArray(body.items) ? body.items.slice(0, 200) : [];
   const lockId = body.lockId && items.some(x => x && x.id === body.lockId) ? String(body.lockId) : null;
+  const statusTxt = body.status ? JSON.stringify(body.status).slice(0, 240000) : '';
+  const history = (Array.isArray(body.history) ? body.history : []).slice(-6).map(h => ({ 나: String((h && h.나) || '').slice(0, 400), AI: String((h && h.AI) || '').slice(0, 600) }));
   if (!text.trim() && !atts.length && !links.length) return json({ ok: false, error: '보낼 내용이 없어요' }, 400);
 
-  // 사용자 메시지 구성: 첨부(번호 표시) → 링크 정보 → 아이템 목록 → 메모
+  // 사용자 메시지 구성: 앱 현황(같은 대화에서 재사용 → 캐시) → 첨부(번호 표시) → 링크·아이템 목록 → 이전 대화 → 메모
   const content = [];
+  if (statusTxt) content.push({ type: 'text', text: '앱 현황(JSON · 질문에 답할 때 근거):\n' + statusTxt, cache_control: { type: 'ephemeral' } });
   const skipped = [];
   for (const a of atts) {
     const i = Number(a.i);
@@ -234,7 +259,8 @@ export async function onRequestPost({ request, env }) {
     })),
   };
   content.push({ type: 'text', text: '앱 정보(JSON):\n' + JSON.stringify(ctx) });
-  content.push({ type: 'text', text: '담당자 메모:\n' + (text.trim() || '(메모 없음 — 첨부만 보냄)') });
+  if (history.length) content.push({ type: 'text', text: '이전 대화(오래된 것부터):\n' + JSON.stringify(history) });
+  content.push({ type: 'text', text: '담당자 메시지:\n' + (text.trim() || '(메모 없음 — 첨부만 보냄)') });
 
   let r, j;
   try {
@@ -272,7 +298,9 @@ export async function onRequestPost({ request, env }) {
     console.error('[sourcing-ai] 응답 해석 실패', txt.slice(0, 300));
     return json({ ok: false, error: 'AI 응답을 읽지 못했어요. 다시 시도해 주세요.' }, 200);
   }
-  if (lockId) plan.target = Object.assign({}, plan.target, { mode: 'existing', itemId: lockId });
-  if (plan.target && plan.target.mode === 'existing' && !items.some(x => x.id === plan.target.itemId)) plan.target.mode = 'unsure';
+  plan.target = plan.target || { mode: 'none' };
+  if (lockId && plan.intent === 'organize') plan.target = Object.assign({}, plan.target, { mode: 'existing', itemId: lockId });
+  if (plan.target.mode === 'existing' && !items.some(x => x.id === plan.target.itemId)) plan.target.mode = 'unsure';
+  plan.mentions = (plan.mentions || []).filter(id => items.some(x => x.id === id) || statusTxt.includes('"' + id + '"'));
   return json({ ok: true, plan, skipped, model: j.model || MODEL, usage: j.usage || null, by: who.email });
 }

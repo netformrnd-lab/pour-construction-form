@@ -8,6 +8,7 @@
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <style>
   :root{
     --navy:#0F1B2D;--ink:#111827;--ink2:#374151;--muted:#6B7280;--line:#E5E7EB;--line2:#D1D5DB;
@@ -196,8 +197,20 @@
   <div class="spacer"></div>
   <div class="sync"><span class="dot"></span><span id="saveTxt">불러오는 중…</span></div>
   <span class="who" id="who"></span>
+  <button class="lo" id="adminBtn" title="제조사 이름·원가는 관리자 로그인 후 보여요">🔑 관리자</button>
   <button class="lo" id="logout">로그아웃</button>
 </header>
+<div id="adminGate" style="position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:80;padding:16px">
+  <div class="gbox" style="max-width:360px;width:100%">
+    <h2>🔑 관리자 로그인</h2>
+    <p>소싱앱 계정으로 로그인하면 제조사 이름·단가·발주담당자가 보여요 (관리자만).</p>
+    <label>이메일</label><input type="email" id="ag_email" autocomplete="username" placeholder="소싱앱 로그인 이메일">
+    <label>비밀번호</label><input type="password" id="ag_pw" autocomplete="current-password" placeholder="비밀번호">
+    <div class="gerr" id="ag_err" style="display:none"></div>
+    <button class="gbtn" id="ag_btn">로그인</button>
+    <button class="gbtn" id="ag_x" style="background:#fff;color:#374151;border:1px solid #D1D5DB;margin-top:8px">닫기</button>
+  </div>
+</div>
 
 <div class="topbar">
   <div class="seg2" id="mgSeg"><button data-mg="products" class="on">상품 정보</button><button data-mg="plans">기획 보고함 <span id="mgPlanCount"></span></button><button data-mg="content">컨텐츠 소스</button><button data-mg="registry">상품 원장 🔗</button></div>
@@ -302,6 +315,7 @@ async function loadAll(){
     if(!state.products)state.products=[];if(!state.makers)state.makers=[];
     const os=await FS.collection('sourcing-os').doc('order-contacts').get();
     oc=os.exists?os.data():{makers:{}};
+    await mgCostMerge();
     if(!oc.makers)oc.makers={};
     const sc=await FS.collection('sourcing-os').doc('share-config').get();
     if(sc.exists){const d=sc.data();shareCfg.visible=Object.assign(shareCfg.visible,d.visible||{});shareCfg.aliases=d.aliases||{};}
@@ -318,6 +332,48 @@ async function loadAll(){
     renderMgPlans();
   }catch(e){ console.error('[manage] 로드 실패:',e); setSync('로드 실패','#DC2626'); }
 }
+
+/* ---------- 🔒 관리자 로그인 → 원가·제조사 합치기 (sourcing-cost/* 는 관리자만 읽을 수 있음) ---------- */
+const OWNER_EMAILS=['netformrnd@gmail.com'];
+let FA=null,mgAdmin=false;try{FA=firebase.auth();}catch(e){console.warn('[manage] 인증 모듈 없음',e);}
+async function mgCheckAdmin(){
+  const em=((FA&&FA.currentUser&&FA.currentUser.email)||'').toLowerCase();mgAdmin=false;if(!em)return false;
+  if(OWNER_EMAILS.includes(em))mgAdmin=true;
+  else{try{const r=await FS.collection('sourcing-access').doc('roles').get();mgAdmin=!!(r.exists&&(r.data().admins||[]).includes(em));}catch(e){console.warn('[manage] 역할 확인 실패',e);}}
+  return mgAdmin;
+}
+function mgMergeProduct(p,sec){
+  if(!p||!sec)return;
+  ['maker','cost','quotes','makerPrev','pricevar','fillmaker','contract','vendorNote'].forEach(k=>{if(sec[k]!==undefined)p[k]=sec[k];});
+  if(sec.pricingBuy!==undefined){p.pricing=p.pricing||{};p.pricing.buy=sec.pricingBuy;}
+  if(sec.docMakers)(p.docs||[]).forEach(d=>{if(d&&sec.docMakers[d.id])d.maker=sec.docMakers[d.id];});
+  if(sec.samples)(p.samples||[]).forEach(s=>{const o=s&&sec.samples[s.id];if(o)Object.assign(s,o);});
+}
+async function mgCostMerge(){
+  const w=$('#who');
+  if(!(await mgCheckAdmin())){if(state.costSplit&&w)w.textContent='🔒 제조사·원가는 관리자 로그인 후';return;}
+  try{
+    const c=await FS.collection('sourcing-cost').doc('state').get();
+    if(c.exists){const sec=c.data();['makers','makerStatus','meetings'].forEach(k=>{if(sec[k]!==undefined)state[k]=sec[k];});(state.products||[]).forEach(p=>mgMergeProduct(p,sec.products&&sec.products[p.id]));}   // 기획(plans)의 원가는 합치지 않음 — 이 페이지는 plans 를 다시 저장하므로 원가가 공개 문서로 새지 않게
+    const o2=await FS.collection('sourcing-cost').doc('order-contacts').get();if(o2.exists){oc=o2.data();if(!oc.makers)oc.makers={};}
+    shareCfg.visible.makerName=true;   // 관리자는 제조사 이름을 항상 봄
+    if(w)w.textContent='관리자 · '+(FA.currentUser.email||'');console.log('[manage] 관리자 원가 합침');
+  }catch(e){console.error('[manage] 원가 불러오기 실패:',e);if(w)w.textContent='⚠ 원가 불러오기 실패';}
+}
+function agErr(m){const e=$('#ag_err');e.style.display=m?'':'none';e.textContent=m||'';}
+$('#adminBtn').onclick=()=>{if(FA&&FA.currentUser){if(confirm((FA.currentUser.email||'')+' 관리자 로그아웃 할까요?')){FA.signOut().then(()=>location.reload());}return;}$('#adminGate').style.display='flex';setTimeout(()=>{const i=$('#ag_email');if(i)i.focus();},50);};
+$('#ag_x').onclick=()=>{$('#adminGate').style.display='none';};
+$('#ag_btn').onclick=async()=>{
+  if(!FA){agErr('인증 모듈을 불러오지 못했어요');return;}
+  const em=($('#ag_email').value||'').trim(),pw=$('#ag_pw').value||'';if(!em||!pw){agErr('이메일과 비밀번호를 넣어주세요');return;}
+  const b=$('#ag_btn');b.disabled=true;b.textContent='로그인 중…';
+  try{await FA.signInWithEmailAndPassword(em,pw);$('#ag_pw').value='';
+    if(!(await mgCheckAdmin())){agErr('로그인했지만 관리자 계정이 아니에요 (원가는 관리자만)');return;}
+    $('#adminGate').style.display='none';agErr('');if(started)loadAll();}
+  catch(e){console.error('[manage] 로그인 실패:',e);agErr('로그인 실패: '+(e.code||e.message||e));}
+  finally{b.disabled=false;b.textContent='로그인';}
+};
+if(FA)FA.onAuthStateChanged(u=>{const b=$('#adminBtn');if(b)b.textContent=u?'🔓 관리자':'🔑 관리자';if(u&&started)loadAll();});
 
 /* ---------- 노출 설정 안내 ---------- */
 function renderVisNote(){

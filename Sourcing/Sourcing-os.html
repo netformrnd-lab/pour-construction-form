@@ -1091,6 +1091,15 @@
   .hv-l1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.hv-l2{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:3px 0}.hv-l2 b{font-size:13.5px;overflow-wrap:anywhere}
   .hv-note{font-size:12px;color:var(--ink2);background:var(--cream);border-radius:8px;padding:5px 8px;margin-top:4px;overflow-wrap:anywhere}
   #collectOverlay{z-index:58}
+  body.no-cost .cost-only{display:none!important}
+  body:not(.no-cost) .member-only{display:none!important}
+  .cost-lock{font-size:12.5px;color:var(--ink2);background:var(--surface);border:1px dashed var(--border2);border-radius:10px;padding:9px 11px}
+  #acctOverlay{padding:0;background:var(--surface);align-items:stretch}#acctOverlay>.it-page{align-self:flex-start}
+  #acctBody .it-card+.it-card{margin-top:10px}
+  .acct-st{display:flex;flex-direction:column;gap:5px;font-size:13px}
+  .acct-temp{background:var(--green-pale)}.acct-temp code{font-size:15px;font-weight:800;background:#fff;padding:2px 6px;border-radius:6px}
+  .acct-row{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--border);flex-wrap:wrap}.acct-row .t{flex:1;min-width:160px}.acct-row.off{opacity:.55}
+  .acct-acts{display:flex;gap:6px;flex-wrap:wrap}.acct-acts .it-btn{padding:6px 9px;font-size:12px}
   #loginGate .frow{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}#loginGate .frow label{font-size:12.5px;font-weight:700;color:var(--ink2)}
   #loginGate .frow input{width:100%;box-sizing:border-box;padding:12px 13px;border:1px solid var(--border2);border-radius:11px;font-size:16px;background:var(--cream)}#loginGate .frow input:focus{outline:none;border-color:var(--blue);background:#fff}
   @media(max-width:380px){.ai-crow .ai-ib{flex-basis:38px;height:40px}}
@@ -1494,8 +1503,8 @@
   </style>
   <div class="snav">
     <div class="snav-tools">
-      <button id="snavMakers">🏭 제조사</button>
-      <button id="snavPricing">💰 판매가</button>
+      <button id="snavMakers" class="cost-only">🏭 제조사</button>
+      <button id="snavPricing" class="cost-only">💰 판매가</button>
     </div>
     <div class="snav-step">
       <button data-tab="plans"><span class="sn">1단계</span> 📥 수집<span class="cnt" id="stCnt1"></span></button>
@@ -1640,7 +1649,7 @@
       <button type="button" id="planQuickNewCancel">취소</button>
     </div>
     <div class="plq-two">
-      <input id="planQuickCost" placeholder="원가 (예: 8,500원/개)">
+      <input id="planQuickCost" class="cost-only" placeholder="원가 (예: 8,500원/개)">
       <input id="planQuickPrice" placeholder="판매가 (시장가)">
     </div>
     <input id="planQuickLink" placeholder="🎬 레퍼런스 링크 (영상·경쟁사)">
@@ -1702,6 +1711,7 @@
 <!-- 💬 AI 정리함 · 🕘 변경 이력 (아이템 페이지 위에 뜸) -->
 <div class="overlay" id="aiOverlay"><div class="it-page ai-page" id="aiBody"></div></div>
 <div class="overlay" id="histOverlay"><div class="it-page" id="histBody"></div></div>
+<div class="overlay" id="acctOverlay"><div class="it-page" id="acctBody"></div></div>
 <input type="file" id="aiFile" accept="image/*,video/*,application/pdf" multiple hidden>
 <input type="file" id="aiCam" accept="image/*" capture="environment" hidden>
 
@@ -1720,7 +1730,7 @@
         <div><label>카테고리 <span class="opt">(선택)</span></label><select id="pl_cat"></select></div>
       </div>
       <div class="frow" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div><label>원가 <span class="opt">(선택)</span></label><input type="text" id="pl_cost" placeholder="예) 8,500원/개"></div>
+        <div class="cost-only"><label>원가 <span class="opt">(선택)</span></label><input type="text" id="pl_cost" placeholder="예) 8,500원/개"></div>
         <div><label>판매가 <span class="opt">(시장가 · 선택)</span></label><input type="text" id="pl_sellPrice" inputmode="numeric" placeholder="예) 12,900원"></div>
       </div>
       <div class="frow"><label>🔗 레퍼런스 아카이브 <span class="opt">(영상·경쟁사·시장 예시 · 한 줄에 하나 · 플랫폼 자동 태그)</span></label><textarea id="pl_refs" rows="2" placeholder="https://tiktok.com/...&#10;https://instagram.com/...&#10;https://smartstore.naver.com/..."></textarea><div id="pl_refPreview" class="ref-arch"></div></div>
@@ -1742,7 +1752,7 @@
           <button type="button" id="pl_linkAdd">연결</button>
         </div>
       </div>
-      <div class="frow"><label>후보 업체 메모 <span class="opt">(제조·포장·검사 업체/연락)</span></label><textarea id="pl_vendor" rows="3" placeholder="예) 제조: A사 견적대기 · 포장: B사 010-... · 검사: 미확정"></textarea></div>
+      <div class="frow cost-only"><label>후보 업체 메모 <span class="opt">(제조·포장·검사 업체/연락)</span></label><textarea id="pl_vendor" rows="3" placeholder="예) 제조: A사 견적대기 · 포장: B사 010-... · 검사: 미확정"></textarea></div>
       <div class="frow"><label>진행 상태</label>
         <div class="pl-status seg-pl" id="pl_status"></div>
         <div class="pl-approved" id="pl_approved" style="display:none"></div>
@@ -1766,6 +1776,7 @@
 <div class="overlay" id="detailOverlay">
   <div class="modal modal-detail">
     <button class="modal-x" data-close aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    <div class="cost-lock member-only" style="margin:0 0 10px">🔒 제조사 이름·단가·견적·계약은 관리자만 볼 수 있어요. 이 화면에서 그 칸에 적어도 저장되지 않아요.</div>
     <div id="main"></div>
     <div class="detail-bar"><div class="inner"><button class="db-save" id="detailSave" data-close>저장</button><button class="db-next" id="detailNext">샘플 테스트로 →</button></div></div>
   </div>
@@ -2330,8 +2341,10 @@ async function runCloudSync(){
   if(_syncing){_pending=true;return;}
   _syncing=true;setSync('동기화 중…','var(--amber)');
   try{
-    const payload=JSON.parse(JSON.stringify(Object.assign({},state,{_w:CLIENT}))); // undefined 제거(Firestore 안전)
+    let payload=JSON.parse(JSON.stringify(Object.assign({},state,{_w:CLIENT}))); // undefined 제거(Firestore 안전)
     try{verWriteChanges();}catch(e){console.error('[이력] 버전 저장 준비 실패:',e);} // 🕘 바뀌기 전 모습 따로 보관
+    payload=await costPrepareSync(payload);   // 🔒 모두가 보는 문서에는 원가를 빼고
+    if(!payload)throw new Error('원가 문서 저장 실패 — 다음에 다시 저장');
     await fsDoc.set(payload);
     cloudOK=true;setSync(localFull?'클라우드 저장됨 ✓ (로컬 부족)':'클라우드 저장됨 ✓','var(--green)');
   }catch(e){
@@ -2369,7 +2382,10 @@ function startRealtime(){
     if(document.querySelector('.overlay.on'))return; // 편집 중이면 보류(다음 변경 때 반영)
     const keep={tab:state.tab,sel:state.sel,viewMode:state.viewMode,adminSub:state.adminSub};
     applyingRemote=true;
-    state=data;normalizeState();verSetBase(state.products);
+    state=data;normalizeState();
+    if(state.costSplit)costSplitSeen=true;
+    if(isCostAdmin()&&costSec)costMergeState(state,costSec);else if(costActive()&&costHasLeak(state))state=costSplitState(state).pub;
+    verSetBase(state.products);
     state.tab=keep.tab;state.sel=keep.sel;state.viewMode=keep.viewMode;state.adminSub=keep.adminSub;
     store.write(state); // 로컬 캐시만 (업로드 X)
     if(state.tab==='makers'){ if((state.adminSub||'makers')==='pricing')renderPricing(); else {makerSel=null;renderMakerList();} }
@@ -4943,7 +4959,9 @@ function setChecks(p){
   const b=setBase(p),own=b===p;
   const specOk=!!((p.spec||'').trim()||(p.specs||[]).length||(!own&&((b.spec||'').trim()||(b.specs||[]).length)));
   const conceptOk=!!((p.concept||'').trim()||(own&&derivOf(p).length));
-  const condOk=p.type==='패키지'?!!derivCost(p).total:own?!!(unitCostOf(p)&&numOf(p.moq)):!!derivCost(p).total;
+  const hc=q=>!!(unitCostOf(q)||q.hasCost);
+  const condOk=isCostAdmin()?(p.type==='패키지'?!!derivCost(p).total:own?!!(unitCostOf(p)&&numOf(p.moq)):!!derivCost(p).total)
+    :(p.type==='패키지'?(p.bundle||[]).length>0:own?!!(hc(p)&&numOf(p.moq)):!!(hc(b)&&Number(p.useQty)));
   const docOk=!!((p.docs||[]).length||(p.certApps||[]).length||(!own&&((b.docs||[]).length||(b.certApps||[]).length)));
   return [specOk,conceptOk,condOk,docOk];
 }
@@ -4979,30 +4997,30 @@ function itemTabSet(p){
       <div class="it-grid2"><label class="it-f"><span>타겟</span><input class="it-in" data-setf="target" value="${esc(p.target||'')}" placeholder="예: 실거주 초보"></label>
       <label class="it-f"><span>차별점</span><input class="it-in" data-setf="diff" value="${esc(p.diff||'')}" placeholder="예: 붓 포함, 무취"></label></div>
       ${own?`<div class="it-row" style="justify-content:space-between;margin-top:4px"><span class="it-h" style="font-size:13.5px">이 제품으로 파는 상품 ${dv.length+sets.length}</span></div>
-      ${dv.map(x=>`<button class="dv-card" data-set="open" data-id="${esc(x.id)}"><div class="it-thumb" style="width:48px;height:48px">${prodThumb(x)?`<img src="${esc(prodThumb(x))}" alt="">`:'🏷'}</div><div class="t"><div class="nm">${esc(x.goods||dn(x))}</div><div class="it-sub">${esc(x.concept||'컨셉 미정')}${derivCost(x).total?` · 원가 ${won(derivCost(x).total)}`:''}</div></div><span class="it-kind der">파생</span></button>`).join('')}
+      ${dv.map(x=>`<button class="dv-card" data-set="open" data-id="${esc(x.id)}"><div class="it-thumb" style="width:48px;height:48px">${prodThumb(x)?`<img src="${esc(prodThumb(x))}" alt="">`:'🏷'}</div><div class="t"><div class="nm">${esc(x.goods||dn(x))}</div><div class="it-sub">${esc(x.concept||'컨셉 미정')}${isCostAdmin()&&derivCost(x).total?` · 원가 ${won(derivCost(x).total)}`:''}</div></div><span class="it-kind der">파생</span></button>`).join('')}
       ${sets.map(x=>`<button class="dv-card" data-set="open" data-id="${esc(x.id)}"><div class="it-thumb" style="width:48px;height:48px">🎁</div><div class="t"><div class="nm">${esc(x.goods||dn(x))}</div><div class="it-sub">${esc(x.concept||'세트')}</div></div><span class="it-kind set">세트</span></button>`).join('')}
       <div class="it-row"><input class="it-in" id="stDvName" placeholder="새 판매 상품 이름 (예: 4kg 셀프 방수 키트)"></div>
       <div class="it-row"><button class="it-btn pri" style="flex:1" data-set="dv-add">＋ 파생 상품</button><button class="it-btn" style="flex:1" data-set="set-add">＋ 세트</button></div>`:''}
     </div>
     <div class="it-card st-sec">${H(2,'소싱 조건',own?'확정 제조사 값이 자동으로 채워져요':'원가 = 원본 단가 × 양 + 추가비용')}
       ${own?`<div class="it-grid2">
-        <label class="it-f"><span>제조사</span><input class="it-in" data-setf="maker" value="${esc(p.maker||'')}" list="stMakerList" placeholder="제조사"><datalist id="stMakerList">${(state.makers||[]).map(m=>`<option value="${esc(m)}">`).join('')}</datalist></label>
-        <label class="it-f"><span>단가 (원)</span><div class="it-row" style="gap:4px"><input class="it-in" inputmode="decimal" data-setf="cost" value="${esc(String(numOf(p.cost)||''))}"><select class="it-in" style="flex:0 0 64px;padding:10px 4px" data-setf="unitLabel">${['개','kg','L','m','통','박스'].map(u=>`<option${(p.unitLabel||'개')===u?' selected':''}>${u}</option>`).join('')}</select></div></label>
+        ${isCostAdmin()?`<label class="it-f"><span>제조사</span><input class="it-in" data-setf="maker" value="${esc(p.maker||'')}" list="stMakerList" placeholder="제조사"><datalist id="stMakerList">${(state.makers||[]).map(m=>`<option value="${esc(m)}">`).join('')}</datalist></label>
+        <label class="it-f"><span>단가 (원)</span><div class="it-row" style="gap:4px"><input class="it-in" inputmode="decimal" data-setf="cost" value="${esc(String(numOf(p.cost)||''))}"><select class="it-in" style="flex:0 0 64px;padding:10px 4px" data-setf="unitLabel">${['개','kg','L','m','통','박스'].map(u=>`<option${(p.unitLabel||'개')===u?' selected':''}>${u}</option>`).join('')}</select></div></label>`:`<div class="it-f" style="grid-column:1/-1">${costLockHtml('제조사·단가는 관리자만 볼 수 있어요 · '+(p.hasCost?'단가 입력됨 ✓':'단가 아직 없음'))}</div>`}
         <label class="it-f"><span>MOQ</span><input class="it-in" inputmode="numeric" data-setf="moq" value="${esc(String(p.moq||''))}"></label>
         <label class="it-f"><span>납기</span><input class="it-in" data-setf="lead" value="${esc(p.lead||'')}" placeholder="예: 30일"></label>
         <label class="it-f" style="grid-column:1/-1"><span>통관·물류 메모</span><input class="it-in" data-setf="customs" value="${esc(p.customs||'')}" placeholder="예: FOB 칭다오, 해상 LCL"></label></div>
         <div class="it-sub">단가는 ${esc(p.unitLabel||'개')}당 금액이에요. 파생 상품은 '들어가는 양'만 넣으면 원가가 계산돼요.</div>`
-      :p.type==='패키지'?`<div class="st-inh"><span class="lbl">세트 구성 ${dc.parts||0}개 · 구성품 원가 합</span>${(p.bundle||[]).map(id=>state.products.find(x=>x.id===id)).filter(Boolean).map(x=>`<div>· ${esc(x.goods||dn(x))} ${won(derivCost(x).total)}</div>`).join('')||'<div>구성품이 없어요 · 전체 정보에서 넣어주세요</div>'}</div>
+      :p.type==='패키지'?`<div class="st-inh"><span class="lbl">세트 구성 ${dc.parts||0}개 · 구성품 원가 합</span>${(p.bundle||[]).map(id=>state.products.find(x=>x.id===id)).filter(Boolean).map(x=>`<div>· ${esc(x.goods||dn(x))} ${isCostAdmin()?won(derivCost(x).total):''}</div>`).join('')||'<div>구성품이 없어요 · 전체 정보에서 넣어주세요</div>'}</div>
         <div><div class="it-row" style="justify-content:space-between"><span class="it-h" style="font-size:13.5px">세트만의 추가비용</span><span class="it-sub">박스·부자재</span></div>
           ${(p.extras||[]).map(x=>`<div class="st-spec"><span>${esc(x.name)} · ${won(numOf(x.cost))}</span><button class="it-btn line" style="padding:4px 8px" data-set="ex-del" data-id="${esc(x.id)}" aria-label="삭제">✕</button></div>`).join('')}
           <div class="it-row" style="margin-top:6px"><input class="it-in" id="stExName" placeholder="예: 세트 박스"><input class="it-in" id="stExCost" inputmode="numeric" placeholder="원" style="flex:0 0 84px"><button class="it-btn" data-set="ex-add">추가</button></div></div>
-        <div class="cost-line"><span>구성품 원가 합</span><span class="v">${won(dc.base)}</span><span>추가비용</span><span class="v">${won(dc.extras)}</span><span class="tot">세트 원가</span><span class="v tot">${won(dc.total)}</span></div>`
-      :`${inh('제조사·단가',`<div>🏭 ${esc(b.maker||'제조사 미정')} · ${unitCostOf(b)!=null?won(unitCostOf(b))+' / '+esc(b.unitLabel||'개'):'단가 미정'} · MOQ ${esc(String(b.moq||'—'))}</div>`)}
+        ${isCostAdmin()?'':costLockHtml('세트 원가는 관리자만 볼 수 있어요')}<div class="cost-line cost-only"><span>구성품 원가 합</span><span class="v">${won(dc.base)}</span><span>추가비용</span><span class="v">${won(dc.extras)}</span><span class="tot">세트 원가</span><span class="v tot">${won(dc.total)}</span></div>`
+      :`${inh('제조사·단가',isCostAdmin()?`<div>🏭 ${esc(b.maker||'제조사 미정')} · ${unitCostOf(b)!=null?won(unitCostOf(b))+' / '+esc(b.unitLabel||'개'):'단가 미정'} · MOQ ${esc(String(b.moq||'—'))}</div>`:`<div>🔒 제조사·단가는 관리자만 · MOQ ${esc(String(b.moq||'—'))}</div>`)}
         <label class="it-f"><span>들어가는 양 (원본 ${esc(b.unitLabel||'개')} 기준)</span><input class="it-in" inputmode="decimal" data-setf="useQty" value="${esc(String(p.useQty||''))}" placeholder="예: 4"></label>
         <div><div class="it-row" style="justify-content:space-between"><span class="it-h" style="font-size:13.5px">이 상품만의 추가비용</span><span class="it-sub">용기·부자재·소분</span></div>
           ${(p.extras||[]).map(x=>`<div class="st-spec"><span>${esc(x.name)} · ${won(numOf(x.cost))}</span><button class="it-btn line" style="padding:4px 8px" data-set="ex-del" data-id="${esc(x.id)}" aria-label="삭제">✕</button></div>`).join('')}
           <div class="it-row" style="margin-top:6px"><input class="it-in" id="stExName" placeholder="예: 붓·장갑"><input class="it-in" id="stExCost" inputmode="numeric" placeholder="원" style="flex:0 0 84px"><button class="it-btn" data-set="ex-add">추가</button></div></div>
-        <div class="cost-line"><span>원본 단가 × ${esc(String(dc.qty||0))}</span><span class="v">${won(dc.base!=null&&dc.qty?dc.base*dc.qty:null)}</span><span>추가비용</span><span class="v">${won(dc.extras)}</span><span class="tot">이 상품 개당 원가</span><span class="v tot">${won(dc.total)}</span></div>
+        ${isCostAdmin()?'':costLockHtml('원가 계산은 관리자만 볼 수 있어요 · 들어가는 양·추가비용은 넣을 수 있어요')}<div class="cost-line cost-only"><span>원본 단가 × ${esc(String(dc.qty||0))}</span><span class="v">${won(dc.base!=null&&dc.qty?dc.base*dc.qty:null)}</span><span>추가비용</span><span class="v">${won(dc.extras)}</span><span class="tot">이 상품 개당 원가</span><span class="v tot">${won(dc.total)}</span></div>
         <label class="it-row" style="gap:8px;font-size:12.5px;color:var(--ink2)"><input type="checkbox" data-set="own-maker"> 이 상품만 제조사 따로 쓰기</label>`}
     </div>
     <div class="it-card st-sec">${H(3,'성적서·인증','사진·PDF 모두 돼요')}
@@ -5215,7 +5233,7 @@ function goReady(p){
   const c=goCalc(p),b=setBase(p),miss=[];
   if(!(b.makerId||b.makerFirst||b.maker))miss.push('제조사 확정');
   if(setDoneCount(p)<4)miss.push('판매세팅 채우기');
-  if(c.cost==null)miss.push('원가 (단가 또는 들어가는 양)');
+  if(isCostAdmin()?c.cost==null:!(b.hasCost||unitCostOf(b)))miss.push(isCostAdmin()?'원가 (단가 또는 들어가는 양)':'단가 (관리자가 입력)');
   if(!c.sell)miss.push('판매가 (경쟁사 판매가를 넣으면 평균이 들어가요)');
   if(!(p.packing&&p.packing.done))miss.push('패킹 확정');
   if(c.certs.some(x=>x.status!=='완료'))miss.push('인증 완료 확인');
@@ -5230,21 +5248,22 @@ function itemTabGo(p){
     ['제조사 요청사항 반영',!reqs.length||reqs.every(r=>(r.st||0)===2),'smp'],['인증 완료',!c.certs.length||c.certs.every(x=>x.status==='완료'),'set'],[`촬영 ${shots.filter(x=>x.done).length}/${shots.length}컷 (병행)`,shots.length>0&&shots.every(x=>x.done),'shot']];
   return `<div class="it-stack">
     <div class="go-verdict ${lr.ok?'ok':'wait'}">${lr.ok?'✅ 출시 검토 준비 완료':'⏳ 아직 채울 것 · '+esc(lr.miss.join(' · '))}</div>
-    <div class="it-card st-sec"><span class="it-h">개당 이익</span>
+    ${isCostAdmin()?'':`<div class="it-card">${costLockHtml('개당 원가·이익·마진은 관리자만 볼 수 있어요. 관세·물류비·패킹비·인증비와 판매가는 여기서 넣을 수 있어요.')}</div>`}
+    <div class="it-card st-sec cost-only"><span class="it-h">개당 이익</span>
       <div class="it-row" style="align-items:baseline;gap:10px;flex-wrap:wrap"><span class="go-big" style="color:${c.profit!=null&&c.profit<0?'var(--red)':'var(--ink)'}">${won(c.profit)}</span><span class="it-pill ${c.rate!=null&&c.rate>=0.3?'gh':''}">마진 ${pctS(c.rate)}</span></div>
       <div class="cost-line"><span>판매가${c.sellAuto?' (경쟁사 평균)':''}</span><span class="v">${won(c.sell)}</span><span>부가세 빼면</span><span class="v">${won(c.sell?c.net:null)}</span><span>${esc(c.ch.name||'채널')} 수수료 ${Number(c.ch.fee)||0}%</span><span class="v">−${won(c.fee)}</span><span>개당 원가</span><span class="v">−${won(c.cost)}</span></div>
     </div>
-    <div class="it-card st-sec"><span class="it-h">개당 원가</span>
+    <div class="it-card st-sec"><span class="it-h">${isCostAdmin()?'개당 원가':'비용 (관세·물류·패킹·인증)'}</span>
       <div class="cost-line">
-        <span>${b===p?`단가 (${esc(p.unitLabel||'개')}당)`:`파생 원가 (원본 × ${esc(String(c.dc.qty||0))} + 추가비용)`}</span><span class="v">${won(c.unit)}</span>
+        <span class="cost-only">${b===p?`단가 (${esc(p.unitLabel||'개')}당)`:`파생 원가 (원본 × ${esc(String(c.dc.qty||0))} + 추가비용)`}</span><span class="v cost-only">${won(c.unit)}</span>
         <span>관세 ${Number(L.duty)||0}%</span><span class="v">${won(c.duty)}</span>
         <span>물류비</span><span class="v">${won(c.ship)}</span>
         <span>패킹비 <button class="it-btn line" style="padding:1px 6px;font-size:11px" data-go="tab" data-t="pack">패킹 ›</button></span><span class="v">${won(c.pack)}</span>
         <span>인증비 ${won(c.certSum)} ÷ MOQ ${c.moq||'—'}</span><span class="v">${won(c.certPer)}</span>
-        <span class="tot">개당 원가</span><span class="v tot">${won(c.cost)}</span></div>
+        <span class="tot cost-only">개당 원가</span><span class="v tot cost-only">${won(c.cost)}</span></div>
       <div class="it-grid2"><label class="it-f"><span>관세 (%)</span><input class="it-in" inputmode="decimal" data-gof="duty" value="${esc(String(L.duty||''))}" placeholder="수입이면 입력"></label>
       <label class="it-f"><span>물류비 (원/개)</span><input class="it-in" inputmode="numeric" data-gof="ship" value="${esc(String(L.ship||''))}" placeholder="운임·통관 나눈 값"></label></div>
-      ${c.unit==null?`<button class="it-btn line" data-go="tab" data-t="set">${b===p?'판매세팅에서 단가 넣기 ›':'판매세팅에서 들어가는 양 넣기 ›'}</button>`:''}
+      ${c.unit==null&&isCostAdmin()?`<button class="it-btn line" data-go="tab" data-t="set">${b===p?'판매세팅에서 단가 넣기 ›':'판매세팅에서 들어가는 양 넣기 ›'}</button>`:''}
     </div>
     <div class="it-card st-sec"><span class="it-h">판매가 · 시장조사</span>
       <div class="cost-line"><span>경쟁사 판매가 ${c.rp.length}곳</span><span class="v">${c.rp.length?`${won(c.min)} ~ ${won(c.max)}`:'—'}</span><span>평균</span><span class="v">${won(c.avg)}</span></div>
@@ -5258,7 +5277,7 @@ function itemTabGo(p){
     <div class="it-card st-sec"><span class="it-h">결정</span>
       <div class="go-dec"><button class="go ${p.decision==='진행'?'on':''}" data-go="dec" data-v="진행">🚀 출시 진행</button><button class="hold ${p.decision==='보류'?'on':''}" data-go="dec" data-v="보류">⏸ 보류</button><button class="drop ${p.decision==='드롭'?'on':''}" data-go="dec" data-v="드롭">✕ 드롭</button></div>
       ${p.decision==='진행'&&!lr.ok?'<div class="it-sub">아직 채울 것이 남았지만 진행으로 표시했어요.</div>':''}
-      <button class="it-btn ${p.decision==='진행'?'pri':'line'}" style="padding:12px" data-go="send">📤 가격 대시보드 '출시준비'로 보내기</button>
+      ${isCostAdmin()?`<button class="it-btn ${p.decision==='진행'?'pri':'line'}" style="padding:12px" data-go="send">📤 가격 대시보드 '출시준비'로 보내기</button>`:'<div class="it-sub">📤 가격 대시보드로 보내기는 관리자가 해요.</div>'}
       <div class="it-sub">${p.sentToPricing?`보낸 날: ${esc(p.sentToPricing.at)} · 가격 대시보드에서 [등록]을 눌러야 들어가요`:'가격 대시보드가 열리고, 원가·판매가·MOQ·경쟁사 가격이 채워진 채로 확인 창이 떠요'}</div>
     </div>
   </div>
@@ -5281,6 +5300,7 @@ document.addEventListener('change',e=>{
 /* 📤 가격 대시보드로 보내기 — 두 앱은 Firebase 프로젝트·로그인이 달라(보안규칙 변경 없이) 직접 쓰지 않고,
    대시보드를 새 탭으로 열면서 주소 뒤(#srcimp=)에 상품 값을 실어 보낸다. 대시보드(로그인된 계정)에서 확인 후 [출시준비로 등록]. */
 function sendToPricing(p){
+  if(!isCostAdmin()){flagMsg('가격 대시보드로 보내기는 관리자만 할 수 있어요','warn');return;}
   const c=goCalc(p),b=setBase(p),pl=planOfProd(b)||planOfProd(p);
   const rivals=(p.samples||[]).concat(b&&b!==p?(b.samples||[]):[]).filter(x=>x.type==='rival'&&smpWon(x));
   const payload={v:1,src:'sourcing',sid:p.id,
@@ -5406,18 +5426,18 @@ function itemTabSmp(p){
   const cmp=S.length?`<div class="it-card it-stack" style="gap:8px"><span class="it-h">한눈에 비교</span><div class="it-cmp"><table><thead><tr><th></th>${S.map(x=>`<th title="${esc(x.name)}">${esc(x.name.length>7?x.name.slice(0,7)+'…':x.name)}<br><span class="it-pill ${x.type==='maker'?'acc':''}">${x.type==='maker'?'제조사':'경쟁사'}</span></th>`).join('')}</tr></thead><tbody>
     ${SMP_CRIT.map(([k,l])=>{const mx=Math.max(...S.map(x=>(x.scores||{})[k]||0));return `<tr><td>${l}</td>${S.map(x=>{const v=(x.scores||{})[k]||0;return `<td class="${v&&v===mx?'best':''}">${v?'★'+v:'—'}</td>`;}).join('')}</tr>`;}).join('')}
     <tr><td>합계</td>${S.map(x=>`<td class="${smpTotal(x)&&smpTotal(x)===best?'best':''}">${smpTotal(x)||'—'}</td>`).join('')}</tr>
-    <tr><td>공급가(원)</td>${S.map(x=>`<td>${x.type==='maker'&&smpWon(x)?Math.round(smpWon(x)).toLocaleString('ko-KR'):''}</td>`).join('')}</tr>
+    ${isCostAdmin()?`<tr><td>공급가(원)</td>${S.map(x=>`<td>${x.type==='maker'&&smpWon(x)?Math.round(smpWon(x)).toLocaleString('ko-KR'):''}</td>`).join('')}</tr>`:''}
     <tr><td>판매가(원)</td>${S.map(x=>`<td>${x.type==='rival'&&smpWon(x)?Math.round(smpWon(x)).toLocaleString('ko-KR'):''}</td>`).join('')}</tr>
-  </tbody></table></div><div class="it-sub">공급가는 원화 환산(¥195 · $1,380 기준)이에요.</div></div>`:'';
+  </tbody></table></div><div class="it-sub cost-only">공급가는 원화 환산(¥195 · $1,380 기준)이에요.</div></div>`:'';
   const media=x=>`<div class="it-media">${(x.media||[]).map(m=>m.kind==='video'?`<a class="m" href="${esc(m.url||'#')}" target="_blank" rel="noopener"><video src="${esc(m.url||'')}" muted playsinline preload="metadata"></video><span class="tg">영상</span></a>`:`<button class="m" data-itact="view" data-src="${esc(m.url||m.data||'')}"><img src="${esc(m.url||m.data||'')}" alt="">${m.tag?`<span class="tg">${esc(m.tag)}</span>`:''}</button>`).join('')}<button class="add" data-itact="smp-photo" data-sid="${esc(x.id)}">📷<br>찍기·추가</button></div>`;
   const card=x=>`<div class="it-card it-stack ${p.makerId===x.id?'it-picked':''}" id="smp-${esc(x.id)}" style="gap:10px">
     <div class="it-row" style="justify-content:space-between"><div class="it-pills"><span class="it-pill ${x.type==='maker'?'acc':''}">${x.type==='maker'?'제조사 샘플':'경쟁사 샘플'}</span>${p.makerId===x.id?'<span class="it-pill gh">✓ 확정</span>':''}${x.from?`<span class="it-pill">${esc(x.from)}에서</span>`:''}</div>
       <button class="it-btn line" style="padding:6px 9px" data-itact="smp-del" data-sid="${esc(x.id)}">삭제</button></div>
-    <input class="it-in" data-smp="name" data-sid="${esc(x.id)}" value="${esc(x.name)}" style="font-weight:800" aria-label="샘플 이름">
+    ${x.type==='maker'&&!isCostAdmin()?`<div class="it-in" style="font-weight:800">🔒 ${esc(x.alias||x.name||'제조사')} <span class="it-sub" style="font-weight:600">· 실제 이름은 관리자만</span></div>`:`<input class="it-in" data-smp="name" data-sid="${esc(x.id)}" value="${esc(x.name)}" style="font-weight:800" aria-label="샘플 이름">`}
     <div class="it-seg"><button class="${x.arrived?'':'on'}" data-itact="smp-arr" data-sid="${esc(x.id)}" data-v="0">📦 도착 대기</button><button class="${x.arrived?'on':''}" data-itact="smp-arr" data-sid="${esc(x.id)}" data-v="1">✅ 샘플 도착</button></div>
     ${media(x)}
     <div class="it-grid2">${x.type==='maker'?`
-      <label class="it-f"><span>개당 단가</span><div class="it-row" style="gap:4px"><input class="it-in" inputmode="decimal" data-smp="price" data-sid="${esc(x.id)}" value="${esc(String(x.price||''))}"><select class="it-in" style="flex:0 0 58px;padding:10px 4px" data-smp="cur" data-sid="${esc(x.id)}">${Object.keys(SMP_FX).map(c=>`<option${c===(x.cur||'원')?' selected':''}>${c}</option>`).join('')}</select></div></label>
+      ${!isCostAdmin()?`<div class="it-f"><span>개당 단가</span>${costLockHtml('관리자만')}</div>`:`<label class="it-f"><span>개당 단가</span><div class="it-row" style="gap:4px"><input class="it-in" inputmode="decimal" data-smp="price" data-sid="${esc(x.id)}" value="${esc(String(x.price||''))}"><select class="it-in" style="flex:0 0 58px;padding:10px 4px" data-smp="cur" data-sid="${esc(x.id)}">${Object.keys(SMP_FX).map(c=>`<option${c===(x.cur||'원')?' selected':''}>${c}</option>`).join('')}</select></div></label>`}
       <label class="it-f"><span>MOQ (개)</span><input class="it-in" inputmode="numeric" data-smp="moq" data-sid="${esc(x.id)}" value="${esc(String(x.moq||''))}"></label>`:`
       <label class="it-f"><span>판매가 (원)</span><input class="it-in" inputmode="numeric" data-smp="price" data-sid="${esc(x.id)}" value="${esc(String(x.price||''))}"></label>
       <label class="it-f"><span>판매처</span><input class="it-in" data-smp="where" data-sid="${esc(x.id)}" value="${esc(x.where||'')}" placeholder="쿠팡·스마트스토어"></label>`}</div>
@@ -5506,7 +5526,7 @@ document.addEventListener('click',e=>{
   if(a==='paste'){pasteQuick();return;}
   if(a==='name'){const i=$('#planQuickInput');if(i){i.scrollIntoView({block:'center'});i.focus();}}
 });
-function closeAllItemPages(){['detailOverlay','itemOverlay','shootOverlay','aiOverlay','histOverlay'].forEach(id=>{const o=document.getElementById(id);if(o)o.classList.remove('on');});document.body.style.overflow='';}
+function closeAllItemPages(){['detailOverlay','itemOverlay','shootOverlay','aiOverlay','histOverlay','acctOverlay'].forEach(id=>{const o=document.getElementById(id);if(o)o.classList.remove('on');});document.body.style.overflow='';}
 /* 🎬 지금 찍어야 할 것 — 누르면 바로 카메라, 찍으면 그 자리에 저장 */
 function shootTodos(){
   const out=[];
@@ -5545,8 +5565,9 @@ function openMore(){
   const box=$('#moreBody');
   box.innerHTML=`<div class="it-row" style="justify-content:space-between"><span class="it-h">⋯ 더보기</span><button class="it-btn" data-more="close">닫기</button></div>
     <div class="cp-go">
-      <button data-more="makers">🏭 제조사<small>거래처 목록 · 연락처 · 발주 담당자</small></button>
-      <button data-more="pricing">💰 판매가 계산<small>채널 수수료 · 판매가 · 이익률</small></button>
+      ${isCostAdmin()?`<button data-more="makers">🏭 제조사<small>거래처 목록 · 연락처 · 발주 담당자 (관리자)</small></button>
+      <button data-more="pricing">💰 판매가 계산<small>채널 수수료 · 판매가 · 이익률 (관리자)</small></button>
+      <button data-more="acct">👥 계정 관리<small>팀원 추가 · 관리자/팀원 역할 · 사용 중지</small></button>`:''}
       <button data-more="hist">🕘 이력 · 팀 활동<small>누가 무엇을 넣고 고쳤는지 · 복구 · 지운 것 되살리기</small></button>
       <button data-more="collect">✋ 직접 수집<small>링크 붙여넣기 · 사진 찍어 수집 · 이름만 적기 · 제조사 제품에서 시작</small></button>
       <button data-more="account">${FA&&FA.currentUser?`👤 ${esc(FA.currentUser.email||'')}<small>누른 뒤 로그아웃할 수 있어요</small>`:'🔑 로그인<small>AI 쓰기 · 누가 넣었는지 이력에 이름이 남아요</small>'}</button>
@@ -5563,6 +5584,7 @@ document.addEventListener('click',e=>{
   if(a==='settings')openActivity();
   if(a==='hist'){histView='team';histWho='';openHist(null);}
   if(a==='collect')openCollect();
+  if(a==='acct')openAcct();
   if(a==='account'){if(FA&&FA.currentUser){if(confirm((FA.currentUser.email||'')+' 로그아웃 할까요?'))logout();}else showLogin();}
 });
 /* 할 일 목록(대시보드 맨 위) */
@@ -6154,11 +6176,14 @@ function renderPlanKanban(){
   });
 }
 async function loadPlans(){
-  try{const s=await FS.collection(FS_COLL).doc('plans').get();plans=s.exists?s.data():{items:[]};if(!Array.isArray(plans.items))plans.items=[];plansLoaded=true;console.log('[plans] '+plans.items.length+'건 로드');}
+  try{const s=await FS.collection(FS_COLL).doc('plans').get();plans=s.exists?s.data():{items:[]};if(!Array.isArray(plans.items))plans.items=[];if(isCostAdmin()&&costSec&&costSec.plans)costMergePlans(plans,costSec.plans);plansLoaded=true;console.log('[plans] '+plans.items.length+'건 로드');}
   catch(e){console.error('[plans] 로드 실패:',e);plans={items:[]};plansLoaded=true;}
 }
 async function savePlans(){
-  try{plans.updatedAt=new Date().toISOString();await FS.collection(FS_COLL).doc('plans').set(JSON.parse(JSON.stringify(plans)));return true;}
+  try{plans.updatedAt=new Date().toISOString();let out=JSON.parse(JSON.stringify(plans));
+    if(costActive()){const sp=costSplitPlans(out);out=sp.pub;
+      if(isCostAdmin()&&costLoaded){await costDocRef().set({plans:sp.sec,updatedAt:new Date().toISOString(),updatedBy:curUser()},{merge:true});costSec=Object.assign({},costSec||{},{plans:sp.sec});}}
+    await FS.collection(FS_COLL).doc('plans').set(out);return true;}
   catch(e){console.error('[plans] 저장 실패:',e);alert('기획 저장 실패: '+(e&&(e.code||e.message)));return false;}
 }
 /* ===== 링크 → 대표이미지 자동 (functions/api/link-thumb.js) =====
@@ -6364,11 +6389,11 @@ function curUser(){return (typeof FA!=='undefined'&&FA&&FA.currentUser&&FA.curre
 /* ===== 발주담당자 — {FS_COLL}/order-contacts (제조사 탭에서 관리, 관리센터는 읽기전용) ===== */
 let orderContacts={makers:{}},ocLoaded=false;
 async function loadOrderContacts(){
-  try{const s=await FS.collection(FS_COLL).doc('order-contacts').get();orderContacts=s.exists?s.data():{makers:{}};if(!orderContacts.makers)orderContacts.makers={};ocLoaded=true;console.log('[order-contacts] 로드 ·',Object.keys(orderContacts.makers).length);}
+  try{const s=await FS.collection(costActive()&&isCostAdmin()?COST_COLL:FS_COLL).doc('order-contacts').get();orderContacts=s.exists?s.data():{makers:{}};if(!orderContacts.makers)orderContacts.makers={};ocLoaded=true;console.log('[order-contacts] 로드 ·',Object.keys(orderContacts.makers).length);}
   catch(e){console.error('[order-contacts] 로드 실패:',e);orderContacts={makers:{}};ocLoaded=true;}
 }
 async function saveOrderContacts(){
-  try{orderContacts.updatedAt=new Date().toISOString();orderContacts.updatedBy=curUser();await FS.collection(FS_COLL).doc('order-contacts').set(JSON.parse(JSON.stringify(orderContacts)));return true;}
+  try{orderContacts.updatedAt=new Date().toISOString();orderContacts.updatedBy=curUser();if(costActive()&&!isCostAdmin()){flagMsg('발주담당자는 관리자만 고칠 수 있어요','warn');return false;}await FS.collection(costActive()?COST_COLL:FS_COLL).doc('order-contacts').set(JSON.parse(JSON.stringify(orderContacts)));return true;}
   catch(e){console.error('[order-contacts] 저장 실패:',e);alert('발주담당자 저장 실패: '+(e&&(e.code||e.message)));return false;}
 }
 function showPlanForm(edit){
@@ -6639,10 +6664,10 @@ function planToProduct(){
   if(p.productId&&state.products.some(x=>x.id===p.productId)){const prod=state.products.find(x=>x.id===p.productId);if(syncPlanPhotos(p,prod))save();closeOverlay();state.sel=p.productId;save();switchTab('products');openItem(p.productId);return;}
   const id=uid();
   const allRefs=(p.refs||[]).filter(Boolean);
-  const memo=[p.marketMemo&&('[시장분석] '+p.marketMemo),p.vendorMemo&&('[후보업체] '+p.vendorMemo),(p.needs&&p.needs.length)&&('[필요업체] '+p.needs.join(', ')),(allRefs.length>1)&&('[레퍼런스 '+allRefs.length+'건]\n'+allRefs.join('\n'))].filter(Boolean).join('\n\n');
+  const memo=[p.marketMemo&&('[시장분석] '+p.marketMemo),(!costActive()&&p.vendorMemo)&&('[후보업체] '+p.vendorMemo),(p.needs&&p.needs.length)&&('[필요업체] '+p.needs.join(', ')),(allRefs.length>1)&&('[레퍼런스 '+allRefs.length+'건]\n'+allRefs.join('\n'))].filter(Boolean).join('\n\n');
   const atts=(p.photos||[]).filter(ph=>ph&&(ph.url||ph.data)).map(attFromPlanPhoto);
   const thumbId=(atts.find(a=>a.kind==='image')||{}).id||'';
-  const np={id,name:p.title||'(무제)',goods:'',maker:'',type:'단품',bundle:[],baseId:'',concept:p.category||'',spec:'',sample:'대기',memo,source:'국내 제조사',market:(p.sellPrice?('시장가 '+p.sellPrice):''),cost:(p.cost||''),refLink:((p.refs&&p.refs[0])||''),prodLink:(p.prodLink||''),moq:'',pricevar:'',lead:'',customs:'',fill:[],fillmaker:'확인중',container:'확인중',ibc:'해당없음',label:'',cert:'확인중',patent:'확인중',certs:[],patentinfo:'',attachments:atts,thumbId,notes:[],fav:false,tests:[],docs:[],stage:'후보',history:[{stage:'후보',date:today()}]};
+  const np={id,vendorNote:p.vendorMemo||'',name:p.title||'(무제)',goods:'',maker:'',type:'단품',bundle:[],baseId:'',concept:p.category||'',spec:'',sample:'대기',memo,source:'국내 제조사',market:(p.sellPrice?('시장가 '+p.sellPrice):''),cost:(p.cost||''),refLink:((p.refs&&p.refs[0])||''),prodLink:(p.prodLink||''),moq:'',pricevar:'',lead:'',customs:'',fill:[],fillmaker:'확인중',container:'확인중',ibc:'해당없음',label:'',cert:'확인중',patent:'확인중',certs:[],patentinfo:'',attachments:atts,thumbId,notes:[],fav:false,tests:[],docs:[],stage:'후보',history:[{stage:'후보',date:today()}]};
   if(p.brand)np.brand=p.brand;
   state.products.push(np);state.sel=id;logAct('add',np,null);save();
   p.productId=id;p.status='승인';p.promotedAt=new Date().toISOString();savePlans(); // 승격 시 상태 자동 전환(신규→승격)
@@ -6899,6 +6924,207 @@ if(upM)upM.onchange=e=>{const f=e.target.files[0];if(f){flagMsg('읽는 중…',
 if(upP)upP.onchange=e=>{const f=e.target.files[0];if(f){flagMsg('읽는 중…','');readRows(f,importProducts);}e.target.value='';};
 if(upPE)upPE.onchange=e=>{const f=e.target.files[0];if(f){flagMsg('읽는 중…','');readRows(f,importProducts);}e.target.value='';};
 
+/* ══════════ 🔒 원가 분리 · 👥 계정 관리 ══════════
+   원가·제조사 정보는 sourcing-cost/* (보안 규칙: 관리자만 읽기·쓰기)에 따로 저장하고,
+   모두가 보는 sourcing-os/state 에는 원가를 빼고 저장한다 → 팀원 폰에는 원가가 아예 내려가지 않는다.
+   · 숨김: 제조사 이름·단가·견적·계약·원가·이익·마진 (제조사 샘플은 "제조사 A" 같은 별칭으로 보임)
+   · 보임: 인증비·패킹비·물류비·경쟁사 판매가·우리 판매가·MOQ
+   · 처음 관리자가 로그인하면 전체를 sourcing-cost/backup-* 에 백업한 뒤 분리한다 (원본 값은 지우지 않고 옮김).
+   · 역할: sourcing-access/roles {admins:[], members:[], people:{}} — 👥 계정 관리 화면에서 관리. */
+const OWNER_EMAILS=['netformrnd@gmail.com'];            // 항상 관리자 (보안 규칙과 같게 유지)
+const COST_COLL='sourcing-cost', ACCESS_COLL='sourcing-access';
+const COST_PK=['maker','cost','quotes','makerPrev','pricevar','fillmaker','contract','vendorNote'];
+const COST_SK=['name','price','cur','qMaker'];
+const COST_STK=['makers','makerStatus','meetings','calc'];
+let myRole='guest',rolesCfg=null,rolesErr='',costLoaded=false,costSec=null,costErr='',costSplitSeen=false,costUnsub=null;
+function myEmail(){return ((FA&&FA.currentUser&&FA.currentUser.email)||'').toLowerCase();}
+function isCostAdmin(){return myRole==='admin';}
+function costDocRef(){try{return FS?FS.collection(COST_COLL).doc('state'):null;}catch(e){return null;}}
+function costActive(){return costSplitSeen||!!(state&&state.costSplit);}
+async function resolveRole(){
+  const em=myEmail();rolesErr='';
+  if(!em){myRole='guest';applyRoleUi();return;}
+  try{const d=await FS.collection(ACCESS_COLL).doc('roles').get();rolesCfg=d.exists?d.data():{admins:[],members:[],people:{}};}
+  catch(e){rolesErr=e.code||e.message||String(e);console.warn('[계정] 역할 불러오기 실패 (보안 규칙 배포 전이면 정상):',rolesErr);}
+  myRole=OWNER_EMAILS.includes(em)||((rolesCfg&&rolesCfg.admins)||[]).includes(em)?'admin':'member';
+  console.log('[계정]',em,'→',myRole);applyRoleUi();
+}
+function applyRoleUi(){document.body.classList.toggle('no-cost',!isCostAdmin());}
+/* ── 나누기 · 합치기 ── */
+function costSplitProduct(p){
+  const pub=JSON.parse(JSON.stringify(p)),sec={};let has=false;
+  const unit=numOf(p.cost);pub.hasCost=!!unit;
+  COST_PK.forEach(k=>{if(pub[k]!==undefined){sec[k]=pub[k];delete pub[k];has=true;}});
+  if(pub.pricing&&pub.pricing.buy!==undefined){sec.pricingBuy=pub.pricing.buy;delete pub.pricing.buy;has=true;}
+  if(Array.isArray(pub.docs)){const dm={};pub.docs.forEach(d=>{if(d&&d.maker){dm[d.id]=d.maker;d.maker='';}});if(Object.keys(dm).length){sec.docMakers=dm;has=true;}}
+  if(Array.isArray(pub.samples)){const used=new Set(pub.samples.map(s=>s&&s.alias).filter(Boolean));const sm={};
+    pub.samples.forEach(s=>{if(!s||s.type!=='maker')return;
+      if(!s.alias){let i=0;while(used.has('제조사 '+String.fromCharCode(65+i)))i++;s.alias='제조사 '+String.fromCharCode(65+i);used.add(s.alias);}
+      const o={};COST_SK.forEach(k=>{if(s[k]!==undefined&&s[k]!=='')o[k]=s[k];});if(Object.keys(o).length)sm[s.id]=o;
+      s.name=s.alias;delete s.price;delete s.cur;delete s.qMaker;});
+    if(Object.keys(sm).length){sec.samples=sm;has=true;}}
+  return [pub,has?sec:null];
+}
+function costMergeProduct(p,sec){
+  if(!p||!sec)return p;
+  COST_PK.forEach(k=>{if(sec[k]!==undefined)p[k]=sec[k];});
+  if(sec.pricingBuy!==undefined){p.pricing=p.pricing||{};p.pricing.buy=sec.pricingBuy;}
+  if(sec.docMakers)(p.docs||[]).forEach(d=>{if(d&&sec.docMakers[d.id])d.maker=sec.docMakers[d.id];});
+  if(sec.samples)(p.samples||[]).forEach(s=>{const o=s&&sec.samples[s.id];if(o)Object.assign(s,o);});
+  return p;
+}
+function costSplitState(st){
+  const pub=Object.assign({},st),sec={products:{}};
+  COST_STK.forEach(k=>{if(st[k]!==undefined)sec[k]=st[k];});
+  pub.makers=[];pub.makerStatus={};pub.meetings=[];pub.calc={buy:'',moq:'',sell:'',tm:40};
+  pub.products=(st.products||[]).map(p=>{const [a,b]=costSplitProduct(p);if(b)sec.products[p.id]=b;return a;});
+  return {pub,sec};
+}
+function costMergeState(st,sec){
+  if(!st||!sec)return;
+  COST_STK.forEach(k=>{if(sec[k]!==undefined)st[k]=JSON.parse(JSON.stringify(sec[k]));});
+  (st.products||[]).forEach(p=>costMergeProduct(p,sec.products&&sec.products[p.id]?JSON.parse(JSON.stringify(sec.products[p.id])):null));
+}
+function costHasLeak(st){ // 모두가 보는 곳에 원가가 남아 있는지
+  if(!st)return false;
+  if((st.makers||[]).length||Object.keys(st.makerStatus||{}).length||(st.meetings||[]).length||numOf((st.calc||{}).buy))return true;
+  return (st.products||[]).some(p=>COST_PK.some(k=>p[k]!==undefined&&p[k]!==''&&!(Array.isArray(p[k])&&!p[k].length))||(p.pricing&&p.pricing.buy)||(p.samples||[]).some(s=>s&&s.type==='maker'&&(s.price||s.qMaker||(s.name&&s.name!==s.alias))));
+}
+function costSplitPlans(pl){
+  const pub=JSON.parse(JSON.stringify(pl||{})),sec={};
+  (pub.items||[]).forEach(q=>{const o={};if(q.cost){o.cost=q.cost;q.cost='';}if(q.vendorMemo){o.vendorMemo=q.vendorMemo;q.vendorMemo='';}if(Object.keys(o).length)sec[q.id]=o;});
+  return {pub,sec};
+}
+function costMergePlans(pl,sec){if(!pl||!sec)return;(pl.items||[]).forEach(q=>{const o=sec[q.id];if(o){if(o.cost)q.cost=o.cost;if(o.vendorMemo)q.vendorMemo=o.vendorMemo;}});}
+/* 저장 직전: 모두가 보는 문서에는 원가를 뺀 모습, 관리자는 원가 문서도 함께 */
+async function costPrepareSync(payload){
+  if(!costActive())return payload;                       // 분리 전(규칙 배포 전)에는 지금과 똑같이 저장
+  const {pub,sec}=costSplitState(payload);
+  if(isCostAdmin()&&costLoaded&&(state.products||[]).length){
+    const doc=Object.assign({},sec,{plans:(costSec&&costSec.plans)||{},updatedAt:new Date().toISOString(),updatedBy:curUser()});
+    try{await costDocRef().set(JSON.parse(JSON.stringify(doc)));costSec=doc;}
+    catch(e){console.error('[원가] 원가 문서 저장 실패 — 이번엔 원가를 빼지 않고 둠:',e);flagMsg('원가 저장 실패: '+(e.code||e.message||e),'warn');return null;}
+  }
+  pub.costSplit=pub.costSplit||state.costSplit||{at:new Date().toISOString()};
+  return pub;
+}
+/* 불러온 직후: 관리자는 원가 문서를 합치고, 처음이면 백업 후 분리 */
+async function costAfterLoad(){
+  if(state&&state.costSplit)costSplitSeen=true;
+  if(!isCostAdmin()){ // 팀원: 분리된 뒤라면 기기에 남은 예전 원가도 지운다(원가 문서에 안전하게 있음)
+    if(costActive()&&costHasLeak(state)){state=costSplitState(state).pub;normalizeState();store.write(state);console.log('[원가] 이 기기의 예전 원가 캐시를 지웠어요');}
+    return;
+  }
+  const ref=costDocRef();if(!ref)return;
+  let snap;try{snap=await ref.get();}catch(e){costErr=e.code||e.message||String(e);console.warn('[원가] 원가 문서를 못 읽음 (보안 규칙 배포 전이면 정상):',costErr);return;}
+  costLoaded=true;costErr='';
+  if(snap.exists){
+    costSec=snap.data();costSplitSeen=true;
+    const leak=costHasLeak(state);
+    const keep=leak?JSON.parse(JSON.stringify(state)):null;
+    costMergeState(state,costSec);
+    if(leak){ // 예전 버전 기기가 원가를 다시 올린 경우: 원가 문서에 없는 값만 살리고, 다음 저장 때 다시 뺀다
+      (keep.products||[]).forEach(kp=>{const p=state.products.find(x=>x.id===kp.id);if(!p)return;COST_PK.forEach(k=>{if((p[k]===undefined||p[k]==='')&&kp[k]!==undefined)p[k]=kp[k];});});
+      console.warn('[원가] 모두가 보는 문서에 원가가 남아 있어 다시 분리해요');queueCloudSync();
+    }
+  }else{await costMigrate();}
+  startCostRealtime();
+}
+async function costMigrate(){ // 최초 1회: 백업 → 원가 문서 → 공개 문서에서 빼기
+  const now=new Date().toISOString(),by=curUser(),tag=Date.now();
+  try{
+    if(typeof plansLoaded!=='undefined'&&!plansLoaded)await loadPlans();
+    let oc=null;try{const s=await FS.collection(FS_COLL).doc('order-contacts').get();oc=s.exists?s.data():null;}catch(e){console.warn('[원가] 발주담당자 읽기 실패',e);}
+    const col=FS.collection(COST_COLL);
+    await col.doc('backup-'+tag+'-state').set({at:now,by,note:'원가 분리 전 전체 백업 (sourcing-os/state)',state:JSON.parse(JSON.stringify(state))});
+    await col.doc('backup-'+tag+'-plans').set({at:now,by,note:'원가 분리 전 전체 백업 (sourcing-os/plans)',plans:JSON.parse(JSON.stringify(plans||{}))});
+    if(oc)await col.doc('backup-'+tag+'-order-contacts').set({at:now,by,data:oc});
+    const {sec}=costSplitState(JSON.parse(JSON.stringify(state)));const ps=costSplitPlans(plans);
+    const doc=Object.assign({},sec,{plans:ps.sec,updatedAt:now,updatedBy:by,migratedAt:now,backupTag:String(tag)});
+    await costDocRef().set(JSON.parse(JSON.stringify(doc)));costSec=doc;
+    if(oc){await col.doc('order-contacts').set(oc);await FS.collection(FS_COLL).doc('order-contacts').set({makers:{},movedTo:COST_COLL+'/order-contacts',movedAt:now,movedBy:by});orderContacts=oc;}
+    state.costSplit={at:now,by};costSplitSeen=true;
+    await savePlans();save();
+    costScrubVersions().catch(e=>console.error('[원가] 이력 정리 실패:',e));
+    console.log('[원가] 분리 완료 · 백업',tag);flagMsg('🔒 원가를 관리자 전용으로 옮겼어요 (전체 백업 보관)','ok');
+  }catch(e){console.error('[원가] 분리 실패 — 아무것도 빼지 않았어요:',e);costLoaded=false;costErr=e.code||e.message||String(e);flagMsg('원가 분리 실패 · 그대로 두었어요: '+costErr,'warn');}
+}
+async function costScrubVersions(){ // 이미 저장된 🕘 이력에서도 원가를 관리자 쪽으로 옮김
+  const col=verColl();if(!col)return;const snap=await col.get();let n=0;
+  for(const d of snap.docs){const v=d.data();if(!v.data||v.costScrubbed)continue;let o;try{o=JSON.parse(v.data);}catch(e){continue;}
+    const [pub,sec]=costSplitProduct(o);
+    if(sec)await FS.collection(COST_COLL).doc('history').collection('versions').doc(d.id).set({pid:v.pid,data:JSON.stringify(sec)});
+    await col.doc(d.id).set(Object.assign({},v,{data:JSON.stringify(pub),costScrubbed:true}));n++;}
+  console.log(`[원가] 이력 ${n}건 정리`);
+}
+function startCostRealtime(){
+  if(costUnsub||!isCostAdmin()||!costLoaded)return;
+  try{costUnsub=costDocRef().onSnapshot(s=>{if(!s.exists||s.metadata.hasPendingWrites)return;const d=s.data();if(costSec&&d.updatedAt===costSec.updatedAt)return;
+    costSec=d;if(document.querySelector('.overlay.on'))return;costMergeState(state,costSec);verSetBase(state.products);store.write(state);render();console.log('[원가] 다른 기기 원가 변경 반영');},e=>console.warn('[원가] 실시간 오류',e));}
+  catch(e){console.warn('[원가] 실시간 시작 실패',e);}
+}
+function costLockHtml(t){return `<div class="cost-lock">🔒 ${esc(t||'제조사·단가·원가는 관리자만 볼 수 있어요')}</div>`;}
+
+/* ── 👥 계정 관리 (관리자) ── */
+let acctMsg='',acctTemp=null;
+function acctPeople(){const r=rolesCfg||{};const ppl=Object.assign({},r.people||{});OWNER_EMAILS.forEach(e=>{if(!ppl[e])ppl[e]={email:e,name:'대표 (항상 관리자)',role:'admin',active:true,owner:true};else ppl[e].owner=true;});return Object.values(ppl).sort((a,b)=>(b.owner?1:0)-(a.owner?1:0)||(a.role===b.role?0:a.role==='admin'?-1:1)||(a.name||'').localeCompare(b.name||'','ko'));}
+async function openAcct(){if(!isCostAdmin()){flagMsg('관리자만 열 수 있어요','warn');return;}renderAcct();openOverlay('acctOverlay');await resolveRole();renderAcct();}
+function renderAcct(){
+  const box=$('#acctBody');if(!box)return;
+  const ok=!rolesErr,ppl=acctPeople();
+  box.innerHTML=`<div class="it-top"><button class="it-back" data-acct="close" aria-label="뒤로">‹</button><h2>👥 계정 관리</h2></div>
+    <div class="it-card acct-st">
+      <div>${ok?'✅':'⚠'} 보안 규칙 ${ok?'적용됨':'<b>아직 적용 안 됨</b> — PC에서 Firebase 규칙을 배포해야 저장돼요'}</div>
+      <div>${costLoaded&&costActive()?'✅ 원가는 관리자만 볼 수 있게 분리돼 있어요':costLoaded?'⏳ 원가 분리 준비됨':'⚠ 원가 분리 전 — 규칙 배포 후 관리자가 로그인하면 자동으로 분리돼요'}</div>
+      <div class="it-sub">관리자: 제조사·단가·원가·마진까지 봐요 · 팀원: 원가 없이 나머지 모두</div></div>
+    ${acctTemp?`<div class="it-card acct-temp"><b>✅ ${esc(acctTemp.email)} 계정을 만들었어요</b><div>임시 비밀번호: <code>${esc(acctTemp.pw)}</code> <button class="it-btn line" data-acct="copy">복사</button></div><div class="it-sub">팀원에게 전달하고, 로그인 후 [비밀번호 재설정 메일]로 바꾸게 하세요. 이 화면을 닫으면 다시 볼 수 없어요.</div></div>`:''}
+    ${acctMsg?`<div class="it-card it-sub">${esc(acctMsg)}</div>`:''}
+    <div class="it-card it-stack" style="gap:8px"><span class="it-h">＋ 팀원 추가</span>
+      <div class="it-grid2"><input class="it-in" id="acName" placeholder="이름 (예: 김소싱)"><input class="it-in" id="acEmail" type="email" placeholder="이메일" autocomplete="off"></div>
+      <div class="it-seg" id="acRole"><button class="on" data-acct="role" data-v="member">팀원 (원가 안 보임)</button><button data-acct="role" data-v="admin">관리자 (원가 보임)</button></div>
+      <button class="it-btn pri" style="padding:12px" data-acct="add">계정 만들기</button>
+      <div class="it-sub">처음 쓰는 이메일이면 계정과 임시 비밀번호를 만들어 줘요. 이미 계정이 있는 이메일이면 역할만 등록해요.</div></div>
+    <div class="it-card it-stack" style="gap:0"><span class="it-h" style="margin-bottom:6px">팀원 ${ppl.length}명</span>
+      ${ppl.map(p=>`<div class="acct-row${p.active===false?' off':''}"><div class="t"><b>${esc(p.name||whoName(p.email))}</b> <span class="it-pill ${p.role==='admin'?'acc':''}">${p.role==='admin'?'관리자':'팀원'}</span>${p.active===false?'<span class="it-pill">사용 중지</span>':''}<div class="it-sub">${esc(p.email)}</div></div>
+        ${p.owner?'<span class="it-sub">고정</span>':`<div class="acct-acts"><button class="it-btn line" data-acct="toggle-role" data-e="${esc(p.email)}">${p.role==='admin'?'팀원으로':'관리자로'}</button><button class="it-btn line" data-acct="toggle-on" data-e="${esc(p.email)}">${p.active===false?'다시 사용':'사용 중지'}</button><button class="it-btn line" data-acct="reset" data-e="${esc(p.email)}">비밀번호 재설정 메일</button></div>`}</div>`).join('')}</div>`;
+}
+async function acctSave(next){
+  const r=next;r.admins=Object.values(r.people).filter(p=>p.active!==false&&p.role==='admin').map(p=>p.email);
+  r.members=Object.values(r.people).filter(p=>p.active!==false&&p.role!=='admin').map(p=>p.email);
+  r.updatedAt=new Date().toISOString();r.updatedBy=curUser();
+  await FS.collection(ACCESS_COLL).doc('roles').set(JSON.parse(JSON.stringify(r)));rolesCfg=r;
+}
+function acctTempPw(){const c='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';const a=new Uint32Array(10);crypto.getRandomValues(a);return Array.from(a,x=>c[x%c.length]).join('')+'!7';}
+async function acctCreateAuth(email,pw){ // 보조 앱으로 만들어서 지금 로그인한 관리자가 로그아웃되지 않게
+  let app=firebase.apps.find(a=>a.name==='acct-maker');if(!app)app=firebase.initializeApp(FB_CFG,'acct-maker');
+  try{await app.auth().createUserWithEmailAndPassword(email,pw);await app.auth().signOut();return 'created';}
+  catch(e){if(e&&e.code==='auth/email-already-in-use')return 'exists';throw e;}
+}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-acct]');if(!b)return;const a=b.dataset.acct;
+  if(a==='close'){acctTemp=null;acctMsg='';closeOverlay();return;}
+  if(a==='role'){document.querySelectorAll('#acRole button').forEach(x=>x.classList.toggle('on',x===b));return;}
+  if(a==='copy'){try{await navigator.clipboard.writeText(acctTemp.pw);flagMsg('복사했어요','ok');}catch(err){flagMsg('길게 눌러 복사해 주세요','warn');}return;}
+  if(!isCostAdmin())return;
+  const base=JSON.parse(JSON.stringify(rolesCfg||{}));base.people=base.people||{};
+  try{
+    if(a==='add'){
+      const email=(($('#acEmail')||{}).value||'').trim().toLowerCase(),name=(($('#acName')||{}).value||'').trim();
+      const role=(document.querySelector('#acRole button.on')||{}).dataset?.v||'member';
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){flagMsg('이메일을 확인해 주세요','warn');return;}
+      b.disabled=true;b.textContent='만드는 중…';
+      const pw=acctTempPw();const r=await acctCreateAuth(email,pw);
+      base.people[email]=Object.assign({},base.people[email]||{},{email,name:name||(base.people[email]||{}).name||whoName(email),role,active:true,addedAt:(base.people[email]||{}).addedAt||new Date().toISOString(),addedBy:curUser()});
+      await acctSave(base);acctTemp=r==='created'?{email,pw}:null;acctMsg=r==='exists'?`${email}은(는) 이미 계정이 있어서 역할만 등록했어요.`:'';
+      chgWrite('acct:'+email,name||email,'edit',['계정'],`계정 ${r==='created'?'만듦':'등록'} · ${role==='admin'?'관리자':'팀원'}`);
+      renderAcct();return;}
+    const em=b.dataset.e;if(!em||OWNER_EMAILS.includes(em))return;const p=base.people[em]||{email:em};
+    if(a==='toggle-role'){if(!confirm(`${p.name||em}을(를) ${p.role==='admin'?'팀원(원가 안 보임)':'관리자(원가 보임)'}으로 바꿀까요?`))return;p.role=p.role==='admin'?'member':'admin';base.people[em]=p;await acctSave(base);renderAcct();flagMsg('바꿨어요 · 그 사람은 다시 로그인하면 적용돼요','ok');return;}
+    if(a==='toggle-on'){if(!confirm(`${p.name||em} ${p.active===false?'다시 사용하게':'사용을 멈추게'} 할까요?\n(계정 기록은 지우지 않아요)`))return;p.active=p.active===false;base.people[em]=p;await acctSave(base);renderAcct();return;}
+    if(a==='reset'){await FA.sendPasswordResetEmail(em);flagMsg(`${em}로 비밀번호 재설정 메일을 보냈어요`,'ok');return;}
+  }catch(err){console.error('[계정] 실패:',err);flagMsg('실패: '+(err.code==='permission-denied'?'보안 규칙을 먼저 배포해 주세요':(err.code||err.message||err)),'warn');b.disabled=false;renderAcct();}
+});
+
 /* ══════════ 🕘 변경 이력 (자동 버전 저장 · 복구) ══════════
    아이템이 바뀌면 "바뀌기 전 모습"을 sourcing-os/history/versions 에 따로 저장한다(메인 문서 용량과 무관).
    · 같은 아이템은 10분에 한 번 (연속 타이핑이 이력을 도배하지 않게). 삭제·AI 반영·복구는 항상 저장.
@@ -6921,8 +7147,10 @@ function chgKey(s){return String(s||'').replace(/[^\w가-힣]+/g,'_').slice(0,40
 function chgWrite(pid,name,kind,keys,note){
   const col=chgColl();if(!col)return;const now=Date.now(),by=curUser();
   const d={pid,name:name||'',by,last:now,at:new Date(now).toISOString(),ym:new Date(now).toISOString().slice(0,7),kinds:fvUnion([kind]),keys:fvUnion((keys&&keys.length?keys:['-']).slice(0,30))};
-  if(note)d.notes=fvUnion([String(note).slice(0,140)]);
-  col.doc(Math.floor(now/600000)+'_'+chgKey(pid)+'_'+chgKey(by)).set(d,{merge:true}).catch(e=>console.error('[팀 활동] 기록 실패:',e));
+  const id=Math.floor(now/600000)+'_'+chgKey(pid)+'_'+chgKey(by);
+  if(note){if(costActive()&&isCostAdmin()&&costLoaded)FS.collection(COST_COLL).doc('history').collection('changes').doc(id).set({notes:fvUnion([String(note).slice(0,140)])},{merge:true}).catch(e=>console.error('[팀 활동] 메모 기록 실패:',e));
+    else d.notes=fvUnion([String(note).slice(0,140)]);}
+  col.doc(id).set(d,{merge:true}).catch(e=>console.error('[팀 활동] 기록 실패:',e));
 }
 function verWriteChanges(){
   const col=verColl();if(!col)return;
@@ -6940,9 +7168,12 @@ function verWriteChanges(){
     if(c++<100){let keys=['deleted'];if(!gone){try{keys=verDiff(JSON.parse(prev),JSON.parse(cur[id]));}catch(e){keys=[];}}chgWrite(id,gone?name:nameOf(cur[id]),reason,keys,verNote[id]);}
     if(!gone&&reason==='edit'&&verLastAt[id]&&now-verLastAt[id]<VER_GAP)continue;
     if(n>=40){console.warn('[이력] 한 번에 40건 초과 — 나머지는 다음 저장 때');continue;}
-    const st=verStrip(prev);
-    col.add({pid:id,name,reason,at:new Date(now).toISOString(),ts:now,by,data:st.data,stripped:st.stripped,ym:new Date(now).toISOString().slice(0,7)})
+    let pubJ=prev,secJ=null;
+    if(costActive()){try{const [pv,sv]=costSplitProduct(JSON.parse(prev));pubJ=JSON.stringify(pv);secJ=sv?JSON.stringify(sv):null;}catch(e){console.error('[이력] 원가 나누기 실패 — 이 이력은 건너뜀:',e);continue;}}
+    const st=verStrip(pubJ);const ref=col.doc();
+    ref.set({pid:id,name,reason,at:new Date(now).toISOString(),ts:now,by,data:st.data,stripped:st.stripped,ym:new Date(now).toISOString().slice(0,7),costScrubbed:costActive()||undefined})
       .then(()=>console.log(`[이력] ${reason} · ${name}`)).catch(e=>console.error('[이력] 저장 실패:',e));
+    if(secJ&&isCostAdmin()&&costLoaded)FS.collection(COST_COLL).doc('history').collection('versions').doc(ref.id).set({pid:id,data:secJ}).catch(e=>console.error('[이력] 원가 이력 저장 실패:',e));
     verLastAt[id]=now;n++;
   }
   Object.keys(verForce).forEach(k=>delete verForce[k]);Object.keys(verNote).forEach(k=>delete verNote[k]);
@@ -6969,8 +7200,13 @@ async function histLoad(){
   histLoading=true;
   try{
     let snap;
-    if(!histPid&&histView==='team'){const cc=chgColl();snap=await cc.where('last','>=',Date.now()-30*24*3600e3).get();histList=snap.docs.map(d=>Object.assign({vid:d.id},d.data()));histList.sort((a,b)=>(b.last||0)-(a.last||0));console.log(`[팀 활동] ${histList.length}건 로드`);return;}
-    if(histPid)snap=await col.where('pid','==',histPid).get();
+    if(!histPid&&histView==='team'){const cc=chgColl();snap=await cc.where('last','>=',Date.now()-30*24*3600e3).get();histList=snap.docs.map(d=>Object.assign({vid:d.id},d.data()));histList.sort((a,b)=>(b.last||0)-(a.last||0));
+      if(isCostAdmin()&&costLoaded){try{const ns=await FS.collection(COST_COLL).doc('history').collection('changes').get();const nm={};ns.docs.forEach(d=>nm[d.id]=d.data().notes||[]);histList.forEach(x=>{if(nm[x.vid])x.notes=(x.notes||[]).concat(nm[x.vid]);});}catch(e){console.warn('[팀 활동] 관리자 메모 불러오기 실패',e);}}
+      console.log(`[팀 활동] ${histList.length}건 로드`);return;}
+    if(histPid){snap=await col.where('pid','==',histPid).get();
+      if(isCostAdmin()&&costLoaded){try{const cs=await FS.collection(COST_COLL).doc('history').collection('versions').where('pid','==',histPid).get();const cm={};cs.docs.forEach(d=>cm[d.id]=d.data().data);
+        histList=snap.docs.map(d=>{const v=Object.assign({vid:d.id},d.data());if(cm[d.id]&&v.data){try{v.data=JSON.stringify(costMergeProduct(JSON.parse(v.data),JSON.parse(cm[d.id])));}catch(e){}}return v;});
+        histList.sort((a,b)=>(b.ts||0)-(a.ts||0));console.log(`[이력] ${histList.length}건 (원가 포함)`);return;}catch(e){console.warn('[이력] 원가 이력 불러오기 실패',e);}}}
     else if(histView==='deleted')snap=await col.where('reason','==','delete').get();
     else snap=await col.where('ts','>=',Date.now()-30*24*3600e3).get();
     histList=snap.docs.map(d=>Object.assign({vid:d.id},d.data()));
@@ -7034,7 +7270,7 @@ function histTeamHtml(){
     ${people.length?`<div class="hv-who"><button class="${!histWho?'on':''}" data-hist="who" data-v="">전체 ${histList.length}</button>${people.map(p=>`<button class="${histWho===p?'on':''}" data-hist="who" data-v="${esc(p)}">${esc(whoName(p))} ${histList.filter(x=>x.by===p).length}</button>`).join('')}</div>`:''}
     ${list.length?list.map(x=>{const alive=state.products.find(p=>p.id===x.pid)||plan(x.pid);const kinds=(x.kinds||[]).map(k=>CHG_KIND[k]||['·',k]);
       const keys=(x.keys||[]).filter(k=>k!=='-'&&k!=='new'&&k!=='deleted').map(k=>VER_KEY[k]||(k==='수집'?'수집':null)).filter(Boolean);
-      return `<button class="it-card hv-row hv-link" data-hist="${x.pid.startsWith('plan_')?'plan':alive?'item':'deleted'}" data-pid="${esc(x.pid)}"><div class="t"><div class="hv-l1"><b>${esc(whoName(x.by))}</b><span class="it-sub">${esc(fmtDT(x.last))}</span></div>
+      return `<button class="it-card hv-row hv-link" data-hist="${x.pid.startsWith('acct:')?'noop':x.pid.startsWith('plan_')?'plan':alive?'item':'deleted'}" data-pid="${esc(x.pid)}"><div class="t"><div class="hv-l1"><b>${esc(whoName(x.by))}</b><span class="it-sub">${esc(fmtDT(x.last))}</span></div>
         <div class="hv-l2">${kinds.map(k=>`<span class="it-pill">${k[0]} ${esc(k[1])}</span>`).join('')}<b>${esc(alive?(alive.title||dn(alive)):(x.name||'(지운 아이템)'))}</b></div>
         ${keys.length?`<div class="it-sub">바뀐 칸: ${esc([...new Set(keys)].slice(0,6).join(', '))}</div>`:''}
         ${(x.notes||[]).length?`<div class="hv-note">${(x.notes||[]).slice(-2).map(n=>esc(n)).join('<br>')}</div>`:''}</div><span class="it-sub">›</span></button>`;}).join('')
@@ -7058,6 +7294,7 @@ document.addEventListener('click',async e=>{
   const v=histList.find(x=>x.vid===b.dataset.vid);if(!v)return;
   let data;try{data=JSON.parse(v.data||'');}catch(e){alert('이 이력은 내용을 읽을 수 없어요.');return;}
   if(!data||typeof data!=='object'){alert('이 이력은 내용이 비어 있어요.');return;}
+  if(isCostAdmin()&&costLoaded&&['revive','full','part'].includes(a)){try{const cd=await FS.collection(COST_COLL).doc('history').collection('versions').doc(v.vid).get();if(cd.exists)costMergeProduct(data,JSON.parse(cd.data().data));}catch(e){console.warn('[이력] 원가 이력 합치기 실패',e);}}
   data.id=v.pid;
   if(a==='revive'){
     if(state.products.some(x=>x.id===v.pid)){flagMsg('이미 목록에 있는 아이템이에요','warn');return;}
@@ -7096,15 +7333,18 @@ const AI_DOCS=['시험성적서','MSDS','인증서','추가서류'];
 const aiBusy=new Set();
 let aiUsage=null;
 let aiMsgs=[],aiLoaded=false,aiLock=null,aiFiles=[],aiShowAll=false;const aiFrames={};const aiSel={};
-function aiLogColl(){try{return FS?FS.collection(FS_COLL).doc('ai').collection('log'):null;}catch(e){console.error('[AI] 기록 저장소 열기 실패:',e);return null;}}
+function aiLogColl(){try{return FS?FS.collection(costActive()&&isCostAdmin()&&costLoaded?COST_COLL:FS_COLL).doc('ai').collection('log'):null;}catch(e){console.error('[AI] 기록 저장소 열기 실패:',e);return null;}}
 async function aiSaveMsg(m){
-  const col=aiLogColl();if(!col||m.local)return;
+  let col=aiLogColl();if(m.src==='pub'){try{col=FS.collection(FS_COLL).doc('ai').collection('log');}catch(e){}}
+  if(!col||m.local)return;
   try{await col.doc(m.id).set(JSON.parse(JSON.stringify(m)));}
   catch(e){console.error('[AI 정리] 기록 저장 실패:',e);flagMsg('기록 저장 실패: '+(e.code||e.message||e),'warn');}
 }
 async function aiLoad(){
   const col=aiLogColl();if(!col){aiLoaded=true;return;}
-  try{const snap=await col.get();aiMsgs=snap.docs.map(d=>d.data());aiMsgs.sort((a,b)=>(a.ts||0)-(b.ts||0));console.log(`[AI 정리] 기록 ${aiMsgs.length}건 로드`);}
+  try{const snap=await col.get();aiMsgs=snap.docs.map(d=>d.data());
+    if(isCostAdmin()&&costActive()&&costLoaded){try{const pubS=await FS.collection(FS_COLL).doc('ai').collection('log').get();const have=new Set(aiMsgs.map(m=>m.id));pubS.docs.forEach(d=>{const m=d.data();if(!have.has(m.id)){m.src='pub';aiMsgs.push(m);}});}catch(e){console.warn('[AI] 팀원 기록 불러오기 실패',e);}}
+    aiMsgs.sort((a,b)=>(a.ts||0)-(b.ts||0));console.log(`[AI 정리] 기록 ${aiMsgs.length}건 로드`);}
   catch(e){console.error('[AI 정리] 기록 불러오기 실패:',e);flagMsg('AI 정리 기록을 불러오지 못했어요','warn');}
   try{const d=await FS.collection(FS_COLL).doc('ai').get();aiUsage=d.exists?(d.data().usage||{}):{};}catch(e){console.warn('[AI 정리] 사용량 불러오기 실패',e);}
   aiLoaded=true;
@@ -7342,12 +7582,13 @@ function aiRun(p,a,m,ow){ // 반영 1건 → 결과 한 줄
   if(a.op==='ref_media'){const md=aiMediaOf(m,a.media);if(!md.length)return '';if(!Array.isArray(p.attachments))p.attachments=[];md.forEach(x=>p.attachments.push(x));return `📌 레퍼런스 사진 ${md.length}개`;}
   if(a.op==='sample'){const type=a.sampleType==='rival'?'rival':'maker';let s=aiFindSample(p,type,a.name);const isNew=!s;if(!s)s=aiNewSample(p,type,a.name);
     const setIf=(k,v)=>{if(v==null||v==='')return;if(!String(s[k]==null?'':s[k]).trim()||ow)s[k]=v;};
-    if(a.price!=null&&(!numOf(s.price)||ow)){s.price=a.price;s.cur=a.cur||'원';}
+    const lockMaker=type==='maker'&&!isCostAdmin();
+    if(a.price!=null&&!lockMaker&&(!numOf(s.price)||ow)){s.price=a.price;s.cur=a.cur||'원';}
     setIf('moq',a.moq!=null?a.moq:null);setIf('where',a.where);
     if(a.text)s.memo=add(s.memo,a.text);
     const md=aiMediaOf(m,a.media,'',['image','video']);if(md.length){s.media=(s.media||[]).concat(md);if(type==='maker')s.arrived=true;}
     if(numOf(s.price))smpSyncOut(p,s);
-    return `🧪 ${type==='rival'?'경쟁사':'제조사'} 샘플 "${s.name}" ${isNew?'새로 만듦':'에 추가'}${md.length?` · 사진 ${md.length}`:''}`;}
+    return `🧪 ${type==='rival'?'경쟁사':'제조사'} 샘플 "${lockMaker?(s.alias||'제조사'):s.name}" ${isNew?'새로 만듦':'에 추가'}${md.length?` · 사진 ${md.length}`:''}${lockMaker&&(a.price!=null||isNew)?' · 🔒 제조사 이름·단가는 관리자만 저장돼요 (관리자에게 알려주세요)':''}`;}
   if(a.op==='request'){if(!a.text)return '';let s=aiFindSample(p,'maker',a.name);if(!s)s=aiNewSample(p,'maker',a.name);(s.reqs=s.reqs||[]).push({id:uid(),text:a.text,st:0,at:today(),from:'AI'});return `📝 ${s.name}에 요청: ${a.text}`;}
   if(a.op==='packing'){const k=packOf(p);
     if(a.whose==='rival'){let s=aiFindSample(p,'rival',a.name);if(!s)s=aiNewSample(p,'rival',a.name);const md=aiMediaOf(m,a.media,'패킹',['image','video']);s.media=(s.media||[]).concat(md);if(a.text)k.notes[s.id]=add(k.notes[s.id],a.text);return `📦 ${s.name} 패킹${md.length?` 사진 ${md.length}`:''}${a.text?' · 메모':''}`;}
@@ -7355,6 +7596,7 @@ function aiRun(p,a,m,ow){ // 반영 1건 → 결과 한 줄
   if(a.op==='shot'){if(!Array.isArray(p.shots))p.shots=[];const md=aiMediaOf(m,a.media,'',['image','video']);p.shots.push({id:uid(),title:(a.name||'새 컷').slice(0,40),refId:'',memo:a.text||'',media:md,done:false,from:'AI'});return `🎬 촬영 컷 "${(a.name||'새 컷').slice(0,20)}"`;}
   if(a.op==='spec'){const f=a.field;const v=String(a.text==null?'':a.text).trim();if(!f||!v)return '';
     if(f==='specLine'){(p.specs=p.specs||[]).push({text:v,ts:Date.now()});return '🛠 스펙 추가: '+v;}
+    if(f==='cost'&&!isCostAdmin())return '🔒 단가는 관리자만 저장돼요 (관리자에게 알려주세요)';
     const val=['cost','moq'].includes(f)?String(numOf(v)||v):v;
     if(String(p[f]==null?'':p[f]).trim()&&!ow)return '';
     p[f]=val;return `🛠 ${AI_FIELD[f]||f}: ${val}`;}
@@ -7375,7 +7617,7 @@ function aiStartProduct(tg){ // 🏭 제조사 제품에서 시작 (수동 [제�
   if(mk&&!state.makers.includes(mk)){state.makers.push(mk);state.makers.sort((a,c)=>a.localeCompare(c,'ko'));}
   const np=aiNewProduct(tg.name);const sid=uid();
   if(mk){np.maker=mk;np.makerFirst=true;np.makerId=sid;np.samples=[{id:sid,type:'maker',name:mk,qMaker:mk,price:'',cur:'원',moq:'',where:'',arrived:true,media:[],scores:{},memo:'',reqs:[]}];}
-  const ids=[np.id];const lines=[`🏭 원본 "${np.name}"${mk?` (제조사 ${mk})`:''}`];
+  const ids=[np.id];const lines=[`🏭 원본 "${np.name}"${mk?(isCostAdmin()?` (제조사 ${mk})`:' · 🔒 제조사 이름은 관리자만 저장돼요'):''}`];
   (tg.variants||[]).slice(0,6).forEach(g=>{const v=createVariant(np,'파생',String(g).slice(0,40));v.from='AI';ids.push(v.id);lines.push(`🏷 파생 상품 "${v.goods}"`);});
   return {base:np,ids,lines};
 }
@@ -7555,6 +7797,7 @@ document.addEventListener('input',e=>{const t=e.target;if(t&&t.id==='aiText'){t.
 
 /* ---- 부트스트랩: 로컬 먼저 렌더 → 클라우드 우선 동기화 ---- */
 async function bootstrap(){
+  try{await resolveRole();}catch(e){console.warn('[계정] 역할 확인 실패',e);}
   // 1) 클라우드를 '먼저' 읽어 최신본을 채택한 뒤 렌더 (빈 로컬이 클라우드를 덮어쓰지 않도록 booting 동안 업로드 차단)
   let adopted=false;
   if(fsDoc){
@@ -7562,6 +7805,7 @@ async function bootstrap(){
     try{
       const cloud=await cloudLoadState();
       verSetBase(cloud&&cloud.products?cloud.products:state.products); // 🕘 이력 기준점 = 클라우드에 있던 모습
+      if(cloud&&cloud.costSplit)costSplitSeen=true;   // 🔒 원가가 이미 분리됐으면(기기에 예전 원가가 남아 있어도) 다시 올리지 않음
       if(cloud){
         const localT=state.updatedAt||0, cloudT=cloud.updatedAt||0;
         const cloudHas=(cloud.products||[]).length>0, localHas=(state.products||[]).length>0;
@@ -7575,6 +7819,7 @@ async function bootstrap(){
       }
     }catch(e){console.error('[cloud] 부트 동기화 실패:',e);}
   }
+  if(fsDoc){try{await costAfterLoad();verSetBase(state.products);}catch(e){console.error('[원가] 불러온 뒤 처리 실패:',e);}}
   // 2) 렌더 (switchTab의 save는 booting=true라 클라우드 업로드 안 함 → 로컬 캐시만 갱신)
   render();
   switchTab(state.tab||'products');
@@ -7643,9 +7888,12 @@ function startOnce(){if(!appStarted){appStarted=true;bootstrap();}}
         const t=Number(localStorage.getItem('sos_loginAt')||0);
         if(t&&Date.now()-t>LOGIN_DAYS*864e5){logout();if(LOGIN_REQUIRED)showLogin();else startOnce();return;} // 30일 지나면 다시 로그인
         if(!t)localStorage.setItem('sos_loginAt',String(Date.now()));
-        hideLogin();startOnce();
+        hideLogin();
+        if(appStarted){resolveRole().then(()=>costAfterLoad()).then(()=>{verSetBase(state.products);render();if(typeof renderItem==='function'&&$('#itemOverlay').classList.contains('on'))renderItem();}).catch(e=>console.error('[계정] 로그인 후 처리 실패:',e));}
+        startOnce();
         if($('#aiOverlay')&&$('#aiOverlay').classList.contains('on'))renderAi();
       }else if(LOGIN_REQUIRED){showLogin();}
+      else if(appStarted&&myRole!=='guest'){myRole='guest';costLoaded=false;costSec=null;if(costUnsub){costUnsub();costUnsub=null;}applyRoleUi();if(costActive()){state=costSplitState(state).pub;normalizeState();store.write(state);verSetBase(state.products);}render();}
       else{if(!appStarted)hideLogin();startOnce();}
     });
     if(!LOGIN_REQUIRED)setTimeout(()=>{if(!appStarted){hideLogin();startOnce();}},4000); // 인증 응답이 늦어도 앱은 열기

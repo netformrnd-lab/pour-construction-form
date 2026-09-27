@@ -859,6 +859,44 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 .la-choose .tbtn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;text-align:left;min-height:0}
 .la-choose .tbtn span{font-size:12px;color:var(--ink-soft);font-weight:500}
 @media(max-width:640px){ .la-row{flex-wrap:wrap} .la-row .acts{width:100%;justify-content:flex-end} }
+/* AI 비서 */
+#daiFab{position:fixed;right:20px;bottom:108px;z-index:100;background:#1D4ED8;color:#fff;border:0;border-radius:26px;padding:12px 18px;font-size:14px;font-weight:800;box-shadow:0 6px 18px rgba(29,78,216,.35);cursor:pointer}
+body:not(.cost-ok) #daiFab{bottom:52px}
+body.dai-open #daiFab,body.dai-open #calcFab{display:none!important}
+#daiPanel{position:fixed;z-index:1200;right:0;top:0;bottom:0;width:440px;max-width:100%;background:#fff;box-shadow:-8px 0 30px rgba(15,23,42,.18);display:none;flex-direction:column}
+#daiPanel.on{display:flex}
+.dai-hd{display:flex;align-items:center;gap:8px;padding:12px 12px;border-bottom:1px solid #E5E7EB}
+.dai-hd b{font-size:15px} .dai-hd .dim{font-size:11.5px;flex:1}
+.dai-hd .tbtn{min-height:36px;padding:0 10px}
+#daiMsgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;background:#F8FAFC}
+.dai-me{align-self:flex-end;max-width:85%;background:#1D4ED8;color:#fff;border-radius:14px 14px 4px 14px;padding:9px 12px;font-size:14px;overflow-wrap:anywhere}
+.dai-ai{align-self:flex-start;max-width:96%;background:#fff;border:1px solid #E5E7EB;border-radius:14px 14px 14px 4px;padding:10px 12px;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+.dai-ai.err{color:var(--red);background:#FEF2F2;border-color:#FECACA}
+.dai-ai.wait{color:var(--ink-soft);display:flex;align-items:center;gap:4px}
+.dai-dot{width:6px;height:6px;border-radius:50%;background:#94A3B8;animation:daiB 1s infinite}
+.dai-dot:nth-child(2){animation-delay:.15s}.dai-dot:nth-child(3){animation-delay:.3s}
+@keyframes daiB{0%,80%,100%{opacity:.3}40%{opacity:1}}
+.dai-card{border:1px solid #DBEAFE;background:#F8FBFF;border-radius:12px;padding:9px 10px;margin-top:8px;font-size:13px}
+.dai-card .h{font-weight:800;margin-bottom:4px}
+.dai-card .b{display:flex;flex-direction:column;gap:2px}
+.dai-card .ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.dai-card .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.dai-card .acts .tbtn{min-height:38px;padding:0 12px}
+.dai-card .ok{margin-top:6px;font-weight:700;color:var(--xl-green-dark);display:flex;gap:6px;align-items:center;flex-wrap:wrap;overflow-wrap:anywhere}
+.dai-card .mono{font-family:var(--mono);font-size:12px;font-weight:500}
+.dai-txt{background:#fff;border:1px dashed #CBD5E1;border-radius:8px;padding:8px;line-height:1.55}
+.dai-hello{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:12px;font-size:13.5px;line-height:1.55}
+.dai-hello>b{display:block;font-size:15px;margin-bottom:4px}
+.dai-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.dai-chips button{border:1px solid #BFDBFE;background:#F5F9FF;color:#1D4ED8;border-radius:16px;padding:8px 12px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;text-align:left}
+.dai-in{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid #E5E7EB;background:#fff}
+.dai-in textarea{flex:1;min-width:0;resize:none;border:1px solid var(--xl-grid);border-radius:12px;padding:10px 12px;font:inherit;font-size:15px;max-height:140px}
+.dai-in .tbtn{flex:0 0 46px;min-height:46px;font-size:18px;border-radius:12px}
+@media(max-width:700px){
+  #daiPanel{width:100%}
+  #daiFab{right:12px;bottom:calc(72px + env(safe-area-inset-bottom));padding:11px 15px;font-size:13px}
+  body:not(.cost-ok) #daiFab{bottom:calc(16px + env(safe-area-inset-bottom))}
+}
 /* 링크 v2 */
 .ml-rh{font-size:12px;font-weight:800;color:var(--ink-soft);margin-bottom:6px}
 .ml-rc,.ml-fchips,.mk-chips{display:flex;gap:6px;flex-wrap:wrap}
@@ -1433,7 +1471,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.27d</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.27e</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2315,6 +2353,12 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 
 <!-- ═══ 퀵 마진 계산기 ═══ -->
 <button id="calcFab"><span class="sym">fx</span> 계산기</button>
+<button id="daiFab" type="button" aria-label="AI 비서 열기">💬 AI</button>
+<div id="daiPanel" role="dialog" aria-label="AI 비서">
+  <div class="dai-hd"><b>💬 AI 비서</b><span class="dim">질문은 저장하지 않아요</span><button type="button" class="tbtn" id="daiNew">새 대화</button><button type="button" class="tbtn" id="daiClose" aria-label="닫기">✕</button></div>
+  <div id="daiMsgs"></div>
+  <div class="dai-in"><textarea id="daiIn" rows="1" placeholder="물어보기 · 링크·행사·문구 만들어줘"></textarea><button type="button" class="tbtn primary" id="daiSend" aria-label="보내기">↑</button></div>
+</div>
 <div id="calcMenu">
   <button data-open="calcPanel">🧮 단가 계산기<em>원가 → 판매가·할인 한도</em></button>
   <button data-open="promoCalc">🎯 프로모션 계산기<em>할인·증정·체험단 → 이익</em></button>
@@ -5955,24 +5999,31 @@ function mlAutoLabel(m){ const pu=ML_PURPOSES.find(x=>x.k===m.purpose); const wh
 function mlReadMake(){ const m=ML.make; if(!m||m.result) return m; const g=id=>{ const e=$('#'+id); return e?e.value:null; };
   const u=g('mkUrl'); if(u!=null) m.url=u.trim(); const pa=g('mkPartner'); if(pa!=null) m.partner=pa; const pr=g('mkProd'); if(pr!=null) m.product=pr.trim(); const lb=g('mkLabel'); if(lb!=null) m.label=lb;
   const det=/^https?:\/\//.test(m.url)?mlDest(m.url):null; if(det && (!m.det || m.det.dest!==det.dest || m.detUrl!==m.url)){ m.det=det; m.detUrl=m.url; if(det.brand) m.brand=det.brand; } if(!det) m.det=null; return m; }
-async function mlCreate(){
-  const m=mlReadMake(), pu=ML_PURPOSES.find(x=>x.k===m.purpose); if(!m.det||!pu) return;
+/* 링크 저장(화면 입력 또는 AI 초안 공용) — 성공하면 {id,...doc}, 실패하면 오류를 던진다 */
+async function mlSaveLink(m, via){
+  const pu=ML_PURPOSES.find(x=>x.k===m.purpose); if(!m.det||!pu) throw new Error('링크 주소와 용도를 확인해 주세요');
   let source, medium, placeName;
-  if(pu.named){ placeName=m.partner.trim(); if(!placeName){ $('#mkMsg').innerHTML='<span style="color:var(--red)">이름을 적어 주세요.</span>'; return; } source=pu.src; medium=pu.med; }
-  else { const pl=pu.places.find(x=>x[0]===m.place); if(!pl) return; placeName=pl[0]; source=pl[1]; medium=pl[2]; }
+  if(pu.named){ placeName=String(m.partner||'').trim(); if(!placeName) throw new Error('이름을 적어 주세요'); source=pu.src; medium=pu.med; }
+  else { const pl=pu.places.find(x=>x[0]===m.place); if(!pl) throw new Error('올릴 곳을 골라 주세요'); placeName=pl[0]; source=pl[1]; medium=pl[2]; }
   const promo=m.promoId?PROMOS.find(p=>p.id===m.promoId):null;
   const campaign=promo?mlCode(promo.name,'promo'):'';
   const content=mlCode(pu.named?placeName:(m.label||placeName),'c');
   const t={source,medium,campaign,content}, url=mlBuild(m.url,m.det.mode,t), id=genLinkId();
-  const label=(m.label||'').trim()||mlAutoLabel(m);
+  const label=String(m.label||'').trim()||mlAutoLabel(m);
   const doc={ url, baseUrl:m.url, label, product:m.product||'', channel:source, contentType:m.purpose, campaign, purpose:m.purpose, place:pu.named?'':placeName, partner:pu.named?placeName:'',
-    dest:m.det.dest, brand:m.brand||'', promoId:m.promoId||'', tagMode:m.det.mode,
+    dest:m.det.dest, brand:m.brand||'', promoId:m.promoId||'', tagMode:m.det.mode, createdVia:via||'',
     utmSource:source, utmMedium:medium, utmCampaign:campaign, utmContent:content, clicks:0, clicksByDay:{}, createdAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'' };
+  await db.collection('mkt-links').doc(id).set(doc); logAct(via==='ai'?'AI 링크':'링크', label, `${m.purpose} · ${placeName}`);
+  await fetchMkt();
+  return {id,...doc};
+}
+async function mlCreate(){
+  const m=mlReadMake(); if(!m||!m.det) return;
   const btn=$('#mkGo'); if(btn) btn.disabled=true;
-  try{ await db.collection('mkt-links').doc(id).set(doc); logAct('링크', label, `${m.purpose} · ${placeName}`);
-    try{ await navigator.clipboard.writeText(trackUrl(id)); }catch(e){}
-    await fetchMkt(); ML.make.result={id,...doc}; ML.last={purpose:m.purpose,place:m.place,partner:m.partner,promoId:m.promoId,brand:m.brand,product:m.product}; mlRender();
-  }catch(e){ console.error('[링크] 만들기 실패', e); $('#mkMsg').innerHTML=`<span style="color:var(--red)">만들기 실패: ${esc(e.code||e.message||e)}</span>`; if(btn) btn.disabled=false; }
+  try{ const r=await mlSaveLink(m);
+    try{ await navigator.clipboard.writeText(trackUrl(r.id)); }catch(e){}
+    ML.make.result=r; ML.last={purpose:m.purpose,place:m.place,partner:m.partner,promoId:m.promoId,brand:m.brand,product:m.product}; mlRender();
+  }catch(e){ console.error('[링크] 만들기 실패', e); const msg=$('#mkMsg'); if(msg) msg.innerHTML=`<span style="color:var(--red)">만들기 실패: ${esc(e.code||e.message||e)}</span>`; if(btn) btn.disabled=false; }
 }
 /* 상세 */
 function mlSalesChange(l){ if(!SL.loaded||!l.product||!l.createdAt) return null; const p=P.find(x=>x.name===l.product&&!isDeletedProd(x)); if(!p) return null;
@@ -6080,6 +6131,108 @@ document.addEventListener('click',e=>{
   const p=e.target.closest('#maPeriod [data-mp]'); if(p){ ML.period=p.dataset.mp; maRender(); return; }
   const o=e.target.closest('#maBody [data-mlopen]'); if(o&&!e.target.closest('[data-mlcopy]')){ ML.open=o.dataset.mlopen; ML.make=null; gotoTab('sh-mktlink'); mlRender(); window.scrollTo({top:0}); }
 });
+
+/* ══════════ 💬 AI 비서 (마진 대시보드) ══════════
+   서버: functions/api/dashboard-ai.js (로그인·허용목록 확인, 키는 서버에만)
+   · 질문 → 대시보드 현황(JSON)을 근거로 답. 질문은 저장하지 않음(이 화면에만, 새로고침하면 사라짐)
+   · 링크·행사·문구 초안 → 카드. 사람이 [만들기]를 눌러야 저장되고, 만든 것엔 createdVia:'ai' + 활동 기록
+   · 원가 권한이 없는 계정: 현황에서 원가·이익·마진·제조사 실제 이름을 빼고 보냄(서버에서도 한 번 더 지움) */
+const DAI_API='/api/dashboard-ai';
+const DAI={msgs:[], hist:[], busy:false};
+const DAI_CHIPS=['어제 매출 브랜드별로 알려줘','이번 달 잘 된 링크는?','출시준비 중 뭐가 남았어?','단종예정 재고 소진 행사 짜줘','재구매 고객한테 보낼 문자 써줘'];
+function daiStatus(){
+  const today=pcToday(), from=pcAdd(today,-34);
+  const products=laProducts().slice(0,500).map(p=>{ const k=pKey(p), o={key:k, name:p.name, spec:p.spec&&p.spec!=='-'?p.spec:'', brand:pbrand(p), group:laGroupOf(p), code:PCODE[k]||p.ghCode||'', retail:retailOf(p)||null};
+    const al=mfgAliasOf(p); if(al) o.makerAlias=al;
+    if(costAllowed){ if(p.cost>0) o.cost=p.cost; if(secAllowed){ const n=mfgOf(p); if(n) o.mfg=n; } }
+    const st=EOL_STOCK[k]; if(st&&st.linked) o.stock=st.qty;
+    if(o.group==='출시준비'){ const pr=laProgress(p); o.next=pr.next; }
+    return o; });
+  let sales=null;
+  if(SL.loaded){ const byDay={}, top={};
+    (SL.rows||[]).forEach(r=>{ if(!r.date||r.date<from||r.date>today) return; const d=byDay[r.date]||(byDay[r.date]={}); const k=(r.brand||'')+'|'+(r.ch||''); const x=d[k]||(d[k]={amt:0,qty:0}); x.amt+=r.amt; x.qty+=r.qty;
+      if(r.date>=pcAdd(today,-29)){ const n=r.name||r.key||''; const t=top[n]||(top[n]={amt:0,qty:0,brand:r.brand}); t.amt+=r.amt; t.qty+=r.qty; } });
+    sales={note:'결제일 기준 · VAT 포함 결제액 · 키 = 브랜드|채널', byDay, top30:Object.entries(top).sort((a,b)=>b[1].amt-a[1].amt).slice(0,40).map(([n,v])=>({name:n,...v}))}; }
+  const promos=PROMOS.filter(p=>!p.deleted).slice(0,80).map(p=>{ const m=pcMetrics(p), o={id:p.id,name:p.name,status:m.st,start:p.startDate||'',end:p.endDate||'',reason:p.reason||'',mech:pcMechLabel(p.mech),products:pcProdNames(p),channels:p.channels||[]};
+    if(m.src!=='none') o.result={qty:m.qty,amt:Math.round(m.amt),mult:m.mult!=null?+m.mult.toFixed(2):null,incAmt:m.incAmt!=null?Math.round(m.incAmt):null,spend:m.spend||0};
+    if(costAllowed&&m.incProfit!=null) o.result.incProfit=Math.round(m.incProfit);
+    if(costAllowed&&m.planUnit) o.planProfit=Math.round(m.planUnit.profit);
+    return o; });
+  const d7=pcAdd(today,-6);
+  const links=mlLive().slice(0,200).map(l=>{ const pf=MKT_PERF[l.id]||{}; return {id:l.id,label:l.label||'',purpose:mlPurposeOf(l),place:mlPlaceOf(l),dest:l.dest||'',brand:l.brand||'',clicks:+l.clicks||0,clicks7:l.clicksByDay?mlClicksIn(l,d7):null,created:String(l.createdAt||'').slice(0,10),promo:(PROMOS.find(p=>p.id===l.promoId)||{}).name||'',orders:+pf.orders||0,revenue:+pf.revenue||0,spend:+pf.spend||0}; });
+  return { today, brands:['POUR스토어','GROHOME'], places:Object.fromEntries(ML_PURPOSES.map(p=>[p.k,p.places?p.places.map(x=>x[0]):null])),
+    salesChannels:pcChannels(), products, sales, promos, links };
+}
+function daiMd(t){ return esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>'); }
+function daiOpen(){ $('#daiPanel').classList.add('on'); document.body.classList.add('dai-open'); daiRender(); setTimeout(()=>{ const i=$('#daiIn'); if(i&&innerWidth>700) i.focus(); },60);
+  if(!SL.loaded&&!SL.loading&&typeof loadSales==='function') loadSales().catch(e=>console.warn('[AI] 매출 불러오기 실패', e)); }
+function daiClose(){ $('#daiPanel').classList.remove('on'); document.body.classList.remove('dai-open'); }
+function daiLinkCard(d,mi,i){ const pu=ML_PURPOSES.find(x=>x.k===d.purpose)||ML_PURPOSES[5], promo=d.promoId?PROMOS.find(p=>p.id===d.promoId):null;
+  const who=d.place||d.partner||d.purpose;
+  return `<div class="dai-card"><div class="h">🔗 링크 · ${pu.ic} ${esc(d.purpose)} · ${esc(who)}</div>
+    <div class="b">${d.url?`<div class="dim ell">${esc(d.url)}</div>`:'<div class="dim">주소가 없어요 — 만들기 창에서 붙여넣어요</div>'}${promo?`<div>🎯 ${esc(promo.name)}</div>`:''}${d.product?`<div>${esc(d.product)}</div>`:''}</div>
+    ${d.done?`<div class="ok">✅ 만들었어요 · <span class="mono">${esc(trackUrl(d.done))}</span> <button type="button" class="tbtn" data-mlcopy="${esc(d.done)}">복사</button></div>`
+      :`<div class="acts">${d.url?`<button type="button" class="tbtn primary" data-dailk="${mi}:${i}">만들고 복사</button>`:''}<button type="button" class="tbtn" data-daile="${mi}:${i}">${d.url?'고쳐서 만들기':'만들기 창 열기'}</button></div>`}</div>`; }
+function daiPromoCard(d,mi,i){ const names=(d.productKeys||[]).map(k=>{ const p=pcProd(k); return p?prodLabel(p):''; }).filter(Boolean);
+  return `<div class="dai-card"><div class="h">📅 행사 · ${esc(d.name)}</div>
+    <div class="b"><div>${esc(d.startDate||'날짜 미정')}${d.endDate&&d.endDate!==d.startDate?' ~ '+esc(d.endDate):''}${d.reason?' · '+esc(d.reason):''} · ${esc(pcMechLabel(d.mech))}</div>${names.length?`<div class="dim">${esc(names.join(', '))}</div>`:''}${d.memo?`<div class="dim">${esc(d.memo)}</div>`:''}</div>
+    ${d.done?'<div class="ok">✅ 달력에서 저장까지 했어요</div>':`<div class="acts"><button type="button" class="tbtn primary" data-daipr="${mi}:${i}">달력에서 확인·저장</button></div>`}</div>`; }
+function daiMsgCard(d,mi,i,links){ const l=d.linkIdx!=null?links[d.linkIdx]:null; const txt=l&&l.done?d.text.replace(/\{링크\}/g,trackUrl(l.done)):d.text;
+  return `<div class="dai-card"><div class="h">💬 문구 · ${esc(d.title)}</div><div class="b dai-txt">${esc(txt).replace(/\n/g,'<br>')}</div>
+    <div class="acts">${l&&!l.done&&l.url?`<button type="button" class="tbtn primary" data-daimsgl="${mi}:${i}">링크 만들고 문구 복사</button>`:''}<button type="button" class="tbtn${l&&!l.done&&l.url?'':' primary'}" data-daimsg="${mi}:${i}">문구 복사</button></div>
+    ${l&&!l.done?'<div class="dim" style="font-size:12px;margin-top:4px">{링크} 자리는 링크를 만들면 짧은 주소로 바뀌어요</div>':''}</div>`; }
+function daiRender(){
+  const box=$('#daiMsgs'); if(!box) return;
+  if(!DAI.msgs.length){ box.innerHTML=`<div class="dai-hello"><b>무엇이든 물어보거나 시켜 보세요</b><div>매출·마진·출시·행사·링크 현황을 답하고, 링크·행사·고객 문구 초안을 만들어요. 초안은 [만들기]를 눌러야 저장돼요.</div>
+      <div class="dai-chips">${DAI_CHIPS.map(c=>`<button type="button" data-daichip="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+      ${costAllowed?'':'<div class="dim" style="margin-top:8px">· 이 계정의 AI는 원가·이익·제조사 이름을 모르는 상태로 답해요.</div>'}</div>`; }
+  else box.innerHTML=DAI.msgs.map((m,mi)=>{ if(m.who==='me') return `<div class="dai-me">${esc(m.text).replace(/\n/g,'<br>')}</div>`;
+    if(m.err) return `<div class="dai-ai err">⚠️ ${esc(m.err)}</div>`;
+    if(m.wait) return `<div class="dai-ai wait"><span class="dai-dot"></span><span class="dai-dot"></span><span class="dai-dot"></span> 현황을 보고 있어요…</div>`;
+    const p=m.plan; return `<div class="dai-ai">${daiMd(p.reply||'')}${(p.links||[]).map((d,i)=>daiLinkCard(d,mi,i)).join('')}${(p.promos||[]).map((d,i)=>daiPromoCard(d,mi,i)).join('')}${(p.messages||[]).map((d,i)=>daiMsgCard(d,mi,i,p.links||[])).join('')}</div>`; }).join('');
+  box.scrollTop=box.scrollHeight;
+  const s=$('#daiSend'); if(s) s.disabled=DAI.busy;
+}
+async function daiSend(text){
+  text=String(text||'').trim(); if(!text||DAI.busy) return;
+  if(!curUser){ uiToast('로그인한 뒤에 쓸 수 있어요','err'); return; }
+  DAI.busy=true; DAI.msgs.push({who:'me',text}); const wait={who:'ai',wait:true}; DAI.msgs.push(wait); daiRender();
+  try{
+    if(!SL.loaded&&typeof loadSales==='function'){ try{ await loadSales(); }catch(e){ console.warn('[AI] 매출 불러오기 실패', e); } }
+    const token=await curUser.getIdToken();
+    const r=await fetch(DAI_API,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text,status:daiStatus(),history:DAI.hist.slice(-6)})});
+    const j=await r.json().catch(()=>null);
+    if(!r.ok||!j||!j.ok) throw new Error((j&&j.error)||('HTTP '+r.status+(r.status===404?' — 서버 함수가 아직 배포되지 않았어요':'')));
+    Object.assign(wait,{wait:false,plan:j.plan}); DAI.hist.push({나:text,AI:String(j.plan.reply||'').slice(0,800)});
+    console.log('[AI] 응답', j.model, j.usage);
+  }catch(e){ console.error('[AI] 실패', e); Object.assign(wait,{wait:false,err:e.message||String(e)}); }
+  finally{ DAI.busy=false; daiRender(); }
+}
+const daiAt=v=>{ const [mi,i]=String(v).split(':').map(Number); return {m:DAI.msgs[mi], i}; };
+function daiLinkDraftToMake(d){ const det=d.url&&/^https?:\/\//.test(d.url)?mlDest(d.url):null; const pu=ML_PURPOSES.find(x=>x.k===d.purpose);
+  return {url:d.url||'', det, detUrl:d.url||'', brand:(det&&det.brand)||'', purpose:pu?d.purpose:'', place:pu&&!pu.named&&pu.places.some(x=>x[0]===d.place)?d.place:'', partner:pu&&pu.named?(d.partner||''):'', promoId:d.promoId||'', product:d.product||'', label:d.label||''}; }
+async function daiMakeLink(d){ const m=daiLinkDraftToMake(d); const r=await mlSaveLink(m,'ai'); d.done=r.id; return r; }
+document.addEventListener('click',async e=>{
+  if(e.target.closest('#daiFab')){ daiOpen(); return; }
+  if(!e.target.closest('#daiPanel')) return;
+  if(e.target.closest('#daiClose')){ daiClose(); return; }
+  if(e.target.closest('#daiNew')){ DAI.msgs=[]; DAI.hist=[]; daiRender(); return; }
+  const ch=e.target.closest('[data-daichip]'); if(ch){ daiSend(ch.dataset.daichip); return; }
+  if(e.target.closest('#daiSend')){ const i=$('#daiIn'); const t=i.value; i.value=''; i.style.height=''; daiSend(t); return; }
+  const lk=e.target.closest('[data-dailk]'); if(lk){ const {m,i}=daiAt(lk.dataset.dailk), d=m.plan.links[i]; lk.disabled=true;
+    try{ const r=await daiMakeLink(d); try{ await navigator.clipboard.writeText(trackUrl(r.id)); }catch(err){} uiToast('링크를 만들고 복사했어요','ok'); }catch(err){ uiToast('못 만들었어요: '+(err.message||err)+' · [고쳐서 만들기]로 열어 주세요','err'); lk.disabled=false; }
+    daiRender(); return; }
+  const le=e.target.closest('[data-daile]'); if(le){ const {m,i}=daiAt(le.dataset.daile); daiClose(); gotoTab('sh-mktlink'); mlOpenMake(daiLinkDraftToMake(m.plan.links[i])); return; }
+  const pr=e.target.closest('[data-daipr]'); if(pr){ const {m,i}=daiAt(pr.dataset.daipr), d=m.plan.promos[i]; const mech={}; Object.entries(d.mech||{}).forEach(([k,v])=>{ if(v!=null) mech[k]=v; });
+    daiClose(); pcOpenNew({name:d.name, reason:d.reason||'', startDate:d.startDate||'', endDate:d.endDate||'', keys:d.productKeys||[], channels:d.channels||[], mech, memo:d.memo||'', via:'ai'}); d.done=true; uiToast('AI 초안이에요 · 확인하고 [만들기]를 눌러 주세요','info'); return; }
+  const ml=e.target.closest('[data-daimsgl]'); if(ml){ const {m,i}=daiAt(ml.dataset.daimsgl), d=m.plan.messages[i], l=m.plan.links[d.linkIdx]; ml.disabled=true;
+    try{ await daiMakeLink(l); await navigator.clipboard.writeText(d.text.replace(/\{링크\}/g,trackUrl(l.done))).catch(()=>{}); uiToast('링크를 만들고 문구를 복사했어요','ok'); }catch(err){ uiToast('링크를 못 만들었어요: '+(err.message||err),'err'); ml.disabled=false; }
+    daiRender(); return; }
+  const mc=e.target.closest('[data-daimsg]'); if(mc){ const {m,i}=daiAt(mc.dataset.daimsg), d=m.plan.messages[i], l=d.linkIdx!=null?m.plan.links[d.linkIdx]:null;
+    const t=l&&l.done?d.text.replace(/\{링크\}/g,trackUrl(l.done)):d.text; (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>uiToast('문구를 복사했어요','ok')).catch(()=>prompt('문구를 복사하세요',t)); return; }
+});
+document.addEventListener('keydown',e=>{ if(e.target.id!=='daiIn') return; if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&innerWidth>700){ e.preventDefault(); $('#daiSend').click(); } });
+document.addEventListener('input',e=>{ if(e.target.id!=='daiIn') return; const t=e.target; t.style.height=''; t.style.height=Math.min(140,t.scrollHeight)+'px'; });
 
 function renderPromos(){ const on=$('#sh-mktpromo'); if(on&&on.classList.contains('on')) pcRender(); }
 /* ══════════ 프로모션 (행사 달력) ══════════
@@ -6308,7 +6461,7 @@ async function pcSave(){
     products:(d.keys||[]).length?pcProdNames(d).join(', '):(d.products||''), updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||'' };
   const btn=$('#pcSave'); btn.disabled=true;
   try{
-    if(isNew){ doc.createdAt=doc.updatedAt; doc.createdBy=doc.updatedBy; const r=await db.collection('promotions').add(doc); PC.open=r.id; logAct('프로모션', d.name, '새로 만듦'); }
+    if(isNew){ doc.createdAt=doc.updatedAt; doc.createdBy=doc.updatedBy; if(d.via) doc.createdVia=d.via; const r=await db.collection('promotions').add(doc); PC.open=r.id; logAct('프로모션', d.name, '새로 만듦'); }
     else { await db.collection('promotions').doc(PC.open).set(doc,{merge:true}); logAct('프로모션', d.name, '수정'); }
     await fetchMkt(); const id=PC.open; PC.draft=null;
     const st=pcStatus(doc); if(doc.startDate){ PC.month=doc.startDate.slice(0,7); PC.day=doc.startDate; }

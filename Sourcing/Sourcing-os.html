@@ -7036,7 +7036,25 @@ async function costAfterLoad(){
       console.warn('[원가] 모두가 보는 문서에 원가가 남아 있어 다시 분리해요');queueCloudSync();
     }
   }else{await costMigrate();}
+  if(costLoaded&&costSec&&!costSec.legacyCleanedAt)costLegacyCleanup().catch(e=>console.error('[원가] 예전 데이터 정리 실패:',e));
   startCostRealtime();
+}
+/* 누구나 읽을 수 있는 곳에 남은 예전 원가 데이터 → 관리자 전용 백업으로 옮기고 원래 자리엔 '옮겨짐' 표시만 (지우지 않음)
+   · sourcing-os/price-list : 예전 초안 단가표 페이지(price-list.html · 지금은 안내 화면)의 데이터
+   · pour-os/sourcing-os-state : 소싱앱이 예전에 쓰던 자리의 복사본 (POUR OS 저장소라 로그인 없이 읽힘) */
+async function costLegacyCleanup(){
+  const now=new Date().toISOString(),by=curUser(),tag=Date.now();const done=[];
+  const targets=[{ref:FS.collection(FS_COLL).doc('price-list'),key:'price-list'},{ref:FS.collection(FS_OLD_COLL).doc(FS_OLD_ID),key:'legacy-pour-os-state'}];
+  for(const t of targets){
+    try{const snap=await t.ref.get();if(!snap.exists)continue;const d=snap.data();if(d&&d.movedTo)continue;
+      const to='backup-'+t.key+'-'+tag;
+      await FS.collection(COST_COLL).doc(to).set({at:now,by,from:t.ref.path||t.key,note:'누구나 읽을 수 있던 예전 데이터 — 관리자 전용으로 옮김',data:JSON.parse(JSON.stringify(d))});
+      await t.ref.set({movedTo:COST_COLL+'/'+to,movedAt:now,movedBy:by,note:'관리자 전용 저장소로 옮겨졌어요 (원가 보호)'});
+      done.push(t.key);console.log('[원가] 예전 데이터 옮김:',t.key,'→',to);
+    }catch(e){console.error('[원가] 예전 데이터 옮기기 실패('+t.key+') — 그대로 둠:',e);return;}
+  }
+  await costDocRef().set({legacyCleanedAt:now,legacyCleaned:done},{merge:true});costSec=Object.assign({},costSec,{legacyCleanedAt:now});
+  if(done.length)flagMsg('🔒 예전 원가 데이터 '+done.length+'건도 관리자 전용으로 옮겼어요','ok');
 }
 async function costMigrate(){ // 최초 1회: 백업 → 원가 문서 → 공개 문서에서 빼기
   const now=new Date().toISOString(),by=curUser(),tag=Date.now();

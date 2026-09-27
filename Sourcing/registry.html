@@ -87,7 +87,7 @@ td.num,th.num{text-align:right}
           <div class="fld"><label>매입원가(원)</label><input id="fCost" type="number" placeholder="예: 8000"></div>
         </div>
         <div class="formgrid" style="margin-top:10px">
-          <div class="fld"><label>제조사</label><input id="fMfg" list="mfgList" placeholder="선택/입력"><datalist id="mfgList"></datalist></div>
+          <div class="fld"><label>제조사 <span style="color:var(--faint);font-weight:400">🔒 비공개</span></label><input id="fMfg" readonly placeholder="가칭만 표시 · 마진 대시보드(마스터)에서 지정" style="background:#F9FAFB;color:var(--muted)"></div>
           <div class="fld"><label>컨셉(파생 기준)</label><input id="fConcept" placeholder="예: 옥상방수 라인"></div>
           <div class="fld"><label>유형</label><select id="fType"><option value="단품">단품</option><option value="세트">세트</option></select></div>
           <div class="fld"><label>상태</label><select id="fStatus"><option>소싱중</option><option>출시</option><option>단종</option></select></div>
@@ -161,15 +161,17 @@ function start(){
     BASE=s.docs.map(d=>d.data()).sort((a,b)=>(a.seq??0)-(b.seq??0)); renderBase(); fillDatalists();
     $('#denied').style.display='none';
   }, e=>{ console.warn('[products]',e.code||e); if((e.code||'').includes('permission')) $('#denied').style.display=''; });
+  db.collection('product-meta').doc('mfg-alias').onSnapshot(d=>{ MFG_ALIAS=(d.exists&&d.data().prod)||{}; renderAdded(); }, e=>console.warn('[mfg-alias]',e.code||e));
   db.collection('products-added').onSnapshot(s=>{
     ADDED=s.docs.map(d=>({docId:d.id,...d.data()})).sort((a,b)=>(a.seq??0)-(b.seq??0)); renderAdded(); fillDatalists();
   }, e=>{ console.warn('[products-added]',e.code||e); if((e.code||'').includes('permission')) $('#denied').style.display=''; });
 }
+/* 제조사 이름은 비공개(마진 대시보드 마스터 전용) — 여기선 팀원용 가칭(A사…)만 보여주고 쓰지 않는다 */
+let MFG_ALIAS={};
+const mfgAliasOf=p=>MFG_ALIAS[`${p.cat}|${p.name}|${p.spec}`]||'';
 function fillDatalists(){
   const cats=[...new Set([...BASE,...ADDED].map(p=>p.cat).filter(Boolean))];
-  const mfgs=[...new Set(ADDED.map(p=>p.mfg).filter(Boolean))];
   $('#catList').innerHTML=cats.map(c=>`<option value="${esc(c)}">`).join('');
-  $('#mfgList').innerHTML=mfgs.map(m=>`<option value="${esc(m)}">`).join('');
 }
 const typePill=t=>t==='세트'?'<span class="pill g">세트</span>':'<span class="pill m">단품</span>';
 const statusPill=s=>s==='출시'?'<span class="pill g">출시</span>':(s==='단종'?'<span class="pill a">단종</span>':'<span class="pill m">소싱중</span>');
@@ -177,7 +179,7 @@ function renderAdded(){
   $('#cntAdded').textContent=ADDED.length;
   $('#addedBody').innerHTML = ADDED.length? ADDED.map(p=>`<tr>
     <td><b>${esc(p.name)}</b></td><td class="hidem">${esc(p.cat||'')}</td><td>${esc(p.spec||'')}</td>
-    <td class="hidem">${esc(p.concept||'')}</td><td>${typePill(p.type)}</td><td class="hidem">${esc(p.mfg||'')}</td>
+    <td class="hidem">${esc(p.concept||'')}</td><td>${typePill(p.type)}</td><td class="hidem">${esc(mfgAliasOf(p))}</td>
     <td>${statusPill(p.status)}</td><td class="num">${won(p.cost)}</td>
     <td><div class="rowbtns"><button class="edit" data-edit="${p.docId}">수정</button><button class="der" data-der="a:${p.docId}">파생</button><button class="del" data-del="${p.docId}">삭제</button></div></td></tr>`).join('')
     : `<tr><td colspan="9" class="dim" style="padding:14px">아직 등록한 상품이 없습니다. 위에서 등록하거나, 아래 시드 상품에서 "파생"으로 시작하세요.</td></tr>`;
@@ -193,13 +195,13 @@ function renderBase(){
 /* ── 폼 ── */
 function readForm(){
   return { cat:($('#fCat').value||'').trim()||'기타', name:($('#fName').value||'').trim(), spec:($('#fSpec').value||'').trim()||'-',
-    cost:$('#fCost').value===''?null:+$('#fCost').value, mfg:($('#fMfg').value||'').trim(),
+    cost:$('#fCost').value===''?null:+$('#fCost').value,
     concept:($('#fConcept').value||'').trim(), type:$('#fType').value||'단품', status:$('#fStatus').value||'소싱중',
     setItems:($('#fSet').value||'').trim() };
 }
 function setForm(d){
   $('#fCat').value=d.cat||''; $('#fName').value=d.name||''; $('#fSpec').value=(d.spec&&d.spec!=='-')?d.spec:'';
-  $('#fCost').value=d.cost??''; $('#fMfg').value=d.mfg||''; $('#fConcept').value=d.concept||'';
+  $('#fCost').value=d.cost??''; $('#fMfg').value=mfgAliasOf(d); $('#fConcept').value=d.concept||'';
   $('#fType').value=d.type||'단품'; $('#fStatus').value=d.status||'소싱중'; $('#fSet').value=d.setItems||'';
 }
 function clearForm(){ editId=null; setForm({}); $('#formTitle').textContent='＋ 상품 등록'; $('#fSave').textContent='저장'; }

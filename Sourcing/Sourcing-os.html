@@ -7357,7 +7357,7 @@ const AI_OP={ref_link:['🔗','레퍼런스 링크','ref'],ref_media:['📌','�
 const AI_FIELD={specLine:'스펙 한 줄',spec:'대표 규격',goods:'판매 상품명',concept:'컨셉',target:'타겟',diff:'차별점',cost:'단가(원)',moq:'MOQ',lead:'납기',unitLabel:'단위',customs:'통관·물류'};
 const AI_DOCS=['시험성적서','MSDS','인증서','추가서류'];
 const aiBusy=new Set();
-let aiUsage=null;
+let aiUsage=null,aiLoadErr='';
 let aiMsgs=[],aiLoaded=false,aiLock=null,aiFiles=[],aiShowAll=false;const aiFrames={};const aiSel={};
 function aiLogColl(){try{return FS?FS.collection(costActive()&&isCostAdmin()&&costLoaded?COST_COLL:FS_COLL).doc('ai').collection('log'):null;}catch(e){console.error('[AI] 기록 저장소 열기 실패:',e);return null;}}
 async function aiSaveMsg(m){
@@ -7371,7 +7371,7 @@ async function aiLoad(){
   try{const snap=await col.get();aiMsgs=snap.docs.map(d=>d.data());
     if(isCostAdmin()&&costActive()&&costLoaded){try{const pubS=await FS.collection(FS_COLL).doc('ai').collection('log').get();const have=new Set(aiMsgs.map(m=>m.id));pubS.docs.forEach(d=>{const m=d.data();if(!have.has(m.id)){m.src='pub';aiMsgs.push(m);}});}catch(e){console.warn('[AI] 팀원 기록 불러오기 실패',e);}}
     aiMsgs.sort((a,b)=>(a.ts||0)-(b.ts||0));console.log(`[AI 정리] 기록 ${aiMsgs.length}건 로드`);}
-  catch(e){console.error('[AI 정리] 기록 불러오기 실패:',e);flagMsg('AI 정리 기록을 불러오지 못했어요','warn');}
+  catch(e){console.error('[AI 정리] 기록 불러오기 실패:',e);aiLoadErr=(e&&(e.code||e.message))||String(e);}
   try{const d=await FS.collection(FS_COLL).doc('ai').get();aiUsage=d.exists?(d.data().usage||{}):{};}catch(e){console.warn('[AI 정리] 사용량 불러오기 실패',e);}
   aiLoaded=true;
 }
@@ -7512,6 +7512,7 @@ function renderAi(){
     ${me?'':`<button class="ai-login" data-ai="login">🔑 로그인해야 AI를 쓸 수 있어요 · 누가 넣었는지 이력에 남아요 <b>로그인 ›</b></button>`}
     <div class="ai-lock">${lp?`📦 <b>${esc(dn(lp))}</b>에 대해 <button class="it-btn line" data-ai="unlock">전체로 보기</button>`:'🤖 물어보거나, 사진·링크·메모를 보내면 알아서 정리해요'}</div>
     ${!aiLoaded?'<div class="it-card it-sub">기록 불러오는 중…</div>':''}
+    ${aiLoadErr?`<div class="it-card it-sub">⚠ 지난 기록을 불러오지 못했어요 (${esc(aiLoadErr)}). 질문·정리는 그대로 쓸 수 있어요. 보안 규칙을 저장소 최신본으로 게시하면 해결돼요.</div>`:''}
     ${aiLoaded&&!aiMsgs.length?`<div class="it-card ai-guide"><b>💬 이렇게 물어보세요</b>
       <div>"샘플 기다리는 거 뭐 있어?" · "이번 주 할 일 알려줘" · "코트재 마진 얼마야?"</div>
       <b style="margin-top:6px">📥 이렇게 보내 보세요</b>

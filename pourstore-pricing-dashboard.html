@@ -859,6 +859,47 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 .la-choose .tbtn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;text-align:left;min-height:0}
 .la-choose .tbtn span{font-size:12px;color:var(--ink-soft);font-weight:500}
 @media(max-width:640px){ .la-row{flex-wrap:wrap} .la-row .acts{width:100%;justify-content:flex-end} }
+/* ── 실사용 점검(2026-09-28) 반영: 폰에서 손가락 크기 · 떠 있는 버튼이 가리지 않게 ── */
+#rowInfo .ri-mob{display:none}
+@media(max-width:640px){
+  #priceGrid .rowtools{display:none!important}          /* 18×13 행 아이콘 대신 행을 누르면 뜨는 요약줄 버튼 사용 */
+  #rowInfo .ri-mob{display:inline-flex}
+  #rowInfo .ri-b{min-height:36px;padding:6px 11px;font-size:13px;display:inline-flex;align-items:center}
+  #ribbon button{min-height:36px}
+  #btnAddProd,.tbtn{min-height:36px}
+  .la-row .acts .tbtn{min-height:38px;padding:6px 12px}
+  .ml-card .ml-copy{min-height:34px;padding:6px 12px}
+  .pc-link{padding:8px 4px;font-size:12.5px}
+  .pc-tag button{min-width:30px;min-height:30px}
+  .mf-tel{display:inline-block;padding:6px 0}
+  .seg button{min-height:36px}
+  #ribbon .kpi .sub,#ribbon .kpi .lb{font-size:11px!important}
+  .sheet .sheet-pad{padding-bottom:150px!important}   /* 마지막 내용이 떠 있는 버튼 위로 올라오게 */
+  .pb-todo,.gridadd{min-height:34px!important;padding:6px 10px!important}
+  #slFrom,#slTo,#surDate,#riQty{min-height:38px}
+  #rowInfo .ri-add .tbtn{min-height:38px}
+  .la-cc{padding:6px 10px!important;font-size:12px!important}
+  .la-tbl input,.la-tbl select{min-height:36px}
+  .la-tbl .del{min-width:36px;min-height:36px}
+  #pcDetail .pc-link{padding:8px 6px;display:inline-block}
+  #pcDetail .pc-tag button{min-width:32px;min-height:32px}
+  #mlList .ml-card .ml-copy,#maBody .ml-card .ml-copy{min-height:36px;padding:6px 12px}
+  :is(#maBrand,#maPeriod,#pcViewSeg,#tpBrand,#laStatusSeg,#brandSeg,#statusSeg,#viewSeg,#slQuick,#slUnit) button{min-height:38px}
+  .mrate,.sl-cnt{font-size:10.5px!important}
+  .pc-order button{width:40px!important;height:38px!important}
+  #tpBrand button,#maBrand button{min-height:38px!important}
+  #priceGrid thead .chdrag div,#priceGrid thead .chdrag b{font-size:10.5px!important}
+}
+#ribbon .kpi .sub,#ribbon .kpi .lb{font-size:11px}
+/* PC에서도 입력 창(행사·링크 만들기·신제품 검토)이 열려 있으면 떠 있는 버튼을 숨긴다 */
+body:has(:is(#sh-launch.on #laDetailBar:not([style*="none"]),#sh-mktpromo.on #pcDetail:not([style*="none"]) .pc-form,#sh-mktlink.on #mlMake:not([style*="none"]) .mk-step)) :is(#daiFab,#calcFab){display:none!important}
+/* 창·패널이 열려 있거나 폰에서 입력 중이면 떠 있는 버튼(💬 AI · fx 계산기)을 숨긴다 */
+body:has(:is(#addOverlay,#impOverlay,#catOverlay,#chanOverlay,#psOverlay,#expOverlay,#ghOverlay,#suOverlay,#surOverlay).on) :is(#daiFab,#calcFab){display:none!important}
+@media(max-width:700px){
+  body:has(:is(#sh-launch #laDetailBar:not([style*="none"]),#pcDetail:not([style*="none"]) .pc-form,#mlMake:not([style*="none"]) .mk-step)) :is(#daiFab,#calcFab){display:none!important}
+  body.kb-open :is(#daiFab,#calcFab){display:none!important}
+  #daiFab{padding:11px 13px!important}
+}
 /* AI 비서 */
 #daiFab{position:fixed;right:20px;bottom:108px;z-index:100;background:#1D4ED8;color:#fff;border:0;border-radius:26px;padding:12px 18px;font-size:14px;font-weight:800;box-shadow:0 6px 18px rgba(29,78,216,.35);cursor:pointer}
 body:not(.cost-ok) #daiFab{bottom:52px}
@@ -1483,7 +1524,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28a</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28b</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -4291,7 +4332,7 @@ function rowInfoPaint(el){
     return `<span class="ri-c${c.retail?' rt':''}"><i>${c.code?esc(c.code)+' ':''}${esc(c.lb)}</i><b>${v==null?'—':won(v)}</b>${r!=null?`<em class="${r<0?'neg':''}">${pct(r)}</em>`:''}</span>`; };
   el.hidden=false;
   el.innerHTML=`<div class="ri-hd"><b>${esc(p.name)}</b><span>${esc(p.spec||'')}${pcodeOf(p)?' · '+esc(pcodeOf(p)):''}${costAllowed?` · 원가 <b>${cost==null?'—':won(cost)}</b>`:''}</span>
-      ${costAllowed?(EDIT_ROW===String(p.id)?`<span class="ri-editing">✏️ 편집 중 · 가격칸 더블클릭</span><button type="button" class="ri-b" data-rimodal="${p.id}" title="분류·원가·유형·구성">상세 수정</button><button type="button" class="ri-b ri-done" data-riedit="${p.id}">완료</button>`:`<button type="button" class="ri-b" data-riedit="${p.id}" title="이 제품 편집">✏️ 편집</button>`):''}${costAllowed?`<button type="button" class="ri-b ri-det" data-ridet="${p.id}" title="상품 기준 · 채널 수익분석">상세 ▸</button>`:''}<button type="button" class="ri-b" id="rowInfoX" title="닫기">✕</button></div>
+      ${costAllowed?(EDIT_ROW===String(p.id)?`<span class="ri-editing">✏️ 편집 중 · 가격칸 더블클릭</span><button type="button" class="ri-b" data-rimodal="${p.id}" title="분류·원가·유형·구성">상세 수정</button><button type="button" class="ri-b ri-mob" data-rifix="${p.id}" title="자동계산 ↔ 파일값 고정">${isFixed(p)?'📌 파일값':'⚙️ 자동계산'}</button><button type="button" class="ri-b ri-mob" data-ricopy="${p.id}">📋 복사</button><button type="button" class="ri-b ri-mob" data-ridel="${p.id}" style="color:var(--red)">🗑 휴지통</button><button type="button" class="ri-b ri-done" data-riedit="${p.id}">완료</button>`:`<button type="button" class="ri-b" data-riedit="${p.id}" title="이 제품 편집">✏️ 편집</button>`):''}${costAllowed?`<button type="button" class="ri-b ri-det" data-ridet="${p.id}" title="상품 기준 · 채널 수익분석">상세 ▸</button>`:''}<button type="button" class="ri-b" id="rowInfoX" title="닫기">✕</button></div>
     <div class="ri-row">${cols.map(chip).join('')}</div>
     ${costAllowed&&MOQ_TIERS.length?(()=>{ const inQ=QT.items.find(x=>x.key===pKey(p)); const def=inQ?inQ.qty:((MOQ_TIERS[1]&&MOQ_TIERS[1].min)||1);
       return `<div class="ri-moq"><span class="ri-t">수량별</span>${MOQ_TIERS.map(t=>{ const u=qtUnitAuto(p,t.min); return `<span class="ri-m"><i>${esc(t.label)}</i>${u==null?'—':won(u)}</span>`; }).join('')}
@@ -4302,6 +4343,9 @@ document.addEventListener('click',e=>{
   const ad=e.target.closest('[data-riadd]'); if(ad){ dlAdd(ad.dataset.riadd, $('#riQty')?$('#riQty').value:1); rowInfoRender(); uiToast(`견적에 담김 · ${QT.items.length}개 품목 (🧾 견적에서 보기)`,'ok'); return; }
   const ed=e.target.closest('[data-riedit]'); if(ed){ const id=ed.dataset.riedit; setEditRow(EDIT_ROW===id?null:id); return; }
   const dt=e.target.closest('[data-ridet]'); if(dt){ const p=P.find(x=>String(x.id)===dt.dataset.ridet); if(p) openDetail(p); return; }
+  const rf=e.target.closest('[data-rifix]'); if(rf){ const p=P.find(x=>String(x.id)===rf.dataset.rifix); if(p){ Promise.resolve(toggleFixed(p)).then(()=>rowInfoRender()); } return; }
+  const rc=e.target.closest('[data-ricopy]'); if(rc){ const p=P.find(x=>String(x.id)===rc.dataset.ricopy); if(p) openCopyModal(p); return; }
+  const rd=e.target.closest('[data-ridel]'); if(rd){ const p=P.find(x=>String(x.id)===rd.dataset.ridel); if(p) softDeleteProduct(p); return; }
   const md=e.target.closest('[data-rimodal]'); if(md){ const p=P.find(x=>String(x.id)===md.dataset.rimodal); if(p&&typeof openEditModal==='function') openEditModal(p); return; }
   const td=e.target.closest('#priceGrid tbody tr[data-id] td'); if(!td || e.target.closest('button,input,.grip,.nono')) return;
   const id=td.parentElement.dataset.id; if(EDIT_ROW!=null&&EDIT_ROW!==id){ EDIT_ROW=null; $$('#priceGrid tr.row-edit').forEach(tr=>tr.classList.remove('row-edit')); }
@@ -6166,7 +6210,7 @@ document.addEventListener('click',async e=>{
 });
 document.addEventListener('input',e=>{
   if(e.target.id==='mlq'){ ML.q=e.target.value; mlRenderList(); }
-  else if((e.target.id==='mkUrl'||e.target.id==='mkPartner')&&ML.make){ const before=JSON.stringify([ML.make&&ML.make.det&&ML.make.det.dest,!!(ML.make&&ML.make.partner.trim())]); mlReadMake(); const after=JSON.stringify([ML.make.det&&ML.make.det.dest,!!ML.make.partner.trim()]);
+  else if((e.target.id==='mkUrl'||e.target.id==='mkPartner')&&ML.make){ const key=()=>JSON.stringify([ML.make.det&&ML.make.det.dest,!!ML.make.partner.trim(),!!ML.make.url&&!ML.make.det]); const before=key(); mlReadMake(); const after=key();
     if(before!==after){ const id=e.target.id, pos=e.target.selectionStart; mlRenderMake(); const el=$('#'+id); if(el){ el.focus(); try{ el.setSelectionRange(pos,pos); }catch(err){} } } }
 });
 document.addEventListener('change',async e=>{ const f=e.target.dataset&&e.target.dataset.mlpf; if(!f||!ML.open) return; await mktSetPerf(ML.open,{[f]:e.target.value===''?0:+e.target.value}); uiToast('저장했어요','ok'); });
@@ -6327,6 +6371,8 @@ document.addEventListener('click',async e=>{
   const mc=e.target.closest('[data-daimsg]'); if(mc){ const {m,i}=daiAt(mc.dataset.daimsg), d=m.plan.messages[i], l=d.linkIdx!=null?m.plan.links[d.linkIdx]:null;
     const t=l&&l.done?d.text.replace(/\{링크\}/g,trackUrl(l.done)):d.text; (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>uiToast('문구를 복사했어요','ok')).catch(()=>prompt('문구를 복사하세요',t)); return; }
 });
+document.addEventListener('focusin',e=>{ if(innerWidth<=700&&e.target.matches&&e.target.matches('input:not([type=checkbox]):not([type=radio]),textarea,select')) document.body.classList.add('kb-open'); });
+document.addEventListener('focusout',()=>{ setTimeout(()=>{ const a=document.activeElement; if(!(a&&a.matches&&a.matches('input,textarea,select'))) document.body.classList.remove('kb-open'); },120); });
 document.addEventListener('keydown',e=>{ if(e.target.id!=='daiIn') return; if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&innerWidth>700){ e.preventDefault(); $('#daiSend').click(); } });
 document.addEventListener('input',e=>{ if(e.target.id!=='daiIn') return; const t=e.target; t.style.height=''; t.style.height=Math.min(140,t.scrollHeight)+'px'; });
 

@@ -859,6 +859,78 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 .la-choose .tbtn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;text-align:left;min-height:0}
 .la-choose .tbtn span{font-size:12px;color:var(--ink-soft);font-weight:500}
 @media(max-width:640px){ .la-row{flex-wrap:wrap} .la-row .acts{width:100%;justify-content:flex-end} }
+/* 프로모션 달력 */
+.la-sum.pc-sum{grid-template-columns:repeat(3,minmax(0,1fr))}
+#pcDetail .cards{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.pc-cal{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:10px;margin-bottom:12px}
+.pc-cal-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.pc-cal-h b{font-size:15px;margin:0 4px}
+.pc-cal-h .tbtn{min-height:34px;padding:0 10px}
+.pc-cal-h [data-pcm="0"]{margin-left:auto}
+.pc-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+.pc-wd{font-size:11.5px;font-weight:700;color:var(--ink-soft);text-align:center;padding:2px 0}
+.pc-wd.sun{color:#DC2626}
+.pc-day{border:0;background:#FAFAFA;border-radius:6px;min-height:78px;padding:3px 0 4px;display:flex;flex-direction:column;align-items:stretch;gap:2px;cursor:pointer;font:inherit;text-align:left;min-width:0}
+.pc-day .n{font-size:12px;font-weight:700;color:var(--ink);padding:0 5px}
+.pc-day.out .n{color:#C0C4CC}
+.pc-day.today .n{color:#fff;background:var(--xl-green);border-radius:10px;align-self:flex-start;margin-left:3px;padding:0 6px}
+.pc-day.sel{outline:2px solid var(--xl-green);outline-offset:-2px;background:#F6FBF8}
+.pc-day .cs{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pc-chip{display:block;font-size:11px;font-weight:700;line-height:17px;height:17px;color:var(--fg);background:var(--bg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px;margin:0 -1px}
+.pc-chip.s{border-top-left-radius:5px;border-bottom-left-radius:5px;margin-left:2px;box-shadow:inset 3px 0 0 var(--fg)}
+.pc-chip.e{border-top-right-radius:5px;border-bottom-right-radius:5px;margin-right:2px}
+.pc-day .more{font-size:10.5px;color:var(--ink-soft);padding:0 5px}
+.pc-card{border:1px solid #E5E7EB;border-radius:12px;padding:11px 12px;background:#fff;cursor:pointer;margin-bottom:8px}
+.pc-card:hover{border-color:#A7D7B8}
+.pc-card .top{display:flex;gap:8px;align-items:flex-start}
+.pc-card .nm{flex:1;min-width:0;font-weight:800;font-size:14.5px;overflow-wrap:anywhere}
+.pc-card .st{flex:0 0 auto;font-size:11.5px;font-weight:800;border-radius:6px;padding:2px 8px}
+.pc-card .sub{font-size:12.5px;color:var(--ink-soft);margin-top:4px;overflow-wrap:anywhere}
+.pc-card .pos{color:var(--xl-green-dark);font-weight:700} .pc-card .neg{color:var(--red);font-weight:700}
+.pc-vd{margin-top:6px;font-size:13px;font-weight:800}
+.pc-sep{font-size:12px;font-weight:800;color:var(--ink-soft);margin:12px 0 6px}
+.pc-form{grid-template-columns:repeat(4,minmax(0,1fr))}
+.pc-form .wide{grid-column:span 2}
+.pc-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.pc-tag{display:inline-flex;align-items:center;gap:4px;background:#EEF4FF;color:#1D4ED8;border-radius:8px;padding:4px 4px 4px 9px;font-size:12.5px;font-weight:700}
+.pc-tag button{border:0;background:none;color:#1D4ED8;cursor:pointer;font-size:12px;padding:2px 5px}
+#pcProdIn{width:100%}
+.pc-chs,.pc-types{display:flex;flex-wrap:wrap;gap:6px}
+.pc-chs button,.pc-types button{border:1px solid #E2E8F0;background:#fff;border-radius:16px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:700;color:var(--ink-soft);cursor:pointer}
+.pc-chs button.on,.pc-types button.on{background:var(--xl-green);border-color:var(--xl-green);color:#fff}
+.pc-link{border:0;background:none;color:#1D4ED8;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;margin-left:6px;padding:0}
+.pc-order{border:1px dashed #CBD5E1;border-radius:10px;padding:6px 8px;margin-bottom:8px;display:grid;gap:4px}
+.pc-order div{display:flex;align-items:center;gap:6px;font-size:13px}
+.pc-order span{flex:1}
+.pc-order button{border:1px solid #E2E8F0;background:#fff;border-radius:6px;width:34px;height:30px;cursor:pointer}
+.pc-order button:disabled{opacity:.35;cursor:default}
+.pc-plan{margin-top:8px;font-size:13px;padding:8px 10px;border-radius:10px;background:#F0FBF4}
+.pc-plan.bad{background:#FEF2F2}
+.pc-man{margin-top:10px;font-size:12.5px}
+.pc-man summary{cursor:pointer;color:var(--ink-soft);font-weight:700}
+.pc-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.pc-acts .tbtn{min-height:42px;padding:0 18px}
+.pc-chart{margin-top:12px}
+.pc-chart-h{font-size:12.5px;font-weight:700;margin-bottom:4px}
+.pc-chart-sc{overflow-x:auto}
+.pc-chart svg{display:block}
+.pc-bar path{fill:#C9CED6}
+.pc-bar.in path{fill:#1E8E4E}
+.pc-bar:hover path{opacity:.8}
+.pc-chart text{font-size:10.5px;fill:#6B7280}
+.pc-axis{stroke:#E5E7EB;stroke-width:1}
+@media(max-width:700px){
+  .pc-cal{padding:8px 4px}
+  .pc-day{min-height:46px;align-items:center}
+  .pc-day .n{padding:0}
+  .pc-day.today .n{align-self:center;margin-left:0}
+  .pc-day .cs{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:3px}
+  .pc-chip{width:7px;height:7px;padding:0;margin:0!important;border-radius:50%!important;font-size:0;background:var(--fg);box-shadow:none!important}
+  .pc-day .more{font-size:9.5px;padding:0}
+  .pc-form{grid-template-columns:1fr 1fr} .pc-form .wide{grid-column:1/-1}
+  #pcDetail .cards{grid-template-columns:1fr 1fr!important;gap:8px} #pcDetail .cards .card{padding:10px} #pcDetail .cards .big{font-size:18px}
+  .pc-acts .tbtn{flex:1}
+}
 /* 출시 관리 v2: 네 칸 요약(=걸러보기) · 찾기 · 검토 진행 · 다음 할 일 */
 /* 등록·제조사 */
 .reg-hero{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
@@ -1321,7 +1393,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.27b</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.27c</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2065,31 +2137,24 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 
   <!-- ── Sheet: 프로모션 성과 ── -->
   <section class="sheet" id="sh-mktpromo">
-    <div class="toolrow">
-      <span class="ttl">프로모션 성과</span>
-      <span class="hint">프로모션 기간의 매출을 평시(기준)와 비교해 증분매출·ROAS를 봅니다 · 셀 더블클릭 수정</span>
+    <div class="toolrow" id="pcListBar">
+      <span class="ttl">프로모션</span>
+      <div class="seg" id="pcViewSeg"><button data-pv="cal" class="on">📅 달력</button><button data-pv="list">목록</button></div>
+      <button class="tbtn primary" id="pcNew">＋ 새 프로모션</button>
+      <span class="hint">진행중·예정·종료를 한눈에 · 끝난 행사는 누르면 평시 대비 성과가 자동으로 나와요 (판매 엑셀·그로홈 매출 기준)</span>
+    </div>
+    <div class="toolrow" id="pcDetailBar" style="display:none">
+      <button type="button" class="tbtn" id="pcBack">‹ 프로모션</button>
+      <span class="ttl" id="pcDetailName"></span>
+      <span class="footnote" id="pcSaved" style="margin:0 0 0 auto"></span>
     </div>
     <div class="sheet-pad">
-      <div class="panel">
-        <h3>프로모션 등록 <span class="tag">기간·할인·매출</span></h3>
-        <div class="bd">
-          <div class="formgrid" style="grid-template-columns:1.3fr 120px 120px 1fr 130px 130px 120px auto;align-items:end">
-            <div class="fld"><label>프로모션명</label><input type="text" id="pmName" placeholder="예: 6월 옥상방수 기획전"></div>
-            <div class="fld"><label>시작일</label><input type="date" id="pmStart"></div>
-            <div class="fld"><label>종료일</label><input type="date" id="pmEnd"></div>
-            <div class="fld"><label>대상 상품</label><input type="text" id="pmProducts" placeholder="예: 코트재, 하이퍼티"></div>
-            <div class="fld"><label>평시 매출/일 (기준)</label><input type="number" id="pmBaseline" placeholder="원"></div>
-            <div class="fld"><label>프로모션 총매출</label><input type="number" id="pmActual" placeholder="원"></div>
-            <div class="fld"><label>광고비</label><input type="number" id="pmSpend" placeholder="원"></div>
-            <button class="tbtn primary" id="pmAdd" style="height:34px">＋ 추가</button>
-          </div>
-          <p class="footnote">· <b>증분매출</b> = 프로모션 총매출 − (평시 매출/일 × 기간일수). <b>증분 ROAS</b> = 증분매출 ÷ 광고비. 프로모션이 실제로 매출을 얼마나 끌어올렸는지 봅니다.</p>
-        </div>
+      <div id="pcListView">
+        <div class="la-sum pc-sum" id="pcSum"></div>
+        <div id="pcCal"></div>
+        <div class="panel"><h3 id="pcListTtl">목록</h3><div class="bd" id="pcList"></div></div>
       </div>
-      <div class="panel">
-        <h3>프로모션 목록·성과</h3>
-        <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="pmTable" style="width:100%"></table></div>
-      </div>
+      <div id="pcDetail"></div>
     </div>
   </section>
 
@@ -2200,8 +2265,8 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
   <button class="stab" data-grp="sales" data-sh="sh-expiry"><span class="dot"></span>유통기한</button>
   <button class="stab" data-grp="sales" data-sh="sh-pl"><span class="dot"></span>손익</button>
   <button class="stab" data-grp="sales" data-sh="sh-fixed"><span class="dot"></span>고정지출</button>
-  <button class="stab" data-grp="mkt" data-sh="sh-promo"><span class="dot"></span>기획</button>
-  <button class="stab" data-grp="mkt" data-sh="sh-mktpromo"><span class="dot"></span>성과</button>
+  <button class="stab" data-grp="mkt" data-sh="sh-mktpromo"><span class="dot"></span>행사 달력</button>
+  <button class="stab" data-grp="mkt" data-sh="sh-promo"><span class="dot"></span>구성 계산기</button>
   <button class="stab" data-grp="mkt" data-sh="sh-mkt"><span class="dot"></span>개요</button>
   <button class="stab" data-grp="mkt" data-sh="sh-mktlink"><span class="dot"></span>추적링크</button>
   <button class="stab" data-grp="set" data-sh="sh-chman"><span class="dot"></span>채널·브랜드</button>
@@ -5374,7 +5439,7 @@ const MENU=[
   {g:'price',ic:'💰',lb:'가격',items:[{lb:'가격정책표',tabs:['sh-price','sh-dash']}]},
   {g:'prod',ic:'📦',lb:'제품',items:[{lb:'출시 관리·등록',tabs:['sh-launch','sh-reg']}]},
   {g:'sales',ic:'📈',lb:'판매',items:[{lb:'매출',tabs:['sh-sales']},{lb:'유통기한',tabs:['sh-expiry']},{lb:'손익',tabs:['sh-pl','sh-fixed']}]},
-  {g:'mkt',ic:'📣',lb:'마케팅',items:[{lb:'프로모션',tabs:['sh-promo','sh-mktpromo']},{lb:'마케팅',tabs:['sh-mkt','sh-mktlink']}]},
+  {g:'mkt',ic:'📣',lb:'마케팅',items:[{lb:'프로모션',tabs:['sh-mktpromo','sh-promo']},{lb:'마케팅',tabs:['sh-mkt','sh-mktlink']}]},
   {g:'set',ic:'⚙',lb:'설정',items:[{lb:'채널·브랜드',tabs:['sh-chman']},{lb:'계정',tabs:['sh-access']},{lb:'CRM 연동',tabs:['sh-inbound']},{lb:'매칭',tabs:['sh-match']},{lb:'온라인 상품',tabs:['sh-items']},{lb:'MOQ 구간',tabs:['sh-moq']},{lb:'데이터·휴지통',tabs:['sh-data']}]}
 ];
 const stabOf=sh=>document.querySelector('.stab[data-sh="'+sh+'"]');
@@ -5392,7 +5457,6 @@ function sheetNeeds(sh){
     case 'sh-fixed': return [['고정지출 등록','',FX.length>0]];
     case 'sh-mkt': return [['추적링크 만들기','sh-mktlink',MKT_LINKS.length>0]];
     case 'sh-mktlink': return [['추적링크 만들기','',MKT_LINKS.length>0]];
-    case 'sh-mktpromo': return [['프로모션 등록','',PROMOS.length>0]];
     case 'sh-moq': return [retail,['대리점(하한) 채널 지정','sh-chman',!!dealerUid()]];
   }
   return [];
@@ -5471,6 +5535,7 @@ function gotoTab(sh){
   if(sh==='sh-data' && typeof openDataTab==='function') openDataTab();
   if(sh==='sh-sales' && typeof openSalesTab==='function') openSalesTab();
   if(sh==='sh-launch' && typeof renderLaunch==='function') renderLaunch();
+  if(sh==='sh-mktpromo' && typeof pcRender==='function') pcRender();
   if(sh==='sh-promo' && typeof renderPromo==='function') renderPromo();
   if(sh==='sh-expiry' && typeof renderExpiry==='function') renderExpiry();
 }
@@ -5844,31 +5909,271 @@ function renderMktOverview(){
   if($('#mktTop'))$('#mktTop').innerHTML=top.length?`<table class="grid" style="width:100%"><thead><tr><th>라벨</th><th>매체</th><th>유형</th><th class="num">클릭</th><th class="num">주문</th><th class="num">전환율</th><th class="num">ROAS</th></tr></thead><tbody>`+
     top.map(({l,m})=>`<tr><td class="name">${esc(l.label||'—')}</td><td class="dim">${esc(l.channel||'—')}</td><td class="dim">${esc(l.contentType||'—')}</td><td class="num">${won(m.clicks)}</td><td class="num">${won(m.orders)}</td><td class="num">${m.cvr==null?'—':pct(m.cvr)}</td><td class="num">${roasPct(m.roas)}</td></tr>`).join('')+'</tbody></table>':'<p class="footnote">데이터가 없습니다.</p>';
 }
-function renderPromos(){
-  const t=$('#pmTable'); if(!t)return;
-  let h=`<thead><tr><th style="min-width:150px">프로모션</th><th>기간</th><th>대상</th><th class="num">평시/일</th><th class="num">총매출</th><th class="num">광고비</th><th class="num">증분매출</th><th class="num">ROAS</th><th class="num">증분ROAS</th><th></th></tr></thead><tbody>`;
-  if(!PROMOS.length) h+=`<tr><td class="dim" colspan="10" style="padding:12px">등록된 프로모션이 없습니다.</td></tr>`;
-  PROMOS.forEach(p=>{ const m=promoMetrics(p);
-    h+=`<tr>
-      <td class="name">${esc(p.name)}</td>
-      <td class="dim">${esc(p.startDate||'')}~${esc(p.endDate||'')} (${m.days}일)</td>
-      <td class="dim">${esc(p.products||'—')}</td>
-      <td class="num editable" data-pmid="${p.id}" data-pmf="baselineRevenue">${won(+p.baselineRevenue||0)}</td>
-      <td class="num editable" data-pmid="${p.id}" data-pmf="actualRevenue">${won(+p.actualRevenue||0)}</td>
-      <td class="num editable cost" data-pmid="${p.id}" data-pmf="spend">${won(+p.spend||0)}</td>
-      <td class="num ${m.incr<0?'neg':''}" style="font-weight:600">${won(m.incr)}</td>
-      <td class="num">${roasPct(m.roas)}</td>
-      <td class="num" style="font-weight:600">${roasPct(m.incrRoas)}</td>
-      <td style="text-align:center"><button class="tbtn" data-pmdel="${p.id}" style="color:var(--red);padding:2px 8px;font-size:11px">삭제</button></td>
-    </tr>`;
-  });
-  t.innerHTML=h+'</tbody>';
+function renderPromos(){ const on=$('#sh-mktpromo'); if(on&&on.classList.contains('on')) pcRender(); }
+/* ══════════ 프로모션 (행사 달력) ══════════
+   행사 한 건 = promotions 문서 하나. 예전 칸(name·startDate·endDate·products·baselineRevenue·actualRevenue·spend)은 그대로 두고
+   reason·keys(제품)·channels·mech(구성)·memo 를 더한다. 삭제는 deleted:true(휴지통).
+   · 상태: 오늘 기준 진행중 / 예정 / 종료 (날짜 미정 = 예정)
+   · 성과: 판매 데이터(판매 엑셀·그로홈·CRM)에서 같은 제품·채널의 행사 기간 판매 vs 시작 전 28일 하루 평균(평시)
+     → 예전에 직접 넣은 매출 값만 있고 자동 계산이 안 되면 그 값을 쓴다
+   · 이익(원가 권한 계정만): 구성 계산기(promo-plans) 값으로 행사 주문당 이익 × 주문 수 − 평시 같은 기간 이익
+   · 구성 종류 순서는 product-meta/promo-types {order} 에 저장(직접 설정) */
+const PC_REASONS=['재고소진','신제품','시즌','재구매','기타'];
+let _PCT=null;   // PR_TYPES(구성 계산기)는 파일 뒤쪽에서 선언 → 처음 쓸 때 만든다
+const pcT=()=>_PCT||(_PCT={...Object.fromEntries(Object.entries(PR_TYPES).filter(([k])=>k!=='base')), etc:{lb:'기타 (직접 적기)', ps:[['txt','내용','']]}});
+let PC_ORDER=['disc','nm','second','coupon','gift','point','etc'];
+const PC={view:'cal', f:'진행중', month:'', day:'', open:null, draft:null, orderEdit:false};
+const PC_ST={'진행중':['#0B7A3E','#E3F2E8'],'예정':['#1D4ED8','#EEF4FF'],'종료':['#6B7280','#F3F4F6']};
+const pcToday=()=>slDay(new Date());
+const pcAdd=(ds,n)=>{ const d=new Date(ds+'T00:00:00'); d.setDate(d.getDate()+n); return slDay(d); };
+const pcDiff=(a,b)=>Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000);
+function pcStatus(p){ const t=pcToday(), s=p.startDate||'', e=p.endDate||s;
+  if(!s||s>t) return '예정'; if(e&&e<t) return '종료'; return '진행중'; }
+function pcTypeOrder(){ const o=PC_ORDER.filter(k=>pcT()[k]); Object.keys(pcT()).forEach(k=>{ if(!o.includes(k)) o.push(k); }); return o; }
+function pcMechLabel(m){ if(!m||!m.t) return ''; const T=pcT()[m.t]; if(!T) return '';
+  if(m.t==='disc') return `${laNum(m.v)}% 할인`; if(m.t==='nm') return `${laNum(m.n)||1}+${laNum(m.m)||1}`;
+  if(m.t==='second') return `두 번째 ${laNum(m.v)}% 할인`; if(m.t==='coupon') return `${won(laNum(m.v))}원 쿠폰${laNum(m.min)>1?` (${laNum(m.min)}개 이상)`:''}`;
+  if(m.t==='gift') return `사은품${m.gift?' '+m.gift:''}`; if(m.t==='point') return `${laNum(m.v)}% 적립`; if(m.t==='etc') return m.txt||'기타';
+  return T.lb; }
+const pcProd=k=>P.find(p=>pKey(p)===k && !isDeletedProd(p));
+function pcProdNames(p){ const ks=Array.isArray(p.keys)?p.keys:[]; const n=ks.map(k=>{ const x=pcProd(k); return x?prodLabel(x):k.split('|')[1]||k; });
+  return n.length?n:(p.products?[p.products]:[]); }
+/* 성과 계산 */
+function pcMetrics(p){
+  const st=pcStatus(p), t=pcToday(), s=p.startDate, e=(p.endDate&&p.endDate<t)?p.endDate:t;
+  const out={st, days:0, qty:0, amt:0, baseQty:0, baseAmt:0, mult:null, incAmt:null, profit:null, incProfit:null, planUnit:null, spend:+p.spend||0, src:'none', byDay:{}, from:'', to:''};
+  const ks=new Set(Array.isArray(p.keys)?p.keys:[]), chs=new Set(Array.isArray(p.channels)?p.channels:[]);
+  // 계획 이익(주문당) — 첫 제품 기준 표시용
+  if(costAllowed && ks.size && p.mech && p.mech.t && p.mech.t!=='etc'){ const k0=[...ks][0], p0=pcProd(k0); if(p0){ const pl=PRPLAN[k0]||prNewPlan(p0); const r=prRow(pl,p.mech); if(laNum(pl.price)>0) out.planUnit={profit:r.profit, rate:r.rate, units:r.units}; } }
+  if(st==='예정'||!s) return out;
+  out.days=Math.max(1,pcDiff(s,e)+1);
+  const b0=pcAdd(s,-28), b1=pcAdd(s,-1);
+  out.from=pcAdd(s,-14); out.to=(p.endDate||s)<t?pcAdd(p.endDate||s,7):t; if(out.to>t) out.to=t;
+  const perK={};
+  if(ks.size && SL.loaded){
+    (SL.rows||[]).forEach(r=>{ if(!r.key||!ks.has(r.key)) return; if(chs.size && !chs.has(r.ch)) return; const d=r.date; if(!d) return;
+      if(d>=out.from && d<=out.to){ const x=out.byDay[d]||(out.byDay[d]={qty:0,amt:0}); x.qty+=r.qty; x.amt+=r.amt; }
+      const pk=perK[r.key]||(perK[r.key]={qty:0,amt:0,bq:0,ba:0});
+      if(d>=s && d<=e){ out.qty+=r.qty; out.amt+=r.amt; pk.qty+=r.qty; pk.amt+=r.amt; }
+      else if(d>=b0 && d<=b1){ out.baseQty+=r.qty/28; out.baseAmt+=r.amt/28; pk.bq+=r.qty/28; pk.ba+=r.amt/28; } });
+    if(out.qty>0 || out.baseQty>0) out.src='auto';
+  }
+  if(out.src!=='auto' && (+p.actualRevenue>0)){ out.src='manual'; out.amt=+p.actualRevenue; out.baseAmt=+p.baselineRevenue||0; }
+  if(out.src==='none') return out;
+  const baseTot=out.baseAmt*out.days;
+  out.mult=out.baseAmt>0?(out.amt/out.days)/out.baseAmt:null;
+  out.incAmt=out.amt-baseTot;
+  if(costAllowed && out.src==='auto' && p.mech && p.mech.t!=='etc'){
+    let pr=0, bp=0, ok=false;
+    Object.entries(perK).forEach(([k,v])=>{ const x=pcProd(k); if(!x) return; const pl=PRPLAN[k]||prNewPlan(x); if(!(laNum(pl.price)>0)) return; ok=true;
+      const rp=prRow(pl,p.mech||{t:'base'}), rb=prRow(pl,{t:'base'});
+      pr+=v.qty/Math.max(1,rp.units)*rp.profit; bp+=v.bq*out.days*rb.profit; });
+    if(ok){ out.profit=pr; out.incProfit=pr-bp; }
+  }
+  return out;
 }
+function pcVerdict(m){
+  if(m.st==='예정') return null;
+  if(m.src==='none') return {ic:'⚪',t:'판매 데이터가 아직 없어요',d:'제품을 연결하고 판매 엑셀을 올리면 자동으로 계산돼요'};
+  if(m.incProfit!=null){ if(m.incProfit>0) return {ic:'🟢',t:m.st==='종료'?'다시 해도 좋음':'지금까지 이익이 늘었어요',d:`평시보다 이익 +${won(m.incProfit)}원`};
+    return {ic:'🔴',t:m.st==='종료'?'재검토 — 이익이 줄었어요':'이익이 평시보다 적어요',d:`평시보다 이익 ${won(m.incProfit)}원`}; }
+  if(m.mult==null) return {ic:'⚪',t:'평시 판매가 없어 비교할 수 없어요',d:''};
+  if(m.mult>=1.5) return {ic:'🟢',t:m.st==='종료'?'판매가 크게 늘었어요':'판매가 크게 늘고 있어요',d:`평시의 ${m.mult.toFixed(1)}배`};
+  if(m.mult>=1) return {ic:'🟡',t:'판매가 조금 늘었어요',d:`평시의 ${m.mult.toFixed(1)}배`};
+  return {ic:'🔴',t:'평시보다 덜 팔렸어요',d:`평시의 ${m.mult.toFixed(1)}배`};
+}
+/* 일별 판매 막대 — 행사 기간만 색칠(한 계열이라 범례 없음, 제목이 설명) */
+function pcChart(p,m){
+  if(!m.from||!m.to||m.src!=='auto') return '';
+  const days=[]; for(let d=m.from; d<=m.to; d=pcAdd(d,1)) days.push(d);
+  if(days.length<2) return '';
+  const unit=SL.unit==='qty'?'qty':'amt';
+  const vals=days.map(d=>(m.byDay[d]||{})[unit]||0), max=Math.max(1,...vals);
+  const W=Math.max(280,days.length*14), H=120, pad=18, bw=Math.max(4,(W/days.length)-2), s=p.startDate, e=p.endDate||s;
+  const bars=days.map((d,i)=>{ const v=vals[i], h=v>0?Math.max(2,(H-pad)*v/max):0, x=i*(W/days.length)+1, y=H-pad-h, inWin=d>=s&&d<=e;
+    const r=Math.min(4,bw/2,h);
+    const path=h>0?`M${x},${H-pad} V${y+r} Q${x},${y} ${x+r},${y} H${x+bw-r} Q${x+bw},${y} ${x+bw},${y+r} V${H-pad} Z`:'';
+    return `<g class="pc-bar${inWin?' in':''}"><rect x="${x-1}" y="0" width="${W/days.length}" height="${H-pad}" fill="transparent"/>${path?`<path d="${path}"/>`:''}<title>${d.slice(5).replace('-','/')} · ${unit==='qty'?won(v)+'개':won(v)+'원'}${inWin?' (행사 중)':''}</title></g>`; }).join('');
+  const lab=[0,days.indexOf(s),days.length-1].filter((v,i,a)=>v>=0&&a.indexOf(v)===i).map(i=>`<text x="${i*(W/days.length)+bw/2}" y="${H-4}" text-anchor="${i===0?'start':i===days.length-1?'end':'middle'}">${days[i].slice(5).replace('-','/')}</text>`).join('');
+  return `<div class="pc-chart"><div class="pc-chart-h">일별 ${unit==='qty'?'판매 수량':'매출'} <span class="dim">· 초록 막대 = 행사 기간 · 앞뒤 회색 = 평소</span></div>
+    <div class="pc-chart-sc"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="일별 판매 막대그래프">${bars}<line x1="0" x2="${W}" y1="${H-pad}" y2="${H-pad}" class="pc-axis"/>${lab}</svg></div></div>`;
+}
+/* 목록·달력 */
+function pcLive(){ return PROMOS.filter(p=>!p.deleted); }
+function pcCard(p){
+  const st=pcStatus(p), [fg,bg]=PC_ST[st], t=pcToday();
+  let dd=''; if(st==='진행중'&&p.endDate){ const n=pcDiff(t,p.endDate); dd=n===0?'오늘 끝':`D-${n}`; } else if(st==='예정'&&p.startDate){ const n=pcDiff(t,p.startDate); dd=n===0?'오늘 시작':`${n}일 뒤 시작`; }
+  const m=pcMetrics(p), v=pcVerdict(m), names=pcProdNames(p);
+  let line='';
+  if(st!=='예정' && m.src!=='none') line=`${m.src==='auto'?`판매 ${won(m.qty)}개 · `:''}매출 ${won(m.amt)}원${m.mult!=null?` · 평시의 <b>${m.mult.toFixed(1)}배</b>`:''}${m.src==='manual'?' <span class="dim">(직접 입력)</span>':''}`;
+  const plan=m.planUnit?`<span class="${m.planUnit.profit<0?'neg':'pos'}">${m.planUnit.profit<0?'🔴 역마진':'🟢'} 주문당 이익 ${won(m.planUnit.profit)}원</span>`:'';
+  return `<div class="pc-card" data-pcopen="${esc(p.id)}" role="button" tabindex="0">
+    <div class="top"><div class="nm">${esc(p.name||'(이름 없음)')}</div><span class="st" style="color:${fg};background:${bg}">${st}${dd?' · '+dd:''}</span></div>
+    <div class="sub">${esc(p.startDate||'날짜 미정')}${p.endDate&&p.endDate!==p.startDate?' ~ '+esc(p.endDate):''}${p.reason?` · ${esc(p.reason)}`:''}${p.mech&&p.mech.t?` · ${esc(pcMechLabel(p.mech))}`:''}</div>
+    ${names.length?`<div class="sub dim">${esc(names.slice(0,2).join(', '))}${names.length>2?` 외 ${names.length-2}개`:''}${(p.channels||[]).length?` · ${esc(p.channels.join('·'))}`:''}</div>`:''}
+    ${plan||line?`<div class="sub">${[plan,line].filter(Boolean).join(' · ')}</div>`:''}
+    ${st==='종료'&&v?`<div class="pc-vd">${v.ic} ${esc(v.t)} <span class="dim">— 누르면 성과 보기 ›</span></div>`:''}
+  </div>`;
+}
+function pcRenderList(){
+  const live=pcLive(), grp={'진행중':[],'예정':[],'종료':[]}; live.forEach(p=>grp[pcStatus(p)].push(p));
+  $('#pcSum').innerHTML=Object.keys(grp).map(g=>{ const [fg,bg]=PC_ST[g]; return `<button type="button" data-pcf="${g}" class="${PC.view==='list'&&PC.f===g?'on':''}" style="--fg:${fg};--bg:${bg}"><b>${grp[g].length}</b><span>${g}</span></button>`; }).join('');
+  $$('#pcViewSeg button').forEach(b=>b.classList.toggle('on',b.dataset.pv===PC.view));
+  const cal=$('#pcCal');
+  if(PC.view==='cal'){ cal.style.display=''; pcRenderCal(live);
+    const d=PC.day, list=live.filter(p=>p.startDate && p.startDate<=d && (p.endDate||p.startDate)>=d);
+    $('#pcListTtl').textContent=`${d.slice(5).replace('-','/')} (${'일월화수목금토'[new Date(d+'T00:00:00').getDay()]}) 행사 ${list.length}건`;
+    const undated=live.filter(p=>!p.startDate);
+    $('#pcList').innerHTML=(list.length?list.map(pcCard).join(''):'<div class="footnote" style="margin:0">이 날은 행사가 없어요. 달력에서 다른 날을 누르거나 [＋ 새 프로모션]으로 만들어요.</div>')
+      +(undated.length?`<div class="pc-sep">날짜 미정 ${undated.length}건</div>`+undated.map(pcCard).join(''):'');
+  } else { cal.style.display='none';
+    let list=grp[PC.f]||[];
+    if(PC.f==='진행중') list.sort((a,b)=>(a.endDate||'9').localeCompare(b.endDate||'9'));
+    else if(PC.f==='예정') list.sort((a,b)=>(a.startDate||'9').localeCompare(b.startDate||'9'));
+    else list.sort((a,b)=>(b.endDate||'').localeCompare(a.endDate||''));
+    $('#pcListTtl').textContent=`${PC.f} ${list.length}건`;
+    $('#pcList').innerHTML=list.length?list.map(pcCard).join(''):`<div class="footnote" style="margin:0">${PC.f} 행사가 없어요.</div>`;
+  }
+}
+function pcRenderCal(live){
+  const [y,mo]=PC.month.split('-').map(Number), first=new Date(y,mo-1,1), start=new Date(first); start.setDate(1-first.getDay());
+  const t=pcToday(); let h=`<div class="pc-cal"><div class="pc-cal-h"><button type="button" class="tbtn" data-pcm="-1" aria-label="이전 달">◀</button><b>${y}년 ${mo}월</b><button type="button" class="tbtn" data-pcm="1" aria-label="다음 달">▶</button><button type="button" class="tbtn" data-pcm="0">오늘</button></div>
+    <div class="pc-grid">${'일월화수목금토'.split('').map((w,i)=>`<div class="pc-wd${i===0?' sun':''}">${w}</div>`).join('')}`;
+  for(let i=0;i<42;i++){ const d=new Date(start); d.setDate(start.getDate()+i); const ds=slDay(d);
+    if(i>=35 && d.getMonth()!==mo-1) break;
+    const on=live.filter(p=>p.startDate && p.startDate<=ds && (p.endDate||p.startDate)>=ds).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
+    const chips=on.slice(0,3).map(p=>{ const st=pcStatus(p), [fg,bg]=PC_ST[st], head=p.startDate===ds||d.getDay()===0||d.getDate()===1, s0=p.startDate===ds, e0=(p.endDate||p.startDate)===ds;
+      return `<span class="pc-chip${s0?' s':''}${e0?' e':''}" style="--fg:${fg};--bg:${bg}" data-pcopen="${esc(p.id)}" title="${esc(p.name)}">${head?esc(p.name):'&nbsp;'}</span>`; }).join('');
+    h+=`<button type="button" class="pc-day${d.getMonth()!==mo-1?' out':''}${ds===t?' today':''}${ds===PC.day?' sel':''}" data-pcd="${ds}"><span class="n">${d.getDate()}</span><span class="cs">${chips}${on.length>3?`<span class="more">+${on.length-3}</span>`:''}</span></button>`; }
+  $('#pcCal').innerHTML=h+'</div></div>';
+}
+/* 상세(보기·수정) */
+function pcDraftOf(p){ return JSON.parse(JSON.stringify({name:'',reason:'',startDate:'',endDate:'',keys:[],channels:[],mech:{t:pcTypeOrder()[0]},spend:'',memo:'',baselineRevenue:'',actualRevenue:'',...(p||{})})); }
+function pcChannels(){ const s=new Set(); (SL.rows||[]).forEach(r=>{ if(r.ch) s.add(r.ch); }); return [...s].sort(); }
+function pcRenderDetail(){
+  const box=$('#pcDetail'), isNew=PC.open==='new', src=isNew?null:PROMOS.find(x=>x.id===PC.open);
+  if(!isNew&&!src){ PC.open=null; pcRender(); return; }
+  const d=PC.draft||(PC.draft=pcDraftOf(src));
+  $('#pcDetailName').textContent=isNew?'새 프로모션':(src.name||'프로모션');
+  const m=pcMetrics(d), v=pcVerdict(m), st=m.st;
+  let res='';
+  if(!isNew && st!=='예정'){
+    const card=(lb,val,cls,sub)=>`<div class="card"><h4>${lb}</h4><div class="big ${cls||''}">${val}</div>${sub?`<div class="foot">${sub}</div>`:''}</div>`;
+    res=`<div class="panel"><h3>${st==='종료'?'성과':'지금까지 성과'} <span class="tag">평시 = 시작 전 28일 하루 평균 · 같은 제품·채널</span></h3><div class="bd">
+      ${v?`<div class="la-verdict"><span class="ic">${v.ic}</span><div><b>${esc(v.t)}</b>${v.d?`<div class="footnote" style="margin:4px 0 0">${esc(v.d)}</div>`:''}</div></div>`:''}
+      ${m.src!=='none'?`<div class="cards">
+        ${m.src==='auto'?card('판매 수량',won(m.qty)+'개','',`평시 ${won(m.baseQty*m.days)}개 (${m.days}일)`):''}
+        ${card('매출',won(m.amt)+'원','',`평시 ${won(m.baseAmt*m.days)}원`)}
+        ${card('평시 대비',m.mult!=null?m.mult.toFixed(1)+'배':'—',m.mult!=null&&m.mult<1?'neg':'pos',m.incAmt!=null?`늘어난 매출 ${m.incAmt>=0?'+':''}${won(m.incAmt)}원`:'')}
+        ${m.incProfit!=null?card('늘어난 이익',(m.incProfit>=0?'+':'')+won(m.incProfit)+'원',m.incProfit<0?'neg':'pos',`행사 이익 ${won(m.profit)}원 (구성 계산기 기준)`):''}
+        ${m.spend>0?card('광고비 ROAS',roasPct(m.amt/m.spend),'',`늘어난 매출 기준 ${roasPct(m.incAmt/m.spend)}`):''}
+      </div>`:''}
+      ${pcChart(d,m)}
+      ${m.src==='manual'?'<p class="footnote">· 자동 계산할 판매 데이터가 없어 직접 넣은 매출로 계산했어요. 아래에서 제품을 연결하면 자동으로 바뀌어요.</p>':''}
+      ${!SL.loaded?'<p class="footnote">· 판매 데이터를 불러오는 중…</p>':''}
+      ${st==='종료'?`<div style="margin-top:10px"><button type="button" class="tbtn" id="pcAgain">🔁 같은 구성으로 다시 하기</button></div>`:''}
+    </div></div>`;
+  }
+  const ord=pcTypeOrder(), T=pcT()[d.mech&&d.mech.t]||pcT()[ord[0]];
+  const mech=d.mech||{t:ord[0]};
+  const params=(T.ps||[]).map(([f,lb,def])=>`<div class="fld"><label>${esc(lb)}</label><input data-pcm-f="${f}" ${typeof def==='number'?'type="number"':'type="text"'} value="${esc(mech[f]??def)}"></div>`).join('');
+  const prods=(d.keys||[]).map(k=>{ const x=pcProd(k); return `<span class="pc-tag">${esc(x?prodLabel(x):k.split('|')[1]||k)}<button type="button" data-pcrmk="${esc(k)}" aria-label="빼기">✕</button></span>`; }).join('');
+  const chs=pcChannels(), selCh=new Set(d.channels||[]);
+  const planLine=m.planUnit?`<div class="pc-plan ${m.planUnit.profit<0?'bad':''}">${m.planUnit.profit<0?'🔴 역마진 — 이 구성으로 팔면 주문마다 손해예요':'🟢 역마진 아님'} · 주문당 이익 <b>${won(m.planUnit.profit)}원</b>${m.planUnit.rate!=null?` (마진율 ${pct(m.planUnit.rate)})`:''} <span class="dim">· 첫 제품 기준 · 원가·수수료는 [구성 계산기] 값</span></div>`:(costAllowed&&(d.keys||[]).length?'<div class="footnote">· 제품 정가가 있어야 주문당 이익을 계산해요.</div>':'');
+  box.innerHTML=res+`
+    <div class="panel"><h3>행사 정보</h3><div class="bd">
+      <div class="formgrid pc-form">
+        <div class="fld wide"><label>행사 이름 *</label><input id="pcName" value="${esc(d.name)}" placeholder="예: 10월 옥상방수 1+1"></div>
+        <div class="fld"><label>왜 하나요?</label><select id="pcReason"><option value="">선택</option>${PC_REASONS.map(r=>`<option${r===d.reason?' selected':''}>${r}</option>`).join('')}</select></div>
+        <div class="fld"><label>시작일</label><input type="date" id="pcStart" value="${esc(d.startDate)}"></div>
+        <div class="fld"><label>종료일</label><input type="date" id="pcEnd" value="${esc(d.endDate)}"></div>
+      </div>
+      <div class="fld" style="margin-top:10px"><label>제품 <span class="dim">성과를 자동으로 계산하려면 연결해요</span></label>
+        <div class="pc-tags">${prods||'<span class="dim" style="font-size:12.5px">아직 없어요</span>'}</div>
+        <input id="pcProdIn" list="pcProdList" placeholder="🔍 제품 이름을 적고 골라요" autocomplete="off"><datalist id="pcProdList">${P.filter(p=>!isDeletedProd(p)&&pstatus(p)!=='단종').map(p=>`<option value="${esc(prodLabel(p))}">`).join('')}</datalist>
+        ${d.products&&!(d.keys||[]).length?`<div class="footnote" style="margin:4px 0 0">예전에 적어 둔 대상: ${esc(d.products)}</div>`:''}</div>
+      <div class="fld" style="margin-top:10px"><label>채널 <span class="dim">안 고르면 전체</span></label>
+        <div class="pc-chs">${chs.length?chs.map(c=>`<button type="button" class="${selCh.has(c)?'on':''}" data-pcch="${esc(c)}">${esc(c)}</button>`).join(''):'<span class="dim" style="font-size:12.5px">판매 데이터를 불러오면 채널이 보여요</span>'}</div></div>
+      <div class="fld" style="margin-top:10px"><label>구성 <button type="button" class="pc-link" id="pcOrderBtn">${PC.orderEdit?'순서 바꾸기 닫기':'↕ 순서 바꾸기'}</button></label>
+        ${PC.orderEdit?`<div class="pc-order">${ord.map((k,i)=>`<div><span>${esc(pcT()[k].lb)}</span><button type="button" data-pcup="${i}" ${i===0?'disabled':''} aria-label="위로">▲</button><button type="button" data-pcdn="${i}" ${i===ord.length-1?'disabled':''} aria-label="아래로">▼</button></div>`).join('')}</div>`:''}
+        <div class="pc-types">${ord.map(k=>`<button type="button" class="${k===mech.t?'on':''}" data-pct="${k}">${esc(pcT()[k].lb.replace(/ \(.*\)$/,''))}</button>`).join('')}</div>
+        ${params?`<div class="formgrid pc-form" style="margin-top:8px">${params}</div>`:''}
+        ${planLine}</div>
+      <div class="formgrid pc-form" style="margin-top:10px">
+        <div class="fld"><label>광고비 (원) <span class="dim">선택</span></label><input type="number" id="pcSpend" value="${esc(d.spend)}" placeholder="0"></div>
+        <div class="fld wide"><label>메모</label><input id="pcMemo" value="${esc(d.memo)}" placeholder="예: 쿠팡 기획전 신청 완료"></div>
+      </div>
+      <details class="pc-man"${m.src==='manual'?' open':''}><summary>매출 직접 입력 (자동 계산이 안 될 때만)</summary><div class="formgrid pc-form">
+        <div class="fld"><label>평시 매출/일 (원)</label><input type="number" id="pcBase" value="${esc(d.baselineRevenue)}"></div>
+        <div class="fld"><label>행사 총매출 (원)</label><input type="number" id="pcAct" value="${esc(d.actualRevenue)}"></div></div></details>
+      <div class="pc-acts">${isNew?'':'<button type="button" class="tbtn" id="pcDel" style="color:var(--red);margin-right:auto">휴지통</button>'}<button type="button" class="tbtn" id="pcCancel">닫기</button><button type="button" class="tbtn primary" id="pcSave">${isNew?'＋ 만들기':'저장'}</button></div>
+      <div class="footnote" id="pcMsg" style="margin:6px 0 0"></div>
+    </div></div>`;
+}
+function pcRender(){
+  if(!$('#pcList')) return;
+  if(!PC.month){ const t=pcToday(); PC.month=t.slice(0,7); PC.day=t; }
+  const det=PC.open!=null;
+  $('#pcListBar').style.display=det?'none':''; $('#pcListView').style.display=det?'none':'';
+  $('#pcDetailBar').style.display=det?'':'none'; $('#pcDetail').style.display=det?'':'none';
+  if(det) pcRenderDetail(); else pcRenderList();
+  if(!SL.loaded && !SL.loading && typeof loadSales==='function') loadSales().then(()=>{ const on=$('#sh-mktpromo'); if(on&&on.classList.contains('on')) pcRender(); }).catch(e=>console.warn('[프로모션] 매출 불러오기 실패', e));
+}
+function pcReadForm(){ const d=PC.draft; if(!d||!$('#pcName')) return d;
+  d.name=$('#pcName').value.trim(); d.reason=$('#pcReason').value; d.startDate=$('#pcStart').value; d.endDate=$('#pcEnd').value;
+  d.spend=$('#pcSpend').value; d.memo=$('#pcMemo').value; d.baselineRevenue=$('#pcBase').value; d.actualRevenue=$('#pcAct').value;
+  $$('[data-pcm-f]').forEach(el=>{ d.mech[el.dataset.pcmF]=el.type==='number'?(el.value===''?'':+el.value):el.value; });
+  return d; }
+function pcOpen(id,draft){ PC.open=id; PC.draft=draft||null; PC.orderEdit=false; gotoTab('sh-mktpromo'); pcRender(); window.scrollTo({top:0}); }
+/* 다른 화면에서 행사 만들기 (제품·이유 미리 채움) */
+function pcOpenNew(pre){ pcOpen('new', pcDraftOf({...(pre||{})})); }
+async function pcSave(){
+  const d=pcReadForm(), isNew=PC.open==='new';
+  if(!d.name){ $('#pcMsg').innerHTML='<span style="color:var(--red)">행사 이름을 적어 주세요.</span>'; $('#pcName').focus(); return; }
+  if(d.startDate&&d.endDate&&d.endDate<d.startDate){ $('#pcMsg').innerHTML='<span style="color:var(--red)">종료일이 시작일보다 빨라요.</span>'; return; }
+  const doc={ name:d.name, reason:d.reason||'', startDate:d.startDate||'', endDate:d.endDate||'', keys:d.keys||[], channels:d.channels||[], mech:d.mech||{},
+    spend:+d.spend||0, memo:d.memo||'', baselineRevenue:+d.baselineRevenue||0, actualRevenue:+d.actualRevenue||0,
+    products:(d.keys||[]).length?pcProdNames(d).join(', '):(d.products||''), updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||'' };
+  const btn=$('#pcSave'); btn.disabled=true;
+  try{
+    if(isNew){ doc.createdAt=doc.updatedAt; doc.createdBy=doc.updatedBy; const r=await db.collection('promotions').add(doc); PC.open=r.id; logAct('프로모션', d.name, '새로 만듦'); }
+    else { await db.collection('promotions').doc(PC.open).set(doc,{merge:true}); logAct('프로모션', d.name, '수정'); }
+    await fetchMkt(); const id=PC.open; PC.draft=null;
+    const st=pcStatus(doc); if(doc.startDate){ PC.month=doc.startDate.slice(0,7); PC.day=doc.startDate; }
+    PC.open=null; PC.view='cal'; pcRender(); uiToast(isNew?`"${d.name}" 만들었어요 · 달력에 ${st}으로 보여요`:'저장했어요','ok');
+  }catch(e){ console.error('[프로모션] 저장 실패', e); $('#pcMsg').innerHTML=`<span style="color:var(--red)">저장 실패: ${esc(e.code||e.message||e)}</span>`; }
+  finally{ btn.disabled=false; }
+}
+async function pcSaveOrder(){ try{ await db.collection('product-meta').doc('promo-types').set({order:PC_ORDER, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.error('[promo-types] 저장 실패', e); uiToast('순서 저장 실패: '+(e.code||e.message||e),'err'); } }
+document.addEventListener('click',async e=>{
+  if(!e.target.closest('#sh-mktpromo')) return;
+  const op=e.target.closest('[data-pcopen]'); if(op && (op.classList.contains('pc-card') || innerWidth>700)){ pcOpen(op.dataset.pcopen); return; }   // 폰 달력은 점 → 날짜 고르기
+  const dy=e.target.closest('[data-pcd]'); if(dy){ PC.day=dy.dataset.pcd; if(PC.day.slice(0,7)!==PC.month) PC.month=PC.day.slice(0,7); pcRenderList(); return; }
+  const mm=e.target.closest('[data-pcm]'); if(mm){ const n=+mm.dataset.pcm; if(n===0){ PC.month=pcToday().slice(0,7); PC.day=pcToday(); } else { const [y,m]=PC.month.split('-').map(Number), d=new Date(y,m-1+n,1); PC.month=slDay(d).slice(0,7); } pcRenderList(); return; }
+  const f=e.target.closest('[data-pcf]'); if(f){ PC.view='list'; PC.f=f.dataset.pcf; pcRenderList(); return; }
+  const pv=e.target.closest('#pcViewSeg [data-pv]'); if(pv){ PC.view=pv.dataset.pv; pcRenderList(); return; }
+  if(e.target.closest('#pcNew')){ pcOpenNew({}); return; }
+  if(e.target.closest('#pcBack')||e.target.closest('#pcCancel')){ PC.open=null; PC.draft=null; pcRender(); return; }
+  if(e.target.closest('#pcSave')){ pcSave(); return; }
+  if(e.target.closest('#pcAgain')){ const d=pcDraftOf({...pcReadForm()}); ['id','createdAt','createdBy','updatedAt','updatedBy'].forEach(k=>delete d[k]); d.name=d.name+' (다시)'; d.startDate=''; d.endDate=''; d.spend=''; d.actualRevenue=''; d.baselineRevenue=''; pcOpen('new',d); uiToast('같은 구성으로 새 행사를 만들어요 · 날짜만 정해 주세요','info'); return; }
+  if(e.target.closest('#pcDel')){ const d=pcReadForm(); if(!confirm(`"${d.name}"을(를) 휴지통으로 보낼까요?\n기록은 지우지 않아요.`)) return;
+    try{ await db.collection('promotions').doc(PC.open).set({deleted:true, deletedAt:new Date().toISOString(), deletedBy:(curUser&&curUser.email)||''},{merge:true}); logAct('프로모션', d.name, '휴지통'); await fetchMkt(); PC.open=null; PC.draft=null; pcRender(); }catch(err){ alert('실패: '+(err.code||err.message||err)); } return; }
+  const t=e.target.closest('[data-pct]'); if(t){ const d=pcReadForm(); if(d.mech.t!==t.dataset.pct){ const def={}; (pcT()[t.dataset.pct].ps||[]).forEach(([k,,v])=>def[k]=v); d.mech={t:t.dataset.pct,...def}; } pcRenderDetail(); return; }
+  const ch=e.target.closest('[data-pcch]'); if(ch){ const d=pcReadForm(), c=ch.dataset.pcch; d.channels=(d.channels||[]).includes(c)?d.channels.filter(x=>x!==c):[...(d.channels||[]),c]; pcRenderDetail(); return; }
+  const rk=e.target.closest('[data-pcrmk]'); if(rk){ const d=pcReadForm(); d.keys=(d.keys||[]).filter(k=>k!==rk.dataset.pcrmk); pcRenderDetail(); return; }
+  if(e.target.closest('#pcOrderBtn')){ pcReadForm(); PC.orderEdit=!PC.orderEdit; pcRenderDetail(); return; }
+  const up=e.target.closest('[data-pcup]'), dn=e.target.closest('[data-pcdn]');
+  if(up||dn){ pcReadForm(); const o=pcTypeOrder(), i=+(up?up.dataset.pcup:dn.dataset.pcdn), j=up?i-1:i+1; if(j<0||j>=o.length) return; [o[i],o[j]]=[o[j],o[i]]; PC_ORDER=o; pcRenderDetail(); pcSaveOrder(); return; }
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='pcProdIn'){ const v=e.target.value.trim(); const p=P.find(x=>!isDeletedProd(x)&&prodLabel(x)===v); if(!p) return; const d=pcReadForm(); const k=pKey(p); if(!(d.keys||[]).includes(k)) d.keys=[...(d.keys||[]),k]; pcRenderDetail(); const i=$('#pcProdIn'); if(i) i.focus(); }
+  else if(e.target.closest&&e.target.closest('#pcDetail') && (e.target.id==='pcStart'||e.target.id==='pcEnd'||e.target.dataset.pcmF!=null)){ pcReadForm(); const y=window.scrollY; pcRenderDetail(); window.scrollTo({top:y}); }
+});
+document.addEventListener('keydown',e=>{ if(e.key!=='Enter') return; const c=e.target.closest&&e.target.closest('.pc-card'); if(c&&e.target===c){ e.preventDefault(); c.click(); } });
 function renderMktAll(){ fillMktSelects(); renderMktOverview(); renderMktLinks(); renderPromos(); }
 /* 마케팅 이벤트 */
 $('#mlAdd')&&$('#mlAdd').addEventListener('click',mktCreateLink);
 ['#mlChanIn','#mlTypeIn','#mlCampaign','#mlLabel'].forEach(s=>{ const el=$(s); if(el)el.addEventListener('input',updateUtmPreview); });
-$('#pmAdd')&&$('#pmAdd').addEventListener('click',promoAdd);
 ['#mlq','#mlChan','#mlType'].forEach(s=>{ const el=$(s); if(el)el.addEventListener('input',renderMktLinks); });
 document.addEventListener('click',e=>{
   const cp=e.target.closest('[data-mlcopy]');
@@ -8495,6 +8800,7 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('prod-brand').get(); if(d.exists){ const x=d.data()||{}; if(x.map&&typeof x.map==='object') PBRAND=x.map; if(x.gh&&typeof x.gh==='object') PGHLINK=x.gh; } console.log(`[prod-brand] 브랜드 지정 ${Object.keys(PBRAND).length}건 · 그로홈 연결 ${Object.keys(PGHLINK).length}건`); }catch(e){ console.warn('[prod-brand] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('brands').get(); BRAND_REG=(d.exists&&Array.isArray(d.data().list))?d.data().list:[]; applyBrandList(BRAND_REG); console.log(`[brands] 브랜드 ${BRAND_LIST.length}개`); }catch(e){ console.warn('[brands] 로드 실패 — 기본 2개로', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-status').get(); PSTATUS=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-status] 상태 지정 ${Object.keys(PSTATUS).length}건`); }catch(e){ console.warn('[prod-status] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('promo-types').get(); if(d.exists&&Array.isArray(d.data().order)) PC_ORDER=d.data().order; }catch(e){ console.warn('[promo-types] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('mfg-alias').get(); MFG_ALIAS=(d.exists&&d.data().prod&&typeof d.data().prod==='object')?{...d.data().prod}:{}; console.log(`[mfg-alias] 제조사 가칭 ${Object.keys(MFG_ALIAS).length}건`); }catch(e){ console.warn('[mfg-alias] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-eol').get(); PEOL=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-eol] 단종예정 기록 ${Object.keys(PEOL).length}건`); }catch(e){ console.warn('[prod-eol] 로드 실패', e.code||e); }
   setTimeout(()=>{ try{ eolAutoCheck(); }catch(e){ console.warn('[단종예정] 확인 실패', e); } }, 1500);
@@ -9199,7 +9505,7 @@ function renderLaunchList(){
     } else if(LA_LIST_F==='단종예정'){
       const e=PEOL[k]||{};
       extra=`<div class="la-next warn">${laStockLine(p)}</div><div class="sub dim">단종예정 ${esc(String(e.at||'').slice(0,10))}${e.by?' · '+esc(String(e.by).split('@')[0]):''}</div>`;
-      if(can) acts=`<button type="button" class="tbtn" data-laeolx="${esc(k)}">예정 취소</button><button type="button" class="tbtn" data-laend="${esc(k)}">지금 단종</button>`;
+      acts=`<button type="button" class="tbtn" data-lapc="${esc(k)}" title="재고 소진 행사 만들기">🎯 행사</button>`+(can?`<button type="button" class="tbtn" data-laeolx="${esc(k)}">예정 취소</button><button type="button" class="tbtn" data-laend="${esc(k)}">지금 단종</button>`:'');
     } else {
       const e=PEOL[k]; extra=e&&e.doneAt?`<div class="sub dim">${e.auto?'재고 소진으로 자동 단종':'단종'} ${esc(String(e.doneAt).slice(0,10))}</div>`:'';
       if(can) acts=`<button type="button" class="tbtn" data-larev="${esc(k)}">다시 출시</button>`;
@@ -9276,6 +9582,7 @@ function laOpen(k){ LA_KEY=k; LA_VIEW='detail'; renderLaunch(); window.scrollTo(
 document.addEventListener('click',async e=>{
   const f=e.target.closest('#laSum [data-laf]'); if(f){ LA_LIST_F=f.dataset.laf; renderLaunchList(); if(LA_LIST_F==='단종예정') eolAutoCheck(); return; }
   const g=e.target.closest('#laList [data-lago]'); if(g){ laOpen(g.dataset.lago); return; }
+  const pc=e.target.closest('#laList [data-lapc]'); if(pc){ const p=laProducts().find(x=>pKey(x)===pc.dataset.lapc); if(p) pcOpenNew({keys:[pKey(p)], reason:'재고소진', name:`${p.name} 재고 소진`}); return; }
   const pick=a=>laProducts().find(x=>pKey(x)===a);
   const act=async(btn,fn)=>{ btn.disabled=true; try{ await fn(); refreshAll(); gotoTab('sh-launch'); }catch(err){ console.error('[출시 관리]', err); } finally{ btn.disabled=false; } };
   const r=e.target.closest('#laList [data-larel]'); if(r){ const p=pick(r.dataset.larel); if(p&&confirm(`"${p.name}"을(를) 출시할까요?\n자체상품코드가 붙고 가격정책표에 판매 중으로 나옵니다.`)) act(r,()=>laSetStatus(p,'출시')); return; }

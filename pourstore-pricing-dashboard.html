@@ -549,6 +549,29 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
 #pcTable input{font-family:var(--mono);font-size:12px;border:1px solid var(--xl-grid);border-radius:4px;padding:3px 6px;width:120px}
 #pcTable input.bad{border-color:var(--red);background:#FDF6F4}
 #pcTable td.nm{white-space:normal;min-width:200px}
+/* 📥 판매 엑셀 올리기 */
+.su-ov{position:fixed;inset:0;background:rgba(15,20,25,.55);z-index:3000;display:none;align-items:center;justify-content:center;padding:16px}
+.su-ov.on{display:flex}
+.su-file{padding:8px 10px;border:1px solid var(--xl-grid);border-radius:8px;margin-bottom:6px;font-size:13px;background:#fff}
+.su-file.err{border-color:#F1B7AD;background:#FDF6F4;color:#8A2B1E}
+.su-fmt{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:#EFF6FF;color:#1E40AF;margin:0 4px}
+.su-warn{color:#B45309;font-weight:700}
+.su-done{font-size:11.5px;color:#047857;margin-top:3px}
+.su-again{display:block;color:#B45309;font-weight:600}
+.su-map{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;margin-top:8px}
+.su-map label{display:flex;flex-direction:column;gap:2px;font-size:11.5px;color:var(--ink-soft)}
+.su-map select{max-width:100%;font-size:12.5px;padding:4px}
+.su-tbl td,.su-tbl th{white-space:nowrap}
+.su-unk{margin-top:12px;border:1px solid #FCD34D;background:#FFFBEB;border-radius:8px;padding:10px}
+.su-unk h4{font-size:13px;margin:0 0 8px}
+.su-urow{display:flex;gap:10px;align-items:center;padding:6px 0;border-top:1px dashed #FCD34D;flex-wrap:wrap}
+.su-urow .t{flex:1;min-width:180px;font-size:13px}.su-urow .a{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.su-urow select{max-width:260px;font-size:12.5px;padding:4px}
+.su-last{margin-top:12px;padding:10px;border-radius:8px;background:#ECFDF5;color:#065F46;font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sur-part{border:1px solid var(--xl-grid);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.sur-h{display:flex;gap:8px;align-items:center;padding:8px 10px;background:#F8FAFC;flex-wrap:wrap}.sur-h .tbtn{margin-left:auto}
+.sur-pre{margin:0;padding:10px;font-size:12.5px;white-space:pre-wrap;word-break:break-all;max-height:320px;overflow:auto;font-family:inherit}
+.su-strip{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}.su-strip .it{border:1px solid var(--xl-grid);border-radius:8px;padding:6px 10px;font-size:12.5px;background:#fff}.su-strip .ok{border-color:#A7F3D0;background:#ECFDF5}.su-strip .no{border-color:#FCD34D;background:#FFFBEB}
+@media(max-width:700px){.su-tbl td,.su-tbl th{white-space:normal;font-size:12px;padding:6px 5px}.su-tbl .su-done{font-size:11px}.su-ov{padding:0;align-items:stretch}.su-ov .imp-panel{max-height:100vh;border-radius:0}.su-urow select{max-width:100%}}
 #pcOverlay{position:fixed;inset:0;background:rgba(15,20,25,.55);z-index:3000;display:none;align-items:center;justify-content:center;padding:16px}
 #pcOverlay.on{display:flex}
 @media(max-width:700px){ #pcTable input{width:104px} }
@@ -1727,12 +1750,15 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
         <button data-q="yday">어제</button><button data-q="mtd" class="on">이번 달</button><button data-q="prev">지난 달</button><button data-q="30">최근 30일</button><button data-q="ytd">올해</button>
       </div>
       <div class="seg" id="slUnit"><button data-u="amt" class="on">금액</button><button data-u="qty">수량</button></div>
+      <button class="tbtn primary" id="suOpen">📥 판매 엑셀 올리기</button>
+      <button class="tbtn" id="suReport">📋 전일 매출 보고</button>
       <button class="tbtn" id="slReload">↻ 새로 불러오기</button>
       <button class="tbtn" id="slCsv">CSV 내보내기</button>
       <span class="hint" id="slInfo">결제(주문)일 · VAT 포함 결제액 기준</span>
     </div>
     <div class="sheet-pad">
       <div id="slNotice"></div>
+      <div id="suDayStatus"></div>
       <div class="cards" id="slCards"></div>
       <div class="panel">
         <h3>채널별 매출 <span class="tag">브랜드별 구분 · 결제일 · VAT 포함</span></h3>
@@ -2289,6 +2315,23 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
   </div>
 </div>
 
+<!-- ═══ 📥 판매 엑셀 올리기 ═══ -->
+<div id="suOverlay" class="su-ov">
+  <div class="imp-panel">
+    <div class="imp-head"><span>📥 판매 엑셀 올리기 <span style="font-size:11px;color:var(--ink-faint);font-weight:400">· 사방넷·스마트스토어·쿠팡·자사몰 · 자체상품코드로 스토어/그로홈 나눔</span></span><button id="suClose" aria-label="닫기">✕</button></div>
+    <div class="imp-body">
+      <div class="toolrow" style="padding:0 0 10px;gap:8px"><button class="tbtn primary" id="suPick">📂 파일 고르기 (여러 개 가능)</button><button class="tbtn" id="suSave" disabled>기록하기</button></div>
+      <input type="file" id="suFile" accept=".xlsx,.xls,.csv" multiple style="display:none">
+      <div id="suBody"></div>
+    </div>
+  </div>
+</div>
+<div id="surOverlay" class="su-ov">
+  <div class="imp-panel">
+    <div class="imp-head"><span>📋 전일 매출 보고</span><button id="surClose" aria-label="닫기">✕</button></div>
+    <div class="imp-body" id="surBody"></div>
+  </div>
+</div>
 <!-- ═══ 자체상품코드 모달 ═══ -->
 <div id="pcOverlay">
   <div class="imp-panel">
@@ -7453,10 +7496,11 @@ async function loadSales(){
   if(SL.loading) return SL.loading;
   SL.loading=(async()=>{
     const cdb=crmDB(); if(!cdb) throw new Error('POUR스토어 CRM 연결 실패');
-    const [gSnap, pDoc, sDoc]=await Promise.all([
+    const [gSnap, pDoc, sDoc, uSnap]=await Promise.all([
       ghDB().collection('salesRecords').get(),
       cdb.collection('pour_data').doc('sales_records').get(),
       cdb.collection('pour_data').doc('shipments').get(),
+      db.collection('sales-orders').get().catch(e=>{ console.warn('[매출] 판매 엑셀 기록 읽기 실패', e.code||e); return {docs:[]}; }),
     ]);
     const gRecs=gSnap.docs.map(d=>({id:d.id,...d.data()}));
     const pRecs=(pDoc.exists&&Array.isArray(pDoc.data().records))?pDoc.data().records:[];
@@ -7475,7 +7519,13 @@ async function loadSales(){
       const k=gh2key[r.productId]||null, src='GROHOME';
       const brand=(c.grp==='shared'&&prodBrand(k))||src;
       rows.push({src,brand,date:String(r.date||'').slice(0,10),ch:c.ch,grp:c.grp,amt:Math.round(+r.totalPrice||((+r.unitPrice||0)*(+r.quantity||0))),qty:+r.quantity||0,name:r.productName||'',key:k,ghId:r.productId||''}); });
-    pRecs.forEach(r=>{ const c=slChan(r.channel||r.platform); if(!c.known) unknownCh[c.ch]=(unknownCh[c.ch]||0)+1;
+    // 📥 판매 엑셀 기록: 그로홈에 넣은 줄·이미 그로홈에 있던 날짜의 줄(mir 1·2)은 그로홈 salesRecords 로 이미 들어와 있으니 빼고, POUR스토어 줄이 있는 날은 CRM 기록 대신 이것을 쓴다
+    const upDays=new Set(); let upN=0;
+    uSnap.docs.filter(d=>!d.id.startsWith('batch-')).forEach(d=>{ (d.data().rows||[]).forEach(r=>{ if(r.mir) return; const c=slChan(r.ch);
+      if(r.brand==='POUR스토어') upDays.add(d.id);
+      rows.push({src:'판매엑셀',brand:r.brand||'POUR스토어',date:d.id,ch:c.ch,grp:c.grp,amt:Math.round(+r.amt||0),qty:+r.qty||0,name:r.name||'',key:r.pk||null}); upN++; }); });
+    pRecs.forEach(r=>{ if(upDays.has(String(r.date||'').slice(0,10))) return;
+      const c=slChan(r.channel||r.platform); if(!c.known) unknownCh[c.ch]=(unknownCh[c.ch]||0)+1;
       let date=String(r.date||'').slice(0,10);
       if(r.recordSource==='shipment'){ const d=regDate[String(r.orderNo||'').trim().replace(/^0+/,'')]; if(d&&d!==date){ date=d; redated++; } }
       const nm=String(r.productName||'').replace(/^%/,''), k=name2key[ghNorm(nm)]||null, src='POUR스토어';
@@ -7484,7 +7534,9 @@ async function loadSales(){
       rows.push({src,brand,date,ch:c.ch,grp:c.grp,amt:Math.round(vatEx*1.1),qty:+r.qty||+r.quantity||0,name:nm,key:k}); });
     const maxDate=src=>rows.filter(r=>r.src===src&&r.date).reduce((m,r)=>r.date>m?r.date:m,'');
     SL.rows=rows; SL.loaded=true;
-    SL.meta={gN:gRecs.length,pN:pRecs.length,shipN:ships.length,redated,unknownCh,gMax:maxDate('GROHOME'),pMax:maxDate('POUR스토어'),
+    try{ const t=new Date(),y=new Date(t); y.setDate(y.getDate()-1); const ds=[slDay(y),slDay(t)]; SL.marks={};
+      await Promise.all(ds.map(async d=>{ const m=await ghDB().collection('salesDays').doc(d).get(); SL.marks[d]=m.exists?m.data():{}; })); }catch(e){ console.warn('[매출] 등록완료 표시 읽기 실패', e.code||e); }
+    SL.meta={upN,gN:gRecs.length,pN:pRecs.length,shipN:ships.length,redated,unknownCh,gMax:maxDate('GROHOME'),pMax:maxDate('POUR스토어'),
       pUpd:(pDoc.exists&&pDoc.data().updatedAt)||'',at:new Date().toISOString()};
   })();
   try{ await SL.loading; } finally{ SL.loading=null; }
@@ -7509,6 +7561,9 @@ async function openSalesTab(force){
 function slSum(list){ let a=0,q=0; list.forEach(r=>{ a+=r.amt; q+=r.qty; }); return {a,q,n:list.length}; }
 function renderSales(){
   if(!SL.loaded) return;
+  { const st=$('#suDayStatus'); if(st){ const t=new Date(),y=new Date(t); y.setDate(y.getDate()-1); const ds=[[slDay(y),'어제'],[slDay(t),'오늘']];
+    st.innerHTML='<div class="su-strip">'+ds.map(([d,l])=>['GROHOME','POUR스토어'].map(b=>{ const m=(SL.marks||{})[d]&&SL.marks[d][b];
+      return `<span class="it ${m?'ok':'no'}">${l} ${d.slice(5)} · ${b==='GROHOME'?'그로홈':'스토어'} ${m?suMarkTxt(m):'⏳ 아직 등록 안 됨'}</span>`; }).join('')).join('')+'</div>'; } }
   const from=$('#slFrom').value, to=$('#slTo').value, unit=SL.unit;
   const inP=SL.rows.filter(r=>r.date && (!from||r.date>=from) && (!to||r.date<=to));
   const val=s=> unit==='qty' ? s.q.toLocaleString()+'개' : won(s.a);
@@ -7592,6 +7647,241 @@ function slExportCsv(){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+body],{type:'text/csv;charset=utf-8'}));
   a.download=`브랜드채널매출_${$('#slFrom').value}_${$('#slTo').value}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
+/* ══════════ 📥 판매 엑셀 올리기 → 브랜드별 매출 (사방넷·스마트스토어·쿠팡·자사몰·오늘의집…) ══════════
+   · 제목줄을 보고 열(주문일·주문번호·쇼핑몰·자체상품코드·상품명·옵션·수량·결제금액)을 자동으로 찾는다. 못 찾으면 한 번 골라주면 기억.
+   · 브랜드: 자체상품코드 PS-… → POUR스토어, GH-… → GROHOME. 코드가 없으면 제품명으로 찾고, 그래도 없으면 한 번 골라주면 기억.
+   · 저장: 이 대시보드 sales-orders/{날짜} (원본 줄 · 중복 방지 키). 같은 파일을 다시 올려도 두 번 세지 않는다.
+   · GROHOME 줄은 그로홈 대시보드 salesRecords 에도 같은 모양(날짜·채널·제품·수량·금액)으로 넣어, 두 곳 어디서 봐도 같다.
+   · 등록 완료 표시: 그로홈 대시보드 salesDays/{날짜} — 두 앱이 함께 보고 "이미 등록됨"을 알려준다.
+   · 되돌리기: 기록할 때 만든 묶음(batch) 단위로 되돌린다 (묶음 기록은 sales-orders/batch-* 에 남김). */
+const SU_COL={
+  date:['결제일','결제일시','결제완료일','주문일','주문일시','주문일자','수집일','주문수집일','주문등록일'],
+  order:['쇼핑몰주문번호','상품주문번호','주문번호','사방넷주문번호','주문번호(쇼핑몰)','주문고유번호'],
+  ch:['쇼핑몰명','쇼핑몰','판매처','판매채널','마켓명','몰명'],
+  code:['자체상품코드','판매자상품코드','판매자관리코드','옵션관리코드','상품관리코드','업체상품코드','자체상품코드(모델명)','모델명'],
+  name:['상품명','등록상품명','노출상품명','주문상품명','상품명(한국어 쇼핑몰)'],
+  opt:['옵션','옵션명','옵션정보','주문옵션','옵션내용','등록옵션명','옵션명(주문)'],
+  qty:['수량','주문수량','구매수량','판매수량'],
+  amt:['결제금액','최종결제금액','총결제금액','실결제금액','상품별총주문금액','총주문금액','주문금액','판매금액','결제액'],
+  unit:['판매가','판매단가','상품가격','단가'],
+};
+const SU_LBL={date:'주문(결제)일',order:'주문번호',ch:'쇼핑몰',code:'자체상품코드',name:'상품명',opt:'옵션',qty:'수량',amt:'결제금액(합계)',unit:'판매가(1개)'};
+let SU={files:[],rows:[],map:{},exist:{},marks:{},saving:false,last:null,learn:{}};
+const suNorm=s=>String(s==null?'':s).replace(/\s+/g,'');
+function suDate(v){
+  if(v==null||v==='')return '';
+  if(typeof v==='number'&&v>20000&&v<80000){const d=new Date(Math.round((v-25569)*864e5));return d.toISOString().slice(0,10);}   // 엑셀 날짜 숫자
+  const s=String(v).trim();let m=s.match(/(\d{4})[.\-\/년\s]*(\d{1,2})[.\-\/월\s]*(\d{1,2})/);if(m)return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  m=s.match(/^(\d{2})(\d{2})(\d{2})/);if(m)return `20${m[1]}-${m[2]}-${m[3]}`;
+  return '';
+}
+const suNum=v=>{const n=Number(String(v==null?'':v).replace(/[^\d.\-]/g,''));return isFinite(n)?n:0;};
+function suFindHeader(rows){
+  let best=-1,score=0;
+  for(let i=0;i<Math.min(12,rows.length);i++){const h=(rows[i]||[]).map(suNorm);let s=0;Object.values(SU_COL).forEach(list=>{if(list.some(k=>h.includes(suNorm(k))))s++;});if(s>score){score=s;best=i;}}
+  return score>=2?best:-1;
+}
+function suPickCols(headers){
+  const h=headers.map(suNorm),map={};
+  Object.entries(SU_COL).forEach(([key,list])=>{let i=-1;for(const k of list){i=h.indexOf(suNorm(k));if(i>=0)break;}
+    if(i<0&&key!=='unit'){for(const k of list){i=h.findIndex(x=>x&&x.includes(suNorm(k)));if(i>=0)break;}}
+    if(i>=0)map[key]=i;});
+  if(map.amt!=null&&map.unit===map.amt)delete map.unit;
+  return map;
+}
+function suFormat(headers,fname){
+  const h=headers.map(suNorm),f=(fname||'').toLowerCase();
+  if(h.includes('사방넷주문번호')||(h.includes('쇼핑몰명')&&h.some(x=>x.includes('자체상품코드')))||/사방넷|sabang/.test(f))return {fmt:'사방넷',ch:''};
+  if(h.includes('상품주문번호'))return {fmt:'스마트스토어',ch:'스마트스토어'};
+  if(h.includes('묶음배송번호')||h.includes('등록상품명'))return {fmt:'쿠팡',ch:'쿠팡'};
+  if(h.some(x=>x.includes('오늘의집'))||h.includes('딜번호'))return {fmt:'오늘의집',ch:'오늘의집'};
+  if(h.some(x=>x.startsWith('자체상품코드'))&&h.some(x=>x.includes('주문번호')))return {fmt:'자사몰(카페24)',ch:'자사몰'};
+  if(/스마트|smartstore/.test(f))return {fmt:'스마트스토어',ch:'스마트스토어'};
+  if(/쿠팡|coupang/.test(f))return {fmt:'쿠팡',ch:'쿠팡'};
+  if(/카페24|cafe24|자사몰/.test(f))return {fmt:'자사몰',ch:'자사몰'};
+  return {fmt:'기타',ch:''};
+}
+function suSig(headers){return headers.map(suNorm).filter(Boolean).join('|').slice(0,400);}
+function suLoadMapMemo(sig){try{return JSON.parse(localStorage.getItem('su-map:'+sig)||'null');}catch(e){return null;}}
+function suSaveMapMemo(sig,map){try{localStorage.setItem('su-map:'+sig,JSON.stringify(map));}catch(e){}}
+/* 제품 찾기: 자체상품코드 → 제품 · 브랜드 */
+function suIndex(){
+  const byCode={},byName={};
+  P.filter(p=>!isDeletedProd(p)).forEach(p=>{const k=pKey(p),pc=pcodeOf(p);if(pc)byCode[pc.toUpperCase()]=k;if(p.ghCode)byCode[String(p.ghCode).toUpperCase()]=k;
+    const a=ghNorm(p.name),b=ghNorm(p.name+(p.spec&&p.spec!=='-'?p.spec:''));if(!(b in byName))byName[b]=k;if(!(a in byName))byName[a]=k;});
+  return {byCode,byName};
+}
+function suBrandOfKey(k){if(!k)return null;const l=pbrandKey(k);return l.includes('POUR스토어')?'POUR스토어':l.includes('GROHOME')?'GROHOME':(l[0]||null);}
+function suResolve(r,ix){
+  const code=String(r.code||'').trim().toUpperCase();let k=null,brand=null,how='';
+  if(code){k=ix.byCode[code]||null;if(/^PS-/.test(code))brand='POUR스토어';else if(/^GH-/.test(code))brand='GROHOME';if(k||brand)how='코드';}
+  const lk=ghNorm(r.name+'|'+(r.opt||''));
+  if(!k&&SU.learn[lk]){k=SU.learn[lk].pk||null;brand=brand||SU.learn[lk].brand||null;how=how||'기억';}
+  if(!k){const n1=ghNorm(r.name+(r.opt||'')),n2=ghNorm(r.name);k=ix.byName[n1]||ix.byName[n2]||null;if(k)how=how||'이름';}
+  if(!brand)brand=suBrandOfKey(k);
+  return {k,brand,how,learnKey:lk};
+}
+async function suLoadLearn(){try{const d=await db.collection('product-meta').doc('sales-map').get();SU.learn=(d.exists&&d.data().map)||{};}catch(e){console.warn('[판매엑셀] 기억한 연결 불러오기 실패',e.code||e);}}
+async function suSaveLearn(){await db.collection('product-meta').doc('sales-map').set({map:SU.learn,updatedAt:new Date().toISOString(),updatedBy:(curUser&&curUser.email)||''});}
+/* 파일 → 줄 */
+async function suReadFile(file){
+  const sheets=await fileToSheets(file);if(!sheets)return {file:file.name,error:'엑셀(xlsx·xls)이나 CSV 파일만 돼요'};
+  for(const rows of sheets){const hi=suFindHeader(rows);if(hi<0)continue;
+    const headers=(rows[hi]||[]).map(x=>String(x==null?'':x).trim());const sig=suSig(headers);
+    const fm=suFormat(headers,file.name);const map=Object.assign(suPickCols(headers),suLoadMapMemo(sig)||{});
+    return {file:file.name,fmt:fm.fmt,fixedCh:fm.ch,headers,sig,map,body:rows.slice(hi+1)};}
+  return {file:file.name,error:'제목줄(상품명·수량 등)을 찾지 못했어요'};
+}
+function suBuildRows(){
+  const ix=suIndex(),out=[];
+  SU.files.forEach((f,fi)=>{if(f.error)return;const m=f.map;f.missing=['qty'].concat(m.code==null?['name']:[]).filter(k=>m[k]==null);
+    if(m.name==null&&m.code==null)f.missing.push('code');
+    if(f.missing.length)return;
+    f.body.forEach((row,ri)=>{if(!row||!row.some(c=>c!==''&&c!=null))return;
+      const g=k=>m[k]==null?'':row[m[k]];const qty=suNum(g('qty'));if(!qty)return;
+      const name=String(g('name')||'').trim(),code=String(g('code')||'').trim();if(!name&&!code)return;
+      let amt=m.amt!=null?suNum(g('amt')):0;if(!amt&&m.unit!=null)amt=suNum(g('unit'))*qty;
+      const rawCh=String(f.fixedCh||g('ch')||'').trim();let ch=slChan(rawCh).ch;
+      if(f.fmt==='자사몰(카페24)'&&/위탁/.test(name))ch='위탁판매';
+      const date=suDate(g('date'))||SU.fallbackDate||'';
+      const order=String(g('order')||'').trim(),opt=String(g('opt')||'').trim();
+      const r={fi,ri,date,order,ch,rawCh,code,name,opt,qty,amt:Math.round(amt)};
+      Object.assign(r,suResolve(r,ix));
+      r.key=[ch,order||(date+'#'+ri),code||name,opt].join('|').slice(0,300);
+      out.push(r);});});
+  SU.rows=out;
+}
+async function suLoadExisting(){
+  const dates=[...new Set(SU.rows.map(r=>r.date).filter(Boolean))];SU.exist={};SU.marks={};
+  await Promise.all(dates.map(async d=>{
+    try{const s=await db.collection('sales-orders').doc(d).get();SU.exist[d]=new Set(((s.exists&&s.data().rows)||[]).map(x=>x.k));}catch(e){console.warn('[판매엑셀] 기존 기록 읽기 실패',d,e.code||e);SU.exist[d]=new Set();}
+    try{const m=await ghDB().collection('salesDays').doc(d).get();SU.marks[d]=m.exists?m.data():{};}catch(e){console.warn('[판매엑셀] 등록완료 표시 읽기 실패',d,e.code||e);SU.marks[d]={};}
+  }));
+}
+const suWon=n=>Math.round(n||0).toLocaleString('ko-KR')+'원';
+function suMarkTxt(m){return m?`✅ ${esc(String(m.by||'').split('@')[0])} · ${esc(m.app||'')} ${esc(String(m.at||'').slice(5,16).replace('T',' '))}${m.n?` · ${m.n}건`:''}`:'';}
+function renderSU(){
+  const box=$('#suBody');if(!box)return;
+  const files=SU.files.map((f,fi)=>f.error?`<div class="su-file err">⚠ ${esc(f.file)} — ${esc(f.error)}</div>`
+    :`<div class="su-file"><b>${esc(f.file)}</b> <span class="su-fmt">${esc(f.fmt)}</span> ${f.missing&&f.missing.length?`<span class="su-warn">열을 골라주세요</span>`:`<span class="dim">${SU.rows.filter(r=>r.fi===fi).length}줄</span>`}
+      ${f.missing&&f.missing.length?`<div class="su-map">${['date','order','ch','code','name','opt','qty','amt','unit'].map(k=>`<label><span>${SU_LBL[k]}${f.missing.includes(k)?' *':''}</span><select data-sumap="${k}" data-fi="${fi}"><option value="">— 없음 —</option>${f.headers.map((h,i)=>`<option value="${i}"${f.map[k]===i?' selected':''}>${esc(h||('열 '+(i+1)))}</option>`).join('')}</select></label>`).join('')}</div>`:''}</div>`).join('');
+  if(!SU.rows.length){box.innerHTML=`${files}<div class="footnote" style="margin-top:10px">사방넷 주문 엑셀(추천) · 스마트스토어 · 쿠팡 · 자사몰(카페24) · 오늘의집 주문 엑셀을 올리면 자체상품코드로 POUR스토어·그로홈을 나눠요.</div>`;$('#suSave').disabled=true;return;}
+  const byDate={};SU.rows.forEach(r=>{const d=r.date||'(날짜 없음)';(byDate[d]=byDate[d]||[]).push(r);});
+  const unk={};SU.rows.forEach(r=>{if(!r.brand){const x=unk[r.learnKey]=unk[r.learnKey]||{name:r.name,opt:r.opt,code:r.code,n:0,amt:0,lk:r.learnKey};x.n+=r.qty;x.amt+=r.amt;}});
+  const opts=P.filter(p=>!isDeletedProd(p)).map(p=>`<option value="${esc(pKey(p))}">${esc(prodLabel(p))}${pcodeOf(p)?' · '+esc(pcodeOf(p)):''}</option>`).join('');
+  let newN=0;
+  const days=Object.keys(byDate).sort().map(d=>{const L=byDate[d],ex=SU.exist[d]||new Set();
+    const fresh=L.filter(r=>!ex.has(r.key));newN+=fresh.filter(r=>r.brand).length;const dup=L.length-fresh.length;
+    const agg=b=>{const x=fresh.filter(r=>r.brand===b);return {n:x.length,q:x.reduce((a,r)=>a+r.qty,0),a:x.reduce((a,r)=>a+r.amt,0)};};
+    const g=agg('GROHOME'),s=agg('POUR스토어'),u=fresh.filter(r=>!r.brand).length;const mk=SU.marks[d]||{};
+    return `<tr><td><b>${esc(d)}</b></td><td class="num">${s.n?`${s.n}건 · ${suWon(s.a)}`:'—'}${mk['POUR스토어']?`<div class="su-done">${suMarkTxt(mk['POUR스토어'])}</div>`:''}</td>
+      <td class="num">${g.n?`${g.n}건 · ${suWon(g.a)}`:'—'}${mk.GROHOME?`<div class="su-done">${suMarkTxt(mk.GROHOME)} <label class="su-again"><input type="checkbox" data-suagain="${esc(d)}"${SU.again&&SU.again[d]?' checked':''}> 그래도 그로홈에 추가</label></div>`:''}</td>
+      <td class="num">${u?`<span class="su-warn">${u}건</span>`:'—'}</td><td class="num dim">${dup?dup+'건':'—'}</td></tr>`;}).join('');
+  box.innerHTML=`${files}
+    <div class="sl-wrap" style="margin-top:10px"><table class="grid su-tbl"><thead><tr><th>날짜</th><th class="num">POUR스토어</th><th class="num">GROHOME</th><th class="num">확인 필요</th><th class="num">이미 있음</th></tr></thead><tbody>${days}</tbody></table></div>
+    ${Object.keys(unk).length?`<div class="su-unk"><h4>⚠ 어느 제품인지 모르는 상품 ${Object.keys(unk).length}개 <span class="dim">· 한 번 고르면 다음부터 자동</span></h4>
+      ${Object.values(unk).map(x=>`<div class="su-urow"><div class="t"><b>${esc(x.name||x.code)}</b>${x.opt?` <span class="dim">${esc(x.opt)}</span>`:''}${x.code?` <span class="su-fmt">${esc(x.code)}</span>`:''}<div class="dim">${x.n}개 · ${suWon(x.amt)}</div></div>
+        <div class="a"><select data-sulearn="${esc(x.lk)}"><option value="">제품 고르기…</option>${opts}</select><button class="tbtn" data-subrand="POUR스토어" data-lk="${esc(x.lk)}">스토어</button><button class="tbtn" data-subrand="GROHOME" data-lk="${esc(x.lk)}">그로홈</button></div></div>`).join('')}
+      <div class="footnote">고르지 않은 상품은 이번 기록에서 빠져요 (파일을 다시 올리면 그때 넣을 수 있어요).</div></div>`:''}
+    ${SU.last?`<div class="su-last">✅ ${esc(SU.last.msg)} <button class="tbtn" id="suUndo">↩ 이번 기록 되돌리기</button> <button class="tbtn" id="suRep2">📋 전일 매출 보고</button></div>`:''}`;
+  $('#suSave').disabled=!newN||SU.saving;$('#suSave').textContent=SU.saving?'기록하는 중…':`기록하기 (${newN}건)`;
+}
+async function openSU(){
+  if(!curUser){alert('로그인 후 사용할 수 있어요.');return;}
+  SU={files:[],rows:[],map:{},exist:{},marks:{},saving:false,last:null,learn:SU.learn||{},again:{}};
+  $('#suOverlay').classList.add('on');renderSU();suLoadLearn().then(()=>{if(SU.rows.length){suBuildRows();renderSU();}});
+}
+function closeSU(){$('#suOverlay').classList.remove('on');}
+async function suAddFiles(list){
+  for(const f of list){try{SU.files.push(await suReadFile(f));}catch(e){console.error('[판매엑셀] 읽기 실패',f.name,e);SU.files.push({file:f.name,error:'읽지 못했어요: '+(e.message||e)});}}
+  suBuildRows();await suLoadExisting();renderSU();
+}
+async function suSave(){
+  if(SU.saving)return;const now=new Date().toISOString(),by=(curUser&&curUser.email)||'',batch='b'+Date.now().toString(36);
+  const byDate={};SU.rows.forEach(r=>{if(!r.brand||!r.date)return;const ex=SU.exist[r.date]||new Set();if(ex.has(r.key))return;(byDate[r.date]=byDate[r.date]||[]).push(r);});
+  const dates=Object.keys(byDate).sort();if(!dates.length)return;
+  SU.saving=true;renderSU();
+  const made={orders:{},gh:[],marks:{}};let nS=0,nG=0,aS=0,aG=0,ghFail=0,ghNoLink=0,ghSkipN=0;
+  try{
+    for(const d of dates){
+      const L=byDate[d],mk=SU.marks[d]||{};const ghSkip=!!(mk.GROHOME&&!(SU.again&&SU.again[d]));
+      // 그로홈 대시보드 salesRecords: 날짜·채널·그로홈 제품별로 묶어서 (그쪽 모양 그대로)
+      const ghAgg={};L.filter(r=>r.brand==='GROHOME').forEach(r=>{const gid=r.k&&PGHLINK[r.k];if(ghSkip){ghSkipN++;return;}if(!gid){ghNoLink++;return;}const kk=r.ch+'|'+gid;const x=ghAgg[kk]=ghAgg[kk]||{ch:r.ch,gid,name:'',q:0,a:0,keys:[]};x.q+=r.qty;x.a+=r.amt;x.keys.push(r.key);x.name=x.name||r.name;});
+      const mirrored=new Set();
+      for(const x of Object.values(ghAgg)){
+        try{const ref=ghDB().collection('salesRecords').doc();
+          const p=P.find(pp=>pKey(pp)===Object.keys(PGHLINK).find(k=>PGHLINK[k]===x.gid));
+          await ref.set({date:d,platform:x.ch,productId:x.gid,productName:(p&&p.name)||x.name,quantity:x.q,unitPrice:x.q?Math.round(x.a/x.q):0,totalPrice:x.a,createdAt:now,source:'margin-dashboard',batch,by});
+          made.gh.push(ref.id);x.keys.forEach(k=>mirrored.add(k));}
+        catch(e){ghFail++;console.error('[판매엑셀] 그로홈 기록 실패',x,e);}
+      }
+      const rows=L.map(r=>({k:r.key,ch:r.ch,raw:r.rawCh,order:r.order,code:r.code,name:r.name,opt:r.opt,qty:r.qty,amt:r.amt,brand:r.brand,pk:r.k||'',mir:mirrored.has(r.key)?1:(r.brand==='GROHOME'&&ghSkip?2:0),batch,src:SU.files[r.fi]?SU.files[r.fi].fmt:''}));
+      const ref=db.collection('sales-orders').doc(d);const cur=await ref.get();const prev=(cur.exists&&cur.data().rows)||[];
+      await ref.set({date:d,rows:prev.concat(rows),updatedAt:now,updatedBy:by});made.orders[d]=rows.map(r=>r.k);
+      const s=rows.filter(r=>r.brand==='POUR스토어'),g=rows.filter(r=>r.brand==='GROHOME');nS+=s.length;nG+=g.length;aS+=s.reduce((a,r)=>a+r.amt,0);aG+=g.reduce((a,r)=>a+r.amt,0);
+      const patch={};if(s.length)patch['POUR스토어']={done:true,by,at:now,app:'마진대시보드',n:s.length,amt:s.reduce((a,r)=>a+r.amt,0),batch};
+      if(g.length&&!ghSkip)patch.GROHOME={done:true,by,at:now,app:'마진대시보드',n:g.length,amt:g.reduce((a,r)=>a+r.amt,0),batch};
+      if(Object.keys(patch).length){try{await ghDB().collection('salesDays').doc(d).set(patch,{merge:true});made.marks[d]=Object.keys(patch);}catch(e){console.warn('[판매엑셀] 등록완료 표시 실패',d,e.code||e);}}
+    }
+    await db.collection('sales-orders').doc('batch-'+batch).set({batch,at:now,by,dates,orders:made.orders,gh:made.gh,marks:made.marks,files:SU.files.map(f=>f.file)});
+    logAct('판매엑셀',`스토어 ${nS}건 · 그로홈 ${nG}건`,`${dates.join(', ')} · 스토어 ${suWon(aS)} · 그로홈 ${suWon(aG)}${ghFail?` · 그로홈 기록 실패 ${ghFail}`:''}`);
+    SU.last={batch,msg:`스토어 ${nS}건 ${suWon(aS)} · 그로홈 ${nG}건 ${suWon(aG)} 기록했어요${ghSkipN?` · 그로홈 ${ghSkipN}건은 이미 등록된 날짜라 그로홈 대시보드엔 안 넣음`:''}${ghNoLink?` · 그로홈 대시보드 제품과 연결 안 된 ${ghNoLink}건은 여기에만 기록`:''}${ghFail?` · 그로홈 대시보드 기록 ${ghFail}건 실패(콘솔 확인)`:''}`,dates};
+    uiToast(SU.last.msg,ghFail?'warn':'ok');
+    await suLoadExisting();SL.loaded=false;
+  }catch(e){console.error('[판매엑셀] 기록 실패:',e);alert('기록 실패: '+(e.code||e.message||e)+'\n(이미 기록된 날짜는 [되돌리기]로 정리할 수 있어요)');}
+  finally{SU.saving=false;renderSU();}
+}
+async function suUndo(){
+  const b=SU.last&&SU.last.batch;if(!b)return;
+  if(!confirm('방금 기록한 판매 엑셀을 되돌릴까요?\n(이 대시보드 기록과 그로홈 대시보드에 넣은 매출을 함께 빼요)'))return;
+  try{
+    const bd=await db.collection('sales-orders').doc('batch-'+b).get();const x=bd.exists?bd.data():null;if(!x){alert('되돌릴 기록을 찾지 못했어요');return;}
+    for(const d of x.dates||[]){const ref=db.collection('sales-orders').doc(d);const cur=await ref.get();if(!cur.exists)continue;
+      await ref.set({rows:(cur.data().rows||[]).filter(r=>r.batch!==b),updatedAt:new Date().toISOString(),updatedBy:(curUser&&curUser.email)||''},{merge:true});}
+    for(const id of x.gh||[]){try{const r=ghDB().collection('salesRecords').doc(id);const s=await r.get();if(s.exists){await ghDB().collection('trash').doc('margin-undo-'+id).set({col:'salesRecords',id,data:s.data(),at:new Date().toISOString()}).catch(()=>{});await r.delete();}}catch(e){console.warn('[판매엑셀] 그로홈 기록 빼기 실패',id,e);}}
+    for(const [d,keys] of Object.entries(x.marks||{})){try{const m=await ghDB().collection('salesDays').doc(d).get();const cur=m.exists?m.data():{};const patch={};keys.forEach(k=>{if(cur[k]&&cur[k].batch===b)patch[k]=firebase.firestore.FieldValue.delete();});if(Object.keys(patch).length)await ghDB().collection('salesDays').doc(d).update(patch);}catch(e){console.warn('[판매엑셀] 완료표시 되돌리기 실패',d,e);}}
+    await db.collection('sales-orders').doc('batch-'+b).set({undoneAt:new Date().toISOString(),undoneBy:(curUser&&curUser.email)||''},{merge:true});
+    logAct('판매엑셀 되돌림',b,(x.dates||[]).join(', '));SU.last=null;SL.loaded=false;await suLoadExisting();renderSU();uiToast('되돌렸어요','ok');
+  }catch(e){console.error('[판매엑셀] 되돌리기 실패',e);alert('되돌리기 실패: '+(e.code||e.message||e));}
+}
+/* 📋 전일 매출 보고 — 그로홈 대시보드 [일괄 입력]이 읽는 모양 그대로 ("YYYY.MM.DD 주문 건 보고" · [채널] · "- 제품 : N건") */
+function suReportText(date,brand){
+  const rows=(SL.rows||[]).filter(r=>r.date===date&&r.brand===brand);if(!rows.length)return '';
+  const byCh={};rows.forEach(r=>{const c=byCh[r.ch]=byCh[r.ch]||{};const nm=(r.name||'(이름 없음)').trim();c[nm]=(c[nm]||0)+(+r.qty||0);});
+  const tot=rows.reduce((a,r)=>a+r.amt,0),q=rows.reduce((a,r)=>a+(+r.qty||0),0);
+  const d=date.replace(/-/g,'.');
+  return `${d} 주문 건 보고 (${brand==='GROHOME'?'그로홈':'POUR스토어'})\n💰 합계 ${suWon(tot)} · ${q}개\n`+Object.entries(byCh).sort((a,b)=>Object.values(b[1]).reduce((x,y)=>x+y,0)-Object.values(a[1]).reduce((x,y)=>x+y,0)).map(([ch,m])=>`\n[${ch}]\n`+Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([n,c])=>`- ${n} : ${c}건`).join('\n')).join('\n');
+}
+async function openSUReport(){
+  $('#surOverlay').classList.add('on');$('#surBody').innerHTML='<div class="dim">불러오는 중…</div>';
+  try{if(!SL.loaded)await loadSales();}catch(e){$('#surBody').innerHTML=`<div class="su-warn">매출을 불러오지 못했어요: ${esc(e.code||e.message||e)}</div>`;return;}
+  const y=new Date();y.setDate(y.getDate()-1);const def=slDay(y);const d=($('#surDate')&&$('#surDate').value)||def;
+  const dates=[...new Set((SL.rows||[]).map(r=>r.date).filter(Boolean))].sort().reverse().slice(0,30);
+  let marks={};try{const m=await ghDB().collection('salesDays').doc(d).get();marks=m.exists?m.data():{};}catch(e){}
+  const part=b=>{const t=suReportText(d,b);return `<div class="sur-part"><div class="sur-h"><b>${b==='GROHOME'?'🏠 그로홈':'🛒 POUR스토어'}</b> ${marks[b]?`<span class="su-done">${suMarkTxt(marks[b])}</span>`:'<span class="dim">등록 표시 없음</span>'}<button class="tbtn" data-surcopy="${b}"${t?'':' disabled'}>📋 복사</button></div><pre class="sur-pre" id="sur-${b==='GROHOME'?'g':'s'}">${esc(t||'이 날짜 매출이 없어요')}</pre></div>`;};
+  $('#surBody').innerHTML=`<div class="toolrow" style="padding:0 0 10px"><label class="dim">날짜 <input type="date" id="surDate" value="${esc(d)}"></label>${dates.length?`<span class="dim">최근 기록: ${dates.slice(0,5).map(x=>`<button class="tbtn" data-surd="${x}">${x.slice(5)}</button>`).join(' ')}</span>`:''}</div>${part('GROHOME')}${part('POUR스토어')}
+    <div class="footnote">복사한 글은 카톡 보고에 붙이거나, 그로홈 대시보드 [일괄 입력]에 그대로 붙여 넣을 수 있는 모양이에요.</div>`;
+}
+(function wireSU(){
+  const o=$('#suOpen');if(o)o.addEventListener('click',openSU);
+  const rp=$('#suReport');if(rp)rp.addEventListener('click',openSUReport);
+  const x=$('#suClose');if(x)x.addEventListener('click',closeSU);
+  const rx=$('#surClose');if(rx)rx.addEventListener('click',()=>$('#surOverlay').classList.remove('on'));
+  const f=$('#suFile');if(f)f.addEventListener('change',async e=>{const l=[...(e.target.files||[])];e.target.value='';if(l.length)await suAddFiles(l);});
+  const pick=$('#suPick');if(pick)pick.addEventListener('click',()=>$('#suFile').click());
+  const sv=$('#suSave');if(sv)sv.addEventListener('click',suSave);
+  document.addEventListener('change',async e=>{const t=e.target;if(!t)return;
+    if(t.dataset&&t.dataset.sumap){const fi=+t.dataset.fi,k=t.dataset.sumap,f=SU.files[fi];if(!f)return;if(t.value==='')delete f.map[k];else f.map[k]=+t.value;suSaveMapMemo(f.sig,f.map);suBuildRows();await suLoadExisting();renderSU();return;}
+    if(t.dataset&&t.dataset.sulearn!==undefined&&t.value){const k=t.value;SU.learn[t.dataset.sulearn]={pk:k,brand:suBrandOfKey(k),at:new Date().toISOString()};try{await suSaveLearn();}catch(err){console.error('[판매엑셀] 연결 기억 실패',err);uiToast('연결을 저장하지 못했어요: '+(err.code||err.message),'warn');}suBuildRows();renderSU();return;}
+    if(t.dataset&&t.dataset.suagain){SU.again=SU.again||{};SU.again[t.dataset.suagain]=t.checked;renderSU();return;}
+    if(t.id==='surDate')openSUReport();});
+  document.addEventListener('click',async e=>{const b=e.target.closest('[data-subrand],#suUndo,#suRep2,[data-surcopy],[data-surd]');if(!b)return;
+    if(b.id==='suUndo'){suUndo();return;}
+    if(b.id==='suRep2'){closeSU();openSUReport();return;}
+    if(b.dataset.surd){$('#surDate').value=b.dataset.surd;openSUReport();return;}
+    if(b.dataset.surcopy){const pre=$(b.dataset.surcopy==='GROHOME'?'#sur-g':'#sur-s');const t=pre?pre.textContent:'';try{await navigator.clipboard.writeText(t);uiToast('보고 글을 복사했어요','ok');}catch(err){const r=document.createRange();r.selectNodeContents(pre);const s=getSelection();s.removeAllRanges();s.addRange(r);uiToast('선택해 뒀어요 · 복사를 눌러주세요','warn');}return;}
+    if(b.dataset.subrand){SU.learn[b.dataset.lk]={pk:'',brand:b.dataset.subrand,at:new Date().toISOString()};try{await suSaveLearn();}catch(err){console.error('[판매엑셀] 연결 기억 실패',err);}suBuildRows();renderSU();}});
+})();
 (function wireSales(){
   const q=$('#slQuick'); if(q) q.addEventListener('click',e=>{ const b=e.target.closest('button[data-q]'); if(!b)return; slSetQuick(b.dataset.q); renderSales(); });
   const u=$('#slUnit'); if(u) u.addEventListener('click',e=>{ const b=e.target.closest('button[data-u]'); if(!b)return; SL.unit=b.dataset.u; $$('#slUnit button').forEach(x=>x.classList.toggle('on',x===b)); renderSales(); });

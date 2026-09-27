@@ -143,6 +143,10 @@ service cloud.firestore {
     match /products-added/{id} {
       allow read, write: if isAllowedReader();
     }
+    // 📥 판매 엑셀 업로드 기록 (날짜별 문서 · 묶음 기록 batch-*) — 허용목록 계정 (2026-09 대표와 협의 후 추가)
+    match /sales-orders/{id} {
+      allow read, write: if isAllowedReader();
+    }
 
     // 그 외 모든 경로(다른 config 문서 포함) 금지
     match /{document=**} {

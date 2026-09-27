@@ -6,7 +6,7 @@
 <title>POUR — 이동 중…</title>
 <!--
   POUR스토어 마케팅 추적 리다이렉트 (공개 페이지)
-  사용: /g?l=<링크ID>  →  mkt-links/<ID>.clicks 자동 +1 후 목적지 URL로 이동
+  사용: /g?l=<링크ID>  →  mkt-links/<ID>.clicks(+ clicksByDay.<오늘>) 자동 +1 후 목적지 URL로 이동
   · 로그인 불필요(고객이 광고·블로그·카페에서 클릭). 대시보드와 같은 pourstoreproject 사용.
   · 보안규칙: mkt-links read=공개, update=clicks/lastClickAt 1증가만 공개 허용.
 -->
@@ -31,8 +31,12 @@ const db=firebase.firestore();
     if(!doc.exists||!doc.data().url){ document.getElementById('msg').textContent='만료되었거나 잘못된 링크입니다.'; return; }
     const url=doc.data().url;
     // 클릭 집계 (실패해도 이동은 진행)
-    try{ await ref.update({ clicks:firebase.firestore.FieldValue.increment(1), lastClickAt:new Date().toISOString() }); }
-    catch(e){ console.warn('클릭 집계 실패:', e.code||e); }
+    // 날짜별 클릭까지 +1 (규칙 게시 전이면 거부됨 → 예전 방식으로 전체 클릭만 +1)
+    const inc=firebase.firestore.FieldValue.increment(1), now=new Date();
+    const day=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
+    try{ await ref.update({ clicks:inc, lastClickAt:now.toISOString(), ['clicksByDay.'+day]:inc }); }
+    catch(e){ console.warn('날짜별 클릭 집계 실패 → 전체 클릭만:', e.code||e);
+      try{ await ref.update({ clicks:inc, lastClickAt:now.toISOString() }); }catch(e2){ console.warn('클릭 집계 실패:', e2.code||e2); } }
     location.replace(url);
   }catch(e){
     document.getElementById('msg').textContent='이동 중 오류가 발생했습니다.';

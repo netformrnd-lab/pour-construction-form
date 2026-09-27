@@ -859,6 +859,46 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 .la-choose .tbtn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;text-align:left;min-height:0}
 .la-choose .tbtn span{font-size:12px;color:var(--ink-soft);font-weight:500}
 @media(max-width:640px){ .la-row{flex-wrap:wrap} .la-row .acts{width:100%;justify-content:flex-end} }
+/* 링크 v2 */
+.ml-rh{font-size:12px;font-weight:800;color:var(--ink-soft);margin-bottom:6px}
+.ml-rc,.ml-fchips,.mk-chips{display:flex;gap:6px;flex-wrap:wrap}
+.ml-recent{margin-bottom:10px}
+.ml-rc button,.ml-fchips button,.mk-chips button,.mk-det button{border:1px solid #E2E8F0;background:#fff;border-radius:16px;padding:8px 13px;font:inherit;font-size:13px;font-weight:700;color:var(--ink-soft);cursor:pointer}
+.ml-rc button{border-color:#BFDBFE;color:#1D4ED8;background:#F5F9FF}
+.ml-fchips{margin-bottom:10px}
+.ml-fchips button.on,.mk-chips button.on,.mk-det button.on{background:var(--xl-green);border-color:var(--xl-green);color:#fff}
+.ml-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px}
+.ml-card{border:1px solid #E5E7EB;border-radius:12px;padding:10px 12px 10px;background:#fff;cursor:pointer;position:relative;min-width:0}
+.ml-card:hover{border-color:#A7D7B8}
+.ml-card.off{opacity:.6}
+.ml-card .top{display:flex;gap:8px;align-items:flex-start}
+.ml-card .ic{font-size:18px;line-height:1.2}
+.ml-card .nm{flex:1;min-width:0;font-weight:800;font-size:14px;overflow-wrap:anywhere}
+.ml-card .ck{display:flex;flex-direction:column;align-items:flex-end;line-height:1.1}
+.ml-card .ck b{font-size:17px} .ml-card .ck span{font-size:10.5px;color:var(--ink-soft)}
+.ml-card .sub{font-size:12.5px;color:var(--ink-soft);margin-top:4px;overflow-wrap:anywhere;padding-right:56px}
+.ml-card .ml-copy{position:absolute;right:8px;bottom:8px;padding:4px 10px;min-height:0;font-size:12px}
+.mk-step{display:flex;gap:10px;padding:10px 0;border-top:1px solid #F1F5F9}
+.mk-step:first-child{border-top:0;padding-top:0}
+.mk-step.dim{opacity:.45}
+.mk-n{flex:0 0 24px;height:24px;border-radius:50%;background:var(--xl-green);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.mk-b{flex:1;min-width:0}
+.mk-b>label{display:block;font-size:13px;font-weight:800;margin-bottom:6px}
+.mk-b input{width:100%;border:1px solid var(--xl-grid);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;background:#fff}
+.mk-row{display:flex;gap:6px} .mk-row input{flex:1;min-width:0} .mk-row .tbtn{flex:0 0 auto;min-height:42px}
+.mk-det{font-size:12.5px;margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.mk-det.err{color:var(--red)}
+.mk-det button{padding:4px 10px;font-size:12px}
+.mk-go{width:100%;min-height:50px;font-size:16px;font-weight:800;border-radius:12px;margin-top:6px}
+.mk-go:disabled{opacity:.45}
+.ml-ok{font-weight:800;font-size:15px;margin-bottom:8px}
+.ml-short{font-family:var(--mono);font-size:15px;font-weight:700;background:#F0FBF4;border:1px dashed #A7D7B8;border-radius:10px;padding:10px 12px;overflow-wrap:anywhere;margin-bottom:8px}
+.ml-acts{display:flex;gap:8px;flex-wrap:wrap}
+.ml-acts .tbtn{min-height:42px;padding:0 16px}
+.ml-url{font-family:var(--mono);font-size:11.5px;overflow-wrap:anywhere;color:var(--ink-soft);margin-top:4px}
+.ml-qr{margin-top:10px;text-align:center} .ml-qr svg{width:200px;height:200px}
+#maBody .cols2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:700px){ .ml-cards{grid-template-columns:1fr} #maBody .cols2{grid-template-columns:1fr} #maBody .cards{grid-template-columns:1fr 1fr!important} .ml-acts .tbtn{flex:1} }
 /* 프로모션 달력 */
 .la-sum.pc-sum{grid-template-columns:repeat(3,minmax(0,1fr))}
 #pcDetail .cards{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
@@ -1393,7 +1433,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b>POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.27c</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.27d</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2085,53 +2125,37 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     </div>
   </section>
 
-  <!-- ── Sheet: 마케팅 개요 ── -->
+  <!-- ── Sheet: 마케팅 분석 (추적링크 성과) ── -->
   <section class="sheet" id="sh-mkt">
     <div class="toolrow">
-      <span class="ttl">마케팅 개요</span>
-      <span class="hint">추적링크 클릭은 자동 집계 · 주문·매출·광고비는 [추적링크]에서 입력하면 ROAS·전환율이 자동 계산됩니다</span>
+      <span class="ttl">링크 분석</span>
+      <div class="seg" id="maBrand"><button data-mb="" class="on">전체</button><button data-mb="POUR스토어">스토어</button><button data-mb="GROHOME">그로홈</button></div>
+      <div class="seg" id="maPeriod"><button data-mp="7">7일</button><button data-mp="30" class="on">30일</button><button data-mp="90">90일</button><button data-mp="all">전체</button></div>
+      <span class="hint">클릭은 우리 짧은 링크로 자동 집계 · 날짜별 클릭은 규칙 게시 뒤부터 쌓여요 · 매출·광고비는 링크 상세에서 넣어요</span>
     </div>
-    <div class="sheet-pad">
-      <div class="cards" id="mktCards"></div>
-      <div class="cols2">
-        <div class="panel"><h3>채널(매체)별 성과 <span class="tag">유입·전환·ROAS</span></h3><div class="bd" id="mktByChannel"></div></div>
-        <div class="panel"><h3>콘텐츠 유형별 유입 <span class="tag">광고·블로그·카페 등</span></h3><div class="bd" id="mktByContent"></div></div>
-      </div>
-      <div class="panel"><h3>상위 링크 <span class="tag">클릭·전환 기준</span></h3><div class="bd" id="mktTop"></div></div>
-    </div>
+    <div class="sheet-pad"><div id="maBody"></div></div>
   </section>
 
-  <!-- ── Sheet: 캠페인·추적링크 ── -->
+  <!-- ── Sheet: 추적링크 (만들기·목록·상세) ── -->
   <section class="sheet" id="sh-mktlink">
-    <div class="toolrow">
-      <span class="ttl">캠페인 · 추적링크</span>
-      <input type="text" id="mlq" placeholder="라벨·캠페인·URL 검색…">
-      <select id="mlChan"><option value="">전체 매체</option></select>
-      <select id="mlType"><option value="">전체 유형</option></select>
-      <span class="hint">링크를 만들어 광고·블로그·카페에 붙이면 클릭이 자동 집계됩니다 · 노출·주문·매출·광고비는 셀 더블클릭 입력</span>
+    <div class="toolrow" id="mlListBar">
+      <span class="ttl">링크</span>
+      <button class="tbtn primary" id="mlNew">＋ 새 링크</button>
+      <span class="hint">링크 붙여넣기 → 무엇에 · 어디에 → 만들고 복사 · 꼬리표(UTM·네이버 nt)는 자동</span>
+    </div>
+    <div class="toolrow" id="mlDetailBar" style="display:none">
+      <button type="button" class="tbtn" id="mlBack">‹ 링크</button>
+      <span class="ttl" id="mlDetailName"></span>
     </div>
     <div class="sheet-pad">
-      <div class="panel">
-        <h3>새 추적링크 만들기 <span class="tag">UTM 자동 + 단축링크</span></h3>
-        <div class="bd">
-          <div class="formgrid" style="grid-template-columns:1.4fr 1fr 130px 120px 1fr 1fr auto;align-items:end">
-            <div class="fld"><label>목적지 URL (상품·기획전 페이지)</label><input type="text" id="mlUrl" placeholder="https://www.pourstore.net/product/123"></div>
-            <div class="fld"><label>상품 (검색)</label><input type="text" id="mlProd" list="mlProdList" placeholder="상품명 검색…"><datalist id="mlProdList"></datalist></div>
-            <div class="fld"><label>매체(채널)</label><input type="text" id="mlChanIn" list="mlChanList" placeholder="naver / meta / blog…"><datalist id="mlChanList"></datalist></div>
-            <div class="fld"><label>유형</label><select id="mlTypeIn"></select></div>
-            <div class="fld"><label>캠페인</label><input type="text" id="mlCampaign" list="mlCampList" placeholder="예: season_sale"><datalist id="mlCampList"></datalist></div>
-            <div class="fld"><label>라벨(게시글/소재명)</label><input type="text" id="mlLabel" placeholder="예: 네이버블로그_옥상누수후기"></div>
-            <button class="tbtn primary" id="mlAdd" style="height:34px">＋ 링크 생성</button>
-          </div>
-          <p class="footnote">· 생성하면 <b>단축추적링크</b>(클릭 자동집계)와 <b>UTM 파라미터</b>가 붙은 목적지 링크가 만들어집니다. "복사"로 광고/게시글에 붙여넣으세요.<br>· 유형을 <b>블로그·카페</b>로 두면 게시글별 유입을, <b>광고</b>로 두면 매체 광고 유입을 각각 집계합니다.
-          <br>· <b style="color:var(--red)">⚠️ UTM은 소문자·숫자·_(언더바)만</b> — 매체·캠페인·라벨은 영문 소문자로 입력하세요. 대문자·띄어쓰기·한글·특수문자는 <b>자동으로 정리(→ _ 또는 삭제)</b>됩니다.</p>
-          <div id="mlUtmPreview" class="footnote" style="margin-top:2px;font-family:var(--mono);color:var(--blue);min-height:15px"></div>
-        </div>
+      <div id="mlMake" style="display:none"></div>
+      <div id="mlListView">
+        <div class="ml-recent" id="mlRecent"></div>
+        <div class="la-find"><input type="search" id="mlq" placeholder="🔍 제목·올린 곳·행사로 찾기" enterkeyhint="search" autocomplete="off"></div>
+        <div class="ml-fchips" id="mlFilter"></div>
+        <div id="mlList"></div>
       </div>
-      <div class="panel">
-        <h3>추적링크 목록 <span class="tag">클릭=자동 · 전환=수기</span></h3>
-        <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="mlTable" style="width:100%"></table></div>
-      </div>
+      <div id="mlDetail" style="display:none"></div>
     </div>
   </section>
 
@@ -2267,8 +2291,8 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
   <button class="stab" data-grp="sales" data-sh="sh-fixed"><span class="dot"></span>고정지출</button>
   <button class="stab" data-grp="mkt" data-sh="sh-mktpromo"><span class="dot"></span>행사 달력</button>
   <button class="stab" data-grp="mkt" data-sh="sh-promo"><span class="dot"></span>구성 계산기</button>
-  <button class="stab" data-grp="mkt" data-sh="sh-mkt"><span class="dot"></span>개요</button>
-  <button class="stab" data-grp="mkt" data-sh="sh-mktlink"><span class="dot"></span>추적링크</button>
+  <button class="stab" data-grp="mkt" data-sh="sh-mktlink"><span class="dot"></span>링크</button>
+  <button class="stab" data-grp="mkt" data-sh="sh-mkt"><span class="dot"></span>분석</button>
   <button class="stab" data-grp="set" data-sh="sh-chman"><span class="dot"></span>채널·브랜드</button>
   <button class="stab" data-grp="set" data-sh="sh-access"><span class="dot"></span>계정</button>
   <button class="stab" data-grp="set" data-sh="sh-inbound"><span class="dot"></span>CRM 연동</button>
@@ -5439,7 +5463,7 @@ const MENU=[
   {g:'price',ic:'💰',lb:'가격',items:[{lb:'가격정책표',tabs:['sh-price','sh-dash']}]},
   {g:'prod',ic:'📦',lb:'제품',items:[{lb:'출시 관리·등록',tabs:['sh-launch','sh-reg']}]},
   {g:'sales',ic:'📈',lb:'판매',items:[{lb:'매출',tabs:['sh-sales']},{lb:'유통기한',tabs:['sh-expiry']},{lb:'손익',tabs:['sh-pl','sh-fixed']}]},
-  {g:'mkt',ic:'📣',lb:'마케팅',items:[{lb:'프로모션',tabs:['sh-mktpromo','sh-promo']},{lb:'마케팅',tabs:['sh-mkt','sh-mktlink']}]},
+  {g:'mkt',ic:'📣',lb:'마케팅',items:[{lb:'프로모션',tabs:['sh-mktpromo','sh-promo']},{lb:'링크·분석',tabs:['sh-mktlink','sh-mkt']}]},
   {g:'set',ic:'⚙',lb:'설정',items:[{lb:'채널·브랜드',tabs:['sh-chman']},{lb:'계정',tabs:['sh-access']},{lb:'CRM 연동',tabs:['sh-inbound']},{lb:'매칭',tabs:['sh-match']},{lb:'온라인 상품',tabs:['sh-items']},{lb:'MOQ 구간',tabs:['sh-moq']},{lb:'데이터·휴지통',tabs:['sh-data']}]}
 ];
 const stabOf=sh=>document.querySelector('.stab[data-sh="'+sh+'"]');
@@ -5455,8 +5479,6 @@ function sheetNeeds(sh){
     case 'sh-product': case 'sh-channel': case 'sh-dash': case 'sh-promo': return costAllowed?[cost,retail]:[];
     case 'sh-pl': return costAllowed?[cost,['고정지출 등록','sh-fixed',FX.length>0]]:[];
     case 'sh-fixed': return [['고정지출 등록','',FX.length>0]];
-    case 'sh-mkt': return [['추적링크 만들기','sh-mktlink',MKT_LINKS.length>0]];
-    case 'sh-mktlink': return [['추적링크 만들기','',MKT_LINKS.length>0]];
     case 'sh-moq': return [retail,['대리점(하한) 채널 지정','sh-chman',!!dealerUid()]];
   }
   return [];
@@ -5536,6 +5558,8 @@ function gotoTab(sh){
   if(sh==='sh-sales' && typeof openSalesTab==='function') openSalesTab();
   if(sh==='sh-launch' && typeof renderLaunch==='function') renderLaunch();
   if(sh==='sh-mktpromo' && typeof pcRender==='function') pcRender();
+  if(sh==='sh-mktlink' && typeof mlRender==='function') mlRender();
+  if(sh==='sh-mkt' && typeof maRender==='function') maRender();
   if(sh==='sh-promo' && typeof renderPromo==='function') renderPromo();
   if(sh==='sh-expiry' && typeof renderExpiry==='function') renderExpiry();
 }
@@ -5818,12 +5842,7 @@ async function mktSetPerf(id,patch){
   try{ await db.collection('mkt-perf').doc(id).set({...patch,updatedAt:new Date().toISOString()},{merge:true}); }
   catch(e){ alert('저장 실패: '+(e.code||e.message||e)); }
 }
-async function mktDeleteLink(id){
-  const l=MKT_LINKS.find(x=>x.id===id);
-  if(!confirm(`링크 "${(l&&l.label)||id}" 를 삭제할까요? (수기 실측도 함께 삭제)`))return;
-  try{ await db.collection('mkt-links').doc(id).delete(); await db.collection('mkt-perf').doc(id).delete().catch(()=>{}); await fetchMkt(); refreshAll(); }
-  catch(e){ alert('삭제 실패: '+(e.code||e.message||e)); }
-}
+async function mktDeleteLink(id){ return mlSetArchived(id,true); }   // 영구삭제 대신 보관(되살릴 수 있음)
 function promoDays(p){ if(!p.startDate||!p.endDate)return 1; const d=Math.round((new Date(p.endDate)-new Date(p.startDate))/86400000)+1; return d>0?d:1; }
 function promoMetrics(p){
   const days=promoDays(p), baseline=(+p.baselineRevenue||0)*days, actual=+p.actualRevenue||0, spend=+p.spend||0;
@@ -5844,71 +5863,224 @@ async function promoAdd(){
 }
 async function promoSet(id,patch){ try{ await db.collection('promotions').doc(id).set({...patch,updatedAt:new Date().toISOString()},{merge:true}); }catch(e){ alert('저장 실패: '+(e.code||e.message||e)); } }
 async function promoDel(id){ const p=PROMOS.find(x=>x.id===id); if(!confirm(`"${(p&&p.name)||''}" 삭제할까요?`))return; try{ await db.collection('promotions').doc(id).delete(); await fetchMkt(); refreshAll(); }catch(e){ alert('삭제 실패: '+(e.code||e.message||e)); } }
-function fillMktSelects(){
-  const pl=$('#mlProdList'); if(pl) pl.innerHTML=P.filter(p=>p.cat!=='패키지'&&!isDeletedProd(p)).map(p=>`<option value="${esc(p.name)}">`).join('');
-  const ts=$('#mlTypeIn'); if(ts&&!ts.options.length) ts.innerHTML=MKT_TYPES.map(t=>`<option>${t}</option>`).join('');
-  const cl=$('#mlChanList'); if(cl&&!cl.options.length) cl.innerHTML=MKT_CHAN_SUGGEST.map(c=>`<option value="${esc(c)}">`).join('');
-  const cm=$('#mlCampList'); if(cm){ const ex=[...new Set(MKT_LINKS.map(l=>l.campaign).filter(Boolean))]; cm.innerHTML=[...new Set([...MKT_CAMP_SUGGEST,...ex])].map(c=>`<option value="${esc(c)}">`).join(''); }
-  const fc=$('#mlChan'); if(fc){ const cur=fc.value; const chans=[...new Set(MKT_LINKS.map(l=>l.channel).filter(Boolean))]; fc.innerHTML='<option value="">전체 매체</option>'+chans.map(c=>`<option>${esc(c)}</option>`).join(''); fc.value=cur; }
-  const ftt=$('#mlType'); if(ftt&&ftt.options.length<=1) ftt.innerHTML='<option value="">전체 유형</option>'+MKT_TYPES.map(t=>`<option>${t}</option>`).join('');
-}
+function fillMktSelects(){}   // 예전 추적링크 입력칸용 — 새 화면(링크)은 만들기 창에서 직접 채운다
 const roasPct=r=>r==null?'—':Math.round(r*100)+'%';
-function renderMktLinks(){
-  const t=$('#mlTable'); if(!t)return;
-  const q=($('#mlq').value||'').toLowerCase(), fc=$('#mlChan').value, ft=$('#mlType').value;
-  const rows=MKT_LINKS.filter(l=>{
-    if(fc&&l.channel!==fc)return false; if(ft&&l.contentType!==ft)return false;
-    if(q&&!((l.label||'').toLowerCase().includes(q)||(l.campaign||'').toLowerCase().includes(q)||(l.url||'').toLowerCase().includes(q)))return false;
-    return true;
-  });
-  let h=`<thead><tr>
-    <th style="min-width:150px">라벨 / 캠페인</th><th>매체</th><th>유형</th><th style="min-width:110px">상품</th>
-    <th class="num">클릭</th><th class="num">노출</th><th class="num">주문</th><th class="num">매출</th><th class="num">광고비</th>
-    <th class="num">전환율</th><th class="num">ROAS</th>${costAllowed?'<th class="num">손익분기</th>':''}<th class="num">CPA</th><th>링크</th><th></th>
-  </tr></thead><tbody>`;
-  if(!rows.length) h+=`<tr><td class="dim" colspan="${costAllowed?15:14}" style="padding:12px">추적링크가 없습니다. 위에서 만들어 광고·게시글에 붙여넣으세요.</td></tr>`;
-  rows.forEach(l=>{ const m=linkMetrics(l);
-    const roasCls=(costAllowed&&m.roas!=null&&m.beRoas!=null)?(m.roas>=m.beRoas?'':'neg'):'';
-    h+=`<tr>
-      <td class="name">${esc(l.label||'—')}<div class="dim" style="font-size:10.5px">${esc(l.campaign||'')}</div></td>
-      <td class="dim">${esc(l.channel||'—')}</td><td class="dim">${esc(l.contentType||'—')}</td><td class="dim">${esc(l.product||'—')}</td>
-      <td class="num" style="font-weight:700">${won(m.clicks)}</td>
-      <td class="num editable" data-mlid="${l.id}" data-mlf="impressions">${won(m.impr)}</td>
-      <td class="num editable" data-mlid="${l.id}" data-mlf="orders">${won(m.orders)}</td>
-      <td class="num editable" data-mlid="${l.id}" data-mlf="revenue">${won(m.revenue)}</td>
-      <td class="num editable cost" data-mlid="${l.id}" data-mlf="spend">${won(m.spend)}</td>
-      <td class="num">${m.cvr==null?'—':pct(m.cvr)}</td>
-      <td class="num ${roasCls}" style="font-weight:600">${roasPct(m.roas)}</td>
-      ${costAllowed?`<td class="num dim" title="이 값 이상이면 이익">${roasPct(m.beRoas)}</td>`:''}
-      <td class="num">${m.cpa==null?'—':won(m.cpa)}</td>
-      <td><button class="tbtn" data-mlcopy="${l.id}" style="padding:2px 8px;font-size:11px">복사</button></td>
-      <td style="text-align:center"><button class="tbtn" data-mldel="${l.id}" style="color:var(--red);padding:2px 8px;font-size:11px">삭제</button></td>
-    </tr>`;
-  });
-  t.innerHTML=h+'</tbody>';
+function renderMktLinks(){ const on=$('#sh-mktlink'); if(on&&on.classList.contains('on')) mlRender(); }
+function renderMktOverview(){ const on=$('#sh-mkt'); if(on&&on.classList.contains('on')) maRender(); }
+/* ══════════ 링크 (추적링크 v2) ══════════
+   mkt-links 문서에 칸만 더함: purpose(용도)·place(올린 곳)·dest(목적지)·brand·promoId·partner·clicksByDay·archived
+   · 목적지 자동 인식: pourstore.net / grohome.co.kr = 자사몰(utm_) · smartstore.naver.com = 스마트스토어(nt_) · coupang = 쿠팡(꼬리표 무시 → 클릭만)
+   · 한글 캠페인·이름은 UTM 에 못 쓰므로 영문 코드를 자동으로 만든다(화면엔 한글 그대로)
+   · 삭제 대신 보관(archived) — 되살릴 수 있음 */
+const ML_PURPOSES=[
+  {k:'광고', ic:'📢', places:[['네이버 광고','naver','cpc'],['메타 광고','meta','cpc'],['구글 광고','google','cpc'],['카카오 광고','kakao','cpc'],['당근 광고','daangn','cpc'],['쿠팡 광고','coupang_ads','cpc']]},
+  {k:'포스팅', ic:'✍️', places:[['네이버 블로그','naver_blog','post'],['네이버 카페','naver_cafe','post'],['인스타그램','instagram','social'],['유튜브','youtube','social'],['쇼츠·릴스','shorts','social'],['스레드','threads','social'],['오늘의집','ohou','post']]},
+  {k:'셀러·인플루언서', ic:'🤝', named:'셀러·인플루언서 이름', src:'influencer', med:'affiliate'},
+  {k:'공동구매', ic:'🛍️', named:'공구 진행자·채널 이름', src:'groupbuy', med:'affiliate'},
+  {k:'CS·고객문자', ic:'💬', places:[['문자(SMS)','sms','crm'],['카카오 알림톡','kakao_msg','crm'],['이메일','email','crm'],['상담 답변','cs','crm']]},
+  {k:'기타', ic:'🔗', named:'어디에 쓰나요?', src:'etc', med:'referral'},
+];
+const ML={make:null, open:null, q:'', f:'', showArch:false, last:null, brand:'', period:'30'};
+function mlPurposeOf(l){ if(l.purpose) return l.purpose; const t=l.contentType||'';
+  if(t==='광고') return '광고'; if(['블로그','카페','인스타','유튜브','쇼츠·릴스','공식SNS'].includes(t)) return '포스팅'; if(['체험단','인플루언서'].includes(t)) return '셀러·인플루언서'; return '기타'; }
+function mlPlaceOf(l){ return l.place||l.partner||l.channel||'—'; }
+function mlDest(url){ let u; try{ u=new URL(url); }catch(e){ return null; } const h=u.hostname.replace(/^www\.|^m\./,'');
+  if(/pourstore\.(net|co\.kr)$/.test(h)) return {dest:'자사몰',brand:'POUR스토어',mode:'utm'};
+  if(/grohome\.co\.kr$/.test(h)) return {dest:'자사몰',brand:'GROHOME',mode:'utm'};
+  if(/smartstore\.naver\.com$|brand\.naver\.com$/.test(h)){ const st=(u.pathname.split('/')[1]||'').toLowerCase(); return {dest:'스마트스토어',brand:/groh/.test(st)?'GROHOME':/pour/.test(st)?'POUR스토어':'',mode:'nt'}; }
+  if(/coupang\.com$/.test(h)) return {dest:'쿠팡',brand:'',mode:'none'};
+  return {dest:'기타 사이트',brand:'',mode:'utm'}; }
+const mlCode=(s,pfx)=>{ const n=utmNorm(s); if(n) return n; let h=0; String(s||'').split('').forEach(c=>h=(h*31+c.charCodeAt(0))>>>0); return pfx+'_'+h.toString(36).slice(0,6); };
+function mlBuild(url,mode,t){ try{ const u=new URL(url);
+  if(mode==='utm'){ u.searchParams.set('utm_source',t.source); u.searchParams.set('utm_medium',t.medium); if(t.campaign) u.searchParams.set('utm_campaign',t.campaign); if(t.content) u.searchParams.set('utm_content',t.content); }
+  else if(mode==='nt'){ u.searchParams.set('nt_source',t.source); u.searchParams.set('nt_medium',t.medium); if(t.content) u.searchParams.set('nt_detail',t.content); if(t.campaign) u.searchParams.set('nt_keyword',t.campaign); }
+  return u.toString(); }catch(e){ return url; } }
+function mlClicksIn(l,from){ if(!from) return +l.clicks||0; const m=l.clicksByDay||{}; return Object.entries(m).reduce((a,[d,v])=>a+(d>=from?(+v||0):0),0); }
+function mlLive(){ return MKT_LINKS.filter(l=>!l.archived); }
+function mlRecentCombos(){ const me=(curUser&&curUser.email)||''; const seen=new Set(), out=[];
+  MKT_LINKS.filter(l=>!l.archived&&l.purpose).forEach(l=>{ if(me&&l.createdBy&&l.createdBy!==me) return; const k=[l.purpose,l.place||'',l.partner||'',l.promoId||''].join('|'); if(seen.has(k)) return; seen.add(k); out.push(l); });
+  return out.slice(0,3); }
+/* 목록 */
+function mlCard(l){ const pu=ML_PURPOSES.find(x=>x.k===mlPurposeOf(l))||ML_PURPOSES[5], d7=mlClicksIn(l,pcAdd(pcToday(),-6)), promo=l.promoId?PROMOS.find(p=>p.id===l.promoId):null;
+  return `<div class="ml-card${l.archived?' off':''}" data-mlopen="${esc(l.id)}" role="button" tabindex="0">
+    <div class="top"><span class="ic">${pu.ic}</span><div class="nm">${esc(l.label||mlPlaceOf(l))}</div><div class="ck"><b>${won(+l.clicks||0)}</b><span>클릭</span></div></div>
+    <div class="sub">${esc(pu.k)} · ${esc(mlPlaceOf(l))}${l.dest?` → ${esc(l.dest)}`:''}${l.brand?` · ${esc(l.brand==='GROHOME'?'그로홈':'스토어')}`:''}${promo?` · 🎯 ${esc(promo.name)}`:''}</div>
+    <div class="sub dim">${esc(String(l.createdAt||'').slice(0,10))}${l.clicksByDay?` · 최근 7일 ${won(d7)}클릭`:''}${l.product?` · ${esc(l.product)}`:''}</div>
+    <button type="button" class="tbtn ml-copy" data-mlcopy="${esc(l.id)}">복사</button></div>`; }
+function mlRenderList(){
+  const rc=mlRecentCombos();
+  $('#mlRecent').innerHTML=rc.length?`<div class="ml-rh">최근 설정 그대로 새 링크</div><div class="ml-rc">${rc.map(l=>`<button type="button" data-mlre="${esc(l.id)}">${(ML_PURPOSES.find(x=>x.k===l.purpose)||{}).ic||'🔗'} ${esc(l.place||l.partner||l.purpose)}${l.promoId&&PROMOS.find(p=>p.id===l.promoId)?' · 🎯':''}</button>`).join('')}</div>`:'';
+  const all=MKT_LINKS.filter(l=>ML.showArch?l.archived:!l.archived), cnt={}; all.forEach(l=>{ const k=mlPurposeOf(l); cnt[k]=(cnt[k]||0)+1; });
+  const arch=MKT_LINKS.filter(l=>l.archived).length;
+  $('#mlFilter').innerHTML=`<button type="button" data-mlf="" class="${!ML.f?'on':''}">전체 ${all.length}</button>`+ML_PURPOSES.filter(p=>cnt[p.k]).map(p=>`<button type="button" data-mlf="${esc(p.k)}" class="${ML.f===p.k?'on':''}">${p.ic} ${esc(p.k)} ${cnt[p.k]}</button>`).join('')
+    +(arch||ML.showArch?`<button type="button" data-mlarch="1" class="${ML.showArch?'on':''}">🗄 보관 ${arch}</button>`:'');
+  const q=ML.q.trim().toLowerCase();
+  const list=all.filter(l=>(!ML.f||mlPurposeOf(l)===ML.f) && (!q || [l.label,mlPlaceOf(l),l.campaign,l.url,l.product,(PROMOS.find(p=>p.id===l.promoId)||{}).name].join(' ').toLowerCase().includes(q)));
+  $('#mlList').innerHTML=list.length?`<div class="ml-cards">${list.slice(0,100).map(mlCard).join('')}</div>`:`<div class="panel"><div class="bd footnote" style="margin:0">${q||ML.f?'찾는 링크가 없어요.':'아직 링크가 없어요. [＋ 새 링크]로 30초 만에 만들어요.'}</div></div>`;
 }
-function renderMktOverview(){
-  let C=0,O=0,R=0,S=0;
-  MKT_LINKS.forEach(l=>{ const m=linkMetrics(l); C+=m.clicks;O+=m.orders;R+=m.revenue;S+=m.spend; });
-  const cvr=C?O/C:null, roas=S?R/S:null, cpa=O?S/O:null;
-  if($('#mktCards'))$('#mktCards').innerHTML=[
-    {h:'총 클릭(유입)',v:won(C),f:MKT_LINKS.length+'개 추적링크'},
-    {h:'총 주문',v:won(O),f:'전환율 '+(cvr==null?'—':pct(cvr))},
-    {h:'총 매출',v:wonU(R),f:'광고비 '+wonU(S)},
-    {h:'ROAS',v:roasPct(roas),f:'CPA '+(cpa==null?'—':wonU(cpa))}
-  ].map(c=>`<div class="card"><h4>${c.h}</h4><div class="big">${c.v}</div><div class="foot">${c.f}</div></div>`).join('');
-  const byCh={}; MKT_LINKS.forEach(l=>{ const k=l.channel||'(미지정)', m=linkMetrics(l); (byCh[k]=byCh[k]||{c:0,o:0,r:0,s:0}); byCh[k].c+=m.clicks;byCh[k].o+=m.orders;byCh[k].r+=m.revenue;byCh[k].s+=m.spend; });
-  const chArr=Object.entries(byCh).map(([k,v])=>({k,...v})).sort((a,b)=>b.c-a.c), maxC=Math.max(1,...chArr.map(x=>x.c));
-  if($('#mktByChannel'))$('#mktByChannel').innerHTML=chArr.length?chArr.map(x=>{ const ro=x.s?x.r/x.s:null, cv=x.c?x.o/x.c:null;
-    return `<div class="bar-row"><span>${esc(x.k)}</span><div class="bar-track"><div class="bar-fill" style="width:${x.c/maxC*100}%"></div></div><span class="bar-val">클릭 <b>${won(x.c)}</b> · 전환 ${cv==null?'—':pct(cv)} · ROAS ${roasPct(ro)}</span></div>`;
-  }).join(''):'<p class="footnote">데이터가 없습니다.</p>';
-  const byT={}; MKT_LINKS.forEach(l=>{ const k=l.contentType||'기타', m=linkMetrics(l); (byT[k]=byT[k]||{c:0,o:0}); byT[k].c+=m.clicks;byT[k].o+=m.orders; });
-  const tArr=Object.entries(byT).map(([k,v])=>({k,...v})).sort((a,b)=>b.c-a.c), maxT=Math.max(1,...tArr.map(x=>x.c));
-  if($('#mktByContent'))$('#mktByContent').innerHTML=tArr.length?tArr.map(x=>`<div class="bar-row"><span>${esc(x.k)}</span><div class="bar-track"><div class="bar-fill b2" style="width:${x.c/maxT*100}%"></div></div><span class="bar-val">클릭 <b>${won(x.c)}</b> · 주문 ${won(x.o)}</span></div>`).join(''):'<p class="footnote">데이터가 없습니다.</p>';
-  const top=MKT_LINKS.map(l=>({l,m:linkMetrics(l)})).sort((a,b)=>b.m.clicks-a.m.clicks).slice(0,10);
-  if($('#mktTop'))$('#mktTop').innerHTML=top.length?`<table class="grid" style="width:100%"><thead><tr><th>라벨</th><th>매체</th><th>유형</th><th class="num">클릭</th><th class="num">주문</th><th class="num">전환율</th><th class="num">ROAS</th></tr></thead><tbody>`+
-    top.map(({l,m})=>`<tr><td class="name">${esc(l.label||'—')}</td><td class="dim">${esc(l.channel||'—')}</td><td class="dim">${esc(l.contentType||'—')}</td><td class="num">${won(m.clicks)}</td><td class="num">${won(m.orders)}</td><td class="num">${m.cvr==null?'—':pct(m.cvr)}</td><td class="num">${roasPct(m.roas)}</td></tr>`).join('')+'</tbody></table>':'<p class="footnote">데이터가 없습니다.</p>';
+/* 만들기 */
+function mlOpenMake(pre){ ML.make={url:'', det:null, brand:'', purpose:'', place:'', partner:'', promoId:'', product:'', label:'', result:null, ...(pre||{})}; ML.open=null; mlRender(); setTimeout(()=>{ const i=$('#mkUrl'); if(i&&ML.make&&!ML.make.url) i.focus(); },60); window.scrollTo({top:0}); }
+function mlRenderMake(){
+  const m=ML.make, box=$('#mlMake');
+  if(m.result){ const l=m.result; box.innerHTML=`<div class="panel ml-done"><div class="bd">
+      <div class="ml-ok">✅ 만들고 복사했어요 · 붙여넣기만 하면 돼요</div>
+      <div class="ml-short">${esc(trackUrl(l.id))}</div>
+      <div class="ml-acts"><button type="button" class="tbtn primary" data-mlcopy="${esc(l.id)}">📋 다시 복사</button>${navigator.share?`<button type="button" class="tbtn" data-mlshare="${esc(l.id)}">공유</button>`:''}<button type="button" class="tbtn" data-mlqr="${esc(l.id)}">QR</button></div>
+      <div id="mlQrBox"></div>
+      ${l.dest==='쿠팡'?'<p class="footnote">· 쿠팡은 꼬리표를 무시해요. 이 링크의 <b>클릭 수</b>와, 링크를 올린 뒤 <b>쿠팡 판매 변화</b>(판매 엑셀 기준)로 효과를 봐요.</p>':''}
+      ${l.dest==='스마트스토어'?'<p class="footnote">· 스마트스토어는 네이버용 꼬리표(nt_)를 붙였어요. 주문까지는 <b>스마트스토어 센터 › 통계 › 마케팅 분석</b>에서 보여요.</p>':''}
+      <div class="ml-acts" style="margin-top:10px"><button type="button" class="tbtn" id="mkAnother">＋ 같은 설정으로 하나 더</button><button type="button" class="tbtn" id="mkClose">닫기</button></div>
+    </div></div>`; return; }
+  const pu=ML_PURPOSES.find(x=>x.k===m.purpose), d=m.det;
+  const promos=PROMOS.filter(p=>!p.deleted && pcStatus(p)!=='종료').sort((a,b)=>(a.startDate||'9').localeCompare(b.startDate||'9'));
+  const ready=!!(d && m.purpose && (pu&&pu.named?m.partner.trim():m.place));
+  box.innerHTML=`<div class="panel"><h3>새 링크 <span class="tag">30초</span><button type="button" class="tbtn" id="mkClose" style="margin-left:auto">닫기</button></h3><div class="bd">
+    <div class="mk-step"><div class="mk-n">1</div><div class="mk-b"><label>링크 붙여넣기</label>
+      <div class="mk-row"><input id="mkUrl" value="${esc(m.url)}" placeholder="https://… 상품·기획전 주소" inputmode="url" autocomplete="off">${navigator.clipboard&&navigator.clipboard.readText?'<button type="button" class="tbtn" id="mkPaste">📋 붙여넣기</button>':''}</div>
+      ${d?`<div class="mk-det">→ <b>${esc(d.dest)}</b>${d.mode==='none'?' · 꼬리표 없음(클릭만)':d.mode==='nt'?' · 네이버 꼬리표':' · UTM'} · 브랜드 ${['POUR스토어','GROHOME'].map(b=>`<button type="button" class="${m.brand===b?'on':''}" data-mkbr="${b}">${b==='GROHOME'?'그로홈':'스토어'}</button>`).join('')}</div>`:(m.url?'<div class="mk-det err">http:// 또는 https:// 로 시작하는 주소를 넣어 주세요</div>':'')}</div></div>
+    <div class="mk-step${d?'':' dim'}"><div class="mk-n">2</div><div class="mk-b"><label>무엇에 쓰나요?</label>
+      <div class="mk-chips">${ML_PURPOSES.map(p=>`<button type="button" class="${m.purpose===p.k?'on':''}" data-mkpu="${esc(p.k)}">${p.ic} ${esc(p.k)}</button>`).join('')}</div></div></div>
+    ${pu?`<div class="mk-step"><div class="mk-n">3</div><div class="mk-b"><label>${pu.named?esc(pu.named):'어디에 올려요?'}</label>
+      ${pu.named?`<input id="mkPartner" value="${esc(m.partner)}" placeholder="${pu.k==='기타'?'예: 전단지 QR':'예: 홍길동 · @insta_id'}" list="mkPartnerList" autocomplete="off"><datalist id="mkPartnerList">${[...new Set(MKT_LINKS.filter(l=>l.purpose===pu.k&&l.partner).map(l=>l.partner))].map(x=>`<option value="${esc(x)}">`).join('')}</datalist>`
+        :`<div class="mk-chips">${pu.places.map(([n])=>`<button type="button" class="${m.place===n?'on':''}" data-mkpl="${esc(n)}">${esc(n)}</button>`).join('')}</div>`}</div></div>`:''}
+    <div class="mk-step${ready?'':' dim'}"><div class="mk-n">4</div><div class="mk-b"><label>행사·제품 연결 <span class="dim">선택</span></label>
+      ${promos.length?`<div class="mk-chips">${promos.slice(0,8).map(p=>`<button type="button" class="${m.promoId===p.id?'on':''}" data-mkpr="${esc(p.id)}">🎯 ${esc(p.name)}</button>`).join('')}</div>`:''}
+      <input id="mkProd" value="${esc(m.product)}" list="mkProdList" placeholder="🔍 제품 (선택)" autocomplete="off" style="margin-top:6px"><datalist id="mkProdList">${P.filter(p=>!isDeletedProd(p)&&pstatus(p)!=='단종').map(p=>`<option value="${esc(p.name)}">`).join('')}</datalist>
+      <input id="mkLabel" value="${esc(m.label)}" placeholder="제목 (비우면 자동: ${esc(mlAutoLabel(m))})" autocomplete="off" style="margin-top:6px"></div></div>
+    <button type="button" class="tbtn primary mk-go" id="mkGo" ${ready?'':'disabled'}>🔗 만들고 복사</button>
+    <div class="footnote" id="mkMsg" style="margin:6px 0 0">${ready?'':'① 링크 → ② 용도 → ③ 올릴 곳만 고르면 만들 수 있어요'}</div>
+  </div></div>`;
 }
+function mlAutoLabel(m){ const pu=ML_PURPOSES.find(x=>x.k===m.purpose); const who=pu&&pu.named?m.partner:m.place; const d=pcToday().slice(5).replace('-','/'); return [who||m.purpose||'링크', m.product||'', d].filter(Boolean).join(' · '); }
+function mlReadMake(){ const m=ML.make; if(!m||m.result) return m; const g=id=>{ const e=$('#'+id); return e?e.value:null; };
+  const u=g('mkUrl'); if(u!=null) m.url=u.trim(); const pa=g('mkPartner'); if(pa!=null) m.partner=pa; const pr=g('mkProd'); if(pr!=null) m.product=pr.trim(); const lb=g('mkLabel'); if(lb!=null) m.label=lb;
+  const det=/^https?:\/\//.test(m.url)?mlDest(m.url):null; if(det && (!m.det || m.det.dest!==det.dest || m.detUrl!==m.url)){ m.det=det; m.detUrl=m.url; if(det.brand) m.brand=det.brand; } if(!det) m.det=null; return m; }
+async function mlCreate(){
+  const m=mlReadMake(), pu=ML_PURPOSES.find(x=>x.k===m.purpose); if(!m.det||!pu) return;
+  let source, medium, placeName;
+  if(pu.named){ placeName=m.partner.trim(); if(!placeName){ $('#mkMsg').innerHTML='<span style="color:var(--red)">이름을 적어 주세요.</span>'; return; } source=pu.src; medium=pu.med; }
+  else { const pl=pu.places.find(x=>x[0]===m.place); if(!pl) return; placeName=pl[0]; source=pl[1]; medium=pl[2]; }
+  const promo=m.promoId?PROMOS.find(p=>p.id===m.promoId):null;
+  const campaign=promo?mlCode(promo.name,'promo'):'';
+  const content=mlCode(pu.named?placeName:(m.label||placeName),'c');
+  const t={source,medium,campaign,content}, url=mlBuild(m.url,m.det.mode,t), id=genLinkId();
+  const label=(m.label||'').trim()||mlAutoLabel(m);
+  const doc={ url, baseUrl:m.url, label, product:m.product||'', channel:source, contentType:m.purpose, campaign, purpose:m.purpose, place:pu.named?'':placeName, partner:pu.named?placeName:'',
+    dest:m.det.dest, brand:m.brand||'', promoId:m.promoId||'', tagMode:m.det.mode,
+    utmSource:source, utmMedium:medium, utmCampaign:campaign, utmContent:content, clicks:0, clicksByDay:{}, createdAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'' };
+  const btn=$('#mkGo'); if(btn) btn.disabled=true;
+  try{ await db.collection('mkt-links').doc(id).set(doc); logAct('링크', label, `${m.purpose} · ${placeName}`);
+    try{ await navigator.clipboard.writeText(trackUrl(id)); }catch(e){}
+    await fetchMkt(); ML.make.result={id,...doc}; ML.last={purpose:m.purpose,place:m.place,partner:m.partner,promoId:m.promoId,brand:m.brand,product:m.product}; mlRender();
+  }catch(e){ console.error('[링크] 만들기 실패', e); $('#mkMsg').innerHTML=`<span style="color:var(--red)">만들기 실패: ${esc(e.code||e.message||e)}</span>`; if(btn) btn.disabled=false; }
+}
+/* 상세 */
+function mlSalesChange(l){ if(!SL.loaded||!l.product||!l.createdAt) return null; const p=P.find(x=>x.name===l.product&&!isDeletedProd(x)); if(!p) return null;
+  const k=pKey(p), c=String(l.createdAt).slice(0,10), b0=pcAdd(c,-7), a1=pcAdd(c,6), chWant=l.dest==='쿠팡'?/쿠팡/:l.dest==='스마트스토어'?/스마트|네이버/:null;
+  let bq=0, aq=0; (SL.rows||[]).forEach(r=>{ if(r.key!==k||!r.date) return; if(chWant&&!chWant.test(r.ch||'')) return; if(r.date>=b0&&r.date<c) bq+=r.qty; else if(r.date>=c&&r.date<=a1) aq+=r.qty; });
+  const days=Math.min(7,pcDiff(c,pcToday())+1); return {bq, aq, days, ch:chWant?l.dest:'전체 채널'}; }
+function mlRenderDetail(){
+  const l=MKT_LINKS.find(x=>x.id===ML.open); if(!l){ ML.open=null; mlRender(); return; }
+  $('#mlDetailName').textContent=l.label||mlPlaceOf(l);
+  const m=linkMetrics(l), pu=ML_PURPOSES.find(x=>x.k===mlPurposeOf(l))||ML_PURPOSES[5], promo=l.promoId?PROMOS.find(p=>p.id===l.promoId):null, sc=mlSalesChange(l);
+  const days=[]; for(let i=13;i>=0;i--) days.push(pcAdd(pcToday(),-i)); const bd=l.clicksByDay||{}, vals=days.map(d=>+bd[d]||0), mx=Math.max(1,...vals);
+  const W=days.length*20, H=90;
+  const chart=l.clicksByDay?`<div class="pc-chart"><div class="pc-chart-h">최근 14일 클릭</div><div class="pc-chart-sc"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="날짜별 클릭">${vals.map((v,i)=>{ const h=v>0?Math.max(2,(H-16)*v/mx):0, x=i*20+2, y=H-16-h, r=Math.min(4,h); return `<g class="pc-bar in"><rect x="${i*20}" y="0" width="20" height="${H-16}" fill="transparent"/>${h?`<path d="M${x},${H-16} V${y+r} Q${x},${y} ${x+r},${y} H${x+16-r} Q${x+16},${y} ${x+16},${y+r} V${H-16} Z"/>`:''}<title>${days[i].slice(5).replace('-','/')} · ${v}클릭</title></g>`; }).join('')}<line x1="0" x2="${W}" y1="${H-16}" y2="${H-16}" class="pc-axis"/><text x="0" y="${H-3}">${days[0].slice(5).replace('-','/')}</text><text x="${W}" y="${H-3}" text-anchor="end">오늘</text></svg></div></div>`
+    :'<p class="footnote">· 날짜별 클릭은 규칙을 게시한 뒤 새로 생기는 클릭부터 쌓여요.</p>';
+  const fld=(f,lb)=>`<div class="fld"><label>${lb}</label><input type="number" data-mlpf="${f}" value="${esc((MKT_PERF[l.id]||{})[f]||'')}" placeholder="0"></div>`;
+  $('#mlDetail').innerHTML=`<div class="panel"><div class="bd">
+      <div class="ml-short">${esc(trackUrl(l.id))}</div>
+      <div class="ml-acts"><button type="button" class="tbtn primary" data-mlcopy="${esc(l.id)}">📋 복사</button>${navigator.share?`<button type="button" class="tbtn" data-mlshare="${esc(l.id)}">공유</button>`:''}<button type="button" class="tbtn" data-mlqr="${esc(l.id)}">QR</button><button type="button" class="tbtn" data-mlre="${esc(l.id)}">＋ 같은 설정으로 새 링크</button></div>
+      <div id="mlQrBox"></div>
+      <div class="sub" style="margin-top:8px">${pu.ic} ${esc(pu.k)} · ${esc(mlPlaceOf(l))}${l.dest?` → ${esc(l.dest)}`:''}${l.brand?` · ${esc(l.brand)}`:''}${promo?` · 🎯 ${esc(promo.name)}`:''}${l.product?` · ${esc(l.product)}`:''}</div>
+      <details class="pc-man"><summary>꼬리표 붙은 원래 주소</summary><div class="ml-url">${esc(l.url)}</div></details>
+    </div></div>
+    <div class="panel"><h3>성과</h3><div class="bd">
+      <div class="cards">
+        <div class="card"><h4>클릭</h4><div class="big">${won(m.clicks)}</div><div class="foot">${l.lastClickAt?'마지막 '+esc(String(l.lastClickAt).slice(5,16).replace('T',' ')):'아직 없음'}</div></div>
+        ${sc?`<div class="card"><h4>링크 올린 뒤 판매</h4><div class="big ${sc.aq>=sc.bq?'pos':'neg'}">${sc.bq?((sc.aq>=sc.bq?'+':'')+Math.round((sc.aq/sc.bq-1)*100)+'%'):(sc.aq?'+'+won(sc.aq)+'개':'—')}</div><div class="foot">${esc(sc.ch)} · 올리기 전 7일 ${won(sc.bq)}개 → 뒤 ${sc.days}일 ${won(sc.aq)}개</div></div>`:''}
+        ${m.spend?`<div class="card"><h4>ROAS</h4><div class="big">${roasPct(m.roas)}</div><div class="foot">광고비 ${won(m.spend)}원${costAllowed&&m.beRoas?` · 손익분기 ${roasPct(m.beRoas)}`:''}</div></div>`:''}
+        ${m.orders?`<div class="card"><h4>전환율</h4><div class="big">${m.cvr==null?'—':pct(m.cvr)}</div><div class="foot">주문 ${won(m.orders)}건 · 매출 ${won(m.revenue)}원</div></div>`:''}
+      </div>
+      ${chart}
+      <div class="formgrid pc-form" style="margin-top:10px">${fld('impressions','노출')}${fld('orders','주문')}${fld('revenue','매출 (원)')}${fld('spend','광고비 (원)')}</div>
+      <p class="footnote">· 노출·주문·매출·광고비는 광고 관리자·스마트스토어 통계에서 보고 넣어요(바꾸면 바로 저장). 자사몰 주문은 GA 연결 뒤 자동으로 채울 예정이에요.</p>
+      <div class="pc-acts">${l.archived?`<button type="button" class="tbtn" data-mlunarch="${esc(l.id)}">보관 풀기</button>`:`<button type="button" class="tbtn" data-mlarchive="${esc(l.id)}" style="color:var(--red);margin-right:auto">보관</button>`}</div>
+    </div></div>`;
+}
+function mlRender(){
+  if(!$('#mlList')) return;
+  const make=!!ML.make, det=!make&&ML.open!=null;
+  $('#mlListBar').style.display=det?'none':''; $('#mlDetailBar').style.display=det?'':'none';
+  $('#mlMake').style.display=make?'':'none'; $('#mlListView').style.display=(make||det)?'none':''; $('#mlDetail').style.display=det?'':'none';
+  if(make) mlRenderMake(); else if(det) mlRenderDetail(); else mlRenderList();
+}
+async function mlQr(id){ const box=$('#mlQrBox'); if(!box) return;
+  if(box.innerHTML){ box.innerHTML=''; return; }
+  try{ if(!window.qrcode) await new Promise((ok,no)=>{ const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js'; s.onload=ok; s.onerror=no; document.head.appendChild(s); });
+    const q=qrcode(0,'M'); q.addData(trackUrl(id)); q.make(); box.innerHTML=`<div class="ml-qr">${q.createSvgTag({cellSize:5,margin:2,scalable:true})}<div class="footnote">스캔하면 클릭으로 집계돼요 · 길게 눌러 저장</div></div>`; }
+  catch(e){ console.error('[QR] 만들기 실패', e); box.innerHTML='<div class="footnote" style="color:var(--red)">QR을 만들지 못했어요(인터넷 연결 확인)</div>'; } }
+async function mlSetArchived(id,on){ try{ await db.collection('mkt-links').doc(id).set({archived:on, archivedAt:on?new Date().toISOString():'', archivedBy:(curUser&&curUser.email)||''},{merge:true}); await fetchMkt(); if(on){ ML.open=null; } mlRender(); uiToast(on?'보관했어요 · 목록의 🗄 보관에서 되살릴 수 있어요':'보관을 풀었어요','ok'); }catch(e){ alert('실패: '+(e.code||e.message||e)); } }
+document.addEventListener('click',async e=>{
+  const cp=e.target.closest('[data-mlcopy]');
+  if(cp){ e.stopPropagation(); const u=trackUrl(cp.dataset.mlcopy); const old=cp.textContent; (navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>{cp.textContent='복사됨 ✓';setTimeout(()=>cp.textContent=old,1200);}).catch(()=>prompt('링크를 복사하세요',u)); return; }
+  if(!e.target.closest('#sh-mktlink')) return;
+  const sh=e.target.closest('[data-mlshare]'); if(sh){ const l=MKT_LINKS.find(x=>x.id===sh.dataset.mlshare); try{ await navigator.share({title:(l&&l.label)||'링크', url:trackUrl(sh.dataset.mlshare)}); }catch(err){} return; }
+  const qr=e.target.closest('[data-mlqr]'); if(qr){ mlQr(qr.dataset.mlqr); return; }
+  if(e.target.closest('#mlNew')){ mlOpenMake(); return; }
+  if(e.target.closest('#mlBack')){ ML.open=null; mlRender(); return; }
+  if(e.target.closest('#mkClose')){ ML.make=null; mlRender(); return; }
+  if(e.target.closest('#mkAnother')){ const r=ML.make.result; mlOpenMake({purpose:r.purpose,place:r.place,partner:r.partner,promoId:r.promoId,brand:r.brand,product:r.product}); return; }
+  const re=e.target.closest('[data-mlre]'); if(re){ const l=MKT_LINKS.find(x=>x.id===re.dataset.mlre); if(l) mlOpenMake({purpose:mlPurposeOf(l),place:l.place||'',partner:l.partner||'',promoId:l.promoId||'',brand:l.brand||'',product:l.product||''}); return; }
+  const f=e.target.closest('[data-mlf]'); if(f){ ML.f=f.dataset.mlf; mlRenderList(); return; }
+  if(e.target.closest('[data-mlarch]')){ ML.showArch=!ML.showArch; ML.f=''; mlRenderList(); return; }
+  const ar=e.target.closest('[data-mlarchive]'); if(ar){ if(confirm('이 링크를 보관할까요?\n링크는 계속 작동하고(클릭 집계도 계속), 목록에서만 빠져요.')) mlSetArchived(ar.dataset.mlarchive,true); return; }
+  const ua=e.target.closest('[data-mlunarch]'); if(ua){ mlSetArchived(ua.dataset.mlunarch,false); return; }
+  const op=e.target.closest('[data-mlopen]'); if(op){ ML.open=op.dataset.mlopen; mlRender(); window.scrollTo({top:0}); return; }
+  if(e.target.closest('#mkPaste')){ try{ const t=await navigator.clipboard.readText(); ML.make.url=(t||'').trim(); const i=$('#mkUrl'); if(i) i.value=ML.make.url; mlReadMake(); mlRenderMake(); }catch(err){ const i=$('#mkUrl'); if(i) i.focus(); } return; }
+  const br=e.target.closest('[data-mkbr]'); if(br){ mlReadMake(); ML.make.brand=br.dataset.mkbr; mlRenderMake(); return; }
+  const pu=e.target.closest('[data-mkpu]'); if(pu){ mlReadMake(); if(ML.make.purpose!==pu.dataset.mkpu){ ML.make.purpose=pu.dataset.mkpu; ML.make.place=''; } mlRenderMake(); const pi=$('#mkPartner'); if(pi) pi.focus(); return; }
+  const pl=e.target.closest('[data-mkpl]'); if(pl){ mlReadMake(); ML.make.place=pl.dataset.mkpl; mlRenderMake(); return; }
+  const pr=e.target.closest('[data-mkpr]'); if(pr){ mlReadMake(); ML.make.promoId=ML.make.promoId===pr.dataset.mkpr?'':pr.dataset.mkpr; mlRenderMake(); return; }
+  if(e.target.closest('#mkGo')){ mlCreate(); return; }
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='mlq'){ ML.q=e.target.value; mlRenderList(); }
+  else if((e.target.id==='mkUrl'||e.target.id==='mkPartner')&&ML.make){ const before=JSON.stringify([ML.make&&ML.make.det&&ML.make.det.dest,!!(ML.make&&ML.make.partner.trim())]); mlReadMake(); const after=JSON.stringify([ML.make.det&&ML.make.det.dest,!!ML.make.partner.trim()]);
+    if(before!==after){ const id=e.target.id, pos=e.target.selectionStart; mlRenderMake(); const el=$('#'+id); if(el){ el.focus(); try{ el.setSelectionRange(pos,pos); }catch(err){} } } }
+});
+document.addEventListener('change',async e=>{ const f=e.target.dataset&&e.target.dataset.mlpf; if(!f||!ML.open) return; await mktSetPerf(ML.open,{[f]:e.target.value===''?0:+e.target.value}); uiToast('저장했어요','ok'); });
+document.addEventListener('keydown',e=>{ if(e.key!=='Enter') return; const c=e.target.closest&&e.target.closest('.ml-card'); if(c&&e.target===c){ e.preventDefault(); c.click(); } });
+/* 분석 */
+function maRender(){
+  const box=$('#maBody'); if(!box) return;
+  $$('#maBrand button').forEach(b=>b.classList.toggle('on',b.dataset.mb===ML.brand)); $$('#maPeriod button').forEach(b=>b.classList.toggle('on',b.dataset.mp===ML.period));
+  const from=ML.period==='all'?'':pcAdd(pcToday(),-(+ML.period-1));
+  const links=mlLive().filter(l=>!ML.brand||l.brand===ML.brand);
+  const rows=links.map(l=>({l,c:mlClicksIn(l,from),m:linkMetrics(l)}));
+  const noDay=from && links.some(l=>!l.clicksByDay && (+l.clicks||0)>0);
+  const C=rows.reduce((a,x)=>a+x.c,0), R=rows.reduce((a,x)=>a+x.m.revenue,0), S=rows.reduce((a,x)=>a+x.m.spend,0), O=rows.reduce((a,x)=>a+x.m.orders,0);
+  const card=(h,v,f)=>`<div class="card"><h4>${h}</h4><div class="big">${v}</div><div class="foot">${f}</div></div>`;
+  const bars=(title,map)=>{ const arr=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,8), mx=Math.max(1,...arr.map(x=>x[1]));
+    return `<div class="panel"><h3>${title}</h3><div class="bd">${arr.length&&arr.some(x=>x[1]>0)?arr.map(([k,v])=>`<div class="bar-row"><span>${esc(k)}</span><div class="bar-track"><div class="bar-fill" style="width:${v/mx*100}%"></div></div><span class="bar-val"><b>${won(v)}</b> 클릭</span></div>`).join(''):'<p class="footnote" style="margin:0">이 기간 클릭이 없어요.</p>'}</div></div>`; };
+  const byP={}, byPl={}; rows.forEach(x=>{ const p=mlPurposeOf(x.l); byP[p]=(byP[p]||0)+x.c; const k=mlPlaceOf(x.l); byPl[k]=(byPl[k]||0)+x.c; });
+  let daily='';
+  if(from){ const days=[]; for(let d=from; d<=pcToday(); d=pcAdd(d,1)) days.push(d); const v=days.map(d=>links.reduce((a,l)=>a+(+(l.clicksByDay||{})[d]||0),0)), mx=Math.max(1,...v);
+    if(v.some(Boolean)){ const bw=Math.max(6,Math.min(20,Math.floor(640/days.length))), W=days.length*bw, H=110;
+      daily=`<div class="panel"><h3>날짜별 클릭</h3><div class="bd"><div class="pc-chart-sc"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="날짜별 클릭">${v.map((x,i)=>{ const h=x>0?Math.max(2,(H-16)*x/mx):0, X=i*bw+1, w=bw-2, y=H-16-h, r=Math.min(4,h,w/2); return `<g class="pc-bar in"><rect x="${i*bw}" y="0" width="${bw}" height="${H-16}" fill="transparent"/>${h?`<path d="M${X},${H-16} V${y+r} Q${X},${y} ${X+r},${y} H${X+w-r} Q${X+w},${y} ${X+w},${y+r} V${H-16} Z"/>`:''}<title>${days[i].slice(5).replace('-','/')} · ${x}클릭</title></g>`; }).join('')}<line x1="0" x2="${W}" y1="${H-16}" y2="${H-16}" class="pc-axis"/><text x="0" y="${H-3}">${days[0].slice(5).replace('-','/')}</text><text x="${W}" y="${H-3}" text-anchor="end">오늘</text></svg></div></div></div>`; } }
+  const top=rows.filter(x=>x.c>0).sort((a,b)=>b.c-a.c).slice(0,10);
+  box.innerHTML=`<div class="cards">${card('클릭',won(C),`링크 ${links.length}개`)}${card('주문 (입력)',won(O),C?'전환율 '+pct(O/C):'')}${card('매출 (입력)',won(R)+'원','광고비 '+won(S)+'원')}${card('ROAS',roasPct(S?R/S:null),S?'광고비가 있는 링크 기준':'광고비를 넣으면 계산돼요')}</div>
+    ${noDay?'<p class="footnote">· 날짜별 기록이 없는 예전 클릭은 [전체]에서만 합쳐져요.</p>':''}
+    ${daily}
+    <div class="cols2">${bars('무엇에 쓴 링크가 잘 됐나 (용도별)',byP)}${bars('어디에 올린 게 잘 됐나 (올린 곳별)',byPl)}</div>
+    <div class="panel"><h3>잘 된 링크 TOP 10</h3><div class="bd">${top.length?`<div class="ml-cards">${top.map(x=>mlCard(x.l)).join('')}</div>`:'<p class="footnote" style="margin:0">이 기간 클릭이 있는 링크가 없어요.</p>'}</div></div>`;
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('#maBrand [data-mb]'); if(b){ ML.brand=b.dataset.mb; maRender(); return; }
+  const p=e.target.closest('#maPeriod [data-mp]'); if(p){ ML.period=p.dataset.mp; maRender(); return; }
+  const o=e.target.closest('#maBody [data-mlopen]'); if(o&&!e.target.closest('[data-mlcopy]')){ ML.open=o.dataset.mlopen; ML.make=null; gotoTab('sh-mktlink'); mlRender(); window.scrollTo({top:0}); }
+});
+
 function renderPromos(){ const on=$('#sh-mktpromo'); if(on&&on.classList.contains('on')) pcRender(); }
 /* ══════════ 프로모션 (행사 달력) ══════════
    행사 한 건 = promotions 문서 하나. 예전 칸(name·startDate·endDate·products·baselineRevenue·actualRevenue·spend)은 그대로 두고
@@ -6172,13 +6344,7 @@ document.addEventListener('change',e=>{
 document.addEventListener('keydown',e=>{ if(e.key!=='Enter') return; const c=e.target.closest&&e.target.closest('.pc-card'); if(c&&e.target===c){ e.preventDefault(); c.click(); } });
 function renderMktAll(){ fillMktSelects(); renderMktOverview(); renderMktLinks(); renderPromos(); }
 /* 마케팅 이벤트 */
-$('#mlAdd')&&$('#mlAdd').addEventListener('click',mktCreateLink);
-['#mlChanIn','#mlTypeIn','#mlCampaign','#mlLabel'].forEach(s=>{ const el=$(s); if(el)el.addEventListener('input',updateUtmPreview); });
-['#mlq','#mlChan','#mlType'].forEach(s=>{ const el=$(s); if(el)el.addEventListener('input',renderMktLinks); });
 document.addEventListener('click',e=>{
-  const cp=e.target.closest('[data-mlcopy]');
-  if(cp){ const u=trackUrl(cp.dataset.mlcopy); (navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>{cp.textContent='복사됨';setTimeout(()=>cp.textContent='복사',1200);}).catch(()=>prompt('이 링크를 복사하세요:',u)); return; }
-  const dl=e.target.closest('[data-mldel]'); if(dl){ mktDeleteLink(dl.dataset.mldel); return; }
   const pd=e.target.closest('[data-pmdel]'); if(pd){ promoDel(pd.dataset.pmdel); return; }
 });
 document.addEventListener('dblclick',e=>{

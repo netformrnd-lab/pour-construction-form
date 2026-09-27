@@ -77,6 +77,13 @@ service firebase.storage {
     match /sales-docs/{allPaths=**}        { allow read, write: if true; }
     match /Proposal/{allPaths=**}          { allow read, write: if true; }
     match /소싱-os/{allPaths=**}            { allow read, write: if true; }  // 소싱-OS 제품 사진·카탈로그·서류
+    // 🔒 소싱 견적서·계약서 파일 — 관리자만 (대표 이메일 또는 Firestore sourcing-access/roles.admins)
+    //    ※ 게시할 때 콘솔이 "Firestore 접근 권한 부여"를 물으면 [허용]을 눌러야 역할 목록을 읽을 수 있어요
+    match /소싱-os-secure/{allPaths=**} {
+      allow read, write: if request.auth != null && (
+        request.auth.token.email in ['netformrnd@gmail.com'] ||
+        request.auth.token.email in firestore.get(/databases/(default)/documents/sourcing-access/roles).data.admins);
+    }
 
     // ─────────────────────────────────────────────
     // 그 외 — 명시되지 않은 경로는 모두 막음

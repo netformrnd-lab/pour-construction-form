@@ -2322,9 +2322,10 @@ async function ensurePhotos(pid,photos){
   }
   return out;
 }
-async function uploadDocFile(pid,docId,file){
+async function uploadDocFile(pid,docId,file,secure){
   const safe=(file.name||'file').replace(/[^\w.\-가-힣]+/g,'_').slice(0,80);
-  const ref=stRef('products/'+pid+'/docs/'+docId+'-'+safe);
+  const sub='products/'+pid+'/docs/'+docId+'-'+safe;
+  const ref=secure&&costActive()&&isCostAdmin()?fbStore.ref(SECURE_ROOT+'/'+sub):stRef(sub);
   const snap=await ref.put(file,{contentType:file.type||'application/octet-stream'});
   const url=await snap.ref.getDownloadURL();
   return {path:ref.fullPath,url};
@@ -3262,7 +3263,7 @@ function renderMain(){
     dl.innerHTML='';
     p.docs.forEach(d=>{
       const row=document.createElement('div');row.className='doc';
-      row.innerHTML=`<span class="dtype ${esc(d.type)}">${esc(d.type)}</span><span class="dn">${esc(d.name)} <small>· ${d.isFile?'파일':'링크'}</small></span><button class="dopen">열기</button><button class="dedit">수정</button>`;
+      row.innerHTML=`<span class="dtype ${esc(d.type)}">${esc(d.type)}</span><span class="dn">${d.locked?'🔒 ':''}${esc(d.name)} <small>· ${d.locked?'관리자만':d.isFile?'파일':'링크'}</small></span><button class="dopen">열기</button><button class="dedit">수정</button>`;
       row.querySelector('.dopen').onclick=()=>openDocFile(d);
       row.querySelector('.dedit').onclick=()=>openDocModal(d.id);
       dl.appendChild(row);
@@ -3425,6 +3426,7 @@ function openDocModal(id,defaultType){
 }
 $('#dc_save').onclick=async()=>{
   const p=cur();const type=$('#dc_type').value;let name=$('#dc_name').value.trim();
+  if(LOCK_DOC_TYPES.includes(type)&&!isCostAdmin()){alert('🔒 견적서·계약서는 관리자만 올리고 볼 수 있어요.\n관리자에게 전달해 주세요.');return;}
   const url=$('#dc_url').value.trim();
   const maker=docMakerTypes(type)?$('#dc_maker').value.trim():'';
   const docId=editingDoc||uid();
@@ -3438,7 +3440,7 @@ $('#dc_save').onclick=async()=>{
     const btn=$('#dc_save');btn.disabled=true;const lbl=btn.textContent;btn.textContent='업로드 중…';
     try{
       if(fbStore){
-        try{ const r=await uploadDocFile(p.id,docId,pendingFile); if(!name)name=pendingFile.name; finalize(r.url,true,r.path); return; }
+        try{ const r=await uploadDocFile(p.id,docId,pendingFile,LOCK_DOC_TYPES.includes(type)); if(!name)name=pendingFile.name; finalize(r.url,true,r.path); return; }
         catch(e){ console.error('[cloud] 서류 업로드 실패:',e); }
       }
       // 폴백: 작은 파일만 로컬(base64)
@@ -3455,6 +3457,7 @@ $('#dc_del').onclick=()=>{
   save();closeOverlay();render();
 };
 function openDocFile(d){
+  if(d&&d.locked&&!d.href){flagMsg('🔒 견적서·계약서는 관리자만 열 수 있어요','warn');return;}
   if(!d.href)return;
   const a=document.createElement('a');a.href=d.href;a.target='_blank';a.rel='noopener';
   if(d.isFile)a.download=d.name||'document';
@@ -4212,7 +4215,7 @@ async function onCfdDocPick(e){
   const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
   if(!fbStore){alert('계약서 파일 업로드는 클라우드 연결이 필요해요. 링크로 첨부해 주세요.');return;}
   cfdDoc={name:f.name||'계약서',url:'',path:''};renderCfdDoc();
-  try{const r=await uploadDocFile(cfdPid,'contract-'+uid(),f);cfdDoc.url=r.url;cfdDoc.path=r.path;renderCfdDoc();}
+  try{const r=await uploadDocFile(cfdPid,'contract-'+uid(),f,true);cfdDoc.url=r.url;cfdDoc.path=r.path;renderCfdDoc();}
   catch(err){console.error('[contract] 계약서 업로드 실패:',err);alert('계약서 파일 업로드에 실패했어요. 다시 시도하거나 링크로 첨부해 주세요.');cfdDoc=null;renderCfdDoc();}
 }
 function openConfirmDetail(pid){
@@ -4979,7 +4982,7 @@ function itemTabSet(p){
   const H=(i,t,sub)=>`<div class="st-h ${c[i]?'done':''}"><span class="no">${c[i]?'✓':i+1}</span><span class="it-h">${t}</span>${sub?`<span class="it-sub">${sub}</span>`:''}</div>`;
   const inh=(lbl,html)=>`<div class="st-inh"><span class="lbl">원본에서 가져옴 · ${esc(lbl)}</span>${html}<button data-set="open-base">원본에서 수정 ›</button></div>`;
   const specList=q=>(q.specs||[]).length?(q.specs||[]).map(x=>`<div class="st-spec"><span>${x.tag?`<b>[${esc(x.tag)}]</b>`:''}${esc(x.text)}</span>${q===p?`<button class="it-btn line" style="padding:4px 8px" data-set="spec-del" data-ts="${esc(String(x.ts||''))}" aria-label="삭제">✕</button>`:''}</div>`).join(''):'';
-  const docs=q=>(q.docs||[]).map(d=>`<a class="it-ref" style="text-decoration:none;color:inherit;padding:6px 0;border-top:1px dashed var(--border2)" href="${esc(d.href||'#')}" target="_blank" rel="noopener"><span class="it-pill">${esc(d.type||'서류')}</span><span class="t" style="font-size:13.5px;font-weight:700">${esc(d.name||'서류')}</span><span class="it-sub">열기 ↗</span></a>`).join('');
+  const docs=q=>(q.docs||[]).map(d=>d.locked&&!d.href?`<div class="it-ref" style="padding:6px 0;border-top:1px dashed var(--border2)"><span class="it-pill">${esc(d.type||'서류')}</span><span class="t" style="font-size:13.5px;font-weight:700">🔒 ${esc(d.type)}</span><span class="it-sub">관리자만</span></div>`:`<a class="it-ref" style="text-decoration:none;color:inherit;padding:6px 0;border-top:1px dashed var(--border2)" href="${esc(d.href||'#')}" target="_blank" rel="noopener"><span class="it-pill">${esc(d.type||'서류')}</span><span class="t" style="font-size:13.5px;font-weight:700">${esc(d.name||'서류')}</span><span class="it-sub">열기 ↗</span></a>`).join('');
   const certs=(q,edit)=>(q.certApps||[]).map(x=>`<div class="st-spec"><span><b>${esc(x.status||'신청')}</b>${esc(x.name)}${x.cost?` · ${Math.round(numOf(x.cost)).toLocaleString('ko-KR')}원`:''}</span>${edit?`<button class="it-st ${x.status==='완료'?'s2':x.status==='진행중'?'s1':'s0'}" data-set="cert-st" data-id="${esc(x.id)}">${esc(x.status||'신청')}</button><button class="it-btn line" style="padding:4px 8px" data-set="cert-del" data-id="${esc(x.id)}" aria-label="삭제">✕</button>`:''}</div>`).join('');
   const dv=derivOf(p),sets=setsWith(p);
   const dc=derivCost(p);
@@ -6936,6 +6939,8 @@ const COST_COLL='sourcing-cost', ACCESS_COLL='sourcing-access';
 const COST_PK=['maker','cost','quotes','makerPrev','pricevar','fillmaker','contract','vendorNote'];
 const COST_SK=['name','price','cur','qMaker'];
 const COST_STK=['makers','makerStatus','meetings','calc'];
+const LOCK_DOC_TYPES=['견적서','계약서'];   // 파일 주소까지 관리자만 (나머지 성적서·MSDS 등은 팀원도 봄)
+const SECURE_ROOT='소싱-os-secure';        // Storage: 관리자만 (storage.rules)
 let myRole='guest',rolesCfg=null,rolesErr='',costLoaded=false,costSec=null,costErr='',costSplitSeen=false,costUnsub=null;
 function myEmail(){return ((FA&&FA.currentUser&&FA.currentUser.email)||'').toLowerCase();}
 function isCostAdmin(){return myRole==='admin';}
@@ -6956,7 +6961,9 @@ function costSplitProduct(p){
   const unit=numOf(p.cost);pub.hasCost=!!unit;
   COST_PK.forEach(k=>{if(pub[k]!==undefined){sec[k]=pub[k];delete pub[k];has=true;}});
   if(pub.pricing&&pub.pricing.buy!==undefined){sec.pricingBuy=pub.pricing.buy;delete pub.pricing.buy;has=true;}
-  if(Array.isArray(pub.docs)){const dm={};pub.docs.forEach(d=>{if(d&&d.maker){dm[d.id]=d.maker;d.maker='';}});if(Object.keys(dm).length){sec.docMakers=dm;has=true;}}
+  if(Array.isArray(pub.docs)){const dm={},ld={};pub.docs.forEach(d=>{if(!d)return;if(d.maker){dm[d.id]=d.maker;d.maker='';}
+      if(LOCK_DOC_TYPES.includes(d.type)){if(d.href||d.path||(d.name&&d.name!==d.type))ld[d.id]={name:d.name||'',href:d.href||'',path:d.path||'',isFile:!!d.isFile};d.name=d.type;d.href='';d.path='';d.locked=true;}});
+    if(Object.keys(dm).length){sec.docMakers=dm;has=true;}if(Object.keys(ld).length){sec.lockedDocs=ld;has=true;}}
   if(Array.isArray(pub.samples)){const used=new Set(pub.samples.map(s=>s&&s.alias).filter(Boolean));const sm={};
     pub.samples.forEach(s=>{if(!s||s.type!=='maker')return;
       if(!s.alias){let i=0;while(used.has('제조사 '+String.fromCharCode(65+i)))i++;s.alias='제조사 '+String.fromCharCode(65+i);used.add(s.alias);}
@@ -6970,6 +6977,7 @@ function costMergeProduct(p,sec){
   COST_PK.forEach(k=>{if(sec[k]!==undefined)p[k]=sec[k];});
   if(sec.pricingBuy!==undefined){p.pricing=p.pricing||{};p.pricing.buy=sec.pricingBuy;}
   if(sec.docMakers)(p.docs||[]).forEach(d=>{if(d&&sec.docMakers[d.id])d.maker=sec.docMakers[d.id];});
+  if(sec.lockedDocs)(p.docs||[]).forEach(d=>{const o=d&&sec.lockedDocs[d.id];if(o){Object.assign(d,o);delete d.locked;}});
   if(sec.samples)(p.samples||[]).forEach(s=>{const o=s&&sec.samples[s.id];if(o)Object.assign(s,o);});
   return p;
 }
@@ -6988,7 +6996,7 @@ function costMergeState(st,sec){
 function costHasLeak(st){ // 모두가 보는 곳에 원가가 남아 있는지
   if(!st)return false;
   if((st.makers||[]).length||Object.keys(st.makerStatus||{}).length||(st.meetings||[]).length||numOf((st.calc||{}).buy))return true;
-  return (st.products||[]).some(p=>COST_PK.some(k=>p[k]!==undefined&&p[k]!==''&&!(Array.isArray(p[k])&&!p[k].length))||(p.pricing&&p.pricing.buy)||(p.samples||[]).some(s=>s&&s.type==='maker'&&(s.price||s.qMaker||(s.name&&s.name!==s.alias))));
+  return (st.products||[]).some(p=>COST_PK.some(k=>p[k]!==undefined&&p[k]!==''&&!(Array.isArray(p[k])&&!p[k].length))||(p.pricing&&p.pricing.buy)||(p.docs||[]).some(d=>d&&LOCK_DOC_TYPES.includes(d.type)&&(d.href||d.path))||(p.samples||[]).some(s=>s&&s.type==='maker'&&(s.price||s.qMaker||(s.name&&s.name!==s.alias))));
 }
 function costSplitPlans(pl){
   const pub=JSON.parse(JSON.stringify(pl||{})),sec={};

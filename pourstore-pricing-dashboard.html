@@ -895,17 +895,28 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 /* PC에서도 입력 창(행사·링크 만들기·신제품 검토)이 열려 있으면 떠 있는 버튼을 숨긴다 */
 body:has(:is(#sh-launch.on #laDetailBar:not([style*="none"]),#sh-mktpromo.on #pcDetail:not([style*="none"]) .pc-form,#sh-mktlink.on #mlMake:not([style*="none"]) .mk-step)) :is(#daiFab,#calcFab){display:none!important}
 /* 창·패널이 열려 있거나 폰에서 입력 중이면 떠 있는 버튼(💬 AI · fx 계산기)을 숨긴다 */
-body:has(:is(#addOverlay,#impOverlay,#catOverlay,#chanOverlay,#psOverlay,#expOverlay,#ghOverlay,#suOverlay,#surOverlay,#gcOverlay,#gbOverlay).on) :is(#daiFab,#calcFab){display:none!important}
+body:has(:is(#addOverlay,#impOverlay,#catOverlay,#chanOverlay,#psOverlay,#expOverlay,#ghOverlay,#suOverlay,#surOverlay,#gcOverlay).on) :is(#daiFab,#calcFab){display:none!important}
 @media(max-width:700px){
   body:has(:is(#sh-launch #laDetailBar:not([style*="none"]),#pcDetail:not([style*="none"]) .pc-form,#mlMake:not([style*="none"]) .mk-step)) :is(#daiFab,#calcFab){display:none!important}
   body.kb-open :is(#daiFab,#calcFab){display:none!important}
   #daiFab{padding:11px 13px!important}
 }
-/* 🤝 그로홈 공동구매 */
+/* 🤝 그로홈 공동구매 (행 정보칸) */
+.ri-gb{margin-top:8px;padding-top:8px;border-top:1px dashed #D8C7EA;display:flex;flex-direction:column;gap:6px;font-size:12.5px}
+.ri-gbh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.ri-gbh .ri-b{margin-left:auto}
+.gb-row{background:#FBF7FE;border:1px solid #EFE4F8;border-radius:8px;padding:7px 10px;display:flex;flex-direction:column;gap:3px}
+.gb-rh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.gb-rh .ri-b,.gb-rh .gb-lnk{margin-left:auto}
+.gb-lnk{font-size:12px;color:#7E3AA8;text-decoration:none;padding:4px 6px}
+.gb-rl{display:flex;flex-wrap:wrap;gap:4px 12px;font-variant-numeric:tabular-nums}.gb-rl i{font-style:normal;color:var(--ink-soft);margin-right:4px;font-size:11.5px}
+.gb-rs{font-size:11.5px}
+.ri-gb .gb-form{background:#fff;border:1px solid #EFE4F8;border-radius:8px;padding:10px}
+.ri-gb .gb-f,.ri-gb .gb-line,.ri-gb .gb-in{flex:0 0 auto!important;height:auto!important}
+.ri-gb .gb-f input,.ri-gb .gb-f select,.ri-gb .gb-line input,.ri-gb .gb-line select{height:40px!important;min-height:40px;flex:0 0 auto!important;width:100%;box-sizing:border-box}
+.gb-line{grid-template-columns:minmax(0,1fr) 78px 76px 104px 40px!important}
+@media(max-width:640px){.gb-line{grid-template-columns:1fr 1fr 1fr 40px!important}.gb-line select{grid-column:1 / -1}}
 #priceGrid td.gbcell{cursor:pointer;background:#FBF7FE}
 #priceGrid td.gbcell:hover{background:#F3E8FD}
 #priceGrid th.gbth{background:#F5EEFB}
-#gbOverlay .imp-head button{min-width:40px;min-height:40px;border:0;background:none;font-size:18px;cursor:pointer;color:var(--ink-soft)}
 .gb-ref{font-size:13px;color:var(--ink-soft);margin-bottom:10px}
 .gb-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
 .gb-sum>div{background:#F8F5FC;border:1px solid #E9DDF5;border-radius:8px;padding:8px 10px;display:flex;flex-direction:column}
@@ -1587,7 +1598,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28e</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28f</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2627,13 +2638,6 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 </div>
 
 <!-- ═══ 📥 판매 엑셀 올리기 ═══ -->
-<div id="gbOverlay" class="su-ov">
-  <div class="imp-panel" role="dialog" aria-labelledby="gbTitle">
-    <div class="imp-head"><span id="gbTitle">🤝 공동구매</span><button type="button" data-gba="close" aria-label="닫기">✕</button></div>
-    <div class="imp-body" id="gbBody"></div>
-    <div class="imp-foot" id="gbFoot"></div>
-  </div>
-</div>
 <div id="gcOverlay" class="su-ov">
   <div class="imp-panel" role="dialog" aria-label="그로홈 원가·택배비 적용">
     <div class="imp-head"><span>📦 그로홈 원가·택배비 적용 <span style="font-size:11px;color:var(--ink-faint);font-weight:400">· 2026-09-28 원가 엑셀</span></span><button type="button" data-gc="close" aria-label="닫기">✕</button></div>
@@ -3263,7 +3267,9 @@ const chBy=r=>CHANNELS.find(c=>c.role===r)||null;
 const chByUid=u=>CHANNELS.find(c=>c.uid===u)||null;
 const retailUid=()=>{const c=chBy('retail');return c?c.uid:null;};
 const dealerUid=()=>{const c=chBy('dealer');return c?c.uid:null;};
-const gp=(p,uid)=>uid&&p.pr[uid]!=null?p.pr[uid]:null;
+let GB_LIST=[], GB_GHP=[], GB_SETS={}, GB_STATE='idle', GB_ERR='', GB_KMEMO={}, GB_CUR=null, GB_EDIT=null, GB_BUSY=false;   // 🤝 공동구매
+let GHPL=[], GHPP={}, GHCH_BY_UID={}, GHP_STATE='idle', GHP_ERR='', GHID_MEMO={};   // 그로홈 채널 가격(GroHome 플랫폼별 가격) — 아래 🏠 참고
+const gp=(p,uid)=>{ if(uid&&GHCH_BY_UID[uid]) return ghPriceOf(p,uid); return uid&&p.pr[uid]!=null?p.pr[uid]:null; };
 const retailOf=p=>gp(p,retailUid());
 const chLabel=c=>`${c.code}·${c.name}`;
 
@@ -4129,7 +4135,9 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   const q=($('#q').value||'').trim().toLowerCase();
   const cat=$('#catSel').value;
   const rUid=retailUid(), ghView=BRAND_FILTER==='GROHOME';
-  const cols=COLS().filter(c=>chHasBrand(c,BRAND_FILTER)||c.uid===rUid);   // 자사몰 정가는 어느 브랜드든 기준가라 항상 보인다
+  if(!TEAM_MODE) ghPriceEnsure();
+  const cols=COLS().filter(c=>(chHasBrand(c,BRAND_FILTER)||c.uid===rUid)
+    && !(String(c.uid).startsWith('ghc-') && !P.some(p=>p.pr&&p.pr[c.uid]!=null)));   // 자사몰 정가는 항상 · 예전 고정 그로홈 칸은 값이 있을 때만
   const showSup=supVisible();                // 공급업체 열: 마스터+이메일인증 계정만 (접기 스위치 반영)
   const showCost=costVisible();              // 매입원가·마진 열: 부마스터/마스터만 (접기 스위치 반영)
   const secBtn=$('#btnSecCols');
@@ -4155,7 +4163,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   const twinTip=twin?`업체단가와 값이 같습니다 — [${twin.code}] ${twin.name}은 사다리 0%(하한)이라 업체단가 그대로입니다. 업체단가 칸이 '입력', 이 칸이 '결과'입니다.`:'';
   const thPrice=priceCols.map(pc=> pc.t==='gb' ? gbTh() : pc.t==='vbase'
     ? `<th class="num${canOrderCh?' chdrag':''}"${canOrderCh?` draggable="true" data-cuid="${VBASE_COL}"`:''} style="min-width:104px;background:var(--xl-sel)" title="${twin?esc(twinTip)+' · ':''}${canOrderCh?'헤더를 좌우로 끌어 순서 변경':''}">${canOrderCh?'<span class="chgrip" style="color:#9db3a0">⠿</span>':''}업체단가<div style="font-size:9px;color:var(--ink-faint);font-weight:400">${twin?`입력칸 · <b style="color:var(--xl-green-dark)">= ${esc(twin.code)} ${esc(twin.name)}</b>`:'pour공법·총판기준'}</div></th>`
-    : `<th class="num${canOrderCh?' chdrag':''}"${canOrderCh?` draggable="true" data-cuid="${esc(pc.c.uid)}"`:''} style="min-width:100px;height:38px" title="${(twin&&pc.c.uid===twin.uid)?esc(twinTip)+' · ':''}${canOrderCh?'헤더를 좌우로 끌어 순서 변경 · ':''}${esc(pc.c.desc)}"><div style="font-size:9.5px;font-family:var(--mono);color:var(--amber);line-height:1.2">${canOrderCh?'<span class="chgrip">⠿</span>':''}${esc(pc.c.g)} · ${esc(pc.c.code)}</div>${esc(pc.c.name)}${(twin&&pc.c.uid===twin.uid)?'<div style="font-size:9px;color:var(--xl-green-dark);font-weight:700">= 업체단가</div>':''}</th>`
+    : `<th class="num${canOrderCh?' chdrag':''}"${canOrderCh?` draggable="true" data-cuid="${esc(pc.c.uid)}"`:''} style="min-width:100px;height:38px" title="${(twin&&pc.c.uid===twin.uid)?esc(twinTip)+' · ':''}${canOrderCh?'헤더를 좌우로 끌어 순서 변경 · ':''}${esc(pc.c.desc)}"><div style="font-size:9.5px;font-family:var(--mono);color:var(--amber);line-height:1.2">${canOrderCh?'<span class="chgrip">⠿</span>':''}${esc(pc.c.g)} · ${esc(pc.c.code)}</div>${(ghView&&pc.c.uid===rUid)?'기준가 <span style="font-size:10px;color:var(--ink-faint)">(정가)</span>':esc(pc.c.name)}${(twin&&pc.c.uid===twin.uid)?'<div style="font-size:9px;color:var(--xl-green-dark);font-weight:700">= 업체단가</div>':''}</th>`
   ).join('');
   const lastFrz = showCost ? 'cost' : (showSup ? 'sup' : 'spec');   // 고정 블록의 마지막(경계선) 열
   let html=`<thead><tr>
@@ -4346,6 +4354,7 @@ document.addEventListener('dblclick',e=>{
   inp.addEventListener('blur',commit);
 });
 function cellCommit(p,f,v){
+    if(f&&f[0]==='u'&&GHCH_BY_UID[f.slice(1)]){ ghPriceSave(p,f.slice(1),v); return; }   // 그로홈 채널 → GroHome 플랫폼별 가격에 저장
     if(f==='cost')p.cost=v;
     else if(f==='vbase'){ if(v!=null&&isTodo(p,VBASE_COL)) draftSetTodo(p,VBASE_COL,false);   // 값을 넣으면 미정 해제
                           draftSetVbase(p,v); PREVIEW=true; recalcVendor(); }   // 업체단가 → 개정안
@@ -4439,7 +4448,7 @@ function rowInfoPaint(el){
     <div class="ri-row">${cols.map(chip).join('')}</div>
     ${costAllowed&&MOQ_TIERS.length?(()=>{ const inQ=QT.items.find(x=>x.key===pKey(p)); const def=inQ?inQ.qty:((MOQ_TIERS[1]&&MOQ_TIERS[1].min)||1);
       return `<div class="ri-moq"><span class="ri-t">수량별</span>${MOQ_TIERS.map(t=>{ const u=qtUnitAuto(p,t.min); return `<span class="ri-m"><i>${esc(t.label)}</i>${u==null?'—':won(u)}</span>`; }).join('')}
-        <span class="ri-add"><input type="number" min="1" id="riQty" value="${def}">개<button type="button" class="tbtn primary" data-riadd="${esc(pKey(p))}">🧾 ${inQ?'수량 변경':'견적에 담기'}</button></span></div>`; })():''}`;
+        <span class="ri-add"><input type="number" min="1" id="riQty" value="${def}">개<button type="button" class="tbtn primary" data-riadd="${esc(pKey(p))}">🧾 ${inQ?'수량 변경':'견적에 담기'}</button></span></div>`; })():''}${gbRowInfo(p)}`;
 }
 document.addEventListener('click',e=>{
   if(e.target.closest('#rowInfoX')){ EDIT_ROW=null; $$('#priceGrid tr.row-edit').forEach(tr=>tr.classList.remove('row-edit')); rowSelect(null); return; }
@@ -8266,6 +8275,57 @@ async function submitAddProduct(){
   }catch(e){ console.error('[제품 저장] 실패',e); $('#adStatus').innerHTML='<span style="color:var(--red)">저장 실패: '+esc(e.code||e.message||e)+' (마스터/허용목록·규칙 확인)</span>'; }
   finally{ btn.disabled=false; btn.textContent=old; }
 }
+/* ══════════ 🏠 그로홈 채널 가격 = GroHome [제품 관리 › 플랫폼별 가격] 그대로 (2026-09 대표 확인) ══════════
+   · 채널 목록 = GroHome platforms(이름·순서), 가격 = GroHome platformPrices/{GroHome 제품 id}.{채널이름}, 없으면 기준가(basePrice) — GroHome 화면과 같은 규칙
+   · 이 대시보드에는 복사본을 두지 않는다(gp 가 바로 읽음) → 두 곳 값이 어긋나지 않음
+   · 가격정책표에서 고치면 GroHome 과 똑같이 GroHome platformPrices + 중앙(commerce-division) platformPrices 에 저장
+   · 제품 연결: 그로홈 가져오기 연결(PGHLINK) 우선, 없으면 이름 */
+function ghChAppend(){
+  GHCH_BY_UID={};
+  GHPL.filter(x=>x.name&&x.name!=='공동구매').forEach((x,i)=>{
+    const uid='ghp-'+x.id, ch={uid,g:'그로홈',code:'G'+(i+1),name:x.name,short:x.name,st:'운영',tgt:null,desc:'GroHome 플랫폼별 가격 · 여기서 고치면 GroHome에도 저장',col:true,role:'',ord:950+i,brands:['GROHOME'],ghName:x.name};
+    GHCH_BY_UID[uid]=ch;
+    const at=CHANNELS.findIndex(c=>c.uid===uid); if(at>=0) CHANNELS[at]={...CHANNELS[at],...ch}; else CHANNELS.push(ch);
+  });
+  CHANNELS=CHANNELS.filter(c=>!String(c.uid).startsWith('ghp-')||GHCH_BY_UID[c.uid]);   // GroHome 에서 지운 채널은 뺀다
+}
+function ghPriceEnsure(){
+  if(GHP_STATE!=='idle') return; GHP_STATE='loading';
+  const done=()=>{ GHID_MEMO={}; ghChAppend(); if(!GB_BUSY) renderGrid(); };   // 공구 입력 중엔 표를 다시 그리지 않음
+  try{
+    ghDB().collection('platforms').onSnapshot(sn=>{ GHPL=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.order??999)-(b.order??999)); console.log(`[grohome platforms] ${GHPL.length}개`); GHP_STATE='ok'; done(); },
+      e=>{ console.error('[grohome platforms] 불러오기 실패', e); GHP_STATE='err'; GHP_ERR=e.code||e.message||String(e); renderGrid(); });
+    ghDB().collection('platformPrices').onSnapshot(sn=>{ const m={}; sn.docs.forEach(d=>{ m[d.id]=d.data(); }); GHPP=m; console.log(`[grohome platformPrices] ${sn.size}건`); done(); },
+      e=>{ console.error('[grohome platformPrices] 불러오기 실패', e); GHP_STATE='err'; GHP_ERR=e.code||e.message||String(e); renderGrid(); });
+    ghDB().collection('products').onSnapshot(sn=>{ GB_GHP=sn.docs.map(d=>({id:d.id,...d.data()})); GB_KMEMO={}; done(); },
+      e=>console.warn('[grohome products] 불러오기 실패', e.code||e));
+  }catch(e){ console.error('[grohome 가격] 연결 실패', e); GHP_STATE='err'; GHP_ERR=e.code||e.message||String(e); }
+}
+function ghIdOf(p){
+  const k=pKey(p); if(k in GHID_MEMO) return GHID_MEMO[k];
+  let id=PGHLINK[k]||null;
+  if(!id){ const n=gcNorm(p.name), ns=gcNorm(p.name+(p.spec&&p.spec!=='-'?p.spec:'')); const g=GB_GHP.find(g=>gcNorm(g.name)===ns)||GB_GHP.find(g=>gcNorm(g.name)===n); id=g?g.id:null; }
+  return (GHID_MEMO[k]=id);
+}
+function ghPriceOf(p,uid){
+  const ch=GHCH_BY_UID[uid], id=ghIdOf(p); if(!ch||!id) return null;
+  const v=+((GHPP[id]||{})[ch.ghName]); if(v>0) return v;
+  const g=GB_GHP.find(x=>x.id===id); const b=g?(+g.basePrice||+g.price||0):0;   // GroHome 과 같이: 채널 가격이 없으면 기준가
+  return b>0?b:null;
+}
+async function ghPriceSave(p,uid,v){
+  const ch=GHCH_BY_UID[uid], id=ghIdOf(p);
+  if(!ch||!id){ uiToast('GroHome 제품과 연결이 안 돼 저장하지 못했어요 — 그로홈 가져오기로 연결해 주세요','err'); renderGrid(); return; }
+  const val=v==null?0:Math.round(+v)||0, at=new Date().toISOString();
+  try{
+    await ghDB().collection('platformPrices').doc(id).set({[ch.ghName]:val,updatedAt:at},{merge:true});
+    GHPP[id]={...(GHPP[id]||{}),[ch.ghName]:val};
+    try{ await centralDB().collection('platformPrices').doc(id).set({[ch.ghName]:val,updatedAt:at},{merge:true}); }catch(e){ console.warn('[중앙DB] 그로홈 가격 동기화 실패', e.code||e); }
+    logAct('그로홈가격', `${prodLabel(p)} · ${ch.name}`, `${won(val)}원 (GroHome 플랫폼별 가격)`);
+    uiToast(`${ch.name} ${won(val)}원 — GroHome 플랫폼별 가격에도 저장됐어요`,'ok');
+  }catch(e){ console.error('[그로홈 가격] 저장 실패', e); uiToast('GroHome 가격 저장 실패: '+(e.code||e.message||e),'err'); }
+  refreshAll();
+}
 /* ══════════ 🤝 그로홈 공동구매 — GroHome [인플루언서 › 공동구매](groupBuyList)와 같은 기록 (2026-09 대표 요청) ══════════
    · 가격정책표(그로홈 보기)에 '공동구매' 열: 진행 중(확정·협의·컨택) 우선 최근 공구가 · 인플루언서 · 개당 마진
    · 칸을 누르면 이 제품의 공동구매 이력 + 추가·수정. 저장은 GroHome groupBuyList 에 그대로(같은 필드) → GroHome 화면과 같은 목록
@@ -8275,7 +8335,6 @@ async function submitAddProduct(){
 const GB_URL='https://grohome-dashboard.web.app';
 const GB_ST={contacting:'컨택중',negotiating:'협의중',confirmed:'확정',completed:'완료'};
 const GB_ST_ORD={confirmed:0,negotiating:1,contacting:2,completed:3};
-let GB_LIST=[], GB_GHP=[], GB_SETS={}, GB_STATE='idle', GB_ERR='', GB_KMEMO={}, GB_CUR=null, GB_EDIT=null, GB_BUSY=false;
 function gbEnsure(){
   if(GB_STATE!=='idle') return; GB_STATE='loading';
   (async()=>{
@@ -8285,7 +8344,7 @@ function gbEnsure(){
       ghDB().collection('groupBuyList').onSnapshot(sn=>{
         GB_LIST=sn.docs.map(d=>({id:d.id,...d.data()})); GB_KMEMO={}; GB_STATE='ok';
         console.log(`[groupBuyList] ${GB_LIST.length}건`);
-        if(!GB_BUSY) renderGrid(); if($('#gbOverlay').classList.contains('on')&&!GB_EDIT) renderGbModal();
+        if(!GB_BUSY) renderGrid();
       }, e=>{ console.error('[groupBuyList] 불러오기 실패', e); GB_STATE='err'; GB_ERR=e.code||e.message||String(e); renderGrid(); });
     }catch(e){ console.error('[groupBuyList] 연결 실패', e); GB_STATE='err'; GB_ERR=e.code||e.message||String(e); renderGrid(); }
   })();
@@ -8325,10 +8384,9 @@ function gbTd(p){
   const k=esc(pKey(p));
   if(GB_STATE!=='ok') return `<td class="num gbcell dim" data-gb="${k}">${GB_STATE==='err'?'⚠':'…'}</td>`;
   const list=gbFor(p);
-  if(!list.length) return `<td class="num gbcell" data-gb="${k}" title="공동구매 이력·추가"><span class="edithint">＋ 공구</span></td>`;
+  if(!list.length) return `<td class="num gbcell dim" data-gb="${k}" title="행을 누르면 위에서 공동구매 추가">—</td>`;
   const top=list[0], l=top.lines.slice().sort((a,b)=>gbSets(top.g,a)-gbSets(top.g,b))[0], c=gbCalc(p,top.g,l);
-  const more=list.length>1?` 외 ${list.length-1}`:'';
-  return `<td class="num gbcell" data-gb="${k}" title="공동구매 이력 ${list.length}건 · 눌러서 보기·추가"><b>${won(Math.round(c.unit))}</b><span class="mrate" style="color:#7E3AA8">${esc(top.g.name||'')}·${esc(GB_ST[top.g.status]||top.g.status||'')}${more}</span>${c.rate!=null?`<span class="mrate${c.rate<0?' neg':''}">마진 ${pct(c.rate)}</span>`:''}</td>`;
+  return `<td class="num gbcell" data-gb="${k}" title="${esc(top.g.name||'')} · ${esc(GB_ST[top.g.status]||'')}${list.length>1?` 외 ${list.length-1}건`:''} — 행을 누르면 위에 공동구매 이력"><span class="${c.rate!=null&&c.rate<0?'neg':''}">${won(Math.round(c.unit))}</span>${c.rate!=null?`<span class="mrate">마진 ${pct(c.rate)}</span>`:''}</td>`;
 }
 function gbGhName(p){ const gid=PGHLINK[pKey(p)]; const g=gid&&GB_GHP.find(x=>x.id===gid); return (g&&g.name)||p.name; }
 function gbSaleNames(){   // GroHome 공동구매 창과 같은 제품 목록(비매품·묶인 제품 제외, 묶은 제품은 옛 제품 이름)
@@ -8339,36 +8397,25 @@ function gbSaleNames(){   // GroHome 공동구매 창과 같은 제품 목록(�
   });
   return [...new Set(out.filter(Boolean))];
 }
-function openGbModal(key){ GB_CUR=key; GB_EDIT=null; renderGbModal(); $('#gbOverlay').classList.add('on'); }
-function closeGbModal(){ $('#gbOverlay').classList.remove('on'); GB_EDIT=null; }
-function renderGbModal(){
-  const p=P.find(x=>pKey(x)===GB_CUR); if(!p){ closeGbModal(); return; }
-  const rt=retailOf(p), cost=effCost(p), ship=shipOf(p);
-  $('#gbTitle').textContent='🤝 공동구매 — '+prodLabel(p);
-  const body=$('#gbBody');
-  if(GB_EDIT){ body.innerHTML=gbFormHtml(p); $('#gbFoot').innerHTML=`<span class="footnote" style="margin:0">GroHome 공동구매 목록에 그대로 저장돼요 · 완료 처리는 GroHome에서</span><div style="display:flex;gap:8px"><button type="button" class="tbtn" data-gba="cancel">취소</button><button type="button" class="tbtn gb-save" data-gba="save">✔ 저장</button></div>`; return; }
+/* 행 정보칸(가격정책표 위 요약줄)의 공동구매 영역 — 창을 띄우지 않고 그 자리에서 보고·추가·수정 */
+function gbRowInfo(p){
+  if(!costAllowed||TEAM_MODE||!hasBrand(p,'GROHOME')||isPackage(p)) return '';
+  GB_CUR=pKey(p);
+  if(GB_EDIT&&GB_EDIT.key===GB_CUR){ if($('#gbName')) gbReadForm(); }   // 다시 그려도 입력하던 값 유지
+  if(GB_EDIT&&GB_EDIT.key===GB_CUR) return `<div class="ri-gb"><div class="ri-gbh"><b>🤝 ${GB_EDIT.id?'공동구매 수정':'새 공동구매'}</b><span class="dim">GroHome 공동구매 목록에 그대로 저장돼요</span></div>${gbFormHtml(p)}
+    <div class="gb-act"><button type="button" class="tbtn gb-save" data-gba="save">✔ 저장</button><button type="button" class="tbtn" data-gba="cancel">취소</button></div></div>`;
+  if(GB_STATE==='loading') return '<div class="ri-gb dim">🤝 공동구매 불러오는 중…</div>';
+  if(GB_STATE==='err') return `<div class="ri-gb gb-err">🤝 GroHome 공동구매를 못 불러왔어요 (${esc(GB_ERR)}) <a href="${GB_URL}" target="_blank" rel="noopener">GroHome에서 보기 ↗</a></div>`;
   const list=gbFor(p);
-  const all=list.flatMap(x=>x.lines.map(l=>({g:x.g,l,c:gbCalc(p,x.g,l)})));
-  const done=all.filter(x=>x.g.status==='completed');
-  const sum=(a,f)=>a.reduce((s,x)=>s+(f(x)||0),0);
-  const units=sum(all,x=>x.c.qty*x.c.n), avgUnit=units?sum(all,x=>x.c.sales)/units:null;
-  const prof=all.some(x=>x.c.profit!=null)?sum(all,x=>x.c.profit):null;
-  const head=`<div class="gb-ref">자사몰 정가 <b>${rt!=null?won(rt):'—'}</b> · 원가 <b>${cost!=null?won(cost):'—'}</b>${ship?` + 택배 <b>${won(ship)}</b>`:''}${cost==null?' <span style="color:var(--red)">원가가 없어 마진을 못 내요</span>':''}</div>
-    <div class="gb-sum"><div><span>공구</span><b>${list.length}건</b></div><div><span>판매 개수(세트 포함)</span><b>${units.toLocaleString()}개</b></div><div><span>평균 개당 공구가</span><b>${avgUnit!=null?won(Math.round(avgUnit)):'—'}</b></div><div><span>이익 합계</span><b class="${prof!=null&&prof<0?'neg':''}">${prof!=null?won(Math.round(prof)):'—'}</b></div></div>
-    ${done.length?`<div class="footnote" style="margin:0 0 8px">완료 매출 ${won(sum(done,x=>x.c.sales))}원 (GroHome 매출에 '공동구매'로 등록된 금액)</div>`:''}`;
-  const card=x=>{ const g=x.g, others=(g.products||[]).filter(l=>l.product&&!x.lines.some(m=>m.i===(g.products||[]).indexOf(l))).map(l=>l.product);
-    return `<div class="gb-item"><div class="gb-ih"><b>${esc(g.name||'(이름 없음)')}</b>${g.followers?`<span class="dim">${esc(g.followers)}</span>`:''}<span class="gb-st gb-st-${esc(g.status||'')}">${esc(GB_ST[g.status]||g.status||'—')}</span>
-      <span class="dim">${esc(g.startDate||'')}${g.endDate?' ~ '+esc(g.endDate):''}</span>${+g.commissionRate?`<span class="dim">수수료 ${esc(g.commissionRate)}%</span>`:''}</div>
-      <div class="gb-tw"><table class="gb-tbl"><thead><tr><th>세트</th><th class="num">공구가</th><th class="num">개당</th><th class="num">수량</th><th class="num">매출</th><th class="num">주문당 마진</th></tr></thead><tbody>${x.lines.map(l=>{ const c=gbCalc(p,g,l);
-        return `<tr><td data-l="세트"><input type="number" min="1" class="gb-n" data-gbset="${esc(g.id)}|${l.i}" value="${c.n}" aria-label="몇 개 세트">개</td><td class="num" data-l="공구가">${won(c.price)}</td><td class="num" data-l="개당">${won(Math.round(c.unit))}</td><td class="num" data-l="수량">${c.qty.toLocaleString()}</td><td class="num" data-l="매출">${won(c.sales)}</td><td class="num${c.order!=null&&c.order<0?' neg':''}" data-l="주문당 마진">${c.order==null?'—':won(Math.round(c.order))+` <small>${pct(c.rate)}</small>`}</td></tr>`; }).join('')}</tbody></table></div>
-      ${others.length?`<div class="dim" style="font-size:11.5px">함께 판 제품: ${esc([...new Set(others)].join(', '))}</div>`:''}
-      ${g.note?`<div class="dim" style="font-size:11.5px">메모: ${esc(g.note)}</div>`:''}
-      <div class="gb-act">${g.status==='completed'?'<span class="dim" style="font-size:11.5px">완료 · 매출 등록됨 — 고칠 땐 GroHome에서</span>':`<button type="button" class="tbtn" data-gba="edit" data-id="${esc(g.id)}">✏️ 수정</button>`}<a class="tbtn" href="${GB_URL}" target="_blank" rel="noopener">GroHome에서 열기 ↗</a></div></div>`; };
-  body.innerHTML=head+(GB_STATE==='err'?`<div class="gb-err">GroHome 공동구매를 불러오지 못했어요 (${esc(GB_ERR)}). <a href="${GB_URL}" target="_blank" rel="noopener">GroHome에서 보기 ↗</a></div>`:'')
-    +(list.length?list.map(card).join(''):'<div class="gb-empty">아직 이 제품으로 한 공동구매가 없어요. 아래 [＋ 새 공동구매]로 추가해요.</div>')
-    +`<p class="footnote" style="margin-top:8px">· 세트 개수는 같은 공구의 가장 싼 줄을 1개로 보고 추정했어요. 틀리면 칸을 고치면 기억돼요.<br>· 주문당 마진 = 공구가 − 원가×세트 − 택배비 − 수수료</p>`;
-  $('#gbFoot').innerHTML=`<span class="footnote" style="margin:0">GroHome [인플루언서 › 공동구매]와 같은 목록이에요</span><div style="display:flex;gap:8px"><button type="button" class="tbtn" data-gba="close">닫기</button><button type="button" class="tbtn gb-save" data-gba="new">＋ 새 공동구매</button></div>`;
+  const rows=list.map(x=>{ const g=x.g, cs=x.lines.map(l=>gbCalc(p,g,l)), sales=cs.reduce((a,c)=>a+c.sales,0), orders=cs.reduce((a,c)=>a+c.qty,0);
+    const rs=cs.map(c=>c.rate).filter(r=>r!=null), rTxt=rs.length?(Math.min(...rs)===Math.max(...rs)?pct(rs[0]):`${pct(Math.min(...rs))}~${pct(Math.max(...rs))}`):'';
+    return `<div class="gb-row"><div class="gb-rh"><b>${esc(g.name||'(이름 없음)')}</b>${g.followers?`<span class="dim">${esc(g.followers)}</span>`:''}<span class="gb-st gb-st-${esc(g.status||'')}">${esc(GB_ST[g.status]||g.status||'—')}</span><span class="dim">${esc(String(g.startDate||'').slice(5))}${g.endDate?'~'+esc(String(g.endDate).slice(5)):''}${+g.commissionRate?` · 수수료 ${esc(g.commissionRate)}%`:''}</span>
+        ${g.status==='completed'?`<a class="gb-lnk" href="${GB_URL}" target="_blank" rel="noopener" title="완료 건은 매출이 등록돼 있어 GroHome에서 고쳐요">GroHome ↗</a>`:`<button type="button" class="ri-b" data-gba="edit" data-id="${esc(g.id)}">수정</button>`}</div>
+      <div class="gb-rl">${x.lines.map((l,j)=>`<span><i>${cs[j].n}개</i>${won(cs[j].price)}</span>`).join('')}</div>
+      <div class="gb-rs dim">주문 ${orders.toLocaleString()}건 · 매출 ${won(sales)}${rTxt?` · 마진 ${rTxt}`:''}</div></div>`; }).join('');
+  return `<div class="ri-gb"><div class="ri-gbh"><b>🤝 공동구매 ${list.length}건</b><span class="dim">GroHome [인플루언서 › 공동구매]와 같은 목록</span><button type="button" class="ri-b" data-gba="new">＋ 공구 추가</button></div>${rows||'<div class="dim" style="font-size:12px">아직 이 제품으로 한 공동구매가 없어요.</div>'}</div>`;
 }
+function renderGbModal(){ rowInfoRender(); }   // (예전 창 호출 자리) → 행 정보칸 다시 그리기
 function gbFormHtml(p){
   const e=GB_EDIT, names=gbSaleNames(); const opt=v=>`<option value="">제품 선택</option>`+[...new Set([...(v?[v]:[]),...names])].map(n=>`<option${n===v?' selected':''}>${esc(n)}</option>`).join('');
   const f=(id,lb,v,type='text',ph='')=>`<label class="gb-f"><span>${lb}</span><input id="${id}" type="${type}" value="${esc(v??'')}" placeholder="${esc(ph)}"></label>`;
@@ -8376,7 +8423,7 @@ function gbFormHtml(p){
     <div class="gb-2">${f('gbName','인플루언서명 *',e.name,'text','예: 태이맘')}${f('gbFollow','팔로워 수',e.followers,'text','예: 25만')}</div>
     <div class="gb-2">${f('gbContact','연락처',e.contact,'tel')}${f('gbSns','SNS 주소',e.sns,'url','https://')}</div>
     <div class="gb-lh">진행 제품 <small>가격 = 그 옵션(세트) 한 건 가격</small></div>
-    <div id="gbLines">${e.products.map((l,i)=>`<div class="gb-line"><select data-gbl="product" data-i="${i}" aria-label="제품">${opt(l.product)}</select><label class="gb-in"><input type="number" data-gbl="quantity" data-i="${i}" value="${l.quantity||''}" placeholder="수량" aria-label="수량"><em>개</em></label><label class="gb-in"><input type="number" data-gbl="price" data-i="${i}" value="${l.price||''}" placeholder="가격" aria-label="가격"><em>원</em></label><button type="button" class="gb-x" data-gba="rmline" data-i="${i}" aria-label="줄 삭제">✕</button></div>`).join('')}</div>
+    <div id="gbLines">${e.products.map((l,i)=>`<div class="gb-line"><select data-gbl="product" data-i="${i}" aria-label="제품">${opt(l.product)}</select><label class="gb-in"><input type="number" min="1" data-gbl="sets" data-i="${i}" value="${l.sets||''}" placeholder="자동" aria-label="몇 개 세트"><em>세트</em></label><label class="gb-in"><input type="number" data-gbl="quantity" data-i="${i}" value="${l.quantity||''}" placeholder="수량" aria-label="수량"><em>개</em></label><label class="gb-in"><input type="number" data-gbl="price" data-i="${i}" value="${l.price||''}" placeholder="가격" aria-label="가격"><em>원</em></label><button type="button" class="gb-x" data-gba="rmline" data-i="${i}" aria-label="줄 삭제">✕</button></div>`).join('')}</div>
     <button type="button" class="tbtn gb-addl" data-gba="addline">＋ 제품 줄 추가</button>
     <div class="gb-2">${f('gbStart','시작일',e.startDate,'date')}${f('gbEnd','종료일',e.endDate,'date')}</div>
     <div class="gb-2"><label class="gb-f"><span>상태</span>${e.status==='completed'?'<input value="완료 (GroHome에서만 변경)" disabled>':`<select id="gbStatus">${['contacting','negotiating','confirmed'].map(k=>`<option value="${k}"${e.status===k?' selected':''}>${GB_ST[k]}</option>`).join('')}</select>`}</label>${f('gbComm','수수료율 (%)',e.commissionRate,'number','예: 10')}</div>
@@ -8388,12 +8435,15 @@ function gbReadForm(){
   e.name=v('gbName').trim(); e.followers=v('gbFollow').trim(); e.contact=v('gbContact').trim(); e.sns=v('gbSns').trim();
   e.startDate=v('gbStart'); e.endDate=v('gbEnd'); if($('#gbStatus')) e.status=v('gbStatus'); e.commissionRate=v('gbComm'); e.note=v('gbNote');
   $$('#gbLines [data-gbl]').forEach(el=>{ const l=e.products[+el.dataset.i]; if(!l) return; const k=el.dataset.gbl; l[k]=k==='product'?el.value:(parseInt(el.value)||0); });
+  // 세트 칸이 비어 있으면 가격으로 추정
+  const byP={}; e.products.forEach(l=>{ if(l.product&&+l.price>0) byP[l.product]=Math.min(byP[l.product]||Infinity,+l.price); }); e.products.forEach(l=>{ l.estSets=l.product&&+l.price>0?Math.max(1,Math.round(+l.price/byP[l.product])):1; });
 }
 async function gbSave(){
   gbReadForm(); const e=GB_EDIT, msg=$('#gbStatusMsg');
   if(!e.name){ msg.innerHTML='<span style="color:var(--red)">인플루언서명을 적어 주세요.</span>'; $('#gbName').focus(); return; }
   if(e.startDate&&e.endDate&&e.endDate<e.startDate){ msg.innerHTML='<span style="color:var(--red)">종료일이 시작일보다 빨라요.</span>'; return; }
-  const products=e.products.filter(l=>l.product).map(l=>({product:l.product,quantity:+l.quantity||0,price:+l.price||0}));
+  const kept=e.products.filter(l=>l.product);
+  const products=kept.map(l=>({product:l.product,quantity:+l.quantity||0,price:+l.price||0}));
   if(!products.length){ msg.innerHTML='<span style="color:var(--red)">진행 제품을 한 줄 이상 골라 주세요.</span>'; return; }
   const data={name:e.name,followers:e.followers,contact:e.contact,sns:e.sns,products,startDate:e.startDate,endDate:e.endDate,note:e.note,commissionRate:e.commissionRate};
   if(e.status!=='completed') data.status=e.status||'contacting';
@@ -8401,30 +8451,24 @@ async function gbSave(){
   GB_BUSY=true;
   try{
     if(e.id) await ghDB().collection('groupBuyList').doc(e.id).set({...data,updatedAt:new Date().toISOString(),updatedBy:(curUser&&curUser.email)||''},{merge:true});
-    else await ghDB().collection('groupBuyList').doc().set({...data,createdAt:new Date().toISOString(),createdBy:(curUser&&curUser.email)||'',createdFrom:'마진대시보드'});
-    logAct('공동구매', `${e.id?'수정':'추가'} · ${e.name}`, products.map(l=>`${l.product} ${won(l.price)}×${l.quantity}`).join(', '));
-    GB_EDIT=null; GB_BUSY=false; renderGbModal(); renderGrid(); uiToast(`공동구매 "${data.name}" ${e.id?'수정':'추가'}했어요 · GroHome에도 같은 목록으로 보여요`,'ok');
+    else{ const ref=ghDB().collection('groupBuyList').doc(); e.id=ref.id; await ref.set({...data,createdAt:new Date().toISOString(),createdBy:(curUser&&curUser.email)||'',createdFrom:'마진대시보드'}); e.isNew=true; }
+    // 세트 개수: 직접 적은 값만 기억(추정과 같으면 기억하지 않음)
+    let setCh=false; kept.forEach((l,i)=>{ const key=e.id+'|'+i; if(+l.sets>0&&+l.sets!==l.estSets){ if(GB_SETS[key]!==+l.sets){ GB_SETS[key]=+l.sets; setCh=true; } } else if(key in GB_SETS){ delete GB_SETS[key]; setCh=true; } });
+    if(setCh){ try{ await db.collection('product-meta').doc('gb-sets').set({map:GB_SETS,updatedAt:new Date().toISOString(),updatedBy:(curUser&&curUser.email)||''}); }catch(er){ console.error('[gb-sets] 저장 실패', er); } }
+    logAct('공동구매', `${e.isNew?'추가':'수정'} · ${e.name}`, products.map(l=>`${l.product} ${won(l.price)}×${l.quantity}`).join(', '));
+    GB_EDIT=null; GB_BUSY=false; renderGrid(); uiToast(`공동구매 "${data.name}" ${e.isNew?'추가':'수정'}했어요 · GroHome에도 같은 목록으로 보여요`,'ok');
   }catch(err){ GB_BUSY=false; console.error('[공동구매] 저장 실패', err); msg.innerHTML=`<span style="color:var(--red)">저장 실패: ${esc(err.code||err.message||err)} — GroHome에서 직접 추가해 주세요 <a href="${GB_URL}" target="_blank" rel="noopener">열기 ↗</a></span>`; if(btn){ btn.disabled=false; btn.textContent='✔ 저장'; } }
 }
-async function gbSetSets(key,n){
-  if(n>0) GB_SETS[key]=n; else delete GB_SETS[key];
-  try{ await db.collection('product-meta').doc('gb-sets').set({map:GB_SETS,updatedAt:new Date().toISOString(),updatedBy:(curUser&&curUser.email)||''}); }
-  catch(e){ console.error('[gb-sets] 저장 실패', e); uiToast('세트 개수 저장 실패: '+(e.code||e.message||e),'err'); }
-  renderGbModal(); renderGrid();
-}
 document.addEventListener('click',e=>{
-  const td=e.target.closest('#priceGrid td[data-gb]'); if(td){ openGbModal(td.dataset.gb); return; }
   const b=e.target.closest('[data-gba]'); if(!b) return; const a=b.dataset.gba;
   const p=P.find(x=>pKey(x)===GB_CUR);
-  if(a==='close'){ closeGbModal(); return; }
-  if(a==='new'){ GB_EDIT={id:null,name:'',followers:'',contact:'',sns:'',products:[{product:p?gbGhName(p):'',quantity:0,price:0}],startDate:'',endDate:'',status:'contacting',note:'',commissionRate:''}; renderGbModal(); setTimeout(()=>{ const n=$('#gbName'); if(n) n.focus(); },30); return; }
-  if(a==='edit'){ const g=GB_LIST.find(x=>x.id===b.dataset.id); if(!g) return; GB_EDIT={id:g.id,name:g.name||'',followers:g.followers||'',contact:g.contact||'',sns:g.sns||'',products:(g.products||[]).map(l=>({...l})),startDate:g.startDate||'',endDate:g.endDate||'',status:g.status||'contacting',note:g.note||'',commissionRate:g.commissionRate??''}; if(!GB_EDIT.products.length) GB_EDIT.products.push({product:'',quantity:0,price:0}); renderGbModal(); return; }
-  if(a==='cancel'){ GB_EDIT=null; renderGbModal(); return; }
+  if(a==='new'){ GB_BUSY=true; GB_EDIT={key:GB_CUR,id:null,name:'',followers:'',contact:'',sns:'',products:[{product:p?gbGhName(p):'',quantity:0,price:0}],startDate:'',endDate:'',status:'contacting',note:'',commissionRate:''}; renderGbModal(); setTimeout(()=>{ const n=$('#gbName'); if(n) n.focus(); },30); return; }
+  if(a==='edit'){ const g=GB_LIST.find(x=>x.id===b.dataset.id); if(!g) return; GB_BUSY=true; GB_EDIT={key:GB_CUR,id:g.id,name:g.name||'',followers:g.followers||'',contact:g.contact||'',sns:g.sns||'',products:(g.products||[]).map((l,i)=>({...l,sets:+GB_SETS[g.id+'|'+i]||''})),startDate:g.startDate||'',endDate:g.endDate||'',status:g.status||'contacting',note:g.note||'',commissionRate:g.commissionRate??''}; if(!GB_EDIT.products.length) GB_EDIT.products.push({product:'',quantity:0,price:0}); renderGbModal(); return; }
+  if(a==='cancel'){ GB_EDIT=null; GB_BUSY=false; rowInfoRender(); return; }
   if(a==='addline'){ gbReadForm(); GB_EDIT.products.push({product:p?gbGhName(p):'',quantity:0,price:0}); renderGbModal(); return; }
   if(a==='rmline'){ gbReadForm(); GB_EDIT.products.splice(+b.dataset.i,1); if(!GB_EDIT.products.length) GB_EDIT.products.push({product:'',quantity:0,price:0}); renderGbModal(); return; }
   if(a==='save'){ gbSave(); return; }
 });
-document.addEventListener('change',e=>{ const el=e.target.closest('[data-gbset]'); if(el) gbSetSets(el.dataset.gbset, parseInt(el.value)||0); });
 /* ══════════ 📦 그로홈 원가·택배비 1회 적용 (2026-09-28 원가 엑셀) ══════════
    대표 확인(2026-09): 원가는 택배비를 뺀 값(페인트=단가+국제배송+관세, 툴스 프로=총 원가), 택배비는 따로(페인트 2,600 · 툴스 프로 2,500).
    · 이름으로 제품을 찾아 기존값 → 새값을 보여 주고, 체크한 것만 저장한다. 못 찾은 품목은 직접 고른다.
@@ -9318,7 +9362,6 @@ function wireImportModal(){
   on('impFile','change',e=>handleImportFile(e.target.files&&e.target.files[0]));
   bindOverlayClose('impOverlay',closeImportModal);
   bindOverlayClose('gcOverlay',closeGcModal);
-  bindOverlayClose('gbOverlay',closeGbModal);
   on('impAll','change',e=>{ const v=e.target.checked; IMP_ROWS.forEach(r=>{ if(r.status!=='same')r.check=v; }); renderImportTable(); });
   on('impUseFileCh','change',e=>{
     IMP_USE_FILE_CH=e.target.checked;
@@ -11584,6 +11627,7 @@ function buildState(){                        // Firestore 로드본으로 앱 �
   CHANNELS=CH_DEF.map(c=>({...c, ...(CHPATCH[c.uid]||{})}))
     .concat(CHCUSTOM.filter(c=>c&&c.uid&&!CH_DEF.some(d=>d.uid===c.uid)).map(c=>({...c})));
   GH_CH_BUILTIN.forEach(c=>{ if(!CHANNELS.some(x=>x.uid===c.uid)) CHANNELS.push({...c, ...(CHPATCH[c.uid]||{})}); });
+  ghChAppend();
   uidSeq=CHANNELS.reduce((m,c)=>{ const n=+String(c.uid).replace(/^c/,''); return isFinite(n)?Math.max(m,n):m; },100);
   CHORD=[];
   P=RAW.map((r,i)=>({id:i,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:{...r.pr},sup:'',mgr:'',mfg:'',added:false,

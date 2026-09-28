@@ -339,6 +339,15 @@
   .nm-chip.on{background:#111827;color:#fff;border-color:#111827}
   .nm-chip.out{border-style:dashed}
 
+  /* ── 브랜드 로고 ── */
+  .blogo img{display:block;height:24px;width:auto;max-width:150px;object-fit:contain}
+  .blogo em{display:none}
+  .blogo.nologo img{display:none}
+  .blogo.nologo em{display:inline}
+  .brand-h .pill em,.pcard .bchip em{font-style:normal}
+  .brand-h .pill:has(.blogo:not(.nologo)){background:#fff!important;border:1px solid var(--line);padding:6px 12px}
+  .pcard .bchip:has(.blogo:not(.nologo)){background:#fff!important;padding:6px 10px}
+
   /* ── 모달 ── */
   .modal{position:fixed;inset:0;z-index:60;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:16px}
   .modal .in{background:#fff;border-radius:20px;width:min(460px,100%);max-height:92vh;overflow-y:auto;padding:22px}
@@ -479,11 +488,16 @@ const FV = firebase.firestore.FieldValue;
 
 // ── 브랜드 (카드 색) ──
 const BRANDS = {
-  grohome:   { name:'그로홈',     bm:'김송희', team:'2팀', icon:'🏡', bg:'#FFF3E8', bd:'#F8D5B4', ac:'#D9691A', chip:'#FDE3CB' },
-  pourstore: { name:'POUR스토어', bm:'이란',   team:'2팀', icon:'🧱', bg:'#EEF1FB', bd:'#CBD3F0', ac:'#31428C', chip:'#DCE2F6' },
-  barasday:  { name:'바라스데이', bm:'김소연', team:'1팀', icon:'🌿', bg:'#F1F9E7', bd:'#CDE6AE', ac:'#4A8418', chip:'#DDF0C6' },
+  grohome:   { logo:'launch-board-logos/grohome.png', name:'그로홈',     bm:'김송희', team:'2팀', icon:'🏡', bg:'#FFF3E8', bd:'#F8D5B4', ac:'#D9691A', chip:'#FDE3CB' },
+  pourstore: { logo:'launch-board-logos/pourstore.png', name:'POUR스토어', bm:'이란',   team:'2팀', icon:'🧱', bg:'#EEF1FB', bd:'#CBD3F0', ac:'#31428C', chip:'#DCE2F6' },
+  barasday:  { logo:'launch-board-logos/barasday.png', name:'바라스데이', bm:'김소연', team:'1팀', icon:'🌿', bg:'#F1F9E7', bd:'#CDE6AE', ac:'#4A8418', chip:'#DDF0C6' },
 };
 const BRAND_KEYS = Object.keys(BRANDS);
+// 브랜드 로고: 파일이 있으면 로고, 없으면(아직 안 올림) 이모지+이름 글자
+function brandMark(b){
+  const txt = `<em>${b.icon||''} ${esc(b.name)}</em>`;
+  return b.logo ? `<span class="blogo"><img src="${b.logo}" alt="${esc(b.name)}" onerror="this.parentNode.classList.add('nologo')">${txt}</span>` : txt;
+}
 
 // ── 업무 단계 (01~11) · 기본 담당 ──
 const PHASES = [
@@ -793,7 +807,6 @@ function viewHome(){
   const monthKey = ymd(new Date()).slice(0,7);
   const thisMonth = live().filter(p=>p.launchDate && p.launchDate.slice(0,7)===monthKey).length;
   let html = `
-    <div class="banner"><span>✨</span><span>샘플 수령부터 <b>디자인 완료(상세페이지·섬네일 세팅)</b>까지, 1팀·2팀·디자이너·외주가 한 화면에서 같이 봐요.</span><span class="sp"></span><button class="btn sm" data-view="guide">업무 체계 보기</button></div>
     <div class="h2"><h2>브랜드별 출시 진행</h2><span class="sp"></span><button class="btn pri" data-add="">＋ 제품 등록</button></div>
     <div class="stats">
       <div class="stat"><b>${c.total}</b><span>진행 중인 제품</span></div>
@@ -810,7 +823,7 @@ function viewHome(){
     const b = BRANDS[k];
     const list = L.filter(p=>p.brand===k).sort(sortByLaunch);
     if (query && !list.length) return;
-    html += `<section class="brand-sec"><div class="brand-h"><span class="pill" style="background:${b.chip};color:${b.ac}">${b.icon} ${b.name}</span><span class="n">${list.length}개 제품</span></div>
+    html += `<section class="brand-sec"><div class="brand-h"><span class="pill" style="background:${b.chip};color:${b.ac}">${brandMark(b)}</span><span class="n">${list.length}개 제품</span></div>
       <div class="grid">${list.map(card).join('')}<button class="add-card" data-add="${k}"><b>＋</b>${b.name} 제품 추가</button></div></section>`;
   });
   const etc = L.filter(p=>!BRANDS[p.brand]);
@@ -1008,7 +1021,7 @@ function viewProduct(p){
   return `
     <button class="back" data-back="">← 전체 제품</button>
     <div class="pcard" style="background:${b.bg};border-color:${b.bd}">
-      <div class="row1"><span class="bchip" style="background:${b.chip};color:${b.ac}">${esc(b.name)}</span><span class="sp"></span>
+      <div class="row1"><span class="bchip" style="background:${b.chip};color:${b.ac}">${brandMark(b)}</span><span class="sp"></span>
         <button class="btn sm" data-link="${p.id}">🔗 링크</button><button class="btn sm" data-info-edit="">✏️ 수정</button></div>
       <h1 class="pname">${esc(p.name)}</h1>
       <div class="pmeta">

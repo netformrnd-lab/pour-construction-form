@@ -176,51 +176,47 @@
   .note p{margin:0;font-size:13px;color:var(--ink2);line-height:1.6}
   .note.chk{border-color:#FDE68A;background:#FFFBEB}
 
-  /* ── 상세 시트 ── */
-  .dim{position:fixed;inset:0;background:rgba(15,23,42,.38);z-index:50;opacity:0;pointer-events:none;transition:opacity .18s}
-  .dim.on{opacity:1;pointer-events:auto}
-  .sheet{position:fixed;top:0;right:0;bottom:0;width:min(600px,100%);background:#F8FAFC;z-index:51;transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column;box-shadow:-10px 0 40px rgba(15,23,42,.15)}
-  .sheet.on{transform:none}
-  .sh-top{padding:16px 18px 14px;border-bottom:1px solid var(--line);background:#fff}
-  .sh-bar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-  .sh-bar .x{width:40px;height:40px;border-radius:12px;font-size:22px;color:var(--muted);margin-left:auto}
-  .sh-bar .x:hover{background:#F3F4F6}
-  .sh-top h3{margin:0;font-size:21px;font-weight:800;letter-spacing:-.02em;word-break:keep-all}
-  .sh-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-  .sh-meta .m{font-size:12.5px;font-weight:700;background:#F3F4F6;border-radius:8px;padding:5px 9px;color:var(--ink2)}
-  .sh-body{flex:1;overflow-y:auto;padding:14px 16px 40px;-webkit-overflow-scrolling:touch}
-  .next{background:#111827;color:#fff;border-radius:14px;padding:13px 15px;font-size:13.5px;font-weight:600;margin-bottom:14px;line-height:1.5}
-  .next b{color:#FDE68A}
-  .phase-h{display:flex;align-items:center;gap:8px;margin:18px 2px 8px;font-size:13px;font-weight:800;color:var(--ink2)}
+  /* ── 제품 페이지 (체크리스트) ── */
+  .back{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px 0 10px;border-radius:12px;font-weight:700;color:var(--ink2);background:#fff;border:1px solid var(--line);margin-bottom:12px}
+  .back:hover{background:#F9FAFB}
+  .pcard{border:1px solid;border-radius:18px;padding:16px 18px}
+  .pcard .row1{display:flex;align-items:center;gap:8px}
+  .pcard .row1 .sp{flex:1}
+  .pcard .bchip{font-size:12px;font-weight:800;padding:5px 10px;border-radius:8px}
+  .pname{margin:10px 0 12px;font-size:24px;font-weight:800;letter-spacing:-.02em;word-break:keep-all}
+  .pmeta{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+  .pmeta label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--ink2)}
+  .pmeta input{border:1px solid #D7DCE3;border-radius:10px;padding:0 10px;height:38px;background:#fff;outline:none;font-size:14px}
+  .pmeta input[data-pf="lead"]{width:130px}
+  .pmeta .dd{font-size:13px;font-weight:800;background:#fff;border-radius:8px;padding:5px 9px}
+  .pcard .bar{margin-top:14px}
+  .pcard .pct{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--muted);margin-top:5px}
+  .ck-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:22px 2px 4px}
+  .ck-head b{font-size:18px;font-weight:800}
+  .ck-head small{font-size:12.5px;color:var(--muted);font-weight:600}
+  .phase-h{display:flex;align-items:center;gap:8px;margin:16px 2px 8px;font-size:13px;font-weight:800;color:var(--ink2)}
   .phase-h .who{font-size:11.5px;font-weight:800;border-radius:7px;padding:3px 8px}
-  .step{background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:8px;overflow:hidden}
-  .step.over{border-color:#FCA5A5}
-  .step-h{display:flex;align-items:center;gap:12px;padding:12px 14px;width:100%;text-align:left}
-  .step-h .no{width:30px;height:30px;border-radius:9px;background:#F3F4F6;font-size:12px;font-weight:800;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-  .step.done .step-h .no{background:var(--green);color:#fff}
-  .step-h .mid{flex:1;min-width:0}
-  .step-h .mid b{display:block;font-size:14.5px;font-weight:800}
-  .step-h .mid span{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .step-h .mid span.red{color:var(--red)}
-  .step-note{padding:0 14px 12px 56px;font-size:12.5px;color:var(--ink2);line-height:1.55;white-space:pre-wrap;word-break:break-word;margin-top:-4px}
-  .badge{font-size:12px;font-weight:800;border-radius:8px;padding:5px 9px;white-space:nowrap;flex-shrink:0}
-  .b-todo{background:#F3F4F6;color:#6B7280}
-  .b-doing{background:#DBEAFE;color:#1D4ED8}
-  .b-review{background:#FEF3C7;color:#92400E}
-  .b-done{background:#D1FAE5;color:#047857}
-  .b-skip{background:#F3F4F6;color:#B0B6BF;text-decoration:line-through}
-  .editor{border-top:1px solid var(--line2);padding:14px;background:#FBFCFE;display:flex;flex-direction:column;gap:12px}
-  .editor label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:var(--muted)}
-  .editor input,.editor textarea,.form input,.form textarea,.form select{border:1px solid #D7DCE3;border-radius:10px;padding:10px 12px;background:#fff;outline:none;width:100%}
-  .editor input:focus,.editor textarea:focus,.form input:focus,.form textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px #DBEAFE}
-  .editor textarea,.form textarea{min-height:88px;resize:vertical;line-height:1.5}
-  .seg{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-  .seg button{height:40px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:800;font-size:12.5px;color:var(--muted)}
-  .seg button.on{border-color:transparent}
-  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .ed-act{display:flex;gap:8px;justify-content:flex-end}
-  .hint{font-size:12px;color:var(--muted);font-weight:600;background:#F3F4F6;border-radius:10px;padding:8px 10px;line-height:1.5}
-  .hist{background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px 14px}
+  .ck{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .ck-row{display:grid;grid-template-columns:30px 190px minmax(0,1fr) 120px 150px;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line2);transition:background .3s}
+  .ck-row:last-child{border-bottom:none}
+  .ck-row.flash{background:#FFFBEB}
+  .ck-box{display:flex;align-items:center;justify-content:center;cursor:pointer;width:30px;height:30px}
+  .ck-box input{position:absolute;opacity:0;width:0;height:0}
+  .ck-box span{width:24px;height:24px;border-radius:7px;border:2px solid #CBD5E1;background:#fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:900}
+  .ck-box input:checked + span{background:var(--green);border-color:var(--green)}
+  .ck-box input:checked + span::after{content:'✓'}
+  .ck-box input:focus-visible + span{box-shadow:0 0 0 3px #BFDBFE}
+  .ck-name b{display:block;font-size:14px;font-weight:800}
+  .ck-name small{display:block;font-size:11.5px;color:var(--faint);font-weight:600;margin-top:1px}
+  .ck-row.done .ck-name b{color:var(--faint);text-decoration:line-through}
+  .ck-row input[type=text],.ck-row input:not([type]),.ck-row textarea,.ck-row input[type=date]{width:100%;border:1px solid transparent;background:#F6F8FA;border-radius:9px;padding:8px 10px;outline:none;font-size:13.5px;min-height:38px}
+  .ck-row textarea{resize:none;overflow:hidden;line-height:1.45;display:block}
+  .ck-row input:focus,.ck-row textarea:focus{background:#fff;border-color:var(--blue);box-shadow:0 0 0 3px #DBEAFE}
+  .ck-row.over input[type=date]{color:var(--red);background:var(--red-l);font-weight:700}
+  .ck-meta{display:contents}
+  .hist-d{margin-top:18px}
+  .hist-d summary{cursor:pointer;font-size:13px;font-weight:800;color:var(--muted);padding:6px 2px}
+  .hist{background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px 14px;margin-top:6px}
   .hist div{padding:9px 0;border-bottom:1px solid var(--line2);font-size:12.5px;color:var(--ink2);line-height:1.5}
   .hist div:last-child{border-bottom:none}
   .hist small{color:var(--faint);font-weight:600;margin-right:6px}
@@ -280,10 +276,13 @@
     .bigcal .ev{display:none}
     .bigcal .dots{display:flex}
     .bigcal .cal .d .num{margin-bottom:0}
-    .seg{grid-template-columns:repeat(3,1fr)}
     .two{grid-template-columns:1fr}
-    .sh-top h3{font-size:19px}
-    .step-note{padding-left:14px}
+    .pname{font-size:20px}
+    .ck-row{grid-template-columns:30px minmax(0,1fr);grid-template-areas:"box name" "box todo" "box meta";gap:6px 10px;align-items:start;padding:12px}
+    .ck-box{grid-area:box}
+    .ck-name{grid-area:name;padding-top:4px}
+    .ck-row textarea{grid-area:todo}
+    .ck-meta{grid-area:meta;display:grid;grid-template-columns:1fr 1fr;gap:6px}
   }
   .card .body,.card .foot{display:contents}
 </style>
@@ -315,8 +314,6 @@
 
 <nav class="btabs" id="btabs"></nav>
 
-<div class="dim" id="dim"></div>
-<aside class="sheet" id="sheet" aria-label="제품 진행 상세"></aside>
 <div id="modalRoot"></div>
 <div class="toast hidden" id="toast" role="status"></div>
 
@@ -368,15 +365,6 @@ const STEPS = [
   { id:'s11', name:'최종 검수 · 세팅',   in:'상세페이지 · 섬네일 완성본',    out:'채널 등록(세팅) 완료 = 디자인 완료' },
 ];
 const STEP_BY = Object.fromEntries(STEPS.map((s,i)=>[s.id,{...s,no:String(i+1).padStart(2,'0'),phase:PHASES.find(p=>p.steps.includes(s.id))}]));
-const STATUS = [
-  { k:'todo',   label:'시작 전' },
-  { k:'doing',  label:'진행 중' },
-  { k:'review', label:'검토 요청' },
-  { k:'done',   label:'완료' },
-  { k:'skip',   label:'해당 없음' },
-];
-const ST_LABEL = Object.fromEntries(STATUS.map(s=>[s.k,s.label]));
-const SEG_ON = { todo:'background:#E5E7EB;color:#374151', doing:'background:#2563EB;color:#fff', review:'background:#F59E0B;color:#fff', done:'background:#059669;color:#fff', skip:'background:#9CA3AF;color:#fff' };
 const PEOPLE_BASE = ['민지','채림','BM','본부장','기획1팀','기획2팀','디자이너','외주'];
 
 // ── 초기 데이터 (전달받은 그로홈 진행표 9종) — 컬렉션이 비어 있을 때 1회만 등록 ──
@@ -411,12 +399,12 @@ const SEED = (()=>{
 // ── 상태 ──
 let items = [];            // 전체 문서 (삭제 포함)
 let loaded = false, loadErr = '';
-let view = 'home';         // home | week | cal | guide | trash
+let view = 'home';         // home | week | cal | guide | trash | product
 let brandTab = 'all';
 let query = '';
 let calMonth = monthStart(new Date());
 let calSel = '';
-let openId = null, openStep = null, editInfo = false;
+let openId = null, prevView = 'home', pendingRender = false;
 let me = '';
 try { me = localStorage.getItem('launchBoardName') || ''; } catch(e) {}
 
@@ -442,13 +430,6 @@ function progress(p){
   const used = all.filter(x=>x.status!=='skip');
   const done = used.filter(x=>x.status==='done').length;
   return { done, total:used.length, pct: used.length ? Math.round(done/used.length*100) : 0 };
-}
-// 지금 하고 있는 단계(진행/검토) 우선, 없으면 다음 시작할 단계
-function nowStep(p){
-  const act = STEPS.find(s=>['doing','review'].includes(stg(p,s.id).status));
-  if (act) return { s:act, kind:'now' };
-  const nxt = STEPS.find(s=>stg(p,s.id).status==='todo');
-  return nxt ? { s:nxt, kind:'next' } : null;
 }
 function overdueList(p){ return STEPS.filter(s=>isOver(stg(p,s.id))); }
 function live(){ return items.filter(p=>!p.deletedAt); }
@@ -512,8 +493,12 @@ async function writeDoc(id, patch, historyText){
 }
 
 // ═══ 렌더링 ═══
+// force=false(실시간 갱신) + 제품 페이지에서 입력 중이면 본문은 다시 그리지 않음 → 쓰던 내용이 안 날아감 (입력 끝나면 갱신)
+function typing(){ const a = document.activeElement; return !!(a && $('main').contains(a) && /INPUT|TEXTAREA/.test(a.tagName)); }
 function renderAll(force = true){
-  renderHeader(); renderNav(); renderMiniCal(); renderMain(); renderSheet(force);
+  renderHeader(); renderNav(); renderMiniCal();
+  if (!force && view==='product' && typing()) { pendingRender = true; return; }
+  renderMain();
 }
 
 function renderHeader(){
@@ -524,10 +509,9 @@ function renderHeader(){
 function counts(){
   const L = live();
   const over = L.reduce((n,p)=>n+overdueList(p).length,0);
-  const review = L.reduce((n,p)=>n+STEPS.filter(s=>stg(p,s.id).status==='review').length,0);
   const [ws,we] = weekRange();
   const week = L.reduce((n,p)=>n+STEPS.filter(s=>{const x=stg(p,s.id);return x.due>=ws&&x.due<=we&&x.status!=='done'&&x.status!=='skip';}).length,0);
-  return { total:L.length, over, review, week, trash:items.length-L.length };
+  return { total:L.length, over, week, trash:items.length-L.length };
 }
 
 const MENU = [
@@ -538,7 +522,7 @@ const MENU = [
 ];
 function renderNav(){
   const c = counts();
-  const badge = k => k==='week' && (c.over+c.review) ? `<span class="cnt">${c.over+c.review}</span>` : '';
+  const badge = k => k==='week' && c.over ? `<span class="cnt">${c.over}</span>` : '';
   $('nav').innerHTML = `<h4>런칭보드 메뉴</h4>` +
     MENU.map(m=>`<button class="${view===m.k?'on':''}" data-view="${m.k}"><span class="ic">${m.ic}</span>${m.label}${badge(m.k)}</button>`).join('') +
     `<div style="border-top:1px solid var(--line2);margin:10px 0 6px"></div>` +
@@ -597,7 +581,13 @@ function renderMain(){
   else if (view==='cal') m.innerHTML = err + viewCal();
   else if (view==='guide') m.innerHTML = err + viewGuide();
   else if (view==='trash') m.innerHTML = err + viewTrash();
+  else if (view==='product') {
+    const p = items.find(x=>x.id===openId);
+    m.innerHTML = err + (p ? viewProduct(p) : `<button class="back" data-back="">← 전체 제품</button><div class="empty">제품을 찾을 수 없어요 (삭제되었을 수 있어요)</div>`);
+    m.querySelectorAll('textarea').forEach(grow);
+  }
   else m.innerHTML = err + viewHome();
+  pendingRender = false;
 }
 
 // ── 홈: 브랜드별 카드 ──
@@ -627,12 +617,12 @@ function viewHome(){
   let html = `
     <div class="banner"><span>✨</span><span>샘플 수령부터 <b>디자인 완료(상세페이지·섬네일 세팅)</b>까지, 1팀·2팀·디자이너·외주가 한 화면에서 같이 봐요.</span><span class="sp"></span><button class="btn sm" data-view="guide">업무 체계 보기</button></div>
     <div class="h2"><h2>브랜드별 출시 진행</h2><span class="sp"></span><button class="btn pri" data-add="">＋ 제품 등록</button></div>
-    <p class="sub">카드를 누르면 단계별 담당자 · 마감일 · 진행사항을 보고 바로 수정할 수 있어요.</p>
+    <p class="sub">카드를 누르면 단계별 체크리스트(할 일 · 담당 · 마감일)가 열려요.</p>
     <div class="stats">
       <div class="stat"><b>${c.total}</b><span>진행 중인 제품</span></div>
       <div class="stat"><b>${thisMonth}</b><span>이번 달 출시 예정</span></div>
       <button class="stat ${c.over?'warn':''}" data-view="week"><b>${c.over}</b><span>마감 지난 단계 ›</span></button>
-      <button class="stat" data-view="week"><b>${c.review}</b><span>검토 요청 ›</span></button>
+      <button class="stat" data-view="week"><b>${c.week}</b><span>이번 주 마감 ›</span></button>
     </div>
     <div class="tabs">
       <button class="tab ${brandTab==='all'?'on':''}" data-brand="all">전체 ${live().length}</button>
@@ -661,12 +651,11 @@ function stepRow(p, sid, right, rightColor){
 }
 function weekData(){
   const L = live(), [ws,we] = weekRange(), t = today();
-  const over=[], week=[], review=[];
+  const over=[], week=[];
   L.forEach(p=>STEPS.forEach(s=>{
     const x = stg(p,s.id);
     if (isOver(x)) over.push([p,s.id,x.due]);
     else if (x.due>=ws && x.due<=we && x.status!=='done' && x.status!=='skip') week.push([p,s.id,x.due]);
-    if (x.status==='review') review.push([p,s.id,x.due]);
   }));
   over.sort((a,b)=>a[2].localeCompare(b[2])); week.sort((a,b)=>a[2].localeCompare(b[2]));
   const soon = L.filter(p=>p.launchDate && diffDays(p.launchDate)>=0 && diffDays(p.launchDate)<=30).sort(sortByLaunch);
@@ -674,17 +663,16 @@ function weekData(){
   const changes = [];
   L.forEach(p=>(p.history||[]).forEach(h=>{ if(h.at>=since && h.by!=='시스템') changes.push([p,h]); }));
   changes.sort((a,b)=>b[1].at.localeCompare(a[1].at));
-  return { ws, we, t, over, week, review, soon, changes };
+  return { ws, we, t, over, week, soon, changes };
 }
 function viewWeek(){
   const w = weekData();
   const sec = (ic,title,arr,rowFn,note) => `<div class="wk-sec"><div class="hd">${ic} ${title}<span class="n">${arr.length}</span>${note?`<small>${note}</small>`:''}</div>${arr.length?arr.map(rowFn).join(''):`<div class="wk-none">없음 👍</div>`}</div>`;
   return `
     <div class="h2"><h2>이번 주 확인</h2><span class="sp"></span><button class="btn" data-copy-week="">📋 주간 보고 복사</button></div>
-    <p class="sub">${fmtDate(w.ws)} ~ ${fmtDate(w.we)} · BM·본부장 주 1회 점검용. 항목을 누르면 해당 단계가 바로 열려요.</p>
+    <p class="sub">${fmtDate(w.ws)} ~ ${fmtDate(w.we)} · BM·본부장 주 1회 점검용. 항목을 누르면 해당 제품 체크리스트가 열려요.</p>
     <div class="wk">
       ${sec('⏰','마감 지난 단계',w.over,([p,sid,d])=>stepRow(p,sid,fmtShort(d)+' · '+dday(d),'var(--red)'),'담당자에게 일정 재확인')}
-      ${sec('🙋','검토 요청 (BM 확인 필요)',w.review,([p,sid,d])=>stepRow(p,sid,d?fmtShort(d):'','var(--amber)'))}
       ${sec('📅','이번 주 마감',w.week,([p,sid,d])=>stepRow(p,sid,fmtShort(d)+' ('+WD[parse(d).getDay()]+')','var(--blue)'))}
       ${sec('🚀','30일 안에 출시',w.soon,p=>{const b=brandOf(p),pr=progress(p);return `<button class="wk-row" data-open="${p.id}"><span class="bdot" style="background:${b.ac}"></span><span class="mid"><b>${esc(p.name)}</b><span>${esc(b.name)} · ${fmtDate(p.launchDate,true)} · 진행 ${pr.done}/${pr.total}</span></span><span class="rt" style="color:${b.ac}">${dday(p.launchDate)}</span></button>`;})}
       ${sec('🕘','최근 7일 변경',w.changes.slice(0,30),([p,h])=>`<button class="wk-row" data-open="${p.id}"><span class="bdot" style="background:${brandOf(p).ac}"></span><span class="mid"><b>${esc(p.name)}</b><span>${esc(h.by)} · ${esc(h.text)}</span></span><span class="rt">${fmtShort(h.at.slice(0,10))}</span></button>`)}
@@ -695,7 +683,6 @@ function weekText(){
   const line = ([p,sid,d]) => `- [${brandOf(p).name}] ${p.name} · ${STEP_BY[sid].no} ${STEP_BY[sid].name} (${stg(p,sid).owner||'담당 미지정'}${d?', '+fmtShort(d):''})`;
   let t = `[런칭보드 주간 점검] ${fmtDate(w.ws)} ~ ${fmtDate(w.we)}\n`;
   t += `\n■ 마감 지난 단계 ${w.over.length}건\n` + (w.over.map(line).join('\n') || '- 없음');
-  t += `\n\n■ 검토 요청 ${w.review.length}건\n` + (w.review.map(line).join('\n') || '- 없음');
   t += `\n\n■ 이번 주 마감 ${w.week.length}건\n` + (w.week.map(line).join('\n') || '- 없음');
   t += `\n\n■ 30일 안에 출시 ${w.soon.length}건\n` + (w.soon.map(p=>`- [${brandOf(p).name}] ${p.name} · ${fmtDate(p.launchDate)} (${dday(p.launchDate)}) · 진행 ${progress(p).pct}%`).join('\n') || '- 없음');
   t += `\n\n바로가기: ${location.origin}${location.pathname}`;
@@ -735,8 +722,8 @@ function viewGuide(){
     <div class="notes">
       <div class="note"><b>1. 단계마다 책임자 1명</b><p>담당 칸에는 팀 이름이 아니라 <b>실제 책임자 이름 1명</b>을 적어요. 07~10단계처럼 여러 주체(1팀·채림·BM·외주)가 함께하면 누락되기 쉬워요.</p></div>
       <div class="note"><b>2. 마감일은 담당자가 직접</b><p>일을 받으면 담당자가 마감일을 입력해요. 마감이 지나면 빨간색으로 표시되고 '이번 주 확인'에 올라가요.</p></div>
-      <div class="note"><b>3. 확인이 필요하면 '검토 요청'</b><p>시안 컨펌이 필요할 때 상태를 '검토 요청'으로 바꾸면 BM 확인 목록에 바로 올라가요. 컨펌이 끝나면 '완료'로 바꿔요.</p></div>
-      <div class="note"><b>4. 주 1회 BM·본부장 점검</b><p>'이번 주 확인' 화면에서 마감 지남 · 검토 요청 · 이번 주 마감 · 30일 내 출시를 한 번에 보고, '📋 주간 보고 복사'로 단톡에 공유해요.</p></div>
+      <div class="note"><b>3. 끝나면 체크</b><p>단계가 끝나면 체크박스를 눌러요. 컨펌이 필요한 단계는 BM 확인까지 받은 뒤 체크해요. 할 일 칸에는 지금 해야 할 내용을 짧게 적어요.</p></div>
+      <div class="note"><b>4. 주 1회 BM·본부장 점검</b><p>'이번 주 확인' 화면에서 마감 지남 · 이번 주 마감 · 30일 내 출시를 한 번에 보고, '📋 주간 보고 복사'로 단톡에 공유해요.</p></div>
     </div>
     <h4 style="margin:22px 2px 10px;font-size:13px;color:var(--muted)">⑤ 구조 점검 · 정리가 필요한 부분</h4>
     <div class="notes">
@@ -754,103 +741,69 @@ function viewTrash(){
     <div class="wk-sec">${del.length ? del.map(p=>{const b=brandOf(p);return `<div class="wk-row"><span class="bdot" style="background:${b.ac}"></span><span class="mid"><b>${esc(p.name)}</b><span>${esc(b.name)} · ${esc(p.deletedBy||'')} 삭제 · ${fmtShort((p.deletedAt||'').slice(0,10))}</span></span><button class="btn sm" data-restore="${p.id}">↩ 되살리기</button></div>`;}).join('') : '<div class="wk-none">비어 있어요</div>'}</div>`;
 }
 
-// ═══ 상세 시트 ═══
-// force=false(실시간 갱신)일 때, 입력 칸이 열려 있으면 다시 그리지 않음 → 다른 사람이 저장해도 내가 쓰던 내용이 안 날아감
-function renderSheet(force = true){
-  const sh = $('sheet'), dim = $('dim');
-  const p = openId && items.find(x=>x.id===openId);
-  if (!p) { sh.classList.remove('on'); dim.classList.remove('on'); return; }
-  if (!force && sh.classList.contains('on') && sh.dataset.id===p.id && (openStep || editInfo)) return;
-  const b = brandOf(p), pr = progress(p), ns = nowStep(p);
-  const keepScroll = sh.querySelector('.sh-body') ? sh.querySelector('.sh-body').scrollTop : 0;
-
-  let nextTxt = '';
-  if (pr.pct===100) nextTxt = '🎉 모든 단계가 끝났어요. 디자인 완료!';
-  else if (ns) {
-    const o = stg(p,ns.s.id).owner, st = STEP_BY[ns.s.id];
-    nextTxt = (ns.kind==='now' ? '지금 진행 중 · ' : '다음 할 일 · ') + `<b>${st.no} ${esc(ns.s.name)}</b> — 담당 ${esc(o || st.phase.who+' (이름 미지정)')}`;
-  }
-  const ov = overdueList(p);
-  if (ov.length) nextTxt += `<br>⏰ 마감 지난 단계 ${ov.length}건: ${ov.map(s=>STEP_BY[s.id].no+' '+s.name).join(', ')}`;
-
-  const info = editInfo ? `
-    <div class="step" style="padding:14px"><div class="form">
-      <label>브랜드<div class="bsel" id="infoBrand">${BRAND_KEYS.map(k=>`<button type="button" data-b="${k}" style="${p.brand===k?`background:${BRANDS[k].chip};border-color:${BRANDS[k].ac};color:${BRANDS[k].ac}`:''}">${BRANDS[k].name}</button>`).join('')}</div></label>
-      <label>제품명 · 프로젝트명<input id="fName" value="${esc(p.name)}" maxlength="80"></label>
-      <div class="two"><label>출시 목표 예정일<input id="fLaunch" type="date" value="${esc(p.launchDate)}"></label><label>총괄 담당 (PM)<input id="fLead" value="${esc(p.lead)}" list="peopleList" placeholder="예: 민지"></label></div>
-      <label>공통 메모 · 전달사항<textarea id="fMemo" placeholder="제품 전체에 해당하는 내용">${esc(p.memo)}</textarea></label>
-      <div class="ed-act"><button class="btn danger sm" data-del="${p.id}" style="margin-right:auto">🗑️ 삭제</button><button class="btn sm" data-info-cancel="">취소</button><button class="btn blue sm" data-info-save="">저장</button></div>
-    </div></div>` : '';
-
-  const phases = PHASES.map(ph=>`
-    <div class="phase-h"><span style="color:${ph.color}">●</span>${ph.name}<span class="who" style="background:${ph.light};color:${ph.color}">${ph.who}</span></div>
-    ${ph.steps.map(sid=>stepCard(p,sid)).join('')}`).join('');
-
-  const hist = (p.history||[]).slice().sort((a,b)=>(b.at||'').localeCompare(a.at||'')).slice(0,20);
-
-  sh.dataset.id = p.id;
-  sh.innerHTML = `
-    <div class="sh-top" style="border-top:5px solid ${b.ac}">
-      <div class="sh-bar"><span class="bchip" style="font-size:12px;font-weight:800;padding:5px 10px;border-radius:8px;background:${b.chip};color:${b.ac}">${b.icon} ${esc(b.name)}</span>
-        <button class="btn sm" data-link="${p.id}">🔗 링크</button>
-        ${editInfo?'':`<button class="btn sm" data-info-edit="">✏️ 정보 수정</button>`}
-        <button class="x" data-close="" aria-label="닫기">×</button></div>
-      <h3>${esc(p.name)}</h3>
-      <div class="sh-meta">
-        <span class="m">🚀 출시 목표 ${p.launchDate ? fmtDate(p.launchDate,true)+' · '+dday(p.launchDate) : '미정'}</span>
-        <span class="m">👤 총괄 ${esc(p.lead||'미지정')}</span>
-        <span class="m">📊 ${pr.done}/${pr.total} 단계 · ${pr.pct}%</span>
+// ═══ 제품 페이지 (체크리스트) ═══
+function viewProduct(p){
+  const b = brandOf(p), pr = progress(p);
+  const hist = (p.history||[]).slice().sort((a,c)=>(c.at||'').localeCompare(a.at||'')).slice(0,30);
+  const ddColor = !p.launchDate ? 'var(--faint)' : diffDays(p.launchDate)<0 ? 'var(--red)' : b.ac;
+  return `
+    <button class="back" data-back="">← 전체 제품</button>
+    <div class="pcard" style="background:${b.bg};border-color:${b.bd}">
+      <div class="row1"><span class="bchip" style="background:${b.chip};color:${b.ac}">${esc(b.name)}</span><span class="sp"></span>
+        <button class="btn sm" data-link="${p.id}">🔗 링크</button><button class="btn sm" data-info-edit="">✏️ 수정</button></div>
+      <h1 class="pname">${esc(p.name)}</h1>
+      <div class="pmeta">
+        <label>🚀 출시일 <input type="date" data-pf="launchDate" value="${esc(p.launchDate)}"></label>
+        ${p.launchDate ? `<span class="dd" style="color:${ddColor}">${dday(p.launchDate)}</span>` : ''}
+        <label>👤 총괄 <input data-pf="lead" value="${esc(p.lead)}" placeholder="이름" list="peopleList"></label>
       </div>
-      <div class="bar" style="background:#F1F5F9"><i style="width:${pr.pct}%;background:${b.ac}"></i></div>
+      <div class="bar"><i style="width:${pr.pct}%;background:${b.ac}"></i></div>
+      <div class="pct"><span>완료 ${pr.done}/${pr.total} 단계</span><span>${pr.pct}%</span></div>
     </div>
-    <div class="sh-body">
-      ${info}
-      ${nextTxt ? `<div class="next">${nextTxt}</div>` : ''}
-      ${p.memo && !editInfo ? `<div class="hint" style="margin-bottom:10px;white-space:pre-wrap">📌 ${esc(p.memo)}</div>` : ''}
-      ${phases}
-      <div class="phase-h">🕘 변경 기록</div>
-      <div class="hist">${hist.length ? hist.map(h=>`<div><small>${fmtShort((h.at||'').slice(0,10))} ${esc(h.by)}</small>${esc(h.text)}</div>`).join('') : '<div>아직 기록이 없어요</div>'}</div>
-    </div>
+    <div class="ck-head"><b>체크리스트</b><small>끝난 단계는 체크 · 할 일·담당·마감일은 적으면 자동 저장돼요</small></div>
+    ${PHASES.map(ph=>`
+      <div class="phase-h"><span style="color:${ph.color}">●</span>${ph.name}<span class="who" style="background:${ph.light};color:${ph.color}">${ph.who}</span></div>
+      <div class="ck">${ph.steps.map(sid=>ckRow(p,sid)).join('')}</div>`).join('')}
+    <details class="hist-d"><summary>🕘 변경 기록 ${hist.length}건</summary>
+      <div class="hist">${hist.length ? hist.map(h=>`<div><small>${fmtShort((h.at||'').slice(0,10))} ${esc(h.by)}</small>${esc(h.text)}</div>`).join('') : '<div>아직 기록이 없어요</div>'}</div></details>
     <datalist id="peopleList">${people().map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`;
-  sh.classList.add('on'); dim.classList.add('on');
-  const body = sh.querySelector('.sh-body'); if (body) body.scrollTop = keepScroll;
 }
+function ckRow(p, sid){
+  const s = stg(p,sid), st = STEP_BY[sid], done = s.status==='done', over = isOver(s);
+  return `<div class="ck-row ${done?'done':''} ${over?'over':''}" id="step-${sid}">
+    <label class="ck-box" title="완료 체크"><input type="checkbox" data-ck="${sid}" ${done?'checked':''} aria-label="${esc(st.name)} 완료"><span></span></label>
+    <div class="ck-name"><b>${st.no} ${st.name}</b><small>${esc(st.phase.who)}</small></div>
+    <textarea rows="1" data-sid="${sid}" data-sf="note" placeholder="해야 할 내용">${esc(s.note)}</textarea>
+    <div class="ck-meta">
+      <input data-sid="${sid}" data-sf="owner" value="${esc(s.owner)}" placeholder="담당" list="peopleList" aria-label="담당">
+      <input type="date" data-sid="${sid}" data-sf="due" value="${esc(s.due)}" aria-label="마감기한" title="마감기한">
+    </div>
+  </div>`;
+}
+function grow(t){ t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }
 
-function stepCard(p, sid){
-  const s = stg(p,sid), st = STEP_BY[sid], open = openStep===sid, over = isOver(s);
-  const sub = [s.owner ? '👤 '+esc(s.owner) : '담당 미지정', s.due ? (over ? '⏰ ' : '📅 ') + fmtShort(s.due) + ' 마감' + (over ? ' ('+dday(s.due)+')' : '') : '마감일 없음'].join(' · ');
-  let html = `<div class="step ${s.status==='done'?'done':''} ${over?'over':''}" id="step-${sid}">
-    <button class="step-h" data-step-toggle="${sid}">
-      <span class="no">${s.status==='done'?'✓':st.no}</span>
-      <span class="mid"><b>${st.name}</b><span class="${over?'red':''}">${sub}</span></span>
-      <span class="badge b-${s.status}">${ST_LABEL[s.status]||'시작 전'}</span>
-    </button>`;
-  if (!open && s.note) html += `<div class="step-note">${esc(s.note)}</div>`;
-  if (open) html += `
-    <div class="editor" data-editor="${sid}">
-      <div class="hint">받는 것: ${st.in}<br>완료 기준: <b>${st.out}</b></div>
-      <label>진행 상태<div class="seg">${STATUS.map(x=>`<button type="button" data-st="${x.k}" class="${s.status===x.k?'on':''}" style="${s.status===x.k?SEG_ON[x.k]:''}">${x.label}</button>`).join('')}</div></label>
-      <div class="two">
-        <label>담당자 (이름 1명)<input data-f="owner" value="${esc(s.owner)}" list="peopleList" placeholder="${esc(st.phase.who)}"></label>
-        <label>마감기한<input data-f="due" type="date" value="${esc(s.due)}"></label>
-      </div>
-      <label>진행사항<textarea data-f="note" placeholder="예: 1차 시안 전달, 수정 2건 반영 중 / 외주 OO스튜디오 10/5 촬영">${esc(s.note)}</textarea></label>
-      <div class="ed-act"><button class="btn sm" data-step-toggle="${sid}">닫기</button><button class="btn blue sm" data-step-save="${sid}">저장</button></div>
-    </div>`;
-  return html + `</div>`;
+function openProduct(id, sid, focusLaunch){
+  if (view!=='product') prevView = view;
+  view = 'product'; openId = id;
+  try { history.pushState({ p:id }, '', '?p='+encodeURIComponent(id)); } catch(e){}
+  renderAll(); window.scrollTo({ top:0 });
+  setTimeout(()=>{
+    if (sid) { const el = document.getElementById('step-'+sid); if (el) { el.scrollIntoView({ block:'center' }); el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'), 1600); } }
+    if (focusLaunch) { const el = document.querySelector('[data-pf="launchDate"]'); if (el) el.focus(); }
+  }, 60);
 }
-
-function openProduct(id, sid, info){
-  openId = id; openStep = sid || null; editInfo = !!info;
-  renderSheet();
-  if (sid) setTimeout(()=>{ const el = document.getElementById('step-'+sid); if (el) el.scrollIntoView({block:'center'}); }, 250);
-  try { history.replaceState(null,'','?p='+encodeURIComponent(id)); } catch(e){}
+function goBack(){
+  if (history.state && history.state.p) { history.back(); return; }
+  view = prevView || 'home'; openId = null;
+  try { history.replaceState(null, '', location.pathname); } catch(e){}
+  renderAll(); window.scrollTo({ top:0 });
 }
-function closeSheet(){
-  openId = null; openStep = null; editInfo = false;
-  renderSheet();
-  try { history.replaceState(null,'',location.pathname); } catch(e){}
-}
+window.addEventListener('popstate', () => {
+  let pid = null; try { pid = new URLSearchParams(location.search).get('p'); } catch(e){}
+  if (pid) { if (view!=='product') prevView = view; view = 'product'; openId = pid; }
+  else { view = prevView || 'home'; openId = null; }
+  renderAll(); window.scrollTo({ top:0 });
+});
 
 // ═══ 모달 ═══
 function modal(html){ $('modalRoot').innerHTML = `<div class="modal" id="mdl"><div class="in">${html}</div></div>`; }
@@ -870,6 +823,16 @@ function saveName(){
   closeModal(); renderAll(); toast(v+'님, 반가워요!');
 }
 
+function openInfo(){
+  const p = items.find(x=>x.id===openId); if (!p) return;
+  if (!me) { askName(); return; }
+  modal(`<h3>✏️ 제품 수정</h3><p class="d">브랜드와 제품명을 바꿀 수 있어요.</p>
+    <div class="form">
+      <label>브랜드<div class="bsel" id="infoBrand">${brandBtns(p.brand)}</div></label>
+      <label>제품명 · 프로젝트명<input id="fName" value="${esc(p.name)}" maxlength="80"></label>
+    </div>
+    <div class="m-act"><button class="btn danger" data-del="${p.id}" style="margin-right:auto">🗑️ 삭제</button><button class="btn" data-mclose="">취소</button><button class="btn pri" data-info-save="">저장</button></div>`);
+}
 let addBrand = 'grohome';
 function openAdd(brand){
   if (!me) { askName(); return; }
@@ -899,49 +862,44 @@ async function saveAdd(){
   } catch(e){ console.error(`[${COL}] 등록 실패:`, e); toast('등록 실패: '+(e.code||e.message)); }
 }
 
-// ═══ 저장 동작 ═══
-async function saveStep(sid){
+// ═══ 저장 동작 (체크·입력하면 바로 저장) ═══
+async function saveStepField(sid, field, value){
   const p = items.find(x=>x.id===openId); if (!p) return;
-  const ed = document.querySelector(`[data-editor="${sid}"]`); if (!ed) return;
-  const prev = stg(p,sid);
-  const onBtn = ed.querySelector('.seg button.on');
-  const next = {
-    status: onBtn ? onBtn.dataset.st : prev.status,
-    owner: ed.querySelector('[data-f="owner"]').value.trim(),
-    due: ed.querySelector('[data-f="due"]').value,
-    note: ed.querySelector('[data-f="note"]').value.trim(),
-  };
-  const ch = [];
-  if (next.status!==prev.status) ch.push(ST_LABEL[next.status]);
-  if (next.owner!==(prev.owner||'')) ch.push('담당 '+(next.owner||'없음'));
-  if (next.due!==(prev.due||'')) ch.push('마감 '+(next.due?fmtShort(next.due):'없음'));
-  if (next.note!==(prev.note||'')) ch.push('진행사항 수정');
-  if (!ch.length) { openStep = null; renderSheet(); return; }
-  const st = STEP_BY[sid];
-  const ok = await writeDoc(p.id, { ['stages.'+sid]: { ...next, updatedAt:nowIso(), updatedBy:who() } }, `${st.no} ${st.name} → ${ch.join(', ')}`);
-  if (ok) { toast('저장했어요'); openStep = null; document.activeElement && document.activeElement.blur(); renderSheet(); }
+  const prev = stg(p,sid), st = STEP_BY[sid];
+  if ((prev[field]||'') === value) return;
+  const msg = field==='status' ? (value==='done' ? '완료 체크' : '체크 해제')
+            : field==='note' ? '할 일: ' + (value ? value.split('\n')[0].slice(0,40) : '지움')
+            : field==='owner' ? '담당 ' + (value || '없음')
+            : '마감 ' + (value ? fmtShort(value) : '없음');
+  const ok = await writeDoc(p.id, { ['stages.'+sid+'.'+field]: value, ['stages.'+sid+'.updatedAt']: nowIso(), ['stages.'+sid+'.updatedBy']: who() }, `${st.no} ${st.name} · ${msg}`);
+  if (ok) toast(field==='status' && value==='done' ? '✅ 완료 체크했어요' : '저장했어요');
+  else renderMain();
+}
+async function saveProductField(field, value){
+  const p = items.find(x=>x.id===openId); if (!p) return;
+  if ((p[field]||'') === value) return;
+  const msg = field==='launchDate' ? '출시일 ' + (value ? fmtDate(value) : '미정') : '총괄 ' + (value || '없음');
+  const ok = await writeDoc(p.id, { [field]: value }, msg);
+  if (ok) toast('저장했어요'); else renderMain();
 }
 async function saveInfo(){
   const p = items.find(x=>x.id===openId); if (!p) return;
   const name = ($('fName').value||'').trim();
   if (!name) { toast('제품명을 입력해주세요'); return; }
   const onB = document.querySelector('#infoBrand button[data-sel="1"]');
-  const patch = { brand: onB ? onB.dataset.b : p.brand, name, launchDate:$('fLaunch').value||'', lead:($('fLead').value||'').trim(), memo:($('fMemo').value||'').trim() };
+  const patch = { brand: onB ? onB.dataset.b : p.brand, name };
   const ch = [];
   if (patch.brand!==p.brand) ch.push('브랜드 '+brandOf(patch).name);
   if (patch.name!==p.name) ch.push('이름 '+patch.name);
-  if (patch.launchDate!==(p.launchDate||'')) ch.push('출시일 '+(patch.launchDate?fmtDate(patch.launchDate):'미정'));
-  if (patch.lead!==(p.lead||'')) ch.push('총괄 '+(patch.lead||'없음'));
-  if (patch.memo!==(p.memo||'')) ch.push('메모 수정');
-  if (!ch.length) { editInfo = false; renderSheet(); return; }
+  if (!ch.length) { closeModal(); return; }
   const ok = await writeDoc(p.id, patch, '정보 수정: '+ch.join(', '));
-  if (ok) { toast('저장했어요'); editInfo = false; document.activeElement && document.activeElement.blur(); renderSheet(); }
+  if (ok) { closeModal(); toast('저장했어요'); }
 }
 async function softDelete(id){
   const p = items.find(x=>x.id===id); if (!p) return;
   if (!confirm(`'${p.name}'을(를) 휴지통으로 옮길까요?\n휴지통에서 언제든 되살릴 수 있어요.`)) return;
   const ok = await writeDoc(id, { deletedAt:nowIso(), deletedBy:who() }, '휴지통으로 이동');
-  if (ok) { closeSheet(); toast('휴지통으로 옮겼어요'); }
+  if (ok) { closeModal(); openId = null; view = 'home'; try { history.replaceState(null,'',location.pathname); } catch(e){} renderAll(); toast('휴지통으로 옮겼어요'); }
 }
 async function restore(id){
   const ok = await writeDoc(id, { deletedAt:null, deletedBy:'' }, '휴지통에서 되살림');
@@ -958,10 +916,10 @@ async function copyText(text, okMsg){
 
 // ═══ 이벤트 (위임) ═══
 document.addEventListener('click', e => {
-  const t = e.target.closest('button, [data-open], [data-day], .dim');
+  const t = e.target.closest('button, [data-open], [data-day]');
   if (!t) return;
   const d = t.dataset;
-  if (t.id==='dim' || d.close!==undefined) return closeSheet();
+  if (d.back!==undefined) return goBack();
   if (t.id==='meBtn') return askName(true);
   if (t.id==='nmOk') return saveName();
   if (t.id==='addOk') return saveAdd();
@@ -979,21 +937,7 @@ document.addEventListener('click', e => {
     if (wrap.id==='addBrand') addBrand = d.b;
     return;
   }
-  if (d.st) { // 상태 버튼
-    t.parentElement.querySelectorAll('button').forEach(x=>{ x.classList.remove('on'); x.style.cssText=''; });
-    t.classList.add('on'); t.style.cssText = SEG_ON[d.st]; return;
-  }
-  if (d.stepToggle) {
-    if (!me) return askName();
-    openStep = openStep===d.stepToggle ? null : d.stepToggle; editInfo = false;
-    document.activeElement && document.activeElement.blur();
-    renderSheet();
-    if (openStep) setTimeout(()=>{ const el=document.getElementById('step-'+openStep); if(el) el.scrollIntoView({block:'nearest',behavior:'smooth'}); },30);
-    return;
-  }
-  if (d.stepSave) return saveStep(d.stepSave);
-  if (d.infoEdit!==undefined) { if (!me) return askName(); editInfo = true; openStep = null; renderSheet(); return; }
-  if (d.infoCancel!==undefined) { editInfo = false; renderSheet(); return; }
+  if (d.infoEdit!==undefined) return openInfo();
   if (d.infoSave!==undefined) return saveInfo();
   if (d.del) return softDelete(d.del);
   if (d.restore) return restore(d.restore);
@@ -1001,21 +945,31 @@ document.addEventListener('click', e => {
   if (d.copyWeek!==undefined) return copyText(weekText(), '주간 보고를 복사했어요. 단톡에 붙여넣기 하세요');
   if (d.open) return openProduct(d.open, d.step, d.editInfo);
 });
+// 체크·입력 저장: change = 체크박스·날짜는 즉시, 글자는 칸을 벗어날 때
+document.addEventListener('change', e => {
+  const t = e.target, d = t.dataset;
+  if (d.ck) return saveStepField(d.ck, 'status', t.checked ? 'done' : 'todo');
+  if (d.sf) return saveStepField(d.sid, d.sf, t.value.trim());
+  if (d.pf) return saveProductField(d.pf, t.value.trim());
+});
+document.addEventListener('input', e => { if (e.target.tagName==='TEXTAREA' && e.target.dataset.sf) grow(e.target); });
+document.addEventListener('focusin', e => { if (!me && $('main').contains(e.target) && /INPUT|TEXTAREA/.test(e.target.tagName)) { e.target.blur(); askName(); } });
+document.addEventListener('focusout', () => { setTimeout(()=>{ if (pendingRender && !typing()) renderMain(); }, 400); });
 document.addEventListener('keydown', e => {
-  if (e.key==='Escape') { if ($('modalRoot').innerHTML) { if (me) closeModal(); } else if (openId) closeSheet(); }
+  if (e.key==='Escape') { if ($('modalRoot').innerHTML) { if (me) closeModal(); } else if (view==='product' && !typing()) goBack(); }
   if (e.key==='Enter' && e.target.id==='nmIn') saveName();
   if (e.key==='Enter' && e.target.classList && e.target.classList.contains('card')) openProduct(e.target.dataset.open);
 });
 $('q').addEventListener('input', e => {
   query = e.target.value.trim(); $('qx').classList.toggle('hidden', !query);
-  if (view!=='home') { view='home'; renderNav(); }
+  if (view!=='home') { view='home'; openId=null; try { history.replaceState(null,'',location.pathname); } catch(e){} renderNav(); }
   renderMain();
 });
 
 // 시작
+try { const pid = new URLSearchParams(location.search).get('p'); if (pid) { view = 'product'; openId = pid; history.replaceState({ p:pid }, '', location.search); } } catch(e){}
 renderAll();
 if (!me) askName();
-try { const pid = new URLSearchParams(location.search).get('p'); if (pid) openId = pid; } catch(e){}
 </script>
 </body>
 </html>

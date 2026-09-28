@@ -977,6 +977,10 @@ body.fab-hide :is(#daiFab,#calcFab){display:none!important}
   .gb-tbl td[data-l="세트"]{flex-direction:row;flex-wrap:wrap;align-items:center}.gb-tbl td[data-l="세트"]::before{width:100%}}
 @media(max-width:640px){.gb-sum{grid-template-columns:1fr 1fr}.gb-2{grid-template-columns:1fr}.gb-line{grid-template-columns:1fr 1fr 40px}.gb-line select{grid-column:1 / -1}}
 
+/* 폰·태블릿: 카드(.panel) 안 표가 카드보다 넓으면 오른쪽 칸(월 수량·채널 규칙·휴대폰 번호 등)이 잘려 입력할 수 없었다 → 표만 가로로 밀어 보기 */
+@media(max-width:900px){ .panel>.bd>table.grid:not(#priceGrid){display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch} }
+/* 태블릿(641~900): 칸 폭을 고정해 둔 입력 줄(채널 추가 등 8칸)이 좁은 카드에 끼워져 입력칸이 20px 까지 줄었다 → 자동 줄바꿈 (폰은 아래 1열 규칙) */
+@media(min-width:641px) and (max-width:900px){ .formgrid[style*="grid-template-columns"]{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important} }
 /* ══ 📱 폰 앱 화면 (2026-09 대표 확인): 아래 탭 바 · 한 줄 머리 · 계정 시트 · 필터 한 버튼 · 행 정보 아래 시트 ══ */
 #appTabs,#rbKpi,#rbAcct,#pzFilt,#acctSheet{display:none}
 @media(max-width:640px){
@@ -990,7 +994,7 @@ body.fab-hide :is(#daiFab,#calcFab){display:none!important}
   body.has-tabs #daiFab{display:none!important}
   body.has-tabs #calcFab{bottom:calc(70px + env(safe-area-inset-bottom))!important}
   body.has-tabs #sheetwrap .sheet{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
-  body.has-tabs.dai-open #appTabs,body.has-tabs.kb-open #appTabs{display:none}
+  body.has-tabs.dai-open #appTabs,body.has-tabs.kb-open #appTabs,body.has-tabs.sheet-open #appTabs{display:none}
   /* 한 줄 머리: 부제목·지표·계정 버튼은 접고 📊·👤 두 버튼만 */
   #ribbon{padding:8px 12px!important}
   #ribbon .brand span{display:none!important}
@@ -1054,7 +1058,9 @@ body.team-mode #ribbon .kpis{display:none!important}
 .tp-tbl{width:100%;border-collapse:collapse}
 .tp-tbl th.tp-nm,.tp-tbl td.tp-nm{position:sticky;left:0;background:#fff;z-index:1;min-width:210px;max-width:320px;text-align:left}
 .tp-tbl .tp-sub{font-size:11.5px;margin-top:2px}
-.tp-tbl .st{font-size:10.5px;font-weight:800;border-radius:6px;padding:1px 6px}
+.tp-tbl .st{font-size:10.5px;font-weight:800;border-radius:6px;padding:1px 6px;display:inline-block;white-space:nowrap}
+.tp-tbl td.tp-nm{white-space:normal;overflow-wrap:anywhere;padding-top:6px;padding-bottom:6px;height:auto}   /* 이름이 길면 줄바꿈 — 예전엔 '단종예정' 표시가 옆 가격 칸 숫자를 덮었다 */
+.tp-tbl td.tp-nm>span.dim{white-space:nowrap}   /* 규격(20kg/통)은 한 덩어리로 */
 .tp-tbl td.num{white-space:nowrap}
 .tp-tbl .mono{font-family:var(--mono)}
 .dai-adm{font-size:10.5px;font-weight:800;background:#DC2626;color:#fff;border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}
@@ -1677,7 +1683,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28k</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28l</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -3547,6 +3553,17 @@ async function refreshVerifyState(){                // 이메일 인증 링크 �
   recomputeSecAllowed(); recomputeDataAllowed(); recomputeCostAllowed();
 }
 function accMsg(t,ok){ const el=$('#accMsg'); if(el){ el.style.color=ok?'var(--xl-green-dark)':'var(--red)'; el.textContent=t; } }
+function renderTeamAccess(){
+  const box=$('#accessBody'); if(!box) return;
+  const email=(curUser&&curUser.email)||'—', verified=!!(curUser&&curUser.emailVerified);
+  box.innerHTML=`<div class="panel"><h3>현재 로그인 계정</h3><div class="bd">
+      <div style="font-size:15px;font-weight:800;word-break:break-all">${esc(email)}</div>
+      <div style="margin-top:6px">${verified?'<span class="pill g">✔ 이메일 인증됨</span>':'<span class="pill a">이메일 미인증</span>'} <span class="pill">팀원</span></div>
+      <p class="footnote" style="margin-top:10px">팀원 계정은 판매가·매출·마케팅을 봅니다. 원가·이익·제조사 정보는 보이지 않아요. 권한 변경은 마스터에게 요청하세요.</p>
+      <button class="tbtn" id="taSignOut" style="margin-top:8px;color:var(--red)">로그아웃</button>
+    </div></div>`;
+  $('#taSignOut').onclick=async()=>{ try{ daiForget(); }catch(e){} try{ await auth.signOut(); }catch(e){ console.error('[로그아웃] 실패',e); } location.reload(); };
+}
 function renderAccess(){
   const box=$('#accessBody'); if(!box)return;
   const email=(curUser&&curUser.email)||'—';
@@ -5909,6 +5926,7 @@ function gotoTab(sh){
   renderTabs(); if(window.__appTabsPaint) window.__appTabsPaint();
   // 숨김 상태로 렌더된 경우를 대비해 보이는 시점에 고정 열 좌표를 다시 잡는다
   if(sh==='sh-price') requestAnimationFrame(()=>{ if(typeof layoutFrozen==='function') layoutFrozen(); });
+  if(sh==='sh-access' && TEAM_MODE) renderTeamAccess();   // 팀 화면은 보안구역 설정 대신 내 계정 카드만 (예전엔 빈 화면)
   if(sh==='sh-data' && typeof openDataTab==='function') openDataTab();
   if(sh==='sh-sales' && typeof openSalesTab==='function') openSalesTab();
   if(sh==='sh-launch' && typeof renderLaunch==='function') renderLaunch();
@@ -11846,7 +11864,10 @@ function refreshAll(){
     const fab=form||!!q(OV);
     const calc=!!q('#calcPanel.open,#promoCalc.open,#costCalc.open')||(mq640.matches&&!!q('#calcMenu.open'));
     if(b.classList.contains('fab-hide')!==fab) b.classList.toggle('fab-hide',fab);
-    if(b.classList.contains('calcfab-hide')!==calc) b.classList.toggle('calcfab-hide',calc); };
+    if(b.classList.contains('calcfab-hide')!==calc) b.classList.toggle('calcfab-hide',calc);
+    // 아래에서 올라오는 창(계산기·제품 상세·견적·각종 창)이 열려 있으면 폰 하단 탭을 숨긴다 — 탭이 창의 마지막 칸·저장 버튼을 가리던 문제
+    const sheet=!!q('#calcMenu.open,#calcPanel.open,#promoCalc.open,#costCalc.open,#pdPanel.open,#dealPanel.open')||!!q(OV);
+    if(b.classList.contains('sheet-open')!==sheet) b.classList.toggle('sheet-open',sheet); };
   let pend=false; const sched=()=>{ if(pend) return; pend=true; requestAnimationFrame(()=>{ pend=false; run(); }); };
   try{ new MutationObserver(sched).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','style']}); }catch(e){ console.warn('[fabSync] 감시 실패',e); }
   [mq640,mq700].forEach(m=>m.addEventListener&&m.addEventListener('change',sched));

@@ -1063,7 +1063,7 @@ function ckRow(p, sid){
     <div class="ck-name"><b>${st.name}</b>
       <div class="ck-sub">${done && (s.doneBy||s.doneAt) ? `<span class="cf-who">${esc(s.doneBy||'')}${s.doneAt?' · '+fmtShort(s.doneAt.slice(0,10)):''}</span>` : ''}
         <button type="button" class="skip-btn" data-skip="${sid}" data-v="${skip?'0':'1'}">${skip?'↩ 되살리기':'해당 없음'}</button></div></div>
-    <textarea rows="1" data-sid="${sid}" data-sf="note" placeholder="해야 할 내용" ${dis}>${esc(s.note)}</textarea>
+    <textarea rows="1" data-sid="${sid}" data-sf="note" placeholder="진행사항 기재" ${dis}>${esc(s.note)}</textarea>
     <div class="ck-meta">
       <input data-sid="${sid}" data-sf="owner" value="${esc(s.owner)}" placeholder="담당" data-pick="1" autocomplete="off" aria-label="담당" ${dis}>
       ${dueCell(`data-sid="${sid}" data-sf="due"`, s.due, s.dueTbd, `data-tbd="${sid}"`, dis)}
@@ -1073,7 +1073,7 @@ function ckRow(p, sid){
   <div class="ck-row sub ${tover?'over':''}">
     <span class="ck-box"></span>
     <div class="ck-name"><button type="button" class="task-del" data-tdel="${k}" title="이 줄 삭제" aria-label="이 줄 삭제" ${dis}>×</button></div>
-    <textarea rows="1" id="task-${t.id}" data-task="${k}" data-tf="note" placeholder="해야 할 내용" ${dis}>${esc(t.note)}</textarea>
+    <textarea rows="1" id="task-${t.id}" data-task="${k}" data-tf="note" placeholder="진행사항 기재" ${dis}>${esc(t.note)}</textarea>
     <div class="ck-meta">
       <input data-task="${k}" data-tf="owner" value="${esc(t.owner)}" placeholder="담당" data-pick="1" autocomplete="off" aria-label="담당" ${dis}>
       ${dueCell(`data-task="${k}" data-tf="due"`, t.due, t.dueTbd, `data-ttbd="${k}"`, dis)}
@@ -1183,7 +1183,7 @@ async function saveStepField(sid, field, value){
   const prev = stg(p,sid), st = STEP_BY[sid];
   if ((prev[field]||'') === value) return;
   const msg = field==='status' ? (value==='done' ? '컨펌 완료' : value==='skip' ? '해당 없음' : prev.status==='skip' ? '해당 없음 해제' : '컨펌 취소')
-            : field==='note' ? '할 일: ' + (value ? value.split('\n')[0].slice(0,40) : '지움')
+            : field==='note' ? '진행사항: ' + (value ? value.split('\n')[0].slice(0,40) : '지움')
             : field==='owner' ? '담당 ' + (value || '없음')
             : '마감 ' + (value ? fmtShort(value) : '없음');
   const patch = { ['stages.'+sid+'.'+field]: value, ['stages.'+sid+'.updatedAt']: nowIso(), ['stages.'+sid+'.updatedBy']: who() };
@@ -1215,7 +1215,7 @@ async function editTask(key, field, value){
   const [sid, id] = key.split(':'); const tasks = curTasks(sid); const t = tasks.find(x=>x.id===id); if (!t) return;
   if ((t[field] ?? '') === value) return;
   t[field] = value; if (field==='due' && value) t.dueTbd = false; if (field==='dueTbd' && value) t.due = '';
-  const msg = field==='note' ? '할 일: ' + (value ? String(value).split('\n')[0].slice(0,40) : '지움') : field==='owner' ? '담당 ' + (value || '없음') : field==='due' ? '마감 ' + (value ? fmtShort(value) : '없음') : '마감 ' + (value ? '미정' : '날짜 정하기');
+  const msg = field==='note' ? '진행사항: ' + (value ? String(value).split('\n')[0].slice(0,40) : '지움') : field==='owner' ? '담당 ' + (value || '없음') : field==='due' ? '마감 ' + (value ? fmtShort(value) : '없음') : '마감 ' + (value ? '미정' : '날짜 정하기');
   if (await saveTasks(sid, tasks, msg)) toast('저장했어요'); else renderMain();
   if (field==='dueTbd' && !value) setTimeout(()=>{ const el = document.querySelector(`[data-task="${key}"][data-tf="due"]`); if (el) { el.focus(); try { el.showPicker(); } catch(e){} } }, 150);
 }

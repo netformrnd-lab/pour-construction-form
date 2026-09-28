@@ -981,6 +981,24 @@ body.fab-hide :is(#daiFab,#calcFab){display:none!important}
 @media(max-width:900px){ .panel>.bd>table.grid:not(#priceGrid){display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch} }
 /* 태블릿(641~900): 칸 폭을 고정해 둔 입력 줄(채널 추가 등 8칸)이 좁은 카드에 끼워져 입력칸이 20px 까지 줄었다 → 자동 줄바꿈 (폰은 아래 1열 규칙) */
 @media(min-width:641px) and (max-width:900px){ .formgrid[style*="grid-template-columns"]{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important} }
+/* 유통기한·소진: 기간 카드 · 합계 · 안내 · 필터줄 (그로홈 유통기한 화면 방식) */
+.ex-bks{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
+.ex-bk{display:flex;flex-direction:column;align-items:center;gap:2px;border:1.5px solid;border-radius:12px;padding:12px 8px;cursor:pointer;font:inherit;text-align:center}
+.ex-bk b{font-size:20px;font-variant-numeric:tabular-nums}
+.ex-bk span{font-size:11px;color:#64748b;line-height:1.45}
+.ex-bk em{font-style:normal;font-size:10.5px;font-weight:700;color:#dc2626}
+.ex-note{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:12.5px;color:#92400e;line-height:1.6}
+.ex-info{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:12.5px;color:#475569;line-height:1.7}
+#exBody .neg{color:var(--red)} #exBody .pos{color:var(--xl-green-dark)}
+.ex-diag{margin-top:8px;padding-top:8px;border-top:1px dashed #cbd5e1;font-size:11.5px}
+.ex-fbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.ex-chips{flex-wrap:wrap}
+.ex-fr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-fr input{min-width:180px;padding:7px 11px;border:1px solid var(--xl-grid);border-radius:8px;font:inherit}
+.ex-fr select{padding:7px 10px;border:1px solid var(--xl-grid);border-radius:8px;font:inherit;background:#fff}
+@media(max-width:1100px){ .ex-bks{grid-template-columns:repeat(3,1fr)} }
+@media(max-width:640px){ .ex-bks{grid-template-columns:repeat(2,1fr);gap:8px} .ex-chips{flex-wrap:nowrap;overflow-x:auto;max-width:100%} .ex-chips button{flex:0 0 auto}
+  .ex-fr{width:100%} .ex-fr input{flex:1;min-width:0} .ex-fbar{flex-direction:column;align-items:stretch} }
 /* ══ 📱 폰 앱 화면 (2026-09 대표 확인): 아래 탭 바 · 한 줄 머리 · 계정 시트 · 필터 한 버튼 · 행 정보 아래 시트 ══ */
 #appTabs,#rbKpi,#rbAcct,#pzFilt,#acctSheet{display:none}
 @media(max-width:640px){
@@ -1683,7 +1701,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28n</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28o</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -11024,7 +11042,7 @@ const CENTRAL_FB_CONFIG={ apiKey:"AIzaSyAA5CEMdm0RUFocGlcAv_JF5ckf9k9XZr4", auth
   storageBucket:"commerce-division.firebasestorage.app", messagingSenderId:"990937465227", appId:"1:990937465227:web:4013cb98e5e5869bb06f8e" };
 let _cenDb=null;
 function centralDB(){ if(_cenDb) return _cenDb; const app=(firebase.apps||[]).find(a=>a.name==='central')||firebase.initializeApp(CENTRAL_FB_CONFIG,'central'); _cenDb=app.firestore(); return _cenDb; }
-const EX={lots:null, gh:null, at:{}, loading:null, err:'', brand:'', risk:false, buffer:30, win:90};
+const EX={lots:null, gh:null, at:{}, loading:null, err:'', brand:'', risk:false, buffer:30, win:90, bk:'all', q:'', sort:'risk', diag:false};
 try{ const v=JSON.parse(localStorage.getItem('pour-expiry-opts')||'{}'); if(v.buffer>=0) EX.buffer=+v.buffer; if(v.win>0) EX.win=+v.win; }catch(e){}
 const exCodeKey=s=>{ const t=String(s??'').trim().toUpperCase(), d=t.replace(/\D/g,''); return d.length>=4?d:t; };
 const exNorm=s=>String(s??'').replace(/\s+/g,'').replace(/[-－_()[\]]/g,'').toLowerCase();
@@ -11094,6 +11112,9 @@ function exRows(){
   if(!EX.lots) return [];
   const today=new Date(); today.setHours(0,0,0,0); const tIso=slDay(today); const from=new Date(today); from.setDate(from.getDate()-EX.win+1); const fIso=slDay(from);
   const idx=exIndex();
+  /* 기간 구간(그로홈 유통기한 화면과 같은 기준): 만료 · 1개월 · 3개월 · 6개월 · 12개월 · 그 이상 */
+  const cut=m=>{ const d=new Date(today); d.setMonth(d.getMonth()+m); return slDay(d); }, CUTS=[cut(1),cut(3),cut(6),cut(12)];
+  const bkOf=e=>!e?'none':e<tIso?'expired':e<=CUTS[0]?'b1':e<=CUTS[1]?'b3':e<=CUTS[2]?'b6':e<=CUTS[3]?'b12':'b12p';
   /* 판매량: 그로홈은 제품 id(옛 제품 포함)로, POUR는 가격대시보드 제품(pKey)으로 */
   const byGh={}, byKey={};
   (SL.rows||[]).forEach(r=>{ if(!r.date||r.date<fIso||r.date>tIso) return;
@@ -11117,7 +11138,9 @@ function exRows(){
       else if(rem<0){ v='expired'; waste=l.qty; }
       else if(sold==null) v=late?'late':'nolink';
       else { ratio=avg>0?need/avg:Infinity; waste=Math.min(l.qty,Math.max(0,Math.ceil(cum-avg*avail))); v=ratio<=1?'ok':late?'late':ratio<=2?'warn':'bad'; }
-      out.push({l, m, p, cost, sold, avg, cum, rem, avail, need, ratio, waste, v, loss:waste!=null&&cost?waste*cost:null});
+      const sellThru=avg>0?cum/avg:null;   // 이 로트까지 다 파는 데 걸리는 일수(선입선출)
+      const rate=rem!=null&&rem<0?0:(avg>0&&avail!=null?Math.min(100,avg*Math.max(0,avail)/cum*100):null);   // 판매마감 전까지 팔리는 비율
+      out.push({l, m, p, cost, sold, avg, cum, rem, avail, need, ratio, waste, v, loss:waste!=null&&cost?waste*cost:null, sellThru, rate, bk:bkOf(l.expiry)});
     });
   });
   return out;
@@ -11129,12 +11152,46 @@ async function renderExpiry(){
   if(!costAllowed){ body.innerHTML='<div class="panel"><div class="bd">원가 열람 권한이 있는 계정에서만 볼 수 있습니다.</div></div>'; return; }
   if(!EX.lots && !EX.err){ body.innerHTML='<div class="panel"><div class="bd">재고·매출을 불러오는 중…</div></div>'; await exLoad(); }
   if(EX.err){ body.innerHTML=`<div class="panel"><div class="bd" style="color:var(--red)">불러오지 못했습니다: ${esc(EX.err)} <button class="tbtn" id="exRetry">다시 시도</button></div></div>`; return; }
-  const all=exRows(), rows=all.filter(r=>(!EX.brand||r.l.brand===EX.brand) && (!EX.risk||['bad','late','expired','warn'].includes(r.v)));
+  const all=exRows(), base=all.filter(r=>(!EX.brand||r.l.brand===EX.brand) && (!EX.risk||['bad','late','expired','warn'].includes(r.v)));
+  const qn=exNorm(EX.q), rows=base.filter(r=>(EX.bk==='all'||r.bk===EX.bk) && (!qn||exNorm(r.l.name+' '+r.l.code+' '+(r.p?prodLabel(r.p):'')).includes(qn)));
   const risk=all.filter(r=>['bad','late'].includes(r.v)), wasteQty=all.reduce((a,r)=>a+(r.v!=='expired'?(r.waste||0):0),0), loss=all.reduce((a,r)=>a+(r.v!=='expired'&&r.loss?r.loss:0),0);
   const soon=all.filter(r=>r.rem!=null&&r.rem>=0&&r.rem<=30).length, expired=all.filter(r=>r.v==='expired');
   const card=(lb,v,cls,sub)=>`<div class="card"><h4>${lb}</h4><div class="big ${cls||''}">${v}</div>${sub?`<div class="footnote" style="margin:4px 0 0">${sub}</div>`:''}</div>`;
-  rows.sort((a,b)=>{ const o={expired:0,late:1,bad:2,warn:3,nolink:4,nodate:5,ok:6}; return (o[a.v]-o[b.v])||String(a.l.expiry||'9').localeCompare(String(b.l.expiry||'9')); });
+  const ex=r=>String(r.l.expiry||'9999'), nz=v=>v==null?-1:v;
+  const SORTS={ risk:(a,b)=>{ const o={expired:0,late:1,bad:2,warn:3,nolink:4,nodate:5,ok:6}; return (o[a.v]-o[b.v])||ex(a).localeCompare(ex(b)); },
+    expiryAsc:(a,b)=>ex(a).localeCompare(ex(b)), expiryDesc:(a,b)=>ex(b).localeCompare(ex(a)),
+    wasteDesc:(a,b)=>nz(b.waste)-nz(a.waste)||ex(a).localeCompare(ex(b)), needDesc:(a,b)=>nz(b.need)-nz(a.need),
+    qtyDesc:(a,b)=>b.l.qty-a.l.qty, nameAsc:(a,b)=>String(a.l.name).localeCompare(String(b.l.name),'ko') };
+  rows.sort(SORTS[EX.sort]||SORTS.risk);
   const f1=v=>v==null?'—':(Math.round(v*10)/10).toLocaleString('ko-KR');
+  /* 기간 카드 · 합계 · 안내 (그로홈 유통기한 화면에서 가져온 부분) */
+  const BK=[['expired','만료됨','#fef2f2','#f87171','#b91c1c'],['b1','1개월 이내','#fef2f2','#fca5a5','#dc2626'],['b3','1~3개월','#fff7ed','#fdba74','#ea580c'],
+    ['b6','3~6개월','#fffbeb','#fcd34d','#d97706'],['b12','6~12개월','#f0fdf4','#86efac','#16a34a'],['b12p','12개월 이상','#f8fafc','#cbd5e1','#475569']];
+  const sum={}; base.forEach(r=>{ const t=sum[r.bk]=sum[r.bk]||{lots:0,qty:0,waste:0}; t.lots++; t.qty+=r.l.qty; if(r.v!=='expired') t.waste+=r.waste||0; });
+  const bkCards=BK.map(([k,lb,bg,bd,tx])=>{ const t=sum[k]||{lots:0,qty:0,waste:0}, on=EX.bk===k;
+    return `<button type="button" class="ex-bk${on?' on':''}" data-exbk="${k}" style="background:${bg};border-color:${on?tx:bd};${on?`box-shadow:0 0 0 2px ${bd}`:''}">
+      <b style="color:${tx}">${won(t.qty)}</b><span>${lb}<br>로트 ${t.lots}건</span>${t.waste>0?`<em>폐기 예상 ${won(t.waste)}개</em>`:''}</button>`; }).join('');
+  const groupsN=new Set(base.map(r=>r.l.brand+'|'+(r.m.g?'g'+r.m.g.id:r.m.key||exCodeKey(r.l.code)||exNorm(r.l.name)))).size;
+  const totQty=base.reduce((a,r)=>a+r.l.qty,0), none=sum.none||{lots:0,qty:0}, unknown=base.filter(r=>r.v==='nolink').length;
+  const nolinkN=base.filter(r=>!r.m.g&&!r.m.key).length;
+  const today0=new Date(); today0.setHours(0,0,0,0); const tIso=slDay(today0), fD=new Date(today0); fD.setDate(fD.getDate()-EX.win+1); const fIso=slDay(fD);
+  const sr=(SL.rows||[]).filter(r=>r.date), inWin=sr.filter(r=>r.date>=fIso&&r.date<=tIso).length;
+  const dates=sr.map(r=>r.date).sort(), minD=dates[0]||'', maxD=dates[dates.length-1]||'';
+  const byCode=base.filter(r=>r.m.g||r.m.key).length;
+  const notes=(nolinkN?`<div class="ex-note">⚠️ <b>재고 ${nolinkN}건이 제품과 연결되지 않았습니다.</b> 이 줄은 판매 속도·폐기 예상이 빈칸으로 나옵니다.
+      그로홈 재고는 그로홈 대시보드 <b>제품 마스터 → 💰 가격 → 📦 물류센터 재고코드</b>에, POUR 재고는 가격정책표 제품의 <b>3PL 코드</b>에 표의 상품코드를 넣으면 연결됩니다.
+      앞에 글자가 붙어 있어도(예: BZLG03031 ↔ 03031) 숫자가 같으면 이어집니다.</div>`:'')
+    +(EX.lots.length&&!inWin?`<div class="ex-note">⚠️ <b>최근 ${EX.win}일 안에 매출 기록이 없습니다.</b> 판매 속도가 계산되지 않습니다.${sr.length?` 매출 기록 ${won(sr.length)}건이 이 기간(${fIso} ~ ${tIso}) 밖에 있습니다 · 기록 범위 ${minD} ~ ${maxD}.`:' 매출 기록 자체가 아직 없습니다.'} 위 <b>판매속도 기준</b>에서 기간을 넓혀 보세요.</div>`:'');
+  const totals=`<div class="ex-info">전체 <b>${won(groupsN)}개 품목 · ${won(base.length)}개 로트 · ${won(totQty)}개</b>${none.lots?` · 유통기한 미등록 <b class="neg">${none.lots}건(${won(none.qty)}개)</b>`:''}
+      · 지금 판매 속도로는 <b class="${wasteQty?'neg':'pos'}">${won(wasteQty)}개</b>가 판매마감 전에 소진되지 않습니다.${unknown?` · 판매량을 알 수 없어 판정 못 한 로트 <b>${unknown}건</b>`:''}
+      <button type="button" class="tbtn" id="exDiag" style="min-height:0;padding:3px 9px;font-size:11px;margin-left:6px">${EX.diag?'연결 상태 접기':'연결 상태 보기'}</button>
+      ${EX.diag?`<div class="ex-diag"><b>재고 → 제품 연결</b> · 연결 ${won(byCode)}건 · <b class="${nolinkN?'neg':'pos'}">미연결 ${won(nolinkN)}건</b><br>
+        <b>매출 기록</b> 총 ${won(sr.length)}건 · 최근 ${EX.win}일 안 ${won(inWin)}건 · 기간 밖 ${won(sr.length-inWin)}건${minD?` · 기록 범위 ${minD} ~ ${maxD}`:''}<br>
+        <b>그로홈 제품 마스터</b> ${won((EX.gh||[]).length)}건 · 가격대시보드 제품 ${won(P.filter(p=>!isDeletedProd(p)).length)}건</div>`:''}</div>`;
+  const chip=(k,lb)=>`<button type="button" data-exbk="${k}" class="${EX.bk===k?'on':''}">${lb}</button>`;
+  const fbar=`<div class="ex-fbar"><div class="seg ex-chips">${chip('all','전체')}${BK.map(([k,lb])=>chip(k,lb)).join('')}${none.lots?chip('none','미등록'):''}</div>
+      <div class="ex-fr"><input type="search" id="exQ" placeholder="🔍 상품명 · 코드 찾기" value="${esc(EX.q)}">
+      <select id="exSort">${[['risk','위험한 것 먼저'],['expiryAsc','유통기한 빠른순'],['expiryDesc','유통기한 늦은순'],['wasteDesc','폐기 예상 많은순'],['needDesc','필요 판매속도 높은순'],['qtyDesc','재고 많은순'],['nameAsc','상품명순']].map(([v,lb])=>`<option value="${v}"${EX.sort===v?' selected':''}>${lb}</option>`).join('')}</select></div></div>`;
   body.innerHTML=`
     <div class="cards">
       ${card('🔴 프로모션 필요 로트', risk.length+'개', risk.length?'neg':'', `지금 속도의 2배 넘게 팔아야 하거나 기한 ${EX.buffer}일 안쪽으로 들어온 로트`)}
@@ -11142,22 +11199,30 @@ async function renderExpiry(){
       ${card('예상 폐기 손실 (원가)', wonU(loss), loss?'neg':'', '가격대시보드에 원가가 있는 제품만')}
       ${card('30일 안에 기한 도래', soon+'개', soon?'neg':'', expired.length?`이미 지난 로트 ${expired.length}개 · ${won(expired.reduce((a,r)=>a+r.l.qty,0))}개`:'')}
     </div>
+    ${notes}
+    <div class="ex-bks">${bkCards}</div>
+    ${totals}
+    ${fbar}
     <div class="panel"><h3>로트별 소진 판단 <span class="tag">최근 ${EX.win}일 판매 속도 · 선입선출</span></h3>
-      <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" style="width:100%;min-width:1080px">
+      <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" style="width:100%;min-width:1280px">
         <thead><tr><th>브랜드</th><th style="min-width:200px">상품 (재고 이름)</th><th>3PL 코드</th><th>유통기한</th><th class="num">남은 일수</th><th class="num">수량</th><th class="num">누적</th>
-          <th class="num">하루 판매 (최근)</th><th class="num">필요 하루 판매</th><th class="num">배수</th><th>판단</th><th class="num">예상 폐기</th><th class="num">폐기 손실</th><th></th></tr></thead>
+          <th class="num">하루 판매 (최근)</th><th class="num">필요 하루 판매</th><th class="num">배수</th><th class="num">소진 예상</th><th class="num">기한 내 소진율</th><th>판단</th><th class="num">예상 폐기</th><th class="num">폐기 손실</th><th></th></tr></thead>
         <tbody>${rows.map((r,i)=>{ const V=EX_V[r.v]||EX_V.nolink;
           return `<tr><td>${esc(r.l.brand==='POUR스토어'?'POUR':'GRO')}</td>
             <td>${esc(r.l.name)}${r.p?`<div class="footnote" style="margin:0">→ ${esc(prodLabel(r.p))}${pcodeOf(r.p)?' · '+esc(pcodeOf(r.p)):''}</div>`:(r.m.g?`<div class="footnote" style="margin:0">→ 그로홈 ${esc(r.m.g.name)} (가격대시보드 미연결)</div>`:'')}</td>
             <td style="font-family:var(--mono)">${esc(r.l.code)}</td><td>${esc(r.l.expiry||r.l.rawExpiry||'—')}</td>
-            <td class="num">${r.rem==null?'—':r.rem<0?`<b class="neg">${-r.rem}일 지남</b>`:won(r.rem)+'일'}</td>
-            <td class="num">${won(r.l.qty)}</td><td class="num">${won(r.cum)}</td><td class="num">${f1(r.avg)}</td><td class="num">${f1(r.need)}</td>
+            <td class="num">${r.rem==null?'—':r.rem<0?`<b class="neg">${-r.rem}일 지남</b>`:r.rem<=30?`<b class="neg">D-${r.rem}</b>`:`D-${r.rem}`}</td>
+            <td class="num"><b>${won(r.l.qty)}</b></td><td class="num">${won(r.cum)}</td><td class="num">${r.avg==null?'—':f1(r.avg)+'개/일'}</td>
+            <td class="num">${r.need==null?'—':`<b style="color:${r.avg==null?'inherit':r.need>r.avg?'var(--red)':'var(--xl-green-dark)'}">${f1(r.need)}개/일</b><div class="footnote" style="margin:0">${won(Math.ceil(r.need*30.4))}개/월</div>`}</td>
             <td class="num">${r.ratio==null?'—':r.ratio===Infinity?'판매 없음':f1(r.ratio)+'배'}</td>
+            <td class="num">${r.sellThru==null?'—':won(Math.ceil(r.sellThru))+'일'}</td>
+            <td class="num">${r.rate==null?'—':`<b style="color:${r.rate>=100?'var(--xl-green-dark)':r.rate>=60?'#d97706':'var(--red)'}">${Math.round(r.rate)}%</b>`}</td>
             <td><span class="prb" style="background:${V[1]};color:${V[2]}">${V[0]}</span></td>
             <td class="num">${r.waste?`<b class="neg">${won(r.waste)}개</b>`:r.waste===0?'0':'—'}</td><td class="num">${r.loss?wonU(r.loss):'—'}</td>
             <td>${r.p&&['bad','warn','late'].includes(r.v)?`<button class="tbtn" data-exi="${i}" title="이 재고로 프로모션 설계 열기">🎯 프로모션</button>`:''}</td></tr>`; }).join('')
-          || `<tr><td colspan="14" style="text-align:center;padding:18px">${EX.lots.length?'조건에 맞는 로트가 없습니다':'공용 DB에 재고가 없습니다 — 그로홈 대시보드 [유통기한 관리]를 한 번 열면 올라옵니다'}</td></tr>`}</tbody></table></div>
+          || `<tr><td colspan="16" style="text-align:center;padding:18px">${EX.lots.length?'조건에 맞는 로트가 없습니다':'공용 DB에 재고가 없습니다 — 그로홈 대시보드 [유통기한 관리]를 한 번 열면 올라옵니다'}</td></tr>`}</tbody></table></div>
       <div class="bd"><p class="footnote" style="margin:0">· <b>필요 하루 판매</b> = 이 로트까지의 누적 재고 ÷ (남은 일수 − 판매마감 여유 ${EX.buffer}일). 같은 제품의 로트는 기한이 빠른 것부터 팔린다고 봅니다.<br>
+        · <b>소진 예상</b> = 같은 제품의 앞선 로트까지 모두 파는 데 걸리는 일수 · <b>기한 내 소진율</b> = 판매마감 전까지 지금 속도로 팔리는 비율<br>
         · <b>배수</b> = 필요 하루 판매 ÷ 최근 하루 판매 → 1배 이하 🟢 · 2배 이하 🟡 · 2배 초과 🔴. 그로홈 색상별 재고는 판매 기록이 제품 단위라 색상 구분 없이 합쳐 봅니다.<br>
         · 재고 갱신: 그로홈 ${esc((EX.at.GROHOME||'없음').slice(0,16).replace('T',' '))}${EX.seed&&EX.seed.GROHOME?' (초기 데이터 — 그로홈 대시보드에서 재고 붙여넣기로 갱신)':''} · POUR ${esc((EX.at['POUR스토어']||'없음').slice(0,16).replace('T',' '))}</p></div></div>`;
   body._rows=rows;
@@ -11182,8 +11247,13 @@ async function renderExpiry(){
       $('#exPasteText').value=''; $('#exPastePanel').style.display='none'; EX.lots=null; await renderExpiry(); eolAutoCheck();
     }catch(e){ console.error('[expiryLots/pour] 저장 실패', e); uiToast('재고 저장 실패: '+(e.code||e.message||e),'err'); $('#exPasteMsg').innerHTML=`<span style="color:var(--red)">저장 실패: ${esc(e.code||e.message||e)}</span>`; }
   });
+  body.addEventListener('input',e=>{ if(e.target.id!=='exQ') return; EX.q=e.target.value; const pos=e.target.selectionStart;
+    Promise.resolve(renderExpiry()).then(()=>{ const q=$('#exQ'); if(q){ q.focus(); try{ q.setSelectionRange(pos,pos); }catch(err){} } }); });
+  body.addEventListener('change',e=>{ if(e.target.id==='exSort'){ EX.sort=e.target.value; renderExpiry(); } });
   body.addEventListener('click',e=>{
     if(e.target.id==='exRetry'){ EX.err=''; EX.lots=null; renderExpiry(); return; }
+    if(e.target.id==='exDiag'){ EX.diag=!EX.diag; renderExpiry(); return; }
+    const bk=e.target.closest('[data-exbk]'); if(bk){ const k=bk.dataset.exbk; EX.bk=(bk.classList.contains('ex-bk')&&EX.bk===k)?'all':k; renderExpiry(); return; }
     const b=e.target.closest('button[data-exi]'); if(!b) return; const r=(body._rows||[])[+b.dataset.exi]; if(!r||!r.p) return;
     openPromoCalc(pKey(r.p), { goal:'clear', stock:r.cum });
   });

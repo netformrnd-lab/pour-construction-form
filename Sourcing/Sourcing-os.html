@@ -1292,6 +1292,8 @@
     [data-set="cert-del"]{min-width:34px;min-height:34px}
     .it-btn[data-go="tab"]{padding:7px 10px!important;font-size:12px!important}
   }
+  /* 아이폰: 16px 보다 작은 입력칸을 누르면 화면이 확대된다 → 입력칸 글자는 16px 이상 */
+  @supports (-webkit-touch-callout:none){ input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{font-size:max(16px,1em)!important} }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>

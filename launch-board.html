@@ -285,7 +285,8 @@
   .ck-row.flash{background:#FFFBEB}
   .ck-box{display:flex;align-items:center}
   .cf-btn{width:100%;height:36px;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;font-size:12.5px;font-weight:800;color:var(--ink2);white-space:nowrap}
-  .cf-btn:hover:not([disabled]){border-color:var(--green);color:var(--green)}
+  .cf-btn:not(.on):hover:not([disabled]){border-color:var(--green);color:var(--green)}
+  .cf-btn.on:hover{background:#047857;border-color:#047857}
   .cf-btn.on{background:var(--green);border-color:var(--green);color:#fff}
   .cf-btn.off{background:#E5E7EB;border-color:#E5E7EB;color:#9CA3AF}
   .ck-sub{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:3px}
@@ -510,7 +511,7 @@ function brandMark(b){
 // ── 업무 단계 (01~11) · 기본 담당 ──
 const PHASES = [
   { k:'P1', name:'기획',           who:'기획1팀 · BM',              color:'#2563EB', light:'#EFF6FF', steps:['p01','p02','p03','p04','s01','s02'] },
-  { k:'P2', name:'패키지 디자인',   who:'디자이너 · 민지',            color:'#DB2777', light:'#FDF2F8', steps:['s03','s04','s05'] },
+  { k:'P2', name:'패키지 디자인',   who:'디자이너 · 민지',            color:'#DB2777', light:'#FDF2F8', steps:['d01','s03','d02','s04','d03','s05'] },
   { k:'P3', name:'상세페이지 기획', who:'기획1팀 · BM',              color:'#7C3AED', light:'#F5F3FF', steps:['s06'] },
   { k:'P4', name:'촬영 · 제작',     who:'1팀 · 채림 · BM · 외주',     color:'#0891B2', light:'#ECFEFF', steps:['s07','s08','s09','s10'] },
   { k:'P5', name:'최종 검수',       who:'BM · 본부장',               color:'#059669', light:'#ECFDF5', steps:['s11'] },
@@ -523,9 +524,13 @@ const STEPS = [
   { id:'p04', name:'제조사 컨택',        in:'제품 스펙·예상 수량',           out:'제조사 선정·견적(단가·MOQ)' },
   { id:'s01', name:'샘플 수령',          in:'제조사 샘플',                   out:'샘플 실물 + 제품 스펙(용량·성분·규격) 공유' },
   { id:'s02', name:'판매전략기획',       in:'샘플·판매가',                   out:'판매전략 + 디자인 브리프 (타깃·셀링포인트·표기 문구)' },
-  { id:'s03', name:'제품 스티커 디자인', in:'디자인 브리프 · 표기 문구',     out:'스티커 최종 시안 → 인쇄 발주' },
-  { id:'s04', name:'단상자 디자인',      in:'디자인 브리프 · 칼선 규격',     out:'단상자 최종 시안 → 인쇄 발주' },
-  { id:'s05', name:'제품 설명서 디자인', in:'사용법 · 주의사항 원고',        out:'설명서 최종본 → 인쇄 발주' },
+  // 패키지 디자인: 각 디자인 앞에 '기획 · 카피' 단계 (d01~d03 신규, s03~s05 기존 id 유지)
+  { id:'d01', name:'스티커 디자인 기획 · 카피', in:'판매전략 · 디자인 브리프',   out:'스티커 구성안 · 표기 문구(카피) 확정' },
+  { id:'s03', name:'제품 스티커 디자인', in:'스티커 구성안 · 카피',         out:'스티커 최종 시안 → 인쇄 발주' },
+  { id:'d02', name:'단상자 디자인 기획 · 카피', in:'판매전략 · 칼선 규격',       out:'단상자 면별 구성안 · 카피 확정' },
+  { id:'s04', name:'단상자 디자인',      in:'단상자 구성안 · 카피',         out:'단상자 최종 시안 → 인쇄 발주' },
+  { id:'d03', name:'설명서 디자인 기획 · 카피', in:'사용법 · 주의사항 자료',     out:'설명서 구성안 · 원고(카피) 확정' },
+  { id:'s05', name:'제품 설명서 디자인', in:'설명서 구성안 · 원고',         out:'설명서 최종본 → 인쇄 발주' },
   { id:'s06', name:'상세페이지 기획',    in:'브리프 · 패키지 시안',          out:'상세 구성안 · 카피 · 촬영 컷 리스트' },
   { id:'s07', name:'제품 촬영',          in:'촬영 컷 리스트 · 완성 패키지',  out:'누끼 · 연출 · 사용 컷 원본' },
   { id:'s08', name:'상세페이지 디자인',  in:'상세 구성안 · 촬영 원본',       out:'상세페이지 완성본' },

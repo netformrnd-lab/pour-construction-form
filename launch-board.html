@@ -329,7 +329,8 @@
 <script>
 // ═══════════════════════════════════════════════════════════════
 // 넷폼 런칭보드 — 제품 샘플 수령 → 디자인 완료(상세페이지·섬네일 세팅)
-// 1팀·2팀·디자이너·외주업체 공용 · Firestore launch-board 실시간 공유
+// 1팀·2팀·디자이너·외주업체 공용 · Firestore 실시간 공유
+// 저장 위치: pour-os/launch-board/products/{제품} — 이미 배포된 pour-os/{doc=**} 규칙으로 읽기/쓰기 (규칙 추가 배포 불필요)
 // ═══════════════════════════════════════════════════════════════
 firebase.initializeApp({
   apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
@@ -340,7 +341,7 @@ firebase.initializeApp({
   appId: "1:411031141847:web:e658174fd4b9652cdadf92"
 });
 const db = firebase.firestore();
-const COL = 'launch-board';
+const COL = 'pour-os/launch-board/products';
 const FV = firebase.firestore.FieldValue;
 
 // ── 브랜드 (카드 색) ──

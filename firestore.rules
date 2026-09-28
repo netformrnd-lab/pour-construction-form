@@ -161,6 +161,7 @@ service cloud.firestore {
     // 앱 상태를 pour-os/state-<collection> 문서들로 분할 저장(+레거시 pour-os/state).
     // {doc=**} 로 state·state-* 형제 문서 및 향후 서브컬렉션까지 모두 허용.
     // ─────────────────────────────────────────────
+    // 넷폼 런칭보드(launch-board.html)도 여기 하위 pour-os/launch-board/products/{제품} 에 저장
     match /pour-os/{doc=**}         { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
@@ -169,12 +170,6 @@ service cloud.firestore {
     // ─────────────────────────────────────────────
     match /sourcing-os/{doc=**}     { allow read, write: if true; }
 
-    // ─────────────────────────────────────────────
-    // 넷폼 런칭보드 (launch-board.html) — 샘플 수령 → 디자인 완료 11단계 진행표
-    // 1팀·2팀·디자이너·외주업체 공용 (링크 공유, 로그인 없음). 문서 1개 = 제품 1개.
-    // 삭제는 deletedAt 소프트딜리트(휴지통)로만 처리.
-    // ─────────────────────────────────────────────
-    match /launch-board/{doc}       { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
     // 🔒 소싱 원가 — 관리자만 (2026-09 · 대표와 협의 후 추가)

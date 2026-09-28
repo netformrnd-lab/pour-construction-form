@@ -89,7 +89,7 @@ async function readAccess(projectId, token) {
   };
 }
 /* ── 응답 형식 ── */
-const N = t => ({ anyOf: [{ type: t }, { type: 'null' }] });
+const N = t => ({ anyOf: [{ type: t }, { type: 'null' }] });   // null 허용 칸은 16개까지(API 한도) — 글자 칸 label·memo·gift·txt 는 빈 글자로 받고 서버에서 null 로 바꾼다
 const PURPOSES = ['광고', '포스팅', '셀러·인플루언서', '공동구매', 'CS·고객문자', '기타'];
 const SCHEMA = {
   type: 'object', additionalProperties: false,
@@ -104,7 +104,7 @@ const SCHEMA = {
         required: ['purpose', 'place', 'partner', 'url', 'promoId', 'product', 'label'],
         properties: {
           purpose: { type: 'string', enum: PURPOSES },
-          place: N('string'), partner: N('string'), url: N('string'), promoId: N('string'), product: N('string'), label: N('string'),
+          place: N('string'), partner: N('string'), url: N('string'), promoId: N('string'), product: N('string'), label: { type: 'string' },
         },
       },
     },
@@ -124,10 +124,10 @@ const SCHEMA = {
             required: ['t', 'v', 'n', 'm', 'min', 'gift', 'txt'],
             properties: {
               t: { type: 'string', enum: ['disc', 'nm', 'second', 'coupon', 'gift', 'point', 'etc'] },
-              v: N('number'), n: N('number'), m: N('number'), min: N('number'), gift: N('string'), txt: N('string'),
+              v: N('number'), n: N('number'), m: N('number'), min: N('number'), gift: { type: 'string' }, txt: { type: 'string' },
             },
           },
-          memo: N('string'),
+          memo: { type: 'string' },
         },
       },
     },
@@ -162,12 +162,12 @@ const SYSTEM = `당신은 넷폼의 커머스 브랜드 POUR스토어(건축 유
 - partner: 셀러·인플루언서·공동구매는 사람/채널 이름(메시지에 있는 그대로), 기타는 쓰임새. 나머지는 null.
 - url: 메시지에 적힌 주소만(http로 시작). 없으면 null — 대시보드가 붙여넣기를 받습니다. 주소를 지어내지 않습니다.
 - promoId: 연결할 행사가 현황 promos 에 있으면 그 id, 아니면 null. product: 현황 products 의 name 그대로, 없으면 null.
-- label: 짧은 제목(선택). 여러 곳에 올린다고 하면 곳마다 링크 1개.
+- label: 짧은 제목(선택, 없으면 빈 글자 ""). 여러 곳에 올린다고 하면 곳마다 링크 1개.
 [행사 초안 promos]
 - 이름 짧게. reason 은 재고소진·신제품·시즌·재구매·기타. 날짜는 YYYY-MM-DD(오늘 today 기준, 모르면 null).
 - productKeys 는 현황 products 의 key 만. channels 는 현황 salesChannels 에 있는 이름만(없으면 빈 배열 = 전체).
 - mech.t: disc(할인율 v%) · nm(n+m 증정) · second(두 번째 v% 할인) · coupon(v원 쿠폰, min개 이상) · gift(사은품 gift) · point(v% 적립) · etc(txt).
-  쓰지 않는 칸은 null. role.cost=true 이고 products 에 cost·retail 이 있으면 역마진이 나지 않는 구성을 고르고 memo 에 이유를 적습니다.
+  쓰지 않는 칸은 null(글자 칸 gift·txt·memo 는 빈 글자 ""). role.cost=true 이고 products 에 cost·retail 이 있으면 역마진이 나지 않는 구성을 고르고 memo 에 이유를 적습니다.
 [문구 초안 messages]
 - 고객 문자·안내·게시글 문구. 브랜드 톤: POUR스토어=친절·실용, GROHOME=가볍고 친근. 과장·보증 약속·확정 견적 금지.
 - 링크가 들어갈 자리는 {링크} 로 쓰고 linkIdx 에 links 배열 번호(0부터). 링크가 없으면 null.
@@ -236,6 +236,10 @@ export async function onRequestPost({ request, env }) {
   const keys = new Set((status.products || []).map(p => p && p.key)), promoIds = new Set((status.promos || []).map(p => p && p.id));
   plan.links = (plan.links || []).map(l => ({ ...l, url: /^https?:\/\//.test(l.url || '') && text.includes(l.url) ? l.url : null, promoId: promoIds.has(l.promoId) ? l.promoId : null }));
   plan.promos = (plan.promos || []).map(p => ({ ...p, productKeys: (p.productKeys || []).filter(k => keys.has(k)) }));
+  // 빈 글자로 받은 칸 → null (화면 코드는 null 기준)
+  const e2n = v => (typeof v === 'string' && !v.trim()) ? null : v;
+  plan.links = plan.links.map(l => ({ ...l, label: e2n(l.label) }));
+  plan.promos = plan.promos.map(p => ({ ...p, memo: e2n(p.memo), mech: p.mech ? { ...p.mech, gift: e2n(p.mech.gift), txt: e2n(p.mech.txt) } : p.mech }));
   plan.messages = (plan.messages || []).map(m => ({ ...m, linkIdx: Number.isInteger(m.linkIdx) && m.linkIdx >= 0 && m.linkIdx < plan.links.length ? m.linkIdx : null }));
   return json({ ok: true, plan, model: j.model || MODEL, usage: j.usage || null, role: { cost }, by: who.email });
 }

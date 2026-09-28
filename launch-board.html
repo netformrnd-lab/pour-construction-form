@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>넷폼 런칭보드 — 샘플 수령부터 디자인 완료까지</title>
+<title>넷폼 런칭보드 — 시장조사부터 디자인 완료까지</title>
 <meta name="description" content="1팀·2팀·디자이너·외주업체가 함께 보는 신제품 출시 진행 대시보드">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
@@ -247,7 +247,7 @@
   .tbl .role{font-weight:800;white-space:nowrap}
   .notes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .note{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
-  .note b{display:block;font-size:14px;margin-bottom:6px}
+  .note > b{display:block;font-size:14px;margin-bottom:6px}
   .note p{margin:0;font-size:13px;color:var(--ink2);line-height:1.6}
   .note.chk{border-color:#FDE68A;background:#FFFBEB}
 
@@ -285,7 +285,8 @@
   .ck-row.flash{background:#FFFBEB}
   .ck-box{display:flex;align-items:center}
   .cf-btn{width:100%;height:36px;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;font-size:12.5px;font-weight:800;color:var(--ink2);white-space:nowrap}
-  .cf-btn:hover:not([disabled]){border-color:var(--green);color:var(--green)}
+  .cf-btn:not(.on):hover:not([disabled]){border-color:var(--green);color:var(--green)}
+  .cf-btn.on:hover{background:#047857;border-color:#047857}
   .cf-btn.on{background:var(--green);border-color:var(--green);color:#fff}
   .cf-btn.off{background:#E5E7EB;border-color:#E5E7EB;color:#9CA3AF}
   .ck-sub{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:3px}
@@ -340,7 +341,14 @@
   .nm-chip.out{border-style:dashed}
 
   /* ── 브랜드 로고 ── */
-  .blogo img{display:block;height:24px;width:auto;max-width:150px;object-fit:contain}
+  .blogo img{display:block;height:24px;width:auto;max-width:180px;object-fit:contain}
+  .brand-h .blogo img{height:34px}
+  .pcard .blogo img{height:30px}
+  .blogo.withname{display:inline-flex;align-items:center;gap:8px}
+  .blogo.withname .bl-name{font-size:15px;font-weight:900}
+  .blogo.withname.nologo .bl-name{display:none}
+  .brand-h .blogo.withname img{height:40px}
+  .pcard .blogo.withname img{height:34px}
   .blogo em{display:none}
   .blogo.nologo img{display:none}
   .blogo.nologo em{display:inline}
@@ -470,7 +478,7 @@
 
 <script>
 // ═══════════════════════════════════════════════════════════════
-// 넷폼 런칭보드 — 제품 샘플 수령 → 디자인 완료(상세페이지·섬네일 세팅)
+// 넷폼 런칭보드 — 기획(시장조사~판매전략기획) → 디자인 완료(상세페이지·섬네일 세팅)
 // 1팀·2팀·디자이너·외주업체 공용 · Firestore 실시간 공유
 // 저장 위치: pour-os/launch-board/products/{제품} — 이미 배포된 pour-os/{doc=**} 규칙으로 읽기/쓰기 (규칙 추가 배포 불필요)
 // ═══════════════════════════════════════════════════════════════
@@ -489,30 +497,40 @@ const FV = firebase.firestore.FieldValue;
 // ── 브랜드 (카드 색) ──
 const BRANDS = {
   grohome:   { logo:'launch-board-logos/grohome.png', name:'그로홈',     bm:'김송희', team:'2팀', icon:'🏡', bg:'#FFF3E8', bd:'#F8D5B4', ac:'#D9691A', chip:'#FDE3CB' },
-  pourstore: { logo:'launch-board-logos/pourstore.png', name:'POUR스토어', bm:'이란',   team:'2팀', icon:'🧱', bg:'#EEF1FB', bd:'#CBD3F0', ac:'#31428C', chip:'#DCE2F6' },
+  pourstore: { logo:'launch-board-logos/pourstore.png', logoName:true, name:'POUR스토어', bm:'이란',   team:'2팀', icon:'🧱', bg:'#EEF1FB', bd:'#CBD3F0', ac:'#31428C', chip:'#DCE2F6' },
   barasday:  { logo:'launch-board-logos/barasday.png', name:'바라스데이', bm:'김소연', team:'1팀', icon:'🌿', bg:'#F1F9E7', bd:'#CDE6AE', ac:'#4A8418', chip:'#DDF0C6' },
 };
 const BRAND_KEYS = Object.keys(BRANDS);
 // 브랜드 로고: 파일이 있으면 로고, 없으면(아직 안 올림) 이모지+이름 글자
 function brandMark(b){
   const txt = `<em>${b.icon||''} ${esc(b.name)}</em>`;
-  return b.logo ? `<span class="blogo"><img src="${b.logo}" alt="${esc(b.name)}" onerror="this.parentNode.classList.add('nologo')">${txt}</span>` : txt;
+  // 원형 배지처럼 작게 보이면 읽기 어려운 로고는 이름을 옆에 같이
+  return b.logo ? `<span class="blogo ${b.logoName?'withname':''}"><img src="${b.logo}" alt="${esc(b.name)}" onerror="this.parentNode.classList.add('nologo')">${b.logoName?`<b class="bl-name">${esc(b.name)}</b>`:''}${txt}</span>` : txt;
 }
 
 // ── 업무 단계 (01~11) · 기본 담당 ──
 const PHASES = [
-  { k:'P1', name:'기획',           who:'기획1팀 · BM',              color:'#2563EB', light:'#EFF6FF', steps:['s01','s02'] },
-  { k:'P2', name:'패키지 디자인',   who:'디자이너 · 민지',            color:'#DB2777', light:'#FDF2F8', steps:['s03','s04','s05'] },
+  { k:'P1', name:'기획',           who:'기획1팀 · BM',              color:'#2563EB', light:'#EFF6FF', steps:['p01','p02','p03','p04','s01','s02'] },
+  { k:'P2', name:'패키지 디자인',   who:'디자이너 · 민지',            color:'#DB2777', light:'#FDF2F8', steps:['d01','s03','d02','s04','d03','s05'] },
   { k:'P3', name:'상세페이지 기획', who:'기획1팀 · BM',              color:'#7C3AED', light:'#F5F3FF', steps:['s06'] },
   { k:'P4', name:'촬영 · 제작',     who:'1팀 · 채림 · BM · 외주',     color:'#0891B2', light:'#ECFEFF', steps:['s07','s08','s09','s10'] },
   { k:'P5', name:'최종 검수',       who:'BM · 본부장',               color:'#059669', light:'#ECFDF5', steps:['s11'] },
 ];
 const STEPS = [
-  { id:'s01', name:'제품 샘플 수령',     in:'제조사 샘플 (앞단 1팀 진행분)',   out:'샘플 실물 + 제품 스펙(용량·성분·규격) 공유' },
-  { id:'s02', name:'기획',               in:'판매전략기획 결과',             out:'디자인 브리프 (타깃·셀링포인트·표기 문구)' },
-  { id:'s03', name:'제품 스티커 디자인', in:'디자인 브리프 · 표기 문구',     out:'스티커 최종 시안 → 인쇄 발주' },
-  { id:'s04', name:'단상자 디자인',      in:'디자인 브리프 · 칼선 규격',     out:'단상자 최종 시안 → 인쇄 발주' },
-  { id:'s05', name:'제품 설명서 디자인', in:'사용법 · 주의사항 원고',        out:'설명서 최종본 → 인쇄 발주' },
+  // 기획 6단계 (s01·s02는 기존 데이터 id 유지: s01=샘플 수령, s02=판매전략기획(구 '기획'))
+  { id:'p01', name:'시장조사',           in:'카테고리·타깃 아이디어',        out:'시장·경쟁사 조사 요약' },
+  { id:'p02', name:'제품선정',           in:'시장조사 결과',                 out:'출시할 제품 확정' },
+  { id:'p03', name:'제품가 설정',        in:'원가·경쟁사 가격',              out:'판매가·마진 확정' },
+  { id:'p04', name:'제조사 컨택',        in:'제품 스펙·예상 수량',           out:'제조사 선정·견적(단가·MOQ)' },
+  { id:'s01', name:'샘플 수령',          in:'제조사 샘플',                   out:'샘플 실물 + 제품 스펙(용량·성분·규격) 공유' },
+  { id:'s02', name:'판매전략기획',       in:'샘플·판매가',                   out:'판매전략 + 디자인 브리프 (타깃·셀링포인트·표기 문구)' },
+  // 패키지 디자인: 각 디자인 앞에 '기획 · 카피' 단계 (d01~d03 신규, s03~s05 기존 id 유지)
+  { id:'d01', name:'스티커 디자인 기획 · 카피', in:'판매전략 · 디자인 브리프',   out:'스티커 구성안 · 표기 문구(카피) 확정' },
+  { id:'s03', name:'제품 스티커 디자인', in:'스티커 구성안 · 카피',         out:'스티커 최종 시안 → 인쇄 발주' },
+  { id:'d02', name:'단상자 디자인 기획 · 카피', in:'판매전략 · 칼선 규격',       out:'단상자 면별 구성안 · 카피 확정' },
+  { id:'s04', name:'단상자 디자인',      in:'단상자 구성안 · 카피',         out:'단상자 최종 시안 → 인쇄 발주' },
+  { id:'d03', name:'설명서 디자인 기획 · 카피', in:'사용법 · 주의사항 자료',     out:'설명서 구성안 · 원고(카피) 확정' },
+  { id:'s05', name:'제품 설명서 디자인', in:'설명서 구성안 · 원고',         out:'설명서 최종본 → 인쇄 발주' },
   { id:'s06', name:'상세페이지 기획',    in:'브리프 · 패키지 시안',          out:'상세 구성안 · 카피 · 촬영 컷 리스트' },
   { id:'s07', name:'제품 촬영',          in:'촬영 컷 리스트 · 완성 패키지',  out:'누끼 · 연출 · 사용 컷 원본' },
   { id:'s08', name:'상세페이지 디자인',  in:'상세 구성안 · 촬영 원본',       out:'상세페이지 완성본' },
@@ -523,30 +541,32 @@ const STEPS = [
 const STEP_BY = Object.fromEntries(STEPS.map((s,i)=>[s.id,{...s,no:String(i+1).padStart(2,'0'),phase:PHASES.find(p=>p.steps.includes(s.id))}]));
 // 커머스본부 조직 (조직 개편 안내 v1 · 2026.09 · 현재 실명 배치) — board: 런칭보드에서 맡는 단계
 const ORG = {
-  head: { name:'허지은', role:'커머스본부장', desc:'G1·G2·G3 최종 승인 · 공용 인력 배분 · 1팀 전략기획 실무 참여', board:'11 최종 검수 승인' },
+  head: { name:'허지은', role:'커머스본부장', desc:'G1·G2·G3 최종 승인 · 공용 인력 배분 · 1팀 전략기획 실무 참여', board:'최종 검수 승인' },
   teams: [
     { k:'1팀', stage:'시작기 · 런칭·검증', color:'#DB2777', light:'#FDF2F8', brands:['바라스데이','신규 브랜드'], members:[
-      { name:'김소연', role:'1팀 리드 · 바라스데이 BM', board:'바라스데이 01·02·06·11 · 1팀 역할(06~10)' },
-      { name:'윤정',   role:'프로마케터 (런칭) · 신규 SKU 등록', board:'11 세팅 (신규 SKU 등록)' },
-      { name:'정하',   role:'신사업지원팀 · 시장조사·소싱·샘플 구매', board:'01 샘플 구매·수령' },
+      { name:'김소연', role:'1팀 리드 · 바라스데이 BM', board:'바라스데이 기획·상세페이지 기획·최종 검수' },
+      { name:'윤정',   role:'프로마케터 (런칭) · 신규 SKU 등록', board:'최종 세팅 (신규 SKU 등록)' },
+      { name:'정하',   role:'신사업지원팀 · 시장조사·소싱·샘플 구매', board:'시장조사·제조사 컨택·샘플 구매' },
     ]},
     { k:'2팀', stage:'안정기 · 그로홈·POUR스토어', color:'#D9691A', light:'#FFF3E8', brands:['그로홈','POUR스토어'], members:[
-      { name:'김송희', role:'2팀 리드 · 그로홈 BM', board:'그로홈 01·02·06·11' },
-      { name:'민지',   role:'커머스운영팀 (프로마케터) · MD·UX/UI·운영', board:'03~05 패키지 디자인' },
-      { name:'채림',   role:'콘텐츠프로듀서 · 숏폼·상세 이미지 촬영·편집', board:'07~10 촬영·상세·섬네일' },
-      { name:'이란',   role:'BM · POUR스토어 (국내)', board:'POUR스토어 01·02·06·11' },
+      { name:'김송희', role:'2팀 리드 · 그로홈 BM', board:'그로홈 기획·상세페이지 기획·최종 검수' },
+      { name:'민지',   role:'커머스운영팀 (프로마케터) · MD·UX/UI·운영', board:'패키지 디자인 (스티커·단상자·설명서)' },
+      { name:'채림',   role:'콘텐츠프로듀서 · 숏폼·상세 이미지 촬영·편집', board:'촬영·상세페이지·섬네일' },
+      { name:'이란',   role:'BM · POUR스토어 (국내)', board:'POUR스토어 기획·상세페이지 기획·최종 검수' },
       { name:'퍼포먼스마케터', role:'공석 · 채용 예정 · CPC·메타 광고·바이럴', board:'출시 후 광고 (보드 범위 밖)', vacant:true },
     ]},
     { k:'3팀', stage:'확장(글로벌) · 해외 B2B·B2C', color:'#0891B2', light:'#ECFEFF', brands:['해외 B2C','해외 B2B'], members:[
-      { name:'채원', role:'3팀 리드 · 해외 B2C BM', board:'다국어 라벨·수출 요건 확인 (03~05 협업)' },
+      { name:'채원', role:'3팀 리드 · 해외 B2C BM', board:'다국어 라벨·수출 요건 확인 (패키지 협업)' },
       { name:'유림', role:'BM · 해외 B2B', board:'수출 요건·인증 확인' },
     ]},
   ],
   shared: [
-    { name:'이우민', role:'디자이너 · 브랜드 시안·상세페이지·패키지', board:'03~05 · 08 · 10' },
+    { name:'이우민', role:'디자이너 · 브랜드 시안·상세페이지·패키지', board:'패키지·상세페이지·섬네일 디자인' },
     { name:'CRM/CSM 담당', role:'고객응대·CS·재고 운영 · 채용 완료(알바)', board:'출시 후 CS·재고 (보드 범위 밖)' },
   ],
 };
+// 새 제품 등록 시 단계별 기본 담당 (2in1 목재용 페인트에 지정한 담당 기준)
+const DEFAULT_OWNERS = {'p01':'정하', 'p02':'정하', 'p03':'정하', 'p04':'정하', 's01':'정하', 's02':'정하', 'd01':'민지', 's03':'이우민', 'd02':'민지', 's04':'이우민', 'd03':'민지', 's05':'이우민', 's06':'김소연', 's07':'채림', 's08':'이우민', 's09':'채림', 's10':'이우민', 's11':'허지은'};
 const PEOPLE_BASE = [ORG.head.name, ...ORG.teams.flatMap(t=>t.members.filter(m=>!m.vacant).map(m=>m.name)), '이우민', '외주'];
 // 단계 담당 문구의 'BM'·'본부장'을 실명으로 (제품이 있으면 그 브랜드 BM)
 function whoFor(ph, p){
@@ -947,34 +967,27 @@ function barCal(){
 
 // ── 업무 체계 ──
 function viewGuide(){
-  const pre = ['시장조사','제품 선정','제품가 설정','제조사 컨택','샘플 수령','판매전략기획'];
   return `
     <div class="h2"><h2>업무 체계</h2></div>
-    <p class="sub">제품 샘플 수령 → 디자인 완료(상세페이지·섬네일 세팅)까지, 단계별 담당과 넘겨주는 것을 정리했어요.</p>
-    <div class="box" style="margin-bottom:14px">
-      <h4 style="margin-left:0">① 앞단 · 기획1팀 + BM <span style="font-weight:600">(이 보드 이전 단계)</span></h4>
-      <div class="flow">${pre.map((s,i)=>`<span>${s}</span>${i<pre.length-1?'<em>›</em>':''}`).join('')}</div>
-    </div>
-    <h4 style="margin:18px 2px 4px;font-size:13px;color:var(--muted)">② 이 보드에서 관리하는 11단계 · 담당</h4>
+    <p class="sub">기획(시장조사) → 디자인 완료(상세페이지·섬네일 세팅)까지, 단계별 담당과 넘겨주는 것을 정리했어요.</p>
+    <h4 style="margin:18px 2px 4px;font-size:13px;color:var(--muted)">① 단계 · 담당 (${STEPS.length}단계)</h4>
     <p class="sub" style="margin-bottom:10px">BM = 브랜드별 담당 (${BRAND_KEYS.map(k=>BRANDS[k].name+' '+BRANDS[k].bm).join(' · ')}) · 사람별 역할은 <button class="btn sm" data-view="team">👥 팀 구성</button></p>
     <div class="phases">${PHASES.map(ph=>`<div class="ph" style="background:${ph.light};border-color:${ph.color}33"><div class="k" style="color:${ph.color}">${ph.steps.map(s=>STEP_BY[s].no).join(' · ')}</div><b>${ph.name}</b><span class="who" style="color:${ph.color}">${esc(whoFor(ph))}</span><ol start="${Number(STEP_BY[ph.steps[0]].no)}">${ph.steps.map(s=>`<li>${STEP_BY[s].name}</li>`).join('')}</ol></div>`).join('')}</div>
-    <h4 style="margin:22px 2px 10px;font-size:13px;color:var(--muted)">③ 단계별 인수인계 기준 (무엇을 받고, 무엇을 넘기면 완료인가)</h4>
+    <h4 style="margin:22px 2px 10px;font-size:13px;color:var(--muted)">② 단계별 인수인계 기준 (무엇을 받고, 무엇을 넘기면 완료인가)</h4>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>No</th><th>단계</th><th>담당</th><th>받는 것</th><th>완료 기준 (넘기는 것)</th></tr></thead><tbody>
       ${STEPS.map(s=>{const st=STEP_BY[s.id];return `<tr><td class="num">${st.no}</td><td><b>${s.name}</b></td><td class="role" style="color:${st.phase.color}">${esc(whoFor(st.phase))}</td><td>${s.in}</td><td>${s.out}</td></tr>`;}).join('')}
     </tbody></table></div>
-    <h4 style="margin:22px 2px 10px;font-size:13px;color:var(--muted)">④ 운영 규칙</h4>
+    <h4 style="margin:22px 2px 10px;font-size:13px;color:var(--muted)">③ 운영 규칙</h4>
     <div class="notes">
-      <div class="note"><b>1. 단계마다 책임자 1명</b><p>담당 칸에는 팀 이름이 아니라 <b>실제 책임자 이름 1명</b>을 적어요. 07~10단계처럼 여러 주체(1팀·채림·BM·외주)가 함께하면 누락되기 쉬워요.</p></div>
+      <div class="note"><b>1. 단계마다 책임자 1명</b><p>담당 칸에는 팀 이름이 아니라 <b>실제 책임자 이름 1명</b>을 적어요. 촬영·제작 단계처럼 여러 주체(1팀·채림·BM·외주)가 함께하면 누락되기 쉬워요.</p></div>
       <div class="note"><b>2. 마감일은 담당자가 직접</b><p>일을 받으면 담당자가 마감일을 입력해요. 마감이 지나면 빨간색으로 표시되고 '주간 일정'에 올라가요.</p></div>
-      <div class="note"><b>3. 끝나면 체크</b><p>단계가 끝나면 체크박스를 눌러요. 컨펌이 필요한 단계는 BM 확인까지 받은 뒤 체크해요. 할 일 칸에는 지금 해야 할 내용을 짧게 적어요.</p></div>
+      <div class="note"><b>3. 끝나면 컨펌</b><p>단계가 끝나면 [컨펌] 버튼을 눌러요. 컨펌이 필요한 단계는 BM 확인까지 받은 뒤 눌러요. 안 하는 단계는 '해당 없음'으로 빼요. 할 일 칸에는 지금 해야 할 내용을 짧게 적어요.</p></div>
       <div class="note"><b>4. 주 1회 BM·본부장 점검</b><p>'주간 일정' 화면에서 요일별 마감·출시와 마감 지난 단계를 한 번에 보고, '📋 주간 보고 복사'로 단톡에 공유해요.</p></div>
     </div>
-    <h4 style="margin:22px 2px 10px;font-size:13px;color:var(--muted)">⑤ 구조 점검 · 정리가 필요한 부분</h4>
+    <h4 style="margin:22px 2px 10px;font-size:13px;color:var(--muted)">④ 구조 점검 · 정리가 필요한 부분</h4>
     <div class="notes">
-      <div class="note chk"><b>샘플 수령이 두 번 나와요</b><p>앞단(1팀)의 '샘플 수령'과 01단계가 겹쳐요. 01단계는 <b>"샘플·스펙을 디자인 쪽에 넘겨준 시점"</b>으로 정하면 경계가 분명해져요.</p></div>
-      <div class="note chk"><b>판매전략기획 ↔ 02 기획</b><p>앞단 마지막이 판매전략기획이라 02 기획과 겹쳐 보여요. 02는 <b>판매전략을 디자인 브리프(타깃·셀링포인트·표기 문구)로 옮기는 단계</b>로 두는 걸 추천해요.</p></div>
-      <div class="note chk"><b>03~05와 06은 동시에 진행 가능</b><p>패키지 디자인(디자이너·민지)과 상세페이지 기획(1팀·BM)은 담당이 달라서 같이 진행할 수 있어요. 06을 03~05 완료까지 기다리게 하면 출시가 늦어져요.</p></div>
-      <div class="note chk"><b>'디자인 완료'의 기준</b><p>11단계(BM·본부장)는 <b>상세페이지·섬네일이 판매 채널에 등록(세팅)까지 끝난 것</b>을 완료로 봐요. 파일만 완성된 상태와 구분돼요.</p></div>
+                  <div class="note chk"><b>패키지 디자인과 상세페이지 기획은 동시에 진행 가능</b><p>패키지 디자인(디자이너·민지)과 상세페이지 기획(1팀·BM)은 담당이 달라서 같이 진행할 수 있어요. 상세페이지 기획이 패키지 디자인 완료를 기다리면 출시가 늦어져요.</p></div>
+      <div class="note chk"><b>'디자인 완료'의 기준</b><p>최종 검수(BM·본부장)는 <b>상세페이지·섬네일이 판매 채널에 등록(세팅)까지 끝난 것</b>을 완료로 봐요. 파일만 완성된 상태와 구분돼요.</p></div>
     </div>`;
 }
 
@@ -1057,7 +1070,7 @@ function ckRow(p, sid){
     <div class="ck-name"><b>${st.name}</b>
       <div class="ck-sub">${done && (s.doneBy||s.doneAt) ? `<span class="cf-who">${esc(s.doneBy||'')}${s.doneAt?' · '+fmtShort(s.doneAt.slice(0,10)):''}</span>` : ''}
         <button type="button" class="skip-btn" data-skip="${sid}" data-v="${skip?'0':'1'}">${skip?'↩ 되살리기':'해당 없음'}</button></div></div>
-    <textarea rows="1" data-sid="${sid}" data-sf="note" placeholder="해야 할 내용" ${dis}>${esc(s.note)}</textarea>
+    <textarea rows="1" data-sid="${sid}" data-sf="note" placeholder="진행사항 기재" ${dis}>${esc(s.note)}</textarea>
     <div class="ck-meta">
       <input data-sid="${sid}" data-sf="owner" value="${esc(s.owner)}" placeholder="담당" data-pick="1" autocomplete="off" aria-label="담당" ${dis}>
       ${dueCell(`data-sid="${sid}" data-sf="due"`, s.due, s.dueTbd, `data-tbd="${sid}"`, dis)}
@@ -1067,7 +1080,7 @@ function ckRow(p, sid){
   <div class="ck-row sub ${tover?'over':''}">
     <span class="ck-box"></span>
     <div class="ck-name"><button type="button" class="task-del" data-tdel="${k}" title="이 줄 삭제" aria-label="이 줄 삭제" ${dis}>×</button></div>
-    <textarea rows="1" id="task-${t.id}" data-task="${k}" data-tf="note" placeholder="해야 할 내용" ${dis}>${esc(t.note)}</textarea>
+    <textarea rows="1" id="task-${t.id}" data-task="${k}" data-tf="note" placeholder="진행사항 기재" ${dis}>${esc(t.note)}</textarea>
     <div class="ck-meta">
       <input data-task="${k}" data-tf="owner" value="${esc(t.owner)}" placeholder="담당" data-pick="1" autocomplete="off" aria-label="담당" ${dis}>
       ${dueCell(`data-task="${k}" data-tf="due"`, t.due, t.dueTbd, `data-ttbd="${k}"`, dis)}
@@ -1146,7 +1159,7 @@ let addBrand = 'grohome';
 function openAdd(brand){
   if (!me) { askName(); return; }
   addBrand = BRANDS[brand] ? brand : (brandTab!=='all' ? brandTab : 'grohome');
-  modal(`<h3>＋ 새 제품 등록</h3><p class="d">등록하면 11단계가 자동으로 만들어져요. 나머지는 상세 화면에서 채우면 돼요.</p>
+  modal(`<h3>＋ 새 제품 등록</h3><p class="d">등록하면 ${STEPS.length}단계 체크리스트가 자동으로 만들어져요. 나머지는 상세 화면에서 채우면 돼요.</p>
     <div class="form">
       <label>브랜드<div class="bsel" id="addBrand">${brandBtns(addBrand)}</div></label>
       <label>제품명 · 프로젝트명<input id="aName" placeholder="예: 2in1 철제용 페인트" maxlength="80"></label>
@@ -1162,7 +1175,7 @@ async function saveAdd(){
   if (!name) { $('aName').focus(); toast('제품명을 입력해주세요'); return; }
   const at = nowIso();
   const doc = { brand:addBrand, name, launchDate:$('aLaunch').disabled ? '' : ($('aLaunch').value||''), lead:'', memo:'',
-    stages:Object.fromEntries(STEPS.map(s=>[s.id,{status:'todo',owner:'',due:'',note:''}])),
+    stages:Object.fromEntries(STEPS.map(s=>[s.id,{status:'todo',owner:DEFAULT_OWNERS[s.id]||'',due:'',note:''}])),
     history:[{ at, by:who(), text:'제품 등록' }], createdAt:at, createdBy:who(), updatedAt:at, updatedBy:who(), deletedAt:null };
   try {
     const ref = await db.collection(COL).add(doc);
@@ -1177,7 +1190,7 @@ async function saveStepField(sid, field, value){
   const prev = stg(p,sid), st = STEP_BY[sid];
   if ((prev[field]||'') === value) return;
   const msg = field==='status' ? (value==='done' ? '컨펌 완료' : value==='skip' ? '해당 없음' : prev.status==='skip' ? '해당 없음 해제' : '컨펌 취소')
-            : field==='note' ? '할 일: ' + (value ? value.split('\n')[0].slice(0,40) : '지움')
+            : field==='note' ? '진행사항: ' + (value ? value.split('\n')[0].slice(0,40) : '지움')
             : field==='owner' ? '담당 ' + (value || '없음')
             : '마감 ' + (value ? fmtShort(value) : '없음');
   const patch = { ['stages.'+sid+'.'+field]: value, ['stages.'+sid+'.updatedAt']: nowIso(), ['stages.'+sid+'.updatedBy']: who() };
@@ -1209,7 +1222,7 @@ async function editTask(key, field, value){
   const [sid, id] = key.split(':'); const tasks = curTasks(sid); const t = tasks.find(x=>x.id===id); if (!t) return;
   if ((t[field] ?? '') === value) return;
   t[field] = value; if (field==='due' && value) t.dueTbd = false; if (field==='dueTbd' && value) t.due = '';
-  const msg = field==='note' ? '할 일: ' + (value ? String(value).split('\n')[0].slice(0,40) : '지움') : field==='owner' ? '담당 ' + (value || '없음') : field==='due' ? '마감 ' + (value ? fmtShort(value) : '없음') : '마감 ' + (value ? '미정' : '날짜 정하기');
+  const msg = field==='note' ? '진행사항: ' + (value ? String(value).split('\n')[0].slice(0,40) : '지움') : field==='owner' ? '담당 ' + (value || '없음') : field==='due' ? '마감 ' + (value ? fmtShort(value) : '없음') : '마감 ' + (value ? '미정' : '날짜 정하기');
   if (await saveTasks(sid, tasks, msg)) toast('저장했어요'); else renderMain();
   if (field==='dueTbd' && !value) setTimeout(()=>{ const el = document.querySelector(`[data-task="${key}"][data-tf="due"]`); if (el) { el.focus(); try { el.showPicker(); } catch(e){} } }, 150);
 }

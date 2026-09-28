@@ -321,6 +321,14 @@
   .hist div:last-child{border-bottom:none}
   .hist small{color:var(--faint);font-weight:600;margin-right:6px}
 
+  /* ── 담당자 고르기 (이미 지정돼 있어도 전체 목록) ── */
+  .pick{position:absolute;z-index:70;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(15,23,42,.16);padding:5px;max-height:280px;overflow-y:auto;min-width:150px}
+  .pick button{display:block;width:100%;text-align:left;padding:9px 11px;border-radius:8px;font-size:14px;font-weight:700;color:var(--ink2);white-space:nowrap}
+  .pick button:hover{background:#F3F4F6}
+  .pick button.on{background:var(--blue-l);color:#1D4ED8}
+  .pick button.clr{color:var(--red);font-size:12.5px}
+  .pick button.new{color:var(--blue);font-size:13px}
+
   /* ── 모달 ── */
   .modal{position:fixed;inset:0;z-index:60;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:16px}
   .modal .in{background:#fff;border-radius:20px;width:min(460px,100%);max-height:92vh;overflow-y:auto;padding:22px}
@@ -439,6 +447,7 @@
 
 <div id="modalRoot"></div>
 <div class="toast hidden" id="toast" role="status"></div>
+<div class="pick hidden" id="pick" role="listbox"></div>
 
 <script>
 // ═══════════════════════════════════════════════════════════════
@@ -746,6 +755,7 @@ function renderMain(){
   }
   else m.innerHTML = err + viewHome();
   pendingRender = false;
+  if (pickEl && !document.contains(pickEl)) closePick();
 }
 
 // ── 홈: 브랜드별 카드 ──
@@ -1005,7 +1015,7 @@ function viewProduct(p){
       <div class="ck">${ph.steps.map(sid=>ckRow(p,sid)).join('')}</div>`).join('')}
     <details class="hist-d"><summary>🕘 변경 기록 ${hist.length}건</summary>
       <div class="hist">${hist.length ? hist.map(h=>`<div><small>${fmtShort((h.at||'').slice(0,10))} ${esc(h.by)}</small>${esc(h.text)}</div>`).join('') : '<div>아직 기록이 없어요</div>'}</div></details>
-    <datalist id="peopleList">${people().map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`;
+`;
 }
 function dueCell(attr, due, tbd, tbdAttr, dis){
   return tbd
@@ -1026,7 +1036,7 @@ function ckRow(p, sid){
         <button type="button" class="skip-btn" data-skip="${sid}" data-v="${skip?'0':'1'}">${skip?'↩ 되살리기':'해당 없음'}</button></div></div>
     <textarea rows="1" data-sid="${sid}" data-sf="note" placeholder="해야 할 내용" ${dis}>${esc(s.note)}</textarea>
     <div class="ck-meta">
-      <input data-sid="${sid}" data-sf="owner" value="${esc(s.owner)}" placeholder="담당" list="peopleList" aria-label="담당" ${dis}>
+      <input data-sid="${sid}" data-sf="owner" value="${esc(s.owner)}" placeholder="담당" data-pick="1" autocomplete="off" aria-label="담당" ${dis}>
       ${dueCell(`data-sid="${sid}" data-sf="due"`, s.due, s.dueTbd, `data-tbd="${sid}"`, dis)}
     </div>
   </div>
@@ -1036,7 +1046,7 @@ function ckRow(p, sid){
     <div class="ck-name"><button type="button" class="task-del" data-tdel="${k}" title="이 줄 삭제" aria-label="이 줄 삭제" ${dis}>×</button></div>
     <textarea rows="1" id="task-${t.id}" data-task="${k}" data-tf="note" placeholder="해야 할 내용" ${dis}>${esc(t.note)}</textarea>
     <div class="ck-meta">
-      <input data-task="${k}" data-tf="owner" value="${esc(t.owner)}" placeholder="담당" list="peopleList" aria-label="담당" ${dis}>
+      <input data-task="${k}" data-tf="owner" value="${esc(t.owner)}" placeholder="담당" data-pick="1" autocomplete="off" aria-label="담당" ${dis}>
       ${dueCell(`data-task="${k}" data-tf="due"`, t.due, t.dueTbd, `data-ttbd="${k}"`, dis)}
     </div>
   </div>`; }).join('')}
@@ -1268,17 +1278,47 @@ document.addEventListener('click', e => {
 // 체크·입력 저장: change = 체크박스·날짜는 즉시, 글자는 칸을 벗어날 때
 document.addEventListener('change', e => {
   const t = e.target, d = t.dataset;
+  if (d.pickSent !== undefined && e.isTrusted && d.pickSent === t.value) return;
   if (d.sf) return saveStepField(d.sid, d.sf, t.value.trim());
   if (d.task) return editTask(d.task, d.tf, t.value.trim());
   if (d.pf) return saveProductField(d.pf, t.value.trim());
 });
 document.addEventListener('input', e => { if (e.target.tagName==='TEXTAREA' && (e.target.dataset.sf || e.target.dataset.task)) grow(e.target); });
 document.addEventListener('focusin', e => { if (!me && $('main').contains(e.target) && /INPUT|TEXTAREA/.test(e.target.tagName)) { e.target.blur(); askName(); } });
+// 담당자 드롭다운: 칸을 누르면 (이미 이름이 있어도) 전체 팀원 목록, 글자를 치면 거르기
+let pickEl = null, pickTyped = false;
+function renderPick(){
+  const box = $('pick'); if (!pickEl) { box.classList.add('hidden'); return; }
+  const cur = pickEl.value.trim(), q = pickTyped ? cur : '';
+  const list = people().filter(n => !q || n.includes(q));
+  box.innerHTML = (cur ? `<button type="button" class="clr" data-pv="">✕ 담당 지우기</button>` : '')
+    + list.map(n=>`<button type="button" class="${n===cur?'on':''}" data-pv="${esc(n)}">${n===cur?'✓ ':''}${esc(n)}</button>`).join('')
+    + (q && !list.includes(q) ? `<button type="button" class="new" data-pv="${esc(q)}">＋ "${esc(q)}"(으)로 입력</button>` : '');
+  const r = pickEl.getBoundingClientRect();
+  box.style.minWidth = Math.max(150, r.width) + 'px';
+  box.classList.remove('hidden');
+  const left = Math.min(r.left + window.scrollX, window.scrollX + document.documentElement.clientWidth - box.offsetWidth - 8);
+  box.style.left = Math.max(8, left) + 'px'; box.style.top = (r.bottom + window.scrollY + 4) + 'px';
+}
+function closePick(){ pickEl = null; renderPick(); }
+document.addEventListener('focusin', e => { const t = e.target; if (t.dataset && t.dataset.pick && !t.disabled) { delete t.dataset.pickSent; pickEl = t; pickTyped = false; renderPick(); t.select(); t.addEventListener('mouseup', ev => ev.preventDefault(), { once:true }); } });
+document.addEventListener('input', e => { if (e.target === pickEl) { pickTyped = true; renderPick(); } });
+document.addEventListener('focusout', e => { if (e.target === pickEl) setTimeout(()=>{ if (document.activeElement !== pickEl) closePick(); }, 120); });
+$('pick').addEventListener('mousedown', e => e.preventDefault());   // 목록을 눌러도 입력칸 포커스 유지
+$('pick').addEventListener('click', e => {
+  const b = e.target.closest('[data-pv]'); if (!b || !pickEl) return;
+  const inp = pickEl, v = b.dataset.pv;
+  inp.value = v; inp.dispatchEvent(new Event('change', { bubbles:true })); inp.dataset.pickSent = v;
+  closePick(); inp.blur();
+});
+window.addEventListener('resize', () => { if (pickEl) renderPick(); });
+
 // 마감기한 칸: 비어 있을 땐 글자('마감기한'), 누르면 달력
 document.addEventListener('focusin', e => { const t = e.target; if (t.dataset && t.dataset.dt && t.type==='text') { t.type = 'date'; try { t.showPicker(); } catch(_){} } });
 document.addEventListener('focusout', e => { const t = e.target; if (t.dataset && t.dataset.dt && t.type==='date' && !t.value) t.type = 'text'; });
 document.addEventListener('focusout', () => { setTimeout(()=>{ if (pendingRender && !typing()) renderMain(); }, 400); });
 document.addEventListener('keydown', e => {
+  if (e.key==='Escape' && pickEl) { closePick(); return; }
   if (e.key==='Escape') { if ($('modalRoot').innerHTML) { if (me) closeModal(); } else if (view==='product' && !typing()) goBack(); }
   if (e.key==='Enter' && e.target.id==='nmIn') saveName();
   if (e.key==='Enter' && e.target.classList && e.target.classList.contains('card')) openProduct(e.target.dataset.open);

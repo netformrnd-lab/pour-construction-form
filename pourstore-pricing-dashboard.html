@@ -995,8 +995,20 @@ body.fab-hide :is(#daiFab,#calcFab){display:none!important}
 .ex-chips{flex-wrap:wrap}
 .ex-fr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .ex-fr input{min-width:180px;padding:7px 11px;border:1px solid var(--xl-grid);border-radius:8px;font:inherit}
+#exLink{display:none;position:fixed;inset:0;z-index:260;background:rgba(15,23,42,.45);align-items:center;justify-content:center;padding:16px}
+#exLink.on{display:flex}
+#exLink .exl-in{background:#fff;border-radius:16px;width:min(480px,100%);max-height:80vh;display:flex;flex-direction:column;padding:14px 16px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+#exLink .exl-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:15px}
+#exLink input{padding:9px 11px;border:1px solid var(--xl-grid);border-radius:8px;font:inherit;margin-bottom:8px}
+#exLinkList{overflow:auto;display:flex;flex-direction:column;gap:6px}
+#exLinkList button{text-align:left;border:1px solid #E2E8F0;background:#fff;border-radius:10px;padding:10px 12px;font:inherit;font-size:13px;cursor:pointer}
+#exLinkList button:hover{border-color:var(--xl-green)}
+#exLinkList em{display:block;font-style:normal;font-size:11px;color:var(--ink-faint);margin-top:2px}
+.ex-md{padding:4px 6px;border:1px dashed #F59E0B;border-radius:6px;font:inherit;font-size:12px;background:#FFFBEB;max-width:140px}
+@media(max-width:640px){ #exLink{align-items:flex-end;padding:0} #exLink .exl-in{width:100%;border-radius:18px 18px 0 0;max-height:85vh;padding-bottom:calc(14px + env(safe-area-inset-bottom))} }
 .ex-fr select{padding:7px 10px;border:1px solid var(--xl-grid);border-radius:8px;font:inherit;background:#fff}
 @media(max-width:1100px){ .ex-bks{grid-template-columns:repeat(3,1fr)} }
+@media(max-width:640px){ #sh-expiry>.toolrow{position:static!important} }   /* 폰: 도구줄(필터·버튼)이 화면 절반을 가리고 따라다니지 않게 — 위로 올리면 다시 보임 */
 @media(max-width:640px){ .ex-bks{grid-template-columns:repeat(2,1fr);gap:8px} .ex-chips{flex-wrap:nowrap;overflow-x:auto;max-width:100%} .ex-chips button{flex:0 0 auto}
   .ex-fr{width:100%} .ex-fr input{flex:1;min-width:0} .ex-fbar{flex-direction:column;align-items:stretch} }
 /* ══ 📱 폰 앱 화면 (2026-09 대표 확인): 아래 탭 바 · 한 줄 머리 · 계정 시트 · 필터 한 버튼 · 행 정보 아래 시트 ══ */
@@ -1701,7 +1713,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28o</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28p</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2114,6 +2126,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
       <label class="footnote" style="margin:0;display:flex;gap:4px;align-items:center"><input type="checkbox" id="exRisk"> 위험만</label>
       <label class="footnote" style="margin:0;display:flex;gap:4px;align-items:center">판매마감 여유 <input type="number" id="exBuffer" min="0" style="width:56px">일 전</label>
       <label class="footnote" style="margin:0;display:flex;gap:4px;align-items:center">판매속도 기준 <select id="exWin"><option value="30">최근 30일</option><option value="60">최근 60일</option><option value="90">최근 90일</option><option value="180">최근 180일</option></select></label>
+      <button class="tbtn primary" id="exFileBtn" title="세이고라닌(POUR스토어 3PL) 재고리스트 엑셀을 그대로 올립니다">📥 세이고라닌 재고 엑셀</button><input type="file" id="exFile" accept=".xlsx,.xls,.csv" style="display:none">
       <button class="tbtn" id="exPasteBtn">📋 POUR스토어 재고 붙여넣기</button>
       <button class="tbtn" id="exReload">↻ 새로고침</button>
       <span class="hint">기한 안에 팔려면 하루 몇 개를 팔아야 하는지, 지금 속도면 얼마나 버리게 되는지 봅니다 · 🎯 로 바로 프로모션 설계</span>
@@ -11073,7 +11086,10 @@ async function exLoadLots(){
 function exTakeLots(snap, gSnap){
     EX.lots=[]; EX.at={}; EX.seed={};
     snap.docs.forEach(d=>{ const x=d.data()||{}, b=d.id==='grohome'?'GROHOME':d.id==='pour'?'POUR스토어':(x.brand||d.id);
-      (Array.isArray(x.lots)?x.lots:[]).forEach(l=>EX.lots.push({...l, brand:b, expiry:exParseDate(l.expiry)||'', qty:+l.qty||0}));
+      const man=(d.id==='pour'&&x.manual&&typeof x.manual==='object')?x.manual:{};   // 대시보드에서 직접 넣은 유통기한(상품코드별) — 엑셀에 기한이 없을 때만 씀
+      if(d.id==='pour') EX.manual=man;
+      (Array.isArray(x.lots)?x.lots:[]).forEach(l=>{ const fx=exParseDate(l.expiry)||'', mx=!fx&&man[l.code]?exParseDate(man[l.code]):'';
+        EX.lots.push({...l, brand:b, expiry:fx||mx||'', manualExp:!!mx, fileExp:!!fx, qty:+l.qty||0}); });
       EX.at[b]=x.updatedAt||''; (EX.seed=EX.seed||{})[b]=/-seed$/.test(x.source||''); });   // 그로홈 '초기 데이터'(09-22 기준)인지 표시용
     EX.gh=gSnap.docs.map(d=>({id:d.id,...d.data()}));
     console.log(`[expiryLots] 로트 ${EX.lots.length}개 (${Object.keys(EX.at).join('·')||'없음'}) · 그로홈 제품 ${EX.gh.length}개`);
@@ -11163,6 +11179,8 @@ async function renderExpiry(){
     wasteDesc:(a,b)=>nz(b.waste)-nz(a.waste)||ex(a).localeCompare(ex(b)), needDesc:(a,b)=>nz(b.need)-nz(a.need),
     qtyDesc:(a,b)=>b.l.qty-a.l.qty, nameAsc:(a,b)=>String(a.l.name).localeCompare(String(b.l.name),'ko') };
   rows.sort(SORTS[EX.sort]||SORTS.risk);
+  base.forEach(r=>{ r.sg=(!r.p&&r.l.brand==='POUR스토어')?exSuggest(r.l):null; });
+  const sgN=base.filter(r=>r.sg).length; body._sgRows=base.filter(r=>r.sg);
   const f1=v=>v==null?'—':(Math.round(v*10)/10).toLocaleString('ko-KR');
   /* 기간 카드 · 합계 · 안내 (그로홈 유통기한 화면에서 가져온 부분) */
   const BK=[['expired','만료됨','#fef2f2','#f87171','#b91c1c'],['b1','1개월 이내','#fef2f2','#fca5a5','#dc2626'],['b3','1~3개월','#fff7ed','#fdba74','#ea580c'],
@@ -11178,8 +11196,9 @@ async function renderExpiry(){
   const sr=(SL.rows||[]).filter(r=>r.date), inWin=sr.filter(r=>r.date>=fIso&&r.date<=tIso).length;
   const dates=sr.map(r=>r.date).sort(), minD=dates[0]||'', maxD=dates[dates.length-1]||'';
   const byCode=base.filter(r=>r.m.g||r.m.key).length;
-  const notes=(nolinkN?`<div class="ex-note">⚠️ <b>재고 ${nolinkN}건이 제품과 연결되지 않았습니다.</b> 이 줄은 판매 속도·폐기 예상이 빈칸으로 나옵니다.
-      그로홈 재고는 그로홈 대시보드 <b>제품 마스터 → 💰 가격 → 📦 물류센터 재고코드</b>에, POUR 재고는 가격정책표 제품의 <b>3PL 코드</b>에 표의 상품코드를 넣으면 연결됩니다.
+  const notes=(sgN?`<div class="ex-note" style="background:#EFF6FF;border-color:#BFDBFE;color:#1E3A8A">🔗 <b>이름·색상·크기가 맞는 제품을 찾은 재고 ${sgN}건</b>이 있어요. 표의 <b>추천</b>을 하나씩 확인하거나
+      <button type="button" class="tbtn primary" id="exSgAll" style="min-height:0;padding:4px 10px;margin-left:4px">추천 ${sgN}건 한 번에 연결</button></div>`:'')+(nolinkN?`<div class="ex-note">⚠️ <b>재고 ${nolinkN}건이 제품과 연결되지 않았습니다.</b> 이 줄은 판매 속도·폐기 예상이 빈칸으로 나옵니다.
+      그로홈 재고는 그로홈 대시보드 <b>제품 마스터 → 💰 가격 → 📦 물류센터 재고코드</b>에, POUR 재고(세이고라닌)는 표 오른쪽 <b>🔗 연결</b>에서 제품을 고르면 연결됩니다(그 제품의 3PL 코드로 저장).
       앞에 글자가 붙어 있어도(예: BZLG03031 ↔ 03031) 숫자가 같으면 이어집니다.</div>`:'')
     +(EX.lots.length&&!inWin?`<div class="ex-note">⚠️ <b>최근 ${EX.win}일 안에 매출 기록이 없습니다.</b> 판매 속도가 계산되지 않습니다.${sr.length?` 매출 기록 ${won(sr.length)}건이 이 기간(${fIso} ~ ${tIso}) 밖에 있습니다 · 기록 범위 ${minD} ~ ${maxD}.`:' 매출 기록 자체가 아직 없습니다.'} 위 <b>판매속도 기준</b>에서 기간을 넓혀 보세요.</div>`:'');
   const totals=`<div class="ex-info">전체 <b>${won(groupsN)}개 품목 · ${won(base.length)}개 로트 · ${won(totQty)}개</b>${none.lots?` · 유통기한 미등록 <b class="neg">${none.lots}건(${won(none.qty)}개)</b>`:''}
@@ -11209,8 +11228,8 @@ async function renderExpiry(){
           <th class="num">하루 판매 (최근)</th><th class="num">필요 하루 판매</th><th class="num">배수</th><th class="num">소진 예상</th><th class="num">기한 내 소진율</th><th>판단</th><th class="num">예상 폐기</th><th class="num">폐기 손실</th><th></th></tr></thead>
         <tbody>${rows.map((r,i)=>{ const V=EX_V[r.v]||EX_V.nolink;
           return `<tr><td>${esc(r.l.brand==='POUR스토어'?'POUR':'GRO')}</td>
-            <td>${esc(r.l.name)}${r.p?`<div class="footnote" style="margin:0">→ ${esc(prodLabel(r.p))}${pcodeOf(r.p)?' · '+esc(pcodeOf(r.p)):''}</div>`:(r.m.g?`<div class="footnote" style="margin:0">→ 그로홈 ${esc(r.m.g.name)} (가격대시보드 미연결)</div>`:'')}</td>
-            <td style="font-family:var(--mono)">${esc(r.l.code)}</td><td>${esc(r.l.expiry||r.l.rawExpiry||'—')}</td>
+            <td>${esc(r.l.name)}${r.p?`<div class="footnote" style="margin:0">→ ${esc(prodLabel(r.p))}${pcodeOf(r.p)?' · '+esc(pcodeOf(r.p)):''}</div>`:(r.m.g?`<div class="footnote" style="margin:0">→ 그로홈 ${esc(r.m.g.name)} (가격대시보드 미연결)</div>`:'')}${r.sg?`<div class="footnote" style="margin:2px 0 0;color:#1D4ED8">추천 → <b>${esc(prodLabel(r.sg.p))}</b> <button type="button" class="tbtn" data-exsg="${i}" style="min-height:0;padding:2px 8px;font-size:11px">✓ 연결</button></div>`:''}</td>
+            <td style="font-family:var(--mono)">${esc(r.l.code)}</td><td>${r.l.brand==='POUR스토어'&&!r.l.fileExp?`<input type="date" class="ex-md" data-code="${esc(r.l.code)}" value="${esc(r.l.manualExp?r.l.expiry:'')}" title="엑셀에 유통기한이 없어 직접 넣습니다 (다음 엑셀 올릴 때도 유지)">`:esc(r.l.expiry||r.l.rawExpiry||'—')}</td>
             <td class="num">${r.rem==null?'—':r.rem<0?`<b class="neg">${-r.rem}일 지남</b>`:r.rem<=30?`<b class="neg">D-${r.rem}</b>`:`D-${r.rem}`}</td>
             <td class="num"><b>${won(r.l.qty)}</b></td><td class="num">${won(r.cum)}</td><td class="num">${r.avg==null?'—':f1(r.avg)+'개/일'}</td>
             <td class="num">${r.need==null?'—':`<b style="color:${r.avg==null?'inherit':r.need>r.avg?'var(--red)':'var(--xl-green-dark)'}">${f1(r.need)}개/일</b><div class="footnote" style="margin:0">${won(Math.ceil(r.need*30.4))}개/월</div>`}</td>
@@ -11219,13 +11238,112 @@ async function renderExpiry(){
             <td class="num">${r.rate==null?'—':`<b style="color:${r.rate>=100?'var(--xl-green-dark)':r.rate>=60?'#d97706':'var(--red)'}">${Math.round(r.rate)}%</b>`}</td>
             <td><span class="prb" style="background:${V[1]};color:${V[2]}">${V[0]}</span></td>
             <td class="num">${r.waste?`<b class="neg">${won(r.waste)}개</b>`:r.waste===0?'0':'—'}</td><td class="num">${r.loss?wonU(r.loss):'—'}</td>
-            <td>${r.p&&['bad','warn','late'].includes(r.v)?`<button class="tbtn" data-exi="${i}" title="이 재고로 프로모션 설계 열기">🎯 프로모션</button>`:''}</td></tr>`; }).join('')
+            <td>${r.p&&['bad','warn','late'].includes(r.v)?`<button class="tbtn" data-exi="${i}" title="이 재고로 프로모션 설계 열기">🎯 프로모션</button>`:''}${!r.p&&r.l.brand==='POUR스토어'?`<button class="tbtn" data-exlink="${i}" title="이 재고가 어느 제품인지 골라 연결합니다(3PL 코드로 저장)">🔗 연결</button>`:''}</td></tr>`; }).join('')
           || `<tr><td colspan="16" style="text-align:center;padding:18px">${EX.lots.length?'조건에 맞는 로트가 없습니다':'공용 DB에 재고가 없습니다 — 그로홈 대시보드 [유통기한 관리]를 한 번 열면 올라옵니다'}</td></tr>`}</tbody></table></div>
       <div class="bd"><p class="footnote" style="margin:0">· <b>필요 하루 판매</b> = 이 로트까지의 누적 재고 ÷ (남은 일수 − 판매마감 여유 ${EX.buffer}일). 같은 제품의 로트는 기한이 빠른 것부터 팔린다고 봅니다.<br>
         · <b>소진 예상</b> = 같은 제품의 앞선 로트까지 모두 파는 데 걸리는 일수 · <b>기한 내 소진율</b> = 판매마감 전까지 지금 속도로 팔리는 비율<br>
         · <b>배수</b> = 필요 하루 판매 ÷ 최근 하루 판매 → 1배 이하 🟢 · 2배 이하 🟡 · 2배 초과 🔴. 그로홈 색상별 재고는 판매 기록이 제품 단위라 색상 구분 없이 합쳐 봅니다.<br>
         · 재고 갱신: 그로홈 ${esc((EX.at.GROHOME||'없음').slice(0,16).replace('T',' '))}${EX.seed&&EX.seed.GROHOME?' (초기 데이터 — 그로홈 대시보드에서 재고 붙여넣기로 갱신)':''} · POUR ${esc((EX.at['POUR스토어']||'없음').slice(0,16).replace('T',' '))}</p></div></div>`;
   body._rows=rows;
+}
+/* ── 세이고라닌(POUR스토어 3PL) 재고리스트 엑셀 → 공용 DB expiryLots/pour ──
+   · 수량 = 출고가능재고(없으면 재고) · 부자재·[제공용]·카달로그·샘플은 뺀다 · 출고가능 0 인 줄도 뺀다
+   · 엑셀 '유통기한'·'제조일자'·'로트번호' 칸이 차 있으면 그대로 쓰고, 비어 있으면 대시보드에서 직접 넣은 유통기한(manual)을 쓴다 */
+function exXlDate(v){ if(v instanceof Date&&!isNaN(v)) return slDay(v); if(typeof v==='number'&&v>20000&&v<80000){ const d=new Date(Math.round((v-25569)*86400000)); return d.toISOString().slice(0,10); } return exParseDate(v); }
+function exParse3pl(aoa){
+  const hi=aoa.findIndex(r=>Array.isArray(r)&&r.some(c=>String(c).trim()==='상품코드')&&r.some(c=>String(c).trim()==='상품명'));
+  if(hi<0) return null;
+  const H=aoa[hi].map(c=>String(c).trim()), ix=n=>H.indexOf(n);
+  const C={kind:ix('구분'),code:ix('상품코드'),lot:ix('로트번호'),name:ix('상품명'),color:ix('색상'),size:ix('사이즈'),stock:ix('재고'),avail:ix('출고가능재고'),mfg:ix('제조일자'),exp:ix('유통기한')};
+  const g=(r,i)=>i>=0?r[i]:'', num=v=>+String(v??'').replace(/[,\s]/g,'')||0;
+  const lots=[], skip={nonsale:[], zero:[]};
+  aoa.slice(hi+1).forEach(r=>{ const code=String(g(r,C.code)??'').trim(); if(!code) return;
+    const raw=String(g(r,C.name)??'').trim(), kind=String(g(r,C.kind)??'').trim();
+    const name=[raw.replace(/^%+\s*/,''), String(g(r,C.color)??'').trim(), String(g(r,C.size)??'').trim()].filter(Boolean).join(' ');
+    if(kind==='부자재'||/^\[제공용\]/.test(raw)||/카달로그|카탈로그|샘플/.test(raw)){ skip.nonsale.push(name); return; }
+    const qty=C.avail>=0?num(g(r,C.avail)):num(g(r,C.stock)); if(qty<=0){ skip.zero.push(name); return; }
+    const ev=g(r,C.exp), ex=exXlDate(ev);
+    lots.push({code,name,qty,expiry:ex||'',rawExpiry:ex?'':String(ev??'').trim(),lot:String(g(r,C.lot)??'').trim(),mfg:exXlDate(g(r,C.mfg))||''}); });
+  const m=new Map(); lots.forEach(l=>{ const k=l.code+'||'+(l.expiry||'')+'||'+l.lot; const x=m.get(k); if(x) x.qty+=l.qty; else m.set(k,{...l}); });
+  return {lots:[...m.values()], skip};
+}
+async function exUpload3pl(file){
+  try{
+    await ensureXLSX(); const buf=await file.arrayBuffer(); const wb=window.XLSX.read(buf,{type:'array',cellDates:true});
+    let res=null; for(const sn of wb.SheetNames){ res=exParse3pl(window.XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''})); if(res) break; }
+    if(!res){ uiToast('상품코드·상품명 칸이 있는 재고리스트가 아닙니다','err'); return; }
+    const {lots,skip}=res; if(!lots.length){ uiToast('올릴 재고가 없습니다 (출고가능재고가 모두 0)','err'); return; }
+    const withExp=lots.filter(l=>l.expiry).length, tot=lots.reduce((a,l)=>a+l.qty,0);
+    if(!confirm(`세이고라닌 재고 ${lots.length}개 품목 · 출고가능 ${tot.toLocaleString('ko-KR')}개로 POUR스토어 재고를 바꿉니다.\n· 유통기한 있는 줄 ${withExp}개 (없는 줄은 대시보드에서 직접 넣은 기한을 씁니다)\n· 제외: 부자재·제공용·샘플 ${skip.nonsale.length}줄 · 출고가능 0 ${skip.zero.length}줄`)) return;
+    await centralDB().collection('expiryLots').doc('pour').set({brand:'POUR스토어', source:'seigorain-3pl', file:file.name, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||'',
+      lots:lots.map(l=>({code:l.code,name:l.name,qty:l.qty,expiry:l.expiry||'',rawExpiry:l.rawExpiry||'',lot:l.lot||'',mfg:l.mfg||''}))},{merge:true});   // merge: manual(직접 넣은 유통기한) 유지
+    logAct('유통기한', '세이고라닌 재고 엑셀', `${lots.length}개 품목 · ${tot}개`); uiToast(`세이고라닌 재고 ${lots.length}개 품목 저장됨`,'ok');
+    EX.lots=null; await renderExpiry(); if(typeof eolAutoCheck==='function') eolAutoCheck();
+  }catch(e){ console.error('[세이고라닌 재고] 올리기 실패', e); uiToast('재고 올리기 실패: '+(e.code||e.message||e),'err'); }
+}
+async function exSaveManual(code,val){
+  const v=exParseDate(val);
+  try{ await centralDB().collection('expiryLots').doc('pour').set({manual:{[code]: v||firebase.firestore.FieldValue.delete()}},{merge:true});
+    logAct('유통기한', `POUR 유통기한 직접 입력 ${code}`, v||'지움'); uiToast(v?`유통기한 ${v} 저장됨`:'유통기한 지움','ok');
+    EX.lots=null; await renderExpiry();
+  }catch(e){ console.error('[유통기한 직접 입력] 저장 실패', e); uiToast('유통기한 저장 실패: '+(e.code||e.message||e),'err'); }
+}
+/* 추천 연결: 재고 이름의 기본 이름 · 색상 · 크기가 모두 들어간 제품이 딱 하나면 추천(자동 저장은 안 함 — 한 번 눌러 확정) */
+const EX_COLORS=['적갈색','파란색','회색','녹색','백색','투명','블랙','흰색','검정'];
+function exLotParts(name){
+  const n=exNorm(name).replace(/pour/g,'');
+  const color=EX_COLORS.find(c=>n.includes(c))||'';
+  const sizes=(String(name).toLowerCase().match(/\d+(?:\.\d+)?\s*(?:cm|mm|kg|ml|l|g|m)(?:\s*\*\s*\d+(?:\.\d+)?\s*(?:cm|mm|m))?/g)||[]).map(exNorm);
+  let base=n.replace(color,''); sizes.forEach(z=>{ base=base.replace(z,''); }); base=base.replace(/1개|패키지o|\[|\]/g,'');
+  return {base,color,sizes};
+}
+let _exPN=null;
+function exSuggest(l){
+  const {base,color,sizes}=exLotParts(l.name); if(base.length<2) return null;
+  if(!_exPN||_exPN.n!==P.length) _exPN={n:P.length, list:P.filter(p=>!isDeletedProd(p)).map(p=>({p,k:pKey(p),s:exNorm(p.name+' '+(p.spec||'')).replace(/pour/g,'')}))};
+  const hit=_exPN.list.filter(x=>x.s.includes(base)&&(!color||x.s.includes(color))&&sizes.every(z=>x.s.includes(z)));
+  return hit.length===1?hit[0]:null;
+}
+async function exLinkBulk(rows){
+  const patch={}, done=[], clash=[];
+  rows.forEach(r=>{ const sg=r.sg; if(!sg) return; const code=r.l.code;
+    const other=Object.keys(P3PL).find(kk=>kk!==sg.k&&norm3pl(P3PL[kk]).split(', ').includes(code)); if(other){ clash.push(code); return; }
+    const cur=patch[sg.k]!=null?patch[sg.k]:(P3PL[sg.k]||''); patch[sg.k]=norm3pl(cur?cur+', '+code:code); done.push(code); });
+  if(!done.length){ uiToast('연결할 추천이 없습니다','err'); return; }
+  if(!confirm(`추천 ${done.length}건을 한 번에 연결합니다. (각 제품의 3PL 코드에 세이고라닌 상품코드가 더해집니다)`)) return;
+  const old={...P3PL}; Object.assign(P3PL,patch);
+  try{ await saveP3plPatch(patch); logAct('유통기한', '3PL 재고 추천 연결', `${done.length}건`); uiToast(`${done.length}건 연결됨${clash.length?` · 다른 제품에 이미 붙은 코드 ${clash.length}건은 건너뜀`:''}`,'ok'); renderExpiry(); }
+  catch(e){ P3PL=old; console.error('[3PL 추천 연결] 저장 실패', e); uiToast('연결 저장 실패: '+(e.code||e.message||e),'err'); }
+}
+/* 🔗 제품 연결: 3PL 재고 줄 → 가격정책표 제품 (그 제품의 3PL 코드에 상품코드를 더함) */
+function exLinkOpen(r){
+  let box=$('#exLink'); if(!box){ box=document.createElement('div'); box.id='exLink'; document.body.appendChild(box);
+    box.addEventListener('click',async e=>{ if(e.target.id==='exLink'||e.target.closest('#exLinkX')){ box.classList.remove('on'); return; }
+      const b=e.target.closest('[data-exlk]'); if(!b) return; const k=b.dataset.exlk, code=box.dataset.code;
+      const cur=String(P3PL[k]||'').trim(); b.disabled=true;
+      const err=await setP3plFor(k, cur?cur+', '+code:code);
+      if(err){ uiToast(err,'err'); b.disabled=false; return; }
+      logAct('유통기한', `3PL 재고 연결 ${code}`, k.split('|')[1]); uiToast(`${code} → ${k.split('|')[1]} 연결됨`,'ok'); box.classList.remove('on'); renderExpiry(); });
+    box.addEventListener('input',e=>{ if(e.target.id==='exLinkQ') exLinkList(); }); }
+  box.dataset.code=r.l.code;
+  box.innerHTML=`<div class="exl-in"><div class="exl-hd"><b>🔗 제품 연결</b><button type="button" id="exLinkX" class="tbtn">✕</button></div>
+    <p class="footnote" style="margin:0 0 8px">재고 <b>${esc(r.l.name)}</b> <span style="font-family:var(--mono)">(${esc(r.l.code)})</span> 가 어느 제품인지 고르세요. 그 제품의 3PL 코드에 저장되어 다음부터 자동으로 이어집니다.</p>
+    <input type="search" id="exLinkQ" placeholder="🔍 제품명 · 규격으로 찾기" value="${esc((()=>{ const x=exLotParts(r.l.name); return (x.base+' '+x.color).trim(); })())}">
+    <div id="exLinkList"></div></div>`;
+  box.classList.add('on'); exLinkList(); setTimeout(()=>{ const q=$('#exLinkQ'); if(q&&innerWidth>640) q.focus(); },50);
+}
+function exLinkList(){
+  const q=exNorm($('#exLinkQ').value).replace(/pour/g,''), toks=String($('#exLinkQ').value||'').toLowerCase().split(/\s+/).map(exNorm).filter(t=>t&&t!=='pour');
+  const all=P.filter(p=>!isDeletedProd(p)).map(p=>({p,k:pKey(p),n:exNorm(p.name+' '+(p.spec||'')).replace(/pour/g,'')}));
+  const pick=ts=>all.filter(x=>!ts.length||ts.every(t=>x.n.includes(t)));
+  let list=pick(toks);
+  if(!list.length&&toks.length){   // 이름이 조금 달라도 찾기: 앞글자를 줄여 가며 다시 (예: 탑코트재 → 코트재)
+    const rel=toks.map(t=>{ for(let i=0;i<=t.length-2;i++){ const u=t.slice(i); if(all.some(x=>x.n.includes(u))) return u; } return ''; }).filter(Boolean);
+    list=pick(rel); if(!list.length) list=all.filter(x=>rel.some(t=>x.n.includes(t)));
+  }
+  list=list.slice(0,60);
+  $('#exLinkList').innerHTML=list.map(x=>`<button type="button" data-exlk="${esc(x.k)}"><b>${esc(x.p.name)}</b> <span class="dim">${esc(x.p.spec||'')}</span>${P3PL[x.k]?`<em>3PL ${esc(P3PL[x.k])}</em>`:''}</button>`).join('')
+    || `<p class="footnote" style="margin:8px 0">맞는 제품이 없어요 · 검색어를 줄여 보세요${q?'':''}</p>`;
 }
 (function bindExpiry(){
   const body=$('#exBody'); if(!body) return;
@@ -11236,23 +11354,30 @@ async function renderExpiry(){
   $('#exBuffer').addEventListener('change',e=>{ EX.buffer=Math.max(0,+e.target.value||0); saveOpts(); renderExpiry(); });
   $('#exWin').addEventListener('change',e=>{ EX.win=+e.target.value||90; saveOpts(); renderExpiry(); });
   $('#exReload').addEventListener('click',async()=>{ EX.lots=null; EX.err=''; SL.loaded=false; await renderExpiry(); });
+  $('#exFileBtn').addEventListener('click',()=>$('#exFile').click());
+  $('#exFile').addEventListener('change',async e=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(f) await exUpload3pl(f); });
   $('#exPasteBtn').addEventListener('click',()=>{ const p=$('#exPastePanel'); p.style.display=p.style.display==='none'?'':'none'; $('#exPasteMsg').textContent=''; });
   $('#exPasteSave').addEventListener('click',async()=>{
     const {lots,skipped}=exParseText($('#exPasteText').value);
     if(!lots.length){ $('#exPasteMsg').innerHTML='<span style="color:var(--red)">읽을 수 있는 줄이 없습니다. 유통기한 · 상품코드 · 상품명 · 수량 칸이 있는지 확인해 주세요.</span>'; return; }
     if(!confirm(`POUR스토어 재고 ${lots.length}개 로트로 공용 DB의 POUR 재고를 바꿉니다.${skipped?`\n(읽지 못한 줄 ${skipped}개는 건너뜀)`:''}`)) return;
     try{ await centralDB().collection('expiryLots').doc('pour').set({brand:'POUR스토어', source:'pourstore-pricing-dashboard', updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||'',
-        lots:lots.map(l=>({code:l.code,name:l.name,qty:l.qty,expiry:l.expiry||'',rawExpiry:l.rawExpiry||''}))});
+        lots:lots.map(l=>({code:l.code,name:l.name,qty:l.qty,expiry:l.expiry||'',rawExpiry:l.rawExpiry||''}))},{merge:true});   // merge: 직접 넣은 유통기한(manual)은 유지
       logAct('유통기한', 'POUR스토어 재고 붙여넣기', `${lots.length}개 로트`); uiToast(`POUR스토어 재고 ${lots.length}개 로트 저장됨`,'ok');
       $('#exPasteText').value=''; $('#exPastePanel').style.display='none'; EX.lots=null; await renderExpiry(); eolAutoCheck();
     }catch(e){ console.error('[expiryLots/pour] 저장 실패', e); uiToast('재고 저장 실패: '+(e.code||e.message||e),'err'); $('#exPasteMsg').innerHTML=`<span style="color:var(--red)">저장 실패: ${esc(e.code||e.message||e)}</span>`; }
   });
   body.addEventListener('input',e=>{ if(e.target.id!=='exQ') return; EX.q=e.target.value; const pos=e.target.selectionStart;
     Promise.resolve(renderExpiry()).then(()=>{ const q=$('#exQ'); if(q){ q.focus(); try{ q.setSelectionRange(pos,pos); }catch(err){} } }); });
-  body.addEventListener('change',e=>{ if(e.target.id==='exSort'){ EX.sort=e.target.value; renderExpiry(); } });
+  body.addEventListener('change',e=>{ if(e.target.id==='exSort'){ EX.sort=e.target.value; renderExpiry(); return; }
+    if(e.target.classList.contains('ex-md')) exSaveManual(e.target.dataset.code, e.target.value); });
   body.addEventListener('click',e=>{
     if(e.target.id==='exRetry'){ EX.err=''; EX.lots=null; renderExpiry(); return; }
     if(e.target.id==='exDiag'){ EX.diag=!EX.diag; renderExpiry(); return; }
+    if(e.target.id==='exSgAll'){ exLinkBulk(body._sgRows||[]); return; }
+    const sgb=e.target.closest('button[data-exsg]'); if(sgb){ const r=(body._rows||[])[+sgb.dataset.exsg]; if(r&&r.sg){ (async()=>{ const cur=String(P3PL[r.sg.k]||'').trim(); const err=await setP3plFor(r.sg.k, cur?cur+', '+r.l.code:r.l.code);
+      if(err){ uiToast(err,'err'); return; } logAct('유통기한', `3PL 재고 연결 ${r.l.code}`, r.sg.k.split('|')[1]); uiToast(`${r.l.code} → ${r.sg.k.split('|')[1]} 연결됨`,'ok'); renderExpiry(); })(); } return; }
+    const lk=e.target.closest('button[data-exlink]'); if(lk){ const r=(body._rows||[])[+lk.dataset.exlink]; if(r) exLinkOpen(r); return; }
     const bk=e.target.closest('[data-exbk]'); if(bk){ const k=bk.dataset.exbk; EX.bk=(bk.classList.contains('ex-bk')&&EX.bk===k)?'all':k; renderExpiry(); return; }
     const b=e.target.closest('button[data-exi]'); if(!b) return; const r=(body._rows||[])[+b.dataset.exi]; if(!r||!r.p) return;
     openPromoCalc(pKey(r.p), { goal:'clear', stock:r.cum });

@@ -1678,7 +1678,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28i</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28j</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1742,7 +1742,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 <!-- ═══ 로딩 오버레이 (로그인 후 Firestore 로드 중) ═══ -->
 <div id="loadingOverlay" style="display:none;position:fixed;inset:0;z-index:4800;background:rgba(255,255,255,.94);flex-direction:column;align-items:center;justify-content:center;gap:14px">
   <div style="width:38px;height:38px;border:3.5px solid #D5D9DE;border-top-color:#107C41;border-radius:50%;animation:spin .8s linear infinite"></div>
-  <p style="font-size:13px;color:#5A6572;font-weight:600">대외비 데이터를 불러오는 중…</p>
+  <p style="font-size:13px;color:#5A6572;font-weight:600">데이터 불러오는 중…</p>
 </div>
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
@@ -9836,39 +9836,42 @@ async function saveVendorPrices(){ try{ await db.collection('product-meta').doc(
 async function saveRetailPrices(){ try{ await db.collection('product-meta').doc('retail-prices').set({map:VRETAIL, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[retail-prices] 저장 실패', e.code||e); uiToast('저장 실패(retail-prices): '+(e.code||e.message||e),'err'); } }
 async function saveChannelMarkup(){ try{ await db.collection('product-meta').doc('channel-markup').set({coeff:VCOEFF, auto:VAUTO, est:VEST, ladBase:LAD_BASE, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[channel-markup] 저장 실패', e.code||e); uiToast('저장 실패(channel-markup): '+(e.code||e.message||e),'err'); } }
 async function loadVendorConfig(){
-  try{ const d=await db.collection('product-meta').doc('vendor-prices').get(); if(d.exists&&d.data().map) VBASE=d.data().map; }catch(e){ console.warn('[vendor-prices] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('retail-prices').get(); if(d.exists&&d.data().map) VRETAIL=d.data().map; }catch(e){ console.warn('[retail-prices] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('price-overrides').get(); if(d.exists&&d.data().map) POVR=d.data().map; console.log(`[price-overrides] 직접 조정 ${Object.keys(POVR).length}칸`); }catch(e){ console.warn('[price-overrides] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('price-todo').get(); if(d.exists&&d.data().map) PTODO=d.data().map; console.log(`[price-todo] 단가 미정 ${Object.keys(PTODO).length}칸`); }catch(e){ console.warn('[price-todo] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('price-fixed').get(); if(d.exists&&d.data().map) PFIX=d.data().map; console.log(`[price-fixed] 파일값 고정 ${Object.keys(PFIX).length}개 제품`); }catch(e){ console.warn('[price-fixed] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('prod-cost').get(); if(d.exists&&d.data().map) PCOST=d.data().map; console.log(`[prod-cost] 원가 수정 ${Object.keys(PCOST).length}건`); }catch(e){ console.warn('[prod-cost] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('prod-ship').get(); if(d.exists){ PSHIP=d.data().map||{}; PSHIP_APPLIED=d.data().applied||{}; } console.log(`[prod-ship] 택배비 ${Object.keys(PSHIP).length}건`); }catch(e){ console.warn('[prod-ship] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('crm-map').get(); if(d.exists&&d.data().map) CRMMAP=d.data().map; }catch(e){ console.warn('[crm-map] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('channel-markup').get(); if(d.exists){ if(d.data().coeff)VCOEFF=d.data().coeff; if(typeof d.data().auto==='boolean')VAUTO=d.data().auto; if(typeof d.data().est==='boolean')VEST=d.data().est; if(typeof d.data().ladBase==='number'&&d.data().ladBase>0&&d.data().ladBase<1)LAD_BASE=d.data().ladBase; } }catch(e){ console.warn('[channel-markup] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('cat-config').get(); if(d.exists&&Array.isArray(d.data().list)) CATCFG=d.data().list.map(c=>({key:c.key,name:c.name||c.key,l1:c.l1||'',l2:c.l2||''})); }catch(e){ console.warn('[cat-config] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('prod-order').get(); if(d.exists&&Array.isArray(d.data().list)) PORDER=d.data().list; }catch(e){ console.warn('[prod-order] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('chan-order').get(); if(d.exists&&Array.isArray(d.data().list)) CHORD=d.data().list; }catch(e){ console.warn('[chan-order] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('custom-channels').get();
+  /* 폰에서 느리던 부팅: 문서 29개를 하나씩 기다리던 것을 한꺼번에 요청(처리 순서·실패 처리는 그대로) */
+  const PM_PRE={}; const pmGet=n=>PM_PRE[n]||(PM_PRE[n]=db.collection('product-meta').doc(n).get());
+  ['vendor-prices','retail-prices','price-overrides','price-todo','price-fixed','prod-cost','prod-ship','crm-map','channel-markup','cat-config','prod-order','chan-order','custom-channels','prod-cat','pkg-set','prod-type','prod-deleted','prod-rename','prod-code','prod-3pl','prod-brand','brands','prod-status','promo-types','mfg-alias','prod-eol','promo-plans','launch-plans','chan-deleted'].forEach(n=>{ pmGet(n).catch(()=>{}); });   // 먼저 모두 출발 — 실패는 아래 각 줄에서 그대로 처리
+  try{ const d=await pmGet('vendor-prices'); if(d.exists&&d.data().map) VBASE=d.data().map; }catch(e){ console.warn('[vendor-prices] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('retail-prices'); if(d.exists&&d.data().map) VRETAIL=d.data().map; }catch(e){ console.warn('[retail-prices] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('price-overrides'); if(d.exists&&d.data().map) POVR=d.data().map; console.log(`[price-overrides] 직접 조정 ${Object.keys(POVR).length}칸`); }catch(e){ console.warn('[price-overrides] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('price-todo'); if(d.exists&&d.data().map) PTODO=d.data().map; console.log(`[price-todo] 단가 미정 ${Object.keys(PTODO).length}칸`); }catch(e){ console.warn('[price-todo] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('price-fixed'); if(d.exists&&d.data().map) PFIX=d.data().map; console.log(`[price-fixed] 파일값 고정 ${Object.keys(PFIX).length}개 제품`); }catch(e){ console.warn('[price-fixed] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('prod-cost'); if(d.exists&&d.data().map) PCOST=d.data().map; console.log(`[prod-cost] 원가 수정 ${Object.keys(PCOST).length}건`); }catch(e){ console.warn('[prod-cost] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('prod-ship'); if(d.exists){ PSHIP=d.data().map||{}; PSHIP_APPLIED=d.data().applied||{}; } console.log(`[prod-ship] 택배비 ${Object.keys(PSHIP).length}건`); }catch(e){ console.warn('[prod-ship] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('crm-map'); if(d.exists&&d.data().map) CRMMAP=d.data().map; }catch(e){ console.warn('[crm-map] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('channel-markup'); if(d.exists){ if(d.data().coeff)VCOEFF=d.data().coeff; if(typeof d.data().auto==='boolean')VAUTO=d.data().auto; if(typeof d.data().est==='boolean')VEST=d.data().est; if(typeof d.data().ladBase==='number'&&d.data().ladBase>0&&d.data().ladBase<1)LAD_BASE=d.data().ladBase; } }catch(e){ console.warn('[channel-markup] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('cat-config'); if(d.exists&&Array.isArray(d.data().list)) CATCFG=d.data().list.map(c=>({key:c.key,name:c.name||c.key,l1:c.l1||'',l2:c.l2||''})); }catch(e){ console.warn('[cat-config] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('prod-order'); if(d.exists&&Array.isArray(d.data().list)) PORDER=d.data().list; }catch(e){ console.warn('[prod-order] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('chan-order'); if(d.exists&&Array.isArray(d.data().list)) CHORD=d.data().list; }catch(e){ console.warn('[chan-order] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('custom-channels');
     if(d.exists){ const x=d.data()||{}; if(Array.isArray(x.list))CHCUSTOM=x.list; if(x.patch&&typeof x.patch==='object')CHPATCH=x.patch; }
     console.log(`[custom-channels] 추가채널 ${CHCUSTOM.length}개 · 수정분 ${Object.keys(CHPATCH).length}개`);
   }catch(e){ console.warn('[custom-channels] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('prod-cat').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PCAT=d.data().map; }catch(e){ console.warn('[prod-cat] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('pkg-set').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PKGSET=d.data().map; }catch(e){ console.warn('[pkg-set] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('prod-type').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PTYPE=d.data().map; }catch(e){ console.warn('[prod-type] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('prod-deleted').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PDEL=d.data().map; }catch(e){ console.warn('[prod-deleted] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('prod-rename').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object'){ PNAME=d.data().map; console.log(`[prod-rename] 이름 변경 ${Object.keys(PNAME).length}건`); } }catch(e){ console.warn('[prod-rename] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('prod-code').get(); PCODE=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; PCODE_RULE=(d.exists&&d.data().rule)||''; PCODE_LOADED=true; console.log(`[prod-code] 자체상품코드 ${Object.keys(PCODE).length}개`); }catch(e){ console.warn('[prod-code] 로드 실패 — 자동 부여 보류', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('prod-3pl').get(); P3PL=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-3pl] 3PL 코드 ${Object.keys(P3PL).length}개`); }catch(e){ console.warn('[prod-3pl] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('prod-brand').get(); if(d.exists){ const x=d.data()||{}; if(x.map&&typeof x.map==='object') PBRAND=x.map; if(x.gh&&typeof x.gh==='object') PGHLINK=x.gh; } console.log(`[prod-brand] 브랜드 지정 ${Object.keys(PBRAND).length}건 · 그로홈 연결 ${Object.keys(PGHLINK).length}건`); }catch(e){ console.warn('[prod-brand] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('brands').get(); BRAND_REG=(d.exists&&Array.isArray(d.data().list))?d.data().list:[]; applyBrandList(BRAND_REG); console.log(`[brands] 브랜드 ${BRAND_LIST.length}개`); }catch(e){ console.warn('[brands] 로드 실패 — 기본 2개로', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('prod-status').get(); PSTATUS=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-status] 상태 지정 ${Object.keys(PSTATUS).length}건`); }catch(e){ console.warn('[prod-status] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('promo-types').get(); if(d.exists&&Array.isArray(d.data().order)) PC_ORDER=d.data().order; }catch(e){ console.warn('[promo-types] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('mfg-alias').get(); MFG_ALIAS=(d.exists&&d.data().prod&&typeof d.data().prod==='object')?{...d.data().prod}:{}; console.log(`[mfg-alias] 제조사 가칭 ${Object.keys(MFG_ALIAS).length}건`); }catch(e){ console.warn('[mfg-alias] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('prod-eol').get(); PEOL=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-eol] 단종예정 기록 ${Object.keys(PEOL).length}건`); }catch(e){ console.warn('[prod-eol] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('prod-cat'); if(d.exists&&d.data().map&&typeof d.data().map==='object') PCAT=d.data().map; }catch(e){ console.warn('[prod-cat] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('pkg-set'); if(d.exists&&d.data().map&&typeof d.data().map==='object') PKGSET=d.data().map; }catch(e){ console.warn('[pkg-set] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('prod-type'); if(d.exists&&d.data().map&&typeof d.data().map==='object') PTYPE=d.data().map; }catch(e){ console.warn('[prod-type] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('prod-deleted'); if(d.exists&&d.data().map&&typeof d.data().map==='object') PDEL=d.data().map; }catch(e){ console.warn('[prod-deleted] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('prod-rename'); if(d.exists&&d.data().map&&typeof d.data().map==='object'){ PNAME=d.data().map; console.log(`[prod-rename] 이름 변경 ${Object.keys(PNAME).length}건`); } }catch(e){ console.warn('[prod-rename] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('prod-code'); PCODE=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; PCODE_RULE=(d.exists&&d.data().rule)||''; PCODE_LOADED=true; console.log(`[prod-code] 자체상품코드 ${Object.keys(PCODE).length}개`); }catch(e){ console.warn('[prod-code] 로드 실패 — 자동 부여 보류', e.code||e); }
+  try{ const d=await pmGet('prod-3pl'); P3PL=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-3pl] 3PL 코드 ${Object.keys(P3PL).length}개`); }catch(e){ console.warn('[prod-3pl] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('prod-brand'); if(d.exists){ const x=d.data()||{}; if(x.map&&typeof x.map==='object') PBRAND=x.map; if(x.gh&&typeof x.gh==='object') PGHLINK=x.gh; } console.log(`[prod-brand] 브랜드 지정 ${Object.keys(PBRAND).length}건 · 그로홈 연결 ${Object.keys(PGHLINK).length}건`); }catch(e){ console.warn('[prod-brand] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('brands'); BRAND_REG=(d.exists&&Array.isArray(d.data().list))?d.data().list:[]; applyBrandList(BRAND_REG); console.log(`[brands] 브랜드 ${BRAND_LIST.length}개`); }catch(e){ console.warn('[brands] 로드 실패 — 기본 2개로', e.code||e); }
+  try{ const d=await pmGet('prod-status'); PSTATUS=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-status] 상태 지정 ${Object.keys(PSTATUS).length}건`); }catch(e){ console.warn('[prod-status] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('promo-types'); if(d.exists&&Array.isArray(d.data().order)) PC_ORDER=d.data().order; }catch(e){ console.warn('[promo-types] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('mfg-alias'); MFG_ALIAS=(d.exists&&d.data().prod&&typeof d.data().prod==='object')?{...d.data().prod}:{}; console.log(`[mfg-alias] 제조사 가칭 ${Object.keys(MFG_ALIAS).length}건`); }catch(e){ console.warn('[mfg-alias] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('prod-eol'); PEOL=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-eol] 단종예정 기록 ${Object.keys(PEOL).length}건`); }catch(e){ console.warn('[prod-eol] 로드 실패', e.code||e); }
   setTimeout(()=>{ try{ eolAutoCheck(); }catch(e){ console.warn('[단종예정] 확인 실패', e); } }, 1500);
-  try{ const d=await db.collection('product-meta').doc('promo-plans').get(); PRPLAN=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[promo-plans] 프로모션 설계 ${Object.keys(PRPLAN).length}건`); }catch(e){ console.warn('[promo-plans] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('launch-plans').get(); LPLAN=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[launch-plans] 신제품 검토 ${Object.keys(LPLAN).length}건`); }catch(e){ console.warn('[launch-plans] 로드 실패', e.code||e); }
-  try{ const d=await db.collection('product-meta').doc('chan-deleted').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') CHDEL=d.data().map; }catch(e){ console.warn('[chan-deleted] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('promo-plans'); PRPLAN=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[promo-plans] 프로모션 설계 ${Object.keys(PRPLAN).length}건`); }catch(e){ console.warn('[promo-plans] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('launch-plans'); LPLAN=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[launch-plans] 신제품 검토 ${Object.keys(LPLAN).length}건`); }catch(e){ console.warn('[launch-plans] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('chan-deleted'); if(d.exists&&d.data().map&&typeof d.data().map==='object') CHDEL=d.data().map; }catch(e){ console.warn('[chan-deleted] 로드 실패', e.code||e); }
   await loadDraft();
   console.log(`[vendor] 업체단가 ${Object.keys(VBASE).length} · 정가override ${Object.keys(VRETAIL).length} · 분류 ${CATCFG.length}개 · 개정안 ${draftCount()}건(${DRAFT_META.status||'없음'})`);
 }
@@ -11982,12 +11985,15 @@ async function boot(){
     const [channels, products, config]=await Promise.all([fetchChannels(),fetchProducts(),fetchConfig()]);
     applyLoaded(channels, products, config);
     seckeyPw=(config&&config.seckey)||'';
-    await fetchMkt();                            // 마케팅 성과 데이터(허용목록 계정만)
-    try{ const pm=await db.collection('product-meta').doc('all').get(); PMETA=pm.exists?(pm.data()||{}):{}; console.log('[product-meta] '+Object.keys(PMETA).length+'개 상품 메타'); }
-    catch(e){ console.warn('[product-meta] 로드 실패:', e.code||e.message||e); }
-    await loadVendorConfig();  // 업체단가·채널 상승률
-    try{ const ps=await db.collection('products-added').get(); PADD=ps.docs.map(d=>({docId:d.id,...d.data()})).sort((a,b)=>(a.seq??0)-(b.seq??0)); console.log('[products-added] '+PADD.length+'개 공유 등록상품'); }
-    catch(e){ console.warn('[products-added] 로드 실패:', e.code||e.message||e); }
+    // 서로 기다릴 필요 없는 네 묶음을 동시에 (폰에서 부팅이 길던 문제)
+    await Promise.all([
+      fetchMkt(),                                  // 마케팅 성과 데이터(허용목록 계정만)
+      (async()=>{ try{ const pm=await db.collection('product-meta').doc('all').get(); PMETA=pm.exists?(pm.data()||{}):{}; console.log('[product-meta] '+Object.keys(PMETA).length+'개 상품 메타'); }
+        catch(e){ console.warn('[product-meta] 로드 실패:', e.code||e.message||e); } })(),
+      loadVendorConfig(),                          // 업체단가·채널 상승률
+      (async()=>{ try{ const ps=await db.collection('products-added').get(); PADD=ps.docs.map(d=>({docId:d.id,...d.data()})).sort((a,b)=>(a.seq??0)-(b.seq??0)); console.log('[products-added] '+PADD.length+'개 공유 등록상품'); }
+        catch(e){ console.warn('[products-added] 로드 실패:', e.code||e.message||e); } })(),
+    ]);
     const empty=!channels.length||!products.length;
     if(empty) console.warn('[boot] 로드된 데이터가 비어있습니다 — 시딩 여부를 확인하세요.');
     const dn=$('#dataNotice'); if(dn) dn.style.display=empty?'flex':'none';
@@ -11999,6 +12005,7 @@ async function boot(){
   appStarted=true;
   buildState();
   init();
+  { const lo=$('#loadingOverlay'); if(lo) lo.style.display='none'; }   // 표가 준비되면 바로 보여 주고, 아래 잠금해제·동기화는 뒤에서
   // 3) 마스터 무암호 자동 잠금해제: 저장키(config/seckey) 또는 초기 비밀번호로 즉시 오픈
   SEC_STORED_PW = seckeyPw||'';
   if(secAllowed){
@@ -12029,11 +12036,12 @@ async function bootTeam(){
   TEAM_MODE=true; costAllowed=false; secAllowed=false; document.body.classList.remove('cost-ok'); document.body.classList.add('team-mode');
   { const t=$('#appTitle'); if(t) t.textContent='POUR 팀 대시보드'; document.title='POUR 팀 대시보드'; }
   renderAccessDenied(false);
+  const _tPromo=db.collection('product-meta').doc('promo-types').get(), _tMkt=fetchMkt();   // 동시에 출발(폰 부팅 시간)
   try{ const d=await db.collection('team-catalog').doc('current').get(); applyTeamCatalog(d.exists?d.data():null);
     console.log(`[team-catalog] 제품 ${(TEAMCAT.products||[]).length}개 · 채널 ${(TEAMCAT.channels||[]).length}개 · ${TEAMCAT.updatedAt||'아직 없음'}`); }
   catch(e){ console.error('[team-catalog] 로드 실패', e); applyTeamCatalog(null); TEAMCAT.err=String(e.code||e.message||e); }
-  try{ const d=await db.collection('product-meta').doc('promo-types').get(); if(d.exists&&Array.isArray(d.data().order)) PC_ORDER=d.data().order; }catch(e){ console.warn('[promo-types] 로드 실패', e.code||e); }
-  await fetchMkt();
+  try{ const d=await _tPromo; if(d.exists&&Array.isArray(d.data().order)) PC_ORDER=d.data().order; }catch(e){ console.warn('[promo-types] 로드 실패', e.code||e); }
+  await _tMkt;
   if(!MOQ_TIERS.length) MOQ_TIERS=[{label:'1+',f:1,min:1,max:Infinity}];
   appStarted=true;
   buildState();
@@ -12222,7 +12230,9 @@ auth.onAuthStateChanged(async user=>{
     if(!otpUntil()) markVerified(3);   // 기존/최초 세션 → 지금부터 3일 창·1시간 세션 시작
     curUser=user;
     // 이메일 인증 상태를 최신 토큰으로 반영 (인증 링크 클릭 직후 재로그인 시)
-    try{ await user.reload(); await user.getIdToken(true); curUser=auth.currentUser; }catch(e){ console.warn('user.reload 실패:', e.code||e); }
+    // 이미 인증된 계정은 새로고침을 기다리지 않고 뒤에서(부팅이 길던 문제) · 인증 전 계정만 기다림
+    const _refresh=(async()=>{ try{ await user.reload(); await user.getIdToken(true); curUser=auth.currentUser; }catch(e){ console.warn('user.reload 실패:', e.code||e); } })();
+    if(!user.emailVerified) await _refresh;
     const who=$('#authWho'); if(who) who.textContent=(curUser&&curUser.email)||'';
     $('#authGate').style.display='none';
     $('#loadingOverlay').style.display='flex';

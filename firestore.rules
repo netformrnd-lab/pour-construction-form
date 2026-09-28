@@ -161,6 +161,7 @@ service cloud.firestore {
     // 앱 상태를 pour-os/state-<collection> 문서들로 분할 저장(+레거시 pour-os/state).
     // {doc=**} 로 state·state-* 형제 문서 및 향후 서브컬렉션까지 모두 허용.
     // ─────────────────────────────────────────────
+    // 넷폼 런칭보드(launch-board.html)도 여기 하위 pour-os/launch-board/products/{제품} 에 저장
     match /pour-os/{doc=**}         { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
@@ -168,6 +169,7 @@ service cloud.firestore {
     // 앱 상태를 sourcing-os/state 문서에 저장(+레거시 pour-os/sourcing-os-state 마이그레이션).
     // ─────────────────────────────────────────────
     match /sourcing-os/{doc=**}     { allow read, write: if true; }
+
 
     // ─────────────────────────────────────────────
     // 🔒 소싱 원가 — 관리자만 (2026-09 · 대표와 협의 후 추가)

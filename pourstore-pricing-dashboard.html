@@ -805,8 +805,9 @@ body[data-sh]:not([data-sh="sh-price"]) #fxbar,body[data-sh]:not([data-sh="sh-pr
 
 /* ── 폰: 서랍 메뉴 · 요약 카드 가로 스크롤 ── */
 #snOpen,#snClose,#snBack{display:none}
-body:has(:is(#calcPanel,#promoCalc,#costCalc).open) #calcFab{display:none}
-@media(max-width:640px){ body:has(#calcMenu.open) #calcFab{display:none} }   /* 계산기를 열면 버튼이 결과를 가리지 않게 */
+/* 계산기를 열면 버튼이 결과를 가리지 않게 — 조건 판단은 fabSync()(JS)가 body 클래스로 넣는다.
+   예전 body:has(...) 규칙은 요소 하나의 style 이 바뀔 때마다 화면 전체(1만5천 개)를 다시 계산하게 만들어 폰 스크롤이 끊겼다. */
+body.calcfab-hide #calcFab{display:none}
 @media(max-width:640px){
   #sideNav{display:flex!important;position:fixed;left:0;top:0;bottom:0;width:min(272px,84vw)!important;flex-basis:auto!important;z-index:260;transform:translateX(-105%);transition:transform .22s ease}
   body.sn-open #sideNav{transform:none}
@@ -903,11 +904,9 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 }
 #ribbon .kpi .sub,#ribbon .kpi .lb{font-size:11px}
 /* PC에서도 입력 창(행사·링크 만들기·신제품 검토)이 열려 있으면 떠 있는 버튼을 숨긴다 */
-body:has(:is(#sh-launch.on #laDetailBar:not([style*="none"]),#sh-mktpromo.on #pcDetail:not([style*="none"]) .pc-form,#sh-mktlink.on #mlMake:not([style*="none"]) .mk-step)) :is(#daiFab,#calcFab){display:none!important}
-/* 창·패널이 열려 있거나 폰에서 입력 중이면 떠 있는 버튼(💬 AI · fx 계산기)을 숨긴다 */
-body:has(:is(#addOverlay,#impOverlay,#catOverlay,#chanOverlay,#psOverlay,#expOverlay,#ghOverlay,#suOverlay,#surOverlay,#gcOverlay).on) :is(#daiFab,#calcFab){display:none!important}
+/* 창·패널이 열려 있거나 폰에서 입력 중이면 떠 있는 버튼(💬 AI · fx 계산기)을 숨긴다 (판단: fabSync) */
+body.fab-hide :is(#daiFab,#calcFab){display:none!important}
 @media(max-width:700px){
-  body:has(:is(#sh-launch #laDetailBar:not([style*="none"]),#pcDetail:not([style*="none"]) .pc-form,#mlMake:not([style*="none"]) .mk-step)) :is(#daiFab,#calcFab){display:none!important}
   body.kb-open :is(#daiFab,#calcFab){display:none!important}
   #daiFab{padding:11px 13px!important}
 }
@@ -981,7 +980,7 @@ body:has(:is(#addOverlay,#impOverlay,#catOverlay,#chanOverlay,#psOverlay,#expOve
 /* ══ 📱 폰 앱 화면 (2026-09 대표 확인): 아래 탭 바 · 한 줄 머리 · 계정 시트 · 필터 한 버튼 · 행 정보 아래 시트 ══ */
 #appTabs,#rbKpi,#rbAcct,#pzFilt,#acctSheet{display:none}
 @media(max-width:640px){
-  #appTabs{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:230;background:rgba(255,255,255,.97);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  #appTabs{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:230;background:#fff;
     border-top:1px solid #E3E6EA;padding:4px 4px calc(4px + env(safe-area-inset-bottom));box-shadow:0 -4px 16px rgba(15,23,42,.06)}
   #appTabs button{flex:1 1 0;min-width:0;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;font:inherit;font-size:11px;font-weight:700;color:#6B7580;min-height:52px}
   #appTabs button i{font-style:normal;font-size:20px;line-height:1.1}
@@ -1447,7 +1446,7 @@ body:not(.cost-ok) :is(#calcFab,#calcMenu,#calcPanel,#promoCalc,#costCalc,#dealP
 
 @media(max-width:900px){
   body.pz-fold[data-sh="sh-price"] #ribbon .kpis{display:none!important}
-  body.pz-fold #sh-price .toolrow>:not(.pz-mini):not(#rowInfo):not(.findbox){display:none!important}
+  #sh-price .toolrow.pzf>:not(.pz-mini):not(#rowInfo):not(.findbox){display:none!important}   /* body 클래스로 걸면 화면 전체 스타일을 다시 계산해 접힐 때 끊겼다 → 도구줄 자체에 pzf */
   body.pz-fold #sh-price .findbox{flex:1 1 100%}
   body.pz-fold #sh-price .findbox #q{padding:4px 8px}
   body.pz-fold #sh-price .toolrow{padding:6px 12px}
@@ -1678,7 +1677,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28j</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28k</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -4332,6 +4331,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   });
   if(costAllowed){ html+=`<tr class="addrow"><td colspan="${nCols}"><button class="gridadd" data-l1="POUR공법" data-l2="" data-l3="">＋ 새 제품 추가</button> <span style="color:var(--ink-faint);font-size:11px;margin-left:8px">· 분류(대·중·소)는 제품 추가/수정 시 태그로 지정</span></td></tr>`; }
   $('#priceGrid').innerHTML=html+'</tbody>';
+  { const th=$('#priceGrid thead'); if(th&&window.__toolh) th.style.setProperty('--toolh', window.__toolh); }   // 다시 그린 머리줄에 고정 위치 복원
   const tn=$('#twinNote'); if(tn) tn.innerHTML = twin?`<br>· <b>업체단가 = [${esc(twin.code)} ${esc(twin.name)}]</b> — 같은 값입니다. 업체단가 칸이 <b>입력</b>, ${esc(twin.name)} 칸이 <b>계산 결과</b>입니다.`:'';
   layoutFrozen();
   findApply(false); if(EDIT_ROW!=null){ const er=document.querySelector(`#priceGrid tbody tr[data-id="${EDIT_ROW}"]`); if(er) er.classList.add('row-edit'); else EDIT_ROW=null; } rowInfoRender();
@@ -4510,7 +4510,7 @@ function findStep(d){ if(!FIND.ids.length) return; FIND.i=(FIND.i+d+FIND.ids.len
 $('#q').addEventListener('input',()=>findApply(true));
 $('#q').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); findStep(e.shiftKey?-1:1); } if(e.key==='Escape'){ $('#q').value=''; findApply(false); } });
 document.addEventListener('click',e=>{ if(e.target.closest('#findNext')) findStep(1); else if(e.target.closest('#findPrev')) findStep(-1); });
-document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&(e.key==='f'||e.key==='F')&&document.body.dataset.sh==='sh-price'){ e.preventDefault(); document.body.classList.remove('pz-fold'); const q=$('#q'); q.focus(); q.select(); } });
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&(e.key==='f'||e.key==='F')&&document.body.dataset.sh==='sh-price'){ e.preventDefault(); document.body.classList.remove('pz-fold'); $$('#sh-price .toolrow').forEach(t=>t.classList.remove('pzf')); const q=$('#q'); q.focus(); q.select(); } });
 function rowSelect(id){ SEL_ROW=id==null?null:String(id); $$('#priceGrid tr.row-sel').forEach(tr=>tr.classList.remove('row-sel'));
   if(SEL_ROW!=null){ const tr=document.querySelector(`#priceGrid tbody tr[data-id="${SEL_ROW}"]`); if(tr) tr.classList.add('row-sel'); } rowInfoRender(); }
 function rowInfoRender(){
@@ -11832,13 +11832,33 @@ function refreshAll(){
   if(window.__appTabsPaint) window.__appTabsPaint();
   if(window.__appShellMode) window.__appShellMode();
 }
+/* 떠 있는 버튼(💬 AI · fx 계산기) 숨김 판단 — CSS :has() 대신 JS 로 body 클래스만 바꾼다(스크롤·입력 끊김 방지) */
+(function fabSync(){
+  const q=s=>document.querySelector(s), vis=el=>!!el&&!/none/.test(el.getAttribute('style')||'');
+  const mq640=window.matchMedia('(max-width:640px)'), mq700=window.matchMedia('(max-width:700px)');
+  const OV='#addOverlay.on,#impOverlay.on,#catOverlay.on,#chanOverlay.on,#psOverlay.on,#expOverlay.on,#ghOverlay.on,#suOverlay.on,#surOverlay.on,#gcOverlay.on';
+  const run=()=>{ const b=document.body; if(!b) return;
+    const any=mq700.matches;   // 폰(≤700): 열린 시트와 상관없이 입력 창이 보이면 숨김
+    const la=q('#laDetailBar'), pc=q('#pcDetail'), ml=q('#mlMake');
+    const form=(vis(la)&&(any||!!la.closest('#sh-launch.on')))
+      ||(vis(pc)&&!!pc.querySelector('.pc-form')&&(any||!!pc.closest('#sh-mktpromo.on')))
+      ||(vis(ml)&&!!ml.querySelector('.mk-step')&&(any||!!ml.closest('#sh-mktlink.on')));
+    const fab=form||!!q(OV);
+    const calc=!!q('#calcPanel.open,#promoCalc.open,#costCalc.open')||(mq640.matches&&!!q('#calcMenu.open'));
+    if(b.classList.contains('fab-hide')!==fab) b.classList.toggle('fab-hide',fab);
+    if(b.classList.contains('calcfab-hide')!==calc) b.classList.toggle('calcfab-hide',calc); };
+  let pend=false; const sched=()=>{ if(pend) return; pend=true; requestAnimationFrame(()=>{ pend=false; run(); }); };
+  try{ new MutationObserver(sched).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','style']}); }catch(e){ console.warn('[fabSync] 감시 실패',e); }
+  [mq640,mq700].forEach(m=>m.addEventListener&&m.addEventListener('change',sched));
+  window.__fabSync=run; run();
+})();
 /* 가격정책표 스크롤 접기 (폰·태블릿): 아래로 내리면 KPI·도구줄을 접고 표 머리줄(제품명…)만 위에 고정.
    위로 올려도 풀리지 않고 [▾ 펼치기]를 눌러야 풀린다. */
 (function pzFold(){
   const sh=$('#sh-price'); if(!sh) return;
   const mq=window.matchMedia('(max-width:900px)'); let base=0;
   const count=()=>{ const n=document.querySelectorAll('#priceGrid tbody tr[data-id]').length, q=($('#q').value||'').trim(); const el=$('#pzCount'); if(el) el.textContent=`${n}개${q&&FIND.ids.length?` · 🔍 ${FIND.i+1}/${FIND.ids.length}`:''}`; };
-  const set=on=>{ if(document.body.classList.contains('pz-fold')===on) return; document.body.classList.toggle('pz-fold',on); count(); requestAnimationFrame(syncStickyTop); };
+  const set=on=>{ if(document.body.classList.contains('pz-fold')===on) return; document.body.classList.toggle('pz-fold',on); sh.querySelectorAll('.toolrow').forEach(t=>t.classList.toggle('pzf',on)); count(); requestAnimationFrame(syncStickyTop); };
   sh.addEventListener('scroll',()=>{ if(!mq.matches||document.body.classList.contains('pz-fold')) return; if(Date.now()-(window.__pzHold||0)<400){ base=sh.scrollTop; return; } if(sh.scrollTop>base+60) set(true); },{passive:true});
   window.__pzRebase=()=>{ base=sh.scrollTop; };   // 요약줄 보정 스크롤은 접기로 치지 않음
   document.addEventListener('click',e=>{ if(e.target.closest('#pzOpen')){ set(false); base=sh.scrollTop; } });
@@ -11849,7 +11869,9 @@ function refreshAll(){
 })();
 function syncStickyTop(){
   const tr=$('#sh-price .toolrow'); if(!tr)return;
-  document.documentElement.style.setProperty('--toolh', tr.offsetHeight+'px');
+  /* 문서 전체(:root)에 넣으면 1만5천 개 요소가 모두 스타일을 다시 계산해 폰에서 스크롤이 끊겼다 → 표 머리줄에만 넣는다 */
+  const th=$('#priceGrid thead'), v=tr.offsetHeight+'px'; window.__toolh=v;
+  if(th && th.style.getPropertyValue('--toolh')!==v) th.style.setProperty('--toolh', v);
 }
 window.addEventListener('resize',syncStickyTop);
 function init(){

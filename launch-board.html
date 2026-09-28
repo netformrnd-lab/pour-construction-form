@@ -203,6 +203,30 @@
   .bigcal .cal .d.today .num{background:#111827;color:#fff;border-radius:6px;padding:1px 6px;align-self:flex-start}
   .bigcal .ev{display:block;font-size:11px;font-weight:700;border-radius:6px;padding:2px 5px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;text-align:left}
   .bigcal .dots{display:none}
+  .bcal{border:1px solid var(--line2);border-radius:12px;overflow:hidden}
+  .bc-wd{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:#F8FAFC;border-bottom:1px solid var(--line2)}
+  .bc-wd span{text-align:center;font-size:12px;font-weight:700;color:var(--muted);padding:7px 0}
+  .bc-wd .sun,.bw .bd.sun .num{color:#EF4444}
+  .bc-wd .sat,.bw .bd.sat .num{color:#3B82F6}
+  .bw{position:relative;min-height:calc(34px + var(--lanes) * 24px + 14px);min-height:max(96px, calc(34px + var(--lanes) * 24px + 14px));border-bottom:1px solid var(--line2)}
+  .bw:last-child{border-bottom:none}
+  .bw-bg{position:absolute;inset:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+  .bw .bd{border-right:1px solid var(--line2);padding:6px 7px;cursor:pointer}
+  .bw .bd:last-child{border-right:none}
+  .bw .bd:hover{background:#FAFBFD}
+  .bw .bd.out .num{opacity:.35}
+  .bw .bd.today{background:#F1F5F9}
+  .bw .bd.today .num{background:#111827;color:#fff;border-radius:6px;padding:1px 6px}
+  .bw .bd.sel{box-shadow:inset 0 0 0 2px var(--blue)}
+  .bw .num{font-size:12.5px;font-weight:800;color:var(--ink2)}
+  .bw-ev{position:absolute;left:0;right:0;top:30px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:22px;row-gap:2px;pointer-events:none}
+  .cbar{pointer-events:auto;margin:0 3px;border-radius:6px;font-size:11.5px;font-weight:800;padding:0 7px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:22px;min-width:0}
+  .cbar.cl{margin-left:0;border-top-left-radius:0;border-bottom-left-radius:0}
+  .cbar.cr{margin-right:0;border-top-right-radius:0;border-bottom-right-radius:0}
+  .cbar.done{opacity:.45;text-decoration:line-through}
+  .cbar.over{box-shadow:inset 0 0 0 1.5px var(--red)}
+  .cbar:hover{filter:brightness(.96)}
+  .bc-note{font-size:11.5px;color:var(--faint);font-weight:600;margin-top:6px}
 
   /* ── 업무 체계 ── */
   .flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:6px}
@@ -356,7 +380,12 @@
     .bigcal{padding:10px}
     .bigcal .cal .d{height:54px;padding:4px;align-items:center}
     .bigcal .ev{display:none}
-    .bigcal .dots{display:flex}
+    .wk-sec .hd small{display:none}
+    .bw-ev{top:26px;grid-auto-rows:17px}
+    .bw{min-height:max(76px, calc(28px + var(--lanes) * 19px + 10px))}
+    .bw .bd{padding:4px}
+    .bw .num{font-size:11.5px}
+    .cbar{font-size:10px;line-height:17px;padding:0 4px;margin:0 1px;border-radius:4px}
     .bigcal .cal .d .num{margin-bottom:0}
     .two{grid-template-columns:1fr}
     .pname{font-size:20px}
@@ -823,11 +852,56 @@ function viewCal(){
   const noDate = live().filter(p=>!p.launchDate).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
   return `
     <div class="h2"><h2>출시 캘린더</h2></div>
-    <div class="bigcal">${calHead()}<div class="cal">${calGrid(true)}</div>${calLegend()}${calDayList()}</div>
+    <div class="bigcal">${calHead()}${barCal()}${calLegend()}<div class="bc-note">막대 = 단계 진행 기간 (앞 단계 마감 다음 날 → 이 단계 마감일) · 흐린 막대 = 컨펌 완료 · 🚀 = 출시일</div>${calDayList()}</div>
     <div class="wk" style="margin-top:14px">
       <div class="wk-sec"><div class="hd">🚀 다가오는 출시<span class="n">${upcoming().length}</span></div>${upcoming().map(p=>{const b=brandOf(p);return `<button class="wk-row" data-open="${p.id}"><span class="bdot" style="background:${b.ac}"></span><span class="mid"><b>${esc(p.name)}</b><span>${esc(b.name)} · ${fmtDate(p.launchDate,true)}</span></span><span class="rt" style="color:${b.ac}">${dday(p.launchDate)}</span></button>`;}).join('') || '<div class="wk-none">없음</div>'}</div>
       <div class="wk-sec"><div class="hd">❔ 출시 목표일 미정<span class="n">${noDate.length}</span><small>눌러서 날짜를 정해주세요</small></div>${noDate.map(p=>{const b=brandOf(p);return `<button class="wk-row" data-open="${p.id}" data-edit-info="1"><span class="bdot" style="background:${b.ac}"></span><span class="mid"><b>${esc(p.name)}</b><span>${esc(b.name)}</span></span><span class="rt">날짜 정하기 ›</span></button>`;}).join('') || '<div class="wk-none">없음 👍</div>'}</div>
     </div>`;
+}
+
+// ── 큰 캘린더: 기간 막대 ──
+function addDay(k, n){ const d = parse(k); d.setDate(d.getDate()+n); return ymd(d); }
+// 단계 기간: 시작 = 앞 단계들 중 가장 늦은 마감 다음 날, 끝 = 이 단계 마감 (앞 단계 마감이 없으면 하루짜리)
+function calEvents(){
+  const evs = [];
+  live().forEach(p=>{
+    const b = brandOf(p); let prevMax = '';
+    STEPS.forEach(st=>{
+      const x = stg(p,st.id);
+      if (x.status==='skip' || !x.due) return;
+      const start = prevMax && prevMax < x.due ? addDay(prevMax, 1) : x.due;
+      evs.push({ p, b, sid:st.id, start, end:x.due, label:`${p.name} · ${st.name}`, done:x.status==='done', over:isOver(x) });
+      if (!prevMax || x.due > prevMax) prevMax = x.due;
+    });
+    if (p.launchDate) evs.push({ p, b, launch:true, start:p.launchDate, end:p.launchDate, label:`🚀 ${p.name} 출시` });
+  });
+  return evs;
+}
+function barCal(){
+  const y = calMonth.getFullYear(), m = calMonth.getMonth(), t = today();
+  const first = new Date(y,m,1), gs = new Date(first); gs.setDate(1 - first.getDay());
+  const evs = calEvents();
+  let html = `<div class="bc-wd">${WD.map((w,i)=>`<span class="${i===0?'sun':i===6?'sat':''}">${w}</span>`).join('')}</div>`;
+  for (let w=0; w<6; w++){
+    const ws = new Date(gs); ws.setDate(gs.getDate()+w*7);
+    if (w>=4 && ws.getMonth()!==m && ws > first) break;
+    const days = Array.from({length:7},(_,i)=>{ const d = new Date(ws); d.setDate(ws.getDate()+i); return d; });
+    const k0 = ymd(days[0]), k6 = ymd(days[6]);
+    // 이번 주에 걸친 막대 → 칸 배치 (겹치지 않게 줄 나눔)
+    const segs = evs.filter(e=>e.start<=k6 && e.end>=k0).map(e=>{
+      const a = e.start<k0 ? 0 : days.findIndex(d=>ymd(d)===e.start), z = e.end>k6 ? 6 : days.findIndex(d=>ymd(d)===e.end);
+      return { e, a, z, cutL:e.start<k0, cutR:e.end>k6 };
+    }).sort((x,y2)=> (y2.e.launch?1:0)-(x.e.launch?1:0) || x.a-y2.a || (y2.z-y2.a)-(x.z-x.a));
+    const lanes = [];
+    segs.forEach(sg=>{ let li = lanes.findIndex(end=>end < sg.a); if (li<0){ li = lanes.length; lanes.push(-1); } lanes[li] = sg.z; sg.lane = li; });
+    html += `<div class="bw" style="--lanes:${lanes.length}">
+      <div class="bw-bg">${days.map(d=>{ const k = ymd(d); return `<div class="bd ${d.getMonth()!==m?'out':''} ${k===t?'today':''} ${k===calSel?'sel':''} ${d.getDay()===0?'sun':d.getDay()===6?'sat':''}" data-day="${k}"><span class="num">${d.getDate()}</span></div>`; }).join('')}</div>
+      <div class="bw-ev">${segs.map(sg=>{ const e = sg.e;
+        const st = e.launch ? `background:${e.b.ac};color:#fff` : `background:${e.b.chip};color:${e.b.ac}`;
+        return `<button class="cbar ${e.done?'done':''} ${e.over?'over':''} ${sg.cutL?'cl':''} ${sg.cutR?'cr':''}" style="grid-column:${sg.a+1}/${sg.z+2};grid-row:${sg.lane+1};${st}" data-open="${e.p.id}" ${e.sid?`data-step="${e.sid}"`:''} title="${esc(e.label)} (${fmtShort(e.start)}~${fmtShort(e.end)})">${esc(e.label)}</button>`; }).join('')}</div>
+    </div>`;
+  }
+  return `<div class="bcal">${html}</div>`;
 }
 
 // ── 업무 체계 ──

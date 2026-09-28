@@ -340,7 +340,14 @@
   .nm-chip.out{border-style:dashed}
 
   /* ── 브랜드 로고 ── */
-  .blogo img{display:block;height:24px;width:auto;max-width:150px;object-fit:contain}
+  .blogo img{display:block;height:24px;width:auto;max-width:180px;object-fit:contain}
+  .brand-h .blogo img{height:34px}
+  .pcard .blogo img{height:30px}
+  .blogo.withname{display:inline-flex;align-items:center;gap:8px}
+  .blogo.withname .bl-name{font-size:15px;font-weight:900}
+  .blogo.withname.nologo .bl-name{display:none}
+  .brand-h .blogo.withname img{height:40px}
+  .pcard .blogo.withname img{height:34px}
   .blogo em{display:none}
   .blogo.nologo img{display:none}
   .blogo.nologo em{display:inline}
@@ -489,14 +496,15 @@ const FV = firebase.firestore.FieldValue;
 // ── 브랜드 (카드 색) ──
 const BRANDS = {
   grohome:   { logo:'launch-board-logos/grohome.png', name:'그로홈',     bm:'김송희', team:'2팀', icon:'🏡', bg:'#FFF3E8', bd:'#F8D5B4', ac:'#D9691A', chip:'#FDE3CB' },
-  pourstore: { logo:'launch-board-logos/pourstore.png', name:'POUR스토어', bm:'이란',   team:'2팀', icon:'🧱', bg:'#EEF1FB', bd:'#CBD3F0', ac:'#31428C', chip:'#DCE2F6' },
+  pourstore: { logo:'launch-board-logos/pourstore.png', logoName:true, name:'POUR스토어', bm:'이란',   team:'2팀', icon:'🧱', bg:'#EEF1FB', bd:'#CBD3F0', ac:'#31428C', chip:'#DCE2F6' },
   barasday:  { logo:'launch-board-logos/barasday.png', name:'바라스데이', bm:'김소연', team:'1팀', icon:'🌿', bg:'#F1F9E7', bd:'#CDE6AE', ac:'#4A8418', chip:'#DDF0C6' },
 };
 const BRAND_KEYS = Object.keys(BRANDS);
 // 브랜드 로고: 파일이 있으면 로고, 없으면(아직 안 올림) 이모지+이름 글자
 function brandMark(b){
   const txt = `<em>${b.icon||''} ${esc(b.name)}</em>`;
-  return b.logo ? `<span class="blogo"><img src="${b.logo}" alt="${esc(b.name)}" onerror="this.parentNode.classList.add('nologo')">${txt}</span>` : txt;
+  // 원형 배지처럼 작게 보이면 읽기 어려운 로고는 이름을 옆에 같이
+  return b.logo ? `<span class="blogo ${b.logoName?'withname':''}"><img src="${b.logo}" alt="${esc(b.name)}" onerror="this.parentNode.classList.add('nologo')">${b.logoName?`<b class="bl-name">${esc(b.name)}</b>`:''}${txt}</span>` : txt;
 }
 
 // ── 업무 단계 (01~11) · 기본 담당 ──

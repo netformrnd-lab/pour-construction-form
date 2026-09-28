@@ -565,6 +565,8 @@ const ORG = {
     { name:'CRM/CSM 담당', role:'고객응대·CS·재고 운영 · 채용 완료(알바)', board:'출시 후 CS·재고 (보드 범위 밖)' },
   ],
 };
+// 새 제품 등록 시 단계별 기본 담당 (2in1 목재용 페인트에 지정한 담당 기준)
+const DEFAULT_OWNERS = {'p01':'정하', 'p02':'정하', 'p03':'정하', 'p04':'정하', 's01':'정하', 's02':'정하', 'd01':'민지', 's03':'이우민', 'd02':'민지', 's04':'이우민', 'd03':'민지', 's05':'이우민', 's06':'김소연', 's07':'채림', 's08':'이우민', 's09':'채림', 's10':'이우민', 's11':'허지은'};
 const PEOPLE_BASE = [ORG.head.name, ...ORG.teams.flatMap(t=>t.members.filter(m=>!m.vacant).map(m=>m.name)), '이우민', '외주'];
 // 단계 담당 문구의 'BM'·'본부장'을 실명으로 (제품이 있으면 그 브랜드 BM)
 function whoFor(ph, p){
@@ -1173,7 +1175,7 @@ async function saveAdd(){
   if (!name) { $('aName').focus(); toast('제품명을 입력해주세요'); return; }
   const at = nowIso();
   const doc = { brand:addBrand, name, launchDate:$('aLaunch').disabled ? '' : ($('aLaunch').value||''), lead:'', memo:'',
-    stages:Object.fromEntries(STEPS.map(s=>[s.id,{status:'todo',owner:'',due:'',note:''}])),
+    stages:Object.fromEntries(STEPS.map(s=>[s.id,{status:'todo',owner:DEFAULT_OWNERS[s.id]||'',due:'',note:''}])),
     history:[{ at, by:who(), text:'제품 등록' }], createdAt:at, createdBy:who(), updatedAt:at, updatedBy:who(), deletedAt:null };
   try {
     const ref = await db.collection(COL).add(doc);

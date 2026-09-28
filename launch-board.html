@@ -169,6 +169,32 @@
   .wev.launch{border-left-width:0;font-weight:800}
   .wk-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:12px;color:var(--muted);font-weight:600}
 
+  /* ── 팀 구성 ── */
+  .org-head{display:flex;gap:12px;align-items:center;background:#111827;color:#fff;border-radius:16px;padding:14px 16px;margin-bottom:12px}
+  .org-head .av{width:42px;height:42px;border-radius:12px;background:#fff;color:#111827;font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .org-head b{display:block;font-size:15px}
+  .org-head span{display:block;font-size:12.5px;color:#CBD5E1;margin-top:2px}
+  .org-head em{display:block;font-style:normal;font-size:12px;color:#FDE68A;font-weight:700;margin-top:3px}
+  .teams{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .team{background:#fff;border:1px solid var(--line);border-top:4px solid;border-radius:16px;padding:12px}
+  .team .th{display:flex;align-items:baseline;gap:8px;margin:0 2px 8px;flex-wrap:wrap}
+  .team .th b{font-size:17px;font-weight:900}
+  .team .th span{font-size:12px;color:var(--muted);font-weight:700}
+  .team .tb{display:flex;flex-wrap:wrap;gap:5px;margin:0 2px 8px}
+  .team .tb span{font-size:11.5px;font-weight:800;border-radius:7px;padding:3px 8px}
+  .team.shared{margin-top:12px}
+  .shared-g{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .mem{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;padding:9px 8px;border-radius:12px}
+  .mem:hover:not([disabled]){background:#F6F8FB}
+  .mem[disabled]{cursor:default}
+  .mem.vacant{border:1.5px dashed #D1D5DB;margin-top:4px}
+  .mem .av{width:34px;height:34px;border-radius:10px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .mem .mid{flex:1;min-width:0}
+  .mem .mid b{display:block;font-size:14px;font-weight:800}
+  .mem .mid span{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:1px;line-height:1.4}
+  .mem .mid em{display:block;font-style:normal;font-size:11.5px;font-weight:800;margin-top:3px}
+  .mem .cnt{font-size:11.5px;font-weight:800;background:#F3F4F6;color:var(--ink2);border-radius:999px;padding:2px 8px;flex-shrink:0}
+
   /* ── 큰 캘린더 ── */
   .bigcal{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px}
   .bigcal .cal .d{height:92px;align-items:stretch;justify-content:flex-start;padding:6px;border:1px solid var(--line2);border-radius:10px;text-align:left}
@@ -271,13 +297,15 @@
   @media (max-width:900px){
     .wrap{grid-template-columns:minmax(0,1fr);padding-bottom:100px}
     .side{display:none}
-    .btabs{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:40;background:#fff;border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+    .btabs{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:40;background:#fff;border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
     .btabs button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:12px;font-size:11.5px;font-weight:700;color:var(--muted);position:relative}
     .btabs button .ic{font-size:20px;line-height:1.1}
     .btabs button.on{color:#111827;background:#F3F4F6}
     .btabs .cnt{position:absolute;top:2px;right:calc(50% - 22px);background:var(--red);color:#fff;font-size:10px;font-weight:800;border-radius:999px;padding:1px 5px}
     .notes{grid-template-columns:1fr}
     .wkg{grid-template-columns:1fr;gap:6px}
+    .teams{grid-template-columns:1fr}
+    .shared-g{grid-template-columns:1fr}
     .wday{min-height:0;flex-direction:row}
     .wday .dh{flex-direction:column;align-items:center;justify-content:center;gap:0;width:64px;flex-shrink:0;border-bottom:none;border-right:1px solid var(--line2)}
     .wday .evs{flex:1;min-width:0}
@@ -366,9 +394,9 @@ const FV = firebase.firestore.FieldValue;
 
 // ── 브랜드 (카드 색) ──
 const BRANDS = {
-  grohome:   { name:'그로홈',     icon:'🏡', bg:'#FFF3E8', bd:'#F8D5B4', ac:'#D9691A', chip:'#FDE3CB' },
-  pourstore: { name:'POUR스토어', icon:'🧱', bg:'#EEF1FB', bd:'#CBD3F0', ac:'#31428C', chip:'#DCE2F6' },
-  barasday:  { name:'바라스데이', icon:'🌿', bg:'#F1F9E7', bd:'#CDE6AE', ac:'#4A8418', chip:'#DDF0C6' },
+  grohome:   { name:'그로홈',     bm:'김송희', team:'2팀', icon:'🏡', bg:'#FFF3E8', bd:'#F8D5B4', ac:'#D9691A', chip:'#FDE3CB' },
+  pourstore: { name:'POUR스토어', bm:'이란',   team:'2팀', icon:'🧱', bg:'#EEF1FB', bd:'#CBD3F0', ac:'#31428C', chip:'#DCE2F6' },
+  barasday:  { name:'바라스데이', bm:'김소연', team:'1팀', icon:'🌿', bg:'#F1F9E7', bd:'#CDE6AE', ac:'#4A8418', chip:'#DDF0C6' },
 };
 const BRAND_KEYS = Object.keys(BRANDS);
 
@@ -394,7 +422,38 @@ const STEPS = [
   { id:'s11', name:'최종 검수 · 세팅',   in:'상세페이지 · 섬네일 완성본',    out:'채널 등록(세팅) 완료 = 디자인 완료' },
 ];
 const STEP_BY = Object.fromEntries(STEPS.map((s,i)=>[s.id,{...s,no:String(i+1).padStart(2,'0'),phase:PHASES.find(p=>p.steps.includes(s.id))}]));
-const PEOPLE_BASE = ['민지','채림','BM','본부장','기획1팀','기획2팀','디자이너','외주'];
+// 커머스본부 조직 (조직 개편 안내 v1 · 2026.09 · 현재 실명 배치) — board: 런칭보드에서 맡는 단계
+const ORG = {
+  head: { name:'허지은', role:'커머스본부장', desc:'G1·G2·G3 최종 승인 · 공용 인력 배분 · 1팀 전략기획 실무 참여', board:'11 최종 검수 승인' },
+  teams: [
+    { k:'1팀', stage:'시작기 · 런칭·검증', color:'#DB2777', light:'#FDF2F8', brands:['바라스데이','신규 브랜드'], members:[
+      { name:'김소연', role:'1팀 리드 · 바라스데이 BM', board:'바라스데이 01·02·06·11 · 1팀 역할(06~10)' },
+      { name:'윤정',   role:'프로마케터 (런칭) · 신규 SKU 등록', board:'11 세팅 (신규 SKU 등록)' },
+      { name:'정하',   role:'신사업지원팀 · 시장조사·소싱·샘플 구매', board:'01 샘플 구매·수령' },
+    ]},
+    { k:'2팀', stage:'안정기 · 그로홈·POUR스토어', color:'#D9691A', light:'#FFF3E8', brands:['그로홈','POUR스토어'], members:[
+      { name:'김송희', role:'2팀 리드 · 그로홈 BM', board:'그로홈 01·02·06·11' },
+      { name:'민지',   role:'커머스운영팀 (프로마케터) · MD·UX/UI·운영', board:'03~05 패키지 디자인' },
+      { name:'채림',   role:'콘텐츠프로듀서 · 숏폼·상세 이미지 촬영·편집', board:'07~10 촬영·상세·섬네일' },
+      { name:'이란',   role:'BM · POUR스토어 (국내)', board:'POUR스토어 01·02·06·11' },
+      { name:'퍼포먼스마케터', role:'공석 · 채용 예정 · CPC·메타 광고·바이럴', board:'출시 후 광고 (보드 범위 밖)', vacant:true },
+    ]},
+    { k:'3팀', stage:'확장(글로벌) · 해외 B2B·B2C', color:'#0891B2', light:'#ECFEFF', brands:['해외 B2C','해외 B2B'], members:[
+      { name:'채원', role:'3팀 리드 · 해외 B2C BM', board:'다국어 라벨·수출 요건 확인 (03~05 협업)' },
+      { name:'유림', role:'BM · 해외 B2B', board:'수출 요건·인증 확인' },
+    ]},
+  ],
+  shared: [
+    { name:'디자이너', role:'브랜드 시안·상세페이지·패키지 · 9/21 입사 예정', board:'03~05 · 08 · 10', vacant:true },
+    { name:'CRM/CSM 담당', role:'고객응대·CS·재고 운영 · 채용 완료(알바)', board:'출시 후 CS·재고 (보드 범위 밖)' },
+  ],
+};
+const PEOPLE_BASE = [ORG.head.name, ...ORG.teams.flatMap(t=>t.members.filter(m=>!m.vacant).map(m=>m.name)), '디자이너', '외주'];
+// 단계 담당 문구의 'BM'·'본부장'을 실명으로 (제품이 있으면 그 브랜드 BM)
+function whoFor(ph, p){
+  const bm = p && BRANDS[p.brand] && BRANDS[p.brand].bm;
+  return ph.who.replace('BM', bm ? 'BM '+bm : 'BM').replace('본부장', '본부장 '+ORG.head.name);
+}
 
 // ── 초기 데이터 (전달받은 그로홈 진행표 9종) — 컬렉션이 비어 있을 때 1회만 등록 ──
 const SEED = (()=>{
@@ -466,7 +525,7 @@ function live(){ return items.filter(p=>!p.deletedAt); }
 function matchQ(p){
   if (!query) return true;
   const q = query.toLowerCase();
-  const hay = [p.name, brandOf(p).name, p.lead, p.memo, ...STEPS.map(s=>stg(p,s.id).owner)].join(' ').toLowerCase();
+  const hay = [p.name, brandOf(p).name, brandOf(p).bm, p.lead, p.memo, ...STEPS.map(s=>stg(p,s.id).owner)].join(' ').toLowerCase();
   return hay.includes(q);
 }
 function sortByLaunch(a,b){
@@ -549,6 +608,7 @@ const MENU = [
   { k:'week',  ic:'🗓️', label:'주간 일정' },
   { k:'cal',   ic:'📅', label:'출시 캘린더' },
   { k:'guide', ic:'🧭', label:'업무 체계' },
+  { k:'team',  ic:'👥', label:'팀 구성' },
 ];
 function renderNav(){
   const c = counts();
@@ -557,7 +617,7 @@ function renderNav(){
     MENU.map(m=>`<button class="${view===m.k?'on':''}" data-view="${m.k}"><span class="ic">${m.ic}</span>${m.label}${badge(m.k)}</button>`).join('') +
     `<div style="border-top:1px solid var(--line2);margin:10px 0 6px"></div>` +
     `<button class="${view==='trash'?'on':''}" data-view="trash"><span class="ic">🗑️</span>휴지통${c.trash?`<span class="cnt soft">${c.trash}</span>`:''}</button>`;
-  $('btabs').innerHTML = MENU.map(m=>`<button class="${view===m.k?'on':''}" data-view="${m.k}"><span class="ic">${m.ic}</span>${m.label.replace(' · 전체 제품','')}${badge(m.k)}</button>`).join('');
+  $('btabs').innerHTML = MENU.map(m=>`<button class="${view===m.k?'on':''}" data-view="${m.k}"><span class="ic">${m.ic}</span>${m.label.replace(' · 전체 제품','').replace('출시 캘린더','캘린더')}${badge(m.k)}</button>`).join('');
 }
 
 // ── 캘린더 (미니·큰 공용) ──
@@ -611,6 +671,7 @@ function renderMain(){
   else if (view==='cal') m.innerHTML = err + viewCal();
   else if (view==='guide') m.innerHTML = err + viewGuide();
   else if (view==='trash') m.innerHTML = err + viewTrash();
+  else if (view==='team') m.innerHTML = err + viewTeam();
   else if (view==='product') {
     const p = items.find(x=>x.id===openId);
     m.innerHTML = err + (p ? viewProduct(p) : `<button class="back" data-back="">← 전체 제품</button><div class="empty">제품을 찾을 수 없어요 (삭제되었을 수 있어요)</div>`);
@@ -749,11 +810,12 @@ function viewGuide(){
       <h4 style="margin-left:0">① 앞단 · 기획1팀 + BM <span style="font-weight:600">(이 보드 이전 단계)</span></h4>
       <div class="flow">${pre.map((s,i)=>`<span>${s}</span>${i<pre.length-1?'<em>›</em>':''}`).join('')}</div>
     </div>
-    <h4 style="margin:18px 2px 10px;font-size:13px;color:var(--muted)">② 이 보드에서 관리하는 11단계 · 담당</h4>
-    <div class="phases">${PHASES.map(ph=>`<div class="ph" style="background:${ph.light};border-color:${ph.color}33"><div class="k" style="color:${ph.color}">${ph.steps.map(s=>STEP_BY[s].no).join(' · ')}</div><b>${ph.name}</b><span class="who" style="color:${ph.color}">${ph.who}</span><ol start="${Number(STEP_BY[ph.steps[0]].no)}">${ph.steps.map(s=>`<li>${STEP_BY[s].name}</li>`).join('')}</ol></div>`).join('')}</div>
+    <h4 style="margin:18px 2px 4px;font-size:13px;color:var(--muted)">② 이 보드에서 관리하는 11단계 · 담당</h4>
+    <p class="sub" style="margin-bottom:10px">BM = 브랜드별 담당 (${BRAND_KEYS.map(k=>BRANDS[k].name+' '+BRANDS[k].bm).join(' · ')}) · 사람별 역할은 <button class="btn sm" data-view="team">👥 팀 구성</button></p>
+    <div class="phases">${PHASES.map(ph=>`<div class="ph" style="background:${ph.light};border-color:${ph.color}33"><div class="k" style="color:${ph.color}">${ph.steps.map(s=>STEP_BY[s].no).join(' · ')}</div><b>${ph.name}</b><span class="who" style="color:${ph.color}">${esc(whoFor(ph))}</span><ol start="${Number(STEP_BY[ph.steps[0]].no)}">${ph.steps.map(s=>`<li>${STEP_BY[s].name}</li>`).join('')}</ol></div>`).join('')}</div>
     <h4 style="margin:22px 2px 10px;font-size:13px;color:var(--muted)">③ 단계별 인수인계 기준 (무엇을 받고, 무엇을 넘기면 완료인가)</h4>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>No</th><th>단계</th><th>담당</th><th>받는 것</th><th>완료 기준 (넘기는 것)</th></tr></thead><tbody>
-      ${STEPS.map(s=>{const st=STEP_BY[s.id];return `<tr><td class="num">${st.no}</td><td><b>${s.name}</b></td><td class="role" style="color:${st.phase.color}">${st.phase.who}</td><td>${s.in}</td><td>${s.out}</td></tr>`;}).join('')}
+      ${STEPS.map(s=>{const st=STEP_BY[s.id];return `<tr><td class="num">${st.no}</td><td><b>${s.name}</b></td><td class="role" style="color:${st.phase.color}">${esc(whoFor(st.phase))}</td><td>${s.in}</td><td>${s.out}</td></tr>`;}).join('')}
     </tbody></table></div>
     <h4 style="margin:22px 2px 10px;font-size:13px;color:var(--muted)">④ 운영 규칙</h4>
     <div class="notes">
@@ -769,6 +831,34 @@ function viewGuide(){
       <div class="note chk"><b>03~05와 06은 동시에 진행 가능</b><p>패키지 디자인(디자이너·민지)과 상세페이지 기획(1팀·BM)은 담당이 달라서 같이 진행할 수 있어요. 06을 03~05 완료까지 기다리게 하면 출시가 늦어져요.</p></div>
       <div class="note chk"><b>'디자인 완료'의 기준</b><p>11단계(BM·본부장)는 <b>상세페이지·섬네일이 판매 채널에 등록(세팅)까지 끝난 것</b>을 완료로 봐요. 파일만 완성된 상태와 구분돼요.</p></div>
     </div>`;
+}
+
+// ── 팀 구성 (커머스본부 조직 개편 v1 · 2026.09) ──
+function ownedCount(name){ return live().filter(p=>STEPS.some(s=>stg(p,s.id).owner===name) || p.lead===name || (BRANDS[p.brand]||{}).bm===name).length; }
+function person(m, color){
+  const n = m.vacant ? 0 : ownedCount(m.name);
+  return `<button class="mem ${m.vacant?'vacant':''}" ${m.vacant?'disabled':`data-person="${esc(m.name)}"`}>
+    <span class="av" style="background:${color}1A;color:${color}">${esc(m.name.slice(0,1))}</span>
+    <span class="mid"><b>${esc(m.name)}</b><span>${esc(m.role)}</span><em style="color:${color}">런칭보드 · ${esc(m.board)}</em></span>
+    ${n ? `<span class="cnt">${n}</span>` : ''}</button>`;
+}
+function viewTeam(){
+  const h = ORG.head;
+  return `
+    <div class="h2"><h2>팀 구성</h2></div>
+    <p class="sub">커머스본부 조직 개편 안내 v1 (2026.09) 기준 실제 배치예요. 팀 번호는 서열이 아니라 브랜드의 성장 단계예요. 이름을 누르면 그 사람이 맡은 제품이 보여요.</p>
+    <div class="org-head"><span class="av">${esc(h.name.slice(0,1))}</span><div><b>${esc(h.name)} · ${esc(h.role)}</b><span>${esc(h.desc)}</span><em>런칭보드 · ${esc(h.board)}</em></div></div>
+    <div class="teams">${ORG.teams.map(t=>`
+      <div class="team" style="border-top-color:${t.color}">
+        <div class="th"><b style="color:${t.color}">${t.k}</b><span>${t.stage}</span></div>
+        <div class="tb">${t.brands.map(x=>`<span style="background:${t.light};color:${t.color}">${esc(x)}</span>`).join('')}</div>
+        ${t.members.map(m=>person(m,t.color)).join('')}
+      </div>`).join('')}</div>
+    <div class="team shared" style="border-top-color:#6B7280">
+      <div class="th"><b>본부 직속 · 전 팀 공용</b><span>브랜드에 묶이지 않고 전 브랜드를 실행</span></div>
+      <div class="shared-g">${ORG.shared.map(m=>person(m,'#4B5563')).join('')}</div>
+    </div>
+    <div class="note" style="margin-top:12px"><b>협업 원칙 (조직 개편 안내 요약)</b><p>· 소유(BM)와 실행(기능 인력)을 나눠요. 실행 요청과 검수는 리드가 아니라 <strong>BM이 직접</strong> 해요.<br>· 브랜드는 1팀(시작기) → 2팀(안정기)으로 옮겨도 <strong>담당 BM이 함께 이동</strong>해요. 3팀(해외)은 별도 시장이라 별도 BM이 맡아요.<br>· 신규 아이템은 리드끼리 <strong>업체 풀(제조·소싱·패킹·인쇄)을 공유</strong>해요. 수입은 메인 발주 3팀, 샘플 단순구매는 정하(신사업지원팀).</p></div>`;
 }
 
 // ── 휴지통 ──
@@ -792,14 +882,15 @@ function viewProduct(p){
       <div class="pmeta">
         <label>🚀 출시일 <input type="date" data-pf="launchDate" value="${esc(p.launchDate)}"></label>
         ${p.launchDate ? `<span class="dd" style="color:${ddColor}">${dday(p.launchDate)}</span>` : ''}
-        <label>👤 총괄 <input data-pf="lead" value="${esc(p.lead)}" placeholder="이름" list="peopleList"></label>
+        <label>👤 총괄 <input data-pf="lead" value="${esc(p.lead)}" placeholder="${esc(b.bm||'이름')}" list="peopleList"></label>
+        ${b.bm ? `<span class="dd" style="color:${b.ac}">BM ${esc(b.bm)} · ${esc(b.team)}</span>` : ''}
       </div>
       <div class="bar"><i style="width:${pr.pct}%;background:${b.ac}"></i></div>
       <div class="pct"><span>완료 ${pr.done}/${pr.total} 단계</span><span>${pr.pct}%</span></div>
     </div>
     <div class="ck-head"><b>체크리스트</b><small>끝난 단계는 체크 · 할 일·담당·마감일은 적으면 자동 저장돼요</small></div>
     ${PHASES.map(ph=>`
-      <div class="phase-h"><span style="color:${ph.color}">●</span>${ph.name}<span class="who" style="background:${ph.light};color:${ph.color}">${ph.who}</span></div>
+      <div class="phase-h"><span style="color:${ph.color}">●</span>${ph.name}<span class="who" style="background:${ph.light};color:${ph.color}">${esc(whoFor(ph,p))}</span></div>
       <div class="ck">${ph.steps.map(sid=>ckRow(p,sid)).join('')}</div>`).join('')}
     <details class="hist-d"><summary>🕘 변경 기록 ${hist.length}건</summary>
       <div class="hist">${hist.length ? hist.map(h=>`<div><small>${fmtShort((h.at||'').slice(0,10))} ${esc(h.by)}</small>${esc(h.text)}</div>`).join('') : '<div>아직 기록이 없어요</div>'}</div></details>
@@ -809,7 +900,7 @@ function ckRow(p, sid){
   const s = stg(p,sid), st = STEP_BY[sid], done = s.status==='done', over = isOver(s);
   return `<div class="ck-row ${done?'done':''} ${over?'over':''}" id="step-${sid}">
     <label class="ck-box" title="완료 체크"><input type="checkbox" data-ck="${sid}" ${done?'checked':''} aria-label="${esc(st.name)} 완료"><span></span></label>
-    <div class="ck-name"><b>${st.no} ${st.name}</b><small>${esc(st.phase.who)}</small></div>
+    <div class="ck-name"><b>${st.no} ${st.name}</b><small>${esc(whoFor(st.phase,p))}</small></div>
     <textarea rows="1" data-sid="${sid}" data-sf="note" placeholder="해야 할 내용">${esc(s.note)}</textarea>
     <div class="ck-meta">
       <input data-sid="${sid}" data-sf="owner" value="${esc(s.owner)}" placeholder="담당" list="peopleList" aria-label="담당">
@@ -964,6 +1055,7 @@ document.addEventListener('click', e => {
   if (d.mclose!==undefined) return closeModal();
   if (d.view) { view = d.view; calSel = ''; if (d.view==='week') weekOff = 0; renderAll(); window.scrollTo({top:0}); return; }
   if (d.brand) { brandTab = d.brand; return renderMain(); }
+  if (d.person) { query = d.person; $('q').value = d.person; $('qx').classList.remove('hidden'); view = 'home'; brandTab = 'all'; renderAll(); window.scrollTo({top:0}); return; }
   if (d.wk!==undefined) { weekOff = d.wk==='0' ? 0 : weekOff + Number(d.wk); return renderMain(); }
   if (d.add!==undefined) return openAdd(d.add);
   if (d.cal) { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()+Number(d.cal), 1); calSel=''; renderMiniCal(); if(view==='cal') renderMain(); return; }

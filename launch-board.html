@@ -248,8 +248,17 @@
   .phase-h{display:flex;align-items:center;gap:8px;margin:16px 2px 8px;font-size:13px;font-weight:800;color:var(--ink2)}
   .phase-h .who{font-size:11.5px;font-weight:800;border-radius:7px;padding:3px 8px}
   .ck{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
-  .ck-row{display:grid;grid-template-columns:30px 210px minmax(0,1fr) 110px 190px;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line2);transition:background .3s}
-  .ck-row:last-child{border-bottom:none}
+  .ck-row{display:grid;grid-template-columns:30px 210px minmax(0,1fr) 110px 190px;gap:10px;align-items:center;padding:10px 14px}
+  .ck-step{border-bottom:1px solid var(--line2);transition:background .3s}
+  .ck-step:last-child{border-bottom:none}
+  .ck-step.flash{background:#FFFBEB}
+  .ck-row.sub{padding-top:0}
+  .ck-row.sub .ck-name{display:flex;justify-content:flex-end}
+  .task-del{width:30px;height:30px;border-radius:8px;color:var(--faint);font-size:18px;line-height:1}
+  .task-del:hover{background:var(--red-l);color:var(--red)}
+  .ck-add{padding:0 14px 10px calc(14px + 30px + 10px + 210px + 10px)}
+  .ck-add button{font-size:12.5px;font-weight:800;color:var(--blue);padding:6px 8px;border-radius:8px}
+  .ck-add button:hover{background:var(--blue-l)}
   .ck-row.flash{background:#FFFBEB}
   .ck-box{display:flex;align-items:center;justify-content:center;cursor:pointer;width:30px;height:30px}
   .ck-box input{position:absolute;opacity:0;width:0;height:0}
@@ -350,6 +359,9 @@
     .ck-name{grid-area:name;padding-top:4px}
     .ck-row textarea{grid-area:todo}
     .ck-meta{grid-area:meta;display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:6px}
+    .ck-row.sub{grid-template-areas:"box todo" "box meta";padding-top:0}
+    .ck-row.sub .ck-name{grid-area:box;justify-content:center;padding-top:4px}
+    .ck-add{padding:0 12px 10px 52px}
   }
   .card .body,.card .foot{display:contents}
 </style>
@@ -686,6 +698,7 @@ function renderMain(){
     const p = items.find(x=>x.id===openId);
     m.innerHTML = err + (p ? viewProduct(p) : `<button class="back" data-back="">← 전체 제품</button><div class="empty">제품을 찾을 수 없어요 (삭제되었을 수 있어요)</div>`);
     m.querySelectorAll('textarea').forEach(grow);
+    if (focusAfter) { const el = document.getElementById(focusAfter); if (el) { focusAfter = ''; el.focus(); } }
   }
   else m.innerHTML = err + viewHome();
   pendingRender = false;
@@ -718,7 +731,6 @@ function viewHome(){
   let html = `
     <div class="banner"><span>✨</span><span>샘플 수령부터 <b>디자인 완료(상세페이지·섬네일 세팅)</b>까지, 1팀·2팀·디자이너·외주가 한 화면에서 같이 봐요.</span><span class="sp"></span><button class="btn sm" data-view="guide">업무 체계 보기</button></div>
     <div class="h2"><h2>브랜드별 출시 진행</h2><span class="sp"></span><button class="btn pri" data-add="">＋ 제품 등록</button></div>
-    <p class="sub">카드를 누르면 단계별 체크리스트(할 일 · 담당 · 마감일)가 열려요.</p>
     <div class="stats">
       <div class="stat"><b>${c.total}</b><span>진행 중인 제품</span></div>
       <div class="stat"><b>${thisMonth}</b><span>이번 달 출시 예정</span></div>
@@ -752,11 +764,13 @@ function weekData(){
   const byKey = Object.fromEntries(days.map(x=>[x.key,x]));
   L.forEach(p=>{
     if (p.launchDate && byKey[p.launchDate]) byKey[p.launchDate].evs.push({ kind:'launch', p });
-    STEPS.forEach(s=>{ const x = stg(p,s.id); if (x.due && byKey[x.due] && x.status!=='skip') byKey[x.due].evs.push({ kind:'step', p, sid:s.id, x }); });
+    STEPS.forEach(s=>{ const x = stg(p,s.id); if (x.due && byKey[x.due] && x.status!=='skip') byKey[x.due].evs.push({ kind:'step', p, sid:s.id, x });
+      (x.tasks||[]).forEach(t=>{ if (t.due && byKey[t.due]) byKey[t.due].evs.push({ kind:'step', p, sid:s.id, x:{ status:x.status, owner:t.owner, due:t.due }, task:t.note }); }); });
   });
   days.forEach(dy=>dy.evs.sort((a,b)=>(a.kind==='launch'?-1:0)-(b.kind==='launch'?-1:0) || (a.x&&a.x.status==='done')-(b.x&&b.x.status==='done')));
   const over = [];
-  L.forEach(p=>STEPS.forEach(s=>{ const x = stg(p,s.id); if (isOver(x)) over.push([p,s.id,x.due]); }));
+  L.forEach(p=>STEPS.forEach(s=>{ const x = stg(p,s.id); if (isOver(x)) over.push([p,s.id,x.due]);
+    if (x.status!=='done') (x.tasks||[]).forEach(t=>{ if (t.due && t.due < today()) over.push([p,s.id,t.due]); }); }));
   over.sort((a,b)=>a[2].localeCompare(b[2]));
   return { ws, we, days, over };
 }
@@ -768,13 +782,13 @@ function viewWeek(){
     if (e.kind==='launch') return `<button class="wev launch" data-open="${e.p.id}" style="background:${b.ac};color:#fff"><b>🚀 ${esc(e.p.name)} 출시</b><span style="color:#fff;opacity:.85">${esc(b.name)}</span></button>`;
     const st = STEP_BY[e.sid], done = e.x.status==='done', over = isOver(e.x);
     return `<button class="wev ${done?'done':''} ${over?'over':''}" data-open="${e.p.id}" data-step="${e.sid}" style="background:${b.bg};border-left-color:${b.ac}">
-      <b>${done?'✓ ':''}${esc(e.p.name)}</b><span>${st.name}${e.x.owner?' · '+esc(e.x.owner):''}</span></button>`;
+      <b>${done?'✓ ':''}${esc(e.p.name)}</b><span>${st.name}${e.task?' · '+esc(e.task.split('\n')[0]):''}${e.x.owner?' · '+esc(e.x.owner):''}</span></button>`;
   };
   return `
     <div class="h2"><h2>주간 일정</h2><span class="sp"></span>
       <div class="wk-nav"><button data-wk="-1" aria-label="이전 주">‹</button><button data-wk="0">이번 주</button><button data-wk="1" aria-label="다음 주">›</button></div>
       <button class="btn" data-copy-week="">📋 주간 보고 복사</button></div>
-    <p class="sub"><b>${title}</b> · ${fmtDate(w.ws)} ~ ${fmtDate(w.we)} · 단계별 마감일과 출시일이 날짜에 표시돼요. 누르면 체크리스트가 열려요.</p>
+    <p class="sub"><b>${title}</b> · ${fmtDate(w.ws)} ~ ${fmtDate(w.we)}</p>
     ${w.over.length ? `<div class="wk-over"><b>⏰ 마감 지남 ${w.over.length}건</b>${w.over.map(([p,sid,d])=>`<button data-open="${p.id}" data-step="${sid}">${esc(p.name)} · ${STEP_BY[sid].name} (${fmtShort(d)})</button>`).join('')}</div>` : ''}
     <div class="wkg">${w.days.map((dy,i)=>`
       <div class="wday ${dy.key===t?'today':''} ${i>=5?'wkend':''}">
@@ -802,7 +816,6 @@ function viewCal(){
   const noDate = live().filter(p=>!p.launchDate).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
   return `
     <div class="h2"><h2>출시 캘린더</h2></div>
-    <p class="sub">브랜드 색으로 출시 목표일을 표시해요. 날짜를 누르면 그날 출시할 제품이 나와요.</p>
     <div class="bigcal">${calHead()}<div class="cal">${calGrid(true)}</div>${calLegend()}${calDayList()}</div>
     <div class="wk" style="margin-top:14px">
       <div class="wk-sec"><div class="hd">🚀 다가오는 출시<span class="n">${upcoming().length}</span></div>${upcoming().map(p=>{const b=brandOf(p);return `<button class="wk-row" data-open="${p.id}"><span class="bdot" style="background:${b.ac}"></span><span class="mid"><b>${esc(p.name)}</b><span>${esc(b.name)} · ${fmtDate(p.launchDate,true)}</span></span><span class="rt" style="color:${b.ac}">${dday(p.launchDate)}</span></button>`;}).join('') || '<div class="wk-none">없음</div>'}</div>
@@ -898,7 +911,7 @@ function viewProduct(p){
       <div class="bar"><i style="width:${pr.pct}%;background:${b.ac}"></i></div>
       <div class="pct"><span>완료 ${pr.done}/${pr.total} 단계</span><span>${pr.pct}%</span></div>
     </div>
-    <div class="ck-head"><b>체크리스트</b><small>끝난 단계는 체크 · 할 일·담당·마감일은 적으면 자동 저장돼요</small></div>
+    <div class="ck-head"><b>체크리스트</b></div>
     ${PHASES.map(ph=>`
       <div class="phase-h"><span style="color:${ph.color}">●</span>${ph.name}<span class="who" style="background:${ph.light};color:${ph.color}">${esc(whoFor(ph,p))}</span></div>
       <div class="ck">${ph.steps.map(sid=>ckRow(p,sid)).join('')}</div>`).join('')}
@@ -906,21 +919,37 @@ function viewProduct(p){
       <div class="hist">${hist.length ? hist.map(h=>`<div><small>${fmtShort((h.at||'').slice(0,10))} ${esc(h.by)}</small>${esc(h.text)}</div>`).join('') : '<div>아직 기록이 없어요</div>'}</div></details>
     <datalist id="peopleList">${people().map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`;
 }
+function dueCell(attr, due, tbd, tbdAttr){
+  return tbd
+    ? `<button type="button" class="due-tbd" ${tbdAttr} data-v="0" title="눌러서 날짜 정하기">📅 마감 미정</button>`
+    : `<div class="due-wrap"><input type="date" ${attr} value="${esc(due)}" aria-label="마감기한" title="마감기한"><button type="button" class="tbd-btn" ${tbdAttr} data-v="1" title="마감일 미정으로 표시">미정</button></div>`;
+}
 function ckRow(p, sid){
   const s = stg(p,sid), st = STEP_BY[sid], done = s.status==='done', over = isOver(s);
-  return `<div class="ck-row ${done?'done':''} ${over?'over':''}" id="step-${sid}">
+  const tasks = s.tasks || [];
+  return `<div class="ck-step" id="step-${sid}">
+  <div class="ck-row ${done?'done':''} ${over?'over':''}">
     <label class="ck-box" title="완료 체크"><input type="checkbox" data-ck="${sid}" ${done?'checked':''} aria-label="${esc(st.name)} 완료"><span></span></label>
-    <div class="ck-name"><b>${st.no} ${st.name}</b>
-      <div class="ck-tags"><span class="tg-own ${s.owner?'':'empty'}">👤 ${esc(s.owner || '담당 미정')}</span>${done ? `<span class="tg-ok">✓ 컨펌 완료${s.doneBy?' · '+esc(s.doneBy):''}${s.doneAt?' · '+fmtShort(s.doneAt.slice(0,10)):''}</span>` : ''}</div>
-</div>
+    <div class="ck-name"><b>${st.name}</b>
+      ${done ? `<div class="ck-tags"><span class="tg-ok">✓ 컨펌 완료${s.doneBy?' · '+esc(s.doneBy):''}${s.doneAt?' · '+fmtShort(s.doneAt.slice(0,10)):''}</span></div>` : ''}</div>
     <textarea rows="1" data-sid="${sid}" data-sf="note" placeholder="해야 할 내용">${esc(s.note)}</textarea>
     <div class="ck-meta">
       <input data-sid="${sid}" data-sf="owner" value="${esc(s.owner)}" placeholder="담당" list="peopleList" aria-label="담당">
-      ${s.dueTbd
-        ? `<button type="button" class="due-tbd" data-tbd="${sid}" data-v="0" title="눌러서 날짜 정하기">📅 마감 미정</button>`
-        : `<div class="due-wrap"><input type="date" data-sid="${sid}" data-sf="due" value="${esc(s.due)}" aria-label="마감기한" title="마감기한"><button type="button" class="tbd-btn" data-tbd="${sid}" data-v="1" title="마감일 미정으로 표시">미정</button></div>`}
+      ${dueCell(`data-sid="${sid}" data-sf="due"`, s.due, s.dueTbd, `data-tbd="${sid}"`)}
     </div>
-  </div>`;
+  </div>
+  ${tasks.map(t=>{ const k = sid+':'+t.id, tover = !done && t.due && t.due < today(); return `
+  <div class="ck-row sub ${tover?'over':''}">
+    <span class="ck-box"></span>
+    <div class="ck-name"><button type="button" class="task-del" data-tdel="${k}" title="이 줄 삭제" aria-label="이 줄 삭제">×</button></div>
+    <textarea rows="1" id="task-${t.id}" data-task="${k}" data-tf="note" placeholder="해야 할 내용">${esc(t.note)}</textarea>
+    <div class="ck-meta">
+      <input data-task="${k}" data-tf="owner" value="${esc(t.owner)}" placeholder="담당" list="peopleList" aria-label="담당">
+      ${dueCell(`data-task="${k}" data-tf="due"`, t.due, t.dueTbd, `data-ttbd="${k}"`)}
+    </div>
+  </div>`; }).join('')}
+  <div class="ck-add"><button type="button" data-tadd="${sid}">＋ 할 일 추가</button></div>
+</div>`;
 }
 function grow(t){ t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }
 
@@ -1020,6 +1049,38 @@ async function saveStepField(sid, field, value){
   if (ok) toast(field==='status' && value==='done' ? '✅ 컨펌 완료로 표시했어요' : '저장했어요');
   else renderMain();
 }
+// 추가 할 일 (단계마다 tasks[] — 할 일·담당·마감만)
+let focusAfter = '';
+async function saveTasks(sid, tasks, msg){
+  const p = items.find(x=>x.id===openId); if (!p) return false;
+  const st = STEP_BY[sid];
+  if (!me) { askName(); return false; }
+  // 화면 데이터에 먼저 반영 → 연달아 고쳐도 직전 수정이 덮어써지지 않게
+  p.stages = { ...(p.stages||{}), [sid]: { ...stg(p,sid), tasks } };
+  return writeDoc(p.id, { ['stages.'+sid+'.tasks']: tasks, ['stages.'+sid+'.updatedAt']: nowIso(), ['stages.'+sid+'.updatedBy']: who() }, `${st.name} · ${msg}`);
+}
+function curTasks(sid){ const p = items.find(x=>x.id===openId); return p ? (stg(p,sid).tasks || []).map(t=>({...t})) : []; }
+async function addTask(sid){
+  if (!me) { askName(); return; }
+  const id = Math.random().toString(36).slice(2,9);
+  const tasks = curTasks(sid); tasks.push({ id, note:'', owner:'', due:'', dueTbd:false });
+  focusAfter = 'task-'+id;
+  if (!(await saveTasks(sid, tasks, '할 일 줄 추가'))) focusAfter = '';
+}
+async function editTask(key, field, value){
+  const [sid, id] = key.split(':'); const tasks = curTasks(sid); const t = tasks.find(x=>x.id===id); if (!t) return;
+  if ((t[field] ?? '') === value) return;
+  t[field] = value; if (field==='due' && value) t.dueTbd = false; if (field==='dueTbd' && value) t.due = '';
+  const msg = field==='note' ? '할 일: ' + (value ? String(value).split('\n')[0].slice(0,40) : '지움') : field==='owner' ? '담당 ' + (value || '없음') : field==='due' ? '마감 ' + (value ? fmtShort(value) : '없음') : '마감 ' + (value ? '미정' : '날짜 정하기');
+  if (await saveTasks(sid, tasks, msg)) toast('저장했어요'); else renderMain();
+  if (field==='dueTbd' && !value) setTimeout(()=>{ const el = document.querySelector(`[data-task="${key}"][data-tf="due"]`); if (el) { el.focus(); try { el.showPicker(); } catch(e){} } }, 150);
+}
+async function delTask(key){
+  const [sid, id] = key.split(':'); const tasks = curTasks(sid); const t = tasks.find(x=>x.id===id); if (!t) return;
+  if ((t.note || t.owner || t.due) && !confirm('이 줄을 지울까요?')) return;
+  if (await saveTasks(sid, tasks.filter(x=>x.id!==id), '할 일 줄 삭제' + (t.note ? ' (' + t.note.split('\n')[0].slice(0,30) + ')' : ''))) toast('지웠어요');
+}
+
 // 마감 '미정' 켜기/끄기 (켜면 날짜는 비움)
 async function setDueTbd(sid, on){
   const p = items.find(x=>x.id===openId); if (!p) return;
@@ -1082,6 +1143,9 @@ document.addEventListener('click', e => {
   if (d.view) { view = d.view; calSel = ''; if (d.view==='week') weekOff = 0; renderAll(); window.scrollTo({top:0}); return; }
   if (d.brand) { brandTab = d.brand; return renderMain(); }
   if (d.tbd) return setDueTbd(d.tbd, d.v==='1');
+  if (d.tadd) return addTask(d.tadd);
+  if (d.tdel) return delTask(d.tdel);
+  if (d.ttbd) return editTask(d.ttbd, 'dueTbd', d.v==='1');
   if (d.person) { query = d.person; $('q').value = d.person; $('qx').classList.remove('hidden'); view = 'home'; brandTab = 'all'; renderAll(); window.scrollTo({top:0}); return; }
   if (d.wk!==undefined) { weekOff = d.wk==='0' ? 0 : weekOff + Number(d.wk); return renderMain(); }
   if (d.add!==undefined) return openAdd(d.add);
@@ -1107,9 +1171,10 @@ document.addEventListener('change', e => {
   const t = e.target, d = t.dataset;
   if (d.ck) return saveStepField(d.ck, 'status', t.checked ? 'done' : 'todo');
   if (d.sf) return saveStepField(d.sid, d.sf, t.value.trim());
+  if (d.task) return editTask(d.task, d.tf, t.value.trim());
   if (d.pf) return saveProductField(d.pf, t.value.trim());
 });
-document.addEventListener('input', e => { if (e.target.tagName==='TEXTAREA' && e.target.dataset.sf) grow(e.target); });
+document.addEventListener('input', e => { if (e.target.tagName==='TEXTAREA' && (e.target.dataset.sf || e.target.dataset.task)) grow(e.target); });
 document.addEventListener('focusin', e => { if (!me && $('main').contains(e.target) && /INPUT|TEXTAREA/.test(e.target.tagName)) { e.target.blur(); askName(); } });
 document.addEventListener('focusout', () => { setTimeout(()=>{ if (pendingRender && !typing()) renderMain(); }, 400); });
 document.addEventListener('keydown', e => {

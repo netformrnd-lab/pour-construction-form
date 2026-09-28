@@ -238,7 +238,6 @@
   .pmeta{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
   .pmeta label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--ink2)}
   .pmeta input{border:1px solid #D7DCE3;border-radius:10px;padding:0 10px;height:38px;background:#fff;outline:none;font-size:14px}
-  .pmeta input[data-pf="lead"]{width:130px}
   .pmeta .dd{font-size:13px;font-weight:800;background:#fff;border-radius:8px;padding:5px 9px}
   .pcard .bar{margin-top:14px}
   .pcard .pct{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--muted);margin-top:5px}
@@ -248,7 +247,7 @@
   .phase-h{display:flex;align-items:center;gap:8px;margin:16px 2px 8px;font-size:13px;font-weight:800;color:var(--ink2)}
   .phase-h .who{font-size:11.5px;font-weight:800;border-radius:7px;padding:3px 8px}
   .ck{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
-  .ck-row{display:grid;grid-template-columns:30px 210px minmax(0,1fr) 110px 190px;gap:10px;align-items:center;padding:10px 14px}
+  .ck-row{display:grid;grid-template-columns:96px 170px minmax(0,1fr) 110px 190px;gap:10px;align-items:center;padding:10px 14px}
   .ck-step{border-bottom:1px solid var(--line2);transition:background .3s}
   .ck-step:last-child{border-bottom:none}
   .ck-step.flash{background:#FFFBEB}
@@ -256,16 +255,23 @@
   .ck-row.sub .ck-name{display:flex;justify-content:flex-end}
   .task-del{width:30px;height:30px;border-radius:8px;color:var(--faint);font-size:18px;line-height:1}
   .task-del:hover{background:var(--red-l);color:var(--red)}
-  .ck-add{padding:0 14px 10px calc(14px + 30px + 10px + 210px + 10px)}
+  .ck-add{padding:0 14px 10px calc(14px + 96px + 10px + 170px + 10px)}
   .ck-add button{font-size:12.5px;font-weight:800;color:var(--blue);padding:6px 8px;border-radius:8px}
   .ck-add button:hover{background:var(--blue-l)}
   .ck-row.flash{background:#FFFBEB}
-  .ck-box{display:flex;align-items:center;justify-content:center;cursor:pointer;width:30px;height:30px}
-  .ck-box input{position:absolute;opacity:0;width:0;height:0}
-  .ck-box span{width:24px;height:24px;border-radius:7px;border:2px solid #CBD5E1;background:#fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:900}
-  .ck-box input:checked + span{background:var(--green);border-color:var(--green)}
-  .ck-box input:checked + span::after{content:'✓'}
-  .ck-box input:focus-visible + span{box-shadow:0 0 0 3px #BFDBFE}
+  .ck-box{display:flex;align-items:center}
+  .cf-btn{width:100%;height:36px;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;font-size:12.5px;font-weight:800;color:var(--ink2);white-space:nowrap}
+  .cf-btn:hover:not([disabled]){border-color:var(--green);color:var(--green)}
+  .cf-btn.on{background:var(--green);border-color:var(--green);color:#fff}
+  .cf-btn.off{background:#E5E7EB;border-color:#E5E7EB;color:#9CA3AF}
+  .ck-sub{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:3px}
+  .cf-who{font-size:11.5px;font-weight:800;color:var(--green)}
+  .skip-btn{font-size:11.5px;font-weight:700;color:var(--faint);padding:2px 0;text-decoration:underline;text-underline-offset:2px}
+  .skip-btn:hover{color:var(--ink2)}
+  .ck-step.skip{background:#F1F2F4}
+  .ck-step.skip .ck-name b{color:#9CA3AF;text-decoration:line-through}
+  .ck-step.skip textarea,.ck-step.skip input,.ck-step.skip .tbd-btn,.ck-step.skip .due-tbd{opacity:.45;text-decoration:line-through;background:#E5E7EB}
+  .ck-step.skip .skip-btn{color:var(--blue);text-decoration:none}
   .ck-name b{display:block;font-size:14px;font-weight:800}
   .ck-name small{display:block;font-size:11px;color:var(--faint);font-weight:600;margin-top:3px}
   .ck-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
@@ -354,14 +360,15 @@
     .bigcal .cal .d .num{margin-bottom:0}
     .two{grid-template-columns:1fr}
     .pname{font-size:20px}
-    .ck-row{grid-template-columns:30px minmax(0,1fr);grid-template-areas:"box name" "box todo" "box meta";gap:6px 10px;align-items:start;padding:12px}
+    .ck-row{grid-template-columns:minmax(0,1fr) 104px;grid-template-areas:"name box" "todo todo" "meta meta";gap:6px 10px;align-items:start;padding:12px}
     .ck-box{grid-area:box}
     .ck-name{grid-area:name;padding-top:4px}
     .ck-row textarea{grid-area:todo}
     .ck-meta{grid-area:meta;display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:6px}
-    .ck-row.sub{grid-template-areas:"box todo" "box meta";padding-top:0}
-    .ck-row.sub .ck-name{grid-area:box;justify-content:center;padding-top:4px}
-    .ck-add{padding:0 12px 10px 52px}
+    .ck-row.sub{grid-template-columns:minmax(0,1fr) 34px;grid-template-areas:"todo name" "meta meta";padding-top:0}
+    .ck-row.sub .ck-box{display:none}
+    .ck-row.sub .ck-name{grid-area:name;justify-content:center;padding-top:4px}
+    .ck-add{padding:0 12px 10px 12px}
   }
   .card .body,.card .foot{display:contents}
 </style>
@@ -765,12 +772,12 @@ function weekData(){
   L.forEach(p=>{
     if (p.launchDate && byKey[p.launchDate]) byKey[p.launchDate].evs.push({ kind:'launch', p });
     STEPS.forEach(s=>{ const x = stg(p,s.id); if (x.due && byKey[x.due] && x.status!=='skip') byKey[x.due].evs.push({ kind:'step', p, sid:s.id, x });
-      (x.tasks||[]).forEach(t=>{ if (t.due && byKey[t.due]) byKey[t.due].evs.push({ kind:'step', p, sid:s.id, x:{ status:x.status, owner:t.owner, due:t.due }, task:t.note }); }); });
+      if (x.status!=='skip') (x.tasks||[]).forEach(t=>{ if (t.due && byKey[t.due]) byKey[t.due].evs.push({ kind:'step', p, sid:s.id, x:{ status:x.status, owner:t.owner, due:t.due }, task:t.note }); }); });
   });
   days.forEach(dy=>dy.evs.sort((a,b)=>(a.kind==='launch'?-1:0)-(b.kind==='launch'?-1:0) || (a.x&&a.x.status==='done')-(b.x&&b.x.status==='done')));
   const over = [];
   L.forEach(p=>STEPS.forEach(s=>{ const x = stg(p,s.id); if (isOver(x)) over.push([p,s.id,x.due]);
-    if (x.status!=='done') (x.tasks||[]).forEach(t=>{ if (t.due && t.due < today()) over.push([p,s.id,t.due]); }); }));
+    if (x.status!=='done' && x.status!=='skip') (x.tasks||[]).forEach(t=>{ if (t.due && t.due < today()) over.push([p,s.id,t.due]); }); }));
   over.sort((a,b)=>a[2].localeCompare(b[2]));
   return { ws, we, days, over };
 }
@@ -905,7 +912,6 @@ function viewProduct(p){
       <div class="pmeta">
         <label>🚀 출시일 <input type="date" data-pf="launchDate" value="${esc(p.launchDate)}"></label>
         ${p.launchDate ? `<span class="dd" style="color:${ddColor}">${dday(p.launchDate)}</span>` : ''}
-        <label>👤 총괄 <input data-pf="lead" value="${esc(p.lead)}" placeholder="${esc(b.bm||'이름')}" list="peopleList"></label>
         ${b.bm ? `<span class="dd" style="color:${b.ac}">BM ${esc(b.bm)} · ${esc(b.team)}</span>` : ''}
       </div>
       <div class="bar"><i style="width:${pr.pct}%;background:${b.ac}"></i></div>
@@ -913,42 +919,46 @@ function viewProduct(p){
     </div>
     <div class="ck-head"><b>체크리스트</b></div>
     ${PHASES.map(ph=>`
-      <div class="phase-h"><span style="color:${ph.color}">●</span>${ph.name}<span class="who" style="background:${ph.light};color:${ph.color}">${esc(whoFor(ph,p))}</span></div>
+      <div class="phase-h"><span style="color:${ph.color}">●</span>${ph.name}</div>
       <div class="ck">${ph.steps.map(sid=>ckRow(p,sid)).join('')}</div>`).join('')}
     <details class="hist-d"><summary>🕘 변경 기록 ${hist.length}건</summary>
       <div class="hist">${hist.length ? hist.map(h=>`<div><small>${fmtShort((h.at||'').slice(0,10))} ${esc(h.by)}</small>${esc(h.text)}</div>`).join('') : '<div>아직 기록이 없어요</div>'}</div></details>
     <datalist id="peopleList">${people().map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`;
 }
-function dueCell(attr, due, tbd, tbdAttr){
+function dueCell(attr, due, tbd, tbdAttr, dis){
   return tbd
-    ? `<button type="button" class="due-tbd" ${tbdAttr} data-v="0" title="눌러서 날짜 정하기">📅 마감 미정</button>`
-    : `<div class="due-wrap"><input type="date" ${attr} value="${esc(due)}" aria-label="마감기한" title="마감기한"><button type="button" class="tbd-btn" ${tbdAttr} data-v="1" title="마감일 미정으로 표시">미정</button></div>`;
+    ? `<button type="button" class="due-tbd" ${dis||''} ${tbdAttr} data-v="0" title="눌러서 날짜 정하기">📅 마감 미정</button>`
+    : `<div class="due-wrap"><input type="${due?'date':'text'}" data-dt="1" ${attr} value="${esc(due)}" placeholder="마감기한" aria-label="마감기한" title="마감기한" ${dis||''}><button type="button" class="tbd-btn" ${dis||''} ${tbdAttr} data-v="1" title="마감일 미정으로 표시">미정</button></div>`;
 }
 function ckRow(p, sid){
-  const s = stg(p,sid), st = STEP_BY[sid], done = s.status==='done', over = isOver(s);
-  const tasks = s.tasks || [];
-  return `<div class="ck-step" id="step-${sid}">
+  const s = stg(p,sid), st = STEP_BY[sid], done = s.status==='done', skip = s.status==='skip', over = isOver(s);
+  const tasks = s.tasks || [], dis = skip ? 'disabled' : '';
+  const cf = skip ? `<button type="button" class="cf-btn off" disabled>제외</button>`
+    : done ? `<button type="button" class="cf-btn on" data-cf="${sid}" data-v="todo" title="눌러서 컨펌 취소">✓ 컨펌 완료</button>`
+    : `<button type="button" class="cf-btn" data-cf="${sid}" data-v="done">컨펌</button>`;
+  return `<div class="ck-step ${skip?'skip':''}" id="step-${sid}">
   <div class="ck-row ${done?'done':''} ${over?'over':''}">
-    <label class="ck-box" title="완료 체크"><input type="checkbox" data-ck="${sid}" ${done?'checked':''} aria-label="${esc(st.name)} 완료"><span></span></label>
+    <div class="ck-box">${cf}</div>
     <div class="ck-name"><b>${st.name}</b>
-      ${done ? `<div class="ck-tags"><span class="tg-ok">✓ 컨펌 완료${s.doneBy?' · '+esc(s.doneBy):''}${s.doneAt?' · '+fmtShort(s.doneAt.slice(0,10)):''}</span></div>` : ''}</div>
-    <textarea rows="1" data-sid="${sid}" data-sf="note" placeholder="해야 할 내용">${esc(s.note)}</textarea>
+      <div class="ck-sub">${done && (s.doneBy||s.doneAt) ? `<span class="cf-who">${esc(s.doneBy||'')}${s.doneAt?' · '+fmtShort(s.doneAt.slice(0,10)):''}</span>` : ''}
+        <button type="button" class="skip-btn" data-skip="${sid}" data-v="${skip?'0':'1'}">${skip?'↩ 되살리기':'해당 없음'}</button></div></div>
+    <textarea rows="1" data-sid="${sid}" data-sf="note" placeholder="해야 할 내용" ${dis}>${esc(s.note)}</textarea>
     <div class="ck-meta">
-      <input data-sid="${sid}" data-sf="owner" value="${esc(s.owner)}" placeholder="담당" list="peopleList" aria-label="담당">
-      ${dueCell(`data-sid="${sid}" data-sf="due"`, s.due, s.dueTbd, `data-tbd="${sid}"`)}
+      <input data-sid="${sid}" data-sf="owner" value="${esc(s.owner)}" placeholder="담당" list="peopleList" aria-label="담당" ${dis}>
+      ${dueCell(`data-sid="${sid}" data-sf="due"`, s.due, s.dueTbd, `data-tbd="${sid}"`, dis)}
     </div>
   </div>
-  ${tasks.map(t=>{ const k = sid+':'+t.id, tover = !done && t.due && t.due < today(); return `
+  ${tasks.map(t=>{ const k = sid+':'+t.id, tover = !done && !skip && t.due && t.due < today(); return `
   <div class="ck-row sub ${tover?'over':''}">
     <span class="ck-box"></span>
-    <div class="ck-name"><button type="button" class="task-del" data-tdel="${k}" title="이 줄 삭제" aria-label="이 줄 삭제">×</button></div>
-    <textarea rows="1" id="task-${t.id}" data-task="${k}" data-tf="note" placeholder="해야 할 내용">${esc(t.note)}</textarea>
+    <div class="ck-name"><button type="button" class="task-del" data-tdel="${k}" title="이 줄 삭제" aria-label="이 줄 삭제" ${dis}>×</button></div>
+    <textarea rows="1" id="task-${t.id}" data-task="${k}" data-tf="note" placeholder="해야 할 내용" ${dis}>${esc(t.note)}</textarea>
     <div class="ck-meta">
-      <input data-task="${k}" data-tf="owner" value="${esc(t.owner)}" placeholder="담당" list="peopleList" aria-label="담당">
-      ${dueCell(`data-task="${k}" data-tf="due"`, t.due, t.dueTbd, `data-ttbd="${k}"`)}
+      <input data-task="${k}" data-tf="owner" value="${esc(t.owner)}" placeholder="담당" list="peopleList" aria-label="담당" ${dis}>
+      ${dueCell(`data-task="${k}" data-tf="due"`, t.due, t.dueTbd, `data-ttbd="${k}"`, dis)}
     </div>
   </div>`; }).join('')}
-  <div class="ck-add"><button type="button" data-tadd="${sid}">＋ 할 일 추가</button></div>
+  ${skip ? '' : `<div class="ck-add"><button type="button" data-tadd="${sid}">＋ 할 일 추가</button></div>`}
 </div>`;
 }
 function grow(t){ t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }
@@ -1038,7 +1048,7 @@ async function saveStepField(sid, field, value){
   const p = items.find(x=>x.id===openId); if (!p) return;
   const prev = stg(p,sid), st = STEP_BY[sid];
   if ((prev[field]||'') === value) return;
-  const msg = field==='status' ? (value==='done' ? '컨펌 완료' : '컨펌 해제')
+  const msg = field==='status' ? (value==='done' ? '컨펌 완료' : value==='skip' ? '해당 없음' : prev.status==='skip' ? '해당 없음 해제' : '컨펌 취소')
             : field==='note' ? '할 일: ' + (value ? value.split('\n')[0].slice(0,40) : '지움')
             : field==='owner' ? '담당 ' + (value || '없음')
             : '마감 ' + (value ? fmtShort(value) : '없음');
@@ -1046,7 +1056,7 @@ async function saveStepField(sid, field, value){
   if (field==='status') { patch['stages.'+sid+'.doneBy'] = value==='done' ? who() : ''; patch['stages.'+sid+'.doneAt'] = value==='done' ? nowIso() : ''; }
   if (field==='due' && value) patch['stages.'+sid+'.dueTbd'] = false;
   const ok = await writeDoc(p.id, patch, `${st.no} ${st.name} · ${msg}`);
-  if (ok) toast(field==='status' && value==='done' ? '✅ 컨펌 완료로 표시했어요' : '저장했어요');
+  if (ok) toast(field==='status' ? (value==='done' ? '✅ 컨펌 완료' : value==='skip' ? '해당 없음으로 표시했어요' : prev.status==='skip' ? '다시 진행 단계로 돌렸어요' : '컨펌을 취소했어요') : '저장했어요');
   else renderMain();
 }
 // 추가 할 일 (단계마다 tasks[] — 할 일·담당·마감만)
@@ -1142,6 +1152,8 @@ document.addEventListener('click', e => {
   if (d.mclose!==undefined) return closeModal();
   if (d.view) { view = d.view; calSel = ''; if (d.view==='week') weekOff = 0; renderAll(); window.scrollTo({top:0}); return; }
   if (d.brand) { brandTab = d.brand; return renderMain(); }
+  if (d.cf) { if (d.v==='todo' && !confirm('컨펌을 취소할까요?')) return; return saveStepField(d.cf, 'status', d.v); }
+  if (d.skip) return saveStepField(d.skip, 'status', d.v==='1' ? 'skip' : 'todo');
   if (d.tbd) return setDueTbd(d.tbd, d.v==='1');
   if (d.tadd) return addTask(d.tadd);
   if (d.tdel) return delTask(d.tdel);
@@ -1169,13 +1181,15 @@ document.addEventListener('click', e => {
 // 체크·입력 저장: change = 체크박스·날짜는 즉시, 글자는 칸을 벗어날 때
 document.addEventListener('change', e => {
   const t = e.target, d = t.dataset;
-  if (d.ck) return saveStepField(d.ck, 'status', t.checked ? 'done' : 'todo');
   if (d.sf) return saveStepField(d.sid, d.sf, t.value.trim());
   if (d.task) return editTask(d.task, d.tf, t.value.trim());
   if (d.pf) return saveProductField(d.pf, t.value.trim());
 });
 document.addEventListener('input', e => { if (e.target.tagName==='TEXTAREA' && (e.target.dataset.sf || e.target.dataset.task)) grow(e.target); });
 document.addEventListener('focusin', e => { if (!me && $('main').contains(e.target) && /INPUT|TEXTAREA/.test(e.target.tagName)) { e.target.blur(); askName(); } });
+// 마감기한 칸: 비어 있을 땐 글자('마감기한'), 누르면 달력
+document.addEventListener('focusin', e => { const t = e.target; if (t.dataset && t.dataset.dt && t.type==='text') { t.type = 'date'; try { t.showPicker(); } catch(_){} } });
+document.addEventListener('focusout', e => { const t = e.target; if (t.dataset && t.dataset.dt && t.type==='date' && !t.value) t.type = 'text'; });
 document.addEventListener('focusout', () => { setTimeout(()=>{ if (pendingRender && !typing()) renderMain(); }, 400); });
 document.addEventListener('keydown', e => {
   if (e.key==='Escape') { if ($('modalRoot').innerHTML) { if (me) closeModal(); } else if (view==='product' && !typing()) goBack(); }

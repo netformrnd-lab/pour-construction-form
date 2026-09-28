@@ -108,22 +108,22 @@
   .brand-h .pill{font-weight:800;font-size:15px;padding:6px 12px;border-radius:10px}
   .brand-h .n{color:var(--muted);font-size:13px;font-weight:600}
   .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-  .card{border-radius:18px;border:1px solid;padding:20px 18px 18px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:transform .12s, box-shadow .12s;min-width:0}
+  .card{border-radius:16px;border:1px solid;padding:12px 14px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;transition:transform .12s, box-shadow .12s;min-width:0}
   .card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(17,24,39,.08)}
   .card .row1{display:flex;width:100%;justify-content:space-between;align-items:center;gap:8px}
   .card .bchip{font-size:11.5px;font-weight:800;padding:4px 9px;border-radius:8px;white-space:nowrap}
   .card .dday{font-size:12px;font-weight:800;padding:4px 9px;border-radius:8px;background:#fff;white-space:nowrap}
   .card .ico{width:54px;height:54px;border-radius:16px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 2px 8px rgba(17,24,39,.06);margin-top:6px}
-  .card h3{margin:8px 0 0;font-size:17px;font-weight:800;letter-spacing:-.02em;word-break:keep-all;overflow-wrap:anywhere}
+  .card h3{margin:2px 0 0;font-size:16px;font-weight:800;letter-spacing:-.02em;word-break:keep-all;overflow-wrap:anywhere}
   .card .launch{font-size:13px;color:var(--ink2);font-weight:600}
   .card .launch b{font-weight:800}
   .card .now{font-size:12.5px;color:var(--muted);font-weight:600;min-height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-  .bar{width:100%;height:7px;background:rgba(255,255,255,.9);border-radius:99px;overflow:hidden;margin-top:6px;box-shadow:inset 0 0 0 1px rgba(17,24,39,.05)}
+  .bar{width:100%;height:6px;background:rgba(255,255,255,.9);border-radius:99px;overflow:hidden;margin-top:4px;box-shadow:inset 0 0 0 1px rgba(17,24,39,.05)}
   .bar i{display:block;height:100%;border-radius:99px}
   .card .pct{font-size:11.5px;font-weight:700;color:var(--muted);width:100%;display:flex;justify-content:space-between}
   .card .warn{font-size:12px;font-weight:800;color:var(--red);background:#fff;border-radius:8px;padding:3px 8px}
   .card .go{margin-top:8px;height:38px;padding:0 16px;border-radius:999px;border:1.5px solid;font-weight:800;font-size:13px;background:#fff;display:inline-flex;align-items:center;gap:6px}
-  .add-card{border:1.5px dashed #CBD5E1;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-weight:700;min-height:120px;background:rgba(255,255,255,.5)}
+  .add-card{border:1.5px dashed #CBD5E1;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-weight:700;min-height:90px;background:rgba(255,255,255,.5)}
   .add-card:hover{border-color:#94A3B8;color:var(--ink2)}
   .add-card b{font-size:26px;font-weight:500}
   .empty{padding:40px 20px;text-align:center;color:var(--muted);font-weight:600;background:#fff;border:1px dashed var(--line);border-radius:var(--r)}
@@ -273,13 +273,7 @@
     .stats{grid-template-columns:repeat(2,1fr);gap:8px}
     .stat b{font-size:20px}
     .grid{grid-template-columns:1fr;gap:12px}
-    .card{flex-direction:row;flex-wrap:wrap;text-align:left;align-items:center;padding:14px;gap:4px 12px}
-    .card .row1{order:0}
-    .card .ico{width:44px;height:44px;font-size:22px;border-radius:13px;margin-top:4px}
-    .card .body{flex:1;min-width:0}
-    .card h3{margin:4px 0 2px;font-size:16px}
-    .card .go{display:none}
-    .card .foot{flex-basis:100%}
+    .card{text-align:left;align-items:stretch;padding:12px 14px}
     .phases{grid-template-columns:1fr}
     .bigcal{padding:10px}
     .bigcal .cal .d{height:54px;padding:4px;align-items:center}
@@ -291,7 +285,7 @@
     .sh-top h3{font-size:19px}
     .step-note{padding-left:14px}
   }
-  @media (min-width:701px){ .card .body{display:contents} .card .foot{display:contents} }
+  .card .body,.card .foot{display:contents}
 </style>
 </head>
 <body>
@@ -614,14 +608,13 @@ function card(p){
   let nowTxt = pr.pct===100 ? '🎉 디자인 완료' : '';
   if (ns && pr.pct!==100){
     const o = stg(p,ns.s.id).owner;
-    nowTxt = (ns.kind==='now' ? '지금 · ' : '다음 · ') + STEP_BY[ns.s.id].no + ' ' + ns.s.name + (o ? ' · ' + o : '');
+    nowTxt = (ns.kind==='now' ? '지금 · ' : '다음 · ') + ns.s.name + (o ? ' · ' + o : '');
   }
   return `<div class="card" data-open="${p.id}" role="button" tabindex="0" style="background:${b.bg};border-color:${b.bd}">
     <div class="row1"><span class="bchip" style="background:${b.chip};color:${b.ac}">${esc(b.name)}</span><span class="dday" style="color:${ddColor}">${dd || '출시일 미정'}</span></div>
-    <div class="ico">${b.icon}</div>
     <div class="body">
       <h3>${esc(p.name)}</h3>
-      <div class="launch">출시 목표 <b>${p.launchDate ? fmtDate(p.launchDate,true) : '미정'}</b></div>
+      <div class="launch">출시 <b>${p.launchDate ? fmtDate(p.launchDate,true) : '미정'}</b></div>
     </div>
     <div class="foot">
       <div class="bar"><i style="width:${pr.pct}%;background:${b.ac}"></i></div>
@@ -629,7 +622,6 @@ function card(p){
       <div class="now">${esc(nowTxt)}</div>
       ${ov.length ? `<span class="warn">⏰ 마감 지남 ${ov.length}건</span>` : ''}
     </div>
-    <span class="go" style="border-color:${b.ac};color:${b.ac}">진행 보기 →</span>
   </div>`;
 }
 function viewHome(){

@@ -894,12 +894,35 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 /* PC에서도 입력 창(행사·링크 만들기·신제품 검토)이 열려 있으면 떠 있는 버튼을 숨긴다 */
 body:has(:is(#sh-launch.on #laDetailBar:not([style*="none"]),#sh-mktpromo.on #pcDetail:not([style*="none"]) .pc-form,#sh-mktlink.on #mlMake:not([style*="none"]) .mk-step)) :is(#daiFab,#calcFab){display:none!important}
 /* 창·패널이 열려 있거나 폰에서 입력 중이면 떠 있는 버튼(💬 AI · fx 계산기)을 숨긴다 */
-body:has(:is(#addOverlay,#impOverlay,#catOverlay,#chanOverlay,#psOverlay,#expOverlay,#ghOverlay,#suOverlay,#surOverlay).on) :is(#daiFab,#calcFab){display:none!important}
+body:has(:is(#addOverlay,#impOverlay,#catOverlay,#chanOverlay,#psOverlay,#expOverlay,#ghOverlay,#suOverlay,#surOverlay,#gcOverlay).on) :is(#daiFab,#calcFab){display:none!important}
 @media(max-width:700px){
   body:has(:is(#sh-launch #laDetailBar:not([style*="none"]),#pcDetail:not([style*="none"]) .pc-form,#mlMake:not([style*="none"]) .mk-step)) :is(#daiFab,#calcFab){display:none!important}
   body.kb-open :is(#daiFab,#calcFab){display:none!important}
   #daiFab{padding:11px 13px!important}
 }
+/* 그로홈 원가 1회 적용 카드 */
+.gc-card{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:10px 14px;border:1px solid #BFDBFE;background:#EFF6FF;border-radius:10px;font-size:13px;color:#1E3A8A}
+.gc-card[hidden]{display:none}
+.gc-card small{display:block;color:#475569;font-size:11.5px;margin-top:2px}
+.gc-card .gc-act{display:flex;gap:6px;flex:0 0 auto}
+.gc-card .gc-go{background:#2563EB;color:#fff;border-color:#2563EB;font-weight:700}
+.gc-tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:560px}
+.gc-tbl th,.gc-tbl td{padding:8px 10px;border-bottom:1px solid var(--xl-grid);text-align:left;vertical-align:top}
+.gc-tbl th{background:#F8FAFC;font-size:11.5px;color:var(--ink-soft);position:sticky;top:0}
+.gc-tbl td.num,.gc-tbl th.num{text-align:right;white-space:nowrap}
+.gc-tbl tr.gc-miss td{background:#FEF2F2}
+.gc-tbl select{max-width:100%;min-height:36px;font-size:12.5px}
+#gcOverlay .imp-head button{min-width:40px;min-height:40px;border:0;background:none;font-size:18px;cursor:pointer;color:var(--ink-soft)}
+.gc-tbl input[type=checkbox]{width:20px;height:20px}
+.gc-guess{color:#B45309;font-size:11px;font-weight:700;margin-top:2px}
+@media(max-width:640px){.gc-card{flex-direction:column;align-items:stretch}.gc-card .gc-act .tbtn{flex:1;min-height:40px}
+  .gc-tbl{min-width:0}.gc-tbl thead{display:none}
+  .gc-tbl tr{display:grid;grid-template-columns:34px 1fr;column-gap:10px;padding:10px 12px;border-bottom:1px solid var(--xl-grid)}
+  .gc-tbl td{border:0;padding:2px 0}.gc-tbl td:first-child{grid-row:1 / span 4;padding-top:2px}
+  .gc-tbl td.num{text-align:left;white-space:normal}.gc-tbl .gc-x{font-weight:700;font-size:13.5px}
+  .gc-tbl td[data-l]::before{content:attr(data-l);display:inline-block;min-width:56px;color:var(--ink-soft);font-size:11.5px;font-weight:600}
+  .gc-tbl td[data-l="대시보드"]{display:flex;gap:4px;align-items:flex-start}.gc-tbl td[data-l="대시보드"]>.gc-tg{flex:1;min-width:0}.gc-tbl td[data-l="대시보드"] select{width:100%}
+  #gcOverlay .imp-tablewrap{max-height:none}}
 /* AI 비서 */
 #daiFab{position:fixed;right:20px;bottom:108px;z-index:100;background:#1D4ED8;color:#fff;border:0;border-radius:26px;padding:12px 18px;font-size:14px;font-weight:800;box-shadow:0 6px 18px rgba(29,78,216,.35);cursor:pointer}
 body:not(.cost-ok) #daiFab{bottom:52px}
@@ -1524,7 +1547,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28b</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28c</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1683,6 +1706,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 
   <!-- ── Sheet 2: 가격정책표 ── -->
   <section class="sheet on" id="sh-price">
+    <div id="gcCard" class="gc-card" hidden></div>
     <div class="toolrow">
       <div class="pz-mini"><b>가격정책표</b><span id="pzCount"></span><button type="button" class="tbtn" id="pzOpen">▾ 펼치기</button></div>
       <span class="ttl">가격정책표</span>
@@ -2563,6 +2587,21 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 </div>
 
 <!-- ═══ 📥 판매 엑셀 올리기 ═══ -->
+<div id="gcOverlay" class="su-ov">
+  <div class="imp-panel" role="dialog" aria-label="그로홈 원가·택배비 적용">
+    <div class="imp-head"><span>📦 그로홈 원가·택배비 적용 <span style="font-size:11px;color:var(--ink-faint);font-weight:400">· 2026-09-28 원가 엑셀</span></span><button type="button" data-gc="close" aria-label="닫기">✕</button></div>
+    <div class="imp-body">
+      <p class="footnote" style="margin:0 0 10px">원가는 <b>택배비를 뺀 값</b>(페인트 = 단가+국제배송+관세, 툴스 프로 = 총 원가), 택배비는 <b>따로</b> 넣어요(페인트 2,600원 · 툴스 프로 2,500원). 마진은 판매가 − 원가 − 택배비로 계산돼요. 지금 값은 백업돼서 나중에 되돌릴 수 있어요.</p>
+      <div id="gcSum" class="footnote" style="margin:0 0 8px"></div>
+      <div class="imp-tablewrap"><table id="gcTable" class="gc-tbl"></table></div>
+      <div id="gcStatus" class="footnote" style="margin-top:8px"></div>
+    </div>
+    <div class="imp-foot">
+      <span class="footnote" style="margin:0">1L 페인트 4종은 엑셀에 원가가 없어 넣지 않아요</span>
+      <div style="display:flex;gap:8px"><button type="button" class="tbtn" data-gc="close">취소</button><button type="button" id="gcApply" class="tbtn" data-gc="apply" style="background:var(--xl-green);color:#fff;border-color:var(--xl-green);font-weight:700" disabled>✔ 저장</button></div>
+    </div>
+  </div>
+</div>
 <div id="suOverlay" class="su-ov">
   <div class="imp-panel">
     <div class="imp-head"><span>📥 판매 엑셀 올리기 <span style="font-size:11px;color:var(--ink-faint);font-weight:400">· 사방넷·스마트스토어·쿠팡·자사몰 · 자체상품코드로 스토어/그로홈 나눔</span></span><button id="suClose" aria-label="닫기">✕</button></div>
@@ -2656,6 +2695,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
         <div class="fld" id="adLaunchFld"><label>상태</label><select id="adLaunch"><option value="출시">출시 (바로 판매)</option><option value="출시준비">출시준비 (검토 후 출시)</option></select></div>
         <div class="fld" id="adConceptFld"><label>컨셉 <span style="color:var(--ink-faint)">파생 기준 · 선택</span></label><input id="adConcept" placeholder="예: 옥상방수 세트" autocomplete="off"></div>
         <div class="fld" id="adCostFld"><label>매입원가 (원) <span style="color:var(--ink-faint)">대외비</span></label><input type="number" id="adCost" placeholder="예: 60000"></div>
+        <div class="fld" id="adShipFld"><label>🚚 개당 택배비 (원) <span style="color:var(--ink-faint)">마진에서 차감 · 없으면 비움</span></label><input type="number" id="adShip" placeholder="예: 2600"></div>
         <div class="fld" id="adMfgFld"><label>제조사 <span style="color:var(--ink-faint)">대외비</span></label><input id="adMfg" list="mfgList" placeholder="선택/입력" autocomplete="off"></div>
         <div id="adSetFld" style="display:none;grid-column:1/-1">
           <label style="display:block;font-size:11px;color:var(--ink-soft);margin-bottom:5px;font-weight:600">구성 단품 <span style="color:var(--ink-faint);font-weight:400">· 단품을 골라 담으면 원가·판매가가 자동 합산됩니다</span></label>
@@ -3934,8 +3974,8 @@ function renderRibbon(){
 }
 function renderDash(){
   const alerts=detectAlerts(), rUid=retailUid(), dc=chBy('dealer');
-  const rated=P.filter(p=>p.cat!=='패키지'&&!isDeletedProd(p)&&mrate(gp(p,rUid),p.cost)!=null)
-               .map(p=>({p,r:mrate(gp(p,rUid),p.cost),m:margin(gp(p,rUid),p.cost)}));
+  const rated=P.filter(p=>p.cat!=='패키지'&&!isDeletedProd(p)&&mrate(gp(p,rUid),mCost(p))!=null)
+               .map(p=>({p,r:mrate(gp(p,rUid),mCost(p)),m:margin(gp(p,rUid),mCost(p))}));
   rated.sort((a,b)=>b.r-a.r);
   const best=rated[0], worst=rated[rated.length-1];
   $('#dashCards').innerHTML=[
@@ -3970,7 +4010,7 @@ function cellDisplay(p,uid){
   const pr=effPrice(p,uid);                             // 패키지는 구성 단품 채널가 합
   if(pr==null)return'—';
   if(!costVisible())return won(pr);                     // 일반계정 또는 '원가·제조사 접기' 상태: 판매가만
-  const cost=effCost(p);
+  const cost=mCost(p);                                  // 택배비를 넣은 제품은 원가+택배비로 마진 계산
   const m=(pr==null||cost==null)?null:pr-cost;
   const r=(m==null||!pr)?null:m/pr;
   if(viewMode==='margin')return m==null?won(pr)+'<span class="mrate">원가?</span>':won(m);
@@ -4082,7 +4122,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
     if(L2!==lastL2){ lastL2=L2; lastL3=null; html+=`<tr class="catrow l2"><td colspan="${nCols}"><span class="catlabel">▸ ${esc(L2||'중분류 미지정')}${L3?'':catAddBtn(L1,L2,'')}</span></td></tr>`; }
     if(L3!==lastL3){ lastL3=L3; if(L3) html+=`<tr class="catrow"><td colspan="${nCols}"><span class="catlabel">■ ${esc(L3)}${catAddBtn(L1,L2,L3)}</span></td></tr>`; }
     no++;
-    const pkg=isPackage(p), pcost=effCost(p);
+    const pkg=isPackage(p), pcost=mCost(p), pship=shipOf(p);   // pcost = 마진용(원가+택배비)
     const tdPrice=priceCols.map(pc=>{
       if(pc.t==='vbase'){
         const k=pKey(p), val=pkg?pkgVbase(p):effVbase(k), isDraft=!pkg&&PREVIEW&&(k in DVBASE);
@@ -4130,7 +4170,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
           + (empty?` <span style="color:#B45309;font-size:10px;font-weight:700" title="구성 단품(${comps.map(c=>compLabel(c.prod)).join(', ')})에 업체단가·정가가 없어 합산할 값이 없습니다">값없음 · 구성단품 입력필요</span>`:'');
       })():''}</td>
       ${showSup?`<td class="frz frz-sup dim${lastFrz==='sup'?' frz-edge':''}" title="${unlocked?esc(p.mgr||''):''}">${unlocked?esc(p.sup||'—'):'🔒'}</td>`:''}
-      ${showCost?`<td class="frz frz-cost num cost${lastFrz==='cost'?' frz-edge':''}" title="${pkg?'구성 단품 원가 합':"원가는 '제품 수정'에서"}">${won(pcost)}${pkg?'<span class="mrate">합산</span>':''}</td>`:''}
+      ${showCost?`<td class="frz frz-cost num cost${lastFrz==='cost'?' frz-edge':''}" title="${pkg?'구성 단품 원가 합':"원가는 '제품 수정'에서"}${pship?' · 마진은 택배비 '+won(pship)+'원까지 빼고 계산':''}">${won(effCost(p))}${pkg?'<span class="mrate">합산</span>':''}${pship?`<span class="mrate">🚚 +${won(pship)}</span>`:''}</td>`:''}
       ${tdPrice}
     </tr>`;
   });
@@ -4167,16 +4207,17 @@ function showSplit(p,uid){
   if(!costAllowed){ box.classList.remove('on'); return; }   // 일반계정: 원가·마진 배분 숨김
   const c=chByUid(uid), rUid=retailUid();
   const pr=gp(p,uid), retail=gp(p,rUid);
-  if(pr==null||p.cost==null){ box.classList.remove('on'); return; }
-  const pm=pr-p.cost;
+  const cst=mCost(p), shp=shipOf(p);
+  if(pr==null||cst==null){ box.classList.remove('on'); return; }
+  const pm=pr-cst;
   const isRetail=uid===rUid;
   const cm=(isRetail||retail==null)?null:retail-pr;
   const base=(retail!=null&&!isRetail)?retail:pr;
-  const cw=Math.max(0,Math.min(100,p.cost/base*100));
+  const cw=Math.max(0,Math.min(100,cst/base*100));
   const pw=Math.max(0,Math.min(100-cw,pm/base*100));
   const kw=Math.max(0,100-cw-pw);
   box.innerHTML=`
-    <span class="who"><span class="sw" style="background:#B7BEC7"></span>매입원가 <b>${wonU(p.cost)}</b>${secAllowed?` (${unlocked?esc(p.sup||'공급업체 미지정'):'공급업체 🔒'})`:''}</span>
+    <span class="who"><span class="sw" style="background:#B7BEC7"></span>매입원가 <b>${wonU(effCost(p))}</b>${shp?` + 택배비 <b>${wonU(shp)}</b>`:''}${secAllowed?` (${unlocked?esc(p.sup||'공급업체 미지정'):'공급업체 🔒'})`:''}</span>
     <span class="who"><span class="sw" style="background:var(--xl-green)"></span><b style="color:var(--xl-green-dark)">POUR스토어 마진</b>
       <b class="${pm<0?'neg':''}" style="color:${pm<0?'var(--red)':'inherit'}">${wonU(pm)}</b> · ${pct(pr?pm/pr:null)}
       <span style="color:var(--ink-faint)">(공급가 대비)</span></span>
@@ -4206,15 +4247,15 @@ document.addEventListener('click',e=>{
     $('#fxExpr').innerHTML=`업체단가 = <b>${wonU(effVbase(pKey(p)))}</b>${(PREVIEW && (pKey(p) in DVBASE))?' <span style="color:var(--amber)">(개정안 미리보기 · 승인 전)</span>':''} <span style="color:var(--ink-faint)">· 채널가 계산 기준(가장 저렴)</span>`;
     $('#fxSplit').classList.remove('on');
   }else{
-    const uid=f.slice(1), c=chByUid(uid), pr=gp(p,uid), m=margin(pr,p.cost), r=mrate(pr,p.cost);
+    const uid=f.slice(1), c=chByUid(uid), pr=gp(p,uid), cst=mCost(p), shp=shipOf(p), m=margin(pr,cst), r=mrate(pr,cst);
     $('#fxRef').textContent=p.name+' · '+(c?c.code:'');
     if(!costAllowed){                                      // 일반계정: 판매가만
       $('#fxExpr').innerHTML = pr==null ? '가격 미등록' : `판매가 <b>${wonU(pr)}</b>`;
       $('#fxSplit').classList.remove('on');
     }else{
       $('#fxExpr').innerHTML = pr==null ? '가격 미등록 — 더블클릭하여 입력'
-        : p.cost==null ? `<b>${wonU(pr)}</b> (매입원가 미등록 → 마진 계산 불가)`
-        : `= ${won(pr)} − ${won(p.cost)} → <b style="color:var(--xl-green-dark)">POUR스토어 마진</b> <span class="${m<0?'neg':'pos'}">${wonU(m)}</span> · <span class="${m<0?'neg':'pos'}">${pct(r)}</span>`;
+        : cst==null ? `<b>${wonU(pr)}</b> (매입원가 미등록 → 마진 계산 불가)`
+        : `= ${won(pr)} − ${won(effCost(p))}${shp?` − 택배 ${won(shp)}`:''} → <b style="color:var(--xl-green-dark)">POUR스토어 마진</b> <span class="${m<0?'neg':'pos'}">${wonU(m)}</span> · <span class="${m<0?'neg':'pos'}">${pct(r)}</span>`;
       showSplit(p,uid);
     }
   }
@@ -4326,7 +4367,7 @@ function rowInfoPaint(el){
   const p=SEL_ROW!=null?P.find(x=>String(x.id)===SEL_ROW):null;
   if(!p||isDeletedProd(p)){ el.hidden=true; el.innerHTML=''; return; }
   const tr=document.querySelector(`#priceGrid tbody tr[data-id="${SEL_ROW}"]`); if(tr) tr.classList.add('row-sel');
-  const cost=effCost(p), cols=window.__pvCols||[], pkg=isPackage(p);
+  const cost=mCost(p), cols=window.__pvCols||[], pkg=isPackage(p);
   const chip=c=>{ const v=c.vb?(pkg?pkgVbase(p):effVbase(pKey(p))):effPrice(p,c.uid);
     const r=(costAllowed&&v!=null&&cost!=null&&v>0)?(v-cost)/v:null;
     return `<span class="ri-c${c.retail?' rt':''}"><i>${c.code?esc(c.code)+' ':''}${esc(c.lb)}</i><b>${v==null?'—':won(v)}</b>${r!=null?`<em class="${r<0?'neg':''}">${pct(r)}</em>`:''}</span>`; };
@@ -4395,7 +4436,7 @@ function exportAll(){
   cols.forEach(c=>{ if(!pcs.some(x=>x.c&&x.c.uid===c.uid)) pcs.push({c}); });
   if(!pcs.some(x=>x.v)) pcs.unshift({v:true});
   const vbOf=p=>{ const v=isPackage(p)?pkgVbase(p):effVbase(pKey(p)); return v==null?'':v; };   // 미정·미입력은 빈칸
-  const head=['대분류','중분류','소분류','제품명','규격',...(unlocked?['공급업체','담당자']:[]),...(costAllowed?['매입원가']:[]),...pcs.map(x=>x.v?`[${vbCode}] 업체단가`:`[${x.c.code}] ${x.c.name}`),...(costAllowed?['정가 마진액','정가 마진율(%)']:[])];
+  const head=['대분류','중분류','소분류','제품명','규격',...(unlocked?['공급업체','담당자']:[]),...(costAllowed?['매입원가','택배비']:[]),...pcs.map(x=>x.v?`[${vbCode}] 업체단가`:`[${x.c.code}] ${x.c.name}`),...(costAllowed?['정가 마진액(택배비 차감)','정가 마진율(%)']:[])];
   /* 화면과 같은 값·같은 순서로 내보낸다.
      · 휴지통(소프트 삭제) 제품은 제외 — 표에 없는 행이 파일에만 나오던 문제
      · effCost/effPrice 사용 — 세트(패키지)는 구성 단품 합산, 원가 수정분(PCOST)도 반영
@@ -4403,9 +4444,9 @@ function exportAll(){
   const list=psOrderedProducts();
   const rows=list.map(p=>{
     const cost=effCost(p), rp=effPrice(p,rUid);
-    const m=margin(rp,cost), r=mrate(rp,cost);
+    const m=margin(rp,mCost(p)), r=mrate(rp,mCost(p));
     const pc=pcat(p);
-    return [pc.l1,pc.l2,pc.l3,p.name,p.spec,...(unlocked?[p.sup||'',p.mgr||'']:[]),...(costAllowed?[cost??'']:[]),...pcs.map(x=>x.v?vbOf(p):(effPrice(p,x.c.uid)??'')),...(costAllowed?[m??'',r!=null?(r*100).toFixed(2):'']:[])];
+    return [pc.l1,pc.l2,pc.l3,p.name,p.spec,...(unlocked?[p.sup||'',p.mgr||'']:[]),...(costAllowed?[cost??'',shipOf(p)||'']:[]),...pcs.map(x=>x.v?vbOf(p):(effPrice(p,x.c.uid)??'')),...(costAllowed?[m??'',r!=null?(r*100).toFixed(2):'']:[])];
   });
   dlCsv(head, rows, 'POUR_가격정책표.csv');
 }
@@ -4519,11 +4560,12 @@ function renderChannel(){
   const p=P[+$('#chProd').value]; if(!p)return;
   const rUid=retailUid(), dc=chBy('dealer');
   const retail=gp(p,rUid), dealerP=dc?gp(p,dc.uid):null;
+  const cst=mCost(p), shp=shipOf(p);
   $('#chCards').innerHTML=[
-    {h:'매입원가',v:wonU(p.cost),f:p.spec},
+    {h:'매입원가',v:wonU(effCost(p)),f:p.spec+(shp?' · 택배비 '+wonU(shp)+' 별도':'')},
     {h:'소비자 정가 (기준가)',v:wonU(retail),f:'채널 마진 계산의 100% 기준'},
-    {h:'정가 판매 시 POUR 마진',v:wonU(margin(retail,p.cost)),f:'마진율 '+pct(mrate(retail,p.cost))},
-    {h:(dc?'['+dc.code+'] '+dc.name:'MOQ 하한')+' 공급 시 POUR 마진',v:wonU(margin(dealerP,p.cost)),f:'마진율 '+pct(mrate(dealerP,p.cost))}
+    {h:'정가 판매 시 POUR 마진',v:wonU(margin(retail,cst)),f:'마진율 '+pct(mrate(retail,cst))},
+    {h:(dc?'['+dc.code+'] '+dc.name:'MOQ 하한')+' 공급 시 POUR 마진',v:wonU(margin(dealerP,cst)),f:'마진율 '+pct(mrate(dealerP,cst))}
   ].map(c=>`<div class="card"><h4>${c.h}</h4><div class="big">${c.v}</div><div class="foot">${c.f}</div></div>`).join('');
 
   let t=`<thead><tr><th>공급 채널</th><th class="num">채널 공급가</th>
@@ -4531,7 +4573,7 @@ function renderChannel(){
     <th class="num">채널 마진<br>(정가 재판매 시)</th><th class="num">채널 마진율</th></tr></thead><tbody>`;
   COLS().forEach(c=>{
     const pr=gp(p,c.uid); if(pr==null)return;
-    const pm=margin(pr,p.cost), pmr=mrate(pr,p.cost);
+    const pm=margin(pr,cst), pmr=mrate(pr,cst);
     const isRetail=c.uid===rUid;
     const cm=(isRetail||retail==null)?null:retail-pr;
     const cmr=(cm==null||!retail)?null:cm/retail;
@@ -4544,11 +4586,11 @@ function renderChannel(){
   });
   $('#chTable').innerHTML=t+'</tbody>';
 
-  $('#chStack').innerHTML = retail==null||p.cost==null ? '<p class="footnote">정가 기준 채널 또는 원가가 없어 배분을 표시할 수 없습니다.</p>'
+  $('#chStack').innerHTML = retail==null||cst==null ? '<p class="footnote">정가 기준 채널 또는 원가가 없어 배분을 표시할 수 없습니다.</p>'
    : COLS().map(c=>{
       const pr=gp(p,c.uid); if(pr==null||c.role==='export')return'';
-      const cw=Math.min(100,p.cost/retail*100);
-      const pw=Math.max(0,Math.min(100-cw,(pr-p.cost)/retail*100));
+      const cw=Math.min(100,cst/retail*100);
+      const pw=Math.max(0,Math.min(100-cw,(pr-cst)/retail*100));
       const kw=Math.max(0,100-cw-pw);
       const isRetail=c.uid===rUid;
       return `<div class="bar-row"><span><b style="font-family:var(--mono);font-size:10.5px;color:var(--amber)">${esc(c.code)}</b> ${esc(c.name)}</span>
@@ -4557,7 +4599,7 @@ function renderChannel(){
           <div class="bar-fill" style="left:${cw}%;width:${pw}%;background:var(--xl-green)"></div>
           <div class="bar-fill" style="left:${cw+pw}%;width:${kw}%;background:var(--blue)"></div>
         </div>
-        <span class="bar-val">POUR <b>${won(pr-p.cost)}</b> / 채널 <b style="color:var(--blue)">${isRetail?'—':won(retail-pr)}</b></span></div>`;
+        <span class="bar-val">POUR <b>${won(pr-cst)}</b> / 채널 <b style="color:var(--blue)">${isRetail?'—':won(retail-pr)}</b></span></div>`;
     }).join('')+`<p class="footnote"><span class="pill" style="background:#E8EAEE;color:var(--ink-soft)">회색 = 매입원가</span> <span class="pill g">초록 = POUR스토어 마진</span> <span class="pill" style="background:#DCE9F9;color:var(--blue)">파랑 = 채널(공급받는이) 마진</span> — 정가 100% 기준 배분</p>`;
 }
 $('#chProd').addEventListener('change',renderChannel);
@@ -4576,7 +4618,7 @@ function renderMoq(){
   const custom=$('#moqCustom').value===''?null:+$('#moqCustom').value;
   const tier=MOQ_TIERS.find(t=>qty>=t.min&&qty<=t.max)||MOQ_TIERS[MOQ_TIERS.length-1];
   const unit=custom!=null?custom:tierPrice(p,tier.f);
-  const pm=margin(unit,p.cost), pmr=mrate(unit,p.cost);
+  const pm=margin(unit,mCost(p)), pmr=mrate(unit,mCost(p));
   const bm=(retail!=null&&unit!=null)?retail-unit:null;
   $('#moqCards').innerHTML = unit==null
    ? '<div class="card"><h4>계산 불가</h4><div class="big">—</div><div class="foot">정가 기준 채널과 MOQ 하한 채널(역할 지정)의 가격이 모두 있어야 구간가를 계산할 수 있습니다.</div></div>'
@@ -4592,7 +4634,7 @@ function renderMoq(){
     <th class="num">공급받는이 마진/개</th><th class="num">공급받는이 마진율</th></tr></thead><tbody>`;
   MOQ_TIERS.forEach(tr=>{
     const u=tierPrice(p,tr.f);
-    const m1=margin(u,p.cost), m2=(retail!=null&&u!=null)?retail-u:null;
+    const m1=margin(u,mCost(p)), m2=(retail!=null&&u!=null)?retail-u:null;
     const hl=tr===tier&&custom==null;
     t+=`<tr style="${hl?'background:var(--xl-sel)':''}">
       <td style="font-weight:${hl?700:400}">${tr.label}${hl?' ◀ 현재':''}</td>
@@ -6284,7 +6326,7 @@ function daiStatus(){
   const today=pcToday(), from=pcAdd(today,-34);
   const products=laProducts().slice(0,500).map(p=>{ const k=pKey(p), o={key:k, name:p.name, spec:p.spec&&p.spec!=='-'?p.spec:'', brand:pbrand(p), group:laGroupOf(p), code:PCODE[k]||p.ghCode||'', retail:retailOf(p)||null};
     const al=mfgAliasOf(p); if(al) o.makerAlias=al;
-    if(costAllowed){ if(p.cost>0) o.cost=p.cost; if(secAllowed){ const n=mfgOf(p); if(n) o.mfg=n; } }
+    if(costAllowed){ if(p.cost>0) o.cost=p.cost; if(shipOf(p)) o.ship=shipOf(p); if(secAllowed){ const n=mfgOf(p); if(n) o.mfg=n; } }
     const st=EOL_STOCK[k]; if(st&&st.linked) o.stock=st.qty;
     if(o.group==='출시준비'){ const pr=laProgress(p); o.next=pr.next; }
     return o; });
@@ -7077,6 +7119,12 @@ let PCOST={};   // pKey → 원가
 async function saveProdCost(){ try{ await db.collection('product-meta').doc('prod-cost').set({map:PCOST, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.warn('[prod-cost] 저장 실패', e.code||e); uiToast('저장 실패(prod-cost): '+(e.code||e.message||e),'err'); alert('원가 저장 실패: '+(e.code||e.message||e)); } }
 function unitCost(p){ const k=pKey(p); return (k in PCOST)?PCOST[k]:p.cost; }
 function effCost(p){ return isPackage(p)?pkgCost(p):unitCost(p); }
+/* 🚚 개당 택배비(고객에게 보내는 택배) — 원가와 따로 저장: product-meta/prod-ship {map: pKey → 원} (2026-09 대표 확인)
+   마진 = 판매가 − 원가 − 택배비. 택배비를 안 넣은 제품은 예전과 똑같이 계산된다(0원). */
+let PSHIP={}, PSHIP_APPLIED={};
+async function saveProdShip(){ try{ await db.collection('product-meta').doc('prod-ship').set({map:PSHIP, applied:PSHIP_APPLIED, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''}); }catch(e){ console.error('[prod-ship] 저장 실패', e); uiToast('택배비 저장 실패: '+(e.code||e.message||e),'err'); throw e; } }
+function shipOf(p){ const v=+PSHIP[pKey(p)]; return v>0?v:0; }
+function mCost(p){ const c=effCost(p); return c==null?null:c+shipOf(p); }   // 마진 계산용 원가(택배비 포함)
 /* 단가는 출처와 무관하게 100원 단위 올림으로 내보낸다.
    앵커(업체단가·자사몰정가)까지 포함 — 예전엔 앵커를 예외로 둬서 32,643 처럼
    1원 단위가 그대로 표에 나왔다. 표·CSV·단가표·CRM 이 전부 이 함수를 쓴다. */
@@ -7927,6 +7975,7 @@ function syncAdType(){
   const isSet=$('#adType').value==='세트';
   $('#adSetFld').style.display=isSet?'':'none';
   $('#adCostFld').style.display=isSet?'none':'';      // 매입원가: 세트는 구성 합산 → 숨김
+  { const sf=$('#adShipFld'); if(sf) sf.style.display=(costAllowed&&!isSet)?'':'none'; }   // 택배비: 원가 권한만 · 단품만
   $('#adMfgFld').style.display=(isSet||!secAllowed)?'none':'';   // 제조사: 세트는 구성에서 · 마스터 전용
   if(!secAllowed){ const mi=$('#adMfg'); if(mi)mi.value=''; }     // 권한 없으면 값도 담지 않음
   $('#adAnchorRow').style.display=(!isSet && !AD_EDIT)?'':'none';   // 앵커(업체단가/정가)는 신규 '단품' 등록에서만
@@ -7937,7 +7986,7 @@ function syncAdType(){
 }
 function openAddModal(prefill){   // prefill: {l1,l2,l3}
   AD_EDIT=null; AD_COPY_FROM=null;
-  ['adName','adSpec','adCost','adMfg','adVbase','adRetail'].forEach(id=>{ const el=$('#'+id); if(el){ el.value=''; el.disabled=false; } });
+  ['adName','adSpec','adCost','adShip','adMfg','adVbase','adRetail'].forEach(id=>{ const el=$('#'+id); if(el){ el.value=''; el.disabled=false; } });
   const pf=prefill||{};
   $('#adL1').value=pf.l1||'POUR공법'; $('#adL2').value=pf.l2||''; $('#adL3').value=pf.l3||'';
   renderAdBrands(pf.brands || [BRAND_FILTER||BRAND_DEFAULT]);
@@ -7966,6 +8015,7 @@ function openEditModal(p){   // 기존 제품 수정: 분류(전체)·원가·�
   setRowsFromStr(pkgSetItems(p)||''); renderSetBuilder();
   $('#adName').disabled=false; $('#adSpec').disabled=false;            // 이름·규격 변경 가능 — 저장 시 값·구성까지 함께 옮긴다
   $('#adCost').value=(unitCost(p)==null?'':unitCost(p));
+  $('#adShip').value=shipOf(p)||'';
   $('#adCost').disabled=isPkg;                                         // 원가: 모든 단품 수정 가능(공유 저장), 패키지는 합산이라 잠김
   $('#adMfg').disabled=!added; $('#adType').disabled=false;            // 유형(단품↔세트)은 기본 제품도 전환 허용
   $('#adFootAdd').style.display='none'; $('#adFootEdit').style.display='';
@@ -7981,7 +8031,7 @@ function openCopyModal(p){
   AD_COPY_FROM=pKey(p);                        // 저장하면 원본 바로 아래에 놓는다
   $('#adType').value=isSet?'세트':'단품';
   $('#adName').value=(p.name||'')+' 복사'; $('#adSpec').value=p.spec||'';
-  $('#adCost').value=(p.cost==null?'':p.cost);
+  $('#adCost').value=(p.cost==null?'':p.cost); $('#adShip').value=shipOf(p)||'';
   $('#adMfg').value=secAllowed?mfgOf(p):'';
   { const _m=$('#adMfgFld'); if(_m)_m.style.display=secAllowed?'':'none'; }
   if(isSet){ setRowsFromStr(pkgSetItems(p)||''); renderSetBuilder(); }
@@ -8006,7 +8056,8 @@ async function renameProduct(p, newName, newSpec){
   // 1) 이 제품에 붙은 값들을 새 열쇠로 옮긴다
   const move=m=>{ if(m && (oldKey in m)){ m[newKey]=m[oldKey]; delete m[oldKey]; } };
   const _oldCode=PCODE[oldKey], _old3pl=P3PL[oldKey];
-  [VBASE,VRETAIL,PCOST,PFIX,PKGSET,PTYPE,PCAT,PDEL,DVBASE,DRETAIL,PBRAND,PGHLINK,PCODE,P3PL].forEach(move);
+  const _shipMoved=(oldKey in PSHIP);
+  [VBASE,VRETAIL,PCOST,PSHIP,PFIX,PKGSET,PTYPE,PCAT,PDEL,DVBASE,DRETAIL,PBRAND,PGHLINK,PCODE,P3PL].forEach(move);
   const _mfgMoved=(oldKey in MFG_MAP)||(oldKey in MFG_ALIAS); move(MFG_MAP); move(MFG_ALIAS);
   const movePfx=m=>{ if(!m)return; Object.keys(m).forEach(k=>{ if(k===oldKey||k.indexOf(oldKey+'|')===0){ m[newKey+k.slice(oldKey.length)]=m[k]; delete m[k]; } }); };
   [POVR,PTODO,DPOVR,DTODO].forEach(movePfx);
@@ -8028,7 +8079,7 @@ async function renameProduct(p, newName, newSpec){
     const r=PADD.find(x=>x.docId===p.docId); if(r){ r.name=nm; r.spec=sp; } }
   else { const ok0=`${p.cat}|${p.origName||oldName}|${p.origSpec!=null?p.origSpec:oldSpec}`;
     PNAME[ok0]={name:nm,spec:sp}; await savePname(); }
-  await Promise.all([saveVendorPrices(),saveRetailPrices(),saveProdCost(),savePfix(),savePkgSet(),
+  await Promise.all([saveVendorPrices(),saveRetailPrices(),saveProdCost(),...(_shipMoved?[saveProdShip()]:[]),savePfix(),savePkgSet(),
                      savePtype(),savePcat(),savePdel(),saveOverrides(),saveTodo(),savePorder(),savePbrand(),
                      ...(_oldCode?[savePcodePatch({[oldKey]:'',[newKey]:_oldCode})]:[]),
                      ...(_old3pl?[saveP3plPatch({[oldKey]:'',[newKey]:_old3pl})]:[])]);
@@ -8047,6 +8098,8 @@ async function submitAddProduct(){
   const p3In=norm3pl(($('#adP3pl')&&$('#adP3pl').value)||'');
   const isSet=type==='세트';
   const cost=isSet?null:($('#adCost').value===''?null:+$('#adCost').value);   // 세트 원가는 구성 합산 → 저장 안 함
+  const shipIn=$('#adShip')?(+$('#adShip').value||0):0;
+  const setShip=async k=>{ if(!costAllowed) return; if((+PSHIP[k]||0)===shipIn) return; if(shipIn>0) PSHIP[k]=shipIn; else delete PSHIP[k]; await saveProdShip(); };
   // 세트 제조사는 구성에서 · 마스터가 아니면 제조사를 건드리지 않고 기존 값을 그대로 유지
   const mfg = isSet ? '' : (secAllowed ? ($('#adMfg').value||'').trim() : '');   // 마스터만 · 공유 원장이 아니라 비공개 저장소(mfgSetFor)로
   const btn=$('#addSubmit'); btn.disabled=true; const old=btn.textContent; btn.textContent='저장 중…'; $('#adStatus').textContent='';
@@ -8073,6 +8126,7 @@ async function submitAddProduct(){
         const k=pKey(AD_EDIT);
         if(cost==null) delete PCOST[k]; else PCOST[k]=cost;
         AD_EDIT.cost=cost; await saveProdCost();
+        await setShip(k);
       }
       if(secAllowed && !isPackage(AD_EDIT)) await mfgSetFor(pKey(AD_EDIT), mfg);
       if(AD_EDIT.docId){ const patch={type,updatedAt:new Date().toISOString()};
@@ -8110,6 +8164,7 @@ async function submitAddProduct(){
       if(type==='세트') PKGSET[key]=setItemsStr(); else if(key in PKGSET) PKGSET[key]='';
       await savePkgSet();
       if(type!=='세트'){ if(cost==null) delete PCOST[key]; else PCOST[key]=cost; dup.cost=cost; await saveProdCost(); }
+      await setShip(key);
       if(vbase>0){ VBASE[key]=vbase; await saveVendorPrices(); }
       if(rUid && retail>0){ VRETAIL[key]=retail; await saveRetailPrices(); }
       if(secAllowed && type!=='세트') await mfgSetFor(key, mfg);
@@ -8138,6 +8193,7 @@ async function submitAddProduct(){
       await savePorder();
     }
     PTYPE[key]=type; await savePtype();             // 유형(단품/세트) 명시 저장
+    if(type!=='세트') await setShip(key);
     if(type==='세트'){ PKGSET[key]=setItemsStr(); await savePkgSet(); }
     if(vbase>0){ VBASE[key]=vbase; await saveVendorPrices(); }
     logAct('제품추가', `${name}${spec&&spec!=='-'?' ('+spec+')':''}`, `유형 ${type} · 분류 ${[l1,cat,l3].filter(Boolean).join('›')}${launchSt==='출시준비'?' · 출시준비':''}`);
@@ -8148,6 +8204,111 @@ async function submitAddProduct(){
   }catch(e){ console.error('[제품 저장] 실패',e); $('#adStatus').innerHTML='<span style="color:var(--red)">저장 실패: '+esc(e.code||e.message||e)+' (마스터/허용목록·규칙 확인)</span>'; }
   finally{ btn.disabled=false; btn.textContent=old; }
 }
+/* ══════════ 📦 그로홈 원가·택배비 1회 적용 (2026-09-28 원가 엑셀) ══════════
+   대표 확인(2026-09): 원가는 택배비를 뺀 값(페인트=단가+국제배송+관세, 툴스 프로=총 원가), 택배비는 따로(페인트 2,600 · 툴스 프로 2,500).
+   · 이름으로 제품을 찾아 기존값 → 새값을 보여 주고, 체크한 것만 저장한다. 못 찾은 품목은 직접 고른다.
+   · 적용 전 값은 product-meta/prod-ship.applied[GC_ID].backup 에 남겨 [되돌리기]로 복구한다. */
+const GC_ID='gh-cost-2026-09-28';
+const GC_DATA=[{"x": "롤러페인트", "a": ["롤러일체형 페인트", "롤러페인트", "롤러페인트 500g"], "c": 2415, "s": 2600}, {"x": "미니롤러페인트", "a": ["롤러일체형 페인트 미니", "미니롤러페인트", "미니 롤러페인트"], "c": 1915, "s": 2600}, {"x": "미끄럼방지 페인트", "a": ["미끄럼방지 페인트", "미끄럼방지페인트"], "c": 3661, "s": 2600}, {"x": "유리블러 올인원 페인트", "a": ["유리블러 올인원", "유리블러 올인원 페인트", "유리블러올인원"], "c": 2780, "s": 2600}, {"x": "브러쉬 벽페인트", "a": ["벽체용 브러쉬 페인트", "브러쉬 벽페인트", "벽체용 브러쉬페인트"], "c": 2780, "s": 2600}, {"x": "브러쉬 철제페인트", "a": ["철제용 브러쉬 페인트", "브러쉬 철제페인트", "철제용 브러쉬페인트"], "c": 2663, "s": 2600}, {"x": "브러쉬 목재페인트", "a": ["목재용 브러쉬 페인트", "브러쉬 목재페인트", "목재용 브러쉬페인트"], "c": 2630, "s": 2600}, {"x": "타일부착필러", "a": ["타일부착필러", "타일 부착 필러"], "c": 3958, "s": 2600, "g": ["이지타일픽스"]}, {"x": "헤라퍼티", "a": ["헤라퍼티"], "c": 2502, "s": 2600}, {"x": "그로홈 툴스 프로 평붓 1.5", "a": ["그로홈 툴스 프로 평붓 1.5"], "c": 1489, "s": 2500}, {"x": "그로홈 툴스 프로 평붓 2.0", "a": ["그로홈 툴스 프로 평붓 2.0"], "c": 1786, "s": 2500}, {"x": "그로홈 툴스 프로 평붓 2.5", "a": ["그로홈 툴스 프로 평붓 2.5"], "c": 2158, "s": 2500}, {"x": "그로홈 툴스 프로 앵글붓 1.5", "a": ["그로홈 툴스 프로 앵글붓 1.5"], "c": 1534, "s": 2500}, {"x": "그로홈 툴스 프로 앵글붓 2.0", "a": ["그로홈 툴스 프로 앵글붓 2.0"], "c": 1847, "s": 2500}, {"x": "그로홈 툴스 프로 앵글붓 2.5", "a": ["그로홈 툴스 프로 앵글붓 2.5"], "c": 2226, "s": 2500}, {"x": "그로홈 툴스 프로 마스킹 테이프 15mm", "a": ["그로홈 툴스 프로 마스킹 테이프 15mm"], "c": 851, "s": 2500}, {"x": "그로홈 툴스 프로 마스킹 테이프 25mm", "a": ["그로홈 툴스 프로 마스킹 테이프 25mm"], "c": 1373, "s": 2500}, {"x": "그로홈 툴스 프로 마스킹 테이프 50mm", "a": ["그로홈 툴스 프로 마스킹 테이프 50mm"], "c": 2715, "s": 2500}, {"x": "그로홈 툴스 프로 샌딩블럭 80", "a": ["그로홈 툴스 프로 샌딩블럭 80"], "c": 819, "s": 2500}, {"x": "그로홈 툴스 프로 샌딩블럭 120", "a": ["그로홈 툴스 프로 샌딩블럭 120"], "c": 874, "s": 2500}, {"x": "그로홈 툴스 프로 샌딩블럭 220", "a": ["그로홈 툴스 프로 샌딩블럭 220"], "c": 927, "s": 2500}, {"x": "그로홈 툴스 프로 트레이커버세트 4인치", "a": ["그로홈 툴스 프로 트레이커버세트 4인치"], "c": 1751, "s": 2500}, {"x": "그로홈 툴스 프로 트레이커버세트 7인치", "a": ["그로홈 툴스 프로 트레이커버세트 7인치"], "c": 2673, "s": 2500}, {"x": "그로홈 툴스 프로 트레이세트 (포나인) 4인치", "a": ["그로홈 툴스 프로 트레이세트 (포나인) 4인치"], "c": 4016, "s": 2500}, {"x": "그로홈 툴스 프로 트레이세트 (세븐텐) 7인치", "a": ["그로홈 툴스 프로 트레이세트 (세븐텐) 7인치"], "c": 5851, "s": 2500}, {"x": "그로홈 툴스 프로 롤러 4인치", "a": ["그로홈 툴스 프로 롤러 4인치"], "c": 1036, "s": 2500}, {"x": "그로홈 툴스 프로 롤러 7인치", "a": ["그로홈 툴스 프로 롤러 7인치"], "c": 1908, "s": 2500}, {"x": "그로홈 툴스 프로 커버링 테이프 400mm", "a": ["그로홈 툴스 프로 커버링 테이프 400mm"], "c": 979, "s": 2500}, {"x": "그로홈 툴스 프로 커버링 테이프 650mm", "a": ["그로홈 툴스 프로 커버링 테이프 650mm"], "c": 1172, "s": 2500}, {"x": "그로홈 툴스 프로 커버링 테이프 1200mm", "a": ["그로홈 툴스 프로 커버링 테이프 1200mm"], "c": 1597, "s": 2500}, {"x": "그로홈 툴스 프로 롤러헤드 4인치", "a": ["그로홈 툴스 프로 롤러헤드 4인치"], "c": 500, "s": 2500}, {"x": "그로홈 툴스 프로 롤러헤드 7인치", "a": ["그로홈 툴스 프로 롤러헤드 7인치"], "c": 500, "s": 2500}];
+let GC_ROWS=[], GC_HIDE=false;
+const gcNorm=s=>ghNorm(String(s||'').replace(/그로홈/g,''));
+function gcState(){ return PSHIP_APPLIED[GC_ID]||null; }
+function gcBuildRows(){
+  const live=P.filter(p=>!isDeletedProd(p)&&!isPackage(p));
+  const gh=live.filter(p=>hasBrand(p,'GROHOME'));
+  const full=p=>gcNorm(p.name+(p.spec&&p.spec!=='-'?p.spec:''));
+  const claimed=new Set();
+  const rows=GC_DATA.map(d=>({d,keys:[],guess:false,on:true}));
+  const pass=(pool,fn)=>rows.forEach(r=>{ if(r.keys.length)return; const al=r.d.a.map(gcNorm);
+    const hit=pool.filter(p=>!claimed.has(pKey(p))&&fn(p,al)); hit.forEach(p=>{ r.keys.push(pKey(p)); claimed.add(pKey(p)); }); });
+  [gh,live].forEach(pool=>{
+    pass(pool,(p,al)=>al.includes(full(p)));                       // 이름+규격이 같음
+    pass(pool,(p,al)=>al.includes(gcNorm(p.name)));                 // 이름이 같음(색상 등 옵션은 모두 같은 원가)
+  });
+  rows.forEach(r=>{ if(r.keys.length||!r.d.g)return; const gl=r.d.g.map(gcNorm);   // 이름이 다른 추정 후보 → 체크 해제로 보여 준다
+    const hit=gh.concat(live).filter(p=>!claimed.has(pKey(p))&&(gl.includes(gcNorm(p.name))||gl.includes(full(p))));
+    if(hit.length){ r.keys=[pKey(hit[0])]; claimed.add(pKey(hit[0])); r.guess=true; r.on=false; } });
+  rows.forEach(r=>{ if(!r.keys.length) r.on=false; });
+  console.log(`[그로홈 원가] ${rows.length}개 중 ${rows.filter(r=>r.keys.length).length}개 제품 찾음`);
+  return rows;
+}
+function renderGcCard(){
+  const box=$('#gcCard'); if(!box) return;
+  if(TEAM_MODE||!costAllowed||GC_HIDE||!P.length){ box.hidden=true; return; }
+  const st=gcState();
+  if(st&&!st.undone){
+    box.hidden=false;
+    box.innerHTML=`<span>✅ <b>그로홈 원가·택배비 ${st.n}개</b> 적용됨 · ${esc(String(st.at||'').slice(0,10))} ${esc(st.by||'')}</span><span class="gc-act"><button type="button" class="tbtn" data-gc="undo">↩ 되돌리기</button><button type="button" class="tbtn" data-gc="hide">닫기</button></span>`;
+    return;
+  }
+  box.hidden=false;
+  box.innerHTML=`<span>📦 <b>그로홈 원가·택배비 ${GC_DATA.length}개</b>가 적용을 기다려요 <small>2026-09-28 원가 엑셀 · 원가와 택배비를 나눠 넣어요</small></span><span class="gc-act"><button type="button" class="tbtn gc-go" data-gc="open">확인하고 적용</button><button type="button" class="tbtn" data-gc="hide">나중에</button></span>`;
+}
+function gcProdOpts(sel){
+  const used=new Set(); GC_ROWS.forEach(r=>r.keys.forEach(k=>used.add(k)));   // 다른 품목에 이미 연결된 제품은 빼서 겹치지 않게
+  const live=P.filter(p=>!isDeletedProd(p)&&!isPackage(p)&&!used.has(pKey(p))).sort((a,b)=>(hasBrand(b,'GROHOME')-hasBrand(a,'GROHOME'))||prodLabel(a).localeCompare(prodLabel(b),'ko'));
+  return `<option value="">— 제품 고르기 —</option>`+live.map(p=>`<option value="${esc(pKey(p))}"${pKey(p)===sel?' selected':''}>${hasBrand(p,'GROHOME')?'🏠 ':''}${esc(prodLabel(p))}</option>`).join('');
+}
+function renderGcTable(){
+  const byKey={}; P.forEach(p=>{ byKey[pKey(p)]=p; });
+  const n=GC_ROWS.filter(r=>r.on&&r.keys.length).length, miss=GC_ROWS.filter(r=>!r.keys.length).length;
+  $('#gcSum').innerHTML=`체크한 <b>${n}</b>개 품목을 저장해요${miss?` · <span style="color:var(--red)">못 찾은 품목 ${miss}개는 [제품 고르기]에서 직접 골라 주세요 (없으면 그대로 두면 돼요)</span>`:''}`;
+  $('#gcTable').innerHTML=`<thead><tr><th style="width:34px"></th><th>엑셀 품목</th><th>대시보드 제품</th><th class="num">원가 (지금 → 새로)</th><th class="num">택배비</th></tr></thead><tbody>`+GC_ROWS.map((r,i)=>{
+    const ps=r.keys.map(k=>byKey[k]).filter(Boolean);
+    const target=`<div class="gc-tg">${ps.length?ps.map(p=>`<div>${hasBrand(p,'GROHOME')?'🏠 ':''}${esc(prodLabel(p))}</div>`).join('')+(r.guess?'<div class="gc-guess">이름이 달라요 — 같은 제품이면 체크</div>':'')
+      :`<select data-gcpick="${i}" aria-label="${esc(r.d.x)} 제품 고르기">${gcProdOpts('')}</select>`}</div>`;
+    const cur=ps.length?ps.map(p=>{ const c=unitCost(p); return c==null?'없음':won(c); }).join(' · '):'—';
+    return `<tr class="${r.keys.length?'':'gc-miss'}"><td style="text-align:center"><input type="checkbox" data-gcchk="${i}" ${r.on?'checked':''} ${r.keys.length?'':'disabled'} aria-label="${esc(r.d.x)} 적용"></td>
+      <td class="gc-x">${esc(r.d.x)}</td><td data-l="대시보드">${target}</td><td class="num" data-l="원가"><span class="dim">${cur}</span> → <b>${won(r.d.c)}</b></td><td class="num" data-l="택배비">${won(r.d.s)}</td></tr>`;
+  }).join('')+'</tbody>';
+  $('#gcApply').disabled=!n;
+}
+function openGcModal(){ GC_ROWS=gcBuildRows(); renderGcTable(); $('#gcStatus').textContent=''; $('#gcOverlay').classList.add('on'); }
+function closeGcModal(){ $('#gcOverlay').classList.remove('on'); }
+async function gcApply(){
+  const btn=$('#gcApply'); if(btn.disabled) return; btn.disabled=true; const old=btn.textContent; btn.textContent='저장 중…';
+  const byKey={}; P.forEach(p=>{ byKey[pKey(p)]=p; });
+  const pick=GC_ROWS.filter(r=>r.on&&r.keys.length);
+  const backup={}, items=[];
+  try{
+    pick.forEach(r=>r.keys.forEach(k=>{ const p=byKey[k]; if(!p) return;
+      backup[k]={cost:(k in PCOST)?PCOST[k]:(p.cost??null), ship:(k in PSHIP)?PSHIP[k]:null};
+      PCOST[k]=r.d.c; p.cost=r.d.c; PSHIP[k]=r.d.s; items.push({k,x:r.d.x,c:r.d.c,s:r.d.s}); }));
+    PSHIP_APPLIED[GC_ID]={at:new Date().toISOString(), by:(curUser&&curUser.email)||'', n:pick.length, items, backup};
+    await saveProdCost(); await saveProdShip();
+    for(const it of items){ const p=byKey[it.k]; if(p&&p.docId){ try{ await db.collection('products-added').doc(p.docId).set({cost:it.c,updatedAt:new Date().toISOString()},{merge:true}); }catch(e){ console.error('[그로홈 원가] 등록 제품 원가 저장 실패', p.name, e); } } }
+    logAct('원가입력', `그로홈 원가·택배비 ${pick.length}개 품목 (${items.length}개 제품)`, '2026-09-28 원가 엑셀 · 적용 전 값 백업');
+    closeGcModal(); refreshAll(); uiToast(`그로홈 원가·택배비 ${items.length}개 제품에 넣었어요 · 다음: 가격정책표에서 마진 확인`,'ok');
+  }catch(e){ console.error('[그로홈 원가] 적용 실패', e); $('#gcStatus').innerHTML=`<span style="color:var(--red)">저장 실패: ${esc(e.code||e.message||e)} — 아무것도 바뀌지 않았으면 다시 눌러 주세요</span>`; }
+  finally{ btn.textContent=old; btn.disabled=false; }
+}
+async function gcUndo(){
+  const st=gcState(); if(!st||!st.backup) return;
+  if(!confirm(`그로홈 원가·택배비 적용(${st.n}개)을 적용 전 값으로 되돌릴까요?`)) return;
+  const byKey={}; P.forEach(p=>{ byKey[pKey(p)]=p; });
+  try{
+    /* 적용한 값이 그대로 남아 있는 칸만 되돌린다 — 적용 뒤에 사람이 직접 고친 값은 지우지 않는다 */
+    const applied={}; (st.items||[]).forEach(it=>{ applied[it.k]=it; }); let kept=0;
+    Object.entries(st.backup).forEach(([k,b])=>{ const p=byKey[k], it=applied[k]||{};
+      if(it.c==null||+PCOST[k]===+it.c){ if(b.cost==null) delete PCOST[k]; else PCOST[k]=b.cost; if(p) p.cost=b.cost; } else kept++;
+      if(it.s==null||+PSHIP[k]===+it.s){ if(b.ship==null) delete PSHIP[k]; else PSHIP[k]=b.ship; } else kept++; });
+    if(kept) console.log(`[그로홈 원가] 적용 뒤 직접 고친 값 ${kept}칸은 그대로 둠`);
+    st.undone=new Date().toISOString();
+    await saveProdCost(); await saveProdShip();
+    for(const [k,b] of Object.entries(st.backup)){ const p=byKey[k]; if(p&&p.docId&&unitCost(p)===b.cost){ try{ await db.collection('products-added').doc(p.docId).set({cost:b.cost,updatedAt:new Date().toISOString()},{merge:true}); }catch(e){ console.error('[그로홈 원가] 되돌리기 저장 실패', p.name, e); } } }
+    logAct('원가입력', '그로홈 원가·택배비 되돌림', `${st.n}개 품목`);
+    refreshAll(); uiToast(kept?`적용 전 값으로 되돌렸어요 · 그 뒤에 직접 고친 ${kept}칸은 그대로 뒀어요`:'적용 전 값으로 되돌렸어요','ok');
+  }catch(e){ console.error('[그로홈 원가] 되돌리기 실패', e); uiToast('되돌리기 실패: '+(e.code||e.message||e),'err'); }
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-gc]'); if(!b) return; const a=b.dataset.gc;
+  if(a==='open') openGcModal(); else if(a==='hide'){ GC_HIDE=true; renderGcCard(); } else if(a==='undo') gcUndo();
+  else if(a==='close') closeGcModal(); else if(a==='apply') gcApply();
+});
+document.addEventListener('change',e=>{
+  const c=e.target.closest('[data-gcchk]'); if(c){ GC_ROWS[+c.dataset.gcchk].on=c.checked; renderGcTable(); return; }
+  const s=e.target.closest('[data-gcpick]'); if(s){ const r=GC_ROWS[+s.dataset.gcpick]; if(s.value){ r.keys=[s.value]; r.on=true; } renderGcTable(); }
+});
 /* ══════════ 그로홈 제품 마스터 가져오기 (grohome-dashboard → 이 대시보드) ══════════
    그로홈 대시보드 [제품 관리 › 제품 마스터]의 products 컬렉션을 '읽기만' 한다(그쪽엔 쓰지 않음).
    · 새로 등록: products-added 에 GROHOME 브랜드 제품으로 추가 (정가=그로홈 기준가격)
@@ -8934,6 +9095,7 @@ function wireImportModal(){
   on('impPick','click',()=>$('#impFile').click());
   on('impFile','change',e=>handleImportFile(e.target.files&&e.target.files[0]));
   bindOverlayClose('impOverlay',closeImportModal);
+  bindOverlayClose('gcOverlay',closeGcModal);
   on('impAll','change',e=>{ const v=e.target.checked; IMP_ROWS.forEach(r=>{ if(r.status!=='same')r.check=v; }); renderImportTable(); });
   on('impUseFileCh','change',e=>{
     IMP_USE_FILE_CH=e.target.checked;
@@ -9242,6 +9404,7 @@ async function loadVendorConfig(){
   try{ const d=await db.collection('product-meta').doc('price-todo').get(); if(d.exists&&d.data().map) PTODO=d.data().map; console.log(`[price-todo] 단가 미정 ${Object.keys(PTODO).length}칸`); }catch(e){ console.warn('[price-todo] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('price-fixed').get(); if(d.exists&&d.data().map) PFIX=d.data().map; console.log(`[price-fixed] 파일값 고정 ${Object.keys(PFIX).length}개 제품`); }catch(e){ console.warn('[price-fixed] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('prod-cost').get(); if(d.exists&&d.data().map) PCOST=d.data().map; console.log(`[prod-cost] 원가 수정 ${Object.keys(PCOST).length}건`); }catch(e){ console.warn('[prod-cost] 로드 실패', e.code||e); }
+  try{ const d=await db.collection('product-meta').doc('prod-ship').get(); if(d.exists){ PSHIP=d.data().map||{}; PSHIP_APPLIED=d.data().applied||{}; } console.log(`[prod-ship] 택배비 ${Object.keys(PSHIP).length}건`); }catch(e){ console.warn('[prod-ship] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('crm-map').get(); if(d.exists&&d.data().map) CRMMAP=d.data().map; }catch(e){ console.warn('[crm-map] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('channel-markup').get(); if(d.exists){ if(d.data().coeff)VCOEFF=d.data().coeff; if(typeof d.data().auto==='boolean')VAUTO=d.data().auto; if(typeof d.data().est==='boolean')VEST=d.data().est; if(typeof d.data().ladBase==='number'&&d.data().ladBase>0&&d.data().ladBase<1)LAD_BASE=d.data().ladBase; } }catch(e){ console.warn('[channel-markup] 로드 실패', e.code||e); }
   try{ const d=await db.collection('product-meta').doc('cat-config').get(); if(d.exists&&Array.isArray(d.data().list)) CATCFG=d.data().list.map(c=>({key:c.key,name:c.name||c.key,l1:c.l1||'',l2:c.l2||''})); }catch(e){ console.warn('[cat-config] 로드 실패', e.code||e); }
@@ -9640,7 +9803,7 @@ let PMETA={};                       // product-meta/all: {키:{marketMin,mkts:[]
 let pvCur=null;                     // 현재 선택 상품 id
 const pKey=p=>`${p.cat}|${p.name}|${p.spec}`;
 const pvDefaultPromo=()=>({disc:20,logi:1800,deli:2900,pg:4,gifts:[],gifticon:0,join:0,qty:30});
-function getMeta(p){ const m=PMETA[pKey(p)]||{}; return {marketMin:m.marketMin??null, mkts:Array.isArray(m.mkts)?m.mkts:[], promo:Object.assign(pvDefaultPromo(), m.promo||{})}; }
+function getMeta(p){ const m=PMETA[pKey(p)]||{}; return {marketMin:m.marketMin??null, mkts:Array.isArray(m.mkts)?m.mkts:[], promo:Object.assign(pvDefaultPromo(), (typeof shipOf==='function'&&shipOf(p))?{deli:shipOf(p)}:{}, m.promo||{})}; }
 function pvProduct(){ return P.find(p=>p.id===pvCur) || P[0] || null; }
 function pvReadMkts(){ return [...document.querySelectorAll('#pvMkBody tr[data-mk]')].map(tr=>{ const g=f=>tr.querySelector(`[data-mkf="${f}"]`); return {media:g('media').value, spend:+g('spend').value||0, units:+g('units').value||0, clicks:+g('clicks').value||0}; }); }
 function pvCollect(){
@@ -9691,9 +9854,9 @@ function renderProductView(){
   if(pvCur==null||!P.some(p=>p.id===pvCur)) pvCur=P[0].id;
   fillPvSel();
   const p=pvProduct(); if(!p){ box.innerHTML=''; return; }
-  const meta=getMeta(p), retail=retailOf(p), cost=p.cost, oM=margin(retail,cost), oR=mrate(retail,cost);
+  const meta=getMeta(p), retail=retailOf(p), cost=effCost(p), mc=mCost(p), oM=margin(retail,mc), oR=mrate(retail,mc);
   const chans=CHANNELS.filter(c=>c.role!=='retail'&&gp(p,c.uid)!=null);
-  const chRows=chans.map(c=>{ const sup=gp(p,c.uid),ourM=margin(sup,cost),ourR=mrate(sup,cost),chM=(retail!=null)?retail-sup:null,chR=(retail?chM/retail:null);
+  const chRows=chans.map(c=>{ const sup=gp(p,c.uid),ourM=margin(sup,mc),ourR=mrate(sup,mc),chM=(retail!=null)?retail-sup:null,chR=(retail?chM/retail:null);
     return `<tr><td class="name">[${esc(c.code||'')}] ${esc(c.name)}</td><td class="num">${wonU(sup)}</td><td class="num ${ourM<0?'neg':'pos'}">${wonU(ourM)}</td><td class="num">${pct(ourR)}</td><td class="num">${wonU(chM)}</td><td class="num">${pct(chR)}</td></tr>`;
   }).join('')||`<tr><td colspan="6" class="dim" style="padding:10px">공급 채널 가격이 없습니다. [가격정책표]에서 입력하세요.</td></tr>`;
   const mkRows=meta.mkts.map((m,i)=>`<tr data-mk="${i}">
@@ -9782,7 +9945,7 @@ function laDefaultChs(){
   return rows;
 }
 function laNewPlan(p){
-  return { moq:'', cost:(p&&p.cost>0)?p.cost:'', init:'', logi:'', deli:'', pack:'', price:(p&&retailOf(p)>0)?retailOf(p):'',
+  return { moq:'', cost:(p&&effCost(p)>0)?effCost(p):'', init:'', logi:'', deli:(p&&shipOf(p))||'', pack:'', price:(p&&retailOf(p)>0)?retailOf(p):'',
     vat:true, cship:'', target:30, ad:'', size:'', unit:'kg', chs:laDefaultChs(), mkt:[], memo:'' };
 }
 function laPlan(k){ return LPLAN[k]; }
@@ -10582,7 +10745,8 @@ function pmDefaultCards(goal,price){
 }
 function pmBase(){
   const o=qcVals(), cost=+PM.cost||0, ch=QC_CHS.find(x=>x[0]===PM.ch)||QC_CHS[0];
-  return {P:+PM.price||0, C:cost, lg:cost*o.logi/100, pk:o.pack, deli:o.deli, f:(o[ch[2]]+o.pg)/100, fs:o[ch[2]], pg:o.pg, chLb:ch[1], s3:o.s3};
+  const pp=PM.key?P.find(x=>pKey(x)===PM.key):null, pShip=pp?shipOf(pp):0;   // 제품에 택배비를 넣었으면 그 값, 아니면 계산기 공통값
+  return {P:+PM.price||0, C:cost, lg:cost*o.logi/100, pk:o.pack, deli:pShip||o.deli, f:(o[ch[2]]+o.pg)/100, fs:o[ch[2]], pg:o.pg, chLb:ch[1], s3:o.s3};
 }
 function pmCalc(c,b){
   let units=1, pay=b.P, extra=0, noDeli=false, note='';
@@ -10714,7 +10878,7 @@ async function pmSave(asNew){
 }
 function pmSetProduct(key){
   const p=pmProducts().find(x=>pKey(x)===key); PM.key=p?key:''; PM.planId=null;
-  PM.price=p&&retailOf(p)>0?retailOf(p):null; PM.cost=p&&p.cost>0?p.cost:null; PM.cards={}; PM.sel=0; PM.stock=null;
+  PM.price=p&&retailOf(p)>0?retailOf(p):null; PM.cost=p&&effCost(p)>0?effCost(p):null; PM.cards={}; PM.sel=0; PM.stock=null;
   pmExInfo(); if(PM.exInfo) PM.stock=PM.exInfo.qty;
   $('#pmTitle').value='';
 }
@@ -11140,7 +11304,7 @@ function refreshAll(){
   renderChannel(); renderMoq(); renderQuote(); ensurePl(); renderPlInput();
   fillPlanChSel(); sanitizePlan(); renderPlanGrid(); renderAgg(); renderPl();
   fillRegDatalists(); renderMfg(); renderAddProd(); renderAddItem(); renderFixed(); renderCrmSync();
-  renderMktAll();
+  renderMktAll(); renderGcCard();
   if($('#sh-launch')&&$('#sh-launch').classList.contains('on')) renderLaunch();
   if($('#sh-promo')&&$('#sh-promo').classList.contains('on')) renderPromo();
   applySecGating();

@@ -1,0 +1,17 @@
+{
+  "name": "POUR 팀 대시보드",
+  "short_name": "POUR 팀",
+  "description": "POUR 팀원용 단가표·매출·프로모션·링크",
+  "start_url": "pourstore-pricing-dashboard.html?team=1",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B5C30",
+  "theme_color": "#107C41",
+  "lang": "ko",
+  "icons": [
+    { "src": "icons/pour-dash-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/pour-dash-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/pour-dash-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

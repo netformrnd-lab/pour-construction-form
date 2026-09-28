@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>POUR스토어 가격·마진 통합 대시보드</title>
+<!-- 📲 홈 화면에 추가하면 앱처럼(주소창 없이) 열린다 · 팀 화면(?team=1)은 팀용 앱 정보 -->
+<link rel="manifest" id="appManifest" href="pourstore-dashboard.webmanifest">
+<script>if(/[?&]team=1/.test(location.search)) document.getElementById('appManifest').href='pourstore-team.webmanifest';</script>
+<meta name="theme-color" content="#107C41">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="POUR 대시보드">
+<link rel="apple-touch-icon" href="icons/pour-dash-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/pour-dash-192.png">
 <style>
 :root{
   --xl-green:#107C41; --xl-green-dark:#0B5C30; --xl-green-deep:#0A4A27;
@@ -967,6 +977,51 @@ body:has(:is(#addOverlay,#impOverlay,#catOverlay,#chanOverlay,#psOverlay,#expOve
   .gb-tbl td::before{content:attr(data-l);font-size:10.5px;color:var(--ink-soft);font-weight:600}
   .gb-tbl td[data-l="세트"]{flex-direction:row;flex-wrap:wrap;align-items:center}.gb-tbl td[data-l="세트"]::before{width:100%}}
 @media(max-width:640px){.gb-sum{grid-template-columns:1fr 1fr}.gb-2{grid-template-columns:1fr}.gb-line{grid-template-columns:1fr 1fr 40px}.gb-line select{grid-column:1 / -1}}
+
+/* ══ 📱 폰 앱 화면 (2026-09 대표 확인): 아래 탭 바 · 한 줄 머리 · 계정 시트 · 필터 한 버튼 · 행 정보 아래 시트 ══ */
+#appTabs,#rbKpi,#rbAcct,#pzFilt,#acctSheet{display:none}
+@media(max-width:640px){
+  #appTabs{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:230;background:rgba(255,255,255,.97);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border-top:1px solid #E3E6EA;padding:4px 4px calc(4px + env(safe-area-inset-bottom));box-shadow:0 -4px 16px rgba(15,23,42,.06)}
+  #appTabs button{flex:1 1 0;min-width:0;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;font:inherit;font-size:11px;font-weight:700;color:#6B7580;min-height:52px}
+  #appTabs button i{font-style:normal;font-size:20px;line-height:1.1}
+  #appTabs button.on{color:var(--xl-green-dark)}
+  #appTabs button.ai i{display:flex;align-items:center;justify-content:center;width:46px;height:46px;margin-top:-18px;border-radius:50%;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff;font-size:21px;box-shadow:0 6px 16px rgba(37,99,235,.35)}
+  #appTabs button.ai{color:#1D4ED8}
+  body.has-tabs #daiFab{display:none!important}
+  body.has-tabs #calcFab{bottom:calc(70px + env(safe-area-inset-bottom))!important}
+  body.has-tabs #sheetwrap .sheet{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  body.has-tabs.dai-open #appTabs,body.has-tabs.kb-open #appTabs{display:none}
+  /* 한 줄 머리: 부제목·지표·계정 버튼은 접고 📊·👤 두 버튼만 */
+  #ribbon{padding:8px 12px!important}
+  #ribbon .brand span{display:none!important}
+  #ribbon .rb-acts{display:none!important}
+  body:not(.kpi-open) #ribbon .kpis{display:none!important}
+  #rbKpi,#rbAcct{display:flex;align-items:center;justify-content:center;flex:0 0 40px;width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;font-size:18px;padding:0}
+  body.kpi-open #rbKpi{background:rgba(255,255,255,.32)}
+  /* 계정 시트 */
+  #acctSheet.open{display:block;position:fixed;inset:0;z-index:300;background:rgba(15,23,42,.45)}
+  #acctSheet .as-panel{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:18px 18px 0 0;padding:6px 16px calc(16px + env(safe-area-inset-bottom));max-height:85vh;overflow:auto}
+  #acctSheet .as-grab{width:40px;height:4px;border-radius:2px;background:#D5D9DE;margin:6px auto 10px}
+  #acctSheet .as-who{font-size:14px;font-weight:800;color:var(--ink)}
+  #acctSheet .as-sub{font-size:12px;color:var(--ink-soft);margin:2px 0 12px}
+  #acctSheet .as-btn{display:flex;align-items:center;gap:10px;width:100%;border:0;border-top:1px solid #EEF0F3;background:none;padding:14px 4px;font:inherit;font-size:15px;color:var(--ink);text-align:left;min-height:48px}
+  #acctSheet .as-btn.red{color:var(--red)}
+  #acctSheet .as-tip{font-size:12.5px;color:var(--ink-soft);background:#F6F8FA;border-radius:10px;padding:10px 12px;margin:4px 0 8px;line-height:1.55}
+  /* 가격정책표: 필터는 [필터] 하나로 */
+  #sh-price .toolrow>.ttl{display:none!important}
+  #pzFilt{display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;min-height:40px;max-width:52%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  #pzFilt b{font-weight:800;color:var(--xl-green-dark);overflow:hidden;text-overflow:ellipsis}
+  #sh-price .toolrow:not(.flt-open)>:is(#catSel,#brandSeg,#statusSeg,#viewSeg,#btnAddProd,#btnDeal,#trTools,#btnPriceInfo){display:none!important}
+  #sh-price .toolrow .findbox{flex:1 1 0!important;min-width:0}
+  #sh-price .toolrow.flt-open #pzFilt{background:#E8F5EE;border-color:var(--xl-green)}
+  /* 행 정보: 아래에서 올라오는 시트 */
+  #rowInfo:not([hidden]){position:fixed!important;left:0;right:0;bottom:calc(60px + env(safe-area-inset-bottom));z-index:150;margin:0!important;max-height:56vh;overflow:auto;
+    border-radius:16px 16px 0 0!important;box-shadow:0 -8px 28px rgba(15,23,42,.18)!important;background:#fff!important;padding-top:14px!important}
+  #rowInfo:not([hidden])::before{content:'';display:block;width:40px;height:4px;border-radius:2px;background:#D5D9DE;margin:-6px auto 8px}
+  body.ri-open #sh-price{padding-bottom:58vh!important}
+  body.ri-open #calcFab{display:none!important}
+}
 /* 그로홈 원가 1회 적용 카드 */
 .gc-card{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:10px 14px;border:1px solid #BFDBFE;background:#EFF6FF;border-radius:10px;font-size:13px;color:#1E3A8A}
 .gc-card[hidden]{display:none}
@@ -1623,7 +1678,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28h</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28i</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -4159,7 +4214,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   const ghBtn=$('#btnGhImport'); if(ghBtn) ghBtn.style.display=costAllowed?'':'none';        // 그로홈 가져오기: 원가열람 계정만
   const pcBtn=$('#btnPcode'); if(pcBtn) pcBtn.style.display=costAllowed?'':'none';          // 자체상품코드: 원가열람 계정만
   if(PCODE_LOADED && costAllowed && (PCODE_RULE!==PCODE_RULE_VER || pcodeTargets().some(p=>!PCODE[pKey(p)]))) schedulePcodeAuto();
-  renderBrandSeg(); renderStatusSeg();
+  renderBrandSeg(); renderStatusSeg(); if(window.__pzFiltPaint) window.__pzFiltPaint();
   ['btnBulkFix','btnBulkAuto','btnClearTodo'].forEach(id=>{ const b=$('#'+id); if(b) b.style.display=costAllowed?'':'none'; });
   const ct=$('#btnClearTodo'); if(ct){ const n=todoCount(); ct.textContent=n?`미정 해제 (${n})`:'미정 해제'; ct.disabled=!n; ct.style.opacity=n?'':'.45'; }
   const chanBtn=$('#btnAddChan'); if(chanBtn) chanBtn.style.display=costAllowed?'':'none';    // 채널 추가: 원가열람 계정만
@@ -5851,7 +5906,7 @@ function gotoTab(sh){
   if(b) activeGrp=b.dataset.grp;
   $$('.stab').forEach(x=>x.classList.toggle('on',x.dataset.sh===sh));
   $$('.sheet').forEach(s=>s.classList.toggle('on',s.id===sh));
-  renderTabs();
+  renderTabs(); if(window.__appTabsPaint) window.__appTabsPaint();
   // 숨김 상태로 렌더된 경우를 대비해 보이는 시점에 고정 열 좌표를 다시 잡는다
   if(sh==='sh-price') requestAnimationFrame(()=>{ if(typeof layoutFrozen==='function') layoutFrozen(); });
   if(sh==='sh-data' && typeof openDataTab==='function') openDataTab();
@@ -11305,10 +11360,14 @@ async function openPromoCalc(key, preset){
    · 폰에서 버튼이 많은 도구줄은 '도구 N개 ▾' 로 접어 둔다(누르면 전부 펼침 — 기능은 그대로) */
 (function appUx(){
   const back=document.createElement('div'); back.id='uiBack'; document.body.appendChild(back);
-  const panels=()=>['#calcMenu','#calcPanel','#promoCalc','#costCalc','#dealPanel','#pdPanel'].map(x=>$(x)).filter(Boolean);
+  const panels=()=>['#calcMenu','#calcPanel','#promoCalc','#costCalc','#dealPanel','#pdPanel','#acctSheet'].map(x=>$(x)).filter(Boolean);
+  const phone=()=>innerWidth<=640;
+  const daiOn=()=>{ const d=$('#daiPanel'); return !!(d&&d.classList.contains('on')); };
+  const riOn=()=>phone()&&document.body.classList.contains('ri-open');
   const anyOpen=()=>panels().some(p=>p.classList.contains('open'));
-  const drawerOpen=()=>document.body.classList.contains('sn-open');
-  const closeAll=()=>{ panels().forEach(p=>p.classList.remove('open')); document.body.classList.remove('sn-open'); };
+  const drawerOpen=()=>document.body.classList.contains('sn-open')||daiOn()||riOn();   // 폰: AI 창·행 정보 시트도 뒤로가기로 닫힘
+  const closeAll=()=>{ panels().forEach(p=>p.classList.remove('open')); document.body.classList.remove('sn-open');
+    if(daiOn()&&typeof daiClose==='function') daiClose(); else if(riOn()&&typeof rowSelect==='function'){ EDIT_ROW=null; rowSelect(null); } };
   back.addEventListener('click',closeAll);
   let pushed=false;
   const sync=()=>{
@@ -11320,6 +11379,7 @@ async function openPromoCalc(key, preset){
   const mo=new MutationObserver(sync);
   panels().forEach(p=>mo.observe(p,{attributes:true,attributeFilter:['class']}));
   mo.observe(document.body,{attributes:true,attributeFilter:['class']});
+  { const d=$('#daiPanel'); if(d) mo.observe(d,{attributes:true,attributeFilter:['class']}); }
   window.addEventListener('popstate',()=>{ if(pushed||anyOpen()||drawerOpen()){ pushed=false; closeAll(); } });
   document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&(anyOpen()||drawerOpen())) closeAll(); });
   // 폰 도구줄 접기
@@ -11335,6 +11395,75 @@ async function openPromoCalc(key, preset){
     if(!tr.classList.contains('tr-open')) mb.textContent=`도구 ${btns.length}개 ▾`;
   }); };
   fold(); window.__uiFold=fold;
+})();
+
+/* ══════════ 📱 폰 앱 화면 (≤640px · 2026-09 대표 확인) ══════════
+   · 아래 탭 바: 가격 · 출시 · 💬AI · 매출 · 더보기(☰ 메뉴)  — 팀원은 단가표·매출·AI·마케팅, 열람 계정은 매출 대신 마케팅
+   · 머리 한 줄: 📊 요약 지표 펼치기 · 👤 계정 시트(보기 전환·계정 관리·홈 화면 설치 안내·로그아웃 — 기존 버튼을 그대로 눌러 줌)
+   · 가격정책표: 분류·브랜드·상태·보기·도구는 [필터] 하나로 접기 · 행 정보는 아래 시트
+   · PC·태블릿(>640px)은 그대로 */
+let INSTALL_EVT=null;
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); INSTALL_EVT=e; });
+const appStandalone=()=>{ try{ return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true; }catch(e){ return false; } };
+const appIOS=()=>/iPhone|iPad|iPod/.test(navigator.userAgent);
+function installApp(){ if(!INSTALL_EVT) return; INSTALL_EVT.prompt(); Promise.resolve(INSTALL_EVT.userChoice).finally(()=>{ INSTALL_EVT=null; }); }
+(function appShell(){
+  const mq=matchMedia('(max-width:640px)');
+  const tabsCfg=()=>{
+    if(TEAM_MODE) return [['sh-tprice','💰','단가표'],['sh-sales','📈','매출'],['ai','💬','AI'],['sh-mktpromo','📣','마케팅'],['more','☰','더보기']];
+    if(!costAllowed) return [['sh-price','💰','가격'],['sh-launch','📦','출시'],['ai','💬','AI'],['sh-mktpromo','📣','마케팅'],['more','☰','더보기']];
+    return [['sh-price','💰','가격'],['sh-launch','📦','출시'],['ai','💬','AI'],['sh-sales','📈','매출'],['more','☰','더보기']];
+  };
+  const nav=document.createElement('nav'); nav.id='appTabs'; nav.setAttribute('aria-label','주요 화면'); document.body.appendChild(nav);
+  function paint(){ const cur=(document.querySelector('#sheetwrap .sheet.on')||{}).id||'';
+    nav.innerHTML=tabsCfg().map(([k,ic,lb])=>`<button type="button" data-apptab="${k}" class="${k==='ai'?'ai':''}${k===cur?' on':''}"${k===cur?' aria-current="page"':''}><i>${ic}</i>${lb}</button>`).join(''); }
+  window.__appTabsPaint=paint;
+  nav.addEventListener('click',e=>{ const b=e.target.closest('[data-apptab]'); if(!b) return; const k=b.dataset.apptab;
+    if(k==='ai'){ if(typeof daiOpen==='function') daiOpen(); return; }
+    if(k==='more'){ document.body.classList.add('sn-open'); return; }
+    if(document.body.classList.contains('ri-open')&&typeof rowSelect==='function'){ EDIT_ROW=null; rowSelect(null); }
+    gotoTab(k); try{ $('#sheetwrap .sheet.on').scrollTop=0; }catch(err){} paint(); });
+  const setMode=()=>{ document.body.classList.toggle('has-tabs', mq.matches);
+    const t=$('#appTitle'); if(t&&!TEAM_MODE){ if(!t.dataset.full) t.dataset.full=t.textContent; t.textContent=mq.matches?'POUR 가격·마진':t.dataset.full; } };   // 폰: 제목 짧게
+  setMode(); if(mq.addEventListener) mq.addEventListener('change',setMode); else if(mq.addListener) mq.addListener(setMode);
+  // 머리: 📊 · 👤
+  const rb=$('#ribbon'), acts=rb&&rb.querySelector('.rb-acts');
+  if(rb&&acts){ const k=document.createElement('button'); k.id='rbKpi'; k.type='button'; k.setAttribute('aria-label','요약 지표 펼치기'); k.textContent='📊';
+    const a=document.createElement('button'); a.id='rbAcct'; a.type='button'; a.setAttribute('aria-label','계정'); a.textContent='👤';
+    rb.insertBefore(k,acts); rb.insertBefore(a,acts);
+    k.addEventListener('click',()=>document.body.classList.toggle('kpi-open')); a.addEventListener('click',openAcct); }
+  // 계정 시트
+  const sh=document.createElement('div'); sh.id='acctSheet'; sh.innerHTML='<div class="as-panel" role="dialog" aria-label="계정"></div>'; document.body.appendChild(sh);
+  new MutationObserver(()=>document.body.classList.toggle('acct-open', sh.classList.contains('open'))).observe(sh,{attributes:true,attributeFilter:['class']});   // 뒤로가기 감시(몸체 class)에 걸리게
+  sh.addEventListener('click',e=>{ if(e.target===sh){ sh.classList.remove('open'); return; } const b=e.target.closest('[data-as]'); if(!b) return; const a=b.dataset.as; sh.classList.remove('open');
+    if(a==='gear'){ const g=$('#btnAccountGear'); if(g) g.click(); }
+    else if(a==='out'){ const o=$('#btnSignOut'); if(o) o.click(); }
+    else if(a==='install') installApp();
+    else if(a.startsWith('va:')){ const v=document.querySelector(`#viewAsCtl [data-va="${a.slice(3)}"]`); if(v) v.click(); } });
+  function openAcct(){
+    const who=(curUser&&curUser.email)||'', role=secAllowed?'마스터':costAllowed?'부마스터':TEAM_MODE?'팀원':'열람 계정';
+    const va=[...document.querySelectorAll('#viewAsCtl [data-va]')].map(b=>`<button type="button" class="as-btn" data-as="va:${esc(b.dataset.va)}">${esc(b.textContent.trim())}</button>`).join('');
+    const gear=$('#btnAccountGear'), showGear=gear&&gear.style.display!=='none';
+    sh.querySelector('.as-panel').innerHTML=`<div class="as-grab"></div><div class="as-who">👤 ${esc(who)}</div><div class="as-sub">${role} · 화면 ${esc(($('#buildStamp')||{}).textContent||'')}</div>
+      ${appStandalone()?'':`<div class="as-tip">📲 <b>앱처럼 쓰기</b> — ${appIOS()?'사파리 아래 <b>공유(□↑)</b> → <b>홈 화면에 추가</b>를 누르면 아이콘이 생기고 주소창 없이 열려요.':'아래 [홈 화면에 추가]를 누르거나 브라우저 메뉴(⋮) → <b>앱 설치 / 홈 화면에 추가</b>'}</div>`}
+      ${!appStandalone()&&INSTALL_EVT?'<button type="button" class="as-btn" data-as="install">📲 홈 화면에 추가</button>':''}
+      ${va}${showGear?'<button type="button" class="as-btn" data-as="gear">⚙️ 계정 관리</button>':''}
+      <button type="button" class="as-btn red" data-as="out">로그아웃</button>`;
+    sh.classList.add('open');
+  }
+  // 가격정책표 [필터]
+  const tr=$('#sh-price .toolrow'), fb=$('#sh-price .findbox');
+  if(tr&&fb){ const f=document.createElement('button'); f.id='pzFilt'; f.type='button'; f.className='tbtn'; fb.after(f);
+    f.addEventListener('click',()=>{ tr.classList.toggle('flt-open'); paintFilt(); }); }
+  function paintFilt(){ const f=$('#pzFilt'); if(!f) return;
+    const cs=$('#catSel'), bits=[BRAND_FILTER, STATUS_FILTER, cs&&cs.value?cs.options[cs.selectedIndex].text:'', (typeof viewMode!=='undefined'&&viewMode!=='price')?({margin:'마진액',rate:'마진율'})[viewMode]:''].filter(Boolean);
+    f.innerHTML=`${tr&&tr.classList.contains('flt-open')?'▴':'⚙︎'} 필터${bits.length?' <b>'+esc(bits.join('·'))+'</b>':''}`; }
+  window.__pzFiltPaint=paintFilt;
+  document.addEventListener('click',e=>{ if(e.target.closest('#viewSeg button')) setTimeout(paintFilt,0); });
+  // 행 정보 시트가 열렸는지
+  const ri=$('#rowInfo'); if(ri){ const o=new MutationObserver(()=>document.body.classList.toggle('ri-open', !ri.hidden)); o.observe(ri,{attributes:true,attributeFilter:['hidden']}); }
+  paint(); paintFilt();
+  window.__appShellMode=setMode;
 })();
 /* ══════════ 생산원가 계산기 (모든 품목: 페인트·세제·옷·시트·휴지·칫솔 …) ══════════
    항목 1줄 원가 = 단가(원 · 달러면 × 환율) × 1개당 사용량 × (1 + 로스)   · 수입이면 + 관세(과세가격 기준, 아래 인코텀즈)
@@ -11697,6 +11826,8 @@ function refreshAll(){
   scheduleTeamCatalog();
   if(TEAM_MODE && typeof renderTeamPrice==='function') renderTeamPrice();
   if(window.__uiFold) window.__uiFold();
+  if(window.__appTabsPaint) window.__appTabsPaint();
+  if(window.__appShellMode) window.__appShellMode();
 }
 /* 가격정책표 스크롤 접기 (폰·태블릿): 아래로 내리면 KPI·도구줄을 접고 표 머리줄(제품명…)만 위에 고정.
    위로 올려도 풀리지 않고 [▾ 펼치기]를 눌러야 풀린다. */

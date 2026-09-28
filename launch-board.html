@@ -248,7 +248,7 @@
   .phase-h{display:flex;align-items:center;gap:8px;margin:16px 2px 8px;font-size:13px;font-weight:800;color:var(--ink2)}
   .phase-h .who{font-size:11.5px;font-weight:800;border-radius:7px;padding:3px 8px}
   .ck{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
-  .ck-row{display:grid;grid-template-columns:30px 190px minmax(0,1fr) 120px 150px;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line2);transition:background .3s}
+  .ck-row{display:grid;grid-template-columns:30px 210px minmax(0,1fr) 110px 190px;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line2);transition:background .3s}
   .ck-row:last-child{border-bottom:none}
   .ck-row.flash{background:#FFFBEB}
   .ck-box{display:flex;align-items:center;justify-content:center;cursor:pointer;width:30px;height:30px}
@@ -258,8 +258,18 @@
   .ck-box input:checked + span::after{content:'✓'}
   .ck-box input:focus-visible + span{box-shadow:0 0 0 3px #BFDBFE}
   .ck-name b{display:block;font-size:14px;font-weight:800}
-  .ck-name small{display:block;font-size:11.5px;color:var(--faint);font-weight:600;margin-top:1px}
-  .ck-row.done .ck-name b{color:var(--faint);text-decoration:line-through}
+  .ck-name small{display:block;font-size:11px;color:var(--faint);font-weight:600;margin-top:3px}
+  .ck-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+  .ck-tags span{font-size:11.5px;font-weight:800;border-radius:6px;padding:2px 7px;white-space:nowrap}
+  .tg-own{background:#EEF2FF;color:#3730A3}
+  .tg-own.empty{background:#F3F4F6;color:var(--faint)}
+  .tg-ok{background:#D1FAE5;color:#047857}
+  .ck-row.done .ck-name b{color:var(--muted);text-decoration:none}
+  .due-wrap{display:flex;gap:4px;min-width:0}
+  .due-wrap input{flex:1;min-width:0}
+  .tbd-btn{flex-shrink:0;height:38px;padding:0 9px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:12px;font-weight:800;color:var(--muted)}
+  .tbd-btn:hover{background:#F3F4F6}
+  .due-tbd{width:100%;height:38px;border-radius:9px;border:1.5px dashed #F59E0B;background:#FFFBEB;color:#92400E;font-weight:800;font-size:13px}
   .ck-row input[type=text],.ck-row input:not([type]),.ck-row textarea,.ck-row input[type=date]{width:100%;border:1px solid transparent;background:#F6F8FA;border-radius:9px;padding:8px 10px;outline:none;font-size:13.5px;min-height:38px}
   .ck-row textarea{resize:none;overflow:hidden;line-height:1.45;display:block}
   .ck-row input:focus,.ck-row textarea:focus{background:#fff;border-color:var(--blue);box-shadow:0 0 0 3px #DBEAFE}
@@ -339,7 +349,7 @@
     .ck-box{grid-area:box}
     .ck-name{grid-area:name;padding-top:4px}
     .ck-row textarea{grid-area:todo}
-    .ck-meta{grid-area:meta;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .ck-meta{grid-area:meta;display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:6px}
   }
   .card .body,.card .foot{display:contents}
 </style>
@@ -900,11 +910,15 @@ function ckRow(p, sid){
   const s = stg(p,sid), st = STEP_BY[sid], done = s.status==='done', over = isOver(s);
   return `<div class="ck-row ${done?'done':''} ${over?'over':''}" id="step-${sid}">
     <label class="ck-box" title="완료 체크"><input type="checkbox" data-ck="${sid}" ${done?'checked':''} aria-label="${esc(st.name)} 완료"><span></span></label>
-    <div class="ck-name"><b>${st.no} ${st.name}</b><small>${esc(whoFor(st.phase,p))}</small></div>
+    <div class="ck-name"><b>${st.no} ${st.name}</b>
+      <div class="ck-tags"><span class="tg-own ${s.owner?'':'empty'}">👤 ${esc(s.owner || '담당 미정')}</span>${done ? `<span class="tg-ok">✓ 컨펌 완료${s.doneBy?' · '+esc(s.doneBy):''}${s.doneAt?' · '+fmtShort(s.doneAt.slice(0,10)):''}</span>` : ''}</div>
+</div>
     <textarea rows="1" data-sid="${sid}" data-sf="note" placeholder="해야 할 내용">${esc(s.note)}</textarea>
     <div class="ck-meta">
       <input data-sid="${sid}" data-sf="owner" value="${esc(s.owner)}" placeholder="담당" list="peopleList" aria-label="담당">
-      <input type="date" data-sid="${sid}" data-sf="due" value="${esc(s.due)}" aria-label="마감기한" title="마감기한">
+      ${s.dueTbd
+        ? `<button type="button" class="due-tbd" data-tbd="${sid}" data-v="0" title="눌러서 날짜 정하기">📅 마감 미정</button>`
+        : `<div class="due-wrap"><input type="date" data-sid="${sid}" data-sf="due" value="${esc(s.due)}" aria-label="마감기한" title="마감기한"><button type="button" class="tbd-btn" data-tbd="${sid}" data-v="1" title="마감일 미정으로 표시">미정</button></div>`}
     </div>
   </div>`;
 }
@@ -995,13 +1009,25 @@ async function saveStepField(sid, field, value){
   const p = items.find(x=>x.id===openId); if (!p) return;
   const prev = stg(p,sid), st = STEP_BY[sid];
   if ((prev[field]||'') === value) return;
-  const msg = field==='status' ? (value==='done' ? '완료 체크' : '체크 해제')
+  const msg = field==='status' ? (value==='done' ? '컨펌 완료' : '컨펌 해제')
             : field==='note' ? '할 일: ' + (value ? value.split('\n')[0].slice(0,40) : '지움')
             : field==='owner' ? '담당 ' + (value || '없음')
             : '마감 ' + (value ? fmtShort(value) : '없음');
-  const ok = await writeDoc(p.id, { ['stages.'+sid+'.'+field]: value, ['stages.'+sid+'.updatedAt']: nowIso(), ['stages.'+sid+'.updatedBy']: who() }, `${st.no} ${st.name} · ${msg}`);
-  if (ok) toast(field==='status' && value==='done' ? '✅ 완료 체크했어요' : '저장했어요');
+  const patch = { ['stages.'+sid+'.'+field]: value, ['stages.'+sid+'.updatedAt']: nowIso(), ['stages.'+sid+'.updatedBy']: who() };
+  if (field==='status') { patch['stages.'+sid+'.doneBy'] = value==='done' ? who() : ''; patch['stages.'+sid+'.doneAt'] = value==='done' ? nowIso() : ''; }
+  if (field==='due' && value) patch['stages.'+sid+'.dueTbd'] = false;
+  const ok = await writeDoc(p.id, patch, `${st.no} ${st.name} · ${msg}`);
+  if (ok) toast(field==='status' && value==='done' ? '✅ 컨펌 완료로 표시했어요' : '저장했어요');
   else renderMain();
+}
+// 마감 '미정' 켜기/끄기 (켜면 날짜는 비움)
+async function setDueTbd(sid, on){
+  const p = items.find(x=>x.id===openId); if (!p) return;
+  const st = STEP_BY[sid];
+  const patch = { ['stages.'+sid+'.dueTbd']: on, ['stages.'+sid+'.updatedAt']: nowIso(), ['stages.'+sid+'.updatedBy']: who() };
+  if (on) patch['stages.'+sid+'.due'] = '';
+  const ok = await writeDoc(p.id, patch, `${st.no} ${st.name} · 마감 ${on ? '미정' : '날짜 정하기'}`);
+  if (ok) { toast(on ? '마감을 미정으로 표시했어요' : '마감 날짜를 골라주세요'); if (!on) setTimeout(()=>{ const el = document.querySelector(`#step-${sid} input[type=date]`); if (el) { el.focus(); try { el.showPicker(); } catch(e){} } }, 150); }
 }
 async function saveProductField(field, value){
   const p = items.find(x=>x.id===openId); if (!p) return;
@@ -1055,6 +1081,7 @@ document.addEventListener('click', e => {
   if (d.mclose!==undefined) return closeModal();
   if (d.view) { view = d.view; calSel = ''; if (d.view==='week') weekOff = 0; renderAll(); window.scrollTo({top:0}); return; }
   if (d.brand) { brandTab = d.brand; return renderMain(); }
+  if (d.tbd) return setDueTbd(d.tbd, d.v==='1');
   if (d.person) { query = d.person; $('q').value = d.person; $('qx').classList.remove('hidden'); view = 'home'; brandTab = 'all'; renderAll(); window.scrollTo({top:0}); return; }
   if (d.wk!==undefined) { weekOff = d.wk==='0' ? 0 : weekOff + Number(d.wk); return renderMain(); }
   if (d.add!==undefined) return openAdd(d.add);

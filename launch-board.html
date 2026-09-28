@@ -128,7 +128,7 @@
   .add-card b{font-size:26px;font-weight:500}
   .empty{padding:40px 20px;text-align:center;color:var(--muted);font-weight:600;background:#fff;border:1px dashed var(--line);border-radius:var(--r)}
 
-  /* ── 이번 주 확인 ── */
+  /* ── 목록 섹션 (캘린더·휴지통) ── */
   .wk{display:flex;flex-direction:column;gap:14px}
   .wk-sec{background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
   .wk-sec .hd{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line2);font-weight:800;font-size:15px}
@@ -143,6 +143,31 @@
   .wk-row .mid span{display:block;font-size:12.5px;color:var(--muted);font-weight:600;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .wk-row .rt{font-size:12px;font-weight:800;white-space:nowrap}
   .wk-none{padding:16px;color:var(--faint);font-weight:600;font-size:13px}
+
+  /* ── 주간 일정표 ── */
+  .wk-nav{display:flex;align-items:center;gap:6px}
+  .wk-nav button{height:38px;min-width:38px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:700;font-size:13px;color:var(--ink2)}
+  .wk-over{background:var(--red-l);border:1px solid #FECACA;border-radius:14px;padding:10px 12px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .wk-over b{color:#991B1B;font-size:13px;margin-right:4px}
+  .wk-over button{font-size:12px;font-weight:700;background:#fff;border:1px solid #FECACA;color:#991B1B;border-radius:8px;padding:5px 8px}
+  .wkg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+  .wday{background:#fff;border:1px solid var(--line);border-radius:14px;min-height:300px;display:flex;flex-direction:column;overflow:hidden}
+  .wday .dh{padding:9px 10px;border-bottom:1px solid var(--line2);display:flex;align-items:baseline;gap:6px;font-weight:800;font-size:13px;color:var(--ink2)}
+  .wday .dh small{font-size:12px;color:var(--faint);font-weight:700}
+  .wday.today{border-color:#111827;box-shadow:0 0 0 1px #111827}
+  .wday.today .dh{background:#111827;color:#fff}
+  .wday.today .dh small{color:#CBD5E1}
+  .wday.wkend .dh{color:#9CA3AF}
+  .wday .evs{padding:6px;display:flex;flex-direction:column;gap:5px}
+  .wday .none{font-size:12px;color:#D1D5DB;font-weight:600;padding:6px 4px}
+  .wev{display:block;width:100%;text-align:left;border-radius:9px;padding:6px 8px;border-left:3px solid;font-size:12px;line-height:1.35}
+  .wev b{display:block;font-weight:800;font-size:12.5px;word-break:keep-all;overflow-wrap:anywhere}
+  .wev span{display:block;color:var(--ink2);font-weight:600;word-break:keep-all;overflow-wrap:anywhere}
+  .wev.done{opacity:.5}
+  .wev.done b{text-decoration:line-through}
+  .wev.over span{color:var(--red)}
+  .wev.launch{border-left-width:0;font-weight:800}
+  .wk-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:12px;color:var(--muted);font-weight:600}
 
   /* ── 큰 캘린더 ── */
   .bigcal{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px}
@@ -252,6 +277,10 @@
     .btabs button.on{color:#111827;background:#F3F4F6}
     .btabs .cnt{position:absolute;top:2px;right:calc(50% - 22px);background:var(--red);color:#fff;font-size:10px;font-weight:800;border-radius:999px;padding:1px 5px}
     .notes{grid-template-columns:1fr}
+    .wkg{grid-template-columns:1fr;gap:6px}
+    .wday{min-height:0;flex-direction:row}
+    .wday .dh{flex-direction:column;align-items:center;justify-content:center;gap:0;width:64px;flex-shrink:0;border-bottom:none;border-right:1px solid var(--line2)}
+    .wday .evs{flex:1;min-width:0}
   }
   @media (max-width:700px){
     .top{padding:0 12px;margin-top:10px}
@@ -404,6 +433,7 @@ let brandTab = 'all';
 let query = '';
 let calMonth = monthStart(new Date());
 let calSel = '';
+let weekOff = 0;            // 주간 일정: 0=이번 주, -1=지난주, 1=다음 주
 let openId = null, prevView = 'home', pendingRender = false;
 let me = '';
 try { me = localStorage.getItem('launchBoardName') || ''; } catch(e) {}
@@ -421,7 +451,7 @@ function dday(s){ if(!s) return ''; const n = diffDays(s); return n===0 ? 'D-DAY
 const WD = ['일','월','화','수','목','금','토'];
 function fmtDate(s, withWd){ if(!s) return ''; const d = parse(s); return d.getFullYear()+'.'+pad(d.getMonth()+1)+'.'+pad(d.getDate()) + (withWd ? ' ('+WD[d.getDay()]+')' : ''); }
 function fmtShort(s){ if(!s) return ''; const d = parse(s); return (d.getMonth()+1)+'/'+d.getDate(); }
-function weekRange(){ const t = parse(today()); const dow = (t.getDay()+6)%7; const mon = new Date(t); mon.setDate(t.getDate()-dow); const sun = new Date(mon); sun.setDate(mon.getDate()+6); return [ymd(mon), ymd(sun)]; }
+function weekRange(off = 0){ const t = parse(today()); const dow = (t.getDay()+6)%7; const mon = new Date(t); mon.setDate(t.getDate()-dow+off*7); const sun = new Date(mon); sun.setDate(mon.getDate()+6); return [ymd(mon), ymd(sun)]; }
 function brandOf(p){ return BRANDS[p.brand] || { name:p.brandName||'기타', icon:'📦', bg:'#F3F4F6', bd:'#E5E7EB', ac:'#4B5563', chip:'#E5E7EB' }; }
 function stg(p, sid){ return (p.stages && p.stages[sid]) || { status:'todo', owner:'', due:'', note:'' }; }
 function isOver(s){ return s.due && s.status!=='done' && s.status!=='skip' && s.due < today(); }
@@ -516,7 +546,7 @@ function counts(){
 
 const MENU = [
   { k:'home',  ic:'🏠', label:'홈 · 전체 제품' },
-  { k:'week',  ic:'✅', label:'이번 주 확인' },
+  { k:'week',  ic:'🗓️', label:'주간 일정' },
   { k:'cal',   ic:'📅', label:'출시 캘린더' },
   { k:'guide', ic:'🧭', label:'업무 체계' },
 ];
@@ -642,50 +672,57 @@ function viewHome(){
   return html;
 }
 
-// ── 이번 주 확인 (BM·본부장 주간 점검) ──
-function stepRow(p, sid, right, rightColor){
-  const s = stg(p,sid), b = brandOf(p), st = STEP_BY[sid];
-  return `<button class="wk-row" data-open="${p.id}" data-step="${sid}"><span class="bdot" style="background:${b.ac}"></span>
-    <span class="mid"><b>${esc(p.name)} · ${st.no} ${st.name}</b><span>${esc(b.name)} · 담당 ${esc(s.owner||'미지정')}${s.note?' · '+esc(s.note.split('\n')[0]):''}</span></span>
-    <span class="rt" style="color:${rightColor||'var(--muted)'}">${right}</span></button>`;
-}
+// ── 주간 일정 (BM·본부장 주 1회 점검) ──
+// 주간 일정: 그 주 월~일에 마감인 단계 + 출시일
 function weekData(){
-  const L = live(), [ws,we] = weekRange(), t = today();
-  const over=[], week=[];
-  L.forEach(p=>STEPS.forEach(s=>{
-    const x = stg(p,s.id);
-    if (isOver(x)) over.push([p,s.id,x.due]);
-    else if (x.due>=ws && x.due<=we && x.status!=='done' && x.status!=='skip') week.push([p,s.id,x.due]);
-  }));
-  over.sort((a,b)=>a[2].localeCompare(b[2])); week.sort((a,b)=>a[2].localeCompare(b[2]));
-  const soon = L.filter(p=>p.launchDate && diffDays(p.launchDate)>=0 && diffDays(p.launchDate)<=30).sort(sortByLaunch);
-  const since = new Date(Date.now()-7*86400000).toISOString();
-  const changes = [];
-  L.forEach(p=>(p.history||[]).forEach(h=>{ if(h.at>=since && h.by!=='시스템') changes.push([p,h]); }));
-  changes.sort((a,b)=>b[1].at.localeCompare(a[1].at));
-  return { ws, we, t, over, week, soon, changes };
+  const L = live(), [ws,we] = weekRange(weekOff);
+  const days = [];
+  for (let i=0;i<7;i++){ const d = parse(ws); d.setDate(d.getDate()+i); days.push({ key:ymd(d), d, evs:[] }); }
+  const byKey = Object.fromEntries(days.map(x=>[x.key,x]));
+  L.forEach(p=>{
+    if (p.launchDate && byKey[p.launchDate]) byKey[p.launchDate].evs.push({ kind:'launch', p });
+    STEPS.forEach(s=>{ const x = stg(p,s.id); if (x.due && byKey[x.due] && x.status!=='skip') byKey[x.due].evs.push({ kind:'step', p, sid:s.id, x }); });
+  });
+  days.forEach(dy=>dy.evs.sort((a,b)=>(a.kind==='launch'?-1:0)-(b.kind==='launch'?-1:0) || (a.x&&a.x.status==='done')-(b.x&&b.x.status==='done')));
+  const over = [];
+  L.forEach(p=>STEPS.forEach(s=>{ const x = stg(p,s.id); if (isOver(x)) over.push([p,s.id,x.due]); }));
+  over.sort((a,b)=>a[2].localeCompare(b[2]));
+  return { ws, we, days, over };
 }
 function viewWeek(){
-  const w = weekData();
-  const sec = (ic,title,arr,rowFn,note) => `<div class="wk-sec"><div class="hd">${ic} ${title}<span class="n">${arr.length}</span>${note?`<small>${note}</small>`:''}</div>${arr.length?arr.map(rowFn).join(''):`<div class="wk-none">없음 👍</div>`}</div>`;
+  const w = weekData(), t = today();
+  const title = weekOff===0 ? '이번 주' : weekOff===-1 ? '지난주' : weekOff===1 ? '다음 주' : (weekOff>0 ? weekOff+'주 뒤' : (-weekOff)+'주 전');
+  const ev = e => {
+    const b = brandOf(e.p);
+    if (e.kind==='launch') return `<button class="wev launch" data-open="${e.p.id}" style="background:${b.ac};color:#fff"><b>🚀 ${esc(e.p.name)} 출시</b><span style="color:#fff;opacity:.85">${esc(b.name)}</span></button>`;
+    const st = STEP_BY[e.sid], done = e.x.status==='done', over = isOver(e.x);
+    return `<button class="wev ${done?'done':''} ${over?'over':''}" data-open="${e.p.id}" data-step="${e.sid}" style="background:${b.bg};border-left-color:${b.ac}">
+      <b>${done?'✓ ':''}${esc(e.p.name)}</b><span>${st.name}${e.x.owner?' · '+esc(e.x.owner):''}</span></button>`;
+  };
   return `
-    <div class="h2"><h2>이번 주 확인</h2><span class="sp"></span><button class="btn" data-copy-week="">📋 주간 보고 복사</button></div>
-    <p class="sub">${fmtDate(w.ws)} ~ ${fmtDate(w.we)} · BM·본부장 주 1회 점검용. 항목을 누르면 해당 제품 체크리스트가 열려요.</p>
-    <div class="wk">
-      ${sec('⏰','마감 지난 단계',w.over,([p,sid,d])=>stepRow(p,sid,fmtShort(d)+' · '+dday(d),'var(--red)'),'담당자에게 일정 재확인')}
-      ${sec('📅','이번 주 마감',w.week,([p,sid,d])=>stepRow(p,sid,fmtShort(d)+' ('+WD[parse(d).getDay()]+')','var(--blue)'))}
-      ${sec('🚀','30일 안에 출시',w.soon,p=>{const b=brandOf(p),pr=progress(p);return `<button class="wk-row" data-open="${p.id}"><span class="bdot" style="background:${b.ac}"></span><span class="mid"><b>${esc(p.name)}</b><span>${esc(b.name)} · ${fmtDate(p.launchDate,true)} · 진행 ${pr.done}/${pr.total}</span></span><span class="rt" style="color:${b.ac}">${dday(p.launchDate)}</span></button>`;})}
-      ${sec('🕘','최근 7일 변경',w.changes.slice(0,30),([p,h])=>`<button class="wk-row" data-open="${p.id}"><span class="bdot" style="background:${brandOf(p).ac}"></span><span class="mid"><b>${esc(p.name)}</b><span>${esc(h.by)} · ${esc(h.text)}</span></span><span class="rt">${fmtShort(h.at.slice(0,10))}</span></button>`)}
-    </div>`;
+    <div class="h2"><h2>주간 일정</h2><span class="sp"></span>
+      <div class="wk-nav"><button data-wk="-1" aria-label="이전 주">‹</button><button data-wk="0">이번 주</button><button data-wk="1" aria-label="다음 주">›</button></div>
+      <button class="btn" data-copy-week="">📋 주간 보고 복사</button></div>
+    <p class="sub"><b>${title}</b> · ${fmtDate(w.ws)} ~ ${fmtDate(w.we)} · 단계별 마감일과 출시일이 날짜에 표시돼요. 누르면 체크리스트가 열려요.</p>
+    ${w.over.length ? `<div class="wk-over"><b>⏰ 마감 지남 ${w.over.length}건</b>${w.over.map(([p,sid,d])=>`<button data-open="${p.id}" data-step="${sid}">${esc(p.name)} · ${STEP_BY[sid].name} (${fmtShort(d)})</button>`).join('')}</div>` : ''}
+    <div class="wkg">${w.days.map((dy,i)=>`
+      <div class="wday ${dy.key===t?'today':''} ${i>=5?'wkend':''}">
+        <div class="dh">${WD[dy.d.getDay()]}<small>${dy.d.getMonth()+1}/${dy.d.getDate()}</small></div>
+        <div class="evs">${dy.evs.length ? dy.evs.map(ev).join('') : '<div class="none">일정 없음</div>'}</div>
+      </div>`).join('')}</div>
+    <div class="wk-legend">${BRAND_KEYS.map(k=>`<span><i style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${BRANDS[k].ac};margin-right:5px"></i>${BRANDS[k].name}</span>`).join('')}<span>✓ 흐리게 = 완료</span><span style="color:var(--red)">빨간 글씨 = 마감 지남</span></div>`;
 }
 function weekText(){
   const w = weekData();
-  const line = ([p,sid,d]) => `- [${brandOf(p).name}] ${p.name} · ${STEP_BY[sid].no} ${STEP_BY[sid].name} (${stg(p,sid).owner||'담당 미지정'}${d?', '+fmtShort(d):''})`;
-  let t = `[런칭보드 주간 점검] ${fmtDate(w.ws)} ~ ${fmtDate(w.we)}\n`;
-  t += `\n■ 마감 지난 단계 ${w.over.length}건\n` + (w.over.map(line).join('\n') || '- 없음');
-  t += `\n\n■ 이번 주 마감 ${w.week.length}건\n` + (w.week.map(line).join('\n') || '- 없음');
-  t += `\n\n■ 30일 안에 출시 ${w.soon.length}건\n` + (w.soon.map(p=>`- [${brandOf(p).name}] ${p.name} · ${fmtDate(p.launchDate)} (${dday(p.launchDate)}) · 진행 ${progress(p).pct}%`).join('\n') || '- 없음');
-  t += `\n\n바로가기: ${location.origin}${location.pathname}`;
+  let t = `[런칭보드 주간 일정] ${fmtDate(w.ws)} ~ ${fmtDate(w.we)}\n`;
+  w.days.forEach(dy=>{
+    if (!dy.evs.length) return;
+    t += `\n■ ${dy.d.getMonth()+1}/${dy.d.getDate()} (${WD[dy.d.getDay()]})\n`;
+    t += dy.evs.map(e => e.kind==='launch' ? `- 🚀 [${brandOf(e.p).name}] ${e.p.name} 출시`
+      : `- ${e.x.status==='done'?'✅':'⬜'} [${brandOf(e.p).name}] ${e.p.name} · ${STEP_BY[e.sid].name}${e.x.owner?' ('+e.x.owner+')':''}`).join('\n') + '\n';
+  });
+  if (w.over.length) t += `\n■ ⏰ 마감 지남 ${w.over.length}건\n` + w.over.map(([p,sid,d])=>`- [${brandOf(p).name}] ${p.name} · ${STEP_BY[sid].name} (${stg(p,sid).owner||'담당 미지정'}, ${fmtShort(d)})`).join('\n') + '\n';
+  t += `\n바로가기: ${location.origin}${location.pathname}`;
   return t;
 }
 
@@ -721,9 +758,9 @@ function viewGuide(){
     <h4 style="margin:22px 2px 10px;font-size:13px;color:var(--muted)">④ 운영 규칙</h4>
     <div class="notes">
       <div class="note"><b>1. 단계마다 책임자 1명</b><p>담당 칸에는 팀 이름이 아니라 <b>실제 책임자 이름 1명</b>을 적어요. 07~10단계처럼 여러 주체(1팀·채림·BM·외주)가 함께하면 누락되기 쉬워요.</p></div>
-      <div class="note"><b>2. 마감일은 담당자가 직접</b><p>일을 받으면 담당자가 마감일을 입력해요. 마감이 지나면 빨간색으로 표시되고 '이번 주 확인'에 올라가요.</p></div>
+      <div class="note"><b>2. 마감일은 담당자가 직접</b><p>일을 받으면 담당자가 마감일을 입력해요. 마감이 지나면 빨간색으로 표시되고 '주간 일정'에 올라가요.</p></div>
       <div class="note"><b>3. 끝나면 체크</b><p>단계가 끝나면 체크박스를 눌러요. 컨펌이 필요한 단계는 BM 확인까지 받은 뒤 체크해요. 할 일 칸에는 지금 해야 할 내용을 짧게 적어요.</p></div>
-      <div class="note"><b>4. 주 1회 BM·본부장 점검</b><p>'이번 주 확인' 화면에서 마감 지남 · 이번 주 마감 · 30일 내 출시를 한 번에 보고, '📋 주간 보고 복사'로 단톡에 공유해요.</p></div>
+      <div class="note"><b>4. 주 1회 BM·본부장 점검</b><p>'주간 일정' 화면에서 요일별 마감·출시와 마감 지난 단계를 한 번에 보고, '📋 주간 보고 복사'로 단톡에 공유해요.</p></div>
     </div>
     <h4 style="margin:22px 2px 10px;font-size:13px;color:var(--muted)">⑤ 구조 점검 · 정리가 필요한 부분</h4>
     <div class="notes">
@@ -925,8 +962,9 @@ document.addEventListener('click', e => {
   if (t.id==='addOk') return saveAdd();
   if (t.id==='qx') { $('q').value=''; query=''; t.classList.add('hidden'); return renderMain(); }
   if (d.mclose!==undefined) return closeModal();
-  if (d.view) { view = d.view; calSel = ''; renderAll(); window.scrollTo({top:0}); return; }
+  if (d.view) { view = d.view; calSel = ''; if (d.view==='week') weekOff = 0; renderAll(); window.scrollTo({top:0}); return; }
   if (d.brand) { brandTab = d.brand; return renderMain(); }
+  if (d.wk!==undefined) { weekOff = d.wk==='0' ? 0 : weekOff + Number(d.wk); return renderMain(); }
   if (d.add!==undefined) return openAdd(d.add);
   if (d.cal) { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()+Number(d.cal), 1); calSel=''; renderMiniCal(); if(view==='cal') renderMain(); return; }
   if (d.day) { calSel = calSel===d.day ? '' : d.day; renderMiniCal(); if(view==='cal') renderMain(); return; }
@@ -942,7 +980,7 @@ document.addEventListener('click', e => {
   if (d.del) return softDelete(d.del);
   if (d.restore) return restore(d.restore);
   if (d.link) return copyText(location.origin+location.pathname+'?p='+d.link, '이 제품 바로가기 링크를 복사했어요');
-  if (d.copyWeek!==undefined) return copyText(weekText(), '주간 보고를 복사했어요. 단톡에 붙여넣기 하세요');
+  if (d.copyWeek!==undefined) return copyText(weekText(), '주간 일정을 복사했어요. 단톡에 붙여넣기 하세요');
   if (d.open) return openProduct(d.open, d.step, d.editInfo);
 });
 // 체크·입력 저장: change = 체크박스·날짜는 즉시, 글자는 칸을 벗어날 때

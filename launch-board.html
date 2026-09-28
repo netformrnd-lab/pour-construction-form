@@ -328,6 +328,14 @@
   .modal p.d{margin:0 0 16px;color:var(--muted);font-size:13px;line-height:1.5}
   .form{display:flex;flex-direction:column;gap:12px}
   .form label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:var(--muted)}
+  .form input,.form select,.form textarea{border:1px solid #D7DCE3;border-radius:10px;padding:0 12px;height:44px;background:#fff;outline:none;width:100%;font-size:15px}
+  .form input:focus{border-color:var(--blue);box-shadow:0 0 0 3px #DBEAFE}
+  .form input:disabled{background:#FFFBEB;border:1.5px dashed #F59E0B;color:#92400E;font-weight:800}
+  .form input:disabled::placeholder{color:#92400E}
+  .launch-pick{display:flex;gap:6px}
+  .launch-pick .tbd-btn{height:44px;padding:0 14px}
+  .tbd-btn.on{background:#111827;color:#fff;border-color:#111827}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .bsel{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
   .bsel button{height:44px;border-radius:12px;border:1.5px solid var(--line);font-weight:800;font-size:13px}
   .m-act{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
@@ -984,7 +992,7 @@ function viewProduct(p){
         <button class="btn sm" data-link="${p.id}">🔗 링크</button><button class="btn sm" data-info-edit="">✏️ 수정</button></div>
       <h1 class="pname">${esc(p.name)}</h1>
       <div class="pmeta">
-        <label>🚀 출시일 <input type="date" data-pf="launchDate" value="${esc(p.launchDate)}"></label>
+        <label>🚀 출시일 <input type="${p.launchDate?'date':'text'}" data-dt="1" data-pf="launchDate" value="${esc(p.launchDate)}" placeholder="미정"></label>
         ${p.launchDate ? `<span class="dd" style="color:${ddColor}">${dday(p.launchDate)}</span>` : ''}
         ${b.bm ? `<span class="dd" style="color:${b.ac}">BM ${esc(b.bm)} · ${esc(b.team)}</span>` : ''}
       </div>
@@ -1096,8 +1104,8 @@ function openAdd(brand){
     <div class="form">
       <label>브랜드<div class="bsel" id="addBrand">${brandBtns(addBrand)}</div></label>
       <label>제품명 · 프로젝트명<input id="aName" placeholder="예: 2in1 철제용 페인트" maxlength="80"></label>
-      <div class="two"><label>출시 목표 예정일<input id="aLaunch" type="date"></label><label>총괄 담당 (PM)<input id="aLead" placeholder="예: 민지" list="peopleList2"></label></div>
-      <datalist id="peopleList2">${people().map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+      <label>출시 목표 예정일
+        <div class="launch-pick"><input id="aLaunch" type="date"><button type="button" class="tbd-btn" id="aTbd">미정</button></div></label>
     </div>
     <div class="m-act"><button class="btn" data-mclose="">취소</button><button class="btn pri" id="addOk">등록</button></div>`);
   setTimeout(()=>$('aName') && $('aName').focus(), 50);
@@ -1107,7 +1115,7 @@ async function saveAdd(){
   const name = ($('aName').value||'').trim();
   if (!name) { $('aName').focus(); toast('제품명을 입력해주세요'); return; }
   const at = nowIso();
-  const doc = { brand:addBrand, name, launchDate:$('aLaunch').value||'', lead:($('aLead').value||'').trim(), memo:'',
+  const doc = { brand:addBrand, name, launchDate:$('aLaunch').disabled ? '' : ($('aLaunch').value||''), lead:'', memo:'',
     stages:Object.fromEntries(STEPS.map(s=>[s.id,{status:'todo',owner:'',due:'',note:''}])),
     history:[{ at, by:who(), text:'제품 등록' }], createdAt:at, createdBy:who(), updatedAt:at, updatedBy:who(), deletedAt:null };
   try {
@@ -1222,6 +1230,11 @@ document.addEventListener('click', e => {
   if (t.id==='meBtn') return askName(true);
   if (t.id==='nmOk') return saveName();
   if (t.id==='addOk') return saveAdd();
+  if (t.id==='aTbd') { // 출시일 미정 켜기/끄기
+    const inp = $('aLaunch'), on = !inp.disabled;
+    inp.disabled = on; if (on) { inp.value = ''; inp.type = 'text'; inp.placeholder = '출시일 미정'; } else { inp.type = 'date'; inp.focus(); try { inp.showPicker(); } catch(_){} }
+    t.classList.toggle('on', on); t.textContent = on ? '날짜 정하기' : '미정'; return;
+  }
   if (t.id==='qx') { $('q').value=''; query=''; t.classList.add('hidden'); return renderMain(); }
   if (d.mclose!==undefined) return closeModal();
   if (d.view) { view = d.view; calSel = ''; if (d.view==='week') weekOff = 0; renderAll(); window.scrollTo({top:0}); return; }

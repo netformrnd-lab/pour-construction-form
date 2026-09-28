@@ -1683,7 +1683,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28l</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28m</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -11052,10 +11052,10 @@ async function exLoadLots(){
   exTakeLots(snap, gSnap); _exLotsAt=Date.now();
 }
 function exTakeLots(snap, gSnap){
-    EX.lots=[]; EX.at={};
+    EX.lots=[]; EX.at={}; EX.seed={};
     snap.docs.forEach(d=>{ const x=d.data()||{}, b=d.id==='grohome'?'GROHOME':d.id==='pour'?'POUR스토어':(x.brand||d.id);
       (Array.isArray(x.lots)?x.lots:[]).forEach(l=>EX.lots.push({...l, brand:b, expiry:exParseDate(l.expiry)||'', qty:+l.qty||0}));
-      EX.at[b]=x.updatedAt||''; });
+      EX.at[b]=x.updatedAt||''; (EX.seed=EX.seed||{})[b]=/-seed$/.test(x.source||''); });   // 그로홈 '초기 데이터'(09-22 기준)인지 표시용
     EX.gh=gSnap.docs.map(d=>({id:d.id,...d.data()}));
     console.log(`[expiryLots] 로트 ${EX.lots.length}개 (${Object.keys(EX.at).join('·')||'없음'}) · 그로홈 제품 ${EX.gh.length}개`);
 }
@@ -11158,7 +11158,7 @@ async function renderExpiry(){
           || `<tr><td colspan="14" style="text-align:center;padding:18px">${EX.lots.length?'조건에 맞는 로트가 없습니다':'공용 DB에 재고가 없습니다 — 그로홈 대시보드 [유통기한 관리]를 한 번 열면 올라옵니다'}</td></tr>`}</tbody></table></div>
       <div class="bd"><p class="footnote" style="margin:0">· <b>필요 하루 판매</b> = 이 로트까지의 누적 재고 ÷ (남은 일수 − 판매마감 여유 ${EX.buffer}일). 같은 제품의 로트는 기한이 빠른 것부터 팔린다고 봅니다.<br>
         · <b>배수</b> = 필요 하루 판매 ÷ 최근 하루 판매 → 1배 이하 🟢 · 2배 이하 🟡 · 2배 초과 🔴. 그로홈 색상별 재고는 판매 기록이 제품 단위라 색상 구분 없이 합쳐 봅니다.<br>
-        · 재고 갱신: 그로홈 ${esc((EX.at.GROHOME||'없음').slice(0,16).replace('T',' '))} · POUR ${esc((EX.at['POUR스토어']||'없음').slice(0,16).replace('T',' '))}</p></div></div>`;
+        · 재고 갱신: 그로홈 ${esc((EX.at.GROHOME||'없음').slice(0,16).replace('T',' '))}${EX.seed&&EX.seed.GROHOME?' (초기 데이터 — 그로홈 대시보드에서 재고 붙여넣기로 갱신)':''} · POUR ${esc((EX.at['POUR스토어']||'없음').slice(0,16).replace('T',' '))}</p></div></div>`;
   body._rows=rows;
 }
 (function bindExpiry(){

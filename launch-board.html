@@ -602,14 +602,9 @@ function renderMain(){
 
 // ── 홈: 브랜드별 카드 ──
 function card(p){
-  const b = brandOf(p), pr = progress(p), ns = nowStep(p), ov = overdueList(p);
+  const b = brandOf(p), pr = progress(p), ov = overdueList(p);
   const dd = p.launchDate ? dday(p.launchDate) : '';
   const ddColor = !p.launchDate ? 'var(--faint)' : diffDays(p.launchDate)<0 ? 'var(--red)' : diffDays(p.launchDate)<=14 ? '#C2410C' : b.ac;
-  let nowTxt = pr.pct===100 ? '🎉 디자인 완료' : '';
-  if (ns && pr.pct!==100){
-    const o = stg(p,ns.s.id).owner;
-    nowTxt = (ns.kind==='now' ? '지금 · ' : '다음 · ') + ns.s.name + (o ? ' · ' + o : '');
-  }
   return `<div class="card" data-open="${p.id}" role="button" tabindex="0" style="background:${b.bg};border-color:${b.bd}">
     <div class="row1"><span class="bchip" style="background:${b.chip};color:${b.ac}">${esc(b.name)}</span><span class="dday" style="color:${ddColor}">${dd || '출시일 미정'}</span></div>
     <div class="body">
@@ -619,7 +614,6 @@ function card(p){
     <div class="foot">
       <div class="bar"><i style="width:${pr.pct}%;background:${b.ac}"></i></div>
       <div class="pct"><span>${pr.done}/${pr.total} 단계</span><span>${pr.pct}%</span></div>
-      <div class="now">${esc(nowTxt)}</div>
       ${ov.length ? `<span class="warn">⏰ 마감 지남 ${ov.length}건</span>` : ''}
     </div>
   </div>`;

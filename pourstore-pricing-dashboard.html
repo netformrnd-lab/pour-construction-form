@@ -861,6 +861,7 @@ body.ui-modal #uiBack{display:block;animation:uiFade .15s ease}
 @media(max-width:640px){ .la-row{flex-wrap:wrap} .la-row .acts{width:100%;justify-content:flex-end} }
 /* ── 실사용 점검(2026-09-28) 반영: 폰에서 손가락 크기 · 떠 있는 버튼이 가리지 않게 ── */
 #rowInfo .ri-mob{display:none}
+@media(max-width:640px){ #rowInfo .ri-add [data-riadd]{min-height:38px!important;padding-top:8px!important;padding-bottom:8px!important} #rowInfoX{min-width:38px;min-height:38px} }
 @media(max-width:640px){
   #priceGrid .rowtools{display:none!important}          /* 18×13 행 아이콘 대신 행을 누르면 뜨는 요약줄 버튼 사용 */
   #rowInfo .ri-mob{display:inline-flex}
@@ -1547,7 +1548,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28c</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28d</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -3011,6 +3012,13 @@ const LS_FAIL='pour-sec-fail-v1';
 // CHANNELS/P/BASE_N 는 Firestore 로드 후 buildState() 에서 채운다 (부팅 지연)
 let CHANNELS=[];
 let uidSeq=100;
+/* 그로홈 판매 채널 — 매출 화면(판매 엑셀)과 같은 이름으로 기본 제공 (2026-09 대표 요청)
+   · 그로홈을 고르면 가격정책표에 [자사몰 정가 + 이 채널들]이 나오고 업체단가 열은 나오지 않는다
+   · 가격은 채널마다 직접 입력(수동) — POUR 채널의 업체단가 사다리 계산과 섞이지 않게 채널을 따로 둔다
+   · 이름·표시 여부는 채널 관리에서 고칠 수 있다(수정분은 custom-channels.patch 에 저장) */
+const GH_CH_BUILTIN=[['ghc-smart','GH1','스마트스토어'],['ghc-coupang','GH2','쿠팡'],['ghc-ohou','GH3','오늘의집'],['ghc-11st','GH4','11번가'],
+  ['ghc-auction','GH5','옥션·지마켓'],['ghc-domeggook','GH6','도매꾹·도매매'],['ghc-kakao','GH7','카카오쇼핑'],['ghc-consign','GH8','위탁판매'],['ghc-offline','GH9','오프라인']]
+  .map(([uid,code,name],i)=>({uid,g:'그로홈',code,name,short:name,st:'운영',tgt:null,desc:'그로홈 판매 채널 · 매출 화면과 같은 이름 · 가격 직접 입력',col:true,role:'',ord:900+i,brands:['GROHOME']}));
 let P=[];
 let BASE_N=0;                        // 원본(로드) 제품 수 — 이 뒤로는 직접 추가한 제품
 let M=[];                            // 상품명 매칭 — 잠금 해제 후
@@ -3140,6 +3148,7 @@ function migrateLocalChannels(localCH){
   if(_chMigrated) return; _chMigrated=true;
   const add=localCH.filter(c=>c&&c.uid
     && !CH_DEF.some(d=>d.uid===c.uid)
+    && !GH_CH_BUILTIN.some(d=>d.uid===c.uid)     // 그로홈 판매 채널은 기본 제공 — 올릴 필요 없음
     && !CHCUSTOM.some(d=>d.uid===c.uid)
     && !CHDEL[c.uid]);
   if(!add.length) return;
@@ -4073,7 +4082,8 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   const psBtn=$('#btnPriceSheet'); if(psBtn) psBtn.style.display=costAllowed?'':'none';        // 단가표 PDF: 원가열람 계정만
   const q=($('#q').value||'').trim().toLowerCase();
   const cat=$('#catSel').value;
-  const cols=COLS().filter(c=>chHasBrand(c,BRAND_FILTER)), rUid=retailUid();
+  const rUid=retailUid(), ghView=BRAND_FILTER==='GROHOME';
+  const cols=COLS().filter(c=>chHasBrand(c,BRAND_FILTER)||c.uid===rUid);   // 자사몰 정가는 어느 브랜드든 기준가라 항상 보인다
   const showSup=supVisible();                // 공급업체 열: 마스터+이메일인증 계정만 (접기 스위치 반영)
   const showCost=costVisible();              // 매입원가·마진 열: 부마스터/마스터만 (접기 스위치 반영)
   const secBtn=$('#btnSecCols');
@@ -4085,6 +4095,10 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   CHORD.forEach(uid=>{ if(uid===VBASE_COL){ priceCols.push({t:'vbase'}); return; } const c=cols.find(x=>x.uid===uid); if(c) priceCols.push({t:'ch',c}); });
   cols.forEach(c=>{ if(!priceCols.some(x=>x.t==='ch'&&x.c.uid===c.uid)) priceCols.push({t:'ch',c}); });  // 누락 채널 보정
   if(!priceCols.some(x=>x.t==='vbase')) priceCols.unshift({t:'vbase'});   // 업체단가 누락 시 맨 앞에
+  if(ghView){   // 그로홈: 업체단가 없음 · 자사몰 정가를 맨 앞에, 그다음 그로홈 판매 채널
+    for(let i=priceCols.length-1;i>=0;i--) if(priceCols[i].t==='vbase') priceCols.splice(i,1);
+    const ri=priceCols.findIndex(x=>x.t==='ch'&&x.c.uid===rUid); if(ri>0) priceCols.unshift(priceCols.splice(ri,1)[0]);
+  }
   window.__pvCols=priceCols.map(pc=>pc.t==='vbase'?{lb:'업체단가',code:'',vb:true}:{lb:pc.c.short||pc.c.name,code:pc.c.code,uid:pc.c.uid,retail:pc.c.uid===rUid});
   const showCode=CODECOL_OPEN;               // 자체상품코드 열(숨김 가능 · 이 기기에 기억)
   const ccb=$('#btnCodeCol'); if(ccb){ ccb.style.display=''; ccb.textContent=showCode?'🏷 코드 열 숨기기':'🏷 코드 열 보이기'; }
@@ -8559,7 +8573,8 @@ const SL_CH={
 const SL_CH_ORDER=['자사몰','스마트스토어','쿠팡','오늘의집','11번가','옥션·지마켓','나비엠알오','도매꾹·도매매','카카오쇼핑','토스쇼핑','공동구매','채널톡','페이스북','쇼피(해외)','전화 주문','파트너사','방문구매','위탁판매','오프라인','박람회','부자재판매','기타'];
 let SL={loaded:false,loading:null,rows:[],meta:{},unit:'amt',quick:'mtd'};
 const slDay=d=>{ const z=new Date(d.getTime()-d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); };
-function slChan(raw){ const r=String(raw||'').trim(); const m=SL_CH[r]; return m?{ch:m[0],grp:m[1],known:true}:{ch:r||'(채널 없음)',grp:'etcon',known:false}; }
+/* '오늘의 집'처럼 띄어 쓴 이름도 같은 채널로 모은다 */
+function slChan(raw){ const r=String(raw||'').trim(); const m=SL_CH[r]||SL_CH[r.replace(/\s+/g,'')]; return m?{ch:m[0],grp:m[1],known:true}:{ch:r||'(채널 없음)',grp:'etcon',known:false}; }
 async function loadSales(){
   if(SL.loading) return SL.loading;
   SL.loading=(async()=>{
@@ -9688,7 +9703,7 @@ function pbDismiss(k){ try{ const o=JSON.parse(localStorage.getItem(PB_LS)||'{}'
 function todoTest(p,k){ if(isPackage(p)) return false; const rUid=retailUid();
   if(k==='nocost') return !(effCost(p)>0);
   if(k==='noprice') return rUid ? effPrice(p,rUid)==null : false;
-  if(k==='novbase') return effVbase(pKey(p))==null;
+  if(k==='novbase') return effVbase(pKey(p))==null && !(hasBrand(p,'GROHOME')&&!hasBrand(p,'POUR스토어'));   // 그로홈 전용 제품은 업체단가를 쓰지 않는다
   return false; }
 function todoHtml(){
   if(!costAllowed) return '';
@@ -11357,9 +11372,10 @@ function init(){
 /* ══════════ 로그인 게이트 + 부팅 ══════════ */
 let appStarted=false;
 function buildState(){                        // Firestore 로드본으로 앱 상태 구성
-  // 서버 채널(시딩) + 수정분 + 앱에서 추가한 채널 → 모든 계정에서 동일
+  // 서버 채널(시딩) + 수정분 + 앱에서 추가한 채널 + 그로홈 판매 채널(기본 제공) → 모든 계정에서 동일
   CHANNELS=CH_DEF.map(c=>({...c, ...(CHPATCH[c.uid]||{})}))
     .concat(CHCUSTOM.filter(c=>c&&c.uid&&!CH_DEF.some(d=>d.uid===c.uid)).map(c=>({...c})));
+  GH_CH_BUILTIN.forEach(c=>{ if(!CHANNELS.some(x=>x.uid===c.uid)) CHANNELS.push({...c, ...(CHPATCH[c.uid]||{})}); });
   uidSeq=CHANNELS.reduce((m,c)=>{ const n=+String(c.uid).replace(/^c/,''); return isFinite(n)?Math.max(m,n):m; },100);
   CHORD=[];
   P=RAW.map((r,i)=>({id:i,cat:r.cat,name:r.name,spec:r.spec,cost:r.cost,pr:{...r.pr},sup:'',mgr:'',mfg:'',added:false,

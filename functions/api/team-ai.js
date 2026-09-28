@@ -209,7 +209,7 @@ const SYSTEM = `당신은 넷폼의 커머스 브랜드 POUR스토어(건축 유
 export async function onRequestOptions() { return new Response(null, { headers: CORS }); }
 
 export async function onRequestPost({ request, env }) {
-  if (!env.ANTHROPIC_API_KEY) return json({ ok: false, error: 'AI 키가 아직 등록되지 않았어요 (Cloudflare 환경변수 ANTHROPIC_API_KEY)' }, 500);
+  if (!env.ANTHROPIC_API_KEY) return json({ ok: false, error: 'AI 키가 아직 등록되지 않았어요 — Cloudflare › Workers & Pages › pour-construction-form › 설정(Settings) › 변수 및 비밀(Variables and Secrets)에 ANTHROPIC_API_KEY(비밀)를 넣고 [배포 다시 하기]를 눌러 주세요 (관리자 1회)' }, 500);
   const projectId = env.DASHBOARD_FIREBASE_PROJECT || 'pourstoreproject';
   const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
   let who, acc;

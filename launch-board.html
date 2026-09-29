@@ -272,7 +272,7 @@
   .phase-h{display:flex;align-items:center;gap:8px;margin:16px 2px 8px;font-size:13px;font-weight:800;color:var(--ink2)}
   .phase-h .who{font-size:11.5px;font-weight:800;border-radius:7px;padding:3px 8px}
   .ck{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
-  .ck-row{display:grid;grid-template-columns:96px 170px minmax(0,1fr) 140px 190px;gap:10px;align-items:center;padding:10px 14px}
+  .ck-row{display:grid;grid-template-columns:132px 160px minmax(0,1fr) 140px 190px;gap:10px;align-items:center;padding:10px 14px}
   .ck-step{border-bottom:1px solid var(--line2);transition:background .3s}
   .ck-step:last-child{border-bottom:none}
   .ck-step.flash{background:#FFFBEB}
@@ -280,7 +280,7 @@
   .ck-row.sub .ck-name{display:flex;justify-content:flex-end}
   .task-del{width:30px;height:30px;border-radius:8px;color:var(--faint);font-size:18px;line-height:1}
   .task-del:hover{background:var(--red-l);color:var(--red)}
-  .ck-add{padding:0 14px 10px calc(14px + 96px + 10px + 170px + 10px)}
+  .ck-add{padding:0 14px 10px calc(14px + 132px + 10px + 160px + 10px)}
   .ck-add button{font-size:12.5px;font-weight:800;color:var(--blue);padding:6px 8px;border-radius:8px}
   .ck-add button:hover{background:var(--blue-l)}
   .ck-row.flash{background:#FFFBEB}
@@ -290,6 +290,15 @@
   .cf-btn.on:hover{background:#047857;border-color:#047857}
   .cf-btn.on{background:var(--green);border-color:var(--green);color:#fff}
   .cf-btn.off{background:#E5E7EB;border-color:#E5E7EB;color:#9CA3AF}
+  .cks{display:flex;gap:5px}
+  .ckc{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;font-weight:800;color:var(--muted);width:38px}
+  .ckc i{font-style:normal;width:26px;height:26px;border-radius:7px;border:2px solid #CBD5E1;background:#fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:900}
+  .ckc:hover i{border-color:var(--green)}
+  .ckc.on i{background:var(--green);border-color:var(--green)}
+  .ckc.on{color:var(--green)}
+  .ckc.fin i{background:#1D4ED8;border-color:#1D4ED8}
+  .ckc.fin{color:#1D4ED8}
+  .ckc.off{width:auto;font-size:12px;color:#9CA3AF;padding:6px 8px;background:#E5E7EB;border-radius:8px}
   .cf-btn.wait{background:#FFFBEB;border-color:#F59E0B;color:#92400E;border-style:dashed}
   .cf-btn.go{background:#2563EB;border-color:#2563EB;color:#fff}
   .cf-btn.go:hover{background:#1D4ED8!important;border-color:#1D4ED8!important;color:#fff!important}
@@ -448,7 +457,7 @@
     .bigcal .cal .d .num{margin-bottom:0}
     .two{grid-template-columns:1fr}
     .pname{font-size:20px}
-    .ck-row{grid-template-columns:minmax(0,1fr) 104px;grid-template-areas:"name box" "todo todo" "meta meta";gap:6px 10px;align-items:start;padding:12px}
+    .ck-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name box" "todo todo" "meta meta";gap:6px 10px;align-items:start;padding:12px}
     .ck-box{grid-area:box}
     .ck-name{grid-area:name;padding-top:4px}
     .ck-row textarea{grid-area:todo}
@@ -1008,7 +1017,7 @@ function viewGuide(){
     <div class="notes">
       <div class="note"><b>1. 단계마다 책임자 1명</b><p>담당 칸에는 팀 이름이 아니라 <b>실제 책임자 이름 1명</b>을 적어요. 촬영·제작 단계처럼 여러 주체(1팀·채림·BM·외주)가 함께하면 누락되기 쉬워요.</p></div>
       <div class="note"><b>2. 마감일은 담당자가 직접</b><p>일을 받으면 담당자가 마감일을 입력해요. 마감이 지나면 빨간색으로 표시되고 '주간 일정'에 올라가요.</p></div>
-      <div class="note"><b>3. 제작 담당 → 검토 → 최종 승인</b><p>제작 담당이 단계를 끝내면 <strong>[완료 요청]</strong> → 브랜드 BM이 <strong>[검토 완료]</strong>로 컨펌해요. 마지막 <strong>최종 검수·세팅</strong>은 BM 검토 뒤 <strong>허지은 본부장 [최종 승인]</strong>까지 받아야 디자인 완료예요. 안 하는 단계는 '해당 없음'으로 빼요.</p></div>
+      <div class="note"><b>3. 제작 담당 → 검토 → 최종 승인</b><p>단계마다 <strong>[제작] [검토]</strong> 체크가 있어요. 제작 담당이 끝나면 [제작], 브랜드 BM이 확인하면 [검토]를 체크 = 컨펌이에요. 마지막 <strong>최종 검수·세팅</strong>은 <strong>[승인]</strong> 칸까지 허지은 본부장이 체크해야 디자인 완료예요. 안 하는 단계는 '해당 없음'으로 빼요.</p></div>
       <div class="note"><b>4. 주 1회 BM·본부장 점검</b><p>'주간 일정' 화면에서 요일별 마감·출시와 마감 지난 단계를 한 번에 보고, '📋 주간 보고 복사'로 단톡에 공유해요.</p></div>
     </div>
     <h4 style="margin:22px 2px 10px;font-size:13px;color:var(--muted)">④ 구조 점검 · 정리가 필요한 부분</h4>
@@ -1086,30 +1095,19 @@ function dueCell(attr, due, tbd, tbdAttr, dis){
     ? `<button type="button" class="due-tbd" ${dis||''} ${tbdAttr} data-v="0" title="눌러서 날짜 정하기">📅 마감 미정</button>`
     : `<div class="due-wrap"><input type="${due?'date':'text'}" data-dt="1" ${attr} value="${esc(due)}" placeholder="마감기한" aria-label="마감기한" title="마감기한" ${dis||''}><button type="button" class="tbd-btn" ${dis||''} ${tbdAttr} data-v="1" title="마감일 미정으로 표시">미정</button></div>`;
 }
-// 컨펌 버튼: 상태 × 보는 사람 역할
-function cfButton(p, sid, s, skip){
-  if (skip) return `<button type="button" class="cf-btn off" disabled>제외</button>`;
-  const r = roleOf(p), fin = sid===FINAL_STEP, st = s.status;
-  const B = (cls, act, label, title) => `<button type="button" class="cf-btn ${cls}" data-cf="${sid}" data-act="${act}" ${title?`title="${title}"`:''}>${label}</button>`;
-  if (st==='done') return B('on', 'undo', fin ? '✓ 최종 승인' : '✓ 컨펌 완료', '눌러서 취소 (검토자·승인자)');
-  if (st==='reviewed') return r==='approver' ? B('go', 'approve', '최종 승인') : B('wait', 'undo', '승인 대기', '본부장 최종 승인 대기');
-  if (st==='req') return r==='approver' ? B('go', fin ? 'approve' : 'review', fin ? '최종 승인' : '검토 완료')
-    : r==='reviewer' ? B('go', 'review', '검토 완료') : B('wait', 'undo', '검토 대기', 'BM 검토 대기 · 누르면 요청 취소');
-  // 시작 전
-  if (r==='approver') return B('', fin ? 'approve' : 'review', fin ? '최종 승인' : '컨펌');
-  if (r==='reviewer') return B('', 'review', fin ? '검토 완료' : '컨펌');
-  return B('', 'request', '완료 요청');
+// 결재 체크: [제작] [검토] (+ 최종 검수만 [승인]) — 각자 자기 칸만 체크
+function cfState(sid, s){
+  const st = s.status, fin = sid===FINAL_STEP;
+  return { make: ['req','reviewed','done'].includes(st), review: fin ? ['reviewed','done'].includes(st) : st==='done', approve: fin && st==='done' };
 }
-function cfInfo(p, sid, s){
-  const d = x => x ? ' · ' + fmtShort(x.slice(0,10)) : '';
-  const rv = reviewerOf(p), out = [];
-  if (s.status==='req') out.push(`<span class="cf-wait">${esc(s.reqBy||'')} 요청${d(s.reqAt)} → BM ${esc(rv)} 검토</span>`);
-  if (s.status==='reviewed') out.push(`<span class="cf-wait">BM ${esc(s.reviewBy||rv)} 검토${d(s.reviewAt)} → ${APPROVER} 승인</span>`);
-  if (s.status==='done') {
-    if (sid===FINAL_STEP && s.reviewBy) out.push(`<span class="cf-who">검토 ${esc(s.reviewBy)}${d(s.reviewAt)}</span>`);
-    if (s.doneBy || s.doneAt) out.push(`<span class="cf-who">${sid===FINAL_STEP?'승인':'컨펌'} ${esc(s.doneBy||'')}${d(s.doneAt)}</span>`);
-  }
-  return out.join('');
+function cfButton(p, sid, s, skip){
+  if (skip) return `<div class="cks"><span class="ckc off">제외</span></div>`;
+  const c = cfState(sid, s), fin = sid===FINAL_STEP, d = x => x ? ' · '+fmtShort(x.slice(0,10)) : '';
+  const who1 = s.reqBy ? s.reqBy + d(s.reqAt) : (c.make ? '검토자가 바로 컨펌' : '제작 담당이 완료되면 체크');
+  const who2 = c.review ? ((fin ? s.reviewBy : (s.reviewBy || s.doneBy)) || '') + d(fin ? s.reviewAt : (s.reviewAt || s.doneAt)) : '브랜드 BM ' + reviewerOf(p);
+  const who3 = c.approve ? (s.doneBy||'') + d(s.doneAt) : APPROVER;
+  const box = (k, on, label, tip) => `<button type="button" class="ckc ${on?'on':''} ${k==='approve'&&on?'fin':''}" data-cf="${sid}" data-act="${k}" title="${esc(label+' · '+tip)}"><i>${on?'✓':''}</i>${label}</button>`;
+  return `<div class="cks">${box('make', c.make, '제작', who1)}${box('review', c.review, '검토', who2)}${fin ? box('approve', c.approve, '승인', who3) : ''}</div>`;
 }
 function ckRow(p, sid){
   const s = stg(p,sid), st = STEP_BY[sid], done = s.status==='done', skip = s.status==='skip', over = isOver(s);
@@ -1119,7 +1117,7 @@ function ckRow(p, sid){
   <div class="ck-row ${done?'done':''} ${over?'over':''}">
     <div class="ck-box">${cf}</div>
     <div class="ck-name"><b>${st.name}</b>
-      <div class="ck-sub">${cfInfo(p, sid, s)}
+      <div class="ck-sub">
         <button type="button" class="skip-btn" data-skip="${sid}" data-v="${skip?'0':'1'}">${skip?'↩ 되살리기':'해당 없음'}</button></div></div>
     <textarea rows="1" data-sid="${sid}" data-sf="note" placeholder="진행사항 기재" ${dis}>${esc(s.note)}</textarea>
     <div class="ck-meta">
@@ -1238,31 +1236,30 @@ async function saveAdd(){
 }
 
 // ═══ 저장 동작 (체크·입력하면 바로 저장) ═══
-// 결재 동작 (request·review·approve·undo) — 권한 없는 동작은 안내만
-async function cfAction(sid, act){
+// 결재 체크 동작 — 권한 없는 체크는 안내만
+async function cfAction(sid, kind){
   const p = items.find(x=>x.id===openId); if (!p) return;
   if (!me) { askName(); return; }
   const s = stg(p,sid), st = STEP_BY[sid], r = roleOf(p), rv = reviewerOf(p), fin = sid===FINAL_STEP, at = nowIso(), P = 'stages.'+sid+'.';
-  let patch = null, msg = '', tmsg = '';
-  if (act==='request') { patch = { [P+'status']:'req', [P+'reqBy']:who(), [P+'reqAt']:at }; msg = '완료 요청 → BM '+rv+' 검토'; tmsg = `BM ${rv}님께 검토 요청했어요`; }
-  else if (act==='review') {
-    if (r==='maker') return toast(`검토는 ${rv} BM만 할 수 있어요`);
-    if (fin && r==='reviewer') { patch = { [P+'status']:'reviewed', [P+'reviewBy']:who(), [P+'reviewAt']:at }; msg = '검토 완료 → '+APPROVER+' 최종 승인 대기'; tmsg = '검토 완료! 본부장 최종 승인 대기예요'; }
-    else { patch = { [P+'status']:'done', [P+'doneBy']:who(), [P+'doneAt']:at }; msg = '컨펌 완료'; tmsg = '✅ 컨펌 완료'; }
-  }
-  else if (act==='approve') {
-    if (r!=='approver') return toast(`최종 승인은 ${APPROVER}님만 할 수 있어요`);
-    patch = { [P+'status']:'done', [P+'doneBy']:who(), [P+'doneAt']:at }; msg = '최종 승인'; tmsg = '✅ 최종 승인 완료';
-  }
-  else if (act==='undo') {
-    if (s.status==='req' && r==='maker') { if (!confirm('검토 요청을 취소할까요?')) return; patch = { [P+'status']:'todo', [P+'reqBy']:'', [P+'reqAt']:'' }; msg = '검토 요청 취소'; tmsg = '요청을 취소했어요'; }
-    else if (r==='maker') return toast(s.status==='reviewed' ? `${APPROVER}님 최종 승인 대기 중이에요` : `컨펌 취소는 ${rv} BM·${APPROVER}님만 할 수 있어요`);
-    else if (s.status==='reviewed' && r==='reviewer') { if (!confirm('검토 완료를 취소할까요?')) return; patch = { [P+'status']:'req', [P+'reviewBy']:'', [P+'reviewAt']:'' }; msg = '검토 취소'; tmsg = '검토를 취소했어요'; }
-    else { if (!confirm(fin && s.status==='done' ? '최종 승인을 취소할까요?' : '컨펌을 취소할까요?')) return; patch = { [P+'status']:'todo', [P+'doneBy']:'', [P+'doneAt']:'', [P+'reviewBy']:'', [P+'reviewAt']:'' }; msg = '컨펌 취소'; tmsg = '취소했어요'; }
+  const c = cfState(sid, s), back = s.reqBy ? 'req' : 'todo';
+  let patch = null, msg = '';
+  if (kind==='make') {
+    if (!c.make) { patch = { [P+'status']:'req', [P+'reqBy']:who(), [P+'reqAt']:at }; msg = '제작 완료 체크'; }
+    else if (s.status==='req') { patch = { [P+'status']:'todo', [P+'reqBy']:'', [P+'reqAt']:'' }; msg = '제작 체크 해제'; }
+    else return toast('검토가 끝난 단계예요. 검토 체크를 먼저 풀어야 해요');
+  } else if (kind==='review') {
+    if (r==='maker') return toast(`검토는 ${rv} BM만 체크할 수 있어요`);
+    if (!c.review) { patch = fin ? { [P+'status']:'reviewed', [P+'reviewBy']:who(), [P+'reviewAt']:at } : { [P+'status']:'done', [P+'reviewBy']:who(), [P+'reviewAt']:at, [P+'doneBy']:who(), [P+'doneAt']:at }; msg = '검토 체크'; }
+    else if (c.approve) return toast('최종 승인된 단계예요. 승인 체크를 먼저 풀어야 해요');
+    else { if (!confirm('검토 체크를 풀까요?')) return; patch = { [P+'status']:back, [P+'reviewBy']:'', [P+'reviewAt']:'', [P+'doneBy']:'', [P+'doneAt']:'' }; msg = '검토 체크 해제'; }
+  } else if (kind==='approve') {
+    if (r!=='approver') return toast(`최종 승인은 ${APPROVER}님만 체크할 수 있어요`);
+    if (!c.approve) { patch = { [P+'status']:'done', [P+'doneBy']:who(), [P+'doneAt']:at }; msg = '최종 승인 체크'; }
+    else { if (!confirm('최종 승인 체크를 풀까요?')) return; patch = { [P+'status']: s.reviewBy ? 'reviewed' : back, [P+'doneBy']:'', [P+'doneAt']:'' }; msg = '최종 승인 해제'; }
   }
   if (!patch) return;
   patch[P+'updatedAt'] = at; patch[P+'updatedBy'] = who();
-  if (await writeDoc(p.id, patch, `${st.name} · ${msg}`)) toast(tmsg); else renderMain();
+  if (await writeDoc(p.id, patch, `${st.name} · ${msg}`)) toast(msg.includes('해제') ? '체크를 풀었어요' : '✅ ' + msg); else renderMain();
 }
 async function saveStepField(sid, field, value){
   const p = items.find(x=>x.id===openId); if (!p) return;

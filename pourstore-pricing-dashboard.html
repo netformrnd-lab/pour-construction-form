@@ -1727,7 +1727,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28t</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.30a</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -10604,8 +10604,32 @@ function laStockLine(p){
   if(st.qty>0) return `재고 <b>${won(st.qty)}개</b> 남음${st.at?` <span class="dim">(${esc(String(st.at).slice(5,10).replace('-','/'))} 재고 기준)</span>`:''}`;
   return st.fresh?'<b style="color:var(--red)">재고 0개</b> — 곧 자동 단종돼요':'재고 0개 · <span class="dim">단종예정 이후 새 재고표가 올라오면 자동 단종돼요</span>';
 }
+/* ══ 🚀 신제품 로드맵(업무OS·런칭보드, pour-app-new) 읽기 전용 — 출시준비 목록에 준비 진행률·출시일을 같이 보여 전략 판단 ══
+   원본은 로드맵 하나. 여기서는 읽기만(쓰기 없음). 소싱앱 id(srcId) → 이름 순으로 맞춘다. */
+const LB_CFG={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
+const LB_PH=[['기획',['p01','p02','p03','p04']],['샘플',['s01','x_test','s02']],['패킹',['d01','s03','d02','s04','d03','s05','x_color','x_expiry','x_print','x_parts']],['콘텐츠',['s06','s07','s08','s09','s10','s11']],
+  ['채널 등록',['x_mall','s12','x_sabang','x_domae','x_kw']],['창고 입고',['x_msds','x_3pl','x_cgrowth']],['출시 홍보',['x_b2b','x_rv_mall','x_rv_ss','x_rv_cp','x_ex_insta','x_ex_blog','x_ex_yt','x_ex_ohou','x_infl','x_ad_nshop','x_ad_boost','x_ad_cp','x_meta','x_dg','x_blog','x_short']]];
+const LB_TGT={x_meta:5,x_dg:5,x_blog:3,x_short:3};
+let LBP=[], _lbStarted=false;
+function lbStart(){ if(_lbStarted) return; _lbStarted=true;
+  try{ const app=(firebase.apps||[]).find(a=>a.name==='launchboard')||firebase.initializeApp(LB_CFG,'launchboard');
+    app.firestore().collection('pour-os').doc('launch-board').collection('products').onSnapshot(snap=>{ LBP=[]; snap.docs.forEach(d=>{ const x={id:d.id,...d.data()}; if(!x.deletedAt) LBP.push(x); });
+      console.log(`[신제품 로드맵] ${LBP.length}건 로드`); try{ if($('#laList')&&$('#laList').offsetParent!==null) renderLaunchList(); }catch(e){ console.error('[신제품 로드맵] 목록 다시 그리기 실패:',e); } },
+      err=>console.error('[신제품 로드맵] 로드 실패:',err));
+  }catch(e){ console.error('[신제품 로드맵] 연결 실패:',e); } }
+function lbSt(x,id){ if(id.startsWith('x_')){ const e=(x.osExtra||{})[id]||{}; const t=LB_TGT[id]; if(t&&e.status!=='skip') return (Number(e.count)||0)>=t?'done':'todo'; return e.status||'todo'; } return ((x.stages||{})[id]||{}).status||'todo'; }
+function lbProg(x){ let d=0,n=0,cur=null; LB_PH.forEach(([nm,ids])=>{ let pd=0,pn=0; ids.forEach(id=>{ const s=lbSt(x,id); if(s==='skip') return; pn++; if(s==='done') pd++; }); d+=pd; n+=pn; if(!cur&&pd<pn) cur=nm; }); return {pct:n?Math.round(d/n*100):0,cur}; }
+const lbNorm=t=>String(t||'').replace(/\s+/g,'').toLowerCase();
+function lbMatch(p){ const k=pKey(p), src=laSrcOf(k); const bySrc=src&&src.id?LBP.find(x=>x.srcId===src.id):null; if(bySrc) return bySrc; const n=lbNorm(p.name); return n?LBP.find(x=>lbNorm(x.name)===n):null; }
+function lbDays(d){ if(!d) return null; const a=new Date(new Date().toISOString().slice(0,10)+'T00:00:00'), b=new Date(String(d).slice(0,10)+'T00:00:00'); return Math.round((b-a)/86400000); }
+// 전략 신호: 출시 임박인데 준비 늦음 · 출시 임박인데 마진 미달
+function lbSignal(p,pr){ const x=lbMatch(p); if(!x) return {x:null,warn:[]}; const g=lbProg(x), dd=lbDays(x.launchDate), warn=[];
+  if(dd!=null&&dd<=14&&g.pct<70) warn.push(dd<0?`출시일 ${-dd}일 지남 · 준비 ${g.pct}%`:`출시 D-${dd}인데 준비 ${g.pct}%`);
+  if(costAllowed&&pr&&pr.cal&&pr.cal.avgRate!=null&&pr.cal.avgRate<(pr.cal.tgt||0)&&dd!=null&&dd<=30) warn.push('출시 임박 · 목표 마진 미달');
+  return {x,g,dd,warn}; }
 function renderLaunchList(){
   const box=$('#laList'); if(!box) return;
+  lbStart();
   const live=laProducts(), grp={}; LA_GROUPS.forEach(g=>grp[g]=[]);
   live.forEach(p=>{ const g=laGroupOf(p); (grp[g]||grp['출시']).push(p); });
   $('#laSum').innerHTML=LA_GROUPS.map(g=>{ const [fg,bg]=LA_GSTYLE[g];
@@ -10613,7 +10637,8 @@ function renderLaunchList(){
   const q=LA_Q.trim().toLowerCase().replace(/\s+/g,'');
   let list=(grp[LA_LIST_F]||[]).filter(p=>!q || (p.name+(p.spec||'')+(PCODE[pKey(p)]||'')+(p.ghCode||'')).toLowerCase().replace(/\s+/g,'').includes(q));
   const prog=new Map(); if(LA_LIST_F==='출시준비') list.forEach(p=>prog.set(p,laProgress(p)));
-  if(LA_LIST_F==='출시준비') list.sort((a,b)=>(prog.get(b).score-prog.get(a).score)||((laSrcOf(pKey(b))?1:0)-(laSrcOf(pKey(a))?1:0)));
+  const sig=new Map(); if(LA_LIST_F==='출시준비') list.forEach(p=>sig.set(p,lbSignal(p,prog.get(p))));
+  if(LA_LIST_F==='출시준비') list.sort((a,b)=>(sig.get(b).warn.length-sig.get(a).warn.length)||(prog.get(b).score-prog.get(a).score)||((laSrcOf(pKey(b))?1:0)-(laSrcOf(pKey(a))?1:0)));
   else if(LA_LIST_F==='단종예정') list.sort((a,b)=>((EOL_STOCK[pKey(a)]||{}).qty??1e9)-((EOL_STOCK[pKey(b)]||{}).qty??1e9));
   const w=n=>n>0?Math.round(n).toLocaleString('ko-KR')+'원':'—';
   const can=costAllowed;
@@ -10627,7 +10652,11 @@ function renderLaunchList(){
       money=`<div class="sub">원가 ${w(pl?laNum(pl.cost):p.cost)} · 판매가 ${w(price)}${cal&&cal.avgRate!=null&&price>0?` · 마진 <b style="color:${cal.avgRate<0?'var(--red)':'var(--xl-green-dark)'}">${(cal.avgRate*100).toFixed(1)}%</b>`:''}</div>`; }
     let extra='', acts='';
     if(LA_LIST_F==='출시준비'){
-      extra=`<div class="la-steps">${pr.steps.map(([l,ok])=>`<span class="${ok?'ok':''}">${ok?'✓':'·'} ${l}</span>`).join('')}</div><div class="la-next${pr.done?' go':''}">다음: ${esc(pr.next)}</div>`;
+      const sg=sig.get(p)||{warn:[]};
+      const road=sg.x?`<div class="sub" style="margin-top:3px">🚀 로드맵 <b>${sg.g.pct}%</b>${sg.g.cur?` · 지금 ${esc(sg.g.cur)}`:' · 준비 끝'}${sg.x.launchDate?` · 출시 ${esc(String(sg.x.launchDate).slice(5).replace('-','/'))} ${sg.dd===0?'D-day':sg.dd>0?'D-'+sg.dd:'D+'+(-sg.dd)}`:' · 출시일 미정'}${sg.x.batch?` · ${esc(sg.x.batch)}`:''}</div>`
+        :'<div class="sub dim" style="margin-top:3px">🚀 로드맵 미등록 · 소싱앱 [🚀 로드맵에 등록] 또는 업무OS 신제품에서 등록</div>';
+      const warn=sg.warn.length?`<div class="la-next warn" style="color:var(--red);font-weight:800">⚠ ${sg.warn.map(esc).join(' · ')}</div>`:'';
+      extra=`<div class="la-steps">${pr.steps.map(([l,ok])=>`<span class="${ok?'ok':''}">${ok?'✓':'·'} ${l}</span>`).join('')}</div>${road}${warn}<div class="la-next${pr.done?' go':''}">다음: ${esc(pr.next)}</div>`;
       if(can) acts=`<button type="button" class="tbtn" data-lago="${esc(k)}">검토 ›</button><button type="button" class="tbtn primary" data-larel="${esc(k)}">🚀 출시</button>`;
     } else if(LA_LIST_F==='출시'){
       if(can) acts=`<button type="button" class="tbtn" data-lago="${esc(k)}">검토 ›</button><button type="button" class="tbtn" data-laeol="${esc(k)}">단종예정으로</button>`;

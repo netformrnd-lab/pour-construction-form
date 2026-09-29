@@ -1016,7 +1016,51 @@ body.fab-hide :is(#daiFab,#calcFab){display:none!important}
 @media(max-width:640px){ #exLink{align-items:flex-end;padding:0} #exLink .exl-in{width:100%;border-radius:18px 18px 0 0;max-height:85vh;padding-bottom:calc(14px + env(safe-area-inset-bottom))} }
 .ex-fr select{padding:7px 10px;border:1px solid var(--xl-grid);border-radius:8px;font:inherit;background:#fff}
 @media(max-width:1100px){ .ex-bks{grid-template-columns:repeat(3,1fr)} }
-@media(max-width:640px){ #sh-expiry>.toolrow{position:static!important} }   /* 폰: 도구줄(필터·버튼)이 화면 절반을 가리고 따라다니지 않게 — 위로 올리면 다시 보임 */
+@media(max-width:640px){ #sh-expiry>.toolrow{position:static!important} }
+#exOptBtn{display:none}
+.ex-chips i{font-style:normal;opacity:.7;font-size:11px}
+.ex-lcs{display:flex;flex-direction:column;gap:8px}
+.ex-lc{background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.ex-lc-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ex-lc-d{font-size:13px;font-variant-numeric:tabular-nums}
+.ex-lc-nm{font-size:14px;font-weight:700;color:#0F172A;line-height:1.35}
+.ex-lc-sub{font-size:11.5px;color:#64748B;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.ex-lc-sub .tbtn{min-height:0;padding:3px 9px;font-size:11.5px}
+.ex-lc-kv{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:#475569}
+.ex-lc-kv b{color:#0F172A;font-variant-numeric:tabular-nums}
+.ex-lc-kv b.neg{color:var(--red)}
+.ex-lc-act{display:flex;gap:6px;margin-top:2px}
+.ex-lc-act .tbtn{min-height:34px;padding:4px 12px}
+.ex-morebtn{width:100%;margin-top:10px;min-height:44px}
+.ex-more{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:10px}
+.ex-more>summary{padding:10px 12px;font-size:12.5px;color:#334155;cursor:pointer;list-style:none}
+.ex-more>summary::after{content:' ▾';color:#94a3b8}
+.ex-more[open]>summary::after{content:' ▴'}
+.ex-more>.ex-note,.ex-more>.ex-info{margin:0 10px 10px}
+@media(max-width:640px){
+  #sh-expiry .toolrow .hint,#exPasteBtn{display:none!important}
+  #sh-expiry .toolrow{gap:6px!important;padding-top:8px!important;padding-bottom:8px!important}
+  #sh-expiry .toolrow .ttl{flex:1 1 100%;font-size:16px}
+  #exBrand{flex:1 1 0;min-width:0}
+  #exOptBtn{display:inline-flex}
+  #exOptBtn.on{background:var(--xl-green);color:#fff}
+  #sh-expiry:not(.ex-opt) .ex-optf{display:none!important}
+  #exFileBtn{flex:1 1 100%}
+  #exReload{padding:0 12px}
+  .ex-srcs{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+  .ex-src{padding:9px 10px;gap:2px;position:relative}
+  .ex-src-hd{font-size:13px;flex-wrap:wrap;gap:4px;padding-right:34px}
+  .ex-src-hd .tag{font-size:10px}
+  .ex-src-at{font-size:11.5px} .ex-src-f,.ex-src-by{display:none} .ex-src-n{font-size:11px}
+  .ex-src .tbtn{position:absolute;top:6px;right:6px;margin:0;min-height:32px;width:32px;padding:0;font-size:0}
+  .ex-src .tbtn::before{content:'📥';font-size:15px}
+  #exBody>.cards{grid-template-columns:1fr 1fr!important;gap:8px;margin-bottom:10px}
+  #exBody>.cards .card{padding:10px 12px}
+  #exBody>.cards .card h4{font-size:11.5px;margin:0}
+  #exBody>.cards .card .big{font-size:20px}
+  #exBody>.cards .card .footnote{display:none}
+  .ex-fbar{margin-bottom:8px;gap:6px}
+}   /* 폰: 도구줄(필터·버튼)이 화면 절반을 가리고 따라다니지 않게 — 위로 올리면 다시 보임 */
 @media(max-width:640px){ .ex-bks{grid-template-columns:repeat(2,1fr);gap:8px} .ex-chips{flex-wrap:nowrap;overflow-x:auto;max-width:100%} .ex-chips button{flex:0 0 auto}
   .ex-fr{width:100%} .ex-fr input{flex:1;min-width:0} .ex-fbar{flex-direction:column;align-items:stretch} }
 /* ══ 📱 폰 앱 화면 (2026-09 대표 확인): 아래 탭 바 · 한 줄 머리 · 계정 시트 · 필터 한 버튼 · 행 정보 아래 시트 ══ */
@@ -1721,7 +1765,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28q</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28r</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2132,8 +2176,9 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
       <span class="ttl">유통기한·소진</span>
       <select id="exBrand"><option value="">전체 브랜드</option><option value="GROHOME">GROHOME</option><option value="POUR스토어">POUR스토어</option></select>
       <label class="footnote" style="margin:0;display:flex;gap:4px;align-items:center"><input type="checkbox" id="exRisk"> 위험만</label>
-      <label class="footnote" style="margin:0;display:flex;gap:4px;align-items:center">판매마감 여유 <input type="number" id="exBuffer" min="0" style="width:56px">일 전</label>
-      <label class="footnote" style="margin:0;display:flex;gap:4px;align-items:center">판매속도 기준 <select id="exWin"><option value="30">최근 30일</option><option value="60">최근 60일</option><option value="90">최근 90일</option><option value="180">최근 180일</option></select></label>
+      <button type="button" class="tbtn" id="exOptBtn" title="판매마감 여유 · 판매속도 기준">⚙ 조건</button>
+      <label class="footnote ex-optf" style="margin:0;display:flex;gap:4px;align-items:center">판매마감 여유 <input type="number" id="exBuffer" min="0" style="width:56px">일 전</label>
+      <label class="footnote ex-optf" style="margin:0;display:flex;gap:4px;align-items:center">판매속도 기준 <select id="exWin"><option value="30">최근 30일</option><option value="60">최근 60일</option><option value="90">최근 90일</option><option value="180">최근 180일</option></select></label>
       <button class="tbtn primary" id="exFileBtn" title="3PL 재고 엑셀을 그대로 올리면 어느 브랜드 파일인지 알아서 구분합니다 (비즈로지컴 → GROHOME · 세이고라닌 → POUR스토어)">📥 재고 엑셀 올리기</button><input type="file" id="exFile" accept=".xlsx,.xls,.csv,.htm,.html" style="display:none">
       <button class="tbtn" id="exPasteBtn">📋 POUR스토어 재고 붙여넣기</button>
       <button class="tbtn" id="exReload">↻ 새로고침</button>
@@ -11186,7 +11231,7 @@ async function renderExpiry(){
   const SORTS={ risk:(a,b)=>{ const o={expired:0,late:1,bad:2,warn:3,nolink:4,nodate:5,ok:6}; return (o[a.v]-o[b.v])||ex(a).localeCompare(ex(b)); },
     expiryAsc:(a,b)=>ex(a).localeCompare(ex(b)), expiryDesc:(a,b)=>ex(b).localeCompare(ex(a)),
     wasteDesc:(a,b)=>nz(b.waste)-nz(a.waste)||ex(a).localeCompare(ex(b)), needDesc:(a,b)=>nz(b.need)-nz(a.need),
-    qtyDesc:(a,b)=>b.l.qty-a.l.qty, nameAsc:(a,b)=>String(a.l.name).localeCompare(String(b.l.name),'ko') };
+    qtyDesc:(a,b)=>b.l.qty-a.l.qty, qtyAsc:(a,b)=>a.l.qty-b.l.qty||ex(a).localeCompare(ex(b)), nameAsc:(a,b)=>String(a.l.name).localeCompare(String(b.l.name),'ko') };
   rows.sort(SORTS[EX.sort]||SORTS.risk);
   base.forEach(r=>{ r.sg=(!r.p&&r.l.brand==='POUR스토어')?exSuggest(r.l):null; });
   const sgN=base.filter(r=>r.sg).length; body._sgRows=base.filter(r=>r.sg);
@@ -11216,18 +11261,36 @@ async function renderExpiry(){
       ${EX.diag?`<div class="ex-diag"><b>재고 → 제품 연결</b> · 연결 ${won(byCode)}건 · <b class="${nolinkN?'neg':'pos'}">미연결 ${won(nolinkN)}건</b><br>
         <b>매출 기록</b> 총 ${won(sr.length)}건 · 최근 ${EX.win}일 안 ${won(inWin)}건 · 기간 밖 ${won(sr.length-inWin)}건${minD?` · 기록 범위 ${minD} ~ ${maxD}`:''}<br>
         <b>그로홈 제품 마스터</b> ${won((EX.gh||[]).length)}건 · 가격대시보드 제품 ${won(P.filter(p=>!isDeletedProd(p)).length)}건</div>`:''}</div>`;
-  const chip=(k,lb)=>`<button type="button" data-exbk="${k}" class="${EX.bk===k?'on':''}">${lb}</button>`;
-  const fbar=`<div class="ex-fbar"><div class="seg ex-chips">${chip('all','전체')}${BK.map(([k,lb])=>chip(k,lb)).join('')}${none.lots?chip('none','미등록'):''}</div>
+  const chip=(k,lb,n)=>`<button type="button" data-exbk="${k}" class="${EX.bk===k?'on':''}">${lb}${n!=null?` <i>${won(n)}</i>`:''}</button>`;
+  const fbar=`<div class="ex-fbar"><div class="seg ex-chips">${chip('all','전체',base.length)}${BK.map(([k,lb])=>chip(k,lb,(sum[k]||{}).lots||0)).join('')}${none.lots?chip('none','미등록',none.lots):''}</div>
       <div class="ex-fr"><input type="search" id="exQ" placeholder="🔍 상품명 · 코드 찾기" value="${esc(EX.q)}">
-      <select id="exSort">${[['risk','위험한 것 먼저'],['expiryAsc','유통기한 빠른순'],['expiryDesc','유통기한 늦은순'],['wasteDesc','폐기 예상 많은순'],['needDesc','필요 판매속도 높은순'],['qtyDesc','재고 많은순'],['nameAsc','상품명순']].map(([v,lb])=>`<option value="${v}"${EX.sort===v?' selected':''}>${lb}</option>`).join('')}</select></div></div>`;
+      <select id="exSort">${[['risk','위험한 것 먼저'],['expiryAsc','유통기한 빠른순'],['expiryDesc','유통기한 늦은순'],['wasteDesc','폐기 예상 많은순'],['needDesc','필요 판매속도 높은순'],['qtyDesc','재고 많은순'],['qtyAsc','재고 적은순'],['nameAsc','상품명순']].map(([v,lb])=>`<option value="${v}"${EX.sort===v?' selected':''}>${lb}</option>`).join('')}</select></div></div>`;
   const srcBrands=[...new Set(['GROHOME','POUR스토어',...Object.keys(EX.meta||{})])];
   const srcCards=`<div class="ex-srcs">${srcBrands.map(b=>{ const m=(EX.meta||{})[b];
     return `<div class="ex-src"><div class="ex-src-hd"><b>${esc(b)}</b>${m?`<span class="tag">${esc(m.label)}</span>`:''}</div>
-      ${m?`<div class="ex-src-at">🕒 <b>${esc(exFmtDT(m.at))}</b> 올림${m.by?` · ${esc(m.by)}`:''}</div>
+      ${m?`<div class="ex-src-at">🕒 <b>${esc(exFmtDT(m.at))}</b> 올림${m.by?`<span class="ex-src-by"> · ${esc(m.by)}</span>`:''}</div>
         ${m.file?`<div class="ex-src-f" title="${esc(m.file)}">📄 ${esc(m.file)}</div>`:''}
         <div class="ex-src-n">로트 ${won(m.lots)} · ${won(m.qty)}개${m.noExp?` · <span class="neg">유통기한 없음 ${m.noExp}</span>`:''}</div>`
         :`<div class="ex-src-n">아직 올린 재고가 없어요</div>`}
       <button type="button" class="tbtn" data-exup="${esc(b)}">📥 엑셀 올리기</button></div>`; }).join('')}</div>`;
+  const PH=window.matchMedia('(max-width:640px)').matches;   // 폰: 표 대신 로트 카드 · 안내는 접기 · 30개씩
+  const noteN=(sgN?1:0)+(nolinkN?1:0)+(EX.lots.length&&!inWin?1:0);
+  const moreBox=PH?`<details class="ex-more"${EX.moreOpen?' open':''}><summary>${noteN?`⚠️ 확인할 것 ${noteN}건 · `:''}전체 <b>${won(base.length)}</b>로트 · ${won(totQty)}개${wasteQty?` · 폐기 예상 <b class="neg">${won(wasteQty)}</b>`:''}</summary>${notes}${totals}</details>`:'';
+  const lim=EX.lim||30, vis=PH?rows.slice(0,lim):rows;
+  const lotCard=(r,i)=>{ const V=EX_V[r.v]||EX_V.nolink, editExp=!r.l.fileExp&&!(EX.meta[r.l.brand]&&/-seed$/.test(EX.meta[r.l.brand].source));
+    return `<div class="ex-lc">
+      <div class="ex-lc-top"><span class="prb" style="background:${V[1]};color:${V[2]}">${V[0]}</span>
+        <b class="ex-lc-d ${r.rem!=null&&r.rem<=30?'neg':''}">${r.rem==null?'기한 없음':r.rem<0?`${-r.rem}일 지남`:`D-${r.rem}`}</b></div>
+      <div class="ex-lc-nm">${esc(r.l.name)}</div>
+      <div class="ex-lc-sub">${esc(r.l.brand==='POUR스토어'?'POUR':'GRO')} · <span style="font-family:var(--mono)">${esc(r.l.code)}</span> · ${editExp?`<input type="date" class="ex-md" data-doc="${esc(r.l.docId||'')}" data-code="${esc(r.l.code)}" value="${esc(r.l.manualExp?r.l.expiry:'')}" title="유통기한 직접 입력">`:esc(r.l.expiry||'—')}</div>
+      ${r.p?`<div class="ex-lc-sub">→ ${esc(prodLabel(r.p))}</div>`:''}
+      <div class="ex-lc-kv"><span>수량 <b>${won(r.l.qty)}</b></span><span>하루 판매 <b>${r.avg==null?'—':f1(r.avg)}</b></span><span>필요 <b class="${r.need!=null&&r.avg!=null&&r.need>r.avg?'neg':''}">${r.need==null?'—':f1(r.need)}</b>/일</span>
+        ${r.rate!=null?`<span>소진율 <b>${Math.round(r.rate)}%</b></span>`:''}${r.waste?`<span>폐기 <b class="neg">${won(r.waste)}</b></span>`:''}${r.loss?`<span>손실 <b class="neg">${wonU(r.loss)}</b></span>`:''}</div>
+      ${r.sg?`<div class="ex-lc-sub" style="color:#1D4ED8">추천 → <b>${esc(prodLabel(r.sg.p))}</b> <button type="button" class="tbtn" data-exsg="${i}">✓ 연결</button></div>`:''}
+      ${(r.p&&['bad','warn','late'].includes(r.v))||(!r.p&&r.l.brand==='POUR스토어')?`<div class="ex-lc-act">${r.p&&['bad','warn','late'].includes(r.v)?`<button class="tbtn" data-exi="${i}">🎯 프로모션</button>`:''}${!r.p&&r.l.brand==='POUR스토어'?`<button class="tbtn" data-exlink="${i}">🔗 제품 연결</button>`:''}</div>`:''}
+    </div>`; };
+  const listPh=`<div class="ex-lcs">${vis.map(lotCard).join('')||`<p class="footnote" style="text-align:center;padding:16px">${EX.lots.length?'조건에 맞는 로트가 없습니다':'아직 올린 재고가 없어요 — 위 [📥 재고 엑셀 올리기]'}</p>`}</div>
+    ${rows.length>vis.length?`<button type="button" class="tbtn ex-morebtn" id="exMoreRows">더 보기 (${won(rows.length-vis.length)}개 남음)</button>`:''}`;
   body.innerHTML=`
     ${srcCards}
     <div class="cards">
@@ -11236,15 +11299,14 @@ async function renderExpiry(){
       ${card('예상 폐기 손실 (원가)', wonU(loss), loss?'neg':'', '가격대시보드에 원가가 있는 제품만')}
       ${card('30일 안에 기한 도래', soon+'개', soon?'neg':'', expired.length?`이미 지난 로트 ${expired.length}개 · ${won(expired.reduce((a,r)=>a+r.l.qty,0))}개`:'')}
     </div>
-    ${notes}
-    <div class="ex-bks">${bkCards}</div>
-    ${totals}
+    ${PH?moreBox:notes+`<div class="ex-bks">${bkCards}</div>`+totals}
     ${fbar}
-    <div class="panel"><h3>로트별 소진 판단 <span class="tag">최근 ${EX.win}일 판매 속도 · 선입선출</span></h3>
+    ${PH?listPh:''}
+    <div class="panel"${PH?' style="display:none"':''}><h3>로트별 소진 판단 <span class="tag">최근 ${EX.win}일 판매 속도 · 선입선출</span></h3>
       <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" style="width:100%;min-width:1280px">
         <thead><tr><th>브랜드</th><th style="min-width:200px">상품 (재고 이름)</th><th>3PL 코드</th><th>유통기한</th><th class="num">남은 일수</th><th class="num">수량</th><th class="num">누적</th>
           <th class="num">하루 판매 (최근)</th><th class="num">필요 하루 판매</th><th class="num">배수</th><th class="num">소진 예상</th><th class="num">기한 내 소진율</th><th>판단</th><th class="num">예상 폐기</th><th class="num">폐기 손실</th><th></th></tr></thead>
-        <tbody>${rows.map((r,i)=>{ const V=EX_V[r.v]||EX_V.nolink;
+        <tbody>${(PH?[]:rows).map((r,i)=>{ const V=EX_V[r.v]||EX_V.nolink;
           return `<tr><td>${esc(r.l.brand==='POUR스토어'?'POUR':'GRO')}</td>
             <td>${esc(r.l.name)}${r.p?`<div class="footnote" style="margin:0">→ ${esc(prodLabel(r.p))}${pcodeOf(r.p)?' · '+esc(pcodeOf(r.p)):''}</div>`:(r.m.g?`<div class="footnote" style="margin:0">→ 그로홈 ${esc(r.m.g.name)} (가격대시보드 미연결)</div>`:'')}${r.sg?`<div class="footnote" style="margin:2px 0 0;color:#1D4ED8">추천 → <b>${esc(prodLabel(r.sg.p))}</b> <button type="button" class="tbtn" data-exsg="${i}" style="min-height:0;padding:2px 8px;font-size:11px">✓ 연결</button></div>`:''}</td>
             <td style="font-family:var(--mono)">${esc(r.l.code)}</td><td>${!r.l.fileExp&&!(EX.meta[r.l.brand]&&/-seed$/.test(EX.meta[r.l.brand].source))?`<input type="date" class="ex-md" data-doc="${esc(r.l.docId||'')}" data-code="${esc(r.l.code)}" value="${esc(r.l.manualExp?r.l.expiry:'')}" title="엑셀에 유통기한이 없어 직접 넣습니다 (다음 엑셀 올릴 때도 유지)">`:esc(r.l.expiry||r.l.rawExpiry||'—')}</td>
@@ -11415,17 +11477,21 @@ function exLinkList(){
   });
   body.addEventListener('input',e=>{ if(e.target.id!=='exQ') return; EX.q=e.target.value; const pos=e.target.selectionStart;
     Promise.resolve(renderExpiry()).then(()=>{ const q=$('#exQ'); if(q){ q.focus(); try{ q.setSelectionRange(pos,pos); }catch(err){} } }); });
-  body.addEventListener('change',e=>{ if(e.target.id==='exSort'){ EX.sort=e.target.value; renderExpiry(); return; }
+  body.addEventListener('toggle',e=>{ if(e.target.classList&&e.target.classList.contains('ex-more')) EX.moreOpen=e.target.open; },true);
+  $('#exOptBtn')&&$('#exOptBtn').addEventListener('click',()=>{ const sh=$('#sh-expiry'); sh.classList.toggle('ex-opt'); $('#exOptBtn').classList.toggle('on',sh.classList.contains('ex-opt')); });
+  try{ window.matchMedia('(max-width:640px)').addEventListener('change',()=>{ if($('#sh-expiry.on')) renderExpiry(); }); }catch(err){}
+  body.addEventListener('change',e=>{ if(e.target.id==='exSort'){ EX.sort=e.target.value; EX.lim=30; renderExpiry(); return; }
     if(e.target.classList.contains('ex-md')) exSaveManual(e.target.dataset.doc, e.target.dataset.code, e.target.value); });
   body.addEventListener('click',e=>{
     if(e.target.id==='exRetry'){ EX.err=''; EX.lots=null; renderExpiry(); return; }
     if(e.target.id==='exDiag'){ EX.diag=!EX.diag; renderExpiry(); return; }
+    if(e.target.id==='exMoreRows'){ EX.lim=(EX.lim||30)+30; renderExpiry(); return; }
     const up=e.target.closest('[data-exup]'); if(up){ _exUpBrand=up.dataset.exup; $('#exFile').click(); return; }
     if(e.target.id==='exSgAll'){ exLinkBulk(body._sgRows||[]); return; }
     const sgb=e.target.closest('button[data-exsg]'); if(sgb){ const r=(body._rows||[])[+sgb.dataset.exsg]; if(r&&r.sg){ (async()=>{ const cur=String(P3PL[r.sg.k]||'').trim(); const err=await setP3plFor(r.sg.k, cur?cur+', '+r.l.code:r.l.code);
       if(err){ uiToast(err,'err'); return; } logAct('유통기한', `3PL 재고 연결 ${r.l.code}`, r.sg.k.split('|')[1]); uiToast(`${r.l.code} → ${r.sg.k.split('|')[1]} 연결됨`,'ok'); renderExpiry(); })(); } return; }
     const lk=e.target.closest('button[data-exlink]'); if(lk){ const r=(body._rows||[])[+lk.dataset.exlink]; if(r) exLinkOpen(r); return; }
-    const bk=e.target.closest('[data-exbk]'); if(bk){ const k=bk.dataset.exbk; EX.bk=(bk.classList.contains('ex-bk')&&EX.bk===k)?'all':k; renderExpiry(); return; }
+    const bk=e.target.closest('[data-exbk]'); if(bk){ const k=bk.dataset.exbk; EX.bk=(bk.classList.contains('ex-bk')&&EX.bk===k)?'all':k; EX.lim=30; renderExpiry(); return; }
     const b=e.target.closest('button[data-exi]'); if(!b) return; const r=(body._rows||[])[+b.dataset.exi]; if(!r||!r.p) return;
     openPromoCalc(pKey(r.p), { goal:'clear', stock:r.cum });
   });

@@ -3969,6 +3969,20 @@ function WorkflowHome(props){
       {lead&&uncategorized>0&&<div style={{margin:"10px 16px 0",padding:"12px 14px",borderRadius:14,background:"#F2F7FF",border:"1px solid #C9DDFF",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
         <p style={{margin:0,flex:"1 1 200px",fontSize:13,color:"#1B64DA",fontWeight:700,lineHeight:1.5}}>🧹 카테고리 없는 프로젝트 {uncategorized}개 · 정리안을 보고 골라서 한 번에 적용해요</p>
         <button onClick={()=>setCleanOpen(true)} style={{padding:"9px 14px",borderRadius:10,border:"none",background:"#3182F6",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>정리안 보기</button></div>}
+      {lbLive.length>0&&(()=>{ const rows=lbLive.filter(p=>launchProgress(p).pct<100).sort((a,b)=>String(a.launchDate||"9999").localeCompare(String(b.launchDate||"9999"))||String(a.name).localeCompare(String(b.name),"ko"));
+        return(<div style={{margin:"12px 16px 0",background:"#fff",borderRadius:18,padding:"13px 14px",boxShadow:"0 2px 12px rgba(15,23,42,.05)"}}>
+          <button onClick={()=>setCat("launch")} style={{display:"flex",alignItems:"center",gap:8,width:"100%",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+            <b style={{flex:1,fontSize:14.5,color:"#191F28"}}>🚀 신제품 출시 프로젝트 {rows.length} <span style={{fontSize:11.5,fontWeight:600,color:"#8B95A1"}}>· 로드맵 제품 1개 = 프로젝트 1개</span></b>
+            <span style={{fontSize:12,fontWeight:800,color:"#1B64DA"}}>로드맵 →</span></button>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:6,marginTop:9}}>
+            {rows.map(p=>{ const lp=launchProgress(p); const b=LAUNCH_BRANDS[p.brand]||{icon:"📦"}; const nx=launchNextItem(p); const rem=p.launchDate?daysTo(p.launchDate):null; return(
+              <button key={p.id} onClick={()=>setCat("launch")} style={{textAlign:"left",padding:"9px 11px",borderRadius:12,border:"1px solid #EEF1F4",background:"#FAFBFC",cursor:"pointer",fontFamily:"inherit",borderLeft:"4px solid #3182F6"}}>
+                <span style={{display:"flex",alignItems:"center",gap:6}}><b style={{flex:1,minWidth:0,fontSize:13.5,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.icon} {p.name}</b>
+                  <span style={{fontSize:11.5,fontWeight:900,color:rem==null?"#B0B8C1":rem<0?"#F04452":rem<=14?"#FF9500":"#1B64DA"}}>{rem==null?"출시일 미정":`출시 ${ddayKo(rem)}`}</span></span>
+                <span style={{display:"flex",alignItems:"center",gap:6,marginTop:5}}><span style={{flex:1,height:5,background:"#E8EBEE",borderRadius:3,overflow:"hidden"}}><span style={{display:"block",width:`${lp.pct}%`,height:"100%",background:"#3182F6"}}/></span><span style={{fontSize:11,fontWeight:800,color:"#191F28"}}>{lp.pct}%</span></span>
+                <span style={{display:"block",fontSize:11,color:"#8B95A1",marginTop:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.batch?`${p.batch} · `:""}관리 {launchLead(p)||"-"}{nx?` · 다음 ${nx.it.name}${nx.s.owner?` (${nx.s.owner})`:""}`:""}</span>
+              </button>); })}
+          </div></div>); })()}
       <SimpleProjects {...props}/>
     </>}
     {cat!=="all"&&<div style={{padding:"12px 16px 24px",display:"flex",flexDirection:"column",gap:14}}>
@@ -5021,7 +5035,8 @@ function CalendarPage({D,cu,add,up,rm,nav}){
       else if(du){ if(inM(du)) out.push({...it,start:du,end:du,label:"🏁 "+p.title+" 마감"}); }
       else if(st){ if(inM(st)) out.push({...it,start:st,end:st,label:"▶ "+p.title+" 시작"}); } });
     if(show.launch) lbCal.filter(p=>!p.deletedAt).forEach(p=>{ const b=LAUNCH_BRANDS[p.brand]||{icon:"📦"};
-      if(p.launchDate&&inM(p.launchDate)) out.push({kind:"launch",key:"l_"+p.id,start:p.launchDate,end:p.launchDate,color:"#1B64DA",bg:"#DCEBFF",label:`🚀 ${p.name} 출시`,sub:`${b.icon} ${p.batch||""} · ${launchProgress(p).pct}% 준비`,onClick:()=>goCatC("launch")});
+      if(p.launchDate){ const c0=String(p.createdAt||"").slice(0,10); const st=c0&&c0<p.launchDate?c0:p.launchDate; const late=p.launchDate<todayC&&launchProgress(p).pct<100;
+        if(inM(st,p.launchDate)) out.push({kind:"launch",key:"l_"+p.id,start:st,end:p.launchDate,color:late?"#F04452":"#1B64DA",bg:late?"#FFF0F1":"#DCEBFF",label:`🚀 ${p.name} (출시 ${p.launchDate.slice(5)})`,sub:`${b.icon} ${p.batch||"차수 미정"} · 관리 ${launchLead(p)||"-"} · ${launchProgress(p).pct}% 준비 · ${ddayKo(daysTo(p.launchDate))}`,onClick:()=>goCatC("launch")}); }
       LAUNCH_ITEMS.forEach(it=>{ const st=lbState(p,it); if(st.due&&st.status!=="done"&&st.status!=="skip"&&inM(st.due)) out.push({kind:"launch",key:"li_"+p.id+it.id,start:st.due,end:st.due,color:st.due<todayC?"#F04452":"#3182F6",bg:st.due<todayC?"#FFF0F1":"#E8F1FF",label:`🚀 ${p.name} · ${it.name}`,sub:`담당 ${st.owner||"없음"}`,onClick:()=>goCatC("launch")}); }); });
     if(show.wf) (D.tasks||[]).filter(t=>t.wfId&&t.status!=="done").forEach(t=>{ const wf=wfCal.find(w=>w.id===t.wfId); if(!wf) return;
       if(t.dueDate&&inM(t.dueDate)) out.push({kind:"wf",key:"w_"+t.id,start:t.dueDate,end:t.dueDate,color:"#6D28D9",bg:"#F1EAFE",label:`${wf.icon} ${t.title}`,sub:`${wf.name} · ${userName(D,t.assigneeId)||""}`,onClick:()=>goCatC(wf.cat)});
@@ -5099,6 +5114,16 @@ function CalendarPage({D,cu,add,up,rm,nav}){
                 <label style={{fontSize:10.5,color:"#6B7684",fontWeight:700,minWidth:0}}>마감<input type="date" aria-label={`${p.title} 마감일`} value={p.dueDate||""} onChange={e=>up("projects",p.id,{dueDate:e.target.value})} style={{...di,width:"100%",boxSizing:"border-box",marginTop:3}}/></label>
               </div>
             </div>))}</div>}
+        </div>); })()}
+      {show.launch&&(()=>{ const und=lbCal.filter(p=>!p.deletedAt&&!p.launchDate&&launchProgress(p).pct<100); if(!und.length) return null; return(
+        <div style={{backgroundColor:"#F2F7FF",borderRadius:16,padding:"12px 14px",marginBottom:16,border:"1px solid #C9DDFF"}}>
+          <b style={{fontSize:13.5,color:"#1B64DA"}}>🚀 출시일 없는 신제품 {und.length}</b>
+          <span style={{display:"block",fontSize:11.5,color:"#4E5968",marginTop:2}}>출시(목표)일을 넣으면 달력에 준비 기간 막대로 떠요 · 런칭보드에도 같이 반영</span>
+          <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:10}}>{und.map(p=>{ const b=LAUNCH_BRANDS[p.brand]||{icon:"📦"}; return(
+            <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:11,background:"#fff",flexWrap:"wrap"}}>
+              <span style={{flex:"1 1 140px",minWidth:0,fontSize:13,fontWeight:800,color:"#191F28"}}>{b.icon} {p.name}{p.batch?<span style={{fontSize:11,fontWeight:600,color:"#1B64DA"}}> · {p.batch}</span>:null}</span>
+              <input type="date" aria-label={`${p.name} 출시일`} defaultValue="" onChange={e=>{ const v=e.target.value; if(v) lbWrite(p.id,{launchDate:v},"출시일 "+v,cu); }} style={{padding:"7px 8px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:12.5,fontFamily:"inherit",background:"#fff",flex:"0 1 150px",minWidth:0}}/>
+            </div>); })}</div>
         </div>); })()}
       {projOpen&&(D.projects||[]).find(p=>p.id===projOpen)&&<ProjectDetailSheet D={D} cu={cu} p={(D.projects||[]).find(p=>p.id===projOpen)} up={up} add={add} rm={rm} onClose={()=>setProjOpen(null)} onAdvanced={()=>{ setProjOpen(null); if(nav) nav("projects"); }}/>}
       <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#191F28"}}>이번 달 행사·미팅</h3>

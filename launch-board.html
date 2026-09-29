@@ -271,7 +271,7 @@
   .phase-h{display:flex;align-items:center;gap:8px;margin:16px 2px 8px;font-size:13px;font-weight:800;color:var(--ink2)}
   .phase-h .who{font-size:11.5px;font-weight:800;border-radius:7px;padding:3px 8px}
   .ck{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
-  .ck-row{display:grid;grid-template-columns:96px 170px minmax(0,1fr) 110px 190px;gap:10px;align-items:center;padding:10px 14px}
+  .ck-row{display:grid;grid-template-columns:96px 170px minmax(0,1fr) 140px 190px;gap:10px;align-items:center;padding:10px 14px}
   .ck-step{border-bottom:1px solid var(--line2);transition:background .3s}
   .ck-step:last-child{border-bottom:none}
   .ck-step.flash{background:#FFFBEB}
@@ -329,6 +329,10 @@
   .pick button.on{background:var(--blue-l);color:#1D4ED8}
   .pick button.clr{color:var(--red);font-size:12.5px}
   .pick button.new{color:var(--blue);font-size:13px}
+  .pick-foot{position:sticky;bottom:-5px;display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border-top:1px solid var(--line2);margin:4px -5px -5px;padding:6px 8px}
+  .pick-foot span{font-size:11.5px;color:var(--faint);font-weight:700}
+  .pick .pick-done{width:auto;display:inline-block;background:#111827;color:#fff;padding:6px 14px;font-size:13px}
+  .pick .pick-done:hover{background:#1F2937}
 
   /* ── 이름 고르기 ── */
   .nm-groups{display:flex;flex-direction:column;gap:10px}
@@ -992,7 +996,7 @@ function viewGuide(){
 }
 
 // ── 팀 구성 (커머스본부 조직 개편 v1 · 2026.09) ──
-function ownedCount(name){ return live().filter(p=>STEPS.some(s=>stg(p,s.id).owner===name) || p.lead===name || (BRANDS[p.brand]||{}).bm===name).length; }
+function ownedCount(name){ return live().filter(p=>STEPS.some(s=>splitNames(stg(p,s.id).owner).includes(name)) || p.lead===name || (BRANDS[p.brand]||{}).bm===name).length; }
 function person(m, color){
   const n = m.vacant ? 0 : ownedCount(m.name);
   return `<button class="mem ${m.vacant?'vacant':''}" ${m.vacant?'disabled':`data-person="${esc(m.name)}"`}>
@@ -1337,30 +1341,46 @@ document.addEventListener('change', e => {
 document.addEventListener('input', e => { if (e.target.tagName==='TEXTAREA' && (e.target.dataset.sf || e.target.dataset.task)) grow(e.target); });
 document.addEventListener('focusin', e => { if (!me && $('main').contains(e.target) && /INPUT|TEXTAREA/.test(e.target.tagName)) { e.target.blur(); askName(); } });
 // 담당자 드롭다운: 칸을 누르면 (이미 이름이 있어도) 전체 팀원 목록, 글자를 치면 거르기
-let pickEl = null, pickTyped = false;
+let pickEl = null, pickTyped = false, pickSel = [], pickOrig = '';
+const splitNames = v => String(v||'').split(/\s*,\s*/).map(x=>x.trim()).filter(Boolean);
+// 여러 명 선택: 이름을 누를 때마다 추가/빼기 (목록은 열린 채), 완료·바깥 누르면 저장
 function renderPick(){
   const box = $('pick'); if (!pickEl) { box.classList.add('hidden'); return; }
-  const cur = pickEl.value.trim(), q = pickTyped ? cur : '';
+  const keep = box.classList.contains('hidden') ? 0 : box.scrollTop;
+  const q = pickTyped ? pickEl.value.trim() : '';
   const list = people().filter(n => !q || n.includes(q));
-  box.innerHTML = (cur ? `<button type="button" class="clr" data-pv="">✕ 담당 지우기</button>` : '')
-    + list.map(n=>`<button type="button" class="${n===cur?'on':''}" data-pv="${esc(n)}">${n===cur?'✓ ':''}${esc(n)}</button>`).join('')
-    + (q && !list.includes(q) ? `<button type="button" class="new" data-pv="${esc(q)}">＋ "${esc(q)}"(으)로 입력</button>` : '');
+  box.innerHTML = (pickSel.length ? `<button type="button" class="clr" data-pv="" data-clr="1">✕ 담당 지우기</button>` : '')
+    + list.map(n=>{ const on = pickSel.includes(n); return `<button type="button" class="${on?'on':''}" data-pv="${esc(n)}">${on?'✓ ':''}${esc(n)}</button>`; }).join('')
+    + (q && !list.includes(q) ? `<button type="button" class="new" data-pv="${esc(q)}">＋ "${esc(q)}" 추가</button>` : '')
+    + `<div class="pick-foot"><span>${pickSel.length ? pickSel.length+'명 선택' : '여러 명 선택 가능'}</span><button type="button" class="pick-done" data-pdone="1">완료</button></div>`;
   const r = pickEl.getBoundingClientRect();
-  box.style.minWidth = Math.max(150, r.width) + 'px';
-  box.classList.remove('hidden');
+  box.style.minWidth = Math.max(170, r.width) + 'px';
+  box.classList.remove('hidden'); box.scrollTop = keep;
   const left = Math.min(r.left + window.scrollX, window.scrollX + document.documentElement.clientWidth - box.offsetWidth - 8);
   box.style.left = Math.max(8, left) + 'px'; box.style.top = (r.bottom + window.scrollY + 4) + 'px';
 }
-function closePick(){ pickEl = null; renderPick(); }
-document.addEventListener('focusin', e => { const t = e.target; if (t.dataset && t.dataset.pick && !t.disabled) { delete t.dataset.pickSent; pickEl = t; pickTyped = false; renderPick(); t.select(); t.addEventListener('mouseup', ev => ev.preventDefault(), { once:true }); } });
+// 닫을 때 저장: 글자를 직접 쳤으면 친 그대로, 아니면 고른 이름들
+function commitPick(){
+  const inp = pickEl; if (!inp) return;
+  const v = pickTyped ? inp.value.trim() : pickSel.join(', ');
+  inp.value = v;
+  if (v !== pickOrig) { inp.dispatchEvent(new Event('change', { bubbles:true })); inp.dataset.pickSent = v; }
+}
+function closePick(save){ if (save !== false) commitPick(); pickEl = null; renderPick(); }
+document.addEventListener('focusin', e => { const t = e.target; if (t.dataset && t.dataset.pick && !t.disabled) { delete t.dataset.pickSent; pickEl = t; pickTyped = false; pickOrig = t.value.trim(); pickSel = splitNames(t.value); renderPick(); t.select(); t.addEventListener('mouseup', ev => ev.preventDefault(), { once:true }); } });
 document.addEventListener('input', e => { if (e.target === pickEl) { pickTyped = true; renderPick(); } });
-document.addEventListener('focusout', e => { if (e.target === pickEl) setTimeout(()=>{ if (document.activeElement !== pickEl) closePick(); }, 120); });
+document.addEventListener('focusout', e => { if (e.target === pickEl) { const el = pickEl; setTimeout(()=>{ if (pickEl === el && document.activeElement !== el) closePick(); }, 120); } });
 $('pick').addEventListener('mousedown', e => e.preventDefault());   // 목록을 눌러도 입력칸 포커스 유지
 $('pick').addEventListener('click', e => {
-  const b = e.target.closest('[data-pv]'); if (!b || !pickEl) return;
-  const inp = pickEl, v = b.dataset.pv;
-  inp.value = v; inp.dispatchEvent(new Event('change', { bubbles:true })); inp.dataset.pickSent = v;
-  closePick(); inp.blur();
+  if (!pickEl) return;
+  if (e.target.closest('[data-pdone]')) { const inp = pickEl; closePick(); inp.blur(); return; }
+  const b = e.target.closest('[data-pv]'); if (!b) return;
+  const v = b.dataset.pv;
+  if (b.dataset.clr) pickSel = [];
+  else if (pickSel.includes(v)) pickSel = pickSel.filter(x=>x!==v);
+  else pickSel = [...pickSel, v];
+  pickTyped = false; pickEl.value = pickSel.join(', ');
+  renderPick();
 });
 window.addEventListener('resize', () => { if (pickEl) renderPick(); });
 
@@ -1369,7 +1389,8 @@ document.addEventListener('focusin', e => { const t = e.target; if (t.dataset &&
 document.addEventListener('focusout', e => { const t = e.target; if (t.dataset && t.dataset.dt && t.type==='date' && !t.value) t.type = 'text'; });
 document.addEventListener('focusout', () => { setTimeout(()=>{ if (pendingRender && !typing()) renderMain(); }, 400); });
 document.addEventListener('keydown', e => {
-  if (e.key==='Escape' && pickEl) { closePick(); return; }
+  if (e.key==='Escape' && pickEl) { closePick(false); return; }
+  if (e.key==='Enter' && pickEl && e.target===pickEl) { e.preventDefault(); const inp = pickEl; closePick(); inp.blur(); return; }
   if (e.key==='Escape') { if ($('modalRoot').innerHTML) { if (me) closeModal(); } else if (view==='product' && !typing()) goBack(); }
   if (e.key==='Enter' && e.target.id==='nmIn') saveName();
   if (e.key==='Enter' && e.target.classList && e.target.classList.contains('card')) openProduct(e.target.dataset.open);

@@ -748,13 +748,15 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
     </Sheet>
   );
 };
-const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"일정"},{id:"journey",icon:"🗂",label:"활동 여정"},{id:"more",icon:"⋯",label:"더보기"}];
+// 실제로 쓰는 것만: 오늘·KPI·프로젝트·일정·그로스보드(모두 봄) — AI 코치·목표·회고는 숨김(데이터는 그대로, 더보기 맨 아래 '숨긴 메뉴'로 열람 가능)
+const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"일정"},{id:"mindmap",icon:"◈",label:"그로스보드"},{id:"more",icon:"⋯",label:"더보기"}];
+const HIDDEN_PAGES=[{id:"retro",label:"목표·회고"},{id:"ai",label:"AI 코치"}];
 const SHARE_NAV=[{id:"share-rev",icon:"💰",label:"매출"},{id:"kpi",icon:"◎",label:"KPI"},{id:"share-proj",icon:"▦",label:"프로젝트/업무플로우맵"},{id:"mindmap",icon:"◈",label:"그로스보드"}];   // 공유 보기 전용 네비 (확정 플로우맵은 프로젝트 현황 안에서)
-const MORE=[{id:"mindmap",icon:"◈",label:"그로스보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
+const MORE=[{id:"mindmap",icon:"◈",label:"그로스보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"journey",icon:"🗂",label:"활동 여정"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
 const NAV_GROUPS=[
-  {label:"개인 · 나만", ids:["today","fixed","retro"]},
-  {label:"팀 · 공유",  ids:["kpi","projects","mindmap","calendar","ai"]},
+  {label:"개인 · 나만", ids:["today","fixed"]},
+  {label:"팀 · 공유",  ids:["kpi","projects","mindmap","calendar"]},
   {label:"데이터 · 기록", ids:["journey"]},
   {label:"도움말",     ids:["guide"]},
 ];
@@ -1148,7 +1150,7 @@ export default function App(){
             </div>
           ))}
         </div>);
-      })():[{label:"개인 · 나만",ids:["fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","team","ai"]},{label:"도움말",ids:["guide"]}].map(grp=>(
+      })():[{label:"개인 · 나만",ids:["fixed"]},{label:"팀 · 공유",ids:["mindmap","team"]},{label:"데이터 · 기록",ids:["journey"]},{label:"도움말",ids:["guide"]}].map(grp=>(
         <div key={grp.label} style={{marginTop:14}}>
           <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -1161,6 +1163,10 @@ export default function App(){
           </div>
         </div>
       ))}
+      {!searchQ&&<div style={{marginTop:18,paddingTop:12,borderTop:"1px dashed #E5E8EB",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+        <span style={{fontSize:11,color:"#B0B8C1",fontWeight:700}}>숨긴 메뉴 (예전 기록 보기):</span>
+        {HIDDEN_PAGES.map(h=><button key={h.id} onClick={()=>nav(h.id)} style={{border:"none",background:"none",padding:"2px 4px",fontSize:11,color:"#8B95A1",textDecoration:"underline",cursor:"pointer",fontFamily:"inherit"}}>{h.label}</button>)}
+      </div>}
     </Sheet>
     <Sheet open={uSheet} onClose={()=>setUSheet(false)} title="담당자 전환">
       <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>
@@ -1225,6 +1231,10 @@ export default function App(){
               );})}
             </div>
           ))}
+          {!SHARE&&<div style={{margin:"10px 10px 4px",display:"flex",flexWrap:"wrap",gap:"2px 8px",alignItems:"center"}}>
+            <span style={{fontSize:10,color:"rgba(255,255,255,.5)",fontWeight:700}}>숨긴 메뉴:</span>
+            {HIDDEN_PAGES.map(h=><button key={h.id} onClick={()=>nav(h.id)} style={{border:"none",background:"none",padding:0,fontSize:10.5,color:"rgba(255,255,255,.7)",textDecoration:"underline",cursor:"pointer",fontFamily:"inherit"}}>{h.label}</button>)}
+          </div>}
         </nav>
         <div style={{padding:"12px 14px",borderTop:"1px solid rgba(255,255,255,.16)",display:"flex",flexDirection:"column",gap:9}}>
           {SHARE

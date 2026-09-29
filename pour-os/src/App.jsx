@@ -466,6 +466,10 @@ const downloadCSV=(rows,name)=>{
 };
 // 고정업무 다중 담당자 — forAll(전체) | assigneeIds[](다중) | 레거시 assigneeId(단일). 완료는 담당자별 doneDates 맵(없으면 레거시 doneDate)
 const fixedAssigneeIds=(t)=> Array.isArray(t.assigneeIds)&&t.assigneeIds.length ? t.assigneeIds : (t.assigneeId?[t.assigneeId]:[]);
+// 매주 고정업무 요일(여러 개 가능) — weekDays[] 우선, 없으면 예전 weekDay 하나
+const FX_WD=["월","화","수","목","금","토","일"];
+const fixedWeekDays=(t)=>{ const a=Array.isArray(t.weekDays)&&t.weekDays.length?t.weekDays:[t.weekDay||"월"]; return FX_WD.filter(d=>a.includes(d)); };
+const fixedDaysLabel=(t)=>{ const a=fixedWeekDays(t); return a.length===5&&!a.includes("토")&&!a.includes("일")?"평일":a.join("·"); };
 const fixedIsMine=(t,uid)=> t.forAll ? true : fixedAssigneeIds(t).includes(uid);
 const fixedDoneOn=(t,uid)=> (t.doneDates&&Object.prototype.hasOwnProperty.call(t.doneDates,uid)) ? t.doneDates[uid] : (t.assigneeId===uid?t.doneDate:null);
 const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
@@ -1614,12 +1618,12 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const wdDate=(d)=>{const ds=dateOfDay(d);return ds?ds.slice(5).replace("-","/"):"";};   // MM/DD
   const isThisWeek=weekOffset===0;
   const myT=D.tasks.filter(t=>t.assigneeId===cu.id);
-  const fixedDueToday=(t)=>{const rt=t.recurType||"daily";if(rt==="weekly")return t.weekDay===today;if(rt==="monthly")return Number(t.monthDay||1)===todayDate;return true;};
+  const fixedDueToday=(t)=>{const rt=t.recurType||"daily";if(rt==="weekly")return fixedWeekDays(t).includes(today);if(rt==="monthly")return Number(t.monthDay||1)===todayDate;return true;};
   const fixed=D.tasks.filter(t=>t.isFixed&&fixedIsMine(t,cu.id)&&fixedDueToday(t)).sort(byFixedTime);   // 시간순
   // 오늘 화면에 일·주·월 고정업무 전부 표시(주·월은 기간 안에 하면 완료)
   const fixedMineAll=D.tasks.filter(t=>t.isFixed&&fixedIsMine(t,cu.id));
   const fxDaily=fixedMineAll.filter(t=>(t.recurType||"daily")==="daily").sort(byFixedTime);
-  const fxWeekly=fixedMineAll.filter(t=>t.recurType==="weekly").sort((a,b)=>["월","화","수","목","금","토","일"].indexOf(a.weekDay||"월")-["월","화","수","목","금","토","일"].indexOf(b.weekDay||"월")||byFixedTime(a,b));
+  const fxWeekly=fixedMineAll.filter(t=>t.recurType==="weekly").sort((a,b)=>FX_WD.indexOf(fixedWeekDays(a)[0])-FX_WD.indexOf(fixedWeekDays(b)[0])||byFixedTime(a,b));
   const fxMonthly=fixedMineAll.filter(t=>t.recurType==="monthly").sort((a,b)=>(+a.monthDay||1)-(+b.monthDay||1)||byFixedTime(a,b));
   // 오늘 업무 = 진행날짜(목표일)가 오늘 / '진행중'(완료·보류 전까지 매일 이어서 노출) · 보류 제외
   // ※ 날짜 없이 요일만 있는 할일은 특정 주에 앵커되지 않아 매주 반복 노출되므로 제외 → 미배치 트레이에 모임(요일 버튼으로 배치)
@@ -2211,7 +2215,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
               const WDx=["월","화","수","목","금","토","일"]; const sec=(l,n,d)=><p style={{margin:"6px 2px 0",fontSize:12,fontWeight:900,color:"#191F28"}}>{l} <span style={{color:d===n&&n?"#00A862":"#8B95A1",fontWeight:700}}>{d}/{n}</span></p>;
               return(<>
                 {fxDaily.length>0&&<>{sec("🔁 매일",fxDaily.length,fxDaily.filter(fixedDone).length)}{fxDaily.map((t,fi)=>fxRow(t,fi,fxDaily,true))}</>}
-                {fxWeekly.length>0&&<>{sec("📅 매주 · 이번 주",fxWeekly.length,fxWeekly.filter(fixedDone).length)}{fxWeekly.map((t,fi)=>fxRow(t,fi,fxWeekly,false,(t.weekDay||"월")+(t.weekDay===today?" 오늘":"")))}</>}
+                {fxWeekly.length>0&&<>{sec("📅 매주 · 이번 주",fxWeekly.length,fxWeekly.filter(fixedDone).length)}{fxWeekly.map((t,fi)=>fxRow(t,fi,fxWeekly,false,fixedDaysLabel(t)+(fixedWeekDays(t).includes(today)?" 오늘":"")))}</>}
                 {fxMonthly.length>0&&<>{sec("🗓 매월 · 이번 달",fxMonthly.length,fxMonthly.filter(fixedDone).length)}{fxMonthly.map((t,fi)=>fxRow(t,fi,fxMonthly,false,(+t.monthDay||1)+"일"))}</>}
               </>); })()}
           </div>
@@ -7169,14 +7173,18 @@ function MindMapPage({D,cu,nav}){
 // 고정업무 주기 완료: 매일=오늘 · 매주=이번 주(월~일) 안 · 매월=이번 달 안에 체크했으면 완료
 const weekStartKey=(key)=>{ const d=new Date(key+"T00:00:00"); d.setDate(d.getDate()-((d.getDay()+6)%7)); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
 const fixedPeriodDone=(t,uid,key)=>{ const d=fixedDoneOn(t,uid); if(!d) return false; const rt=t.recurType||"daily";
-  if(rt==="weekly") return d>=weekStartKey(key)&&d<=key; if(rt==="monthly") return String(d).slice(0,7)===String(key).slice(0,7); return d===key; };
+  if(rt==="weekly"){ const days=fixedWeekDays(t); if(days.length<=1) return d>=weekStartKey(key)&&d<=key;
+    const k=new Date(key+"T00:00:00"); let last=null; for(let i=0;i<7;i++){ const x=new Date(k); x.setDate(k.getDate()-i); if(days.includes(ALL_DAYS[x.getDay()])){ last=`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`; break; } }
+    return last?(d>=last&&d<=key):false; }
+  if(rt==="monthly") return String(d).slice(0,7)===String(key).slice(0,7); return d===key; };
 // 여러 명이 맡은 고정업무는 담당자 모두 체크해야 완료(전체=모든 담당자)
 const fixedPeople=(D,t)=>t.forAll?(D.users||[]).map(u=>u.id):fixedAssigneeIds(t);
 const fixedAllDone=(D,t,key)=>{ const ids=fixedPeople(D,t); return ids.length>0&&ids.every(id=>fixedPeriodDone(t,id,key)); };
 const fixedDoneCount=(D,t,key)=>{ const ids=fixedPeople(D,t); return [ids.filter(id=>fixedPeriodDone(t,id,key)).length,ids.length]; };
 function FixedPage({D,cu,lead,add,up,rm,nav}){
   const todayKey=new Date().toISOString().slice(0,10);
-  const [form,setForm]=useState({title:"",projectId:"",assigneeIds:[cu.id],forAll:false,recurType:"daily",weekDay:"월",monthDay:1,fixedTime:""});
+  const [form,setForm]=useState({title:"",projectId:"",assigneeIds:[cu.id],forAll:false,recurType:"daily",weekDays:["월"],monthDay:1,fixedTime:""});
+  const [dayEdit,setDayEdit]=useState(null);   // 매주 요일 바꾸기 {id, days}
   const [modal,setModal]=useState(false);
   const [who,setWho]=useState("all");   // 담당자 탭: all | userId (그로홈 대시보드처럼 전체·개인)
   const [confirmId,setConfirmId]=useState(null);
@@ -7193,14 +7201,14 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
   const toggle=(t)=>{ if(!mine(t)) return; const on=fixedPeriodDone(t,cu.id,todayKey); up("tasks",t.id,{doneDates:{...(t.doneDates||{}),[cu.id]:on?null:todayKey},doneAt:new Date().toISOString(),doneByName:cu?.name||""}); };
   const WD=["월","화","수","목","금","토","일"];
   const daily=fixed.filter(t=>(t.recurType||"daily")==="daily");
-  const weekly=fixed.filter(t=>t.recurType==="weekly").sort((a,b)=>WD.indexOf(a.weekDay||"월")-WD.indexOf(b.weekDay||"월")||byFixedTime(a,b));
+  const weekly=fixed.filter(t=>t.recurType==="weekly").sort((a,b)=>WD.indexOf(fixedWeekDays(a)[0])-WD.indexOf(fixedWeekDays(b)[0])||byFixedTime(a,b));
   const monthly=fixed.filter(t=>t.recurType==="monthly").sort((a,b)=>(+a.monthDay||1)-(+b.monthDay||1)||byFixedTime(a,b));
   const cnt=(l)=>[l.filter(doneOf).length,l.length];
   const doAdd=()=>{
     if(!form.title.trim()) return;
-    add("tasks",{id:"t"+Date.now(),title:form.title.trim(),projectId:form.projectId,type:"fixed",status:"todo",weekSlot:null,isFixed:true,dueDate:"",memo:"",attachments:[],recurType:form.recurType,weekDay:form.recurType==="weekly"?form.weekDay:null,monthDay:form.recurType==="monthly"?Number(form.monthDay):null,fixedTime:form.fixedTime||"",
+    add("tasks",{id:"t"+Date.now(),title:form.title.trim(),projectId:form.projectId,type:"fixed",status:"todo",weekSlot:null,isFixed:true,dueDate:"",memo:"",attachments:[],recurType:form.recurType,weekDay:form.recurType==="weekly"?(FX_WD.find(d=>form.weekDays.includes(d))||"월"):null,weekDays:form.recurType==="weekly"?FX_WD.filter(d=>form.weekDays.includes(d)):null,monthDay:form.recurType==="monthly"?Number(form.monthDay):null,fixedTime:form.fixedTime||"",
       forAll:!!form.forAll,assigneeIds:form.forAll?[]:form.assigneeIds,assigneeId:form.forAll?"":(form.assigneeIds[0]||"")});
-    setForm({title:"",projectId:"",assigneeIds:[cu.id],forAll:false,recurType:form.recurType,weekDay:form.weekDay,monthDay:form.monthDay,fixedTime:form.fixedTime});setModal(false);
+    setForm({title:"",projectId:"",assigneeIds:[cu.id],forAll:false,recurType:form.recurType,weekDays:form.weekDays,monthDay:form.monthDay,fixedTime:form.fixedTime});setModal(false);
   };
   const openAdd=(rt)=>{ setForm(f=>({...f,recurType:rt||f.recurType,assigneeIds:who!=="all"?[who]:f.assigneeIds})); setModal(true); };
   const Row=({t,label,hot})=>{ const dn=doneOf(t); const my=can0(t)&&meDone(t); const [dc,dt]=fixedDoneCount(D,t,todayKey); const proj=D.projects.find(p=>p.id===t.projectId); const ps=peopleOf(t); const can=mine(t);
@@ -7212,6 +7220,7 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
           <p style={{margin:0,fontSize:13.5,fontWeight:800,color:dn?"#8B95A1":"#191F28",textDecoration:dn?"line-through":"none",lineHeight:1.35,wordBreak:"keep-all"}}>{t.title}</p>
           <div style={{display:"flex",gap:4,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
             {proj&&<ProjChip p={proj} max={14}/>}
+            {t.recurType==="weekly"&&<button onClick={()=>setDayEdit({id:t.id,days:fixedWeekDays(t)})} title="요일 바꾸기" style={{fontSize:10.5,fontWeight:800,color:"#6D28D9",background:"#F1EAFE",border:"none",borderRadius:6,padding:"2px 6px",cursor:"pointer",fontFamily:"inherit"}}>📅 {fixedDaysLabel(t)} ✎</button>}
             {t.forAll&&<span style={{fontSize:10.5,fontWeight:800,color:"#191F28",background:"#E5E9F5",borderRadius:6,padding:"2px 6px"}}>👥 전체</span>}
             {dt>1&&<span style={{fontSize:10.5,fontWeight:900,color:dn?"#00A862":"#1B64DA",background:dn?"#E8FAF1":"#E8F1FF",borderRadius:6,padding:"2px 6px"}}>👥 {dc}/{dt}명 체크{dn?" · 완료":""}</span>}
             {ps.slice(0,t.forAll?0:6).map(u=>{ const ok=fixedPeriodDone(t,u.id,todayKey); return <span key={u.id} title={ok?"체크함":"아직"} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10.5,fontWeight:800,color:ok?"#00A862":"#333D4B",background:ok?"#E8FAF1":"#F2F4F6",borderRadius:6,padding:"2px 6px"}}>{ok?"✓":<span style={{width:6,height:6,borderRadius:3,background:u.color||"#8B95A1"}}/>}{u.name}</span>; })}
@@ -7255,8 +7264,8 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
           {daily.map(t=><Row key={t.id} t={t}/>)}
         </Card>
         <Card icon="📅" grad="linear-gradient(135deg,#6D5CE8,#8B7CF6)" title="매주" sub="요일별 · 이번 주 안에 하면 완료" list={weekly} rt="weekly">
-          {WD.map(d=>{ const l=weekly.filter(t=>(t.weekDay||"월")===d); if(!l.length) return null; const isT=d===todayWd;
-            return <Fragment key={d}><p style={{margin:"4px 2px 0",fontSize:12,fontWeight:900,color:isT?"#1B64DA":"#4E5968"}}>{d}요일{isT?" · 오늘":""} <span style={{color:"#8B95A1",fontWeight:700}}>{l.length}</span></p>{l.map(t=><Row key={t.id} t={t} hot={isT}/>)}</Fragment>; })}
+          {WD.map(d=>{ const l=weekly.filter(t=>fixedWeekDays(t).includes(d)); if(!l.length) return null; const isT=d===todayWd;
+            return <Fragment key={d}><p style={{margin:"4px 2px 0",fontSize:12,fontWeight:900,color:isT?"#1B64DA":"#4E5968"}}>{d}요일{isT?" · 오늘":""} <span style={{color:"#8B95A1",fontWeight:700}}>{l.length}</span></p>{l.map(t=><Row key={t.id+d} t={t} hot={isT}/>)}</Fragment>; })}
         </Card>
         <Card icon="🗓" grad="linear-gradient(135deg,#00B386,#00C073)" title="매월" sub="날짜별 · 이번 달 안에 하면 완료" list={monthly} rt="monthly">
           {monthly.map(t=>{ const md=+t.monthDay||1; return <Row key={t.id} t={t} label={md+"일"} hot={md===todayD}/>; })}
@@ -7267,7 +7276,7 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>업무명 *</label><input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="ex. 벤처나라 문의 확인" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>연결 프로젝트</label><select value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">없음</option>{D.projects.map(p=><option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>🕐 시간 <span style={{color:"#9CA3AF",fontWeight:600}}>(선택 · 예: 09:00)</span></label><input type="time" value={form.fixedTime||""} onChange={e=>setForm({...form,fixedTime:e.target.value})} style={{width:"100%",padding:"11px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
-          <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>반복 주기</label><div style={{display:"flex",gap:6}}>{[["daily","매일"],["weekly","매주"],["monthly","매월"]].map(([k,l])=>(<button key={k} onClick={()=>setForm({...form,recurType:k})} style={{flex:1,padding:"10px 0",borderRadius:10,border:`1.5px solid ${form.recurType===k?"#3182F6":"#E5E8EB"}`,backgroundColor:form.recurType===k?"#E8F1FF":"#FFFFFF",color:form.recurType===k?"#1B64DA":"#6B7280",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>))}</div>{form.recurType==="weekly"&&<select value={form.weekDay} onChange={e=>setForm({...form,weekDay:e.target.value})} style={{width:"100%",marginTop:8,padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{ALL_DAYS.map(d=><option key={d} value={d}>{d}요일</option>)}</select>}{form.recurType==="monthly"&&<select value={form.monthDay} onChange={e=>setForm({...form,monthDay:Number(e.target.value)})} style={{width:"100%",marginTop:8,padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{Array.from({length:31},(_,i)=>i+1).map(d=><option key={d} value={d}>매월 {d}일</option>)}</select>}</div>
+          <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>반복 주기</label><div style={{display:"flex",gap:6}}>{[["daily","매일"],["weekly","매주"],["monthly","매월"]].map(([k,l])=>(<button key={k} onClick={()=>setForm({...form,recurType:k})} style={{flex:1,padding:"10px 0",borderRadius:10,border:`1.5px solid ${form.recurType===k?"#3182F6":"#E5E8EB"}`,backgroundColor:form.recurType===k?"#E8F1FF":"#FFFFFF",color:form.recurType===k?"#1B64DA":"#6B7280",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>))}</div>{form.recurType==="weekly"&&<><div style={{display:"flex",gap:5,marginTop:8,flexWrap:"wrap"}}>{FX_WD.map(d=>{ const on=form.weekDays.includes(d); return <button key={d} type="button" onClick={()=>setForm(f=>{ const has=f.weekDays.includes(d); const nx=has?f.weekDays.filter(x=>x!==d):[...f.weekDays,d]; return {...f,weekDays:nx.length?nx:f.weekDays}; })} aria-pressed={on} style={{flex:"1 0 38px",padding:"9px 0",borderRadius:10,border:`1.5px solid ${on?"#3182F6":"#E5E8EB"}`,background:on?"#3182F6":"#fff",color:on?"#fff":d==="일"?"#F04452":d==="토"?"#3182F6":"#4E5968",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{d}</button>; })}</div><div style={{display:"flex",gap:6,marginTop:6}}>{[["평일",["월","화","수","목","금"]],["월·수·금",["월","수","금"]],["화·목",["화","목"]]].map(([l,a])=><button key={l} type="button" onClick={()=>setForm(f=>({...f,weekDays:a}))} style={{padding:"5px 10px",borderRadius:12,border:"1px solid #E5E8EB",background:"#F9FAFB",color:"#4E5968",fontSize:11.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>)}</div><p style={{margin:"5px 2px 0",fontSize:11,color:"#8B95A1"}}>여러 요일 선택 가능 · 고른 요일마다 오늘 화면에 떠요</p></>}{form.recurType==="monthly"&&<select value={form.monthDay} onChange={e=>setForm({...form,monthDay:Number(e.target.value)})} style={{width:"100%",marginTop:8,padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{Array.from({length:31},(_,i)=>i+1).map(d=><option key={d} value={d}>매월 {d}일</option>)}</select>}</div>
           {lead&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>담당자 <span style={{color:"#9CA3AF",fontWeight:600}}>(여러 명 선택 · 전체 가능)</span></label>
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
               <button type="button" onClick={()=>setForm({...form,forAll:!form.forAll,assigneeIds:[]})} style={{padding:"7px 12px",borderRadius:20,border:`1.5px solid ${form.forAll?"#191F28":"#E5E8EB"}`,background:form.forAll?"#191F28":"#fff",fontSize:12,fontWeight:800,color:form.forAll?"#fff":"#4B5563",cursor:"pointer",fontFamily:"inherit"}}>⭐ 전체</button>
@@ -7280,6 +7289,14 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
         </div>
       </Sheet>
       <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} add={add} up={up} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,parentId:f.parentId||null,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null,...(f.statusLog?{statusLog:f.statusLog,doneAt:f.doneAt,doneBy:f.doneBy,doneByName:f.doneByName}:{})})} onDelete={(id)=>rm("tasks",id)}/>
+      <Sheet open={!!dayEdit} onClose={()=>setDayEdit(null)} title="매주 요일 바꾸기" h="60vh">
+        {dayEdit&&<div style={{paddingTop:8}}>
+          <p style={{margin:"0 0 10px",fontSize:13,fontWeight:800,color:"#191F28"}}>{(D.tasks.find(x=>x.id===dayEdit.id)||{}).title}</p>
+          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{FX_WD.map(d=>{ const on=dayEdit.days.includes(d); return <button key={d} onClick={()=>setDayEdit(e=>{ const nx=on?e.days.filter(x=>x!==d):[...e.days,d]; return {...e,days:nx.length?nx:e.days}; })} aria-pressed={on} style={{flex:"1 0 38px",padding:"11px 0",borderRadius:10,border:`1.5px solid ${on?"#3182F6":"#E5E8EB"}`,background:on?"#3182F6":"#fff",color:on?"#fff":"#4E5968",fontSize:14,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{d}</button>; })}</div>
+          <div style={{display:"flex",gap:6,marginTop:8}}>{[["평일",["월","화","수","목","금"]],["월·수·금",["월","수","금"]],["화·목",["화","목"]]].map(([l,a])=><button key={l} onClick={()=>setDayEdit(e=>({...e,days:a}))} style={{padding:"6px 11px",borderRadius:12,border:"1px solid #E5E8EB",background:"#F9FAFB",color:"#4E5968",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>)}</div>
+          <div style={{marginTop:14}}><Btn full variant="orange" onClick={()=>{ const days=FX_WD.filter(d=>dayEdit.days.includes(d)); up("tasks",dayEdit.id,{weekDays:days,weekDay:days[0]||"월"}); setDayEdit(null); }}>저장</Btn></div>
+        </div>}
+      </Sheet>
       <ConfirmDelete open={!!confirmId} title="고정업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmId)?.title}" 업무를 삭제합니다. 휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmId);setConfirmId(null);}} onCancel={()=>setConfirmId(null)}/>
     </div>
   );

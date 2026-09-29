@@ -1745,8 +1745,9 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   })();
   const toggle=t=>up("tasks",t.id,statusPatch(D,t,t.status==="done"?"todo":"done"));
   // 고정(반복)업무는 날짜별 완료 — 오늘 체크는 오늘만 유지(매일 리셋)
-  const fixedDone=t=>fixedPeriodDone(t,cu.id,todayKey);   // 매주·매월은 이번 주·이번 달 안에 먼저 했으면 완료로
-  const toggleFixed=t=>up("tasks",t.id,{doneDates:{...(t.doneDates||{}),[cu.id]:fixedDone(t)?null:todayKey},doneAt:new Date().toISOString(),doneByName:cu?.name||""});
+  const fixedMe=t=>fixedPeriodDone(t,cu.id,todayKey);   // 내 체크(매주·매월은 이번 주·이번 달 안에 먼저 했으면 체크로)
+  const fixedDone=t=>fixedAllDone(D,t,todayKey);        // 완료 = 담당자 모두 체크
+  const toggleFixed=t=>up("tasks",t.id,{doneDates:{...(t.doneDates||{}),[cu.id]:fixedMe(t)?null:todayKey},doneAt:new Date().toISOString(),doneByName:cu?.name||""});
   const doQuick=()=>{
     if(!quick.trim()) return;
     add("tasks",{id:"t"+Date.now(),title:quick.trim(),projectId:quickProj,assigneeId:cu.id,type:"general",status:"todo",weekDay:today,workDate:todayStr,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[]});
@@ -2188,17 +2189,17 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
             {(()=>{ const fxRow=(t,fi,arr,withNow,lab)=>{
               const proj=D.projects.find(p=>p.id===t.projectId);
-              const dn=fixedDone(t), fm=fixedMin(t), nm=nowMin(), late=withNow&&!dn&&fm<9999&&fm<nm;
+              const dn=fixedDone(t), my=fixedMe(t), [dc,dtot]=fixedDoneCount(D,t,todayKey), fm=fixedMin(t), nm=nowMin(), late=withNow&&!my&&fm<9999&&fm<nm;
               const prevM=fi>0?fixedMin(arr[fi-1]):-1, showNow=withNow&&fm<9999&&prevM<=nm&&fm>nm;   // 지금 시각 선: 지난 것과 앞으로 할 것 사이
               return(<Fragment key={t.id}>
                 {showNow&&<div style={{display:"flex",alignItems:"center",gap:6,margin:"2px 0"}}><span style={{fontSize:10,fontWeight:900,color:"#F04452"}}>지금 {String(Math.floor(nm/60)).padStart(2,"0")}:{String(nm%60).padStart(2,"0")}</span><span style={{flex:1,height:2,background:"#F04452",borderRadius:2,opacity:.5}}/></div>}
                 <div onClick={()=>toggleFixed(t)} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 12px",borderRadius:12,backgroundColor:dn?"rgba(232,250,241,0.34)":"#F9FAFB",border:`1px solid ${dn?"rgba(0,192,115,0.2)":"#E5E8EB"}`,cursor:"pointer"}}>
-                  <button onClick={e=>{e.stopPropagation();toggleFixed(t);}} style={{width:22,height:22,borderRadius:6,border:`2px solid ${dn?"#00C073":"#D1D5DB"}`,backgroundColor:dn?"#00C073":"#FFFFFF",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>
-                    {dn&&<span style={{color:"#FFFFFF",fontSize:12,fontWeight:900}}>✓</span>}
+                  <button onClick={e=>{e.stopPropagation();toggleFixed(t);}} aria-label="내 몫 체크" style={{width:22,height:22,borderRadius:6,border:`2px solid ${dn||my?"#00C073":"#D1D5DB"}`,backgroundColor:dn?"#00C073":my?"#E8FAF1":"#FFFFFF",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>
+                    {(dn||my)&&<span style={{color:dn?"#FFFFFF":"#00A862",fontSize:12,fontWeight:900}}>✓</span>}
                   </button>
                   <div style={{flex:1,minWidth:0}}>
                     <p style={{margin:0,fontSize:13.5,fontWeight:700,color:dn?"#9CA3AF":"#111827",textDecoration:dn?"line-through":"none"}}>{t.title}</p>
-                    <div style={{display:"flex",alignItems:"center",gap:5,marginTop:3,flexWrap:"wrap",fontSize:10.5,color:"#9CA3AF"}}>{dn&&t.doneAt?<span style={{color:"#00A862",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료</span>:null}{proj?<ProjChip p={proj}/>:<span>반복 업무</span>}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:5,marginTop:3,flexWrap:"wrap",fontSize:10.5,color:"#9CA3AF"}}>{dtot>1?<span style={{color:dn?"#00A862":"#1B64DA",fontWeight:800}}>👥 {dc}/{dtot}명 체크{dn?" · 완료":my?" · 다른 담당 대기":""}</span>:null}{dn&&t.doneAt?<span style={{color:"#00A862",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료</span>:null}{proj?<ProjChip p={proj}/>:<span>반복 업무</span>}</div>
                   </div>
                   <div style={{flexShrink:0,textAlign:"right",minWidth:44}}>
                     <p style={{margin:0,fontSize:14,fontWeight:900,fontVariantNumeric:"tabular-nums",color:dn?"#B0B8C1":late?"#F04452":"#1B64DA"}}>{lab||t.fixedTime||"—"}</p>{lab&&t.fixedTime?<p style={{margin:0,fontSize:9.5,fontWeight:700,color:"#8B95A1"}}>{t.fixedTime}</p>:null}
@@ -7169,6 +7170,10 @@ function MindMapPage({D,cu,nav}){
 const weekStartKey=(key)=>{ const d=new Date(key+"T00:00:00"); d.setDate(d.getDate()-((d.getDay()+6)%7)); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
 const fixedPeriodDone=(t,uid,key)=>{ const d=fixedDoneOn(t,uid); if(!d) return false; const rt=t.recurType||"daily";
   if(rt==="weekly") return d>=weekStartKey(key)&&d<=key; if(rt==="monthly") return String(d).slice(0,7)===String(key).slice(0,7); return d===key; };
+// 여러 명이 맡은 고정업무는 담당자 모두 체크해야 완료(전체=모든 담당자)
+const fixedPeople=(D,t)=>t.forAll?(D.users||[]).map(u=>u.id):fixedAssigneeIds(t);
+const fixedAllDone=(D,t,key)=>{ const ids=fixedPeople(D,t); return ids.length>0&&ids.every(id=>fixedPeriodDone(t,id,key)); };
+const fixedDoneCount=(D,t,key)=>{ const ids=fixedPeople(D,t); return [ids.filter(id=>fixedPeriodDone(t,id,key)).length,ids.length]; };
 function FixedPage({D,cu,lead,add,up,rm,nav}){
   const todayKey=new Date().toISOString().slice(0,10);
   const [form,setForm]=useState({title:"",projectId:"",assigneeIds:[cu.id],forAll:false,recurType:"daily",weekDay:"월",monthDay:1,fixedTime:""});
@@ -7182,8 +7187,9 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
   const fixed=who==="all"?allFixed:allFixed.filter(t=>fixedIsMine(t,who));
   const peopleOf=(t)=>t.forAll?users:fixedAssigneeIds(t).map(id=>users.find(u=>u.id===id)).filter(Boolean);
   // 완료 표시: 개인 탭=그 사람 기준 · 전체 탭=담당자 모두 체크해야 완료
-  const doneOf=(t)=>{ if(who!=="all") return fixedPeriodDone(t,who,todayKey); const ps=peopleOf(t); return ps.length>0&&ps.every(u=>fixedPeriodDone(t,u.id,todayKey)); };
-  const mine=(t)=>fixedIsMine(t,cu.id);
+  const doneOf=(t)=>fixedAllDone(D,t,todayKey);   // 담당자 모두 체크해야 완료
+  const meDone=(t)=>fixedPeriodDone(t,cu.id,todayKey);
+  const mine=(t)=>fixedIsMine(t,cu.id); const can0=mine;
   const toggle=(t)=>{ if(!mine(t)) return; const on=fixedPeriodDone(t,cu.id,todayKey); up("tasks",t.id,{doneDates:{...(t.doneDates||{}),[cu.id]:on?null:todayKey},doneAt:new Date().toISOString(),doneByName:cu?.name||""}); };
   const WD=["월","화","수","목","금","토","일"];
   const daily=fixed.filter(t=>(t.recurType||"daily")==="daily");
@@ -7197,16 +7203,17 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
     setForm({title:"",projectId:"",assigneeIds:[cu.id],forAll:false,recurType:form.recurType,weekDay:form.weekDay,monthDay:form.monthDay,fixedTime:form.fixedTime});setModal(false);
   };
   const openAdd=(rt)=>{ setForm(f=>({...f,recurType:rt||f.recurType,assigneeIds:who!=="all"?[who]:f.assigneeIds})); setModal(true); };
-  const Row=({t,label,hot})=>{ const dn=doneOf(t); const proj=D.projects.find(p=>p.id===t.projectId); const ps=peopleOf(t); const can=mine(t);
+  const Row=({t,label,hot})=>{ const dn=doneOf(t); const my=can0(t)&&meDone(t); const [dc,dt]=fixedDoneCount(D,t,todayKey); const proj=D.projects.find(p=>p.id===t.projectId); const ps=peopleOf(t); const can=mine(t);
     return(
       <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 10px",borderRadius:12,background:dn?"rgba(232,250,241,0.45)":hot?"#F2F7FF":"#F9FAFB",border:`1px solid ${dn?"rgba(0,192,115,0.22)":hot?"#C9DDFF":"#EEF1F4"}`}}>
-        <button onClick={()=>toggle(t)} disabled={!can} title={can?(dn?"체크 해제":"완료 체크"):"담당자만 체크할 수 있어요"} aria-label="완료 체크" style={{flexShrink:0,width:24,height:24,borderRadius:7,border:`2px solid ${dn?"#00C073":can?"#B0B8C1":"#E5E8EB"}`,background:dn?"#00C073":"#fff",color:"#fff",fontSize:13,fontWeight:900,cursor:can?"pointer":"default",padding:0}}>{dn?"✓":""}</button>
+        <button onClick={()=>toggle(t)} disabled={!can} title={can?(my?"내 체크 해제":"내 몫 체크"):"담당자만 체크할 수 있어요"} aria-label="완료 체크" style={{flexShrink:0,width:24,height:24,borderRadius:7,border:`2px solid ${dn||my?"#00C073":can?"#B0B8C1":"#E5E8EB"}`,background:dn?"#00C073":my?"#E8FAF1":"#fff",color:dn?"#fff":"#00A862",fontSize:13,fontWeight:900,cursor:can?"pointer":"default",padding:0}}>{dn||my?"✓":""}</button>
         <span style={{flexShrink:0,minWidth:44,textAlign:"center",fontSize:12.5,fontWeight:900,color:t.fixedTime?"#1B64DA":"#B0B8C1",fontVariantNumeric:"tabular-nums"}}>{label||t.fixedTime||"—"}</span>
         <div style={{flex:1,minWidth:0}}>
           <p style={{margin:0,fontSize:13.5,fontWeight:800,color:dn?"#8B95A1":"#191F28",textDecoration:dn?"line-through":"none",lineHeight:1.35,wordBreak:"keep-all"}}>{t.title}</p>
           <div style={{display:"flex",gap:4,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
             {proj&&<ProjChip p={proj} max={14}/>}
             {t.forAll&&<span style={{fontSize:10.5,fontWeight:800,color:"#191F28",background:"#E5E9F5",borderRadius:6,padding:"2px 6px"}}>👥 전체</span>}
+            {dt>1&&<span style={{fontSize:10.5,fontWeight:900,color:dn?"#00A862":"#1B64DA",background:dn?"#E8FAF1":"#E8F1FF",borderRadius:6,padding:"2px 6px"}}>👥 {dc}/{dt}명 체크{dn?" · 완료":""}</span>}
             {ps.slice(0,t.forAll?0:6).map(u=>{ const ok=fixedPeriodDone(t,u.id,todayKey); return <span key={u.id} title={ok?"체크함":"아직"} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10.5,fontWeight:800,color:ok?"#00A862":"#333D4B",background:ok?"#E8FAF1":"#F2F4F6",borderRadius:6,padding:"2px 6px"}}>{ok?"✓":<span style={{width:6,height:6,borderRadius:3,background:u.color||"#8B95A1"}}/>}{u.name}</span>; })}
           </div>
         </div>

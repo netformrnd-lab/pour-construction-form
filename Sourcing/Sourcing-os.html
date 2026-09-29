@@ -2474,7 +2474,7 @@ const revUnit=p=>!!p&&(isSellable(p)||((p.type==='단품'||!p.type)&&!state.prod
 const cma=v=>(v===''||v==null)?'':Number(v).toLocaleString('ko-KR');
 function fmtCur(el){const raw=el.value.replace(/[^\d]/g,'');el.value=raw?Number(raw).toLocaleString('ko-KR'):'';return raw===''?'':Number(raw);}
 function statusIdx(p){const s=p.stage||'후보';return s==='후보'?0:((s==='완료'||s==='출시완료')?2:1);}
-function save(){state.updatedAt=Date.now();store.write(state);queueCloudSync();if(typeof updatePendingBadge==='function')updatePendingBadge();}
+function save(){state.updatedAt=Date.now();store.write(state);queueCloudSync();if(typeof updatePendingBadge==='function')updatePendingBadge();if(typeof lbSummarySoon==='function')lbSummarySoon();}
 const cur=()=>state.products.find(p=>p.id===state.sel);
 
 function render(){renderFilterBar();renderList();renderMain();syncEmpty();if(typeof updateSearchBar==='function')updateSearchBar();}
@@ -4249,8 +4249,8 @@ function saveConfirmDetail(){
   p.contract={price:$('#cfd_price').value.trim(),moq:$('#cfd_moq').value.trim(),payment:$('#cfd_payment').value.trim(),lead:$('#cfd_lead').value.trim(),claim:$('#cfd_claim').value.trim(),file:$('#cfd_file').value.trim(),doc:(cfdDoc&&cfdDoc.url)?{name:cfdDoc.name,url:cfdDoc.url,path:cfdDoc.path}:null};
   p.order={qty:$('#cfd_oqty').value.trim(),status:$('#cfd_ostatus').value,date:$('#cfd_odate').value,eta:$('#cfd_oeta').value};
   p.launch={...(p.launch||{})};document.querySelectorAll('#cfd_checks [data-chk]').forEach(c=>p.launch[c.dataset.chk]=c.checked);   // 체크박스만 갱신 — 출시검토 값(관세·배송비·판매가·채널)은 보존
-  const dv=($('#cfd_dec')||{}).dataset?($('#cfd_dec').dataset.val||''):'';p.decision=dv;if(dv)p.confirmedAt=new Date().toISOString();
-  save();closeOverlay();renderConfirm();
+  const dv=($('#cfd_dec')||{}).dataset?($('#cfd_dec').dataset.val||''):'';const prevDec=p.decision||'';p.decision=dv;if(dv)p.confirmedAt=new Date().toISOString();
+  save();closeOverlay();renderConfirm();afterDecision(p,prevDec,()=>renderConfirm());
 }
 let confirmFilter='전체';
 function renderConfirm(){
@@ -4288,10 +4288,11 @@ function renderConfirm(){
         <div class="pg-src">${esc(p.source||p.maker||'')}</div>
         <div class="pg-name">${esc(dn(p))}</div>
         <div class="pg-memo">${memo?esc(memo):'회의 안건·메모 없음'}</div>
+        ${(dec==='보류'||dec==='드롭')?`<div class="pg-memo" style="color:${p.decisionReason?'#475569':'#DC2626'}">${dec} 사유: ${p.decisionReason?esc(p.decisionReason):'아직 없음 — 눌러서 남겨 주세요'}</div>`:''}${dec==='진행'&&p.launchBoard&&p.launchBoard.id?'<div class="pg-memo" style="color:#1B64DA">🚀 로드맵 연결됨</div>':''}
         <div class="cf-seg cf-gseg" data-pid="${esc(p.id)}"><button data-dec="진행" class="${dec==='진행'?'on go':''}">진행</button><button data-dec="보류" class="${dec==='보류'?'on hold':''}">보류</button><button data-dec="드롭" class="${dec==='드롭'?'on drop':''}">드롭</button></div>
       </div></div>`;
   }).join('')+'</div>';
-  root.querySelectorAll('.cf-gseg button').forEach(b=>b.onclick=e=>{e.stopPropagation();const pid=b.parentElement.dataset.pid;const p=state.products.find(x=>x.id===pid);if(!p)return;p.decision=(p.decision===b.dataset.dec)?'':b.dataset.dec;if(p.decision)p.confirmedAt=new Date().toISOString();save();renderConfirm();});
+  root.querySelectorAll('.cf-gseg button').forEach(b=>b.onclick=e=>{e.stopPropagation();const pid=b.parentElement.dataset.pid;const p=state.products.find(x=>x.id===pid);if(!p)return;const prev=p.decision||'';p.decision=(p.decision===b.dataset.dec)?'':b.dataset.dec;if(p.decision)p.confirmedAt=new Date().toISOString();save();renderConfirm();afterDecision(p,prev,()=>renderConfirm());});
   root.querySelectorAll('.cf-gcard [data-clink]').forEach(b=>b.onclick=e=>{e.stopPropagation();const u=b.dataset.clink;window.open(/^https?:\/\//i.test(u)?u:'https://'+u,'_blank','noopener');});
   root.querySelectorAll('.cf-gcard').forEach(c=>c.onclick=()=>openConfirmDetail(c.dataset.cpid));
 }
@@ -5293,6 +5294,8 @@ function itemTabGo(p){
     <div class="it-card st-sec"><span class="it-h">결정</span>
       <div class="go-dec"><button class="go ${p.decision==='진행'?'on':''}" data-go="dec" data-v="진행">🚀 출시 진행</button><button class="hold ${p.decision==='보류'?'on':''}" data-go="dec" data-v="보류">⏸ 보류</button><button class="drop ${p.decision==='드롭'?'on':''}" data-go="dec" data-v="드롭">✕ 드롭</button></div>
       ${p.decision==='진행'&&!lr.ok?'<div class="it-sub">아직 채울 것이 남았지만 진행으로 표시했어요.</div>':''}
+      ${(p.decision==='보류'||p.decision==='드롭')?`<div class="it-sub">사유: ${p.decisionReason?esc(p.decisionReason):'<b style="color:#DC2626">아직 없음</b>'} <button class="it-btn line" style="padding:4px 9px;font-size:12px" data-lb="reason">✎ 사유</button></div>`:''}
+      ${p.decision==='진행'?(p.launchBoard&&p.launchBoard.id?`<div class="it-sub">🚀 신제품 로드맵에 연결됨 (${esc(p.launchBoard.at||'')}) <button class="it-btn line" style="padding:4px 9px;font-size:12px" data-lb="open">로드맵 열기 ↗</button></div>`:`<button class="it-btn pri" style="padding:12px" data-lb="reg">🚀 신제품 로드맵에 등록</button>`):''}
       ${isCostAdmin()?`<button class="it-btn ${p.decision==='진행'?'pri':'line'}" style="padding:12px" data-go="send">📤 가격 대시보드 '출시준비'로 보내기</button>`:'<div class="it-sub">📤 가격 대시보드로 보내기는 관리자가 해요.</div>'}
       <div class="it-sub">${p.sentToPricing?`보낸 날: ${esc(p.sentToPricing.at)} · 가격 대시보드에서 [등록]을 눌러야 들어가요`:'가격 대시보드가 열리고, 원가·판매가·MOQ·경쟁사 가격이 채워진 채로 확인 창이 떠요'}</div>
     </div>
@@ -5303,8 +5306,8 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('[data-go]');if(!b)return;const p=itemProd();if(!p)return;
   if(b.dataset.go==='tab'){setItemTab(b.dataset.t);return;}
   if(b.dataset.go==='send'){sendToPricing(p);return;}
-  if(b.dataset.go==='dec'){const v=b.dataset.v;p.decision=(p.decision===v)?'':v;if(p.decision)p.confirmedAt=new Date().toISOString();
-    save();renderItem();updateStageCounts();flagMsg(p.decision?`"${p.decision}"(으)로 정했어요${p.decision==='진행'?' · 🚀 출시 탭에서도 보여요':''}`:'결정을 취소했어요','ok');}
+  if(b.dataset.go==='dec'){const v=b.dataset.v;const prev=p.decision||'';p.decision=(p.decision===v)?'':v;if(p.decision)p.confirmedAt=new Date().toISOString();
+    save();renderItem();updateStageCounts();flagMsg(p.decision?`"${p.decision}"(으)로 정했어요${p.decision==='진행'?' · 🚀 출시 탭에서도 보여요':''}`:'결정을 취소했어요','ok');afterDecision(p,prev,()=>renderItem());}
 });
 document.addEventListener('change',e=>{
   const el=e.target;if(!el||!el.dataset||!el.dataset.gof)return;const p=itemProd();if(!p)return;
@@ -5312,6 +5315,108 @@ document.addEventListener('change',e=>{
   if(k!=='ch'){v=v.replace(/[^\d.]/g,'');v=v===''?'':Number(v);}
   p.launch[k]=v;save();renderItem();
 });
+
+/* ══════════ 🚀 신제품 로드맵(런칭보드) 연결 ══════════
+   A. '진행' 결정 → 런칭보드(pour-os/launch-board/products)에 제품 등록(같은 제품이면 연결만). 소싱앱에서 이미 한 단계는 자동 완료.
+   B. 연결된 제품은 저장할 때마다 판매가·원가 입력 여부·마진 목표 달성 여부(관리자 계산)만 srcSummary 로 보냄 — 원가·마진 숫자는 보내지 않음.
+   C. 보류·드롭은 사유를 남김(decisionLog) · 환율은 state.fx 로 바꿀 수 있음. */
+const LB_STEP_IDS=['p01','p02','p03','p04','s01','s02','d01','s03','d02','s04','d03','s05','s06','s07','s08','s09','s10','s11','s12'];
+const LB_DEFAULT_OWNERS={p01:'정하',p02:'정하',p03:'정하',p04:'정하',s01:'정하',s02:'정하',d01:'민지',s03:'이우민',d02:'민지',s04:'이우민',d03:'민지',s05:'이우민',s06:'김소연',s07:'채림',s08:'이우민',s09:'채림',s10:'이우민',s11:'허지은',s12:'민지'};
+const LB_BRANDS=[['grohome','🏡 그로홈'],['pourstore','🧱 POUR스토어'],['barasday','🌿 바라스데이']];
+const LB_URL='https://pour-construction-form.pages.dev/pourstore-renewal/os';
+function lbCol(){ return FS?FS.collection('pour-os').doc('launch-board').collection('products'):null; }
+function lbBrandOf(p){ const b=String(p.brand||(setBase(p)||{}).brand||''); return /GROHOME|그로홈/i.test(b)?'grohome':/바라스/i.test(b)?'barasday':'pourstore'; }
+function fxRate(cur){ const f=(state.fx&&typeof state.fx==='object')?state.fx:{}; return Number(f[cur])||SMP_FX[cur]||1; }
+function lbAutoDone(p){ const b=setBase(p)||p, L=p.launch||{};
+  const rivals=(p.samples||[]).concat(b!==p?(b.samples||[]):[]).some(x=>x.type==='rival');
+  return {p01:!!(rivals||(p.competitors||[]).length||p.market),p02:true,p03:!!(Number(L.sell)||Number((p.pricing||{}).sell)),
+    p04:!!(b.makerId||b.makerFirst||b.maker),s01:(p.samples||[]).concat(b!==p?(b.samples||[]):[]).some(x=>x.type==='maker'&&x.arrived)||/수령|완료/.test(String(p.sample||''))}; }
+function lbSummary(p){ const L=p.launch||{}; const out={price:Number(L.sell)||Number((p.pricing||{}).sell)||0,hasCost:!!(p.hasCost||(isCostAdmin()&&Number(p.cost))),decision:p.decision||'',at:today()};
+  if(isCostAdmin()){ try{ const c=goCalc(p); if(c&&c.rate!=null&&isFinite(c.rate)&&c.sell){ const tgt=(Number(state.calc&&state.calc.tm)||30)/100; out.marginOk=c.rate>=tgt; out.marginChecked=true; } }catch(e){ console.warn('[로드맵] 마진 계산 건너뜀:',e); } }
+  return out; }
+const _lbSent={}; let _lbTimer=null;
+function lbSummarySoon(){ clearTimeout(_lbTimer); _lbTimer=setTimeout(async()=>{ const col=lbCol(); if(!col) return;
+  for(const p of (state.products||[])){ const id=p.launchBoard&&p.launchBoard.id; if(!id) continue; const sm=lbSummary(p);
+    if(!isCostAdmin()&&p.launchBoard.lastSummary&&p.launchBoard.lastSummary.marginChecked){ sm.marginOk=p.launchBoard.lastSummary.marginOk; sm.marginChecked=true; }
+    const js=JSON.stringify({...sm,at:''}); if(_lbSent[id]===js) continue;
+    try{ await col.doc(id).set({srcId:p.id,srcSummary:sm},{merge:true}); _lbSent[id]=js; p.launchBoard.lastSummary=sm; console.log('[로드맵] 소싱 요약 갱신',p.goods||p.name); }
+    catch(e){ console.error('[로드맵] 소싱 요약 갱신 실패:',e); } } },2500); }
+function lbModal(html){ const old=document.getElementById('lbModal'); if(old) old.remove(); const box=document.createElement('div'); box.id='lbModal';
+  box.style.cssText='position:fixed;inset:0;z-index:2147483000;background:rgba(15,23,42,.45);display:flex;align-items:flex-end;justify-content:center';
+  box.innerHTML=`<div style="background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;max-height:88vh;overflow:auto;box-sizing:border-box">${html}</div>`;
+  box.addEventListener('click',e=>{ if(e.target===box) box.remove(); }); document.body.appendChild(box); return box; }
+async function openLbRegister(p){
+  const col=lbCol(); if(!col){ flagMsg('로드맵에 연결하지 못했어요 · 인터넷 연결을 확인해 주세요','warn'); return; }
+  let list=[]; try{ const snap=await col.get(); (snap.docs||[]).forEach(d=>list.push({id:d.id,...d.data()})); list=list.filter(x=>!x.deletedAt); console.log(`[로드맵] ${list.length}건 확인`); }
+  catch(e){ console.error('[로드맵] 목록 읽기 실패:',e); flagMsg('로드맵 목록을 불러오지 못했어요','warn'); return; }
+  const brand0=lbBrandOf(p), name0=(p.goods||p.name||'').trim();
+  const batches=b=>[...new Set(list.filter(x=>x.brand===b&&x.batch).map(x=>x.batch))];
+  const ad=lbAutoDone(p); const adTxt=[['p01','시장조사'],['p02','제품 선정'],['p03','제품가 설정'],['p04','제조사 컨택'],['s01','샘플 수령']].filter(([k])=>ad[k]).map(x=>x[1]).join(' · ')||'없음';
+  const box=lbModal(`<b style="font-size:16px">🚀 신제품 로드맵에 등록</b>
+    <div style="font-size:12.5px;color:#64748B;line-height:1.6">'진행'으로 정한 제품을 업무OS·런칭보드 로드맵에 올려요. 소싱앱에서 이미 끝낸 단계는 자동 완료돼요: <b>${esc(adTxt)}</b></div>
+    <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:#475569">제품명<input id="lbName" value="${esc(name0)}" style="border:1px solid #E2E8F0;border-radius:9px;padding:10px;font-size:15px"></label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap" id="lbBrand">${LB_BRANDS.map(([k,l])=>`<button type="button" data-b="${k}" style="padding:8px 12px;border-radius:16px;border:1.5px solid ${k===brand0?'#191F28':'#E2E8F0'};background:${k===brand0?'#191F28':'#fff'};color:${k===brand0?'#fff':'#475569'};font-weight:800;font-size:13px">${l}</button>`).join('')}</div>
+    <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:#475569">출시 차수 <span style="font-weight:500;color:#94A3B8">(예: 데코라인 1차 · 비워도 돼요)</span><input id="lbBatch" list="lbBatchList" style="border:1px solid #E2E8F0;border-radius:9px;padding:10px;font-size:15px"><datalist id="lbBatchList"></datalist></label>
+    <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:#475569">목표 출시일 <span style="font-weight:500;color:#94A3B8">(비워도 돼요)</span><input id="lbDate" type="date" style="border:1px solid #E2E8F0;border-radius:9px;padding:10px;font-size:15px"></label>
+    <div id="lbMsg" style="font-size:12.5px;color:#B45309"></div>
+    <div style="display:flex;gap:8px"><button type="button" id="lbNo" style="flex:1;min-height:46px;border-radius:12px;border:1px solid #E2E8F0;background:#fff;font-weight:800">나중에</button><button type="button" id="lbGo" style="flex:2;min-height:46px;border-radius:12px;border:none;background:#3182F6;color:#fff;font-weight:900;font-size:15px">로드맵에 등록</button></div>`);
+  let brand=brand0;
+  const q=s2=>box.querySelector(s2);
+  const paint=()=>{ q('#lbBatchList').innerHTML=batches(brand).map(x=>`<option value="${esc(x)}">`).join('');
+    box.querySelectorAll('#lbBrand button').forEach(b=>{ const on=b.dataset.b===brand; b.style.background=on?'#191F28':'#fff'; b.style.color=on?'#fff':'#475569'; b.style.borderColor=on?'#191F28':'#E2E8F0'; });
+    const nm=q('#lbName').value.trim(); const ex=list.find(x=>x.srcId===p.id)||list.find(x=>x.brand===brand&&String(x.name||'').trim()===nm);
+    q('#lbMsg').textContent=ex?`로드맵에 '${ex.name}'이(가) 이미 있어요 · 누르면 새로 만들지 않고 연결만 해요`:''; q('#lbGo').textContent=ex?'로드맵과 연결':'로드맵에 등록'; return ex; };
+  box.querySelectorAll('#lbBrand button').forEach(b=>b.onclick=()=>{ brand=b.dataset.b; paint(); });
+  q('#lbName').oninput=paint; paint();
+  q('#lbNo').onclick=()=>{ box.remove(); flagMsg('나중에 💰출시검토 탭의 [🚀 로드맵에 등록]으로 올릴 수 있어요','info'); };
+  q('#lbGo').onclick=async()=>{ const btn=q('#lbGo'); btn.disabled=true;
+    const nm=q('#lbName').value.trim(); if(!nm){ q('#lbMsg').textContent='제품명을 넣어 주세요'; btn.disabled=false; return; }
+    const batch=q('#lbBatch').value.trim(), date=q('#lbDate').value, at=new Date().toISOString(), who=myEmail()||'소싱앱';
+    const ex=paint();
+    try{
+      if(ex){ const patch={srcId:p.id,srcSummary:lbSummary(p),updatedAt:at,updatedBy:who,history:fvUnion([{at,by:who,text:'[소싱앱] 소싱 기록과 연결'}])};
+        if(batch) patch.batch=batch; if(date) patch.launchDate=date; await col.doc(ex.id).set(patch,{merge:true}); p.launchBoard={id:ex.id,at:today()}; }
+      else { const stages={}; LB_STEP_IDS.forEach(sid=>{ stages[sid]={status:'todo',owner:LB_DEFAULT_OWNERS[sid]||'',due:'',note:''};
+          if(ad[sid]) stages[sid]={...stages[sid],status:'done',doneBy:'소싱앱',doneAt:at,note:'소싱앱 기록으로 자동 완료'}; });
+        const ref=await col.add({brand,name:nm,launchDate:date||'',lead:'',memo:'소싱앱에서 등록',batch,stages,srcId:p.id,srcSummary:lbSummary(p),
+          history:[{at,by:who,text:'[소싱앱] 진행 결정으로 로드맵 등록'}],createdAt:at,createdBy:who,updatedAt:at,updatedBy:who,deletedAt:null});
+        p.launchBoard={id:ref.id,at:today()}; console.log('[로드맵] 등록',ref.id); }
+      save(); box.remove(); if(typeof renderItem==='function'&&itemProd()) renderItem();
+      flagMsg(ex?'로드맵의 같은 제품과 연결했어요':'🚀 신제품 로드맵에 올렸어요 · 업무OS 프로젝트 › 신제품 출시에서 보여요','ok');
+    }catch(e){ console.error('[로드맵] 등록 실패:',e); q('#lbMsg').textContent='등록하지 못했어요: '+(e.code||e.message); btn.disabled=false; } };
+}
+const REASON_CHIPS={'보류':['원가 확인 필요','샘플 재요청','일정·우선순위','시장 반응 확인','제조사 협의 중'],'드롭':['원가가 높음','품질 미달','시장성 낮음','제조사 문제','경쟁 제품 과다']};
+function askDecisionReason(p,v,after){
+  const box=lbModal(`<b style="font-size:16px">${v==='보류'?'⏸ 보류':'✕ 드롭'} 사유</b>
+    <div style="font-size:12.5px;color:#64748B">나중에 다시 검토할 때 쓰도록 이유를 남겨요 (데이터로 쌓여요)</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">${REASON_CHIPS[v].map(r=>`<button type="button" data-r="${esc(r)}" style="padding:7px 11px;border-radius:14px;border:1px solid #E2E8F0;background:#F8FAFC;font-size:12.5px;font-weight:700;color:#334155">${esc(r)}</button>`).join('')}</div>
+    <textarea id="rsTxt" rows="3" placeholder="직접 적기 (예: 개당 원가 3,200원 → 목표 마진 미달)" style="border:1px solid #E2E8F0;border-radius:9px;padding:10px;font-size:15px;font-family:inherit">${esc(p.decisionReason||'')}</textarea>
+    <div id="rsMsg" style="font-size:12.5px;color:#DC2626"></div>
+    <button type="button" id="rsGo" style="min-height:46px;border-radius:12px;border:none;background:#3182F6;color:#fff;font-weight:900;font-size:15px">사유 저장</button>`);
+  const t=box.querySelector('#rsTxt');
+  box.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{ t.value=t.value.trim()?(t.value.trim()+' · '+b.dataset.r):b.dataset.r; });
+  box.querySelector('#rsGo').onclick=()=>{ const r=t.value.trim(); if(!r){ box.querySelector('#rsMsg').textContent='사유를 한 줄이라도 적어 주세요'; return; }
+    p.decisionReason=r; (p.decisionLog=Array.isArray(p.decisionLog)?p.decisionLog:[]).push({at:new Date().toISOString(),by:myEmail()||'',decision:v,reason:r});
+    save(); box.remove(); if(after) after(); flagMsg(`${v} 사유를 남겼어요`,'ok'); };
+}
+// 결정이 바뀐 직후 공통 처리: 진행 → 로드맵 등록 제안 · 보류/드롭 → 사유 받기
+function afterDecision(p,prev,rerender){
+  if(p.decision===prev) return;
+  if(p.decision==='진행'){ (p.decisionLog=Array.isArray(p.decisionLog)?p.decisionLog:[]).push({at:new Date().toISOString(),by:myEmail()||'',decision:'진행',reason:''}); save(); if(!(p.launchBoard&&p.launchBoard.id)) openLbRegister(p); }
+  else if(p.decision==='보류'||p.decision==='드롭') askDecisionReason(p,p.decision,rerender);
+}
+function openFxEdit(){
+  const box=lbModal(`<b style="font-size:16px">💱 환율 설정</b><div style="font-size:12.5px;color:#64748B">샘플 공급가·경쟁사 가격을 원화로 바꿀 때 써요</div>
+    ${[['¥','엔(¥) 1 ='],['$','달러($) 1 =']].map(([k,l])=>`<label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700">${l}<input data-fx="${k}" inputmode="decimal" value="${fxRate(k)}" style="flex:1;border:1px solid #E2E8F0;border-radius:9px;padding:10px;font-size:15px">원</label>`).join('')}
+    <button type="button" id="fxGo" style="min-height:46px;border-radius:12px;border:none;background:#3182F6;color:#fff;font-weight:900;font-size:15px">저장</button>`);
+  box.querySelector('#fxGo').onclick=()=>{ const f={...(state.fx||{})}; box.querySelectorAll('[data-fx]').forEach(i=>{ const n=Number(String(i.value).replace(/[^\d.]/g,'')); if(n>0) f[i.dataset.fx]=n; });
+    state.fx=f; save(); box.remove(); if(itemProd()) renderItem(); flagMsg(`환율을 바꿨어요 · ¥${f['¥']||SMP_FX['¥']} · $${f['$']||SMP_FX['$']}`,'ok'); };
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-lb]'); if(!b) return; const p=itemProd(); if(!p) return;
+  if(b.dataset.lb==='reg') openLbRegister(p);
+  if(b.dataset.lb==='open') window.open(LB_URL,'_blank','noopener');
+  if(b.dataset.lb==='fx') openFxEdit();
+  if(b.dataset.lb==='reason') askDecisionReason(p,p.decision,()=>renderItem()); });
 
 /* 📤 가격 대시보드로 보내기 — 두 앱은 Firebase 프로젝트·로그인이 달라(보안규칙 변경 없이) 직접 쓰지 않고,
    대시보드를 새 탭으로 열면서 주소 뒤(#srcimp=)에 상품 값을 실어 보낸다. 대시보드(로그인된 계정)에서 확인 후 [출시준비로 등록]. */
@@ -5388,7 +5493,7 @@ const SMP_REQ=[['전달 전','s0'],['전달함','s1'],['반영됨','s2']];
 const SMP_FX={'원':1,'¥':195,'$':1380};
 function smpScored(x){return SMP_CRIT.every(([k])=>x.scores&&x.scores[k]);}
 function smpTotal(x){return SMP_CRIT.reduce((a,[k])=>a+((x.scores&&x.scores[k])||0),0);}
-function smpWon(x){const n=Number(x.price)||0;return n?n*(SMP_FX[x.cur]||1):null;}
+function smpWon(x){const n=Number(x.price)||0;return n?n*(x.cur&&x.cur!=='원'?fxRate(x.cur):1):null;}
 function smpLiveReqs(p){return (p.samples||[]).filter(x=>x.type==='maker'&&(!p.makerId||x.id===p.makerId)).flatMap(x=>x.reqs||[]);}
 function numOf(v){const n=Number(String(v==null?'':v).replace(/[^\d.]/g,''));return isFinite(n)?n:0;}
 function smpScroll(id){requestAnimationFrame(()=>{const el=document.getElementById('smp-'+id);if(el)el.scrollIntoView({block:'center'});});}
@@ -5444,7 +5549,7 @@ function itemTabSmp(p){
     <tr><td>합계</td>${S.map(x=>`<td class="${smpTotal(x)&&smpTotal(x)===best?'best':''}">${smpTotal(x)||'—'}</td>`).join('')}</tr>
     ${isCostAdmin()?`<tr><td>공급가(원)</td>${S.map(x=>`<td>${x.type==='maker'&&smpWon(x)?Math.round(smpWon(x)).toLocaleString('ko-KR'):''}</td>`).join('')}</tr>`:''}
     <tr><td>판매가(원)</td>${S.map(x=>`<td>${x.type==='rival'&&smpWon(x)?Math.round(smpWon(x)).toLocaleString('ko-KR'):''}</td>`).join('')}</tr>
-  </tbody></table></div><div class="it-sub cost-only">공급가는 원화 환산(¥195 · $1,380 기준)이에요.</div></div>`:'';
+  </tbody></table></div><div class="it-sub">원화 환산 기준 ¥${fxRate('¥')} · $${fxRate('$').toLocaleString('ko-KR')} <button class="it-btn line" style="padding:4px 9px;font-size:12px" data-lb="fx">💱 환율 바꾸기</button></div></div>`:'';
   const media=x=>`<div class="it-media">${(x.media||[]).map(m=>m.kind==='video'?`<a class="m" href="${esc(m.url||'#')}" target="_blank" rel="noopener"><video src="${esc(m.url||'')}" muted playsinline preload="metadata"></video><span class="tg">영상</span></a>`:`<button class="m" data-itact="view" data-src="${esc(m.url||m.data||'')}"><img src="${esc(m.url||m.data||'')}" alt="">${m.tag?`<span class="tg">${esc(m.tag)}</span>`:''}</button>`).join('')}<button class="add" data-itact="smp-photo" data-sid="${esc(x.id)}">📷<br>찍기·추가</button></div>`;
   const card=x=>`<div class="it-card it-stack ${p.makerId===x.id?'it-picked':''}" id="smp-${esc(x.id)}" style="gap:10px">
     <div class="it-row" style="justify-content:space-between"><div class="it-pills"><span class="it-pill ${x.type==='maker'?'acc':''}">${x.type==='maker'?'제조사 샘플':'경쟁사 샘플'}</span>${p.makerId===x.id?'<span class="it-pill gh">✓ 확정</span>':''}${x.from?`<span class="it-pill">${esc(x.from)}에서</span>`:''}</div>

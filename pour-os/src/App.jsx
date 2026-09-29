@@ -4240,6 +4240,16 @@ function lbPeople(D,items){ const set=new Set(); (D.users||[]).forEach(u=>u.name
   const arr=[...set]; const out=arr.filter(n=>!arr.some(m=>m!==n&&m.length>n.length&&nameMatch(n,m)&&(D.users||[]).some(u=>u.name===m)&&!(D.users||[]).some(u=>u.name===n)));
   return [...out.sort((a,b)=>a.localeCompare(b,"ko")),"외주"].filter((v,i,a)=>a.indexOf(v)===i); }
 function phaseColor(pp){ if(pp.total===0) return {c:"#B0B8C1",bg:"#F9FAFB"}; if(pp.done===pp.total) return {c:"#00A862",bg:"#E8FAF1"}; if(pp.late) return {c:"#F04452",bg:"#FFF0F1"}; if(pp.done>0||pp.doing) return {c:"#1B64DA",bg:"#E8F1FF"}; return {c:"#8B95A1",bg:"#F2F4F6"}; }
+// 소싱앱 연결(B): srcId 가 있으면 소싱 기록으로 바로 가기 + 상태만(판매가·원가 입력·마진 목표) — 원가·마진 숫자는 소싱앱(관리자)에서만
+const SRC_URL="https://pour-construction-form.pages.dev/Sourcing/Sourcing-os.html";
+function SrcChips({p,full}){ if(!p||!p.srcId) return null; const sm=p.srcSummary||{};
+  const chip=(ok,l,warn)=><span style={{fontSize:10.5,fontWeight:800,color:ok?"#00A862":warn?"#F04452":"#8B95A1",background:ok?"#E8FAF1":warn?"#FFF0F1":"#F2F4F6",borderRadius:6,padding:"2px 6px",whiteSpace:"nowrap"}}>{ok?"✓ ":warn?"⚠ ":"· "}{l}</span>;
+  return(<span style={{display:"inline-flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
+    {chip(!!sm.price,sm.price?`판매가 ${Number(sm.price).toLocaleString("ko-KR")}원`:"판매가 미정")}
+    {chip(!!sm.hasCost,sm.hasCost?"원가 입력":"원가 미입력")}
+    {sm.marginChecked?chip(!!sm.marginOk,sm.marginOk?"마진 목표 달성":"마진 목표 미달",!sm.marginOk):chip(false,"마진 확인 전")}
+    {full&&<a href={`${SRC_URL}#item=${encodeURIComponent(p.srcId)}`} target="_blank" rel="noopener" onClick={e=>e.stopPropagation()} style={{fontSize:11,fontWeight:800,color:"#1B64DA",textDecoration:"none",background:"#E8F1FF",borderRadius:6,padding:"2px 7px"}}>📊 소싱 기록 ↗</a>}
+  </span>); }
 function launchNextItem(p){ const ph=launchCurrentPhase(p); if(!ph) return null; const it=ph.items.find(i=>{ const s=lbState(p,i).status; return s!=="done"&&s!=="skip"; }); return it?{ph,it,s:lbState(p,it)}:null; }
 
 function LaunchBoard({D,cu,add,up,pc,items}){
@@ -4267,6 +4277,7 @@ function LaunchBoard({D,cu,add,up,pc,items}){
       <span style={{fontSize:13.5,fontWeight:900,color:"#191F28"}}>{b.icon} {p.name}</span>
       {p.launchDate&&<span style={{marginLeft:6,fontSize:11.5,fontWeight:900,color:rem!=null&&rem<0?"#F04452":rem!=null&&rem<=14?"#FF9500":"#1B64DA"}}>출시 {String(p.launchDate).slice(5)} {ddayKo(rem)}</span>}
       <span style={{display:"block",fontSize:11,color:"#8B95A1",marginTop:2}}>관리 {launchLead(p)||"미지정"}{nx?<> · 다음 <b style={{color:"#1B64DA"}}>{nx.it.name}</b>{nx.s.owner?` (${nx.s.owner})`:""}</>:""}</span>
+      {p.srcId&&<span style={{display:"block",marginTop:4}}><SrcChips p={p}/></span>}
     </button>); };
   const PhCell=({p,ph})=>{ const pp=phaseProgress(p,ph,today); const col=phaseColor(pp);
     return <button onClick={()=>setOpen({id:p.id,ph:ph.k})} title={`${ph.name} ${pp.done}/${pp.total}`} style={{minWidth:54,padding:"6px 4px",borderRadius:10,border:`1.5px solid ${col.c}33`,background:col.bg,color:col.c,fontWeight:900,fontSize:12.5,cursor:"pointer",fontFamily:"inherit",fontVariantNumeric:"tabular-nums"}}>{pp.total===0?"—":pp.done===pp.total?"✓":`${pp.done}/${pp.total}`}{pp.late&&pp.done<pp.total?" !":""}</button>; };
@@ -4389,6 +4400,8 @@ function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose}){
         {LAUNCH_PHASES.map(x=>{ const pp=phaseProgress(p,x,today); const col=phaseColor(pp); const s=x.k===ph.k;
           return <button key={x.k} onClick={()=>setPh(x.k)} style={{flexShrink:0,padding:"7px 10px",borderRadius:12,border:`1.5px solid ${s?"#3182F6":"transparent"}`,background:s?"#fff":col.bg,color:s?"#1B64DA":col.c,fontWeight:900,fontSize:12.5,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>{x.no}. {x.name} <span style={{fontVariantNumeric:"tabular-nums"}}>{pp.done}/{pp.total}</span></button>; })}
       </div>
+      {p.srcId?<div style={{padding:"8px 10px",borderRadius:11,background:"#F7FAFF",border:"1px solid #DCE8FF"}}><span style={{fontSize:11.5,fontWeight:800,color:"#4E5968",marginRight:6}}>🔗 소싱앱</span><SrcChips p={p} full/></div>
+        :<p style={{margin:0,fontSize:11,color:"#B0B8C1"}}>소싱앱 기록과 아직 연결 안 됨 · 소싱앱에서 '진행' → [🚀 로드맵에 등록]으로 연결돼요</p>}
       {err&&<p style={{margin:0,fontSize:12.5,color:"#F04452",fontWeight:800}}>{err}</p>}
       <div style={{display:"flex",flexDirection:"column",gap:7}}>
         {ph.items.map(it=>{ const s=lbState(p,it); const dn=s.status==="done"; const late=!dn&&s.status!=="skip"&&s.due&&s.due<today; const st=LB_ST[s.status]||LB_ST.todo;

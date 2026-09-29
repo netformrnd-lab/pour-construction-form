@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef, Fragment } from "react";
 import { createPortal } from "react-dom";
-import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
+import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, arrayUnion, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
 import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGetSnapshot } from "./durable.js";
 import { numF, skCur, mkCur, calcSegDone } from "./kpi.js";
 import { applyAutomation, instantiateLaunch } from "./launch.js";
 import { initCrmOperatorSync, matchOperator, initCrmRevenueSync } from "./crmOperatorSync.js";
+import { WF_CATS, catOf, EXEC_TYPES, execOf, CPC_CHANNELS, NOTICE_KINDS, DEFAULT_WORKFLOWS, mergeWorkflows, launchSettings, caseProgress, caseNext, caseChecks, toggleCheck, caseTurnOwner, numOr0, roasOf, LAUNCH_PHASES, LAUNCH_ITEMS, LAUNCH_COL, LAUNCH_BRANDS, lbState, phaseProgress, launchProgress, launchCurrentPhase, launchLead, nameMatch, guessCat, guessWfProject } from "./workflow.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
-const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","eventTypes","weekGoals","launchTemplates","manuals","trash","activityLog"];
-const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",eventTypes:"일정유형",weekGoals:"주간목표",launchTemplates:"프로세스템플릿",manuals:"로드맵 템플릿",trash:"휴지통",activityLog:"활동기록"};
+const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","eventTypes","weekGoals","launchTemplates","manuals","trash","activityLog","workflows"];
+const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",eventTypes:"일정유형",weekGoals:"주간목표",launchTemplates:"프로세스템플릿",manuals:"로드맵 템플릿",trash:"휴지통",activityLog:"활동기록",workflows:"워크플로우 설정"};
 const ACT_LOG_CAP = 1000;   // 활동기록 최대 보존 건수(초과 시 오래된 것부터 제거 — 컬렉션 1MiB 한도 가드)
 const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
@@ -194,6 +195,7 @@ const INIT={
   ],
   // 로드맵 템플릿 — 잘 된 로드맵(로드단계+프로세스)을 굳혀 재사용하는 표준. 새 프로젝트를 여기서 시작.
   manuals:[],
+  workflows:[],   // 워크플로우 설정(단계 이름·단계 담당·관리 담당·연결 프로젝트) — 기본 정의는 workflow.js, 바꾼 것만 저장
   trash:[],   // 소프트 삭제 보관소 — 삭제된 모든 데이터는 여기 남고 복구 가능(데이터 자산화)
   activityLog:[],   // 활동 여정 — 추가·수정·삭제·복구 기록(누가·언제·무엇을). 데이터 자산화: 변화의 이력도 자산.
   // 출시 프로세스 템플릿(마인드맵) — 신상 SKU를 찍어내는 표준 흐름. 동일 프로세스 1개 기본 제공.
@@ -981,12 +983,12 @@ export default function App(){
   const add=(k,item)=>{ if(SHARE) return;  return setD(p=>{
     let it=item;   // 업무는 생성 시점을 진행 이력의 첫 항목으로 기록(여정 시작점)
     if(k==="tasks"&&!Array.isArray(item.statusLog)) it={...item,statusLog:[{status:item.status||"todo",at:new Date().toISOString(),by:cu?.id||null,byName:cu?.name||""}]};
-    const n=withLog({...p,[k]:[...p[k],it]},"add",k,it.id,recLabel(it));return k==="tasks"?recalcProg(n):n;});};
+    const n=withLog({...p,[k]:[...(p[k]||[]),it]},"add",k,it.id,recLabel(it));return k==="tasks"?recalcProg(n):n;});};
   // silent=true → 활동기록 남기지 않음(대량 일괄 갱신 등 노이즈 방지용)
   const up=(k,id,c,silent)=>{ if(SHARE) return; return setD(p=>{
-    const before=p[k].find(i=>i.id===id);
+    const before=(p[k]||[]).find(i=>i.id===id);
     // 업무 상태 전이 시 진행 이력(statusLog) 누적 — 할일→진행중→보류→진행중→완료 여정 전체 보존. 완료 전환 시 완료시각·완료자도 기록.
-    const list=p[k].map(i=>{ if(i.id!==id) return i; let patch=c;
+    const list=(p[k]||[]).map(i=>{ if(i.id!==id) return i; let patch=c;
       if(k==="tasks"&&c.status&&c.status!==i.status){ const at=new Date().toISOString(); const reopen=i.status==="done"&&c.status!=="done";   // 완료된 업무를 다시 진행 = 재개
         patch={...c,statusLog:[...(Array.isArray(i.statusLog)?i.statusLog:[]),{status:c.status,at,by:cu?.id||null,byName:cu?.name||"",...(reopen?{reopen:true}:{})}]};
         if(c.status==="done") patch={...patch,doneAt:at,doneBy:cu?.id||null,doneByName:cu?.name||""};
@@ -1738,7 +1740,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   })();
   const toggle=t=>up("tasks",t.id,statusPatch(D,t,t.status==="done"?"todo":"done"));
   // 고정(반복)업무는 날짜별 완료 — 오늘 체크는 오늘만 유지(매일 리셋)
-  const fixedDone=t=>fixedDoneOn(t,cu.id)===todayKey;
+  const fixedDone=t=>fixedPeriodDone(t,cu.id,todayKey);   // 매주·매월은 이번 주·이번 달 안에 먼저 했으면 완료로
   const toggleFixed=t=>up("tasks",t.id,{doneDates:{...(t.doneDates||{}),[cu.id]:fixedDone(t)?null:todayKey},doneAt:new Date().toISOString(),doneByName:cu?.name||""});
   const doQuick=()=>{
     if(!quick.trim()) return;
@@ -1790,6 +1792,19 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const myProjs=D.projects.filter(p=>p.assigneeId===cu.id||(p.collaboratorIds||[]).includes(cu.id));
   const myGoals=myWeekGoals(D,cu.id);
   // 출시 인계 — 앞 단계가 끝나 내 차례가 된 출시 단계
+  // 🔁 워크플로우 내 차례 — 건의 다음 단계 담당이 나 + 신제품(런칭보드) 지금 단계까지 중 내가 맡은 칸 + 오늘 내려야 할 공지
+  const wfAll=mergeWorkflows(D.workflows);
+  const lbAll=useLaunchProducts();
+  const myCases=(D.tasks||[]).filter(t=>t.wfId&&t.status!=="done"&&t.status!=="hold").map(t=>({t,wf:wfAll.find(w=>w.id===t.wfId)}))
+    .filter(x=>x.wf&&caseTurnOwner(x.wf,x.t)===cu.id).sort((a,b)=>String(a.t.dueDate||"9999").localeCompare(String(b.t.dueDate||"9999")));
+  const myLaunch=lbAll.filter(p=>!p.deletedAt).flatMap(p=>{ const cur=launchCurrentPhase(p); if(!cur) return []; const ci=LAUNCH_PHASES.indexOf(cur);
+      return LAUNCH_PHASES.slice(0,ci+1).flatMap(ph=>ph.items.map(it=>({p,ph,it,s:lbState(p,it)}))).filter(x=>x.s.status!=="done"&&x.s.status!=="skip"&&nameMatch(x.s.owner,cu.name)); })
+    .sort((a,b)=>String(a.s.due||"9999").localeCompare(String(b.s.due||"9999"))||String(a.p.launchDate||"9999").localeCompare(String(b.p.launchDate||"9999")));
+  const [turnAll,setTurnAll]=useState(false);
+  const goCat=(k)=>{ try{ localStorage.setItem("pour-os-wf-cat",k); localStorage.setItem("pour-os-proj-adv","0"); }catch(_){} nav("projects"); };
+  const lbDone=(x)=>{ const at=new Date().toISOString(); if(x.it.target) return lbWrite(x.p.id,{osExtra:{[x.it.id]:{count:(x.s.count||0)+1,updatedAt:at,updatedBy:cu.name}}},`${x.it.name} · 건수 ${(x.s.count||0)+1}`,cu);
+    if(x.it.lb) return lbWrite(x.p.id,{stages:{[x.it.id]:{status:"done",doneBy:cu.name,doneAt:at,updatedAt:at,updatedBy:cu.name}}},`${x.it.name} · 완료`,cu);
+    return lbWrite(x.p.id,{osExtra:{[x.it.id]:{status:"done",updatedAt:at,updatedBy:cu.name}}},`${x.it.name} · 완료`,cu); };
   const myReadyLaunch=(()=>{ const arr=[]; D.projects.filter(p=>p.templateId).forEach(p=>{ const ts=launchProjTasks(D,p); ts.forEach(t=>{ if(t.assigneeId===cu.id&&launchStageStatus(t,ts)==="ready") arr.push({proj:p,task:t}); }); }); return [...arr,...myReadyProcess(D,cu.id)]; })();
   // 주간 배치 — 요일 칸 1개 렌더(모바일=전체폭 크게, 데스크탑=5열 중 하나). 진행날짜/요일 있는 업무 자동 노출 + 순서만 조정
   const renderDayCol=(d,mobile)=>{
@@ -1928,6 +1943,31 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         )}
       </div>
+      {(myCases.length+myLaunch.length)>0&&(()=>{ const rows=[...myCases.map(x=>({k:"c"+x.t.id,kind:"case",...x})),...myLaunch.map(x=>({k:"l"+x.p.id+x.it.id,kind:"launch",...x}))]; const shown=turnAll?rows:rows.slice(0,6);
+        return(
+        <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #C9DDFF",marginBottom:14}}>
+          <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:10,flexWrap:"wrap"}}>
+            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#1B64DA"}}>🔁 워크플로우 — 내 차례 ({rows.length})</h3>
+            <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>체크하면 다음 단계·다음 담당으로 넘어가요</p>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:7}}>
+            {shown.map(r=>{ if(r.kind==="case"){ const nx=caseNext(r.wf,r.t); const pr=caseProgress(r.wf,r.t); const late=r.t.dueDate&&daysTo(r.t.dueDate)<0; return(
+              <div key={r.k} style={{padding:"10px 12px",borderRadius:12,backgroundColor:"#F7FAFF",border:`1px solid ${late?"#FFC9CE":"#DCE8FF"}`,display:"flex",alignItems:"center",gap:9}}>
+                <button onClick={()=>nx&&up("tasks",r.t.id,toggleCheck(r.wf,r.t,nx.id,cu))} aria-label={`${nx?nx.name:""} 체크`} style={{flexShrink:0,width:26,height:26,borderRadius:8,border:"2px solid #3182F6",backgroundColor:"#fff",color:"#3182F6",fontSize:13,fontWeight:900,cursor:"pointer",padding:0}}>✓</button>
+                <button onClick={()=>goCat(r.wf.cat)} style={{flex:1,minWidth:0,textAlign:"left",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
+                  <span style={{display:"block",fontSize:13.5,fontWeight:800,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.t.title} <span style={{color:"#1B64DA"}}>→ {nx?nx.name:""}</span></span>
+                  <span style={{display:"block",fontSize:10.5,color:"#8B95A1",marginTop:1}}>{r.wf.icon} {r.wf.name} · {pr.done}/{pr.total}{r.t.dueDate?` · ${ddayKo(daysTo(r.t.dueDate))}`:""}</span></button>
+              </div>); }
+              const late=r.s.due&&daysTo(r.s.due)<0; return(
+              <div key={r.k} style={{padding:"10px 12px",borderRadius:12,backgroundColor:"#F7FAFF",border:`1px solid ${late?"#FFC9CE":"#DCE8FF"}`,display:"flex",alignItems:"center",gap:9}}>
+                <button onClick={()=>lbDone(r)} aria-label={r.it.target?"하나 더":"완료"} style={{flexShrink:0,minWidth:26,height:26,borderRadius:8,border:"2px solid #3182F6",backgroundColor:"#fff",color:"#3182F6",fontSize:r.it.target?11:13,fontWeight:900,cursor:"pointer",padding:"0 4px"}}>{r.it.target?"+1":"✓"}</button>
+                <button onClick={()=>goCat("launch")} style={{flex:1,minWidth:0,textAlign:"left",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
+                  <span style={{display:"block",fontSize:13.5,fontWeight:800,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.it.name}{r.it.target?` (${r.s.count}/${r.it.target})`:""}</span>
+                  <span style={{display:"block",fontSize:10.5,color:"#8B95A1",marginTop:1}}>🚀 {r.p.name} · {r.ph.no}. {r.ph.name}{r.s.due?` · ${ddayKo(daysTo(r.s.due))}`:""}</span></button>
+              </div>); })}
+          </div>
+          {rows.length>6&&<button onClick={()=>setTurnAll(v=>!v)} style={{marginTop:8,border:"none",background:"none",padding:"4px 2px",fontSize:12,fontWeight:800,color:"#1B64DA",cursor:"pointer",fontFamily:"inherit"}}>{turnAll?"접기 ▴":`${rows.length-6}개 더 보기 ▾`}</button>}
+        </div>); })()}
       {(carry.length>0||held.length>0||overdueProjs.length>0)&&(
         <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid "+((carry.length>0||overdueProjs.length>0)?"#C9DDFF":"#F2F4F6")}}>
           {overdueProjs.length>0&&(
@@ -2061,7 +2101,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         ))}
         {/* 미배치 트레이 — 목표일 없는 할일은 그리드에 안 뜨고 여기 모임. 요일 버튼으로 지금 보는 주에 배치(목표일 자동 앵커). */}
         {(()=>{
-          const unplaced=myT.filter(t=>!t.isFixed&&t.status==="todo"&&!t.workDate&&!t.dueDate).sort((a,b)=>String(a.title).localeCompare(String(b.title)));
+          const unplaced=myT.filter(t=>!t.isFixed&&!t.wfId&&t.status==="todo"&&!t.workDate&&!t.dueDate).sort((a,b)=>String(a.title).localeCompare(String(b.title)));
           if(!unplaced.length) return null;
           const placeTo=(t,d)=>up("tasks",t.id,{weekDay:d,workDate:dateOfDay(d),weekSlot:nextSlot(d)});
           return(
@@ -3656,6 +3696,9 @@ const ymdToday=()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.g
 const daysTo=(ds)=>{ if(!ds) return null; const a=new Date(ymdToday()+"T00:00:00"), b=new Date(String(ds).slice(0,10)+"T00:00:00"); return Math.round((b-a)/86400000); };
 const ddayKo=(n)=>n==null?"":n===0?"D-day":n>0?`D-${n}`:`${-n}일 지남`;
 function projTasksOf(D,pid){ return (D.tasks||[]).filter(t=>t.projectId===pid&&!t.isFixed); }
+// 실행 담당 = 이 프로젝트 업무를 맡은 사람들 + 지정한 협업자 (관리 담당 제외) · 외주/협업 건수
+function projExecs(D,p){ const ts=projTasksOf(D,p.id); const ids=[...new Set([...ts.filter(t=>t.status!=="done").map(t=>t.assigneeId),...(p.collaboratorIds||[])].filter(id=>id&&id!==p.assigneeId))];
+  return {ids,out:ts.filter(t=>t.exec==="outsource"&&t.status!=="done").length,col:ts.filter(t=>t.exec==="collab"&&t.status!=="done").length}; }
 // 마감 대비 진척 신호: 🔴 늦음 · 🟠 주의 · 🟢 순조 · ✅ 완료 · ⚪ 마감 없음
 function projSignal(p,ts){
   const total=ts.length, done=ts.filter(t=>t.status==="done").length, prog=total?done/total:((p.progress||0)/100);
@@ -3669,23 +3712,26 @@ function projSignal(p,ts){
   if(tr!=null&&tr-prog>0.25) return {k:"warn",c:"#FF9500",bg:"#FFF3E0",l:"일정보다 늦어요",prog,done,total};
   return {k:"ok",c:"#00A862",bg:"#E8FAF1",l:"순조로워요",prog,done,total};
 }
-function SimpleProjects({D,cu,up,add,rm,lead,onAdvanced}){
+function SimpleProjects({D,cu,up,add,rm,lead,onAdvanced,cat,embedded}){
   const [tab,setTab]=useState("active");
   const [mine,setMine]=useState(false);
   const [openId,setOpenId]=useState(null);
   const [newOpen,setNewOpen]=useState(false);
   const users=D.users||[];
   const uname=(id)=>(users.find(u=>u.id===id)||{}).name||"";
-  const rows=(D.projects||[]).map(p=>{ const ts=projTasksOf(D,p.id); return {p,ts,sig:projSignal(p,ts)}; })
+  const inCat=(D.projects||[]).filter(p=>!cat||p.category===cat);
+  const rows=inCat.map(p=>{ const ts=projTasksOf(D,p.id); return {p,ts,sig:projSignal(p,ts)}; })
     .filter(r=>tab==="done"?projStatus(r.p)==="completed":projStatus(r.p)!=="completed")
     .filter(r=>!mine||ownsProj(r.p,cu.id));
   const ord={late:0,warn:1,ok:2,none:3,alldone:4,done:5};
   rows.sort((a,b)=>(ord[a.sig.k]-ord[b.sig.k])||String(a.p.dueDate||"9999").localeCompare(String(b.p.dueDate||"9999"))||String(a.p.title).localeCompare(String(b.p.title),"ko"));
   const nextOf=(ts)=>ts.filter(t=>t.status!=="done"&&!ts.some(k=>k.parentId===t.id&&k.status!=="done")).sort((a,b)=>String(a.dueDate||"9999").localeCompare(String(b.dueDate||"9999"))||(a.seq||0)-(b.seq||0))[0];
-  const cnt=(D.projects||[]).filter(p=>projStatus(p)!=="completed").length, cntDone=(D.projects||[]).length-cnt;
+  const cnt=inCat.filter(p=>projStatus(p)!=="completed").length, cntDone=inCat.length-cnt;
   const open=(D.projects||[]).find(p=>p.id===openId);
+  const catInfo=cat?catOf(cat):null;
   return(
-    <div style={{padding:"14px 16px 24px"}}>
+    <div style={{padding:embedded?"4px 0 0":"14px 16px 24px"}}>
+      {embedded&&<p style={{margin:"0 2px 8px",fontSize:14,fontWeight:900,color:"#191F28"}}>📁 {catInfo?catInfo.name:""} 프로젝트 <span style={{fontSize:11.5,fontWeight:600,color:"#8B95A1"}}>· 워크플로우 밖의 프로젝트·업무</span></p>}
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,flexWrap:"wrap"}}>
         <div style={{display:"flex",background:"#F2F4F6",borderRadius:12,padding:3}}>
           {[["active",`진행 ${cnt}`],["done",`완료 ${cntDone}`]].map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"8px 14px",borderRadius:9,border:"none",background:tab===k?"#fff":"transparent",color:tab===k?"#191F28":"#8B95A1",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit",boxShadow:tab===k?"0 1px 4px rgba(0,0,0,.08)":"none"}}>{l}</button>)}
@@ -3693,7 +3739,7 @@ function SimpleProjects({D,cu,up,add,rm,lead,onAdvanced}){
         <button onClick={()=>setMine(m=>!m)} style={{padding:"8px 12px",borderRadius:10,border:`1.5px solid ${mine?"#3182F6":"#E5E8EB"}`,background:mine?"#E8F1FF":"#fff",color:mine?"#1B64DA":"#4E5968",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{mine?"✓ ":""}내 프로젝트만</button>
         <button onClick={()=>setNewOpen(true)} style={{marginLeft:"auto",padding:"9px 14px",borderRadius:11,border:"none",background:"#3182F6",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>＋ 새 프로젝트</button>
       </div>
-      {rows.length===0&&<div style={{padding:"40px 16px",textAlign:"center",background:"#fff",borderRadius:18,color:"#8B95A1",fontSize:13.5}}>{tab==="done"?"완료한 프로젝트가 없어요":"진행 중인 프로젝트가 없어요 · ＋ 새 프로젝트"}</div>}
+      {rows.length===0&&<div style={{padding:embedded?"18px 16px":"40px 16px",textAlign:"center",background:"#fff",borderRadius:18,color:"#8B95A1",fontSize:13.5}}>{tab==="done"?"완료한 프로젝트가 없어요":embedded?"이 카테고리 프로젝트가 없어요 · 전체 프로젝트 탭의 🧹 정리안으로 분류할 수 있어요":"진행 중인 프로젝트가 없어요 · ＋ 새 프로젝트"}</div>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:12}}>
         {rows.map(({p,ts,sig})=>{ const [pc]=projPal(p); const nx=nextOf(ts); const rem=daysTo(p.dueDate);
           return(
@@ -3704,7 +3750,8 @@ function SimpleProjects({D,cu,up,add,rm,lead,onAdvanced}){
             </div>
             <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",fontSize:11.5,color:"#6B7684"}}>
               <span style={{fontWeight:800,color:sig.c,background:sig.bg,borderRadius:6,padding:"2px 7px"}}>● {sig.l}</span>
-              {p.assigneeId&&<span>👤 {uname(p.assigneeId)}{(p.collaboratorIds||[]).length?` 외 ${(p.collaboratorIds||[]).length}`:""}</span>}
+              {!cat&&p.category&&catOf(p.category)&&<span style={{fontWeight:800,color:"#4E5968",background:"#F2F4F6",borderRadius:6,padding:"2px 7px"}}>{catOf(p.category).icon} {catOf(p.category).name}</span>}
+              {(()=>{ const ex=projExecs(D,p); return <span>👤 관리 {uname(p.assigneeId)||"미지정"}{ex.ids.length?` · 실행 ${ex.ids.length}명`:""}{ex.out?` · 📦외주 ${ex.out}`:""}{ex.col?` · 🤝협업 ${ex.col}`:""}</span>; })()}
               {(p.startDate||p.dueDate)&&<span>📅 {p.startDate?String(p.startDate).slice(5):"?"} ~ {p.dueDate?String(p.dueDate).slice(5):"?"}</span>}
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -3715,24 +3762,27 @@ function SimpleProjects({D,cu,up,add,rm,lead,onAdvanced}){
             <p style={{margin:0,fontSize:12,color:nx?"#333D4B":"#B0B8C1",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nx?<>▶ 다음: <b>{nx.title}</b>{nx.assigneeId?` · ${uname(nx.assigneeId)}`:""}{nx.dueDate?` · ${ddayKo(daysTo(nx.dueDate))}`:""}</>:ts.length?"남은 업무 없음":"업무가 아직 없어요"}</p>
           </button>); })}
       </div>
-      <div style={{marginTop:18,textAlign:"center"}}>
+      {!embedded&&<div style={{marginTop:18,textAlign:"center"}}>
         <button onClick={onAdvanced} style={{padding:"9px 14px",borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",color:"#6B7684",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>⚙ 고급 보기 (로드맵·업무 플로우맵·KPI 연결·템플릿 관리)</button>
-      </div>
+      </div>}
       {open&&<ProjectDetailSheet D={D} cu={cu} p={open} up={up} add={add} rm={rm} onClose={()=>setOpenId(null)} onAdvanced={onAdvanced}/>}
-      {newOpen&&<NewProjectSheet D={D} cu={cu} add={add} onClose={()=>setNewOpen(false)} onCreated={(id)=>{setNewOpen(false); if(id) setOpenId(id);}}/>}
+      {newOpen&&<NewProjectSheet D={D} cu={cu} add={add} cat={cat} onClose={()=>setNewOpen(false)} onCreated={(id)=>{setNewOpen(false); if(id) setOpenId(id);}}/>}
     </div>);
 }
 function ProjectDetailSheet({D,cu,p,up,add,rm,onClose,onAdvanced}){
   const users=D.users||[];
   const ts=projTasksOf(D,p.id); const sig=projSignal(p,ts);
-  const [nt,setNt]=useState({title:"",assigneeId:cu.id,dueDate:""});
+  const [nt,setNt]=useState({title:"",assigneeId:cu.id,dueDate:"",exec:"self",execNote:""});
+  const [execOpen,setExecOpen]=useState(null);
   const [showDone,setShowDone]=useState(false);
   const [editTask,setEditTask]=useState(null);
   const [tplMsg,setTplMsg]=useState("");
   const uname=(id)=>(users.find(u=>u.id===id)||{}).name||"담당 없음";
   const addTask=()=>{ const t=nt.title.trim(); if(!t) return;
-    add("tasks",{id:"t"+Date.now(),title:t,projectId:p.id,assigneeId:nt.assigneeId||"",type:"general",status:"todo",isFixed:false,weekDay:null,weekSlot:null,workDate:"",dueDate:nt.dueDate||"",memo:"",attachments:[],seq:ts.length});
+    add("tasks",{id:"t"+Date.now(),title:t,projectId:p.id,assigneeId:nt.assigneeId||"",type:"general",status:"todo",isFixed:false,weekDay:null,weekSlot:null,workDate:"",dueDate:nt.dueDate||"",memo:"",attachments:[],seq:ts.length,exec:nt.exec||"self",execNote:nt.exec&&nt.exec!=="self"?nt.execNote:""});
     setNt(n=>({...n,title:""})); };
+  const ex=projExecs(D,p);
+  const togCollab=(uid)=>{ const c=p.collaboratorIds||[]; up("projects",p.id,{collaboratorIds:c.includes(uid)?c.filter(x=>x!==uid):[...c,uid]}); };
   const late=(t)=>t.status!=="done"&&t.dueDate&&daysTo(t.dueDate)<0;
   const grp=[["inprogress","진행중"],["todo","할일"],["hold","보류"]].map(([k,l])=>[k,l,ts.filter(t=>t.status===k).sort((a,b)=>String(a.dueDate||"9999").localeCompare(String(b.dueDate||"9999"))||(a.seq||0)-(b.seq||0))]);
   const doneList=ts.filter(t=>t.status==="done").sort((a,b)=>String(b.doneAt||"").localeCompare(String(a.doneAt||"")));
@@ -3740,12 +3790,16 @@ function ProjectDetailSheet({D,cu,p,up,add,rm,onClose,onAdvanced}){
     const now=new Date().toISOString(); add("manuals",{id:"m"+Date.now(),name:p.title,projType:p.projType||"solo",stages:tree,version:1,versions:[],createdAt:now,createdBy:cu.name||""});
     setTplMsg(`'${p.title}' 템플릿으로 저장했어요 · 새 프로젝트 만들 때 고를 수 있어요`); };
   const Row=({t})=>{ const dn=t.status==="done"; const kids=ts.filter(k=>k.parentId===t.id);
-    return(<div style={{display:"flex",alignItems:"center",gap:10,padding:"11px 12px",background:"#fff",borderRadius:12,border:`1px solid ${late(t)?"#FFC9CE":"#EEF1F4"}`}}>
+    return(<div style={{background:"#fff",borderRadius:12,border:`1px solid ${late(t)?"#FFC9CE":"#EEF1F4"}`}}><div style={{display:"flex",alignItems:"center",gap:10,padding:"11px 12px"}}>
       <button onClick={()=>up("tasks",t.id,{status:dn?"todo":"done"})} title={dn?"다시 열기":"완료"} style={{flexShrink:0,width:24,height:24,borderRadius:7,border:`2px solid ${dn?"#00C073":"#D1D6DB"}`,background:dn?"#00C073":"#fff",color:"#fff",fontSize:13,fontWeight:900,cursor:"pointer",padding:0}}>{dn?"✓":""}</button>
       <div onClick={()=>setEditTask(t)} style={{flex:1,minWidth:0,cursor:"pointer"}}>
         <p style={{margin:0,fontSize:14,fontWeight:700,color:dn?"#B0B8C1":"#191F28",textDecoration:dn?"line-through":"none",lineHeight:1.35}}>{t.parentId?"↳ ":""}{t.title}</p>
         <p style={{margin:"3px 0 0",fontSize:11.5,color:"#8B95A1"}}>👤 {uname(t.assigneeId)}{t.dueDate?<> · <b style={{color:late(t)?"#F04452":"#4E5968"}}>{String(t.dueDate).slice(5)} {ddayKo(daysTo(t.dueDate))}</b></>:""}{kids.length?` · 하위 ${kids.filter(k=>k.status==="done").length}/${kids.length}`:""}</p>
+        {t.exec&&t.exec!=="self"&&<div style={{marginTop:3}}><ExecBadge exec={t.exec} note={t.execNote}/></div>}
       </div>
+      <button onClick={()=>setExecOpen(v=>v===t.id?null:t.id)} title="실행 방식(직접·협업·외주)" style={{flexShrink:0,padding:"6px 8px",borderRadius:9,border:"1px solid #E5E8EB",background:execOpen===t.id?"#F2F4F6":"#fff",color:"#6B7684",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{execOf(t.exec).icon} 방식</button>
+    </div>
+    {execOpen===t.id&&<div style={{padding:"0 12px 11px"}}><ExecPicker value={t.exec} note={t.execNote} onChange={(k,n)=>up("tasks",t.id,{exec:k,execNote:n||""})}/></div>}
     </div>); };
   const inp={padding:"10px 11px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:14,fontFamily:"inherit",background:"#fff",boxSizing:"border-box"};
   return(<>
@@ -3753,10 +3807,19 @@ function ProjectDetailSheet({D,cu,p,up,add,rm,onClose,onAdvanced}){
       <div style={{paddingTop:6}}>
         <input defaultValue={p.title} key={p.id+"t"} onBlur={e=>{const v=e.target.value.trim(); if(v&&v!==p.title) up("projects",p.id,{title:v});}} style={{...inp,width:"100%",fontSize:18,fontWeight:900,border:"1.5px solid transparent",padding:"6px 4px",background:"transparent"}}/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:8}}>
-          <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>총괄 담당<select value={p.assigneeId||""} onChange={e=>up("projects",p.id,{assigneeId:e.target.value})} style={{...inp,width:"100%",marginTop:4}}><option value="">없음</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
+          <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>관리 담당 (1명)<select value={p.assigneeId||""} onChange={e=>up("projects",p.id,{assigneeId:e.target.value})} style={{...inp,width:"100%",marginTop:4}}><option value="">없음</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
           <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>상태<select value={projStatus(p)} onChange={e=>up("projects",p.id,{status:e.target.value})} style={{...inp,width:"100%",marginTop:4}}>{Object.entries(PROJ_STATUS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select></label>
           <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>시작일<input type="date" value={p.startDate||""} onChange={e=>up("projects",p.id,{startDate:e.target.value})} style={{...inp,width:"100%",marginTop:4}}/></label>
           <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>마감일<input type="date" value={p.dueDate||""} onChange={e=>up("projects",p.id,{dueDate:e.target.value})} style={{...inp,width:"100%",marginTop:4}}/></label>
+          <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",gridColumn:"1 / -1"}}>카테고리<select value={p.category||""} onChange={e=>up("projects",p.id,{category:e.target.value})} style={{...inp,width:"100%",marginTop:4}}><option value="">미분류</option>{WF_CATS.map(c=><option key={c.k} value={c.k}>{c.icon} {c.name}</option>)}</select></label>
+        </div>
+        <div style={{marginTop:10}}>
+          <p style={{margin:"0 2px 6px",fontSize:11.5,fontWeight:700,color:"#6B7684"}}>실행 담당 (여러 명) <span style={{fontWeight:500,color:"#8B95A1"}}>· 눌러서 추가/빼기 · 업무를 맡으면 자동 포함{ex.out?` · 📦외주 ${ex.out}건`:""}{ex.col?` · 🤝협업 ${ex.col}건`:""}</span></p>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {users.filter(u=>u.id!==p.assigneeId).map(u=>{ const inC=(p.collaboratorIds||[]).includes(u.id); const n=ts.filter(t=>t.assigneeId===u.id&&t.status!=="done").length; const onx=inC||n>0;
+              return <button key={u.id} onClick={()=>togCollab(u.id)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:18,border:`1.5px solid ${onx?(u.color||"#3182F6"):"#E5E8EB"}`,background:onx?(u.color||"#3182F6")+"14":"#fff",color:onx?"#191F28":"#8B95A1",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                <span style={{width:7,height:7,borderRadius:4,background:u.color||"#8B95A1"}}/>{u.name}{n?<span style={{color:"#1B64DA"}}> 업무 {n}</span>:null}{inC?" ✓":""}</button>; })}
+          </div>
         </div>
         <div style={{marginTop:12,padding:"12px 14px",borderRadius:14,background:sig.bg}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
@@ -3770,7 +3833,9 @@ function ProjectDetailSheet({D,cu,p,up,add,rm,onClose,onAdvanced}){
         <p style={{margin:"16px 2px 8px",fontSize:13.5,fontWeight:900,color:"#191F28"}}>업무</p>
         <div style={{display:"flex",gap:6,flexWrap:"wrap",padding:10,borderRadius:14,background:"#F2F7FF",border:"1.5px solid #C9DDFF"}}>
           <input value={nt.title} onChange={e=>setNt({...nt,title:e.target.value})} onKeyDown={e=>e.key==="Enter"&&addTask()} placeholder="업무 추가... (Enter)" style={{...inp,flex:"1 1 180px",minWidth:0}}/>
-          <select value={nt.assigneeId} onChange={e=>setNt({...nt,assigneeId:e.target.value})} style={{...inp,flex:"0 0 auto"}}><option value="">담당 없음</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
+          <select value={nt.assigneeId} onChange={e=>setNt({...nt,assigneeId:e.target.value})} aria-label="실행 담당" style={{...inp,flex:"0 0 auto"}}><option value="">담당 없음</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
+          <select value={nt.exec} onChange={e=>setNt({...nt,exec:e.target.value})} aria-label="실행 방식" style={{...inp,flex:"0 0 auto"}}>{EXEC_TYPES.map(x=><option key={x.k} value={x.k}>{x.icon} {x.label}</option>)}</select>
+          {nt.exec!=="self"&&<input value={nt.execNote} onChange={e=>setNt({...nt,execNote:e.target.value})} placeholder={nt.exec==="collab"?"협업 부서·사람":"외주 업체"} style={{...inp,flex:"1 1 120px",minWidth:0}}/>}
           <input type="date" value={nt.dueDate} onChange={e=>setNt({...nt,dueDate:e.target.value})} title="마감" style={{...inp,flex:"0 0 auto"}}/>
           <button onClick={addTask} disabled={!nt.title.trim()} style={{padding:"10px 16px",borderRadius:10,border:"none",background:nt.title.trim()?"#3182F6":"#D1D6DB",color:"#fff",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>추가</button>
         </div>
@@ -3791,22 +3856,25 @@ function ProjectDetailSheet({D,cu,p,up,add,rm,onClose,onAdvanced}){
     <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} up={up} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,parentId:f.parentId||null,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null,...(f.statusLog?{statusLog:f.statusLog,doneAt:f.doneAt,doneBy:f.doneBy,doneByName:f.doneByName}:{})})} onDelete={(id)=>rm("tasks",id)}/>
   </>);
 }
-function NewProjectSheet({D,cu,add,onClose,onCreated}){
+function NewProjectSheet({D,cu,add,onClose,onCreated,cat}){
   const users=D.users||[];
-  const [f,setF]=useState({title:"",assigneeId:cu.id,startDate:ymdToday(),dueDate:"",tpl:"",subKPIId:""});
+  const [f,setF]=useState({title:"",assigneeId:cu.id,startDate:ymdToday(),dueDate:"",tpl:"",subKPIId:"",category:cat||""});
   const tpls=[...(D.manuals||[]).map(m=>({k:"m:"+m.id,l:m.name||"템플릿",n:(function c(a){return (a||[]).reduce((s,x)=>s+1+c(x.kids),0);})(m.stages)})),...(D.launchTemplates||[]).map(t=>({k:"l:"+t.id,l:(t.name||t.title||"출시 템플릿"),n:(t.nodes||[]).length,launch:true}))];
   const inp={width:"100%",padding:"11px 12px",borderRadius:11,border:"1.5px solid #E5E8EB",fontSize:14,fontFamily:"inherit",background:"#fff",boxSizing:"border-box",marginTop:5};
   const create=()=>{ const title=f.title.trim(); if(!title) return;
     const sk=(D.subKPIs||[]).find(x=>x.id===f.subKPIId);
     if(f.tpl.startsWith("l:")){ const tpl=(D.launchTemplates||[]).find(t=>"l:"+t.id===f.tpl); if(tpl){ instantiateLaunch({tpl,productName:title,mainKPIId:sk?sk.mainKPIId:"",subKPIId:sk?sk.id:"",dealerType:"",add}); onCreated(null); return; } }
     const id="p"+Date.now(); const man=f.tpl.startsWith("m:")&&(D.manuals||[]).find(m=>"m:"+m.id===f.tpl);
-    const proj={id,title,goalType:"journey",projType:"team",mainKPIId:sk?sk.mainKPIId:"",subKPIId:sk?sk.id:"",dealerType:"",assigneeId:f.assigneeId,collaboratorIds:[],group:"",priority:"mid",status:"active",startDate:f.startDate,dueDate:f.dueDate,progress:0,resultValue:0};
+    const proj={id,title,goalType:"journey",projType:"team",mainKPIId:sk?sk.mainKPIId:"",subKPIId:sk?sk.id:"",dealerType:"",assigneeId:f.assigneeId,collaboratorIds:[],group:"",priority:"mid",status:"active",startDate:f.startDate,dueDate:f.dueDate,progress:0,resultValue:0,category:f.category||guessCat(title)||""};
     if(man){ proj.sourceManualId=man.id; proj.sourceManualName=man.name||""; proj.sourceManualVersion=man.version||1; if(man.countKPIId) proj.countKPIId=man.countKPIId; }
     add("projects",proj); if(man) cloneManualToProject(man,id,"team",add); onCreated(id); };
   return(<Sheet open={true} onClose={onClose} title="새 프로젝트" h="88vh" w={560}>
     <div style={{paddingTop:8,display:"flex",flexDirection:"column",gap:12}}>
       <label style={{fontSize:12,fontWeight:700,color:"#4E5968"}}>프로젝트 이름 *<input autoFocus value={f.title} onChange={e=>setF({...f,title:e.target.value})} placeholder="예: 2in1 철제용 페인트 출시" style={inp}/></label>
-      <label style={{fontSize:12,fontWeight:700,color:"#4E5968"}}>총괄 담당<select value={f.assigneeId} onChange={e=>setF({...f,assigneeId:e.target.value})} style={inp}>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        <label style={{fontSize:12,fontWeight:700,color:"#4E5968"}}>관리 담당 (1명)<select value={f.assigneeId} onChange={e=>setF({...f,assigneeId:e.target.value})} style={inp}>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
+        <label style={{fontSize:12,fontWeight:700,color:"#4E5968"}}>카테고리<select value={f.category} onChange={e=>setF({...f,category:e.target.value})} style={inp}><option value="">자동(이름으로 추정)</option>{WF_CATS.map(c=><option key={c.k} value={c.k}>{c.icon} {c.name}</option>)}</select></label>
+      </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
         <label style={{fontSize:12,fontWeight:700,color:"#4E5968"}}>시작일<input type="date" value={f.startDate} onChange={e=>setF({...f,startDate:e.target.value})} style={inp}/></label>
         <label style={{fontSize:12,fontWeight:700,color:"#4E5968"}}>마감일<input type="date" value={f.dueDate} onChange={e=>setF({...f,dueDate:e.target.value})} style={inp}/></label>
@@ -3822,13 +3890,476 @@ function NewProjectSheet({D,cu,add,onClose,onCreated}){
     </div>
   </Sheet>);
 }
+/* ══════════ 워크플로우 — 카테고리 → 워크플로우(순서 체크리스트) → 건 × 단계 표 ══════════
+   건 = 업무 1개(wfId·wfChecks). 칸을 누르면 체크, 전부 체크하면 완료. 오늘·달력에도 그대로 이어짐.
+   관리 담당 1명(워크플로우·프로젝트) · 실행 담당은 단계별/업무별로 여러 명(직접·협업·외주).
+   신제품은 런칭보드 문서가 원본(LaunchBoard) — 기존 단계는 그대로 공유, 업무OS 추가 칸은 osExtra 에만 저장. */
+const WFX_CSS=`.wfx-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;border:1px solid #EEF1F4}
+.wfx-tbl{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px;background:#fff}
+.wfx-tbl th,.wfx-tbl td{border-bottom:1px solid #F2F4F6;padding:8px 6px;text-align:center;vertical-align:middle}
+.wfx-tbl th{background:#F9FAFB;font-weight:800;color:#4E5968;font-size:11.5px;line-height:1.3}
+.wfx-tbl .nm{text-align:left;position:sticky;left:0;background:#fff;z-index:1;min-width:180px;max-width:240px;box-shadow:1px 0 0 #EEF1F4}
+.wfx-tbl th.nm{background:#F9FAFB;z-index:2}
+.wfx-tbl tr:last-child td{border-bottom:none}`;
+const wfInp={padding:"10px 11px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:14,fontFamily:"inherit",background:"#fff",boxSizing:"border-box",minWidth:0};
+const fmtWon=(n)=>{ const v=numOr0(n); return v?v.toLocaleString("ko-KR"):""; };
+function saveWfOverride(D,add,up,id,patch){ const at=new Date().toISOString(); if((D.workflows||[]).some(w=>w.id===id)) up("workflows",id,{...patch,updatedAt:at}); else add("workflows",{id,...patch,updatedAt:at}); }
+const userName=(D,id)=>((D.users||[]).find(u=>u.id===id)||{}).name||"";
+const ExecBadge=({exec,note})=>{ if(!exec||exec==="self") return null; const e=execOf(exec); return <span style={{fontSize:10.5,fontWeight:800,color:e.color,background:e.bg,borderRadius:6,padding:"2px 6px",whiteSpace:"nowrap"}}>{e.icon} {e.label}{note?` · ${note}`:""}</span>; };
+function ExecPicker({value,note,onChange}){ const v=value||"self";
+  return(<div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+    {EXEC_TYPES.map(e=>{ const sel=v===e.k; return <button key={e.k} type="button" onClick={()=>onChange(e.k,e.k==="self"?"":note)} style={{padding:"7px 11px",borderRadius:18,border:`1.5px solid ${sel?e.color:"#E5E8EB"}`,background:sel?e.bg:"#fff",color:sel?e.color:"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{e.icon} {e.label}</button>; })}
+    {v!=="self"&&<input defaultValue={note||""} key={v} onBlur={e=>{ const n=e.target.value.trim(); if(n!==(note||"")) onChange(v,n); }} placeholder={v==="collab"?"협업 부서·사람":"외주 업체명"} style={{...wfInp,flex:"1 1 140px",padding:"8px 10px",fontSize:13}}/>}
+  </div>); }
+
+// 런칭보드 제품 실시간 구독(한 번만 연결해 여러 화면이 같이 씀)
+const _lb={items:[],subs:new Set(),started:false};
+function useLaunchProducts(){
+  const [items,setItems]=useState(_lb.items);
+  useEffect(()=>{ const f=(v)=>setItems(v); _lb.subs.add(f);
+    if(!_lb.started){ _lb.started=true;
+      try{ onSnapshot(extCol(LAUNCH_COL),(snap)=>{ const arr=[]; snap.forEach(d=>arr.push({id:d.id,...d.data()})); console.log(`[${LAUNCH_COL}] ${arr.length}건 로드`); _lb.items=arr; _lb.subs.forEach(s=>s(arr)); },
+        (err)=>{ console.error(`[${LAUNCH_COL}] 로드 실패:`,err); }); }
+      catch(e){ console.error(`[${LAUNCH_COL}] 구독 실패:`,e); } }
+    else setItems(_lb.items);
+    return ()=>{ _lb.subs.delete(f); }; },[]);
+  return items;
+}
+// 런칭보드 문서 부분 저장(merge) — 바꾼 칸만. 이력은 런칭보드와 같은 history 배열에 '[업무OS]'로 남김
+async function lbWrite(pid,patch,text,cu){
+  const at=new Date().toISOString(), by=cu?.name||"업무OS";
+  try{ await setDoc(extDoc(LAUNCH_COL,pid),{...patch,updatedAt:at,updatedBy:by,...(text?{history:arrayUnion({at,by,text:"[업무OS] "+text})}:{})},{merge:true}); return true; }
+  catch(e){ console.error(`[${LAUNCH_COL}] 저장 실패:`,e); return false; }
+}
+
+function WorkflowHome(props){
+  const {D,cu,up,add,rm,lead,pc}=props;
+  const [cat,setCatS]=useState(()=>{ try{ return localStorage.getItem("pour-os-wf-cat")||"all"; }catch(_){ return "all"; } });
+  const setCat=(k)=>{ setCatS(k); try{ localStorage.setItem("pour-os-wf-cat",k); }catch(_){} };
+  const [cleanOpen,setCleanOpen]=useState(false);
+  const W=mergeWorkflows(D.workflows);
+  const lbItems=useLaunchProducts();
+  const lbLive=lbItems.filter(p=>!p.deletedAt);
+  const cnt=(k)=>k==="launch"?lbLive.filter(p=>launchProgress(p).pct<100).length
+    :(D.tasks||[]).filter(t=>t.wfId&&t.status!=="done"&&(W.find(w=>w.id===t.wfId)||{}).cat===k).length;
+  const uncategorized=(D.projects||[]).filter(p=>!p.category).length;
+  return(<div>
+    <style>{WFX_CSS}</style>
+    <div style={{display:"flex",gap:6,overflowX:"auto",padding:"12px 16px 4px",WebkitOverflowScrolling:"touch"}}>
+      {[{k:"all",icon:"📁",name:"전체 프로젝트"},...WF_CATS].map(c=>{ const sel=cat===c.k; const n=c.k==="all"?(D.projects||[]).filter(p=>projStatus(p)!=="completed").length:cnt(c.k);
+        return <button key={c.k} onClick={()=>setCat(c.k)} style={{flexShrink:0,padding:"9px 13px",borderRadius:20,border:`1.5px solid ${sel?"#3182F6":"#E5E8EB"}`,background:sel?"#3182F6":"#fff",color:sel?"#fff":"#333D4B",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>{c.icon} {c.name}{n?<span style={{marginLeft:5,opacity:.8}}>{n}</span>:null}</button>; })}
+    </div>
+    {cat==="all"&&<>
+      {lead&&uncategorized>0&&<div style={{margin:"10px 16px 0",padding:"12px 14px",borderRadius:14,background:"#F2F7FF",border:"1px solid #C9DDFF",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+        <p style={{margin:0,flex:"1 1 200px",fontSize:13,color:"#1B64DA",fontWeight:700,lineHeight:1.5}}>🧹 카테고리 없는 프로젝트 {uncategorized}개 · 정리안을 보고 골라서 한 번에 적용해요</p>
+        <button onClick={()=>setCleanOpen(true)} style={{padding:"9px 14px",borderRadius:10,border:"none",background:"#3182F6",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>정리안 보기</button></div>}
+      <SimpleProjects {...props}/>
+    </>}
+    {cat!=="all"&&<div style={{padding:"12px 16px 24px",display:"flex",flexDirection:"column",gap:14}}>
+      {cat==="launch"&&<LaunchBoard D={D} cu={cu} add={add} up={up} pc={pc} items={lbLive}/>}
+      {W.filter(w=>w.cat===cat).map(w=><WfBoard key={w.id} D={D} cu={cu} wf={w} up={up} add={add} rm={rm} pc={pc}/>)}
+      <SimpleProjects {...props} cat={cat} embedded/>
+    </div>}
+    {cleanOpen&&<CleanupSheet D={D} cu={cu} up={up} add={add} W={W} onClose={()=>setCleanOpen(false)}/>}
+  </div>);
+}
+
+function WfBoard({D,cu,wf,up,add,rm,pc}){
+  const users=D.users||[];
+  const [nt,setNt]=useState("");
+  const [ch,setCh]=useState(CPC_CHANNELS[0]);
+  const [kind,setKind]=useState(NOTICE_KINDS[0]);
+  const [showDone,setShowDone]=useState(false);
+  const [openId,setOpenId]=useState(null);
+  const [setOpen,setSetOpen]=useState(false);
+  const [fold,setFold]=useState(false);
+  const today=ymdToday();
+  const rows=(D.tasks||[]).filter(t=>t.wfId===wf.id);
+  const active=rows.filter(t=>t.status!=="done").sort((a,b)=>String(a.dueDate||"9999").localeCompare(String(b.dueDate||"9999"))||String(a.id).localeCompare(String(b.id)));
+  const doneRows=rows.filter(t=>t.status==="done").sort((a,b)=>String(b.doneAt||"").localeCompare(String(a.doneAt||"")));
+  const open=rows.find(t=>t.id===openId);
+  const leadName=userName(D,wf.leadId);
+  const addCase=()=>{ const title=nt.trim(); if(!title) return;
+    add("tasks",{id:"t"+Date.now(),title,projectId:wf.projectId||"",assigneeId:cu.id,type:"general",status:"todo",isFixed:false,weekDay:null,weekSlot:null,workDate:"",dueDate:"",memo:"",attachments:[],
+      wfId:wf.id,wfChecks:{},wfData:wf.kind==="cpc"?{channel:ch}:wf.kind==="notice"?{kind}:{}});
+    setNt(""); };
+  const tog=(t,sid)=>up("tasks",t.id,toggleCheck(wf,t,sid,cu));
+  const roasMin=numOr0(wf.roasMin)||300;
+  const warnOf=(t)=>{ if(wf.kind==="notice"){ const end=(t.wfData||{}).endDate; if(end&&end<=today&&!caseChecks(t).down) return "오늘 내려야 해요"; }
+    if(wf.kind==="cpc"){ const r=roasOf(t); if(r!=null&&r<roasMin) return `ROAS ${r}% · 기준 ${roasMin}% 미달`; }
+    if(t.dueDate&&t.dueDate<today) return `마감 ${ddayKo(daysTo(t.dueDate))}`; return ""; };
+  const Cell=({t,s,i})=>{ const ck=caseChecks(t)[s.id]; const nx=caseNext(wf,t); const isNext=nx&&nx.id===s.id;
+    return <button onClick={()=>tog(t,s.id)} title={ck?`${ck.byName||""} ${String(ck.at||"").slice(5,10)} 체크 · 누르면 해제`:`${s.name} 체크`} aria-label={`${t.title} ${s.name}`}
+      style={{width:30,height:30,borderRadius:9,border:`2px solid ${ck?"#00C073":isNext?"#3182F6":"#E5E8EB"}`,background:ck?"#00C073":isNext?"#E8F1FF":"#fff",color:ck?"#fff":"#3182F6",fontWeight:900,fontSize:13,cursor:"pointer",padding:0}}>{ck?"✓":isNext?"•":""}</button>; };
+  const meta=(t)=>{ const nx=caseNext(wf,t); const own=nx?(nx.ownerId||t.assigneeId):null; return(
+    <p style={{margin:"3px 0 0",fontSize:11,color:"#8B95A1",lineHeight:1.45}}>👤 {userName(D,t.assigneeId)||"담당 없음"}{nx?<> · 다음 <b style={{color:"#1B64DA"}}>{nx.name}</b>{own&&own!==t.assigneeId?` (${userName(D,own)})`:""}</>:""}{t.dueDate?` · ${ddayKo(daysTo(t.dueDate))}`:""}</p>); };
+  const extraHead=wf.kind==="cpc"?["광고비","매출","ROAS"]:wf.kind==="notice"?["내리는 날"]:[];
+  const extraCells=(t)=>{ const d=t.wfData||{};
+    if(wf.kind==="cpc"){ const r=roasOf(t); return [<td key="sp" style={{fontVariantNumeric:"tabular-nums"}}>{fmtWon(d.spend)||"—"}</td>,<td key="rv" style={{fontVariantNumeric:"tabular-nums"}}>{fmtWon(d.revenue)||"—"}</td>,
+      <td key="ro"><b style={{color:r==null?"#B0B8C1":r<roasMin?"#F04452":"#00A862"}}>{r==null?"—":r+"%"}</b></td>]; }
+    if(wf.kind==="notice") return [<td key="end" style={{fontWeight:800,color:d.endDate&&d.endDate<=today&&!caseChecks(t).down?"#F04452":"#4E5968"}}>{d.endDate?String(d.endDate).slice(5):"—"}</td>];
+    return []; };
+  const Table=({list})=>(<div className="wfx-wrap"><table className="wfx-tbl"><thead><tr>
+      <th className="nm">{wf.unit||"건"}</th>
+      {wf.stages.map((s,i)=><th key={s.id} title={s.desc||""} style={{minWidth:64}}>{i+1}. {s.name}{s.ownerId?<span style={{display:"block",fontWeight:700,color:"#1B64DA",fontSize:10.5}}>{userName(D,s.ownerId)}</span>:null}</th>)}
+      <th>진행</th>{extraHead.map(h=><th key={h}>{h}</th>)}
+    </tr></thead><tbody>
+      {list.map(t=>{ const pr=caseProgress(wf,t); const w=warnOf(t); const dn=t.status==="done"; return(<tr key={t.id}>
+        <td className="nm"><button onClick={()=>setOpenId(t.id)} style={{display:"block",width:"100%",textAlign:"left",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
+          <span style={{fontSize:13,fontWeight:800,color:dn?"#8B95A1":"#191F28",textDecoration:dn?"line-through":"none"}}>{t.status==="hold"?"⏸ ":""}{t.title}</span>
+          {meta(t)}
+          <span style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:2}}><ExecBadge exec={t.exec} note={t.execNote}/>{w&&<span style={{fontSize:10.5,fontWeight:800,color:"#F04452",background:"#FFF0F1",borderRadius:6,padding:"2px 6px"}}>⚠ {w}</span>}{(t.wfData||{}).channel&&<span style={{fontSize:10.5,fontWeight:800,color:"#4E5968",background:"#F2F4F6",borderRadius:6,padding:"2px 6px"}}>{t.wfData.channel}</span>}{(t.wfData||{}).kind&&<span style={{fontSize:10.5,fontWeight:800,color:"#4E5968",background:"#F2F4F6",borderRadius:6,padding:"2px 6px"}}>{t.wfData.kind}</span>}</span>
+        </button></td>
+        {wf.stages.map((s,i)=><td key={s.id}><Cell t={t} s={s} i={i}/></td>)}
+        <td style={{fontWeight:900,color:pr.done===pr.total?"#00A862":"#191F28",fontVariantNumeric:"tabular-nums"}}>{pr.done}/{pr.total}</td>
+        {extraCells(t)}
+      </tr>); })}
+    </tbody></table></div>);
+  const Cards=({list})=>(<div style={{display:"flex",flexDirection:"column",gap:8}}>
+    {list.map(t=>{ const pr=caseProgress(wf,t); const w=warnOf(t); const dn=t.status==="done"; const r=wf.kind==="cpc"?roasOf(t):null; return(
+      <div key={t.id} style={{padding:"11px 12px",borderRadius:14,border:`1px solid ${w?"#FFC9CE":"#EEF1F4"}`,background:dn?"#FAFBFC":"#fff"}}>
+        <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
+          <button onClick={()=>setOpenId(t.id)} style={{flex:1,minWidth:0,textAlign:"left",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
+            <span style={{fontSize:14,fontWeight:800,color:dn?"#8B95A1":"#191F28",textDecoration:dn?"line-through":"none",wordBreak:"keep-all"}}>{t.status==="hold"?"⏸ ":""}{t.title}</span>{meta(t)}</button>
+          <span style={{flexShrink:0,fontSize:13,fontWeight:900,color:pr.done===pr.total?"#00A862":"#1B64DA",fontVariantNumeric:"tabular-nums"}}>{pr.done}/{pr.total}</span>
+        </div>
+        {(w||t.exec&&t.exec!=="self"||r!=null)&&<div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:6}}><ExecBadge exec={t.exec} note={t.execNote}/>{r!=null&&<span style={{fontSize:10.5,fontWeight:800,color:r<roasMin?"#F04452":"#00A862",background:r<roasMin?"#FFF0F1":"#E8FAF1",borderRadius:6,padding:"2px 6px"}}>ROAS {r}%</span>}{w&&<span style={{fontSize:10.5,fontWeight:800,color:"#F04452",background:"#FFF0F1",borderRadius:6,padding:"2px 6px"}}>⚠ {w}</span>}</div>}
+        <div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:8}}>
+          {wf.stages.map((s,i)=>{ const ck=caseChecks(t)[s.id]; const nx=caseNext(wf,t); const isNext=nx&&nx.id===s.id;
+            return <button key={s.id} onClick={()=>tog(t,s.id)} style={{padding:"7px 10px",borderRadius:10,border:`1.5px solid ${ck?"#00C073":isNext?"#3182F6":"#E5E8EB"}`,background:ck?"#E8FAF1":isNext?"#E8F1FF":"#fff",color:ck?"#00A862":isNext?"#1B64DA":"#6B7684",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>{ck?"✓ ":`${i+1}. `}{s.name}</button>; })}
+        </div>
+      </div>); })}
+  </div>);
+  return(
+    <div style={{background:"#fff",borderRadius:18,padding:"14px 14px 12px",boxShadow:"0 2px 12px rgba(15,23,42,.05)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <button onClick={()=>setFold(f=>!f)} style={{display:"flex",alignItems:"center",gap:8,border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",flex:"1 1 180px",minWidth:0,textAlign:"left"}}>
+          <span style={{fontSize:20}}>{wf.icon}</span>
+          <span style={{minWidth:0}}><span style={{display:"block",fontSize:15.5,fontWeight:900,color:"#191F28"}}>{wf.name} <span style={{fontSize:12,color:"#8B95A1",fontWeight:700}}>{fold?"▸":"▾"}</span></span>
+            <span style={{display:"block",fontSize:11.5,color:"#8B95A1",marginTop:1}}>관리 {leadName||"미지정"} · 진행 {active.length} · 완료 {doneRows.length}{wf.projectId?` · 📁 ${((D.projects||[]).find(p=>p.id===wf.projectId)||{}).title||""}`:""}</span></span>
+        </button>
+        <button onClick={()=>setSetOpen(true)} style={{padding:"8px 11px",borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",color:"#4E5968",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>⚙ 단계·담당</button>
+      </div>
+      {!fold&&<>
+        <p style={{margin:"8px 2px 10px",fontSize:11.5,color:"#6B7684",lineHeight:1.6,wordBreak:"keep-all"}}>{wf.stages.map((s,i)=><Fragment key={s.id}>{i?" → ":""}<b style={{color:"#333D4B"}}>{s.name}</b>{s.ownerId?<span style={{color:"#1B64DA"}}>({userName(D,s.ownerId)})</span>:null}</Fragment>)}</p>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",padding:8,borderRadius:12,background:"#F2F7FF",border:"1.5px solid #C9DDFF",marginBottom:10}}>
+          {wf.kind==="cpc"&&<select value={ch} onChange={e=>setCh(e.target.value)} aria-label="채널" style={{...wfInp,flex:"0 0 auto"}}>{CPC_CHANNELS.map(c=><option key={c}>{c}</option>)}</select>}
+          {wf.kind==="notice"&&<select value={kind} onChange={e=>setKind(e.target.value)} aria-label="공지 종류" style={{...wfInp,flex:"0 0 auto"}}>{NOTICE_KINDS.map(c=><option key={c}>{c}</option>)}</select>}
+          <input value={nt} onChange={e=>setNt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addCase()} placeholder={`${wf.unit||"건"} 추가 — ${wf.hint||""}`} style={{...wfInp,flex:"1 1 180px"}}/>
+          <button onClick={addCase} disabled={!nt.trim()} style={{padding:"10px 16px",borderRadius:10,border:"none",background:nt.trim()?"#3182F6":"#D1D6DB",color:"#fff",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>＋ 추가</button>
+        </div>
+        {active.length===0?<p style={{margin:"6px 2px 4px",fontSize:12.5,color:"#8B95A1"}}>진행 중인 {wf.unit||"건"}이 없어요 · 위에 이름만 넣으면 1줄이 생겨요</p>:pc?<Table list={active}/>:<Cards list={active}/>}
+        {doneRows.length>0&&<div style={{marginTop:10}}>
+          <button onClick={()=>setShowDone(v=>!v)} style={{border:"none",background:"none",padding:"4px 2px",fontSize:12,fontWeight:800,color:"#00A862",cursor:"pointer",fontFamily:"inherit"}}>완료 {doneRows.length} {showDone?"▴":"▾"}</button>
+          {showDone&&<div style={{marginTop:6}}>{pc?<Table list={doneRows}/>:<Cards list={doneRows}/>}</div>}
+        </div>}
+      </>}
+      {open&&<CaseSheet D={D} cu={cu} wf={wf} t={open} up={up} rm={rm} onClose={()=>setOpenId(null)}/>}
+      {setOpen&&<WfSettingsSheet D={D} wf={wf} add={add} up={up} onClose={()=>setSetOpen(false)}/>}
+    </div>);
+}
+
+function CaseSheet({D,cu,wf,t,up,rm,onClose}){
+  const users=D.users||[];
+  const [delAsk,setDelAsk]=useState(false);
+  const d=t.wfData||{};
+  const setData=(k,v)=>up("tasks",t.id,{wfData:{...d,[k]:v}});
+  const r=roasOf(t); const roasMin=numOr0(wf.roasMin)||300;
+  const lbl={display:"block",fontSize:11.5,fontWeight:700,color:"#6B7684"};
+  return(<Sheet open={true} onClose={onClose} title={`${wf.icon} ${wf.name}`} h="92vh" w={560}>
+    <div style={{paddingTop:6,display:"flex",flexDirection:"column",gap:12}}>
+      <input defaultValue={t.title} key={t.id} onBlur={e=>{ const v=e.target.value.trim(); if(v&&v!==t.title) up("tasks",t.id,{title:v}); }} aria-label="이름" style={{...wfInp,fontSize:17,fontWeight:900,border:"1.5px solid transparent",padding:"6px 4px"}}/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        <label style={lbl}>실행 담당<select value={t.assigneeId||""} onChange={e=>up("tasks",t.id,{assigneeId:e.target.value})} style={{...wfInp,width:"100%",marginTop:4}}><option value="">없음</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
+        <label style={lbl}>마감일<input type="date" value={t.dueDate||""} onChange={e=>up("tasks",t.id,{dueDate:e.target.value})} style={{...wfInp,width:"100%",marginTop:4}}/></label>
+      </div>
+      <div><span style={lbl}>실행 방식</span><div style={{marginTop:5}}><ExecPicker value={t.exec} note={t.execNote} onChange={(k,n)=>up("tasks",t.id,{exec:k,execNote:n||""})}/></div></div>
+      {wf.kind==="cpc"&&<div style={{padding:12,borderRadius:14,background:"#F9FAFB",display:"flex",flexDirection:"column",gap:8}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+          <label style={lbl}>채널<select value={d.channel||CPC_CHANNELS[0]} onChange={e=>setData("channel",e.target.value)} style={{...wfInp,width:"100%",marginTop:4}}>{CPC_CHANNELS.map(c=><option key={c}>{c}</option>)}</select></label>
+          <label style={lbl}>광고비(원)<input inputMode="numeric" defaultValue={d.spend||""} key={"sp"+t.id} onBlur={e=>setData("spend",numOr0(e.target.value))} style={{...wfInp,width:"100%",marginTop:4}}/></label>
+          <label style={lbl}>매출(원)<input inputMode="numeric" defaultValue={d.revenue||""} key={"rv"+t.id} onBlur={e=>setData("revenue",numOr0(e.target.value))} style={{...wfInp,width:"100%",marginTop:4}}/></label>
+        </div>
+        <p style={{margin:0,fontSize:13,fontWeight:800,color:r==null?"#8B95A1":r<roasMin?"#F04452":"#00A862"}}>{r==null?"광고비·매출을 넣으면 ROAS가 계산돼요":`ROAS ${r}% ${r<roasMin?`· 기준 ${roasMin}% 미달 → 소재 교체·중단 검토`:`· 기준 ${roasMin}% 이상`}`}</p>
+        <label style={lbl}>마지막 ROAS 체크일<input type="date" value={d.checkedAt||""} onChange={e=>setData("checkedAt",e.target.value)} style={{...wfInp,width:"100%",marginTop:4}}/></label>
+      </div>}
+      {wf.kind==="notice"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+        <label style={lbl}>종류<select value={d.kind||NOTICE_KINDS[0]} onChange={e=>setData("kind",e.target.value)} style={{...wfInp,width:"100%",marginTop:4}}>{NOTICE_KINDS.map(c=><option key={c}>{c}</option>)}</select></label>
+        <label style={lbl}>게시일<input type="date" value={d.startDate||""} onChange={e=>setData("startDate",e.target.value)} style={{...wfInp,width:"100%",marginTop:4}}/></label>
+        <label style={lbl}>내리는 날<input type="date" value={d.endDate||""} onChange={e=>setData("endDate",e.target.value)} style={{...wfInp,width:"100%",marginTop:4}}/></label>
+      </div>}
+      <div>
+        <span style={lbl}>단계 체크</span>
+        <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:6}}>
+          {wf.stages.map((s,i)=>{ const ck=caseChecks(t)[s.id]; return(
+            <button key={s.id} onClick={()=>up("tasks",t.id,toggleCheck(wf,t,s.id,cu))} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,border:`1px solid ${ck?"rgba(0,192,115,.3)":"#EEF1F4"}`,background:ck?"rgba(232,250,241,.5)":"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+              <span style={{width:24,height:24,borderRadius:7,border:`2px solid ${ck?"#00C073":"#D1D6DB"}`,background:ck?"#00C073":"#fff",color:"#fff",fontWeight:900,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{ck?"✓":""}</span>
+              <span style={{flex:1,minWidth:0}}><span style={{display:"block",fontSize:13.5,fontWeight:800,color:"#191F28"}}>{i+1}. {s.name}{s.desc?<span style={{fontWeight:600,color:"#8B95A1"}}> · {s.desc}</span>:null}</span>
+                <span style={{display:"block",fontSize:11,color:"#8B95A1",marginTop:2}}>{ck?`✓ ${ck.byName||""} · ${String(ck.at||"").slice(5,16).replace("T"," ")}`:s.ownerId?`담당 ${userName(D,s.ownerId)}`:"담당: 이 건의 실행 담당"}</span></span>
+            </button>); })}
+        </div>
+      </div>
+      <label style={lbl}>메모<textarea defaultValue={t.memo||""} key={"m"+t.id} onBlur={e=>{ if(e.target.value!==(t.memo||"")) up("tasks",t.id,{memo:e.target.value}); }} rows={3} style={{...wfInp,width:"100%",marginTop:4,resize:"vertical"}}/></label>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",paddingTop:6,borderTop:"1px solid #EEF1F4"}}>
+        <button onClick={()=>up("tasks",t.id,{status:t.status==="hold"?(Object.keys(caseChecks(t)).length?"inprogress":"todo"):"hold"})} style={{padding:"9px 12px",borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",color:"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{t.status==="hold"?"▶ 다시 진행":"⏸ 보류"}</button>
+        {!delAsk?<button onClick={()=>setDelAsk(true)} style={{marginLeft:"auto",padding:"9px 12px",borderRadius:10,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>🗑 삭제</button>
+          :<button onClick={()=>{ rm("tasks",t.id); onClose(); }} style={{marginLeft:"auto",padding:"9px 12px",borderRadius:10,border:"none",background:"#F04452",color:"#fff",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>휴지통으로 이동 (복구 가능)</button>}
+      </div>
+    </div>
+  </Sheet>);
+}
+
+function WfSettingsSheet({D,wf,add,up,onClose}){
+  const users=D.users||[];
+  const [leadId,setLeadId]=useState(wf.leadId||"");
+  const [projectId,setProjectId]=useState(wf.projectId||"");
+  const [roasMin,setRoasMin]=useState(wf.roasMin||300);
+  const [stages,setStages]=useState(wf.stages.map(s=>({...s})));
+  const [msg,setMsg]=useState("");
+  const setSt=(i,patch)=>setStages(a=>a.map((s,j)=>j===i?{...s,...patch}:s));
+  const move=(i,d)=>setStages(a=>{ const b=a.slice(); const j=i+d; if(j<0||j>=b.length) return a; [b[i],b[j]]=[b[j],b[i]]; return b; });
+  const def=DEFAULT_WORKFLOWS.find(w=>w.id===wf.id);
+  const save=()=>{ const st=stages.map(s=>({...s,name:String(s.name||"").trim()||"단계"})).filter(Boolean);
+    saveWfOverride(D,add,up,wf.id,{leadId,projectId,stages:st,...(wf.kind==="cpc"?{roasMin:numOr0(roasMin)||300}:{})}); setMsg("저장했어요"); setTimeout(onClose,500); };
+  const lbl={display:"block",fontSize:11.5,fontWeight:700,color:"#6B7684"};
+  return(<Sheet open={true} onClose={onClose} title={`${wf.icon} ${wf.name} · 단계·담당`} h="92vh" w={560}>
+    <div style={{paddingTop:6,display:"flex",flexDirection:"column",gap:12}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        <label style={lbl}>관리 담당 (1명)<select value={leadId} onChange={e=>setLeadId(e.target.value)} style={{...wfInp,width:"100%",marginTop:4}}><option value="">미지정</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
+        <label style={lbl}>연결 프로젝트<select value={projectId} onChange={e=>setProjectId(e.target.value)} style={{...wfInp,width:"100%",marginTop:4}}><option value="">없음</option>{(D.projects||[]).map(p=><option key={p.id} value={p.id}>{p.title}</option>)}</select></label>
+      </div>
+      {wf.kind==="cpc"&&<label style={lbl}>ROAS 기준(%) — 이보다 낮으면 빨간불<input inputMode="numeric" value={roasMin} onChange={e=>setRoasMin(e.target.value)} style={{...wfInp,width:"100%",marginTop:4}}/></label>}
+      <div>
+        <span style={lbl}>단계 · 실행 담당 <span style={{fontWeight:500,color:"#8B95A1"}}>(비워두면 건마다 정한 담당이 해요)</span></span>
+        <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:6}}>
+          {stages.map((s,i)=><div key={s.id} style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",padding:8,borderRadius:12,background:"#F9FAFB"}}>
+            <span style={{fontSize:12,fontWeight:900,color:"#8B95A1",width:18,textAlign:"center"}}>{i+1}</span>
+            <input value={s.name} onChange={e=>setSt(i,{name:e.target.value})} aria-label="단계 이름" style={{...wfInp,flex:"1 1 130px",padding:"8px 10px",fontSize:13.5}}/>
+            <select value={s.ownerId||""} onChange={e=>setSt(i,{ownerId:e.target.value})} aria-label="단계 담당" style={{...wfInp,flex:"0 1 120px",padding:"8px 8px",fontSize:13}}><option value="">건 담당</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
+            <span style={{display:"flex",gap:2}}>
+              <button onClick={()=>move(i,-1)} aria-label="위로" style={{width:30,height:30,borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",cursor:"pointer"}}>↑</button>
+              <button onClick={()=>move(i,1)} aria-label="아래로" style={{width:30,height:30,borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",cursor:"pointer"}}>↓</button>
+              <button onClick={()=>setStages(a=>a.filter((_,j)=>j!==i))} aria-label="단계 빼기" style={{width:30,height:30,borderRadius:8,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",cursor:"pointer"}}>✕</button>
+            </span>
+          </div>)}
+        </div>
+        <button onClick={()=>setStages(a=>[...a,{id:"s"+Date.now().toString(36),name:"새 단계"}])} style={{marginTop:8,padding:"9px 12px",borderRadius:10,border:"1.5px dashed #C9DDFF",background:"#F7FAFF",color:"#1B64DA",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>＋ 단계 추가</button>
+        <p style={{margin:"6px 2px 0",fontSize:11,color:"#8B95A1"}}>단계를 빼도 이미 체크한 기록은 지워지지 않아요.</p>
+      </div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {def&&<button onClick={()=>setStages(def.stages.map(s=>({...s})))} style={{padding:"11px 14px",borderRadius:12,border:"1px solid #E5E8EB",background:"#fff",color:"#6B7684",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>기본 단계로</button>}
+        <button onClick={save} style={{flex:1,padding:"12px 0",borderRadius:12,border:"none",background:"#3182F6",color:"#fff",fontWeight:900,fontSize:14.5,cursor:"pointer",fontFamily:"inherit"}}>저장</button>
+      </div>
+      {msg&&<p style={{margin:0,fontSize:12.5,color:"#00A862",fontWeight:800,textAlign:"center"}}>{msg}</p>}
+    </div>
+  </Sheet>);
+}
+
+// ── 🚀 신제품 출시 보드 (런칭보드 문서 원본 · 큰 단계 7칸 · 칸 누르면 세부 체크) ──
+const LB_ST={todo:{l:"할일",c:"#6B7684",bg:"#F2F4F6"},doing:{l:"진행중",c:"#1B64DA",bg:"#E8F1FF"},done:{l:"완료",c:"#00A862",bg:"#E8FAF1"},skip:{l:"해당 없음",c:"#B0B8C1",bg:"#F9FAFB"}};
+function lbPeople(D,items){ const set=new Set(); (D.users||[]).forEach(u=>u.name&&set.add(u.name));
+  (items||[]).forEach(p=>{ if(p.lead) set.add(p.lead); LAUNCH_ITEMS.forEach(it=>{ const o=lbState(p,it).owner; if(o) set.add(o); }); });
+  const arr=[...set]; const out=arr.filter(n=>!arr.some(m=>m!==n&&m.length>n.length&&nameMatch(n,m)&&(D.users||[]).some(u=>u.name===m)&&!(D.users||[]).some(u=>u.name===n)));
+  return [...out.sort((a,b)=>a.localeCompare(b,"ko")),"외주"].filter((v,i,a)=>a.indexOf(v)===i); }
+function phaseColor(pp){ if(pp.total===0) return {c:"#B0B8C1",bg:"#F9FAFB"}; if(pp.done===pp.total) return {c:"#00A862",bg:"#E8FAF1"}; if(pp.late) return {c:"#F04452",bg:"#FFF0F1"}; if(pp.done>0||pp.doing) return {c:"#1B64DA",bg:"#E8F1FF"}; return {c:"#8B95A1",bg:"#F2F4F6"}; }
+function launchNextItem(p){ const ph=launchCurrentPhase(p); if(!ph) return null; const it=ph.items.find(i=>{ const s=lbState(p,i).status; return s!=="done"&&s!=="skip"; }); return it?{ph,it,s:lbState(p,it)}:null; }
+
+function LaunchBoard({D,cu,add,up,pc,items}){
+  const [brand,setBrand]=useState("all");
+  const [open,setOpen]=useState(null);   // {id, ph}
+  const [defOpen,setDefOpen]=useState(false);
+  const [showDone,setShowDone]=useState(false);
+  const today=ymdToday();
+  const list=items.filter(p=>brand==="all"||p.brand===brand).sort((a,b)=>(a.launchDate?0:1)-(b.launchDate?0:1)||String(a.launchDate||"").localeCompare(String(b.launchDate||""))||String(a.name||"").localeCompare(String(b.name||""),"ko"));
+  const act=list.filter(p=>launchProgress(p).pct<100), fin=list.filter(p=>launchProgress(p).pct>=100);
+  const openP=items.find(p=>p.id===(open&&open.id));
+  const brands=[...new Set(items.map(p=>p.brand).filter(Boolean))];
+  const Name=({p})=>{ const b=LAUNCH_BRANDS[p.brand]||{icon:"📦",name:p.brandName||"기타"}; const rem=p.launchDate?daysTo(p.launchDate):null; const nx=launchNextItem(p);
+    return(<button onClick={()=>setOpen({id:p.id,ph:(launchCurrentPhase(p)||LAUNCH_PHASES[0]).k})} style={{display:"block",width:"100%",textAlign:"left",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
+      <span style={{fontSize:13.5,fontWeight:900,color:"#191F28"}}>{b.icon} {p.name}</span>
+      {p.launchDate&&<span style={{marginLeft:6,fontSize:11.5,fontWeight:900,color:rem!=null&&rem<0?"#F04452":rem!=null&&rem<=14?"#FF9500":"#1B64DA"}}>출시 {String(p.launchDate).slice(5)} {ddayKo(rem)}</span>}
+      <span style={{display:"block",fontSize:11,color:"#8B95A1",marginTop:2}}>관리 {launchLead(p)||"미지정"}{nx?<> · 다음 <b style={{color:"#1B64DA"}}>{nx.it.name}</b>{nx.s.owner?` (${nx.s.owner})`:""}</>:""}</span>
+    </button>); };
+  const PhCell=({p,ph})=>{ const pp=phaseProgress(p,ph,today); const col=phaseColor(pp);
+    return <button onClick={()=>setOpen({id:p.id,ph:ph.k})} title={`${ph.name} ${pp.done}/${pp.total}`} style={{minWidth:54,padding:"6px 4px",borderRadius:10,border:`1.5px solid ${col.c}33`,background:col.bg,color:col.c,fontWeight:900,fontSize:12.5,cursor:"pointer",fontFamily:"inherit",fontVariantNumeric:"tabular-nums"}}>{pp.total===0?"—":pp.done===pp.total?"✓":`${pp.done}/${pp.total}`}{pp.late&&pp.done<pp.total?" !":""}</button>; };
+  const Table=({rows})=>(<div className="wfx-wrap"><table className="wfx-tbl"><thead><tr><th className="nm">제품</th>{LAUNCH_PHASES.map(ph=><th key={ph.k}>{ph.no}. {ph.name}</th>)}<th>전체</th></tr></thead>
+    <tbody>{rows.map(p=>{ const lp=launchProgress(p); return(<tr key={p.id}><td className="nm"><Name p={p}/></td>{LAUNCH_PHASES.map(ph=><td key={ph.k}><PhCell p={p} ph={ph}/></td>)}<td style={{fontWeight:900,fontVariantNumeric:"tabular-nums"}}>{lp.pct}%</td></tr>); })}</tbody></table></div>);
+  const Cards=({rows})=>(<div style={{display:"flex",flexDirection:"column",gap:8}}>{rows.map(p=>{ const lp=launchProgress(p); return(
+    <div key={p.id} style={{padding:"11px 12px",borderRadius:14,border:"1px solid #EEF1F4",background:"#fff"}}>
+      <div style={{display:"flex",gap:8,alignItems:"flex-start"}}><div style={{flex:1,minWidth:0}}><Name p={p}/></div><span style={{fontSize:13,fontWeight:900,color:"#1B64DA",fontVariantNumeric:"tabular-nums"}}>{lp.pct}%</span></div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginTop:8}}>
+        {LAUNCH_PHASES.map(ph=>{ const pp=phaseProgress(p,ph,today); const col=phaseColor(pp); return(
+          <button key={ph.k} onClick={()=>setOpen({id:p.id,ph:ph.k})} aria-label={`${ph.name} ${pp.done}/${pp.total}`} style={{padding:"5px 0 4px",borderRadius:8,border:"none",background:col.bg,cursor:"pointer",fontFamily:"inherit",minWidth:0}}>
+            <span style={{display:"block",fontSize:9.5,fontWeight:800,color:"#6B7684",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{ph.short||ph.name}</span>
+            <span style={{display:"block",fontSize:11.5,fontWeight:900,color:col.c,fontVariantNumeric:"tabular-nums"}}>{pp.done===pp.total&&pp.total?"✓":`${pp.done}/${pp.total}`}</span></button>); })}
+      </div>
+    </div>); })}</div>);
+  return(
+    <div style={{background:"#fff",borderRadius:18,padding:"14px 14px 12px",boxShadow:"0 2px 12px rgba(15,23,42,.05)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <span style={{fontSize:20}}>🚀</span>
+        <div style={{flex:"1 1 180px",minWidth:0}}><p style={{margin:0,fontSize:15.5,fontWeight:900,color:"#191F28"}}>신제품 출시 로드맵</p>
+          <p style={{margin:"1px 0 0",fontSize:11.5,color:"#8B95A1"}}>런칭보드와 같은 데이터 · 칸을 누르면 세부 체크·담당·마감 · 관리 = 브랜드 BM</p></div>
+        <button onClick={()=>setDefOpen(true)} style={{padding:"8px 11px",borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",color:"#4E5968",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>⚙ 기본 담당</button>
+        <a href="https://pour-construction-form.pages.dev/launch-board" target="_blank" rel="noopener" style={{padding:"8px 11px",borderRadius:10,border:"none",background:"#3182F6",color:"#fff",fontWeight:800,fontSize:12,textDecoration:"none",whiteSpace:"nowrap"}}>＋ 새 제품 (런칭보드) ↗</a>
+      </div>
+      <div style={{display:"flex",gap:6,overflowX:"auto",margin:"10px 0",WebkitOverflowScrolling:"touch"}}>
+        {["all",...brands].map(k=>{ const b=LAUNCH_BRANDS[k]; const sel=brand===k; const n=k==="all"?items.length:items.filter(p=>p.brand===k).length;
+          return <button key={k} onClick={()=>setBrand(k)} style={{flexShrink:0,padding:"6px 11px",borderRadius:16,border:`1.5px solid ${sel?"#191F28":"#E5E8EB"}`,background:sel?"#191F28":"#fff",color:sel?"#fff":"#4E5968",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>{k==="all"?"전체":`${b?b.icon:"📦"} ${b?b.name:k}`} {n}</button>; })}
+      </div>
+      {items.length===0?<p style={{margin:"6px 2px",fontSize:12.5,color:"#8B95A1"}}>런칭보드 데이터를 불러오는 중이거나 등록된 제품이 없어요</p>
+        :act.length===0?<p style={{margin:"6px 2px",fontSize:12.5,color:"#8B95A1"}}>진행 중인 신제품이 없어요</p>:pc?<Table rows={act}/>:<Cards rows={act}/>}
+      {fin.length>0&&<div style={{marginTop:10}}><button onClick={()=>setShowDone(v=>!v)} style={{border:"none",background:"none",padding:"4px 2px",fontSize:12,fontWeight:800,color:"#00A862",cursor:"pointer",fontFamily:"inherit"}}>출시 준비 완료 {fin.length} {showDone?"▴":"▾"}</button>
+        {showDone&&<div style={{marginTop:6}}>{pc?<Table rows={fin}/>:<Cards rows={fin}/>}</div>}</div>}
+      {openP&&<LaunchProductSheet D={D} cu={cu} p={openP} items={items} phK={open.ph} setPh={(k)=>setOpen(o=>({...o,ph:k}))} onClose={()=>setOpen(null)}/>}
+      {defOpen&&<LaunchDefaultsSheet D={D} add={add} up={up} items={items} onClose={()=>setDefOpen(false)}/>}
+    </div>);
+}
+
+function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose}){
+  const [err,setErr]=useState("");
+  const [editId,setEditId]=useState(null);   // 누른 칸만 담당·마감·상태·방식 편집 펼침(스크롤 줄이기)
+  const today=ymdToday();
+  const people=lbPeople(D,items);
+  const ph=LAUNCH_PHASES.find(x=>x.k===phK)||LAUNCH_PHASES[0];
+  const defs=(launchSettings(D.workflows).defaults)||{};
+  const w=async(patch,text)=>{ const ok=await lbWrite(p.id,patch,text,cu); setErr(ok?"":"저장하지 못했어요 · 인터넷 연결을 확인해 주세요"); };
+  const setField=(it,field,value)=>{ const st=lbState(p,it); if((st[field]||"")===value) return;
+    if(it.lb&&["status","owner","due","note"].includes(field)){ const at=new Date().toISOString(); const s={[field]:value,updatedAt:at,updatedBy:cu?.name||""};
+      if(field==="status"){ s.doneBy=value==="done"?(cu?.name||""):""; s.doneAt=value==="done"?at:""; } if(field==="due"&&value) s.dueTbd=false;
+      w({stages:{[it.id]:s}},`${it.name} · ${field==="status"?(LB_ST[value]||{}).l:field==="owner"?"담당 "+(value||"없음"):field==="due"?"마감 "+(value||"없음"):"메모"}`); }
+    else w({osExtra:{[it.id]:{[field]:value,updatedAt:new Date().toISOString(),updatedBy:cu?.name||""}}},`${it.name} · ${field==="status"?(LB_ST[value]||{}).l:field==="owner"?"담당 "+(value||"없음"):field==="due"?"마감 "+(value||"없음"):field==="count"?"건수 "+value:field==="exec"?"실행 방식 "+execOf(value).label:"메모"}`); };
+  const setExec=(it,k,n)=>w({osExtra:{[it.id]:{exec:k,execNote:n||"",updatedAt:new Date().toISOString()}}},`${it.name} · 실행 방식 ${execOf(k).label}${n?" ("+n+")":""}`);
+  const fillDefaults=()=>{ const ex={}; LAUNCH_ITEMS.filter(it=>!it.lb&&defs[it.id]&&!lbState(p,it).owner).forEach(it=>{ ex[it.id]={owner:defs[it.id]}; });
+    if(!Object.keys(ex).length){ setErr("채울 빈 담당이 없어요 (⚙ 기본 담당에서 먼저 정해 주세요)"); return; } w({osExtra:ex},`추가 칸 기본 담당 ${Object.keys(ex).length}개 채움`); };
+  const b=LAUNCH_BRANDS[p.brand]||{icon:"📦",name:p.brandName||"기타"};
+  const lp=launchProgress(p);
+  const sel={...wfInp,padding:"7px 8px",fontSize:12.5};
+  return(<Sheet open={true} onClose={onClose} title={`${b.icon} ${p.name}`} h="94vh" w={720}>
+    <div style={{paddingTop:4,display:"flex",flexDirection:"column",gap:10}}>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"flex-end"}}>
+        <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",flex:"1 1 140px"}}>관리 담당 (1명)<select value={p.lead||""} onChange={e=>w({lead:e.target.value},"관리 담당 "+(e.target.value||"브랜드 BM"))} style={{...wfInp,width:"100%",marginTop:4}}><option value="">브랜드 BM ({(LAUNCH_BRANDS[p.brand]||{}).bm||"-"})</option>{people.filter(n=>n!=="외주").map(n=><option key={n}>{n}</option>)}</select></label>
+        <div style={{flex:"1 1 140px",fontSize:12,color:"#4E5968",fontWeight:700}}>전체 {lp.done}/{lp.total} · <b style={{color:"#1B64DA"}}>{lp.pct}%</b>{p.launchDate?` · 출시 ${p.launchDate} ${ddayKo(daysTo(p.launchDate))}`:""}</div>
+        <button onClick={fillDefaults} style={{padding:"9px 11px",borderRadius:10,border:"1px solid #C9DDFF",background:"#F7FAFF",color:"#1B64DA",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>빈 담당 기본값 채우기</button>
+      </div>
+      <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2,WebkitOverflowScrolling:"touch"}}>
+        {LAUNCH_PHASES.map(x=>{ const pp=phaseProgress(p,x,today); const col=phaseColor(pp); const s=x.k===ph.k;
+          return <button key={x.k} onClick={()=>setPh(x.k)} style={{flexShrink:0,padding:"7px 10px",borderRadius:12,border:`1.5px solid ${s?"#3182F6":"transparent"}`,background:s?"#fff":col.bg,color:s?"#1B64DA":col.c,fontWeight:900,fontSize:12.5,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>{x.no}. {x.name} <span style={{fontVariantNumeric:"tabular-nums"}}>{pp.done}/{pp.total}</span></button>; })}
+      </div>
+      {err&&<p style={{margin:0,fontSize:12.5,color:"#F04452",fontWeight:800}}>{err}</p>}
+      <div style={{display:"flex",flexDirection:"column",gap:7}}>
+        {ph.items.map(it=>{ const s=lbState(p,it); const dn=s.status==="done"; const late=!dn&&s.status!=="skip"&&s.due&&s.due<today; const st=LB_ST[s.status]||LB_ST.todo;
+          return(<div key={it.id} style={{padding:"10px 11px",borderRadius:13,border:`1px solid ${late?"#FFC9CE":dn?"rgba(0,192,115,.25)":"#EEF1F4"}`,background:dn?"rgba(232,250,241,.4)":s.status==="skip"?"#FAFBFC":"#fff"}}>
+            <div style={{display:"flex",alignItems:"center",gap:9}}>
+              {it.target?<span style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                  <button onClick={()=>setField(it,"count",Math.max(0,s.count-1))} aria-label="하나 빼기" style={{width:28,height:28,borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",fontWeight:900,cursor:"pointer"}}>−</button>
+                  <b style={{minWidth:40,textAlign:"center",fontSize:13,color:dn?"#00A862":"#191F28",fontVariantNumeric:"tabular-nums"}}>{s.count}/{it.target}</b>
+                  <button onClick={()=>setField(it,"count",s.count+1)} aria-label="하나 더" style={{width:28,height:28,borderRadius:8,border:"none",background:"#3182F6",color:"#fff",fontWeight:900,cursor:"pointer"}}>＋</button></span>
+                :<button onClick={()=>setField(it,"status",dn?"todo":"done")} aria-label={dn?"완료 취소":"완료"} style={{flexShrink:0,width:26,height:26,borderRadius:8,border:`2px solid ${dn?"#00C073":"#C5CBD3"}`,background:dn?"#00C073":"#fff",color:"#fff",fontWeight:900,fontSize:14,cursor:"pointer",padding:0}}>{dn?"✓":""}</button>}
+              <button onClick={()=>setEditId(v=>v===it.id?null:it.id)} aria-expanded={editId===it.id} style={{flex:1,minWidth:0,textAlign:"left",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
+                <p style={{margin:0,fontSize:13.5,fontWeight:800,color:s.status==="skip"?"#B0B8C1":dn?"#6B7684":"#191F28",textDecoration:s.status==="skip"?"line-through":"none",wordBreak:"keep-all"}}>{it.name}{it.max?<span style={{fontWeight:600,color:"#8B95A1"}}> · {it.target}~{it.max}건</span>:null}{it.desc?<span style={{fontWeight:600,color:"#8B95A1"}}> · {it.desc}</span>:null}{!it.lb&&<span style={{marginLeft:5,fontSize:10,fontWeight:800,color:"#6D28D9",background:"#F1EAFE",borderRadius:5,padding:"1px 5px"}}>업무OS</span>}</p>
+                <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:3,alignItems:"center",fontSize:11,color:"#8B95A1"}}>
+                  {s.status!=="todo"&&!dn&&<span style={{fontSize:10.5,fontWeight:800,color:st.c,background:st.bg,borderRadius:6,padding:"2px 6px"}}>{st.l}</span>}
+                  <span>👤 {s.owner||"담당 없음"}</span>{s.due&&<span style={{fontWeight:late?800:600,color:late?"#F04452":"#6B7684"}}>· {String(s.due).slice(5)} {ddayKo(daysTo(s.due))}</span>}
+                  <ExecBadge exec={s.exec} note={s.execNote}/>
+                </div>
+              </button>
+              <span style={{flexShrink:0,fontSize:12,color:"#B0B8C1"}}>{editId===it.id?"▴":"✎"}</span>
+            </div>
+            {editId===it.id&&<><div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
+              <select value={s.status} onChange={e=>setField(it,"status",e.target.value)} aria-label="상태" style={{...sel,flex:"0 0 auto"}}>{Object.entries(LB_ST).map(([k,v])=><option key={k} value={k}>{v.l}</option>)}</select>
+              <select value={s.owner||""} onChange={e=>setField(it,"owner",e.target.value)} aria-label="실행 담당" style={{...sel,flex:"1 1 96px"}}><option value="">담당 없음</option>{[...new Set([...(s.owner?[s.owner]:[]),...people])].map(n=><option key={n}>{n}</option>)}</select>
+              <input type="date" value={s.due||""} onChange={e=>setField(it,"due",e.target.value)} aria-label="마감" style={{...sel,flex:"1 1 120px"}}/>
+            </div>
+            <div style={{marginTop:8}}><ExecPicker value={s.exec} note={s.execNote} onChange={(k,n)=>setExec(it,k,n)}/></div></>}
+          </div>); })}
+      </div>
+      <p style={{margin:"4px 2px 0",fontSize:11,color:"#8B95A1",lineHeight:1.6}}>칸 이름을 누르면 담당·마감·상태·실행 방식(직접·협업·외주)을 고칠 수 있어요. 런칭보드에도 똑같이 반영돼요. <b style={{color:"#6D28D9"}}>업무OS</b> 표시 칸(컬러스티커·유통기한·창고 입고·출시 홍보 등)은 업무OS에서만 보여요.</p>
+    </div>
+  </Sheet>);
+}
+
+function LaunchDefaultsSheet({D,add,up,items,onClose}){
+  const cur=launchSettings(D.workflows);
+  const [defs,setDefs]=useState({...(cur.defaults||{})});
+  const people=lbPeople(D,items);
+  const save=()=>{ saveWfOverride(D,add,up,"wf_launch",{defaults:defs}); onClose(); };
+  return(<Sheet open={true} onClose={onClose} title="🚀 신제품 · 추가 칸 기본 담당" h="92vh" w={560}>
+    <div style={{paddingTop:6,display:"flex",flexDirection:"column",gap:10}}>
+      <p style={{margin:0,fontSize:12,color:"#6B7684",lineHeight:1.6}}>업무OS에서 추가한 칸의 기본 실행 담당이에요. 제품 화면의 <b>[빈 담당 기본값 채우기]</b>를 누르면 비어 있는 칸에만 들어가요. (런칭보드 기존 단계의 기본 담당은 런칭보드 설정을 따라요)</p>
+      {LAUNCH_PHASES.map(ph=>{ const xs=ph.items.filter(it=>!it.lb); if(!xs.length) return null; return(<div key={ph.k}>
+        <p style={{margin:"6px 2px 6px",fontSize:12.5,fontWeight:900,color:"#191F28"}}>{ph.no}. {ph.name}</p>
+        <div style={{display:"flex",flexDirection:"column",gap:5}}>{xs.map(it=><div key={it.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 9px",borderRadius:10,background:"#F9FAFB"}}>
+          <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:700,color:"#333D4B"}}>{it.name}</span>
+          <select value={defs[it.id]||""} onChange={e=>setDefs(d=>({...d,[it.id]:e.target.value}))} aria-label={`${it.name} 기본 담당`} style={{...wfInp,padding:"7px 8px",fontSize:12.5,width:120}}><option value="">없음</option>{people.map(n=><option key={n}>{n}</option>)}</select>
+        </div>)}</div></div>); })}
+      <button onClick={save} style={{marginTop:6,padding:"12px 0",borderRadius:12,border:"none",background:"#3182F6",color:"#fff",fontWeight:900,fontSize:14.5,cursor:"pointer",fontFamily:"inherit"}}>저장</button>
+    </div>
+  </Sheet>);
+}
+
+// ── 🧹 정리 도우미: 카테고리 분류 · 완료인데 남은 업무 · 잘못 들어간 업무 이동 · 워크플로우↔프로젝트 연결 (골라서 적용, 삭제 없음) ──
+const CLEAN_MOVES=[
+  {title:"깃허브 자동 배포 세팅",from:/반품/,to:/어드민센터/},
+  {title:"송희님 반품",from:/주문/,to:/반품/},
+  {title:"카페24 배송비 정상 작동 확인",from:/광고/,to:/자사몰 리뉴얼/},
+  {title:"탑코트재 상품 등록 및 입고 신청",from:/재고/,to:/탑코트재/},
+  {title:"SGI 서울보증보험 연장",from:/주문/,to:null},
+  {title:"7월 휴무 공지 게시",from:/콘텐츠/,notice:true},
+  {title:"오늘의 집 휴무 공지 내리기",from:/콘텐츠/,notice:true},
+  {title:"6월 공지 등록",from:/후기|NPS/,notice:true},
+];
+function CleanupSheet({D,cu,up,add,W,onClose}){
+  const projects=D.projects||[]; const tasks=D.tasks||[];
+  const ptitle=(id)=>(projects.find(p=>p.id===id)||{}).title||"";
+  const catRows=projects.filter(p=>!p.category).map(p=>({p,guess:guessCat(p.title)}));
+  const [cats,setCats]=useState(()=>Object.fromEntries(catRows.map(r=>[r.p.id,r.guess])));
+  const reopen=projects.filter(p=>projStatus(p)==="completed"&&tasks.some(t=>t.projectId===p.id&&!t.isFixed&&t.status!=="done"));
+  const moves=CLEAN_MOVES.map(m=>{ const t=tasks.find(x=>String(x.title||"").trim()===m.title&&!x.wfId&&m.from.test(ptitle(x.projectId))); if(!t) return null;
+    const to=m.notice?null:m.to?projects.find(p=>m.to.test(String(p.title||""))):null; if(m.to&&!to) return null; return {...m,t,to}; }).filter(Boolean);
+  const links=W.filter(w=>!w.projectId).map(w=>({w,pid:guessWfProject(w.id,projects)})).filter(x=>x.pid);
+  const [on,setOn]=useState(()=>{ const o={}; reopen.forEach(p=>o["r"+p.id]=true); moves.forEach(m=>o["m"+m.t.id]=true); links.forEach(l=>o["l"+l.w.id]=true); catRows.forEach(r=>o["c"+r.p.id]=!!r.guess); return o; });
+  const [done,setDone]=useState("");
+  const tg=(k)=>setOn(o=>({...o,[k]:!o[k]}));
+  const notice=W.find(w=>w.id==="wf_notice");
+  const apply=()=>{ let n=0;
+    catRows.forEach(r=>{ if(on["c"+r.p.id]&&cats[r.p.id]){ up("projects",r.p.id,{category:cats[r.p.id]}); n++; } });
+    reopen.forEach(p=>{ if(on["r"+p.id]){ up("projects",p.id,{status:"active"}); n++; } });
+    moves.forEach(m=>{ if(!on["m"+m.t.id]) return; n++;
+      if(m.notice&&notice){ const ch={}; if(m.t.status==="done") notice.stages.forEach(s=>{ ch[s.id]={at:m.t.doneAt||new Date().toISOString(),by:null,byName:"정리 도우미"}; });
+        up("tasks",m.t.id,{wfId:notice.id,wfChecks:ch,wfData:{kind:/휴무/.test(m.t.title)?"휴무":"기타"},projectId:"",movedFrom:m.t.projectId||""}); }
+      else up("tasks",m.t.id,{projectId:m.to?m.to.id:"",movedFrom:m.t.projectId||""}); });
+    links.forEach(l=>{ if(on["l"+l.w.id]){ saveWfOverride(D,add,up,l.w.id,{projectId:l.pid,stages:l.w.stages}); n++; } });
+    setDone(`${n}건 적용했어요 · 지워진 데이터는 없어요`); setTimeout(onClose,900); };
+  const Chk=({k})=><input type="checkbox" checked={!!on[k]} onChange={()=>tg(k)} style={{width:18,height:18,flexShrink:0,accentColor:"#3182F6"}}/>;
+  const H=({children})=><p style={{margin:"12px 2px 6px",fontSize:13,fontWeight:900,color:"#191F28"}}>{children}</p>;
+  const rowS={display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:11,background:"#F9FAFB",fontSize:13,color:"#333D4B",flexWrap:"wrap"};
+  const total=Object.values(on).filter(Boolean).length;
+  return(<Sheet open={true} onClose={onClose} title="🧹 프로젝트 정리안" h="94vh" w={640}>
+    <div style={{paddingTop:4}}>
+      <p style={{margin:0,fontSize:12,color:"#6B7684",lineHeight:1.6}}>체크한 것만 적용돼요. 업무·기록은 하나도 지우지 않고 소속·분류만 바꿔요. (옮긴 업무는 원래 프로젝트를 <code>movedFrom</code>에 남겨요)</p>
+      {catRows.length>0&&<><H>① 카테고리 분류 ({catRows.length})</H><div style={{display:"flex",flexDirection:"column",gap:5}}>
+        {catRows.map(r=><label key={r.p.id} style={rowS}><Chk k={"c"+r.p.id}/><span style={{flex:"1 1 150px",minWidth:0,fontWeight:700}}>{r.p.title}</span>
+          <select value={cats[r.p.id]||""} onChange={e=>{ const v=e.target.value; setCats(c=>({...c,[r.p.id]:v})); setOn(o=>({...o,["c"+r.p.id]:!!v})); }} style={{...wfInp,padding:"6px 8px",fontSize:12.5}}><option value="">미분류</option>{WF_CATS.map(c=><option key={c.k} value={c.k}>{c.icon} {c.name}</option>)}</select></label>)}</div></>}
+      {reopen.length>0&&<><H>② "완료"인데 남은 업무가 있는 프로젝트 → 진행중으로</H><div style={{display:"flex",flexDirection:"column",gap:5}}>
+        {reopen.map(p=><label key={p.id} style={rowS}><Chk k={"r"+p.id}/><span style={{flex:1,fontWeight:700}}>{p.title}</span><span style={{fontSize:11.5,color:"#8B95A1"}}>남은 업무 {tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.status!=="done").length}</span></label>)}</div></>}
+      {moves.length>0&&<><H>③ 잘못 들어간 업무 옮기기</H><div style={{display:"flex",flexDirection:"column",gap:5}}>
+        {moves.map(m=><label key={m.t.id} style={rowS}><Chk k={"m"+m.t.id}/><span style={{flex:"1 1 160px",minWidth:0,fontWeight:700}}>{m.t.title}</span><span style={{fontSize:11.5,color:"#6B7684"}}>{ptitle(m.t.projectId)} → <b style={{color:"#1B64DA"}}>{m.notice?"📢 공지사항":m.to?m.to.title:"기타 업무(프로젝트 없음)"}</b></span></label>)}</div></>}
+      {links.length>0&&<><H>④ 워크플로우 ↔ 기존 프로젝트 연결 <span style={{fontWeight:600,color:"#8B95A1",fontSize:11.5}}>(새 건이 이 프로젝트 소속으로 저장돼요)</span></H><div style={{display:"flex",flexDirection:"column",gap:5}}>
+        {links.map(l=><label key={l.w.id} style={rowS}><Chk k={"l"+l.w.id}/><span style={{flex:1,fontWeight:700}}>{l.w.icon} {l.w.name}</span><span style={{fontSize:11.5,color:"#1B64DA",fontWeight:700}}>📁 {ptitle(l.pid)}</span></label>)}</div></>}
+      <button onClick={apply} disabled={!total} style={{width:"100%",marginTop:16,padding:"13px 0",borderRadius:13,border:"none",background:total?"#3182F6":"#D1D6DB",color:"#fff",fontWeight:900,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>체크한 {total}건 적용</button>
+      {done&&<p style={{margin:"8px 0 0",textAlign:"center",fontSize:13,color:"#00A862",fontWeight:800}}>{done}</p>}
+    </div>
+  </Sheet>);
+}
+
 function ProjectsHome(props){
   const [adv,setAdv]=useState(()=>{ try{ return localStorage.getItem("pour-os-proj-adv")==="1"; }catch(_){ return false; } });
   const setA=(v)=>{ setAdv(v); try{ localStorage.setItem("pour-os-proj-adv",v?"1":"0"); }catch(_){} };
   if(adv) return(<div>
     <div style={{padding:"12px 16px 0"}}><button onClick={()=>setA(false)} style={{padding:"8px 12px",borderRadius:10,border:"1px solid #C9DDFF",background:"#F7FAFF",color:"#1B64DA",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>← 간단히 보기로</button></div>
     <ProjectsPage {...props}/></div>);
-  return <SimpleProjects {...props} onAdvanced={()=>setA(true)}/>;
+  return <WorkflowHome {...props} onAdvanced={()=>setA(true)}/>;
 }
 
 function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
@@ -6486,69 +7017,96 @@ function MindMapPage({D,cu,nav}){
     </div>
   );
 }
+// 고정업무 주기 완료: 매일=오늘 · 매주=이번 주(월~일) 안 · 매월=이번 달 안에 체크했으면 완료
+const weekStartKey=(key)=>{ const d=new Date(key+"T00:00:00"); d.setDate(d.getDate()-((d.getDay()+6)%7)); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
+const fixedPeriodDone=(t,uid,key)=>{ const d=fixedDoneOn(t,uid); if(!d) return false; const rt=t.recurType||"daily";
+  if(rt==="weekly") return d>=weekStartKey(key)&&d<=key; if(rt==="monthly") return String(d).slice(0,7)===String(key).slice(0,7); return d===key; };
 function FixedPage({D,cu,lead,add,up,rm,nav}){
   const todayKey=new Date().toISOString().slice(0,10);
   const [form,setForm]=useState({title:"",projectId:"",assigneeIds:[cu.id],forAll:false,recurType:"daily",weekDay:"월",monthDay:1,fixedTime:""});
   const [modal,setModal]=useState(false);
-  const [viewAll,setViewAll]=useState(false);
+  const [who,setWho]=useState("all");   // 담당자 탭: all | userId (그로홈 대시보드처럼 전체·개인)
   const [confirmId,setConfirmId]=useState(null);
   const [editTarget,setEditTarget]=useState(null);
-  const fixed=D.tasks.filter(t=>t.isFixed&&(viewAll&&lead?true:fixedIsMine(t,cu.id))).sort(byFixedTime);
-  // 묶음: 매일 → 매주(월~일) → 매월(날짜순), 묶음 안은 시간순
+  const users=D.users||[];
+  const todayWd=todayDay(); const todayD=new Date().getDate();
+  const allFixed=D.tasks.filter(t=>t.isFixed).sort(byFixedTime);
+  const fixed=who==="all"?allFixed:allFixed.filter(t=>fixedIsMine(t,who));
+  const peopleOf=(t)=>t.forAll?users:fixedAssigneeIds(t).map(id=>users.find(u=>u.id===id)).filter(Boolean);
+  // 완료 표시: 개인 탭=그 사람 기준 · 전체 탭=담당자 모두 체크해야 완료
+  const doneOf=(t)=>{ if(who!=="all") return fixedPeriodDone(t,who,todayKey); const ps=peopleOf(t); return ps.length>0&&ps.every(u=>fixedPeriodDone(t,u.id,todayKey)); };
+  const mine=(t)=>fixedIsMine(t,cu.id);
+  const toggle=(t)=>{ if(!mine(t)) return; const on=fixedPeriodDone(t,cu.id,todayKey); up("tasks",t.id,{doneDates:{...(t.doneDates||{}),[cu.id]:on?null:todayKey},doneAt:new Date().toISOString(),doneByName:cu?.name||""}); };
   const WD=["월","화","수","목","금","토","일"];
-  const fixedGroups=[["daily","🔁 매일",fixed.filter(t=>(t.recurType||"daily")==="daily")],
-    ...WD.map(d=>["w-"+d,`📅 매주 ${d}요일`,fixed.filter(t=>t.recurType==="weekly"&&(t.weekDay||"월")===d)]),
-    ["monthly","🗓 매월",fixed.filter(t=>t.recurType==="monthly").sort((a,b)=>(+a.monthDay||1)-(+b.monthDay||1)||byFixedTime(a,b))]].filter(g=>g[2].length);
+  const daily=fixed.filter(t=>(t.recurType||"daily")==="daily");
+  const weekly=fixed.filter(t=>t.recurType==="weekly").sort((a,b)=>WD.indexOf(a.weekDay||"월")-WD.indexOf(b.weekDay||"월")||byFixedTime(a,b));
+  const monthly=fixed.filter(t=>t.recurType==="monthly").sort((a,b)=>(+a.monthDay||1)-(+b.monthDay||1)||byFixedTime(a,b));
+  const cnt=(l)=>[l.filter(doneOf).length,l.length];
   const doAdd=()=>{
     if(!form.title.trim()) return;
     add("tasks",{id:"t"+Date.now(),title:form.title.trim(),projectId:form.projectId,type:"fixed",status:"todo",weekSlot:null,isFixed:true,dueDate:"",memo:"",attachments:[],recurType:form.recurType,weekDay:form.recurType==="weekly"?form.weekDay:null,monthDay:form.recurType==="monthly"?Number(form.monthDay):null,fixedTime:form.fixedTime||"",
       forAll:!!form.forAll,assigneeIds:form.forAll?[]:form.assigneeIds,assigneeId:form.forAll?"":(form.assigneeIds[0]||"")});
     setForm({title:"",projectId:"",assigneeIds:[cu.id],forAll:false,recurType:form.recurType,weekDay:form.weekDay,monthDay:form.monthDay,fixedTime:form.fixedTime});setModal(false);
   };
+  const openAdd=(rt)=>{ setForm(f=>({...f,recurType:rt||f.recurType,assigneeIds:who!=="all"?[who]:f.assigneeIds})); setModal(true); };
+  const Row=({t,label,hot})=>{ const dn=doneOf(t); const proj=D.projects.find(p=>p.id===t.projectId); const ps=peopleOf(t); const can=mine(t);
+    return(
+      <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 10px",borderRadius:12,background:dn?"rgba(232,250,241,0.45)":hot?"#F2F7FF":"#F9FAFB",border:`1px solid ${dn?"rgba(0,192,115,0.22)":hot?"#C9DDFF":"#EEF1F4"}`}}>
+        <button onClick={()=>toggle(t)} disabled={!can} title={can?(dn?"체크 해제":"완료 체크"):"담당자만 체크할 수 있어요"} aria-label="완료 체크" style={{flexShrink:0,width:24,height:24,borderRadius:7,border:`2px solid ${dn?"#00C073":can?"#B0B8C1":"#E5E8EB"}`,background:dn?"#00C073":"#fff",color:"#fff",fontSize:13,fontWeight:900,cursor:can?"pointer":"default",padding:0}}>{dn?"✓":""}</button>
+        <span style={{flexShrink:0,minWidth:44,textAlign:"center",fontSize:12.5,fontWeight:900,color:t.fixedTime?"#1B64DA":"#B0B8C1",fontVariantNumeric:"tabular-nums"}}>{label||t.fixedTime||"—"}</span>
+        <div style={{flex:1,minWidth:0}}>
+          <p style={{margin:0,fontSize:13.5,fontWeight:800,color:dn?"#8B95A1":"#191F28",textDecoration:dn?"line-through":"none",lineHeight:1.35,wordBreak:"keep-all"}}>{t.title}</p>
+          <div style={{display:"flex",gap:4,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
+            {proj&&<ProjChip p={proj} max={14}/>}
+            {t.forAll&&<span style={{fontSize:10.5,fontWeight:800,color:"#191F28",background:"#E5E9F5",borderRadius:6,padding:"2px 6px"}}>👥 전체</span>}
+            {ps.slice(0,t.forAll?0:6).map(u=>{ const ok=fixedPeriodDone(t,u.id,todayKey); return <span key={u.id} title={ok?"체크함":"아직"} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10.5,fontWeight:800,color:ok?"#00A862":"#333D4B",background:ok?"#E8FAF1":"#F2F4F6",borderRadius:6,padding:"2px 6px"}}>{ok?"✓":<span style={{width:6,height:6,borderRadius:3,background:u.color||"#8B95A1"}}/>}{u.name}</span>; })}
+          </div>
+        </div>
+        <button onClick={()=>setEditTarget(t)} aria-label="수정" style={{background:"none",border:"none",cursor:"pointer",color:"#B0B8C1",fontSize:14,padding:6,flexShrink:0}}>✎</button>
+        <button onClick={()=>setConfirmId(t.id)} aria-label="삭제" style={{background:"none",border:"none",cursor:"pointer",color:"#D1D6DB",fontSize:15,padding:6,flexShrink:0}}>🗑</button>
+      </div>); };
+  const Card=({icon,grad,title,sub,list,rt,children})=>{ const [d,n]=cnt(list); const all=n>0&&d===n;
+    return(
+      <div id={"fx-"+rt} style={{scrollMarginTop:70,background:"#fff",borderRadius:18,padding:"14px 14px 12px",boxShadow:"0 2px 12px rgba(15,23,42,.05)",display:"flex",flexDirection:"column",gap:10,minWidth:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:36,height:36,borderRadius:11,background:grad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>{icon}</div>
+          <div style={{flex:1,minWidth:0}}><p style={{margin:0,fontSize:15,fontWeight:900,color:"#191F28"}}>{title}</p><p style={{margin:"1px 0 0",fontSize:11.5,color:"#8B95A1"}}>{sub}</p></div>
+          <span style={{flexShrink:0,fontSize:13,fontWeight:900,color:all?"#00A862":"#1B64DA",background:all?"#E8FAF1":"#E8F1FF",borderRadius:10,padding:"5px 10px",fontVariantNumeric:"tabular-nums"}}>{d}/{n}</span>
+        </div>
+        <div style={{height:6,background:"#F2F4F6",borderRadius:3,overflow:"hidden"}}><div style={{width:`${n?d/n*100:0}%`,height:"100%",background:all?"#00C073":"#3182F6",borderRadius:3}}/></div>
+        {n===0?<p style={{margin:"6px 2px",fontSize:12.5,color:"#B0B8C1"}}>등록된 업무가 없어요</p>:<div style={{display:"flex",flexDirection:"column",gap:6}}>{children}</div>}
+        <button onClick={()=>openAdd(rt)} style={{alignSelf:"flex-start",padding:"7px 12px",borderRadius:10,border:"1.5px dashed #C9DDFF",background:"#F7FAFF",color:"#1B64DA",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>＋ {title} 추가</button>
+      </div>); };
+  const [td,tn]=cnt(fixed);
   return(
-    <div style={{padding:"14px 16px 20px"}}>
-      <div style={{backgroundColor:"rgba(232,241,255,0.4)",borderRadius:14,padding:"12px 14px",marginBottom:14,border:"1px solid rgba(49,130,246,0.2)"}}><p style={{margin:0,fontSize:12.5,fontWeight:700,color:"#1B64DA",lineHeight:1.6}}>📌 고정업무는 오늘 업무 페이지에 매일 자동 표시됩니다</p></div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <p style={{margin:0,fontSize:13,fontWeight:700,color:"#4B5563"}}>{fixed.length}개 등록됨</p>
-          {lead&&<button onClick={()=>setViewAll(!viewAll)} style={{padding:"4px 12px",borderRadius:20,border:"none",cursor:"pointer",backgroundColor:viewAll?"#191F28":"#F2F4F6",color:viewAll?"#FFFFFF":"#374151",fontWeight:600,fontSize:11,fontFamily:"inherit"}}>{viewAll?"전체 보기":"내 것만"}</button>}
-        </div>
-        <Btn size="sm" variant="orange" onClick={()=>setModal(true)}>+ 추가</Btn>
+    <div style={{padding:"14px 16px 24px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,flexWrap:"wrap"}}>
+        <p style={{margin:0,fontSize:13,fontWeight:700,color:"#4E5968"}}>이번 주기 완료 <b style={{color:"#191F28"}}>{td}/{tn}</b> <span style={{color:"#8B95A1",fontWeight:600}}>· 해당 날 오늘 화면에 자동으로 떠요</span></p>
+        <Btn size="sm" variant="orange" onClick={()=>openAdd()} style={{marginLeft:"auto"}}>+ 고정업무 추가</Btn>
       </div>
-      {fixed.length===0?(
-        <div style={{padding:"40px 20px",textAlign:"center",backgroundColor:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6"}}>
-          <p style={{fontSize:38,margin:"0 0 12px"}}>📌</p>
-          <p style={{fontSize:14,color:"#9CA3AF",margin:"0 0 16px"}}>등록된 고정업무가 없어요</p>
-          <Btn variant="orange" onClick={()=>setModal(true)}>+ 첫 고정업무 등록</Btn>
-        </div>
-      ):(
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {fixedGroups.map(([gk,gl,list])=><Fragment key={gk}>
-          <p style={{margin:"8px 2px 0",fontSize:12.5,fontWeight:900,color:"#191F28"}}>{gl} <span style={{color:"#8B95A1",fontWeight:700}}>{list.length}</span></p>
-          {list.map(t=>{
-            const proj=D.projects.find(p=>p.id===t.projectId);
-            const assignees=t.forAll?D.users:fixedAssigneeIds(t).map(id=>D.users.find(u=>u.id===id)).filter(Boolean);
-            return(
-              <div key={t.id} style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px 16px",border:"1px solid #F2F4F6"}}>
-                <div style={{display:"flex",alignItems:"center",gap:12}}>
-                  <span style={{flexShrink:0,minWidth:48,textAlign:"center",fontSize:15,fontWeight:900,color:t.fixedTime?"#1B64DA":"#B0B8C1",fontVariantNumeric:"tabular-nums"}}>{t.fixedTime||"—"}</span>
-                  <div style={{flex:1,minWidth:0}}>
-                    <p style={{margin:0,fontSize:14,fontWeight:800,color:"#111827"}}>{t.title}</p>
-                    <div style={{display:"flex",gap:6,marginTop:5,flexWrap:"wrap",alignItems:"center"}}>
-                      {proj&&<ProjChip p={proj} max={20}/>}
-                      <Badge color="#3182F6" bg="#E8F1FF">🔄 {t.recurType==="weekly"?(t.weekDay||"월")+"요일":t.recurType==="monthly"?"매월 "+(t.monthDay||1)+"일":"매일"}</Badge>
-                      {fixedDoneOn(t,cu.id)===todayKey&&<Badge color="#00A862" bg="#E8FAF1">✓ 오늘 체크</Badge>}
-                      {t.forAll?<Badge color="#191F28" bg="#E5E9F5">👥 전체</Badge>:assignees.map(u=><Badge key={u.id} color={u.color} bg={u.color+"22"}>👤 {u.name}</Badge>)}
-                    </div>
-                  </div>
-                  <button onClick={()=>setEditTarget(t)} style={{background:"none",border:"none",cursor:"pointer",color:"#9CA3AF",fontSize:16,padding:8,flexShrink:0}}>✎</button>
-                  <button onClick={()=>setConfirmId(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#D1D5DB",fontSize:20,padding:8,flexShrink:0}}>🗑</button>
-                </div>
-              </div>
-            );
-          })}</Fragment>)}
-        </div>
-      )}
+      <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4,marginBottom:12,WebkitOverflowScrolling:"touch"}}>
+        {[{id:"all",name:"전체",color:"#191F28"},...users].map(u=>{ const sel=who===u.id; const n=u.id==="all"?allFixed.length:allFixed.filter(t=>fixedIsMine(t,u.id)).length;
+          return <button key={u.id} onClick={()=>setWho(u.id)} style={{flexShrink:0,display:"flex",alignItems:"center",gap:6,padding:"8px 12px",borderRadius:20,border:`1.5px solid ${sel?(u.color||"#191F28"):"#E5E8EB"}`,background:sel?(u.color||"#191F28"):"#fff",color:sel?"#fff":"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+            {u.id!=="all"&&<span style={{width:8,height:8,borderRadius:4,background:sel?"#fff":(u.color||"#8B95A1")}}/>}{u.name}{u.id===cu.id?" (나)":""} <span style={{opacity:.75,fontWeight:700}}>{n}</span></button>; })}
+      </div>
+      <div style={{display:"flex",gap:6,marginBottom:12}}>
+        {[["daily","🔁 매일",daily],["weekly","📅 매주",weekly],["monthly","🗓 매월",monthly]].map(([k,l,list])=>{ const [d,n]=cnt(list);
+          return <button key={k} onClick={()=>{ const el=document.getElementById("fx-"+k); if(el) el.scrollIntoView({behavior:"smooth",block:"start"}); }} style={{flex:1,minWidth:0,padding:"9px 6px",borderRadius:12,border:"1px solid #E5E8EB",background:"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
+            <span style={{display:"block",fontSize:12,fontWeight:800,color:"#4E5968"}}>{l}</span>
+            <span style={{display:"block",fontSize:15,fontWeight:900,color:n&&d===n?"#00A862":"#191F28",fontVariantNumeric:"tabular-nums"}}>{d}<span style={{color:"#B0B8C1",fontWeight:700}}>/{n}</span></span></button>; })}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:12,alignItems:"start"}}>
+        <Card icon="🔁" grad="linear-gradient(135deg,#3182F6,#1B64DA)" title="매일" sub="매일 반복 · 오늘 기준 체크" list={daily} rt="daily">
+          {daily.map(t=><Row key={t.id} t={t}/>)}
+        </Card>
+        <Card icon="📅" grad="linear-gradient(135deg,#6D5CE8,#8B7CF6)" title="매주" sub="요일별 · 이번 주 안에 하면 완료" list={weekly} rt="weekly">
+          {WD.map(d=>{ const l=weekly.filter(t=>(t.weekDay||"월")===d); if(!l.length) return null; const isT=d===todayWd;
+            return <Fragment key={d}><p style={{margin:"4px 2px 0",fontSize:12,fontWeight:900,color:isT?"#1B64DA":"#4E5968"}}>{d}요일{isT?" · 오늘":""} <span style={{color:"#8B95A1",fontWeight:700}}>{l.length}</span></p>{l.map(t=><Row key={t.id} t={t} hot={isT}/>)}</Fragment>; })}
+        </Card>
+        <Card icon="🗓" grad="linear-gradient(135deg,#00B386,#00C073)" title="매월" sub="날짜별 · 이번 달 안에 하면 완료" list={monthly} rt="monthly">
+          {monthly.map(t=>{ const md=+t.monthDay||1; return <Row key={t.id} t={t} label={md+"일"} hot={md===todayD}/>; })}
+        </Card>
+      </div>
       <Sheet open={modal} onClose={()=>setModal(false)} title="고정업무 추가">
         <div style={{marginTop:12}}>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>업무명 *</label><input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="ex. 벤처나라 문의 확인" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>

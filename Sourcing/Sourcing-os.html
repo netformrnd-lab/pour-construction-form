@@ -4248,7 +4248,7 @@ function saveConfirmDetail(){
   const p=state.products.find(x=>x.id===cfdPid);if(!p)return;
   p.contract={price:$('#cfd_price').value.trim(),moq:$('#cfd_moq').value.trim(),payment:$('#cfd_payment').value.trim(),lead:$('#cfd_lead').value.trim(),claim:$('#cfd_claim').value.trim(),file:$('#cfd_file').value.trim(),doc:(cfdDoc&&cfdDoc.url)?{name:cfdDoc.name,url:cfdDoc.url,path:cfdDoc.path}:null};
   p.order={qty:$('#cfd_oqty').value.trim(),status:$('#cfd_ostatus').value,date:$('#cfd_odate').value,eta:$('#cfd_oeta').value};
-  p.launch={};document.querySelectorAll('#cfd_checks [data-chk]').forEach(c=>p.launch[c.dataset.chk]=c.checked);
+  p.launch={...(p.launch||{})};document.querySelectorAll('#cfd_checks [data-chk]').forEach(c=>p.launch[c.dataset.chk]=c.checked);   // 체크박스만 갱신 — 출시검토 값(관세·배송비·판매가·채널)은 보존
   const dv=($('#cfd_dec')||{}).dataset?($('#cfd_dec').dataset.val||''):'';p.decision=dv;if(dv)p.confirmedAt=new Date().toISOString();
   save();closeOverlay();renderConfirm();
 }

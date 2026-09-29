@@ -966,8 +966,9 @@ export default function App(){
       // ① 진척 자동 산출(기존 동작 동일 — 수동지정/업무없음/동일값이면 유지)
       if(!pr.progressManual){
         const real=tasks.filter(t=>t.projectId===pr.id&&!t.isFixed&&!parentIds.has(t.id)&&t.status!=="hold");   // 보류 업무는 진척 계산에서 제외
-        if(real.length>0){
-          const auto=Math.round(real.filter(t=>t.status==="done").length/real.length*100);
+        const arch=Number(pr.archivedDone)||0;   // 보관함으로 옮긴 완료 업무 수 — 진척에 그대로 포함(보관해도 % 안 바뀜)
+        if(real.length+arch>0){
+          const auto=Math.round((real.filter(t=>t.status==="done").length+arch)/(real.length+arch)*100);
           if(auto!==(pr.progress||0)){ np={...np,progress:auto}; changed=true; }
         } else if((pr.progress||0)!==0){   // 업무가 하나도 없으면 자동 진척은 0 (옛 % 잔존 방지) — 수동·완료(progressManual)는 위 가드로 제외됨
           np={...np,progress:0}; changed=true;
@@ -1007,6 +1008,38 @@ export default function App(){
     if(!silent) n2=withLog(n2,"edit",k,id,recLabel(before||{id}),{fields:fieldSummary(c)});
     return k==="tasks"?recalcProg(n2):n2;
   });};
+  // ── 📦 월별 보관함: 저장 한도(1MiB) 대비 — 지우지 않고 '옮기기'만 ──
+  // ① 끝난 지 60일 지난 업무 → pour-os/archive-tasks-YYYY-MM (하루 1번, 기기당) · 프로젝트 진척은 archivedDone 으로 그대로 유지
+  // ② 활동 기록이 900건을 넘으면 오래된 것부터 → pour-os/archive-log-YYYY-MM (예전엔 1,000건 넘으면 버려졌음)
+  const archBusyRef=useRef(false);
+  useEffect(()=>{
+    if(!loaded||SHARE||archBusyRef.current) return;
+    const dayKey="pour-os-archive-run"; const today=new Date().toISOString().slice(0,10);
+    try{ if(localStorage.getItem(dayKey)===today) return; }catch(_){}
+    const picked=pickArchivableTasks(D.tasks||[],D.projects||[],60);
+    if(picked.length<20){ try{ localStorage.setItem(dayKey,today); }catch(_){} return; }
+    archBusyRef.current=true;
+    (async()=>{ try{
+      const {added}=await archiveMove("tasks",picked,t=>String(t.doneAt||"").slice(0,7));
+      const ids=new Set(picked.map(t=>t.id)); const per={}; picked.forEach(t=>{ if(t.projectId&&added.has(t.id)) per[t.projectId]=(per[t.projectId]||0)+1; });
+      setD(p=>{ const n={...p,tasks:(p.tasks||[]).filter(t=>!ids.has(t.id)),projects:(p.projects||[]).map(pr=>per[pr.id]?{...pr,archivedDone:(Number(pr.archivedDone)||0)+per[pr.id]}:pr)};
+        return recalcProg(withLog(n,"edit","tasks",null,`📦 끝난 지 60일 지난 업무 ${picked.length}건을 보관함으로 옮김`,{fields:"보관"})); });
+      console.log(`[보관함] 업무 ${picked.length}건 이동`);
+      try{ localStorage.setItem(dayKey,today); }catch(_){}
+    }catch(e){ console.error("[보관함] 업무 보관 실패(데이터는 그대로):",e); } finally{ archBusyRef.current=false; } })();
+  },[loaded,D.tasks]);
+  const logBusyRef=useRef(false);
+  useEffect(()=>{
+    if(!loaded||SHARE||logBusyRef.current) return;
+    const log=D.activityLog||[]; if(log.length<=900) return;
+    const old=log.slice(0,log.length-600);
+    logBusyRef.current=true;
+    (async()=>{ try{
+      await archiveMove("log",old,e=>String(e.at||"").slice(0,7));
+      const ids=new Set(old.map(e=>e.id)); setD(p=>({...p,activityLog:(p.activityLog||[]).filter(e=>!ids.has(e.id))}));
+      console.log(`[보관함] 활동 기록 ${old.length}건 이동`);
+    }catch(e){ console.error("[보관함] 활동 기록 보관 실패(데이터는 그대로):",e); } finally{ logBusyRef.current=false; } })();
+  },[loaded,(D.activityLog||[]).length]);
   const newTid=()=>"trash"+Date.now()+"_"+Math.random().toString(36).slice(2,6);
   const delMeta=()=>({_deletedAt:new Date().toISOString(),_deletedBy:cu?.id||null,_deletedByName:cu?.name||""});
   // 삭제 = 영구 제거가 아니라 휴지통 이동. 어떤 데이터도 사라지지 않는다(데이터 자산화 · 복구 가능). silent=대량삭제 시 토스트 생략.
@@ -1104,7 +1137,7 @@ export default function App(){
     {page==="team"&&<TeamPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="ai"&&<AIPage D={D} cu={cu} add={add} rm={rm}/>}
-    {page==="journey"&&<JourneyPage D={D} cu={cu} restore={restore}/>}
+    {page==="journey"&&<JourneyPage D={D} cu={cu} restore={restore} add={add} up={up}/>}
     {page==="share-rev"&&<ShareRevenuePage D={D} crmRev={crmRev}/>}
     {page==="share-proj"&&<ShareProjectsPage D={D} crmRev={crmRev}/>}
   </>);
@@ -3727,7 +3760,8 @@ function projExecs(D,p){ const ts=projTasksOf(D,p.id); const ids=[...new Set([..
   return {ids,out:ts.filter(t=>t.exec==="outsource"&&t.status!=="done").length,col:ts.filter(t=>t.exec==="collab"&&t.status!=="done").length}; }
 // 마감 대비 진척 신호: 🔴 늦음 · 🟠 주의 · 🟢 순조 · ✅ 완료 · ⚪ 마감 없음
 function projSignal(p,ts){
-  const total=ts.length, done=ts.filter(t=>t.status==="done").length, prog=total?done/total:((p.progress||0)/100);
+  const arch=Number(p.archivedDone)||0;
+  const total=ts.length+arch, done=ts.filter(t=>t.status==="done").length+arch, prog=total?done/total:((p.progress||0)/100);
   if(projStatus(p)==="completed") return {k:"done",c:"#00A862",bg:"#E8FAF1",l:"완료",prog,done,total};
   if(total>0&&done===total) return {k:"alldone",c:"#00A862",bg:"#E8FAF1",l:"업무 모두 끝남 · 완료 처리할까요?",prog,done,total};
   const rem=daysTo(p.dueDate);
@@ -7755,10 +7789,81 @@ function ExportPanel({D,up,restore,restoreLocal,pushExternalBackup}){
 }
 // 활동 여정 — 추가·수정·삭제·복구의 전체 기록을 한 흐름으로 보고, 삭제된 데이터를 되돌린다(휴지통 흡수).
 const JOURNEY_ACT={add:{l:"추가",icon:"➕",c:"#059669",bg:"#E8FAF1"},edit:{l:"수정",icon:"✏️",c:"#3182F6",bg:"#EBF3FF"},delete:{l:"삭제",icon:"🗑",c:"#F04452",bg:"#FFF0F1"},restore:{l:"복구",icon:"↩",c:"#1B64DA",bg:"#FFF4EC"}};
-function JourneyPage({D,cu,restore}){
+/* ══ 📦 월별 보관함 (pour-os/archive-{tasks|log}-YYYY-MM · 목차 pour-os/archive-index) ══ */
+const archDocId=(kind,month)=>`archive-${kind}-${month||"기타"}`;
+// 보관 대상: 끝난 지 N일 지난 일반 업무. 제외 — 고정업무 · 출시 템플릿 단계(launchNode/deps) · 다른 업무의 선행 · KPI 구간에 쓰는 업무 · 아직 남는 하위가 있는 상위
+function pickArchivableTasks(tasks,projects,days){
+  const cut=Date.now()-days*86400000;
+  const depRef=new Set(); tasks.forEach(t=>(Array.isArray(t.deps)?t.deps:[]).forEach(d=>depRef.add(d)));
+  const segRef=new Set(); (projects||[]).forEach(p=>(Array.isArray(p.segments)?p.segments:[]).forEach(sg=>(sg.stageIds||[]).forEach(id=>segRef.add(id))));
+  const ok=new Set(tasks.filter(t=>!t.isFixed&&t.status==="done"&&t.doneAt&&Date.parse(t.doneAt)<cut&&!t.launchNode&&!(Array.isArray(t.deps)&&t.deps.length)&&!depRef.has(t.id)&&!segRef.has(t.id)).map(t=>t.id));
+  let changed=true; while(changed){ changed=false; tasks.forEach(t=>{ if(t.parentId&&ok.has(t.parentId)&&!ok.has(t.id)){ ok.delete(t.parentId); changed=true; } }); }
+  return tasks.filter(t=>ok.has(t.id));
+}
+// 월별 문서에 id 기준으로 합쳐 넣기(중복 없음·여러 기기 동시 실행 안전) → 목차 갱신. 실패하면 throw(호출 쪽은 원본을 안 건드림)
+async function archiveMove(kind,items,monthOf){
+  const byM={}; items.forEach(x=>{ const m=monthOf(x)||"기타"; (byM[m]=byM[m]||[]).push(x); });
+  const counts={}, added=new Set();
+  for(const [m,list] of Object.entries(byM)){
+    const ref=extDoc("pour-os",archDocId(kind,m));
+    const r=await runTransaction(db,async(tx)=>{ const snap=await tx.get(ref); const cur=snap.exists()?(snap.data().items||[]):[]; const have=new Set(cur.map(x=>x.id));
+      const fresh=JSON.parse(JSON.stringify(list)).filter(x=>!have.has(x.id)); tx.set(ref,{items:[...cur,...fresh],_updatedAt:Date.now()}); return {n:cur.length+fresh.length,ids:fresh.map(x=>x.id)}; });
+    counts[m]=r.n; r.ids.forEach(id=>added.add(id));
+  }
+  await setDoc(extDoc("pour-os","archive-index"),{[kind]:counts,_updatedAt:Date.now()},{merge:true});
+  return {counts,added};   // added = 이번에 처음 보관된 id (진척 보정은 이것만 — 다른 기기가 되살린 중복은 두 번 세지 않음)
+}
+async function archiveLoad(kind,month){ const s=await getDoc(extDoc("pour-os",archDocId(kind,month))); const items=s.exists()?(s.data().items||[]):[]; console.log(`[보관함] ${kind} ${month} ${items.length}건`); return items; }
+async function archiveRemove(kind,month,id){ const ref=extDoc("pour-os",archDocId(kind,month));
+  const n=await runTransaction(db,async(tx)=>{ const s=await tx.get(ref); const cur=s.exists()?(s.data().items||[]):[]; const nx=cur.filter(x=>x.id!==id); tx.set(ref,{items:nx,_updatedAt:Date.now()}); return nx.length; });
+  await setDoc(extDoc("pour-os","archive-index"),{[kind]:{[month]:n},_updatedAt:Date.now()},{merge:true}); }
+function ArchiveSheet({D,cu,add,up,onClose}){
+  const [kind,setKind]=useState("tasks");
+  const [idx,setIdx]=useState(null);
+  const [month,setMonth]=useState("");
+  const [items,setItems]=useState([]);
+  const [q,setQ]=useState("");
+  const [msg,setMsg]=useState("");
+  const [loading,setLoading]=useState(false);
+  useEffect(()=>{ (async()=>{ try{ const s=await getDoc(extDoc("pour-os","archive-index")); setIdx(s.exists()?s.data():{}); }catch(e){ console.error("[보관함] 목차 읽기 실패:",e); setIdx({}); setMsg("보관함을 불러오지 못했어요 · 인터넷 연결을 확인해 주세요"); } })(); },[]);
+  const months=Object.keys((idx&&idx[kind])||{}).filter(m=>(idx[kind][m]||0)>0).sort().reverse();
+  useEffect(()=>{ setMonth(months[0]||""); },[kind,idx]);
+  useEffect(()=>{ if(!month){ setItems([]); return; } setLoading(true); archiveLoad(kind,month).then(setItems).catch(e=>{ console.error("[보관함] 불러오기 실패:",e); setMsg("불러오지 못했어요"); }).finally(()=>setLoading(false)); },[kind,month]);
+  const pt=(id)=>((D.projects||[]).find(p=>p.id===id)||{}).title||"";
+  const un=(id)=>((D.users||[]).find(u=>u.id===id)||{}).name||"";
+  const list=items.filter(x=>!q||String(x.title||x.label||"").includes(q)||pt(x.projectId).includes(q)).sort((a,b)=>String(b.doneAt||b.at||"").localeCompare(String(a.doneAt||a.at||"")));
+  const back=async(t)=>{ try{ if((D.tasks||[]).some(x=>x.id===t.id)){ setMsg("이미 업무 목록에 있어요"); return; }
+      add("tasks",t); if(t.projectId){ const p=(D.projects||[]).find(x=>x.id===t.projectId); if(p&&(Number(p.archivedDone)||0)>0) up("projects",p.id,{archivedDone:(Number(p.archivedDone)||0)-1},true); }
+      await archiveRemove("tasks",month,t.id); setItems(a=>a.filter(x=>x.id!==t.id)); setMsg(`'${t.title}'을(를) 업무 목록으로 되돌렸어요`);
+    }catch(e){ console.error("[보관함] 되돌리기 실패:",e); setMsg("되돌리지 못했어요 · 다시 시도해 주세요"); } };
+  const total=Object.values((idx&&idx[kind])||{}).reduce((a,b)=>a+(b||0),0);
+  return(<Sheet open={true} onClose={onClose} title="📦 보관함" h="92vh" w={640}>
+    <div style={{paddingTop:6,display:"flex",flexDirection:"column",gap:10}}>
+      <p style={{margin:0,fontSize:12,color:"#6B7684",lineHeight:1.6}}>끝난 지 60일 지난 업무와 오래된 활동 기록은 저장 공간을 위해 월별 보관함으로 옮겨져요. <b>지워진 게 아니에요</b> — 여기서 찾아보고 업무는 되돌릴 수도 있어요.</p>
+      <div style={{display:"flex",background:"#F2F4F6",borderRadius:12,padding:3}}>{[["tasks","✅ 지난 업무"],["log","🗂 지난 활동 기록"]].map(([k,l])=><button key={k} onClick={()=>{setKind(k);setQ("");}} style={{flex:1,padding:"9px 0",borderRadius:9,border:"none",background:kind===k?"#fff":"transparent",color:kind===k?"#191F28":"#8B95A1",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>)}</div>
+      {idx===null?<p style={{margin:0,fontSize:12.5,color:"#8B95A1"}}>불러오는 중…</p>:months.length===0?<p style={{margin:0,fontSize:12.5,color:"#8B95A1"}}>아직 보관된 {kind==="tasks"?"업무":"기록"}가 없어요</p>:<>
+        <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:2}}>{months.map(m=><button key={m} onClick={()=>setMonth(m)} style={{flexShrink:0,padding:"7px 11px",borderRadius:14,border:`1.5px solid ${month===m?"#3182F6":"#E5E8EB"}`,background:month===m?"#E8F1FF":"#fff",color:month===m?"#1B64DA":"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>{m.replace("-",".")} · {idx[kind][m]}</button>)}</div>
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder={`${kind==="tasks"?"업무·프로젝트":"기록"} 검색 (총 ${total}건)`} style={{padding:"10px 12px",borderRadius:11,border:"1.5px solid #E5E8EB",fontSize:14,fontFamily:"inherit"}}/>
+        {msg&&<p style={{margin:0,fontSize:12.5,fontWeight:800,color:/못|실패/.test(msg)?"#F04452":"#00A862"}}>{msg}</p>}
+        {loading?<p style={{margin:0,fontSize:12.5,color:"#8B95A1"}}>불러오는 중…</p>:<div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {list.slice(0,300).map(x=>kind==="tasks"?(
+            <div key={x.id} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 11px",borderRadius:11,background:"#F9FAFB"}}>
+              <div style={{flex:1,minWidth:0}}><p style={{margin:0,fontSize:13.5,fontWeight:800,color:"#191F28"}}>{x.title}</p>
+                <p style={{margin:"2px 0 0",fontSize:11,color:"#8B95A1"}}>{pt(x.projectId)?`📁 ${pt(x.projectId)} · `:""}{un(x.assigneeId)} · 완료 {String(x.doneAt||"").slice(5,10).replace("-","/")}{x.doneByName?` (${x.doneByName})`:""}</p></div>
+              <button onClick={()=>back(x)} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"1px solid #C9DDFF",background:"#fff",color:"#1B64DA",fontWeight:800,fontSize:11.5,cursor:"pointer",fontFamily:"inherit"}}>되돌리기</button>
+            </div>):(
+            <div key={x.id} style={{padding:"8px 11px",borderRadius:11,background:"#F9FAFB",fontSize:12.5,color:"#333D4B"}}><b>{x.byName||"?"}</b> · {x.action==="add"?"추가":x.action==="delete"?"삭제":x.action==="restore"?"복구":"수정"} · {x.label}<span style={{color:"#8B95A1"}}> · {String(x.at||"").slice(5,16).replace("T"," ")}</span></div>))}
+          {list.length>300&&<p style={{margin:0,fontSize:11.5,color:"#8B95A1"}}>검색으로 좁혀 보세요 (300건까지 표시)</p>}
+        </div>}
+      </>}
+    </div>
+  </Sheet>);
+}
+function JourneyPage({D,cu,restore,add,up}){
   const [filter,setFilter]=useState("all");   // all|add|edit|delete|restore
   const [who,setWho]=useState("all");          // all|userId
   const [showTrash,setShowTrash]=useState(true);
+  const [archOpen,setArchOpen]=useState(false);
   const uname=(id)=>D.users.find(u=>u.id===id)?.name||"";
   const trash=D.trash||[];
   const log=D.activityLog||[];
@@ -7777,6 +7882,9 @@ function JourneyPage({D,cu,restore}){
   );
   return(
     <div style={{padding:"14px 16px 28px",maxWidth:480,margin:"0 auto"}}>
+      <button onClick={()=>setArchOpen(true)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"12px 14px",marginBottom:12,borderRadius:14,border:"1px solid #C9DDFF",background:"#F7FAFF",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+        <span style={{fontSize:20}}>📦</span><span style={{flex:1}}><b style={{display:"block",fontSize:13.5,color:"#1B64DA"}}>보관함 — 지난 업무·지난 활동 기록</b><span style={{display:"block",fontSize:11.5,color:"#6B7684",marginTop:1}}>60일 지난 완료 업무·오래된 기록은 여기로 옮겨 보관돼요 (지워지지 않아요)</span></span><span style={{color:"#1B64DA",fontWeight:800}}>→</span></button>
+      {archOpen&&<ArchiveSheet D={D} cu={cu} add={add} up={up} onClose={()=>setArchOpen(false)}/>}
       {/* 헤더 — 활동 여정 요약 */}
       <div style={{background:"linear-gradient(135deg,#3182F6,#1B64DA)",borderRadius:18,padding:"18px 18px 16px",marginBottom:14,color:"#fff"}}>
         <p style={{margin:0,fontSize:16,fontWeight:900}}>🗂 활동 여정</p>

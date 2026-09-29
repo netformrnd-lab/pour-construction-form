@@ -1282,9 +1282,14 @@ export default function App(){
       <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
         <div style={{padding:"22px 28px 6px",flexShrink:0}}>
           <div style={{maxWidth:1280,margin:"0 auto",width:"100%"}}>
-            <p style={{margin:"0 0 4px",fontSize:11.5,color:"#8B95A1",fontWeight:600}}>POUR OS / {pi?.label}</p>
-            <h1 style={{margin:0,fontSize:24,fontWeight:900,color:"#191F28",lineHeight:1.15,letterSpacing:-0.5}}>{pi?.icon} {pi?.label}</h1>
-            <p style={{margin:"4px 0 0",fontSize:11.5,color:"#8B95A1"}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}</p>
+            <div style={{display:"flex",alignItems:"center",gap:28,flexWrap:"wrap"}}>
+              <div style={{flexShrink:0}}>
+                <p style={{margin:"0 0 4px",fontSize:11.5,color:"#8B95A1",fontWeight:600}}>POUR OS / {pi?.label}</p>
+                <h1 style={{margin:0,fontSize:24,fontWeight:900,color:"#191F28",lineHeight:1.15,letterSpacing:-0.5}}>{pi?.icon} {pi?.label}</h1>
+                <p style={{margin:"4px 0 0",fontSize:11.5,color:"#8B95A1"}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}</p>
+              </div>
+              <div id="page-head-slot" key={page} style={{flex:"1 1 300px",minWidth:0}}/>
+            </div>
           </div>
         </div>
         <div style={{flex:1,overflowY:"auto"}}><div style={{width:"100%",maxWidth:1280,margin:"0 auto"}}>{pageContent}</div></div>
@@ -1647,6 +1652,46 @@ function TeamToday({D,cu,nav,onEdit,up}){
     </div>
   );
 }
+// 오늘 화면 블록 순서 바꾸기 — 왼쪽 ⠿ 를 끌어 위아래로(폰은 눌러서 ↑↓ 도 가능). 순서는 이 기기에 사람별로 기억
+function TodayBlocks({uid,items}){
+  const key="pour-os-today-order-"+uid;
+  const [order,setOrder]=useState(()=>{ try{ const a=JSON.parse(localStorage.getItem(key)||"null"); if(Array.isArray(a)) return a; }catch(_){} return []; });
+  const [drag,setDrag]=useState(null);   // {id, over, y0, moved}
+  const [menu,setMenu]=useState(null);
+  const refs=useRef({});
+  const ids=items.map(i=>i.id);
+  const ord=[...order.filter(id=>ids.includes(id)),...ids.filter(id=>!order.includes(id))];
+  const vis=ord.map(id=>items.find(i=>i.id===id)).filter(i=>i&&i.show);
+  const save=(o)=>{ setOrder(o); try{ localStorage.setItem(key,JSON.stringify(o)); }catch(_){} };
+  const moveTo=(id,to)=>{ const vids=vis.map(i=>i.id); const from=vids.indexOf(id); if(from<0) return; const nv=vids.filter(x=>x!==id); const at=Math.max(0,Math.min(nv.length,to>from?to-1:to)); nv.splice(at,0,id); if(nv.join()===vids.join()) return; let k=0; save(ord.map(x=>vids.includes(x)?nv[k++]:x)); };
+  const overIdx=(y)=>{ for(let i=0;i<vis.length;i++){ const el=refs.current[vis[i].id]; if(!el) continue; const r=el.getBoundingClientRect(); if(y<r.top+r.height/2) return i; } return vis.length; };
+  const scrollBox=(el)=>{ let n=el&&el.parentElement; while(n&&n!==document.body){ const st=getComputedStyle(n); if(/(auto|scroll)/.test(st.overflowY)&&n.scrollHeight>n.clientHeight) return n; n=n.parentElement; } return document.scrollingElement||document.documentElement; };
+  const onDown=(e,id)=>{ e.preventDefault(); try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(_){} setDrag({id,over:vis.findIndex(i=>i.id===id),y0:e.clientY,moved:false,box:scrollBox(e.currentTarget)}); };
+  const onMove=(e)=>{ if(!drag) return; const moved=drag.moved||Math.abs(e.clientY-drag.y0)>6; const vh=window.innerHeight;
+    if(moved&&drag.box){ if(e.clientY<90) drag.box.scrollBy(0,-14); else if(e.clientY>vh-90) drag.box.scrollBy(0,14); }
+    setDrag(d=>d&&({...d,moved,over:moved?overIdx(e.clientY):d.over})); };
+  const onUp=()=>{ if(!drag) return; if(drag.moved) moveTo(drag.id,drag.over); else setMenu(m=>m===drag.id?null:drag.id); setDrag(null); };
+  const line=<div style={{height:4,background:"#3182F6",borderRadius:2,margin:"-9px 0 5px 22px"}}/>;
+  const mbtn={padding:"6px 10px",borderRadius:9,border:"1px solid #C9DDFF",background:"#fff",color:"#1B64DA",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"};
+  return(<div>
+    {vis.map((it,i)=><Fragment key={it.id}>
+      {drag&&drag.moved&&drag.over===i&&drag.id!==it.id&&line}
+      {menu===it.id&&<div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",margin:"0 0 8px 22px",padding:"8px 10px",borderRadius:12,background:"#F2F7FF",border:"1px solid #C9DDFF"}}>
+        <b style={{fontSize:12,color:"#1B64DA",marginRight:2}}>↕ {it.label}</b>
+        <button style={mbtn} onClick={()=>{ moveTo(it.id,0); setMenu(null); }} disabled={i===0}>맨 위로</button>
+        <button style={mbtn} onClick={()=>moveTo(it.id,i-1)} disabled={i===0}>↑ 위로</button>
+        <button style={mbtn} onClick={()=>moveTo(it.id,i+2)} disabled={i===vis.length-1}>↓ 아래로</button>
+        <button style={{...mbtn,border:"none",background:"none",color:"#8B95A1"}} onClick={()=>setMenu(null)}>닫기</button>
+      </div>}
+      <div ref={el=>{ refs.current[it.id]=el; }} style={{display:"flex",gap:4,alignItems:"flex-start",opacity:drag&&drag.moved&&drag.id===it.id?0.45:1,transition:"opacity .15s"}}>
+        <div onPointerDown={e=>onDown(e,it.id)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={()=>setDrag(null)} role="button" aria-label={`${it.label} 순서 바꾸기`} title="끌어서 순서 바꾸기 · 누르면 ↑↓"
+          style={{touchAction:"none",cursor:drag&&drag.id===it.id?"grabbing":"grab",width:18,flexShrink:0,paddingTop:12,color:menu===it.id?"#3182F6":"#C4C9D0",fontSize:15,lineHeight:1,textAlign:"center",userSelect:"none",WebkitUserSelect:"none"}}>⠿</div>
+        <div style={{flex:1,minWidth:0}}>{it.node}</div>
+      </div>
+    </Fragment>)}
+    {drag&&drag.moved&&drag.over===vis.length&&line}
+  </div>);
+}
 function TodayPage({D,cu,lead,add,up,rm,nav}){
   const today=todayDay();
   const todayDate=new Date().getDate();
@@ -1767,6 +1812,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [showHeld,setShowHeld]=useState(false);
   const [showCarry,setShowCarry]=useState(false);   // 밀린 업무 펼침(기본 접힘)
   const [scope,setScope]=useState("me");   // 오늘 화면: me(나) | team(팀)
+  const [headSlot,setHeadSlot]=useState(null);   // PC: 요약 숫자를 화면 제목 옆(page-head-slot)에
+  useEffect(()=>{ setHeadSlot(document.getElementById("page-head-slot")); },[]);
   const [memoSheet,setMemoSheet]=useState(false);   // 이번 주 명심할 것 메모 편집
   const [memoText,setMemoText]=useState("");
   const [isNarrow,setIsNarrow]=useState(typeof window!=="undefined"?window.innerWidth<640:true);   // 모바일=하루씩, 넓은 화면=요일 5열
@@ -1922,6 +1969,21 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       </div>
     </div>
   ):null;
+  // 요약 숫자 — PC는 화면 제목 옆, 폰은 맨 위 (프로젝트는 개수 대신 진척률)
+  const myActiveProjs=D.projects.filter(p=>ownsProj(p,cu.id)&&projStatus(p)!=="completed");
+  const projAvg=myActiveProjs.length?Math.round(myActiveProjs.reduce((a,p)=>a+(Number(p.progress)||0),0)/myActiveProjs.length):0;
+  const statTile=(label,val,sub,color,pct)=>(<div style={{flex:"1 1 0",minWidth:0,maxWidth:200,backgroundColor:"#FFFFFF",borderRadius:14,padding:"10px 14px",border:"1px solid #EEF1F4",boxShadow:"0 1px 6px rgba(15,23,42,.04)"}}>
+    <p style={{margin:0,fontSize:11,color:"#8B95A1",fontWeight:700}}>{label}</p>
+    <p style={{margin:"2px 0 0",fontSize:20,fontWeight:900,color,fontVariantNumeric:"tabular-nums",lineHeight:1.2}}>{val}</p>
+    {pct!=null&&<div style={{height:5,background:"#F2F4F6",borderRadius:3,overflow:"hidden",marginTop:5}}><div style={{width:`${Math.min(100,pct)}%`,height:"100%",background:color,borderRadius:3}}/></div>}
+    {sub?<p style={{margin:"4px 0 0",fontSize:10.5,fontWeight:700,color:"#8B95A1",whiteSpace:"nowrap"}}>{sub}</p>:null}
+  </div>);
+  const statsBox=(<div style={{display:"flex",gap:8}}>
+    {statTile("오늘 업무",`${doneToday}/${todayT.length}`,"완료 / 전체",todayT.length&&doneToday===todayT.length?"#00A862":"#3182F6",todayT.length?doneToday/todayT.length*100:0)}
+    {statTile("고정업무",`${doneFixed}/${fixed.length}`,"오늘 할 것",fixed.length&&doneFixed===fixed.length?"#00A862":"#3182F6",fixed.length?doneFixed/fixed.length*100:0)}
+    {statTile("프로젝트 진척",`${projAvg}%`,`진행 중 ${myActiveProjs.length}건 평균`,"#8B5CF6",projAvg)}
+  </div>);
+  const todayStatsEl=headSlot?createPortal(statsBox,headSlot):<div style={{marginBottom:14}}>{statsBox}</div>;
   return(
     <div style={{padding:"14px 16px 20px"}}>
       <div style={{display:"flex",gap:4,background:"#F2F4F6",borderRadius:12,padding:4,marginBottom:14}}>
@@ -1931,71 +1993,21 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       </div>
       {scope==="team"&&<TeamToday D={D} cu={cu} nav={nav} onEdit={setEditTask} up={up}/>}
       {scope==="me"&&<>
+      {todayStatsEl}
+      <TodayBlocks uid={cu.id} items={[
+        {id:"memo",label:"이번 주 메모",show:true,node:(<>
       {(!isNarrow&&urgentCard)?(
         <div style={{display:"flex",gap:12,marginBottom:12,alignItems:"stretch"}}>{memoBanner}{urgentCard}</div>
       ):(<>
         <div style={{marginBottom:urgentCard?12:14}}>{memoBanner}</div>
         {urgentCard&&<div style={{marginBottom:14}}>{urgentCard}</div>}
       </>)}
-      <div style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
-        {[{label:"오늘 업무",val:`${doneToday}/${todayT.length}`,color:"#3182F6"},{label:"고정업무",val:`${doneFixed}/${fixed.length}`,color:"#3182F6"},{label:"내 프로젝트",val:D.projects.filter(p=>ownsProj(p,cu.id)).length+"건",color:"#8B5CF6"}].map((s,i)=>(
-          <div key={i} style={{flexShrink:0,backgroundColor:"#FFFFFF",borderRadius:12,padding:"10px 14px",border:"1px solid #F2F4F6"}}>
-            <p style={{margin:0,fontSize:10,color:"#9CA3AF",fontWeight:600}}>{s.label}</p>
-            <p style={{margin:"2px 0 0",fontSize:18,fontWeight:900,color:s.color}}>{s.val}</p>
-          </div>
-        ))}
-      </div>
+        </>)},
+        {id:"weekly",label:"주간 입력",show:isLastWorkingDayOfWeek(),node:(<>
       {isLastWorkingDayOfWeek()&&<button onClick={()=>setWeeklyOpen(true)} style={{width:"100%",marginBottom:14,padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#3182F6,#1B64DA)",color:"#fff",fontSize:14.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🗓️ 이번 주 마감 입력 — 매출·KPI·활동지표 한 번에</button>}
       <WeeklyInputSheet open={weeklyOpen} onClose={()=>setWeeklyOpen(false)} D={D} cu={cu} up={up}/>
-      <div style={{backgroundColor:"#FFFFFF",borderRadius:16,marginBottom:14,border:"1px solid #F2F4F6",overflow:"hidden"}}>
-        <div onClick={()=>setFeedOpen(o=>!o)} style={{padding:"13px 14px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#191F28"}}>📋 이번 주 팀 활동</h3>
-            <span style={{fontSize:11,fontWeight:800,color:"#fff",background:actFeed.length>0?"#00C073":"#D1D5DB",padding:"2px 8px",borderRadius:10}}>{actFeed.length}건</span>
-          </div>
-          <span style={{fontSize:12,color:"#9CA3AF"}}>{weekLabel(wkNow)} {feedOpen?"▲":"▼"}</span>
-        </div>
-        {feedOpen&&(
-          <div style={{borderTop:"1px solid #F2F4F6",padding:"4px 12px 10px"}}>
-            {actFeed.length===0?<p style={{padding:"16px 0",textAlign:"center",fontSize:12.5,color:"#9CA3AF"}}>이번 주 기록된 활동이 없어요 · 기록되지 않은 업무는 자산이 되지 않아요</p>:(()=>{
-              const groups={}; actFeed.forEach(e=>{const k=e.who||"기타";(groups[k]=groups[k]||[]).push(e);});
-              const names=Object.keys(groups).sort((a,b)=>{const da=groups[a].filter(x=>x.icon==="✅").length,db=groups[b].filter(x=>x.icon==="✅").length;return db-da||groups[b].length-groups[a].length;});
-              return names.map(name=>{
-                const items=groups[name];
-                const done=items.filter(x=>x.icon==="✅").length;
-                const sales=items.filter(x=>x.icon==="💰").length;
-                const kpi=items.filter(x=>x.icon==="🎯"||x.icon==="📊").length;
-                const u=D.users.find(x=>x.name===name); const col=u?.color||"#9CA3AF"; const open=expandedMember===name;
-                return(
-                  <div key={name} style={{borderBottom:"1px solid #F4F5F7"}}>
-                    <button onClick={()=>setExpandedMember(open?null:name)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 2px",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
-                      <Ava name={name} color={col} size={28}/>
-                      <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:800,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{name}</span>
-                      <span style={{flexShrink:0,fontSize:11.5,fontWeight:800,color:"#00A862",background:"#E8FAF1",borderRadius:8,padding:"3px 9px"}}>✅ {done} 완료</span>
-                      {sales>0&&<span style={{flexShrink:0,fontSize:11,fontWeight:800,color:"#1B64DA",background:"#EBF3FF",borderRadius:8,padding:"3px 8px"}}>💰 {sales}</span>}
-                      {kpi>0&&<span style={{flexShrink:0,fontSize:11,fontWeight:800,color:"#7C3AED",background:"#F3EFFE",borderRadius:8,padding:"3px 8px"}}>🎯 {kpi}</span>}
-                      <span style={{flexShrink:0,fontSize:11,color:"#C4C9D0"}}>{open?"▲":"▼"}</span>
-                    </button>
-                    {open&&(
-                      <div style={{padding:"0 0 10px 38px"}}>
-                        {items.map((e,i)=>(
-                          <div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"6px 0"}}>
-                            <span style={{fontSize:13,flexShrink:0}}>{e.icon}</span>
-                            <div style={{flex:1,minWidth:0}}>
-                              <p style={{margin:0,fontSize:12,fontWeight:600,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.text}</p>
-                              <p style={{margin:"1px 0 0",fontSize:10,color:"#9CA3AF"}}>{(e.at||"").slice(5,16).replace("T"," ")}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              });
-            })()}
-          </div>
-        )}
-      </div>
+        </>)},
+        {id:"turn",label:"워크플로우 내 차례",show:(myCases.length+myLaunch.length)>0,node:(<>
       {(myCases.length+myLaunch.length)>0&&(()=>{ const rows=[...myCases.map(x=>({k:"c"+x.t.id,kind:"case",...x})),...myLaunch.map(x=>({k:"l"+x.p.id+x.it.id,kind:"launch",...x}))]; const shown=turnAll?rows:rows.slice(0,6);
         return(
         <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #C9DDFF",marginBottom:14}}>
@@ -2021,6 +2033,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
           {rows.length>6&&<button onClick={()=>setTurnAll(v=>!v)} style={{marginTop:8,border:"none",background:"none",padding:"4px 2px",fontSize:12,fontWeight:800,color:"#1B64DA",cursor:"pointer",fontFamily:"inherit"}}>{turnAll?"접기 ▴":`${rows.length-6}개 더 보기 ▾`}</button>}
         </div>); })()}
+        </>)},
+        {id:"overdue",label:"마감 지난·밀린 업무",show:(carry.length>0||held.length>0||overdueProjs.length>0),node:(<>
       {(carry.length>0||held.length>0||overdueProjs.length>0)&&(
         <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid "+((carry.length>0||overdueProjs.length>0)?"#C9DDFF":"#F2F4F6")}}>
           {overdueProjs.length>0&&(
@@ -2084,7 +2098,184 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           )}
         </div>
       )}
-      <WorkCalendar D={D} userId={cu.id} up={up} onEditTask={setEditTask}/>
+        </>)},
+        {id:"tasks",label:"오늘 업무·고정업무",show:true,node:(<>
+      <div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:12,flexWrap:"wrap"}}>
+      <div style={{flex:"1 1 380px",minWidth:0,backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",boxSizing:"border-box"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+          <div>
+            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#191F28"}}>✅ 오늘 업무 ({today}요일)</h3>
+            <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{doneToday}/{todayT.length} 완료</p>
+          </div>
+        </div>
+        {todayT.length===0?(
+          <div style={{padding:"20px 0",textAlign:"center"}}>
+            <p style={{margin:0,fontSize:13,color:"#9CA3AF"}}>오늘({today}요일) 배치된 업무가 없어요</p>
+            <p style={{margin:"3px 0 0",fontSize:11.5,color:"#D1D5DB"}}>위 슬롯을 탭해서 배치하거나 아래에서 빠른 추가하세요</p>
+          </div>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",gap:7}}>
+            {activeToday.length===0
+              ? <div style={{padding:"14px 0",textAlign:"center"}}><p style={{margin:0,fontSize:13,fontWeight:800,color:"#00A862"}}>오늘 할 일 다 끝냈어요 🎉</p><p style={{margin:"3px 0 0",fontSize:11.5,color:"#B0B8C1"}}>완료 {doneTodayList.length}건 · 아래에서 볼 수 있어요</p></div>
+              : activeToday.map(todayCard)}
+            {/* 오늘 완료 — 기본 접힘. 완료 업무가 목록을 어지럽히지 않되, 기록은 접힌 섹션에 그대로 남는다(데이터 자산화). */}
+            {doneTodayList.length>0&&(
+              <div style={{marginTop:activeToday.length?4:0}}>
+                <button onClick={()=>setShowDoneToday(v=>!v)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,padding:"9px 12px",borderRadius:11,border:"1px solid #E8FAF1",background:"#F2FBF6",cursor:"pointer",fontFamily:"inherit"}}>
+                  <span style={{fontSize:12,fontWeight:800,color:"#00A862"}}>✓ 오늘 완료 {doneTodayList.length}건</span>
+                  <span style={{fontSize:11,fontWeight:800,color:"#00A862"}}>{showDoneToday?"숨기기 ▾":"보기 ▸"}</span>
+                </button>
+                {showDoneToday&&<div style={{display:"flex",flexDirection:"column",gap:7,marginTop:7}}>{doneTodayList.map(todayCard)}</div>}
+              </div>
+            )}
+          </div>
+        )}
+        <div style={{marginTop:10}}>
+          <div style={{display:"flex",gap:8}}>
+            <input value={quick} onChange={e=>setQuick(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doQuick()} placeholder="빠른 업무 추가... (Enter)" style={{flex:1,padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13,outline:"none",fontFamily:"inherit",backgroundColor:"#F9FAFB"}}/>
+            <button onClick={doQuick} disabled={!quick.trim()} style={{width:40,height:40,borderRadius:10,border:"none",backgroundColor:quick.trim()?"#3182F6":"#E5E8EB",color:quick.trim()?"#FFFFFF":"#9CA3AF",fontSize:20,cursor:quick.trim()?"pointer":"not-allowed",flexShrink:0}}>+</button>
+          </div>
+          <div style={{marginTop:8}}><ProjPicker D={D} uid={cu.id} value={quickProj} onChange={setQuickProj} compact/></div>
+        </div>
+      </div>
+      <div style={{flex:"1 1 300px",minWidth:0,backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",boxSizing:"border-box"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+          <div>
+            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#191F28"}}>📌 고정업무 <span style={{fontWeight:600,color:"#9CA3AF",fontSize:11}}>(내 담당 · 일·주·월 전체)</span></h3>
+            <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{fixedMineAll.filter(fixedDone).length}/{fixedMineAll.length} 완료 · 오늘 할 것 {doneFixed}/{fixed.length}</p>
+          </div>
+          <button onClick={()=>nav("fixed")} style={{fontSize:11,fontWeight:700,color:"#1B64DA",backgroundColor:"#E8F1FF",border:"none",borderRadius:7,padding:"5px 10px",cursor:"pointer"}}>관리 →</button>
+        </div>
+        {fixedMineAll.length===0?<p style={{margin:0,padding:"16px 0",textAlign:"center",fontSize:13,color:"#D1D5DB"}}>고정업무가 없어요</p>:(
+          <div style={{display:"flex",flexDirection:"column",gap:7}}>
+            {(()=>{ const fxRow=(t,fi,arr,withNow,lab)=>{
+              const proj=D.projects.find(p=>p.id===t.projectId);
+              const dn=fixedDone(t), my=fixedMe(t), [dc,dtot]=fixedDoneCount(D,t,todayKey), fm=fixedMin(t), nm=nowMin(), late=withNow&&!my&&fm<9999&&fm<nm;
+              const prevM=fi>0?fixedMin(arr[fi-1]):-1, showNow=withNow&&fm<9999&&prevM<=nm&&fm>nm;   // 지금 시각 선: 지난 것과 앞으로 할 것 사이
+              return(<Fragment key={t.id}>
+                {showNow&&<div style={{display:"flex",alignItems:"center",gap:6,margin:"2px 0"}}><span style={{fontSize:10,fontWeight:900,color:"#F04452"}}>지금 {String(Math.floor(nm/60)).padStart(2,"0")}:{String(nm%60).padStart(2,"0")}</span><span style={{flex:1,height:2,background:"#F04452",borderRadius:2,opacity:.5}}/></div>}
+                <div onClick={()=>toggleFixed(t)} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 12px",borderRadius:12,backgroundColor:dn?"rgba(232,250,241,0.34)":"#F9FAFB",border:`1px solid ${dn?"rgba(0,192,115,0.2)":"#E5E8EB"}`,cursor:"pointer"}}>
+                  <button onClick={e=>{e.stopPropagation();toggleFixed(t);}} aria-label="내 몫 체크" style={{width:22,height:22,borderRadius:6,border:`2px solid ${dn||my?"#00C073":"#D1D5DB"}`,backgroundColor:dn?"#00C073":my?"#E8FAF1":"#FFFFFF",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>
+                    {(dn||my)&&<span style={{color:dn?"#FFFFFF":"#00A862",fontSize:12,fontWeight:900}}>✓</span>}
+                  </button>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{margin:0,fontSize:13.5,fontWeight:700,color:dn?"#9CA3AF":"#111827",textDecoration:dn?"line-through":"none"}}>{t.title}</p>
+                    <div style={{display:"flex",alignItems:"center",gap:5,marginTop:3,flexWrap:"wrap",fontSize:10.5,color:"#9CA3AF"}}>{dtot>1?<span style={{color:dn?"#00A862":"#1B64DA",fontWeight:800}}>👥 {dc}/{dtot}명 체크{dn?" · 완료":my?" · 다른 담당 대기":""}</span>:null}{dn&&t.doneAt?<span style={{color:"#00A862",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료</span>:null}{proj?<ProjChip p={proj}/>:<span>반복 업무</span>}</div>
+                  </div>
+                  <div style={{flexShrink:0,textAlign:"right",minWidth:44}}>
+                    <p style={{margin:0,fontSize:14,fontWeight:900,fontVariantNumeric:"tabular-nums",color:dn?"#B0B8C1":late?"#F04452":"#1B64DA"}}>{lab||t.fixedTime||"—"}</p>{lab&&t.fixedTime?<p style={{margin:0,fontSize:9.5,fontWeight:700,color:"#8B95A1"}}>{t.fixedTime}</p>:null}
+                    {late&&<p style={{margin:0,fontSize:9.5,fontWeight:800,color:"#F04452"}}>지남</p>}
+                  </div>
+                </div></Fragment>
+              );
+};
+              const WDx=["월","화","수","목","금","토","일"]; const sec=(l,n,d)=><p style={{margin:"6px 2px 0",fontSize:12,fontWeight:900,color:"#191F28"}}>{l} <span style={{color:d===n&&n?"#00A862":"#8B95A1",fontWeight:700}}>{d}/{n}</span></p>;
+              return(<>
+                {fxDaily.length>0&&<>{sec("🔁 매일",fxDaily.length,fxDaily.filter(fixedDone).length)}{fxDaily.map((t,fi)=>fxRow(t,fi,fxDaily,true))}</>}
+                {fxWeekly.length>0&&<>{sec("📅 매주 · 이번 주",fxWeekly.length,fxWeekly.filter(fixedDone).length)}{fxWeekly.map((t,fi)=>fxRow(t,fi,fxWeekly,false,fixedDaysLabel(t)+(fixedWeekDays(t).includes(today)?" 오늘":"")))}</>}
+                {fxMonthly.length>0&&<>{sec("🗓 매월 · 이번 달",fxMonthly.length,fxMonthly.filter(fixedDone).length)}{fxMonthly.map((t,fi)=>fxRow(t,fi,fxMonthly,false,(+t.monthDay||1)+"일"))}</>}
+              </>); })()}
+          </div>
+        )}
+      </div>
+      </div>
+        </>)},
+        {id:"mytasks",label:"내 업무",show:true,node:(<>
+      {(()=>{
+        const FILTERS=[["todo","미완료","#4E5968"],["inprogress","진행중","#3182F6"],["done","완료","#00C073"],["hold","보류","#FF9500"]];
+        const mine=myT.filter(t=>!t.isFixed);
+        const cnt=(s)=>mine.filter(t=>t.status===s).length;
+        const q=taskQuery.trim().toLowerCase();
+        const searching=q.length>0;
+        // 검색어가 있으면 상태탭 무시하고 제목·메모·프로젝트명으로 내 업무 전체 검색
+        const matchQ=(t)=>{const proj=D.projects.find(p=>p.id===t.projectId);return [t.title,t.memo,proj&&proj.title].filter(Boolean).some(s=>String(s).toLowerCase().includes(q));};
+        const STORD={todo:0,inprogress:1,hold:2,done:3};
+        const list=searching
+          ? mine.filter(matchQ).sort((a,b)=>(STORD[a.status]??9)-(STORD[b.status]??9)||(a.weekDay?1:0)-(b.weekDay?1:0))
+          : mine.filter(t=>t.status===taskFilter).sort((a,b)=>(a.weekDay?1:0)-(b.weekDay?1:0));   // 미배치(요일없음) 먼저
+        const cur=FILTERS.find(f=>f[0]===taskFilter);
+        return(
+          <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",marginBottom:14}}>
+            <div style={{marginBottom:10}}>
+              <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#191F28"}}>📋 내 업무</h3>
+              <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>상태별로 모아 보기 · 미배치는 오늘로 배치할 수 있어요</p>
+            </div>
+            {/* 업무 검색 — 제목·메모·프로젝트명으로 내 업무 전체에서 찾기(입력하면 상태탭 대신 검색결과 노출) */}
+            <div style={{position:"relative",marginBottom:10}}>
+              <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"#9CA3AF",pointerEvents:"none"}}>🔍</span>
+              <input value={taskQuery} onChange={e=>setTaskQuery(e.target.value)} placeholder="업무 검색 (제목·메모·프로젝트명)" style={{width:"100%",padding:"10px 34px 10px 32px",borderRadius:10,border:`1.5px solid ${searching?"#3182F6":"#E5E8EB"}`,fontSize:13,outline:"none",fontFamily:"inherit",backgroundColor:searching?"#F2F7FF":"#F9FAFB",boxSizing:"border-box"}}/>
+              {searching&&<button onClick={()=>setTaskQuery("")} title="검색 지우기" style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",width:22,height:22,borderRadius:"50%",border:"none",background:"#E5E8EB",color:"#6B7280",fontSize:12,fontWeight:900,cursor:"pointer",lineHeight:1}}>×</button>}
+            </div>
+            <div style={{marginBottom:12,padding:"11px 12px",borderRadius:12,background:"#F2F7FF",border:"1.5px solid #C9DDFF"}}>
+              <div style={{display:"flex",gap:8}}>
+                <input value={qa.title} onChange={e=>setQa({...qa,title:e.target.value})} onKeyDown={e=>e.key==="Enter"&&doRegister()} placeholder="새 업무 입력... (Enter로 등록)" style={{flex:1,minWidth:0,padding:"10px 12px",borderRadius:10,border:"1.5px solid #90BFFF",fontSize:13,outline:"none",fontFamily:"inherit",backgroundColor:"#fff"}}/>
+                <button onClick={doRegister} disabled={!qa.title.trim()} style={{width:42,height:40,borderRadius:10,border:"none",background:qa.title.trim()?"#3182F6":"#E5E8EB",color:"#fff",fontSize:20,fontWeight:900,cursor:qa.title.trim()?"pointer":"not-allowed",flexShrink:0}}>+</button>
+              </div>
+              <div style={{marginTop:8}}><ProjPicker D={D} uid={cu.id} value={qa.projectId} onChange={v=>setQa({...qa,projectId:v})} compact/></div>
+              <div style={{display:"flex",gap:5,marginTop:8,flexWrap:"wrap",alignItems:"center"}}>
+                <span style={{fontSize:10,fontWeight:800,color:"#1E40AF",marginRight:1}}>📅</span>
+                {[["미정",""],["오늘",0],["내일",1]].map(([lbl,off])=>{const ds=off===""?"":(()=>{const d=new Date();d.setDate(d.getDate()+off);return ymdLocal(d);})();const on=off===""?!qa.workDate:qa.workDate===ds;return(
+                  <button key={lbl} onClick={()=>setQa({...qa,...qaPlace(ds)})} style={{padding:"5px 10px",borderRadius:8,border:`1.5px solid ${on?"#3182F6":"#E5E8EB"}`,background:on?"#3182F6":"#fff",color:on?"#fff":"#9CA3AF",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{lbl}</button>
+                );})}
+                <input type="date" value={qa.workDate||""} onChange={e=>setQa({...qa,...qaPlace(e.target.value)})} style={{padding:"4px 7px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:11,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                <button onClick={()=>setQaMore(m=>!m)} style={{marginLeft:"auto",padding:"5px 9px",borderRadius:8,border:`1.5px solid ${qaMore?"#3182F6":"#90BFFF"}`,background:qaMore?"#E8F1FF":"#fff",color:"#1B64DA",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{qaMore?"옵션 접기 ▴":"상태 ▾"}</button>
+              </div>
+              {qaMore&&<>
+              <div style={{display:"flex",gap:5,marginTop:6,flexWrap:"wrap",alignItems:"center"}}>
+                <span style={{fontSize:10,fontWeight:800,color:"#1E40AF",marginRight:1}}>🚦</span>
+                {Object.entries(STATUS_MAP).map(([k,v])=>{const on=qa.status===k;return(
+                  <button key={k} onClick={()=>setQa({...qa,status:k})} style={{padding:"5px 10px",borderRadius:8,border:`1.5px solid ${on?v.color:"#E5E8EB"}`,background:on?v.color+"18":"#fff",color:on?v.color:"#9CA3AF",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{v.label}</button>
+                );})}
+              </div>
+              </>}
+              {!qaMore&&(qa.status!=="todo"||qa.projectId)&&(
+                <p style={{margin:"6px 2px 0",fontSize:10,fontWeight:700,color:"#1E40AF"}}>{qa.status!=="todo"?`🚦 ${STATUS_MAP[qa.status].label}`:""}{qa.status!=="todo"&&qa.projectId?" · ":""}{qa.projectId?`📁 ${(D.projects.find(p=>p.id===qa.projectId)||{}).title||""}`:""}</p>
+              )}
+            </div>
+            {searching?(
+              <div style={{marginBottom:12,fontSize:11.5,fontWeight:700,color:"#1B64DA"}}>🔍 “{taskQuery.trim()}” 검색결과 {list.length}건 <span style={{fontWeight:600,color:"#9CA3AF"}}>· 모든 상태에서 찾음</span></div>
+            ):(
+            <div style={{display:"flex",gap:6,marginBottom:12}}>
+              {FILTERS.map(([k,l,c])=>{const on=taskFilter===k;const n=cnt(k);return(
+                <button key={k} onClick={()=>setTaskFilter(k)} style={{flex:1,padding:"7px 4px",borderRadius:9,border:`1.5px solid ${on?c:"#E5E8EB"}`,background:on?c+"14":"#fff",cursor:"pointer",fontFamily:"inherit",display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
+                  <span style={{fontSize:11.5,fontWeight:800,color:on?c:"#9CA3AF"}}>{l}</span>
+                  <span style={{fontSize:13,fontWeight:900,color:on?c:"#C4C9D0"}}>{n}</span>
+                </button>);})}
+            </div>
+            )}
+            {list.length===0?(
+              <p style={{margin:0,padding:"16px 0",textAlign:"center",fontSize:12.5,color:"#B0B8C1"}}>{searching?`“${taskQuery.trim()}”에 맞는 업무가 없어요`:`${cur[1]} 업무가 없어요`}</p>
+            ):(
+              <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                {list.map(t=>{const proj=D.projects.find(p=>p.id===t.projectId);const placed=!!t.weekDay;const st=STATUS_MAP[t.status];return(
+                  <div key={t.id} style={{padding:"11px 12px",borderRadius:12,backgroundColor:placed?"#F9FAFB":"#F2F7FF",border:`1px solid ${placed?"#EEF1F4":"#C9DDFF"}`}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <p style={{margin:0,fontSize:13.5,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#111827",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.eventId?"📅 ":""}{t.title}</p>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
+                          <span style={{fontSize:9.5,fontWeight:800,color:st.color,background:st.bg,borderRadius:5,padding:"1px 6px"}}>{st.label}</span>
+                          <span style={{fontSize:10.5,color:placed?"#6B7280":"#1B64DA",fontWeight:placed?600:700}}>{placed?`${t.weekDay}요일${t.weekSlot?` ${t.weekSlot}순위`:""}`:"미배치"}</span>
+                          {proj?<ProjChip p={proj} max={18}/>:<span style={{fontSize:10.5,color:"#F04452",fontWeight:600}}>· ⚠️ 미연결</span>}
+                          {(()=>{const ru=taskRollup(D,t.id);return ru.total>0?<button onClick={()=>setExpandedCards(e=>({...e,[t.id]:!e[t.id]}))} style={{border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",fontSize:10,fontWeight:800,color:ru.done>=ru.total?"#00A862":"#7C3AED",flexShrink:0}}>· 하위 {ru.done}/{ru.total} {expandedCards[t.id]?"▾":"▸"}</button>:null;})()}
+                        </div>
+                      </div>
+                      <button onClick={()=>setEditTask(t)} style={{padding:"6px 9px",borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#FFFFFF",fontSize:12,fontWeight:700,color:"#4B5563",cursor:"pointer",flexShrink:0}}>✎</button>
+                      <button onClick={()=>setConfirmTaskId(t.id)} style={{padding:"6px 9px",borderRadius:8,border:"1px solid #FFE2E5",backgroundColor:"#FFF0F1",fontSize:12,fontWeight:700,color:"#F04452",cursor:"pointer",flexShrink:0}}>🗑</button>
+                    </div>
+                    {expandedCards[t.id]&&<CardSubtree tid={t.id}/>}
+                    {(taskFilter==="hold")?(
+                      <button onClick={()=>bringToday(t)} style={{width:"100%",marginTop:8,padding:"8px 0",borderRadius:9,border:"none",backgroundColor:"#3182F6",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>📍 오늘로 재개</button>
+                    ):(!placed&&t.status!=="done")&&(
+                      <button onClick={()=>up("tasks",t.id,{weekDay:today,workDate:todayStr,weekSlot:null})} style={{width:"100%",marginTop:8,padding:"8px 0",borderRadius:9,border:"none",backgroundColor:"#3182F6",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>📍 오늘({today}) 배치</button>
+                    )}
+                  </div>);})}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+        </>)},
+        {id:"plan",label:"주간 배치",show:true,node:(<>
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid #F2F4F6"}}>
         <div style={{marginBottom:2}}>
           <h3 style={{margin:"0 0 4px",fontSize:14,fontWeight:900,color:"#191F28"}}>📋 주간 업무 보드</h3>
@@ -2186,85 +2377,62 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         })()}
       {/* 주간 업무 배치: 항상 펼친 상태 고정 */}
       </div>
-      <div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:12,flexWrap:"wrap"}}>
-      <div style={{flex:"1 1 380px",minWidth:0,backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",boxSizing:"border-box"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-          <div>
-            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#191F28"}}>✅ 오늘 업무 ({today}요일)</h3>
-            <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{doneToday}/{todayT.length} 완료</p>
+        </>)},
+        {id:"calendar",label:"내 캘린더",show:true,node:(<>
+      <WorkCalendar D={D} userId={cu.id} up={up} onEditTask={setEditTask}/>
+        </>)},
+        {id:"activity",label:"이번 주 팀 활동",show:true,node:(<>
+      <div style={{backgroundColor:"#FFFFFF",borderRadius:16,marginBottom:14,border:"1px solid #F2F4F6",overflow:"hidden"}}>
+        <div onClick={()=>setFeedOpen(o=>!o)} style={{padding:"13px 14px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#191F28"}}>📋 이번 주 팀 활동</h3>
+            <span style={{fontSize:11,fontWeight:800,color:"#fff",background:actFeed.length>0?"#00C073":"#D1D5DB",padding:"2px 8px",borderRadius:10}}>{actFeed.length}건</span>
           </div>
+          <span style={{fontSize:12,color:"#9CA3AF"}}>{weekLabel(wkNow)} {feedOpen?"▲":"▼"}</span>
         </div>
-        {todayT.length===0?(
-          <div style={{padding:"20px 0",textAlign:"center"}}>
-            <p style={{margin:0,fontSize:13,color:"#9CA3AF"}}>오늘({today}요일) 배치된 업무가 없어요</p>
-            <p style={{margin:"3px 0 0",fontSize:11.5,color:"#D1D5DB"}}>위 슬롯을 탭해서 배치하거나 아래에서 빠른 추가하세요</p>
-          </div>
-        ):(
-          <div style={{display:"flex",flexDirection:"column",gap:7}}>
-            {activeToday.length===0
-              ? <div style={{padding:"14px 0",textAlign:"center"}}><p style={{margin:0,fontSize:13,fontWeight:800,color:"#00A862"}}>오늘 할 일 다 끝냈어요 🎉</p><p style={{margin:"3px 0 0",fontSize:11.5,color:"#B0B8C1"}}>완료 {doneTodayList.length}건 · 아래에서 볼 수 있어요</p></div>
-              : activeToday.map(todayCard)}
-            {/* 오늘 완료 — 기본 접힘. 완료 업무가 목록을 어지럽히지 않되, 기록은 접힌 섹션에 그대로 남는다(데이터 자산화). */}
-            {doneTodayList.length>0&&(
-              <div style={{marginTop:activeToday.length?4:0}}>
-                <button onClick={()=>setShowDoneToday(v=>!v)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,padding:"9px 12px",borderRadius:11,border:"1px solid #E8FAF1",background:"#F2FBF6",cursor:"pointer",fontFamily:"inherit"}}>
-                  <span style={{fontSize:12,fontWeight:800,color:"#00A862"}}>✓ 오늘 완료 {doneTodayList.length}건</span>
-                  <span style={{fontSize:11,fontWeight:800,color:"#00A862"}}>{showDoneToday?"숨기기 ▾":"보기 ▸"}</span>
-                </button>
-                {showDoneToday&&<div style={{display:"flex",flexDirection:"column",gap:7,marginTop:7}}>{doneTodayList.map(todayCard)}</div>}
-              </div>
-            )}
-          </div>
-        )}
-        <div style={{marginTop:10}}>
-          <div style={{display:"flex",gap:8}}>
-            <input value={quick} onChange={e=>setQuick(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doQuick()} placeholder="빠른 업무 추가... (Enter)" style={{flex:1,padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13,outline:"none",fontFamily:"inherit",backgroundColor:"#F9FAFB"}}/>
-            <button onClick={doQuick} disabled={!quick.trim()} style={{width:40,height:40,borderRadius:10,border:"none",backgroundColor:quick.trim()?"#3182F6":"#E5E8EB",color:quick.trim()?"#FFFFFF":"#9CA3AF",fontSize:20,cursor:quick.trim()?"pointer":"not-allowed",flexShrink:0}}>+</button>
-          </div>
-          <div style={{marginTop:8}}><ProjPicker D={D} uid={cu.id} value={quickProj} onChange={setQuickProj} compact/></div>
-        </div>
-      </div>
-      <div style={{flex:"1 1 300px",minWidth:0,backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",boxSizing:"border-box"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-          <div>
-            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#191F28"}}>📌 고정업무 <span style={{fontWeight:600,color:"#9CA3AF",fontSize:11}}>(내 담당 · 일·주·월 전체)</span></h3>
-            <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{fixedMineAll.filter(fixedDone).length}/{fixedMineAll.length} 완료 · 오늘 할 것 {doneFixed}/{fixed.length}</p>
-          </div>
-          <button onClick={()=>nav("fixed")} style={{fontSize:11,fontWeight:700,color:"#1B64DA",backgroundColor:"#E8F1FF",border:"none",borderRadius:7,padding:"5px 10px",cursor:"pointer"}}>관리 →</button>
-        </div>
-        {fixedMineAll.length===0?<p style={{margin:0,padding:"16px 0",textAlign:"center",fontSize:13,color:"#D1D5DB"}}>고정업무가 없어요</p>:(
-          <div style={{display:"flex",flexDirection:"column",gap:7}}>
-            {(()=>{ const fxRow=(t,fi,arr,withNow,lab)=>{
-              const proj=D.projects.find(p=>p.id===t.projectId);
-              const dn=fixedDone(t), my=fixedMe(t), [dc,dtot]=fixedDoneCount(D,t,todayKey), fm=fixedMin(t), nm=nowMin(), late=withNow&&!my&&fm<9999&&fm<nm;
-              const prevM=fi>0?fixedMin(arr[fi-1]):-1, showNow=withNow&&fm<9999&&prevM<=nm&&fm>nm;   // 지금 시각 선: 지난 것과 앞으로 할 것 사이
-              return(<Fragment key={t.id}>
-                {showNow&&<div style={{display:"flex",alignItems:"center",gap:6,margin:"2px 0"}}><span style={{fontSize:10,fontWeight:900,color:"#F04452"}}>지금 {String(Math.floor(nm/60)).padStart(2,"0")}:{String(nm%60).padStart(2,"0")}</span><span style={{flex:1,height:2,background:"#F04452",borderRadius:2,opacity:.5}}/></div>}
-                <div onClick={()=>toggleFixed(t)} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 12px",borderRadius:12,backgroundColor:dn?"rgba(232,250,241,0.34)":"#F9FAFB",border:`1px solid ${dn?"rgba(0,192,115,0.2)":"#E5E8EB"}`,cursor:"pointer"}}>
-                  <button onClick={e=>{e.stopPropagation();toggleFixed(t);}} aria-label="내 몫 체크" style={{width:22,height:22,borderRadius:6,border:`2px solid ${dn||my?"#00C073":"#D1D5DB"}`,backgroundColor:dn?"#00C073":my?"#E8FAF1":"#FFFFFF",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>
-                    {(dn||my)&&<span style={{color:dn?"#FFFFFF":"#00A862",fontSize:12,fontWeight:900}}>✓</span>}
-                  </button>
-                  <div style={{flex:1,minWidth:0}}>
-                    <p style={{margin:0,fontSize:13.5,fontWeight:700,color:dn?"#9CA3AF":"#111827",textDecoration:dn?"line-through":"none"}}>{t.title}</p>
-                    <div style={{display:"flex",alignItems:"center",gap:5,marginTop:3,flexWrap:"wrap",fontSize:10.5,color:"#9CA3AF"}}>{dtot>1?<span style={{color:dn?"#00A862":"#1B64DA",fontWeight:800}}>👥 {dc}/{dtot}명 체크{dn?" · 완료":my?" · 다른 담당 대기":""}</span>:null}{dn&&t.doneAt?<span style={{color:"#00A862",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료</span>:null}{proj?<ProjChip p={proj}/>:<span>반복 업무</span>}</div>
+        {feedOpen&&(
+          <div style={{borderTop:"1px solid #F2F4F6",padding:"4px 12px 10px"}}>
+            {actFeed.length===0?<p style={{padding:"16px 0",textAlign:"center",fontSize:12.5,color:"#9CA3AF"}}>이번 주 기록된 활동이 없어요 · 기록되지 않은 업무는 자산이 되지 않아요</p>:(()=>{
+              const groups={}; actFeed.forEach(e=>{const k=e.who||"기타";(groups[k]=groups[k]||[]).push(e);});
+              const names=Object.keys(groups).sort((a,b)=>{const da=groups[a].filter(x=>x.icon==="✅").length,db=groups[b].filter(x=>x.icon==="✅").length;return db-da||groups[b].length-groups[a].length;});
+              return names.map(name=>{
+                const items=groups[name];
+                const done=items.filter(x=>x.icon==="✅").length;
+                const sales=items.filter(x=>x.icon==="💰").length;
+                const kpi=items.filter(x=>x.icon==="🎯"||x.icon==="📊").length;
+                const u=D.users.find(x=>x.name===name); const col=u?.color||"#9CA3AF"; const open=expandedMember===name;
+                return(
+                  <div key={name} style={{borderBottom:"1px solid #F4F5F7"}}>
+                    <button onClick={()=>setExpandedMember(open?null:name)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 2px",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                      <Ava name={name} color={col} size={28}/>
+                      <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:800,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{name}</span>
+                      <span style={{flexShrink:0,fontSize:11.5,fontWeight:800,color:"#00A862",background:"#E8FAF1",borderRadius:8,padding:"3px 9px"}}>✅ {done} 완료</span>
+                      {sales>0&&<span style={{flexShrink:0,fontSize:11,fontWeight:800,color:"#1B64DA",background:"#EBF3FF",borderRadius:8,padding:"3px 8px"}}>💰 {sales}</span>}
+                      {kpi>0&&<span style={{flexShrink:0,fontSize:11,fontWeight:800,color:"#7C3AED",background:"#F3EFFE",borderRadius:8,padding:"3px 8px"}}>🎯 {kpi}</span>}
+                      <span style={{flexShrink:0,fontSize:11,color:"#C4C9D0"}}>{open?"▲":"▼"}</span>
+                    </button>
+                    {open&&(
+                      <div style={{padding:"0 0 10px 38px"}}>
+                        {items.map((e,i)=>(
+                          <div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"6px 0"}}>
+                            <span style={{fontSize:13,flexShrink:0}}>{e.icon}</span>
+                            <div style={{flex:1,minWidth:0}}>
+                              <p style={{margin:0,fontSize:12,fontWeight:600,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.text}</p>
+                              <p style={{margin:"1px 0 0",fontSize:10,color:"#9CA3AF"}}>{(e.at||"").slice(5,16).replace("T"," ")}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div style={{flexShrink:0,textAlign:"right",minWidth:44}}>
-                    <p style={{margin:0,fontSize:14,fontWeight:900,fontVariantNumeric:"tabular-nums",color:dn?"#B0B8C1":late?"#F04452":"#1B64DA"}}>{lab||t.fixedTime||"—"}</p>{lab&&t.fixedTime?<p style={{margin:0,fontSize:9.5,fontWeight:700,color:"#8B95A1"}}>{t.fixedTime}</p>:null}
-                    {late&&<p style={{margin:0,fontSize:9.5,fontWeight:800,color:"#F04452"}}>지남</p>}
-                  </div>
-                </div></Fragment>
-              );
-};
-              const WDx=["월","화","수","목","금","토","일"]; const sec=(l,n,d)=><p style={{margin:"6px 2px 0",fontSize:12,fontWeight:900,color:"#191F28"}}>{l} <span style={{color:d===n&&n?"#00A862":"#8B95A1",fontWeight:700}}>{d}/{n}</span></p>;
-              return(<>
-                {fxDaily.length>0&&<>{sec("🔁 매일",fxDaily.length,fxDaily.filter(fixedDone).length)}{fxDaily.map((t,fi)=>fxRow(t,fi,fxDaily,true))}</>}
-                {fxWeekly.length>0&&<>{sec("📅 매주 · 이번 주",fxWeekly.length,fxWeekly.filter(fixedDone).length)}{fxWeekly.map((t,fi)=>fxRow(t,fi,fxWeekly,false,fixedDaysLabel(t)+(fixedWeekDays(t).includes(today)?" 오늘":"")))}</>}
-                {fxMonthly.length>0&&<>{sec("🗓 매월 · 이번 달",fxMonthly.length,fxMonthly.filter(fixedDone).length)}{fxMonthly.map((t,fi)=>fxRow(t,fi,fxMonthly,false,(+t.monthDay||1)+"일"))}</>}
-              </>); })()}
+                );
+              });
+            })()}
           </div>
         )}
       </div>
-      </div>
+        </>)},
+        {id:"ready",label:"인계 내 차례",show:myReadyLaunch.length>0,node:(<>
       {myReadyLaunch.length>0&&(
         <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #C9DDFF",marginBottom:14}}>
           <div onClick={()=>{_projInitView="launch";nav("projects");}} style={{marginBottom:12,cursor:"pointer"}}>
@@ -2284,99 +2452,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         </div>
       )}
-      {(()=>{
-        const FILTERS=[["todo","미완료","#4E5968"],["inprogress","진행중","#3182F6"],["done","완료","#00C073"],["hold","보류","#FF9500"]];
-        const mine=myT.filter(t=>!t.isFixed);
-        const cnt=(s)=>mine.filter(t=>t.status===s).length;
-        const q=taskQuery.trim().toLowerCase();
-        const searching=q.length>0;
-        // 검색어가 있으면 상태탭 무시하고 제목·메모·프로젝트명으로 내 업무 전체 검색
-        const matchQ=(t)=>{const proj=D.projects.find(p=>p.id===t.projectId);return [t.title,t.memo,proj&&proj.title].filter(Boolean).some(s=>String(s).toLowerCase().includes(q));};
-        const STORD={todo:0,inprogress:1,hold:2,done:3};
-        const list=searching
-          ? mine.filter(matchQ).sort((a,b)=>(STORD[a.status]??9)-(STORD[b.status]??9)||(a.weekDay?1:0)-(b.weekDay?1:0))
-          : mine.filter(t=>t.status===taskFilter).sort((a,b)=>(a.weekDay?1:0)-(b.weekDay?1:0));   // 미배치(요일없음) 먼저
-        const cur=FILTERS.find(f=>f[0]===taskFilter);
-        return(
-          <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",marginBottom:14}}>
-            <div style={{marginBottom:10}}>
-              <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#191F28"}}>📋 내 업무</h3>
-              <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>상태별로 모아 보기 · 미배치는 오늘로 배치할 수 있어요</p>
-            </div>
-            {/* 업무 검색 — 제목·메모·프로젝트명으로 내 업무 전체에서 찾기(입력하면 상태탭 대신 검색결과 노출) */}
-            <div style={{position:"relative",marginBottom:10}}>
-              <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"#9CA3AF",pointerEvents:"none"}}>🔍</span>
-              <input value={taskQuery} onChange={e=>setTaskQuery(e.target.value)} placeholder="업무 검색 (제목·메모·프로젝트명)" style={{width:"100%",padding:"10px 34px 10px 32px",borderRadius:10,border:`1.5px solid ${searching?"#3182F6":"#E5E8EB"}`,fontSize:13,outline:"none",fontFamily:"inherit",backgroundColor:searching?"#F2F7FF":"#F9FAFB",boxSizing:"border-box"}}/>
-              {searching&&<button onClick={()=>setTaskQuery("")} title="검색 지우기" style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",width:22,height:22,borderRadius:"50%",border:"none",background:"#E5E8EB",color:"#6B7280",fontSize:12,fontWeight:900,cursor:"pointer",lineHeight:1}}>×</button>}
-            </div>
-            <div style={{marginBottom:12,padding:"11px 12px",borderRadius:12,background:"#F2F7FF",border:"1.5px solid #C9DDFF"}}>
-              <div style={{display:"flex",gap:8}}>
-                <input value={qa.title} onChange={e=>setQa({...qa,title:e.target.value})} onKeyDown={e=>e.key==="Enter"&&doRegister()} placeholder="새 업무 입력... (Enter로 등록)" style={{flex:1,minWidth:0,padding:"10px 12px",borderRadius:10,border:"1.5px solid #90BFFF",fontSize:13,outline:"none",fontFamily:"inherit",backgroundColor:"#fff"}}/>
-                <button onClick={doRegister} disabled={!qa.title.trim()} style={{width:42,height:40,borderRadius:10,border:"none",background:qa.title.trim()?"#3182F6":"#E5E8EB",color:"#fff",fontSize:20,fontWeight:900,cursor:qa.title.trim()?"pointer":"not-allowed",flexShrink:0}}>+</button>
-              </div>
-              <div style={{marginTop:8}}><ProjPicker D={D} uid={cu.id} value={qa.projectId} onChange={v=>setQa({...qa,projectId:v})} compact/></div>
-              <div style={{display:"flex",gap:5,marginTop:8,flexWrap:"wrap",alignItems:"center"}}>
-                <span style={{fontSize:10,fontWeight:800,color:"#1E40AF",marginRight:1}}>📅</span>
-                {[["미정",""],["오늘",0],["내일",1]].map(([lbl,off])=>{const ds=off===""?"":(()=>{const d=new Date();d.setDate(d.getDate()+off);return ymdLocal(d);})();const on=off===""?!qa.workDate:qa.workDate===ds;return(
-                  <button key={lbl} onClick={()=>setQa({...qa,...qaPlace(ds)})} style={{padding:"5px 10px",borderRadius:8,border:`1.5px solid ${on?"#3182F6":"#E5E8EB"}`,background:on?"#3182F6":"#fff",color:on?"#fff":"#9CA3AF",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{lbl}</button>
-                );})}
-                <input type="date" value={qa.workDate||""} onChange={e=>setQa({...qa,...qaPlace(e.target.value)})} style={{padding:"4px 7px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:11,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
-                <button onClick={()=>setQaMore(m=>!m)} style={{marginLeft:"auto",padding:"5px 9px",borderRadius:8,border:`1.5px solid ${qaMore?"#3182F6":"#90BFFF"}`,background:qaMore?"#E8F1FF":"#fff",color:"#1B64DA",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{qaMore?"옵션 접기 ▴":"상태 ▾"}</button>
-              </div>
-              {qaMore&&<>
-              <div style={{display:"flex",gap:5,marginTop:6,flexWrap:"wrap",alignItems:"center"}}>
-                <span style={{fontSize:10,fontWeight:800,color:"#1E40AF",marginRight:1}}>🚦</span>
-                {Object.entries(STATUS_MAP).map(([k,v])=>{const on=qa.status===k;return(
-                  <button key={k} onClick={()=>setQa({...qa,status:k})} style={{padding:"5px 10px",borderRadius:8,border:`1.5px solid ${on?v.color:"#E5E8EB"}`,background:on?v.color+"18":"#fff",color:on?v.color:"#9CA3AF",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{v.label}</button>
-                );})}
-              </div>
-              </>}
-              {!qaMore&&(qa.status!=="todo"||qa.projectId)&&(
-                <p style={{margin:"6px 2px 0",fontSize:10,fontWeight:700,color:"#1E40AF"}}>{qa.status!=="todo"?`🚦 ${STATUS_MAP[qa.status].label}`:""}{qa.status!=="todo"&&qa.projectId?" · ":""}{qa.projectId?`📁 ${(D.projects.find(p=>p.id===qa.projectId)||{}).title||""}`:""}</p>
-              )}
-            </div>
-            {searching?(
-              <div style={{marginBottom:12,fontSize:11.5,fontWeight:700,color:"#1B64DA"}}>🔍 “{taskQuery.trim()}” 검색결과 {list.length}건 <span style={{fontWeight:600,color:"#9CA3AF"}}>· 모든 상태에서 찾음</span></div>
-            ):(
-            <div style={{display:"flex",gap:6,marginBottom:12}}>
-              {FILTERS.map(([k,l,c])=>{const on=taskFilter===k;const n=cnt(k);return(
-                <button key={k} onClick={()=>setTaskFilter(k)} style={{flex:1,padding:"7px 4px",borderRadius:9,border:`1.5px solid ${on?c:"#E5E8EB"}`,background:on?c+"14":"#fff",cursor:"pointer",fontFamily:"inherit",display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
-                  <span style={{fontSize:11.5,fontWeight:800,color:on?c:"#9CA3AF"}}>{l}</span>
-                  <span style={{fontSize:13,fontWeight:900,color:on?c:"#C4C9D0"}}>{n}</span>
-                </button>);})}
-            </div>
-            )}
-            {list.length===0?(
-              <p style={{margin:0,padding:"16px 0",textAlign:"center",fontSize:12.5,color:"#B0B8C1"}}>{searching?`“${taskQuery.trim()}”에 맞는 업무가 없어요`:`${cur[1]} 업무가 없어요`}</p>
-            ):(
-              <div style={{display:"flex",flexDirection:"column",gap:7}}>
-                {list.map(t=>{const proj=D.projects.find(p=>p.id===t.projectId);const placed=!!t.weekDay;const st=STATUS_MAP[t.status];return(
-                  <div key={t.id} style={{padding:"11px 12px",borderRadius:12,backgroundColor:placed?"#F9FAFB":"#F2F7FF",border:`1px solid ${placed?"#EEF1F4":"#C9DDFF"}`}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <div style={{flex:1,minWidth:0}}>
-                        <p style={{margin:0,fontSize:13.5,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#111827",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.eventId?"📅 ":""}{t.title}</p>
-                        <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
-                          <span style={{fontSize:9.5,fontWeight:800,color:st.color,background:st.bg,borderRadius:5,padding:"1px 6px"}}>{st.label}</span>
-                          <span style={{fontSize:10.5,color:placed?"#6B7280":"#1B64DA",fontWeight:placed?600:700}}>{placed?`${t.weekDay}요일${t.weekSlot?` ${t.weekSlot}순위`:""}`:"미배치"}</span>
-                          {proj?<ProjChip p={proj} max={18}/>:<span style={{fontSize:10.5,color:"#F04452",fontWeight:600}}>· ⚠️ 미연결</span>}
-                          {(()=>{const ru=taskRollup(D,t.id);return ru.total>0?<button onClick={()=>setExpandedCards(e=>({...e,[t.id]:!e[t.id]}))} style={{border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",fontSize:10,fontWeight:800,color:ru.done>=ru.total?"#00A862":"#7C3AED",flexShrink:0}}>· 하위 {ru.done}/{ru.total} {expandedCards[t.id]?"▾":"▸"}</button>:null;})()}
-                        </div>
-                      </div>
-                      <button onClick={()=>setEditTask(t)} style={{padding:"6px 9px",borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#FFFFFF",fontSize:12,fontWeight:700,color:"#4B5563",cursor:"pointer",flexShrink:0}}>✎</button>
-                      <button onClick={()=>setConfirmTaskId(t.id)} style={{padding:"6px 9px",borderRadius:8,border:"1px solid #FFE2E5",backgroundColor:"#FFF0F1",fontSize:12,fontWeight:700,color:"#F04452",cursor:"pointer",flexShrink:0}}>🗑</button>
-                    </div>
-                    {expandedCards[t.id]&&<CardSubtree tid={t.id}/>}
-                    {(taskFilter==="hold")?(
-                      <button onClick={()=>bringToday(t)} style={{width:"100%",marginTop:8,padding:"8px 0",borderRadius:9,border:"none",backgroundColor:"#3182F6",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>📍 오늘로 재개</button>
-                    ):(!placed&&t.status!=="done")&&(
-                      <button onClick={()=>up("tasks",t.id,{weekDay:today,workDate:todayStr,weekSlot:null})} style={{width:"100%",marginTop:8,padding:"8px 0",borderRadius:9,border:"none",backgroundColor:"#3182F6",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>📍 오늘({today}) 배치</button>
-                    )}
-                  </div>);})}
-              </div>
-            )}
-          </div>
-        );
-      })()}
+        </>)},
+        {id:"projects",label:"내 프로젝트",show:myProjs.length>0,node:(<>
       {myProjs.length>0&&(()=>{
         const readyProjIds=new Set(myReadyLaunch.map(r=>r.proj.id));
         const CC=[["todo","미완료","#4E5968"],["inprogress","진행중","#3182F6"],["done","완료","#00A862"],["hold","보류","#FF9500"]];
@@ -2420,6 +2497,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         );
       })()}
+        </>)},
+      ]}/>
       {slotSheet&&(
         <Sheet open={true} onClose={()=>setSlotSheet(null)} title={`${slotSheet.day}요일에 업무 배치`} h="70vh">
           <div style={{marginTop:12}}>

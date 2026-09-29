@@ -35,7 +35,8 @@
   .search .x{color:var(--faint);font-size:18px;padding:4px}
   .me{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:14px;padding:6px 12px 6px 6px;flex-shrink:0}
   .me .av{width:32px;height:32px;border-radius:10px;background:#E0F2FE;color:#0369A1;font-weight:800;display:flex;align-items:center;justify-content:center}
-  .me span{font-weight:700;font-size:13px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .me span{font-weight:700;font-size:13px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .me span em{font-style:normal;font-size:11.5px;color:var(--muted);font-weight:700;margin-left:6px}
 
   /* ── 레이아웃 ── */
   .wrap{max-width:1320px;margin:0 auto;padding:18px 20px 60px;display:grid;grid-template-columns:268px minmax(0,1fr);gap:22px;align-items:start}
@@ -289,6 +290,16 @@
   .cf-btn.on:hover{background:#047857;border-color:#047857}
   .cf-btn.on{background:var(--green);border-color:var(--green);color:#fff}
   .cf-btn.off{background:#E5E7EB;border-color:#E5E7EB;color:#9CA3AF}
+  .cf-btn.wait{background:#FFFBEB;border-color:#F59E0B;color:#92400E;border-style:dashed}
+  .cf-btn.go{background:#2563EB;border-color:#2563EB;color:#fff}
+  .cf-btn.go:hover{background:#1D4ED8!important;border-color:#1D4ED8!important;color:#fff!important}
+  .cf-wait{font-size:11.5px;font-weight:800;color:#B45309}
+  .wk-wait{background:#FFFBEB;border-color:#FDE68A}
+  .wk-wait b{color:#92400E}
+  .wk-wait button{border-color:#FDE68A;color:#92400E}
+  .nm-chip small{display:block;font-size:10.5px;font-weight:700;color:var(--muted);margin-top:1px}
+  .nm-chip.on small{color:#CBD5E1}
+  .nm-chip:has(small){height:auto;padding:6px 14px;line-height:1.2}
   .ck-sub{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:3px}
   .cf-who{font-size:11.5px;font-weight:800;color:var(--green)}
   .skip-btn{font-size:11.5px;font-weight:700;color:var(--faint);padding:2px 0;text-decoration:underline;text-underline-offset:2px}
@@ -413,6 +424,7 @@
     .logo b{font-size:16px}
     .me{margin-left:auto;padding:4px 10px 4px 4px}
     .me span{max-width:70px}
+    .me span em{display:none}
     .search{order:3;flex-basis:100%;max-width:none;height:44px}
     .wrap{padding:12px 12px 100px}
     .banner{padding:12px 14px;font-size:13px}
@@ -571,6 +583,12 @@ const ORG = {
 };
 // 새 제품 등록 시 단계별 기본 담당 (2in1 목재용 페인트에 지정한 담당 기준)
 const DEFAULT_OWNERS = {'p01':'정하', 'p02':'정하', 'p03':'정하', 'p04':'정하', 's01':'정하', 's02':'정하', 'd01':'민지', 's03':'이우민', 'd02':'민지', 's04':'이우민', 'd03':'민지', 's05':'이우민', 's06':'김소연', 's07':'채림', 's08':'이우민', 's09':'채림', 's10':'이우민', 's11':'허지은'};
+// 결재 흐름: 제작 담당 [완료 요청] → 검토자(브랜드 BM) [검토 완료] → (최종 검수·세팅만) 최종 승인자 [최종 승인]
+const APPROVER = '허지은';
+const FINAL_STEP = 's11';
+function reviewerOf(p){ return (BRANDS[p.brand] || {}).bm || ''; }
+function roleOf(p){ return me === APPROVER ? 'approver' : (me && me === reviewerOf(p)) ? 'reviewer' : 'maker'; }
+function myRoleLabel(){ if (me === APPROVER) return '최종 승인'; const bs = BRAND_KEYS.filter(k=>BRANDS[k].bm===me).map(k=>BRANDS[k].name); return bs.length ? '검토 · '+bs.join('·')+' BM' : (me ? '제작 담당' : ''); }
 const PEOPLE_BASE = [ORG.head.name, ...ORG.teams.flatMap(t=>t.members.filter(m=>!m.vacant).map(m=>m.name)), '이우민', '외주'];
 // 단계 담당 문구의 'BM'·'본부장'을 실명으로 (제품이 있으면 그 브랜드 BM)
 function whoFor(ph, p){
@@ -715,7 +733,7 @@ function renderAll(force = true){
 
 function renderHeader(){
   $('meAv').textContent = me ? me.slice(0,1) : '?';
-  $('meNm').textContent = me || '이름 입력';
+  $('meNm').innerHTML = me ? esc(me) + `<em>${esc(myRoleLabel())}</em>` : '이름 입력';
 }
 
 function counts(){
@@ -821,6 +839,7 @@ function card(p){
       <div class="bar"><i style="width:${pr.pct}%;background:${b.ac}"></i></div>
       <div class="pct"><span>${pr.done}/${pr.total} 단계</span><span>${pr.pct}%</span></div>
       ${ov.length ? `<span class="warn">⏰ 마감 지남 ${ov.length}건</span>` : ''}
+      ${(()=>{ const n = STEPS.filter(x=>['req','reviewed'].includes(stg(p,x.id).status)).length; return n ? `<span class="warn" style="color:#B45309">🙋 검토·승인 대기 ${n}건</span>` : ''; })()}
     </div>
   </div>`;
 }
@@ -873,7 +892,9 @@ function weekData(){
   L.forEach(p=>STEPS.forEach(s=>{ const x = stg(p,s.id); if (isOver(x)) over.push([p,s.id,x.due]);
     if (x.status!=='done' && x.status!=='skip') (x.tasks||[]).forEach(t=>{ if (t.due && t.due < today()) over.push([p,s.id,t.due]); }); }));
   over.sort((a,b)=>a[2].localeCompare(b[2]));
-  return { ws, we, days, over };
+  const wait = [];
+  L.forEach(p=>STEPS.forEach(s=>{ const x = stg(p,s.id); if (x.status==='req' || x.status==='reviewed') wait.push([p,s.id,x.status]); }));
+  return { ws, we, days, over, wait };
 }
 function viewWeek(){
   const w = weekData(), t = today();
@@ -890,6 +911,7 @@ function viewWeek(){
       <div class="wk-nav"><button data-wk="-1" aria-label="이전 주">‹</button><button data-wk="0">이번 주</button><button data-wk="1" aria-label="다음 주">›</button></div>
       <button class="btn" data-copy-week="">📋 주간 보고 복사</button></div>
     <p class="sub"><b>${title}</b> · ${fmtDate(w.ws)} ~ ${fmtDate(w.we)}</p>
+    ${w.wait.length ? `<div class="wk-over wk-wait"><b>🙋 검토·승인 대기 ${w.wait.length}건</b>${w.wait.map(([p,sid,st])=>`<button data-open="${p.id}" data-step="${sid}">${esc(p.name)} · ${STEP_BY[sid].name} (${st==='req'?'BM '+esc(reviewerOf(p))+' 검토':APPROVER+' 승인'})</button>`).join('')}</div>` : ''}
     ${w.over.length ? `<div class="wk-over"><b>⏰ 마감 지남 ${w.over.length}건</b>${w.over.map(([p,sid,d])=>`<button data-open="${p.id}" data-step="${sid}">${esc(p.name)} · ${STEP_BY[sid].name} (${fmtShort(d)})</button>`).join('')}</div>` : ''}
     <div class="wkg">${w.days.map((dy,i)=>`
       <div class="wday ${dy.key===t?'today':''} ${i>=5?'wkend':''}">
@@ -907,6 +929,7 @@ function weekText(){
     t += dy.evs.map(e => e.kind==='launch' ? `- 🚀 [${brandOf(e.p).name}] ${e.p.name} 출시`
       : `- ${e.x.status==='done'?'✅':'⬜'} [${brandOf(e.p).name}] ${e.p.name} · ${STEP_BY[e.sid].name}${e.x.owner?' ('+e.x.owner+')':''}`).join('\n') + '\n';
   });
+  if (w.wait.length) t += `\n■ 🙋 검토·승인 대기 ${w.wait.length}건\n` + w.wait.map(([p,sid,st])=>`- [${brandOf(p).name}] ${p.name} · ${STEP_BY[sid].name} (${st==='req'?'BM '+reviewerOf(p)+' 검토':APPROVER+' 승인'} 대기)`).join('\n') + '\n';
   if (w.over.length) t += `\n■ ⏰ 마감 지남 ${w.over.length}건\n` + w.over.map(([p,sid,d])=>`- [${brandOf(p).name}] ${p.name} · ${STEP_BY[sid].name} (${stg(p,sid).owner||'담당 미지정'}, ${fmtShort(d)})`).join('\n') + '\n';
   t += `\n바로가기: ${location.origin}${location.pathname}`;
   return t;
@@ -985,7 +1008,7 @@ function viewGuide(){
     <div class="notes">
       <div class="note"><b>1. 단계마다 책임자 1명</b><p>담당 칸에는 팀 이름이 아니라 <b>실제 책임자 이름 1명</b>을 적어요. 촬영·제작 단계처럼 여러 주체(1팀·채림·BM·외주)가 함께하면 누락되기 쉬워요.</p></div>
       <div class="note"><b>2. 마감일은 담당자가 직접</b><p>일을 받으면 담당자가 마감일을 입력해요. 마감이 지나면 빨간색으로 표시되고 '주간 일정'에 올라가요.</p></div>
-      <div class="note"><b>3. 끝나면 컨펌</b><p>단계가 끝나면 [컨펌] 버튼을 눌러요. 컨펌이 필요한 단계는 BM 확인까지 받은 뒤 눌러요. 안 하는 단계는 '해당 없음'으로 빼요. 할 일 칸에는 지금 해야 할 내용을 짧게 적어요.</p></div>
+      <div class="note"><b>3. 제작 담당 → 검토 → 최종 승인</b><p>제작 담당이 단계를 끝내면 <strong>[완료 요청]</strong> → 브랜드 BM이 <strong>[검토 완료]</strong>로 컨펌해요. 마지막 <strong>최종 검수·세팅</strong>은 BM 검토 뒤 <strong>허지은 본부장 [최종 승인]</strong>까지 받아야 디자인 완료예요. 안 하는 단계는 '해당 없음'으로 빼요.</p></div>
       <div class="note"><b>4. 주 1회 BM·본부장 점검</b><p>'주간 일정' 화면에서 요일별 마감·출시와 마감 지난 단계를 한 번에 보고, '📋 주간 보고 복사'로 단톡에 공유해요.</p></div>
     </div>
     <h4 style="margin:22px 2px 10px;font-size:13px;color:var(--muted)">④ 구조 점검 · 정리가 필요한 부분</h4>
@@ -1044,7 +1067,8 @@ function viewProduct(p){
       <div class="pmeta">
         <label>🚀 출시일 <input type="${p.launchDate?'date':'text'}" data-dt="1" data-pf="launchDate" value="${esc(p.launchDate)}" placeholder="미정"></label>
         ${p.launchDate ? `<span class="dd" style="color:${ddColor}">${dday(p.launchDate)}</span>` : ''}
-        ${b.bm ? `<span class="dd" style="color:${b.ac}">BM ${esc(b.bm)} · ${esc(b.team)}</span>` : ''}
+        ${b.bm ? `<span class="dd" style="color:${b.ac}">검토 BM ${esc(b.bm)} · ${esc(b.team)}</span>` : ''}
+        <span class="dd" style="color:#374151">최종 승인 ${APPROVER}</span>
       </div>
       <div class="bar"><i style="width:${pr.pct}%;background:${b.ac}"></i></div>
       <div class="pct"><span>완료 ${pr.done}/${pr.total} 단계</span><span>${pr.pct}%</span></div>
@@ -1062,17 +1086,40 @@ function dueCell(attr, due, tbd, tbdAttr, dis){
     ? `<button type="button" class="due-tbd" ${dis||''} ${tbdAttr} data-v="0" title="눌러서 날짜 정하기">📅 마감 미정</button>`
     : `<div class="due-wrap"><input type="${due?'date':'text'}" data-dt="1" ${attr} value="${esc(due)}" placeholder="마감기한" aria-label="마감기한" title="마감기한" ${dis||''}><button type="button" class="tbd-btn" ${dis||''} ${tbdAttr} data-v="1" title="마감일 미정으로 표시">미정</button></div>`;
 }
+// 컨펌 버튼: 상태 × 보는 사람 역할
+function cfButton(p, sid, s, skip){
+  if (skip) return `<button type="button" class="cf-btn off" disabled>제외</button>`;
+  const r = roleOf(p), fin = sid===FINAL_STEP, st = s.status;
+  const B = (cls, act, label, title) => `<button type="button" class="cf-btn ${cls}" data-cf="${sid}" data-act="${act}" ${title?`title="${title}"`:''}>${label}</button>`;
+  if (st==='done') return B('on', 'undo', fin ? '✓ 최종 승인' : '✓ 컨펌 완료', '눌러서 취소 (검토자·승인자)');
+  if (st==='reviewed') return r==='approver' ? B('go', 'approve', '최종 승인') : B('wait', 'undo', '승인 대기', '본부장 최종 승인 대기');
+  if (st==='req') return r==='approver' ? B('go', fin ? 'approve' : 'review', fin ? '최종 승인' : '검토 완료')
+    : r==='reviewer' ? B('go', 'review', '검토 완료') : B('wait', 'undo', '검토 대기', 'BM 검토 대기 · 누르면 요청 취소');
+  // 시작 전
+  if (r==='approver') return B('', fin ? 'approve' : 'review', fin ? '최종 승인' : '컨펌');
+  if (r==='reviewer') return B('', 'review', fin ? '검토 완료' : '컨펌');
+  return B('', 'request', '완료 요청');
+}
+function cfInfo(p, sid, s){
+  const d = x => x ? ' · ' + fmtShort(x.slice(0,10)) : '';
+  const rv = reviewerOf(p), out = [];
+  if (s.status==='req') out.push(`<span class="cf-wait">${esc(s.reqBy||'')} 요청${d(s.reqAt)} → BM ${esc(rv)} 검토</span>`);
+  if (s.status==='reviewed') out.push(`<span class="cf-wait">BM ${esc(s.reviewBy||rv)} 검토${d(s.reviewAt)} → ${APPROVER} 승인</span>`);
+  if (s.status==='done') {
+    if (sid===FINAL_STEP && s.reviewBy) out.push(`<span class="cf-who">검토 ${esc(s.reviewBy)}${d(s.reviewAt)}</span>`);
+    if (s.doneBy || s.doneAt) out.push(`<span class="cf-who">${sid===FINAL_STEP?'승인':'컨펌'} ${esc(s.doneBy||'')}${d(s.doneAt)}</span>`);
+  }
+  return out.join('');
+}
 function ckRow(p, sid){
   const s = stg(p,sid), st = STEP_BY[sid], done = s.status==='done', skip = s.status==='skip', over = isOver(s);
   const tasks = s.tasks || [], dis = skip ? 'disabled' : '';
-  const cf = skip ? `<button type="button" class="cf-btn off" disabled>제외</button>`
-    : done ? `<button type="button" class="cf-btn on" data-cf="${sid}" data-v="todo" title="눌러서 컨펌 취소">✓ 컨펌 완료</button>`
-    : `<button type="button" class="cf-btn" data-cf="${sid}" data-v="done">컨펌</button>`;
+  const cf = cfButton(p, sid, s, skip);
   return `<div class="ck-step ${skip?'skip':''}" id="step-${sid}">
   <div class="ck-row ${done?'done':''} ${over?'over':''}">
     <div class="ck-box">${cf}</div>
     <div class="ck-name"><b>${st.name}</b>
-      <div class="ck-sub">${done && (s.doneBy||s.doneAt) ? `<span class="cf-who">${esc(s.doneBy||'')}${s.doneAt?' · '+fmtShort(s.doneAt.slice(0,10)):''}</span>` : ''}
+      <div class="ck-sub">${cfInfo(p, sid, s)}
         <button type="button" class="skip-btn" data-skip="${sid}" data-v="${skip?'0':'1'}">${skip?'↩ 되살리기':'해당 없음'}</button></div></div>
     <textarea rows="1" data-sid="${sid}" data-sf="note" placeholder="진행사항 기재" ${dis}>${esc(s.note)}</textarea>
     <div class="ck-meta">
@@ -1125,15 +1172,17 @@ function closeModal(){ $('modalRoot').innerHTML = ''; }
 // 이름: 팀원은 눌러서 고르고, 외주업체만 직접 입력
 function askName(force){
   if (me && !force) return;
-  const chip = n => `<button type="button" class="nm-chip ${n===me?'on':''}" data-nm="${esc(n)}">${esc(n)}</button>`;
+  const chip = (n, sub) => `<button type="button" class="nm-chip ${n===me?'on':''}" data-nm="${esc(n)}">${esc(n)}${sub?`<small>${esc(sub)}</small>`:''}</button>`;
+  const bms = BRAND_KEYS.map(k=>[BRANDS[k].bm, BRANDS[k].name+' BM']);
+  const makers = PEOPLE_BASE.filter(n => n!==APPROVER && n!=='외주' && !bms.some(([b])=>b===n));
   const groups = [
-    ['본부장', [ORG.head.name]],
-    ...ORG.teams.map(t=>[t.k, t.members.filter(m=>!m.vacant).map(m=>m.name)]),
-    ['본부 직속', ['이우민']],
+    ['최종 승인', [chip(APPROVER, '본부장')]],
+    ['검토 (BM)', bms.map(([n,sub])=>chip(n, sub))],
+    ['제작 담당', makers.map(n=>chip(n))],
   ];
   const isOut = me && !PEOPLE_BASE.includes(me);
   modal(`<h3>👋 누구세요?</h3><p class="d">이름을 누르면 바로 시작해요. 이 기기에 한 번만 저장돼요.</p>
-    <div class="nm-groups">${groups.map(([g,ns])=>`<div class="nm-g"><span>${g}</span><div>${ns.map(chip).join('')}</div></div>`).join('')}
+    <div class="nm-groups">${groups.map(([g,cs])=>`<div class="nm-g"><span>${g}</span><div>${cs.join('')}</div></div>`).join('')}
       <div class="nm-g"><span>외주</span><div><button type="button" class="nm-chip out ${isOut?'on':''}" id="nmOut">🤝 외주업체</button></div></div></div>
     <div class="form ${isOut?'':'hidden'}" id="nmOutBox" style="margin-top:12px"><label>업체명 · 이름<input id="nmIn" value="${isOut?esc(me):''}" placeholder="예: OO스튜디오 김OO" maxlength="30"></label>
       <div class="m-act" style="margin-top:4px"><button class="btn pri" id="nmOk">시작하기</button></div></div>
@@ -1189,6 +1238,32 @@ async function saveAdd(){
 }
 
 // ═══ 저장 동작 (체크·입력하면 바로 저장) ═══
+// 결재 동작 (request·review·approve·undo) — 권한 없는 동작은 안내만
+async function cfAction(sid, act){
+  const p = items.find(x=>x.id===openId); if (!p) return;
+  if (!me) { askName(); return; }
+  const s = stg(p,sid), st = STEP_BY[sid], r = roleOf(p), rv = reviewerOf(p), fin = sid===FINAL_STEP, at = nowIso(), P = 'stages.'+sid+'.';
+  let patch = null, msg = '', tmsg = '';
+  if (act==='request') { patch = { [P+'status']:'req', [P+'reqBy']:who(), [P+'reqAt']:at }; msg = '완료 요청 → BM '+rv+' 검토'; tmsg = `BM ${rv}님께 검토 요청했어요`; }
+  else if (act==='review') {
+    if (r==='maker') return toast(`검토는 ${rv} BM만 할 수 있어요`);
+    if (fin && r==='reviewer') { patch = { [P+'status']:'reviewed', [P+'reviewBy']:who(), [P+'reviewAt']:at }; msg = '검토 완료 → '+APPROVER+' 최종 승인 대기'; tmsg = '검토 완료! 본부장 최종 승인 대기예요'; }
+    else { patch = { [P+'status']:'done', [P+'doneBy']:who(), [P+'doneAt']:at }; msg = '컨펌 완료'; tmsg = '✅ 컨펌 완료'; }
+  }
+  else if (act==='approve') {
+    if (r!=='approver') return toast(`최종 승인은 ${APPROVER}님만 할 수 있어요`);
+    patch = { [P+'status']:'done', [P+'doneBy']:who(), [P+'doneAt']:at }; msg = '최종 승인'; tmsg = '✅ 최종 승인 완료';
+  }
+  else if (act==='undo') {
+    if (s.status==='req' && r==='maker') { if (!confirm('검토 요청을 취소할까요?')) return; patch = { [P+'status']:'todo', [P+'reqBy']:'', [P+'reqAt']:'' }; msg = '검토 요청 취소'; tmsg = '요청을 취소했어요'; }
+    else if (r==='maker') return toast(s.status==='reviewed' ? `${APPROVER}님 최종 승인 대기 중이에요` : `컨펌 취소는 ${rv} BM·${APPROVER}님만 할 수 있어요`);
+    else if (s.status==='reviewed' && r==='reviewer') { if (!confirm('검토 완료를 취소할까요?')) return; patch = { [P+'status']:'req', [P+'reviewBy']:'', [P+'reviewAt']:'' }; msg = '검토 취소'; tmsg = '검토를 취소했어요'; }
+    else { if (!confirm(fin && s.status==='done' ? '최종 승인을 취소할까요?' : '컨펌을 취소할까요?')) return; patch = { [P+'status']:'todo', [P+'doneBy']:'', [P+'doneAt']:'', [P+'reviewBy']:'', [P+'reviewAt']:'' }; msg = '컨펌 취소'; tmsg = '취소했어요'; }
+  }
+  if (!patch) return;
+  patch[P+'updatedAt'] = at; patch[P+'updatedBy'] = who();
+  if (await writeDoc(p.id, patch, `${st.name} · ${msg}`)) toast(tmsg); else renderMain();
+}
 async function saveStepField(sid, field, value){
   const p = items.find(x=>x.id===openId); if (!p) return;
   const prev = stg(p,sid), st = STEP_BY[sid];
@@ -1304,7 +1379,7 @@ document.addEventListener('click', e => {
   if (d.mclose!==undefined) return closeModal();
   if (d.view) { view = d.view; calSel = ''; if (d.view==='week') weekOff = 0; renderAll(); window.scrollTo({top:0}); return; }
   if (d.brand) { brandTab = d.brand; return renderMain(); }
-  if (d.cf) { if (d.v==='todo' && !confirm('컨펌을 취소할까요?')) return; return saveStepField(d.cf, 'status', d.v); }
+  if (d.cf) return cfAction(d.cf, d.act);
   if (d.skip) return saveStepField(d.skip, 'status', d.v==='1' ? 'skip' : 'todo');
   if (d.tbd) return setDueTbd(d.tbd, d.v==='1');
   if (d.tadd) return addTask(d.tadd);

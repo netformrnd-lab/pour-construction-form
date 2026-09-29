@@ -1090,7 +1090,7 @@ export default function App(){
     {page==="today"&&<TodayPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup} pc={viewMode==="pc"} ro={SHARE}/>}
     {page==="projects"&&<ProjectsHome D={D} cu={cu} up={up} add={add} rm={rm} rmNested={rmNested} pc={viewMode==="pc"} lead={lead} nav={nav}/>}
-    {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
+    {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="launch"&&<LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="mindmap"&&<MindMapPage D={D} cu={cu} nav={nav}/>}
     {page==="guide"&&<GuidePage D={D}/>}
@@ -1616,6 +1616,11 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const myT=D.tasks.filter(t=>t.assigneeId===cu.id);
   const fixedDueToday=(t)=>{const rt=t.recurType||"daily";if(rt==="weekly")return t.weekDay===today;if(rt==="monthly")return Number(t.monthDay||1)===todayDate;return true;};
   const fixed=D.tasks.filter(t=>t.isFixed&&fixedIsMine(t,cu.id)&&fixedDueToday(t)).sort(byFixedTime);   // 시간순
+  // 오늘 화면에 일·주·월 고정업무 전부 표시(주·월은 기간 안에 하면 완료)
+  const fixedMineAll=D.tasks.filter(t=>t.isFixed&&fixedIsMine(t,cu.id));
+  const fxDaily=fixedMineAll.filter(t=>(t.recurType||"daily")==="daily").sort(byFixedTime);
+  const fxWeekly=fixedMineAll.filter(t=>t.recurType==="weekly").sort((a,b)=>["월","화","수","목","금","토","일"].indexOf(a.weekDay||"월")-["월","화","수","목","금","토","일"].indexOf(b.weekDay||"월")||byFixedTime(a,b));
+  const fxMonthly=fixedMineAll.filter(t=>t.recurType==="monthly").sort((a,b)=>(+a.monthDay||1)-(+b.monthDay||1)||byFixedTime(a,b));
   // 오늘 업무 = 진행날짜(목표일)가 오늘 / '진행중'(완료·보류 전까지 매일 이어서 노출) · 보류 제외
   // ※ 날짜 없이 요일만 있는 할일은 특정 주에 앵커되지 않아 매주 반복 노출되므로 제외 → 미배치 트레이에 모임(요일 버튼으로 배치)
   const todayT=myT.filter(t=>!t.isFixed&&t.status!=="hold"&&(
@@ -2174,17 +2179,17 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       <div style={{flex:"1 1 300px",minWidth:0,backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",boxSizing:"border-box"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
           <div>
-            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#191F28"}}>📌 고정업무 <span style={{fontWeight:600,color:"#9CA3AF",fontSize:11}}>(내 담당)</span></h3>
-            <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{doneFixed}/{fixed.length} 완료</p>
+            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#191F28"}}>📌 고정업무 <span style={{fontWeight:600,color:"#9CA3AF",fontSize:11}}>(내 담당 · 일·주·월 전체)</span></h3>
+            <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{fixedMineAll.filter(fixedDone).length}/{fixedMineAll.length} 완료 · 오늘 할 것 {doneFixed}/{fixed.length}</p>
           </div>
           <button onClick={()=>nav("fixed")} style={{fontSize:11,fontWeight:700,color:"#1B64DA",backgroundColor:"#E8F1FF",border:"none",borderRadius:7,padding:"5px 10px",cursor:"pointer"}}>관리 →</button>
         </div>
-        {fixed.length===0?<p style={{margin:0,padding:"16px 0",textAlign:"center",fontSize:13,color:"#D1D5DB"}}>고정업무가 없어요</p>:(
+        {fixedMineAll.length===0?<p style={{margin:0,padding:"16px 0",textAlign:"center",fontSize:13,color:"#D1D5DB"}}>고정업무가 없어요</p>:(
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
-            {fixed.map((t,fi)=>{
+            {(()=>{ const fxRow=(t,fi,arr,withNow,lab)=>{
               const proj=D.projects.find(p=>p.id===t.projectId);
-              const dn=fixedDone(t), fm=fixedMin(t), nm=nowMin(), late=!dn&&fm<9999&&fm<nm;
-              const prevM=fi>0?fixedMin(fixed[fi-1]):-1, showNow=fm<9999&&prevM<=nm&&fm>nm;   // 지금 시각 선: 지난 것과 앞으로 할 것 사이
+              const dn=fixedDone(t), fm=fixedMin(t), nm=nowMin(), late=withNow&&!dn&&fm<9999&&fm<nm;
+              const prevM=fi>0?fixedMin(arr[fi-1]):-1, showNow=withNow&&fm<9999&&prevM<=nm&&fm>nm;   // 지금 시각 선: 지난 것과 앞으로 할 것 사이
               return(<Fragment key={t.id}>
                 {showNow&&<div style={{display:"flex",alignItems:"center",gap:6,margin:"2px 0"}}><span style={{fontSize:10,fontWeight:900,color:"#F04452"}}>지금 {String(Math.floor(nm/60)).padStart(2,"0")}:{String(nm%60).padStart(2,"0")}</span><span style={{flex:1,height:2,background:"#F04452",borderRadius:2,opacity:.5}}/></div>}
                 <div onClick={()=>toggleFixed(t)} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 12px",borderRadius:12,backgroundColor:dn?"rgba(232,250,241,0.34)":"#F9FAFB",border:`1px solid ${dn?"rgba(0,192,115,0.2)":"#E5E8EB"}`,cursor:"pointer"}}>
@@ -2196,12 +2201,18 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                     <div style={{display:"flex",alignItems:"center",gap:5,marginTop:3,flexWrap:"wrap",fontSize:10.5,color:"#9CA3AF"}}>{dn&&t.doneAt?<span style={{color:"#00A862",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료</span>:null}{proj?<ProjChip p={proj}/>:<span>반복 업무</span>}</div>
                   </div>
                   <div style={{flexShrink:0,textAlign:"right",minWidth:44}}>
-                    <p style={{margin:0,fontSize:14,fontWeight:900,fontVariantNumeric:"tabular-nums",color:dn?"#B0B8C1":late?"#F04452":"#1B64DA"}}>{t.fixedTime||"—"}</p>
+                    <p style={{margin:0,fontSize:14,fontWeight:900,fontVariantNumeric:"tabular-nums",color:dn?"#B0B8C1":late?"#F04452":"#1B64DA"}}>{lab||t.fixedTime||"—"}</p>{lab&&t.fixedTime?<p style={{margin:0,fontSize:9.5,fontWeight:700,color:"#8B95A1"}}>{t.fixedTime}</p>:null}
                     {late&&<p style={{margin:0,fontSize:9.5,fontWeight:800,color:"#F04452"}}>지남</p>}
                   </div>
                 </div></Fragment>
               );
-            })}
+};
+              const WDx=["월","화","수","목","금","토","일"]; const sec=(l,n,d)=><p style={{margin:"6px 2px 0",fontSize:12,fontWeight:900,color:"#191F28"}}>{l} <span style={{color:d===n&&n?"#00A862":"#8B95A1",fontWeight:700}}>{d}/{n}</span></p>;
+              return(<>
+                {fxDaily.length>0&&<>{sec("🔁 매일",fxDaily.length,fxDaily.filter(fixedDone).length)}{fxDaily.map((t,fi)=>fxRow(t,fi,fxDaily,true))}</>}
+                {fxWeekly.length>0&&<>{sec("📅 매주 · 이번 주",fxWeekly.length,fxWeekly.filter(fixedDone).length)}{fxWeekly.map((t,fi)=>fxRow(t,fi,fxWeekly,false,(t.weekDay||"월")+(t.weekDay===today?" 오늘":"")))}</>}
+                {fxMonthly.length>0&&<>{sec("🗓 매월 · 이번 달",fxMonthly.length,fxMonthly.filter(fixedDone).length)}{fxMonthly.map((t,fi)=>fxRow(t,fi,fxMonthly,false,(+t.monthDay||1)+"일"))}</>}
+              </>); })()}
           </div>
         )}
       </div>
@@ -3958,12 +3969,16 @@ function WorkflowHome(props){
     {cat!=="all"&&<div style={{padding:"12px 16px 24px",display:"flex",flexDirection:"column",gap:14}}>
       {cat==="launch"&&<LaunchBoard D={D} cu={cu} add={add} up={up} pc={pc} items={lbLive}/>}
       {W.filter(w=>w.cat===cat).map(w=><WfBoard key={w.id} D={D} cu={cu} wf={w} up={up} add={add} rm={rm} pc={pc}/>)}
-      <SimpleProjects {...props} cat={cat} embedded/>
+      {cat==="launch"?<LegacyLaunch {...props}/>:<SimpleProjects {...props} cat={cat} embedded/>}
     </div>}
     {cleanOpen&&<CleanupSheet D={D} cu={cu} up={up} add={add} W={W} onClose={()=>setCleanOpen(false)}/>}
   </div>);
 }
 
+// 신제품은 로드맵 하나로 — 예전 방식 프로젝트(탑코트재·데코라인 1차 등)는 지우지 않고 '지난 기록'으로 접어 둠
+function LegacyLaunch(props){ const [open,setOpen]=useState(false); const n=(props.D.projects||[]).filter(p=>p.category==="launch").length; if(!n) return null;
+  return(<div><button onClick={()=>setOpen(v=>!v)} style={{border:"none",background:"none",padding:"4px 2px",fontSize:12.5,fontWeight:800,color:"#6B7684",cursor:"pointer",fontFamily:"inherit"}}>📁 지난 기록 · 이전 방식 신제품 프로젝트 {n} {open?"▴":"▾"}</button>
+    {open&&<div style={{marginTop:8}}><SimpleProjects {...props} cat="launch" embedded/></div>}</div>); }
 function WfBoard({D,cu,wf,up,add,rm,pc}){
   const users=D.users||[];
   const [nt,setNt]=useState("");
@@ -4168,8 +4183,18 @@ function LaunchBoard({D,cu,add,up,pc,items}){
   const [brand,setBrand]=useState("all");
   const [open,setOpen]=useState(null);   // {id, ph}
   const [defOpen,setDefOpen]=useState(false);
+  const [batchOpen,setBatchOpen]=useState(null);   // {brand,batch}
   const [showDone,setShowDone]=useState(false);
   const today=ymdToday();
+  const legacyOf=(batch)=>batch?(D.projects||[]).find(pr=>String(pr.title||"").replace(/\s/g,"").includes(batch.replace(/\s/g,""))):null;
+  const GroupHead=({g})=>{ const b=LAUNCH_BRANDS[g.brand]||{icon:"📦",name:g.brand}; const pct=Math.round(g.rows.reduce((a,p)=>a+launchProgress(p).pct,0)/g.rows.length);
+    const ld=g.rows.map(p=>p.launchDate).filter(Boolean).sort()[0]; const lg=legacyOf(g.batch);
+    return(<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",padding:"8px 10px",borderRadius:11,background:g.batch?"#F2F7FF":"#F9FAFB"}}>
+      <b style={{fontSize:13.5,color:"#191F28"}}>{b.icon} {b.name} · {g.batch||"차수 미정"}</b>
+      <span style={{fontSize:11.5,color:"#6B7684",fontWeight:700}}>{g.rows.length}개 · 평균 {pct}%{ld?` · 출시 ${ld.slice(5)} ${ddayKo(daysTo(ld))}`:""}</span>
+      {lg&&<span style={{fontSize:11,color:"#8B95A1"}}>📁 지난 기록: {lg.title}</span>}
+      <button onClick={()=>setBatchOpen({brand:g.brand,batch:g.batch||null})} style={{marginLeft:"auto",padding:"5px 10px",borderRadius:9,border:"1px solid #C9DDFF",background:"#fff",color:"#1B64DA",fontWeight:800,fontSize:11.5,cursor:"pointer",fontFamily:"inherit"}}>{g.batch?"✎ 차수 편집":"📦 차수로 묶기"}</button>
+    </div>); };
   const list=items.filter(p=>brand==="all"||p.brand===brand).sort((a,b)=>(a.launchDate?0:1)-(b.launchDate?0:1)||String(a.launchDate||"").localeCompare(String(b.launchDate||""))||String(a.name||"").localeCompare(String(b.name||""),"ko"));
   const act=list.filter(p=>launchProgress(p).pct<100), fin=list.filter(p=>launchProgress(p).pct>=100);
   const openP=items.find(p=>p.id===(open&&open.id));
@@ -4183,8 +4208,9 @@ function LaunchBoard({D,cu,add,up,pc,items}){
   const PhCell=({p,ph})=>{ const pp=phaseProgress(p,ph,today); const col=phaseColor(pp);
     return <button onClick={()=>setOpen({id:p.id,ph:ph.k})} title={`${ph.name} ${pp.done}/${pp.total}`} style={{minWidth:54,padding:"6px 4px",borderRadius:10,border:`1.5px solid ${col.c}33`,background:col.bg,color:col.c,fontWeight:900,fontSize:12.5,cursor:"pointer",fontFamily:"inherit",fontVariantNumeric:"tabular-nums"}}>{pp.total===0?"—":pp.done===pp.total?"✓":`${pp.done}/${pp.total}`}{pp.late&&pp.done<pp.total?" !":""}</button>; };
   const Table=({rows})=>(<div className="wfx-wrap"><table className="wfx-tbl"><thead><tr><th className="nm">제품</th>{LAUNCH_PHASES.map(ph=><th key={ph.k}>{ph.no}. {ph.name}</th>)}<th>전체</th></tr></thead>
-    <tbody>{rows.map(p=>{ const lp=launchProgress(p); return(<tr key={p.id}><td className="nm"><Name p={p}/></td>{LAUNCH_PHASES.map(ph=><td key={ph.k}><PhCell p={p} ph={ph}/></td>)}<td style={{fontWeight:900,fontVariantNumeric:"tabular-nums"}}>{lp.pct}%</td></tr>); })}</tbody></table></div>);
-  const Cards=({rows})=>(<div style={{display:"flex",flexDirection:"column",gap:8}}>{rows.map(p=>{ const lp=launchProgress(p); return(
+    <tbody>{launchGroups(rows).map(g=><Fragment key={g.k}><tr><td colSpan={LAUNCH_PHASES.length+2} style={{textAlign:"left",padding:"8px 4px 4px",background:"#fff"}}><GroupHead g={g}/></td></tr>
+      {g.rows.map(p=>{ const lp=launchProgress(p); return(<tr key={p.id}><td className="nm"><Name p={p}/></td>{LAUNCH_PHASES.map(ph=><td key={ph.k}><PhCell p={p} ph={ph}/></td>)}<td style={{fontWeight:900,fontVariantNumeric:"tabular-nums"}}>{lp.pct}%</td></tr>); })}</Fragment>)}</tbody></table></div>);
+  const Cards=({rows})=>(<div style={{display:"flex",flexDirection:"column",gap:8}}>{launchGroups(rows).map(g=><Fragment key={g.k}><GroupHead g={g}/>{g.rows.map(p=>{ const lp=launchProgress(p); return(
     <div key={p.id} style={{padding:"11px 12px",borderRadius:14,border:"1px solid #EEF1F4",background:"#fff"}}>
       <div style={{display:"flex",gap:8,alignItems:"flex-start"}}><div style={{flex:1,minWidth:0}}><Name p={p}/></div><span style={{fontSize:13,fontWeight:900,color:"#1B64DA",fontVariantNumeric:"tabular-nums"}}>{lp.pct}%</span></div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginTop:8}}>
@@ -4193,13 +4219,14 @@ function LaunchBoard({D,cu,add,up,pc,items}){
             <span style={{display:"block",fontSize:9.5,fontWeight:800,color:"#6B7684",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{ph.short||ph.name}</span>
             <span style={{display:"block",fontSize:11.5,fontWeight:900,color:col.c,fontVariantNumeric:"tabular-nums"}}>{pp.done===pp.total&&pp.total?"✓":`${pp.done}/${pp.total}`}</span></button>); })}
       </div>
-    </div>); })}</div>);
+    </div>); })}</Fragment>)}</div>);
   return(
     <div style={{background:"#fff",borderRadius:18,padding:"14px 14px 12px",boxShadow:"0 2px 12px rgba(15,23,42,.05)"}}>
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
         <span style={{fontSize:20}}>🚀</span>
         <div style={{flex:"1 1 180px",minWidth:0}}><p style={{margin:0,fontSize:15.5,fontWeight:900,color:"#191F28"}}>신제품 출시 로드맵</p>
-          <p style={{margin:"1px 0 0",fontSize:11.5,color:"#8B95A1"}}>런칭보드와 같은 데이터 · 칸을 누르면 세부 체크·담당·마감 · 관리 = 브랜드 BM</p></div>
+          <p style={{margin:"1px 0 0",fontSize:11.5,color:"#8B95A1"}}>브랜드별 출시 차수로 묶어 봐요 · 런칭보드와 같은 데이터 · 칸을 누르면 세부 체크·담당·마감</p></div>
+        <button onClick={()=>setBatchOpen({brand:brand!=="all"?brand:null,batch:null})} style={{padding:"8px 11px",borderRadius:10,border:"1px solid #C9DDFF",background:"#F7FAFF",color:"#1B64DA",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>📦 차수 묶기</button>
         <button onClick={()=>setDefOpen(true)} style={{padding:"8px 11px",borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",color:"#4E5968",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>⚙ 기본 담당</button>
         <a href="https://pour-construction-form.pages.dev/launch-board" target="_blank" rel="noopener" style={{padding:"8px 11px",borderRadius:10,border:"none",background:"#3182F6",color:"#fff",fontWeight:800,fontSize:12,textDecoration:"none",whiteSpace:"nowrap"}}>＋ 새 제품 (런칭보드) ↗</a>
       </div>
@@ -4213,9 +4240,62 @@ function LaunchBoard({D,cu,add,up,pc,items}){
         {showDone&&<div style={{marginTop:6}}>{pc?<Table rows={fin}/>:<Cards rows={fin}/>}</div>}</div>}
       {openP&&<LaunchProductSheet D={D} cu={cu} p={openP} items={items} phK={open.ph} setPh={(k)=>setOpen(o=>({...o,ph:k}))} onClose={()=>setOpen(null)}/>}
       {defOpen&&<LaunchDefaultsSheet D={D} add={add} up={up} items={items} onClose={()=>setDefOpen(false)}/>}
+      {batchOpen&&<BatchSheet D={D} cu={cu} items={items} brand0={batchOpen.brand} batch0={batchOpen.batch} onClose={()=>setBatchOpen(null)}/>}
     </div>);
 }
 
+// 브랜드 → 출시 차수(예: 데코라인 1차) 묶음. batch 는 런칭보드 문서에 추가 칸으로만 저장(기존 값 보존)
+function launchGroups(rows){ const out=[]; rows.forEach(p=>{ const k=(p.brand||"etc")+"|"+(p.batch||""); let g=out.find(x=>x.k===k); if(!g){ g={k,brand:p.brand||"etc",batch:p.batch||"",rows:[]}; out.push(g); } g.rows.push(p); });
+  const bi=(b)=>{ const i=Object.keys(LAUNCH_BRANDS).indexOf(b); return i<0?99:i; };
+  return out.sort((a,b)=>bi(a.brand)-bi(b.brand)||(a.batch?0:1)-(b.batch?0:1)||String(a.batch).localeCompare(String(b.batch),"ko",{numeric:true})); }
+const DECO_RE=/루바월|아트월|흡음재|타일카펫/;
+function BatchSheet({D,cu,items,brand0,batch0,onClose}){
+  const brands=[...new Set(items.map(p=>p.brand).filter(Boolean))];
+  const [brand,setBrand]=useState(brand0||brands[0]||"grohome");
+  const inB=items.filter(p=>p.brand===brand);
+  const names=[...new Set(inB.map(p=>p.batch).filter(Boolean))];
+  const initName=batch0!=null?batch0:(names[0]||(brand==="grohome"?"데코라인 1차":"1차"));
+  const [name,setName]=useState(initName);
+  const pick=(nm,br)=>{ const list=items.filter(p=>p.brand===(br||brand)); const has=list.some(p=>p.batch===nm);
+    return Object.fromEntries(list.map(p=>[p.id,has?p.batch===nm:(nm==="데코라인 1차"&&DECO_RE.test(String(p.name||"")))])); };
+  const [sel,setSel]=useState(()=>pick(initName));
+  const [date,setDate]=useState("");
+  const [msg,setMsg]=useState("");
+  const chooseName=(nm)=>{ setName(nm); setSel(pick(nm)); };
+  const chooseBrand=(b)=>{ setBrand(b); const ns=[...new Set(items.filter(p=>p.brand===b).map(p=>p.batch).filter(Boolean))]; const nm=ns[0]||"1차"; setName(nm); setSel(pick(nm,b)); };
+  const save=async()=>{ const nm=name.trim(); if(!nm){ setMsg("차수 이름을 넣어 주세요"); return; } let n=0, bad=0;
+    for(const p of inB){ const on=!!sel[p.id]; const patch={};
+      if(on&&p.batch!==nm) patch.batch=nm; if(!on&&p.batch===nm) patch.batch="";
+      if(on&&date&&p.launchDate!==date) patch.launchDate=date;
+      if(Object.keys(patch).length){ const ok=await lbWrite(p.id,patch,`출시 차수 ${patch.batch===undefined?nm:(patch.batch||"해제")}${patch.launchDate?" · 출시일 "+date:""}`,cu); ok?n++:bad++; } }
+    setMsg(bad?`${bad}건 저장 실패 · 인터넷 연결을 확인해 주세요`:`${n}개 제품을 '${nm}'(으)로 정리했어요`); if(!bad) setTimeout(onClose,700); };
+  const cnt=Object.values(sel).filter(Boolean).length;
+  return(<Sheet open={true} onClose={onClose} title="📦 출시 차수 묶기" h="92vh" w={560}>
+    <div style={{paddingTop:6,display:"flex",flexDirection:"column",gap:12}}>
+      <p style={{margin:0,fontSize:12,color:"#6B7684",lineHeight:1.6}}>브랜드별로 함께 출시할 제품을 <b>1차·2차</b>처럼 묶어요. 로드맵이 차수별로 모여 보여요. (런칭보드 기존 값은 그대로)</p>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{brands.map(b=>{ const x=LAUNCH_BRANDS[b]||{icon:"📦",name:b}; const on=brand===b; return <button key={b} onClick={()=>chooseBrand(b)} style={{padding:"8px 12px",borderRadius:16,border:`1.5px solid ${on?"#191F28":"#E5E8EB"}`,background:on?"#191F28":"#fff",color:on?"#fff":"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{x.icon} {x.name}</button>; })}</div>
+      <div>
+        <span style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>차수 이름</span>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:5}}>
+          {[...new Set([...names,...(brand==="grohome"?["데코라인 1차"]:[]),"1차","2차","3차"])].map(nm=><button key={nm} onClick={()=>chooseName(nm)} style={{padding:"7px 11px",borderRadius:14,border:`1.5px solid ${name===nm?"#3182F6":"#E5E8EB"}`,background:name===nm?"#E8F1FF":"#fff",color:name===nm?"#1B64DA":"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{nm}{names.includes(nm)?` · ${inB.filter(p=>p.batch===nm).length}`:""}</button>)}
+        </div>
+        <input value={name} onChange={e=>setName(e.target.value)} placeholder="직접 입력 (예: 데코라인 2차)" style={{...wfInp,width:"100%",marginTop:8}}/>
+      </div>
+      <div>
+        <span style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>이 차수에 넣을 제품 ({cnt})</span>
+        <div style={{display:"flex",flexDirection:"column",gap:5,marginTop:6}}>
+          {inB.map(p=><label key={p.id} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 11px",borderRadius:11,background:sel[p.id]?"#F2F7FF":"#F9FAFB",cursor:"pointer"}}>
+            <input type="checkbox" checked={!!sel[p.id]} onChange={()=>setSel(o=>({...o,[p.id]:!o[p.id]}))} style={{width:18,height:18,accentColor:"#3182F6"}}/>
+            <span style={{flex:1,fontSize:13.5,fontWeight:700,color:"#191F28"}}>{p.name}</span>
+            <span style={{fontSize:11,color:"#8B95A1"}}>{p.batch&&p.batch!==name?`지금: ${p.batch}`:""}{p.launchDate?` · 출시 ${p.launchDate.slice(5)}`:""}</span></label>)}
+        </div>
+      </div>
+      <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>출시일 한 번에 넣기 <span style={{fontWeight:500,color:"#8B95A1"}}>(선택 · 체크한 제품에 같은 날짜)</span><input type="date" value={date} onChange={e=>setDate(e.target.value)} style={{...wfInp,width:"100%",marginTop:4}}/></label>
+      <button onClick={save} style={{padding:"13px 0",borderRadius:13,border:"none",background:"#3182F6",color:"#fff",fontWeight:900,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>저장</button>
+      {msg&&<p style={{margin:0,textAlign:"center",fontSize:13,fontWeight:800,color:/실패|넣어/.test(msg)?"#F04452":"#00A862"}}>{msg}</p>}
+    </div>
+  </Sheet>);
+}
 function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose}){
   const [err,setErr]=useState("");
   const [editId,setEditId]=useState(null);   // 누른 칸만 담당·마감·상태·방식 편집 펼침(스크롤 줄이기)
@@ -4239,7 +4319,7 @@ function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose}){
     <div style={{paddingTop:4,display:"flex",flexDirection:"column",gap:10}}>
       <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"flex-end"}}>
         <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",flex:"1 1 140px"}}>관리 담당 (1명)<select value={p.lead||""} onChange={e=>w({lead:e.target.value},"관리 담당 "+(e.target.value||"브랜드 BM"))} style={{...wfInp,width:"100%",marginTop:4}}><option value="">브랜드 BM ({(LAUNCH_BRANDS[p.brand]||{}).bm||"-"})</option>{people.filter(n=>n!=="외주").map(n=><option key={n}>{n}</option>)}</select></label>
-        <div style={{flex:"1 1 140px",fontSize:12,color:"#4E5968",fontWeight:700}}>전체 {lp.done}/{lp.total} · <b style={{color:"#1B64DA"}}>{lp.pct}%</b>{p.launchDate?` · 출시 ${p.launchDate} ${ddayKo(daysTo(p.launchDate))}`:""}</div>
+        <div style={{flex:"1 1 140px",fontSize:12,color:"#4E5968",fontWeight:700}}>{p.batch?<span style={{color:"#1B64DA"}}>📦 {p.batch} · </span>:null}전체 {lp.done}/{lp.total} · <b style={{color:"#1B64DA"}}>{lp.pct}%</b>{p.launchDate?` · 출시 ${p.launchDate} ${ddayKo(daysTo(p.launchDate))}`:""}</div>
         <button onClick={fillDefaults} style={{padding:"9px 11px",borderRadius:10,border:"1px solid #C9DDFF",background:"#F7FAFF",color:"#1B64DA",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>빈 담당 기본값 채우기</button>
       </div>
       <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2,WebkitOverflowScrolling:"touch"}}>
@@ -4899,8 +4979,18 @@ function ActIndicatorEditForm({ak,onSave}){
     </div>
   );
 }
-function CalendarPage({D,cu,add,up,rm}){
+function CalendarPage({D,cu,add,up,rm,nav}){
   const [cm,setCm]=useState(new Date(new Date().getFullYear(),new Date().getMonth(),1));
+  // 한 달력에 전부: 행사·미팅 + 프로젝트 기간·마감 + 신제품 출시·단계 마감 + 워크플로우 건 마감 + 프로젝트 업무 마감 (종류별 켜고 끄기, 기기에 기억)
+  const CAL_KINDS=[["ev","📣 행사·미팅"],["proj","📁 프로젝트"],["launch","🚀 신제품"],["wf","🔁 워크플로우"],["task","✅ 업무 마감"]];
+  const [show,setShowS]=useState(()=>{ try{ const v=JSON.parse(localStorage.getItem("pour-os-cal-show")||"null"); if(v&&typeof v==="object") return v; }catch(_){} return {ev:1,proj:1,launch:1,wf:1,task:1}; });
+  const togShow=(k)=>setShowS(o=>{ const n={...o,[k]:o[k]?0:1}; try{ localStorage.setItem("pour-os-cal-show",JSON.stringify(n)); }catch(_){} return n; });
+  const [selDay,setSelDay]=useState(null);
+  const [projOpen,setProjOpen]=useState(null);
+  const [undOpen,setUndOpen]=useState(true);
+  const lbCal=useLaunchProducts();
+  const wfCal=mergeWorkflows(D.workflows);
+  const goCatC=(k)=>{ try{ localStorage.setItem("pour-os-wf-cat",k); localStorage.setItem("pour-os-proj-adv","0"); }catch(_){} if(nav) nav("projects"); };
   const [detail,setDetail]=useState(null);
   const [actionForm,setActionForm]=useState({type:"task",title:"",projectId:"",status:"todo"});
   const [actionDone,setActionDone]=useState([]);
@@ -4917,6 +5007,24 @@ function CalendarPage({D,cu,add,up,rm}){
   const dim=new Date(y,m+1,0).getDate();
   const getEvts=d=>{const ds=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;return D.events.filter(e=>e.date===ds);};
   const mEvts=D.events.filter(e=>{const d=new Date(e.date);return d.getFullYear()===y&&d.getMonth()===m;});
+  const mS=`${y}-${String(m+1).padStart(2,"0")}-01`, mE=`${y}-${String(m+1).padStart(2,"0")}-${String(new Date(y,m+1,0).getDate()).padStart(2,"0")}`;
+  const todayC=ymdLocal(new Date());
+  const extra=(()=>{ const out=[]; const inM=(a,b)=>a&&a<=mE&&(b||a)>=mS;
+    if(show.proj) (D.projects||[]).filter(p=>projStatus(p)!=="completed").forEach(p=>{ const [pc,pb]=projPal(p); const st=p.startDate||"", du=p.dueDate||""; const late=du&&du<todayC;
+      const it={kind:"proj",key:"p_"+p.id,color:late?"#F04452":pc,bg:late?"#FFF0F1":pb,sub:`관리 ${userName(D,p.assigneeId)||"미지정"}${du?" · 마감 "+ddayKo(daysTo(du)):""}`,onClick:()=>setProjOpen(p.id)};
+      if(st&&du&&du>=st){ if(inM(st,du)) out.push({...it,start:st,end:du,label:"📁 "+p.title}); }
+      else if(du){ if(inM(du)) out.push({...it,start:du,end:du,label:"🏁 "+p.title+" 마감"}); }
+      else if(st){ if(inM(st)) out.push({...it,start:st,end:st,label:"▶ "+p.title+" 시작"}); } });
+    if(show.launch) lbCal.filter(p=>!p.deletedAt).forEach(p=>{ const b=LAUNCH_BRANDS[p.brand]||{icon:"📦"};
+      if(p.launchDate&&inM(p.launchDate)) out.push({kind:"launch",key:"l_"+p.id,start:p.launchDate,end:p.launchDate,color:"#1B64DA",bg:"#DCEBFF",label:`🚀 ${p.name} 출시`,sub:`${b.icon} ${p.batch||""} · ${launchProgress(p).pct}% 준비`,onClick:()=>goCatC("launch")});
+      LAUNCH_ITEMS.forEach(it=>{ const st=lbState(p,it); if(st.due&&st.status!=="done"&&st.status!=="skip"&&inM(st.due)) out.push({kind:"launch",key:"li_"+p.id+it.id,start:st.due,end:st.due,color:st.due<todayC?"#F04452":"#3182F6",bg:st.due<todayC?"#FFF0F1":"#E8F1FF",label:`🚀 ${p.name} · ${it.name}`,sub:`담당 ${st.owner||"없음"}`,onClick:()=>goCatC("launch")}); }); });
+    if(show.wf) (D.tasks||[]).filter(t=>t.wfId&&t.status!=="done").forEach(t=>{ const wf=wfCal.find(w=>w.id===t.wfId); if(!wf) return;
+      if(t.dueDate&&inM(t.dueDate)) out.push({kind:"wf",key:"w_"+t.id,start:t.dueDate,end:t.dueDate,color:"#6D28D9",bg:"#F1EAFE",label:`${wf.icon} ${t.title}`,sub:`${wf.name} · ${userName(D,t.assigneeId)||""}`,onClick:()=>goCatC(wf.cat)});
+      const end=(t.wfData||{}).endDate; if(wf.kind==="notice"&&end&&inM(end)) out.push({kind:"wf",key:"wn_"+t.id,start:end,end,color:"#B45309",bg:"#FEF3E2",label:`📢 내리기: ${t.title}`,sub:"공지 내리는 날",onClick:()=>goCatC("notice")}); });
+    if(show.task) (D.tasks||[]).filter(t=>!t.isFixed&&!t.wfId&&t.projectId&&t.dueDate&&t.status!=="done"&&inM(t.dueDate)).forEach(t=>{ const p=(D.projects||[]).find(x=>x.id===t.projectId);
+      out.push({kind:"task",key:"t_"+t.id,start:t.dueDate,end:t.dueDate,color:t.dueDate<todayC?"#F04452":"#4E5968",bg:t.dueDate<todayC?"#FFF0F1":"#F2F4F6",label:`✅ ${t.title}`,sub:`${p?p.title:""} · ${userName(D,t.assigneeId)||""}`,onClick:()=>p&&setProjOpen(p.id)}); });
+    return out.sort((a,b)=>a.start.localeCompare(b.start)); })();
+  const cntKind=(k)=>k==="ev"?mEvts.length:extra.filter(x=>x.kind===k).length;
   const doAction=()=>{
     if(!actionForm.title.trim()) return;
     const nid="t"+Date.now();
@@ -4929,7 +5037,7 @@ function CalendarPage({D,cu,add,up,rm}){
     <div style={{padding:"14px 16px 20px"}}>
       <div style={{display:"flex",alignItems:"center",gap:7,padding:"9px 12px",marginBottom:12,borderRadius:12,background:"#EFF6FF",border:"1px solid #DBEAFE"}}>
         <span style={{fontSize:14}}>📣</span>
-        <span style={{fontSize:11.5,fontWeight:700,color:"#1D4ED8",lineHeight:1.4}}>팀 전사 <b>행사·외근·미팅</b> 일정. 내 업무 스케줄은 <b>오늘 ▸ 캘린더</b>에서 봐요.</span>
+        <span style={{fontSize:11.5,fontWeight:700,color:"#1D4ED8",lineHeight:1.4}}>행사·미팅 + <b>모든 프로젝트 기간·마감</b> + 신제품 출시·단계 마감 + 워크플로우 마감을 한 달력에서 봐요. 아래 칩으로 켜고 꺼요.</span>
       </div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -4938,17 +5046,57 @@ function CalendarPage({D,cu,add,up,rm}){
           <button onClick={()=>setCm(new Date(y,m+1,1))} style={{width:34,height:34,borderRadius:10,backgroundColor:"#F2F4F6",border:"none",cursor:"pointer",fontSize:14}}>▶</button>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <Badge color="#3182F6" bg="#E8F1FF">{mEvts.length}건</Badge>
+          <Badge color="#3182F6" bg="#E8F1FF">{mEvts.length+extra.length}건</Badge>
           <button onClick={()=>openNewEvent()} style={{padding:"7px 12px",borderRadius:20,border:"none",cursor:"pointer",backgroundColor:"#3182F6",color:"#FFFFFF",fontWeight:700,fontSize:12,fontFamily:"inherit"}}>+ 일정</button>
         </div>
+      </div>
+      <div style={{display:"flex",gap:6,overflowX:"auto",marginBottom:10,paddingBottom:2,WebkitOverflowScrolling:"touch"}}>
+        {CAL_KINDS.map(([k,l])=>{ const on=!!show[k]; return <button key={k} onClick={()=>togShow(k)} aria-pressed={on} style={{flexShrink:0,padding:"7px 11px",borderRadius:16,border:`1.5px solid ${on?"#3182F6":"#E5E8EB"}`,background:on?"#E8F1FF":"#fff",color:on?"#1B64DA":"#8B95A1",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>{on?"✓ ":""}{l} {cntKind(k)}</button>; })}
       </div>
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"12px",marginBottom:14,border:"1px solid #F2F4F6"}}>
         <MonthCalendar y={y} m={m} todayStr={ymdLocal(new Date())}
           onDayClick={(ds)=>openNewEvent(ds)}
-          onMore={(ds)=>{const first=D.events.filter(e=>e.date<=ds&&(e.endDate||e.date)>=ds)[0];if(first){setDetail(first);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}}}
-          items={mEvts.map(ev=>{const et=evType(D,ev.type);return {id:"ev_"+ev.id,start:ev.date,end:ev.endDate||ev.date,color:et.color,bg:et.bg,label:ev.title,onClick:()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}};})}/>
+          onMore={(ds)=>setSelDay(ds)}
+          items={[...extra.map(x=>({id:x.key,start:x.start,end:x.end,color:x.color,bg:x.bg,label:x.label,onClick:x.onClick})),...(show.ev?mEvts:[]).map(ev=>{const et=evType(D,ev.type);return {id:"ev_"+ev.id,start:ev.date,end:ev.endDate||ev.date,color:et.color,bg:et.bg,label:ev.title,onClick:()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}};})]}/>
       </div>
-      <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#191F28"}}>이번 달 일정</h3>
+      {selDay&&(()=>{ const evs=(show.ev?D.events:[]).filter(e=>e.date<=selDay&&(e.endDate||e.date)>=selDay); const xs=extra.filter(x=>x.start<=selDay&&x.end>=selDay); return(
+        <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"12px 14px",marginBottom:14,border:"1.5px solid #C9DDFF"}}>
+          <div style={{display:"flex",alignItems:"center",marginBottom:8}}><b style={{fontSize:14,color:"#191F28"}}>{selDay.slice(5).replace("-","/")} 일정 {evs.length+xs.length}</b>
+            <button onClick={()=>openNewEvent(selDay)} style={{marginLeft:"auto",padding:"5px 10px",borderRadius:14,border:"none",background:"#E8F1FF",color:"#1B64DA",fontWeight:800,fontSize:11.5,cursor:"pointer",fontFamily:"inherit"}}>+ 일정</button>
+            <button onClick={()=>setSelDay(null)} aria-label="닫기" style={{marginLeft:6,width:28,height:28,borderRadius:14,border:"none",background:"#F2F4F6",cursor:"pointer"}}>✕</button></div>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {evs.map(ev=>{ const et=evType(D,ev.type); return <button key={ev.id} onClick={()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}} style={{textAlign:"left",padding:"9px 11px",borderRadius:11,border:"none",background:et.bg,color:et.color,fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>{ev.title}</button>; })}
+            {xs.map(x=><button key={x.key} onClick={x.onClick} style={{textAlign:"left",padding:"9px 11px",borderRadius:11,border:"none",background:x.bg,cursor:"pointer",fontFamily:"inherit"}}><span style={{display:"block",fontSize:13,fontWeight:800,color:x.color}}>{x.label}</span><span style={{display:"block",fontSize:11,color:"#6B7684",marginTop:1}}>{x.start!==x.end?`${x.start.slice(5)} ~ ${x.end.slice(5)} · `:""}{x.sub}</span></button>)}
+            {evs.length+xs.length===0&&<p style={{margin:0,fontSize:12.5,color:"#8B95A1"}}>이 날 일정이 없어요</p>}
+          </div>
+        </div>); })()}
+      {extra.length>0&&<>
+        <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#191F28"}}>이번 달 프로젝트·신제품·워크플로우 <span style={{color:"#8B95A1",fontWeight:700,fontSize:12}}>{extra.length}</span></h3>
+        <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
+          {extra.map(x=>{ const d=new Date(x.start+"T00:00:00"); return(
+            <button key={x.key} onClick={x.onClick} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:14,border:"1px solid #F2F4F6",background:"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+              <div style={{width:36,textAlign:"center",flexShrink:0}}><p style={{margin:0,fontSize:17,fontWeight:900,color:"#1F2937"}}>{d.getDate()}</p><p style={{margin:0,fontSize:9.5,color:"#9CA3AF"}}>{["일","월","화","수","목","금","토"][d.getDay()]}</p></div>
+              <span style={{width:4,alignSelf:"stretch",borderRadius:2,background:x.color,flexShrink:0}}/>
+              <div style={{flex:1,minWidth:0}}><p style={{margin:0,fontSize:13.5,fontWeight:800,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{x.label}</p>
+                <p style={{margin:"2px 0 0",fontSize:11,color:"#8B95A1",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{x.start!==x.end?`${x.start.slice(5)} ~ ${x.end.slice(5)} · `:""}{x.sub}</p></div>
+            </button>); })}
+        </div></>}
+      {show.proj&&(()=>{ const und=(D.projects||[]).filter(p=>projStatus(p)!=="completed"&&!p.dueDate); if(!und.length) return null; const di={padding:"7px 8px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:12.5,fontFamily:"inherit",background:"#fff",minWidth:0,flex:"1 1 120px"}; return(
+        <div style={{backgroundColor:"#FFFBF0",borderRadius:16,padding:"12px 14px",marginBottom:16,border:"1px solid #FDE7B0"}}>
+          <button onClick={()=>setUndOpen(v=>!v)} style={{display:"block",width:"100%",textAlign:"left",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
+            <b style={{fontSize:13.5,color:"#B45309"}}>📅 마감일 없는 진행 프로젝트 {und.length} {undOpen?"▴":"▾"}</b>
+            <span style={{display:"block",fontSize:11.5,color:"#8B6B2E",marginTop:2}}>시작·마감일을 넣으면 바로 위 달력에 기간 막대로 떠요</span></button>
+          {undOpen&&<div style={{display:"flex",flexDirection:"column",gap:6,marginTop:10}}>{und.map(p=>(
+            <div key={p.id} style={{padding:"9px 10px",borderRadius:11,background:"#fff",border:"1px solid #F5E6C4"}}>
+              <button onClick={()=>setProjOpen(p.id)} style={{border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",fontSize:13.5,fontWeight:800,color:"#191F28",textAlign:"left"}}>{p.title} <span style={{fontSize:11,fontWeight:600,color:"#8B95A1"}}>· 관리 {userName(D,p.assigneeId)||"미지정"}</span></button>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginTop:6}}>
+                <label style={{fontSize:10.5,color:"#6B7684",fontWeight:700,minWidth:0}}>시작<input type="date" aria-label={`${p.title} 시작일`} value={p.startDate||""} onChange={e=>up("projects",p.id,{startDate:e.target.value})} style={{...di,width:"100%",boxSizing:"border-box",marginTop:3}}/></label>
+                <label style={{fontSize:10.5,color:"#6B7684",fontWeight:700,minWidth:0}}>마감<input type="date" aria-label={`${p.title} 마감일`} value={p.dueDate||""} onChange={e=>up("projects",p.id,{dueDate:e.target.value})} style={{...di,width:"100%",boxSizing:"border-box",marginTop:3}}/></label>
+              </div>
+            </div>))}</div>}
+        </div>); })()}
+      {projOpen&&(D.projects||[]).find(p=>p.id===projOpen)&&<ProjectDetailSheet D={D} cu={cu} p={(D.projects||[]).find(p=>p.id===projOpen)} up={up} add={add} rm={rm} onClose={()=>setProjOpen(null)} onAdvanced={()=>{ setProjOpen(null); if(nav) nav("projects"); }}/>}
+      <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#191F28"}}>이번 달 행사·미팅</h3>
       {mEvts.length===0&&<div style={{padding:"28px 20px",textAlign:"center",backgroundColor:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6"}}><p style={{margin:0,fontSize:13,color:"#9CA3AF"}}>이번 달 일정이 없어요</p><p style={{margin:"4px 0 0",fontSize:11.5,color:"#D1D5DB"}}>위 <b>+ 일정</b> 또는 날짜를 탭해 추가하세요</p></div>}
       {mEvts.sort((a,b)=>a.date.localeCompare(b.date)).map(ev=>{
         const et=evType(D,ev.type);

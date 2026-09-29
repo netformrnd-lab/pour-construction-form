@@ -1603,6 +1603,12 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 /* ── 생산원가 계산기 ── */
 #costCalc .cc-meth{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 #costCalc .cc-meth button{padding:7px 4px;font-size:12px;line-height:1.3;white-space:normal;word-break:keep-all;border-radius:12px}
+#costCalc .cc-pm{border:1px solid #CBD5E1;background:#fff;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:700;color:#475569;cursor:pointer}
+#costCalc .cc-pm.on{background:#EFF6FF;border-color:#93C5FD;color:#1D4ED8}
+#costCalc .cc-tot{width:124px} #costCalc .cc-tq{width:78px}
+#costCalc .cc-up{font-size:11.5px;font-weight:700;color:#1D4ED8}
+#costCalc .cc-warn{flex:1 1 100%;background:#FEF3C7;border:1px solid #FCD34D;color:#92400E;border-radius:8px;padding:7px 9px;font-size:11.5px;line-height:1.5}
+#costCalc .cc-warn .tbtn{min-height:0;padding:3px 8px;font-size:11.5px;margin-top:3px}
 #costCalc .cc-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:6px;padding:8px 10px;background:#F8FAFC;border-radius:10px;font-size:11.5px;color:var(--ink-soft)}
 #costCalc .cc-row input,#costCalc .cc-row select{border:1px solid #E2E8F0;border-radius:6px;padding:4px 6px;font-size:12.5px;background:#fff}
 #costCalc .cc-row label{display:flex;align-items:center;gap:3px}
@@ -1765,7 +1771,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28r</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.28s</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -11895,24 +11901,31 @@ function ccSetProduct(key){
   else { CC.src='dom'; CC.tpl='basic'; CC.inco=''; CC.fixed=[]; CC.opts=[]; ccApplyStructure(); }
   if(!CC.opts.length){ const sib=ccSiblings(key); if(sib.length){ const p=ccProducts().find(x=>pKey(x)===key); CC.opts=[{label:(p&&p.spec)||'기준',mult:1,key}, ...sib.map(x=>({label:x.spec||x.name,mult:'',key:pKey(x)}))]; } }
 }
+/* 단가 칸: [단가 | 총액] 전환 — 총액 모드면 총액 ÷ 구매 수량 = 단가(자동), 포장재면 구매 수량이 발주로도 들어감 */
+function ccPriceHtml(r,i,simple){
+  const sym=r.cur==='USD'?'$':'₩', tog=`<button type="button" class="cc-pm${r.pmode==='total'?' on':''}" data-rpm="${i}" title="단가로 입력 / 총액 ÷ 구매 수량으로 입력">${r.pmode==='total'?'총액':'단가'} ⇄</button>`;
+  if(r.pmode==='total') return `${tog}<label>${sym}<input type="number" inputmode="decimal" data-rf="total" value="${esc(r.total??'')}" placeholder="총 금액" step="any" class="cc-tot"></label>
+    <label>÷<input type="number" inputmode="decimal" data-rf="tq" value="${esc(r.tq??'')}" placeholder="구매 수량" step="any" class="cc-tq">개</label><span class="cc-up" id="ccUp${i}">${+r.price>0?`= 1개 ${sym}${qcW(+r.price).replace(/원$/,'')}`:''}</span>`;
+  return `${tog}<label>${simple?'':''}${sym}<input type="number" inputmode="decimal" data-rf="price" value="${esc(r.price)}" placeholder="1개 가격" step="any"></label>`;
+}
 function ccRowHtml(r,i,c){
   if(!CC_DETAIL) return `<div class="cc-row cc-simple" data-ri="${i}">
     <input class="cc-nm" data-rf="name" value="${esc(r.name)}" list="ccMatList" placeholder="항목">
-    <label><i>단가</i>${r.cur==='USD'?'$':'₩'}<input type="number" inputmode="decimal" data-rf="price" value="${esc(r.price)}" placeholder="0" step="any"></label>
-    <label><i>수량</i><input type="number" inputmode="decimal" step="any" data-rf="use" value="${esc(r.use)}" class="cc-use">${esc(r.unit||'')}</label>
+    ${ccPriceHtml(r,i,true)}
+    <label><i>1개당</i><input type="number" inputmode="decimal" step="any" data-rf="use" value="${esc(r.use)}" class="cc-use">${esc(r.unit||'')}</label>
     <b class="cc-per" id="ccPer${i}"></b>
-    <button class="pm-x" data-rrm="${i}" title="빼기">✕</button></div>`;
+    <button class="pm-x" data-rrm="${i}" title="빼기">✕</button><div class="cc-warn" id="ccWarn${i}" hidden></div></div>`;
   return `<div class="cc-row" data-ri="${i}">
     <input class="cc-nm" data-rf="name" value="${esc(r.name)}" list="ccMatList" placeholder="항목">
     <select data-rf="kind">${Object.entries(CC_KIND).map(([k,l])=>`<option value="${k}"${k===r.kind?' selected':''}>${l}</option>`).join('')}</select>
-    <label>단가<select data-rf="cur" class="cc-cur"><option value="KRW"${r.cur!=='USD'?' selected':''}>₩</option><option value="USD"${r.cur==='USD'?' selected':''}>$</option></select><input type="number" data-rf="price" value="${esc(r.price)}" placeholder="0" step="any"></label>
+    <select data-rf="cur" class="cc-cur" title="통화"><option value="KRW"${r.cur!=='USD'?' selected':''}>₩</option><option value="USD"${r.cur==='USD'?' selected':''}>$</option></select>${ccPriceHtml(r,i,false)}
     <label>1개당<input type="number" step="any" data-rf="use" value="${esc(r.use)}"><input class="cc-unit" data-rf="unit" value="${esc(r.unit||'')}" list="ccUnitList"></label>
     <label>손실<input type="number" step="0.5" data-rf="loss" value="${esc(r.loss)}" placeholder="${Math.round(ccRowLoss({...r,loss:''})*1000)/10}" class="cc-loss">%</label>
     ${CC.opts.length?`<label class="cc-var" title="옵션(사이즈·용량)에 따라 사용량이 달라지는 항목"><input type="checkbox" data-rf="var"${r.var?' checked':''}>옵션별</label>`:''}
     ${r.kind==='mat'?`<label>발주<input type="number" data-rf="order" value="${esc(r.order)}" placeholder="0=재고"></label>`:''}
     ${r.kind==='mat'?(()=>{ const m=(CC.mats||[]).find(x=>x.name===String(r.name||'').trim()); return m?`<span class="cc-stk" title="부자재 재고">재고 ${won(m.stock||0)}</span>`:''; })():''}
     <b class="cc-per" id="ccPer${i}"></b>
-    <button class="pm-x" data-rrm="${i}" title="빼기">✕</button></div>`;
+    <button class="pm-x" data-rrm="${i}" title="빼기">✕</button><div class="cc-warn" id="ccWarn${i}" hidden></div></div>`;
 }
 function renderCostCalc(){
   const box=$('#ccBody'); if(!box) return;
@@ -11961,7 +11974,12 @@ function renderCostCalc(){
 }
 function ccRefresh(){
   const r=ccCalc(1), qty=r.qty;
-  r.per.forEach((c,i)=>{ const el=$('#ccPer'+i); if(el) el.textContent=qcW(c); });
+  r.per.forEach((c,i)=>{ const el=$('#ccPer'+i); if(el) el.textContent=qcW(c);
+    /* 이상한 값 경고: '1개당'에 구매 수량을, '단가'에 총액을 넣은 경우가 많다 */
+    const w=$('#ccWarn'+i), row=CC.rows[i]; if(!w||!row) return; const use=+row.use||0, pr=+row.price||0; let msg='';
+    if(use>=100&&pr>0&&(!row.unit||row.unit==='개')) msg=`⚠️ 제품 1개에 ${esc(row.name||'이 항목')} ${won(use)}${esc(row.unit||'개')}를 쓰나요? <b>1개당</b>은 제품 하나에 들어가는 양이에요. 구매 수량(${won(use)})과 총액(${won(pr)}원)을 넣으셨다면 → <button type="button" class="tbtn" data-rfix="${i}">1개 ${won(Math.round(pr/use*100)/100)}원 · 1개당 1 로 고치기</button>`;
+    else if(c>=1000000) msg=`⚠️ 제품 1개에 ${qcW(c)}이에요. <b>단가</b>에 총액을 넣으셨나요? → <button type="button" class="tbtn" data-rtot="${i}">총액 ÷ 구매 수량으로 입력</button>`;
+    w.innerHTML=msg; w.hidden=!msg; });
   CC.opts.forEach((o,i)=>{ const el=$('#ccOpt'+i); if(el){ const x=ccCalc(+o.mult||1); el.textContent=qcW(x.repeat); } });
   const out=$('#ccOut'); if(!out) return;
   const p=ccProducts().find(x=>pKey(x)===CC.key), cur=p&&p.cost>0?p.cost:null;
@@ -12104,6 +12122,14 @@ document.addEventListener('click',e=>{ const b=e.target.closest('[data-cc-open]'
     const trm=e.target.closest('[data-trm]'); if(trm){ CC.trans.splice(+trm.dataset.trm,1); renderCostCalc(); return; }
     const xrm=e.target.closest('[data-xrm]'); if(xrm){ CC.fixed.splice(+xrm.dataset.xrm,1); renderCostCalc(); return; }
     const orm=e.target.closest('[data-orm]'); if(orm){ CC.opts.splice(+orm.dataset.orm,1); renderCostCalc(); return; }
+    const rpm=e.target.closest('[data-rpm]'); if(rpm){ const r=CC.rows[+rpm.dataset.rpm]; if(!r) return;
+      if(r.pmode==='total') r.pmode=''; else { r.pmode='total'; if(r.total==null||r.total===''){ const q=+r.order||''; r.tq=r.tq||q; r.total=(+r.price>0&&q)?Math.round(+r.price*q):''; } }
+      renderCostCalc(); return; }
+    const rfix=e.target.closest('[data-rfix]'); if(rfix){ const r=CC.rows[+rfix.dataset.rfix]; if(!r) return; const use=+r.use||1, tot=+r.price||0;
+      r.pmode='total'; r.total=tot; r.tq=use; r.price=Math.round(tot/use*100)/100; if(r.kind==='mat'&&!(+r.order>0)) r.order=use; r.use=1;
+      renderCostCalc(); uiToast(`단가 ${won(r.price)}원 · 1개당 1 로 고쳤어요`,'ok'); return; }
+    const rtot=e.target.closest('[data-rtot]'); if(rtot){ const r=CC.rows[+rtot.dataset.rtot]; if(!r) return; r.pmode='total'; r.total=+r.price||''; r.tq=+r.order||''; r.price=(r.total&&r.tq)?Math.round(r.total/r.tq*100)/100:'';
+      renderCostCalc(); setTimeout(()=>{ const q=document.querySelector(`#costCalc [data-ri="${rtot.dataset.rtot}"] .cc-tq`); if(q) q.focus(); },30); return; }
     if(e.target.id==='ccAddRow'){ CC.rows.push(R_('','mat','개')); renderCostCalc(); return; }
     if(e.target.id==='ccAddTrans'){ CC.trans.push({name:'',amt:''}); renderCostCalc(); return; }
     if(e.target.id==='ccAddFixed'){ CC.fixed.push({name:'',amt:''}); renderCostCalc(); return; }
@@ -12118,6 +12144,10 @@ document.addEventListener('click',e=>{ const b=e.target.closest('[data-cc-open]'
       r[t.dataset.rf]= t.type==='checkbox' ? t.checked : t.value;
       if(t.dataset.rf==='name'){ const mat=(CC.mats||[]).find(x=>x.name===t.value.trim()); if(mat){ r.kind='mat'; r.price=mat.price; r.cur='KRW'; r.unit=mat.unit||r.unit; renderCostCalc(); uiToast(`부자재 재고에서: ${mat.name} ${won(mat.price)}원 · 재고 ${won(mat.stock||0)}`,'info'); return; } }
       if(t.dataset.rf==='kind'||t.dataset.rf==='cur'){ renderCostCalc(); return; }
+      if(t.dataset.rf==='total'||t.dataset.rf==='tq'){ const tot=+r.total||0, q=+r.tq||0; r.price=tot>0&&q>0?Math.round(tot/q*100)/100:'';
+        if(r.kind==='mat'&&q>0&&(!(+r.order>0)||r._ordTq)){ r.order=q; r._ordTq=true; const o=row.querySelector('[data-rf="order"]'); if(o) o.value=q; }
+        const up=$('#ccUp'+row.dataset.ri); if(up) up.textContent=+r.price>0?`= 1개 ${r.cur==='USD'?'$':'₩'}${qcW(+r.price).replace(/원$/,'')}`:''; }
+      if(t.dataset.rf==='order') r._ordTq=false;
       ccRefresh(); return; }
     if(t.dataset.tf){ CC.trans[+t.dataset.ti][t.dataset.tf]= t.type==='checkbox' ? t.checked : t.value; ccRefresh(); return; }
     if(t.dataset.xf){ CC.fixed[+t.dataset.xi][t.dataset.xf]=t.value; ccRefresh(); return; }

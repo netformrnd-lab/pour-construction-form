@@ -2,7 +2,7 @@
 // v2: 앱 상태를 컬렉션별 문서(pour-os/state-<collection>)로 분할 저장 → 1MiB 한도·동시편집 충돌 완화.
 // (레거시 단일 문서 pour-os/state 는 마이그레이션 소스 + 비상 백업으로 보존)
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, collection, onSnapshot, setDoc, getDoc, getDocs, runTransaction } from "firebase/firestore";
+import { getFirestore, doc, collection, onSnapshot, setDoc, getDoc, getDocs, runTransaction, arrayUnion } from "firebase/firestore";
 import { getStorage, ref as sref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 
 const app = initializeApp({
@@ -27,7 +27,7 @@ export { db, runTransaction };
 // 임의 컬렉션/문서 참조 — 외부 마스터(어드민센터 staff 컬렉션 = 담당자 관리) 읽기용
 export const extDoc = (col, id) => doc(db, col, id);
 export const extCol = (name) => collection(db, name);
-export { onSnapshot, setDoc, getDoc, getDocs };
+export { onSnapshot, setDoc, getDoc, getDocs, arrayUnion };
 
 // Storage — task 사진 첨부 (경로: task-attachments/{taskId}/{filename})
 const storage = getStorage(app);

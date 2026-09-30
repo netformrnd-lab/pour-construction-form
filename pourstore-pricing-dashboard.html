@@ -564,6 +564,12 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
 .su-ov.on{display:flex}
 .su-file{padding:8px 10px;border:1px solid var(--xl-grid);border-radius:8px;margin-bottom:6px;font-size:13px;background:#fff}
 .su-file.err{border-color:#F1B7AD;background:#FDF6F4;color:#8A2B1E}
+.su-seller{display:flex;flex-direction:column;gap:6px;padding:0 0 12px;margin-bottom:12px;border-bottom:1px solid var(--xl-grid)}
+.su-sl-t{font-size:13px;font-weight:700}
+.su-sl-b{display:flex;gap:6px;flex-wrap:wrap}
+.su-sl-b button{border:1px solid var(--xl-grid);background:#fff;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-soft)}
+.su-sl-b button.on{background:#0F1F5C;border-color:#0F1F5C;color:#fff}
+.su-sl-h{font-size:11.5px;color:var(--ink-faint);line-height:1.5}
 .su-fmt{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:#EFF6FF;color:#1E40AF;margin:0 4px}
 .su-warn{color:#B45309;font-weight:700}
 .su-done{font-size:11.5px;color:#047857;margin-top:3px}
@@ -581,7 +587,7 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
 .sur-h{display:flex;gap:8px;align-items:center;padding:8px 10px;background:#F8FAFC;flex-wrap:wrap}.sur-h .tbtn{margin-left:auto}
 .sur-pre{margin:0;padding:10px;font-size:12.5px;white-space:pre-wrap;word-break:break-all;max-height:320px;overflow:auto;font-family:inherit}
 .su-strip{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}.su-strip .it{border:1px solid var(--xl-grid);border-radius:8px;padding:6px 10px;font-size:12.5px;background:#fff}.su-strip .ok{border-color:#A7F3D0;background:#ECFDF5}.su-strip .no{border-color:#FCD34D;background:#FFFBEB}
-@media(max-width:700px){.su-tbl td,.su-tbl th{white-space:normal;font-size:12px;padding:6px 5px}.su-tbl .su-done{font-size:11px}.su-ov{padding:0;align-items:stretch}.su-ov .imp-panel{max-height:100vh;border-radius:0}.su-urow select{max-width:100%}}
+@media(max-width:700px){.su-tbl td,.su-tbl th{white-space:normal;font-size:12px;padding:6px 5px}.su-tbl .su-done{font-size:11px}.su-ov{padding:0;align-items:stretch}.su-ov .imp-panel{max-height:100vh;border-radius:0}.su-urow .a{width:100%;min-width:0}.su-urow select{flex:1 1 100%;width:100%;min-width:0;max-width:100%}.su-urow .a .tbtn{flex:1}}
 #pcOverlay{position:fixed;inset:0;background:rgba(15,20,25,.55);z-index:3000;display:none;align-items:center;justify-content:center;padding:16px}
 #pcOverlay.on{display:flex}
 @media(max-width:700px){ #pcTable input{width:104px} }
@@ -1735,7 +1741,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.30b</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.30c</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2799,8 +2805,9 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 </div>
 <div id="suOverlay" class="su-ov">
   <div class="imp-panel">
-    <div class="imp-head"><span>📥 판매 엑셀 올리기 <span style="font-size:11px;color:var(--ink-faint);font-weight:400">· 사방넷·스마트스토어·쿠팡·자사몰 · 자체상품코드로 스토어/그로홈 나눔</span></span><button id="suClose" aria-label="닫기">✕</button></div>
+    <div class="imp-head"><span>📥 판매 엑셀 올리기 <span style="font-size:11px;color:var(--ink-faint);font-weight:400">· 어느 브랜드 판매 파일인지 고르고 올려요</span></span><button id="suClose" aria-label="닫기">✕</button></div>
     <div class="imp-body">
+      <div class="su-seller" id="suSeller"><span class="su-sl-t">어느 브랜드 판매예요?</span><div class="su-sl-b"><button type="button" data-suseller="POUR스토어">POUR스토어</button><button type="button" data-suseller="GROHOME">그로홈</button><button type="button" data-suseller="">자동 (상품 기준)</button></div><div class="su-sl-h" id="suSellerHint"></div></div>
       <div class="toolrow" style="padding:0 0 10px;gap:8px"><button class="tbtn primary" id="suPick">📂 파일 고르기 (여러 개 가능)</button><button class="tbtn" id="suSave" disabled>기록하기</button></div>
       <input type="file" id="suFile" accept=".xlsx,.xls,.csv" multiple style="display:none">
       <div id="suBody"></div>
@@ -9390,12 +9397,15 @@ function suBuildRows(){
       const g=k=>m[k]==null?'':row[m[k]];const qty=suNum(g('qty'));if(!qty)return;
       const name=String(g('name')||'').trim(),code=String(g('code')||'').trim();if(!name&&!code)return;
       let amt=m.amt!=null?suNum(g('amt')):0;if(!amt&&m.unit!=null)amt=suNum(g('unit'))*qty;
-      const rawCh=String(f.fixedCh||g('ch')||'').trim();let ch=slChan(rawCh).ch;
+      const rawCh=String(f.fixedCh||g('ch')||'').trim();const sc=slChan(rawCh);let ch=sc.ch;
       if(f.fmt==='자사몰(카페24)'&&/위탁/.test(name))ch='위탁판매';
       const order=String(g('order')||'').trim(),opt=String(g('opt')||'').trim();
       const date=suDate(g('date'))||(/^\d{8}_/.test(order)?suDate(order.slice(0,8)):'')||SU.fallbackDate||'';   // 수동발주: 주문번호 20260922_0001 → 날짜
       const r={fi,ri,date,order,ch,rawCh,code,name,opt,qty,amt:Math.round(amt)};
       Object.assign(r,suResolve(r,ix));
+      // 브랜드를 골랐으면: 브랜드 전용 채널(자사몰·스마트스토어 등)은 그 브랜드 매출, 공용 계정 오픈마켓(쿠팡·오늘의집 등)은 매출표와 같이 상품 브랜드로 나눈다
+      // 공용 오픈마켓에서 어느 제품인지 모르는 줄, 금액을 모르는 줄은 '확인 필요'에 남긴다 (브랜드·금액이 틀린 기록을 만들지 않게)
+      if(SU.seller){ if(sc.grp!=='shared'){ if(r.k||r.how==='기억'||r.amt>0) r.brand=SU.seller; } else if(!r.brand&&r.how==='기억') r.brand=SU.seller; }
       if(!r.amt&&m.amt==null&&m.unit==null&&r.k){r.amt=Math.round(suEstPrice(r.k,ch,r.brand)*qty);r.est=true;f.estN++;}
       r.key=[ch,order||(date+'#'+ri),code||name,opt].join('|').slice(0,300);
       out.push(r);});});
@@ -9436,9 +9446,16 @@ function renderSU(){
     ${SU.last?`<div class="su-last">✅ ${esc(SU.last.msg)} <button class="tbtn" id="suUndo">↩ 이번 기록 되돌리기</button> <button class="tbtn" id="suRep2">📋 전일 매출 보고</button></div>`:''}`;
   $('#suSave').disabled=!newN||SU.saving;$('#suSave').textContent=SU.saving?'기록하는 중…':`기록하기 (${newN}건)`;
 }
+function suSellerUI(){
+  $$('#suSeller [data-suseller]').forEach(b=>b.classList.toggle('on',b.dataset.suseller===SU.seller));
+  const h=$('#suSellerHint');if(!h)return;
+  h.innerHTML=SU.seller?`<b>${SU.seller==='GROHOME'?'그로홈':'POUR스토어'}</b> 자사몰·스마트스토어 같은 브랜드 전용 채널 주문은 상품과 관계없이 모두 ${SU.seller==='GROHOME'?'그로홈':'POUR스토어'} 매출로 들어가요. 쿠팡·오늘의집 같은 공용 계정 오픈마켓은 매출표와 같이 상품 브랜드로 나눠요.`
+    :'상품의 브랜드(자체상품코드 PS-·GH-, 제품 등록 브랜드)로 나눠요. 두 브랜드 모두인 상품은 POUR스토어로 잡혀요.';
+}
 async function openSU(){
   if(!curUser){alert('로그인 후 사용할 수 있어요.');return;}
-  SU={files:[],rows:[],map:{},exist:{},marks:{},saving:false,last:null,learn:SU.learn||{},again:{}};
+  let seller='';try{const v=localStorage.getItem('su-seller');if(v!=null)seller=v;}catch(e){}
+  SU={files:[],rows:[],map:{},exist:{},marks:{},saving:false,last:null,learn:SU.learn||{},again:{},seller};suSellerUI();
   $('#suOverlay').classList.add('on');renderSU();suLoadLearn().then(()=>{if(SU.rows.length){suBuildRows();renderSU();}});
 }
 function closeSU(){$('#suOverlay').classList.remove('on');}
@@ -9519,6 +9536,7 @@ async function openSUReport(){
   const rx=$('#surClose');if(rx)rx.addEventListener('click',()=>$('#surOverlay').classList.remove('on'));
   const f=$('#suFile');if(f)f.addEventListener('change',async e=>{const l=[...(e.target.files||[])];e.target.value='';if(l.length)await suAddFiles(l);});
   const pick=$('#suPick');if(pick)pick.addEventListener('click',()=>$('#suFile').click());
+  const sel=$('#suSeller');if(sel)sel.addEventListener('click',e=>{const b=e.target.closest('[data-suseller]');if(!b||SU.saving)return;SU.seller=b.dataset.suseller;try{localStorage.setItem('su-seller',SU.seller);}catch(err){}suSellerUI();if(SU.files.length){suBuildRows();renderSU();}});
   const sv=$('#suSave');if(sv)sv.addEventListener('click',suSave);
   document.addEventListener('change',async e=>{const t=e.target;if(!t)return;
     if(t.dataset&&t.dataset.sumap){const fi=+t.dataset.fi,k=t.dataset.sumap,f=SU.files[fi];if(!f)return;if(t.value==='')delete f.map[k];else f.map[k]=+t.value;suSaveMapMemo(f.sig,f.map);suBuildRows();await suLoadExisting();renderSU();return;}

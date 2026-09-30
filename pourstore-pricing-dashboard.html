@@ -1741,7 +1741,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.30c</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.30d</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2808,7 +2808,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <div class="imp-head"><span>📥 판매 엑셀 올리기 <span style="font-size:11px;color:var(--ink-faint);font-weight:400">· 어느 브랜드 판매 파일인지 고르고 올려요</span></span><button id="suClose" aria-label="닫기">✕</button></div>
     <div class="imp-body">
       <div class="su-seller" id="suSeller"><span class="su-sl-t">어느 브랜드 판매예요?</span><div class="su-sl-b"><button type="button" data-suseller="POUR스토어">POUR스토어</button><button type="button" data-suseller="GROHOME">그로홈</button><button type="button" data-suseller="">자동 (상품 기준)</button></div><div class="su-sl-h" id="suSellerHint"></div></div>
-      <div class="toolrow" style="padding:0 0 10px;gap:8px"><button class="tbtn primary" id="suPick">📂 파일 고르기 (여러 개 가능)</button><button class="tbtn" id="suSave" disabled>기록하기</button></div>
+      <div class="toolrow" style="padding:0 0 10px;gap:8px"><button class="tbtn primary" id="suPick">📂 파일 고르기 (여러 개 가능)</button><button class="tbtn" id="suSave" disabled>기록하기</button><button class="tbtn" id="suTpl" title="어떤 쇼핑몰 엑셀이든 이 양식에 옮겨 적어 올리면 돼요">📄 자체 양식 받기</button></div>
       <input type="file" id="suFile" accept=".xlsx,.xls,.csv" multiple style="display:none">
       <div id="suBody"></div>
     </div>
@@ -9305,13 +9305,14 @@ function slExportCsv(){
 const SU_COL={
   date:['결제일','결제일시','결제완료일','주문일','주문일시','주문일자','수집일','주문수집일','주문등록일'],
   order:['품목별주문번호','쇼핑몰주문번호','상품주문번호','주문번호','사방넷주문번호','주문번호(쇼핑몰)','주문고유번호'],
-  ch:['쇼핑몰명','쇼핑몰','판매처','판매채널','마켓명','몰명','채널명'],
+  ch:['쇼핑몰명','쇼핑몰','판매처','판매채널','마켓명','몰명','채널명','채널'],
   code:['자체상품코드','판매자상품코드','판매자관리코드','옵션관리코드','상품관리코드','업체상품코드','자체상품코드(모델명)','모델명'],
   name:['상품명','등록상품명','노출상품명','주문상품명','상품명(한국어 쇼핑몰)'],
   opt:['옵션','옵션명','옵션정보','주문옵션','옵션내용','등록옵션명','옵션명(주문)'],
   qty:['수량','주문수량','구매수량','판매수량'],
   amt:['상품구매금액','결제금액','최종결제금액','총결제금액','실결제금액','상품별총주문금액','총주문금액','주문금액','판매금액','결제액'],
   unit:['판매가','판매단가','상품가격','단가'],
+  brand:['브랜드'],   // 자체 양식에서만 읽는다
 };
 const SU_LBL={date:'주문(결제)일',order:'주문번호',ch:'쇼핑몰',code:'자체상품코드',name:'상품명',opt:'옵션',qty:'수량',amt:'결제금액(합계)',unit:'판매가(1개)'};
 let SU={files:[],rows:[],map:{},exist:{},marks:{},saving:false,last:null,learn:{}};
@@ -9339,6 +9340,7 @@ function suPickCols(headers){
 }
 function suFormat(headers,fname){
   const h=headers.map(suNorm),f=(fname||'').toLowerCase();
+  if(h.includes('브랜드')&&h.includes('채널')&&h.includes('결제금액'))return {fmt:'자체 양식',ch:''};   // 📄 자체 양식 받기로 내려받은 양식
   if(h.includes('수하인명')&&h.includes('채널명'))return {fmt:'비즈로지컴 수동발주',ch:''};   // 수동발주 양식: 채널명 칸에 쿠팡·오늘의집·도매꾹…
   if(h.includes('사방넷주문번호')||(h.includes('쇼핑몰명')&&h.some(x=>x.includes('자체상품코드')))||/사방넷|sabang/.test(f))return {fmt:'사방넷',ch:''};
   if(h.includes('상품주문번호'))return {fmt:'스마트스토어',ch:'스마트스토어'};
@@ -9406,7 +9408,9 @@ function suBuildRows(){
       // 브랜드를 골랐으면: 브랜드 전용 채널(자사몰·스마트스토어 등)은 그 브랜드 매출, 공용 계정 오픈마켓(쿠팡·오늘의집 등)은 매출표와 같이 상품 브랜드로 나눈다
       // 공용 오픈마켓에서 어느 제품인지 모르는 줄, 금액을 모르는 줄은 '확인 필요'에 남긴다 (브랜드·금액이 틀린 기록을 만들지 않게)
       if(SU.seller){ if(sc.grp!=='shared'){ if(r.k||r.how==='기억'||r.amt>0) r.brand=SU.seller; } else if(!r.brand&&r.how==='기억') r.brand=SU.seller; }
-      if(!r.amt&&m.amt==null&&m.unit==null&&r.k){r.amt=Math.round(suEstPrice(r.k,ch,r.brand)*qty);r.est=true;f.estN++;}
+      const own=f.fmt==='자체 양식';
+      if(own&&m.brand!=null){ const bv=String(g('brand')||'').trim(); const rb=/그로홈|GROHOME/i.test(bv)?'GROHOME':/스토어|POUR/i.test(bv)?'POUR스토어':''; if(rb&&(r.k||r.how==='기억'||r.amt>0)) r.brand=rb; }   // 자체 양식: 줄마다 적은 브랜드가 우선
+      if(!r.amt&&(own||(m.amt==null&&m.unit==null))&&r.k){r.amt=Math.round(suEstPrice(r.k,ch,r.brand)*qty);r.est=true;f.estN++;}
       r.key=[ch,order||(date+'#'+ri),code||name,opt].join('|').slice(0,300);
       out.push(r);});});
   SU.rows=out;
@@ -9425,7 +9429,7 @@ function renderSU(){
   const files=SU.files.map((f,fi)=>f.error?`<div class="su-file err">⚠ ${esc(f.file)} — ${esc(f.error)}</div>`
     :`<div class="su-file"><b>${esc(f.file)}</b> <span class="su-fmt">${esc(f.fmt)}</span> ${f.missing&&f.missing.length?`<span class="su-warn">열을 골라주세요</span>`:`<span class="dim">${SU.rows.filter(r=>r.fi===fi).length}줄</span>`}${f.cancelN?` <span class="dim">· 취소·반품 ${f.cancelN}줄 뺌</span>`:''}${f.estN?` <span class="su-warn" title="금액 칸이 없어 가격정책표의 채널 판매가 × 수량으로 넣었어요">· 금액 ${f.estN}줄은 가격표 기준</span>`:''}
       ${f.missing&&f.missing.length?`<div class="su-map">${['date','order','ch','code','name','opt','qty','amt','unit'].map(k=>`<label><span>${SU_LBL[k]}${f.missing.includes(k)?' *':''}</span><select data-sumap="${k}" data-fi="${fi}"><option value="">— 없음 —</option>${f.headers.map((h,i)=>`<option value="${i}"${f.map[k]===i?' selected':''}>${esc(h||('열 '+(i+1)))}</option>`).join('')}</select></label>`).join('')}</div>`:''}</div>`).join('');
-  if(!SU.rows.length){box.innerHTML=`${files}<div class="footnote" style="margin-top:10px">사방넷 주문 엑셀(추천) · 스마트스토어 · 쿠팡 · 자사몰(카페24) · 오늘의집 주문 엑셀, <b>비즈로지컴 원본다운로드(판매처별 파일)·수동발주 양식</b>을 올리면 자체상품코드·제품명으로 POUR스토어·그로홈을 나눠요. 여러 파일을 한 번에 올려도 돼요 · 취소·반품 줄은 자동으로 빠져요.</div>`;$('#suSave').disabled=true;return;}
+  if(!SU.rows.length){box.innerHTML=`${files}<div class="footnote" style="margin-top:10px">사방넷 주문 엑셀(추천) · 스마트스토어 · 쿠팡 · 자사몰(카페24) · 오늘의집 주문 엑셀, <b>비즈로지컴 원본다운로드(판매처별 파일)·수동발주 양식</b>을 올리면 자체상품코드·제품명으로 POUR스토어·그로홈을 나눠요. 여러 파일을 한 번에 올려도 돼요 · 취소·반품 줄은 자동으로 빠져요.<br>그 밖의 엑셀은 <b>📄 자체 양식 받기</b>로 받은 양식에 옮겨 적어 올리세요 (주문일·채널·상품·수량만 있으면 돼요).</div>`;$('#suSave').disabled=true;return;}
   const byDate={};SU.rows.forEach(r=>{const d=r.date||'(날짜 없음)';(byDate[d]=byDate[d]||[]).push(r);});
   const unk={};SU.rows.forEach(r=>{if(!r.brand){const x=unk[r.learnKey]=unk[r.learnKey]||{name:r.name,opt:r.opt,code:r.code,n:0,amt:0,lk:r.learnKey};x.n+=r.qty;x.amt+=r.amt;}});
   const opts=P.filter(p=>!isDeletedProd(p)).map(p=>`<option value="${esc(pKey(p))}">${esc(prodLabel(p))}${pcodeOf(p)?' · '+esc(pcodeOf(p)):''}</option>`).join('');
@@ -9451,6 +9455,36 @@ function suSellerUI(){
   const h=$('#suSellerHint');if(!h)return;
   h.innerHTML=SU.seller?`<b>${SU.seller==='GROHOME'?'그로홈':'POUR스토어'}</b> 자사몰·스마트스토어 같은 브랜드 전용 채널 주문은 상품과 관계없이 모두 ${SU.seller==='GROHOME'?'그로홈':'POUR스토어'} 매출로 들어가요. 쿠팡·오늘의집 같은 공용 계정 오픈마켓은 매출표와 같이 상품 브랜드로 나눠요.`
     :'상품의 브랜드(자체상품코드 PS-·GH-, 제품 등록 브랜드)로 나눠요. 두 브랜드 모두인 상품은 POUR스토어로 잡혀요.';
+}
+/* 📄 자체 양식: 다른 쇼핑몰·거래처 엑셀은 이 양식에 옮겨 적어 올린다. 제품코드표에는 원가를 넣지 않는다 */
+async function suTemplate(){
+  try{ await ensureXLSX(); }catch(e){ console.error('[판매엑셀] 엑셀 도구 불러오기 실패',e); uiToast('엑셀 도구를 불러오지 못했어요. 잠시 뒤 다시 눌러주세요','warn'); return; }
+  const today=new Date(); const td=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const H=['주문일','채널','브랜드','자체상품코드','상품명','옵션','수량','결제금액','주문번호','메모'];
+  const ws=XLSX.utils.aoa_to_sheet([H]); ws['!cols']=[12,12,11,14,28,14,6,11,16,20].map(w=>({wch:w}));
+  const guide=[['자체 판매 양식 작성법'],[''],
+    ['칸','필수','적는 법'],
+    ['주문일','필수',`주문(결제)한 날. 예: ${td}`],
+    ['채널','필수','[채널목록] 시트의 이름 그대로. 예: 쿠팡, 자사몰, 파트너사'],
+    ['브랜드','선택','POUR스토어 또는 그로홈. 비우면 올릴 때 고른 브랜드로 들어가요'],
+    ['자체상품코드','둘 중 하나','[제품코드] 시트의 코드. 코드를 적으면 제품이 정확히 연결돼요'],
+    ['상품명','둘 중 하나','코드를 모르면 상품명만 적어도 돼요 (처음 보는 이름은 한 번 골라주면 기억해요)'],
+    ['옵션','선택','색상·용량 등'],
+    ['수량','필수','숫자만'],
+    ['결제금액','선택','그 줄의 합계 금액(VAT 포함). 비우면 가격표의 그 채널 판매가 × 수량으로 넣어요'],
+    ['주문번호','선택','있으면 적어주세요. 같은 파일을 두 번 올려도 겹쳐 들어가지 않아요'],
+    ['메모','선택','자유롭게 (매출에는 안 들어가요)'],
+    [''],['· 1행 제목줄은 지우거나 바꾸지 마세요. 2행부터 한 줄에 주문 상품 1개씩 적어요.'],
+    ['· 취소·반품된 주문은 적지 마세요.']];
+  const wg=XLSX.utils.aoa_to_sheet(guide); wg['!cols']=[{wch:12},{wch:10},{wch:70}];
+  const wc=XLSX.utils.aoa_to_sheet([['채널']].concat(SL_CH_ORDER.map(c=>[c]))); wc['!cols']=[{wch:16}];
+  const prods=P.filter(p=>!isDeletedProd(p)).map(p=>[pcodeOf(p)||p.ghCode||'',p.name||'',p.spec&&p.spec!=='-'?p.spec:'',pbrand(p).join(' · ')]).sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
+  const wp=XLSX.utils.aoa_to_sheet([['자체상품코드','제품명','규격','브랜드']].concat(prods)); wp['!cols']=[{wch:14},{wch:34},{wch:14},{wch:18}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'판매입력'); XLSX.utils.book_append_sheet(wb,wg,'작성법');
+  XLSX.utils.book_append_sheet(wb,wc,'채널목록'); XLSX.utils.book_append_sheet(wb,wp,'제품코드');
+  XLSX.writeFile(wb,`POUR_판매_자체양식_${td}.xlsx`);
+  console.log(`[판매엑셀] 자체 양식 내려받기 · 제품 ${prods.length}개`);
 }
 async function openSU(){
   if(!curUser){alert('로그인 후 사용할 수 있어요.');return;}
@@ -9538,6 +9572,7 @@ async function openSUReport(){
   const pick=$('#suPick');if(pick)pick.addEventListener('click',()=>$('#suFile').click());
   const sel=$('#suSeller');if(sel)sel.addEventListener('click',e=>{const b=e.target.closest('[data-suseller]');if(!b||SU.saving)return;SU.seller=b.dataset.suseller;try{localStorage.setItem('su-seller',SU.seller);}catch(err){}suSellerUI();if(SU.files.length){suBuildRows();renderSU();}});
   const sv=$('#suSave');if(sv)sv.addEventListener('click',suSave);
+  const tp=$('#suTpl');if(tp)tp.addEventListener('click',suTemplate);
   document.addEventListener('change',async e=>{const t=e.target;if(!t)return;
     if(t.dataset&&t.dataset.sumap){const fi=+t.dataset.fi,k=t.dataset.sumap,f=SU.files[fi];if(!f)return;if(t.value==='')delete f.map[k];else f.map[k]=+t.value;suSaveMapMemo(f.sig,f.map);suBuildRows();await suLoadExisting();renderSU();return;}
     if(t.dataset&&t.dataset.sulearn!==undefined&&t.value){const k=t.value;SU.learn[t.dataset.sulearn]={pk:k,brand:suBrandOfKey(k),at:new Date().toISOString()};try{await suSaveLearn();}catch(err){console.error('[판매엑셀] 연결 기억 실패',err);uiToast('연결을 저장하지 못했어요: '+(err.code||err.message),'warn');}suBuildRows();renderSU();return;}

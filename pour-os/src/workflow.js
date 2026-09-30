@@ -4,20 +4,20 @@
 // · 기본 정의는 코드에, 사람이 바꾼 설정(단계 이름·담당·관리 담당·연결 프로젝트)만 D.workflows 에 저장(덮어쓰기 병합)
 
 export const WF_CATS=[
-  {k:"launch",   icon:"🚀",name:"신제품 출시"},
-  {k:"marketing",icon:"📣",name:"프로모션·마케팅"},
-  {k:"notice",   icon:"📢",name:"공지사항"},
-  {k:"system",   icon:"🛠",name:"시스템 구축"},
-  {k:"sales",    icon:"🤝",name:"영업·B2B"},
-  {k:"ops",      icon:"🔁",name:"상시 운영"},
+  {k:"launch",   icon:"",name:"신제품 출시"},
+  {k:"marketing",icon:"",name:"프로모션·마케팅"},
+  {k:"notice",   icon:"",name:"공지사항"},
+  {k:"system",   icon:"",name:"시스템 구축"},
+  {k:"sales",    icon:"",name:"영업·B2B"},
+  {k:"ops",      icon:"",name:"상시 운영"},
 ];
 export const catOf=(k)=>WF_CATS.find(c=>c.k===k)||null;
 
 // 실행 방식 — 실행 담당이 '직접' 하는지, 타 부서와 '협업'하는지, '외주'에 맡기는지
 export const EXEC_TYPES=[
-  {k:"self",    icon:"🙋",label:"직접",    color:"#1B64DA",bg:"#E8F1FF"},
-  {k:"collab",  icon:"🤝",label:"협업",    color:"#6D28D9",bg:"#F1EAFE"},
-  {k:"outsource",icon:"📦",label:"외주",   color:"#B45309",bg:"#FEF3E2"},
+  {k:"self",    icon:"",label:"직접",    color:"#1E2F5C",bg:"#EEF0F5"},
+  {k:"collab",  icon:"",label:"협업",    color:"#5E5A8C",bg:"#F0EFF5"},
+  {k:"outsource",icon:"",label:"외주",   color:"#7A4A12",bg:"#F8F1E6"},
 ];
 export const execOf=(k)=>EXEC_TYPES.find(e=>e.k===k)||EXEC_TYPES[0];
 
@@ -27,36 +27,36 @@ export const NOTICE_KINDS=["휴무","품절","배송지연","가격변경","이�
 
 export const DEFAULT_WORKFLOWS=[
   // 📣 프로모션·마케팅
-  {id:"wf_promo", cat:"marketing",icon:"🎉",name:"자사몰 프로모션",unit:"회차",hint:"예: 10월 추석 프로모션",stages:[
+  {id:"wf_promo", cat:"marketing",icon:"",name:"자사몰 프로모션",unit:"회차",hint:"예: 10월 추석 프로모션",stages:[
     S("plan","기획","전년 매출·레퍼런스"),S("confirm","기획안 컨펌"),S("img","이미지 제작","배너·팝업·메타·썸네일"),S("setup","쿠폰·랜딩·진열"),
     S("test","할인 테스트"),S("open","오픈"),S("sms","단체문자"),S("result","결과 정리")]},
-  {id:"wf_cpc",   cat:"marketing",icon:"💰",name:"CPC 광고",unit:"캠페인",hint:"예: 메타 · 씰맥스프로 전환",kind:"cpc",roasMin:300,stages:[
+  {id:"wf_cpc",   cat:"marketing",icon:"",name:"CPC 광고",unit:"캠페인",hint:"예: 메타 · 씰맥스프로 전환",kind:"cpc",roasMin:300,stages:[
     S("creative","소재 제작"),S("launch","캠페인 등록"),S("review","검수 통과"),S("budget","예산·입찰"),S("roas","주간 ROAS 체크"),S("decide","증액·중단 결정")]},
-  {id:"wf_blog",  cat:"marketing",icon:"✍️",name:"블로그 포스팅",unit:"포스팅",hint:"예: MMA 바닥 셀프시공 후기",stages:[
+  {id:"wf_blog",  cat:"marketing",icon:"",name:"블로그 포스팅",unit:"포스팅",hint:"예: MMA 바닥 셀프시공 후기",stages:[
     S("draft","초안"),S("confirm","컨펌"),S("upload","업로드"),S("dash","대시보드 등록")]},
-  {id:"wf_review",cat:"marketing",icon:"🧪",name:"체험단 캠페인",unit:"캠페인",hint:"예: 티블 13회차 · 드라이비트",stages:[
+  {id:"wf_review",cat:"marketing",icon:"",name:"체험단 캠페인",unit:"캠페인",hint:"예: 티블 13회차 · 드라이비트",stages:[
     S("form","양식 작성"),S("post","캠페인 게시"),S("pick","리뷰어 발표"),S("ship","발주·송장"),S("content","콘텐츠 정리"),S("pay","대금 품의")]},
-  {id:"wf_shorts",cat:"marketing",icon:"🎬",name:"숏폼·촬영",unit:"영상",hint:"예: 헤라퍼티 숏폼",stages:[
+  {id:"wf_shorts",cat:"marketing",icon:"",name:"숏폼·촬영",unit:"영상",hint:"예: 헤라퍼티 숏폼",stages:[
     S("plan","기획"),S("place","장소 섭외·품의"),S("shoot","촬영"),S("sort","영상 정리"),S("edit","외주·편집"),S("upload","업로드")]},
-  {id:"wf_seller",cat:"marketing",icon:"🤝",name:"셀러·인플루언서 제안",unit:"대상",hint:"예: 인포크 셀러 · ○○님",stages:[
+  {id:"wf_seller",cat:"marketing",icon:"",name:"셀러·인플루언서 제안",unit:"대상",hint:"예: 인포크 셀러 · ○○님",stages:[
     S("search","서치"),S("deck","제안서"),S("dm","DM·메일"),S("deal","계약·진행")]},
-  {id:"wf_event", cat:"marketing",icon:"🎪",name:"행사·박람회",unit:"행사",hint:"예: 2026 공유숙박 엑스포",stages:[
+  {id:"wf_event", cat:"marketing",icon:"",name:"행사·박람회",unit:"행사",hint:"예: 2026 공유숙박 엑스포",stages:[
     S("apply","참가 신청"),S("print","현수막·인쇄물"),S("prep","샘플·물품 준비"),S("run","현장 운영"),S("follow","리드 정리·후속 연락")]},
   // 📢 공지사항 — 휴무·품절 등 배너로 안내하고, 내리는 날까지 챙김
-  {id:"wf_notice",cat:"notice",icon:"📢",name:"공지사항 관리",unit:"공지",hint:"예: 추석 휴무 안내",kind:"notice",stages:[
+  {id:"wf_notice",cat:"notice",icon:"",name:"공지사항 관리",unit:"공지",hint:"예: 추석 휴무 안내",kind:"notice",stages:[
     S("reason","사유 확인"),S("copy","문구 작성"),S("banner","배너 제작"),S("post","채널 게시","자사몰 팝업·스마트스토어·오늘의집·쿠팡"),S("down","내리기")]},
   // 🛠 시스템 구축 — 기능 요청 1건 = 1줄
-  {id:"wf_sys",   cat:"system",icon:"🛠",name:"개발·개선 요청",unit:"요청",hint:"예: CRM 입금내역 반영",stages:[
+  {id:"wf_sys",   cat:"system",icon:"",name:"개발·개선 요청",unit:"요청",hint:"예: CRM 입금내역 반영",stages:[
     S("req","요청 정리"),S("dev","개발"),S("test","테스트"),S("share","공유·인수인계")]},
   // 🤝 영업·B2B
-  {id:"wf_dealer",cat:"sales",icon:"🏪",name:"대리점 개설",unit:"대리점",hint:"예: 가나랜드 · 경남지사",stages:[
+  {id:"wf_dealer",cat:"sales",icon:"",name:"대리점 개설",unit:"대리점",hint:"예: 가나랜드 · 경남지사",stages:[
     S("meet","방문 미팅"),S("contract","계약서"),S("sign","간판·시트지 시안"),S("kit","초도물품"),S("open","오픈 지원"),S("dash","대시보드 제공")]},
   // 🔁 상시 운영 — 고객 1명·주문 1건 = 1줄
-  {id:"wf_order", cat:"ops",icon:"📦",name:"주문·발주",unit:"주문",hint:"예: 제천롯데캐슬 트랩",stages:[
+  {id:"wf_order", cat:"ops",icon:"",name:"주문·발주",unit:"주문",hint:"예: 제천롯데캐슬 트랩",stages:[
     S("check","주문·입금 확인"),S("po","발주(창고 선택)"),S("ship","출고(택배·퀵)"),S("notify","송장·차량번호 안내"),S("bill","계산서·정산")]},
-  {id:"wf_return",cat:"ops",icon:"↩️",name:"반품·교환",unit:"고객",hint:"예: 김희수 반품",stages:[
+  {id:"wf_return",cat:"ops",icon:"",name:"반품·교환",unit:"고객",hint:"예: 김희수 반품",stages:[
     S("recv","접수(사유)"),S("pickup","회수 확인"),S("inspect","검수"),S("refund","환불·교환","마이너스 계산서"),S("notify","안내 문자")]},
-  {id:"wf_stock", cat:"ops",icon:"📥",name:"재고 입고",unit:"품목",hint:"예: 안전용품 조끼",stages:[
+  {id:"wf_stock", cat:"ops",icon:"",name:"재고 입고",unit:"품목",hint:"예: 안전용품 조끼",stages:[
     S("check","재고 확인·실사"),S("order","발주·입고 요청"),S("recv","입고 확인")]},
 ];
 
@@ -80,7 +80,7 @@ export const LAUNCH_PHASES=[
 export const LAUNCH_ITEMS=LAUNCH_PHASES.flatMap(ph=>ph.items.map(it=>({...it,phase:ph.k})));
 export const LAUNCH_COL="pour-os/launch-board/products";
 // 런칭보드 브랜드 BM(= 관리 담당 기본값). 런칭보드 BRANDS 와 같은 값.
-export const LAUNCH_BRANDS={grohome:{name:"그로홈",icon:"🏡",bm:"김송희"},pourstore:{name:"POUR스토어",icon:"🧱",bm:"이란"},barasday:{name:"바라스데이",icon:"🌿",bm:"김소연"}};
+export const LAUNCH_BRANDS={grohome:{name:"그로홈",icon:"",bm:"김송희"},pourstore:{name:"POUR스토어",icon:"",bm:"이란"},barasday:{name:"바라스데이",icon:"",bm:"김소연"}};
 
 // 기본 정의 + 사람이 저장한 설정(D.workflows) 병합.  cat 이 없는 사용자 워크플로우도 허용.
 export function mergeWorkflows(saved){

@@ -46,7 +46,7 @@ console.log("── ② 7단계 순차 완료 → 각 단계 액션(후속 업�
 stageTasks.forEach(t=>{ state=complete(state,t.id); });
 const autoTasks=state.tasks.filter(t=>t.autoFrom);
 ok("액션 업무 7건 자동 생성",autoTasks.length===7,autoTasks.map(t=>t.title).join(" / "));
-ok("자동 메모 표기",autoTasks.every(t=>/⚡ 자동 생성/.test(t.memo)));
+ok("자동 메모 표기",autoTasks.every(t=>/^자동 생성/.test(t.memo)));   // 2026-10: 아이콘 없이 글자로
 ok("단계만 완료 시 KPI 아직 0(후속 업무 미완)",skCur(sk_launch,state.projects)===0,`progress ${state.projects[0].progress}%`);
 
 console.log("── ③ 후속 액션 업무까지 전부 완료 → 출시 KPI +1 ──");
@@ -62,7 +62,7 @@ let s2={projects:[{id:"px",templateId:"t",progress:0}],tasks:[
 s2={...s2,tasks:s2.tasks.map(t=>t.id==="x1"?{...t,status:"done"}:t)};
 s2=applyAutomation(s2,"x1",actor);
 const noti=s2.tasks.find(t=>t.notify);
-ok("notify 액션 → 🔔 알림 업무 생성",!!noti&&noti.type==="notify"&&/^🔔/.test(noti.title),noti&&noti.title);
+ok("notify 액션 → 알림 업무 생성",!!noti&&noti.type==="notify"&&noti.notify===true&&!/^🔔/.test(noti.title),noti&&noti.title);   // 알림 표시는 notify 필드로 (제목에 아이콘 없음)
 // advance: autoComplete 아니어도 다음 단계 1회 깨워 완료
 let s3={projects:[{id:"py"}],tasks:[
   {id:"y1",projectId:"py",status:"todo",deps:[],auto:{onDone:[{kind:"advance",title:""}]}},

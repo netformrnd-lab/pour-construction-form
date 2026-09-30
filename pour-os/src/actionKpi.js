@@ -124,10 +124,10 @@ export const lagPct = (it, v) => (it.goal && v != null ? Math.round((v / it.goal
 // ── 권한: 마스터(기본 김송희·이란·김소연·허지은) + 팀원별로 켜주는 권한 ──
 export const DEFAULT_MASTER_NAMES = ["김송희", "이란", "김소연", "허지은"];
 export const PERMS = [
-  { k: "kpiCore", l: "🔒 필수 행동지표 수정·멈춤" },
-  { k: "kpiLag", l: "📊 결과 KPI 월 입력 · 월말 회고 저장" },
-  { k: "tpl", l: "🧩 프로젝트 템플릿 편집" },
-  { k: "proxy", l: "✍️ 다른 사람 행동지표 대신 체크" },
+  { k: "kpiCore", l: "필수 행동지표 수정·멈춤" },
+  { k: "kpiLag", l: "결과 KPI 월 입력 · 월말 회고 저장" },
+  { k: "tpl", l: "프로젝트 템플릿 편집" },
+  { k: "proxy", l: "다른 사람 행동지표 대신 체크" },
 ];
 export const isMaster = (u) => !!u && (u.master === true || (u.master === undefined && (u.role === "lead" || DEFAULT_MASTER_NAMES.includes(String(u.name || "").replace(/\s/g, "")))));
 export const can = (u, k) => isMaster(u) || !!(u && u.perms && u.perms[k] === true);

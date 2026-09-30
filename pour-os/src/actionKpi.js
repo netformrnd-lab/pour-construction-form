@@ -44,6 +44,17 @@ export const LAG_SEED = [
   { id: "lg_nps", fun: "R 추천", name: "NPS조사 응답율", goal: null, unit: "%", base: null },
 ].map((x, i) => ({ ...x, order: i + 1, baseNote: "엑셀 기준값", monthly: {} }));
 
+// ── 기존 KPI(메인KPI·서브KPI)와 연결 — 항목에 mk/sk 가 없으면 이 기본값 (행동지표 수정에서 바꿀 수 있음) ──
+// 메인1 직판(mk1): 자사몰 sk1 · 마켓플레이스 sk2 · 쇼룸·전화 sk3 / 메인2 B2B(mk2): 시공매칭 sk8 / 공통: ""
+const LINK_DEFAULT = {
+  ak_kwsel: ["mk1", "sk1"], ak_c_b2c: ["mk1", "sk1"], ak_c_b2b: ["mk2", ""], ak_trial: ["mk2", ""], ak_link: ["mk1", "sk1"],
+  ak_influ: ["mk2", ""], ak_influrv: ["mk1", "sk1"], ak_influch: ["mk1", "sk2"], ak_kwtop: ["mk1", "sk1"], ak_ad: ["mk1", "sk1"],
+  ak_call_b2c: ["mk1", "sk3"], ak_call_b2b: ["mk2", ""], ak_ux: ["mk1", "sk1"], ak_promo: ["mk2", ""], ak_match: ["mk2", "sk8"],
+  ak_ref: ["mk1", ""], ak_nps_b2c: ["", ""], ak_nps_b2b: ["", ""], ak_review: ["mk1", "sk1"],
+  lg_inflow: ["mk1", "sk1"], lg_callcv: ["mk1", "sk3"], lg_mallcv: ["mk1", "sk1"], lg_repurchase: ["mk1", ""], lg_match: ["mk2", "sk8"], lg_nps: ["", ""],
+};
+export const akLink = (it) => { const d = LINK_DEFAULT[it && it.id] || ["", ""]; return { mk: it && it.mk !== undefined ? (it.mk || "") : d[0], sk: it && it.sk !== undefined ? (it.sk || "") : d[1] }; };
+
 // ── 날짜: 주 = 월요일 시작, 그 주의 월요일이 속한 달 = 그 주의 달 (파일과 동일) ──
 const p2 = (n) => String(n).padStart(2, "0");
 export const akYmd = (d) => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;

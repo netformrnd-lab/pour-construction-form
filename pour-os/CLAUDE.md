@@ -82,6 +82,7 @@ goals[g1] 매출 10억
 - 로직은 `src/actionKpi.js` (+ `actionKpi.test.mjs`). 화면은 App.jsx 의 `AkBoard`·`AkTodayCard`·`AkRetroSheet`·`PinSheet`.
 - 정의 `actionKPIs`(필수 core / 추가, 삭제 없이 active:false 로 멈춤) · 결과 KPI `lagKPIs`(monthly{YYYY-MM}) · 월말 회고 `retros`(kind:"teamMonthly").
 - 주별 실적은 공유 컬렉션이 아니라 분기 문서 `pour-os/kpi-act-YYYY-Qn` 에 **increment** 로 쌓는다(동시 +1 덮어쓰기 방지). 백업(JSON·외부)에 `kpiAct` 로 포함.
+- KPI 화면은 **한 화면**(탭 없음, 전체 맵만 따로): 최종목표 → 메인KPI(서브KPI·매출 입력 그대로) → 결과 KPI·행동지표 표(메인KPI별 묶음) → 프로젝트 활동지표(선행) → 팀·데이터. 행동지표·결과 KPI 의 메인KPI 연결은 `akLink()`(mk/sk 없으면 기본 연결표).
 - 권한: `isMaster()`(기본 김송희·이란·김소연·허지은) + `can(user, "kpiCore"|"kpiLag"|"tpl"|"proxy")`. 마스터 전환 시 4자리 PIN(해시 저장). 로그인 없는 구조라 PIN 은 화면 단 보호다.
 
 ## 규칙 (반드시 준수)

@@ -78,6 +78,12 @@ goals[g1] 매출 10억
 
 ---
 
+### ✅ KPI 행동지표 · 권한 · 월말 회고 (2026-10)
+- 로직은 `src/actionKpi.js` (+ `actionKpi.test.mjs`). 화면은 App.jsx 의 `AkBoard`·`AkTodayCard`·`AkRetroSheet`·`PinSheet`.
+- 정의 `actionKPIs`(필수 core / 추가, 삭제 없이 active:false 로 멈춤) · 결과 KPI `lagKPIs`(monthly{YYYY-MM}) · 월말 회고 `retros`(kind:"teamMonthly").
+- 주별 실적은 공유 컬렉션이 아니라 분기 문서 `pour-os/kpi-act-YYYY-Qn` 에 **increment** 로 쌓는다(동시 +1 덮어쓰기 방지). 백업(JSON·외부)에 `kpiAct` 로 포함.
+- 권한: `isMaster()`(기본 김송희·이란·김소연·허지은) + `can(user, "kpiCore"|"kpiLag"|"tpl"|"proxy")`. 마스터 전환 시 4자리 PIN(해시 저장). 로그인 없는 구조라 PIN 은 화면 단 보호다.
+
 ## 규칙 (반드시 준수)
 
 ### Firebase / Firestore (연동 시)
@@ -90,6 +96,9 @@ goals[g1] 매출 10억
 - 폰트: Pretendard(한글), IBM Plex Mono(숫자/코드), Bebas Neue(영문 디스플레이).
 - "절제된 대기업 커머스 스타일" — 글로우/그라디언트 텍스트/무거운 그림자 금지.
 - 인라인 스타일 객체 패턴 유지. 컴포넌트는 함수형. 모바일 `maxWidth:480`.
+- **(2026-10 대표 요청) 기업용처럼 간결하게**: 토스식 밝은 파랑(#3182F6 등) 쓰지 않음 → 기본색 네이비 `#24386B`/`#0F1F5C`, 사이드바 `#1B2438`, 배경 `#F4F5F7`. 상태색도 채도 낮춤(초록 `#2F7D57`·빨강 `#B4383F`·주황 `#B26A12`). 그라디언트 금지.
+- **아이콘(이모지) 쓰지 않기** — 메뉴·제목·버튼은 글자로. 기능 기호(✓ ✕ ▾ ▴ → ‹ ›)만 허용. 아이콘만 있는 버튼 금지(수정·삭제처럼 글자로).
+- 데이터에 저장된 예전 밝은 색(담당자·일정 유형)은 `toneC()`로 화면에서만 차분하게 바꿔 보여준다(저장값은 그대로).
 
 ### 기타
 - 한국어 라벨 유지.

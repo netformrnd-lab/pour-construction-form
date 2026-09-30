@@ -25,9 +25,9 @@ export const applyAutomation=(state,doneId,actor)=>{
       if((a.kind==="createTask"||a.kind==="notify")&&(a.title||"").trim()){
         const at=new Date().toISOString();
         const isNotify=a.kind==="notify";
-        created.push({id:genId(),title:(isNotify?"🔔 ":"")+a.title.trim(),projectId:t.projectId||"",assigneeId:a.assigneeId||t.assigneeId||"",
+        created.push({id:genId(),title:a.title.trim(),projectId:t.projectId||"",assigneeId:a.assigneeId||t.assigneeId||"",
           type:isNotify?"notify":"general",status:"todo",isFixed:false,weekDay:null,weekSlot:null,dueDate:"",
-          memo:`⚡ 자동 생성 · '${t.title}' 완료 시`+(isNotify?" (알림)":""),attachments:[],auto:null,autoFrom:tid,notify:isNotify||undefined,
+          memo:`자동 생성 · '${t.title}' 완료 시`+(isNotify?" (알림)":""),attachments:[],auto:null,autoFrom:tid,notify:isNotify||undefined,
           statusLog:[{status:"todo",at,by:actor?.id||null,byName:AUTO_ACTOR.name}]});
       }
       // advance: 이 업무를 선행(deps)으로 가진 후속을 즉시 깨움(아래 ②의 autoComplete 연쇄로 처리). 별도 데이터 변경 없음.

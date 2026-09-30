@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Fragment } from "react";
 import { createPortal } from "react-dom";
-import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, arrayUnion, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
+import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, arrayUnion, increment, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
+import { AK_SEED, LAG_SEED, AK_FUNS, AK_CYC, akYmd, akWeekKey, akAddDays, akQidOfWeek, akQidOfMonth, akYm, akWeeksIn, akQuarterWeeks, akMonthOfWeek, akVal, akWeekDone, akTotal, akPeriodEnd, akGoalText, akStep, akWho, akOrder, akStart, akCountable, akFullWeek, akPartial, lagCur, lagPct, isMaster, can, roleLabel, PERMS, pinHash, PIN_TRY_MAX, PIN_LOCK_MIN, akRetroDay, akRetroDue } from "./actionKpi.js";
 import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGetSnapshot } from "./durable.js";
 import { numF, skCur, mkCur, calcSegDone } from "./kpi.js";
 import { applyAutomation, instantiateLaunch } from "./launch.js";
@@ -8,14 +9,14 @@ import { initCrmOperatorSync, matchOperator, initCrmRevenueSync } from "./crmOpe
 import { WF_CATS, catOf, EXEC_TYPES, execOf, CPC_CHANNELS, NOTICE_KINDS, DEFAULT_WORKFLOWS, mergeWorkflows, launchSettings, caseProgress, caseNext, caseChecks, toggleCheck, caseTurnOwner, numOr0, roasOf, LAUNCH_PHASES, LAUNCH_ITEMS, LAUNCH_COL, LAUNCH_BRANDS, lbState, phaseProgress, launchProgress, launchCurrentPhase, launchLead, nameMatch, guessCat, guessWfProject } from "./workflow.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
-const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","eventTypes","weekGoals","launchTemplates","manuals","trash","activityLog","workflows"];
-const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",eventTypes:"일정유형",weekGoals:"주간목표",launchTemplates:"프로세스템플릿",manuals:"로드맵 템플릿",trash:"휴지통",activityLog:"활동기록",workflows:"워크플로우 설정"};
+const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","eventTypes","weekGoals","launchTemplates","manuals","trash","activityLog","workflows","actionKPIs","lagKPIs"];
+const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",eventTypes:"일정유형",weekGoals:"주간목표",launchTemplates:"프로세스템플릿",manuals:"로드맵 템플릿",trash:"휴지통",activityLog:"활동기록",workflows:"워크플로우 설정",actionKPIs:"행동지표",lagKPIs:"결과KPI"};
 const ACT_LOG_CAP = 1000;   // 활동기록 최대 보존 건수(초과 시 오래된 것부터 제거 — 컬렉션 1MiB 한도 가드)
 const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "0621-플로우맵";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1001-행동지표";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -108,6 +109,8 @@ const DEALER_TYPES=[
 const DT=Object.fromEntries(DEALER_TYPES.map(d=>[d.code,d]));
 const INIT={
   currentUser:"songhee",
+  actionKPIs:AK_SEED,   // ✅ 행동지표 — POUR스토어 필수 19개 (원격 문서가 없을 때만 씨앗으로 저장)
+  lagKPIs:LAG_SEED,     // 📊 결과 KPI 6개 (월말 회고 때 월 1회 입력)
   users:[
     {id:"songhee",name:"김송희",role:"lead",dept:"전략·자사몰",color:"#3182F6",initials:"SH"},
     {id:"minji",name:"김민지",role:"member",dept:"디자인·콘텐츠·CS",color:"#8B5CF6"},
@@ -452,9 +455,14 @@ const extOf=(name="")=>{const m=String(name).match(/\.([a-z0-9]+)$/i);return m?m
 const isImgAtt=(att)=>((att?.type||"").startsWith("image/"))||/\.(png|jpe?g|gif|webp|heic|heif|bmp|svg)$/i.test(att?.name||att?.url||"");
 const fileIcon=(name="")=>{const e=extOf(name).toLowerCase();if(["pdf"].includes(e))return"📕";if(["doc","docx","hwp","hwpx","txt"].includes(e))return"📝";if(["xls","xlsx","csv"].includes(e))return"📊";if(["ppt","pptx"].includes(e))return"📺";if(["zip","rar","7z"].includes(e))return"🗜️";return"📄";};
 // 전체 상태 백업(JSON) 다운로드 — 오프디바이스 2차 보관용
-const downloadStateBackup=(D)=>{
+// ✅ 행동지표 주별 기록(분기 문서 pour-os/kpi-act-YYYY-Qn)도 백업에 함께 — 2026년 3분기부터 지금 분기까지
+const fetchKpiAct=async()=>{ const out={}; const t=new Date(); const cy=t.getFullYear(), cq=Math.floor(t.getMonth()/3)+1; let y=2026,q=3;
+  while(y<cy||(y===cy&&q<=cq)){ const id=`${y}-Q${q}`; try{ const s=await getDoc(extDoc("pour-os","kpi-act-"+id)); if(s.exists()) out[id]=s.data(); }catch(e){ console.warn("[백업] 행동지표 "+id+" 읽기 실패",e); } q++; if(q>4){ q=1; y++; } }
+  console.log(`[백업] 행동지표 기록 ${Object.keys(out).length}개 분기`); return out; };
+const downloadStateBackup=async(D)=>{
   const shared=pickShared(D);
-  const blob=new Blob([JSON.stringify({_app:"pour-os",_backupAt:new Date().toISOString(),...shared},null,2)],{type:"application/json"});
+  let kpiAct={}; try{ kpiAct=await fetchKpiAct(); }catch(e){ console.warn("[백업] 행동지표 기록 제외:",e); }
+  const blob=new Blob([JSON.stringify({_app:"pour-os",_backupAt:new Date().toISOString(),...shared,kpiAct},null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");a.href=url;a.download=`pour-os-backup_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.json`;a.click();URL.revokeObjectURL(url);
 };
@@ -756,7 +764,7 @@ const MORE=[{id:"mindmap",icon:"◈",label:"그로스보드"},{id:"fixed",icon:"
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
 const NAV_GROUPS=[
   {label:"개인 · 나만", ids:["today","fixed"]},
-  {label:"팀 · 공유",  ids:["kpi","projects","mindmap","calendar"]},
+  {label:"팀 · 공유",  ids:["kpi","projects","mindmap","calendar","team"]},   // 담당자 = 권한(마스터·PIN) 설정 화면
   {label:"데이터 · 기록", ids:["journey"]},
   {label:"도움말",     ids:["guide"]},
 ];
@@ -769,7 +777,7 @@ const SEARCH_DEFS=[
   {key:"subKPIs",         type:"서브KPI",        icon:"○", page:"kpi",      match:s=>[s.title,s.channelCode],sub:(s,D)=>{const m=(D.mainKPIs||[]).find(x=>x.id===s.mainKPIId);return m?m.title:"";}},
   {key:"goals",           type:"최종목표",       icon:"🎯",page:"kpi",      match:g=>[g.title],            sub:()=>""},
   {key:"personalGoals",   type:"개인목표",       icon:"📈",page:"retro",    match:g=>[g.title],            sub:(g,D)=>{const u=(D.users||[]).find(x=>x.id===g.userId);return u?u.name:"";}},
-  {key:"users",           type:"담당자",         icon:"👤",page:"team",     match:u=>[u.name],             sub:u=>u.role==="lead"?"리드":"팀원"},
+  {key:"users",           type:"담당자",         icon:"👤",page:"team",     match:u=>[u.name],             sub:u=>roleLabel(u)},
   {key:"events",          type:"일정",          icon:"▤", page:"calendar", match:e=>[e.title,e.place],     sub:e=>e.date||""},
   {key:"manuals",         type:"로드맵 템플릿",   icon:"📖",page:"projects", match:m=>[m.title,m.name],      sub:()=>""},
   {key:"launchTemplates", type:"프로세스 템플릿", icon:"🚀",page:"launch",   match:t=>[t.name,t.title],      sub:()=>""},
@@ -797,6 +805,8 @@ export default function App(){
   const [searchQ,setSearchQ]=useState("");   // 더보기 통합검색어
   const [uSheet,setUSheet]=useState(false);
   const [editUser,setEditUser]=useState(null);   // 담당자 수정 {id,name,dept,color}
+  const [pinAsk,setPinAsk]=useState(null);       // 🔐 {mode:"verify"|"set", user} — 마스터로 전환·PIN 정하기
+  const [pinNag,setPinNag]=useState(false);      // 이번 접속에서 "PIN 정하기" 안내 닫음
   // 화면 모드 (PC / 모바일) — 기본은 화면폭 자동, 토글로 전환, localStorage 기억
   const [viewMode,setViewMode]=useState(()=>localStorage.getItem("pour-os-view")||((typeof window!=="undefined"&&window.innerWidth>=1024)?"pc":"mobile"));
   useEffect(()=>{ localStorage.setItem("pour-os-view",viewMode); },[viewMode]);
@@ -953,8 +963,10 @@ export default function App(){
     return ()=>{ window.removeEventListener("beforeunload",flush); window.removeEventListener("visibilitychange",onVis); };
   },[]);
   const cu=D.users.find(u=>u.id===D.currentUser)||D.users[0];   // 잘못된 currentUser여도 크래시 방지
-  const lead=cu?.role==="lead";
+  const lead=isMaster(cu);   // 마스터(기본 김송희·이란·김소연·허지은) — 예전 리드 기능을 마스터 모두가
   const set=(k,v)=>setD(p=>({...p,[k]:v}));
+  // 담당자 전환 — 마스터(PIN 있음)로 바꿀 때만 PIN 확인. CRM·어드민 자동 매칭은 그쪽 로그인을 믿고 그대로.
+  const trySwitch=(u)=>{ if(u.id!==D.currentUser&&isMaster(u)&&u.pinHash){ setPinAsk({mode:"verify",user:u}); return; } set("currentUser",u.id); setUSheet(false); };
   // 업무 변동 시 프로젝트 진척 자동 재산출(수동지정 progressManual 제외, 업무 없으면 기존값 유지)
   const recalcProg=(state)=>{
     const tasks=state.tasks||[];
@@ -983,7 +995,7 @@ export default function App(){
   };
   // ── 활동 여정(activityLog) 기록 헬퍼 — 추가·수정·삭제·복구를 누가·언제·무엇을 한 줄로 남긴다(데이터 자산화) ──
   const recLabel=(it)=>it&&(it.title||it.name||it.companyName||it.targetName||it.label||it._label||it.week||it.id)||"(제목 없음)";
-  const FIELD_L={status:"상태",progress:"진척",resultValue:"매출",currentValue:"수치",title:"제목",name:"이름",memo:"메모",dueDate:"마감",startedAt:"실제시작일",assigneeId:"담당",priority:"우선순위",dealerType:"거래처유형",activityKPIs:"활동지표",stages:"단계",nodes:"단계",target:"목표",color:"색상"};
+  const FIELD_L={pinHash:"PIN",master:"마스터",perms:"권한",monthly:"월별 값",active:"진행/멈춤",who:"담당",goal:"목표",status:"상태",progress:"진척",resultValue:"매출",currentValue:"수치",title:"제목",name:"이름",memo:"메모",dueDate:"마감",startedAt:"실제시작일",assigneeId:"담당",priority:"우선순위",dealerType:"거래처유형",activityKPIs:"활동지표",stages:"단계",nodes:"단계",target:"목표",color:"색상"};
   const fieldSummary=(c)=>Object.keys(c||{}).filter(f=>!["statusLog","doneAt","doneBy","doneByName","updatedAt","valueHistory","salesHistory","edits"].includes(f)).map(f=>FIELD_L[f]||f).slice(0,4).join("·");
   const mkLog=(action,col,targetId,label,extra)=>({id:"log"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),action,col,targetId:targetId||null,label:label||"",by:cu?.id||null,byName:cu?.name||"",at:new Date().toISOString(),...(extra||{})});
   const withLog=(state,action,col,targetId,label,extra)=>{ const arr=[...(state.activityLog||[]),mkLog(action,col,targetId,label,extra)]; return {...state,activityLog:arr.length>ACT_LOG_CAP?arr.slice(arr.length-ACT_LOG_CAP):arr}; };
@@ -1086,7 +1098,8 @@ export default function App(){
   const pushExternalBackup=async(reason)=>{
     try{
       const shared=pickShared(D);
-      const content=JSON.stringify({_app:"pour-os",_backupAt:new Date().toISOString(),_reason:reason||"manual",...shared},null,2);
+      let kpiAct={}; try{ kpiAct=await fetchKpiAct(); }catch(e){ console.warn("[백업] 행동지표 기록 제외:",e); }
+      const content=JSON.stringify({_app:"pour-os",_backupAt:new Date().toISOString(),_reason:reason||"manual",...shared,kpiAct},null,2);
       const res=await fetch("/api/backup",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content,reason:reason||"manual"})});
       const j=await res.json().catch(()=>({ok:false,error:"응답 파싱 실패"}));
       if(j.ok){ try{ localStorage.setItem(EXT_BACKUP_AT_KEY,new Date().toISOString()); }catch(_){} }
@@ -1126,6 +1139,11 @@ export default function App(){
   );
   const navAll=[...TABS.filter(t=>t.id!=="more"),...MORE,{id:"share-rev",icon:"💰",label:"매출"},{id:"share-proj",icon:"▦",label:"프로젝트/업무플로우맵"}];
   const pageContent=(<>
+    {!SHARE&&isMaster(cu)&&!cu.pinHash&&!pinNag&&<div style={{margin:"10px 16px 0",padding:"10px 12px",borderRadius:12,background:"#E7EAF4",border:"1px solid #C3CCEB",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+      <span style={{fontSize:16}}>🔐</span><span style={{flex:"1 1 180px",fontSize:12.5,fontWeight:700,color:"#0F1F5C"}}>마스터 PIN을 정해주세요 — 다른 사람이 {cu.name}(마스터)으로 전환하지 못하게 해요</span>
+      <button onClick={()=>setPinAsk({mode:"set",user:cu})} style={{padding:"7px 12px",borderRadius:9,border:"none",background:"#0F1F5C",color:"#fff",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>PIN 정하기</button>
+      <button onClick={()=>setPinNag(true)} style={{padding:"7px 8px",borderRadius:9,border:"none",background:"none",color:"#6B7280",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>나중에</button>
+    </div>}
     {page==="today"&&<TodayPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup} pc={viewMode==="pc"} ro={SHARE}/>}
     {page==="projects"&&<ProjectsHome D={D} cu={cu} up={up} add={add} rm={rm} rmNested={rmNested} pc={viewMode==="pc"} lead={lead} nav={nav}/>}
@@ -1134,7 +1152,7 @@ export default function App(){
     {page==="mindmap"&&<MindMapPage D={D} cu={cu} nav={nav}/>}
     {page==="guide"&&<GuidePage D={D}/>}
     {page==="fixed"&&<FixedPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
-    {page==="team"&&<TeamPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm}/>}
+    {page==="team"&&<TeamPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} onPin={(mode,u)=>setPinAsk({mode,user:u})}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="ai"&&<AIPage D={D} cu={cu} add={add} rm={rm}/>}
     {page==="journey"&&<JourneyPage D={D} cu={cu} restore={restore} add={add} up={up}/>}
@@ -1205,11 +1223,11 @@ export default function App(){
       <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>
         {D.users.map(u=>(
           <div key={u.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:14,backgroundColor:D.currentUser===u.id?"#E8F1FF":"#F9FAFB",border:`1.5px solid ${D.currentUser===u.id?"#3182F6":"#E5E8EB"}`}}>
-            <button onClick={()=>{set("currentUser",u.id);setUSheet(false);}} style={{flex:1,display:"flex",alignItems:"center",gap:12,background:"none",border:"none",cursor:"pointer",textAlign:"left",padding:"6px 0",fontFamily:"inherit"}}>
+            <button onClick={()=>trySwitch(u)} style={{flex:1,display:"flex",alignItems:"center",gap:12,background:"none",border:"none",cursor:"pointer",textAlign:"left",padding:"6px 0",fontFamily:"inherit"}}>
               <Ava name={u.name} color={u.color} size={40}/>
               <div>
                 <p style={{margin:0,fontSize:14,fontWeight:800,color:"#111827"}}>{u.name}</p>
-                <p style={{margin:0,fontSize:12,color:"#9CA3AF"}}>{u.role==="lead"?"리드":"팀원"}</p>
+                <p style={{margin:0,fontSize:12,color:"#9CA3AF"}}>{roleLabel(u)}{isMaster(u)?(u.pinHash?" · 🔐 PIN":" · PIN 없음"):""}</p>
               </div>
               {D.currentUser===u.id&&<span style={{marginLeft:8,fontSize:16,color:"#3182F6"}}>✓</span>}
             </button>
@@ -1217,7 +1235,9 @@ export default function App(){
           </div>
         ))}
       </div>
+      <button onClick={()=>{ setUSheet(false); nav("team"); }} style={{width:"100%",marginTop:12,padding:"12px 0",borderRadius:12,border:"1.5px solid #C3CCEB",background:"#E7EAF4",color:"#0F1F5C",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>👑 담당자·권한 관리 (마스터·PIN) →</button>
     </Sheet>
+    {pinAsk&&<PinSheet ask={pinAsk} onClose={()=>setPinAsk(null)} onVerified={()=>{ set("currentUser",pinAsk.user.id); setUSheet(false); setPinAsk(null); }} onSet={(h)=>{ up("users",pinAsk.user.id,{pinHash:h,pinSetAt:new Date().toISOString()}); setPinAsk(null); }}/>}
     <Sheet open={!!editUser} onClose={()=>setEditUser(null)} title="✎ 담당자 수정">
       {editUser&&(<div style={{marginTop:8}}>
         <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>이름</label>
@@ -1274,7 +1294,7 @@ export default function App(){
             ? <div style={{display:"flex",alignItems:"center",gap:7,padding:"8px 10px",borderRadius:10,background:"#EFF6FF",border:"1px solid #BFDBFE"}}><span style={{fontSize:14}}>🔗</span><span style={{fontSize:11.5,fontWeight:800,color:"#2563EB"}}>공유 보기 · 읽기 전용</span></div>
             : <button onClick={()=>setUSheet(true)} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 11px",borderRadius:12,border:"none",backgroundColor:"rgba(255,255,255,.14)",cursor:"pointer",fontFamily:"inherit"}}>
             <Ava name={cu?.name} color={cu?.color} size={28}/>
-            <div style={{textAlign:"left",overflow:"hidden"}}><p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#FFFFFF",whiteSpace:"nowrap"}}>{cu?.name}</p><p style={{margin:0,fontSize:10,color:"rgba(255,255,255,.7)",whiteSpace:"nowrap"}}>{cu?.role==="lead"?"리드":"팀원"}</p></div>
+            <div style={{textAlign:"left",overflow:"hidden"}}><p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#FFFFFF",whiteSpace:"nowrap"}}>{cu?.name}</p><p style={{margin:0,fontSize:10,color:"rgba(255,255,255,.7)",whiteSpace:"nowrap"}}>{roleLabel(cu)}</p></div>
           </button>}
           {viewToggle}
         </div>
@@ -1660,7 +1680,9 @@ function TodayBlocks({uid,items}){
   const [menu,setMenu]=useState(null);
   const refs=useRef({});
   const ids=items.map(i=>i.id);
-  const ord=[...order.filter(id=>ids.includes(id)),...ids.filter(id=>!order.includes(id))];
+  const FRONT=["retro","akweek"];   // 새로 생긴 블록(월말 회고·행동지표)은 순서를 옮기기 전까지 맨 위
+  const fresh=ids.filter(id=>!order.includes(id));
+  const ord=[...fresh.filter(id=>FRONT.includes(id)),...order.filter(id=>ids.includes(id)),...fresh.filter(id=>!FRONT.includes(id))];
   const vis=ord.map(id=>items.find(i=>i.id===id)).filter(i=>i&&i.show);
   const save=(o)=>{ setOrder(o); try{ localStorage.setItem(key,JSON.stringify(o)); }catch(_){} };
   const moveTo=(id,to)=>{ const vids=vis.map(i=>i.id); const from=vids.indexOf(id); if(from<0) return; const nv=vids.filter(x=>x!==id); const at=Math.max(0,Math.min(nv.length,to>from?to-1:to)); nv.splice(at,0,id); if(nv.join()===vids.join()) return; let k=0; save(ord.map(x=>vids.includes(x)?nv[k++]:x)); };
@@ -1693,6 +1715,8 @@ function TodayBlocks({uid,items}){
   </div>);
 }
 function TodayPage({D,cu,lead,add,up,rm,nav}){
+  const [retroT,setRetroT]=useState(null);   // 📋 월말 회고 시트 {y,m0}
+  const myAkN=(D.actionKPIs||[]).filter(it=>it.active!==false&&akWho(D.users||[],it).includes(cu.id)).length;   // 내 행동지표 수
   const today=todayDay();
   const todayDate=new Date().getDate();
   const todayStr=ymdLocal(new Date());
@@ -1994,7 +2018,10 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       {scope==="team"&&<TeamToday D={D} cu={cu} nav={nav} onEdit={setEditTask} up={up}/>}
       {scope==="me"&&<>
       {todayStatsEl}
+      {retroT&&<AkRetroSheet D={D} cu={cu} up={up} add={add} target={retroT} onClose={()=>setRetroT(null)}/>}
       <TodayBlocks uid={cu.id} items={[
+        {id:"retro",label:"월말 회고",show:!!akRetroDue(akYmd(new Date()),D.retros),node:<AkRetroBanner D={D} cu={cu} nav={nav} onOpen={(d)=>setRetroT({y:d.y,m0:d.m0})}/>},
+        {id:"akweek",label:"이번 주 내 행동지표",show:myAkN>0,node:<AkTodayCard D={D} cu={cu} nav={nav}/>},
         {id:"memo",label:"이번 주 메모",show:true,node:(<>
       {(!isNarrow&&urgentCard)?(
         <div style={{display:"flex",gap:12,marginBottom:12,alignItems:"stretch"}}>{memoBanner}{urgentCard}</div>
@@ -2633,8 +2660,593 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     </div>
   );
 }
+// ══════════ ✅ KPI 행동지표 — 파일 'POUR KPI 체크리스트' 화면 그대로 (주간 | 월간·분기 한 표) ══════════
+// 정의 = 공유 컬렉션 actionKPIs · 결과 KPI = lagKPIs · 주별 실적 = 분기 문서 pour-os/kpi-act-YYYY-Qn (increment 로 쌓음)
+const AK_DOC=(qid)=>extDoc("pour-os","kpi-act-"+qid);
+function useAkDocs(qids){
+  const key=[...new Set((qids||[]).filter(Boolean))].sort().join(",");
+  const [st,setSt]=useState({docs:{},ready:{}});
+  useEffect(()=>{
+    if(!key) return;
+    const unsubs=key.split(",").map(q=>onSnapshot(AK_DOC(q),snap=>{
+      const d=snap.exists()?snap.data():{};
+      setSt(o=>({docs:{...o.docs,[q]:d},ready:{...o.ready,[q]:true}}));
+    },err=>{ console.error(`[행동지표] ${q} 구독 실패:`,err); setSt(o=>({...o,ready:{...o.ready,[q]:true}})); }));
+    return ()=>unsubs.forEach(u=>{ try{ u&&u(); }catch(_){} });
+  },[key]);
+  return {docs:st.docs,ready:key.split(",").every(q=>st.ready[q])};
+}
+// +1 / −1 — 같은 칸을 여러 사람이 눌러도 increment 라 덮어쓰지 않음. log 에 누가·언제 남김
+async function akBump(it,wk,field,delta,cu){
+  const cell={[field]:increment(delta)};
+  if(field==="n") cell.by={[cu.id]:increment(delta)};
+  await setDoc(AK_DOC(akQidOfWeek(wk)),{w:{[wk]:{[it.id]:cell}},log:arrayUnion({i:it.id,w:wk,f:field,d:delta,by:cu.id,nm:cu.name||"",at:new Date().toISOString()}),updatedAt:Date.now()},{merge:true});
+}
+const akDayLabel=(ymd)=>{ const d=new Date(ymd+"T00:00:00"); return `${d.getMonth()+1}/${d.getDate()}(${"일월화수목금토"[d.getDay()]})`; };
+const akFmt=(v)=>v==null||v===""?"–":(Math.abs(v)>=1000?Number(v).toLocaleString("ko-KR"):String(v));
+const AK_CSS=`
+.ak{--bg:#F6F6F4;--card:#FFFFFF;--ink:#16181D;--ink2:#4A4E57;--muted:#8A8E96;--line:#E3E3DF;--line2:#EDEDEA;--accent:#0F1F5C;--accentSoft:#E7EAF4;--accentMid:#C3CCEB;--ok:#1F7A4D;--okSoft:#E3F2EA;--warn:#A5620B;--warnSoft:#FBF0DE;color:var(--ink);font-size:14px;line-height:1.5;display:flex;flex-direction:column;gap:16px;min-width:0}
+.ak *{box-sizing:border-box}
+.ak .mono{font-variant-numeric:tabular-nums}
+.ak button{font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer}
+.ak button:hover{border-color:var(--ink2)}
+.ak button:disabled{opacity:.45;cursor:default}
+.ak button:disabled:hover{border-color:var(--line)}
+.ak button:focus-visible,.ak input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ak .hd{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px}
+.ak h2{font-size:19px;font-weight:800;margin:0;letter-spacing:-.3px}
+.ak .sub{color:var(--muted);font-size:12.5px}
+.ak h3{font-size:12px;font-weight:600;letter-spacing:.4px;color:var(--muted);margin:0}
+.ak .note{color:var(--muted);font-size:12px}
+.ak .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.ak .chips{display:flex;flex-wrap:wrap;gap:6px}
+.ak .chips button{border-radius:999px;padding:4px 12px;font-size:13px}
+.ak .chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.ak .nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ak .nav .d{min-width:104px;text-align:center;font-weight:700;font-size:14px}
+.ak .tog{font-size:13px;padding:4px 10px}
+.ak .tog[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.ak .pri{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.ak .pri:hover{border-color:var(--accent)}
+.ak .rtb{font-weight:700;color:var(--accent);border-color:var(--accentMid);background:var(--accentSoft)}
+.ak .rtb.done{color:var(--ok);border-color:#BFE0CD;background:var(--okSoft)}
+.ak .lag{background:var(--card);border:1px solid var(--line);border-radius:8px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.ak .lcell{padding:10px 14px;border-left:1px solid var(--line2);border-top:1px solid var(--line2);display:flex;flex-direction:column;gap:5px;min-width:0}
+.ak .lcell:nth-child(3n+1){border-left:0}
+.ak .lcell:nth-child(-n+3){border-top:0}
+.ak .ltop{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.ak .fun{font-size:11px;font-weight:600;color:var(--accent);background:var(--accentSoft);border-radius:4px;padding:1px 6px;white-space:nowrap}
+.ak .lname{font-weight:600;font-size:13.5px}
+.ak .lnums{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2)}
+.ak .lnums input{width:84px;border:1px solid var(--line);border-radius:5px;background:var(--card);color:var(--ink);font:inherit;padding:1px 6px;text-align:right}
+.ak .lnums b{font-size:14px;color:var(--ink)}
+.ak .lpct{font-weight:800;margin-left:auto}
+.ak .lsrc{font-size:11px;color:var(--muted)}
+.ak .track{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.ak .track i{display:block;height:100%;background:var(--accent);border-radius:2px}
+@media (max-width:820px){.ak .lag{grid-template-columns:repeat(2,minmax(0,1fr))}.ak .lcell{border-left:1px solid var(--line2)!important;border-top:1px solid var(--line2)!important}.ak .lcell:nth-child(2n+1){border-left:0!important}.ak .lcell:nth-child(-n+2){border-top:0!important}}
+@media (max-width:480px){.ak .lag{grid-template-columns:1fr}.ak .lcell{border-left:0!important}.ak .lcell:first-child{border-top:0!important}.ak .lcell:nth-child(2){border-top:1px solid var(--line2)!important}}
+.ak .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.ak .seg button{border:0;border-radius:0;padding:4px 11px;font-size:13px;background:var(--card)}
+.ak .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.ak .sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.ak .tile{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.ak .tile .l{font-size:12px;color:var(--muted)}
+.ak .tile .v{font-size:20px;font-weight:800;line-height:1.15}
+.ak .tile .v small{font-size:12.5px;font-weight:400;color:var(--muted)}
+@media (max-width:560px){.ak .sum{grid-template-columns:1fr}}
+.ak .panel{background:var(--card);border:1px solid var(--line);border-radius:8px;min-width:0}
+.ak .g{display:grid;grid-template-columns:minmax(200px,1.1fr) minmax(0,2.2fr) 128px 150px;gap:10px;align-items:center}
+.ak .thead{padding:10px 16px 10px 0;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--card);z-index:3;border-radius:8px 8px 0 0}
+.ak .thead .lbl{font-size:12px;color:var(--muted)}
+.ak .lane{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px}
+.ak .lane.path::before{content:"";position:absolute;left:14px;right:14px;top:50%;height:2px;background:var(--line);transform:translateY(-50%)}
+.ak .hcell{border:0;background:transparent;padding:3px 2px;border-radius:6px;display:flex;flex-direction:column;align-items:center;gap:0;font-size:11.5px;color:var(--muted)}
+.ak .hcell b{font-weight:600;color:var(--ink2);font-size:12.5px}
+.ak .hcell[aria-pressed="true"]{background:var(--accentSoft)}
+.ak .hcell[aria-pressed="true"] b{color:var(--accent)}
+.ak .hcell .now{color:var(--accent);font-weight:700}
+.ak .htot{text-align:center;font-size:12px;color:var(--muted)}
+.ak .htot b{display:block;font-weight:600;color:var(--ink2);font-size:12.5px}
+.ak .sec{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:11px 16px;background:var(--accent);color:#fff}
+.ak .sec b{font-size:14px}
+.ak .sec span{font-size:12px;opacity:.85}
+.ak .sec.add{background:var(--ink2)}
+.ak .grp{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 16px;padding:12px 16px;background:var(--bg);border-top:6px solid var(--bg);box-shadow:inset 0 1px 0 var(--line),inset 0 -1px 0 var(--line)}
+.ak .grp .gl{display:flex;align-items:center;gap:10px}
+.ak .grp .gk{width:26px;height:26px;border-radius:6px;display:grid;place-items:center;font-weight:800;font-size:13px;background:var(--accent);color:#fff}
+.ak .grp .gk.R{background:var(--card);color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}
+.ak .grp .gk.X{background:var(--card);color:var(--ink2);box-shadow:inset 0 0 0 2px var(--line)}
+.ak .grp .gn{font-size:15px;font-weight:800;color:var(--ink)}
+.ak .grp .gc{font-size:12px;color:var(--muted)}
+.ak .grp .gr{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--ink2)}
+.ak .grp .gr b{font-weight:800;color:var(--accent);margin-left:4px}
+.ak .row{padding:9px 16px 9px 14px;border-top:1px solid var(--line2)}
+.ak .row.paused{opacity:.55}
+.ak .cblock{display:grid;grid-template-columns:52px minmax(0,1fr);border-top:1px solid var(--line2)}
+.ak .grp+.cblock{border-top:0}
+.ak .clab{display:flex;align-items:center;justify-content:center;border-right:1px solid var(--line2);font-size:12px;font-weight:800;letter-spacing:.5px}
+.ak .clab span{writing-mode:vertical-rl;text-orientation:upright;letter-spacing:4px}
+.ak .cW .clab{background:var(--bg);color:var(--ink2)}
+.ak .cM .clab{background:var(--accentSoft);color:var(--accent)}
+.ak .cQ .clab{background:var(--card);color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.ak .clab.h{border-right:0;color:var(--muted);font-weight:600}
+.ak .clab.h span{writing-mode:horizontal-tb;letter-spacing:0}
+.ak .crows{min-width:0}
+.ak .crows>.row:first-child{border-top:0}
+.ak .thead .g{padding-left:14px}
+.ak .rname{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ak .rname .t{display:flex;flex-wrap:wrap;gap:5px;align-items:center;font-weight:600;font-size:13.5px}
+.ak .rname .t.s{font-weight:400}
+.ak .tag{font-size:11px;font-weight:600;border-radius:4px;padding:0 6px;border:1px solid var(--line);color:var(--ink2);white-space:nowrap}
+.ak .tag.me{color:var(--accent);border-color:var(--accentMid);background:var(--accentSoft)}
+.ak .tag.out{color:var(--warn);background:var(--warnSoft);border-color:transparent}
+.ak .tag.pz{color:var(--muted);background:var(--bg)}
+.ak .desc{font-size:12px;color:var(--muted);white-space:pre-line}
+.ak .why{font-size:12px;color:var(--ink2);background:var(--bg);border-radius:6px;padding:7px 10px;white-space:pre-line}
+.ak .edit{border:1px solid var(--line)!important;background:var(--card)!important;padding:0 7px!important;color:var(--ink2);font-size:12px;line-height:20px;border-radius:5px}
+.ak .cell{position:relative;z-index:1;height:30px;border-radius:6px;border:1px solid var(--line);background:var(--card);padding:0 2px;font-size:12px;display:grid;place-items:center;color:var(--muted);overflow:hidden}
+.ak .cell .f{position:absolute;left:0;bottom:0;top:0;background:var(--accentSoft);z-index:-1}
+.ak .cell.part{color:var(--accent);border-color:var(--accent)}
+.ak .cell.done{background:var(--ok);border-color:var(--ok);color:#fff;font-weight:600}
+.ak .cell.miss{color:var(--warn);border-color:var(--warn);background:var(--warnSoft)}
+.ak .cell.future{border-style:dashed;background:var(--bg)}
+.ak .cell.pre{border-style:dotted;background:var(--bg);color:#C2C5CB}
+.ak .cell.sel{outline:2px solid var(--accent);outline-offset:1px}
+.ak .sbar{grid-column:span 2;position:relative;height:30px;border-radius:15px;background:var(--line2);overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 12px;font-size:12px}
+.ak .sbar .sf{position:absolute;left:0;top:0;bottom:0;border-radius:15px;background:var(--accent);opacity:.9}
+.ak .sbar>span{position:relative;display:flex;align-items:baseline;gap:6px;white-space:nowrap;min-width:0}
+.ak .sbar .sl b{font-weight:800;color:var(--ink)}
+.ak .sbar .sl span{color:var(--muted)}
+.ak .sbar .sr{color:var(--muted);font-size:11.5px;overflow:hidden;text-overflow:ellipsis}
+.ak .sbar .sr em{font-style:normal;color:var(--accent);font-weight:600}
+.ak .sbar.part .sf{background:var(--accentMid);opacity:1}
+.ak .sbar.part .sl span{color:var(--accent);font-weight:600}
+.ak .sbar.done .sf{background:var(--ok);opacity:1}
+.ak .sbar.done .sl b,.ak .sbar.done .sl span,.ak .sbar.done .sr,.ak .sbar.done .sr em{color:#fff}
+.ak .sbar.miss{background:var(--warnSoft)}
+.ak .sbar.miss .sf{background:var(--warn);opacity:.35}
+.ak .sbar.miss .sl b{color:var(--warn)}
+.ak .tot{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ak .tot .n{display:flex;justify-content:space-between;align-items:baseline;gap:4px;font-size:12.5px}
+.ak .tot .n b{font-weight:800}
+.ak .tot .n span{font-size:11px;color:var(--muted);white-space:nowrap}
+.ak .tot .track{height:5px}
+.ak .tot.done .n b{color:var(--ok)}
+.ak .tot.done .track i{background:var(--ok)}
+.ak .tot.miss .n b{color:var(--warn)}
+.ak .tot.miss .track i{background:var(--warn)}
+.ak .ctl{display:flex;flex-direction:column;gap:4px}
+.ak .stepper{display:grid;grid-template-columns:40px 1fr 40px;border:1px solid var(--line);border-radius:6px;overflow:hidden;height:34px}
+.ak .stepper button{border:0;border-radius:0;padding:0;background:transparent;font-size:17px;font-weight:700}
+.ak .stepper .v{display:grid;place-items:center;border-inline:1px solid var(--line);font-size:12.5px;white-space:nowrap}
+.ak .slab{font-size:11px;color:var(--muted)}
+.ak .empty{padding:16px;color:var(--muted);font-size:13px}
+.ak .legend{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:12px;color:var(--muted)}
+.ak .legend span{display:inline-flex;align-items:center;gap:6px}
+.ak .legend i{width:14px;height:12px;border-radius:3px;border:1px solid var(--line);display:inline-block;background:var(--card)}
+.ak .legend i.p{border-color:var(--accent);background:linear-gradient(90deg,var(--accentSoft) 50%,var(--card) 50%)}
+.ak .legend i.d{background:var(--ok);border-color:var(--ok)}
+.ak .legend i.m{background:var(--warnSoft);border-color:var(--warn)}
+.ak .legend i.u{border-style:dashed;background:var(--bg)}
+.ak .legend i.s{width:28px;border-radius:7px;border:0;background:linear-gradient(90deg,var(--accent) 55%,var(--line2) 55%)}
+.ak .foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--line)}
+.ak .err{background:var(--warnSoft);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:12.5px;font-weight:600}
+@media (max-width:900px){.ak .g{grid-template-columns:minmax(0,1fr) 118px 140px}.ak .rname,.ak .thead .lbl{grid-column:1/-1}.ak .thead .lbl{display:none}}
+@media (max-width:520px){.ak .cblock{grid-template-columns:minmax(0,1fr)}.ak .clab{justify-content:flex-start;padding:5px 16px;border-right:0;border-bottom:1px solid var(--line2)}.ak .clab span{writing-mode:horizontal-tb;letter-spacing:.5px}.ak .thead .clab{display:none}.ak .g{grid-template-columns:minmax(0,1fr) 108px}.ak .ctl,.ak .hctl{grid-column:1/-1}.ak .hctl{display:none}.ak .legend{display:none}.ak .stepper{height:38px;grid-template-columns:52px 1fr 52px}}
+`;
+function AkBoard({D,cu,up,add,ro,onRetro}){
+  const users=D.users||[];
+  const all=[...(D.actionKPIs||[])].sort(akOrder);
+  const today=akYmd(new Date());
+  const [anchor,setAnchor]=useState(()=>{ const t=new Date(); return new Date(t.getFullYear(),t.getMonth(),1); });
+  const y=anchor.getFullYear(), m0=anchor.getMonth(), q=Math.floor(m0/3)+1;
+  const WK=akWeeksIn(y,m0), WQ=akQuarterWeeks(y,m0);
+  const [selKey,setSelKey]=useState(null);
+  const SEL=WK.find(w=>w.key===selKey)||WK.find(w=>w.start<=today&&today<=w.end)||WK[0];
+  const pk="pour-os-ak-pref-"+cu.id;
+  const [pref,setPrefS]=useState(()=>{ try{ return JSON.parse(localStorage.getItem(pk)||"null")||{}; }catch(_){ return {}; } });
+  const setPref=(k,v)=>setPrefS(o=>{ const n={...o,[k]:v}; try{ localStorage.setItem(pk,JSON.stringify(n)); }catch(_){} return n; });
+  const who=pref.who||"all", cycF=pref.cyc||"all", kindF=pref.kind||"all", showDesc=!!pref.desc;
+  const [showPaused,setShowPaused]=useState(false);
+  const [edit,setEdit]=useState(null);
+  const [err,setErr]=useState("");
+  const [busy,setBusy]=useState("");
+  const {docs,ready}=useAkDocs([akQidOfMonth(y,m0)]);
+  const whoOf=(it)=>akWho(users,it);
+  const nameOf=(id)=>{ const u=users.find(x=>x.id===id); return u?u.name:"?"; };
+  const people=users.filter(u=>all.some(it=>it.active!==false&&whoOf(it).includes(u.id)));
+  const pass=(it)=>(who==="all"||whoOf(it).includes(who))&&(cycF==="all"||(cycF==="W"?it.cyc==="W":it.cyc!=="W"))&&(kindF==="all"||(kindF==="core"?!!it.core:!it.core));
+  const act=all.filter(it=>it.active!==false&&pass(it));
+  const paused=all.filter(it=>it.active===false&&pass(it));
+  const shown=showPaused?[...act,...paused]:act;
+  const wksFor=(it)=>(it.cyc==="Q"?WQ:WK).filter(w=>it.cyc!=="W"||akCountable(it,w));
+  const tot=(it)=>akTotal(docs,it,wksFor(it));
+  const canTick=(it)=>!ro&&it.active!==false&&(whoOf(it).includes(cu.id)||can(cu,"proxy"));
+  const canEdit=(it)=>!ro&&(it.core?can(cu,"kpiCore"):(isMaster(cu)||it.createdBy===cu.id||whoOf(it).includes(cu.id)));
+  const tick=async(it,field,dir)=>{
+    if(!canTick(it)||busy) return;
+    const v=akVal(docs,it,SEL.key), cur=it.perFail?v[field]:v;
+    let d=dir*(field==="fail"?1:akStep(it));
+    if(cur+d<0) d=-cur;
+    if(dir>0&&it.unit==="%"&&!it.perFail){ const t=tot(it).n; if(t>=100) return; d=Math.min(d,100-t); }
+    if(!d) return;
+    setBusy(it.id+field); setErr("");
+    try{ await akBump(it,SEL.key,field,d,cu); }
+    catch(e){ console.error("[행동지표] 저장 실패:",e); setErr("저장이 잠시 안 됐어요. 다시 눌러 주세요. ("+(e.code||e.message||e)+")"); }
+    finally{ setBusy(""); }
+  };
+  // 결과 KPI (관리자 KPI) — 월 1회 입력 (월말 회고 때). 여기서도 권한 있는 사람은 이번 달 값을 고칠 수 있음
+  const lags=[...(D.lagKPIs||[])].sort((a,b)=>(a.order||0)-(b.order||0));
+  const nowD=new Date(), ymNow=akYm(nowD.getFullYear(),nowD.getMonth());
+  const canLag=!ro&&can(cu,"kpiLag");
+  const saveLag=(k,raw)=>{ const s=String(raw).trim(); if(s===""){ return; } const v=Number(s); if(!isFinite(v)) return;
+    up("lagKPIs",k.id,{monthly:{...(k.monthly||{}),[ymNow]:{v,by:cu.id,byName:cu.name||"",at:new Date().toISOString()}}}); };
+  const retroDay=akRetroDay(nowD.getFullYear(),nowD.getMonth());
+  const retroDone=(D.retros||[]).some(r=>r&&r.kind==="teamMonthly"&&r.month===ymNow);
+  // 요약 (파일과 같음: 선택한 주 · 이 달 · 이 분기)
+  const part=(it)=>akPartial(it,it.cyc==="Q"?WQ:WK);   // 기간 중간에 시작 → 이 기간은 참고용
+  const Wi=act.filter(it=>it.cyc==="W"&&!it.perFail&&akCountable(it,SEL)), Mi=act.filter(it=>it.cyc==="M"&&!tot(it).none&&!part(it)), Qi=act.filter(it=>it.cyc==="Q"&&!part(it));
+  const wd=Wi.filter(it=>akWeekDone(docs,it,SEL.key)).length, mdn=Mi.filter(it=>tot(it).done).length, qd=Qi.filter(it=>tot(it).done).length;
+  const tile=(l,d,t)=>(<div className="tile"><span className="l">{l}</span><span className="v mono">{d}<small> / {t} 달성</small></span><div className="track"><i style={{width:`${t?d/t*100:0}%`}}/></div></div>);
+  const wRatio=(w)=>{ const l=act.filter(i=>i.cyc==="W"&&!i.perFail&&akCountable(i,w)); return l.length?`${l.filter(i=>akWeekDone(docs,i,w.key)).length}/${l.length}`:""; };
+  const allCnt=act.filter(i=>!tot(i).none&&!part(i));
+  const future=SEL.start>today;
+  const cell=(it,w)=>{
+    const n=akVal(docs,it,w.key), goal=+it.goal||1, done=n>=goal, fut=w.start>today, past=w.end<today, pre=!akCountable(it,w);
+    let cls="cell mono";
+    if(pre&&!n) cls+=" pre"; else if(done) cls+=" done"; else if(fut) cls+=" future"; else if(past&&akFullWeek(it,w)) cls+=" miss"; else if(n>0) cls+=" part";
+    if(SEL.key===w.key) cls+=" sel";
+    const txt=pre&&!n?"–":(done&&goal===1?"✓":`${n}/${goal}`);
+    return <button key={w.key} className={cls} onClick={()=>setSelKey(w.key)} aria-label={`${it.name} ${w.label} 주 ${txt}`}>{!done&&n>0&&<i className="f" style={{width:`${Math.min(100,n/goal*100)}%`}}/>}{txt}</button>;
+  };
+  const totEl=(it)=>{ const t=tot(it), past=akPeriodEnd(it,y,m0)<today; const cls=t.done?"done":(past?"miss":"");
+    return <div className={"tot "+cls}><div className="n mono"><b>{t.n} / {t.g}</b><span>{wksFor(it).length}주 합계</span></div><div className="track"><i style={{width:`${t.g?Math.min(100,t.n/t.g*100):0}%`}}/></div></div>; };
+  const spanEl=(it)=>{
+    const t=tot(it), past=akPeriodEnd(it,y,m0)<today, pct=t.g?Math.min(100,t.n/t.g*100):0;
+    const cls=t.done?"done":(past&&!t.none&&!part(it)?"miss":(t.n>0?"part":""));
+    const val=it.unit==="%"?`${t.n}%`:(t.none?(t.n?`${t.n}회 시도`:"매칭 실패 없음"):`${t.n} / ${t.g}${it.unit}`);
+    const state=t.done?"달성":part(it)?"시작한 달 · 참고":(t.none||it.unit==="%")?"":`${Math.round(pct)}%`;
+    const sv=akVal(docs,it,SEL.key);
+    const selTxt=it.perFail?((sv.n||sv.fail)?`${SEL.label} 주 시도 ${sv.n}·실패 ${sv.fail}`:""):(sv?`${SEL.label} 주 ${it.unit==="%"?sv+"%":"+"+sv}`:"");
+    const hist=(it.cyc==="Q"?WQ:WK).map(w=>{ const s=akVal(docs,it,w.key); if(it.perFail) return (s.n||s.fail)?`${w.label} 시도${s.n}·실패${s.fail}`:""; return s?`${w.label} ${it.unit==="%"?s+"%":"+"+s}`:""; }).filter(Boolean).join(" · ");
+    return <div className={"sbar "+cls} title={hist||"아직 기록 없음"}><i className="sf" style={{width:`${pct}%`}}/><span className="sl mono"><b>{val}</b>{state&&<span>{state}</span>}</span><span className="sr">{it.cyc==="Q"?`${q}분기 누적`:`${m0+1}월 누적`}{selTxt&&<em className="mono"> · {selTxt}</em>}</span></div>;
+  };
+  const stepper=(it,f,val,ok,label)=>(<div className="stepper"><button disabled={!ok||!!busy} onClick={()=>tick(it,f,-1)} aria-label={`${label} 줄이기`}>−</button><span className="v mono">{val}</span><button disabled={!ok||!!busy} onClick={()=>tick(it,f,1)} aria-label={`${label} 늘리기`}>+</button></div>);
+  const ctlEl=(it)=>{
+    const ok=canTick(it)&&!future&&akCountable(it,SEL);
+    const v=akVal(docs,it,SEL.key);
+    const lab=it.active===false?"멈춤":!canTick(it)?(ro?"":"담당자만 체크"):future?"아직 안 온 주":!akCountable(it,SEL)?"시작 전 주":`${SEL.label} 주 입력`;
+    if(it.perFail) return <div className="ctl"><span className="slab">{lab} · 매칭 실패</span>{stepper(it,"fail",`${v.fail}건`,ok,it.name+" 매칭 실패")}<span className="slab">매칭 시도</span>{stepper(it,"n",`${v.n}회`,ok,it.name+" 매칭 시도")}</div>;
+    const val=it.unit==="%"?`${v}%`:(it.cyc==="W"?`${v} / ${it.goal}${it.unit}`:`${v}${it.unit}`);
+    return <div className="ctl">{stepper(it,"n",val,ok,it.name)}<span className="slab">{lab}</span></div>;
+  };
+  const row=(it)=>(
+    <div className={"row g"+(it.active===false?" paused":"")} key={it.id} data-ak={it.id}>
+      <div className="rname">
+        <span className="t">{it.name}</span>
+        <span className="t s">{whoOf(it).map(id=><span key={id} className={"tag"+(id===cu.id?" me":"")}>{nameOf(id)}</span>)}{!whoOf(it).length&&<span className="tag pz">담당 미정</span>}{it.how==="외주"&&<span className="tag out">외주</span>}{it.active===false&&<span className="tag pz">멈춤</span>}{it.brand&&it.brand!=="POUR스토어"&&<span className="tag">{it.brand}</span>}<span className="slab mono">{akGoalText(it)}</span>{canEdit(it)&&<button className="edit" onClick={()=>setEdit({item:it})} aria-label={`${it.name} 수정`}>✎ 수정</button>}</span>
+        {showDesc&&<>{it.desc&&<span className="desc">{it.desc}</span>}{it.why&&<span className="why">{it.why}</span>}</>}
+      </div>
+      {it.cyc==="W"?<div className="lane path">{WK.map(w=>cell(it,w))}</div>:spanEl(it)}
+      {it.cyc==="W"&&totEl(it)}
+      {ctlEl(it)}
+    </div>);
+  const section=(kind)=>{
+    if(kindF!=="all"&&kindF!==kind) return null;
+    const list=shown.filter(it=>kind==="core"?!!it.core:!it.core);
+    const nAll=all.filter(it=>it.active!==false&&(kind==="core"?!!it.core:!it.core)).length;
+    const head=<div className={"sec"+(kind==="add"?" add":"")}><b>{kind==="core"?"🔒 기본 필수 행동지표":"➕ 추가 행동지표"}</b><span>{kind==="core"?`POUR스토어 기본값 · ${nAll}개 · 수정은 권한 있는 사람만`:`필수 외에 더 진행하는 행동지표 · ${nAll}개`}</span></div>;
+    if(!list.length) return <Fragment key={kind}>{head}<div className="empty">{kind==="add"?<>아직 추가 행동지표가 없어요. {!ro&&<button className="tog" onClick={()=>setEdit({item:null,core:false})}>+ 추가 행동지표 만들기</button>}</>:"조건에 맞는 항목이 없어요."}</div></Fragment>;
+    return <Fragment key={kind}>{head}{AK_FUNS.map(f=>{
+      const g=list.filter(i=>(AK_FUNS.includes(i.fun)?i.fun:"기타")===f); if(!g.length) return null;
+      const [gk,...rest]=f.split(" "); const gn=rest.join(" ")||f; const gcls=gk==="A"?"":gk==="R"?" R":" X";
+      const lg=kind==="core"?lags.filter(l=>l.fun===f):[];
+      return <Fragment key={f}>
+        <div className="grp"><div className="gl"><span className={"gk"+gcls}>{gk==="기타"?"·":gk}</span><span className="gn">{gn}</span><span className="gc">{g.length}개 항목</span></div>
+          <div className="gr">{lg.map(l=>{ const c=lagCur(l), p=lagPct(l,c.v); return <span key={l.id}>{l.name}<b className="mono">{p==null?"미정":p+"%"}</b></span>; })}</div></div>
+        {["W","M","Q"].map(c=>{ const gc=g.filter(i=>i.cyc===c); if(!gc.length) return null;
+          return <div key={c} className={"cblock c"+c}><div className="clab"><span>{AK_CYC[c]}</span></div><div className="crows">{gc.map(row)}</div></div>; })}
+      </Fragment>; })}</Fragment>;
+  };
+  const coreN=all.filter(i=>i.core&&i.active!==false).length, addN=all.filter(i=>!i.core&&i.active!==false).length;
+  return(<div className="ak">
+    <style>{AK_CSS}</style>
+    <div className="hd">
+      <div><h2>POUR스토어 행동지표</h2><div className="sub">필수 {coreN}개 · 추가 {addN}개 · 주간 + 월간·분기 한 표{!ready?" · 불러오는 중…":""}</div></div>
+      <div className="nav">
+        <button className={"rtb"+(retroDone?" done":"")} onClick={()=>onRetro&&onRetro({y:nowD.getFullYear(),m0:nowD.getMonth()})}>📋 {nowD.getMonth()+1}월 월말 회고 · {akDayLabel(retroDay)}{retroDone?" ✅":""}</button>
+        {!ro&&<button className="pri" onClick={()=>setEdit({item:null,core:false})}>+ 행동지표 추가</button>}
+      </div>
+    </div>
+    {err&&<div className="err" role="alert">{err}</div>}
+    <section style={{display:"flex",flexDirection:"column",gap:8}}>
+      <div className="bar"><h3>관리자 KPI (결과) · 목표 대비 현재</h3><span className="note">{canLag?"매월 월말 회고 때 입력 · 여기서 고치면 이번 달 값으로 저장돼요":"매월 월말 회고 때 입력돼요"}</span></div>
+      <div className="lag">{lags.map(k=>{ const c=lagCur(k), p=lagPct(k,c.v); return(
+        <div className="lcell" key={k.id}>
+          <div className="ltop"><span className="lname">{k.name}</span><span className="fun">{k.fun}</span></div>
+          <div className="lnums mono">{canLag?<input type="number" step="any" key={k.id+"_"+(c.ym||"b")+"_"+c.v} defaultValue={c.v==null?"":c.v} aria-label={`${k.name} ${nowD.getMonth()+1}월 값`} onBlur={e=>{ if(String(e.target.value).trim()!==String(c.v==null?"":c.v)) saveLag(k,e.target.value); }} onKeyDown={e=>{ if(e.key==="Enter") e.currentTarget.blur(); }}/>:<b>{akFmt(c.v)}</b>}<span>/ {k.goal==null?"미정":Number(k.goal).toLocaleString("ko-KR")+k.unit}</span><span className="lpct">{p==null?"–":p+"%"}</span></div>
+          <div className="track"><i style={{width:`${Math.min(100,p||0)}%`}}/></div>
+          <span className="lsrc">{c.ym?`${+c.ym.slice(5)}월 입력`:(k.baseNote||"기준값")}</span>
+        </div>); })}</div>
+    </section>
+    <div className="bar">
+      <div className="chips" role="group" aria-label="담당자">
+        <button aria-pressed={who==="all"} onClick={()=>setPref("who","all")}>전체</button>
+        {people.map(u=><button key={u.id} aria-pressed={who===u.id} onClick={()=>setPref("who",u.id)}>{u.name}{u.id===cu.id?" (나)":""}</button>)}
+      </div>
+      <div className="nav">
+        <div className="seg" role="group" aria-label="구분">{[["all","전체"],["core","필수"],["add","추가"]].map(([k,l])=><button key={k} aria-pressed={kindF===k} onClick={()=>setPref("kind",k)}>{l}</button>)}</div>
+        <div className="seg" role="group" aria-label="주기">{[["all","전체"],["W","주간"],["M","월간·분기"]].map(([k,l])=><button key={k} aria-pressed={cycF===k} onClick={()=>setPref("cyc",k)}>{l}</button>)}</div>
+        <button className="tog" aria-pressed={showDesc} onClick={()=>setPref("desc",!showDesc)}>{showDesc?"세부내용 숨기기":"세부내용 보기"}</button>
+      </div>
+    </div>
+    <div className="bar">
+      <div className="nav">
+        <button onClick={()=>{ setAnchor(new Date(y,m0-1,1)); setSelKey(null); }} aria-label="이전 달">‹</button>
+        <div className="d mono">{y}년 {m0+1}월</div>
+        <button onClick={()=>{ setAnchor(new Date(y,m0+1,1)); setSelKey(null); }} aria-label="다음 달">›</button>
+        <button onClick={()=>{ const t=new Date(); setAnchor(new Date(t.getFullYear(),t.getMonth(),1)); setSelKey(null); }}>이번 달</button>
+      </div>
+      <div className="legend"><span><i className="p"/>진행 중</span><span><i className="d"/>목표 달성</span><span><i className="m"/>지난 주 미달</span><span><i className="s"/>월간·분기 누적</span><span><i className="u"/>아직 안 온 주</span></div>
+    </div>
+    <div className="sum">{tile(`주간 · ${SEL.label} 주`,wd,Wi.length)}{tile(`월간 · ${m0+1}월`,mdn,Mi.length)}{tile(`분기 · ${y}년 ${q}분기`,qd,Qi.length)}</div>
+    <section className="panel" aria-label="주간·월간 행동지표 표">
+      <div className="thead cblock"><div className="clab h"><span>주기</span></div><div className="g"><span className="lbl">행동지표 · 담당</span>
+        <div className="lane">{WK.map(w=><button key={w.key} className="hcell" aria-pressed={SEL.key===w.key} onClick={()=>setSelKey(w.key)}><b className="mono">{w.label}</b>{w.start<=today&&today<=w.end?<span className="now">이번 주</span>:<span className="mono">{w.sub}</span>}<span className="mono">{wRatio(w)}</span></button>)}</div>
+        <div className="htot"><b>{m0+1}월 합계</b><span className="mono">{allCnt.filter(i=>tot(i).done).length}/{allCnt.length} 달성</span></div>
+        <div className="htot hctl"><b>{SEL.label} 주 입력</b><span>− / +</span></div></div></div>
+      {section("core")}
+      {section("add")}
+      <div className="foot"><span className="note">주차 칸을 누르면 그 주가 선택되고, 오른쪽 − / + 로 그 주 실적을 넣어요. 월간 항목도 주마다 한 만큼 넣으면 월 합계에 쌓여요.</span>
+        {paused.length>0&&<button className="tog" aria-pressed={showPaused} onClick={()=>setShowPaused(v=>!v)}>{showPaused?"멈춘 항목 숨기기":`멈춘 항목 ${paused.length}개 보기`}</button>}</div>
+    </section>
+    {edit&&<AkEditSheet D={D} cu={cu} item={edit.item} core={edit.core} add={add} up={up} onClose={()=>setEdit(null)}/>}
+  </div>);
+}
+// 행동지표 만들기·수정 — 삭제는 없고 '멈추기'만 (기록은 그대로 남음)
+function AkEditSheet({D,cu,item,core,add,up,onClose}){
+  const users=D.users||[];
+  const canCore=can(cu,"kpiCore");
+  const [f,setF]=useState(()=>item?{name:item.name||"",fun:AK_FUNS.includes(item.fun)?item.fun:"기타",cyc:item.cyc||"W",goal:String(item.goal??""),unit:item.unit||"건",step:String(item.step||10),who:akWho(users,item),how:item.how||"직접",brand:item.brand||"POUR스토어",desc:item.desc||"",core:!!item.core}
+    :{name:"",fun:"A 유입",cyc:"W",goal:"1",unit:"건",step:"10",who:[cu.id],how:"직접",brand:"POUR스토어",desc:"",core:!!core&&canCore});
+  const pct=f.unit==="%";
+  const okGoal=item&&item.perFail?true:(pct?true:Number(f.goal)>0);
+  const ok=f.name.trim()&&okGoal&&f.who.length>0;
+  const set=(k,v)=>setF(o=>({...o,[k]:v}));
+  const save=()=>{ if(!ok) return;
+    const patch={name:f.name.trim(),fun:f.fun,cyc:f.cyc,unit:f.unit,goal:pct?100:(item&&item.perFail?(item.goal||0):Number(f.goal)),who:f.who,whoNames:f.who.map(id=>(users.find(u=>u.id===id)||{}).name||""),how:f.how,brand:f.brand,desc:f.desc.trim(),...(pct?{step:Math.max(1,Number(f.step)||10)}:{})};
+    if(canCore) patch.core=!!f.core;
+    if(item){ up("actionKPIs",item.id,{...patch,updatedAt:new Date().toISOString(),updatedBy:cu.id}); }
+    else{ const mx=Math.max(0,...(D.actionKPIs||[]).map(x=>+x.order||0)); add("actionKPIs",{id:"ak"+Date.now().toString(36),...patch,core:canCore?!!f.core:false,active:true,order:mx+1,startDate:akYmd(new Date()),createdAt:new Date().toISOString(),createdBy:cu.id,createdByName:cu.name||""}); }
+    onClose(); };
+  const pause=()=>{ if(!item) return; up("actionKPIs",item.id,item.active===false?{active:true,resumedAt:new Date().toISOString(),resumedBy:cu.id}:{active:false,pausedAt:new Date().toISOString(),pausedBy:cu.id}); onClose(); };
+  const lab={display:"block",fontSize:12,fontWeight:700,color:"#374151",margin:"12px 0 6px"};
+  const inp={width:"100%",padding:"11px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:14,fontFamily:"inherit",boxSizing:"border-box",background:"#fff"};
+  const chip=(on)=>({padding:"8px 12px",borderRadius:20,border:`1.5px solid ${on?"#0F1F5C":"#E5E8EB"}`,background:on?"#E7EAF4":"#fff",color:on?"#0F1F5C":"#4E5968",fontWeight:on?800:600,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"});
+  return(<Sheet open onClose={onClose} title={item?"✎ 행동지표 수정":"+ 행동지표 추가"} h="90vh" w={560}>
+    <div style={{paddingTop:4}}>
+      {item&&item.core&&<p style={{margin:"6px 0 0",padding:"8px 10px",borderRadius:10,background:"#E7EAF4",color:"#0F1F5C",fontSize:12,fontWeight:700}}>🔒 기본 필수 행동지표 — 파일 기준값이에요. 바꾸면 누가·언제 바꿨는지 활동 기록에 남아요.</p>}
+      <label style={lab}>행동지표 이름 *</label>
+      <input value={f.name} onChange={e=>set("name",e.target.value)} placeholder="예: (B2C) 인스타 릴스 발행" style={inp} autoFocus={!item}/>
+      {canCore&&<><label style={lab}>구분</label><div style={{display:"flex",gap:6}}>{[[true,"🔒 기본 필수"],[false,"➕ 추가"]].map(([v,l])=><button key={l} type="button" onClick={()=>set("core",v)} style={chip(f.core===v)}>{l}</button>)}</div></>}
+      <label style={lab}>단계</label>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{AK_FUNS.map(x=><button key={x} type="button" onClick={()=>set("fun",x)} style={chip(f.fun===x)}>{x}</button>)}</div>
+      <label style={lab}>주기</label>
+      <div style={{display:"flex",gap:6}}>{Object.entries(AK_CYC).map(([k,l])=><button key={k} type="button" onClick={()=>set("cyc",k)} style={chip(f.cyc===k)}>{l}</button>)}</div>
+      {!(item&&item.perFail)&&<><label style={lab}>목표 {pct?"(100% 채우기)":`(${AK_CYC[f.cyc]} 몇 번?)`}</label>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        {pct?<label style={{fontSize:12,color:"#6B7280",fontWeight:700}}>한 번 누를 때 %<input type="number" min="1" max="100" value={f.step} onChange={e=>set("step",e.target.value)} style={{...inp,marginTop:4}}/></label>
+          :<input type="number" min="1" value={f.goal} onChange={e=>set("goal",e.target.value)} aria-label="목표 횟수" style={inp}/>}
+        <select value={f.unit} onChange={e=>set("unit",e.target.value)} aria-label="단위" style={inp}>{["건","회","명","개","%"].map(u=><option key={u} value={u}>{u}</option>)}</select>
+      </div></>}
+      <label style={lab}>담당자 * <span style={{fontWeight:500,color:"#9CA3AF"}}>(여러 명 가능 · 담당자 오늘 화면에 떠요)</span></label>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{users.map(u=>{ const on=f.who.includes(u.id); return <button key={u.id} type="button" onClick={()=>set("who",on?f.who.filter(x=>x!==u.id):[...f.who,u.id])} style={chip(on)}>{on?"✓ ":""}{u.name}</button>; })}</div>
+      <label style={lab}>방식 · 브랜드</label>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{["직접","외주"].map(x=><button key={x} type="button" onClick={()=>set("how",x)} style={chip(f.how===x)}>{x}</button>)}<span style={{width:8}}/>{["POUR스토어","GROHOME","공통"].map(x=><button key={x} type="button" onClick={()=>set("brand",x)} style={chip(f.brand===x)}>{x}</button>)}</div>
+      <label style={lab}>세부내용</label>
+      <textarea value={f.desc} onChange={e=>set("desc",e.target.value)} rows={3} placeholder="무엇을 어떻게 하는지 한두 줄" style={{...inp,resize:"vertical"}}/>
+      <button onClick={save} disabled={!ok} style={{width:"100%",marginTop:16,padding:"14px 0",borderRadius:14,border:"none",background:ok?"#0F1F5C":"#D1D6DB",color:"#fff",fontWeight:900,fontSize:15,cursor:ok?"pointer":"not-allowed",fontFamily:"inherit"}}>{item?"저장":"행동지표 추가"}</button>
+      {item&&<button onClick={pause} style={{width:"100%",marginTop:8,padding:"12px 0",borderRadius:14,border:"1.5px solid #E5E8EB",background:"#fff",color:item.active===false?"#1F7A4D":"#A5620B",fontWeight:800,fontSize:13.5,cursor:"pointer",fontFamily:"inherit"}}>{item.active===false?"▶ 다시 시작":"⏸ 멈추기 (기록은 그대로 남아요)"}</button>}
+    </div>
+  </Sheet>);
+}
+// 오늘 화면 — 이번 주 내 행동지표 (+1 한 번 = 기록) · 지난주 미달 · 월말·분기말 마지막 주 표시
+function AkTodayCard({D,cu,nav}){
+  const users=D.users||[];
+  const mine=(D.actionKPIs||[]).filter(it=>it.active!==false&&akWho(users,it).includes(cu.id)).sort(akOrder);
+  const wk=akWeekKey(), lastWk=akAddDays(wk,-7);
+  const {y,m0}=akMonthOfWeek(wk);
+  const WK=akWeeksIn(y,m0), WQ=akQuarterWeeks(y,m0);
+  const {docs,ready}=useAkDocs([akQidOfWeek(wk),akQidOfWeek(lastWk)]);
+  const [busy,setBusy]=useState("");
+  const [err,setErr]=useState("");
+  const [showDone,setShowDone]=useState(false);
+  if(!mine.length) return null;
+  const thisW=WK.find(w=>w.key===wk)||{key:wk,start:wk,end:akAddDays(wk,6),label:""};
+  const lastW={key:lastWk,start:lastWk,end:akAddDays(lastWk,6),label:(()=>{ const d=new Date(lastWk+"T00:00:00"); return `${d.getMonth()+1}/${d.getDate()}`; })()};
+  const lastOfM=WK.length&&WK[WK.length-1].key===wk, lastOfQ=WQ.length&&WQ[WQ.length-1].key===wk;
+  const rows=mine.filter(it=>akCountable(it,thisW)).map(it=>{
+    if(it.cyc==="W"&&!it.perFail){ const n=akVal(docs,it,wk), g=+it.goal||1; return {it,n,g,done:n>=g,txt:`${n}/${g}${it.unit}`,per:"이번 주"}; }
+    const t=akTotal(docs,it,(it.cyc==="Q"?WQ:WK).filter(w=>it.cyc!=="W"||akCountable(it,w)));
+    const pp=akPartial(it,it.cyc==="Q"?WQ:WK);
+    return {it,n:t.n,g:t.g,done:t.done,none:t.none,txt:it.unit==="%"?`${t.n}%`:it.perFail?(t.none?`시도 ${t.n}회 · 실패 없음`:`${t.n}/${t.g}회`):`${t.n}/${t.g}${it.unit}`,per:it.cyc==="Q"?"이번 분기":`${m0+1}월`,last:!pp&&((it.cyc==="M"&&lastOfM)||(it.cyc==="Q"&&lastOfQ))};
+  });
+  const missed=ready?mine.filter(it=>it.cyc==="W"&&!it.perFail&&akFullWeek(it,lastW)&&akVal(docs,it,lastWk)<(+it.goal||1)):[];
+  const todo=rows.filter(r=>!r.done), done=rows.filter(r=>r.done);
+  const cnt=rows.filter(r=>!r.none).length, doneN=rows.filter(r=>r.done).length;
+  const bump=async(it,w,field,d)=>{ if(busy) return; setBusy(it.id+w+field); setErr("");
+    try{ if(d>0&&it.unit==="%"&&!it.perFail){ const t=akTotal(docs,it,it.cyc==="Q"?WQ:WK).n; if(t>=100) return; d=Math.min(d,100-t); } await akBump(it,w,field,d,cu); }
+    catch(e){ console.error("[행동지표] 오늘 +1 저장 실패:",e); setErr("저장이 잠시 안 됐어요. 다시 눌러 주세요."); }
+    finally{ setBusy(""); } };
+  const btn=(on)=>({flexShrink:0,minWidth:52,height:38,padding:"0 10px",borderRadius:10,border:"none",background:on?"#0F1F5C":"#E5E8EB",color:"#fff",fontWeight:900,fontSize:13,cursor:on?"pointer":"default",fontFamily:"inherit"});
+  const line=(r)=>{ const it=r.it; const pct=r.g?Math.min(100,r.n/r.g*100):0;
+    return <div key={it.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderTop:"1px solid #F2F4F6"}}>
+      <div style={{flex:1,minWidth:0}}>
+        <p style={{margin:0,fontSize:13,fontWeight:700,color:r.done?"#8B95A1":"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.done?"✓ ":""}{it.name}</p>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
+          <div style={{flex:"0 0 64px",height:5,background:"#EDEDEA",borderRadius:3,overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:r.done?"#1F7A4D":"#0F1F5C"}}/></div>
+          <span style={{fontSize:11.5,fontWeight:700,color:r.done?"#1F7A4D":"#4A4E57",fontVariantNumeric:"tabular-nums"}}>{r.per} {r.txt}</span>
+          {r.last&&!r.done&&<span style={{fontSize:10.5,fontWeight:800,color:"#A5620B",background:"#FBF0DE",borderRadius:6,padding:"1px 6px"}}>🔥 {it.cyc==="Q"?"분기":"이달"} 마지막 주</span>}
+          {it.core&&<span style={{fontSize:10,fontWeight:700,color:"#8A8E96"}}>필수</span>}
+        </div>
+      </div>
+      {it.perFail?<>
+        <button onClick={()=>bump(it,wk,"fail",1)} disabled={!!busy} style={{...btn(!busy),background:busy?"#E5E8EB":"#A5620B",minWidth:62,fontSize:12}} aria-label={`${it.name} 매칭 실패 +1`}>실패 +1</button>
+        <button onClick={()=>bump(it,wk,"n",1)} disabled={!!busy} style={{...btn(!busy),minWidth:62,fontSize:12}} aria-label={`${it.name} 매칭 시도 +1`}>시도 +1</button>
+      </>:<button onClick={()=>bump(it,wk,"n",akStep(it))} disabled={!!busy||(it.unit==="%"&&r.n>=100)} style={btn(!busy&&!(it.unit==="%"&&r.n>=100))} aria-label={`${it.name} +${akStep(it)}`}>+{akStep(it)}{it.unit==="%"?"%":""}</button>}
+    </div>; };
+  return(<div style={{background:"#fff",borderRadius:16,border:"1px solid #E3E3DF",padding:"13px 14px 6px",marginBottom:14}}>
+    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+      <b style={{fontSize:14,color:"#16181D"}}>✅ 이번 주 내 행동지표</b>
+      <span style={{fontSize:12,fontWeight:800,color:cnt&&doneN===cnt?"#1F7A4D":"#0F1F5C",background:cnt&&doneN===cnt?"#E3F2EA":"#E7EAF4",padding:"2px 9px",borderRadius:999,fontVariantNumeric:"tabular-nums"}}>{doneN}/{cnt} 달성</span>
+      <button onClick={()=>nav&&nav("kpi")} style={{marginLeft:"auto",padding:"5px 10px",borderRadius:8,border:"1px solid #E3E3DF",background:"#fff",color:"#4A4E57",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>전체 표 보기 →</button>
+    </div>
+    {err&&<p role="alert" style={{margin:"8px 0 0",padding:"7px 10px",borderRadius:8,background:"#FBF0DE",color:"#A5620B",fontSize:12,fontWeight:700}}>{err}</p>}
+    {missed.length>0&&<div style={{margin:"10px 0 4px",padding:"9px 11px",borderRadius:12,background:"#FBF0DE",border:"1px solid #F0D3A6"}}>
+      <p style={{margin:"0 0 4px",fontSize:12,fontWeight:800,color:"#A5620B"}}>⚠ 지난주({lastW.label} 주) 미달 {missed.length}건 · 했는데 못 넣었다면 지난주로 넣어요</p>
+      {missed.map(it=>{ const n=akVal(docs,it,lastWk); return <div key={it.id} style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0"}}>
+        <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:700,color:"#4A4E57",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.name}</span>
+        <span style={{fontSize:11.5,fontWeight:800,color:"#A5620B",fontVariantNumeric:"tabular-nums"}}>{n}/{it.goal}</span>
+        <button onClick={()=>bump(it,lastWk,"n",1)} disabled={!!busy} style={{flexShrink:0,height:32,padding:"0 10px",borderRadius:8,border:"1px solid #E0B97A",background:"#fff",color:"#A5620B",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}} aria-label={`${it.name} 지난주 +1`}>지난주 +1</button>
+      </div>; })}
+    </div>}
+    {todo.map(line)}
+    {!todo.length&&<p style={{margin:"10px 0 8px",fontSize:12.5,fontWeight:700,color:"#1F7A4D"}}>🎉 이번 주 내 행동지표를 다 채웠어요</p>}
+    {done.length>0&&<button onClick={()=>setShowDone(v=>!v)} style={{width:"100%",padding:"9px 0",border:"none",borderTop:"1px solid #F2F4F6",background:"none",color:"#8A8E96",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{showDone?"달성한 것 접기 ▴":`달성 ${done.length}개 ▾`}</button>}
+    {showDone&&done.map(line)}
+  </div>);
+}
+// 오늘 화면 — 월말 회고 알림 (회고일 3일 전부터, 새 달 10일까지 지난달 회고 안 했으면 계속)
+function AkRetroBanner({D,cu,nav,onOpen}){
+  const due=akRetroDue(akYmd(new Date()),D.retros);
+  if(!due) return null;
+  const canRun=can(cu,"kpiLag");
+  return(<div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",padding:"12px 14px",marginBottom:14,borderRadius:14,background:due.late?"#FBF0DE":"#E7EAF4",border:`1px solid ${due.late?"#F0D3A6":"#C3CCEB"}`}}>
+    <span style={{fontSize:18}}>📋</span>
+    <div style={{flex:"1 1 180px",minWidth:0}}>
+      <p style={{margin:0,fontSize:13.5,fontWeight:900,color:due.late?"#A5620B":"#0F1F5C"}}>{due.m0+1}월 월말 회고 · {akDayLabel(due.day)}{due.late?" · 아직 안 했어요":""}</p>
+      <p style={{margin:"2px 0 0",fontSize:11.5,fontWeight:600,color:"#4A4E57"}}>결과 KPI 입력 → 행동지표·프로젝트 점검 → 다음 달 집중 정하기 (15분)</p>
+    </div>
+    {canRun?<button onClick={()=>onOpen&&onOpen(due)} style={{flexShrink:0,padding:"9px 14px",borderRadius:10,border:"none",background:"#0F1F5C",color:"#fff",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>회고 시작</button>
+      :<button onClick={()=>nav&&nav("kpi")} style={{flexShrink:0,padding:"9px 14px",borderRadius:10,border:"1px solid #C3CCEB",background:"#fff",color:"#0F1F5C",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>내 {due.m0+1}월 행동지표 보기</button>}
+  </div>);
+}
+// 📋 월말 회고 (월 1회) — ① 결과 KPI 입력 ② 행동지표 결과 ③ 프로젝트 점검 ④ 회고 메모 → 저장(retros kind:teamMonthly)
+function AkRetroSheet({D,cu,up,add,target,onClose}){
+  const {y,m0}=target, ym=akYm(y,m0);
+  const users=D.users||[];
+  const WK=akWeeksIn(y,m0), WQ=akQuarterWeeks(y,m0);
+  const {docs,ready}=useAkDocs([akQidOfMonth(y,m0)]);
+  const today=akYmd(new Date());
+  const rec=(D.retros||[]).find(r=>r&&r.kind==="teamMonthly"&&r.month===ym);
+  const canSave=can(cu,"kpiLag");
+  const lags=[...(D.lagKPIs||[])].sort((a,b)=>(a.order||0)-(b.order||0));
+  const [vals,setVals]=useState(()=>Object.fromEntries(lags.map(k=>[k.id,k.monthly&&k.monthly[ym]&&k.monthly[ym].v!=null?String(k.monthly[ym].v):""])));
+  const [notes,setNotes]=useState(()=>({keep:(rec&&rec.notes&&rec.notes.keep)||"",problem:(rec&&rec.notes&&rec.notes.problem)||"",next:(rec&&rec.notes&&rec.notes.next)||""}));
+  const [saved,setSaved]=useState(false);
+  const [openPast,setOpenPast]=useState(null);
+  const monthEnd=akYmd(new Date(y,m0+1,0));
+  const items=(D.actionKPIs||[]).filter(it=>it.active!==false&&akStart(it)<=monthEnd).sort(akOrder);
+  const res=items.map(it=>{
+    if(it.cyc==="W"&&!it.perFail){   // 끝난 주만 채점 (진행 중인 주는 달성했을 때만 포함 — 아직 안 끝난 주를 미달로 치지 않음)
+      const ws=WK.filter(w=>akFullWeek(it,w)&&(w.end<today||(w.start<=today&&akWeekDone(docs,it,w.key)))); const okN=ws.filter(w=>akWeekDone(docs,it,w.key)).length;
+      return {it,done:ws.length>0&&okN===ws.length,rate:ws.length?okN/ws.length:null,txt:ws.length?`${okN}/${ws.length}주 달성`:"끝난 주 없음 · 참고"}; }
+    const t=akTotal(docs,it,it.cyc==="Q"?WQ:WK), pp=akPartial(it,it.cyc==="Q"?WQ:WK);
+    return {it,done:t.done,rate:(t.none||pp)?null:(t.g?Math.min(1,t.n/t.g):0),txt:(it.unit==="%"?`${t.n}%`:t.none?`매칭 실패 없음${t.n?` · 시도 ${t.n}회`:""}`:`${t.n}/${t.g}${it.unit}${it.cyc==="Q"?" (분기 누적)":""}`)+(pp?" · 시작한 달이라 참고용":"")};
+  });
+  const scored=res.filter(r=>r.rate!=null);
+  const teamRate=scored.length?Math.round(scored.filter(r=>r.done).length/scored.length*100):null;
+  const byPerson=users.map(u=>{ const mine=scored.filter(r=>akWho(users,r.it).includes(u.id)); return {u,n:mine.length,ok:mine.filter(r=>r.done).length,miss:mine.filter(r=>!r.done)}; }).filter(x=>x.n>0);
+  const late=(D.projects||[]).filter(p=>projStatus(p)!=="completed"&&p.dueDate&&p.dueDate<today).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+  const nm=new Date(y,m0+1,1), nym=akYm(nm.getFullYear(),nm.getMonth());
+  const nextDue=(D.projects||[]).filter(p=>projStatus(p)!=="completed"&&p.dueDate&&p.dueDate.slice(0,7)===nym).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+  const save=()=>{ if(!canSave) return; const at=new Date().toISOString();
+    lags.forEach(k=>{ const s=String(vals[k.id]||"").trim(); if(s==="") return; const v=Number(s); if(!isFinite(v)) return; const prev=k.monthly&&k.monthly[ym]; if(prev&&prev.v===v) return;
+      up("lagKPIs",k.id,{monthly:{...(k.monthly||{}),[ym]:{v,by:cu.id,byName:cu.name||"",at}}}); });
+    const summary={teamRate,people:byPerson.map(p=>({uid:p.u.id,name:p.u.name,ok:p.ok,n:p.n})),missed:scored.filter(r=>!r.done).map(r=>({id:r.it.id,name:r.it.name,txt:r.txt,core:!!r.it.core,who:akWho(users,r.it)})),late:late.map(p=>({id:p.id,title:p.title,dueDate:p.dueDate}))};
+    const lag=Object.fromEntries(lags.map(k=>{ const s=String(vals[k.id]||"").trim(); return [k.id,s===""||!isFinite(Number(s))?null:Number(s)]; }));
+    const data={kind:"teamMonthly",month:ym,notes:{keep:notes.keep.trim(),problem:notes.problem.trim(),next:notes.next.trim()},summary,lag,by:cu.id,byName:cu.name||"",updatedAt:at};
+    if(rec) up("retros",rec.id,data); else add("retros",{id:"tm-"+ym,...data,createdAt:at});
+    setSaved(true); };
+  const H=({n,t,s})=>(<div style={{display:"flex",alignItems:"baseline",gap:8,margin:"18px 0 8px"}}><span style={{width:22,height:22,borderRadius:6,background:"#0F1F5C",color:"#fff",fontSize:12,fontWeight:900,display:"grid",placeItems:"center",flexShrink:0}}>{n}</span><b style={{fontSize:14.5,color:"#16181D"}}>{t}</b>{s&&<span style={{fontSize:11.5,color:"#8A8E96",fontWeight:600}}>{s}</span>}</div>);
+  const box={background:"#fff",border:"1px solid #E3E3DF",borderRadius:12,padding:"10px 12px"};
+  const inp={width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:14,fontFamily:"inherit",boxSizing:"border-box",background:canSave?"#fff":"#F6F6F4"};
+  const past=(D.retros||[]).filter(r=>r&&r.kind==="teamMonthly"&&r.month!==ym).sort((a,b)=>String(b.month).localeCompare(String(a.month)));
+  return(<Sheet open onClose={onClose} title={`📋 ${m0+1}월 월말 회고`} h="94vh" w={680}>
+    <div style={{paddingBottom:10}}>
+      <p style={{margin:"4px 0 0",fontSize:12,color:"#4A4E57",fontWeight:600}}>회고일 {akDayLabel(akRetroDay(y,m0))} · 매월 마지막 평일 · {rec?`✅ 저장됨 (${rec.byName||""} ${String(rec.updatedAt||"").slice(5,16).replace("T"," ")})`:"아직 저장 전"}</p>
+      {!canSave&&<p style={{margin:"8px 0 0",padding:"8px 10px",borderRadius:10,background:"#F6F6F4",fontSize:12,color:"#8A8E96",fontWeight:700}}>보기 전용 · 저장은 마스터나 '결과 KPI 월 입력' 권한이 있는 사람이 해요</p>}
+      <H n="1" t="결과 KPI 입력" s={`${m0+1}월 값 · 월 1회`}/>
+      <div style={{...box,display:"flex",flexDirection:"column",gap:8}}>{lags.map(k=>{ const prevKs=Object.keys(k.monthly||{}).filter(x=>x<ym&&k.monthly[x]&&k.monthly[x].v!=null).sort(); const pv=prevKs.length?{v:k.monthly[prevKs[prevKs.length-1]].v,ym:prevKs[prevKs.length-1]}:{v:k.base,ym:null};
+        const v=vals[k.id], p=lagPct(k,v===""?null:Number(v));
+        return <div key={k.id} style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) 104px",gap:8,alignItems:"center"}}>
+          <div style={{minWidth:0}}><p style={{margin:0,fontSize:13,fontWeight:700,color:"#16181D"}}>{k.name}</p><p style={{margin:"1px 0 0",fontSize:11,color:"#8A8E96",fontWeight:600}}>목표 {k.goal==null?"미정":Number(k.goal).toLocaleString("ko-KR")+k.unit} · 지난 값 {akFmt(pv.v)}{pv.v!=null?k.unit:""}{pv.ym?` (${+pv.ym.slice(5)}월)`:" (엑셀)"}{p!=null?` · 달성 ${p}%`:""}</p></div>
+          <input type="number" step="any" inputMode="decimal" value={v} disabled={!canSave} onChange={e=>setVals(o=>({...o,[k.id]:e.target.value}))} placeholder={`${m0+1}월 값`} aria-label={`${k.name} ${m0+1}월 값`} style={{...inp,textAlign:"right"}}/>
+        </div>; })}</div>
+      <H n="2" t="행동지표 결과" s={ready?(teamRate==null?"":`팀 달성률 ${teamRate}%`):"불러오는 중…"}/>
+      <div style={{...box,display:"flex",flexDirection:"column",gap:10}}>
+        {byPerson.map(p=><div key={p.u.id}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}><b style={{fontSize:13,color:"#16181D"}}>{p.u.name}</b><span style={{fontSize:12,fontWeight:800,color:p.ok===p.n?"#1F7A4D":"#0F1F5C",fontVariantNumeric:"tabular-nums"}}>{p.ok}/{p.n} 달성</span>
+            <div style={{flex:1,height:5,background:"#EDEDEA",borderRadius:3,overflow:"hidden"}}><div style={{width:`${p.n?p.ok/p.n*100:0}%`,height:"100%",background:p.ok===p.n?"#1F7A4D":"#0F1F5C"}}/></div></div>
+          {p.miss.map(r=><p key={r.it.id} style={{margin:"3px 0 0 2px",fontSize:12,color:"#A5620B",fontWeight:600}}>· {r.it.core?"":"(추가) "}{r.it.name} — {r.txt}</p>)}
+        </div>)}
+        {!byPerson.length&&<p style={{margin:0,fontSize:12.5,color:"#8A8E96"}}>이 달 행동지표가 없어요</p>}
+      </div>
+      <H n="3" t="프로젝트 점검" s={`마감 지남 ${late.length} · 다음 달 마감 ${nextDue.length}`}/>
+      <div style={{...box,display:"flex",flexDirection:"column",gap:5}}>
+        {late.map(p=><div key={p.id} style={{display:"flex",alignItems:"center",gap:8}}><p style={{flex:1,minWidth:0,margin:0,fontSize:12.5,color:"#16181D",fontWeight:600}}><span style={{color:"#DC2626",fontWeight:800}}>지연</span> {p.title} <span style={{color:"#8A8E96"}}>· 마감 {p.dueDate.slice(5)} · {userName(D,p.assigneeId)||"담당 미정"} · 진척 {Number(p.progress)||0}%</span></p>
+          {canSave&&(Number(p.progress)||0)>=100&&<button onClick={()=>up("projects",p.id,{status:"completed",progress:100,progressManual:true})} style={{flexShrink:0,padding:"5px 9px",borderRadius:8,border:"1px solid #1F7A4D",background:"#E3F2EA",color:"#1F7A4D",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}} title="진척 100% — 완료로 옮겨요">✓ 완료 처리</button>}</div>)}
+        {nextDue.map(p=><p key={p.id} style={{margin:0,fontSize:12.5,color:"#16181D",fontWeight:600}}><span style={{color:"#0F1F5C",fontWeight:800}}>다음 달</span> {p.title} <span style={{color:"#8A8E96"}}>· 마감 {p.dueDate.slice(5)} · {userName(D,p.assigneeId)||"담당 미정"}</span></p>)}
+        {!late.length&&!nextDue.length&&<p style={{margin:0,fontSize:12.5,color:"#8A8E96"}}>마감 지난 프로젝트가 없어요</p>}
+      </div>
+      <H n="4" t="회고 메모" s="짧게 한 줄씩"/>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {[["keep","👍 잘한 점 (계속할 것)"],["problem","🤔 아쉬운 점 (막힌 것)"],["next","🎯 다음 달 집중 (1~3개)"]].map(([k,l])=><label key={k} style={{fontSize:12,fontWeight:800,color:"#374151"}}>{l}
+          <textarea value={notes[k]} disabled={!canSave} onChange={e=>setNotes(o=>({...o,[k]:e.target.value}))} rows={2} style={{...inp,marginTop:4,resize:"vertical",fontWeight:500}}/></label>)}
+      </div>
+      {canSave&&<button onClick={save} style={{width:"100%",marginTop:16,padding:"14px 0",borderRadius:14,border:"none",background:"#0F1F5C",color:"#fff",fontWeight:900,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>{rec?"회고 다시 저장":`${m0+1}월 회고 저장`}</button>}
+      {saved&&<p role="status" style={{margin:"10px 0 0",padding:"9px 12px",borderRadius:10,background:"#E3F2EA",color:"#1F7A4D",fontSize:12.5,fontWeight:800}}>✅ {m0+1}월 회고를 저장했어요 · 결과 KPI가 KPI 화면에 반영돼요</p>}
+      {past.length>0&&<><H n="·" t="지난 회고" s={`${past.length}개`}/>
+        {past.map(r=><div key={r.id} style={{...box,marginBottom:6}}>
+          <button onClick={()=>setOpenPast(o=>o===r.id?null:r.id)} style={{width:"100%",display:"flex",justifyContent:"space-between",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:800,color:"#16181D"}}><span>{+String(r.month).slice(5)}월 회고 · {r.byName||""}</span><span style={{color:"#8A8E96"}}>{r.summary&&r.summary.teamRate!=null?`팀 달성률 ${r.summary.teamRate}%`:""} {openPast===r.id?"▴":"▾"}</span></button>
+          {openPast===r.id&&<div style={{marginTop:6,fontSize:12.5,color:"#4A4E57",lineHeight:1.6,whiteSpace:"pre-line"}}>{r.notes&&r.notes.keep?`👍 ${r.notes.keep}\n`:""}{r.notes&&r.notes.problem?`🤔 ${r.notes.problem}\n`:""}{r.notes&&r.notes.next?`🎯 ${r.notes.next}`:""}</div>}
+        </div>)}</>}
+    </div>
+  </Sheet>);
+}
+// 🔐 마스터 PIN — 마스터로 전환할 때 확인 · 본인이 정하기 (잊으면 다른 마스터가 초기화)
+function PinSheet({ask,onClose,onVerified,onSet}){
+  const u=ask.user, setMode=ask.mode==="set";
+  const [p1,setP1]=useState(""), [p2,setP2]=useState(""), [err,setErr]=useState("");
+  const lk="pour-os-pin-lock-"+u.id;
+  const readLock=()=>{ try{ return JSON.parse(localStorage.getItem(lk)||"null")||{n:0,until:0}; }catch(_){ return {n:0,until:0}; } };
+  const [lock,setLock]=useState(readLock);
+  const locked=lock.until>Date.now();
+  const submit=()=>{
+    if(setMode){ if(!/^\d{4}$/.test(p1)){ setErr("숫자 4자리로 정해주세요"); return; } if(p1!==p2){ setErr("두 번 입력한 PIN이 달라요"); return; } onSet(pinHash(u.id,p1)); return; }
+    if(locked) return;
+    if(u.pinHash&&pinHash(u.id,p1)===u.pinHash){ try{ localStorage.removeItem(lk); }catch(_){} onVerified(); return; }
+    const n=(lock.n||0)+1, nl=n>=PIN_TRY_MAX?{n:0,until:Date.now()+PIN_LOCK_MIN*60000}:{n,until:0};
+    try{ localStorage.setItem(lk,JSON.stringify(nl)); }catch(_){}
+    setLock(nl); setP1(""); setErr(n>=PIN_TRY_MAX?`${PIN_TRY_MAX}번 틀려서 ${PIN_LOCK_MIN}분 동안 잠겼어요`:`PIN이 맞지 않아요 (${n}/${PIN_TRY_MAX})`);
+  };
+  const inp={width:"100%",padding:"14px 12px",borderRadius:12,border:"1.5px solid #E5E8EB",fontSize:22,letterSpacing:10,textAlign:"center",fontFamily:"'IBM Plex Mono',monospace",boxSizing:"border-box"};
+  const only4=(v)=>v.replace(/\D/g,"").slice(0,4);
+  return(<Sheet open onClose={onClose} title={setMode?"🔐 마스터 PIN 정하기":`🔐 ${u.name} · 마스터 PIN`} h="80vh" w={420}>
+    <div style={{paddingTop:6,display:"flex",flexDirection:"column",gap:10}}>
+      <p style={{margin:0,fontSize:12.5,color:"#4B5563",lineHeight:1.6}}>{setMode?"다른 사람이 내 이름(마스터)으로 전환하지 못하게 숫자 4자리를 정해요. 잊으면 다른 마스터가 초기화할 수 있어요.":"마스터로 전환하려면 PIN이 필요해요. 잊었다면 다른 마스터에게 초기화를 부탁하세요."}</p>
+      <input type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={p1} disabled={!setMode&&locked} onChange={e=>{ setP1(only4(e.target.value)); setErr(""); }} onKeyDown={e=>{ if(e.key==="Enter") submit(); }} placeholder="••••" aria-label={setMode?"새 PIN":"PIN"} style={inp} autoFocus/>
+      {setMode&&<input type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={p2} onChange={e=>{ setP2(only4(e.target.value)); setErr(""); }} onKeyDown={e=>{ if(e.key==="Enter") submit(); }} placeholder="한 번 더" aria-label="PIN 확인" style={inp}/>}
+      {(err||(!setMode&&locked))&&<p role="alert" style={{margin:0,fontSize:12.5,fontWeight:700,color:"#DC2626"}}>{err||`잠겨 있어요 · ${new Date(lock.until).toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})} 이후 다시`}</p>}
+      <button onClick={submit} disabled={(!setMode&&locked)||p1.length!==4||(setMode&&p2.length!==4)} style={{padding:"14px 0",borderRadius:14,border:"none",background:"#0F1F5C",color:"#fff",fontWeight:900,fontSize:15,cursor:"pointer",fontFamily:"inherit",opacity:((!setMode&&locked)||p1.length!==4||(setMode&&p2.length!==4))?0.45:1}}>{setMode?"PIN 저장":"확인하고 전환"}</button>
+    </div>
+  </Sheet>);
+}
+
 function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro}){
-  const [kpiView,setKpiView]=useState("lag");   // lag(후행지표) | lead(선행지표) | mindmap(전체 맵)
+  const [kpiView,setKpiView]=useState("act");   // act(✅ 행동지표 — 기본) | lag(후행지표) | lead(선행지표) | mindmap(전체 맵)
+  const [retroT,setRetroT]=useState(null);       // 📋 월말 회고 {y,m0}
   const [openMK,setOpenMK]=useState("mk1");
   const [openSK,setOpenSK]=useState(null);
   const [openContrib,setOpenContrib]=useState(null);   // 채널별 기여분석 펼침
@@ -2720,10 +3332,12 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
   return(
     <div style={{padding:"14px 16px 20px"}}>
       <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
-        {[{k:"lag",l:"🎯 후행지표"},{k:"lead",l:"⚡ 선행지표"},{k:"mindmap",l:"◈ 전체 맵"}].map(v=>(
+        {[{k:"act",l:"✅ 행동지표"},{k:"lag",l:"🎯 후행지표"},{k:"lead",l:"⚡ 선행지표"},{k:"mindmap",l:"◈ 전체 맵"}].map(v=>(
           <button key={v.k} onClick={()=>setKpiView(v.k)} style={{flex:1,padding:"9px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:kpiView===v.k?"#FFFFFF":"transparent",color:kpiView===v.k?"#191F28":"#6B7280",fontWeight:kpiView===v.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:kpiView===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
         ))}
       </div>
+      {kpiView==="act"&&<AkBoard D={D} cu={cu} up={up} add={add} ro={ro} onRetro={(t)=>setRetroT(t)}/>}
+      {retroT&&<AkRetroSheet D={D} cu={cu} up={up} add={add} target={retroT} onClose={()=>setRetroT(null)}/>}
       {kpiView==="lag"&&(
         <div>
           {(()=>{
@@ -5179,6 +5793,8 @@ function CalendarPage({D,cu,add,up,rm,nav}){
       const end=(t.wfData||{}).endDate; if(wf.kind==="notice"&&end&&inM(end)) out.push({kind:"wf",key:"wn_"+t.id,start:end,end,color:"#B45309",bg:"#FEF3E2",label:`📢 내리기: ${t.title}`,sub:"공지 내리는 날",onClick:()=>goCatC("notice")}); });
     if(show.task) (D.tasks||[]).filter(t=>!t.isFixed&&!t.wfId&&t.projectId&&t.dueDate&&t.status!=="done"&&inM(t.dueDate)).forEach(t=>{ const p=(D.projects||[]).find(x=>x.id===t.projectId);
       out.push({kind:"task",key:"t_"+t.id,start:t.dueDate,end:t.dueDate,color:t.dueDate<todayC?"#F04452":"#4E5968",bg:t.dueDate<todayC?"#FFF0F1":"#F2F4F6",label:`✅ ${t.title}`,sub:`${p?p.title:""} · ${userName(D,t.assigneeId)||""}`,onClick:()=>p&&setProjOpen(p.id)}); });
+    if(show.ev){ const rd=akRetroDay(y,m); if(inM(rd)){ const rdone=(D.retros||[]).some(r=>r&&r.kind==="teamMonthly"&&r.month===akYm(y,m));   // 📋 월말 회고 — 매월 마지막 평일
+      out.push({kind:"retro",key:"retro_"+rd,start:rd,end:rd,color:"#0F1F5C",bg:"#E7EAF4",label:`📋 월말 회고${rdone?" ✅":""}`,sub:"매월 마지막 평일 · 결과 KPI 입력 · 행동지표·프로젝트 점검",onClick:()=>nav&&nav("kpi")}); } }
     return out.sort((a,b)=>a.start.localeCompare(b.start)); })();
   const cntKind=(k)=>k==="ev"?mEvts.length:extra.filter(x=>x.kind===k).length;
   const doAction=()=>{
@@ -6748,8 +7364,18 @@ function GuidePage({D}){
 }
 // 담당자 관리 — 앱 전체 담당자의 단일 마스터(추가/수정/색상/삭제). 모든 담당자 선택지가 D.users를 참조하므로 여기 변경이 전체 반영.
 const USER_PALETTE=["#3182F6","#8B5CF6","#00C073","#3182F6","#1B64DA","#0891B2","#D946EF","#65A30D","#DC2626","#0D9488","#DB2777","#4F46E5"];
-function TeamPage({D,cu,lead,add,up,rm}){
+function TeamPage({D,cu,lead,add,up,rm,onPin}){
   const [name,setName]=useState("");
+  // 👑 권한 — 마스터(기본 김송희·이란·김소연·허지은)만 담당자 추가·삭제·권한 설정. 팀원은 필요한 권한만 켜준다.
+  const M=isMaster(cu);
+  const masterList=(D.users||[]).filter(isMaster);
+  const setMaster=(u,v)=>{ if(!M) return; if(!v&&isMaster(u)&&masterList.length<=1){ window.alert("마스터는 최소 1명 있어야 해요."); return; }
+    if(!v&&u.id===cu.id&&!window.confirm("나를 팀원으로 바꾸면 권한 설정을 더 못 해요. 바꿀까요?")) return;
+    up("users",u.id,{master:!!v}); };
+  const togPerm=(u,k)=>{ if(!M) return; up("users",u.id,{perms:{...(u.perms||{}),[k]:!(u.perms&&u.perms[k])}}); };
+  const resetPin=(u)=>{ if(!M||u.id===cu.id) return; if(window.confirm(`${u.name}님의 PIN을 초기화할까요? 본인이 다음에 새로 정해요.`)) up("users",u.id,{pinHash:null,pinResetBy:cu.id,pinResetAt:new Date().toISOString()}); };
+  const pchip=(on)=>({padding:"5px 9px",borderRadius:999,border:`1.5px solid ${on?"#0F1F5C":"#E5E8EB"}`,background:on?"#E7EAF4":"#fff",color:on?"#0F1F5C":"#8B95A1",fontSize:11.5,fontWeight:on?800:600,cursor:M?"pointer":"default",fontFamily:"inherit"});
+  const sbtn={padding:"5px 9px",borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",fontSize:11.5,fontWeight:700,color:"#4B5563",cursor:"pointer",fontFamily:"inherit"};
   const [editId,setEditId]=useState(null);
   const [editName,setEditName]=useState("");
   const users=D.users||[];
@@ -6798,11 +7424,16 @@ function TeamPage({D,cu,lead,add,up,rm}){
         <h2 style={{margin:0,fontSize:18,fontWeight:900,color:"#191F28"}}>👥 담당자 관리</h2>
         <p style={{margin:"4px 0 0",fontSize:11.5,color:"#9CA3AF",lineHeight:1.6}}>여기 담당자가 앱 전체(업무·프로젝트·일정·프로세스)의 <b>담당자 선택지</b>로 노출돼요. 추가하면 모든 곳에 바로 반영됩니다.</p>
       </div>
-      <div style={{display:"flex",gap:7,marginBottom:14}}>
+      <div style={{marginBottom:14,padding:"11px 13px",borderRadius:12,background:"#E7EAF4",border:"1px solid #C3CCEB"}}>
+        <p style={{margin:0,fontSize:12.5,fontWeight:900,color:"#0F1F5C"}}>👑 마스터 {masterList.length}명 · {masterList.map(u=>u.name).join("·")||"없음"}</p>
+        <p style={{margin:"4px 0 0",fontSize:11.5,color:"#1E2A55",lineHeight:1.6,fontWeight:600}}>마스터는 모든 권한 + 담당자 추가·삭제·권한 설정. 팀원은 아래에서 필요한 권한만 켜줘요. 마스터로 전환할 때는 🔐 PIN을 물어요.</p>
+        {!M&&<p style={{margin:"4px 0 0",fontSize:11.5,color:"#6B7280",fontWeight:700}}>지금 {cu.name}님은 팀원이라 보기만 할 수 있어요.</p>}
+      </div>
+      {M&&<div style={{display:"flex",gap:7,marginBottom:14}}>
         <input value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addUser()} placeholder="새 담당자 이름 (예: 김하늘)" style={{flex:1,padding:"11px 13px",borderRadius:11,border:"1.5px solid #E5E8EB",fontSize:13.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
         <button onClick={addUser} disabled={!name.trim()} style={{flexShrink:0,padding:"0 16px",borderRadius:11,border:"none",background:name.trim()?"#3182F6":"#E5E8EB",color:name.trim()?"#fff":"#9CA3AF",fontSize:13.5,fontWeight:800,cursor:name.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>+ 추가</button>
-      </div>
-      <button onClick={syncStaff} disabled={syncing} style={{width:"100%",marginBottom:14,padding:"10px 0",borderRadius:11,border:"1.5px solid #DBE3FF",background:"#F5F8FF",color:"#3182F6",fontSize:12.5,fontWeight:800,cursor:syncing?"default":"pointer",fontFamily:"inherit"}}>{syncing?"가져오는 중…":"🔄 어드민센터 담당자 관리에서 가져오기 (staff)"}</button>
+      </div>}
+      {M&&<button onClick={syncStaff} disabled={syncing} style={{width:"100%",marginBottom:14,padding:"10px 0",borderRadius:11,border:"1.5px solid #DBE3FF",background:"#F5F8FF",color:"#3182F6",fontSize:12.5,fontWeight:800,cursor:syncing?"default":"pointer",fontFamily:"inherit"}}>{syncing?"가져오는 중…":"🔄 어드민센터 담당자 관리에서 가져오기 (staff)"}</button>}
       <p style={{margin:"0 0 8px",fontSize:11,fontWeight:800,color:"#6B7280"}}>전체 {users.length}명</p>
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {users.map(u=>{
@@ -6821,15 +7452,27 @@ function TeamPage({D,cu,lead,add,up,rm}){
                     </div>
                   ):(
                     <>
-                      <p style={{margin:0,fontSize:14,fontWeight:800,color:"#191F28"}}>{u.name}{u.role==="lead"?" · 리드":""}{me?" (나)":""}</p>
+                      <p style={{margin:0,fontSize:14,fontWeight:800,color:"#191F28"}}>{u.name}{isMaster(u)?" · 👑 마스터":""}{me?" (나)":""}</p>
                       <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>업무 {tcnt} · 프로젝트 {pcnt}</p>
                     </>
                   )}
                 </div>
                 {editId!==u.id&&<div style={{display:"flex",gap:6,flexShrink:0}}>
                   <button onClick={()=>startEdit(u)} style={{padding:"6px 9px",borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",fontSize:12,fontWeight:700,color:"#4B5563",cursor:"pointer",fontFamily:"inherit"}}>✎</button>
-                  <button onClick={()=>removeUser(u)} style={{padding:"6px 9px",borderRadius:8,border:"1px solid #FFE2E5",background:"#FFF0F1",fontSize:12,fontWeight:700,color:"#F04452",cursor:"pointer",fontFamily:"inherit"}}>🗑</button>
+                  {M&&<button onClick={()=>removeUser(u)} style={{padding:"6px 9px",borderRadius:8,border:"1px solid #FFE2E5",background:"#FFF0F1",fontSize:12,fontWeight:700,color:"#F04452",cursor:"pointer",fontFamily:"inherit"}}>🗑</button>}
                 </div>}
+              </div>
+              <div style={{marginTop:9,paddingTop:9,borderTop:"1px dashed #EEF1F4",display:"flex",flexDirection:"column",gap:7}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                  <span style={{fontSize:11.5,fontWeight:900,color:isMaster(u)?"#fff":"#4B5563",background:isMaster(u)?"#0F1F5C":"#F2F4F6",padding:"3px 9px",borderRadius:999}}>{isMaster(u)?"👑 마스터":"팀원"}</span>
+                  {M&&<button onClick={()=>setMaster(u,!isMaster(u))} style={sbtn}>{isMaster(u)?"팀원으로":"마스터로"}</button>}
+                  {isMaster(u)&&<span style={{fontSize:11,fontWeight:800,color:u.pinHash?"#1F7A4D":"#A5620B"}}>{u.pinHash?"🔐 PIN 설정됨":"🔓 PIN 없음"}</span>}
+                  {isMaster(u)&&u.id===cu.id&&onPin&&<button onClick={()=>onPin("set",u)} style={sbtn}>{u.pinHash?"PIN 바꾸기":"PIN 정하기"}</button>}
+                  {M&&isMaster(u)&&u.id!==cu.id&&u.pinHash&&<button onClick={()=>resetPin(u)} style={sbtn}>PIN 초기화</button>}
+                </div>
+                {isMaster(u)?<p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>모든 권한 · 담당자·권한 설정 가능</p>
+                  :<div style={{display:"flex",flexWrap:"wrap",gap:5}}>{PERMS.map(pm=>{ const on=!!(u.perms&&u.perms[pm.k]); return M?<button key={pm.k} onClick={()=>togPerm(u,pm.k)} aria-pressed={on} style={pchip(on)}>{on?"✓ ":""}{pm.l}</button>:(on?<span key={pm.k} style={pchip(true)}>{pm.l}</span>:null); })}
+                    {!M&&!PERMS.some(pm=>u.perms&&u.perms[pm.k])&&<span style={{fontSize:10.5,color:"#9CA3AF"}}>기본 권한 (내 업무·내 행동지표 체크·추가 행동지표 만들기)</span>}</div>}
               </div>
               <div style={{display:"flex",gap:5,marginTop:9,flexWrap:"wrap"}}>
                 {USER_PALETTE.map(c=>(<button key={c} onClick={()=>up("users",u.id,{color:c})} style={{width:20,height:20,borderRadius:"50%",background:c,border:u.color===c?"2.5px solid #191F28":"2px solid #fff",boxShadow:"0 0 0 1px #E5E8EB",cursor:"pointer",padding:0}}/>))}

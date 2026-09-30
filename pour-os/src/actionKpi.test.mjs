@@ -1,6 +1,6 @@
 // 행동지표·권한·PIN·월말 회고 로직 테스트 — node src/actionKpi.test.mjs
 import { createHash } from "node:crypto";
-import { AK_SEED, LAG_SEED, akWeeksIn, akQuarterWeeks, akWeekKey, akQidOfWeek, akVal, akTotal, akWeekDone, akWho, lagCur, lagPct, akPartial,
+import { AK_SEED, LAG_SEED, akWeeksIn, akQuarterWeeks, akWeekKey, akQidOfWeek, akVal, akTotal, akWeekDone, akWho, lagCur, lagPct, akPartial, akLink,
   isMaster, can, sha256, pinHash, akRetroDay, akRetroDue, akGoalText, akAddDays } from "./actionKpi.js";
 
 let pass = 0, fail = 0;
@@ -42,6 +42,11 @@ eq("목표 문구", [akGoalText(it("c_b2c")), akGoalText(it("link")), akGoalText
 eq("9/28 시작한 월간 항목의 9월은 참고용", akPartial(it("influrv"), akWeeksIn(2026, 8)), true);
 eq("10월은 정상 집계", akPartial(it("influrv"), akWeeksIn(2026, 9)), false);
 eq("주간 항목은 해당 없음", akPartial(it("c_b2c"), akWeeksIn(2026, 8)), false);
+eq("기본 연결: (B2C) 컨텐츠 → 메인1 자사몰", akLink(it("c_b2c")), { mk: "mk1", sk: "sk1" });
+eq("기본 연결: 매칭시도 → 메인2 시공매칭", akLink(it("match")), { mk: "mk2", sk: "sk8" });
+eq("기본 연결: NPS → 공통", akLink(it("nps_b2b")), { mk: "", sk: "" });
+eq("직접 바꾼 연결이 우선", akLink({ ...it("c_b2c"), mk: "mk2", sk: "" }), { mk: "mk2", sk: "" });
+eq("결과 KPI 연결: 시공매칭 성사율 → 메인2", akLink(LAG_SEED[4]), { mk: "mk2", sk: "sk8" });
 // ④ 담당자 찾기 — id 우선, 없으면 이름 끝글자
 const users = [{ id: "songhee", name: "김송희" }, { id: "ran", name: "이란" }, { id: "chaerim", name: "양채림" }, { id: "minji", name: "김민지" }, { id: "TC51U2cdFnn6Q5Y7A6o9", name: "윤미니" }, { id: "GM", name: "허지은" }, { id: "gK", name: "김소연" }];
 eq("미니 → 윤미니", akWho(users, it("ref")), ["TC51U2cdFnn6Q5Y7A6o9"]);

@@ -1303,6 +1303,14 @@ body.dai-open #daiFab,body.dai-open #calcFab{display:none!important}
 .la-next{font-size:12.5px;font-weight:700;color:#6D28D9;margin-top:5px}
 .la-next.go{color:var(--xl-green-dark)}
 .la-next.warn{color:var(--ink);font-weight:500}
+.pn-box{border-top:1px dashed var(--line,#E5E7EB);padding-top:12px}
+.pn-h{font-weight:800;font-size:13.5px;margin-bottom:6px}.pn-h .dim{font-weight:500;font-size:11.5px}
+.pn-add{display:flex;gap:6px;margin:4px 0 8px;flex-wrap:wrap}.pn-add input,.pn-add select{flex:1 1 160px;min-width:0;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit}.pn-add select{flex:0 1 150px}
+.pn-row{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:10px;background:#F8FAFC;margin-bottom:5px}.pn-row .t{flex:1;min-width:0;font-size:13px;line-height:1.5;word-break:keep-all}.pn-row.done{opacity:.55}
+.pn-kind{font-size:11px;font-weight:800;color:#334155;background:#E2E8F0;border-radius:6px;padding:1px 6px;margin-right:2px}
+.pn-meta{font-size:11px;color:#94A3B8;font-weight:500}
+.pn-qa{padding:8px 10px;border-radius:10px;background:#F8FAFC;margin-bottom:6px;font-size:13px;line-height:1.5}.pn-qa .q{font-weight:800}.pn-qa .a{margin-top:3px;color:#0B7A3E}
+.pn-more,.pn-link{border:none;background:none;color:#64748B;font-size:12px;font-weight:700;cursor:pointer;padding:2px 0}.pn-link{text-decoration:underline;color:#94A3B8}
 .la-row.off .nm{color:var(--ink-soft)}
 .la-row .mono{font-family:var(--mono);font-size:11.5px}
 #laDetailBar .ttl{min-width:0;overflow-wrap:anywhere}
@@ -1727,7 +1735,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.30a</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.30b</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2899,6 +2907,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
       <p class="footnote" id="adFootSet" style="display:none">· 세트는 <b>구성 단품의 원가·업체단가·채널가를 수량대로 자동 합산</b>합니다. 매입원가·제조사·업체단가·정가는 구성 단품에서 가져오므로 여기서 입력하지 않습니다.</p>
       <p class="footnote" id="adFootEdit" style="display:none">· 업체단가·정가는 가격정책표 셀에서 <b>상급자 승인</b>을 통해 변경합니다.<br>· 제품명·규격은 여기서 바꾸지 않습니다(분류·원가·제조사만 수정).</p>
       <div id="adStatus" class="footnote" style="margin-top:6px"></div>
+      <div id="adNotes" style="display:none;margin-top:14px"></div>
     </div>
     <div class="imp-foot">
       <span class="footnote" style="margin:0">가격정책표·손익에 바로 반영됩니다</span>
@@ -4593,7 +4602,7 @@ function rowInfoPaint(el){
     return `<span class="ri-c${c.retail?' rt':''}"><i>${c.code?esc(c.code)+' ':''}${esc(c.lb)}</i><b>${v==null?'—':won(v)}</b>${r!=null?`<em class="${r<0?'neg':''}">${pct(r)}</em>`:''}</span>`; };
   el.hidden=false;
   el.innerHTML=`<div class="ri-hd"><b>${esc(p.name)}</b><span>${esc(p.spec||'')}${pcodeOf(p)?' · '+esc(pcodeOf(p)):''}${costAllowed?` · 원가 <b>${cost==null?'—':won(cost)}</b>`:''}</span>
-      ${costAllowed?(EDIT_ROW===String(p.id)?`<span class="ri-editing">✏️ 편집 중 · 가격칸 더블클릭</span><button type="button" class="ri-b" data-rimodal="${p.id}" title="분류·원가·유형·구성">상세 수정</button><button type="button" class="ri-b ri-mob" data-rifix="${p.id}" title="자동계산 ↔ 파일값 고정">${isFixed(p)?'📌 파일값':'⚙️ 자동계산'}</button><button type="button" class="ri-b ri-mob" data-ricopy="${p.id}">📋 복사</button><button type="button" class="ri-b ri-mob" data-ridel="${p.id}" style="color:var(--red)">🗑 휴지통</button><button type="button" class="ri-b ri-done" data-riedit="${p.id}">완료</button>`:`<button type="button" class="ri-b" data-riedit="${p.id}" title="이 제품 편집">✏️ 편집</button>`):''}${costAllowed?`<button type="button" class="ri-b ri-det" data-ridet="${p.id}" title="상품 기준 · 채널 수익분석">상세 ▸</button>`:''}<button type="button" class="ri-b" id="rowInfoX" title="닫기">✕</button></div>
+      ${costAllowed?(EDIT_ROW===String(p.id)?`<span class="ri-editing">✏️ 편집 중 · 가격칸 더블클릭</span><button type="button" class="ri-b" data-rimodal="${p.id}" title="분류·원가·유형·구성">상세 수정</button><button type="button" class="ri-b ri-mob" data-rifix="${p.id}" title="자동계산 ↔ 파일값 고정">${isFixed(p)?'📌 파일값':'⚙️ 자동계산'}</button><button type="button" class="ri-b ri-mob" data-ricopy="${p.id}">📋 복사</button><button type="button" class="ri-b ri-mob" data-ridel="${p.id}" style="color:var(--red)">🗑 휴지통</button><button type="button" class="ri-b ri-done" data-riedit="${p.id}">완료</button>`:`<button type="button" class="ri-b" data-riedit="${p.id}" title="이 제품 편집">✏️ 편집</button>`):''}${costAllowed?`<button type="button" class="ri-b ri-det" data-ridet="${p.id}" title="상품 기준 · 채널 수익분석">상세 ▸</button>`:''}<button type="button" class="ri-b" data-rinote="${p.id}" title="제품 메모·팀 QnA">📝 메모·QnA${(pnEnsure(),pnCount(p))?` <b style="color:var(--red)">${pnCount(p)}</b>`:''}</button><button type="button" class="ri-b" id="rowInfoX" title="닫기">✕</button></div>
     <div class="ri-row">${cols.map(chip).join('')}</div>
     ${costAllowed&&MOQ_TIERS.length?(()=>{ const inQ=QT.items.find(x=>x.key===pKey(p)); const def=inQ?inQ.qty:((MOQ_TIERS[1]&&MOQ_TIERS[1].min)||1);
       return `<div class="ri-moq"><span class="ri-t">수량별</span>${MOQ_TIERS.map(t=>{ const u=qtUnitAuto(p,t.min); return `<span class="ri-m"><i>${esc(t.label)}</i>${u==null?'—':won(u)}</span>`; }).join('')}
@@ -4607,6 +4616,7 @@ document.addEventListener('click',e=>{
   const rf=e.target.closest('[data-rifix]'); if(rf){ const p=P.find(x=>String(x.id)===rf.dataset.rifix); if(p){ Promise.resolve(toggleFixed(p)).then(()=>rowInfoRender()); } return; }
   const rc=e.target.closest('[data-ricopy]'); if(rc){ const p=P.find(x=>String(x.id)===rc.dataset.ricopy); if(p) openCopyModal(p); return; }
   const rd=e.target.closest('[data-ridel]'); if(rd){ const p=P.find(x=>String(x.id)===rd.dataset.ridel); if(p) softDeleteProduct(p); return; }
+  const rn=e.target.closest('[data-rinote]'); if(rn){ const p=P.find(x=>String(x.id)===rn.dataset.rinote); if(p) openPnSheet(p); return; }
   const md=e.target.closest('[data-rimodal]'); if(md){ const p=P.find(x=>String(x.id)===md.dataset.rimodal); if(p&&typeof openEditModal==='function') openEditModal(p); return; }
   const td=e.target.closest('#priceGrid tbody tr[data-id] td'); if(!td || e.target.closest('button,input,.grip,.nono')) return;
   const id=td.parentElement.dataset.id; if(EDIT_ROW!=null&&EDIT_ROW!==id){ EDIT_ROW=null; $$('#priceGrid tr.row-edit').forEach(tr=>tr.classList.remove('row-edit')); }
@@ -8239,7 +8249,67 @@ function syncAdType(){
   $('#adFootEdit').style.display=(!isSet && AD_EDIT)?'':'none';
   setPreview();
 }
+/* ══ 📝 제품 메모 · 💬 팀 QnA ══
+   product-meta/prod-notes {map: 제품키 → {notes:[{id,kind,text,by,at,done,doneBy,doneAt}], qna:[{id,q,by,at,a,aBy,aAt}]}}
+   · 제품키 = 자체상품코드(PS-·GH-, 이름을 바꿔도 안 바뀜) → 없으면 분류|이름|규격
+   · 지우지 않음: 메모는 '완료'로 접고, 질문·답은 계속 쌓임(팀 지식 자산). 저장 직전에 최신본을 다시 읽어 합쳐서 덮어쓰기 충돌을 줄임 */
+const PN_KINDS=[['개선','🛠 개선 아이디어'],['제조사','🏭 제조사 변경·검토'],['품질','⚠️ 품질·클레임'],['기타','📝 기타']];
+let PN={map:{},loaded:false}, PN_CUR=null, PN_SHOWDONE=false, PN_EL='#adNotes', _pnLoading=null;
+const pnKey=p=>(pcodeOf(p)||'').trim()||pKey(p);
+const pnWho=()=>((curUser&&curUser.email)||'').split('@')[0]||'?';
+const pnAt=s=>String(s||'').slice(5,16).replace('T',' ');
+async function pnLoad(){ const d=await db.collection('product-meta').doc('prod-notes').get(); PN.map=(d.exists&&d.data().map)||{}; PN.loaded=true; console.log(`[제품 메모] ${Object.keys(PN.map).length}개 제품 로드`); }
+async function pnSave(k,fn){ const box=$('#pnMsg');
+  try{ await pnLoad(); const cur=PN.map[k]||{notes:[],qna:[]}; const nx=fn({notes:[...(cur.notes||[])],qna:[...(cur.qna||[])]});
+    await db.collection('product-meta').doc('prod-notes').set({map:{[k]:nx},updatedAt:new Date().toISOString(),updatedBy:(curUser&&curUser.email)||''},{merge:true});
+    PN.map[k]=nx; pnRender(); }
+  catch(e){ console.error('[제품 메모] 저장 실패:',e); if(box){ box.textContent='저장하지 못했어요: '+(e.code==='permission-denied'?'이 계정은 메모 권한이 없어요':(e.code||e.message)); box.style.color='var(--red)'; } } }
+async function pnOpen(p,elSel){ PN_EL=elSel||'#adNotes'; PN_CUR=p?{k:pnKey(p),name:p.name}:null; const el=$(PN_EL); if(!el) return; el.style.display=p?'':'none'; if(!p) return;
+  el.innerHTML='<div class="footnote">메모·QnA 불러오는 중…</div>';
+  try{ await pnLoad(); }catch(e){ console.error('[제품 메모] 불러오기 실패:',e); el.innerHTML='<div class="footnote" style="color:var(--red)">메모를 불러오지 못했어요 ('+esc(e.code||e.message)+')</div>'; return; }
+  pnRender(); }
+// 원가 권한 없는 팀원도 쓰도록 가격 없는 별도 창 (제품 줄 정보 막대의 [📝 메모·QnA])
+function openPnSheet(p){ let ov=document.getElementById('pnOverlay'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='pnOverlay'; ov.style.cssText='position:fixed;inset:0;z-index:600;background:rgba(15,23,42,.45);display:flex;align-items:flex-end;justify-content:center';
+  ov.innerHTML=`<div style="background:#fff;width:100%;max-width:640px;border-radius:18px 18px 0 0;max-height:90vh;display:flex;flex-direction:column;box-sizing:border-box">
+    <div style="display:flex;align-items:center;gap:8px;padding:14px 16px 8px;border-bottom:1px solid #EEF1F4"><b style="flex:1;min-width:0;font-size:15px">📝 ${esc(p.name)}${p.spec&&p.spec!=='-'?' <span style="font-weight:500;color:#64748B">'+esc(p.spec)+'</span>':''}</b><button type="button" id="pnClose" aria-label="닫기" style="width:34px;height:34px;border-radius:17px;border:none;background:#F2F4F6;font-size:15px;cursor:pointer">✕</button></div>
+    <div id="pnSheet" style="overflow:auto;padding:4px 16px calc(18px + env(safe-area-inset-bottom))"></div></div>`;
+  ov.addEventListener('click',e=>{ if(e.target===ov||e.target.closest('#pnClose')){ ov.remove(); PN_CUR=null; if(typeof rowInfoRender==='function') try{ rowInfoRender(); }catch(_){} } });
+  document.body.appendChild(ov); pnOpen(p,'#pnSheet'); }
+function pnEnsure(){ if(PN.loaded||_pnLoading) return; _pnLoading=pnLoad().then(()=>{ if(typeof rowInfoRender==='function') try{ rowInfoRender(); }catch(_){} }).catch(e=>console.error('[제품 메모] 불러오기 실패:',e)); }
+function pnCount(p){ const x=PN.map[pnKey(p)]; if(!x) return 0; return (x.notes||[]).filter(n=>!n.done).length+(x.qna||[]).filter(q=>!q.a).length; }
+function pnRender(){ const el=$(PN_EL); if(!el||!PN_CUR) return; const x=PN.map[PN_CUR.k]||{notes:[],qna:[]};
+  const notes=(x.notes||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at))), open=notes.filter(n=>!n.done), done=notes.filter(n=>n.done);
+  const qna=(x.qna||[]).slice().sort((a,b)=>(a.a?1:0)-(b.a?1:0)||String(b.at).localeCompare(String(a.at)));
+  const kindL=k=>(PN_KINDS.find(z=>z[0]===k)||PN_KINDS[3])[1];
+  const nRow=n=>`<div class="pn-row${n.done?' done':''}"><div class="t"><span class="pn-kind">${esc(kindL(n.kind))}</span> ${esc(n.text)}<div class="pn-meta">${esc(n.by||'')} · ${esc(pnAt(n.at))}${n.done?` · ✓ ${esc(n.doneBy||'')} ${esc(pnAt(n.doneAt))} 완료`:''}</div></div><button type="button" class="tbtn" data-pndone="${esc(n.id)}">${n.done?'되살리기':'✓ 완료'}</button></div>`;
+  el.innerHTML=`<div class="pn-box">
+    <div class="pn-h">📝 제품 메모 <span class="dim">· 개선·제조사 변경·품질 이슈를 남겨요 (진행 ${open.length})</span></div>
+    <div class="pn-add"><select id="pnKind">${PN_KINDS.map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select><input id="pnText" placeholder="예: 뚜껑 누액 클레임 2건 → B사 용기로 교체 검토"><button type="button" class="tbtn primary" id="pnAddNote">남기기</button></div>
+    ${open.map(nRow).join('')||'<div class="footnote" style="margin:4px 0">아직 메모가 없어요</div>'}
+    ${done.length?`<button type="button" class="pn-more" id="pnShowDone">완료된 메모 ${done.length} ${PN_SHOWDONE?'▴':'▾'}</button>${PN_SHOWDONE?done.map(nRow).join(''):''}`:''}
+    <div class="pn-h" style="margin-top:14px">💬 팀 QnA <span class="dim">· 고객 문의·사용법 질문과 답을 쌓아요 (답 대기 ${qna.filter(q=>!q.a).length})</span></div>
+    <div class="pn-add"><input id="pnQ" placeholder="질문 (예: 겨울철 시공 가능 온도는?)"><button type="button" class="tbtn primary" id="pnAddQ">질문 올리기</button></div>
+    ${qna.map(q=>`<div class="pn-qa"><div class="q">Q. ${esc(q.q)}<span class="pn-meta"> · ${esc(q.by||'')} ${esc(pnAt(q.at))}</span></div>
+      ${q.a?`<div class="a">A. ${esc(q.a)}<span class="pn-meta"> · ${esc(q.aBy||'')} ${esc(pnAt(q.aAt))}</span> <button type="button" class="pn-link" data-pnedit="${esc(q.id)}">고치기</button></div>`
+        :`<div class="pn-add"><input data-pnains="${esc(q.id)}" placeholder="답 달기"><button type="button" class="tbtn" data-pnans="${esc(q.id)}">답 등록</button></div>`}</div>`).join('')||'<div class="footnote" style="margin:4px 0">아직 질문이 없어요</div>'}
+    <div id="pnMsg" class="footnote" style="margin-top:6px"></div></div>`;
+}
+document.addEventListener('click',e=>{ if(!PN_CUR) return; const t=e.target; const k=PN_CUR.k;
+  if(t.id==='pnAddNote'){ const txt=($('#pnText').value||'').trim(); if(!txt){ $('#pnText').focus(); return; } const kind=$('#pnKind').value;
+    pnSave(k,x=>({...x,notes:[...x.notes,{id:'n'+Date.now().toString(36),kind,text:txt,by:pnWho(),at:new Date().toISOString(),done:false}]})); return; }
+  if(t.id==='pnAddQ'){ const q=($('#pnQ').value||'').trim(); if(!q){ $('#pnQ').focus(); return; }
+    pnSave(k,x=>({...x,qna:[...x.qna,{id:'q'+Date.now().toString(36),q,by:pnWho(),at:new Date().toISOString(),a:''}]})); return; }
+  if(t.id==='pnShowDone'){ PN_SHOWDONE=!PN_SHOWDONE; pnRender(); return; }
+  if(t.dataset&&t.dataset.pndone){ const id=t.dataset.pndone; pnSave(k,x=>({...x,notes:x.notes.map(n=>n.id===id?{...n,done:!n.done,doneBy:pnWho(),doneAt:new Date().toISOString()}:n)})); return; }
+  if(t.dataset&&t.dataset.pnans){ const id=t.dataset.pnans; const inp=document.querySelector(`[data-pnains="${id}"]`); const a=(inp&&inp.value||'').trim(); if(!a){ inp&&inp.focus(); return; }
+    pnSave(k,x=>({...x,qna:x.qna.map(q=>q.id===id?{...q,a,aBy:pnWho(),aAt:new Date().toISOString()}:q)})); return; }
+  if(t.dataset&&t.dataset.pnedit){ const id=t.dataset.pnedit; const x=PN.map[k]||{qna:[]}; const q=(x.qna||[]).find(z=>z.id===id); if(!q) return;
+    const row=t.closest('.pn-qa'); row.querySelector('.a').outerHTML=`<div class="pn-add"><input data-pnains="${esc(id)}" value="${esc(q.a)}"><button type="button" class="tbtn" data-pnans="${esc(id)}">답 저장</button></div>`; return; }
+});
+document.addEventListener('keydown',e=>{ if(e.key!=='Enter'||!PN_CUR) return; const t=e.target; if(t.id==='pnText'){ e.preventDefault(); $('#pnAddNote').click(); } else if(t.id==='pnQ'){ e.preventDefault(); $('#pnAddQ').click(); } else if(t.dataset&&t.dataset.pnains){ e.preventDefault(); const b=document.querySelector(`[data-pnans="${t.dataset.pnains}"]`); b&&b.click(); } });
 function openAddModal(prefill){   // prefill: {l1,l2,l3}
+  pnOpen(null);
   AD_EDIT=null; AD_COPY_FROM=null;
   ['adName','adSpec','adCost','adShip','adMfg','adVbase','adRetail'].forEach(id=>{ const el=$('#'+id); if(el){ el.value=''; el.disabled=false; } });
   const pf=prefill||{};
@@ -8278,6 +8348,7 @@ function openEditModal(p){   // 기존 제품 수정: 분류(전체)·원가·�
     +(added?'':' 기본 제품이라 분류·유형·구성·<b>매입원가</b>까지 저장됩니다'+(secAllowed?' (제조사는 등록상품만)':''))+'</span>';
   $('#adTitle').textContent='✏️ 제품 수정 — '+esc(p.name); $('#addSubmit').textContent='저장';
   fillTagLists(); syncAdType(); $('#addOverlay').classList.add('on'); setTimeout(()=>{ const el=$('#adType'); if(el)el.focus(); }, 50);
+  pnOpen(p);
 }
 /* 기존 제품(단품/세트)을 복사해 새로 등록 */
 function openCopyModal(p){
@@ -9226,13 +9297,13 @@ function slExportCsv(){
    · 되돌리기: 기록할 때 만든 묶음(batch) 단위로 되돌린다 (묶음 기록은 sales-orders/batch-* 에 남김). */
 const SU_COL={
   date:['결제일','결제일시','결제완료일','주문일','주문일시','주문일자','수집일','주문수집일','주문등록일'],
-  order:['쇼핑몰주문번호','상품주문번호','주문번호','사방넷주문번호','주문번호(쇼핑몰)','주문고유번호'],
-  ch:['쇼핑몰명','쇼핑몰','판매처','판매채널','마켓명','몰명'],
+  order:['품목별주문번호','쇼핑몰주문번호','상품주문번호','주문번호','사방넷주문번호','주문번호(쇼핑몰)','주문고유번호'],
+  ch:['쇼핑몰명','쇼핑몰','판매처','판매채널','마켓명','몰명','채널명'],
   code:['자체상품코드','판매자상품코드','판매자관리코드','옵션관리코드','상품관리코드','업체상품코드','자체상품코드(모델명)','모델명'],
   name:['상품명','등록상품명','노출상품명','주문상품명','상품명(한국어 쇼핑몰)'],
   opt:['옵션','옵션명','옵션정보','주문옵션','옵션내용','등록옵션명','옵션명(주문)'],
   qty:['수량','주문수량','구매수량','판매수량'],
-  amt:['결제금액','최종결제금액','총결제금액','실결제금액','상품별총주문금액','총주문금액','주문금액','판매금액','결제액'],
+  amt:['상품구매금액','결제금액','최종결제금액','총결제금액','실결제금액','상품별총주문금액','총주문금액','주문금액','판매금액','결제액'],
   unit:['판매가','판매단가','상품가격','단가'],
 };
 const SU_LBL={date:'주문(결제)일',order:'주문번호',ch:'쇼핑몰',code:'자체상품코드',name:'상품명',opt:'옵션',qty:'수량',amt:'결제금액(합계)',unit:'판매가(1개)'};
@@ -9261,6 +9332,7 @@ function suPickCols(headers){
 }
 function suFormat(headers,fname){
   const h=headers.map(suNorm),f=(fname||'').toLowerCase();
+  if(h.includes('수하인명')&&h.includes('채널명'))return {fmt:'비즈로지컴 수동발주',ch:''};   // 수동발주 양식: 채널명 칸에 쿠팡·오늘의집·도매꾹…
   if(h.includes('사방넷주문번호')||(h.includes('쇼핑몰명')&&h.some(x=>x.includes('자체상품코드')))||/사방넷|sabang/.test(f))return {fmt:'사방넷',ch:''};
   if(h.includes('상품주문번호'))return {fmt:'스마트스토어',ch:'스마트스토어'};
   if(h.includes('묶음배송번호')||h.includes('등록상품명'))return {fmt:'쿠팡',ch:'쿠팡'};
@@ -9302,21 +9374,29 @@ async function suReadFile(file){
     return {file:file.name,fmt:fm.fmt,fixedCh:fm.ch,headers,sig,map,body:rows.slice(hi+1)};}
   return {file:file.name,error:'제목줄(상품명·수량 등)을 찾지 못했어요'};
 }
+// 금액 칸이 없는 파일(비즈로지컴 수동발주)은 가격정책표의 그 채널 판매가 × 수량으로 넣고 '가격표 기준'으로 표시
+function suEstPrice(k,ch,brand){ const p=P.find(x=>pKey(x)===k); if(!p) return 0; const n=ghNorm(ch);
+  const c=CHANNELS.find(c=>(brand==='GROHOME'?c.g==='그로홈':c.g!=='그로홈')&&(ghNorm(c.name)===n||ghNorm(c.short||'')===n));
+  return (c&&gp(p,c.uid))||retailOf(p)||0; }
+const SU_CANCEL=/취소|CANCEL|반품|환불|RETURN|교환/i;
 function suBuildRows(){
   const ix=suIndex(),out=[];
   SU.files.forEach((f,fi)=>{if(f.error)return;const m=f.map;f.missing=['qty'].concat(m.code==null?['name']:[]).filter(k=>m[k]==null);
     if(m.name==null&&m.code==null)f.missing.push('code');
     if(f.missing.length)return;
+    const stIdx=(f.headers||[]).map((h,i)=>/상태/.test(h)?i:-1).filter(i=>i>=0);f.cancelN=0;f.estN=0;
     f.body.forEach((row,ri)=>{if(!row||!row.some(c=>c!==''&&c!=null))return;
+      if(stIdx.some(i=>SU_CANCEL.test(String(row[i]==null?'':row[i])))){f.cancelN++;return;}   // 취소·반품 주문은 매출에서 뺀다
       const g=k=>m[k]==null?'':row[m[k]];const qty=suNum(g('qty'));if(!qty)return;
       const name=String(g('name')||'').trim(),code=String(g('code')||'').trim();if(!name&&!code)return;
       let amt=m.amt!=null?suNum(g('amt')):0;if(!amt&&m.unit!=null)amt=suNum(g('unit'))*qty;
       const rawCh=String(f.fixedCh||g('ch')||'').trim();let ch=slChan(rawCh).ch;
       if(f.fmt==='자사몰(카페24)'&&/위탁/.test(name))ch='위탁판매';
-      const date=suDate(g('date'))||SU.fallbackDate||'';
       const order=String(g('order')||'').trim(),opt=String(g('opt')||'').trim();
+      const date=suDate(g('date'))||(/^\d{8}_/.test(order)?suDate(order.slice(0,8)):'')||SU.fallbackDate||'';   // 수동발주: 주문번호 20260922_0001 → 날짜
       const r={fi,ri,date,order,ch,rawCh,code,name,opt,qty,amt:Math.round(amt)};
       Object.assign(r,suResolve(r,ix));
+      if(!r.amt&&m.amt==null&&m.unit==null&&r.k){r.amt=Math.round(suEstPrice(r.k,ch,r.brand)*qty);r.est=true;f.estN++;}
       r.key=[ch,order||(date+'#'+ri),code||name,opt].join('|').slice(0,300);
       out.push(r);});});
   SU.rows=out;
@@ -9333,9 +9413,9 @@ function suMarkTxt(m){return m?`✅ ${esc(String(m.by||'').split('@')[0])} · ${
 function renderSU(){
   const box=$('#suBody');if(!box)return;
   const files=SU.files.map((f,fi)=>f.error?`<div class="su-file err">⚠ ${esc(f.file)} — ${esc(f.error)}</div>`
-    :`<div class="su-file"><b>${esc(f.file)}</b> <span class="su-fmt">${esc(f.fmt)}</span> ${f.missing&&f.missing.length?`<span class="su-warn">열을 골라주세요</span>`:`<span class="dim">${SU.rows.filter(r=>r.fi===fi).length}줄</span>`}
+    :`<div class="su-file"><b>${esc(f.file)}</b> <span class="su-fmt">${esc(f.fmt)}</span> ${f.missing&&f.missing.length?`<span class="su-warn">열을 골라주세요</span>`:`<span class="dim">${SU.rows.filter(r=>r.fi===fi).length}줄</span>`}${f.cancelN?` <span class="dim">· 취소·반품 ${f.cancelN}줄 뺌</span>`:''}${f.estN?` <span class="su-warn" title="금액 칸이 없어 가격정책표의 채널 판매가 × 수량으로 넣었어요">· 금액 ${f.estN}줄은 가격표 기준</span>`:''}
       ${f.missing&&f.missing.length?`<div class="su-map">${['date','order','ch','code','name','opt','qty','amt','unit'].map(k=>`<label><span>${SU_LBL[k]}${f.missing.includes(k)?' *':''}</span><select data-sumap="${k}" data-fi="${fi}"><option value="">— 없음 —</option>${f.headers.map((h,i)=>`<option value="${i}"${f.map[k]===i?' selected':''}>${esc(h||('열 '+(i+1)))}</option>`).join('')}</select></label>`).join('')}</div>`:''}</div>`).join('');
-  if(!SU.rows.length){box.innerHTML=`${files}<div class="footnote" style="margin-top:10px">사방넷 주문 엑셀(추천) · 스마트스토어 · 쿠팡 · 자사몰(카페24) · 오늘의집 주문 엑셀을 올리면 자체상품코드로 POUR스토어·그로홈을 나눠요.</div>`;$('#suSave').disabled=true;return;}
+  if(!SU.rows.length){box.innerHTML=`${files}<div class="footnote" style="margin-top:10px">사방넷 주문 엑셀(추천) · 스마트스토어 · 쿠팡 · 자사몰(카페24) · 오늘의집 주문 엑셀, <b>비즈로지컴 원본다운로드(판매처별 파일)·수동발주 양식</b>을 올리면 자체상품코드·제품명으로 POUR스토어·그로홈을 나눠요. 여러 파일을 한 번에 올려도 돼요 · 취소·반품 줄은 자동으로 빠져요.</div>`;$('#suSave').disabled=true;return;}
   const byDate={};SU.rows.forEach(r=>{const d=r.date||'(날짜 없음)';(byDate[d]=byDate[d]||[]).push(r);});
   const unk={};SU.rows.forEach(r=>{if(!r.brand){const x=unk[r.learnKey]=unk[r.learnKey]||{name:r.name,opt:r.opt,code:r.code,n:0,amt:0,lk:r.learnKey};x.n+=r.qty;x.amt+=r.amt;}});
   const opts=P.filter(p=>!isDeletedProd(p)).map(p=>`<option value="${esc(pKey(p))}">${esc(prodLabel(p))}${pcodeOf(p)?' · '+esc(pcodeOf(p)):''}</option>`).join('');

@@ -531,7 +531,9 @@ firebase.initializeApp({
 });
 const db = firebase.firestore();
 const COL = 'pour-os/launch-board/products';
-const STRUCT_ID = '__structure__';   // 단계 구조(추가·순서) 저장 문서 (제품 목록에서는 제외)
+// 단계 구조(추가·순서) 저장 문서 (제품 목록에서는 제외)
+// ※ Firestore는 '__이름__' 형태 문서 ID를 예약어로 막아 저장이 실패함 → 일반 ID 사용
+const STRUCT_ID = 'board-structure';
 const FV = firebase.firestore.FieldValue;
 
 // ── 브랜드 (카드 색) ──
@@ -549,7 +551,7 @@ function brandMark(b){
 }
 
 // ── 업무 단계 (01~11) · 기본 담당 ──
-// 기본값(코드) = BASE_*. 사용자가 추가/순서변경한 내용은 Firestore '__structure__' 문서에 저장되어
+// 기본값(코드) = BASE_*. 사용자가 추가/순서변경한 내용은 Firestore 'board-structure' 문서에 저장되어
 // rebuildStructure()에서 기본값과 병합 → 실제 사용되는 PHASES/STEPS/STEP_BY 생성.
 const BASE_PHASES = [
   { k:'P1', name:'기획',           who:'기획1팀 · BM',              color:'#2563EB', light:'#EFF6FF', steps:['p01','p02','p03','p04','s01','s02'] },

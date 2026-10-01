@@ -20,7 +20,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-댓글컨펌";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-댓글시각";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -3160,18 +3160,21 @@ function NoteFiles({files}){
     {rest.length>0&&<div style={{display:"flex",flexDirection:"column",gap:4,marginTop:imgs.length?6:0}}>{rest.map((f,i)=><a key={i} href={f.url} target="_blank" rel="noopener noreferrer" download={f.name} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 9px",borderRadius:8,border:"1px solid #E1E4E9",background:"#F7F8FA",color:"#1E2F5C",fontSize:12,fontWeight:700,textDecoration:"none",minWidth:0}}><span style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.name}</span><span style={{color:"#8A8E96",fontWeight:600,flexShrink:0}}>{fileSize(f.size)}</span></a>)}</div>}
   </div>);
 }
+// 댓글·메모 시각 — 저장은 UTC(ISO), 보이기는 이 기기 시간대로 "2026.10.01 (목) 14:06"
+const noteAt=(at)=>{ if(!at) return ""; const d=new Date(at); if(isNaN(d)) return String(at); const z=(n)=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}.${z(d.getMonth()+1)}.${z(d.getDate())} (${"일월화수목금토"[d.getDay()]}) ${z(d.getHours())}:${z(d.getMinutes())}`; };
 function AkNotesSheet({D,cu,item,notes,ro,onClose,count}){
   const [recOn,setRecOn]=useState(()=>{ try{ return localStorage.getItem("pour-os-ak-rec")!=="0"; }catch(_){ return true; } });
   const setRec=(v)=>{ setRecOn(v); try{ localStorage.setItem("pour-os-ak-rec",v?"1":"0"); }catch(_){} };
   const wkLabel=(wk)=>{ const d=new Date(String(wk)+"T00:00:00"); return isNaN(d)?"":`${d.getMonth()+1}/${d.getDate()} 주`; };
-  const [replyTo,setReplyTo]=useState(null); const [editId,setEditId]=useState(null);
+  const [replyTo,setReplyTo]=useState(null); const [editId,setEditId]=useState(null); const [delAsk,setDelAsk]=useState(null);
   const [tabId,setTabId]=useState(item.tab0||item.id);
   const curId=item.tabs?tabId:item.id, curTab=(item.tabs||[]).find(x=>x.id===curId);
   const threads=noteThreads(notes,curId);
   const tcnt=noteCounts(notes);
   const master=isMaster(cu);
   const nameOf=(id,nm)=>{ const u=(D.users||[]).find(x=>x.id===id); return u?u.name:(nm||"?"); };
-  const when=(at)=>{ const s=String(at||""); return s?`${+s.slice(5,7)}/${+s.slice(8,10)} ${s.slice(11,16)}`:""; };
+  const when=noteAt;   // 기기 시간대(한국)로 날짜·요일·시각 모두
   const post=async(text,files,parentId,setBusy)=>{
     const up=[]; for(let i=0;i<files.length;i++){ setBusy(`올리는 중 ${i+1}/${files.length}`); up.push(await uploadAkFile(item.id,files[i])); }
     setBusy("저장 중");
@@ -3184,15 +3187,15 @@ function AkNotesSheet({D,cu,item,notes,ro,onClose,count}){
     await setDoc(extDoc(NOTE_COL,n.id),{text,editedAt:at,editedBy:cu.id,edits:arrayUnion({text:n.text||"",at})},{merge:true}); setEditId(null); };
   const hide=async(n,on)=>{ try{ await setDoc(extDoc(NOTE_COL,n.id),on?{deleted:true,deletedAt:new Date().toISOString(),deletedBy:cu.id,deletedByName:cu.name||""}:{deleted:false,restoredAt:new Date().toISOString(),restoredBy:cu.id},{merge:true}); }catch(e){ console.error("[행동지표 메모] 숨김 실패:",e); } };
   const one=(n,reply)=>{ const mine=n.by===cu.id; const canHide=!ro&&(mine||master);
-    if(n.deleted) return(<div style={{padding:"6px 0",fontSize:12,color:"#8A8E96"}}>숨긴 메모 · {nameOf(n.by,n.byName)}{n.deletedByName&&n.deletedByName!==n.byName?` (${n.deletedByName}님이 숨김)`:""}{canHide&&<button onClick={()=>hide(n,false)} style={{...NB.link,marginLeft:6,color:"#1E2F5C"}}>되돌리기</button>}</div>);
+    if(n.deleted) return(<div style={{padding:"6px 0",fontSize:12,color:"#8A8E96"}}>삭제된 메모 · {nameOf(n.by,n.byName)} · {when(n.deletedAt)}{n.deletedByName&&n.deletedByName!==n.byName?` (${n.deletedByName}님이 삭제)`:""}{canHide&&<button onClick={()=>hide(n,false)} style={{...NB.link,marginLeft:6,color:"#1E2F5C"}}>되돌리기</button>}</div>);
     return(<div className="aknote" data-note={n.id} style={{padding:reply?"8px 0 8px":"10px 0"}}>
-      <div style={{display:"flex",alignItems:"baseline",gap:7,flexWrap:"wrap",marginBottom:3}}><b style={{fontSize:12.5,color:"#16181D"}}>{nameOf(n.by,n.byName)}</b><span style={{fontSize:11,color:"#8A8E96"}}>{when(n.at)}{n.editedAt?" · 수정됨":""}</span>{n.count&&<span style={{fontSize:10.5,fontWeight:800,color:"#5E5A8C",background:"#F0EFF5",borderRadius:5,padding:"0 6px"}}>{wkLabel(n.count.wk)} {n.count.n}번째 기록</span>}</div>
+      <div style={{display:"flex",alignItems:"baseline",gap:7,flexWrap:"wrap",marginBottom:3}}><b style={{fontSize:12.5,color:"#16181D"}}>{nameOf(n.by,n.byName)}</b><span style={{fontSize:11,color:"#8A8E96"}}>{when(n.at)}{n.editedAt?<b style={{color:"#B26A12",fontWeight:800}}> · 수정됨 {when(n.editedAt)}</b>:""}</span>{n.count&&<span style={{fontSize:10.5,fontWeight:800,color:"#5E5A8C",background:"#F0EFF5",borderRadius:5,padding:"0 6px"}}>{wkLabel(n.count.wk)} {n.count.n}번째 기록</span>}</div>
       {editId===n.id?<NoteComposer cu={cu} initialText={n.text||""} autoFocus allowFiles={false} submitLabel="저장" placeholder="메모 고치기" onCancel={()=>setEditId(null)} onSubmit={(t)=>saveEdit(n,t)}/>
         :<>{n.text&&<NoteText text={n.text}/>}<NoteFiles files={n.files}/></>}
       {editId!==n.id&&!ro&&<div style={{display:"flex",gap:2,marginTop:3,marginLeft:-4}}>
         <button onClick={()=>{ setReplyTo(reply?n.parentId:n.id); setEditId(null); }} style={NB.link}>답글</button>
         {mine&&<button onClick={()=>{ setEditId(n.id); setReplyTo(null); }} style={NB.link}>수정</button>}
-        {canHide&&<button onClick={()=>hide(n,true)} style={NB.link}>숨기기</button>}
+        {canHide&&(delAsk===n.id?<><span style={{fontSize:11.5,color:"#B4383F",fontWeight:800,alignSelf:"center",marginLeft:4}}>삭제할까요?</span><button onClick={()=>{ hide(n,true); setDelAsk(null); }} style={{...NB.link,color:"#B4383F",fontWeight:900}}>삭제</button><button onClick={()=>setDelAsk(null)} style={NB.link}>취소</button></>:<button onClick={()=>setDelAsk(n.id)} style={NB.link}>삭제</button>)}
       </div>}
     </div>); };
   const total=threads.reduce((a,t)=>a+(t.deleted?0:1)+t.replies.filter(r=>!r.deleted).length,0);
@@ -3233,12 +3236,12 @@ function ThreadPanel({D,cu,up,itemId,itemName,kind,task,proj,title="댓글"}){
   const notes=useAkNotes();
   const users=D.users||[];
   const nameOf=(id,nm)=>{ const u=users.find(x=>x.id===id); return u?u.name:(nm||"?"); };
-  const when=(at)=>{ const s=String(at||""); return s?`${+s.slice(5,7)}/${+s.slice(8,10)} ${s.slice(11,16)}`:""; };
+  const when=noteAt;   // 기기 시간대(한국)로 날짜·요일·시각 모두
   const projOf=task?(D.projects||[]).find(x=>x.id===task.projectId):proj;
   const [mode,setMode]=useState("note");   // note | confirm
   const [to,setTo]=useState(()=>{ const m=projOf&&projOf.assigneeId; return m&&m!==cu.id?m:""; });
   const [link,setLink]=useState(""); const [fname,setFname]=useState("");
-  const [replyTo,setReplyTo]=useState(null); const [fbFor,setFbFor]=useState(null); const [editId,setEditId]=useState(null);
+  const [replyTo,setReplyTo]=useState(null); const [fbFor,setFbFor]=useState(null); const [editId,setEditId]=useState(null); const [delAsk,setDelAsk]=useState(null);
   useEffect(()=>{ markSeen(cu.id,itemId); },[itemId,notes.length]);   // eslint-disable-line
   const threads=noteThreads(notes,itemId);
   const latest=confirmLatest(notes,itemId);
@@ -3258,10 +3261,10 @@ function ThreadPanel({D,cu,up,itemId,itemName,kind,task,proj,title="댓글"}){
   const saveEdit=async(n,text)=>{ if(text===n.text){ setEditId(null); return; } const at=new Date().toISOString(); await setDoc(extDoc(NOTE_COL,n.id),{text,editedAt:at,editedBy:cu.id,edits:arrayUnion({text:n.text||"",at})},{merge:true}); setEditId(null); };
   const hide=async(n,on)=>{ try{ await setDoc(extDoc(NOTE_COL,n.id),on?{deleted:true,deletedAt:new Date().toISOString(),deletedBy:cu.id,deletedByName:cu.name||""}:{deleted:false,restoredAt:new Date().toISOString(),restoredBy:cu.id},{merge:true}); }catch(e){ console.error("[댓글] 숨김 실패:",e); } };
   const one=(n,reply)=>{ const mine=n.by===cu.id; const canHide=mine||master; const cf=n.kind==="confirm"&&!reply; const tg=cf?CF_TAG[n.status||"wait"]:null; const isLatest=cf&&latest&&latest.id===n.id;
-    if(n.deleted) return(<div style={{padding:"6px 0",fontSize:12,color:"#8A8E96"}}>숨긴 댓글 · {nameOf(n.by,n.byName)}{canHide&&<button onClick={()=>hide(n,false)} style={NB.link}>되돌리기</button>}</div>);
+    if(n.deleted) return(<div style={{padding:"6px 0",fontSize:12,color:"#8A8E96"}}>삭제된 댓글 · {nameOf(n.by,n.byName)} · {when(n.deletedAt)}{canHide&&<button onClick={()=>hide(n,false)} style={NB.link}>되돌리기</button>}</div>);
     return(<div className="tnote" data-note={n.id} style={cf?{margin:"8px 0",padding:"10px 11px",borderRadius:12,border:`1.5px solid ${n.status==="ok"?"#CFE3D6":n.status==="fix"?"#EACFD1":"#24386B"}`,background:n.status==="ok"?"#F6FBF8":"#F7F8FB"}:{padding:reply?"8px 0":"10px 0"}}>
       {cf&&<span style={{display:"inline-block",fontSize:11,fontWeight:900,color:tg.c,background:tg.bg,borderRadius:6,padding:"2px 7px",marginBottom:5}}>{tg.l} · {n.status==="wait"?nameOf(n.to,n.toName):`${nameOf(n.decidedBy,n.decidedByName)} ${when(n.decidedAt)}`} · {n.round||1}차</span>}
-      <div style={{display:"flex",alignItems:"baseline",gap:7,flexWrap:"wrap",marginBottom:3}}><b style={{fontSize:12.5,color:"#16181D"}}>{nameOf(n.by,n.byName)}</b><span style={{fontSize:11,color:"#8A8E96"}}>{when(n.at)}{n.editedAt?" · 수정됨":""}{n.fb?" · 피드백":""}{cf?` → ${nameOf(n.to,n.toName)}`:""}</span></div>
+      <div style={{display:"flex",alignItems:"baseline",gap:7,flexWrap:"wrap",marginBottom:3}}><b style={{fontSize:12.5,color:"#16181D"}}>{nameOf(n.by,n.byName)}</b><span style={{fontSize:11,color:"#8A8E96"}}>{when(n.at)}{n.editedAt?<b style={{color:"#B26A12",fontWeight:800}}> · 수정됨 {when(n.editedAt)}</b>:""}{n.fb?" · 피드백":""}{cf?` → ${nameOf(n.to,n.toName)}`:""}</span></div>
       {editId===n.id?<NoteComposer cu={cu} initialText={n.text||""} autoFocus allowFiles={false} submitLabel="저장" placeholder="고치기" onCancel={()=>setEditId(null)} onSubmit={(t)=>saveEdit(n,t)}/>
         :<>{n.text&&<NoteText text={n.text}/>}
           {cf&&(n.link||n.fileName)&&<div style={{display:"flex",alignItems:"center",gap:8,margin:"6px 0",padding:"7px 9px",borderRadius:9,background:"#fff",border:"1px solid #E5E8EB"}}><b style={{flex:1,minWidth:0,fontSize:12.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.fileName||"공유 자료"}</b>{n.link&&(/^https?:\/\//i.test(n.link)?<a href={n.link} target="_blank" rel="noopener noreferrer" style={{fontSize:12,fontWeight:800,color:"#24386B",whiteSpace:"nowrap"}}>공유폴더 열기 →</a>:<span style={{fontSize:11.5,color:"#4E5968",wordBreak:"break-all"}}>{n.link}</span>)}</div>}
@@ -3275,7 +3278,7 @@ function ThreadPanel({D,cu,up,itemId,itemName,kind,task,proj,title="댓글"}){
       {editId!==n.id&&fbFor!==n.id&&<div style={{display:"flex",gap:2,marginTop:3,marginLeft:-4}}>
         <button onClick={()=>{ setReplyTo(reply?n.parentId:n.id); setEditId(null); }} style={NB.link}>답글</button>
         {mine&&<button onClick={()=>{ setEditId(n.id); setReplyTo(null); }} style={NB.link}>수정</button>}
-        {canHide&&<button onClick={()=>hide(n,true)} style={NB.link}>숨기기</button>}
+        {canHide&&(delAsk===n.id?<><span style={{fontSize:11.5,color:"#B4383F",fontWeight:800,alignSelf:"center",marginLeft:4}}>삭제할까요?</span><button onClick={()=>{ hide(n,true); setDelAsk(null); }} style={{...NB.link,color:"#B4383F",fontWeight:900}}>삭제</button><button onClick={()=>setDelAsk(null)} style={NB.link}>취소</button></>:<button onClick={()=>setDelAsk(n.id)} style={NB.link}>삭제</button>)}
       </div>}
     </div>); };
   const total=threads.reduce((a,t)=>a+(t.deleted?0:1)+t.replies.filter(r=>!r.deleted).length,0);
@@ -5102,11 +5105,11 @@ function ProjectDetailSheet({D,cu,p,up,add,rm,onClose,onAdvanced,focus}){
     <Sheet open={true} onClose={onClose} title="프로젝트" h="94vh" w={720}>
       <div style={{paddingTop:6}}>
         <input defaultValue={p.title} key={p.id+"t"} onBlur={e=>{const v=e.target.value.trim(); if(v&&v!==p.title) up("projects",p.id,{title:v});}} style={{...inp,width:"100%",fontSize:18,fontWeight:900,border:"1.5px solid transparent",padding:"6px 4px",background:"transparent"}}/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:8}}>
+        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)",gap:8,marginTop:8}}>
           <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>관리 담당 (1명)<select value={p.assigneeId||""} onChange={e=>up("projects",p.id,{assigneeId:e.target.value})} style={{...inp,width:"100%",marginTop:4}}><option value="">없음</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
           <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>상태<select value={projStatus(p)} onChange={e=>up("projects",p.id,{status:e.target.value})} style={{...inp,width:"100%",marginTop:4}}>{Object.entries(PROJ_STATUS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select></label>
-          <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>시작일<input type="date" value={p.startDate||""} onChange={e=>up("projects",p.id,{startDate:e.target.value})} style={{...inp,width:"100%",marginTop:4}}/></label>
-          <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>마감일<input type="date" value={p.dueDate||""} onChange={e=>up("projects",p.id,{dueDate:e.target.value})} style={{...inp,width:"100%",marginTop:4}}/></label>
+          <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",minWidth:0}}>시작일<input type="date" value={p.startDate||""} onChange={e=>up("projects",p.id,{startDate:e.target.value})} style={{...inp,width:"100%",marginTop:4}}/></label>
+          <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",minWidth:0}}>마감일{p.dueDate&&<button type="button" onClick={e=>{ e.preventDefault(); up("projects",p.id,{dueDate:""}); }} style={{marginLeft:6,border:"none",background:"none",padding:0,fontSize:11.5,fontWeight:800,color:"#B4383F",cursor:"pointer",fontFamily:"inherit"}}>지우기</button>}<input type="date" value={p.dueDate||""} onChange={e=>up("projects",p.id,{dueDate:e.target.value})} style={{...inp,width:"100%",marginTop:4}}/></label>
           <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",gridColumn:"1 / -1"}}>카테고리<select value={p.category||""} onChange={e=>up("projects",p.id,{category:e.target.value})} style={{...inp,width:"100%",marginTop:4}}><option value="">미분류</option>{WF_CATS.map(c=><option key={c.k} value={c.k}>{c.icon} {c.name}</option>)}</select></label>
         </div>
         <div style={{marginTop:10}}>

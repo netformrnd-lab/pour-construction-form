@@ -11,6 +11,9 @@
     <style>
       html, body, #root { height: 100%; margin: 0; background: #F9FAFB; }
       * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+      /* 아이폰 날짜 칸이 칸 밖으로 튀어나가거나 비었을 때 납작해지는 것 방지 */
+      input[type=date] { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; min-height: 42px; text-align: left; }
+      input[type=date]::-webkit-date-and-time-value { text-align: left; }
     </style>
   </head>
   <body>

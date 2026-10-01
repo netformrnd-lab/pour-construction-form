@@ -152,3 +152,10 @@ export const caseConfirmStage=(wf,t)=>{ const ch=caseChecks(t); const s=((wf&&wf
 export const stepsToStages=(steps)=>(steps||[]).map(s=>({id:s.id,name:String(s.title||s.name||"").trim(),...(s.owner||s.ownerId?{ownerId:s.owner||s.ownerId}:{}),...(s.confirm?{confirm:true}:{})})).filter(s=>s.name);
 export const stagesToSteps=(stages)=>(stages||[]).map(s=>({id:s.id,title:s.name||"",owner:s.ownerId||"",confirm:!!s.confirm}));
 export const flowOfAk=(W,akId)=>(W||[]).find(w=>w.akId&&w.akId===akId)||null;
+
+// 신제품 항목 체크리스트 — 기본 틀(wf_launch.checkTpl[항목id]=[{id,name}]) + 제품별(osExtra[항목id].checks={list?,done})
+// 제품에 자기 목록(list)이 없으면 기본 틀을 그대로 씀(틀을 고치면 바로 반영). 체크 여부는 제품별 done[체크id].
+export function lbChecks(p,it,tpl){ const ex=(((p&&p.osExtra)||{})[it&&it.id]||{}).checks||{}; const own=Array.isArray(ex.list);
+  const list=(own?ex.list:((tpl||{})[it&&it.id]||[])).filter(c=>c&&c.id&&String(c.name||"").trim()); const done=ex.done||{};
+  const n=list.filter(c=>done[c.id]).length; return {list,done,own,n,total:list.length,all:list.length>0&&n===list.length}; }
+export const newCheckId=()=>"c"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);

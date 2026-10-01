@@ -204,6 +204,11 @@ goals[g1] 매출 10억
 - 항목마다 대화 `ThreadPanel` itemId=`proj:lb:{제품id}:{항목id}`(`lbItemNoteId`) — 댓글·대댓글·사진/파일·컨펌 요청(기본 받는 사람=제품 책임자). 항목 줄에 '댓글 N'.
 - 오늘 '새 댓글'에 내가 담당인 신제품 항목 대화 + 내가 책임자인 제품 대화도 포함.
 
+### ✅ 신제품 항목 체크리스트 — 기본 틀 (2026-10, 대표 요청)
+- 기본 틀: `wf_launch.checkTpl[항목id]=[{id,name}]` — 로드맵 [기본 틀] 창(기본 담당과 같은 창)에서 항목별로 편집, 또는 제품 창 항목에서 '모든 제품에'로 추가.
+- 제품별: 런칭보드 문서 `osExtra[항목id].checks={list?,done}` — list 가 없으면 기본 틀을 그대로 씀(틀 수정이 바로 반영). '이 제품만' 추가·✕ 빼기를 하면 그 제품만 자기 목록(list) — '기본 틀로 되돌리기'(list:null)·'이 목록을 기본 틀로'.
+- 계산 `lbChecks(p,it,tpl)`(workflow.js). 항목 줄·오늘 내 차례에 '체크 n/t'. 다 체크하면 '항목 완료로' 버튼(자동 완료 아님). 건수형(＋/−) 항목은 체크리스트 없음.
+
 ### ✅ 브랜드 여러 개 함께 보기 (2026-10, 대표 요청 — 김송희 POUR스토어+그로홈 겸업)
 - 상단 브랜드 바: 누르면 켜고 다시 누르면 끔(여러 개 가능), '전체'는 모두, 다 끄면 전체. 저장값 `localStorage pour-os-brand` = "all" | "pourstore" | "pourstore,grohome" (이 기기 기준 기억, 예전 한 개 값 그대로 호환).
 - `brandView(D, sel, def)` — 고른 브랜드들 + 공통. `_brands`=고른 목록, `_brand`=새로 만들 때 들어갈 브랜드(여러 개면 '새로 만들면 [브랜드]' 칩으로 고름, `localStorage pour-os-brand-new`). `toggleBrand(cur,id)`.

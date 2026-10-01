@@ -40,7 +40,7 @@ eq("전체 보기는 그대로(빠지는 것 없음)", [va.projects.length, va.t
 
 // ④ 처음 채워넣기 — 이미 있거나 휴지통에 있으면 다시 안 넣음
 const s1 = seedMissing({ goals: [{ id: "g1" }], mainKPIs: [], subKPIs: [], actionKPIs: AK_SEED, lagKPIs: LAG_SEED, trash: [] });
-eq("빠진 것만 채움", [s1.brands.length, s1.goals.length, s1.mainKPIs.length, s1.subKPIs.length, s1.actionKPIs.length, s1.lagKPIs.length], [2, 2, 2, 6, 29, 15]);
+eq("빠진 것만 채움", [s1.brands.length, s1.goals.length, s1.mainKPIs.length, s1.subKPIs.length, s1.actionKPIs.length, s1.lagKPIs.length], [3, 2, 2, 6, 29, 15]);   // 브랜드 3: POUR스토어·그로홈·바라스데이(준비중)
 eq("두 번째는 할 일 없음", seedMissing({ ...s1, trash: [] }), null);
 const s2 = seedMissing({ ...s1, goals: [{ id: "g1" }], trash: [{ id: "g_gh", _col: "goals" }] });
 eq("휴지통에 있는 목표는 다시 안 넣음", s2, null);

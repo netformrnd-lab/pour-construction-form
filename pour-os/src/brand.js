@@ -16,9 +16,10 @@ export const COMMON = "common";
 export const BRAND_SEED = [
   { id: "pourstore", name: "POUR스토어", order: 1, active: true },
   { id: "grohome", name: "그로홈", order: 2, active: true },
+  { id: "barasday", name: "바라스데이", order: 3, active: true, status: "prep" },   // 런칭 준비 중 — KPI 설정 전, 업무·프로젝트·신제품은 관리
 ];
 const ALIAS = { "pour스토어": "pourstore", "pourstore": "pourstore", "pour": "pourstore", "포어스토어": "pourstore",
-  "그로홈": "grohome", "grohome": "grohome", "공통": COMMON, "common": COMMON };
+  "그로홈": "grohome", "grohome": "grohome", "바라스데이": "barasday", "barasday": "barasday", "공통": COMMON, "common": COMMON };
 // 저장된 값(이름·키 아무거나) → 브랜드 키. 모르면 null
 export function brandKey(v, brands) {
   if (v == null || v === "") return null;

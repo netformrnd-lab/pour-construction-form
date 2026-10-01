@@ -22,7 +22,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-브랜드정리";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-차수정리";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -5780,20 +5780,10 @@ function LaunchBoard({D,cu,add,up,pc,items}){
   const [brand,setBrand]=useState("all");
   const [open,setOpen]=useState(null);   // {id, ph}
   const [defOpen,setDefOpen]=useState(false);
-  const [batchOpen,setBatchOpen]=useState(null);   // {brand,batch}
   const [showDone,setShowDone]=useState(false);
   const today=ymdToday();
   const legacyOf=(batch)=>batch?(D.projects||[]).find(pr=>String(pr.title||"").replace(/\s/g,"").includes(batch.replace(/\s/g,""))):null;
-  const GroupHead=({g})=>{ const b=LAUNCH_BRANDS[g.brand]||{icon:"",name:g.brand}; const pct=Math.round(g.rows.reduce((a,p)=>a+launchProgress(p).pct,0)/g.rows.length);
-    const ld=g.rows.map(p=>p.launchDate).filter(Boolean).sort()[0]; const lg=legacyOf(g.batch);
-    return(<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",padding:"8px 10px",borderRadius:11,background:g.batch?"#EEF0F5":"#F9FAFB"}}>
-      <b style={{fontSize:13.5,color:"#191F28"}}>{b.icon} {b.name} · {g.batch||"차수 미정"}</b>
-      <span style={{fontSize:11.5,color:"#6B7684",fontWeight:700}}>{g.rows.length}개 · 평균 {pct}%{ld?` · 출시 ${ld.slice(5)} ${ddayKo(daysTo(ld))}`:""}</span>
-      {lg&&<span style={{fontSize:11,color:"#8B95A1"}}>지난 기록: {lg.title}</span>}
-      {(()=>{ const nt=((launchSettings(D.workflows).batchNotes)||{})[g.brand+"|"+g.batch]; if(!g.batch||!nt||!(nt.tag||nt.memo)) return null;
-        return <span style={{flexBasis:"100%",order:9,display:"flex",gap:6,alignItems:"baseline",padding:"6px 9px",borderRadius:8,background:"#FFF6CC",border:"1px solid #F0DE8A",boxShadow:"0 1px 0 rgba(0,0,0,.04)"}}>{nt.tag&&<b style={{fontSize:12,color:"#6B5310",whiteSpace:"nowrap"}}>{nt.tag}</b>}{nt.memo&&<span style={{fontSize:12,color:"#5C4A12",lineHeight:1.45,wordBreak:"keep-all"}}>{nt.memo}</span>}</span>; })()}
-      <button onClick={()=>setBatchOpen({brand:g.brand,batch:g.batch||null})} style={{marginLeft:"auto",padding:"5px 10px",borderRadius:9,border:"1px solid #D3D8E6",background:"#fff",color:"#1E2F5C",fontWeight:800,fontSize:11.5,cursor:"pointer",fontFamily:"inherit"}}>{g.batch?"차수 편집":"차수로 묶기"}</button>
-    </div>); };
+  const GroupHead=({g})=><BatchHead D={D} cu={cu} add={add} up={up} g={g} items={items} legacy={legacyOf(g.batch)}/>;
   const list=items.filter(p=>brand==="all"||p.brand===brand).sort((a,b)=>(a.launchDate?0:1)-(b.launchDate?0:1)||String(a.launchDate||"").localeCompare(String(b.launchDate||""))||String(a.name||"").localeCompare(String(b.name||""),"ko"));
   const act=list.filter(p=>launchProgress(p).pct<100), fin=list.filter(p=>launchProgress(p).pct>=100);
   const openP=items.find(p=>p.id===(open&&open.id));
@@ -5825,8 +5815,7 @@ function LaunchBoard({D,cu,add,up,pc,items}){
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
         <span style={{fontSize:20}}></span>
         <div style={{flex:"1 1 180px",minWidth:0}}><p style={{margin:0,fontSize:15.5,fontWeight:900,color:"#191F28"}}>신제품 출시 로드맵</p>
-          <p style={{margin:"1px 0 0",fontSize:11.5,color:"#8B95A1"}}>브랜드별 출시 차수로 묶어 봐요 · 런칭보드와 같은 데이터 · 칸을 누르면 세부 체크·담당·마감</p></div>
-        <button onClick={()=>setBatchOpen({brand:brand!=="all"?brand:null,batch:null})} style={{padding:"8px 11px",borderRadius:10,border:"1px solid #D3D8E6",background:"#EEF0F5",color:"#1E2F5C",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>차수 묶기</button>
+          <p style={{margin:"1px 0 0",fontSize:11.5,color:"#8B95A1"}}>같은 차수 = 같은 출시일 · 차수 머리에서 이름·출시일·포스트잇 · 제품을 누르면 세부 체크·담당·차수</p></div>
         <button onClick={()=>setDefOpen(true)} style={{padding:"8px 11px",borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",color:"#4E5968",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>기본 담당</button>
         
       </div>
@@ -5836,11 +5825,11 @@ function LaunchBoard({D,cu,add,up,pc,items}){
       </div>
       {items.length===0?<p style={{margin:"6px 2px",fontSize:12.5,color:"#8B95A1"}}>런칭보드 데이터를 불러오는 중이거나 등록된 제품이 없어요</p>
         :act.length===0?<p style={{margin:"6px 2px",fontSize:12.5,color:"#8B95A1"}}>진행 중인 신제품이 없어요</p>:pc?<Table rows={act}/>:<Cards rows={act}/>}
+      {items.length>0&&<NewBatch D={D} cu={cu} items={items} brand0={brand!=="all"?brand:""}/>}
       {fin.length>0&&<div style={{marginTop:10}}><button onClick={()=>setShowDone(v=>!v)} style={{border:"none",background:"none",padding:"4px 2px",fontSize:12,fontWeight:800,color:"#2F7D57",cursor:"pointer",fontFamily:"inherit"}}>출시 준비 완료 {fin.length} {showDone?"▴":"▾"}</button>
         {showDone&&<div style={{marginTop:6}}>{pc?<Table rows={fin}/>:<Cards rows={fin}/>}</div>}</div>}
       {openP&&<LaunchProductSheet D={D} cu={cu} p={openP} items={items} phK={open.ph} setPh={(k)=>setOpen(o=>({...o,ph:k}))} onClose={()=>setOpen(null)}/>}
       {defOpen&&<LaunchDefaultsSheet D={D} add={add} up={up} items={items} onClose={()=>setDefOpen(false)}/>}
-      {batchOpen&&<BatchSheet D={D} cu={cu} add={add} up={up} items={items} brand0={batchOpen.brand} batch0={batchOpen.batch} onClose={()=>setBatchOpen(null)}/>}
     </div>);
 }
 
@@ -5848,66 +5837,121 @@ function LaunchBoard({D,cu,add,up,pc,items}){
 function launchGroups(rows){ const out=[]; rows.forEach(p=>{ const k=(p.brand||"etc")+"|"+(p.batch||""); let g=out.find(x=>x.k===k); if(!g){ g={k,brand:p.brand||"etc",batch:p.batch||"",rows:[]}; out.push(g); } g.rows.push(p); });
   const bi=(b)=>{ const i=Object.keys(LAUNCH_BRANDS).indexOf(b); return i<0?99:i; };
   return out.sort((a,b)=>bi(a.brand)-bi(b.brand)||(a.batch?0:1)-(b.batch?0:1)||String(a.batch).localeCompare(String(b.batch),"ko",{numeric:true})); }
-const DECO_RE=/루바월|아트월|흡음재|타일카펫/;
-function BatchSheet({D,cu,add,up,items,brand0,batch0,onClose}){
+// 차수 = 같은 출시일로 함께 나가는 제품 묶음. batch·launchDate 는 런칭보드 문서 칸 그대로(기존 값 보존)
+function batchDateOf(rows){ const ds=[...new Set(rows.map(p=>p.launchDate).filter(Boolean))].sort();
+  return {date:ds[0]||"",mixed:ds.length>1||(ds.length===1&&rows.some(p=>!p.launchDate))}; }
+const batchRowsOf=(items,brand,batch)=>items.filter(p=>!p.deletedAt&&(p.brand||"etc")===brand&&(p.batch||"")===batch);
+const batchNamesOf=(items,brand)=>[...new Set(items.filter(p=>!p.deletedAt&&p.brand===brand).map(p=>p.batch).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),"ko",{numeric:true}));
+const BATCH_TAGS=["데코라인","리페어라인","신규라인"];
+const bhBtn={padding:"5px 10px",borderRadius:9,border:"1px solid #D3D8E6",background:"#fff",color:"#1E2F5C",fontWeight:800,fontSize:11.5,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"};
+
+// 로드맵 차수 머리 — 이름·출시일·포스트잇을 그 자리에서 고쳐요
+function BatchHead({D,cu,add,up,g,items,legacy}){
+  const b=LAUNCH_BRANDS[g.brand]||{icon:"",name:g.brand};
+  const all=g.batch?batchRowsOf(items,g.brand,g.batch):g.rows;
+  const pct=Math.round(g.rows.reduce((a,p)=>a+launchProgress(p).pct,0)/g.rows.length);
+  const bd=batchDateOf(all);
+  const notes=(launchSettings(D.workflows).batchNotes)||{}; const key=g.brand+"|"+g.batch; const nt=notes[key]||{};
+  const [mode,setMode]=useState(null);   // null | "edit" | "note"
+  const [name,setName]=useState(g.batch); const [date,setDate]=useState(bd.date);
+  const [tag,setTag]=useState(nt.tag||""); const [memo,setMemo]=useState(nt.memo||"");
+  const [msg,setMsg]=useState(""); const [busy,setBusy]=useState(false);
+  const openEdit=()=>{ setName(g.batch); setDate(bd.date); setMsg(""); setMode("edit"); };
+  const openNote=()=>{ setTag(nt.tag||""); setMemo(nt.memo||""); setMsg(""); setMode("note"); };
+  const saveNotes=(nn)=>{ if(JSON.stringify(nn)!==JSON.stringify(notes)) saveWfOverride(D,add,up,"wf_launch",{batchNotes:nn}); };
+  const saveEdit=async()=>{ const nm=name.trim(); if(!nm){ setMsg("차수 이름을 넣어 주세요"); return; } setBusy(true); let bad=0;
+    for(const p of all){ const patch={}; if(nm!==g.batch) patch.batch=nm; if(date&&p.launchDate!==date) patch.launchDate=date;
+      if(Object.keys(patch).length){ const t=[patch.batch?`차수 이름 '${g.batch}' → '${nm}'`:"",patch.launchDate?`차수 출시일 ${date}`:""].filter(Boolean).join(" · "); if(!(await lbWrite(p.id,patch,t,cu))) bad++; } }
+    if(nm!==g.batch&&notes[key]){ const nn={...notes}; if(!nn[g.brand+"|"+nm]) nn[g.brand+"|"+nm]=notes[key]; delete nn[key]; saveNotes(nn); }
+    setBusy(false); if(bad){ setMsg(`${bad}건 저장 실패 · 인터넷 연결을 확인해 주세요`); return; } setMode(null); };
+  const saveNote=(clear)=>{ const t=clear?"":tag.trim(), m=clear?"":memo.trim(); const nn={...notes};
+    if(t||m) nn[key]={tag:t,memo:m,updatedAt:new Date().toISOString(),by:cu?.name||""}; else delete nn[key]; saveNotes(nn); setMode(null); };
+  const others=g.batch&&name.trim()&&name.trim()!==g.batch&&batchNamesOf(items,g.brand).includes(name.trim());
+  return(<div style={{display:"flex",flexDirection:"column",gap:7,padding:"8px 10px",borderRadius:11,background:g.batch?"#EEF0F5":"#F9FAFB"}}>
+    {mode==="edit"?<div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          <input value={name} onChange={e=>setName(e.target.value)} aria-label="차수 이름" placeholder="차수 이름" style={{...wfInp,flex:"2 1 150px",padding:"8px 10px",fontSize:13.5,fontWeight:800}}/>
+          <input type="date" value={date} onChange={e=>setDate(e.target.value)} aria-label="차수 출시일" style={{...wfInp,flex:"1 1 130px",padding:"8px 10px",fontSize:13}}/>
+          <span style={{display:"flex",gap:6,flex:"0 0 auto"}}><button onClick={saveEdit} disabled={busy} style={{...NB.pri,padding:"8px 14px"}}>{busy?"저장 중":"저장"}</button><button onClick={()=>setMode(null)} style={{...bhBtn,padding:"8px 12px"}}>취소</button></span>
+        </div>
+        <p style={{margin:"5px 2px 0",fontSize:11.5,color:"#4E5968",fontWeight:700,lineHeight:1.5}}>이 차수 제품 {all.length}개가 함께 바뀌어요 · 런칭보드에도{bd.mixed?" · 출시일을 넣으면 하나로 맞춰져요":""}</p>
+        {others&&<p style={{margin:"2px 2px 0",fontSize:11.5,color:"#B26A12",fontWeight:700}}>'{name.trim()}' 차수가 이미 있어요 · 저장하면 두 차수가 하나로 합쳐져요</p>}
+        {msg&&<p style={{margin:"2px 2px 0",fontSize:11.5,color:"#B4383F",fontWeight:800}}>{msg}</p>}
+      </div>
+      :<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <b style={{fontSize:13.5,color:"#191F28"}}>{b.icon} {b.name} · {g.batch||"차수 미정"}</b>
+        <span style={{fontSize:11.5,color:"#6B7684",fontWeight:700}}>{g.rows.length}개 · 평균 {pct}%{g.batch?(bd.mixed?"":bd.date?` · 출시 ${bd.date.slice(5)} ${ddayKo(daysTo(bd.date))}`:" · 출시일 미정"):""}</span>
+        {g.batch&&bd.mixed&&<button onClick={openEdit} style={{border:"none",background:"none",padding:0,fontSize:11.5,fontWeight:800,color:"#B26A12",cursor:"pointer",fontFamily:"inherit"}}>출시일 제각각 · 하나로 맞추기</button>}
+        {legacy&&<span style={{fontSize:11,color:"#8B95A1"}}>지난 기록: {legacy.title}</span>}
+        {g.batch?<button onClick={openEdit} style={{...bhBtn,marginLeft:"auto"}}>이름·출시일</button>
+          :<span style={{marginLeft:"auto",fontSize:11.5,color:"#8B95A1"}}>제품을 눌러 차수를 골라요</span>}
+      </div>}
+    {g.batch&&(mode==="note"?<div style={{padding:"9px 10px",borderRadius:9,background:"#FFF6CC",border:"1px solid #F0DE8A"}}>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:6}}>{BATCH_TAGS.map(x=><button key={x} type="button" onClick={()=>setTag(x)} style={{padding:"5px 10px",borderRadius:12,border:`1.5px solid ${tag===x?"#6B5310":"#E8D88F"}`,background:tag===x?"#FFEFA3":"#FFFBEA",color:"#6B5310",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>{x}</button>)}</div>
+        <input value={tag} onChange={e=>setTag(e.target.value)} placeholder="표식 (예: 데코라인)" aria-label="표식" style={{...wfInp,width:"100%",padding:"8px 10px",fontSize:13,background:"#FFFDF3"}}/>
+        <textarea value={memo} onChange={e=>setMemo(e.target.value)} rows={2} placeholder="메모 (예: 10/23 동시 출시 · 상세페이지 톤 통일)" aria-label="포스트잇 메모" style={{...wfInp,width:"100%",marginTop:6,padding:"8px 10px",fontSize:13,background:"#FFFDF3",resize:"vertical"}}/>
+        <div style={{display:"flex",gap:6,marginTop:6}}><button onClick={()=>saveNote(false)} style={{...NB.pri,padding:"7px 14px"}}>저장</button><button onClick={()=>setMode(null)} style={bhBtn}>취소</button>
+          {(nt.tag||nt.memo)&&<button onClick={()=>saveNote(true)} style={{...bhBtn,marginLeft:"auto",color:"#B4383F",borderColor:"#EACFD1"}}>포스트잇 떼기</button>}</div>
+      </div>
+      :(nt.tag||nt.memo)?<button onClick={openNote} aria-label="포스트잇 고치기" style={{display:"flex",gap:6,alignItems:"baseline",width:"100%",textAlign:"left",padding:"6px 9px",borderRadius:8,background:"#FFF6CC",border:"1px solid #F0DE8A",boxShadow:"0 1px 0 rgba(0,0,0,.04)",cursor:"pointer",fontFamily:"inherit"}}>{nt.tag&&<b style={{fontSize:12,color:"#6B5310",whiteSpace:"nowrap"}}>{nt.tag}</b>}{nt.memo&&<span style={{fontSize:12,color:"#5C4A12",lineHeight:1.45,wordBreak:"keep-all"}}>{nt.memo}</span>}</button>
+      :<button onClick={openNote} style={{width:"100%",textAlign:"left",padding:"6px 9px",borderRadius:8,background:"transparent",border:"1.5px dashed #E3CF7A",color:"#8A7420",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+ 포스트잇 붙이기</button>)}
+  </div>);
+}
+
+// 로드맵 아래 '+ 새 차수 만들기' — 이름·출시일·넣을 제품(칩)
+function NewBatch({D,cu,items,brand0}){
   const brands=[...new Set([...Object.keys(LAUNCH_BRANDS),...items.map(p=>p.brand).filter(Boolean)])];
-  const notes=(launchSettings(D.workflows).batchNotes)||{};
-  const [brand,setBrand]=useState(brand0||brands[0]||"grohome");
-  const inB=items.filter(p=>p.brand===brand);
-  const names=[...new Set(inB.map(p=>p.batch).filter(Boolean))];
-  const initName=batch0!=null?batch0:(names[0]||(brand==="grohome"?"데코라인 1차":"1차"));
-  const [name,setName]=useState(initName);
-  const [orig,setOrig]=useState(names.includes(initName)?initName:null);   // 고른 기존 차수 — 이름을 바꾸면 이 차수 제품 모두 새 이름으로
-  const noteOf=(b,nm)=>notes[b+"|"+nm]||{};
-  const [tag,setTag]=useState(noteOf(brand0||brands[0]||"grohome",initName).tag||""); const [memo,setMemo]=useState(noteOf(brand0||brands[0]||"grohome",initName).memo||"");
-  const pick=(nm,br)=>{ const list=items.filter(p=>p.brand===(br||brand)); const has=list.some(p=>p.batch===nm);
-    return Object.fromEntries(list.map(p=>[p.id,has?p.batch===nm:(nm==="데코라인 1차"&&DECO_RE.test(String(p.name||"")))])); };
-  const [sel,setSel]=useState(()=>pick(initName));
-  const [date,setDate]=useState("");
-  const [msg,setMsg]=useState("");
-  const chooseName=(nm)=>{ setName(nm); setSel(pick(nm)); setOrig(names.includes(nm)?nm:null); const n0=noteOf(brand,nm); setTag(n0.tag||""); setMemo(n0.memo||""); };
-  const chooseBrand=(b)=>{ setBrand(b); const ns=[...new Set(items.filter(p=>p.brand===b).map(p=>p.batch).filter(Boolean))]; const nm=ns[0]||"1차"; setName(nm); setSel(pick(nm,b)); setOrig(ns.includes(nm)?nm:null); const n0=noteOf(b,nm); setTag(n0.tag||""); setMemo(n0.memo||""); };
-  const save=async()=>{ const nm=name.trim(); if(!nm){ setMsg("차수 이름을 넣어 주세요"); return; } let n=0, bad=0;
-    for(const p of inB){ const on=!!sel[p.id]; const patch={};
-      if(on&&p.batch!==nm) patch.batch=nm; if(!on&&(p.batch===nm||(orig&&p.batch===orig))) patch.batch="";
-      if(on&&date&&p.launchDate!==date) patch.launchDate=date;
-      if(Object.keys(patch).length){ const ok=await lbWrite(p.id,patch,`출시 차수 ${patch.batch===undefined?nm:(patch.batch||"해제")}${patch.launchDate?" · 출시일 "+date:""}`,cu); ok?n++:bad++; } }
-    { const nn={...notes}; if(orig&&orig!==nm) delete nn[brand+"|"+orig]; const t=tag.trim(), m=memo.trim();
-      if(t||m) nn[brand+"|"+nm]={tag:t,memo:m,updatedAt:new Date().toISOString(),by:cu?.name||""}; else delete nn[brand+"|"+nm];
-      if(JSON.stringify(nn)!==JSON.stringify(notes)) saveWfOverride(D,add,up,"wf_launch",{batchNotes:nn}); }
-    setMsg(bad?`${bad}건 저장 실패 · 인터넷 연결을 확인해 주세요`:`${n}개 제품을 '${nm}'(으)로 정리했어요`); if(!bad) setTimeout(onClose,700); };
-  const cnt=Object.values(sel).filter(Boolean).length;
-  return(<Sheet open={true} onClose={onClose} title="출시 차수 묶기" h="92vh" w={560}>
-    <div style={{paddingTop:6,display:"flex",flexDirection:"column",gap:12}}>
-      <p style={{margin:0,fontSize:12,color:"#6B7684",lineHeight:1.6}}>브랜드별로 함께 출시할 제품을 <b>1차·2차</b>처럼 묶어요. 로드맵이 차수별로 모여 보여요. (런칭보드 기존 값은 그대로)</p>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{brands.map(b=>{ const x=LAUNCH_BRANDS[b]||{icon:"",name:b}; const on=brand===b; return <button key={b} onClick={()=>chooseBrand(b)} style={{padding:"8px 12px",borderRadius:16,border:`1.5px solid ${on?"#191F28":"#E5E8EB"}`,background:on?"#191F28":"#fff",color:on?"#fff":"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{x.icon} {x.name}</button>; })}</div>
-      <div>
-        <span style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>차수 이름</span>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:5}}>
-          {[...new Set([...names,...(brand==="grohome"?["데코라인 1차"]:[]),"1차","2차","3차"])].map(nm=><button key={nm} onClick={()=>chooseName(nm)} style={{padding:"7px 11px",borderRadius:14,border:`1.5px solid ${name===nm?"#24386B":"#E5E8EB"}`,background:name===nm?"#EEF0F5":"#fff",color:name===nm?"#1E2F5C":"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{nm}{names.includes(nm)?` · ${inB.filter(p=>p.batch===nm).length}`:""}</button>)}
-        </div>
-        <input value={name} onChange={e=>setName(e.target.value)} placeholder="직접 입력 (예: 데코라인 2차)" aria-label="차수 이름" style={{...wfInp,width:"100%",marginTop:8}}/>
-        {orig&&name.trim()&&name.trim()!==orig&&<p style={{margin:"5px 2px 0",fontSize:11.5,color:"#B26A12",fontWeight:700}}>'{orig}' → '{name.trim()}' 로 이름이 바뀌어요 (이 차수 제품 모두 · 런칭보드에도)</p>}
+  const [open,setOpen]=useState(false);
+  const [brand,setBrand]=useState(brand0||brands.find(k=>items.some(p=>p.brand===k))||brands[0]);
+  const [name,setName]=useState(""); const [date,setDate]=useState(""); const [sel,setSel]=useState({});
+  const [msg,setMsg]=useState(""); const [busy,setBusy]=useState(false);
+  const inB=items.filter(p=>!p.deletedAt&&p.brand===brand&&launchProgress(p).pct<100);
+  const exist=batchNamesOf(items,brand).includes(name.trim()); const exDate=exist?batchDateOf(batchRowsOf(items,brand,name.trim())).date:"";
+  const cnt=inB.filter(p=>sel[p.id]).length;
+  const start=()=>{ setBrand(brand0||brand); setName(""); setDate(""); setSel({}); setMsg(""); setOpen(true); };
+  const make=async()=>{ const nm=name.trim(); if(!nm){ setMsg("차수 이름을 넣어 주세요"); return; } if(!cnt){ setMsg("넣을 제품을 하나 이상 골라 주세요"); return; }
+    const d=date||exDate; setBusy(true); let bad=0;
+    for(const p of inB.filter(x=>sel[x.id])){ const patch={batch:nm}; if(d&&p.launchDate!==d) patch.launchDate=d;
+      if(!(await lbWrite(p.id,patch,`출시 차수 ${nm}${patch.launchDate?" · 출시일 "+d:""}`,cu))) bad++; }
+    setBusy(false); if(bad){ setMsg(`${bad}건 저장 실패 · 인터넷 연결을 확인해 주세요`); return; } setOpen(false); };
+  if(!open) return <button onClick={start} style={{display:"block",width:"100%",marginTop:8,padding:"10px 0",borderRadius:11,border:"1.5px dashed #D3D8E6",background:"#fff",color:"#1E2F5C",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>+ 새 차수 만들기</button>;
+  return(<div style={{marginTop:8,padding:"11px 12px",borderRadius:12,border:"1.5px solid #D3D8E6",background:"#F9FAFB",display:"flex",flexDirection:"column",gap:8}}>
+    <b style={{fontSize:13,color:"#191F28"}}>새 차수 만들기</b>
+    <div style={{display:"flex",gap:6,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>{brands.map(k=>{ const x=LAUNCH_BRANDS[k]||{icon:"",name:k}; const on=brand===k; return <button key={k} onClick={()=>{ setBrand(k); setSel({}); }} style={{flexShrink:0,padding:"6px 11px",borderRadius:14,border:`1.5px solid ${on?"#191F28":"#E5E8EB"}`,background:on?"#191F28":"#fff",color:on?"#fff":"#4E5968",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>{x.icon} {x.name}</button>; })}</div>
+    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+      <input value={name} onChange={e=>setName(e.target.value)} placeholder="차수 이름 (예: 데코라인 2차)" aria-label="새 차수 이름" style={{...wfInp,flex:"2 1 160px",padding:"8px 10px",fontSize:13.5}}/>
+      <input type="date" value={date} onChange={e=>setDate(e.target.value)} aria-label="새 차수 출시일" style={{...wfInp,flex:"1 1 130px",padding:"8px 10px",fontSize:13}}/>
+    </div>
+    {exist&&<p style={{margin:0,fontSize:11.5,color:"#B26A12",fontWeight:700}}>이미 있는 차수예요 · 고른 제품이 이 차수에 더해져요{exDate&&!date?` (출시일 ${exDate.slice(5)}로 맞춤)`:""}</p>}
+    <span style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>넣을 제품 {cnt} · 눌러서 고르기</span>
+    {inB.length===0?<p style={{margin:0,fontSize:12,color:"#8B95A1"}}>이 브랜드에 준비 중인 제품이 없어요</p>
+      :<div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{inB.map(p=>{ const on=!!sel[p.id]; return <button key={p.id} onClick={()=>setSel(o=>({...o,[p.id]:!o[p.id]}))} aria-pressed={on} style={{padding:"6px 10px",borderRadius:12,border:`1.5px solid ${on?"#24386B":"#E5E8EB"}`,background:on?"#EEF0F5":"#fff",color:on?"#1E2F5C":"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>{on?"✓ ":""}{p.name}{p.batch?<span style={{fontWeight:600,color:"#8B95A1"}}> · 지금 {p.batch}</span>:null}</button>; })}</div>}
+    <div style={{display:"flex",gap:6}}><button onClick={make} disabled={busy} style={{...NB.pri,padding:"9px 16px"}}>{busy?"만드는 중":"만들기"}</button><button onClick={()=>setOpen(false)} style={{...bhBtn,padding:"9px 14px"}}>취소</button></div>
+    {msg&&<p style={{margin:0,fontSize:12,color:"#B4383F",fontWeight:800}}>{msg}</p>}
+  </div>);
+}
+
+// 달력에서 차수 막대를 누르면 — 차수 하나 상세(제품별 진행·다음 할 일), 제품을 누르면 제품 창
+function BatchViewSheet({D,items,v,onOpen,onRoadmap,onClose}){
+  const b=LAUNCH_BRANDS[v.brand]||{icon:"",name:v.brand};
+  const rows=batchRowsOf(items,v.brand,v.batch).sort((a,c)=>String(a.name||"").localeCompare(String(c.name||""),"ko"));
+  const bd=batchDateOf(rows); const ld=bd.date||v.date; const nt=((launchSettings(D.workflows).batchNotes)||{})[v.brand+"|"+v.batch]||{};
+  const pct=rows.length?Math.round(rows.reduce((a,p)=>a+launchProgress(p).pct,0)/rows.length):0;
+  return(<Sheet open={true} onClose={onClose} title={`${b.name} · ${v.batch}`} h="86vh" w={560}>
+    <div style={{paddingTop:4,display:"flex",flexDirection:"column",gap:10}}>
+      <div style={{padding:"12px 14px",borderRadius:14,background:"#EEF0F5"}}>
+        <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}><b style={{fontSize:14,color:"#1E2F5C"}}>출시 {ld?`${ld} · ${ddayKo(daysTo(ld))}`:"미정"}</b><span style={{fontSize:13,fontWeight:900,color:"#191F28"}}>{rows.length}개 · 평균 {pct}%</span></div>
+        {bd.mixed&&<p style={{margin:"4px 0 0",fontSize:11.5,fontWeight:700,color:"#B26A12"}}>이 차수 안에 출시일이 다른 제품이 있어요 · 로드맵 차수 머리에서 하나로 맞춰요</p>}
+        <div style={{height:7,background:"rgba(255,255,255,.8)",borderRadius:4,overflow:"hidden",marginTop:8}}><div style={{width:`${pct}%`,height:"100%",background:"#24386B",borderRadius:4}}/></div>
       </div>
-      <div style={{padding:"10px 11px",borderRadius:12,background:"#FFF6CC",border:"1px solid #F0DE8A"}}>
-        <span style={{fontSize:11.5,fontWeight:800,color:"#6B5310"}}>포스트잇 · 이 차수 표식</span>
-        <div style={{display:"flex",gap:5,flexWrap:"wrap",margin:"6px 0"}}>{["데코라인","리페어라인","신규라인"].map(x=><button key={x} type="button" onClick={()=>setTag(x)} style={{padding:"5px 10px",borderRadius:12,border:`1.5px solid ${tag===x?"#6B5310":"#E8D88F"}`,background:tag===x?"#FFEFA3":"#FFFBEA",color:"#6B5310",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>{x}</button>)}</div>
-        <input value={tag} onChange={e=>setTag(e.target.value)} placeholder="표식 (예: 데코라인)" aria-label="표식" style={{...wfInp,width:"100%",background:"#FFFDF3"}}/>
-        <textarea value={memo} onChange={e=>setMemo(e.target.value)} rows={2} placeholder="메모 (예: 10/23 동시 출시 · 상세페이지 톤 통일)" aria-label="포스트잇 메모" style={{...wfInp,width:"100%",marginTop:6,background:"#FFFDF3",resize:"vertical"}}/>
-        <p style={{margin:"4px 2px 0",fontSize:11,color:"#8A7420"}}>로드맵의 이 차수 머리에 노란 메모로 붙어요</p>
-      </div>
-      <div>
-        <span style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>이 차수에 넣을 제품 ({cnt})</span>
-        <div style={{display:"flex",flexDirection:"column",gap:5,marginTop:6}}>
-          {inB.map(p=><label key={p.id} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 11px",borderRadius:11,background:sel[p.id]?"#EEF0F5":"#F9FAFB",cursor:"pointer"}}>
-            <input type="checkbox" checked={!!sel[p.id]} onChange={()=>setSel(o=>({...o,[p.id]:!o[p.id]}))} style={{width:18,height:18,accentColor:"#24386B"}}/>
-            <span style={{flex:1,fontSize:13.5,fontWeight:700,color:"#191F28"}}>{p.name}</span>
-            <span style={{fontSize:11,color:"#8B95A1"}}>{p.batch&&p.batch!==name?`지금: ${p.batch}`:""}{p.launchDate?` · 출시 ${p.launchDate.slice(5)}`:""}</span></label>)}
-        </div>
-      </div>
-      <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>출시일 한 번에 넣기 <span style={{fontWeight:500,color:"#8B95A1"}}>(선택 · 체크한 제품에 같은 날짜)</span><input type="date" value={date} onChange={e=>setDate(e.target.value)} style={{...wfInp,width:"100%",marginTop:4}}/></label>
-      <button onClick={save} style={{padding:"13px 0",borderRadius:13,border:"none",background:"#24386B",color:"#fff",fontWeight:900,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>저장</button>
-      {msg&&<p style={{margin:0,textAlign:"center",fontSize:13,fontWeight:800,color:/실패|넣어/.test(msg)?"#B4383F":"#2F7D57"}}>{msg}</p>}
+      {(nt.tag||nt.memo)&&<div style={{display:"flex",gap:6,alignItems:"baseline",padding:"7px 10px",borderRadius:9,background:"#FFF6CC",border:"1px solid #F0DE8A"}}>{nt.tag&&<b style={{fontSize:12,color:"#6B5310",whiteSpace:"nowrap"}}>{nt.tag}</b>}{nt.memo&&<span style={{fontSize:12,color:"#5C4A12",lineHeight:1.45}}>{nt.memo}</span>}</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>{rows.map(p=>{ const lp=launchProgress(p); const nx=launchNextItem(p); return(
+        <button key={p.id} onClick={()=>onOpen(p)} style={{textAlign:"left",padding:"10px 12px",borderRadius:12,border:"1px solid #EEF1F4",background:"#fff",cursor:"pointer",fontFamily:"inherit"}}>
+          <span style={{display:"flex",alignItems:"center",gap:8}}><b style={{flex:1,minWidth:0,fontSize:13.5,color:"#191F28"}}>{p.name}</b>{p.launchDate&&p.launchDate!==ld&&<span style={{fontSize:11,fontWeight:800,color:"#B26A12"}}>출시 {p.launchDate.slice(5)}</span>}<span style={{fontSize:12.5,fontWeight:900,color:"#1E2F5C",fontVariantNumeric:"tabular-nums"}}>{lp.pct}%</span><span style={{color:"#B0B8C1"}}>›</span></span>
+          <span style={{display:"block",height:5,background:"#E8EBEE",borderRadius:3,overflow:"hidden",marginTop:6}}><span style={{display:"block",width:`${lp.pct}%`,height:"100%",background:"#24386B"}}/></span>
+          <span style={{display:"block",fontSize:11,color:"#8B95A1",marginTop:5}}>책임 {launchLead(p)||"미지정"}{nx?<> · 다음 <b style={{color:"#1E2F5C"}}>{nx.it.name}</b>{nx.s.owner?` (${nx.s.owner})`:""}{nx.s.due?` · ${String(nx.s.due).slice(5)}`:""}</>:" · 다음 할 일 없음"}</span>
+        </button>); })}</div>
+      <button onClick={onRoadmap} style={{alignSelf:"flex-start",...NB.link,padding:"2px 2px"}}>로드맵에서 보기 →</button>
     </div>
   </Sheet>);
 }
@@ -5930,6 +5974,15 @@ function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose}){
       w({stages:{[it.id]:s}},`${it.name} · ${field==="status"?(LB_ST[value]||{}).l:field==="owner"?"담당 "+(value||"없음"):field==="due"?"마감 "+(value||"없음"):"메모"}`); }
     else w({osExtra:{[it.id]:{[field]:value,updatedAt:new Date().toISOString(),updatedBy:cu?.name||""}}},`${it.name} · ${field==="status"?(LB_ST[value]||{}).l:field==="owner"?"담당 "+(value||"없음"):field==="due"?"마감 "+(value||"없음"):field==="count"?"건수 "+value:field==="exec"?"실행 방식 "+execOf(value).label:"메모"}`); };
   const setExec=(it,k,n)=>w({osExtra:{[it.id]:{exec:k,execNote:n||"",updatedAt:new Date().toISOString()}}},`${it.name} · 실행 방식 ${execOf(k).label}${n?" ("+n+")":""}`);
+  const sameB=(nm)=>items.filter(x=>!x.deletedAt&&x.brand===p.brand&&x.batch===nm&&x.id!==p.id);
+  const bNames=batchNamesOf(items,p.brand);
+  const [newB,setNewB]=useState(null);   // '+ 새 차수 이름 입력'
+  const chooseBatch=async(nm)=>{ if(nm==="__new"){ setNewB(""); return; } if(nm===(p.batch||"")){ setNewB(null); return; }
+    const bd=nm?batchDateOf(sameB(nm)):{date:""}; const patch={batch:nm}; if(nm&&bd.date&&!bd.mixed&&p.launchDate!==bd.date) patch.launchDate=bd.date;   // 차수에 들어가면 출시일도 그 차수에 맞춤
+    await w(patch,`출시 차수 ${nm||"해제"}${patch.launchDate?" · 출시일 "+bd.date+" (차수에 맞춤)":""}`); setNewB(null); };
+  const changeDate=async(v)=>{ const rows=p.batch?[p,...sameB(p.batch)]:[p]; let bad=0;
+    for(const x of rows) if((x.launchDate||"")!==v){ if(!(await lbWrite(x.id,{launchDate:v},`출시일 ${v||"미정"}${p.batch?` (차수 ${p.batch} 함께)`:""}`,cu))) bad++; }
+    setErr(bad?"저장하지 못했어요 · 인터넷 연결을 확인해 주세요":""); };
   const fillDefaults=()=>{ const ex={}; LAUNCH_ITEMS.filter(it=>!it.lb&&defs[it.id]&&!lbState(p,it).owner).forEach(it=>{ ex[it.id]={owner:defs[it.id]}; });
     if(!Object.keys(ex).length){ setErr("채울 빈 담당이 없어요 (기본 담당에서 먼저 정해 주세요)"); return; } w({osExtra:ex},`추가 칸 기본 담당 ${Object.keys(ex).length}개 채움`); };
   const b=LAUNCH_BRANDS[p.brand]||{icon:"",name:p.brandName||"기타"};
@@ -5937,10 +5990,13 @@ function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose}){
   const sel={...wfInp,padding:"7px 8px",fontSize:12.5};
   return(<Sheet open={true} onClose={onClose} title={`${b.icon} ${p.name}`} h="94vh" w={720}>
     <div style={{paddingTop:4,display:"flex",flexDirection:"column",gap:10}}>
-      <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)",gap:8}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8}}>
         <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",minWidth:0}}>책임자 (1명)<select value={p.lead||""} onChange={e=>w({lead:e.target.value},"책임자 "+(e.target.value||"브랜드 BM"))} style={{...wfInp,width:"100%",marginTop:4}}><option value="">브랜드 BM ({(LAUNCH_BRANDS[p.brand]||{}).bm||"-"})</option>{people.filter(n=>n!=="외주").map(n=><option key={n}>{n}</option>)}</select></label>
-        <div style={{fontSize:11.5,fontWeight:700,color:"#6B7684",minWidth:0}}>출시일<div style={{...wfInp,marginTop:4,background:"#F9FAFB",fontWeight:800,color:"#191F28"}}>{p.launchDate?`${p.launchDate} · ${ddayKo(daysTo(p.launchDate))}`:"미정"}</div></div>
+        <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",minWidth:0}}>차수<select value={newB!==null?"__new":(p.batch||"")} onChange={e=>chooseBatch(e.target.value)} style={{...wfInp,width:"100%",marginTop:4}}><option value="">차수 없음</option>{[...new Set([...bNames,...(p.batch?[p.batch]:[])])].map(n=><option key={n} value={n}>{n}{n!==p.batch&&batchDateOf(sameB(n)).date?` · ${batchDateOf(sameB(n)).date.slice(5)}`:""}</option>)}<option value="__new">+ 새 차수 이름 입력</option></select></label>
+        <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",minWidth:0}}>출시일{p.launchDate?<span style={{fontWeight:800,color:"#1E2F5C"}}> · {ddayKo(daysTo(p.launchDate))}</span>:null}<input type="date" value={p.launchDate||""} onChange={e=>changeDate(e.target.value)} aria-label="출시일" style={{...wfInp,width:"100%",marginTop:4}}/></label>
       </div>
+      {newB!==null&&<div style={{display:"flex",gap:6}}><input value={newB} onChange={e=>setNewB(e.target.value)} placeholder="새 차수 이름 (예: 데코라인 2차)" aria-label="새 차수 이름" style={{...wfInp,flex:1,padding:"8px 10px"}}/><button onClick={()=>{ if(newB.trim()) chooseBatch(newB.trim()); }} style={{...NB.pri,padding:"8px 14px"}}>넣기</button><button onClick={()=>setNewB(null)} style={{...NB.pri,background:"#fff",color:"#4E5968",border:"1px solid #E5E8EB"}}>취소</button></div>}
+      {p.batch&&<p style={{margin:"-4px 2px 0",fontSize:11.5,color:"#6B7684",lineHeight:1.5}}>'{p.batch}' 차수 {sameB(p.batch).length+1}개는 출시일이 같아요 · 출시일을 바꾸면 {sameB(p.batch).length+1}개 모두 바뀌어요{batchDateOf([p,...sameB(p.batch)]).mixed?<b style={{color:"#B26A12"}}> · 지금 출시일이 제각각이에요</b>:null}</p>}
       {(()=>{ const h=(p.history||[]).filter(x=>x&&typeof x.text==="string"&&/^(\[업무OS\] )?(관리 담당|책임자) /.test(x.text)); return h.length?<OwnerLog label="책임자 변경 이력" log={h.map(x=>({at:x.at,what:"책임자",from:"",to:x.text.replace(/^(\[업무OS\] )?(관리 담당|책임자) /,""),byName:x.by}))}/>:null; })()}
       <div style={{padding:"12px 14px",borderRadius:14,background:"#EEF0F5"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}><b style={{fontSize:13.5,color:"#1E2F5C"}}>{p.batch?p.batch+" · ":""}{b.name}</b><span style={{fontSize:13,fontWeight:900,color:"#191F28"}}>{lp.pct}% <span style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>항목 {lp.done}/{lp.total} 완료</span></span></div>
@@ -6619,6 +6675,8 @@ function CalendarPage({D,cu,add,up,rm,nav}){
   const [projOpen,setProjOpen]=useState(null);
   const [undOpen,setUndOpen]=useState(true);
   const lbCal=useLaunchProducts();
+  const [batchView,setBatchView]=useState(null);   // 달력 차수 막대 → 차수 상세 {brand,batch,date}
+  const [lbOpen,setLbOpen]=useState(null);         // 차수 상세 → 제품 창 {id,ph}
   const wfCal=mergeWorkflows(D.workflows);
   const goCatC=(k)=>{ try{ localStorage.setItem("pour-os-wf-cat",k); localStorage.setItem("pour-os-proj-adv","0"); }catch(_){} if(nav) nav("projects"); };
   const [detail,setDetail]=useState(null);
@@ -6645,10 +6703,20 @@ function CalendarPage({D,cu,add,up,rm,nav}){
       if(st&&du&&du>=st){ if(inM(st,du)) out.push({...it,start:st,end:du,label:""+p.title}); }
       else if(du){ if(inM(du)) out.push({...it,start:du,end:du,label:""+p.title+" 마감"}); }
       else if(st){ if(inM(st)) out.push({...it,start:st,end:st,label:"▶ "+p.title+" 시작"}); } });
-    if(show.launch) lbCal.filter(p=>!p.deletedAt).forEach(p=>{ const b=LAUNCH_BRANDS[p.brand]||{icon:""};
-      if(p.launchDate){ const c0=String(p.createdAt||"").slice(0,10); const st=c0&&c0<p.launchDate?c0:p.launchDate; const late=p.launchDate<todayC&&launchProgress(p).pct<100;
-        if(inM(st,p.launchDate)) out.push({kind:"launch",key:"l_"+p.id,start:st,end:p.launchDate,color:late?"#B4383F":"#1E2F5C",bg:late?"#F8EDEE":"#E3E7F0",label:`${p.name} (출시 ${p.launchDate.slice(5)})`,sub:`${b.icon} ${p.batch||"차수 미정"} · 관리 ${launchLead(p)||"-"} · ${launchProgress(p).pct}% 준비 · ${ddayKo(daysTo(p.launchDate))}`,onClick:()=>goCatC("launch")}); }
-      LAUNCH_ITEMS.forEach(it=>{ const st=lbState(p,it); if(st.due&&st.status!=="done"&&st.status!=="skip"&&inM(st.due)) out.push({kind:"launch",key:"li_"+p.id+it.id,start:st.due,end:st.due,color:st.due<todayC?"#B4383F":"#24386B",bg:st.due<todayC?"#F8EDEE":"#EEF0F5",label:`${p.name} · ${it.name}`,sub:`담당 ${st.owner||"없음"}`,onClick:()=>goCatC("launch")}); }); });
+    if(show.launch){ const live=lbCal.filter(p=>!p.deletedAt); const gk=(p)=>p.batch&&p.launchDate?(p.brand||"etc")+"|"+p.batch+"|"+p.launchDate:"";
+      const grp={}; live.forEach(p=>{ const k=gk(p); if(k) (grp[k]=grp[k]||[]).push(p); }); const inGrp=(p)=>{ const k=gk(p); return k&&grp[k].length>1; };
+      Object.values(grp).filter(rows=>rows.length>1).forEach(rows=>{ const p0=rows[0]; const b=LAUNCH_BRANDS[p0.brand]||{icon:"",name:p0.brand}; const ld=p0.launchDate;   // 같은 차수 = 막대 하나
+        const c0=rows.map(r=>String(r.createdAt||"").slice(0,10)).filter(c=>c&&c<ld).sort()[0]; const st=c0||ld; const pct=Math.round(rows.reduce((a,r)=>a+launchProgress(r).pct,0)/rows.length); const late=ld<todayC&&pct<100;
+        if(inM(st,ld)) out.push({kind:"launch",key:"lb_"+p0.brand+p0.batch+ld,start:st,end:ld,color:late?"#B4383F":"#1E2F5C",bg:late?"#F8EDEE":"#E3E7F0",label:`${b.name} ${p0.batch} (출시 ${ld.slice(5)}) · ${rows.length}개`,sub:`${rows.map(r=>r.name).join(", ")} · 평균 ${pct}% 준비 · ${ddayKo(daysTo(ld))}`,onClick:()=>setBatchView({brand:p0.brand,batch:p0.batch,date:ld})}); });
+      const dueGrp={};
+      live.forEach(p=>{ const b=LAUNCH_BRANDS[p.brand]||{icon:""};
+        if(p.launchDate&&!inGrp(p)){ const c0=String(p.createdAt||"").slice(0,10); const st=c0&&c0<p.launchDate?c0:p.launchDate; const late=p.launchDate<todayC&&launchProgress(p).pct<100;
+          if(inM(st,p.launchDate)) out.push({kind:"launch",key:"l_"+p.id,start:st,end:p.launchDate,color:late?"#B4383F":"#1E2F5C",bg:late?"#F8EDEE":"#E3E7F0",label:`${p.name} (출시 ${p.launchDate.slice(5)})`,sub:`${b.icon} ${p.batch||"차수 미정"} · 관리 ${launchLead(p)||"-"} · ${launchProgress(p).pct}% 준비 · ${ddayKo(daysTo(p.launchDate))}`,onClick:()=>goCatC("launch")}); }
+        LAUNCH_ITEMS.forEach(it=>{ const st=lbState(p,it); if(!(st.due&&st.status!=="done"&&st.status!=="skip"&&inM(st.due))) return;
+          if(inGrp(p)){ const k=gk(p)+"|"+it.id+"|"+st.due; (dueGrp[k]=dueGrp[k]||{p,it,due:st.due,rows:[]}).rows.push({p,owner:st.owner}); return; }   // 같은 차수·같은 마감은 하나로
+          out.push({kind:"launch",key:"li_"+p.id+it.id,start:st.due,end:st.due,color:st.due<todayC?"#B4383F":"#24386B",bg:st.due<todayC?"#F8EDEE":"#EEF0F5",label:`${p.name} · ${it.name}`,sub:`담당 ${st.owner||"없음"}`,onClick:()=>goCatC("launch")}); }); });
+      Object.entries(dueGrp).forEach(([k,x])=>{ const one=x.rows.length===1; const ow=[...new Set(x.rows.map(r=>r.owner||"없음"))].join(", ");
+        out.push({kind:"launch",key:"lid_"+k,start:x.due,end:x.due,color:x.due<todayC?"#B4383F":"#24386B",bg:x.due<todayC?"#F8EDEE":"#EEF0F5",label:one?`${x.p.name} · ${x.it.name}`:`${x.p.batch} · ${x.it.name} (${x.rows.length}개)`,sub:`${one?"":x.rows.map(r=>r.p.name).join(", ")+" · "}담당 ${ow}`,onClick:()=>one?goCatC("launch"):setBatchView({brand:x.p.brand,batch:x.p.batch,date:x.p.launchDate})}); }); }
     if(show.wf) (D.tasks||[]).filter(t=>t.wfId&&t.status!=="done").forEach(t=>{ const wf=wfCal.find(w=>w.id===t.wfId); if(!wf) return;
       if(t.dueDate&&inM(t.dueDate)) out.push({kind:"wf",key:"w_"+t.id,start:t.dueDate,end:t.dueDate,color:"#5E5A8C",bg:"#F0EFF5",label:`${wf.icon} ${t.title}`,sub:`${wf.name} · ${userName(D,t.assigneeId)||""}`,onClick:()=>goCatC(wf.cat)});
       const end=(t.wfData||{}).endDate; if(wf.kind==="notice"&&end&&inM(end)) out.push({kind:"wf",key:"wn_"+t.id,start:end,end,color:"#7A4A12",bg:"#F8F1E6",label:`내리기: ${t.title}`,sub:"공지 내리는 날",onClick:()=>goCatC("notice")}); });
@@ -6738,6 +6806,8 @@ function CalendarPage({D,cu,add,up,rm,nav}){
               <input type="date" aria-label={`${p.name} 출시일`} defaultValue="" onChange={e=>{ const v=e.target.value; if(v) lbWrite(p.id,{launchDate:v},"출시일 "+v,cu); }} style={{padding:"7px 8px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:12.5,fontFamily:"inherit",background:"#fff",flex:"0 1 150px",minWidth:0}}/>
             </div>); })}</div>
         </div>); })()}
+      {batchView&&!lbOpen&&<BatchViewSheet D={D} items={lbCal} v={batchView} onOpen={(p)=>setLbOpen({id:p.id,ph:(launchCurrentPhase(p)||LAUNCH_PHASES[0]).k})} onRoadmap={()=>{ setBatchView(null); goCatC("launch"); }} onClose={()=>setBatchView(null)}/>}
+      {lbOpen&&lbCal.find(p=>p.id===lbOpen.id)&&<LaunchProductSheet D={D} cu={cu} p={lbCal.find(p=>p.id===lbOpen.id)} items={lbCal} phK={lbOpen.ph} setPh={(k)=>setLbOpen(o=>({...o,ph:k}))} onClose={()=>setLbOpen(null)}/>}
       {projOpen&&(D.projects||[]).find(p=>p.id===projOpen)&&<ProjectDetailSheet D={D} cu={cu} p={(D.projects||[]).find(p=>p.id===projOpen)} up={up} add={add} rm={rm} onClose={()=>setProjOpen(null)} onAdvanced={()=>{ setProjOpen(null); if(nav) nav("projects"); }}/>}
       <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#191F28"}}>이번 달 행사·미팅</h3>
       {mEvts.length===0&&<div style={{padding:"28px 20px",textAlign:"center",backgroundColor:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6"}}><p style={{margin:0,fontSize:13,color:"#9CA3AF"}}>이번 달 일정이 없어요</p><p style={{margin:"4px 0 0",fontSize:11.5,color:"#D1D5DB"}}>위 <b>+ 일정</b> 또는 날짜를 탭해 추가하세요</p></div>}

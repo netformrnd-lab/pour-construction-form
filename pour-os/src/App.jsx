@@ -19,7 +19,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-체크리스트";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-건별기록";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -1767,6 +1767,8 @@ function TeamToday({D,cu,nav,onEdit,up}){
 // 오늘 화면 블록 순서 바꾸기 — 왼쪽 ⠿ 를 끌어 위아래로(폰은 눌러서 ↑↓ 도 가능). 순서는 이 기기에 사람별로 기억
 // 일 세 가지 — 어디서나 같은 이름·색으로: 할 일(한 번) · 고정업무(반복 체크) · 행동지표(KPI 횟수)
 const KIND_C={task:"#24386B",fixed:"#2E6E7E",ak:"#5E5A8C"};
+// 지표 이름 — 대표 지정(2026-10): 행동지표 = 선행지표 · 결과 KPI = 후행지표 (프로젝트 진척은 '진척'으로만 부름)
+const AK_LABEL="행동지표(선행지표)", LAG_LABEL="결과 KPI(후행지표)";
 const KindHead=({title,desc,right})=>(<div style={{flex:1,minWidth:0,marginBottom:10}}>
   <div style={{display:"flex",alignItems:"baseline",gap:8,justifyContent:"space-between"}}><h3 style={{margin:0,fontSize:14.5,fontWeight:900,color:"#16181D"}}>{title}</h3>{right&&<span style={{fontSize:11.5,fontWeight:800,color:"#4A4E57",fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap"}}>{right}</span>}</div>
   {desc&&<p style={{margin:"2px 0 0",fontSize:11,color:"#8A8E96",lineHeight:1.45}}>{desc}</p>}
@@ -2123,7 +2125,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const statsBox=(<div style={{display:"flex",gap:8}}>
     {kindTile("sec-tasks","할 일",`${doneToday}/${todayT.length}`,"한 번 하면 끝",KIND_C.task,todayT.length?doneToday/todayT.length*100:0)}
     {kindTile("sec-fixed","고정업무",`${doneFixed}/${fixed.length}`,"반복 · 체크",KIND_C.fixed,fixed.length?doneFixed/fixed.length*100:0)}
-    {akSum.n>0&&kindTile("sec-ak","행동지표",`${akSum.done}/${akSum.n}`,"KPI 횟수 · +1",KIND_C.ak,akSum.n?akSum.done/akSum.n*100:0)}
+    {akSum.n>0&&kindTile("sec-ak","행동지표(선행)",`${akSum.done}/${akSum.n}`,"KPI 횟수 · +1",KIND_C.ak,akSum.n?akSum.done/akSum.n*100:0)}
   </div>);
   const todayStatsEl=headSlot?createPortal(statsBox,headSlot):<div style={{marginBottom:14}}>{statsBox}</div>;
   return(
@@ -2713,7 +2715,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
             {/* 진행률 */}
             <div style={{padding:"11px 13px",borderRadius:12,background:"#F9FAFB",border:"1px solid #F2F4F6",marginBottom:12}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
-                <span style={{fontSize:12,fontWeight:800,color:"#4B5563"}}>선행지표</span>
+                <span style={{fontSize:12,fontWeight:800,color:"#4B5563"}}>프로젝트 진척</span>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
                   {pm.progressManual?(<>
                     <button onClick={()=>up("projects",pm.id,{progress:Math.max(0,prog-10),progressManual:true})} style={{width:26,height:26,borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",fontSize:15,fontWeight:900,color:"#4B5563",cursor:"pointer",padding:0}}>−</button>
@@ -3059,7 +3061,7 @@ function AkBoard({D,cu,up,add,ro,onRetro,noLag}){
   return(<div className="ak">
     <style>{AK_CSS}</style>
     <div className="hd">
-      <div><h2>{noLag?"행동지표":"결과 KPI · 행동지표"}</h2><div className="sub">메인KPI별로 묶음 · 필수 {coreN}개 · 추가 {addN}개 · 주간 + 월간·분기 한 표{!ready?" · 불러오는 중…":""}</div></div>
+      <div><h2>{noLag?AK_LABEL:`${LAG_LABEL} · ${AK_LABEL}`}</h2><div className="sub">메인KPI별로 묶음 · 필수 {coreN}개 · 추가 {addN}개 · 주간 + 월간·분기 한 표{!ready?" · 불러오는 중…":""}</div></div>
       <div className="nav">
         <button className={"rtb"+(retroDone?" done":"")} onClick={()=>onRetro&&onRetro({y:nowD.getFullYear(),m0:nowD.getMonth()})}>{nowD.getMonth()+1}월 월말 회고 · {akDayLabel(retroDay)}{retroDone?"":""}</button>
         {!ro&&<button className="pri" onClick={()=>setEdit({item:null,core:false})}>+ 행동지표 추가</button>}
@@ -3067,7 +3069,7 @@ function AkBoard({D,cu,up,add,ro,onRetro,noLag}){
     </div>
     {err&&<div className="err" role="alert">{err}</div>}
     {!noLag&&<section style={{display:"flex",flexDirection:"column",gap:8}}>
-      <div className="bar"><h3>관리자 KPI (결과) · 목표 대비 현재</h3><span className="note">{canLag?"매월 월말 회고 때 입력 · 여기서 고치면 이번 달 값으로 저장돼요":"매월 월말 회고 때 입력돼요"}</span></div>
+      <div className="bar"><h3>{LAG_LABEL} · 목표 대비 현재</h3><span className="note">{canLag?"매월 월말 회고 때 입력 · 여기서 고치면 이번 달 값으로 저장돼요":"매월 월말 회고 때 입력돼요"}</span></div>
       <div className="lag">{lags.map(k=>{ const c=lagCur(k), p=lagPct(k,c.v); return(
         <div className="lcell" key={k.id}>
           <div className="ltop"><span className="lname">{k.name}</span><span className="fun">{k.fun}</span></div>
@@ -3245,7 +3247,10 @@ function NoteFiles({files}){
     {rest.length>0&&<div style={{display:"flex",flexDirection:"column",gap:4,marginTop:imgs.length?6:0}}>{rest.map((f,i)=><a key={i} href={f.url} target="_blank" rel="noopener noreferrer" download={f.name} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 9px",borderRadius:8,border:"1px solid #E1E4E9",background:"#F7F8FA",color:"#1E2F5C",fontSize:12,fontWeight:700,textDecoration:"none",minWidth:0}}><span style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.name}</span><span style={{color:"#8A8E96",fontWeight:600,flexShrink:0}}>{fileSize(f.size)}</span></a>)}</div>}
   </div>);
 }
-function AkNotesSheet({D,cu,item,notes,ro,onClose}){
+function AkNotesSheet({D,cu,item,notes,ro,onClose,count}){
+  const [recOn,setRecOn]=useState(()=>{ try{ return localStorage.getItem("pour-os-ak-rec")!=="0"; }catch(_){ return true; } });
+  const setRec=(v)=>{ setRecOn(v); try{ localStorage.setItem("pour-os-ak-rec",v?"1":"0"); }catch(_){} };
+  const wkLabel=(wk)=>{ const d=new Date(String(wk)+"T00:00:00"); return isNaN(d)?"":`${d.getMonth()+1}/${d.getDate()} 주`; };
   const [replyTo,setReplyTo]=useState(null); const [editId,setEditId]=useState(null);
   const [tabId,setTabId]=useState(item.tab0||item.id);
   const curId=item.tabs?tabId:item.id, curTab=(item.tabs||[]).find(x=>x.id===curId);
@@ -3258,8 +3263,9 @@ function AkNotesSheet({D,cu,item,notes,ro,onClose}){
     const up=[]; for(let i=0;i<files.length;i++){ setBusy(`올리는 중 ${i+1}/${files.length}`); up.push(await uploadAkFile(item.id,files[i])); }
     setBusy("저장 중");
     const id="n"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-    await setDoc(extDoc(NOTE_COL,id),{id,itemId:curId,itemName:(item.name||"")+(curTab?` · ${curTab.label}`:""),kind:item._kind||"ak",parentId:parentId||null,text,files:up,by:cu.id,byName:cu.name||"",at:new Date().toISOString(),deleted:false});
+    await setDoc(extDoc(NOTE_COL,id),{id,itemId:curId,itemName:(item.name||"")+(curTab?` · ${curTab.label}`:""),kind:item._kind||"ak",...(count?{count}:{}),parentId:parentId||null,text,files:up,by:cu.id,byName:cu.name||"",at:new Date().toISOString(),deleted:false});
     setReplyTo(null);
+    if(count) onClose();   // 건별 기록은 남기면 바로 닫힘
   };
   const saveEdit=async(n,text)=>{ if(text===n.text){ setEditId(null); return; } const at=new Date().toISOString();
     await setDoc(extDoc(NOTE_COL,n.id),{text,editedAt:at,editedBy:cu.id,edits:arrayUnion({text:n.text||"",at})},{merge:true}); setEditId(null); };
@@ -3267,7 +3273,7 @@ function AkNotesSheet({D,cu,item,notes,ro,onClose}){
   const one=(n,reply)=>{ const mine=n.by===cu.id; const canHide=!ro&&(mine||master);
     if(n.deleted) return(<div style={{padding:"6px 0",fontSize:12,color:"#8A8E96"}}>숨긴 메모 · {nameOf(n.by,n.byName)}{n.deletedByName&&n.deletedByName!==n.byName?` (${n.deletedByName}님이 숨김)`:""}{canHide&&<button onClick={()=>hide(n,false)} style={{...NB.link,marginLeft:6,color:"#1E2F5C"}}>되돌리기</button>}</div>);
     return(<div className="aknote" data-note={n.id} style={{padding:reply?"8px 0 8px":"10px 0"}}>
-      <div style={{display:"flex",alignItems:"baseline",gap:7,flexWrap:"wrap",marginBottom:3}}><b style={{fontSize:12.5,color:"#16181D"}}>{nameOf(n.by,n.byName)}</b><span style={{fontSize:11,color:"#8A8E96"}}>{when(n.at)}{n.editedAt?" · 수정됨":""}</span></div>
+      <div style={{display:"flex",alignItems:"baseline",gap:7,flexWrap:"wrap",marginBottom:3}}><b style={{fontSize:12.5,color:"#16181D"}}>{nameOf(n.by,n.byName)}</b><span style={{fontSize:11,color:"#8A8E96"}}>{when(n.at)}{n.editedAt?" · 수정됨":""}</span>{n.count&&<span style={{fontSize:10.5,fontWeight:800,color:"#5E5A8C",background:"#F0EFF5",borderRadius:5,padding:"0 6px"}}>{wkLabel(n.count.wk)} {n.count.n}번째 기록</span>}</div>
       {editId===n.id?<NoteComposer cu={cu} initialText={n.text||""} autoFocus allowFiles={false} submitLabel="저장" placeholder="메모 고치기" onCancel={()=>setEditId(null)} onSubmit={(t)=>saveEdit(n,t)}/>
         :<>{n.text&&<NoteText text={n.text}/>}<NoteFiles files={n.files}/></>}
       {editId!==n.id&&!ro&&<div style={{display:"flex",gap:2,marginTop:3,marginLeft:-4}}>
@@ -3277,6 +3283,16 @@ function AkNotesSheet({D,cu,item,notes,ro,onClose}){
       </div>}
     </div>); };
   const total=threads.reduce((a,t)=>a+(t.deleted?0:1)+t.replies.filter(r=>!r.deleted).length,0);
+  if(count) return(<Sheet open onClose={onClose} title={`기록 · ${item.name}`} h="80vh" w={620}>
+    <div style={{paddingTop:2}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",padding:"9px 11px",borderRadius:10,background:"#F0EFF5",border:"1px solid #D9D6E6",marginBottom:10}}>
+        <span style={{flex:"1 1 200px",fontSize:12.5,fontWeight:800,color:"#3D3A66"}}>+1 저장됨 · {wkLabel(count.wk)} {count.n}번째 — 이 1건에 메모·링크·파일을 붙일 수 있어요 (선택)</span>
+        <button type="button" onClick={onClose} style={NB.pri}>건너뛰기</button>
+      </div>
+      {!ro&&<NoteComposer cu={cu} autoFocus placeholder="무엇을 했나요? 링크·파일·사진(Ctrl+V)도 돼요" submitLabel="기록 남기기" onSubmit={(tx,fs,sb)=>post(tx,fs,null,sb)}/>}
+      <label style={{display:"flex",alignItems:"center",gap:6,marginTop:12,fontSize:12,color:"#5B606B",cursor:"pointer"}}><input type="checkbox" checked={recOn} onChange={e=>setRec(e.target.checked)}/>+1 할 때마다 이 창 열기</label>
+    </div>
+  </Sheet>);
   return(<Sheet open onClose={onClose} title={`메모 · ${item.name}`} h="90vh" w={620}>
     <div style={{paddingTop:2}}>
       <p style={{margin:"0 0 8px",fontSize:11.5,color:"#5B606B",lineHeight:1.5}}>{item._kind==="fixed"?"고정업무 · 담당자별 메모":akGoalText(item)} · 메모 {total}개 · 진행 상황·링크·자료를 남기고 답글로 주고받아요. 숨긴 메모도 기록은 남아요.</p>
@@ -3290,6 +3306,7 @@ function AkNotesSheet({D,cu,item,notes,ro,onClose}){
         </div>}
       </div>)}</div>
       {!ro&&<div style={{marginTop:12,paddingTop:10,borderTop:threads.length?"none":"1px solid #ECEEF1"}}><NoteComposer cu={cu} placeholder="메모 남기기 (Ctrl+Enter 등록)" onSubmit={(tx,fs,sb)=>post(tx,fs,null,sb)}/></div>}
+      {item._kind!=="fixed"&&<label style={{display:"flex",alignItems:"center",gap:6,marginTop:10,fontSize:12,color:"#5B606B",cursor:"pointer"}}><input type="checkbox" checked={recOn} onChange={e=>setRec(e.target.checked)}/>오늘 화면에서 +1 할 때마다 기록 창 열기</label>}
     </div>
   </Sheet>);
 }
@@ -3358,6 +3375,7 @@ function AkTodayCard({D,cu,nav}){
   const [undo,setUndo]=useState(null);   // 방금 누른 것 되돌리기 {it,w,field,d,label}
   useEffect(()=>{ if(!undo) return; const t=setTimeout(()=>setUndo(null),7000); return ()=>clearTimeout(t); },[undo]);
   const notes=useAkNotes(); const ncnt=noteCounts(notes); const [noteItem,setNoteItem]=useState(null);
+  const [recFor,setRecFor]=useState(null);   // +1 한 건에 붙일 기록 {it, count:{wk,n,at}}
   if(!mine.length) return null;
   const thisW=WK.find(w=>w.key===wk)||{key:wk,start:wk,end:akAddDays(wk,6),label:""};
   const lastW={key:lastWk,start:lastWk,end:akAddDays(lastWk,6),label:(()=>{ const d=new Date(lastWk+"T00:00:00"); return `${d.getMonth()+1}/${d.getDate()}`; })()};
@@ -3374,7 +3392,10 @@ function AkTodayCard({D,cu,nav}){
   const bump=async(it,w,field,d,isUndo)=>{ if(busy) return; setBusy(it.id+w+field); setErr("");
     try{ if(d>0&&it.unit==="%"&&!it.perFail){ const t=akTotal(docs,it,it.cyc==="Q"?WQ:WK).n; if(t>=100) return; d=Math.min(d,100-t); }
       if(d<0){ const v=akVal(docs,it,w); const cur=it.perFail?v[field]:v; d=Math.max(d,-cur); if(!d) return; }
+      const before=it.perFail?null:akVal(docs,it,w);
       await akBump(it,w,field,d,cu);
+      if(!isUndo&&d>0&&field==="n"&&!it.perFail){ let on=true; try{ on=localStorage.getItem("pour-os-ak-rec")!=="0"; }catch(_){}
+        if(on) setRecFor({it,count:{wk:w,n:(before||0)+d,at:new Date().toISOString(),unit:it.unit||""}}); }
       if(isUndo) setUndo(null); else if(d>0) setUndo({it,w,field,d,label:`${it.name} ${field==="fail"?"실패 ":""}+${d}${it.unit==="%"?"%":""}${w!==wk?" (지난주)":""}`}); else setUndo(null); }
     catch(e){ console.error("[행동지표] 오늘 +1 저장 실패:",e); setErr("저장이 잠시 안 됐어요. 다시 눌러 주세요."); }
     finally{ setBusy(""); } };
@@ -3403,7 +3424,7 @@ function AkTodayCard({D,cu,nav}){
     return <Fragment key={c}><p style={{margin:"10px 0 0",fontSize:11,fontWeight:800,color:"#6B7280",letterSpacing:.3}}>{l}</p>{g.map(line)}</Fragment>; });
   return(<div id="sec-ak" style={{scrollMarginTop:70,background:"#fff",borderRadius:16,border:"1px solid #E5E8EB",borderTop:`3px solid ${KIND_C.ak}`,padding:"13px 14px 6px",marginBottom:14}}>
     <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
-      <KindHead title="행동지표" desc="KPI를 움직이는 목표 횟수 · 한 만큼 +1" right={`${doneN}/${cnt} 달성`}/>
+      <KindHead title={AK_LABEL} desc="KPI를 움직이는 목표 횟수 · 한 만큼 +1" right={`${doneN}/${cnt} 달성`}/>
       <button onClick={()=>nav&&nav("routine")} style={{flexShrink:0,padding:"5px 10px",borderRadius:8,border:"1px solid #E3E3DF",background:"#fff",color:"#4A4E57",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>표 보기</button>
     </div>
     {err&&<p role="alert" style={{margin:"8px 0 0",padding:"7px 10px",borderRadius:8,background:"#FBF0DE",color:"#A5620B",fontSize:12,fontWeight:700}}>{err}</p>}
@@ -3424,6 +3445,7 @@ function AkTodayCard({D,cu,nav}){
       <button onClick={()=>bump(undo.it,undo.w,undo.field,-undo.d,true)} disabled={!!busy} style={{flexShrink:0,padding:"5px 11px",borderRadius:7,border:"1px solid rgba(255,255,255,.4)",background:"transparent",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>되돌리기</button>
     </div>}
     {noteItem&&<AkNotesSheet D={D} cu={cu} item={noteItem} notes={notes} onClose={()=>setNoteItem(null)}/>}
+    {recFor&&<AkNotesSheet D={D} cu={cu} item={recFor.it} count={recFor.count} notes={notes} onClose={()=>setRecFor(null)}/>}
   </div>);
 }
 // 오늘 화면 — 월말 회고 알림 (회고일 3일 전부터, 새 달 10일까지 지난달 회고 안 했으면 계속)
@@ -3589,7 +3611,7 @@ function RoutinePage(props){
       </div>
     </div>
     {sec!=="ak"&&<section aria-label="고정업무">{head("고정업무","운영 · 체크하면 끝")}<FixedPage {...props}/></section>}
-    {sec!=="fixed"&&<section aria-label="행동지표">{head("행동지표","KPI · 주기별 횟수 −/+ · 결과 KPI는 KPI 화면에서")}<div style={{padding:"10px 16px 24px"}}><AkBoard D={D} cu={cu} up={up} add={add} noLag/></div></section>}
+    {sec!=="fixed"&&<section aria-label="행동지표">{head(AK_LABEL,"KPI · 주기별 횟수 −/+ · 결과 KPI는 KPI 화면에서")}<div style={{padding:"10px 16px 24px"}}><AkBoard D={D} cu={cu} up={up} add={add} noLag/></div></section>}
   </div>);
 }
 
@@ -3631,11 +3653,11 @@ function KpiFlow({D}){
     {open&&<div style={{marginTop:10}}>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:6}}>
         <div style={box}>{name("고정업무",false)}{note("운영 일 · 매일·매주·매월 체크")}</div>
-        <div style={box}>{name("행동지표",false)}{note("KPI 행동 · 주기별 횟수 −/+")}</div>
+        <div style={box}>{name(AK_LABEL,false)}{note("KPI 행동 · 주기별 횟수 −/+")}</div>
         <div style={box}>{name("프로젝트",true)}{note("업무 완료 → 진척% 자동")}</div>
       </div>
       {arrow("실행 · 아래 '실행 현황'에서 결과와 나란히 비교 (숫자로 합치지 않아요)")}
-      <div style={box}>{name("결과 KPI",false)}{note("유입·전환율·재구매율 등 — 월말 회고 때 월 1회 입력")}</div>
+      <div style={box}>{name(LAG_LABEL,false)}{note("유입·전환율·재구매율 등 — 월말 회고 때 월 1회 입력")}</div>
       {arrow("영향 (간접 — 결과 KPI가 오르면 매출이 따라와요)")}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:6}}>
         {mks.map(mk=>{ const src=mkSource(mk,D); return <div key={mk.id} style={box}>{name(`${mk.krKey?mk.krKey+" · ":""}서브KPI`,src.auto)}{note(`${mk.title} — ${src.t}`)}</div>; })}
@@ -3652,7 +3674,7 @@ function KpiFlow({D}){
 }
 
 // ── 실행 현황 — 행동지표 · 고정업무 · 프로젝트를 따로 보고, 결과(매출 달성률)와 나란히. 위 버튼으로 하나씩 ──
-const EXEC_CATS=[["all","전체"],["ak","행동지표"],["fx","고정업무"],["pj","프로젝트"]];
+const EXEC_CATS=[["all","전체"],["ak","행동지표(선행)"],["fx","고정업무"],["pj","프로젝트"]];
 const EXEC_DESC={all:"이번 달 실행률 세 가지를 따로 보여줘요 — 하나로 합친 점수가 아니에요",ak:"이번 달 · 지금까지 해야 할 횟수 대비 (주간은 지난 주까지+이번 주, 월간은 이번 달, 분기는 이번 분기)",fx:"지금 기간 체크 기준 — 매일=오늘, 매주=이번 주, 매월=이번 달 · 담당자 모두 체크해야 완료",pj:"진행 중 프로젝트 평균 진척 (업무 완료 비율로 자동 · 보류 제외)"};
 function ExecBoard({D}){
   const now=new Date(), today=akYmd(now), todayKey=now.toISOString().slice(0,10);
@@ -3885,7 +3907,7 @@ function KPIPage({D,Dall,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBack
                           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:9,gap:8,flexWrap:"wrap"}}>
                             <span style={{fontSize:12.5,fontWeight:900,color:"#191F28"}}>{mk.krKey} 합산 — 담당자 행동·완료</span>
                             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                              <span style={{fontSize:10.5,fontWeight:800,color:"#24386B",background:"#EEF0F5",borderRadius:7,padding:"2px 8px"}}>선행지표 {mkProjs.length}개</span>
+                              <span style={{fontSize:10.5,fontWeight:800,color:"#24386B",background:"#EEF0F5",borderRadius:7,padding:"2px 8px"}}>프로젝트 {mkProjs.length}개</span>
                               <span style={{fontSize:10.5,fontWeight:800,color:"#24386B",background:"#EEF0F5",borderRadius:7,padding:"2px 8px"}}>행동 {totE}</span>
                               <span style={{fontSize:10.5,fontWeight:800,color:"#2F7D57",background:"#EAF4EE",borderRadius:7,padding:"2px 8px"}}>완료 {totD}</span>
                               {totS>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#1E2F5C",background:"#E3E7F0",borderRadius:7,padding:"2px 8px"}}>지원 {totS}</span>}
@@ -4032,15 +4054,15 @@ function KPIPage({D,Dall,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBack
             );
           })}
           {!ro&&<button onClick={openNewMain} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"1.5px dashed #9AA5C3",background:"#EEF0F5",color:"#24386B",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 메인KPI 추가</button>}
-          <div style={{marginTop:16}}><Fold id="kpi-ak" title="행동지표 · 결과 KPI 표" sub={`행동지표 ${(D.actionKPIs||[]).filter(a=>a.active!==false).length}개 · 결과 KPI ${(D.lagKPIs||[]).length}개 · 월말 회고 입력`}><AkBoard D={D} cu={cu} up={up} add={add} ro={ro} onRetro={(t)=>setRetroT(t)}/></Fold></div>
+          <div style={{marginTop:16}}><Fold id="kpi-ak" title={`${AK_LABEL} · ${LAG_LABEL} 표`} sub={`행동지표 ${(D.actionKPIs||[]).filter(a=>a.active!==false).length}개 · 결과 KPI ${(D.lagKPIs||[]).length}개 · 월말 회고 입력`}><AkBoard D={D} cu={cu} up={up} add={add} ro={ro} onRetro={(t)=>setRetroT(t)}/></Fold></div>
         </div>
       )}
       {kpiView==="one"&&(
         <div>
-          <Fold id="kpi-lead" title="프로젝트 활동지표" sub="프로젝트마다 정한 활동 수치를 전사 합산">
+          <Fold id="kpi-lead" title="프로젝트 활동 수치" sub="프로젝트마다 정한 활동 수치를 전사 합산">
           <div style={{backgroundColor:"#F0EFF5",border:"1px solid #D9D6E6",borderRadius:14,padding:"12px 14px",marginBottom:14}}>
-            <p style={{margin:"0 0 3px",fontSize:12.5,fontWeight:900,color:"#5E5A8C"}}>선행지표 — 활동(미리 하는 일)</p>
-            <p style={{margin:0,fontSize:11,color:"#5E5A8C",fontWeight:600,lineHeight:1.55}}>매출(후행)로 이어지는 <b>활동지표</b>를 전사 합산해서 봅니다. 프로젝트별 진척(선행지표 %)·기여도는 <b>후행지표</b> 탭의 각 프로젝트 안에서 보세요.</p>
+            <p style={{margin:"0 0 3px",fontSize:12.5,fontWeight:900,color:"#5E5A8C"}}>프로젝트 활동 수치</p>
+            <p style={{margin:0,fontSize:11,color:"#5E5A8C",fontWeight:600,lineHeight:1.55}}>프로젝트마다 정한 수치(예: 등록 업체 수)를 이름별로 합쳐 봐요. 매출이 아닌 운영·활동 성과예요.</p>
           </div>
           {(()=>{
             // 수치목표 롤업 — 전 프로젝트 목표지표(activityKPIs)를 지표명으로 합산(매출 아님)
@@ -6032,7 +6054,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
                       })}
                     </div>
                   ))}
-                  <div style={{padding:"10px 16px 14px",borderTop:"1px solid #E5E8EB",display:"flex",alignItems:"center",gap:8}}><div style={{display:"flex",alignItems:"center",gap:6,marginRight:"auto",flexWrap:"wrap"}}><span style={{fontSize:11,fontWeight:700,color:"#6B7280"}}>선행지표</span>{proj.progressManual?(<><button onClick={()=>up("projects",proj.id,{progress:Math.max(0,(proj.progress||0)-10),progressManual:true})} style={{width:28,height:28,borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",fontSize:15,fontWeight:900,color:"#4B5563",cursor:"pointer",padding:0}}>−</button><span style={{fontSize:13,fontWeight:800,color:"#24386B",minWidth:40,textAlign:"center"}}>{proj.progress}%</span><button onClick={()=>up("projects",proj.id,{progress:Math.min(100,(proj.progress||0)+10),progressManual:true})} style={{width:28,height:28,borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",fontSize:15,fontWeight:900,color:"#4B5563",cursor:"pointer",padding:0}}>＋</button><button onClick={()=>{const auto=tasks.length?Math.round(done.length/tasks.length*100):(proj.progress||0);up("projects",proj.id,{progressManual:false,progress:auto});}} title="업무 완료율로 자동 산출" style={{padding:"4px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#5E5A8C",cursor:"pointer",fontFamily:"inherit"}}>자동전환</button></>):(<><span style={{fontSize:13,fontWeight:800,color:"#24386B",minWidth:40,textAlign:"center"}}>{proj.progress}%</span><span style={{fontSize:10,fontWeight:700,color:"#2F7D57",background:"#EAF4EE",padding:"3px 7px",borderRadius:7}}>자동 · 업무 {done.length}/{tasks.length}</span><button onClick={()=>up("projects",proj.id,{progressManual:true})} title="진척을 직접 조정" style={{padding:"4px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>수동</button></>)}</div>
+                  <div style={{padding:"10px 16px 14px",borderTop:"1px solid #E5E8EB",display:"flex",alignItems:"center",gap:8}}><div style={{display:"flex",alignItems:"center",gap:6,marginRight:"auto",flexWrap:"wrap"}}><span style={{fontSize:11,fontWeight:700,color:"#6B7280"}}>진척</span>{proj.progressManual?(<><button onClick={()=>up("projects",proj.id,{progress:Math.max(0,(proj.progress||0)-10),progressManual:true})} style={{width:28,height:28,borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",fontSize:15,fontWeight:900,color:"#4B5563",cursor:"pointer",padding:0}}>−</button><span style={{fontSize:13,fontWeight:800,color:"#24386B",minWidth:40,textAlign:"center"}}>{proj.progress}%</span><button onClick={()=>up("projects",proj.id,{progress:Math.min(100,(proj.progress||0)+10),progressManual:true})} style={{width:28,height:28,borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",fontSize:15,fontWeight:900,color:"#4B5563",cursor:"pointer",padding:0}}>＋</button><button onClick={()=>{const auto=tasks.length?Math.round(done.length/tasks.length*100):(proj.progress||0);up("projects",proj.id,{progressManual:false,progress:auto});}} title="업무 완료율로 자동 산출" style={{padding:"4px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#5E5A8C",cursor:"pointer",fontFamily:"inherit"}}>자동전환</button></>):(<><span style={{fontSize:13,fontWeight:800,color:"#24386B",minWidth:40,textAlign:"center"}}>{proj.progress}%</span><span style={{fontSize:10,fontWeight:700,color:"#2F7D57",background:"#EAF4EE",padding:"3px 7px",borderRadius:7}}>자동 · 업무 {done.length}/{tasks.length}</span><button onClick={()=>up("projects",proj.id,{progressManual:true})} title="진척을 직접 조정" style={{padding:"4px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>수동</button></>)}</div>
                     <button onClick={()=>openEditProj(proj)} style={{padding:"6px 12px",borderRadius:10,border:"1px solid #E5E8EB",backgroundColor:"#FFFFFF",color:"#4B5563",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>편집</button>
                     {Object.entries(PROJ_STATUS).filter(([k])=>k!==projStatus(proj)).map(([k,s])=>(
                       <button key={k} onClick={()=>up("projects",proj.id,k==="completed"?{status:"completed",progress:100,progressManual:true}:{status:k})} style={{padding:"6px 12px",borderRadius:10,border:`1px solid ${s.color}`,backgroundColor:s.bg,color:s.color,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{s.icon} {k==="active"?(projStatus(proj)==="planned"?"시작":"재개"):s.label}</button>
@@ -7004,7 +7026,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
                   <p style={{margin:0,fontSize:14.5,fontWeight:900,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.productName||p.title}</p>
                   <p style={{margin:"2px 0 0",fontSize:11,color:"#9CA3AF"}}>{doneN}/{ts.length} 단계 완료</p>
                 </div>
-                <span style={{fontSize:15,fontWeight:900,color:p.progress>=100?"#2F7D57":"#24386B",flexShrink:0}}><span style={{fontSize:9.5,fontWeight:800,color:"#9CA3AF",marginRight:4}}>선행지표</span>{p.progress||0}%</span>
+                <span style={{fontSize:15,fontWeight:900,color:p.progress>=100?"#2F7D57":"#24386B",flexShrink:0}}><span style={{fontSize:9.5,fontWeight:800,color:"#9CA3AF",marginRight:4}}>진척</span>{p.progress||0}%</span>
               </div>
               <div style={{marginBottom:12}}><PBar value={p.progress||0} color={p.progress>=100?"#2F7D57":"#24386B"} h={5}/></div>
               {flowMode==="flow"?(()=>{const fg=instFlow(p);return(<FlowView mode="progress" height={Math.max(280,Math.min(560,(fg.nodes.reduce((m,n)=>Math.max(m,n.y),0))+NODE_H+80))} nodes={fg.nodes} edges={fg.edges} onNodeTap={node=>{const t=ts.find(x=>x.id===node.id);if(t)toggleStage(t,launchStageStatus(t,ts));}}/>);})():(
@@ -8158,7 +8180,7 @@ function NodeDetail({D,node,period,onClose}){
     <Field l="유형" v="프로젝트 (활동)"/>
     <Field l="담당자" v={asg?asg.name:"미지정"} c={asg?.color}/>
     {dt&&<Field l="거래처유형" v={`${dt.code} · ${dt.label}`} c={dt.color}/>}
-    <Field l="진척(선행지표)" v={`${p.progress||0}%`} c={p.progress>=70?"#2F7D57":"#24386B"}/>
+    <Field l="진척" v={`${p.progress||0}%`} c={p.progress>=70?"#2F7D57":"#24386B"}/>
     <Field l="매출(결과)" v={fmtKorWon(numF(p.resultValue))} c="#1E2F5C"/>
     <Field l={`완료 (${PERIOD_LABEL[period]||"기간"})`} v={`${doneP} / ${pts.length}건`} c="#2F7D57"/>
     {signals.length>0&&<div style={{display:"flex",gap:6,marginTop:10}}>{signals.map(x=><Tag key={x} t={`${SIGNAL_ICON[x]} ${SIGNAL_LABEL[x]}`} c="#B42318" bg="#FEE4E2"/>)}</div>}

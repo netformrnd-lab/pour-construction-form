@@ -41,3 +41,12 @@ export async function uploadTaskPhoto(taskId, file) {
 export async function deleteTaskPhoto(path) {
   try { await deleteObject(sref(storage, path)); } catch(e) { console.warn("[pour-os] 첨부 삭제 실패(무시):", e.message); }
 }
+// 행동지표 메모 첨부 (경로: task-attachments/ak-notes/{itemId}/{시각}_{이름}) — 기존 Storage 규칙 task-attachments/** 로 허용(규칙 변경 없음)
+export async function uploadAkFile(itemId, file) {
+  const safe = String(file.name || "file").replace(/[^\w.\-가-힣]/g, "_").slice(-80);
+  const path = `task-attachments/ak-notes/${String(itemId).replace(/[^\w\-]/g, "_")}/${Date.now()}_${safe}`;
+  const r = sref(storage, path);
+  await uploadBytes(r, file, { contentType: file.type || "application/octet-stream" });
+  const url = await getDownloadURL(r);
+  return { name: file.name || "file", url, path, size: file.size || 0, type: file.type || "", uploadedAt: new Date().toISOString() };
+}

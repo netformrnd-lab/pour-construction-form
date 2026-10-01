@@ -111,6 +111,8 @@ goals[g1] 매출 10억
 
 ### ✅ 고정업무 담당자별 시간 (2026-10)
 - 한 고정업무를 여러 명이 맡아도 `timeBy{uid:"HH:MM"}`로 사람마다 시간이 다를 수 있음(없으면 기본 fixedTime). `fixedTimeFor(t,uid)`·`byFixedTimeFor(uid)`.
+- 담당자별 **보이는 이름** `labelBy{uid}` · **하위 체크리스트** `subsBy{uid|"*":[{id,title}]}`(사람별 목록, 없으면 공통 "*") · 체크 상태 `subDone{uid:{subId:날짜}}`. 그 사람 항목을 다 체크하면 그 사람 체크(doneDates) 자동 완료(`fixedSubPatch`), 큰 체크박스는 전부 체크/해제(`fixedToggleAll`).
+- 고정업무 메모는 **담당자별** — itemId `업무id~사람id`(`fixedNoteId`). 반복 실행 화면 메모는 담당자 탭(예전 업무id 메모는 '이전 메모' 탭으로 그대로).
 - 체크 시 `doneAtBy{uid:ISO}`(체크 시각)도 저장 → 반복 실행 화면 한 줄에서 "✓이름 08:47 / 이름 09:20(예정)"으로 전원 확인 여부를 봄.
 
 ### ✅ 쉽게 쓰기 정리 (2026-10, 대표 요청 "간단명료하게")

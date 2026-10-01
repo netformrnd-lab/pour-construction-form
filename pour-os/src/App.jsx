@@ -22,7 +22,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-용어정리";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-커머스본부";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -792,6 +792,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>메모</label>
           <textarea value={form.memo} onChange={e=>setForm({...form,memo:e.target.value})} placeholder="메모..." style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",resize:"vertical",minHeight:72,fontFamily:"inherit",boxSizing:"border-box",outline:"none"}}/>
         </div>}
+        {task&&<div style={{marginBottom:12}}><OwnerLog log={((D.tasks||[]).find(x=>x.id===task.id)||task).ownerLog}/></div>}
         {(!(task&&task.isFixed)||(form.attachments||[]).length>0)&&<div style={{marginBottom:20}}>
           <label style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:12,fontWeight:700,color:"#374151",marginBottom:7}}><span>파일 첨부 ({(form.attachments||[]).length})</span>{uploading&&<span style={{fontSize:11,color:"#24386B",fontWeight:700}}>업로드 중…</span>}</label>
           <div
@@ -1126,6 +1127,7 @@ export default function App(){
         if(c.status==="done") patch={...patch,doneAt:at,doneBy:cu?.id||null,doneByName:cu?.name||""};
         else if(reopen) patch={...patch,doneAt:null,doneBy:null,doneByName:null};   // 재개 시 완료표식 해제(완료 이력은 statusLog에 보존)
       }
+      const olog=ownerChanges(k,i,patch,p.users||[],cu); if(olog.length) patch={...patch,ownerLog:[...(Array.isArray(i.ownerLog)?i.ownerLog:[]),...olog]};   // 담당·책임자 변경 이력
       return {...i,...patch}; });
     let n={...p,[k]:list};
     // 자동화: 업무가 완료로 전이되면 후속 액션 평가(설정 없으면 무동작). recalcProg는 마지막에 한 번.
@@ -1240,7 +1242,7 @@ export default function App(){
   const pi=allPages.find(p=>p.id===page);
   if(!loaded) return(
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:14,fontFamily:"'Pretendard',sans-serif",color:"#9CA3AF"}}>
-      <div style={{width:36,height:36,borderRadius:11,background:"#24386B",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff",fontWeight:900}}>P</div>
+      <div style={{width:36,height:36,borderRadius:11,background:"#24386B",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff",fontWeight:900}}>커</div>
       <p style={{margin:0,fontSize:13,fontWeight:700}}>데이터 불러오는 중…</p>
     </div>
   );
@@ -1394,8 +1396,8 @@ export default function App(){
     <div style={{display:"flex",height:"100vh",background:"#F4F5F7",fontFamily:"'Pretendard','Apple SD Gothic Neo',sans-serif",overflow:"hidden",width:"100%"}}>
       <aside style={{width:232,background:"#1B2438",display:"flex",flexDirection:"column",flexShrink:0}}>
         <div style={{padding:"20px 18px 16px",display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid rgba(255,255,255,.16)"}}>
-          <div style={{width:30,height:30,borderRadius:8,background:"rgba(255,255,255,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#FFFFFF",fontWeight:800}}>P</div>
-          <div><p style={{margin:0,fontSize:16,fontWeight:900,color:"#FFFFFF",lineHeight:1.1,letterSpacing:-0.3}}>POUR OS</p><p style={{margin:0,fontSize:10,color:"rgba(255,255,255,.75)",fontWeight:700}}>업무관리</p></div>
+          <div style={{width:30,height:30,borderRadius:8,background:"rgba(255,255,255,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#FFFFFF",fontWeight:800}}>커</div>
+          <div><p style={{margin:0,fontSize:16,fontWeight:900,color:"#FFFFFF",lineHeight:1.1,letterSpacing:-0.3}}>커머스본부</p><p style={{margin:0,fontSize:10,color:"rgba(255,255,255,.75)",fontWeight:700}}>업무OS</p></div>
         </div>
         <nav style={{flex:1,overflowY:"auto",padding:"10px 12px"}}>
           {(SHARE?[{label:"공유 보기",ids:["share-rev","kpi","share-proj","mindmap"]}]:NAV_GROUPS).map(grp=>(
@@ -1428,7 +1430,7 @@ export default function App(){
           <div style={{maxWidth:1280,margin:"0 auto",width:"100%"}}>
             <div style={{display:"flex",alignItems:"center",gap:28,flexWrap:"wrap"}}>
               <div style={{flexShrink:0}}>
-                <p style={{margin:"0 0 4px",fontSize:11.5,color:"#8B95A1",fontWeight:600}}>POUR OS / {pi?.label}</p>
+                <p style={{margin:"0 0 4px",fontSize:11.5,color:"#8B95A1",fontWeight:600}}>커머스본부 업무OS / {pi?.label}</p>
                 <h1 style={{margin:0,fontSize:22,fontWeight:800,color:"#191F28",lineHeight:1.15,letterSpacing:-0.4}}>{pi?.label}</h1>
                 <p style={{margin:"4px 0 0",fontSize:11.5,color:"#8B95A1"}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}</p>
               </div>
@@ -1447,10 +1449,10 @@ export default function App(){
       <div style={{backgroundColor:"#FFFFFF",borderBottom:"1px solid #F2F4F6",padding:"12px 18px 10px",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <div style={{width:26,height:26,borderRadius:7,background:"#1B2438",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"white",fontWeight:800}}>P</div>
+            <div style={{width:26,height:26,borderRadius:7,background:"#1B2438",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"white",fontWeight:800}}>커</div>
             <div>
               <h1 style={{margin:0,fontSize:15,fontWeight:900,color:"#191F28",lineHeight:1}}>{pi?.label}</h1>
-              <p style={{margin:0,fontSize:10,color:"#8B95A1",fontWeight:600}}>{["today","kpi","projects","routine","fixed"].includes(page)&&DB._brand!=="all"?brandName(DB._brand,D.brands):"브랜드커머스팀"}</p>
+              <p style={{margin:0,fontSize:10,color:"#8B95A1",fontWeight:600}}>{["today","kpi","projects","routine","fixed"].includes(page)&&DB._brand!=="all"?brandName(DB._brand,D.brands):"커머스본부 업무OS"}</p>
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -2060,12 +2062,12 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       {isLastWorkingDayOfWeek()&&<button onClick={()=>setWeeklyOpen(true)} style={{width:"100%",marginBottom:14,padding:"13px 0",borderRadius:14,border:"none",background:"#24386B",color:"#fff",fontSize:14.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>이번 주 마감 입력 — 매출·KPI·활동지표 한 번에</button>}
       <WeeklyInputSheet open={weeklyOpen} onClose={()=>setWeeklyOpen(false)} D={D} cu={cu} up={up}/>
         </>)},
-        {id:"turn",label:"흐름 내 차례",show:(myCases.length+myLaunch.length)>0,node:(<>
+        {id:"turn",label:"워크플로우 내 차례",show:(myCases.length+myLaunch.length)>0,node:(<>
       {(myCases.length+myLaunch.length)>0&&(()=>{ const rows=[...myCases.map(x=>({k:"c"+x.t.id,kind:"case",...x})),...myLaunch.map(x=>({k:"l"+x.p.id+x.it.id,kind:"launch",...x}))]; const shown=turnAll?rows:rows.slice(0,6);
         return(
         <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #D3D8E6",marginBottom:14}}>
           <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:10,flexWrap:"wrap"}}>
-            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#1E2F5C"}}>흐름 — 내 차례 ({rows.length})</h3>
+            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#1E2F5C"}}>워크플로우 — 내 차례 ({rows.length})</h3>
             <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>체크하면 다음 단계·다음 담당으로 넘어가요</p>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
@@ -3050,7 +3052,7 @@ async function wfToggle(D,wf,t,sid,cu,up){
   const who=(D.users||[]).find(u=>u.id===t.assigneeId)||cu;
   try{ await akBump(it,wk,"n",count,who);
     if(count>0){ const nid="n"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-      await setDoc(extDoc(NOTE_COL,nid),{id:nid,itemId:it.id,itemName:it.name||"",kind:"ak",count:{wk,at:new Date().toISOString(),unit:it.unit||"",task:t.id},parentId:null,text:`흐름 완료 · ${wf.name} · ${t.title}`,files:[],by:who.id,byName:who.name||"",at:new Date().toISOString(),deleted:false}); } }
+      await setDoc(extDoc(NOTE_COL,nid),{id:nid,itemId:it.id,itemName:it.name||"",kind:"ak",count:{wk,at:new Date().toISOString(),unit:it.unit||"",task:t.id},parentId:null,text:`워크플로우 완료 · ${wf.name} · ${t.title}`,files:[],by:who.id,byName:who.name||"",at:new Date().toISOString(),deleted:false}); } }
   catch(e){ console.error("[흐름] 행동지표 반영 실패:",e); }
 }
 // ── 행동지표 체크리스트 실행 (pour-os/ak-runs/r/{id}) ──
@@ -3483,11 +3485,11 @@ function AkEditSheet({D,cu,item,core,add,up,onClose}){
       <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{users.map(u=>{ const on=f.who.includes(u.id); return <button key={u.id} type="button" onClick={()=>set("who",on?f.who.filter(x=>x!==u.id):[...f.who,u.id])} style={chip(on)}>{on?"✓ ":""}{u.name}</button>; })}</div>
       <label style={lab}>방식 · 브랜드</label>
       <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{["직접","외주"].map(x=><button key={x} type="button" onClick={()=>set("how",x)} style={chip(f.how===x)}>{x}</button>)}<span style={{width:8}}/>{[...(D.brands||BRAND_SEED).filter(b=>b.active!==false).map(b=>[b.id,b.name]),[COMMON,"공통"]].map(([k,l])=><button key={k} type="button" onClick={()=>set("brand",k)} style={chip(f.brand===k)}>{l}</button>)}</div>
-      <label style={lab}>반복 흐름 (선택) <span style={{fontWeight:500,color:"#9CA3AF"}}>· 단계가 있는 반복 일만 · 다 체크하면 +1 · 없으면 지금처럼 +1</span></label>
+      <label style={lab}>워크플로우 (선택) <span style={{fontWeight:500,color:"#9CA3AF"}}>· 단계가 있는 반복 일만 · 다 체크하면 +1 · 없으면 지금처럼 +1</span></label>
       <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)",gap:6,marginBottom:6}}>
-        <select value={linkId} onChange={e=>pickFlow(e.target.value)} aria-label="흐름 고르기" style={{...inp,padding:"9px 10px",fontSize:13}}><option value="">{linked?"새 흐름으로 만들기":"새 흐름 만들기"}</option>{Wf.filter(w=>w.cat!=="launch"&&(!w.akId||(item&&w.akId===item.id))).map(w=><option key={w.id} value={w.id}>{w.name} · {(WF_CATS.find(c=>c.k===w.cat)||{}).name||""}</option>)}</select>
+        <select value={linkId} onChange={e=>pickFlow(e.target.value)} aria-label="워크플로우 고르기" style={{...inp,padding:"9px 10px",fontSize:13}}><option value="">{linked?"새 워크플로우로 만들기":"새 워크플로우 만들기"}</option>{Wf.filter(w=>w.cat!=="launch"&&(!w.akId||(item&&w.akId===item.id))).map(w=><option key={w.id} value={w.id}>{w.name} · {(WF_CATS.find(c=>c.k===w.cat)||{}).name||""}</option>)}</select>
         {!linkId?<select value={flowCat} onChange={e=>setFlowCat(e.target.value)} aria-label="보일 곳" style={{...inp,padding:"9px 10px",fontSize:13}}>{WF_CATS.filter(c=>c.k!=="launch").map(c=><option key={c.k} value={c.k}>프로젝트 › {c.name}</option>)}</select>
-          :<p style={{margin:0,alignSelf:"center",fontSize:11.5,color:"#6B7684",lineHeight:1.4}}>여기서 고치면 프로젝트 화면의 이 흐름도 같이 바뀌어요</p>}
+          :<p style={{margin:0,alignSelf:"center",fontSize:11.5,color:"#6B7684",lineHeight:1.4}}>여기서 고치면 프로젝트 화면의 이 워크플로우도 같이 바뀌어요</p>}
       </div>
 
       {steps.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:6}}>{steps.map((st,ix)=><div key={st.id} style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap",padding:"6px 7px",borderRadius:10,background:"#F7F8FA"}}>
@@ -3501,6 +3503,7 @@ function AkEditSheet({D,cu,item,core,add,up,onClose}){
       <div style={{display:"flex",gap:6}}><input value={stepNew} onChange={e=>setStepNew(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter"&&stepNew.trim()){ e.preventDefault(); setSteps(a=>[...a,...cleanSteps([{title:stepNew}])]); setStepNew(""); } }} placeholder="단계 추가 — 예: 키워드 리스트 확인 후 선정" aria-label="단계 추가" style={{...inp,flex:1,minWidth:0}}/>
         <button type="button" disabled={!stepNew.trim()} onClick={()=>{ setSteps(a=>[...a,...cleanSteps([{title:stepNew}])]); setStepNew(""); }} style={{flexShrink:0,padding:"0 14px",borderRadius:10,border:"none",background:stepNew.trim()?"#24386B":"#D1D6DB",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>추가</button></div>
       {steps.some(x=>x.confirm)&&<p style={{margin:"5px 2px 0",fontSize:11,color:"#8B95A1"}}>'컨펌' 단계는 컨펌 요청이 승인되면 자동 체크돼요 · 받는 사람은 그 단계 담당</p>}
+      {item&&<OwnerLog log={item.ownerLog}/>}
       <label style={lab}>세부내용</label>
       <textarea value={f.desc} onChange={e=>set("desc",e.target.value)} rows={3} placeholder="무엇을 어떻게 하는지 한두 줄" style={{...inp,resize:"vertical"}}/>
       <button onClick={save} disabled={!ok} style={{width:"100%",marginTop:16,padding:"14px 0",borderRadius:14,border:"none",background:ok?"#0F1F5C":"#D1D6DB",color:"#fff",fontWeight:900,fontSize:15,cursor:ok?"pointer":"not-allowed",fontFamily:"inherit"}}>{item?"저장":"행동지표 추가"}</button>
@@ -5161,6 +5164,18 @@ function ProjCard({D,p,ts,sig,cat,nx,uname,onOpen}){
       {more>0&&<button type="button" onClick={e=>{e.stopPropagation(); onOpen();}} style={{padding:"5px 3px",borderRadius:9,border:"1.5px solid transparent",background:"#F4F5F7",color:"#6B7684",fontSize:12.5,fontWeight:900,cursor:"pointer",fontFamily:"inherit"}}>+{more}</button>}
     </div>}
   </div>); }
+// 담당·책임자 바뀐 것 → 이력 {at,by,byName,what,from,to} (업무·프로젝트·워크플로우·행동지표). 이름으로 남김(사람이 빠져도 읽힘)
+function ownerChanges(k,before,patch,users,cu){
+  const nm=(id)=>id?((users.find(u=>u.id===id)||{}).name||id):"없음"; const at=new Date().toISOString(); const out=[];
+  const add=(what,from,to)=>{ if(from!==to) out.push({at,by:cu?.id||null,byName:cu?.name||"",what,from,to}); };
+  if((k==="tasks"||k==="projects")&&"assigneeId" in patch&&(patch.assigneeId||"")!==(before.assigneeId||"")) add(k==="projects"?"책임자":"담당",nm(before.assigneeId),nm(patch.assigneeId));
+  if(k==="workflows"){ if("leadId" in patch&&(patch.leadId||"")!==(before.leadId||"")) add("책임자",nm(before.leadId),nm(patch.leadId));
+    if(Array.isArray(patch.stages)&&Array.isArray(before.stages)) patch.stages.forEach(s=>{ const b=before.stages.find(x=>x.id===s.id); if(b&&(b.ownerId||"")!==(s.ownerId||"")) add(`${s.name} 담당`,b.ownerId?nm(b.ownerId):"건 담당자",s.ownerId?nm(s.ownerId):"건 담당자"); }); }
+  if(k==="actionKPIs"&&Array.isArray(patch.who)){ const a=(before.who||[]).map(nm).join(", ")||"없음", b=patch.who.map(nm).join(", ")||"없음"; add("담당",a,b); }
+  return out; }
+function OwnerLog({log,label="담당 변경 이력"}){ const [open,setOpen]=useState(false); const a=Array.isArray(log)?log:[]; if(!a.length) return null;
+  return(<div style={{marginTop:6}}><button type="button" onClick={()=>setOpen(v=>!v)} style={{border:"none",background:"none",padding:"2px 0",fontSize:11.5,fontWeight:800,color:"#6B7684",cursor:"pointer",fontFamily:"inherit"}}>{label} {a.length} {open?"▴":"▾"}</button>
+    {open&&<div style={{display:"flex",flexDirection:"column",gap:3,marginTop:3}}>{[...a].reverse().map((x,i)=><p key={i} style={{margin:0,fontSize:11.5,color:"#4E5968",lineHeight:1.5}}>{noteAt(x.at)} · <b>{x.what}</b> {x.from?<>{x.from} → </>:"→ "}<b style={{color:"#1E2F5C"}}>{x.to}</b> <span style={{color:"#8B95A1"}}>({x.byName||"?"})</span></p>)}</div>}</div>); }
 function SimpleProjects({D,cu,up,add,rm,lead,onAdvanced,cat,embedded,hideNew}){
   const [tab,setTab]=useState("active");
   const [mine,setMine]=useState(false);
@@ -5255,6 +5270,7 @@ function ProjectDetailSheet({D,cu,p,up,add,rm,onClose,onAdvanced,focus}){
           <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",minWidth:0}}>마감일{p.dueDate&&<button type="button" onClick={e=>{ e.preventDefault(); up("projects",p.id,{dueDate:""}); }} style={{marginLeft:6,border:"none",background:"none",padding:0,fontSize:11.5,fontWeight:800,color:"#B4383F",cursor:"pointer",fontFamily:"inherit"}}>지우기</button>}<input type="date" value={p.dueDate||""} onChange={e=>up("projects",p.id,{dueDate:e.target.value})} style={{...inp,width:"100%",marginTop:4}}/></label>
           <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",gridColumn:"1 / -1"}}>카테고리<select value={p.category||""} onChange={e=>up("projects",p.id,{category:e.target.value})} style={{...inp,width:"100%",marginTop:4}}><option value="">미분류</option>{WF_CATS.map(c=><option key={c.k} value={c.k}>{c.icon} {c.name}</option>)}</select></label>
         </div>
+        <OwnerLog log={p.ownerLog}/>
         <div style={{marginTop:10}}>
           <p style={{margin:"0 2px 6px",fontSize:11.5,fontWeight:700,color:"#6B7684"}}>담당 (여러 명) <span style={{fontWeight:500,color:"#8B95A1"}}>· 눌러서 추가/빼기 · 업무를 맡으면 자동 포함{ex.out?` · 외주 ${ex.out}건`:""}{ex.col?` · 협업 ${ex.col}건`:""}</span></p>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -5482,7 +5498,7 @@ function WorkflowHome(props){
   </div>);
 }
 
-// '+ 새로 만들기' 하나 — 무엇을 만들지 고르기 (프로젝트 · 반복 흐름 1건 · 신제품)
+// '+ 새로 만들기' 하나 — 무엇을 만들지 고르기 (프로젝트 · 워크플로우 1건 · 신제품)
 function NewThingSheet({cat,W,onClose,onProject,onFlow}){
   const [flowPick,setFlowPick]=useState(false);
   const flows=W.filter(w=>w.cat!=="launch"&&(cat==="all"||cat==="launch"||w.cat===cat));
@@ -5491,9 +5507,9 @@ function NewThingSheet({cat,W,onClose,onProject,onFlow}){
   return(<Sheet open onClose={onClose} title="새로 만들기" h="80vh" w={520}>
     <div style={{display:"flex",flexDirection:"column",gap:8,paddingTop:4}}>
       <button onClick={onProject} style={big}><T t="프로젝트" d="끝이 있는 일 · 마감일·업무·담당을 정해 진척을 봐요 (예: 자사몰 리뉴얼)"/></button>
-      <button onClick={()=>setFlowPick(v=>!v)} aria-expanded={flowPick} style={{...big,borderColor:flowPick?"#24386B":"#E5E8EB"}}><T t="반복 흐름 1건" d="정해진 단계로 반복하는 일 1건 · 단계마다 담당이 넘겨받아요 (예: 반품 1건, 블로그 1건)"/></button>
+      <button onClick={()=>setFlowPick(v=>!v)} aria-expanded={flowPick} style={{...big,borderColor:flowPick?"#24386B":"#E5E8EB"}}><T t="워크플로우 1건" d="정해진 단계로 반복하는 일 1건 · 단계마다 담당이 넘겨받아요 (예: 반품 1건, 블로그 1건)"/></button>
       {flowPick&&<div style={{display:"flex",gap:6,flexWrap:"wrap",padding:"4px 2px 6px"}}>{flows.map(w=><button key={w.id} onClick={()=>onFlow(w)} style={{padding:"8px 12px",borderRadius:18,border:"1.5px solid #D3D8E6",background:"#EEF0F5",color:"#1E2F5C",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{w.name}{cat==="all"?<span style={{fontWeight:600,color:"#8B95A1"}}> · {(WF_CATS.find(c=>c.k===w.cat)||{}).name||""}</span>:null}</button>)}
-        {!flows.length&&<p style={{margin:0,fontSize:12,color:"#8B95A1"}}>이 카테고리에 흐름이 없어요 · 목록 위 '+ 흐름 추가'로 만들어요</p>}</div>}
+        {!flows.length&&<p style={{margin:0,fontSize:12,color:"#8B95A1"}}>이 카테고리에 워크플로우가 없어요 · 목록 위 '+ 워크플로우 추가'로 만들어요</p>}</div>}
       <a href="https://pour-construction-form.pages.dev/launch-board" target="_blank" rel="noopener" style={{...big,textDecoration:"none"}}><T t="신제품 ↗" d="런칭보드에 새 제품 등록 · 등록하면 여기 신제품 출시에 바로 나와요"/></a>
     </div>
   </Sheet>); }
@@ -5560,20 +5576,20 @@ function WfList({D,cu,cat,up,add,rm,pc,W,onAdvanced}){
   const grid={display:"grid",gridTemplateColumns:pc?"repeat(auto-fill,minmax(300px,1fr))":"1fr",gap:8};
   return(<div style={{background:"#fff",borderRadius:18,padding:"14px 14px 12px",boxShadow:"0 2px 12px rgba(15,23,42,.05)"}}>
     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-      <p style={{margin:0,flex:"1 1 180px",minWidth:0,fontSize:16,fontWeight:900,color:"#191F28"}}>{catName} <span style={{fontSize:11.5,fontWeight:600,color:"#8B95A1"}}>· 프로젝트와 반복 흐름 건을 한 목록으로</span></p>
+      <p style={{margin:0,flex:"1 1 180px",minWidth:0,fontSize:16,fontWeight:900,color:"#191F28"}}>{catName} <span style={{fontSize:11.5,fontWeight:600,color:"#8B95A1"}}>· 프로젝트와 워크플로우 건을 한 목록으로</span></p>
       <div style={{display:"flex",background:"#F2F4F6",borderRadius:10,padding:3}}>{[["active","진행"],["done","완료"]].map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"6px 12px",borderRadius:8,border:"none",background:tab===k?"#fff":"transparent",color:tab===k?"#191F28":"#8B95A1",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>)}</div>
       <button onClick={()=>setMine(m=>!m)} aria-pressed={mine} style={{padding:"6px 11px",borderRadius:10,border:`1.5px solid ${mine?"#24386B":"#E5E8EB"}`,background:mine?"#EEF0F5":"#fff",color:mine?"#1E2F5C":"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>내 것만</button>
     </div>
-    <div role="group" aria-label="흐름" style={{display:"flex",gap:6,marginTop:10,overflowX:"auto",paddingBottom:2,WebkitOverflowScrolling:"touch"}}>
+    <div role="group" aria-label="워크플로우" style={{display:"flex",gap:6,marginTop:10,overflowX:"auto",paddingBottom:2,WebkitOverflowScrolling:"touch"}}>
       {[{id:"all",name:"전체",n:wfs.reduce((a,w)=>a+actN(w),0)+projs.filter(r=>projStatus(r.p)!=="completed").length},{id:"proj",name:"프로젝트",n:projs.filter(r=>projStatus(r.p)!=="completed").length},...wfs.map(w=>({id:w.id,name:w.name,n:actN(w)}))].map(c=>{ const on=(cur?cur.id:onlyProj?"proj":"all")===c.id;
         return <button key={c.id} aria-pressed={on} onClick={()=>setSel(c.id)} style={{padding:"7px 11px",borderRadius:18,border:`1.5px solid ${on?"#24386B":"#E5E8EB"}`,background:on?"#24386B":"#fff",color:on?"#fff":"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit",flexShrink:0,whiteSpace:"nowrap"}}>{c.name}{c.n?<span style={{marginLeft:4,opacity:.8}}>{c.n}</span>:null}</button>; })}
     </div>
-    <button onClick={()=>{ const w={id:"wf_"+Date.now().toString(36),cat,name:"새 흐름",unit:"건",hint:"",stages:[],createdAt:new Date().toISOString(),createdBy:cu.id}; add("workflows",w); setSetFor(w); }} style={{marginTop:6,padding:"6px 10px",borderRadius:16,border:"1.5px dashed #D3D8E6",background:"#fff",color:"#1E2F5C",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+ 흐름 추가</button>
+    <button onClick={()=>{ const w={id:"wf_"+Date.now().toString(36),cat,name:"새 워크플로우",unit:"건",hint:"",stages:[],createdAt:new Date().toISOString(),createdBy:cu.id}; add("workflows",w); setSetFor(w); }} style={{marginTop:6,padding:"6px 10px",borderRadius:16,border:"1.5px dashed #D3D8E6",background:"#fff",color:"#1E2F5C",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+ 워크플로우 추가</button>
     {cur&&<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginTop:10,padding:"9px 11px",borderRadius:12,background:"#F4F5F7"}}>
       <p style={{margin:0,flex:"1 1 200px",minWidth:0,fontSize:12,color:"#4E5968",lineHeight:1.6,wordBreak:"keep-all"}}>{cur.stages.map((s,i)=><Fragment key={s.id}>{i?" → ":""}<b style={{color:"#333D4B"}}>{s.name}</b>{s.ownerId?<span style={{color:"#1E2F5C"}}>({userName(D,s.ownerId)})</span>:null}</Fragment>)}</p>
       <button onClick={()=>setSetFor(cur)} style={{...btn,padding:"7px 11px",fontSize:12,border:"1px solid #D3D8E6",background:"#fff",color:"#1E2F5C"}}>단계·담당</button>
     </div>}
-    {noOwner.length>0&&<p style={{margin:"8px 2px 0",fontSize:11.5,color:"#B26A12",fontWeight:700,lineHeight:1.5}}>{cur?"단계 담당이 비어 있어요 — 정하면 앞 단계가 끝날 때 다음 사람 오늘 화면에 자동으로 떠요":`단계 담당이 비어 있는 흐름 ${noOwner.length}개 — 위 칩을 골라 '단계·담당'에서 정하세요`}</p>}
+    {noOwner.length>0&&<p style={{margin:"8px 2px 0",fontSize:11.5,color:"#B26A12",fontWeight:700,lineHeight:1.5}}>{cur?"단계 담당이 비어 있어요 — 정하면 앞 단계가 끝날 때 다음 사람 오늘 화면에 자동으로 떠요":`단계 담당이 비어 있는 워크플로우 ${noOwner.length}개 — 위 칩을 골라 '단계·담당'에서 정하세요`}</p>}
     <div style={{marginTop:12}}>
       {items.length===0&&<p style={{margin:"4px 2px",fontSize:12.5,color:"#8B95A1"}}>{tab==="done"?"완료한 것이 없어요":"진행 중인 것이 없어요 · 위 '+ 새로 만들기'로 시작하세요"}</p>}
       {groups.map(([gl,list])=>list.length?<div key={gl||"all"} style={{marginBottom:12}}>
@@ -5695,7 +5711,7 @@ function WfSettingsSheet({D,wf,add,up,onClose}){
         <label style={lbl}>연결 프로젝트<select value={projectId} onChange={e=>setProjectId(e.target.value)} style={{...wfInp,width:"100%",marginTop:4}}><option value="">없음</option>{(D.projects||[]).map(p=><option key={p.id} value={p.id}>{p.title}</option>)}</select></label>
       </div>
       <div style={{display:"grid",gridTemplateColumns:def?"1fr":"minmax(0,1fr) minmax(0,1fr)",gap:8}}>
-        <label style={lbl}>흐름 이름<input value={name} onChange={e=>setName(e.target.value)} aria-label="흐름 이름" style={{...wfInp,width:"100%",marginTop:4}}/></label>
+        <label style={lbl}>워크플로우 이름<input value={name} onChange={e=>setName(e.target.value)} aria-label="워크플로우 이름" style={{...wfInp,width:"100%",marginTop:4}}/></label>
         {!def&&<label style={lbl}>보일 곳<select value={cat} onChange={e=>setCat(e.target.value)} aria-label="보일 곳" style={{...wfInp,width:"100%",marginTop:4}}>{WF_CATS.filter(c=>c.k!=="launch").map(c=><option key={c.k} value={c.k}>{c.name}</option>)}</select></label>}
       </div>
       <label style={lbl}>다 끝나면 +1 할 행동지표 <span style={{fontWeight:500,color:"#8B95A1"}}>(선택 · 고르면 오늘 그 행동지표 줄에서 '+ 시작'으로 바로 시작)</span><select value={akId} onChange={e=>setAkId(e.target.value)} aria-label="연결 행동지표" style={{...wfInp,width:"100%",marginTop:4}}><option value="">연결 안 함</option>{(D.actionKPIs||[]).filter(a=>a.active!==false).map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
@@ -5718,6 +5734,7 @@ function WfSettingsSheet({D,wf,add,up,onClose}){
         <button onClick={()=>setStages(a=>[...a,{id:"s"+Date.now().toString(36),name:"새 단계"}])} style={{marginTop:8,padding:"9px 12px",borderRadius:10,border:"1.5px dashed #D3D8E6",background:"#EEF0F5",color:"#1E2F5C",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>＋ 단계 추가</button>
         <p style={{margin:"6px 2px 0",fontSize:11,color:"#8B95A1"}}>단계를 빼도 이미 체크한 기록은 지워지지 않아요 · '컨펌' 단계는 그 건의 컨펌 요청이 승인되면 자동 체크</p>
       </div>
+      <OwnerLog log={wf.ownerLog}/>
       <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
         {def&&<button onClick={()=>setStages(def.stages.map(s=>({...s})))} style={{padding:"11px 14px",borderRadius:12,border:"1px solid #E5E8EB",background:"#fff",color:"#6B7684",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>기본 단계로</button>}
         <button onClick={save} style={{flex:1,padding:"12px 0",borderRadius:12,border:"none",background:"#24386B",color:"#fff",fontWeight:900,fontSize:14.5,cursor:"pointer",fontFamily:"inherit"}}>저장</button>
@@ -5894,6 +5911,7 @@ function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose}){
         <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",minWidth:0}}>책임자 (1명)<select value={p.lead||""} onChange={e=>w({lead:e.target.value},"책임자 "+(e.target.value||"브랜드 BM"))} style={{...wfInp,width:"100%",marginTop:4}}><option value="">브랜드 BM ({(LAUNCH_BRANDS[p.brand]||{}).bm||"-"})</option>{people.filter(n=>n!=="외주").map(n=><option key={n}>{n}</option>)}</select></label>
         <div style={{fontSize:11.5,fontWeight:700,color:"#6B7684",minWidth:0}}>출시일<div style={{...wfInp,marginTop:4,background:"#F9FAFB",fontWeight:800,color:"#191F28"}}>{p.launchDate?`${p.launchDate} · ${ddayKo(daysTo(p.launchDate))}`:"미정"}</div></div>
       </div>
+      {(()=>{ const h=(p.history||[]).filter(x=>x&&typeof x.text==="string"&&/^(\[업무OS\] )?(관리 담당|책임자) /.test(x.text)); return h.length?<OwnerLog label="책임자 변경 이력" log={h.map(x=>({at:x.at,what:"책임자",from:"",to:x.text.replace(/^(\[업무OS\] )?(관리 담당|책임자) /,""),byName:x.by}))}/>:null; })()}
       <div style={{padding:"12px 14px",borderRadius:14,background:"#EEF0F5"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}><b style={{fontSize:13.5,color:"#1E2F5C"}}>{p.batch?p.batch+" · ":""}{b.name}</b><span style={{fontSize:13,fontWeight:900,color:"#191F28"}}>{lp.pct}% <span style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>항목 {lp.done}/{lp.total} 완료</span></span></div>
         <div style={{height:7,background:"rgba(255,255,255,.8)",borderRadius:4,overflow:"hidden",marginTop:8}}><div style={{width:`${lp.pct}%`,height:"100%",background:"#24386B",borderRadius:4}}/></div>
@@ -5929,6 +5947,8 @@ function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose}){
               <input type="date" value={s.due||""} onChange={e=>setField(it,"due",e.target.value)} aria-label="마감" style={{...sel,flex:"1 1 120px"}}/>
             </div>
             {extFor===it.id&&<div style={{display:"flex",gap:6,marginTop:6}}><input value={extName} onChange={e=>setExtName(e.target.value)} placeholder="외부 담당 이름 (예: 디자이너 이우민)" aria-label="외부 담당 이름" style={{...sel,flex:1,minWidth:0}}/><button onClick={()=>{ if(extName.trim()){ setField(it,"owner",extName.trim()); setExtFor(null); } }} style={{...NB.pri,padding:"6px 12px"}}>넣기</button></div>}
+            {(()=>{ const h=(p.history||[]).filter(x=>x&&typeof x.text==="string"&&x.text.replace(/^\[업무OS\] /,"").startsWith(it.name+" · 담당")); if(!h.length) return null;
+              return <div style={{marginTop:6}}><p style={{margin:"0 0 2px",fontSize:11.5,fontWeight:800,color:"#6B7684"}}>담당 변경 이력 {h.length}</p>{[...h].reverse().slice(0,8).map((x,ix)=><p key={ix} style={{margin:0,fontSize:11.5,color:"#4E5968",lineHeight:1.5}}>{noteAt(x.at)} · {x.text.replace(/^\[업무OS\] /,"").replace(it.name+" · ","")} <span style={{color:"#8B95A1"}}>({x.by||"?"})</span></p>)}</div>; })()}
             <div style={{marginTop:8}}><ExecPicker value={s.exec} note={s.execNote} onChange={(k,n)=>setExec(it,k,n)}/></div></>}
           </div>); })}
       </div>

@@ -195,7 +195,7 @@ export const projRateOf = (projects) => { const ps = (projects || []).filter((p)
 export function execGroups(D, docs, today, fixedDone) {
   const mks = [...(D.mainKPIs || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
   const pmk = (pid) => ((D.projects || []).find((p) => p.id === pid) || {}).mainKPIId || "";
-  const fixed = (D.tasks || []).filter((t) => t.isFixed);
+  const fixed = (D.tasks || []).filter((t) => t.isFixed && !t.paused);
   const grp = (mkId) => {
     const ak = (D.actionKPIs || []).filter((a) => akLink(a).mk === mkId || (!mkId && !mks.some((m) => m.id === akLink(a).mk)));
     const pj = (D.projects || []).filter((p) => (p.mainKPIId || "") === mkId || (!mkId && !mks.some((m) => m.id === p.mainKPIId)));

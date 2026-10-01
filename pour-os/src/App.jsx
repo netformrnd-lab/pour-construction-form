@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, arrayUnion, increment, uploadTaskPhoto, deleteTaskPhoto, uploadAkFile, fetchMktLinks } from "./firebase.js";
 import { RESEARCH_COL, researchUrl, researchTodo, researchTask, KIND_LABEL } from "./research.js";
 import { ML_PURPOSES, mlDest, normUrl, mlMakeDoc, mlReady, mlAutoLabel, recentCombos, mergeLinks, trackUrl, isTrackUrl, trackId, genLinkId, LINK_COL } from "./linkMaker.js";
-import { noteThreads, noteCounts, linkParts, buildUtm, readUtm, pickFiles, pastedName, fileSize, isImage, UTM_SOURCES, UTM_MEDIUMS } from "./akNotes.js";
+import { noteThreads, noteCounts, linkParts, buildUtm, readUtm, pickFiles, pastedName, fileSize, isImage, UTM_SOURCES, UTM_MEDIUMS, taskNoteId, projNoteId, confirmLatest, nextRound, confirmQueue, newNotesFor } from "./akNotes.js";
 import { AK_SEED, LAG_SEED, AK_FUNS, AK_CYC, akYmd, akWeekKey, akAddDays, akQidOfWeek, akQidOfMonth, akYm, akWeeksIn, akQuarterWeeks, akMonthOfWeek, akVal, akWeekDone, akTotal, akPeriodEnd, akGoalText, akStep, akWho, akOrder, akStart, akCountable, akFullWeek, akPartial, akLink, lagCur, lagPct, isMaster, can, roleLabel, PERMS, pinHash, PIN_TRY_MAX, PIN_LOCK_MIN, akRetroDay, akRetroDue } from "./actionKpi.js";
 import { COMMON, BRAND_SEED, brandKey, brandName, brandView, akBrandOf, mkBrand, projBrand, seedMissing, fixGhSubs, withAutoSales, salesByCh, salesChOf, execGroups, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, SALES_CH_DEFAULT } from "./brand.js";
 import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGetSnapshot } from "./durable.js";
@@ -20,7 +20,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-프로젝트카드";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-댓글컨펌";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -815,6 +815,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
           </div>
           <p style={{margin:"6px 2px 0",fontSize:10,color:"#9CA3AF"}}>{task?"끌어다 놓기(드래그&드롭) · 사진은 붙여넣기(⌘/Ctrl+V)로 바로 첨부 · 클릭 선택도 가능":"먼저 저장하면 첨부할 수 있어요"} · 사진·PDF·문서(워드/엑셀/한글) 각 20MB 이내</p>
         </div>}
+        {task&&!task.isFixed&&_curUser(D)&&<ThreadPanel D={D} cu={_curUser(D)} up={up} itemId={taskNoteId(task.id)} itemName={task.title} kind="task" task={(D.tasks||[]).find(x=>x.id===task.id)||task}/>}
         {task&&onDelete&&(
         <div style={{marginTop:4,marginBottom:8,paddingTop:14,borderTop:"1px solid #F2F4F6"}}>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#B4383F",marginBottom:6}}>업무 삭제 <span style={{color:"#9CA3AF",fontWeight:600}}>(휴지통으로 이동 · 복구 가능)</span></label>
@@ -2044,6 +2045,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       {/* 나/팀 보기 토글은 없앰(팀 현황은 KPI 화면) — 오늘은 내 일만 */}
       {scope==="me"&&<>
       {todayStatsEl}
+      <TodayThreads D={D} cu={cu} up={up}/>
       {retroT&&<AkRetroSheet D={D} cu={cu} up={up} add={add} target={retroT} onClose={()=>setRetroT(null)}/>}
       <TodayBlocks uid={cu.id} items={[
         {id:"retro",label:"월말 회고",show:!!akRetroDue(akYmd(new Date()),D.retros),node:<AkRetroBanner D={D} cu={cu} nav={nav} onOpen={(d)=>setRetroT({y:d.y,m0:d.m0})}/>},
@@ -3220,6 +3222,136 @@ function AkNotesSheet({D,cu,item,notes,ro,onClose,count}){
       {item._kind!=="fixed"&&<label style={{display:"flex",alignItems:"center",gap:6,marginTop:10,fontSize:12,color:"#5B606B",cursor:"pointer"}}><input type="checkbox" checked={recOn} onChange={e=>setRec(e.target.checked)}/>오늘 화면에서 +1 할 때마다 기록 창 열기</label>}
     </div>
   </Sheet>);
+}
+// ── 업무·업무플로우 건·프로젝트 댓글 + 컨펌 요청 — 행동지표 메모와 같은 컬렉션(댓글 1개 = 문서 1개) ──
+// 업무 itemId "task:{id}" · 프로젝트 "proj:{id}". 컨펌 요청 = kind:"confirm" 원댓글, 피드백 = 그 글 답글(fb:true), 다시 올리기 = 새 원댓글(round+1)
+const seenKey=(uid)=>"pour-os-seen-"+uid;
+const readSeen=(uid)=>{ try{ return JSON.parse(localStorage.getItem(seenKey(uid))||"{}"); }catch(_){ return {}; } };
+const markSeen=(uid,itemId)=>{ try{ const m=readSeen(uid); m[itemId]=new Date().toISOString(); if(!m._since) m._since=new Date(Date.now()-7*864e5).toISOString(); localStorage.setItem(seenKey(uid),JSON.stringify(m)); }catch(_){} };
+const CF_TAG={wait:{l:"컨펌 대기",c:"#B26A12",bg:"#FFF4E5"},ok:{l:"승인",c:"#2F7D57",bg:"#EAF4EE"},fix:{l:"수정 요청",c:"#B4383F",bg:"#F8EDEE"}};
+function ThreadPanel({D,cu,up,itemId,itemName,kind,task,proj,title="댓글"}){
+  const notes=useAkNotes();
+  const users=D.users||[];
+  const nameOf=(id,nm)=>{ const u=users.find(x=>x.id===id); return u?u.name:(nm||"?"); };
+  const when=(at)=>{ const s=String(at||""); return s?`${+s.slice(5,7)}/${+s.slice(8,10)} ${s.slice(11,16)}`:""; };
+  const projOf=task?(D.projects||[]).find(x=>x.id===task.projectId):proj;
+  const [mode,setMode]=useState("note");   // note | confirm
+  const [to,setTo]=useState(()=>{ const m=projOf&&projOf.assigneeId; return m&&m!==cu.id?m:""; });
+  const [link,setLink]=useState(""); const [fname,setFname]=useState("");
+  const [replyTo,setReplyTo]=useState(null); const [fbFor,setFbFor]=useState(null); const [editId,setEditId]=useState(null);
+  useEffect(()=>{ markSeen(cu.id,itemId); },[itemId,notes.length]);   // eslint-disable-line
+  const threads=noteThreads(notes,itemId);
+  const latest=confirmLatest(notes,itemId);
+  const master=isMaster(cu);
+  const fileKey=itemId.replace(/[^\w-]/g,"_");
+  const save=async(data,files,setBusy)=>{ const upf=[]; for(let i=0;i<(files||[]).length;i++){ setBusy&&setBusy(`올리는 중 ${i+1}/${files.length}`); upf.push(await uploadAkFile(fileKey,files[i])); }
+    setBusy&&setBusy("저장 중"); const id="n"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    await setDoc(extDoc(NOTE_COL,id),{id,itemId,itemName:itemName||"",kind,taskId:task?task.id:null,projectId:task?(task.projectId||null):(proj?proj.id:null),parentId:null,files:upf,by:cu.id,byName:cu.name||"",at:new Date().toISOString(),deleted:false,...data}); return id; };
+  const post=(text,files,setBusy,parentId)=>save({text,parentId:parentId||null},files,setBusy).then(()=>setReplyTo(null));
+  const sendConfirm=async(text,files,setBusy)=>{ if(!to) throw new Error("받는 사람을 골라 주세요");
+    await save({kind:"confirm",text,to,toName:nameOf(to),status:"wait",round:nextRound(notes,itemId),link:link.trim(),fileName:fname.trim()},files,setBusy);
+    setLink(""); setFname(""); setMode("note"); };
+  const decide=async(n,status,done)=>{ const at=new Date().toISOString();
+    await setDoc(extDoc(NOTE_COL,n.id),{status,decidedBy:cu.id,decidedByName:cu.name||"",decidedAt:at},{merge:true});
+    if(task&&up&&(status==="ok")) up("tasks",task.id,{confirmed:{by:cu.id,byName:cu.name||"",at,round:n.round||1},...(done?{status:"done"}:{})}); };
+  const sendFb=async(n,text,files,setBusy)=>{ await save({text,parentId:n.id,fb:true},files,setBusy); await decide(n,"fix"); setFbFor(null); };
+  const saveEdit=async(n,text)=>{ if(text===n.text){ setEditId(null); return; } const at=new Date().toISOString(); await setDoc(extDoc(NOTE_COL,n.id),{text,editedAt:at,editedBy:cu.id,edits:arrayUnion({text:n.text||"",at})},{merge:true}); setEditId(null); };
+  const hide=async(n,on)=>{ try{ await setDoc(extDoc(NOTE_COL,n.id),on?{deleted:true,deletedAt:new Date().toISOString(),deletedBy:cu.id,deletedByName:cu.name||""}:{deleted:false,restoredAt:new Date().toISOString(),restoredBy:cu.id},{merge:true}); }catch(e){ console.error("[댓글] 숨김 실패:",e); } };
+  const one=(n,reply)=>{ const mine=n.by===cu.id; const canHide=mine||master; const cf=n.kind==="confirm"&&!reply; const tg=cf?CF_TAG[n.status||"wait"]:null; const isLatest=cf&&latest&&latest.id===n.id;
+    if(n.deleted) return(<div style={{padding:"6px 0",fontSize:12,color:"#8A8E96"}}>숨긴 댓글 · {nameOf(n.by,n.byName)}{canHide&&<button onClick={()=>hide(n,false)} style={NB.link}>되돌리기</button>}</div>);
+    return(<div className="tnote" data-note={n.id} style={cf?{margin:"8px 0",padding:"10px 11px",borderRadius:12,border:`1.5px solid ${n.status==="ok"?"#CFE3D6":n.status==="fix"?"#EACFD1":"#24386B"}`,background:n.status==="ok"?"#F6FBF8":"#F7F8FB"}:{padding:reply?"8px 0":"10px 0"}}>
+      {cf&&<span style={{display:"inline-block",fontSize:11,fontWeight:900,color:tg.c,background:tg.bg,borderRadius:6,padding:"2px 7px",marginBottom:5}}>{tg.l} · {n.status==="wait"?nameOf(n.to,n.toName):`${nameOf(n.decidedBy,n.decidedByName)} ${when(n.decidedAt)}`} · {n.round||1}차</span>}
+      <div style={{display:"flex",alignItems:"baseline",gap:7,flexWrap:"wrap",marginBottom:3}}><b style={{fontSize:12.5,color:"#16181D"}}>{nameOf(n.by,n.byName)}</b><span style={{fontSize:11,color:"#8A8E96"}}>{when(n.at)}{n.editedAt?" · 수정됨":""}{n.fb?" · 피드백":""}{cf?` → ${nameOf(n.to,n.toName)}`:""}</span></div>
+      {editId===n.id?<NoteComposer cu={cu} initialText={n.text||""} autoFocus allowFiles={false} submitLabel="저장" placeholder="고치기" onCancel={()=>setEditId(null)} onSubmit={(t)=>saveEdit(n,t)}/>
+        :<>{n.text&&<NoteText text={n.text}/>}
+          {cf&&(n.link||n.fileName)&&<div style={{display:"flex",alignItems:"center",gap:8,margin:"6px 0",padding:"7px 9px",borderRadius:9,background:"#fff",border:"1px solid #E5E8EB"}}><b style={{flex:1,minWidth:0,fontSize:12.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.fileName||"공유 자료"}</b>{n.link&&(/^https?:\/\//i.test(n.link)?<a href={n.link} target="_blank" rel="noopener noreferrer" style={{fontSize:12,fontWeight:800,color:"#24386B",whiteSpace:"nowrap"}}>공유폴더 열기 →</a>:<span style={{fontSize:11.5,color:"#4E5968",wordBreak:"break-all"}}>{n.link}</span>)}</div>}
+          <NoteFiles files={n.files}/></>}
+      {cf&&isLatest&&n.status==="wait"&&n.to===cu.id&&fbFor!==n.id&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
+        <button onClick={()=>decide(n,"ok")} style={{...NB.pri,flex:"1 1 80px"}}>승인</button>
+        {task&&task.status!=="done"&&<button onClick={()=>decide(n,"ok",true)} style={{...NB.pri,flex:"1 1 100px",background:"#2F7D57"}}>승인 + 완료</button>}
+        <button onClick={()=>{ setFbFor(n.id); setReplyTo(null); }} style={{...NB.sub,flex:"1 1 90px",border:"1.5px solid #B4383F",color:"#B4383F"}}>수정 요청</button></div>}
+      {fbFor===n.id&&<div style={{marginTop:8}}><NoteComposer cu={cu} autoFocus placeholder="무엇을 고치면 될까요? (파일·사진도 돼요)" submitLabel="수정 요청 보내기" onCancel={()=>setFbFor(null)} onSubmit={(tx,fs,sb)=>sendFb(n,tx,fs,sb)}/></div>}
+      {cf&&isLatest&&n.status==="fix"&&n.by===cu.id&&<button onClick={()=>{ setMode("confirm"); setTo(n.to); }} style={{...NB.pri,marginTop:8}}>{(n.round||1)+1}차 올리기</button>}
+      {editId!==n.id&&fbFor!==n.id&&<div style={{display:"flex",gap:2,marginTop:3,marginLeft:-4}}>
+        <button onClick={()=>{ setReplyTo(reply?n.parentId:n.id); setEditId(null); }} style={NB.link}>답글</button>
+        {mine&&<button onClick={()=>{ setEditId(n.id); setReplyTo(null); }} style={NB.link}>수정</button>}
+        {canHide&&<button onClick={()=>hide(n,true)} style={NB.link}>숨기기</button>}
+      </div>}
+    </div>); };
+  const total=threads.reduce((a,t)=>a+(t.deleted?0:1)+t.replies.filter(r=>!r.deleted).length,0);
+  const inp={width:"100%",padding:"9px 11px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13.5,fontFamily:"inherit",boxSizing:"border-box",background:"#fff"};
+  return(<div className="tpanel" style={{marginBottom:18}}>
+    <div style={{display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap",marginBottom:6}}>
+      <b style={{fontSize:13.5,color:"#191F28"}}>{title} {total||""}</b>
+      {latest&&<span style={{fontSize:11,fontWeight:900,color:CF_TAG[latest.status||"wait"].c,background:CF_TAG[latest.status||"wait"].bg,borderRadius:6,padding:"2px 7px"}}>{CF_TAG[latest.status||"wait"].l} · {latest.round||1}차</span>}
+    </div>
+    {threads.length===0&&<p style={{margin:"4px 0 8px",fontSize:12,color:"#8A8E96"}}>진행 상황·자료·질문을 남기면 같이 보고 답글로 주고받아요</p>}
+    <div style={{display:"flex",flexDirection:"column"}}>{threads.map(t=><div key={t.id} style={{borderBottom:"1px solid #ECEEF1"}}>
+      {one(t)}
+      {(t.replies.length>0||replyTo===t.id)&&<div style={{margin:"0 0 10px 12px",paddingLeft:12,borderLeft:"2px solid #E1E4E9"}}>
+        {t.replies.map(r=><Fragment key={r.id}>{one(r,true)}</Fragment>)}
+        {replyTo===t.id&&<div style={{padding:"6px 0 4px"}}><NoteComposer cu={cu} autoFocus placeholder={`${nameOf(t.by,t.byName)}님 글에 답글`} submitLabel="답글 등록" onCancel={()=>setReplyTo(null)} onSubmit={(tx,fs,sb)=>post(tx,fs,sb,t.id)}/></div>}
+      </div>}
+    </div>)}</div>
+    <div style={{marginTop:10}}>
+      <div role="group" aria-label="글 종류" style={{display:"inline-flex",background:"#F2F4F6",borderRadius:10,padding:3,marginBottom:7}}>
+        {[["note","댓글"],["confirm","컨펌 요청"]].map(([k,l])=><button key={k} type="button" aria-pressed={mode===k} onClick={()=>setMode(k)} style={{padding:"6px 12px",borderRadius:8,border:"none",background:mode===k?"#fff":"transparent",color:mode===k?"#191F28":"#6B7684",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>)}
+      </div>
+      {mode==="confirm"?<div style={{padding:10,borderRadius:12,background:"#F7F8FB",border:"1.5px solid #D3D8E6"}}>
+        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)",gap:6,marginBottom:6}}>
+          <label style={{fontSize:11.5,fontWeight:700,color:"#4E5968"}}>받는 사람 *<select value={to} onChange={e=>setTo(e.target.value)} aria-label="받는 사람" style={{...inp,marginTop:3}}><option value="">고르기</option>{users.filter(u=>u.id!==cu.id).map(u=><option key={u.id} value={u.id}>{u.name}{projOf&&projOf.assigneeId===u.id?" (관리 담당)":""}</option>)}</select></label>
+          <label style={{fontSize:11.5,fontWeight:700,color:"#4E5968"}}>파일명<input value={fname} onChange={e=>setFname(e.target.value)} placeholder="예: 11월_상세_v1.psd" aria-label="파일명" style={{...inp,marginTop:3}}/></label>
+        </div>
+        <input value={link} onChange={e=>setLink(e.target.value)} placeholder="공유폴더 링크 또는 위치 (선택)" aria-label="공유폴더 링크" style={{...inp,marginBottom:6}}/>
+        <NoteComposer cu={cu} placeholder="무엇을 봐 주면 되나요? 파일을 바로 붙여도 돼요" submitLabel={`${nextRound(notes,itemId)}차 컨펌 요청 보내기`} onSubmit={(tx,fs,sb)=>sendConfirm(tx,fs,sb)}/>
+      </div>:<NoteComposer cu={cu} placeholder="댓글 남기기 (Ctrl+Enter 등록) · 파일·사진도 돼요" onSubmit={(tx,fs,sb)=>post(tx,fs,sb,null)}/>}
+    </div>
+  </div>);
+}
+// 오늘 화면에서 누르면 뜨는 업무 댓글 창 (컨펌 대기·피드백·새 댓글)
+function ThreadSheet({D,cu,up,target,onClose}){
+  const t=target.taskId?(D.tasks||[]).find(x=>x.id===target.taskId):null;
+  const p=!t&&target.projectId?(D.projects||[]).find(x=>x.id===target.projectId):null;
+  const pj=t?(D.projects||[]).find(x=>x.id===t.projectId):null;
+  return(<Sheet open onClose={onClose} title={t?"업무 댓글":p?"프로젝트 대화":"댓글"} h="90vh" w={620}>
+    <div style={{paddingTop:2}}>
+      <p style={{margin:"0 0 2px",fontSize:15.5,fontWeight:900,color:"#191F28"}}>{t?t.title:p?p.title:target.itemName}</p>
+      <p style={{margin:"0 0 12px",fontSize:12,color:"#6B7684"}}>{t?`${pj?pj.title+" · ":""}${userNameOf(D,t.assigneeId)||"담당 없음"} · ${t.status==="done"?"완료":"진행"}`:""}</p>
+      <ThreadPanel D={D} cu={cu} up={up} itemId={target.itemId} itemName={target.itemName} kind={t?"task":"proj"} task={t} proj={p} title={p?"프로젝트 대화":"댓글"}/>
+    </div>
+  </Sheet>);
+}
+// 업무 줄 옆 작은 표시: 댓글 N · 컨펌 상태
+function NoteBadge({notes,taskId}){ const id=taskNoteId(taskId); const c=(noteCounts(notes)[id]||{}).n||0; const l=confirmLatest(notes,id);
+  if(!c&&!l) return null; const tg=l&&CF_TAG[l.status||"wait"];
+  return(<span style={{display:"inline-flex",gap:4,alignItems:"center",marginLeft:6,verticalAlign:"middle"}}>{c>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#4E5968",background:"#F2F4F6",borderRadius:6,padding:"1px 6px"}}>댓글 {c}</span>}{tg&&<span style={{fontSize:10.5,fontWeight:900,color:tg.c,background:tg.bg,borderRadius:6,padding:"1px 6px"}}>{tg.l}</span>}</span>); }
+const userNameOf=(D,id)=>((D.users||[]).find(u=>u.id===id)||{}).name||"";
+// 오늘 맨 위: 컨펌 대기 · 피드백 옴 · 새 댓글
+function TodayThreads({D,cu,up}){
+  const notes=useAkNotes();
+  const [open,setOpen]=useState(null);
+  const [tick,setTick]=useState(0);
+  const q=confirmQueue(notes,cu.id);
+  const seen=readSeen(cu.id);
+  if(!seen._since){ seen._since=new Date(Date.now()-7*864e5).toISOString(); try{ localStorage.setItem(seenKey(cu.id),JSON.stringify(seen)); }catch(_){} }   // 이 기기 처음이면 최근 7일 댓글부터
+  const myItems=[...(D.tasks||[]).filter(t=>!t.isFixed&&(t.assigneeId===cu.id||(t.assigneeIds||[]).includes(cu.id))).map(t=>taskNoteId(t.id)),...(D.projects||[]).filter(p=>p.assigneeId===cu.id).map(p=>projNoteId(p.id))];
+  const fresh=newNotesFor(notes,cu.id,myItems,seen,seen._since||new Date().toISOString()).filter(n=>!(n.kind==="confirm"&&n.to===cu.id&&n.status==="wait")&&!q.wait.some(x=>x.itemId===n.itemId)&&!q.fix.some(x=>x.itemId===n.itemId));   // 컨펌 대기·피드백 옴에 이미 뜬 업무는 새 댓글에서 뺌
+  const byItem=[]; const seenIt=new Set(); fresh.forEach(n=>{ if(seenIt.has(n.itemId)) return; seenIt.add(n.itemId); byItem.push({n,c:fresh.filter(x=>x.itemId===n.itemId).length}); });
+  if(!q.wait.length&&!q.fix.length&&!byItem.length) return open?<ThreadSheet D={D} cu={cu} up={up} target={open} onClose={()=>{ setOpen(null); setTick(x=>x+1); }}/>:null;   // 마지막 건을 처리해도 열린 창은 그대로
+  const go=(n)=>setOpen({itemId:n.itemId,itemName:n.itemName,taskId:n.taskId||(String(n.itemId).startsWith("task:")?String(n.itemId).slice(5):null),projectId:String(n.itemId).startsWith("proj:")?String(n.itemId).slice(5):null});
+  const ago=(at)=>{ const m=Math.round((Date.now()-new Date(at).getTime())/60000); return m<60?`${Math.max(1,m)}분 전`:m<1440?`${Math.round(m/60)}시간 전`:`${Math.round(m/1440)}일 전`; };
+  const Row=({n,sub,tone})=>(<button onClick={()=>go(n)} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 12px",borderRadius:12,border:`1px solid ${tone||"#E3E7F0"}`,background:"#F7F8FB",cursor:"pointer",fontFamily:"inherit"}}>
+    <b style={{display:"block",fontSize:13.5,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.itemName||"업무"}</b>
+    <span style={{display:"block",fontSize:11.5,color:"#6B7684",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</span></button>);
+  return(<div style={{background:"#fff",borderRadius:16,padding:14,border:"1px solid #D3D8E6",marginBottom:14,display:"flex",flexDirection:"column",gap:12}}>
+    {q.wait.length>0&&<div><h3 style={{margin:"0 0 8px",fontSize:14,fontWeight:900,color:"#1E2F5C"}}>컨펌 대기 ({q.wait.length})</h3>
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>{q.wait.map(n=><Row key={n.id} n={n} tone="#F0D9B5" sub={`${userNameOf(D,n.by)||n.byName} · ${n.round||1}차 · ${n.fileName?n.fileName+" · ":""}${(n.files||[]).length?`파일 ${(n.files||[]).length} · `:""}${ago(n.at)}`}/>)}</div></div>}
+    {q.fix.length>0&&<div><h3 style={{margin:"0 0 8px",fontSize:14,fontWeight:900,color:"#B4383F"}}>피드백 옴 ({q.fix.length}) <span style={{fontSize:11,fontWeight:700,color:"#8B95A1"}}>· 고쳐서 다음 차수로 올려요</span></h3>
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>{q.fix.map(n=><Row key={n.id} n={n} tone="#EACFD1" sub={`${userNameOf(D,n.decidedBy)||n.decidedByName} 수정 요청 · ${n.round||1}차 · ${ago(n.decidedAt||n.at)}`}/>)}</div></div>}
+    {byItem.length>0&&<div><h3 style={{margin:"0 0 8px",fontSize:14,fontWeight:900,color:"#1E2F5C"}}>새 댓글 ({fresh.length})</h3>
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>{byItem.slice(0,6).map(({n,c})=><Row key={n.id} n={n} sub={`${userNameOf(D,n.by)||n.byName}: ${String(n.text||"(파일)").slice(0,40)}${c>1?` 외 ${c-1}개`:""} · ${ago(n.at)}`}/>)}</div></div>}
+    {open&&<ThreadSheet D={D} cu={cu} up={up} target={open} onClose={()=>{ setOpen(null); setTick(x=>x+1); }}/>}
+  </div>);
 }
 // 행동지표 만들기·수정 — 삭제는 없고 '멈추기'만 (기록은 그대로 남음)
 function AkEditSheet({D,cu,item,core,add,up,onClose}){
@@ -4931,6 +5063,7 @@ function SimpleProjects({D,cu,up,add,rm,lead,onAdvanced,cat,embedded}){
 function ProjectDetailSheet({D,cu,p,up,add,rm,onClose,onAdvanced,focus}){
   const users=D.users||[];
   const ts=projTasksOf(D,p.id); const sig=projSignal(p,ts);
+  const pnotes=useAkNotes();
   const [fx,setFx]=useState(focus||null);   // 카드 칩으로 열면 그 사람·단계 업무만
   const inFx=(t)=>{ if(!fx) return true; if(fx.who!=null) return (t.assigneeId||"")===fx.who;
     if(fx.stage==="etc"){ const par=new Set(ts.filter(x=>ts.some(k=>k.parentId===x.id)).map(x=>x.id)); return !par.has(t.id)&&!par.has(t.parentId); }
@@ -4957,7 +5090,7 @@ function ProjectDetailSheet({D,cu,p,up,add,rm,onClose,onAdvanced,focus}){
       <button onClick={()=>up("tasks",t.id,{status:dn?"todo":"done"})} title={dn?"다시 열기":"완료"} style={{flexShrink:0,width:24,height:24,borderRadius:7,border:`2px solid ${dn?"#2F7D57":"#D1D6DB"}`,background:dn?"#2F7D57":"#fff",color:"#fff",fontSize:13,fontWeight:900,cursor:"pointer",padding:0}}>{dn?"✓":""}</button>
       <div onClick={()=>setEditTask(t)} style={{flex:1,minWidth:0,cursor:"pointer"}}>
         <p style={{margin:0,fontSize:14,fontWeight:700,color:dn?"#B0B8C1":"#191F28",textDecoration:dn?"line-through":"none",lineHeight:1.35}}>{t.parentId?"↳ ":""}{t.title}</p>
-        <p style={{margin:"3px 0 0",fontSize:11.5,color:"#8B95A1"}}>{uname(t.assigneeId)}{t.dueDate?<> · <b style={{color:late(t)?"#B4383F":"#4E5968"}}>{String(t.dueDate).slice(5)} {ddayKo(daysTo(t.dueDate))}</b></>:""}{kids.length?` · 하위 ${kids.filter(k=>k.status==="done").length}/${kids.length}`:""}</p>
+        <p style={{margin:"3px 0 0",fontSize:11.5,color:"#8B95A1"}}>{uname(t.assigneeId)}<NoteBadge notes={pnotes} taskId={t.id}/>{t.dueDate?<> · <b style={{color:late(t)?"#B4383F":"#4E5968"}}>{String(t.dueDate).slice(5)} {ddayKo(daysTo(t.dueDate))}</b></>:""}{kids.length?` · 하위 ${kids.filter(k=>k.status==="done").length}/${kids.length}`:""}</p>
         {t.exec&&t.exec!=="self"&&<div style={{marginTop:3}}><ExecBadge exec={t.exec} note={t.execNote}/></div>}
       </div>
       <button onClick={()=>setExecOpen(v=>v===t.id?null:t.id)} title="실행 방식(직접·협업·외주)" style={{flexShrink:0,padding:"6px 8px",borderRadius:9,border:"1px solid #E5E8EB",background:execOpen===t.id?"#F2F4F6":"#fff",color:"#6B7684",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{execOf(t.exec).icon} 방식</button>
@@ -5010,6 +5143,7 @@ function ProjectDetailSheet({D,cu,p,up,add,rm,onClose,onAdvanced,focus}){
         {doneList.length>0&&<div style={{marginTop:12}}>
           <button onClick={()=>setShowDone(v=>!v)} style={{border:"none",background:"none",padding:"4px 2px",fontSize:12,fontWeight:800,color:"#2F7D57",cursor:"pointer",fontFamily:"inherit"}}>완료 {doneList.length} {showDone?"▴":"▾"}</button>
           {showDone&&<div style={{display:"flex",flexDirection:"column",gap:6,marginTop:6}}>{doneList.map(t=><Row key={t.id} t={t}/>)}</div>}</div>}
+        <div style={{marginTop:18}}><ThreadPanel D={D} cu={cu} up={up} itemId={projNoteId(p.id)} itemName={p.title} kind="proj" proj={p} title="프로젝트 대화"/></div>
         <ResearchLink D={D} p={p} up={up} add={add}/>
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:20,paddingTop:14,borderTop:"1px solid #EEF1F4"}}>
           <button onClick={saveTpl} style={{padding:"9px 12px",borderRadius:10,border:"1px solid #D3D8E6",background:"#EEF0F5",color:"#1E2F5C",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>이 업무 목록을 템플릿으로 저장</button>
@@ -5207,6 +5341,7 @@ function wfWarn(wf,t,today){ if(wf.kind==="notice"){ const end=(t.wfData||{}).en
 const wfHasOwner=(wf)=>(wf.stages||[]).some(s=>s.ownerId);
 function WfList({D,cu,cat,up,add,rm,pc,W}){
   const wfs=W.filter(w=>w.cat===cat);
+  const wnotes=useAkNotes();
   const skey="pour-os-wf-sel-"+cat;
   const [sel,setSelS]=useState(()=>{ try{ return localStorage.getItem(skey)||"all"; }catch(_){ return "all"; } });
   const setSel=(v)=>{ setSelS(v); try{ localStorage.setItem(skey,v); }catch(_){} };
@@ -5231,7 +5366,7 @@ function WfList({D,cu,cat,up,add,rm,pc,W}){
         <span style={{display:"flex",alignItems:"flex-start",gap:8}}>
           <b style={{flex:1,minWidth:0,fontSize:14.5,color:dn?"#8B95A1":"#191F28",textDecoration:dn?"line-through":"none",wordBreak:"keep-all",lineHeight:1.35}}>{t.title}</b>
           <span style={{flexShrink:0,fontSize:13,fontWeight:900,color:pr.done===pr.total?"#2F7D57":"#1E2F5C",fontVariantNumeric:"tabular-nums"}}>{pr.done}/{pr.total}</span></span>
-        <span style={{display:"block",fontSize:11.5,color:"#6B7684",marginTop:3,lineHeight:1.45}}>{sel==="all"?<>{wf.name} · </>:null}{nx?<>다음 <b style={{color:"#1E2F5C"}}>{nx.name}</b> ({userName(D,own)||"담당 없음"})</>:"완료"}{t.dueDate&&!dn?` · ${ddayKo(daysTo(t.dueDate))}`:""}</span>
+        <span style={{display:"block",fontSize:11.5,color:"#6B7684",marginTop:3,lineHeight:1.45}}><NoteBadge notes={wnotes} taskId={t.id}/>{" "}{sel==="all"?<>{wf.name} · </>:null}{nx?<>다음 <b style={{color:"#1E2F5C"}}>{nx.name}</b> ({userName(D,own)||"담당 없음"})</>:"완료"}{t.dueDate&&!dn?` · ${ddayKo(daysTo(t.dueDate))}`:""}</span>
         {(w||(t.exec&&t.exec!=="self")||(wf.kind==="cpc"&&roasOf(t)!=null))&&<span style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:4}}><ExecBadge exec={t.exec} note={t.execNote}/>{wf.kind==="cpc"&&roasOf(t)!=null&&!w&&<span style={{fontSize:10.5,fontWeight:800,color:"#2F7D57",background:"#EAF4EE",borderRadius:6,padding:"2px 6px"}}>ROAS {roasOf(t)}%</span>}{w&&<span style={{fontSize:10.5,fontWeight:800,color:"#B4383F",background:"#F8EDEE",borderRadius:6,padding:"2px 6px"}}>{w}</span>}</span>}
       </button>
       <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:8}}>
@@ -5345,6 +5480,7 @@ function CaseSheet({D,cu,wf,t,up,rm,onClose}){
             </button>); })}
         </div>
       </div>
+      <ThreadPanel D={D} cu={cu} up={up} itemId={taskNoteId(t.id)} itemName={`${wf.name} · ${t.title}`} kind="task" task={t}/>
       <label style={lbl}>메모<textarea defaultValue={t.memo||""} key={"m"+t.id} onBlur={e=>{ if(e.target.value!==(t.memo||"")) up("tasks",t.id,{memo:e.target.value}); }} rows={3} style={{...wfInp,width:"100%",marginTop:4,resize:"vertical"}}/></label>
       <div style={{display:"flex",gap:8,flexWrap:"wrap",paddingTop:6,borderTop:"1px solid #EEF1F4"}}>
         <button onClick={()=>up("tasks",t.id,{status:t.status==="hold"?(Object.keys(caseChecks(t)).length?"inprogress":"todo"):"hold"})} style={{padding:"9px 12px",borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",color:"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{t.status==="hold"?"▶ 다시 진행":"보류"}</button>

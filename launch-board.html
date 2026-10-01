@@ -842,8 +842,6 @@ function openAddStep(phaseK){
     <p class="d">이 체크리스트는 모든 제품에 함께 적용돼요. 단계 이름을 적어주세요.</p>
     <div class="form">
       <label>단계 이름<input id="stName" placeholder="예: 성분표 검토" maxlength="40"></label>
-      <label>넘겨받는 것 (선택)<input id="stIn" placeholder="예: 제조사 성분 자료" maxlength="60"></label>
-      <label>넘겨주는 것 (선택)<input id="stOut" placeholder="예: 성분표 확정본" maxlength="60"></label>
     </div>
     <div class="m-act"><button class="btn" data-mclose="">취소</button><button class="btn pri" id="stepAddOk" data-sphase="${phaseK}">추가</button></div>`);
   setTimeout(()=>$('stName') && $('stName').focus(), 50);
@@ -851,7 +849,7 @@ function openAddStep(phaseK){
 async function saveAddStep(phaseK){
   const name = ($('stName').value||'').trim();
   if (!name) { $('stName').focus(); toast('단계 이름을 입력해주세요'); return; }
-  if (await addStepTo(phaseK, name, $('stIn').value, $('stOut').value)) closeModal();
+  if (await addStepTo(phaseK, name, '', '')) closeModal();
 }
 
 // ═══ 렌더링 ═══

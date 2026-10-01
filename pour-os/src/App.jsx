@@ -11,7 +11,7 @@ import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGet
 import { numF, skCur, mkCur, calcSegDone } from "./kpi.js";
 import { applyAutomation, instantiateLaunch, launchGroupsOf } from "./launch.js";
 import { initCrmOperatorSync, matchOperator, initCrmRevenueSync } from "./crmOperatorSync.js";
-import { caseToggleCalc, caseConfirmStage, stepsToStages, stagesToSteps, flowOfAk } from "./workflow.js";
+import { caseToggleCalc, caseConfirmStage, lbChecks, newCheckId, stepsToStages, stagesToSteps, flowOfAk } from "./workflow.js";
 import { WF_CATS, catOf, EXEC_TYPES, execOf, CPC_CHANNELS, NOTICE_KINDS, DEFAULT_WORKFLOWS, mergeWorkflows, launchSettings, caseProgress, caseNext, caseChecks, toggleCheck, caseTurnOwner, numOr0, roasOf, LAUNCH_PHASES, LAUNCH_ITEMS, LAUNCH_COL, LAUNCH_BRANDS, lbState, phaseProgress, launchProgress, launchCurrentPhase, launchLead, nameMatch, guessCat, guessWfProject } from "./workflow.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
@@ -22,7 +22,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-신제품항목대화";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-항목체크리스트";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -2064,7 +2064,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       {todayStatsEl}
       <TodayThreads D={D} cu={cu} up={up}/>
       {retroT&&<AkRetroSheet D={D} cu={cu} up={up} add={add} target={retroT} onClose={()=>setRetroT(null)}/>}
-      {lbOpen&&lbAll.find(x=>x.id===lbOpen.id)&&<LaunchProductSheet D={D} cu={cu} p={lbAll.find(x=>x.id===lbOpen.id)} items={lbAll} phK={lbOpen.ph} setPh={(k)=>setLbOpen(o=>({...o,ph:k}))} focusId={lbOpen.it} onClose={()=>setLbOpen(null)}/>}
+      {lbOpen&&lbAll.find(x=>x.id===lbOpen.id)&&<LaunchProductSheet D={D} cu={cu} add={add} up={up} p={lbAll.find(x=>x.id===lbOpen.id)} items={lbAll} phK={lbOpen.ph} setPh={(k)=>setLbOpen(o=>({...o,ph:k}))} focusId={lbOpen.it} onClose={()=>setLbOpen(null)}/>}
       <TodayBlocks uid={cu.id} items={[
         {id:"retro",label:"월말 회고",show:!!akRetroDue(akYmd(new Date()),D.retros),node:<AkRetroBanner D={D} cu={cu} nav={nav} onOpen={(d)=>setRetroT({y:d.y,m0:d.m0})}/>},
         {id:"akweek",label:"이번 주 내 행동지표",show:myAkN>0,node:<AkTodayCard D={D} cu={cu} nav={nav} add={add} up={up} rm={rm}/>},
@@ -2095,7 +2095,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                 <button onClick={()=>setLbOpen({id:r.p.id,ph:r.ph.k,it:r.it.id})} style={{flex:1,minWidth:0,textAlign:"left",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
                   <span style={{display:"block",fontSize:10.5,fontWeight:800,color:"#6B7684",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>신제품 · {(LAUNCH_BRANDS[r.p.brand]||{name:""}).name}{r.p.batch?` ${r.p.batch}`:""}</span>
                   <span style={{display:"block",fontSize:13.5,fontWeight:800,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{color:"#1E2F5C",fontWeight:900}}>{r.p.name}</span> <span style={{color:"#B0B8C1"}}>›</span> {r.it.name}{r.it.target?` (${r.s.count}/${r.it.target})`:""}</span>
-                  <span style={{display:"block",fontSize:10.5,color:"#8B95A1",marginTop:1}}>{r.ph.no}. {r.ph.name}{r.s.due?` · 마감 ${ddayKo(daysTo(r.s.due))}`:""}{(fxNcnt[lbItemNoteId(r.p.id,r.it.id)]||{}).n?` · 댓글 ${(fxNcnt[lbItemNoteId(r.p.id,r.it.id)]||{}).n}`:""}</span></button>
+                  <span style={{display:"block",fontSize:10.5,color:"#8B95A1",marginTop:1}}>{r.ph.no}. {r.ph.name}{r.s.due?` · 마감 ${ddayKo(daysTo(r.s.due))}`:""}{(()=>{ const c=lbChecks(r.p,r.it,(launchSettings(D.workflows).checkTpl)||{}); return c.total?` · 체크 ${c.n}/${c.total}`:""; })()}{(fxNcnt[lbItemNoteId(r.p.id,r.it.id)]||{}).n?` · 댓글 ${(fxNcnt[lbItemNoteId(r.p.id,r.it.id)]||{}).n}`:""}</span></button>
                 <span style={{flexShrink:0,color:"#B0B8C1",fontSize:14}}>›</span>
               </div>); })}
           </div>
@@ -5831,7 +5831,7 @@ function LaunchBoard({D,cu,add,up,pc,items}){
         <span style={{fontSize:20}}></span>
         <div style={{flex:"1 1 180px",minWidth:0}}><p style={{margin:0,fontSize:15.5,fontWeight:900,color:"#191F28"}}>신제품 출시 로드맵</p>
           <p style={{margin:"1px 0 0",fontSize:11.5,color:"#8B95A1"}}>같은 차수 = 같은 출시일 · 차수 머리에서 이름·출시일·포스트잇 · 제품을 누르면 세부 체크·담당·차수</p></div>
-        <button onClick={()=>setDefOpen(true)} style={{padding:"8px 11px",borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",color:"#4E5968",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>기본 담당</button>
+        <button onClick={()=>setDefOpen(true)} style={{padding:"8px 11px",borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",color:"#4E5968",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>기본 틀</button>
         
       </div>
       <div style={{display:"flex",gap:6,overflowX:"auto",margin:"10px 0",WebkitOverflowScrolling:"touch"}}>
@@ -5843,7 +5843,7 @@ function LaunchBoard({D,cu,add,up,pc,items}){
       {items.length>0&&<NewBatch D={D} cu={cu} items={items} brand0={brand!=="all"?brand:""}/>}
       {fin.length>0&&<div style={{marginTop:10}}><button onClick={()=>setShowDone(v=>!v)} style={{border:"none",background:"none",padding:"4px 2px",fontSize:12,fontWeight:800,color:"#2F7D57",cursor:"pointer",fontFamily:"inherit"}}>출시 준비 완료 {fin.length} {showDone?"▴":"▾"}</button>
         {showDone&&<div style={{marginTop:6}}>{pc?<Table rows={fin}/>:<Cards rows={fin}/>}</div>}</div>}
-      {openP&&<LaunchProductSheet D={D} cu={cu} p={openP} items={items} phK={open.ph} setPh={(k)=>setOpen(o=>({...o,ph:k}))} onClose={()=>setOpen(null)}/>}
+      {openP&&<LaunchProductSheet D={D} cu={cu} add={add} up={up} p={openP} items={items} phK={open.ph} setPh={(k)=>setOpen(o=>({...o,ph:k}))} onClose={()=>setOpen(null)}/>}
       {defOpen&&<LaunchDefaultsSheet D={D} add={add} up={up} items={items} onClose={()=>setDefOpen(false)}/>}
     </div>);
 }
@@ -5971,9 +5971,42 @@ function BatchViewSheet({D,items,v,onOpen,onRoadmap,onClose}){
     </div>
   </Sheet>);
 }
+// 신제품 항목 체크리스트 — 기본 틀(모든 제품) + 이 제품만. 다 체크하면 '항목 완료로' 버튼
+function LbChecklist({D,cu,add,up,p,it,st,onDone}){
+  const tplAll=(launchSettings(D.workflows).checkTpl)||{};
+  const ck=lbChecks(p,it,tplAll);
+  const [nm,setNm]=useState(""); const [err,setErr]=useState("");
+  const w=async(patch,text)=>{ const ok=await lbWrite(p.id,{osExtra:{[it.id]:{checks:patch}}},text,cu); setErr(ok?"":"저장하지 못했어요 · 인터넷 연결을 확인해 주세요"); };
+  const toggle=(c)=>w({done:{[c.id]:!ck.done[c.id]}},`${it.name} · 체크 ${c.name} ${ck.done[c.id]?"해제":"완료"}`);
+  const saveTpl=(list)=>{ if(!add||!up) return; saveWfOverride(D,add,up,"wf_launch",{checkTpl:{...tplAll,[it.id]:list}}); };
+  const addTo=(where)=>{ const n=nm.trim(); if(!n) return; const c={id:newCheckId(),name:n};
+    if(where==="tpl"&&!ck.own) saveTpl([...(tplAll[it.id]||[]),c]);
+    else if(where==="tpl"){ saveTpl([...(tplAll[it.id]||[]),c]); w({list:[...ck.list,c]},`${it.name} · 체크 항목 추가 ${n}`); }
+    else w({list:[...ck.list,c]},`${it.name} · 체크 항목 추가 ${n} (이 제품만)`);
+    setNm(""); };
+  const remove=(c)=>w({list:ck.list.filter(x=>x.id!==c.id)},`${it.name} · 체크 항목 빼기 ${c.name} (이 제품만)`);
+  const btn={padding:"6px 10px",borderRadius:9,border:"1px solid #D3D8E6",background:"#fff",color:"#1E2F5C",fontWeight:800,fontSize:11.5,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"};
+  return(<div style={{marginTop:10,padding:"9px 10px",borderRadius:11,background:"#F7F8FB",border:"1px solid #EEF0F5"}}>
+    <div style={{display:"flex",alignItems:"baseline",gap:6,flexWrap:"wrap"}}><b style={{fontSize:12.5,color:"#191F28"}}>체크리스트 {ck.total?`${ck.n}/${ck.total}`:""}</b>
+      <span style={{fontSize:11,color:"#8B95A1"}}>{ck.own?"이 제품만 따로 쓰는 목록":ck.total?"기본 틀 (모든 제품 공통)":"아직 없어요 · 아래에서 추가"}</span></div>
+    {ck.list.length>0&&<div style={{display:"flex",flexDirection:"column",gap:4,marginTop:7}}>{ck.list.map(c=>{ const on=!!ck.done[c.id]; return(
+      <div key={c.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",borderRadius:9,background:"#fff"}}>
+        <button onClick={()=>toggle(c)} aria-label={`${c.name} ${on?"체크 해제":"체크"}`} style={{flexShrink:0,width:22,height:22,borderRadius:6,border:`2px solid ${on?"#2F7D57":"#C5CBD3"}`,background:on?"#2F7D57":"#fff",color:"#fff",fontWeight:900,fontSize:12,cursor:"pointer",padding:0}}>{on?"✓":""}</button>
+        <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:700,color:on?"#8B95A1":"#191F28",textDecoration:on?"line-through":"none",wordBreak:"keep-all"}}>{c.name}</span>
+        <button onClick={()=>remove(c)} aria-label={`${c.name} 이 제품에서 빼기`} title="이 제품에서만 빼기" style={{flexShrink:0,border:"none",background:"none",color:"#B0B8C1",fontSize:13,cursor:"pointer",padding:"2px 4px"}}>✕</button>
+      </div>); })}</div>}
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:7}}>
+      <input value={nm} onChange={e=>setNm(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter"){ e.preventDefault(); addTo("tpl"); } }} placeholder="체크 항목 추가 (예: 소재 제작)" aria-label={`${it.name} 체크 항목`} style={{...wfInp,flex:"1 1 150px",padding:"7px 9px",fontSize:12.5}}/>
+      <span style={{display:"flex",gap:5,flex:"0 0 auto"}}><button onClick={()=>addTo("tpl")} disabled={!nm.trim()} style={{...btn,background:"#24386B",color:"#fff",border:"none",opacity:nm.trim()?1:.45}}>모든 제품에</button><button onClick={()=>addTo("one")} disabled={!nm.trim()} style={{...btn,opacity:nm.trim()?1:.45}}>이 제품만</button></span>
+    </div>
+    {ck.all&&st.status!=="done"&&onDone&&<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginTop:8,padding:"8px 10px",borderRadius:9,background:"#EAF4EE"}}><span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:800,color:"#2F7D57"}}>체크리스트를 다 했어요</span><button onClick={onDone} style={{...btn,background:"#2F7D57",color:"#fff",border:"none"}}>항목 완료로</button></div>}
+    {ck.own&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:7}}><button onClick={()=>w({list:null},`${it.name} · 체크리스트 기본 틀로 되돌림`)} style={btn}>기본 틀로 되돌리기</button><button onClick={()=>saveTpl(ck.list)} style={btn}>이 목록을 기본 틀로 (모든 제품)</button></div>}
+    {err&&<p style={{margin:"5px 0 0",fontSize:11.5,fontWeight:800,color:"#B4383F"}}>{err}</p>}
+  </div>);
+}
 // 신제품 항목 하나의 대화(결과·증거 사진·컨펌) — 제품 대화와 별도
 const lbItemNoteId=(pid,itId)=>projNoteId(`lb:${pid}:${itId}`);
-function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose,focusId}){
+function LaunchProductSheet({D,cu,add,up,p,items,phK,setPh,onClose,focusId}){
   const [err,setErr]=useState("");
   const [editId,setEditId]=useState(focusId||null);   // 오늘 '내 차례'에서 열면 그 항목이 펼쳐진 채로
   const lbNotes=useAkNotes(); const lbNcnt=noteCounts(lbNotes);
@@ -6031,7 +6064,7 @@ function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose,focusId}){
       {err&&<p style={{margin:0,fontSize:12.5,color:"#B4383F",fontWeight:800}}>{err}</p>}
       <div style={{display:"flex",flexDirection:"column",gap:7}}>
         {ph.items.map(it=>{ const s=lbState(p,it); const dn=s.status==="done"; const late=!dn&&s.status!=="skip"&&s.due&&s.due<today; const st=LB_ST[s.status]||LB_ST.todo;
-          const nIt=(lbNcnt[lbItemNoteId(p.id,it.id)]||{}).n||0;
+          const nIt=(lbNcnt[lbItemNoteId(p.id,it.id)]||{}).n||0; const ckI=lbChecks(p,it,(launchSettings(D.workflows).checkTpl)||{});
           return(<div key={it.id} ref={it.id===focusId?focusRef:null} style={{scrollMarginTop:8,padding:"10px 11px",borderRadius:13,border:`1px solid ${it.id===focusId?"#24386B":late?"#EACFD1":dn?"rgba(0,192,115,.25)":"#EEF1F4"}`,background:dn?"rgba(232,250,241,.4)":s.status==="skip"?"#FAFBFC":"#fff"}}>
             <div style={{display:"flex",alignItems:"center",gap:9}}>
               {it.target?<span style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
@@ -6045,6 +6078,7 @@ function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose,focusId}){
                   {s.status!=="todo"&&!dn&&<span style={{fontSize:10.5,fontWeight:800,color:st.c,background:st.bg,borderRadius:6,padding:"2px 6px"}}>{st.l}</span>}
                   <span style={{fontWeight:userOf(s.owner)?600:700,color:s.owner&&!userOf(s.owner)&&s.owner!=="외주"?"#B26A12":"inherit"}}>{ownerLabel(s.owner)}</span>{s.due&&<span style={{fontWeight:late?800:600,color:late?"#B4383F":"#6B7684"}}>· {String(s.due).slice(5)} {ddayKo(daysTo(s.due))}</span>}
                   <ExecBadge exec={s.exec} note={s.execNote}/>
+                  {ckI.total>0&&<span style={{fontSize:10.5,fontWeight:800,color:ckI.all?"#2F7D57":"#1E2F5C",background:ckI.all?"#EAF4EE":"#EEF0F5",borderRadius:6,padding:"1px 6px"}}>체크 {ckI.n}/{ckI.total}</span>}
                   {nIt>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#4E5968",background:"#F2F4F6",borderRadius:6,padding:"1px 6px"}}>댓글 {nIt}</span>}
                 </div>
               </button>
@@ -6058,6 +6092,7 @@ function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose,focusId}){
             {extFor===it.id&&<div style={{display:"flex",gap:6,marginTop:6}}><input value={extName} onChange={e=>setExtName(e.target.value)} placeholder="외부 담당 이름 (예: 디자이너 이우민)" aria-label="외부 담당 이름" style={{...sel,flex:1,minWidth:0}}/><button onClick={()=>{ if(extName.trim()){ setField(it,"owner",extName.trim()); setExtFor(null); } }} style={{...NB.pri,padding:"6px 12px"}}>넣기</button></div>}
             {(()=>{ const h=(p.history||[]).filter(x=>x&&typeof x.text==="string"&&x.text.replace(/^\[업무OS\] /,"").startsWith(it.name+" · 담당")); if(!h.length) return null;
               return <div style={{marginTop:6}}><p style={{margin:"0 0 2px",fontSize:11.5,fontWeight:800,color:"#6B7684"}}>담당 변경 이력 {h.length}</p>{[...h].reverse().slice(0,8).map((x,ix)=><p key={ix} style={{margin:0,fontSize:11.5,color:"#4E5968",lineHeight:1.5}}>{noteAt(x.at)} · {x.text.replace(/^\[업무OS\] /,"").replace(it.name+" · ","")} <span style={{color:"#8B95A1"}}>({x.by||"?"})</span></p>)}</div>; })()}
+            {!it.target&&<LbChecklist D={D} cu={cu} add={add} up={up} p={p} it={it} st={s} onDone={()=>setField(it,"status","done")}/>}
             <div style={{marginTop:8}}><ExecPicker value={s.exec} note={s.execNote} onChange={(k,n)=>setExec(it,k,n)}/></div>
             <div style={{marginTop:10,paddingTop:8,borderTop:"1px dashed #E5E8EB"}}><ThreadPanel D={D} cu={cu} itemId={lbItemNoteId(p.id,it.id)} itemName={`${p.name} · ${it.name}`} kind="proj" proj={{id:`lb:${p.id}:${it.id}`,title:`${p.name} · ${it.name}`,assigneeId:((userOf(p.lead||(LAUNCH_BRANDS[p.brand]||{}).bm)||{}).id)||""}} title="이 항목 대화 · 결과·증거 사진·컨펌"/></div></>}
           </div>); })}
@@ -6073,8 +6108,12 @@ function LaunchDefaultsSheet({D,add,up,items,onClose}){
   const cur=launchSettings(D.workflows);
   const [defs,setDefs]=useState({...(cur.defaults||{})});
   const people=lbPeople(D,items);
-  const save=()=>{ saveWfOverride(D,add,up,"wf_launch",{defaults:defs}); onClose(); };
-  return(<Sheet open={true} onClose={onClose} title="신제품 · 추가 칸 기본 담당" h="92vh" w={560}>
+  const [tpl,setTpl]=useState(()=>JSON.parse(JSON.stringify(cur.checkTpl||{})));   // 항목별 체크리스트 기본 틀
+  const [tOpen,setTOpen]=useState(null); const [tNew,setTNew]=useState("");
+  const save=()=>{ saveWfOverride(D,add,up,"wf_launch",{defaults:defs,checkTpl:tpl}); onClose(); };
+  const tAdd=(id)=>{ const n=tNew.trim(); if(!n) return; setTpl(t=>({...t,[id]:[...(t[id]||[]),{id:newCheckId(),name:n}]})); setTNew(""); };
+  const tDel=(id,cid)=>setTpl(t=>({...t,[id]:(t[id]||[]).filter(c=>c.id!==cid)}));
+  return(<Sheet open={true} onClose={onClose} title="신제품 · 기본 틀 (담당·체크리스트)" h="92vh" w={560}>
     <div style={{paddingTop:6,display:"flex",flexDirection:"column",gap:10}}>
       <p style={{margin:0,fontSize:12,color:"#6B7684",lineHeight:1.6}}>업무OS에서 추가한 칸의 기본 실행 담당이에요. 제품 화면의 <b>[빈 담당 기본값 채우기]</b>를 누르면 비어 있는 칸에만 들어가요. (런칭보드 기존 단계의 기본 담당은 런칭보드 설정을 따라요)</p>
       {LAUNCH_PHASES.map(ph=>{ const xs=ph.items.filter(it=>!it.lb); if(!xs.length) return null; return(<div key={ph.k}>
@@ -6083,6 +6122,18 @@ function LaunchDefaultsSheet({D,add,up,items,onClose}){
           <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:700,color:"#333D4B"}}>{it.name}</span>
           <select value={defs[it.id]||""} onChange={e=>setDefs(d=>({...d,[it.id]:e.target.value}))} aria-label={`${it.name} 기본 담당`} style={{...wfInp,padding:"7px 8px",fontSize:12.5,width:120}}><option value="">없음</option>{people.map(n=><option key={n}>{n}</option>)}</select>
         </div>)}</div></div>); })}
+      <p style={{margin:"14px 0 0",fontSize:14,fontWeight:900,color:"#191F28"}}>항목별 체크리스트 기본 틀</p>
+      <p style={{margin:0,fontSize:12,color:"#6B7684",lineHeight:1.6}}>여기 넣은 체크리스트는 모든 제품의 그 항목에 그대로 보여요. 제품 창에서 '이 제품만'으로 따로 바꾼 제품은 그 목록을 써요.</p>
+      {LAUNCH_PHASES.map(ph=>{ const xs=ph.items.filter(it=>!it.target); if(!xs.length) return null; return(<div key={"t"+ph.k}>
+        <p style={{margin:"6px 2px 6px",fontSize:12.5,fontWeight:900,color:"#191F28"}}>{ph.no}. {ph.name}</p>
+        <div style={{display:"flex",flexDirection:"column",gap:5}}>{xs.map(it=>{ const L=tpl[it.id]||[]; const op=tOpen===it.id; return(<div key={it.id} style={{borderRadius:10,background:"#F9FAFB",padding:"7px 9px"}}>
+          <button onClick={()=>{ setTOpen(op?null:it.id); setTNew(""); }} aria-expanded={op} style={{display:"flex",alignItems:"center",gap:8,width:"100%",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+            <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:700,color:"#333D4B"}}>{it.name}</span><span style={{fontSize:11.5,fontWeight:800,color:L.length?"#1E2F5C":"#B0B8C1"}}>{L.length?`체크 ${L.length}`:"없음"} {op?"▴":"▾"}</span></button>
+          {op&&<div style={{marginTop:7,display:"flex",flexDirection:"column",gap:4}}>
+            {L.map((c,i)=><div key={c.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 8px",borderRadius:8,background:"#fff"}}><span style={{fontSize:11.5,color:"#8B95A1",width:16}}>{i+1}</span><span style={{flex:1,minWidth:0,fontSize:13,fontWeight:700,color:"#191F28"}}>{c.name}</span><button onClick={()=>tDel(it.id,c.id)} aria-label={`${c.name} 빼기`} style={{border:"none",background:"none",color:"#B0B8C1",fontSize:13,cursor:"pointer"}}>✕</button></div>)}
+            <div style={{display:"flex",gap:6}}><input value={tNew} onChange={e=>setTNew(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter"){ e.preventDefault(); tAdd(it.id); } }} placeholder="체크 항목 (Enter로 추가)" aria-label={`${it.name} 기본 체크 항목`} style={{...wfInp,flex:1,padding:"7px 9px",fontSize:12.5}}/><button onClick={()=>tAdd(it.id)} style={{...NB.pri,padding:"7px 12px"}}>추가</button></div>
+          </div>}
+        </div>); })}</div></div>); })}
       <button onClick={save} style={{marginTop:6,padding:"12px 0",borderRadius:12,border:"none",background:"#24386B",color:"#fff",fontWeight:900,fontSize:14.5,cursor:"pointer",fontFamily:"inherit"}}>저장</button>
     </div>
   </Sheet>);
@@ -6831,7 +6882,7 @@ function CalendarPage({D,cu,add,up,rm,nav}){
             </div>); })}</div>
         </div>); })()}
       {batchView&&!lbOpen&&<BatchViewSheet D={D} items={lbCal} v={batchView} onOpen={(p)=>setLbOpen({id:p.id,ph:(launchCurrentPhase(p)||LAUNCH_PHASES[0]).k})} onRoadmap={()=>{ setBatchView(null); goCatC("launch"); }} onClose={()=>setBatchView(null)}/>}
-      {lbOpen&&lbCal.find(p=>p.id===lbOpen.id)&&<LaunchProductSheet D={D} cu={cu} p={lbCal.find(p=>p.id===lbOpen.id)} items={lbCal} phK={lbOpen.ph} setPh={(k)=>setLbOpen(o=>({...o,ph:k}))} onClose={()=>setLbOpen(null)}/>}
+      {lbOpen&&lbCal.find(p=>p.id===lbOpen.id)&&<LaunchProductSheet D={D} cu={cu} add={add} up={up} p={lbCal.find(p=>p.id===lbOpen.id)} items={lbCal} phK={lbOpen.ph} setPh={(k)=>setLbOpen(o=>({...o,ph:k}))} onClose={()=>setLbOpen(null)}/>}
       {projOpen&&(D.projects||[]).find(p=>p.id===projOpen)&&<ProjectDetailSheet D={D} cu={cu} p={(D.projects||[]).find(p=>p.id===projOpen)} up={up} add={add} rm={rm} onClose={()=>setProjOpen(null)} onAdvanced={()=>{ setProjOpen(null); if(nav) nav("projects"); }}/>}
       <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#191F28"}}>이번 달 행사·미팅</h3>
       {mEvts.length===0&&<div style={{padding:"28px 20px",textAlign:"center",backgroundColor:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6"}}><p style={{margin:0,fontSize:13,color:"#9CA3AF"}}>이번 달 일정이 없어요</p><p style={{margin:"4px 0 0",fontSize:11.5,color:"#D1D5DB"}}>위 <b>+ 일정</b> 또는 날짜를 탭해 추가하세요</p></div>}

@@ -1,6 +1,6 @@
 // 워크플로우 로직 테스트 — node src/workflow.test.mjs
 import { mergeWorkflows, DEFAULT_WORKFLOWS, caseProgress, caseNext, caseStatusFor, toggleCheck, caseTurnOwner, roasOf,
-  lbState, phaseProgress, launchProgress, LAUNCH_PHASES, LAUNCH_ITEMS, nameMatch, guessCat, guessWfProject, launchLead, caseToggleCalc, caseConfirmStage, stepsToStages, stagesToSteps, flowOfAk } from "./workflow.js";
+  lbState, phaseProgress, launchProgress, LAUNCH_PHASES, LAUNCH_ITEMS, nameMatch, guessCat, guessWfProject, launchLead, caseToggleCalc, caseConfirmStage, stepsToStages, stagesToSteps, flowOfAk, lbChecks } from "./workflow.js";
 
 let pass=0, fail=0;
 const eq=(name,got,exp)=>{ const ok=JSON.stringify(got)===JSON.stringify(exp);
@@ -73,5 +73,15 @@ eq("반품 워크플로우 ↔ 반품 CS 프로젝트", guessWfProject("wf_retur
   eq("행동지표 연결 없는 흐름은 안 셈", caseToggleCalc({...wf,akId:""},{...t,wfChecks:{a:1,b:1}},"c",me,wk).count, 0);
   eq("단계 ↔ 체크리스트 변환", stagesToSteps(stepsToStages([{id:"x",title:" 글 생성 ",owner:"ran",confirm:true},{title:" "}])), [{id:"x",title:"글 생성",owner:"ran",confirm:true}]);
   eq("행동지표에 연결된 흐름", flowOfAk([{id:"w1"},{id:"w2",akId:"ak1"}],"ak1").id, "w2"); }
+
+
+// 신제품 항목 체크리스트 — 기본 틀 / 제품별
+{ const it={id:"x_ad"}; const tpl={x_ad:[{id:"c1",name:"소재 제작"},{id:"c2",name:"문구"},{id:"c3",name:"업로드"}]};
+  const a=lbChecks({osExtra:{x_ad:{checks:{done:{c1:true}}}}},it,tpl);
+  eq("제품 목록 없으면 기본 틀 · 1/3", [a.own,a.n,a.total,a.all], [false,1,3,false]);
+  const b=lbChecks({osExtra:{x_ad:{checks:{list:[{id:"c1",name:"소재 제작"},{id:"c9",name:"예산"}],done:{c1:true,c9:true,c3:true}}}}},it,tpl);
+  eq("제품 자기 목록이 있으면 그걸 씀 · 다른 목록 체크는 안 셈", [b.own,b.n,b.total,b.all], [true,2,2,true]);
+  eq("틀도 목록도 없으면 0", lbChecks({},it,{}).total, 0);
+  eq("빈 이름은 뺌", lbChecks({},it,{x_ad:[{id:"c1",name:" "},{id:"c2",name:"a"}]}).total, 1); }
 
 console.log(`\n${fail?"❌":"✅"} ${pass} 통과 · ${fail} 실패`); if(fail) process.exit(1);

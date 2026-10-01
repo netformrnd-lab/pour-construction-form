@@ -22,7 +22,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-반복흐름";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-한목록";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -5157,7 +5157,7 @@ function ProjCard({D,p,ts,sig,cat,nx,uname,onOpen}){
       {more>0&&<button type="button" onClick={e=>{e.stopPropagation(); onOpen();}} style={{padding:"5px 3px",borderRadius:9,border:"1.5px solid transparent",background:"#F4F5F7",color:"#6B7684",fontSize:12.5,fontWeight:900,cursor:"pointer",fontFamily:"inherit"}}>+{more}</button>}
     </div>}
   </div>); }
-function SimpleProjects({D,cu,up,add,rm,lead,onAdvanced,cat,embedded}){
+function SimpleProjects({D,cu,up,add,rm,lead,onAdvanced,cat,embedded,hideNew}){
   const [tab,setTab]=useState("active");
   const [mine,setMine]=useState(false);
   const [openId,setOpenId]=useState(null);
@@ -5183,7 +5183,7 @@ function SimpleProjects({D,cu,up,add,rm,lead,onAdvanced,cat,embedded}){
           {[["active",`진행 ${cnt}`],["done",`완료 ${cntDone}`]].map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"8px 14px",borderRadius:9,border:"none",background:tab===k?"#fff":"transparent",color:tab===k?"#191F28":"#8B95A1",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit",boxShadow:tab===k?"0 1px 4px rgba(0,0,0,.08)":"none"}}>{l}</button>)}
         </div>
         <button onClick={()=>setMine(m=>!m)} style={{padding:"8px 12px",borderRadius:10,border:`1.5px solid ${mine?"#24386B":"#E5E8EB"}`,background:mine?"#EEF0F5":"#fff",color:mine?"#1E2F5C":"#4E5968",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{mine?"✓ ":""}내 프로젝트만</button>
-        <button onClick={()=>setNewOpen(true)} style={{marginLeft:"auto",padding:"9px 14px",borderRadius:11,border:"none",background:"#24386B",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>＋ 새 프로젝트</button>
+        {!hideNew&&<button onClick={()=>setNewOpen(true)} style={{marginLeft:"auto",padding:"9px 14px",borderRadius:11,border:"none",background:"#24386B",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>＋ 새 프로젝트</button>}
       </div>
       {rows.length===0&&<div style={{padding:embedded?"18px 16px":"40px 16px",textAlign:"center",background:"#fff",borderRadius:18,color:"#8B95A1",fontSize:13.5}}>{tab==="done"?"완료한 프로젝트가 없어요":embedded?"이 카테고리 프로젝트가 없어요 · 전체 프로젝트 탭의 정리안으로 분류할 수 있어요":"진행 중인 프로젝트가 없어요 · ＋ 새 프로젝트"}</div>}
       {(()=>{ const groups=tab==="done"?[["",rows]]:projGroups(rows);
@@ -5428,6 +5428,8 @@ function WorkflowHome(props){
   const [cat,setCatS]=useState(()=>{ try{ return localStorage.getItem("pour-os-wf-cat")||"all"; }catch(_){ return "all"; } });
   const setCat=(k)=>{ setCatS(k); try{ localStorage.setItem("pour-os-wf-cat",k); }catch(_){} };
   const [cleanOpen,setCleanOpen]=useState(false);
+  const [mk,setMk]=useState(null);   // '+ 새로 만들기' — null | "pick" | "proj" | {wfs,init}
+  const [newPid,setNewPid]=useState(null);
   const W=mergeWorkflows(D.workflows);
   const lbItems=useLaunchProducts();
   const lbLive=lbItems.filter(p=>!p.deletedAt);
@@ -5440,6 +5442,7 @@ function WorkflowHome(props){
       {[{k:"all",icon:"",name:"전체 프로젝트"},...WF_CATS].map(c=>{ const sel=cat===c.k; const n=c.k==="all"?(D.projects||[]).filter(p=>projStatus(p)!=="completed").length:cnt(c.k);
         return <button key={c.k} onClick={()=>setCat(c.k)} style={{flexShrink:0,padding:"9px 13px",borderRadius:20,border:`1.5px solid ${sel?"#24386B":"#E5E8EB"}`,background:sel?"#24386B":"#fff",color:sel?"#fff":"#333D4B",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>{c.icon} {c.name}{n?<span style={{marginLeft:5,opacity:.8}}>{n}</span>:null}</button>; })}
     </div>
+    <div style={{display:"flex",justifyContent:"flex-end",padding:"8px 16px 0"}}><button onClick={()=>setMk("pick")} style={{padding:"9px 14px",borderRadius:11,border:"none",background:"#24386B",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ 새로 만들기</button></div>
     {cat==="all"&&<>
       {lead&&uncategorized>0&&<div style={{margin:"10px 16px 0",padding:"12px 14px",borderRadius:14,background:"#EEF0F5",border:"1px solid #D3D8E6",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
         <p style={{margin:0,flex:"1 1 200px",fontSize:13,color:"#1E2F5C",fontWeight:700,lineHeight:1.5}}>카테고리 없는 프로젝트 {uncategorized}개 · 정리안을 보고 골라서 한 번에 적용해요</p>
@@ -5458,17 +5461,36 @@ function WorkflowHome(props){
                 <span style={{display:"block",fontSize:11,color:"#8B95A1",marginTop:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.batch?`${p.batch} · `:""}관리 {launchLead(p)||"-"}{nx?` · 다음 ${nx.it.name}${nx.s.owner?` (${nx.s.owner})`:""}`:""}</span>
               </button>); })}
           </div></div>); })()}
-      <SimpleProjects {...props}/>
+      <SimpleProjects {...props} hideNew/>
     </>}
     {cat!=="all"&&<div style={{padding:"12px 16px 24px",display:"flex",flexDirection:"column",gap:14}}>
       {cat==="launch"&&<LaunchBoard D={D} cu={cu} add={add} up={up} pc={pc} items={lbLive}/>}
-      {cat!=="launch"&&W.some(w=>w.cat===cat)&&<WfList key={cat} D={D} cu={cu} cat={cat} up={up} add={add} rm={rm} pc={pc} W={W}/>}
-      {cat==="launch"?<LegacyLaunch {...props}/>:<SimpleProjects {...props} cat={cat} embedded/>}
+      {cat!=="launch"&&<WfList key={cat} D={D} cu={cu} cat={cat} up={up} add={add} rm={rm} pc={pc} W={W} onAdvanced={props.onAdvanced}/>}
+      {cat==="launch"&&<LegacyLaunch {...props}/>}
     </div>}
     {cleanOpen&&<CleanupSheet D={D} cu={cu} up={up} add={add} W={W} onClose={()=>setCleanOpen(false)}/>}
+    {mk==="pick"&&<NewThingSheet cat={cat} W={W} onClose={()=>setMk(null)} onProject={()=>setMk("proj")} onFlow={(wf)=>setMk({wfs:W.filter(w=>w.cat===wf.cat),init:wf.id})}/>}
+    {mk==="proj"&&<NewProjectSheet D={D} cu={cu} add={add} cat={cat!=="all"&&cat!=="launch"?cat:""} onClose={()=>setMk(null)} onCreated={(id)=>{ setMk(null); if(id) setNewPid(id); }}/>}
+    {mk&&mk.wfs&&<WfNewSheet D={D} cu={cu} wfs={mk.wfs} init={mk.init} add={add} onClose={()=>setMk(null)} onAdded={()=>{}}/>}
+    {newPid&&(D.projects||[]).some(p=>p.id===newPid)&&<ProjectDetailSheet D={D} cu={cu} p={(D.projects||[]).find(p=>p.id===newPid)} up={up} add={add} rm={props.rm} onClose={()=>setNewPid(null)} onAdvanced={props.onAdvanced||(()=>{})}/>}
   </div>);
 }
 
+// '+ 새로 만들기' 하나 — 무엇을 만들지 고르기 (프로젝트 · 반복 흐름 1건 · 신제품)
+function NewThingSheet({cat,W,onClose,onProject,onFlow}){
+  const [flowPick,setFlowPick]=useState(false);
+  const flows=W.filter(w=>w.cat!=="launch"&&(cat==="all"||cat==="launch"||w.cat===cat));
+  const big={display:"block",width:"100%",textAlign:"left",padding:"14px 15px",borderRadius:14,border:"1.5px solid #E5E8EB",background:"#fff",cursor:"pointer",fontFamily:"inherit"};
+  const T=({t,d})=><><b style={{display:"block",fontSize:15,color:"#191F28"}}>{t}</b><span style={{display:"block",fontSize:12,color:"#6B7684",marginTop:3,lineHeight:1.5}}>{d}</span></>;
+  return(<Sheet open onClose={onClose} title="새로 만들기" h="80vh" w={520}>
+    <div style={{display:"flex",flexDirection:"column",gap:8,paddingTop:4}}>
+      <button onClick={onProject} style={big}><T t="프로젝트" d="끝이 있는 일 · 마감일·업무·담당을 정해 진척을 봐요 (예: 자사몰 리뉴얼)"/></button>
+      <button onClick={()=>setFlowPick(v=>!v)} aria-expanded={flowPick} style={{...big,borderColor:flowPick?"#24386B":"#E5E8EB"}}><T t="반복 흐름 1건" d="정해진 단계로 반복하는 일 1건 · 단계마다 담당이 넘겨받아요 (예: 반품 1건, 블로그 1건)"/></button>
+      {flowPick&&<div style={{display:"flex",gap:6,flexWrap:"wrap",padding:"4px 2px 6px"}}>{flows.map(w=><button key={w.id} onClick={()=>onFlow(w)} style={{padding:"8px 12px",borderRadius:18,border:"1.5px solid #D3D8E6",background:"#EEF0F5",color:"#1E2F5C",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{w.name}{cat==="all"?<span style={{fontWeight:600,color:"#8B95A1"}}> · {(WF_CATS.find(c=>c.k===w.cat)||{}).name||""}</span>:null}</button>)}
+        {!flows.length&&<p style={{margin:0,fontSize:12,color:"#8B95A1"}}>이 카테고리에 흐름이 없어요 · 목록 위 '+ 흐름 추가'로 만들어요</p>}</div>}
+      <a href="https://pour-construction-form.pages.dev/launch-board" target="_blank" rel="noopener" style={{...big,textDecoration:"none"}}><T t="신제품 ↗" d="런칭보드에 새 제품 등록 · 등록하면 여기 신제품 출시에 바로 나와요"/></a>
+    </div>
+  </Sheet>); }
 // 신제품은 로드맵 하나로 — 예전 방식 프로젝트(탑코트재·데코라인 1차 등)는 지우지 않고 '지난 기록'으로 접어 둠
 function LegacyLaunch(props){ const [open,setOpen]=useState(false); const n=(props.D.projects||[]).filter(p=>p.category==="launch").length; if(!n) return null;
   return(<div><button onClick={()=>setOpen(v=>!v)} style={{border:"none",background:"none",padding:"4px 2px",fontSize:12.5,fontWeight:800,color:"#6B7684",cursor:"pointer",fontFamily:"inherit"}}>지난 기록 · 이전 방식 신제품 프로젝트 {n} {open?"▴":"▾"}</button>
@@ -5479,7 +5501,7 @@ function wfWarn(wf,t,today){ if(wf.kind==="notice"){ const end=(t.wfData||{}).en
   if(wf.kind==="cpc"){ const r=roasOf(t), mn=numOr0(wf.roasMin)||300; if(r!=null&&r<mn) return `ROAS ${r}% · 기준 ${mn}% 미달`; }
   if(t.status!=="done"&&t.dueDate&&t.dueDate<today) return `마감 ${ddayKo(daysTo(t.dueDate))}`; return ""; }
 const wfHasOwner=(wf)=>(wf.stages||[]).some(s=>s.ownerId);
-function WfList({D,cu,cat,up,add,rm,pc,W}){
+function WfList({D,cu,cat,up,add,rm,pc,W,onAdvanced}){
   const wfs=W.filter(w=>w.cat===cat);
   const wnotes=useAkNotes();
   const skey="pour-os-wf-sel-"+cat;
@@ -5488,16 +5510,30 @@ function WfList({D,cu,cat,up,add,rm,pc,W}){
   const [newOpen,setNewOpen]=useState(false);
   const [setFor,setSetFor]=useState(null);
   const [openId,setOpenId]=useState(null);
-  const [showDone,setShowDone]=useState(false);
+  const [tab,setTab]=useState("active"); const [mine,setMine]=useState(false);
+  const [openPid,setOpenPid]=useState(null); const [pfocus,setPfocus]=useState(null);
   const today=ymdToday();
-  const cur=wfs.find(w=>w.id===sel)||null; const shownW=cur?[cur]:wfs;
+  const cur=wfs.find(w=>w.id===sel)||null; const onlyProj=sel==="proj"; const shownW=onlyProj?[]:cur?[cur]:wfs;
   const ofW=(t)=>wfs.find(w=>w.id===t.wfId);
   const rows=(D.tasks||[]).filter(t=>t.wfId&&shownW.some(w=>w.id===t.wfId));
-  const active=rows.filter(t=>t.status!=="done").sort((a,b)=>String(a.dueDate||"9999").localeCompare(String(b.dueDate||"9999"))||String(a.id).localeCompare(String(b.id)));
-  const doneRows=rows.filter(t=>t.status==="done").sort((a,b)=>String(b.doneAt||"").localeCompare(String(a.doneAt||"")));
+  const users=D.users||[]; const uname=(id)=>(users.find(u=>u.id===id)||{}).name||"";
+  const projs=(cur?[]:(D.projects||[]).filter(p=>p.category===cat)).map(p=>{ const ts=projTasksOf(D,p.id); return {p,ts,sig:projSignal(p,ts)}; });
+  const projAct=projs.filter(r=>projStatus(r.p)!=="completed"&&(!mine||ownsProj(r.p,cu.id))), projDone=projs.filter(r=>projStatus(r.p)==="completed"&&(!mine||ownsProj(r.p,cu.id)));
+  const nextOf=(ts)=>ts.filter(t=>t.status!=="done"&&!ts.some(k=>k.parentId===t.id&&k.status!=="done")).sort((a,b)=>String(a.dueDate||"9999").localeCompare(String(b.dueDate||"9999"))||(a.seq||0)-(b.seq||0))[0];
+  const mineCase=(t)=>!mine||t.assigneeId===cu.id||Object.values((ofW(t)||{}).stages||[]).some(x=>x.ownerId===cu.id);
+  const active=rows.filter(t=>t.status!=="done"&&mineCase(t)).sort((a,b)=>String(a.dueDate||"9999").localeCompare(String(b.dueDate||"9999"))||String(a.id).localeCompare(String(b.id)));
+  const doneRows=rows.filter(t=>t.status==="done"&&mineCase(t)).sort((a,b)=>String(b.doneAt||"").localeCompare(String(a.doneAt||"")));
   const actN=(w)=>(D.tasks||[]).filter(t=>t.wfId===w.id&&t.status!=="done").length;
   const noOwner=shownW.filter(w=>!wfHasOwner(w));
   const open=rows.find(t=>t.id===openId); const openW=open&&ofW(open);
+  const openP=(D.projects||[]).find(p=>p.id===openPid);
+  // 한 목록: 프로젝트 + 흐름 건 — 마감 기준으로 묶음(마감 지남·이번 달·다음 달 이후·마감 없음·프로젝트 업무 다 끝남)
+  const mEnd=akYmd(new Date(new Date().getFullYear(),new Date().getMonth()+1,0));
+  const items=tab==="done"?[...projDone.map(r=>({k:"p"+r.p.id,r,due:r.p.dueDate})),...doneRows.map(t=>({k:"c"+t.id,t,due:t.dueDate}))]
+    :[...(onlyProj||!cur?projAct:[]).map(r=>({k:"p"+r.p.id,r,due:r.p.dueDate})),...(onlyProj?[]:active).map(t=>({k:"c"+t.id,t,due:t.dueDate}))];
+  const grpOf=(x)=>{ if(x.r&&x.r.sig.k==="alldone") return 4; if(!x.due) return 3; if(x.due<today) return 0; if(x.due<=mEnd) return 1; return 2; };
+  const GL=["마감 지남","이번 달 마감","다음 달 이후","마감 없음","업무 다 끝남 · 완료 처리 대기"];
+  const groups=tab==="done"?[["",items]]:GL.map((l,ix)=>[l,items.filter(x=>grpOf(x)===ix).sort((a,b)=>String(a.due||"9999").localeCompare(String(b.due||"9999")))]);
   const catName=(WF_CATS.find(c=>c.k===cat)||{}).name||"";
   const btn={padding:"9px 13px",borderRadius:10,fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"};
   const Row=({t})=>{ const wf=ofW(t); if(!wf) return null; const pr=caseProgress(wf,t); const nx=caseNext(wf,t); const own=nx?(nx.ownerId||t.assigneeId):null; const w=wfWarn(wf,t,today); const dn=t.status==="done"; const ck=caseChecks(t);
@@ -5506,7 +5542,7 @@ function WfList({D,cu,cat,up,add,rm,pc,W}){
         <span style={{display:"flex",alignItems:"flex-start",gap:8}}>
           <b style={{flex:1,minWidth:0,fontSize:14.5,color:dn?"#8B95A1":"#191F28",textDecoration:dn?"line-through":"none",wordBreak:"keep-all",lineHeight:1.35}}>{t.title}</b>
           <span style={{flexShrink:0,fontSize:13,fontWeight:900,color:pr.done===pr.total?"#2F7D57":"#1E2F5C",fontVariantNumeric:"tabular-nums"}}>{pr.done}/{pr.total}</span></span>
-        <span style={{display:"block",fontSize:11.5,color:"#6B7684",marginTop:3,lineHeight:1.45}}><NoteBadge notes={wnotes} taskId={t.id}/>{" "}{sel==="all"?<>{wf.name} · </>:null}{nx?<>다음 <b style={{color:"#1E2F5C"}}>{nx.name}</b> ({userName(D,own)||"담당 없음"})</>:"완료"}{t.dueDate&&!dn?` · ${ddayKo(daysTo(t.dueDate))}`:""}</span>
+        <span style={{display:"block",fontSize:11.5,color:"#6B7684",marginTop:3,lineHeight:1.45}}><NoteBadge notes={wnotes} taskId={t.id}/>{" "}{!cur?<>{wf.name} · </>:null}{nx?<>다음 <b style={{color:"#1E2F5C"}}>{nx.name}</b> ({userName(D,own)||"담당 없음"})</>:"완료"}{t.dueDate&&!dn?` · ${ddayKo(daysTo(t.dueDate))}`:""}</span>
         {(w||(t.exec&&t.exec!=="self")||(wf.kind==="cpc"&&roasOf(t)!=null))&&<span style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:4}}><ExecBadge exec={t.exec} note={t.execNote}/>{wf.kind==="cpc"&&roasOf(t)!=null&&!w&&<span style={{fontSize:10.5,fontWeight:800,color:"#2F7D57",background:"#EAF4EE",borderRadius:6,padding:"2px 6px"}}>ROAS {roasOf(t)}%</span>}{w&&<span style={{fontSize:10.5,fontWeight:800,color:"#B4383F",background:"#F8EDEE",borderRadius:6,padding:"2px 6px"}}>{w}</span>}</span>}
       </button>
       <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:8}}>
@@ -5517,16 +5553,14 @@ function WfList({D,cu,cat,up,add,rm,pc,W}){
     </div>); };
   const grid={display:"grid",gridTemplateColumns:pc?"repeat(auto-fill,minmax(300px,1fr))":"1fr",gap:8};
   return(<div style={{background:"#fff",borderRadius:18,padding:"14px 14px 12px",boxShadow:"0 2px 12px rgba(15,23,42,.05)"}}>
-    <div style={{display:"flex",alignItems:"flex-start",gap:8,flexWrap:"wrap"}}>
-      <div style={{flex:"1 1 200px",minWidth:0}}>
-        <p style={{margin:0,fontSize:16,fontWeight:900,color:"#191F28"}}>{catName} 업무플로우</p>
-        <p style={{margin:"2px 0 0",fontSize:11.5,color:"#8B95A1",lineHeight:1.5}}>건 1개 = 1줄 · 단계를 누르면 다음 담당의 오늘 화면에 떠요</p>
-      </div>
-      <button onClick={()=>setNewOpen(true)} style={{...btn,border:"none",background:"#24386B",color:"#fff"}}>+ 새 건</button>
+    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+      <p style={{margin:0,flex:"1 1 180px",minWidth:0,fontSize:16,fontWeight:900,color:"#191F28"}}>{catName} <span style={{fontSize:11.5,fontWeight:600,color:"#8B95A1"}}>· 프로젝트와 반복 흐름 건을 한 목록으로</span></p>
+      <div style={{display:"flex",background:"#F2F4F6",borderRadius:10,padding:3}}>{[["active","진행"],["done","완료"]].map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"6px 12px",borderRadius:8,border:"none",background:tab===k?"#fff":"transparent",color:tab===k?"#191F28":"#8B95A1",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>)}</div>
+      <button onClick={()=>setMine(m=>!m)} aria-pressed={mine} style={{padding:"6px 11px",borderRadius:10,border:`1.5px solid ${mine?"#24386B":"#E5E8EB"}`,background:mine?"#EEF0F5":"#fff",color:mine?"#1E2F5C":"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>내 것만</button>
     </div>
-    <div role="group" aria-label="흐름" style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:10}}>
-      {[{id:"all",name:"전체",n:wfs.reduce((a,w)=>a+actN(w),0)},...wfs.map(w=>({id:w.id,name:w.name,n:actN(w)}))].map(c=>{ const on=(cur?cur.id:"all")===c.id;
-        return <button key={c.id} aria-pressed={on} onClick={()=>setSel(c.id)} style={{padding:"7px 11px",borderRadius:18,border:`1.5px solid ${on?"#24386B":"#E5E8EB"}`,background:on?"#24386B":"#fff",color:on?"#fff":"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{c.name}{c.n?<span style={{marginLeft:4,opacity:.8}}>{c.n}</span>:null}</button>; })}
+    <div role="group" aria-label="흐름" style={{display:"flex",gap:6,marginTop:10,overflowX:"auto",paddingBottom:2,WebkitOverflowScrolling:"touch"}}>
+      {[{id:"all",name:"전체",n:wfs.reduce((a,w)=>a+actN(w),0)+projs.filter(r=>projStatus(r.p)!=="completed").length},{id:"proj",name:"프로젝트",n:projs.filter(r=>projStatus(r.p)!=="completed").length},...wfs.map(w=>({id:w.id,name:w.name,n:actN(w)}))].map(c=>{ const on=(cur?cur.id:onlyProj?"proj":"all")===c.id;
+        return <button key={c.id} aria-pressed={on} onClick={()=>setSel(c.id)} style={{padding:"7px 11px",borderRadius:18,border:`1.5px solid ${on?"#24386B":"#E5E8EB"}`,background:on?"#24386B":"#fff",color:on?"#fff":"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit",flexShrink:0,whiteSpace:"nowrap"}}>{c.name}{c.n?<span style={{marginLeft:4,opacity:.8}}>{c.n}</span>:null}</button>; })}
     </div>
     <button onClick={()=>{ const w={id:"wf_"+Date.now().toString(36),cat,name:"새 흐름",unit:"건",hint:"",stages:[],createdAt:new Date().toISOString(),createdBy:cu.id}; add("workflows",w); setSetFor(w); }} style={{marginTop:6,padding:"6px 10px",borderRadius:16,border:"1.5px dashed #D3D8E6",background:"#fff",color:"#1E2F5C",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+ 흐름 추가</button>
     {cur&&<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginTop:10,padding:"9px 11px",borderRadius:12,background:"#F4F5F7"}}>
@@ -5535,12 +5569,13 @@ function WfList({D,cu,cat,up,add,rm,pc,W}){
     </div>}
     {noOwner.length>0&&<p style={{margin:"8px 2px 0",fontSize:11.5,color:"#B26A12",fontWeight:700,lineHeight:1.5}}>{cur?"단계 담당이 비어 있어요 — 정하면 앞 단계가 끝날 때 다음 사람 오늘 화면에 자동으로 떠요":`단계 담당이 비어 있는 흐름 ${noOwner.length}개 — 위 칩을 골라 '단계·담당'에서 정하세요`}</p>}
     <div style={{marginTop:12}}>
-      {active.length===0?<p style={{margin:"4px 2px",fontSize:12.5,color:"#8B95A1"}}>진행 중인 건이 없어요 · '+ 새 건'으로 시작하세요</p>:<div style={grid}>{active.map(t=><Row key={t.id} t={t}/>)}</div>}
+      {items.length===0&&<p style={{margin:"4px 2px",fontSize:12.5,color:"#8B95A1"}}>{tab==="done"?"완료한 것이 없어요":"진행 중인 것이 없어요 · 위 '+ 새로 만들기'로 시작하세요"}</p>}
+      {groups.map(([gl,list])=>list.length?<div key={gl||"all"} style={{marginBottom:12}}>
+        {gl&&<div style={{display:"flex",alignItems:"baseline",gap:8,padding:"8px 11px",borderRadius:11,background:"#F2F4F6",marginBottom:7}}><b style={{fontSize:13,color:"#191F28"}}>{gl}</b><span style={{fontSize:11.5,color:"#6B7684",fontWeight:700}}>{list.length}개</span></div>}
+        <div style={grid}>{list.map(x=>x.r?<ProjCard key={x.k} D={D} p={x.r.p} ts={x.r.ts} sig={x.r.sig} cat={cat} nx={nextOf(x.r.ts)} uname={uname} onOpen={(f)=>{ setPfocus(f||null); setOpenPid(x.r.p.id); }}/>:<Row key={x.k} t={x.t}/>)}</div>
+      </div>:null)}
     </div>
-    {doneRows.length>0&&<div style={{marginTop:10}}>
-      <button onClick={()=>setShowDone(v=>!v)} style={{border:"none",background:"none",padding:"4px 2px",fontSize:12,fontWeight:800,color:"#2F7D57",cursor:"pointer",fontFamily:"inherit"}}>완료 {doneRows.length} {showDone?"▴":"▾"}</button>
-      {showDone&&<div style={{...grid,marginTop:6}}>{doneRows.map(t=><Row key={t.id} t={t}/>)}</div>}
-    </div>}
+    {openP&&<ProjectDetailSheet D={D} cu={cu} p={openP} up={up} add={add} rm={rm} focus={pfocus} onClose={()=>{ setOpenPid(null); setPfocus(null); }} onAdvanced={onAdvanced||(()=>{})}/>}
     {newOpen&&<WfNewSheet D={D} cu={cu} wfs={wfs} init={cur?cur.id:""} add={add} onClose={()=>setNewOpen(false)} onAdded={(wid)=>{ if(cur&&cur.id!==wid) setSel(wid); }}/>}
     {open&&openW&&<CaseSheet D={D} cu={cu} wf={openW} t={open} up={up} rm={rm} onClose={()=>setOpenId(null)}/>}
     {setFor&&<WfSettingsSheet D={D} wf={setFor} add={add} up={up} onClose={()=>setSetFor(null)}/>}
@@ -5755,7 +5790,7 @@ function LaunchBoard({D,cu,add,up,pc,items}){
           <p style={{margin:"1px 0 0",fontSize:11.5,color:"#8B95A1"}}>브랜드별 출시 차수로 묶어 봐요 · 런칭보드와 같은 데이터 · 칸을 누르면 세부 체크·담당·마감</p></div>
         <button onClick={()=>setBatchOpen({brand:brand!=="all"?brand:null,batch:null})} style={{padding:"8px 11px",borderRadius:10,border:"1px solid #D3D8E6",background:"#EEF0F5",color:"#1E2F5C",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>차수 묶기</button>
         <button onClick={()=>setDefOpen(true)} style={{padding:"8px 11px",borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",color:"#4E5968",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>기본 담당</button>
-        <a href="https://pour-construction-form.pages.dev/launch-board" target="_blank" rel="noopener" style={{padding:"8px 11px",borderRadius:10,border:"none",background:"#24386B",color:"#fff",fontWeight:800,fontSize:12,textDecoration:"none",whiteSpace:"nowrap"}}>＋ 새 제품 (런칭보드) ↗</a>
+        
       </div>
       <div style={{display:"flex",gap:6,overflowX:"auto",margin:"10px 0",WebkitOverflowScrolling:"touch"}}>
         {["all",...brands].map(k=>{ const b=LAUNCH_BRANDS[k]; const sel=brand===k; const n=k==="all"?items.length:items.filter(p=>p.brand===k).length;

@@ -5826,8 +5826,13 @@ function BatchSheet({D,cu,items,brand0,batch0,onClose}){
 function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose}){
   const [err,setErr]=useState("");
   const [editId,setEditId]=useState(null);   // 누른 칸만 담당·마감·상태·방식 편집 펼침(스크롤 줄이기)
+  const [extFor,setExtFor]=useState(null); const [extName,setExtName]=useState("");   // 외부 담당 직접 입력
+  const users=D.users||[];
+  const userOf=(n)=>n?users.find(u=>u.name===n)||users.find(u=>nameMatch(n,u.name)):null;
+  const ownerLabel=(n)=>{ if(!n) return "담당 없음"; const u=userOf(n); return u?u.name:(n==="외주"?"외주":`외부: ${n}`); };   // 업무OS 사람이 아니면 '외부'
   const today=ymdToday();
   const people=lbPeople(D,items);
+  const externals=[...new Set(people.filter(n=>n!=="외주"&&!userOf(n)))];
   const ph=LAUNCH_PHASES.find(x=>x.k===phK)||LAUNCH_PHASES[0];
   const defs=(launchSettings(D.workflows).defaults)||{};
   const w=async(patch,text)=>{ const ok=await lbWrite(p.id,patch,text,cu); setErr(ok?"":"저장하지 못했어요 · 인터넷 연결을 확인해 주세요"); };
@@ -5844,17 +5849,19 @@ function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose}){
   const sel={...wfInp,padding:"7px 8px",fontSize:12.5};
   return(<Sheet open={true} onClose={onClose} title={`${b.icon} ${p.name}`} h="94vh" w={720}>
     <div style={{paddingTop:4,display:"flex",flexDirection:"column",gap:10}}>
-      <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"flex-end"}}>
-        <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",flex:"1 1 140px"}}>관리 담당 (1명)<select value={p.lead||""} onChange={e=>w({lead:e.target.value},"관리 담당 "+(e.target.value||"브랜드 BM"))} style={{...wfInp,width:"100%",marginTop:4}}><option value="">브랜드 BM ({(LAUNCH_BRANDS[p.brand]||{}).bm||"-"})</option>{people.filter(n=>n!=="외주").map(n=><option key={n}>{n}</option>)}</select></label>
-        <div style={{flex:"1 1 140px",fontSize:12,color:"#4E5968",fontWeight:700}}>{p.batch?<span style={{color:"#1E2F5C"}}>{p.batch} · </span>:null}전체 {lp.done}/{lp.total} · <b style={{color:"#1E2F5C"}}>{lp.pct}%</b>{p.launchDate?` · 출시 ${p.launchDate} ${ddayKo(daysTo(p.launchDate))}`:""}</div>
-        <button onClick={fillDefaults} style={{padding:"9px 11px",borderRadius:10,border:"1px solid #D3D8E6",background:"#EEF0F5",color:"#1E2F5C",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>빈 담당 기본값 채우기</button>
+      <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)",gap:8}}>
+        <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",minWidth:0}}>관리 담당 (1명)<select value={p.lead||""} onChange={e=>w({lead:e.target.value},"관리 담당 "+(e.target.value||"브랜드 BM"))} style={{...wfInp,width:"100%",marginTop:4}}><option value="">브랜드 BM ({(LAUNCH_BRANDS[p.brand]||{}).bm||"-"})</option>{people.filter(n=>n!=="외주").map(n=><option key={n}>{n}</option>)}</select></label>
+        <div style={{fontSize:11.5,fontWeight:700,color:"#6B7684",minWidth:0}}>출시일<div style={{...wfInp,marginTop:4,background:"#F9FAFB",fontWeight:800,color:"#191F28"}}>{p.launchDate?`${p.launchDate} · ${ddayKo(daysTo(p.launchDate))}`:"미정"}</div></div>
+      </div>
+      <div style={{padding:"12px 14px",borderRadius:14,background:"#EEF0F5"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}><b style={{fontSize:13.5,color:"#1E2F5C"}}>{p.batch?p.batch+" · ":""}{b.name}</b><span style={{fontSize:13,fontWeight:900,color:"#191F28"}}>{lp.pct}% <span style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>항목 {lp.done}/{lp.total} 완료</span></span></div>
+        <div style={{height:7,background:"rgba(255,255,255,.8)",borderRadius:4,overflow:"hidden",marginTop:8}}><div style={{width:`${lp.pct}%`,height:"100%",background:"#24386B",borderRadius:4}}/></div>
       </div>
       <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2,WebkitOverflowScrolling:"touch"}}>
         {LAUNCH_PHASES.map(x=>{ const pp=phaseProgress(p,x,today); const col=phaseColor(pp); const s=x.k===ph.k;
           return <button key={x.k} onClick={()=>setPh(x.k)} style={{flexShrink:0,padding:"7px 10px",borderRadius:12,border:`1.5px solid ${s?"#24386B":"transparent"}`,background:s?"#fff":col.bg,color:s?"#1E2F5C":col.c,fontWeight:900,fontSize:12.5,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>{x.no}. {x.name} <span style={{fontVariantNumeric:"tabular-nums"}}>{pp.done}/{pp.total}</span></button>; })}
       </div>
-      {p.srcId?<div style={{padding:"8px 10px",borderRadius:11,background:"#EEF0F5",border:"1px solid #E3E7F0"}}><span style={{fontSize:11.5,fontWeight:800,color:"#4E5968",marginRight:6}}>소싱앱</span><SrcChips p={p} full/></div>
-        :<p style={{margin:0,fontSize:11,color:"#B0B8C1"}}>소싱앱 기록과 아직 연결 안 됨 · 소싱앱에서 '진행' → [로드맵에 등록]으로 연결돼요</p>}
+      {p.srcId&&<div style={{padding:"8px 10px",borderRadius:11,background:"#EEF0F5",border:"1px solid #E3E7F0"}}><span style={{fontSize:11.5,fontWeight:800,color:"#4E5968",marginRight:6}}>소싱앱</span><SrcChips p={p} full/></div>}
       {err&&<p style={{margin:0,fontSize:12.5,color:"#B4383F",fontWeight:800}}>{err}</p>}
       <div style={{display:"flex",flexDirection:"column",gap:7}}>
         {ph.items.map(it=>{ const s=lbState(p,it); const dn=s.status==="done"; const late=!dn&&s.status!=="skip"&&s.due&&s.due<today; const st=LB_ST[s.status]||LB_ST.todo;
@@ -5866,10 +5873,10 @@ function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose}){
                   <button onClick={()=>setField(it,"count",s.count+1)} aria-label="하나 더" style={{width:28,height:28,borderRadius:8,border:"none",background:"#24386B",color:"#fff",fontWeight:900,cursor:"pointer"}}>＋</button></span>
                 :<button onClick={()=>setField(it,"status",dn?"todo":"done")} aria-label={dn?"완료 취소":"완료"} style={{flexShrink:0,width:26,height:26,borderRadius:8,border:`2px solid ${dn?"#2F7D57":"#C5CBD3"}`,background:dn?"#2F7D57":"#fff",color:"#fff",fontWeight:900,fontSize:14,cursor:"pointer",padding:0}}>{dn?"✓":""}</button>}
               <button onClick={()=>setEditId(v=>v===it.id?null:it.id)} aria-expanded={editId===it.id} style={{flex:1,minWidth:0,textAlign:"left",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
-                <p style={{margin:0,fontSize:13.5,fontWeight:800,color:s.status==="skip"?"#B0B8C1":dn?"#6B7684":"#191F28",textDecoration:s.status==="skip"?"line-through":"none",wordBreak:"keep-all"}}>{it.name}{it.max?<span style={{fontWeight:600,color:"#8B95A1"}}> · {it.target}~{it.max}건</span>:null}{it.desc?<span style={{fontWeight:600,color:"#8B95A1"}}> · {it.desc}</span>:null}{!it.lb&&<span style={{marginLeft:5,fontSize:10,fontWeight:800,color:"#5E5A8C",background:"#F0EFF5",borderRadius:5,padding:"1px 5px"}}>업무OS</span>}</p>
+                <p style={{margin:0,fontSize:13.5,fontWeight:800,color:s.status==="skip"?"#B0B8C1":dn?"#6B7684":"#191F28",textDecoration:s.status==="skip"?"line-through":"none",wordBreak:"keep-all"}}>{it.name}{it.max?<span style={{fontWeight:600,color:"#8B95A1"}}> · {it.target}~{it.max}건</span>:null}{it.desc?<span style={{fontWeight:600,color:"#8B95A1"}}> · {it.desc}</span>:null}</p>
                 <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:3,alignItems:"center",fontSize:11,color:"#8B95A1"}}>
                   {s.status!=="todo"&&!dn&&<span style={{fontSize:10.5,fontWeight:800,color:st.c,background:st.bg,borderRadius:6,padding:"2px 6px"}}>{st.l}</span>}
-                  <span>{s.owner||"담당 없음"}</span>{s.due&&<span style={{fontWeight:late?800:600,color:late?"#B4383F":"#6B7684"}}>· {String(s.due).slice(5)} {ddayKo(daysTo(s.due))}</span>}
+                  <span style={{fontWeight:userOf(s.owner)?600:700,color:s.owner&&!userOf(s.owner)&&s.owner!=="외주"?"#B26A12":"inherit"}}>{ownerLabel(s.owner)}</span>{s.due&&<span style={{fontWeight:late?800:600,color:late?"#B4383F":"#6B7684"}}>· {String(s.due).slice(5)} {ddayKo(daysTo(s.due))}</span>}
                   <ExecBadge exec={s.exec} note={s.execNote}/>
                 </div>
               </button>
@@ -5877,13 +5884,16 @@ function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose}){
             </div>
             {editId===it.id&&<><div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
               <select value={s.status} onChange={e=>setField(it,"status",e.target.value)} aria-label="상태" style={{...sel,flex:"0 0 auto"}}>{Object.entries(LB_ST).map(([k,v])=><option key={k} value={k}>{v.l}</option>)}</select>
-              <select value={s.owner||""} onChange={e=>setField(it,"owner",e.target.value)} aria-label="실행 담당" style={{...sel,flex:"1 1 96px"}}><option value="">담당 없음</option>{[...new Set([...(s.owner?[s.owner]:[]),...people])].map(n=><option key={n}>{n}</option>)}</select>
+              <select value={userOf(s.owner)?userOf(s.owner).name:(s.owner||"")} onChange={e=>{ const v=e.target.value; if(v==="__ext"){ setExtFor(it.id); setExtName(""); return; } setField(it,"owner",v); }} aria-label="담당" style={{...sel,flex:"1 1 96px"}}><option value="">담당 없음</option>{users.map(u=><option key={u.id} value={u.name}>{u.name}</option>)}<option value="외주">외주</option>{externals.length>0&&<optgroup label="외부 (업무OS 밖)">{externals.map(n=><option key={n} value={n}>외부: {n}</option>)}</optgroup>}<option value="__ext">+ 외부 담당 직접 입력</option></select>
               <input type="date" value={s.due||""} onChange={e=>setField(it,"due",e.target.value)} aria-label="마감" style={{...sel,flex:"1 1 120px"}}/>
             </div>
+            {extFor===it.id&&<div style={{display:"flex",gap:6,marginTop:6}}><input value={extName} onChange={e=>setExtName(e.target.value)} placeholder="외부 담당 이름 (예: 디자이너 이우민)" aria-label="외부 담당 이름" style={{...sel,flex:1,minWidth:0}}/><button onClick={()=>{ if(extName.trim()){ setField(it,"owner",extName.trim()); setExtFor(null); } }} style={{...NB.pri,padding:"6px 12px"}}>넣기</button></div>}
             <div style={{marginTop:8}}><ExecPicker value={s.exec} note={s.execNote} onChange={(k,n)=>setExec(it,k,n)}/></div></>}
           </div>); })}
       </div>
-      <p style={{margin:"4px 2px 0",fontSize:11,color:"#8B95A1",lineHeight:1.6}}>칸 이름을 누르면 담당·마감·상태·실행 방식(직접·협업·외주)을 고칠 수 있어요. 런칭보드에도 똑같이 반영돼요. <b style={{color:"#5E5A8C"}}>업무OS</b> 표시 칸(컬러스티커·유통기한·창고 입고·출시 홍보 등)은 업무OS에서만 보여요.</p>
+      <p style={{margin:"4px 2px 0",fontSize:11,color:"#8B95A1",lineHeight:1.6}}>항목 이름을 누르면 담당·마감·상태·방식을 고쳐요 · 런칭보드와 같은 데이터 · 담당은 업무OS 사람에서 고르면 그 사람 오늘 '내 차례'에 떠요 (업무OS 밖 사람은 '외부'){!p.srcId?" · 소싱앱 기록과는 아직 연결 안 됨":""}</p>
+      <button onClick={fillDefaults} style={{alignSelf:"flex-start",...NB.link,padding:"2px 2px"}}>빈 칸에 기본 담당 넣기</button>
+      <div style={{marginTop:8}}><ThreadPanel D={D} cu={cu} itemId={projNoteId("lb:"+p.id)} itemName={p.name} kind="proj" proj={{id:"lb:"+p.id,title:p.name,assigneeId:((userOf(p.lead||(LAUNCH_BRANDS[p.brand]||{}).bm)||{}).id)||""}} title="제품 대화"/></div>
     </div>
   </Sheet>);
 }

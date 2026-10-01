@@ -1749,7 +1749,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.10.01e</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.10.02a</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -6414,11 +6414,32 @@ function mlLive(){ return MKT_LINKS.filter(l=>!l.archived); }
 function mlRecentCombos(){ const me=(curUser&&curUser.email)||''; const seen=new Set(), out=[];
   MKT_LINKS.filter(l=>!l.archived&&l.purpose).forEach(l=>{ if(me&&l.createdBy&&l.createdBy!==me) return; const k=[l.purpose,l.place||'',l.partner||'',l.promoId||''].join('|'); if(seen.has(k)) return; seen.add(k); out.push(l); });
   return out.slice(0,3); }
+/* 🔗 업무OS(POUR OS)에서 만든 추적 링크 → mkt-links 로 옮겨 담기
+   · 업무OS는 로그인이 없어 mkt-links 에 직접 못 씀 → 업무OS 공간(pour-app-new · pour-os/utm-links/items)에 저장해 두고
+     팀 계정으로 이 대시보드를 열면 같은 id 로 옮겨 담는다(클릭 수·날짜별 클릭 그대로). 옮긴 뒤엔 짧은 링크가 이쪽에서 센다.
+   · 옮긴 표시(importedAt)만 남기고 업무OS 쪽 기록은 지우지 않는다 */
+let _osLinkImp=false;
+async function importOsLinks(){
+  if(_osLinkImp) return; _osLinkImp=true;
+  try{
+    const app=(firebase.apps||[]).find(a=>a.name==='launchboard')||firebase.initializeApp(LB_CFG,'launchboard');
+    const col=app.firestore().collection('pour-os').doc('utm-links').collection('items');
+    const sn=await col.get(); const todo=sn.docs.map(d=>({...d.data(),id:d.id})).filter(x=>!x.importedAt&&x.url);
+    console.log(`[업무OS 링크] ${sn.size}건 · 옮길 것 ${todo.length}건`);
+    let n=0;
+    for(const x of todo){
+      const ref=db.collection('mkt-links').doc(x.id), ex=await ref.get();
+      if(!ex.exists){ const {id,importedAt,...d}=x; await ref.set({...d, createdBy:'', osCreatedBy:x.createdBy||'', createdVia:'pour-os'}); n++; }
+      await col.doc(x.id).set({importedAt:new Date().toISOString(), importedBy:(curUser&&curUser.email)||''},{merge:true});
+    }
+    if(n) logAct('링크', `업무OS 링크 ${n}개`, '링크 목록으로 옮겨 담음');
+  }catch(e){ console.warn('[업무OS 링크] 옮겨 담기 실패(다음에 다시)', e.code||e); _osLinkImp=false; }
+}
 /* 목록 */
 function mlCard(l){ const pu=ML_PURPOSES.find(x=>x.k===mlPurposeOf(l))||ML_PURPOSES[5], d7=mlClicksIn(l,pcAdd(pcToday(),-6)), promo=l.promoId?PROMOS.find(p=>p.id===l.promoId):null;
   return `<div class="ml-card${l.archived?' off':''}" data-mlopen="${esc(l.id)}" role="button" tabindex="0">
     <div class="top"><span class="ic">${pu.ic}</span><div class="nm">${esc(l.label||mlPlaceOf(l))}</div><div class="ck"><b>${won(+l.clicks||0)}</b><span>클릭</span></div></div>
-    <div class="sub">${esc(pu.k)} · ${esc(mlPlaceOf(l))}${l.dest?` → ${esc(l.dest)}`:''}${l.brand?` · ${esc(l.brand==='GROHOME'?'그로홈':'스토어')}`:''}${promo?` · 🎯 ${esc(promo.name)}`:''}</div>
+    <div class="sub">${esc(pu.k)} · ${esc(mlPlaceOf(l))}${l.dest?` → ${esc(l.dest)}`:''}${l.brand?` · ${esc(l.brand==='GROHOME'?'그로홈':'스토어')}`:''}${promo?` · 🎯 ${esc(promo.name)}`:''}${l.createdVia==='pour-os'?` · 업무OS${l.createdByName?' '+esc(l.createdByName):''}`:''}</div>
     <div class="sub dim">${esc(String(l.createdAt||'').slice(0,10))}${l.clicksByDay?` · 최근 7일 ${won(d7)}클릭`:''}${l.product?` · ${esc(l.product)}`:''}</div>
     <button type="button" class="tbtn ml-copy" data-mlcopy="${esc(l.id)}">복사</button></div>`; }
 function mlRenderList(){
@@ -12523,7 +12544,7 @@ function startLiveSync(){
   }, onErr('calc'));
   db.collection('mkt-links').onSnapshot(s=>{
     MKT_LINKS=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.deleted).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
-    scheduleMkt();
+    scheduleMkt(); importOsLinks();
   }, onErr('mkt-links'));
   db.collection('mkt-perf').onSnapshot(s=>{
     MKT_PERF={}; s.docs.forEach(d=>{ MKT_PERF[d.id]=d.data(); });
@@ -12634,7 +12655,7 @@ async function bootTeam(){
   buildState();
   try{ init(); }catch(e){ console.warn('[team] 초기 화면 일부 실패(원가 화면)', e); refreshAll(); }
   const onErr=(n)=>(e)=>console.warn('[live] '+n+' 리스너 오류:', e.code||e.message||e);
-  db.collection('mkt-links').onSnapshot(s=>{ MKT_LINKS=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.deleted).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')); scheduleMkt(); }, onErr('mkt-links'));
+  db.collection('mkt-links').onSnapshot(s=>{ MKT_LINKS=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.deleted).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')); scheduleMkt(); importOsLinks(); }, onErr('mkt-links'));
   db.collection('mkt-perf').onSnapshot(s=>{ MKT_PERF={}; s.docs.forEach(d=>{ MKT_PERF[d.id]=d.data(); }); scheduleMkt(); }, onErr('mkt-perf'));
   db.collection('promotions').onSnapshot(s=>{ PROMOS=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.deleted).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')); scheduleMkt(); }, onErr('promotions'));
   db.collection('team-catalog').doc('current').onSnapshot(d=>{ if(!d.exists||editingNow()) return; applyTeamCatalog(d.data()); buildState(); refreshAll(); }, onErr('team-catalog'));

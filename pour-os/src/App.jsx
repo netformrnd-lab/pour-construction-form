@@ -22,7 +22,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-커머스본부";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-차수메모";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -3768,10 +3768,10 @@ function BrandBar({D,cu,value,onChange,add,up}){
   const master=isMaster(cu);
   const save=()=>{ const n=nm.trim(); if(!n) return; if(list.some(b=>b.name.replace(/\s/g,"")===n.replace(/\s/g,""))){ setAdding(false); setNm(""); return; }
     add("brands",{id:"b"+Date.now().toString(36),name:n,order:list.length+1,active:true,createdAt:new Date().toISOString(),createdBy:cu.id,createdByName:cu.name||""}); setNm(""); setAdding(false); };
-  const btn=(on)=>({padding:"6px 12px",borderRadius:7,border:"none",background:on?"#24386B":"transparent",color:on?"#fff":"#4A4E57",fontSize:12.5,fontWeight:on?800:600,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"});
+  const btn=(on)=>({padding:"6px 12px",borderRadius:7,border:"none",background:on?"#24386B":"transparent",color:on?"#fff":"#4A4E57",fontSize:12.5,fontWeight:on?800:600,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",flexShrink:0});
   return(<div className="brandbar" style={{margin:"10px 16px 0",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-    <div role="group" aria-label="브랜드" style={{display:"flex",gap:2,flexWrap:"wrap",background:"#E9EBEF",borderRadius:9,padding:3}}>
-      {[{id:"all",name:"전체"},...list].map(b=><button key={b.id} aria-pressed={value===b.id} onClick={()=>onChange(b.id)} style={btn(value===b.id)}>{b.name}</button>)}
+    <div role="group" aria-label="브랜드" style={{display:"flex",gap:2,background:"#E9EBEF",borderRadius:9,padding:3,maxWidth:"100%",overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+      {[{id:"all",name:"전체"},...list].map(b=><button key={b.id} aria-pressed={value===b.id} onClick={()=>onChange(b.id)} style={btn(value===b.id)}>{b.name}{b.status==="prep"?<span style={{fontSize:10.5,fontWeight:700,opacity:.75}}> · 준비중</span>:null}</button>)}
     </div>
     {value!=="all"&&<span style={{fontSize:11.5,color:"#6B7280",fontWeight:600}}>{brandName(value,list)} + 공통 업무만 보는 중</span>}
     {master&&!adding&&<button onClick={()=>setAdding(true)} style={{marginLeft:"auto",padding:"5px 10px",borderRadius:7,border:"1px solid #D5D9E0",background:"#fff",color:"#4A4E57",fontSize:11.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>브랜드 추가</button>}
@@ -3980,6 +3980,11 @@ function KPIPage({D,Dall,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBack
     });
     return Object.values(m);
   };
+  const prepBrand=D._brand&&D._brand!=="all"?((D.brands||[]).find(b=>b.id===D._brand&&b.status==="prep")):null;
+  if(prepBrand) return(<div style={{padding:"16px"}}><div style={{background:"#fff",borderRadius:16,border:"1px solid #E3E5EA",padding:"18px 16px"}}>
+    <p style={{margin:0,fontSize:16,fontWeight:900,color:"#191F28"}}>{prepBrand.name} · 런칭 준비 중</p>
+    <p style={{margin:"6px 0 0",fontSize:13,color:"#4E5968",lineHeight:1.7}}>KPI(목표·행동지표·결과 KPI)는 아직 설정 전이에요. 업무·프로젝트·워크플로우·신제품(런칭보드)은 지금 바로 관리할 수 있어요.<br/>KPI 를 정할 때가 되면 마스터가 이 브랜드를 고른 상태에서 목표부터 추가하면 돼요.</p>
+  </div></div>);
   return(
     <div style={{padding:"14px 16px 20px"}}>
       <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}><button onClick={()=>setKpiView(kpiView==="one"?"mindmap":"one")} style={{padding:"4px 2px",border:"none",background:"none",color:"#4A4E57",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",textDecoration:"underline",textUnderlineOffset:2}}>{kpiView==="one"?"KPI 전체 맵으로 보기 →":"‹ KPI 한눈에로 돌아가기"}</button></div>
@@ -5268,6 +5273,7 @@ function ProjectDetailSheet({D,cu,p,up,add,rm,onClose,onAdvanced,focus}){
           <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>상태<select value={projStatus(p)} onChange={e=>up("projects",p.id,{status:e.target.value})} style={{...inp,width:"100%",marginTop:4}}>{Object.entries(PROJ_STATUS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select></label>
           <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",minWidth:0}}>시작일<input type="date" value={p.startDate||""} onChange={e=>up("projects",p.id,{startDate:e.target.value})} style={{...inp,width:"100%",marginTop:4}}/></label>
           <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",minWidth:0}}>마감일{p.dueDate&&<button type="button" onClick={e=>{ e.preventDefault(); up("projects",p.id,{dueDate:""}); }} style={{marginLeft:6,border:"none",background:"none",padding:0,fontSize:11.5,fontWeight:800,color:"#B4383F",cursor:"pointer",fontFamily:"inherit"}}>지우기</button>}<input type="date" value={p.dueDate||""} onChange={e=>up("projects",p.id,{dueDate:e.target.value})} style={{...inp,width:"100%",marginTop:4}}/></label>
+          <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",gridColumn:"1 / -1"}}>브랜드<select value={p.brand||""} onChange={e=>up("projects",p.id,{brand:e.target.value})} aria-label="브랜드" style={{...inp,width:"100%",marginTop:4}}><option value="">자동 (연결 KPI 따라감 · 없으면 POUR스토어)</option>{((D.brands&&D.brands.length)?D.brands:BRAND_SEED).filter(b=>b.active!==false).map(b=><option key={b.id} value={b.id}>{b.name}{b.status==="prep"?" (준비중)":""}</option>)}</select></label>
           <label style={{fontSize:11.5,fontWeight:700,color:"#6B7684",gridColumn:"1 / -1"}}>카테고리<select value={p.category||""} onChange={e=>up("projects",p.id,{category:e.target.value})} style={{...inp,width:"100%",marginTop:4}}><option value="">미분류</option>{WF_CATS.map(c=><option key={c.k} value={c.k}>{c.icon} {c.name}</option>)}</select></label>
         </div>
         <OwnerLog log={p.ownerLog}/>
@@ -5326,7 +5332,7 @@ function NewProjectSheet({D,cu,add,onClose,onCreated,cat}){
     const sk=(D.subKPIs||[]).find(x=>x.id===f.subKPIId);
     if(f.tpl.startsWith("l:")){ const tpl=(D.launchTemplates||[]).find(t=>"l:"+t.id===f.tpl); if(tpl){ instantiateLaunch({tpl,productName:title,mainKPIId:sk?sk.mainKPIId:"",subKPIId:sk?sk.id:"",dealerType:"",add}); onCreated(null); return; } }
     const id="p"+Date.now(); const man=f.tpl.startsWith("m:")&&(D.manuals||[]).find(m=>"m:"+m.id===f.tpl);
-    const proj={id,title,goalType:"journey",projType:"team",mainKPIId:sk?sk.mainKPIId:"",subKPIId:sk?sk.id:"",dealerType:"",assigneeId:f.assigneeId,collaboratorIds:[],group:"",priority:"mid",status:"active",startDate:f.startDate,dueDate:f.dueDate,progress:0,resultValue:0,category:f.category||guessCat(title)||""};
+    const proj={id,...(!sk&&D._brand&&D._brand!=="all"?{brand:D._brand}:{}),title,goalType:"journey",projType:"team",mainKPIId:sk?sk.mainKPIId:"",subKPIId:sk?sk.id:"",dealerType:"",assigneeId:f.assigneeId,collaboratorIds:[],group:"",priority:"mid",status:"active",startDate:f.startDate,dueDate:f.dueDate,progress:0,resultValue:0,category:f.category||guessCat(title)||""};
     if(man){ proj.sourceManualId=man.id; proj.sourceManualName=man.name||""; proj.sourceManualVersion=man.version||1; if(man.countKPIId) proj.countKPIId=man.countKPIId; }
     add("projects",proj); if(man) cloneManualToProject(man,id,"team",add); onCreated(id); };
   return(<Sheet open={true} onClose={onClose} title="새 프로젝트" h="88vh" w={560}>
@@ -5777,12 +5783,14 @@ function LaunchBoard({D,cu,add,up,pc,items}){
       <b style={{fontSize:13.5,color:"#191F28"}}>{b.icon} {b.name} · {g.batch||"차수 미정"}</b>
       <span style={{fontSize:11.5,color:"#6B7684",fontWeight:700}}>{g.rows.length}개 · 평균 {pct}%{ld?` · 출시 ${ld.slice(5)} ${ddayKo(daysTo(ld))}`:""}</span>
       {lg&&<span style={{fontSize:11,color:"#8B95A1"}}>지난 기록: {lg.title}</span>}
+      {(()=>{ const nt=((launchSettings(D.workflows).batchNotes)||{})[g.brand+"|"+g.batch]; if(!g.batch||!nt||!(nt.tag||nt.memo)) return null;
+        return <span style={{flexBasis:"100%",order:9,display:"flex",gap:6,alignItems:"baseline",padding:"6px 9px",borderRadius:8,background:"#FFF6CC",border:"1px solid #F0DE8A",boxShadow:"0 1px 0 rgba(0,0,0,.04)"}}>{nt.tag&&<b style={{fontSize:12,color:"#6B5310",whiteSpace:"nowrap"}}>{nt.tag}</b>}{nt.memo&&<span style={{fontSize:12,color:"#5C4A12",lineHeight:1.45,wordBreak:"keep-all"}}>{nt.memo}</span>}</span>; })()}
       <button onClick={()=>setBatchOpen({brand:g.brand,batch:g.batch||null})} style={{marginLeft:"auto",padding:"5px 10px",borderRadius:9,border:"1px solid #D3D8E6",background:"#fff",color:"#1E2F5C",fontWeight:800,fontSize:11.5,cursor:"pointer",fontFamily:"inherit"}}>{g.batch?"차수 편집":"차수로 묶기"}</button>
     </div>); };
   const list=items.filter(p=>brand==="all"||p.brand===brand).sort((a,b)=>(a.launchDate?0:1)-(b.launchDate?0:1)||String(a.launchDate||"").localeCompare(String(b.launchDate||""))||String(a.name||"").localeCompare(String(b.name||""),"ko"));
   const act=list.filter(p=>launchProgress(p).pct<100), fin=list.filter(p=>launchProgress(p).pct>=100);
   const openP=items.find(p=>p.id===(open&&open.id));
-  const brands=[...new Set(items.map(p=>p.brand).filter(Boolean))];
+  const brands=[...new Set([...Object.keys(LAUNCH_BRANDS),...items.map(p=>p.brand).filter(Boolean)])];
   const Name=({p})=>{ const b=LAUNCH_BRANDS[p.brand]||{icon:"",name:p.brandName||"기타"}; const rem=p.launchDate?daysTo(p.launchDate):null; const nx=launchNextItem(p);
     return(<button onClick={()=>setOpen({id:p.id,ph:(launchCurrentPhase(p)||LAUNCH_PHASES[0]).k})} style={{display:"block",width:"100%",textAlign:"left",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
       <span style={{fontSize:13.5,fontWeight:900,color:"#191F28"}}>{b.icon} {p.name}</span>
@@ -5825,7 +5833,7 @@ function LaunchBoard({D,cu,add,up,pc,items}){
         {showDone&&<div style={{marginTop:6}}>{pc?<Table rows={fin}/>:<Cards rows={fin}/>}</div>}</div>}
       {openP&&<LaunchProductSheet D={D} cu={cu} p={openP} items={items} phK={open.ph} setPh={(k)=>setOpen(o=>({...o,ph:k}))} onClose={()=>setOpen(null)}/>}
       {defOpen&&<LaunchDefaultsSheet D={D} add={add} up={up} items={items} onClose={()=>setDefOpen(false)}/>}
-      {batchOpen&&<BatchSheet D={D} cu={cu} items={items} brand0={batchOpen.brand} batch0={batchOpen.batch} onClose={()=>setBatchOpen(null)}/>}
+      {batchOpen&&<BatchSheet D={D} cu={cu} add={add} up={up} items={items} brand0={batchOpen.brand} batch0={batchOpen.batch} onClose={()=>setBatchOpen(null)}/>}
     </div>);
 }
 
@@ -5834,25 +5842,32 @@ function launchGroups(rows){ const out=[]; rows.forEach(p=>{ const k=(p.brand||"
   const bi=(b)=>{ const i=Object.keys(LAUNCH_BRANDS).indexOf(b); return i<0?99:i; };
   return out.sort((a,b)=>bi(a.brand)-bi(b.brand)||(a.batch?0:1)-(b.batch?0:1)||String(a.batch).localeCompare(String(b.batch),"ko",{numeric:true})); }
 const DECO_RE=/루바월|아트월|흡음재|타일카펫/;
-function BatchSheet({D,cu,items,brand0,batch0,onClose}){
-  const brands=[...new Set(items.map(p=>p.brand).filter(Boolean))];
+function BatchSheet({D,cu,add,up,items,brand0,batch0,onClose}){
+  const brands=[...new Set([...Object.keys(LAUNCH_BRANDS),...items.map(p=>p.brand).filter(Boolean)])];
+  const notes=(launchSettings(D.workflows).batchNotes)||{};
   const [brand,setBrand]=useState(brand0||brands[0]||"grohome");
   const inB=items.filter(p=>p.brand===brand);
   const names=[...new Set(inB.map(p=>p.batch).filter(Boolean))];
   const initName=batch0!=null?batch0:(names[0]||(brand==="grohome"?"데코라인 1차":"1차"));
   const [name,setName]=useState(initName);
+  const [orig,setOrig]=useState(names.includes(initName)?initName:null);   // 고른 기존 차수 — 이름을 바꾸면 이 차수 제품 모두 새 이름으로
+  const noteOf=(b,nm)=>notes[b+"|"+nm]||{};
+  const [tag,setTag]=useState(noteOf(brand0||brands[0]||"grohome",initName).tag||""); const [memo,setMemo]=useState(noteOf(brand0||brands[0]||"grohome",initName).memo||"");
   const pick=(nm,br)=>{ const list=items.filter(p=>p.brand===(br||brand)); const has=list.some(p=>p.batch===nm);
     return Object.fromEntries(list.map(p=>[p.id,has?p.batch===nm:(nm==="데코라인 1차"&&DECO_RE.test(String(p.name||"")))])); };
   const [sel,setSel]=useState(()=>pick(initName));
   const [date,setDate]=useState("");
   const [msg,setMsg]=useState("");
-  const chooseName=(nm)=>{ setName(nm); setSel(pick(nm)); };
-  const chooseBrand=(b)=>{ setBrand(b); const ns=[...new Set(items.filter(p=>p.brand===b).map(p=>p.batch).filter(Boolean))]; const nm=ns[0]||"1차"; setName(nm); setSel(pick(nm,b)); };
+  const chooseName=(nm)=>{ setName(nm); setSel(pick(nm)); setOrig(names.includes(nm)?nm:null); const n0=noteOf(brand,nm); setTag(n0.tag||""); setMemo(n0.memo||""); };
+  const chooseBrand=(b)=>{ setBrand(b); const ns=[...new Set(items.filter(p=>p.brand===b).map(p=>p.batch).filter(Boolean))]; const nm=ns[0]||"1차"; setName(nm); setSel(pick(nm,b)); setOrig(ns.includes(nm)?nm:null); const n0=noteOf(b,nm); setTag(n0.tag||""); setMemo(n0.memo||""); };
   const save=async()=>{ const nm=name.trim(); if(!nm){ setMsg("차수 이름을 넣어 주세요"); return; } let n=0, bad=0;
     for(const p of inB){ const on=!!sel[p.id]; const patch={};
-      if(on&&p.batch!==nm) patch.batch=nm; if(!on&&p.batch===nm) patch.batch="";
+      if(on&&p.batch!==nm) patch.batch=nm; if(!on&&(p.batch===nm||(orig&&p.batch===orig))) patch.batch="";
       if(on&&date&&p.launchDate!==date) patch.launchDate=date;
       if(Object.keys(patch).length){ const ok=await lbWrite(p.id,patch,`출시 차수 ${patch.batch===undefined?nm:(patch.batch||"해제")}${patch.launchDate?" · 출시일 "+date:""}`,cu); ok?n++:bad++; } }
+    { const nn={...notes}; if(orig&&orig!==nm) delete nn[brand+"|"+orig]; const t=tag.trim(), m=memo.trim();
+      if(t||m) nn[brand+"|"+nm]={tag:t,memo:m,updatedAt:new Date().toISOString(),by:cu?.name||""}; else delete nn[brand+"|"+nm];
+      if(JSON.stringify(nn)!==JSON.stringify(notes)) saveWfOverride(D,add,up,"wf_launch",{batchNotes:nn}); }
     setMsg(bad?`${bad}건 저장 실패 · 인터넷 연결을 확인해 주세요`:`${n}개 제품을 '${nm}'(으)로 정리했어요`); if(!bad) setTimeout(onClose,700); };
   const cnt=Object.values(sel).filter(Boolean).length;
   return(<Sheet open={true} onClose={onClose} title="출시 차수 묶기" h="92vh" w={560}>
@@ -5864,7 +5879,15 @@ function BatchSheet({D,cu,items,brand0,batch0,onClose}){
         <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:5}}>
           {[...new Set([...names,...(brand==="grohome"?["데코라인 1차"]:[]),"1차","2차","3차"])].map(nm=><button key={nm} onClick={()=>chooseName(nm)} style={{padding:"7px 11px",borderRadius:14,border:`1.5px solid ${name===nm?"#24386B":"#E5E8EB"}`,background:name===nm?"#EEF0F5":"#fff",color:name===nm?"#1E2F5C":"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{nm}{names.includes(nm)?` · ${inB.filter(p=>p.batch===nm).length}`:""}</button>)}
         </div>
-        <input value={name} onChange={e=>setName(e.target.value)} placeholder="직접 입력 (예: 데코라인 2차)" style={{...wfInp,width:"100%",marginTop:8}}/>
+        <input value={name} onChange={e=>setName(e.target.value)} placeholder="직접 입력 (예: 데코라인 2차)" aria-label="차수 이름" style={{...wfInp,width:"100%",marginTop:8}}/>
+        {orig&&name.trim()&&name.trim()!==orig&&<p style={{margin:"5px 2px 0",fontSize:11.5,color:"#B26A12",fontWeight:700}}>'{orig}' → '{name.trim()}' 로 이름이 바뀌어요 (이 차수 제품 모두 · 런칭보드에도)</p>}
+      </div>
+      <div style={{padding:"10px 11px",borderRadius:12,background:"#FFF6CC",border:"1px solid #F0DE8A"}}>
+        <span style={{fontSize:11.5,fontWeight:800,color:"#6B5310"}}>포스트잇 · 이 차수 표식</span>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap",margin:"6px 0"}}>{["데코라인","리페어라인","신규라인"].map(x=><button key={x} type="button" onClick={()=>setTag(x)} style={{padding:"5px 10px",borderRadius:12,border:`1.5px solid ${tag===x?"#6B5310":"#E8D88F"}`,background:tag===x?"#FFEFA3":"#FFFBEA",color:"#6B5310",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>{x}</button>)}</div>
+        <input value={tag} onChange={e=>setTag(e.target.value)} placeholder="표식 (예: 데코라인)" aria-label="표식" style={{...wfInp,width:"100%",background:"#FFFDF3"}}/>
+        <textarea value={memo} onChange={e=>setMemo(e.target.value)} rows={2} placeholder="메모 (예: 10/23 동시 출시 · 상세페이지 톤 통일)" aria-label="포스트잇 메모" style={{...wfInp,width:"100%",marginTop:6,background:"#FFFDF3",resize:"vertical"}}/>
+        <p style={{margin:"4px 2px 0",fontSize:11,color:"#8A7420"}}>로드맵의 이 차수 머리에 노란 메모로 붙어요</p>
       </div>
       <div>
         <span style={{fontSize:11.5,fontWeight:700,color:"#6B7684"}}>이 차수에 넣을 제품 ({cnt})</span>

@@ -1,6 +1,6 @@
 // 출시 인스턴스 전체 체인 시뮬레이션 — node src/launch.test.mjs
 // 실제 코드(launch.js·kpi.js)로: 템플릿→인스턴스(프로젝트+7단계 업무) → 단계 완료 시 액션 자동생성 → 전부 완료 → 출시 KPI +1
-import { applyAutomation, instantiateLaunch } from "./launch.js";
+import { applyAutomation, instantiateLaunch, launchGroupsOf } from "./launch.js";
 import { skCur } from "./kpi.js";
 
 let pass=0,fail=0;
@@ -79,6 +79,15 @@ let s4={projects:[{id:"pz"}],tasks:[
 s4={...s4,tasks:s4.tasks.map(t=>t.id==="z1"?{...t,status:"done"}:t)};
 s4=applyAutomation(s4,"z1",actor);
 ok("회귀: advance없는 autoComplete:false 후속은 그대로 todo",s4.tasks.find(t=>t.id==="z2").status==="todo");
+
+
+// 로드맵 차수 묶음 — 출시일 빠른 순 (실제 화면 사례: 리페어 2차 10-16 이 리페어 1차 10-05 보다 위에 있던 문제)
+{ const P=(name,brand,batch,d)=>({name,brand,batch,launchDate:d});
+  const g=launchGroupsOf([P("흡음재 1","grohome","데코라인 1차","2026-10-16"),P("2in1 목재","grohome","리페어 2차","2026-10-16"),P("스티커 프라이머","grohome","리페어 1차","2026-10-05"),
+    P("분말세제","pourstore","세제 1차","2026-10-09"),P("캡슐세제","pourstore","세제 2차",""),P("d","grohome","",""),P("루바월","grohome","데코라인 1차","2026-10-23")],["pourstore","grohome"]);
+  const ks=g.map(x=>x.batch||"미정");
+  ok("차수 묶음이 출시일 빠른 순 · 날짜 없는 차수 다음 · 차수 미정 맨 뒤", JSON.stringify(ks)===JSON.stringify(["리페어 1차","세제 1차","데코라인 1차","리페어 2차","세제 2차","미정"]), JSON.stringify(ks));
+  ok("묶음 안 제품도 출시일 순", g[2].rows.map(p=>p.name).join(",")==="흡음재 1,루바월"); }
 
 console.log(`\n${fail===0?"🟢 전체 통과":"🔴 실패 있음"} — pass ${pass} / fail ${fail}`);
 process.exit(fail===0?0:1);

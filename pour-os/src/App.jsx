@@ -9,7 +9,7 @@ import { AK_SEED, LAG_SEED, AK_FUNS, AK_CYC, akYmd, akWeekKey, akAddDays, akQidO
 import { fixBrandDup, COMMON, BRAND_SEED, brandKey, brandName, brandView, brandSel, toggleBrand, taskBrand, akBrandOf, mkBrand, projBrand, seedMissing, fixGhSubs, withAutoSales, salesByCh, salesChOf, execGroups, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, SALES_CH_DEFAULT } from "./brand.js";
 import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGetSnapshot } from "./durable.js";
 import { numF, skCur, mkCur, calcSegDone } from "./kpi.js";
-import { applyAutomation, instantiateLaunch } from "./launch.js";
+import { applyAutomation, instantiateLaunch, launchGroupsOf } from "./launch.js";
 import { initCrmOperatorSync, matchOperator, initCrmRevenueSync } from "./crmOperatorSync.js";
 import { caseToggleCalc, caseConfirmStage, stepsToStages, stagesToSteps, flowOfAk } from "./workflow.js";
 import { WF_CATS, catOf, EXEC_TYPES, execOf, CPC_CHANNELS, NOTICE_KINDS, DEFAULT_WORKFLOWS, mergeWorkflows, launchSettings, caseProgress, caseNext, caseChecks, toggleCheck, caseTurnOwner, numOr0, roasOf, LAUNCH_PHASES, LAUNCH_ITEMS, LAUNCH_COL, LAUNCH_BRANDS, lbState, phaseProgress, launchProgress, launchCurrentPhase, launchLead, nameMatch, guessCat, guessWfProject } from "./workflow.js";
@@ -22,7 +22,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-브랜드여러개";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-차수날짜순";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -5843,9 +5843,7 @@ function LaunchBoard({D,cu,add,up,pc,items}){
 }
 
 // 브랜드 → 출시 차수(예: 데코라인 1차) 묶음. batch 는 런칭보드 문서에 추가 칸으로만 저장(기존 값 보존)
-function launchGroups(rows){ const out=[]; rows.forEach(p=>{ const k=(p.brand||"etc")+"|"+(p.batch||""); let g=out.find(x=>x.k===k); if(!g){ g={k,brand:p.brand||"etc",batch:p.batch||"",rows:[]}; out.push(g); } g.rows.push(p); });
-  const bi=(b)=>{ const i=Object.keys(LAUNCH_BRANDS).indexOf(b); return i<0?99:i; };
-  return out.sort((a,b)=>bi(a.brand)-bi(b.brand)||(a.batch?0:1)-(b.batch?0:1)||String(a.batch).localeCompare(String(b.batch),"ko",{numeric:true})); }
+function launchGroups(rows){ return launchGroupsOf(rows,Object.keys(LAUNCH_BRANDS)); }
 // 차수 = 같은 출시일로 함께 나가는 제품 묶음. batch·launchDate 는 런칭보드 문서 칸 그대로(기존 값 보존)
 function batchDateOf(rows){ const ds=[...new Set(rows.map(p=>p.launchDate).filter(Boolean))].sort();
   return {date:ds[0]||"",mixed:ds.length>1||(ds.length===1&&rows.some(p=>!p.launchDate))}; }
@@ -5887,13 +5885,16 @@ function BatchHead({D,cu,add,up,g,items,legacy}){
         {others&&<p style={{margin:"2px 2px 0",fontSize:11.5,color:"#B26A12",fontWeight:700}}>'{name.trim()}' 차수가 이미 있어요 · 저장하면 두 차수가 하나로 합쳐져요</p>}
         {msg&&<p style={{margin:"2px 2px 0",fontSize:11.5,color:"#B4383F",fontWeight:800}}>{msg}</p>}
       </div>
-      :<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-        <b style={{fontSize:13.5,color:"#191F28"}}>{b.icon} {b.name} · {g.batch||"차수 미정"}</b>
-        <span style={{fontSize:11.5,color:"#6B7684",fontWeight:700}}>{g.rows.length}개 · 평균 {pct}%{g.batch?(bd.mixed?"":bd.date?` · 출시 ${bd.date.slice(5)} ${ddayKo(daysTo(bd.date))}`:" · 출시일 미정"):""}</span>
-        {g.batch&&bd.mixed&&<button onClick={openEdit} style={{border:"none",background:"none",padding:0,fontSize:11.5,fontWeight:800,color:"#B26A12",cursor:"pointer",fontFamily:"inherit"}}>출시일 제각각 · 하나로 맞추기</button>}
-        {legacy&&<span style={{fontSize:11,color:"#8B95A1"}}>지난 기록: {legacy.title}</span>}
-        {g.batch?<button onClick={openEdit} style={{...bhBtn,marginLeft:"auto"}}>이름·출시일</button>
-          :<span style={{marginLeft:"auto",fontSize:11.5,color:"#8B95A1"}}>제품을 눌러 차수를 골라요</span>}
+      :<div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <b style={{flex:1,minWidth:0,fontSize:13.5,color:"#191F28",wordBreak:"keep-all"}}>{b.icon} {b.name} · {g.batch||"차수 미정"}</b>
+          {g.batch?<button onClick={openEdit} style={{...bhBtn,flexShrink:0}}>이름·출시일</button>:<span style={{flexShrink:0,fontSize:11.5,color:"#8B95A1"}}>제품을 눌러 차수를 골라요</span>}
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginTop:3}}>
+          <span style={{fontSize:11.5,color:"#6B7684",fontWeight:700}}>{g.rows.length}개 · 평균 {pct}%{g.batch?(bd.mixed?"":bd.date?` · 출시 ${bd.date.slice(5)} ${ddayKo(daysTo(bd.date))}`:" · 출시일 미정"):""}</span>
+          {g.batch&&bd.mixed&&<button onClick={openEdit} style={{border:"none",background:"none",padding:0,fontSize:11.5,fontWeight:800,color:"#B26A12",cursor:"pointer",fontFamily:"inherit"}}>출시일 제각각 · 하나로 맞추기</button>}
+          {legacy&&<span style={{fontSize:11,color:"#8B95A1"}}>지난 기록: {legacy.title}</span>}
+        </div>
       </div>}
     {g.batch&&(mode==="note"?<div style={{padding:"9px 10px",borderRadius:9,background:"#FFF6CC",border:"1px solid #F0DE8A"}}>
         <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:6}}>{BATCH_TAGS.map(x=><button key={x} type="button" onClick={()=>setTag(x)} style={{padding:"5px 10px",borderRadius:12,border:`1.5px solid ${tag===x?"#6B5310":"#E8D88F"}`,background:tag===x?"#FFEFA3":"#FFFBEA",color:"#6B5310",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>{x}</button>)}</div>

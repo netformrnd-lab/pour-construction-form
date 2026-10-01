@@ -153,6 +153,15 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--line);
   .finding,.pcard,.tblwrap,.checkwrap{break-inside:avoid}
 }
 
+.fold summary{list-style:none;cursor:pointer}
+.fold summary::-webkit-details-marker{display:none}
+.fold .sec-head{margin-bottom:5px}
+.fold-hint{margin-left:auto;font-size:13px;font-weight:600;color:var(--ink3);border:1px solid var(--line);border-radius:8px;padding:4px 12px;background:var(--bg)}
+.fold-hint::after{content:' ▾'}
+.fold[open] .fold-hint{font-size:0}
+.fold[open] .fold-hint::before{content:'접기';font-size:13px}
+.fold[open] .fold-hint::after{content:' ▴';font-size:13px}
+.fold summary:focus-visible{outline:2px solid var(--blue);outline-offset:4px;border-radius:8px}
 .hmeta>div{flex:1 1 auto;min-width:120px}
 .hmeta .v{white-space:nowrap}
 .hmeta .k,.hmeta .v{padding:0!important;margin:0!important;border:0!important}
@@ -179,17 +188,17 @@ td.n{white-space:nowrap}
 <div><div class="k">품목</div><div class="v">9개</div></div>
 <div><div class="k">채널</div><div class="v">3곳</div></div>
 <div><div class="k">비교 기준</div><div class="v">㎡당 · 배송비 포함</div></div></div></div></header>
-<nav><div class="wrap"><a href="#s1" class="on">01 핵심 결론</a><a href="#s2">02 가격 구조</a><a href="#s3">03 수집 제품</a><a href="#s4">04 확인 필요</a></div></nav>
+<nav><div class="wrap"><a href="#s1" class="on">01 핵심 결론</a><a href="#s2">02 수집 제품</a><a href="#s3">03 가격 구조</a><a href="#s4">04 확인 필요</a></div></nav>
 <div class="wrap">
 <section id="s1"><div class="sec-head"><span class="sec-num">01</span><h2>핵심 결론</h2></div>
 <p class="sec-sub">수집한 제품의 ㎡당 가격(판매가 + 배송비)을 기준으로 관찰한 내용입니다.</p><div class="finding"><span class="f-tag">관찰</span><h3>품목마다 ㎡당 가격 수준이 크게 다릅니다</h3><p>㎡당 중앙값으로 PVC 투명시트 <b>1,663원</b>, 붙이는 롤형 벽지 3,490원, 대리석 타일 시트지 9,111원, 비접착식 데코타일 14,276원, 데크타일 A타입 22,099원, B타입 28,333원, 논슬립 화장실 패드 33,010원, 붙이는 타일 시트 <b>81,889원</b>입니다. 품목마다 가격 기준을 따로 잡아야 합니다.</p></div><div class="finding"><span class="f-tag">관찰</span><h3>비접착식 데코타일은 가격대가 좁게 모여 있습니다</h3><p>4건 모두 오늘의집이고 ㎡당 <b>13,542원에서 14,769원</b> 사이로, 최저와 최고 차이가 9%입니다. 크기(47~60cm)와 묶음 수(4~9장)가 달라도 ㎡당으로는 거의 같은 수준입니다.</p></div><div class="finding"><span class="f-tag">관찰</span><h3>데크타일은 조각이 작은 B타입이 ㎡당 더 비쌉니다</h3><p>30cm 조각인 A타입은 중앙값 <b>22,099원</b>, 12~15cm 조각인 B타입은 <b>28,333원</b>입니다. B타입은 40~72개 묶음으로 팔려 개당 가격은 512~638원으로 낮지만, 면적으로 보면 A타입보다 높습니다.</p></div><div class="finding alert"><span class="f-tag">주의</span><h3>낱장 판매는 배송비 때문에 ㎡당 가격이 크게 올라갑니다</h3><p>대리석 타일 시트지에서 10장 묶음 2건은 ㎡당 <b>8,500원·9,111원</b>인데, 엘로몽키는 1장 1,100원에 배송비 3,000원이 붙어 <b>22,778원</b>입니다. 데크타일 A타입도 몰딩스토리 1장(3,000원 + 배송비 3,000원)이 <b>66,667원</b>으로, 나머지 4건(16,769~33,951원)보다 크게 높습니다.</p></div><div class="finding alert"><span class="f-tag">주의</span><h3>롤형 벽지와 투명시트는 크기가 달라 판매가로는 비교할 수 없습니다</h3><p>롤형 벽지는 1.7㎡~10㎡까지 크기가 달라 ㎡당 <b>1,483원에서 21,913원</b>까지 15배 가까이 차이가 납니다. 가장 싼 이지롤(60cm×10m, 8,900원)과 가장 비싼 스페이스테일러(69×250cm, 32,300원 + 배송비 5,500원)는 판매가로는 4배지만 ㎡당으로는 15배입니다. 투명시트는 60×10m 5건이 832~2,650원, 60×8m(이지픽) 2,073원, 60×5m(대쉬) 3,967원으로, 판매가는 4,990~15,900원으로 3배 넘게 차이 나지만 ㎡당으로는 832~3,967원 안에 있습니다. 이 두 품목은 <b>㎡당으로만 비교해야</b> 합니다.</p></div><div class="finding alert"><span class="f-tag">주의</span><h3>아이방스티커는 크기가 없어 ㎡당 비교가 안 됩니다</h3><p>6개 묶음 2건을 개당가로만 비교했습니다. 소피의열한시십칠분 17,680원(개당 <b>2,947원</b>), 미노네 6,400원 + 배송비 3,000원(개당 <b>1,567원</b>)입니다. 레벨월스코리아 포인트벽지(163,800원)는 스티커가 아닌 벽지로, 모양 참고용이라 계산에서 뺐습니다.</p></div></section>
-<section id="s2"><div class="sec-head"><span class="sec-num">02</span><h2>품목별 가격 구조</h2></div>
+<section id="s2"><div class="sec-head"><span class="sec-num">02</span><h2>수집 제품</h2></div>
+<p class="sec-sub">핵심 결론의 근거가 된 제품입니다. ㎡당 가격이 낮은 순으로 정렬했고, 카드를 누르면 판매 페이지로 이동합니다.</p>
+<div class="chips" role="tablist" id="chips"></div><div class="grid" id="grid"></div></section>
+<section id="s3"><details class="fold"><summary><div class="sec-head"><span class="sec-num">03</span><h2>품목별 가격 구조</h2><span class="fold-hint">펼치기</span></div></summary>
 <p class="sec-sub">크기가 다른 제품을 나란히 보기 위해 ㎡당 가격으로 통일했습니다. 대체품은 계산에서 뺐습니다.</p>
 <div class="tblwrap"><table><thead><tr><th>품목</th><th>수집</th><th>최저</th><th>중앙값</th><th>최고</th><th>최저가 제품</th><th>관찰</th></tr></thead><tbody><tr><td class="nm">대리석 타일 시트지<span>기준 ㎡당</span></td><td class="n">4건 <span class="dim">(비교 3)</span></td><td class="n">8,500</td><td class="n">9,111</td><td class="n">22,778</td><td class="hi">15,300원<span>에이제이케이컴퍼니</span></td><td class="obs">10장 묶음 2건은 8,500·9,111원, 낱장 1건은 22,778원</td></tr><tr><td class="nm">붙이는 타일 시트<span>기준 ㎡당</span></td><td class="n">3건</td><td class="n">44,175</td><td class="n">81,889</td><td class="n">90,298</td><td class="hi">28,500원<span>샤인홈리빙</span></td><td class="obs">1장 판매 2건은 배송비 3,500원 포함 81,889·90,298원, 10장 묶음 1건은 44,175원</td></tr><tr><td class="nm">붙이는 롤형 벽지<span>기준 ㎡당</span></td><td class="n">3건</td><td class="n">1,483</td><td class="n">3,490</td><td class="n">21,913</td><td class="hi">8,900원<span>이지롤</span></td><td class="obs">크기가 1.7㎡~10㎡로 달라 ㎡당으로만 비교 가능</td></tr><tr><td class="nm">아이방스티커<span>기준 개당 (크기 없음)</span></td><td class="n">3건 <span class="dim">(비교 2)</span></td><td class="n">1,567</td><td class="n">2,257</td><td class="n">2,947</td><td class="hi">6,400원<span>미노네</span></td><td class="obs">크기 없음. 6개 묶음 2건을 개당가로 비교</td></tr><tr><td class="nm">PVC 주방 방오 오염방지 투명시트<span>기준 ㎡당</span></td><td class="n">7건</td><td class="n">832</td><td class="n">1,663</td><td class="n">3,967</td><td class="hi">4,990원<span>소브홀릭</span></td><td class="obs">60×10m 5건은 832~2,650원, 8m·5m 롤은 2,073·3,967원</td></tr><tr><td class="nm">비접착식 데코타일<span>기준 ㎡당</span></td><td class="n">4건</td><td class="n">13,542</td><td class="n">14,276</td><td class="n">14,769</td><td class="hi">19,500원<span>룸스토어</span></td><td class="obs">4건이 13,542~14,769원에 모여 있음</td></tr><tr><td class="nm">데크타일 A타입<span>기준 ㎡당</span></td><td class="n">5건</td><td class="n">16,769</td><td class="n">22,099</td><td class="n">66,667</td><td class="hi">27,166원<span>아임홈리빙</span></td><td class="obs">1장 판매 1건만 66,667원, 나머지 16,769~33,951원</td></tr><tr><td class="nm">데크타일 B타입<span>기준 ㎡당</span></td><td class="n">4건</td><td class="n">25,685</td><td class="n">28,333</td><td class="n">35,590</td><td class="hi">20,805원<span>아임홈리빙</span></td><td class="obs">12~15cm 소형 조각. 25,685~35,590원</td></tr><tr><td class="nm">논슬립 화장실 패드<span>기준 ㎡당</span></td><td class="n">4건</td><td class="n">23,422</td><td class="n">33,010</td><td class="n">38,870</td><td class="hi">21,080원<span>미리</span></td><td class="obs">30×30 8장 1건, 나머지 3건은 90×60·100×90 1장</td></tr></tbody></table></div>
-<p class="note">단위는 원, 판매가 + 배송비 기준. 아이방스티커만 개당 가격입니다. 최저가 제품 칸은 그 제품의 판매가입니다.</p></section>
-<section id="s3"><div class="sec-head"><span class="sec-num">03</span><h2>수집 제품</h2></div>
-<p class="sec-sub">위 분석의 근거가 된 제품입니다. ㎡당 가격이 낮은 순으로 정렬했고, 카드를 누르면 판매 페이지로 이동합니다.</p>
-<div class="chips" role="tablist" id="chips"></div><div class="grid" id="grid"></div></section>
+<p class="note">단위는 원, 판매가 + 배송비 기준. 아이방스티커만 개당 가격입니다. 최저가 제품 칸은 그 제품의 판매가입니다.</p></details></section>
 <section id="s4"><div class="sec-head"><span class="sec-num">04</span><h2>확인이 필요한 부분</h2></div>
 <p class="sec-sub">아래는 결론의 신뢰도에 영향을 주는 항목입니다. 시트 원본은 그대로 두었습니다.</p>
 <div class="checkwrap"><ol><li><b>비교 여부가 대부분 비어 있습니다.</b> 37건 중 포함 3건, 대체품 2건, 나머지 32건은 미지정입니다. 이 보고서는 대체품(레벨월스코리아는 모양 참고용 벽지)만 빼고 계산했습니다.</li><li><b>수집 채널은 오늘의집 21건, 쿠팡 11건, 네이버스마트스토어 5건입니다.</b> 품목별로는 3~7건이라 가격대 판단에는 건수가 적습니다.</li><li><b>원가와 목표 마진을 모르는 상태입니다.</b> 여기 나온 수치는 시장 관찰값이며, 판매가는 원가 확인 후에 정해야 합니다.</li></ol></div></section>

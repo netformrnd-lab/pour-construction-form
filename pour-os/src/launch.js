@@ -65,3 +65,14 @@ export const instantiateLaunch=({tpl,productName,mainKPIId,subKPIId,dealerType,a
     add("tasks",{id:taskIdByNode[n.id],title:n.roleLabel?`[${n.roleLabel}] ${n.title}`:n.title,projectId:projId,assigneeId:n.assigneeId||owner,type:"general",status:"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],auto:n.auto||null,autoComplete:!!n.autoComplete,launchNode:n.id,step:i,deps});
   });
 };
+
+// 신제품 로드맵 차수 묶음 — 출시일 빠른 순(묶음 안 가장 이른 출시일). 출시일 없는 차수는 뒤, '차수 미정'은 맨 뒤.
+// 같은 날이면 브랜드 순(brandOrder) → 차수 이름. 묶음 안 제품도 출시일 → 이름 순.
+export function launchGroupsOf(rows, brandOrder = []) {
+  const out = []; (rows || []).forEach((p) => { const k = (p.brand || "etc") + "|" + (p.batch || ""); let g = out.find((x) => x.k === k); if (!g) { g = { k, brand: p.brand || "etc", batch: p.batch || "", rows: [] }; out.push(g); } g.rows.push(p); });
+  const bi = (b) => { const i = brandOrder.indexOf(b); return i < 0 ? 99 : i; };
+  const first = (g) => g.rows.map((p) => p.launchDate).filter(Boolean).sort()[0] || "";
+  const rank = (g) => !g.batch ? 2 : first(g) ? 0 : 1;
+  out.forEach((g) => g.rows.sort((a, b) => (a.launchDate ? 0 : 1) - (b.launchDate ? 0 : 1) || String(a.launchDate || "").localeCompare(String(b.launchDate || "")) || String(a.name || "").localeCompare(String(b.name || ""), "ko")));
+  return out.sort((a, b) => rank(a) - rank(b) || first(a).localeCompare(first(b)) || bi(a.brand) - bi(b.brand) || String(a.batch).localeCompare(String(b.batch), "ko", { numeric: true }));
+}

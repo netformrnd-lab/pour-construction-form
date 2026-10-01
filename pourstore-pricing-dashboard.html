@@ -150,6 +150,7 @@ tr.catrow .gridadd:hover,tr.catrow .catedit:hover{background:rgba(255,255,255,.3
 .catmgr{padding:4px 12px;border:1px dashed var(--muted,#9aa);border-radius:6px;background:#fff;color:var(--ink-soft);font-weight:600;font-size:12px;cursor:pointer;margin-left:6px}
 .catmgr:hover{border-color:var(--xl-green);color:var(--xl-green-dark)}
 .grip{cursor:grab;color:#c2c8cc;user-select:none;margin-right:4px;font-size:13px;letter-spacing:-2px}
+.overbadge{display:inline-block;margin-left:5px;font-size:9.5px;font-weight:700;color:#fff;background:var(--red);border-radius:3px;padding:0 4px;vertical-align:middle}
 /* No 칸: 번호를 눌러 순서 바꾸기 — 드래그가 어려운 긴 표에서 쓰는 방법 */
 .nono{cursor:pointer;border-bottom:1px dotted #b3bdc4;padding:0 2px;border-radius:2px}
 .nono:hover{color:var(--xl-green-dark);background:#EAF7EF;border-bottom-color:var(--xl-green)}
@@ -1742,7 +1743,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.10.01a</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.10.01b</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -1922,6 +1923,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
         <button class="tbtn" id="btnClearTodo" style="display:none;background:#FDF6F4;border-color:#F1B7AD;color:#8A2B1E" title="지금 표에 보이는 제품의 '단가 미정' 표시를 모두 해제합니다. 업체단가·정가가 있으면 총판~쿠팡이 다시 계산됩니다.">미정 해제</button>
         <button class="tbtn" id="btnBulkFix" style="display:none" title="지금 표에 보이는 제품을 모두 '파일값 고정(📌)'으로 — 업로드한 단가를 그대로 씁니다">📌 일괄 고정</button>
         <button class="tbtn" id="btnBulkAuto" style="display:none" title="지금 표에 보이는 제품을 모두 '자동계산(⚙️)'으로 — 업체단가~정가 사다리로 계산합니다">⚙️ 일괄 자동</button>
+        <button class="tbtn" id="btnClearOvr" style="display:none" title="지금 표에 보이는 제품의 '직접 조정된 칸'을 모두 풀어 자동계산으로 되돌립니다 (업체단가·정가는 그대로)">🧹 조정 해제</button>
         <button class="tbtn" id="btnCodeCol" style="display:none" title="제품명 왼쪽 '코드' 열을 숨기거나 보입니다 (이 기기에 기억)">🏷 코드 열 숨기기</button>
         <button class="tbtn" id="btnPcode" style="display:none;background:#EFF6FF;border-color:#BFDBFE;color:#1E40AF;font-weight:700" title="POUR스토어 자체상품코드(옵션 단위) 보기·수정·내보내기 — 오픈마켓 판매자관리코드에 넣는 값입니다">🏷 자체상품코드</button>
         <button class="tbtn" id="btnGhImport" style="display:none;background:#FFF1E6;border-color:#FDBA8C;color:#C2410C;font-weight:700" title="그로홈 대시보드의 [제품 관리 › 제품 마스터]를 읽어 GROHOME 브랜드 제품으로 등록·연결합니다">🏠 그로홈 제품 가져오기</button>
@@ -4284,6 +4286,24 @@ async function bulkFix(on){
   gridToast(`${target.length}개 제품을 ${on?'📌 파일값 고정':'⚙️ 자동계산'} 으로 바꿨습니다.`);
   logAct('반영방식', `일괄 ${target.length}개`, on?'파일값 고정':'자동계산');
 }
+/* 🧹 직접 조정 일괄 해제 — 📌 고정을 풀어도 '직접 조정된 칸'은 계산보다 우선이라
+   업로드 때 박힌 옛 값이 그대로 남는다(쿠팡가가 정가보다 비싸게 남던 문제). 한 번에 푼다. */
+async function bulkClearOvr(){
+  const list=visibleProducts();
+  if(!list.length){ alert('표에 보이는 제품이 없습니다.'); return; }
+  const rUid=(typeof retailUid==='function')?retailUid():null;
+  const hits=[];
+  list.forEach(p=>CHANNELS.forEach(c=>{
+    if(!c.col || isDeletedChan(c.uid) || c.uid===rUid) return;   // 정가는 앵커라 건드리지 않는다
+    if(hasOvr(p,c.uid)) hits.push({p,uid:c.uid}); }));
+  if(!hits.length){ alert('지금 표에 보이는 제품에는 직접 조정된 칸이 없습니다.'); return; }
+  if(!confirm(`지금 표에 보이는 ${list.length}개 제품에서\n직접 조정된 ${hits.length}칸을 해제합니다.\n\n· 그 칸들이 업체단가~정가 자동계산값으로 돌아갑니다.\n· 업체단가·자사몰정가는 그대로 둡니다.\n· 상급자 승인 후 실제 반영됩니다(개정안).\n\n계속할까요?`)) return;
+  hits.forEach(({p,uid})=>{ const k=ovrKey(p,uid); if(POVR[k]==null) delete DPOVR[k]; else DPOVR[k]=null; });
+  DRAFT_META.status=DRAFT_META.status||'작성중'; await saveDraft();
+  PREVIEW=true; recalcVendor(); refreshAll();
+  gridToast(`직접 조정 ${hits.length}칸을 해제했습니다 — 승인하면 반영됩니다.`);
+  logAct('직접조정', `일괄 해제 ${hits.length}칸`, `제품 ${list.length}개`);
+}
 function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산에 쓰는 COLS 는 그대로)
   ensureCatCfg();   // 새 분류 자동 시딩(표시·정렬용, 저장은 분류 관리에서)
   ensurePorder();   // 제품 순서 시딩(드래그 재정렬용)
@@ -4294,7 +4314,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   const pcBtn=$('#btnPcode'); if(pcBtn) pcBtn.style.display=costAllowed?'':'none';          // 자체상품코드: 원가열람 계정만
   if(PCODE_LOADED && costAllowed && (PCODE_RULE!==PCODE_RULE_VER || pcodeTargets().some(p=>!PCODE[pKey(p)]))) schedulePcodeAuto();
   renderBrandSeg(); renderStatusSeg(); if(window.__pzFiltPaint) window.__pzFiltPaint();
-  ['btnBulkFix','btnBulkAuto','btnClearTodo'].forEach(id=>{ const b=$('#'+id); if(b) b.style.display=costAllowed?'':'none'; });
+  ['btnBulkFix','btnBulkAuto','btnClearTodo','btnClearOvr'].forEach(id=>{ const b=$('#'+id); if(b) b.style.display=costAllowed?'':'none'; });
   const ct=$('#btnClearTodo'); if(ct){ const n=todoCount(); ct.textContent=n?`미정 해제 (${n})`:'미정 해제'; ct.disabled=!n; ct.style.opacity=n?'':'.45'; }
   const chanBtn=$('#btnAddChan'); if(chanBtn) chanBtn.style.display=costAllowed?'':'none';    // 채널 추가: 원가열람 계정만
   const psBtn=$('#btnPriceSheet'); if(psBtn) psBtn.style.display=costAllowed?'':'none';        // 단가표 PDF: 원가열람 계정만
@@ -4381,6 +4401,9 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
       let disp = todo ? '<span class="todohint">미정</span>'
                : ((editable && pr==null) ? '<span class="edithint">＋ 입력</span>' : cellDisplay(p,c.uid));
       if(est) disp+='<span class="estbadge">추정</span>';
+      /* 정가보다 비싼 채널가는 거의 항상 잘못된 값(옛 업로드값이 남은 경우) — 눈에 띄게 표시 */
+      if(!pkg && !isAnchor && pr!=null){ const rp=effPrice(p,rUid);
+        if(rp!=null && pr>rp) disp+='<span class="overbadge" title="정가보다 비쌉니다 — 직접 조정된 옛 값이 남아 있거나 채널 규칙을 확인하세요">↑정가</span>'; }
       if(ovr) disp+=`<span class="ovrbadge"${ovrD?' style="color:var(--amber)"':''}>✎${ovrD?' 개정안':''}</span>`;
       if(rtDraft) disp+='<span class="mrate" style="color:var(--amber);font-weight:700">개정안</span>';
       const tt = todo?'아직 단가를 정하지 않은 칸입니다 — 값을 입력하면 미정이 풀립니다'
@@ -9709,6 +9732,7 @@ function wireImportModal(){
   on('btnClearTodo','click',bulkClearTodo);
   on('btnBulkFix','click',()=>bulkFix(true));
   on('btnBulkAuto','click',()=>bulkFix(false));
+  on('btnClearOvr','click',bulkClearOvr);
   // ── 채널 추가 모달
   on('btnAddChan','click',openChanModal);
   on('chanClose','click',closeChanModal); on('chanCancel','click',closeChanModal);

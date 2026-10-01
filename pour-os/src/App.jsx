@@ -22,7 +22,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-차수머리한줄";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-내차례항상";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -2073,14 +2073,15 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       {isLastWorkingDayOfWeek()&&<button onClick={()=>setWeeklyOpen(true)} style={{width:"100%",marginBottom:14,padding:"13px 0",borderRadius:14,border:"none",background:"#24386B",color:"#fff",fontSize:14.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>이번 주 마감 입력 — 매출·KPI·활동지표 한 번에</button>}
       <WeeklyInputSheet open={weeklyOpen} onClose={()=>setWeeklyOpen(false)} D={D} cu={cu} up={up}/>
         </>)},
-        {id:"turn",label:"내 차례 (워크플로우·신제품)",show:(myCases.length+myLaunch.length)>0,node:(<>
-      {(myCases.length+myLaunch.length)>0&&(()=>{ const rows=[...myCases.map(x=>({k:"c"+x.t.id,kind:"case",...x})),...myLaunch.map(x=>({k:"l"+x.p.id+x.it.id,kind:"launch",...x}))]; const shown=turnAll?rows:rows.slice(0,6);
+        {id:"turn",label:"내 차례 (워크플로우·신제품)",show:true,node:(<>
+      {(()=>{ const rows=[...myCases.map(x=>({k:"c"+x.t.id,kind:"case",...x})),...myLaunch.map(x=>({k:"l"+x.p.id+x.it.id,kind:"launch",...x}))]; const shown=turnAll?rows:rows.slice(0,6);
         return(
         <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #D3D8E6",marginBottom:14}}>
           <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:10,flexWrap:"wrap"}}>
             <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#1E2F5C"}}>내 차례 — 워크플로우·신제품 ({rows.length})</h3>
             <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>체크하면 다음 단계·다음 담당으로 넘어가요</p>
           </div>
+          {rows.length===0&&<p style={{margin:0,padding:"10px 12px",borderRadius:12,background:"#F7F8FB",fontSize:12.5,color:"#6B7684",lineHeight:1.55}}>지금 내 차례인 일이 없어요 · 워크플로우 단계나 신제품 항목의 담당이 나로 지정되면 여기에 떠요</p>}
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
             {shown.map(r=>{ if(r.kind==="case"){ const nx=caseNext(r.wf,r.t); const pr=caseProgress(r.wf,r.t); const late=r.t.dueDate&&daysTo(r.t.dueDate)<0; return(
               <div key={r.k} style={{padding:"10px 12px",borderRadius:12,backgroundColor:"#EEF0F5",border:`1px solid ${late?"#EACFD1":"#E3E7F0"}`,display:"flex",alignItems:"center",gap:9}}>

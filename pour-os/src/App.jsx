@@ -22,7 +22,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-내차례항상";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-그로스보드요약";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -8409,6 +8409,32 @@ function exportMapPNG(items,title){
   try{const a=document.createElement("a");a.href=cv.toDataURL("image/png");a.download=(title||"그로스보드")+".png";a.click();}
   catch(e){console.error("[map export] 실패:",e);window.alert("이미지 저장 실패: "+(e.message||e));}
 }
+// 그로스보드 업무 가지 — 업무가 많은 프로젝트(7건+)는 가지를 다 펼치지 않고 요약:
+// 남은 일 중 진행 중 먼저 최대 3개 + "외 N건 · 완료 x/y (z%)" 한 칸. 6건 이하는 예전처럼 하위까지 전부.
+const MAP_TASK_FULL=6, MAP_TASK_SHOW=3;
+function pushTaskBranch(items,tasks,depth,pfx,isAct,activeOnly){
+  const stT=STATUS_MAP.todo;
+  const inSet=new Set(tasks.map(t=>t.id));
+  const kidsOf=(pid)=>tasks.filter(t=>(t.parentId||null)===(pid||null)).sort((a,b)=>(a.seq||0)-(b.seq||0));
+  const rootsT=tasks.filter(t=>!t.parentId||!inSet.has(t.parentId)).sort((a,b)=>(a.seq||0)-(b.seq||0));
+  const anyAct=(t)=>isAct(t)||kidsOf(t.id).some(anyAct);
+  if(tasks.length<=MAP_TASK_FULL){
+    const pushTask=(t,d)=>{
+      if(activeOnly&&!anyAct(t))return;
+      const kids=kidsOf(t.id);const st=STATUS_MAP[t.status]||stT;
+      const chips=kids.length?[{t:"하위 "+kids.length,c:"#6B7280",bg:"#F2F4F6"}]:[];
+      if(t.status==="done"||t.status==="hold")chips.unshift({t:st.label,c:st.color,bg:st.bg});
+      items.push({id:pfx+t.id,depth:d,label:t.title,color:kids.length?stT.color:st.color,active:anyAct(t),leftTag:null,chips,ref:{kind:"task",id:t.id}});
+      kids.forEach(k=>pushTask(k,d+1));
+    };
+    rootsT.forEach(t=>pushTask(t,depth)); return;
+  }
+  const done=tasks.filter(t=>t.status==="done").length;
+  const open=tasks.filter(t=>t.status!=="done"&&t.status!=="hold"&&(!activeOnly||isAct(t))).sort((a,b)=>(a.status==="inprogress"?0:1)-(b.status==="inprogress"?0:1)||(a.seq||0)-(b.seq||0));
+  open.slice(0,MAP_TASK_SHOW).forEach(t=>{ const st=STATUS_MAP[t.status]||stT; items.push({id:pfx+t.id,depth,label:t.title,color:st.color,active:isAct(t),leftTag:null,chips:[],ref:{kind:"task",id:t.id}}); });
+  const rest=tasks.length-Math.min(open.length,MAP_TASK_SHOW);
+  if(rest>0) items.push({id:pfx+"__sum"+depth+"_"+(tasks[0]&&tasks[0].id),depth,label:`외 ${rest}건`,color:"#6B7280",active:false,leftTag:null,chips:[{t:`완료 ${done}/${tasks.length}`,c:"#1F5C3F",bg:"#CFE3D6"},{t:Math.round(done/tasks.length*100)+"%",c:"#1E2F5C",bg:"#E3E7F0"}]});
+}
 // 개인 그로스보드 → 마인드맵 items 평탄화 (KR→서브KR→프로젝트→업무). opts:{krF,activeOnly,signals}
 // 한 담당자의 KR→서브KR→프로젝트→업무 서브트리를 items에 push (개인·팀 마인드맵 공용). baseDepth=KR이 놓일 깊이, pfx=id 충돌 방지 접두사
 function pushKRSubtree(items,D,uid,isThisWeek,doneInP,krColors,baseDepth,opts={}){
@@ -8422,24 +8448,10 @@ function pushKRSubtree(items,D,uid,isThisWeek,doneInP,krColors,baseDepth,opts={}
     const dP=doneInP(projTasks);
     const chips=[{t:(proj.progress||0)+"%",c:actT.length?col:"#9CA3AF",bg:actT.length?col+"1A":"#F2F4F6"}];
     if(dP>0)chips.push({t:""+dP,c:"#1F5C3F",bg:"#CFE3D6"});
+    if(projTasks.length>MAP_TASK_FULL)chips.push({t:`업무 ${projTasks.length}`,c:"#4E5968",bg:"#F2F4F6"});
     const sig=signals?(signals.heotsimProjects.has(proj.id)?"heotsim":(signals.jamProjects.has(proj.id)?"jam":null)):null;
     items.push({id:pfx+proj.id,depth,label:proj.title,color:col,active:actT.length>0,chips,signal:sig,ref:{kind:"proj",id:proj.id}});
-    // 업무 계층 — 하위업무의 하위, 그 아래까지 끝까지 펼쳐 연결(계층형과 동일, 깊이 제한 없음).
-    // '활동만 보기'일 때만 활동 없는 가지를 접고, 평소엔 전 단계 노출(완료=초록·진행중=주황·대기=회색).
-    const stT=STATUS_MAP.todo;
-    const inSet=new Set(projTasks.map(t=>t.id));
-    const kidsOf=(pid)=>projTasks.filter(t=>(t.parentId||null)===(pid||null)).sort((a,b)=>(a.seq||0)-(b.seq||0));
-    const rootsT=projTasks.filter(t=>!t.parentId||!inSet.has(t.parentId)).sort((a,b)=>(a.seq||0)-(b.seq||0));
-    const anyAct=(t)=>isThisWeek(t)||kidsOf(t.id).some(anyAct);
-    const pushTask=(t,d)=>{
-      if(activeOnly&&!anyAct(t))return;
-      const kids=kidsOf(t.id);const st=STATUS_MAP[t.status]||STATUS_MAP.todo;
-      const chips=kids.length?[{t:"하위 "+kids.length,c:"#6B7280",bg:"#F2F4F6"}]:[];
-      if(t.status==="done"||t.status==="hold")chips.unshift({t:st.label,c:st.color,bg:st.bg});   // 마인드맵: 요일 태그 제거 · 완료/보류 상태만 칩 표시
-      items.push({id:pfx+t.id,depth:d,label:t.title,color:kids.length?stT.color:st.color,active:anyAct(t),leftTag:null,chips,ref:{kind:"task",id:t.id}});
-      kids.forEach(k=>pushTask(k,d+1));
-    };
-    rootsT.forEach(t=>pushTask(t,depth+1));
+    pushTaskBranch(items,projTasks,depth+1,pfx,isThisWeek,activeOnly);   // 업무 많은 프로젝트는 요약(%)
   };
   D.mainKPIs.filter(mk=>krF==="all"||mk.id===krF).forEach(mk=>{
     const mkProjs=myP.filter(p=>p.mainKPIId===mk.id);if(!mkProjs.length)return;
@@ -8510,21 +8522,7 @@ function buildKpiMapItems(D,activeInP,doneInP,opts={}){
       const uDone=doneInP(uT);const uCol=u.color||"#24386B";
       const mchips=[];if(uDone>0)mchips.push({t:""+uDone,c:"#1F5C3F",bg:"#CFE3D6"});
       items.push({id:"k_"+mk.id+"_"+u.id,depth:2,label:u.name,color:uCol,active:uAct.length>0,chips:mchips,ref:{kind:"member",id:u.id}});
-      // 업무 계층 — 하위업무의 하위까지 끝까지 펼쳐 연결
-      const pf="k_"+mk.id+"_"+u.id+"_";
-      const inSet=new Set(uT.map(t=>t.id));
-      const kidsOf=(pid)=>uT.filter(t=>(t.parentId||null)===(pid||null)).sort((a,b)=>(a.seq||0)-(b.seq||0));
-      const rootsT=uT.filter(t=>!t.parentId||!inSet.has(t.parentId)).sort((a,b)=>(a.seq||0)-(b.seq||0));
-      const anyAct=(t)=>activeInP(t)||kidsOf(t.id).some(anyAct);
-      const pushTask=(t,d)=>{
-        if(activeOnly&&!anyAct(t))return;
-        const kids=kidsOf(t.id);const st=STATUS_MAP[t.status]||stT;
-        const chips=kids.length?[{t:"하위 "+kids.length,c:"#6B7280",bg:"#F2F4F6"}]:[];
-        if(t.status==="done"||t.status==="hold")chips.unshift({t:st.label,c:st.color,bg:st.bg});   // 마인드맵: 요일 태그 제거 · 완료/보류 상태만 칩 표시
-        items.push({id:pf+t.id,depth:d,label:t.title,color:kids.length?stT.color:st.color,active:anyAct(t),leftTag:null,chips,ref:{kind:"task",id:t.id}});
-        kids.forEach(k=>pushTask(k,d+1));
-      };
-      rootsT.forEach(t=>pushTask(t,3));
+      pushTaskBranch(items,uT,3,"k_"+mk.id+"_"+u.id+"_",activeInP,activeOnly);   // 업무 많으면 요약(%)
     });
   });
   return items;

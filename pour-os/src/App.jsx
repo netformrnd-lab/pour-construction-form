@@ -18,7 +18,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1001-CRM정정";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1001-고정업무";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -78,6 +78,14 @@ function ProjPicker({D,uid,value,onChange,compact}){
 // 고정업무: 시간(HH:MM) 순 정렬 — 시간 없는 건 맨 아래
 const fixedMin=(t)=>{ const m=/^(\d{1,2}):(\d{2})/.exec(t&&t.fixedTime||""); return m?(+m[1])*60+(+m[2]):9999; };
 const byFixedTime=(a,b)=>fixedMin(a)-fixedMin(b)||String(a.title||"").localeCompare(String(b.title||""),"ko");
+// 담당자별 시간 — 한 고정업무를 여러 명이 맡아도 사람마다 확인 시간을 다르게 (timeBy{uid:"HH:MM"}, 없으면 기본 fixedTime)
+const fixedTimeFor=(t,uid)=>(uid&&t&&t.timeBy&&t.timeBy[uid])||(t&&t.fixedTime)||"";
+const fixedMinFor=(t,uid)=>{ const m=/^(\d{1,2}):(\d{2})/.exec(fixedTimeFor(t,uid)); return m?(+m[1])*60+(+m[2]):9999; };
+const byFixedTimeFor=(uid)=>(a,b)=>fixedMinFor(a,uid)-fixedMinFor(b,uid)||String(a.title||"").localeCompare(String(b.title||""),"ko");
+const fixedHasTimeBy=(t)=>!!(t&&t.timeBy&&Object.values(t.timeBy).some(Boolean));
+const cleanTimeBy=(m)=>{ const o={}; Object.entries(m||{}).forEach(([k,v])=>{ if(v) o[k]=v; }); return o; };
+// 체크한 시각(사람별) — 관리자가 "누가 몇 시에 확인했는지" 한 줄에서 보게
+const fixedCheckPatch=(t,uid,on,key,name)=>{ const at=new Date().toISOString(); return {doneDates:{...(t.doneDates||{}),[uid]:on?key:null},doneAtBy:{...(t.doneAtBy||{}),[uid]:on?at:null},doneAt:at,doneByName:name||""}; };
 const nowMin=()=>{ const d=new Date(); return d.getHours()*60+d.getMinutes(); };
 // 프로젝트 '내 것' 판정 — 담당자 본인 또는 공동 기여자 포함
 const ownsProj=(p,uid)=>!!p&&(p.assigneeId===uid||(p.collaboratorIds||[]).includes(uid));
@@ -493,6 +501,17 @@ const fixedWeekDays=(t)=>{ const a=Array.isArray(t.weekDays)&&t.weekDays.length?
 const fixedDaysLabel=(t)=>{ const a=fixedWeekDays(t); return a.length===5&&!a.includes("토")&&!a.includes("일")?"평일":a.join("·"); };
 const fixedIsMine=(t,uid)=> t.forAll ? true : fixedAssigneeIds(t).includes(uid);
 const fixedDoneOn=(t,uid)=> (t.doneDates&&Object.prototype.hasOwnProperty.call(t.doneDates,uid)) ? t.doneDates[uid] : (t.assigneeId===uid?t.doneDate:null);
+function FixedTimeBy({D,ids,base,value,onChange}){
+  const users=(ids||[]).map(id=>(D.users||[]).find(u=>u.id===id)).filter(Boolean);
+  if(users.length<2) return null;
+  const v=value||{};
+  return(<div style={{marginTop:8,padding:"10px 12px",borderRadius:10,background:"#F7F8FA",border:"1px solid #E5E8EB"}}>
+    <p style={{margin:"0 0 7px",fontSize:11.5,fontWeight:800,color:"#374151"}}>담당자별 시간 <span style={{fontWeight:600,color:"#9CA3AF"}}>(시간이 다른 사람만 입력 · 비우면 기본 {base||"시간 없음"})</span></p>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:6}}>
+      {users.map(u=><label key={u.id} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,fontWeight:700,color:"#374151",minWidth:0}}><span style={{flex:"0 0 50px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.name}</span><input type="time" value={v[u.id]||""} onChange={e=>onChange({...v,[u.id]:e.target.value})} aria-label={`${u.name} 시간`} style={{flex:1,minWidth:0,padding:"7px 8px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:13,fontFamily:"inherit",background:"#fff"}}/></label>)}
+    </div>
+  </div>);
+}
 const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
   const [form,setForm]=useState({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",assigneeIds:[],forAll:false,parentId:"",attachments:[],weekDay:"",weekSlot:null,workDate:"",fixedTime:""});
   const [prevId,setPrevId]=useState(null);
@@ -504,7 +523,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
   const [delText,setDelText]=useState("");        // 삭제 확인 입력('삭제')
   const [mStart,setMStart]=useState("");          // 실제 시작일(직접 수정) YYYY-MM-DD
   const [mDone,setMDone]=useState("");            // 완료일(직접 수정) YYYY-MM-DD
-  if(task&&task.id!==prevId){setPrevId(task.id);setDelText("");setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",assigneeIds:Array.isArray(task.assigneeIds)&&task.assigneeIds.length?task.assigneeIds:(task.assigneeId?[task.assigneeId]:[]),forAll:!!task.forAll,parentId:task.parentId||"",attachments:Array.isArray(task.attachments)?task.attachments:[],weekDay:task.weekDay||"",weekSlot:task.weekSlot??null,workDate:task.workDate||"",fixedTime:task.fixedTime||""});const _sa=inprogressStartAt(task);setMStart(_sa?String(_sa).slice(0,10):"");setMDone(task.doneAt?String(task.doneAt).slice(0,10):"");}
+  if(task&&task.id!==prevId){setPrevId(task.id);setDelText("");setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",assigneeIds:Array.isArray(task.assigneeIds)&&task.assigneeIds.length?task.assigneeIds:(task.assigneeId?[task.assigneeId]:[]),forAll:!!task.forAll,parentId:task.parentId||"",attachments:Array.isArray(task.attachments)?task.attachments:[],weekDay:task.weekDay||"",weekSlot:task.weekSlot??null,workDate:task.workDate||"",fixedTime:task.fixedTime||"",timeBy:task.timeBy||{}});const _sa=inprogressStartAt(task);setMStart(_sa?String(_sa).slice(0,10):"");setMDone(task.doneAt?String(task.doneAt).slice(0,10):"");}
   if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",assigneeIds:[],forAll:false,attachments:[],weekDay:"",weekSlot:null,workDate:"",fixedTime:""});}
   // 날짜 선택 → 요일·슬롯 자동 배정(담당자의 그 요일 빈 슬롯 중 가장 앞, 없으면 슬롯 없이 그날에)
   const placeOn=(f,ds)=>{
@@ -682,6 +701,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
         <div style={{marginBottom:14}}>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>시간 <span style={{color:"#9CA3AF",fontWeight:600}}>(반복 시각 — 선택)</span></label>
           <input type="time" value={form.fixedTime||""} onChange={e=>setForm({...form,fixedTime:e.target.value})} style={{width:"100%",padding:"11px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+          <FixedTimeBy D={D} ids={form.forAll?(D.users||[]).map(u=>u.id):(form.assigneeIds||[])} base={form.fixedTime} value={form.timeBy} onChange={v=>setForm(f=>({...f,timeBy:v}))}/>
         </div>
         ):(
         <div style={{marginBottom:14}}>
@@ -1777,10 +1797,10 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const isThisWeek=weekOffset===0;
   const myT=D.tasks.filter(t=>t.assigneeId===cu.id);
   const fixedDueToday=(t)=>{const rt=t.recurType||"daily";if(rt==="weekly")return fixedWeekDays(t).includes(today);if(rt==="monthly")return Number(t.monthDay||1)===todayDate;return true;};
-  const fixed=D.tasks.filter(t=>t.isFixed&&fixedIsMine(t,cu.id)&&fixedDueToday(t)).sort(byFixedTime);   // 시간순
+  const fixed=D.tasks.filter(t=>t.isFixed&&fixedIsMine(t,cu.id)&&fixedDueToday(t)).sort(byFixedTimeFor(cu.id));   // 시간순
   // 오늘 화면에 일·주·월 고정업무 전부 표시(주·월은 기간 안에 하면 완료)
   const fixedMineAll=D.tasks.filter(t=>t.isFixed&&fixedIsMine(t,cu.id));
-  const fxDaily=fixedMineAll.filter(t=>(t.recurType||"daily")==="daily").sort(byFixedTime);
+  const fxDaily=fixedMineAll.filter(t=>(t.recurType||"daily")==="daily").sort(byFixedTimeFor(cu.id));
   const fxWeekly=fixedMineAll.filter(t=>t.recurType==="weekly").sort((a,b)=>FX_WD.indexOf(fixedWeekDays(a)[0])-FX_WD.indexOf(fixedWeekDays(b)[0])||byFixedTime(a,b));
   const fxMonthly=fixedMineAll.filter(t=>t.recurType==="monthly").sort((a,b)=>(+a.monthDay||1)-(+b.monthDay||1)||byFixedTime(a,b));
   // 오늘 업무 = 진행날짜(목표일)가 오늘 / '진행중'(완료·보류 전까지 매일 이어서 노출) · 보류 제외
@@ -1911,7 +1931,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   // 고정(반복)업무는 날짜별 완료 — 오늘 체크는 오늘만 유지(매일 리셋)
   const fixedMe=t=>fixedPeriodDone(t,cu.id,todayKey);   // 내 체크(매주·매월은 이번 주·이번 달 안에 먼저 했으면 체크로)
   const fixedDone=t=>fixedAllDone(D,t,todayKey);        // 완료 = 담당자 모두 체크
-  const toggleFixed=t=>up("tasks",t.id,{doneDates:{...(t.doneDates||{}),[cu.id]:fixedMe(t)?null:todayKey},doneAt:new Date().toISOString(),doneByName:cu?.name||""});
+  const toggleFixed=t=>up("tasks",t.id,fixedCheckPatch(t,cu.id,!fixedMe(t),todayKey,cu?.name));
+  const fxNotes=useAkNotes(); const fxNcnt=noteCounts(fxNotes); const [fxNote,setFxNote]=useState(null);   // 고정업무 메모
   const doQuick=()=>{
     if(!quick.trim()) return;
     add("tasks",{id:"t"+Date.now(),title:quick.trim(),projectId:quickProj,assigneeId:cu.id,type:"general",status:"todo",weekDay:today,workDate:todayStr,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[]});
@@ -2223,8 +2244,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
             {(()=>{ const fxRow=(t,fi,arr,withNow,lab)=>{
               const proj=D.projects.find(p=>p.id===t.projectId);
-              const dn=fixedDone(t), my=fixedMe(t), [dc,dtot]=fixedDoneCount(D,t,todayKey), fm=fixedMin(t), nm=nowMin(), late=withNow&&!my&&fm<9999&&fm<nm;
-              const prevM=fi>0?fixedMin(arr[fi-1]):-1, showNow=withNow&&fm<9999&&prevM<=nm&&fm>nm;   // 지금 시각 선: 지난 것과 앞으로 할 것 사이
+              const dn=fixedDone(t), my=fixedMe(t), [dc,dtot]=fixedDoneCount(D,t,todayKey), fm=fixedMinFor(t,cu.id), nm=nowMin(), late=withNow&&!my&&fm<9999&&fm<nm;
+              const prevM=fi>0?fixedMinFor(arr[fi-1],cu.id):-1, showNow=withNow&&fm<9999&&prevM<=nm&&fm>nm;   // 지금 시각 선: 지난 것과 앞으로 할 것 사이
               return(<Fragment key={t.id}>
                 {showNow&&<div style={{display:"flex",alignItems:"center",gap:6,margin:"2px 0"}}><span style={{fontSize:10,fontWeight:900,color:"#B4383F"}}>지금 {String(Math.floor(nm/60)).padStart(2,"0")}:{String(nm%60).padStart(2,"0")}</span><span style={{flex:1,height:2,background:"#B4383F",borderRadius:2,opacity:.5}}/></div>}
                 <div onClick={()=>toggleFixed(t)} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 12px",borderRadius:12,backgroundColor:dn?"rgba(232,250,241,0.34)":"#F9FAFB",border:`1px solid ${dn?"rgba(0,192,115,0.2)":"#E5E8EB"}`,cursor:"pointer"}}>
@@ -2233,10 +2254,10 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                   </button>
                   <div style={{flex:1,minWidth:0}}>
                     <p style={{margin:0,fontSize:13.5,fontWeight:700,color:dn?"#9CA3AF":"#111827",textDecoration:dn?"line-through":"none"}}>{t.title}</p>
-                    <div style={{display:"flex",alignItems:"center",gap:5,marginTop:3,flexWrap:"wrap",fontSize:10.5,color:"#9CA3AF"}}>{dtot>1?<span style={{color:dn?"#2F7D57":"#1E2F5C",fontWeight:800}}>{dc}/{dtot}명 체크{dn?" · 완료":my?" · 다른 담당 대기":""}</span>:null}{dn&&t.doneAt?<span style={{color:"#2F7D57",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료</span>:null}{proj?<ProjChip p={proj}/>:<span>반복 업무</span>}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:5,marginTop:3,flexWrap:"wrap",fontSize:10.5,color:"#9CA3AF"}}>{dtot>1?<span style={{color:dn?"#2F7D57":"#1E2F5C",fontWeight:800}}>{dc}/{dtot}명 체크{dn?" · 완료":my?" · 다른 담당 대기":""}</span>:null}{dn&&t.doneAt?<span style={{color:"#2F7D57",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료</span>:null}{proj?<ProjChip p={proj}/>:<span>반복 업무</span>}<button onClick={e=>{e.stopPropagation();setFxNote(t);}} aria-label={`${t.title} 메모`} style={{padding:"1px 7px",borderRadius:6,border:`1px solid ${(fxNcnt[t.id]||{}).n?"#B9C2D8":"#E5E8EB"}`,background:(fxNcnt[t.id]||{}).n?"#EEF0F5":"#fff",color:(fxNcnt[t.id]||{}).n?"#1E2F5C":"#6B7280",fontSize:10.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>메모{(fxNcnt[t.id]||{}).n?` ${fxNcnt[t.id].n}`:""}</button></div>
                   </div>
                   <div style={{flexShrink:0,textAlign:"right",minWidth:44}}>
-                    <p style={{margin:0,fontSize:14,fontWeight:900,fontVariantNumeric:"tabular-nums",color:dn?"#B0B8C1":late?"#B4383F":"#1E2F5C"}}>{lab||t.fixedTime||"—"}</p>{lab&&t.fixedTime?<p style={{margin:0,fontSize:9.5,fontWeight:700,color:"#8B95A1"}}>{t.fixedTime}</p>:null}
+                    <p style={{margin:0,fontSize:14,fontWeight:900,fontVariantNumeric:"tabular-nums",color:dn?"#B0B8C1":late?"#B4383F":"#1E2F5C"}}>{lab||fixedTimeFor(t,cu.id)||"—"}</p>{lab&&fixedTimeFor(t,cu.id)?<p style={{margin:0,fontSize:9.5,fontWeight:700,color:"#8B95A1"}}>{fixedTimeFor(t,cu.id)}</p>:null}
                     {late&&<p style={{margin:0,fontSize:9.5,fontWeight:800,color:"#B4383F"}}>지남</p>}
                   </div>
                 </div></Fragment>
@@ -2630,7 +2651,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
             ))}
         </div>
       </Sheet>
-      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} up={up} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,parentId:f.parentId||null,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null,...(f.statusLog?{statusLog:f.statusLog,doneAt:f.doneAt,doneBy:f.doneBy,doneByName:f.doneByName}:{})})} onDelete={(id)=>rm("tasks",id)}/>
+      {fxNote&&<AkNotesSheet D={D} cu={cu} item={{id:fxNote.id,name:fxNote.title,_kind:"fixed"}} notes={fxNotes} onClose={()=>setFxNote(null)}/>}
+      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} up={up} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,parentId:f.parentId||null,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null,...(f.timeBy?{timeBy:cleanTimeBy(f.timeBy)}:{}),...(f.statusLog?{statusLog:f.statusLog,doneAt:f.doneAt,doneBy:f.doneBy,doneByName:f.doneByName}:{})})} onDelete={(id)=>rm("tasks",id)}/>
       <ConfirmDelete open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제합니다. 휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
       {projModal&&(()=>{
         const pm=D.projects.find(p=>p.id===projModal.id)||projModal;
@@ -3152,7 +3174,7 @@ function AkNotesSheet({D,cu,item,notes,ro,onClose}){
     const up=[]; for(let i=0;i<files.length;i++){ setBusy(`올리는 중 ${i+1}/${files.length}`); up.push(await uploadAkFile(item.id,files[i])); }
     setBusy("저장 중");
     const id="n"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-    await setDoc(extDoc(NOTE_COL,id),{id,itemId:item.id,itemName:item.name||"",parentId:parentId||null,text,files:up,by:cu.id,byName:cu.name||"",at:new Date().toISOString(),deleted:false});
+    await setDoc(extDoc(NOTE_COL,id),{id,itemId:item.id,itemName:item.name||"",kind:item._kind||"ak",parentId:parentId||null,text,files:up,by:cu.id,byName:cu.name||"",at:new Date().toISOString(),deleted:false});
     setReplyTo(null);
   };
   const saveEdit=async(n,text)=>{ if(text===n.text){ setEditId(null); return; } const at=new Date().toISOString();
@@ -3173,7 +3195,7 @@ function AkNotesSheet({D,cu,item,notes,ro,onClose}){
   const total=threads.reduce((a,t)=>a+(t.deleted?0:1)+t.replies.filter(r=>!r.deleted).length,0);
   return(<Sheet open onClose={onClose} title={`메모 · ${item.name}`} h="90vh" w={620}>
     <div style={{paddingTop:2}}>
-      <p style={{margin:"0 0 8px",fontSize:11.5,color:"#5B606B",lineHeight:1.5}}>{akGoalText(item)} · 메모 {total}개 · 진행 상황·링크·자료를 남기고 답글로 주고받아요. 숨긴 메모도 기록은 남아요.</p>
+      <p style={{margin:"0 0 8px",fontSize:11.5,color:"#5B606B",lineHeight:1.5}}>{item._kind==="fixed"?"고정업무":akGoalText(item)} · 메모 {total}개 · 진행 상황·링크·자료를 남기고 답글로 주고받아요. 숨긴 메모도 기록은 남아요.</p>
       {threads.length===0&&<p style={{margin:"14px 0",padding:"16px 12px",borderRadius:10,background:"#F7F8FA",textAlign:"center",fontSize:12.5,color:"#8A8E96"}}>아직 메모가 없어요. 첫 메모를 남겨 보세요.</p>}
       <div style={{display:"flex",flexDirection:"column"}}>{threads.map(t=><div key={t.id} style={{borderBottom:"1px solid #ECEEF1"}}>
         {one(t)}
@@ -3248,6 +3270,9 @@ function AkTodayCard({D,cu,nav}){
   const [busy,setBusy]=useState("");
   const [err,setErr]=useState("");
   const [showDone,setShowDone]=useState(false);
+  const [undo,setUndo]=useState(null);   // 방금 누른 것 되돌리기 {it,w,field,d,label}
+  useEffect(()=>{ if(!undo) return; const t=setTimeout(()=>setUndo(null),7000); return ()=>clearTimeout(t); },[undo]);
+  const notes=useAkNotes(); const ncnt=noteCounts(notes); const [noteItem,setNoteItem]=useState(null);
   if(!mine.length) return null;
   const thisW=WK.find(w=>w.key===wk)||{key:wk,start:wk,end:akAddDays(wk,6),label:""};
   const lastW={key:lastWk,start:lastWk,end:akAddDays(lastWk,6),label:(()=>{ const d=new Date(lastWk+"T00:00:00"); return `${d.getMonth()+1}/${d.getDate()}`; })()};
@@ -3261,8 +3286,11 @@ function AkTodayCard({D,cu,nav}){
   const missed=ready?mine.filter(it=>it.cyc==="W"&&!it.perFail&&akFullWeek(it,lastW)&&akVal(docs,it,lastWk)<(+it.goal||1)):[];
   const todo=rows.filter(r=>!r.done), done=rows.filter(r=>r.done);
   const cnt=rows.filter(r=>!r.none).length, doneN=rows.filter(r=>r.done).length;
-  const bump=async(it,w,field,d)=>{ if(busy) return; setBusy(it.id+w+field); setErr("");
-    try{ if(d>0&&it.unit==="%"&&!it.perFail){ const t=akTotal(docs,it,it.cyc==="Q"?WQ:WK).n; if(t>=100) return; d=Math.min(d,100-t); } await akBump(it,w,field,d,cu); }
+  const bump=async(it,w,field,d,isUndo)=>{ if(busy) return; setBusy(it.id+w+field); setErr("");
+    try{ if(d>0&&it.unit==="%"&&!it.perFail){ const t=akTotal(docs,it,it.cyc==="Q"?WQ:WK).n; if(t>=100) return; d=Math.min(d,100-t); }
+      if(d<0){ const v=akVal(docs,it,w); const cur=it.perFail?v[field]:v; d=Math.max(d,-cur); if(!d) return; }
+      await akBump(it,w,field,d,cu);
+      if(isUndo) setUndo(null); else if(d>0) setUndo({it,w,field,d,label:`${it.name} ${field==="fail"?"실패 ":""}+${d}${it.unit==="%"?"%":""}${w!==wk?" (지난주)":""}`}); else setUndo(null); }
     catch(e){ console.error("[행동지표] 오늘 +1 저장 실패:",e); setErr("저장이 잠시 안 됐어요. 다시 눌러 주세요."); }
     finally{ setBusy(""); } };
   const btn=(on)=>({flexShrink:0,minWidth:52,height:38,padding:"0 10px",borderRadius:8,border:`1.5px solid ${on?"#0F1F5C":"#E3E3DF"}`,background:"#fff",color:on?"#0F1F5C":"#B0B8C1",fontWeight:800,fontSize:13,cursor:on?"pointer":"default",fontFamily:"inherit"});
@@ -3270,13 +3298,16 @@ function AkTodayCard({D,cu,nav}){
     return <div key={it.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderTop:"1px solid #F2F4F6"}}>
       <div style={{flex:1,minWidth:0}}>
         <p style={{margin:0,fontSize:13,fontWeight:700,color:r.done?"#8B95A1":"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.done?"✓ ":""}{it.name}</p>
-        <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
-          <div style={{flex:"0 0 64px",height:5,background:"#EDEDEA",borderRadius:3,overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:r.done?"#1F7A4D":"#0F1F5C"}}/></div>
-          <span style={{fontSize:11.5,fontWeight:700,color:r.done?"#1F7A4D":"#4A4E57",fontVariantNumeric:"tabular-nums"}}>{r.per} {r.txt}</span>
+        <div style={{display:"flex",alignItems:"center",gap:6,rowGap:4,marginTop:4,flexWrap:"wrap"}}>
+          <div style={{flex:"0 0 48px",height:5,background:"#EDEDEA",borderRadius:3,overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:r.done?"#1F7A4D":"#0F1F5C"}}/></div>
+          <span style={{fontSize:11.5,fontWeight:700,color:r.done?"#1F7A4D":"#4A4E57",fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap"}}>{r.per} {r.txt}</span>
           {r.last&&!r.done&&<span style={{fontSize:10.5,fontWeight:800,color:"#A5620B",background:"#FBF0DE",borderRadius:6,padding:"1px 6px"}}>{it.cyc==="Q"?"분기":"이달"} 마지막 주</span>}
-          {it.core&&<span style={{fontSize:10,fontWeight:700,color:"#8A8E96"}}>필수</span>}
+          {it.core&&<span style={{fontSize:10,fontWeight:700,color:"#8A8E96",whiteSpace:"nowrap"}}>필수</span>}
+          {akBrandOf(it,D.brands)!=="pourstore"&&<span style={{fontSize:10,fontWeight:800,color:"#5E5A8C",background:"#F0EFF5",borderRadius:5,padding:"0 5px"}}>{brandName(akBrandOf(it,D.brands),D.brands)}</span>}
+          <button onClick={()=>setNoteItem(it)} aria-label={`${it.name} 메모`} style={{padding:"0 6px",borderRadius:5,border:`1px solid ${(ncnt[it.id]||{}).n?"#B9C2D8":"#E3E3DF"}`,background:(ncnt[it.id]||{}).n?"#EEF0F5":"#fff",color:(ncnt[it.id]||{}).n?"#1E2F5C":"#6B7280",fontSize:10.5,fontWeight:800,lineHeight:"17px",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>메모{(ncnt[it.id]||{}).n?` ${ncnt[it.id].n}`:""}</button>
         </div>
       </div>
+      {!it.perFail&&akVal(docs,it,wk)>0&&<button onClick={()=>bump(it,wk,"n",-akStep(it))} disabled={!!busy} style={{...btn(!busy),minWidth:40,padding:"0 8px",borderColor:busy?"#E3E3DF":"#D5D9E0",color:busy?"#B0B8C1":"#4A4E57"}} aria-label={`${it.name} −${akStep(it)}`}>−{akStep(it)}{it.unit==="%"?"%":""}</button>}
       {it.perFail?<>
         <button onClick={()=>bump(it,wk,"fail",1)} disabled={!!busy} style={{...btn(!busy),borderColor:busy?"#E3E3DF":"#A5620B",color:busy?"#B0B8C1":"#A5620B",minWidth:62,fontSize:12}} aria-label={`${it.name} 매칭 실패 +1`}>실패 +1</button>
         <button onClick={()=>bump(it,wk,"n",1)} disabled={!!busy} style={{...btn(!busy),minWidth:62,fontSize:12}} aria-label={`${it.name} 매칭 시도 +1`}>시도 +1</button>
@@ -3301,6 +3332,11 @@ function AkTodayCard({D,cu,nav}){
     {!todo.length&&<p style={{margin:"10px 0 8px",fontSize:12.5,fontWeight:700,color:"#1F7A4D"}}>이번 주 내 행동지표를 다 채웠어요</p>}
     {done.length>0&&<button onClick={()=>setShowDone(v=>!v)} style={{width:"100%",padding:"9px 0",border:"none",borderTop:"1px solid #F2F4F6",background:"none",color:"#8A8E96",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{showDone?"달성한 것 접기 ▴":`달성 ${done.length}개 ▾`}</button>}
     {showDone&&done.map(line)}
+    {undo&&<div role="status" style={{display:"flex",alignItems:"center",gap:8,margin:"6px 0 8px",padding:"8px 11px",borderRadius:10,background:"#1B2438",color:"#fff"}}>
+      <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{undo.label} 저장됨</span>
+      <button onClick={()=>bump(undo.it,undo.w,undo.field,-undo.d,true)} disabled={!!busy} style={{flexShrink:0,padding:"5px 11px",borderRadius:7,border:"1px solid rgba(255,255,255,.4)",background:"transparent",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>되돌리기</button>
+    </div>}
+    {noteItem&&<AkNotesSheet D={D} cu={cu} item={noteItem} notes={notes} onClose={()=>setNoteItem(null)}/>}
   </div>);
 }
 // 오늘 화면 — 월말 회고 알림 (회고일 3일 전부터, 새 달 10일까지 지난달 회고 안 했으면 계속)
@@ -4924,7 +4960,7 @@ function ProjectDetailSheet({D,cu,p,up,add,rm,onClose,onAdvanced}){
         {tplMsg&&<p style={{margin:"8px 2px 0",fontSize:12,color:"#1E2F5C",fontWeight:700}}>{tplMsg}</p>}
       </div>
     </Sheet>
-    <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} up={up} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,parentId:f.parentId||null,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null,...(f.statusLog?{statusLog:f.statusLog,doneAt:f.doneAt,doneBy:f.doneBy,doneByName:f.doneByName}:{})})} onDelete={(id)=>rm("tasks",id)}/>
+    <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} up={up} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,parentId:f.parentId||null,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null,...(f.timeBy?{timeBy:cleanTimeBy(f.timeBy)}:{}),...(f.statusLog?{statusLog:f.statusLog,doneAt:f.doneAt,doneBy:f.doneBy,doneByName:f.doneByName}:{})})} onDelete={(id)=>rm("tasks",id)}/>
   </>);
 }
 function NewProjectSheet({D,cu,add,onClose,onCreated,cat}){
@@ -6007,7 +6043,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
           <button onClick={doAddProj} disabled={!projForm.title.trim()} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:projForm.title.trim()?"#24386B":"#E5E8EB",color:projForm.title.trim()?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:projForm.title.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>{editProjId?"수정 저장":"프로젝트 추가하기"}</button>
         </div>
       </Sheet>
-      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} up={up} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,parentId:f.parentId||null,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null,...(f.statusLog?{statusLog:f.statusLog,doneAt:f.doneAt,doneBy:f.doneBy,doneByName:f.doneByName}:{})})} onDelete={(id)=>rm("tasks",id)}/>
+      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} up={up} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,parentId:f.parentId||null,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null,...(f.timeBy?{timeBy:cleanTimeBy(f.timeBy)}:{}),...(f.statusLog?{statusLog:f.statusLog,doneAt:f.doneAt,doneBy:f.doneBy,doneByName:f.doneByName}:{})})} onDelete={(id)=>rm("tasks",id)}/>
       <ConfirmDelete open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제합니다. 휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
       <Confirm open={!!projDel} title="프로젝트 삭제" desc={`"${D.projects.find(p=>p.id===projDel)?.title}" 프로젝트를 삭제할까요? 연결된 업무는 남습니다.\n휴지통에서 복구할 수 있어요.`} onOk={()=>{rm("projects",projDel);setProjDel(null);setProjDetail(null);}} onCancel={()=>setProjDel(null)}/>
       <Sheet open={!!actHist} onClose={()=>setActHist(null)} title="활동지표 주차별 이력">
@@ -8305,7 +8341,7 @@ const fixedAllDone=(D,t,key)=>{ const ids=fixedPeople(D,t); return ids.length>0&
 const fixedDoneCount=(D,t,key)=>{ const ids=fixedPeople(D,t); return [ids.filter(id=>fixedPeriodDone(t,id,key)).length,ids.length]; };
 function FixedPage({D,cu,lead,add,up,rm,nav}){
   const todayKey=new Date().toISOString().slice(0,10);
-  const [form,setForm]=useState({title:"",projectId:"",assigneeIds:[cu.id],forAll:false,recurType:"daily",weekDays:["월"],monthDay:1,fixedTime:""});
+  const [form,setForm]=useState({title:"",projectId:"",assigneeIds:[cu.id],forAll:false,recurType:"daily",weekDays:["월"],monthDay:1,fixedTime:"",timeBy:{}});
   const [dayEdit,setDayEdit]=useState(null);   // 매주 요일 바꾸기 {id, days}
   const [modal,setModal]=useState(false);
   const [who,setWho]=useState("all");   // 담당자 탭: all | userId (그로홈 대시보드처럼 전체·개인)
@@ -8320,24 +8356,26 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
   const doneOf=(t)=>fixedAllDone(D,t,todayKey);   // 담당자 모두 체크해야 완료
   const meDone=(t)=>fixedPeriodDone(t,cu.id,todayKey);
   const mine=(t)=>fixedIsMine(t,cu.id); const can0=mine;
-  const toggle=(t)=>{ if(!mine(t)) return; const on=fixedPeriodDone(t,cu.id,todayKey); up("tasks",t.id,{doneDates:{...(t.doneDates||{}),[cu.id]:on?null:todayKey},doneAt:new Date().toISOString(),doneByName:cu?.name||""}); };
+  const toggle=(t)=>{ if(!mine(t)) return; const on=fixedPeriodDone(t,cu.id,todayKey); up("tasks",t.id,fixedCheckPatch(t,cu.id,!on,todayKey,cu?.name)); };
+  const fxNotes=useAkNotes(); const fxNcnt=noteCounts(fxNotes); const [fxNote,setFxNote]=useState(null);   // 고정업무 메모·파일
+  const timeOf=(t)=>who==="all"?(t.fixedTime||""):fixedTimeFor(t,who);
   const WD=["월","화","수","목","금","토","일"];
-  const daily=fixed.filter(t=>(t.recurType||"daily")==="daily");
+  const daily=fixed.filter(t=>(t.recurType||"daily")==="daily").sort(who==="all"?byFixedTime:byFixedTimeFor(who));
   const weekly=fixed.filter(t=>t.recurType==="weekly").sort((a,b)=>WD.indexOf(fixedWeekDays(a)[0])-WD.indexOf(fixedWeekDays(b)[0])||byFixedTime(a,b));
   const monthly=fixed.filter(t=>t.recurType==="monthly").sort((a,b)=>(+a.monthDay||1)-(+b.monthDay||1)||byFixedTime(a,b));
   const cnt=(l)=>[l.filter(doneOf).length,l.length];
   const doAdd=()=>{
     if(!form.title.trim()) return;
-    add("tasks",{id:"t"+Date.now(),title:form.title.trim(),projectId:form.projectId,type:"fixed",status:"todo",weekSlot:null,isFixed:true,dueDate:"",memo:"",attachments:[],recurType:form.recurType,weekDay:form.recurType==="weekly"?(FX_WD.find(d=>form.weekDays.includes(d))||"월"):null,weekDays:form.recurType==="weekly"?FX_WD.filter(d=>form.weekDays.includes(d)):null,monthDay:form.recurType==="monthly"?Number(form.monthDay):null,fixedTime:form.fixedTime||"",
+    add("tasks",{id:"t"+Date.now(),title:form.title.trim(),projectId:form.projectId,type:"fixed",status:"todo",weekSlot:null,isFixed:true,dueDate:"",memo:"",attachments:[],recurType:form.recurType,weekDay:form.recurType==="weekly"?(FX_WD.find(d=>form.weekDays.includes(d))||"월"):null,weekDays:form.recurType==="weekly"?FX_WD.filter(d=>form.weekDays.includes(d)):null,monthDay:form.recurType==="monthly"?Number(form.monthDay):null,fixedTime:form.fixedTime||"",timeBy:cleanTimeBy(form.timeBy),
       forAll:!!form.forAll,assigneeIds:form.forAll?[]:form.assigneeIds,assigneeId:form.forAll?"":(form.assigneeIds[0]||"")});
-    setForm({title:"",projectId:"",assigneeIds:[cu.id],forAll:false,recurType:form.recurType,weekDays:form.weekDays,monthDay:form.monthDay,fixedTime:form.fixedTime});setModal(false);
+    setForm({title:"",projectId:"",assigneeIds:[cu.id],forAll:false,recurType:form.recurType,weekDays:form.weekDays,monthDay:form.monthDay,fixedTime:form.fixedTime,timeBy:{}});setModal(false);
   };
   const openAdd=(rt)=>{ setForm(f=>({...f,recurType:rt||f.recurType,assigneeIds:who!=="all"?[who]:f.assigneeIds})); setModal(true); };
   const Row=({t,label,hot})=>{ const dn=doneOf(t); const my=can0(t)&&meDone(t); const [dc,dt]=fixedDoneCount(D,t,todayKey); const proj=D.projects.find(p=>p.id===t.projectId); const ps=peopleOf(t); const can=mine(t);
     return(
       <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 10px",borderRadius:12,background:dn?"rgba(232,250,241,0.45)":hot?"#EEF0F5":"#F9FAFB",border:`1px solid ${dn?"rgba(0,192,115,0.22)":hot?"#D3D8E6":"#EEF1F4"}`}}>
         <button onClick={()=>toggle(t)} disabled={!can} title={can?(my?"내 체크 해제":"내 몫 체크"):"담당자만 체크할 수 있어요"} aria-label="완료 체크" style={{flexShrink:0,width:24,height:24,borderRadius:7,border:`2px solid ${dn||my?"#2F7D57":can?"#B0B8C1":"#E5E8EB"}`,background:dn?"#2F7D57":my?"#EAF4EE":"#fff",color:dn?"#fff":"#2F7D57",fontSize:13,fontWeight:900,cursor:can?"pointer":"default",padding:0}}>{dn||my?"✓":""}</button>
-        <span style={{flexShrink:0,minWidth:44,textAlign:"center",fontSize:12.5,fontWeight:900,color:t.fixedTime?"#1E2F5C":"#B0B8C1",fontVariantNumeric:"tabular-nums"}}>{label||t.fixedTime||"—"}</span>
+        <span style={{flexShrink:0,minWidth:44,textAlign:"center",fontSize:12.5,fontWeight:900,color:timeOf(t)?"#1E2F5C":"#B0B8C1",fontVariantNumeric:"tabular-nums",lineHeight:1.2}}>{label||timeOf(t)||"—"}{who==="all"&&fixedHasTimeBy(t)&&<span style={{display:"block",fontSize:9.5,fontWeight:700,color:"#8B95A1"}}>담당별</span>}</span>
         <div style={{flex:1,minWidth:0}}>
           <p style={{margin:0,fontSize:13.5,fontWeight:800,color:dn?"#8B95A1":"#191F28",textDecoration:dn?"line-through":"none",lineHeight:1.35,wordBreak:"keep-all"}}>{t.title}</p>
           <div style={{display:"flex",gap:4,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
@@ -8345,7 +8383,8 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
             {t.recurType==="weekly"&&<button onClick={()=>setDayEdit({id:t.id,days:fixedWeekDays(t)})} title="요일 바꾸기" style={{fontSize:10.5,fontWeight:800,color:"#5E5A8C",background:"#F0EFF5",border:"none",borderRadius:6,padding:"2px 6px",cursor:"pointer",fontFamily:"inherit"}}>{fixedDaysLabel(t)}</button>}
             {t.forAll&&<span style={{fontSize:10.5,fontWeight:800,color:"#191F28",background:"#E5E9F5",borderRadius:6,padding:"2px 6px"}}>전체</span>}
             {dt>1&&<span style={{fontSize:10.5,fontWeight:900,color:dn?"#2F7D57":"#1E2F5C",background:dn?"#EAF4EE":"#EEF0F5",borderRadius:6,padding:"2px 6px"}}>{dc}/{dt}명 체크{dn?" · 완료":""}</span>}
-            {ps.slice(0,t.forAll?0:6).map(u=>{ const ok=fixedPeriodDone(t,u.id,todayKey); return <span key={u.id} title={ok?"체크함":"아직"} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10.5,fontWeight:800,color:ok?"#2F7D57":"#333D4B",background:ok?"#EAF4EE":"#F2F4F6",borderRadius:6,padding:"2px 6px"}}>{ok?"✓":<span style={{width:6,height:6,borderRadius:3,background:u.color||"#8B95A1"}}/>}{u.name}</span>; })}
+            {ps.slice(0,12).map(u=>{ const ok=fixedPeriodDone(t,u.id,todayKey); const at=ok&&t.doneAtBy&&t.doneAtBy[u.id]; const own=t.timeBy&&t.timeBy[u.id]; return <span key={u.id} title={ok?(at?`${hhmm(at)}에 체크`:"체크함"):(own?`${own}에 확인`:"아직")} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10.5,fontWeight:800,color:ok?"#2F7D57":"#333D4B",background:ok?"#EAF4EE":"#F2F4F6",borderRadius:6,padding:"2px 6px"}}>{ok?"✓":<span style={{width:6,height:6,borderRadius:3,background:u.color||"#8B95A1"}}/>}{u.name}{ok&&at?<span style={{fontWeight:700,fontVariantNumeric:"tabular-nums"}}>{hhmm(at)}</span>:(!ok&&own?<span style={{fontWeight:700,color:"#6B7280",fontVariantNumeric:"tabular-nums"}}>{own}</span>:null)}</span>; })}
+            <button onClick={()=>setFxNote(t)} aria-label={`${t.title} 메모`} style={{fontSize:10.5,fontWeight:800,padding:"2px 7px",borderRadius:6,border:`1px solid ${(fxNcnt[t.id]||{}).n?"#B9C2D8":"#E5E8EB"}`,background:(fxNcnt[t.id]||{}).n?"#EEF0F5":"#fff",color:(fxNcnt[t.id]||{}).n?"#1E2F5C":"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>메모{(fxNcnt[t.id]||{}).n?` ${fxNcnt[t.id].n}`:""}</button>
           </div>
         </div>
         <button onClick={()=>setEditTarget(t)} aria-label="수정" style={{background:"none",border:"none",cursor:"pointer",color:"#4E5968",fontSize:14,padding:6,flexShrink:0}}>수정</button>
@@ -8406,11 +8445,13 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
                 <button key={u.id} type="button" onClick={()=>setForm(f=>{const has=f.assigneeIds.includes(u.id);return{...f,forAll:false,assigneeIds:f.forAll?[u.id]:(has?f.assigneeIds.filter(x=>x!==u.id):[...f.assigneeIds,u.id])};})} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:20,border:`1.5px solid ${sel?u.color:"#E5E8EB"}`,background:sel?u.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><Ava name={u.name} color={u.color} size={18}/><span style={{fontSize:12,fontWeight:700,color:sel?u.color:"#4B5563"}}>{u.name}</span>{sel&&!form.forAll&&<span style={{fontSize:11,fontWeight:900,color:u.color}}>✓</span>}</button>
               );})}
             </div>
-            <p style={{margin:"6px 2px 0",fontSize:11,color:"#9CA3AF"}}>{form.forAll?`전 담당자 ${D.users.length}명에게 표시됩니다`:form.assigneeIds.length>1?`${form.assigneeIds.length}명에게 표시 · 각자 따로 체크`:"담당자 각자 오늘 화면에 표시"}</p></div>}
+            <p style={{margin:"6px 2px 0",fontSize:11,color:"#9CA3AF"}}>{form.forAll?`전 담당자 ${D.users.length}명에게 표시됩니다`:form.assigneeIds.length>1?`${form.assigneeIds.length}명에게 표시 · 각자 따로 체크`:"담당자 각자 오늘 화면에 표시"}</p>
+            <FixedTimeBy D={D} ids={form.forAll?D.users.map(u=>u.id):form.assigneeIds} base={form.fixedTime} value={form.timeBy} onChange={v=>setForm(f=>({...f,timeBy:v}))}/></div>}
           <Btn full variant="orange" onClick={doAdd} disabled={!form.title.trim()}>추가하기</Btn>
         </div>
       </Sheet>
-      <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} add={add} up={up} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,parentId:f.parentId||null,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null,...(f.statusLog?{statusLog:f.statusLog,doneAt:f.doneAt,doneBy:f.doneBy,doneByName:f.doneByName}:{})})} onDelete={(id)=>rm("tasks",id)}/>
+      {fxNote&&<AkNotesSheet D={D} cu={cu} item={{id:fxNote.id,name:fxNote.title,_kind:"fixed"}} notes={fxNotes} onClose={()=>setFxNote(null)}/>}
+      <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} add={add} up={up} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,parentId:f.parentId||null,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null,...(f.timeBy?{timeBy:cleanTimeBy(f.timeBy)}:{}),...(f.statusLog?{statusLog:f.statusLog,doneAt:f.doneAt,doneBy:f.doneBy,doneByName:f.doneByName}:{})})} onDelete={(id)=>rm("tasks",id)}/>
       <Sheet open={!!dayEdit} onClose={()=>setDayEdit(null)} title="매주 요일 바꾸기" h="60vh">
         {dayEdit&&<div style={{paddingTop:8}}>
           <p style={{margin:"0 0 10px",fontSize:13,fontWeight:800,color:"#191F28"}}>{(D.tasks.find(x=>x.id===dayEdit.id)||{}).title}</p>

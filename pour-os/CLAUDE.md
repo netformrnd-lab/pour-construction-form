@@ -101,6 +101,12 @@ goals[g1] 매출 10억
 - 파일·붙여넣은 사진: Storage `task-attachments/ak-notes/{itemId}/…` (기존 규칙 범위 — 규칙 변경 없음). 25MB·한 번에 10개.
 - UTM 링크: 주소 + source·medium·campaign(+content) → 메모에 넣기/복사. 글 속 UTM 링크는 배지로 표시.
 - 백업(JSON·외부)에 `akNotes` 로 포함.
+- 고정업무 메모도 같은 컬렉션(kind:"fixed", itemId=업무 id) · 같은 시트(AkNotesSheet item._kind="fixed").
+- 오늘 행동지표 카드: 메모 버튼 · −1(이번 주 값이 있을 때) · +1 뒤 7초 "되돌리기" · 그로홈 등 브랜드 표시.
+
+### ✅ 고정업무 담당자별 시간 (2026-10)
+- 한 고정업무를 여러 명이 맡아도 `timeBy{uid:"HH:MM"}`로 사람마다 시간이 다를 수 있음(없으면 기본 fixedTime). `fixedTimeFor(t,uid)`·`byFixedTimeFor(uid)`.
+- 체크 시 `doneAtBy{uid:ISO}`(체크 시각)도 저장 → 반복 실행 화면 한 줄에서 "✓이름 08:47 / 이름 09:20(예정)"으로 전원 확인 여부를 봄.
 
 ## 규칙 (반드시 준수)
 

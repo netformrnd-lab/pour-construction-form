@@ -22,7 +22,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-차수날짜순";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-신제품항목대화";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -1974,6 +1974,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       return LAUNCH_PHASES.slice(0,ci+1).flatMap(ph=>ph.items.map(it=>({p,ph,it,s:lbState(p,it)}))).filter(x=>x.s.status!=="done"&&x.s.status!=="skip"&&nameMatch(x.s.owner,cu.name)); })
     .sort((a,b)=>String(a.s.due||"9999").localeCompare(String(b.s.due||"9999"))||String(a.p.launchDate||"9999").localeCompare(String(b.p.launchDate||"9999")));
   const [turnAll,setTurnAll]=useState(false);
+  const [lbOpen,setLbOpen]=useState(null);   // 내 차례 신제품 항목 → 그 제품 창(그 항목 펼침)
   const goCat=(k)=>{ try{ localStorage.setItem("pour-os-wf-cat",k); localStorage.setItem("pour-os-proj-adv","0"); }catch(_){} nav("projects"); };
   const lbDone=(x)=>{ const at=new Date().toISOString(); if(x.it.target) return lbWrite(x.p.id,{osExtra:{[x.it.id]:{count:(x.s.count||0)+1,updatedAt:at,updatedBy:cu.name}}},`${x.it.name} · 건수 ${(x.s.count||0)+1}`,cu);
     if(x.it.lb) return lbWrite(x.p.id,{stages:{[x.it.id]:{status:"done",doneBy:cu.name,doneAt:at,updatedAt:at,updatedBy:cu.name}}},`${x.it.name} · 완료`,cu);
@@ -2063,6 +2064,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       {todayStatsEl}
       <TodayThreads D={D} cu={cu} up={up}/>
       {retroT&&<AkRetroSheet D={D} cu={cu} up={up} add={add} target={retroT} onClose={()=>setRetroT(null)}/>}
+      {lbOpen&&lbAll.find(x=>x.id===lbOpen.id)&&<LaunchProductSheet D={D} cu={cu} p={lbAll.find(x=>x.id===lbOpen.id)} items={lbAll} phK={lbOpen.ph} setPh={(k)=>setLbOpen(o=>({...o,ph:k}))} focusId={lbOpen.it} onClose={()=>setLbOpen(null)}/>}
       <TodayBlocks uid={cu.id} items={[
         {id:"retro",label:"월말 회고",show:!!akRetroDue(akYmd(new Date()),D.retros),node:<AkRetroBanner D={D} cu={cu} nav={nav} onOpen={(d)=>setRetroT({y:d.y,m0:d.m0})}/>},
         {id:"akweek",label:"이번 주 내 행동지표",show:myAkN>0,node:<AkTodayCard D={D} cu={cu} nav={nav} add={add} up={up} rm={rm}/>},
@@ -2071,12 +2073,12 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       {isLastWorkingDayOfWeek()&&<button onClick={()=>setWeeklyOpen(true)} style={{width:"100%",marginBottom:14,padding:"13px 0",borderRadius:14,border:"none",background:"#24386B",color:"#fff",fontSize:14.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>이번 주 마감 입력 — 매출·KPI·활동지표 한 번에</button>}
       <WeeklyInputSheet open={weeklyOpen} onClose={()=>setWeeklyOpen(false)} D={D} cu={cu} up={up}/>
         </>)},
-        {id:"turn",label:"워크플로우 내 차례",show:(myCases.length+myLaunch.length)>0,node:(<>
+        {id:"turn",label:"내 차례 (워크플로우·신제품)",show:(myCases.length+myLaunch.length)>0,node:(<>
       {(myCases.length+myLaunch.length)>0&&(()=>{ const rows=[...myCases.map(x=>({k:"c"+x.t.id,kind:"case",...x})),...myLaunch.map(x=>({k:"l"+x.p.id+x.it.id,kind:"launch",...x}))]; const shown=turnAll?rows:rows.slice(0,6);
         return(
         <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #D3D8E6",marginBottom:14}}>
           <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:10,flexWrap:"wrap"}}>
-            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#1E2F5C"}}>워크플로우 — 내 차례 ({rows.length})</h3>
+            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#1E2F5C"}}>내 차례 — 워크플로우·신제품 ({rows.length})</h3>
             <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>체크하면 다음 단계·다음 담당으로 넘어가요</p>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
@@ -2090,9 +2092,11 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
               const late=r.s.due&&daysTo(r.s.due)<0; return(
               <div key={r.k} style={{padding:"10px 12px",borderRadius:12,backgroundColor:"#EEF0F5",border:`1px solid ${late?"#EACFD1":"#E3E7F0"}`,display:"flex",alignItems:"center",gap:9}}>
                 <button onClick={()=>lbDone(r)} aria-label={r.it.target?"하나 더":"완료"} style={{flexShrink:0,minWidth:26,height:26,borderRadius:8,border:"2px solid #24386B",backgroundColor:"#fff",color:"#24386B",fontSize:r.it.target?11:13,fontWeight:900,cursor:"pointer",padding:"0 4px"}}>{r.it.target?"+1":"✓"}</button>
-                <button onClick={()=>goCat("launch")} style={{flex:1,minWidth:0,textAlign:"left",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
-                  <span style={{display:"block",fontSize:13.5,fontWeight:800,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.it.name}{r.it.target?` (${r.s.count}/${r.it.target})`:""}</span>
-                  <span style={{display:"block",fontSize:10.5,color:"#8B95A1",marginTop:1}}>{r.p.name} · {r.ph.no}. {r.ph.name}{r.s.due?` · ${ddayKo(daysTo(r.s.due))}`:""}</span></button>
+                <button onClick={()=>setLbOpen({id:r.p.id,ph:r.ph.k,it:r.it.id})} style={{flex:1,minWidth:0,textAlign:"left",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
+                  <span style={{display:"block",fontSize:10.5,fontWeight:800,color:"#6B7684",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>신제품 · {(LAUNCH_BRANDS[r.p.brand]||{name:""}).name}{r.p.batch?` ${r.p.batch}`:""}</span>
+                  <span style={{display:"block",fontSize:13.5,fontWeight:800,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{color:"#1E2F5C",fontWeight:900}}>{r.p.name}</span> <span style={{color:"#B0B8C1"}}>›</span> {r.it.name}{r.it.target?` (${r.s.count}/${r.it.target})`:""}</span>
+                  <span style={{display:"block",fontSize:10.5,color:"#8B95A1",marginTop:1}}>{r.ph.no}. {r.ph.name}{r.s.due?` · 마감 ${ddayKo(daysTo(r.s.due))}`:""}{(fxNcnt[lbItemNoteId(r.p.id,r.it.id)]||{}).n?` · 댓글 ${(fxNcnt[lbItemNoteId(r.p.id,r.it.id)]||{}).n}`:""}</span></button>
+                <span style={{flexShrink:0,color:"#B0B8C1",fontSize:14}}>›</span>
               </div>); })}
           </div>
           {rows.length>6&&<button onClick={()=>setTurnAll(v=>!v)} style={{marginTop:8,border:"none",background:"none",padding:"4px 2px",fontSize:12,fontWeight:800,color:"#1E2F5C",cursor:"pointer",fontFamily:"inherit"}}>{turnAll?"접기 ▴":`${rows.length-6}개 더 보기 ▾`}</button>}
@@ -3411,7 +3415,9 @@ function TodayThreads({D,cu,up}){
   const q=confirmQueue(notes,cu.id);
   const seen=readSeen(cu.id);
   if(!seen._since){ seen._since=new Date(Date.now()-7*864e5).toISOString(); try{ localStorage.setItem(seenKey(cu.id),JSON.stringify(seen)); }catch(_){} }   // 이 기기 처음이면 최근 7일 댓글부터
-  const myItems=[...(D.tasks||[]).filter(t=>!t.isFixed&&(t.assigneeId===cu.id||(t.assigneeIds||[]).includes(cu.id))).map(t=>taskNoteId(t.id)),...(D.projects||[]).filter(p=>p.assigneeId===cu.id).map(p=>projNoteId(p.id)),...runs.filter(r=>r.by===cu.id).map(r=>runNoteId(r.id))];
+  const lbT=useLaunchProducts();   // 신제품: 내가 담당인 항목 대화 + 내가 책임자인 제품 대화도 '새 댓글'에
+  const lbMine=lbT.filter(p=>!p.deletedAt).flatMap(p=>{ const out=[]; if(nameMatch(p.lead||(LAUNCH_BRANDS[p.brand]||{}).bm||"",cu.name)) out.push(projNoteId("lb:"+p.id)); LAUNCH_ITEMS.forEach(it=>{ if(nameMatch(lbState(p,it).owner||"",cu.name)) out.push(lbItemNoteId(p.id,it.id)); }); return out; });
+  const myItems=[...(D.tasks||[]).filter(t=>!t.isFixed&&(t.assigneeId===cu.id||(t.assigneeIds||[]).includes(cu.id))).map(t=>taskNoteId(t.id)),...(D.projects||[]).filter(p=>p.assigneeId===cu.id).map(p=>projNoteId(p.id)),...runs.filter(r=>r.by===cu.id).map(r=>runNoteId(r.id)),...lbMine];
   const turns=runTurns(runs,cu.id,{exceptMine:true});
   const fresh=newNotesFor(notes,cu.id,myItems,seen,seen._since||new Date().toISOString()).filter(n=>!(n.kind==="confirm"&&n.to===cu.id&&n.status==="wait")&&!q.wait.some(x=>x.itemId===n.itemId)&&!q.fix.some(x=>x.itemId===n.itemId));   // 컨펌 대기·피드백 옴에 이미 뜬 업무는 새 댓글에서 뺌
   const byItem=[]; const seenIt=new Set(); fresh.forEach(n=>{ if(seenIt.has(n.itemId)) return; seenIt.add(n.itemId); byItem.push({n,c:fresh.filter(x=>x.itemId===n.itemId).length}); });
@@ -5965,9 +5971,14 @@ function BatchViewSheet({D,items,v,onOpen,onRoadmap,onClose}){
     </div>
   </Sheet>);
 }
-function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose}){
+// 신제품 항목 하나의 대화(결과·증거 사진·컨펌) — 제품 대화와 별도
+const lbItemNoteId=(pid,itId)=>projNoteId(`lb:${pid}:${itId}`);
+function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose,focusId}){
   const [err,setErr]=useState("");
-  const [editId,setEditId]=useState(null);   // 누른 칸만 담당·마감·상태·방식 편집 펼침(스크롤 줄이기)
+  const [editId,setEditId]=useState(focusId||null);   // 오늘 '내 차례'에서 열면 그 항목이 펼쳐진 채로
+  const lbNotes=useAkNotes(); const lbNcnt=noteCounts(lbNotes);
+  const focusRef=useRef(null);
+  useEffect(()=>{ if(focusId&&focusRef.current) setTimeout(()=>{ try{ focusRef.current.scrollIntoView({block:"start",behavior:"smooth"}); }catch(_){} },250); },[]);   // 누른 칸만 담당·마감·상태·방식 편집 펼침(스크롤 줄이기)
   const [extFor,setExtFor]=useState(null); const [extName,setExtName]=useState("");   // 외부 담당 직접 입력
   const users=D.users||[];
   const userOf=(n)=>n?users.find(u=>u.name===n)||users.find(u=>nameMatch(n,u.name)):null;
@@ -6020,7 +6031,8 @@ function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose}){
       {err&&<p style={{margin:0,fontSize:12.5,color:"#B4383F",fontWeight:800}}>{err}</p>}
       <div style={{display:"flex",flexDirection:"column",gap:7}}>
         {ph.items.map(it=>{ const s=lbState(p,it); const dn=s.status==="done"; const late=!dn&&s.status!=="skip"&&s.due&&s.due<today; const st=LB_ST[s.status]||LB_ST.todo;
-          return(<div key={it.id} style={{padding:"10px 11px",borderRadius:13,border:`1px solid ${late?"#EACFD1":dn?"rgba(0,192,115,.25)":"#EEF1F4"}`,background:dn?"rgba(232,250,241,.4)":s.status==="skip"?"#FAFBFC":"#fff"}}>
+          const nIt=(lbNcnt[lbItemNoteId(p.id,it.id)]||{}).n||0;
+          return(<div key={it.id} ref={it.id===focusId?focusRef:null} style={{scrollMarginTop:8,padding:"10px 11px",borderRadius:13,border:`1px solid ${it.id===focusId?"#24386B":late?"#EACFD1":dn?"rgba(0,192,115,.25)":"#EEF1F4"}`,background:dn?"rgba(232,250,241,.4)":s.status==="skip"?"#FAFBFC":"#fff"}}>
             <div style={{display:"flex",alignItems:"center",gap:9}}>
               {it.target?<span style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
                   <button onClick={()=>setField(it,"count",Math.max(0,s.count-1))} aria-label="하나 빼기" style={{width:28,height:28,borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",fontWeight:900,cursor:"pointer"}}>−</button>
@@ -6033,6 +6045,7 @@ function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose}){
                   {s.status!=="todo"&&!dn&&<span style={{fontSize:10.5,fontWeight:800,color:st.c,background:st.bg,borderRadius:6,padding:"2px 6px"}}>{st.l}</span>}
                   <span style={{fontWeight:userOf(s.owner)?600:700,color:s.owner&&!userOf(s.owner)&&s.owner!=="외주"?"#B26A12":"inherit"}}>{ownerLabel(s.owner)}</span>{s.due&&<span style={{fontWeight:late?800:600,color:late?"#B4383F":"#6B7684"}}>· {String(s.due).slice(5)} {ddayKo(daysTo(s.due))}</span>}
                   <ExecBadge exec={s.exec} note={s.execNote}/>
+                  {nIt>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#4E5968",background:"#F2F4F6",borderRadius:6,padding:"1px 6px"}}>댓글 {nIt}</span>}
                 </div>
               </button>
               <span style={{flexShrink:0,fontSize:12,color:"#B0B8C1"}}>{editId===it.id?"▴":""}</span>
@@ -6045,10 +6058,11 @@ function LaunchProductSheet({D,cu,p,items,phK,setPh,onClose}){
             {extFor===it.id&&<div style={{display:"flex",gap:6,marginTop:6}}><input value={extName} onChange={e=>setExtName(e.target.value)} placeholder="외부 담당 이름 (예: 디자이너 이우민)" aria-label="외부 담당 이름" style={{...sel,flex:1,minWidth:0}}/><button onClick={()=>{ if(extName.trim()){ setField(it,"owner",extName.trim()); setExtFor(null); } }} style={{...NB.pri,padding:"6px 12px"}}>넣기</button></div>}
             {(()=>{ const h=(p.history||[]).filter(x=>x&&typeof x.text==="string"&&x.text.replace(/^\[업무OS\] /,"").startsWith(it.name+" · 담당")); if(!h.length) return null;
               return <div style={{marginTop:6}}><p style={{margin:"0 0 2px",fontSize:11.5,fontWeight:800,color:"#6B7684"}}>담당 변경 이력 {h.length}</p>{[...h].reverse().slice(0,8).map((x,ix)=><p key={ix} style={{margin:0,fontSize:11.5,color:"#4E5968",lineHeight:1.5}}>{noteAt(x.at)} · {x.text.replace(/^\[업무OS\] /,"").replace(it.name+" · ","")} <span style={{color:"#8B95A1"}}>({x.by||"?"})</span></p>)}</div>; })()}
-            <div style={{marginTop:8}}><ExecPicker value={s.exec} note={s.execNote} onChange={(k,n)=>setExec(it,k,n)}/></div></>}
+            <div style={{marginTop:8}}><ExecPicker value={s.exec} note={s.execNote} onChange={(k,n)=>setExec(it,k,n)}/></div>
+            <div style={{marginTop:10,paddingTop:8,borderTop:"1px dashed #E5E8EB"}}><ThreadPanel D={D} cu={cu} itemId={lbItemNoteId(p.id,it.id)} itemName={`${p.name} · ${it.name}`} kind="proj" proj={{id:`lb:${p.id}:${it.id}`,title:`${p.name} · ${it.name}`,assigneeId:((userOf(p.lead||(LAUNCH_BRANDS[p.brand]||{}).bm)||{}).id)||""}} title="이 항목 대화 · 결과·증거 사진·컨펌"/></div></>}
           </div>); })}
       </div>
-      <p style={{margin:"4px 2px 0",fontSize:11,color:"#8B95A1",lineHeight:1.6}}>항목 이름을 누르면 담당·마감·상태·방식을 고쳐요 · 런칭보드와 같은 데이터 · 담당은 업무OS 사람에서 고르면 그 사람 오늘 '내 차례'에 떠요 (업무OS 밖 사람은 '외부'){!p.srcId?" · 소싱앱 기록과는 아직 연결 안 됨":""}</p>
+      <p style={{margin:"4px 2px 0",fontSize:11,color:"#8B95A1",lineHeight:1.6}}>항목 이름을 누르면 담당·마감·상태·방식과 그 항목 대화(결과·사진·컨펌)가 열려요 · 런칭보드와 같은 데이터 · 담당은 업무OS 사람에서 고르면 그 사람 오늘 '내 차례'에 떠요 (업무OS 밖 사람은 '외부'){!p.srcId?" · 소싱앱 기록과는 아직 연결 안 됨":""}</p>
       <button onClick={fillDefaults} style={{alignSelf:"flex-start",...NB.link,padding:"2px 2px"}}>빈 칸에 기본 담당 넣기</button>
       <div style={{marginTop:8}}><ThreadPanel D={D} cu={cu} itemId={projNoteId("lb:"+p.id)} itemName={p.name} kind="proj" proj={{id:"lb:"+p.id,title:p.name,assigneeId:((userOf(p.lead||(LAUNCH_BRANDS[p.brand]||{}).bm)||{}).id)||""}} title="제품 대화"/></div>
     </div>

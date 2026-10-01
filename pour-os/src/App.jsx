@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, arrayUnion, increment, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
 import { AK_SEED, LAG_SEED, AK_FUNS, AK_CYC, akYmd, akWeekKey, akAddDays, akQidOfWeek, akQidOfMonth, akYm, akWeeksIn, akQuarterWeeks, akMonthOfWeek, akVal, akWeekDone, akTotal, akPeriodEnd, akGoalText, akStep, akWho, akOrder, akStart, akCountable, akFullWeek, akPartial, akLink, lagCur, lagPct, isMaster, can, roleLabel, PERMS, pinHash, PIN_TRY_MAX, PIN_LOCK_MIN, akRetroDay, akRetroDue } from "./actionKpi.js";
+import { COMMON, BRAND_SEED, brandKey, brandName, brandView, akBrandOf, mkBrand, projBrand, seedMissing, withAutoSales, salesByCh, salesChOf, execGroups, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, SALES_CH_DEFAULT } from "./brand.js";
 import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGetSnapshot } from "./durable.js";
 import { numF, skCur, mkCur, calcSegDone } from "./kpi.js";
 import { applyAutomation, instantiateLaunch } from "./launch.js";
@@ -9,14 +10,14 @@ import { initCrmOperatorSync, matchOperator, initCrmRevenueSync } from "./crmOpe
 import { WF_CATS, catOf, EXEC_TYPES, execOf, CPC_CHANNELS, NOTICE_KINDS, DEFAULT_WORKFLOWS, mergeWorkflows, launchSettings, caseProgress, caseNext, caseChecks, toggleCheck, caseTurnOwner, numOr0, roasOf, LAUNCH_PHASES, LAUNCH_ITEMS, LAUNCH_COL, LAUNCH_BRANDS, lbState, phaseProgress, launchProgress, launchCurrentPhase, launchLead, nameMatch, guessCat, guessWfProject } from "./workflow.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
-const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","eventTypes","weekGoals","launchTemplates","manuals","trash","activityLog","workflows","actionKPIs","lagKPIs"];
-const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",eventTypes:"일정유형",weekGoals:"주간목표",launchTemplates:"프로세스템플릿",manuals:"로드맵 템플릿",trash:"휴지통",activityLog:"활동기록",workflows:"워크플로우 설정",actionKPIs:"행동지표",lagKPIs:"결과KPI"};
+const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","eventTypes","weekGoals","launchTemplates","manuals","trash","activityLog","workflows","actionKPIs","lagKPIs","brands"];
+const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",eventTypes:"일정유형",weekGoals:"주간목표",launchTemplates:"프로세스템플릿",manuals:"로드맵 템플릿",trash:"휴지통",activityLog:"활동기록",workflows:"워크플로우 설정",actionKPIs:"행동지표",lagKPIs:"결과KPI",brands:"브랜드"};
 const ACT_LOG_CAP = 1000;   // 활동기록 최대 보존 건수(초과 시 오래된 것부터 제거 — 컬렉션 1MiB 한도 가드)
 const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1001-행동지표";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1001-브랜드";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -109,8 +110,9 @@ const DEALER_TYPES=[
 const DT=Object.fromEntries(DEALER_TYPES.map(d=>[d.code,d]));
 const INIT={
   currentUser:"songhee",
-  actionKPIs:AK_SEED,   // 행동지표 — POUR스토어 필수 19개 (원격 문서가 없을 때만 씨앗으로 저장)
-  lagKPIs:LAG_SEED,     // 결과 KPI 6개 (월말 회고 때 월 1회 입력)
+  actionKPIs:[...AK_SEED,...GH_AK_SEED],   // 행동지표 — POUR스토어 필수 19개 + 그로홈 10개 (원격 문서가 없을 때만 씨앗으로 저장)
+  lagKPIs:[...LAG_SEED,...GH_LAG_SEED],     // 결과 KPI POUR 6개 + 그로홈 9개 (월말 회고 때 월 1회 입력)
+  brands:BRAND_SEED,    // 브랜드 목록 — POUR스토어·그로홈 (앞으로 추가)
   users:[
     {id:"songhee",name:"김송희",role:"lead",dept:"전략·자사몰",color:"#24386B",initials:"SH"},
     {id:"minji",name:"김민지",role:"member",dept:"디자인·콘텐츠·CS",color:"#5E5A8C"},
@@ -119,11 +121,13 @@ const INIT={
   ],
   goals:[
     {id:"g1",title:"2026년 매출 10억 달성",targetValue:1000000000,currentValue:161000000,unit:"원",year:2026},
+    GH_GOAL,   // 그로홈 10억 (그로홈 대시보드 6채널 목표)
   ],
   mainKPIs:[
     {id:"mk1",goalId:"g1",title:"POUR 직판 매출 5억",targetValue:500000000,currentValue:89000000,unit:"원",order:1,krKey:"메인1"},
     {id:"mk2",goalId:"g1",title:"B2B 종합 매출 5억",targetValue:500000000,currentValue:72000000,unit:"원",order:2,krKey:"메인2"},
     {id:"mk3",goalId:"g1",title:"운영 시스템 4모듈 구축",targetValue:4,currentValue:1,unit:"모듈",order:3,krKey:"메인3"},
+    ...GH_MAIN,   // 그로홈1 온라인 · 그로홈2 B2B·제휴
   ],
   subKPIs:[
     {id:"sk1",mainKPIId:"mk1",title:"자사몰 매출 (OWN)",targetValue:300000000,currentValue:52000000,unit:"원",order:1,channelCode:"OWN"},
@@ -141,6 +145,7 @@ const INIT={
     {id:"sk11",mainKPIId:"mk3",title:"어드민센터 구축",targetValue:100,currentValue:72,unit:"%",order:3,channelCode:"ADM"},
     {id:"sk12",mainKPIId:"mk3",title:"로드맵 33건",targetValue:33,currentValue:8,unit:"건",order:4,channelCode:"MAN"},
     {id:"sk_launch",mainKPIId:"mk3",title:"신규 SKU 출시 수",targetValue:30,currentValue:0,unit:"개",order:5,channelCode:"SKU",launchCount:true},
+    ...GH_SUB,    // 그로홈 6채널 (그로홈 대시보드 KPI 목표와 같은 값)
   ],
   projects:[
     {id:"p001",mainKPIId:"mk1",subKPIId:"sk1",title:"자사몰 페이지 디자인 전면 재구축",assigneeId:"songhee",collaboratorIds:["minji"],group:"자사몰 구축·운영",priority:"high",status:"active",progress:40,resultValue:0,dealerType:"C-IND"},
@@ -763,10 +768,10 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
 const TABS=[{id:"today",icon:"",label:"오늘"},{id:"kpi",icon:"",label:"KPI"},{id:"projects",icon:"",label:"프로젝트"},{id:"calendar",icon:"",label:"일정"},{id:"mindmap",icon:"",label:"그로스보드"},{id:"more",icon:"⋯",label:"더보기"}];
 const HIDDEN_PAGES=[{id:"retro",label:"목표·회고"},{id:"ai",label:"AI 코치"}];
 const SHARE_NAV=[{id:"share-rev",icon:"",label:"매출"},{id:"kpi",icon:"",label:"KPI"},{id:"share-proj",icon:"",label:"프로젝트/업무플로우맵"},{id:"mindmap",icon:"",label:"그로스보드"}];   // 공유 보기 전용 네비 (확정 플로우맵은 프로젝트 현황 안에서)
-const MORE=[{id:"mindmap",icon:"",label:"그로스보드"},{id:"fixed",icon:"",label:"고정업무"},{id:"journey",icon:"",label:"활동 여정"},{id:"team",icon:"",label:"담당자"},{id:"retro",icon:"",label:"목표·회고"},{id:"ai",icon:"",label:"AI 코치"},{id:"guide",icon:"",label:"가이드"}];
+const MORE=[{id:"mindmap",icon:"",label:"그로스보드"},{id:"routine",icon:"",label:"반복 실행"},{id:"journey",icon:"",label:"활동 여정"},{id:"team",icon:"",label:"담당자"},{id:"retro",icon:"",label:"목표·회고"},{id:"ai",icon:"",label:"AI 코치"},{id:"guide",icon:"",label:"가이드"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
 const NAV_GROUPS=[
-  {label:"개인 · 나만", ids:["today","fixed"]},
+  {label:"개인 · 나만", ids:["today","routine"]},
   {label:"팀 · 공유",  ids:["kpi","projects","mindmap","calendar","team"]},   // 담당자 = 권한(마스터·PIN) 설정 화면
   {label:"데이터 · 기록", ids:["journey"]},
   {label:"도움말",     ids:["guide"]},
@@ -869,6 +874,24 @@ export default function App(){
     progReconciledRef.current=true;
     setD(p=>recalcProg(p));
   },[loaded]);
+  // 최초 로드 후 1회: 브랜드 목록·그로홈 목표/KPI/행동지표 중 빠진 것만 채움 (이미 있거나 휴지통에 있으면 안 넣음 — 기존 데이터 그대로)
+  const brandSeededRef=useRef(false);
+  useEffect(()=>{
+    if(!loaded||brandSeededRef.current||SHARE) return;
+    brandSeededRef.current=true;
+    setD(p=>{ const s=seedMissing(p); if(!s) return p; console.log("[pour-os] 브랜드·그로홈 기본값 채움:",Object.keys(s).join(",")); return {...p,...s}; });
+  },[loaded]);
+  // 마진대시보드 매출 집계(브랜드·월·채널별) — 서브KPI 매출 자동 연결용 (읽기만)
+  const [salesRoll,setSalesRoll]=useState(null);
+  useEffect(()=>{
+    let un=null;
+    try{ un=onSnapshot(extDoc("pour-os","sales-rollup"),(snap)=>{ if(!snap.exists()){ console.log("[매출 집계] 아직 없음 — 마진대시보드 매출 화면을 한 번 열면 생겨요"); setSalesRoll(null); return; } const d=snap.data(); console.log(`[매출 집계] ${(d.rows||[]).length}줄 · ${d.at||""}`); setSalesRoll(d); },(e)=>console.error("[매출 집계] 구독 실패:",e)); }
+    catch(e){ console.error("[매출 집계] 구독 실패:",e); }
+    return ()=>{ try{ un&&un(); }catch(_){} };
+  },[]);
+  // 브랜드 보기(이 기기에만 기억) — 전체 | pourstore | grohome …
+  const [brandF,setBrandFS]=useState(()=>{ try{ return localStorage.getItem("pour-os-brand")||"all"; }catch(_){ return "all"; } });
+  const setBrandF=(b)=>{ setBrandFS(b); try{ localStorage.setItem("pour-os-brand",b); }catch(_){} };
   // 로드 직후 1회: 막 불러온 정상 상태를 IndexedDB 거울+스냅샷으로 즉시 보관(대용량 영구 보관 시작점)
   useEffect(()=>{ if(!loaded||idbInitRef.current) return; idbInitRef.current=true; const sh=pickShared(D); idbSaveMirror(sh).catch(()=>{}); idbPushSnapshot(sh).then(()=>{lastSnapRef.current=Date.now();}).catch(()=>{}); },[loaded,D]);
   // 어드민(상위 프레임)에 임베드된 경우: 활동 담당자 수신 → currentUser 자동 선택
@@ -1141,7 +1164,14 @@ export default function App(){
   );
   const navAll=[...TABS.filter(t=>t.id!=="more"),...MORE,{id:"share-rev",icon:"",label:"매출"},{id:"share-proj",icon:"",label:"프로젝트/업무플로우맵"}];
   // 화면용 보기: 데이터에 저장된 예전 밝은 색(담당자·일정 유형)을 차분한 색으로 — 저장값은 그대로
-  const DV={...D,users:(D.users||[]).map(u=>u&&u.color?{...u,color:toneC(u.color)}:u),eventTypes:(D.eventTypes||[]).map(t=>t?{...t,color:toneC(t.color),bg:toneC(t.bg)}:t)};
+  //  + 마진대시보드 매출 자동 연결(서브KPI 현재값) — 저장값은 그대로, 화면에서만
+  const DV=withAutoSales({...D,users:(D.users||[]).map(u=>u&&u.color?{...u,color:toneC(u.color)}:u),eventTypes:(D.eventTypes||[]).map(t=>t?{...t,color:toneC(t.color),bg:toneC(t.bg)}:t),_roll:salesRoll},salesRoll);
+  // 브랜드 보기 — 오늘·KPI·반복 실행·프로젝트만. 고른 브랜드 + 공통. 새로 만드는 프로젝트·업무·행동지표엔 그 브랜드를 붙여준다
+  const brandOk=brandF==="all"||(D.brands||[]).some(b=>b.id===brandF);
+  const DB=brandView(DV,brandOk?brandF:"all");
+  const BRANDED_COLS=["projects","tasks","actionKPIs","lagKPIs","goals"];
+  const addB=(k,item)=>add(k,(DB._brand!=="all"&&BRANDED_COLS.includes(k)&&item&&!item.brand&&!(k==="tasks"&&item.projectId))?{...item,brand:DB._brand}:item);
+  const brandBar=!SHARE&&["today","kpi","projects","routine","fixed"].includes(page)&&<BrandBar D={D} cu={cu} value={DB._brand} onChange={setBrandF} add={add} up={up}/>;
   const cuV=DV.users.find(u=>u.id===(cu&&cu.id))||cu;
   const pageContent=(<>
     {!SHARE&&isMaster(cu)&&!cu.pinHash&&!pinNag&&<div style={{margin:"10px 16px 0",padding:"10px 12px",borderRadius:12,background:"#E7EAF4",border:"1px solid #C3CCEB",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -1149,14 +1179,15 @@ export default function App(){
       <button onClick={()=>setPinAsk({mode:"set",user:cu})} style={{padding:"7px 12px",borderRadius:9,border:"none",background:"#0F1F5C",color:"#fff",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>PIN 정하기</button>
       <button onClick={()=>setPinNag(true)} style={{padding:"7px 8px",borderRadius:9,border:"none",background:"none",color:"#6B7280",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>나중에</button>
     </div>}
-    {page==="today"&&<TodayPage D={DV} cu={cuV} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
-    {page==="kpi"&&<KPIPage D={DV} lead={lead} up={up} cu={cuV} add={add} rm={rm} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup} pc={viewMode==="pc"} ro={SHARE}/>}
-    {page==="projects"&&<ProjectsHome D={DV} cu={cuV} up={up} add={add} rm={rm} rmNested={rmNested} pc={viewMode==="pc"} lead={lead} nav={nav}/>}
+    {brandBar}
+    {page==="today"&&<TodayPage D={DB} cu={cuV} lead={lead} add={addB} up={up} rm={rm} nav={nav}/>}
+    {page==="kpi"&&<KPIPage D={DB} Dall={D} lead={lead} up={up} cu={cuV} add={addB} rm={rm} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup} pc={viewMode==="pc"} ro={SHARE}/>}
+    {page==="projects"&&<ProjectsHome D={DB} cu={cuV} up={up} add={addB} rm={rm} rmNested={rmNested} pc={viewMode==="pc"} lead={lead} nav={nav}/>}
     {page==="calendar"&&<CalendarPage D={DV} cu={cuV} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="launch"&&<LaunchPage D={DV} cu={cuV} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="mindmap"&&<MindMapPage D={DV} cu={cuV} nav={nav}/>}
     {page==="guide"&&<GuidePage D={DV}/>}
-    {page==="fixed"&&<FixedPage D={DV} cu={cuV} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
+    {(page==="routine"||page==="fixed")&&<RoutinePage D={DB} cu={cuV} lead={lead} add={addB} up={up} rm={rm} nav={nav}/>}
     {page==="team"&&<TeamPage D={DV} cu={cuV} lead={lead} add={add} up={up} rm={rm} onPin={(mode,u)=>setPinAsk({mode,user:u})}/>}
     {page==="retro"&&<RetroPage D={DV} cu={cuV} add={add} up={up} rm={rm}/>}
     {page==="ai"&&<AIPage D={DV} cu={cuV} add={add} rm={rm}/>}
@@ -1206,7 +1237,7 @@ export default function App(){
             </div>
           ))}
         </div>);
-      })():[{label:"개인 · 나만",ids:["fixed"]},{label:"팀 · 공유",ids:["mindmap","team"]},{label:"데이터 · 기록",ids:["journey"]},{label:"도움말",ids:["guide"]}].map(grp=>(
+      })():[{label:"개인 · 나만",ids:["routine"]},{label:"팀 · 공유",ids:["mindmap","team"]},{label:"데이터 · 기록",ids:["journey"]},{label:"도움말",ids:["guide"]}].map(grp=>(
         <div key={grp.label} style={{marginTop:14}}>
           <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -1330,7 +1361,7 @@ export default function App(){
             <div style={{width:26,height:26,borderRadius:7,background:"#1B2438",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"white",fontWeight:800}}>P</div>
             <div>
               <h1 style={{margin:0,fontSize:15,fontWeight:900,color:"#191F28",lineHeight:1}}>{pi?.label}</h1>
-              <p style={{margin:0,fontSize:10,color:"#8B95A1",fontWeight:600}}>POUR스토어</p>
+              <p style={{margin:0,fontSize:10,color:"#8B95A1",fontWeight:600}}>{["today","kpi","projects","routine","fixed"].includes(page)&&DB._brand!=="all"?brandName(DB._brand,D.brands):"브랜드커머스팀"}</p>
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -2173,7 +2204,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
             <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#191F28"}}>고정업무 <span style={{fontWeight:600,color:"#9CA3AF",fontSize:11}}>(내 담당 · 일·주·월 전체)</span></h3>
             <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{fixedMineAll.filter(fixedDone).length}/{fixedMineAll.length} 완료 · 오늘 할 것 {doneFixed}/{fixed.length}</p>
           </div>
-          <button onClick={()=>nav("fixed")} style={{fontSize:11,fontWeight:700,color:"#1E2F5C",backgroundColor:"#EEF0F5",border:"none",borderRadius:7,padding:"5px 10px",cursor:"pointer"}}>관리 →</button>
+          <button onClick={()=>nav("routine")} style={{fontSize:11,fontWeight:700,color:"#1E2F5C",backgroundColor:"#EEF0F5",border:"none",borderRadius:7,padding:"5px 10px",cursor:"pointer"}}>관리 →</button>
         </div>
         {fixedMineAll.length===0?<p style={{margin:0,padding:"16px 0",textAlign:"center",fontSize:13,color:"#D1D5DB"}}>고정업무가 없어요</p>:(
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
@@ -2837,7 +2868,7 @@ const AK_CSS=`
 @media (max-width:900px){.ak .g{grid-template-columns:minmax(0,1fr) 118px 140px}.ak .rname,.ak .thead .lbl{grid-column:1/-1}.ak .thead .lbl{display:none}}
 @media (max-width:520px){.ak .cblock{grid-template-columns:minmax(0,1fr)}.ak .clab{justify-content:flex-start;padding:5px 16px;border-right:0;border-bottom:1px solid var(--line2)}.ak .clab span{writing-mode:horizontal-tb;letter-spacing:.5px}.ak .thead .clab{display:none}.ak .g{grid-template-columns:minmax(0,1fr) 108px}.ak .ctl,.ak .hctl{grid-column:1/-1}.ak .hctl{display:none}.ak .legend{display:none}.ak .stepper{height:38px;grid-template-columns:52px 1fr 52px}}
 `;
-function AkBoard({D,cu,up,add,ro,onRetro}){
+function AkBoard({D,cu,up,add,ro,onRetro,noLag}){
   const users=D.users||[];
   const all=[...(D.actionKPIs||[])].sort(akOrder);
   const today=akYmd(new Date());
@@ -2958,14 +2989,14 @@ function AkBoard({D,cu,up,add,ro,onRetro}){
   return(<div className="ak">
     <style>{AK_CSS}</style>
     <div className="hd">
-      <div><h2>결과 KPI · 행동지표</h2><div className="sub">메인KPI별로 묶음 · 필수 {coreN}개 · 추가 {addN}개 · 주간 + 월간·분기 한 표{!ready?" · 불러오는 중…":""}</div></div>
+      <div><h2>{noLag?"행동지표":"결과 KPI · 행동지표"}</h2><div className="sub">메인KPI별로 묶음 · 필수 {coreN}개 · 추가 {addN}개 · 주간 + 월간·분기 한 표{!ready?" · 불러오는 중…":""}</div></div>
       <div className="nav">
         <button className={"rtb"+(retroDone?" done":"")} onClick={()=>onRetro&&onRetro({y:nowD.getFullYear(),m0:nowD.getMonth()})}>{nowD.getMonth()+1}월 월말 회고 · {akDayLabel(retroDay)}{retroDone?"":""}</button>
         {!ro&&<button className="pri" onClick={()=>setEdit({item:null,core:false})}>+ 행동지표 추가</button>}
       </div>
     </div>
     {err&&<div className="err" role="alert">{err}</div>}
-    <section style={{display:"flex",flexDirection:"column",gap:8}}>
+    {!noLag&&<section style={{display:"flex",flexDirection:"column",gap:8}}>
       <div className="bar"><h3>관리자 KPI (결과) · 목표 대비 현재</h3><span className="note">{canLag?"매월 월말 회고 때 입력 · 여기서 고치면 이번 달 값으로 저장돼요":"매월 월말 회고 때 입력돼요"}</span></div>
       <div className="lag">{lags.map(k=>{ const c=lagCur(k), p=lagPct(k,c.v); return(
         <div className="lcell" key={k.id}>
@@ -2974,7 +3005,7 @@ function AkBoard({D,cu,up,add,ro,onRetro}){
           <div className="track"><i style={{width:`${Math.min(100,p||0)}%`}}/></div>
           <span className="lsrc">{(()=>{ const L=akLink(k), m=(D.mainKPIs||[]).find(x=>x.id===L.mk), sk=(D.subKPIs||[]).find(x=>x.id===L.sk); return (m?`${m.krKey||m.title}${sk?" · "+(sk.channelCode||sk.title):""} · `:"공통 · "); })()}{c.ym?`${+c.ym.slice(5)}월 입력`:(k.baseNote||"기준값")}</span>
         </div>); })}</div>
-    </section>
+    </section>}
     <div className="bar">
       <div className="chips" role="group" aria-label="담당자">
         <button aria-pressed={who==="all"} onClick={()=>setPref("who","all")}>전체</button>
@@ -3013,8 +3044,8 @@ function AkBoard({D,cu,up,add,ro,onRetro}){
 function AkEditSheet({D,cu,item,core,add,up,onClose}){
   const users=D.users||[];
   const canCore=can(cu,"kpiCore");
-  const [f,setF]=useState(()=>item?{name:item.name||"",fun:AK_FUNS.includes(item.fun)?item.fun:"기타",cyc:item.cyc||"W",goal:String(item.goal??""),unit:item.unit||"건",step:String(item.step||10),who:akWho(users,item),how:item.how||"직접",brand:item.brand||"POUR스토어",desc:item.desc||"",core:!!item.core}
-    :{name:"",fun:"A 유입",cyc:"W",goal:"1",unit:"건",step:"10",who:[cu.id],how:"직접",brand:"POUR스토어",desc:"",core:!!core&&canCore,mk:"",sk:""});
+  const [f,setF]=useState(()=>item?{name:item.name||"",fun:AK_FUNS.includes(item.fun)?item.fun:"기타",cyc:item.cyc||"W",goal:String(item.goal??""),unit:item.unit||"건",step:String(item.step||10),who:akWho(users,item),how:item.how||"직접",brand:akBrandOf(item,D.brands),desc:item.desc||"",core:!!item.core}
+    :{name:"",fun:"A 유입",cyc:"W",goal:"1",unit:"건",step:"10",who:[cu.id],how:"직접",brand:(D._brand&&D._brand!=="all")?D._brand:"pourstore",desc:"",core:!!core&&canCore,mk:"",sk:""});
   const [lnk,setLnk]=useState(()=>item?akLink(item):{mk:"",sk:""});
   const pct=f.unit==="%";
   const okGoal=item&&item.perFail?true:(pct?true:Number(f.goal)>0);
@@ -3052,7 +3083,7 @@ function AkEditSheet({D,cu,item,core,add,up,onClose}){
       <label style={lab}>담당자 * <span style={{fontWeight:500,color:"#9CA3AF"}}>(여러 명 가능 · 담당자 오늘 화면에 떠요)</span></label>
       <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{users.map(u=>{ const on=f.who.includes(u.id); return <button key={u.id} type="button" onClick={()=>set("who",on?f.who.filter(x=>x!==u.id):[...f.who,u.id])} style={chip(on)}>{on?"✓ ":""}{u.name}</button>; })}</div>
       <label style={lab}>방식 · 브랜드</label>
-      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{["직접","외주"].map(x=><button key={x} type="button" onClick={()=>set("how",x)} style={chip(f.how===x)}>{x}</button>)}<span style={{width:8}}/>{["POUR스토어","GROHOME","공통"].map(x=><button key={x} type="button" onClick={()=>set("brand",x)} style={chip(f.brand===x)}>{x}</button>)}</div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{["직접","외주"].map(x=><button key={x} type="button" onClick={()=>set("how",x)} style={chip(f.how===x)}>{x}</button>)}<span style={{width:8}}/>{[...(D.brands||BRAND_SEED).filter(b=>b.active!==false).map(b=>[b.id,b.name]),[COMMON,"공통"]].map(([k,l])=><button key={k} type="button" onClick={()=>set("brand",k)} style={chip(f.brand===k)}>{l}</button>)}</div>
       <label style={lab}>세부내용</label>
       <textarea value={f.desc} onChange={e=>set("desc",e.target.value)} rows={3} placeholder="무엇을 어떻게 하는지 한두 줄" style={{...inp,resize:"vertical"}}/>
       <button onClick={save} disabled={!ok} style={{width:"100%",marginTop:16,padding:"14px 0",borderRadius:14,border:"none",background:ok?"#0F1F5C":"#D1D6DB",color:"#fff",fontWeight:900,fontSize:15,cursor:ok?"pointer":"not-allowed",fontFamily:"inherit"}}>{item?"저장":"행동지표 추가"}</button>
@@ -3253,7 +3284,123 @@ function PinSheet({ask,onClose,onVerified,onSet}){
   </Sheet>);
 }
 
-function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro}){
+// ── 브랜드 선택줄 — 오늘·KPI·반복 실행·프로젝트 위. 전체 | POUR스토어 | 그로홈 … (이 기기에만 기억) · 마스터는 브랜드 추가 ──
+function BrandBar({D,cu,value,onChange,add,up}){
+  const list=((D.brands&&D.brands.length)?D.brands:BRAND_SEED).filter(b=>b.active!==false).sort((a,b)=>(a.order||0)-(b.order||0));
+  const [adding,setAdding]=useState(false); const [nm,setNm]=useState("");
+  const master=isMaster(cu);
+  const save=()=>{ const n=nm.trim(); if(!n) return; if(list.some(b=>b.name.replace(/\s/g,"")===n.replace(/\s/g,""))){ setAdding(false); setNm(""); return; }
+    add("brands",{id:"b"+Date.now().toString(36),name:n,order:list.length+1,active:true,createdAt:new Date().toISOString(),createdBy:cu.id,createdByName:cu.name||""}); setNm(""); setAdding(false); };
+  const btn=(on)=>({padding:"6px 12px",borderRadius:7,border:"none",background:on?"#24386B":"transparent",color:on?"#fff":"#4A4E57",fontSize:12.5,fontWeight:on?800:600,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"});
+  return(<div className="brandbar" style={{margin:"10px 16px 0",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+    <div role="group" aria-label="브랜드" style={{display:"flex",gap:2,flexWrap:"wrap",background:"#E9EBEF",borderRadius:9,padding:3}}>
+      {[{id:"all",name:"전체"},...list].map(b=><button key={b.id} aria-pressed={value===b.id} onClick={()=>onChange(b.id)} style={btn(value===b.id)}>{b.name}</button>)}
+    </div>
+    {value!=="all"&&<span style={{fontSize:11.5,color:"#6B7280",fontWeight:600}}>{brandName(value,list)} + 공통 업무만 보는 중</span>}
+    {master&&!adding&&<button onClick={()=>setAdding(true)} style={{marginLeft:"auto",padding:"5px 10px",borderRadius:7,border:"1px solid #D5D9E0",background:"#fff",color:"#4A4E57",fontSize:11.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>브랜드 추가</button>}
+    {adding&&<span style={{display:"flex",gap:6,alignItems:"center",flex:"1 1 220px"}}><input value={nm} onChange={e=>setNm(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter") save(); if(e.key==="Escape") setAdding(false); }} autoFocus placeholder="새 브랜드 이름" aria-label="새 브랜드 이름" style={{flex:1,minWidth:0,padding:"7px 10px",borderRadius:8,border:"1.5px solid #D5D9E0",fontSize:13,fontFamily:"inherit"}}/>
+      <button onClick={save} disabled={!nm.trim()} style={{padding:"7px 12px",borderRadius:8,border:"none",background:nm.trim()?"#24386B":"#D1D6DB",color:"#fff",fontSize:12,fontWeight:800,cursor:nm.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>추가</button>
+      <button onClick={()=>{ setAdding(false); setNm(""); }} style={{padding:"7px 8px",borderRadius:8,border:"none",background:"none",color:"#6B7280",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>취소</button></span>}
+  </div>);
+}
+
+// ── 반복 실행 — 고정업무(운영: 했다/안 했다) + 행동지표(KPI: 몇 번 했나)를 한 화면 두 칸으로 ──
+function RoutinePage(props){
+  const {D,cu,up,add}=props;
+  const [sec,setSecS]=useState(()=>{ try{ return localStorage.getItem("pour-os-routine-sec")||"all"; }catch(_){ return "all"; } });
+  const setSec=(v)=>{ setSecS(v); try{ localStorage.setItem("pour-os-routine-sec",v); }catch(_){} };
+  const fxN=(D.tasks||[]).filter(t=>t.isFixed).length, akN=(D.actionKPIs||[]).filter(a=>a.active!==false).length;
+  const head=(t,sub)=><div style={{padding:"16px 16px 0",display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap"}}><h3 style={{margin:0,fontSize:15.5,fontWeight:900,color:"#16181D"}}>{t}</h3><span style={{fontSize:11.5,color:"#6B7280"}}>{sub}</span></div>;
+  return(<div>
+    <div style={{padding:"12px 16px 0"}}>
+      <h2 style={{margin:"0 0 4px",fontSize:17,fontWeight:900,color:"#16181D"}}>반복 실행</h2>
+      <p style={{margin:"0 0 10px",fontSize:12,color:"#5B606B",lineHeight:1.6}}>정해진 주기로 반복하는 일 두 가지. <b>고정업무</b>는 운영을 위해 매일·매주·매월 하는 일(했다/안 했다), <b>행동지표</b>는 KPI를 움직이려고 주기마다 정한 횟수만큼 하는 일(몇 번 했나)이에요.</p>
+      <div role="group" aria-label="보기" style={{display:"inline-flex",gap:2,background:"#E9EBEF",borderRadius:9,padding:3}}>
+        {[["all","전체"],["fixed",`고정업무 ${fxN}`],["ak",`행동지표 ${akN}`]].map(([k,l])=><button key={k} aria-pressed={sec===k} onClick={()=>setSec(k)} style={{padding:"7px 14px",borderRadius:7,border:"none",background:sec===k?"#fff":"transparent",color:sec===k?"#16181D":"#5B606B",fontSize:12.5,fontWeight:sec===k?800:600,cursor:"pointer",fontFamily:"inherit",boxShadow:sec===k?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{l}</button>)}
+      </div>
+    </div>
+    {sec!=="ak"&&<section aria-label="고정업무">{head("고정업무","운영 · 체크하면 끝")}<FixedPage {...props}/></section>}
+    {sec!=="fixed"&&<section aria-label="행동지표">{head("행동지표","KPI · 주기별 횟수 −/+ · 결과 KPI는 KPI 화면에서")}<div style={{padding:"10px 16px 24px"}}><AkBoard D={D} cu={cu} up={up} add={add} noLag/></div></section>}
+  </div>);
+}
+
+// ── KPI 흐름 — 어떤 데이터가 어디에 영향을 주는지 (자동/수동 표시) ──
+const FlowTag=({auto})=><span style={{fontSize:10,fontWeight:800,color:auto?"#1F5C3F":"#7A4A12",background:auto?"#EAF4EE":"#F8F1E6",border:`1px solid ${auto?"#CFE3D6":"#EAD9BF"}`,borderRadius:5,padding:"1px 6px",whiteSpace:"nowrap"}}>{auto?"자동":"수동"}</span>;
+function mkSource(mk,D){
+  const subs=(D.subKPIs||[]).filter(s=>s.mainKPIId===mk.id);
+  if(mk.id==="mk2") return {t:"거래처유형별 매출 입력 → 프로젝트 매출 합계",auto:false};
+  if(mk.unit!=="원") return {t:"서브 항목 진척(업무 완료 비율) 롤업",auto:true};
+  if(subs.some(s=>s._auto)) return {t:"마진대시보드 매출(채널별)에서",auto:true};
+  if(subs.some(s=>s.salesAuto!==false&&salesChOf(s).length)) return {t:"마진대시보드 매출 연결 대기 · 지금은 직접 입력",auto:false};
+  return {t:"채널별 실적 직접 입력",auto:false};
+}
+function KpiFlow({D}){
+  const [open,setOpenS]=useState(()=>{ try{ return localStorage.getItem("pour-os-kpiflow")!=="0"; }catch(_){ return true; } });
+  const setOpen=(v)=>{ setOpenS(v); try{ localStorage.setItem("pour-os-kpiflow",v?"1":"0"); }catch(_){} };
+  const box={background:"#fff",border:"1px solid #E3E5EA",borderRadius:10,padding:"9px 11px",display:"flex",flexDirection:"column",gap:4,minWidth:0};
+  const name=(t,auto)=><div style={{display:"flex",alignItems:"center",gap:6,justifyContent:"space-between"}}><b style={{fontSize:12.5,color:"#16181D"}}>{t}</b><FlowTag auto={auto}/></div>;
+  const note=(t)=><span style={{fontSize:11,color:"#5B606B",lineHeight:1.45}}>{t}</span>;
+  const arrow=(t)=><div style={{display:"flex",alignItems:"center",gap:8,margin:"6px 0 6px 10px",fontSize:11,color:"#6B7280",fontWeight:700}}><span style={{fontSize:13,color:"#8A8E96"}}>↓</span>{t}</div>;
+  const mks=[...(D.mainKPIs||[])].sort((a,b)=>(a.order||0)-(b.order||0));
+  return(<section aria-label="KPI 흐름" style={{background:"#F7F8FA",border:"1px solid #E3E5EA",borderRadius:12,padding:"12px 14px",marginBottom:14}}>
+    <button onClick={()=>setOpen(!open)} aria-expanded={open} style={{display:"flex",alignItems:"center",gap:8,width:"100%",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+      <b style={{flex:1,fontSize:13.5,color:"#16181D"}}>KPI 흐름 — 무엇이 무엇에 영향을 주나</b><span style={{fontSize:11.5,color:"#6B7280",fontWeight:700}}>{open?"접기 ▴":"펼치기 ▾"}</span></button>
+    {open&&<div style={{marginTop:10}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:6}}>
+        <div style={box}>{name("고정업무",false)}{note("운영 일 · 매일·매주·매월 체크")}</div>
+        <div style={box}>{name("행동지표",false)}{note("KPI 행동 · 주기별 횟수 −/+")}</div>
+        <div style={box}>{name("프로젝트",true)}{note("업무 완료 → 진척% 자동")}</div>
+      </div>
+      {arrow("실행 · 아래 '실행 현황'에서 결과와 나란히 비교 (숫자로 합치지 않아요)")}
+      <div style={box}>{name("결과 KPI",false)}{note("유입·전환율·재구매율 등 — 월말 회고 때 월 1회 입력")}</div>
+      {arrow("영향 (간접 — 결과 KPI가 오르면 매출이 따라와요)")}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:6}}>
+        {mks.map(mk=>{ const src=mkSource(mk,D); return <div key={mk.id} style={box}>{name(`${mk.krKey?mk.krKey+" · ":""}서브KPI`,src.auto)}{note(`${mk.title} — ${src.t}`)}</div>; })}
+      </div>
+      {arrow("합계 (자동)")}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:6}}>
+        <div style={box}>{name("메인KPI",true)}{note("서브KPI 합계")}</div>
+        <div style={box}>{name("최종목표",true)}{note("매출(원) 메인KPI 합계")}</div>
+      </div>
+      {D._roll?<p style={{margin:"8px 0 0",fontSize:10.5,color:"#6B7280"}}>매출 집계: {String(D._roll.at||"").slice(0,10)} {String(D._roll.at||"").slice(11,16)}{D._roll.by?` · ${D._roll.by}`:""} (마진대시보드 매출 화면을 열 때마다 갱신)</p>
+        :<p style={{margin:"8px 0 0",fontSize:10.5,color:"#7A4A12"}}>매출 자동 연결 대기 — 마진대시보드 › 매출 화면을 한 번 열면 시작돼요</p>}
+    </div>}
+  </section>);
+}
+
+// ── 실행 현황 — 행동지표 · 고정업무 · 프로젝트를 따로 보고, 결과(매출 달성률)와 나란히. 위 버튼으로 하나씩 ──
+const EXEC_CATS=[["all","전체"],["ak","행동지표"],["fx","고정업무"],["pj","프로젝트"]];
+const EXEC_DESC={all:"이번 달 실행률 세 가지를 따로 보여줘요 — 하나로 합친 점수가 아니에요",ak:"이번 달 · 지금까지 해야 할 횟수 대비 (주간은 지난 주까지+이번 주, 월간은 이번 달, 분기는 이번 분기)",fx:"지금 기간 체크 기준 — 매일=오늘, 매주=이번 주, 매월=이번 달 · 담당자 모두 체크해야 완료",pj:"진행 중 프로젝트 평균 진척 (업무 완료 비율로 자동 · 보류 제외)"};
+function ExecBoard({D}){
+  const now=new Date(), today=akYmd(now), todayKey=now.toISOString().slice(0,10);
+  const {docs,ready}=useAkDocs([akQidOfMonth(now.getFullYear(),now.getMonth())]);
+  const [cat,setCatS]=useState(()=>{ try{ return localStorage.getItem("pour-os-exec-cat")||"all"; }catch(_){ return "all"; } });
+  const setCat=(v)=>{ setCatS(v); try{ localStorage.setItem("pour-os-exec-cat",v); }catch(_){} };
+  const groups=execGroups(D,docs,today,(t)=>fixedAllDone(D,t,todayKey));
+  const pv=(x)=>x.pct==null?"—":x.pct+"%";
+  const LBL={ak:"행동지표",fx:"고정업무",pj:"프로젝트"};
+  const detail=(k,x)=>x.n?(k==="ak"?`${x.n}개 중 ${x.done}개 달성`:k==="fx"?`${x.n}개 중 ${x.done}개 체크`:`${x.n}개 · 완료 ${x.done}`):"연결된 항목 없음";
+  return(<section aria-label="실행 현황" style={{background:"#fff",border:"1px solid #E3E5EA",borderRadius:12,padding:"13px 14px",marginBottom:14}}>
+    <div style={{display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap",marginBottom:8}}><h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#16181D"}}>실행 현황 · 결과와 나란히</h3><span style={{fontSize:11,color:"#6B7280"}}>{now.getMonth()+1}월{!ready?" · 불러오는 중…":""}</span></div>
+    <div role="group" aria-label="실행 구분" style={{display:"flex",gap:2,background:"#E9EBEF",borderRadius:9,padding:3,marginBottom:8,overflowX:"auto"}}>
+      {EXEC_CATS.map(([k,l])=><button key={k} aria-pressed={cat===k} onClick={()=>setCat(k)} style={{flex:"1 0 auto",padding:"7px 12px",borderRadius:7,border:"none",background:cat===k?"#fff":"transparent",color:cat===k?"#16181D":"#5B606B",fontSize:12.5,fontWeight:cat===k?800:600,cursor:"pointer",fontFamily:"inherit",boxShadow:cat===k?"0 1px 3px rgba(0,0,0,.1)":"none",whiteSpace:"nowrap"}}>{l}</button>)}
+    </div>
+    <p style={{margin:"0 0 10px",fontSize:11,color:"#5B606B",lineHeight:1.5}}>{EXEC_DESC[cat]}</p>
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {groups.map(g=>{ const res=g.mk?pctF(mkCur(g.mk,D.subKPIs,D.projects),g.mk.targetValue):null;
+        const title=g.mk?`${g.mk.krKey?g.mk.krKey+" · ":""}${g.mk.title}`:"공통 · 메인KPI 연결 없음";
+        return(<div key={g.mk?g.mk.id:"none"} className="exrow" style={{border:"1px solid #ECEEF1",borderRadius:10,padding:"10px 12px",background:g.mk?"#fff":"#FAFAFB"}}>
+          <div style={{display:"flex",alignItems:"baseline",gap:8,justifyContent:"space-between"}}><b style={{fontSize:12.5,color:"#16181D",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{title}</b>{res!=null&&<span style={{fontSize:11.5,color:"#5B606B",whiteSpace:"nowrap"}}>결과 <b style={{color:"#16181D",fontVariantNumeric:"tabular-nums"}}>{Math.round(res*10)/10}%</b></span>}</div>
+          {cat==="all"?<div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:6,marginTop:8}}>
+            {["ak","fx","pj"].map(k=><button key={k} onClick={()=>setCat(k)} style={{textAlign:"left",border:"1px solid #ECEEF1",borderRadius:8,background:"#F7F8FA",padding:"6px 8px",cursor:"pointer",fontFamily:"inherit",minWidth:0}}><span style={{display:"block",fontSize:10.5,color:"#5B606B",fontWeight:700}}>{LBL[k]}</span><b style={{fontSize:15,color:g[k].pct==null?"#9AA0A8":"#16181D",fontVariantNumeric:"tabular-nums"}}>{pv(g[k])}</b></button>)}
+          </div>
+          :<div style={{marginTop:8}}><div style={{display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,height:6,background:"#ECEEF1",borderRadius:4,overflow:"hidden"}}><div style={{width:`${Math.min(100,g[cat].pct||0)}%`,height:"100%",background:"#24386B"}}/></div><b style={{fontSize:14,color:g[cat].pct==null?"#9AA0A8":"#16181D",fontVariantNumeric:"tabular-nums",minWidth:40,textAlign:"right"}}>{pv(g[cat])}</b></div>
+            <span style={{display:"block",marginTop:4,fontSize:11,color:"#5B606B"}}>{detail(cat,g[cat])}</span></div>}
+        </div>); })}
+    </div>
+  </section>);
+}
+function KPIPage({D,Dall,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro}){
   const [kpiView,setKpiView]=useState("one");   // one(KPI 한눈에: 최종목표→메인KPI→결과 KPI·행동지표→프로젝트 활동지표) | mindmap(전체 맵)
   const [retroT,setRetroT]=useState(null);       // 월말 회고 {y,m0}
   const [openMK,setOpenMK]=useState("mk1");
@@ -3271,22 +3418,25 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
   const [cfgForm,setCfgForm]=useState({title:"",target:"",unit:"",current:""});
   const [kpiDel,setKpiDel]=useState(null);   // 삭제 확인 {coll,item,kind}
   const krColors={mk1:"#24386B",mk2:"#5E5A8C",mk3:"#2F7D57"};
-  const openCfg=(coll,item,kind)=>{ setCfgForm({title:item.title||"",target:String(item.targetValue??""),unit:item.unit||"",current:String(item.currentValue??"")}); setCfg({coll,item,kind}); };
-  const openNewSub=(mkId)=>{ setCfgForm({title:"",target:"",unit:"원",current:""}); setCfg({coll:"subKPIs",item:null,kind:"sub",mainKPIId:mkId}); };
+  const openCfg=(coll,item,kind)=>{ setCfgForm({title:item.title||"",target:String(item.targetValue??""),unit:item.unit||"",current:item._auto?"":String(item.currentValue??""),chs:kind==="sub"?salesChOf(item):[]}); setCfg({coll,item,kind}); };
+  const openNewSub=(mkId)=>{ setCfgForm({title:"",target:"",unit:"원",current:"",chs:[]}); setCfg({coll:"subKPIs",item:null,kind:"sub",mainKPIId:mkId}); };
+  // 매출 자동 연결 채널 고르기 — 마진대시보드 매출 화면의 채널 이름 그대로
+  const chOptions=(mkId)=>{ const mk=D.mainKPIs.find(m=>m.id===mkId); const g=mk&&D.goals.find(x=>x.id===mk.goalId); const seen=mk?Object.keys(salesByCh(D._roll,mkBrand(mk,D),(g&&g.year)||2026,D.brands)):[]; return [...new Set([...Object.values(SALES_CH_DEFAULT).flat(),...seen])]; };
   const openNewMain=()=>{ setCfgForm({title:"",target:"",unit:"원",current:""}); setCfg({coll:"mainKPIs",item:null,kind:"main",goalId:D.goals[0]?.id}); };
   const saveCfg=()=>{
     if(!cfg) return;
     const {coll,item,kind,mainKPIId,goalId}=cfg;
     if(!item){ // 신규 추가
       if(!cfgForm.title.trim()){ return; }
-      if(kind==="sub") add("subKPIs",{id:"sk"+Date.now(),mainKPIId,title:cfgForm.title.trim(),targetValue:numF(cfgForm.target),currentValue:0,unit:cfgForm.unit||"원",order:99,channelCode:""});
+      if(kind==="sub") add("subKPIs",{id:"sk"+Date.now(),mainKPIId,title:cfgForm.title.trim(),targetValue:numF(cfgForm.target),currentValue:0,unit:cfgForm.unit||"원",order:99,channelCode:"",...(mainKPIId!=="mk2"&&(cfgForm.unit||"원")==="원"?{salesCh:cfgForm.chs||[]}:{})});
       else if(kind==="main") add("mainKPIs",{id:"mk"+Date.now(),goalId:goalId||(D.goals[0]&&D.goals[0].id),title:cfgForm.title.trim(),targetValue:numF(cfgForm.target),currentValue:0,unit:cfgForm.unit||"원",order:99,krKey:cfgForm.title.trim().slice(0,6)});
       setCfg(null); return;
     }
     const patch={title:cfgForm.title.trim()||item.title,targetValue:numF(cfgForm.target)};
     if(kind!=="goal") patch.unit=cfgForm.unit||item.unit;
     // mk2(원) 서브KPI는 자식 프로젝트 매출 자동집계 → 현재값/오버라이드를 절대 건드리지 않음(이름·목표만 바꿔도 자동집계 유지)
-    const isAutoRev=item.mainKPIId==="mk2"&&item.unit==="원";
+    const isAutoRev=(item.mainKPIId==="mk2"&&item.unit==="원")||!!item._auto;   // 매출 자동 연결(마진대시보드)도 현재값 안 건드림
+    if(kind==="sub"&&item.mainKPIId!=="mk2"&&(patch.unit||item.unit)==="원"&&JSON.stringify(cfgForm.chs||[])!==JSON.stringify(salesChOf(item))) patch.salesCh=cfgForm.chs||[];
     if(kind!=="goal"&&!isAutoRev&&cfgForm.current!==""&&isFinite(Number(cfgForm.current))){ patch.currentValue=Number(cfgForm.current); }
     up(coll,item.id,patch);
     setCfg(null);
@@ -3372,9 +3522,10 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
               </div>
             );
           })()}
+          <KpiFlow D={D}/>
           {!ro&&<div style={{backgroundColor:"#EEF0F5",border:"1px solid #D3D8E6",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
             <p style={{margin:"0 0 4px",fontSize:12,fontWeight:900,color:"#1E2F5C"}}>매주 금요일, 내 KPI에 이번 주 실적을 넣으세요</p>
-            <p style={{margin:0,fontSize:11,color:"#1E2F5C",fontWeight:600,lineHeight:1.55}}>· <b>직판·운영</b> KPI → 항목 펼쳐 <b>이번 주 실적 입력</b><br/>· <b>B2B(메인2)</b> → 단가별 항목 펼쳐 <b>이번 주 실적 입력</b>(직접 입력) 또는 <b>거래처유형별 매출 입력</b>(프로젝트 매출 자동 집계)<br/>· 추가값=이번 주만 / 총값=누계 덮어쓰기 · 누가 넣었는지·주차별 이력 자동 기록</p>
+            <p style={{margin:0,fontSize:11,color:"#1E2F5C",fontWeight:600,lineHeight:1.55}}>· <b>직판(메인1)·그로홈 매출</b> → 마진대시보드 매출에서 <b>자동</b> (자동 연결 안 된 채널만 직접 입력)<br/>· <b>운영</b> KPI → 항목 펼쳐 <b>이번 주 실적 입력</b><br/>· <b>B2B(메인2)</b> → 단가별 항목 펼쳐 <b>이번 주 실적 입력</b>(직접 입력) 또는 <b>거래처유형별 매출 입력</b>(프로젝트 매출 자동 집계)<br/>· 추가값=이번 주만 / 총값=누계 덮어쓰기 · 누가 넣었는지·주차별 이력 자동 기록</p>
           </div>}
           {D.goals.map(g=>{
             const cur=D.mainKPIs.filter(mk=>mk.unit==="원"&&mk.goalId===g.id).reduce((s,mk)=>s+mkCur(mk,D.subKPIs,D.projects),0);
@@ -3392,6 +3543,7 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
               </div>
             );
           })}
+          <ExecBoard D={D}/>
           <h3 style={{margin:"0 0 10px",fontSize:15,fontWeight:900,color:"#191F28"}}>메인 KPI</h3>
           {D.mainKPIs.map(mk=>{
             const p=pctF(mkCur(mk,D.subKPIs,D.projects),mk.targetValue);
@@ -3465,7 +3617,10 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
                         </div>
                       );
                     })()}
-                    {mk.unit==="원"&&mk.id!=="mk2"&&(<div style={{marginBottom:12,padding:"9px 12px",backgroundColor:"#EEF0F5",borderRadius:10}}><p style={{margin:0,fontSize:11.5,color:"#24386B",fontWeight:600}}>채널별 매출 합계로 자동 집계 — 아래 채널 현재값 입력</p></div>)}{mk.id==="mk2"&&(<div style={{marginBottom:12,padding:"11px 13px",backgroundColor:"#EEF0F5",borderRadius:10,border:"1px solid #D3D8E6"}}><p style={{margin:"0 0 4px",fontSize:12,color:"#1E2F5C",fontWeight:800}}>매출 입력은 여기서!</p><p style={{margin:0,fontSize:11.5,color:"#1E2F5C",fontWeight:600,lineHeight:1.55}}>아래 <b>거래처유형별 매출</b>의 <b>입력</b> 버튼 → 한 화면에서 거래처유형별로 바로 입력 → 단가·메인KPI에 자동 반영</p></div>)}{mk.unit!=="원"&&(()=>{const hasAutoSrc=subs.length>0;const isAuto=hasAutoSrc&&!mk.manualOverride;const eff=mkCur(mk,D.subKPIs,D.projects);return(<div style={{marginBottom:12}}>{isAuto&&<div style={{marginBottom:8,padding:"9px 12px",backgroundColor:"#EAF4EE",borderRadius:10}}><p style={{margin:0,fontSize:11.5,color:"#2F7D57",fontWeight:700,lineHeight:1.5}}>하위 항목 달성도로 자동 롤업 · 환산 {fmt(eff,mk.unit)} / {fmt(mk.targetValue,mk.unit)}</p></div>}<button onClick={()=>openVal("mainKPIs",mk)} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #24386B",background:"#EEF0F5",color:"#1E2F5C",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{isAuto?"직접 입력으로 전환":"이번 주 실적 입력"} · 현재 {fmt(eff,mk.unit)}</button>{(mk.valueByName||(mk.valueHistory&&mk.valueHistory.length)||(mk.manualOverride&&hasAutoSrc))&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6,gap:8}}>{mk.valueByName&&<span style={{fontSize:10.5,color:"#9CA3AF"}}>{mk.valueByName} · {(mk.valueAt||"").slice(5,10)}</span>}<div style={{display:"flex",gap:6,marginLeft:"auto"}}>{mk.valueHistory&&mk.valueHistory.length>0&&<button onClick={()=>setHistItem(mk)} style={{padding:"3px 9px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>이력 {mk.valueHistory.length}</button>}{mk.manualOverride&&hasAutoSrc&&<button onClick={()=>up("mainKPIs",mk.id,{manualOverride:false})} style={{padding:"3px 9px",borderRadius:7,border:"1px solid #D3D8E6",background:"#EEF0F5",fontSize:10.5,fontWeight:700,color:"#1E2F5C",cursor:"pointer",fontFamily:"inherit"}}>↺ 자동으로</button>}</div></div>}</div>);})()}
+                    {mk.unit==="원"&&mk.id!=="mk2"&&(()=>{ const autoN=subs.filter(x=>x._auto).length; const br=mkBrand(mk,D); const g=D.goals.find(x=>x.id===mk.goalId); const yr=(g&&g.year)||2026;
+                      const linked=new Set(D.subKPIs.filter(x=>x.mainKPIId!=="mk2"&&D.mainKPIs.some(m=>m.id===x.mainKPIId&&mkBrand(m,D)===br)).flatMap(x=>salesChOf(x)));
+                      const rest=Object.entries(salesByCh(D._roll,br,yr,D.brands)).filter(([c,v])=>!linked.has(c)&&v).sort((a,b)=>b[1]-a[1]);
+                      return(<div style={{marginBottom:12,padding:"9px 12px",backgroundColor:"#EEF0F5",borderRadius:10}}><p style={{margin:0,fontSize:11.5,color:"#24386B",fontWeight:600,lineHeight:1.55}}>{autoN?`채널별 매출 합계 — ${autoN}개 채널이 마진대시보드 매출에서 자동으로 들어와요 (${yr}년 누적)`:"채널별 매출 합계로 자동 집계 — 아래 채널 현재값 입력"}</p>{rest.length>0&&<p style={{margin:"5px 0 0",fontSize:11,color:"#4A4E57",lineHeight:1.55}}>어느 채널에도 안 들어간 {brandName(br,D.brands)} 매출: {rest.map(([c,v])=>`${c} ${fmt(v,"원")}`).join(" · ")}{br==="pourstore"?" — B2B(메인2)는 거래처유형별 매출로 입력":""} · 채널 설정에서 연결할 수 있어요</p>}</div>); })()}{mk.id==="mk2"&&(<div style={{marginBottom:12,padding:"11px 13px",backgroundColor:"#EEF0F5",borderRadius:10,border:"1px solid #D3D8E6"}}><p style={{margin:"0 0 4px",fontSize:12,color:"#1E2F5C",fontWeight:800}}>매출 입력은 여기서!</p><p style={{margin:0,fontSize:11.5,color:"#1E2F5C",fontWeight:600,lineHeight:1.55}}>아래 <b>거래처유형별 매출</b>의 <b>입력</b> 버튼 → 한 화면에서 거래처유형별로 바로 입력 → 단가·메인KPI에 자동 반영</p></div>)}{mk.unit!=="원"&&(()=>{const hasAutoSrc=subs.length>0;const isAuto=hasAutoSrc&&!mk.manualOverride;const eff=mkCur(mk,D.subKPIs,D.projects);return(<div style={{marginBottom:12}}>{isAuto&&<div style={{marginBottom:8,padding:"9px 12px",backgroundColor:"#EAF4EE",borderRadius:10}}><p style={{margin:0,fontSize:11.5,color:"#2F7D57",fontWeight:700,lineHeight:1.5}}>하위 항목 달성도로 자동 롤업 · 환산 {fmt(eff,mk.unit)} / {fmt(mk.targetValue,mk.unit)}</p></div>}<button onClick={()=>openVal("mainKPIs",mk)} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #24386B",background:"#EEF0F5",color:"#1E2F5C",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{isAuto?"직접 입력으로 전환":"이번 주 실적 입력"} · 현재 {fmt(eff,mk.unit)}</button>{(mk.valueByName||(mk.valueHistory&&mk.valueHistory.length)||(mk.manualOverride&&hasAutoSrc))&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6,gap:8}}>{mk.valueByName&&<span style={{fontSize:10.5,color:"#9CA3AF"}}>{mk.valueByName} · {(mk.valueAt||"").slice(5,10)}</span>}<div style={{display:"flex",gap:6,marginLeft:"auto"}}>{mk.valueHistory&&mk.valueHistory.length>0&&<button onClick={()=>setHistItem(mk)} style={{padding:"3px 9px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>이력 {mk.valueHistory.length}</button>}{mk.manualOverride&&hasAutoSrc&&<button onClick={()=>up("mainKPIs",mk.id,{manualOverride:false})} style={{padding:"3px 9px",borderRadius:7,border:"1px solid #D3D8E6",background:"#EEF0F5",fontSize:10.5,fontWeight:700,color:"#1E2F5C",cursor:"pointer",fontFamily:"inherit"}}>↺ 자동으로</button>}</div></div>}</div>);})()}
                     {mk.id==="mk2"&&(()=>{const b2b=D.projects.filter(p=>p.mainKPIId==="mk2"&&p.dealerType);if(!b2b.length)return null;const byType={};b2b.forEach(p=>{const k=p.dealerType;if(!byType[k])byType[k]={sum:0,cnt:0};byType[k].sum+=(p.resultValue||0);byType[k].cnt+=1;});const rows=Object.keys(byType).map(code=>({code,sum:byType[code].sum,cnt:byType[code].cnt,dt:DT[code]})).sort((a,b)=>b.sum-a.sum);const tot=rows.reduce((s,r)=>s+r.sum,0);const mx=Math.max(...rows.map(r=>r.sum),1);return(<div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginBottom:10,border:"1px solid #F2F4F6"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#191F28"}}>거래처유형별 매출 (B2B)</h3><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:13,fontWeight:800,color:"#24386B"}}>{fmt(tot,"원")}</span><button onClick={()=>setSalesOpen(true)} style={{padding:"6px 12px",borderRadius:9,border:"none",backgroundColor:"#24386B",color:"#FFFFFF",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>입력</button></div></div><p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>누가 샀나 · 거래처유형(13종) 자동 집계 — 입력은 버튼</p>{rows.map(r=>{const w=Math.round(r.sum/mx*100);const c=r.dt?.color||"#9CA3AF";return(<div key={r.code} style={{marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}><div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}><span style={{fontSize:10.5,fontWeight:800,color:c,backgroundColor:c+"18",borderRadius:6,padding:"2px 6px",flexShrink:0,fontFamily:"'IBM Plex Mono',monospace"}}>{r.code}</span><span style={{fontSize:12,fontWeight:700,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.dt?.label||r.code}</span><span style={{fontSize:10.5,color:"#9CA3AF",flexShrink:0}}>·{r.cnt}건</span></div><span style={{fontSize:12,fontWeight:800,color:"#374151",flexShrink:0}}>{fmt(r.sum,"원")}</span></div><div style={{height:6,borderRadius:6,backgroundColor:"#F2F4F6",overflow:"hidden"}}><div style={{width:`${w}%`,height:"100%",backgroundColor:c,borderRadius:6}}/></div></div>);})}</div>);})()}<p style={{margin:"0 0 8px",fontSize:12,fontWeight:800,color:"#6B7280"}}>{mk.id==="mk2"?"얼마 단가에 — 단가별 매출 (자동 집계)":mk.id==="mk1"?"채널별 매출":"구축 항목"}</p>{(()=>{const orphan=D.projects.filter(pj=>pj.mainKPIId===mk.id&&!pj.subKPIId);if(!orphan.length)return null;return(<div style={{marginBottom:10,padding:"10px 12px",backgroundColor:"#EEF0F5",borderRadius:10,border:"1px solid #D3D8E6"}}><p style={{margin:"0 0 6px",fontSize:11.5,fontWeight:800,color:"#1E2F5C"}}>채널 미지정 {orphan.length}건</p>{orphan.map(pj=>{const as=D.users.find(u=>u.id===pj.assigneeId);return(<div key={pj.id} style={{display:"flex",alignItems:"center",gap:6,padding:"3px 0"}}><Ava name={as?.name} color={as?.color} size={18}/><span style={{fontSize:12,fontWeight:600,color:"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pj.title}</span><span style={{fontSize:11,fontWeight:700,color:"#1E2F5C"}}>{pj.progress}%</span></div>);})}</div>);})()}
                     {subs.map(sk=>{
                       const sp=pctF(skCur(sk,D.projects),sk.targetValue);
@@ -3491,12 +3646,15 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
                               <span style={{fontSize:11,color:"#9CA3AF"}}>{fmt(skCur(sk,D.projects),sk.unit)} / {fmt(sk.targetValue,sk.unit)}</span>
                               <span style={{fontSize:11,color:"#9CA3AF"}}>프로젝트 {projs.length}개</span>
                             </div>
-                            {!((sk.unit==="%"&&projs.length>0)||sk.launchCount)&&<button onClick={e=>{e.stopPropagation();openVal("subKPIs",sk);}} style={{width:"100%",marginTop:8,padding:"8px 10px",borderRadius:8,border:"1.5px solid #24386B",background:"#EEF0F5",color:"#1E2F5C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>이번 주 실적 입력{sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride?" (직접 입력으로 전환)":""}</button>}
+                            {sk._auto&&<div onClick={e=>e.stopPropagation()} style={{marginTop:8,padding:"8px 10px",borderRadius:8,background:"#EAF4EE",border:"1px solid #CFE3D6",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><span style={{flex:"1 1 180px",fontSize:11.5,fontWeight:700,color:"#1F5C3F",lineHeight:1.5}}>자동 · 마진대시보드 매출 ({sk._auto.chs.join(", ")}){sk._auto.at?` · ${sk._auto.at.slice(5,10)} ${sk._auto.at.slice(11,16)} 집계`:""}</span>{!ro&&<button onClick={()=>up("subKPIs",sk.id,{salesAuto:false})} style={{padding:"4px 9px",borderRadius:7,border:"1px solid #CFE3D6",background:"#fff",fontSize:10.5,fontWeight:700,color:"#4A4E57",cursor:"pointer",fontFamily:"inherit"}}>수동 입력으로</button>}</div>}
+                            {!sk._auto&&sk.mainKPIId!=="mk2"&&sk.unit==="원"&&salesChOf(sk).length>0&&sk.salesAuto!==false&&!D._roll&&<p onClick={e=>e.stopPropagation()} style={{margin:"8px 0 0",fontSize:11,color:"#6B7280",lineHeight:1.5}}>매출 자동 연결 대기 — 마진대시보드 › 매출 화면을 한 번 열면 이 채널 매출이 자동으로 들어와요</p>}
+                            {!sk._auto&&!((sk.unit==="%"&&projs.length>0)||sk.launchCount)&&<button onClick={e=>{e.stopPropagation();openVal("subKPIs",sk);}} style={{width:"100%",marginTop:8,padding:"8px 10px",borderRadius:8,border:"1.5px solid #24386B",background:"#EEF0F5",color:"#1E2F5C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>이번 주 실적 입력{sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride?" (직접 입력으로 전환)":""}</button>}
                             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginTop:6,flexWrap:"wrap"}} onClick={e=>e.stopPropagation()}>
                               <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                                 {sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride&&<span style={{fontSize:10,fontWeight:800,color:"#24386B",backgroundColor:"#EEF0F5",padding:"2px 7px",borderRadius:6}}>자동 집계(매출)</span>}
                                 {sk.unit==="%"&&!sk.manualOverride&&projs.length>0&&<span style={{fontSize:10,fontWeight:800,color:"#2F7D57",backgroundColor:"#EAF4EE",padding:"2px 7px",borderRadius:6}}>자동(업무 진행률 평균)</span>}
-                                {sk.manualOverride&&<span style={{fontSize:10,fontWeight:800,color:"#1E2F5C",backgroundColor:"#EEF0F5",padding:"2px 7px",borderRadius:6}}>수동 수정됨</span>}
+                                {sk.manualOverride&&!sk._auto&&<span style={{fontSize:10,fontWeight:800,color:"#1E2F5C",backgroundColor:"#EEF0F5",padding:"2px 7px",borderRadius:6}}>수동 수정됨</span>}
+                                {!ro&&!sk._auto&&sk.salesAuto===false&&D._roll&&salesChOf(sk).length>0&&<button onClick={()=>up("subKPIs",sk.id,{salesAuto:true})} style={{padding:"3px 9px",borderRadius:7,border:"1px solid #CFE3D6",background:"#EAF4EE",fontSize:10.5,fontWeight:700,color:"#1F5C3F",cursor:"pointer",fontFamily:"inherit"}}>매출 자동으로</button>}
                                 {sk.valueByName&&<span style={{fontSize:10.5,color:"#9CA3AF"}}>{sk.valueByName} · {(sk.valueAt||"").slice(5,10)}</span>}
                               </div>
                               <div style={{display:"flex",gap:6}}>
@@ -3625,7 +3783,7 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
             );
           })()}
           <div style={{marginTop:18,paddingTop:16,borderTop:"1px solid #F2F4F6"}}><TeamBoard D={D} cu={cu} embed/></div>
-          {!ro&&<ExportPanel D={D} up={up} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup}/>}
+          {!ro&&<ExportPanel D={Dall||D} up={up} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup}/>}
         </div>
       )}
       {kpiView==="mindmap"&&(
@@ -3858,7 +4016,8 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
             <input type="number" value={cfgForm.target} onChange={e=>setCfgForm({...cfgForm,target:e.target.value})} onKeyDown={e=>{if(e.key==="Enter"&&cfgForm.title.trim())saveCfg();}} placeholder="예: 500000000" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:15,fontWeight:800,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:6}}/>
             <p style={{margin:"0 0 14px",fontSize:11,color:"#9CA3AF"}}>현재 입력: {fmt(numF(cfgForm.target),cfg.kind==="goal"?(cfg.item&&cfg.item.unit):cfgForm.unit)}</p>
             {cfg.kind!=="goal"&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>단위</label><input value={cfgForm.unit} onChange={e=>setCfgForm({...cfgForm,unit:e.target.value})} placeholder="원 / % / 건 / 모듈" style={{width:"100%",padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>}
-            {!isNew&&cfg.kind!=="goal"&&!isB2Bsub&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>현재값 직접 수정 (선택)</label><input type="number" value={cfgForm.current} onChange={e=>setCfgForm({...cfgForm,current:e.target.value})} placeholder="비워두면 그대로" style={{width:"100%",padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/><p style={{margin:"5px 0 0",fontSize:10.5,color:"#9CA3AF"}}>임의로 들어간 현재값을 직접 고칠 때 사용 (이력엔 안 남음 — 주차별로 남기려면 실적 입력)</p></div>}
+            {!isNew&&cfg.kind!=="goal"&&!isB2Bsub&&!cfg.item._auto&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>현재값 직접 수정 (선택)</label><input type="number" value={cfgForm.current} onChange={e=>setCfgForm({...cfgForm,current:e.target.value})} placeholder="비워두면 그대로" style={{width:"100%",padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/><p style={{margin:"5px 0 0",fontSize:10.5,color:"#9CA3AF"}}>임의로 들어간 현재값을 직접 고칠 때 사용 (이력엔 안 남음 — 주차별로 남기려면 실적 입력)</p></div>}
+            {cfg.kind==="sub"&&(cfg.item?cfg.item.mainKPIId:cfg.mainKPIId)!=="mk2"&&(cfgForm.unit||"원")==="원"&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>매출 자동 연결 채널 <span style={{fontWeight:500,color:"#9CA3AF"}}>(마진대시보드 매출 · 고른 채널의 올해 합계가 현재값)</span></label><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{chOptions(cfg.item?cfg.item.mainKPIId:cfg.mainKPIId).map(c=>{ const on=(cfgForm.chs||[]).includes(c); return <button key={c} type="button" onClick={()=>setCfgForm(f=>({...f,chs:on?(f.chs||[]).filter(x=>x!==c):[...(f.chs||[]),c]}))} style={{padding:"6px 10px",borderRadius:16,border:`1.5px solid ${on?"#24386B":"#E5E8EB"}`,background:on?"#EEF0F5":"#fff",color:on?"#1E2F5C":"#4A4E57",fontSize:12,fontWeight:on?800:600,cursor:"pointer",fontFamily:"inherit"}}>{on?"✓ ":""}{c}</button>; })}</div><p style={{margin:"5px 0 0",fontSize:10.5,color:"#9CA3AF"}}>하나도 안 고르면 예전처럼 직접 입력해요.</p></div>}
             {isB2Bsub&&<p style={{margin:"0 0 14px",fontSize:11,color:"#1E2F5C",fontWeight:600,backgroundColor:"#EEF0F5",border:"1px solid #D3D8E6",borderRadius:8,padding:"8px 10px"}}>※ 이 항목의 현재값은 <b>프로젝트 매출 합계로 자동</b>입니다. 값을 고치려면 거래처유형별 매출 입력에서 프로젝트 금액을 수정하세요.</p>}
             <Btn full variant="orange" onClick={saveCfg} disabled={!cfgForm.title.trim()}>{isNew?"추가":"저장"}</Btn>
             {!isNew&&cfg.kind!=="goal"&&<button onClick={()=>setKpiDel({coll:cfg.coll,item:cfg.item,kind:cfg.kind})} style={{width:"100%",marginTop:10,padding:"12px 0",borderRadius:12,border:"1px solid #EACFD1",background:"#F8EDEE",color:"#B4383F",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>이 {cfg.kind==="main"?"메인KPI":"지표"} 삭제</button>}

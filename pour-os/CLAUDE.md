@@ -85,6 +85,15 @@ goals[g1] 매출 10억
 - KPI 화면은 **한 화면**(탭 없음, 전체 맵만 따로): 최종목표 → 메인KPI(서브KPI·매출 입력 그대로) → 결과 KPI·행동지표 표(메인KPI별 묶음) → 프로젝트 활동지표(선행) → 팀·데이터. 행동지표·결과 KPI 의 메인KPI 연결은 `akLink()`(mk/sk 없으면 기본 연결표).
 - 권한: `isMaster()`(기본 김송희·이란·김소연·허지은) + `can(user, "kpiCore"|"kpiLag"|"tpl"|"proxy")`. 마스터 전환 시 4자리 PIN(해시 저장). 로그인 없는 구조라 PIN 은 화면 단 보호다.
 
+### ✅ 브랜드별 관리 · 그로홈 · 매출 자동 연결 · 반복 실행 (2026-10)
+- 로직은 `src/brand.js` (+ `brand.test.mjs`). 화면은 App.jsx 의 `BrandBar`·`RoutinePage`·`KpiFlow`·`ExecBoard`.
+- 브랜드 목록 `brands`(pourstore·grohome, 마스터가 추가). 기록의 브랜드: 목표 brand → 메인KPI·서브KPI 따라감 → 프로젝트(brand 없으면 메인KPI) → 업무(프로젝트). brand 없는 예전 데이터 = POUR스토어, 고정업무·프로젝트 없는 업무 = 공통.
+- 브랜드 보기(`brandView`)는 오늘·KPI·반복 실행·프로젝트에만, 고른 브랜드+공통. 저장 데이터는 안 바뀜. 백업(ExportPanel)은 항상 전체 원본 `Dall`.
+- 그로홈: 목표 g_gh 10억 = ghk1 온라인 7.86억(ghs1 자사몰 2.8 · ghs2 쿠팡·오늘의집 3.4 · ghs3 CPC 1.66) + ghk2 B2B·제휴 2.14억(ghs4 철물점 0.85 · ghs5 위탁 0.57 · ghs6 공동구매 0.72) — 그로홈 대시보드 kpiTargets 와 같은 값. 행동지표 10(ak_gh_*)·결과 KPI 9(lg_gh_*)는 KPI 체크리스트 엑셀 '그로홈' 시트. 기존 DB엔 `seedMissing()`이 빠진 id 만 1회 채움(휴지통에 있으면 안 넣음).
+- 매출 자동 연결: 마진대시보드 매출 화면(`loadSales`)이 브랜드·월·채널 합계를 `pour-os/sales-rollup` {rows:[{b,ym,ch,amt}],at,by} 에 씀(그로홈·POUR 두 기록 다 읽었을 때만). OS 는 서브KPI `salesCh`(없으면 `SALES_CH_DEFAULT`) 채널의 그 해 합계를 화면값으로(`withAutoSales`). `salesAuto:false` 면 예전처럼 수동. 메인2(mk2) 규칙은 그대로(프로젝트 매출 합계).
+- 실행 현황: 행동지표 달성률 · 고정업무 체크율 · 프로젝트 진척을 **합치지 않고 따로**, 메인KPI별로 결과(매출 달성률)와 나란히. 위 버튼 [전체|행동지표|고정업무|프로젝트].
+- 메뉴 "반복 실행"(page routine, 예전 fixed 도 여기로) = 고정업무 + 행동지표 한 화면 두 칸.
+
 ## 규칙 (반드시 준수)
 
 ### Firebase / Firestore (연동 시)

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Fragment } from "react";
 import { createPortal } from "react-dom";
-import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, arrayUnion, increment, uploadTaskPhoto, deleteTaskPhoto, uploadAkFile } from "./firebase.js";
+import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, arrayUnion, increment, uploadTaskPhoto, deleteTaskPhoto, uploadAkFile, fetchMktLinks } from "./firebase.js";
+import { ML_PURPOSES, mlDest, normUrl, mlMakeDoc, mlReady, mlAutoLabel, recentCombos, mergeLinks, trackUrl, isTrackUrl, trackId, genLinkId, LINK_COL } from "./linkMaker.js";
 import { noteThreads, noteCounts, linkParts, buildUtm, readUtm, pickFiles, pastedName, fileSize, isImage, UTM_SOURCES, UTM_MEDIUMS } from "./akNotes.js";
 import { AK_SEED, LAG_SEED, AK_FUNS, AK_CYC, akYmd, akWeekKey, akAddDays, akQidOfWeek, akQidOfMonth, akYm, akWeeksIn, akQuarterWeeks, akMonthOfWeek, akVal, akWeekDone, akTotal, akPeriodEnd, akGoalText, akStep, akWho, akOrder, akStart, akCountable, akFullWeek, akPartial, akLink, lagCur, lagPct, isMaster, can, roleLabel, PERMS, pinHash, PIN_TRY_MAX, PIN_LOCK_MIN, akRetroDay, akRetroDue } from "./actionKpi.js";
 import { COMMON, BRAND_SEED, brandKey, brandName, brandView, akBrandOf, mkBrand, projBrand, seedMissing, fixGhSubs, withAutoSales, salesByCh, salesChOf, execGroups, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, SALES_CH_DEFAULT } from "./brand.js";
@@ -3098,31 +3099,80 @@ const NB={pri:{padding:"8px 14px",borderRadius:9,border:"none",background:"#2438
   sub:{padding:"7px 11px",borderRadius:9,border:"1px solid #D5D9E0",background:"#fff",color:"#3D4250",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"},
   link:{padding:"2px 4px",border:"none",background:"none",color:"#5B606B",fontSize:11.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit"},
   inp:{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #E1E4E9",fontSize:13.5,fontFamily:"inherit",boxSizing:"border-box",background:"#fff"}};
-function UtmPanel({onInsert,onClose}){
-  const [f,setF]=useState(()=>{ try{ return JSON.parse(localStorage.getItem("pour-os-utm-last")||"null")||{}; }catch(_){ return {}; } });
-  const set=(k,v)=>setF(o=>({...o,[k]:v}));
-  const r=buildUtm(f.base,f); const [copied,setCopied]=useState(false);
-  const remember=()=>{ try{ localStorage.setItem("pour-os-utm-last",JSON.stringify({source:f.source,medium:f.medium,campaign:f.campaign})); }catch(_){} };
-  const chips=(k,list)=><div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:5}}>{list.map(v=><button key={v} type="button" onClick={()=>set(k,v)} aria-pressed={f[k]===v} style={{padding:"4px 9px",borderRadius:14,border:`1.5px solid ${f[k]===v?"#24386B":"#E1E4E9"}`,background:f[k]===v?"#EEF0F5":"#fff",color:f[k]===v?"#1E2F5C":"#4A4E57",fontSize:11.5,fontWeight:f[k]===v?800:600,cursor:"pointer",fontFamily:"inherit"}}>{v}</button>)}</div>;
-  const lab={display:"block",fontSize:11.5,fontWeight:800,color:"#3D4250",margin:"9px 0 4px"};
+// 추적 링크 만들기 — 마진대시보드 [마케팅 › 링크] 와 같은 4단계·같은 코드. 저장은 업무OS 공간(pour-os/utm-links) → 대시보드가 열릴 때 옮겨 담음
+function UtmPanel({cu,onInsert,onClose}){
+  const [tab,setTab]=useState("new");
+  const [m,setM]=useState({url:"",brand:"",purpose:"",place:"",partner:"",product:"",campaign:"",label:""});
+  const [links,setLinks]=useState(null); const [q,setQ]=useState(""); const [busy,setBusy]=useState(false); const [err,setErr]=useState(""); const [done,setDone]=useState(null); const [copied,setCopied]=useState("");
+  const load=async()=>{ let mkt=[], os=[];
+    try{ mkt=await fetchMktLinks(); }catch(e){ console.warn("[링크] 마진대시보드 링크 읽기 실패:",e); }
+    try{ const sn=await getDocs(extCol(LINK_COL)); os=sn.docs.map(d=>({id:d.id,...d.data()})); console.log(`[링크] 업무OS ${os.length}건`); }catch(e){ console.error("[링크] 업무OS 링크 읽기 실패:",e); }
+    setLinks(mergeLinks(mkt,os)); };
+  useEffect(()=>{ load(); },[]);   // eslint-disable-line
+  const set=(k,v)=>setM(o=>({...o,[k]:v}));
+  const url=normUrl(m.url), det=/^https?:\/\//.test(url)?mlDest(url):null;
+  useEffect(()=>{ if(det&&det.brand&&!m.brand) set("brand",det.brand); },[m.url]);   // eslint-disable-line
+  const pu=ML_PURPOSES.find(x=>x.k===m.purpose), ready=mlReady(m);
+  const recent=links?recentCombos(links,cu&&cu.id):[];
+  const copy=async(txt,k)=>{ try{ await navigator.clipboard.writeText(txt); setCopied(k); setTimeout(()=>setCopied(""),1500); }catch(_){ setCopied(""); } };
+  const make=async()=>{ if(!ready||busy) return; setBusy(true); setErr("");
+    try{ let id=genLinkId(); const ids=new Set((links||[]).map(l=>l.id)); while(ids.has(id)) id=genLinkId();
+      const doc=mlMakeDoc(m,{id,by:cu?.id||"",byName:cu?.name||""});
+      await setDoc(extDoc(LINK_COL,id),doc);
+      const short=trackUrl(id); onInsert(short,true); copy(short,"short"); setDone(doc); setLinks(l=>[{...doc,_src:"os"},...(l||[])]);
+    }catch(e){ console.error("[링크] 만들기 실패:",e); setErr("만들기 실패: "+(e.message||e.code||e)); }
+    finally{ setBusy(false); } };
+  const chip=(on)=>({padding:"5px 10px",borderRadius:14,border:`1.5px solid ${on?"#24386B":"#E1E4E9"}`,background:on?"#EEF0F5":"#fff",color:on?"#1E2F5C":"#4A4E57",fontSize:12,fontWeight:on?800:600,cursor:"pointer",fontFamily:"inherit"});
+  const step=(n,label,dim,body)=><div style={{display:"flex",gap:8,marginTop:10,opacity:dim?.45:1}}><span style={{flexShrink:0,width:20,height:20,borderRadius:10,background:"#24386B",color:"#fff",fontSize:11,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{n}</span><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:800,color:"#3D4250",marginBottom:5}}>{label}</div>{body}</div></div>;
+  const ql=q.trim().toLowerCase();
+  const shown=(links||[]).filter(l=>!ql||[l.label,l.place,l.partner,l.purpose,l.product,l.campaignName,l.url].join(" ").toLowerCase().includes(ql)).slice(0,40);
   return(<div className="utm" style={{border:"1px solid #D5D9E0",borderRadius:10,background:"#F7F8FA",padding:"10px 12px",marginTop:8}}>
-    <div style={{display:"flex",alignItems:"center",gap:8}}><b style={{flex:1,fontSize:12.5,color:"#16181D"}}>UTM 링크 만들기</b><button type="button" onClick={onClose} style={NB.link}>닫기 ✕</button></div>
-    <label style={lab}>연결할 주소 *</label><input value={f.base||""} onChange={e=>set("base",e.target.value)} placeholder="예: pourstore.net/product/detail.html?product_no=12" style={NB.inp} aria-label="연결할 주소"/>
-    <label style={lab}>source * <span style={{fontWeight:500,color:"#8A8E96"}}>(어디서 왔나)</span></label><input value={f.source||""} onChange={e=>set("source",e.target.value)} placeholder="naver" style={NB.inp} aria-label="utm_source"/>{chips("source",UTM_SOURCES)}
-    <label style={lab}>medium * <span style={{fontWeight:500,color:"#8A8E96"}}>(어떤 방식)</span></label><input value={f.medium||""} onChange={e=>set("medium",e.target.value)} placeholder="blog" style={NB.inp} aria-label="utm_medium"/>{chips("medium",UTM_MEDIUMS)}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"0 8px"}}>
-      <div><label style={lab}>campaign * <span style={{fontWeight:500,color:"#8A8E96"}}>(캠페인)</span></label><input value={f.campaign||""} onChange={e=>set("campaign",e.target.value)} placeholder="2610_옥상방수" style={NB.inp} aria-label="utm_campaign"/></div>
-      <div><label style={lab}>content <span style={{fontWeight:500,color:"#8A8E96"}}>(선택 · 글/소재 구분)</span></label><input value={f.content||""} onChange={e=>set("content",e.target.value)} placeholder="post01" style={NB.inp} aria-label="utm_content"/></div>
+    <div style={{display:"flex",alignItems:"center",gap:6}}>
+      <div role="group" aria-label="링크" style={{display:"flex",gap:2,background:"#E9EBEF",borderRadius:8,padding:2}}>{[["new","새 링크"],["pick","만든 링크"]].map(([k,l])=><button key={k} type="button" aria-pressed={tab===k} onClick={()=>setTab(k)} style={{padding:"5px 11px",borderRadius:6,border:"none",background:tab===k?"#fff":"transparent",color:tab===k?"#16181D":"#5B606B",fontSize:12,fontWeight:tab===k?800:600,cursor:"pointer",fontFamily:"inherit"}}>{l}{k==="pick"&&links?` ${links.length}`:""}</button>)}</div>
+      <span style={{flex:1}}/><button type="button" onClick={onClose} style={NB.link}>닫기 ✕</button>
     </div>
-    <div style={{marginTop:9,padding:"8px 10px",borderRadius:8,background:"#fff",border:"1px solid #E1E4E9",fontSize:11.5,lineHeight:1.5,wordBreak:"break-all",color:r.url?"#1E2F5C":"#8A8E96",fontFamily:"'IBM Plex Mono',monospace"}}>{r.url||r.err}</div>
-    <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
-      <button type="button" disabled={!r.url} onClick={()=>{ remember(); onInsert(r.url); }} style={{...NB.pri,opacity:r.url?1:.45,cursor:r.url?"pointer":"not-allowed"}}>메모에 넣기</button>
-      <button type="button" disabled={!r.url} onClick={async()=>{ try{ await navigator.clipboard.writeText(r.url); setCopied(true); setTimeout(()=>setCopied(false),1500); }catch(_){ setCopied(false); } remember(); }} style={{...NB.sub,opacity:r.url?1:.45}}>{copied?"복사됨 ✓":"주소 복사"}</button>
-    </div>
+    {tab==="new"&&(done?<div style={{marginTop:10}}>
+      <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#1F5C3F"}}>✓ 만들어서 메모에 넣고 복사했어요</p>
+      <div style={{marginTop:6,padding:"7px 9px",borderRadius:8,background:"#fff",border:"1px solid #E1E4E9",fontSize:12,fontFamily:"'IBM Plex Mono',monospace",wordBreak:"break-all",color:"#1E2F5C"}}>{trackUrl(done.id)}</div>
+      <p style={{margin:"5px 0 0",fontSize:11,color:"#6B7280",lineHeight:1.5}}>이 짧은 링크로 들어오면 클릭 수가 세져요 · 마진대시보드 링크 목록에도 같이 보여요{done.dest==="쿠팡"?" · 쿠팡은 꼬리표를 무시해서 클릭 수만 봐요":done.dest==="스마트스토어"?" · 스마트스토어는 네이버 꼬리표(nt_)":""}</p>
+      <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
+        <button type="button" onClick={()=>copy(trackUrl(done.id),"short")} style={NB.sub}>{copied==="short"?"복사됨 ✓":"짧은 링크 복사"}</button>
+        <button type="button" onClick={()=>copy(done.url,"full")} style={NB.sub}>{copied==="full"?"복사됨 ✓":"UTM 원래 주소 복사"}</button>
+        <button type="button" onClick={()=>{ setDone(null); set("label",""); }} style={NB.sub}>같은 설정으로 하나 더</button>
+      </div></div>
+    :<>
+      {recent.length>0&&<div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center",marginTop:8}}><span style={{fontSize:11,color:"#6B7280",fontWeight:700}}>최근 설정</span>{recent.map(l=><button key={l.id} type="button" onClick={()=>setM(o=>({...o,purpose:l.purpose,place:l.place||"",partner:l.partner||""}))} style={chip(false)}>{l.place||l.partner||l.purpose}</button>)}</div>}
+      {step(1,"링크 붙여넣기",false,<>
+        <input value={m.url} onChange={e=>set("url",e.target.value)} placeholder="상품·기획전 주소 (https:// 없이도 돼요)" inputMode="url" autoComplete="off" aria-label="연결할 주소" style={NB.inp}/>
+        {det&&<div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap",marginTop:5,fontSize:11.5,color:"#3D4250"}}>→ <b>{det.dest}</b>{det.mode==="none"?" · 꼬리표 없음(클릭 수만)":det.mode==="nt"?" · 네이버 꼬리표":" · UTM"} · 브랜드 {[["POUR스토어","스토어"],["GROHOME","그로홈"]].map(([b,l])=><button key={b} type="button" onClick={()=>set("brand",b)} style={{...chip(m.brand===b),padding:"2px 8px",fontSize:11}}>{l}</button>)}</div>}
+        {m.url&&!det&&<p style={{margin:"5px 0 0",fontSize:11,color:"#A93434"}}>주소 모양이 아니에요</p>}
+      </>)}
+      {step(2,"무엇에 쓰나요?",!det,<div style={{display:"flex",flexWrap:"wrap",gap:4}}>{ML_PURPOSES.map(p=><button key={p.k} type="button" onClick={()=>setM(o=>({...o,purpose:p.k,place:""}))} style={chip(m.purpose===p.k)}>{p.k}</button>)}</div>)}
+      {pu&&step(3,pu.named||"어디에 올려요?",false,pu.named
+        ?<><input value={m.partner} onChange={e=>set("partner",e.target.value)} placeholder={pu.k==="기타"?"예: 전단지 QR":"예: 홍길동 · @insta_id"} list="lmPartners" autoComplete="off" aria-label={pu.named} style={NB.inp}/><datalist id="lmPartners">{[...new Set((links||[]).filter(l=>l.purpose===pu.k&&l.partner).map(l=>l.partner))].map(x=><option key={x} value={x}/>)}</datalist></>
+        :<div style={{display:"flex",flexWrap:"wrap",gap:4}}>{pu.places.map(([n])=><button key={n} type="button" onClick={()=>set("place",n)} style={chip(m.place===n)}>{n}</button>)}</div>)}
+      {step(4,"캠페인 · 제품 · 제목 (선택)",!ready,<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:6}}>
+        <input value={m.campaign} onChange={e=>set("campaign",e.target.value)} placeholder="캠페인 (예: 10월 옥상방수)" aria-label="캠페인" style={NB.inp}/>
+        <input value={m.product} onChange={e=>set("product",e.target.value)} placeholder="제품" aria-label="제품" style={NB.inp}/>
+        <input value={m.label} onChange={e=>set("label",e.target.value)} placeholder={`제목 (비우면: ${mlAutoLabel(m)})`} aria-label="제목" style={{...NB.inp,gridColumn:"1/-1"}}/>
+      </div>)}
+      {err&&<p role="alert" style={{margin:"8px 0 0",fontSize:11.5,color:"#A93434",fontWeight:700}}>{err}</p>}
+      <button type="button" onClick={make} disabled={!ready||busy} style={{...NB.pri,width:"100%",marginTop:10,padding:"10px 0",opacity:ready&&!busy?1:.45,cursor:ready&&!busy?"pointer":"not-allowed"}}>{busy?"만드는 중…":"만들고 메모에 넣기"}</button>
+      {!ready&&<p style={{margin:"5px 0 0",fontSize:11,color:"#8A8E96",textAlign:"center"}}>① 링크 → ② 용도 → ③ 올릴 곳만 고르면 돼요</p>}
+    </>)}
+    {tab==="pick"&&<div style={{marginTop:8}}>
+      <input value={q} onChange={e=>setQ(e.target.value)} placeholder="찾기 (제목·올린 곳·제품)" aria-label="링크 찾기" style={NB.inp}/>
+      {!links&&<p style={{margin:"10px 0",fontSize:12,color:"#8A8E96"}}>불러오는 중…</p>}
+      {links&&!shown.length&&<p style={{margin:"10px 0",fontSize:12,color:"#8A8E96"}}>{ql?"찾는 링크가 없어요":"아직 만든 링크가 없어요"}</p>}
+      <div style={{display:"flex",flexDirection:"column",gap:5,marginTop:6,maxHeight:300,overflowY:"auto"}}>{shown.map(l=><div key={l.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 9px",borderRadius:8,background:"#fff",border:"1px solid #E1E4E9"}}>
+        <div style={{flex:1,minWidth:0}}><b style={{display:"block",fontSize:12.5,color:"#16181D",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.label||l.place||l.partner||"링크"}</b>
+          <span style={{display:"block",fontSize:11,color:"#6B7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{[l.purpose,l.place||l.partner,l.dest,l.brand==="GROHOME"?"그로홈":l.brand?"스토어":"",`클릭 ${+l.clicks||0}`,l._src==="os"?"업무OS":""].filter(Boolean).join(" · ")}</span></div>
+        <button type="button" onClick={()=>onInsert(trackUrl(l.id),true)} style={NB.sub}>넣기</button></div>)}</div>
+    </div>}
   </div>);
 }
 // 글쓰기 칸 — 원댓글·대댓글 같이 씀. 사진은 붙여넣기(Ctrl+V)·끌어놓기, 파일은 '파일 첨부'
-function NoteComposer({placeholder,onSubmit,onCancel,autoFocus,initialText="",submitLabel="등록",allowFiles=true}){
+function NoteComposer({cu,placeholder,onSubmit,onCancel,autoFocus,initialText="",submitLabel="등록",allowFiles=true}){
   const [text,setText]=useState(initialText);
   const [files,setFiles]=useState([]);   // [{f,url}]
   const [busy,setBusy]=useState(""); const [err,setErr]=useState(""); const [utm,setUtm]=useState(false);
@@ -3133,8 +3183,8 @@ function NoteComposer({placeholder,onSubmit,onCancel,autoFocus,initialText="",su
     if(add.length) setFiles(o=>[...o,...add]); setErr(bad.length?"못 넣은 파일: "+bad.join(", "):""); };
   const onPaste=(e)=>{ if(!allowFiles) return; const fl=[...(e.clipboardData&&e.clipboardData.files||[])].filter(isImage); if(!fl.length) return;
     if(!(e.clipboardData.getData("text/plain")||"").trim()) e.preventDefault(); addFiles(fl,true); };
-  const insert=(u)=>{ const ta=taRef.current; const t=text; const pos=ta&&typeof ta.selectionStart==="number"?ta.selectionStart:t.length; const pre=t.slice(0,pos), post=t.slice(pos);
-    const sep=pre&&!/\s$/.test(pre)?" ":""; setText(pre+sep+u+(post&&!/^\s/.test(post)?" ":"")+post); setUtm(false); setTimeout(()=>ta&&ta.focus(),0); };
+  const insert=(u,keep)=>{ const ta=taRef.current; const t=text; const pos=ta&&typeof ta.selectionStart==="number"?ta.selectionStart:t.length; const pre=t.slice(0,pos), post=t.slice(pos);
+    const sep=pre&&!/\s$/.test(pre)?" ":""; setText(pre+sep+u+(post&&!/^\s/.test(post)?" ":"")+post); if(!keep) setUtm(false); else setTimeout(()=>ta&&ta.focus(),0); };
   const ok=(text.trim()||files.length)&&!busy;
   const submit=async()=>{ if(!ok) return; setErr("");
     try{ await onSubmit(text.trim(),files.map(x=>x.f),(m)=>setBusy(m)); files.forEach(x=>x.url&&URL.revokeObjectURL(x.url)); setText(""); setFiles([]); }
@@ -3145,12 +3195,12 @@ function NoteComposer({placeholder,onSubmit,onCancel,autoFocus,initialText="",su
     {files.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:6}}>{files.map((x,i)=><span key={i} style={{display:"inline-flex",alignItems:"center",gap:6,maxWidth:"100%",padding:x.url?3:"5px 8px",border:"1px solid #E1E4E9",borderRadius:8,background:"#fff"}}>
       {x.url?<img src={x.url} alt={x.f.name} style={{width:52,height:52,objectFit:"cover",borderRadius:6,display:"block"}}/>:<span style={{fontSize:11.5,fontWeight:700,color:"#3D4250",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:180}}>{x.f.name} · {fileSize(x.f.size)}</span>}
       <button type="button" onClick={()=>{ if(x.url) URL.revokeObjectURL(x.url); setFiles(o=>o.filter((_,j)=>j!==i)); }} aria-label={`${x.f.name} 빼기`} style={{...NB.link,padding:"0 4px"}}>✕</button></span>)}</div>}
-    {utm&&<UtmPanel onInsert={insert} onClose={()=>setUtm(false)}/>}
+    {utm&&<UtmPanel cu={cu} onInsert={insert} onClose={()=>setUtm(false)}/>}
     {err&&<p role="alert" style={{margin:"6px 0 0",fontSize:11.5,color:"#A93434",fontWeight:700}}>{err}</p>}
     <div style={{display:"flex",alignItems:"center",gap:6,marginTop:7,flexWrap:"wrap"}}>
       {allowFiles&&<><input ref={fileRef} type="file" multiple hidden onChange={e=>{ addFiles(e.target.files,false); e.target.value=""; }} aria-label="파일 첨부"/>
       <button type="button" onClick={()=>fileRef.current&&fileRef.current.click()} style={NB.sub}>파일 첨부</button></>}
-      <button type="button" onClick={()=>setUtm(v=>!v)} aria-pressed={utm} style={NB.sub}>UTM 링크</button>
+      <button type="button" onClick={()=>setUtm(v=>!v)} aria-pressed={utm} style={NB.sub}>링크 만들기</button>
       <span style={{flex:"1 1 60px",fontSize:10.5,color:"#8A8E96"}}>{allowFiles?"사진은 복사 → 붙여넣기(Ctrl+V)":""}</span>
       {onCancel&&<button type="button" onClick={onCancel} style={NB.link}>취소</button>}
       <button type="button" onClick={submit} disabled={!ok} style={{...NB.pri,opacity:ok?1:.45,cursor:ok?"pointer":"not-allowed"}}>{busy||submitLabel}</button>
@@ -3158,8 +3208,8 @@ function NoteComposer({placeholder,onSubmit,onCancel,autoFocus,initialText="",su
   </div>);
 }
 function NoteText({text}){
-  return <div style={{fontSize:13,color:"#1F2328",lineHeight:1.6,whiteSpace:"pre-wrap",wordBreak:"break-word",overflowWrap:"anywhere"}}>{linkParts(text).map((p,i)=>{ if(p.t==="text") return <Fragment key={i}>{p.v}</Fragment>; const u=readUtm(p.v);
-    return <Fragment key={i}><a href={p.v} target="_blank" rel="noopener noreferrer" style={{color:"#24386B",textDecoration:"underline",wordBreak:"break-all"}}>{p.v}</a>{u&&<span style={{display:"inline-block",margin:"0 0 0 5px",padding:"0 6px",borderRadius:5,background:"#EEF0F5",color:"#1E2F5C",fontSize:10.5,fontWeight:800,whiteSpace:"nowrap",verticalAlign:"1px"}}>UTM {[u.source,u.medium,u.campaign].filter(Boolean).join(" / ")}</span>}</Fragment>; })}</div>;
+  return <div style={{fontSize:13,color:"#1F2328",lineHeight:1.6,whiteSpace:"pre-wrap",wordBreak:"break-word",overflowWrap:"anywhere"}}>{linkParts(text).map((p,i)=>{ if(p.t==="text") return <Fragment key={i}>{p.v}</Fragment>; const u=readUtm(p.v), tr=isTrackUrl(p.v);
+    return <Fragment key={i}><a href={p.v} target="_blank" rel="noopener noreferrer" style={{color:"#24386B",textDecoration:"underline",wordBreak:"break-all"}}>{p.v}</a>{u&&<span style={{display:"inline-block",margin:"0 0 0 5px",padding:"0 6px",borderRadius:5,background:"#EEF0F5",color:"#1E2F5C",fontSize:10.5,fontWeight:800,whiteSpace:"nowrap",verticalAlign:"1px"}}>UTM {[u.source,u.medium,u.campaign].filter(Boolean).join(" / ")}</span>}{tr&&<span style={{display:"inline-block",margin:"0 0 0 5px",padding:"0 6px",borderRadius:5,background:"#EAF4EE",color:"#1F5C3F",fontSize:10.5,fontWeight:800,whiteSpace:"nowrap",verticalAlign:"1px"}}>추적링크</span>}</Fragment>; })}</div>;
 }
 function NoteFiles({files}){
   if(!files||!files.length) return null;
@@ -3189,7 +3239,7 @@ function AkNotesSheet({D,cu,item,notes,ro,onClose}){
     if(n.deleted) return(<div style={{padding:"6px 0",fontSize:12,color:"#8A8E96"}}>숨긴 메모 · {nameOf(n.by,n.byName)}{n.deletedByName&&n.deletedByName!==n.byName?` (${n.deletedByName}님이 숨김)`:""}{canHide&&<button onClick={()=>hide(n,false)} style={{...NB.link,marginLeft:6,color:"#1E2F5C"}}>되돌리기</button>}</div>);
     return(<div className="aknote" data-note={n.id} style={{padding:reply?"8px 0 8px":"10px 0"}}>
       <div style={{display:"flex",alignItems:"baseline",gap:7,flexWrap:"wrap",marginBottom:3}}><b style={{fontSize:12.5,color:"#16181D"}}>{nameOf(n.by,n.byName)}</b><span style={{fontSize:11,color:"#8A8E96"}}>{when(n.at)}{n.editedAt?" · 수정됨":""}</span></div>
-      {editId===n.id?<NoteComposer initialText={n.text||""} autoFocus allowFiles={false} submitLabel="저장" placeholder="메모 고치기" onCancel={()=>setEditId(null)} onSubmit={(t)=>saveEdit(n,t)}/>
+      {editId===n.id?<NoteComposer cu={cu} initialText={n.text||""} autoFocus allowFiles={false} submitLabel="저장" placeholder="메모 고치기" onCancel={()=>setEditId(null)} onSubmit={(t)=>saveEdit(n,t)}/>
         :<>{n.text&&<NoteText text={n.text}/>}<NoteFiles files={n.files}/></>}
       {editId!==n.id&&!ro&&<div style={{display:"flex",gap:2,marginTop:3,marginLeft:-4}}>
         <button onClick={()=>{ setReplyTo(reply?n.parentId:n.id); setEditId(null); }} style={NB.link}>답글</button>
@@ -3206,10 +3256,10 @@ function AkNotesSheet({D,cu,item,notes,ro,onClose}){
         {one(t)}
         {(t.replies.length>0||replyTo===t.id)&&<div style={{margin:"0 0 10px 12px",paddingLeft:12,borderLeft:"2px solid #E1E4E9"}}>
           {t.replies.map(r=><Fragment key={r.id}>{one(r,true)}</Fragment>)}
-          {replyTo===t.id&&!ro&&<div style={{padding:"6px 0 4px"}}><NoteComposer autoFocus placeholder={`${nameOf(t.by,t.byName)}님 메모에 답글`} submitLabel="답글 등록" onCancel={()=>setReplyTo(null)} onSubmit={(tx,fs,sb)=>post(tx,fs,t.id,sb)}/></div>}
+          {replyTo===t.id&&!ro&&<div style={{padding:"6px 0 4px"}}><NoteComposer cu={cu} autoFocus placeholder={`${nameOf(t.by,t.byName)}님 메모에 답글`} submitLabel="답글 등록" onCancel={()=>setReplyTo(null)} onSubmit={(tx,fs,sb)=>post(tx,fs,t.id,sb)}/></div>}
         </div>}
       </div>)}</div>
-      {!ro&&<div style={{marginTop:12,paddingTop:10,borderTop:threads.length?"none":"1px solid #ECEEF1"}}><NoteComposer placeholder="메모 남기기 (Ctrl+Enter 등록)" onSubmit={(tx,fs,sb)=>post(tx,fs,null,sb)}/></div>}
+      {!ro&&<div style={{marginTop:12,paddingTop:10,borderTop:threads.length?"none":"1px solid #ECEEF1"}}><NoteComposer cu={cu} placeholder="메모 남기기 (Ctrl+Enter 등록)" onSubmit={(tx,fs,sb)=>post(tx,fs,null,sb)}/></div>}
     </div>
   </Sheet>);
 }

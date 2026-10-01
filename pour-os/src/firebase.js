@@ -50,3 +50,13 @@ export async function uploadAkFile(itemId, file) {
   const url = await getDownloadURL(r);
   return { name: file.name || "file", url, path, size: file.size || 0, type: file.type || "", uploadedAt: new Date().toISOString() };
 }
+// 마진대시보드 추적 링크(mkt-links · pourstoreproject) 읽기 — 규칙상 read 공개(리다이렉트용). 쓰기는 하지 않음.
+const MKT_CFG = { apiKey: "AIzaSyB9VC75Hs8eAdXxy9n2aVsCeFUnCGX4xhA", authDomain: "pourstoreproject.firebaseapp.com", projectId: "pourstoreproject", storageBucket: "pourstoreproject.firebasestorage.app", messagingSenderId: "549863414475", appId: "1:549863414475:web:9c696d7f85d82a7b7bd94e" };
+let _mktDb = null;
+export async function fetchMktLinks() {
+  if (!_mktDb) _mktDb = getFirestore(initializeApp(MKT_CFG, "pourstore-mkt"));
+  const sn = await getDocs(collection(_mktDb, "mkt-links"));
+  const out = sn.docs.map((d) => ({ id: d.id, ...d.data() }));
+  console.log(`[마진대시보드 링크] ${out.length}건`);
+  return out;
+}

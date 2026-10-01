@@ -7,6 +7,7 @@
 <!--
   POUR스토어 마케팅 추적 리다이렉트 (공개 페이지)
   사용: /g?l=<링크ID>  →  mkt-links/<ID>.clicks(+ clicksByDay.<오늘>) 자동 +1 후 목적지 URL로 이동
+  · mkt-links 에 없으면 업무OS(pour-app-new) pour-os/utm-links/items/<ID> 에서 찾아 같은 방식으로 +1 (업무OS에서 만든 링크)
   · 로그인 불필요(고객이 광고·블로그·카페에서 클릭). 대시보드와 같은 pourstoreproject 사용.
   · 보안규칙: mkt-links read=공개, update=clicks/lastClickAt 1증가만 공개 허용.
 -->
@@ -22,13 +23,20 @@ firebase.initializeApp({
   appId:"1:549863414475:web:9c696d7f85d82a7b7bd94e"
 });
 const db=firebase.firestore();
+// 업무OS(pour-app-new) — 업무OS에서 만든 링크가 아직 대시보드로 옮겨지기 전에만 사용 (규칙 pour-os/** 공개)
+const OS_CFG={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
 (async()=>{
   const id=new URLSearchParams(location.search).get('l');
   if(!id){ document.getElementById('msg').textContent='잘못된 링크입니다.'; return; }
   try{
-    const ref=db.collection('mkt-links').doc(id);
-    const doc=await ref.get();
-    if(!doc.exists||!doc.data().url){ document.getElementById('msg').textContent='만료되었거나 잘못된 링크입니다.'; return; }
+    let ref=db.collection('mkt-links').doc(id);
+    let doc=await ref.get();
+    // 업무OS(POUR OS)에서 만든 링크: 마진대시보드가 아직 옮겨 담기 전이면 업무OS 공간(pour-app-new · pour-os/utm-links/items)에서 찾는다
+    if(!doc.exists||!doc.data().url){
+      try{ const osApp=firebase.initializeApp(OS_CFG,'pouros'); ref=osApp.firestore().collection('pour-os').doc('utm-links').collection('items').doc(id); doc=await ref.get(); }
+      catch(e){ console.warn('업무OS 링크 찾기 실패:', e.code||e); }
+    }
+    if(!doc||!doc.exists||!doc.data().url){ document.getElementById('msg').textContent='만료되었거나 잘못된 링크입니다.'; return; }
     const url=doc.data().url;
     // 클릭 집계 (실패해도 이동은 진행)
     // 날짜별 클릭까지 +1 (규칙 게시 전이면 거부됨 → 예전 방식으로 전체 클릭만 +1)

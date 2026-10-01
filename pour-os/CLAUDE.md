@@ -104,6 +104,11 @@ goals[g1] 매출 10억
 - 고정업무 메모도 같은 컬렉션(kind:"fixed", itemId=업무 id) · 같은 시트(AkNotesSheet item._kind="fixed").
 - 오늘 행동지표 카드: 메모 버튼 · −1(이번 주 값이 있을 때) · +1 뒤 7초 "되돌리기" · 그로홈 등 브랜드 표시.
 
+### ✅ 추적 링크 만들기 (2026-10) — 마진대시보드와 연동
+- 로직 `src/linkMaker.js` (+ `linkMaker.test.mjs` — 대시보드 파일의 ML_PURPOSES·utmNorm·mlCode·mlDest·mlBuild 와 같은 결과인지 직접 비교). 화면 `UtmPanel`(메모 칸 "링크 만들기").
+- 대시보드 링크(mkt-links)는 pourstoreproject · 생성은 팀 로그인 계정만(규칙) → 업무OS는 `pour-os/utm-links/items/{id}`(id 'o'+6자)에 저장. 짧은 링크 `https://pour-construction-form.pages.dev/g?l={id}` 는 g.html 이 mkt-links 에 없으면 이 공간에서 찾아 이동·클릭 +1.
+- 마진대시보드를 팀 계정으로 열면 `importOsLinks()`가 같은 id 로 mkt-links 에 옮겨 담음(클릭 수 그대로, createdVia:'pour-os', 업무OS 쪽엔 importedAt 만 표시). "만든 링크" 탭은 두 곳 합친 목록(mkt-links 공개 읽기).
+
 ### ✅ 고정업무 담당자별 시간 (2026-10)
 - 한 고정업무를 여러 명이 맡아도 `timeBy{uid:"HH:MM"}`로 사람마다 시간이 다를 수 있음(없으면 기본 fixedTime). `fixedTimeFor(t,uid)`·`byFixedTimeFor(uid)`.
 - 체크 시 `doneAtBy{uid:ISO}`(체크 시각)도 저장 → 반복 실행 화면 한 줄에서 "✓이름 08:47 / 이름 09:20(예정)"으로 전원 확인 여부를 봄.

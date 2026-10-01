@@ -20,7 +20,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-5인점검";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-흐름목록";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -5163,7 +5163,7 @@ function WorkflowHome(props){
     </>}
     {cat!=="all"&&<div style={{padding:"12px 16px 24px",display:"flex",flexDirection:"column",gap:14}}>
       {cat==="launch"&&<LaunchBoard D={D} cu={cu} add={add} up={up} pc={pc} items={lbLive}/>}
-      {W.filter(w=>w.cat===cat).map(w=><WfBoard key={w.id} D={D} cu={cu} wf={w} up={up} add={add} rm={rm} pc={pc}/>)}
+      {cat!=="launch"&&W.some(w=>w.cat===cat)&&<WfList key={cat} D={D} cu={cu} cat={cat} up={up} add={add} rm={rm} pc={pc} W={W}/>}
       {cat==="launch"?<LegacyLaunch {...props}/>:<SimpleProjects {...props} cat={cat} embedded/>}
     </div>}
     {cleanOpen&&<CleanupSheet D={D} cu={cu} up={up} add={add} W={W} onClose={()=>setCleanOpen(false)}/>}
@@ -5174,99 +5174,110 @@ function WorkflowHome(props){
 function LegacyLaunch(props){ const [open,setOpen]=useState(false); const n=(props.D.projects||[]).filter(p=>p.category==="launch").length; if(!n) return null;
   return(<div><button onClick={()=>setOpen(v=>!v)} style={{border:"none",background:"none",padding:"4px 2px",fontSize:12.5,fontWeight:800,color:"#6B7684",cursor:"pointer",fontFamily:"inherit"}}>지난 기록 · 이전 방식 신제품 프로젝트 {n} {open?"▴":"▾"}</button>
     {open&&<div style={{marginTop:8}}><SimpleProjects {...props} cat="launch" embedded/></div>}</div>); }
-function WfBoard({D,cu,wf,up,add,rm,pc}){
-  const users=D.users||[];
-  const [nt,setNt]=useState("");
-  const [ch,setCh]=useState(CPC_CHANNELS[0]);
-  const [kind,setKind]=useState(NOTICE_KINDS[0]);
-  const [showDone,setShowDone]=useState(false);
+// 업무플로우 — 런칭보드처럼 카테고리마다 목록 1개: 위 칩으로 흐름 거르기 · 건 1개 = 1줄(다음 단계·담당 · 단계 칩) · '+ 새 건' 하나
+// 저장은 예전 그대로 업무(tasks: wfId·wfChecks) → 오늘 '내 차례'·달력·프로젝트 진척과 그대로 이어짐
+function wfWarn(wf,t,today){ if(wf.kind==="notice"){ const end=(t.wfData||{}).endDate; if(end&&end<=today&&!caseChecks(t).down) return "오늘 내려야 해요"; }
+  if(wf.kind==="cpc"){ const r=roasOf(t), mn=numOr0(wf.roasMin)||300; if(r!=null&&r<mn) return `ROAS ${r}% · 기준 ${mn}% 미달`; }
+  if(t.status!=="done"&&t.dueDate&&t.dueDate<today) return `마감 ${ddayKo(daysTo(t.dueDate))}`; return ""; }
+const wfHasOwner=(wf)=>(wf.stages||[]).some(s=>s.ownerId);
+function WfList({D,cu,cat,up,add,rm,pc,W}){
+  const wfs=W.filter(w=>w.cat===cat);
+  const skey="pour-os-wf-sel-"+cat;
+  const [sel,setSelS]=useState(()=>{ try{ return localStorage.getItem(skey)||"all"; }catch(_){ return "all"; } });
+  const setSel=(v)=>{ setSelS(v); try{ localStorage.setItem(skey,v); }catch(_){} };
+  const [newOpen,setNewOpen]=useState(false);
+  const [setFor,setSetFor]=useState(null);
   const [openId,setOpenId]=useState(null);
-  const [setOpen,setSetOpen]=useState(false);
-  const [fold,setFold]=useState(false);
+  const [showDone,setShowDone]=useState(false);
   const today=ymdToday();
-  const rows=(D.tasks||[]).filter(t=>t.wfId===wf.id);
+  const cur=wfs.find(w=>w.id===sel)||null; const shownW=cur?[cur]:wfs;
+  const ofW=(t)=>wfs.find(w=>w.id===t.wfId);
+  const rows=(D.tasks||[]).filter(t=>t.wfId&&shownW.some(w=>w.id===t.wfId));
   const active=rows.filter(t=>t.status!=="done").sort((a,b)=>String(a.dueDate||"9999").localeCompare(String(b.dueDate||"9999"))||String(a.id).localeCompare(String(b.id)));
   const doneRows=rows.filter(t=>t.status==="done").sort((a,b)=>String(b.doneAt||"").localeCompare(String(a.doneAt||"")));
-  const open=rows.find(t=>t.id===openId);
-  const leadName=userName(D,wf.leadId);
-  const addCase=()=>{ const title=nt.trim(); if(!title) return;
-    add("tasks",{id:"t"+Date.now(),title,projectId:wf.projectId||"",assigneeId:cu.id,type:"general",status:"todo",isFixed:false,weekDay:null,weekSlot:null,workDate:"",dueDate:"",memo:"",attachments:[],
-      wfId:wf.id,wfChecks:{},wfData:wf.kind==="cpc"?{channel:ch}:wf.kind==="notice"?{kind}:{}});
-    setNt(""); };
-  const tog=(t,sid)=>up("tasks",t.id,toggleCheck(wf,t,sid,cu));
-  const roasMin=numOr0(wf.roasMin)||300;
-  const warnOf=(t)=>{ if(wf.kind==="notice"){ const end=(t.wfData||{}).endDate; if(end&&end<=today&&!caseChecks(t).down) return "오늘 내려야 해요"; }
-    if(wf.kind==="cpc"){ const r=roasOf(t); if(r!=null&&r<roasMin) return `ROAS ${r}% · 기준 ${roasMin}% 미달`; }
-    if(t.dueDate&&t.dueDate<today) return `마감 ${ddayKo(daysTo(t.dueDate))}`; return ""; };
-  const Cell=({t,s,i})=>{ const ck=caseChecks(t)[s.id]; const nx=caseNext(wf,t); const isNext=nx&&nx.id===s.id;
-    return <button onClick={()=>tog(t,s.id)} title={ck?`${ck.byName||""} ${String(ck.at||"").slice(5,10)} 체크 · 누르면 해제`:`${s.name} 체크`} aria-label={`${t.title} ${s.name}`}
-      style={{width:30,height:30,borderRadius:9,border:`2px solid ${ck?"#2F7D57":isNext?"#24386B":"#E5E8EB"}`,background:ck?"#2F7D57":isNext?"#EEF0F5":"#fff",color:ck?"#fff":"#24386B",fontWeight:900,fontSize:13,cursor:"pointer",padding:0}}>{ck?"✓":isNext?"•":""}</button>; };
-  const meta=(t)=>{ const nx=caseNext(wf,t); const own=nx?(nx.ownerId||t.assigneeId):null; return(
-    <p style={{margin:"3px 0 0",fontSize:11,color:"#8B95A1",lineHeight:1.45}}>{userName(D,t.assigneeId)||"담당 없음"}{nx?<> · 다음 <b style={{color:"#1E2F5C"}}>{nx.name}</b>{own&&own!==t.assigneeId?` (${userName(D,own)})`:""}</>:""}{t.dueDate?` · ${ddayKo(daysTo(t.dueDate))}`:""}</p>); };
-  const extraHead=wf.kind==="cpc"?["광고비","매출","ROAS"]:wf.kind==="notice"?["내리는 날"]:[];
-  const extraCells=(t)=>{ const d=t.wfData||{};
-    if(wf.kind==="cpc"){ const r=roasOf(t); return [<td key="sp" style={{fontVariantNumeric:"tabular-nums"}}>{fmtWon(d.spend)||"—"}</td>,<td key="rv" style={{fontVariantNumeric:"tabular-nums"}}>{fmtWon(d.revenue)||"—"}</td>,
-      <td key="ro"><b style={{color:r==null?"#B0B8C1":r<roasMin?"#B4383F":"#2F7D57"}}>{r==null?"—":r+"%"}</b></td>]; }
-    if(wf.kind==="notice") return [<td key="end" style={{fontWeight:800,color:d.endDate&&d.endDate<=today&&!caseChecks(t).down?"#B4383F":"#4E5968"}}>{d.endDate?String(d.endDate).slice(5):"—"}</td>];
-    return []; };
-  const Table=({list})=>(<div className="wfx-wrap"><table className="wfx-tbl"><thead><tr>
-      <th className="nm">{wf.unit||"건"}</th>
-      {wf.stages.map((s,i)=><th key={s.id} title={s.desc||""} style={{minWidth:64}}>{i+1}. {s.name}{s.ownerId?<span style={{display:"block",fontWeight:700,color:"#1E2F5C",fontSize:10.5}}>{userName(D,s.ownerId)}</span>:null}</th>)}
-      <th>진행</th>{extraHead.map(h=><th key={h}>{h}</th>)}
-    </tr></thead><tbody>
-      {list.map(t=>{ const pr=caseProgress(wf,t); const w=warnOf(t); const dn=t.status==="done"; return(<tr key={t.id}>
-        <td className="nm"><button onClick={()=>setOpenId(t.id)} style={{display:"block",width:"100%",textAlign:"left",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
-          <span style={{fontSize:13,fontWeight:800,color:dn?"#8B95A1":"#191F28",textDecoration:dn?"line-through":"none"}}>{t.status==="hold"?"":""}{t.title}</span>
-          {meta(t)}
-          <span style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:2}}><ExecBadge exec={t.exec} note={t.execNote}/>{w&&<span style={{fontSize:10.5,fontWeight:800,color:"#B4383F",background:"#F8EDEE",borderRadius:6,padding:"2px 6px"}}>{w}</span>}{(t.wfData||{}).channel&&<span style={{fontSize:10.5,fontWeight:800,color:"#4E5968",background:"#F2F4F6",borderRadius:6,padding:"2px 6px"}}>{t.wfData.channel}</span>}{(t.wfData||{}).kind&&<span style={{fontSize:10.5,fontWeight:800,color:"#4E5968",background:"#F2F4F6",borderRadius:6,padding:"2px 6px"}}>{t.wfData.kind}</span>}</span>
-        </button></td>
-        {wf.stages.map((s,i)=><td key={s.id}><Cell t={t} s={s} i={i}/></td>)}
-        <td style={{fontWeight:900,color:pr.done===pr.total?"#2F7D57":"#191F28",fontVariantNumeric:"tabular-nums"}}>{pr.done}/{pr.total}</td>
-        {extraCells(t)}
-      </tr>); })}
-    </tbody></table></div>);
-  const Cards=({list})=>(<div style={{display:"flex",flexDirection:"column",gap:8}}>
-    {list.map(t=>{ const pr=caseProgress(wf,t); const w=warnOf(t); const dn=t.status==="done"; const r=wf.kind==="cpc"?roasOf(t):null; return(
-      <div key={t.id} style={{padding:"11px 12px",borderRadius:14,border:`1px solid ${w?"#EACFD1":"#EEF1F4"}`,background:dn?"#FAFBFC":"#fff"}}>
-        <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
-          <button onClick={()=>setOpenId(t.id)} style={{flex:1,minWidth:0,textAlign:"left",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
-            <span style={{fontSize:14,fontWeight:800,color:dn?"#8B95A1":"#191F28",textDecoration:dn?"line-through":"none",wordBreak:"keep-all"}}>{t.status==="hold"?"":""}{t.title}</span>{meta(t)}</button>
-          <span style={{flexShrink:0,fontSize:13,fontWeight:900,color:pr.done===pr.total?"#2F7D57":"#1E2F5C",fontVariantNumeric:"tabular-nums"}}>{pr.done}/{pr.total}</span>
-        </div>
-        {(w||t.exec&&t.exec!=="self"||r!=null)&&<div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:6}}><ExecBadge exec={t.exec} note={t.execNote}/>{r!=null&&<span style={{fontSize:10.5,fontWeight:800,color:r<roasMin?"#B4383F":"#2F7D57",background:r<roasMin?"#F8EDEE":"#EAF4EE",borderRadius:6,padding:"2px 6px"}}>ROAS {r}%</span>}{w&&<span style={{fontSize:10.5,fontWeight:800,color:"#B4383F",background:"#F8EDEE",borderRadius:6,padding:"2px 6px"}}>{w}</span>}</div>}
-        <div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:8}}>
-          {wf.stages.map((s,i)=>{ const ck=caseChecks(t)[s.id]; const nx=caseNext(wf,t); const isNext=nx&&nx.id===s.id;
-            return <button key={s.id} onClick={()=>tog(t,s.id)} style={{padding:"7px 10px",borderRadius:10,border:`1.5px solid ${ck?"#2F7D57":isNext?"#24386B":"#E5E8EB"}`,background:ck?"#EAF4EE":isNext?"#EEF0F5":"#fff",color:ck?"#2F7D57":isNext?"#1E2F5C":"#6B7684",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>{ck?"✓ ":`${i+1}. `}{s.name}</button>; })}
-        </div>
-      </div>); })}
-  </div>);
-  return(
-    <div style={{background:"#fff",borderRadius:18,padding:"14px 14px 12px",boxShadow:"0 2px 12px rgba(15,23,42,.05)"}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-        <button onClick={()=>setFold(f=>!f)} style={{display:"flex",alignItems:"center",gap:8,border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",flex:"1 1 180px",minWidth:0,textAlign:"left"}}>
-          
-          <span style={{minWidth:0}}><span style={{display:"block",fontSize:15.5,fontWeight:900,color:"#191F28"}}>{wf.name} <span style={{fontSize:12,color:"#8B95A1",fontWeight:700}}>{fold?"▸":"▾"}</span></span>
-            <span style={{display:"block",fontSize:11.5,color:"#8B95A1",marginTop:1}}>관리 {leadName||"미지정"} · 진행 {active.length} · 완료 {doneRows.length}{wf.projectId?` · ${((D.projects||[]).find(p=>p.id===wf.projectId)||{}).title||""}`:""}</span></span>
-        </button>
-        <button onClick={()=>setSetOpen(true)} style={{padding:"8px 11px",borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",color:"#4E5968",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>단계·담당</button>
+  const actN=(w)=>(D.tasks||[]).filter(t=>t.wfId===w.id&&t.status!=="done").length;
+  const noOwner=shownW.filter(w=>!wfHasOwner(w));
+  const open=rows.find(t=>t.id===openId); const openW=open&&ofW(open);
+  const catName=(WF_CATS.find(c=>c.k===cat)||{}).name||"";
+  const btn={padding:"9px 13px",borderRadius:10,fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"};
+  const Row=({t})=>{ const wf=ofW(t); if(!wf) return null; const pr=caseProgress(wf,t); const nx=caseNext(wf,t); const own=nx?(nx.ownerId||t.assigneeId):null; const w=wfWarn(wf,t,today); const dn=t.status==="done"; const ck=caseChecks(t);
+    return(<div style={{padding:"11px 12px",borderRadius:14,border:`1px solid ${w?"#EACFD1":"#E8EBEF"}`,background:dn?"#FAFBFC":"#fff"}}>
+      <button onClick={()=>setOpenId(t.id)} style={{display:"block",width:"100%",textAlign:"left",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
+        <span style={{display:"flex",alignItems:"flex-start",gap:8}}>
+          <b style={{flex:1,minWidth:0,fontSize:14.5,color:dn?"#8B95A1":"#191F28",textDecoration:dn?"line-through":"none",wordBreak:"keep-all",lineHeight:1.35}}>{t.title}</b>
+          <span style={{flexShrink:0,fontSize:13,fontWeight:900,color:pr.done===pr.total?"#2F7D57":"#1E2F5C",fontVariantNumeric:"tabular-nums"}}>{pr.done}/{pr.total}</span></span>
+        <span style={{display:"block",fontSize:11.5,color:"#6B7684",marginTop:3,lineHeight:1.45}}>{sel==="all"?<>{wf.name} · </>:null}{nx?<>다음 <b style={{color:"#1E2F5C"}}>{nx.name}</b> ({userName(D,own)||"담당 없음"})</>:"완료"}{t.dueDate&&!dn?` · ${ddayKo(daysTo(t.dueDate))}`:""}</span>
+        {(w||(t.exec&&t.exec!=="self")||(wf.kind==="cpc"&&roasOf(t)!=null))&&<span style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:4}}><ExecBadge exec={t.exec} note={t.execNote}/>{wf.kind==="cpc"&&roasOf(t)!=null&&!w&&<span style={{fontSize:10.5,fontWeight:800,color:"#2F7D57",background:"#EAF4EE",borderRadius:6,padding:"2px 6px"}}>ROAS {roasOf(t)}%</span>}{w&&<span style={{fontSize:10.5,fontWeight:800,color:"#B4383F",background:"#F8EDEE",borderRadius:6,padding:"2px 6px"}}>{w}</span>}</span>}
+      </button>
+      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:8}}>
+        {wf.stages.map(s=>{ const c=ck[s.id]; const isNext=nx&&nx.id===s.id;
+          return <button key={s.id} onClick={()=>up("tasks",t.id,toggleCheck(wf,t,s.id,cu))} aria-label={`${t.title} ${s.name}`} title={c?`${c.byName||""} ${String(c.at||"").slice(5,10)} · 누르면 해제`:`${s.name} 체크`}
+            style={{padding:"5px 8px",borderRadius:8,border:`1.5px solid ${c?"#CFE3D6":isNext?"#24386B":"#E5E8EB"}`,background:c?"#EAF4EE":isNext?"#EEF0F5":"#F7F8FA",color:c?"#2F7D57":isNext?"#1E2F5C":"#8B95A1",fontWeight:800,fontSize:11.5,cursor:"pointer",fontFamily:"inherit"}}>{c?"✓ ":""}{s.name}</button>; })}
       </div>
-      {!fold&&<>
-        <p style={{margin:"8px 2px 10px",fontSize:11.5,color:"#6B7684",lineHeight:1.6,wordBreak:"keep-all"}}>{wf.stages.map((s,i)=><Fragment key={s.id}>{i?" → ":""}<b style={{color:"#333D4B"}}>{s.name}</b>{s.ownerId?<span style={{color:"#1E2F5C"}}>({userName(D,s.ownerId)})</span>:null}</Fragment>)}</p>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap",padding:8,borderRadius:12,background:"#EEF0F5",border:"1.5px solid #D3D8E6",marginBottom:10}}>
-          {wf.kind==="cpc"&&<select value={ch} onChange={e=>setCh(e.target.value)} aria-label="채널" style={{...wfInp,flex:"0 0 auto"}}>{CPC_CHANNELS.map(c=><option key={c}>{c}</option>)}</select>}
-          {wf.kind==="notice"&&<select value={kind} onChange={e=>setKind(e.target.value)} aria-label="공지 종류" style={{...wfInp,flex:"0 0 auto"}}>{NOTICE_KINDS.map(c=><option key={c}>{c}</option>)}</select>}
-          <input value={nt} onChange={e=>setNt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addCase()} placeholder={`${wf.unit||"건"} 추가 — ${wf.hint||""}`} style={{...wfInp,flex:"1 1 180px"}}/>
-          <button onClick={addCase} disabled={!nt.trim()} style={{padding:"10px 16px",borderRadius:10,border:"none",background:nt.trim()?"#24386B":"#D1D6DB",color:"#fff",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>＋ 추가</button>
-        </div>
-        {active.length===0?<p style={{margin:"6px 2px 4px",fontSize:12.5,color:"#8B95A1"}}>진행 중인 {wf.unit||"건"}이 없어요 · 위에 이름만 넣으면 1줄이 생겨요</p>:pc?<Table list={active}/>:<Cards list={active}/>}
-        {doneRows.length>0&&<div style={{marginTop:10}}>
-          <button onClick={()=>setShowDone(v=>!v)} style={{border:"none",background:"none",padding:"4px 2px",fontSize:12,fontWeight:800,color:"#2F7D57",cursor:"pointer",fontFamily:"inherit"}}>완료 {doneRows.length} {showDone?"▴":"▾"}</button>
-          {showDone&&<div style={{marginTop:6}}>{pc?<Table list={doneRows}/>:<Cards list={doneRows}/>}</div>}
-        </div>}
-      </>}
-      {open&&<CaseSheet D={D} cu={cu} wf={wf} t={open} up={up} rm={rm} onClose={()=>setOpenId(null)}/>}
-      {setOpen&&<WfSettingsSheet D={D} wf={wf} add={add} up={up} onClose={()=>setSetOpen(false)}/>}
-    </div>);
+    </div>); };
+  const grid={display:"grid",gridTemplateColumns:pc?"repeat(auto-fill,minmax(300px,1fr))":"1fr",gap:8};
+  return(<div style={{background:"#fff",borderRadius:18,padding:"14px 14px 12px",boxShadow:"0 2px 12px rgba(15,23,42,.05)"}}>
+    <div style={{display:"flex",alignItems:"flex-start",gap:8,flexWrap:"wrap"}}>
+      <div style={{flex:"1 1 200px",minWidth:0}}>
+        <p style={{margin:0,fontSize:16,fontWeight:900,color:"#191F28"}}>{catName} 업무플로우</p>
+        <p style={{margin:"2px 0 0",fontSize:11.5,color:"#8B95A1",lineHeight:1.5}}>건 1개 = 1줄 · 단계를 누르면 다음 담당의 오늘 화면에 떠요</p>
+      </div>
+      <button onClick={()=>setNewOpen(true)} style={{...btn,border:"none",background:"#24386B",color:"#fff"}}>+ 새 건</button>
+    </div>
+    <div role="group" aria-label="흐름" style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:10}}>
+      {[{id:"all",name:"전체",n:wfs.reduce((a,w)=>a+actN(w),0)},...wfs.map(w=>({id:w.id,name:w.name,n:actN(w)}))].map(c=>{ const on=(cur?cur.id:"all")===c.id;
+        return <button key={c.id} aria-pressed={on} onClick={()=>setSel(c.id)} style={{padding:"7px 11px",borderRadius:18,border:`1.5px solid ${on?"#24386B":"#E5E8EB"}`,background:on?"#24386B":"#fff",color:on?"#fff":"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{c.name}{c.n?<span style={{marginLeft:4,opacity:.8}}>{c.n}</span>:null}</button>; })}
+    </div>
+    {cur&&<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginTop:10,padding:"9px 11px",borderRadius:12,background:"#F4F5F7"}}>
+      <p style={{margin:0,flex:"1 1 200px",minWidth:0,fontSize:12,color:"#4E5968",lineHeight:1.6,wordBreak:"keep-all"}}>{cur.stages.map((s,i)=><Fragment key={s.id}>{i?" → ":""}<b style={{color:"#333D4B"}}>{s.name}</b>{s.ownerId?<span style={{color:"#1E2F5C"}}>({userName(D,s.ownerId)})</span>:null}</Fragment>)}</p>
+      <button onClick={()=>setSetFor(cur)} style={{...btn,padding:"7px 11px",fontSize:12,border:"1px solid #D3D8E6",background:"#fff",color:"#1E2F5C"}}>단계·담당</button>
+    </div>}
+    {noOwner.length>0&&<p style={{margin:"8px 2px 0",fontSize:11.5,color:"#B26A12",fontWeight:700,lineHeight:1.5}}>{cur?"단계 담당이 비어 있어요 — 정하면 앞 단계가 끝날 때 다음 사람 오늘 화면에 자동으로 떠요":`단계 담당이 비어 있는 흐름 ${noOwner.length}개 — 위 칩을 골라 '단계·담당'에서 정하세요`}</p>}
+    <div style={{marginTop:12}}>
+      {active.length===0?<p style={{margin:"4px 2px",fontSize:12.5,color:"#8B95A1"}}>진행 중인 건이 없어요 · '+ 새 건'으로 시작하세요</p>:<div style={grid}>{active.map(t=><Row key={t.id} t={t}/>)}</div>}
+    </div>
+    {doneRows.length>0&&<div style={{marginTop:10}}>
+      <button onClick={()=>setShowDone(v=>!v)} style={{border:"none",background:"none",padding:"4px 2px",fontSize:12,fontWeight:800,color:"#2F7D57",cursor:"pointer",fontFamily:"inherit"}}>완료 {doneRows.length} {showDone?"▴":"▾"}</button>
+      {showDone&&<div style={{...grid,marginTop:6}}>{doneRows.map(t=><Row key={t.id} t={t}/>)}</div>}
+    </div>}
+    {newOpen&&<WfNewSheet D={D} cu={cu} wfs={wfs} init={cur?cur.id:""} add={add} onClose={()=>setNewOpen(false)} onAdded={(wid)=>{ if(cur&&cur.id!==wid) setSel(wid); }}/>}
+    {open&&openW&&<CaseSheet D={D} cu={cu} wf={openW} t={open} up={up} rm={rm} onClose={()=>setOpenId(null)}/>}
+    {setFor&&<WfSettingsSheet D={D} wf={setFor} add={add} up={up} onClose={()=>setSetFor(null)}/>}
+  </div>);
+}
+function WfNewSheet({D,cu,wfs,init,add,onClose,onAdded}){
+  const users=D.users||[];
+  const [wid,setWid]=useState(init||(wfs.length===1?wfs[0].id:""));
+  const [title,setTitle]=useState("");
+  const [who,setWho]=useState(cu.id);
+  const [due,setDue]=useState("");
+  const [ch,setCh]=useState(CPC_CHANNELS[0]);
+  const [kind,setKind]=useState(NOTICE_KINDS[0]);
+  const [msg,setMsg]=useState("");
+  const wf=wfs.find(w=>w.id===wid);
+  const ok=!!wf&&title.trim();
+  const save=()=>{ if(!ok) return;
+    add("tasks",{id:"t"+Date.now(),title:title.trim(),projectId:wf.projectId||"",assigneeId:who||"",type:"general",status:"todo",isFixed:false,weekDay:null,weekSlot:null,workDate:"",dueDate:due||"",memo:"",attachments:[],
+      wfId:wf.id,wfChecks:{},wfData:wf.kind==="cpc"?{channel:ch}:wf.kind==="notice"?{kind}:{}});
+    onAdded&&onAdded(wf.id); setMsg(`'${title.trim()}' 넣었어요 · 이어서 더 넣을 수 있어요`); setTitle(""); };
+  const lbl={display:"block",fontSize:12,fontWeight:700,color:"#4E5968",margin:"12px 0 6px"};
+  return(<Sheet open={true} onClose={onClose} title="+ 새 건" h="80vh" w={520}>
+    <div style={{paddingTop:4}}>
+      <span style={lbl}>어떤 일인가요?</span>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{wfs.map(w=>{ const on=wid===w.id; return <button key={w.id} type="button" aria-pressed={on} onClick={()=>setWid(w.id)} style={{padding:"8px 12px",borderRadius:18,border:`1.5px solid ${on?"#24386B":"#E5E8EB"}`,background:on?"#EEF0F5":"#fff",color:on?"#1E2F5C":"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{w.name}</button>; })}</div>
+      {wf&&<p style={{margin:"8px 2px 0",fontSize:11.5,color:"#6B7684",lineHeight:1.6}}>{wf.stages.map(s=>s.name).join(" → ")}</p>}
+      <span style={lbl}>이름 *</span>
+      <input value={title} onChange={e=>setTitle(e.target.value)} onKeyDown={e=>e.key==="Enter"&&save()} placeholder={wf?`${wf.unit||"건"} — ${wf.hint||""}`:"먼저 위에서 고르세요"} aria-label="새 건 이름" style={{...wfInp,width:"100%"}}/>
+      {wf&&wf.kind==="cpc"&&<><span style={lbl}>채널</span><select value={ch} onChange={e=>setCh(e.target.value)} aria-label="채널" style={{...wfInp,width:"100%"}}>{CPC_CHANNELS.map(c=><option key={c}>{c}</option>)}</select></>}
+      {wf&&wf.kind==="notice"&&<><span style={lbl}>종류</span><select value={kind} onChange={e=>setKind(e.target.value)} aria-label="공지 종류" style={{...wfInp,width:"100%"}}>{NOTICE_KINDS.map(c=><option key={c}>{c}</option>)}</select></>}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        <label style={{...lbl,marginBottom:0}}>실행 담당<select value={who} onChange={e=>setWho(e.target.value)} style={{...wfInp,width:"100%",marginTop:6}}><option value="">없음</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
+        <label style={{...lbl,marginBottom:0}}>마감일 (선택)<input type="date" value={due} onChange={e=>setDue(e.target.value)} style={{...wfInp,width:"100%",marginTop:6}}/></label>
+      </div>
+      <button onClick={save} disabled={!ok} style={{width:"100%",marginTop:16,padding:"14px 0",borderRadius:14,border:"none",background:ok?"#24386B":"#D1D6DB",color:"#fff",fontWeight:900,fontSize:15,cursor:ok?"pointer":"not-allowed",fontFamily:"inherit"}}>추가</button>
+      {msg&&<p style={{margin:"10px 2px 0",fontSize:12.5,color:"#2F7D57",fontWeight:700}}>{msg}</p>}
+    </div>
+  </Sheet>);
 }
 
 function CaseSheet({D,cu,wf,t,up,rm,onClose}){

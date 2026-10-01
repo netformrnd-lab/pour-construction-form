@@ -67,12 +67,12 @@ export const GH_MAIN = [
   { id: "ghk2", goalId: "g_gh", title: "그로홈 B2B·제휴 매출 2.14억", targetValue: 214000000, currentValue: 0, unit: "원", order: 12, krKey: "그로홈2" },
 ];
 export const GH_SUB = [
-  { id: "ghs1", mainKPIId: "ghk1", title: "자사몰 (메타광고)", targetValue: 280000000, currentValue: 0, unit: "원", order: 1, channelCode: "OWN" },
-  { id: "ghs2", mainKPIId: "ghk1", title: "쿠팡·오늘의집", targetValue: 340000000, currentValue: 0, unit: "원", order: 2, channelCode: "MK" },
-  { id: "ghs3", mainKPIId: "ghk1", title: "플랫폼 CPC (11번가·옥션·지마켓·스마트스토어)", targetValue: 166000000, currentValue: 0, unit: "원", order: 3, channelCode: "CPC" },
-  { id: "ghs4", mainKPIId: "ghk2", title: "철물점 온오프라인", targetValue: 85000000, currentValue: 0, unit: "원", order: 1, channelCode: "HDW" },
-  { id: "ghs5", mainKPIId: "ghk2", title: "위탁판매 (도매꾹·도매매)", targetValue: 57000000, currentValue: 0, unit: "원", order: 2, channelCode: "CNS" },
-  { id: "ghs6", mainKPIId: "ghk2", title: "콘텐츠&기획협찬 (공동구매)", targetValue: 72000000, currentValue: 0, unit: "원", order: 3, channelCode: "GB" },
+  { id: "ghs1", mainKPIId: "ghk1", title: "자사몰 (메타광고)", targetValue: 280000000, currentValue: 0, unit: "원", order: 1, channelCode: "", badge: "OWN" },
+  { id: "ghs2", mainKPIId: "ghk1", title: "쿠팡·오늘의집", targetValue: 340000000, currentValue: 0, unit: "원", order: 2, channelCode: "", badge: "MK" },
+  { id: "ghs3", mainKPIId: "ghk1", title: "플랫폼 CPC (11번가·옥션·지마켓·스마트스토어)", targetValue: 166000000, currentValue: 0, unit: "원", order: 3, channelCode: "", badge: "CPC" },
+  { id: "ghs4", mainKPIId: "ghk2", title: "철물점 온오프라인", targetValue: 85000000, currentValue: 0, unit: "원", order: 1, channelCode: "", badge: "HDW" },
+  { id: "ghs5", mainKPIId: "ghk2", title: "위탁판매 (도매꾹·도매매)", targetValue: 57000000, currentValue: 0, unit: "원", order: 2, channelCode: "", badge: "CNS" },
+  { id: "ghs6", mainKPIId: "ghk2", title: "콘텐츠&기획협찬 (공동구매)", targetValue: 72000000, currentValue: 0, unit: "원", order: 3, channelCode: "", badge: "GB" },
 ];
 const MINI = "TC51U2cdFnn6Q5Y7A6o9";
 const GH_RAW = [
@@ -109,6 +109,24 @@ export function seedMissing(D) {
   return n ? out : null;
 }
 
+// 그로홈 서브KPI 코드 고치기 — CRM 매출 동기화(pour-crm pourOsSync)는 channelCode(OWN·MK…)로 POUR 매출을 넣는다.
+// 그로홈 칸이 같은 코드를 쓰면 POUR 매출이 그로홈에 들어가므로 channelCode 는 비우고 화면 표시는 badge 로.
+// 이미 CRM 값이 들어간 칸은 0으로 되돌리고 이력에 남긴다(이전 값도 이력에 그대로). 바꿀 게 없으면 null.
+export function fixGhSubs(subKPIs, now = new Date().toISOString()) {
+  let n = 0;
+  const out = (subKPIs || []).map((sk) => {
+    if (!sk || !/^ghs\d$/.test(sk.id) || !sk.channelCode) return sk;
+    n++;
+    const o = { ...sk, channelCode: "", badge: sk.badge || sk.channelCode };
+    if (sk.crmSynced) {
+      Object.assign(o, { crmSynced: false, manualOverride: false, currentValue: 0, valueAt: now, valueByName: "자동 정정",
+        valueHistory: [...(sk.valueHistory || []), { mode: "total", amount: 0, value: 0, prev: sk.currentValue || 0, by: "system", byName: "자동 정정", at: now, note: "CRM의 POUR스토어 매출이 그로홈 칸에 잘못 들어가 0으로 되돌림" }] });
+    }
+    return o;
+  });
+  return n ? out : null;
+}
+
 // ── 매출 자동 연결 ──
 // 채널 이름은 마진대시보드 매출 화면과 같은 이름 (옥션·지마켓, 도매꾹·도매매 처럼 묶인 이름 그대로)
 export const SALES_CH_DEFAULT = {
@@ -138,7 +156,7 @@ export function salesByCh(roll, brand, year, brands) {
 export function withAutoSales(D, roll) {
   if (!roll || !Array.isArray(roll.rows)) return D;
   const subKPIs = (D.subKPIs || []).map((sk) => {
-    if (sk.mainKPIId === "mk2" || sk.unit !== "원" || sk.salesAuto === false) return sk;
+    if (sk.mainKPIId === "mk2" || sk.unit !== "원" || sk.salesAuto === false || sk.crmSynced) return sk;   // CRM 매출 동기화 칸은 CRM 값 그대로
     const chs = salesChOf(sk); if (!chs.length) return sk;
     const mk = (D.mainKPIs || []).find((m) => m.id === sk.mainKPIId);
     const g = mk && (D.goals || []).find((x) => x.id === mk.goalId);

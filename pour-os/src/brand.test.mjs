@@ -1,5 +1,5 @@
 // 브랜드·그로홈·매출 자동 연결·실행 현황 테스트 — node src/brand.test.mjs
-import { brandKey, brandView, projBrand, taskBrand, seedMissing, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, BRAND_SEED,
+import { fixGhSubs, brandKey, brandView, projBrand, taskBrand, seedMissing, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, BRAND_SEED,
   salesSum, salesByCh, withAutoSales, rollupRows, akRateOf, projRateOf, execGroups, salesChOf } from "./brand.js";
 import { AK_SEED, LAG_SEED, akLink } from "./actionKpi.js";
 import { mkCur } from "./kpi.js";
@@ -63,6 +63,16 @@ eq("메인2 서브KPI는 그대로(프로젝트 합계 규칙)", sk("sk4"), D0.s
 eq("그로홈 온라인 메인KPI = 서브 합", mkCur(DA.mainKPIs.find((m) => m.id === "ghk1"), DA.subKPIs, []), 500);
 eq("수동으로 바꾼 서브KPI는 자동 안 함", withAutoSales({ ...D0, subKPIs: [{ ...D0.subKPIs[0], salesAuto: false }] }, roll).subKPIs[0].currentValue, 52000000);
 eq("집계가 아직 없으면 원래 값", withAutoSales(D0, null), D0);
+
+// ⑤-2 CRM 매출 동기화(channelCode)와 안 겹치게
+eq("그로홈 서브KPI는 CRM 코드 안 씀", GH_SUB.every((s) => s.channelCode === "" && s.badge), true);
+eq("CRM 동기화 칸은 마진대시보드 값으로 안 덮음", withAutoSales({ ...D0, subKPIs: [{ ...D0.subKPIs[0], crmSynced: true }] }, roll).subKPIs[0].currentValue, 52000000);
+const bad = [{ id: "ghs1", channelCode: "OWN", currentValue: 99000000, crmSynced: true, manualOverride: true, valueHistory: [{ value: 99000000 }] }, { id: "ghs3", channelCode: "CPC", currentValue: 0 }, { id: "sk1", channelCode: "OWN", crmSynced: true, currentValue: 5 }];
+const fx = fixGhSubs(bad, "2026-10-01T12:00:00Z");
+eq("잘못 들어간 CRM 값 → 0, 이력 보관", [fx[0].channelCode, fx[0].badge, fx[0].currentValue, fx[0].crmSynced, fx[0].valueHistory.length, fx[0].valueHistory[1].prev], ["", "OWN", 0, false, 2, 99000000]);
+eq("CRM 안 들어간 칸은 코드만 정리", [fx[1].channelCode, fx[1].badge, fx[1].currentValue], ["", "CPC", 0]);
+eq("POUR 칸은 그대로", fx[2], bad[2]);
+eq("고칠 게 없으면 null", fixGhSubs(fx), null);
 
 // ⑥ 실행 현황 — 따로 계산
 const it = (id) => [...AK_SEED, ...GH_AK_SEED].find((x) => x.id === id);

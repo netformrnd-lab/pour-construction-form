@@ -20,7 +20,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-조사연결";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-5인점검";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -281,8 +281,11 @@ function MoneyInput({value,onCommit,compact,live}){
   const [unit,setUnit]=useState("만");
   const [raw,setRaw]=useState("");
   useEffect(()=>{ const v=numF(value); if(v<=0){setRaw("");return;} let u="만"; if(v>=100000000)u="억"; else if(v<10000)u="원"; setUnit(u); const r=v/M[u]; setRaw(String(Math.round(r*100)/100)); /* eslint-disable-next-line */ },[]);
-  const total=Math.round((Number(raw)||0)*M[unit]);
-  const commit=(r,u)=>{ const n=Math.round((Number(r)||0)*M[u]); onCommit(n); };
+  // 원 단위로 다 적은 숫자(만 칸에 10만 이상 · 억 칸에 1000 이상 = 10억·1000억 넘음)는 원으로 본다 — 1,200만을 1,200억으로 저장하는 실수 방지
+  const asWon=(r,u)=>u!=="원"&&(Number(r)||0)>=(u==="만"?100000:1000);
+  const uOf=(r,u)=>asWon(r,u)?"원":u;
+  const total=Math.round((Number(raw)||0)*M[uOf(raw,unit)]);
+  const commit=(r,u)=>{ const u2=uOf(r,u); if(u2!==u) setUnit(u2); const n=Math.round((Number(r)||0)*M[u2]); onCommit(n); };
   const chips=[["+1만",10000],["+10만",100000],["+100만",1000000],["+1천만",10000000],["+1억",100000000]];
   return(
     <div>
@@ -293,7 +296,7 @@ function MoneyInput({value,onCommit,compact,live}){
         </div>
       </div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginTop:5,flexWrap:"wrap"}}>
-        <span style={{fontSize:11.5,fontWeight:800,color:total>0?"#1E2F5C":"#C4C9D0"}}>= {fmtKorWon(total)}</span>
+        <span style={{fontSize:11.5,fontWeight:800,color:total>0?"#1E2F5C":"#C4C9D0"}}>= {fmtKorWon(total)}{asWon(raw,unit)?" (원으로 적은 숫자로 봤어요)":""}</span>
         <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
           {chips.map(([l,d])=>(<button key={l} onClick={()=>{const n=Math.max(0,total+d);setUnit("원");setRaw(String(n));onCommit(n);}} style={{padding:"3px 7px",borderRadius:7,border:"1px solid #E5E8EB",background:"#F9FAFB",fontSize:10.5,fontWeight:700,color:"#4B5563",cursor:"pointer",fontFamily:"inherit"}}>{l}</button>))}
           {total>0&&<button onClick={()=>{setRaw("");onCommit(0);}} style={{padding:"3px 7px",borderRadius:7,border:"1px solid #EACFD1",background:"#F8EDEE",fontSize:10.5,fontWeight:700,color:"#B4383F",cursor:"pointer",fontFamily:"inherit"}}>지움</button>}
@@ -985,19 +988,27 @@ export default function App(){
   // POUR스토어 CRM에 임베드 시: 접속 담당자(이름·이메일) 수신 → 이메일→이름 순 매칭으로 currentUser 자동 선택
   // (URL ?op_email/op_name/op_role + postMessage CRM_OPERATOR · CRM 출처만 신뢰 — crmOperatorSync.js)
   const [crmOp,setCrmOp]=useState(null);   // {name, matched} — 툴바 표시용
+  const crmPend=useRef(null);              // 아직 못 찾은 접속자 — 담당자 목록이 DB에서 늦게 오면 그때 다시 찾음(나중에 추가된 사람)
   useEffect(()=>{
     const stop=initCrmOperatorSync((incoming)=>{
+      crmPend.current=incoming;
       setD(p=>{
         const matched=matchOperator(p.users,incoming,{getEmail:o=>o.email,getName:o=>o.initials})   // 이메일 / 이니셜(CRM 매칭) 우선
           ||matchOperator(p.users,incoming,{getName:o=>o.name});                                     // 혹시 CRM이 풀네임을 보내면 이름으로도
         setCrmOp({name:(incoming.name||incoming.email||"").trim(),matched:!!matched});
-        if(matched) console.log("[CRM] 담당자 자동 매칭:",matched.name,incoming);
-        else console.warn("[CRM] 일치 담당자 없음:",incoming);
+        if(matched){ crmPend.current=null; console.log("[CRM] 담당자 자동 매칭:",matched.name,incoming); }
+        else console.warn("[CRM] 일치 담당자 없음(담당자 목록을 불러오면 다시 찾음):",incoming);
         return (matched&&matched.id!==p.currentUser)?{...p,currentUser:matched.id}:p;
       });
     });
     return stop;
   },[]);
+  useEffect(()=>{ const inc=crmPend.current; if(!inc) return;
+    const matched=matchOperator(D.users,inc,{getEmail:o=>o.email,getName:o=>o.initials})||matchOperator(D.users,inc,{getName:o=>o.name});
+    if(!matched) return; crmPend.current=null; console.log("[CRM] 담당자 다시 찾음:",matched.name);
+    setCrmOp({name:(inc.name||inc.email||"").trim(),matched:true});
+    setD(p=>p.currentUser===matched.id?p:{...p,currentUser:matched.id});
+  },[D.users]);
   // POUR스토어 CRM 임베드 시: CRM 누적 매출 수신 → 공유페이지에 CRM 기준 매출 표시
   // (URL ?crm_rev/crm_rev_target/crm_rev_shipped/crm_rev_past + postMessage CRM_REVENUE — crmOperatorSync.js)
   const [crmRev,setCrmRev]=useState(null);   // {total,target,shipped,past}
@@ -3578,7 +3589,8 @@ const EXEC_CATS=[["all","전체"],["ak","행동지표(선행)"],["fx","고정업
 const EXEC_DESC={all:"이번 달 실행률 세 가지를 따로 보여줘요 — 하나로 합친 점수가 아니에요",ak:"이번 달 · 지금까지 해야 할 횟수 대비 (주간은 지난 주까지+이번 주, 월간은 이번 달, 분기는 이번 분기)",fx:"지금 기간 체크 기준 — 매일=오늘, 매주=이번 주, 매월=이번 달 · 담당자 모두 체크해야 완료",pj:"진행 중 프로젝트 평균 진척 (업무 완료 비율로 자동 · 보류 제외)"};
 function ExecBoard({D}){
   const now=new Date(), today=akYmd(now), todayKey=now.toISOString().slice(0,10);
-  const {docs,ready}=useAkDocs([akQidOfMonth(now.getFullYear(),now.getMonth())]);
+  const em=akMonthOfWeek(akWeekKey(now));   // 이번 주가 속한 달(오늘 화면과 같은 기준 — 10/1(목)이면 9월)
+  const {docs,ready}=useAkDocs([akQidOfMonth(em.y,em.m0),akQidOfWeek(akWeekKey(now))]);
   const [cat,setCatS]=useState(()=>{ try{ return localStorage.getItem("pour-os-exec-cat")||"all"; }catch(_){ return "all"; } });
   const setCat=(v)=>{ setCatS(v); try{ localStorage.setItem("pour-os-exec-cat",v); }catch(_){} };
   const groups=execGroups(D,docs,today,(t)=>fixedAllDone(D,t,todayKey));
@@ -3586,7 +3598,7 @@ function ExecBoard({D}){
   const LBL={ak:"행동지표",fx:"고정업무",pj:"프로젝트"};
   const detail=(k,x)=>x.n?(k==="ak"?`${x.n}개 중 ${x.done}개 달성`:k==="fx"?`${x.n}개 중 ${x.done}개 체크`:`${x.n}개 · 완료 ${x.done}`):"연결된 항목 없음";
   return(<section aria-label="실행 현황" style={{background:"#fff",border:"1px solid #E3E5EA",borderRadius:12,padding:"13px 14px",marginBottom:14}}>
-    <div style={{display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap",marginBottom:8}}><h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#16181D"}}>실행 현황 · 결과와 나란히</h3><span style={{fontSize:11,color:"#6B7280"}}>{now.getMonth()+1}월{!ready?" · 불러오는 중…":""}</span></div>
+    <div style={{display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap",marginBottom:8}}><h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#16181D"}}>실행 현황 · 결과와 나란히</h3><span style={{fontSize:11,color:"#6B7280"}}>{em.m0+1}월 기준{!ready?" · 불러오는 중…":""}</span></div>
     <div role="group" aria-label="실행 구분" style={{display:"flex",gap:2,background:"#E9EBEF",borderRadius:9,padding:3,marginBottom:8,overflowX:"auto"}}>
       {EXEC_CATS.map(([k,l])=><button key={k} aria-pressed={cat===k} onClick={()=>setCat(k)} style={{flex:"1 0 auto",padding:"7px 12px",borderRadius:7,border:"none",background:cat===k?"#fff":"transparent",color:cat===k?"#16181D":"#5B606B",fontSize:12.5,fontWeight:cat===k?800:600,cursor:"pointer",fontFamily:"inherit",boxShadow:cat===k?"0 1px 3px rgba(0,0,0,.1)":"none",whiteSpace:"nowrap"}}>{l}</button>)}
     </div>

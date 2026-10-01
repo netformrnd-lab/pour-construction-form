@@ -80,6 +80,8 @@ const docs = { "2026-Q4": { w: { "2026-10-05": { ak_c_b2c: { n: 4 }, ak_gh_ad: {
 const r1 = akRateOf(docs, [it("ak_c_b2c"), it("ak_gh_ad")], "2026-10-14");   // 10/5·10/12 두 주 지남 → c_b2c 6/8, gh_ad 1/4
 eq("행동지표: 지금까지 해야 할 만큼 기준", [r1.pct, r1.n, r1.rows.map((x) => [x.n, x.g])], [50, 2, [[6, 8], [1, 4]]]);
 eq("9월에 시작한 월간 항목은 9월 집계에서 뺌(참고용)", akRateOf({}, [it("ak_kwsel")], "2026-09-30").n, 0);
+{ const dw = { "2026-Q3": { w: { "2026-09-28": { ak_c_b2c: { n: 4 } } } } };
+  eq("달 경계: 10/1(목)은 9/28 주 → 9월로 셈(오늘 화면과 같은 기준)", akRateOf(dw, [it("ak_c_b2c")], "2026-10-01").rows.map((x) => [x.n, x.g]), [[4, 4]]); }   // 9/28 시작 항목이라 한 주만
 eq("멈춘 항목은 뺌", akRateOf({}, [{ ...it("ak_c_b2c"), active: false }], "2026-10-14").n, 0);
 eq("프로젝트: 보류 빼고 평균 진척", projRateOf([{ progress: 40 }, { progress: 100 }, { progress: 0, status: "paused" }]), { pct: 70, n: 2, done: 1 });
 const g = execGroups({ ...D0, projects: [{ id: "p1", mainKPIId: "mk1", progress: 40 }], tasks: [{ id: "f1", isFixed: true, projectId: "p1" }, { id: "f2", isFixed: true }], actionKPIs: [it("ak_c_b2c"), it("ak_nps_b2b")] }, docs, "2026-10-14", (t) => t.id === "f1");

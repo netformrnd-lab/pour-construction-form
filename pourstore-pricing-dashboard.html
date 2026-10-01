@@ -1470,7 +1470,8 @@ body.dai-open #daiFab,body.dai-open #calcFab{display:none!important}
   #dealPanel .qc-f input,#dealPanel .qc-f select,#dealPanel .dl-q input,#rowInfo .ri-add input{font-size:16px}
   #rowInfo .ri-add{margin-left:0;width:100%}
 }
-body:not(.cost-ok) :is(#calcFab,#calcMenu,#calcPanel,#promoCalc,#costCalc,#dealPanel,#btnDeal){display:none!important}   /* 계산기: 부마스터·마스터만 (팀원 보기에서도 숨김) */
+body:not(.cost-ok) :is(#calcFab,#calcMenu,#calcPanel,#promoCalc,#costCalc,#dealPanel,#btnDeal){display:none!important}
+body:not(.cost-ok) #sh-expiry :is(#exFileBtn,#exPasteBtn,#exPastePanel,.toolrow .hint){display:none!important}   /* 유통기한: 일반 팀원은 보기만 */   /* 계산기: 부마스터·마스터만 (팀원 보기에서도 숨김) */
 .findbox{display:inline-flex;align-items:center;gap:4px;position:relative}
 #findNav{display:inline-flex;align-items:center;gap:2px;font-size:12px;color:var(--ink-soft);font-weight:700}
 #findNav[hidden]{display:none}
@@ -1741,7 +1742,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.09.30d</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.10.01a</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -5855,7 +5856,7 @@ $('#ibSend')&&$('#ibSend').addEventListener('click',sendInbound);
 /* ══════════ 제조사·제품·상품 등록 ══════════ */
 let activeGrp='price';
 /* 일반계정(원가 미열람)에 보이는 탭: 가격정책표(판매가) + 계정 관리만 */
-const GEN_TABS=['sh-price','sh-access','sh-mkt','sh-mktlink','sh-mktpromo','sh-launch'];   // 출시 관리 목록은 원가 없이 모두에게(원가·마진·검토는 숨김)
+const GEN_TABS=['sh-price','sh-access','sh-mkt','sh-mktlink','sh-mktpromo','sh-launch','sh-expiry'];   // 유통기한: 일반 팀원은 보기만(원가·폐기 손실·프로모션·올리기·연결 숨김)   // 출시 관리 목록은 원가 없이 모두에게(원가·마진·검토는 숨김)
 const TEAM_TABS=['sh-tprice','sh-sales','sh-mktpromo','sh-mktlink','sh-mkt','sh-access'];
 function tabHidden(b){
   if(TEAM_MODE) return !TEAM_TABS.includes(b.dataset.sh);
@@ -11342,7 +11343,7 @@ const EX_V={ ok:['🟢 지금 속도로 소진','#E3F2E8','#0B5C30'], warn:['�
   late:['🔴 판매마감 여유 안쪽','#FEE2E2','#B91C1C'], expired:['⛔ 기한 지남','#FEE2E2','#7F1D1D'], nolink:['제품 미연결','#F3F4F6','#6B7280'], nodate:['기한 미등록','#F3F4F6','#6B7280'] };
 async function renderExpiry(){
   const body=$('#exBody'); if(!body) return;
-  if(!costAllowed){ body.innerHTML='<div class="panel"><div class="bd">원가 열람 권한이 있는 계정에서만 볼 수 있습니다.</div></div>'; return; }
+  const VIEW=!costAllowed;   // 일반 팀원: 보기만 — 원가(폐기 손실)·프로모션 설계·재고 올리기·제품 연결·기한 입력은 숨김
   if(!EX.lots && !EX.err){ body.innerHTML='<div class="panel"><div class="bd">재고·매출을 불러오는 중…</div></div>'; await exLoad(); }
   if(EX.err){ body.innerHTML=`<div class="panel"><div class="bd" style="color:var(--red)">불러오지 못했습니다: ${esc(EX.err)} <button class="tbtn" id="exRetry">다시 시도</button></div></div>`; return; }
   const all=exRows(), base=all.filter(r=>(!EX.brand||r.l.brand===EX.brand) && (!EX.risk||['bad','late','expired','warn'].includes(r.v)));
@@ -11356,8 +11357,8 @@ async function renderExpiry(){
     wasteDesc:(a,b)=>nz(b.waste)-nz(a.waste)||ex(a).localeCompare(ex(b)), needDesc:(a,b)=>nz(b.need)-nz(a.need),
     qtyDesc:(a,b)=>b.l.qty-a.l.qty, qtyAsc:(a,b)=>a.l.qty-b.l.qty||ex(a).localeCompare(ex(b)), nameAsc:(a,b)=>String(a.l.name).localeCompare(String(b.l.name),'ko') };
   rows.sort(SORTS[EX.sort]||SORTS.risk);
-  base.forEach(r=>{ r.sg=(!r.p&&r.l.brand==='POUR스토어')?exSuggest(r.l):null; });
-  const sgN=base.filter(r=>r.sg).length; body._sgRows=base.filter(r=>r.sg);
+  base.forEach(r=>{ r.sg=(!VIEW&&!r.p&&r.l.brand==='POUR스토어')?exSuggest(r.l):null; });
+  const sgN=VIEW?0:base.filter(r=>r.sg).length; body._sgRows=base.filter(r=>r.sg);
   const f1=v=>v==null?'—':(Math.round(v*10)/10).toLocaleString('ko-KR');
   /* 기간 카드 · 합계 · 안내 (그로홈 유통기한 화면에서 가져온 부분) */
   const BK=[['expired','만료됨','#fef2f2','#f87171','#b91c1c'],['b1','1개월 이내','#fef2f2','#fca5a5','#dc2626'],['b3','1~3개월','#fff7ed','#fdba74','#ea580c'],
@@ -11374,7 +11375,7 @@ async function renderExpiry(){
   const dates=sr.map(r=>r.date).sort(), minD=dates[0]||'', maxD=dates[dates.length-1]||'';
   const byCode=base.filter(r=>r.m.g||r.m.key).length;
   const notes=(sgN?`<div class="ex-note" style="background:#EFF6FF;border-color:#BFDBFE;color:#1E3A8A">🔗 <b>이름·색상·크기가 맞는 제품을 찾은 재고 ${sgN}건</b>이 있어요. 표의 <b>추천</b>을 하나씩 확인하거나
-      <button type="button" class="tbtn primary" id="exSgAll" style="min-height:0;padding:4px 10px;margin-left:4px">추천 ${sgN}건 한 번에 연결</button></div>`:'')+(nolinkN?`<div class="ex-note">⚠️ <b>재고 ${nolinkN}건이 제품과 연결되지 않았습니다.</b> 이 줄은 판매 속도·폐기 예상이 빈칸으로 나옵니다.
+      <button type="button" class="tbtn primary" id="exSgAll" style="min-height:0;padding:4px 10px;margin-left:4px">추천 ${sgN}건 한 번에 연결</button></div>`:'')+(nolinkN&&!VIEW?`<div class="ex-note">⚠️ <b>재고 ${nolinkN}건이 제품과 연결되지 않았습니다.</b> 이 줄은 판매 속도·폐기 예상이 빈칸으로 나옵니다.
       그로홈 재고는 그로홈 대시보드 <b>제품 마스터 → 💰 가격 → 📦 물류센터 재고코드</b>에, POUR 재고(세이고라닌)는 표 오른쪽 <b>🔗 연결</b>에서 제품을 고르면 연결됩니다(그 제품의 3PL 코드로 저장).
       앞에 글자가 붙어 있어도(예: BZLG03031 ↔ 03031) 숫자가 같으면 이어집니다.</div>`:'')
     +(EX.lots.length&&!inWin?`<div class="ex-note">⚠️ <b>최근 ${EX.win}일 안에 매출 기록이 없습니다.</b> 판매 속도가 계산되지 않습니다.${sr.length?` 매출 기록 ${won(sr.length)}건이 이 기간(${fIso} ~ ${tIso}) 밖에 있습니다 · 기록 범위 ${minD} ~ ${maxD}.`:' 매출 기록 자체가 아직 없습니다.'} 위 <b>판매속도 기준</b>에서 기간을 넓혀 보세요.</div>`:'');
@@ -11395,13 +11396,13 @@ async function renderExpiry(){
         ${m.file?`<div class="ex-src-f" title="${esc(m.file)}">📄 ${esc(m.file)}</div>`:''}
         <div class="ex-src-n">로트 ${won(m.lots)} · ${won(m.qty)}개${m.noExp?` · <span class="neg">유통기한 없음 ${m.noExp}</span>`:''}</div>`
         :`<div class="ex-src-n">아직 올린 재고가 없어요</div>`}
-      <button type="button" class="tbtn" data-exup="${esc(b)}">📥 엑셀 올리기</button></div>`; }).join('')}</div>`;
+      ${VIEW?'':`<button type="button" class="tbtn" data-exup="${esc(b)}">📥 엑셀 올리기</button>`}</div>`; }).join('')}</div>`;
   body.innerHTML=`
     ${srcCards}
     <div class="cards">
       ${card('🔴 프로모션 필요 로트', risk.length+'개', risk.length?'neg':'', `지금 속도의 2배 넘게 팔아야 하거나 기한 ${EX.buffer}일 안쪽으로 들어온 로트`)}
       ${card('예상 폐기 수량', won(wasteQty)+'개', wasteQty?'neg':'', `지금 판매 속도 유지 시 · 판매마감 ${EX.buffer}일 전 기준`)}
-      ${card('예상 폐기 손실 (원가)', wonU(loss), loss?'neg':'', '가격대시보드에 원가가 있는 제품만')}
+      ${VIEW?'':card('예상 폐기 손실 (원가)', wonU(loss), loss?'neg':'', '가격대시보드에 원가가 있는 제품만')}
       ${card('30일 안에 기한 도래', soon+'개', soon?'neg':'', expired.length?`이미 지난 로트 ${expired.length}개 · ${won(expired.reduce((a,r)=>a+r.l.qty,0))}개`:'')}
     </div>
     ${notes}
@@ -11411,11 +11412,11 @@ async function renderExpiry(){
     <div class="panel"><h3>로트별 소진 판단 <span class="tag">최근 ${EX.win}일 판매 속도 · 선입선출</span></h3>
       <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" style="width:100%;min-width:1280px">
         <thead><tr><th>브랜드</th><th style="min-width:200px">상품 (재고 이름)</th><th>3PL 코드</th><th>유통기한</th><th class="num">남은 일수</th><th class="num">수량</th><th class="num">누적</th>
-          <th class="num">하루 판매 (최근)</th><th class="num">필요 하루 판매</th><th class="num">배수</th><th class="num">소진 예상</th><th class="num">기한 내 소진율</th><th>판단</th><th class="num">예상 폐기</th><th class="num">폐기 손실</th><th></th></tr></thead>
+          <th class="num">하루 판매 (최근)</th><th class="num">필요 하루 판매</th><th class="num">배수</th><th class="num">소진 예상</th><th class="num">기한 내 소진율</th><th>판단</th><th class="num">예상 폐기</th>${VIEW?'':'<th class="num">폐기 손실</th><th></th>'}</tr></thead>
         <tbody>${rows.map((r,i)=>{ const V=EX_V[r.v]||EX_V.nolink;
           return `<tr><td>${esc(r.l.brand==='POUR스토어'?'POUR':'GRO')}</td>
             <td>${esc(r.l.name)}${r.p?`<div class="footnote" style="margin:0">→ ${esc(prodLabel(r.p))}${pcodeOf(r.p)?' · '+esc(pcodeOf(r.p)):''}</div>`:(r.m.g?`<div class="footnote" style="margin:0">→ 그로홈 ${esc(r.m.g.name)} (가격대시보드 미연결)</div>`:'')}${r.sg?`<div class="footnote" style="margin:2px 0 0;color:#1D4ED8">추천 → <b>${esc(prodLabel(r.sg.p))}</b> <button type="button" class="tbtn" data-exsg="${i}" style="min-height:0;padding:2px 8px;font-size:11px">✓ 연결</button></div>`:''}</td>
-            <td style="font-family:var(--mono)">${esc(r.l.code)}</td><td>${!r.l.fileExp&&!(EX.meta[r.l.brand]&&/-seed$/.test(EX.meta[r.l.brand].source))?`<input type="date" class="ex-md" data-doc="${esc(r.l.docId||'')}" data-code="${esc(r.l.code)}" value="${esc(r.l.manualExp?r.l.expiry:'')}" title="엑셀에 유통기한이 없어 직접 넣습니다 (다음 엑셀 올릴 때도 유지)">`:esc(r.l.expiry||r.l.rawExpiry||'—')}</td>
+            <td style="font-family:var(--mono)">${esc(r.l.code)}</td><td>${!VIEW&&!r.l.fileExp&&!(EX.meta[r.l.brand]&&/-seed$/.test(EX.meta[r.l.brand].source))?`<input type="date" class="ex-md" data-doc="${esc(r.l.docId||'')}" data-code="${esc(r.l.code)}" value="${esc(r.l.manualExp?r.l.expiry:'')}" title="엑셀에 유통기한이 없어 직접 넣습니다 (다음 엑셀 올릴 때도 유지)">`:esc(r.l.expiry||r.l.rawExpiry||'—')}</td>
             <td class="num">${r.rem==null?'—':r.rem<0?`<b class="neg">${-r.rem}일 지남</b>`:r.rem<=30?`<b class="neg">D-${r.rem}</b>`:`D-${r.rem}`}</td>
             <td class="num"><b>${won(r.l.qty)}</b></td><td class="num">${won(r.cum)}</td><td class="num">${r.avg==null?'—':f1(r.avg)+'개/일'}</td>
             <td class="num">${r.need==null?'—':`<b style="color:${r.avg==null?'inherit':r.need>r.avg?'var(--red)':'var(--xl-green-dark)'}">${f1(r.need)}개/일</b><div class="footnote" style="margin:0">${won(Math.ceil(r.need*30.4))}개/월</div>`}</td>
@@ -11423,9 +11424,9 @@ async function renderExpiry(){
             <td class="num">${r.sellThru==null?'—':won(Math.ceil(r.sellThru))+'일'}</td>
             <td class="num">${r.rate==null?'—':`<b style="color:${r.rate>=100?'var(--xl-green-dark)':r.rate>=60?'#d97706':'var(--red)'}">${Math.round(r.rate)}%</b>`}</td>
             <td><span class="prb" style="background:${V[1]};color:${V[2]}">${V[0]}</span></td>
-            <td class="num">${r.waste?`<b class="neg">${won(r.waste)}개</b>`:r.waste===0?'0':'—'}</td><td class="num">${r.loss?wonU(r.loss):'—'}</td>
-            <td>${r.p&&['bad','warn','late'].includes(r.v)?`<button class="tbtn" data-exi="${i}" title="이 재고로 프로모션 설계 열기">🎯 프로모션</button>`:''}${!r.p&&r.l.brand==='POUR스토어'?`<button class="tbtn" data-exlink="${i}" title="이 재고가 어느 제품인지 골라 연결합니다(3PL 코드로 저장)">🔗 연결</button>`:''}</td></tr>`; }).join('')
-          || `<tr><td colspan="16" style="text-align:center;padding:18px">${EX.lots.length?'조건에 맞는 로트가 없습니다':'공용 DB에 재고가 없습니다 — 그로홈 대시보드 [유통기한 관리]를 한 번 열면 올라옵니다'}</td></tr>`}</tbody></table></div>
+            <td class="num">${r.waste?`<b class="neg">${won(r.waste)}개</b>`:r.waste===0?'0':'—'}</td>${VIEW?'':`<td class="num">${r.loss?wonU(r.loss):'—'}</td>
+            <td>${r.p&&['bad','warn','late'].includes(r.v)?`<button class="tbtn" data-exi="${i}" title="이 재고로 프로모션 설계 열기">🎯 프로모션</button>`:''}${!r.p&&r.l.brand==='POUR스토어'?`<button class="tbtn" data-exlink="${i}" title="이 재고가 어느 제품인지 골라 연결합니다(3PL 코드로 저장)">🔗 연결</button>`:''}</td>`}</tr>`; }).join('')
+          || `<tr><td colspan="${VIEW?14:16}" style="text-align:center;padding:18px">${EX.lots.length?'조건에 맞는 로트가 없습니다':'공용 DB에 재고가 없습니다 — 그로홈 대시보드 [유통기한 관리]를 한 번 열면 올라옵니다'}</td></tr>`}</tbody></table></div>
       <div class="bd"><p class="footnote" style="margin:0">· <b>필요 하루 판매</b> = 이 로트까지의 누적 재고 ÷ (남은 일수 − 판매마감 여유 ${EX.buffer}일). 같은 제품의 로트는 기한이 빠른 것부터 팔린다고 봅니다.<br>
         · <b>소진 예상</b> = 같은 제품의 앞선 로트까지 모두 파는 데 걸리는 일수 · <b>기한 내 소진율</b> = 판매마감 전까지 지금 속도로 팔리는 비율<br>
         · <b>배수</b> = 필요 하루 판매 ÷ 최근 하루 판매 → 1배 이하 🟢 · 2배 이하 🟡 · 2배 초과 🔴. 그로홈 색상별 재고는 판매 기록이 제품 단위라 색상 구분 없이 합쳐 봅니다.<br>

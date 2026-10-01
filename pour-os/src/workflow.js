@@ -135,3 +135,20 @@ export function guessCat(title){ const t=String(title||""); for(const [k,re] of 
 // 워크플로우 ↔ 기존 프로젝트 연결 추정(이름) — 건을 추가하면 이 프로젝트 소속으로 저장
 const WF_PROJ_RULES={wf_promo:/프로모션/,wf_cpc:/광고/,wf_blog:/광고/,wf_review:/광고/,wf_shorts:/광고/,wf_seller:/광고/,wf_event:/박람회|행사/,wf_dealer:/대리점/,wf_order:/주문|발주/,wf_return:/반품/,wf_stock:/재고/,wf_sys:/어드민/};
 export function guessWfProject(wfId,projects){ const re=WF_PROJ_RULES[wfId]; if(!re) return ""; const p=(projects||[]).find(x=>re.test(String(x.title||""))); return p?p.id:""; }
+
+// ── 반복 흐름 = 업무플로우 하나로 (행동지표 체크리스트 통합) ──
+// wf.akId 가 있으면 건의 단계를 다 체크할 때 그 행동지표 +1 (건 담당 실적 · 마지막 체크한 날의 주), 하나 풀면 −1. 두 번 안 셈(t.akCounted)
+// 단계 confirm:true = 컨펌 단계 → 그 건의 컨펌 요청이 승인되면 자동 체크
+export function caseToggleCalc(wf,t,sid,actor,wkOf,now=new Date()){
+  const base=toggleCheck(wf,t,sid,actor); const patch={...base};
+  let count=0, wk="";
+  if(wf&&wf.akId){ const done=base.status==="done";
+    if(done&&!t.akCounted){ wk=wkOf(now); count=1; patch.akCounted={wk,at:now.toISOString(),akId:wf.akId}; }
+    else if(!done&&t.akCounted){ wk=t.akCounted.wk; count=-1; patch.akCounted=null; } }
+  return {patch,count,wk,akId:(t.akCounted&&t.akCounted.akId)||(wf&&wf.akId)||""};
+}
+export const caseConfirmStage=(wf,t)=>{ const ch=caseChecks(t); const s=((wf&&wf.stages)||[]).find(x=>x.confirm&&!ch[x.id]); return s?s.id:null; };
+// 행동지표 체크리스트(예전 steps) ↔ 흐름 단계 변환
+export const stepsToStages=(steps)=>(steps||[]).map(s=>({id:s.id,name:String(s.title||s.name||"").trim(),...(s.owner||s.ownerId?{ownerId:s.owner||s.ownerId}:{}),...(s.confirm?{confirm:true}:{})})).filter(s=>s.name);
+export const stagesToSteps=(stages)=>(stages||[]).map(s=>({id:s.id,title:s.name||"",owner:s.ownerId||"",confirm:!!s.confirm}));
+export const flowOfAk=(W,akId)=>(W||[]).find(w=>w.akId&&w.akId===akId)||null;

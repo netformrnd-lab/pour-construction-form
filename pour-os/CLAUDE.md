@@ -165,6 +165,13 @@ goals[g1] 매출 10억
 - 다 체크하면 그 행동지표 +1(akBump · 마지막 체크한 날의 주 · 시작한 사람 실적) + ak-notes 에 '체크리스트 완료' 기록(count.run). 하나 풀면 −1(처음 센 주), 다시 다 하면 +1 — 두 번 안 셈(counted).
 - confirm 단계: 'AkRunSheet' 댓글에서 컨펌 요청(받는 사람=그 단계 담당) → 승인되면 자동 체크(ThreadPanel onApproved). 다음 단계 담당은 오늘 '체크리스트 내 차례'. 백업에 akRuns 포함.
 
+### ✅ 반복 흐름 = 업무플로우 하나로 (2026-10, 정리 A)
+- 업무플로우와 행동지표 체크리스트를 합침. 흐름 정의는 workflows 하나(단계·담당·`confirm`), 선택 `akId`(다 끝나면 +1 할 행동지표 — 행동지표 하나엔 흐름 하나).
+- 체크는 모두 `wfToggle(D,wf,t,sid,cu,up)` → `caseToggleCalc`(workflow.js): 연결 흐름이면 다 체크 시 akBump +1(건 담당 실적·그 주, t.akCounted) + ak-notes '흐름 완료' 기록, 풀면 −1.
+- 컨펌 단계: 건 창(CaseSheet)·오늘 ThreadSheet 의 컨펌 요청 승인 → `caseConfirmStage` 자동 체크. 흐름 건엔 '승인 + 완료' 버튼 없음(단계로 완료).
+- 행동지표 수정창 '반복 흐름 (선택)': 연결 흐름을 고르거나 새로 만들고(보일 곳=카테고리) 단계 편집 = 그 흐름 편집. 예전 steps 는 지우지 않고 `stepsMovedTo` 표시(예전 실행 ak-runs 는 그대로 동작).
+- 오늘 행동지표 줄: 연결 흐름이 있으면 '+ 시작' → 건(task wfId) 생성·그 자리 체크리스트. 프로젝트 화면 흐름 목록에 '+ 흐름 추가', 단계·담당 창에 이름·보일 곳·연결 행동지표·컨펌.
+
 ## 규칙 (반드시 준수)
 
 ### Firebase / Firestore (연동 시)

@@ -1,6 +1,6 @@
 // 워크플로우 로직 테스트 — node src/workflow.test.mjs
 import { mergeWorkflows, DEFAULT_WORKFLOWS, caseProgress, caseNext, caseStatusFor, toggleCheck, caseTurnOwner, roasOf,
-  lbState, phaseProgress, launchProgress, LAUNCH_PHASES, LAUNCH_ITEMS, nameMatch, guessCat, guessWfProject, launchLead } from "./workflow.js";
+  lbState, phaseProgress, launchProgress, LAUNCH_PHASES, LAUNCH_ITEMS, nameMatch, guessCat, guessWfProject, launchLead, caseToggleCalc, caseConfirmStage, stepsToStages, stagesToSteps, flowOfAk } from "./workflow.js";
 
 let pass=0, fail=0;
 const eq=(name,got,exp)=>{ const ok=JSON.stringify(got)===JSON.stringify(exp);
@@ -59,5 +59,19 @@ eq("반품 CS → 상시 운영", guessCat("반품 CS"), "ops");
 eq("CRM센터 → 시스템", guessCat("CRM센터 개발관리"), "system");
 eq("광고관리 → 마케팅", guessCat("광고관리"), "marketing");
 eq("반품 워크플로우 ↔ 반품 CS 프로젝트", guessWfProject("wf_return",[{id:"a",title:"주문·발주"},{id:"b",title:"반품 CS"}]), "b");
+
+// ── 반복 흐름: 다 체크하면 행동지표 +1 ──
+{ const wf={id:"wf_blog",akId:"ak_c_b2c",stages:[{id:"a",name:"글"},{id:"b",name:"컨펌",confirm:true},{id:"c",name:"업로드"}]};
+  const me={id:"chaerim",name:"양채림"}, wk=()=>"2026-09-28";
+  let t={id:"t1",wfId:"wf_blog",assigneeId:"chaerim",wfChecks:{},status:"todo"};
+  for(const sid of ["a"]){ t={...t,...caseToggleCalc(wf,t,sid,me,wk).patch}; }
+  eq("컨펌 단계 찾기", caseConfirmStage(wf,t), "b");
+  t={...t,...caseToggleCalc(wf,t,"b",{id:"songhee"},wk).patch};
+  let r=caseToggleCalc(wf,t,"c",me,wk); eq("마지막 체크 → +1 · 완료", [r.count,r.wk,r.patch.status,r.patch.akCounted.akId], [1,"2026-09-28","done","ak_c_b2c"]);
+  t={...t,...r.patch};
+  r=caseToggleCalc(wf,t,"c",me,()=>"2026-10-05"); eq("풀면 −1 · 처음 센 주", [r.count,r.wk,r.patch.status,r.patch.akCounted], [-1,"2026-09-28","inprogress",null]);
+  eq("행동지표 연결 없는 흐름은 안 셈", caseToggleCalc({...wf,akId:""},{...t,wfChecks:{a:1,b:1}},"c",me,wk).count, 0);
+  eq("단계 ↔ 체크리스트 변환", stagesToSteps(stepsToStages([{id:"x",title:" 글 생성 ",owner:"ran",confirm:true},{title:" "}])), [{id:"x",title:"글 생성",owner:"ran",confirm:true}]);
+  eq("행동지표에 연결된 흐름", flowOfAk([{id:"w1"},{id:"w2",akId:"ak1"}],"ak1").id, "w2"); }
 
 console.log(`\n${fail?"❌":"✅"} ${pass} 통과 · ${fail} 실패`); if(fail) process.exit(1);

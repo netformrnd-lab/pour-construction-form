@@ -11,6 +11,7 @@ import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGet
 import { numF, skCur, mkCur, calcSegDone } from "./kpi.js";
 import { applyAutomation, instantiateLaunch } from "./launch.js";
 import { initCrmOperatorSync, matchOperator, initCrmRevenueSync } from "./crmOperatorSync.js";
+import { caseToggleCalc, caseConfirmStage, stepsToStages, stagesToSteps, flowOfAk } from "./workflow.js";
 import { WF_CATS, catOf, EXEC_TYPES, execOf, CPC_CHANNELS, NOTICE_KINDS, DEFAULT_WORKFLOWS, mergeWorkflows, launchSettings, caseProgress, caseNext, caseChecks, toggleCheck, caseTurnOwner, numOr0, roasOf, LAUNCH_PHASES, LAUNCH_ITEMS, LAUNCH_COL, LAUNCH_BRANDS, lbState, phaseProgress, launchProgress, launchCurrentPhase, launchLead, nameMatch, guessCat, guessWfProject } from "./workflow.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
@@ -21,7 +22,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-체크리스트";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-반복흐름";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -2053,7 +2054,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       {retroT&&<AkRetroSheet D={D} cu={cu} up={up} add={add} target={retroT} onClose={()=>setRetroT(null)}/>}
       <TodayBlocks uid={cu.id} items={[
         {id:"retro",label:"월말 회고",show:!!akRetroDue(akYmd(new Date()),D.retros),node:<AkRetroBanner D={D} cu={cu} nav={nav} onOpen={(d)=>setRetroT({y:d.y,m0:d.m0})}/>},
-        {id:"akweek",label:"이번 주 내 행동지표",show:myAkN>0,node:<AkTodayCard D={D} cu={cu} nav={nav}/>},
+        {id:"akweek",label:"이번 주 내 행동지표",show:myAkN>0,node:<AkTodayCard D={D} cu={cu} nav={nav} add={add} up={up} rm={rm}/>},
         {id:"memo",label:"마감 임박",show:!!urgentCard,node:<div style={{marginBottom:14}}>{urgentCard}</div>},
         {id:"weekly",label:"주간 입력",show:isLastWorkingDayOfWeek(),node:(<>
       {isLastWorkingDayOfWeek()&&<button onClick={()=>setWeeklyOpen(true)} style={{width:"100%",marginBottom:14,padding:"13px 0",borderRadius:14,border:"none",background:"#24386B",color:"#fff",fontSize:14.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>이번 주 마감 입력 — 매출·KPI·활동지표 한 번에</button>}
@@ -2070,7 +2071,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
             {shown.map(r=>{ if(r.kind==="case"){ const nx=caseNext(r.wf,r.t); const pr=caseProgress(r.wf,r.t); const late=r.t.dueDate&&daysTo(r.t.dueDate)<0; return(
               <div key={r.k} style={{padding:"10px 12px",borderRadius:12,backgroundColor:"#EEF0F5",border:`1px solid ${late?"#EACFD1":"#E3E7F0"}`,display:"flex",alignItems:"center",gap:9}}>
-                <button onClick={()=>nx&&up("tasks",r.t.id,toggleCheck(r.wf,r.t,nx.id,cu))} aria-label={`${nx?nx.name:""} 체크`} style={{flexShrink:0,width:26,height:26,borderRadius:8,border:"2px solid #24386B",backgroundColor:"#fff",color:"#24386B",fontSize:13,fontWeight:900,cursor:"pointer",padding:0}}>✓</button>
+                <button onClick={()=>nx&&wfToggle(D,r.wf,r.t,nx.id,cu,up)} aria-label={`${nx?nx.name:""} 체크`} style={{flexShrink:0,width:26,height:26,borderRadius:8,border:"2px solid #24386B",backgroundColor:"#fff",color:"#24386B",fontSize:13,fontWeight:900,cursor:"pointer",padding:0}}>✓</button>
                 <button onClick={()=>goCat(r.wf.cat)} style={{flex:1,minWidth:0,textAlign:"left",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
                   <span style={{display:"block",fontSize:13.5,fontWeight:800,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.t.title} <span style={{color:"#1E2F5C"}}>→ {nx?nx.name:""}</span></span>
                   <span style={{display:"block",fontSize:10.5,color:"#8B95A1",marginTop:1}}>{r.wf.icon} {r.wf.name} · {pr.done}/{pr.total}{r.t.dueDate?` · ${ddayKo(daysTo(r.t.dueDate))}`:""}</span></button>
@@ -3040,6 +3041,18 @@ function useAkNotes(){
     return ()=>{ try{ un&&un(); }catch(_){} }; },[]);
   return notes;
 }
+// 흐름 건 단계 체크 — 행동지표가 연결된 흐름이면 다 체크할 때 +1(건 담당 실적·그 주), 풀면 −1 (workflow.js caseToggleCalc)
+async function wfToggle(D,wf,t,sid,cu,up){
+  const {patch,count,wk,akId}=caseToggleCalc(wf,t,sid,cu,(d)=>akWeekKey(d));
+  up("tasks",t.id,patch);
+  if(!count||!akId) return;
+  const it=(D.actionKPIs||[]).find(x=>x.id===akId); if(!it){ console.warn("[흐름] 연결 행동지표 없음:",akId); return; }
+  const who=(D.users||[]).find(u=>u.id===t.assigneeId)||cu;
+  try{ await akBump(it,wk,"n",count,who);
+    if(count>0){ const nid="n"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+      await setDoc(extDoc(NOTE_COL,nid),{id:nid,itemId:it.id,itemName:it.name||"",kind:"ak",count:{wk,at:new Date().toISOString(),unit:it.unit||"",task:t.id},parentId:null,text:`흐름 완료 · ${wf.name} · ${t.title}`,files:[],by:who.id,byName:who.name||"",at:new Date().toISOString(),deleted:false}); } }
+  catch(e){ console.error("[흐름] 행동지표 반영 실패:",e); }
+}
 // ── 행동지표 체크리스트 실행 (pour-os/ak-runs/r/{id}) ──
 function useAkRuns(){
   const [runs,setRuns]=useState([]);
@@ -3320,7 +3333,7 @@ function ThreadPanel({D,cu,up,itemId,itemName,kind,task,proj,title="댓글",star
           <NoteFiles files={n.files}/></>}
       {cf&&isLatest&&n.status==="wait"&&n.to===cu.id&&fbFor!==n.id&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
         <button onClick={()=>decide(n,"ok")} style={{...NB.pri,flex:"1 1 80px"}}>승인</button>
-        {task&&task.status!=="done"&&<button onClick={()=>decide(n,"ok",true)} style={{...NB.pri,flex:"1 1 100px",background:"#2F7D57"}}>승인 + 완료</button>}
+        {task&&task.status!=="done"&&!task.wfId&&<button onClick={()=>decide(n,"ok",true)} style={{...NB.pri,flex:"1 1 100px",background:"#2F7D57"}}>승인 + 완료</button>}
         <button onClick={()=>{ setFbFor(n.id); setReplyTo(null); }} style={{...NB.sub,flex:"1 1 90px",border:"1.5px solid #B4383F",color:"#B4383F"}}>수정 요청</button></div>}
       {fbFor===n.id&&<div style={{marginTop:8}}><NoteComposer cu={cu} autoFocus placeholder="무엇을 고치면 될까요? (파일·사진도 돼요)" submitLabel="수정 요청 보내기" onCancel={()=>setFbFor(null)} onSubmit={(tx,fs,sb)=>sendFb(n,tx,fs,sb)}/></div>}
       {cf&&isLatest&&n.status==="fix"&&n.by===cu.id&&<button onClick={()=>{ setMode("confirm"); setTo(n.to); }} style={{...NB.pri,marginTop:8}}>{(n.round||1)+1}차 올리기</button>}
@@ -3365,11 +3378,12 @@ function ThreadSheet({D,cu,up,target,onClose}){
   const t=target.taskId?(D.tasks||[]).find(x=>x.id===target.taskId):null;
   const p=!t&&target.projectId?(D.projects||[]).find(x=>x.id===target.projectId):null;
   const pj=t?(D.projects||[]).find(x=>x.id===t.projectId):null;
+  const wfOf=t&&t.wfId?mergeWorkflows(D.workflows).find(w=>w.id===t.wfId):null;   // 흐름 건이면 승인 시 컨펌 단계 자동 체크
   return(<Sheet open onClose={onClose} title={t?"업무 댓글":p?"프로젝트 대화":"댓글"} h="90vh" w={620}>
     <div style={{paddingTop:2}}>
       <p style={{margin:"0 0 2px",fontSize:15.5,fontWeight:900,color:"#191F28"}}>{t?t.title:p?p.title:target.itemName}</p>
       <p style={{margin:"0 0 12px",fontSize:12,color:"#6B7684"}}>{t?`${pj?pj.title+" · ":""}${userNameOf(D,t.assigneeId)||"담당 없음"} · ${t.status==="done"?"완료":"진행"}`:""}</p>
-      <ThreadPanel D={D} cu={cu} up={up} itemId={target.itemId} itemName={target.itemName} kind={t?"task":"proj"} task={t} proj={p} title={p?"프로젝트 대화":"댓글"}/>
+      <ThreadPanel D={D} cu={cu} up={up} itemId={target.itemId} itemName={target.itemName} kind={t?"task":"proj"} task={t} proj={p} title={p?"프로젝트 대화":"댓글"} onApproved={wfOf?async()=>{ const cur=(D.tasks||[]).find(x=>x.id===t.id)||t; const sid=caseConfirmStage(wfOf,cur); if(sid) await wfToggle(D,wfOf,cur,sid,cu,up); }:undefined}/>
     </div>
   </Sheet>);
 }
@@ -3420,18 +3434,27 @@ function AkEditSheet({D,cu,item,core,add,up,onClose}){
   const [f,setF]=useState(()=>item?{name:item.name||"",fun:AK_FUNS.includes(item.fun)?item.fun:"기타",cyc:item.cyc||"W",goal:String(item.goal??""),unit:item.unit||"건",step:String(item.step||10),who:akWho(users,item),how:item.how||"직접",brand:akBrandOf(item,D.brands),desc:item.desc||"",core:!!item.core}
     :{name:"",fun:"A 유입",cyc:"W",goal:"1",unit:"건",step:"10",who:[cu.id],how:"직접",brand:(D._brand&&D._brand!=="all")?D._brand:"pourstore",desc:"",core:!!core&&canCore,mk:"",sk:""});
   const [lnk,setLnk]=useState(()=>item?akLink(item):{mk:"",sk:""});
-  const [steps,setSteps]=useState(()=>cleanSteps(item&&item.steps));
+  const Wf=mergeWorkflows(D.workflows); const linked=item?flowOfAk(Wf,item.id):null;
+  const [linkId,setLinkId]=useState(linked?linked.id:"");   // "" = 새로 만들기
+  const [steps,setSteps]=useState(()=>linked?stagesToSteps(linked.stages):cleanSteps(item&&!item.stepsMovedTo?item.steps:[]));
+  const [flowCat,setFlowCat]=useState(linked&&linked.cat||"marketing");
   const [stepNew,setStepNew]=useState("");
+  const pickFlow=(id)=>{ setLinkId(id); const w=Wf.find(x=>x.id===id); setSteps(w?stagesToSteps(w.stages):cleanSteps(item&&!item.stepsMovedTo?item.steps:[])); };
   const pct=f.unit==="%";
   const okGoal=item&&item.perFail?true:(pct?true:Number(f.goal)>0);
   const ok=f.name.trim()&&okGoal&&f.who.length>0;
   const set=(k,v)=>setF(o=>({...o,[k]:v}));
   const save=()=>{ if(!ok) return;
     const patch={mk:lnk.mk,sk:lnk.sk,name:f.name.trim(),fun:f.fun,cyc:f.cyc,unit:f.unit,goal:pct?100:(item&&item.perFail?(item.goal||0):Number(f.goal)),who:f.who,whoNames:f.who.map(id=>(users.find(u=>u.id===id)||{}).name||""),how:f.how,brand:f.brand,desc:f.desc.trim(),...(pct?{step:Math.max(1,Number(f.step)||10)}:{})};
-    patch.steps=cleanSteps(steps);
     if(canCore) patch.core=!!f.core;
+    const akId=item?item.id:"ak"+Date.now().toString(36);
+    const st=stepsToStages(cleanSteps(steps)); const target=linkId?Wf.find(w=>w.id===linkId):null;
+    Wf.filter(w=>w.akId===akId&&(!target||w.id!==target.id)).forEach(w=>saveWfOverride(D,add,up,w.id,{akId:""}));   // 행동지표 하나엔 흐름 하나
+    if(target){ saveWfOverride(D,add,up,target.id,st.length?{stages:st,akId}:{akId:""}); }
+    else if(st.length){ const wid="wf_ak"+Date.now().toString(36); add("workflows",{id:wid,cat:flowCat,name:f.name.trim(),unit:"건",hint:"",stages:st,akId,createdAt:new Date().toISOString(),createdBy:cu.id});
+      if(item&&cleanSteps(item.steps).length&&!item.stepsMovedTo) patch.stepsMovedTo=wid; }   // 예전 체크리스트는 지우지 않고 '옮김' 표시만
     if(item){ up("actionKPIs",item.id,{...patch,updatedAt:new Date().toISOString(),updatedBy:cu.id}); }
-    else{ const mx=Math.max(0,...(D.actionKPIs||[]).map(x=>+x.order||0)); add("actionKPIs",{id:"ak"+Date.now().toString(36),...patch,core:canCore?!!f.core:false,active:true,order:mx+1,startDate:akYmd(new Date()),createdAt:new Date().toISOString(),createdBy:cu.id,createdByName:cu.name||""}); }
+    else{ const mx=Math.max(0,...(D.actionKPIs||[]).map(x=>+x.order||0)); add("actionKPIs",{id:akId,...patch,core:canCore?!!f.core:false,active:true,order:mx+1,startDate:akYmd(new Date()),createdAt:new Date().toISOString(),createdBy:cu.id,createdByName:cu.name||""}); }
     onClose(); };
   const pause=()=>{ if(!item) return; up("actionKPIs",item.id,item.active===false?{active:true,resumedAt:new Date().toISOString(),resumedBy:cu.id}:{active:false,pausedAt:new Date().toISOString(),pausedBy:cu.id}); onClose(); };
   const lab={display:"block",fontSize:12,fontWeight:700,color:"#374151",margin:"12px 0 6px"};
@@ -3460,7 +3483,13 @@ function AkEditSheet({D,cu,item,core,add,up,onClose}){
       <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{users.map(u=>{ const on=f.who.includes(u.id); return <button key={u.id} type="button" onClick={()=>set("who",on?f.who.filter(x=>x!==u.id):[...f.who,u.id])} style={chip(on)}>{on?"✓ ":""}{u.name}</button>; })}</div>
       <label style={lab}>방식 · 브랜드</label>
       <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{["직접","외주"].map(x=><button key={x} type="button" onClick={()=>set("how",x)} style={chip(f.how===x)}>{x}</button>)}<span style={{width:8}}/>{[...(D.brands||BRAND_SEED).filter(b=>b.active!==false).map(b=>[b.id,b.name]),[COMMON,"공통"]].map(([k,l])=><button key={k} type="button" onClick={()=>set("brand",k)} style={chip(f.brand===k)}>{l}</button>)}</div>
-      <label style={lab}>체크리스트 (선택) <span style={{fontWeight:500,color:"#9CA3AF"}}>· 단계가 있는 반복 일만 · 다 체크하면 +1 · 없으면 지금처럼 +1</span></label>
+      <label style={lab}>반복 흐름 (선택) <span style={{fontWeight:500,color:"#9CA3AF"}}>· 단계가 있는 반복 일만 · 다 체크하면 +1 · 없으면 지금처럼 +1</span></label>
+      <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)",gap:6,marginBottom:6}}>
+        <select value={linkId} onChange={e=>pickFlow(e.target.value)} aria-label="흐름 고르기" style={{...inp,padding:"9px 10px",fontSize:13}}><option value="">{linked?"새 흐름으로 만들기":"새 흐름 만들기"}</option>{Wf.filter(w=>w.cat!=="launch"&&(!w.akId||(item&&w.akId===item.id))).map(w=><option key={w.id} value={w.id}>{w.name} · {(WF_CATS.find(c=>c.k===w.cat)||{}).name||""}</option>)}</select>
+        {!linkId?<select value={flowCat} onChange={e=>setFlowCat(e.target.value)} aria-label="보일 곳" style={{...inp,padding:"9px 10px",fontSize:13}}>{WF_CATS.filter(c=>c.k!=="launch").map(c=><option key={c.k} value={c.k}>프로젝트 › {c.name}</option>)}</select>
+          :<p style={{margin:0,alignSelf:"center",fontSize:11.5,color:"#6B7684",lineHeight:1.4}}>여기서 고치면 프로젝트 화면의 이 흐름도 같이 바뀌어요</p>}
+      </div>
+
       {steps.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:6}}>{steps.map((st,ix)=><div key={st.id} style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap",padding:"6px 7px",borderRadius:10,background:"#F7F8FA"}}>
         <span style={{fontSize:12,fontWeight:800,color:"#8B95A1",width:16,textAlign:"right"}}>{ix+1}</span>
         <input value={st.title} onChange={e=>setSteps(a=>a.map(x=>x.id===st.id?{...x,title:e.target.value}:x))} aria-label="단계 이름" style={{...inp,flex:"1 1 150px",padding:"7px 9px",fontSize:13}}/>
@@ -3480,7 +3509,7 @@ function AkEditSheet({D,cu,item,core,add,up,onClose}){
   </Sheet>);
 }
 // 오늘 화면 — 이번 주 내 행동지표 (+1 한 번 = 기록) · 지난주 미달 · 월말·분기말 마지막 주 표시
-function AkTodayCard({D,cu,nav}){
+function AkTodayCard({D,cu,nav,add,up,rm}){
   const users=D.users||[];
   const mine=(D.actionKPIs||[]).filter(it=>it.active!==false&&akWho(users,it).includes(cu.id)).sort(akOrder);
   const wk=akWeekKey(), lastWk=akAddDays(wk,-7);
@@ -3495,6 +3524,8 @@ function AkTodayCard({D,cu,nav}){
   const notes=useAkNotes(); const ncnt=noteCounts(notes); const [noteItem,setNoteItem]=useState(null);
   const [recFor,setRecFor]=useState(null);   // +1 한 건에 붙일 기록 {it, count:{wk,n,at}}
   const runs=useAkRuns(); const [runSheet,setRunSheet]=useState(null); const [openRun,setOpenRun]=useState(null);   // 체크리스트 실행
+  const [caseSheet,setCaseSheet]=useState(null);   // 흐름 건 자세히
+  const W=mergeWorkflows(D.workflows); const flowOf=(it)=>flowOfAk(W,it.id);
   if(!mine.length) return null;
   const thisW=WK.find(w=>w.key===wk)||{key:wk,start:wk,end:akAddDays(wk,6),label:""};
   const lastW={key:lastWk,start:lastWk,end:akAddDays(lastWk,6),label:(()=>{ const d=new Date(lastWk+"T00:00:00"); return `${d.getMonth()+1}/${d.getDate()}`; })()};
@@ -3508,9 +3539,28 @@ function AkTodayCard({D,cu,nav}){
   const missed=ready?mine.filter(it=>it.cyc==="W"&&!it.perFail&&akFullWeek(it,lastW)&&akVal(docs,it,lastWk)<(+it.goal||1)):[];
   const todo=rows.filter(r=>!r.done), done=rows.filter(r=>r.done);
   const cnt=rows.filter(r=>!r.none).length, doneN=rows.filter(r=>r.done).length;
-  const hasSteps=(it)=>cleanSteps(it.steps).length>0;
+  const hasSteps=(it)=>!flowOf(it)&&!it.stepsMovedTo&&cleanSteps(it.steps).length>0;   // 예전 행동지표 체크리스트(흐름으로 옮기기 전)
+  const startFlow=(it)=>{ const wf=flowOf(it); if(!wf||!add) return; const now=new Date(); const id="t"+now.getTime();
+    add("tasks",{id,title:`${now.getMonth()+1}/${now.getDate()} ${it.name}`,projectId:wf.projectId||"",assigneeId:cu.id,type:"general",status:"todo",isFixed:false,weekDay:null,weekSlot:null,workDate:"",dueDate:"",memo:"",attachments:[],wfId:wf.id,wfChecks:{},wfData:{}});
+    setOpenRun(id); };
+  const flowCases=(it)=>{ const wf=flowOf(it); if(!wf) return []; return (D.tasks||[]).filter(t=>t.wfId===wf.id&&t.status!=="done"&&t.assigneeId===cu.id).sort((a,b)=>String(a.id).localeCompare(String(b.id))); };
   const startRun=async(it)=>{ if(busy) return; setBusy(it.id+"run"); setErr(""); try{ const r=await startAkRun(it,cu); setOpenRun(r.id); }catch(e){ console.error("[체크리스트 실행] 시작 실패:",e); setErr("시작이 저장 안 됐어요. 다시 눌러 주세요."); } finally{ setBusy(""); } };
-  const runsOf=(it)=>{ const rs=openRunsOf(runs,it.id); if(!rs.length) return null;
+  const runsOf=(it)=>{ const wf=flowOf(it); if(wf){ const cs=flowCases(it); if(!cs.length) return null;
+      return <div style={{display:"flex",flexDirection:"column",gap:6,margin:"0 0 8px"}}>{cs.map(t=>{ const p=caseProgress(wf,t), nx=caseNext(wf,t), op=openRun===t.id, ck=caseChecks(t);
+        return <div key={t.id} style={{border:`1.5px solid ${op?"#24386B":"#E3E7F0"}`,borderRadius:12,background:"#F7F8FB",padding:"8px 10px"}}>
+          <button onClick={()=>setOpenRun(op?null:t.id)} style={{display:"flex",width:"100%",alignItems:"center",gap:8,border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+            <span style={{flex:1,minWidth:0}}><b style={{display:"block",fontSize:13,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</b>
+              <span style={{display:"block",fontSize:11,color:"#6B7684",marginTop:1}}>{nx?`다음 ${nx.name} (${userNameOf(D,nx.ownerId||t.assigneeId)||"?"})`:"완료"}</span></span>
+            <span style={{fontSize:12.5,fontWeight:900,color:"#1E2F5C",fontVariantNumeric:"tabular-nums"}}>{p.done}/{p.total} {op?"▴":"▾"}</span></button>
+          {op&&<div style={{marginTop:6}}>{wf.stages.map(sg=>{ const c=ck[sg.id], isNx=nx&&nx.id===sg.id;
+            return <div key={sg.id} style={{display:"flex",alignItems:"center",gap:9,padding:"6px 2px"}}>
+              <button onClick={()=>wfToggle(D,wf,t,sg.id,cu,up)} aria-label={`${sg.name} 체크`} style={{flexShrink:0,width:24,height:24,borderRadius:7,border:`2px solid ${c?"#2F7D57":isNx?"#24386B":"#D1D6DB"}`,background:c?"#2F7D57":"#fff",color:"#fff",fontSize:13,fontWeight:900,cursor:"pointer",padding:0}}>{c?"✓":""}</button>
+              <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:isNx?800:600,color:c?"#8B95A1":"#191F28",textDecoration:c?"line-through":"none",lineHeight:1.35}}>{sg.name}{sg.confirm&&<span style={{marginLeft:5,fontSize:10.5,fontWeight:900,color:"#B26A12",background:"#FFF4E5",borderRadius:6,padding:"1px 6px",display:"inline-block"}}>컨펌</span>}</span>
+              {sg.confirm&&!c&&<button onClick={()=>setCaseSheet({t,wf,confirm:true})} style={{...NB.sub,padding:"4px 8px",fontSize:11.5}}>컨펌 요청</button>}
+              <span style={{flexShrink:0,fontSize:11,color:"#8B95A1"}}>{c?(c.byName||userNameOf(D,c.by)):userNameOf(D,sg.ownerId||t.assigneeId)}</span></div>; })}
+            <button onClick={()=>setCaseSheet({t,wf})} style={{...NB.link,marginTop:2}}>댓글·자료 · 자세히</button></div>}
+        </div>; })}</div>; }
+    const rs=openRunsOf(runs,it.id); if(!rs.length) return null;
     return <div style={{display:"flex",flexDirection:"column",gap:6,margin:"0 0 8px"}}>{rs.map(r=>{ const p=runProgress(r), nx=runNext(r), op=openRun===r.id;
       return <div key={r.id} style={{border:`1.5px solid ${op?"#24386B":"#E3E7F0"}`,borderRadius:12,background:"#F7F8FB",padding:"8px 10px"}}>
         <button onClick={()=>setOpenRun(op?null:r.id)} style={{display:"flex",width:"100%",alignItems:"center",gap:8,border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
@@ -3547,7 +3597,7 @@ function AkTodayCard({D,cu,nav}){
       {it.perFail?<>
         <button onClick={()=>bump(it,wk,"fail",1)} disabled={!!busy} style={{...btn(!busy),borderColor:busy?"#E3E3DF":"#A5620B",color:busy?"#B0B8C1":"#A5620B",minWidth:62,fontSize:12}} aria-label={`${it.name} 매칭 실패 +1`}>실패 +1</button>
         <button onClick={()=>bump(it,wk,"n",1)} disabled={!!busy} style={{...btn(!busy),minWidth:62,fontSize:12}} aria-label={`${it.name} 매칭 시도 +1`}>시도 +1</button>
-      </>:hasSteps(it)?<button onClick={()=>startRun(it)} disabled={!!busy} style={{...btn(!busy),background:busy?"#fff":"#24386B",color:busy?"#B0B8C1":"#fff",borderColor:busy?"#E3E3DF":"#24386B",fontSize:12.5}} aria-label={`${it.name} 시작`}>+ 시작</button>:<button onClick={()=>bump(it,wk,"n",akStep(it))} disabled={!!busy||(it.unit==="%"&&r.n>=100)} style={btn(!busy&&!(it.unit==="%"&&r.n>=100))} aria-label={`${it.name} +${akStep(it)}`}>+{akStep(it)}{it.unit==="%"?"%":""}</button>}
+      </>:(flowOf(it)||hasSteps(it))?<button onClick={()=>flowOf(it)?startFlow(it):startRun(it)} disabled={!!busy} style={{...btn(!busy),background:busy?"#fff":"#24386B",color:busy?"#B0B8C1":"#fff",borderColor:busy?"#E3E3DF":"#24386B",fontSize:12.5}} aria-label={`${it.name} 시작`}>+ 시작</button>:<button onClick={()=>bump(it,wk,"n",akStep(it))} disabled={!!busy||(it.unit==="%"&&r.n>=100)} style={btn(!busy&&!(it.unit==="%"&&r.n>=100))} aria-label={`${it.name} +${akStep(it)}`}>+{akStep(it)}{it.unit==="%"?"%":""}</button>}
     </div>{runsOf(it)}</Fragment>; };
   const nowM=new Date().getMonth();
   const GRP=[["W","주간 · 이번 주"],["M",`월간 · ${m0+1}월${m0!==nowM?" (이번 주까지 "+(m0+1)+"월로 셈)":""}`],["Q","분기 · 이번 분기"]];
@@ -3577,6 +3627,7 @@ function AkTodayCard({D,cu,nav}){
     </div>}
     {noteItem&&<AkNotesSheet D={D} cu={cu} item={noteItem} notes={notes} onClose={()=>setNoteItem(null)}/>}
     {runSheet&&<AkRunSheet D={D} cu={cu} run={runSheet.run} confirm={runSheet.confirm} onClose={()=>setRunSheet(null)}/>}
+    {caseSheet&&<CaseSheet D={D} cu={cu} wf={caseSheet.wf} t={(D.tasks||[]).find(x=>x.id===caseSheet.t.id)||caseSheet.t} up={up} rm={rm||(()=>{})} confirmStart={caseSheet.confirm} onClose={()=>setCaseSheet(null)}/>}
     {recFor&&<AkNotesSheet D={D} cu={cu} item={recFor.it} count={recFor.count} notes={notes} onClose={()=>setRecFor(null)}/>}
   </div>);
 }
@@ -5460,7 +5511,7 @@ function WfList({D,cu,cat,up,add,rm,pc,W}){
       </button>
       <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:8}}>
         {wf.stages.map(s=>{ const c=ck[s.id]; const isNext=nx&&nx.id===s.id;
-          return <button key={s.id} onClick={()=>up("tasks",t.id,toggleCheck(wf,t,s.id,cu))} aria-label={`${t.title} ${s.name}`} title={c?`${c.byName||""} ${String(c.at||"").slice(5,10)} · 누르면 해제`:`${s.name} 체크`}
+          return <button key={s.id} onClick={()=>wfToggle(D,wf,t,s.id,cu,up)} aria-label={`${t.title} ${s.name}`} title={c?`${c.byName||""} ${String(c.at||"").slice(5,10)} · 누르면 해제`:`${s.name} 체크`}
             style={{padding:"5px 8px",borderRadius:8,border:`1.5px solid ${c?"#CFE3D6":isNext?"#24386B":"#E5E8EB"}`,background:c?"#EAF4EE":isNext?"#EEF0F5":"#F7F8FA",color:c?"#2F7D57":isNext?"#1E2F5C":"#8B95A1",fontWeight:800,fontSize:11.5,cursor:"pointer",fontFamily:"inherit"}}>{c?"✓ ":""}{s.name}</button>; })}
       </div>
     </div>); };
@@ -5477,6 +5528,7 @@ function WfList({D,cu,cat,up,add,rm,pc,W}){
       {[{id:"all",name:"전체",n:wfs.reduce((a,w)=>a+actN(w),0)},...wfs.map(w=>({id:w.id,name:w.name,n:actN(w)}))].map(c=>{ const on=(cur?cur.id:"all")===c.id;
         return <button key={c.id} aria-pressed={on} onClick={()=>setSel(c.id)} style={{padding:"7px 11px",borderRadius:18,border:`1.5px solid ${on?"#24386B":"#E5E8EB"}`,background:on?"#24386B":"#fff",color:on?"#fff":"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{c.name}{c.n?<span style={{marginLeft:4,opacity:.8}}>{c.n}</span>:null}</button>; })}
     </div>
+    <button onClick={()=>{ const w={id:"wf_"+Date.now().toString(36),cat,name:"새 흐름",unit:"건",hint:"",stages:[],createdAt:new Date().toISOString(),createdBy:cu.id}; add("workflows",w); setSetFor(w); }} style={{marginTop:6,padding:"6px 10px",borderRadius:16,border:"1.5px dashed #D3D8E6",background:"#fff",color:"#1E2F5C",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+ 흐름 추가</button>
     {cur&&<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginTop:10,padding:"9px 11px",borderRadius:12,background:"#F4F5F7"}}>
       <p style={{margin:0,flex:"1 1 200px",minWidth:0,fontSize:12,color:"#4E5968",lineHeight:1.6,wordBreak:"keep-all"}}>{cur.stages.map((s,i)=><Fragment key={s.id}>{i?" → ":""}<b style={{color:"#333D4B"}}>{s.name}</b>{s.ownerId?<span style={{color:"#1E2F5C"}}>({userName(D,s.ownerId)})</span>:null}</Fragment>)}</p>
       <button onClick={()=>setSetFor(cur)} style={{...btn,padding:"7px 11px",fontSize:12,border:"1px solid #D3D8E6",background:"#fff",color:"#1E2F5C"}}>단계·담당</button>
@@ -5529,7 +5581,7 @@ function WfNewSheet({D,cu,wfs,init,add,onClose,onAdded}){
   </Sheet>);
 }
 
-function CaseSheet({D,cu,wf,t,up,rm,onClose}){
+function CaseSheet({D,cu,wf,t,up,rm,onClose,confirmStart}){
   const users=D.users||[];
   const [delAsk,setDelAsk]=useState(false);
   const d=t.wfData||{};
@@ -5562,14 +5614,14 @@ function CaseSheet({D,cu,wf,t,up,rm,onClose}){
         <span style={lbl}>단계 체크</span>
         <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:6}}>
           {wf.stages.map((s,i)=>{ const ck=caseChecks(t)[s.id]; return(
-            <button key={s.id} onClick={()=>up("tasks",t.id,toggleCheck(wf,t,s.id,cu))} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,border:`1px solid ${ck?"rgba(0,192,115,.3)":"#EEF1F4"}`,background:ck?"rgba(232,250,241,.5)":"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+            <button key={s.id} onClick={()=>wfToggle(D,wf,t,s.id,cu,up)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,border:`1px solid ${ck?"rgba(0,192,115,.3)":"#EEF1F4"}`,background:ck?"rgba(232,250,241,.5)":"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
               <span style={{width:24,height:24,borderRadius:7,border:`2px solid ${ck?"#2F7D57":"#D1D6DB"}`,background:ck?"#2F7D57":"#fff",color:"#fff",fontWeight:900,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{ck?"✓":""}</span>
-              <span style={{flex:1,minWidth:0}}><span style={{display:"block",fontSize:13.5,fontWeight:800,color:"#191F28"}}>{i+1}. {s.name}{s.desc?<span style={{fontWeight:600,color:"#8B95A1"}}> · {s.desc}</span>:null}</span>
+              <span style={{flex:1,minWidth:0}}><span style={{display:"block",fontSize:13.5,fontWeight:800,color:"#191F28"}}>{i+1}. {s.name}{s.confirm?<span style={{marginLeft:5,fontSize:10.5,fontWeight:900,color:"#B26A12",background:"#FFF4E5",borderRadius:6,padding:"1px 6px"}}>컨펌</span>:null}{s.desc?<span style={{fontWeight:600,color:"#8B95A1"}}> · {s.desc}</span>:null}</span>
                 <span style={{display:"block",fontSize:11,color:"#8B95A1",marginTop:2}}>{ck?`✓ ${ck.byName||""} · ${String(ck.at||"").slice(5,16).replace("T"," ")}`:s.ownerId?`담당 ${userName(D,s.ownerId)}`:"담당: 이 건의 실행 담당"}</span></span>
             </button>); })}
         </div>
       </div>
-      <ThreadPanel D={D} cu={cu} up={up} itemId={taskNoteId(t.id)} itemName={`${wf.name} · ${t.title}`} kind="task" task={t}/>
+      <ThreadPanel D={D} cu={cu} up={up} itemId={taskNoteId(t.id)} itemName={`${wf.name} · ${t.title}`} kind="task" task={t} startMode={confirmStart?"confirm":undefined} defaultTo={((wf.stages||[]).find(x=>x.confirm&&!caseChecks(t)[x.id])||{}).ownerId} onApproved={async()=>{ const cur=(D.tasks||[]).find(x=>x.id===t.id)||t; const sid=caseConfirmStage(wf,cur); if(sid) await wfToggle(D,wf,cur,sid,cu,up); }}/>
       <label style={lbl}>메모<textarea defaultValue={t.memo||""} key={"m"+t.id} onBlur={e=>{ if(e.target.value!==(t.memo||"")) up("tasks",t.id,{memo:e.target.value}); }} rows={3} style={{...wfInp,width:"100%",marginTop:4,resize:"vertical"}}/></label>
       <div style={{display:"flex",gap:8,flexWrap:"wrap",paddingTop:6,borderTop:"1px solid #EEF1F4"}}>
         <button onClick={()=>up("tasks",t.id,{status:t.status==="hold"?(Object.keys(caseChecks(t)).length?"inprogress":"todo"):"hold"})} style={{padding:"9px 12px",borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",color:"#4E5968",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>{t.status==="hold"?"▶ 다시 진행":"보류"}</button>
@@ -5586,12 +5638,14 @@ function WfSettingsSheet({D,wf,add,up,onClose}){
   const [projectId,setProjectId]=useState(wf.projectId||"");
   const [roasMin,setRoasMin]=useState(wf.roasMin||300);
   const [stages,setStages]=useState(wf.stages.map(s=>({...s})));
+  const [name,setName]=useState(wf.name||""); const [cat,setCat]=useState(wf.cat||"marketing"); const [akId,setAkId]=useState(wf.akId||"");
   const [msg,setMsg]=useState("");
   const setSt=(i,patch)=>setStages(a=>a.map((s,j)=>j===i?{...s,...patch}:s));
   const move=(i,d)=>setStages(a=>{ const b=a.slice(); const j=i+d; if(j<0||j>=b.length) return a; [b[i],b[j]]=[b[j],b[i]]; return b; });
   const def=DEFAULT_WORKFLOWS.find(w=>w.id===wf.id);
   const save=()=>{ const st=stages.map(s=>({...s,name:String(s.name||"").trim()||"단계"})).filter(Boolean);
-    saveWfOverride(D,add,up,wf.id,{leadId,projectId,stages:st,...(wf.kind==="cpc"?{roasMin:numOr0(roasMin)||300}:{})}); setMsg("저장했어요"); setTimeout(onClose,500); };
+    if(akId) mergeWorkflows(D.workflows).filter(o=>o.id!==wf.id&&o.akId===akId).forEach(o=>saveWfOverride(D,add,up,o.id,{akId:""}));   // 행동지표 하나엔 흐름 하나
+    saveWfOverride(D,add,up,wf.id,{leadId,projectId,stages:st,name:name.trim()||wf.name,akId,...(def?{}:{cat}),...(wf.kind==="cpc"?{roasMin:numOr0(roasMin)||300}:{})}); setMsg("저장했어요"); setTimeout(onClose,500); };
   const lbl={display:"block",fontSize:11.5,fontWeight:700,color:"#6B7684"};
   return(<Sheet open={true} onClose={onClose} title={`${wf.icon} ${wf.name} · 단계·담당`} h="92vh" w={560}>
     <div style={{paddingTop:6,display:"flex",flexDirection:"column",gap:12}}>
@@ -5599,6 +5653,11 @@ function WfSettingsSheet({D,wf,add,up,onClose}){
         <label style={lbl}>관리 담당 (1명)<select value={leadId} onChange={e=>setLeadId(e.target.value)} style={{...wfInp,width:"100%",marginTop:4}}><option value="">미지정</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
         <label style={lbl}>연결 프로젝트<select value={projectId} onChange={e=>setProjectId(e.target.value)} style={{...wfInp,width:"100%",marginTop:4}}><option value="">없음</option>{(D.projects||[]).map(p=><option key={p.id} value={p.id}>{p.title}</option>)}</select></label>
       </div>
+      <div style={{display:"grid",gridTemplateColumns:def?"1fr":"minmax(0,1fr) minmax(0,1fr)",gap:8}}>
+        <label style={lbl}>흐름 이름<input value={name} onChange={e=>setName(e.target.value)} aria-label="흐름 이름" style={{...wfInp,width:"100%",marginTop:4}}/></label>
+        {!def&&<label style={lbl}>보일 곳<select value={cat} onChange={e=>setCat(e.target.value)} aria-label="보일 곳" style={{...wfInp,width:"100%",marginTop:4}}>{WF_CATS.filter(c=>c.k!=="launch").map(c=><option key={c.k} value={c.k}>{c.name}</option>)}</select></label>}
+      </div>
+      <label style={lbl}>다 끝나면 +1 할 행동지표 <span style={{fontWeight:500,color:"#8B95A1"}}>(선택 · 고르면 오늘 그 행동지표 줄에서 '+ 시작'으로 바로 시작)</span><select value={akId} onChange={e=>setAkId(e.target.value)} aria-label="연결 행동지표" style={{...wfInp,width:"100%",marginTop:4}}><option value="">연결 안 함</option>{(D.actionKPIs||[]).filter(a=>a.active!==false).map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
       {wf.kind==="cpc"&&<label style={lbl}>ROAS 기준(%) — 이보다 낮으면 빨간불<input inputMode="numeric" value={roasMin} onChange={e=>setRoasMin(e.target.value)} style={{...wfInp,width:"100%",marginTop:4}}/></label>}
       <div>
         <span style={lbl}>단계 · 실행 담당 <span style={{fontWeight:500,color:"#8B95A1"}}>(비워두면 건마다 정한 담당이 해요)</span></span>
@@ -5608,6 +5667,7 @@ function WfSettingsSheet({D,wf,add,up,onClose}){
             <input value={s.name} onChange={e=>setSt(i,{name:e.target.value})} aria-label="단계 이름" style={{...wfInp,flex:"1 1 130px",padding:"8px 10px",fontSize:13.5}}/>
             <select value={s.ownerId||""} onChange={e=>setSt(i,{ownerId:e.target.value})} aria-label="단계 담당" style={{...wfInp,flex:"0 1 120px",padding:"8px 8px",fontSize:13}}><option value="">건 담당</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
             <span style={{display:"flex",gap:2}}>
+              <button onClick={()=>setSt(i,{confirm:!s.confirm})} aria-pressed={!!s.confirm} title="컨펌 단계 — 컨펌 요청이 승인되면 자동 체크" style={{height:30,padding:"0 9px",borderRadius:8,border:`1.5px solid ${s.confirm?"#B26A12":"#E5E8EB"}`,background:s.confirm?"#FFF4E5":"#fff",color:s.confirm?"#B26A12":"#6B7684",fontWeight:800,fontSize:11.5,cursor:"pointer",fontFamily:"inherit"}}>컨펌</button>
               <button onClick={()=>move(i,-1)} aria-label="위로" style={{width:30,height:30,borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",cursor:"pointer"}}>↑</button>
               <button onClick={()=>move(i,1)} aria-label="아래로" style={{width:30,height:30,borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",cursor:"pointer"}}>↓</button>
               <button onClick={()=>setStages(a=>a.filter((_,j)=>j!==i))} aria-label="단계 빼기" style={{width:30,height:30,borderRadius:8,border:"1px solid #EACFD1",background:"#F8EDEE",color:"#B4383F",cursor:"pointer"}}>✕</button>
@@ -5615,7 +5675,7 @@ function WfSettingsSheet({D,wf,add,up,onClose}){
           </div>)}
         </div>
         <button onClick={()=>setStages(a=>[...a,{id:"s"+Date.now().toString(36),name:"새 단계"}])} style={{marginTop:8,padding:"9px 12px",borderRadius:10,border:"1.5px dashed #D3D8E6",background:"#EEF0F5",color:"#1E2F5C",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>＋ 단계 추가</button>
-        <p style={{margin:"6px 2px 0",fontSize:11,color:"#8B95A1"}}>단계를 빼도 이미 체크한 기록은 지워지지 않아요.</p>
+        <p style={{margin:"6px 2px 0",fontSize:11,color:"#8B95A1"}}>단계를 빼도 이미 체크한 기록은 지워지지 않아요 · '컨펌' 단계는 그 건의 컨펌 요청이 승인되면 자동 체크</p>
       </div>
       <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
         {def&&<button onClick={()=>setStages(def.stages.map(s=>({...s})))} style={{padding:"11px 14px",borderRadius:12,border:"1px solid #E5E8EB",background:"#fff",color:"#6B7684",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>기본 단계로</button>}

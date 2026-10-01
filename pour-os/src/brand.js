@@ -42,22 +42,28 @@ export function taskBrand(t, D) {
   return brandKey(t && t.brand, D.brands) || COMMON;   // 고정업무·프로젝트 없는 업무 = 공통
 }
 export const akBrandOf = (it, brands) => brandKey(it && it.brand, brands) || DEF;
-const inB = (k, b) => k === b || k === COMMON;
 
 // 화면용 보기 — 고른 브랜드 + 공통만. "all" 이면 그대로. (저장 데이터는 건드리지 않는다)
-export function brandView(D, b) {
-  if (!b || b === "all") return { ...D, _brand: "all" };
-  const goals = (D.goals || []).filter((g) => goalBrand(g, D.brands) === b);
+// 고른 브랜드 — "all" | "pourstore" | "pourstore,grohome"(여러 개) | 배열 → 키 배열(비면 전체)
+export const brandSel = (v) => (v == null || v === "" || v === "all") ? [] : (Array.isArray(v) ? v : String(v).split(",")).map((x) => String(x).trim()).filter((x) => x && x !== "all");
+// def: 여러 브랜드를 볼 때 새로 만들면 들어갈 브랜드(고른 것 중 하나, 없으면 첫 번째)
+export function brandView(D, b, def) {
+  const sel = [...new Set(brandSel(b))];
+  if (!sel.length) return { ...D, _brand: "all", _brands: [] };
+  const S = new Set(sel); const inS = (k) => S.has(k) || k === COMMON;
+  const goals = (D.goals || []).filter((g) => S.has(goalBrand(g, D.brands)));
   const gIds = new Set(goals.map((g) => g.id));
-  const mainKPIs = (D.mainKPIs || []).filter((m) => gIds.has(m.goalId) || (!m.goalId && b === DEF));
+  const mainKPIs = (D.mainKPIs || []).filter((m) => gIds.has(m.goalId) || (!m.goalId && S.has(DEF)));
   const mkIds = new Set(mainKPIs.map((m) => m.id));
   const subKPIs = (D.subKPIs || []).filter((s) => mkIds.has(s.mainKPIId));
-  const projects = (D.projects || []).filter((p) => inB(projBrand(p, D), b));
-  const tasks = (D.tasks || []).filter((t) => inB(taskBrand(t, D), b));
-  const actionKPIs = (D.actionKPIs || []).filter((x) => inB(akBrandOf(x, D.brands), b));
-  const lagKPIs = (D.lagKPIs || []).filter((x) => inB(akBrandOf(x, D.brands), b));
-  return { ...D, goals, mainKPIs, subKPIs, projects, tasks, actionKPIs, lagKPIs, _brand: b };
+  const projects = (D.projects || []).filter((p) => inS(projBrand(p, D)));
+  const tasks = (D.tasks || []).filter((t) => inS(taskBrand(t, D)));
+  const actionKPIs = (D.actionKPIs || []).filter((x) => inS(akBrandOf(x, D.brands)));
+  const lagKPIs = (D.lagKPIs || []).filter((x) => inS(akBrandOf(x, D.brands)));
+  return { ...D, goals, mainKPIs, subKPIs, projects, tasks, actionKPIs, lagKPIs, _brand: S.has(def) ? def : sel[0], _brands: sel };
 }
+// 브랜드 칸 누르기 — 켜고 끄기. 다 끄면 전체
+export function toggleBrand(cur, id) { const s = brandSel(cur); if (id === "all") return "all"; const n = s.includes(id) ? s.filter((x) => x !== id) : [...s, id]; return n.length ? n.join(",") : "all"; }
 export const brandCounts = (D, b) => { const v = brandView(D, b); return { goals: v.goals.length, projects: v.projects.length, actionKPIs: v.actionKPIs.length }; };
 
 // ── 그로홈 — 그로홈 대시보드 'KPI 목표 설정(2026)' 6채널(합계 10억) + KPI 체크리스트 엑셀 '그로홈' 시트 ──

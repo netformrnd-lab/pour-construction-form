@@ -6,7 +6,7 @@ import { RESEARCH_COL, researchUrl, researchTodo, researchTask, KIND_LABEL } fro
 import { ML_PURPOSES, mlDest, normUrl, mlMakeDoc, mlReady, mlAutoLabel, recentCombos, mergeLinks, trackUrl, isTrackUrl, trackId, genLinkId, LINK_COL } from "./linkMaker.js";
 import { noteThreads, noteCounts, linkParts, buildUtm, readUtm, pickFiles, pastedName, fileSize, isImage, UTM_SOURCES, UTM_MEDIUMS, taskNoteId, projNoteId, confirmLatest, nextRound, confirmQueue, newNotesFor } from "./akNotes.js";
 import { AK_SEED, LAG_SEED, AK_FUNS, AK_CYC, akYmd, akWeekKey, akAddDays, akQidOfWeek, akQidOfMonth, akYm, akWeeksIn, akQuarterWeeks, akMonthOfWeek, akVal, akWeekDone, akTotal, akPeriodEnd, akGoalText, akStep, akWho, akOrder, akStart, akCountable, akFullWeek, akPartial, akLink, lagCur, lagPct, isMaster, can, roleLabel, PERMS, pinHash, PIN_TRY_MAX, PIN_LOCK_MIN, akRetroDay, akRetroDue } from "./actionKpi.js";
-import { fixBrandDup, COMMON, BRAND_SEED, brandKey, brandName, brandView, akBrandOf, mkBrand, projBrand, seedMissing, fixGhSubs, withAutoSales, salesByCh, salesChOf, execGroups, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, SALES_CH_DEFAULT } from "./brand.js";
+import { fixBrandDup, COMMON, BRAND_SEED, brandKey, brandName, brandView, brandSel, toggleBrand, taskBrand, akBrandOf, mkBrand, projBrand, seedMissing, fixGhSubs, withAutoSales, salesByCh, salesChOf, execGroups, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, SALES_CH_DEFAULT } from "./brand.js";
 import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGetSnapshot } from "./durable.js";
 import { numF, skCur, mkCur, calcSegDone } from "./kpi.js";
 import { applyAutomation, instantiateLaunch } from "./launch.js";
@@ -22,7 +22,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-차수정리";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-브랜드여러개";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -979,6 +979,8 @@ export default function App(){
   // 브랜드 보기(이 기기에만 기억) — 전체 | pourstore | grohome …
   const [brandF,setBrandFS]=useState(()=>{ try{ return localStorage.getItem("pour-os-brand")||"all"; }catch(_){ return "all"; } });
   const setBrandF=(b)=>{ setBrandFS(b); try{ localStorage.setItem("pour-os-brand",b); }catch(_){} };
+  const [brandNew,setBrandNewS]=useState(()=>{ try{ return localStorage.getItem("pour-os-brand-new")||""; }catch(_){ return ""; } });   // 여러 브랜드를 볼 때 새로 만들면 들어갈 브랜드
+  const setBrandNew=(b)=>{ setBrandNewS(b); try{ localStorage.setItem("pour-os-brand-new",b); }catch(_){} };
   // 로드 직후 1회: 막 불러온 정상 상태를 IndexedDB 거울+스냅샷으로 즉시 보관(대용량 영구 보관 시작점)
   useEffect(()=>{ if(!loaded||idbInitRef.current) return; idbInitRef.current=true; const sh=pickShared(D); idbSaveMirror(sh).catch(()=>{}); idbPushSnapshot(sh).then(()=>{lastSnapRef.current=Date.now();}).catch(()=>{}); },[loaded,D]);
   // 어드민(상위 프레임)에 임베드된 경우: 활동 담당자 수신 → currentUser 자동 선택
@@ -1265,11 +1267,11 @@ export default function App(){
   //  + 마진대시보드 매출 자동 연결(서브KPI 현재값) — 저장값은 그대로, 화면에서만
   const DV=withAutoSales({...D,users:(D.users||[]).map(u=>u&&u.color?{...u,color:toneC(u.color)}:u),eventTypes:(D.eventTypes||[]).map(t=>t?{...t,color:toneC(t.color),bg:toneC(t.bg)}:t),_roll:salesRoll},salesRoll);
   // 브랜드 보기 — 오늘·KPI·반복 실행·프로젝트만. 고른 브랜드 + 공통. 새로 만드는 프로젝트·업무·행동지표엔 그 브랜드를 붙여준다
-  const brandOk=brandF==="all"||(D.brands||[]).some(b=>b.id===brandF);
-  const DB=brandView(DV,brandOk?brandF:"all");
+  const brandOkSel=brandSel(brandF).filter(id=>(D.brands||[]).some(b=>b.id===id));   // 지워진 브랜드는 빼고
+  const DB=brandView(DV,brandOkSel.length?brandOkSel:"all",brandNew);
   const BRANDED_COLS=["projects","tasks","actionKPIs","lagKPIs","goals"];
   const addB=(k,item)=>add(k,(DB._brand!=="all"&&BRANDED_COLS.includes(k)&&item&&!item.brand&&!(k==="tasks"&&item.projectId))?{...item,brand:DB._brand}:item);
-  const brandBar=!SHARE&&["today","kpi","projects","routine","fixed"].includes(page)&&<BrandBar D={D} cu={cu} value={DB._brand} onChange={setBrandF} add={add} up={up}/>;
+  const brandBar=!SHARE&&["today","kpi","projects","routine","fixed"].includes(page)&&<BrandBar D={D} cu={cu} value={DB._brands} def={DB._brand} onChange={(id)=>setBrandF(toggleBrand(DB._brands,id))} onDef={setBrandNew} add={add} up={up}/>;
   const cuV=DV.users.find(u=>u.id===(cu&&cu.id))||cu;
   const pageContent=(<>
     {!SHARE&&isMaster(cu)&&!cu.pinHash&&!pinNag&&<div style={{margin:"10px 16px 0",padding:"10px 12px",borderRadius:12,background:"#E7EAF4",border:"1px solid #C3CCEB",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -1459,7 +1461,7 @@ export default function App(){
             <div style={{width:26,height:26,borderRadius:7,background:"#1B2438",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"white",fontWeight:800}}>커</div>
             <div>
               <h1 style={{margin:0,fontSize:15,fontWeight:900,color:"#191F28",lineHeight:1}}>{pi?.label}</h1>
-              <p style={{margin:0,fontSize:10,color:"#8B95A1",fontWeight:600}}>{["today","kpi","projects","routine","fixed"].includes(page)&&DB._brand!=="all"?brandName(DB._brand,D.brands):"커머스본부 업무OS"}</p>
+              <p style={{margin:0,fontSize:10,color:"#8B95A1",fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"42vw"}}>{["today","kpi","projects","routine","fixed"].includes(page)&&DB._brand!=="all"?DB._brands.map(k=>brandName(k,D.brands)).join(" · "):"커머스본부 업무OS"}</p>
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -1940,7 +1942,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           {t.status==="done"&&<span style={{color:"#FFFFFF",fontSize:12,fontWeight:900}}>✓</span>}
         </button>
         <div style={{flex:1,minWidth:0}}>
-          <p style={{margin:0,fontSize:13.5,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#111827",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.eventId?"":""}{t.title}</p>
+          <p style={{margin:0,fontSize:13.5,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#111827",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><BrandTag D={D} k={taskBrand(t,D)}/>{t.title}</p>
           {proj&&<div style={{marginTop:3}}><ProjChip p={proj} max={22}/></div>}
           {(()=>{const chain=taskParentChain(D,t);const ru=taskRollup(D,t.id);const pathTxt=[...chain.map(c=>c.title)].filter(Boolean).join(" ▸ ");return (chain.length>0||ru.total>0||(t.status==="done"&&t.doneAt))?(<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.status==="done"&&t.doneAt?<span style={{color:"#2F7D57",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료{(pathTxt||ru.total)?" · ":""}</span>:null}{pathTxt}{ru.total>0?<button onClick={()=>setExpandedCards(e=>({...e,[t.id]:!e[t.id]}))} style={{marginLeft:pathTxt?6:0,fontWeight:800,color:ru.done>=ru.total?"#2F7D57":"#5E5A8C",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",fontSize:10.5}}>{pathTxt?"· ":""}하위 {ru.done}/{ru.total} {expandedCards[t.id]?"▾":"▸"}</button>:null}</p>):null;})()}
           {(()=>{const ms=taskTimeSpent(t);const sa=inprogressStartAt(t);if(!ms&&!sa)return null;const live=t.status==="inprogress";return(<p style={{margin:"2px 0 0",fontSize:10.5,fontWeight:800,color:live?"#24386B":"#2F7D57"}}>{ms>0?`${live?"진행 ":"총 "}${fmtDur(ms)}`:""}{sa&&live?`${ms>0?" · ":""}시작 ${fmtStart(sa)}`:""}</p>);})()}
@@ -2130,7 +2132,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                 <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",borderRadius:12,backgroundColor:"#EEF0F5",border:"1px solid #D3D8E6"}}>
                   <span style={{flexShrink:0,fontSize:9.5,fontWeight:900,color:"#1E2F5C",background:"#E3E7F0",borderRadius:6,padding:"2px 6px"}}>{t.weekDay}</span>
                   <div style={{flex:1,minWidth:0}}>
-                    <p style={{margin:0,fontSize:13,fontWeight:700,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</p>
+                    <p style={{margin:0,fontSize:13,fontWeight:700,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><BrandTag D={D} k={taskBrand(t,D)}/>{t.title}</p>
                     {proj&&<div style={{marginTop:3}}><ProjChip p={proj} max={20}/></div>}
                   </div>
                   <button onClick={()=>bringToday(t)} style={{flexShrink:0,padding:"6px 9px",borderRadius:8,border:"none",background:"#24386B",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>오늘로</button>
@@ -2306,7 +2308,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                   <div key={t.id} style={{padding:"11px 12px",borderRadius:12,backgroundColor:placed?"#F9FAFB":"#EEF0F5",border:`1px solid ${placed?"#EEF1F4":"#D3D8E6"}`}}>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
                       <div style={{flex:1,minWidth:0}}>
-                        <p style={{margin:0,fontSize:13.5,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#111827",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.eventId?"":""}{t.title}</p>
+                        <p style={{margin:0,fontSize:13.5,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#111827",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><BrandTag D={D} k={taskBrand(t,D)}/>{t.title}</p>
                         <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
                           <span style={{fontSize:9.5,fontWeight:800,color:st.color,background:st.bg,borderRadius:5,padding:"1px 6px"}}>{st.label}</span>
                           <span style={{fontSize:10.5,color:placed?"#6B7280":"#1E2F5C",fontWeight:placed?600:700}}>{placed?`${t.weekDay}요일${t.weekSlot?` ${t.weekSlot}순위`:""}`:"미배치"}</span>
@@ -3594,7 +3596,7 @@ function AkTodayCard({D,cu,nav,add,up,rm}){
   const line=(r)=>{ const it=r.it; const pct=r.g?Math.min(100,r.n/r.g*100):0;
     return <Fragment key={it.id}><div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderTop:"1px solid #F2F4F6"}}>
       <div style={{flex:1,minWidth:0}}>
-        <p style={{margin:0,fontSize:13,fontWeight:700,color:r.done?"#8B95A1":"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.done?"✓ ":""}{it.name}</p>
+        <p style={{margin:0,fontSize:13,fontWeight:700,color:r.done?"#8B95A1":"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.done?"✓ ":""}<BrandTag D={D} k={akBrandOf(it,D.brands)}/>{it.name}</p>
         <div style={{display:"flex",alignItems:"center",gap:6,rowGap:4,marginTop:4,flexWrap:"wrap"}}>
           <div style={{flex:"0 0 48px",height:5,background:"#EDEDEA",borderRadius:3,overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:r.done?"#1F7A4D":"#0F1F5C"}}/></div>
           <span style={{fontSize:12,fontWeight:800,color:r.done?"#1F7A4D":"#16181D",fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap"}}>{r.txt}</span>
@@ -3769,7 +3771,11 @@ function PinSheet({ask,onClose,onVerified,onSet}){
 }
 
 // ── 브랜드 선택줄 — 오늘·KPI·반복 실행·프로젝트 위. 전체 | POUR스토어 | 그로홈 … (이 기기에만 기억) · 마스터는 브랜드 추가 ──
-function BrandBar({D,cu,value,onChange,add,up}){
+// 브랜드를 여러 개 함께 볼 때만 줄 앞에 작은 브랜드 표시 (공통은 표시 안 함)
+const BRAND_TAG_TONE=[["#E3E7F0","#1E2F5C"],["#E4EEE8","#2F6B45"],["#F3ECE1","#7A4A12"],["#ECE9F3","#4F477A"]];
+function BrandTag({D,k}){ const bs=(D&&D._brands)||[]; if(bs.length<2||!k||k===COMMON) return null; const i=bs.indexOf(k); const [bg,c]=BRAND_TAG_TONE[(i<0?bs.length:i)%BRAND_TAG_TONE.length];
+  return <span style={{display:"inline-block",marginRight:5,padding:"1px 6px",borderRadius:5,fontSize:10.5,fontWeight:800,lineHeight:1.5,verticalAlign:"1px",background:bg,color:c,whiteSpace:"nowrap",textDecoration:"none"}}>{brandName(k,D.brands)}</span>; }
+function BrandBar({D,cu,value=[],def,onChange,onDef,add,up}){
   const list=((D.brands&&D.brands.length)?D.brands:BRAND_SEED).filter(b=>b.active!==false).sort((a,b)=>(a.order||0)-(b.order||0));
   const [adding,setAdding]=useState(false); const [nm,setNm]=useState("");
   const master=isMaster(cu);
@@ -3778,9 +3784,12 @@ function BrandBar({D,cu,value,onChange,add,up}){
   const btn=(on)=>({padding:"6px 12px",borderRadius:7,border:"none",background:on?"#24386B":"transparent",color:on?"#fff":"#4A4E57",fontSize:12.5,fontWeight:on?800:600,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",flexShrink:0});
   return(<div className="brandbar" style={{margin:"10px 16px 0",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
     <div role="group" aria-label="브랜드" style={{display:"flex",gap:2,background:"#E9EBEF",borderRadius:9,padding:3,maxWidth:"100%",overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
-      {[{id:"all",name:"전체"},...list].map(b=><button key={b.id} aria-pressed={value===b.id} onClick={()=>onChange(b.id)} style={btn(value===b.id)}>{b.name}{b.status==="prep"?<span style={{fontSize:10.5,fontWeight:700,opacity:.75}}> · 준비중</span>:null}</button>)}
+      {[{id:"all",name:"전체"},...list].map(b=>{ const on=b.id==="all"?!value.length:value.includes(b.id); return <button key={b.id} aria-pressed={on} onClick={()=>onChange(b.id)} style={btn(on)}>{on&&value.length>1?"✓ ":""}{b.name}{b.status==="prep"?<span style={{fontSize:10.5,fontWeight:700,opacity:.75}}> · 준비중</span>:null}</button>; })}
     </div>
-    {value!=="all"&&<span style={{fontSize:11.5,color:"#6B7280",fontWeight:600}}>{brandName(value,list)} + 공통 업무만 보는 중</span>}
+    {value.length>0&&<span style={{fontSize:11.5,color:"#6B7280",fontWeight:600}}>{value.map(k=>brandName(k,list)).join(" · ")} + 공통 업무{value.length>1?"를 함께 보는 중":"만 보는 중"}{value.length===1?<span style={{color:"#8B95A1",fontWeight:500}}> · 다른 브랜드를 눌러 함께 보기</span>:null}</span>}
+    {value.length>1&&<span style={{display:"flex",alignItems:"center",gap:4,flexBasis:"100%",flexWrap:"wrap"}}><span style={{fontSize:11.5,color:"#6B7280",fontWeight:700}}>새로 만들면</span>
+      {value.map(k=><button key={k} aria-pressed={def===k} onClick={()=>onDef(k)} style={{padding:"4px 9px",borderRadius:12,border:`1.5px solid ${def===k?"#24386B":"#D5D9E0"}`,background:def===k?"#EEF0F5":"#fff",color:def===k?"#1E2F5C":"#6B7280",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{brandName(k,list)}</button>)}
+      <span style={{fontSize:11.5,color:"#6B7280",fontWeight:700}}>브랜드로 저장</span></span>}
     {master&&!adding&&<button onClick={()=>setAdding(true)} style={{marginLeft:"auto",padding:"5px 10px",borderRadius:7,border:"1px solid #D5D9E0",background:"#fff",color:"#4A4E57",fontSize:11.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>브랜드 추가</button>}
     {adding&&<span style={{display:"flex",gap:6,alignItems:"center",flex:"1 1 220px"}}><input value={nm} onChange={e=>setNm(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter") save(); if(e.key==="Escape") setAdding(false); }} autoFocus placeholder="새 브랜드 이름" aria-label="새 브랜드 이름" style={{flex:1,minWidth:0,padding:"7px 10px",borderRadius:8,border:"1.5px solid #D5D9E0",fontSize:13,fontFamily:"inherit"}}/>
       <button onClick={save} disabled={!nm.trim()} style={{padding:"7px 12px",borderRadius:8,border:"none",background:nm.trim()?"#24386B":"#D1D6DB",color:"#fff",fontSize:12,fontWeight:800,cursor:nm.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>추가</button>
@@ -3987,7 +3996,7 @@ function KPIPage({D,Dall,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBack
     });
     return Object.values(m);
   };
-  const prepBrand=D._brand&&D._brand!=="all"?((D.brands||[]).find(b=>b.id===D._brand&&b.status==="prep")):null;
+  const prepBrand=D._brand&&D._brand!=="all"&&(D._brands||[]).length<=1?((D.brands||[]).find(b=>b.id===D._brand&&b.status==="prep")):null;
   if(prepBrand) return(<div style={{padding:"16px"}}><div style={{background:"#fff",borderRadius:16,border:"1px solid #E3E5EA",padding:"18px 16px"}}>
     <p style={{margin:0,fontSize:16,fontWeight:900,color:"#191F28"}}>{prepBrand.name} · 런칭 준비 중</p>
     <p style={{margin:"6px 0 0",fontSize:13,color:"#4E5968",lineHeight:1.7}}>KPI(목표·행동지표·결과 KPI)는 아직 설정 전이에요. 업무·프로젝트·워크플로우·신제품(런칭보드)은 지금 바로 관리할 수 있어요.<br/>KPI 를 정할 때가 되면 마스터가 이 브랜드를 고른 상태에서 목표부터 추가하면 돼요.</p>
@@ -5162,7 +5171,7 @@ function ProjCard({D,p,ts,sig,cat,nx,uname,onOpen}){
   const nameOf=(c)=>c.label!=null?c.label:(c.uid?((n)=>n.length===3?n.slice(1):n)(uname(c.uid)||"?"):"담당 없음");
   return(<div role="button" tabIndex={0} onClick={()=>onOpen()} onKeyDown={e=>e.key==="Enter"&&onOpen()} style={{textAlign:"left",background:"#fff",borderRadius:16,padding:"12px 13px",cursor:"pointer",border:"1px solid #E8EBEF",borderLeft:`4px solid ${pc}`}}>
     <div style={{display:"flex",alignItems:"baseline",gap:6}}>
-      <b style={{flex:1,minWidth:0,fontSize:15,color:"#191F28",lineHeight:1.35,wordBreak:"keep-all"}}>{p.title}</b>
+      <b style={{flex:1,minWidth:0,fontSize:15,color:"#191F28",lineHeight:1.35,wordBreak:"keep-all"}}><BrandTag D={D} k={projBrand(p,D)}/>{p.title}</b>
       {p.dueDate&&sig.k!=="alldone"&&<span style={{flexShrink:0,fontSize:12,fontWeight:900,color:rem!=null&&rem<0?"#B4383F":rem!=null&&rem<=3?"#B26A12":"#1E2F5C"}}>{ddayKo(rem)}</span>}
       <span style={{flexShrink:0,fontSize:14.5,fontWeight:900,color:sig.k==="alldone"?"#2F7D57":"#1E2F5C",fontVariantNumeric:"tabular-nums"}}>{Math.round(sig.prog*100)}%</span>
     </div>

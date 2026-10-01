@@ -1,5 +1,5 @@
 // 브랜드·그로홈·매출 자동 연결·실행 현황 테스트 — node src/brand.test.mjs
-import { fixGhSubs, fixBrandDup, brandKey, brandView, projBrand, taskBrand, seedMissing, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, BRAND_SEED,
+import { fixGhSubs, fixBrandDup, brandKey, brandView, toggleBrand, brandSel, projBrand, taskBrand, seedMissing, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, BRAND_SEED,
   salesSum, salesByCh, withAutoSales, rollupRows, akRateOf, projRateOf, execGroups, salesChOf } from "./brand.js";
 import { AK_SEED, LAG_SEED, akLink } from "./actionKpi.js";
 import { mkCur } from "./kpi.js";
@@ -97,5 +97,16 @@ eq("연결 없는 메인KPI는 '-'", [gm("ghk2").ak.pct, gm("ghk2").pj.pct, gm("
   eq("그 브랜드로 된 기록은 사람 브랜드로", f.projects.map(p=>p.brand), ["bmine","grohome"]);
   eq("사람 브랜드 없으면 손대지 않음", fixBrandDup({brands:[{id:"barasday",name:"바라스데이"}]}), null);
   eq("정리 뒤 다시 돌리면 아무것도 안 함", fixBrandDup({...D0,brands:f.brands}), null); }
+
+
+// 브랜드 여러 개 함께 보기
+{ const D0={brands:[{id:"pourstore",name:"POUR스토어"},{id:"grohome",name:"그로홈"},{id:"bmine",name:"바라스데이"}],
+    projects:[{id:"p1",brand:"pourstore"},{id:"p2",brand:"grohome"},{id:"p3",brand:"bmine"}],tasks:[{id:"t1",projectId:"p1"},{id:"t2"},{id:"t3",projectId:"p3"}],
+    actionKPIs:[{id:"a1",brand:"pourstore"},{id:"a2",brand:"grohome"},{id:"a3",brand:"bmine"}],goals:[],mainKPIs:[],subKPIs:[],lagKPIs:[]};
+  const v=brandView(D0,"pourstore,grohome");
+  eq("두 브랜드 + 공통만", [v.projects.map(p=>p.id),v.tasks.map(t=>t.id),v.actionKPIs.map(a=>a.id)], [["p1","p2"],["t1","t2"],["a1","a2"]]);
+  eq("새로 만들 브랜드: 고른 기본값 → 없으면 첫 번째", [brandView(D0,"pourstore,grohome","grohome")._brand, v._brand, brandView(D0,"pourstore,grohome","bmine")._brand], ["grohome","pourstore","pourstore"]);
+  eq("한 개·전체는 예전과 같음", [brandView(D0,"grohome").projects.map(p=>p.id), brandView(D0,"all")._brand, brandView(D0,"all").projects.length], [["p2"],"all",3]);
+  eq("켜고 끄기 · 다 끄면 전체", [toggleBrand("all","grohome"),toggleBrand("grohome","pourstore"),toggleBrand("grohome,pourstore","grohome"),toggleBrand("pourstore","pourstore"),toggleBrand("grohome","all")], ["grohome","grohome,pourstore","pourstore","all","all"]); }
 
 console.log(`\n${fail ? "❌" : "✅"} ${pass} 통과 · ${fail} 실패`); if (fail) process.exit(1);

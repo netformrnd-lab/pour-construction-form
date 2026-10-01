@@ -283,8 +283,20 @@
   .ck-add{padding:0 14px 10px calc(14px + 96px + 10px + 170px + 10px)}
   .ck-add button{font-size:12.5px;font-weight:800;color:var(--blue);padding:6px 8px;border-radius:8px}
   .ck-add button:hover{background:var(--blue-l)}
+  .ck-add.phase-add{padding:4px 14px 14px calc(14px + 96px + 10px + 170px + 10px)}
+  .ck-add.phase-add button{color:var(--muted);border:1px dashed #CBD5E1}
+  .ck-add.phase-add button:hover{color:var(--blue);border-color:var(--blue);background:var(--blue-l)}
+  /* 드래그 핸들 + 순서변경 */
+  .ck-grip{flex-shrink:0;cursor:grab;color:#C3C9D4;font-size:15px;line-height:1;padding:2px 2px;border-radius:6px;touch-action:none;user-select:none}
+  .ck-grip:hover{color:var(--blue);background:var(--blue-l)}
+  .ck-grip:active{cursor:grabbing}
+  .ck-step.dragging{opacity:.5;background:var(--blue-l)}
+  .ck-step.drop-before{box-shadow:inset 0 3px 0 0 var(--blue)}
+  .ck-step.drop-after{box-shadow:inset 0 -3px 0 0 var(--blue)}
+  .skip-btn.sdel{color:#B91C1C}
+  .skip-btn.sdel:hover{background:#FEE2E2}
   .ck-row.flash{background:#FFFBEB}
-  .ck-box{display:flex;align-items:center}
+  .ck-box{display:flex;align-items:center;gap:3px}
   .cf-btn{width:100%;height:36px;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;font-size:12.5px;font-weight:800;color:var(--ink2);white-space:nowrap}
   .cf-btn:not(.on):hover:not([disabled]){border-color:var(--green);color:var(--green)}
   .cf-btn.on:hover{background:#047857;border-color:#047857}
@@ -467,6 +479,7 @@
     .ck-row.sub{grid-template-columns:minmax(0,1fr) 34px;grid-template-areas:"todo name" "meta meta";padding-top:0}
     .ck-row.sub .ck-name{grid-area:name;justify-content:center;padding-top:4px}
     .ck-add{padding:0 12px 10px 12px}
+    .ck-add.phase-add{padding:2px 12px 12px 12px}
   }
   .card .body,.card .foot{display:contents}
 </style>
@@ -518,6 +531,7 @@ firebase.initializeApp({
 });
 const db = firebase.firestore();
 const COL = 'pour-os/launch-board/products';
+const STRUCT_ID = '__structure__';   // 단계 구조(추가·순서) 저장 문서 (제품 목록에서는 제외)
 const FV = firebase.firestore.FieldValue;
 
 // ── 브랜드 (카드 색) ──
@@ -535,14 +549,16 @@ function brandMark(b){
 }
 
 // ── 업무 단계 (01~11) · 기본 담당 ──
-const PHASES = [
+// 기본값(코드) = BASE_*. 사용자가 추가/순서변경한 내용은 Firestore '__structure__' 문서에 저장되어
+// rebuildStructure()에서 기본값과 병합 → 실제 사용되는 PHASES/STEPS/STEP_BY 생성.
+const BASE_PHASES = [
   { k:'P1', name:'기획',           who:'기획1팀 · BM',              color:'#2563EB', light:'#EFF6FF', steps:['p01','p02','p03','p04','s01','s02'] },
   { k:'P2', name:'패키지 디자인',   who:'디자이너 · 민지',            color:'#DB2777', light:'#FDF2F8', steps:['d01','s03','d02','s04','d03','s05'] },
   { k:'P3', name:'상세페이지 기획', who:'기획1팀 · BM',              color:'#7C3AED', light:'#F5F3FF', steps:['s06'] },
   { k:'P4', name:'촬영 · 제작',     who:'1팀 · 채림 · BM · 외주',     color:'#0891B2', light:'#ECFEFF', steps:['s07','s08','s09','s10'] },
   { k:'P5', name:'최종 검수 · 등록', who:'본부장 · 커머스운영',        color:'#059669', light:'#ECFDF5', steps:['s11','s12'] },
 ];
-const STEPS = [
+const BASE_STEPS = [
   // 기획 6단계 (s01·s02는 기존 데이터 id 유지: s01=샘플 수령, s02=판매전략기획(구 '기획'))
   { id:'p01', name:'시장조사',           in:'카테고리·타깃 아이디어',        out:'시장·경쟁사 조사 요약' },
   { id:'p02', name:'제품선정',           in:'시장조사 결과',                 out:'출시할 제품 확정' },
@@ -565,7 +581,44 @@ const STEPS = [
   { id:'s11', name:'최종 검수',          in:'상세페이지 · 섬네일 완성본',    out:'본부장 최종 확인 완료' },
   { id:'s12', name:'판매채널 상품등록',   in:'최종 확인된 상세페이지 · 섬네일', out:'판매 채널 상품 등록 완료 = 디자인 완료' },
 ];
-const STEP_BY = Object.fromEntries(STEPS.map((s,i)=>[s.id,{...s,no:String(i+1).padStart(2,'0'),phase:PHASES.find(p=>p.steps.includes(s.id))}]));
+// 사용자 편집 구조: order = { 영역키(P1..): [단계id 순서] }, custom = { 단계id: {name,in,out} }
+let structure = { order:{}, custom:{} };
+let PHASES = [], STEPS = [], STEP_BY = {};
+function rebuildStructure(){
+  const custom = (structure && structure.custom) || {};
+  // 1) 전체 단계 = 기본 + 사용자가 추가한 커스텀
+  STEPS = BASE_STEPS.concat(Object.keys(custom).map(id => ({
+    id, name: custom[id].name || '새 단계', in: custom[id].in || '', out: custom[id].out || '', custom:true
+  })));
+  const known = new Set(STEPS.map(s=>s.id));
+  const order = (structure && structure.order) || {};
+  const placed = new Set();
+  // 2) 영역별 단계 배치: 저장된 순서 있으면 그걸로, 없으면 기본
+  PHASES = BASE_PHASES.map(ph => {
+    let ids = Array.isArray(order[ph.k]) ? order[ph.k].slice() : ph.steps.slice();
+    ids = ids.filter(id => known.has(id) && !placed.has(id));
+    ids.forEach(id => placed.add(id));
+    return { ...ph, steps: ids };
+  });
+  // 3) 혹시 순서정보에서 빠진 기본 단계는 원래 영역 끝에 복구 (데이터 유실 방지)
+  BASE_STEPS.forEach(s => {
+    if (placed.has(s.id)) return;
+    const home = BASE_PHASES.find(p => p.steps.includes(s.id)) || BASE_PHASES[0];
+    (PHASES.find(p => p.k === home.k) || PHASES[0]).steps.push(s.id); placed.add(s.id);
+  });
+  // 4) 배치 안 된 커스텀 단계는 마지막 영역 끝에
+  STEPS.forEach(s => { if (!placed.has(s.id)) { PHASES[PHASES.length-1].steps.push(s.id); placed.add(s.id); } });
+  // 5) 번호(01..)·영역 매핑 재계산
+  const flat = PHASES.flatMap(p => p.steps);
+  STEP_BY = {};
+  flat.forEach((id,i) => {
+    const s = STEPS.find(x=>x.id===id) || { id, name:id, in:'', out:'' };
+    STEP_BY[id] = { ...s, no:String(i+1).padStart(2,'0'), phase:PHASES.find(p=>p.steps.includes(id)) };
+  });
+}
+rebuildStructure();
+// 현재 화면 구조 → order 맵 (저장용)
+function curOrder(){ const o = {}; PHASES.forEach(p => o[p.k] = p.steps.slice()); return o; }
 // 커머스본부 조직 (조직 개편 안내 v1 · 2026.09 · 현재 실명 배치) — board: 런칭보드에서 맡는 단계
 const ORG = {
   head: { name:'허지은', role:'커머스본부장', desc:'G1·G2·G3 최종 승인 · 공용 인력 배분 · 1팀 전략기획 실무 참여', board:'최종 검수 승인' },
@@ -696,7 +749,12 @@ function who(){ return me || '이름 없음'; }
 let seeding = false;
 db.collection(COL).onSnapshot(snap => {
   console.log(`[${COL}] ${snap.size}건 로드`);
-  items = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+  const docs = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+  // 단계 구조 문서 분리 → 병합, 제품 목록에서는 제외
+  const sdoc = docs.find(d => d.id === STRUCT_ID);
+  structure = sdoc ? { order: sdoc.order || {}, custom: sdoc.custom || {} } : { order:{}, custom:{} };
+  rebuildStructure();
+  items = docs.filter(d => d.id !== STRUCT_ID);
   loaded = true; loadErr = '';
   if (snap.empty && !snap.metadata.fromCache && !seeding) seed();
   renderAll(false);
@@ -728,6 +786,70 @@ async function writeDoc(id, patch, historyText){
   if (historyText) data.history = FV.arrayUnion({ at, by:who(), text:historyText });
   try { await db.collection(COL).doc(id).update(data); return true; }
   catch(e){ console.error(`[${COL}] 저장 실패:`, e); toast('저장 실패: '+(e.code||e.message)); return false; }
+}
+
+// ═══ 단계 구조 저장 (추가·순서변경·삭제) — 전 제품 공용 템플릿 ═══
+async function saveStructure(next){
+  if (!me) { askName(); return false; }
+  // 낙관적 반영 (화면 먼저 갱신)
+  structure = { order: next.order || structure.order || {}, custom: next.custom || structure.custom || {} };
+  rebuildStructure(); renderMain();
+  try {
+    await db.collection(COL).doc(STRUCT_ID).set({ __structure:true, order:structure.order, custom:structure.custom, updatedAt:nowIso(), updatedBy:who() });
+    return true;
+  } catch(e){ console.error('[구조] 저장 실패:', e); toast('저장 실패: '+(e.code||e.message)); return false; }
+}
+// 단계 추가 (영역 끝에)
+async function addStepTo(phaseK, name, inT, outT){
+  name = (name||'').trim(); if (!name) return false;
+  const id = 'c' + Date.now().toString(36);
+  const custom = { ...structure.custom, [id]: { name, in:(inT||'').trim(), out:(outT||'').trim() } };
+  const order = curOrder(); order[phaseK] = (order[phaseK]||[]).concat(id);
+  const ok = await saveStructure({ order, custom });
+  if (ok) toast('단계를 추가했어요');
+  return ok;
+}
+// 단계 삭제 (사용자가 추가한 커스텀 단계만)
+async function delStep(sid){
+  const st = STEP_BY[sid]; if (!st || !st.custom) { toast('기본 단계는 삭제할 수 없어요'); return; }
+  if (!confirm(`'${st.name}' 단계를 삭제할까요?\n이 단계에 적은 내용도 함께 사라져요.`)) return;
+  const custom = { ...structure.custom }; delete custom[sid];
+  const order = curOrder(); Object.keys(order).forEach(k => order[k] = order[k].filter(x => x !== sid));
+  if (await saveStructure({ order, custom })) toast('단계를 삭제했어요');
+}
+// 단계 순서 변경 (드래그) — dragSid를 targetSid의 앞/뒤로 이동 (영역도 target을 따라감)
+async function reorderStep(dragSid, targetSid, after){
+  if (dragSid === targetSid) return;
+  const flat = []; PHASES.forEach(p => p.steps.forEach(sid => flat.push({ sid, k:p.k })));
+  const di = flat.findIndex(f => f.sid === dragSid); if (di < 0) return;
+  const ti = flat.findIndex(f => f.sid === targetSid); if (ti < 0) return;
+  const targetK = flat[ti].k;
+  const [moved] = flat.splice(di, 1);
+  moved.k = targetK;
+  let idx = flat.findIndex(f => f.sid === targetSid); if (idx < 0) idx = flat.length - 1;
+  if (after) idx += 1;
+  flat.splice(idx, 0, moved);
+  const order = {}; PHASES.forEach(p => order[p.k] = []); flat.forEach(f => (order[f.k] = order[f.k] || []).push(f.sid));
+  if (await saveStructure({ order, custom: structure.custom })) toast('순서를 바꿨어요');
+}
+// 단계 추가 모달
+function openAddStep(phaseK){
+  if (!me) { askName(); return; }
+  const ph = PHASES.find(p => p.k === phaseK) || PHASES[0];
+  modal(`<h3>＋ '${esc(ph.name)}'에 단계 추가</h3>
+    <p class="d">이 체크리스트는 모든 제품에 함께 적용돼요. 단계 이름을 적어주세요.</p>
+    <div class="form">
+      <label>단계 이름<input id="stName" placeholder="예: 성분표 검토" maxlength="40"></label>
+      <label>넘겨받는 것 (선택)<input id="stIn" placeholder="예: 제조사 성분 자료" maxlength="60"></label>
+      <label>넘겨주는 것 (선택)<input id="stOut" placeholder="예: 성분표 확정본" maxlength="60"></label>
+    </div>
+    <div class="m-act"><button class="btn" data-mclose="">취소</button><button class="btn pri" id="stepAddOk" data-sphase="${phaseK}">추가</button></div>`);
+  setTimeout(()=>$('stName') && $('stName').focus(), 50);
+}
+async function saveAddStep(phaseK){
+  const name = ($('stName').value||'').trim();
+  if (!name) { $('stName').focus(); toast('단계 이름을 입력해주세요'); return; }
+  if (await addStepTo(phaseK, name, $('stIn').value, $('stOut').value)) closeModal();
 }
 
 // ═══ 렌더링 ═══
@@ -1080,7 +1202,8 @@ function viewProduct(p){
     <div class="ck-head"><b>체크리스트</b></div>
     ${PHASES.map(ph=>`
       <div class="phase-h"><span style="color:${ph.color}">●</span>${ph.name}</div>
-      <div class="ck">${ph.steps.map(sid=>ckRow(p,sid)).join('')}</div>`).join('')}
+      <div class="ck" data-phase="${ph.k}">${ph.steps.map(sid=>ckRow(p,sid)).join('')}</div>
+      <div class="ck-add phase-add"><button type="button" data-sadd="${ph.k}">＋ 단계 추가</button></div>`).join('')}
     <details class="hist-d"><summary>🕘 변경 기록 ${hist.length}건</summary>
       <div class="hist">${hist.length ? hist.map(h=>`<div><small>${fmtShort((h.at||'').slice(0,10))} ${esc(h.by)}</small>${esc(h.text)}</div>`).join('') : '<div>아직 기록이 없어요</div>'}</div></details>
 `;
@@ -1098,10 +1221,10 @@ function ckRow(p, sid){
     : `<button type="button" class="cf-btn" data-cf="${sid}" data-v="done">컨펌</button>`;
   return `<div class="ck-step ${skip?'skip':''}" id="step-${sid}">
   <div class="ck-row ${done?'done':''} ${over?'over':''}">
-    <div class="ck-box">${cf}</div>
+    <div class="ck-box"><button type="button" class="ck-grip" data-drag="${sid}" title="드래그로 순서 변경" aria-label="순서 변경">⠿</button>${cf}</div>
     <div class="ck-name"><b>${st.name}</b>
       <div class="ck-sub">${done && (s.doneBy||s.doneAt) ? `<span class="cf-who">${esc(s.doneBy||'')}${s.doneAt?' · '+fmtShort(s.doneAt.slice(0,10)):''}</span>` : ''}
-        <button type="button" class="skip-btn" data-skip="${sid}" data-v="${skip?'0':'1'}">${skip?'↩ 되살리기':'해당 없음'}</button></div></div>
+        <button type="button" class="skip-btn" data-skip="${sid}" data-v="${skip?'0':'1'}">${skip?'↩ 되살리기':'해당 없음'}</button>${st.custom?`<button type="button" class="skip-btn sdel" data-sdel="${sid}" title="이 단계 삭제">🗑 단계삭제</button>`:''}</div></div>
     <textarea rows="1" data-sid="${sid}" data-sf="note" placeholder="진행사항 기재" ${dis}>${esc(s.note)}</textarea>
     <div class="ck-meta">
       <input data-sid="${sid}" data-sf="owner" value="${esc(s.owner)}" placeholder="담당" data-pick="1" autocomplete="off" aria-label="담당" ${dis}>
@@ -1325,6 +1448,9 @@ document.addEventListener('click', e => {
   if (d.nm) return setMe(d.nm);
   if (t.id==='nmOut') { $('nmOutBox').classList.remove('hidden'); t.classList.add('on'); setTimeout(()=>$('nmIn').focus(), 30); return; }
   if (t.id==='addOk') return saveAdd();
+  if (t.id==='stepAddOk') return saveAddStep(d.sphase);
+  if (d.sadd) return openAddStep(d.sadd);
+  if (d.sdel) return delStep(d.sdel);
   if (t.id==='aTbd') { // 출시일 미정 켜기/끄기
     const inp = $('aLaunch'), on = !inp.disabled;
     inp.disabled = on; if (on) { inp.value = ''; inp.type = 'text'; inp.placeholder = '출시일 미정'; } else { inp.type = 'date'; inp.focus(); try { inp.showPicker(); } catch(_){} }
@@ -1430,6 +1556,40 @@ $('q').addEventListener('input', e => {
   if (view!=='home') { view='home'; openId=null; try { history.replaceState(null,'',location.pathname); } catch(e){} renderNav(); }
   renderMain();
 });
+
+// ═══ 단계 드래그로 순서 변경 (마우스·터치 공용) ═══
+let dragSid = null, dragEl = null, dropSid = null, dropAfter = false;
+function clearDropMarks(){ document.querySelectorAll('.ck-step.drop-before,.ck-step.drop-after').forEach(el=>el.classList.remove('drop-before','drop-after')); }
+document.addEventListener('pointerdown', e => {
+  const h = e.target.closest('.ck-grip'); if (!h) return;
+  if (!me) { askName(); return; }
+  e.preventDefault();
+  dragSid = h.dataset.drag; dragEl = document.getElementById('step-'+dragSid); dropSid = null;
+  if (dragEl) dragEl.classList.add('dragging');
+  try { h.setPointerCapture(e.pointerId); } catch(_){}
+});
+document.addEventListener('pointermove', e => {
+  if (!dragSid) return;
+  e.preventDefault();
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  const step = under && under.closest('.ck-step');
+  clearDropMarks();
+  if (step && step !== dragEl && step.id.indexOf('step-')===0) {
+    const r = step.getBoundingClientRect();
+    dropAfter = e.clientY > r.top + r.height/2;
+    dropSid = step.id.slice(5);
+    step.classList.add(dropAfter ? 'drop-after' : 'drop-before');
+  } else { dropSid = null; }
+});
+document.addEventListener('pointerup', () => {
+  if (!dragSid) return;
+  const ds = dragSid, tg = dropSid, af = dropAfter;
+  clearDropMarks();
+  if (dragEl) dragEl.classList.remove('dragging');
+  dragSid = null; dragEl = null; dropSid = null;
+  if (tg && tg !== ds) reorderStep(ds, tg, af);
+});
+document.addEventListener('pointercancel', () => { clearDropMarks(); if (dragEl) dragEl.classList.remove('dragging'); dragSid=null; dragEl=null; dropSid=null; });
 
 // 시작
 try { const pid = new URLSearchParams(location.search).get('p'); if (pid) { view = 'product'; openId = pid; history.replaceState({ p:pid }, '', location.search); } } catch(e){}

@@ -1533,6 +1533,8 @@ body:not(.cost-ok) #sh-expiry :is(#exFileBtn,#exPasteBtn,#exPastePanel,.toolrow 
 .tr-tools .tr-menu .tbtn:not([style*="display:none"]):not([style*="display: none"]){display:flex}
 .tr-info{width:32px;padding:0!important;justify-content:center;color:var(--ink-soft)}
 #priceHint{flex:1 1 100%}
+/* 유통기한 — 일반 팀원(보기만): 3PL 코드·누적·필요 하루 판매·배수·기한 내 소진율은 숨김 (판단에 필요한 8열만) */
+.ex-view th:nth-child(3),.ex-view td:nth-child(3),.ex-view th:nth-child(7),.ex-view td:nth-child(7),.ex-view th:nth-child(9),.ex-view td:nth-child(9),.ex-view th:nth-child(10),.ex-view td:nth-child(10),.ex-view th:nth-child(12),.ex-view td:nth-child(12){display:none}
 #priceHint[hidden]{display:none!important}
 #pricingBanner{display:flex;flex-wrap:wrap;gap:6px;align-items:center;position:sticky;left:0;z-index:20;width:fit-content;max-width:calc(100vw - 16px);padding:0 8px}
 @media(min-width:641px){ #pricingBanner{max-width:calc(100vw - 280px)} }
@@ -1749,7 +1751,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.10.02a</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.10.02b</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2465,7 +2467,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
   <!-- ── Sheet: 마케팅 분석 (추적링크 성과) ── -->
   <section class="sheet" id="sh-mkt">
     <div class="toolrow">
-      <span class="ttl">링크 분석</span>
+      <span class="ttl">링크 성과</span>
       <div class="seg" id="maBrand"><button data-mb="" class="on">전체</button><button data-mb="POUR스토어">스토어</button><button data-mb="GROHOME">그로홈</button></div>
       <div class="seg" id="maPeriod"><button data-mp="7">7일</button><button data-mp="30" class="on">30일</button><button data-mp="90">90일</button><button data-mp="all">전체</button></div>
       <span class="hint">클릭은 우리 짧은 링크로 자동 집계 · 날짜별 클릭은 규칙 게시 뒤부터 쌓여요 · 매출·광고비는 링크 상세에서 넣어요</span>
@@ -2503,7 +2505,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
   <!-- ── Sheet: 프로모션 성과 ── -->
   <section class="sheet" id="sh-mktpromo">
     <div class="toolrow" id="pcListBar">
-      <span class="ttl">프로모션</span>
+      <span class="ttl">행사 달력</span>
       <div class="seg" id="pcViewSeg"><button data-pv="cal" class="on">📅 달력</button><button data-pv="list">목록</button></div>
       <button class="tbtn primary" id="pcNew">＋ 새 프로모션</button>
       <span class="hint">진행중·예정·종료를 한눈에 · 끝난 행사는 누르면 평시 대비 성과가 자동으로 나와요 (판매 엑셀·그로홈 매출 기준)</span>
@@ -2634,7 +2636,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
   <button class="stab" data-grp="mkt" data-sh="sh-mktpromo"><span class="dot"></span>행사 달력</button>
   <button class="stab" data-grp="mkt" data-sh="sh-promo"><span class="dot"></span>구성 계산기</button>
   <button class="stab" data-grp="mkt" data-sh="sh-mktlink"><span class="dot"></span>링크</button>
-  <button class="stab" data-grp="mkt" data-sh="sh-mkt"><span class="dot"></span>분석</button>
+  <button class="stab" data-grp="mkt" data-sh="sh-mkt"><span class="dot"></span>링크 성과</button>
   <button class="stab" data-grp="mkt" data-sh="sh-gb"><span class="dot"></span>공동구매</button>
   <button class="stab" data-grp="set" data-sh="sh-chman"><span class="dot"></span>채널·브랜드</button>
   <button class="stab" data-grp="set" data-sh="sh-access"><span class="dot"></span>계정</button>
@@ -4345,7 +4347,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   ensureCatCfg();   // 새 분류 자동 시딩(표시·정렬용, 저장은 분류 관리에서)
   ensurePorder();   // 제품 순서 시딩(드래그 재정렬용)
   ensureChord();    // 채널 열 순서 시딩(가로 드래그 재정렬용)
-  const impBtn=$('#btnImportFile'); if(impBtn) impBtn.style.display=costAllowed?'':'none';   // 파일 업로드: 원가열람 계정만
+  const impBtn=$('#btnImportFile'); if(impBtn) impBtn.style.display='none';   // 엑셀 올리기는 '📊 엑셀 받기·올리기' 창 안(expUp)에 있어 도구 메뉴에선 뺌(중복)
   const addBtn=$('#btnAddProd'); if(addBtn) addBtn.style.display=costAllowed?'':'none';       // 제품 추가: 원가열람 계정만
   const ghBtn=$('#btnGhImport'); if(ghBtn) ghBtn.style.display=costAllowed?'':'none';        // 그로홈 가져오기: 원가열람 계정만
   const pcBtn=$('#btnPcode'); if(pcBtn) pcBtn.style.display=costAllowed?'':'none';          // 자체상품코드: 원가열람 계정만
@@ -4353,7 +4355,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   renderBrandSeg(); renderStatusSeg(); if(window.__pzFiltPaint) window.__pzFiltPaint();
   ['btnBulkFix','btnBulkAuto','btnClearTodo','btnClearOvr'].forEach(id=>{ const b=$('#'+id); if(b) b.style.display=costAllowed?'':'none'; });
   const ct=$('#btnClearTodo'); if(ct){ const n=todoCount(); ct.textContent=n?`미정 해제 (${n})`:'미정 해제'; ct.disabled=!n; ct.style.opacity=n?'':'.45'; }
-  const chanBtn=$('#btnAddChan'); if(chanBtn) chanBtn.style.display=costAllowed?'':'none';    // 채널 추가: 원가열람 계정만
+  const chanBtn=$('#btnAddChan'); if(chanBtn) chanBtn.style.display='none';    // 채널 추가는 설정 › 채널·브랜드 에서 (도구 메뉴 중복 정리)
   const psBtn=$('#btnPriceSheet'); if(psBtn) psBtn.style.display=costAllowed?'':'none';        // 단가표 PDF: 원가열람 계정만
   const q=($('#q').value||'').trim().toLowerCase();
   const cat=$('#catSel').value;
@@ -5973,7 +5975,7 @@ const MENU=[
   {g:'price',ic:'💰',lb:'가격',items:[{lb:'단가표',tabs:['sh-tprice']},{lb:'가격정책표',tabs:['sh-price','sh-dash']}]},
   {g:'prod',ic:'📦',lb:'제품',items:[{lb:'출시 관리·등록',tabs:['sh-launch','sh-reg']}]},
   {g:'sales',ic:'📈',lb:'판매',items:[{lb:'매출',tabs:['sh-sales']},{lb:'유통기한',tabs:['sh-expiry']},{lb:'손익',tabs:['sh-pl','sh-fixed']}]},
-  {g:'mkt',ic:'📣',lb:'마케팅',items:[{lb:'프로모션',tabs:['sh-mktpromo','sh-promo']},{lb:'링크·분석',tabs:['sh-mktlink','sh-mkt']},{lb:'공동구매',tabs:['sh-gb']}]},
+  {g:'mkt',ic:'📣',lb:'마케팅',items:[{lb:'프로모션',tabs:['sh-mktpromo','sh-promo']},{lb:'링크',tabs:['sh-mktlink','sh-mkt']},{lb:'공동구매',tabs:['sh-gb']}]},
   {g:'set',ic:'⚙',lb:'설정',items:[{lb:'채널·브랜드',tabs:['sh-chman']},{lb:'계정',tabs:['sh-access']},{lb:'CRM 연동',tabs:['sh-inbound']},{lb:'매칭',tabs:['sh-match']},{lb:'온라인 상품',tabs:['sh-items']},{lb:'MOQ 구간',tabs:['sh-moq']},{lb:'데이터·휴지통',tabs:['sh-data']}]}
 ];
 const stabOf=sh=>document.querySelector('.stab[data-sh="'+sh+'"]');
@@ -10467,7 +10469,7 @@ function todoHtml(){
     const tb=e.target.closest('#btnTools'), menu=$('#trTools');
     if(tb){ menu.classList.toggle('open'); return; }
     if(menu && menu.classList.contains('open') && (!e.target.closest('#toolMenu') || e.target.closest('#toolMenu .tbtn'))) menu.classList.remove('open');
-    if(e.target.closest('#btnPriceInfo')){ const h=$('#priceHint'); h.hidden=!h.hidden; return; }
+    if(e.target.closest('#btnPriceInfo')){ const h=$('#priceHint'); if(!costAllowed) h.innerHTML='가격은 보기 전용이에요 · 칸을 누르면 그 제품 정보를 볼 수 있어요 · 가격 수정은 원가 권한 계정에서 해요'; h.hidden=!h.hidden; return; }
     const gt=e.target.closest('#pricingBanner [data-goto]'); if(gt){ gotoTab(gt.dataset.goto); return; }
     const dm=e.target.closest('#pricingBanner [data-dismiss]'); if(dm){ pbDismiss(dm.dataset.dismiss); renderPricingBanner(); return; }
     const td=e.target.closest('#pricingBanner [data-todo]'); if(td){ TODO_FILTER=td.dataset.todo||''; renderGrid(); renderPricingBanner(); return; }
@@ -11531,7 +11533,7 @@ async function renderExpiry(){
     ${totals}
     ${fbar}
     <div class="panel"><h3>로트별 소진 판단 <span class="tag">최근 ${EX.win}일 판매 속도 · 선입선출</span></h3>
-      <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" style="width:100%;min-width:1280px">
+      <div class="bd" style="padding:0;overflow-x:auto"><table class="grid${VIEW?' ex-view':''}" style="width:100%;min-width:${VIEW?'760px':'1280px'}">
         <thead><tr><th>브랜드</th><th style="min-width:200px">상품 (재고 이름)</th><th>3PL 코드</th><th>유통기한</th><th class="num">남은 일수</th><th class="num">수량</th><th class="num">누적</th>
           <th class="num">하루 판매 (최근)</th><th class="num">필요 하루 판매</th><th class="num">배수</th><th class="num">소진 예상</th><th class="num">기한 내 소진율</th><th>판단</th><th class="num">예상 폐기</th>${VIEW?'':'<th class="num">폐기 손실</th><th></th>'}</tr></thead>
         <tbody>${rows.map((r,i)=>{ const V=EX_V[r.v]||EX_V.nolink;

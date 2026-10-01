@@ -1751,7 +1751,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.10.02b</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.10.02c</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -2126,7 +2126,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
       <!-- ── 견적서 만들기 (고객 배포용) ──
            MOQ 구간가를 그대로 쓰되, 매입원가·POUR 마진은 절대 파일에 넣지 않는다. -->
       <div class="panel">
-        <h3>견적서 만들기 <span class="tag">고객 배포용 · 원가·마진 미포함</span></h3>
+        <h3>구간 단가표 만들기 <span class="tag">고객 배포용 · 원가·마진 미포함</span> <span class="footnote" style="margin:0 0 0 6px">거래처별 견적·딜은 위 🧾 견적 창에서</span></h3>
         <div class="bd">
           <div class="formgrid">
             <div class="fld" style="grid-column:span 2"><label>품목</label><select id="qtPick"></select></div>
@@ -2187,8 +2187,9 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
   <!-- ── Sheet: 프로모션 설계 — 할인·N+M·사은품·쿠폰·적립금 구성별 주문당 이익, 역마진·최소마진 판정, 재고 소진 vs 폐기 ── -->
   <section class="sheet" id="sh-promo">
     <div class="toolrow">
-      <span class="ttl">프로모션 설계</span>
+      <span class="ttl">구성 계산기</span>
       <select id="prSel" style="min-width:240px;flex:0 1 340px"></select>
+      <button type="button" class="tbtn" id="prQuickCalc" title="제품 하나를 골라 할인·증정·체험단 이익을 빠르게 계산">제품 하나 빠르게 계산</button>
       <span class="footnote" id="prSaved" style="margin:0 0 0 auto"></span>
       <span class="hint">할인·1+1·2+1·사은품·쿠폰·적립금 구성마다 주문당 이익을 바로 계산해 역마진을 막습니다 · 입력하면 자동 저장</span>
     </div>
@@ -2669,7 +2670,6 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 </div>
 <div id="calcMenu">
   <button data-open="calcPanel">🧮 단가 계산기<em>원가 → 판매가·할인 한도</em></button>
-  <button data-open="promoCalc">🎯 프로모션 계산기<em>할인·증정·체험단 → 이익</em></button>
   <button data-open="costCalc">🏭 생산원가 계산기<em>매입·생산·수입 → 개당 원가</em></button>
 </div>
 <div id="costCalc">
@@ -6379,7 +6379,6 @@ async function promoAdd(){
 }
 async function promoSet(id,patch){ try{ await db.collection('promotions').doc(id).set({...patch,updatedAt:new Date().toISOString()},{merge:true}); }catch(e){ alert('저장 실패: '+(e.code||e.message||e)); } }
 async function promoDel(id){ const p=PROMOS.find(x=>x.id===id); if(!confirm(`"${(p&&p.name)||''}" 삭제할까요?`))return; try{ await db.collection('promotions').doc(id).delete(); await fetchMkt(); refreshAll(); }catch(e){ alert('삭제 실패: '+(e.code||e.message||e)); } }
-function fillMktSelects(){}   // 예전 추적링크 입력칸용 — 새 화면(링크)은 만들기 창에서 직접 채운다
 const roasPct=r=>r==null?'—':Math.round(r*100)+'%';
 function renderMktLinks(){ const on=$('#sh-mktlink'); if(on&&on.classList.contains('on')) mlRender(); }
 function renderMktOverview(){ const on=$('#sh-mkt'); if(on&&on.classList.contains('on')) maRender(); }
@@ -7050,7 +7049,7 @@ document.addEventListener('change',e=>{
   else if(e.target.closest&&e.target.closest('#pcDetail') && (e.target.id==='pcStart'||e.target.id==='pcEnd'||e.target.dataset.pcmF!=null)){ pcReadForm(); const y=window.scrollY; pcRenderDetail(); window.scrollTo({top:y}); }
 });
 document.addEventListener('keydown',e=>{ if(e.key!=='Enter') return; const c=e.target.closest&&e.target.closest('.pc-card'); if(c&&e.target===c){ e.preventDefault(); c.click(); } });
-function renderMktAll(){ fillMktSelects(); renderMktOverview(); renderMktLinks(); renderPromos(); }
+function renderMktAll(){ renderMktOverview(); renderMktLinks(); renderPromos(); }
 /* 마케팅 이벤트 */
 document.addEventListener('click',e=>{
   const pd=e.target.closest('[data-pmdel]'); if(pd){ promoDel(pd.dataset.pmdel); return; }
@@ -9834,6 +9833,7 @@ function wireImportModal(){
   ['ncVal2','ncName2','ncCode2'].forEach(id=>on(id,'input',renderChanPreview));
   // ── 단가표 PDF 모달
   on('btnPriceSheet','click',openPsModal);
+  on('prQuickCalc','click',()=>openPromoCalc(''));   // 구성 계산기 화면 안 '제품 하나 빠르게 계산' (예전 fx 메뉴 프로모션 계산기와 같은 창)
   on('psClose','click',closePsModal); on('psCancel','click',closePsModal);
   bindOverlayClose('psOverlay',closePsModal);
   on('psChanAll','click',()=>{ $$('#psChanBox input').forEach(i=>i.checked=true); psUpdChanCnt(); });

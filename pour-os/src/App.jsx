@@ -22,7 +22,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-항목체크리스트";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-차수머리한줄";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -5880,7 +5880,7 @@ function BatchHead({D,cu,add,up,g,items,legacy}){
   const saveNote=(clear)=>{ const t=clear?"":tag.trim(), m=clear?"":memo.trim(); const nn={...notes};
     if(t||m) nn[key]={tag:t,memo:m,updatedAt:new Date().toISOString(),by:cu?.name||""}; else delete nn[key]; saveNotes(nn); setMode(null); };
   const others=g.batch&&name.trim()&&name.trim()!==g.batch&&batchNamesOf(items,g.brand).includes(name.trim());
-  return(<div style={{display:"flex",flexDirection:"column",gap:7,padding:"8px 10px",borderRadius:11,background:g.batch?"#EEF0F5":"#F9FAFB"}}>
+  return(<div style={{display:"flex",flexDirection:"column",gap:6,padding:"6px 9px",borderRadius:10,background:g.batch?"#EEF0F5":"#F9FAFB"}}>
     {mode==="edit"?<div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
           <input value={name} onChange={e=>setName(e.target.value)} aria-label="차수 이름" placeholder="차수 이름" style={{...wfInp,flex:"2 1 150px",padding:"8px 10px",fontSize:13.5,fontWeight:800}}/>
@@ -5888,29 +5888,30 @@ function BatchHead({D,cu,add,up,g,items,legacy}){
           <span style={{display:"flex",gap:6,flex:"0 0 auto"}}><button onClick={saveEdit} disabled={busy} style={{...NB.pri,padding:"8px 14px"}}>{busy?"저장 중":"저장"}</button><button onClick={()=>setMode(null)} style={{...bhBtn,padding:"8px 12px"}}>취소</button></span>
         </div>
         <p style={{margin:"5px 2px 0",fontSize:11.5,color:"#4E5968",fontWeight:700,lineHeight:1.5}}>이 차수 제품 {all.length}개가 함께 바뀌어요 · 런칭보드에도{bd.mixed?" · 출시일을 넣으면 하나로 맞춰져요":""}</p>
+        {legacy&&<p style={{margin:"2px 2px 0",fontSize:11,color:"#8B95A1"}}>지난 기록: {legacy.title}</p>}
         {others&&<p style={{margin:"2px 2px 0",fontSize:11.5,color:"#B26A12",fontWeight:700}}>'{name.trim()}' 차수가 이미 있어요 · 저장하면 두 차수가 하나로 합쳐져요</p>}
         {msg&&<p style={{margin:"2px 2px 0",fontSize:11.5,color:"#B4383F",fontWeight:800}}>{msg}</p>}
       </div>
-      :<div>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <b style={{flex:1,minWidth:0,fontSize:13.5,color:"#191F28",wordBreak:"keep-all"}}>{b.icon} {b.name} · {g.batch||"차수 미정"}</b>
-          {g.batch?<button onClick={openEdit} style={{...bhBtn,flexShrink:0}}>이름·출시일</button>:<span style={{flexShrink:0,fontSize:11.5,color:"#8B95A1"}}>제품을 눌러 차수를 골라요</span>}
+      :<div style={{display:"flex",flexDirection:"column",gap:4}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0}}>
+          {g.batch?<span style={{flexShrink:0,padding:"3px 7px",borderRadius:7,fontSize:12,fontWeight:900,fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap",
+              ...(bd.mixed?{background:"#FBF1E3",color:"#B26A12"}:bd.date?{background:"#24386B",color:"#fff"}:{background:"#E5E8EB",color:"#6B7684"})}}>{bd.mixed?"출시일 제각각":bd.date?`${bd.date.slice(5).replace("-","/")} ${ddayKo(daysTo(bd.date))}`:"출시일 미정"}</span>:null}
+          <span style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><b style={{fontSize:14,color:"#191F28"}}>{g.batch||"차수 미정"}</b> <span style={{fontSize:11,color:"#8B95A1",fontWeight:600}}>{b.name}</span></span>
+          <b style={{flexShrink:0,fontSize:13,color:"#1E2F5C",whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>{g.rows.length}개 · {pct}%</b>
+          {g.batch&&mode!=="note"&&!(nt.tag||nt.memo)&&<button onClick={openNote} style={{flexShrink:0,border:"none",background:"none",padding:"0 2px",color:"#A08A3C",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>+ 메모</button>}
+          {g.batch?<button onClick={openEdit} style={{...bhBtn,flexShrink:0,padding:"3px 8px",fontSize:11}}>편집</button>:null}
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginTop:3}}>
-          <span style={{fontSize:11.5,color:"#6B7684",fontWeight:700}}>{g.rows.length}개 · 평균 {pct}%{g.batch?(bd.mixed?"":bd.date?` · 출시 ${bd.date.slice(5)} ${ddayKo(daysTo(bd.date))}`:" · 출시일 미정"):""}</span>
-          {g.batch&&bd.mixed&&<button onClick={openEdit} style={{border:"none",background:"none",padding:0,fontSize:11.5,fontWeight:800,color:"#B26A12",cursor:"pointer",fontFamily:"inherit"}}>출시일 제각각 · 하나로 맞추기</button>}
-          {legacy&&<span style={{fontSize:11,color:"#8B95A1"}}>지난 기록: {legacy.title}</span>}
-        </div>
+        {g.batch&&mode!=="note"&&(nt.tag||nt.memo)&&<button onClick={openNote} aria-label="포스트잇 고치기" title={[nt.tag,nt.memo].filter(Boolean).join(" · ")} style={{alignSelf:"flex-start",maxWidth:"100%",padding:"2px 7px",borderRadius:6,background:"#FFF6CC",border:"1px solid #F0DE8A",color:"#6B5310",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textAlign:"left"}}>{nt.tag||""}{nt.tag&&nt.memo?" · ":""}{nt.memo?<span style={{fontWeight:600}}>{nt.memo}</span>:null}</button>}
+        {!g.batch&&<span style={{fontSize:11,color:"#8B95A1"}}>제품을 눌러 차수를 골라요</span>}
       </div>}
-    {g.batch&&(mode==="note"?<div style={{padding:"9px 10px",borderRadius:9,background:"#FFF6CC",border:"1px solid #F0DE8A"}}>
+    {g.batch&&mode==="note"&&<div style={{padding:"9px 10px",borderRadius:9,background:"#FFF6CC",border:"1px solid #F0DE8A"}}>
         <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:6}}>{BATCH_TAGS.map(x=><button key={x} type="button" onClick={()=>setTag(x)} style={{padding:"5px 10px",borderRadius:12,border:`1.5px solid ${tag===x?"#6B5310":"#E8D88F"}`,background:tag===x?"#FFEFA3":"#FFFBEA",color:"#6B5310",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>{x}</button>)}</div>
         <input value={tag} onChange={e=>setTag(e.target.value)} placeholder="표식 (예: 데코라인)" aria-label="표식" style={{...wfInp,width:"100%",padding:"8px 10px",fontSize:13,background:"#FFFDF3"}}/>
         <textarea value={memo} onChange={e=>setMemo(e.target.value)} rows={2} placeholder="메모 (예: 10/23 동시 출시 · 상세페이지 톤 통일)" aria-label="포스트잇 메모" style={{...wfInp,width:"100%",marginTop:6,padding:"8px 10px",fontSize:13,background:"#FFFDF3",resize:"vertical"}}/>
         <div style={{display:"flex",gap:6,marginTop:6}}><button onClick={()=>saveNote(false)} style={{...NB.pri,padding:"7px 14px"}}>저장</button><button onClick={()=>setMode(null)} style={bhBtn}>취소</button>
           {(nt.tag||nt.memo)&&<button onClick={()=>saveNote(true)} style={{...bhBtn,marginLeft:"auto",color:"#B4383F",borderColor:"#EACFD1"}}>포스트잇 떼기</button>}</div>
-      </div>
-      :(nt.tag||nt.memo)?<button onClick={openNote} aria-label="포스트잇 고치기" style={{display:"flex",gap:6,alignItems:"baseline",width:"100%",textAlign:"left",padding:"6px 9px",borderRadius:8,background:"#FFF6CC",border:"1px solid #F0DE8A",boxShadow:"0 1px 0 rgba(0,0,0,.04)",cursor:"pointer",fontFamily:"inherit"}}>{nt.tag&&<b style={{fontSize:12,color:"#6B5310",whiteSpace:"nowrap"}}>{nt.tag}</b>}{nt.memo&&<span style={{fontSize:12,color:"#5C4A12",lineHeight:1.45,wordBreak:"keep-all"}}>{nt.memo}</span>}</button>
-      :<button onClick={openNote} style={{width:"100%",textAlign:"left",padding:"6px 9px",borderRadius:8,background:"transparent",border:"1.5px dashed #E3CF7A",color:"#8A7420",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+ 포스트잇 붙이기</button>)}
+      </div>}
+
   </div>);
 }
 

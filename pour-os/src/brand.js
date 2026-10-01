@@ -16,10 +16,9 @@ export const COMMON = "common";
 export const BRAND_SEED = [
   { id: "pourstore", name: "POUR스토어", order: 1, active: true },
   { id: "grohome", name: "그로홈", order: 2, active: true },
-  { id: "barasday", name: "바라스데이", order: 3, active: true, status: "prep" },   // 런칭 준비 중 — KPI 설정 전, 업무·프로젝트·신제품은 관리
 ];
 const ALIAS = { "pour스토어": "pourstore", "pourstore": "pourstore", "pour": "pourstore", "포어스토어": "pourstore",
-  "그로홈": "grohome", "grohome": "grohome", "바라스데이": "barasday", "barasday": "barasday", "공통": COMMON, "common": COMMON };
+  "그로홈": "grohome", "grohome": "grohome", "공통": COMMON, "common": COMMON };
 // 저장된 값(이름·키 아무거나) → 브랜드 키. 모르면 null
 export function brandKey(v, brands) {
   if (v == null || v === "") return null;
@@ -211,3 +210,16 @@ export function execGroups(D, docs, today, fixedDone) {
   return out;
 }
 export const todayYmd = () => akYmd(new Date());
+
+// 기본값으로 잘못 넣었던 바라스데이(id "barasday") 정리 — 사람이 직접 추가한 같은 이름 브랜드가 있으면
+// 그쪽으로 기록(브랜드 칸)을 옮기고, 기본값 항목은 빼서 돌려준다(화면에서 휴지통으로). 사람 브랜드엔 준비중 표시.
+const BRAND_REF_KEYS = ["projects", "tasks", "actionKPIs", "goals", "mainKPIs", "lagKPIs"];
+export function fixBrandDup(D) {
+  const bs = D.brands || []; const seeded = bs.find((b) => b && b.id === "barasday" && !b.createdBy);
+  if (!seeded) return null;
+  const mine = bs.find((b) => b && b.id !== "barasday" && String(b.name || "").replace(/\s/g, "") === "바라스데이");
+  if (!mine) return null;
+  const out = { removed: seeded, brands: bs.filter((b) => b !== seeded).map((b) => (b === mine && !b.status ? { ...b, status: "prep" } : b)) };
+  BRAND_REF_KEYS.forEach((k) => { const arr = D[k] || []; if (arr.some((x) => x && x.brand === "barasday")) out[k] = arr.map((x) => (x && x.brand === "barasday" ? { ...x, brand: mine.id } : x)); });
+  return out;
+}

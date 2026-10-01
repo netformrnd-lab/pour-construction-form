@@ -1,5 +1,5 @@
 // 브랜드·그로홈·매출 자동 연결·실행 현황 테스트 — node src/brand.test.mjs
-import { fixGhSubs, brandKey, brandView, projBrand, taskBrand, seedMissing, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, BRAND_SEED,
+import { fixGhSubs, fixBrandDup, brandKey, brandView, projBrand, taskBrand, seedMissing, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, BRAND_SEED,
   salesSum, salesByCh, withAutoSales, rollupRows, akRateOf, projRateOf, execGroups, salesChOf } from "./brand.js";
 import { AK_SEED, LAG_SEED, akLink } from "./actionKpi.js";
 import { mkCur } from "./kpi.js";
@@ -40,7 +40,7 @@ eq("전체 보기는 그대로(빠지는 것 없음)", [va.projects.length, va.t
 
 // ④ 처음 채워넣기 — 이미 있거나 휴지통에 있으면 다시 안 넣음
 const s1 = seedMissing({ goals: [{ id: "g1" }], mainKPIs: [], subKPIs: [], actionKPIs: AK_SEED, lagKPIs: LAG_SEED, trash: [] });
-eq("빠진 것만 채움", [s1.brands.length, s1.goals.length, s1.mainKPIs.length, s1.subKPIs.length, s1.actionKPIs.length, s1.lagKPIs.length], [3, 2, 2, 6, 29, 15]);   // 브랜드 3: POUR스토어·그로홈·바라스데이(준비중)
+eq("빠진 것만 채움", [s1.brands.length, s1.goals.length, s1.mainKPIs.length, s1.subKPIs.length, s1.actionKPIs.length, s1.lagKPIs.length], [2, 2, 2, 6, 29, 15]);
 eq("두 번째는 할 일 없음", seedMissing({ ...s1, trash: [] }), null);
 const s2 = seedMissing({ ...s1, goals: [{ id: "g1" }], trash: [{ id: "g_gh", _col: "goals" }] });
 eq("휴지통에 있는 목표는 다시 안 넣음", s2, null);
@@ -89,5 +89,13 @@ const gm = (id) => g.find((x) => (x.mk ? x.mk.id : "") === id);
 eq("메인1: 행동지표 75% · 고정업무 100% · 프로젝트 40% (합치지 않음)", [gm("mk1").ak.pct, gm("mk1").fx.pct, gm("mk1").pj.pct], [75, 100, 40]);
 eq("공통: NPS(B2B) 행동지표 · 프로젝트 없는 고정업무", [gm("").ak.n, gm("").fx.n, gm("").fx.pct], [1, 1, 0]);
 eq("연결 없는 메인KPI는 '-'", [gm("ghk2").ak.pct, gm("ghk2").pj.pct, gm("ghk2").fx.pct], [null, null, null]);
+
+// 기본값 바라스데이 정리
+{ const D0={brands:[{id:"pourstore",name:"POUR스토어"},{id:"bmine",name:"바라스데이",createdBy:"songhee"},{id:"barasday",name:"바라스데이",status:"prep"}],projects:[{id:"p1",brand:"barasday"},{id:"p2",brand:"grohome"}]};
+  const f=fixBrandDup(D0);
+  eq("기본값 바라스데이 빼고 사람이 만든 것 남김 · 준비중 표시", [f.removed.id,f.brands.map(b=>b.id+(b.status?":"+b.status:""))], ["barasday",["pourstore","bmine:prep"]]);
+  eq("그 브랜드로 된 기록은 사람 브랜드로", f.projects.map(p=>p.brand), ["bmine","grohome"]);
+  eq("사람 브랜드 없으면 손대지 않음", fixBrandDup({brands:[{id:"barasday",name:"바라스데이"}]}), null);
+  eq("정리 뒤 다시 돌리면 아무것도 안 함", fixBrandDup({...D0,brands:f.brands}), null); }
 
 console.log(`\n${fail ? "❌" : "✅"} ${pass} 통과 · ${fail} 실패`); if (fail) process.exit(1);

@@ -171,9 +171,11 @@ tr.dragover td{box-shadow:inset 0 2px 0 0 var(--xl-green)}
 /* 행 도구는 제품명 '앞'에 폭을 고정해 두어, 아이콘이 있든 없든 이름이 같은 자리에서 시작한다.
    모드(⚙️/📌)만 상시 표시하고 나머지는 행에 마우스를 올릴 때만 나타난다. */
 .rowtools{display:inline-flex;align-items:center;gap:0;width:62px;margin-right:5px;vertical-align:middle}
-.prodedit,.prodcopy,.proddel{border:0;background:none;cursor:pointer;font-size:11px;opacity:0;padding:0 2px}
+.prodedit,.prodcopy,.proddel,.prodovr{border:0;background:none;cursor:pointer;font-size:11px;opacity:0;padding:0 2px}
+.prodovr{opacity:.6!important}   /* 조정된 칸이 있는 제품에만 나오므로 평소에도 보이게 */
 tr:hover .prodedit,tr:hover .prodcopy,tr:hover .proddel{opacity:.55}
-.prodedit:hover,.prodcopy:hover,.proddel:hover{opacity:1!important}
+tr:hover .prodovr{opacity:1!important}
+.prodedit:hover,.prodcopy:hover,.proddel:hover,.prodovr:hover{opacity:1!important}
 .prodfix{border:0;background:none;cursor:pointer;font-size:11px;opacity:.28;padding:0 2px;filter:grayscale(1)}
 tr:hover .prodfix{opacity:.7}
 .prodfix.on{opacity:1;filter:none}          /* 파일값 고정된 제품만 또렷하게 */
@@ -1743,7 +1745,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.10.01b</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.10.01c</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -4286,23 +4288,42 @@ async function bulkFix(on){
   gridToast(`${target.length}개 제품을 ${on?'📌 파일값 고정':'⚙️ 자동계산'} 으로 바꿨습니다.`);
   logAct('반영방식', `일괄 ${target.length}개`, on?'파일값 고정':'자동계산');
 }
-/* 🧹 직접 조정 일괄 해제 — 📌 고정을 풀어도 '직접 조정된 칸'은 계산보다 우선이라
-   업로드 때 박힌 옛 값이 그대로 남는다(쿠팡가가 정가보다 비싸게 남던 문제). 한 번에 푼다. */
-async function bulkClearOvr(){
-  const list=visibleProducts();
-  if(!list.length){ alert('표에 보이는 제품이 없습니다.'); return; }
+/* 🧹 직접 조정 해제 — 📌 고정을 풀어도 '직접 조정된 칸'은 계산보다 우선이라
+   업로드 때 박힌 옛 값이 그대로 남는다(쿠팡가가 정가보다 비싸게 남던 문제).
+   제품 한 개(🧹 아이콘)와 지금 보이는 전체(도구 ▾) 두 가지로 풀 수 있다. */
+function ovrCellsOf(p){
   const rUid=(typeof retailUid==='function')?retailUid():null;
-  const hits=[];
-  list.forEach(p=>CHANNELS.forEach(c=>{
-    if(!c.col || isDeletedChan(c.uid) || c.uid===rUid) return;   // 정가는 앵커라 건드리지 않는다
-    if(hasOvr(p,c.uid)) hits.push({p,uid:c.uid}); }));
-  if(!hits.length){ alert('지금 표에 보이는 제품에는 직접 조정된 칸이 없습니다.'); return; }
-  if(!confirm(`지금 표에 보이는 ${list.length}개 제품에서\n직접 조정된 ${hits.length}칸을 해제합니다.\n\n· 그 칸들이 업체단가~정가 자동계산값으로 돌아갑니다.\n· 업체단가·자사몰정가는 그대로 둡니다.\n· 상급자 승인 후 실제 반영됩니다(개정안).\n\n계속할까요?`)) return;
+  const out=[];
+  CHANNELS.forEach(c=>{ if(!c.col || isDeletedChan(c.uid) || c.uid===rUid) return;   // 정가는 앵커라 건드리지 않는다
+    if(hasOvr(p,c.uid)) out.push({p,uid:c.uid,name:c.name}); });
+  return out;
+}
+async function applyOvrClear(hits,msg){
   hits.forEach(({p,uid})=>{ const k=ovrKey(p,uid); if(POVR[k]==null) delete DPOVR[k]; else DPOVR[k]=null; });
   DRAFT_META.status=DRAFT_META.status||'작성중'; await saveDraft();
   PREVIEW=true; recalcVendor(); refreshAll();
-  gridToast(`직접 조정 ${hits.length}칸을 해제했습니다 — 승인하면 반영됩니다.`);
-  logAct('직접조정', `일괄 해제 ${hits.length}칸`, `제품 ${list.length}개`);
+  gridToast(msg);
+}
+/* 제품 한 개 — 표의 🧹 아이콘 */
+async function clearOvrProduct(p){
+  if(!p) return;
+  const hits=ovrCellsOf(p);
+  if(!hits.length){ alert('이 제품에는 직접 조정된 칸이 없습니다.'); return; }
+  const names=hits.map(h=>h.name).join(', ');
+  if(!confirm(`${p.name}${p.spec&&p.spec!=='-'?' ('+p.spec+')':''}\n\n직접 조정된 ${hits.length}칸을 해제합니다.\n· ${names}\n\n· 업체단가~정가 자동계산값으로 돌아갑니다.\n· 업체단가·자사몰정가는 그대로 둡니다.\n· 상급자 승인 후 실제 반영됩니다(개정안).\n\n계속할까요?`)) return;
+  await applyOvrClear(hits, `${p.name} — 직접 조정 ${hits.length}칸을 해제했습니다.`);
+  logAct('직접조정', `해제 ${hits.length}칸`, `${p.name}${p.spec?' ('+p.spec+')':''}`);
+}
+/* 지금 표에 보이는 제품 전체 — 도구 ▾ 안의 버튼 */
+async function bulkClearOvr(){
+  const list=visibleProducts();
+  if(!list.length){ alert('표에 보이는 제품이 없습니다.'); return; }
+  const hits=[]; list.forEach(p=>hits.push(...ovrCellsOf(p)));
+  if(!hits.length){ alert('지금 표에 보이는 제품에는 직접 조정된 칸이 없습니다.'); return; }
+  const prods=new Set(hits.map(h=>pKey(h.p))).size;
+  if(!confirm(`지금 표에 보이는 ${list.length}개 중 ${prods}개 제품에서\n직접 조정된 ${hits.length}칸을 해제합니다.\n\n· 제품 하나만 풀려면 그 줄의 🧹 를 누르세요.\n· 업체단가·자사몰정가는 그대로 둡니다.\n· 상급자 승인 후 실제 반영됩니다(개정안).\n\n계속할까요?`)) return;
+  await applyOvrClear(hits, `${prods}개 제품의 직접 조정 ${hits.length}칸을 해제했습니다.`);
+  logAct('직접조정', `일괄 해제 ${hits.length}칸`, `제품 ${prods}개`);
 }
 function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산에 쓰는 COLS 는 그대로)
   ensureCatCfg();   // 새 분류 자동 시딩(표시·정렬용, 저장은 분류 관리에서)
@@ -4416,7 +4437,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
       <td class="frz frz-no dim">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span><span class="nono" data-key="${esc(pKey(p))}" data-no="${no}" title="번호를 눌러 원하는 자리로 보냅니다 (기존 제품은 아래로 밀립니다)">${no}</span>`:no}</td>
       ${showCode?(()=>{ const pc=pcodeOf(p), gc=!pc?(p.ghCode||''):''; const v=pc||gc, t=p3plOf(p);
         return `<td class="frz frz-code${gc?' gh':''}${v?'':' dim'}" title="${v?(gc?'그로홈 자체상품코드':'자체상품코드')+' — 눌러서 복사':'자체상품코드 없음'}${t?' · 3PL '+esc(t):''}">${v?`<span class="pcode-cell">${esc(v)}</span>`:'—'}${t?`<span class="c3pl" title="3PL(물류센터) 코드">3PL ${esc(t)}</span>`:''}</td>`; })():''}
-      <td class="frz frz-name name">${costAllowed?`<span class="rowtools"><button class="prodfix${isFixed(p)?' on':''}" data-id="${p.id}" title="${isFixed(p)?'📌 파일값 고정 — 업로드한 단가를 그대로 씁니다. 누르면 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사다리로 계산합니다. 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button><button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button></span>`:''}${statusChip(p)+brandChips(p)}<span class="pname" title="${esc(p.name)}">${esc(p.name)}</span></td>
+      <td class="frz frz-name name">${costAllowed?`<span class="rowtools"><button class="prodfix${isFixed(p)?' on':''}" data-id="${p.id}" title="${isFixed(p)?'📌 파일값 고정 — 업로드한 단가를 그대로 씁니다. 누르면 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사다리로 계산합니다. 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button>${(()=>{ const n=ovrCellsOf(p).length; return n?`<button class="prodovr" data-id="${p.id}" title="🧹 이 제품의 직접 조정된 ${n}칸을 풀어 자동계산으로 되돌립니다">🧹</button>`:''; })()}<button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button></span>`:''}${statusChip(p)+brandChips(p)}<span class="pname" title="${esc(p.name)}">${esc(p.name)}</span></td>
       <td class="frz frz-spec dim${lastFrz==='spec'?' frz-edge':''}">${esc(p.spec)}${pkg?(()=>{
         /* 세트는 값이 전부 비어 있으면 이유를 행에서 바로 알 수 있게 표시한다
            (예전에는 더블클릭해야 안내가 떠서 '고장난 줄' 알기 쉬웠다) */
@@ -4633,7 +4654,7 @@ function rowInfoPaint(el){
     return `<span class="ri-c${c.retail?' rt':''}"><i>${c.code?esc(c.code)+' ':''}${esc(c.lb)}</i><b>${v==null?'—':won(v)}</b>${r!=null?`<em class="${r<0?'neg':''}">${pct(r)}</em>`:''}</span>`; };
   el.hidden=false;
   el.innerHTML=`<div class="ri-hd"><b>${esc(p.name)}</b><span>${esc(p.spec||'')}${pcodeOf(p)?' · '+esc(pcodeOf(p)):''}${costAllowed?` · 원가 <b>${cost==null?'—':won(cost)}</b>`:''}</span>
-      ${costAllowed?(EDIT_ROW===String(p.id)?`<span class="ri-editing">✏️ 편집 중 · 가격칸 더블클릭</span><button type="button" class="ri-b" data-rimodal="${p.id}" title="분류·원가·유형·구성">상세 수정</button><button type="button" class="ri-b ri-mob" data-rifix="${p.id}" title="자동계산 ↔ 파일값 고정">${isFixed(p)?'📌 파일값':'⚙️ 자동계산'}</button><button type="button" class="ri-b ri-mob" data-ricopy="${p.id}">📋 복사</button><button type="button" class="ri-b ri-mob" data-ridel="${p.id}" style="color:var(--red)">🗑 휴지통</button><button type="button" class="ri-b ri-done" data-riedit="${p.id}">완료</button>`:`<button type="button" class="ri-b" data-riedit="${p.id}" title="이 제품 편집">✏️ 편집</button>`):''}${costAllowed?`<button type="button" class="ri-b ri-det" data-ridet="${p.id}" title="상품 기준 · 채널 수익분석">상세 ▸</button>`:''}<button type="button" class="ri-b" data-rinote="${p.id}" title="제품 메모·팀 QnA">📝 메모·QnA${(pnEnsure(),pnCount(p))?` <b style="color:var(--red)">${pnCount(p)}</b>`:''}</button><button type="button" class="ri-b" id="rowInfoX" title="닫기">✕</button></div>
+      ${costAllowed?(EDIT_ROW===String(p.id)?`<span class="ri-editing">✏️ 편집 중 · 가격칸 더블클릭</span><button type="button" class="ri-b" data-rimodal="${p.id}" title="분류·원가·유형·구성">상세 수정</button><button type="button" class="ri-b ri-mob" data-rifix="${p.id}" title="자동계산 ↔ 파일값 고정">${isFixed(p)?'📌 파일값':'⚙️ 자동계산'}</button>${(()=>{ const n=ovrCellsOf(p).length; return n?`<button type="button" class="ri-b ri-mob" data-riovr="${p.id}" title="직접 조정된 ${n}칸을 풀어 자동계산으로">🧹 조정 해제 ${n}</button>`:''; })()}<button type="button" class="ri-b ri-mob" data-ricopy="${p.id}">📋 복사</button><button type="button" class="ri-b ri-mob" data-ridel="${p.id}" style="color:var(--red)">🗑 휴지통</button><button type="button" class="ri-b ri-done" data-riedit="${p.id}">완료</button>`:`<button type="button" class="ri-b" data-riedit="${p.id}" title="이 제품 편집">✏️ 편집</button>`):''}${costAllowed?`<button type="button" class="ri-b ri-det" data-ridet="${p.id}" title="상품 기준 · 채널 수익분석">상세 ▸</button>`:''}<button type="button" class="ri-b" data-rinote="${p.id}" title="제품 메모·팀 QnA">📝 메모·QnA${(pnEnsure(),pnCount(p))?` <b style="color:var(--red)">${pnCount(p)}</b>`:''}</button><button type="button" class="ri-b" id="rowInfoX" title="닫기">✕</button></div>
     <div class="ri-row">${cols.map(chip).join('')}</div>
     ${costAllowed&&MOQ_TIERS.length?(()=>{ const inQ=QT.items.find(x=>x.key===pKey(p)); const def=inQ?inQ.qty:((MOQ_TIERS[1]&&MOQ_TIERS[1].min)||1);
       return `<div class="ri-moq"><span class="ri-t">수량별</span>${MOQ_TIERS.map(t=>{ const u=qtUnitAuto(p,t.min); return `<span class="ri-m"><i>${esc(t.label)}</i>${u==null?'—':won(u)}</span>`; }).join('')}
@@ -4644,6 +4665,7 @@ document.addEventListener('click',e=>{
   const ad=e.target.closest('[data-riadd]'); if(ad){ dlAdd(ad.dataset.riadd, $('#riQty')?$('#riQty').value:1); rowInfoRender(); uiToast(`견적에 담김 · ${QT.items.length}개 품목 (🧾 견적에서 보기)`,'ok'); return; }
   const ed=e.target.closest('[data-riedit]'); if(ed){ const id=ed.dataset.riedit; setEditRow(EDIT_ROW===id?null:id); return; }
   const dt=e.target.closest('[data-ridet]'); if(dt){ const p=P.find(x=>String(x.id)===dt.dataset.ridet); if(p) openDetail(p); return; }
+  const ro=e.target.closest('[data-riovr]'); if(ro){ const p=P.find(x=>String(x.id)===ro.dataset.riovr); if(p){ Promise.resolve(clearOvrProduct(p)).then(()=>rowInfoRender()); } return; }
   const rf=e.target.closest('[data-rifix]'); if(rf){ const p=P.find(x=>String(x.id)===rf.dataset.rifix); if(p){ Promise.resolve(toggleFixed(p)).then(()=>rowInfoRender()); } return; }
   const rc=e.target.closest('[data-ricopy]'); if(rc){ const p=P.find(x=>String(x.id)===rc.dataset.ricopy); if(p) openCopyModal(p); return; }
   const rd=e.target.closest('[data-ridel]'); if(rd){ const p=P.find(x=>String(x.id)===rd.dataset.ridel); if(p) softDeleteProduct(p); return; }
@@ -9715,6 +9737,7 @@ function wireImportModal(){
     const nn=e.target.closest('.nono'); if(nn){ startNoEdit(nn); return; }
     const ed=e.target.closest('.prodedit'); if(ed){ const id=String(ed.dataset.id); setEditRow(EDIT_ROW===id?null:id); return; }
     const inGrid=el=>!!el.closest('#priceGrid');
+    const ov=e.target.closest('.prodovr'); if(ov){ const p=P.find(x=>x.id==ov.dataset.id); if(p)clearOvrProduct(p); return; }
     const cp=e.target.closest('.prodcopy'); if(cp){ if(inGrid(cp)&&!rowEditing(cp)){ editLockToast(); return; } const p=P.find(x=>x.id==cp.dataset.id); if(p)openCopyModal(p); return; }
     const fx=e.target.closest('.prodfix'); if(fx){ if(inGrid(fx)&&!rowEditing(fx)){ editLockToast(); return; } const p=P.find(x=>x.id==fx.dataset.id); if(p)toggleFixed(p); return; }
     const dl=e.target.closest('.proddel'); if(dl){ if(inGrid(dl)&&!rowEditing(dl)){ editLockToast(); return; } const p=P.find(x=>x.id==dl.dataset.id); if(p)softDeleteProduct(p); }

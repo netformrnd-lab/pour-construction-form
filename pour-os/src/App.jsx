@@ -3364,7 +3364,7 @@ function ThreadPanel({D,cu,up,itemId,itemName,kind,task,proj,title="댓글",star
       </div>
       {mode==="confirm"?<div style={{padding:10,borderRadius:12,background:"#F7F8FB",border:"1.5px solid #D3D8E6"}}>
         <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)",gap:6,marginBottom:6}}>
-          <label style={{fontSize:11.5,fontWeight:700,color:"#4E5968"}}>받는 사람 *<select value={to} onChange={e=>setTo(e.target.value)} aria-label="받는 사람" style={{...inp,marginTop:3}}><option value="">고르기</option>{users.filter(u=>u.id!==cu.id).map(u=><option key={u.id} value={u.id}>{u.name}{projOf&&projOf.assigneeId===u.id?" (관리 담당)":""}</option>)}</select></label>
+          <label style={{fontSize:11.5,fontWeight:700,color:"#4E5968"}}>받는 사람 *<select value={to} onChange={e=>setTo(e.target.value)} aria-label="받는 사람" style={{...inp,marginTop:3}}><option value="">고르기</option>{users.filter(u=>u.id!==cu.id).map(u=><option key={u.id} value={u.id}>{u.name}{projOf&&projOf.assigneeId===u.id?" (책임자)":""}</option>)}</select></label>
           <label style={{fontSize:11.5,fontWeight:700,color:"#4E5968"}}>파일명<input value={fname} onChange={e=>setFname(e.target.value)} placeholder="예: 11월_상세_v1.psd" aria-label="파일명" style={{...inp,marginTop:3}}/></label>
         </div>
         <input value={link} onChange={e=>setLink(e.target.value)} placeholder="공유폴더 링크 또는 위치 (선택)" aria-label="공유폴더 링크" style={{...inp,marginBottom:6}}/>

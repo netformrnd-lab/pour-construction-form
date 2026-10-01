@@ -10,7 +10,7 @@
 //  · 마진대시보드 › 매출 화면이 브랜드·월·채널별 합계를 pour-os/sales-rollup 에 남긴다 (rows:[{b,ym,ch,amt}])
 //  · 서브KPI 에 연결된 채널(salesCh, 없으면 기본 연결표)의 그 해 합계 = 현재값 (salesAuto:false 면 예전처럼 수동)
 
-import { akWeeksIn, akQuarterWeeks, akTotal, akPartial, akLink, akYmd } from "./actionKpi.js";
+import { akWeeksIn, akQuarterWeeks, akTotal, akPartial, akLink, akYmd, akWeekKey, akMonthOfWeek } from "./actionKpi.js";
 
 export const COMMON = "common";
 export const BRAND_SEED = [
@@ -175,7 +175,8 @@ export function rollupRows(rows) {
 // ── 실행 현황 — 행동지표 · 고정업무 · 프로젝트를 섞지 않고 따로 계산 ──
 // 행동지표 달성률(이번 달, 지금까지 해야 할 만큼 기준): 주간 = 지난 주+이번 주 / 월간 = 이번 달 / 분기 = 이번 분기
 export function akRateOf(docs, items, today) {
-  const d = new Date(today + "T00:00:00"), y = d.getFullYear(), m0 = d.getMonth();
+  // 이번 주가 속한 달로 센다(주는 월요일의 달) — 오늘 화면 행동지표 카드와 같은 기준. 10/1(목)이면 9/28 주 → 9월
+  const { y, m0 } = akMonthOfWeek(akWeekKey(new Date(today + "T00:00:00")));
   const mw = akWeeksIn(y, m0), qw = akQuarterWeeks(y, m0), past = mw.filter((w) => w.start <= today);
   const rows = [];
   (items || []).forEach((it) => {

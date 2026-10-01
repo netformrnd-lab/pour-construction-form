@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, arrayUnion, increment, uploadTaskPhoto, deleteTaskPhoto, uploadAkFile, fetchMktLinks } from "./firebase.js";
+import { RUN_COL, runNoteId, cleanSteps, runSteps, runChecks, runNext, runProgress, runTurnOwner, runToggle, runConfirmStep, runTurns, openRunsOf } from "./akRuns.js";
 import { RESEARCH_COL, researchUrl, researchTodo, researchTask, KIND_LABEL } from "./research.js";
 import { ML_PURPOSES, mlDest, normUrl, mlMakeDoc, mlReady, mlAutoLabel, recentCombos, mergeLinks, trackUrl, isTrackUrl, trackId, genLinkId, LINK_COL } from "./linkMaker.js";
 import { noteThreads, noteCounts, linkParts, buildUtm, readUtm, pickFiles, pastedName, fileSize, isImage, UTM_SOURCES, UTM_MEDIUMS, taskNoteId, projNoteId, confirmLatest, nextRound, confirmQueue, newNotesFor } from "./akNotes.js";
@@ -20,7 +21,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-댓글시각";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-체크리스트";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -492,12 +493,14 @@ const fetchKpiAct=async()=>{ const out={}; const t=new Date(); const cy=t.getFul
   console.log(`[백업] 행동지표 기록 ${Object.keys(out).length}개 분기`); return out; };
 // 행동지표 메모(댓글) — 댓글 1개 = 문서 1개 (pour-os/ak-notes/c/{id})
 const NOTE_COL="pour-os/ak-notes/c";
+const fetchAkRuns=async()=>{ const sn=await getDocs(extCol(RUN_COL)); const out=sn.docs.map(d=>({id:d.id,...d.data()})); console.log(`[백업] 행동지표 체크리스트 실행 ${out.length}건`); return out; };
 const fetchAkNotes=async()=>{ const sn=await getDocs(extCol(NOTE_COL)); const out=sn.docs.map(d=>({id:d.id,...d.data()})); console.log(`[백업] 행동지표 메모 ${out.length}건`); return out; };
 const downloadStateBackup=async(D)=>{
   const shared=pickShared(D);
   let kpiAct={}; try{ kpiAct=await fetchKpiAct(); }catch(e){ console.warn("[백업] 행동지표 기록 제외:",e); }
+  let akRuns=[]; try{ akRuns=await fetchAkRuns(); }catch(e){ console.warn("[백업] 체크리스트 실행 제외:",e); }
   let akNotes=[]; try{ akNotes=await fetchAkNotes(); }catch(e){ console.warn("[백업] 행동지표 메모 제외:",e); }
-  const blob=new Blob([JSON.stringify({_app:"pour-os",_backupAt:new Date().toISOString(),...shared,kpiAct,akNotes},null,2)],{type:"application/json"});
+  const blob=new Blob([JSON.stringify({_app:"pour-os",_backupAt:new Date().toISOString(),...shared,kpiAct,akNotes,akRuns},null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");a.href=url;a.download=`pour-os-backup_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.json`;a.click();URL.revokeObjectURL(url);
 };
@@ -1208,8 +1211,9 @@ export default function App(){
     try{
       const shared=pickShared(D);
       let kpiAct={}; try{ kpiAct=await fetchKpiAct(); }catch(e){ console.warn("[백업] 행동지표 기록 제외:",e); }
+      let akRuns=[]; try{ akRuns=await fetchAkRuns(); }catch(e){ console.warn("[백업] 체크리스트 실행 제외:",e); }
       let akNotes=[]; try{ akNotes=await fetchAkNotes(); }catch(e){ console.warn("[백업] 행동지표 메모 제외:",e); }
-      const content=JSON.stringify({_app:"pour-os",_backupAt:new Date().toISOString(),_reason:reason||"manual",...shared,kpiAct,akNotes},null,2);
+      const content=JSON.stringify({_app:"pour-os",_backupAt:new Date().toISOString(),_reason:reason||"manual",...shared,kpiAct,akNotes,akRuns},null,2);
       const res=await fetch("/api/backup",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content,reason:reason||"manual"})});
       const j=await res.json().catch(()=>({ok:false,error:"응답 파싱 실패"}));
       if(j.ok){ try{ localStorage.setItem(EXT_BACKUP_AT_KEY,new Date().toISOString()); }catch(_){} }
@@ -3036,6 +3040,50 @@ function useAkNotes(){
     return ()=>{ try{ un&&un(); }catch(_){} }; },[]);
   return notes;
 }
+// ── 행동지표 체크리스트 실행 (pour-os/ak-runs/r/{id}) ──
+function useAkRuns(){
+  const [runs,setRuns]=useState([]);
+  useEffect(()=>{ let un=null;
+    try{ un=onSnapshot(extCol(RUN_COL),(sn)=>{ const out=sn.docs.map(d=>({id:d.id,...d.data()})); console.log(`[체크리스트 실행] ${out.length}건`); setRuns(out); },(e)=>console.error("[체크리스트 실행] 구독 실패:",e)); }
+    catch(e){ console.error("[체크리스트 실행] 구독 실패:",e); }
+    return ()=>{ try{ un&&un(); }catch(_){} }; },[]);
+  return runs;
+}
+async function startAkRun(it,cu){ const now=new Date(); const id="r"+now.getTime().toString(36)+Math.random().toString(36).slice(2,5);
+  const doc={id,akId:it.id,akName:it.name||"",title:`${now.getMonth()+1}/${now.getDate()} ${it.name||""}`,steps:cleanSteps(it.steps),checks:{},by:cu.id,byName:cu.name||"",at:now.toISOString(),status:"open",counted:null,deleted:false};
+  await setDoc(extDoc(RUN_COL,id),doc); return doc; }
+// 한 단계 체크/해제 — 다 체크하면 그 행동지표 +1(시작한 사람 실적·그 주), 풀면 −1. 체크 칸은 통째로 다시 씀(해제가 지워지게)
+async function toggleAkRun(D,run,sid,actor){
+  const {patch,count,wk}=runToggle(run,sid,actor,(d)=>akWeekKey(d));
+  const {id:_i,...rest}=run; await setDoc(extDoc(RUN_COL,run.id),{...rest,...patch});
+  if(count){ const it=(D.actionKPIs||[]).find(x=>x.id===run.akId); if(!it){ console.warn("[체크리스트 실행] 행동지표 없음:",run.akId); return count; }
+    const who=(D.users||[]).find(u=>u.id===run.by)||{id:run.by,name:run.byName||""};
+    await akBump(it,wk,"n",count,who);
+    if(count>0){ const nid="n"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+      await setDoc(extDoc(NOTE_COL,nid),{id:nid,itemId:it.id,itemName:it.name||"",kind:"ak",count:{wk,at:new Date().toISOString(),unit:it.unit||"",run:run.id},parentId:null,text:`체크리스트 완료 · ${run.title||""}`,files:[],by:who.id,byName:who.name||"",at:new Date().toISOString(),deleted:false}); } }
+  return count; }
+function AkRunSteps({D,cu,run,onConfirm}){
+  const [busy,setBusy]=useState(""); const ck=runChecks(run); const nx=runNext(run);
+  const tog=async(s)=>{ if(busy) return; setBusy(s.id); try{ await toggleAkRun(D,run,s.id,cu); }catch(e){ console.error("[체크리스트 실행] 저장 실패:",e); } finally{ setBusy(""); } };
+  return(<div style={{display:"flex",flexDirection:"column"}}>{runSteps(run).map(s=>{ const c=ck[s.id]; const isNx=nx&&nx.id===s.id; const own=s.owner||run.by;
+    return(<div key={s.id} style={{display:"flex",alignItems:"center",gap:9,padding:"6px 2px"}}>
+      <button onClick={()=>tog(s)} disabled={!!busy} aria-label={`${s.title} 체크`} style={{flexShrink:0,width:24,height:24,borderRadius:7,border:`2px solid ${c?"#2F7D57":isNx?"#24386B":"#D1D6DB"}`,background:c?"#2F7D57":"#fff",color:"#fff",fontSize:13,fontWeight:900,cursor:"pointer",padding:0}}>{c?"✓":""}</button>
+      <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:isNx?800:600,color:c?"#8B95A1":"#191F28",textDecoration:c?"line-through":"none",lineHeight:1.35}}>{s.title}{s.confirm&&<span style={{marginLeft:5,fontSize:10.5,fontWeight:900,color:"#B26A12",background:"#FFF4E5",borderRadius:6,padding:"1px 6px",textDecoration:"none",display:"inline-block"}}>컨펌</span>}</span>
+      {s.confirm&&!c&&onConfirm&&<button onClick={()=>onConfirm(s)} style={{...NB.sub,padding:"4px 8px",fontSize:11.5}}>컨펌 요청</button>}
+      <span style={{flexShrink:0,fontSize:11,color:"#8B95A1"}}>{c?(c.byName||userNameOf(D,c.by)):userNameOf(D,own)}</span>
+    </div>); })}</div>); }
+function AkRunSheet({D,cu,up,run,onClose,confirm}){
+  const runs=useAkRuns(); const r=runs.find(x=>x.id===run.id)||run;
+  const [mode,setMode]=useState(confirm?"confirm":"note"); const cs=runSteps(r).find(s=>s.confirm&&!runChecks(r)[s.id]);
+  const p=runProgress(r);
+  return(<Sheet open onClose={onClose} title="체크리스트" h="92vh" w={620}>
+    <div style={{paddingTop:2}}>
+      <input defaultValue={r.title} key={r.id} onBlur={e=>{ const v=e.target.value.trim(); if(v&&v!==r.title){ const {id:_i,...rest}=r; setDoc(extDoc(RUN_COL,r.id),{...rest,title:v}); } }} aria-label="이름" style={{width:"100%",fontSize:16,fontWeight:900,border:"1.5px solid transparent",padding:"4px 2px",fontFamily:"inherit",background:"transparent",boxSizing:"border-box"}}/>
+      <p style={{margin:"0 2px 10px",fontSize:12,color:"#6B7684"}}>{r.akName} · 시작 {userNameOf(D,r.by)||r.byName} · {p.done}/{p.total}{r.status==="done"?" · 완료 → 행동지표 +1 됨":" · 다 체크하면 행동지표 +1"}</p>
+      <div style={{padding:"6px 10px",borderRadius:12,border:"1px solid #E5E8EB",marginBottom:14}}><AkRunSteps D={D} cu={cu} run={r} onConfirm={()=>setMode("confirm")}/></div>
+      <ThreadPanel key={mode} D={D} cu={cu} up={up} itemId={runNoteId(r.id)} itemName={`${r.akName} · ${r.title}`} kind="akrun" startMode={mode} defaultTo={cs&&cs.owner} onApproved={async()=>{ const sid=runConfirmStep(r); if(sid) await toggleAkRun(D,r,sid,cu); }}/>
+    </div>
+  </Sheet>); }
 const NB={pri:{padding:"8px 14px",borderRadius:9,border:"none",background:"#24386B",color:"#fff",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"},
   sub:{padding:"7px 11px",borderRadius:9,border:"1px solid #D5D9E0",background:"#fff",color:"#3D4250",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"},
   link:{padding:"2px 4px",border:"none",background:"none",color:"#5B606B",fontSize:11.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit"},
@@ -3232,14 +3280,14 @@ const seenKey=(uid)=>"pour-os-seen-"+uid;
 const readSeen=(uid)=>{ try{ return JSON.parse(localStorage.getItem(seenKey(uid))||"{}"); }catch(_){ return {}; } };
 const markSeen=(uid,itemId)=>{ try{ const m=readSeen(uid); m[itemId]=new Date().toISOString(); if(!m._since) m._since=new Date(Date.now()-7*864e5).toISOString(); localStorage.setItem(seenKey(uid),JSON.stringify(m)); }catch(_){} };
 const CF_TAG={wait:{l:"컨펌 대기",c:"#B26A12",bg:"#FFF4E5"},ok:{l:"승인",c:"#2F7D57",bg:"#EAF4EE"},fix:{l:"수정 요청",c:"#B4383F",bg:"#F8EDEE"}};
-function ThreadPanel({D,cu,up,itemId,itemName,kind,task,proj,title="댓글"}){
+function ThreadPanel({D,cu,up,itemId,itemName,kind,task,proj,title="댓글",startMode,defaultTo,onApproved}){
   const notes=useAkNotes();
   const users=D.users||[];
   const nameOf=(id,nm)=>{ const u=users.find(x=>x.id===id); return u?u.name:(nm||"?"); };
   const when=noteAt;   // 기기 시간대(한국)로 날짜·요일·시각 모두
   const projOf=task?(D.projects||[]).find(x=>x.id===task.projectId):proj;
-  const [mode,setMode]=useState("note");   // note | confirm
-  const [to,setTo]=useState(()=>{ const m=projOf&&projOf.assigneeId; return m&&m!==cu.id?m:""; });
+  const [mode,setMode]=useState(startMode||"note");   // note | confirm
+  const [to,setTo]=useState(()=>{ if(defaultTo&&defaultTo!==cu.id) return defaultTo; const m=projOf&&projOf.assigneeId; return m&&m!==cu.id?m:""; });
   const [link,setLink]=useState(""); const [fname,setFname]=useState("");
   const [replyTo,setReplyTo]=useState(null); const [fbFor,setFbFor]=useState(null); const [editId,setEditId]=useState(null); const [delAsk,setDelAsk]=useState(null);
   useEffect(()=>{ markSeen(cu.id,itemId); },[itemId,notes.length]);   // eslint-disable-line
@@ -3256,6 +3304,7 @@ function ThreadPanel({D,cu,up,itemId,itemName,kind,task,proj,title="댓글"}){
     setLink(""); setFname(""); setMode("note"); };
   const decide=async(n,status,done)=>{ const at=new Date().toISOString();
     await setDoc(extDoc(NOTE_COL,n.id),{status,decidedBy:cu.id,decidedByName:cu.name||"",decidedAt:at},{merge:true});
+    if(status==="ok"&&onApproved){ try{ await onApproved(n); }catch(e){ console.error("[컨펌] 승인 후 처리 실패:",e); } }
     if(task&&up&&(status==="ok")) up("tasks",task.id,{confirmed:{by:cu.id,byName:cu.name||"",at,round:n.round||1},...(done?{status:"done"}:{})}); };
   const sendFb=async(n,text,files,setBusy)=>{ await save({text,parentId:n.id,fb:true},files,setBusy); await decide(n,"fix"); setFbFor(null); };
   const saveEdit=async(n,text)=>{ if(text===n.text){ setEditId(null); return; } const at=new Date().toISOString(); await setDoc(extDoc(NOTE_COL,n.id),{text,editedAt:at,editedBy:cu.id,edits:arrayUnion({text:n.text||"",at})},{merge:true}); setEditId(null); };
@@ -3331,22 +3380,29 @@ function NoteBadge({notes,taskId}){ const id=taskNoteId(taskId); const c=(noteCo
 const userNameOf=(D,id)=>((D.users||[]).find(u=>u.id===id)||{}).name||"";
 // 오늘 맨 위: 컨펌 대기 · 피드백 옴 · 새 댓글
 function TodayThreads({D,cu,up}){
-  const notes=useAkNotes();
-  const [open,setOpen]=useState(null);
+  const notes=useAkNotes(); const runs=useAkRuns();
+  const [open,setOpen]=useState(null); const [runOpen,setRunOpen]=useState(null);
   const [tick,setTick]=useState(0);
   const q=confirmQueue(notes,cu.id);
   const seen=readSeen(cu.id);
   if(!seen._since){ seen._since=new Date(Date.now()-7*864e5).toISOString(); try{ localStorage.setItem(seenKey(cu.id),JSON.stringify(seen)); }catch(_){} }   // 이 기기 처음이면 최근 7일 댓글부터
-  const myItems=[...(D.tasks||[]).filter(t=>!t.isFixed&&(t.assigneeId===cu.id||(t.assigneeIds||[]).includes(cu.id))).map(t=>taskNoteId(t.id)),...(D.projects||[]).filter(p=>p.assigneeId===cu.id).map(p=>projNoteId(p.id))];
+  const myItems=[...(D.tasks||[]).filter(t=>!t.isFixed&&(t.assigneeId===cu.id||(t.assigneeIds||[]).includes(cu.id))).map(t=>taskNoteId(t.id)),...(D.projects||[]).filter(p=>p.assigneeId===cu.id).map(p=>projNoteId(p.id)),...runs.filter(r=>r.by===cu.id).map(r=>runNoteId(r.id))];
+  const turns=runTurns(runs,cu.id,{exceptMine:true});
   const fresh=newNotesFor(notes,cu.id,myItems,seen,seen._since||new Date().toISOString()).filter(n=>!(n.kind==="confirm"&&n.to===cu.id&&n.status==="wait")&&!q.wait.some(x=>x.itemId===n.itemId)&&!q.fix.some(x=>x.itemId===n.itemId));   // 컨펌 대기·피드백 옴에 이미 뜬 업무는 새 댓글에서 뺌
   const byItem=[]; const seenIt=new Set(); fresh.forEach(n=>{ if(seenIt.has(n.itemId)) return; seenIt.add(n.itemId); byItem.push({n,c:fresh.filter(x=>x.itemId===n.itemId).length}); });
-  if(!q.wait.length&&!q.fix.length&&!byItem.length) return open?<ThreadSheet D={D} cu={cu} up={up} target={open} onClose={()=>{ setOpen(null); setTick(x=>x+1); }}/>:null;   // 마지막 건을 처리해도 열린 창은 그대로
-  const go=(n)=>setOpen({itemId:n.itemId,itemName:n.itemName,taskId:n.taskId||(String(n.itemId).startsWith("task:")?String(n.itemId).slice(5):null),projectId:String(n.itemId).startsWith("proj:")?String(n.itemId).slice(5):null});
+  const runSheetEl=runOpen?<AkRunSheet D={D} cu={cu} up={up} run={runOpen.run} confirm={runOpen.confirm} onClose={()=>setRunOpen(null)}/>:null;
+  if(!q.wait.length&&!q.fix.length&&!byItem.length&&!turns.length) return runSheetEl||(open?<ThreadSheet D={D} cu={cu} up={up} target={open} onClose={()=>{ setOpen(null); setTick(x=>x+1); }}/>:null);   // 마지막 건을 처리해도 열린 창은 그대로
+  const go=(n)=>{ const iid=String(n.itemId||""); if(iid.startsWith("akrun:")){ const r=runs.find(x=>x.id===iid.slice(6)); if(r){ setRunOpen({run:r,confirm:false}); return; } } setOpen0(n); };
+  const setOpen0=(n)=>setOpen({itemId:n.itemId,itemName:n.itemName,taskId:n.taskId||(String(n.itemId).startsWith("task:")?String(n.itemId).slice(5):null),projectId:String(n.itemId).startsWith("proj:")?String(n.itemId).slice(5):null});
   const ago=(at)=>{ const m=Math.round((Date.now()-new Date(at).getTime())/60000); return m<60?`${Math.max(1,m)}분 전`:m<1440?`${Math.round(m/60)}시간 전`:`${Math.round(m/1440)}일 전`; };
   const Row=({n,sub,tone})=>(<button onClick={()=>go(n)} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 12px",borderRadius:12,border:`1px solid ${tone||"#E3E7F0"}`,background:"#F7F8FB",cursor:"pointer",fontFamily:"inherit"}}>
     <b style={{display:"block",fontSize:13.5,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.itemName||"업무"}</b>
     <span style={{display:"block",fontSize:11.5,color:"#6B7684",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</span></button>);
   return(<div style={{background:"#fff",borderRadius:16,padding:14,border:"1px solid #D3D8E6",marginBottom:14,display:"flex",flexDirection:"column",gap:12}}>
+    {turns.length>0&&<div><h3 style={{margin:"0 0 8px",fontSize:14,fontWeight:900,color:"#1E2F5C"}}>체크리스트 내 차례 ({turns.length})</h3>
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>{turns.map(r=>{ const nx=runNext(r), p=runProgress(r); return <button key={r.id} onClick={()=>setRunOpen({run:r,confirm:!!(nx&&nx.confirm)})} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 12px",borderRadius:12,border:"1px solid #E3E7F0",background:"#F7F8FB",cursor:"pointer",fontFamily:"inherit"}}>
+        <b style={{display:"block",fontSize:13.5,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title} <span style={{color:"#1E2F5C"}}>→ {nx?nx.title:""}</span></b>
+        <span style={{display:"block",fontSize:11.5,color:"#6B7684",marginTop:2}}>{r.akName} · {userNameOf(D,r.by)||r.byName} 시작 · {p.done}/{p.total}{nx&&nx.confirm?" · 컨펌 단계":""}</span></button>; })}</div></div>}
     {q.wait.length>0&&<div><h3 style={{margin:"0 0 8px",fontSize:14,fontWeight:900,color:"#1E2F5C"}}>컨펌 대기 ({q.wait.length})</h3>
       <div style={{display:"flex",flexDirection:"column",gap:6}}>{q.wait.map(n=><Row key={n.id} n={n} tone="#F0D9B5" sub={`${userNameOf(D,n.by)||n.byName} · ${n.round||1}차 · ${n.fileName?n.fileName+" · ":""}${(n.files||[]).length?`파일 ${(n.files||[]).length} · `:""}${ago(n.at)}`}/>)}</div></div>}
     {q.fix.length>0&&<div><h3 style={{margin:"0 0 8px",fontSize:14,fontWeight:900,color:"#B4383F"}}>피드백 옴 ({q.fix.length}) <span style={{fontSize:11,fontWeight:700,color:"#8B95A1"}}>· 고쳐서 다음 차수로 올려요</span></h3>
@@ -3354,6 +3410,7 @@ function TodayThreads({D,cu,up}){
     {byItem.length>0&&<div><h3 style={{margin:"0 0 8px",fontSize:14,fontWeight:900,color:"#1E2F5C"}}>새 댓글 ({fresh.length})</h3>
       <div style={{display:"flex",flexDirection:"column",gap:6}}>{byItem.slice(0,6).map(({n,c})=><Row key={n.id} n={n} sub={`${userNameOf(D,n.by)||n.byName}: ${String(n.text||"(파일)").slice(0,40)}${c>1?` 외 ${c-1}개`:""} · ${ago(n.at)}`}/>)}</div></div>}
     {open&&<ThreadSheet D={D} cu={cu} up={up} target={open} onClose={()=>{ setOpen(null); setTick(x=>x+1); }}/>}
+    {runSheetEl}
   </div>);
 }
 // 행동지표 만들기·수정 — 삭제는 없고 '멈추기'만 (기록은 그대로 남음)
@@ -3363,12 +3420,15 @@ function AkEditSheet({D,cu,item,core,add,up,onClose}){
   const [f,setF]=useState(()=>item?{name:item.name||"",fun:AK_FUNS.includes(item.fun)?item.fun:"기타",cyc:item.cyc||"W",goal:String(item.goal??""),unit:item.unit||"건",step:String(item.step||10),who:akWho(users,item),how:item.how||"직접",brand:akBrandOf(item,D.brands),desc:item.desc||"",core:!!item.core}
     :{name:"",fun:"A 유입",cyc:"W",goal:"1",unit:"건",step:"10",who:[cu.id],how:"직접",brand:(D._brand&&D._brand!=="all")?D._brand:"pourstore",desc:"",core:!!core&&canCore,mk:"",sk:""});
   const [lnk,setLnk]=useState(()=>item?akLink(item):{mk:"",sk:""});
+  const [steps,setSteps]=useState(()=>cleanSteps(item&&item.steps));
+  const [stepNew,setStepNew]=useState("");
   const pct=f.unit==="%";
   const okGoal=item&&item.perFail?true:(pct?true:Number(f.goal)>0);
   const ok=f.name.trim()&&okGoal&&f.who.length>0;
   const set=(k,v)=>setF(o=>({...o,[k]:v}));
   const save=()=>{ if(!ok) return;
     const patch={mk:lnk.mk,sk:lnk.sk,name:f.name.trim(),fun:f.fun,cyc:f.cyc,unit:f.unit,goal:pct?100:(item&&item.perFail?(item.goal||0):Number(f.goal)),who:f.who,whoNames:f.who.map(id=>(users.find(u=>u.id===id)||{}).name||""),how:f.how,brand:f.brand,desc:f.desc.trim(),...(pct?{step:Math.max(1,Number(f.step)||10)}:{})};
+    patch.steps=cleanSteps(steps);
     if(canCore) patch.core=!!f.core;
     if(item){ up("actionKPIs",item.id,{...patch,updatedAt:new Date().toISOString(),updatedBy:cu.id}); }
     else{ const mx=Math.max(0,...(D.actionKPIs||[]).map(x=>+x.order||0)); add("actionKPIs",{id:"ak"+Date.now().toString(36),...patch,core:canCore?!!f.core:false,active:true,order:mx+1,startDate:akYmd(new Date()),createdAt:new Date().toISOString(),createdBy:cu.id,createdByName:cu.name||""}); }
@@ -3400,6 +3460,18 @@ function AkEditSheet({D,cu,item,core,add,up,onClose}){
       <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{users.map(u=>{ const on=f.who.includes(u.id); return <button key={u.id} type="button" onClick={()=>set("who",on?f.who.filter(x=>x!==u.id):[...f.who,u.id])} style={chip(on)}>{on?"✓ ":""}{u.name}</button>; })}</div>
       <label style={lab}>방식 · 브랜드</label>
       <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{["직접","외주"].map(x=><button key={x} type="button" onClick={()=>set("how",x)} style={chip(f.how===x)}>{x}</button>)}<span style={{width:8}}/>{[...(D.brands||BRAND_SEED).filter(b=>b.active!==false).map(b=>[b.id,b.name]),[COMMON,"공통"]].map(([k,l])=><button key={k} type="button" onClick={()=>set("brand",k)} style={chip(f.brand===k)}>{l}</button>)}</div>
+      <label style={lab}>체크리스트 (선택) <span style={{fontWeight:500,color:"#9CA3AF"}}>· 단계가 있는 반복 일만 · 다 체크하면 +1 · 없으면 지금처럼 +1</span></label>
+      {steps.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:6}}>{steps.map((st,ix)=><div key={st.id} style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap",padding:"6px 7px",borderRadius:10,background:"#F7F8FA"}}>
+        <span style={{fontSize:12,fontWeight:800,color:"#8B95A1",width:16,textAlign:"right"}}>{ix+1}</span>
+        <input value={st.title} onChange={e=>setSteps(a=>a.map(x=>x.id===st.id?{...x,title:e.target.value}:x))} aria-label="단계 이름" style={{...inp,flex:"1 1 150px",padding:"7px 9px",fontSize:13}}/>
+        <select value={st.owner||""} onChange={e=>setSteps(a=>a.map(x=>x.id===st.id?{...x,owner:e.target.value}:x))} aria-label="단계 담당" style={{...inp,width:"auto",flex:"0 0 auto",padding:"7px 8px",fontSize:12.5}}><option value="">시작한 사람</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
+        <button type="button" aria-pressed={!!st.confirm} onClick={()=>setSteps(a=>a.map(x=>x.id===st.id?{...x,confirm:!x.confirm}:x))} style={{...chip(!!st.confirm),padding:"6px 9px",fontSize:11.5}}>컨펌</button>
+        <button type="button" aria-label="위로" disabled={ix===0} onClick={()=>setSteps(a=>{ const b=a.slice(); [b[ix-1],b[ix]]=[b[ix],b[ix-1]]; return b; })} style={{...chip(false),padding:"6px 8px",fontSize:11.5}}>↑</button>
+        <button type="button" aria-label="단계 빼기" onClick={()=>setSteps(a=>a.filter(x=>x.id!==st.id))} style={{...chip(false),padding:"6px 8px",fontSize:11.5,color:"#B4383F"}}>빼기</button>
+      </div>)}</div>}
+      <div style={{display:"flex",gap:6}}><input value={stepNew} onChange={e=>setStepNew(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter"&&stepNew.trim()){ e.preventDefault(); setSteps(a=>[...a,...cleanSteps([{title:stepNew}])]); setStepNew(""); } }} placeholder="단계 추가 — 예: 키워드 리스트 확인 후 선정" aria-label="단계 추가" style={{...inp,flex:1,minWidth:0}}/>
+        <button type="button" disabled={!stepNew.trim()} onClick={()=>{ setSteps(a=>[...a,...cleanSteps([{title:stepNew}])]); setStepNew(""); }} style={{flexShrink:0,padding:"0 14px",borderRadius:10,border:"none",background:stepNew.trim()?"#24386B":"#D1D6DB",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>추가</button></div>
+      {steps.some(x=>x.confirm)&&<p style={{margin:"5px 2px 0",fontSize:11,color:"#8B95A1"}}>'컨펌' 단계는 컨펌 요청이 승인되면 자동 체크돼요 · 받는 사람은 그 단계 담당</p>}
       <label style={lab}>세부내용</label>
       <textarea value={f.desc} onChange={e=>set("desc",e.target.value)} rows={3} placeholder="무엇을 어떻게 하는지 한두 줄" style={{...inp,resize:"vertical"}}/>
       <button onClick={save} disabled={!ok} style={{width:"100%",marginTop:16,padding:"14px 0",borderRadius:14,border:"none",background:ok?"#0F1F5C":"#D1D6DB",color:"#fff",fontWeight:900,fontSize:15,cursor:ok?"pointer":"not-allowed",fontFamily:"inherit"}}>{item?"저장":"행동지표 추가"}</button>
@@ -3422,6 +3494,7 @@ function AkTodayCard({D,cu,nav}){
   useEffect(()=>{ if(!undo) return; const t=setTimeout(()=>setUndo(null),7000); return ()=>clearTimeout(t); },[undo]);
   const notes=useAkNotes(); const ncnt=noteCounts(notes); const [noteItem,setNoteItem]=useState(null);
   const [recFor,setRecFor]=useState(null);   // +1 한 건에 붙일 기록 {it, count:{wk,n,at}}
+  const runs=useAkRuns(); const [runSheet,setRunSheet]=useState(null); const [openRun,setOpenRun]=useState(null);   // 체크리스트 실행
   if(!mine.length) return null;
   const thisW=WK.find(w=>w.key===wk)||{key:wk,start:wk,end:akAddDays(wk,6),label:""};
   const lastW={key:lastWk,start:lastWk,end:akAddDays(lastWk,6),label:(()=>{ const d=new Date(lastWk+"T00:00:00"); return `${d.getMonth()+1}/${d.getDate()}`; })()};
@@ -3435,6 +3508,18 @@ function AkTodayCard({D,cu,nav}){
   const missed=ready?mine.filter(it=>it.cyc==="W"&&!it.perFail&&akFullWeek(it,lastW)&&akVal(docs,it,lastWk)<(+it.goal||1)):[];
   const todo=rows.filter(r=>!r.done), done=rows.filter(r=>r.done);
   const cnt=rows.filter(r=>!r.none).length, doneN=rows.filter(r=>r.done).length;
+  const hasSteps=(it)=>cleanSteps(it.steps).length>0;
+  const startRun=async(it)=>{ if(busy) return; setBusy(it.id+"run"); setErr(""); try{ const r=await startAkRun(it,cu); setOpenRun(r.id); }catch(e){ console.error("[체크리스트 실행] 시작 실패:",e); setErr("시작이 저장 안 됐어요. 다시 눌러 주세요."); } finally{ setBusy(""); } };
+  const runsOf=(it)=>{ const rs=openRunsOf(runs,it.id); if(!rs.length) return null;
+    return <div style={{display:"flex",flexDirection:"column",gap:6,margin:"0 0 8px"}}>{rs.map(r=>{ const p=runProgress(r), nx=runNext(r), op=openRun===r.id;
+      return <div key={r.id} style={{border:`1.5px solid ${op?"#24386B":"#E3E7F0"}`,borderRadius:12,background:"#F7F8FB",padding:"8px 10px"}}>
+        <button onClick={()=>setOpenRun(op?null:r.id)} style={{display:"flex",width:"100%",alignItems:"center",gap:8,border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+          <span style={{flex:1,minWidth:0}}><b style={{display:"block",fontSize:13,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title}</b>
+            <span style={{display:"block",fontSize:11,color:"#6B7684",marginTop:1}}>{nx?`다음 ${nx.title} (${userNameOf(D,nx.owner||r.by)||"?"})`:"완료"}</span></span>
+          <span style={{fontSize:12.5,fontWeight:900,color:"#1E2F5C",fontVariantNumeric:"tabular-nums"}}>{p.done}/{p.total} {op?"▴":"▾"}</span></button>
+        {op&&<div style={{marginTop:6}}><AkRunSteps D={D} cu={cu} run={r} onConfirm={()=>setRunSheet({run:r,confirm:true})}/>
+          <button onClick={()=>setRunSheet({run:r})} style={{...NB.link,marginTop:2}}>댓글·자료 · 자세히</button></div>}
+      </div>; })}</div>; };
   const bump=async(it,w,field,d,isUndo)=>{ if(busy) return; setBusy(it.id+w+field); setErr("");
     try{ if(d>0&&it.unit==="%"&&!it.perFail){ const t=akTotal(docs,it,it.cyc==="Q"?WQ:WK).n; if(t>=100) return; d=Math.min(d,100-t); }
       if(d<0){ const v=akVal(docs,it,w); const cur=it.perFail?v[field]:v; d=Math.max(d,-cur); if(!d) return; }
@@ -3447,7 +3532,7 @@ function AkTodayCard({D,cu,nav}){
     finally{ setBusy(""); } };
   const btn=(on)=>({flexShrink:0,minWidth:52,height:38,padding:"0 10px",borderRadius:8,border:`1.5px solid ${on?"#0F1F5C":"#E3E3DF"}`,background:"#fff",color:on?"#0F1F5C":"#B0B8C1",fontWeight:800,fontSize:13,cursor:on?"pointer":"default",fontFamily:"inherit"});
   const line=(r)=>{ const it=r.it; const pct=r.g?Math.min(100,r.n/r.g*100):0;
-    return <div key={it.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderTop:"1px solid #F2F4F6"}}>
+    return <Fragment key={it.id}><div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderTop:"1px solid #F2F4F6"}}>
       <div style={{flex:1,minWidth:0}}>
         <p style={{margin:0,fontSize:13,fontWeight:700,color:r.done?"#8B95A1":"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.done?"✓ ":""}{it.name}</p>
         <div style={{display:"flex",alignItems:"center",gap:6,rowGap:4,marginTop:4,flexWrap:"wrap"}}>
@@ -3462,8 +3547,8 @@ function AkTodayCard({D,cu,nav}){
       {it.perFail?<>
         <button onClick={()=>bump(it,wk,"fail",1)} disabled={!!busy} style={{...btn(!busy),borderColor:busy?"#E3E3DF":"#A5620B",color:busy?"#B0B8C1":"#A5620B",minWidth:62,fontSize:12}} aria-label={`${it.name} 매칭 실패 +1`}>실패 +1</button>
         <button onClick={()=>bump(it,wk,"n",1)} disabled={!!busy} style={{...btn(!busy),minWidth:62,fontSize:12}} aria-label={`${it.name} 매칭 시도 +1`}>시도 +1</button>
-      </>:<button onClick={()=>bump(it,wk,"n",akStep(it))} disabled={!!busy||(it.unit==="%"&&r.n>=100)} style={btn(!busy&&!(it.unit==="%"&&r.n>=100))} aria-label={`${it.name} +${akStep(it)}`}>+{akStep(it)}{it.unit==="%"?"%":""}</button>}
-    </div>; };
+      </>:hasSteps(it)?<button onClick={()=>startRun(it)} disabled={!!busy} style={{...btn(!busy),background:busy?"#fff":"#24386B",color:busy?"#B0B8C1":"#fff",borderColor:busy?"#E3E3DF":"#24386B",fontSize:12.5}} aria-label={`${it.name} 시작`}>+ 시작</button>:<button onClick={()=>bump(it,wk,"n",akStep(it))} disabled={!!busy||(it.unit==="%"&&r.n>=100)} style={btn(!busy&&!(it.unit==="%"&&r.n>=100))} aria-label={`${it.name} +${akStep(it)}`}>+{akStep(it)}{it.unit==="%"?"%":""}</button>}
+    </div>{runsOf(it)}</Fragment>; };
   const nowM=new Date().getMonth();
   const GRP=[["W","주간 · 이번 주"],["M",`월간 · ${m0+1}월${m0!==nowM?" (이번 주까지 "+(m0+1)+"월로 셈)":""}`],["Q","분기 · 이번 분기"]];
   const grouped=(list)=>GRP.map(([c,l])=>{ const g=list.filter(r=>r.it.cyc===c); if(!g.length) return null;
@@ -3491,6 +3576,7 @@ function AkTodayCard({D,cu,nav}){
       <button onClick={()=>bump(undo.it,undo.w,undo.field,-undo.d,true)} disabled={!!busy} style={{flexShrink:0,padding:"5px 11px",borderRadius:7,border:"1px solid rgba(255,255,255,.4)",background:"transparent",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>되돌리기</button>
     </div>}
     {noteItem&&<AkNotesSheet D={D} cu={cu} item={noteItem} notes={notes} onClose={()=>setNoteItem(null)}/>}
+    {runSheet&&<AkRunSheet D={D} cu={cu} run={runSheet.run} confirm={runSheet.confirm} onClose={()=>setRunSheet(null)}/>}
     {recFor&&<AkNotesSheet D={D} cu={cu} item={recFor.it} count={recFor.count} notes={notes} onClose={()=>setRecFor(null)}/>}
   </div>);
 }

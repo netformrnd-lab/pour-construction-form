@@ -111,7 +111,7 @@ export function confirmQueue(notes, uid) {
 export function newNotesFor(notes, uid, myItems, seen, since) {
   const mine = new Set((notes || []).filter((n) => n.by === uid).map((n) => n.id));
   const items = new Set(myItems || []);
-  return (notes || []).filter((n) => live(n) && n.by !== uid && /^(task|proj):/.test(String(n.itemId || "")) && (items.has(n.itemId) || (n.parentId && mine.has(n.parentId)))
+  return (notes || []).filter((n) => live(n) && n.by !== uid && /^(task|proj|akrun):/.test(String(n.itemId || "")) && (items.has(n.itemId) || (n.parentId && mine.has(n.parentId)))
     && String(n.at || "") > String((seen || {})[n.itemId] || since || ""))
     .sort((a, b) => String(b.at).localeCompare(String(a.at)));
 }

@@ -158,6 +158,13 @@ goals[g1] 매출 10억
 - 댓글·메모 시각은 `noteAt()` — 저장은 UTC ISO, 보이기는 기기 시간대 "2026.10.01 (목) 14:06"(예전엔 UTC 를 잘라 9시간 늦게 보였음). 수정하면 '수정됨 {시각}'(이전 글은 edits). '삭제'는 한 번 더 확인 후 deleted:true(숨김) — '삭제된 댓글 · 이름 · 시각' + 쓴 사람·마스터는 되돌리기.
 - 오늘 맨 위 `TodayThreads`: 컨펌 대기(나에게 온 최신 차수) · 피드백 옴(내 요청이 수정 요청) · 새 댓글(내 업무·내가 관리하는 프로젝트·내 글 답글, 본 뒤 생긴 것 — 기기별 `pour-os-seen-{uid}`, 처음엔 최근 7일).
 
+### ✅ 행동지표 체크리스트 (2026-10, 대표 요청)
+- 로직 `src/akRuns.js`(+ `akRuns.test.mjs`), 화면 `AkRunSteps`·`AkRunSheet`·`startAkRun`·`toggleAkRun` · 편집은 `AkEditSheet` '체크리스트 (선택)'.
+- 행동지표마다 선택 `steps:[{id,title,owner,confirm}]`(고정업무 하위 체크리스트처럼 항목별 추가, 없으면 예전처럼 +1). 담당 비우면 '시작한 사람'.
+- 있으면 오늘 카드 버튼이 '+ 시작' → 실행 1건 = 문서 1개 `pour-os/ak-runs/r/{id}` {akId,title,steps(그때 목록),checks,by,status,counted}. 오늘 그 줄 아래 펼쳐서 체크.
+- 다 체크하면 그 행동지표 +1(akBump · 마지막 체크한 날의 주 · 시작한 사람 실적) + ak-notes 에 '체크리스트 완료' 기록(count.run). 하나 풀면 −1(처음 센 주), 다시 다 하면 +1 — 두 번 안 셈(counted).
+- confirm 단계: 'AkRunSheet' 댓글에서 컨펌 요청(받는 사람=그 단계 담당) → 승인되면 자동 체크(ThreadPanel onApproved). 다음 단계 담당은 오늘 '체크리스트 내 차례'. 백업에 akRuns 포함.
+
 ## 규칙 (반드시 준수)
 
 ### Firebase / Firestore (연동 시)

@@ -94,6 +94,13 @@ goals[g1] 매출 10억
 - 실행 현황: 행동지표 달성률 · 고정업무 체크율 · 프로젝트 진척을 **합치지 않고 따로**, 메인KPI별로 결과(매출 달성률)와 나란히. 위 버튼 [전체|행동지표|고정업무|프로젝트].
 - 메뉴 "반복 실행"(page routine, 예전 fixed 도 여기로) = 고정업무 + 행동지표 한 화면 두 칸.
 
+### ✅ 행동지표 메모 (2026-10)
+- 로직 `src/akNotes.js` (+ `akNotes.test.mjs`), 화면 `AkNotesSheet`·`NoteComposer`·`UtmPanel` (행동지표 표 각 줄의 "메모 N" 버튼).
+- 댓글 1개 = 문서 1개 `pour-os/ak-notes/c/{id}` {itemId,parentId,text,files,by,at,edits[],deleted}. 대댓글은 parentId(한 단계). 수정 시 이전 글 `edits` 에 보관, 삭제는 `deleted:true` 숨김만(되돌리기 가능).
+- 파일·붙여넣은 사진: Storage `task-attachments/ak-notes/{itemId}/…` (기존 규칙 범위 — 규칙 변경 없음). 25MB·한 번에 10개.
+- UTM 링크: 주소 + source·medium·campaign(+content) → 메모에 넣기/복사. 글 속 UTM 링크는 배지로 표시.
+- 백업(JSON·외부)에 `akNotes` 로 포함.
+
 ## 규칙 (반드시 준수)
 
 ### Firebase / Firestore (연동 시)

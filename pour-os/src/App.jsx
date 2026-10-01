@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Fragment } from "react";
 import { createPortal } from "react-dom";
-import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, arrayUnion, increment, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
+import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, arrayUnion, increment, uploadTaskPhoto, deleteTaskPhoto, uploadAkFile } from "./firebase.js";
+import { noteThreads, noteCounts, linkParts, buildUtm, readUtm, pickFiles, pastedName, fileSize, isImage, UTM_SOURCES, UTM_MEDIUMS } from "./akNotes.js";
 import { AK_SEED, LAG_SEED, AK_FUNS, AK_CYC, akYmd, akWeekKey, akAddDays, akQidOfWeek, akQidOfMonth, akYm, akWeeksIn, akQuarterWeeks, akMonthOfWeek, akVal, akWeekDone, akTotal, akPeriodEnd, akGoalText, akStep, akWho, akOrder, akStart, akCountable, akFullWeek, akPartial, akLink, lagCur, lagPct, isMaster, can, roleLabel, PERMS, pinHash, PIN_TRY_MAX, PIN_LOCK_MIN, akRetroDay, akRetroDue } from "./actionKpi.js";
 import { COMMON, BRAND_SEED, brandKey, brandName, brandView, akBrandOf, mkBrand, projBrand, seedMissing, withAutoSales, salesByCh, salesChOf, execGroups, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, SALES_CH_DEFAULT } from "./brand.js";
 import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGetSnapshot } from "./durable.js";
@@ -17,7 +18,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1001-브랜드";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1001-메모";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -467,10 +468,14 @@ const fileIcon=(name="")=>{const e=extOf(name).toLowerCase();if(["pdf"].includes
 const fetchKpiAct=async()=>{ const out={}; const t=new Date(); const cy=t.getFullYear(), cq=Math.floor(t.getMonth()/3)+1; let y=2026,q=3;
   while(y<cy||(y===cy&&q<=cq)){ const id=`${y}-Q${q}`; try{ const s=await getDoc(extDoc("pour-os","kpi-act-"+id)); if(s.exists()) out[id]=s.data(); }catch(e){ console.warn("[백업] 행동지표 "+id+" 읽기 실패",e); } q++; if(q>4){ q=1; y++; } }
   console.log(`[백업] 행동지표 기록 ${Object.keys(out).length}개 분기`); return out; };
+// 행동지표 메모(댓글) — 댓글 1개 = 문서 1개 (pour-os/ak-notes/c/{id})
+const NOTE_COL="pour-os/ak-notes/c";
+const fetchAkNotes=async()=>{ const sn=await getDocs(extCol(NOTE_COL)); const out=sn.docs.map(d=>({id:d.id,...d.data()})); console.log(`[백업] 행동지표 메모 ${out.length}건`); return out; };
 const downloadStateBackup=async(D)=>{
   const shared=pickShared(D);
   let kpiAct={}; try{ kpiAct=await fetchKpiAct(); }catch(e){ console.warn("[백업] 행동지표 기록 제외:",e); }
-  const blob=new Blob([JSON.stringify({_app:"pour-os",_backupAt:new Date().toISOString(),...shared,kpiAct},null,2)],{type:"application/json"});
+  let akNotes=[]; try{ akNotes=await fetchAkNotes(); }catch(e){ console.warn("[백업] 행동지표 메모 제외:",e); }
+  const blob=new Blob([JSON.stringify({_app:"pour-os",_backupAt:new Date().toISOString(),...shared,kpiAct,akNotes},null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");a.href=url;a.download=`pour-os-backup_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.json`;a.click();URL.revokeObjectURL(url);
 };
@@ -1125,7 +1130,8 @@ export default function App(){
     try{
       const shared=pickShared(D);
       let kpiAct={}; try{ kpiAct=await fetchKpiAct(); }catch(e){ console.warn("[백업] 행동지표 기록 제외:",e); }
-      const content=JSON.stringify({_app:"pour-os",_backupAt:new Date().toISOString(),_reason:reason||"manual",...shared,kpiAct},null,2);
+      let akNotes=[]; try{ akNotes=await fetchAkNotes(); }catch(e){ console.warn("[백업] 행동지표 메모 제외:",e); }
+      const content=JSON.stringify({_app:"pour-os",_backupAt:new Date().toISOString(),_reason:reason||"manual",...shared,kpiAct,akNotes},null,2);
       const res=await fetch("/api/backup",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content,reason:reason||"manual"})});
       const j=await res.json().catch(()=>({ok:false,error:"응답 파싱 실패"}));
       if(j.ok){ try{ localStorage.setItem(EXT_BACKUP_AT_KEY,new Date().toISOString()); }catch(_){} }
@@ -2818,6 +2824,7 @@ const AK_CSS=`
 .ak .desc{font-size:12px;color:var(--muted);white-space:pre-line}
 .ak .why{font-size:12px;color:var(--ink2);background:var(--bg);border-radius:6px;padding:7px 10px;white-space:pre-line}
 .ak .edit{border:1px solid var(--line)!important;background:var(--card)!important;padding:0 7px!important;color:var(--ink2);font-size:12px;line-height:20px;border-radius:5px}
+.ak .edit.memo.has{color:#1E2F5C;border-color:#B9C2D8!important;background:#EEF0F5!important;font-weight:800}
 .ak .cell{position:relative;z-index:1;height:30px;border-radius:6px;border:1px solid var(--line);background:var(--card);padding:0 2px;font-size:12px;display:grid;place-items:center;color:var(--muted);overflow:hidden}
 .ak .cell .f{position:absolute;left:0;bottom:0;top:0;background:var(--accentSoft);z-index:-1}
 .ak .cell.part{color:var(--accent);border-color:var(--accent)}
@@ -2883,6 +2890,8 @@ function AkBoard({D,cu,up,add,ro,onRetro,noLag}){
   const who=pref.who||"all", cycF=pref.cyc||"all", kindF=pref.kind||"all", showDesc=!!pref.desc;
   const [showPaused,setShowPaused]=useState(false);
   const [edit,setEdit]=useState(null);
+  const [noteItem,setNoteItem]=useState(null);   // 메모(댓글) 시트 대상
+  const notes=useAkNotes(); const ncnt=noteCounts(notes);
   const [err,setErr]=useState("");
   const [busy,setBusy]=useState("");
   const {docs,ready}=useAkDocs([akQidOfMonth(y,m0)]);
@@ -2958,7 +2967,7 @@ function AkBoard({D,cu,up,add,ro,onRetro,noLag}){
     <div className={"row g"+(it.active===false?" paused":"")} key={it.id} data-ak={it.id}>
       <div className="rname">
         <span className="t">{it.name}</span>
-        <span className="t s">{whoOf(it).map(id=><span key={id} className={"tag"+(id===cu.id?" me":"")}>{nameOf(id)}</span>)}{!whoOf(it).length&&<span className="tag pz">담당 미정</span>}{it.how==="외주"&&<span className="tag out">외주</span>}{it.active===false&&<span className="tag pz">멈춤</span>}{!it.core&&<span className="tag">추가</span>}{chOf(it)&&<span className="tag pz">{chOf(it)}</span>}{it.brand&&it.brand!=="POUR스토어"&&<span className="tag">{it.brand}</span>}<span className="slab mono">{akGoalText(it)}</span>{canEdit(it)&&<button className="edit" onClick={()=>setEdit({item:it})} aria-label={`${it.name} 수정`}>수정</button>}</span>
+        <span className="t s">{whoOf(it).map(id=><span key={id} className={"tag"+(id===cu.id?" me":"")}>{nameOf(id)}</span>)}{!whoOf(it).length&&<span className="tag pz">담당 미정</span>}{it.how==="외주"&&<span className="tag out">외주</span>}{it.active===false&&<span className="tag pz">멈춤</span>}{!it.core&&<span className="tag">추가</span>}{chOf(it)&&<span className="tag pz">{chOf(it)}</span>}{akBrandOf(it,D.brands)!=="pourstore"&&<span className="tag">{brandName(akBrandOf(it,D.brands),D.brands)}</span>}<span className="slab mono">{akGoalText(it)}</span><button className={"edit memo"+((ncnt[it.id]||{}).n?" has":"")} onClick={()=>setNoteItem(it)} aria-label={`${it.name} 메모`}>메모{(ncnt[it.id]||{}).n?` ${ncnt[it.id].n}`:""}</button>{canEdit(it)&&<button className="edit" onClick={()=>setEdit({item:it})} aria-label={`${it.name} 수정`}>수정</button>}</span>
         {showDesc&&<>{it.desc&&<span className="desc">{it.desc}</span>}{it.why&&<span className="why">{it.why}</span>}</>}
       </div>
       {it.cyc==="W"?<div className="lane path">{WK.map(w=>cell(it,w))}</div>:spanEl(it)}
@@ -3038,7 +3047,137 @@ function AkBoard({D,cu,up,add,ro,onRetro,noLag}){
         {paused.length>0&&<button className="tog" aria-pressed={showPaused} onClick={()=>setShowPaused(v=>!v)}>{showPaused?"멈춘 항목 숨기기":`멈춘 항목 ${paused.length}개 보기`}</button>}</div>
     </section>
     {edit&&<AkEditSheet D={D} cu={cu} item={edit.item} core={edit.core} add={add} up={up} onClose={()=>setEdit(null)}/>}
+    {noteItem&&<AkNotesSheet D={D} cu={cu} item={noteItem} notes={notes} ro={ro} onClose={()=>setNoteItem(null)}/>}
   </div>);
+}
+// ── 행동지표 메모 — 댓글·대댓글 · 파일 첨부 · 사진 붙여넣기(Ctrl+V) · UTM 링크 넣기 ──
+// 댓글 1개 = 문서 1개(pour-os/ak-notes/c/{id}) → 여러 사람이 동시에 써도 서로 덮어쓰지 않음. 삭제는 숨김만(내용·파일 보존).
+function useAkNotes(){
+  const [notes,setNotes]=useState([]);
+  useEffect(()=>{ let un=null;
+    try{ un=onSnapshot(extCol(NOTE_COL),(sn)=>{ const out=sn.docs.map(d=>({id:d.id,...d.data()})); console.log(`[행동지표 메모] ${out.length}건`); setNotes(out); },(e)=>console.error("[행동지표 메모] 구독 실패:",e)); }
+    catch(e){ console.error("[행동지표 메모] 구독 실패:",e); }
+    return ()=>{ try{ un&&un(); }catch(_){} }; },[]);
+  return notes;
+}
+const NB={pri:{padding:"8px 14px",borderRadius:9,border:"none",background:"#24386B",color:"#fff",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"},
+  sub:{padding:"7px 11px",borderRadius:9,border:"1px solid #D5D9E0",background:"#fff",color:"#3D4250",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"},
+  link:{padding:"2px 4px",border:"none",background:"none",color:"#5B606B",fontSize:11.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit"},
+  inp:{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #E1E4E9",fontSize:13.5,fontFamily:"inherit",boxSizing:"border-box",background:"#fff"}};
+function UtmPanel({onInsert,onClose}){
+  const [f,setF]=useState(()=>{ try{ return JSON.parse(localStorage.getItem("pour-os-utm-last")||"null")||{}; }catch(_){ return {}; } });
+  const set=(k,v)=>setF(o=>({...o,[k]:v}));
+  const r=buildUtm(f.base,f); const [copied,setCopied]=useState(false);
+  const remember=()=>{ try{ localStorage.setItem("pour-os-utm-last",JSON.stringify({source:f.source,medium:f.medium,campaign:f.campaign})); }catch(_){} };
+  const chips=(k,list)=><div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:5}}>{list.map(v=><button key={v} type="button" onClick={()=>set(k,v)} aria-pressed={f[k]===v} style={{padding:"4px 9px",borderRadius:14,border:`1.5px solid ${f[k]===v?"#24386B":"#E1E4E9"}`,background:f[k]===v?"#EEF0F5":"#fff",color:f[k]===v?"#1E2F5C":"#4A4E57",fontSize:11.5,fontWeight:f[k]===v?800:600,cursor:"pointer",fontFamily:"inherit"}}>{v}</button>)}</div>;
+  const lab={display:"block",fontSize:11.5,fontWeight:800,color:"#3D4250",margin:"9px 0 4px"};
+  return(<div className="utm" style={{border:"1px solid #D5D9E0",borderRadius:10,background:"#F7F8FA",padding:"10px 12px",marginTop:8}}>
+    <div style={{display:"flex",alignItems:"center",gap:8}}><b style={{flex:1,fontSize:12.5,color:"#16181D"}}>UTM 링크 만들기</b><button type="button" onClick={onClose} style={NB.link}>닫기 ✕</button></div>
+    <label style={lab}>연결할 주소 *</label><input value={f.base||""} onChange={e=>set("base",e.target.value)} placeholder="예: pourstore.net/product/detail.html?product_no=12" style={NB.inp} aria-label="연결할 주소"/>
+    <label style={lab}>source * <span style={{fontWeight:500,color:"#8A8E96"}}>(어디서 왔나)</span></label><input value={f.source||""} onChange={e=>set("source",e.target.value)} placeholder="naver" style={NB.inp} aria-label="utm_source"/>{chips("source",UTM_SOURCES)}
+    <label style={lab}>medium * <span style={{fontWeight:500,color:"#8A8E96"}}>(어떤 방식)</span></label><input value={f.medium||""} onChange={e=>set("medium",e.target.value)} placeholder="blog" style={NB.inp} aria-label="utm_medium"/>{chips("medium",UTM_MEDIUMS)}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"0 8px"}}>
+      <div><label style={lab}>campaign * <span style={{fontWeight:500,color:"#8A8E96"}}>(캠페인)</span></label><input value={f.campaign||""} onChange={e=>set("campaign",e.target.value)} placeholder="2610_옥상방수" style={NB.inp} aria-label="utm_campaign"/></div>
+      <div><label style={lab}>content <span style={{fontWeight:500,color:"#8A8E96"}}>(선택 · 글/소재 구분)</span></label><input value={f.content||""} onChange={e=>set("content",e.target.value)} placeholder="post01" style={NB.inp} aria-label="utm_content"/></div>
+    </div>
+    <div style={{marginTop:9,padding:"8px 10px",borderRadius:8,background:"#fff",border:"1px solid #E1E4E9",fontSize:11.5,lineHeight:1.5,wordBreak:"break-all",color:r.url?"#1E2F5C":"#8A8E96",fontFamily:"'IBM Plex Mono',monospace"}}>{r.url||r.err}</div>
+    <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
+      <button type="button" disabled={!r.url} onClick={()=>{ remember(); onInsert(r.url); }} style={{...NB.pri,opacity:r.url?1:.45,cursor:r.url?"pointer":"not-allowed"}}>메모에 넣기</button>
+      <button type="button" disabled={!r.url} onClick={async()=>{ try{ await navigator.clipboard.writeText(r.url); setCopied(true); setTimeout(()=>setCopied(false),1500); }catch(_){ setCopied(false); } remember(); }} style={{...NB.sub,opacity:r.url?1:.45}}>{copied?"복사됨 ✓":"주소 복사"}</button>
+    </div>
+  </div>);
+}
+// 글쓰기 칸 — 원댓글·대댓글 같이 씀. 사진은 붙여넣기(Ctrl+V)·끌어놓기, 파일은 '파일 첨부'
+function NoteComposer({placeholder,onSubmit,onCancel,autoFocus,initialText="",submitLabel="등록",allowFiles=true}){
+  const [text,setText]=useState(initialText);
+  const [files,setFiles]=useState([]);   // [{f,url}]
+  const [busy,setBusy]=useState(""); const [err,setErr]=useState(""); const [utm,setUtm]=useState(false);
+  const taRef=useRef(null), fileRef=useRef(null);
+  useEffect(()=>()=>files.forEach(x=>x.url&&URL.revokeObjectURL(x.url)),[]);   // eslint-disable-line
+  const addFiles=(list,pasted)=>{ const {ok,bad}=pickFiles(list,files.length);
+    const add=ok.map(f=>{ const g=pasted&&isImage(f)?new File([f],pastedName(f.type),{type:f.type||"image/png"}):f; return {f:g,url:isImage(g)?URL.createObjectURL(g):""}; });
+    if(add.length) setFiles(o=>[...o,...add]); setErr(bad.length?"못 넣은 파일: "+bad.join(", "):""); };
+  const onPaste=(e)=>{ if(!allowFiles) return; const fl=[...(e.clipboardData&&e.clipboardData.files||[])].filter(isImage); if(!fl.length) return;
+    if(!(e.clipboardData.getData("text/plain")||"").trim()) e.preventDefault(); addFiles(fl,true); };
+  const insert=(u)=>{ const ta=taRef.current; const t=text; const pos=ta&&typeof ta.selectionStart==="number"?ta.selectionStart:t.length; const pre=t.slice(0,pos), post=t.slice(pos);
+    const sep=pre&&!/\s$/.test(pre)?" ":""; setText(pre+sep+u+(post&&!/^\s/.test(post)?" ":"")+post); setUtm(false); setTimeout(()=>ta&&ta.focus(),0); };
+  const ok=(text.trim()||files.length)&&!busy;
+  const submit=async()=>{ if(!ok) return; setErr("");
+    try{ await onSubmit(text.trim(),files.map(x=>x.f),(m)=>setBusy(m)); files.forEach(x=>x.url&&URL.revokeObjectURL(x.url)); setText(""); setFiles([]); }
+    catch(e){ console.error("[행동지표 메모] 저장 실패:",e); setErr("저장이 안 됐어요 — 쓴 내용은 그대로 있어요. 다시 눌러 주세요. ("+(e.code||e.message||e)+")"); }
+    finally{ setBusy(""); } };
+  return(<div className="ncomp" onDragOver={e=>{ if(allowFiles) e.preventDefault(); }} onDrop={e=>{ if(!allowFiles||!e.dataTransfer||!e.dataTransfer.files.length) return; e.preventDefault(); addFiles(e.dataTransfer.files,false); }}>
+    <textarea ref={taRef} value={text} onChange={e=>setText(e.target.value)} onPaste={onPaste} onKeyDown={e=>{ if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)) submit(); }} placeholder={placeholder} autoFocus={autoFocus} rows={3} aria-label={placeholder} style={{...NB.inp,resize:"vertical",minHeight:64,lineHeight:1.5}}/>
+    {files.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:6}}>{files.map((x,i)=><span key={i} style={{display:"inline-flex",alignItems:"center",gap:6,maxWidth:"100%",padding:x.url?3:"5px 8px",border:"1px solid #E1E4E9",borderRadius:8,background:"#fff"}}>
+      {x.url?<img src={x.url} alt={x.f.name} style={{width:52,height:52,objectFit:"cover",borderRadius:6,display:"block"}}/>:<span style={{fontSize:11.5,fontWeight:700,color:"#3D4250",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:180}}>{x.f.name} · {fileSize(x.f.size)}</span>}
+      <button type="button" onClick={()=>{ if(x.url) URL.revokeObjectURL(x.url); setFiles(o=>o.filter((_,j)=>j!==i)); }} aria-label={`${x.f.name} 빼기`} style={{...NB.link,padding:"0 4px"}}>✕</button></span>)}</div>}
+    {utm&&<UtmPanel onInsert={insert} onClose={()=>setUtm(false)}/>}
+    {err&&<p role="alert" style={{margin:"6px 0 0",fontSize:11.5,color:"#A93434",fontWeight:700}}>{err}</p>}
+    <div style={{display:"flex",alignItems:"center",gap:6,marginTop:7,flexWrap:"wrap"}}>
+      {allowFiles&&<><input ref={fileRef} type="file" multiple hidden onChange={e=>{ addFiles(e.target.files,false); e.target.value=""; }} aria-label="파일 첨부"/>
+      <button type="button" onClick={()=>fileRef.current&&fileRef.current.click()} style={NB.sub}>파일 첨부</button></>}
+      <button type="button" onClick={()=>setUtm(v=>!v)} aria-pressed={utm} style={NB.sub}>UTM 링크</button>
+      <span style={{flex:"1 1 60px",fontSize:10.5,color:"#8A8E96"}}>{allowFiles?"사진은 복사 → 붙여넣기(Ctrl+V)":""}</span>
+      {onCancel&&<button type="button" onClick={onCancel} style={NB.link}>취소</button>}
+      <button type="button" onClick={submit} disabled={!ok} style={{...NB.pri,opacity:ok?1:.45,cursor:ok?"pointer":"not-allowed"}}>{busy||submitLabel}</button>
+    </div>
+  </div>);
+}
+function NoteText({text}){
+  return <div style={{fontSize:13,color:"#1F2328",lineHeight:1.6,whiteSpace:"pre-wrap",wordBreak:"break-word",overflowWrap:"anywhere"}}>{linkParts(text).map((p,i)=>{ if(p.t==="text") return <Fragment key={i}>{p.v}</Fragment>; const u=readUtm(p.v);
+    return <Fragment key={i}><a href={p.v} target="_blank" rel="noopener noreferrer" style={{color:"#24386B",textDecoration:"underline",wordBreak:"break-all"}}>{p.v}</a>{u&&<span style={{display:"inline-block",margin:"0 0 0 5px",padding:"0 6px",borderRadius:5,background:"#EEF0F5",color:"#1E2F5C",fontSize:10.5,fontWeight:800,whiteSpace:"nowrap",verticalAlign:"1px"}}>UTM {[u.source,u.medium,u.campaign].filter(Boolean).join(" / ")}</span>}</Fragment>; })}</div>;
+}
+function NoteFiles({files}){
+  if(!files||!files.length) return null;
+  const imgs=files.filter(isImage), rest=files.filter(f=>!isImage(f));
+  return(<div style={{marginTop:6}}>
+    {imgs.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:6}}>{imgs.map((f,i)=><a key={i} href={f.url} target="_blank" rel="noopener noreferrer" title={f.name}><img src={f.url} alt={f.name} loading="lazy" style={{width:96,height:96,maxWidth:"100%",objectFit:"cover",borderRadius:8,border:"1px solid #E1E4E9",display:"block"}}/></a>)}</div>}
+    {rest.length>0&&<div style={{display:"flex",flexDirection:"column",gap:4,marginTop:imgs.length?6:0}}>{rest.map((f,i)=><a key={i} href={f.url} target="_blank" rel="noopener noreferrer" download={f.name} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 9px",borderRadius:8,border:"1px solid #E1E4E9",background:"#F7F8FA",color:"#1E2F5C",fontSize:12,fontWeight:700,textDecoration:"none",minWidth:0}}><span style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.name}</span><span style={{color:"#8A8E96",fontWeight:600,flexShrink:0}}>{fileSize(f.size)}</span></a>)}</div>}
+  </div>);
+}
+function AkNotesSheet({D,cu,item,notes,ro,onClose}){
+  const [replyTo,setReplyTo]=useState(null); const [editId,setEditId]=useState(null);
+  const threads=noteThreads(notes,item.id);
+  const master=isMaster(cu);
+  const nameOf=(id,nm)=>{ const u=(D.users||[]).find(x=>x.id===id); return u?u.name:(nm||"?"); };
+  const when=(at)=>{ const s=String(at||""); return s?`${+s.slice(5,7)}/${+s.slice(8,10)} ${s.slice(11,16)}`:""; };
+  const post=async(text,files,parentId,setBusy)=>{
+    const up=[]; for(let i=0;i<files.length;i++){ setBusy(`올리는 중 ${i+1}/${files.length}`); up.push(await uploadAkFile(item.id,files[i])); }
+    setBusy("저장 중");
+    const id="n"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    await setDoc(extDoc(NOTE_COL,id),{id,itemId:item.id,itemName:item.name||"",parentId:parentId||null,text,files:up,by:cu.id,byName:cu.name||"",at:new Date().toISOString(),deleted:false});
+    setReplyTo(null);
+  };
+  const saveEdit=async(n,text)=>{ if(text===n.text){ setEditId(null); return; } const at=new Date().toISOString();
+    await setDoc(extDoc(NOTE_COL,n.id),{text,editedAt:at,editedBy:cu.id,edits:arrayUnion({text:n.text||"",at})},{merge:true}); setEditId(null); };
+  const hide=async(n,on)=>{ try{ await setDoc(extDoc(NOTE_COL,n.id),on?{deleted:true,deletedAt:new Date().toISOString(),deletedBy:cu.id,deletedByName:cu.name||""}:{deleted:false,restoredAt:new Date().toISOString(),restoredBy:cu.id},{merge:true}); }catch(e){ console.error("[행동지표 메모] 숨김 실패:",e); } };
+  const one=(n,reply)=>{ const mine=n.by===cu.id; const canHide=!ro&&(mine||master);
+    if(n.deleted) return(<div style={{padding:"6px 0",fontSize:12,color:"#8A8E96"}}>숨긴 메모 · {nameOf(n.by,n.byName)}{n.deletedByName&&n.deletedByName!==n.byName?` (${n.deletedByName}님이 숨김)`:""}{canHide&&<button onClick={()=>hide(n,false)} style={{...NB.link,marginLeft:6,color:"#1E2F5C"}}>되돌리기</button>}</div>);
+    return(<div className="aknote" data-note={n.id} style={{padding:reply?"8px 0 8px":"10px 0"}}>
+      <div style={{display:"flex",alignItems:"baseline",gap:7,flexWrap:"wrap",marginBottom:3}}><b style={{fontSize:12.5,color:"#16181D"}}>{nameOf(n.by,n.byName)}</b><span style={{fontSize:11,color:"#8A8E96"}}>{when(n.at)}{n.editedAt?" · 수정됨":""}</span></div>
+      {editId===n.id?<NoteComposer initialText={n.text||""} autoFocus allowFiles={false} submitLabel="저장" placeholder="메모 고치기" onCancel={()=>setEditId(null)} onSubmit={(t)=>saveEdit(n,t)}/>
+        :<>{n.text&&<NoteText text={n.text}/>}<NoteFiles files={n.files}/></>}
+      {editId!==n.id&&!ro&&<div style={{display:"flex",gap:2,marginTop:3,marginLeft:-4}}>
+        <button onClick={()=>{ setReplyTo(reply?n.parentId:n.id); setEditId(null); }} style={NB.link}>답글</button>
+        {mine&&<button onClick={()=>{ setEditId(n.id); setReplyTo(null); }} style={NB.link}>수정</button>}
+        {canHide&&<button onClick={()=>hide(n,true)} style={NB.link}>숨기기</button>}
+      </div>}
+    </div>); };
+  const total=threads.reduce((a,t)=>a+(t.deleted?0:1)+t.replies.filter(r=>!r.deleted).length,0);
+  return(<Sheet open onClose={onClose} title={`메모 · ${item.name}`} h="90vh" w={620}>
+    <div style={{paddingTop:2}}>
+      <p style={{margin:"0 0 8px",fontSize:11.5,color:"#5B606B",lineHeight:1.5}}>{akGoalText(item)} · 메모 {total}개 · 진행 상황·링크·자료를 남기고 답글로 주고받아요. 숨긴 메모도 기록은 남아요.</p>
+      {threads.length===0&&<p style={{margin:"14px 0",padding:"16px 12px",borderRadius:10,background:"#F7F8FA",textAlign:"center",fontSize:12.5,color:"#8A8E96"}}>아직 메모가 없어요. 첫 메모를 남겨 보세요.</p>}
+      <div style={{display:"flex",flexDirection:"column"}}>{threads.map(t=><div key={t.id} style={{borderBottom:"1px solid #ECEEF1"}}>
+        {one(t)}
+        {(t.replies.length>0||replyTo===t.id)&&<div style={{margin:"0 0 10px 12px",paddingLeft:12,borderLeft:"2px solid #E1E4E9"}}>
+          {t.replies.map(r=><Fragment key={r.id}>{one(r,true)}</Fragment>)}
+          {replyTo===t.id&&!ro&&<div style={{padding:"6px 0 4px"}}><NoteComposer autoFocus placeholder={`${nameOf(t.by,t.byName)}님 메모에 답글`} submitLabel="답글 등록" onCancel={()=>setReplyTo(null)} onSubmit={(tx,fs,sb)=>post(tx,fs,t.id,sb)}/></div>}
+        </div>}
+      </div>)}</div>
+      {!ro&&<div style={{marginTop:12,paddingTop:10,borderTop:threads.length?"none":"1px solid #ECEEF1"}}><NoteComposer placeholder="메모 남기기 (Ctrl+Enter 등록)" onSubmit={(tx,fs,sb)=>post(tx,fs,null,sb)}/></div>}
+    </div>
+  </Sheet>);
 }
 // 행동지표 만들기·수정 — 삭제는 없고 '멈추기'만 (기록은 그대로 남음)
 function AkEditSheet({D,cu,item,core,add,up,onClose}){

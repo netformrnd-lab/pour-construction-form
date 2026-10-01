@@ -18,7 +18,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1001-고정업무";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1001-간단화";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -250,7 +250,7 @@ const pct=(c,t)=>t===0||t==null?0:Math.max(0,Math.min(100,Math.round((c/t)*100))
 // 정밀 % — 반올림하지 않고 소수까지 유지(표시는 fmtPct로 소수 3자리). 진행바 width·비교에 그대로 사용 가능.
 const pctF=(c,t)=>t===0||t==null?0:Math.max(0,Math.min(100,(c/t)*100));
 // % 표시 — 소수 셋째 자리까지 (예: 23.077, 50.000)
-const fmtPct=(p)=>{const n=Number(p);return (isFinite(n)?n:0).toFixed(3);};
+const fmtPct=(p)=>{const n=Number(p);return (isFinite(n)?n:0).toFixed(1);};
 // 주차 헬퍼 (월요일 시작)
 const weekKey=(d=new Date())=>{const x=new Date(d);const off=(x.getDay()+6)%7;x.setDate(x.getDate()-off);x.setHours(0,0,0,0);return x.toISOString().slice(0,10);};
 const weekLabel=(key)=>{const m=new Date(key);const su=new Date(m);su.setDate(su.getDate()+6);const f=z=>`${z.getMonth()+1}/${z.getDate()}`;return `${f(m)}~${f(su)}`;};
@@ -1739,6 +1739,22 @@ function TeamToday({D,cu,nav,onEdit,up}){
   );
 }
 // 오늘 화면 블록 순서 바꾸기 — 왼쪽 ⠿ 를 끌어 위아래로(폰은 눌러서 ↑↓ 도 가능). 순서는 이 기기에 사람별로 기억
+// 일 세 가지 — 어디서나 같은 이름·색으로: 할 일(한 번) · 고정업무(반복 체크) · 행동지표(KPI 횟수)
+const KIND_C={task:"#24386B",fixed:"#2E6E7E",ak:"#5E5A8C"};
+const KindHead=({title,desc,right})=>(<div style={{flex:1,minWidth:0,marginBottom:10}}>
+  <div style={{display:"flex",alignItems:"baseline",gap:8,justifyContent:"space-between"}}><h3 style={{margin:0,fontSize:14.5,fontWeight:900,color:"#16181D"}}>{title}</h3>{right&&<span style={{fontSize:11.5,fontWeight:800,color:"#4A4E57",fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap"}}>{right}</span>}</div>
+  {desc&&<p style={{margin:"2px 0 0",fontSize:11,color:"#8A8E96",lineHeight:1.45}}>{desc}</p>}
+</div>);
+// 내 행동지표 이번 주 요약 {n, done} — 오늘 화면 위 숫자용 (AkTodayCard 와 같은 기준)
+function akMySummary(D,cu,docs){
+  const users=D.users||[]; const wk=akWeekKey(); const {y,m0}=akMonthOfWeek(wk); const WK=akWeeksIn(y,m0), WQ=akQuarterWeeks(y,m0);
+  const thisW=WK.find(w=>w.key===wk)||{key:wk,start:wk,end:akAddDays(wk,6)};
+  let n=0, done=0;
+  (D.actionKPIs||[]).filter(it=>it.active!==false&&akWho(users,it).includes(cu.id)&&akCountable(it,thisW)).forEach(it=>{
+    if(it.cyc==="W"&&!it.perFail){ n++; if(akVal(docs,it,wk)>=(+it.goal||1)) done++; return; }
+    const t=akTotal(docs,it,(it.cyc==="Q"?WQ:WK).filter(w=>it.cyc!=="W"||akCountable(it,w))); if(t.none) return; n++; if(t.done) done++; });
+  return {n,done};
+}
 function TodayBlocks({uid,items}){
   const key="pour-os-today-order-"+uid;
   const [order,setOrder]=useState(()=>{ try{ const a=JSON.parse(localStorage.getItem(key)||"null"); if(Array.isArray(a)) return a; }catch(_){} return []; });
@@ -1932,6 +1948,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const fixedMe=t=>fixedPeriodDone(t,cu.id,todayKey);   // 내 체크(매주·매월은 이번 주·이번 달 안에 먼저 했으면 체크로)
   const fixedDone=t=>fixedAllDone(D,t,todayKey);        // 완료 = 담당자 모두 체크
   const toggleFixed=t=>up("tasks",t.id,fixedCheckPatch(t,cu.id,!fixedMe(t),todayKey,cu?.name));
+  const {docs:akDocs}=useAkDocs([akQidOfWeek(akWeekKey()),akQidOfWeek(akAddDays(akWeekKey(),-7))]);   // 상단 '행동지표' 숫자용
   const fxNotes=useAkNotes(); const fxNcnt=noteCounts(fxNotes); const [fxNote,setFxNote]=useState(null);   // 고정업무 메모
   const doQuick=()=>{
     if(!quick.trim()) return;
@@ -2069,34 +2086,30 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     {pct!=null&&<div style={{height:5,background:"#F2F4F6",borderRadius:3,overflow:"hidden",marginTop:5}}><div style={{width:`${Math.min(100,pct)}%`,height:"100%",background:color,borderRadius:3}}/></div>}
     {sub?<p style={{margin:"4px 0 0",fontSize:10.5,fontWeight:700,color:"#8B95A1",whiteSpace:"nowrap"}}>{sub}</p>:null}
   </div>);
+  const goSec=(id)=>{ const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:"smooth",block:"start"}); };
+  const kindTile=(id,label,val,sub,color,pct)=>(<button key={id} onClick={()=>goSec(id)} style={{flex:"1 1 0",minWidth:0,maxWidth:200,textAlign:"left",backgroundColor:"#FFFFFF",borderRadius:12,padding:"9px 12px",border:"1px solid #E5E8EB",borderTop:`3px solid ${color}`,cursor:"pointer",fontFamily:"inherit"}}>
+    <span style={{display:"block",fontSize:11.5,color:"#3D4250",fontWeight:800}}>{label}</span>
+    <span style={{display:"block",margin:"1px 0 0",fontSize:19,fontWeight:900,color:"#16181D",fontVariantNumeric:"tabular-nums",lineHeight:1.25}}>{val}</span>
+    <span style={{display:"block",height:4,background:"#F2F4F6",borderRadius:3,overflow:"hidden",marginTop:4}}><span style={{display:"block",width:`${Math.min(100,pct||0)}%`,height:"100%",background:color}}/></span>
+    <span style={{display:"block",marginTop:4,fontSize:10.5,fontWeight:700,color:"#8B95A1",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{sub}</span>
+  </button>);
+  const akSum=akMySummary(D,cu,akDocs);
   const statsBox=(<div style={{display:"flex",gap:8}}>
-    {statTile("오늘 업무",`${doneToday}/${todayT.length}`,"완료 / 전체",todayT.length&&doneToday===todayT.length?"#2F7D57":"#24386B",todayT.length?doneToday/todayT.length*100:0)}
-    {statTile("고정업무",`${doneFixed}/${fixed.length}`,"오늘 할 것",fixed.length&&doneFixed===fixed.length?"#2F7D57":"#24386B",fixed.length?doneFixed/fixed.length*100:0)}
-    {statTile("프로젝트 진척",`${projAvg}%`,`진행 중 ${myActiveProjs.length}건 평균`,"#5E5A8C",projAvg)}
+    {kindTile("sec-tasks","할 일",`${doneToday}/${todayT.length}`,"한 번 하면 끝",KIND_C.task,todayT.length?doneToday/todayT.length*100:0)}
+    {kindTile("sec-fixed","고정업무",`${doneFixed}/${fixed.length}`,"반복 · 체크",KIND_C.fixed,fixed.length?doneFixed/fixed.length*100:0)}
+    {akSum.n>0&&kindTile("sec-ak","행동지표",`${akSum.done}/${akSum.n}`,"KPI 횟수 · +1",KIND_C.ak,akSum.n?akSum.done/akSum.n*100:0)}
   </div>);
   const todayStatsEl=headSlot?createPortal(statsBox,headSlot):<div style={{marginBottom:14}}>{statsBox}</div>;
   return(
     <div style={{padding:"14px 16px 20px"}}>
-      <div style={{display:"flex",gap:4,background:"#F2F4F6",borderRadius:12,padding:4,marginBottom:14}}>
-        {[{k:"me",l:"나"},{k:"team",l:"팀"}].map(v=>(
-          <button key={v.k} onClick={()=>setScope(v.k)} style={{flex:1,padding:"9px 0",borderRadius:9,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:800,background:scope===v.k?"#fff":"transparent",color:scope===v.k?"#191F28":"#9CA3AF",boxShadow:scope===v.k?"0 1px 3px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
-        ))}
-      </div>
-      {scope==="team"&&<TeamToday D={D} cu={cu} nav={nav} onEdit={setEditTask} up={up}/>}
+      {/* 나/팀 보기 토글은 없앰(팀 현황은 KPI 화면) — 오늘은 내 일만 */}
       {scope==="me"&&<>
       {todayStatsEl}
       {retroT&&<AkRetroSheet D={D} cu={cu} up={up} add={add} target={retroT} onClose={()=>setRetroT(null)}/>}
       <TodayBlocks uid={cu.id} items={[
         {id:"retro",label:"월말 회고",show:!!akRetroDue(akYmd(new Date()),D.retros),node:<AkRetroBanner D={D} cu={cu} nav={nav} onOpen={(d)=>setRetroT({y:d.y,m0:d.m0})}/>},
         {id:"akweek",label:"이번 주 내 행동지표",show:myAkN>0,node:<AkTodayCard D={D} cu={cu} nav={nav}/>},
-        {id:"memo",label:"이번 주 메모",show:true,node:(<>
-      {(!isNarrow&&urgentCard)?(
-        <div style={{display:"flex",gap:12,marginBottom:12,alignItems:"stretch"}}>{memoBanner}{urgentCard}</div>
-      ):(<>
-        <div style={{marginBottom:urgentCard?12:14}}>{memoBanner}</div>
-        {urgentCard&&<div style={{marginBottom:14}}>{urgentCard}</div>}
-      </>)}
-        </>)},
+        {id:"memo",label:"마감 임박",show:!!urgentCard,node:<div style={{marginBottom:14}}>{urgentCard}</div>},
         {id:"weekly",label:"주간 입력",show:isLastWorkingDayOfWeek(),node:(<>
       {isLastWorkingDayOfWeek()&&<button onClick={()=>setWeeklyOpen(true)} style={{width:"100%",marginBottom:14,padding:"13px 0",borderRadius:14,border:"none",background:"#24386B",color:"#fff",fontSize:14.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>이번 주 마감 입력 — 매출·KPI·활동지표 한 번에</button>}
       <WeeklyInputSheet open={weeklyOpen} onClose={()=>setWeeklyOpen(false)} D={D} cu={cu} up={up}/>
@@ -2195,13 +2208,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         </>)},
         {id:"tasks",label:"오늘 업무·고정업무",show:true,node:(<>
       <div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:12,flexWrap:"wrap"}}>
-      <div style={{flex:"1 1 380px",minWidth:0,backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",boxSizing:"border-box"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-          <div>
-            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#191F28"}}>오늘 업무 ({today}요일)</h3>
-            <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{doneToday}/{todayT.length} 완료</p>
-          </div>
-        </div>
+      <div id="sec-tasks" style={{scrollMarginTop:70,flex:"1 1 380px",minWidth:0,backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #E5E8EB",borderTop:`3px solid ${KIND_C.task}`,boxSizing:"border-box"}}>
+        <KindHead title={`할 일 · 오늘(${today})`} desc="한 번 하면 끝나는 일 · 직접 등록하거나 프로젝트에서 받은 일" right={`${doneToday}/${todayT.length} 완료`}/>
         {todayT.length===0?(
           <div style={{padding:"20px 0",textAlign:"center"}}>
             <p style={{margin:0,fontSize:13,color:"#9CA3AF"}}>오늘({today}요일) 배치된 업무가 없어요</p>
@@ -2232,12 +2240,9 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           <div style={{marginTop:8}}><ProjPicker D={D} uid={cu.id} value={quickProj} onChange={setQuickProj} compact/></div>
         </div>
       </div>
-      <div style={{flex:"1 1 300px",minWidth:0,backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",boxSizing:"border-box"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-          <div>
-            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#191F28"}}>고정업무 <span style={{fontWeight:600,color:"#9CA3AF",fontSize:11}}>(내 담당 · 일·주·월 전체)</span></h3>
-            <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{fixedMineAll.filter(fixedDone).length}/{fixedMineAll.length} 완료 · 오늘 할 것 {doneFixed}/{fixed.length}</p>
-          </div>
+      <div id="sec-fixed" style={{scrollMarginTop:70,flex:"1 1 300px",minWidth:0,backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #E5E8EB",borderTop:`3px solid ${KIND_C.fixed}`,boxSizing:"border-box"}}>
+        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8}}>
+          <KindHead title="고정업무" desc="정해진 주기로 반복하는 일 · 했으면 체크" right={`오늘 ${doneFixed}/${fixed.length}`}/>
           <button onClick={()=>nav("routine")} style={{fontSize:11,fontWeight:700,color:"#1E2F5C",backgroundColor:"#EEF0F5",border:"none",borderRadius:7,padding:"5px 10px",cursor:"pointer"}}>관리 →</button>
         </div>
         {fixedMineAll.length===0?<p style={{margin:0,padding:"16px 0",textAlign:"center",fontSize:13,color:"#D1D5DB"}}>고정업무가 없어요</p>:(
@@ -3295,16 +3300,15 @@ function AkTodayCard({D,cu,nav}){
     finally{ setBusy(""); } };
   const btn=(on)=>({flexShrink:0,minWidth:52,height:38,padding:"0 10px",borderRadius:8,border:`1.5px solid ${on?"#0F1F5C":"#E3E3DF"}`,background:"#fff",color:on?"#0F1F5C":"#B0B8C1",fontWeight:800,fontSize:13,cursor:on?"pointer":"default",fontFamily:"inherit"});
   const line=(r)=>{ const it=r.it; const pct=r.g?Math.min(100,r.n/r.g*100):0;
-    return <div key={it.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderTop:"1px solid #F2F4F6"}}>
+    return <div key={it.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderTop:"1px solid #F2F4F6"}}>
       <div style={{flex:1,minWidth:0}}>
         <p style={{margin:0,fontSize:13,fontWeight:700,color:r.done?"#8B95A1":"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.done?"✓ ":""}{it.name}</p>
         <div style={{display:"flex",alignItems:"center",gap:6,rowGap:4,marginTop:4,flexWrap:"wrap"}}>
           <div style={{flex:"0 0 48px",height:5,background:"#EDEDEA",borderRadius:3,overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:r.done?"#1F7A4D":"#0F1F5C"}}/></div>
-          <span style={{fontSize:11.5,fontWeight:700,color:r.done?"#1F7A4D":"#4A4E57",fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap"}}>{r.per} {r.txt}</span>
+          <span style={{fontSize:12,fontWeight:800,color:r.done?"#1F7A4D":"#16181D",fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap"}}>{r.txt}</span>
           {r.last&&!r.done&&<span style={{fontSize:10.5,fontWeight:800,color:"#A5620B",background:"#FBF0DE",borderRadius:6,padding:"1px 6px"}}>{it.cyc==="Q"?"분기":"이달"} 마지막 주</span>}
-          {it.core&&<span style={{fontSize:10,fontWeight:700,color:"#8A8E96",whiteSpace:"nowrap"}}>필수</span>}
           {akBrandOf(it,D.brands)!=="pourstore"&&<span style={{fontSize:10,fontWeight:800,color:"#5E5A8C",background:"#F0EFF5",borderRadius:5,padding:"0 5px"}}>{brandName(akBrandOf(it,D.brands),D.brands)}</span>}
-          <button onClick={()=>setNoteItem(it)} aria-label={`${it.name} 메모`} style={{padding:"0 6px",borderRadius:5,border:`1px solid ${(ncnt[it.id]||{}).n?"#B9C2D8":"#E3E3DF"}`,background:(ncnt[it.id]||{}).n?"#EEF0F5":"#fff",color:(ncnt[it.id]||{}).n?"#1E2F5C":"#6B7280",fontSize:10.5,fontWeight:800,lineHeight:"17px",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>메모{(ncnt[it.id]||{}).n?` ${ncnt[it.id].n}`:""}</button>
+          <button onClick={()=>setNoteItem(it)} aria-label={`${it.name} 메모`} style={{padding:"0 2px",border:"none",background:"none",color:(ncnt[it.id]||{}).n?"#1E2F5C":"#8A8E96",fontSize:11,fontWeight:800,lineHeight:"17px",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",textDecoration:"underline",textUnderlineOffset:2}}>메모{(ncnt[it.id]||{}).n?` ${ncnt[it.id].n}`:""}</button>
         </div>
       </div>
       {!it.perFail&&akVal(docs,it,wk)>0&&<button onClick={()=>bump(it,wk,"n",-akStep(it))} disabled={!!busy} style={{...btn(!busy),minWidth:40,padding:"0 8px",borderColor:busy?"#E3E3DF":"#D5D9E0",color:busy?"#B0B8C1":"#4A4E57"}} aria-label={`${it.name} −${akStep(it)}`}>−{akStep(it)}{it.unit==="%"?"%":""}</button>}
@@ -3313,11 +3317,14 @@ function AkTodayCard({D,cu,nav}){
         <button onClick={()=>bump(it,wk,"n",1)} disabled={!!busy} style={{...btn(!busy),minWidth:62,fontSize:12}} aria-label={`${it.name} 매칭 시도 +1`}>시도 +1</button>
       </>:<button onClick={()=>bump(it,wk,"n",akStep(it))} disabled={!!busy||(it.unit==="%"&&r.n>=100)} style={btn(!busy&&!(it.unit==="%"&&r.n>=100))} aria-label={`${it.name} +${akStep(it)}`}>+{akStep(it)}{it.unit==="%"?"%":""}</button>}
     </div>; };
-  return(<div style={{background:"#fff",borderRadius:16,border:"1px solid #E3E3DF",padding:"13px 14px 6px",marginBottom:14}}>
-    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-      <b style={{fontSize:14,color:"#16181D"}}>이번 주 내 행동지표</b>
-      <span style={{fontSize:12,fontWeight:800,color:cnt&&doneN===cnt?"#1F7A4D":"#0F1F5C",background:cnt&&doneN===cnt?"#E3F2EA":"#E7EAF4",padding:"2px 9px",borderRadius:999,fontVariantNumeric:"tabular-nums"}}>{doneN}/{cnt} 달성</span>
-      <button onClick={()=>nav&&nav("kpi")} style={{marginLeft:"auto",padding:"5px 10px",borderRadius:8,border:"1px solid #E3E3DF",background:"#fff",color:"#4A4E57",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>전체 표 보기 →</button>
+  const nowM=new Date().getMonth();
+  const GRP=[["W","주간 · 이번 주"],["M",`월간 · ${m0+1}월${m0!==nowM?" (이번 주까지 "+(m0+1)+"월로 셈)":""}`],["Q","분기 · 이번 분기"]];
+  const grouped=(list)=>GRP.map(([c,l])=>{ const g=list.filter(r=>r.it.cyc===c); if(!g.length) return null;
+    return <Fragment key={c}><p style={{margin:"10px 0 0",fontSize:11,fontWeight:800,color:"#6B7280",letterSpacing:.3}}>{l}</p>{g.map(line)}</Fragment>; });
+  return(<div id="sec-ak" style={{scrollMarginTop:70,background:"#fff",borderRadius:16,border:"1px solid #E5E8EB",borderTop:`3px solid ${KIND_C.ak}`,padding:"13px 14px 6px",marginBottom:14}}>
+    <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
+      <KindHead title="행동지표" desc="KPI를 움직이는 목표 횟수 · 한 만큼 +1" right={`${doneN}/${cnt} 달성`}/>
+      <button onClick={()=>nav&&nav("routine")} style={{flexShrink:0,padding:"5px 10px",borderRadius:8,border:"1px solid #E3E3DF",background:"#fff",color:"#4A4E57",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>표 보기</button>
     </div>
     {err&&<p role="alert" style={{margin:"8px 0 0",padding:"7px 10px",borderRadius:8,background:"#FBF0DE",color:"#A5620B",fontSize:12,fontWeight:700}}>{err}</p>}
     {missed.length>0&&<div style={{margin:"10px 0 4px",padding:"9px 11px",borderRadius:12,background:"#FBF0DE",border:"1px solid #F0D3A6"}}>
@@ -3328,7 +3335,7 @@ function AkTodayCard({D,cu,nav}){
         <button onClick={()=>bump(it,lastWk,"n",1)} disabled={!!busy} style={{flexShrink:0,height:32,padding:"0 10px",borderRadius:8,border:"1px solid #E0B97A",background:"#fff",color:"#A5620B",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}} aria-label={`${it.name} 지난주 +1`}>지난주 +1</button>
       </div>; })}
     </div>}
-    {todo.map(line)}
+    {grouped(todo)}
     {!todo.length&&<p style={{margin:"10px 0 8px",fontSize:12.5,fontWeight:700,color:"#1F7A4D"}}>이번 주 내 행동지표를 다 채웠어요</p>}
     {done.length>0&&<button onClick={()=>setShowDone(v=>!v)} style={{width:"100%",padding:"9px 0",border:"none",borderTop:"1px solid #F2F4F6",background:"none",color:"#8A8E96",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{showDone?"달성한 것 접기 ▴":`달성 ${done.length}개 ▾`}</button>}
     {showDone&&done.map(line)}
@@ -3496,7 +3503,7 @@ function RoutinePage(props){
   return(<div>
     <div style={{padding:"12px 16px 0"}}>
       <h2 style={{margin:"0 0 4px",fontSize:17,fontWeight:900,color:"#16181D"}}>반복 실행</h2>
-      <p style={{margin:"0 0 10px",fontSize:12,color:"#5B606B",lineHeight:1.6}}>정해진 주기로 반복하는 일 두 가지. <b>고정업무</b>는 운영을 위해 매일·매주·매월 하는 일(했다/안 했다), <b>행동지표</b>는 KPI를 움직이려고 주기마다 정한 횟수만큼 하는 일(몇 번 했나)이에요.</p>
+      <p style={{margin:"0 0 10px",fontSize:12,color:"#5B606B",lineHeight:1.5}}>고정업무 = 반복 체크 · 행동지표 = KPI 목표 횟수</p>
       <div role="group" aria-label="보기" style={{display:"inline-flex",gap:2,background:"#E9EBEF",borderRadius:9,padding:3}}>
         {[["all","전체"],["fixed",`고정업무 ${fxN}`],["ak",`행동지표 ${akN}`]].map(([k,l])=><button key={k} aria-pressed={sec===k} onClick={()=>setSec(k)} style={{padding:"7px 14px",borderRadius:7,border:"none",background:sec===k?"#fff":"transparent",color:sec===k?"#16181D":"#5B606B",fontSize:12.5,fontWeight:sec===k?800:600,cursor:"pointer",fontFamily:"inherit",boxShadow:sec===k?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{l}</button>)}
       </div>
@@ -3506,6 +3513,19 @@ function RoutinePage(props){
   </div>);
 }
 
+// ── 접는 칸 — 처음엔 제목·한 줄 요약만. 펼친 상태는 이 기기에 기억 ──
+function Fold({id,title,sub,defOpen=false,children}){
+  const k="pour-os-fold-"+id;
+  const [o,setO]=useState(()=>{ try{ const v=localStorage.getItem(k); return v==null?defOpen:v==="1"; }catch(_){ return defOpen; } });
+  const tog=()=>setO(v=>{ try{ localStorage.setItem(k,v?"0":"1"); }catch(_){} return !v; });
+  return(<section aria-label={title} style={{marginBottom:10}}>
+    <button onClick={tog} aria-expanded={o} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"12px 14px",borderRadius:o?"12px 12px 0 0":12,border:"1px solid #E3E5EA",background:"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+      <span style={{flex:1,minWidth:0}}><b style={{display:"block",fontSize:13.5,color:"#16181D"}}>{title}</b>{sub&&<span style={{display:"block",marginTop:2,fontSize:11.5,color:"#6B7280",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{sub}</span>}</span>
+      <span style={{flexShrink:0,fontSize:11.5,fontWeight:800,color:"#4A4E57"}}>{o?"접기 ▴":"펼치기 ▾"}</span>
+    </button>
+    {o&&<div style={{border:"1px solid #E3E5EA",borderTop:"none",borderRadius:"0 0 12px 12px",background:"#FAFAFB",padding:"12px 12px 4px"}}>{children}</div>}
+  </section>);
+}
 // ── KPI 흐름 — 어떤 데이터가 어디에 영향을 주는지 (자동/수동 표시) ──
 const FlowTag=({auto})=><span style={{fontSize:10,fontWeight:800,color:auto?"#1F5C3F":"#7A4A12",background:auto?"#EAF4EE":"#F8F1E6",border:`1px solid ${auto?"#CFE3D6":"#EAD9BF"}`,borderRadius:5,padding:"1px 6px",whiteSpace:"nowrap"}}>{auto?"자동":"수동"}</span>;
 function mkSource(mk,D){
@@ -3518,7 +3538,7 @@ function mkSource(mk,D){
   return {t:"채널별 실적 직접 입력",auto:false};
 }
 function KpiFlow({D}){
-  const [open,setOpenS]=useState(()=>{ try{ return localStorage.getItem("pour-os-kpiflow")!=="0"; }catch(_){ return true; } });
+  const [open,setOpenS]=useState(()=>{ try{ return localStorage.getItem("pour-os-kpiflow")==="1"; }catch(_){ return false; } });
   const setOpen=(v)=>{ setOpenS(v); try{ localStorage.setItem("pour-os-kpiflow",v?"1":"0"); }catch(_){} };
   const box={background:"#fff",border:"1px solid #E3E5EA",borderRadius:10,padding:"9px 11px",display:"flex",flexDirection:"column",gap:4,minWidth:0};
   const name=(t,auto)=><div style={{display:"flex",alignItems:"center",gap:6,justifyContent:"space-between"}}><b style={{fontSize:12.5,color:"#16181D"}}>{t}</b><FlowTag auto={auto}/></div>;
@@ -3706,10 +3726,10 @@ function KPIPage({D,Dall,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBack
             );
           })()}
           <KpiFlow D={D}/>
-          {!ro&&<div style={{backgroundColor:"#EEF0F5",border:"1px solid #D3D8E6",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
+          {!ro&&<Fold id="kpi-guide" title="입력 방법" sub="실적은 매주 금요일 · 매출은 대부분 자동">          <div style={{backgroundColor:"#EEF0F5",border:"1px solid #D3D8E6",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
             <p style={{margin:"0 0 4px",fontSize:12,fontWeight:900,color:"#1E2F5C"}}>매주 금요일, 내 KPI에 이번 주 실적을 넣으세요</p>
             <p style={{margin:0,fontSize:11,color:"#1E2F5C",fontWeight:600,lineHeight:1.55}}>· <b>직판(메인1)·그로홈 매출</b> → 마진대시보드 매출에서 <b>자동</b> (자동 연결 안 된 채널만 직접 입력)<br/>· <b>운영</b> KPI → 항목 펼쳐 <b>이번 주 실적 입력</b><br/>· <b>B2B(메인2)</b> → 단가별 항목 펼쳐 <b>이번 주 실적 입력</b>(직접 입력) 또는 <b>거래처유형별 매출 입력</b>(프로젝트 매출 자동 집계)<br/>· 추가값=이번 주만 / 총값=누계 덮어쓰기 · 누가 넣었는지·주차별 이력 자동 기록</p>
-          </div>}
+          </div></Fold>}
           {D.goals.map(g=>{
             const cur=D.mainKPIs.filter(mk=>mk.unit==="원"&&mk.goalId===g.id).reduce((s,mk)=>s+mkCur(mk,D.subKPIs,D.projects),0);
             const p=pctF(cur,g.targetValue);
@@ -3932,11 +3952,12 @@ function KPIPage({D,Dall,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBack
             );
           })}
           {!ro&&<button onClick={openNewMain} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"1.5px dashed #9AA5C3",background:"#EEF0F5",color:"#24386B",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 메인KPI 추가</button>}
-          <div style={{marginTop:22}}><AkBoard D={D} cu={cu} up={up} add={add} ro={ro} onRetro={(t)=>setRetroT(t)}/></div>
+          <div style={{marginTop:16}}><Fold id="kpi-ak" title="행동지표 · 결과 KPI 표" sub={`행동지표 ${(D.actionKPIs||[]).filter(a=>a.active!==false).length}개 · 결과 KPI ${(D.lagKPIs||[]).length}개 · 월말 회고 입력`}><AkBoard D={D} cu={cu} up={up} add={add} ro={ro} onRetro={(t)=>setRetroT(t)}/></Fold></div>
         </div>
       )}
       {kpiView==="one"&&(
-        <div style={{marginTop:22}}>
+        <div>
+          <Fold id="kpi-lead" title="프로젝트 활동지표" sub="프로젝트마다 정한 활동 수치를 전사 합산">
           <div style={{backgroundColor:"#F0EFF5",border:"1px solid #D9D6E6",borderRadius:14,padding:"12px 14px",marginBottom:14}}>
             <p style={{margin:"0 0 3px",fontSize:12.5,fontWeight:900,color:"#5E5A8C"}}>선행지표 — 활동(미리 하는 일)</p>
             <p style={{margin:0,fontSize:11,color:"#5E5A8C",fontWeight:600,lineHeight:1.55}}>매출(후행)로 이어지는 <b>활동지표</b>를 전사 합산해서 봅니다. 프로젝트별 진척(선행지표 %)·기여도는 <b>후행지표</b> 탭의 각 프로젝트 안에서 보세요.</p>
@@ -3966,8 +3987,9 @@ function KPIPage({D,Dall,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBack
               </div>
             );
           })()}
-          <div style={{marginTop:18,paddingTop:16,borderTop:"1px solid #F2F4F6"}}><TeamBoard D={D} cu={cu} embed/></div>
-          {!ro&&<ExportPanel D={Dall||D} up={up} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup}/>}
+          </Fold>
+          <Fold id="kpi-team" title="팀 현황" sub="담당자별 프로젝트·업무 진행"><TeamBoard D={D} cu={cu} embed/></Fold>
+          {!ro&&<Fold id="kpi-data" title="데이터 백업·복구" sub="전체 백업(JSON) · 휴지통 · 엑셀 내보내기"><ExportPanel D={Dall||D} up={up} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup}/></Fold>}
         </div>
       )}
       {kpiView==="mindmap"&&(

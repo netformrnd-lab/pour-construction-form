@@ -1742,7 +1742,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <b id="appTitle">POUR스토어 가격·마진 통합 관리</b>
     <!-- 화면이 최신 파일인지 한눈에 확인하려고 판올림 날짜를 찍는다.
          (코드를 올렸는데 화면이 안 바뀌어 시크릿창으로 확인하던 일을 없애려는 용도) -->
-    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.10.01a</b></span>
+    <span>㈜넷폼 · 제조/공급 채널 가격정책 워크북 · <b id="buildStamp" title="이 화면의 판올림 날짜입니다. 올린 날짜와 다르면 옛 파일을 보고 있는 것입니다." style="opacity:.9">v2026.10.01b</b></span>
   </div>
   <div class="kpis" id="ribbonKpis"></div>
   <div class="rb-acts" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
@@ -9183,12 +9183,28 @@ async function loadSales(){
       rows.push({src,brand,date,ch:c.ch,grp:c.grp,amt:Math.round(vatEx*1.1),qty:+r.qty||+r.quantity||0,name:nm,key:k}); });
     const maxDate=src=>rows.filter(r=>r.src===src&&r.date).reduce((m,r)=>r.date>m?r.date:m,'');
     SL.rows=rows; SL.loaded=true;
+    slRollupToOS(rows, gRecs.length>0 && pRecs.length>0);
     try{ const t=new Date(),y=new Date(t); y.setDate(y.getDate()-1); const ds=[slDay(y),slDay(t)]; SL.marks={};
       await Promise.all(ds.map(async d=>{ const m=await ghDB().collection('salesDays').doc(d).get(); SL.marks[d]=m.exists?m.data():{}; })); }catch(e){ console.warn('[매출] 등록완료 표시 읽기 실패', e.code||e); }
     SL.meta={upN,gN:gRecs.length,pN:pRecs.length,shipN:ships.length,redated,unknownCh,gMax:maxDate('GROHOME'),pMax:maxDate('POUR스토어'),
       pUpd:(pDoc.exists&&pDoc.data().updatedAt)||'',at:new Date().toISOString()};
   })();
   try{ await SL.loading; } finally{ SL.loading=null; }
+}
+/* 📊 업무OS(POUR OS) 서브KPI 매출 자동 연결 — 브랜드·월·채널별 합계만 pour-os/sales-rollup 에 남긴다 (고객정보·원가 없음)
+   · 그로홈·POUR스토어 두 기록을 다 읽었을 때만 저장(하나라도 0건이면 덮어쓰지 않음 → 업무OS 숫자가 갑자기 0이 되지 않게)
+   · 내용이 같으면 다시 쓰지 않는다 */
+let SL_ROLL_SIG='';
+function slRollupToOS(rows, complete){
+  try{
+    if(!complete){ console.warn('[매출 집계 → 업무OS] 그로홈·POUR스토어 중 한쪽이 0건이라 이번엔 저장 안 함'); return; }
+    const m={}; rows.forEach(r=>{ const ym=String(r.date||'').slice(0,7); if(!/^\d{4}-\d\d$/.test(ym)) return; const k=(r.brand||'')+'|'+ym+'|'+(r.ch||''); m[k]=(m[k]||0)+(Math.round(+r.amt)||0); });
+    const rr=Object.keys(m).sort().map(k=>{ const [b,ym,ch]=k.split('|'); return {b,ym,ch,amt:m[k]}; });
+    const sig=JSON.stringify(rr); if(sig===SL_ROLL_SIG) return; SL_ROLL_SIG=sig;
+    const by=(curUser&&(curUser.name||curUser.displayName))||'';
+    db.collection('pour-os').doc('sales-rollup').set({rows:rr,at:new Date().toISOString(),by,src:'margin-dashboard',lines:rows.length})
+      .then(()=>console.log(`[매출 집계 → 업무OS] ${rr.length}줄 저장`)).catch(e=>{ SL_ROLL_SIG=''; console.warn('[매출 집계 → 업무OS] 저장 실패', e.code||e); });
+  }catch(e){ console.warn('[매출 집계 → 업무OS] 실패', e); }
 }
 function slSetQuick(q){
   const t=new Date(), y=t.getFullYear(), m=t.getMonth(); let a,b;

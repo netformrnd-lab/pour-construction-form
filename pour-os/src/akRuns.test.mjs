@@ -1,0 +1,28 @@
+// 행동지표 체크리스트 테스트 — node src/akRuns.test.mjs
+import { cleanSteps, runNext, runProgress, runAllDone, runTurnOwner, runToggle, runConfirmStep, runTurns, openRunsOf } from "./akRuns.js";
+let pass = 0, fail = 0;
+const eq = (name, got, exp) => { const ok = JSON.stringify(got) === JSON.stringify(exp); console.log(`${ok ? "✅" : "❌"} ${name} → ${JSON.stringify(got)}${ok ? "" : " (기대: " + JSON.stringify(exp) + ")"}`); ok ? pass++ : fail++; };
+const steps = cleanSteps([{ id: "a", title: "키워드 선정" }, { id: "b", title: " 글 생성 " }, { id: "c", title: "포스팅 컨펌받기", owner: "songhee", confirm: true }, { id: "d", title: "업로드" }, { id: "e", title: "포스팅 광고", owner: "ran" }, { title: "  " }]);
+eq("빈 항목 빼고 정리", steps.map((s) => s.title), ["키워드 선정", "글 생성", "포스팅 컨펌받기", "업로드", "포스팅 광고"]);
+let run = { id: "r1", akId: "ak_c_b2c", steps, checks: {}, by: "chaerim", status: "open" };
+const me = { id: "chaerim", name: "양채림" }, wkOf = () => "2026-09-28";
+eq("처음 다음 단계·담당(비면 시작한 사람)", [runNext(run).id, runTurnOwner(run)], ["a", "chaerim"]);
+for (const s of ["a", "b"]) run = { ...run, ...runToggle(run, s, me, wkOf).patch };
+eq("컨펌 단계 차례 = 송희", runTurnOwner(run), "songhee");
+eq("컨펌 승인 → 체크할 단계", runConfirmStep(run), "c");
+run = { ...run, ...runToggle(run, "c", { id: "songhee" }, wkOf).patch };
+run = { ...run, ...runToggle(run, "d", me, wkOf).patch };
+eq("진척", runProgress(run), { done: 4, total: 5 });
+eq("이란 내 차례(남이 시작한 것)", runTurns([run], "ran", { exceptMine: true }).map((r) => r.id), ["r1"]);
+let t = runToggle(run, "e", { id: "ran" }, wkOf);
+eq("다 체크 → +1 · 그 주 · 완료", [t.count, t.wk, t.patch.status, t.patch.counted.wk], [1, "2026-09-28", "done", "2026-09-28"]);
+run = { ...run, ...t.patch };
+eq("다 했으면 진행 목록에서 빠짐", openRunsOf([run], "ak_c_b2c").length, 0);
+t = runToggle(run, "d", me, () => "2026-10-05");
+eq("하나 풀면 −1 · 처음 센 주로", [t.count, t.wk, t.patch.status, t.patch.counted], [-1, "2026-09-28", "open", null]);
+run = { ...run, ...t.patch };
+t = runToggle(run, "d", me, () => "2026-10-05");
+eq("다시 다 체크 → +1 (새 주)", [t.count, t.wk], [1, "2026-10-05"]);
+eq("다 했는데 또 체크 이벤트 없으면 안 셈", runToggle({ ...run, ...t.patch, checks: { ...t.patch.checks } }, "zz", me, wkOf).count, 0);
+eq("빈 체크리스트는 완료 아님", runAllDone({ steps: [], checks: {} }), false);
+console.log(`\n${fail ? "❌" : "✅"} ${pass} 통과 · ${fail} 실패`); if (fail) process.exit(1);

@@ -249,6 +249,15 @@ function summary(){
   const buy=v.filter(([,c])=>c.buy).length, more=v.filter(([,c])=>c.more).length;
   document.getElementById('cksum').innerHTML=`샘플 구매 <b>${buy}</b>개 · 비슷한 거 더 찾기 <b>${more}</b>개`;
 }
+// 업무OS 프로젝트 연결용 요약 — pour-os/research-index/items/market-research-deco2 (체크한 제품만, 사진 제외)
+let IDX=null,lastPub='';
+function publish(){
+  if(!IDX)return;
+  const items=P.filter(p=>chk(p.no).buy||chk(p.no).more).map(p=>({no:p.no,name:p.name||'',cat:p.cat||'',ch:p.ch||'',sale:p.sale==null?null:p.sale,link:p.link||'',buy:!!chk(p.no).buy,more:!!chk(p.no).more}));
+  const sig=JSON.stringify(items);if(sig===lastPub)return;lastPub=sig;
+  IDX.set({title:document.title,url:'/Market-Research/',ref:'sourcing-os/market-research-deco2',total:P.length,buy:items.filter(i=>i.buy).length,more:items.filter(i=>i.more).length,items,updatedAt:new Date().toISOString()})
+    .then(()=>console.log(`[시장조사 요약] ${items.length}건 업무OS에 반영`)).catch(e=>{lastPub='';console.error('[시장조사 요약] 반영 실패:',e);});
+}
 function setState(t,err){const el=document.getElementById('ckstate');el.textContent=t;el.classList.toggle('err',!!err);}
 document.getElementById('grid').addEventListener('click',e=>{
   const b=e.target.closest('button.ck');if(!b)return;
@@ -258,7 +267,7 @@ document.getElementById('grid').addEventListener('click',e=>{
   if(!REF){setState('저장 안 됨 · 인터넷 연결을 확인해 주세요',true);return;}
   setState('저장 중…');
   REF.set({checks:{[no]:{buy:next.buy,more:next.more,at:firebase.firestore.FieldValue.serverTimestamp()}}},{merge:true})
-    .then(()=>setState('저장됨'))
+    .then(()=>{setState('저장됨');publish();})
     .catch(()=>setState('저장하지 못했어요 · 다시 눌러 주세요',true));
 });
 document.getElementById('chips').addEventListener('click',e=>{const b=e.target.closest('button');if(b){cur=b.dataset.c;draw();}});
@@ -266,8 +275,9 @@ draw();
 try{
   firebase.initializeApp({apiKey:'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU',authDomain:'pour-app-new.firebaseapp.com',projectId:'pour-app-new',storageBucket:'pour-app-new.firebasestorage.app',messagingSenderId:'411031141847',appId:'1:411031141847:web:e658174fd4b9652cdadf92'});
   REF=firebase.firestore().collection('sourcing-os').doc('market-research-deco2');
+  IDX=firebase.firestore().collection('pour-os').doc('research-index').collection('items').doc('market-research-deco2');
   setState('불러오는 중…');
-  REF.onSnapshot(d=>{const c=(d.exists&&d.data().checks)||{};CK={};Object.keys(c).forEach(n=>CK[n]={buy:!!c[n].buy,more:!!c[n].more});draw();setState('실시간 저장 중');},()=>setState('불러오지 못했어요 · 새로고침해 주세요',true));
+  REF.onSnapshot(d=>{const c=(d.exists&&d.data().checks)||{};CK={};Object.keys(c).forEach(n=>CK[n]={buy:!!c[n].buy,more:!!c[n].more});draw();setState('실시간 저장 중');if(!d.metadata||!d.metadata.hasPendingWrites)publish();},()=>setState('불러오지 못했어요 · 새로고침해 주세요',true));
 }catch(e){setState('저장 안 됨 · 인터넷 연결을 확인해 주세요',true);}
 const links=[...document.querySelectorAll('nav a')];
 addEventListener('scroll',()=>{let on=links[0];links.forEach(a=>{const s=document.querySelector(a.getAttribute('href'));if(s.getBoundingClientRect().top<120)on=a;});links.forEach(a=>a.classList.toggle('on',a===on));},{passive:true});

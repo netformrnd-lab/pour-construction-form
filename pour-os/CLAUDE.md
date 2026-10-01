@@ -130,6 +130,11 @@ goals[g1] 매출 10억
 - 템플릿 이름: '템플릿'(manuals) · '출시 템플릿'(launchTemplates). 구간 KPI 편집은 이미 구간이 있는 프로젝트에만.
 - 안 쓰던 화면 코드(TeamToday·ProcessEditorPage·ShareFlowPage·GamePage·ProjWeekGoals) 제거 — 데이터 영향 없음.
 
+### ✅ 시장조사 ↔ 프로젝트 연결 (2026-10)
+- 로직 `src/research.js` (+ `research.test.mjs`), 화면 `ResearchLink`(프로젝트 시트 '시장조사' 칸) · `useResearchIndex`.
+- 시장조사 페이지(`/Market-Research/`)가 체크 저장 후·불러온 뒤 체크한 제품 요약을 `pour-os/research-index/items/market-research-deco2` 에 씀(사진 제외, 바뀐 때만). 원본 체크는 그대로 `sourcing-os/market-research-deco2`. 규칙 변경 없음.
+- 프로젝트 `researchIds:[]` 로 연결 → '샘플 구매 N개 → 업무로'·'더 찾기 M개 → 업무로'. 업무에 `fromResearch:"보고서:번호:종류"` 를 남겨 같은 체크는 두 번 안 만듦. 연결 해제는 연결만 지움(업무는 그대로).
+
 ## 규칙 (반드시 준수)
 
 ### Firebase / Firestore (연동 시)

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, arrayUnion, increment, uploadTaskPhoto, deleteTaskPhoto, uploadAkFile, fetchMktLinks } from "./firebase.js";
+import { RESEARCH_COL, researchUrl, researchTodo, researchTask, KIND_LABEL } from "./research.js";
 import { ML_PURPOSES, mlDest, normUrl, mlMakeDoc, mlReady, mlAutoLabel, recentCombos, mergeLinks, trackUrl, isTrackUrl, trackId, genLinkId, LINK_COL } from "./linkMaker.js";
 import { noteThreads, noteCounts, linkParts, buildUtm, readUtm, pickFiles, pastedName, fileSize, isImage, UTM_SOURCES, UTM_MEDIUMS } from "./akNotes.js";
 import { AK_SEED, LAG_SEED, AK_FUNS, AK_CYC, akYmd, akWeekKey, akAddDays, akQidOfWeek, akQidOfMonth, akYm, akWeeksIn, akQuarterWeeks, akMonthOfWeek, akVal, akWeekDone, akTotal, akPeriodEnd, akGoalText, akStep, akWho, akOrder, akStart, akCountable, akFullWeek, akPartial, akLink, lagCur, lagPct, isMaster, can, roleLabel, PERMS, pinHash, PIN_TRY_MAX, PIN_LOCK_MIN, akRetroDay, akRetroDue } from "./actionKpi.js";
@@ -19,7 +20,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-정리2";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-조사연결";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -4972,6 +4973,7 @@ function ProjectDetailSheet({D,cu,p,up,add,rm,onClose,onAdvanced}){
         {doneList.length>0&&<div style={{marginTop:12}}>
           <button onClick={()=>setShowDone(v=>!v)} style={{border:"none",background:"none",padding:"4px 2px",fontSize:12,fontWeight:800,color:"#2F7D57",cursor:"pointer",fontFamily:"inherit"}}>완료 {doneList.length} {showDone?"▴":"▾"}</button>
           {showDone&&<div style={{display:"flex",flexDirection:"column",gap:6,marginTop:6}}>{doneList.map(t=><Row key={t.id} t={t}/>)}</div>}</div>}
+        <ResearchLink D={D} p={p} up={up} add={add}/>
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:20,paddingTop:14,borderTop:"1px solid #EEF1F4"}}>
           <button onClick={saveTpl} style={{padding:"9px 12px",borderRadius:10,border:"1px solid #D3D8E6",background:"#EEF0F5",color:"#1E2F5C",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>이 업무 목록을 템플릿으로 저장</button>
           <button onClick={()=>{onClose();onAdvanced(p.id);}} style={{padding:"9px 12px",borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",color:"#6B7684",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"}}>고급(로드맵·플로우맵·KPI)</button>
@@ -5039,6 +5041,58 @@ function ExecPicker({value,note,onChange}){ const v=value||"self";
   </div>); }
 
 // 런칭보드 제품 실시간 구독(한 번만 연결해 여러 화면이 같이 씀)
+// 시장조사 요약(pour-os/research-index/items) — 시장조사 페이지가 체크한 제품을 올려 둔 것
+const _rs={items:[],subs:new Set(),started:false};
+function useResearchIndex(){
+  const [items,setItems]=useState(_rs.items);
+  useEffect(()=>{ const f=(v)=>setItems(v); _rs.subs.add(f);
+    if(!_rs.started){ _rs.started=true;
+      try{ onSnapshot(extCol(RESEARCH_COL),(snap)=>{ const arr=[]; snap.forEach(d=>arr.push({id:d.id,...d.data()})); arr.sort((a,b)=>String(b.updatedAt||"").localeCompare(String(a.updatedAt||""))); console.log(`[시장조사] ${arr.length}건 로드`); _rs.items=arr; _rs.subs.forEach(s=>s(arr)); },
+        (err)=>{ console.error("[시장조사] 로드 실패:",err); }); }
+      catch(e){ console.error("[시장조사] 구독 실패:",e); } }
+    else setItems(_rs.items);
+    return ()=>{ _rs.subs.delete(f); }; },[]);
+  return items;
+}
+// 프로젝트 ↔ 시장조사 연결: 체크한 '샘플 구매'·'비슷한 거 더 찾기'를 이 프로젝트 업무로 한 번에
+function ResearchLink({D,p,up,add}){
+  const reps=useResearchIndex();
+  const ids=p.researchIds||[];
+  const [pick,setPick]=useState(false);
+  const [msg,setMsg]=useState("");
+  const linked=ids.map(id=>reps.find(r=>r.id===id)||{id,title:id,_missing:true});
+  const free=reps.filter(r=>!ids.includes(r.id));
+  const make=(r,kind)=>{ const list=researchTodo(r,D.tasks,kind); if(!list.length) return; const base=projTasksOf(D,p.id).length;
+    list.forEach((it,i)=>add("tasks",{id:"t"+Date.now()+"_"+i,...researchTask(r,it,kind,p,base+i)}));
+    setMsg(`${KIND_LABEL[kind]} ${list.length}건을 업무로 넣었어요`); };
+  const btn={padding:"8px 11px",borderRadius:10,border:"1px solid #D3D8E6",background:"#fff",color:"#1E2F5C",fontWeight:800,fontSize:12.5,cursor:"pointer",fontFamily:"inherit"};
+  if(!ids.length&&!reps.length) return null;
+  return(<div style={{marginTop:18}}>
+    <p style={{margin:"0 2px 8px",fontSize:13.5,fontWeight:900,color:"#191F28"}}>시장조사 <span style={{fontSize:11.5,fontWeight:600,color:"#8B95A1"}}>· 체크한 제품을 업무로 만들어요</span></p>
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {linked.map(r=>{ const b=r._missing?[]:researchTodo(r,D.tasks,"buy"), m=r._missing?[]:researchTodo(r,D.tasks,"more");
+        return(<div key={r.id} style={{padding:"11px 12px",borderRadius:12,border:"1px solid #E5E8EB",background:"#fff"}}>
+          <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
+            <div style={{flex:1,minWidth:0}}>
+              <p style={{margin:0,fontSize:13.5,fontWeight:800,color:"#191F28",lineHeight:1.35,wordBreak:"keep-all"}}>{r.title||r.id}</p>
+              <p style={{margin:"3px 0 0",fontSize:11.5,color:"#6B7684"}}>{r._missing?"요약을 찾지 못했어요 · 시장조사 페이지를 한 번 열어 주세요":`조사 ${r.total||0}개 · 샘플 구매 ${r.buy||0} · 더 찾기 ${r.more||0}`}</p>
+            </div>
+            {!r._missing&&<a href={researchUrl(r)} target="_blank" rel="noopener" style={{...btn,textDecoration:"none",flexShrink:0}}>열기 →</a>}
+          </div>
+          {!r._missing&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:9}}>
+            <button onClick={()=>make(r,"buy")} disabled={!b.length} style={{...btn,background:b.length?"#24386B":"#F2F4F6",color:b.length?"#fff":"#8B95A1",border:"none",cursor:b.length?"pointer":"default"}}>{b.length?`샘플 구매 ${b.length}개 → 업무로`:"샘플 구매 · 새로 체크한 것 없음"}</button>
+            <button onClick={()=>make(r,"more")} disabled={!m.length} style={{...btn,background:m.length?"#24386B":"#F2F4F6",color:m.length?"#fff":"#8B95A1",border:"none",cursor:m.length?"pointer":"default"}}>{m.length?`더 찾기 ${m.length}개 → 업무로`:"더 찾기 · 새로 체크한 것 없음"}</button>
+          </div>}
+          <button onClick={()=>up("projects",p.id,{researchIds:ids.filter(x=>x!==r.id)})} style={{marginTop:8,border:"none",background:"none",padding:0,fontSize:11.5,fontWeight:700,color:"#8B95A1",cursor:"pointer",fontFamily:"inherit"}}>연결 해제</button>
+        </div>); })}
+      {free.length>0&&(pick?<div style={{display:"flex",flexDirection:"column",gap:6,padding:10,borderRadius:12,background:"#F4F5F7"}}>
+          {free.map(r=><button key={r.id} onClick={()=>{up("projects",p.id,{researchIds:[...ids,r.id]});setPick(false);}} style={{...btn,textAlign:"left",fontWeight:700}}>{r.title||r.id} <span style={{color:"#8B95A1",fontWeight:600}}>· 샘플 {r.buy||0} · 더 찾기 {r.more||0}</span></button>)}
+          <button onClick={()=>setPick(false)} style={{...btn,border:"none",background:"none",color:"#6B7684"}}>닫기</button>
+        </div>:<button onClick={()=>setPick(true)} style={{...btn,alignSelf:"flex-start"}}>시장조사 연결하기</button>)}
+    </div>
+    {msg&&<p style={{margin:"8px 2px 0",fontSize:12,color:"#2F7D57",fontWeight:700}}>{msg}</p>}
+  </div>);
+}
 const _lb={items:[],subs:new Set(),started:false};
 function useLaunchProducts(){
   const [items,setItems]=useState(_lb.items);

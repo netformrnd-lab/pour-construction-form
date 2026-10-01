@@ -150,6 +150,13 @@ goals[g1] 매출 10억
 - 칩(`projChips`): 업무가 상위·하위로 묶인 프로젝트는 단계별(상위 업무, 나머지 '기타'), 아니면 담당자별 완료/전체(남은 것 많은 순 4개 + "+N"). 초록 ✓=다 끝남, 테두리=다음 할 일이 있는 칸. 칩을 누르면 프로젝트 창이 그 사람·단계 업무만 걸러 열림(`focus`, '전체 보기 ✕'로 해제).
 - 칩 수는 지금 남아 있는 업무 기준(보관함으로 옮긴 완료 업무는 %에만 포함).
 
+### ✅ 업무 댓글 · 컨펌 요청 (2026-10, 대표 승인)
+- 로직 `src/akNotes.js`(taskNoteId·projNoteId·confirmLatest·nextRound·confirmQueue·newNotesFor, 테스트 `confirm.test.mjs`), 화면 `ThreadPanel`·`ThreadSheet`·`TodayThreads`·`NoteBadge`.
+- 행동지표 메모와 같은 컬렉션 `pour-os/ak-notes/c/{id}`(댓글 1개=문서 1개, 숨김만·되돌리기). itemId 업무 `task:{id}` · 프로젝트 `proj:{id}`. 파일은 `task-attachments/ak-notes/task_{id}/…`(규칙 변경 없음). 백업 akNotes 에 그대로 포함.
+- 붙은 곳: 업무 수정창(고정업무 제외 — 고정업무는 담당자별 메모 그대로) · 업무플로우 건 상세 · 프로젝트 창('프로젝트 대화'). 업무 줄엔 '댓글 N'·컨펌 상태 표시.
+- 컨펌 요청 = kind:"confirm" 원댓글 {to,status wait|ok|fix,round,link,fileName}. 받는 사람은 아무나(프로젝트 관리 담당이 기본). 받는 사람은 [승인]·[승인 + 완료]·[수정 요청](피드백=답글 fb:true). 수정 요청이면 요청자에게 'N차 올리기' → 새 원댓글(round+1), 이력 그대로. 승인 시 업무에 `confirmed{by,at,round}`.
+- 오늘 맨 위 `TodayThreads`: 컨펌 대기(나에게 온 최신 차수) · 피드백 옴(내 요청이 수정 요청) · 새 댓글(내 업무·내가 관리하는 프로젝트·내 글 답글, 본 뒤 생긴 것 — 기기별 `pour-os-seen-{uid}`, 처음엔 최근 7일).
+
 ## 규칙 (반드시 준수)
 
 ### Firebase / Firestore (연동 시)

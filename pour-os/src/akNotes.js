@@ -82,3 +82,36 @@ export const pastedName = (type, d = new Date()) => {
 };
 export const fileSize = (b) => (b >= 1048576 ? (b / 1048576).toFixed(1) + "MB" : Math.max(1, Math.round((b || 0) / 1024)) + "KB");
 export const isImage = (f) => /^image\//.test((f && f.type) || "") || /\.(png|jpe?g|gif|webp|heic)$/i.test((f && f.name) || "");
+
+// ── 업무·프로젝트 댓글 · 컨펌 요청 (같은 컬렉션 pour-os/ak-notes/c) ──
+// itemId: 업무 "task:{업무id}" · 프로젝트 "proj:{프로젝트id}"
+// 컨펌 요청 = kind:"confirm" 원댓글 {to,toName,status:"wait"|"ok"|"fix",round,link,fileName,decidedBy,decidedAt}
+//   피드백은 그 글의 답글(fb:true). 다시 올리면 새 원댓글(round+1) → 이력은 그대로 남음
+export const taskNoteId = (id) => "task:" + id;
+export const projNoteId = (id) => "proj:" + id;
+const live = (n) => n && !n.deleted;
+export function confirmsOf(notes, itemId) {
+  return (notes || []).filter((n) => live(n) && n.kind === "confirm" && !n.parentId && n.itemId === itemId)
+    .sort((a, b) => (a.round || 0) - (b.round || 0) || String(a.at || "").localeCompare(String(b.at || "")));
+}
+// 이 업무의 지금 컨펌 상태 (가장 최근 차수)
+export function confirmLatest(notes, itemId) { const c = confirmsOf(notes, itemId); return c.length ? c[c.length - 1] : null; }
+export const nextRound = (notes, itemId) => confirmsOf(notes, itemId).reduce((m, n) => Math.max(m, +n.round || 0), 0) + 1;
+// 나에게 온 컨펌 대기 (각 업무의 최신 차수만)
+export function confirmQueue(notes, uid) {
+  const latest = new Map();
+  (notes || []).forEach((n) => { if (!live(n) || n.kind !== "confirm" || n.parentId) return; const p = latest.get(n.itemId); if (!p || (+n.round || 0) > (+p.round || 0) || ((+n.round || 0) === (+p.round || 0) && String(n.at) > String(p.at))) latest.set(n.itemId, n); });
+  const all = [...latest.values()];
+  return {
+    wait: all.filter((n) => n.status === "wait" && n.to === uid).sort((a, b) => String(a.at).localeCompare(String(b.at))),
+    fix: all.filter((n) => n.status === "fix" && n.by === uid).sort((a, b) => String(b.decidedAt || "").localeCompare(String(a.decidedAt || ""))),
+  };
+}
+// 새 댓글: 내 업무·내 프로젝트에 남이 쓴 글 + 내 글에 달린 답글 (본 뒤에 생긴 것만)
+export function newNotesFor(notes, uid, myItems, seen, since) {
+  const mine = new Set((notes || []).filter((n) => n.by === uid).map((n) => n.id));
+  const items = new Set(myItems || []);
+  return (notes || []).filter((n) => live(n) && n.by !== uid && /^(task|proj):/.test(String(n.itemId || "")) && (items.has(n.itemId) || (n.parentId && mine.has(n.parentId)))
+    && String(n.at || "") > String((seen || {})[n.itemId] || since || ""))
+    .sort((a, b) => String(b.at).localeCompare(String(a.at)));
+}

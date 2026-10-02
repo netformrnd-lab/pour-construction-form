@@ -393,6 +393,25 @@
   .brand-h .pill:has(.blogo:not(.nologo)){background:#fff!important;border:1px solid var(--line);padding:6px 12px}
   .pcard .bchip:has(.blogo:not(.nologo)){background:#fff!important;padding:6px 10px}
 
+  /* ── 브랜드 하위 프로젝트 ── */
+  .pj-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .pj-tile{border:1px solid;border-radius:16px;padding:14px 16px;text-align:left;display:flex;flex-direction:column;gap:6px;transition:transform .12s, box-shadow .12s;min-width:0}
+  .pj-tile:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(17,24,39,.08)}
+  .pj-top{display:flex;align-items:center;gap:8px}
+  .pj-top b{font-size:16px;font-weight:800;letter-spacing:-.02em}
+  .pj-ic{font-size:20px}
+  .pj-n{margin-left:auto;font-size:12px;font-weight:800;color:var(--muted);background:#fff;border-radius:8px;padding:3px 8px;white-space:nowrap}
+  .pj-meta{display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:700;color:var(--muted)}
+  .pj-tile .warn{align-self:flex-start}
+  .pj-add{min-height:96px}
+  .pj-h{align-items:center;margin-top:8px}
+  .pj-h h2{font-size:22px}
+  .pj-chip{font-size:12.5px;font-weight:800;background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 10px;color:var(--ink2)}
+  .pj-chip:hover{border-color:#94A3B8}
+  .pjsel{display:flex;flex-wrap:wrap;gap:6px}
+  .pjsel button{height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);font-weight:800;font-size:13px;color:var(--ink2);background:#fff}
+  .pjsel button.on{background:#111827;color:#fff;border-color:#111827}
+
   /* ── 모달 ── */
   .modal{position:fixed;inset:0;z-index:60;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:16px}
   .modal .in{background:#fff;border-radius:20px;width:min(460px,100%);max-height:92vh;overflow-y:auto;padding:22px}
@@ -421,6 +440,7 @@
   /* ── 반응형 ── */
   @media (max-width:1100px){
     .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .pj-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
     .phases{grid-template-columns:repeat(3,minmax(0,1fr))}
   }
   @media (max-width:900px){
@@ -434,6 +454,7 @@
     .notes{grid-template-columns:1fr}
     .wkg{grid-template-columns:1fr;gap:6px}
     .teams{grid-template-columns:1fr}
+    .pj-grid{grid-template-columns:1fr}
     .shared-g{grid-template-columns:1fr}
     .wday{min-height:0;flex-direction:row}
     .wday .dh{flex-direction:column;align-items:center;justify-content:center;gap:0;width:64px;flex-shrink:0;border-bottom:none;border-right:1px solid var(--line2)}
@@ -584,7 +605,22 @@ const BASE_STEPS = [
   { id:'s12', name:'판매채널 상품등록',   in:'최종 확인된 상세페이지 · 섬네일', out:'판매 채널 상품 등록 완료 = 디자인 완료' },
 ];
 // 사용자 편집 구조: order = { 영역키(P1..): [단계id 순서] }, custom = { 단계id: {name,in,out} }
-let structure = { order:{}, custom:{} };
+let structure = { order:{}, custom:{}, projects:null };
+// ── 브랜드 하위 프로젝트 ── 'main'(국내) = 기존 제품, 나머지는 구조 문서 projects에 저장 (없으면 기본값)
+const MAIN_PJ = 'main';
+const DEFAULT_PROJECTS = {
+  pourstore: [ { id:'amazon-us', name:'아마존 US' } ],
+  grohome:   [ { id:'amazon-jp', name:'아마존 JP' }, { id:'qoo10', name:'큐텐 확장' } ],
+  barasday:  [ { id:'amazon-us', name:'아마존 US' }, { id:'amazon-jp', name:'아마존 JP' } ],
+};
+function extraProjects(k){ const sp = structure && structure.projects; return (sp && Array.isArray(sp[k])) ? sp[k] : (DEFAULT_PROJECTS[k] || []); }
+function projectsOf(k){ return [{ id:MAIN_PJ, name:'국내' }].concat(extraProjects(k)); }
+function pjOf(p){ return p.project || MAIN_PJ; }
+function pjName(k, id){ const x = projectsOf(k).find(q=>q.id===id); return x ? x.name : '국내'; }
+function pjIcon(name){ return /US|미국/i.test(name) ? '🇺🇸' : /JP|일본/i.test(name) ? '🇯🇵' : /큐텐|qoo/i.test(name) ? '🛒' : name==='국내' ? '🇰🇷' : '📁'; }
+function pjLabel(p){ return pjOf(p)===MAIN_PJ ? '' : pjName(p.brand, pjOf(p)); }
+function pName(p){ const l = pjLabel(p); return l ? `${p.name} (${l})` : p.name; }
+let projSel = null;   // { b: 브랜드키, j: 프로젝트id }
 let PHASES = [], STEPS = [], STEP_BY = {};
 function rebuildStructure(){
   const custom = (structure && structure.custom) || {};
@@ -754,7 +790,7 @@ db.collection(COL).onSnapshot(snap => {
   const docs = snap.docs.map(d => ({ id:d.id, ...d.data() }));
   // 단계 구조 문서 분리 → 병합, 제품 목록에서는 제외
   const sdoc = docs.find(d => d.id === STRUCT_ID);
-  structure = sdoc ? { order: sdoc.order || {}, custom: sdoc.custom || {} } : { order:{}, custom:{} };
+  structure = sdoc ? { order: sdoc.order || {}, custom: sdoc.custom || {}, projects: sdoc.projects || null } : { order:{}, custom:{}, projects:null };
   rebuildStructure();
   items = docs.filter(d => d.id !== STRUCT_ID);
   loaded = true; loadErr = '';
@@ -794,10 +830,10 @@ async function writeDoc(id, patch, historyText){
 async function saveStructure(next){
   if (!me) { askName(); return false; }
   // 낙관적 반영 (화면 먼저 갱신)
-  structure = { order: next.order || structure.order || {}, custom: next.custom || structure.custom || {} };
+  structure = { order: next.order || structure.order || {}, custom: next.custom || structure.custom || {}, projects: next.projects || structure.projects || null };
   rebuildStructure(); renderMain();
   try {
-    await db.collection(COL).doc(STRUCT_ID).set({ __structure:true, order:structure.order, custom:structure.custom, updatedAt:nowIso(), updatedBy:who() });
+    await db.collection(COL).doc(STRUCT_ID).set({ __structure:true, order:structure.order, custom:structure.custom, projects:structure.projects || null, updatedAt:nowIso(), updatedBy:who() });
     return true;
   } catch(e){ console.error('[구조] 저장 실패:', e); toast('저장 실패: '+(e.code||e.message)); return false; }
 }
@@ -943,6 +979,7 @@ function renderMain(){
   else if (view==='guide') m.innerHTML = err + viewGuide();
   else if (view==='trash') m.innerHTML = err + viewTrash();
   else if (view==='team') m.innerHTML = err + viewTeam();
+  else if (view==='proj' && projSel) m.innerHTML = err + viewProject();
   else if (view==='product') {
     const p = items.find(x=>x.id===openId);
     m.innerHTML = err + (p ? viewProduct(p) : `<button class="back" data-back="">← 전체 제품</button><div class="empty">제품을 찾을 수 없어요 (삭제되었을 수 있어요)</div>`);
@@ -960,7 +997,7 @@ function card(p){
   const dd = p.launchDate ? dday(p.launchDate) : '';
   const ddColor = !p.launchDate ? 'var(--faint)' : diffDays(p.launchDate)<0 ? 'var(--red)' : diffDays(p.launchDate)<=14 ? '#C2410C' : b.ac;
   return `<div class="card" data-open="${p.id}" role="button" tabindex="0" style="background:${b.bg};border-color:${b.bd}">
-    <div class="row1"><span class="bchip" style="background:${b.chip};color:${b.ac}">${esc(b.name)}</span><span class="dday" style="color:${ddColor}">${dd || '출시일 미정'}</span></div>
+    <div class="row1"><span class="bchip" style="background:${b.chip};color:${b.ac}">${esc(b.name)}${pjLabel(p)?' · '+esc(pjLabel(p)):''}</span><span class="dday" style="color:${ddColor}">${dd || '출시일 미정'}</span></div>
     <div class="body">
       <h3>${esc(p.name)}</h3>
       <div class="launch">출시 <b>${p.launchDate ? fmtDate(p.launchDate,true) : '미정'}</b></div>
@@ -991,6 +1028,14 @@ function viewHome(){
       ${BRAND_KEYS.map(k=>`<button class="tab ${brandTab===k?'on':''}" data-brand="${k}"><i style="background:${BRANDS[k].ac}"></i>${BRANDS[k].name} ${live().filter(p=>p.brand===k).length}</button>`).join('')}
     </div>`;
   if (query) html += `<p class="sub" style="margin-top:10px">"<b>${esc(query)}</b>" 검색 결과 ${L.length}건</p>`;
+  if (!query) {
+    brands.forEach(k=>{
+      const b = BRANDS[k], bl = live().filter(p=>p.brand===k);
+      html += `<section class="brand-sec"><div class="brand-h"><span class="pill" style="background:${b.chip};color:${b.ac}">${brandMark(b)}</span><span class="n">프로젝트 ${projectsOf(k).length}개 · 제품 ${bl.length}개</span></div>
+        <div class="pj-grid">${projectsOf(k).map(pj=>pjTile(k, pj)).join('')}<button class="add-card pj-add" data-pjadd="${k}"><b>＋</b>프로젝트 추가</button></div></section>`;
+    });
+    return html;
+  }
   brands.forEach(k=>{
     const b = BRANDS[k];
     const list = L.filter(p=>p.brand===k).sort(sortByLaunch);
@@ -1003,6 +1048,67 @@ function viewHome(){
   if (query && !L.length) html += `<div class="empty" style="margin-top:14px">검색 결과가 없어요</div>`;
   return html;
 }
+
+function pjTile(k, pj){
+  const b = BRANDS[k], list = live().filter(p=>p.brand===k && pjOf(p)===pj.id);
+  const done = list.reduce((n,p)=>n+progress(p).done,0), tot = list.reduce((n,p)=>n+progress(p).total,0), pct = tot ? Math.round(done/tot*100) : 0;
+  const next = list.filter(p=>p.launchDate && p.launchDate>=today()).sort(sortByLaunch)[0];
+  const over = list.reduce((n,p)=>n+overdueList(p).length,0);
+  return `<button class="pj-tile" data-pj="${k}|${pj.id}" style="background:${b.bg};border-color:${b.bd}">
+    <div class="pj-top"><span class="pj-ic">${pjIcon(pj.name)}</span><b>${esc(pj.name)}</b><span class="pj-n">${list.length}개 제품</span></div>
+    <div class="bar"><i style="width:${pct}%;background:${b.ac}"></i></div>
+    <div class="pj-meta"><span>진행 ${pct}%</span><span>${next ? '다음 출시 '+fmtShort(next.launchDate)+' · '+dday(next.launchDate) : '출시일 미정'}</span></div>
+    ${over ? `<span class="warn">⏰ 마감 지남 ${over}건</span>` : ''}
+  </button>`;
+}
+// ── 프로젝트 보드 (그 프로젝트의 제품 런칭보드 홈) ──
+function viewProject(){
+  const { b:k, j } = projSel, b = BRANDS[k]; if (!b) return '<div class="empty">브랜드를 찾을 수 없어요</div>';
+  const name = pjName(k, j), list = live().filter(p=>p.brand===k && pjOf(p)===j).sort(sortByLaunch);
+  const over = list.reduce((n,p)=>n+overdueList(p).length,0);
+  const monthKey = ymd(new Date()).slice(0,7), thisMonth = list.filter(p=>p.launchDate && p.launchDate.slice(0,7)===monthKey).length;
+  return `
+    <button class="back" data-pjback="">← 전체 브랜드</button>
+    <div class="h2 pj-h"><span class="pill" style="background:${b.chip};color:${b.ac};padding:6px 12px;border-radius:10px">${brandMark(b)}</span><h2>${pjIcon(name)} ${esc(name)}</h2>
+      ${j!==MAIN_PJ ? `<button class="btn sm" data-pjedit="${k}|${j}">✏️ 이름 수정</button>` : ''}<span class="sp"></span><button class="btn pri" data-add="${k}" data-addpj="${j}">＋ 제품 등록</button></div>
+    <div class="stats">
+      <div class="stat"><b>${list.length}</b><span>제품</span></div>
+      <div class="stat"><b>${thisMonth}</b><span>이번 달 출시 예정</span></div>
+      <button class="stat ${over?'warn':''}" data-view="week"><b>${over}</b><span>마감 지난 단계 ›</span></button>
+      <div class="stat"><b>${list.filter(p=>progress(p).pct===100).length}</b><span>디자인 완료</span></div>
+    </div>
+    <div class="grid" style="margin-top:6px">${list.map(card).join('')}<button class="add-card" data-add="${k}" data-addpj="${j}"><b>＋</b>${esc(name)} 제품 추가</button></div>`;
+}
+function openProject(k, j){
+  projSel = { b:k, j }; view = 'proj'; openId = null;
+  try { history.pushState({ pj:k+'|'+j }, '', '?pj='+encodeURIComponent(k+'|'+j)); } catch(e){}
+  renderAll(); window.scrollTo({ top:0 });
+}
+function openPjModal(k, j){
+  if (!me) { askName(); return; }
+  const editing = !!j, cur = editing ? pjName(k, j) : '';
+  const cnt = editing ? live().filter(p=>p.brand===k && pjOf(p)===j).length : 0;
+  modal(`<h3>${editing ? '✏️ 프로젝트 이름 수정' : '＋ '+esc(BRANDS[k].name)+' 프로젝트 추가'}</h3>
+    <div class="form"><label>프로젝트 이름<input id="pjName" value="${esc(cur)}" placeholder="예: 아마존 US / 큐텐 확장" maxlength="30"></label></div>
+    <div class="m-act">${editing ? `<button class="btn danger" data-pjdel="${k}|${j}" style="margin-right:auto" ${cnt?`title="제품이 있으면 삭제할 수 없어요"`:''}>🗑️ 삭제</button>` : ''}<button class="btn" data-mclose="">취소</button><button class="btn pri" data-pjsave="${k}|${j||''}">${editing?'저장':'추가'}</button></div>`);
+  setTimeout(()=>$('pjName') && $('pjName').focus(), 50);
+}
+function allExtraProjects(){ const o = {}; BRAND_KEYS.forEach(k => o[k] = extraProjects(k).map(x=>({ ...x }))); return o; }
+async function savePj(k, j){
+  const name = ($('pjName').value||'').trim(); if (!name) { $('pjName').focus(); return; }
+  const projects = allExtraProjects();
+  if (j) { const x = projects[k].find(q=>q.id===j); if (x) x.name = name; }
+  else projects[k].push({ id:'pj' + Date.now().toString(36), name });
+  if (await saveStructure({ projects })) { closeModal(); toast(j ? '이름을 바꿨어요' : '프로젝트를 추가했어요'); }
+}
+async function delPj(k, j){
+  const cnt = live().filter(p=>p.brand===k && pjOf(p)===j).length;
+  if (cnt) return toast(`제품이 ${cnt}개 있어 삭제할 수 없어요. 제품을 먼저 옮기거나 지워주세요`);
+  if (!confirm(`'${pjName(k,j)}' 프로젝트를 삭제할까요?`)) return;
+  const projects = allExtraProjects(); projects[k] = projects[k].filter(q=>q.id!==j);
+  if (await saveStructure({ projects })) { closeModal(); toast('삭제했어요'); projSel = null; view = 'home'; try { history.replaceState(null,'',location.pathname); } catch(e){} renderAll(); }
+}
+function pjBtns(k, sel){ return projectsOf(k).map(pj=>`<button type="button" data-pjpick="${pj.id}" class="${pj.id===sel?'on':''}">${pjIcon(pj.name)} ${esc(pj.name)}</button>`).join(''); }
 
 // ── 주간 일정 (BM·본부장 주 1회 점검) ──
 // 주간 일정: 그 주 월~일에 마감인 단계 + 출시일
@@ -1033,7 +1139,7 @@ function viewWeek(){
     if (e.kind==='launch') return `<button class="wev launch" data-open="${e.p.id}" style="background:${b.ac};color:#fff"><b>🚀 ${esc(e.p.name)} 출시</b><span style="color:#fff;opacity:.85">${esc(b.name)}</span></button>`;
     const st = STEP_BY[e.sid], done = e.x.status==='done', over = isOver(e.x);
     return `<button class="wev ${done?'done':''} ${over?'over':''}" data-open="${e.p.id}" data-step="${e.sid}" style="background:${b.bg};border-left-color:${b.ac}">
-      <b>${done?'✓ ':''}${esc(e.p.name)}</b><span>${st.name}${e.task?' · '+esc(e.task.split('\n')[0]):''}${e.x.owner?' · '+esc(e.x.owner):''}</span></button>`;
+      <b>${done?'✓ ':''}${esc(pName(e.p))}</b><span>${st.name}${e.task?' · '+esc(e.task.split('\n')[0]):''}${e.x.owner?' · '+esc(e.x.owner):''}</span></button>`;
   };
   return `
     <div class="h2"><h2>주간 일정</h2><span class="sp"></span>
@@ -1085,10 +1191,10 @@ function calEvents(){
       const x = stg(p,st.id);
       if (x.status==='skip' || !x.due) return;
       const start = prevMax && prevMax < x.due ? addDay(prevMax, 1) : x.due;
-      evs.push({ p, b, sid:st.id, start, end:x.due, label:`${p.name} · ${st.name}`, done:x.status==='done', over:isOver(x) });
+      evs.push({ p, b, sid:st.id, start, end:x.due, label:`${pName(p)} · ${st.name}`, done:x.status==='done', over:isOver(x) });
       if (!prevMax || x.due > prevMax) prevMax = x.due;
     });
-    if (p.launchDate) evs.push({ p, b, launch:true, start:p.launchDate, end:p.launchDate, label:`🚀 ${p.name} 출시` });
+    if (p.launchDate) evs.push({ p, b, launch:true, start:p.launchDate, end:p.launchDate, label:`🚀 ${pName(p)} 출시` });
   });
   return evs;
 }
@@ -1188,7 +1294,7 @@ function viewProduct(p){
   return `
     <button class="back" data-back="">← 전체 제품</button>
     <div class="pcard" style="background:${b.bg};border-color:${b.bd}">
-      <div class="row1"><span class="bchip" style="background:${b.chip};color:${b.ac}">${brandMark(b)}</span><span class="sp"></span>
+      <div class="row1"><span class="bchip" style="background:${b.chip};color:${b.ac}">${brandMark(b)}</span><button type="button" class="pj-chip" data-pj="${p.brand}|${pjOf(p)}" title="이 프로젝트 보드로">${pjIcon(pjName(p.brand,pjOf(p)))} ${esc(pjName(p.brand,pjOf(p)))}</button><span class="sp"></span>
         <button class="btn sm" data-link="${p.id}">🔗 링크</button><button class="btn sm" data-info-edit="">✏️ 수정</button></div>
       <h1 class="pname">${esc(p.name)}</h1>
       <div class="pmeta">
@@ -1264,8 +1370,10 @@ function goBack(){
 }
 window.addEventListener('popstate', () => {
   let pid = null; try { pid = new URLSearchParams(location.search).get('p'); } catch(e){}
+  let pj = null; try { pj = new URLSearchParams(location.search).get('pj'); } catch(e){}
   if (pid) { if (view!=='product') prevView = view; view = 'product'; openId = pid; }
-  else { view = prevView || 'home'; openId = null; }
+  else if (pj) { const [k,j] = pj.split('|'); projSel = { b:k, j }; view = 'proj'; openId = null; }
+  else { view = (prevView==='proj' && view==='product' && projSel) ? 'proj' : (view==='proj' ? 'home' : (prevView || 'home')); openId = null; if (view==='home') projSel = null; }
   renderAll(); window.scrollTo({ top:0 });
 });
 
@@ -1305,21 +1413,24 @@ function saveName(){
 function openInfo(){
   const p = items.find(x=>x.id===openId); if (!p) return;
   if (!me) { askName(); return; }
-  modal(`<h3>✏️ 제품 수정</h3><p class="d">브랜드와 제품명을 바꿀 수 있어요.</p>
+  modal(`<h3>✏️ 제품 수정</h3><p class="d">브랜드·프로젝트·제품명을 바꿀 수 있어요.</p>
     <div class="form">
       <label>브랜드<div class="bsel" id="infoBrand">${brandBtns(p.brand)}</div></label>
-      <label>제품명 · 프로젝트명<input id="fName" value="${esc(p.name)}" maxlength="80"></label>
+      <label>프로젝트<div class="pjsel" id="infoPj">${pjBtns(p.brand, pjOf(p))}</div></label>
+      <label>제품명<input id="fName" value="${esc(p.name)}" maxlength="80"></label>
     </div>
     <div class="m-act"><button class="btn danger" data-del="${p.id}" style="margin-right:auto">🗑️ 삭제</button><button class="btn" data-mclose="">취소</button><button class="btn pri" data-info-save="">저장</button></div>`);
 }
-let addBrand = 'grohome';
-function openAdd(brand){
+let addBrand = 'grohome', addPj = MAIN_PJ;
+function openAdd(brand, pj){
   if (!me) { askName(); return; }
   addBrand = BRANDS[brand] ? brand : (brandTab!=='all' ? brandTab : 'grohome');
+  addPj = pj && projectsOf(addBrand).some(x=>x.id===pj) ? pj : MAIN_PJ;
   modal(`<h3>＋ 새 제품 등록</h3><p class="d">등록하면 ${STEPS.length}단계 체크리스트가 자동으로 만들어져요. 나머지는 상세 화면에서 채우면 돼요.</p>
     <div class="form">
       <label>브랜드<div class="bsel" id="addBrand">${brandBtns(addBrand)}</div></label>
-      <label>제품명 · 프로젝트명<input id="aName" placeholder="예: 2in1 철제용 페인트" maxlength="80"></label>
+      <label>프로젝트<div class="pjsel" id="addPj">${pjBtns(addBrand, addPj)}</div></label>
+      <label>제품명<input id="aName" placeholder="예: 2in1 철제용 페인트" maxlength="80"></label>
       <label>출시 목표 예정일
         <div class="launch-pick"><input id="aLaunch" type="date"><button type="button" class="tbd-btn" id="aTbd">미정</button></div></label>
     </div>
@@ -1331,13 +1442,13 @@ async function saveAdd(){
   const name = ($('aName').value||'').trim();
   if (!name) { $('aName').focus(); toast('제품명을 입력해주세요'); return; }
   const at = nowIso();
-  const doc = { brand:addBrand, name, launchDate:$('aLaunch').disabled ? '' : ($('aLaunch').value||''), lead:'', memo:'',
+  const doc = { brand:addBrand, project:addPj, name, launchDate:$('aLaunch').disabled ? '' : ($('aLaunch').value||''), lead:'', memo:'',
     stages:Object.fromEntries(STEPS.map(s=>[s.id,{status:'todo',owner:DEFAULT_OWNERS[s.id]||'',due:'',note:''}])),
     history:[{ at, by:who(), text:'제품 등록' }], createdAt:at, createdBy:who(), updatedAt:at, updatedBy:who(), deletedAt:null };
   try {
     const ref = await db.collection(COL).add(doc);
     console.log(`[${COL}] 등록: ${ref.id}`);
-    closeModal(); toast('등록했어요!'); brandTab = 'all'; view = 'home'; renderAll(); openProduct(ref.id);
+    closeModal(); toast('등록했어요!'); brandTab = 'all'; projSel = { b:addBrand, j:addPj }; view = 'proj'; renderAll(); openProduct(ref.id);
   } catch(e){ console.error(`[${COL}] 등록 실패:`, e); toast('등록 실패: '+(e.code||e.message)); }
 }
 
@@ -1410,8 +1521,12 @@ async function saveInfo(){
   const name = ($('fName').value||'').trim();
   if (!name) { toast('제품명을 입력해주세요'); return; }
   const onB = document.querySelector('#infoBrand button[data-sel="1"]');
+  const onJ = document.querySelector('#infoPj button.on');
   const patch = { brand: onB ? onB.dataset.b : p.brand, name };
+  const pj = onJ ? onJ.dataset.pjpick : pjOf(p);
+  patch.project = projectsOf(patch.brand).some(x=>x.id===pj) ? pj : MAIN_PJ;
   const ch = [];
+  if (patch.project!==pjOf(p) || patch.brand!==p.brand) ch.push('프로젝트 '+pjName(patch.brand, patch.project));
   if (patch.brand!==p.brand) ch.push('브랜드 '+brandOf(patch).name);
   if (patch.name!==p.name) ch.push('이름 '+patch.name);
   if (!ch.length) { closeModal(); return; }
@@ -1468,14 +1583,22 @@ document.addEventListener('click', e => {
   if (d.ttbd) return editTask(d.ttbd, 'dueTbd', d.v==='1');
   if (d.person) { query = d.person; $('q').value = d.person; $('qx').classList.remove('hidden'); view = 'home'; brandTab = 'all'; renderAll(); window.scrollTo({top:0}); return; }
   if (d.wk!==undefined) { weekOff = d.wk==='0' ? 0 : weekOff + Number(d.wk); return renderMain(); }
-  if (d.add!==undefined) return openAdd(d.add);
+  if (d.add!==undefined) return openAdd(d.add, d.addpj);
+  if (d.pj) { const [k,j] = d.pj.split('|'); return openProject(k, j); }
+  if (d.pjback!==undefined) { if (history.state && history.state.pj) { history.back(); return; } projSel = null; view = 'home'; try { history.replaceState(null,'',location.pathname); } catch(e){} renderAll(); window.scrollTo({top:0}); return; }
+  if (d.pjadd) return openPjModal(d.pjadd);
+  if (d.pjedit) { const [k,j] = d.pjedit.split('|'); return openPjModal(k, j); }
+  if (d.pjsave!==undefined) { const [k,j] = d.pjsave.split('|'); return savePj(k, j); }
+  if (d.pjdel) { const [k,j] = d.pjdel.split('|'); return delPj(k, j); }
+  if (d.pjpick) { t.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('on')); t.classList.add('on'); if (t.parentElement.id==='addPj') addPj = d.pjpick; return; }
   if (d.cal) { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()+Number(d.cal), 1); calSel=''; renderMiniCal(); if(view==='cal') renderMain(); return; }
   if (d.day) { calSel = calSel===d.day ? '' : d.day; renderMiniCal(); if(view==='cal') renderMain(); return; }
   if (d.b) { // 브랜드 선택 버튼 (등록·정보수정 공용)
     const wrap = t.parentElement;
     wrap.querySelectorAll('button').forEach(x=>{ x.style.cssText=''; x.dataset.sel=''; });
     const B = BRANDS[d.b]; t.style.cssText = `background:${B.chip};border-color:${B.ac};color:${B.ac}`; t.dataset.sel='1';
-    if (wrap.id==='addBrand') addBrand = d.b;
+    if (wrap.id==='addBrand') { addBrand = d.b; addPj = MAIN_PJ; $('addPj').innerHTML = pjBtns(addBrand, addPj); }
+    if (wrap.id==='infoBrand') { const p = items.find(x=>x.id===openId); $('infoPj').innerHTML = pjBtns(d.b, p && p.brand===d.b ? pjOf(p) : MAIN_PJ); }
     return;
   }
   if (d.infoEdit!==undefined) return openInfo();
@@ -1592,7 +1715,7 @@ document.addEventListener('pointerup', () => {
 document.addEventListener('pointercancel', () => { clearDropMarks(); if (dragEl) dragEl.classList.remove('dragging'); dragSid=null; dragEl=null; dropSid=null; });
 
 // 시작
-try { const pid = new URLSearchParams(location.search).get('p'); if (pid) { view = 'product'; openId = pid; history.replaceState({ p:pid }, '', location.search); } } catch(e){}
+try { const q = new URLSearchParams(location.search), pid = q.get('p'), pj = q.get('pj'); if (pid) { view = 'product'; openId = pid; history.replaceState({ p:pid }, '', location.search); } else if (pj) { const [k,j] = pj.split('|'); projSel = { b:k, j }; view = 'proj'; history.replaceState({ pj }, '', location.search); } } catch(e){}
 renderAll();
 if (!me) askName();
 </script>

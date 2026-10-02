@@ -1,5 +1,5 @@
 // 브랜드·그로홈·매출 자동 연결·실행 현황 테스트 — node src/brand.test.mjs
-import { fixGhSubs, fixBrandDup, brandKey, brandView, toggleBrand, brandSel, projBrand, taskBrand, seedMissing, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, BRAND_SEED,
+import { fixGhSubs, fixBrandDup, brandKey, brandView, toggleBrand, brandSel, ghSalesRows, mergeRoll, ghChannel, projBrand, taskBrand, seedMissing, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, BRAND_SEED,
   salesSum, salesByCh, withAutoSales, rollupRows, akRateOf, projRateOf, execGroups, salesChOf } from "./brand.js";
 import { AK_SEED, LAG_SEED, akLink } from "./actionKpi.js";
 import { mkCur } from "./kpi.js";
@@ -108,5 +108,18 @@ eq("연결 없는 메인KPI는 '-'", [gm("ghk2").ak.pct, gm("ghk2").pj.pct, gm("
   eq("새로 만들 브랜드: 고른 기본값 → 없으면 첫 번째", [brandView(D0,"pourstore,grohome","grohome")._brand, v._brand, brandView(D0,"pourstore,grohome","bmine")._brand], ["grohome","pourstore","pourstore"]);
   eq("한 개·전체는 예전과 같음", [brandView(D0,"grohome").projects.map(p=>p.id), brandView(D0,"all")._brand, brandView(D0,"all").projects.length], [["p2"],"all",3]);
   eq("켜고 끄기 · 다 끄면 전체", [toggleBrand("all","grohome"),toggleBrand("grohome","pourstore"),toggleBrand("grohome,pourstore","grohome"),toggleBrand("pourstore","pourstore"),toggleBrand("grohome","all")], ["grohome","grohome,pourstore","pourstore","all","all"]); }
+
+
+// 그로홈 대시보드 매출 → 서브KPI 자동
+{ const rec=[{date:"2026-07-13",platform:"쿠팡",totalPrice:"100"},{date:"2026-07-20",platform:"G마켓",totalPrice:"50"},{date:"2026-08-01",platform:"옥션",totalPrice:"5"},{date:"2026-08-02",platform:"도매매",totalPrice:"7"},{date:"2026-08-02",platform:"오늘의 집",totalPrice:"3"},{date:"2025-12-31",platform:"쿠팡",totalPrice:"999"}];
+  const rows=ghSalesRows(rec);
+  eq("채널 이름 맞추기", [ghChannel("G마켓"),ghChannel("도매꾹"),ghChannel("오늘의 집"),ghChannel("자사몰")], ["옥션·지마켓","도매꾹·도매매","오늘의집","자사몰"]);
+  const roll=mergeRoll({at:"x",rows:[{b:"POUR스토어",ym:"2026-07",ch:"자사몰",amt:10},{b:"GROHOME",ym:"2026-07",ch:"쿠팡",amt:777}]},rows,[{id:"pourstore",name:"POUR스토어"},{id:"grohome",name:"그로홈"}]);
+  eq("그로홈은 대시보드 원본만(예전 그로홈 줄은 뺌) · POUR 줄은 그대로", [roll.rows.filter(r=>r.b==="GROHOME").length, roll.rows.filter(r=>r.b==="POUR스토어").length], [0,1]);
+  const D0={brands:[{id:"pourstore",name:"POUR스토어"},{id:"grohome",name:"그로홈"}],goals:[{id:"g_gh",brand:"grohome",year:2026}],mainKPIs:[{id:"ghk1",goalId:"g_gh"}],
+    subKPIs:[{id:"ghs2",mainKPIId:"ghk1",unit:"원",currentValue:0},{id:"ghs3",mainKPIId:"ghk1",unit:"원",currentValue:0},{id:"ghs5",mainKPIId:"ghk1",unit:"원",currentValue:0}],projects:[]};
+  const v=withAutoSales(D0,roll).subKPIs.map(s=>s.currentValue);
+  eq("쿠팡·오늘의집 103 · CPC(옥션·지마켓) 55 · 위탁(도매꾹·도매매) 7 — 2025년은 안 셈", v, [103,55,7]);
+  eq("대시보드 매출이 없으면 예전 그대로", mergeRoll(null,[],[]), null); }
 
 console.log(`\n${fail ? "❌" : "✅"} ${pass} 통과 · ${fail} 실패`); if (fail) process.exit(1);

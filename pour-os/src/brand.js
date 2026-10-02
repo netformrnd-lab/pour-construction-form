@@ -171,6 +171,19 @@ export function withAutoSales(D, roll) {
   });
   return { ...D, subKPIs };
 }
+// 그로홈 대시보드 매출(grohome-dashboard salesRecords) → 집계 rows — 업무OS 가 직접 읽음(읽기만)
+//  · 채널 이름을 서브KPI 연결표(SALES_CH_DEFAULT)와 같게: G마켓·옥션 → 옥션·지마켓, 도매꾹·도매매 → 도매꾹·도매매, '오늘의 집' → 오늘의집
+const GH_CH = { "G마켓": "옥션·지마켓", "지마켓": "옥션·지마켓", "옥션": "옥션·지마켓", "도매꾹": "도매꾹·도매매", "도매매": "도매꾹·도매매", "오늘의 집": "오늘의집" };
+export const ghChannel = (p) => { const s = String(p || "").trim(); return GH_CH[s] || s; };
+export function ghSalesRows(records) {
+  return rollupRows((records || []).map((r) => ({ brand: "grohome", date: r.date, ch: ghChannel(r.platform), amt: Number(r.totalPrice) || 0 })));
+}
+// 집계 합치기 — 그로홈은 대시보드 원본(ghRows)이 있으면 그것만 씀(두 번 세지 않게)
+export function mergeRoll(roll, ghRows, brands) {
+  if (!ghRows || !ghRows.length) return roll;
+  const base = ((roll && roll.rows) || []).filter((r) => rollBrand(r.b, brands) !== "grohome");
+  return { ...(roll || {}), at: (roll && roll.at) || "", rows: [...base, ...ghRows], ghAt: new Date().toISOString() };
+}
 // 마진대시보드에서 쓰는 집계 — 매출 줄들 → rows (테스트용으로 같은 함수를 둔다)
 export function rollupRows(rows) {
   const m = {};

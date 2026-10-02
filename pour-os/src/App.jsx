@@ -8,7 +8,7 @@ import { MOY_FIREBASE, parseMoyDocs, planMoyImport } from "./moyImport.js";
 import { GH_FIREBASE, GH_COLS, parseGhCol, planGhImport } from "./ghImport.js";
 import { noteThreads, noteCounts, linkParts, buildUtm, readUtm, pickFiles, pastedName, fileSize, isImage, UTM_SOURCES, UTM_MEDIUMS, taskNoteId, projNoteId, confirmLatest, nextRound, confirmQueue, newNotesFor } from "./akNotes.js";
 import { AK_SEED, LAG_SEED, AK_FUNS, AK_CYC, akYmd, akWeekKey, akAddDays, akQidOfWeek, akQidOfMonth, akYm, akWeeksIn, akQuarterWeeks, akMonthOfWeek, akVal, akWeekDone, akTotal, akPeriodEnd, akGoalText, akStep, akWho, akOrder, akStart, akCountable, akFullWeek, akPartial, akLink, lagCur, lagPct, isMaster, can, roleLabel, PERMS, pinHash, PIN_TRY_MAX, PIN_LOCK_MIN, akRetroDay, akRetroDue } from "./actionKpi.js";
-import { fixBrandDup, COMMON, BRAND_SEED, brandKey, brandName, brandView, brandSel, toggleBrand, taskBrand, akBrandOf, mkBrand, projBrand, seedMissing, fixGhSubs, withAutoSales, salesByCh, salesChOf, execGroups, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, SALES_CH_DEFAULT } from "./brand.js";
+import { fixBrandDup, COMMON, BRAND_SEED, brandKey, brandName, brandView, brandSel, toggleBrand, taskBrand, akBrandOf, mkBrand, projBrand, seedMissing, fixGhSubs, withAutoSales, salesByCh, salesChOf, ghSalesRows, mergeRoll, execGroups, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, SALES_CH_DEFAULT } from "./brand.js";
 import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGetSnapshot } from "./durable.js";
 import { numF, skCur, mkCur, calcSegDone } from "./kpi.js";
 import { applyAutomation, instantiateLaunch, launchGroupsOf } from "./launch.js";
@@ -24,7 +24,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-그로홈업무가져오기";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-그로홈매출연결";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -978,6 +978,22 @@ export default function App(){
     catch(e){ console.error("[매출 집계] 구독 실패:",e); }
     return ()=>{ try{ un&&un(); }catch(_){} };
   },[]);
+  // 그로홈 매출 — 그로홈 대시보드(grohome-dashboard salesRecords)를 직접 읽어 채널·월 합계로(읽기만, 저장 안 함).
+  //  기기에 합계만 보관하고 1시간마다 새로 읽음. 그로홈 서브KPI(ghs1~6) 자동 연결에 씀.
+  const [ghRows,setGhRows]=useState(()=>{ try{ const c=JSON.parse(localStorage.getItem("pour-os-gh-sales")||"null"); return c&&Array.isArray(c.rows)?c.rows:null; }catch(_){ return null; } });
+  useEffect(()=>{
+    let stop=false; let c=null; try{ c=JSON.parse(localStorage.getItem("pour-os-gh-sales")||"null"); }catch(_){}
+    if(c&&c.at&&Date.now()-c.at<60*60*1000) return;
+    (async()=>{ try{ const all=[]; let tok="";
+      for(let i=0;i<60;i++){ const u=`https://firestore.googleapis.com/v1/projects/${GH_FIREBASE.projectId}/databases/(default)/documents/salesRecords?pageSize=300&mask.fieldPaths=date&mask.fieldPaths=platform&mask.fieldPaths=totalPrice&key=${GH_FIREBASE.apiKey}${tok?"&pageToken="+encodeURIComponent(tok):""}`;
+        const r=await fetch(u); const j=await r.json(); if(!r.ok) throw new Error((j.error&&j.error.message)||("HTTP "+r.status));
+        (j.documents||[]).forEach(d=>{ const f=d.fields||{}; all.push({date:(f.date||{}).stringValue||"",platform:(f.platform||{}).stringValue||"",totalPrice:Number((f.totalPrice||{}).integerValue||(f.totalPrice||{}).doubleValue||(f.totalPrice||{}).stringValue||0)}); });
+        tok=j.nextPageToken||""; if(!tok||stop) break; }
+      const rows=ghSalesRows(all); console.log(`[그로홈 매출] 대시보드 ${all.length}건 → 합계 ${rows.length}줄`);
+      if(stop) return; setGhRows(rows); try{ localStorage.setItem("pour-os-gh-sales",JSON.stringify({at:Date.now(),rows})); }catch(_){}
+    }catch(e){ console.error("[그로홈 매출] 대시보드 읽기 실패(예전 값 유지):",e); } })();
+    return ()=>{ stop=true; };
+  },[]);
   // 브랜드 보기(이 기기에만 기억) — 전체 | pourstore | grohome …
   const [brandF,setBrandFS]=useState(()=>{ try{ return localStorage.getItem("pour-os-brand")||"all"; }catch(_){ return "all"; } });
   const setBrandF=(b)=>{ setBrandFS(b); try{ localStorage.setItem("pour-os-brand",b); }catch(_){} };
@@ -1271,7 +1287,8 @@ export default function App(){
   const navAll=[...TABS.filter(t=>t.id!=="more"),...MORE,{id:"share-rev",icon:"",label:"매출"},{id:"share-proj",icon:"",label:"프로젝트/업무플로우맵"}];
   // 화면용 보기: 데이터에 저장된 예전 밝은 색(담당자·일정 유형)을 차분한 색으로 — 저장값은 그대로
   //  + 마진대시보드 매출 자동 연결(서브KPI 현재값) — 저장값은 그대로, 화면에서만
-  const DV=withAutoSales({...D,users:(D.users||[]).map(u=>u&&u.color?{...u,color:toneC(u.color)}:u),eventTypes:(D.eventTypes||[]).map(t=>t?{...t,color:toneC(t.color),bg:toneC(t.bg)}:t),_roll:salesRoll},salesRoll);
+  const salesRollAll=mergeRoll(salesRoll,ghRows,D.brands);   // 그로홈은 대시보드 원본 매출
+  const DV=withAutoSales({...D,users:(D.users||[]).map(u=>u&&u.color?{...u,color:toneC(u.color)}:u),eventTypes:(D.eventTypes||[]).map(t=>t?{...t,color:toneC(t.color),bg:toneC(t.bg)}:t),_roll:salesRollAll},salesRollAll);
   // 브랜드 보기 — 오늘·KPI·반복 실행·프로젝트만. 고른 브랜드 + 공통. 새로 만드는 프로젝트·업무·행동지표엔 그 브랜드를 붙여준다
   const brandOkSel=brandSel(brandF).filter(id=>(D.brands||[]).some(b=>b.id===id));   // 지워진 브랜드는 빼고
   const DB=brandView(DV,brandOkSel.length?brandOkSel:"all",brandNew);

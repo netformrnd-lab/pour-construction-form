@@ -219,6 +219,13 @@ goals[g1] 매출 10억
 - 사람: 같은 이름의 업무OS 담당자(김송희·용정하). 없는 사람(봇)은 담당 비움. 활동 기록은 `archiveMove("log")`로 월별 보관함에 바로(현재 기록 밀어내지 않음). 휴지통·eventTypes 는 옮기지 않음.
 - `importBulk`(App): 이미 있는 id 건너뜀 → 두 번 눌러도 중복 없음. 넣은 항목엔 `importedFrom:"moyeoradeal-os"`.
 
+### ✅ 그로홈 대시보드 업무 → 업무OS 한 번 옮기기 · 담당자 미사용 (2026-10, 대표 결정: 업무는 업무OS 에서만)
+- 원본 Firebase `grohome-dashboard` 의 employees·fixedTasks·etcTasks·leadingTasks·monthlyTasks·gbTasks — REST로 읽기만(대시보드 화면·데이터 그대로). 계산 `ghImport.js`(`planGhImport`, 테스트 `ghImport.test.mjs`).
+- 모두 그로홈 브랜드, id 앞 `gh_`. 고정업무→고정업무(HH:MM 이면 시간, '상시' 등은 메모) · 기타/선행/월간→할 일(완료·마감 그대로) · KPI 업무 트리→분야별 프로젝트 5개(`gh_kpi_{분야}`) + 업무·하위 업무(분기·이유·결과 메모, krId 는 ghKrId).
+- 사람: 같은 이름 담당자. 없는 사람(김보성·이채은)은 담당자로 추가(`gh_u_…`) + `active:false`(미사용). 예전 번호만 남은 담당은 비움.
+- 화면: KPI ▸ 데이터 백업·복구 — 공용 `ImportPanel`(`IMPORT_SRC.moy`·`IMPORT_SRC.gh`), 마스터만. 미리보기 → 확인 → `importBulk`(users 포함) · 두 번 눌러도 중복 없음.
+- **담당자 미사용** `users[].active===false`: 기록·이름 찾기는 그대로(D.users 전체), 담당 고르기·사람 바꾸기·팀 목록에서만 뺌(`actList(list, keep)` — 지금 골라져 있는 사람은 계속 보임). 담당자 화면 '미사용으로'/'다시 사용'(마스터, 나 자신 제외).
+
 ### ✅ 브랜드 여러 개 함께 보기 (2026-10, 대표 요청 — 김송희 POUR스토어+그로홈 겸업)
 - 상단 브랜드 바: 누르면 켜고 다시 누르면 끔(여러 개 가능), '전체'는 모두, 다 끄면 전체. 저장값 `localStorage pour-os-brand` = "all" | "pourstore" | "pourstore,grohome" (이 기기 기준 기억, 예전 한 개 값 그대로 호환).
 - `brandView(D, sel, def)` — 고른 브랜드들 + 공통. `_brands`=고른 목록, `_brand`=새로 만들 때 들어갈 브랜드(여러 개면 '새로 만들면 [브랜드]' 칩으로 고름, `localStorage pour-os-brand-new`). `toggleBrand(cur,id)`.

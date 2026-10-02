@@ -23,7 +23,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-모여라딜가져오기";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-가져오기안내";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -4307,7 +4307,7 @@ function KPIPage({D,Dall,importBulk,lead,up,cu,add,rm,restore,restoreLocal,pushE
           })()}
           </Fold>
           <Fold id="kpi-team" title="팀 현황" sub="담당자별 프로젝트·업무 진행"><TeamBoard D={D} cu={cu} embed/></Fold>
-          {!ro&&<Fold id="kpi-data" title="데이터 백업·복구" sub="전체 백업(JSON) · 휴지통 · 엑셀 내보내기 · 모여라딜 OS 가져오기">{isMaster(cu)&&importBulk&&<MoyImportPanel D={Dall||D} importBulk={importBulk}/>}<ExportPanel D={Dall||D} up={up} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup}/></Fold>}
+          {!ro&&<Fold id="kpi-data" title="데이터 백업·복구" sub="전체 백업(JSON) · 휴지통 · 엑셀 내보내기 · 모여라딜 OS 가져오기">{importBulk&&(isMaster(cu)?<MoyImportPanel D={Dall||D} importBulk={importBulk}/>:<div style={{margin:"0 0 14px",padding:"12px 13px",borderRadius:13,background:"#F7F8FB",border:"1px solid #E3E7F0"}}><b style={{fontSize:13.5,color:"#191F28"}}>모여라딜 OS 가져오기</b><p style={{margin:"4px 0 0",fontSize:12,color:"#6B7684",lineHeight:1.6}}>마스터 계정에서만 할 수 있어요 · 오른쪽 위 사람 버튼에서 마스터(김송희·이란·김소연·허지은)로 바꾸면 여기에 버튼이 보여요.</p></div>)}<ExportPanel D={Dall||D} up={up} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup}/></Fold>}
         </div>
       )}
       {kpiView==="mindmap"&&(

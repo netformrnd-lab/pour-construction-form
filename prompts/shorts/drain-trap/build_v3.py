@@ -4,8 +4,9 @@ import os, subprocess, json, zipfile
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 W, H, FPS = 1080, 1920, 30
-GAP = 0.3      # 묶음 사이 쉼
-TAIL = 1.2     # 마지막 컷 여유
+GAP = float(os.environ.get('GAP', 0.3))      # 묶음 사이 쉼
+TAIL = float(os.environ.get('TAIL', 1.2))     # 마지막 컷 여유
+TEMPO = float(os.environ.get('TEMPO', 1.0))   # 나레이션 속도 (음높이 유지)
 CF = 'https://d8j0ntlcm91z4.cloudfront.net/user_39sUpHbwBquNe1iB2u0CUyyHgzC/'
 GH = 'https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/'
 FONT_URL = 'https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/Korean/NotoSansCJKkr-Bold.otf'
@@ -71,7 +72,7 @@ for n in IMGS:
 ad, cd = [], []
 for i in range(1, N + 1):
     sh(f'ffmpeg -y -v error -i a{i}.wav -af "silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.1,'
-       f'areverse,silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.1,areverse" -ar 48000 -ac 1 n{i}.wav')
+       f'areverse,silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.1,areverse,atempo={TEMPO}" -ar 48000 -ac 1 n{i}.wav')
     d = dur(f'n{i}.wav'); ad.append(d)
     cd.append(round(d + (TAIL if i == N else GAP), 3))
 print('narration', ad, 'cuts', cd, 'total', sum(cd), flush=True)

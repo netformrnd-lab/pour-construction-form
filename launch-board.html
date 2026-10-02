@@ -610,7 +610,7 @@ let structure = { order:{}, custom:{}, projects:null };
 const MAIN_PJ = 'main';
 const DEFAULT_PROJECTS = {
   pourstore: [ { id:'amazon-us', name:'아마존 US' } ],
-  grohome:   [ { id:'amazon-jp', name:'아마존 JP' }, { id:'qoo10', name:'큐텐 확장' } ],
+  grohome:   [ { id:'amazon-jp', name:'아마존 JP' }, { id:'qoo10', name:'JP 큐텐' } ],
   barasday:  [ { id:'amazon-us', name:'아마존 US' }, { id:'amazon-jp', name:'아마존 JP' } ],
 };
 function extraProjects(k){ const sp = structure && structure.projects; return (sp && Array.isArray(sp[k])) ? sp[k] : (DEFAULT_PROJECTS[k] || []); }

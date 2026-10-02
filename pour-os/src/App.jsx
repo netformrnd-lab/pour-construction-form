@@ -4,6 +4,7 @@ import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extC
 import { RUN_COL, runNoteId, cleanSteps, runSteps, runChecks, runNext, runProgress, runTurnOwner, runToggle, runConfirmStep, runTurns, openRunsOf } from "./akRuns.js";
 import { RESEARCH_COL, researchUrl, researchTodo, researchTask, KIND_LABEL } from "./research.js";
 import { ML_PURPOSES, mlDest, normUrl, mlMakeDoc, mlReady, mlAutoLabel, recentCombos, mergeLinks, trackUrl, isTrackUrl, trackId, genLinkId, LINK_COL } from "./linkMaker.js";
+import { MOY_FIREBASE, parseMoyDocs, planMoyImport } from "./moyImport.js";
 import { noteThreads, noteCounts, linkParts, buildUtm, readUtm, pickFiles, pastedName, fileSize, isImage, UTM_SOURCES, UTM_MEDIUMS, taskNoteId, projNoteId, confirmLatest, nextRound, confirmQueue, newNotesFor } from "./akNotes.js";
 import { AK_SEED, LAG_SEED, AK_FUNS, AK_CYC, akYmd, akWeekKey, akAddDays, akQidOfWeek, akQidOfMonth, akYm, akWeeksIn, akQuarterWeeks, akMonthOfWeek, akVal, akWeekDone, akTotal, akPeriodEnd, akGoalText, akStep, akWho, akOrder, akStart, akCountable, akFullWeek, akPartial, akLink, lagCur, lagPct, isMaster, can, roleLabel, PERMS, pinHash, PIN_TRY_MAX, PIN_LOCK_MIN, akRetroDay, akRetroDue } from "./actionKpi.js";
 import { fixBrandDup, COMMON, BRAND_SEED, brandKey, brandName, brandView, brandSel, toggleBrand, taskBrand, akBrandOf, mkBrand, projBrand, seedMissing, fixGhSubs, withAutoSales, salesByCh, salesChOf, execGroups, GH_GOAL, GH_MAIN, GH_SUB, GH_AK_SEED, GH_LAG_SEED, SALES_CH_DEFAULT } from "./brand.js";
@@ -22,7 +23,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
-const BUILD_TAG = "1002-그로스보드요약";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
+const BUILD_TAG = "1002-모여라딜가져오기";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -1126,6 +1127,10 @@ export default function App(){
     let it=item;   // 업무는 생성 시점을 진행 이력의 첫 항목으로 기록(여정 시작점)
     if(k==="tasks"&&!Array.isArray(item.statusLog)) it={...item,statusLog:[{status:item.status||"todo",at:new Date().toISOString(),by:cu?.id||null,byName:cu?.name||""}]};
     const n=withLog({...p,[k]:[...(p[k]||[]),it]},"add",k,it.id,recLabel(it));return k==="tasks"?recalcProg(n):n;});};
+  // 다른 OS 데이터 한 번에 넣기(모여라딜 OS 가져오기) — 이미 있는 id 는 건너뜀(두 번 눌러도 중복 없음), 기록 1건
+  const importBulk=(adds,label)=>{ if(SHARE) return; setD(p=>{ const n={...p};
+    Object.entries(adds||{}).forEach(([k,list])=>{ const have=new Set((p[k]||[]).map(x=>x.id)); const fresh=(list||[]).filter(x=>x&&x.id&&!have.has(x.id)); if(fresh.length) n[k]=[...(p[k]||[]),...fresh]; });
+    return recalcProg(withLog(n,"add","import",null,label,{fields:"가져오기"})); }); };
   // silent=true → 활동기록 남기지 않음(대량 일괄 갱신 등 노이즈 방지용)
   const up=(k,id,c,silent)=>{ if(SHARE) return; return setD(p=>{
     const before=(p[k]||[]).find(i=>i.id===id);
@@ -1281,7 +1286,7 @@ export default function App(){
     </div>}
     {brandBar}
     {page==="today"&&<TodayPage D={DB} cu={cuV} lead={lead} add={addB} up={up} rm={rm} nav={nav}/>}
-    {page==="kpi"&&<KPIPage D={DB} Dall={D} lead={lead} up={up} cu={cuV} add={addB} rm={rm} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup} pc={viewMode==="pc"} ro={SHARE}/>}
+    {page==="kpi"&&<KPIPage D={DB} Dall={D} importBulk={importBulk} lead={lead} up={up} cu={cuV} add={addB} rm={rm} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup} pc={viewMode==="pc"} ro={SHARE}/>}
     {page==="projects"&&<ProjectsHome D={DB} cu={cuV} up={up} add={addB} rm={rm} rmNested={rmNested} pc={viewMode==="pc"} lead={lead} nav={nav}/>}
     {page==="calendar"&&<CalendarPage D={DV} cu={cuV} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="launch"&&<LaunchPage D={DV} cu={cuV} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
@@ -3915,7 +3920,7 @@ function ExecBoard({D}){
     </div>
   </section>);
 }
-function KPIPage({D,Dall,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro}){
+function KPIPage({D,Dall,importBulk,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro}){
   const [kpiView,setKpiView]=useState("one");   // one(KPI 한눈에: 최종목표→메인KPI→결과 KPI·행동지표→프로젝트 활동지표) | mindmap(전체 맵)
   const [retroT,setRetroT]=useState(null);       // 월말 회고 {y,m0}
   const [openMK,setOpenMK]=useState("mk1");
@@ -4302,7 +4307,7 @@ function KPIPage({D,Dall,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBack
           })()}
           </Fold>
           <Fold id="kpi-team" title="팀 현황" sub="담당자별 프로젝트·업무 진행"><TeamBoard D={D} cu={cu} embed/></Fold>
-          {!ro&&<Fold id="kpi-data" title="데이터 백업·복구" sub="전체 백업(JSON) · 휴지통 · 엑셀 내보내기"><ExportPanel D={Dall||D} up={up} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup}/></Fold>}
+          {!ro&&<Fold id="kpi-data" title="데이터 백업·복구" sub="전체 백업(JSON) · 휴지통 · 엑셀 내보내기 · 모여라딜 OS 가져오기">{isMaster(cu)&&importBulk&&<MoyImportPanel D={Dall||D} importBulk={importBulk}/>}<ExportPanel D={Dall||D} up={up} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup}/></Fold>}
         </div>
       )}
       {kpiView==="mindmap"&&(
@@ -9121,6 +9126,44 @@ function RetroPage({D,cu,add,up,rm}){
   );
 }
 // 프로젝트에 연결된 이번 주 내 목표 (자유입력 + 진행) — 프로젝트 상세에서 사용
+// 모여라딜 OS → 업무OS 한 번 옮기기 (마스터만). 원본은 읽기만 · 미리보기 → 확인 → 넣기 · 두 번 눌러도 중복 없음
+function MoyImportPanel({D,importBulk}){
+  const [st,setSt]=useState({step:"idle"});   // idle | loading | plan | saving | done | error
+  const brand=(D.brands||[]).find(b=>/모여라딜/.test(String(b.name||"")));
+  const load=async()=>{ setSt({step:"loading"});
+    try{ const u=`https://firestore.googleapis.com/v1/projects/${MOY_FIREBASE.projectId}/databases/(default)/documents/${MOY_FIREBASE.ns}?pageSize=300&key=${MOY_FIREBASE.apiKey}`;
+      const r=await fetch(u); const j=await r.json(); if(!r.ok) throw new Error((j.error&&j.error.message)||("HTTP "+r.status));
+      const src=parseMoyDocs(j); console.log("[모여라딜 가져오기] 원본",Object.fromEntries(Object.entries(src).map(([k,v])=>[k,v.length])));
+      if(!(src.tasks||[]).length&&!(src.projects||[]).length) throw new Error("원본에서 업무·프로젝트를 찾지 못했어요");
+      setSt({step:"plan",plan:planMoyImport(src,D,{brandId:brand.id})}); }
+    catch(e){ console.error("[모여라딜 가져오기] 원본 읽기 실패:",e); setSt({step:"error",msg:"모여라딜 OS 데이터를 읽지 못했어요 · "+(e.message||e)}); } };
+  const go=async()=>{ const pl=st.plan; setSt({step:"saving",plan:pl});
+    try{ importBulk(pl.adds,`모여라딜 OS 가져오기 — 목표 ${pl.counts.goals.add} · KPI ${pl.counts.mainKPIs.add+pl.counts.subKPIs.add} · 프로젝트 ${pl.counts.projects.add} · 업무 ${pl.counts.tasks.add}`);
+      let logN=0; if(pl.logs.length){ const r=await archiveMove("log",pl.logs,e=>String(e.at||"").slice(0,7)); logN=r.added.size; }
+      setSt({step:"done",plan:pl,logN}); }
+    catch(e){ console.error("[모여라딜 가져오기] 저장 실패:",e); setSt({step:"error",msg:"넣는 중 문제가 생겼어요 · "+(e.message||e)+" · 다시 눌러도 중복되지 않아요"}); } };
+  const box={margin:"0 0 14px",padding:"12px 13px",borderRadius:13,background:"#F7F8FB",border:"1px solid #E3E7F0"};
+  const L={goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",activityLog:"활동 기록(보관함으로)"};
+  if(!brand) return <div style={box}><b style={{fontSize:13.5,color:"#191F28"}}>모여라딜 OS 가져오기</b><p style={{margin:"4px 0 0",fontSize:12,color:"#6B7684"}}>상단 브랜드 바에서 '모여라딜' 브랜드를 먼저 추가해 주세요.</p></div>;
+  const pl=st.plan;
+  return(<div style={box}>
+    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><b style={{flex:"1 1 160px",fontSize:13.5,color:"#191F28"}}>모여라딜 OS 가져오기</b>
+      {(st.step==="idle"||st.step==="error"||st.step==="done")&&<button onClick={load} style={{...NB.pri,padding:"8px 14px"}}>{st.step==="done"?"다시 확인":"무엇이 들어올지 보기"}</button>}</div>
+    <p style={{margin:"4px 0 0",fontSize:11.5,color:"#6B7684",lineHeight:1.6}}>모여라딜 OS 데이터를 '{brand.name}' 브랜드로 한 번 옮겨요. 원본은 지우지 않고 그대로 두고, 여기 있던 데이터도 바뀌지 않아요. 두 번 눌러도 중복으로 들어가지 않아요.</p>
+    {st.step==="loading"&&<p style={{margin:"8px 0 0",fontSize:12.5,fontWeight:800,color:"#1E2F5C"}}>원본 읽는 중…</p>}
+    {st.step==="error"&&<p style={{margin:"8px 0 0",fontSize:12.5,fontWeight:800,color:"#B4383F"}}>{st.msg}</p>}
+    {pl&&<div style={{marginTop:9,display:"flex",flexDirection:"column",gap:6}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:5}}>{Object.entries(pl.counts).map(([k,c])=><div key={k} style={{padding:"7px 9px",borderRadius:9,background:"#fff",border:"1px solid #EEF1F4"}}><span style={{display:"block",fontSize:11,color:"#8B95A1",fontWeight:700}}>{L[k]||k}</span><b style={{fontSize:14,color:"#191F28",fontVariantNumeric:"tabular-nums"}}>{c.add}<span style={{fontSize:11,color:"#8B95A1",fontWeight:600}}> / 원본 {c.total}</span></b></div>)}</div>
+      <p style={{margin:0,fontSize:12,color:"#4E5968",lineHeight:1.6}}>사람: {Object.entries(pl.userMap).map(([a,b])=>b?((D.users||[]).find(u=>u.id===b)||{}).name:null).filter(Boolean).join(" · ")} 로 붙여요{pl.unmatched.length?<span style={{color:"#B26A12"}}> · 업무OS에 없는 {pl.unmatched.join(", ")}은(는) 담당 비움</span>:null}</p>
+      {pl.otherBrand.length>0&&<p style={{margin:0,fontSize:12,color:"#4E5968",lineHeight:1.6}}>다른 브랜드로 넣는 프로젝트: {pl.otherBrand.map(x=>`${String(x.title).trim()} → ${((D.brands||[]).find(b=>b.id===x.brand)||{}).name||x.brand}`).join(" · ")}</p>}
+      <p style={{margin:0,fontSize:11.5,color:"#8B95A1"}}>휴지통·일정 설정은 옮기지 않아요(원본에 그대로).</p>
+      {st.step==="plan"&&(pl.nothing?<p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#2F7D57"}}>이미 다 들어와 있어요 · 더 넣을 것이 없어요</p>
+        :<button onClick={go} style={{...NB.pri,alignSelf:"flex-start",padding:"10px 16px",fontSize:13.5}}>확인 — {Object.values(pl.adds).reduce((a,v)=>a+v.length,0)}건 넣기</button>)}
+      {st.step==="saving"&&<p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#1E2F5C"}}>넣는 중…</p>}
+      {st.step==="done"&&<p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#2F7D57"}}>다 넣었어요 · 상단 브랜드 바에서 '{brand.name}'을 눌러 확인해 주세요{st.logN?` (활동 기록 ${st.logN}건은 보관함으로)`:""}</p>}
+    </div>}
+  </div>);
+}
 function ExportPanel({D,up,restore,restoreLocal,pushExternalBackup}){
   const uname=(id)=>D.users.find(u=>u.id===id)?.name||"";
   // 외부(GitHub) 자동 백업 상태 + 즉시 백업

@@ -212,6 +212,13 @@ goals[g1] 매출 10억
 ### ✅ 그로스보드 마인드맵 간결화 (2026-10, 대표 요청)
 - 업무가 7건 이상인 프로젝트는 업무 가지를 다 펼치지 않음(`pushTaskBranch`): 남은 일 중 진행 중 먼저 최대 3개 + "외 N건 · 완료 x/y · z%" 한 칸. 6건 이하는 예전처럼 하위까지 전부. 프로젝트 칸에 '업무 N' 칩. 화면·이미지 저장(PNG) 모두 같은 규칙(개인·팀·KPI별 맵).
 
+### ✅ 모여라딜 OS → 업무OS 한 번 옮기기 (2026-10, 대표 요청: ① 한 번 옮기기 · ②③ 추천대로)
+- 원본: Firebase `moyeora-deal-manager` · `moyeoradeal-os/state-*` — REST로 읽기만(지우지 않음). 계산은 `moyImport.js`(`planMoyImport`, 테스트 `moyImport.test.mjs`).
+- 마스터 전용: KPI ▸ 데이터 백업·복구 ▸ **모여라딜 OS 가져오기** → '무엇이 들어올지 보기'(건수·사람·브랜드 미리보기) → '확인 — N건 넣기'.
+- id 앞 `md_`(KPI 번호 mk1~3 충돌 방지) · 연결(목표→KPI→서브→프로젝트→업무·하위업무) 유지 · 브랜드 '모여라딜'(이름에 바라스데이·그로홈 있는 프로젝트는 그 브랜드, 모여라딜 KPI 연결은 끊음) · 프로젝트 없는 업무는 brand=모여라딜.
+- 사람: 같은 이름의 업무OS 담당자(김송희·용정하). 없는 사람(봇)은 담당 비움. 활동 기록은 `archiveMove("log")`로 월별 보관함에 바로(현재 기록 밀어내지 않음). 휴지통·eventTypes 는 옮기지 않음.
+- `importBulk`(App): 이미 있는 id 건너뜀 → 두 번 눌러도 중복 없음. 넣은 항목엔 `importedFrom:"moyeoradeal-os"`.
+
 ### ✅ 브랜드 여러 개 함께 보기 (2026-10, 대표 요청 — 김송희 POUR스토어+그로홈 겸업)
 - 상단 브랜드 바: 누르면 켜고 다시 누르면 끔(여러 개 가능), '전체'는 모두, 다 끄면 전체. 저장값 `localStorage pour-os-brand` = "all" | "pourstore" | "pourstore,grohome" (이 기기 기준 기억, 예전 한 개 값 그대로 호환).
 - `brandView(D, sel, def)` — 고른 브랜드들 + 공통. `_brands`=고른 목록, `_brand`=새로 만들 때 들어갈 브랜드(여러 개면 '새로 만들면 [브랜드]' 칩으로 고름, `localStorage pour-os-brand-new`). `toggleBrand(cur,id)`.

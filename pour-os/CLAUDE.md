@@ -91,6 +91,7 @@ goals[g1] 매출 10억
 - 브랜드 보기(`brandView`)는 오늘·KPI·반복 실행·프로젝트에만, 고른 브랜드+공통. 저장 데이터는 안 바뀜. 백업(ExportPanel)은 항상 전체 원본 `Dall`.
 - 그로홈: 목표 g_gh 10억 = ghk1 온라인 7.86억(ghs1 자사몰 2.8 · ghs2 쿠팡·오늘의집 3.4 · ghs3 CPC 1.66) + ghk2 B2B·제휴 2.14억(ghs4 철물점 0.85 · ghs5 위탁 0.57 · ghs6 공동구매 0.72) — 그로홈 대시보드 kpiTargets 와 같은 값. 행동지표 10(ak_gh_*)·결과 KPI 9(lg_gh_*)는 KPI 체크리스트 엑셀 '그로홈' 시트. 기존 DB엔 `seedMissing()`이 빠진 id 만 1회 채움(휴지통에 있으면 안 넣음).
 - 매출 자동 연결: 마진대시보드 매출 화면(`loadSales`)이 브랜드·월·채널 합계를 `pour-os/sales-rollup` {rows:[{b,ym,ch,amt}],at,by} 에 씀(그로홈·POUR 두 기록 다 읽었을 때만). OS 는 서브KPI `salesCh`(없으면 `SALES_CH_DEFAULT`) 채널의 그 해 합계를 화면값으로(`withAutoSales`). `salesAuto:false` 면 예전처럼 수동. 메인2(mk2) 규칙은 그대로(프로젝트 매출 합계).
+- **그로홈 매출은 그로홈 대시보드 원본을 직접**(2026-10): `sales-rollup` 이 한 번도 안 생겨 그로홈 KPI가 0원이던 문제 → 업무OS가 `grohome-dashboard/salesRecords`(date·platform·totalPrice)를 REST로 읽기만 해서 `ghSalesRows`(채널 이름 맞춤 `ghChannel`: G마켓·옥션→옥션·지마켓, 도매꾹·도매매→도매꾹·도매매, '오늘의 집'→오늘의집)로 합계 → `mergeRoll`(그로홈 줄은 이것만, 두 번 안 셈) → `withAutoSales`. 기기에 합계만 `pour-os-gh-sales` 보관·1시간마다 새로. 저장 안 함. 나비엠알오·카카오쇼핑·박람회·토스쇼핑은 연결표에 없어 '안 들어간 채널'로.
 - ⚠️ CRM(pour-crm `pourOsSync`)이 `channelCode`(OWN·MK·SHOW·P3~P6·SUB)로 POUR CRM 매출을 서브KPI에 넣는다(crmSynced:true). 그로홈 서브KPI는 channelCode 를 비우고 `badge` 로 표시(`fixGhSubs` 가 예전 코드 정정). crmSynced 칸은 마진대시보드 값으로 덮지 않는다(CRM 이 원본).
 - 실행 현황: 행동지표 달성률 · 고정업무 체크율 · 프로젝트 진척을 **합치지 않고 따로**, 메인KPI별로 결과(매출 달성률)와 나란히. 위 버튼 [전체|행동지표|고정업무|프로젝트].
 - 메뉴 "반복 실행"(page routine, 예전 fixed 도 여기로) = 고정업무 + 행동지표 한 화면 두 칸.

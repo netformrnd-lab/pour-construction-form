@@ -1,3 +1,16 @@
+<!-- ★ 모바일 반응형 생명줄: 뷰포트 meta 강제 보장.
+     카페24가 head에서 뷰포트를 누락/왜곡하면 폰이 ~980px로 렌더되어 모든 @media가 무력화됨
+     → PC 레이아웃이 폰에 그대로 떠서 "모바일이 안 예쁨". 아래 스크립트가 이를 바로잡는다. -->
+<script>
+(function(){
+  try{
+    var want='width=device-width, initial-scale=1';
+    var m=document.querySelector('meta[name="viewport"]');
+    if(!m){ m=document.createElement('meta'); m.setAttribute('name','viewport'); (document.head||document.documentElement).appendChild(m); }
+    if(!/width\s*=\s*device-width/i.test(m.getAttribute('content')||'')) m.setAttribute('content',want);
+  }catch(e){}
+})();
+</script>
 <!-- 성능 힌트: 폰트·Firebase SDK 조기 로딩 (FOUC 감소 + 첫 응답 단축) -->
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>

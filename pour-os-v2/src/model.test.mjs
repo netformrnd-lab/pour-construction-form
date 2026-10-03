@@ -168,4 +168,12 @@ ok("다음 사람에게 한마디: 카드에 보이는 말만 댓글 줄에서 �
   assert.deepEqual(M.todayView(D, "wm", now, { "nt:n2": true }, T).inbox.filter((x) => x.kind === "note").map((x) => x.id), ["nt:n1"]);   // 카드에서 읽은 말은 다시 안 뜸
   assert.equal(M.todayView(D, "wm", now, {}, { ...T, inbox: [{ kind: "turnAgain", id: "x", at: "2026-10-06T05:00:00Z" }, { kind: "turnLate", id: "y", at: "2026-10-06T06:00:00Z" }] }).inbox[0].kind, "turnAgain");
 });
+ok("고정업무 매월 말일(평일): 그 달 마지막 평일 · 주말·공휴일이면 앞 평일", () => {
+  const t = { recurType: "monthly", monthEnd: true, monthDay: 31 };
+  assert.equal(M.monthEndWorkday("2026-10-03"), "2026-10-30");   // 10/31 토 → 10/30 금
+  assert.equal(M.fxDueOn(t, "2026-10-30"), true); assert.equal(M.fxDueOn(t, "2026-10-31"), false);
+  assert.equal(M.monthEndWorkday("2026-02-10"), "2026-02-27");   // 2/28 토 → 2/27 금
+  assert.equal(M.fxRecurL(t), "매월 말일(평일)");
+  assert.equal(M.fxDueOn({ recurType: "monthly", monthDay: 31 }, "2026-10-31"), true);   // 기존 31일은 그대로(말일)
+});
 console.log(`\n${n}개 모두 통과`);

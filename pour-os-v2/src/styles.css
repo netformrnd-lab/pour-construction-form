@@ -1,0 +1,75 @@
+/* 업무OS v2 공용 스타일 (실사용 os2.html · 관리자 os2-admin.html) */
+html, body, #root { height: 100%; margin: 0; }
+body { background: #F4F5F8; color: #1B2333; font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+button:focus-visible, a:focus-visible, [role=button]:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid #24386B; outline-offset: 2px; }
+input[type=date] { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; min-height: 40px; }
+
+.v2-center { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+/* 메뉴: 폰은 아래 탭, PC(1024+)는 왼쪽 */
+.v2-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: flex; background: #fff; border-top: 1px solid #E3E7F0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.v2-brand { display: none; }
+.v2-tab { flex: 1; height: 58px; border: none; background: none; font: inherit; font-size: 14px; font-weight: 800; color: #8A92A3; cursor: pointer; position: relative; }
+.v2-tab.on { color: #0F1F5C; }
+.v2-tab.on::after { content: ""; position: absolute; left: 30%; right: 30%; top: 0; height: 3px; border-radius: 0 0 3px 3px; background: #24386B; }
+.v2-badge { display: inline-block; min-width: 18px; height: 18px; line-height: 18px; margin-left: 4px; padding: 0 5px; border-radius: 9px; background: #24386B; color: #fff; font-size: 11px; vertical-align: 1px; }
+.v2-main { padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+.v2-trial { background: #E7EAF4; color: #0F1F5C; font-size: 12.5px; font-weight: 700; text-align: center; padding: 8px 16px; padding-top: calc(8px + env(safe-area-inset-top, 0px)); line-height: 1.5; }
+.v2-trial a { color: #24386B; font-weight: 800; white-space: nowrap; margin-left: 4px; }
+.v2-page { max-width: 720px; margin: 0 auto; padding: 0 16px 16px; }
+.v2-cols > div { min-width: 0; }
+.v2-fab { position: sticky; bottom: calc(68px + env(safe-area-inset-bottom, 0px)); margin-top: 18px; z-index: 30; }
+.v2-lab { display: block; font-size: 13px; font-weight: 800; color: #0F1F5C; margin: 18px 2px 8px; }
+.v2-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.v2-sel { height: 38px; border: 1.5px solid #E3E7F0; border-radius: 999px; padding: 0 12px; font: inherit; font-size: 13px; font-weight: 700; color: #5B6475; background: #fff; max-width: 100%; }
+/* 2주 일정 띠 (가로 스크롤은 이 안에서만) */
+.v2-strip { display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 2px 6px; scrollbar-width: thin; }
+.v2-day { flex: 0 0 58px; height: 66px; border-radius: 12px; border: 1.5px solid #E3E7F0; background: #fff; font: inherit; color: #5B6475; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; cursor: pointer; padding: 0; }
+.v2-day span { font-size: 12px; font-weight: 700; }
+.v2-day b { font-size: 13px; font-weight: 800; color: #0F1F5C; }
+.v2-day b.hv { color: #fff; background: #0F1F5C; border-radius: 6px; padding: 0 5px; }
+.v2-day.we { background: #F7F8FB; }
+.v2-day.on { border-color: #24386B; background: #24386B; color: #DCE2F2; }
+.v2-day.on b { color: #fff; }
+/* 달력: 폰은 날짜·건수만, 태블릿·PC는 제목까지 */
+.v2-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.v2-calh { text-align: center; font-size: 12px; font-weight: 800; color: #5B6475; padding: 4px 0; }
+.v2-calh.we { color: #8A92A3; }
+.v2-calc { position: relative; min-height: 54px; border: 1px solid #E3E7F0; border-radius: 10px; background: #fff; font: inherit; color: #1B2333; padding: 4px 3px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; min-width: 0; overflow: hidden; }
+.v2-calc .d { font-size: 13px; font-weight: 700; }
+.v2-calc .n { font-size: 11.5px; font-weight: 800; color: #fff; background: #24386B; border-radius: 9px; min-width: 20px; padding: 0 5px; line-height: 18px; }
+.v2-calc .n.red { background: #B4383F; }
+.v2-calc .m { font-size: 11px; color: #24386B; font-weight: 800; line-height: 1; }
+.v2-calc .t { display: none; }
+.v2-calc.out { background: #F7F8FB; color: #A6ADBB; }
+.v2-calc.today .d { color: #fff; background: #0F1F5C; border-radius: 9px; padding: 0 6px; }
+.v2-calc.on { border: 2px solid #24386B; }
+@media (min-width: 768px) {
+  .v2-calc { min-height: 96px; align-items: stretch; padding: 5px 6px; }
+  .v2-calc .d, .v2-calc .n { align-self: flex-start; }
+  .v2-calc .n { position: absolute; top: 5px; right: 5px; }
+  .v2-calc .m { display: none; }
+  .v2-calc .t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .v2-calc .t i { font-style: normal; font-size: 11.5px; color: #1B2333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; background: #EEF1F8; border-radius: 4px; padding: 1px 4px; }
+  .v2-calc .t i.red { background: #F8E9EA; color: #B4383F; }
+  .v2-calc .t i.p { background: #24386B; color: #fff; }
+}
+/* 시트: 폰은 전체 화면, PC는 오른쪽 패널 */
+.v2-sheet-wrap { position: fixed; inset: 0; z-index: 50; background: rgba(15, 31, 92, .28); display: flex; justify-content: flex-end; }
+.v2-sheet { width: 100%; height: 100%; background: #F4F5F8; display: flex; flex-direction: column; }
+.v2-toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 70; width: min(440px, calc(100% - 32px)); display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 14px; background: #0F1F5C; color: #fff; font-size: 14px; font-weight: 700; box-shadow: 0 8px 24px rgba(15,31,92,.3); }
+@media (min-width: 1024px) {
+  .v2-nav { top: 0; right: auto; width: 200px; flex-direction: column; border-top: none; border-right: 1px solid #E3E7F0; padding: 18px 10px; gap: 4px; }
+  .v2-brand { display: block; font-size: 17px; font-weight: 800; color: #0F1F5C; padding: 6px 12px 16px; }
+  .v2-tab { flex: 0 0 auto; height: 44px; text-align: left; padding: 0 12px; border-radius: 10px; font-size: 15px; }
+  .v2-tab.on { background: #EEF1F8; }
+  .v2-tab.on::after { display: none; }
+  .v2-main { margin-left: 200px; padding-bottom: 24px; }
+  .v2-fab { bottom: 16px; }
+  .v2-sheet { width: 620px; max-width: 100%; box-shadow: -8px 0 30px rgba(15,31,92,.18); }
+  .v2-toast { bottom: 24px; }
+}
+@media (min-width: 1280px) {
+  .v2-page { max-width: 1040px; }
+  .v2-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+}

@@ -136,7 +136,7 @@ function FocusCard({ D, cu, A, open, TV, T, x, pName, next, setSeen, setToast })
       <div style={{ fontSize: 18, fontWeight: 800, color: C.ink, lineHeight: 1.35, wordBreak: "keep-all" }}>{t.title}</div>
       <div style={{ fontSize: 13, color: C.sub, marginTop: 3 }}>{[pName(t.projectId), dueOf(t) ? `기한 ${md(dueOf(t))}` : "기한 미정", reqOf(t) ? `${nameOf(D.users, reqOf(t))}님이 맡김` : ""].filter(Boolean).join(" · ")}</div>
       {t.feedback && <div style={{ fontSize: 13.5, color: C.ink, fontWeight: 700, marginTop: 6 }}>수정 요청: {t.feedback.text}</div>}
-      {x.fresh && word && <div style={{ fontSize: 13.5, color: C.text, marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>앞 일 마지막 말: {word.text}</div>}
+      {x.fresh && word && <div className="v2-clamp3" style={{ fontSize: 13.5, color: C.text, marginTop: 6, padding: "8px 10px", background: C.soft, borderRadius: 10, lineHeight: 1.5, wordBreak: "break-word" }}><b style={{ color: C.ink }}>{word.handoff ? `${word.byName || "앞사람"}님이 남긴 말` : "앞 일 마지막 말"}</b> · {word.text}</div>}
       {!x.fresh && b.sub && <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>{b.sub}</div>}
       {t.firstStep && <div style={{ fontSize: 13.5, color: C.ink, marginTop: 6 }}>첫 걸음: {t.firstStep}</div>}
     </div>

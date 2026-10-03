@@ -195,16 +195,16 @@ export function useActs(D, cu, setToast, idx = null) {
     // 끝냈어요 — 맡긴 사람이 있으면 확인 요청, 아니면 바로 끝
     // note: 다음 사람에게 한마디(있으면 handoff 댓글로 남김 → 뒷사람 '지금 할 일' 카드의 '앞 일 마지막 말')
     finish: (t, note) => {
-      const at = nowIso(), prev = { status: t.status, doneAt: t.doneAt || null, reviewAt: t.reviewAt || null, finishedAt: t.finishedAt || null, feedback: t.feedback || null, blocked: t.blocked || null };
+      const at = nowIso(), prev = { status: t.status, doneAt: t.doneAt || null, reviewAt: t.reviewAt || null, finishedAt: t.finishedAt || null, feedback: t.feedback || null, blocked: t.blocked || null, ackAt: t.ackAt || null };
       const nx = idx ? nextTurnText(t, idx, D.users) : { text: "" };
       if (note && note.trim()) A.addNote(taskNoteId(t.id), note.trim(), null, [], { taskId: t.id, projectId: t.projectId }, { handoff: true });
       const lead = ((D.projects || []).find((p) => p.id === t.projectId) || {}).assigneeId;
       const tail = nx.text ? ` · ${nx.text}` : nx.noOwner ? ` · 다음 일 담당이 없어서 ${lead && lead !== cu.id ? `책임자 ${nameOf(D.users, lead)}님께 알렸어요` : "담당을 정해 주세요"}` : "";
       if (needsReview(t)) {
-        P(t, { status: "review", reviewAt: at, reviewTo: reqOf(t), finishedAt: at, blocked: null, statusLog: sl("review") }, "review");
+        P(t, { status: "review", reviewAt: at, reviewTo: reqOf(t), finishedAt: at, blocked: null, ...(t.ackAt ? {} : { ackAt: at, ackBy: cu.id }), statusLog: sl("review") }, "review");
         setToast({ text: `${nameOf(D.users, reqOf(t))}님께 확인 요청을 보냈어요${tail}`, undo: () => P(t, prev) });
       } else {
-        P(t, { status: "done", doneAt: at, doneBy: cu.id, doneByName: cu.name, finishedAt: at, feedback: null, blocked: null, statusLog: sl("done") }, "done").then(() => t.projectId && recalc(t.projectId));
+        P(t, { status: "done", doneAt: at, doneBy: cu.id, doneByName: cu.name, finishedAt: at, feedback: null, blocked: null, ...(t.ackAt ? {} : { ackAt: at, ackBy: cu.id }), statusLog: sl("done") }, "done").then(() => t.projectId && recalc(t.projectId));
         setToast({ text: `끝냈어요${tail || " · " + t.title}`, undo: () => P(t, prev).then(() => t.projectId && recalc(t.projectId)) });
       }
     },

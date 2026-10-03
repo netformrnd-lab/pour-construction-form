@@ -1,6 +1,6 @@
 // 업무OS v2 — 흐름으로 만들기 (프로모션 8단계 등): 단계마다 업무 1건 + 바로 앞 단계를 앞 일(deps)로 걸어 '앞사람 끝나면 내 차례'가 저절로 됨
 // 단계 이름은 버전1 workflows 문서(stages)를 쓰고, 흐름 이름만 여기 표에서 찾는다(버전1 문서에는 이름 칸이 없음)
-import { ymd, addDays, isOffDay, newId } from "./model.js";
+import { ymd, addDays, isOffDay, newId, wfCat } from "./model.js";
 
 const S = (id, name, desc) => ({ id, name, ...(desc ? { desc } : {}) });
 // 버전1 workflow.js DEFAULT_WORKFLOWS 와 같은 내용 (D.workflows 가 비었을 때만 씀)
@@ -45,7 +45,7 @@ export function flowDues(n, final, today) {
 export function planFlow({ wf, title, brand, leadId, due, owners }, D, me, today = ymd(new Date()), at = new Date().toISOString()) {
   const pid = newId("p"), bulk = newId("fl"), dues = flowDues(wf.stages.length, due, today);
   const project = { id: pid, title: title.trim(), assigneeId: leadId || me.id, collaboratorIds: [...new Set(owners.filter((u) => u && u !== (leadId || me.id)))], status: "active", priority: "mid", progress: 0, resultValue: 0, mainKPIId: "", subKPIId: "",
-    dueDate: due, brand: brand || "", group: "기타", wfId: wf.id, createdAt: at, createdBy: me.id, madeIn: "v2", v2At: at };
+    dueDate: due, brand: brand || "", group: "기타", wfId: wf.id, ...(wfCat(wf.id) || (wf.doc && wf.doc.cat) ? { category: wfCat(wf.id) || wf.doc.cat } : {}), createdAt: at, createdBy: me.id, madeIn: "v2", v2At: at };
   const ids = wf.stages.map(() => newId("t"));
   const tasks = wf.stages.map((s, i) => { const who = owners[i] || me.id, other = who !== me.id;
     return { id: ids[i], title: s.name, isFixed: false, type: "general", status: "todo", assigneeId: who, assigneeIds: [who], projectId: pid, parentId: null,

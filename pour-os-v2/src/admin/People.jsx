@@ -1,10 +1,11 @@
 // 관리자 · 사람 — 누가 넘치나, 누가 오래 밀렸나, 누가 너무 많이 벌였나
 // 사람 × [지남 | 이번 주 | 다음 주 | 2주 뒤 | 3주 뒤] (오늘부터 7일씩) (375 에서 328px 안, 가로 스크롤 없음) · [14일] 은 사람 × 날 (칸 안에서만 가로 스크롤)
 import { useMemo, useState } from "react";
-import { ymd, addDays, md, isMine, dueOf, holidayName, isOffDay } from "../model.js";
+import { ymd, addDays, md, isMine, isDone, dueOf, holidayName, isOffDay, ddays, ddayLabel } from "../model.js";
 import { teamWeeks, groupItems } from "../views.js";
 import { PickList } from "../pick.jsx";
-import { C, Chip, Seg, TBtn, Head, Card, Empty, Sheet } from "../ui.jsx";
+import { C, Chip, Seg, TBtn, Head, Card, Empty, Sheet, useLocal } from "../ui.jsx";
+import { LS } from "../core.jsx";
 import { Lv, SelBar, openOneOff, wdOf } from "./common.jsx";
 
 const ORD = { 위험: 0, 주의: 1, 순조: 2 };
@@ -14,15 +15,51 @@ const dl = (n) => (n <= 0 ? "" : n <= 2 ? " w1" : n <= 5 ? " w2" : " w3");      
 const WEEK_L = ["이번 주", "다음 주", "2주 뒤", "3주 뒤"];   // 오늘부터 7일 · 8~14일 · 15~21일 · 22~28일 (칸 아래 시작 날짜)
 
 export function PeopleTab({ D, cu, A, idx, open, setToast }) {
-  const [view, setView] = useState("w4"), [noTemp, setNoTemp] = useState(false);
+  const [view, setView] = useLocal(LS("apview-" + cu.id), "sum"), [noTemp, setNoTemp] = useState(false);
   return <>
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
-      <div style={{ flex: "1 1 180px", maxWidth: 260 }}><Seg items={[["w4", "4주"], ["d14", "14일"]]} value={view} onChange={setView} /></div>
+      <div style={{ flex: "1 1 180px", maxWidth: 260 }}><Seg items={[["sum", "완료·할 일"], ["w4", "4주"], ["d14", "14일"]]} value={view} onChange={setView} /></div>
       <Chip on={noTemp} onClick={() => setNoTemp(!noTemp)}>임시 빼기</Chip>
     </div>
-    <p className="a-hint" style={{ marginTop: 10 }}>{view === "w4" ? "숫자 = 그 주 마감인 열린 일(고정업무·확인 대기 제외) · 빨간 숫자 = 주 한도 넘음 · 칸을 누르면 그 주 일을 골라 나눠요 · 이름을 누르면 사람 보기" : "숫자 = 그날 마감인 열린 일 · 빨간 숫자 = 하루 8건 넘음 · 칸을 누르면 그날 일을 골라요"}</p>
-    {view === "w4" ? <WeekTable D={D} idx={idx} open={open} noTemp={noTemp} /> : <DayTable D={D} idx={idx} open={open} noTemp={noTemp} />}
+    {view === "sum" ? <SumCards D={D} idx={idx} open={open} noTemp={noTemp} /> : <><p className="a-hint" style={{ marginTop: 10 }}>{view === "w4" ? "숫자 = 그 주 마감인 열린 일(고정업무·확인 대기 제외) · 빨간 숫자 = 주 한도 넘음 · 칸을 누르면 그 주 일을 골라 나눠요 · 이름을 누르면 사람 보기" : "숫자 = 그날 마감인 열린 일 · 빨간 숫자 = 하루 8건 넘음 · 칸을 누르면 그날 일을 골라요"}</p>
+    {view === "w4" ? <WeekTable D={D} idx={idx} open={open} noTemp={noTemp} /> : <DayTable D={D} idx={idx} open={open} noTemp={noTemp} />}</>}
     <p className="a-hint">위험 = 지난 일 3개 이상이거나 기한 지킴 60% 미만 · 주의 = 지난 일·시작 전 일이 있거나 한 주 15건 이상 · 주 한도는 이름 › 사람 보기에서 고쳐요</p>
+  </>;
+}
+
+// 사람마다 카드 한 장: 얼마나 끝냈나(7일·30일) · 곧 할 일 3개 · 과중(주 한도 넘는 주) — 과중 → 지남 많은 순
+const finAt = (t) => String(t.finishedAt || t.doneAt || "");
+function SumCards({ D, idx, open, noTemp }) {
+  const now = new Date(), key = ymd(now), d7 = new Date(now - 7 * 864e5).toISOString(), d30 = new Date(now - 30 * 864e5).toISOString();
+  const WL = ["이번 주", "다음 주", "2주 뒤", "3주 뒤"];
+  const rows = useMemo(() => teamWeeks(D, idx, now, noTemp).map((r) => {
+    const done = (D.tasks || []).filter((t) => !t.isFixed && isDone(t) && isMine(t, r.u.id) && finAt(t) >= d30).sort((a, b) => finAt(b).localeCompare(finAt(a)));
+    const open = (D.tasks || []).filter((t) => !t.isFixed && !isDone(t) && t.status !== "hold" && t.status !== "review" && isMine(t, r.u.id) && !(noTemp && idx.temp.has(t.id)));
+    const soon = open.filter((t) => dueOf(t)).sort((a, b) => dueOf(a).localeCompare(dueOf(b)));
+    const overW = r.weeks.map((w, i) => ({ ...w, i })).filter((w) => w.n > r.cap);
+    return { ...r, d7: done.filter((t) => finAt(t) >= d7).length, d30: done.length, lastDone: done.slice(0, 2), soon: soon.slice(0, 3), soonN: soon.length, overW };
+  }).sort((a, b) => (b.overW.length ? 1 : 0) - (a.overW.length ? 1 : 0) || b.late - a.late || ORD[a.level] - ORD[b.level] || String(a.u.name).localeCompare(String(b.u.name), "ko")), [D, idx, noTemp]);
+  const over = rows.filter((r) => r.overW.length);
+  const pn = (t) => ((D.projects || []).find((p) => p.id === t.projectId) || {}).title || "";
+  return <>
+    <div className={"a-sumtop" + (over.length ? " over" : "")}>{over.length ? <>과중 {over.length}명 · {over.map((r) => `${r.u.name} ${WL[r.overW[0].i]} ${r.overW[0].n}/${r.cap}`).join(" · ")}</> : "주 한도를 넘는 사람이 없어요"}</div>
+    <p className="a-hint" style={{ marginTop: 6 }}>완료 = 끝낸 일(고정업무 빼고) · 할 일 = 이번 주(오늘부터 7일) 마감 / 주 한도 · 과중 = 4주 중 한도를 넘는 주가 있음 · 카드를 누르면 사람 보기</p>
+    <div className="a-sum">{rows.map((r) => <div key={r.u.id} className={"a-sumc" + (r.overW.length ? " over" : "")}>
+      <button type="button" className="a-sumh" onClick={() => open({ type: "person", id: r.u.id })} aria-label={`${r.u.name} 사람 보기`}>
+        <b>{r.u.name}</b><Lv v={r.level} small />{r.overW.length > 0 && <span className="a-overtag">과중 · {WL[r.overW[0].i]} {r.overW[0].n}/{r.cap}</span>}<span className="arr">›</span></button>
+      <div className="a-sumn">
+        <div><span>완료 7일</span><b>{r.d7}</b><small>30일 {r.d30}</small></div>
+        <button type="button" disabled={!r.weeks[0].n} onClick={() => open({ type: "apick", uid: r.u.id, from: r.weeks[0].from, to: r.weeks[0].to, noTemp })}><span>이번 주 할 일</span><b className={r.weeks[0].n > r.cap ? "over" : ""}>{r.weeks[0].n}<small>/{r.cap}</small></b><small>다음 주 {r.weeks[1].n}</small></button>
+        <button type="button" disabled={!r.late} onClick={() => open({ type: "apick", uid: r.u.id, late: true, noTemp })}><span>지난 일</span><b style={{ color: r.late ? C.red : C.mute }}>{r.late}</b><small>진행 중 {r.doing}</small></button>
+      </div>
+      <div className="a-suml"><span className="h">곧 할 일{r.soonN > 3 ? ` (전체 ${r.soonN})` : ""}</span>
+        {r.soon.length ? r.soon.map((t) => { const n = ddays(dueOf(t), key);
+          return <button key={t.id} type="button" onClick={() => open({ type: "task", id: t.id })}><em className={n < 0 ? "late" : ""}>{n < 0 ? ddayLabel(n) : md(dueOf(t))}</em><span>{t.title}{pn(t) ? <small> · {pn(t)}</small> : null}</span></button>; })
+          : <span className="none">{r.noDue ? `기한 없는 일 ${r.noDue}개만 있어요` : "열린 일이 없어요"}</span>}</div>
+      <div className="a-suml done"><span className="h">최근 완료</span>
+        {r.lastDone.length ? r.lastDone.map((t) => <button key={t.id} type="button" onClick={() => open({ type: "task", id: t.id })}><em>✓ {md(finAt(t).slice(0, 10))}</em><span>{t.title}</span></button>)
+          : <span className="none">최근 30일 끝낸 일이 없어요</span>}</div>
+    </div>)}</div>
   </>;
 }
 

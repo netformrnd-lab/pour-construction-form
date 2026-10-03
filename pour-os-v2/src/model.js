@@ -251,6 +251,17 @@ export function projWhen(p, tasks, key) {
   const date = String((p && (p.dueDate || p.launchDate)) || "").slice(0, 10), n = ddays(date, key);
   return { date, n, late: n != null && n < 0, launched: false };
 }
+// ── 프로젝트 카테고리 (버전1 WF_CATS 와 같은 키 · p.category 칸 그대로) ──
+export const PROJ_CATS = [["launch", "신제품 출시"], ["marketing", "프로모션·마케팅"], ["notice", "공지사항"], ["system", "시스템 구축"], ["sales", "영업·B2B"], ["ops", "상시 운영"]];
+export const catName = (k) => (PROJ_CATS.find((c) => c[0] === k) || [])[1] || "";
+const WF_CAT = { wf_promo: "marketing", wf_cpc: "marketing", wf_blog: "marketing", wf_review: "marketing", wf_shorts: "marketing", wf_seller: "marketing", wf_event: "marketing",
+  wf_notice: "notice", wf_sys: "system", wf_dealer: "sales", wf_order: "ops", wf_return: "ops", wf_stock: "ops", wf_launch: "launch" };
+export const wfCat = (id) => WF_CAT[id] || "";
+// 저장된 카테고리 → (없으면) 신제품(lb_) → 흐름 종류. 끝내 없으면 "" = 미분류 (이름으로 짐작은 '추천'으로만)
+export const projCat = (p) => (p && PROJ_CATS.some((c) => c[0] === p.category) ? p.category : p && String(p.id || "").startsWith("lb_") ? "launch" : (p && wfCat(p.wfId)) || "");
+const CAT_RULES = [["launch", /출시|신제품|SKU/i], ["sales", /대리점|B2B|파트너|판매가|영업|관리주체/i], ["ops", /주문|발주|재고|반품|\bCS\b|배송/i],
+  ["marketing", /광고|프로모션|마케팅|콘텐츠|후기|NPS|박람회|기부|체험단|블로그|이벤트|기획전/i], ["notice", /공지|휴무|품절/], ["system", /리뉴얼|구축|개발|시스템|CRM|어드민|프로세스|자동화|매거진/i]];
+export const guessCat = (title) => { const t = String(title || ""); for (const [k, re] of CAT_RULES) if (re.test(t)) return k; return ""; };
 // 묶음: 마감 지남 · 이번 달 · 그 뒤 · 마감 없음 · 보류
 // tasks 를 주면 projWhen 날짜로 묶음 (출시한 신제품은 남은 항목 기한으로 · 늦은 항목 없이 날짜만 지났으면 '7일 안'). 2개만 주면 예전처럼 마감(dueDate)으로
 export function projGroups(list, key, tasks) {

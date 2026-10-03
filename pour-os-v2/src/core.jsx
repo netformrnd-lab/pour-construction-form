@@ -298,7 +298,7 @@ export function useActs(D, cu, setToast, idx = null) {
     },
     addProject: async (f) => {
       const id = newId("p"), at = nowIso();
-      const p = { id, title: f.title.trim(), assigneeId: f.assigneeId || cu.id, collaboratorIds: [], status: "active", priority: "mid", progress: 0, resultValue: 0, mainKPIId: "", subKPIId: "", dueDate: f.dueDate || "", brand: f.brand || "", group: "기타", createdAt: at, createdBy: cu.id, madeIn: "v2" };
+      const p = { id, title: f.title.trim(), assigneeId: f.assigneeId || cu.id, collaboratorIds: [], status: "active", priority: "mid", progress: 0, resultValue: 0, mainKPIId: "", subKPIId: "", dueDate: f.dueDate || "", brand: f.brand || "", group: "기타", ...(f.category ? { category: f.category } : {}), createdAt: at, createdBy: cu.id, madeIn: "v2" };
       try { await fb.put("projects", id, p); } catch (e) { fail("프로젝트")(e); return null; }
       log("add", { col: "projects", targetId: id, projectId: id, label: p.title });
       for (const tt of (f.tasks || []).filter((x) => x.trim())) await A.addTask({ title: tt, projectId: id, assigneeId: cu.id, dueDate: f.dueDate || "" });

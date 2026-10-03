@@ -1,12 +1,13 @@
 // 관리자 · 프로젝트 — 출시가 겹치나, 어느 프로젝트가 위험한가, 출시일을 옮기면 무엇이 바뀌나
 // 출시 줄(앞으로 8주 출시일 묶음 · 제품마다 7단계 칸) → 위험순 전체 목록(일반·신제품 한 목록) → 제품을 누르면 프로젝트 시트 + 관리자 덧붙임(LaunchTools)
 import { useMemo, useState } from "react";
-import { ymd, addDays, ddays, ddayLabel, md, ago, nameOf, ownersOf, dueOf, isDone, projOpen, projHealth, weekStart } from "../model.js";
+import { ymd, addDays, ddays, ddayLabel, md, ago, nameOf, ownersOf, dueOf, isDone, projOpen, projHealth, weekStart, PROJ_CATS, catName, projCat, guessCat } from "../model.js";
 import { lineup, previewLaunchMove, groupItems } from "../views.js";
 import { LAUNCH_PHASES, launchPct, rebalanceLaunch } from "../launch.js";
 import { nowNext } from "../turn.js";
 import { PickList, ro } from "../pick.jsx";
-import { C, Act, Seg, TBtn, Head, Card, Empty, More, Ask } from "../ui.jsx";
+import { C, Act, Seg, TBtn, Chip, Head, Card, Empty, More, Ask, useLocal } from "../ui.jsx";
+import { LS } from "../core.jsx";
 import { Lv, SelBar, isLaunchP, openOneOff, wdOf, deltaLine } from "./common.jsx";
 
 const PH_S = { plan: "기획", sample: "샘플", pack: "패킹", content: "콘텐", channel: "채널", stock: "입고", promo: "홍보" };
@@ -14,7 +15,7 @@ const ORD = { 위험: 0, 주의: 1, 순조: 2 };
 const NAVY_BTN = { background: C.navy, color: "#fff", borderColor: C.navy };
 
 export function ProjectsTab({ D, cu, A, idx, open }) {
-  const [axis, setAxis] = useState("phase"), [n, setN] = useState(20);
+  const [axis, setAxis] = useState("phase"), [n, setN] = useState(20), [cat, setCat] = useLocal(LS("apcat"), "all");
   const now = new Date(), key = ymd(now);
   const L = useMemo(() => lineup(D, idx, key, 8).map((g) => {
     // 같은 날 넘김: 이 출시 묶음 안에서 앞 일과 뒤 일 기한이 같은 날인 쌍 (순서 꼬임에는 넣지 않고 여기서만 셈)
@@ -24,7 +25,12 @@ export function ProjectsTab({ D, cu, A, idx, open }) {
   const rows = useMemo(() => D.projects.filter(projOpen).map((p) => { const lp = isLaunchP(p);
     return { p, lp, h: projHealth(p, D, key, lp ? (x) => launchPct(x, D) : null), nn: nowNext(p, D, idx, key) }; })
     .sort((a, b) => ORD[a.h.level] - ORD[b.h.level] || String(a.p.dueDate || "9").localeCompare(String(b.p.dueDate || "9")) || String(a.p.title).localeCompare(String(b.p.title), "ko")), [D, idx]);
-  const cnt = (v) => rows.filter((x) => x.h.level === v).length;
+  const inCat = (p, k) => (k === "all" ? true : k === "none" ? !projCat(p) : projCat(p) === k);
+  const cats = [["all", "전체"], ...PROJ_CATS, ["none", "미분류"]].filter(([k]) => k === "all" || rows.some((x) => inCat(x.p, k)));
+  const cat1 = cats.some(([k]) => k === cat) ? cat : "all";
+  const list = rows.filter((x) => inCat(x.p, cat1));
+  const cnt = (v) => list.filter((x) => x.h.level === v).length;
+  const setPC = (p, v) => A.patchProject(p, { category: v }, `카테고리 → ${catName(v) || "미분류"}`, p.category || "");
   const weeks = [...Array(8)].map((_, i) => addDays(weekStart(key), i * 7));
   return <>
     <Head right={<div style={{ width: 150 }}><Seg items={[["phase", "7단계"], ["week", "8주 축"]]} value={axis} onChange={setAxis} /></div>}>출시 줄 · 앞으로 8주</Head>
@@ -52,17 +58,22 @@ export function ProjectsTab({ D, cu, A, idx, open }) {
       </div></div>}
     <p className="a-hint">칸 = 기획 · 샘플 · 패킹 · 콘텐츠 · 채널 등록 · 창고 입고 · 출시 홍보. 채움 = 끝남 · 테두리 = 지금 단계(숫자 = 남은 항목) · 빨간 테두리 = 지난 항목 있음 · <TBtn onClick={() => open({ type: "launchOrder" })} style={{ padding: "0 2px", fontSize: 12 }}>신제품 순서표 보기 ›</TBtn></p>
 
-    <Head>전체 프로젝트 {rows.length} · 위험 {cnt("위험")} · 주의 {cnt("주의")} · 순조 {cnt("순조")}</Head>
-    <Card>{rows.slice(0, n).map((x, i) => { const p = x.p, lead = nameOf(D.users, p.assigneeId), stale = p.now && p.now.at ? ddays(ymd(new Date(p.now.at)), key) : null;
-      return <div key={p.id} role="button" tabIndex={0} className="a-prow" onClick={() => open({ type: "project", id: p.id })} onKeyDown={(e) => { if (e.key === "Enter") open({ type: "project", id: p.id }); }} style={{ borderBottom: i < Math.min(n, rows.length) - 1 ? `1px solid ${C.line}` : "none" }}>
-        <div className="t1"><Lv v={x.h.level} /><b>{p.title}</b></div>
+    <Head>{cat1 === "all" ? "전체 프로젝트" : catName(cat1) || "미분류"} {list.length} · 위험 {cnt("위험")} · 주의 {cnt("주의")} · 순조 {cnt("순조")}</Head>
+    <div className="v2-chips" role="group" aria-label="카테고리" style={{ marginBottom: 8 }}>{cats.map(([k, l]) => <Chip key={k} on={cat1 === k} onClick={() => { setCat(k); setN(20); }}>{l} {rows.filter((x) => inCat(x.p, k)).length}</Chip>)}</div>
+    {cat1 === "none" && <p className="a-hint" style={{ marginTop: 0 }}>줄마다 카테고리를 고르면 바로 그 묶음으로 옮겨져요 · '추천'은 이름으로 짐작한 것</p>}
+    <Card>{list.slice(0, n).map((x, i) => { const p = x.p, lead = nameOf(D.users, p.assigneeId), stale = p.now && p.now.at ? ddays(ymd(new Date(p.now.at)), key) : null;
+      return <div key={p.id} role="button" tabIndex={0} className="a-prow" onClick={() => open({ type: "project", id: p.id })} onKeyDown={(e) => { if (e.key === "Enter") open({ type: "project", id: p.id }); }} style={{ borderBottom: i < Math.min(n, list.length) - 1 ? `1px solid ${C.line}` : "none" }}>
+        <div className="t1"><Lv v={x.h.level} /><b>{p.title}</b>{cat1 === "all" && projCat(p) && <span className="a-pcat">{catName(projCat(p))}</span>}</div>
         <div className="t2">{[lead ? `책임 ${lead}` : "책임 없음", p.dueDate ? `${x.lp ? "출시" : "마감"} ${md(p.dueDate)} ${ddayLabel(x.h.n)}` : x.lp ? "출시일 미정" : "마감 없음", `${x.h.pct}%`, `남은 ${x.h.open}`].join(" · ")}</div>
         {x.h.why.length > 0 && <div className="t3" style={{ color: x.h.late || (x.h.n != null && x.h.n < 0) ? C.red : C.ink }}>{x.h.why.join(" · ")}</div>}
         {x.nn.now && <div className="t3">지금 {x.nn.now.title} ({nameOf(D.users, ownersOf(x.nn.now)[0]) || "담당 없음"}){x.nn.others ? ` 외 ${x.nn.others}명` : ""}{x.nn.next ? ` → 다음 ${x.nn.next.title} (${nameOf(D.users, ownersOf(x.nn.next)[0]) || "담당 없음"})` : ""}</div>}
         {stale != null && stale < -7 && <div className="t3" style={{ color: C.ink, fontWeight: 800 }}>소식 {-stale}일 없음</div>}
+        {cat1 === "none" && <div className="t3 a-pcatset" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          <select aria-label={`${p.title} 카테고리`} className="v2-sel" value="" onChange={(e) => e.target.value && setPC(p, e.target.value)}><option value="">카테고리 고르기 ▾</option>{PROJ_CATS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+          {guessCat(p.title) && <TBtn onClick={() => setPC(p, guessCat(p.title))}>추천 '{catName(guessCat(p.title))}'로</TBtn>}</div>}
       </div>; })}
-      {rows.length > n && <More onClick={() => setN(n + 30)}>{rows.length - n}개 더 보기 ▾</More>}
-      {rows.length === 0 && <Empty>진행 중인 프로젝트가 없어요</Empty>}</Card>
+      {list.length > n && <More onClick={() => setN(n + 30)}>{list.length - n}개 더 보기 ▾</More>}
+      {list.length === 0 && <Empty>진행 중인 프로젝트가 없어요</Empty>}</Card>
   </>;
 }
 

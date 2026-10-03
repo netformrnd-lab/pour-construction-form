@@ -155,7 +155,7 @@ ai('drain', cd[5], 's6.mp4', ss=2.5)
 ai('generic', cd[6], 's7.mp4', label='일반 드레인 (예시)')
 # 8) 실사: 제품(넓은 덮개·옆면) → 구조도(지지대)
 compose('ref-04-white-bg.png', 'c8a.png', bg=(242, 242, 242), box=(1040, 1300), cy=860, chip='① 넓은 덮개  ② 옆면')
-compose('ref-08-structure.png', 'ref-09-extension-sheet.png', 'c8b.png', bg=(242, 242, 242), box=(1040, 1300), cy=860, chip='③ 지지대에서 한 번 더')
+compose('ref-08-structure.png', 'c8b.png', bg=(242, 242, 242), box=(1040, 1300), cy=860, chip='③ 지지대에서 한 번 더')
 # 물빠짐 공간을 8번 끝에 붙임
 compose('ref-06-drain-gap.png', 'c8c.png', chip='물빠짐 공간까지')
 h8 = round(cd[7] / 3, 3)

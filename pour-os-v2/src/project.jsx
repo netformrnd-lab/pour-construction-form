@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as fb from "./fb.js";
 import {
-  ymd, addDays, ddays, ddayLabel, md, ago, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf,
+  ymd, addDays, ddays, ddayLabel, md, ago, hm, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf,
   projOpen, projMine, projStat, projGroups, projWhen, feedOf, taskNoteId, projNoteId, LOG_L, reqOf, riskOf, workloadOf,
 } from "./model.js";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, launchPct } from "./launch.js";
@@ -26,13 +26,13 @@ const whenOf = (p, tasks, key) => projWhen(p, tasks, key);
 const stWord = (t) => (t.blocked ? "막힘" : t.status === "inprogress" ? "진행 중" : t.status === "review" ? "확인 중" : t.status === "hold" ? "보류" : "할 일");
 
 // 목록 한 줄 (신제품·일반 같은 모양)
-export function ProjCard({ p, D, cu, open, last, now, idx }) {
+export function ProjCard({ p, D, cu, open, last, now, idx, tag2 }) {
   const key = ymd(now), launch = isLaunch(p), date = dateOf(p), w = whenOf(p, D.tasks, key);
   const nn = nowNext(p, D, idx, key);
   const ts = D.tasks.filter((t) => t.projectId === p.id && !t.isFixed), openN = ts.filter((t) => !isDone(t)).length;
   const news = nn.next ? [] : feedOf(D, { projectId: p.id, taskIds: ts.map((t) => t.id), sinceIso: new Date(now - 7 * 864e5).toISOString() }).filter((x) => x.by !== cu.id);
   const nowL = nn.now ? `지금: ${whoOf(D, nn.now)} · ${nn.now.title}${nn.others ? ` 외 ${nn.others}명` : ""}${dueOf(nn.now) ? " · " + md(dueOf(nn.now)) : ""}` : openN ? `열린 일 ${openN} · 지금 하는 일 없음` : "열린 일 없음";
-  const pre = launch ? brandName(D, p.brand) + (p.batch ? " " + p.batch : "") : "";
+  const pre = [launch ? brandName(D, p.brand) + (p.batch ? " " + p.batch : "") : "", tag2].filter(Boolean).join(" · ");
   return <Row title={p.title} tag={w.launched ? `출시 후 ${w.after != null ? w.after : -ddays(p.launchDate, key)}일` : date ? (launch ? "출시 " : "") + ddayLabel(w.n) : "날짜 없음"} tagTone={w.late ? "red" : null}
     sub={[pre, nowL].filter(Boolean).join(" · ")}
     sub2={nn.next ? `다음: ${whoOf(D, nn.next)} · ${nn.next.title}` : news.length ? `새 소식 ${news.length} · ${ago(news[0].at, now)}` : null}
@@ -41,6 +41,7 @@ export function ProjCard({ p, D, cu, open, last, now, idx }) {
 
 export function ProjectsTab({ D, cu, open, idx: idx0 }) {
   const idx = useMemo(() => idx0 || turnIndex(D), [idx0, D]);
+  const [view, setView] = useLocal(LS("pview"), "date");   // 날짜순 | KPI별
   const [scope, setScope] = useLocal(LS("pscope"), "mine"), [q, setQ] = useState(""), [more, setMore] = useState({});
   const now = new Date(), key = ymd(now);
   const openList = D.projects.filter(projOpen).map((p) => (p.dueDate || !p.launchDate ? p : { ...p, dueDate: p.launchDate }));
@@ -57,8 +58,10 @@ export function ProjectsTab({ D, cu, open, idx: idx0 }) {
       <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.ink }}>프로젝트</h1>
       <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="찾기 · 프로젝트·제품 이름, 책임자, 업무 제목" aria-label="프로젝트 찾기" style={inp} />
       {!hit && <Seg items={[["mine", `내 프로젝트 ${mineAll.length}`], ["all", `모든 프로젝트 ${openList.length}`]]} value={scope} onChange={setScope} />}
+      {!hit && <div className="v2-chips">{[["date", "날짜순"], ["kpi", "KPI별"]].map(([k, l]) => <Chip key={k} on={view === k} onClick={() => setView(k)}>{l}</Chip>)}</div>}
     </header>
-    {hit ? <><Head>찾은 결과 {hit.length}</Head><Card>{hit.length === 0 ? <Empty>찾는 프로젝트가 없어요</Empty> : hit.map((p, i) => card(p, i === hit.length - 1))}</Card></>
+    {!hit && view === "kpi" ? <KpiGroups D={D} list={list} card={(p, last, t2) => <ProjCard key={p.id} p={p} D={D} cu={cu} open={open} now={now} idx={idx} last={last} tag2={t2} />} more={more} setMore={setMore} key2={key} />
+    : hit ? <><Head>찾은 결과 {hit.length}</Head><Card>{hit.length === 0 ? <Empty>찾는 프로젝트가 없어요</Empty> : hit.map((p, i) => card(p, i === hit.length - 1))}</Card></>
       : groups.map(([k, l, openDefault]) => { const a = G[k]; if (!a.length) return null; const m = more[k], shown = openDefault ? (m ? a : a.slice(0, 5)) : (m ? a : []);
         return <div key={k}><Head red={k === "late"} right={!openDefault && <TBtn onClick={() => setMore({ ...more, [k]: !m })}>{m ? "접기 ▴" : `${a.length} ▾`}</TBtn>}>{l} {a.length}</Head>
           {shown.length > 0 && <Card>{shown.map((p, i) => card(p, i === shown.length - 1 && !(openDefault && a.length > 5)))}
@@ -171,6 +174,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
   const openT = live.filter((t) => !isDone(t));
   const myNew = openT.filter((t) => isMine(t, cu.id) && reqOf(t) && !t.ackAt && t.status === "todo");
   const nn = nowNext(p, D, idx, key);
+  const hasNow = !!(p.now && p.now.text);
   const phases = launch ? phaseStates(live.filter((t) => t.launchItem), key) : null;
   const loadDone = () => { setShowDone(!showDone); if (doneList == null) fb.fetchWhere("tasks", ["projectId", "==", p.id]).then((a) => setDoneList(a.filter((t) => isDone(t) && !t.isFixed))).catch((e) => { console.error(e); setDoneList([]); }); };
   const doneAll = doneList || live.filter(isDone);
@@ -199,10 +203,18 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
   const flowRow = (lab, t, extra, last) => <Row key={lab} tag={lab} tagTone={lab === "지금" ? "turn" : null} title={`${whoOf(D, t)} · ${t.title}${extra || ""}`}
     sub={[dueOf(t) ? md(dueOf(t)) + " " + ddayLabel(ddays(dueOf(t), key)) : "기한 미정", lab === "다음" && t.status === "todo" ? "앞 일이 끝나면 시작" : stWord(t)].join(" · ")} onClick={() => open({ type: "task", id: t.id })} last={last} />;
   return <Sheet title="프로젝트" onBack={onBack} onClose={onClose}>
-    <h2 style={{ fontSize: 20, fontWeight: 800, color: C.ink, margin: "12px 0 2px", lineHeight: 1.35, wordBreak: "keep-all" }}>{p.title}</h2>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 8, margin: "12px 0 2px" }}>
+      <h2 style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 800, color: C.ink, margin: 0, lineHeight: 1.35, wordBreak: "keep-all" }}>{p.title}</h2>
+      {!hasNow && edit !== "now" && <TBtn onClick={() => { setNow(""); setEdit("now"); }} style={{ flex: "0 0 auto", padding: "4px 2px", fontSize: 13 }}>+ 지금 상황</TBtn>}
+    </div>
     {launch && <div style={{ fontSize: 12.5, color: C.mute, fontWeight: 700 }}>출시 템플릿 · {brandName(D, p.brand)}{p.batch ? " " + p.batch : ""}</div>}
     <div style={{ fontSize: 13.5, color: C.sub, marginTop: 4 }}>책임 {nameOf(D.users, p.assigneeId) || "없음"} · {date ? <span style={{ color: w.late ? C.red : C.sub, fontWeight: w.late ? 800 : 400 }}>{w.launched ? `출시 ${md(p.launchDate)} · 출시 후 ${w.after != null ? w.after : -ddays(p.launchDate, key)}일${w.late ? " · 늦은 항목 있음" : ""}` : `${launch ? "출시" : "마감"} ${md(date)} ${ddayLabel(w.n)}`}</span> : launch ? "출시일 미정" : "마감 없음"} · {pct}% · 남은 {openT.length}</div>
     <div style={{ height: 6, background: "#E8EBF2", borderRadius: 3, margin: "10px 0 0", overflow: "hidden" }}><div style={{ width: pct + "%", height: "100%", background: C.navy }} /></div>
+    {edit === "now" ? <div style={{ marginTop: 12 }}><div style={{ fontSize: 13, fontWeight: 800, color: C.ink, margin: "0 2px 6px" }}>지금 상황</div><textarea value={now} onChange={(e) => setNow(e.target.value)} rows={3} autoFocus placeholder={"목표: 무엇을 하려는지\n지금: 어디까지 왔는지"} aria-label="지금 상황" style={{ ...inp, resize: "vertical", lineHeight: 1.6 }} /><div style={{ display: "flex", gap: 8, marginTop: 8 }}><Big tone="white" onClick={() => setEdit("")} style={{ flex: 1, height: 44 }}>취소</Big><Big onClick={() => { A.patchProject(p, { now: { text: now.trim(), by: cu.id, byName: cu.name, at: new Date().toISOString() } }, "지금 상황 고침", (p.now && p.now.text) || ""); setEdit(""); }} style={{ flex: 1, height: 44 }}>저장</Big></div></div>
+      : hasNow && <div style={{ marginTop: 12, padding: "10px 12px", borderRadius: 12, background: "#fff", border: `1px solid ${C.line}`, borderLeft: `4px solid ${C.navy}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}><b style={{ flex: 1, fontSize: 12.5, color: C.navy }}>지금 상황</b><TBtn onClick={() => { setNow(p.now.text); setEdit("now"); }} style={{ padding: "0 2px", fontSize: 12.5 }}>고치기</TBtn></div>
+        <div style={{ fontSize: 14, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 2 }}><Linked text={p.now.text} /></div>
+        {p.now.at && <div style={{ marginTop: 4, fontSize: 11.5, color: C.mute }}>{p.now.byName} · {ago(p.now.at)}</div>}</div>}
     {(nn.now || nn.next) && <Card style={{ marginTop: 12 }}>{nn.now && flowRow("지금", nn.now, nn.others ? ` 외 ${nn.others}명` : "", !nn.next)}{nn.next && flowRow("다음", nn.next, "", true)}</Card>}
     {phases && <div className="v2-phases" role="list" aria-label="7단계">{phases.map((ph) => <button key={ph.k} type="button" role="listitem" className={"v2-ph " + ph.state} onClick={() => goPhase(ph.k)}
       aria-label={`${ph.name} · ${ph.state === "done" ? "끝남" : `남은 ${ph.left}${ph.state === "late" ? " · 지난 항목 있음" : ""}`}`}><span className="nm">{PH_SHORT[ph.k] || ph.name}</span><span className="c">{ph.state === "done" ? "✓" : ph.left}</span></button>)}</div>}
@@ -215,11 +227,6 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
       {ld && ld !== p.launchDate && (ld < key ? <span style={{ fontSize: 12.5, color: C.sub }}>오늘 이후로 골라 주세요</span>
         : <Act onClick={goLaunch} style={{ background: C.navy, color: "#fff", borderColor: C.navy }}>바꾸기 · 자동 기한 같이 이동 {mvN}개</Act>)}</div>}
     {lAsk && <Ask title={`출시일을 ${md(lAsk.d)}${ro(md(lAsk.d))} 바꿀까요?`} body={`자동 기한 ${lAsk.n}개가 같이 옮겨져요 (다른 사람 항목 포함).\n5초 안에 되돌릴 수 있고, 옮기기 전 기한은 기록에 남아요.`} yes="바꾸기" onNo={() => setLAsk(null)} onYes={() => { const a = lAsk; setLAsk(null); A.setLaunchDate(p, a.d); setLd(""); }} />}
-
-    <Head right={edit !== "now" && <TBtn onClick={() => { setNow((p.now && p.now.text) || ""); setEdit("now"); }}>{p.now && p.now.text ? "고치기" : "적기"}</TBtn>}>지금 상황</Head>
-    {edit === "now" ? <div><textarea value={now} onChange={(e) => setNow(e.target.value)} rows={3} placeholder={"목표: 무엇을 하려는지\n지금: 어디까지 왔는지"} aria-label="지금 상황" style={{ ...inp, resize: "vertical", lineHeight: 1.6 }} /><div style={{ display: "flex", gap: 8, marginTop: 8 }}><Big tone="white" onClick={() => setEdit("")} style={{ flex: 1, height: 44 }}>취소</Big><Big onClick={() => { A.patchProject(p, { now: { text: now.trim(), by: cu.id, byName: cu.name, at: new Date().toISOString() } }, "지금 상황 고침", (p.now && p.now.text) || ""); setEdit(""); }} style={{ flex: 1, height: 44 }}>저장</Big></div></div>
-      : <Card style={{ padding: "12px 14px" }}><div style={{ fontSize: 14.5, color: p.now && p.now.text ? C.text : C.mute, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{p.now && p.now.text ? <Linked text={p.now.text} /> : "처음 보는 사람이 바로 알 수 있게 목표와 지금 상황을 두 줄로 적어 주세요"}</div>
-        {p.now && p.now.at && <div style={{ marginTop: 6, fontSize: 12, color: C.mute }}>마지막 수정 {p.now.byName} · {ago(p.now.at)}</div>}</Card>}
 
     <div style={{ margin: "18px 0 4px" }}><Seg items={[["work", `${launch ? "항목" : "업무"} ${openT.length}`], ["map", "마인드맵"], ["news", "소식"], ["files", `자료 ${files.length}`]]} value={tab} onChange={setTab} /></div>
     {tab === "work" && <>
@@ -243,13 +250,8 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
         {showDone && (doneList == null ? <Empty>불러오는 중…</Empty> : doneAll.length === 0 ? <Empty>끝낸 업무가 없어요</Empty> : doneAll.slice().sort((a, b) => String(b.doneAt || "").localeCompare(String(a.doneAt || ""))).map((t, i) => <TRow key={t.id} t={t} last={i === doneAll.length - 1} />))}</Card>
     </>}
     {tab === "map" && <MindMap D={D} cu={cu} A={A} open={open} p={p} idx={idx} launch={launch} />}
-    {tab === "news" && <>
-      <Head>프로젝트 대화</Head>
-      <Thread D={D} cu={cu} A={A} notes={notes} itemId={projNoteId(p.id)} ctx={{ projectId: p.id }} />
-      <Head>업무 소식</Head>
-      <Card>{feed.filter((x) => x.itemId !== projNoteId(p.id)).slice(0, 30).map((x, i, arr) => <Row key={x.id} title={x.type === "note" ? x.text : x.text || LOG_L[x.action]} sub={`${x.byName || ""} · ${x.type === "note" ? "댓글" : LOG_L[x.action] || "기록"}${x.type === "note" ? " · " + (tTitle(String(x.itemId).slice(5)) || "") : ""} · ${ago(x.at)}`} onClick={(() => { const tid = x.type === "note" ? String(x.itemId).slice(5) : x.targetId; return tid && x.col !== "projects" ? () => open({ type: "task", id: tid }) : undefined; })()} last={i === arr.length - 1} />)}
-        {feed.filter((x) => x.itemId !== projNoteId(p.id)).length === 0 && <Empty>최근 소식이 없어요</Empty>}</Card>
-    </>}
+    {tab === "news" && <NewsFeed D={D} p={p} feed={feed} tTitle={tTitle} open={open} />}
+    {tab === "news" && <><Head>프로젝트에 한마디</Head><Thread D={D} cu={cu} A={A} notes={notes} itemId={projNoteId(p.id)} ctx={{ projectId: p.id }} /></>}
     {tab === "files" && <Card style={{ marginTop: 10 }}>{files.length === 0 ? <Empty>모인 자료가 없어요. 업무나 댓글에 파일을 올리면 여기 모여요.</Empty> : files.map((f, i) => <FileRow key={i} f={f} last={i === files.length - 1} />)}</Card>}
 
     <Card style={{ marginTop: 18 }}><More onClick={() => setInfo(!info)}>{info ? "정보 접기 ▴" : "정보 ▾"}</More>
@@ -257,9 +259,77 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
         <div>책임자 <select aria-label="책임자 바꾸기" className="v2-sel" value={p.assigneeId || ""} onChange={(e) => A.patchProject(p, { assigneeId: e.target.value }, `책임자 → ${nameOf(D.users, e.target.value)}`, p.assigneeId || "")}><option value="">없음</option>{activeUsers(D.users).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
         <div>함께 하는 사람 {(p.collaboratorIds || []).map((u) => nameOf(D.users, u)).filter(Boolean).join(", ") || "없음"}</div>
         {!launch && <div>마감 <input type="date" aria-label="마감 바꾸기" className="v2-sel" defaultValue={p.dueDate || ""} onBlur={(e) => { if (e.target.value !== (p.dueDate || "")) A.patchProject(p, { dueDate: e.target.value }, `마감 ${md(e.target.value) || "없음"}`, p.dueDate || ""); }} /></div>}
-        <div>브랜드 {brandName(D, p.brand) || "없음"} · 분류 {p.group || "-"}{p.wfId ? ` · 흐름 ${(flowList(D).find((w) => w.id === p.wfId) || {}).name || p.wfId}` : ""}</div>
+        <div>브랜드 <select aria-label="브랜드 바꾸기" className="v2-sel" value={p.brand || ""} onChange={(e) => A.patchProject(p, { brand: e.target.value }, `브랜드 → ${brandName(D, e.target.value) || "없음"}`, p.brand || "")}><option value="">없음</option>{(D.brands || []).filter((b) => b.active !== false || b.id === p.brand).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
+          <span style={{ fontSize: 12.5, color: C.mute }}> 이 프로젝트 업무는 모두 이 브랜드로 봐요</span></div>
+        <KpiPick D={D} p={p} A={A} />
+        <div>분류 {p.group || "-"}{p.wfId ? ` · 흐름 ${(flowList(D).find((w) => w.id === p.wfId) || {}).name || p.wfId}` : ""}</div>
         {p.memo && <div style={{ whiteSpace: "pre-wrap", color: C.sub }}>예전 메모: {p.memo}</div>}
         {projOpen(p) && openT.length === 0 && lead && tab !== "work" && <Big onClick={() => A.patchProject(p, { status: "completed", progress: 100 }, "프로젝트 완료", p.status)} style={{ marginTop: 10 }}>프로젝트 완료</Big>}
       </div>}</Card>
   </Sheet>;
+}
+
+// 프로젝트 KPI 연결 (정보): 주요 KPI → 세부 KPI. 목록 'KPI별'에서 이 값으로 묶음
+const kpiBrand = (D, k) => brandName(D, k.brand) || (/^ghk/.test(k.id) ? "그로홈" : /^mk\d/.test(k.id) ? "POUR" : "공통");
+function KpiPick({ D, p, A }) {
+  const mains = (D.mainKPIs || []).slice().sort((a, b) => kpiBrand(D, a).localeCompare(kpiBrand(D, b)) || (+a.order || 0) - (+b.order || 0));
+  const subs = (D.subKPIs || []).filter((s) => (s.mainKPIId || s.mainId) === p.mainKPIId);
+  const brands = [...new Set(mains.map((k) => kpiBrand(D, k)))];
+  const mt = (id) => ((D.mainKPIs || []).find((k) => k.id === id) || {}).title || "";
+  if (!mains.length) return <div>KPI <span style={{ color: C.mute }}>불러온 KPI가 없어요</span></div>;
+  return <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>KPI
+    <select aria-label="주요 KPI" className="v2-sel" value={p.mainKPIId || ""} onChange={(e) => A.patchProject(p, { mainKPIId: e.target.value, subKPIId: "" }, `KPI → ${mt(e.target.value) || "없음"}`, mt(p.mainKPIId))} style={{ maxWidth: 240 }}>
+      <option value="">없음</option>{brands.map((b) => <optgroup key={b} label={b}>{mains.filter((k) => kpiBrand(D, k) === b).map((k) => <option key={k.id} value={k.id}>{k.title}</option>)}</optgroup>)}</select>
+    {p.mainKPIId && subs.length > 0 && <select aria-label="세부 KPI" className="v2-sel" value={p.subKPIId || ""} onChange={(e) => A.patchProject(p, { subKPIId: e.target.value }, `세부 KPI → ${((D.subKPIs || []).find((s) => s.id === e.target.value) || {}).title || "없음"}`, p.subKPIId || "")} style={{ maxWidth: 220 }}>
+      <option value="">세부 없음</option>{subs.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}</select>}
+  </div>;
+}
+
+// 소식: 날짜별 묶음 · [전체 | 대화 | 바뀐 것] · 같은 일이 두 번 나오지 않게(댓글 기록은 댓글로만) · 누르면 그 업무(댓글이면 대화 칸)
+const ACT_TAG = { decide: "결정", done: "끝냄", review: "확인 요청", approve: "확인 완료", feedback: "수정 요청", add: "새로", edit: "바뀜", assign: "담당", take: "이어받음", deps: "순서", bulk: "한꺼번에", ack: "받음", reopen: "다시 엶", launch: "신제품", block: "막힘", unblock: "막힘 풀림", due: "기한", dueReq: "기한 요청" };
+function NewsFeed({ D, p, feed, tTitle, open }) {
+  const [f, setF] = useState("all"), [n, setN] = useState(30);
+  const key = ymd(new Date()), y = addDays(key, -1), WDK = ["일", "월", "화", "수", "목", "금", "토"];
+  const rows = feed.filter((x) => x.itemId !== projNoteId(p.id) && !(x.type === "log" && x.action === "comment"))
+    .filter((x) => (f === "talk" ? x.type === "note" : f === "change" ? x.type === "log" : true));
+  const dayL = (iso) => { const d = ymd(new Date(iso)); return d === key ? "오늘" : d === y ? "어제" : `${md(d)} (${WDK[new Date(d + "T00:00:00").getDay()]})`; };
+  const clean = (x) => { const tt = x.type === "note" ? "" : x.col === "projects" ? p.title : tTitle(x.targetId) || "";
+    let t = String(x.text || ""); if (tt && t.startsWith(tt + " · ")) t = t.slice(tt.length + 3); else if (tt && t === tt) t = ""; return t; };
+  let last = "";
+  return <>
+    <div className="v2-chips" style={{ margin: "12px 0 4px" }}>{[["all", "전체"], ["talk", "대화"], ["change", "바뀐 것"]].map(([k, l]) => <Chip key={k} on={f === k} onClick={() => setF(k)}>{l}</Chip>)}</div>
+    {rows.length === 0 ? <Card style={{ marginTop: 8 }}><Empty>{f === "talk" ? "최근 대화가 없어요" : f === "change" ? "최근 바뀐 것이 없어요" : "최근 소식이 없어요"}</Empty></Card>
+    : <div className="v2-news">{rows.slice(0, n).map((x) => { const dl = dayL(x.at), head = dl !== last; last = dl;
+        const note = x.type === "note", tid = note ? String(x.itemId).slice(5) : x.col !== "projects" ? x.targetId : "";
+        const where = note ? tTitle(tid) || "" : x.col === "projects" ? "프로젝트" : tTitle(x.targetId) || "";
+        const body = note ? x.text : clean(x) || (where ? "" : LOG_L[x.action] || "기록");
+        const go = tid ? () => open({ type: "task", id: tid, ...(note ? { focus: "talk" } : {}) }) : null;
+        return <div key={x.id}>{head && <div className="v2-news-day">{dl}</div>}
+          <div className={"v2-news-row" + (go ? " go" : "")} role={go ? "button" : undefined} tabIndex={go ? 0 : undefined} onClick={go || undefined} onKeyDown={(e) => { if (go && e.key === "Enter") go(); }}>
+            <span className={"v2-tag" + (note ? "" : x.action === "decide" || x.action === "done" || x.action === "approve" ? " turn" : "")}>{note ? "댓글" : ACT_TAG[x.action] || LOG_L[x.action] || "기록"}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {where && <div className="w">{where}</div>}
+              {body && <div className={"b" + (note ? " q" : "")}>{body}{x.files && x.files.length ? ` · 파일 ${x.files.length}` : ""}</div>}
+              <div className="s">{x.byName || ""} · {hm(x.at)}</div></div>
+            {go && <span className="arr">›</span>}</div></div>; })}
+      {rows.length > n && <Card style={{ marginTop: 6 }}><More onClick={() => setN(n + 30)}>{rows.length - n}개 더 보기 ▾</More></Card>}</div>}
+  </>;
+}
+
+// 프로젝트 KPI별 묶음: 브랜드 · 주요 KPI 머리 → 프로젝트(세부 KPI는 줄 앞에) → 맨 아래 'KPI 연결 안 됨'
+function KpiGroups({ D, list, card, more, setMore, key2 }) {
+  const mains = D.mainKPIs || [], subs = D.subKPIs || [];
+  const mainOf = (p) => p.mainKPIId || ((subs.find((x) => x.id === p.subKPIId) || {}).mainKPIId || (subs.find((x) => x.id === p.subKPIId) || {}).mainId) || "";
+  const byDate = (a, b) => String(a.dueDate || "9").localeCompare(String(b.dueDate || "9"));
+  const g = new Map(); list.forEach((p) => { const k = mains.some((m) => m.id === mainOf(p)) ? mainOf(p) : ""; (g.get(k) || g.set(k, []).get(k)).push(p); });
+  const order = mains.filter((m) => g.has(m.id)).sort((a, b) => kpiBrand(D, a).localeCompare(kpiBrand(D, b)) || (+a.order || 0) - (+b.order || 0));
+  const subT = (p) => (subs.find((x) => x.id === p.subKPIId) || {}).title || "";
+  const block = (id, label, sub, a, none) => { const m = more["k" + id], shown = m ? a : a.slice(0, 6);
+    return <div key={id || "none"}><Head right={<span style={{ fontSize: 12, color: C.mute, fontWeight: 700 }}>{sub}</span>}>{label} {a.length}</Head>
+      {none && <div style={{ fontSize: 12.5, color: C.sub, margin: "-4px 2px 6px" }}>프로젝트를 열어 정보 › KPI에서 연결하면 위 묶음으로 옮겨져요</div>}
+      <Card>{shown.map((p, i) => card(p, i === shown.length - 1 && a.length <= 6, subT(p)))}{a.length > 6 && <More onClick={() => setMore({ ...more, ["k" + id]: !m })}>{m ? "접기 ▴" : `${a.length - 6}개 더 보기 ▾`}</More>}</Card></div>; };
+  return <>{order.map((mk) => { const a = g.get(mk.id).sort(byDate), cur = Number(mk.currentValue) || 0, tgt = Number(mk.targetValue) || 0;
+      return block(mk.id, `${kpiBrand(D, mk)} · ${mk.title}`, tgt && cur > 0 ? `현재 ${Math.round((cur / tgt) * 100)}%` : "", a); })}
+    {g.has("") && block("", "KPI 연결 안 됨", "", g.get("").sort(byDate), true)}
+    {!list.length && <Card style={{ marginTop: 14 }}><Empty>프로젝트가 없어요</Empty></Card>}</>;
 }

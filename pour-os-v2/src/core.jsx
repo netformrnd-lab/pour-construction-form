@@ -20,7 +20,7 @@ export const nowIso = () => new Date().toISOString();
 
 // ───────────────── 데이터 구독 ─────────────────
 export function useData(on) {
-  const [S, setS] = useState({ users: null, projects: [], openT: [], doneT: [], notes: [], log: [], events: [], brands: [], workflows: [] });
+  const [S, setS] = useState({ users: null, projects: [], openT: [], doneT: [], notes: [], log: [], events: [], brands: [], workflows: [], mainKPIs: [], subKPIs: [] });
   const [err, setErr] = useState("");
   useEffect(() => {
     if (!on) return;
@@ -37,12 +37,14 @@ export function useData(on) {
       fb.listen("events", null, put("events"), onE),
       fb.listen("brands", null, put("brands"), onE),
       fb.listen("workflows", null, put("workflows"), onE),
+      fb.listen("mainKPIs", null, put("mainKPIs"), onE),   // 프로젝트 KPI 분류용 (읽기만)
+      fb.listen("subKPIs", null, put("subKPIs"), onE),
     ];
     return () => subs.forEach((u) => u && u());
   }, [on]);
   const D = useMemo(() => {
     const m = new Map(); S.doneT.forEach((t) => m.set(t.id, t)); S.openT.forEach((t) => m.set(t.id, t));
-    return { users: S.users || [], projects: S.projects, tasks: [...m.values()], notes: S.notes, log: S.log, events: S.events, brands: S.brands, workflows: S.workflows, ready: !!S.users };
+    return { users: S.users || [], projects: S.projects, tasks: [...m.values()], notes: S.notes, log: S.log, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], ready: !!S.users };
   }, [S]);
   return [D, err];
 }

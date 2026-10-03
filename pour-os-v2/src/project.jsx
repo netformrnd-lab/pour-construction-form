@@ -101,7 +101,8 @@ export function NewProjectSheet({ D, cu, A, open, back, onBack, onClose, setToas
         </Card>}</>}
   </Sheet>;
 }
-export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first }) {
+// projectExtra: 관리자 앱이 넣는 덧붙임 (출시일 옮기기 미리 보기 · 기한 다시 나누기 등) — (p) => element
+export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, projectExtra }) {
   const p = D.projects.find((x) => x.id === id);
   const member = p && projMine(p, cu.id, D.tasks);
   const [tab, setTab] = useState(() => first || (!p || member ? "work" : "news"));   // 방금 만든 프로젝트는 업무부터
@@ -135,6 +136,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first }) {
     <h2 style={{ fontSize: 20, fontWeight: 800, color: C.ink, margin: "12px 0 4px", lineHeight: 1.35, wordBreak: "keep-all" }}>{p.title}</h2>
     <div style={{ fontSize: 13.5, color: C.sub }}>{launch && <>{brandName(D, p.brand)}{p.batch ? " " + p.batch : ""} · </>}책임 {nameOf(D.users, p.assigneeId) || "없음"} · {p.dueDate ? <span style={{ color: s.late ? C.red : C.sub, fontWeight: s.late ? 800 : 400 }}>{launch ? "출시" : "마감"} {md(p.dueDate)} {ddayLabel(s.n)}</span> : launch ? "출시일 미정" : "마감 없음"} · {s.pct}% · 남은 {s.open}</div>
     <div style={{ height: 6, background: "#E8EBF2", borderRadius: 3, margin: "10px 0 0", overflow: "hidden" }}><div style={{ width: s.pct + "%", height: "100%", background: C.navy }} /></div>
+    {projectExtra && projectExtra(p)}
     {myNew.length > 0 && <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 14, background: C.soft, border: "1px solid #D7DDEE", fontSize: 14, color: C.text }}>
       <b>나에게 온 항목 {myNew.length}개</b> · 기한을 훑어보고 받아 주세요. 안 맞는 기한은 항목을 열어 '기한 조정 요청'을 해요.
       <div style={{ marginTop: 8 }}><Act onClick={() => A.ackMany(myNew)} style={{ background: C.navy, color: "#fff", borderColor: C.navy }}>모두 받았어요</Act></div></div>}

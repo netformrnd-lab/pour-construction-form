@@ -15,13 +15,12 @@ AUDIO = [
     'hf_20261002_133917_0995c2d7-fe53-4bc6-b57e-3899a2a52cc8.wav',
     'hf_20261002_133917_0220fc14-019c-45ee-855e-8715ab8e60e4.wav',
     'hf_20261002_133917_9e6e226e-f46e-4891-babb-b55fd406ffa6.wav',
-    'hf_20261002_133929_bb926d8f-7437-48ef-ad80-dd4d95494274.wav',
-    'hf_20261002_133930_8948d2cb-adde-4cec-9afb-5e0a899acd68.wav',
+    'hf_20261003_011038_fe9dba50-a7e0-4c74-b1ba-141e7f90a8d8.wav',
     'hf_20261003_000514_f82f9328-7d31-4459-ac5e-467745b91705.wav',
-    'hf_20261003_010659_2f0c98b8-c26d-4080-9564-9ff900e30e43.wav',
-    'hf_20261003_010658_a65bfcdf-9c9c-4de1-b3e0-6ae9af37619e.wav',
-    'hf_20261003_010658_ab66432e-5858-4c76-8bf8-6b13d1f5746d.wav',
-    'hf_20261003_010700_6ddc41a3-e4d2-45bc-b4bf-232c9d75557f.wav',
+    os.environ.get('A6', ''),
+    'hf_20261003_011039_1d31637e-4840-4d63-ae23-eb838f43967f.wav',
+    'hf_20261003_011042_9f0871da-657f-4893-8fb7-37359cef2ece.wav',
+    'hf_20261003_011042_0b9c4d2e-dded-4820-99df-47c02359a270.wav',
     'hf_20261002_132932_c12a5eb0-768d-4d56-9ec8-d84d378a8468.wav',
     'hf_20261003_001120_bfc2a287-d432-4629-b6cf-08ec24c18475.wav',
 ]
@@ -47,15 +46,14 @@ SUBS = {
     1: ['천장 곰팡이,\\N【시작은 옥상】이에요.'],
     2: ['배수구가 막히면,\\N물이 【고이죠】.'],
     3: ['물에 오래 잠긴 우레탄은,\\N약해져서 【찢어져요】.'],
-    4: ['그 틈으로 스민 물이,\\N【철근까지】 녹슬게 해요.'],
-    5: ['결국 천장이 젖고,\\N【곰팡이】가 피는 거죠.'],
-    6: ['그럼,\\N【어떻게】 해결해야 할까요?'],
-    7: ['일반 드레인은 둘레에 낙엽이 쌓이면,\\N물이 【구멍까지 못 가요】.', '배관 속은 비었는데,\\N밖에만 【고이죠】.'],
-    8: ['POUR 트랩은 큰 낙엽을,\\N【밖에서】 먼저 걸러요.'],
-    9: ['안쪽 지지대가,\\N【작은 찌꺼기】까지 한 번 더 걸러요.'],
-    10: ['배관 속까지 깊게 들어가서,\\N【콘크리트엔 물이 안 닿아요】.'],
-    11: ['붙이고, 바르고, 덮고,\\N꽂으면 【끝】.'],
-    12: ['코트재, 시트, 트랩까지\\N【한 세트】.'],
+    4: ['그 물이 【철근】을 녹이고,', '천장엔 【곰팡이】까지 피죠.'],
+    5: ['그럼,\\N【어떻게】 해결해야 할까요?'],
+    6: ['일반 드레인은 둘레가 막히면,', '물이 못 빠지고\\N【밖에 고여요】.'],
+    7: ['POUR 트랩은 큰 낙엽을,\\N【밖에서】 걸러요.'],
+    8: ['작은 찌꺼기는,\\N【안에서】 한 번 더.'],
+    9: ['배관 속까지 들어가서,\\N【콘크리트엔 물이 안 닿죠】.'],
+    10: ['붙이고, 바르고, 덮고,\\N꽂으면 【끝】.'],
+    11: ['코트재, 시트, 트랩까지\\N【한 세트】.'],
 }
 N = len(SUBS)
 def sh(cmd):
@@ -153,36 +151,36 @@ def concat(parts, out):
         f.writelines(f"file '{p}'\n" for p in parts)
     sh(f'ffmpeg -y -v error -f concat -safe 0 -i {out}.txt -c copy {out}')
 
+def split2(k1, k2, i, out, label=None):
+    w = [len(x) for x in SUBS[i]]; da = round(cd[i-1] * w[0] / sum(w), 3)
+    ai(k1, da, out + 'a.mp4', label=label); ai(k2, round(cd[i-1] - da, 3), out + 'b.mp4', label=label)
+    concat([out + 'a.mp4', out + 'b.mp4'], out + '.mp4')
+
 ai('mold', cd[0], 's1.mp4')
 ai('drain', cd[1], 's2.mp4')
 ai('ure', cd[2], 's3.mp4')
-ai('rebar', cd[3], 's4.mp4')
-ai('ceil', cd[4], 's5.mp4')
-ai('drain', cd[5], 's6.mp4', ss=2.5)
-# 7) 일반 드레인: 둘레 낙엽 → 단면(배관 속 비고 밖에 고임) — 나레이션 문장 경계에 맞춰 분할
-w7 = [len(x) for x in SUBS[7]]; d7a = round(cd[6] * w7[0] / sum(w7), 3)
-ai('g_ring', d7a, 's7a.mp4', label='일반 드레인 (예시)')
-ai('g_cut', round(cd[6] - d7a, 3), 's7b.mp4', label='일반 드레인 (예시)')
-concat(['s7a.mp4', 's7b.mp4'], 's7.mp4')
-ai('p_out', cd[7], 's8.mp4', label='① 밖에서 큰 이물질')
-ai('p_in', cd[8], 's9.mp4', label='② 안에서 작은 이물질')
-ai('p_deep', cd[9], 's10.mp4', label='③ 배관 속까지 깊게')
+split2('rebar', 'ceil', 4, 's4')
+ai('drain', cd[4], 's5.mp4', ss=2.5)
+split2('g_ring', 'g_cut', 6, 's6', label='일반 드레인 (예시)')
+ai('p_out', cd[6], 's7.mp4', label='① 밖에서 큰 이물질')
+ai('p_in', cd[7], 's8.mp4', label='② 안에서 작은 이물질')
+ai('p_deep', cd[8], 's9.mp4', label='③ 배관 속까지 깊게')
 steps = [('step-02-glue-attach.jpg', '① 붙이고'), ('step-04-coat1.jpg', '② 바르고'),
          ('step-05-sheet.jpg', '③ 덮고'), ('step-07-support.jpg', '④ 꽂으면 끝')]
 if CONSTRUCT:
     sh(f'curl -sfL -o construct.mp4 "{CONSTRUCT}"')
-    cl = dur('construct.mp4'); f = cl / cd[10]
+    cl = dur('construct.mp4'); f = cl / cd[9]
     sh(f'ffmpeg -y -v error -i construct.mp4 -vf "setpts=PTS/{f:.4f},scale={W}:{H}:force_original_aspect_ratio=increase,'
        f'crop={W}:{H},fps={FPS},setsar=1,drawtext=fontfile={FONT}:text=\'실제 시공\':fontsize=44:fontcolor=white:box=1:boxcolor=0x03965a@0.9:boxborderw=16:x=60:y=170" '
-       f'-t {cd[10]} -an -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p s11.mp4')
+       f'-t {cd[9]} -an -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p s10.mp4')
 else:
     parts = []
     for j, (src, chip) in enumerate(steps):
-        compose(src, f'c11_{j}.png', chip=chip + ' (임시)'); still(f'c11_{j}.png', round(cd[10] / 4, 3), f's11_{j}.mp4', z=0.05)
-        parts.append(f's11_{j}.mp4')
-    concat(parts, 's11.mp4')
-compose('ref-01-thumbnail.png', 'c12.png', cy=1070, box=(940, 940), cta=True)
-still('c12.png', cd[11], 's12.mp4', z=0.04)
+        compose(src, f'c10_{j}.png', chip=chip + ' (임시)'); still(f'c10_{j}.png', round(cd[9] / 4, 3), f's10_{j}.mp4', z=0.05)
+        parts.append(f's10_{j}.mp4')
+    concat(parts, 's10.mp4')
+compose('ref-01-thumbnail.png', 'c11.png', cy=1070, box=(940, 940), cta=True)
+still('c11.png', cd[10], 's11.mp4', z=0.04)
 concat([f's{i}.mp4' for i in range(1, N + 1)], 'video.mp4')
 # 3) 자막 (ASS + SRT)
 def ts(t, srt=False):
@@ -218,7 +216,7 @@ print('FINAL', dur('final.mp4'), flush=True)
 with zipfile.ZipFile('capcut.zip', 'w') as z:
     for i in range(1, N + 1):
         z.write(f's{i}.mp4', f'video/cut{i}.mp4'); z.write(f'n{i}.wav', f'narration/cut{i}.wav')
-    for p in ['narration.wav', 'subs.srt', 'subs.ass', 'c12.png']:
+    for p in ['narration.wav', 'subs.srt', 'subs.ass', 'c11.png']:
         z.write(p, p)
     z.writestr('README.txt', 'cut별 영상(video/), 묶음별 나레이션(narration/), 전체 나레이션, 자막(SRT/ASS), 그래픽 PNG\n'
                f'컷 길이(초): {cd}\n')

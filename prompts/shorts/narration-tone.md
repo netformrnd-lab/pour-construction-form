@@ -57,3 +57,9 @@ Serious tone for the problem, confident and slightly brighter tone for the solut
 - 시공 방법을 말하는 구간만은 한 톤 밝고 경쾌하게: "쓱 붙이고, 싹 바르고, 덮고, 쏙 꽂으면 끝! 누구나 할 수 있어요."
 - 의성어(쓱·싹·쏙) + 짧은 동사, 전문 용어·주의사항 나열 금지, 마지막에 격려 한 마디 필수 ("야, 너도 할 수 있어" 느낌)
 - 자세한 기준: `prompts/06-sales-shorts-system.md` ★ 시공 장면 강제 지침
+
+## 목소리 후보 비교 (2026.10.03, 사용자: "지하실 오래된 마이크·낮은 톤 AI 같다 → 살아있는 영업 잘하는 남성처럼")
+- 원인: v11 음성 복제(seed_audio audio_references)는 영상 음원(룸톤·압축) 레퍼런스 + pitch -3 → 고역 좁음(95% 롤오프 975Hz)·탁함
+- 후보 A: inworld_text_to_speech `Seojun (ko)` — 한국어 원어민 프리셋, 롤오프 1274Hz, 억양 변화 F0 std 47 (aa1d2601)
+- 후보 B: qwen_audio_tts + instruction("서울 표준어 30대 한국인 남성 영업사원, 밝고 자신감 있게, 살아있는 사람처럼") + language ko, 롤오프 1348Hz, F0 std 51 (c119316e)
+- 참고: inworld `Hyunwoo (ko)`는 낮고 단조로움(F0 std 29) → 제외

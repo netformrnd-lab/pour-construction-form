@@ -1,4 +1,4 @@
-# 옥상배관방수트랩 숏폼 v11 조립 스크립트 — 원리 ①②③ = 사용자 승인 AI 이미지(제품 포함) → AI 영상(Kling) (Higgsfield sandbox에서 실행)
+# 옥상배관방수트랩 숏폼 v11 조립 스크립트 (한국어 원어민 음성) — 원리 ①②③ = 사용자 승인 AI 이미지(제품 포함) → AI 영상(Kling) (Higgsfield sandbox에서 실행)
 # 사용: UP_MP4='<put url>' UP_ZIP='<put url>' python3 build_v11.py
 import os, subprocess, json, zipfile
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -11,22 +11,8 @@ CF = 'https://d8j0ntlcm91z4.cloudfront.net/user_39sUpHbwBquNe1iB2u0CUyyHgzC/'
 GH = 'https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/'
 FONT_URL = 'https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/Korean/NotoSansCJKkr-Bold.otf'
 
-AUDIO = [
-    os.environ.get('A_OPEN', ''),   # 폭우가 오면, 빗물은 전부 이 구멍으로 모여요.
-    'hf_20261002_133917_0220fc14-019c-45ee-855e-8715ab8e60e4.wav',
-    'hf_20261003_114748_0902c57a-964b-44db-bd6e-b375a487472f.wav',  # 고인 물이 도막 밑으로 스며들면, 햇볕에 부풀었다가, 굳어서 찢어져요.
-    os.environ.get('A_CEIL', ''),   # 결국 천장까지 새고, 곰팡이가 피죠.
-    'hf_20261003_000514_f82f9328-7d31-4459-ac5e-467745b91705.wav',
-    os.environ.get('A6', ''),
-    os.environ.get('A_SHORT', ''),  # 게다가 삽입부가 짧아, 배관과 틈이 생기죠.
-    os.environ.get('A_REBAR', ''),  # 철근이 녹슬면 부풀어 콘크리트를 가르고, 누수는 더 심해져요.
-    'hf_20261003_011039_1d31637e-4840-4d63-ae23-eb838f43967f.wav',
-    'hf_20261003_011042_9f0871da-657f-4893-8fb7-37359cef2ece.wav',
-    os.environ.get('A9', ''),
-    os.environ.get('A_SAFE', ''),   # 그래서 콘크리트도, 철근도, 그대로 튼튼하죠.
-    os.environ.get('A_DIY', ''),    # 쓱 붙이고, 싹 바르고, 덮고, 쏙 꽂으면 끝! 누구나 할 수 있어요.
-    'hf_20261003_001120_bfc2a287-d432-4629-b6cf-08ec24c18475.wav',
-]
+# 나레이션: 한국어 원어민 남성 음성 레퍼런스(dc6489ab, 박포어 육성) · pitch -3 · 컷 묶음 단위 생성 · 편집 가속 없음
+AUDIO = [os.environ.get(f'A{i}', '') for i in range(1, 15)]
 VIDEO = {
     'mold': 'hf_20261002_133958_b46c150d-705a-4812-9e4f-0c48a23b20df.mp4',
     'drain': 'hf_20261002_114638_85510f05-b6e3-4222-8369-31e0d5566817.mp4',
@@ -48,19 +34,19 @@ IMGS = ['ref-01-thumbnail.png', 'ref-04-white-bg.png', 'ref-06-drain-gap.png', '
 # 자막: 【강조어】는 하늘색 110%
 SUBS = {
     1: ['폭우가 오면, 빗물은\\N【전부 이 구멍】으로 모여요.'],
-    2: ['배수구가 막히면,\\N물이 【고이죠】.'],
-    3: ['고인 물이 【도막 밑으로】 스며들면,', '햇볕에 【부풀었다가】,\\N굳어서 【찢어져요】.'],
+    2: ['그런데 배수구가 막히면,\\N물이 【고이죠】.'],
+    3: ['고인 물은 【도막 밑으로】 스며들고,', '햇볕에 【부풀었다가】,\\N결국 【찢어져요】.'],
     4: ['결국 【천장까지】 새고,', '【곰팡이】가 피죠.'],
     5: ['그럼,\\N【어떻게】 해결해야 할까요?'],
     6: ['일반 드레인은 둘레가 막히면,', '물이 못 빠지고\\N【밖에 고여요】.'],
-    7: ['게다가 【삽입부가 짧아】,\\N배관과 틈이 생기죠.'],
-    8: ['【철근】이 녹슬면 부풀어\\N콘크리트를 가르고,', '누수는 【더 심해져요】.'],
+    7: ['게다가 【삽입부가 짧아서】,\\N배관과 틈이 생기죠.'],
+    8: ['【철근】이 녹슬면 부풀어서\\N콘크리트를 가르고,', '누수는 【더 심해져요】.'],
     9: ['POUR 트랩은 큰 낙엽을,\\N【밖에서】 걸러요.'],
     10: ['작은 찌꺼기는,\\N【안에서】 한 번 더.'],
     11: ['연장시트를 이으면,\\NPVC 배관까지 이어져서,', '【콘크리트엔 물이 안 닿죠】.'],
     12: ['그래서 【콘크리트도, 철근도】,\\N그대로 튼튼하죠.'],
     13: ['쓱 붙이고, 싹 바르고,\\N덮고, 쏙 꽂으면 【끝】!', '【누구나】 할 수 있어요.'],
-    14: ['코트재, 시트, 트랩까지\\N【한 세트】.'],
+    14: ['코트재, 시트, 트랩까지\\N【한 세트】.', '프로필 링크에서 확인하세요.'],
 }
 N = len(SUBS)
 def sh(cmd):
@@ -85,7 +71,7 @@ for n in IMGS:
     sh(f'curl -sfL -o "{n}" "{GH}{n}"')
 
 # 1) 나레이션
-CUT_TEMPO = {13: 1.12}  # 시공 구간만 한 톤 경쾌하게 (쓱싹쓱 지침)
+CUT_TEMPO = {}  # 말 속도는 편집으로 올리지 않는다 (나레이션 지침)
 ad, cd = [], []
 for i in range(1, N + 1):
     sh(f'ffmpeg -y -v error -i a{i}.wav -af "silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.1,'
@@ -94,7 +80,7 @@ for i in range(1, N + 1):
     cd.append(round(d + (TAIL if i == N else GAP), 3))
 print('narration', ad, 'cuts', cd, 'total', sum(cd), flush=True)
 for i in range(1, N + 1):
-    sh(f'ffmpeg -y -v error -i n{i}.wav -af "apad=whole_dur={cd[i-1]}" -ar 48000 -ac 1 p{i}.wav')
+    sh(f'ffmpeg -y -v error -i n{i}.wav -af "afade=t=in:d=0.03,areverse,afade=t=in:d=0.03,areverse,apad=whole_dur={cd[i-1]}" -ar 48000 -ac 1 p{i}.wav')
 with open('alist.txt', 'w') as f:
     f.writelines(f"file 'p{i}.wav'\n" for i in range(1, N + 1))
 sh('ffmpeg -y -v error -f concat -safe 0 -i alist.txt -c:a pcm_s16le narration.wav')

@@ -231,6 +231,21 @@ export function useActs(D, cu, setToast, idx = null) {
     setDue: (t, d) => { const f = { dueDate: d || "", dueAuto: false, dueReq: null, ...(t.workDate ? { workDate: "" } : {}) };
       return P(t, f, "edit", `${t.title} · 기한 ${d ? md(d) : "미정"}`, { prev: { dueDate: t.dueDate || "", workDate: t.workDate || "", dueAuto: !!t.dueAuto } }); },
     // 앞 일 정하기 (deps: v1 과 같은 칸 · [] = 앞 일 없음)
+    // 결정 업무: 하위 업무(option)를 '안'으로 비교 → 하나를 정하면 정한 안·이유·날짜를 남기고, 안 고른 안은 보류(지우지 않음), 결정 업무는 끝냄 → 다음 단계 담당에게 '이제 내 차례'
+    setDecision: (t, on) => P(t, { decision: !!on }, "edit", `${t.title} · ${on ? "결정 업무로" : "결정 업무 풀기"}`),
+    setOptInfo: (o, text) => P(o, { optInfo: String(text || "").slice(0, 120) }),
+    decide: async (t, opt, reason, opts) => {
+      const at = nowIso(), others = (opts || []).filter((o) => o.id !== opt.id && !isDone(o) && o.status !== "hold");
+      const prevT = { decided: t.decided || null, status: t.status, doneAt: t.doneAt || null, reviewAt: t.reviewAt || null, finishedAt: t.finishedAt || null }, prevO = others.map((o) => ({ o, status: o.status, optDropped: o.optDropped || null })), prevChosen = { status: opt.status };
+      try {
+        await P(t, { decided: { optionId: opt.id, title: opt.title, reason: String(reason || "").trim(), by: cu.id, byName: cu.name, at } }, "decide", `${t.title} → ${opt.title}${reason && reason.trim() ? " · " + reason.trim().slice(0, 40) : ""}`);
+        if (others.length) await fb.patchMany(others.map((o) => ({ key: "tasks", id: tdoc(o), fields: { status: "hold", optDropped: true, statusLog: sl("hold", { dropped: true }), updatedAt: at, updatedBy: cu.id, v2At: at } })));
+        if (!isDone(opt)) await P(opt, { status: "done", doneAt: at, doneBy: cu.id, doneByName: cu.name, finishedAt: at, ...(opt.ackAt ? {} : { ackAt: at }), statusLog: sl("done", { chosen: true }) });
+        const nx = idx ? nextTurnText(t, idx, D.users) : { text: "" };
+        if (!isDone(t) && t.status !== "review") A.finish(t);   // 끝냄 알림은 아래 '정했어요' 알림으로 바뀜 (다음 차례 문구는 같이)
+        setToast({ text: `정했어요 · ${opt.title}${others.length ? ` · 나머지 ${others.length}개는 보류` : ""}${nx.text ? " · " + nx.text : ""}`, undo: () => { P(t, prevT); prevO.forEach((x) => P(x.o, { status: x.status, optDropped: x.optDropped })); if (prevChosen.status !== "done") P(opt, { status: prevChosen.status, doneAt: null, doneBy: null, finishedAt: null }); } });
+      } catch (e) { fail("결정")(e); }
+    },
     setDeps: (t, ids) => P(t, { deps: ids }, "deps", `${t.title} · 앞 일 ${ids.length ? ids.length + "개" : "없음"}`),
     tidySkip: (t) => P(t, { tidySkip: ymd(new Date()).slice(0, 7) }, null),
     // 여러 건 한꺼번에 (최대 100건 · 바뀐 칸만 · 이전 값을 기록에 남기고 5초 되돌리기)

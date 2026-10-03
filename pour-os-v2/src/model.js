@@ -288,7 +288,7 @@ export function ownerIssues(D) {
 }
 
 // ── 소식 (댓글 + 기록) ──
-export const LOG_L = { add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", take: "이어받음", comment: "댓글", delete: "휴지통으로",
+export const LOG_L = { decide: "결정", add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", take: "이어받음", comment: "댓글", delete: "휴지통으로",
   ack: "받음", dueReq: "기한 조정 요청", dueOk: "기한 조정 수락", dueNo: "기한 유지", review: "확인 요청", approve: "확인 완료", feedback: "수정 요청", block: "막힘", unblock: "막힘 풀림", launch: "신제품 만듦", bulk: "한꺼번에 바꿈", deps: "앞 일 바꿈" };
 export function feedOf(D, { projectId, taskIds, sinceIso } = {}) {
   const tset = taskIds ? new Set(taskIds) : null;

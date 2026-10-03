@@ -12,6 +12,7 @@ import { phaseStates, previewLaunchMove } from "./views.js";
 import { flowList, planFlow, flowOwners } from "./flow.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, inp, useLocal, useAutoFocus, Linked } from "./ui.jsx";
 import { useItemNotes, Thread, FileRow } from "./task.jsx";
+import { MindMap } from "./mindmap.jsx";
 import { ro } from "./pick.jsx";
 
 const LS = (k) => "pour-os2-" + k;
@@ -220,7 +221,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
       : <Card style={{ padding: "12px 14px" }}><div style={{ fontSize: 14.5, color: p.now && p.now.text ? C.text : C.mute, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{p.now && p.now.text ? <Linked text={p.now.text} /> : "처음 보는 사람이 바로 알 수 있게 목표와 지금 상황을 두 줄로 적어 주세요"}</div>
         {p.now && p.now.at && <div style={{ marginTop: 6, fontSize: 12, color: C.mute }}>마지막 수정 {p.now.byName} · {ago(p.now.at)}</div>}</Card>}
 
-    <div style={{ margin: "18px 0 4px" }}><Seg items={[["work", `${launch ? "항목" : "업무"} ${openT.length}`], ["news", "소식"], ["files", `자료 ${files.length}`]]} value={tab} onChange={setTab} /></div>
+    <div style={{ margin: "18px 0 4px" }}><Seg items={[["work", `${launch ? "항목" : "업무"} ${openT.length}`], ["map", "마인드맵"], ["news", "소식"], ["files", `자료 ${files.length}`]]} value={tab} onChange={setTab} /></div>
     {tab === "work" && <>
       <Card style={{ marginTop: 10 }}><div style={{ display: "flex", gap: 6, padding: 10, flexWrap: "wrap" }}>
         <input value={nt} onChange={(e) => setNt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) addT(); }} placeholder="+ 업무 추가 (Enter로 계속)" aria-label="업무 추가" style={{ ...inp, flex: "1 1 180px", padding: "10px 12px", fontSize: 14 }} />
@@ -241,6 +242,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
       <Card style={{ marginTop: 14 }}><More onClick={loadDone}>{showDone ? "끝낸 업무 접기 ▴" : `끝낸 업무 ${doneList ? doneList.length : "보기"} ▾`}</More>
         {showDone && (doneList == null ? <Empty>불러오는 중…</Empty> : doneAll.length === 0 ? <Empty>끝낸 업무가 없어요</Empty> : doneAll.slice().sort((a, b) => String(b.doneAt || "").localeCompare(String(a.doneAt || ""))).map((t, i) => <TRow key={t.id} t={t} last={i === doneAll.length - 1} />))}</Card>
     </>}
+    {tab === "map" && <MindMap D={D} cu={cu} A={A} open={open} p={p} idx={idx} launch={launch} />}
     {tab === "news" && <>
       <Head>프로젝트 대화</Head>
       <Thread D={D} cu={cu} A={A} notes={notes} itemId={projNoteId(p.id)} ctx={{ projectId: p.id }} />

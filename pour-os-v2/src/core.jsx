@@ -61,7 +61,26 @@ export function useBoot() {
   const [key, setKey] = useLocal(LS("key"), "");
   const cu = D.users.find((u) => u.id === me);
   const authed = !!(cu && cu.active !== false && (cu.pinHash ? cu.pinHash === key : false));
-  return { meta, setMeta, metaErr, checkMeta, D, err, cu, authed, signIn: (u, h) => { setMe(u.id); setKey(h); }, logout: () => { setKey(""); setMe(""); } };
+  const [launchNew, setLaunchNew] = useState(0);
+  const synced = useRef(false);
+  useEffect(() => { if (!meta || !D.ready || !authed || synced.current) return; synced.current = true;
+    syncNewLaunch(D, cu).then((n) => { if (n) setLaunchNew(n); }).catch((e) => console.error("[v2] 신제품 보드 새 제품 가져오기 실패:", e)); }, [meta, D.ready, authed]);
+  return { launchNew, meta, setMeta, metaErr, checkMeta, D, err, cu, authed, signIn: (u, h) => { setMe(u.id); setKey(h); }, logout: () => { setKey(""); setMe(""); } };
+}
+// 신제품 보드(버전1 launch-board) 바로 읽기: v2 에 아직 없는 제품만 새로 만든다 (이미 있는 제품·항목은 절대 덮지 않음)
+//  열 때 한 번 · 버전1은 읽기만 · 쓰기 직전에 v2 프로젝트를 서버에서 다시 확인 (다른 기기가 먼저 넣었으면 건너뜀)
+export async function syncNewLaunch(D, cu) {
+  const prods = await fb.readV1Launch();
+  const have0 = new Set((D.projects || []).map((p) => p.id));
+  if (!(prods || []).some((p) => p && p.name && !p.deletedAt && !have0.has("lb_" + p.id))) return 0;
+  const have = new Set((await fb.fetchWhere("projects", null)).map((p) => p.id));
+  const lp = planLaunchImport(prods.filter((p) => !have.has("lb_" + p.id)), D);
+  if (!lp.projects.length) return 0;
+  const at = nowIso(), ids = new Set(lp.projects.map((p) => p.id));
+  await fb.putMany([...lp.projects.map((x) => ({ key: "projects", id: x.id, data: { ...x, syncedAt: at } })), ...lp.tasks.filter((t) => ids.has(t.projectId)).map((x) => ({ key: "tasks", id: x.id, data: x }))]);
+  const lid = newId("lg"); await fb.put("log", lid, { id: lid, action: "launch", col: "projects", targetId: "", label: `신제품 보드에서 새 제품 ${lp.projects.length}개 가져옴 (${lp.projects.map((p) => p.title).join(", ").slice(0, 120)})`, by: cu.id, byName: cu.name, at });
+  console.log(`[v2] 신제품 보드 새 제품 ${lp.projects.length}개 가져옴`);
+  return lp.projects.length;
 }
 // 공통 문지기: 확인 중 · 첫 복사 · 오류 · 로그인 화면을 대신 보여주고, 통과하면 null
 export function Gate({ B, title }) {

@@ -268,3 +268,4 @@
 @media (min-width: 900px) { .a-akrow { grid-template-columns: minmax(220px, 1fr) minmax(0, 1.3fr) 110px; align-items: center; } .a-akrow > .a-aksp { grid-column: 2 / -1; } }
 .a-pcat { flex: 0 0 auto; font-size: 11.5px; font-weight: 700; color: #24386B; background: #EEF1F8; border-radius: 6px; padding: 1px 6px; margin-left: 4px; }
 .a-pcatset { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+.a-wkn .a-dn { color: #2F7D57; font-weight: 800; }

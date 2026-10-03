@@ -284,3 +284,12 @@
 .a-lsub { padding: 0 10px 8px; font-size: 12px; color: #5B6475; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .a-lsub.a-pcatset { white-space: normal; }
 @media (max-width: 767px) { .a-lrow .a-ln, .a-ln.hd { flex-wrap: wrap; row-gap: 6px; } .a-lrow .a-ln .nm, .a-ln.hd .nm { flex: 0 0 100%; max-width: 100%; margin: 0; } .a-ln.hd .nm { display: none; } .a-ln .end { margin-left: auto; } }
+/* 사람 표: 업무·고정·지표 섞임 (네이비 3단계 · 채움) */
+.k1 { background: #0F1F5C; } .k2 { background: #6B7BAE; } .k3 { background: #B9C3DE; }
+.a-kinds { margin: 2px 0 4px; }
+.a-kdot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: 0; }
+.a-mix { display: flex; align-items: center; gap: 3px; font-variant-numeric: tabular-nums; font-weight: 700; color: #1B2333; }
+.a-mix i { width: 7px; height: 7px; border-radius: 2px; margin-left: 3px; } .a-mix i:first-child { margin-left: 0; }
+.a-mixbar { display: flex; width: 70%; height: 4px; border-radius: 2px; overflow: hidden; margin-top: 2px; background: #EEF1F8; }
+.a-mixbar i { display: block; flex-basis: 0; min-width: 0; }
+.w3 .a-mixbar { outline: 1px solid rgba(255,255,255,.6); }

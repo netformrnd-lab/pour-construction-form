@@ -130,3 +130,6 @@ input[type=date] { min-width: 0; max-width: 100%; -webkit-appearance: none; appe
 .v2-ph.late { border: 2px solid #B4383F; }
 .v2-ph.late .c { color: #B4383F; }
 @media (min-width: 768px) { .v2-ph { height: 56px; } .v2-ph .nm { font-size: 12.5px; } }
+
+/* 앞사람이 남긴 말: 세 줄까지 보이고 그 뒤는 … (전체는 앞 일 대화에서) */
+.v2-clamp3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }

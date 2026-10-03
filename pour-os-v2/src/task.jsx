@@ -146,7 +146,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
         {(allOrder ? preds : preds.slice(0, ORD)).map((x) => { const w = lastWord(x, D.notes), fn = filesOf(x);
           return <div key={x.id} style={{ borderBottom: `1px solid ${C.line}` }}><Row tag="앞 일" tagTone={!finishedOf(x) && tu.state === "late" ? "red" : null} title={x.title} sub={predSub(x)} onClick={() => open({ type: "task", id: x.id })} last />
             {(w || fn > 0) && <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px 10px", background: "#fff" }}>
-              <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{w ? `${w.handoff ? "남긴 말" : "마지막 말"} · ${w.byName || ""}: ${w.text}` : ""}</span>
+              <span className="v2-clamp3" style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.text, lineHeight: 1.5, wordBreak: "break-word" }}>{w ? `${w.handoff ? "남긴 말" : "마지막 말"} · ${w.byName || ""}: ${w.text}` : ""}</span>
               {fn > 0 && <TBtn onClick={() => open({ type: "task", id: x.id, focus: "files" })} style={{ padding: "2px 0", fontSize: 12.5 }}>자료 {fn} ›</TBtn>}</div>}</div>; })}
         {(allOrder ? nexts : nexts.slice(0, ORD)).map((x) => <Row key={x.id} tag="다음 일" title={x.title} sub={predSub(x)} onClick={() => open({ type: "task", id: x.id })} last={false} />)}
         {!allOrder && (preds.length > ORD || nexts.length > ORD) && <More onClick={() => setAllOrder(true)}>앞 일 {preds.length} · 다음 일 {nexts.length} 모두 ▾</More>}

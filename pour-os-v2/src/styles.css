@@ -52,6 +52,8 @@ input[type=date] { min-width: 0; max-width: 100%; -webkit-appearance: none; appe
 .v2-calc.l3 { background: #24386B; border-color: #24386B; }
 .v2-calc.l3 .d, .v2-calc.l3 .n, .v2-calc.l3 .m { color: #fff; }
 .v2-calc.red .n { color: #B4383F; }
+.v2-calc.over .n { color: #B4383F; }   /* 팀 달력 앞날: 한 사람 하루 8건 넘음 */
+.v2-calc.l3.over .n { color: #B4383F; background: #fff; border-radius: 6px; padding: 0 4px; }
 .v2-calc.old .n { color: #A6ADBB; }
 .v2-calc.fx .n { color: #8A92A3; font-weight: 700; }
 .v2-calc.today { border: 2px solid #0F1F5C; box-shadow: inset 0 0 0 1px #fff; }

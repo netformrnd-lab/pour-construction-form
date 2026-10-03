@@ -23,16 +23,8 @@ export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose
     try { const p = await refine(await planReimport(kind, D)); setSt({ kind, step: "ready", plan: p }); }
     catch (e) { console.error("[v2 관리] 가져오기 미리 보기 실패:", e); setSt({ kind, step: "err", msg: e.message }); }
   };
-  // planReimport 는 업무·프로젝트만 비교하므로, 나머지 칸(사람·댓글·기록…)도 있는지 읽어서 미리 보기 숫자를 맞춘다 (읽기만)
-  // 버전1에 PIN 이 있는 사람은 merge 로 버전1 PIN 이 다시 들어가므로 이름을 미리 알려 줌
-  const refine = async (p) => {
-    const keys = [...new Set(p.ops.map((o) => o.key))].filter((k) => k !== "tasks" && k !== "projects");
-    let fresh = 0, over = 0;
-    for (const k of keys) { const have = new Set((await fb.fetchWhere(k, null)).map((x) => x._doc || x.id)); p.ops.filter((o) => o.key === k).forEach((o) => (have.has(o.id) ? over++ : fresh++)); }
-    const other = p.ops.filter((o) => keys.includes(o.key)).length;
-    const pinBack = p.ops.filter((o) => o.key === "users" && o.data && o.data.pinHash).map((o) => o.data.name).filter(Boolean);
-    return { ...p, fresh: p.fresh - other + fresh, overwrite: p.overwrite + over, pinBack };
-  };
+  // planReimport 가 모든 칸을 비교하고, 이미 있는 사람의 PIN 칸은 빼고 씀 → 버전1 PIN 으로 돌아가는 사람 없음
+  const refine = async (p) => ({ ...p, pinBack: [] });
   // ② 확인 뒤 가져오기 (merge · 건너뛴 문서는 바꾸지 않음)
   const run = async () => {
     setAsk(""); const { kind, plan: p } = st;

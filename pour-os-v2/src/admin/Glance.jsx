@@ -84,7 +84,7 @@ export function Glance(ctx) {
                 <b className="nm">{g.label}</b><span className="ct">{g.items.length}{g.temp ? <small> (임시 {g.temp})</small> : null}</span>
                 <span className="bar" aria-hidden="true"><i style={{ width: Math.max(4, Math.round((g.items.length / mx) * 100)) + "%", background: g.items.length > 8 ? C.red : C.navy }} /></span>
                 <span className="tg">{on ? "▴" : "▾"}</span></button>
-              {on && <div style={{ padding: "0 10px 10px" }}><PickList D={D} groups={[{ key: g.key, label: `${g.label} · ${md(day)} 마감`, items: g.items }]} sel={sel} setSel={setSel} open={open} temp={idx.temp} /></div>}
+              {on && <div style={{ padding: "0 10px 10px" }}><PickList D={D} groups={[{ key: g.key, label: `${g.label} · ${md(day)} 마감`, items: g.items }]} sel={sel} setSel={setSel} open={open} temp={idx.temp} max={10} right={(t) => <TBtn onClick={() => open({ type: "task", id: t.id, focus: "talk" })} style={{ fontSize: 12.5 }}>댓글</TBtn>} /></div>}
             </div>; })}</Card>}
         <p className="a-hint">이름을 누르면 펼쳐져요 · 골라서 담당·기한을 한꺼번에 바꿀 수 있어요</p>
       </div>

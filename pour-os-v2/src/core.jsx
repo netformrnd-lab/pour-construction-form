@@ -302,15 +302,21 @@ export function useActs(D, cu, setToast, idx = null) {
 // kind: "launch"(신제품 보드만) | "all"(전체 + 신제품). 먼저 계산해 미리 보기 숫자를 보여 주고, 확인 뒤 runReimport
 export async function planReimport(kind, D) {
   const v2edited = (x) => !!(x && (x.v2At || x.updatedBy || x.madeIn === "v2"));
-  const have = {}; for (const k of ["tasks", "projects"]) have[k] = new Map((await fb.fetchWhere(k, null)).map((x) => [x._doc || x.id, x]));
   let ops = [], counts = {};
   if (kind === "all") { const v1 = await fb.readV1State(); const notes = await fb.readV1Notes(); const r = planSeed(v1, notes); ops = r.ops; counts = r.counts; if (!(v1.tasks || []).length) throw new Error("버전1 업무가 비어 보여요"); }
   const lp = planLaunchImport(await fb.readV1Launch(), D);
   ops.push(...lp.projects.map((x) => ({ key: "projects", id: x.id, data: x })), ...lp.tasks.map((x) => ({ key: "tasks", id: x.id, data: x })));
   counts.launch = lp.projects.length;
+  // 덮어쓸지·새로 생길지 비교: 가져올 모든 칸(업무·프로젝트·사람·댓글·기록 …)의 v2 문서를 읽기만
+  const have = {}; for (const k of [...new Set(ops.map((o) => o.key))]) have[k] = new Map((await fb.fetchWhere(k, null)).map((x) => [x._doc || x.id, x]));
   const keep = [], skip = [], fresh = [];
-  ops.forEach((o) => { const cur = have[o.key] && have[o.key].get(o.id); if (!cur) { fresh.push(o); keep.push(o); } else if (v2edited(cur)) skip.push(o); else keep.push(o); });
-  // users 는 PIN(v2 에서 정함)을 지키려고 merge 로만 씀 · 그 밖도 merge (v2 전용 칸 유지)
+  ops.forEach((o) => { const cur = have[o.key] && have[o.key].get(o.id);
+    if (!cur) { fresh.push(o); keep.push(o); return; }
+    if (v2edited(cur)) { skip.push(o); return; }
+    // 이미 있는 사람: v2 에서 정한·초기화한 PIN 을 버전1 값으로 되돌리지 않게 PIN 칸은 빼고 씀
+    if (o.key === "users" && o.data) { const d = { ...o.data }; Object.keys(d).forEach((f) => { if (/^pin/.test(f)) delete d[f]; }); keep.push({ ...o, data: d }); return; }
+    keep.push(o); });
+  // 모두 merge 로 씀 (주 한도 같은 v2 전용 칸 유지)
   return { ops: keep, skip: skip.length, fresh: fresh.length, overwrite: keep.length - fresh.length, counts };
 }
 export async function runReimport(plan, onProgress) { await fb.putMany(plan.ops, onProgress, { merge: true }); }

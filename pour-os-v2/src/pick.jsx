@@ -1,11 +1,12 @@
 // 업무OS v2 — 여러 개 골라서 한꺼번에 (관리자 정리 · 사람 표 · 실사용 '담당 정할 항목')
 // 안전장치: 한 번에 100건 · 누르기 전 문장 미리 보기 · 30건 이상이면 확인 창 · 5초 되돌리기 · 기록(이전 값) · 삭제 없음 · 맡긴 사람(requestedBy) 그대로
 import { useState } from "react";
-import { ymd, addDays, md, ddays, ddayLabel, dueOf, ownersOf, nameOf, activeUsers, weekStart, nextWorkday, isDone, taskNoteId } from "./model.js";
+import { ymd, addDays, md, ddays, ddayLabel, dueOf, ownersOf, nameOf, activeUsers, weekStart, nextWorkday, prevWorkday, isOffDay, WD, isDone, taskNoteId } from "./model.js";
 import { C, Act, Chip, TBtn, Ask, Card, Empty } from "./ui.jsx";
 
 // 묶음 목록 + 고르기 칸 (줄을 누르면 업무 보기)
-export function PickList({ D, groups, sel, setSel, open, temp, max = 60 }) {
+// right: (t) => 줄 오른쪽 작은 버튼 (예: 댓글) — 없으면 안 그림
+export function PickList({ D, groups, sel, setSel, open, temp, max = 60, right }) {
   const [more, setMore] = useState({});
   const key = ymd(new Date());
   const toggle = (id) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -23,10 +24,22 @@ export function PickList({ D, groups, sel, setSel, open, temp, max = 60 }) {
             <div style={{ fontSize: 14, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</div>
             <div style={{ fontSize: 12, color: C.sub, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {[(nameOf(D.users, ownersOf(t)[0]) || "담당 없음") + (temp && temp.has(t.id) ? "(임시)" : ""), p && p.title, dueOf(t) ? <span key="d" style={{ color: n < 0 ? C.red : C.sub }}>{md(dueOf(t))} {ddayLabel(n)}</span> : "기한 없음"].filter(Boolean).reduce((a, x, j) => (j ? [...a, " · ", x] : [x]), [])}</div>
-          </div></div>; })}
+          </div>{right && <div style={{ flex: "0 0 auto", paddingRight: 10 }}>{right(t)}</div>}</div>; })}
         {g.items.length > shown.length && <button type="button" onClick={() => setMore({ ...more, [g.key]: true })} style={{ width: "100%", padding: 12, border: "none", borderTop: `1px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontFamily: "inherit", cursor: "pointer" }}>{g.items.length - shown.length}개 더 ▾</button>}
         {!g.items.length && <Empty>없어요</Empty>}</Card>
     </div>; })}</>;
+}
+
+// 조사 '으로/로' (받침 있으면 으로, ㄹ 받침·받침 없음은 로) — 숫자는 읽는 소리로
+const DIG = { 0: 1, 3: 1, 6: 1 };
+export const ro = (w) => { const s = String(w || ""), c = s.charCodeAt(s.length - 1);
+  if (c >= 0xac00 && c <= 0xd7a3) { const j = (c - 0xac00) % 28; return j && j !== 8 ? "으로" : "로"; }
+  if (/[0-9]$/.test(s)) return DIG[s.slice(-1)] ? "으로" : "로"; return "로"; };
+// 기한 고르기 칩: 쉬는 날(주말·공휴일)은 빼고, 금요일이 공휴일이면 앞 평일
+export function dueChips(key) {
+  const fri = addDays(weekStart(key), 4), lab = (pre, d) => `${pre} ${WD[new Date(d + "T00:00:00").getDay()]} ${md(d)}`;
+  const thisFri = prevWorkday(fri), nextFri = prevWorkday(addDays(fri, 7)), tmr = nextWorkday(addDays(key, 1));
+  return [!isOffDay(key) && ["오늘", key], [tmr === addDays(key, 1) ? "내일" : `다음 평일 ${md(tmr)}`, tmr], thisFri > tmr && [lab("이번 주", thisFri), thisFri], [lab("다음 주", nextFri), nextFri]].filter(Boolean);
 }
 
 // 아래에 붙는 한꺼번에 바꾸기 막대
@@ -34,12 +47,12 @@ export function BulkBar({ D, cu, A, ids, clear }) {
   const [mode, setMode] = useState(""), [val, setVal] = useState(null), [ask, setAsk] = useState(false), [busy, setBusy] = useState(false);
   const ts = [...ids].map((id) => (D.tasks || []).find((t) => t.id === id)).filter((t) => t && !isDone(t));
   if (!ts.length) return null;
-  const key = ymd(new Date()), fri = (k) => { const ws = weekStart(k); return addDays(ws, 4); };
+  const key = ymd(new Date());
   const auto = ts.filter((t) => t.dueAuto).length;
   const fromNames = [...new Set(ts.map((t) => nameOf(D.users, ownersOf(t)[0]) || "담당 없음"))].slice(0, 2).join("·");
   const plan = !val ? null
-    : mode === "due" ? { label: `기한 ${md(val)}`, text: `${ts.length}건 기한을 ${md(val)}로${auto ? ` · 출시일 연동이 풀려요 ${auto}개` : ""}`, f: () => ({ dueDate: val, dueAuto: false, dueReq: null }) }
-    : mode === "who" ? { label: `담당 → ${nameOf(D.users, val)}`, text: `${ts.length}건 담당을 ${fromNames} → ${nameOf(D.users, val)}로 · 맡긴 사람은 그대로`, f: (t, bulkId) => ({ assigneeId: val, assigneeIds: [val], ownerAuto: false, ownerFrom: "set", assignedBy: cu.id, assignedAt: new Date().toISOString(), bulkId, ackAt: val === cu.id ? new Date().toISOString() : null }) }
+    : mode === "due" ? { label: `기한 ${md(val)}`, text: `${ts.length}건 기한을 ${md(val)}${ro(md(val))}${auto ? ` · 출시일 연동이 풀려요 ${auto}개` : ""}`, f: () => ({ dueDate: val, dueAuto: false, dueReq: null }) }
+    : mode === "who" ? { label: `담당 → ${nameOf(D.users, val)}`, text: `${ts.length}건 담당을 ${fromNames} → ${nameOf(D.users, val)}${ro(nameOf(D.users, val))} · 맡긴 사람은 그대로`, f: (t, bulkId) => ({ assigneeId: val, assigneeIds: [val], ownerAuto: false, ownerFrom: "set", assignedBy: cu.id, assignedAt: new Date().toISOString(), bulkId, ackAt: val === cu.id ? new Date().toISOString() : null }) }
     : null;
   const run = async (p) => { setBusy(true); const done = await A.bulk(ts, p.f, p.label); setBusy(false); setAsk(false); if (done) { setMode(""); setVal(null); clear(); } };
   const go = (p) => (ts.length >= 30 ? setAsk(p) : run(p));
@@ -47,7 +60,7 @@ export function BulkBar({ D, cu, A, ids, clear }) {
   const askAll = async () => { setBusy(true); for (const t of ts.slice(0, 30)) await A.addNote(taskNoteId(t.id), `아직 하나요? 끝났으면 '끝냈어요'를, 아니면 새 기한을 정해 주세요 · ${cu.name}`, null, [], { taskId: t.id, projectId: t.projectId }); setBusy(false); clear(); };
   const people = activeUsers(D.users);
   return <div className="v2-bulk" role="region" aria-label="한꺼번에 바꾸기">
-    {mode === "due" && <div className="v2-chips" style={{ marginBottom: 8 }}>{[["오늘", key], ["내일", nextWorkday(addDays(key, 1))], ["이번 주 금", fri(key) < key ? nextWorkday(key) : fri(key)], ["다음 주 금", addDays(fri(key), 7)]].map(([l, d]) => <Chip key={l} on={val === d} onClick={() => setVal(d)}>{l}</Chip>)}
+    {mode === "due" && <div className="v2-chips" style={{ marginBottom: 8 }}>{dueChips(key).map(([l, d]) => <Chip key={l} on={val === d} onClick={() => setVal(d)}>{l}</Chip>)}
       <input type="date" aria-label="날짜" value={val || ""} onChange={(e) => setVal(e.target.value)} className="v2-sel" /></div>}
     {mode === "who" && <div className="v2-chips" style={{ marginBottom: 8, maxHeight: 120, overflowY: "auto" }}>{people.map((u) => <Chip key={u.id} on={val === u.id} onClick={() => setVal(u.id)}>{u.id === cu.id ? "나" : u.name}</Chip>)}</div>}
     {plan && <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><span style={{ flex: 1, fontSize: 13, color: "#DCE2F2" }}>{plan.text}</span><Act onClick={() => go(plan)} style={{ background: "#fff", color: C.ink, borderColor: "#fff" }}>{busy ? "저장 중" : "이대로 바꾸기"}</Act></div>}

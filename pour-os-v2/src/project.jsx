@@ -152,7 +152,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
   const [tab, setTab] = useState(() => first || (!p || member ? "work" : "news"));   // 방금 만든 프로젝트는 업무부터
   const [doneList, setDoneList] = useState(null), [showDone, setShowDone] = useState(false), [nt, setNt] = useState(""), [nw, setNw] = useState(cu.id), [ndue, setNdue] = useState(""), [edit, setEdit] = useState(""), [now, setNow] = useState(""), [info, setInfo] = useState(false), [ld, setLd] = useState(""), [openPh, setOpenPh] = useState({});
   const notes = useItemNotes(D, projNoteId(id));
-  useEffect(() => { A.recalc(id); }, [id]);   // 열 때 진척(%)을 실제 업무 수로 다시 계산 (다르면만 저장)
+  useEffect(() => { if (!isLaunch(p)) A.recalc(id); }, [id]);   // 열 때 진척(%)을 실제 업무 수로 다시 계산 (다르면만 저장) · 신제품은 launchPct 로 그때그때 계산하므로 저장 안 함
   if (!p) return <Sheet title="프로젝트" onBack={onBack} onClose={onClose}><Empty>이 프로젝트를 찾지 못했어요</Empty></Sheet>;
   const key = ymd(new Date()), s = projStat(p, D.tasks, key), launch = isLaunch(p), master = isMaster(cu), lead = p.assigneeId === cu.id || master;
   const date = dateOf(p), dn = ddays(date, key), pct = launch ? launchPct(p, D) : s.pct;
@@ -199,7 +199,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
     {myNew.length > 0 && <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 14, background: C.soft, border: "1px solid #D7DDEE", fontSize: 14, color: C.text }}>
       <b>나에게 온 {launch ? "항목" : "업무"} {myNew.length}개</b> · 기한을 훑어보고 받아 주세요. 안 맞는 기한은 열어서 '기한 조정 요청'을 해요.
       <div style={{ marginTop: 8 }}><Act onClick={() => A.ackMany(myNew)} style={{ background: C.navy, color: "#fff", borderColor: C.navy }}>모두 받았어요</Act></div></div>}
-    {launch && lead && <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginTop: 12 }}>
+    {launch && lead && !projectExtra && <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginTop: 12 }}>
       <span style={{ fontSize: 13.5, fontWeight: 800, color: C.ink }}>출시일</span><input type="date" aria-label="출시일" value={ld || p.launchDate || ""} onChange={(e) => setLd(e.target.value)} className="v2-sel" />
       {ld && ld !== p.launchDate && <Act onClick={() => { A.setLaunchDate(p, ld); setLd(""); }} style={{ background: C.navy, color: "#fff", borderColor: C.navy }}>바꾸기 · 자동 기한 같이 이동</Act>}</div>}
 

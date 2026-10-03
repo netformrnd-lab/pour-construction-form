@@ -18,10 +18,10 @@ export function MonthCal({ mode = "me", ym, setYm, cells, sel, onPick, keyd, use
       const x = cells[c.date] || { n: 0, proj: [], items: [], people: {} }, past = c.date < keyd, old = c.date < d14;
       const showN = x.n > 0 ? x.n : x.fx > 0 ? x.fx : 0;
       const cls = ["v2-calc", c.out ? "out" : "", isOffDay(c.date) ? "off" : "", c.date === keyd ? "today" : "", c.date === sel ? "on" : "",
-        !past && x.n > 0 ? lv(x.n, team) : "", past && x.n > 0 && x.red ? "red" : "", past && x.n > 0 && old ? "old" : "", !x.n && x.fx ? "fx" : ""].filter(Boolean).join(" ");
+        !past && x.n > 0 ? lv(x.n, team) : "", past && x.n > 0 && x.red ? "red" : "", team && !past && x.red ? "over" : "", past && x.n > 0 && old ? "old" : "", !x.n && x.fx ? "fx" : ""].filter(Boolean).join(" ");
       const marks = [x.proj.length ? (team && x.proj.length > 1 ? "▴" + x.proj.length : "▴") : "", x.turnStart ? "→" : "", past && !x.n && x.done ? "✓" : ""].filter(Boolean).slice(0, 2).join(" ");
       const hol = holidayName(c.date);
-      const label = `${+c.date.slice(5, 7)}월 ${+c.date.slice(8)}일${hol ? " " + hol : ""}, 마감 ${x.n}건${x.red ? ", 지난 일·막힘 있음" : ""}${x.proj.length ? `, 출시·마감 ${x.proj.length}` : ""}${x.turnStart ? ", 내 차례 시작" : ""}`;
+      const label = `${+c.date.slice(5, 7)}월 ${+c.date.slice(8)}일${hol ? " " + hol : ""}, 마감 ${x.n}건${x.red ? (team && !past ? ", 8건 넘는 사람·막힘 있음" : ", 지난 일·막힘 있음") : ""}${x.proj.length ? `, 출시·마감 ${x.proj.length}` : ""}${x.turnStart ? ", 내 차례 시작" : ""}`;
       const top = team ? Object.entries(x.people || {}).filter(([u]) => u).sort((a, b) => b[1] - a[1]) : [];
       return <button key={c.date} type="button" className={cls} aria-label={label} aria-pressed={c.date === sel} onClick={() => { onPick(c.date); if (c.out) setYm(c.date.slice(0, 7)); }}>
         <span className="d">{+c.date.slice(8)}</span>

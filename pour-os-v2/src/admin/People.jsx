@@ -68,7 +68,7 @@ export function WeekTable({ D, idx, open, noTemp, off = 0 }) {
       <button type="button" className="a-wc late" disabled={!r.late} onClick={() => open({ type: "apick", uid: r.u.id, late: true, noTemp })} aria-label={`${r.u.name} 지난 일 ${r.late}건`}>
         <b style={{ color: r.late ? C.red : C.mute }}>{r.late || "-"}</b></button>
       {r.weeks.map((w, i) => { const overCap = w.n > r.cap, past = w.to < key;
-        const go = w.n ? () => open({ type: "apick", uid: r.u.id, from: w.from, to: w.to, noTemp }) : w.done ? () => open({ type: "adone", uid: r.u.id, since: iso(w.from), until: iso(addDays(w.to, 1)), label: `${md(w.from)}~${md(w.to)}` }) : null;
+        const go = w.n ? () => open({ type: "apick", uid: r.u.id, from: w.from, to: w.to, noTemp }) : w.done ? () => open({ type: "apick", uid: r.u.id, from: w.from, to: w.to, noTemp, show: "done" }) : null;
         return <button key={i} type="button" className={"a-wc" + (past ? " past" : wl(w.n))} disabled={!go} onClick={go || undefined}
           aria-label={`${r.u.name} ${wkL(off + i)} ${past ? "못 끝낸 일" : "마감"} ${w.n}건, 완료 ${w.done}건${!noTemp && w.temp ? `, 임시 ${w.temp}` : ""}${overCap ? `, 주 한도 ${r.cap} 넘음` : ""}`}>
           <b className={overCap ? "over" : ""} style={past && w.n ? { color: C.red } : null}>{w.n || "-"}</b>
@@ -100,28 +100,35 @@ function DayTable({ D, idx, open, noTemp }) {
 // 사람 한 명의 한 주(또는 하루 · 지난 일) 업무 고르기 → 한꺼번에 바꾸기
 export function PickSheet({ D, cu, A, idx, open, onBack, onClose, setToast, s }) {
   const key = ymd(new Date());
-  const [only, setOnly] = useState(s.noTemp ? "real" : "all"), [sel, setSel] = useState(() => new Set());
+  const [only, setOnly] = useState(s.show === "done" ? "done" : s.noTemp ? "real" : "all"), [sel, setSel] = useState(() => new Set());
   const u = (D.users || []).find((x) => x.id === s.uid);
   const base = (D.tasks || []).filter((t) => openOneOff(t) && isMine(t, s.uid) && (s.late ? dueOf(t) && dueOf(t) < key : dueOf(t) >= s.from && dueOf(t) <= s.to));
   const tempN = base.filter((t) => idx.temp.has(t.id)).length;
-  const items = only === "temp" ? base.filter((t) => idx.temp.has(t.id)) : only === "real" ? base.filter((t) => !idx.temp.has(t.id)) : base;
+  // 그 기간에 끝낸 일 (보기만 · 지난 일 묶음에는 없음)
+  const iso = (d) => new Date(d + "T00:00:00").toISOString();
+  const doneL = s.late ? [] : (D.tasks || []).filter((t) => !t.isFixed && isDone(t) && isMine(t, s.uid) && finAt(t) >= iso(s.from) && finAt(t) < iso(addDays(s.to, 1))).sort((a, b) => finAt(b).localeCompare(finAt(a)));
+  const pn = (t) => ((D.projects || []).find((p) => p.id === t.projectId) || {}).title || "";
+  const items = only === "done" ? [] : only === "temp" ? base.filter((t) => idx.temp.has(t.id)) : only === "real" ? base.filter((t) => !idx.temp.has(t.id)) : base;
   const groups = groupItems(items, "project", D);
   const range = s.late ? "지난 일" : s.from === s.to ? `${md(s.from)} (${wdOf(s.from)})` : `${md(s.from)}~${md(s.to)}`;
   // 칩을 바꾸면 고른 것도 풀기 · 막대에는 지금 보이는 줄에서 고른 것만 (안 보이는 일이 같이 바뀌지 않게)
   const only1 = (k) => { setOnly(k); setSel(new Set()); };
   const ids = new Set(items.map((t) => t.id)), selV = new Set([...sel].filter((id) => ids.has(id)));
   const all = items.length > 0 && items.every((t) => sel.has(t.id));
-  return <Sheet title={`${u ? u.name : "사람"} · ${range} · ${base.length}건${tempN ? `(임시 ${tempN})` : ""}`} onBack={onBack} onClose={onClose}>
+  const openL = s.late ? "지난 일" : s.to < key ? "못 끝낸 일" : "할 일";
+  return <Sheet title={`${u ? u.name : "사람"} · ${range} · ${base.length}건`} onBack={onBack} onClose={onClose}>
     <div className="v2-chips" style={{ marginTop: 12 }}>
-      <Chip on={only === "all"} onClick={() => only1("all")}>전체 {base.length}</Chip>
+      <Chip on={only === "all"} onClick={() => only1("all")}>{openL} {base.length}</Chip>
+      {!s.late && <Chip on={only === "done"} onClick={() => only1("done")}>완료 {doneL.length}</Chip>}
       {tempN > 0 && <Chip on={only === "temp"} onClick={() => only1("temp")}>임시만 {tempN}</Chip>}
       {tempN > 0 && <Chip on={only === "real"} onClick={() => only1("real")}>진짜 일만 {base.length - tempN}</Chip>}
       <span style={{ flex: 1 }} />
-      {items.length > 0 && <TBtn onClick={() => setSel(all ? new Set() : new Set(items.map((t) => t.id)))}>{all ? "모두 풀기" : `모두 고르기 ${items.length}`}</TBtn>}
+      {only !== "done" && items.length > 0 && <TBtn onClick={() => setSel(all ? new Set() : new Set(items.map((t) => t.id)))}>{all ? "모두 풀기" : `모두 고르기 ${items.length}`}</TBtn>}
     </div>
-    {items.length === 0 ? <Card style={{ marginTop: 12 }}><Empty>고른 조건에 맞는 일이 없어요</Empty></Card>
+    {only === "done" ? <Card style={{ marginTop: 12 }}>{doneL.length === 0 ? <Empty>이 기간에 끝낸 일이 없어요</Empty> : doneL.map((t, i) => <Row key={t.id} title={t.title} tag={`✓ ${md(finAt(t).slice(0, 10))}`} sub={pn(t) || "프로젝트 없음"} onClick={() => open({ type: "task", id: t.id })} last={i === doneL.length - 1} />)}</Card>
+      : items.length === 0 ? <Card style={{ marginTop: 12 }}><Empty>고른 조건에 맞는 일이 없어요</Empty></Card>
       : <PickList D={D} groups={groups} sel={sel} setSel={setSel} open={open} temp={idx.temp} />}
-    <p className="a-hint">담당을 바꿔도 맡긴 사람은 그대로예요. 받는 사람 화면에는 '항목 n개 맡김' 한 줄로 떠요.</p>
+    <p className="a-hint">{only === "done" ? "끝낸 일은 보기만 해요 · 누르면 그 업무" : "담당을 바꿔도 맡긴 사람은 그대로예요. 받는 사람 화면에는 '항목 n개 맡김' 한 줄로 떠요."}</p>
     <SelBar D={D} cu={cu} A={A} sel={selV} setSel={setSel} setToast={setToast} />
   </Sheet>;
 }

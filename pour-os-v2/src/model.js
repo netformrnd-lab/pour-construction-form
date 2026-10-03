@@ -61,9 +61,11 @@ export const fxWeekDays = (t) => { const a = Array.isArray(t.weekDays) && t.week
 export const fxIsMine = (t, uid) => (t.forAll ? true : fxIds(t).includes(uid));
 export const fxPeople = (users, t) => (t.forAll ? activeUsers(users).map((u) => u.id) : fxIds(t).filter((id) => { const u = (users || []).find((x) => x.id === id); return !u || u.active !== false; }));
 const lastDay = (key) => { const d = new Date(key.slice(0, 7) + "-01T00:00:00"); d.setMonth(d.getMonth() + 1); d.setDate(0); return d.getDate(); };
+// 그 달 마지막 평일 (주말·공휴일이면 앞 평일)
+export const monthEndWorkday = (key) => prevWorkday(key.slice(0, 7) + "-" + pad2(lastDay(key)));
 export const fxDueOn = (t, key) => { const rt = t.recurType || "daily"; const d = new Date(key + "T00:00:00");
   if (rt === "weekly") return fxWeekDays(t).includes(WD[d.getDay()]);
-  if (rt === "monthly") return Math.min(Number(t.monthDay || 1), lastDay(key)) === d.getDate();   // 31일 → 그 달 말일
+  if (rt === "monthly") return t.monthEnd ? key === monthEndWorkday(key) : Math.min(Number(t.monthDay || 1), lastDay(key)) === d.getDate();   // 31일 → 그 달 말일 · 말일(평일) = 그 달 마지막 평일
   return true; };
 export const fxDoneOn = (t, uid) => (t.doneDates && Object.prototype.hasOwnProperty.call(t.doneDates, uid) ? t.doneDates[uid] : t.assigneeId === uid ? t.doneDate : null);
 export const fxHit = (t, d, key) => { if (!d) return false; const rt = t.recurType || "daily";
@@ -77,7 +79,7 @@ export const fxTime = (t, uid) => (uid && t.timeBy && t.timeBy[uid]) || t.fixedT
 export const fxMin = (t, uid) => { const m = /^(\d{1,2}):(\d{2})/.exec(fxTime(t, uid)); return m ? +m[1] * 60 + +m[2] : 9999; };
 export const fxLabel = (t, uid) => (uid && t.labelBy && t.labelBy[uid]) || t.title || "";
 export const fxSubs = (t, uid) => ((t.subsBy && (t.subsBy[uid] && t.subsBy[uid].length ? t.subsBy[uid] : t.subsBy["*"])) || []).filter((x) => x && x.title);
-export const fxRecurL = (t) => { const rt = t.recurType || "daily"; if (rt === "weekly") { const a = fxWeekDays(t); return "매주 " + (a.length === 5 && !a.includes("토") && !a.includes("일") ? "평일" : a.join("·")); } if (rt === "monthly") return `매월 ${t.monthDay || 1}일`; return "매일"; };
+export const fxRecurL = (t) => { const rt = t.recurType || "daily"; if (rt === "weekly") { const a = fxWeekDays(t); return "매주 " + (a.length === 5 && !a.includes("토") && !a.includes("일") ? "평일" : a.join("·")); } if (rt === "monthly") return t.monthEnd ? "매월 말일(평일)" : `매월 ${t.monthDay || 1}일`; return "매일"; };
 export const fxDoneWord = (t) => ({ weekly: "이번 주 완료", monthly: "이번 달 완료" }[t.recurType] || "오늘 완료");
 // 체크/해제 → 바뀐 칸만 (점 경로) — 다른 사람 체크를 덮어쓰지 않음
 export function fxCheckPatch(t, uid, on, key, at, name) {

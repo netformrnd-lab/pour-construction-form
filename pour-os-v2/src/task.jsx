@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as fb from "./fb.js";
 import {
   ymd, addDays, ddays, ddayLabel, md, hm, ago, dayTitle, WD, isMaster, activeUsers, nameOf, STATUS_L, isDone, isOneOff, isMine, ownersOf, dueOf,
-  fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit,
+  fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit, fxWeekDays, FX_WD, monthEndWorkday,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf,
 } from "./model.js";
@@ -230,6 +230,7 @@ export function FixedSheet({ D, cu, A, onBack, onClose, id }) {
     <h2 style={{ fontSize: 20, fontWeight: 800, color: C.ink, margin: "12px 0 4px" }}>{fxLabel(t, cu.id)}</h2>
     <div style={{ fontSize: 13.5, color: C.sub }}>{fxRecurL(t)} · {fxTime(t, cu.id) || "시간 상관없음"} · 담당 {people.length}명{t.paused ? " · 멈춤" : ""}</div>
     {mine && subs.length > 0 && <><Head>체크리스트</Head><div className="v2-chips">{subs.map((x) => { const ok = fxHit(t, ((t.subDone || {})[cu.id] || {})[x.id], key); return <Chip key={x.id} on={ok} onClick={() => A.fxSub(t, x.id)}>{ok ? "✓ " : ""}{x.title}</Chip>; })}</div></>}
+    {(mine || isMaster(cu)) && <RecurEdit t={t} A={A} />}
     <Head>누가 했나</Head>
     <Card>{people.length === 0 ? <Empty>담당이 없어요</Empty> : people.map((uid, i) => { const ok = fxMeDone(t, uid, key), at = t.doneAtBy && t.doneAtBy[uid];
       return <div key={uid} style={{ display: "flex", gap: 10, padding: "11px 14px", borderBottom: i < people.length - 1 ? `1px solid ${C.line}` : "none", fontSize: 14 }}><b style={{ flex: 1, color: C.text }}>{nameOf(D.users, uid) || uid}</b><span style={{ color: ok ? C.green : C.mute, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{ok ? `✓ ${hm(at)}` : `아직${fxTime(t, uid) ? ` (예정 ${fxTime(t, uid)})` : ""}`}</span></div>; })}</Card>
@@ -241,6 +242,32 @@ export function FixedSheet({ D, cu, A, onBack, onClose, id }) {
     <Head>대화</Head>
     <Thread D={D} cu={cu} A={A} notes={notes} itemId={taskNoteId(t.id)} ctx={{ taskId: t.id }} />
   </Sheet>;
+}
+
+// 고정업무 반복·시간 바꾸기 (담당·마스터) — 매일 / 매주(요일 여러 개) / 매월(1~31일 · 말일(평일)). 바뀐 칸만 저장 + 기록에 이전 값
+function RecurEdit({ t, A }) {
+  const [on, setOn] = useState(false);
+  const init = () => ({ rt: t.recurType || "daily", wd: fxWeekDays(t), mday: t.monthEnd ? "end" : String(t.monthDay || 1), time: t.fixedTime || "" });
+  const [f, setF] = useState(init);
+  const key = ymd(new Date());
+  const fields = () => ({ recurType: f.rt, ...(f.rt === "weekly" ? { weekDays: f.wd, weekDay: f.wd[0] || "월" } : {}),
+    ...(f.rt === "monthly" ? (f.mday === "end" ? { monthEnd: true, monthDay: 31 } : { monthEnd: false, monthDay: Number(f.mday) }) : {}), fixedTime: f.time });
+  const lab = (x) => fxRecurL({ ...t, ...x });
+  const ok = f.rt !== "weekly" || f.wd.length > 0;
+  const save = () => { if (!ok) return; const x = fields(), prev = Object.fromEntries(Object.keys(x).map((k) => [k, t[k] === undefined ? null : t[k]]));
+    A.patchTask(t, x, "edit", `${t.title} · 반복 ${lab(x)}${x.fixedTime ? " " + x.fixedTime : ""}`, { prev }); setOn(false); };
+  const nextEnd = (() => { let k = key; for (let i = 0; i < 3; i++) { const e = monthEndWorkday(k); if (e >= key) return e; const d = new Date(k.slice(0, 7) + "-01T00:00:00"); d.setMonth(d.getMonth() + 1); k = ymd(d); } return ""; })();
+  if (!on) return <div style={{ marginTop: 8 }}><TBtn onClick={() => { setF(init()); setOn(true); }}>반복 · 시간 바꾸기 ›</TBtn></div>;
+  return <Card style={{ marginTop: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+    <Seg items={[["daily", "매일"], ["weekly", "매주"], ["monthly", "매월"]]} value={f.rt} onChange={(rt) => setF({ ...f, rt })} />
+    {f.rt === "weekly" && <div className="v2-chips">{FX_WD.map((d) => <Chip key={d} on={f.wd.includes(d)} onClick={() => setF({ ...f, wd: f.wd.includes(d) ? f.wd.filter((x) => x !== d) : FX_WD.filter((x) => x === d || f.wd.includes(x)) })}>{d}</Chip>)}</div>}
+    {f.rt === "monthly" && <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <select aria-label="매월 날짜" className="v2-sel" value={f.mday} onChange={(e) => setF({ ...f, mday: e.target.value })}>
+        <option value="end">말일 (평일 기준)</option>{[...Array(31)].map((_, i) => <option key={i} value={String(i + 1)}>{i + 1}일</option>)}</select>
+      {f.mday === "end" && <span style={{ fontSize: 12.5, color: C.sub }}>그 달 마지막 평일 · 주말·공휴일이면 앞 평일{nextEnd ? ` (다음 ${md(nextEnd)})` : ""}</span>}</div>}
+    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, color: C.sub, flexWrap: "wrap" }}>기본 시간 <input type="time" aria-label="시간" className="v2-sel" value={f.time} onChange={(e) => setF({ ...f, time: e.target.value })} />{f.time && <TBtn onClick={() => setF({ ...f, time: "" })}>시간 지우기</TBtn>}</label>
+    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><TBtn tone="mute" onClick={() => setOn(false)}>그만</TBtn><TBtn onClick={save} disabled={!ok}>저장 · {lab(fields())}</TBtn></div>
+  </Card>;
 }
 
 // ───────────────── 프로젝트 ─────────────────

@@ -20,8 +20,9 @@ AUDIO = [
     'hf_20261003_000514_f82f9328-7d31-4459-ac5e-467745b91705.wav',
     'hf_20261003_000514_832c12f4-4238-46de-8a04-28d1f37136f8.wav',
     'hf_20261003_000514_8b29aa4d-eb3d-48d2-a9ac-62e1db29d324.wav',
+    'hf_20261003_001120_f8ba4ae9-6183-4a8f-94a5-d5586c06d6c4.wav',
     'hf_20261002_132932_c12a5eb0-768d-4d56-9ec8-d84d378a8468.wav',
-    'hf_20261002_133051_13fa4462-5e54-4a2f-b818-c34fe9bd8d43.wav',
+    'hf_20261003_001120_bfc2a287-d432-4629-b6cf-08ec24c18475.wav',
 ]
 VIDEO = {
     'mold': 'hf_20261002_133958_b46c150d-705a-4812-9e4f-0c48a23b20df.mp4',
@@ -32,7 +33,7 @@ VIDEO = {
     'generic': os.environ.get('V_GENERIC', ''),
 }
 RUSTY = 'hf_20261002_114615_81ef8dad-a40e-41b4-8a1a-401f5f59d285.png'
-IMGS = ['ref-01-thumbnail.png', 'ref-04-white-bg.png', 'ref-06-drain-gap.png', 'ref-08-structure.png',
+IMGS = ['ref-01-thumbnail.png', 'ref-04-white-bg.png', 'ref-06-drain-gap.png', 'ref-08-structure.png', 'ref-09-extension-sheet.png',
         'step-02-glue-attach.jpg', 'step-04-coat1.jpg', 'step-05-sheet.jpg', 'step-07-support.jpg', 'step-08-done.jpg']
 
 # 자막: 【강조어】는 하늘색 110%
@@ -45,8 +46,9 @@ SUBS = {
     6: ['그럼,\\N【어떻게】 해결해야 할까요?'],
     7: ['일반 드레인은,\\N위쪽 【좁은 구멍】이 전부예요.'],
     8: ['POUR 트랩은 넓은 덮개, 옆면,', '안쪽 지지대까지,\\N【세 번】 걸러요.'],
-    9: ['붙이고, 바르고, 덮고,\\N꽂으면 【끝】.'],
-    10: ['코트재, 시트, 트랩\\N【한 세트】.', '프로필 링크에서 확인하세요.'],
+    9: ['삽입부도 길고,\\N연장시트로 【더 깊게】 막아요.'],
+    10: ['붙이고, 바르고, 덮고,\\N꽂으면 【끝】.'],
+    11: ['코트재, 시트, 트랩까지\\N【한 세트】.'],
 }
 N = len(SUBS)
 def sh(cmd):
@@ -117,6 +119,8 @@ def compose(src, out, bg='blur', box=(1000, 1250), cy=820, chip=None, cta=False,
         d.text((W // 2, 295), '보강시트 설치 세트', font=font(46), fill=(220, 228, 245), anchor='mm')
         d.rounded_rectangle((W // 2 - 300, 340, W // 2 + 300, 412), 36, fill=(232, 120, 15))
         d.text((W // 2, 376), '타임세일 · 무료배송', font=font(44), fill='white', anchor='mm')
+        d.rounded_rectangle((W // 2 - 330, 465, W // 2 + 330, 560), 48, fill=(3, 199, 90))
+        d.text((W // 2, 512), '▶ 프로필 링크에서 확인', font=font(50), fill='white', anchor='mm')
     b.save(out)
 
 def still(png, d, out, z=0.08):
@@ -151,22 +155,25 @@ ai('drain', cd[5], 's6.mp4', ss=2.5)
 ai('generic', cd[6], 's7.mp4', label='일반 드레인 (예시)')
 # 8) 실사: 제품(넓은 덮개·옆면) → 구조도(지지대)
 compose('ref-04-white-bg.png', 'c8a.png', bg=(242, 242, 242), box=(1040, 1300), cy=860, chip='① 넓은 덮개  ② 옆면')
-compose('ref-08-structure.png', 'c8b.png', bg=(242, 242, 242), box=(1040, 1300), cy=860, chip='③ 지지대에서 한 번 더')
+compose('ref-08-structure.png', 'ref-09-extension-sheet.png', 'c8b.png', bg=(242, 242, 242), box=(1040, 1300), cy=860, chip='③ 지지대에서 한 번 더')
 # 물빠짐 공간을 8번 끝에 붙임
 compose('ref-06-drain-gap.png', 'c8c.png', chip='물빠짐 공간까지')
 h8 = round(cd[7] / 3, 3)
 still('c8a.png', h8, 's8a.mp4', z=0.08); still('c8b.png', h8, 's8b.mp4', z=0.05)
 still('c8c.png', round(cd[7] - 2 * h8, 3), 's8c.mp4', z=0.08)
 concat(['s8a.mp4', 's8b.mp4', 's8c.mp4'], 's8.mp4')
+# 9) 실사: 긴 삽입부 + 연장시트(위아래 뚫림)
+compose('ref-09-extension-sheet.png', 'c9.png', chip='연장시트로 더 길게 시공')
+still('c9.png', cd[8], 's9.mp4', z=0.08)
 steps = [('step-02-glue-attach.jpg', '① 붙이고'), ('step-04-coat1.jpg', '② 바르고'),
          ('step-05-sheet.jpg', '③ 덮고'), ('step-07-support.jpg', '④ 꽂으면 끝')]
 parts = []
 for j, (src, chip) in enumerate(steps):
-    compose(src, f'c9_{j}.png', chip=chip); still(f'c9_{j}.png', round(cd[8] / 4, 3), f's9_{j}.mp4', z=0.05)
-    parts.append(f's9_{j}.mp4')
-concat(parts, 's9.mp4')
-compose('ref-01-thumbnail.png', 'c10.png', cy=1010, cta=True)
-still('c10.png', cd[9], 's10.mp4', z=0.04)
+    compose(src, f'c10_{j}.png', chip=chip); still(f'c10_{j}.png', round(cd[9] / 4, 3), f's10_{j}.mp4', z=0.05)
+    parts.append(f's10_{j}.mp4')
+concat(parts, 's10.mp4')
+compose('ref-01-thumbnail.png', 'c11.png', cy=1070, box=(940, 940), cta=True)
+still('c11.png', cd[10], 's11.mp4', z=0.04)
 concat([f's{i}.mp4' for i in range(1, N + 1)], 'video.mp4')
 # 3) 자막 (ASS + SRT)
 def ts(t, srt=False):
@@ -202,7 +209,7 @@ print('FINAL', dur('final.mp4'), flush=True)
 with zipfile.ZipFile('capcut.zip', 'w') as z:
     for i in range(1, N + 1):
         z.write(f's{i}.mp4', f'video/cut{i}.mp4'); z.write(f'n{i}.wav', f'narration/cut{i}.wav')
-    for p in ['narration.wav', 'subs.srt', 'subs.ass', 'c8a.png', 'c8b.png', 'c8c.png', 'c10.png']:
+    for p in ['narration.wav', 'subs.srt', 'subs.ass', 'c8a.png', 'c8b.png', 'c8c.png', 'c9.png', 'c11.png']:
         z.write(p, p)
     z.writestr('README.txt', 'cut별 영상(video/), 묶음별 나레이션(narration/), 전체 나레이션, 자막(SRT/ASS), 그래픽 PNG\n'
                f'컷 길이(초): {cd}\n')

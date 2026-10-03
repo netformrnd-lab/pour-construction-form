@@ -70,6 +70,11 @@ export async function readV1State() {
   return out;
 }
 export async function readV1Launch() { const snap = await getDocs(collection(db, "pour-os", "launch-board", "products")); console.log(`[v1 신제품 읽기] ${snap.size}건`); return snap.docs.map((d) => ({ ...d.data(), id: d.id })); }
+// v1 문서 하나 실시간 읽기 (관리자 반복 실행: state-actionKPIs · kpi-act-YYYY-Qn) — 읽기만, 쓰지 않음
+export function listenV1Doc(id, cb, onErr) {
+  return onSnapshot(doc(db, "pour-os", String(id)), (s) => { const d = s.exists() ? s.data() : null; console.log(`[v1 ${id} 읽기] ${d ? "있음" : "없음"}`); cb(d); },
+    (e) => { console.error(`[v1 ${id}] 읽기 실패:`, e); onErr && onErr(e); });
+}
 export async function readV1Notes() { const snap = await getDocs(collection(db, "pour-os", "ak-notes", "c")); console.log(`[v1 댓글 읽기] ${snap.size}건`); return snap.docs.map((d) => ({ ...d.data(), id: d.data().id || d.id })); }
 // 파일 올리기 (task-attachments/v2/{대상}/…)
 export async function upload(target, file) {

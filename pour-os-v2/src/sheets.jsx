@@ -21,7 +21,7 @@ function route(s, p, extra) {
   if (s.type === "project") return <ProjectSheet {...p} id={s.id} first={s.first} st={s} />;
   if (s.type === "person") return <PersonSheet {...p} id={s.id} />;
   if (s.type === "add") return <AddSheet {...p} preset={s.preset || {}} />;
-  if (s.type === "newProject") return <NewProjectSheet {...p} />;
+  if (s.type === "newProject") return <NewProjectSheet {...p} cat={s.cat} />;
   if (s.type === "mine") return <MineSheet {...p} />;
   if (s.type === "issues") return <IssuesSheet {...p} />;
   if (s.type === "doneProjects") return <DoneProjectsSheet {...p} />;

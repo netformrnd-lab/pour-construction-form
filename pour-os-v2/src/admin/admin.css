@@ -164,37 +164,30 @@
 .a-caprow b { flex: 0 0 64px; font-size: 14px; color: #1B2333; }
 .a-caprow .sub { flex: 1; min-width: 0; font-size: 12.5px; color: #5B6475; }
 
-/* 사람 · 완료·할 일 카드 (폰 1열 · 768 2열 · 1280 3열) */
-.a-sumtop { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: #fff; border: 1px solid #E3E7F0; font-size: 13.5px; font-weight: 700; color: #24386B; }
+/* 사람 · 한눈에 표 (이름 | 완료 | 지남 | 할 일) */
+.a-sumbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.a-pfsel { max-width: 100%; min-width: 0; flex: 1 1 200px; }
+.a-overtag { font-size: 11px; font-weight: 800; color: #B4383F; background: #FBEFEF; border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
+.a-sumtop { margin-top: 10px; padding: 9px 12px; border-radius: 10px; background: #fff; border: 1px solid #E3E7F0; font-size: 13.5px; font-weight: 700; color: #24386B; }
 .a-sumtop.over { color: #B4383F; border-color: #EBC9CB; }
-.a-sum { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; }
-@media (min-width: 768px) { .a-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (min-width: 1200px) { .a-sum { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.a-sumc { background: #fff; border: 1px solid #E3E7F0; border-radius: 12px; padding: 10px 12px 8px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.a-sumc.over { border-color: #EBC9CB; }
-.a-sumh { display: flex; align-items: center; gap: 6px; border: none; background: none; padding: 0; font: inherit; cursor: pointer; text-align: left; min-width: 0; }
-.a-sumh b { font-size: 15.5px; color: #0F1F5C; }
-.a-sumh .arr { margin-left: auto; color: #8A92A3; font-size: 16px; }
-.a-overtag { font-size: 11.5px; font-weight: 800; color: #B4383F; background: #FBEFEF; border-radius: 6px; padding: 2px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.a-sumn { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-.a-sumn > div, .a-sumn > button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; background: #F4F5F8; border: none; border-radius: 9px; padding: 7px 9px; font: inherit; text-align: left; min-width: 0; }
-.a-sumn > button { cursor: pointer; }
-.a-sumn > button:disabled { cursor: default; }
-.a-sumn span { font-size: 11.5px; color: #5B6475; font-weight: 700; white-space: nowrap; }
-.a-sumn b { font-size: 19px; color: #0F1F5C; font-variant-numeric: tabular-nums; line-height: 1.25; }
-.a-sumn b.over { color: #B4383F; }
-.a-sumn b small { font-size: 12px; color: #8A92A3; font-weight: 700; }
-.a-sumn > * > small { font-size: 11px; color: #8A92A3; white-space: nowrap; }
-.a-suml { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.a-suml .h { font-size: 11.5px; font-weight: 800; color: #5B6475; margin-bottom: 1px; }
-.a-suml button { display: flex; gap: 8px; align-items: baseline; border: none; background: none; padding: 4px 0; font: inherit; cursor: pointer; text-align: left; min-width: 0; border-top: 1px solid #F0F2F6; }
-.a-suml button em { flex: 0 0 auto; font-style: normal; font-size: 12px; font-weight: 800; color: #24386B; min-width: 44px; font-variant-numeric: tabular-nums; }
-.a-suml button em.late { color: #B4383F; }
-.a-suml button > span { flex: 1; min-width: 0; font-size: 13.5px; color: #1B2333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.a-suml button small { color: #8A92A3; font-size: 12px; }
-.a-suml.done em { color: #2F7D57; }
-.a-suml .none { font-size: 12.5px; color: #8A92A3; padding: 2px 0; }
-
+.a-st { display: flex; flex-direction: column; gap: 3px; margin-top: 10px; }
+.a-str { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: 3px; }
+.a-str > * { background: #fff; border: 1px solid #E3E7F0; border-radius: 10px; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; font: inherit; padding: 4px; min-width: 0; }
+.a-str.hd > * { background: none; border: none; min-height: 0; font-size: 13px; font-weight: 800; color: #5B6475; }
+.a-str.hd > :first-child { align-items: flex-start; padding-left: 8px; }
+.a-str.hd small { font-size: 11px; font-weight: 600; color: #8A92A3; white-space: nowrap; }
+.a-str.tot > * { background: #EEF1F8; border-color: #EEF1F8; min-height: 40px; }
+.a-str.tot > :first-child { align-items: flex-start; padding-left: 10px; font-size: 13px; font-weight: 800; color: #24386B; }
+.a-str b { font-size: 19px; color: #0F1F5C; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.a-stn { align-items: flex-start !important; padding: 6px 10px !important; cursor: pointer; gap: 2px; }
+.a-stn b { font-size: 15px; }
+.a-stn small { font-size: 11.5px; color: #8A92A3; }
+.a-stc { cursor: pointer; flex-direction: row !important; align-items: baseline !important; gap: 1px; }
+.a-stc:disabled { cursor: default; }
+.a-stc small { font-size: 11.5px; color: #8A92A3; font-weight: 700; }
+.a-stc.done b { color: #2F7D57; }
+.a-stc.over { border-color: #EBC9CB; background: #FBEFEF; }
+.a-stc.over b { color: #B4383F; }
 /* 반복 실행 (버전1 모양) */
 @media (max-width: 767px) { .a-app .v2-tab { font-size: 13px; padding: 0 2px; white-space: nowrap; } }
 .a-rthead { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-top: 8px; }

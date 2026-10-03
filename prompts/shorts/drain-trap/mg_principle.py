@@ -110,16 +110,23 @@ def leaf_sprites(path, k=6):
 # ① 밖에서 큰 이물질: 실제 제품 사진 + 떨어져 걸리는 낙엽 + 옆으로 빠지는 물길
 def mg_outside(bg_path, prod_path, leaves_path, d, out, label='① 밖에서 큰 이물질'):
     bg = cover(rgba(bg_path)).convert('RGBA')
-    prod = scale_w(trim(rgba(prod_path)), 860)
-    px, py = (W - prod.width) // 2, 1080 - prod.height // 2
+    prod = trim(rgba(prod_path))
+    # 바닥 위로 보이는 부분만: 플랜지(가장 넓은 행) 아래쪽 타원 끝에서 자름 → 배기통 관은 배관 속에 있음
+    A = prod.getchannel('A'); ws = []
+    for y in range(prod.height):
+        bb = A.crop((0, y, prod.width, y + 1)).getbbox(); ws.append((bb[2] - bb[0]) if bb else 0)
+    mx = max(ws); fy = ws.index(mx)
+    cut_y = max(y for y in range(fy, prod.height) if ws[y] > mx * 0.8) + 2
+    prod = scale_w(prod.crop((0, 0, prod.width, cut_y)), 900)
+    px, py = (W - prod.width) // 2, 1180 - prod.height
     leaves = leaf_sprites(leaves_path)
     rnd = random.Random(3)
     plan = []
     for j, lf in enumerate(leaves[:5]):
         lf = scale_w(lf, rnd.randint(150, 220))
-        tx = px + int(prod.width * rnd.uniform(0.2, 0.75)); ty = py + int(prod.height * rnd.uniform(0.02, 0.3))
+        tx = px + int(prod.width * rnd.uniform(0.25, 0.75)); ty = py + int(prod.height * rnd.uniform(0.05, 0.4))
         plan.append((lf, 0.25 + j * 0.35, tx, ty, rnd.uniform(-40, 40)))
-    base_y = py + int(prod.height * 0.5)
+    base_y = py + prod.height - 40
 
     def frame(t):
         im = bg.copy(); im.alpha_composite(prod, (px, py))

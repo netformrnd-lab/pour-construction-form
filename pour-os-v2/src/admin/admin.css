@@ -273,7 +273,8 @@
 .a-wknav b { font-size: 14px; color: #0F1F5C; margin: 0 4px; }
 .a-wc.past { background: #F8F9FB; }
 .a-wc small.dn { color: #2F7D57; }
-.a-wc.w2 small.dn, .a-wc.w3 small.dn { color: #BFE3CC; }
+.a-wc.w2 small.dn { color: #1F6B45; }
+.a-wc.w3 small.dn { color: #BFE3CC; }
 .a-lrow { background: #fff; }
 .a-lrow .a-ln { padding-bottom: 2px; min-height: 40px; }
 .a-ln .nm .a-lv { vertical-align: 1px; }

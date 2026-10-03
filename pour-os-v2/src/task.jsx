@@ -8,6 +8,7 @@ import {
   reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf,
 } from "./model.js";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
+import { DecisionBlock } from "./mindmap.jsx";
 import { turnIndex, turnOf, predsOf, nextsOf, finishedOf, finishedAt, lastWord } from "./turn.js";
 import { nextWorkday } from "./model.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked } from "./ui.jsx";
@@ -159,8 +160,9 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
     {mode === "memo" ? <div><textarea value={memo} onChange={(e) => setMemo(e.target.value)} rows={6} aria-label="메모" style={{ ...inp, resize: "vertical", lineHeight: 1.6 }} /><div style={{ display: "flex", gap: 8, marginTop: 8 }}><Big tone="white" onClick={() => setMode("")} style={{ flex: 1, height: 44 }}>취소</Big><Big onClick={() => { A.setMemo(t, memo); setMode(""); }} style={{ flex: 1, height: 44 }}>메모 저장</Big></div></div>
       : <Card style={{ padding: "12px 14px" }}><div style={{ fontSize: 14.5, color: t.memo ? C.text : C.mute, whiteSpace: "pre-wrap", lineHeight: 1.65, wordBreak: "break-word" }}>{t.memo ? <Linked text={t.memo} /> : "메모가 없어요. 하는 법이나 진행 상황을 적어 두면 다른 사람이 바로 이어받을 수 있어요."}</div>{t.memoAt && <div style={{ marginTop: 6, fontSize: 12, color: C.mute }}>마지막 수정 {t.memoByName || nameOf(D.users, t.memoBy)} · {ago(t.memoAt)}</div>}</Card>}
 
-    {(kids.length > 0 || !done) && <>
-      <Head>하위 업무 {kids.filter(isDone).length}/{kids.length}</Head>
+    {t.decision ? <><Head>안 비교 · 결정 업무</Head><Card style={{ padding: "8px 14px 12px" }}><DecisionBlock D={D} cu={cu} A={A} t={t} open={open} /></Card></>
+    : (kids.length > 0 || !done) && <>
+      <Head right={!t.parentId && !done && (mine || req === cu.id || master) && <TBtn onClick={() => A.setDecision(t, true)} style={{ fontSize: 12.5 }}>결정 업무로 쓰기</TBtn>}>하위 업무 {kids.filter(isDone).length}/{kids.length}</Head>
       <Card>
         {kids.map((k) => <Row key={k.id} dim={isDone(k)} title={k.title} sub={nameOf(D.users, k.assigneeId)} onClick={() => open({ type: "task", id: k.id })} right={<Act on={isDone(k)} onClick={() => (isDone(k) ? A.reopen(k) : A.finish(k))}>{isDone(k) ? "✓" : "완료"}</Act>} last={false} />)}
         <div style={{ display: "flex", gap: 8, padding: 10 }}><input value={sub} onChange={(e) => setSub(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing && sub.trim()) { A.addTask({ title: sub, parentId: t.id, projectId: t.projectId, assigneeId: t.assigneeId || cu.id, dueDate: t.dueDate, noReview: true }); setSub(""); } }} placeholder="+ 하위 업무 (작게 쪼개면 시작이 쉬워요)" aria-label="하위 업무 추가" style={{ ...inp, padding: "10px 12px", fontSize: 14 }} />

@@ -133,3 +133,50 @@ input[type=date] { min-width: 0; max-width: 100%; -webkit-appearance: none; appe
 
 /* 앞사람이 남긴 말: 세 줄까지 보이고 그 뒤는 … (전체는 앞 일 대화에서) */
 .v2-clamp3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* 내 달력(폰): 칸 안에 제목 칩 2개 + '+n' — 숫자만 보던 것을 한눈에 무엇인지 보이게 */
+@media (max-width: 767px) {
+  .v2-cal.me { gap: 2px; }
+  .v2-cal.me .v2-calc { height: 74px; align-items: stretch; padding: 2px 2px 3px; border-radius: 8px; }
+  .v2-cal.me .v2-calc .d { align-self: flex-start; padding: 0 3px; font-size: 10.5px; line-height: 15px; }
+  .v2-cal.me .v2-calc .n { position: absolute; top: 2px; right: 3px; font-size: 10.5px; line-height: 15px; }
+  .v2-cal.me .v2-calc .m { display: none; }
+  .v2-cal.me .v2-calc .t { display: flex; flex-direction: column; gap: 2px; min-width: 0; margin-top: 1px; }
+  .v2-cal.me .v2-calc .t i { font-style: normal; font-size: 9.5px; line-height: 13px; letter-spacing: -.3px; color: #1B2333; white-space: nowrap; overflow: hidden; text-overflow: clip; text-align: left; background: #E9EDF6; border-radius: 3px; padding: 0 2px; }
+  .v2-cal.me .v2-calc .t i.red { color: #B4383F; background: #F8E9EA; font-weight: 700; }
+  .v2-cal.me .v2-calc .t i.p { background: #0F1F5C; color: #fff; }
+  .v2-cal.me .v2-calc .t i.ts { background: #fff; color: #24386B; font-weight: 800; box-shadow: inset 0 0 0 1px #C9D2EA; }
+  .v2-cal.me .v2-calc .t i.more { background: none; color: #5B6475; font-weight: 700; }
+  /* 칩이 읽히게 칸 농도는 옅게 */
+  .v2-cal.me .v2-calc.l1 { background: #F5F7FB; }
+  .v2-cal.me .v2-calc.l2 { background: #EBEFF7; }
+  .v2-cal.me .v2-calc.l3 { background: #DDE3F1; border-color: #C9D2EA; }
+  .v2-cal.me .v2-calc.l3 .d, .v2-cal.me .v2-calc.l3 .n { color: #0F1F5C; }
+  .v2-cal.me .v2-calc.l3 .t i { background: #fff; }
+}
+/* 이번 주 한눈에 (달력 위 숫자 줄) */
+.v2-wkstat { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 4px 0 8px; }
+.v2-wkstat button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 7px 9px; border-radius: 12px; border: 1px solid #E3E7F0; background: #fff; font: inherit; cursor: pointer; min-width: 0; text-align: left; }
+.v2-wkstat b { font-size: 18px; font-weight: 800; color: #0F1F5C; line-height: 22px; font-variant-numeric: tabular-nums; }
+.v2-wkstat b.red { color: #B4383F; }
+.v2-wkstat span { font-size: 11.5px; color: #5B6475; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+/* 주 보기: 7일을 제목까지 한 화면에 */
+.v2-wk { display: flex; flex-direction: column; gap: 6px; }
+.v2-wkday { background: #fff; border: 1px solid #E3E7F0; border-radius: 14px; overflow: hidden; }
+.v2-wkday.today { border: 2px solid #0F1F5C; }
+.v2-wkday.off { background: #FAFBFD; }
+.v2-wkhead { display: flex; align-items: center; gap: 6px; padding: 7px 12px; font-size: 13px; font-weight: 800; color: #0F1F5C; background: #F4F6FB; border: none; width: 100%; font-family: inherit; cursor: pointer; text-align: left; }
+.v2-wkhead .c { margin-left: auto; font-size: 12px; color: #5B6475; font-weight: 700; }
+.v2-wkhead.off { color: #8A92A3; }
+.v2-wkrow { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-top: 1px solid #EEF1F6; cursor: pointer; min-height: 38px; }
+.v2-wkrow .tt { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 700; color: #1B2333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v2-wkrow .ss { font-size: 11.5px; color: #8A92A3; font-weight: 500; margin-left: 4px; }
+.v2-wkempty { padding: 6px 12px 8px; font-size: 12px; color: #A6ADBB; }
+@media (min-width: 1280px) {
+  .v2-wk { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; align-items: start; }
+  .v2-wkhead { padding: 7px 8px; font-size: 12.5px; }
+  .v2-wkrow { flex-wrap: wrap; align-items: flex-start; gap: 4px 6px; padding: 7px 8px; }
+  .v2-wkrow .tt { flex: 1 1 100%; order: 2; white-space: normal; font-size: 12.5px; line-height: 1.35; word-break: keep-all; }
+  .v2-wkrow .ss { display: block; margin: 1px 0 0; }
+  .v2-wkrow > button { display: none; }   /* PC 7칸은 한눈에 보기용: 줄을 눌러 업무에서 끝냄 */
+}

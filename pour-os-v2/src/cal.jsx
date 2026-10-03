@@ -1,6 +1,6 @@
 // 업무OS v2 — 월 달력 (실사용 '내 달력' · 관리자 '팀 달력'이 같이 씀)
 // 칸: 날짜(토·일·공휴일 회색) · 건수(양은 칸 바탕 농도) · 표식(▴ 출시·마감, → 내 차례 시작, ✓ 다 끝냄)
-// 폰은 숫자·표식만, 768px 이상은 제목(팀은 사람별 건수)까지 + '→ 내 차례 시작' · '✓ 다 끝냄' 줄. 빨강은 '지난 날에 안 끝난 일·막힘'(팀은 '한 사람 하루 8건 넘음' 포함)에만
+// 내 달력은 폰에서도 제목 칩 2개 + '+n'(한눈에 무엇이 있는지), 팀 달력은 폰은 숫자·표식만 · 768px 이상은 제목(팀은 사람별 건수)까지 + '→ 내 차례 시작' · '✓ 다 끝냄' 줄. 빨강은 '지난 날에 안 끝난 일·막힘'(팀은 '한 사람 하루 8건 넘음' 포함)에만
 import { useRef } from "react";
 import { addDays, ddays, md, holidayName, isOffDay, nameOf, shiftMonth, monthGrid } from "./model.js";
 
@@ -12,7 +12,7 @@ export function MonthCal({ mode = "me", ym, setYm, cells, sel, onPick, keyd, use
   const onTS = (e) => { const t = e.touches[0]; tch.current = { x: t.clientX, y: t.clientY }; };
   const onTE = (e) => { const s = tch.current; if (!s) return; const t = e.changedTouches[0], dx = t.clientX - s.x, dy = t.clientY - s.y; tch.current = null;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) setYm(shiftMonth(ym, dx < 0 ? 1 : -1)); };
-  return <div className="v2-cal" role="grid" aria-label={`${ym.slice(0, 4)}년 ${+ym.slice(5)}월 달력`} onTouchStart={onTS} onTouchEnd={onTE}>
+  return <div className={"v2-cal" + (team ? "" : " me")} role="grid" aria-label={`${ym.slice(0, 4)}년 ${+ym.slice(5)}월 달력`} onTouchStart={onTS} onTouchEnd={onTE}>
     {["월", "화", "수", "목", "금", "토", "일"].map((w) => <div key={w} className={"v2-calh" + (w === "토" || w === "일" ? " we" : "")}>{w}</div>)}
     {grid.flat().map((c) => {
       const x = cells[c.date] || { n: 0, proj: [], items: [], people: {} }, past = c.date < keyd, old = c.date < d14;

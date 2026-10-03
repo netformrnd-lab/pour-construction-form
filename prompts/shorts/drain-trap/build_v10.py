@@ -142,7 +142,7 @@ def still(png, d, out, z=0.08):
 AITAG = (f"drawtext=fontfile={FONT}:text='AI 연출 화면':fontsize=34:fontcolor=white@0.85:"
          f"box=1:boxcolor=black@0.35:boxborderw=14:x=w-tw-50:y=90")
 
-GRADE = 'eq=saturation=0.86:contrast=1.05:brightness=-0.01,colorbalance=bs=0.04:ms=0.02:hs=-0.01'  # 전 AI 컷 톤 통일
+GRADE = 'eq=saturation=0.86:contrast=1.05:brightness=-0.01:gamma_b=1.04:gamma_r=0.98'  # 전 AI 컷 톤 통일
 
 def ai(k, d, out, ss=0.3, label=None):
     src = f'v_{k}.mp4'; avail = dur(src) - ss - 0.2

@@ -5,6 +5,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 W, H, FPS = 1080, 1920, 30
 FONT = 'fonts/NotoSansCJKkr-Bold.otf'
+MODE = 'video'   # 'video' | 'clean' | 'labels'
 
 
 def font(sz):
@@ -33,6 +34,10 @@ def cover(im):
 
 
 def encode(frame_fn, d, out):
+    if MODE != 'video':  # 키프레임/라벨: 처음·끝 장면만 PNG로
+        for i, t in enumerate((0.0, max(0.0, d - 0.04))):
+            frame_fn(t).save(f'{out}_{MODE}_{i}.png')
+        return
     n = max(1, int(round(d * FPS)))
     p = subprocess.Popen(f'ffmpeg -y -v error -f rawvideo -pix_fmt rgb24 -s {W}x{H} -r {FPS} -i - '
                          f'-c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -an {out}',
@@ -49,7 +54,7 @@ def chip(d, text, x0=60, y0=170, fill=(60, 60, 60, 220), color='white', sz=52):
 
 
 def tag(d):
-    f = font(34); t = '원리 설명 화면'; tw = d.textlength(t, font=f)
+    f = font(34); t = 'AI 연출 화면'; tw = d.textlength(t, font=f)
     d.rectangle((W - 50 - tw - 28, 90, W - 50, 90 + 34 + 28), fill=(0, 0, 0, 90))
     d.text((W - 50 - tw - 14, 100), t, font=f, fill=(255, 255, 255, 220))
 
@@ -129,17 +134,22 @@ def mg_outside(bg_path, prod_path, leaves_path, d, out, label='① 밖에서 큰
     base_y = py + prod.height - 40
 
     def frame(t):
+        if MODE == 'labels':
+            im = Image.new('RGBA', (W, H)); d2 = ImageDraw.Draw(im); chip(d2, label); tag(d2)
+            pointer(d2, '큰 낙엽은 밖에서 걸림', px + int(prod.width * 0.5), py + int(prod.height * 0.12), 520, 330)
+            pointer(d2, '물은 옆 틈으로', W // 2 + 360, base_y + 40, 600, base_y + 160)
+            return im
         im = bg.copy(); im.alpha_composite(prod, (px, py))
         lay = Image.new('RGBA', (W, H)); d = ImageDraw.Draw(lay)
         # 물길: 양옆에서 덮개 아래쪽 틈으로
-        if t > 0.6:
+        if t > 0.6 and MODE == 'video':
             k = min(1, (t - 0.6) / 0.5)
             for side in (-1, 1):
                 for m in range(5):
                     ph = ((t * 1.2 + m / 5) % 1)
                     x = W // 2 + side * int(520 - 300 * ph); y = base_y + 40 + int(30 * math.sin(ph * 3))
                     d.ellipse((x - 16, y - 7, x + 16, y + 7), fill=(120, 190, 255, int(170 * k)))
-        rain(d, t)
+        if MODE == 'video': rain(d, t)
         im.alpha_composite(lay)
         for lf, t0, tx, ty, rot in plan:
             if t < t0: continue
@@ -147,6 +157,7 @@ def mg_outside(bg_path, prod_path, leaves_path, d, out, label='① 밖에서 큰
             x = tx - lf.width // 2; y = int(-260 + (ty + 260) * p) - lf.height // 2
             r = lf.rotate(rot * (1 - p) + rot * 0.2, expand=True, resample=Image.BICUBIC)
             im.alpha_composite(r, (x, y))
+        if MODE == 'clean': return im
         d2 = ImageDraw.Draw(im); chip(d2, label); tag(d2)
         if t > 1.2:
             pointer(d2, '큰 낙엽은 밖에서 걸림', px + int(prod.width * 0.5), py + int(prod.height * 0.12), 520, 330)
@@ -175,11 +186,15 @@ def mg_inside(bg_path, support_path, dome_path, d, out, label='② 안에서 작
                      rnd.choice([(120, 92, 60), (150, 120, 80), (110, 105, 98), (170, 140, 90)])))
 
     def frame(t):
+        if MODE == 'labels':
+            im = Image.new('RGBA', (W, H)); d2 = ImageDraw.Draw(im); chip(d2, label); tag(d2)
+            pointer(d2, '배기통 지지대에서 한 번 더', cx + 230, cy + 60, 300, 1330)
+            return im
         im = bg.copy(); d0 = ImageDraw.Draw(im)
         d0.ellipse((cx - 330, cy - 330, cx + 330, cy + 330), fill=(205, 205, 205, 255))
         d0.ellipse((cx - 300, cy - 300, cx + 300, cy + 300), fill=(28, 30, 34, 255))
         # 가운데로 빠지는 물 (파문)
-        for m in range(3):
+        for m in range(3 if MODE == 'video' else 0):
             ph = (t * 0.9 + m / 3) % 1
             r = int(40 + 200 * ph)
             d0.ellipse((cx - r, cy - r, cx + r, cy + r), outline=(110, 180, 255, int(160 * (1 - ph))), width=6)
@@ -191,10 +206,11 @@ def mg_inside(bg_path, support_path, dome_path, d, out, label='② 안에서 작
             rr = int(r * (2.4 - 1.4 * p)); yy = int(y - 140 * (1 - p))
             d.ellipse((x - rr, yy - rr, x + rr, yy + rr * 0.8), fill=col + (int(110 + 145 * p),))
         im.alpha_composite(lay)
-        if t < 1.3:
+        if t < 1.3 and MODE == 'video':
             k = 1 - max(0, (t - 0.7) / 0.6)
             dm = dome.copy(); dm.putalpha(dm.getchannel('A').point(lambda v: int(v * k)))
             im.alpha_composite(dm, (dx, dy))
+        if MODE == 'clean': return im
         d2 = ImageDraw.Draw(im); chip(d2, label); tag(d2)
         if t < 1.2:
             pointer(d2, '거름망 덮개 아래', cx, cy - 250, 560, 330)
@@ -231,6 +247,15 @@ def mg_deep(conc_path, prod_path, d, split, out, label='③ 배관 속까지 깊
     print('deep geom', fy, tw, tube_bottom, flush=True)
 
     def frame(t):
+        if MODE == 'labels':
+            im = Image.new('RGBA', (W, H)); d2 = ImageDraw.Draw(im); chip(d2, label); tag(d2)
+            pointer(d2, '배기통', cx + tw // 2, py + fy + 60, 760, 390)
+            pointer(d2, '연장시트 (위아래 뚫림)', cx + tw // 2 - 6, 1250, 560, 1040)
+            pointer(d2, 'PVC 배관', cx - ow + 8, 1330, 60, 1250)
+            if t > 0:
+                d2.rounded_rectangle((60, 860, 520, 940), 14, fill=(3, 150, 90, 235))
+                d2.text((84, 872), '콘크리트엔 물 안 닿음', font=font(40), fill='white')
+            return im
         im = Image.new('RGBA', (W, H)); im.alpha_composite(sky, (0, 0)); im.alpha_composite(conc, (0, yr))
         d0 = ImageDraw.Draw(im)
         d0.rectangle((0, yr - 16, W, yr), fill=(242, 242, 240, 255))               # 방수 코팅면
@@ -248,7 +273,7 @@ def mg_deep(conc_path, prod_path, d, split, out, label='③ 배관 속까지 깊
         d.line((cx - tw // 2 + 4, tube_bottom, cx - tw // 2 + 4, y_end), fill=(200, 200, 200, 230), width=4)
         d.line((cx + tw // 2 - 4, tube_bottom, cx + tw // 2 - 4, y_end), fill=(200, 200, 200, 230), width=4)
         # 물: 2문장부터 시트 안으로만 흐름
-        if t > split * 0.7:
+        if t > split * 0.7 and MODE == 'video':
             k = min(1, (t - split * 0.7) / 0.4)
             for m in range(10):
                 ph = (t * 1.1 + m / 10) % 1
@@ -260,9 +285,10 @@ def mg_deep(conc_path, prod_path, d, split, out, label='③ 배관 속까지 깊
                     ph = (t * 1.3 + m / 4) % 1
                     x = cx + side * int(470 - 330 * ph)
                     d.ellipse((x - 18, yr - 30, x + 18, yr - 16), fill=(110, 180, 255, int(170 * k)))
-        rain(d, t, ymax=yr - 20)
+        if MODE == 'video': rain(d, t, ymax=yr - 20)
         im.alpha_composite(lay)
         im.alpha_composite(prod, (px, py))
+        if MODE == 'clean': return im
         d2 = ImageDraw.Draw(im); chip(d2, label); tag(d2)
         pointer(d2, '배기통', cx + tw // 2, py + fy + 60, 760, 390)
         if p > 0.5:

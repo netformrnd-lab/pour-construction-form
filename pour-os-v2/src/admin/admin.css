@@ -274,3 +274,13 @@
 .a-wc.past { background: #F8F9FB; }
 .a-wc small.dn { color: #2F7D57; }
 .a-wc.w2 small.dn, .a-wc.w3 small.dn { color: #BFE3CC; }
+.a-lrow { background: #fff; }
+.a-lrow .a-ln { padding-bottom: 2px; min-height: 40px; }
+.a-ln .nm .a-lv { vertical-align: 1px; }
+.a-ln .ph.none { background: none; }
+.a-ln .ph.hold { background: #F4F5F8; border: 1px dashed #B8BECA; }
+.a-ln .ph.more { background: none; color: #5B6475; font-size: 10.5px; }
+.a-ln .ph.done { color: #fff; font-size: 10px; }
+.a-lsub { padding: 0 10px 8px; font-size: 12px; color: #5B6475; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.a-lsub.a-pcatset { white-space: normal; }
+@media (max-width: 767px) { .a-lrow .a-ln, .a-ln.hd { flex-wrap: wrap; row-gap: 6px; } .a-lrow .a-ln .nm, .a-ln.hd .nm { flex: 0 0 100%; max-width: 100%; margin: 0; } .a-ln.hd .nm { display: none; } .a-ln .end { margin-left: auto; } }

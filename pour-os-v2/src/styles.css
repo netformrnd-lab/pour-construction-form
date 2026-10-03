@@ -221,3 +221,15 @@ input[type=date] { min-width: 0; max-width: 100%; -webkit-appearance: none; appe
   .mm-kids { margin: 0 0 0 22px; padding-left: 18px; flex: 1; min-width: 180px; }
   .mm-k::before { left: -18px; width: 16px; top: 50%; }
 }
+
+/* 프로젝트 소식: 날짜별 묶음 */
+.v2-news { margin-top: 6px; }
+.v2-news-day { font-size: 12.5px; font-weight: 800; color: #5B6475; margin: 12px 2px 6px; }
+.v2-news-row { display: flex; align-items: flex-start; gap: 8px; background: #fff; border: 1px solid #E3E7F0; border-radius: 12px; padding: 9px 12px; margin-bottom: 6px; }
+.v2-news-row.go { cursor: pointer; }
+.v2-news-row .v2-tag { flex: 0 0 auto; margin-top: 1px; }
+.v2-news-row .w { font-size: 12px; font-weight: 800; color: #24386B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-news-row .b { font-size: 14px; color: #1B2333; line-height: 1.45; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.v2-news-row .b.q { color: #1B2333; }
+.v2-news-row .s { font-size: 11.5px; color: #8A92A3; margin-top: 2px; }
+.v2-news-row .arr { flex: 0 0 auto; color: #24386B; font-weight: 800; align-self: center; }

@@ -12,7 +12,7 @@ GH = 'https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/cl
 FONT_URL = 'https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/Korean/NotoSansCJKkr-Bold.otf'
 
 # 나레이션: 한국어 원어민 남성 음성 레퍼런스(dc6489ab, 박포어 육성) · pitch -3 · 컷 묶음 단위 생성 · 편집 가속 없음
-AUDIO = [os.environ.get(f'A{i}', '') for i in range(1, 15)]
+AUDIO = [os.environ.get(f'A{i}', '') for i in range(1, 14)]
 VIDEO = {
     'mold': 'hf_20261002_133958_b46c150d-705a-4812-9e4f-0c48a23b20df.mp4',
     'drain': 'hf_20261002_114638_85510f05-b6e3-4222-8369-31e0d5566817.mp4',
@@ -34,19 +34,18 @@ IMGS = ['ref-01-thumbnail.png', 'ref-04-white-bg.png', 'ref-06-drain-gap.png', '
 # 자막: 【강조어】는 하늘색 110%
 SUBS = {
     1: ['폭우가 오면, 빗물은\\N【전부 이 구멍】으로 모여요.'],
-    2: ['그런데 배수구가 막히면,\\N물이 【고이죠】.'],
+    2: ['배수구가 막히면,\\N물이 【고이죠】.'],
     3: ['고인 물은 【도막 밑으로】 스며들고,', '햇볕에 【부풀었다가】,\\N결국 【찢어져요】.'],
     4: ['결국 【천장까지】 새고,', '【곰팡이】가 피죠.'],
     5: ['그럼,\\N【어떻게】 해결해야 할까요?'],
-    6: ['일반 드레인은 둘레가 막히면,', '물이 못 빠지고\\N【밖에 고여요】.'],
-    7: ['게다가 【삽입부가 짧아서】,\\N배관과 틈이 생기죠.'],
-    8: ['【철근】이 녹슬면 부풀어서\\N콘크리트를 가르고,', '누수는 【더 심해져요】.'],
-    9: ['POUR 트랩은 큰 낙엽을,\\N【밖에서】 걸러요.'],
-    10: ['작은 찌꺼기는,\\N【안에서】 한 번 더.'],
-    11: ['연장시트를 이으면,\\NPVC 배관까지 이어져서,', '【콘크리트엔 물이 안 닿죠】.'],
-    12: ['그래서 【콘크리트도, 철근도】,\\N그대로 튼튼하죠.'],
-    13: ['쓱 붙이고, 싹 바르고,\\N덮고, 쏙 꽂으면 【끝】!', '【누구나】 할 수 있어요.'],
-    14: ['코트재, 시트, 트랩까지\\N【한 세트】.', '프로필 링크에서 확인하세요.'],
+    6: ['일반 드레인은\\N둘레가 쉽게 막히고,', '【삽입부도 짧아서】\\N틈이 생기죠.'],
+    7: ['【철근】이 녹슬어 부풀면,', '누수는 【더 심해져요】.'],
+    8: ['POUR 트랩은 큰 낙엽을,\\N【밖에서】 걸러요.'],
+    9: ['작은 찌꺼기는,\\N【안에서】 한 번 더.'],
+    10: ['연장시트를 이으면,\\NPVC 배관까지 이어져서,', '【콘크리트엔 물이 안 닿죠】.'],
+    11: ['【콘크리트도, 철근도】,\\N그대로죠.'],
+    12: ['쓱 붙이고, 싹 바르고,\\N덮고, 쏙 꽂으면 【끝】!', '【누구나】 할 수 있어요.'],
+    13: ['코트재, 시트, 트랩까지\\N【한 세트】.'],
 }
 N = len(SUBS)
 def sh(cmd):
@@ -160,18 +159,21 @@ ai('u_seep', d3[0], 's3a.mp4'); ai('u_blister', d3[1], 's3b.mp4'); ai('u_tear', 
 concat(['s3a.mp4', 's3b.mp4', 's3c.mp4'], 's3.mp4')
 split2('ceil', 'mold', 4, 's4')
 ai('drain', cd[4], 's5.mp4', ss=2.5)
-split2('g_ring', 'g_cut', 6, 's6', label='일반 드레인 (예시)')
-ai('g_short', cd[6], 's7.mp4', label='일반 드레인 (예시)')
-ai('g_rebar', cd[7], 's8.mp4')
-ai('p_out', cd[8], 's9.mp4', label='① 밖에서 큰 이물질')
-ai('p_in', cd[9], 's10.mp4', label='② 안에서 작은 이물질')
-w9 = [len(x) for x in SUBS[11]]; t1 = round(cd[10] * w9[0] / sum(w9), 3)
-d9 = [round(t1 * 0.45, 3), round(t1 * 0.55, 3)]; d9.append(round(cd[10] - sum(d9), 3))
-ai('p_sheet', d9[0], 's11a.mp4', label='③ 연장시트')
-ai('p_cut', d9[1], 's11b.mp4', label='③ PVC 배관 속까지')
-ai('p_xray', d9[2], 's11c.mp4', label='③ 콘크리트엔 물 안 닿음')
-concat(['s11a.mp4', 's11b.mp4', 's11c.mp4'], 's11.mp4')
-ai('safe', cd[11], 's12.mp4', label='콘크리트·철근 그대로')
+# ⑥ 일반 드레인: 둘레 막힘(2컷) → 짧은 삽입부 틈
+d6 = [round(cd[5] * 0.3, 3), round(cd[5] * 0.25, 3)]; d6.append(round(cd[5] - sum(d6), 3))
+ai('g_ring', d6[0], 's6a.mp4', label='일반 드레인 (예시)'); ai('g_cut', d6[1], 's6b.mp4', label='일반 드레인 (예시)')
+ai('g_short', d6[2], 's6c.mp4', label='일반 드레인 (예시)')
+concat(['s6a.mp4', 's6b.mp4', 's6c.mp4'], 's6.mp4')
+ai('g_rebar', cd[6], 's7.mp4')
+ai('p_out', cd[7], 's8.mp4', label='① 밖에서 큰 이물질')
+ai('p_in', cd[8], 's9.mp4', label='② 안에서 작은 이물질')
+w9 = [len(x) for x in SUBS[10]]; t1 = round(cd[9] * w9[0] / sum(w9), 3)
+d9 = [round(t1 * 0.45, 3), round(t1 * 0.55, 3)]; d9.append(round(cd[9] - sum(d9), 3))
+ai('p_sheet', d9[0], 's10a.mp4', label='③ 연장시트')
+ai('p_cut', d9[1], 's10b.mp4', label='③ PVC 배관 속까지')
+ai('p_xray', d9[2], 's10c.mp4', label='③ 콘크리트엔 물 안 닿음')
+concat(['s10a.mp4', 's10b.mp4', 's10c.mp4'], 's10.mp4')
+ai('safe', cd[10], 's11.mp4', label='콘크리트·철근 그대로')
 # ★ 시공: 쓱싹쓱 — 동작당 1초 안팎, 줌 펀치 + 흰 플래시 + 큰 의성어, 마지막에 "누구나 OK"
 DIY = [('step-02-glue-attach.jpg', '쓱'), ('step-04-coat1.jpg', '싹'), ('step-05-sheet.jpg', '착'),
        ('step-07-support.jpg', '쏙'), ('step-08-done.jpg', '끝!')]
@@ -187,19 +189,19 @@ def snappy(png, d, word, out, ok=False):
        f'-frames:v {n} -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -an {out}')
 if CONSTRUCT:
     sh(f'curl -sfL -o construct.mp4 "{CONSTRUCT}"')
-    cl = dur('construct.mp4'); f = cl / cd[12]
+    cl = dur('construct.mp4'); f = cl / cd[11]
     sh(f'ffmpeg -y -v error -i construct.mp4 -vf "setpts=PTS/{f:.4f},scale={W}:{H}:force_original_aspect_ratio=increase,'
-       f'crop={W}:{H},fps={FPS},setsar=1" -t {cd[12]} -an -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p s13.mp4')
+       f'crop={W}:{H},fps={FPS},setsar=1" -t {cd[11]} -an -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p s12.mp4')
 else:
-    t_act = round(cd[12] * 0.62 / 4, 3); t_end = round(cd[12] - 4 * t_act, 3)
+    t_act = round(cd[11] * 0.62 / 4, 3); t_end = round(cd[11] - 4 * t_act, 3)
     parts = []
     for j, (src, word) in enumerate(DIY):
-        compose(src, f'c13_{j}.png')
-        snappy(f'c13_{j}.png', t_end if j == 4 else t_act, word, f's13_{j}.mp4', ok=(j == 4))
-        parts.append(f's13_{j}.mp4')
-    concat(parts, 's13.mp4')
-compose('ref-01-thumbnail.png', 'c14.png', cy=1070, box=(940, 940), cta=True)
-still('c14.png', cd[13], 's14.mp4', z=0.04)
+        compose(src, f'c12_{j}.png')
+        snappy(f'c12_{j}.png', t_end if j == 4 else t_act, word, f's12_{j}.mp4', ok=(j == 4))
+        parts.append(f's12_{j}.mp4')
+    concat(parts, 's12.mp4')
+compose('ref-01-thumbnail.png', 'c13.png', cy=1070, box=(940, 940), cta=True)
+still('c13.png', cd[12], 's13.mp4', z=0.04)
 concat([f's{i}.mp4' for i in range(1, N + 1)], 'video.mp4')
 # 3) 자막 (ASS + SRT)
 def ts(t, srt=False):
@@ -235,7 +237,7 @@ print('FINAL', dur('final.mp4'), flush=True)
 with zipfile.ZipFile('capcut.zip', 'w') as z:
     for i in range(1, N + 1):
         z.write(f's{i}.mp4', f'video/cut{i}.mp4'); z.write(f'n{i}.wav', f'narration/cut{i}.wav')
-    for p in ['narration.wav', 'subs.srt', 'subs.ass', 'c14.png']:
+    for p in ['narration.wav', 'subs.srt', 'subs.ass', 'c13.png']:
         z.write(p, p)
     z.writestr('README.txt', 'cut별 영상(video/), 묶음별 나레이션(narration/), 전체 나레이션, 자막(SRT/ASS), 그래픽 PNG\n'
                f'컷 길이(초): {cd}\n')

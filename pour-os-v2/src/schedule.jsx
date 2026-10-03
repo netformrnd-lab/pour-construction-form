@@ -1,13 +1,13 @@
 // 업무OS v2 — 달력 탭 (실사용): 한 달을 한눈에. 칸 = 그날 내 마감 수(농도), 빨강 = 지난 날 안 끝난 일·막힘, ▴ 출시·마감, → 내 차례 시작
 // [나 ▾]로 동료 달력(보기만)·프로젝트(그 프로젝트 모든 사람 항목)를 고른다. 사람 비교 숫자·등급은 관리자 화면에만
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ymd, md, ddays, ddayLabel, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf, riskOf, projOpen, reqOf, canSetDue, dueApprover, fxDueOn, fxIsMine, fxMeDone, fxLabel, fxTime, holidayName } from "./model.js";
+import { ymd, md, ddays, addDays, weekStart, WD, isOffDay, ddayLabel, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf, riskOf, projOpen, reqOf, canSetDue, dueApprover, fxDueOn, fxIsMine, fxMeDone, fxLabel, fxTime, holidayName } from "./model.js";
 import { calCells, turnStartOf } from "./views.js";
 import { personNow, predLine } from "./turn.js";
 import { MonthCal, CalHead, dayHead } from "./cal.jsx";
 import { turnBits } from "./today.jsx";
 import { moveDue } from "./task.jsx";
-import { C, Act, Chip, Head, Card, Row, Empty, More, TBtn, Sheet, useLocal } from "./ui.jsx";
+import { C, Act, Chip, Head, Card, Row, Empty, More, TBtn, Sheet, Seg, useLocal } from "./ui.jsx";
 import { LS } from "./core.jsx";
 
 const isLaunchP = (p) => String((p && p.id) || "").startsWith("lb_");
@@ -46,6 +46,14 @@ export function CalendarTab({ D, cu, A, open, T, TV, setToast }) {
     if (window.innerWidth < 1280) setTimeout(() => listRef.current && listRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" }), 40);
   };
   const who2 = nameOf(D.users, who);
+  const [view, setView] = useLocal(LS("calview-" + cu.id), "month");   // 월 | 주 (기기에 기억)
+  // 7일 한눈에: 고른 사람·프로젝트 기준 오늘부터 7일 마감 · 지난 일 · 출시·마감 · 곧 내 차례(나) / 하는 중(남·프로젝트) — 주말에도 0만 보이지 않게 달력 주(월~일) 대신 7일
+  const ws = key, we = addDays(key, 6);
+  const scope = (t) => !t.isFixed && !isDone(t) && t.status !== "review" && t.status !== "hold" && (proj ? t.projectId === proj.id : isMine(t, who) && !T.temp.has(t.id));
+  const inScope = D.tasks.filter(scope);
+  const wkDue = inScope.filter((t) => dueOf(t) >= ws && dueOf(t) <= we).length, wkLate = inScope.filter((t) => dueOf(t) && dueOf(t) < key).length;
+  const wkProj = D.projects.filter((p) => projOpen(p) && (proj ? p.id === proj.id : D.tasks.some((t) => t.projectId === p.id && !t.isFixed && isMine(t, who)) || p.assigneeId === who) && (() => { const d = String(p.launchDate || p.dueDate || "").slice(0, 10); return d >= ws && d <= we; })()).length;
+  const soonN = mine && !proj ? T.soon.reduce((a, g) => a + g.mine.length, 0) : inScope.filter((t) => t.status === "inprogress").length;
   const label = proj ? proj.title : mine ? "나" : who2;   // 프로젝트를 고르면 그 프로젝트 모든 담당 항목
   return <>
     <header style={{ padding: "10px 0 0" }}>
@@ -66,11 +74,49 @@ export function CalendarTab({ D, cu, A, open, T, TV, setToast }) {
           noLaunchN > 0 && <TBtn key="d" onClick={() => open({ type: "myTidy", tab: "nodate" })} style={{ padding: "4px 0" }}><span style={{ color: C.text }}>출시일 미정 {noLaunchN}</span> ›</TBtn>]
           .filter(Boolean).reduce((a, x, j) => (j ? [...a, <span key={"s" + j} style={{ color: C.mute }}>·</span>, x] : [x]), [])}
       </div>}
-    <div className="v2-calwrap">
+    <div className="v2-wkstat" role="group" aria-label="7일 한눈에">
+      <button type="button" onClick={() => { setView("week"); setSel(key); }}><b>{wkDue}</b><span>7일 안 마감</span></button>
+      <button type="button" onClick={() => (mine && !proj && wkLate ? open({ type: "triage" }) : setView("month"))}><b className={wkLate ? "red" : ""}>{wkLate}</b><span>지난 일</span></button>
+      <button type="button" onClick={() => { setView("week"); setSel(key); }}><b>{wkProj}</b><span>7일 안 출시</span></button>
+      <button type="button" onClick={() => (mine && !proj ? (T.soon.length ? open({ type: "turns" }) : null) : setView("week"))}><b>{soonN}</b><span>{mine && !proj ? "곧 내 차례" : "하는 중"}</span></button>
+    </div>
+    <div style={{ marginBottom: 8 }}><Seg items={[["month", "월"], ["week", "7일 · 제목까지"]]} value={view} onChange={setView} /></div>
+    {view === "week" ? <WeekList D={D} cu={cu} A={A} open={open} T={T} keyd={key} sel={sel} setSel={setSel} who={who} mine={mine && !proj} proj={proj} scope={scope} onDay={(d) => { setSel(d); setYm(d.slice(0, 7)); setView("month"); }} />
+    : <div className="v2-calwrap">
       <MonthCal mode={proj ? "team" : "me"} ym={ym} setYm={setYm} cells={cells} sel={sel} onPick={pickDay} keyd={key} users={D.users} />
       <div ref={listRef}><DayList D={D} cu={cu} A={A} open={open} T={T} date={sel} cell={cells[sel]} keyd={key} who={who} mine={mine && !proj} proj={proj} fxOpen={fxOpen} setFxOpen={setFxOpen} doneOpen={doneOpen} setDoneOpen={setDoneOpen} tempOpen={tempOpen} setTempOpen={setTempOpen} /></div>
-    </div>
+    </div>}
     {pick && <WhoSheet D={D} cu={cu} T={T} f={f} setF={(x) => { setF(x); setPick(false); }} onClose={() => setPick(false)} />}
+  </>;
+}
+
+// 7일 보기: 고른 날부터 7일을 제목까지 (처음엔 오늘부터) · 날짜 머리를 누르면 월 달력의 그날로
+function WeekList({ D, cu, A, open, T, keyd, sel, setSel, who, mine, proj, scope, onDay }) {
+  const ws = sel, days = [0, 1, 2, 3, 4, 5, 6].map((i) => addDays(ws, i));
+  const pName = (pid) => ((D.projects || []).find((p) => p.id === pid) || {}).title || "";
+  const open1 = D.tasks.filter(scope);
+  const projs = (D.projects || []).filter((p) => projOpen(p) && (proj ? p.id === proj.id : p.assigneeId === who || D.tasks.some((t) => t.projectId === p.id && !t.isFixed && isMine(t, who))));
+  const thisWk = ws === keyd;
+  return <>
+    <div className="v2-calhead" style={{ marginBottom: 4 }}>
+      <button type="button" className="v2-calnav" aria-label="앞 7일" onClick={() => setSel(addDays(sel, -7))}>‹ 앞 7일</button>
+      <b style={{ flex: 1 }}>{md(days[0])} ~ {md(days[6])}</b>
+      <button type="button" className="v2-calnav" aria-label="다음 7일" onClick={() => setSel(addDays(sel, 7))}>다음 7일 ›</button>
+      {!thisWk && <button type="button" className="v2-caltoday" onClick={() => setSel(keyd)}>오늘부터</button>}
+    </div>
+    <div className="v2-wk">{days.map((d) => { const ts = open1.filter((t) => dueOf(t) === d).sort((a, b) => (riskOf(a, keyd) && riskOf(a, keyd).red ? 0 : 1) - (riskOf(b, keyd) && riskOf(b, keyd).red ? 0 : 1) || String(a.title).localeCompare(String(b.title)));
+      const ps = projs.filter((p) => String(p.launchDate || p.dueDate || "").slice(0, 10) === d), hol = holidayName(d), off = isOffDay(d), wd = WD[new Date(d + "T00:00:00").getDay()];
+      return <div key={d} className={"v2-wkday" + (d === keyd ? " today" : "") + (off ? " off" : "")}>
+        <button type="button" className={"v2-wkhead" + (off ? " off" : "")} onClick={() => onDay(d)} aria-label={`${md(d)} ${wd}요일 월 달력에서 보기`}>{md(d)} ({wd}){d === keyd ? " · 오늘" : ""}{hol ? " · " + hol : ""}<span className="c">{ts.length ? `마감 ${ts.length}` : ""} ›</span></button>
+        {ps.map((p) => <div key={p.id} className="v2-wkrow" role="button" tabIndex={0} onClick={() => open({ type: "project", id: p.id })}><span className="v2-tag turn">{isLaunchP(p) ? "출시" : "마감"}</span><span className="tt">{p.title}</span></div>)}
+        {ts.slice(0, 8).map((t) => { const b = turnBits(t, T, D, keyd);
+          return <div key={t.id} className="v2-wkrow" role="button" tabIndex={0} onClick={() => open({ type: "task", id: t.id })} onKeyDown={(e) => { if (e.key === "Enter") open({ type: "task", id: t.id }); }}>
+            {b.tag && <span className={"v2-tag" + (b.tone === "red" ? " red" : b.tone === "turn" ? " turn" : "")}>{b.tag}</span>}
+            <span className="tt">{t.title}<span className="ss">{[proj || !mine ? nameOf(D.users, ownersOf(t)[0]) || "담당 없음" : "", pName(t.projectId)].filter(Boolean).join(" · ")}</span></span>
+            {mine && isMine(t, cu.id) && <Act onClick={() => A.finish(t)}>끝냄</Act>}</div>; })}
+        {ts.length > 8 && <div className="v2-wkrow" role="button" tabIndex={0} onClick={() => onDay(d)}><span className="tt" style={{ color: C.navy }}>{ts.length - 8}개 더 ›</span></div>}
+        {!ts.length && !ps.length && <div className="v2-wkempty">{off ? "쉬는 날" : "마감 없음"}</div>}
+      </div>; })}</div>
   </>;
 }
 

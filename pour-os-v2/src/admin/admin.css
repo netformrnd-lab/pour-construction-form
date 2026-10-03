@@ -269,3 +269,8 @@
 .a-pcat { flex: 0 0 auto; font-size: 11.5px; font-weight: 700; color: #24386B; background: #EEF1F8; border-radius: 6px; padding: 1px 6px; margin-left: 4px; }
 .a-pcatset { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
 .a-wkn .a-dn { color: #2F7D57; font-weight: 800; }
+.a-wknav { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
+.a-wknav b { font-size: 14px; color: #0F1F5C; margin: 0 4px; }
+.a-wc.past { background: #F8F9FB; }
+.a-wc small.dn { color: #2F7D57; }
+.a-wc.w2 small.dn, .a-wc.w3 small.dn { color: #BFE3CC; }

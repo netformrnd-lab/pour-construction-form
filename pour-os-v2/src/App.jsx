@@ -12,11 +12,12 @@ import {
 import { TodayTab, AddSheet, MineSheet, FocusTriage } from "./today.jsx";
 import { TaskSheet, FixedSheet, openTask } from "./task.jsx";
 import { ProjectsTab, ProjectSheet, NewProjectSheet, DoneProjectsSheet } from "./project.jsx";
+import { ScheduleTab } from "./schedule.jsx";
 import { TeamTab, PersonSheet, IssuesSheet, RiskSheet } from "./team.jsx";
 import { planLaunchImport, relaunch } from "./launch.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked } from "./ui.jsx";
 
-export const BUILD = "v2-2단계 1003";
+export const BUILD = "v2-2단계 1003b 일정";
 const V1_URL = "./os.html";
 const LS = (k) => "pour-os2-" + k;   // v1(pour-os-…) 과 겹치지 않는 기기 저장 이름
 const nowIso = () => new Date().toISOString();
@@ -275,7 +276,7 @@ function Main({ D, cu, meta, setMeta, logout }) {
   const TV = useMemo(() => todayView(D, cu.id, new Date(), seen), [D, cu.id, seen]);
   const ctx = { D, cu, A, open, back, closeAll, seen, setSeen, setToast, TV, meta, setMeta, logout, setTab };
   const top = stack[stack.length - 1];
-  const TABS = [["today", "오늘"], ["projects", "프로젝트"], ["team", "팀"], ["more", "더보기"]];
+  const TABS = [["today", "오늘"], ["projects", "프로젝트"], ["schedule", "일정"], ["team", "팀"], ["more", "더보기"]];
   return <div className="v2-app">
     <nav className="v2-nav" aria-label="메뉴">
       <div className="v2-brand">업무OS <span style={{ color: C.mute, fontWeight: 700 }}>v2</span></div>
@@ -288,6 +289,7 @@ function Main({ D, cu, meta, setMeta, logout }) {
       <div className="v2-page">
         {tab === "today" && <TodayTab {...ctx} />}
         {tab === "projects" && <ProjectsTab {...ctx} />}
+        {tab === "schedule" && <ScheduleTab {...ctx} />}
         {tab === "team" && <TeamTab {...ctx} />}
         {tab === "more" && <MoreTab {...ctx} />}
       </div>

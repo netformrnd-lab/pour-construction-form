@@ -288,3 +288,44 @@ export function planSeed(v1, notes = []) {
   return { ops, counts };
 }
 export const COUNT_L = { tasks: "업무", projects: "프로젝트", users: "사람", notes: "댓글", log: "기록", events: "일정", goals: "목표", mainKPIs: "메인 KPI", subKPIs: "서브 KPI", workflows: "흐름", trash: "휴지통", launch: "신제품" };
+
+// ── 일정(달력) ──
+// 달력 칸: 월요일 시작 6주 이내. 이번 달 밖 날짜는 out:true
+export function monthGrid(ym) {
+  const first = new Date(ym + "-01T00:00:00"), start = new Date(first); start.setDate(1 - ((first.getDay() + 6) % 7));
+  const weeks = []; const d = new Date(start);
+  for (let w = 0; w < 6; w++) { const row = []; for (let i = 0; i < 7; i++) { const k = ymd(d); row.push({ date: k, out: k.slice(0, 7) !== ym }); d.setDate(d.getDate() + 1); }
+    if (w >= 4 && row.every((c) => c.out)) break; weeks.push(row); }
+  return weeks;
+}
+export const shiftMonth = (ym, n) => { const d = new Date(ym + "-01T00:00:00"); d.setMonth(d.getMonth() + n); return ymd(d).slice(0, 7); };
+// 달력에 올릴 업무 (필터: 프로젝트·담당·신제품만·끝난 것)
+export function calItems(D, f = {}, key) {
+  return (D.tasks || []).filter((t) => isOneOff(t) && dueOf(t) && (f.showDone || !isDone(t))
+    && (!f.projectId || t.projectId === f.projectId) && (!f.uid || isMine(t, f.uid)) && (!f.launchOnly || String(t.projectId || "").startsWith("lb_")))
+    .map((t) => ({ t, date: dueOf(t), risk: riskOf(t, key) }));
+}
+// 프로젝트가 잘 가고 있나: 위험(지난 항목·막힘 또는 마감 7일 안인데 60% 미만) · 주의(곧 마감인데 시작 전 · 담당 없음) · 순조
+export function projHealth(p, D, key) {
+  const ts = (D.tasks || []).filter((t) => t.projectId === p.id && !t.isFixed), open = ts.filter((t) => !isDone(t));
+  const late = open.filter((t) => { const r = riskOf(t, key); return r && (r.k === "late" || r.k === "blocked"); }).length;
+  const start = open.filter((t) => { const r = riskOf(t, key); return r && (r.k === "start" || r.k === "today"); }).length;
+  const noOwner = open.filter((t) => !ownersOf(t).length).length;
+  const pct = Math.max(0, Math.min(100, Math.round(Number(p.progress) || 0))), n = ddays(p.dueDate, key);
+  const why = [];
+  if (late) why.push(`지난 일 ${late}`); if (n != null && n < 0 && open.length) why.push(`마감 ${-n}일 지남`); else if (n != null && n <= 7 && pct < 60 && open.length) why.push(`마감 D-${n}인데 ${pct}%`);
+  const level = why.length ? "위험" : start || noOwner ? "주의" : "순조";
+  if (start) why.push(`시작 전 ${start}`); if (noOwner) why.push(`담당 없음 ${noOwner}`);
+  const next = open.filter((t) => dueOf(t)).sort((a, b) => String(dueOf(a)).localeCompare(String(dueOf(b))))[0] || null;
+  return { level, why, late, start, open: open.length, pct, n, next };
+}
+// 사람 일정이 잘 맞게 가나: 지남·시작 전·기한 지킴 % + 앞으로 4주 주별 마감 수
+export function personHealth(D, uid, now = new Date()) {
+  const key = ymd(now), w = workloadOf(D, uid, now, 28), ot = onTimeOf(D, uid, now);
+  const open = (D.tasks || []).filter((t) => isOneOff(t) && !isDone(t) && isMine(t, uid));
+  const start = open.filter((t) => { const r = riskOf(t, key); return r && r.k === "start"; }).length;
+  const weeks = [0, 1, 2, 3].map((i) => w.week.slice(i * 7, i * 7 + 7).reduce((a, d) => a + d.list.length, 0));
+  const noDue = open.filter((t) => !dueOf(t) && t.status !== "hold").length;
+  const level = w.late >= 3 || (ot.pct != null && ot.pct < 60) ? "위험" : w.late || start || Math.max(...weeks) >= 15 ? "주의" : "순조";
+  return { ...w, ot, start, weeks, noDue, level };
+}

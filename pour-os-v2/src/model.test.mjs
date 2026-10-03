@@ -91,4 +91,27 @@ ok("기한 지킨 비율", () => {
   const D = { tasks: [{ assigneeId: "a", status: "done", dueDate: "2026-10-01", doneAt: "2026-09-30T05:00:00" }, { assigneeId: "a", status: "done", dueDate: "2026-10-01", doneAt: "2026-10-02T05:00:00" }] };
   assert.deepEqual(M.onTimeOf(D, "a", new Date("2026-10-02T10:00:00")), { n: 2, ok: 1, pct: 50 });
 });
+ok("달력 칸: 월요일 시작, 10월 2026 = 9/28부터 5주", () => {
+  const g = M.monthGrid("2026-10"); assert.equal(g[0][0].date, "2026-09-28"); assert.equal(g[0][0].out, true); assert.equal(g.length, 5); assert.equal(g[4][6].date, "2026-11-01");
+  assert.equal(M.shiftMonth("2026-12", 1), "2027-01"); assert.equal(M.shiftMonth("2026-01", -1), "2025-12");
+});
+ok("달력 업무 거르기 (프로젝트·담당·신제품만·끝난 것)", () => {
+  const D = { tasks: [{ id: 1, assigneeId: "a", status: "todo", dueDate: "2026-10-05", projectId: "p" }, { id: 2, assigneeId: "b", status: "done", dueDate: "2026-10-05", projectId: "lb_x" }, { id: 3, assigneeId: "a", status: "todo", projectId: "p" }, { id: 4, isFixed: true, assigneeId: "a", dueDate: "2026-10-05" }] };
+  assert.equal(M.calItems(D, {}, "2026-10-02").length, 1); assert.equal(M.calItems(D, { showDone: true }, "2026-10-02").length, 2);
+  assert.equal(M.calItems(D, { showDone: true, launchOnly: true }, "2026-10-02").length, 1); assert.equal(M.calItems(D, { uid: "b" }, "2026-10-02").length, 0);
+});
+ok("프로젝트 상태: 지난 일 있으면 위험, 시작 전 있으면 주의, 아니면 순조", () => {
+  const k = "2026-10-02", P = { id: "p", progress: 50, dueDate: "2026-12-01" };
+  assert.equal(M.projHealth(P, { tasks: [{ projectId: "p", assigneeId: "a", status: "todo", dueDate: "2026-09-30" }] }, k).level, "위험");
+  assert.equal(M.projHealth(P, { tasks: [{ projectId: "p", assigneeId: "a", status: "todo", dueDate: "2026-10-04" }] }, k).level, "주의");
+  assert.equal(M.projHealth(P, { tasks: [{ projectId: "p", assigneeId: "a", status: "inprogress", dueDate: "2026-10-20" }] }, k).level, "순조");
+  assert.equal(M.projHealth({ ...P, dueDate: "2026-10-06", progress: 30 }, { tasks: [{ projectId: "p", assigneeId: "a", status: "inprogress", dueDate: "2026-10-20" }] }, k).level, "위험");
+});
+ok("사람 일정 상태: 지난 일 3개 이상이면 위험", () => {
+  const now = new Date("2026-10-02T09:00:00");
+  const late = [1, 2, 3].map((i) => ({ id: i, assigneeId: "a", status: "todo", dueDate: "2026-09-2" + i }));
+  assert.equal(M.personHealth({ tasks: late }, "a", now).level, "위험");
+  assert.equal(M.personHealth({ tasks: [{ id: 9, assigneeId: "a", status: "inprogress", dueDate: "2026-10-09" }] }, "a", now).level, "순조");
+  assert.equal(M.personHealth({ tasks: [{ id: 9, assigneeId: "a", status: "inprogress", dueDate: "2026-10-09" }] }, "a", now).weeks[1], 1);
+});
 console.log(`\n${n}개 모두 통과`);

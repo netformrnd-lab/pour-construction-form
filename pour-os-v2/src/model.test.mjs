@@ -47,9 +47,9 @@ ok("담당 정리 필요: 담당 없음 + 미사용 담당", () => {
   const D = { users: [{ id: "a" }, { id: "b", active: false }], tasks: [{ id: 1, status: "todo" }, { id: 2, status: "todo", assigneeId: "b" }, { id: 3, status: "done" }, { id: 4, status: "todo", assigneeId: "a" }] };
   assert.deepEqual(M.ownerIssues(D).map((x) => x.why), ["담당 없음", "미사용 담당"]);
 });
-ok("프로젝트 묶음: 지남·이번 달·그 뒤·없음·보류", () => {
-  const g = M.projGroups([{ id: 1, dueDate: "2026-09-01" }, { id: 2, dueDate: "2026-10-20" }, { id: 3, dueDate: "2026-11-01" }, { id: 4 }, { id: 5, status: "hold" }], "2026-10-02");
-  assert.deepEqual(Object.fromEntries(Object.entries(g).map(([k, v]) => [k, v.map((p) => p.id)])), { late: [1], month: [2], later: [3], none: [4], hold: [5] });
+ok("프로젝트 묶음: 지남·이번 주·이번 달·그 뒤·없음·보류", () => {
+  const g = M.projGroups([{ id: 1, dueDate: "2026-09-01" }, { id: 2, dueDate: "2026-10-20" }, { id: 3, dueDate: "2026-11-01" }, { id: 4 }, { id: 5, status: "hold" }, { id: 6, dueDate: "2026-10-04" }], "2026-10-02");
+  assert.deepEqual(Object.fromEntries(Object.entries(g).map(([k, v]) => [k, v.map((p) => p.id)])), { late: [1], week: [6], month: [2], later: [3], none: [4], hold: [5] });
 });
 ok("D-day 글자", () => { assert.equal(M.ddayLabel(M.ddays("2026-10-01", "2026-10-02")), "1일 지남"); assert.equal(M.ddayLabel(0), "오늘"); assert.equal(M.ddayLabel(3), "D-3"); });
 ok("흐름: 맡긴 사람·확인 필요·기한 허락", () => {
@@ -98,7 +98,7 @@ ok("달력 칸: 월요일 시작, 10월 2026 = 9/28부터 5주", () => {
 ok("달력 업무 거르기 (프로젝트·담당·신제품만·끝난 것)", () => {
   const D = { tasks: [{ id: 1, assigneeId: "a", status: "todo", dueDate: "2026-10-05", projectId: "p" }, { id: 2, assigneeId: "b", status: "done", dueDate: "2026-10-05", projectId: "lb_x" }, { id: 3, assigneeId: "a", status: "todo", projectId: "p" }, { id: 4, isFixed: true, assigneeId: "a", dueDate: "2026-10-05" }] };
   assert.equal(M.calItems(D, {}, "2026-10-02").length, 1); assert.equal(M.calItems(D, { showDone: true }, "2026-10-02").length, 2);
-  assert.equal(M.calItems(D, { showDone: true, launchOnly: true }, "2026-10-02").length, 1); assert.equal(M.calItems(D, { uid: "b" }, "2026-10-02").length, 0);
+  assert.equal(M.calItems(D, { showDone: true, noTemp: new Set([2]) }, "2026-10-02").length, 1); assert.equal(M.calItems(D, { uid: "b" }, "2026-10-02").length, 0);
 });
 ok("프로젝트 상태: 지난 일 있으면 위험, 시작 전 있으면 주의, 아니면 순조", () => {
   const k = "2026-10-02", P = { id: "p", progress: 50, dueDate: "2026-12-01" };
@@ -113,5 +113,20 @@ ok("사람 일정 상태: 지난 일 3개 이상이면 위험", () => {
   assert.equal(M.personHealth({ tasks: late }, "a", now).level, "위험");
   assert.equal(M.personHealth({ tasks: [{ id: 9, assigneeId: "a", status: "inprogress", dueDate: "2026-10-09" }] }, "a", now).level, "순조");
   assert.equal(M.personHealth({ tasks: [{ id: 9, assigneeId: "a", status: "inprogress", dueDate: "2026-10-09" }] }, "a", now).weeks[1], 1);
+});
+ok("공휴일·주말 건너뛰기", () => {
+  assert.equal(M.isOffDay("2026-10-09"), true); assert.equal(M.holidayName("2026-10-05"), "개천절 대체공휴일");
+  assert.equal(M.prevWorkday("2026-10-05"), "2026-10-02"); assert.equal(M.nextWorkday("2026-10-03"), "2026-10-06"); assert.equal(M.nextWorkday("2026-10-08"), "2026-10-08");
+});
+ok("지금 할 일: 방금 내 차례(fresh)는 기한 7일 안이면 지난 일보다 먼저, 임시 담당은 빠짐", () => {
+  const now = new Date("2026-10-02T10:00:00");
+  const D = { users: [], projects: [], notes: [], tasks: [{ id: "a", title: "지난", assigneeId: "u", status: "todo", dueDate: "2026-09-30" }, { id: "b", title: "차례", assigneeId: "u", status: "todo", dueDate: "2026-10-06" }, { id: "c", title: "임시", assigneeId: "u", status: "todo", dueDate: "2026-09-01" }] };
+  const v = M.todayView(D, "u", now, {}, { temp: new Set(["c"]), fresh: new Set(["b"]), inbox: [] });
+  assert.deepEqual(v.ranked.map((x) => x.t.id), ["b", "a"]); assert.equal(v.freshN, 1);
+});
+ok("한꺼번에 맡긴 일은 한 줄로 묶음", () => {
+  const D = { users: [], projects: [{ id: "p", title: "타일카펫" }], notes: [], tasks: [1, 2, 3].map((i) => ({ id: "t" + i, title: "x", projectId: "p", assigneeId: "u", status: "todo", assignedBy: "m", assignedAt: "2026-10-02T01:00:00Z", bulkId: "B1" })) };
+  const v = M.todayView(D, "u", new Date("2026-10-02T10:00:00"));
+  assert.equal(v.inbox.length, 1); assert.equal(v.inbox[0].kind, "bulk"); assert.equal(v.inbox[0].bulkIds.length, 3);
 });
 console.log(`\n${n}개 모두 통과`);

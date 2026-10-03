@@ -2,9 +2,9 @@
 import assert from "node:assert/strict";
 import * as L from "./launch.js";
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
-ok("주말 기한은 앞 금요일로", () => { assert.equal(L.workday("2026-10-03"), "2026-10-02"); assert.equal(L.workday("2026-10-04"), "2026-10-02"); assert.equal(L.workday("2026-10-05"), "2026-10-05"); });
+ok("주말·공휴일 기한은 앞 평일로 (10/5 개천절 대체공휴일 · 10/9 한글날)", () => { assert.equal(L.workday("2026-10-03"), "2026-10-02"); assert.equal(L.workday("2026-10-05"), "2026-10-02"); assert.equal(L.workday("2026-10-09"), "2026-10-08"); assert.equal(L.workday("2026-10-06"), "2026-10-06"); });
 ok("기간이 넉넉하면 규칙대로 (출시 12/18 → 상세페이지 디자인 17일 전)", () => {
-  assert.equal(L.launchDue("2026-12-18", -17, "2026-10-02"), "2026-12-01"); assert.equal(L.launchDue("2026-12-18", 7, "2026-10-02"), "2026-12-25");
+  assert.equal(L.launchDue("2026-12-18", -17, "2026-10-02"), "2026-12-01"); assert.equal(L.launchDue("2026-12-18", 7, "2026-10-02"), "2026-12-24");   // 12/25 성탄절 → 앞 평일
 });
 ok("기간이 짧으면 남은 기간에 고르게 (지난 기한 없음)", () => {
   const today = "2026-10-05", launch = "2026-10-23";
@@ -43,6 +43,42 @@ ok("오늘이 토요일이어도 새 기한이 지난 날(금)이 되지 않음"
   const today = "2026-10-03";   // 토
   const dues = L.LAUNCH_ITEMS.map((i) => L.launchDue("2026-10-30", i.off, today));
   assert.ok(dues.every((d) => d >= today), dues.filter((d) => d < today).join(","));
-  assert.equal(L.launchDue("2026-10-30", -56, today), "2026-10-05");   // 다음 평일(월)
+  assert.equal(L.launchDue("2026-10-30", -56, today), "2026-10-06");   // 다음 평일 (10/5 대체공휴일 건너뜀)
+});
+ok("순서표: 모든 화살표에서 앞 항목이 더 이른 규칙 기한 (같은 날 금지), 시작 항목은 시장조사뿐", () => {
+  for (const [k, v] of Object.entries(L.LAUNCH_AFTER)) { const o = L.LAUNCH_ITEMS.find((i) => i.id === k); assert.ok(o, k);
+    v.forEach((a) => { const q = L.LAUNCH_ITEMS.find((i) => i.id === a); assert.ok(q, a); assert.ok(q.off < o.off, `${a} → ${k}`); }); }
+  assert.deepEqual(L.LAUNCH_ITEMS.filter((i) => !L.LAUNCH_AFTER[i.id]).map((i) => i.id), ["p01"]);
+});
+ok("앞 업무 찾기: 없는 항목(건너뜀)은 그 앞으로 거슬러 올라감", () => {
+  const byId = new Map([["P__s06", { id: "P__s06" }], ["P__p04", { id: "P__p04" }]]);   // s01 없음 → s07 의 앞 = s06 + (s01 → p04)
+  assert.deepEqual(L.launchPreds({ projectId: "P", launchItem: "s07" }, byId).map((x) => x.id).sort(), ["P__p04", "P__s06"]);
+});
+ok("가져오기: 항목별 끝낸 시각·끝낸 사람, 담당 출처(v1·기본·임시)", () => {
+  const users = [{ id: "jh", name: "용정하" }, { id: "sh", name: "김송희" }, { id: "wm", name: "이우민" }];
+  const prods = [{ id: "A", name: "A", brand: "grohome", launchDate: "2026-12-18", updatedAt: "2026-10-01T00:00:00Z", stages: { p01: { status: "done", owner: "정하", doneAt: "2026-09-20T03:00:00Z", doneBy: "허지은" }, s03: { owner: "이우민" } } },
+    { id: "B", name: "B", brand: "grohome", launchDate: "2026-12-18", stages: { s03: { owner: "이우민" } } }];
+  const r = L.planLaunchImport(prods, { users, workflows: [] }, "2026-10-02");
+  const p01 = r.tasks.find((t) => t.id === "lb_A__p01"); assert.equal(p01.doneAt, "2026-09-20T03:00:00Z"); assert.equal(p01.finishedAt, "2026-09-20T03:00:00Z"); assert.equal(p01.ownerFrom, "v1");
+  assert.equal(r.tasks.find((t) => t.id === "lb_B__s03").ownerFrom, "v1");
+  const x = r.tasks.find((t) => t.id === "lb_B__x_rv_mall"); assert.equal(x.ownerFrom, "lead"); assert.equal(x.assigneeId, "sh");
+  const D = { users, projects: r.projects, tasks: r.tasks };
+  assert.equal(L.isTempOwner(x, D), true); assert.equal(L.isTempOwner(p01, D), false);
+  assert.equal(L.ownerDefaults({ users, tasks: r.tasks }).x_rv_mall, undefined);   // 임시로 채운 담당은 기본값이 되지 않음
+});
+ok("신제품 % 는 항목으로 계산 · 기한 다시 나누기는 자동 기한만, 평일·공휴일 피해서, 순서 지킴", () => {
+  const D = { users: [{ id: "a", name: "가" }], workflows: [], tasks: [] };
+  const r = L.planNewLaunch({ name: "N", brand: "grohome", launchDate: "2026-10-23", leadId: "a" }, D, { id: "a" }, "2026-10-02");
+  assert.equal(L.launchPct(r.project, { tasks: r.tasks }), 0);
+  const ts = r.tasks.map((t, i) => (i < 5 ? { ...t, status: "done" } : t));
+  assert.equal(L.launchPct(r.project, { tasks: ts }), Math.round((5 / r.tasks.length) * 100));
+  const fixed = { ...ts[10], dueAuto: false, dueDate: "2026-10-20" }; const ts2 = ts.map((t, i) => (i === 10 ? fixed : t));
+  const ch = L.rebalanceLaunch(ts2, "2026-10-23", "2026-10-02");
+  assert.ok(!ch.some((x) => x.task.id === fixed.id)); assert.ok(!ch.some((x) => x.task.status === "done"));
+  const due = Object.fromEntries(ts2.map((t) => [t.launchItem, (ch.find((x) => x.task.id === t.id) || {}).due || t.dueDate]));
+  ch.forEach((x) => { const w = new Date(x.due + "T00:00:00").getDay(); assert.ok(w !== 0 && w !== 6 && x.due !== "2026-10-05" && x.due !== "2026-10-09", x.due); });
+  for (const [k, v] of Object.entries(L.LAUNCH_AFTER)) v.forEach((a) => { if (a !== fixed.launchItem && k !== fixed.launchItem && due[a] && due[k] && L.LAUNCH_ITEMS.find((i) => i.id === k).off < 0) assert.ok(due[a] <= due[k], `${a} ${due[a]} → ${k} ${due[k]}`); });
+  const per = {}; Object.values(due).forEach((d) => (per[d] = (per[d] || 0) + 1)); const before = {}; r.tasks.forEach((t) => (before[t.dueDate] = (before[t.dueDate] || 0) + 1));
+  assert.ok(Math.max(...Object.values(per)) <= Math.max(...Object.values(before)));
 });
 console.log(`\n${n}개 모두 통과`);

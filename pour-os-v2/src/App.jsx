@@ -8,7 +8,8 @@ import {
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, planSeed, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover,
 } from "./model.js";
-import { TodayTab, AddSheet, MineSheet, FocusTriage } from "./today.jsx";
+import { TodayTab } from "./today.jsx";
+import { SheetRouter } from "./sheets.jsx";
 import { TaskSheet, FixedSheet, openTask } from "./task.jsx";
 import { ProjectsTab, ProjectSheet, NewProjectSheet, DoneProjectsSheet } from "./project.jsx";
 import { ScheduleTab } from "./schedule.jsx";
@@ -64,21 +65,6 @@ function Main({ D, cu, meta, setMeta, logout }) {
   </div>;
 }
 
-function SheetRouter({ s, depth, ...ctx }) {
-  const p = { ...ctx, onBack: depth > 1 ? ctx.back : null, onClose: ctx.closeAll };
-  if (s.type === "task") return <TaskSheet {...p} id={s.id} />;
-  if (s.type === "fixed") return <FixedSheet {...p} id={s.id} />;
-  if (s.type === "project") return <ProjectSheet {...p} id={s.id} first={s.first} />;
-  if (s.type === "person") return <PersonSheet {...p} id={s.id} />;
-  if (s.type === "add") return <AddSheet {...p} preset={s.preset || {}} />;
-  if (s.type === "newProject") return <NewProjectSheet {...p} />;
-  if (s.type === "mine") return <MineSheet {...p} />;
-  if (s.type === "issues") return <IssuesSheet {...p} />;
-  if (s.type === "doneProjects") return <DoneProjectsSheet {...p} />;
-  if (s.type === "triage") return <FocusTriage {...p} />;
-  if (s.type === "risk") return <RiskSheet {...p} />;
-  return null;
-}
 function MoreTab({ D, cu, meta, setMeta, logout, setToast }) {
   const [ask, setAsk] = useState(""), [st, setSt] = useState("");
   const reseed = async () => { setAsk(""); try { setSt("버전1 읽는 중…"); const v1 = await fb.readV1State(); const notes = await fb.readV1Notes();

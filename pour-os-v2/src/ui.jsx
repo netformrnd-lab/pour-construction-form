@@ -39,7 +39,7 @@ export function Row({ title, sub, sub2, right, onClick, dim, tag, tagTone, last 
     style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", minHeight: 56, borderBottom: last ? "none" : `1px solid ${C.line}`, cursor: onClick ? "pointer" : "default", background: "#fff" }}>
     <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-        {tag && <span style={{ flex: "0 0 auto", fontSize: 11, fontWeight: 800, padding: "2px 6px", borderRadius: 6, color: tagTone === "red" ? C.red : C.navy, background: tagTone === "red" ? "#F8E9EA" : C.soft }}>{tag}</span>}
+        {tag && <span style={{ flex: "0 0 auto", fontSize: 11, fontWeight: 800, padding: "2px 6px", borderRadius: 6, color: tagTone === "red" ? C.red : tagTone === "turn" ? "#fff" : C.navy, background: tagTone === "red" ? "#F8E9EA" : tagTone === "turn" ? C.navy : C.soft }}>{tag}</span>}
         <span style={{ fontSize: 15, fontWeight: 700, color: dim ? C.mute : C.text, textDecoration: dim ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</span>
       </div>
       {sub && <div style={{ marginTop: 3, fontSize: 12.5, color: C.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</div>}

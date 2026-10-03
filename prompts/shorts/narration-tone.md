@@ -63,3 +63,7 @@ Serious tone for the problem, confident and slightly brighter tone for the solut
 - 후보 A: inworld_text_to_speech `Seojun (ko)` — 한국어 원어민 프리셋, 롤오프 1274Hz, 억양 변화 F0 std 47 (aa1d2601)
 - 후보 B: qwen_audio_tts + instruction("서울 표준어 30대 한국인 남성 영업사원, 밝고 자신감 있게, 살아있는 사람처럼") + language ko, 롤오프 1348Hz, F0 std 51 (c119316e)
 - 참고: inworld `Hyunwoo (ko)`는 낮고 단조로움(F0 std 29) → 제외
+
+## ✅ 확정 목소리 (사용자 결정 2026.10.03)
+- **inworld_text_to_speech `Seojun (ko)`** (후보 A). 이후 모든 판매 숏폼 기본 성우.
+- 발음 표기 규칙 유지 (POUR → 포어, PVC → 피브이씨), 편집에서 배속 금지.

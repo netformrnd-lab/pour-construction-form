@@ -1,0 +1,282 @@
+{
+ "name": "옥상배관방수트랩 v12",
+ "gap": 0.42,
+ "tail": 0.8,
+ "tempo": 1.0,
+ "cta": {
+  "title": "POUR 옥상배관방수트랩",
+  "subtitle": "보강시트 설치 세트",
+  "badge": "타임세일 · 무료배송",
+  "button": "▶ 프로필 링크에서 확인"
+ },
+ "cuts": [
+  {
+   "subs": [
+    "폭우가 오면, 빗물은\\N【전부 이 구멍】으로 모여요."
+   ],
+   "audio": "hf_20261003_132022_551bfca4-94a9-4229-9e58-ee2d57920233.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261003_120715_3b62fe5a-c85f-44ca-93e8-7fccdc1ff186.mp4",
+      "ss": 0.1,
+      "w": 1
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "배수구가 막히면,\\N물이 【고이죠】."
+   ],
+   "audio": "hf_20261003_132022_db449a65-5a70-473c-8f51-5664eae998b0.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261002_114638_85510f05-b6e3-4222-8369-31e0d5566817.mp4",
+      "ss": 0.3,
+      "w": 1
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "고인 물은 【도막 밑으로】 스며들고,",
+    "햇볕에 【부풀었다가】,\\N결국 【찢어져요】."
+   ],
+   "audio": "hf_20261003_132022_1cf2ef8e-3211-4db4-ae7f-6b3ea63eeff1.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261003_114944_ce1744d7-29f3-4c5f-8350-da55aff28ad3.mp4",
+      "ss": 0.3,
+      "w": 0.36
+     },
+     {
+      "src": "hf_20261003_114944_0b8bff54-fd65-4993-87df-cfcdc4f30185.mp4",
+      "ss": 0.3,
+      "w": 0.32
+     },
+     {
+      "src": "hf_20261003_114943_5b01dd93-e025-408f-b798-ca9859f69658.mp4",
+      "ss": 0.3,
+      "w": 0.32
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "결국 【천장까지】 새고,",
+    "【곰팡이】가 피죠."
+   ],
+   "audio": "hf_20261003_132023_da0ddd7d-6407-448d-8ea1-7902b8ae6057.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261002_133016_d6eef20a-dad0-4a81-bc9c-0e64d0168c35.mp4",
+      "ss": 0.3,
+      "w": 14
+     },
+     {
+      "src": "hf_20261002_133958_b46c150d-705a-4812-9e4f-0c48a23b20df.mp4",
+      "ss": 0.3,
+      "w": 10
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "그럼,\\N【어떻게】 해결해야 할까요?"
+   ],
+   "audio": "hf_20261003_132036_a8ab78ed-1dd2-4b77-a61d-adae6fd0361b.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261002_114638_85510f05-b6e3-4222-8369-31e0d5566817.mp4",
+      "ss": 2.5,
+      "w": 1
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "일반 드레인은\\N둘레가 쉽게 막히고,",
+    "【꽂는 부분도 짧아서】\\N틈이 생기죠."
+   ],
+   "audio": "hf_20261003_132140_9addb924-7621-4926-aa08-c1413a063bb3.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261003_010736_78d915ae-4af7-4b23-889c-400557109d8d.mp4",
+      "ss": 0.3,
+      "w": 0.3,
+      "label": "일반 드레인 (예시)"
+     },
+     {
+      "src": "hf_20261003_010736_d0f33f94-7cf1-4f05-9540-651e5a83aec7.mp4",
+      "ss": 0.3,
+      "w": 0.25,
+      "label": "일반 드레인 (예시)"
+     },
+     {
+      "src": "hf_20261003_120714_48b9c87d-709d-474c-bd8d-eefc2b515bf5.mp4",
+      "ss": 0.3,
+      "w": 0.45,
+      "label": "일반 드레인 (예시)"
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "【철근】이 녹슬어 부풀면,",
+    "누수는 【더 심해져요】."
+   ],
+   "audio": "hf_20261003_132035_c72d41b8-7e0d-4814-895a-11a912577f36.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261003_120830_1eb8f86a-d4cb-4ff2-a71d-c0961ffc5ac5.mp4",
+      "ss": 0.3,
+      "w": 1
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "POUR 트랩은 큰 낙엽을,\\N【밖에서】 걸러요."
+   ],
+   "audio": "hf_20261003_132036_649a930c-7dda-4f74-871b-7e7bee612371.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261003_032729_38e7d836-b091-470c-bd71-e98cdc5ff4f4.mp4",
+      "ss": 0.3,
+      "w": 1,
+      "label": "① 밖에서 큰 이물질"
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "작은 찌꺼기는,\\N【안에서】 한 번 더."
+   ],
+   "audio": "hf_20261003_132036_08d85fbf-0f46-4c3e-b895-d3341beefd2b.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261003_032729_46add937-57c0-4fd8-b5af-110c7ddefee1.mp4",
+      "ss": 0.3,
+      "w": 1,
+      "label": "② 안에서 작은 이물질"
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "연장시트를 이으면,\\NPVC 배관까지 이어져서,",
+    "【콘크리트엔 물이 안 닿죠】."
+   ],
+   "audio": "hf_20261003_132047_7529b213-f5bb-4dee-b2ac-0ea29d636ede.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261003_032729_bac7a292-9cde-4806-9a71-a0b3ad577998.mp4",
+      "ss": 0.3,
+      "w": 0.28,
+      "label": "③ 연장시트"
+     },
+     {
+      "src": "hf_20261003_032850_630bb920-e46a-43bc-97ca-28df0fad5edd.mp4",
+      "ss": 0.3,
+      "w": 0.35,
+      "label": "③ PVC 배관 속까지"
+     },
+     {
+      "src": "hf_20261003_032729_9565b55f-7ff0-4faa-80bf-ce43c5bc7352.mp4",
+      "ss": 0.3,
+      "w": 0.37,
+      "label": "③ 콘크리트엔 물 안 닿음"
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "【콘크리트도, 철근도】,\\N그대로죠."
+   ],
+   "audio": "hf_20261003_132047_bbdb67a7-c3a7-46d4-877b-d18d569ed0d4.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261003_123303_1d634015-4419-4438-b727-abf1e1ad24f6.mp4",
+      "ss": 0.3,
+      "w": 1,
+      "label": "콘크리트·철근 그대로"
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "쓱 붙이고, 싹 바르고,\\N덮고, 쏙 꽂으면 【끝】!",
+    "【누구나】 할 수 있어요."
+   ],
+   "audio": "hf_20261003_132047_6b30eb16-88c4-48d8-b990-f5c6f8ae4d74.wav",
+   "visual": {
+    "type": "diy",
+    "video": "",
+    "steps": [
+     {
+      "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/step-02-glue-attach.jpg",
+      "word": "쓱"
+     },
+     {
+      "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/step-04-coat1.jpg",
+      "word": "싹"
+     },
+     {
+      "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/step-05-sheet.jpg",
+      "word": "착"
+     },
+     {
+      "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/step-07-support.jpg",
+      "word": "쏙"
+     },
+     {
+      "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/step-08-done.jpg",
+      "word": "끝!"
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "코트재, 시트, 트랩까지\\N【한 세트】."
+   ],
+   "audio": "hf_20261003_132047_8a7447d8-5fa3-4aa3-b20f-5afec4c06705.wav",
+   "visual": {
+    "type": "cta",
+    "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/ref-01-thumbnail.png"
+   }
+  }
+ ]
+}

@@ -31,32 +31,72 @@ input[type=date] { min-width: 0; max-width: 100%; -webkit-appearance: none; appe
 .v2-day.we { background: #F7F8FB; }
 .v2-day.on { border-color: #24386B; background: #24386B; color: #DCE2F2; }
 .v2-day.on b { color: #fff; }
-/* 달력: 폰은 날짜·건수만, 태블릿·PC는 제목까지 */
-.v2-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
-.v2-calh { text-align: center; font-size: 12px; font-weight: 800; color: #5B6475; padding: 4px 0; }
-.v2-calh.we { color: #8A92A3; }
-.v2-calc { position: relative; min-height: 54px; border: 1px solid #E3E7F0; border-radius: 10px; background: #fff; font: inherit; color: #1B2333; padding: 4px 3px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; min-width: 0; overflow: hidden; }
-.v2-calc .d { font-size: 13px; font-weight: 700; }
-.v2-calc .n { font-size: 11.5px; font-weight: 800; color: #fff; background: #24386B; border-radius: 9px; min-width: 20px; padding: 0 5px; line-height: 18px; }
-.v2-calc .n.red { background: #B4383F; }
-.v2-calc .m { font-size: 11px; color: #24386B; font-weight: 800; line-height: 1; }
+/* 달력: 폰은 날짜·건수·표식만(칸 바탕 농도 = 양), 768px 이상은 제목까지 */
+.v2-calhead { display: flex; align-items: center; gap: 4px; height: 44px; }
+.v2-calhead b { font-size: 16px; font-weight: 800; color: #0F1F5C; min-width: 96px; text-align: center; }
+.v2-calnav, .v2-caltoday { flex: 0 0 auto; white-space: nowrap; }
+.v2-calright { flex: 0 1 auto; min-width: 0; display: flex; }   /* 오른쪽 [나 ▾] 버튼만 줄어듦 */
+.v2-calright > * { max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 400px) { .v2-calhead b { min-width: 0; font-size: 15px; white-space: nowrap; flex: 0 0 auto; } .v2-calnav { padding: 0 3px; font-size: 12.5px; } }
+.v2-calnav { min-width: 36px; height: 36px; padding: 0 6px; border: none; background: none; font: inherit; font-size: 13.5px; font-weight: 800; color: #24386B; cursor: pointer; white-space: nowrap; }
+.v2-caltoday { height: 30px; padding: 0 10px; border-radius: 999px; border: 1.5px solid #E3E7F0; background: #fff; font: inherit; font-size: 12.5px; font-weight: 800; color: #24386B; cursor: pointer; }
+.v2-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; touch-action: pan-y; }
+.v2-calh { text-align: center; font-size: 11.5px; font-weight: 800; color: #5B6475; padding: 3px 0; }
+.v2-calh.we { color: #A6ADBB; }
+.v2-calc { position: relative; height: 52px; border: 1px solid #E3E7F0; border-radius: 9px; background: #fff; font: inherit; color: #1B2333; padding: 3px 2px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0; cursor: pointer; min-width: 0; overflow: hidden; }
+.v2-calc .d { font-size: 11px; font-weight: 700; line-height: 16px; min-width: 18px; border-radius: 9px; }
+.v2-calc .n { font-size: 15px; font-weight: 800; line-height: 18px; color: #0F1F5C; }
+.v2-calc .m { font-size: 10px; line-height: 12px; color: #24386B; font-weight: 800; letter-spacing: .5px; }
 .v2-calc .t { display: none; }
-.v2-calc.out { background: #F7F8FB; color: #A6ADBB; }
-.v2-calc.today .d { color: #fff; background: #0F1F5C; border-radius: 9px; padding: 0 6px; }
-.v2-calc.on { border: 2px solid #24386B; }
+.v2-calc.off .d { color: #A6ADBB; }
+.v2-calc.out { background: #F7F8FB; }
+.v2-calc.out .d, .v2-calc.out .n { color: #B7BDC9; }
+.v2-calc.l1 { background: #EEF1F8; }
+.v2-calc.l2 { background: #D5DCEE; }
+.v2-calc.l3 { background: #24386B; border-color: #24386B; }
+.v2-calc.l3 .d, .v2-calc.l3 .n, .v2-calc.l3 .m { color: #fff; }
+.v2-calc.red .n { color: #B4383F; }
+.v2-calc.over .n { color: #B4383F; }   /* 팀 달력 앞날: 한 사람 하루 8건 넘음 */
+.v2-calc.l3.over .n { color: #B4383F; background: #fff; border-radius: 6px; padding: 0 4px; }
+.v2-calc.old .n { color: #A6ADBB; }
+.v2-calc.fx .n { color: #8A92A3; font-weight: 700; }
+.v2-calc.today { border: 2px solid #0F1F5C; box-shadow: inset 0 0 0 1px #fff; }
+.v2-calc.on .d { background: #24386B; color: #fff !important; }
 @media (min-width: 768px) {
-  .v2-calc { min-height: 96px; align-items: stretch; padding: 5px 6px; }
-  .v2-calc .d, .v2-calc .n { align-self: flex-start; }
-  .v2-calc .n { position: absolute; top: 5px; right: 5px; }
+  .v2-calc { height: 92px; align-items: stretch; padding: 4px 5px; }
+  .v2-calc .d { align-self: flex-start; padding: 0 4px; }
+  .v2-calc .n { position: absolute; top: 3px; right: 6px; font-size: 13px; }
   .v2-calc .m { display: none; }
-  .v2-calc .t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .v2-calc .t i { font-style: normal; font-size: 11.5px; color: #1B2333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; background: #EEF1F8; border-radius: 4px; padding: 1px 4px; }
-  .v2-calc .t i.red { background: #F8E9EA; color: #B4383F; }
-  .v2-calc .t i.p { background: #24386B; color: #fff; }
+  .v2-calc .t { display: flex; flex-direction: column; gap: 2px; min-width: 0; margin-top: 2px; }
+  .v2-calc .t i { font-style: normal; font-size: 11px; line-height: 15px; color: #1B2333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; background: rgba(255,255,255,.75); border-radius: 4px; padding: 0 4px; }
+  .v2-calc .t i.red { color: #B4383F; font-weight: 700; }
+  .v2-calc .t i.p { background: #0F1F5C; color: #fff; }
+  .v2-calc .t i.ts { color: #24386B; font-weight: 800; background: #fff; box-shadow: inset 0 0 0 1px #C9D2EA; }   /* → 내 차례 시작 (폰은 .m 표식) */
+  .v2-calc .t i.more { background: none; color: #5B6475; font-weight: 700; }
+  .v2-calc.l3 .t i { background: rgba(255,255,255,.92); }
 }
+@media (min-width: 1280px) { .v2-calc { height: 110px; } }
+/* 달력 + 고른 날 목록 (1280 은 2단) */
+.v2-calwrap { display: block; }
+@media (min-width: 1280px) { .v2-calwrap { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; } }
+/* 표는 자기 칸 안에서만 가로 스크롤 */
+.v2-hscroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* 한꺼번에 바꾸기 막대 (아래 탭 위에 고정) */
+.v2-bulk { position: fixed; left: 8px; right: 8px; bottom: calc(66px + env(safe-area-inset-bottom, 0px)); z-index: 45; background: #0F1F5C; color: #fff; border-radius: 16px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(15,31,92,.35); max-width: 720px; margin: 0 auto; }
+.v2-bbtn { height: 34px; padding: 0 10px; border-radius: 9px; border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.v2-bbtn.on { background: #fff; color: #0F1F5C; }
+.v2-bbtn:disabled { opacity: .45; }
+@media (min-width: 1024px) { .v2-bulk { left: 216px; bottom: 16px; } }
+/* 작은 꼬리표 */
+.v2-tag { display: inline-block; flex: 0 0 auto; font-size: 11px; font-weight: 800; padding: 2px 6px; border-radius: 6px; background: #EEF1F8; color: #24386B; }
+.v2-tag.turn { background: #24386B; color: #fff; }
+.v2-tag.red { background: #F8E9EA; color: #B4383F; }
+.v2-tag.green { background: #EAF4EE; color: #2F7D57; }
 /* 시트: 폰은 전체 화면, PC는 오른쪽 패널 */
 .v2-sheet-wrap { position: fixed; inset: 0; z-index: 50; background: rgba(15, 31, 92, .28); display: flex; justify-content: flex-end; }
 .v2-sheet { width: 100%; height: 100%; background: #F4F5F8; display: flex; flex-direction: column; }
+/* 시트가 열려 있으면 알림을 시트 아래 버튼(+ 다음 사람에게 한마디 칸) 위로 → 버튼을 가리지 않게 */
+.v2-sheet-wrap ~ .v2-toast { bottom: calc(128px + env(safe-area-inset-bottom, 0px)); }
 .v2-toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 70; width: min(440px, calc(100% - 32px)); display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 14px; background: #0F1F5C; color: #fff; font-size: 14px; font-weight: 700; box-shadow: 0 8px 24px rgba(15,31,92,.3); }
 @media (min-width: 1024px) {
   .v2-nav { top: 0; right: auto; width: 200px; flex-direction: column; border-top: none; border-right: 1px solid #E3E7F0; padding: 18px 10px; gap: 4px; }
@@ -73,3 +113,20 @@ input[type=date] { min-width: 0; max-width: 100%; -webkit-appearance: none; appe
   .v2-page { max-width: 1040px; }
   .v2-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
 }
+
+/* 새 프로젝트 고르기 카드 */
+.v2-pick { display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: left; padding: 16px; border-radius: 16px; border: 1.5px solid #E3E7F0; background: #fff; font: inherit; cursor: pointer; }
+.v2-pick b { font-size: 16px; font-weight: 800; color: #0F1F5C; }
+.v2-pick span { font-size: 13.5px; color: #5B6475; line-height: 1.5; word-break: keep-all; }
+.v2-pick:hover, .v2-pick:focus-visible { border-color: #24386B; }
+/* 신제품 7단계 띠 (끝남 = 연한 네이비 채움, 지금 = 네이비 테두리, 지난 항목 = 빨간 테두리) */
+.v2-phases { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-top: 12px; }
+.v2-ph { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 50px; padding: 0 2px; border-radius: 10px; border: 1.5px solid #E3E7F0; background: #fff; font: inherit; cursor: pointer; min-width: 0; }
+.v2-ph .nm { font-size: 11.5px; font-weight: 700; color: #5B6475; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.v2-ph .c { font-size: 14px; font-weight: 800; color: #0F1F5C; }
+.v2-ph.done { background: #E3E8F4; border-color: #E3E8F4; }
+.v2-ph.done .c { color: #24386B; font-size: 13px; }
+.v2-ph.cur { border: 2px solid #24386B; }
+.v2-ph.late { border: 2px solid #B4383F; }
+.v2-ph.late .c { color: #B4383F; }
+@media (min-width: 768px) { .v2-ph { height: 56px; } .v2-ph .nm { font-size: 12.5px; } }

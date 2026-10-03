@@ -54,6 +54,13 @@ export async function putMany(ops, onProgress, opt) {
     await b.commit(); onProgress && onProgress(Math.min(ops.length, i + 400), ops.length);
   }
 }
+// 여러 건의 바뀐 칸만 한 번에 (400건씩) — [{key, id, fields}]
+export async function patchMany(ops, onProgress) {
+  for (let i = 0; i < ops.length; i += 400) {
+    const b = writeBatch(db); ops.slice(i, i + 400).forEach((o) => b.update(v2doc(o.key, o.id), o.fields));
+    await b.commit(); onProgress && onProgress(Math.min(ops.length, i + 400), ops.length);
+  }
+}
 // v1 읽기 전용
 export async function readV1State() {
   const snap = await getDocs(collection(db, "pour-os"));

@@ -27,6 +27,18 @@ export function ago(iso, now = new Date()) {
   return md(ymd(t));
 }
 export const dayTitle = (now) => `${now.getMonth() + 1}월 ${now.getDate()}일 (${WD[now.getDay()]})`;
+// 공휴일 (기한 계산에서 건너뜀 · 달력 날짜 회색). 음력 공휴일은 해마다 직접 넣는다
+export const KR_HOLIDAYS = {
+  "2026-10-03": "개천절", "2026-10-05": "개천절 대체공휴일", "2026-10-09": "한글날", "2026-12-25": "성탄절",
+  "2027-01-01": "신정", "2027-02-06": "설날 연휴", "2027-02-07": "설날", "2027-02-08": "설날 연휴", "2027-02-09": "설날 대체공휴일",
+  "2027-03-01": "삼일절", "2027-05-05": "어린이날", "2027-05-13": "부처님오신날", "2027-06-06": "현충일", "2027-08-15": "광복절", "2027-08-16": "광복절 대체공휴일",
+  "2027-09-14": "추석 연휴", "2027-09-15": "추석", "2027-09-16": "추석 연휴", "2027-10-03": "개천절", "2027-10-04": "개천절 대체공휴일",
+  "2027-10-09": "한글날", "2027-10-11": "한글날 대체공휴일", "2027-12-25": "성탄절", "2027-12-27": "성탄절 대체공휴일",
+};
+export const holidayName = (key) => KR_HOLIDAYS[key] || "";
+export const isOffDay = (key) => { const w = new Date(key + "T00:00:00").getDay(); return w === 0 || w === 6 || !!KR_HOLIDAYS[key]; };
+export const prevWorkday = (key) => { let k = key; for (let i = 0; i < 14 && isOffDay(k); i++) k = addDays(k, -1); return k; };
+export const nextWorkday = (key) => { let k = key; for (let i = 0; i < 14 && isOffDay(k); i++) k = addDays(k, 1); return k; };
 
 // ── 사람 ──
 export const DEFAULT_MASTER_NAMES = ["김송희", "이란", "김소연", "허지은"];
@@ -96,7 +108,7 @@ export function riskOf(t, key) {
   if (t.blocked) return { k: "blocked", label: "막힘", red: true };
   if (n != null && n < 0 && t.status !== "review") return { k: "late", label: `${-n}일 지남`, red: true };
   if (t.status === "review") return { k: "review", label: "확인 대기" };
-  if (t.feedback) return { k: "feedback", label: "수정 요청", red: true };
+  if (t.feedback) return { k: "feedback", label: "수정 요청" };   // 빨강은 지남·막힘에만
   if (n === 0) return { k: "today", label: "오늘 마감" };
   if (n != null && n <= 2 && t.status === "todo") return { k: "start", label: n === 1 ? "내일 마감 · 시작 전" : "D-2 · 시작 전" };
   if (n === 1) return { k: "soon", label: "내일 마감" };
@@ -104,15 +116,18 @@ export function riskOf(t, key) {
   return null;
 }
 // 지금 할 일 고르는 순서 (한 번에 하나): 수정 요청 → 지난 일 → 진행 중 → 오늘 마감 → 곧 마감(시작 전) → 마감 가까운 순 → 날짜 없음
-export function focusRank(t, key) {
+// fresh = 방금 앞 일이 끝나 '이제 내 차례'가 된 일 (turn.js). 기한 7일 안이면 지난 일보다 먼저, 아니면 진행 중 다음
+export function focusRank(t, key, fresh) {
   const n = ddays(dueOf(t), key);
-  if (t.feedback) return 0; if (n != null && n < 0) return 1; if (t.status === "inprogress") return 2; if (n === 0) return 3;
-  if (n != null && n <= 2) return 4; if (n != null) return 5; return 6;
+  if (t.feedback) return 0; if (fresh && n != null && n <= 7) return 0.5; if (n != null && n < 0) return 1; if (t.status === "inprogress") return 2;
+  if (fresh) return 2.5; if (n === 0) return 3; if (n != null && n <= 2) return 4; if (n != null) return 5; return 6;
 }
 
 // ── 오늘 화면 ──
 // seen: {id:true} 이 기기에서 이미 본 것 (댓글·결과 알림만. 할 일이 남은 알림은 처리해야 사라짐)
-export function todayView(D, uid, now = new Date(), seen = {}) {
+// T (turn.js turnsOf 결과, 없어도 됨): {temp:Set 임시 담당, fresh:Set 이제 내 차례, inbox:[차례 알림], shownNotes:Set 카드에 보이는 앞 일 마지막 말, predIds:Set 내 일의 앞 일}
+export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
+  const temp = (T && T.temp) || new Set(), fresh = (T && T.fresh) || new Set();
   const key = ymd(now), nowMin = now.getHours() * 60 + now.getMinutes();
   const tasks = D.tasks || [], users = D.users || [];
   // 오늘 고정업무 — 오늘 해당분만, 시간순
@@ -122,8 +137,8 @@ export function todayView(D, uid, now = new Date(), seen = {}) {
   const fixed = { left: fx.filter((x) => !x.me).map((x) => ({ ...x, late: x.min < 9999 && x.min < nowMin })), done: fx.filter((x) => x.me), total: fx.length };
   // 내 할 일 (확인 대기·보류 빼고) — 지금 할 일 순서대로
   const open = tasks.filter((t) => isOneOff(t) && !isDone(t) && isMine(t, uid));
-  const active = open.filter((t) => t.status !== "review" && t.status !== "hold");
-  const ranked = active.map((t) => ({ t, r: focusRank(t, key), n: ddays(dueOf(t), key), risk: riskOf(t, key) }))
+  const active = open.filter((t) => t.status !== "review" && t.status !== "hold" && !temp.has(t.id));   // 임시 담당(책임자로 채운 신제품 항목)은 '정리'로만
+  const ranked = active.map((t) => ({ t, r: focusRank(t, key, fresh.has(t.id)), n: ddays(dueOf(t), key), risk: riskOf(t, key), fresh: fresh.has(t.id) }))
     .sort((a, b) => a.r - b.r || (a.n ?? 999) - (b.n ?? 999) || String(a.t.title).localeCompare(String(b.t.title)));
   const focus = ranked.filter((x) => x.r <= 4);              // 오늘 화면에 보일 급한 일
   const late = ranked.filter((x) => x.n != null && x.n < 0);  // 지난 일 정리 대상
@@ -131,14 +146,19 @@ export function todayView(D, uid, now = new Date(), seen = {}) {
   // 확인할 것
   const myProj = new Set((D.projects || []).filter((p) => p.assigneeId === uid || (p.collaboratorIds || []).includes(uid)).map((p) => p.id));
   const since = new Date(now - 7 * 86400000).toISOString();
-  const inbox = []; const launchNew = {};
+  const inbox = []; const launchNew = {}, bulkNew = {};
+  // '이제 내 차례' 카드에 '앞 일 마지막 말'로 보이는 댓글 하나만 댓글 줄로 또 띄우지 않음 (T.shownNotes · 없으면 예전처럼 앞 일들의 한마디)
+  const shown = T && T.shownNotes instanceof Set ? T.shownNotes : null;
+  const freshPreds = new Set(); if (!shown && T && T.byTask) fresh.forEach((id) => ((T.byTask.get(id) || {}).preds || []).forEach((p) => freshPreds.add(p.id)));
+  const predIds = (T && T.predIds instanceof Set) ? T.predIds : new Set();   // 내 열린 일의 앞 일 → 거기 남긴 한마디는 프로젝트 멤버가 아니어도 나에게
   tasks.forEach((t) => {
     if (isDone(t) || t.isFixed) return;
     const mine = isMine(t, uid);
-    if (mine && t.feedback && t.status !== "review") inbox.push({ kind: "feedback", tag: "수정 요청", red: true, id: "fb:" + t.id, taskId: t.id, title: t.title, who: t.feedback.by, whoName: t.feedback.byName, at: t.feedback.at, text: t.feedback.text, keep: true });
-    else if (mine && reqOf(t) && !t.ackAt && t.status === "todo") {
-      if (t.launchItem) { const g = (launchNew[t.projectId] = launchNew[t.projectId] || { n: 0, who: t.requestedBy, at: t.requestedAt }); g.n++; }
-      else inbox.push({ kind: "assigned", tag: "맡김", id: "as:" + t.id, taskId: t.id, title: t.title, who: t.requestedBy, at: t.requestedAt, text: dueOf(t) ? `기한 ${md(dueOf(t))}` : "", keep: true });
+    if (mine && t.feedback && t.status !== "review") inbox.push({ kind: "feedback", tag: "수정 요청", id: "fb:" + t.id, taskId: t.id, title: t.title, who: t.feedback.by, whoName: t.feedback.byName, at: t.feedback.at, text: t.feedback.text, keep: true });
+    else if (mine && (reqOf(t) || (t.assignedBy && t.assignedBy !== uid)) && !t.ackAt && t.status === "todo" && !temp.has(t.id)) {
+      if (t.bulkId) { const g = (bulkNew[t.bulkId] = bulkNew[t.bulkId] || { n: 0, who: t.assignedBy, at: t.assignedAt, pid: t.projectId, ids: [] }); g.n++; g.ids.push(t.id); }
+      else if (t.launchItem) { const g = (launchNew[t.projectId] = launchNew[t.projectId] || { n: 0, who: t.assignedBy || t.requestedBy, at: t.assignedAt || t.requestedAt }); g.n++; }
+      else inbox.push({ kind: "assigned", tag: "맡김", id: "as:" + t.id, taskId: t.id, title: t.title, who: reqOf(t) || t.assignedBy, at: (reqOf(t) && t.requestedAt) || t.assignedAt || t.requestedAt, text: dueOf(t) ? `기한 ${md(dueOf(t))}` : "", keep: true });
     }
     if (t.dueReq && dueApprover(t, D) === uid) inbox.push({ kind: "dueReq", tag: "기한 조정", id: "dq:" + t.id, taskId: t.id, title: t.title, who: t.dueReq.by, whoName: t.dueReq.byName, at: t.dueReq.at, text: `${md(dueOf(t)) || "미정"} → ${md(t.dueReq.date)}${t.dueReq.reason ? " · " + t.dueReq.reason : ""}`, keep: true });
     if (t.status === "review" && (t.reviewTo || reqOf(t)) === uid) inbox.push({ kind: "review", tag: "확인 요청", id: "rv:" + t.id, taskId: t.id, title: t.title, who: ownersOf(t)[0], at: t.reviewAt || t.updatedAt, text: "끝냈어요 · 확인해 주세요", keep: true });
@@ -147,20 +167,27 @@ export function todayView(D, uid, now = new Date(), seen = {}) {
   });
   Object.entries(launchNew).forEach(([pid, g]) => { const p = (D.projects || []).find((x) => x.id === pid);
     inbox.push({ kind: "launchNew", tag: "신제품", id: "ln:" + pid, projectId: pid, title: `${p ? p.title : "신제품"} · 항목 ${g.n}개 맡김`, who: g.who, at: g.at, text: "열어서 기한을 확인하고 '받았어요'를 눌러 주세요", keep: true }); });
+  Object.entries(bulkNew).forEach(([bid, g]) => { const p = (D.projects || []).find((x) => x.id === g.pid);
+    inbox.push({ kind: "bulk", tag: "맡김", id: "bl:" + bid, bulkIds: g.ids, projectId: g.pid, title: `${p ? p.title + " · " : ""}항목 ${g.n}개 맡김`, who: g.who, at: g.at, text: "기한을 확인하고 '받았어요'를 눌러 주세요", keep: true }); });
+  if (T && Array.isArray(T.inbox)) T.inbox.forEach((x) => inbox.push(x));
   const taskById = Object.fromEntries(tasks.map((t) => [t.id, t]));
   (D.notes || []).forEach((n) => {
     if (!n || n.deleted || n.by === uid || (n.at || "") < since || seen["nt:" + n.id]) return;
     const [kind, ...rest] = String(n.itemId || "").split(":"); const ref = rest.join(":");
     let hit = null;
-    if (kind === "task") { const t = taskById[ref]; if (t && (isMine(t, uid) || reqOf(t) === uid || myProj.has(t.projectId))) hit = { taskId: ref, title: t.title }; }
+    if (kind === "task") { const t = taskById[ref]; if (shown ? shown.has(n.id) : n.handoff && freshPreds.has(ref)) return;
+      if (t && (isMine(t, uid) || reqOf(t) === uid || myProj.has(t.projectId) || (n.handoff && predIds.has(ref)))) hit = { taskId: ref, title: t.title }; }
     else if (kind === "proj" && myProj.has(ref)) { const p = (D.projects || []).find((x) => x.id === ref); hit = { projectId: ref, title: p ? p.title : "프로젝트" }; }
     if (hit) inbox.push({ kind: "note", tag: "댓글", id: "nt:" + n.id, ...hit, who: n.by, whoName: n.byName, at: n.at, text: n.text });
   });
-  const ORDER = { feedback: 0, review: 1, dueReq: 2, blocked: 3, assigned: 4, launchNew: 5, dueRes: 6, note: 7 };
-  inbox.sort((a, b) => ORDER[a.kind] - ORDER[b.kind] || String(b.at || "").localeCompare(String(a.at || "")));
+  const ORDER = { feedback: 0, review: 1, dueReq: 2, blocked: 3, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, dueRes: 9, note: 10 };
+  inbox.sort((a, b) => (ORDER[a.kind] ?? 11) - (ORDER[b.kind] ?? 11) || String(b.at || "").localeCompare(String(a.at || "")));
   const userName = (id) => nameOf(users, id);
-  const doneToday = fixed.done.length + tasks.filter((t) => isOneOff(t) && isMine(t, uid) && (isDone(t) || t.status === "review") && String(t.doneAt || t.reviewAt || "").slice(0, 10) === key).length;
-  return { key, fixed, ranked, todo: ranked, focus, late, doing, inbox, userName, left: fixed.left.length + focus.length, doneToday };
+  // 끝낸 시각은 UTC(toISOString) → 기기 날짜로 바꿔 비교 (아침 9시 전에 끝낸 일도 오늘)
+  const localDay = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? ymd(d) : ""; };
+  const doneToday = fixed.done.length + tasks.filter((t) => isOneOff(t) && isMine(t, uid) && (isDone(t) || t.status === "review") && localDay(t.doneAt || t.reviewAt) === key).length;
+  const oneOffOpen = open.length;   // 0이면 '고정업무만 하는 사람' — 오늘 고정업무를 처음부터 펼침
+  return { key, fixed, ranked, todo: ranked, focus, late, doing, inbox, userName, left: fixed.left.length + focus.length, doneToday, oneOffOpen, freshN: ranked.filter((x) => x.fresh).length };
 }
 
 // ── 맡긴 일 (지시자) ──
@@ -182,9 +209,10 @@ export function assignedByMe(D, uid, now = new Date()) {
 }
 
 // ── 업무량 (맡기기 전에 보기) — 앞으로 14일 날짜별 마감 수 ──
-export function workloadOf(D, uid, now = new Date(), days = 14) {
+// skip: 빼고 셀 업무 id Set (예: 임시 담당)
+export function workloadOf(D, uid, now = new Date(), days = 14, skip = null) {
   const key = ymd(now);
-  const open = (D.tasks || []).filter((t) => isOneOff(t) && !isDone(t) && isMine(t, uid) && t.status !== "review");
+  const open = (D.tasks || []).filter((t) => isOneOff(t) && !isDone(t) && isMine(t, uid) && t.status !== "review" && !(skip && skip.has(t.id)));
   const byDay = {}; open.forEach((t) => { const d = dueOf(t); if (d) (byDay[d] = byDay[d] || []).push(t); });
   const week = [...Array(days)].map((_, i) => { const d = addDays(key, i); return { date: d, list: byDay[d] || [], wd: WD[new Date(d + "T00:00:00").getDay()] }; });
   const late = open.filter((t) => { const n = ddays(dueOf(t), key); return n != null && n < 0 && t.status !== "hold"; });
@@ -209,13 +237,30 @@ export function projStat(p, tasks, key) {
   const pct = Math.max(0, Math.min(100, Math.round(Number(p.progress) || 0)));
   return { open: open.length, next, n, pct, late: n != null && n < 0 };
 }
+// 프로젝트 날짜 하나 → { date, n(D-day), late(빨강), launched(출시함), after(출시 후 며칠) }
+// 출시일이 지난 신제품(lb_): 출시 뒤 항목(리뷰·체험단·광고)이 남아 있으므로 날짜 = 남은 항목의 가장 늦은 기한(없으면 출시일+21일),
+//   빨강 = 남은 항목이 실제로 지났거나 막혔을 때만. 그 밖의 프로젝트: 날짜 = 마감(없으면 출시일), 빨강 = 날짜 지남
+export function projWhen(p, tasks, key) {
+  const ld = String((p && p.launchDate) || "").slice(0, 10);
+  if (String((p && p.id) || "").startsWith("lb_") && ld && ld < key) {
+    const open = (tasks || []).filter((t) => t && t.projectId === p.id && !t.isFixed && !isDone(t) && t.status !== "review");
+    const dues = open.map(dueOf).filter(Boolean).sort(), date = dues.length ? dues[dues.length - 1] : addDays(ld, 21);
+    const late = open.some((t) => { const r = riskOf(t, key); return !!r && (r.k === "late" || r.k === "blocked"); });
+    return { date, n: ddays(date, key), late, launched: true, after: -ddays(ld, key) };
+  }
+  const date = String((p && (p.dueDate || p.launchDate)) || "").slice(0, 10), n = ddays(date, key);
+  return { date, n, late: n != null && n < 0, launched: false };
+}
 // 묶음: 마감 지남 · 이번 달 · 그 뒤 · 마감 없음 · 보류
-export function projGroups(list, key) {
-  const ym = key.slice(0, 7), g = { late: [], month: [], later: [], none: [], hold: [] };
+// tasks 를 주면 projWhen 날짜로 묶음 (출시한 신제품은 남은 항목 기한으로 · 늦은 항목 없이 날짜만 지났으면 '7일 안'). 2개만 주면 예전처럼 마감(dueDate)으로
+export function projGroups(list, key, tasks) {
+  const ym = key.slice(0, 7), wkEnd = addDays(key, 6), g = { late: [], week: [], month: [], later: [], none: [], hold: [] };   // week = 7일 안 (주말에도 다음 주 초가 보이게)
+  const dOf = new Map(list.map((p) => { if (!tasks) return [p, String(p.dueDate || "").slice(0, 10)];
+    const w = projWhen(p, tasks, key); return [p, w.launched && !w.late && w.date && w.date < key ? key : w.date]; }));
   list.forEach((p) => { if (p.status === "hold" || p.status === "paused") return g.hold.push(p);
-    const d = String(p.dueDate || "").slice(0, 10); if (!d) return g.none.push(p);
-    if (d < key) g.late.push(p); else if (d.slice(0, 7) === ym) g.month.push(p); else g.later.push(p); });
-  const byDue = (a, b) => String(a.dueDate || "").localeCompare(String(b.dueDate || "")) || String(a.title).localeCompare(String(b.title));
+    const d = dOf.get(p); if (!d) return g.none.push(p);
+    if (d < key) g.late.push(p); else if (d <= wkEnd) g.week.push(p); else if (d.slice(0, 7) === ym) g.month.push(p); else g.later.push(p); });
+  const byDue = (a, b) => String(dOf.get(a) || "").localeCompare(String(dOf.get(b) || "")) || String(a.title).localeCompare(String(b.title));
   Object.values(g).forEach((a) => a.sort(byDue));
   return g;
 }
@@ -244,7 +289,7 @@ export function ownerIssues(D) {
 
 // ── 소식 (댓글 + 기록) ──
 export const LOG_L = { add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", take: "이어받음", comment: "댓글", delete: "휴지통으로",
-  ack: "받음", dueReq: "기한 조정 요청", dueOk: "기한 조정 수락", dueNo: "기한 유지", review: "확인 요청", approve: "확인 완료", feedback: "수정 요청", block: "막힘", unblock: "막힘 풀림", launch: "신제품 만듦" };
+  ack: "받음", dueReq: "기한 조정 요청", dueOk: "기한 조정 수락", dueNo: "기한 유지", review: "확인 요청", approve: "확인 완료", feedback: "수정 요청", block: "막힘", unblock: "막힘 풀림", launch: "신제품 만듦", bulk: "한꺼번에 바꿈", deps: "앞 일 바꿈" };
 export function feedOf(D, { projectId, taskIds, sinceIso } = {}) {
   const tset = taskIds ? new Set(taskIds) : null;
   const notes = (D.notes || []).filter((n) => !n.deleted && (!sinceIso || (n.at || "") >= sinceIso)).filter((n) => {
@@ -299,19 +344,19 @@ export function monthGrid(ym) {
   return weeks;
 }
 export const shiftMonth = (ym, n) => { const d = new Date(ym + "-01T00:00:00"); d.setMonth(d.getMonth() + n); return ymd(d).slice(0, 7); };
-// 달력에 올릴 업무 (필터: 프로젝트·담당·신제품만·끝난 것)
+// 달력에 올릴 업무 (거르기: 프로젝트·담당·끝난 것 · noTemp: 빼고 셀 임시 담당 Set)
 export function calItems(D, f = {}, key) {
   return (D.tasks || []).filter((t) => isOneOff(t) && dueOf(t) && (f.showDone || !isDone(t))
-    && (!f.projectId || t.projectId === f.projectId) && (!f.uid || isMine(t, f.uid)) && (!f.launchOnly || String(t.projectId || "").startsWith("lb_")))
+    && (!f.projectId || t.projectId === f.projectId) && (!f.uid || isMine(t, f.uid)) && !(f.noTemp && f.noTemp.has(t.id)))
     .map((t) => ({ t, date: dueOf(t), risk: riskOf(t, key) }));
 }
 // 프로젝트가 잘 가고 있나: 위험(지난 항목·막힘 또는 마감 7일 안인데 60% 미만) · 주의(곧 마감인데 시작 전 · 담당 없음) · 순조
-export function projHealth(p, D, key) {
+export function projHealth(p, D, key, pctOf = null) {
   const ts = (D.tasks || []).filter((t) => t.projectId === p.id && !t.isFixed), open = ts.filter((t) => !isDone(t));
   const late = open.filter((t) => { const r = riskOf(t, key); return r && (r.k === "late" || r.k === "blocked"); }).length;
   const start = open.filter((t) => { const r = riskOf(t, key); return r && (r.k === "start" || r.k === "today"); }).length;
   const noOwner = open.filter((t) => !ownersOf(t).length).length;
-  const pct = Math.max(0, Math.min(100, Math.round(Number(p.progress) || 0))), n = ddays(p.dueDate, key);
+  const pct = pctOf ? pctOf(p) : Math.max(0, Math.min(100, Math.round(Number(p.progress) || 0))), n = ddays(p.dueDate, key);
   const why = [];
   if (late) why.push(`지난 일 ${late}`); if (n != null && n < 0 && open.length) why.push(`마감 ${-n}일 지남`); else if (n != null && n <= 7 && pct < 60 && open.length) why.push(`마감 D-${n}인데 ${pct}%`);
   const level = why.length ? "위험" : start || noOwner ? "주의" : "순조";

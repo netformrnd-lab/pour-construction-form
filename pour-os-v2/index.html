@@ -29,6 +29,15 @@
       .v2-lab { display: block; font-size: 13px; font-weight: 800; color: #0F1F5C; margin: 18px 2px 8px; }
       .v2-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
       .v2-sel { height: 38px; border: 1.5px solid #E3E7F0; border-radius: 999px; padding: 0 12px; font: inherit; font-size: 13px; font-weight: 700; color: #5B6475; background: #fff; max-width: 100%; }
+      /* 2주 일정 띠 (가로 스크롤은 이 안에서만) */
+      .v2-strip { display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 2px 6px; scrollbar-width: thin; }
+      .v2-day { flex: 0 0 58px; height: 66px; border-radius: 12px; border: 1.5px solid #E3E7F0; background: #fff; font: inherit; color: #5B6475; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; cursor: pointer; padding: 0; }
+      .v2-day span { font-size: 12px; font-weight: 700; }
+      .v2-day b { font-size: 13px; font-weight: 800; color: #0F1F5C; }
+      .v2-day b.hv { color: #fff; background: #0F1F5C; border-radius: 6px; padding: 0 5px; }
+      .v2-day.we { background: #F7F8FB; }
+      .v2-day.on { border-color: #24386B; background: #24386B; color: #DCE2F2; }
+      .v2-day.on b { color: #fff; }
       /* 시트: 폰은 전체 화면, PC는 오른쪽 패널 */
       .v2-sheet-wrap { position: fixed; inset: 0; z-index: 50; background: rgba(15, 31, 92, .28); display: flex; justify-content: flex-end; }
       .v2-sheet { width: 100%; height: 100%; background: #F4F5F8; display: flex; flex-direction: column; }

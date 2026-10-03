@@ -39,7 +39,7 @@ ok("오늘: 맡긴 일·내 일 댓글이 '확인할 것'에, 본 것은 빠짐"
     notes: [{ id: "n1", itemId: "task:t2", by: "b", at: "2026-10-02T09:30:00Z", text: "봐 주세요" }, { id: "n2", itemId: "task:t1", by: "a", at: "2026-10-02T09:31:00Z" }] };
   const v = M.todayView(D, "a", now, {});
   assert.deepEqual(v.inbox.map((x) => x.id).sort(), ["as:t1", "nt:n1"]);
-  assert.equal(M.todayView(D, "a", now, { "as:t1": true }).inbox.length, 1);
+  assert.equal(M.todayView(D, "a", now, { "as:t1": true, "nt:n1": true }).inbox.length, 1);   // 맡김은 '받았어요' 전까지 남음
   assert.deepEqual(v.focus.map((x) => x.t.id), ["t3"]);   // 먼 일·날짜 없는 일은 '모두 보기'에
   assert.equal(v.todo.length, 3);
 });
@@ -52,4 +52,43 @@ ok("프로젝트 묶음: 지남·이번 달·그 뒤·없음·보류", () => {
   assert.deepEqual(Object.fromEntries(Object.entries(g).map(([k, v]) => [k, v.map((p) => p.id)])), { late: [1], month: [2], later: [3], none: [4], hold: [5] });
 });
 ok("D-day 글자", () => { assert.equal(M.ddayLabel(M.ddays("2026-10-01", "2026-10-02")), "1일 지남"); assert.equal(M.ddayLabel(0), "오늘"); assert.equal(M.ddayLabel(3), "D-3"); });
+ok("흐름: 맡긴 사람·확인 필요·기한 허락", () => {
+  const D = { projects: [{ id: "p", assigneeId: "lead" }] };
+  const t = { id: "x", assigneeId: "a", requestedBy: "b", status: "todo" };
+  assert.equal(M.reqOf(t), "b"); assert.equal(M.needsReview(t), true); assert.equal(M.needsReview({ ...t, noReview: true }), false);
+  assert.equal(M.reqOf({ assigneeId: "a", requestedBy: "a" }), "");                       // 내가 나에게 = 맡김 아님
+  assert.equal(M.canSetDue(t, "a", D, false), false); assert.equal(M.canSetDue(t, "b", D, false), true); assert.equal(M.canSetDue(t, "a", D, true), true);
+  const u = { id: "y", assigneeId: "a", projectId: "p", launchItem: "s07" };                 // 신제품 항목은 제품 책임자가 허락
+  assert.equal(M.dueApprover(u, D), "lead"); assert.equal(M.dueApprover({ id: "w", assigneeId: "a", projectId: "p" }, D), "");   // 예전 일은 담당이 바로 assert.equal(M.canSetDue({ id: "z", assigneeId: "a" }, "a", D, false), true);
+});
+ok("위험 신호: 막힘 > 지남 > 확인 대기 > 오늘 > 곧 마감인데 시작 전", () => {
+  const k = "2026-10-02";
+  assert.equal(M.riskOf({ dueDate: "2026-10-01", blocked: { reason: "x" } }, k).k, "blocked");
+  assert.equal(M.riskOf({ dueDate: "2026-10-01", status: "todo" }, k).label, "1일 지남");
+  assert.equal(M.riskOf({ dueDate: "2026-10-02", status: "inprogress" }, k).k, "today");
+  assert.equal(M.riskOf({ dueDate: "2026-10-04", status: "todo" }, k).k, "start");
+  assert.equal(M.riskOf({ dueDate: "2026-10-04", status: "inprogress" }, k), null);
+  assert.equal(M.riskOf({ dueDate: "2026-10-01", status: "done" }, k), null);
+});
+ok("확인할 것: 확인 요청·기한 조정·막힘은 맡긴 사람에게, 수정 요청은 담당에게", () => {
+  const now = new Date("2026-10-02T10:00:00");
+  const D = { users: [], projects: [], notes: [], tasks: [
+    { id: "r", title: "확인", assigneeId: "a", requestedBy: "b", status: "review", reviewAt: "2026-10-02T09:00:00Z", ackAt: "x" },
+    { id: "q", title: "조정", assigneeId: "a", requestedBy: "b", status: "todo", ackAt: "x", dueDate: "2026-10-03", dueReq: { date: "2026-10-06", by: "a", at: "2026-10-02T08:00:00Z" } },
+    { id: "k", title: "막힘", assigneeId: "a", requestedBy: "b", status: "inprogress", blocked: { reason: "자료 없음", by: "a", at: "2026-10-02T07:00:00Z" } },
+    { id: "f", title: "수정", assigneeId: "a", requestedBy: "b", status: "inprogress", feedback: { text: "색 바꿔 주세요", by: "b", at: "2026-10-02T06:00:00Z" } }] };
+  assert.deepEqual(M.todayView(D, "b", now).inbox.map((x) => x.kind), ["review", "dueReq", "blocked"]);
+  assert.deepEqual(M.todayView(D, "a", now).inbox.map((x) => x.kind), ["feedback"]);
+  assert.equal(M.todayView(D, "a", now).ranked[0].t.id, "f");   // 지금 할 일 1순위 = 수정 요청
+  const g = M.assignedByMe(D, "b", now); assert.deepEqual([g.review.length, g.dueReq.length, g.blocked.length, g.doing.length], [1, 1, 1, 1]);
+});
+ok("업무량: 14일 날짜별 마감 + 지남", () => {
+  const D = { tasks: [{ id: 1, assigneeId: "a", status: "todo", dueDate: "2026-10-02" }, { id: 2, assigneeId: "a", status: "todo", dueDate: "2026-10-05" }, { id: 3, assigneeId: "a", status: "todo", dueDate: "2026-09-01" }, { id: 4, assigneeId: "a", status: "done", dueDate: "2026-10-05" }] };
+  const w = M.workloadOf(D, "a", new Date("2026-10-02T09:00:00"));
+  assert.equal(w.open, 3); assert.equal(w.late, 1); assert.equal(w.week[0].list.length, 1); assert.equal(w.week[3].list.length, 1); assert.equal(w.week[3].wd, "월");
+});
+ok("기한 지킨 비율", () => {
+  const D = { tasks: [{ assigneeId: "a", status: "done", dueDate: "2026-10-01", doneAt: "2026-09-30T05:00:00" }, { assigneeId: "a", status: "done", dueDate: "2026-10-01", doneAt: "2026-10-02T05:00:00" }] };
+  assert.deepEqual(M.onTimeOf(D, "a", new Date("2026-10-02T10:00:00")), { n: 2, ok: 1, pct: 50 });
+});
 console.log(`\n${n}개 모두 통과`);

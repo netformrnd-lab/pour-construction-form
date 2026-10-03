@@ -62,6 +62,7 @@ export async function readV1State() {
   console.log(`[v1 읽기] ${Object.keys(out).length}개 칸`);
   return out;
 }
+export async function readV1Launch() { const snap = await getDocs(collection(db, "pour-os", "launch-board", "products")); console.log(`[v1 신제품 읽기] ${snap.size}건`); return snap.docs.map((d) => ({ ...d.data(), id: d.id })); }
 export async function readV1Notes() { const snap = await getDocs(collection(db, "pour-os", "ak-notes", "c")); console.log(`[v1 댓글 읽기] ${snap.size}건`); return snap.docs.map((d) => ({ ...d.data(), id: d.data().id || d.id })); }
 // 파일 올리기 (task-attachments/v2/{대상}/…)
 export async function upload(target, file) {

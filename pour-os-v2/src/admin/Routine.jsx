@@ -3,7 +3,7 @@
 //  행동지표(AARRR): 정의 = 버전1 state-actionKPIs · 주별 실적 = 버전1 kpi-act-YYYY-Qn — 둘 다 '읽기만' (기록은 버전1 반복 실행에서)
 import { useEffect, useMemo, useState } from "react";
 import * as fb from "../fb.js";
-import { ymd, md, activeUsers, nameOf, fxPeople, fxMeDone, fxRecurL, fxDueOn, fxDoneOn } from "../model.js";
+import { ymd, md, activeUsers, nameOf, fxPeople, fxMeDone, fxRecurL, fxDueOn, fxDoneOn, fxMin } from "../model.js";
 import {
   AK_FUNS, AK_CYC, akYmd, akWeeksIn, akQuarterWeeks, akQidOfMonth, akVal, akWeekDone, akTotal, akCountable, akFullWeek, akPartial, akPeriodEnd, akGoalText, akWho, akOrder, akLink,
 } from "../../../pour-os/src/actionKpi.js";
@@ -65,18 +65,21 @@ function FixedBoard({ D, fx, paused, who, keyD, open }) {
   const rows = fx.filter((t) => pairs(t).length);
   const by = (rt) => rows.filter((t) => (t.recurType || "daily") === rt);
   const cnt = (list) => { let d = 0, n = 0; list.forEach((t) => pairs(t).forEach((u) => { n++; if (fxMeDone(t, u, keyD)) d++; })); return [d, n]; };
+  // 시간 순서: 고른 사람의 시간(사람마다 다르게 정한 시간) → 아무 사람 중 가장 이른 시간 → 시간 없음은 맨 아래
+  const tmin = (t) => Math.min(...(who === "all" ? [undefined, ...fxPeople(D.users, t)] : [who]).map((u) => fxMin(t, u)));
+  const tlab = (t) => { const m = tmin(t); return m >= 9999 ? "" : `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; };
   const today = (t) => (t.recurType || "daily") !== "daily" || fxDueOn(t, keyD);
   return <section aria-label="고정업무" className="a-rtsec">
-    <h2 className="a-rth">고정업무 <span>운영 · 체크하면 끝 · 사람마다 한 칸{paused ? ` · 멈춘 ${paused}개 빼고` : ""}</span></h2>
+    <h2 className="a-rth">고정업무 <span>정한 시간 순서 · 체크하면 끝 · 사람마다 한 칸{paused ? ` · 멈춘 ${paused}개 빼고` : ""}</span></h2>
     <div className="a-rtiles">{RT.map(([rt, l, w]) => { const [d, n] = cnt(by(rt).filter(today)); return <div key={rt}>{tile(`${l} · ${w}`, d, n, n ? `${Math.round((d / n) * 100)}%` : "")}</div>; })}</div>
     {rows.length === 0 ? <Card style={{ marginTop: 10 }}><Empty>고른 조건에 맞는 고정업무가 없어요</Empty></Card>
-    : RT.map(([rt, l, w]) => { const a = by(rt).sort((x, y) => cnt([x])[0] / (cnt([x])[1] || 1) - cnt([y])[0] / (cnt([y])[1] || 1) || String(x.title).localeCompare(String(y.title), "ko")); if (!a.length) return null;
+    : RT.map(([rt, l, w]) => { const a = by(rt).sort((x, y) => tmin(x) - tmin(y) || String(x.title).localeCompare(String(y.title), "ko")); if (!a.length) return null;
       const m = more[rt], shown = m ? a : a.slice(0, 8), [d, n] = cnt(a);
       return <div key={rt} className="a-rtgrp">
         <div className="a-rtgh"><b>{l}</b><span>{w} {d} / {n}</span></div>
         <div className="a-rtlist">{shown.map((t) => { const ps = pairs(t), dn = ps.filter((u) => fxMeDone(t, u, keyD)).length;
           return <div key={t.id} className={"a-rtrow" + (dn === ps.length ? " all" : "")}>
-            <button type="button" className="a-rtname" onClick={() => open({ type: "task", id: t.id })}><b>{t.title}</b><small>{fxRecurL(t)}{t.brand ? ` · ${((D.brands || []).find((b) => b.id === t.brand) || {}).name || ""}` : " · 공통"}</small></button>
+            <button type="button" className="a-rtname" onClick={() => open({ type: "task", id: t.id })}><b>{t.title}</b><small>{tlab(t) ? `${tlab(t)} · ` : "시간 없음 · "}{fxRecurL(t)}{t.brand ? ` · ${((D.brands || []).find((b) => b.id === t.brand) || {}).name || ""}` : " · 공통"}</small></button>
             <div className="a-rtppl">{ps.map((u) => { const ok = fxMeDone(t, u, keyD), last = fxDoneOn(t, u);
               return <span key={u} className={"a-rtp" + (ok ? " ok" : "")} title={last ? `마지막 체크 ${md(last)}` : "체크 기록 없음"}>{ok ? "✓ " : ""}{nameOf(D.users, u) || "?"}</span>; })}</div>
             <span className="a-rtn">{dn}/{ps.length}</span>

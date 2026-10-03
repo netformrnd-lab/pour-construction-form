@@ -12,17 +12,23 @@ const ORD = { 위험: 0, 주의: 1, 순조: 2 };
 const sortRows = (rows) => rows.slice().sort((a, b) => ORD[a.level] - ORD[b.level] || b.weeks[0].n - a.weeks[0].n || String(a.u.name).localeCompare(String(b.u.name), "ko"));
 const wl = (n) => (n <= 0 ? "" : n <= 5 ? " w1" : n <= 14 ? " w2" : " w3");     // 주 칸 농도 (네이비 3단계)
 const dl = (n) => (n <= 0 ? "" : n <= 2 ? " w1" : n <= 5 ? " w2" : " w3");      // 하루 칸 농도 (개인 기준)
-const WEEK_L = ["이번 주", "다음 주", "2주 뒤", "3주 뒤"];   // 오늘부터 7일 · 8~14일 · 15~21일 · 22~28일 (칸 아래 시작 날짜)
+const wkL = (k) => (k === 0 ? "이번 주" : k === 1 ? "다음 주" : k === -1 ? "지난 주" : k > 0 ? `${k}주 뒤` : `${-k}주 전`);   // k = 오늘부터 7일 단위   // 오늘부터 7일 · 8~14일 · 15~21일 · 22~28일 (칸 아래 시작 날짜)
 
 export function PeopleTab({ D, cu, A, idx, open, setToast }) {
-  const [view, setView] = useLocal(LS("apview2-" + cu.id), "w4"), [noTemp, setNoTemp] = useState(false);
+  const [view, setView] = useLocal(LS("apview2-" + cu.id), "w4"), [noTemp, setNoTemp] = useState(false), [off, setOff] = useState(0);
   return <>
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
       <div style={{ flex: "1 1 180px", maxWidth: 260 }}><Seg items={[["w4", "4주"], ["d14", "14일"]]} value={view} onChange={setView} /></div>
       <Chip on={noTemp} onClick={() => setNoTemp(!noTemp)}>임시 빼기</Chip>
     </div>
-    <><p className="a-hint" style={{ marginTop: 10 }}>{view === "w4" ? "숫자 = 그 주 마감인 열린 일(고정업무·확인 대기 제외) · 이름 아래 완료 = 지난 7일 끝낸 일 · 빨간 숫자 = 주 한도 넘음 · 칸을 누르면 그 주 일을 골라 나눠요 · 이름을 누르면 사람 보기" : "숫자 = 그날 마감인 열린 일 · 빨간 숫자 = 하루 8건 넘음 · 칸을 누르면 그날 일을 골라요"}</p>
-    {view === "w4" ? <WeekTable D={D} idx={idx} open={open} noTemp={noTemp} /> : <DayTable D={D} idx={idx} open={open} noTemp={noTemp} />}</>
+    <><p className="a-hint" style={{ marginTop: 10 }}>{view === "w4" ? "큰 숫자 = 그 주 마감인 열린 일(지난 주는 아직 못 끝낸 일 · 고정업무·확인 대기 제외) · 초록 완료 = 그 주에 끝낸 일 · 빨간 숫자 = 주 한도 넘음 · 칸을 누르면 그 주 일을 골라 나눠요 · 이름을 누르면 사람 보기" : "숫자 = 그날 마감인 열린 일 · 빨간 숫자 = 하루 8건 넘음 · 칸을 누르면 그날 일을 골라요"}</p>
+    {view === "w4" && <div className="a-wknav">
+      <TBtn disabled={off <= -4} onClick={() => setOff(off - 1)}>‹ 지난 주</TBtn>
+      <b>{off === 0 ? "이번 주부터 4주" : `${wkL(off)}부터 4주`}</b>
+      <TBtn disabled={off >= 4} onClick={() => setOff(off + 1)}>다음 주 ›</TBtn>
+      {off !== 0 && <TBtn onClick={() => setOff(0)}>이번 주로</TBtn>}
+    </div>}
+    {view === "w4" ? <WeekTable D={D} idx={idx} open={open} noTemp={noTemp} off={off} /> : <DayTable D={D} idx={idx} open={open} noTemp={noTemp} />}</>
     <p className="a-hint">위험 = 지난 일 3개 이상이거나 기한 지킴 60% 미만 · 주의 = 지난 일·시작 전 일이 있거나 한 주 15건 이상 · 주 한도는 이름 › 사람 보기에서 고쳐요</p>
   </>;
 }
@@ -33,7 +39,7 @@ const doneN = (D, uid, since) => (D.tasks || []).filter((t) => !t.isFixed && isD
 // 끝낸 일 목록 (보기만)
 export function DoneSheet({ D, open, onBack, onClose, s }) {
   const u = (D.users || []).find((x) => x.id === s.uid);
-  const list = (D.tasks || []).filter((t) => !t.isFixed && isDone(t) && isMine(t, s.uid) && finAt(t) >= s.since).sort((a, b) => finAt(b).localeCompare(finAt(a)));
+  const list = (D.tasks || []).filter((t) => !t.isFixed && isDone(t) && isMine(t, s.uid) && finAt(t) >= s.since && (!s.until || finAt(t) < s.until)).sort((a, b) => finAt(b).localeCompare(finAt(a)));
   const pn = (t) => ((D.projects || []).find((p) => p.id === t.projectId) || {}).title || "";
   return <Sheet title={`${u ? u.name : "사람"} · 완료 ${list.length}건 · ${s.label}`} onBack={onBack} onClose={onClose}>
     <Card style={{ marginTop: 12 }}>{list.length === 0 ? <Empty>끝낸 일이 없어요</Empty> : list.map((t, i) => <Row key={t.id} title={t.title} tag={`✓ ${md(finAt(t).slice(0, 10))}`} sub={pn(t) || "프로젝트 없음"} onClick={() => open({ type: "task", id: t.id })} last={i === list.length - 1} />)}</Card>
@@ -41,13 +47,16 @@ export function DoneSheet({ D, open, onBack, onClose, s }) {
 }
 
 // 사람 × 4주 표 (한눈에 1280 에서도 같이 씀)
-export function WeekTable({ D, idx, open, noTemp }) {
+export function WeekTable({ D, idx, open, noTemp, off = 0 }) {
   const now = new Date(), key = ymd(now);
-  const rows = useMemo(() => { const d7 = new Date(now - 7 * 864e5).toISOString(); return sortRows(teamWeeks(D, idx, now, noTemp)).map((r) => ({ ...r, done7: doneN(D, r.u.id, d7) })); }, [D, idx, noTemp]);
+  const iso = (d) => new Date(d + "T00:00:00").toISOString();   // 그 날 0시(이 기기 시각) → 끝낸 시각과 비교
+  const rows = useMemo(() => { const d7 = new Date(now - 7 * 864e5).toISOString();
+    return sortRows(teamWeeks(D, idx, now, noTemp, off)).map((r) => ({ ...r, done7: doneN(D, r.u.id, d7),
+      weeks: r.weeks.map((w) => ({ ...w, done: w.from > key ? 0 : (D.tasks || []).filter((t) => !t.isFixed && isDone(t) && isMine(t, r.u.id) && finAt(t) >= iso(w.from) && finAt(t) < iso(addDays(w.to, 1))).length })) })); }, [D, idx, noTemp, off]);
   return <div className="a-wk" role="table" aria-label="사람별 4주 마감">
     <div className="a-wkr hd" role="row">
       <span role="columnheader">이름</span><span role="columnheader">지남</span>
-      {WEEK_L.map((l, i) => <span key={l} role="columnheader">{l}<small>{md(addDays(key, i * 7))}~</small></span>)}
+      {[0, 1, 2, 3].map((i) => <span key={i} role="columnheader">{wkL(off + i)}<small>{md(addDays(key, (off + i) * 7))}~</small></span>)}
     </div>
     {rows.map((r) => <div key={r.u.id} className="a-wkr" role="row">
       <button type="button" className="a-wkn" onClick={() => open({ type: "person", id: r.u.id })} aria-label={`${r.u.name} 사람 보기 · ${r.level}`}>
@@ -58,10 +67,12 @@ export function WeekTable({ D, idx, open, noTemp }) {
       </button>
       <button type="button" className="a-wc late" disabled={!r.late} onClick={() => open({ type: "apick", uid: r.u.id, late: true, noTemp })} aria-label={`${r.u.name} 지난 일 ${r.late}건`}>
         <b style={{ color: r.late ? C.red : C.mute }}>{r.late || "-"}</b></button>
-      {r.weeks.map((w, i) => { const overCap = w.n > r.cap;
-        return <button key={i} type="button" className={"a-wc" + wl(w.n)} disabled={!w.n} onClick={() => open({ type: "apick", uid: r.u.id, from: w.from, to: w.to, noTemp })}
-          aria-label={`${r.u.name} ${WEEK_L[i]} ${w.n}건${!noTemp && w.temp ? `, 임시 ${w.temp}` : ""}${overCap ? `, 주 한도 ${r.cap} 넘음` : ""}`}>
-          <b className={overCap ? "over" : ""}>{w.n || "-"}</b>{!noTemp && w.temp > 0 && <small>임시 {w.temp}</small>}</button>; })}
+      {r.weeks.map((w, i) => { const overCap = w.n > r.cap, past = w.to < key;
+        const go = w.n ? () => open({ type: "apick", uid: r.u.id, from: w.from, to: w.to, noTemp }) : w.done ? () => open({ type: "adone", uid: r.u.id, since: iso(w.from), until: iso(addDays(w.to, 1)), label: `${md(w.from)}~${md(w.to)}` }) : null;
+        return <button key={i} type="button" className={"a-wc" + (past ? " past" : wl(w.n))} disabled={!go} onClick={go || undefined}
+          aria-label={`${r.u.name} ${wkL(off + i)} ${past ? "못 끝낸 일" : "마감"} ${w.n}건, 완료 ${w.done}건${!noTemp && w.temp ? `, 임시 ${w.temp}` : ""}${overCap ? `, 주 한도 ${r.cap} 넘음` : ""}`}>
+          <b className={overCap ? "over" : ""} style={past && w.n ? { color: C.red } : null}>{w.n || "-"}</b>
+          {w.done > 0 && <small className="dn">완료 {w.done}</small>}{!noTemp && w.temp > 0 && <small>임시 {w.temp}</small>}</button>; })}
     </div>)}
   </div>;
 }

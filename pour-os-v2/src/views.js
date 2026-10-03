@@ -50,11 +50,11 @@ export function turnStartOf(T, key) {
 }
 
 // 사람 × 앞으로 4주 (관리자): 그 주 일회성 열린 마감 수 + 그중 임시 담당 수
-export function teamWeeks(D, idx, now, noTemp = false) {
+export function teamWeeks(D, idx, now, noTemp = false, off = 0) {   // off = 몇 주 앞(−)·뒤(+)부터 4칸
   const key = ymd(now), temp = (idx && idx.temp) || new Set();
   return activeUsers(D.users).map((u) => {
     const open = (D.tasks || []).filter((t) => openOneOff(t) && isMine(t, u.id));
-    const weeks = [0, 1, 2, 3].map((i) => { const a = addDays(key, i * 7), b = addDays(key, i * 7 + 6);
+    const weeks = [0, 1, 2, 3].map((i) => { const a = addDays(key, (off + i) * 7), b = addDays(key, (off + i) * 7 + 6);
       const ts = open.filter((t) => { const d = dueOf(t); return d && d >= a && d <= b; });
       const tp = ts.filter((t) => temp.has(t.id)).length; return { n: noTemp ? ts.length - tp : ts.length, temp: tp, from: a, to: b, tasks: noTemp ? ts.filter((t) => !temp.has(t.id)) : ts }; });
     const late = open.filter((t) => { const d = dueOf(t); return d && d < key && !(noTemp && temp.has(t.id)); });

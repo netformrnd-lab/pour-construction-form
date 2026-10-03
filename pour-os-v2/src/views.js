@@ -34,13 +34,19 @@ export function calCells(D, idx, o, ym, key) {
     if (who !== "*" && !o.pid && !(p.assigneeId === who || (p.collaboratorIds || []).includes(who) || (D.tasks || []).some((t) => t.projectId === p.id && !t.isFixed && isMine(t, who)))) return;
     cells[d].proj.push(p);
   });
-  // → 내 차례가 시작될 날: 기다리는 내 일의 남은 앞 일 기한 중 가장 늦은 날
-  if (o.turns) o.turns.byTask.forEach((T, id) => { if (T.state !== "wait" && T.state !== "late") return;
-    const last = T.open.map((p) => dueOf(p)).filter(Boolean).sort().pop(); if (last && cells[last]) cells[last].turnStart++; });
+  // → 내 차례가 시작될 날: 기다리는 내 일의 남은 앞 일 기한 중 가장 늦은 날 (이미 지난 날이면 오늘)
+  if (o.turns) o.turns.byTask.forEach((T) => { const d = turnStartOf(T, key); if (d && cells[d]) cells[d].turnStart++; });
   // 고정업무만 하는 사람: 그날 고정업무 수(회색)
   if (o.fxIfEmpty && who !== "*") (D.tasks || []).forEach((t) => { if (!t.isFixed || t.paused) return; const mine = t.forAll || ownersOf(t).includes(who); if (!mine) return;
     grid.forEach((g) => { if (fxDueOn(t, g.date)) cells[g.date].fx++; }); });
   return cells;
+}
+
+// '→ 내 차례 시작' 날 (달력 표식·그날 목록이 같이 씀): 기다림·늦음일 때 남은 앞 일 기한 중 가장 늦은 날, 지난 날이면 오늘. 아니면 ""
+export function turnStartOf(T, key) {
+  if (!T || (T.state !== "wait" && T.state !== "late")) return "";
+  const last = (T.open || []).map((p) => dueOf(p)).filter(Boolean).sort().pop() || "";
+  return last && key && last < key ? key : last;
 }
 
 // 사람 × 앞으로 4주 (관리자): 그 주 일회성 열린 마감 수 + 그중 임시 담당 수
@@ -122,7 +128,8 @@ export function dayLoadDelta(D, changes) {
   const before = {}, after = {};
   (D.tasks || []).filter(openOneOff).forEach((t) => { const d = dueOf(t); if (d) before[d] = (before[d] || 0) + 1; });
   Object.assign(after, before);
-  changes.forEach((x) => { const a = dueOf(x.task); if (a) after[a] = (after[a] || 1) - 1; after[x.due] = (after[x.due] || 0) + 1; });
+  changes.forEach((x) => { if (!openOneOff(x.task)) return;   // 보류·확인 대기·끝난 항목은 표에 안 세므로 미리 보기에서도 뺌
+    const a = dueOf(x.task); if (a) after[a] = (after[a] || 1) - 1; after[x.due] = (after[x.due] || 0) + 1; });
   const peak = (m) => Object.entries(m).sort((a, b) => b[1] - a[1])[0] || ["", 0];
   return { before, after, peakBefore: peak(before), peakAfter: peak(after) };
 }

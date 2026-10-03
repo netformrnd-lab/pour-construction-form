@@ -129,4 +129,43 @@ ok("한꺼번에 맡긴 일은 한 줄로 묶음", () => {
   const v = M.todayView(D, "u", new Date("2026-10-02T10:00:00"));
   assert.equal(v.inbox.length, 1); assert.equal(v.inbox[0].kind, "bulk"); assert.equal(v.inbox[0].bulkIds.length, 3);
 });
+ok("빨강은 지남·막힘에만: 수정 요청은 빨강 아님 (꼬리표·확인할 것 줄)", () => {
+  assert.equal(M.riskOf({ dueDate: "2026-10-09", status: "inprogress", feedback: { text: "x" } }, "2026-10-02").red, undefined);
+  const D = { users: [], projects: [], notes: [], tasks: [{ id: "f", title: "수정", assigneeId: "a", requestedBy: "b", status: "inprogress", feedback: { text: "색", by: "b", at: "2026-10-02T06:00:00Z" } }] };
+  const x = M.todayView(D, "a", new Date("2026-10-02T10:00:00")).inbox.find((i) => i.kind === "feedback"); assert.ok(x); assert.ok(!x.red);
+});
+ok("끝낸 일 수: 아침 9시 전(UTC 로는 전날)에 끝낸 일도 오늘로", () => {
+  const now = new Date(2026, 9, 6, 10, 0), at = new Date(2026, 9, 6, 0, 30).toISOString(), y = new Date(2026, 9, 5, 23, 30).toISOString();
+  const D = { users: [], projects: [], notes: [], tasks: [{ id: "t", assigneeId: "a", status: "done", doneAt: at }, { id: "u", assigneeId: "a", status: "done", doneAt: y }, { id: "r", assigneeId: "a", status: "review", reviewAt: at }] };
+  assert.equal(M.todayView(D, "a", now).doneToday, 2);
+});
+ok("출시한 신제품: 늦은 항목이 없으면 '마감 지남'·빨강 아님, 남은 항목 기한으로 묶음", () => {
+  const key = "2026-10-06", P = { id: "lb_A", title: "A", launchDate: "2026-10-02", dueDate: "2026-10-02" };
+  const ts = [{ id: 1, projectId: "lb_A", status: "done", dueDate: "2026-09-30" }, { id: 2, projectId: "lb_A", status: "todo", dueDate: "2026-10-09" }, { id: 3, projectId: "lb_A", status: "todo", dueDate: "2026-10-23" }];
+  const w = M.projWhen(P, ts, key); assert.deepEqual([w.date, w.n, w.late, w.launched, w.after], ["2026-10-23", 17, false, true, 4]);
+  const g = M.projGroups([P], key, ts); assert.equal(g.late.length, 0); assert.equal(g.month.length, 1);
+  assert.equal(M.projGroups([P], key).late.length, 1);   // 2개만 주면 예전처럼(마감 = 출시일)
+  const late = [...ts, { id: 4, projectId: "lb_A", status: "todo", dueDate: "2026-10-05" }];
+  assert.equal(M.projWhen(P, late, key).late, true);
+  const blocked = [...ts, { id: 5, projectId: "lb_A", status: "inprogress", dueDate: "2026-10-12", blocked: { reason: "x" } }];
+  assert.equal(M.projWhen(P, blocked, key).late, true);
+  const allDone = ts.map((t) => ({ ...t, status: "done" }));   // 남은 항목 없음 → 출시일+21, 그날도 지났으면 '7일 안'(빨강 아님)
+  assert.equal(M.projWhen(P, allDone, key).date, "2026-10-23");
+  const old = { ...P, launchDate: "2026-09-01", dueDate: "2026-09-01" }; const ow = M.projWhen(old, allDone.map((t) => ({ ...t, projectId: "lb_A" })), key);
+  assert.equal(ow.late, false); assert.equal(M.projGroups([old], key, allDone).week.length, 1);
+  const gen = { id: "p1", dueDate: "2026-10-01" }; assert.deepEqual(M.projWhen(gen, [], key), { date: "2026-10-01", n: -5, late: true, launched: false });
+  assert.deepEqual(M.projWhen({ id: "lb_B", launchDate: "2026-10-20", dueDate: "2026-10-20" }, [], key).launched, false);   // 출시 전
+});
+ok("다음 사람에게 한마디: 카드에 보이는 말만 댓글 줄에서 빼고, 내 일의 앞 일에 남긴 말은 프로젝트 멤버가 아니어도 받음", () => {
+  const now = new Date("2026-10-06T15:00:00");
+  const tasks = [{ id: "A", title: "상세", projectId: "lb_X", assigneeId: "cr", status: "done" }, { id: "B", title: "섬네일", projectId: "lb_X", assigneeId: "jh", status: "done" }, { id: "C", title: "검수", projectId: "lb_X", assigneeId: "wm", status: "inprogress" }];
+  const notes = [{ id: "n1", itemId: "task:A", by: "cr", text: "v3 폴더", at: "2026-10-06T03:00:00Z", handoff: true }, { id: "n2", itemId: "task:B", by: "jh", text: "B안", at: "2026-10-06T04:00:00Z", handoff: true }, { id: "n3", itemId: "task:A", by: "cr", text: "그냥 댓글", at: "2026-10-06T03:30:00Z" }];
+  const D = { users: [], projects: [{ id: "lb_X", assigneeId: "sh", collaboratorIds: [] }], tasks, notes };
+  const T = { temp: new Set(), fresh: new Set(), inbox: [], shownNotes: new Set(), predIds: new Set(["A", "B"]) };
+  assert.deepEqual(M.todayView(D, "wm", now, {}, T).inbox.filter((x) => x.kind === "note").map((x) => x.id).sort(), ["nt:n1", "nt:n2"]);   // 일반 댓글은 그대로 안 옴
+  const T2 = { ...T, fresh: new Set(["C"]), shownNotes: new Set(["n2"]) };
+  assert.deepEqual(M.todayView(D, "wm", now, {}, T2).inbox.filter((x) => x.kind === "note").map((x) => x.id), ["nt:n1"]);   // 카드에 보이는 n2 만 뺌
+  assert.deepEqual(M.todayView(D, "wm", now, { "nt:n2": true }, T).inbox.filter((x) => x.kind === "note").map((x) => x.id), ["nt:n1"]);   // 카드에서 읽은 말은 다시 안 뜸
+  assert.equal(M.todayView(D, "wm", now, {}, { ...T, inbox: [{ kind: "turnAgain", id: "x", at: "2026-10-06T05:00:00Z" }, { kind: "turnLate", id: "y", at: "2026-10-06T06:00:00Z" }] }).inbox[0].kind, "turnAgain");
+});
 console.log(`\n${n}개 모두 통과`);

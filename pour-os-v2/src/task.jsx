@@ -11,8 +11,24 @@ import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from
 import { turnIndex, turnOf, predsOf, nextsOf, finishedOf, finishedAt, lastWord } from "./turn.js";
 import { nextWorkday } from "./model.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked } from "./ui.jsx";
+import { dueChips, ro } from "./pick.jsx";
 
 export const openTask = (open, t) => open({ type: t.isFixed ? "fixed" : "task", id: t.id });
+// 기한 바꾸기 + '기한을 10/6으로 바꿨어요 · 되돌리기' (오늘·지난 일 정리·달력·업무 보기가 같이 씀)
+// can 이 아니면 기한 조정 요청(알림은 A.requestDue). onUndo: 되돌린 뒤 화면이 할 일 (예: 달력 날짜 고르기를 그 일로 되돌리기)
+export function moveDue(A, setToast, t, d, can, why, onUndo) {
+  if (!can) return A.requestDue(t, d, why);
+  const prev = { dueDate: t.dueDate || "", dueAuto: !!t.dueAuto, dueReq: t.dueReq || null, ...(t.workDate ? { workDate: t.workDate } : {}) };
+  const r = A.setDue(t, d);
+  if (setToast) setToast({ text: d ? `기한을 ${md(d)}${ro(md(d))} 바꿨어요` : "기한을 미정으로 바꿨어요", undo: () => {
+    if (A.patchTask) A.patchTask(t, prev, "edit", `되돌림 · ${t.title} · 기한 ${md(dueOf(t)) || "미정"}`); else A.setDue(t, prev.dueDate);
+    if (onUndo) onUndo(); } });
+  return r;
+}
+// 업무 보기 안의 띠 (첫 걸음 · 맡김 · 수정 요청 · 막힘 …) — 밖에 두어야 안의 입력칸이 글자마다 다시 그려지지 않음
+function Banner({ tone, children }) {
+  return <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 14, background: tone === "red" ? "#F8E9EA" : C.soft, border: `1px solid ${tone === "red" ? "#EBC9CC" : "#D7DDEE"}`, fontSize: 14, color: C.text, lineHeight: 1.6 }}>{children}</div>;
+}
 export function useTask(D, id) {
   const live = D.tasks.find((t) => t.id === id);
   const [extra, setExtra] = useState(null);
@@ -26,7 +42,7 @@ export function useItemNotes(D, itemId) {
 }
 // 업무 보기 — 맨 위에 '지금 해야 할 일'(받았어요·확인·기한 조정·막힘)을 띄우고, 그 아래 순서(앞 일·다음 일) → 메모 → 하위 업무 → 대화 → 파일 → 기록
 // focus: "talk" | "files" — 열자마자 그 칸으로 (앞 일 '자료 n ›', 앞사람에게 묻기)
-export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx0 }) {
+export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx0, setToast }) {
   const t = useTask(D, id);
   const notes = useItemNotes(D, taskNoteId(id));
   const idx = useMemo(() => idx0 || turnIndex(D), [idx0, D]);
@@ -39,15 +55,15 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
   const key = ymd(new Date()), mine = isMine(t, cu.id), done = isDone(t), n = ddays(dueOf(t), key), master = isMaster(cu);
   const p = D.projects.find((x) => x.id === t.projectId), owners = ownersOf(t).map((u) => nameOf(D.users, u) || "(없는 사람)");
   const kids = D.tasks.filter((x) => x.parentId === t.id), parent = t.parentId ? D.tasks.find((x) => x.id === t.parentId) : null;
-  const req = reqOf(t), reqName = nameOf(D.users, req), approver = dueApprover(t, D), canDue = canSetDue(t, cu.id, D, master);
+  const req = reqOf(t), reqName = nameOf(D.users, req), giver = req || (t.assignedBy && t.assignedBy !== cu.id ? t.assignedBy : ""), giverName = nameOf(D.users, giver), approver = dueApprover(t, D), canDue = canSetDue(t, cu.id, D, master);
   const review = t.status === "review", amReviewer = review && ((t.reviewTo || req) === cu.id || master);
   const risk = riskOf(t, key);
-  const files = [...(t.attachments || []).map((f) => ({ ...f, where: "업무" })), ...notes.flatMap((nn) => (nn.files || []).map((f) => ({ ...f, by: nn.by, byName: nn.byName, uploadedAt: f.uploadedAt || nn.at, where: "댓글" })))];
+  const files = [...(t.attachments || []).map((f) => ({ ...f, where: "업무" })), ...notes.filter((nn) => !nn.deleted).flatMap((nn) => (nn.files || []).map((f) => ({ ...f, by: nn.by, byName: nn.byName, uploadedAt: f.uploadedAt || nn.at, where: "댓글" })))];
   const loadLogs = () => { setShowLog(!showLog); if (logs == null) fb.fetchWhere("log", ["targetId", "==", t.id]).then(setLogs).catch((e) => { console.error(e); setLogs([]); }); };
   const hist = [...(t.statusLog || []).map((s, i) => ({ id: "s" + i, at: s.at, who: s.byName || nameOf(D.users, s.by), text: s.reopen ? "다시 엶" : STATUS_L[s.status] || (s.status === "review" ? "확인 요청" : s.status) })),
     ...(logs || []).map((l) => ({ id: l.id, at: l.at, who: l.byName, text: (LOG_L[l.action] || l.action) + (l.label && l.label !== t.title ? " · " + l.label.replace(t.title + " · ", "") : "") }))].sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
   const users = activeUsers(D.users);
-  const dateChips = [["오늘", key], ["내일", addDays(key, 1)], ["모레", addDays(key, 2)], ["다음 주", addDays(key, 7)]];
+  const dateChips = dueChips(key);   // 쉬는 날 빼고 · 버튼에 날짜까지 (오늘·지난 일 정리와 같은 버튼)
   // 순서: 앞 일(끝나야 내 차례) · 다음 일(내가 끝내면 그 사람 차례)
   const tu = t.isFixed ? { state: "none", preds: [], open: [] } : turnOf(t, idx, key);
   const preds = t.isFixed ? [] : predsOf(t, idx), nexts = t.isFixed ? [] : nextsOf(t, idx).filter((x) => !x.isFixed);
@@ -56,7 +72,8 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
   const filesOf = (x) => (x.attachments || []).length + D.notes.filter((nn) => nn.itemId === taskNoteId(x.id) && !nn.deleted).reduce((a, nn) => a + (nn.files || []).length, 0);
   const temp = idx.temp.has(t.id), canOrder = !done && (mine || req === cu.id || (p && p.assigneeId === cu.id) || master);
   // 앞 일 고르기 후보: 같은 프로젝트의 열린 업무(프로젝트가 없으면 내 일·내가 맡긴 일) — 나를 앞 일로 둔 뒤 일은 빼서 고리가 안 생기게
-  const after = new Set(); const walk = (x) => nextsOf(x, idx).forEach((n2) => { if (!after.has(n2.id)) { after.add(n2.id); walk(n2); } }); if (mode === "deps") walk(t);
+  // 상위 업무(위로 끝까지)도 뺌 — 하위 업무가 상위를 기다리면 담당이 바뀐 뒤 서로 기다리게 됨
+  const after = new Set(); const walk = (x) => nextsOf(x, idx).forEach((n2) => { if (!after.has(n2.id)) { after.add(n2.id); walk(n2); } }); if (mode === "deps") { walk(t); for (let q = t.parentId, k = 0; q && k < 50; q = ((idx.byId.get(q) || D.tasks.find((y) => y.id === q)) || {}).parentId, k++) after.add(q); }
   const depPool = mode !== "deps" ? [] : D.tasks.filter((x) => x.id !== t.id && !x.isFixed && !isDone(x) && !after.has(x.id) && (t.projectId ? x.projectId === t.projectId : isMine(x, cu.id) || reqOf(x) === cu.id))
     .sort((a, b) => String(dueOf(a) || "9").localeCompare(String(dueOf(b) || "9"))).slice(0, 60);
   const sel = depSel || new Set(preds.map((x) => x.id));
@@ -70,21 +87,20 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
     if (finishedOf(x)) { const f = finishedAt(x); return `${w} · ${isDone(x) ? "끝냄" : "확인 중"}${f ? " " + md(ymd(new Date(f))) : ""}`; }
     const nn = ddays(dueOf(x), key); return `${w} · ${x.blocked ? "막힘" : x.status === "inprogress" ? "진행 중" : x.status === "hold" ? "보류" : "할 일"}${dueOf(x) ? nn < 0 ? ` · ${-nn}일 지남` : ` · ${md(dueOf(x))} 예정` : ""}`; };
   const ORD = 3;
-  const Banner = ({ tone, children }) => <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 14, background: tone === "red" ? "#F8E9EA" : C.soft, border: `1px solid ${tone === "red" ? "#EBC9CC" : "#D7DDEE"}`, fontSize: 14, color: C.text, lineHeight: 1.6 }}>{children}</div>;
   return <Sheet title="업무" onBack={onBack} onClose={onClose} foot={foot}>
     <h2 style={{ fontSize: 20, fontWeight: 800, color: C.ink, margin: "12px 0 6px", lineHeight: 1.35, wordBreak: "keep-all" }}>{risk && <span style={{ display: "inline-block", verticalAlign: 3, marginRight: 6, fontSize: 12, fontWeight: 800, padding: "2px 7px", borderRadius: 6, color: risk.red ? C.red : C.navy, background: risk.red ? "#F8E9EA" : C.soft }}>{risk.label}</span>}{t.title}</h2>
     <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7 }}>
       <span>담당 {owners.join(", ") || "없음"}{temp ? " (임시 · 책임자로 채움)" : t.ownerFrom === "default" || (t.ownerAuto && !t.ownerFrom) ? " (기본 담당)" : ""}</span> · <span style={{ color: n != null && n < 0 && !done ? C.red : C.sub, fontWeight: n != null && n < 0 && !done ? 800 : 400 }}>{dueOf(t) ? `기한 ${md(dueOf(t))}${done ? "" : " · " + ddayLabel(n)}` : "기한 미정"}</span> · <b style={{ color: C.ink }}>{review ? "확인 대기" : STATUS_L[t.status] || t.status}</b>
-      {req && <div>{reqName}님이 맡김{t.requestedAt ? ` · ${md(ymd(new Date(t.requestedAt)))}` : ""}{t.ackAt ? " · 받음" : " · 아직 안 받음"}</div>}
+      {giver && <div>{giverName}님이 맡김{(req ? t.requestedAt : t.assignedAt) ? ` · ${md(ymd(new Date(req ? t.requestedAt : t.assignedAt)))}` : ""}{t.ackAt ? " · 받음" : " · 아직 안 받음"}</div>}
       {p && <div><TBtn onClick={() => open({ type: "project", id: p.id })} style={{ padding: "2px 0" }}>프로젝트 · {p.title} ›</TBtn></div>}
       {parent && <div><TBtn onClick={() => open({ type: "task", id: parent.id })} style={{ padding: "2px 0" }}>상위 업무 · {parent.title} ›</TBtn></div>}
     </div>
     {t.firstStep && !done && <Banner><b>첫 걸음</b> · {t.firstStep}</Banner>}
 
     {/* 지금 해야 할 일 */}
-    {mine && !done && req && !t.ackAt && t.status === "todo" && <Banner><b>{reqName}님이 맡긴 일이에요.</b> 기한을 확인하고 눌러 주세요.
+    {mine && !done && giver && !t.ackAt && t.status === "todo" && <Banner><b>{giverName}님이 맡긴 일이에요.</b> 기한을 확인하고 눌러 주세요.
       <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}><Act onClick={() => A.ack(t)} style={{ background: C.navy, color: "#fff", borderColor: C.navy }}>받았어요</Act><Act onClick={() => setMode("req")}>기한 조정 요청</Act></div></Banner>}
-    {t.feedback && !done && !review && <Banner tone="red"><b>수정 요청</b> · {t.feedback.byName} · {ago(t.feedback.at)}<div style={{ whiteSpace: "pre-wrap" }}><Linked text={t.feedback.text} /></div></Banner>}
+    {t.feedback && !done && !review && <Banner><b>수정 요청</b> · {t.feedback.byName} · {ago(t.feedback.at)}<div style={{ whiteSpace: "pre-wrap" }}><Linked text={t.feedback.text} /></div></Banner>}
     {review && amReviewer && <Banner><b>{owners[0]}님이 끝냈어요.</b> 확인하고 '확인 완료'를 눌러 주세요. 고칠 게 있으면 수정 요청을 보내요.
       {mode !== "back" ? <div style={{ marginTop: 8 }}><Act onClick={() => { setTxt(""); setMode("back"); }}>수정 요청</Act></div>
         : <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}><textarea value={txt} onChange={(e) => setTxt(e.target.value)} rows={2} placeholder="무엇을 고치면 될까요?" aria-label="수정 요청 내용" style={inp} /><div style={{ display: "flex", gap: 8 }}><Act onClick={() => setMode("")}>취소</Act><Act onClick={() => { if (txt.trim()) { A.sendBack(t, txt.trim()); setMode(""); } }} style={{ background: C.navy, color: "#fff", borderColor: C.navy }}>수정 요청 보내기</Act></div></div>}</Banner>}
@@ -92,7 +108,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
       <div style={{ display: "flex", gap: 8, marginTop: 10 }}><Act onClick={() => A.answerDue(t, true)} style={{ background: C.navy, color: "#fff", borderColor: C.navy }}>수락</Act><Act onClick={() => A.answerDue(t, false, "기한은 그대로 지켜 주세요")}>그대로 두기</Act></div></>
       : <>기한 조정 요청 중 · {md(dueOf(t)) || "미정"} → <b>{md(t.dueReq.date)}</b> ({nameOf(D.users, approver) || "책임자"}님 답 기다리는 중)</>}</Banner>}
     {t.blocked && !done && <Banner tone="red"><b>막힘</b> · {t.blocked.byName} · {ago(t.blocked.at)}<div>{t.blocked.reason}</div>{(mine || approver === cu.id || master) && <div style={{ marginTop: 8 }}><Act onClick={() => A.unblock(t)}>막힘 풀기</Act></div>}</Banner>}
-    {tu.state === "late" && mine && !done && (() => { const x = tu.open.find((y) => y.blocked || y.status === "hold" || (dueOf(y) && dueOf(y) < key)) || tu.open[0];
+    {tu.state === "late" && mine && !done && (() => { const x = (tu.show && !finishedOf(tu.show) ? tu.show : null) || tu.open.find((y) => y.blocked || y.status === "hold" || (dueOf(y) && dueOf(y) < key)) || tu.open[0];
       return <Banner tone="red"><b>앞 일이 늦어지고 있어요</b> · {x.title} ({predSub(x)}) · 내 기한 {md(dueOf(t)) || "미정"}
         <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}><Act onClick={() => open({ type: "task", id: x.id, focus: "talk" })}>앞사람에게 묻기</Act>{canDue ? <Act onClick={() => setMode("due")}>내 기한 바꾸기</Act> : !t.dueReq && <Act onClick={() => setMode("req")}>기한 조정 요청</Act>}</div></Banner>; })()}
     {reopened && <Banner>앞 일 "{reopened.title}"이 수정 요청으로 다시 열렸어요 · {nameOf(D.users, ownersOf(reopened)[0]) || "앞사람"}님이 다시 끝내면 '이제 내 차례'로 알려 드려요</Banner>}
@@ -107,9 +123,9 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
     {mode === "block" && <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0" }}><input value={txt} onChange={(e) => setTxt(e.target.value)} placeholder="무엇 때문에 막혔나요? (예: 시안 자료가 없어요)" aria-label="막힌 이유" style={inp} />
       <div style={{ fontSize: 12.5, color: C.sub }}>{nameOf(D.users, approver || req) || "책임자"}님의 '확인할 것'에 떠요.</div><Act onClick={() => { if (txt.trim()) { A.block(t, txt.trim()); setMode(""); } }} style={{ alignSelf: "flex-start", background: C.navy, color: "#fff", borderColor: C.navy }}>알리기</Act></div>}
     {mode === "who" && <div className="v2-chips" style={{ padding: "8px 0" }}>{users.map((u) => <Chip key={u.id} on={t.assigneeId === u.id} onClick={() => { A.assign(t, u.id, u.id === cu.id); setMode(""); }}>{u.id === cu.id ? "나" : u.name}</Chip>)}</div>}
-    {mode === "due" && <div className="v2-chips" style={{ padding: "8px 0" }}>{dateChips.map(([l, d]) => <Chip key={l} onClick={() => { A.setDue(t, d); setMode(""); }}>{l}</Chip>)}<Chip onClick={() => { A.setDue(t, ""); setMode(""); }}>미정</Chip><input type="date" aria-label="날짜 고르기" defaultValue={dueOf(t)} onChange={(e) => { if (e.target.value) { A.setDue(t, e.target.value); setMode(""); } }} className="v2-sel" /></div>}
+    {mode === "due" && <div className="v2-chips" style={{ padding: "8px 0" }}>{dateChips.map(([l, d]) => <Chip key={d} onClick={() => { moveDue(A, setToast, t, d, true); setMode(""); }}>{l}</Chip>)}<Chip onClick={() => { moveDue(A, setToast, t, "", true); setMode(""); }}>미정</Chip><input type="date" aria-label="날짜 고르기" defaultValue={dueOf(t)} onChange={(e) => { if (e.target.value) { moveDue(A, setToast, t, e.target.value, true); setMode(""); } }} className="v2-sel" /></div>}
     {mode === "req" && <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0" }}>
-      <div className="v2-chips">{dateChips.slice(1).map(([l, d]) => <Chip key={l} on={reqDate === d} onClick={() => setReqDate(d)}>{l}</Chip>)}<input type="date" aria-label="원하는 기한" value={reqDate} onChange={(e) => setReqDate(e.target.value)} className="v2-sel" /></div>
+      <div className="v2-chips">{dateChips.filter(([, d]) => d !== key).map(([l, d]) => <Chip key={d} on={reqDate === d} onClick={() => setReqDate(d)}>{l}</Chip>)}<input type="date" aria-label="원하는 기한" value={reqDate} onChange={(e) => setReqDate(e.target.value)} className="v2-sel" /></div>
       <input value={txt} onChange={(e) => setTxt(e.target.value)} placeholder="이유 (예: 촬영 일정이 밀렸어요)" aria-label="기한 조정 이유" style={inp} />
       <div style={{ fontSize: 12.5, color: C.sub }}>{nameOf(D.users, approver) || "책임자"}님이 수락하면 기한이 바뀌어요. 그 전까지는 지금 기한({md(dueOf(t)) || "미정"})이에요.</div>
       <Act onClick={() => { if (reqDate) { A.requestDue(t, reqDate, txt.trim()); setMode(""); setTxt(""); } }} style={{ alignSelf: "flex-start", background: C.navy, color: "#fff", borderColor: C.navy, opacity: reqDate ? 1 : 0.45 }}>요청 보내기</Act></div>}
@@ -124,7 +140,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
           <span style={{ flex: "0 0 20px", height: 20, borderRadius: 5, border: `2px solid ${on ? C.navy : "#B7BFD0"}`, background: on ? C.navy : "#fff", color: "#fff", fontSize: 13, lineHeight: "16px", textAlign: "center", fontWeight: 900 }}>{on ? "✓" : ""}</span>
           <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.title}</span><span style={{ fontSize: 12, color: C.sub }}>{predSub(x)}</span></span></button>; })}
         <div style={{ display: "flex", gap: 8, padding: 10, flexWrap: "wrap" }}><Act onClick={() => setMode("")}>취소</Act><Act onClick={() => { A.setDeps(t, []); setMode(""); }}>앞 일 없음</Act><span style={{ flex: 1 }} />
-          <Act onClick={() => { A.setDeps(t, [...sel]); setMode(""); }} style={{ background: C.navy, color: "#fff", borderColor: C.navy }}>{sel.size ? `앞 일 ${sel.size}개로 정하기` : "저장"}</Act></div>
+          <Act onClick={() => { A.setDeps(t, [...new Set([...(Array.isArray(t.deps) ? t.deps : []).filter((x) => !idx.byId.has(x)), ...sel])]); setMode(""); }} style={{ background: C.navy, color: "#fff", borderColor: C.navy }}>{sel.size ? `앞 일 ${sel.size}개로 정하기` : "저장"}</Act></div>
       </Card>
       : (preds.length > 0 || nexts.length > 0) ? <Card>
         {(allOrder ? preds : preds.slice(0, ORD)).map((x) => { const w = lastWord(x, D.notes), fn = filesOf(x);
@@ -189,7 +205,7 @@ export function Thread({ D, cu, A, notes, itemId, ctx }) {
     <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
       {reply && <div style={{ fontSize: 12.5, color: C.sub }}>{(th.find((x) => x.id === reply) || {}).byName}님 글에 답글</div>}
       <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder={reply ? "답글 쓰기" : "댓글 쓰기 · 진행 상황, 피드백, 링크"} aria-label="댓글" style={{ ...inp, resize: "vertical", fontSize: 14.5 }} />
-      {files.length > 0 && <div style={{ fontSize: 13, color: C.sub }}>{files.map((f) => f.name).join(", ")} <TBtn tone="mute" onClick={() => setFiles([])}>✕</TBtn></div>}
+      {files.length > 0 && <div style={{ fontSize: 13, color: C.sub }}>{files.map((f) => f.name).join(", ")} <TBtn tone="mute" onClick={() => setFiles([])}>✕ 파일 빼기</TBtn></div>}
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <TBtn onClick={() => fileRef.current && fileRef.current.click()}>+ 파일</TBtn><input ref={fileRef} type="file" multiple hidden onChange={(e) => { setFiles([...e.target.files].slice(0, 10)); e.target.value = ""; }} />
         <span style={{ flex: 1 }} /><Act onClick={send} style={{ background: C.navy, color: "#fff", borderColor: C.navy, opacity: (text.trim() || files.length) && !busy ? 1 : 0.45 }}>{busy ? "올리는 중" : "남기기"}</Act>

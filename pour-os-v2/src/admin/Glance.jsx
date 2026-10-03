@@ -8,7 +8,7 @@ import { MonthCal, CalHead, dayHead } from "../cal.jsx";
 import { PickList } from "../pick.jsx";
 import { LS } from "../core.jsx";
 import { C, Chip, TBtn, Head, Card, Row, Empty, More, useLocal } from "../ui.jsx";
-import { adminQueues, SelBar, BulkPad, Lv, LineBtn, isLaunchP } from "./common.jsx";
+import { adminQueues, SelBar, Lv, LineBtn, isLaunchP } from "./common.jsx";
 import { WeekTable } from "./People.jsx";
 
 const RISK = [["blocked", "막힘", true], ["late", "지남", true], ["order", "순서 꼬임", false], ["req", "요청", false]];
@@ -17,9 +17,10 @@ export function Glance(ctx) {
   const { D, cu, A, idx, open, go, setToast } = ctx;
   const now = new Date(), key = ymd(now);
   const [f, setF] = useLocal(LS("acal-" + cu.id), { uid: "", pid: "", noTemp: false });
-  const set = (o) => setF((x) => ({ ...x, ...o }));
   const [ym, setYm] = useState(key.slice(0, 7)), [day, setDay] = useState(key);
   const [ex, setEx] = useState(() => new Set()), [sel, setSel] = useState(() => new Set());
+  // 거르기·날을 바꾸면 고른 것도 풀기 — 안 보이는 일이 한꺼번에 바꾸기에 끼지 않게
+  const set = (o) => { setF((x) => ({ ...x, ...o })); setSel(new Set()); };
   const Q = useMemo(() => adminQueues(D, idx, now), [D, idx]);
   const tw = useMemo(() => teamWeeks(D, idx, now, false), [D, idx]);
   const users = activeUsers(D.users).slice().sort((a, b) => String(a.name).localeCompare(String(b.name), "ko"));
@@ -42,7 +43,10 @@ export function Glance(ctx) {
     .map((g) => ({ ...g, label: nameOf(D.users, g.key) || "담당 없음", temp: g.items.filter((t) => idx.temp.has(t.id)).length })).sort((a, b) => b.items.length - a.items.length);
   const mx = Math.max(1, ...groups.map((g) => g.items.length));
   const toggle = (k) => setEx((s) => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; });
-  const pick = (d) => { setDay(d); setEx(new Set()); };
+  const pick = (d) => { setDay(d); setEx(new Set()); setSel(new Set()); };
+  // 막대에는 지금 펼쳐 보이는 묶음 안에서 고른 것만 (접은 묶음 · 다른 사람이 바꿔 이날에서 빠진 일은 빼고 셈)
+  const vis = new Set(groups.filter((g) => ex.has(g.key)).flatMap((g) => g.items.map((t) => t.id)));
+  const selV = sel.size ? new Set([...sel].filter((id) => vis.has(id))) : sel;
 
   return <div className="a-glance">
     <div className="a-risk" role="group" aria-label="위험 칸">
@@ -96,8 +100,7 @@ export function Glance(ctx) {
     </div>
 
     <Feed D={D} open={open} now={now} />
-    <BulkPad on={sel.size > 0} />
-    <SelBar D={D} cu={cu} A={A} sel={sel} setSel={setSel} setToast={setToast} />
+    <SelBar D={D} cu={cu} A={A} sel={selV} setSel={setSel} setToast={setToast} pad />
   </div>;
 }
 
@@ -124,13 +127,15 @@ function Feed({ D, open, now }) {
   const [on, setOn] = useState(false), [chip, setChip] = useState("all"), [n, setN] = useState(20);
   const feed = on ? feedOf(D, { sinceIso: new Date(now - 7 * 864e5).toISOString() }).filter((x) => chip === "all" || (chip === "talk" ? x.type === "note" : x.type === "log")) : [];
   const tTitle = (id) => (D.tasks.find((t) => t.id === id) || D.projects.find((p) => p.id === id) || {}).title || "";
+  // 열 곳이 있는 줄만 버튼으로 (한꺼번에 바꾸기 기록 · 다른 칸 변경은 누를 곳이 없음)
+  const hasTarget = (x) => (x.type === "note" ? /^(task|proj):/.test(String(x.itemId || "")) : !!x.targetId && (x.col === "projects" || x.col === "tasks"));
   const goFeed = (x) => { if (x.type === "note") { const [k, ...r] = String(x.itemId).split(":"); const ref = r.join(":"); if (k === "task") open({ type: "task", id: ref }); else if (k === "proj") open({ type: "project", id: ref, first: "news" }); }
     else if (x.col === "projects") open({ type: "project", id: x.targetId }); else if (x.targetId && x.col === "tasks") open({ type: "task", id: x.targetId }); };
   return <>
     <Card style={{ marginTop: 18 }}><More onClick={() => setOn(!on)}>{on ? "최근 7일 소식 ▴" : "최근 7일 소식 ▾"}</More></Card>
     {on && <>
       <div className="v2-chips" style={{ marginTop: 10 }}>{[["all", "전체"], ["talk", "대화"], ["log", "변경"]].map(([k, l]) => <Chip key={k} on={chip === k} onClick={() => setChip(k)}>{l}</Chip>)}</div>
-      <Card style={{ marginTop: 10 }}>{feed.length === 0 ? <Empty>최근 7일 소식이 없어요</Empty> : feed.slice(0, n).map((x, i) => <Row key={x.id} title={x.type === "note" ? `${x.byName || ""} · ${tTitle(String(x.itemId).split(":").slice(1).join(":")) || "대화"}` : `${x.byName || ""} · ${LOG_L[x.action] || "기록"}`} sub={x.text} sub2={ago(x.at, now)} onClick={() => goFeed(x)} last={i === Math.min(n, feed.length) - 1 && feed.length <= n} />)}
+      <Card style={{ marginTop: 10 }}>{feed.length === 0 ? <Empty>최근 7일 소식이 없어요</Empty> : feed.slice(0, n).map((x, i) => <Row key={x.id} title={x.type === "note" ? `${x.byName || ""} · ${tTitle(String(x.itemId).split(":").slice(1).join(":")) || "대화"}` : `${x.byName || ""} · ${LOG_L[x.action] || "기록"}`} sub={x.text} sub2={ago(x.at, now)} onClick={hasTarget(x) ? () => goFeed(x) : undefined} last={i === Math.min(n, feed.length) - 1 && feed.length <= n} />)}
         {feed.length > n && <More onClick={() => setN(n + 20)}>더 보기 ▾</More>}</Card>
     </>}
   </>;

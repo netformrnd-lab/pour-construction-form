@@ -46,14 +46,16 @@ function Main({ D, cu, meta, setMeta, logout }) {
   const open = (s) => setStack((st) => [...st, s]);
   const back = () => setStack((st) => st.slice(0, -1));
   const closeAll = () => setStack([]);
-  const ctx = { D, cu, A, open, back, closeAll, seen, setSeen, setToast, TV, T, idx, meta, setMeta, logout, setTab, BUILD };
+  // 시트 화면 상태(지난 일 정리 몇 번째 · 내 정리 탭·고른 것 · 프로젝트 탭)를 그 시트 칸에 적어 둠 → 위 시트에서 '뒤로' 오면 이어서
+  const saveAt = (i, patch) => setStack((st) => st.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const ctx = { D, cu, A, open, back, closeAll, saveAt, seen, setSeen, setToast, TV, T, idx, meta, setMeta, logout, setTab, BUILD };
   const top = stack[stack.length - 1];
   const TABS = [["today", "오늘"], ["calendar", "달력"], ["projects", "프로젝트"], ["more", "더보기"]];
   const badge = TV.inbox.length + TV.freshN;
   const at = meta.reseededAt || meta.seededAt;
   const extra = {
     turns: (p) => <TurnSheet {...p} />,
-    myTidy: (p, s) => <MyTidySheet {...p} tab0={s.tab} />,
+    myTidy: (p, s) => <MyTidySheet {...p} tab0={s.tab} st={s} />,
     assigned: (p) => <AssignedSheet {...p} />,
     myFixed: (p) => <MyFixedSheet {...p} />,
   };

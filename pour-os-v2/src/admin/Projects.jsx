@@ -5,8 +5,8 @@ import { ymd, addDays, ddays, ddayLabel, md, ago, nameOf, ownersOf, dueOf, isDon
 import { lineup, previewLaunchMove, groupItems } from "../views.js";
 import { LAUNCH_PHASES, launchPct, rebalanceLaunch } from "../launch.js";
 import { nowNext } from "../turn.js";
-import { PickList } from "../pick.jsx";
-import { C, Act, Seg, TBtn, Head, Card, Empty, More } from "../ui.jsx";
+import { PickList, ro } from "../pick.jsx";
+import { C, Act, Seg, TBtn, Head, Card, Empty, More, Ask } from "../ui.jsx";
 import { Lv, SelBar, isLaunchP, openOneOff, wdOf, deltaLine } from "./common.jsx";
 
 const PH_S = { plan: "기획", sample: "샘플", pack: "패킹", content: "콘텐", channel: "채널", stock: "입고", promo: "홍보" };
@@ -67,17 +67,20 @@ export function ProjectsTab({ D, cu, A, idx, open }) {
 }
 
 // 프로젝트 시트 머리 아래 관리자 덧붙임: ① 출시일 옮기기 미리 보기 ② 기한 고르게 다시 나누기 ③ 항목 골라서 한꺼번에 바꾸기
-// ①② 는 '이대로 바꾸기'를 누르기 전에는 아무것도 저장하지 않는다
+// ①② 는 '이대로 바꾸기'를 누르기 전에는 아무것도 저장하지 않는다 · 30건 이상이면 확인 창 한 번 더 · 지난 날은 못 고름 (5초 되돌리기·이전 값 기록은 core)
 export function LaunchTools({ p, D, cu, A, idx, setToast, open }) {
-  const [nd, setNd] = useState(""), [busy, setBusy] = useState(""), [pick, setPick] = useState(false), [sel, setSel] = useState(() => new Set());
-  const key = ymd(new Date()), lp = isLaunchP(p);
+  const [nd, setNd] = useState(""), [busy, setBusy] = useState(""), [pick, setPick] = useState(false), [sel, setSel] = useState(() => new Set()), [ask, setAsk] = useState("");
+  const key = ymd(new Date()), lp = isLaunchP(p), past = !!nd && nd < key;
   const its = useMemo(() => (D.tasks || []).filter((t) => t.projectId === p.id && !t.isFixed), [D, p.id]);
-  const move = useMemo(() => (lp && nd && nd !== p.launchDate ? previewLaunchMove(p, D, nd, key) : null), [D, p, nd]);
+  const move = useMemo(() => (lp && nd && !past && nd !== p.launchDate ? previewLaunchMove(p, D, nd, key) : null), [D, p, nd, past]);
   const left = p.launchDate ? ddays(p.launchDate, key) : null;
   const rb = useMemo(() => (lp && p.launchDate && left != null && left > 0 && left < 56 ? rebalanceLaunch(its.filter((t) => t.launchItem), p.launchDate, key) : []), [D, p.launchDate]);
   const rbDays = rb.length ? [...new Set(rb.map((x) => x.due))].sort() : [];
-  const doMove = async () => { setBusy("move"); await A.setLaunchDate(p, nd); setBusy(""); setNd(""); };
-  const doRb = async () => { setBusy("rb"); await A.applyDues(rb, `${p.title} 기한 고르게 다시 나누기`); setBusy(""); };
+  const big = (n) => n >= 30 && n <= 100;   // 100건 넘으면 묻지 않고 core 가 '100건까지' 알림
+  const doMove = async () => { if (busy || !move) return; setAsk(""); setBusy("move"); const ok = await A.setLaunchDate(p, nd); setBusy(""); if (ok !== false) setNd(""); };
+  const doRb = async () => { if (busy) return; setAsk(""); setBusy("rb"); await A.applyDues(rb, `${p.title} 기한 고르게 다시 나누기`); setBusy(""); };
+  const goMove = () => (move && big(move.changes.length) ? setAsk("move") : doMove());
+  const goRb = () => (big(rb.length) ? setAsk("rb") : doRb());
   const openIts = its.filter((t) => !isDone(t));
   const groups = lp ? LAUNCH_PHASES.map((ph) => ({ key: ph.k, label: ph.name, items: openIts.filter((t) => t.phase === ph.k) })).filter((g) => g.items.length)
     : groupItems(openIts, "person", D);
@@ -86,15 +89,17 @@ export function LaunchTools({ p, D, cu, A, idx, setToast, open }) {
       <div className="a-boxh">{p.launchDate ? "출시일 옮기기" : "출시일 정하기"} <span>미리 보고 바꿔요</span></div>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <span style={{ fontSize: 13.5, color: C.sub }}>지금 {p.launchDate ? `${md(p.launchDate)} (${wdOf(p.launchDate)})` : "미정"} →</span>
-        <input type="date" aria-label="새 출시일" className="v2-sel" value={nd} onChange={(e) => setNd(e.target.value)} />
+        <input type="date" aria-label="새 출시일" className="v2-sel" min={key} value={nd} onChange={(e) => setNd(e.target.value)} />
         {nd && <TBtn tone="mute" onClick={() => setNd("")}>✕ 그만</TBtn>}
       </div>
+      {past && <div className="a-prev" role="status">지난 날({md(nd)})은 출시일로 정할 수 없어요 · 오늘 이후로 골라 주세요</div>}
       {move && <div className="a-prev" role="status">
         <div><b>자동 기한 {move.changes.length}개가 옮겨져요</b></div>
         {deltaLine(D, move.changes, key).map((s) => <div key={s}>· {s}</div>)}
         <div>· 사람이 정한 기한 {move.keep}개는 그대로</div>
         {p.launchDate && <div>· {md(p.launchDate)} 출시 묶음 {move.sameBefore} → {move.sameBefore - 1} · {md(nd)} 출시 {move.sameAfter}</div>}
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}><Act onClick={doMove} style={NAVY_BTN}>{busy === "move" ? "바꾸는 중" : "이대로 바꾸기"}</Act></div>
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}><Act onClick={goMove} style={NAVY_BTN}>{busy === "move" ? "바꾸는 중" : "이대로 바꾸기"}</Act></div>
+        <div style={{ fontSize: 12, color: C.sub, marginTop: 4 }}>5초 안에 되돌릴 수 있고, 바꾸기 전 값은 기록에 남아요{big(move.changes.length) ? " · 30건 이상이라 한 번 더 물어요" : ""}</div>
       </div>}
     </div>}
     {lp && rb.length > 0 && <div className="a-box">
@@ -103,13 +108,16 @@ export function LaunchTools({ p, D, cu, A, idx, setToast, open }) {
         <div><b>자동 기한 항목 {rb.length}개</b>를 출시 전 평일에 순서표 차례대로 다시 나눠요 (주말·공휴일 건너뜀){rbDays.length ? ` · 새 기한 ${md(rbDays[0])}${rbDays.length > 1 ? `~${md(rbDays[rbDays.length - 1])}` : ""}` : ""}</div>
         {deltaLine(D, rb, key).map((s) => <div key={s}>· {s}</div>)}
         <div>· 사람이 정한 기한은 그대로예요</div>
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}><Act onClick={doRb} style={NAVY_BTN}>{busy === "rb" ? "나누는 중" : "고르게 나누기"}</Act></div>
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}><Act onClick={goRb} style={NAVY_BTN}>{busy === "rb" ? "나누는 중" : "고르게 나누기"}</Act></div>
+        <div style={{ fontSize: 12, color: C.sub, marginTop: 4 }}>5초 안에 되돌릴 수 있고, 바꾸기 전 값은 기록에 남아요{big(rb.length) ? " · 30건 이상이라 한 번 더 물어요" : ""}</div>
       </div>
     </div>}
     <div className="a-box">
-      <button type="button" className="a-boxt" aria-expanded={pick} onClick={() => setPick(!pick)}>{lp ? "항목" : "업무"} 골라서 한꺼번에 바꾸기 {openIts.length} {pick ? "▴" : "▾"}</button>
+      <button type="button" className="a-boxt" aria-expanded={pick} onClick={() => { setPick(!pick); if (pick) setSel(new Set()); }}>{lp ? "항목" : "업무"} 골라서 한꺼번에 바꾸기 {openIts.length} {pick ? "▴" : "▾"}</button>
       {pick && (groups.length ? <PickList D={D} groups={groups} sel={sel} setSel={setSel} open={open} temp={idx.temp} /> : <Card style={{ marginTop: 8 }}><Empty>열린 {lp ? "항목" : "업무"}이 없어요</Empty></Card>)}
       <SelBar D={D} cu={cu} A={A} sel={sel} setSel={setSel} setToast={setToast} />
     </div>
+    {ask === "move" && move && <Ask title={`항목 ${move.changes.length}개 기한을 옮길까요?`} body={`${p.title} 출시일 ${p.launchDate ? md(p.launchDate) : "미정"} → ${md(nd)}${ro(md(nd))} 바꾸면 자동 기한 항목 ${move.changes.length}개가 같이 옮겨져요.\n5초 안에 되돌릴 수 있고, 바꾸기 전 값은 기록에 남아요.`} yes="이대로 바꾸기" onNo={() => setAsk("")} onYes={doMove} />}
+    {ask === "rb" && <Ask title={`항목 ${rb.length}개 기한을 다시 나눌까요?`} body={`${p.title} 자동 기한 항목 ${rb.length}개를 출시 전 평일에 고르게 다시 나눠요.\n5초 안에 되돌릴 수 있고, 바꾸기 전 값은 기록에 남아요.`} yes="고르게 나누기" onNo={() => setAsk("")} onYes={doRb} />}
   </div>;
 }

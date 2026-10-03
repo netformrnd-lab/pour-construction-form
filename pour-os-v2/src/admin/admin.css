@@ -37,7 +37,8 @@
 @media (min-width: 1280px) {
   .a-only1280 { display: block; }
   .a-glance .v2-calwrap { grid-template-columns: minmax(0, 1fr) 380px; }
-  .a-daypanel { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; }
+  /* --a-barh = 아래 고르기 막대가 차지한 높이 (common.jsx SelBar pad) → 고른 날 칸이 막대 위에서 끝남 */
+  .a-daypanel { position: sticky; top: 12px; max-height: calc(100vh - 24px - var(--a-barh, 0px)); overflow-y: auto; }
   .a-daypanel > h3:first-child, .a-daypanel > div:first-child { margin-top: 6px; }
 }
 
@@ -58,6 +59,7 @@
 .a-wkn .l2 { display: flex; align-items: center; gap: 2px; font-size: 10px; letter-spacing: -0.2px; color: #5B6475; white-space: nowrap; overflow: hidden; }
 .a-wc { min-height: 52px; border: 1px solid #E3E7F0; border-radius: 8px; background: #fff; font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 2px 0; min-width: 0; }
 .a-wc:disabled { cursor: default; }
+.a-wc:disabled b { color: #8A92A3; }
 .a-wc b { font-size: 15px; font-weight: 800; color: #0F1F5C; font-variant-numeric: tabular-nums; line-height: 1.2; }
 .a-wc small { font-size: 10px; font-weight: 700; color: #5B6475; white-space: nowrap; }
 .a-wc.late { background: #fff; }
@@ -153,6 +155,9 @@
 }
 .a-undated { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; background: #fff; }
 .a-undated b { font-size: 14px; color: #1B2333; }
+.a-undprev { flex: 1 1 100%; font-size: 12.5px; font-weight: 700; color: #24386B; line-height: 1.5; }
+/* 순서 꼬임 자세히: (나)(다) = 함께 볼 것 (제목 숫자에 안 셈) */
+.a-also { font-size: 12px; font-weight: 700; color: #8A92A3; }
 
 /* 설정: 사람별 주 한도 */
 .a-caprow { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: #fff; }

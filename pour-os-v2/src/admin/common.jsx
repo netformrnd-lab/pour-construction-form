@@ -1,5 +1,5 @@
 // 관리자 대시보드 — 탭들이 같이 쓰는 작은 조각과 계산 (저장하지 않음)
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ymd, addDays, ddays, md, isDone, ownersOf, dueOf, reqOf, nameOf } from "../model.js";
 import { tidyQueues, dayLoadDelta } from "../views.js";
 import { BulkBar } from "../pick.jsx";
@@ -23,9 +23,11 @@ export function adminQueues(D, idx, now) {
   const open = (D.tasks || []).filter((t) => !t.isFixed && !isDone(t));
   const d7 = new Date(now - 7 * 864e5).toISOString();
   const late = open.filter((t) => t.status !== "review" && t.status !== "hold" && dueOf(t) && dueOf(t) < key);
+  // 안 받은 맡김은 맡긴 때(requestedAt)와 다시 맡긴 때(assignedAt · 한꺼번에 담당 바꾸기) 중 늦은 쪽부터 센다 — 방금 넘긴 일이 '7일 넘음'으로 안 뜨게
+  const since = (t) => [t.requestedAt, t.assignedAt].filter(Boolean).map(String).sort().pop() || "9";
   const req = open.filter((t) => t.dueReq
     || (t.status === "review" && t.reviewAt && ddays(String(t.reviewAt).slice(0, 10), key) < -3)
-    || ((reqOf(t) || (t.assignedBy && !ownersOf(t).includes(t.assignedBy))) && !t.ackAt && t.status === "todo" && !temp.has(t.id) && String(t.requestedAt || t.assignedAt || "9") < d7));
+    || ((reqOf(t) || (t.assignedBy && !ownersOf(t).includes(t.assignedBy))) && !t.ackAt && t.status === "todo" && !temp.has(t.id) && since(t) < d7));
   const extra = [
     { k: "late", label: "기한 지난 일", by: "person", items: late },
     { k: "req", label: "요청 (기한 조정 · 3일 넘은 확인 · 7일 넘게 안 받은 맡김)", by: "person", items: req },
@@ -62,16 +64,27 @@ export const deltaLine = (D, changes, key) => {
 };
 
 // 고른 업무 아래 막대 (100건 넘으면 먼저 알려 줌)
-export function SelBar({ D, cu, A, sel, setSel, setToast }) {
-  const was = useRef(0);
+//  pad: 화면 아래에 붙는 막대(한눈에 · 정리)일 때 — 막대가 실제로 차지하는 높이만큼 아래 여백을 둠 (기한 ▾ · 담당 ▾ 로 펼치면 막대가 커짐)
+//       --a-barh 로도 알려 줌 (1280 한눈에 고른 날 칸이 막대 위에서 끝나게)
+export function SelBar({ D, cu, A, sel, setSel, setToast, pad }) {
+  const was = useRef(0), wrap = useRef(null), [h, setH] = useState(0);
   useEffect(() => { if (sel.size > 100 && was.current <= 100 && setToast) setToast({ text: "한 번에 100건까지예요 · 몇 묶음을 풀어 주세요" }); was.current = sel.size; }, [sel.size]);
+  useEffect(() => {
+    const root = document.documentElement, el = pad && sel.size > 0 && wrap.current && wrap.current.querySelector(".v2-bulk");
+    if (!el) { setH(0); root.style.removeProperty("--a-barh"); return; }
+    const f = () => { const v = Math.max(0, Math.ceil(window.innerHeight - el.getBoundingClientRect().top)); setH(v); root.style.setProperty("--a-barh", v + "px"); };
+    f(); const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(f) : null; if (ro) ro.observe(el); window.addEventListener("resize", f);
+    return () => { if (ro) ro.disconnect(); window.removeEventListener("resize", f); root.style.removeProperty("--a-barh"); };
+  }, [pad, sel.size]);
   if (!sel.size) return null;
-  return <>
+  const bar = <>
     {sel.size > 100 && <div className="a-limit" role="alert">{sel.size}건 골랐어요 · 한 번에 100건까지예요</div>}
     <BulkBar D={D} cu={cu} A={A} ids={sel} clear={() => setSel(new Set())} />
   </>;
+  // 시트 안(막대가 sticky)은 감싸지 않음 — 감싸면 sticky 가 감싼 칸 안에 갇힘
+  return pad ? <div ref={wrap}><div style={{ height: h ? h + 12 : 150 }} aria-hidden="true" />{bar}</div> : bar;
 }
-// 고르기 막대가 내용을 가리지 않게 아래 여백
+// (옛 이름) 고르기 막대가 내용을 가리지 않게 아래 여백 — 이제 SelBar pad 가 막대 높이를 재서 둠
 export const BulkPad = ({ on }) => (on ? <div style={{ height: 150 }} aria-hidden="true" /> : null);
 
 // 한 줄 버튼 (네이비 글자, 누르면 이동)

@@ -81,10 +81,12 @@ export function planLaunchImport(products, D, today = ymd(new Date())) {
   const users = D.users || [], projects = [], tasks = [], skipped = [];
   (products || []).filter((p) => p && p.name && !p.deletedAt).forEach((p) => {
     const pid = "lb_" + p.id, leadName = p.lead || (LAUNCH_BRANDS[p.brand] || {}).bm || "", lead = userByName(users, leadName);
-    projects.push({ id: pid, title: p.name, launchId: p.id, category: "launch", group: "신제품", brand: p.brand || "", batch: p.batch || "", dueDate: p.launchDate || "", launchDate: p.launchDate || "",
-      assigneeId: lead ? lead.id : "", collaboratorIds: [], status: "active", priority: "mid", progress: 0, memo: p.memo || "", importedFrom: "launch-board", createdAt: p.createdAt || "" });
+    // skipItems: v1 에서 건너뛴 항목 (업무를 만들지 않음 → 순서표에서 그 앞 항목으로 거슬러 올라감. 그 밖에 없는 항목은 오래전에 끝나 불러오지 않은 것)
+    const proj = { id: pid, title: p.name, launchId: p.id, category: "launch", group: "신제품", brand: p.brand || "", batch: p.batch || "", dueDate: p.launchDate || "", launchDate: p.launchDate || "",
+      assigneeId: lead ? lead.id : "", collaboratorIds: [], status: "active", priority: "mid", progress: 0, memo: p.memo || "", importedFrom: "launch-board", createdAt: p.createdAt || "", skipItems: [] };
+    projects.push(proj);
     LAUNCH_ITEMS.forEach((it) => {
-      const s = itemState(p, it); if (s.status === "skip") { skipped.push(pid + ":" + it.id); return; }
+      const s = itemState(p, it); if (s.status === "skip") { skipped.push(pid + ":" + it.id); proj.skipItems.push(it.id); return; }
       const u = s.owner ? userByName(users, s.owner) : null;
       const auto = !s.due; const due = s.due || launchDue(p.launchDate, it.off, today);
       tasks.push({ id: `${pid}__${it.id}`, title: it.name + (it.target ? ` (${s.count || 0}/${it.target})` : ""), projectId: pid, launchItem: it.id, phase: it.phase, isFixed: false, type: "general",
@@ -119,10 +121,12 @@ export function planNewLaunch({ name, brand, launchDate, batch, leadId }, D, me,
   return { project, tasks, late, squeezed, byWho };
 }
 
+// 기한을 같이 옮길 항목: 자동 기한 · 아직 하는 일 (끝남·확인 대기·보류는 그대로)
+const movable = (t) => !!t && !!t.launchItem && !!t.dueAuto && !isDone(t) && t.status !== "review" && t.status !== "hold";
 // 출시일 변경 → 자동 기한 항목만 다시 계산 [{task, due}]
 export function relaunch(tasks, launchDate, today = ymd(new Date())) {
   const off = Object.fromEntries(LAUNCH_ITEMS.map((i) => [i.id, i.off]));
-  return (tasks || []).filter((t) => t.launchItem && t.dueAuto && t.status !== "done" && off[t.launchItem] != null)
+  return (tasks || []).filter((t) => movable(t) && off[t.launchItem] != null)
     .map((t) => ({ task: t, due: launchDue(launchDate, off[t.launchItem], today) })).filter((x) => x.due !== t0(x.task));
 }
 const t0 = (t) => String(t.dueDate || "");
@@ -139,11 +143,16 @@ export const LAUNCH_AFTER = {
   x_ex_insta: ["s12"], x_ex_blog: ["s12"], x_ex_yt: ["s12"], x_ex_ohou: ["s12"], x_infl: ["s12"],
   x_ad_nshop: ["s12"], x_ad_cp: ["s12"], x_ad_boost: ["x_ad_nshop"], x_meta: ["x_mall"], x_dg: ["x_mall"], x_blog: ["s12"], x_short: ["s12"],
 };
-// 앞 업무 찾기: 그 제품의 앞 항목 업무. 없으면(건너뜀·불러오지 않음) 그 항목의 앞 항목으로 거슬러 올라감
-export function launchPreds(t, byId) {
+// 앞 업무 찾기: 그 제품의 앞 항목 업무.
+// 업무가 없는 항목: 건너뛴 항목(프로젝트 skipItems)·선택 항목(구성품)만 그 앞 항목으로 거슬러 올라감.
+// 그 밖에 없는 항목은 '오래전에 끝나 불러오지 않음'으로 보고 끝난 것으로 (더 앞의 열린 항목을 앞 일로 잡지 않음)
+// skip: 건너뛴 항목 id 모음(Set·배열) 또는 (항목 id) => 거슬러 올라갈지 함수 (기한 순서 계산은 모두 거슬러 올라감)
+const OPTIONAL = new Set(LAUNCH_ITEMS.filter((i) => i.optional).map((i) => i.id));
+export function launchPreds(t, byId, skip) {
   const out = [], seen = new Set();
+  const thru = typeof skip === "function" ? skip : (a) => OPTIONAL.has(a) || !!(skip && (skip instanceof Set ? skip.has(a) : Array.isArray(skip) && skip.includes(a)));
   const walk = (itemId) => { (LAUNCH_AFTER[itemId] || []).forEach((a) => { if (seen.has(a)) return; seen.add(a);
-    const x = byId.get(`${t.projectId}__${a}`); if (x) out.push(x); else walk(a); }); };
+    const x = byId.get(`${t.projectId}__${a}`); if (x) out.push(x); else if (thru(a)) walk(a); }); };
   walk(t.launchItem);
   return out;
 }
@@ -164,17 +173,30 @@ export function launchPct(p, D) {
   const open = ts.filter((t) => !isDone(t)).length;
   return total ? Math.max(0, Math.min(100, Math.round(((total - open) / total) * 100))) : 0;
 }
-// 기한 고르게 다시 나누기 (압축된 출시): 자동 기한·안 끝난 항목만, 오늘~출시일 사이 평일을 순서표 깊이대로 나눠 배정. 출시 뒤 항목은 규칙대로
+// 기한 고르게 다시 나누기 (압축된 출시): 자동 기한·아직 하는 항목만(끝남·확인 대기·보류 빼고), 오늘~출시일 사이 평일을 순서표 깊이대로 나눠 배정. 출시 뒤 항목은 규칙대로
+// 사람이 정한 기한(dueAuto:false)은 그대로 두고 순서를 지킴: 자동 항목은 사람이 정한 앞 항목 기한보다 앞서지 않고, 사람이 정한 뒤 항목 기한을 넘지 않음
 export function rebalanceLaunch(tasks, launchDate, today = ymd(new Date())) {
   if (!launchDate) return [];
   const days = []; for (let k = today; k < launchDate && days.length < 400; k = addDays(k, 1)) if (!isOffDay(k)) days.push(k);
   if (!days.length) return [];
   const preDepth = Math.max(...LAUNCH_ITEMS.filter((i) => i.off < 0).map((i) => launchDepth[i.id]));
   const off = Object.fromEntries(LAUNCH_ITEMS.map((i) => [i.id, i.off]));
-  return (tasks || []).filter((t) => t.launchItem && t.dueAuto && !isDone(t) && off[t.launchItem] != null).map((t) => {
-    const o = off[t.launchItem];
-    if (o >= 0) return { task: t, due: launchDue(launchDate, o, today) };
-    const idx = Math.min(days.length - 1, Math.round((launchDepth[t.launchItem] / Math.max(1, preDepth)) * (days.length - 1)));
-    return { task: t, due: days[idx] };
-  }).filter((x) => x.due && x.due !== String(x.task.dueDate || ""));
+  const all = (tasks || []).filter((t) => t && t.launchItem), cand = all.filter((t) => movable(t) && off[t.launchItem] != null);
+  const due = new Map(cand.map((t) => { const o = off[t.launchItem];
+    if (o >= 0) return [t.id, launchDue(launchDate, o, today)];
+    return [t.id, days[Math.min(days.length - 1, Math.round((launchDepth[t.launchItem] / Math.max(1, preDepth)) * (days.length - 1)))]]; }));
+  // 순서 지키기: 앞·뒤 항목 (없는 항목은 거슬러 올라감 — 기한 순서는 끝난 항목을 건너도 그대로)
+  const byId = new Map(all.map((t) => [t.id, t])), preds = new Map(), succs = new Map();
+  all.forEach((t) => { const ps = launchPreds(t, byId, () => true); preds.set(t.id, ps); ps.forEach((p) => { const a = succs.get(p.id) || []; a.push(t); succs.set(p.id, a); }); });
+  const fixedDue = (t) => (!finishedLike(t) && t.status !== "hold" ? String(t.dueDate || "").slice(0, 10) : "");   // 사람이 정한(또는 옮기지 않는) 열린 항목의 기한
+  const at = (t) => (due.has(t.id) ? due.get(t.id) : fixedDue(t));
+  const pre = cand.filter((t) => off[t.launchItem] < 0).sort((a, b) => launchDepth[a.launchItem] - launchDepth[b.launchItem]);
+  // 앞으로: 앞 항목 기한보다 이르면 그날 이후 첫 평일로
+  pre.forEach((t) => { const lo = (preds.get(t.id) || []).map(at).filter(Boolean).sort().pop();
+    if (lo && lo > due.get(t.id)) due.set(t.id, days.find((d) => d >= lo) || days[days.length - 1]); });
+  // 뒤로: 뒤 항목 기한보다 늦으면 그날 이전 마지막 평일로 (오늘보다 앞은 안 됨)
+  pre.slice().reverse().forEach((t) => { const hi = (succs.get(t.id) || []).map(at).filter(Boolean).sort()[0];
+    if (hi && hi < due.get(t.id)) due.set(t.id, [...days].reverse().find((d) => d <= hi) || days[0]); });
+  return cand.map((t) => ({ task: t, due: due.get(t.id) })).filter((x) => x.due && x.due !== String(x.task.dueDate || ""));
 }
+const finishedLike = (t) => isDone(t) || t.status === "review";

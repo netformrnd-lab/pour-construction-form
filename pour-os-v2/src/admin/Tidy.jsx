@@ -3,11 +3,11 @@
 // 안전장치(pick.jsx · core.jsx bulk): 한 번에 100건 · 미리 보기 문장 · 30건 이상 확인 창 · 5초 되돌리기 · 기록(이전 값) · 삭제 없음
 import { useMemo, useState } from "react";
 import { ymd, md, ddays, nameOf, ownersOf, dueOf, isDone, taskNoteId, projOpen } from "../model.js";
-import { groupItems } from "../views.js";
+import { groupItems, previewLaunchMove } from "../views.js";
 import { orderIssues, predLine } from "../turn.js";
-import { PickList } from "../pick.jsx";
-import { C, Act, Seg, TBtn, Head, Card, Row, Empty, Sheet, Ask } from "../ui.jsx";
-import { adminQueues, SelBar, BulkPad, isLaunchP, LineBtn } from "./common.jsx";
+import { PickList, ro } from "../pick.jsx";
+import { C, Act, Seg, TBtn, Head, Card, Row, Empty, Sheet, Ask, More } from "../ui.jsx";
+import { adminQueues, SelBar, isLaunchP, LineBtn } from "./common.jsx";
 
 const NAVY_BTN = { background: C.navy, color: "#fff", borderColor: C.navy };
 const EMPTY_L = { blocked: "막힘", late: "기한 지난 일", order: "순서 꼬임", req: "요청", temp: "임시 담당", noDue: "기한 없음", dueReq: "기한 조정 요청" };   // 비어서 목록에 없는 묶음 이름
@@ -48,7 +48,7 @@ function Queue({ q, D, cu, A, idx, open, setToast, back, keyd }) {
     {q.k === "dueReq" ? <DueReqList items={q.items} D={D} cu={cu} A={A} open={open} />
       : <>
         {q.k === "order" && <LineBtn onClick={() => open({ type: "order" })} label="순서 꼬임 자세히 보기">순서 꼬임 자세히 보기 · 앞 일 담당에게 묻기</LineBtn>}
-        {undated.length > 0 && <UndatedLaunch list={undated} A={A} />}
+        {undated.length > 0 && <UndatedLaunch list={undated} A={A} D={D} keyd={keyd} />}
         {dr.length > 0 && <><Head>기한 조정 요청 {dr.length}</Head><DueReqList items={dr} D={D} cu={cu} A={A} open={open} /></>}
         {dr.length > 0 && items.length > 0 && <Head>확인 3일 넘음 · 7일 넘게 안 받음 {items.length}</Head>}
         {items.length > 0 && <div style={{ marginTop: 12, maxWidth: 360 }}><Seg items={[...(q.k === "noDue" ? [["mix", "제품 먼저"]] : []), ["person", "사람별"], ["project", "제품별"]]} value={by} onChange={setBy} /></div>}
@@ -56,22 +56,30 @@ function Queue({ q, D, cu, A, idx, open, setToast, back, keyd }) {
           : <PickList D={D} groups={groups} sel={sel} setSel={setSel} open={open} temp={idx.temp} />}
         {q.k === "noDue" && <p className="a-hint">'날짜 없이 두기'를 고르면 이번 달({+ym.slice(5)}월)에는 다시 묻지 않아요.</p>}
       </>}
-    <BulkPad on={sel.size > 0} />
-    <SelBar D={D} cu={cu} A={A} sel={sel} setSel={setSel} setToast={setToast} />
+    <SelBar D={D} cu={cu} A={A} sel={sel} setSel={setSel} setToast={setToast} pad />
   </>;
 }
 
 // 출시일 미정 제품: 줄마다 [출시일 정하기] → 출시일에서 거꾸로 항목 기한이 채워짐 (자동 기한만)
-function UndatedLaunch({ list, A }) {
-  const [d, setD] = useState({}), [busy, setBusy] = useState("");
+//   고르면 먼저 '항목 n개 기한이 채워져요' 미리 보기 · 30건 이상이면 확인 창 · 지난 날 안 됨 (되돌리기·이전 값 기록은 A.setLaunchDate)
+function UndatedLaunch({ list, A, D, keyd }) {
+  const [d, setD] = useState({}), [busy, setBusy] = useState(""), [ask, setAsk] = useState(null);
+  const nOf = (x) => (d[x.p.id] && d[x.p.id] >= keyd ? previewLaunchMove(x.p, D, d[x.p.id], keyd).changes.length : 0);
+  const run = async (x) => { const date = d[x.p.id]; if (!date || busy) return; setAsk(null); setBusy(x.p.id); const ok = await A.setLaunchDate(x.p, date); setBusy(""); if (ok !== false) setD((m) => ({ ...m, [x.p.id]: "" })); };
+  const go = (x) => { const date = d[x.p.id]; if (!date || date < keyd || busy) return; const n = nOf(x); return n >= 30 && n <= 100 ? setAsk({ x, n, date }) : run(x); };
   return <>
     <Head>출시일 미정 신제품 {list.length} · 항목 {list.reduce((a, x) => a + x.n, 0)}</Head>
-    <Card>{list.map((x, i) => <div key={x.p.id} className="a-undated" style={{ borderBottom: i < list.length - 1 ? `1px solid ${C.line}` : "none" }}>
-      <div style={{ flex: "1 1 140px", minWidth: 0 }}><b>{x.p.title}</b><div style={{ fontSize: 12.5, color: C.sub }}>출시일 미정 · 항목 {x.n}</div></div>
-      <input type="date" className="v2-sel" aria-label={`${x.p.title} 출시일`} value={d[x.p.id] || ""} onChange={(e) => setD({ ...d, [x.p.id]: e.target.value })} />
-      <Act onClick={async () => { if (!d[x.p.id]) return; setBusy(x.p.id); await A.setLaunchDate(x.p, d[x.p.id]); setBusy(""); }} style={d[x.p.id] ? NAVY_BTN : { opacity: 0.5 }}>{busy === x.p.id ? "정하는 중" : "출시일 정하기"}</Act>
-    </div>)}</Card>
-    <p className="a-hint">날짜를 고르고 [출시일 정하기]를 누르면 항목 기한이 출시일에서 거꾸로 채워져요 (주말·공휴일 건너뜀).</p>
+    <Card>{list.map((x, i) => { const date = d[x.p.id] || "", past = !!date && date < keyd, n = nOf(x);
+      return <div key={x.p.id} className="a-undated" style={{ borderBottom: i < list.length - 1 ? `1px solid ${C.line}` : "none" }}>
+        <div style={{ flex: "1 1 140px", minWidth: 0 }}><b>{x.p.title}</b><div style={{ fontSize: 12.5, color: C.sub }}>출시일 미정 · 항목 {x.n}</div></div>
+        <input type="date" className="v2-sel" min={keyd} aria-label={`${x.p.title} 출시일`} value={date} onChange={(e) => setD({ ...d, [x.p.id]: e.target.value })} />
+        <Act onClick={() => go(x)} style={date && !past ? NAVY_BTN : { opacity: 0.5 }}>{busy === x.p.id ? "정하는 중" : "출시일 정하기"}</Act>
+        {date && <div className="a-undprev" role="status">{past ? `지난 날(${md(date)})은 출시일로 정할 수 없어요 · 오늘 이후로 골라 주세요`
+          : n > 100 ? `항목 ${n}개 · 한 번에 100건까지라 바꿀 수 없어요`
+          : n ? `${md(date)} 출시 → 항목 ${n}개 기한이 채워져요${n >= 30 ? " · 누르면 한 번 더 물어요" : ""}` : `${md(date)} 출시 · 기한이 바뀌는 항목은 없어요`}</div>}
+      </div>; })}</Card>
+    <p className="a-hint">날짜를 고르고 [출시일 정하기]를 누르면 항목 기한이 출시일에서 거꾸로 채워져요 (주말·공휴일 건너뜀). 5초 안에 되돌릴 수 있고, 바꾸기 전 값은 기록에 남아요.</p>
+    {ask && <Ask title={`항목 ${ask.n}개 기한을 채울까요?`} body={`${ask.x.p.title} 출시일을 ${md(ask.date)}${ro(md(ask.date))} 정하면 항목 ${ask.n}개 기한이 출시일에서 거꾸로 채워져요.\n5초 안에 되돌릴 수 있고, 바꾸기 전 값은 기록에 남아요.`} yes="출시일 정하기" onNo={() => setAsk(null)} onYes={() => run(ask.x)} />}
   </>;
 }
 
@@ -103,7 +111,7 @@ const ORDER_L = [
 export function OrderSheet({ D, cu, A, idx, open, onBack, onClose, setToast }) {
   const key = ymd(new Date());
   const oi = useMemo(() => orderIssues(D, idx, key), [D, idx]);
-  const [asked, setAsked] = useState({});
+  const [asked, setAsked] = useState({}), [nShow, setNShow] = useState({});
   const who = (t) => nameOf(D.users, ownersOf(t)[0]) || "담당 없음";
   // (라)는 '할 일'로 남은 앞 일이 여럿이면 그 담당 모두에게 묻는다
   const targets = (k, t, p) => (k === "d" ? (idx.preds.get(t.id) || []).filter((x) => x.status === "todo") : [p]).filter(Boolean);
@@ -117,18 +125,20 @@ export function OrderSheet({ D, cu, A, idx, open, onBack, onClose, setToast }) {
     return A.addNote(taskNoteId(p.id), text, null, [], { taskId: p.id, projectId: p.projectId });
   };
   const chain = (() => { const m = new Map(); oi.b.forEach((x) => { if (!x.p) return; const g = m.get(x.p.id) || { p: x.p, n: 0 }; g.n++; m.set(x.p.id, g); }); return [...m.values()].sort((a, b) => b.n - a.n); })();
-  const total = oi.a.length + oi.b.length + oi.c.length + oi.d.length;
+  // 제목 숫자 = 위험 칸 · 정리 묶음과 같은 규칙: (가)+(라) (같은 일은 한 번) — (나)(다)는 '함께 볼 것'으로 따로 셈
+  const total = new Set([...(oi.a || []), ...(oi.d || [])].map((x) => x.t.id)).size;
   return <Sheet title={`순서 꼬임 ${total}`} onBack={onBack} onClose={onClose}>
-    <p className="a-hint" style={{ marginTop: 12 }}>앞 일 = 이 일보다 먼저 끝나야 하는 일(신제품 순서표·앞 일 지정). 같은 날 앞뒤는 꼬임으로 세지 않아요(출시 줄 '같은 날 넘김'). 둘 다 자동 기한이면 (가)에서 빼요.</p>
+    <p className="a-hint" style={{ marginTop: 12 }}>순서 꼬임 {total} = (가)+(라) (같은 일은 한 번) · (나)(다)는 함께 볼 것이라 이 숫자에 안 세요. 앞 일 = 이 일보다 먼저 끝나야 하는 일(신제품 순서표·앞 일 지정). 같은 날 앞뒤는 꼬임으로 세지 않아요(출시 줄 '같은 날 넘김'). 둘 다 자동 기한이면 (가)에서 빼요.</p>
     {chain.length > 0 && <Card style={{ marginTop: 10, padding: "10px 14px", fontSize: 13.5, color: C.text, lineHeight: 1.7 }}>{chain.slice(0, 5).map((g) => { const n = ddays(dueOf(g.p), key);
       return <div key={g.p.id}><b>{g.p.title}</b> ({who(g.p)}) {n != null && n < 0 ? <b style={{ color: C.red }}>{-n}일 지남</b> : "늦음"} → 뒤 {g.n}건 위험</div>; })}</Card>}
-    {ORDER_L.map(([k, l]) => { const a = oi[k] || [];
-      return <div key={k}><Head red={k === "b" && a.length > 0}>{l} {a.length}</Head>
-        <Card>{a.length === 0 ? <Empty>없어요</Empty> : a.slice(0, 60).map((x, i) => { const done = asked[k + x.t.id + (x.p ? x.p.id : "")];
+    {ORDER_L.map(([k, l]) => { const a = oi[k] || [], lim = nShow[k] || 60;
+      return <div key={k}><Head red={k === "b" && a.length > 0}>{l} {a.length}{k === "b" || k === "c" ? <small className="a-also"> · 함께 볼 것</small> : null}</Head>
+        <Card>{a.length === 0 ? <Empty>없어요</Empty> : a.slice(0, lim).map((x, i) => { const done = asked[k + x.t.id + (x.p ? x.p.id : "")];
           return <Row key={k + x.t.id + (x.p ? x.p.id : i)} title={x.t.title}
             sub={`${who(x.t)} · ${dueOf(x.t) ? md(dueOf(x.t)) : "기한 없음"}${((D.projects || []).find((p) => p.id === x.t.projectId) || {}).title ? " · " + D.projects.find((p) => p.id === x.t.projectId).title : ""}`}
-            sub2={x.p ? `앞 일: ${targets(k, x.t, x.p).map((p) => predLine(p, D.users, key)).join(" / ")}` : null} onClick={() => open({ type: "task", id: k === "c" ? x.t.id : (x.p || x.t).id })} last={i === Math.min(60, a.length) - 1}
+            sub2={x.p ? `앞 일: ${targets(k, x.t, x.p).map((p) => predLine(p, D.users, key)).join(" / ")}` : null} onClick={() => open({ type: "task", id: k === "c" ? x.t.id : (x.p || x.t).id })} last={i === Math.min(lim, a.length) - 1 && a.length <= lim}
             right={k === "c" ? <Act onClick={() => open({ type: "task", id: x.t.id })}>담당 정하기</Act>
-              : x.p ? <Act onClick={() => !done && ask(k, x.t, x.p)} style={done ? { color: C.mute } : null}>{done ? "물어봄 ✓" : "담당에게 묻기"}</Act> : null} />; })}</Card></div>; })}
+              : x.p ? <Act onClick={() => !done && ask(k, x.t, x.p)} style={done ? { color: C.mute } : null}>{done ? "물어봄 ✓" : "담당에게 묻기"}</Act> : null} />; })}
+          {a.length > lim && <More onClick={() => setNShow((m) => ({ ...m, [k]: lim + 60 }))}>{a.length - lim}개 더 ▾</More>}</Card></div>; })}
   </Sheet>;
 }

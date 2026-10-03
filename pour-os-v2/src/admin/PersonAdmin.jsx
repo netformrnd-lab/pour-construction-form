@@ -5,12 +5,12 @@ import { useState } from "react";
 import * as fb from "../fb.js";
 import { ymd, ddays, ddayLabel, md, ago, hm, isDone, isOneOff, isMine, ownersOf, dueOf, nameOf, riskOf, projOpen, personHealth, onTimeOf, fxIsMine, fxDueOn, fxMeDone, fxLabel, fxTime } from "../model.js";
 import { nextsOf } from "../turn.js";
-import { C, Big, TBtn, Act, Head, Card, Row, Empty, Sheet, Ask, inp } from "../ui.jsx";
-import { Lv } from "./common.jsx";
+import { C, Big, TBtn, Act, Head, Card, Row, Empty, Sheet, Ask, More, inp } from "../ui.jsx";
+import { Lv, pName } from "./common.jsx";
 
 export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast }) {
   const u = (D.users || []).find((x) => x.id === id);
-  const [ask, setAsk] = useState(false), [all, setAll] = useState(false), [wOpen, setWOpen] = useState(false), [cap, setCap] = useState(""), [busy, setBusy] = useState(false);
+  const [ask, setAsk] = useState(false), [all, setAll] = useState(false), [wOpen, setWOpen] = useState(false), [cap, setCap] = useState(""), [busy, setBusy] = useState(false), [wn, setWn] = useState(40);
   if (!u) return <Sheet title="사람" onBack={onBack} onClose={onClose}><Empty>찾지 못했어요</Empty></Sheet>;
   const now = new Date(), key = ymd(now), h = personHealth(D, u.id, now), ot = onTimeOf(D, u.id, now);
   const open1 = D.tasks.filter((t) => isOneOff(t) && !isDone(t) && isMine(t, u.id));
@@ -30,7 +30,7 @@ export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast
     try { await fb.patch("users", u._doc || u.id, { weekCap: v }); A.log("edit", { col: "users", targetId: u.id, label: `${u.name} · 주 한도 ${curCap} → ${v}`, prev: curCap }); setToast({ text: `${u.name}님 주 한도를 ${v}건으로 바꿨어요` }); setCap(""); }
     catch (e) { console.error("[v2 관리] 주 한도 저장 실패:", e); setToast({ text: "주 한도 저장 실패 · 인터넷 연결을 확인해 주세요" }); }
     setBusy(false); };
-  const L = ({ a, empty, render }) => <Card>{a.length === 0 ? <Empty>{empty}</Empty> : a.map((x, i) => render(x, i === a.length - 1))}</Card>;
+  const L = ({ a, empty, render, more }) => <Card>{a.length === 0 ? <Empty>{empty}</Empty> : a.map((x, i) => render(x, i === a.length - 1 && !more))}{more || null}</Card>;
   const stat = [
     ["열린", h.open], ["지남", h.late, h.late > 0], ["곧 마감인데 시작 전", h.start], ["진행 중", h.doing, false, h.doing >= 6],
     ["기한 지킴", ot.pct != null ? `${ot.pct}%` : "-"], ["기한 없음", h.noDue], ["기다리는 뒤 일", waiting.length],
@@ -46,9 +46,10 @@ export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast
     <Head right={waiting.length > 0 && <TBtn onClick={() => setWOpen(!wOpen)}>{wOpen ? "접기 ▴" : "보기 ▾"}</TBtn>}>이 사람을 기다리는 뒤 일 {waiting.length}</Head>
     {waiting.length === 0 ? <Card><Empty>이 사람 다음 차례로 기다리는 다른 사람 일이 없어요</Empty></Card>
       : !wOpen ? <Card style={{ padding: "10px 14px", fontSize: 13.5, color: C.text }}>{waitWho.slice(0, 5).join(" · ")}{waitWho.length > 5 ? ` 외 ${waitWho.length - 5}명` : ""} · 이 사람이 늦으면 같이 밀려요</Card>
-      : <L a={waiting.slice(0, 40)} empty="" render={(x, last) => <Row key={x.n.id} title={x.n.title} sub={`${nameOf(D.users, ownersOf(x.n)[0]) || "담당 없음"} · ${dueOf(x.n) ? md(dueOf(x.n)) : "기한 없음"} · 앞 일 ${x.t.title}${dueOf(x.t) ? ` (${md(dueOf(x.t))})` : ""}`} onClick={() => open({ type: "task", id: x.n.id })} last={last} />} />}
+      : <L a={waiting.slice(0, wn)} empty="" more={waiting.length > wn && <More onClick={() => setWn(wn + 40)}>{waiting.length - wn}개 더 ▾</More>}
+        render={(x, last) => <Row key={x.n.id} title={x.n.title} sub={[nameOf(D.users, ownersOf(x.n)[0]) || "담당 없음", dueOf(x.n) ? md(dueOf(x.n)) : "기한 없음", pName(D, x.n.projectId), `앞 일 ${x.t.title}${dueOf(x.t) ? ` (${md(dueOf(x.t))})` : ""}`].filter(Boolean).join(" · ")} onClick={() => open({ type: "task", id: x.n.id })} last={last} />} />}
 
-    <Head>지금 하는 일 {doing.length}</Head><L a={doing} empty="진행 중인 일이 없어요" render={(t, last) => <Row key={t.id} title={t.title} sub={dueOf(t) ? `${md(dueOf(t))} · ${ddayLabel(ddays(dueOf(t), key))}` : "기한 없음"} onClick={() => open({ type: "task", id: t.id })} last={last} />} />
+    <Head>지금 하는 일 {doing.length}</Head><L a={doing} empty="진행 중인 일이 없어요" render={(t, last) => <Row key={t.id} title={t.title} sub={[dueOf(t) ? `${md(dueOf(t))} · ${ddayLabel(ddays(dueOf(t), key))}` : "기한 없음", pName(D, t.projectId)].filter(Boolean).join(" · ")} onClick={() => open({ type: "task", id: t.id })} last={last} />} />
     <Head right={todoAll.length > 5 && <TBtn onClick={() => setAll(!all)}>{all ? "접기 ▴" : `모두 ${todoAll.length} ▾`}</TBtn>}>다음 할 일 {todoAll.length}</Head>
     <L a={next} empty="남은 할 일이 없어요" render={(t, last) => { const r = riskOf(t, key); return <Row key={t.id} tag={r ? r.label : idx.temp.has(t.id) ? "임시" : null} tagTone={r && r.red ? "red" : null} title={t.title} sub={[dueOf(t) ? md(dueOf(t)) : "기한 없음", ((D.projects.find((p) => p.id === t.projectId) || {}).title) || ""].filter(Boolean).join(" · ")} onClick={() => open({ type: "task", id: t.id })} last={last} />; }} />
     <Head>책임 프로젝트 {projs.length}</Head><L a={projs} empty="책임 프로젝트가 없어요" render={(p, last) => <Row key={p.id} title={p.title} sub={(p.now && p.now.text ? p.now.text.split("\n")[0] : "지금 상황 미작성")} onClick={() => open({ type: "project", id: p.id })} last={last} />} />

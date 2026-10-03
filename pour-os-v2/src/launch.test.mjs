@@ -23,6 +23,7 @@ ok("v1 제품 → 프로젝트 1 + 항목 업무, 건너뜀(skip)·삭제 제품
     { id: "B", name: "삭제", deletedAt: "x", stages: {} }, { id: "board-settings" }];
   const r = L.planLaunchImport(prods, { users }, "2026-10-02");
   assert.equal(r.projects.length, 1); assert.equal(r.projects[0].assigneeId, "sh");   // 그로홈 BM
+  assert.deepEqual(r.projects[0].skipItems, ["s01"]); assert.deepEqual(r.skipped, ["lb_A:s01"]);   // 건너뛴 항목은 프로젝트에 기록(순서표 거슬러 올라감)
   assert.equal(r.tasks.length, L.LAUNCH_ITEMS.length - 1);
   const p01 = r.tasks.find((t) => t.launchItem === "p01"), s06 = r.tasks.find((t) => t.launchItem === "s06");
   assert.equal(p01.status, "done"); assert.equal(p01.assigneeId, "jh");
@@ -50,9 +51,14 @@ ok("순서표: 모든 화살표에서 앞 항목이 더 이른 규칙 기한 (�
     v.forEach((a) => { const q = L.LAUNCH_ITEMS.find((i) => i.id === a); assert.ok(q, a); assert.ok(q.off < o.off, `${a} → ${k}`); }); }
   assert.deepEqual(L.LAUNCH_ITEMS.filter((i) => !L.LAUNCH_AFTER[i.id]).map((i) => i.id), ["p01"]);
 });
-ok("앞 업무 찾기: 없는 항목(건너뜀)은 그 앞으로 거슬러 올라감", () => {
-  const byId = new Map([["P__s06", { id: "P__s06" }], ["P__p04", { id: "P__p04" }]]);   // s01 없음 → s07 의 앞 = s06 + (s01 → p04)
-  assert.deepEqual(L.launchPreds({ projectId: "P", launchItem: "s07" }, byId).map((x) => x.id).sort(), ["P__p04", "P__s06"]);
+ok("앞 업무 찾기: 건너뛴 항목만 그 앞으로 거슬러 올라감, 그 밖에 없는 항목은 끝난 것으로(불러오지 않은 오래전 끝난 항목)", () => {
+  const byId = new Map([["P__s06", { id: "P__s06" }], ["P__p04", { id: "P__p04" }]]);
+  assert.deepEqual(L.launchPreds({ projectId: "P", launchItem: "s07" }, byId).map((x) => x.id), ["P__s06"]);                          // s01 없음 = 끝남
+  assert.deepEqual(L.launchPreds({ projectId: "P", launchItem: "s07" }, byId, new Set(["s01"])).map((x) => x.id).sort(), ["P__p04", "P__s06"]);   // s01 건너뜀 → p04
+  assert.deepEqual(L.launchPreds({ projectId: "P", launchItem: "s07" }, byId, ["s01"]).map((x) => x.id).sort(), ["P__p04", "P__s06"]);
+  assert.deepEqual(L.launchPreds({ projectId: "P", launchItem: "s07" }, byId, () => true).map((x) => x.id).sort(), ["P__p04", "P__s06"]);
+  // 선택 항목(구성품 x_parts)은 없으면 늘 거슬러 올라감 — 순서표 뒤 항목이 없어 표를 바꿔 보지는 않고 OPTIONAL 판정만 확인
+  assert.ok(L.LAUNCH_ITEMS.find((i) => i.id === "x_parts").optional);
 });
 ok("가져오기: 항목별 끝낸 시각·끝낸 사람, 담당 출처(v1·기본·임시)", () => {
   const users = [{ id: "jh", name: "용정하" }, { id: "sh", name: "김송희" }, { id: "wm", name: "이우민" }];
@@ -80,5 +86,30 @@ ok("신제품 % 는 항목으로 계산 · 기한 다시 나누기는 자동 기
   for (const [k, v] of Object.entries(L.LAUNCH_AFTER)) v.forEach((a) => { if (a !== fixed.launchItem && k !== fixed.launchItem && due[a] && due[k] && L.LAUNCH_ITEMS.find((i) => i.id === k).off < 0) assert.ok(due[a] <= due[k], `${a} ${due[a]} → ${k} ${due[k]}`); });
   const per = {}; Object.values(due).forEach((d) => (per[d] = (per[d] || 0) + 1)); const before = {}; r.tasks.forEach((t) => (before[t.dueDate] = (before[t.dueDate] || 0) + 1));
   assert.ok(Math.max(...Object.values(per)) <= Math.max(...Object.values(before)));
+});
+ok("기한 다시 나누기: 사람이 정한 뒤 항목 기한을 넘지 않고, 사람이 정한 앞 항목 기한보다 앞서지 않음 (순서 꼬임 새로 안 만듦)", () => {
+  const D = { users: [{ id: "a", name: "가" }], workflows: [], tasks: [] };
+  const r = L.planNewLaunch({ name: "N", brand: "grohome", launchDate: "2026-10-23", leadId: "a" }, D, { id: "a" }, "2026-10-02");
+  // s06(상세페이지 기획)을 사람이 10/08 로 → s02(판매전략)·그 앞 항목은 10/08 을 넘으면 안 됨
+  const ts = r.tasks.map((t) => (t.launchItem === "s06" ? { ...t, dueAuto: false, dueDate: "2026-10-08" } : t));
+  const ch = L.rebalanceLaunch(ts, "2026-10-23", "2026-10-06");
+  const due = Object.fromEntries(ts.map((t) => [t.launchItem, (ch.find((x) => x.task.id === t.id) || {}).due || t.dueDate]));
+  assert.ok(due.s02 <= "2026-10-08", due.s02); assert.ok(due.x_test <= due.s02 && due.p03 <= due.s02);
+  assert.ok(due.s07 >= "2026-10-08" && due.s09 >= "2026-10-08");   // 뒤 항목은 사람이 정한 기한 뒤로
+  for (const [k, v] of Object.entries(L.LAUNCH_AFTER)) v.forEach((a) => { if (due[a] && due[k] && L.LAUNCH_ITEMS.find((i) => i.id === k).off < 0) assert.ok(due[a] <= due[k], `${a} ${due[a]} → ${k} ${due[k]}`); });
+  ch.forEach((x) => { const w = new Date(x.due + "T00:00:00").getDay(); assert.ok(w !== 0 && w !== 6 && x.due !== "2026-10-09" && x.due >= "2026-10-06", x.due); });   // 평일·오늘 이후
+  // 사람이 정한 앞 항목(s02 10/20) → 자동 뒤 항목(s06·s07…)은 그보다 앞서지 않음
+  const ts2 = r.tasks.map((t) => (t.launchItem === "s02" ? { ...t, dueAuto: false, dueDate: "2026-10-20" } : t));
+  const ch2 = L.rebalanceLaunch(ts2, "2026-10-23", "2026-10-06");
+  const due2 = Object.fromEntries(ts2.map((t) => [t.launchItem, (ch2.find((x) => x.task.id === t.id) || {}).due || t.dueDate]));
+  assert.ok(due2.s06 >= "2026-10-20" && due2.s08 >= due2.s07 && due2.s11 >= due2.s10, JSON.stringify([due2.s06, due2.s07, due2.s08, due2.s11]));
+});
+ok("보류·확인 대기 항목은 출시일 옮기기·기한 다시 나누기에서 그대로", () => {
+  const D = { users: [{ id: "a", name: "가" }], workflows: [], tasks: [] };
+  const r = L.planNewLaunch({ name: "N", brand: "grohome", launchDate: "2026-10-23", leadId: "a" }, D, { id: "a" }, "2026-10-02");
+  const ts = r.tasks.map((t) => (t.launchItem === "x_test" ? { ...t, status: "hold" } : t.launchItem === "s02" ? { ...t, status: "review" } : t));
+  const ch = L.rebalanceLaunch(ts, "2026-10-23", "2026-10-06"), mv = L.relaunch(ts, "2026-11-06", "2026-10-06");
+  assert.ok(ch.length > 0 && mv.length > 0);
+  [ch, mv].forEach((a) => assert.ok(!a.some((x) => x.task.launchItem === "x_test" || x.task.launchItem === "s02")));
 });
 console.log(`\n${n}개 모두 통과`);

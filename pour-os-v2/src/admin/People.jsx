@@ -1,17 +1,17 @@
 // 관리자 · 사람 — 누가 넘치나, 누가 오래 밀렸나, 누가 너무 많이 벌였나
-// 사람 × [지남 | 이번 주 | 다음 주 | 3주 뒤 | 4주 뒤] (375 에서 328px 안, 가로 스크롤 없음) · [14일] 은 사람 × 날 (칸 안에서만 가로 스크롤)
+// 사람 × [지남 | 이번 주 | 다음 주 | 2주 뒤 | 3주 뒤] (오늘부터 7일씩) (375 에서 328px 안, 가로 스크롤 없음) · [14일] 은 사람 × 날 (칸 안에서만 가로 스크롤)
 import { useMemo, useState } from "react";
 import { ymd, addDays, md, isMine, dueOf, holidayName, isOffDay } from "../model.js";
 import { teamWeeks, groupItems } from "../views.js";
 import { PickList } from "../pick.jsx";
 import { C, Chip, Seg, TBtn, Head, Card, Empty, Sheet } from "../ui.jsx";
-import { Lv, SelBar, BulkPad, openOneOff, wdOf } from "./common.jsx";
+import { Lv, SelBar, openOneOff, wdOf } from "./common.jsx";
 
 const ORD = { 위험: 0, 주의: 1, 순조: 2 };
 const sortRows = (rows) => rows.slice().sort((a, b) => ORD[a.level] - ORD[b.level] || b.weeks[0].n - a.weeks[0].n || String(a.u.name).localeCompare(String(b.u.name), "ko"));
 const wl = (n) => (n <= 0 ? "" : n <= 5 ? " w1" : n <= 14 ? " w2" : " w3");     // 주 칸 농도 (네이비 3단계)
 const dl = (n) => (n <= 0 ? "" : n <= 2 ? " w1" : n <= 5 ? " w2" : " w3");      // 하루 칸 농도 (개인 기준)
-const WEEK_L = ["이번 주", "다음 주", "3주 뒤", "4주 뒤"];
+const WEEK_L = ["이번 주", "다음 주", "2주 뒤", "3주 뒤"];   // 오늘부터 7일 · 8~14일 · 15~21일 · 22~28일 (칸 아래 시작 날짜)
 
 export function PeopleTab({ D, cu, A, idx, open, setToast }) {
   const [view, setView] = useState("w4"), [noTemp, setNoTemp] = useState(false);
@@ -44,7 +44,7 @@ export function WeekTable({ D, idx, open, noTemp }) {
       <button type="button" className="a-wc late" disabled={!r.late} onClick={() => open({ type: "apick", uid: r.u.id, late: true, noTemp })} aria-label={`${r.u.name} 지난 일 ${r.late}건`}>
         <b style={{ color: r.late ? C.red : C.mute }}>{r.late || "-"}</b></button>
       {r.weeks.map((w, i) => { const overCap = w.n > r.cap;
-        return <button key={i} type="button" className={"a-wc" + wl(w.n)} onClick={() => open({ type: "apick", uid: r.u.id, from: w.from, to: w.to, noTemp })}
+        return <button key={i} type="button" className={"a-wc" + wl(w.n)} disabled={!w.n} onClick={() => open({ type: "apick", uid: r.u.id, from: w.from, to: w.to, noTemp })}
           aria-label={`${r.u.name} ${WEEK_L[i]} ${w.n}건${!noTemp && w.temp ? `, 임시 ${w.temp}` : ""}${overCap ? `, 주 한도 ${r.cap} 넘음` : ""}`}>
           <b className={overCap ? "over" : ""}>{w.n || "-"}</b>{!noTemp && w.temp > 0 && <small>임시 {w.temp}</small>}</button>; })}
     </div>)}
@@ -81,18 +81,21 @@ export function PickSheet({ D, cu, A, idx, open, onBack, onClose, setToast, s })
   const items = only === "temp" ? base.filter((t) => idx.temp.has(t.id)) : only === "real" ? base.filter((t) => !idx.temp.has(t.id)) : base;
   const groups = groupItems(items, "project", D);
   const range = s.late ? "지난 일" : s.from === s.to ? `${md(s.from)} (${wdOf(s.from)})` : `${md(s.from)}~${md(s.to)}`;
+  // 칩을 바꾸면 고른 것도 풀기 · 막대에는 지금 보이는 줄에서 고른 것만 (안 보이는 일이 같이 바뀌지 않게)
+  const only1 = (k) => { setOnly(k); setSel(new Set()); };
+  const ids = new Set(items.map((t) => t.id)), selV = new Set([...sel].filter((id) => ids.has(id)));
   const all = items.length > 0 && items.every((t) => sel.has(t.id));
   return <Sheet title={`${u ? u.name : "사람"} · ${range} · ${base.length}건${tempN ? `(임시 ${tempN})` : ""}`} onBack={onBack} onClose={onClose}>
     <div className="v2-chips" style={{ marginTop: 12 }}>
-      <Chip on={only === "all"} onClick={() => setOnly("all")}>전체 {base.length}</Chip>
-      {tempN > 0 && <Chip on={only === "temp"} onClick={() => setOnly("temp")}>임시만 {tempN}</Chip>}
-      {tempN > 0 && <Chip on={only === "real"} onClick={() => setOnly("real")}>진짜 일만 {base.length - tempN}</Chip>}
+      <Chip on={only === "all"} onClick={() => only1("all")}>전체 {base.length}</Chip>
+      {tempN > 0 && <Chip on={only === "temp"} onClick={() => only1("temp")}>임시만 {tempN}</Chip>}
+      {tempN > 0 && <Chip on={only === "real"} onClick={() => only1("real")}>진짜 일만 {base.length - tempN}</Chip>}
       <span style={{ flex: 1 }} />
       {items.length > 0 && <TBtn onClick={() => setSel(all ? new Set() : new Set(items.map((t) => t.id)))}>{all ? "모두 풀기" : `모두 고르기 ${items.length}`}</TBtn>}
     </div>
     {items.length === 0 ? <Card style={{ marginTop: 12 }}><Empty>고른 조건에 맞는 일이 없어요</Empty></Card>
       : <PickList D={D} groups={groups} sel={sel} setSel={setSel} open={open} temp={idx.temp} />}
     <p className="a-hint">담당을 바꿔도 맡긴 사람은 그대로예요. 받는 사람 화면에는 '항목 n개 맡김' 한 줄로 떠요.</p>
-    <SelBar D={D} cu={cu} A={A} sel={sel} setSel={setSel} setToast={setToast} />
+    <SelBar D={D} cu={cu} A={A} sel={selV} setSel={setSel} setToast={setToast} />
   </Sheet>;
 }

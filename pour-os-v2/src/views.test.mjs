@@ -40,4 +40,22 @@ ok("정리 묶음: 임시 담당·기한 없음·오래 지난 일, 이번 달 '
   assert.deepEqual(by.temp, [1]); assert.deepEqual(by.noDue, [2]); assert.deepEqual(by.old, [4]);
   assert.equal(V.groupItems(q.find((x) => x.k === "old").items, "person", D)[0].label, "나나");
 });
+ok("→ 내 차례 시작: 앞 일이 이미 지났으면 지난 날이 아니라 오늘에", () => {
+  const D = { users, projects: [], tasks: [{ id: "A", title: "카피", assigneeId: "b", status: "todo", dueDate: "2026-09-29" }, { id: "B", title: "배너", assigneeId: "a", status: "todo", deps: ["A"], dueDate: "2026-10-12" },
+    { id: "C", title: "사진", assigneeId: "b", status: "inprogress", dueDate: "2026-10-14" }, { id: "E", title: "글", assigneeId: "a", status: "todo", deps: ["C"], dueDate: "2026-10-20" }] };
+  const idx = turnIndex(D), T = turnsOf(D, idx, "a", new Date("2026-10-06T10:00:00"), {}, "");
+  const c = V.calCells(D, idx, { uid: "a", noTemp: true, turns: T }, "2026-10", "2026-10-06");
+  assert.deepEqual(Object.entries(c).filter(([, x]) => x.turnStart).map(([d]) => d), ["2026-10-06", "2026-10-14"]);
+  assert.equal(V.turnStartOf(T.byTask.get("B"), "2026-10-06"), "2026-10-06"); assert.equal(V.turnStartOf(T.byTask.get("E"), "2026-10-06"), "2026-10-14");
+  assert.equal(V.turnStartOf({ state: "ready", open: [] }, "2026-10-06"), "");
+});
+ok("출시일 옮기기 미리 보기·하루 마감 변화: 보류 항목은 옮기지 않고 세지도 않음", () => {
+  const D0 = { users, workflows: [], tasks: [] };
+  const a = planNewLaunch({ name: "A", brand: "grohome", launchDate: "2026-11-20", leadId: "sh" }, D0, { id: "sh" }, "2026-10-02");
+  const tasks = a.tasks.map((t) => (t.launchItem === "s07" ? { ...t, status: "hold" } : t)), D = { users, projects: [a.project], tasks };
+  const pv = V.previewLaunchMove(a.project, D, "2026-11-27", "2026-10-02");
+  assert.ok(!pv.changes.some((x) => x.task.launchItem === "s07"));
+  const held = tasks.find((t) => t.launchItem === "s07"), { before, after } = V.dayLoadDelta(D, [{ task: held, due: "2026-10-30" }]);
+  assert.deepEqual(after, before);   // 보류 항목은 표에 안 세므로 미리 보기 숫자도 그대로
+});
 console.log(`\n${n}개 모두 통과`);

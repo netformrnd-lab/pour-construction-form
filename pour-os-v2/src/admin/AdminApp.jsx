@@ -46,7 +46,8 @@ function AdminMain({ B }) {
   const back = () => setStack((st) => st.slice(0, -1));
   const closeAll = () => setStack([]);
   const go = (k, q) => { setTab(k); setTq(q || ""); closeAll(); window.scrollTo(0, 0); };
-  const base = { D, cu, A, idx, open, back, closeAll, setToast, meta: B.meta, setMeta: B.setMeta, logout: B.logout, go };
+  const saveAt = (i, patch) => setStack((st) => st.map((x, j) => (j === i ? { ...x, ...patch } : x)));   // 시트 화면 상태를 쌓인 칸에 적어 둠 (뒤로 와도 이어서)
+  const base = { D, cu, A, idx, open, back, closeAll, saveAt, setToast, meta: B.meta, setMeta: B.setMeta, logout: B.logout, go };
   const ctx = { ...base, projectExtra: (p) => <LaunchTools p={p} {...base} /> };
   const extra = {
     person: (p, s) => <PersonAdmin {...p} id={s.id} />,

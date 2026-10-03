@@ -1,6 +1,6 @@
 // 업무OS v2 — 앞사람 → 내 차례 (저장하지 않고 계산만)
 //
-// 앞 일 찾는 순서: ① 업무의 deps(v1 과 같은 칸 · [] 는 '앞 일 없음') ② 신제품 항목이면 순서표(launch.js LAUNCH_AFTER, 없는 항목은 거슬러 올라감)
+// 앞 일 찾는 순서: ① 업무의 deps(v1 과 같은 칸 · [] 는 '앞 일 없음') ② 신제품 항목이면 순서표(launch.js LAUNCH_AFTER, 건너뛴 항목만 거슬러 올라감)
 //                 ③ 하위 업무가 있는 상위 업무는 하위 업무(담당이 다를 때만) ④ 고정업무는 앞뒤 없음
 // '끝난 앞 일' = 끝남(done) 또는 확인 대기(review: 담당은 끝냈고 맡긴 사람 확인만 남음) 또는 불러온 범위에 없음
 // 기다림은 표시만 하고 막지 않는다(실제 일보다 상태가 늦게 바뀌는 경우가 많음). 내 일이 이미 진행 중이면 기다림 표시를 하지 않는다
@@ -21,12 +21,13 @@ export function turnIndex(D) {
   const tasks = D.tasks || [], byId = new Map(tasks.map((t) => [t.id, t]));
   const kids = new Map(); tasks.forEach((t) => { if (t.parentId) { const a = kids.get(t.parentId) || []; a.push(t); kids.set(t.parentId, a); } });
   const preds = new Map(), nexts = new Map(), temp = new Set();
+  const skipOf = new Map((D.projects || []).filter((p) => p && Array.isArray(p.skipItems)).map((p) => [p.id, new Set(p.skipItems)]));   // v1 에서 건너뛴 신제품 항목
   tasks.forEach((t) => {
     if (t.isFixed) return;
     if (isTempOwner(t, D)) temp.add(t.id);
     let ps = [];
     if (Array.isArray(t.deps)) ps = t.deps.map((id) => byId.get(id)).filter(Boolean);
-    else if (t.launchItem) ps = launchPreds(t, byId);
+    else if (t.launchItem) ps = launchPreds(t, byId, skipOf.get(t.projectId));
     else if (kids.has(t.id)) { const o = ownersOf(t); ps = kids.get(t.id).filter((k) => !ownersOf(k).some((u) => o.includes(u))); }
     if (ps.length) { preds.set(t.id, ps); ps.forEach((p) => { const a = nexts.get(p.id) || []; a.push(t); nexts.set(p.id, a); }); }
   });
@@ -35,8 +36,11 @@ export function turnIndex(D) {
 export const predsOf = (t, idx) => (t && idx.preds.get(t.id)) || [];
 export const nextsOf = (t, idx) => (t && idx.nexts.get(t.id)) || [];
 const latePred = (p, key) => !finishedOf(p) && (!!p.blocked || p.status === "hold" || (dueOf(p) && dueOf(p) < key));
+// 남은 앞 일 중 끝 예정이 가장 늦은 것 (그게 끝나야 내 차례) · 기한이 다 없으면 첫 번째
+const latestDue = (open) => open.reduce((b, p) => (dueOf(p) && (!dueOf(b) || dueOf(p) > dueOf(b)) ? p : b), open[0]);
 
 // 업무 하나의 차례 상태: none(앞 일 없음·진행 중) · ready(앞 일 다 끝남) · wait(앞 일 하는 중) · late(앞 일 지남·막힘·보류)
+// show = 화면에 보일 앞 일 하나: late → 늦은(지남·막힘·보류) 앞 일 · wait → 끝 예정이 가장 늦은 앞 일 · ready → 마지막에 끝난 앞 일
 export function turnOf(t, idx, key) {
   const ps = predsOf(t, idx);
   if (!ps.length || isDone(t) || t.isFixed) return { state: "none", preds: ps, open: [] };
@@ -44,11 +48,17 @@ export function turnOf(t, idx, key) {
   if (!open.length) {
     let last = null, at = "";
     ps.forEach((p) => { const f = finishedAt(p); if (f && f > at) { at = f; last = p; } });
-    return { state: t.status === "todo" ? "ready" : "none", preds: ps, open, readyAt: at, last: last || ps[ps.length - 1] };
+    last = last || ps[ps.length - 1];
+    return { state: t.status === "todo" ? "ready" : "none", preds: ps, open, readyAt: at, last, show: last };
   }
-  if (t.status !== "todo") return { state: "none", preds: ps, open, orderLag: open.some((p) => p.status === "todo") };
-  return { state: open.some((p) => latePred(p, key)) ? "late" : "wait", preds: ps, open };
+  if (t.status !== "todo") { const lag = open.find((p) => p.status === "todo"); return { state: "none", preds: ps, open, orderLag: !!lag, show: lag || open[0] }; }
+  const lp = open.find((p) => latePred(p, key));
+  return lp ? { state: "late", preds: ps, open, show: lp } : { state: "wait", preds: ps, open, show: latestDue(open) };
 }
+// 앞 일이 다시 열린 적이 있나: 수정 요청·다시 열기(before 전에) 또는 담당이 끝냄을 2번 이상 누름
+// (확인 요청 → 확인 완료는 끝냄 1번: 확인 완료 기록(approved)은 세지 않음)
+const reopened = (p, before) => (p.statusLog || []).some((s) => s && (s.feedback || s.reopen) && (!before || String(s.at || "") < before))
+  || (p.statusLog || []).filter((s) => s && (s.status === "done" || s.status === "review") && !s.approved).length > 1;
 
 // 앞 일 한 줄 설명: "김민지 · 설명서 기획·카피 (할 일)"
 export function predLine(p, users, key) {
@@ -61,25 +71,43 @@ export function predLine(p, users, key) {
 
 // 한 사람 기준 차례 모음 — 오늘·달력·업무 보기에서 같이 씀
 // since: 이 기능을 처음 연 시각(그 전에 끝난 앞 일로는 '이제 내 차례' 알림을 띄우지 않음 → 처음 켤 때·다시 가져온 뒤 알림 폭주 방지)
+// seenKey = `tn:<내 일>:<마지막 앞 일>:<끝난 시각>` — 앞 일이 수정 뒤 다시 끝나면 새 키라 다시 알림
+// (예전 키 `tn:<내 일>:<앞 일>` 은 앞 일이 다시 열린 적이 없을 때만 본 것으로 침)
+// shownNotes = '이제 내 차례' 카드에 '앞 일 마지막 말'로 보이는 댓글 id (오늘 화면 댓글 줄에서 빼고, 카드에서 시작·열면 nt:<id> 를 본 것으로)
+// predIds = 내 열린 일의 앞 일 id (그 앞 일에 남긴 '다음 사람에게 한마디'는 프로젝트 멤버가 아니어도 나에게)
+// turnAgain = 이미 하는 중인 내 일의 앞 일이 수정 요청 뒤 다시 끝남 (업무 보기 띠의 약속)
 export function turnsOf(D, idx, uid, now = new Date(), seen = {}, since = "") {
   const key = ymd(now), d14 = new Date(now - 14 * 864e5).toISOString();
   const users = D.users || [], projects = D.projects || [];
-  const byTask = new Map(), fresh = new Set(), ready = [], soonRaw = [], inbox = [];
+  const byTask = new Map(), fresh = new Set(), ready = [], soonRaw = [], inbox = [], shownNotes = new Set(), predIds = new Set();
+  const recent = (at) => !!at && (!since || at >= since) && at >= d14;
   (D.tasks || []).forEach((t) => {
     if (t.isFixed || isDone(t) || !isMine(t, uid) || idx.temp.has(t.id)) return;
-    const T = turnOf(t, idx, key); if (T.state === "none" && !T.orderLag) return;
+    predsOf(t, idx).forEach((p) => predIds.add(p.id));
+    const T = turnOf(t, idx, key);
+    if (T.state === "none" && t.status === "inprogress" && !T.open.length && T.last && recent(T.readyAt)) {
+      const lo = ownersOf(T.last)[0], k = `tn:${t.id}:${T.last.id}:${T.readyAt}`;
+      const started = (t.statusLog || []).filter((s) => s && s.status === "inprogress").map((s) => String(s.at || "")).sort().pop() || "";
+      if (lo && lo !== uid && T.readyAt > started && reopened(T.last, T.readyAt) && !seen[k])
+        inbox.push({ kind: "turnAgain", tag: "앞 일 다시 끝남", id: k, taskId: t.id, title: t.title, who: lo, at: T.readyAt, text: `"${T.last.title}" 수정이 끝났어요 · 이어서 하면 돼요`, act: "open" });
+    }
+    if (T.state === "none" && !T.orderLag) return;
     byTask.set(t.id, T);
     if (T.state === "ready") {
       ready.push(t);
-      const lastOwner = T.last ? ownersOf(T.last)[0] : "";
-      if (T.readyAt && (!since || T.readyAt >= since) && T.readyAt >= d14 && lastOwner && lastOwner !== uid && !seen[`tn:${t.id}:${T.last.id}`]) fresh.add(t.id);
+      T.seenKey = `tn:${t.id}:${T.last.id}:${T.readyAt || ""}`;
+      const lastOwner = ownersOf(T.last)[0] || "";
+      const saw = seen[T.seenKey] || (seen[`tn:${t.id}:${T.last.id}`] && !reopened(T.last));
+      if (recent(T.readyAt) && lastOwner && lastOwner !== uid && !saw) {
+        fresh.add(t.id); const w = lastWord(T.last, D.notes); if (w) shownNotes.add(w.id);
+      }
     }
     if (T.state === "wait" && T.open.length === 1 && ownersOf(T.open[0])[0] !== uid) {   // 내가 이어서 하는 단계는 '곧 내 차례' 아님
       const p = T.open[0], pt = turnOf(p, idx, key), pn = ddays(dueOf(p), key);
       if (p.status === "inprogress" || ((pt.state === "ready" || pt.state === "none") && pn != null && pn <= 3)) soonRaw.push({ t, p });
     }
     if (T.state === "late" && (ddays(dueOf(t), key) ?? 99) <= 7) {
-      const p = T.open.find((x) => latePred(x, key)) || T.open[0];
+      const p = T.show || T.open[0];
       inbox.push({ kind: "turnLate", tag: p.blocked ? "앞 일 막힘" : "앞 일 늦음", red: true, id: `tl:${t.id}:${p.id}`, taskId: p.id, title: t.title, who: ownersOf(p)[0], at: p.updatedAt || p.dueDate,
         text: `${predLine(p, users, key)} · 내 기한 ${md(dueOf(t)) || "미정"}`, keep: true, act: "ask" });
     }
@@ -95,22 +123,24 @@ export function turnsOf(D, idx, uid, now = new Date(), seen = {}, since = "") {
     x.preds.push(p); x.mine.push(t); const dt = dueOf(t); if (dt && (!x.first || dt < x.first)) x.first = dt; g.set(k, x); });
   const soon = [...g.values()].sort((a, b) => String(a.first || "9").localeCompare(String(b.first || "9")));
   // 다음 차례 담당 없음: 내가 책임인 프로젝트에서 앞 일이 다 끝났는데 담당이 없거나 미사용인 일
+  // + 임시 담당(책임자로 채운 항목)은 앞 일이 방금(14일 안) 끝났을 때만 (끝낸 사람 화면의 '책임자님께 알렸어요'와 맞춤)
   const act = new Set(activeUsers(users).map((u) => u.id));
   projects.filter((p) => p.assigneeId === uid).forEach((p) => {
     (D.tasks || []).forEach((t) => { if (t.projectId !== p.id || t.isFixed || isDone(t)) return;
-      const o = ownersOf(t); if (o.length && o.some((u) => act.has(u))) return;
-      const T = turnOf(t, idx, key); if (T.state !== "ready") return;
+      const o = ownersOf(t), tmp = idx.temp.has(t.id); if (!tmp && o.length && o.some((u) => act.has(u))) return;
+      const T = turnOf(t, idx, key); if (T.state !== "ready" || (tmp && !recent(T.readyAt))) return;
       inbox.push({ kind: "nextNoOwner", tag: "담당 없음", id: `nn:${t.id}`, taskId: t.id, title: t.title, at: T.readyAt || "", text: `앞 일 "${T.last ? T.last.title : ""}"이 끝났는데 다음 담당이 없어요`, keep: true, act: "set" }); });
   });
-  return { byTask, fresh, ready, soon, inbox, temp: idx.temp };
+  return { byTask, fresh, ready, soon, inbox, temp: idx.temp, shownNotes, predIds };
 }
 
 // 업무를 끝낼 때 "다음은 ○○님 차례예요" 문구
+// 이번에 끝내면 앞 일이 다 끝나는 다음 일만 (다른 앞 일이 남은 일은 아직 차례 아님). 임시 담당(책임자로 채운 항목)은 담당 없음으로
 export function nextTurnText(t, idx, users) {
-  const ns = nextsOf(t, idx).filter((n) => !isDone(n) && !n.isFixed);
+  const ns = nextsOf(t, idx).filter((n) => !isDone(n) && !n.isFixed && predsOf(n, idx).every((p) => p.id === t.id || finishedOf(p)));
   if (!ns.length) return { text: "", noOwner: false };
-  const act = new Set(activeUsers(users).map((u) => u.id));
-  const owned = ns.filter((n) => ownersOf(n).some((u) => act.has(u)));
+  const act = new Set(activeUsers(users).map((u) => u.id)), temp = idx.temp || new Set();
+  const owned = ns.filter((n) => !temp.has(n.id) && ownersOf(n).some((u) => act.has(u)));
   const others = [...new Set(owned.map((n) => ownersOf(n)[0]).filter((u) => !ownersOf(t).includes(u)))];
   if (!owned.length) return { text: "다음 일 담당이 없어요", noOwner: true };
   if (!others.length) return { text: "", noOwner: ns.length > owned.length };

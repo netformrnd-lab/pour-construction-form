@@ -30,14 +30,15 @@ export function flowList(D) {
     .sort((a, b) => ((order.indexOf(a.id) + 1) || 99) - ((order.indexOf(b.id) + 1) || 99));
 }
 
-// 단계 기한: 내일(쉬는 날이면 다음 평일)부터 마지막 마감까지의 평일을 단계 수로 고르게 나눔. 마지막 단계 = 마지막 마감
-// 평일이 단계보다 적으면 여러 단계가 같은 날. 지난 날은 안 씀
+// 단계 기한: 내일(쉬는 날이면 다음 평일)부터 마지막 마감까지의 평일을 단계 수로 고르게 나눔. 마지막 단계 = 마지막 마감(고른 날 그대로)
+// 마지막 단계 앞 단계들은 마감 전 평일에만 (마감이 주말·공휴일이어도 앞 단계는 쉬는 날에 안 놓임)
+// 평일이 단계보다 적으면 여러 단계가 같은 날. 마감 전 평일이 하나도 없으면 모두 마감 날. 지난 날은 안 씀
 export function flowDues(n, final, today) {
   if (!n || !final) return [];
   const last = final < today ? today : final, days = [];
   for (let k = addDays(today, 1), i = 0; i < 400 && k < last; i++, k = addDays(k, 1)) if (!isOffDay(k)) days.push(k);
-  days.push(last);
-  return Array.from({ length: n }, (_, i) => days[Math.max(0, Math.round(((i + 1) * days.length) / n) - 1)]);
+  const m = days.length;
+  return Array.from({ length: n }, (_, i) => (i === n - 1 || !m ? last : days[Math.min(m - 1, Math.max(0, Math.round(((i + 1) * (m + 1)) / n) - 1))]));
 }
 
 // 만들 내용 계산 (저장하지 않음). owners[i] = 단계 i 담당 id

@@ -1,6 +1,6 @@
 // 업무OS v2 — 월 달력 (실사용 '내 달력' · 관리자 '팀 달력'이 같이 씀)
 // 칸: 날짜(토·일·공휴일 회색) · 건수(양은 칸 바탕 농도) · 표식(▴ 출시·마감, → 내 차례 시작, ✓ 다 끝냄)
-// 폰은 숫자만, 768px 이상은 제목(팀은 사람별 건수)까지. 빨강은 '지난 날에 안 끝난 일·막힘'(팀은 '한 사람 하루 8건 넘음' 포함)에만
+// 폰은 숫자·표식만, 768px 이상은 제목(팀은 사람별 건수)까지 + '→ 내 차례 시작' · '✓ 다 끝냄' 줄. 빨강은 '지난 날에 안 끝난 일·막힘'(팀은 '한 사람 하루 8건 넘음' 포함)에만
 import { useRef } from "react";
 import { addDays, ddays, md, holidayName, isOffDay, nameOf, shiftMonth, monthGrid } from "./model.js";
 
@@ -28,8 +28,8 @@ export function MonthCal({ mode = "me", ym, setYm, cells, sel, onPick, keyd, use
         <span className="n">{showN || ""}</span>
         <span className="m">{marks}</span>
         <span className="t">{team
-          ? <>{top.slice(0, 2).map(([u, k]) => <i key={u} className={k > 8 ? "red" : ""}>{short(users, u, users)} {k}</i>)}{top.length > 2 && <i className="more">+{top.length - 2}명</i>}{x.proj.length > 0 && <i className="p">▴ 출시·마감 {x.proj.length}</i>}</>
-          : <>{x.items.slice(0, 2).map((t) => <i key={t.id} className={past || t.blocked ? "red" : ""}>{t.title}</i>)}{x.items.length > 2 && <i className="more">+{x.items.length - 2}</i>}{x.proj.slice(0, 1).map((p) => <i key={p.id} className="p">▴ {p.title}</i>)}</>}</span>
+          ? <>{top.slice(0, 2).map(([u, k]) => <i key={u} className={k > 8 ? "red" : ""}>{short(users, u, users)} {k}</i>)}{top.length > 2 && <i className="more">+{top.length - 2}명</i>}{x.proj.length > 0 && <i className="p">▴ {x.proj.length} 출시·마감</i>}</>
+          : <>{x.turnStart > 0 && <i className="ts">→ 내 차례</i>}{x.items.slice(0, 2).map((t) => <i key={t.id} className={past || t.blocked ? "red" : ""}>{t.title}</i>)}{x.items.length > 2 && <i className="more">+{x.items.length - 2}</i>}{x.proj.slice(0, 1).map((p) => <i key={p.id} className="p">▴ {p.title}</i>)}{past && !x.n && x.done > 0 && <i className="more">✓ 다 끝냄</i>}</>}</span>
       </button>; })}
   </div>;
 }
@@ -37,11 +37,11 @@ export function MonthCal({ mode = "me", ym, setYm, cells, sel, onPick, keyd, use
 // 달력 머리 한 줄: ‹ 2026년 10월 › [오늘]  + 오른쪽 자리
 export function CalHead({ ym, setYm, keyd, sel, setSel, right }) {
   return <div className="v2-calhead">
-    <button type="button" className="v2-calnav" aria-label="이전 달" onClick={() => setYm(shiftMonth(ym, -1))}>‹</button>
+    <button type="button" className="v2-calnav" aria-label="이전 달" onClick={() => setYm(shiftMonth(ym, -1))}>‹ {+shiftMonth(ym, -1).slice(5)}월</button>
     <b>{ym.slice(0, 4)}년 {+ym.slice(5)}월</b>
-    <button type="button" className="v2-calnav" aria-label="다음 달" onClick={() => setYm(shiftMonth(ym, 1))}>›</button>
+    <button type="button" className="v2-calnav" aria-label="다음 달" onClick={() => setYm(shiftMonth(ym, 1))}>{+shiftMonth(ym, 1).slice(5)}월 ›</button>
     {(ym !== keyd.slice(0, 7) || sel !== keyd) && <button type="button" className="v2-caltoday" onClick={() => { setYm(keyd.slice(0, 7)); setSel(keyd); }}>오늘</button>}
-    <span style={{ flex: 1 }} />{right}
+    <span style={{ flex: 1 }} />{right && <span className="v2-calright">{right}</span>}
   </div>;
 }
 // 고른 날 머리 글: "10/16 (금) · 3일 뒤 · 마감 5 · 출시 1 · 한글날"

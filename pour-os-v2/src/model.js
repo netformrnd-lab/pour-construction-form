@@ -147,6 +147,8 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   const myProj = new Set((D.projects || []).filter((p) => p.assigneeId === uid || (p.collaboratorIds || []).includes(uid)).map((p) => p.id));
   const since = new Date(now - 7 * 86400000).toISOString();
   const inbox = []; const launchNew = {}, bulkNew = {};
+  // '이제 내 차례' 카드에 이미 '앞 일 마지막 말'로 보이는 한마디(handoff)는 댓글 줄로 또 띄우지 않음
+  const freshPreds = new Set(); if (T && T.byTask) fresh.forEach((id) => ((T.byTask.get(id) || {}).preds || []).forEach((p) => freshPreds.add(p.id)));
   tasks.forEach((t) => {
     if (isDone(t) || t.isFixed) return;
     const mine = isMine(t, uid);
@@ -171,7 +173,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
     if (!n || n.deleted || n.by === uid || (n.at || "") < since || seen["nt:" + n.id]) return;
     const [kind, ...rest] = String(n.itemId || "").split(":"); const ref = rest.join(":");
     let hit = null;
-    if (kind === "task") { const t = taskById[ref]; if (t && (isMine(t, uid) || reqOf(t) === uid || myProj.has(t.projectId))) hit = { taskId: ref, title: t.title }; }
+    if (kind === "task") { const t = taskById[ref]; if (n.handoff && freshPreds.has(ref)) return; if (t && (isMine(t, uid) || reqOf(t) === uid || myProj.has(t.projectId))) hit = { taskId: ref, title: t.title }; }
     else if (kind === "proj" && myProj.has(ref)) { const p = (D.projects || []).find((x) => x.id === ref); hit = { projectId: ref, title: p ? p.title : "프로젝트" }; }
     if (hit) inbox.push({ kind: "note", tag: "댓글", id: "nt:" + n.id, ...hit, who: n.by, whoName: n.byName, at: n.at, text: n.text });
   });
@@ -232,7 +234,7 @@ export function projStat(p, tasks, key) {
 }
 // 묶음: 마감 지남 · 이번 달 · 그 뒤 · 마감 없음 · 보류
 export function projGroups(list, key) {
-  const ym = key.slice(0, 7), wkEnd = addDays(weekStart(key), 6), g = { late: [], week: [], month: [], later: [], none: [], hold: [] };
+  const ym = key.slice(0, 7), wkEnd = addDays(key, 6), g = { late: [], week: [], month: [], later: [], none: [], hold: [] };   // week = 7일 안 (주말에도 다음 주 초가 보이게)
   list.forEach((p) => { if (p.status === "hold" || p.status === "paused") return g.hold.push(p);
     const d = String(p.dueDate || "").slice(0, 10); if (!d) return g.none.push(p);
     if (d < key) g.late.push(p); else if (d <= wkEnd) g.week.push(p); else if (d.slice(0, 7) === ym) g.month.push(p); else g.later.push(p); });

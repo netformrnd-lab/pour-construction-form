@@ -62,17 +62,22 @@ export function lineup(D, idx, key, weeks = 8) {
   const end = addDays(key, weeks * 7), groups = new Map();
   (D.projects || []).filter((p) => isLaunchP(p) && p.status !== "completed" && p.launchDate && p.launchDate >= addDays(key, -7) && p.launchDate <= end).forEach((p) => {
     const ts = (D.tasks || []).filter((t) => t.projectId === p.id && t.launchItem);
-    let cur = false;
-    const phases = LAUNCH_PHASES.map((ph) => { const a = ts.filter((t) => t.phase === ph.k), left = a.filter((t) => !isDone(t) && t.status !== "review");
-      const late = left.some((t) => { const r = riskOf(t, key); return r && (r.k === "late" || r.k === "blocked"); });
-      let state = !a.length || !left.length ? "done" : late ? "late" : !cur ? "cur" : "todo"; if (state === "cur" || state === "late") cur = true;
-      return { k: ph.k, name: ph.name, left: left.length, total: a.length, state }; });
+    const phases = phaseStates(ts, key);
     const left = ts.filter((t) => !isDone(t) && t.status !== "review");
     const lateN = left.filter((t) => { const d = dueOf(t); return d && d < key; }).length;
     const g = groups.get(p.launchDate) || { date: p.launchDate, items: [], left: 0, late: 0 };
     g.items.push({ p, phases, left: left.length, late: lateN, pct: launchPct(p, D) }); g.left += left.length; g.late += lateN; groups.set(p.launchDate, g);
   });
   return [...groups.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// 신제품 7단계 상태: done(남은 항목 없음) · late(지난·막힌 항목) · cur(처음 남은 단계) · todo
+export function phaseStates(ts, key) {
+  let cur = false;
+  return LAUNCH_PHASES.map((ph) => { const a = ts.filter((t) => t.phase === ph.k), left = a.filter((t) => !isDone(t) && t.status !== "review");
+    const late = left.some((t) => { const r = riskOf(t, key); return r && (r.k === "late" || r.k === "blocked"); });
+    const state = !a.length || !left.length ? "done" : late ? "late" : !cur ? "cur" : "todo"; if (state === "cur" || state === "late") cur = true;
+    return { k: ph.k, name: ph.name, left: left.length, total: a.length, state }; });
 }
 
 // 정리 묶음 (관리자 정리 탭) — 지우지 않고 한 번에 치우기

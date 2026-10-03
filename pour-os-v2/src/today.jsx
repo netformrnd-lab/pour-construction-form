@@ -1,110 +1,208 @@
-// 업무OS v2 — 오늘 · 할 일 추가 · 지난 일 정리 · 내 할 일 모두
+// 업무OS v2 — 오늘 · 할 일 추가 · 지난 일 정리 · 내 할 일 모두 · 이제 내 차례 · 내 정리
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as fb from "./fb.js";
 import {
   ymd, addDays, ddays, ddayLabel, md, hm, ago, dayTitle, WD, isMaster, activeUsers, nameOf, STATUS_L, isDone, isOneOff, isMine, ownersOf, dueOf,
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
-  reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf,
+  reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf, weekStart, nextWorkday,
 } from "./model.js";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
+import { predLine, lastWord, predsOf } from "./turn.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked } from "./ui.jsx";
 import { openTask } from "./task.jsx";
+import { PickList, BulkBar } from "./pick.jsx";
 
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
 const nextMon = (key) => { const d = new Date(key + "T00:00:00"); d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7)); return ymd(d); };
+const thisFri = (key) => { const f = addDays(weekStart(key), 4); return f < key ? nextWorkday(key) : nextWorkday(f) === f ? f : addDays(f, -1); };
+const markSeen = (setSeen, id) => setSeen((s) => ({ ...s, [id]: true }));
+// 줄 꼬리표·부제 (오늘·달력·프로젝트가 같이 씀): 위험 → 내 차례 → 기다림(부제)
+export function turnBits(t, T, D, key) {
+  const r = riskOf(t, key), info = T && T.byTask.get(t.id);
+  if (r) return { tag: r.label, tone: r.red ? "red" : null, sub: info && info.state === "late" ? "앞 일: " + predLine(info.open[0], D.users, key) : "" };
+  if (info && info.state === "ready") return { tag: "내 차례", tone: "turn", sub: "" };
+  if (info && (info.state === "wait" || info.state === "late")) return { tag: info.state === "late" ? "앞 일 늦음" : null, tone: info.state === "late" ? "red" : null, sub: "앞 일: " + predLine(info.open[0], D.users, key) };
+  return { tag: t.status === "inprogress" ? "진행 중" : null, tone: null, sub: "" };
+}
 
 // ───────────────── 오늘 ─────────────────
-// 순서: 지금 할 일 1장 → 지난 일 정리 → 확인할 것 → 오늘 고정업무 → 오늘 할 일
-export function TodayTab({ D, cu, A, open, TV, seen, setSeen }) {
-  const now = new Date();
-  const [showFxDone, setShowFxDone] = useState(false), [allInbox, setAllInbox] = useState(false);
+// 순서: 지금 할 일 1장 → 확인할 것 → 오늘(고정업무 접기 · 일회성 3줄) → 곧 내 차례 → 정리 한 줄
+export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen }) {
+  const now = new Date(), key = TV.key;
+  const [fxOpen, setFxOpen] = useState(TV.oneOffOpen === 0), [showFxDone, setShowFxDone] = useState(false), [allInbox, setAllInbox] = useState(false), [soonOpen, setSoonOpen] = useState(false);
   const pName = (pid) => (D.projects.find((p) => p.id === pid) || {}).title || "";
-  const nextFx = TV.fixed.left.find((x) => !x.late && x.min < 9999);
-  const inbox = allInbox ? TV.inbox : TV.inbox.slice(0, 4);
+  const [cardId, setCardId] = useState(null);
+  const inbox = allInbox ? TV.inbox : TV.inbox.slice(0, 3);
   const readable = TV.inbox.filter((x) => !x.keep);
   const tOf = (id) => D.tasks.find((y) => y.id === id);
-  const openInbox = (x) => { if (!x.keep) setSeen((s) => ({ ...s, [x.id]: true }));
-    if (x.taskId) { const t = tOf(x.taskId); t ? openTask(open, t) : open({ type: "task", id: x.taskId }); } else if (x.projectId) open({ type: "project", id: x.projectId, first: x.kind === "launchNew" ? "work" : "news" }); };
+  const openInbox = (x) => { if (!x.keep) markSeen(setSeen, x.id);
+    if (x.kind === "turnLate") return open({ type: "task", id: x.taskId, focus: "talk" });
+    if (x.taskId) { const t = tOf(x.taskId); t ? openTask(open, t) : open({ type: "task", id: x.taskId }); } else if (x.projectId) open({ type: "project", id: x.projectId, first: x.kind === "launchNew" || x.kind === "bulk" ? "work" : "news" }); };
   const inboxAct = (x) => { const t = x.taskId && tOf(x.taskId);
     if (x.kind === "assigned" && t) return <Act onClick={() => A.ack(t)} style={BTN_ON}>받았어요</Act>;
+    if (x.kind === "bulk") return <Act onClick={() => A.ackMany(x.bulkIds.map(tOf).filter(Boolean))} style={BTN_ON}>받았어요</Act>;
     if (x.kind === "review" && t) return <Act onClick={() => A.approve(t)} style={BTN_ON}>확인</Act>;
     if (x.kind === "dueReq" && t) return <Act onClick={() => A.answerDue(t, true)} style={BTN_ON}>수락</Act>;
+    if (x.kind === "turnLate") return <Act onClick={() => openInbox(x)}>묻기</Act>;
+    if (x.kind === "turnOrder") return <Act onClick={() => openInbox(x)}>조정 요청</Act>;
+    if (x.kind === "nextNoOwner") return <Act onClick={() => openInbox(x)}>정하기</Act>;
     return <Act onClick={() => openInbox(x)}>보기</Act>; };
-  const list = TV.focus.filter((x) => x.r !== 1);   // 지난 일은 '정리하기'에서
+  const card = TV.ranked.find((x) => x.t.id === cardId) || TV.ranked[0];
+  // 오늘 챙길 일회성: 오늘·내일 마감·진행 중 (카드·지난 일 빼고)
+  const list = TV.ranked.filter((x) => x !== card && !(x.n != null && x.n < 0) && (x.t.status === "inprogress" || (x.n != null && x.n <= 1) || x.fresh));
+  const fxLeft = TV.fixed.left, nextFx = fxLeft.find((x) => !x.late && x.min < 9999) || fxLeft[0];
+  const ym = key.slice(0, 7);
+  const noDate = D.tasks.filter((t) => isOneOff(t) && !isDone(t) && isMine(t, cu.id) && !dueOf(t) && t.status !== "hold" && t.status !== "review" && t.tidySkip !== ym && !T.temp.has(t.id)).length;
+  const tempMine = D.tasks.filter((t) => T.temp.has(t.id) && isMine(t, cu.id)).length;
+  const lateN = TV.late.length - (card && card.n != null && card.n < 0 ? 1 : 0);
   return <>
     <header style={{ padding: "14px 2px 2px" }}>
       <div style={{ fontSize: 13, color: C.sub, fontWeight: 700 }}>{dayTitle(now)} · {cu.name}</div>
       <h1 style={{ margin: "4px 0 2px", fontSize: 22, fontWeight: 800, color: C.ink }}>남은 일 {TV.left} · 끝낸 일 {TV.doneToday}</h1>
-      {nextFx && <div style={{ fontSize: 13.5, color: C.sub }}>다음 고정업무: {fxTime(nextFx.t, cu.id)} {fxLabel(nextFx.t, cu.id)}</div>}
     </header>
-    <FocusCard D={D} cu={cu} A={A} open={open} TV={TV} pName={pName} />
+    <FocusCard D={D} cu={cu} A={A} open={open} TV={TV} T={T} x={card} pName={pName} setSeen={setSeen} next={() => { const i = TV.ranked.indexOf(card); const nx = TV.ranked[(i + 1) % TV.ranked.length]; if (card && card.fresh && card.t) { const info = T.byTask.get(card.t.id); if (info && info.last) markSeen(setSeen, `tn:${card.t.id}:${info.last.id}`); } setCardId(nx ? nx.t.id : null); }} />
+    <div style={{ display: "flex", flexDirection: "column", gap: 0, marginTop: 6 }}>
+      {TV.freshN > (card && card.fresh ? 1 : 0) && <LineBtn onClick={() => open({ type: "turns" })}><b style={{ color: C.navy }}>이제 내 차례 {TV.freshN - (card && card.fresh ? 1 : 0)}개 더</b> ›</LineBtn>}
+      {lateN > 0 && <LineBtn onClick={() => open({ type: "triage" })}><span>지난 일 <b style={{ color: C.red }}>{lateN}개</b> · 하나씩 정리하기</span> ›</LineBtn>}
+      {TV.doing >= 4 && <div style={{ fontSize: 12.5, color: C.sub, padding: "6px 4px" }}>진행 중 {TV.doing}개예요 · 하나씩 끝내면 더 빨라요</div>}
+    </div>
     <div className="v2-cols">
       <div>
-        <Head right={readable.length > 0 && <TBtn tone="mute" onClick={() => setSeen((s) => ({ ...s, ...Object.fromEntries(readable.map((x) => [x.id, true])) }))}>읽음 표시</TBtn>}>확인할 것 {TV.inbox.length}</Head>
+        {TV.inbox.length > 0 && <>
+          <Head right={readable.length > 0 && <TBtn tone="mute" onClick={() => setSeen((s) => ({ ...s, ...Object.fromEntries(readable.map((x) => [x.id, true])) }))}>읽음 표시</TBtn>}>확인할 것 {TV.inbox.length}</Head>
+          <Card>
+            {inbox.map((x, i) => <Row key={x.id} tag={x.tag} tagTone={x.red ? "red" : null} title={x.title} sub={`${x.whoName || TV.userName(x.who) || ""}${x.at ? (x.whoName || TV.userName(x.who) ? " · " : "") + ago(x.at, now) : ""}${x.text ? " · " + x.text : ""}`} onClick={() => openInbox(x)} right={inboxAct(x)} last={i === inbox.length - 1 && TV.inbox.length <= 3} />)}
+            {TV.inbox.length > 3 && <More onClick={() => setAllInbox(!allInbox)}>{allInbox ? "접기 ▴" : `${TV.inbox.length}개 모두 보기 ▾`}</More>}
+          </Card></>}
+        <Head right={<TBtn onClick={() => open({ type: "mine" })}>내 할 일 모두 ›</TBtn>}>오늘</Head>
         <Card>
-          {TV.inbox.length === 0 && <Empty>새로 온 일이나 댓글이 없어요</Empty>}
-          {inbox.map((x, i) => <Row key={x.id} tag={x.tag} tagTone={x.red ? "red" : null} title={x.title} sub={`${x.whoName || TV.userName(x.who) || "누군가"} · ${ago(x.at, now)}${x.text ? " · " + x.text : ""}`} onClick={() => openInbox(x)} right={inboxAct(x)} last={i === inbox.length - 1 && TV.inbox.length <= 4} />)}
-          {TV.inbox.length > 4 && <More onClick={() => setAllInbox(!allInbox)}>{allInbox ? "접기 ▴" : `${TV.inbox.length}개 모두 보기 ▾`}</More>}
-        </Card>
-        <Head>오늘 고정업무 {TV.fixed.done.length}/{TV.fixed.total}</Head>
-        <Card>
-          {TV.fixed.total === 0 && <Empty>오늘 할 고정업무가 없어요</Empty>}
-          {TV.fixed.left.map((x, i) => { const t = x.t, [a, b] = fxCount(D.users, t, TV.key), subs = fxSubs(t, cu.id);
-            return <Row key={t.id} tag={x.late ? "지남" : null} tagTone="red" title={fxLabel(t, cu.id)} sub={[fxTime(t, cu.id) || "시간 상관없음", t.recurType && t.recurType !== "daily" ? fxRecurL(t) : "", b > 1 ? `${a}/${b}명` : "", subs.length ? `체크리스트 ${subs.length}개` : ""].filter(Boolean).join(" · ")}
-              onClick={() => open({ type: "fixed", id: t.id })} right={<Act onClick={() => A.fxToggle(t)}>완료</Act>} last={i === TV.fixed.left.length - 1 && !TV.fixed.done.length} />; })}
-          {TV.fixed.done.length > 0 && <More onClick={() => setShowFxDone(!showFxDone)}>{showFxDone ? "끝낸 일 접기 ▴" : `끝낸 일 ${TV.fixed.done.length} ▾`}</More>}
-          {showFxDone && TV.fixed.done.map((x) => <Row key={x.t.id} dim title={fxLabel(x.t, cu.id)} sub={`✓ ${hm(x.t.doneAtBy && x.t.doneAtBy[cu.id])}`} onClick={() => open({ type: "fixed", id: x.t.id })} right={<Act on onClick={() => A.fxToggle(x.t)}>✓ 취소</Act>} />)}
+          {TV.fixed.total > 0 && (fxOpen
+            ? <>{fxLeft.map((x, i) => { const t = x.t, [a, b] = fxCount(D.users, t, key), subs = fxSubs(t, cu.id);
+                return <Row key={t.id} tag={x.late ? "지남" : "고정"} tagTone={x.late ? "red" : null} title={fxLabel(t, cu.id)} sub={[fxTime(t, cu.id) || "시간 상관없음", t.recurType && t.recurType !== "daily" ? fxRecurL(t) : "", b > 1 ? `${a}/${b}명` : "", subs.length ? `체크리스트 ${subs.length}개` : ""].filter(Boolean).join(" · ")}
+                  onClick={() => open({ type: "fixed", id: t.id })} right={<Act onClick={() => A.fxToggle(t)}>완료</Act>} last={false} />; })}
+                {TV.fixed.done.length > 0 && <More onClick={() => setShowFxDone(!showFxDone)}>{showFxDone ? "끝낸 고정업무 접기 ▴" : `끝낸 고정업무 ${TV.fixed.done.length} ▾`}</More>}
+                {showFxDone && TV.fixed.done.map((x) => <Row key={x.t.id} dim title={fxLabel(x.t, cu.id)} sub={`✓ ${hm(x.t.doneAtBy && x.t.doneAtBy[cu.id])}`} onClick={() => open({ type: "fixed", id: x.t.id })} right={<Act on onClick={() => A.fxToggle(x.t)}>✓ 취소</Act>} />)}
+                {TV.oneOffOpen > 0 && <More onClick={() => setFxOpen(false)}>고정업무 접기 ▴</More>}</>
+            : <More onClick={() => setFxOpen(true)}>{fxLeft.length ? <>고정업무 <b>{fxLeft.length}개 남음</b>{nextFx ? ` · 다음 ${fxTime(nextFx.t, cu.id) || ""} ${fxLabel(nextFx.t, cu.id)}` : ""} ▾</> : <>고정업무 {TV.fixed.total}개 다 했어요 ✓ ▾</>}</More>)}
+          {list.slice(0, 3).map((x, i) => { const b = turnBits(x.t, T, D, key);
+            return <Row key={x.t.id} tag={x.fresh ? "이제 내 차례" : b.tag} tagTone={x.fresh ? "turn" : b.tone} title={x.t.title} sub={[pName(x.t.projectId), dueOf(x.t) ? ddayLabel(x.n) : "", b.sub].filter(Boolean).join(" · ") || null}
+              onClick={() => open({ type: "task", id: x.t.id })} right={<Act onClick={() => A.finish(x.t)}>끝냄</Act>} last={i === Math.min(3, list.length) - 1 && list.length <= 3} />; })}
+          {list.length > 3 && <More onClick={() => open({ type: "mine" })}>{list.length - 3}개 더 · 내 할 일 모두 ›</More>}
+          {!list.length && !TV.fixed.total && <Empty>오늘·내일 마감이거나 하는 중인 일이 없어요</Empty>}
         </Card>
       </div>
       <div>
-        <Head right={<TBtn onClick={() => open({ type: "mine" })}>내 할 일 모두 ›</TBtn>}>오늘 챙길 일 {list.length}</Head>
-        <Card>
-          {list.length === 0 && <Empty>오늘·내일 마감이거나 진행 중인 일이 없어요{TV.ranked.length ? ` · 나머지 ${TV.ranked.length}개는 '내 할 일 모두'에서` : ""}</Empty>}
-          {list.slice(0, 8).map((x, i) => { const t = x.t;
-            return <Row key={t.id} tag={x.risk ? x.risk.label : t.status === "inprogress" ? "진행 중" : null} tagTone={x.risk && x.risk.red ? "red" : null} title={t.title}
-              sub={[pName(t.projectId), reqOf(t) ? `${nameOf(D.users, reqOf(t))}님이 맡김` : "", t.firstStep ? "첫 걸음: " + t.firstStep : ""].filter(Boolean).join(" · ") || null} onClick={() => open({ type: "task", id: t.id })} right={<Act onClick={() => A.finish(t)}>끝냄</Act>} last={i === Math.min(8, list.length) - 1 && list.length <= 8} />; })}
-          {list.length > 8 && <More onClick={() => open({ type: "mine" })}>{list.length - 8}개 더 · 내 할 일 모두 ›</More>}
-        </Card>
+        {T.soon.length > 0 && <>
+          <Head right={<TBtn onClick={() => setSoonOpen(!soonOpen)}>{soonOpen ? "접기 ▴" : "펼치기 ▾"}</TBtn>}>곧 내 차례 {T.soon.reduce((a, g) => a + g.mine.length, 0)}</Head>
+          {soonOpen ? <Card>{T.soon.slice(0, 6).map((g, i, arr) => { const w = workloadOf(D, g.who, now);
+            return <Row key={i} title={`${nameOf(D.users, g.who) || "담당 없음"} · ${g.pTitle}${g.preds.length > 1 ? ` ${g.preds.length}건` : ""} ${g.preds.some((p) => p.status === "inprogress") ? "하는 중" : "곧 끝"}`}
+              sub={`→ 내 ${g.mTitle}${g.mine.length > 1 ? ` ${g.mine.length}건` : ""}${g.first ? ` · 가장 빠른 기한 ${md(g.first)}` : ""}`} sub2={`${nameOf(D.users, g.who)} 이번 주 마감 ${w.week.slice(0, 7).reduce((a, d) => a + d.list.length, 0)} · 하는 중 ${w.doing}`}
+              onClick={() => open({ type: "task", id: g.preds[0].id })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={i === arr.length - 1} />; })}</Card>
+            : <Card><More onClick={() => setSoonOpen(true)}>앞사람이 끝내면 이어서 할 일 {T.soon.length}묶음 ▾</More></Card>}
+        </>}
+        {(noDate > 0 || tempMine > 0) && <Card style={{ marginTop: 14 }}><More onClick={() => open({ type: "myTidy", tab: noDate ? "nodate" : "temp" })}>
+          {[noDate ? `날짜 없는 일 ${noDate}` : "", tempMine ? `담당 정할 항목 ${tempMine}` : ""].filter(Boolean).join(" · ")} ›</More></Card>}
       </div>
     </div>
     <div className="v2-fab"><Big onClick={() => open({ type: "add" })}>+ 할 일 추가 · 맡기기</Big></div>
   </>;
 }
+function LineBtn({ children, onClick }) {
+  return <button type="button" onClick={onClick} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", padding: "9px 4px", border: "none", borderBottom: `1px solid ${C.line}`, background: "none", fontFamily: "inherit", fontSize: 13.5, color: C.text, cursor: "pointer", textAlign: "left" }}>{children}</button>;
+}
 
-// 지금 할 일 — 한 번에 하나만 크게. 지난 일이면 그 자리에서 정리(끝냄·새 기한·보류)
-function FocusCard({ D, cu, A, open, TV, pName }) {
-  const [i, setI] = useState(0), [mode, setMode] = useState(""), [txt, setTxt] = useState("");
-  const all = TV.ranked; if (!all.length) return <Card style={{ marginTop: 12, padding: "16px 16px" }}><div style={{ fontSize: 12.5, fontWeight: 800, color: C.sub }}>지금 할 일</div><div style={{ fontSize: 16, fontWeight: 800, color: C.ink, marginTop: 4 }}>급한 일이 없어요</div><div style={{ fontSize: 13.5, color: C.sub, marginTop: 4 }}>고정업무를 하거나, 아래 '+ 할 일 추가'로 새 일을 적어 두세요.</div></Card>;
-  const k = Math.min(i, all.length - 1), x = all[k], t = x.t, key = TV.key, late = x.n != null && x.n < 0, can = canSetDue(t, cu.id, D, isMaster(cu));
-  const appr = nameOf(D.users, dueApprover(t, D));
+// 지금 할 일 — 한 번에 하나만 크게. 큰 버튼은 늘 1개 (할 일이면 '시작하기', 하는 중이면 '끝냈어요')
+// '이제 내 차례'면: 앞사람이 무엇을 끝냈는지 · 앞 일 마지막 말 · 앞 일 자료를 같이 보여 줌
+function FocusCard({ D, cu, A, open, TV, T, x, pName, next, setSeen }) {
+  const [mode, setMode] = useState(""), [txt, setTxt] = useState("");
+  if (!x) return <Card style={{ marginTop: 12, padding: "16px 16px" }}><div style={{ fontSize: 12.5, fontWeight: 800, color: C.sub }}>지금 할 일</div><div style={{ fontSize: 16, fontWeight: 800, color: C.ink, marginTop: 4 }}>급한 일이 없어요</div><div style={{ fontSize: 13.5, color: C.sub, marginTop: 4 }}>고정업무를 하거나, 아래 '+ 할 일 추가'로 새 일을 적어 두세요.</div></Card>;
+  const t = x.t, key = TV.key, late = x.n != null && x.n < 0, can = canSetDue(t, cu.id, D, isMaster(cu)), appr = nameOf(D.users, dueApprover(t, D));
+  const info = T.byTask.get(t.id), pred = info && info.last, word = pred ? lastWord(pred, D.notes) : null;
+  const pFiles = pred ? (pred.attachments || []).length + D.notes.filter((n) => n.itemId === taskNoteId(pred.id)).reduce((a, n) => a + (n.files || []).length, 0) : 0;
+  const seenTurn = () => { if (x.fresh && pred) markSeen(setSeen, `tn:${t.id}:${pred.id}`); };
   const moveTo = (d) => (can ? A.setDue(t, d) : A.requestDue(t, d, "지난 일 정리"));
-  return <div style={{ marginTop: 12, background: "#fff", border: `1.5px solid ${late || (x.risk && x.risk.red) ? "#E2B7BB" : "#C9D2EA"}`, borderRadius: 18, padding: "14px 16px" }}>
+  const b = turnBits(t, T, D, key);
+  return <div style={{ marginTop: 12, background: "#fff", border: `1.5px solid ${late || (x.risk && x.risk.red) ? "#E2B7BB" : x.fresh ? C.navy : "#C9D2EA"}`, borderRadius: 18, padding: "14px 16px" }}>
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ fontSize: 12.5, fontWeight: 800, color: C.sub, flex: 1 }}>지금 할 일</span>
-      {all.length > 1 && <TBtn onClick={() => { setI((k + 1) % all.length); setMode(""); }} style={{ padding: "4px 2px" }}>다른 일 ›</TBtn>}
+      <span style={{ fontSize: 12.5, fontWeight: 800, color: x.fresh ? C.navy : C.sub, flex: 1, minWidth: 0 }}>{x.fresh && pred ? `이제 내 차례 · ${nameOf(D.users, ownersOf(pred)[0])}님이 "${pred.title}"을 끝냈어요${info.readyAt ? " · " + ago(info.readyAt) : ""}` : "지금 할 일"}</span>
+      {TV.ranked.length > 1 && <TBtn onClick={() => { setMode(""); next(); }} style={{ padding: "4px 2px", flex: "0 0 auto" }}>다른 일 ›</TBtn>}
     </div>
-    <div role="button" tabIndex={0} onClick={() => open({ type: "task", id: t.id })} onKeyDown={(e) => { if (e.key === "Enter") open({ type: "task", id: t.id }); }} style={{ cursor: "pointer", marginTop: 4 }}>
-      {x.risk && <span style={{ display: "inline-block", fontSize: 12, fontWeight: 800, padding: "2px 7px", borderRadius: 6, marginBottom: 4, color: x.risk.red ? C.red : C.navy, background: x.risk.red ? "#F8E9EA" : C.soft }}>{x.risk.label}</span>}
+    <div role="button" tabIndex={0} onClick={() => { seenTurn(); open({ type: "task", id: t.id }); }} onKeyDown={(e) => { if (e.key === "Enter") open({ type: "task", id: t.id }); }} style={{ cursor: "pointer", marginTop: 4 }}>
+      {!x.fresh && (x.risk || b.tag) && <span className={"v2-tag" + ((x.risk && x.risk.red) || b.tone === "red" ? " red" : b.tone === "turn" ? " turn" : "")} style={{ marginBottom: 4 }}>{x.risk ? x.risk.label : b.tag}</span>}
       <div style={{ fontSize: 18, fontWeight: 800, color: C.ink, lineHeight: 1.35, wordBreak: "keep-all" }}>{t.title}</div>
       <div style={{ fontSize: 13, color: C.sub, marginTop: 3 }}>{[pName(t.projectId), dueOf(t) ? `기한 ${md(dueOf(t))}` : "기한 미정", reqOf(t) ? `${nameOf(D.users, reqOf(t))}님이 맡김` : ""].filter(Boolean).join(" · ")}</div>
       {t.feedback && <div style={{ fontSize: 13.5, color: C.red, marginTop: 6 }}>수정 요청: {t.feedback.text}</div>}
+      {x.fresh && word && <div style={{ fontSize: 13.5, color: C.text, marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>앞 일 마지막 말: {word.text}</div>}
+      {!x.fresh && b.sub && <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>{b.sub}</div>}
       {t.firstStep && <div style={{ fontSize: 13.5, color: C.ink, marginTop: 6 }}>첫 걸음: {t.firstStep}</div>}
     </div>
+    {x.fresh && pred && pFiles > 0 && <TBtn onClick={() => { seenTurn(); open({ type: "task", id: pred.id, focus: "files" }); }} style={{ padding: "6px 0" }}>앞 일 자료 {pFiles} ›</TBtn>}
     {late ? <>
       <div style={{ fontSize: 13, color: C.sub, margin: "10px 0 6px" }}>{can ? "끝냈으면 '끝냈어요', 아니면 새 기한을 골라요" : `새 기한은 ${appr || "책임자"}님께 요청으로 가요`}</div>
       <div className="v2-chips"><Act onClick={() => A.finish(t)} style={BTN_ON}>끝냈어요</Act>
-        {[["오늘", key], ["내일", addDays(key, 1)], ["다음 주", nextMon(key)]].map(([l, d]) => <Act key={l} onClick={() => moveTo(d)}>{can ? l : l + " 요청"}</Act>)}
+        {[["오늘", key], ["내일", nextWorkday(addDays(key, 1))], ["다음 주", nextMon(key)]].map(([l, d]) => <Act key={l} onClick={() => moveTo(d)}>{can ? l : l + " 요청"}</Act>)}
         <TBtn onClick={() => A.setStatus(t, "hold")}>보류</TBtn></div>
-    </> : <div className="v2-chips" style={{ marginTop: 12 }}>
-      {t.status !== "inprogress" && <Act onClick={() => A.setStatus(t, "inprogress")}>시작하기</Act>}
-      <Act onClick={() => A.finish(t)} style={BTN_ON}>끝냈어요</Act>
+    </> : <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+      {t.status !== "inprogress" ? <Big onClick={() => { seenTurn(); A.setStatus(t, "inprogress"); }} style={{ height: 46, flex: 1 }}>시작하기</Big>
+        : <Big onClick={() => A.finish(t)} style={{ height: 46, flex: 1 }}>끝냈어요</Big>}
+      {t.status !== "inprogress" && <TBtn onClick={() => A.finish(t)}>바로 끝냄</TBtn>}
       {!t.blocked && <TBtn onClick={() => { setTxt(""); setMode(mode === "block" ? "" : "block"); }}>막혔어요</TBtn>}
     </div>}
     {mode === "block" && <div style={{ display: "flex", gap: 6, marginTop: 8 }}><input value={txt} onChange={(e) => setTxt(e.target.value)} placeholder="무엇 때문에 막혔나요?" aria-label="막힌 이유" style={{ ...inp, padding: "9px 12px", fontSize: 14 }} /><Act onClick={() => { if (txt.trim()) { A.block(t, txt.trim()); setMode(""); } }}>알리기</Act></div>}
-    {TV.doing >= 4 && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 10, paddingTop: 8, borderTop: `1px solid ${C.line}` }}>진행 중인 일이 {TV.doing}개예요. 새로 시작하기보다 하나씩 끝내면 더 빨라요.</div>}
-    {TV.late.length > 1 && <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${C.line}`, display: "flex", alignItems: "center", gap: 8 }}><span style={{ flex: 1, fontSize: 13.5, color: C.red, fontWeight: 800 }}>지난 일 {TV.late.length}개</span><TBtn onClick={() => open({ type: "triage" })}>하나씩 정리하기 ›</TBtn></div>}
   </div>;
+}
+
+// 이제 내 차례 모두 (앞 일이 방금 끝난 내 일)
+export function TurnSheet({ D, cu, A, open, TV, T, setSeen, onBack, onClose }) {
+  const key = TV.key, list = TV.ranked.filter((x) => x.fresh);
+  return <Sheet title={`이제 내 차례 ${list.length}`} onBack={onBack} onClose={onClose}>
+    <p style={{ fontSize: 13.5, color: C.sub, margin: "12px 2px", lineHeight: 1.6 }}>앞사람이 끝내서 이제 시작할 수 있는 일이에요. 시작하면 이 목록에서 빠져요.</p>
+    <Card>{list.length === 0 ? <Empty>지금은 없어요</Empty> : list.map((x, i) => { const info = T.byTask.get(x.t.id), p = info && info.last;
+      return <Row key={x.t.id} tag="이제 내 차례" tagTone="turn" title={x.t.title} sub={p ? `${nameOf(D.users, ownersOf(p)[0])}님이 "${p.title}" 끝냄${info.readyAt ? " · " + ago(info.readyAt) : ""}` : ""} sub2={dueOf(x.t) ? `기한 ${md(dueOf(x.t))} · ${ddayLabel(x.n)}` : null}
+        onClick={() => { if (p) markSeen(setSeen, `tn:${x.t.id}:${p.id}`); open({ type: "task", id: x.t.id }); }} right={<Act onClick={() => { if (p) markSeen(setSeen, `tn:${x.t.id}:${p.id}`); A.setStatus(x.t, "inprogress"); }} style={BTN_ON}>시작</Act>} last={i === list.length - 1} />; })}</Card>
+  </Sheet>;
+}
+
+// 내 정리: [날짜 없는 일 | 담당 정할 항목] — 지우지 않고 날짜·담당만 정함
+export function MyTidySheet({ D, cu, A, open, T, onBack, onClose, tab0, setToast }) {
+  const [tab, setTab] = useState(tab0 || "nodate"), [sel, setSel] = useState(() => new Set()), [ld, setLd] = useState({});
+  const key = ymd(new Date()), ym = key.slice(0, 7);
+  const mine = D.tasks.filter((t) => isOneOff(t) && !isDone(t) && isMine(t, cu.id) && t.status !== "review");
+  const nodate = mine.filter((t) => !dueOf(t) && t.status !== "hold" && t.tidySkip !== ym && !T.temp.has(t.id));
+  // 출시일이 없어 기한이 빈 신제품 항목은 제품별 한 줄로
+  const byLaunch = {}; const plain = [];
+  nodate.forEach((t) => { const p = t.launchItem && D.projects.find((x) => x.id === t.projectId); if (p && !p.launchDate) (byLaunch[p.id] = byLaunch[p.id] || { p, items: [] }).items.push(t); else plain.push(t); });
+  const temp = D.tasks.filter((t) => T.temp.has(t.id) && isMine(t, cu.id));
+  const tempG = Object.values(temp.reduce((a, t) => { const p = D.projects.find((x) => x.id === t.projectId) || { id: "", title: "프로젝트 없음" }; (a[p.id] = a[p.id] || { key: p.id, label: p.title, items: [] }).items.push(t); return a; }, {}));
+  const fri = thisFri(key);
+  return <Sheet title="내 정리" onBack={onBack} onClose={onClose}>
+    <div style={{ margin: "12px 0" }}><Seg items={[["nodate", `날짜 없는 일 ${nodate.length}`], ["temp", `담당 정할 항목 ${temp.length}`]]} value={tab} onChange={(v) => { setTab(v); setSel(new Set()); }} /></div>
+    {tab === "nodate" && <>
+      {Object.values(byLaunch).map(({ p, items }) => { const lead = p.assigneeId === cu.id || isMaster(cu);
+        return <Card key={p.id} style={{ padding: "12px 14px", marginBottom: 10 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 800, color: C.ink }}>{p.title} · 출시일 미정 · 항목 {items.length}</div>
+          {lead ? <div className="v2-chips" style={{ marginTop: 8 }}><input type="date" aria-label="출시일" value={ld[p.id] || ""} onChange={(e) => setLd({ ...ld, [p.id]: e.target.value })} className="v2-sel" />
+            {ld[p.id] && <Act onClick={() => A.setLaunchDate(p, ld[p.id])} style={BTN_ON}>출시일 정하기 · 기한 자동</Act>}</div>
+            : <TBtn onClick={() => open({ type: "project", id: p.id, first: "news" })} style={{ padding: "6px 0" }}>책임 {nameOf(D.users, p.assigneeId) || "없음"}님께 묻기 ›</TBtn>}
+        </Card>; })}
+      <Card>{plain.length === 0 ? <Empty>날짜 없는 일이 없어요</Empty> : plain.map((t, i) => { const can = canSetDue(t, cu.id, D, isMaster(cu)), set = (d) => (can ? A.setDue(t, d) : A.requestDue(t, d, "날짜 정하기"));
+        return <div key={t.id} style={{ padding: "11px 14px", borderBottom: i < plain.length - 1 ? `1px solid ${C.line}` : "none" }}>
+          <div role="button" tabIndex={0} onClick={() => open({ type: "task", id: t.id })} style={{ fontSize: 14.5, fontWeight: 700, color: C.text, cursor: "pointer" }}>{t.title}</div>
+          <div style={{ fontSize: 12, color: C.sub, margin: "2px 0 6px" }}>{(D.projects.find((p) => p.id === t.projectId) || {}).title || ""}{!can ? ` · 기한은 ${nameOf(D.users, dueApprover(t, D))}님께 요청` : ""}</div>
+          <div className="v2-chips"><Chip onClick={() => set(fri)}>이번 주 금</Chip><Chip onClick={() => set(addDays(fri, 7))}>다음 주 금</Chip>
+            <input type="date" aria-label="날짜" onChange={(e) => e.target.value && set(e.target.value)} className="v2-sel" />
+            <TBtn tone="mute" onClick={() => A.tidySkip(t)}>날짜 없이 두기</TBtn><TBtn tone="mute" onClick={() => A.setStatus(t, "hold")}>보류</TBtn></div>
+        </div>; })}</Card>
+    </>}
+    {tab === "temp" && <>
+      <p style={{ fontSize: 13.5, color: C.sub, margin: "0 2px 4px", lineHeight: 1.6 }}>담당이 비어 책임자인 나에게 임시로 들어온 항목이에요. 내가 할 것은 '내가 할게요', 나눌 것은 골라서 담당을 바꿔요.</p>
+      {tempG.map((g) => <div key={g.key} style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}><Act onClick={() => A.bulk(g.items, () => ({ ownerAuto: false, ownerFrom: "set", ackAt: new Date().toISOString() }), `내가 할게요 · ${g.label}`)}>{g.label} {g.items.length}개 내가 할게요</Act></div>)}
+      <PickList D={D} groups={tempG} sel={sel} setSel={setSel} open={open} temp={T.temp} />
+      {sel.size > 0 && <div style={{ height: 120 }} />}
+      <BulkBar D={D} cu={cu} A={A} ids={sel} clear={() => setSel(new Set())} />
+    </>}
+  </Sheet>;
 }
 
 // 지난 일 정리 — 한 화면에 하나씩: 끝냈어요 / 새 기한 / 보류 / 건너뛰기
@@ -153,19 +251,21 @@ export function AddSheet({ D, cu, A, onBack, onClose, preset, setToast }) {
   const sameDay = due ? wl.dueOn(due) : [];
   const ok = title.trim() && !busy && (!other || due);
   const save = async () => { if (!ok) return; setBusy(true);
-    const t = await A.addTask({ title, assigneeId: who, dueDate: due, projectId: pid, firstStep: step, noReview: other ? !review : true });
+    const t = await A.addTask({ title, assigneeId: who, dueDate: due, projectId: pid, firstStep: step, noReview: other ? !review : true, ...(preset.deps ? { deps: preset.deps } : {}) });
     setBusy(false); if (!t) return;
     setToast({ text: other ? `${nameOf(D.users, who)}님에게 맡겼어요 · 받으면 '받음'으로 보여요` : "추가했어요" });
     if (keep) { setTitle(""); setStep(""); } else (onBack || onClose)(); };
   const heavy = (n) => n >= 5;
-  return <Sheet title="할 일 추가 · 맡기기" onBack={onBack} onClose={onClose} foot={<Big onClick={save} disabled={!ok}>{other ? `${nameOf(D.users, who)}님에게 맡기기${due ? " · " + md(due) + "까지" : ""}` : "추가"}</Big>}>
+  const after = preset.deps && preset.deps.length ? D.tasks.find((t) => t.id === preset.deps[0]) : null;
+  return <Sheet title={after ? "다음 일 맡기기" : "할 일 추가 · 맡기기"} onBack={onBack} onClose={onClose} foot={<Big onClick={save} disabled={!ok}>{other ? `${nameOf(D.users, who)}님에게 맡기기${due ? " · " + md(due) + "까지" : ""}` : "추가"}</Big>}>
+    {after && <div style={{ marginTop: 12, padding: "10px 12px", borderRadius: 12, background: C.soft, fontSize: 13.5, color: C.ink }}>'{after.title}'이 끝나면 이어서 할 일이에요. 앞 일이 끝나는 순간 담당에게 '이제 내 차례'가 떠요.</div>}
     <label className="v2-lab" htmlFor="v2-add-title">무엇을</label>
     <input id="v2-add-title" ref={ref} value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) save(); }} placeholder="할 일 제목" style={inp} />
     <div className="v2-lab">누가</div>
     <div className="v2-chips">{quick.map((u) => <Chip key={u.id} on={who === u.id} onClick={() => setWho(u.id)}>{u.id === cu.id ? "나" : u.name}</Chip>)}
       <select aria-label="다른 사람" value={quick.some((u) => u.id === who) ? "" : who} onChange={(e) => e.target.value && setWho(e.target.value)} className="v2-sel"><option value="">다른 사람 ▾</option>{users.filter((u) => !quick.some((q) => q.id === u.id)).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
     <div className="v2-lab">언제까지 {other ? <span style={{ color: C.mute, fontWeight: 600 }}>· {nameOf(D.users, who)}님 2주 일정 (숫자 = 그날 마감 수)</span> : ""}</div>
-    <div style={{ fontSize: 13, color: C.sub, margin: "-2px 2px 8px" }}>{other ? `${nameOf(D.users, who)} · ` : "나 · "}열린 일 {wl.open} · 진행 {wl.doing}{wl.late ? <b style={{ color: C.red }}> · 지난 일 {wl.late}</b> : ""}{ot.pct != null ? ` · 최근 기한 지킴 ${ot.pct}%` : ""}</div>
+    <div style={{ fontSize: 13, color: C.sub, margin: "-2px 2px 8px" }}>{other ? `${nameOf(D.users, who)} · ` : "나 · "}열린 일 {wl.open} · 진행 {wl.doing}{wl.late ? <b style={{ color: C.red }}> · 지난 일 {wl.late}</b> : ""}</div>
     <div className="v2-strip" role="listbox" aria-label="기한 고르기">
       {wl.week.map((d) => { const on = due === d.date, n = d.list.length, we = d.wd === "토" || d.wd === "일";
         return <button key={d.date} type="button" role="option" aria-selected={on} onClick={() => setDue(d.date)} className={"v2-day" + (on ? " on" : "") + (we ? " we" : "")}>

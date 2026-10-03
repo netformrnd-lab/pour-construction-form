@@ -180,6 +180,7 @@ export function useActs(D, cu, setToast, idx = null) {
       const t = { id, title: f.title.trim(), isFixed: false, type: "general", status: "todo", assigneeId: who, assigneeIds: [who], projectId: f.projectId || "", parentId: f.parentId || null,
         dueDate: f.dueDate || "", workDate: "", memo: "", attachments: [], weekDay: null, weekSlot: null, priority: "mid", ...(p && p.brand ? { brand: p.brand } : {}),
         ...(f.firstStep ? { firstStep: f.firstStep.trim() } : {}), ...(f.noReview ? { noReview: true } : {}), ...(who === cu.id ? { ackAt: at } : {}),
+        ...(Array.isArray(f.deps) ? { deps: f.deps } : {}), ...(f.extra || {}), v2At: at,
         requestedBy: cu.id, requestedAt: at, createdAt: at, createdBy: cu.id, statusLog: [{ by: cu.id, byName: cu.name, at, status: "todo" }], madeIn: "v2" };
       try { await fb.put("tasks", id, t); } catch (e) { fail("업무")(e); return null; }
       log("add", { col: "tasks", targetId: id, projectId: t.projectId, label: t.title + (who !== cu.id ? ` → ${nameOf(D.users, who)}` : "") });
@@ -272,6 +273,15 @@ export function useActs(D, cu, setToast, idx = null) {
       try { await fb.putMany([{ key: "projects", id: plan.project.id, data: plan.project }, ...plan.tasks.map((t) => ({ key: "tasks", id: t.id, data: t }))]); }
       catch (e) { fail("신제품")(e); return null; }
       log("launch", { col: "projects", targetId: plan.project.id, projectId: plan.project.id, label: `${plan.project.title} · 출시 ${md(plan.project.launchDate)} · 항목 ${plan.tasks.length}개` });
+      return plan.project;
+    },
+    // 흐름으로 만들기: 프로젝트 + 단계 업무(앞 단계를 deps 로) 한 번에 → 고른 단계 담당은 v2 workflows 문서에 기억(다음 기본값)
+    createFlow: async (plan, wf, owners) => {
+      try { await fb.putMany([{ key: "projects", id: plan.project.id, data: plan.project }, ...plan.tasks.map((t) => ({ key: "tasks", id: t.id, data: t }))]); }
+      catch (e) { fail("흐름")(e); return null; }
+      log("add", { col: "projects", targetId: plan.project.id, projectId: plan.project.id, label: `${plan.project.title} · 흐름 ${plan.tasks.length}단계` });
+      if (wf && wf.doc) { const own = Object.fromEntries(wf.stages.map((s, i) => [s.id, owners[i]]));
+        fb.patch("workflows", wf.doc._doc || wf.doc.id, { stages: wf.doc.stages.map((s) => ({ ...s, ownerId: own[s.id] || s.ownerId || "" })), updatedAt: nowIso(), v2At: nowIso() }).catch((e) => console.error("[v2] 흐름 담당 기억 실패:", e)); }
       return plan.project;
     },
     // 출시일 바꾸기 → 자동 기한 항목만 같이 이동

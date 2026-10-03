@@ -47,9 +47,9 @@ ok("담당 정리 필요: 담당 없음 + 미사용 담당", () => {
   const D = { users: [{ id: "a" }, { id: "b", active: false }], tasks: [{ id: 1, status: "todo" }, { id: 2, status: "todo", assigneeId: "b" }, { id: 3, status: "done" }, { id: 4, status: "todo", assigneeId: "a" }] };
   assert.deepEqual(M.ownerIssues(D).map((x) => x.why), ["담당 없음", "미사용 담당"]);
 });
-ok("프로젝트 묶음: 지남·이번 주·이번 달·그 뒤·없음·보류", () => {
-  const g = M.projGroups([{ id: 1, dueDate: "2026-09-01" }, { id: 2, dueDate: "2026-10-20" }, { id: 3, dueDate: "2026-11-01" }, { id: 4 }, { id: 5, status: "hold" }, { id: 6, dueDate: "2026-10-04" }], "2026-10-02");
-  assert.deepEqual(Object.fromEntries(Object.entries(g).map(([k, v]) => [k, v.map((p) => p.id)])), { late: [1], week: [6], month: [2], later: [3], none: [4], hold: [5] });
+ok("프로젝트 묶음: 지남·7일 안·이번 달·그 뒤·없음·보류 (토요일에도 다음 주 초가 7일 안)", () => {
+  const g = M.projGroups([{ id: 1, dueDate: "2026-09-01" }, { id: 2, dueDate: "2026-10-20" }, { id: 3, dueDate: "2026-11-01" }, { id: 4 }, { id: 5, status: "hold" }, { id: 6, dueDate: "2026-10-04" }, { id: 7, dueDate: "2026-10-09" }], "2026-10-03");
+  assert.deepEqual(Object.fromEntries(Object.entries(g).map(([k, v]) => [k, v.map((p) => p.id)])), { late: [1], week: [6, 7], month: [2], later: [3], none: [4], hold: [5] });
 });
 ok("D-day 글자", () => { assert.equal(M.ddayLabel(M.ddays("2026-10-01", "2026-10-02")), "1일 지남"); assert.equal(M.ddayLabel(0), "오늘"); assert.equal(M.ddayLabel(3), "D-3"); });
 ok("흐름: 맡긴 사람·확인 필요·기한 허락", () => {

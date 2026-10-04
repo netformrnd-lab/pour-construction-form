@@ -555,7 +555,8 @@ function timelineHTML() {
 }
 function topboxHTML() {
   const nx = nextStep();
-  return `<div class="board-h"><div><h1>${esc(P.product.name || P.name)}</h1><div class="set">${esc(P.product.set || '구성을 1단계에 적어 주세요')}</div></div><div id="clock">${clockHTML()}</div></div>
+  return `<div class="board-h"><div><h1>${esc(P.product.name || P.name)}</h1><div class="set">${esc(P.product.set || '구성을 1단계에 적어 주세요')}</div>
+      ${P.output.mp4 ? `<a class="btn pri" style="display:inline-block;margin-top:10px" href="${esc(P.output.mp4)}" target="_blank" rel="noopener">▶ 완성본 보기${P.output.version ? ' (' + esc(P.output.version) + ')' : ''}</a>` : ''}</div><div id="clock">${clockHTML()}</div></div>
     ${timelineHTML()}
     <div class="next"><span class="who ${nx.who === 'me' ? 'me' : 'cl'}">${nx.who === 'me' ? '내 차례' : 'Claude 차례'}</span><p><span class="k">다음 할 일 · ${nx.s}단계</span>${esc(nx.t)}</p>
       ${tab !== nx.s - 1 ? `<button class="btn sm" data-act="goto" data-s="${nx.s - 1}">${nx.s}단계 열기</button>` : ''}</div>`;

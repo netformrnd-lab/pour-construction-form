@@ -6,7 +6,7 @@
 import { initializeApp } from "firebase/app";
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager, getFirestore,
-  doc, collection, query, where, onSnapshot, getDoc, getDocFromServer, getDocs, setDoc, updateDoc, writeBatch, arrayUnion,
+  doc, collection, query, where, onSnapshot, getDoc, getDocFromServer, getDocs, setDoc, updateDoc, writeBatch, arrayUnion, arrayRemove, deleteField, runTransaction,
 } from "firebase/firestore";
 import { getStorage, ref as sref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -46,6 +46,8 @@ export async function getMeta() { const s = await getDocFromServer(META); return
 export async function setMeta(data) { await setDoc(META, data, { merge: true }); }
 // 새 문서(통째로) · 바뀐 칸만(점 경로 "doneDates.songhee")
 export async function put(key, id, data) { await setDoc(v2doc(key, id), data); }
+// 문서가 없어도 되는 합치기 쓰기 — 맵 안 칸 하나만 넣고 뺄 때 (예: 회사 쉬는 날 days.날짜). 다른 사람이 넣은 칸은 그대로
+export async function merge(key, id, data) { await setDoc(v2doc(key, id), data, { merge: true }); }
 export async function patch(key, id, fields) { await updateDoc(v2doc(key, id), fields); }
 // 여러 건 한 번에 (400건씩 나눔)
 export async function putMany(ops, onProgress, opt) {
@@ -84,4 +86,42 @@ export async function upload(target, file) {
   await uploadBytes(r, file, { contentType: file.type || "application/octet-stream" });
   return { name: file.name || "file", url: await getDownloadURL(r), path, size: file.size || 0, type: file.type || "", uploadedAt: new Date().toISOString() };
 }
-export { arrayUnion };
+export { arrayUnion, arrayRemove, deleteField };
+
+// ── 여러 사람이 같이 쓸 때: 조건부 쓰기 (서버의 지금 값을 확인하고 씀) ──
+// expect = {칸(점 경로 가능): 기대값}. 지금 서버 값이 모두 같을 때만 fields 를 씀 → 그사이 다른 사람이 바꾼 것을 덮지 않음
+// 인터넷이 끊겨 확인을 못 하면(transaction 실패) 예전처럼 그냥 씀 — 기기에 쌓였다가 연결되면 올라감
+const stable = (v) => JSON.stringify(v === undefined ? null : v, (k, x) => (x && typeof x === "object" && !Array.isArray(x) ? Object.keys(x).sort().reduce((o, kk) => ((o[kk] = x[kk]), o), {}) : x));
+const valAt = (d, path) => String(path).split(".").reduce((o, k) => (o == null ? undefined : o[k]), d);
+export const sameVal = (a, b) => stable(a) === stable(b);
+const fits = (cur, expect) => !!cur && Object.keys(expect || {}).every((k) => sameVal(valAt(cur, k), expect[k]));
+const offline = (e) => e && /unavailable|offline|network/i.test(String(e.code || e.message || ""));
+export async function patchIf(key, id, expect, fields) {
+  try { return await runTransaction(db, async (tx) => { const r = v2doc(key, id), s = await tx.get(r); const cur = s.exists() ? s.data() : null;
+      if (!fits(cur, expect)) return { ok: false, cur }; tx.update(r, fields); return { ok: true, cur }; }); }
+  catch (e) { if (!offline(e)) throw e; console.warn("[v2] 확인 없이 저장(연결 끊김):", e.message); await updateDoc(v2doc(key, id), fields); return { ok: true, cur: null, unchecked: true }; }
+}
+// 여러 문서 — 문서마다 검사, 그사이 남이 바꾼 문서는 건너뜀. ops: [{key, id, fields, expect}] → {done, skipped:[id]}
+export async function patchManyIf(ops) {
+  let done = 0; const skipped = [];
+  for (let i = 0; i < ops.length; i += 100) {
+    const part = ops.slice(i, i + 100);
+    try { const r = await runTransaction(db, async (tx) => { const snaps = await Promise.all(part.map((o) => tx.get(v2doc(o.key, o.id)))), ok = [], no = [];
+        part.forEach((o, j) => { const cur = snaps[j].exists() ? snaps[j].data() : null; if (fits(cur, o.expect)) { tx.update(v2doc(o.key, o.id), o.fields); ok.push(o.id); } else no.push(o.id); });
+        return { ok, no }; });
+      done += r.ok.length; skipped.push(...r.no); }
+    catch (e) { if (!offline(e)) throw e; console.warn("[v2] 확인 없이 되돌림(연결 끊김):", e.message); await patchMany(part); done += part.length; }
+  }
+  console.log(`[v2 조건부 쓰기] ${done}건 · 건너뜀 ${skipped.length}건`); return { done, skipped };
+}
+// 없을 때만 만들기 (두 사람이 동시에 열어 같은 문서를 두 번 만들거나 덮지 않게). ops: [{key, id, data}] → {made, skipped}
+export async function createMissing(ops) {
+  let made = 0, skipped = 0;
+  for (let i = 0; i < ops.length; i += 200) {
+    const part = ops.slice(i, i + 200);
+    const r = await runTransaction(db, async (tx) => { const snaps = await Promise.all(part.map((o) => tx.get(v2doc(o.key, o.id)))); let m = 0;
+      part.forEach((o, j) => { if (!snaps[j].exists()) { tx.set(v2doc(o.key, o.id), o.data); m++; } }); return m; });
+    made += r; skipped += part.length - r;
+  }
+  console.log(`[v2 없을 때만 만들기] ${made}건 · 이미 있음 ${skipped}건`); return { made, skipped };
+}

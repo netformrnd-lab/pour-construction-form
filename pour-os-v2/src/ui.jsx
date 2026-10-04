@@ -122,3 +122,13 @@ export function CopyLink({ kind, id, onDone, label = "링크 복사" }) {
   return <><TBtn onClick={go} style={{ padding: "2px 0" }}>{label}</TBtn>
     {show && <input readOnly value={show} autoFocus onFocus={(e) => e.target.select()} aria-label="복사할 링크" style={{ ...inp, marginTop: 6, fontSize: 12.5, padding: "8px 10px" }} />}</>;
 }
+
+// 같이 쓰다 겹쳤을 때 (메모 · 지금 상황): 그사이 다른 사람이 먼저 고친 글을 보여 주고 고르게 — 내 글은 지우지 않음
+export function Clash({ who, at, text, onMerge, onMine }) {
+  return <div role="alert" style={{ marginTop: 8, padding: "12px 14px", borderRadius: 12, background: "#fff", border: `1.5px solid ${C.navy}` }}>
+    <div style={{ fontSize: 13.5, fontWeight: 800, color: C.ink }}>{who || "다른 사람"}님이 방금 먼저 고쳤어요{at ? ` · ${new Date(at).toTimeString().slice(0, 5)}` : ""}</div>
+    <div style={{ fontSize: 13, color: C.sub, margin: "4px 0 6px" }}>내 글은 아직 저장 안 했어요. 그 사람 글:</div>
+    <div style={{ fontSize: 13.5, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.6, maxHeight: 140, overflowY: "auto", background: C.bg, borderRadius: 8, padding: "8px 10px", wordBreak: "break-word" }}>{text || "(비어 있음)"}</div>
+    <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}><Act onClick={onMerge}>그 글에 내 글 붙여서 다시 보기</Act><Act onClick={onMine}>내 글로 저장</Act></div>
+  </div>;
+}

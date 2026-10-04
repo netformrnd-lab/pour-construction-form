@@ -13,11 +13,12 @@ export function MonthCal({ mode = "me", ym, setYm, cells, sel, onPick, keyd, use
   const onTE = (e) => { const s = tch.current; if (!s) return; const t = e.changedTouches[0], dx = t.clientX - s.x, dy = t.clientY - s.y; tch.current = null;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) setYm(shiftMonth(ym, dx < 0 ? 1 : -1)); };
   return <div className={"v2-cal" + (team ? "" : " me")} role="grid" aria-label={`${ym.slice(0, 4)}년 ${+ym.slice(5)}월 달력`} onTouchStart={onTS} onTouchEnd={onTE}>
-    {["일", "월", "화", "수", "목", "금", "토"].map((w) => <div key={w} className={"v2-calh" + (w === "토" || w === "일" ? " we" : "")}>{w}</div>)}
+    {["일", "월", "화", "수", "목", "금", "토"].map((w) => <div key={w} className={"v2-calh" + (w === "일" ? " sun" : w === "토" ? " sat" : "")}>{w}</div>)}
     {grid.flat().map((c) => {
       const x = cells[c.date] || { n: 0, proj: [], items: [], people: {} }, past = c.date < keyd, old = c.date < d14;
       const showN = x.n > 0 ? x.n : x.fx > 0 ? x.fx : 0;
-      const cls = ["v2-calc", c.out ? "out" : "", isOffDay(c.date) ? "off" : "", c.date === keyd ? "today" : "", c.date === sel ? "on" : "",
+      const dow = new Date(c.date + "T00:00:00").getDay(), red = dow === 0 || !!holidayName(c.date);   // 빨간 날(일요일·공휴일) 빨강 · 토요일 파랑
+      const cls = ["v2-calc", c.out ? "out" : "", isOffDay(c.date) ? "off" : "", red ? "hol" : dow === 6 ? "sat" : "", c.date === keyd ? "today" : "", c.date === sel ? "on" : "",
         !past && x.n > 0 ? lv(x.n, team) : "", past && x.n > 0 && x.red ? "red" : "", team && !past && x.red ? "over" : "", past && x.n > 0 && old ? "old" : "", !x.n && x.fx ? "fx" : ""].filter(Boolean).join(" ");
       const marks = [x.proj.length ? (team && x.proj.length > 1 ? "▴" + x.proj.length : "▴") : "", x.turnStart ? "→" : "", past && !x.n && x.done ? "✓" : ""].filter(Boolean).slice(0, 2).join(" ");
       const hol = holidayName(c.date);

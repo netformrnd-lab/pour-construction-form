@@ -3,8 +3,9 @@
 // 상세 시트는 sheets.jsx 공용 + 관리자 시트(사람 관리자판 · 설정 · 고르기 목록 · 순서 꼬임)를 덧붙임
 import { useMemo, useState } from "react";
 import { useBoot, Gate, useActs, LS } from "../core.jsx";
-import { isMaster } from "../model.js";
-import { turnIndex } from "../turn.js";
+import { isMaster, todayView } from "../model.js";
+import { turnIndex, turnsOf } from "../turn.js";
+import { InboxSheet } from "../today.jsx";
 import { SheetRouter } from "../sheets.jsx";
 import { C, TBtn, Toast, useLocal, useBackClose } from "../ui.jsx";
 import { MY_URL } from "./common.jsx";
@@ -46,6 +47,10 @@ function AdminMain({ B }) {
   const [toast, setToast] = useState(null);
   const idx = useMemo(() => turnIndex(D), [D]);
   const A = useActs(D, cu, setToast, idx);
+  // 나에게 온 것: 팀원 '확인할 것'과 같은 계산 (읽음 표시도 팀원 화면과 같은 기기 저장)
+  const [seen, setSeen] = useLocal(LS("seen-" + cu.id), {});
+  const T = useMemo(() => turnsOf(D, idx, cu.id, new Date(), seen, (B.meta || {}).seededAt || ""), [D, idx, cu.id, seen]);
+  const TV = useMemo(() => todayView(D, cu.id, new Date(), seen, T), [D, cu.id, seen, T]);
   const open = (s) => setStack((st) => [...st, s]);
   const back = () => setStack((st) => st.slice(0, -1));
   const closeAll = () => setStack([]);
@@ -63,6 +68,7 @@ function AdminMain({ B }) {
     arep: (p, s) => <RepSheet {...p} s={s} />,
     order: (p) => <OrderSheet {...p} />,
     launchOrder: (p) => <LaunchOrderSheet {...p} />,
+    inbox: (p) => <InboxSheet {...p} TV={TV} setSeen={setSeen} />,
   };
   const top = stack[stack.length - 1];
   return <div className="v2-app a-app">
@@ -77,6 +83,7 @@ function AdminMain({ B }) {
         <div className="a-head">
           <b>관리 · {cu.name}</b>
           <span style={{ flex: 1 }} />
+          <button type="button" className={"a-inbox" + (TV.inbox.length ? " on" : "")} onClick={() => open({ type: "inbox" })}>나에게 온 것 <b>{TV.inbox.length}</b></button>
           <TBtn onClick={() => open({ type: "settings" })}>설정</TBtn>
           <a href={MY_URL} className="a-mylink">내 화면으로 ›</a>
         </div>

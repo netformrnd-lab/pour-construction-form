@@ -31,15 +31,8 @@ export function turnBits(t, T, D, key) {
 }
 
 // ───────────────── 오늘 ─────────────────
-// 순서: 지금 할 일 1장 → 확인할 것 → 오늘(고정업무 접기 · 일회성 3줄) → 곧 내 차례 → 정리 한 줄
-export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
-  const now = new Date(), key = TV.key;
-  const up7 = useMemo(() => upcomingTurns(D, T, key, cu.id).filter((u) => u.start && u.start <= addDays(key, 6)), [D, T, key]);   // 곧 내 차례 = 7일 안에 오는 내 차례 (달력과 같은 기준)
-  const [fxOpen, setFxOpen] = useState(TV.oneOffOpen === 0), [showFxDone, setShowFxDone] = useState(false), [allInbox, setAllInbox] = useState(false), [soonOpen, setSoonOpen] = useState(false);
-  const pName = (pid) => (D.projects.find((p) => p.id === pid) || {}).title || "";
-  const [cardId, setCardId] = useState(null);
-  const inbox = allInbox ? TV.inbox : TV.inbox.slice(0, 3);
-  const readable = TV.inbox.filter((x) => !x.keep);
+// 확인할 것 줄: 누르면 그 업무·프로젝트 · 오른쪽 버튼 한 번으로 처리 (팀원 오늘 · 관리자 '나에게 온 것'이 같이 씀)
+export function inboxFns(D, A, open, setSeen) {
   const tOf = (id) => D.tasks.find((y) => y.id === id);
   const openInbox = (x) => { if (!x.keep) markSeen(setSeen, x.id);
     if (x.kind === "turnLate") return open({ type: "task", id: x.taskId, focus: "talk" });
@@ -50,10 +43,34 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
     if (x.kind === "review" && t) return <Act onClick={() => A.approve(t)} style={BTN_ON}>확인</Act>;
     if (x.kind === "dueReq" && t) return <Act onClick={() => A.answerDue(t, true)} style={BTN_ON}>수락</Act>;
     if (x.kind === "holdDue" && t) return <Act onClick={() => A.unhold(t)} style={BTN_ON}>다시 시작</Act>;
+    if (x.kind === "help" && t) return <Act onClick={() => open({ type: "task", id: t.id, focus: "talk" })} style={BTN_ON}>답하기</Act>;
     if (x.kind === "turnLate") return <Act onClick={() => openInbox(x)}>묻기</Act>;
     if (x.kind === "turnOrder") return <Act onClick={() => openInbox(x)}>조정 요청</Act>;
     if (x.kind === "nextNoOwner") return <Act onClick={() => openInbox(x)}>정하기</Act>;
     return <Act onClick={() => openInbox(x)}>보기</Act>; };
+  return { openInbox, inboxAct };
+}
+// 관리자 '나에게 온 것' — 팀원 '확인할 것'과 같은 계산 · 같은 줄 · 같은 버튼
+export function InboxSheet({ D, A, open, TV, setSeen, onBack, onClose }) {
+  const { openInbox, inboxAct } = inboxFns(D, A, open, setSeen), now = new Date(), readable = TV.inbox.filter((x) => !x.keep);
+  return <Sheet title={`나에게 온 것 ${TV.inbox.length}`} onBack={onBack} onClose={onClose}>
+    <div style={{ fontSize: 13, color: C.sub, margin: "12px 2px 8px", lineHeight: 1.6 }}>확인 요청 · 도움 요청 · 기한 조정 · 막힘 · 맡김 · 담당 바뀜 · 내가 말한 대화의 답이 여기 모여요. 처리할 때까지 남는 것과 읽으면 사라지는 것이 있어요.</div>
+    {TV.inbox.length === 0 ? <Card><Empty>새로 온 요청·알림이 없어요</Empty></Card>
+      : <Card>{TV.inbox.map((x, i) => <Row key={x.id} tag={x.tag} tagTone={x.red ? "red" : null} title={x.title} sub={`${x.whoName || TV.userName(x.who) || ""}${x.at ? (x.whoName || TV.userName(x.who) ? " · " : "") + ago(x.at, now) : ""}${x.text ? " · " + x.text : ""}`} onClick={() => openInbox(x)} right={inboxAct(x)} last={i === TV.inbox.length - 1} />)}</Card>}
+    {readable.length > 0 && <div style={{ marginTop: 10 }}><TBtn tone="mute" onClick={() => setSeen((s) => ({ ...s, ...Object.fromEntries(readable.map((x) => [x.id, true])) }))}>읽음 표시 {readable.length}</TBtn></div>}
+  </Sheet>;
+}
+// 순서: 지금 할 일 1장 → 확인할 것 → 오늘(고정업무 접기 · 일회성 3줄) → 곧 내 차례 → 정리 한 줄
+export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
+  const now = new Date(), key = TV.key;
+  const up7 = useMemo(() => upcomingTurns(D, T, key, cu.id).filter((u) => u.start && u.start <= addDays(key, 6)), [D, T, key]);   // 곧 내 차례 = 7일 안에 오는 내 차례 (달력과 같은 기준)
+  const [fxOpen, setFxOpen] = useState(TV.oneOffOpen === 0), [showFxDone, setShowFxDone] = useState(false), [allInbox, setAllInbox] = useState(false), [soonOpen, setSoonOpen] = useState(false);
+  const pName = (pid) => (D.projects.find((p) => p.id === pid) || {}).title || "";
+  const [cardId, setCardId] = useState(null);
+  const inbox = allInbox ? TV.inbox : TV.inbox.slice(0, 3);
+  const readable = TV.inbox.filter((x) => !x.keep);
+  const tOf = (id) => D.tasks.find((y) => y.id === id);
+  const { openInbox, inboxAct } = inboxFns(D, A, open, setSeen);
   const card = TV.ranked.find((x) => x.t.id === cardId) || TV.ranked[0];
   // 오늘 챙길 일회성: 오늘·내일 마감·진행 중 (카드·지난 일 빼고)
   const list = TV.ranked.filter((x) => x !== card && !(x.n != null && x.n < 0) && (x.t.status === "inprogress" || (x.n != null && x.n <= 1) || x.fresh));

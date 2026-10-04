@@ -37,6 +37,8 @@
 - 공용: `core.jsx`(로그인·구독·useActs 쓰기·다시 가져오기) · `model.js`(계산) · `launch.js`(신제품·순서표·공휴일 기한) · `turn.js`(앞 일 → 내 차례, 저장 안 함) · `views.js`(달력 칸·사람×주·출시 줄·정리 묶음) · `flow.js`(흐름으로 만들기) · `cal.jsx`(월 달력) · `pick.jsx`(고르기 목록·한꺼번에 바꾸기) · `sheets.jsx`(시트 길잡이) · `task.jsx` · `project.jsx` · `mindmap.jsx`(마인드맵·결정 업무) · `ui.jsx`
 - 실사용: `App.jsx` · `today.jsx` · `schedule.jsx`(달력 탭) · `more.jsx`
 - 관리자: `admin/*` (AdminApp · Glance · People · PersonAdmin · Projects · Tidy · Settings · common · admin.css)
+- 시트 머리(시안 A · ui.Sheet kind/path/onPath/head): 네이비 띠 + 오른쪽 흰 종류 칩(업무 · 고정업무 · 프로젝트/신제품 프로젝트 · 사람 · 일 넘기기) + 어디 속한 건지(업무 = '프로젝트 · 이름 ›' 누르면 그 프로젝트) + 큰 제목(2줄까지). 제목은 머리에만(본문엔 위험·중요도 칩만)
+- 버튼(ui.TBtn v): 글자만 버튼 없음 — line(흰 바탕 + 테두리, 기본) · soft(연한 네이비, 업무 동작 줄) · solid(진한 네이비, 그 줄에서 가장 자주 누르는 1개 · 시작했어요) · plain(문장 안 링크만)
 - 디자인: 네이비 #24386B/#0F1F5C, 배경 #F4F5F8, 빨강은 지남·막힘(관리자는 한도 넘음 포함)에만. 이모지·아이콘 버튼·그라디언트 없음. 기호는 ✓ ✕ ▾ ▴ → ‹ › 만.
 
 ## 실사용 앱 (3단계)

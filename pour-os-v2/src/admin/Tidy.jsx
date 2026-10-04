@@ -42,7 +42,7 @@ function Queue({ q, D, cu, A, idx, open, setToast, back, keyd }) {
     : groupItems(items, by, D);
   return <>
     <div className="a-qhead">
-      <TBtn onClick={back} className="a-qback" style={{ paddingLeft: 0 }}>‹ 묶음 목록</TBtn>
+      <TBtn onClick={back} className="a-qback">‹ 묶음 목록</TBtn>
       <h2>{q.label || "묶음"} <span>{q.items.length}</span></h2>
     </div>
     {q.k === "dueReq" ? <DueReqList items={q.items} D={D} cu={cu} A={A} open={open} />

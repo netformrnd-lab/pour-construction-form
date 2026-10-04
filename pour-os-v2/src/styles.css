@@ -303,3 +303,12 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
 .v2-calc.l3.hol .d, .v2-calc.l3.sat .d { color: #fff; }
 .v2-wkhead.hol { color: #D93A3A; }
 .v2-wkhead.sat { color: #2F6FD6; }
+
+/* 시트 머리 (시안 A) — 네이비 띠라서 '시트 안'인 걸 바로 앎 */
+.v2-shead { flex: 0 0 auto; background: #24386B; color: #fff; padding: calc(8px + env(safe-area-inset-top, 0px)) 14px 12px; }
+.v2-shead .r { display: flex; align-items: center; gap: 8px; }
+.v2-shead .bk { border: none; background: rgba(255,255,255,.16); color: #fff; border-radius: 999px; padding: 6px 13px; min-height: 34px; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+.v2-shead .kind { background: #fff; color: #24386B; border-radius: 999px; padding: 4px 12px; font-size: 13px; font-weight: 900; white-space: nowrap; }
+.v2-shead .path { font-size: 12.5px; color: #C9D3EA; margin-top: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-shead .tt { font-size: 18px; font-weight: 900; line-height: 1.35; margin-top: 4px; word-break: keep-all; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.v2-shead .path.go { display: block; max-width: 100%; border: none; background: none; padding: 0; font: inherit; font-size: 12.5px; color: #DCE3F3; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; text-align: left; }

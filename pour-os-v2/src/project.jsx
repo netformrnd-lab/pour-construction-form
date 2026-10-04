@@ -195,7 +195,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
   const [old, setOld] = useState(null), [doneErr, setDoneErr] = useState(false), [nowBase, setNowBase] = useState(null), [nowClash, setNowClash] = useState(null);   // 30일보다 이전 소식·자료: null 안 불러옴 · "loading" · "fail" · {notes, logs}
   useEffect(() => { if (!isLaunch(p)) A.recalc(id); }, [id]);   // 열 때 진척(%)을 실제 업무 수로 다시 계산 (다르면만 저장) · 신제품은 launchPct 로 그때그때 계산하므로 저장 안 함
   useEffect(() => { if (save) save({ tab, openPh, info }); }, [tab, openPh, info]);
-  if (!p) return <Sheet title="프로젝트" onBack={onBack} onClose={onClose}><Empty>이 프로젝트를 찾지 못했어요</Empty></Sheet>;
+  if (!p) return <Sheet title="프로젝트" kind="프로젝트" onBack={onBack} onClose={onClose}><Empty>이 프로젝트를 찾지 못했어요</Empty></Sheet>;
   const key = ymd(new Date()), s = projStat(p, D.tasks, key), launch = isLaunch(p), master = isMaster(cu), lead = p.assigneeId === cu.id || master;
   const date = dateOf(p), w = whenOf(p, D.tasks, key), pct = launch ? launchPct(p, D) : s.pct;
   // 출시일 바꾸기: 옮겨질 자동 기한 수를 버튼에 · 30개 이상이면 한 번 더 묻기 · 지난 날은 못 고름 (되돌리기는 A.setLaunchDate 알림)
@@ -246,17 +246,17 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
   const goPhase = (k) => { setTab("work"); setOpenPh((o) => ({ ...o, [k]: true })); setTimeout(() => { const el = document.getElementById("v2-ph-" + k); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); };
   const flowRow = (lab, t, extra, last) => <Row key={lab} tag={lab} tagTone={lab === "지금" ? "turn" : null} title={`${whoOf(D, t)} · ${t.title}${extra || ""}`}
     sub={[dueOf(t) ? md(dueOf(t)) + " " + ddayLabel(ddays(dueOf(t), key)) : "기한 미정", lab === "다음" && t.status === "todo" ? "앞 일이 끝나면 시작" : stWord(t)].join(" · ")} onClick={() => open({ type: "task", id: t.id })} last={last} />;
-  return <Sheet title="프로젝트" onBack={onBack} onClose={onClose}>
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 8, margin: "12px 0 2px" }}>
-      <h2 style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 800, color: C.ink, margin: 0, lineHeight: 1.35, wordBreak: "keep-all" }}>{p.title}{impOf(p) !== "mid" && <span className={"v2-pill " + (impOf(p) === "high" ? "hi" : "lo")}>중요 {impName(impOf(p))}</span>}{projStLabel(p) !== "진행 중" && <span className="v2-pill st">{projStLabel(p)}</span>}</h2>
-      {!hasNow && edit !== "now" && <TBtn onClick={() => { setNow(""); setNowBase((p.now && p.now.at) || null); setNowClash(null); setEdit("now"); }} style={{ flex: "0 0 auto", padding: "4px 2px", fontSize: 13 }}>+ 지금 상황</TBtn>}
+  return <Sheet title="프로젝트" kind={launch ? "신제품 프로젝트" : "프로젝트"} head={p.title} path={`카테고리 · ${catName(projCat(p)) || "미분류"}`} onBack={onBack} onClose={onClose}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 0 2px" }}>
+      <h2 style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 800, color: C.ink, margin: 0, lineHeight: 1.35, display: "flex", flexWrap: "wrap", gap: 4 }}>{impOf(p) !== "mid" && <span className={"v2-pill " + (impOf(p) === "high" ? "hi" : "lo")}>중요 {impName(impOf(p))}</span>}{projStLabel(p) !== "진행 중" && <span className="v2-pill st">{projStLabel(p)}</span>}</h2>
+      {!hasNow && edit !== "now" && <TBtn onClick={() => { setNow(""); setNowBase((p.now && p.now.at) || null); setNowClash(null); setEdit("now"); }} style={{ flex: "0 0 auto", fontSize: 13 }}>+ 지금 상황</TBtn>}
     </div>
     {launch && <div style={{ fontSize: 12.5, color: C.mute, fontWeight: 700 }}>출시 템플릿 · {brandName(D, p.brand)}{p.batch ? " " + p.batch : ""}</div>}
     <div style={{ fontSize: 13.5, color: C.sub, marginTop: 4 }}>책임 {nameOf(D.users, p.assigneeId) || "없음"} · {date ? <span style={{ color: w.late ? C.red : C.sub, fontWeight: w.late ? 800 : 400 }}>{w.launched ? `출시 ${md(p.launchDate)} · 출시 후 ${w.after != null ? w.after : -ddays(p.launchDate, key)}일${w.late ? " · 늦은 항목 있음" : ""}` : `${launch ? "출시" : "마감"} ${md(date)} ${ddayLabel(w.n)}`}</span> : launch ? "출시일 미정" : "마감 없음"} · {pct}% · 남은 {openT.length}</div>
     <div style={{ height: 6, background: "#E8EBF2", borderRadius: 3, margin: "10px 0 0", overflow: "hidden" }}><div style={{ width: pct + "%", height: "100%", background: C.navy }} /></div>
     {(() => { if (launch || !projOpen(p) || isHoldP(p) || !openT.length) return null; const f = projForecast(p, D.tasks, key);   // 지금 속도로 언제 끝날까 (중요도와 같이 관리자 '판단 필요'에 쓰임)
       return <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6, lineHeight: 1.6 }}>{f.eta ? <>지금 속도 주 {f.perWeek}건 · 남은 {f.left}건 → 예상 {md(f.eta)}{f.lateBy > 0 ? <b style={{ color: C.red }}> · 마감보다 {f.lateBy}일 늦음</b> : f.due ? " · 마감 안에 끝나요" : ""}</> : `최근 2주 끝낸 업무가 없어 끝나는 날을 잴 수 없어요 · 남은 ${f.left}건`}</div>; })()}
-    {projOpen(p) && !isHoldP(p) && lead && <div style={{ display: "flex", justifyContent: "flex-end" }}><TBtn onClick={() => setEndAsk(true)} style={{ padding: "4px 2px", fontSize: 12.5 }}>끝내기 · 멈추기 ›</TBtn></div>}
+    {projOpen(p) && !isHoldP(p) && lead && <div style={{ display: "flex", justifyContent: "flex-end" }}><TBtn onClick={() => setEndAsk(true)} style={{ fontSize: 12.5 }}>끝내기 · 멈추기 ›</TBtn></div>}
     {isHoldP(p) && <Card style={{ marginTop: 10, padding: "12px 14px" }}><div style={{ fontSize: 14.5, fontWeight: 800, color: C.ink }}>보류 중{p.heldAt ? ` · ${-ddays(ymd(new Date(p.heldAt)), key)}일째` : ""}</div>
       <div style={{ fontSize: 13.5, color: C.sub, marginTop: 4, lineHeight: 1.6 }}>{p.holdReason || "이유 없음"} · {p.holdUntil ? `다시 할 날 ${md(p.holdUntil)} (${ddayLabel(ddays(p.holdUntil, key))})` : "다시 할 날 미정"}</div>
       {lead && <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}><Act onClick={() => setResAsk(true)} style={{ background: C.navy, color: "#fff", borderColor: C.navy }}>다시 시작 ›</Act><Act onClick={() => setEndAsk(true)}>이유 · 다시 할 날 바꾸기</Act></div>}</Card>}

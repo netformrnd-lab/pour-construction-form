@@ -18,7 +18,7 @@ export function MoreTab({ D, cu, meta, logout, open, BUILD }) {
     <header style={{ padding: "14px 2px 6px" }}><h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.ink }}>더보기</h1></header>
     {news && <Card style={{ marginTop: 8, padding: "12px 14px", fontSize: 13.5, color: C.text, lineHeight: 1.7 }}>
       <b>바뀐 점</b> · 팀 탭이 없어지고 달력이 생겼어요. 동료가 지금 하는 일은 달력 오른쪽 위 [나 ▾], 프로젝트의 '지금 → 다음', 업무의 '앞 일 · 다음 일'에서 봐요. 팀 전체 현황은 관리자 화면에 있어요.
-      <div><TBtn onClick={() => setNews(false)} style={{ paddingLeft: 0 }}>알겠어요</TBtn></div></Card>}
+      <div><TBtn onClick={() => setNews(false)}>알겠어요</TBtn></div></Card>}
     <Head>나</Head>
     <Card><Row title={cu.name} sub={isMaster(cu) ? "마스터" : "팀원"} last={false} />
       <Row title="다른 사람으로 쓰기" sub="이 기기에서 나가고 이름을 다시 골라요" onClick={() => setAsk("out")} right={arrow} last /></Card>

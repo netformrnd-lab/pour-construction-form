@@ -1,0 +1,8 @@
+{
+  "name": "pour-os-holidays",
+  "private": true,
+  "type": "module",
+  "description": "업무OS 공휴일 자동 갱신 (매달 GitHub Actions)",
+  "scripts": { "sync": "node sync.mjs" },
+  "dependencies": { "@anthropic-ai/sdk": "^0.131.0" }
+}

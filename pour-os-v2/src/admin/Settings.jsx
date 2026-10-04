@@ -3,7 +3,7 @@
 import { useState } from "react";
 import * as fb from "../fb.js";
 import { planReimport, runReimport, nowIso } from "../core.jsx";
-import { md, hm, ymd, activeUsers, KR_HOLIDAYS, COUNT_L } from "../model.js";
+import { md, hm, ymd, activeUsers, KR_HOLIDAYS, COUNT_L, holidayLayer } from "../model.js";
 import { LAUNCH_PHASES, LAUNCH_AFTER, LAUNCH_ITEMS } from "../launch.js";
 import { C, Big, Act, TBtn, Head, Card, Row, Empty, Sheet, Ask, More, inp } from "../ui.jsx";
 import { wdOf } from "./common.jsx";
@@ -12,7 +12,7 @@ const KIND_L = { launch: "버전1 신제품 보드 다시 가져오기", all: "�
 const NAVY_BTN = { background: C.navy, color: "#fff", borderColor: C.navy };
 const itemName = (id) => (LAUNCH_ITEMS.find((i) => i.id === id) || {}).name || id;
 
-export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose, setToast }) {
+export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose, setToast, holJ }) {
   const [st, setSt] = useState(null);   // {kind, step:'plan'|'ready'|'run'|'err', plan, n, total, msg}
   const [ask, setAsk] = useState(""), [caps, setCaps] = useState({}), [busy, setBusy] = useState(false), [showAfter, setShowAfter] = useState(false), [showHol, setShowHol] = useState(false);
   const c = (meta && meta.counts) || {};
@@ -52,7 +52,17 @@ export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose
     catch (e) { console.error("[v2 관리] 주 한도 저장 실패:", e); setToast({ text: "주 한도 저장 실패 · 인터넷 연결을 확인해 주세요" }); }
     setBusy(false);
   };
-  const hol = Object.entries(KR_HOLIDAYS).filter(([d]) => d >= ymd(new Date()).slice(0, 4)).sort();
+  // 쉬는 날 = 앱 안 표 + 매달 자동 갱신(공식 특일 정보) + 회사만 쉬는 날(여기서 마스터가 넣고 뺌 · settings/holidays)
+  const y0 = ymd(new Date()).slice(0, 4), comp = ((D.settings || []).find((x) => x.id === "holidays") || {}).days || {}, fetched = holidayLayer("fetched");
+  const holM = {}; [[KR_HOLIDAYS, "기본"], [fetched, "자동"], [comp, "회사"]].forEach(([m, src]) => Object.entries(m || {}).forEach(([d, n]) => { if (d >= y0) holM[d] = holM[d] ? { ...holM[d], srcs: [...new Set([...holM[d].srcs, src])] } : { n, srcs: [src] }; }));
+  const hol = Object.entries(holM).sort((a, b) => a[0].localeCompare(b[0]));
+  const [cd, setCd] = useState(""), [cn, setCn] = useState(""), [cBusy, setCBusy] = useState(false);
+  const saveComp = async (next, label) => { setCBusy(true);
+    try { await fb.put("settings", "holidays", { id: "holidays", days: next, updatedAt: nowIso(), updatedBy: cu.id }); A.log("edit", { col: "settings", targetId: "holidays", label: `회사 쉬는 날 · ${label}`, prev: comp }); setToast({ text: `회사 쉬는 날 · ${label}` }); }
+    catch (e) { console.error("[v2 관리] 회사 쉬는 날 저장 실패:", e); setToast({ text: "저장 실패 · 인터넷 연결을 확인해 주세요" }); }
+    setCBusy(false); };
+  const addComp = () => { if (!cd || !cn.trim() || cBusy) return; saveComp({ ...comp, [cd]: cn.trim() }, `${md(cd)} ${cn.trim()} 넣음`); setCd(""); setCn(""); };
+  const last = holJ && holJ.last;
   return <Sheet title="설정" onBack={onBack} onClose={onClose}>
     <Head>버전1에서 다시 가져오기</Head>
     <Card style={{ padding: "12px 14px", fontSize: 13.5, color: C.sub, lineHeight: 1.7 }}>
@@ -85,9 +95,20 @@ export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose
     <Card><More onClick={() => setShowAfter(!showAfter)}>{showAfter ? "접기 ▴" : "항목별 앞 일 보기 ▾"}</More>
       {showAfter && <LaunchOrderView />}</Card>
 
-    <Head>공휴일 <span style={{ fontWeight: 600, color: C.mute }}>(기한 계산에서 건너뜀)</span></Head>
-    <Card><More onClick={() => setShowHol(!showHol)}>{showHol ? "접기 ▴" : `${hol.length}일 보기 ▾`}</More>
-      {showHol && <div style={{ padding: "4px 14px 14px", fontSize: 13, color: C.text, lineHeight: 1.75 }}>{hol.map(([d, n]) => <div key={d}>{d.slice(0, 4)}년 {md(d)} ({wdOf(d)}) {n}</div>)}</div>}</Card>
+    <Head>쉬는 날 <span style={{ fontWeight: 600, color: C.mute }}>(기한 · 달력 · 고정업무에서 건너뜀)</span></Head>
+    <Card style={{ padding: "12px 14px", fontSize: 13.5, color: C.sub, lineHeight: 1.7 }}>
+      <div><b style={{ color: C.ink }}>공휴일 자동 갱신</b> · {holJ ? `매달 1일 공식 특일 정보 확인 · 마지막 ${md(ymd(new Date(holJ.updatedAt)))}` : "아직 자동 갱신 파일이 없어요 (서비스 키를 넣으면 다음 달 1일부터 · 지금은 앱 안 표로 계산)"}</div>
+      {holJ && <div>{last && last.note ? `최근 바뀐 것: ${last.note}${last.at ? ` (${md(ymd(new Date(last.at)))})` : ""}` : "최근 바뀐 것 없음"}</div>}
+      <div style={{ marginTop: 10 }}><b style={{ color: C.ink }}>회사만 쉬는 날</b> · 창립기념일 · 여름휴가처럼 회사 전체가 쉬는 날</div>
+      {Object.keys(comp).length === 0 ? <div>아직 없어요</div> : Object.entries(comp).sort().map(([d, n]) => <div key={d} style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ flex: 1, color: C.text }}>{d.slice(0, 4)}년 {md(d)} ({wdOf(d)}) {n}</span>
+        <TBtn tone="mute" disabled={cBusy} onClick={() => { const next = { ...comp }; delete next[d]; saveComp(next, `${md(d)} ${n} 뺌`); }}>빼기</TBtn></div>)}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+        <input type="date" aria-label="회사 쉬는 날 날짜" value={cd} onChange={(e) => setCd(e.target.value)} className="v2-sel" />
+        <input value={cn} onChange={(e) => setCn(e.target.value)} placeholder="이름 (예: 창립기념일)" aria-label="회사 쉬는 날 이름" style={{ ...inp, flex: "1 1 140px", width: "auto", padding: "8px 10px", fontSize: 14 }} />
+        <Act onClick={addComp} style={cd && cn.trim() ? NAVY_BTN : { opacity: 0.5 }}>{cBusy ? "저장 중" : "넣기"}</Act></div>
+    </Card>
+    <Card style={{ marginTop: 8 }}><More onClick={() => setShowHol(!showHol)}>{showHol ? "접기 ▴" : `올해부터 쉬는 날 ${hol.length}일 보기 ▾`}</More>
+      {showHol && <div style={{ padding: "4px 14px 14px", fontSize: 13, color: C.text, lineHeight: 1.75 }}>{hol.map(([d, x]) => <div key={d}>{d.slice(0, 4)}년 {md(d)} ({wdOf(d)}) {x.n} <span style={{ color: C.mute }}>· {x.srcs.join("·")}</span></div>)}</div>}</Card>
 
     <Head>이 기기</Head>
     <Card><Row title={`${cu.name} · 마스터`} sub="이 기기에서 나가고 이름을 다시 골라요" onClick={() => setAsk("out")} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last /></Card>

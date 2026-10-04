@@ -36,7 +36,8 @@ def get(doc):
 def put(pid, data):
     req('PATCH', 'shorts-' + pid, {'fields': {k: enc(v) for k, v in data.items()}})
     meta = {'name': data.get('product', {}).get('name') or data.get('name', ''), 'version': data.get('output', {}).get('version', ''),
-            'archived': bool(data.get('archived')), 'updatedAt': data.get('updatedAt', '')}
+            'archived': bool(data.get('archived')), 'updatedAt': data.get('updatedAt', ''),
+            'mp4': data.get('output', {}).get('mp4', ''), 'zip': data.get('output', {}).get('zip', ''), 'cutCount': len(data.get('cuts', [])), 'final': bool(data.get('gates', {}).get('final'))}
     # 목록 문서는 해당 프로젝트 칸만 갱신 (다른 숏폼 유지)
     req('PATCH', 'shortsStudio', {'fields': {'projects': {'mapValue': {'fields': {pid: enc(meta)}}}}}, mask=[f'projects.`{pid}`'])
 

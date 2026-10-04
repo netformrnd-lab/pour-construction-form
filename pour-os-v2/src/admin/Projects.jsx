@@ -32,8 +32,61 @@ function taskStrip(p, D, idx, key) {
   return cells;
 }
 
+// [주별 표] 카테고리 × 주(월~일) — 사람 표와 같은 모양. 카테고리를 누르면 그 안 프로젝트가 펼쳐짐
+//  칸 큰 숫자 = 그 주 마감인데 아직 안 끝난 업무(지난 주 빨강 = 못 끝냄) · 초록 = 그 주에 끝낸 업무 · 칸 → 그 업무 목록(고르기·담당 바꾸기)
+const wkLab = (k) => (k === 0 ? "이번 주" : k === 1 ? "다음 주" : k === -1 ? "지난 주" : k > 0 ? `${k}주 뒤` : `${-k}주 전`);
+const finAt = (t) => String(t.finishedAt || t.doneAt || "");
+function CatWeek({ D, open, rows }) {
+  const [off, setOff] = useState(-1), [exp, setExp] = useState({}), [more, setMore] = useState({});
+  const key = ymd(new Date()), mon = weekStart(key), iso = (d) => new Date(d + "T00:00:00").toISOString();
+  const weeks = [0, 1, 2, 3].map((i) => { const from = addDays(mon, (off + i) * 7); return { k: off + i, from, to: addDays(from, 6) }; });
+  const stat = useMemo(() => { const byP = new Map();
+    rows.forEach((x) => byP.set(x.p.id, { late: 0, w: weeks.map(() => ({ left: 0, done: 0 })) }));
+    (D.tasks || []).forEach((t) => { const st = byP.get(t.projectId); if (!st || t.isFixed) return;
+      if (openOneOff(t)) { const d = dueOf(t); if (!d) return; if (d < key) st.late++; weeks.forEach((w, i) => { if (d >= w.from && d <= w.to) st.w[i].left++; }); }
+      else if (isDone(t)) { const f = finAt(t); weeks.forEach((w, i) => { if (f >= iso(w.from) && f < iso(addDays(w.to, 1))) st.w[i].done++; }); } });
+    return byP; }, [D, rows, off]);
+  const cats = [...PROJ_CATS, ["none", "미분류"]].map(([k, l]) => { const ps = rows.filter((x) => (k === "none" ? !projCat(x.p) : projCat(x.p) === k));
+    const agg = { late: 0, w: weeks.map(() => ({ left: 0, done: 0 })) };
+    ps.forEach((x) => { const st = stat.get(x.p.id); agg.late += st.late; st.w.forEach((c, i) => { agg.w[i].left += c.left; agg.w[i].done += c.done; }); });
+    return { k, l, ps: ps.slice().sort((a, b) => stat.get(b.p.id).late - stat.get(a.p.id).late || String(a.date || "9").localeCompare(String(b.date || "9"))), agg, risk: ps.filter((x) => x.h.level === "위험").length }; }).filter((c) => c.ps.length);
+  const worst = cats.filter((c) => c.agg.late).sort((a, b) => b.agg.late - a.agg.late).slice(0, 2);
+  const cls = (n, past) => (past ? " past" : n <= 0 ? "" : n <= 5 ? " w1" : n <= 20 ? " w2" : " w3");
+  const cells = (st, pids, label) => <>
+    <button type="button" className="a-wc late" disabled={!st.late} onClick={() => open({ type: "apick", pids, label, late: true })} aria-label={`${label} 지난 업무 ${st.late}`}><b style={{ color: st.late ? C.red : C.mute }}>{st.late || "-"}</b></button>
+    {st.w.map((c, i) => { const w = weeks[i], past = w.to < key;
+      return <button key={i} type="button" className={"a-wc" + cls(c.left, past)} disabled={!c.left && !c.done} onClick={() => open({ type: "apick", pids, label, from: w.from, to: w.to, ...(c.left ? {} : { show: "done" }) })}
+        aria-label={`${label} ${wkLab(w.k)} 남은 ${c.left} 완료 ${c.done}`}><b style={past && c.left ? { color: C.red } : null}>{c.left || "-"}</b>{c.done > 0 && <small className="dn">완료 {c.done}</small>}</button>; })}</>;
+  return <>
+    <div className="a-wknav" style={{ marginTop: 10 }}>
+      <TBtn disabled={off <= -4} onClick={() => setOff(off - 1)}>‹ 지난 주</TBtn><b>{wkLab(off)}부터 4주</b><TBtn disabled={off >= 4} onClick={() => setOff(off + 1)}>다음 주 ›</TBtn>
+      {off !== -1 && <TBtn onClick={() => setOff(-1)}>처음으로</TBtn>}</div>
+    <div className="a-sumtop">{worst.length ? <>밀리는 카테고리: <b>{worst.map((c) => `${c.l} 지남 ${c.agg.late}`).join(" · ")}</b></> : "기한 지난 프로젝트 업무가 없어요"}</div>
+    <div className="a-wk a-cw" role="table" aria-label="카테고리별 4주">
+      <div className="a-wkr hd" role="row"><span role="columnheader">카테고리</span><span role="columnheader">지남</span>{weeks.map((w) => <span key={w.from} role="columnheader">{wkLab(w.k)}<small>{md(w.from)}~</small></span>)}</div>
+      {cats.map((c) => { const on = !!exp[c.k], pids = c.ps.map((x) => x.p.id), m = more[c.k], shown = m ? c.ps : c.ps.slice(0, 8);
+        return <div key={c.k} className="a-cwg">
+          <div className="a-wkr" role="row">
+            <button type="button" className="a-wkn" aria-expanded={on} onClick={() => setExp({ ...exp, [c.k]: !on })}><span className="l1"><b>{c.l} {on ? "▴" : "▾"}</b></span>
+              <span className="l2">{c.ps.length}개{c.risk ? <> · <span style={{ color: C.red, fontWeight: 800 }}>위험 {c.risk}</span></> : ""}{c.k === "none" ? " · 정리 필요" : ""}</span></button>
+            {cells(c.agg, pids, c.l)}
+          </div>
+          {on && shown.map((x) => { const st = stat.get(x.p.id);
+            return <div key={x.p.id} className="a-wkr sub" role="row">
+              <button type="button" className="a-wkn" onClick={() => open({ type: "project", id: x.p.id })}><span className="l1"><b>{x.p.title}</b></span>
+                <span className="l2">{x.date ? `${x.lp ? "출시" : "마감"} ${md(x.date)} · ` : ""}{x.h.pct}%</span></button>
+              {cells(st, [x.p.id], x.p.title)}
+            </div>; })}
+          {on && c.ps.length > 8 && <button type="button" className="a-cwmore" onClick={() => setMore({ ...more, [c.k]: !m })}>{m ? "접기 ▴" : `${c.ps.length - 8}개 더 보기 ▾`}</button>}
+        </div>; })}
+    </div>
+    <p className="a-hint">주 = 월~일 · 큰 숫자 = 그 주 마감인데 아직 안 끝난 업무(지난 주 빨강 = 못 끝냄) · 초록 = 그 주에 끝낸 업무 · 카테고리를 누르면 프로젝트가 펼쳐져요 · 칸을 누르면 그 업무 목록(골라서 담당·기한 바꾸기)</p>
+  </>;
+}
+
 export function ProjectsTab({ D, cu, A, idx, open }) {
-  const [axis, setAxis] = useState("phase"), [cat, setCat] = useLocal(LS("apcat"), "all"), [more, setMore] = useState({});
+  const [axis0, setAxis] = useLocal(LS("apaxis"), "wk"), [cat, setCat] = useLocal(LS("apcat"), "all"), [more, setMore] = useState({});
+  const axis = ["wk", "phase", "week"].includes(axis0) ? axis0 : "wk";
   const now = new Date(), key = ymd(now);
   const rows = useMemo(() => D.projects.filter(projOpen).map((p) => { const lp = isLaunchP(p);
     const ts = (D.tasks || []).filter((t) => t.projectId === p.id && t.launchItem);
@@ -67,7 +120,9 @@ export function ProjectsTab({ D, cu, A, idx, open }) {
         {guessCat(p.title) && <TBtn onClick={() => setPC(p, guessCat(p.title))}>추천 '{catName(guessCat(p.title))}'로</TBtn>}</div>}
     </div>; };
   return <>
-    <Head right={<div style={{ width: 150 }}><Seg items={[["phase", "단계"], ["week", "8주 축"]]} value={axis} onChange={setAxis} /></div>}>{cat1 === "all" ? "전체 프로젝트" : catName(cat1) || "미분류"} {list.length} · 위험 {cnt("위험")} · 주의 {cnt("주의")} · 순조 {cnt("순조")}</Head>
+    <Seg items={[["wk", "주별 표"], ["phase", "단계"], ["week", "8주 축"]]} value={axis} onChange={setAxis} />
+    {axis === "wk" ? <CatWeek D={D} open={open} rows={rows} /> : <>
+    <Head>{cat1 === "all" ? "전체 프로젝트" : catName(cat1) || "미분류"} {list.length} · 위험 {cnt("위험")} · 주의 {cnt("주의")} · 순조 {cnt("순조")}</Head>
     <div className="v2-chips" role="group" aria-label="카테고리" style={{ marginBottom: 8 }}>{cats.map(([k, l]) => <Chip key={k} on={cat1 === k} onClick={() => setCat(k)}>{l} {rows.filter((x) => inCat(x.p, k)).length}</Chip>)}</div>
     {cat1 === "none" && <p className="a-hint" style={{ marginTop: 0 }}>줄마다 카테고리를 고르면 바로 그 묶음으로 옮겨져요 · '추천'은 이름으로 짐작한 것</p>}
     {list.length === 0 ? <Card><Empty>진행 중인 프로젝트가 없어요</Empty></Card>
@@ -87,7 +142,7 @@ export function ProjectsTab({ D, cu, A, idx, open }) {
               return <span key={w} className={"c" + (k > 25 ? " w3" : k > 10 ? " w2" : k > 0 ? " w1" : "") + (ln ? " ln" : "")}>{k || ""}{ln ? <i>▴{x.lp ? "출시" : "마감"}</i> : null}</span>; })}
           </button>; })}
       </div></div>}
-    <p className="a-hint">칸: 신제품 = 기획 · 샘플 · 패킹 · 콘텐츠 · 채널 등록 · 창고 입고 · 출시 홍보 (숫자 = 그 단계 남은 항목) · 그 밖 프로젝트 = 업무 하나가 한 칸(앞 일 순서대로, ✓n = 끝난 업무 묶음). 채움 = 끝남 · 테두리 = 하는 중 · 빨간 테두리 = 지남 · 연한 칸 = 아직 · <TBtn onClick={() => open({ type: "launchOrder" })} style={{ padding: "0 2px", fontSize: 12 }}>신제품 순서표 보기 ›</TBtn></p>
+    <p className="a-hint">칸: 신제품 = 기획 · 샘플 · 패킹 · 콘텐츠 · 채널 등록 · 창고 입고 · 출시 홍보 (숫자 = 그 단계 남은 항목) · 그 밖 프로젝트 = 업무 하나가 한 칸(앞 일 순서대로, ✓n = 끝난 업무 묶음). 채움 = 끝남 · 테두리 = 하는 중 · 빨간 테두리 = 지남 · 연한 칸 = 아직 · <TBtn onClick={() => open({ type: "launchOrder" })} style={{ padding: "0 2px", fontSize: 12 }}>신제품 순서표 보기 ›</TBtn></p></>}
   </>;
 }
 

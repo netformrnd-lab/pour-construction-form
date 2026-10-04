@@ -444,11 +444,12 @@ let dirty = false, saving = false, saveAgain = false, editSeq = 0, saveTimer = n
 let loadedIndex = false;
 let tab = Math.min(5, Math.max(0, +(store.get('studio.tab') || 0) || 0)), showNew = false, armed = null, pendingRemote = false, copied = '';
 
-function listProjects() { return Object.values(projects).filter(p => !p.archived).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))); }
+// 숨긴 숏폼도 지우지 않고 목록 맨 아래에 '숨김'으로 보여준다
+function listProjects() { return Object.values(projects).sort((a, b) => (!!a.archived - !!b.archived) || String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))); }
 function pickProject(prefer) {
-  const ids = listProjects().map(p => p.id);
+  const all = listProjects(), ids = all.map(p => p.id), active = all.filter(p => !p.archived).map(p => p.id);
   const want = prefer || store.get('studio.cur');
-  curId = ids.includes(want) ? want : (ids[0] || null);
+  curId = ids.includes(want) && (prefer || active.includes(want)) ? want : (active[0] || ids[0] || null);
   P = curId ? normalize(clone(projects[curId])) : null;
   if (curId) store.set('studio.cur', curId);
 }
@@ -518,10 +519,10 @@ function headerHTML() {
   return `<div class="bar">
     <div class="brand"><span class="mark" aria-hidden="true">▶</span>POUR 숏폼 스튜디오</div>
     <div class="proj">
-      ${list.length ? `<select class="in" id="proj" aria-label="숏폼 선택">${list.map(p => `<option value="${p.id}" ${p.id === curId ? 'selected' : ''}>${esc(p.product?.name || p.name)}${p.output?.version ? ' · ' + esc(p.output.version) : ''}</option>`).join('')}</select>` : ''}
+      ${list.length ? `<select class="in" id="proj" aria-label="숏폼 선택">${list.map(p => `<option value="${p.id}" ${p.id === curId ? 'selected' : ''}>${esc(p.product?.name || p.name)}${p.output?.version ? ' · ' + esc(p.output.version) : ''}${p.archived ? ' · 숨김' : ''}</option>`).join('')}</select>` : ''}
       <button class="btn pri" data-act="new">새 숏폼</button>
       ${P ? `<button class="btn" data-act="dup" title="대본 구조·장면 설명을 그대로 복사">이 구조로 새로 만들기</button>
-      <button class="btn ghost ${armed === 'archive' ? 'danger' : ''}" data-act="archive">${armed === 'archive' ? '정말 보관할까요?' : '보관'}</button>` : ''}
+      <button class="btn ghost ${armed === 'archive' ? 'danger' : ''}" data-act="archive">${armed === 'archive' ? '숨길까요? (지우지 않아요)' : '목록에서 숨기기'}</button>` : ''}
     </div>
     <span class="save ${saveErr ? 'err' : ''}" id="save">${esc(saveMsg)}</span>
   </div>
@@ -529,6 +530,7 @@ function headerHTML() {
     <div class="addbar"><button class="btn pri" data-act="createNew">빈 구조로 만들기</button>${P ? `<button class="btn" data-act="createDup">"${esc(P.product.name || P.name)}" 구조로 만들기</button>` : ''}<button class="btn ghost" data-act="cancelNew">취소</button></div>
     <p class="note">기준 구조: ① 고객 문제 → ② 원인 → ③ 해결 → ④ 세부 의구심(최대 2) → ⑤ 시공 쓱싹쓱 → ⑥ 상품 추천</p></div>` : ''}
   ${mode === 'local' ? `<div class="banner">Firebase에 연결하지 못해 이 기기에만 저장돼요. 인터넷 연결을 확인하고 새로고침해 주세요.</div>` : ''}
+  ${P && P.archived ? `<div class="banner">목록에서 숨긴 숏폼이에요. 내용은 그대로 있어요. <button class="btn sm" data-act="unarchive">다시 보이기</button></div>` : ''}
   ${readOnly ? `<div class="banner">보기 전용 권한이에요. 고친 내용은 저장되지 않아요.</div>` : ''}`;
 }
 function clockHTML() {
@@ -782,6 +784,7 @@ document.addEventListener('click', async e => {
     case 'archive':
       if (armed !== 'archive') { armed = 'archive'; render(); return; }
       armed = null; P.archived = true; await saveNow(); pickProject(); render(); return;
+    case 'unarchive': P.archived = false; break;
     case 'tab': case 'goto': tab = +b.dataset.s; store.set('studio.tab', String(tab)); copied = ''; render(); window.scrollTo({ top: 0 }); return;
     case 'start': P.startedAt = nowIso(); break;
     case 'restart': if (armed !== 'restart') { armed = 'restart'; render(); return; } armed = null; P.startedAt = nowIso(); break;
@@ -852,7 +855,7 @@ pickProject = function (prefer) {
     console.log(`[shortsStudio] 숏폼 ${Object.keys(list).length}건`);
     Object.entries(list).forEach(([id, m]) => { projects[id] = Object.assign({}, projects[id] || {}, { id, product: { ...(projects[id]?.product || {}), name: m.name }, name: m.name, output: { ...(projects[id]?.output || {}), version: m.version }, archived: m.archived, updatedAt: m.updatedAt }); });
     loadedIndex = true;
-    if (!curId || !projects[curId] || projects[curId].archived) { pickProject(); render(); return; }
+    if (!curId || !projects[curId]) { pickProject(); render(); return; }
     if (!document.activeElement || !document.activeElement.matches('input,textarea,select')) render(); else updateDerived();
   }, err => { console.error('[shortsStudio] 목록 구독 오류:', err); mode = 'db'; saveErr = true; saveMsg = '목록을 못 불러왔어요 — 새로고침해 주세요'; render(); });
 })();

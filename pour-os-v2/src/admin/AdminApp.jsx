@@ -9,7 +9,7 @@ import { SheetRouter } from "../sheets.jsx";
 import { C, TBtn, Toast, useLocal } from "../ui.jsx";
 import { MY_URL } from "./common.jsx";
 import { Glance } from "./Glance.jsx";
-import { PeopleTab, PickSheet, DoneSheet } from "./People.jsx";
+import { PeopleTab, PickSheet, DoneSheet, RepSheet } from "./People.jsx";
 import { ProjectsTab, LaunchTools } from "./Projects.jsx";
 import { TidyTab, OrderSheet } from "./Tidy.jsx";
 import { SettingsSheet, LaunchOrderSheet } from "./Settings.jsx";
@@ -59,6 +59,7 @@ function AdminMain({ B }) {
     settings: (p) => <SettingsSheet {...p} />,
     apick: (p, s) => <PickSheet {...p} s={s} />,
     adone: (p, s) => <DoneSheet {...p} s={s} />,
+    arep: (p, s) => <RepSheet {...p} s={s} />,
     order: (p) => <OrderSheet {...p} />,
     launchOrder: (p) => <LaunchOrderSheet {...p} />,
   };

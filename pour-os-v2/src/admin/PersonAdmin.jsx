@@ -3,6 +3,7 @@
 // 새로 저장하는 개인 평가 값은 없다 (있는 데이터에서 계산만). 주 한도(users.weekCap)·PIN 초기화만 users 문서에 씀
 import { useState } from "react";
 import * as fb from "../fb.js";
+import { pinHash } from "../sha.js";
 import { ymd, ddays, ddayLabel, md, ago, hm, isDone, isOneOff, isMine, ownersOf, dueOf, nameOf, riskOf, projOpen, personHealth, onTimeOf, fxIsMine, fxDueOn, fxMeDone, fxLabel, fxTime } from "../model.js";
 import { nextsOf } from "../turn.js";
 import { C, Big, TBtn, Act, Head, Card, Row, Empty, Sheet, Ask, More, inp } from "../ui.jsx";
@@ -10,7 +11,7 @@ import { Lv, pName } from "./common.jsx";
 
 export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast }) {
   const u = (D.users || []).find((x) => x.id === id);
-  const [ask, setAsk] = useState(false), [all, setAll] = useState(false), [wOpen, setWOpen] = useState(false), [cap, setCap] = useState(""), [busy, setBusy] = useState(false), [wn, setWn] = useState(40);
+  const [ask, setAsk] = useState(false), [code, setCode] = useState(""), [all, setAll] = useState(false), [wOpen, setWOpen] = useState(false), [cap, setCap] = useState(""), [busy, setBusy] = useState(false), [wn, setWn] = useState(40);
   if (!u) return <Sheet title="사람" onBack={onBack} onClose={onClose}><Empty>찾지 못했어요</Empty></Sheet>;
   const now = new Date(), key = ymd(now), h = personHealth(D, u.id, now), ot = onTimeOf(D, u.id, now);
   const open1 = D.tasks.filter((t) => isOneOff(t) && !isDone(t) && isMine(t, u.id));
@@ -30,6 +31,11 @@ export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast
     try { await fb.patch("users", u._doc || u.id, { weekCap: v }); A.log("edit", { col: "users", targetId: u.id, label: `${u.name} · 주 한도 ${curCap} → ${v}`, prev: curCap }); setToast({ text: `${u.name}님 주 한도를 ${v}건으로 바꿨어요` }); setCap(""); }
     catch (e) { console.error("[v2 관리] 주 한도 저장 실패:", e); setToast({ text: "주 한도 저장 실패 · 인터넷 연결을 확인해 주세요" }); }
     setBusy(false); };
+  // 시작 코드: 4자리 무작위 → 해시만 저장(users.pinInvite) · 화면에 한 번만 보여 줌. 코드가 있으면 PIN을 처음 정할 때 꼭 넣어야 함 (이름만 골라 남의 PIN을 먼저 정하는 것 막기)
+  const makeCode = async (reset) => { const c = String(crypto.getRandomValues(new Uint32Array(1))[0] % 10000).padStart(4, "0"), at = new Date().toISOString();
+    try { await fb.patch("users", u._doc || u.id, { pinInvite: pinHash(u.id, "inv:" + c), pinInviteAt: at, pinInviteBy: cu.id, ...(reset ? { pinHash: null, pinResetBy: cu.id, pinResetAt: at } : {}) });
+      A.log("edit", { col: "users", targetId: u.id, label: `${u.name} · ${reset ? "PIN 초기화 + " : ""}시작 코드 만듦` }); setCode(c); setToast({ text: `${reset ? "PIN 초기화 · " : ""}시작 코드 ${c} · ${u.name}님에게만 알려 주세요` }); }
+    catch (e) { console.error("[v2 관리] 시작 코드 저장 실패:", e); setToast({ text: "저장 실패 · 인터넷 연결을 확인해 주세요" }); } };
   const L = ({ a, empty, render, more }) => <Card>{a.length === 0 ? <Empty>{empty}</Empty> : a.map((x, i) => render(x, i === a.length - 1 && !more))}{more || null}</Card>;
   const stat = [
     ["열린", h.open], ["지남", h.late, h.late > 0], ["곧 마감인데 시작 전", h.start], ["진행 중", h.doing, false, h.doing >= 6],
@@ -69,8 +75,15 @@ export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast
     <Card style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ flex: 1, fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>맡은 업무·고정업무·책임 프로젝트를 한 사람에게 한 번에 넘겨요</div>
       <Act onClick={() => open({ type: "handOver", id: u.id })}>일 넘기기 ›</Act></Card>
-    {u.id !== cu.id && u.pinHash && <div style={{ marginTop: 18 }}><TBtn onClick={() => setAsk(true)}>{u.name}님 PIN 초기화</TBtn></div>}
-    {ask && <Ask title="PIN 초기화" body={`${u.name}님의 v2 PIN을 지울까요?\n본인이 다음에 열 때 새로 정해요. (버전1 PIN은 그대로예요)`} yes="초기화" onNo={() => setAsk(false)}
-      onYes={() => { fb.patch("users", u._doc || u.id, { pinHash: null, pinResetBy: cu.id, pinResetAt: new Date().toISOString() }).then(() => setToast({ text: "PIN을 초기화했어요" })).catch((e) => { console.error("[v2 관리] PIN 초기화 실패:", e); setToast({ text: "초기화 실패 · 인터넷 연결을 확인해 주세요" }); }); setAsk(false); }} />}
+    {u.id !== cu.id && <>
+      <Head>PIN</Head>
+      <Card style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>{u.pinHash ? `PIN 있음${u.pinSetAt ? ` · ${md(String(u.pinSetAt).slice(0, 10))}에 정함${u.pinByCode ? " (시작 코드로)" : ""}` : ""}` : u.pinInvite ? "PIN 없음 · 시작 코드를 만들어 두었어요 (코드가 있어야 PIN을 정할 수 있어요)" : "PIN 없음 · 아무나 이 이름으로 PIN을 먼저 정할 수 있어요. 시작 코드를 만들어 본인에게만 알려 주세요"}</div>
+        {code ? <div role="status" style={{ fontSize: 14.5, color: C.ink, lineHeight: 1.6 }}>시작 코드 <b style={{ fontSize: 22, letterSpacing: 6, fontVariantNumeric: "tabular-nums" }}>{code}</b><br /><span style={{ fontSize: 12.5, color: C.sub }}>{u.name}님에게만 알려 주세요 · 이 화면을 닫으면 다시 볼 수 없어요</span></div>
+          : <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {!u.pinHash && <Act onClick={() => makeCode(false)}>{u.pinInvite ? "시작 코드 다시 만들기" : "시작 코드 만들기"}</Act>}
+            {u.pinHash && <Act onClick={() => setAsk(true)}>PIN 초기화</Act>}</div>}
+      </Card></>}
+    {ask && <Ask title="PIN 초기화" body={`${u.name}님의 v2 PIN을 지우고 시작 코드를 새로 만들까요?\n본인이 시작 코드로 PIN을 다시 정해요. (버전1 PIN은 그대로예요)`} yes="초기화" onNo={() => setAsk(false)} onYes={() => { setAsk(false); makeCode(true); }} />}
   </Sheet>;
 }

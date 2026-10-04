@@ -156,7 +156,7 @@ export function SeedGate({ onDone }) {
 // 나 고르기 + 사람별 PIN
 export function Login({ D, preset, onIn, title }) {
   const [u, setU] = useState(preset);
-  const [p1, setP1] = useState(""), [p2, setP2] = useState(""), [msg, setMsg] = useState(""), [busy, setBusy] = useState(false);
+  const [p1, setP1] = useState(""), [p2, setP2] = useState(""), [p3, setP3] = useState(""), [msg, setMsg] = useState(""), [busy, setBusy] = useState(false);
   const [lock, setLock] = useLocal(LS("pinlock"), {});
   const users = activeUsers(D.users).sort((a, b) => String(a.name).localeCompare(String(b.name), "ko"));
   const only4 = (s) => s.replace(/\D/g, "").slice(0, 4);
@@ -176,8 +176,11 @@ export function Login({ D, preset, onIn, title }) {
     if (setMode) {
       if (p1.length !== 4) return setMsg("숫자 4자리로 정해 주세요");
       if (p1 !== p2) return setMsg("두 번 입력한 PIN이 달라요");
+      if (u.pinInvite) { if (locked) return;   // 시작 코드도 5번 틀리면 5분 잠금
+        if (pinHash(u.id, "inv:" + p3) !== u.pinInvite) { const n = (lk.n || 0) + 1; setLock((l) => ({ ...l, [u.id]: n >= 5 ? { n: 0, until: Date.now() + 5 * 60000 } : { n } })); setP3("");
+          return setMsg(n >= 5 ? "5번 틀려서 5분 동안 잠겼어요" : `시작 코드가 맞지 않아요 (${n}/5) · 마스터에게 받은 4자리를 넣어 주세요`); } }
       const h = pinHash(u.id, p1); setBusy(true);
-      try { await fb.patch("users", u._doc || u.id, { pinHash: h, pinSetAt: nowIso() }); onIn(u, h); }
+      try { await fb.patch("users", u._doc || u.id, { pinHash: h, pinSetAt: nowIso(), pinByCode: !!u.pinInvite, pinInvite: null }); onIn(u, h); }
       catch (e) { console.error("[v2] PIN 저장 실패:", e); setMsg("저장하지 못했어요 · 인터넷 연결을 확인해 주세요"); }
       setBusy(false); return;
     }
@@ -189,13 +192,14 @@ export function Login({ D, preset, onIn, title }) {
   };
   return <div className="v2-center">
     <div style={{ width: "min(400px, 100%)", display: "flex", flexDirection: "column", gap: 10 }}>
-      <TBtn onClick={() => { setU(null); setP1(""); setP2(""); setMsg(""); }} style={{ alignSelf: "flex-start", paddingLeft: 0 }}>‹ 다른 사람 고르기</TBtn>
+      <TBtn onClick={() => { setU(null); setP1(""); setP2(""); setP3(""); setMsg(""); }} style={{ alignSelf: "flex-start", paddingLeft: 0 }}>‹ 다른 사람 고르기</TBtn>
       <h1 style={{ fontSize: 22, fontWeight: 800, color: C.ink, margin: 0 }}>{u.name}</h1>
-      <p style={{ fontSize: 14, color: C.sub, margin: "0 0 6px", lineHeight: 1.6 }}>{setMode ? "처음이에요. 내 이름으로만 쓰도록 PIN 4자리를 정해 주세요." : "PIN 4자리를 넣어 주세요. 잊었다면 마스터에게 초기화를 부탁하세요."}</p>
+      <p style={{ fontSize: 14, color: C.sub, margin: "0 0 6px", lineHeight: 1.6 }}>{setMode ? (u.pinInvite ? "처음이에요. 마스터에게 받은 시작 코드와 내가 쓸 PIN 4자리를 넣어 주세요." : "처음이에요. 내 이름으로만 쓰도록 PIN 4자리를 정해 주세요. 정하면 마스터에게 알림이 가요.") : "PIN 4자리를 넣어 주세요. 잊었다면 마스터에게 초기화를 부탁하세요."}</p>
+      {setMode && u.pinInvite && <input type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={p3} onChange={(e) => { setP3(only4(e.target.value)); setMsg(""); }} placeholder="시작 코드 4자리" aria-label="시작 코드" style={{ ...inp, fontSize: 20, letterSpacing: 8, textAlign: "center" }} />}
       <input ref={ref} type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={p1} disabled={locked} onChange={(e) => { setP1(only4(e.target.value)); setMsg(""); }} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} placeholder="PIN 4자리" aria-label="PIN" style={{ ...inp, fontSize: 20, letterSpacing: 8, textAlign: "center" }} />
       {setMode && <input type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={p2} onChange={(e) => { setP2(only4(e.target.value)); setMsg(""); }} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} placeholder="한 번 더" aria-label="PIN 확인" style={{ ...inp, fontSize: 20, letterSpacing: 8, textAlign: "center" }} />}
       {msg && <p role="alert" style={{ margin: 0, color: C.red, fontSize: 13.5, fontWeight: 700 }}>{msg}</p>}
-      <Big onClick={submit} disabled={busy || locked || p1.length !== 4 || (setMode && p2.length !== 4)}>{setMode ? "PIN 정하고 시작" : "시작"}</Big>
+      <Big onClick={submit} disabled={busy || locked || p1.length !== 4 || (setMode && p2.length !== 4) || (setMode && u.pinInvite && p3.length !== 4)}>{setMode ? "PIN 정하고 시작" : "시작"}</Big>
     </div>
   </div>;
 }
@@ -255,9 +259,11 @@ export function useActs(D, cu, setToast, idx = null) {
         setToast({ text: `끝냈어요${tail || " · " + t.title}`, undo: () => P(t, prev).then(() => t.projectId && recalc(t.projectId)) });
       }
     },
+    // 확인 완료 → 담당 '확인할 것'에 '확인 완료'(approvedAt) · 5초 되돌리기 (확인 대기로)
     approve: (t) => { const at = nowIso(), o = ownersOf(t)[0];
-      P(t, { status: "done", doneAt: t.finishedAt || at, doneBy: o || cu.id, doneByName: nameOf(D.users, o) || cu.name, approvedBy: cu.id, approvedAt: at, feedback: null, statusLog: sl("done", { approved: true }) }, "approve").then(() => t.projectId && recalc(t.projectId));
-      setToast({ text: `확인 완료 · ${t.title}` }); },
+      const f = { status: "done", doneAt: t.finishedAt || at, doneBy: o || cu.id, doneByName: nameOf(D.users, o) || cu.name, approvedBy: cu.id, approvedAt: at, feedback: null }, prev = { ...prevOf(t, f), statusLog: t.statusLog || [] };
+      P(t, { ...f, statusLog: sl("done", { approved: true }) }, "approve").then(() => t.projectId && recalc(t.projectId));
+      setToast({ text: `확인 완료 · ${t.title}`, undo: () => P(t, prev, "approve", `되돌림 · ${t.title} · 확인 대기로`).then(() => t.projectId && recalc(t.projectId)) }); },
     sendBack: (t, text) => { P(t, { status: "inprogress", feedback: { text, ...by() }, reviewAt: null, statusLog: sl("inprogress", { feedback: true }) }, "feedback", `${t.title} · ${text.slice(0, 40)}`);
       A.addNote(taskNoteId(t.id), "수정 요청: " + text, null, [], { taskId: t.id, projectId: t.projectId }); setToast({ text: "수정 요청을 보냈어요" }); },
     reopen: (t) => P(t, { status: "todo", doneAt: null, doneBy: null, doneByName: null, reviewAt: null, statusLog: sl("todo", { reopen: true }) }, "reopen").then(() => t.projectId && recalc(t.projectId)),
@@ -334,7 +340,8 @@ export function useActs(D, cu, setToast, idx = null) {
     },
     closeAsk: (t, solved) => P(t, { ask: null, askDone: { kind: (t.ask || {}).kind || "", solved: !!solved, ...by() } }, "askDone", `${t.title} · ${solved ? "도움 요청 해결" : "도움 요청 거둠"}`),
     // 기한 바꾸기 — 버전1에서 온 작업일(workDate)도 같이 비움(기한 = dueDate || workDate 라서 '미정'이 안 먹던 문제). 이전 값은 기록에
-    setDue: (t, d) => { const f = { dueDate: d || "", dueAuto: false, dueReq: null, ...(t.workDate ? { workDate: "" } : {}) };
+    setDue: (t, d) => { const q = t.dueReq, f = { dueDate: d || "", dueAuto: false, dueReq: null, ...(t.workDate ? { workDate: "" } : {}),
+        ...(q && q.by && q.by !== cu.id ? { dueReqResult: { ok: true, date: d || "", reason: d === q.date ? "" : `요청한 ${md(q.date)} 대신 ${d ? md(d) : "미정"}으로 정했어요`, ...by() } } : {}) };
       return P(t, f, "edit", `${t.title} · 기한 ${d ? md(d) : "미정"}`, { prev: { dueDate: t.dueDate || "", workDate: t.workDate || "", dueAuto: !!t.dueAuto } }); },
     // 앞 일 정하기 (deps: v1 과 같은 칸 · [] = 앞 일 없음)
     // 결정 업무: 하위 업무(option)를 '안'으로 비교 → 하나를 정하면 정한 안·이유·날짜를 남기고, 안 고른 안은 보류(지우지 않음), 결정 업무는 끝냄 → 다음 단계 담당에게 '이제 내 차례'
@@ -406,7 +413,7 @@ export function useActs(D, cu, setToast, idx = null) {
       P(t, ok ? { dueDate: r.date, dueAuto: false, dueReq: null, dueReqResult: { ok: true, date: r.date, ...by() } } : { dueReq: null, dueReqResult: { ok: false, reason: reason || "", ...by() } }, ok ? "dueOk" : "dueNo", `${t.title} · ${ok ? "기한 " + md(r.date) : "기한 유지"}`);
       setToast({ text: ok ? `기한을 ${md(r.date)}로 바꿨어요` : "기한을 그대로 두었어요" }); },
     block: (t, reason, to) => { P(t, { blocked: { reason, to: to || "", ...by() } }, "block", `${t.title} · ${reason}`); A.addNote(taskNoteId(t.id), "막힘: " + reason, null, [], { taskId: t.id, projectId: t.projectId }); setToast({ text: `${nameOf(D.users, to) || "책임자"}님께 알렸어요 · 막힌 게 풀리면 '막힘 풀기'를 눌러요` }); },
-    unblock: (t) => P(t, { blocked: null }, "unblock"),
+    unblock: (t) => { const k = t.blocked || {}; return P(t, { blocked: null, unblocked: { by: cu.id, byName: cu.name, at: nowIso(), reason: k.reason || "", was: k.by || "", to: k.to || "" } }, "unblock", `${t.title} · 막힘 풀림`); },
     setMemo: (t, memo) => fb.patch("tasks", tdoc(t), { memo, memoBy: cu.id, memoByName: cu.name, memoAt: nowIso(), updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }).then(() => log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `${t.title} · 메모 고침`, prev: String(t.memo || "").slice(0, 2000) })).catch(fail("메모")),
     addFiles: async (t, files) => { try { const up = []; for (const f of files) up.push(await fb.upload("task-" + t.id, f));
       await fb.patch("tasks", tdoc(t), { attachments: fb.arrayUnion(...up.map((x) => ({ ...x, by: cu.id, byName: cu.name }))), updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }); log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `${t.title} · 파일 ${up.length}개 올림` }); setToast({ text: `파일 ${up.length}개 올렸어요` }); }

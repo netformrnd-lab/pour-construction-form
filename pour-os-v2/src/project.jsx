@@ -192,7 +192,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
   const [doneList, setDoneList] = useState(null), [showDone, setShowDone] = useState(false), [nt, setNt] = useState(""), [nw, setNw] = useState(cu.id), [ndue, setNdue] = useState(""), [edit, setEdit] = useState(""), [now, setNow] = useState(""), [info, setInfo] = useState(!!(st && st.info)), [ld, setLd] = useState(""), [openPh, setOpenPh] = useState((st && st.openPh) || {}), [lAsk, setLAsk] = useState(null);
   const notes = useItemNotes(D, projNoteId(id));
   const [endAsk, setEndAsk] = useState(false), [resAsk, setResAsk] = useState(false);   // 끝내기·멈추기 창 · 다시 시작 창
-  const [old, setOld] = useState(null);   // 30일보다 이전 소식·자료: null 안 불러옴 · "loading" · "fail" · {notes, logs}
+  const [old, setOld] = useState(null), [doneErr, setDoneErr] = useState(false);   // 30일보다 이전 소식·자료: null 안 불러옴 · "loading" · "fail" · {notes, logs}
   useEffect(() => { if (!isLaunch(p)) A.recalc(id); }, [id]);   // 열 때 진척(%)을 실제 업무 수로 다시 계산 (다르면만 저장) · 신제품은 launchPct 로 그때그때 계산하므로 저장 안 함
   useEffect(() => { if (save) save({ tab, openPh, info }); }, [tab, openPh, info]);
   if (!p) return <Sheet title="프로젝트" onBack={onBack} onClose={onClose}><Empty>이 프로젝트를 찾지 못했어요</Empty></Sheet>;
@@ -207,7 +207,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
   const nn = nowNext(p, D, idx, key);
   const hasNow = !!(p.now && p.now.text);
   const phases = launch ? phaseStates(live.filter((t) => t.launchItem), key) : null;
-  const loadDone = () => { setShowDone(!showDone); if (doneList == null) fb.fetchWhere("tasks", ["projectId", "==", p.id]).then((a) => setDoneList(a.filter((t) => isDone(t) && !t.isFixed))).catch((e) => { console.error(e); setDoneList([]); }); };
+  const loadDone = () => { setShowDone(!showDone || doneErr); setDoneErr(false); if (doneList == null) fb.fetchWhere("tasks", ["projectId", "==", p.id]).then((a) => setDoneList(a.filter((t) => isDone(t) && !t.isFixed))).catch((e) => { console.error("[v2] 끝낸 업무 불러오기 실패:", e); setDoneErr(true); }); };
   const doneAll = doneList || live.filter(isDone);
   const top = (a) => a.filter((t) => !t.parentId || !a.some((x) => x.id === t.parentId));
   const kidsOf = (pid, a) => a.filter((t) => t.parentId === pid);
@@ -300,7 +300,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
       {openT.length === 0 && <Card style={{ marginTop: 10 }}><Empty>열린 업무가 없어요{projOpen(p) && lead ? " · 다 끝났으면 프로젝트를 완료해요" : ""}</Empty></Card>}
       {projOpen(p) && !isHoldP(p) && openT.length === 0 && lead && <Big onClick={() => A.endProject(p, "completed")} style={{ marginTop: 10 }}>프로젝트 완료</Big>}
       <Card style={{ marginTop: 14 }}><More onClick={loadDone}>{showDone ? "끝낸 업무 접기 ▴" : `끝낸 업무 ${doneList ? doneList.length : "보기"} ▾`}</More>
-        {showDone && (doneList == null ? <Empty>불러오는 중…</Empty> : doneAll.length === 0 ? <Empty>끝낸 업무가 없어요</Empty> : doneAll.slice().sort((a, b) => String(b.doneAt || "").localeCompare(String(a.doneAt || ""))).map((t, i) => <TRow key={t.id} t={t} last={i === doneAll.length - 1} />))}</Card>
+        {showDone && (doneErr ? <Empty>못 불러왔어요 · 인터넷 연결을 확인하고 위를 다시 눌러 주세요</Empty> : doneList == null ? <Empty>불러오는 중…</Empty> : doneAll.length === 0 ? <Empty>끝낸 업무가 없어요</Empty> : doneAll.slice().sort((a, b) => String(b.doneAt || "").localeCompare(String(a.doneAt || ""))).map((t, i) => <TRow key={t.id} t={t} last={i === doneAll.length - 1} />))}</Card>
     </>}
     {tab === "map" && <MindMap D={D} cu={cu} A={A} open={open} p={p} idx={idx} launch={launch} />}
     {tab === "news" && <><NewsFeed D={D} p={p} feed={feed} tTitle={tTitle} open={open} /><OldBtn /></>}

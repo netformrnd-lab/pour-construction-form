@@ -1,7 +1,7 @@
 // 업무OS v2 — 여러 개 골라서 한꺼번에 (관리자 정리 · 사람 표 · 실사용 '담당 정할 항목')
 // 안전장치: 한 번에 100건 · 누르기 전 문장 미리 보기 · 30건 이상이면 확인 창 · 5초 되돌리기 · 기록(이전 값) · 삭제 없음 · 맡긴 사람(requestedBy) 그대로
 import { useState } from "react";
-import { ymd, addDays, md, ddays, ddayLabel, dueOf, ownersOf, nameOf, activeUsers, weekStart, nextWorkday, prevWorkday, isOffDay, WD, isDone, taskNoteId } from "./model.js";
+import { ymd, addDays, md, ddays, ddayLabel, dueOf, ownersOf, nameOf, activeUsers, weekStart, nextWorkday, prevWorkday, isOffDay, WD, isDone, taskNoteId, reqOf } from "./model.js";
 import { C, Act, Chip, TBtn, Ask, Card, Empty } from "./ui.jsx";
 import { HoldAsk } from "./hold.jsx";
 
@@ -66,8 +66,13 @@ export function BulkBar({ D, cu, A, ids, clear }) {
   const go = (p) => { const n = (p.ts || ts).length; return n >= 30 && n <= 100 ? setAsk(p) : run(p); };   // 100건 넘으면 묻지 않고 A.bulk 가 '100건까지' 알림
   const quick = (label, text, f) => go({ label, text: `${ts.length}건 ${text}`, f });
   const askAll = async () => { if (busy) return; setAsk(false); setBusy(true); let n = 0;
-    for (const t of ts.slice(0, NOTE_MAX)) if (await A.addNote(taskNoteId(t.id), `아직 하나요? 끝났으면 '끝냈어요'를, 아니면 새 기한을 정해 주세요 · ${cu.name}`, null, [], { taskId: t.id, projectId: t.projectId })) n++;
-    setBusy(false); clear(); if (n && A.toast) A.toast(`${n}건 담당에게 물었어요 · 답은 업무 댓글로 와요`); };
+    // 확인 대기는 담당이 아니라 확인할 사람(reviewTo → 맡긴 사람)에게 묻기 — 댓글 to 로 그 사람 '확인할 것'에
+    for (const t of ts.slice(0, NOTE_MAX)) { const rv = t.status === "review" ? t.reviewTo || reqOf(t) : "";
+      const ok = rv ? await A.addNote(taskNoteId(t.id), `${nameOf(D.users, rv) || "확인할 사람"}님, 끝난 일이 확인을 기다려요. 확인하거나 수정 요청을 보내 주세요 · ${cu.name}`, null, [], { taskId: t.id, projectId: t.projectId }, { to: rv })
+        : await A.addNote(taskNoteId(t.id), `아직 하나요? 끝났으면 '끝냈어요'를, 아니면 새 기한을 정해 주세요 · ${cu.name}`, null, [], { taskId: t.id, projectId: t.projectId });
+      if (ok) n++; }
+    setBusy(false); clear(); if (n && A.toast) A.toast(`${n}건 ${allRv ? "확인할 사람" : "담당"}에게 물었어요 · 답은 업무 댓글로 와요`); };
+  const allRv = ts.length > 0 && ts.every((t) => t.status === "review"), askL = allRv ? "확인할 사람에게 묻기" : "담당에게 묻기";
   const askGo = () => (ts.length >= 30 ? setAsk({ kind: "note" }) : askAll());
   const people = activeUsers(D.users);
   return <div className="v2-bulk" role="region" aria-label="한꺼번에 바꾸기">
@@ -83,11 +88,11 @@ export function BulkBar({ D, cu, A, ids, clear }) {
       {mode === "hold" && <HoldAsk n={ts.length} title={`${ts.length}건 보류`} onNo={() => setMode("")} onYes={(why, until) => { setMode(""); const at = new Date().toISOString();
         quick(`보류 · ${why}`, `보류로 · ${why}${until ? ` · ${md(until)} 다시` : ""}`, (t) => ({ status: "hold", holdPrev: t.status === "hold" ? t.holdPrev || "todo" : t.status || "todo", holdReason: why, holdUntil: until || "", heldAt: at, heldBy: cu.id })); }} />}
       <button type="button" className="v2-bbtn" disabled={busy} onClick={() => quick("날짜 없이 두기", "날짜 없이 두기 · 이번 달 정리에서 빠져요", () => ({ tidySkip: key.slice(0, 7) }))}>날짜 없이 두기</button>
-      <button type="button" className="v2-bbtn" disabled={busy || ts.length > NOTE_MAX} onClick={askGo}>{ts.length > NOTE_MAX ? `묻기 ${NOTE_MAX}건까지` : "담당에게 묻기"}</button>
+      <button type="button" className="v2-bbtn" disabled={busy || ts.length > NOTE_MAX} onClick={askGo}>{ts.length > NOTE_MAX ? `묻기 ${NOTE_MAX}건까지` : askL}</button>
       <span style={{ flex: 1 }} /><button type="button" className="v2-bbtn" onClick={clear} aria-label="고르기 풀기">✕ 풀기</button>
     </div>
     {ask && (ask.kind === "note"
-      ? <Ask title={`${ts.length}건 담당에게 물을까요?`} body={`고른 ${ts.length}건마다 담당에게 '아직 하나요?' 댓글을 남겨요.\n댓글은 지울 수 없어요.`} yes="묻기" onNo={() => setAsk(false)} onYes={askAll} />
+      ? <Ask title={`${ts.length}건 ${allRv ? "확인할 사람" : "담당"}에게 물을까요?`} body={`고른 ${ts.length}건마다 ${allRv ? "확인할 사람에게 '확인을 기다려요'" : "담당에게 '아직 하나요?'"} 댓글을 남겨요.\n댓글은 지울 수 없어요.`} yes="묻기" onNo={() => setAsk(false)} onYes={askAll} />
       : <Ask title={`${(ask.ts || ts).length}건 한꺼번에 바꿀까요?`} body={`${ask.text}\n5초 안에 되돌릴 수 있고, 바꾸기 전 값은 기록에 남아요.`} yes="바꾸기" onNo={() => setAsk(false)} onYes={() => run(ask)} />)}
   </div>;
 }

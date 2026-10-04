@@ -31,12 +31,12 @@ export function TeamTab({ D, cu, A, open }) {
     <header style={{ padding: "14px 2px 6px", display: "flex", flexDirection: "column", gap: 10 }}><h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.ink }}>팀</h1>
       <Seg items={[["people", "사람"], ["asg", `맡긴 일${urgent ? " " + urgent : ""}`], ["news", "소식"]]} value={seg} onChange={setSeg} /></header>
     {seg === "people" && <>
-      <Card style={{ marginTop: 12 }}><Row title={`나 · ${cu.name}`} sub={`진행 ${me.inprog} · 열린 업무 ${me.open}${me.late ? ` · 밀림 ${me.late}` : ""} · 고정 ${me.fxDone}/${me.fxTotal}${meOt.pct != null ? ` · 기한 지킴 ${meOt.pct}%` : ""}`} onClick={() => open({ type: "mine" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={false} />
+      <Card style={{ marginTop: 12 }}><Row title={`나 · ${cu.name}`} sub={`진행 ${me.inprog} · 열린 업무 ${me.open}${me.late ? ` · 지남 ${me.late}` : ""} · 고정 ${me.fxDone}/${me.fxTotal}${meOt.pct != null ? ` · 기한 지킴 ${meOt.pct}%` : ""}`} onClick={() => open({ type: "mine" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={false} />
         <Row tag={teamRisk ? "위험" : null} tagTone="red" title={`팀 위험 업무 ${teamRisk}`} sub="기한이 지났거나 막힌 일 · 사람별로 모아 보기" onClick={() => open({ type: "risk" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={!issues.length} />
         {issues.length > 0 && <Row tag="마스터" title={`담당 정리 필요 ${issues.length}`} sub="담당이 없거나 미사용인 사람이 맡은 일" onClick={() => open({ type: "issues" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last />}</Card>
       <Head>팀원 {users.length}</Head>
       <Card>{users.map((u, i) => { const s = personStat(D, u.id, key), ot = onTimeOf(D, u.id, now);
-        return <Row key={u.id} title={u.name} tag={s.late ? `밀림 ${s.late}` : null} tagTone="red" sub={`진행 ${s.inprog} · 열린 업무 ${s.open} · 고정 ${s.fxDone}/${s.fxTotal}${ot.pct != null ? ` · 기한 지킴 ${ot.pct}%` : ""}`} sub2={s.last ? "마지막 활동 " + ago(s.last, now) : null} onClick={() => open({ type: "person", id: u.id })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={i === users.length - 1} />; })}</Card>
+        return <Row key={u.id} title={u.name} tag={s.late ? `지남 ${s.late}` : null} tagTone="red" sub={`진행 ${s.inprog} · 열린 업무 ${s.open} · 고정 ${s.fxDone}/${s.fxTotal}${ot.pct != null ? ` · 기한 지킴 ${ot.pct}%` : ""}`} sub2={s.last ? "마지막 활동 " + ago(s.last, now) : null} onClick={() => open({ type: "person", id: u.id })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={i === users.length - 1} />; })}</Card>
     </>}
     {seg === "asg" && <>
       <p style={{ fontSize: 13, color: C.sub, margin: "12px 2px 0", lineHeight: 1.6 }}>내가 맡긴 일 {gN}개 · 위에서부터 처리하면 돼요. 맡길 때는 아래 '+ 맡기기'.</p>
@@ -82,7 +82,7 @@ export function PersonSheet({ D, cu, A, open, onBack, onClose, id, setToast }) {
   const L = ({ a, empty, render }) => <Card>{a.length === 0 ? <Empty>{empty}</Empty> : a.map((x, i) => render(x, i === a.length - 1))}</Card>;
   return <Sheet title={u.name} onBack={onBack} onClose={onClose} foot={<Big onClick={() => open({ type: "add", preset: { assigneeId: u.id } })}>{u.name}님에게 업무 맡기기</Big>}>
     <div style={{ marginTop: 12, padding: "10px 12px", background: C.soft, borderRadius: 12, fontSize: 13, color: C.ink }}>보기만 하는 화면이에요. 댓글은 내 이름({cu.name})으로 남아요.</div>
-    <div style={{ fontSize: 14, color: C.sub, margin: "12px 2px 0", lineHeight: 1.6 }}>진행 {s.inprog} · 열린 업무 {s.open}{s.late ? ` · 밀림 ${s.late}` : ""} · 오늘 고정 {s.fxDone}/{s.fxTotal}{ot.pct != null ? ` · 기한 지킴 ${ot.pct}% (최근 30일 ${ot.n}건${ot.miss ? ` · 못 끝낸 ${ot.miss}건 포함` : ""})` : ""}{s.last ? ` · 마지막 활동 ${ago(s.last)}` : ""}</div>
+    <div style={{ fontSize: 14, color: C.sub, margin: "12px 2px 0", lineHeight: 1.6 }}>진행 {s.inprog} · 열린 업무 {s.open}{s.late ? ` · 지남 ${s.late}` : ""} · 오늘 고정 {s.fxDone}/{s.fxTotal}{ot.pct != null ? ` · 기한 지킴 ${ot.pct}% (최근 30일 ${ot.n}건${ot.miss ? ` · 못 끝낸 ${ot.miss}건 포함` : ""})` : ""}{s.last ? ` · 마지막 활동 ${ago(s.last)}` : ""}</div>
     <Head>앞으로 2주 마감</Head>
     <div className="v2-strip" aria-label="2주 일정">{wl.week.map((d) => <div key={d.date} className={"v2-day" + (d.wd === "토" || d.wd === "일" ? " we" : "")} style={{ cursor: "default" }}><span>{d.date === key ? "오늘" : md(d.date)}</span><span>{d.wd}</span><b className={d.list.length >= 5 ? "hv" : ""}>{d.list.length ? d.list.length + "건" : "-"}</b></div>)}</div>
     <Head>지금 하는 일 {doing.length}</Head><L a={doing} empty="진행 중인 일이 없어요" render={(t, last) => <Row key={t.id} title={t.title} sub={dueOf(t) ? ddayLabel(ddays(dueOf(t), key)) : null} onClick={() => open({ type: "task", id: t.id })} last={last} />} />

@@ -285,4 +285,20 @@ ok("8단계: 2주 넘게 지난 일은 '지금 할 일' 카드를 차지하지 �
   const v = M.todayView(D, "a", new Date(key + "T10:00:00"));
   assert.equal(v.ranked[0].t.id, "tdy"); assert.equal(v.late.length, 1); assert.ok(!v.focus.some((x) => x.t.id === "old"));
 });
+ok("9단계: 확인 완료 · 막힘 풀림 · PIN 처음 정함 알림 · 확인할 사람에게 묻기", () => {
+  const users = [{ id: "a", name: "가" }, { id: "b", name: "나" }, { id: "m", name: "마", master: true }];
+  const at = new Date(Date.now() - 3600e3).toISOString();
+  const tasks = [{ id: "d1", title: "끝난 일", assigneeId: "a", status: "done", approvedBy: "b", approvedAt: at, doneAt: at },
+    { id: "u1", title: "풀린 일", assigneeId: "a", status: "inprogress", unblocked: { by: "b", byName: "나", at, reason: "자료 옴", was: "a", to: "b" } },
+    { id: "r1", title: "확인 대기", assigneeId: "a", status: "review", reviewTo: "m", requestedBy: "b" }];
+  const notes = [{ id: "n1", itemId: "task:r1", by: "b", byName: "나", at, text: "확인 부탁", to: "m" }];
+  const D = { users: users.map((u) => (u.id === "b" ? { ...u, pinSetAt: at } : u)), projects: [], tasks, notes };
+  const ib = (u) => M.todayView(D, u, new Date()).inbox.map((x) => x.kind + ":" + (x.taskId || x.personId));
+  assert.ok(ib("a").includes("approved:d1")); assert.ok(!ib("b").includes("approved:d1"));   // 확인한 사람에겐 안 뜸
+  assert.ok(ib("a").includes("unblocked:u1")); assert.ok(!ib("b").includes("unblocked:u1"));
+  assert.ok(ib("m").includes("pinNew:b")); assert.ok(!ib("a").includes("pinNew:b"));          // 마스터에게만
+  assert.ok(ib("m").includes("note:r1"));                                                       // 댓글 to → 확인할 사람
+  const D2 = { ...D, users: D.users.map((u) => (u.id === "b" ? { ...u, pinByCode: true } : u)) };
+  assert.ok(!M.todayView(D2, "m", new Date()).inbox.some((x) => x.kind === "pinNew"));          // 시작 코드로 정했으면 알림 없음
+});
 console.log(`\n${n}개 모두 통과`);

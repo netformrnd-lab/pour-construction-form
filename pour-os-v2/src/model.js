@@ -188,8 +188,13 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   const freshPreds = new Set(); if (!shown && T && T.byTask) fresh.forEach((id) => ((T.byTask.get(id) || {}).preds || []).forEach((p) => freshPreds.add(p.id)));
   const predIds = (T && T.predIds instanceof Set) ? T.predIds : new Set();   // 내 열린 일의 앞 일 → 거기 남긴 한마디는 프로젝트 멤버가 아니어도 나에게
   tasks.forEach((t) => {
+    if (isDone(t) && !t.isFixed && t.approvedAt && t.approvedAt >= since && t.approvedBy !== uid && isMine(t, uid) && !seen["ap:" + t.id + t.approvedAt])
+      inbox.push({ kind: "approved", tag: "확인 완료", id: "ap:" + t.id + t.approvedAt, taskId: t.id, title: t.title, who: t.approvedBy, at: t.approvedAt, text: "끝난 일로 확인됐어요" });
     if (isDone(t) || t.isFixed) return;
     const mine = isMine(t, uid);
+    const ub = t.unblocked;
+    if (ub && ub.at >= since && ub.by !== uid && !t.blocked && (mine || ub.was === uid || ub.to === uid) && !seen["ub:" + t.id + ub.at])
+      inbox.push({ kind: "unblocked", tag: "막힘 풀림", id: "ub:" + t.id + ub.at, taskId: t.id, title: t.title, who: ub.by, whoName: ub.byName, at: ub.at, text: ub.reason ? `풀림 · ${ub.reason}` : "막힌 게 풀렸어요" });
     if (mine && t.feedback && t.status !== "review") inbox.push({ kind: "feedback", tag: "수정 요청", id: "fb:" + t.id, taskId: t.id, title: t.title, who: t.feedback.by, whoName: t.feedback.byName, at: t.feedback.at, text: t.feedback.text, keep: true });
     else if (mine && (reqOf(t) || (t.assignedBy && t.assignedBy !== uid)) && !t.ackAt && (t.status === "todo" || (t.handoff && t.handoff.to === uid && t.handoff.by !== uid)) && !temp.has(t.id)) {
       if (t.bulkId) { const g = (bulkNew[t.bulkId] = bulkNew[t.bulkId] || { n: 0, who: t.assignedBy, at: t.assignedAt, pid: t.projectId, pids: new Set(), ids: [], from: t.handoff && t.handoff.all ? t.handoff.from : null }); g.n++; g.ids.push(t.id); g.pids.add(t.projectId || ""); }
@@ -209,6 +214,9 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   Object.entries(bulkNew).forEach(([bid, g]) => { const p = (D.projects || []).find((x) => x.id === g.pid);
     const one = g.pids.size === 1 && g.pid, fromN = g.from ? g.from.map((x) => nameOf(users, x)).filter(Boolean).join("·") : "";
     inbox.push({ kind: "bulk", tag: g.from ? "넘겨받음" : "맡김", id: "bl:" + bid, bulkIds: g.ids, projectId: one ? g.pid : null, mine: !one, title: g.from ? `${fromN || "다른 사람"}님 업무 ${g.n}개 넘겨받음` : `${one && p ? p.title + " · " : ""}항목 ${g.n}개 맡김`, who: g.who, at: g.at, text: "기한을 확인하고 '받았어요'를 눌러 주세요", keep: true }); });
+  // PIN을 처음 정한 사람 (시작 코드 없이) → 마스터에게 7일 동안 — 본인이 아니면 사람 보기에서 PIN 초기화
+  if (isMaster(users.find((u) => u.id === uid))) users.forEach((u) => { if (u.id !== uid && u.pinSetAt && u.pinSetAt >= since && !u.pinByCode && !seen["pn:" + u.id + u.pinSetAt])
+    inbox.push({ kind: "pinNew", tag: "PIN 처음 정함", id: "pn:" + u.id + u.pinSetAt, personId: u.id, title: `${u.name}님이 PIN을 정했어요`, who: u.id, at: u.pinSetAt, text: "본인이 맞는지 확인해 주세요 · 아니면 PIN 초기화" }); });
   // 보류한 프로젝트 '다시 할 날'이 되면 책임자에게 (다시 시작하거나 날짜를 바꿀 때까지)
   (D.projects || []).forEach((p) => { if (isHoldP(p) && p.holdUntil && p.holdUntil <= key && p.assigneeId === uid) inbox.push({ kind: "projHoldDue", tag: "다시 할 날", id: "ph:" + p.id + ":" + p.holdUntil, projectId: p.id, title: p.title, who: p.heldBy, at: p.holdUntil + "T00:00:00", text: `보류${p.holdReason ? " · " + p.holdReason : ""} · ${md(p.holdUntil)}에 다시 하기로 함`, keep: true }); });
   if (T && Array.isArray(T.inbox)) T.inbox.forEach((x) => inbox.push(x));
@@ -219,11 +227,11 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
     const [kind, ...rest] = String(n.itemId || "").split(":"); const ref = rest.join(":");
     let hit = null;
     if (kind === "task") { const t = taskById[ref]; if (shown ? shown.has(n.id) : n.handoff && freshPreds.has(ref)) return;
-      if (t && (isMine(t, uid) || reqOf(t) === uid || myProj.has(t.projectId) || (t.ccIds || []).includes(uid) || talked.has(n.itemId) || (n.handoff && predIds.has(ref)))) hit = { taskId: ref, title: t.title }; }
+      if (t && (n.to === uid || isMine(t, uid) || reqOf(t) === uid || myProj.has(t.projectId) || (t.ccIds || []).includes(uid) || talked.has(n.itemId) || (n.handoff && predIds.has(ref)))) hit = { taskId: ref, title: t.title }; }
     else if (kind === "proj" && (projAll.has(ref) || talked.has(n.itemId))) { const p = (D.projects || []).find((x) => x.id === ref); hit = { projectId: ref, title: p ? p.title : "프로젝트" }; }
     if (hit) inbox.push({ kind: "note", tag: "댓글", id: "nt:" + n.id, ...hit, who: n.by, whoName: n.byName, at: n.at, text: n.text });
   });
-  const ORDER = { feedback: 0, review: 1, dueReq: 2, help: 2.5, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, note: 10 };
+  const ORDER = { feedback: 0, review: 1, dueReq: 2, help: 2.5, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, approved: 9, unblocked: 9, pinNew: 9.5, note: 10 };
   inbox.sort((a, b) => (ORDER[a.kind] ?? 11) - (ORDER[b.kind] ?? 11) || String(b.at || "").localeCompare(String(a.at || "")));
   const userName = (id) => nameOf(users, id);
   // 끝낸 시각은 UTC(toISOString) → 기기 날짜로 바꿔 비교 (아침 9시 전에 끝낸 일도 오늘)

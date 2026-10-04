@@ -192,6 +192,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
   const [doneList, setDoneList] = useState(null), [showDone, setShowDone] = useState(false), [nt, setNt] = useState(""), [nw, setNw] = useState(cu.id), [ndue, setNdue] = useState(""), [edit, setEdit] = useState(""), [now, setNow] = useState(""), [info, setInfo] = useState(!!(st && st.info)), [ld, setLd] = useState(""), [openPh, setOpenPh] = useState((st && st.openPh) || {}), [lAsk, setLAsk] = useState(null);
   const notes = useItemNotes(D, projNoteId(id));
   const [endAsk, setEndAsk] = useState(false), [resAsk, setResAsk] = useState(false);   // 끝내기·멈추기 창 · 다시 시작 창
+  const [old, setOld] = useState(null);   // 30일보다 이전 소식·자료: null 안 불러옴 · "loading" · "fail" · {notes, logs}
   useEffect(() => { if (!isLaunch(p)) A.recalc(id); }, [id]);   // 열 때 진척(%)을 실제 업무 수로 다시 계산 (다르면만 저장) · 신제품은 launchPct 로 그때그때 계산하므로 저장 안 함
   useEffect(() => { if (save) save({ tab, openPh, info }); }, [tab, openPh, info]);
   if (!p) return <Sheet title="프로젝트" onBack={onBack} onClose={onClose}><Empty>이 프로젝트를 찾지 못했어요</Empty></Sheet>;
@@ -214,10 +215,21 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
     : [["inprogress", "진행 중", (t) => t.status === "inprogress"], ["todo", "할 일", (t) => (t.status || "todo") === "todo"], ["review", "확인 대기", (t) => t.status === "review"], ["hold", "보류", (t) => t.status === "hold"]];
   const addT = () => { if (!nt.trim()) return; A.addTask({ title: nt, projectId: p.id, assigneeId: nw, dueDate: ndue || (nw !== cu.id ? addDays(key, 3) : ""), noReview: nw === cu.id }); setNt(""); };
   const tids = [...new Set([...live, ...(doneList || [])].map((t) => t.id))];
-  const feed = feedOf({ ...D, notes: [...D.notes, ...notes.filter((n) => !D.notes.some((m) => m.id === n.id))] }, { projectId: p.id, taskIds: tids });
+  // 이전 소식·자료 불러오기 (오래 멈춘 프로젝트를 다시 열 때) — 끝낸 업무 전체 + 이 프로젝트 기록 + 업무 대화(30개씩 나눠 조회). 누를 때 한 번만 읽음
+  const loadOld = async () => { setOld("loading");
+    try { let dl = doneList; if (dl == null) { dl = (await fb.fetchWhere("tasks", ["projectId", "==", p.id])).filter((t) => isDone(t) && !t.isFixed); setDoneList(dl); }
+      const ids = [...new Set([...live, ...dl].map((t) => t.id))], logs = await fb.fetchWhere("log", ["projectId", "==", p.id]), ns = [];
+      for (let i = 0; i < ids.length; i += 30) ns.push(...(await fb.fetchWhere("notes", ["itemId", "in", ids.slice(i, i + 30).map(taskNoteId)])));
+      console.log(`[v2 이전 소식] 기록 ${logs.length}건 · 대화 ${ns.length}건`); setOld({ notes: ns, logs }); }
+    catch (e) { console.error("[v2] 이전 소식 불러오기 실패:", e); setOld("fail"); } };
+  const uniq = (a) => { const m = new Map(); a.forEach((x) => m.set(x.id, x)); return [...m.values()]; };
+  const allNotes = uniq([...(old && old.notes ? old.notes : []), ...notes, ...D.notes]), allLog = uniq([...(old && old.logs ? old.logs : []), ...(D.log || [])]);
+  const feed = feedOf({ ...D, notes: allNotes, log: allLog }, { projectId: p.id, taskIds: tids });
+  const OldBtn = () => old && typeof old === "object" ? <div style={{ fontSize: 12.5, color: C.mute, textAlign: "center", margin: "10px 0 0" }}>처음부터 모두 불러왔어요</div>
+    : <div style={{ marginTop: 10 }}><TBtn onClick={loadOld} disabled={old === "loading"}>{old === "loading" ? "불러오는 중…" : old === "fail" ? "못 불러왔어요 · 다시 ›" : "30일보다 이전 소식·자료 불러오기 ›"}</TBtn></div>;
   const tTitle = (tid) => ((D.tasks.find((t) => t.id === tid) || (doneList || []).find((t) => t.id === tid)) || {}).title;
   const files = [...live, ...(doneList || [])].flatMap((t) => (t.attachments || []).map((f) => ({ ...f, where: t.title })))
-    .concat(D.notes.filter((n) => { if (n.deleted) return false; const [k, ...r] = String(n.itemId).split(":"); const ref = r.join(":"); return (k === "proj" && ref === p.id) || (k === "task" && tids.includes(ref)); }).flatMap((n) => (n.files || []).map((f) => ({ ...f, byName: n.byName, uploadedAt: f.uploadedAt || n.at, where: "댓글" }))))
+    .concat(allNotes.filter((n) => { if (n.deleted) return false; const [k, ...r] = String(n.itemId).split(":"); const ref = r.join(":"); return (k === "proj" && ref === p.id) || (k === "task" && tids.includes(ref)); }).flatMap((n) => (n.files || []).map((f) => ({ ...f, byName: n.byName, uploadedAt: f.uploadedAt || n.at, where: "댓글" }))))
     .sort((a, b) => String(b.uploadedAt || "").localeCompare(String(a.uploadedAt || "")));
   const ncount = (t) => D.notes.filter((n) => n.itemId === taskNoteId(t.id) && !n.deleted).length;
   // 항목 줄: 태그 = 위험(지남·막힘 …) → 내 차례 → 진행 중 · 부제 2줄 = 앞 일(기다리는 중일 때) · 담당 (임시)=책임자로 채움 (기본)=자주 맡던 사람
@@ -291,9 +303,10 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
         {showDone && (doneList == null ? <Empty>불러오는 중…</Empty> : doneAll.length === 0 ? <Empty>끝낸 업무가 없어요</Empty> : doneAll.slice().sort((a, b) => String(b.doneAt || "").localeCompare(String(a.doneAt || ""))).map((t, i) => <TRow key={t.id} t={t} last={i === doneAll.length - 1} />))}</Card>
     </>}
     {tab === "map" && <MindMap D={D} cu={cu} A={A} open={open} p={p} idx={idx} launch={launch} />}
-    {tab === "news" && <NewsFeed D={D} p={p} feed={feed} tTitle={tTitle} open={open} />}
+    {tab === "news" && <><NewsFeed D={D} p={p} feed={feed} tTitle={tTitle} open={open} /><OldBtn /></>}
     {tab === "news" && <><Head>프로젝트에 한마디</Head><Thread D={D} cu={cu} A={A} notes={notes} itemId={projNoteId(p.id)} ctx={{ projectId: p.id }} /></>}
     {tab === "files" && <Card style={{ marginTop: 10 }}>{files.length === 0 ? <Empty>모인 자료가 없어요. 업무나 댓글에 파일을 올리면 여기 모여요.</Empty> : files.map((f, i) => <FileRow key={i} f={f} last={i === files.length - 1} />)}</Card>}
+    {tab === "files" && <OldBtn />}
 
     <Card style={{ marginTop: 18 }}><More onClick={() => setInfo(!info)}>{info ? "정보 접기 ▴" : "정보 ▾"}</More>
       {info && <div style={{ padding: "4px 14px 14px", fontSize: 14, color: C.text, lineHeight: 1.9 }}>

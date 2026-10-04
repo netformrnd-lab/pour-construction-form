@@ -104,7 +104,7 @@ ok("업무량: 14일 날짜별 마감 + 지남", () => {
 });
 ok("기한 지킨 비율", () => {
   const D = { tasks: [{ assigneeId: "a", status: "done", dueDate: "2026-10-01", doneAt: "2026-09-30T05:00:00" }, { assigneeId: "a", status: "done", dueDate: "2026-10-01", doneAt: "2026-10-02T05:00:00" }] };
-  assert.deepEqual(M.onTimeOf(D, "a", new Date("2026-10-02T10:00:00")), { n: 2, ok: 1, pct: 50 });
+  assert.deepEqual(M.onTimeOf(D, "a", new Date("2026-10-02T10:00:00")), { n: 2, ok: 1, miss: 0, pct: 50 });
 });
 ok("달력 칸: 월요일 시작, 10월 2026 = 9/28부터 5주", () => {
   const g = M.monthGrid("2026-10"); assert.equal(g[0][0].date, "2026-09-27"); assert.equal(g[0][0].out, true); assert.equal(g.length, 5); assert.equal(g[4][6].date, "2026-10-31"); assert.equal(new Date(g[0][0].date + "T00:00:00").getDay(), 0);
@@ -266,5 +266,23 @@ ok("7단계: 한 사람 일 한 번에 넘기기 — 묶음 · 담당 칸 · 넘
   const line = ib.filter((x) => x.kind === "bulk");
   assert.equal(line.length, 1); assert.equal(line[0].title, "가님 업무 2개 넘겨받음"); assert.equal(line[0].mine, true); assert.equal(line[0].projectId, null);
   assert.ok(!ib.some((x) => x.kind === "assigned"));   // 한 건씩 따로 안 뜸
+});
+ok("8단계: 기한 지킴 % — 담당이 끝낸 시각 · 확인 대기 포함 · 안 끝낸 지난 일은 못 지킴", () => {
+  const now = new Date("2026-10-10T10:00:00");
+  const D = { tasks: [
+    { assigneeId: "a", status: "done", dueDate: "2026-10-05", finishedAt: "2026-10-05T05:00:00", doneAt: "2026-10-08T05:00:00" },   // 확인이 늦어도 담당 기준 → 지킴
+    { assigneeId: "a", status: "review", dueDate: "2026-10-06", finishedAt: "2026-10-06T05:00:00" },                                  // 확인 대기 → 끝낸 것
+    { assigneeId: "a", status: "todo", dueDate: "2026-10-07" },                                                                       // 안 끝낸 지난 일 → 못 지킴
+    { assigneeId: "a", status: "hold", dueDate: "2026-10-07" }, { assigneeId: "a", status: "todo", dueDate: "2026-08-01" },           // 보류 · 30일 전 기한 → 빼
+    { assigneeId: "a", status: "todo", dueDate: "2026-10-12" }, { assigneeId: "a", status: "todo", dueDate: "2026-10-03", launchItem: true, ownerFrom: "lead" }] };
+  assert.deepEqual(M.onTimeOf(D, "a", now), { n: 3, ok: 2, miss: 1, pct: 67 });
+});
+ok("8단계: 2주 넘게 지난 일은 '지금 할 일' 카드를 차지하지 않음", () => {
+  const key = "2026-10-20";
+  assert.equal(M.focusRank({ dueDate: "2026-10-15", status: "todo" }, key), 1);      // 5일 지남 → 그대로 먼저
+  assert.equal(M.focusRank({ dueDate: "2026-09-01", status: "todo" }, key), 4.5);    // 49일 지남 → 오늘·곧 마감 다음
+  const D = { users: [{ id: "a" }], projects: [], notes: [], tasks: [{ id: "old", title: "오래", assigneeId: "a", status: "todo", dueDate: "2026-09-01" }, { id: "tdy", title: "오늘", assigneeId: "a", status: "todo", dueDate: key }] };
+  const v = M.todayView(D, "a", new Date(key + "T10:00:00"));
+  assert.equal(v.ranked[0].t.id, "tdy"); assert.equal(v.late.length, 1); assert.ok(!v.focus.some((x) => x.t.id === "old"));
 });
 console.log(`\n${n}개 모두 통과`);

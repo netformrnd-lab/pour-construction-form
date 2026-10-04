@@ -36,7 +36,7 @@ export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast
     ["기한 지킴", ot.pct != null ? `${ot.pct}%` : "-"], ["기한 없음", h.noDue], ["기다리는 뒤 일", waiting.length],
   ];
   return <Sheet title={u.name} onBack={onBack} onClose={onClose} foot={<Big onClick={() => open({ type: "add", preset: { assigneeId: u.id } })}>{u.name}님에게 맡기기</Big>}>
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}><Lv v={h.level} /><span style={{ fontSize: 13, color: C.sub }}>{u.master || u.role === "lead" ? "마스터 · " : ""}{temp ? `임시 담당 ${temp}건 포함 · ` : ""}{ot.n ? `최근 30일 기한 있는 일 ${ot.n}건 중 ${ot.ok}건 지킴` : "최근 30일 끝낸 일 없음"}</span></div>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}><Lv v={h.level} /><span style={{ fontSize: 13, color: C.sub }}>{u.master || u.role === "lead" ? "마스터 · " : ""}{temp ? `임시 담당 ${temp}건 포함 · ` : ""}{ot.n ? `최근 30일 기한 있는 일 ${ot.n}건 중 ${ot.ok}건 지킴${ot.miss ? ` (아직 못 끝낸 ${ot.miss}건 포함)` : ""}` : "최근 30일 기한 있는 일 없음"}</span></div>
     <div className="a-stat" role="list">{stat.map(([l, v, red, bold]) => <div key={l} role="listitem"><b style={{ color: red ? C.red : C.ink, fontWeight: bold ? 900 : 800 }}>{v}</b><span>{l}</span></div>)}</div>
 
     <Head>앞으로 2주 마감</Head>

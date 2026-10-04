@@ -147,10 +147,12 @@ export function riskOf(t, key) {
 }
 // 지금 할 일 고르는 순서 (한 번에 하나): 수정 요청 → 지난 일 → 진행 중 → 오늘 마감 → 곧 마감(시작 전) → 마감 가까운 순 → 날짜 없음
 // fresh = 방금 앞 일이 끝나 '이제 내 차례'가 된 일 (turn.js). 기한 7일 안이면 지난 일보다 먼저, 아니면 진행 중 다음
+//   2주 넘게 지난 일(OLD_LATE)은 '지금 할 일' 카드를 차지하지 않음 — 오늘·곧 마감 다음 (지난 일 숫자·'하나씩 정리하기'에는 그대로)
+export const OLD_LATE = 14;
 export function focusRank(t, key, fresh) {
   const n = ddays(dueOf(t), key);
-  if (t.feedback) return 0; if (fresh && n != null && n <= 7) return 0.5; if (n != null && n < 0) return 1; if (t.status === "inprogress") return 2;
-  if (fresh) return 2.5; if (n === 0) return 3; if (n != null && n <= 2) return 4; if (n != null) return 5; return 6;
+  if (t.feedback) return 0; if (fresh && n != null && n <= 7) return 0.5; if (n != null && n < 0 && n >= -OLD_LATE) return 1; if (t.status === "inprogress") return 2;
+  if (fresh) return 2.5; if (n === 0) return 3; if (n != null && n < 0) return 4.5; if (n != null && n <= 2) return 4; if (n != null) return 5; return 6;
 }
 
 // ── 오늘 화면 ──
@@ -259,12 +261,18 @@ export function workloadOf(D, uid, now = new Date(), days = 14, skip = null) {
   const late = open.filter((t) => { const n = ddays(dueOf(t), key); return n != null && n < 0 && t.status !== "hold"; });
   return { open: open.length, doing: open.filter((t) => t.status === "inprogress").length, late: late.length, week, dueOn: (d) => byDay[d] || [] };
 }
-// 기한 지킨 비율 (최근 30일 끝낸 일 중 기한이 있던 것)
+// 기한 지킨 비율 (최근 30일) — 담당이 끝낸 시각(finishedAt, 확인이 늦어도 담당 기준) · 확인 대기도 끝낸 것으로
+//   + 아직 안 끝냈는데 최근 30일 안 기한이 이미 지난 일은 '못 지킴'으로 셈 (안 끝내고 두면 %가 오르던 것 바로잡음)
+//   보류·중단·임시 담당(책임자로 채운 신제품 항목)은 빼고
 export function onTimeOf(D, uid, now = new Date(), days = 30) {
-  const since = new Date(now - days * 86400000).toISOString();
-  const done = (D.tasks || []).filter((t) => isOneOff(t) && isDone(t) && isMine(t, uid) && dueOf(t) && String(t.doneAt || "") >= since);
-  const ok = done.filter((t) => ymd(new Date(t.doneAt)) <= dueOf(t)).length;
-  return { n: done.length, ok, pct: done.length ? Math.round((ok / done.length) * 100) : null };
+  const since = new Date(now - days * 86400000).toISOString(), key = ymd(now), from = ymd(new Date(now - days * 86400000));
+  const endOf = (t) => String(t.finishedAt || t.doneAt || t.reviewAt || "");
+  const mine = (D.tasks || []).filter((t) => isOneOff(t) && isMine(t, uid) && dueOf(t));
+  const done = mine.filter((t) => (isDone(t) || t.status === "review") && endOf(t) >= since);
+  const ok = done.filter((t) => ymd(new Date(endOf(t))) <= dueOf(t)).length;
+  const miss = mine.filter((t) => !isDone(t) && !["review", "hold", "dropped"].includes(t.status) && !(t.launchItem && (t.ownerFrom === "lead" || (!t.ownerFrom && t.ownerAuto))) && dueOf(t) >= from && dueOf(t) < key).length;
+  const n = done.length + miss;
+  return { n, ok, miss, pct: n ? Math.round((ok / n) * 100) : null };
 }
 
 // ── 프로젝트 ──

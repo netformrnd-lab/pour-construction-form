@@ -6,7 +6,7 @@ import { useBoot, Gate, useActs, LS } from "../core.jsx";
 import { isMaster } from "../model.js";
 import { turnIndex } from "../turn.js";
 import { SheetRouter } from "../sheets.jsx";
-import { C, TBtn, Toast, useLocal } from "../ui.jsx";
+import { C, TBtn, Toast, useLocal, useBackClose } from "../ui.jsx";
 import { MY_URL } from "./common.jsx";
 import { Glance } from "./Glance.jsx";
 import { PeopleTab, PickSheet, DoneSheet, RepSheet } from "./People.jsx";
@@ -49,6 +49,7 @@ function AdminMain({ B }) {
   const open = (s) => setStack((st) => [...st, s]);
   const back = () => setStack((st) => st.slice(0, -1));
   const closeAll = () => setStack([]);
+  useBackClose(stack.length, setStack);   // 폰 뒤로 = 맨 위 시트만 닫기
   const go = (k, q) => { setTab(k); setTq(q || ""); closeAll(); window.scrollTo(0, 0); };
   const saveAt = (i, patch) => setStack((st) => st.map((x, j) => (j === i ? { ...x, ...patch } : x)));   // 시트 화면 상태를 쌓인 칸에 적어 둠 (뒤로 와도 이어서)
   const base = { D, cu, A, idx, open, back, closeAll, saveAt, setToast, meta: B.meta, setMeta: B.setMeta, logout: B.logout, go };

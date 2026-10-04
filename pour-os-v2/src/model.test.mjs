@@ -92,7 +92,7 @@ ok("기한 지킨 비율", () => {
   assert.deepEqual(M.onTimeOf(D, "a", new Date("2026-10-02T10:00:00")), { n: 2, ok: 1, pct: 50 });
 });
 ok("달력 칸: 월요일 시작, 10월 2026 = 9/28부터 5주", () => {
-  const g = M.monthGrid("2026-10"); assert.equal(g[0][0].date, "2026-09-28"); assert.equal(g[0][0].out, true); assert.equal(g.length, 5); assert.equal(g[4][6].date, "2026-11-01");
+  const g = M.monthGrid("2026-10"); assert.equal(g[0][0].date, "2026-09-27"); assert.equal(g[0][0].out, true); assert.equal(g.length, 5); assert.equal(g[4][6].date, "2026-10-31"); assert.equal(new Date(g[0][0].date + "T00:00:00").getDay(), 0);
   assert.equal(M.shiftMonth("2026-12", 1), "2027-01"); assert.equal(M.shiftMonth("2026-01", -1), "2025-12");
 });
 ok("달력 업무 거르기 (프로젝트·담당·신제품만·끝난 것)", () => {
@@ -175,5 +175,19 @@ ok("고정업무 매월 말일(평일): 그 달 마지막 평일 · 주말·공�
   assert.equal(M.monthEndWorkday("2026-02-10"), "2026-02-27");   // 2/28 토 → 2/27 금
   assert.equal(M.fxRecurL(t), "매월 말일(평일)");
   assert.equal(M.fxDueOn({ recurType: "monthly", monthDay: 31 }, "2026-10-31"), true);   // 기존 31일은 그대로(말일)
+});
+ok("공휴일 2026~2028: 노동절·제헌절·대체공휴일 · 일요일 시작 달력", () => {
+  ["2026-05-01", "2026-07-17", "2026-06-03", "2026-09-25", "2026-08-17", "2027-07-19", "2027-10-11", "2028-01-26", "2028-10-05"].forEach((d) => assert.equal(M.isOffDay(d), true, d));
+  assert.equal(M.isOffDay("2026-09-28"), false); assert.equal(M.holidayName("2026-05-01"), "노동절");
+  assert.equal(M.monthEndWorkday("2027-07-10"), "2027-07-30");
+  const g = M.monthGrid("2026-11"); assert.equal(g[0][0].date, "2026-11-01"); assert.equal(g[g.length - 1][6].date, "2026-12-05");   // 11/1 일요일 → 첫 칸
+});
+ok("프로젝트 %: 저장된 진척 하나 · 업무 다 끝남 신호", () => {
+  assert.equal(M.projPct({ progress: 104 }), 100); assert.equal(M.projPct({}), 0);
+  const D = { tasks: [{ id: "a", projectId: "p", status: "done" }], users: [] };
+  assert.equal(M.projHealth({ id: "p", progress: 100 }, D, "2026-10-04").allDone, true);
+  assert.equal(M.projHealth({ id: "q", progress: 100 }, D, "2026-10-04").allDone, true);   // 끝낸 업무를 안 불러왔어도 100% 면 다 끝남
+  assert.equal(M.projHealth({ id: "r", progress: 0 }, D, "2026-10-04").allDone, false);    // 업무가 아직 없음
+  assert.equal(M.projStat({ id: "p", progress: 37 }, D.tasks, "2026-10-04").pct, 37);
 });
 console.log(`\n${n}개 모두 통과`);

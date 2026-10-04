@@ -99,3 +99,17 @@ export function Linked({ text }) {
   const s = String(text || ""); const parts = s.split(/(https?:\/\/[^\s<>"']+)/g);
   return <>{parts.map((p, i) => /^https?:\/\//.test(p) ? <a key={i} href={p} target="_blank" rel="noopener noreferrer" style={{ color: C.navy, wordBreak: "break-all" }}>{p}</a> : <span key={i}>{p}</span>)}</>;
 }
+
+// 폰 '뒤로'(안드로이드 뒤로 · 아이폰 밀어서 뒤로) = 맨 위 시트만 닫기. 시트를 열 때마다 브라우저 기록을 하나 쌓고,
+// 앱 안 '‹ 뒤로'·'닫기'로 닫으면 쌓은 기록도 같이 걷음 → 앱 밖으로 나가지 않음 (n = 열린 시트 수)
+export function useBackClose(n, setStack) {
+  const pushed = useRef(0), skip = useRef(0);
+  useEffect(() => {
+    if (n > pushed.current) { for (let i = pushed.current; i < n; i++) window.history.pushState({ v2sheet: i + 1 }, ""); pushed.current = n; }
+    else if (n < pushed.current) { const k = pushed.current - n; pushed.current = n; skip.current++; window.history.go(-k); }
+  }, [n]);
+  useEffect(() => {
+    const on = () => { if (skip.current > 0) { skip.current--; return; } if (pushed.current > 0) { pushed.current--; const left = pushed.current; setStack((st) => st.slice(0, left)); } };
+    window.addEventListener("popstate", on); return () => window.removeEventListener("popstate", on);
+  }, []);
+}

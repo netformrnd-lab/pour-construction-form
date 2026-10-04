@@ -13,7 +13,7 @@ export function MonthCal({ mode = "me", ym, setYm, cells, sel, onPick, keyd, use
   const onTE = (e) => { const s = tch.current; if (!s) return; const t = e.changedTouches[0], dx = t.clientX - s.x, dy = t.clientY - s.y; tch.current = null;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) setYm(shiftMonth(ym, dx < 0 ? 1 : -1)); };
   return <div className={"v2-cal" + (team ? "" : " me")} role="grid" aria-label={`${ym.slice(0, 4)}년 ${+ym.slice(5)}월 달력`} onTouchStart={onTS} onTouchEnd={onTE}>
-    {["월", "화", "수", "목", "금", "토", "일"].map((w) => <div key={w} className={"v2-calh" + (w === "토" || w === "일" ? " we" : "")}>{w}</div>)}
+    {["일", "월", "화", "수", "목", "금", "토"].map((w) => <div key={w} className={"v2-calh" + (w === "토" || w === "일" ? " we" : "")}>{w}</div>)}
     {grid.flat().map((c) => {
       const x = cells[c.date] || { n: 0, proj: [], items: [], people: {} }, past = c.date < keyd, old = c.date < d14;
       const showN = x.n > 0 ? x.n : x.fx > 0 ? x.fx : 0;

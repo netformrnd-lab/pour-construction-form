@@ -298,14 +298,31 @@ export function useActs(D, cu, setToast, idx = null) {
     ackMany: (ts) => { const at = nowIso(); fb.patchMany(ts.map((t) => ({ key: "tasks", id: tdoc(t), fields: { ackAt: at, ackBy: cu.id, updatedAt: at, updatedBy: cu.id, v2At: at } }))).catch(fail("받음")); if (ts[0]) log("ack", { col: "tasks", targetId: ts[0].projectId, projectId: ts[0].projectId, label: `항목 ${ts.length}개 받음` }); setToast({ text: `${ts.length}개 받았어요` }); },
     // 처음 맡긴 사람(requestedBy)은 그대로 — 확인·기한 허락은 그 사람. 맡긴 사람 기록이 없는 일(신제품 항목 등)은 assignedBy 로 '누가 넘겼나'만 남김
     //   남의 일을 내가 가져오면(이어서 하기) 5초 되돌리기 알림 — 확인 창 없이 한 번에, 대신 되돌릴 수 있게
-    assign: (t, uid, take) => {
-      const f = { assigneeId: uid, assigneeIds: [uid], ownerAuto: false, ownerFrom: "set", ...(reqOf(t) || t.requestedBy ? { requestedBy: reqOf(t) || t.requestedBy } : { assignedBy: cu.id, assignedAt: nowIso() }),
-        ...(reqOf(t) || t.requestedBy ? { requestedAt: nowIso() } : {}), ackAt: take || uid === cu.id ? nowIso() : null };
-      const was = ownersOf(t), other = was.find((x) => x !== cu.id), prev = prevOf(t, f);
-      const r = P(t, f, take ? "take" : "assign", `${t.title} · ${nameOf(D.users, t.assigneeId) || "담당 없음"} → ${nameOf(D.users, uid)}`, { prev });
-      if (uid === cu.id && other && !was.includes(cu.id)) setToast({ text: `${nameOf(D.users, other) || "다른 사람"}님 일을 내가 이어서 해요`, undo: () => P(t, prev, "assign", `되돌림 · ${t.title} · 담당 ${nameOf(D.users, other) || "이전"}`) });
+    // 담당 넘기기: 받는 사람 '확인할 것'에 맡김(진행 중·보류여도) · 이전 담당·맡긴 사람에게 '담당 바뀜'(handoff) · 한마디는 업무 대화에 · 5초 되돌리기
+    assign: (t, uid, take, note) => {
+      const at = nowIso(), was = ownersOf(t), other = was.find((x) => x !== cu.id);
+      const f = { assigneeId: uid, assigneeIds: [uid], ownerAuto: false, ownerFrom: "set", ...(reqOf(t) || t.requestedBy ? { requestedBy: reqOf(t) || t.requestedBy } : { assignedBy: cu.id, assignedAt: at }),
+        ...(reqOf(t) || t.requestedBy ? { requestedAt: at } : {}), ackAt: take || uid === cu.id ? at : null, handoff: { from: was, to: uid, note: (note || "").trim(), at, by: cu.id, byName: cu.name } };
+      const prev = prevOf(t, f);
+      const r = P(t, f, take ? "take" : "assign", `${t.title} · ${was.map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "담당 없음"} → ${nameOf(D.users, uid)}${note && note.trim() ? " · " + note.trim() : ""}`, { prev });
+      if (note && note.trim()) A.addNote(taskNoteId(t.id), `담당을 ${nameOf(D.users, uid)}님에게 넘겨요 · ${note.trim()}`, null, [], { taskId: t.id, projectId: t.projectId });
+      const undo = () => P(t, prev, "assign", `되돌림 · ${t.title} · 담당 ${was.map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "없음"}`);
+      if (uid === cu.id && other && !was.includes(cu.id)) setToast({ text: `${nameOf(D.users, other) || "다른 사람"}님 일을 내가 이어서 해요`, undo });
+      else if (uid !== cu.id) setToast({ text: `${nameOf(D.users, uid)}님에게 넘겼어요 · '확인할 것'에 떠요`, undo });
       return r;
     },
+    // 참조(CC): 담당이 아니어도 이 업무의 대화·소식을 받는 사람
+    setCc: (t, ids) => P(t, { ccIds: ids }, "edit", `${t.title} · 참조 ${ids.map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "없음"}`, { prev: { ccIds: t.ccIds || [] } }),
+    // 요청 하나로: confirm 확인 받기(확인 대기 → 받는 사람이 확인/수정 요청) · help 도와주세요 · due 기한 바꾸기 — 받는 사람 '확인할 것'에
+    ask: (t, kind, to, text, date) => {
+      const who = nameOf(D.users, to) || "받는 사람", msg = (text || "").trim();
+      if (kind === "confirm") P(t, { status: "review", reviewTo: to, reviewAt: nowIso(), finishedAt: nowIso(), feedback: null, ackAt: t.ackAt || nowIso(), statusLog: sl("review", { ask: true, to }) }, "review", `${t.title} · ${who}님께 확인 요청`);
+      else if (kind === "help") P(t, { ask: { kind, to, text: msg, ...by() } }, "ask", `${t.title} · ${who}님께 도움 요청${msg ? " · " + msg.slice(0, 40) : ""}`);
+      else if (kind === "due") P(t, { dueReq: { date, reason: msg, to, ...by() }, ackAt: t.ackAt || nowIso() }, "dueReq", `${t.title} · ${md(dueOf(t)) || "미정"} → ${md(date)} · ${who}님께`);
+      if (msg) A.addNote(taskNoteId(t.id), `${kind === "confirm" ? "확인 요청" : kind === "help" ? "도움 요청" : "기한 조정 요청"} → ${who}님: ${msg}`, null, [], { taskId: t.id, projectId: t.projectId });
+      setToast({ text: `${who}님 '확인할 것'에 보냈어요` });
+    },
+    closeAsk: (t, solved) => P(t, { ask: null, askDone: { kind: (t.ask || {}).kind || "", solved: !!solved, ...by() } }, "askDone", `${t.title} · ${solved ? "도움 요청 해결" : "도움 요청 거둠"}`),
     // 기한 바꾸기 — 버전1에서 온 작업일(workDate)도 같이 비움(기한 = dueDate || workDate 라서 '미정'이 안 먹던 문제). 이전 값은 기록에
     setDue: (t, d) => { const f = { dueDate: d || "", dueAuto: false, dueReq: null, ...(t.workDate ? { workDate: "" } : {}) };
       return P(t, f, "edit", `${t.title} · 기한 ${d ? md(d) : "미정"}`, { prev: { dueDate: t.dueDate || "", workDate: t.workDate || "", dueAuto: !!t.dueAuto } }); },
@@ -352,7 +369,7 @@ export function useActs(D, cu, setToast, idx = null) {
     answerDue: (t, ok, reason) => { const r = t.dueReq || {};
       P(t, ok ? { dueDate: r.date, dueAuto: false, dueReq: null, dueReqResult: { ok: true, date: r.date, ...by() } } : { dueReq: null, dueReqResult: { ok: false, reason: reason || "", ...by() } }, ok ? "dueOk" : "dueNo", `${t.title} · ${ok ? "기한 " + md(r.date) : "기한 유지"}`);
       setToast({ text: ok ? `기한을 ${md(r.date)}로 바꿨어요` : "기한을 그대로 두었어요" }); },
-    block: (t, reason) => { P(t, { blocked: { reason, ...by() } }, "block", `${t.title} · ${reason}`); A.addNote(taskNoteId(t.id), "막힘: " + reason, null, [], { taskId: t.id, projectId: t.projectId }); setToast({ text: "알렸어요 · 막힌 게 풀리면 '막힘 풀기'를 눌러요" }); },
+    block: (t, reason, to) => { P(t, { blocked: { reason, to: to || "", ...by() } }, "block", `${t.title} · ${reason}`); A.addNote(taskNoteId(t.id), "막힘: " + reason, null, [], { taskId: t.id, projectId: t.projectId }); setToast({ text: `${nameOf(D.users, to) || "책임자"}님께 알렸어요 · 막힌 게 풀리면 '막힘 풀기'를 눌러요` }); },
     unblock: (t) => P(t, { blocked: null }, "unblock"),
     setMemo: (t, memo) => fb.patch("tasks", tdoc(t), { memo, memoBy: cu.id, memoByName: cu.name, memoAt: nowIso(), updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }).then(() => log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `${t.title} · 메모 고침`, prev: String(t.memo || "").slice(0, 2000) })).catch(fail("메모")),
     addFiles: async (t, files) => { try { const up = []; for (const f of files) up.push(await fb.upload("task-" + t.id, f));

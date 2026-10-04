@@ -208,4 +208,22 @@ ok("2단계: 보류·중단 상태 · 중요도 · 예상 끝나는 날 · 판�
   const ib = M.todayView(D2, "a", new Date("2026-10-05T10:00:00")).inbox.map((x) => x.kind + ":" + (x.taskId || x.projectId));
   assert.deepEqual(ib.sort(), ["holdDue:h1", "projHoldDue:H"]);
 });
+ok("3단계: 받을 사람 기본값 · 도움 요청 · 담당 바뀜 · 참조·대화한 사람에게 답", () => {
+  const users = [{ id: "a", name: "가" }, { id: "b", name: "나" }, { id: "m", name: "마", master: true }, { id: "x", name: "퇴사", active: false }];
+  const D0 = { users, projects: [{ id: "P", assigneeId: "b" }], tasks: [], notes: [] };
+  assert.equal(M.askTo({ requestedBy: "x", projectId: "P" }, D0, "a"), "b");   // 맡긴 사람이 미사용 → 프로젝트 책임자
+  assert.equal(M.askTo({ projectId: "Q" }, D0, "a"), "m");                      // 아무도 없으면 마스터
+  assert.equal(M.askTo({ projectId: "P" }, D0, "b"), "m");                      // 내가 책임자면 마스터
+  const at = new Date(Date.now() - 3600e3).toISOString();
+  const tasks = [{ id: "t1", title: "일", assigneeId: "a", status: "inprogress", ask: { kind: "help", to: "b", by: "a", byName: "가", at, text: "봐 주세요" }, ccIds: ["m"] },
+    { id: "t2", title: "넘긴 일", assigneeId: "b", assignedBy: "a", status: "inprogress", ackAt: null, handoff: { from: ["a"], to: "b", by: "a", byName: "가", at } }];
+  const D = { users, projects: [], tasks, notes: [{ id: "n1", itemId: "task:t1", by: "b", byName: "나", at, text: "답" }, { id: "n0", itemId: "task:t2", by: "m", byName: "마", at, text: "물어봄" }, { id: "n2", itemId: "task:t2", by: "a", byName: "가", at, text: "대답" }] };
+  const ib = (u) => M.todayView(D, u, new Date()).inbox.map((x) => x.kind + ":" + x.taskId);
+  assert.ok(ib("b").includes("help:t1")); assert.ok(ib("b").includes("assigned:t2"));   // 진행 중이어도 넘겨받으면 맡김
+  assert.ok(!ib("a").includes("handed:t2"));   // 내가 넘긴 건 나에게 안 뜸
+  assert.ok(ib("m").includes("note:t1"));      // 참조
+  assert.ok(ib("m").includes("note:t2"));      // 그 대화에 말한 사람 → 답이 옴
+  const D3 = { ...D, tasks: [{ ...tasks[1], handoff: { ...tasks[1].handoff, by: "m", byName: "마" } }] };
+  assert.ok(M.todayView(D3, "a", new Date()).inbox.some((x) => x.kind === "handed"));   // 이전 담당에게 '담당 바뀜'
+});
 console.log(`\n${n}개 모두 통과`);

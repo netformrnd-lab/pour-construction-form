@@ -112,6 +112,12 @@ export function dueApprover(t, D) {
   const p = (D.projects || []).find((x) => x.id === t.projectId);
   return p && p.assigneeId && !ownersOf(t).includes(p.assigneeId) ? p.assigneeId : "";
 }
+// 요청(확인 받기 · 도와주세요 · 기한 바꾸기 · 막힘)을 받을 사람 기본값: 맡긴 사람 → 넘겨준 사람 → 프로젝트 책임자 → 마스터 (나는 빼고) — 아무에게도 안 가는 요청이 없게
+export function askTo(t, D, me) {
+  const p = (D.projects || []).find((x) => x.id === t.projectId), act = (u) => u && u !== me && (D.users || []).some((x) => x.id === u && x.active !== false);
+  for (const u of [reqOf(t), t.assignedBy, p && p.assigneeId]) if (act(u)) return u;
+  const m = (D.users || []).find((u) => u.active !== false && u.id !== me && isMaster(u)); return m ? m.id : "";
+}
 export const canSetDue = (t, uid, D, master) => !!master || !dueApprover(t, D) || dueApprover(t, D) === uid;
 // 위험 신호 한 개 (가장 급한 것)
 export function riskOf(t, key) {
@@ -169,14 +175,16 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
     if (isDone(t) || t.isFixed) return;
     const mine = isMine(t, uid);
     if (mine && t.feedback && t.status !== "review") inbox.push({ kind: "feedback", tag: "수정 요청", id: "fb:" + t.id, taskId: t.id, title: t.title, who: t.feedback.by, whoName: t.feedback.byName, at: t.feedback.at, text: t.feedback.text, keep: true });
-    else if (mine && (reqOf(t) || (t.assignedBy && t.assignedBy !== uid)) && !t.ackAt && t.status === "todo" && !temp.has(t.id)) {
+    else if (mine && (reqOf(t) || (t.assignedBy && t.assignedBy !== uid)) && !t.ackAt && (t.status === "todo" || (t.handoff && t.handoff.to === uid && t.handoff.by !== uid)) && !temp.has(t.id)) {
       if (t.bulkId) { const g = (bulkNew[t.bulkId] = bulkNew[t.bulkId] || { n: 0, who: t.assignedBy, at: t.assignedAt, pid: t.projectId, ids: [] }); g.n++; g.ids.push(t.id); }
       else if (t.launchItem) { const g = (launchNew[t.projectId] = launchNew[t.projectId] || { n: 0, who: t.assignedBy || t.requestedBy, at: t.assignedAt || t.requestedAt }); g.n++; }
       else inbox.push({ kind: "assigned", tag: "맡김", id: "as:" + t.id, taskId: t.id, title: t.title, who: reqOf(t) || t.assignedBy, at: (reqOf(t) && t.requestedAt) || t.assignedAt || t.requestedAt, text: dueOf(t) ? `기한 ${md(dueOf(t))}` : "", keep: true });
     }
-    if (t.dueReq && dueApprover(t, D) === uid) inbox.push({ kind: "dueReq", tag: "기한 조정", id: "dq:" + t.id, taskId: t.id, title: t.title, who: t.dueReq.by, whoName: t.dueReq.byName, at: t.dueReq.at, text: `${md(dueOf(t)) || "미정"} → ${md(t.dueReq.date)}${t.dueReq.reason ? " · " + t.dueReq.reason : ""}`, keep: true });
+    if (t.dueReq && (t.dueReq.to || dueApprover(t, D)) === uid) inbox.push({ kind: "dueReq", tag: "기한 조정", id: "dq:" + t.id, taskId: t.id, title: t.title, who: t.dueReq.by, whoName: t.dueReq.byName, at: t.dueReq.at, text: `${md(dueOf(t)) || "미정"} → ${md(t.dueReq.date)}${t.dueReq.reason ? " · " + t.dueReq.reason : ""}`, keep: true });
     if (t.status === "review" && (t.reviewTo || reqOf(t)) === uid) inbox.push({ kind: "review", tag: "확인 요청", id: "rv:" + t.id, taskId: t.id, title: t.title, who: ownersOf(t)[0], at: t.reviewAt || t.updatedAt, text: "끝냈어요 · 확인해 주세요", keep: true });
-    if (t.blocked && !mine && (reqOf(t) === uid || dueApprover(t, D) === uid || ((D.projects || []).find((p) => p.id === t.projectId) || {}).assigneeId === uid)) inbox.push({ kind: "blocked", tag: "막힘", red: true, id: "bk:" + t.id, taskId: t.id, title: t.title, who: t.blocked.by, whoName: t.blocked.byName, at: t.blocked.at, text: t.blocked.reason, keep: true });
+    if (t.blocked && !mine && (t.blocked.to === uid || reqOf(t) === uid || dueApprover(t, D) === uid || ((D.projects || []).find((p) => p.id === t.projectId) || {}).assigneeId === uid)) inbox.push({ kind: "blocked", tag: "막힘", red: true, id: "bk:" + t.id, taskId: t.id, title: t.title, who: t.blocked.by, whoName: t.blocked.byName, at: t.blocked.at, text: t.blocked.reason, keep: true });
+    if (t.ask && t.ask.kind === "help" && t.ask.to === uid) inbox.push({ kind: "help", tag: "도움 요청", id: "hp:" + t.id + t.ask.at, taskId: t.id, title: t.title, who: t.ask.by, whoName: t.ask.byName, at: t.ask.at, text: t.ask.text || "", keep: true });
+    if (t.handoff && t.handoff.by !== uid && t.handoff.at >= since && !seen["ho:" + t.id + t.handoff.at] && ((t.handoff.from || []).includes(uid) || reqOf(t) === uid) && t.handoff.to !== uid) inbox.push({ kind: "handed", tag: "담당 바뀜", id: "ho:" + t.id + t.handoff.at, taskId: t.id, title: t.title, who: t.handoff.by, whoName: t.handoff.byName, at: t.handoff.at, text: `${(t.handoff.from || []).map((x) => nameOf(users, x)).filter(Boolean).join("·") || "담당 없음"} → ${nameOf(users, t.handoff.to) || "?"}${t.handoff.note ? " · " + t.handoff.note : ""}` });
     if (mine && t.status === "hold" && t.holdUntil && t.holdUntil <= key && !t.holdBy) inbox.push({ kind: "holdDue", tag: "다시 볼 날", id: "hd:" + t.id + ":" + t.holdUntil, taskId: t.id, title: t.title, who: t.heldBy, at: t.holdUntil + "T00:00:00", text: `보류${t.holdReason ? " · " + t.holdReason : ""} · ${md(t.holdUntil)}에 다시 보기로 함`, keep: true });
     if (mine && t.dueReqResult && !seen["dr:" + t.id + t.dueReqResult.at]) inbox.push({ kind: "dueRes", tag: t.dueReqResult.ok ? "기한 바뀜" : "기한 유지", id: "dr:" + t.id + t.dueReqResult.at, taskId: t.id, title: t.title, who: t.dueReqResult.by, whoName: t.dueReqResult.byName, at: t.dueReqResult.at, text: t.dueReqResult.ok ? `새 기한 ${md(dueOf(t))}` : t.dueReqResult.reason || "기한은 그대로예요" });
   });
@@ -188,16 +196,17 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   (D.projects || []).forEach((p) => { if (isHoldP(p) && p.holdUntil && p.holdUntil <= key && p.assigneeId === uid) inbox.push({ kind: "projHoldDue", tag: "다시 할 날", id: "ph:" + p.id + ":" + p.holdUntil, projectId: p.id, title: p.title, who: p.heldBy, at: p.holdUntil + "T00:00:00", text: `보류${p.holdReason ? " · " + p.holdReason : ""} · ${md(p.holdUntil)}에 다시 하기로 함`, keep: true }); });
   if (T && Array.isArray(T.inbox)) T.inbox.forEach((x) => inbox.push(x));
   const taskById = Object.fromEntries(tasks.map((t) => [t.id, t]));
+  const talked = new Set((D.notes || []).filter((n) => n && n.by === uid && !n.deleted).map((n) => n.itemId));   // 내가 말한 대화 → 답이 오면 나에게도
   (D.notes || []).forEach((n) => {
     if (!n || n.deleted || n.by === uid || (n.at || "") < since || seen["nt:" + n.id]) return;
     const [kind, ...rest] = String(n.itemId || "").split(":"); const ref = rest.join(":");
     let hit = null;
     if (kind === "task") { const t = taskById[ref]; if (shown ? shown.has(n.id) : n.handoff && freshPreds.has(ref)) return;
-      if (t && (isMine(t, uid) || reqOf(t) === uid || myProj.has(t.projectId) || (n.handoff && predIds.has(ref)))) hit = { taskId: ref, title: t.title }; }
-    else if (kind === "proj" && projAll.has(ref)) { const p = (D.projects || []).find((x) => x.id === ref); hit = { projectId: ref, title: p ? p.title : "프로젝트" }; }
+      if (t && (isMine(t, uid) || reqOf(t) === uid || myProj.has(t.projectId) || (t.ccIds || []).includes(uid) || talked.has(n.itemId) || (n.handoff && predIds.has(ref)))) hit = { taskId: ref, title: t.title }; }
+    else if (kind === "proj" && (projAll.has(ref) || talked.has(n.itemId))) { const p = (D.projects || []).find((x) => x.id === ref); hit = { projectId: ref, title: p ? p.title : "프로젝트" }; }
     if (hit) inbox.push({ kind: "note", tag: "댓글", id: "nt:" + n.id, ...hit, who: n.by, whoName: n.byName, at: n.at, text: n.text });
   });
-  const ORDER = { feedback: 0, review: 1, dueReq: 2, blocked: 3, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, note: 10 };
+  const ORDER = { feedback: 0, review: 1, dueReq: 2, help: 2.5, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, note: 10 };
   inbox.sort((a, b) => (ORDER[a.kind] ?? 11) - (ORDER[b.kind] ?? 11) || String(b.at || "").localeCompare(String(a.at || "")));
   const userName = (id) => nameOf(users, id);
   // 끝낸 시각은 UTC(toISOString) → 기기 날짜로 바꿔 비교 (아침 9시 전에 끝낸 일도 오늘)
@@ -320,7 +329,7 @@ export function ownerIssues(D) {
 
 // ── 소식 (댓글 + 기록) ──
 export const LOG_L = { decide: "결정", add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", take: "이어받음", comment: "댓글", delete: "휴지통으로",
-  ack: "받음", dueReq: "기한 조정 요청", dueOk: "기한 조정 수락", dueNo: "기한 유지", review: "확인 요청", approve: "확인 완료", feedback: "수정 요청", block: "막힘", unblock: "막힘 풀림", launch: "신제품 만듦", bulk: "한꺼번에 바꿈", deps: "앞 일 바꿈", hold: "보류", unhold: "보류 풀기", projEnd: "프로젝트 끝냄·멈춤", projResume: "프로젝트 다시 시작" };
+  ack: "받음", dueReq: "기한 조정 요청", dueOk: "기한 조정 수락", dueNo: "기한 유지", review: "확인 요청", approve: "확인 완료", feedback: "수정 요청", block: "막힘", unblock: "막힘 풀림", launch: "신제품 만듦", bulk: "한꺼번에 바꿈", deps: "앞 일 바꿈", ask: "도움 요청", askDone: "도움 요청 닫음", hold: "보류", unhold: "보류 풀기", projEnd: "프로젝트 끝냄·멈춤", projResume: "프로젝트 다시 시작" };
 export function feedOf(D, { projectId, taskIds, sinceIso } = {}) {
   const tset = taskIds ? new Set(taskIds) : null;
   const notes = (D.notes || []).filter((n) => !n.deleted && (!sinceIso || (n.at || "") >= sinceIso)).filter((n) => {

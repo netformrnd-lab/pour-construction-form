@@ -22,6 +22,9 @@ input[type=date] { min-width: 0; max-width: 100%; -webkit-appearance: none; appe
 .v2-lab { display: block; font-size: 13px; font-weight: 800; color: #0F1F5C; margin: 18px 2px 8px; }
 .v2-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .v2-sel { height: 38px; border: 1.5px solid #E3E7F0; border-radius: 999px; padding: 0 12px; font: inherit; font-size: 13px; font-weight: 700; color: #5B6475; background: #fff; max-width: 100%; }
+/* 날짜 칸: 아이폰은 빈 날짜 칸을 거의 0 폭으로 줄여 빈 막대처럼 보임 → 늘 누를 수 있는 크기 */
+input[type="date"].v2-sel { min-width: 132px; min-height: 38px; -webkit-appearance: none; appearance: none; text-align: left; line-height: 34px; }
+input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-height: 1.2em; }
 /* 2주 일정 띠 (가로 스크롤은 이 안에서만) */
 .v2-strip { display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 2px 6px; scrollbar-width: thin; }
 .v2-day { flex: 0 0 58px; height: 66px; border-radius: 12px; border: 1.5px solid #E3E7F0; background: #fff; font: inherit; color: #5B6475; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; cursor: pointer; padding: 0; }

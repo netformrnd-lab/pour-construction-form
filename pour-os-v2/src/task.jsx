@@ -11,7 +11,7 @@ import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from
 import { DecisionBlock } from "./mindmap.jsx";
 import { turnIndex, turnOf, predsOf, nextsOf, finishedOf, finishedAt, lastWord } from "./turn.js";
 import { nextWorkday } from "./model.js";
-import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked, CopyLink } from "./ui.jsx";
+import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked, CopyLink, Clash } from "./ui.jsx";
 import { HoldAsk } from "./hold.jsx";
 import { RequestAsk } from "./asks.jsx";
 import { askTo } from "./model.js";
@@ -25,7 +25,7 @@ export function moveDue(A, setToast, t, d, can, why, onUndo) {
   const prev = { dueDate: t.dueDate || "", dueAuto: !!t.dueAuto, dueReq: t.dueReq || null, ...(t.workDate ? { workDate: t.workDate } : {}) };
   const r = A.setDue(t, d);
   if (setToast) setToast({ text: d ? `기한을 ${md(d)}${ro(md(d))} 바꿨어요` : "기한을 미정으로 바꿨어요", undo: () => {
-    if (A.patchTask) A.patchTask(t, prev, "edit", `되돌림 · ${t.title} · 기한 ${md(dueOf(t)) || "미정"}`); else A.setDue(t, prev.dueDate);
+    if (A.undoTask) A.undoTask(t, { dueDate: d || "" }, prev, `${t.title} · 기한 ${md(dueOf(t)) || "미정"}`); else A.setDue(t, prev.dueDate);
     if (onUndo) onUndo(); } });
   return r;
 }
@@ -50,7 +50,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
   const t = useTask(D, id);
   const notes = useItemNotes(D, taskNoteId(id));
   const idx = useMemo(() => idx0 || turnIndex(D), [idx0, D]);
-  const [mode, setMode] = useState(""), [memo, setMemo] = useState(""), [showLog, setShowLog] = useState(false), [tab2, setTab2] = useState("talk"), [logs, setLogs] = useState(null), [sub, setSub] = useState("");
+  const [mode, setMode] = useState(""), [memo, setMemo] = useState(""), [memoBase, setMemoBase] = useState(null), [clash, setClash] = useState(null), [showLog, setShowLog] = useState(false), [tab2, setTab2] = useState("talk"), [logs, setLogs] = useState(null), [sub, setSub] = useState("");
   const [txt, setTxt] = useState(""), [handTo, setHandTo] = useState(""), [reqDate, setReqDate] = useState(""), [handoff, setHandoff] = useState(""), [depSel, setDepSel] = useState(null), [allOrder, setAllOrder] = useState(false);
   const fileRef = useRef(null);
   useEffect(() => { if (!focus || !t) return; const h = setTimeout(() => { const el = document.getElementById("v2-t-" + focus); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); return () => clearTimeout(h); }, [focus, !!t]);
@@ -63,6 +63,8 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
   const req = reqOf(t), reqName = nameOf(D.users, req), giver = req || (t.assignedBy && t.assignedBy !== cu.id ? t.assignedBy : ""), giverName = nameOf(D.users, giver), approver = dueApprover(t, D), canDue = canSetDue(t, cu.id, D, master);
   const review = t.status === "review", amReviewer = review && ((t.reviewTo || req) === cu.id || master);
   const risk = riskOf(t, key);
+  // 메모 저장 — 고치는 사이 다른 사람이 먼저 저장했으면 겹친 글을 보여 주고 고르게 (내 글은 그대로 남음)
+  const saveMemo = async (force) => { const r = await A.setMemo(t, memo, memoBase, force === true); if (r && r.conflict) setClash(r.cur); else if (r && r.ok) { setClash(null); setMode(""); } };
   const files = [...(t.attachments || []).map((f) => ({ ...f, where: "업무" })), ...notes.filter((nn) => !nn.deleted).flatMap((nn) => (nn.files || []).map((f) => ({ ...f, by: nn.by, byName: nn.byName, uploadedAt: f.uploadedAt || nn.at, where: "댓글" })))];
   const loadLogs = () => { if (logs == null) fb.fetchWhere("log", ["targetId", "==", t.id]).then(setLogs).catch((e) => { console.error(e); setLogs([]); }); };
   // 기록 한 줄의 '이전 → 이후' (담당 · 기한 · 시작 · 상태 · 참조 · 보류 다시 볼 날)
@@ -150,7 +152,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
         <div style={{ fontSize: 12.5, color: C.sub }}>{nameOf(D.users, handTo)}님 '확인할 것'에 맡김으로 · 지금 담당{reqOf(t) ? "·맡긴 사람" : ""}에게 '담당 바뀜'으로 알려요 · 5초 되돌리기</div>
         <Act onClick={() => { A.assign(t, handTo, handTo === cu.id, txt); setTxt(""); setHandTo(""); setMode(""); }} style={{ alignSelf: "flex-start", background: C.navy, color: "#fff", borderColor: C.navy }}>{handTo === cu.id ? "내가 이어서 하기" : `${nameOf(D.users, handTo)}님에게 넘기기`}</Act></div>}</div>}
     {mode === "cc" && <div style={{ padding: "8px 0" }}><div style={{ fontSize: 12.5, color: C.sub, marginBottom: 6 }}>참조 = 담당이 아니어도 이 업무의 대화·소식을 받는 사람</div><div className="v2-chips">{users.filter((u) => !ownersOf(t).includes(u.id)).map((u) => { const on = (t.ccIds || []).includes(u.id);
-      return <Chip key={u.id} on={on} onClick={() => A.setCc(t, on ? (t.ccIds || []).filter((x) => x !== u.id) : [...(t.ccIds || []), u.id])}>{on ? "✓ " : ""}{u.id === cu.id ? "나" : u.name}</Chip>; })}</div></div>}
+      return <Chip key={u.id} on={on} onClick={() => A.toggleCc(t, u.id, !on)}>{on ? "✓ " : ""}{u.id === cu.id ? "나" : u.name}</Chip>; })}</div></div>}
     {mode === "ask" && <RequestAsk t={t} D={D} cu={cu} A={A} mine={mine} onNo={() => setMode("")} />}
     {mode === "due" && <div className="v2-chips" style={{ padding: "8px 0" }}>{dateChips.map(([l, d]) => <Chip key={d} onClick={() => { moveDue(A, setToast, t, d, true); setMode(""); }}>{l}</Chip>)}<Chip onClick={() => { moveDue(A, setToast, t, "", true); setMode(""); }}>미정</Chip><input type="date" aria-label="날짜 고르기" defaultValue={dueOf(t)} onChange={(e) => { if (e.target.value) { moveDue(A, setToast, t, e.target.value, true); setMode(""); } }} className="v2-sel" /></div>}
     {mode === "req" && <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0" }}>
@@ -185,8 +187,9 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
       : <div style={{ fontSize: 13, color: C.sub, margin: "-2px 2px 0", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>앞뒤로 이어진 일이 없어요<TBtn onClick={() => open({ type: "add", preset: { projectId: t.projectId || "", deps: [t.id], dueDate: nextWorkday(addDays(dueOf(t) && dueOf(t) > key ? dueOf(t) : key, 1)) } })}>+ 다음 일 맡기기</TBtn></div>}
     </>}
 
-    <Head right={mode !== "memo" && <TBtn onClick={() => { setMemo(t.memo || ""); setMode("memo"); }}>{t.memo ? "메모 고치기" : "메모 쓰기"}</TBtn>}>메모 · 하는 법</Head>
-    {mode === "memo" ? <div><textarea value={memo} onChange={(e) => setMemo(e.target.value)} rows={6} aria-label="메모" style={{ ...inp, resize: "vertical", lineHeight: 1.6 }} /><div style={{ display: "flex", gap: 8, marginTop: 8 }}><Big tone="white" onClick={() => setMode("")} style={{ flex: 1, height: 44 }}>취소</Big><Big onClick={() => { A.setMemo(t, memo); setMode(""); }} style={{ flex: 1, height: 44 }}>메모 저장</Big></div></div>
+    <Head right={mode !== "memo" && <TBtn onClick={() => { setMemo(t.memo || ""); setMemoBase(t.memoAt || null); setClash(null); setMode("memo"); }}>{t.memo ? "메모 고치기" : "메모 쓰기"}</TBtn>}>메모 · 하는 법</Head>
+    {mode === "memo" ? <div><textarea value={memo} onChange={(e) => setMemo(e.target.value)} rows={6} aria-label="메모" style={{ ...inp, resize: "vertical", lineHeight: 1.6 }} /><div style={{ display: "flex", gap: 8, marginTop: 8 }}><Big tone="white" onClick={() => setMode("")} style={{ flex: 1, height: 44 }}>취소</Big><Big onClick={saveMemo} style={{ flex: 1, height: 44 }}>메모 저장</Big></div>
+      {clash && <Clash who={clash.memoByName} at={clash.memoAt} text={clash.memo} onMerge={() => { setMemo(`${clash.memo || ""}\n\n${memo}`.trim()); setMemoBase(clash.memoAt || null); setClash(null); }} onMine={() => saveMemo(true)} />}</div>
       : <Card style={{ padding: "12px 14px" }}><div style={{ fontSize: 14.5, color: t.memo ? C.text : C.mute, whiteSpace: "pre-wrap", lineHeight: 1.65, wordBreak: "break-word" }}>{t.memo ? <Linked text={t.memo} /> : "메모가 없어요. 하는 법이나 진행 상황을 적어 두면 다른 사람이 바로 이어받을 수 있어요."}</div>{t.memoAt && <div style={{ marginTop: 6, fontSize: 12, color: C.mute }}>마지막 수정 {t.memoByName || nameOf(D.users, t.memoBy)} · {ago(t.memoAt)}</div>}</Card>}
 
     {t.decision ? <><Head>안 비교 · 결정 업무</Head><Card style={{ padding: "8px 14px 12px" }}><DecisionBlock D={D} cu={cu} A={A} t={t} open={open} /></Card></>
@@ -284,7 +287,7 @@ function FxOwners({ t, D, A, setToast }) {
   const save = () => { const prev = { assigneeIds: t.assigneeIds || [], assigneeId: t.assigneeId || "", forAll: !!t.forAll };
     const f = all ? { forAll: true } : { assigneeIds: sel, assigneeId: sel[0] || "", forAll: false };
     A.patchTask(t, f, "assign", `${t.title} · 고정업무 담당 ${names || "없음"}`, { prev });
-    if (setToast) setToast({ text: `담당을 ${names}(으)로 바꿨어요`, undo: () => A.patchTask(t, prev, "assign", `되돌림 · ${t.title} · 고정업무 담당`) }); setOn(false); };
+    if (setToast) setToast({ text: `담당을 ${names}(으)로 바꿨어요`, undo: () => A.undoTask(t, f, prev, `${t.title} · 고정업무 담당`, "assign") }); setOn(false); };
   return <Card style={{ marginTop: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
     <div style={{ fontSize: 13, fontWeight: 800, color: C.ink }}>담당 (여러 명 가능)</div>
     <div className="v2-chips"><Chip on={all} onClick={() => setAll(!all)}>{all ? "✓ " : ""}전체</Chip>{!all && users.map((u) => { const k = sel.includes(u.id); return <Chip key={u.id} on={k} onClick={() => setSel(k ? sel.filter((x) => x !== u.id) : [...sel, u.id])}>{k ? "✓ " : ""}{u.name}</Chip>; })}</div>

@@ -101,7 +101,9 @@ export async function syncNewLaunch(D, cu) {
   const lp = planLaunchImport(prods.filter((p) => !have.has("lb_" + p.id)), D);
   if (!lp.projects.length) return 0;
   const at = nowIso(), ids = new Set(lp.projects.map((p) => p.id));
-  await fb.putMany([...lp.projects.map((x) => ({ key: "projects", id: x.id, data: { ...x, syncedAt: at } })), ...lp.tasks.filter((t) => ids.has(t.projectId)).map((x) => ({ key: "tasks", id: x.id, data: x }))]);
+  // 없을 때만 만들기 — 두 사람이 동시에 앱을 열어도 같은 제품을 두 번 쓰거나 먼저 고친 것을 덮지 않음
+  const r = await fb.createMissing([...lp.projects.map((x) => ({ key: "projects", id: x.id, data: { ...x, syncedAt: at } })), ...lp.tasks.filter((t) => ids.has(t.projectId)).map((x) => ({ key: "tasks", id: x.id, data: x }))]);
+  if (!r.made) return 0;
   const lid = newId("lg"); await fb.put("log", lid, { id: lid, action: "launch", col: "projects", targetId: "", label: `신제품 보드에서 새 제품 ${lp.projects.length}개 가져옴 (${lp.projects.map((p) => p.title).join(", ").slice(0, 120)})`, by: cu.id, byName: cu.name, at });
   console.log(`[v2] 신제품 보드 새 제품 ${lp.projects.length}개 가져옴`);
   return lp.projects.length;
@@ -180,7 +182,9 @@ export function Login({ D, preset, onIn, title }) {
         if (pinHash(u.id, "inv:" + p3) !== u.pinInvite) { const n = (lk.n || 0) + 1; setLock((l) => ({ ...l, [u.id]: n >= 5 ? { n: 0, until: Date.now() + 5 * 60000 } : { n } })); setP3("");
           return setMsg(n >= 5 ? "5번 틀려서 5분 동안 잠겼어요" : `시작 코드가 맞지 않아요 (${n}/5) · 마스터에게 받은 4자리를 넣어 주세요`); } }
       const h = pinHash(u.id, p1); setBusy(true);
-      try { await fb.patch("users", u._doc || u.id, { pinHash: h, pinSetAt: nowIso(), pinByCode: !!u.pinInvite, pinInvite: null }); onIn(u, h); }
+      // 아직 PIN 이 없고 시작 코드가 그대로일 때만 저장 (다른 기기에서 먼저 정했으면 막음)
+      try { const r = await fb.patchIf("users", u._doc || u.id, { pinHash: null, pinInvite: u.pinInvite || null }, { pinHash: h, pinSetAt: nowIso(), pinByCode: !!u.pinInvite, pinInvite: null });
+        if (r.ok) onIn(u, h); else setMsg("다른 기기에서 방금 PIN을 정했어요 · 본인이 아니면 마스터에게 PIN 초기화를 부탁하세요"); }
       catch (e) { console.error("[v2] PIN 저장 실패:", e); setMsg("저장하지 못했어요 · 인터넷 연결을 확인해 주세요"); }
       setBusy(false); return;
     }
@@ -228,8 +232,22 @@ export function useActs(D, cu, setToast, idx = null) {
   const P = (t, f, logAction, label, extra) => fb.patch("tasks", tdoc(t), { ...f, updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }).then(() => { if (logAction) log(logAction, { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: label || t.title, ...(extra || {}), ...nextOf(f, extra) }); }).catch(fail("업무"));
   // 이전 값 (없던 칸은 null) — 되돌리기·기록용
   const prevOf = (t, f) => Object.fromEntries(Object.keys(f).map((k) => [k, t[k] === undefined ? null : t[k]]));
+  // 되돌리기 (여러 사람이 같이 쓸 때): 내가 쓴 값이 서버에 아직 그대로인 문서만 되돌림 — 그사이 다른 사람이 바꾼 건 건너뛰고 알림
+  //   ops: [{key, id, wrote(내가 쓴 칸), prev(되돌릴 값)}] · 시각 칸·arrayUnion 같은 특수 값은 비교에서 뺌
+  const STAMP = new Set(["updatedAt", "updatedBy", "v2At"]);
+  const plainV = (v) => v === null || typeof v !== "object" || Array.isArray(v) || (Object.getPrototypeOf(v) === Object.prototype && !v.__au && !v.__ar && !v.__del);
+  const expectOf = (f) => Object.fromEntries(Object.entries(f).filter(([k, v]) => !STAMP.has(k) && plainV(v)));
+  const undoMany = async (ops, label, logAction = "bulk") => {
+    const at = nowIso();
+    try { const r = await fb.patchManyIf(ops.map((o) => ({ key: o.key, id: o.id, expect: expectOf(o.wrote), fields: { ...o.prev, updatedAt: at, updatedBy: cu.id, v2At: at } })));
+      if (label) log(logAction, { col: ops[0] ? ops[0].key : "tasks", targetId: ops.length === 1 ? ops[0].id : "", label: `되돌림 · ${label}${r.skipped.length ? ` · ${r.skipped.length}건은 다른 사람이 바꿔서 그대로` : ""}`, ids: ops.map((o) => o.id) });
+      setToast({ text: r.skipped.length ? (ops.length === 1 ? "그사이 다른 사람이 바꿔서 되돌리지 않았어요 · 기록 탭에서 확인해 주세요" : `되돌렸어요 · ${r.skipped.length}건은 그사이 다른 사람이 바꿔서 그대로 뒀어요`) : "되돌렸어요" });
+      return r; }
+    catch (e) { fail("되돌리기")(e); return null; }
+  };
+  const undoT = (t, wrote, prev, label, logAction = "edit") => undoMany([{ key: "tasks", id: tdoc(t), wrote, prev }], label, logAction).then((r) => { if (r && r.done && t.projectId) recalc(t.projectId); return r; });
   const A = {
-    log, recalc, patchTask: P,
+    log, recalc, patchTask: P, undoMany, undoTask: undoT,
     toast: (text) => setToast({ text }),   // 화면 조각(BulkBar 등)이 결과를 알릴 때
     addTask: async (f) => {
       const id = newId("t"), at = nowIso(), p = D.projects.find((x) => x.id === f.projectId), who = f.assigneeId || cu.id;
@@ -252,18 +270,20 @@ export function useActs(D, cu, setToast, idx = null) {
       const lead = ((D.projects || []).find((p) => p.id === t.projectId) || {}).assigneeId;
       const tail = nx.text ? ` · ${nx.text}` : nx.noOwner ? ` · 다음 일 담당이 없어서 ${lead && lead !== cu.id ? `책임자 ${nameOf(D.users, lead)}님께 알렸어요` : "담당을 정해 주세요"}` : "";
       if (needsReview(t)) {
-        P(t, { status: "review", reviewAt: at, reviewTo: reqOf(t), finishedAt: at, blocked: null, ...(t.ackAt ? {} : { ackAt: at, ackBy: cu.id }), statusLog: sl("review") }, "review");
-        setToast({ text: `${nameOf(D.users, reqOf(t))}님께 확인 요청을 보냈어요${tail}`, undo: () => P(t, prev) });
+        const f = { status: "review", reviewAt: at, reviewTo: reqOf(t), finishedAt: at, blocked: null, ...(t.ackAt ? {} : { ackAt: at, ackBy: cu.id }) };
+        P(t, { ...f, statusLog: sl("review") }, "review");
+        setToast({ text: `${nameOf(D.users, reqOf(t))}님께 확인 요청을 보냈어요${tail}`, undo: () => undoT(t, f, prev, `${t.title} · 확인 요청 취소`) });
       } else {
-        P(t, { status: "done", doneAt: at, doneBy: cu.id, doneByName: cu.name, finishedAt: at, feedback: null, blocked: null, ...(t.ackAt ? {} : { ackAt: at, ackBy: cu.id }), statusLog: sl("done") }, "done").then(() => t.projectId && recalc(t.projectId));
-        setToast({ text: `끝냈어요${tail || " · " + t.title}`, undo: () => P(t, prev).then(() => t.projectId && recalc(t.projectId)) });
+        const f = { status: "done", doneAt: at, doneBy: cu.id, doneByName: cu.name, finishedAt: at, feedback: null, blocked: null, ...(t.ackAt ? {} : { ackAt: at, ackBy: cu.id }) };
+        P(t, { ...f, statusLog: sl("done") }, "done").then(() => t.projectId && recalc(t.projectId));
+        setToast({ text: `끝냈어요${tail || " · " + t.title}`, undo: () => undoT(t, f, prev, `${t.title} · 끝냄 취소`) });
       }
     },
     // 확인 완료 → 담당 '확인할 것'에 '확인 완료'(approvedAt) · 5초 되돌리기 (확인 대기로)
     approve: (t) => { const at = nowIso(), o = ownersOf(t)[0];
       const f = { status: "done", doneAt: t.finishedAt || at, doneBy: o || cu.id, doneByName: nameOf(D.users, o) || cu.name, approvedBy: cu.id, approvedAt: at, feedback: null }, prev = { ...prevOf(t, f), statusLog: t.statusLog || [] };
       P(t, { ...f, statusLog: sl("done", { approved: true }) }, "approve").then(() => t.projectId && recalc(t.projectId));
-      setToast({ text: `확인 완료 · ${t.title}`, undo: () => P(t, prev, "approve", `되돌림 · ${t.title} · 확인 대기로`).then(() => t.projectId && recalc(t.projectId)) }); },
+      setToast({ text: `확인 완료 · ${t.title}`, undo: () => undoT(t, f, prev, `${t.title} · 확인 대기로`, "approve") }); },
     sendBack: (t, text) => { P(t, { status: "inprogress", feedback: { text, ...by() }, reviewAt: null, statusLog: sl("inprogress", { feedback: true }) }, "feedback", `${t.title} · ${text.slice(0, 40)}`);
       A.addNote(taskNoteId(t.id), "수정 요청: " + text, null, [], { taskId: t.id, projectId: t.projectId }); setToast({ text: "수정 요청을 보냈어요" }); },
     reopen: (t) => P(t, { status: "todo", doneAt: null, doneBy: null, doneByName: null, reviewAt: null, statusLog: sl("todo", { reopen: true }) }, "reopen").then(() => t.projectId && recalc(t.projectId)),
@@ -289,8 +309,7 @@ export function useActs(D, cu, setToast, idx = null) {
       catch (e) { fail("프로젝트")(e); return false; }
       const word = kind === "completed" ? "완료" : kind === "dropped" ? "중단" : "보류";
       log("projEnd", { col: "projects", targetId: p.id, projectId: p.id, label: `${p.title} · ${word}${why ? " · " + why : ""}${until ? ` · ${md(until)} 다시` : ""}${ts.length ? ` · 남은 업무 ${ts.length}건 접음` : ""}`, prev: { status: p.status || "", ids: ts.map((t) => t.id) } });
-      setToast({ text: `${word}했어요${ts.length ? ` · 남은 업무 ${ts.length}건 접음` : ""}`, undo: () => Promise.all([fb.patch("projects", p._doc || p.id, { ...pPrev, updatedAt: nowIso(), v2At: nowIso() }), tOps.length ? fb.patchMany(tOps.map((o) => ({ key: o.key, id: o.id, fields: o.prev }))) : null])
-        .then(() => log("projResume", { col: "projects", targetId: p.id, projectId: p.id, label: `${p.title} · 되돌림 (${word} 취소)` })).catch(fail("되돌리기")) });
+      setToast({ text: `${word}했어요${ts.length ? ` · 남은 업무 ${ts.length}건 접음` : ""}`, undo: () => undoMany([{ key: "projects", id: p._doc || p.id, wrote: pf, prev: pPrev }, ...tOps.map((o) => ({ key: o.key, id: o.id, wrote: o.fields, prev: o.prev }))], `${p.title} · ${word} 취소`, "projResume") });
       if (kind === "completed") recalc(p.id);
       return true;
     },
@@ -322,13 +341,15 @@ export function useActs(D, cu, setToast, idx = null) {
       const prev = prevOf(t, f);
       const r = P(t, f, take ? "take" : "assign", `${t.title} · ${was.map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "담당 없음"} → ${nameOf(D.users, uid)}${note && note.trim() ? " · " + note.trim() : ""}`, { prev });
       if (note && note.trim()) A.addNote(taskNoteId(t.id), `담당을 ${nameOf(D.users, uid)}님에게 넘겨요 · ${note.trim()}`, null, [], { taskId: t.id, projectId: t.projectId });
-      const undo = () => P(t, prev, "assign", `되돌림 · ${t.title} · 담당 ${was.map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "없음"}`);
+      const undo = () => undoT(t, f, prev, `${t.title} · 담당 ${was.map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "없음"}`, "assign");
       if (uid === cu.id && other && !was.includes(cu.id)) setToast({ text: `${nameOf(D.users, other) || "다른 사람"}님 일을 내가 이어서 해요`, undo });
       else if (uid !== cu.id) setToast({ text: `${nameOf(D.users, uid)}님에게 넘겼어요 · '확인할 것'에 떠요`, undo });
       return r;
     },
     // 참조(CC): 담당이 아니어도 이 업무의 대화·소식을 받는 사람
     setCc: (t, ids) => P(t, { ccIds: ids }, "edit", `${t.title} · 참조 ${ids.map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "없음"}`, { prev: { ccIds: t.ccIds || [] } }),
+    // 참조 한 사람 넣기/빼기 — 목록 통째가 아니라 그 사람만 (두 사람이 동시에 눌러도 서로 지우지 않음)
+    toggleCc: (t, uid, on) => P(t, { ccIds: on ? fb.arrayUnion(uid) : fb.arrayRemove(uid) }, "edit", `${t.title} · 참조 ${on ? "+" : "−"} ${nameOf(D.users, uid)}`),
     // 요청 하나로: confirm 확인 받기(확인 대기 → 받는 사람이 확인/수정 요청) · help 도와주세요 · due 기한 바꾸기 — 받는 사람 '확인할 것'에
     ask: (t, kind, to, text, date) => {
       const who = nameOf(D.users, to) || "받는 사람", msg = (text || "").trim();
@@ -356,7 +377,9 @@ export function useActs(D, cu, setToast, idx = null) {
         if (!isDone(opt)) await P(opt, { status: "done", doneAt: at, doneBy: cu.id, doneByName: cu.name, finishedAt: at, ...(opt.ackAt ? {} : { ackAt: at }), statusLog: sl("done", { chosen: true }) });
         const nx = idx ? nextTurnText(t, idx, D.users) : { text: "" };
         if (!isDone(t) && t.status !== "review") A.finish(t);   // 끝냄 알림은 아래 '정했어요' 알림으로 바뀜 (다음 차례 문구는 같이)
-        setToast({ text: `정했어요 · ${opt.title}${others.length ? ` · 나머지 ${others.length}개는 보류` : ""}${nx.text ? " · " + nx.text : ""}`, undo: () => { P(t, prevT); prevO.forEach((x) => P(x.o, { status: x.status, optDropped: x.optDropped })); if (prevChosen.status !== "done") P(opt, { status: prevChosen.status, doneAt: null, doneBy: null, finishedAt: null }); } });
+        setToast({ text: `정했어요 · ${opt.title}${others.length ? ` · 나머지 ${others.length}개는 보류` : ""}${nx.text ? " · " + nx.text : ""}`, undo: () => undoMany([{ key: "tasks", id: tdoc(t), wrote: { decided: { optionId: opt.id, title: opt.title, reason: String(reason || "").trim(), by: cu.id, byName: cu.name, at } }, prev: prevT },
+          ...prevO.map((x) => ({ key: "tasks", id: tdoc(x.o), wrote: { status: "hold", optDropped: true }, prev: { status: x.status, optDropped: x.optDropped } })),
+          ...(prevChosen.status !== "done" ? [{ key: "tasks", id: tdoc(opt), wrote: { status: "done" }, prev: { status: prevChosen.status, doneAt: null, doneBy: null, finishedAt: null } }] : [])], `${t.title} · 결정 취소`, "decide") });
       } catch (e) { fail("결정")(e); }
     },
     setDeps: (t, ids) => P(t, { deps: ids }, "deps", `${t.title} · 앞 일 ${ids.length ? ids.length + "개" : "없음"}`),
@@ -369,7 +392,7 @@ export function useActs(D, cu, setToast, idx = null) {
       try { await fb.patchMany(ops.map(({ key, id, fields }) => ({ key, id, fields }))); }
       catch (e) { fail("한꺼번에 바꾸기")(e); return false; }
       log("bulk", { col: "tasks", label: `${label} · ${ts.length}건`, ids: ts.map((t) => t.id), prev: ops.map((o) => ({ id: o.id, ...o.prev })) });
-      setToast({ text: `${label} · ${ts.length}건 바꿨어요`, undo: () => fb.patchMany(ops.map((o) => ({ key: o.key, id: o.id, fields: o.prev }))).then(() => log("bulk", { col: "tasks", label: `되돌림 · ${label}`, ids: ts.map((t) => t.id) })).catch(fail("되돌리기")) });
+      setToast({ text: `${label} · ${ts.length}건 바꿨어요`, undo: () => undoMany(ops.map((o) => ({ key: o.key, id: o.id, wrote: o.fields, prev: o.prev })), label) });
       return true;
     },
     // 한 사람 일 한 번에 넘기기 (휴가·퇴사 · 마스터) — 업무·고정업무는 담당 칸만, 프로젝트는 책임자만 바꿈
@@ -394,8 +417,7 @@ export function useActs(D, cu, setToast, idx = null) {
       catch (e) { fail("일 넘기기")(e); return false; }
       const label = `${fromN} → ${toN} 일 넘기기 · 업무 ${tasks.length} · 고정업무 ${fixed.length} · 프로젝트 ${projs.length}${msg ? " · " + msg.slice(0, 60) : ""}`;
       log("handover", { col: "tasks", targetId: from, label, from, to, bulkId, ids: [...tasks, ...fixed].map((t) => t.id), pids: projs.map((p) => p.id), prev: ops.map((o) => ({ key: o.key, id: o.id, ...o.prev })) });
-      setToast({ text: `${toN}님에게 ${n}건 넘겼어요`, undo: () => fb.patchMany(ops.map((o) => ({ key: o.key, id: o.id, fields: { ...o.prev, updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() } })))
-        .then(() => log("handover", { col: "tasks", targetId: from, label: `되돌림 · ${fromN} → ${toN} 일 넘기기`, bulkId })).catch(fail("되돌리기")) });
+      setToast({ text: `${toN}님에게 ${n}건 넘겼어요`, undo: () => undoMany(ops.map((o) => ({ key: o.key, id: o.id, wrote: o.fields, prev: o.prev })), `${fromN} → ${toN} 일 넘기기`, "handover") });
       return true;
     },
     // 기한 여러 개 한 번에 (최대 100건 · 이전 기한 기록 · 5초 되돌리기)
@@ -404,7 +426,7 @@ export function useActs(D, cu, setToast, idx = null) {
       const at = nowIso(), prev = changes.map((x) => ({ id: tdoc(x.task), dueDate: x.task.dueDate || "" }));
       return fb.patchMany(changes.map((x) => ({ key: "tasks", id: tdoc(x.task), fields: { dueDate: x.due, updatedAt: at, updatedBy: cu.id, v2At: at } })))
         .then(() => { log("bulk", { col: "tasks", label: `${label} · ${changes.length}건`, ids: changes.map((x) => x.task.id), prev });
-          setToast({ text: `${label} · ${changes.length}건`, undo: () => fb.patchMany(prev.map((x) => ({ key: "tasks", id: x.id, fields: { dueDate: x.dueDate, updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() } }))).then(() => log("bulk", { col: "tasks", label: `되돌림 · ${label}`, ids: changes.map((x) => x.task.id) })).catch(fail("되돌리기")) });
+          setToast({ text: `${label} · ${changes.length}건`, undo: () => undoMany(changes.map((x, i) => ({ key: "tasks", id: prev[i].id, wrote: { dueDate: x.due }, prev: { dueDate: prev[i].dueDate } })), label) });
           return true; })
         .catch((e) => { fail("기한")(e); return false; });
     },
@@ -414,7 +436,17 @@ export function useActs(D, cu, setToast, idx = null) {
       setToast({ text: ok ? `기한을 ${md(r.date)}로 바꿨어요` : "기한을 그대로 두었어요" }); },
     block: (t, reason, to) => { P(t, { blocked: { reason, to: to || "", ...by() } }, "block", `${t.title} · ${reason}`); A.addNote(taskNoteId(t.id), "막힘: " + reason, null, [], { taskId: t.id, projectId: t.projectId }); setToast({ text: `${nameOf(D.users, to) || "책임자"}님께 알렸어요 · 막힌 게 풀리면 '막힘 풀기'를 눌러요` }); },
     unblock: (t) => { const k = t.blocked || {}; return P(t, { blocked: null, unblocked: { by: cu.id, byName: cu.name, at: nowIso(), reason: k.reason || "", was: k.by || "", to: k.to || "" } }, "unblock", `${t.title} · 막힘 풀림`); },
-    setMemo: (t, memo) => fb.patch("tasks", tdoc(t), { memo, memoBy: cu.id, memoByName: cu.name, memoAt: nowIso(), updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }).then(() => log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `${t.title} · 메모 고침`, prev: String(t.memo || "").slice(0, 2000) })).catch(fail("메모")),
+    // 글 고치기(메모 · 지금 상황) — 고치기 시작할 때 본 버전(baseAt) 그대로일 때만 저장. 그사이 다른 사람이 고쳤으면 저장하지 않고 {conflict, cur} (내 글은 화면에 그대로)
+    //   force = 그래도 내 글로 덮기 · baseAt 을 안 주면(예전 호출) 확인 없이 저장
+    saveText: async (key, item, atPath, fields, baseAt, logO, force) => {
+      const at = nowIso(), f = { ...fields, updatedAt: at, updatedBy: cu.id, v2At: at };
+      try { const r = force || baseAt === undefined ? (await fb.patch(key, item._doc || item.id, f), { ok: true }) : await fb.patchIf(key, item._doc || item.id, { [atPath]: baseAt || null }, f);
+        if (!r.ok) return { conflict: true, cur: r.cur || {} };
+        if (logO) log("edit", logO); return { ok: true }; }
+      catch (e) { fail("저장")(e); return { error: true }; }
+    },
+    setMemo: (t, memo, baseAt, force) => A.saveText("tasks", t, "memoAt", { memo, memoBy: cu.id, memoByName: cu.name, memoAt: nowIso() }, baseAt, { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `${t.title} · 메모 고침`, prev: String(t.memo || "").slice(0, 2000) }, force),
+    setProjNow: (p, text, baseAt, force) => A.saveText("projects", p, "now.at", { now: { text: String(text || "").trim(), by: cu.id, byName: cu.name, at: nowIso() } }, baseAt, { col: "projects", targetId: p.id, projectId: p.id, label: `${p.title} · 지금 상황 고침`, prev: (p.now && p.now.text) || "" }, force),
     addFiles: async (t, files) => { try { const up = []; for (const f of files) up.push(await fb.upload("task-" + t.id, f));
       await fb.patch("tasks", tdoc(t), { attachments: fb.arrayUnion(...up.map((x) => ({ ...x, by: cu.id, byName: cu.name }))), updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }); log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `${t.title} · 파일 ${up.length}개 올림` }); setToast({ text: `파일 ${up.length}개 올렸어요` }); }
       catch (e) { fail("파일")(e); } },
@@ -480,9 +512,8 @@ export function useActs(D, cu, setToast, idx = null) {
         await fb.patchMany([{ key: "projects", id: pid, fields: { launchDate: date, dueDate: date, updatedAt: at, updatedBy: cu.id, v2At: at } },
           ...ch.map((x) => ({ key: "tasks", id: x.task._doc || x.task.id, fields: { dueDate: x.due, updatedAt: at, updatedBy: cu.id, v2At: at } }))]);
         log("edit", { col: "projects", targetId: p.id, projectId: p.id, label: `${p.title} · 출시일 ${md(p.launchDate) || "미정"} → ${md(date)} · 항목 ${ch.length}개 기한 이동`, ids: ch.map((x) => x.task.id), prev: { ...prevP, tasks: prevT } });
-        setToast({ text: `출시일을 바꿨어요 · 항목 ${ch.length}개 기한도 옮겼어요`, undo: () => { const u = nowIso();
-          return fb.patchMany([{ key: "projects", id: pid, fields: { ...prevP, updatedAt: u, updatedBy: cu.id, v2At: u } }, ...prevT.map((x) => ({ key: "tasks", id: x.id, fields: { dueDate: x.dueDate, updatedAt: u, updatedBy: cu.id, v2At: u } }))])
-            .then(() => log("edit", { col: "projects", targetId: p.id, projectId: p.id, label: `되돌림 · ${p.title} · 출시일 ${md(date)} → ${md(prevP.launchDate) || "미정"} · 항목 ${prevT.length}개`, ids: ch.map((x) => x.task.id) })).catch(fail("되돌리기")); } });
+        setToast({ text: `출시일을 바꿨어요 · 항목 ${ch.length}개 기한도 옮겼어요`, undo: () => undoMany([{ key: "projects", id: pid, wrote: { launchDate: date, dueDate: date }, prev: prevP },
+          ...ch.map((x, k) => ({ key: "tasks", id: prevT[k].id, wrote: { dueDate: x.due }, prev: { dueDate: prevT[k].dueDate } }))], `${p.title} · 출시일 ${md(date)} → ${md(prevP.launchDate) || "미정"}`, "edit") });
         return true;
       } catch (e) { fail("출시일")(e); return false; }
     },

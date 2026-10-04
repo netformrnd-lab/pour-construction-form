@@ -12,7 +12,7 @@ import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, launchPct } fr
 import { turnIndex, turnOf, nowNext, predLine } from "./turn.js";
 import { phaseStates, previewLaunchMove } from "./views.js";
 import { flowList, planFlow, flowOwners } from "./flow.js";
-import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, inp, useLocal, useAutoFocus, Linked } from "./ui.jsx";
+import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, inp, useLocal, useAutoFocus, Linked, Clash } from "./ui.jsx";
 import { useItemNotes, Thread, FileRow } from "./task.jsx";
 import { MindMap } from "./mindmap.jsx";
 import { ro } from "./pick.jsx";
@@ -192,7 +192,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
   const [doneList, setDoneList] = useState(null), [showDone, setShowDone] = useState(false), [nt, setNt] = useState(""), [nw, setNw] = useState(cu.id), [ndue, setNdue] = useState(""), [edit, setEdit] = useState(""), [now, setNow] = useState(""), [info, setInfo] = useState(!!(st && st.info)), [ld, setLd] = useState(""), [openPh, setOpenPh] = useState((st && st.openPh) || {}), [lAsk, setLAsk] = useState(null);
   const notes = useItemNotes(D, projNoteId(id));
   const [endAsk, setEndAsk] = useState(false), [resAsk, setResAsk] = useState(false);   // 끝내기·멈추기 창 · 다시 시작 창
-  const [old, setOld] = useState(null), [doneErr, setDoneErr] = useState(false);   // 30일보다 이전 소식·자료: null 안 불러옴 · "loading" · "fail" · {notes, logs}
+  const [old, setOld] = useState(null), [doneErr, setDoneErr] = useState(false), [nowBase, setNowBase] = useState(null), [nowClash, setNowClash] = useState(null);   // 30일보다 이전 소식·자료: null 안 불러옴 · "loading" · "fail" · {notes, logs}
   useEffect(() => { if (!isLaunch(p)) A.recalc(id); }, [id]);   // 열 때 진척(%)을 실제 업무 수로 다시 계산 (다르면만 저장) · 신제품은 launchPct 로 그때그때 계산하므로 저장 안 함
   useEffect(() => { if (save) save({ tab, openPh, info }); }, [tab, openPh, info]);
   if (!p) return <Sheet title="프로젝트" onBack={onBack} onClose={onClose}><Empty>이 프로젝트를 찾지 못했어요</Empty></Sheet>;
@@ -214,6 +214,8 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
   const groups = launch ? LAUNCH_PHASES.map((ph) => [ph.k, ph.name, (t) => t.phase === ph.k]).concat([["etc", "기타", (t) => !t.phase]])
     : [["inprogress", "진행 중", (t) => t.status === "inprogress"], ["todo", "할 일", (t) => (t.status || "todo") === "todo"], ["review", "확인 대기", (t) => t.status === "review"], ["hold", "보류", (t) => t.status === "hold"]];
   const addT = () => { if (!nt.trim()) return; A.addTask({ title: nt, projectId: p.id, assigneeId: nw, dueDate: ndue || (nw !== cu.id ? addDays(key, 3) : ""), noReview: nw === cu.id }); setNt(""); };
+  // 지금 상황 저장 — 고치는 사이 다른 사람이 먼저 저장했으면 겹친 글을 보여 주고 고르게
+  const saveNow = async (force) => { const r = await A.setProjNow(p, now, nowBase, force === true); if (r && r.conflict) setNowClash(r.cur.now || {}); else if (r && r.ok) { setNowClash(null); setEdit(""); } };
   const tids = [...new Set([...live, ...(doneList || [])].map((t) => t.id))];
   // 이전 소식·자료 불러오기 (오래 멈춘 프로젝트를 다시 열 때) — 끝낸 업무 전체 + 이 프로젝트 기록 + 업무 대화(30개씩 나눠 조회). 누를 때 한 번만 읽음
   const loadOld = async () => { setOld("loading");
@@ -247,7 +249,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
   return <Sheet title="프로젝트" onBack={onBack} onClose={onClose}>
     <div style={{ display: "flex", alignItems: "flex-start", gap: 8, margin: "12px 0 2px" }}>
       <h2 style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 800, color: C.ink, margin: 0, lineHeight: 1.35, wordBreak: "keep-all" }}>{p.title}{impOf(p) !== "mid" && <span className={"v2-pill " + (impOf(p) === "high" ? "hi" : "lo")}>중요 {impName(impOf(p))}</span>}{projStLabel(p) !== "진행 중" && <span className="v2-pill st">{projStLabel(p)}</span>}</h2>
-      {!hasNow && edit !== "now" && <TBtn onClick={() => { setNow(""); setEdit("now"); }} style={{ flex: "0 0 auto", padding: "4px 2px", fontSize: 13 }}>+ 지금 상황</TBtn>}
+      {!hasNow && edit !== "now" && <TBtn onClick={() => { setNow(""); setNowBase((p.now && p.now.at) || null); setNowClash(null); setEdit("now"); }} style={{ flex: "0 0 auto", padding: "4px 2px", fontSize: 13 }}>+ 지금 상황</TBtn>}
     </div>
     {launch && <div style={{ fontSize: 12.5, color: C.mute, fontWeight: 700 }}>출시 템플릿 · {brandName(D, p.brand)}{p.batch ? " " + p.batch : ""}</div>}
     <div style={{ fontSize: 13.5, color: C.sub, marginTop: 4 }}>책임 {nameOf(D.users, p.assigneeId) || "없음"} · {date ? <span style={{ color: w.late ? C.red : C.sub, fontWeight: w.late ? 800 : 400 }}>{w.launched ? `출시 ${md(p.launchDate)} · 출시 후 ${w.after != null ? w.after : -ddays(p.launchDate, key)}일${w.late ? " · 늦은 항목 있음" : ""}` : `${launch ? "출시" : "마감"} ${md(date)} ${ddayLabel(w.n)}`}</span> : launch ? "출시일 미정" : "마감 없음"} · {pct}% · 남은 {openT.length}</div>
@@ -263,9 +265,10 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
       {lead && <div style={{ marginTop: 10 }}><Act onClick={() => setResAsk(true)}>다시 열기</Act></div>}</Card>}
     {endAsk && <ProjEndAsk p={p} openT={openT} A={A} onNo={() => setEndAsk(false)} />}
     {resAsk && <ResumeAsk p={p} D={D} A={A} onNo={() => setResAsk(false)} />}
-    {edit === "now" ? <div style={{ marginTop: 12 }}><div style={{ fontSize: 13, fontWeight: 800, color: C.ink, margin: "0 2px 6px" }}>지금 상황</div><textarea value={now} onChange={(e) => setNow(e.target.value)} rows={3} autoFocus placeholder={"목표: 무엇을 하려는지\n지금: 어디까지 왔는지"} aria-label="지금 상황" style={{ ...inp, resize: "vertical", lineHeight: 1.6 }} /><div style={{ display: "flex", gap: 8, marginTop: 8 }}><Big tone="white" onClick={() => setEdit("")} style={{ flex: 1, height: 44 }}>취소</Big><Big onClick={() => { A.patchProject(p, { now: { text: now.trim(), by: cu.id, byName: cu.name, at: new Date().toISOString() } }, "지금 상황 고침", (p.now && p.now.text) || ""); setEdit(""); }} style={{ flex: 1, height: 44 }}>저장</Big></div></div>
+    {edit === "now" ? <div style={{ marginTop: 12 }}><div style={{ fontSize: 13, fontWeight: 800, color: C.ink, margin: "0 2px 6px" }}>지금 상황</div><textarea value={now} onChange={(e) => setNow(e.target.value)} rows={3} autoFocus placeholder={"목표: 무엇을 하려는지\n지금: 어디까지 왔는지"} aria-label="지금 상황" style={{ ...inp, resize: "vertical", lineHeight: 1.6 }} /><div style={{ display: "flex", gap: 8, marginTop: 8 }}><Big tone="white" onClick={() => setEdit("")} style={{ flex: 1, height: 44 }}>취소</Big><Big onClick={() => saveNow()} style={{ flex: 1, height: 44 }}>저장</Big></div>
+      {nowClash && <Clash who={nowClash.byName} at={nowClash.at} text={nowClash.text} onMerge={() => { setNow(`${nowClash.text || ""}\n${now}`.trim()); setNowBase(nowClash.at || null); setNowClash(null); }} onMine={() => saveNow(true)} />}</div>
       : hasNow && <div style={{ marginTop: 12, padding: "10px 12px", borderRadius: 12, background: "#fff", border: `1px solid ${C.line}`, borderLeft: `4px solid ${C.navy}` }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}><b style={{ flex: 1, fontSize: 12.5, color: C.navy }}>지금 상황</b><TBtn onClick={() => { setNow(p.now.text); setEdit("now"); }} style={{ padding: "0 2px", fontSize: 12.5 }}>고치기</TBtn></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}><b style={{ flex: 1, fontSize: 12.5, color: C.navy }}>지금 상황</b><TBtn onClick={() => { setNow(p.now.text); setNowBase(p.now.at || null); setNowClash(null); setEdit("now"); }} style={{ padding: "0 2px", fontSize: 12.5 }}>고치기</TBtn></div>
         <div style={{ fontSize: 14, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 2 }}><Linked text={p.now.text} /></div>
         {p.now.at && <div style={{ marginTop: 4, fontSize: 11.5, color: C.mute }}>{p.now.byName} · {ago(p.now.at)}</div>}</div>}
     {(nn.now || nn.next) && <Card style={{ marginTop: 12 }}>{nn.now && flowRow("지금", nn.now, nn.others ? ` 외 ${nn.others}명` : "", !nn.next)}{nn.next && flowRow("다음", nn.next, "", true)}</Card>}

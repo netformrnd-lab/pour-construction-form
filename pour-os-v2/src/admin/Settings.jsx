@@ -57,11 +57,12 @@ export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose
   const holM = {}; [[KR_HOLIDAYS, "기본"], [fetched, "자동"], [comp, "회사"]].forEach(([m, src]) => Object.entries(m || {}).forEach(([d, n]) => { if (d >= y0) holM[d] = holM[d] ? { ...holM[d], srcs: [...new Set([...holM[d].srcs, src])] } : { n, srcs: [src] }; }));
   const hol = Object.entries(holM).sort((a, b) => a[0].localeCompare(b[0]));
   const [cd, setCd] = useState(""), [cn, setCn] = useState(""), [cBusy, setCBusy] = useState(false);
-  const saveComp = async (next, label) => { setCBusy(true);
-    try { await fb.put("settings", "holidays", { id: "holidays", days: next, updatedAt: nowIso(), updatedBy: cu.id }); A.log("edit", { col: "settings", targetId: "holidays", label: `회사 쉬는 날 · ${label}`, prev: comp }); setToast({ text: `회사 쉬는 날 · ${label}` }); }
+  // 날짜 하나만 넣고 뺌(days.날짜) — 두 마스터가 동시에 넣어도 서로 지우지 않음
+  const saveComp = async (d, name, label) => { setCBusy(true);
+    try { await fb.merge("settings", "holidays", { id: "holidays", days: { [d]: name == null ? fb.deleteField() : name }, updatedAt: nowIso(), updatedBy: cu.id }); A.log("edit", { col: "settings", targetId: "holidays", label: `회사 쉬는 날 · ${label}`, prev: { [d]: comp[d] || null } }); setToast({ text: `회사 쉬는 날 · ${label}` }); }
     catch (e) { console.error("[v2 관리] 회사 쉬는 날 저장 실패:", e); setToast({ text: "저장 실패 · 인터넷 연결을 확인해 주세요" }); }
     setCBusy(false); };
-  const addComp = () => { if (!cd || !cn.trim() || cBusy) return; saveComp({ ...comp, [cd]: cn.trim() }, `${md(cd)} ${cn.trim()} 넣음`); setCd(""); setCn(""); };
+  const addComp = () => { if (!cd || !cn.trim() || cBusy) return; saveComp(cd, cn.trim(), `${md(cd)} ${cn.trim()} 넣음`); setCd(""); setCn(""); };
   const last = holJ && holJ.last;
   return <Sheet title="설정" onBack={onBack} onClose={onClose}>
     <Head>버전1에서 다시 가져오기</Head>
@@ -101,7 +102,7 @@ export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose
       {holJ && <div>{last && last.note ? `최근 바뀐 것: ${last.note}${last.at ? ` (${md(ymd(new Date(last.at)))})` : ""}` : "최근 바뀐 것 없음"}</div>}
       <div style={{ marginTop: 10 }}><b style={{ color: C.ink }}>회사만 쉬는 날</b> · 창립기념일 · 여름휴가처럼 회사 전체가 쉬는 날</div>
       {Object.keys(comp).length === 0 ? <div>아직 없어요</div> : Object.entries(comp).sort().map(([d, n]) => <div key={d} style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ flex: 1, color: C.text }}>{d.slice(0, 4)}년 {md(d)} ({wdOf(d)}) {n}</span>
-        <TBtn tone="mute" disabled={cBusy} onClick={() => { const next = { ...comp }; delete next[d]; saveComp(next, `${md(d)} ${n} 뺌`); }}>빼기</TBtn></div>)}
+        <TBtn tone="mute" disabled={cBusy} onClick={() => saveComp(d, null, `${md(d)} ${n} 뺌`)}>빼기</TBtn></div>)}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
         <input type="date" aria-label="회사 쉬는 날 날짜" value={cd} onChange={(e) => setCd(e.target.value)} className="v2-sel" />
         <input value={cn} onChange={(e) => setCn(e.target.value)} placeholder="이름 (예: 창립기념일)" aria-label="회사 쉬는 날 이름" style={{ ...inp, flex: "1 1 140px", width: "auto", padding: "8px 10px", fontSize: 14 }} />

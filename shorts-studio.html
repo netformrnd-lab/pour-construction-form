@@ -1,3 +1,13 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- 숏폼 스튜디오: 상품 하나로 판매 숏폼 1편을 3시간 안에 만드는 작업판
+     데이터: Firestore pour-app-new  config/shortsStudio(목록) + config/shorts-<id>(프로젝트)  ※ 기존 보안규칙 config/* 안에서 동작 (규칙 변경 없음)
+     편집 설정: GitHub prompts/shorts/<상품>/short.json → prompts/shorts/build_short.py -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <title>POUR 숏폼 스튜디오</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,7 +35,8 @@
   --hl: #6FC6FF; --focus: #86A6FF; --shadow: 0 1px 2px rgba(0,0,0,.3); color-scheme: dark; }
 
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+html { color-scheme: light; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
 .wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 12px 64px; }
 h1, h2, h3 { text-wrap: balance; margin: 0; }
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -187,13 +198,16 @@ pre.code { margin: 6px 0 0; padding: 10px; background: var(--surface2); border-r
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
+</head>
+<body>
 <div class="wrap" id="app">
   <p class="empty">숏폼 스튜디오를 불러오는 중…</p>
 </div>
 
 <script>
 // ── 설정 ────────────────────────────────────────────
-const STUDIO_URL = 'https://claude.ai/artifact/AwEjEJJ36EQn8afFY8gLNr';  // 이 대시보드 링크 (Claude 요청문에 들어감)
+const STUDIO_URL = 'https://pour-construction-form.pages.dev/shorts-studio.html';  // 이 대시보드 주소 (Claude 요청문에 들어감)
+const GH_TREE = 'https://github.com/netformrnd-lab/pour-construction-form/blob/main/';
 const STAGES = [
   { n: 1, name: '자료·사실', min: 15, me: '상품 링크·실사 사진·시공 영상을 Claude에게 보내기 (없으면 "없음")', cl: '상세페이지 분석, 고객 문제 사슬 정리, 원인·수치 근거 확인' },
   { n: 2, name: '대본·목소리', min: 30, me: '대본 읽고 고치기 → 목소리 샘플 듣고 승인 ①', cl: '①~⑥ 구조로 대본 초안 작성, 서준 목소리로 첫 문장 샘플' },
@@ -384,7 +398,7 @@ function askText(n) {
     2: `①~⑥ 구조로 대본 초안을 컷마다 채워줘. 목표 ${P.targetSec || 45}초, 한 문장 25음절 이하, 세부 의구심 최대 2개, 시공은 쓱싹쓱 + 격려.\n서준 목소리로 첫 문장 샘플 1개도 만들어줘.`,
     3: '승인된 대본으로 AI 원리 컷 장면 이미지를 만들고 이미지 ID를 컷에 넣어줘. 제품은 실물 사진 참조, 모양 변형 금지. 상태는 "생성됨"으로.',
     4: '승인된 이미지로 영상(Kling, 9:16, 소리 끔)을 만들고, 서준 나레이션을 컷별로 생성해서 받아쓰기 검사 후 영상·음성 ID를 채워줘.',
-    5: 'build_short.py로 편집 빌드해서 완성 mp4·캡컷 zip 링크를 "최종"에 채워줘. 설정은 대시보드 5단계 JSON 그대로.',
+    5: '5단계 JSON을 GitHub prompts/shorts/<상품>/short.json 으로 저장·푸시하고, build_short.py로 편집 빌드해서 완성 mp4·캡컷 zip 링크를 "최종"에 채워줘.',
     6: '유튜브 쇼츠·인스타 릴스용 제목, 설명, 해시태그 초안을 업로드 문구에 채워줘.',
   }[n];
   return head + '\n' + body;
@@ -427,6 +441,7 @@ function promptOf(c) {
 // ── 상태 · 저장 ─────────────────────────────────────
 let db = null, mode = 'loading', projects = {}, curId = null, P = null;
 let dirty = false, saving = false, saveAgain = false, editSeq = 0, saveTimer = null, saveMsg = '', saveErr = false, readOnly = false;
+let loadedIndex = false;
 let tab = Math.min(5, Math.max(0, +(store.get('studio.tab') || 0) || 0)), showNew = false, armed = null, pendingRemote = false, copied = '';
 
 function listProjects() { return Object.values(projects).filter(p => !p.archived).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))); }
@@ -449,7 +464,10 @@ async function save() {
   saveMsg = '저장 중…'; paintSave();
   try {
     if (mode === 'db') {
-      await db.collection('projects').doc(curId).set(body);
+      await db.collection('config').doc('shorts-' + curId).set(body);
+      const meta = { name: body.product?.name || body.name || '', version: body.output?.version || '', archived: !!body.archived, updatedAt: body.updatedAt };
+      await db.collection('config').doc('shortsStudio').set({ projects: { [curId]: meta } }, { merge: true });
+      console.log(`[shorts] ${curId} 저장`);
     } else {
       projects[curId] = Object.assign({ id: curId }, body);
       store.set('studio.projects', JSON.stringify(projects));
@@ -460,10 +478,10 @@ async function save() {
   } catch (e) {
     console.error('[projects] 저장 실패:', e);
     saveErr = true;
-    if (e && e.code === 'invalid_argument') { readOnly = true; saveMsg = '저장 못 함: 이 화면은 보기 전용이에요'; }
-    else if (e && e.code === 'quota_exceeded') saveMsg = '저장 공간이 가득 찼어요. 오래된 숏폼을 보관 처리해 주세요';
+    if (e && e.code === 'permission-denied') { readOnly = true; saveMsg = '저장 못 함: 권한이 없어요 (보안규칙 확인)'; }
+    else if (e && e.code === 'resource-exhausted') saveMsg = '저장 한도 초과 — 잠시 후 다시 시도해요';
     else saveMsg = '저장 실패 — 잠시 후 자동으로 다시 시도해요';
-    if (!readOnly && e && e.code === 'unavailable') { clearTimeout(saveTimer); saveTimer = setTimeout(save, 1500 + Math.random() * 1500); }
+    if (!readOnly && e && (e.code === 'unavailable' || e.code === 'deadline-exceeded')) { clearTimeout(saveTimer); saveTimer = setTimeout(save, 1500 + Math.random() * 1500); }
   } finally {
     saving = false; paintSave();
     if (saveAgain) { saveAgain = false; save(); }
@@ -474,9 +492,10 @@ function paintSave() { const el = document.getElementById('save'); if (el) { el.
 
 async function createProject(name, from) {
   name = (name || '').trim() || '새 숏폼';
-  const id = mode === 'db' ? db.collection('projects').doc().id : 'p' + Date.now().toString(36);
+  const id = (mode === 'db' ? db.collection('config').doc().id : 'p' + Date.now().toString(36)).slice(0, 12);
   const p = from ? duplicate(from, name) : template(name);
   projects[id] = Object.assign({ id }, p); curId = id; P = normalize(clone(p)); store.set('studio.cur', id);
+  if (mode === 'db') watchProject(id);
   tab = 0; showNew = false; render(); await saveNow(); render();
 }
 
@@ -509,7 +528,7 @@ function headerHTML() {
   ${showNew ? `<div class="card" style="margin-top:10px"><label class="f">새 숏폼 상품명<input class="in" id="newName" placeholder="예) POUR 베란다 방수 세트"></label>
     <div class="addbar"><button class="btn pri" data-act="createNew">빈 구조로 만들기</button>${P ? `<button class="btn" data-act="createDup">"${esc(P.product.name || P.name)}" 구조로 만들기</button>` : ''}<button class="btn ghost" data-act="cancelNew">취소</button></div>
     <p class="note">기준 구조: ① 고객 문제 → ② 원인 → ③ 해결 → ④ 세부 의구심(최대 2) → ⑤ 시공 쓱싹쓱 → ⑥ 상품 추천</p></div>` : ''}
-  ${mode === 'local' ? `<div class="banner">Claude 화면 밖에서 열려 이 기기에만 저장돼요. 팀과 함께 보려면 claude.ai 링크로 여세요.</div>` : ''}
+  ${mode === 'local' ? `<div class="banner">Firebase에 연결하지 못해 이 기기에만 저장돼요. 인터넷 연결을 확인하고 새로고침해 주세요.</div>` : ''}
   ${readOnly ? `<div class="banner">보기 전용 권한이에요. 고친 내용은 저장되지 않아요.</div>` : ''}`;
 }
 function clockHTML() {
@@ -659,7 +678,9 @@ function panel5() {
   out += `<section class="card"><h3>빌드 설정 JSON <span class="sub">Claude가 sandbox에서 build_short.py로 실행</span></h3>
     <pre class="code" data-json>${esc(JSON.stringify(buildConfig(), null, 1))}</pre>
     <div class="addbar"><button class="btn sm" data-act="copyJson">${copied === 'json' ? '복사됨' : 'JSON 복사'}</button></div>
-    <p class="note">실행: <span class="mono">python3 prompts/shorts/build_short.py short.json</span> · 기준: 옥상배관방수트랩 v12 (prompts/shorts/drain-trap/short.json)</p></section>`;
+    <label class="f">GitHub 저장 경로 (Claude가 채움)${inp('output.config', 'prompts/shorts/<상품>/short.json')}</label>
+    <div class="addbar">${P.output.config ? `<a class="btn sm" href="${esc(GH_TREE + P.output.config)}" target="_blank" rel="noopener">GitHub에서 보기</a>` : ''}</div>
+    <p class="note">실행: <span class="mono">python3 prompts/shorts/build_short.py &lt;short.json&gt;</span> · 기준: 옥상배관방수트랩 v12 (prompts/shorts/drain-trap/short.json)</p></section>`;
   return out;
 }
 function qaAutoHTML() { return qaAuto().map(([l, ok, d]) => `<div class="row"><span class="chip ${ok ? 'good' : 'warn'}">${ok ? '✓' : '!'}</span><span>${l}</span><span class="note">${esc(d)}</span></div>`).join(''); }
@@ -679,7 +700,7 @@ function railHTML() {
   return `<section class="card meter" id="meter">${meterHTML()}</section>
   <section class="card ask"><h3>Claude에게 요청 <span class="sub">${tab + 1}단계</span></h3><pre class="code" data-ask>${esc(askText(tab + 1))}</pre>
     <div class="addbar"><button class="btn sm pri" data-act="copyAsk">${copied === 'ask' ? '복사됨 — 채팅에 붙여넣기' : '요청문 복사'}</button></div>
-    <p class="note">Claude는 이 대시보드를 직접 읽고 결과를 채워 넣어요.</p></section>
+    <p class="note">Claude는 Firebase에서 이 숏폼을 직접 읽고 결과를 채워 넣어요. 편집 설정은 GitHub에 저장돼요.</p></section>
   <section class="card"><h3>3시간 계획</h3><ol class="plan">${STAGES.map((s, i) => `<li class="${progressStage() === s.n ? 'cur' : ''}"><span class="mono">${hm(CUM[i])}–${hm(CUM[i + 1])}</span><span>${s.n}. ${s.name}</span></li>`).join('')}</ol>
     <p class="note">승인은 3번만: ① 대본·목소리 ② 장면 이미지 ③ 최종 영상</p></section>
   <section class="card"><h3>기준 숏폼</h3><dl class="kv"><dt>상품</dt><dd>옥상배관방수트랩 v12</dd><dt>컷</dt><dd>13</dd><dt>길이</dt><dd>54.5초</dd><dt>성우</dt><dd>서준</dd><dt>컷 사이</dt><dd>0.42초</dd></dl>
@@ -697,7 +718,7 @@ function meterHTML() {
 function render() {
   const app = document.getElementById('app');
   const ae = document.activeElement; const focus = ae && ae.id ? { id: ae.id, s: ae.selectionStart, e: ae.selectionEnd } : null;
-  if (mode === 'loading') { app.innerHTML = '<p class="empty">숏폼 스튜디오를 불러오는 중…</p>'; return; }
+  if (mode === 'loading' || (mode === 'db' && !loadedIndex) || (mode === 'db' && curId && !P)) { app.innerHTML = '<p class="empty">숏폼 스튜디오를 불러오는 중…</p>'; return; }
   if (!P) {
     app.innerHTML = `<header>${headerHTML()}</header><section class="card" style="margin-top:16px"><h3>아직 숏폼이 없어요</h3>
       <p class="empty">상품 하나로 숏폼 1편을 3시간 안에 만드는 작업판이에요. "새 숏폼"을 누르고 상품명만 적으면 기준 구조(① 고객 문제 → ⑥ 상품 추천)가 채워져요.</p>
@@ -787,29 +808,55 @@ document.addEventListener('click', async e => {
 });
 setInterval(() => { if (P && P.startedAt) { const c = document.getElementById('clock'); if (c) c.innerHTML = clockHTML(); } }, 20000);
 
-// ── 시작: 공유 저장소(db) 연결, 없으면 이 기기 저장 ─────────────
-(async function boot() {
-  let ns = null;
-  try { ns = (window.claude && typeof window.claude.use === 'function') ? await window.claude.use('db') : null; } catch (e) { ns = null; }
-  if (!ns) {
-    mode = 'local';
-    try { projects = JSON.parse(store.get('studio.projects') || '{}') || {}; } catch (e) { projects = {}; }
-    console.log(`[projects] 이 기기 저장 ${Object.keys(projects).length}건`);
-    pickProject(); render(); return;
-  }
-  db = ns; mode = 'db';
-  db.collection('projects').onSnapshot(snap => {
-    const next = {}; snap.docs.forEach(d => { next[d.id] = Object.assign({ id: d.id }, clone(d.data())); });
-    console.log(`[projects] ${snap.size}건`);
-    projects = next;
-    if (!curId || !projects[curId] || projects[curId].archived) { pickProject(); render(); return; }
-    if (dirty || saving || snap.metadata.hasPendingWrites) { updateDerived(); return; }
-    const remote = normalize(clone(projects[curId])); const changed = JSON.stringify(remote) !== JSON.stringify(P);
+// ── 시작: Firestore 연결 (pour-app-new), 실패하면 이 기기 저장 ─────────────
+let unsubProject = null;
+function watchProject(id) {
+  if (unsubProject) { unsubProject(); unsubProject = null; }
+  if (mode !== 'db' || !id) return;
+  unsubProject = db.collection('config').doc('shorts-' + id).onSnapshot(doc => {
+    if (!doc.exists) { console.warn(`[shorts] ${id} 문서 없음`); return; }
+    projects[id] = Object.assign({ id }, projects[id] || {}, clone(doc.data()));
+    if (id !== curId) return;
+    if (dirty || saving || doc.metadata.hasPendingWrites) { updateDerived(); return; }
+    const remote = normalize(Object.assign({ id }, clone(doc.data())));
+    const changed = JSON.stringify(remote) !== JSON.stringify(P);
     P = remote;
     const a = document.activeElement;
     if (a && a.matches && a.matches('input,textarea,select') && document.getElementById('app').contains(a)) { if (changed) { pendingRemote = true; updateDerived(); } return; }
     render();
-  }, err => { console.error('[projects] 구독 오류:', err); saveErr = true; saveMsg = '불러오기 오류 — 새로고침해 주세요'; paintSave(); });
+  }, err => { console.error('[shorts] 프로젝트 구독 오류:', err); saveErr = true; saveMsg = '불러오기 오류 — 새로고침해 주세요'; paintSave(); });
+}
+const _pick = pickProject;
+pickProject = function (prefer) {
+  const before = curId; _pick(prefer);
+  if (mode === 'db' && curId && (curId !== before || !unsubProject)) { P = projects[curId]?.cuts ? normalize(clone(projects[curId])) : null; watchProject(curId); }
+};
+(function boot() {
+  if (typeof firebase === 'undefined') {
+    mode = 'local';
+    try { projects = JSON.parse(store.get('studio.projects') || '{}') || {}; } catch (e) { projects = {}; }
+    console.log(`[shorts] 이 기기 저장 ${Object.keys(projects).length}건`);
+    pickProject(); render(); return;
+  }
+  if (!firebase.apps.length) firebase.initializeApp({
+    apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+    authDomain: "pour-app-new.firebaseapp.com",
+    projectId: "pour-app-new",
+    storageBucket: "pour-app-new.firebasestorage.app",
+    messagingSenderId: "411031141847",
+    appId: "1:411031141847:web:e658174fd4b9652cdadf92"
+  });
+  db = firebase.firestore(); mode = 'db';
+  db.collection('config').doc('shortsStudio').onSnapshot(doc => {
+    const list = (doc.exists && doc.data().projects) || {};
+    console.log(`[shortsStudio] 숏폼 ${Object.keys(list).length}건`);
+    Object.entries(list).forEach(([id, m]) => { projects[id] = Object.assign({}, projects[id] || {}, { id, product: { ...(projects[id]?.product || {}), name: m.name }, name: m.name, output: { ...(projects[id]?.output || {}), version: m.version }, archived: m.archived, updatedAt: m.updatedAt }); });
+    loadedIndex = true;
+    if (!curId || !projects[curId] || projects[curId].archived) { pickProject(); render(); return; }
+    if (!document.activeElement || !document.activeElement.matches('input,textarea,select')) render(); else updateDerived();
+  }, err => { console.error('[shortsStudio] 목록 구독 오류:', err); mode = 'db'; saveErr = true; saveMsg = '목록을 못 불러왔어요 — 새로고침해 주세요'; render(); });
 })();
 render();
 </script>
+</body>
+</html>

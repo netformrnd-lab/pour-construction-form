@@ -118,16 +118,18 @@
 - **이미지 승인 → 영상** 순서를 지킨다. 제품 형태는 실물과 같아야 하고 변형 금지.
 - **최종 전 검수**: 받아쓰기로 발음 확인, 제품 형태 확인, "AI 연출 화면" 표기, 실사 대체 컷은 "(임시)" 표기, 금지 주장 없음 → `prompts/shorts/<상품>/` 제작기록에 남긴다.
 
-### ★ 3시간 제작 대시보드 — 숏폼 스튜디오 (2026.10.03)
-- 링크: https://claude.ai/artifact/AwEjEJJ36EQn8afFY8gLNr (원본: `prompts/shorts/studio/shorts-studio.html`)
+### ★ 3시간 제작 대시보드 — 숏폼 스튜디오 (2026.10.04, Firebase + GitHub)
+- 주소: https://pour-construction-form.pages.dev/shorts-studio.html (원본: 리포 루트 `shorts-studio.html`, main에 병합되면 Cloudflare Pages가 자동 배포)
+- 데이터: Firestore `pour-app-new` → `config/shortsStudio`(숏폼 목록) + `config/shorts-<ID>`(숏폼 1편 전체). 기존 보안규칙(`config/*`) 안에서 동작 — 규칙 변경 없음
+- GitHub: 편집 설정 `prompts/shorts/<상품>/short.json`, 완료 시 대시보드 기록 `prompts/shorts/<상품>/studio.json` 저장·푸시 (대시보드 5단계에 GitHub 링크 표시)
 - 3시간 계획: ① 자료·사실 0:00–0:15 → ② 대본·목소리 0:15–0:45 → ③ 장면 이미지 0:45–1:30 → ④ 영상·나레이션 1:30–2:15 → ⑤ 편집·검수 2:15–2:45 → ⑥ 최종·업로드 2:45–3:00
 - 대시보드가 하는 일: 타이머·"다음 할 일(내 차례/Claude 차례)", 대본 음절·예상 길이·금지 표현 자동 검사, 컷별 장면 프롬프트 자동 작성, 영상·음성 ID 진행판, 빌드 설정 JSON, 검수 체크
-- 기준 숏폼: 옥상배관방수트랩 v12가 예시 프로젝트로 들어 있음 → "이 구조로 새로 만들기"로 다음 상품 시작
-- **Claude 운영 규칙**: 사용자가 "[숏폼 스튜디오] ○○ — n단계 진행해줘"라고 하면
-  1. `ArtifactData` list/get 으로 `projects/<프로젝트 ID>` 를 읽는다 (사용자에게 다시 묻지 않는다)
-  2. 해당 단계 일을 하고 결과(대본·이미지 ID `img.ref`/`img.status:"made"`·영상 `src[].u`·음성 `audio`·받아쓰기 `whisper`·완성 링크 `output`)를 같은 문서에 `update`(if_version 지정)로 채운다
+- 기준 숏폼: 옥상배관방수트랩 v12 (ID `drain-trap-v12`) → "이 구조로 새로 만들기"로 다음 상품 시작
+- **Claude 운영 규칙**: 사용자가 "[숏폼 스튜디오] ○○ — n단계 진행해줘 (프로젝트 ID …)"라고 하면
+  1. `python3 prompts/shorts/tools/fs.py get <ID> work.json` 으로 읽는다 (사용자에게 다시 묻지 않는다)
+  2. 해당 단계 일을 하고 결과(대본 `cuts[].subs`·이미지 `img.ref`/`img.status:"made"`·영상 `src[].u`·음성 `audio`·받아쓰기 `whisper`·완성 `output.mp4/zip/config`)를 채워 `fs.py put <ID> work.json` 으로 저장한다 (저장 직전에 다시 get 해서 사용자가 그새 고친 칸을 덮어쓰지 않게 합친다)
   3. 승인(`gates.*`)은 사용자만 체크한다. Claude는 승인 칸을 바꾸지 않는다
-- 편집: 5단계 JSON을 `prompts/shorts/<상품>/short.json` 으로 저장·푸시 → sandbox에서 `python3 build_short.py <short.json URL>` (범용 조립 스크립트, v12를 설정만으로 재현 검증 54.3초)
+- 편집: 5단계 JSON → GitHub `prompts/shorts/<상품>/short.json` 저장·푸시 → sandbox에서 `python3 build_short.py <short.json raw URL>` (v12를 설정만으로 재현 검증 54.3초)
 
 ### 사용자 승인 지점 (3번)
 1. 대본 + 길이 + 목소리 샘플

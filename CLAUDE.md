@@ -30,7 +30,7 @@
 ## [숏폼 시공 장면 — 강제 지침]
 숏폼·광고 영상에서 시공 방법을 보여줄 때는 항상 **"쓱싹쓱" 리듬 + "야, 너도 할 수 있어" 느낌**으로 만든다 (동작 2~4개, 동작당 1초 안팎, 의성어 자막, 마지막 격려 한 마디). 모든 영상·이미지·나레이션 프롬프트에 적용하며, 자세한 기준은 `prompts/06-sales-shorts-system.md`의 ★ 시공 장면 강제 지침을 따른다.
 
-숏폼 제작 순서는 항상 **자료·사실 확보 → 상품 선택 → 대본(고객문제→원인→해결 / 세부 의구심 1~2개 / 시공 쓱싹쓱 / 상품추천, 길이·목소리 샘플 같이 확정) → 장면 이미지 승인 → 영상·편집·검수** 로 한다 (`prompts/06-sales-shorts-system.md` ★ 숏폼 제작 표준 순서). 기본 성우: inworld `Seojun (ko)`. 제작은 **숏폼 스튜디오 대시보드**(https://claude.ai/artifact/AwEjEJJ36EQn8afFY8gLNr, 원본 `prompts/shorts/studio/shorts-studio.html`)에서 3시간 단위로 진행하고, 편집은 범용 `prompts/shorts/build_short.py` 로 한다.
+숏폼 제작 순서는 항상 **자료·사실 확보 → 상품 선택 → 대본(고객문제→원인→해결 / 세부 의구심 1~2개 / 시공 쓱싹쓱 / 상품추천, 길이·목소리 샘플 같이 확정) → 장면 이미지 승인 → 영상·편집·검수** 로 한다 (`prompts/06-sales-shorts-system.md` ★ 숏폼 제작 표준 순서). 기본 성우: inworld `Seojun (ko)`. 제작은 **숏폼 스튜디오 대시보드**(https://pour-construction-form.pages.dev/shorts-studio.html, 원본 루트 `shorts-studio.html`, 데이터 Firestore `config/shortsStudio`·`config/shorts-<ID>`, Claude는 `prompts/shorts/tools/fs.py`로 읽고 씀)에서 3시간 단위로 진행하고, 편집은 범용 `prompts/shorts/build_short.py` 로 한다.
 
 ---
 

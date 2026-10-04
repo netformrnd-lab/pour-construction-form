@@ -1,0 +1,47 @@
+name: 업무OS 공휴일 자동 갱신
+
+# 매달 1일 09:17 KST(00:17 UTC) — 공공데이터포털 '한국천문연구원 특일 정보'로 올해·내년 공휴일(대체·임시·선거일 포함)을 받아
+# pourstore-renewal/holidays.json 을 고치고 main 에 올림 → 업무OS v2 가 열 때 읽음.
+# 바뀐 날이 있으면 Claude 가 한 줄로 확인(선택). 시크릿: DATA_GO_KR_KEY(꼭) · ANTHROPIC_API_KEY(선택)
+on:
+  schedule:
+    - cron: '17 0 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: 특일 정보 받아 holidays.json 갱신
+    runs-on: ubuntu-latest
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 의존성 설치
+        run: npm install --no-audit --no-fund
+        working-directory: scripts/holidays
+
+      - name: 특일 정보 받기
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node sync.mjs
+        working-directory: scripts/holidays
+
+      - name: 바뀌었으면 main 에 올리기
+        run: |
+          if git diff --quiet -- pourstore-renewal/holidays.json && [ -z "$(git status --porcelain -- pourstore-renewal/holidays.json)" ]; then
+            echo "holidays.json 바뀐 것 없음 (키가 없거나 같은 내용)"; exit 0
+          fi
+          git config user.name "pour-os-holidays"
+          git config user.email "actions@users.noreply.github.com"
+          git add pourstore-renewal/holidays.json
+          git commit -m "업무OS 공휴일 자동 갱신 $(date -u +%Y-%m)"
+          git push

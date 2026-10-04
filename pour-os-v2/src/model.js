@@ -45,8 +45,12 @@ export const KR_HOLIDAYS = {
   "2028-07-17": "제헌절", "2028-08-15": "광복절", "2028-10-02": "추석 연휴", "2028-10-03": "추석 · 개천절", "2028-10-04": "추석 연휴",
   "2028-10-05": "추석 대체공휴일", "2028-10-09": "한글날", "2028-12-25": "성탄절",
 };
-export const holidayName = (key) => KR_HOLIDAYS[key] || "";
-export const isOffDay = (key) => { const w = new Date(key + "T00:00:00").getDay(); return w === 0 || w === 6 || !!KR_HOLIDAYS[key]; };
+// 쉬는 날 더하기 층: fetched = 매달 자동 갱신한 공식 특일 정보(holidays.json) · company = 회사만 쉬는 날(관리자 설정). 위 표는 못 읽을 때의 대비
+const HOL_LAYERS = { fetched: {}, company: {} }; let HOL_EXTRA = {};
+export const setHolidayLayer = (name, days) => { HOL_LAYERS[name] = days && typeof days === "object" ? days : {}; HOL_EXTRA = { ...HOL_LAYERS.fetched, ...HOL_LAYERS.company }; };
+export const holidayLayer = (name) => HOL_LAYERS[name] || {};
+export const holidayName = (key) => KR_HOLIDAYS[key] || HOL_LAYERS.company[key] || HOL_LAYERS.fetched[key] || "";
+export const isOffDay = (key) => { const w = new Date(key + "T00:00:00").getDay(); return w === 0 || w === 6 || !!KR_HOLIDAYS[key] || !!HOL_EXTRA[key]; };
 export const prevWorkday = (key) => { let k = key; for (let i = 0; i < 14 && isOffDay(k); i++) k = addDays(k, -1); return k; };
 export const nextWorkday = (key) => { let k = key; for (let i = 0; i < 14 && isOffDay(k); i++) k = addDays(k, 1); return k; };
 

@@ -7,7 +7,7 @@ import {
   ymd, addDays, ddays, ddayLabel, md, hm, ago, dayTitle, isMaster, activeUsers, nameOf, STATUS_L, isDone, isOneOff, isMine, ownersOf, dueOf,
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, planSeed, COUNT_L, LOG_L,
-  reqOf, needsReview, dueApprover, isHoldP, nextWorkday,
+  reqOf, needsReview, dueApprover, isHoldP, nextWorkday, setHolidayLayer,
 } from "./model.js";
 import { planLaunchImport, relaunch, isTempOwner } from "./launch.js";
 import { nextTurnText } from "./turn.js";
@@ -20,7 +20,7 @@ export const nowIso = () => new Date().toISOString();
 
 // ───────────────── 데이터 구독 ─────────────────
 export function useData(on) {
-  const [S, setS] = useState({ users: null, projects: [], openT: [], doneT: [], notes: [], log: [], events: [], brands: [], workflows: [], mainKPIs: [], subKPIs: [] });
+  const [S, setS] = useState({ users: null, projects: [], openT: [], doneT: [], notes: [], log: [], events: [], brands: [], workflows: [], mainKPIs: [], subKPIs: [], settings: [] });
   const [err, setErr] = useState("");
   useEffect(() => {
     if (!on) return;
@@ -39,12 +39,13 @@ export function useData(on) {
       fb.listen("workflows", null, put("workflows"), onE),
       fb.listen("mainKPIs", null, put("mainKPIs"), onE),   // 프로젝트 KPI 분류용 (읽기만)
       fb.listen("subKPIs", null, put("subKPIs"), onE),
+      fb.listen("settings", null, put("settings"), (e) => console.warn("[v2] 설정(회사 쉬는 날) 불러오기 실패 · 앱은 그대로:", e)),   // 못 읽어도 앱은 그대로
     ];
     return () => subs.forEach((u) => u && u());
   }, [on]);
   const D = useMemo(() => {
     const m = new Map(); S.doneT.forEach((t) => m.set(t.id, t)); S.openT.forEach((t) => m.set(t.id, t));
-    return { users: S.users || [], projects: S.projects, tasks: [...m.values()], notes: S.notes, log: S.log, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], ready: !!S.users };
+    return { users: S.users || [], projects: S.projects, tasks: [...m.values()], notes: S.notes, log: S.log, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], settings: S.settings || [], ready: !!S.users };
   }, [S]);
   return [D, err];
 }
@@ -62,13 +63,20 @@ export function useBoot() {
   const cu = D.users.find((u) => u.id === me);
   const authed = !!(cu && cu.active !== false && (cu.pinHash ? cu.pinHash === key : false));
   const [launchNew, setLaunchNew] = useState(0);
+  // 쉬는 날: 매달 자동 갱신한 공식 특일 정보(holidays.json, 같은 사이트) + 회사만 쉬는 날(settings/holidays). 화면이 그리기 전에 층을 바꿔 둠
+  const [holJ, setHolJ] = useState(null);
+  useEffect(() => { fetch("./holidays.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.days) setHolJ(j); })
+    .catch((e) => console.warn("[v2] 공휴일 자동 갱신 파일 못 읽음 · 앱 안 표로 계산:", e && e.message)); }, []);
+  useMemo(() => setHolidayLayer("fetched", holJ && holJ.days), [holJ]);
+  const comp = ((D.settings || []).find((x) => x.id === "holidays") || {}).days;
+  useMemo(() => setHolidayLayer("company", comp), [JSON.stringify(comp || {})]);
   const synced = useRef(false);
   useEffect(() => { if (!meta || !D.ready || !authed || synced.current) return; synced.current = true;
     syncNewLaunch(D, cu).then((n) => { if (n) setLaunchNew(n); }).catch((e) => console.error("[v2] 신제품 보드 새 제품 가져오기 실패:", e));
     const today = ymd(new Date()), k = "pour-os-v2.progSync";
     let last = ""; try { last = localStorage.getItem(k) || ""; } catch (e) { /* 저장소 막힘 → 매번 */ }
     if (isMaster(cu) && last !== today) syncProgress(D).then((n) => { try { localStorage.setItem(k, today); } catch (e) { /* 무시 */ } console.log(`[v2] 프로젝트 진척 다시 계산 · 바뀐 것 ${n}개`); }).catch((e) => console.error("[v2] 프로젝트 진척 다시 계산 실패:", e)); }, [meta, D.ready, authed]);
-  return { launchNew, meta, setMeta, metaErr, checkMeta, D, err, cu, authed, signIn: (u, h) => { setMe(u.id); setKey(h); }, logout: () => { setKey(""); setMe(""); } };
+  return { launchNew, holJ, meta, setMeta, metaErr, checkMeta, D, err, cu, authed, signIn: (u, h) => { setMe(u.id); setKey(h); }, logout: () => { setKey(""); setMe(""); } };
 }
 // 프로젝트 진척(%) 하루 한 번 다시 계산: 열린 일반 프로젝트(신제품·직접 정한 % 빼고)의 전체 업무를 프로젝트별로 읽어 % 가 다르면 그 칸만 저장
 //  (앱은 열린 업무 + 최근 30일 끝낸 업무만 불러오므로 오래전에 끝낸 업무까지 세려면 서버에서 따로 읽어야 함)

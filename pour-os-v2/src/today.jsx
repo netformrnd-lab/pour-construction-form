@@ -106,7 +106,7 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
         <Card>
           {TV.fixed.total > 0 && (fxOpen
             ? <>{fxLeft.map((x, i) => { const t = x.t, [a, b] = fxCount(D.users, t, key), subs = fxSubs(t, cu.id);
-                return <Row key={t.id} tag={x.late ? "지남" : "고정"} tagTone={x.late ? "red" : null} title={fxLabel(t, cu.id)} sub={[fxTime(t, cu.id) || "시간 상관없음", t.recurType && t.recurType !== "daily" ? fxRecurL(t) : "", b > 1 ? `${a}/${b}명` : "", subs.length ? `체크리스트 ${subs.length}개` : ""].filter(Boolean).join(" · ")}
+                return <Row key={t.id} tag={x.miss ? `밀림 ${md(x.miss)}` : x.late ? "지남" : "고정"} tagTone={x.late ? "red" : null} title={fxLabel(t, cu.id)} sub={[fxTime(t, cu.id) || "시간 상관없음", t.recurType && t.recurType !== "daily" ? fxRecurL(t) : "", b > 1 ? `${a}/${b}명` : "", subs.length ? `체크리스트 ${subs.length}개` : ""].filter(Boolean).join(" · ")}
                   onClick={() => open({ type: "fixed", id: t.id })} right={<Act onClick={() => A.fxToggle(t)}>완료</Act>} last={false} />; })}
                 {TV.fixed.done.length > 0 && <More onClick={() => setShowFxDone(!showFxDone)}>{showFxDone ? "끝낸 고정업무 접기 ▴" : `끝낸 고정업무 ${TV.fixed.done.length} ▾`}</More>}
                 {showFxDone && TV.fixed.done.map((x) => <Row key={x.t.id} dim title={fxLabel(x.t, cu.id)} sub={`✓ ${hm(x.t.doneAtBy && x.t.doneAtBy[cu.id])}`} onClick={() => open({ type: "fixed", id: x.t.id })} right={<Act on onClick={() => A.fxToggle(x.t)}>✓ 취소</Act>} />)}

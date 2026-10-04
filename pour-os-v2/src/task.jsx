@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as fb from "./fb.js";
 import {
   ymd, addDays, ddays, ddayLabel, md, hm, ago, dayTitle, WD, isMaster, activeUsers, nameOf, STATUS_L, isDone, isOneOff, isMine, ownersOf, dueOf,
-  fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit, fxWeekDays, FX_WD, monthEndWorkday,
+  fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit, fxWeekDays, fxIds, FX_WD, monthEndWorkday,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf,
 } from "./model.js";
@@ -56,7 +56,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
   useEffect(() => { if (!focus || !t) return; const h = setTimeout(() => { const el = document.getElementById("v2-t-" + focus); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); return () => clearTimeout(h); }, [focus, !!t]);
   if (t === undefined || t === null) return <Sheet title="업무" onBack={onBack} onClose={onClose}><Empty>불러오는 중…</Empty></Sheet>;
   if (t === false) return <Sheet title="업무" onBack={onBack} onClose={onClose}><Empty>이 업무를 찾지 못했어요 (휴지통이나 보관함으로 갔을 수 있어요)</Empty></Sheet>;
-  if (t.isFixed) return <FixedSheet D={D} cu={cu} A={A} onBack={onBack} onClose={onClose} id={id} focus={focus} />;   // 고정업무는 어느 입구로 와도 고정업무 화면 (일반 화면의 담당 바꾸기·끝냄이 반복 업무를 덮어쓰지 않게)
+  if (t.isFixed) return <FixedSheet D={D} cu={cu} A={A} onBack={onBack} onClose={onClose} id={id} focus={focus} setToast={setToast} />;   // 고정업무는 어느 입구로 와도 고정업무 화면 (일반 화면의 담당 바꾸기·끝냄이 반복 업무를 덮어쓰지 않게)
   const key = ymd(new Date()), mine = isMine(t, cu.id), done = isDone(t), n = ddays(dueOf(t), key), master = isMaster(cu);
   const p = D.projects.find((x) => x.id === t.projectId), owners = ownersOf(t).map((u) => nameOf(D.users, u) || "(없는 사람)");
   const kids = D.tasks.filter((x) => x.parentId === t.id), parent = t.parentId ? D.tasks.find((x) => x.id === t.parentId) : null;
@@ -247,7 +247,7 @@ export function Thread({ D, cu, A, notes, itemId, ctx }) {
 }
 
 // ───────────────── 고정업무 보기 ─────────────────
-export function FixedSheet({ D, cu, A, onBack, onClose, id, focus }) {
+export function FixedSheet({ D, cu, A, onBack, onClose, id, focus, setToast }) {
   const t = useTask(D, id);
   const notes = useItemNotes(D, taskNoteId(id));
   const [checks, setChecks] = useState(null);
@@ -262,6 +262,7 @@ export function FixedSheet({ D, cu, A, onBack, onClose, id, focus }) {
     <div style={{ fontSize: 13.5, color: C.sub }}>{fxRecurL(t)} · {fxTime(t, cu.id) || "시간 상관없음"} · 담당 {people.length}명{t.paused ? " · 멈춤" : ""}</div>
     {mine && subs.length > 0 && <><Head>체크리스트</Head><div className="v2-chips">{subs.map((x) => { const ok = fxHit(t, ((t.subDone || {})[cu.id] || {})[x.id], key); return <Chip key={x.id} on={ok} onClick={() => A.fxSub(t, x.id)}>{ok ? "✓ " : ""}{x.title}</Chip>; })}</div></>}
     {(mine || isMaster(cu)) && <RecurEdit t={t} A={A} />}
+    {isMaster(cu) && <FxOwners t={t} D={D} A={A} setToast={setToast} />}
     <Head>누가 했나</Head>
     <Card>{people.length === 0 ? <Empty>담당이 없어요</Empty> : people.map((uid, i) => { const ok = fxMeDone(t, uid, key), at = t.doneAtBy && t.doneAtBy[uid];
       return <div key={uid} style={{ display: "flex", gap: 10, padding: "11px 14px", borderBottom: i < people.length - 1 ? `1px solid ${C.line}` : "none", fontSize: 14 }}><b style={{ flex: 1, color: C.text }}>{nameOf(D.users, uid) || uid}</b><span style={{ color: ok ? C.green : C.mute, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{ok ? `✓ ${hm(at)}` : `아직${fxTime(t, uid) ? ` (예정 ${fxTime(t, uid)})` : ""}`}</span></div>; })}</Card>
@@ -275,6 +276,22 @@ export function FixedSheet({ D, cu, A, onBack, onClose, id, focus }) {
   </Sheet>;
 }
 
+// 고정업무 담당 바꾸기 (마스터) — 여러 명 고르기 또는 '전체' · 사람마다 정한 시간·이름·체크 기록은 지우지 않음 · 5초 되돌리기
+function FxOwners({ t, D, A, setToast }) {
+  const users = activeUsers(D.users), [on, setOn] = useState(false), [sel, setSel] = useState([]), [all, setAll] = useState(false);
+  if (!on) return <div style={{ marginTop: 4 }}><TBtn onClick={() => { setSel(fxIds(t).filter((id) => users.some((u) => u.id === id))); setAll(!!t.forAll); setOn(true); }}>담당 바꾸기 ›</TBtn></div>;
+  const names = all ? "전체" : sel.map((id) => nameOf(D.users, id)).filter(Boolean).join("·");
+  const save = () => { const prev = { assigneeIds: t.assigneeIds || [], assigneeId: t.assigneeId || "", forAll: !!t.forAll };
+    const f = all ? { forAll: true } : { assigneeIds: sel, assigneeId: sel[0] || "", forAll: false };
+    A.patchTask(t, f, "assign", `${t.title} · 고정업무 담당 ${names || "없음"}`, { prev });
+    if (setToast) setToast({ text: `담당을 ${names}(으)로 바꿨어요`, undo: () => A.patchTask(t, prev, "assign", `되돌림 · ${t.title} · 고정업무 담당`) }); setOn(false); };
+  return <Card style={{ marginTop: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ fontSize: 13, fontWeight: 800, color: C.ink }}>담당 (여러 명 가능)</div>
+    <div className="v2-chips"><Chip on={all} onClick={() => setAll(!all)}>{all ? "✓ " : ""}전체</Chip>{!all && users.map((u) => { const k = sel.includes(u.id); return <Chip key={u.id} on={k} onClick={() => setSel(k ? sel.filter((x) => x !== u.id) : [...sel, u.id])}>{k ? "✓ " : ""}{u.name}</Chip>; })}</div>
+    <div style={{ fontSize: 12.5, color: C.sub }}>빠지는 사람의 시간·이름·체크 기록은 지우지 않아요</div>
+    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><TBtn tone="mute" onClick={() => setOn(false)}>그만</TBtn><TBtn onClick={save} disabled={!all && !sel.length}>저장 · {all ? "전체" : `${sel.length}명`}</TBtn></div>
+  </Card>;
+}
 // 고정업무 반복·시간 바꾸기 (담당·마스터) — 매일 / 매주(요일 여러 개) / 매월(1~31일 · 말일(평일)). 바뀐 칸만 저장 + 기록에 이전 값
 function RecurEdit({ t, A }) {
   const [on, setOn] = useState(false);
@@ -296,6 +313,7 @@ function RecurEdit({ t, A }) {
       <select aria-label="매월 날짜" className="v2-sel" value={f.mday} onChange={(e) => setF({ ...f, mday: e.target.value })}>
         <option value="end">말일 (평일 기준)</option>{[...Array(31)].map((_, i) => <option key={i} value={String(i + 1)}>{i + 1}일</option>)}</select>
       {f.mday === "end" && <span style={{ fontSize: 12.5, color: C.sub }}>그 달 마지막 평일 · 주말·공휴일이면 앞 평일{nextEnd ? ` (다음 ${md(nextEnd)})` : ""}</span>}</div>}
+    <div style={{ fontSize: 12.5, color: C.mute }}>정한 날이 주말·공휴일이면 앞 평일에 떠요 · 매일은 평일만 · 못 하고 지나가면 그 주(달) 안에서 '밀림'으로 계속 보여요</div>
     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, color: C.sub, flexWrap: "wrap" }}>기본 시간 <input type="time" aria-label="시간" className="v2-sel" value={f.time} onChange={(e) => setF({ ...f, time: e.target.value })} />{f.time && <TBtn onClick={() => setF({ ...f, time: "" })}>시간 지우기</TBtn>}</label>
     <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><TBtn tone="mute" onClick={() => setOn(false)}>그만</TBtn><TBtn onClick={save} disabled={!ok}>저장 · {lab(fields())}</TBtn></div>
   </Card>;

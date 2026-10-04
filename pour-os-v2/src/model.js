@@ -73,14 +73,22 @@ export const fxPeople = (users, t) => (t.forAll ? activeUsers(users).map((u) => 
 const lastDay = (key) => { const d = new Date(key.slice(0, 7) + "-01T00:00:00"); d.setMonth(d.getMonth() + 1); d.setDate(0); return d.getDate(); };
 // 그 달 마지막 평일 (주말·공휴일이면 앞 평일)
 export const monthEndWorkday = (key) => prevWorkday(key.slice(0, 7) + "-" + pad2(lastDay(key)));
-export const fxDueOn = (t, key) => { const rt = t.recurType || "daily"; const d = new Date(key + "T00:00:00");
-  if (rt === "weekly") return fxWeekDays(t).includes(WD[d.getDay()]);
-  if (rt === "monthly") return t.monthEnd ? key === monthEndWorkday(key) : Math.min(Number(t.monthDay || 1), lastDay(key)) === d.getDate();   // 31일 → 그 달 말일 · 말일(평일) = 그 달 마지막 평일
+// 고정업무 할 날 — 모든 화면이 이 규칙 하나: 쉬는 날(주말·공휴일)에는 없음 · 매일 = 평일 · 매주 정한 요일이 쉬는 날이면 앞 평일로
+//  · 매월 정한 날(31일 → 그 달 말일)이 쉬는 날이면 앞 평일(그 달을 넘어가면 뒤 평일) · 말일(평일) = 그 달 마지막 평일
+const fxMonthDay = (t, key) => { if (t.monthEnd) return monthEndWorkday(key); const d = key.slice(0, 7) + "-" + pad2(Math.min(Number(t.monthDay || 1), lastDay(key)));
+  if (!isOffDay(d)) return d; const p = prevWorkday(d); return p.slice(0, 7) === d.slice(0, 7) ? p : nextWorkday(d); };
+export const fxDueOn = (t, key) => { if (isOffDay(key)) return false; const rt = t.recurType || "daily";
+  if (rt === "monthly") return key === fxMonthDay(t, key);
+  if (rt === "weekly") { const days = fxWeekDays(t); for (let k = 0; k < 7; k++) { const x = addDays(key, k); if (k > 0 && !isOffDay(x)) break; if (days.includes(WD[new Date(x + "T00:00:00").getDay()])) return true; } return false; }
   return true; };
+// 이번 주기(매주 = 이번 주 · 매월 = 이번 달)에 지나간 할 날을 못 했으면 그 날 (매일은 없음) → 오늘 화면 '밀림'
+export const fxMissOf = (t, uid, key) => { const rt = t.recurType || "daily"; if (rt === "daily") return "";
+  const from = rt === "weekly" ? weekStart(key) : key.slice(0, 7) + "-01"; let last = ""; for (let d = from; d < key; d = addDays(d, 1)) if (fxDueOn(t, d)) last = d; if (!last) return "";
+  const done = fxDoneOn(t, uid), d0 = done ? String(done).slice(0, 10) : ""; return d0 && (fxHit(t, d0, last) || d0 > last) ? "" : last; };
 export const fxDoneOn = (t, uid) => (t.doneDates && Object.prototype.hasOwnProperty.call(t.doneDates, uid) ? t.doneDates[uid] : t.assigneeId === uid ? t.doneDate : null);
 export const fxHit = (t, d, key) => { if (!d) return false; const rt = t.recurType || "daily";
   if (rt === "weekly") { const days = fxWeekDays(t); if (days.length <= 1) return d >= weekStart(key) && d <= key;
-    for (let i = 0; i < 7; i++) { const k = addDays(key, -i); if (days.includes(WD[new Date(k + "T00:00:00").getDay()])) return d >= k && d <= key; } return false; }
+    for (let i = 0; i < 7; i++) { const k = addDays(key, -i); if (fxDueOn(t, k)) return d >= k && d <= key; } return false; }   // 가장 가까운 할 날(쉬는 날이면 앞 평일로 옮긴 날) 뒤 체크
   if (rt === "monthly") return String(d).slice(0, 7) === key.slice(0, 7);
   return d === key; };
 export const fxMeDone = (t, uid, key) => fxHit(t, fxDoneOn(t, uid), key);
@@ -149,10 +157,12 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   const key = ymd(now), nowMin = now.getHours() * 60 + now.getMinutes();
   const tasks = D.tasks || [], users = D.users || [];
   // 오늘 고정업무 — 오늘 해당분만, 시간순
+  const fxMiss = tasks.filter((t) => t.isFixed && !t.paused && fxIsMine(t, uid) && !fxDueOn(t, key)).map((t) => ({ t, miss: fxMissOf(t, uid, key) })).filter((x) => x.miss)
+    .map((x) => ({ ...x, min: fxMin(x.t, uid), me: false }));   // 이번 주·달에 못 한 매주·매월 고정업무 → 할 때까지 '밀림'
   const fx = tasks.filter((t) => t.isFixed && !t.paused && fxIsMine(t, uid) && fxDueOn(t, key))
-    .map((t) => ({ t, min: fxMin(t, uid), me: fxMeDone(t, uid, key) }))
+    .map((t) => ({ t, min: fxMin(t, uid), me: fxMeDone(t, uid, key) })).concat(fxMiss)
     .sort((a, b) => a.min - b.min || fxLabel(a.t, uid).localeCompare(fxLabel(b.t, uid)));
-  const fixed = { left: fx.filter((x) => !x.me).map((x) => ({ ...x, late: x.min < 9999 && x.min < nowMin })), done: fx.filter((x) => x.me), total: fx.length };
+  const fixed = { left: fx.filter((x) => !x.me).map((x) => ({ ...x, late: !!x.miss || (x.min < 9999 && x.min < nowMin) })).sort((a, b) => (b.miss ? 1 : 0) - (a.miss ? 1 : 0)), done: fx.filter((x) => x.me), total: fx.length };
   // 내 할 일 (확인 대기·보류 빼고) — 지금 할 일 순서대로
   const open = tasks.filter((t) => isOneOff(t) && !isDone(t) && isMine(t, uid));
   const active = open.filter((t) => t.status !== "review" && t.status !== "hold" && !temp.has(t.id));   // 임시 담당(책임자로 채운 신제품 항목)은 '정리'로만

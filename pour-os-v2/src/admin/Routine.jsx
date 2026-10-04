@@ -3,7 +3,7 @@
 //  행동지표(AARRR): 정의 = 버전1 state-actionKPIs · 주별 실적 = 버전1 kpi-act-YYYY-Qn — 둘 다 '읽기만' (기록은 버전1 반복 실행에서)
 import { useEffect, useMemo, useState } from "react";
 import * as fb from "../fb.js";
-import { ymd, md, activeUsers, nameOf, fxPeople, fxMeDone, fxRecurL, fxDueOn, fxDoneOn, fxMin } from "../model.js";
+import { ymd, md, activeUsers, nameOf, fxPeople, fxMeDone, fxRecurL, fxDueOn, fxDoneOn, fxMin, fxIds } from "../model.js";
 import {
   AK_FUNS, AK_CYC, akYmd, akWeeksIn, akQuarterWeeks, akQidOfMonth, akVal, akWeekDone, akTotal, akCountable, akFullWeek, akPartial, akPeriodEnd, akGoalText, akWho, akOrder, akLink,
 } from "../../../pour-os/src/actionKpi.js";
@@ -60,7 +60,8 @@ export function RoutineTab({ D, open }) {
 
 // ── 고정업무: 매일 · 매주 · 매월 카드 + 줄마다 사람 체크 ──
 function FixedBoard({ D, fx, paused, who, keyD, open }) {
-  const [more, setMore] = useState({});
+  const [more, setMore] = useState({}), [noOn, setNoOn] = useState(false);
+  const noOwner = (D.tasks || []).filter((t) => t.isFixed && !t.paused && !t.deleted && fxPeople(D.users, t).length === 0);   // 담당이 비었거나 모두 미사용 → 어디에도 안 보이던 고정업무
   const pairs = (t) => fxPeople(D.users, t).filter((u) => who === "all" || u === who);
   const rows = fx.filter((t) => pairs(t).length);
   const by = (rt) => rows.filter((t) => (t.recurType || "daily") === rt);
@@ -71,6 +72,8 @@ function FixedBoard({ D, fx, paused, who, keyD, open }) {
   const today = (t) => (t.recurType || "daily") !== "daily" || fxDueOn(t, keyD);
   return <section aria-label="고정업무" className="a-rtsec">
     <h2 className="a-rth">고정업무 <span>정한 시간 순서 · 체크하면 끝 · 사람마다 한 칸{paused ? ` · 멈춘 ${paused}개 빼고` : ""}</span></h2>
+    {noOwner.length > 0 && <div className="a-rtno"><button type="button" className="a-rtnoh" aria-expanded={noOn} onClick={() => setNoOn(!noOn)}>담당 없는 고정업무 <b>{noOwner.length}</b> · 누가 할지 정해 주세요 {noOn ? "▴" : "▾"}</button>
+      {noOn && noOwner.map((t) => <button key={t.id} type="button" className="a-rtname" onClick={() => open({ type: "fixed", id: t.id })}><b>{t.title}</b><small>{fxRecurL(t)} · 전 담당 {fxIds(t).map((u) => nameOf(D.users, u)).filter(Boolean).join("·") || "없음"} · 눌러서 담당 정하기</small></button>)}</div>}
     <div className="a-rtiles">{RT.map(([rt, l, w]) => { const [d, n] = cnt(by(rt).filter(today)); return <div key={rt}>{tile(`${l} · ${w}`, d, n, n ? `${Math.round((d / n) * 100)}%` : "")}</div>; })}</div>
     {rows.length === 0 ? <Card style={{ marginTop: 10 }}><Empty>고른 조건에 맞는 고정업무가 없어요</Empty></Card>
     : RT.map(([rt, l, w]) => { const a = by(rt).sort((x, y) => tmin(x) - tmin(y) || String(x.title).localeCompare(String(y.title), "ko")); if (!a.length) return null;

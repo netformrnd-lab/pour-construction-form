@@ -1,7 +1,7 @@
 // 관리자 · 프로젝트 — 출시가 겹치나, 어느 프로젝트가 위험한가, 출시일을 옮기면 무엇이 바뀌나
 // 출시 줄(앞으로 8주 출시일 묶음 · 제품마다 7단계 칸) → 위험순 전체 목록(일반·신제품 한 목록) → 제품을 누르면 프로젝트 시트 + 관리자 덧붙임(LaunchTools)
 import { useMemo, useState } from "react";
-import { ymd, addDays, ddays, ddayLabel, md, ago, nameOf, ownersOf, dueOf, isDone, projOpen, projHealth, projWhen, weekStart, PROJ_CATS, catName, projCat, guessCat, isHoldP, impOf, IMP_RANK } from "../model.js";
+import { ymd, addDays, ddays, ddayLabel, md, ago, nameOf, ownersOf, dueOf, isDone, projOpen, projHealth, projWhen, weekStart, PROJ_CATS, catName, projCat, guessCat, isHoldP, impOf, IMP_RANK, projPct } from "../model.js";
 import { phaseStates, previewLaunchMove, groupItems } from "../views.js";
 import { nodeState, orderTasks } from "../mindmap.jsx";
 import { LAUNCH_PHASES, launchPct, rebalanceLaunch } from "../launch.js";
@@ -9,6 +9,7 @@ import { nowNext } from "../turn.js";
 import { PickList, ro } from "../pick.jsx";
 import { C, Act, Seg, TBtn, Chip, Head, Card, Empty, More, Ask, useLocal } from "../ui.jsx";
 import { LS } from "../core.jsx";
+import { Gantt } from "../gantt.jsx";
 import { Lv, SelBar, isLaunchP, openOneOff, wdOf, deltaLine } from "./common.jsx";
 
 const PH_S = { plan: "기획", sample: "샘플", pack: "패킹", content: "콘텐", channel: "채널", stock: "입고", promo: "홍보" };
@@ -85,7 +86,8 @@ function CatWeek({ D, open, rows }) {
 
 export function ProjectsTab({ D, cu, A, idx, open }) {
   const [axis0, setAxis] = useLocal(LS("apaxis"), "wk"), [cat, setCat] = useLocal(LS("apcat"), "all"), [more, setMore] = useState({});
-  const axis = ["wk", "phase", "week"].includes(axis0) ? axis0 : "wk";
+  const axis = ["wk", "phase", "week", "gantt"].includes(axis0) ? axis0 : "wk";
+  const [gm, setGm] = useLocal(LS("agmode"), "w8");
   const now = new Date(), key = ymd(now);
   const rows = useMemo(() => D.projects.filter(projOpen).map((p) => { const lp = isLaunchP(p);
     const ts = (D.tasks || []).filter((t) => t.projectId === p.id && t.launchItem);
@@ -119,12 +121,15 @@ export function ProjectsTab({ D, cu, A, idx, open }) {
         {guessCat(p.title) && <TBtn onClick={() => setPC(p, guessCat(p.title))}>추천 '{catName(guessCat(p.title))}'로</TBtn>}</div>}
     </div>; };
   return <>
-    <Seg items={[["wk", "주별 표"], ["phase", "단계"], ["week", "8주 축"]]} value={axis} onChange={setAxis} />
+    <Seg items={[["wk", "주별 표"], ["phase", "단계"], ["week", "8주 축"], ["gantt", "간트"]]} value={axis} onChange={setAxis} />
     {axis === "wk" ? <CatWeek D={D} open={open} rows={rows} /> : <>
     <Head>{cat1 === "all" ? "전체 프로젝트" : catName(cat1) || "미분류"} {list.length} · 위험 {cnt("위험")} · 주의 {cnt("주의")} · 순조 {cnt("순조")}</Head>
     <div className="v2-chips" role="group" aria-label="카테고리" style={{ marginBottom: 8 }}>{cats.map(([k, l]) => <Chip key={k} on={cat1 === k} onClick={() => setCat(k)}>{l} {rows.filter((x) => inCat(x.p, k)).length}</Chip>)}</div>
     {cat1 === "none" && <p className="a-hint" style={{ marginTop: 0 }}>줄마다 카테고리를 고르면 바로 그 묶음으로 옮겨져요 · '추천'은 이름으로 짐작한 것</p>}
     {list.length === 0 ? <Card><Empty>진행 중인 프로젝트가 없어요</Empty></Card>
+    : axis === "gantt" ? <Gantt mode={gm} setMode={setGm} keyd={key} rows={list.map((x) => { const p = x.p, ts = (D.tasks || []).filter((t) => t.projectId === p.id && !t.isFixed), d10 = (v) => String(v || "").slice(0, 10), ds = ts.map((t) => dueOf(t)).filter(Boolean).sort();
+        const end = x.date || ds[ds.length - 1] || "", st = p.startDate || ts.map((t) => t.startDate || d10(t.startedAt) || dueOf(t)).filter(Boolean).sort()[0] || end;
+        return { id: p.id, title: p.title, sub: `${nameOf(D.users, p.assigneeId) || "책임 없음"}${x.h.late ? ` · 지남 ${x.h.late}` : ""}`, start: st, end, pct: x.h.pct, tone: isHoldP(p) ? "hold" : (end && end < key && x.h.open > 0) || x.h.late ? "late" : "", onClick: () => open({ type: "project", id: p.id }) }; }).sort((a, b) => String(a.end || "9").localeCompare(String(b.end || "9")))} />
     : axis === "phase" ? groups.map((g) => { const m = more[g.k], shown = m ? g.items : g.items.slice(0, 12), lps = shown.some((x) => x.lp);
       return <div key={g.k} style={{ marginBottom: 12 }}>{gHead(g)}
         <Card>

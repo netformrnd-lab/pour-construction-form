@@ -10,6 +10,7 @@ import { LS } from "../core.jsx";
 import { C, Chip, TBtn, Head, Card, Row, Empty, More, useLocal } from "../ui.jsx";
 import { adminQueues, SelBar, Lv, LineBtn, isLaunchP } from "./common.jsx";
 import { WeekTable } from "./People.jsx";
+import { Judge } from "./Judge.jsx";
 
 const RISK = [["blocked", "막힘", true], ["late", "지남", true], ["order", "순서 꼬임", false], ["req", "요청", false]];
 
@@ -62,6 +63,7 @@ export function Glance(ctx) {
       {many.length > 0 && <>진행 많음: {many.slice(0, 2).map((r, i) => <span key={r.u.id}>{i ? " · " : ""}{r.u.name} <b>{r.doing}</b></span>)}</>}
     </LineBtn>}
 
+    <Judge D={D} A={A} open={open} keyd={key} />
     <div className="v2-chips" style={{ marginTop: 14 }}>
       <select aria-label="사람으로 거르기" className="v2-sel" value={f.uid} onChange={(e) => set({ uid: e.target.value })} style={{ maxWidth: 130 }}><option value="">사람 ▾</option>{users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>
       <select aria-label="프로젝트로 거르기" className="v2-sel" value={f.pid} onChange={(e) => set({ pid: e.target.value })} style={{ maxWidth: 160 }}><option value="">프로젝트 ▾</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select>

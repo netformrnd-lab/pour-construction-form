@@ -7,7 +7,7 @@ import {
   ymd, addDays, ddays, ddayLabel, md, hm, ago, dayTitle, isMaster, activeUsers, nameOf, STATUS_L, isDone, isOneOff, isMine, ownersOf, dueOf,
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, planSeed, COUNT_L, LOG_L,
-  reqOf, needsReview, dueApprover,
+  reqOf, needsReview, dueApprover, isHoldP, nextWorkday,
 } from "./model.js";
 import { planLaunchImport, relaunch, isTempOwner } from "./launch.js";
 import { nextTurnText } from "./turn.js";
@@ -252,6 +252,48 @@ export function useActs(D, cu, setToast, idx = null) {
       A.addNote(taskNoteId(t.id), "수정 요청: " + text, null, [], { taskId: t.id, projectId: t.projectId }); setToast({ text: "수정 요청을 보냈어요" }); },
     reopen: (t) => P(t, { status: "todo", doneAt: null, doneBy: null, doneByName: null, reviewAt: null, statusLog: sl("todo", { reopen: true }) }, "reopen").then(() => t.projectId && recalc(t.projectId)),
     setStatus: (t, s) => P(t, { status: s, statusLog: sl(s), ...(s === "inprogress" && !t.startedAt ? { startedAt: ymd(new Date()) } : {}), ...(s === "inprogress" && !t.ackAt ? { ackAt: nowIso() } : {}) }, "edit", `${t.title} · ${STATUS_L[s]}`),
+    // 보류: 이유 · 다시 볼 날을 같이 (이전 상태 holdPrev 기억 → 보류 풀기 = 그 상태로) · 다시 볼 날이 되면 담당 '확인할 것'에
+    hold: (t, why, until) => P(t, { status: "hold", holdPrev: t.status === "hold" ? t.holdPrev || "todo" : t.status || "todo", holdReason: why || "", holdUntil: until || "", heldAt: nowIso(), heldBy: cu.id, statusLog: sl("hold", { why: why || "" }) },
+      "hold", `${t.title} · 보류${why ? " · " + why : ""}${until ? ` · ${md(until)} 다시` : ""}`, { prev: { status: t.status || "todo" } }),
+    unhold: (t) => { const s = t.holdPrev && t.holdPrev !== "hold" && t.holdPrev !== "dropped" ? t.holdPrev : "todo";
+      return P(t, { status: s, holdPrev: null, holdUntil: null, holdBy: null, statusLog: sl(s, { unhold: true }) }, "unhold", `${t.title} · 보류 풀기 → ${STATUS_L[s] || "할 일"}`); },
+    // 프로젝트 끝내기·멈추기 — completed 완료 · dropped 중단(열린 업무 → 'dropped'로 접음) · hold 보류(열린 업무 → 보류, holdBy 'proj'). 지우는 것 없음 · 5초 되돌리기
+    endProject: async (p, kind, why, until) => {
+      const at = nowIso(); let ts = [];
+      if (kind !== "completed") { try { ts = (await fb.fetchWhere("tasks", ["projectId", "==", p.id])).filter((t) => !t.isFixed && !t.deleted && !isDone(t) && t.status !== "dropped" && !(kind === "hold" && t.status === "hold")); }
+        catch (e) { fail("프로젝트 업무 불러오기")(e); return false; } }
+      const pf = kind === "completed" ? { status: "completed", progress: 100, completedAt: at, completedBy: cu.id }
+        : kind === "dropped" ? { status: "dropped", endPrev: p.status || "active", dropReason: why || "", droppedAt: at, droppedBy: cu.id }
+        : { status: "hold", endPrev: p.status || "active", holdReason: why || "", holdUntil: until || "", heldAt: at, heldBy: cu.id };
+      const tf = (t) => (kind === "dropped" ? { status: "dropped", dropPrev: t.status || "todo", droppedAt: at } : { status: "hold", holdPrev: t.status || "todo", holdBy: "proj", holdReason: why || "", heldAt: at, heldBy: cu.id });
+      const tOps = ts.map((t) => { const f = tf(t); return { key: "tasks", id: tdoc(t), fields: { ...f, updatedAt: at, updatedBy: cu.id, v2At: at }, prev: prevOf(t, f) }; });
+      const pPrev = prevOf(p, pf);
+      try { if (tOps.length) await fb.patchMany(tOps.map(({ key, id, fields }) => ({ key, id, fields: { ...fields, statusLog: sl(fields.status, { proj: kind }) } })));
+        await fb.patch("projects", p._doc || p.id, { ...pf, updatedAt: at, updatedBy: cu.id, v2At: at, endLog: fb.arrayUnion({ kind, why: why || "", until: until || "", at, by: cu.id, byName: cu.name }) }); }
+      catch (e) { fail("프로젝트")(e); return false; }
+      const word = kind === "completed" ? "완료" : kind === "dropped" ? "중단" : "보류";
+      log("projEnd", { col: "projects", targetId: p.id, projectId: p.id, label: `${p.title} · ${word}${why ? " · " + why : ""}${until ? ` · ${md(until)} 다시` : ""}${ts.length ? ` · 남은 업무 ${ts.length}건 접음` : ""}`, prev: { status: p.status || "", ids: ts.map((t) => t.id) } });
+      setToast({ text: `${word}했어요${ts.length ? ` · 남은 업무 ${ts.length}건 접음` : ""}`, undo: () => Promise.all([fb.patch("projects", p._doc || p.id, { ...pPrev, updatedAt: nowIso(), v2At: nowIso() }), tOps.length ? fb.patchMany(tOps.map((o) => ({ key: o.key, id: o.id, fields: o.prev }))) : null])
+        .then(() => log("projResume", { col: "projects", targetId: p.id, projectId: p.id, label: `${p.title} · 되돌림 (${word} 취소)` })).catch(fail("되돌리기")) });
+      if (kind === "completed") recalc(p.id);
+      return true;
+    },
+    // 다시 시작(보류) · 다시 열기(중단·완료): 접은 업무를 이전 상태로 · shift 일만큼 기한 미루기(평일로 맞춤, 0 = 그대로)
+    resumeProject: async (p, shift) => {
+      const at = nowIso(), dropped = p.status === "dropped", held = isHoldP(p); let ts = [];
+      try { ts = (await fb.fetchWhere("tasks", ["projectId", "==", p.id])).filter((t) => !t.isFixed && !t.deleted && ((dropped && t.status === "dropped") || (held && t.status === "hold" && t.holdBy === "proj"))); }
+      catch (e) { fail("프로젝트 업무 불러오기")(e); return false; }
+      const mv = (d) => (shift && d ? nextWorkday(addDays(String(d).slice(0, 10), shift)) : null);
+      const tOps = ts.map((t) => { const s0 = (dropped ? t.dropPrev : t.holdPrev) || "todo", s = s0 === "dropped" || (!dropped && s0 === "hold") ? "todo" : s0;   // 중단 전에 보류였던 일은 보류로
+        return { key: "tasks", id: tdoc(t), fields: { status: s, ...(dropped ? { dropPrev: null } : { holdPrev: null, holdBy: null }), ...(mv(t.dueDate) ? { dueDate: mv(t.dueDate) } : {}), statusLog: sl(s, { resume: true }), updatedAt: at, updatedBy: cu.id, v2At: at } }; });
+      const ok = p.endPrev && !["hold", "paused", "dropped", "completed", "done"].includes(p.endPrev) ? p.endPrev : "active";
+      try { if (tOps.length) await fb.patchMany(tOps);
+        await fb.patch("projects", p._doc || p.id, { status: ok, holdUntil: null, resumedAt: at, resumedBy: cu.id, ...(mv(p.dueDate) && !String(p.id).startsWith("lb_") ? { dueDate: mv(p.dueDate) } : {}), updatedAt: at, updatedBy: cu.id, v2At: at, endLog: fb.arrayUnion({ kind: "resume", shift: shift || 0, at, by: cu.id, byName: cu.name }) }); }
+      catch (e) { fail("프로젝트")(e); return false; }
+      log("projResume", { col: "projects", targetId: p.id, projectId: p.id, label: `${p.title} · ${dropped ? "다시 엶" : p.status === "completed" || p.status === "done" ? "다시 엶" : "다시 시작"}${ts.length ? ` · 업무 ${ts.length}건 되돌림` : ""}${shift ? ` · 기한 ${shift}일 미룸` : ""}` });
+      setToast({ text: `다시 시작했어요${ts.length ? ` · 업무 ${ts.length}건 되돌림` : ""}${shift ? ` · 기한 ${shift}일 미룸` : ""}` });
+      recalc(p.id); return true;
+    },
     ack: (t) => { P(t, { ackAt: nowIso(), ackBy: cu.id }, "ack"); const w = nameOf(D.users, reqOf(t) || (t.assignedBy !== cu.id ? t.assignedBy : "")); setToast({ text: w ? `받았어요 · ${w}님 화면에 '받음'으로 보여요` : "받았어요" }); },
     ackMany: (ts) => { const at = nowIso(); fb.patchMany(ts.map((t) => ({ key: "tasks", id: tdoc(t), fields: { ackAt: at, ackBy: cu.id, updatedAt: at, updatedBy: cu.id, v2At: at } }))).catch(fail("받음")); if (ts[0]) log("ack", { col: "tasks", targetId: ts[0].projectId, projectId: ts[0].projectId, label: `항목 ${ts.length}개 받음` }); setToast({ text: `${ts.length}개 받았어요` }); },
     // 처음 맡긴 사람(requestedBy)은 그대로 — 확인·기한 허락은 그 사람. 맡긴 사람 기록이 없는 일(신제품 항목 등)은 assignedBy 로 '누가 넘겼나'만 남김

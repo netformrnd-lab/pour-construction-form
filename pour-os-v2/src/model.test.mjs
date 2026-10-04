@@ -190,4 +190,22 @@ ok("프로젝트 %: 저장된 진척 하나 · 업무 다 끝남 신호", () => 
   assert.equal(M.projHealth({ id: "r", progress: 0 }, D, "2026-10-04").allDone, false);    // 업무가 아직 없음
   assert.equal(M.projStat({ id: "p", progress: 37 }, D.tasks, "2026-10-04").pct, 37);
 });
+ok("2단계: 보류·중단 상태 · 중요도 · 예상 끝나는 날 · 판단 필요 · 다시 볼 날 알림", () => {
+  assert.equal(M.projOpen({ status: "dropped" }), false); assert.equal(M.projOpen({ status: "hold" }), true);
+  assert.equal(M.projStLabel({ status: "dropped" }), "중단"); assert.equal(M.impOf({ priority: "x" }), "mid"); assert.equal(M.impOf({ priority: "high" }), "high");
+  assert.equal(M.riskOf({ status: "hold", dueDate: "2026-09-01", holdUntil: "2026-10-12" }, "2026-10-04").label, "보류 · 10/12 다시");   // 보류는 '지남' 빨강이 아님
+  const key = "2026-10-05", iso = (d) => d + "T09:00:00.000Z";
+  const tasks = [...Array(4)].map((_, i) => ({ id: "d" + i, projectId: "P", status: "done", doneAt: iso("2026-10-0" + (i + 1)) }))
+    .concat([...Array(6)].map((_, i) => ({ id: "o" + i, projectId: "P", status: "todo", dueDate: "2026-10-20", assigneeId: "a" })));
+  const f = M.projForecast({ id: "P", dueDate: "2026-10-16" }, tasks, key);   // 4건/10평일 = 0.4/일 → 6건 15평일 (10/9 한글날 건너뜀)
+  assert.equal(f.left, 6); assert.equal(f.perWeek, 2); assert.equal(f.eta, "2026-10-27"); assert.ok(f.lateBy > 0);
+  assert.equal(M.projForecast({ id: "Q" }, [{ id: "x", projectId: "Q", status: "todo" }], key).eta, "");   // 속도 없음
+  const users = [{ id: "a", name: "가", weekCap: 3 }, { id: "b", name: "나" }];
+  const D = { users, projects: [{ id: "P", title: "중요", priority: "high", dueDate: "2026-10-16", status: "active" }, { id: "L", title: "낮음", priority: "low", status: "active" }], tasks: tasks.concat([...Array(4)].map((_, i) => ({ id: "l" + i, projectId: "L", status: "todo", dueDate: "2026-10-07", assigneeId: "a" }))) };
+  const J = M.judgeOf(D, key);
+  assert.deepEqual(J.pull.map((x) => x.p.id), ["P"]); assert.deepEqual(J.push.map((x) => x.p.id), ["L"]); assert.equal(J.push[0].tasks.length, 4); assert.equal(J.push[0].ppl[0].n, 4);
+  const D2 = { users, projects: [{ id: "H", title: "보류P", status: "hold", holdUntil: "2026-10-05", assigneeId: "a" }], tasks: [{ id: "h1", title: "보류일", status: "hold", holdUntil: "2026-10-04", assigneeId: "a" }, { id: "h2", title: "프로젝트째", status: "hold", holdBy: "proj", holdUntil: "2026-10-01", assigneeId: "a" }], notes: [] };
+  const ib = M.todayView(D2, "a", new Date("2026-10-05T10:00:00")).inbox.map((x) => x.kind + ":" + (x.taskId || x.projectId));
+  assert.deepEqual(ib.sort(), ["holdDue:h1", "projHoldDue:H"]);
+});
 console.log(`\n${n}개 모두 통과`);

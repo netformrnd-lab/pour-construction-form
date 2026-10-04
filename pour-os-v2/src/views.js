@@ -103,6 +103,8 @@ export function tidyQueues(D, idx, now) {
     { k: "order", label: "순서 꼬임 (앞 일이 뒤 일보다 늦게 끝날 예정 · 뒤 일은 하는 중인데 앞 일은 할 일)", by: "project", items: [...oi.a, ...oi.d].map((x) => x.t) },
     { k: "nextNo", label: "다음 차례 담당 없음", by: "project", items: oi.c.map((x) => x.t).filter((t) => !temp.has(t.id)) },
     { k: "review", label: "확인 대기 3일 넘음", by: "person", items: open.filter((t) => t.status === "review" && t.reviewAt && ddays(String(t.reviewAt).slice(0, 10), key) < -3) },
+    // 보류한 업무 (프로젝트째 보류한 것은 그 프로젝트에서) · 다시 볼 날이 지난 것 → 날짜 없는 것 → 다시 볼 날 순
+    { k: "hold", label: "보류 (다시 볼 날 지난 것 먼저)", by: "person", items: open.filter((t) => t.status === "hold" && !t.holdBy).sort((a, b) => String(a.holdUntil || "9").localeCompare(String(b.holdUntil || "9"))) },
   ];
   q.forEach((x) => { const s = new Set(); x.items = x.items.filter((t) => !s.has(t.id) && s.add(t.id)); });
   return q.filter((x) => x.items.length).sort((a, b) => b.items.length - a.items.length);

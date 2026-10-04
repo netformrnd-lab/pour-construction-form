@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ymd, addDays, md, ddays, ddayLabel, dueOf, ownersOf, nameOf, activeUsers, weekStart, nextWorkday, prevWorkday, isOffDay, WD, isDone, taskNoteId } from "./model.js";
 import { C, Act, Chip, TBtn, Ask, Card, Empty } from "./ui.jsx";
+import { HoldAsk } from "./hold.jsx";
 
 // 묶음 목록 + 고르기 칸 (줄을 누르면 업무 보기)
 // right: (t) => 줄 오른쪽 작은 버튼 (예: 댓글) — 없으면 안 그림
@@ -78,7 +79,9 @@ export function BulkBar({ D, cu, A, ids, clear }) {
       <b style={{ fontSize: 14, marginRight: 4 }}>{ts.length}개 고름</b>
       <button type="button" className={"v2-bbtn" + (mode === "due" ? " on" : "")} onClick={() => { setMode(mode === "due" ? "" : "due"); setVal(null); }}>기한 ▾</button>
       <button type="button" className={"v2-bbtn" + (mode === "who" ? " on" : "")} onClick={() => { setMode(mode === "who" ? "" : "who"); setVal(null); }}>담당 ▾</button>
-      <button type="button" className="v2-bbtn" disabled={busy} onClick={() => quick("보류", "보류로", () => ({ status: "hold" }))}>보류</button>
+      <button type="button" className="v2-bbtn" disabled={busy} onClick={() => (ts.length > 100 ? A.bulk(ts, () => ({}), "보류") : setMode("hold"))}>보류</button>
+      {mode === "hold" && <HoldAsk n={ts.length} title={`${ts.length}건 보류`} onNo={() => setMode("")} onYes={(why, until) => { setMode(""); const at = new Date().toISOString();
+        quick(`보류 · ${why}`, `보류로 · ${why}${until ? ` · ${md(until)} 다시` : ""}`, (t) => ({ status: "hold", holdPrev: t.status === "hold" ? t.holdPrev || "todo" : t.status || "todo", holdReason: why, holdUntil: until || "", heldAt: at, heldBy: cu.id })); }} />}
       <button type="button" className="v2-bbtn" disabled={busy} onClick={() => quick("날짜 없이 두기", "날짜 없이 두기 · 이번 달 정리에서 빠져요", () => ({ tidySkip: key.slice(0, 7) }))}>날짜 없이 두기</button>
       <button type="button" className="v2-bbtn" disabled={busy || ts.length > NOTE_MAX} onClick={askGo}>{ts.length > NOTE_MAX ? `묻기 ${NOTE_MAX}건까지` : "담당에게 묻기"}</button>
       <span style={{ flex: 1 }} /><button type="button" className="v2-bbtn" onClick={clear} aria-label="고르기 풀기">✕ 풀기</button>

@@ -10,6 +10,7 @@ import {
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
 import { predLine, lastWord, predsOf, upcomingTurns, upLine } from "./turn.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked } from "./ui.jsx";
+import { HoldBtn } from "./hold.jsx";
 import { openTask, moveDue } from "./task.jsx";
 import { PickList, BulkBar, dueChips, ro } from "./pick.jsx";
 import { previewLaunchMove } from "./views.js";
@@ -42,12 +43,13 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
   const tOf = (id) => D.tasks.find((y) => y.id === id);
   const openInbox = (x) => { if (!x.keep) markSeen(setSeen, x.id);
     if (x.kind === "turnLate") return open({ type: "task", id: x.taskId, focus: "talk" });
-    if (x.taskId) { const t = tOf(x.taskId); t ? openTask(open, t) : open({ type: "task", id: x.taskId }); } else if (x.projectId) open({ type: "project", id: x.projectId, first: x.kind === "launchNew" || x.kind === "bulk" ? "work" : "news" }); };
+    if (x.taskId) { const t = tOf(x.taskId); t ? openTask(open, t) : open({ type: "task", id: x.taskId }); } else if (x.projectId) open({ type: "project", id: x.projectId, first: x.kind === "launchNew" || x.kind === "bulk" || x.kind === "projHoldDue" ? "work" : "news" }); };
   const inboxAct = (x) => { const t = x.taskId && tOf(x.taskId);
     if (x.kind === "assigned" && t) return <Act onClick={() => A.ack(t)} style={BTN_ON}>받았어요</Act>;
     if (x.kind === "bulk") return <Act onClick={() => A.ackMany(x.bulkIds.map(tOf).filter(Boolean))} style={BTN_ON}>받았어요</Act>;
     if (x.kind === "review" && t) return <Act onClick={() => A.approve(t)} style={BTN_ON}>확인</Act>;
     if (x.kind === "dueReq" && t) return <Act onClick={() => A.answerDue(t, true)} style={BTN_ON}>수락</Act>;
+    if (x.kind === "holdDue" && t) return <Act onClick={() => A.unhold(t)} style={BTN_ON}>다시 시작</Act>;
     if (x.kind === "turnLate") return <Act onClick={() => openInbox(x)}>묻기</Act>;
     if (x.kind === "turnOrder") return <Act onClick={() => openInbox(x)}>조정 요청</Act>;
     if (x.kind === "nextNoOwner") return <Act onClick={() => openInbox(x)}>정하기</Act>;
@@ -143,7 +145,7 @@ function FocusCard({ D, cu, A, open, TV, T, x, pName, next, setSeen, setToast })
       <div style={{ fontSize: 13, color: C.sub, margin: "10px 0 6px" }}>{can ? "끝냈으면 '끝냈어요', 아니면 새 기한을 골라요" : `새 기한은 ${appr || "책임자"}님께 요청으로 가요`}</div>
       <div className="v2-chips"><Act onClick={() => A.finish(t)} style={BTN_ON}>끝냈어요</Act>
         {dueChips(key).map(([l, d]) => <Act key={d} onClick={() => moveTo(d)}>{can ? l : l + " 요청"}</Act>)}
-        <TBtn onClick={() => A.setStatus(t, "hold")}>보류</TBtn></div>
+        <HoldBtn t={t} A={A}>보류</HoldBtn></div>
     </> : <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
       {t.status !== "inprogress" ? <Big onClick={() => { seenTurn(); A.setStatus(t, "inprogress"); }} style={{ height: 46, flex: 1 }}>시작하기</Big>
         : <Big onClick={() => A.finish(t)} style={{ height: 46, flex: 1 }}>끝냈어요</Big>}
@@ -200,7 +202,7 @@ export function MyTidySheet({ D, cu, A, open, T, onBack, onClose, tab0, st, save
           <div style={{ fontSize: 12, color: C.sub, margin: "2px 0 6px" }}>{(D.projects.find((p) => p.id === t.projectId) || {}).title || ""}{!can ? ` · 기한은 ${nameOf(D.users, dueApprover(t, D))}님께 요청` : ""}</div>
           <div className="v2-chips">{chips.map(([l, d]) => <Chip key={d} onClick={() => set(d)}>{can ? l : l + " 요청"}</Chip>)}
             <input type="date" aria-label="날짜" onChange={(e) => e.target.value && set(e.target.value)} className="v2-sel" />
-            <TBtn tone="mute" onClick={() => A.tidySkip(t)}>날짜 없이 두기</TBtn><TBtn tone="mute" onClick={() => A.setStatus(t, "hold")}>보류</TBtn></div>
+            <TBtn tone="mute" onClick={() => A.tidySkip(t)}>날짜 없이 두기</TBtn><HoldBtn t={t} A={A} tone="mute">보류</HoldBtn></div>
         </div>; })}</Card>
     </>}
     {tab === "temp" && <>
@@ -240,7 +242,7 @@ export function FocusTriage({ D, cu, A, open, TV, onBack, onClose, st, save, set
     <div className="v2-chips">{dueChips(key).map(([l, d]) => <Chip key={d} onClick={() => move(d)}>{l}</Chip>)}
       <input type="date" aria-label="날짜 고르기" min={key} value={date} onChange={(e) => setDate(e.target.value)} className="v2-sel" />{date && <Act onClick={() => move(date)} style={BTN_ON}>{md(date)}{ro(md(date))}</Act>}</div>
     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 18, borderTop: `1px solid ${C.line}`, paddingTop: 10 }}>
-      <TBtn onClick={() => { A.setStatus(t, "hold"); next(); }}>보류 (당분간 안 함)</TBtn>
+      <HoldBtn t={t} A={A} after={next}>보류 (당분간 안 함)</HoldBtn>
       <TBtn onClick={() => open({ type: "task", id: t.id })}>업무 열기 · 넘기기</TBtn>
       <TBtn tone="mute" onClick={next}>건너뛰기</TBtn>
     </div>

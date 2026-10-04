@@ -12,6 +12,7 @@ import { DecisionBlock } from "./mindmap.jsx";
 import { turnIndex, turnOf, predsOf, nextsOf, finishedOf, finishedAt, lastWord } from "./turn.js";
 import { nextWorkday } from "./model.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked } from "./ui.jsx";
+import { HoldAsk } from "./hold.jsx";
 import { dueChips, ro } from "./pick.jsx";
 
 export const openTask = (open, t) => open({ type: t.isFixed ? "fixed" : "task", id: t.id });
@@ -92,7 +93,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
   return <Sheet title="업무" onBack={onBack} onClose={onClose} foot={foot}>
     <h2 style={{ fontSize: 20, fontWeight: 800, color: C.ink, margin: "12px 0 6px", lineHeight: 1.35, wordBreak: "keep-all" }}>{risk && <span style={{ display: "inline-block", verticalAlign: 3, marginRight: 6, fontSize: 12, fontWeight: 800, padding: "2px 7px", borderRadius: 6, color: risk.red ? C.red : C.navy, background: risk.red ? "#F8E9EA" : C.soft }}>{risk.label}</span>}{t.title}</h2>
     <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7 }}>
-      <span>담당 {owners.join(", ") || "없음"}{temp ? " (임시 · 책임자로 채움)" : t.ownerFrom === "default" || (t.ownerAuto && !t.ownerFrom) ? " (기본 담당)" : ""}</span> · <span style={{ color: n != null && n < 0 && !done ? C.red : C.sub, fontWeight: n != null && n < 0 && !done ? 800 : 400 }}>{dueOf(t) ? `기한 ${md(dueOf(t))}${done ? "" : " · " + ddayLabel(n)}` : "기한 미정"}</span> · <b style={{ color: C.ink }}>{review ? "확인 대기" : STATUS_L[t.status] || t.status}</b>
+      <span>담당 {owners.join(", ") || "없음"}{temp ? " (임시 · 책임자로 채움)" : t.ownerFrom === "default" || (t.ownerAuto && !t.ownerFrom) ? " (기본 담당)" : ""}</span> · <span style={{ color: n != null && n < 0 && !done && t.status !== "hold" ? C.red : C.sub, fontWeight: n != null && n < 0 && !done && t.status !== "hold" ? 800 : 400 }}>{dueOf(t) ? `기한 ${md(dueOf(t))}${done ? "" : " · " + ddayLabel(n)}` : "기한 미정"}</span> · <b style={{ color: C.ink }}>{review ? "확인 대기" : STATUS_L[t.status] || t.status}</b>
       {giver && <div>{giverName}님이 맡김{(req ? t.requestedAt : t.assignedAt) ? ` · ${md(ymd(new Date(req ? t.requestedAt : t.assignedAt)))}` : ""}{t.ackAt ? " · 받음" : " · 아직 안 받음"}</div>}
       {p && <div><TBtn onClick={() => open({ type: "project", id: p.id })} style={{ padding: "2px 0" }}>프로젝트 · {p.title} ›</TBtn></div>}
       {parent && <div><TBtn onClick={() => open({ type: "task", id: parent.id })} style={{ padding: "2px 0" }}>상위 업무 · {parent.title} ›</TBtn></div>}
@@ -113,12 +114,16 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
     {tu.state === "late" && mine && !done && (() => { const x = (tu.show && !finishedOf(tu.show) ? tu.show : null) || tu.open.find((y) => y.blocked || y.status === "hold" || (dueOf(y) && dueOf(y) < key)) || tu.open[0];
       return <Banner tone="red"><b>앞 일이 늦어지고 있어요</b> · {x.title} ({predSub(x)}) · 내 기한 {md(dueOf(t)) || "미정"}
         <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}><Act onClick={() => open({ type: "task", id: x.id, focus: "talk" })}>앞사람에게 묻기</Act>{canDue ? <Act onClick={() => setMode("due")}>내 기한 바꾸기</Act> : !t.dueReq && <Act onClick={() => setMode("req")}>기한 조정 요청</Act>}</div></Banner>; })()}
+    {t.status === "hold" && !done && <Banner><b>보류</b>{t.holdBy === "proj" ? " · 프로젝트째 보류" : ""}{t.holdReason ? ` · ${t.holdReason}` : " · 이유 없음"}{t.heldAt ? ` · ${-ddays(ymd(new Date(t.heldAt)), key)}일째` : ""}
+      <div>{t.holdUntil ? `다시 볼 날 ${md(t.holdUntil)} (${ddayLabel(ddays(t.holdUntil, key))})` : "다시 볼 날 미정"}{t.holdBy === "proj" ? " · 프로젝트를 다시 시작하면 같이 풀려요" : ""}</div>
+      {t.holdBy !== "proj" && <div style={{ marginTop: 8 }}><Act onClick={() => setMode("hold")}>이유 · 다시 볼 날 바꾸기</Act></div>}</Banner>}
+    {mode === "hold" && <HoldAsk title={`보류 · ${t.title}`} onNo={() => setMode("")} onYes={(why, until) => { A.hold(t, why, until); setMode(""); }} />}
     {reopened && <Banner>앞 일 "{reopened.title}"이 수정 요청으로 다시 열렸어요 · {nameOf(D.users, ownersOf(reopened)[0]) || "앞사람"}님이 다시 끝내면 '이제 내 차례'로 알려 드려요</Banner>}
 
     {!done && !review && <div style={{ display: "flex", flexWrap: "wrap", gap: 2, margin: "8px -4px 0" }}>
       {mine && t.status !== "inprogress" && <TBtn onClick={() => A.setStatus(t, "inprogress")}>시작했어요</TBtn>}
       {mine && !t.blocked && <TBtn onClick={() => { setTxt(""); setMode(mode === "block" ? "" : "block"); }}>막혔어요</TBtn>}
-      {t.status !== "hold" ? <TBtn onClick={() => A.setStatus(t, "hold")}>보류</TBtn> : <TBtn onClick={() => A.setStatus(t, "todo")}>보류 풀기</TBtn>}
+      {t.status !== "hold" ? <TBtn onClick={() => setMode("hold")}>보류</TBtn> : <TBtn onClick={() => A.unhold(t)}>보류 풀기</TBtn>}
       <TBtn onClick={() => setMode(mode === "who" ? "" : "who")}>담당 바꾸기</TBtn>
       {canDue ? <TBtn onClick={() => setMode(mode === "due" ? "" : "due")}>기한 바꾸기</TBtn> : !t.dueReq && <TBtn onClick={() => setMode(mode === "req" ? "" : "req")}>기한 조정 요청</TBtn>}
     </div>}

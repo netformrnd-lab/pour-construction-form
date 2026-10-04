@@ -8,7 +8,7 @@ import {
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, planSeed, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover,
 } from "./model.js";
-import { TodayTab, TurnSheet, MyTidySheet } from "./today.jsx";
+import { TodayTab, TurnSheet, MyTidySheet, UpTurnsSheet } from "./today.jsx";
 import { MoreTab, AssignedSheet, MyFixedSheet } from "./more.jsx";
 import { turnIndex, turnsOf } from "./turn.js";
 import { SheetRouter } from "./sheets.jsx";
@@ -55,6 +55,7 @@ function Main({ D, cu, meta, setMeta, logout }) {
   const at = meta.reseededAt || meta.seededAt;
   const extra = {
     turns: (p) => <TurnSheet {...p} />,
+    upturns: (p) => <UpTurnsSheet {...p} />,
     myTidy: (p, s) => <MyTidySheet {...p} tab0={s.tab} st={s} />,
     assigned: (p) => <AssignedSheet {...p} />,
     myFixed: (p) => <MyFixedSheet {...p} />,

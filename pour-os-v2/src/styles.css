@@ -235,3 +235,4 @@ input[type=date] { min-width: 0; max-width: 100%; -webkit-appearance: none; appe
 .v2-cathint { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 13px; color: #5B6475; }
 .v2-news-row .s { font-size: 11.5px; color: #8A92A3; margin-top: 2px; }
 .v2-news-row .arr { flex: 0 0 auto; color: #24386B; font-weight: 800; align-self: center; }
+.v2-calc .t i.ts.red, .v2-cal.me .v2-calc .t i.ts.red { color: #B4383F; box-shadow: inset 0 0 0 1px #EBC9CB; }   /* 늦을 수 있는 내 차례 */

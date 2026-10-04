@@ -126,10 +126,11 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
     {mode === "who" && <div className="v2-chips" style={{ padding: "8px 0" }}>{users.map((u) => <Chip key={u.id} on={t.assigneeId === u.id} onClick={() => { A.assign(t, u.id, u.id === cu.id); setMode(""); }}>{u.id === cu.id ? "나" : u.name}</Chip>)}</div>}
     {mode === "due" && <div className="v2-chips" style={{ padding: "8px 0" }}>{dateChips.map(([l, d]) => <Chip key={d} onClick={() => { moveDue(A, setToast, t, d, true); setMode(""); }}>{l}</Chip>)}<Chip onClick={() => { moveDue(A, setToast, t, "", true); setMode(""); }}>미정</Chip><input type="date" aria-label="날짜 고르기" defaultValue={dueOf(t)} onChange={(e) => { if (e.target.value) { moveDue(A, setToast, t, e.target.value, true); setMode(""); } }} className="v2-sel" /></div>}
     {mode === "req" && <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0" }}>
-      <div className="v2-chips">{dateChips.filter(([, d]) => d !== key).map(([l, d]) => <Chip key={d} on={reqDate === d} onClick={() => setReqDate(d)}>{l}</Chip>)}<input type="date" aria-label="원하는 기한" value={reqDate} onChange={(e) => setReqDate(e.target.value)} className="v2-sel" /></div>
+      <div className="v2-chips">{dateChips.filter(([, d]) => d !== key && d !== dueOf(t)).map(([l, d]) => <Chip key={d} on={reqDate === d} onClick={() => setReqDate(d)}>{l}</Chip>)}<input type="date" aria-label="원하는 기한" value={reqDate} onChange={(e) => setReqDate(e.target.value)} className="v2-sel" /></div>
       <input value={txt} onChange={(e) => setTxt(e.target.value)} placeholder="이유 (예: 촬영 일정이 밀렸어요)" aria-label="기한 조정 이유" style={inp} />
       <div style={{ fontSize: 12.5, color: C.sub }}>{nameOf(D.users, approver) || "책임자"}님이 수락하면 기한이 바뀌어요. 그 전까지는 지금 기한({md(dueOf(t)) || "미정"})이에요.</div>
-      <Act onClick={() => { if (reqDate) { A.requestDue(t, reqDate, txt.trim()); setMode(""); setTxt(""); } }} style={{ alignSelf: "flex-start", background: C.navy, color: "#fff", borderColor: C.navy, opacity: reqDate ? 1 : 0.45 }}>요청 보내기</Act></div>}
+      {reqDate && reqDate === dueOf(t) && <div style={{ fontSize: 12.5, color: C.red }}>지금 기한과 같은 날이에요 · 다른 날을 골라 주세요</div>}
+      <Act onClick={() => { if (reqDate && reqDate !== dueOf(t)) { A.requestDue(t, reqDate, txt.trim()); setMode(""); setTxt(""); } }} style={{ alignSelf: "flex-start", background: C.navy, color: "#fff", borderColor: C.navy, opacity: reqDate && reqDate !== dueOf(t) ? 1 : 0.45 }}>요청 보내기</Act></div>}
 
     {!t.isFixed && (preds.length > 0 || nexts.length > 0 || !done) && <>
       <Head right={mode !== "deps" && canOrder && <TBtn onClick={() => { setDepSel(null); setMode("deps"); }}>앞 일 바꾸기</TBtn>}>순서</Head>

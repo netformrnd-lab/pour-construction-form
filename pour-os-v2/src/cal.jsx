@@ -21,7 +21,7 @@ export function MonthCal({ mode = "me", ym, setYm, cells, sel, onPick, keyd, use
         !past && x.n > 0 ? lv(x.n, team) : "", past && x.n > 0 && x.red ? "red" : "", team && !past && x.red ? "over" : "", past && x.n > 0 && old ? "old" : "", !x.n && x.fx ? "fx" : ""].filter(Boolean).join(" ");
       const marks = [x.proj.length ? (team && x.proj.length > 1 ? "▴" + x.proj.length : "▴") : "", x.turnStart ? "→" : "", past && !x.n && x.done ? "✓" : ""].filter(Boolean).slice(0, 2).join(" ");
       const hol = holidayName(c.date);
-      const label = `${+c.date.slice(5, 7)}월 ${+c.date.slice(8)}일${hol ? " " + hol : ""}, 마감 ${x.n}건${x.red ? (team && !past ? ", 8건 넘는 사람·막힘 있음" : ", 지난 일·막힘 있음") : ""}${x.proj.length ? `, 출시·마감 ${x.proj.length}` : ""}${x.turnStart ? ", 내 차례 시작" : ""}`;
+      const label = `${+c.date.slice(5, 7)}월 ${+c.date.slice(8)}일${hol ? " " + hol : ""}, 마감 ${x.n}건${x.red ? (team && !past ? ", 8건 넘는 사람·막힘 있음" : ", 지난 일·막힘 있음") : ""}${x.proj.length ? `, 출시·마감 ${x.proj.length}` : ""}${x.turnStart ? `, 내 차례 시작${x.turns && x.turns.length ? " " + x.turns.map((u) => u.t.title).join(", ") : ""}${x.turnRisk ? " (늦을 수 있음)" : ""}` : ""}`;
       const top = team ? Object.entries(x.people || {}).filter(([u]) => u).sort((a, b) => b[1] - a[1]) : [];
       return <button key={c.date} type="button" className={cls} aria-label={label} aria-pressed={c.date === sel} onClick={() => { onPick(c.date); if (c.out) setYm(c.date.slice(0, 7)); }}>
         <span className="d">{+c.date.slice(8)}</span>
@@ -29,7 +29,7 @@ export function MonthCal({ mode = "me", ym, setYm, cells, sel, onPick, keyd, use
         <span className="m">{marks}</span>
         <span className="t">{team
           ? <>{top.slice(0, 2).map(([u, k]) => <i key={u} className={k > 8 ? "red" : ""}>{short(users, u, users)} {k}</i>)}{top.length > 2 && <i className="more">+{top.length - 2}명</i>}{x.proj.length > 0 && <i className="p">▴ {x.proj.length} 출시·마감</i>}</>
-          : <>{x.turnStart > 0 && <i className="ts">→ 내 차례</i>}{x.items.slice(0, 2).map((t) => <i key={t.id} className={past || t.blocked ? "red" : ""}>{t.title}</i>)}{x.items.length > 2 && <i className="more">+{x.items.length - 2}</i>}{x.proj.slice(0, 1).map((p) => <i key={p.id} className="p">▴ {p.title}</i>)}{past && !x.n && x.done > 0 && <i className="more">✓ 다 끝냄</i>}</>}</span>
+          : <>{x.turnStart > 0 && (x.turns && x.turns.length ? <i className={"ts" + (x.turnRisk ? " red" : "")}>→ {x.turns[0].t.title}{x.turns.length > 1 ? ` +${x.turns.length - 1}` : ""}</i> : <i className="ts">→ 내 차례</i>)}{x.items.slice(0, 2).map((t) => <i key={t.id} className={past || t.blocked ? "red" : ""}>{t.title}</i>)}{x.items.length > 2 && <i className="more">+{x.items.length - 2}</i>}{x.proj.slice(0, 1).map((p) => <i key={p.id} className="p">▴ {p.title}</i>)}{past && !x.n && x.done > 0 && <i className="more">✓ 다 끝냄</i>}</>}</span>
       </button>; })}
   </div>;
 }

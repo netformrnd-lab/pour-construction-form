@@ -9,9 +9,24 @@ ok("v1 → v2 복사: meta·savelock 은 빼고, 활동기록은 log 칸으로, 
   assert.equal(counts.tasks, 3); assert.equal(counts.log, 1); assert.equal(counts.meta, undefined);
 });
 ok("문서 id 에 / 가 있어도 안전하게", () => { assert.equal(M.docIdOf("x", { id: "a/b c" }, 0), "a_b_c"); });
-ok("매월 31일 고정업무는 30일까지인 달엔 말일에", () => {
+ok("매월 31일 고정업무는 30일까지인 달엔 말일에 · 쉬는 날이면 앞 평일 (5단계)", () => {
   const t = { isFixed: true, recurType: "monthly", monthDay: 31 };
-  assert.equal(M.fxDueOn(t, "2026-09-30"), true); assert.equal(M.fxDueOn(t, "2026-10-30"), false); assert.equal(M.fxDueOn(t, "2026-10-31"), true);
+  assert.equal(M.fxDueOn(t, "2026-09-30"), true); assert.equal(M.fxDueOn(t, "2026-10-30"), true); assert.equal(M.fxDueOn(t, "2026-10-31"), false);   // 10/31 토 → 10/30 금
+});
+ok("5단계: 쉬는 날 규칙 하나 — 매일은 평일만 · 매주 요일이 공휴일이면 앞 평일 · 매월 1일이 공휴일이면 그 달 안 뒤 평일 · 밀림", () => {
+  assert.equal(M.fxDueOn({ recurType: "daily" }, "2026-10-03"), false); assert.equal(M.fxDueOn({ recurType: "daily" }, "2026-10-02"), true);
+  const fri = { recurType: "weekly", weekDays: ["금"] };
+  assert.equal(M.fxDueOn(fri, "2026-10-08"), true); assert.equal(M.fxDueOn(fri, "2026-10-09"), false);   // 10/9 한글날(금) → 10/8 목
+  assert.equal(M.fxDueOn({ recurType: "weekly", weekDays: ["토"] }, "2026-10-02"), true);                // 토요일로 정한 일 → 금요일
+  assert.equal(M.fxDueOn({ recurType: "monthly", monthDay: 1 }, "2027-01-04"), true);                     // 1/1 신정 → 12/31 은 다른 달이라 1/4(월)
+  const mon = { recurType: "weekly", weekDays: ["월"], assigneeId: "a" };
+  assert.equal(M.fxMissOf(mon, "a", "2026-10-14"), "2026-10-12");                                           // 이번 주 월요일을 못 함 → 밀림
+  assert.equal(M.fxMissOf(mon, "a", "2026-10-07"), "");                                                     // 10/5(월)은 대체공휴일 → 앞 평일 10/2(지난 주)로 옮겨져 이번 주엔 없음
+  assert.equal(M.fxMissOf({ ...mon, doneDates: { a: "2026-10-13" } }, "a", "2026-10-14"), "");             // 늦게라도 하면 풀림
+  assert.equal(M.fxMissOf({ recurType: "daily", assigneeId: "a" }, "a", "2026-10-07"), "");                // 매일은 밀림 없음
+  const D = { users: [{ id: "a", name: "가" }], projects: [], notes: [], tasks: [{ id: "f1", title: "주간 보고", isFixed: true, ...mon }] };
+  const v = M.todayView(D, "a", new Date("2026-10-14T10:00:00"));
+  assert.equal(v.fixed.left.length, 1); assert.equal(v.fixed.left[0].miss, "2026-10-12"); assert.equal(v.fixed.left[0].late, true);
 });
 ok("매주 월·수·금: 화요일엔 안 뜨고, 수요일 체크는 금요일 전까지만 유효", () => {
   const t = { isFixed: true, recurType: "weekly", weekDays: ["월", "수", "금"], doneDates: { a: "2026-09-30" } };
@@ -174,7 +189,7 @@ ok("고정업무 매월 말일(평일): 그 달 마지막 평일 · 주말·공�
   assert.equal(M.fxDueOn(t, "2026-10-30"), true); assert.equal(M.fxDueOn(t, "2026-10-31"), false);
   assert.equal(M.monthEndWorkday("2026-02-10"), "2026-02-27");   // 2/28 토 → 2/27 금
   assert.equal(M.fxRecurL(t), "매월 말일(평일)");
-  assert.equal(M.fxDueOn({ recurType: "monthly", monthDay: 31 }, "2026-10-31"), true);   // 기존 31일은 그대로(말일)
+  assert.equal(M.fxDueOn({ recurType: "monthly", monthDay: 31 }, "2026-10-30"), true);   // 5단계: 31일도 쉬는 날(10/31 토)이면 앞 평일
 });
 ok("공휴일 2026~2028: 노동절·제헌절·대체공휴일 · 일요일 시작 달력", () => {
   ["2026-05-01", "2026-07-17", "2026-06-03", "2026-09-25", "2026-08-17", "2027-07-19", "2027-10-11", "2028-01-26", "2028-10-05"].forEach((d) => assert.equal(M.isOffDay(d), true, d));

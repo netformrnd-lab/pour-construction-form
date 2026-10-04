@@ -338,3 +338,7 @@ div.a-reprow { cursor: default; }
 .a-inbox { border: 1.5px solid #E2E6EE; background: #fff; color: #374151; border-radius: 999px; height: 32px; padding: 0 12px; font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; white-space: nowrap; }
 .a-inbox b { font-variant-numeric: tabular-nums; margin-left: 2px; }
 .a-inbox.on { border-color: #24386B; background: #24386B; color: #fff; }
+/* 담당 없는 고정업무 */
+.a-rtno { background: #fff; border: 1.5px solid #E2E6EE; border-radius: 12px; margin: 8px 0 10px; overflow: hidden; }
+.a-rtnoh { width: 100%; text-align: left; border: none; background: #F6F7FA; padding: 10px 12px; font: inherit; font-size: 13.5px; font-weight: 800; color: #0F1F5C; cursor: pointer; }
+.a-rtno .a-rtname { display: flex; flex-direction: column; width: 100%; border-top: 1px solid #EEF0F4; }

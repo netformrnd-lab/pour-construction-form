@@ -129,7 +129,7 @@ function Feed({ D, open, now }) {
   const tTitle = (id) => (D.tasks.find((t) => t.id === id) || D.projects.find((p) => p.id === id) || {}).title || "";
   // 열 곳이 있는 줄만 버튼으로 (한꺼번에 바꾸기 기록 · 다른 칸 변경은 누를 곳이 없음)
   const hasTarget = (x) => (x.type === "note" ? /^(task|proj):/.test(String(x.itemId || "")) : !!x.targetId && (x.col === "projects" || x.col === "tasks"));
-  const goFeed = (x) => { if (x.type === "note") { const [k, ...r] = String(x.itemId).split(":"); const ref = r.join(":"); if (k === "task") open({ type: "task", id: ref }); else if (k === "proj") open({ type: "project", id: ref, first: "news" }); }
+  const goFeed = (x) => { if (x.type === "note") { const [k, ...r] = String(x.itemId).split(":"); const ref = r.join(":"); if (k === "task") open({ type: "task", id: ref, focus: "talk" }); else if (k === "proj") open({ type: "project", id: ref, first: "news" }); }
     else if (x.col === "projects") open({ type: "project", id: x.targetId }); else if (x.targetId && x.col === "tasks") open({ type: "task", id: x.targetId }); };
   return <>
     <Card style={{ marginTop: 18 }}><More onClick={() => setOn(!on)}>{on ? "최근 7일 소식 ▴" : "최근 7일 소식 ▾"}</More></Card>

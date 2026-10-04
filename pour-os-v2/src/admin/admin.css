@@ -330,3 +330,7 @@ div.a-reprow { cursor: default; }
 .a-cwmore { border: none; background: none; font: inherit; font-size: 12.5px; font-weight: 800; color: #24386B; text-align: left; padding: 4px 14px; cursor: pointer; }
 .a-cw .a-wkn .l1 b { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.25; word-break: keep-all; overflow-wrap: anywhere; }
 .a-cw .a-wkn .l2 { white-space: normal; }
+/* 판단 필요 머리 줄 */
+.a-jh { display: flex; align-items: baseline; gap: 6px; padding: 11px 14px 6px; font-size: 13.5px; font-weight: 800; color: #0F1F5C; }
+.a-jh small { font-size: 12px; font-weight: 600; color: #6B7280; flex: 1; }
+.a-jh b { font-size: 15px; font-variant-numeric: tabular-nums; }

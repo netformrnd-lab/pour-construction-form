@@ -1,7 +1,7 @@
 // 관리자 · 프로젝트 — 출시가 겹치나, 어느 프로젝트가 위험한가, 출시일을 옮기면 무엇이 바뀌나
 // 출시 줄(앞으로 8주 출시일 묶음 · 제품마다 7단계 칸) → 위험순 전체 목록(일반·신제품 한 목록) → 제품을 누르면 프로젝트 시트 + 관리자 덧붙임(LaunchTools)
 import { useMemo, useState } from "react";
-import { ymd, addDays, ddays, ddayLabel, md, ago, nameOf, ownersOf, dueOf, isDone, projOpen, projHealth, projWhen, weekStart, PROJ_CATS, catName, projCat, guessCat } from "../model.js";
+import { ymd, addDays, ddays, ddayLabel, md, ago, nameOf, ownersOf, dueOf, isDone, projOpen, projHealth, projWhen, weekStart, PROJ_CATS, catName, projCat, guessCat, isHoldP, impOf, IMP_RANK } from "../model.js";
 import { phaseStates, previewLaunchMove, groupItems } from "../views.js";
 import { nodeState, orderTasks } from "../mindmap.jsx";
 import { LAUNCH_PHASES, launchPct, rebalanceLaunch } from "../launch.js";
@@ -100,7 +100,7 @@ export function ProjectsTab({ D, cu, A, idx, open }) {
   // 날짜별 묶음: 지난 날짜 → 앞으로 → 날짜 없음 → 보류
   const groups = useMemo(() => { const g = new Map();
     list.forEach((x) => { const k = x.p.status === "hold" || x.p.status === "paused" ? "~hold" : x.date || "~none"; (g.get(k) || g.set(k, []).get(k)).push(x); });
-    return [...g.entries()].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)).map(([k, items]) => ({ k, items: items.sort((a, b) => (b.lp ? 1 : 0) - (a.lp ? 1 : 0) || ORD[a.h.level] - ORD[b.h.level] || String(a.p.title).localeCompare(String(b.p.title), "ko")) })); }, [list]);
+    return [...g.entries()].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)).map(([k, items]) => ({ k, items: items.sort((a, b) => (b.lp ? 1 : 0) - (a.lp ? 1 : 0) || ORD[a.h.level] - ORD[b.h.level] || IMP_RANK[impOf(a.p)] - IMP_RANK[impOf(b.p)] || String(a.p.title).localeCompare(String(b.p.title), "ko")) })); }, [list]);
   const weeks = [...Array(8)].map((_, i) => addDays(weekStart(key), i * 7));
   const gHead = (g) => { const lpN = g.items.filter((x) => x.lp).length, left = g.items.reduce((a, x) => a + x.h.open, 0), late = g.items.reduce((a, x) => a + x.h.late, 0);
     const what = g.k === "~hold" ? "보류" : g.k === "~none" ? "날짜 없음" : `${md(g.k)} (${wdOf(g.k)}) ${lpN === g.items.length ? "출시" : lpN ? "출시·마감" : "마감"}`;
@@ -108,12 +108,12 @@ export function ProjectsTab({ D, cu, A, idx, open }) {
   const row = (x, last) => { const p = x.p;
     return <div key={p.id} className="a-lrow" style={{ borderBottom: last ? "none" : `1px solid ${C.line}` }}>
       <button type="button" className="a-ln" onClick={() => open({ type: "project", id: p.id })} aria-label={`${p.title} · ${x.h.pct}% · 남은 ${x.h.open}${x.h.late ? ` · 지남 ${x.h.late}` : ""}`}>
-        <span className="nm"><Lv v={x.h.level} small /> {p.title}</span>
+        <span className="nm"><Lv v={x.h.level} small /> {p.title}{impOf(p) === "high" ? " · 중요" : ""}</span>
         {x.cells.map((c) => <span key={c.k} className={"ph " + c.state} title={c.name}>{c.txt ?? ""}</span>)}
         {!x.lp && x.cells.length < 7 && [...Array(7 - x.cells.length)].map((_, i) => <span key={"e" + i} className="ph none" aria-hidden="true" />)}
         <span className="end">{x.h.late ? <b style={{ color: C.red }}>지남 {x.h.late}</b> : `${x.h.pct}%`}</span>
       </button>
-      <div className="a-lsub">{x.nn.now ? `지금 ${x.nn.now.title} (${nameOf(D.users, ownersOf(x.nn.now)[0]) || "담당 없음"})${x.nn.next ? ` → 다음 ${x.nn.next.title} (${nameOf(D.users, ownersOf(x.nn.next)[0]) || "담당 없음"})` : ""}` : x.h.open ? `열린 업무 ${x.h.open} · 지금 하는 일 없음` : x.h.allDone ? <>업무 다 끝남 · <TBtn onClick={() => open({ type: "project", id: p.id })} style={{ padding: "0 2px", fontSize: 12.5 }}>완료하기 ›</TBtn></> : "업무가 아직 없어요"}{!x.lp && cat1 === "all" && projCat(p) ? ` · ${catName(projCat(p))}` : ""}</div>
+      <div className="a-lsub">{isHoldP(p) ? `보류 · ${p.holdReason || "이유 없음"} · ${p.holdUntil ? `다시 할 날 ${md(p.holdUntil)}` : "다시 할 날 미정"}` : x.nn.now ? `지금 ${x.nn.now.title} (${nameOf(D.users, ownersOf(x.nn.now)[0]) || "담당 없음"})${x.nn.next ? ` → 다음 ${x.nn.next.title} (${nameOf(D.users, ownersOf(x.nn.next)[0]) || "담당 없음"})` : ""}` : x.h.open ? `열린 업무 ${x.h.open} · 지금 하는 일 없음` : x.h.allDone ? <>업무 다 끝남 · <TBtn onClick={() => open({ type: "project", id: p.id })} style={{ padding: "0 2px", fontSize: 12.5 }}>완료하기 ›</TBtn></> : "업무가 아직 없어요"}{!x.lp && cat1 === "all" && projCat(p) ? ` · ${catName(projCat(p))}` : ""}</div>
       {cat1 === "none" && <div className="a-lsub a-pcatset">
         <select aria-label={`${p.title} 카테고리`} className="v2-sel" value="" onChange={(e) => e.target.value && setPC(p, e.target.value)}><option value="">카테고리 고르기 ▾</option>{PROJ_CATS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
         {guessCat(p.title) && <TBtn onClick={() => setPC(p, guessCat(p.title))}>추천 '{catName(guessCat(p.title))}'로</TBtn>}</div>}

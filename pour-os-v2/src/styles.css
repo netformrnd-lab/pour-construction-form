@@ -236,3 +236,16 @@ input[type=date] { min-width: 0; max-width: 100%; -webkit-appearance: none; appe
 .v2-news-row .s { font-size: 11.5px; color: #8A92A3; margin-top: 2px; }
 .v2-news-row .arr { flex: 0 0 auto; color: #24386B; font-weight: 800; align-self: center; }
 .v2-calc .t i.ts.red, .v2-cal.me .v2-calc .t i.ts.red { color: #B4383F; box-shadow: inset 0 0 0 1px #EBC9CB; }   /* 늦을 수 있는 내 차례 */
+/* 프로젝트 끝내기 3칸 (완료 · 중단 · 보류) */
+.v2-endk { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.v2-endc { text-align: left; border: 1.5px solid #E2E6EE; border-radius: 14px; background: #fff; padding: 10px 10px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 3px; font-family: inherit; min-width: 0; }
+.v2-endc b { font-size: 15px; color: #0F1F5C; }
+.v2-endc span { font-size: 12.5px; color: #374151; }
+.v2-endc small { font-size: 11.5px; color: #6B7280; line-height: 1.45; }
+.v2-endc.on { border-color: #24386B; background: #EEF1F8; }
+.v2-endc:disabled { opacity: 0.5; cursor: default; }
+.v2-pill { display: inline-block; font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 999px; vertical-align: middle; margin-left: 6px; white-space: nowrap; }
+.v2-pill.hi { background: #24386B; color: #fff; }
+.v2-pill.lo { background: #EEF0F4; color: #6B7280; }
+.v2-pill.st { background: #EEF0F4; color: #374151; }
+@media (max-width: 380px) { .v2-endk { grid-template-columns: 1fr; } }

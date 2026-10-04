@@ -58,7 +58,7 @@ export const activeUsers = (users) => (users || []).filter((u) => u && u.active 
 export const nameOf = (users, id) => ((users || []).find((u) => u.id === id) || {}).name || "";
 
 // ── 업무 ──
-export const STATUS_L = { todo: "할 일", inprogress: "진행 중", hold: "보류", done: "끝남" };
+export const STATUS_L = { todo: "할 일", inprogress: "진행 중", hold: "보류", done: "끝남", dropped: "중단(접음)" };
 export const isDone = (t) => t && t.status === "done";
 export const isOneOff = (t) => t && !t.isFixed;
 export const ownersOf = (t) => (Array.isArray(t.assigneeIds) && t.assigneeIds.length ? t.assigneeIds : t.assigneeId ? [t.assigneeId] : []);
@@ -116,6 +116,7 @@ export const canSetDue = (t, uid, D, master) => !!master || !dueApprover(t, D) |
 // 위험 신호 한 개 (가장 급한 것)
 export function riskOf(t, key) {
   if (!t || isDone(t)) return null;
+  if (t.status === "hold") return { k: "hold", label: t.holdUntil ? `보류 · ${md(t.holdUntil)} 다시` : "보류" };   // 보류는 '지남'(빨강)으로 보이지 않게 먼저
   const n = ddays(dueOf(t), key);
   if (t.blocked) return { k: "blocked", label: "막힘", red: true };
   if (n != null && n < 0 && t.status !== "review") return { k: "late", label: `${-n}일 지남`, red: true };
@@ -124,7 +125,6 @@ export function riskOf(t, key) {
   if (n === 0) return { k: "today", label: "오늘 마감" };
   if (n != null && n <= 2 && t.status === "todo") return { k: "start", label: n === 1 ? "내일 마감 · 시작 전" : "D-2 · 시작 전" };
   if (n === 1) return { k: "soon", label: "내일 마감" };
-  if (t.status === "hold") return { k: "hold", label: "보류" };
   return null;
 }
 // 지금 할 일 고르는 순서 (한 번에 하나): 수정 요청 → 지난 일 → 진행 중 → 오늘 마감 → 곧 마감(시작 전) → 마감 가까운 순 → 날짜 없음
@@ -150,8 +150,9 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   // 내 할 일 (확인 대기·보류 빼고) — 지금 할 일 순서대로
   const open = tasks.filter((t) => isOneOff(t) && !isDone(t) && isMine(t, uid));
   const active = open.filter((t) => t.status !== "review" && t.status !== "hold" && !temp.has(t.id));   // 임시 담당(책임자로 채운 신제품 항목)은 '정리'로만
+  const impP = Object.fromEntries((D.projects || []).map((p) => [p.id, IMP_RANK[impOf(p)]]));   // 같은 순위·같은 날이면 중요 높은 프로젝트 일 먼저
   const ranked = active.map((t) => ({ t, r: focusRank(t, key, fresh.has(t.id)), n: ddays(dueOf(t), key), risk: riskOf(t, key), fresh: fresh.has(t.id) }))
-    .sort((a, b) => a.r - b.r || (a.n ?? 999) - (b.n ?? 999) || String(a.t.title).localeCompare(String(b.t.title)));
+    .sort((a, b) => a.r - b.r || (a.n ?? 999) - (b.n ?? 999) || (impP[a.t.projectId] ?? 1) - (impP[b.t.projectId] ?? 1) || String(a.t.title).localeCompare(String(b.t.title)));
   const focus = ranked.filter((x) => x.r <= 4);              // 오늘 화면에 보일 급한 일
   const late = ranked.filter((x) => x.n != null && x.n < 0);  // 지난 일 정리 대상
   const doing = open.filter((t) => t.status === "inprogress").length;
@@ -176,12 +177,15 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
     if (t.dueReq && dueApprover(t, D) === uid) inbox.push({ kind: "dueReq", tag: "기한 조정", id: "dq:" + t.id, taskId: t.id, title: t.title, who: t.dueReq.by, whoName: t.dueReq.byName, at: t.dueReq.at, text: `${md(dueOf(t)) || "미정"} → ${md(t.dueReq.date)}${t.dueReq.reason ? " · " + t.dueReq.reason : ""}`, keep: true });
     if (t.status === "review" && (t.reviewTo || reqOf(t)) === uid) inbox.push({ kind: "review", tag: "확인 요청", id: "rv:" + t.id, taskId: t.id, title: t.title, who: ownersOf(t)[0], at: t.reviewAt || t.updatedAt, text: "끝냈어요 · 확인해 주세요", keep: true });
     if (t.blocked && !mine && (reqOf(t) === uid || dueApprover(t, D) === uid || ((D.projects || []).find((p) => p.id === t.projectId) || {}).assigneeId === uid)) inbox.push({ kind: "blocked", tag: "막힘", red: true, id: "bk:" + t.id, taskId: t.id, title: t.title, who: t.blocked.by, whoName: t.blocked.byName, at: t.blocked.at, text: t.blocked.reason, keep: true });
+    if (mine && t.status === "hold" && t.holdUntil && t.holdUntil <= key && !t.holdBy) inbox.push({ kind: "holdDue", tag: "다시 볼 날", id: "hd:" + t.id + ":" + t.holdUntil, taskId: t.id, title: t.title, who: t.heldBy, at: t.holdUntil + "T00:00:00", text: `보류${t.holdReason ? " · " + t.holdReason : ""} · ${md(t.holdUntil)}에 다시 보기로 함`, keep: true });
     if (mine && t.dueReqResult && !seen["dr:" + t.id + t.dueReqResult.at]) inbox.push({ kind: "dueRes", tag: t.dueReqResult.ok ? "기한 바뀜" : "기한 유지", id: "dr:" + t.id + t.dueReqResult.at, taskId: t.id, title: t.title, who: t.dueReqResult.by, whoName: t.dueReqResult.byName, at: t.dueReqResult.at, text: t.dueReqResult.ok ? `새 기한 ${md(dueOf(t))}` : t.dueReqResult.reason || "기한은 그대로예요" });
   });
   Object.entries(launchNew).forEach(([pid, g]) => { const p = (D.projects || []).find((x) => x.id === pid);
     inbox.push({ kind: "launchNew", tag: "신제품", id: "ln:" + pid, projectId: pid, title: `${p ? p.title : "신제품"} · 항목 ${g.n}개 맡김`, who: g.who, at: g.at, text: "열어서 기한을 확인하고 '받았어요'를 눌러 주세요", keep: true }); });
   Object.entries(bulkNew).forEach(([bid, g]) => { const p = (D.projects || []).find((x) => x.id === g.pid);
     inbox.push({ kind: "bulk", tag: "맡김", id: "bl:" + bid, bulkIds: g.ids, projectId: g.pid, title: `${p ? p.title + " · " : ""}항목 ${g.n}개 맡김`, who: g.who, at: g.at, text: "기한을 확인하고 '받았어요'를 눌러 주세요", keep: true }); });
+  // 보류한 프로젝트 '다시 할 날'이 되면 책임자에게 (다시 시작하거나 날짜를 바꿀 때까지)
+  (D.projects || []).forEach((p) => { if (isHoldP(p) && p.holdUntil && p.holdUntil <= key && p.assigneeId === uid) inbox.push({ kind: "projHoldDue", tag: "다시 할 날", id: "ph:" + p.id + ":" + p.holdUntil, projectId: p.id, title: p.title, who: p.heldBy, at: p.holdUntil + "T00:00:00", text: `보류${p.holdReason ? " · " + p.holdReason : ""} · ${md(p.holdUntil)}에 다시 하기로 함`, keep: true }); });
   if (T && Array.isArray(T.inbox)) T.inbox.forEach((x) => inbox.push(x));
   const taskById = Object.fromEntries(tasks.map((t) => [t.id, t]));
   (D.notes || []).forEach((n) => {
@@ -193,7 +197,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
     else if (kind === "proj" && projAll.has(ref)) { const p = (D.projects || []).find((x) => x.id === ref); hit = { projectId: ref, title: p ? p.title : "프로젝트" }; }
     if (hit) inbox.push({ kind: "note", tag: "댓글", id: "nt:" + n.id, ...hit, who: n.by, whoName: n.byName, at: n.at, text: n.text });
   });
-  const ORDER = { feedback: 0, review: 1, dueReq: 2, blocked: 3, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, dueRes: 9, note: 10 };
+  const ORDER = { feedback: 0, review: 1, dueReq: 2, blocked: 3, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, note: 10 };
   inbox.sort((a, b) => (ORDER[a.kind] ?? 11) - (ORDER[b.kind] ?? 11) || String(b.at || "").localeCompare(String(a.at || "")));
   const userName = (id) => nameOf(users, id);
   // 끝낸 시각은 UTC(toISOString) → 기기 날짜로 바꿔 비교 (아침 9시 전에 끝낸 일도 오늘)
@@ -240,7 +244,7 @@ export function onTimeOf(D, uid, now = new Date(), days = 30) {
 }
 
 // ── 프로젝트 ──
-export const projOpen = (p) => p && p.status !== "completed" && p.status !== "done" && !p.archived;
+export const projOpen = (p) => p && p.status !== "completed" && p.status !== "done" && p.status !== "dropped" && !p.archived;   // 보류(hold)는 열린 것(보류 묶음) · 중단(dropped)은 끝난 것
 export const projMine = (p, uid, tasks) => p.assigneeId === uid || (p.collaboratorIds || []).includes(uid) || (tasks || []).some((t) => t.projectId === p.id && !t.isFixed && isMine(t, uid));
 // 프로젝트 진척 % — 모든 화면이 이 값 하나만 씀 (신제품 lb_ 은 launchPct). 저장된 progress = 전체 업무(오래전에 끝낸 것 포함)로 계산한 값:
 //  업무를 끝내거나 다시 열 때 · 프로젝트를 열 때 · 마스터가 앱을 열면 하루 한 번 열린 프로젝트 전체를 다시 계산
@@ -316,7 +320,7 @@ export function ownerIssues(D) {
 
 // ── 소식 (댓글 + 기록) ──
 export const LOG_L = { decide: "결정", add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", take: "이어받음", comment: "댓글", delete: "휴지통으로",
-  ack: "받음", dueReq: "기한 조정 요청", dueOk: "기한 조정 수락", dueNo: "기한 유지", review: "확인 요청", approve: "확인 완료", feedback: "수정 요청", block: "막힘", unblock: "막힘 풀림", launch: "신제품 만듦", bulk: "한꺼번에 바꿈", deps: "앞 일 바꿈" };
+  ack: "받음", dueReq: "기한 조정 요청", dueOk: "기한 조정 수락", dueNo: "기한 유지", review: "확인 요청", approve: "확인 완료", feedback: "수정 요청", block: "막힘", unblock: "막힘 풀림", launch: "신제품 만듦", bulk: "한꺼번에 바꿈", deps: "앞 일 바꿈", hold: "보류", unhold: "보류 풀기", projEnd: "프로젝트 끝냄·멈춤", projResume: "프로젝트 다시 시작" };
 export function feedOf(D, { projectId, taskIds, sinceIso } = {}) {
   const tset = taskIds ? new Set(taskIds) : null;
   const notes = (D.notes || []).filter((n) => !n.deleted && (!sinceIso || (n.at || "") >= sinceIso)).filter((n) => {
@@ -378,6 +382,46 @@ export function calItems(D, f = {}, key) {
     .map((t) => ({ t, date: dueOf(t), risk: riskOf(t, key) }));
 }
 // 프로젝트가 잘 가고 있나: 위험(지난 항목·막힘 또는 마감 7일 안인데 60% 미만) · 주의(곧 마감인데 시작 전 · 담당 없음) · 순조
+// ── 프로젝트 끝내기 · 멈추기 · 중요도 ──
+// status: 진행(active 등) · completed 완료(다 해서 끝냄) · dropped 중단(안 하기로 함 · 남은 업무는 'dropped'로 접음, 지우지 않음) · hold 보류(나중에 다시 · 남은 업무는 보류로 접음, 다시 시작하면 되돌림)
+export const projStLabel = (p) => (!p ? "" : p.status === "completed" || p.status === "done" ? "완료" : p.status === "dropped" ? "중단" : p.status === "hold" || p.status === "paused" ? "보류" : "진행 중");
+export const isHoldP = (p) => !!p && (p.status === "hold" || p.status === "paused");
+export const IMP = [["high", "높음"], ["mid", "보통"], ["low", "낮음"]];
+export const impOf = (p) => (p && ["high", "mid", "low"].includes(p.priority) ? p.priority : "mid");   // 중요도 = 버전1 priority 칸 그대로 (없으면 보통)
+export const impName = (k) => (IMP.find((x) => x[0] === k) || [])[1] || "보통";
+export const IMP_RANK = { high: 0, mid: 1, low: 2 };
+export const HOLD_WHY = ["다른 일이 먼저", "자료·답 기다림", "결정·예산 대기", "시즌·일정 미룸"];
+export const DROP_WHY = ["안 하기로 결정", "조건이 안 맞음", "다른 프로젝트로 합침", "시기를 놓침"];
+const workdaysIn = (a, b) => { let n = 0, d = a; while (d < b) { d = addDays(d, 1); if (!isOffDay(d)) n++; } return n; };   // (a, b] 평일 수
+// 예상 끝나는 날 = 남은 업무 ÷ 최근 2주(평일 10일) 끝낸 속도 · 평일로 셈. 속도가 0이면 잴 수 없음(eta "")
+export function projForecast(p, tasks, key) {
+  const ts = (tasks || []).filter((t) => t.projectId === p.id && !t.isFixed);
+  const left = ts.filter((t) => !isDone(t) && t.status !== "hold" && t.status !== "dropped").length;
+  const since = new Date(new Date(key + "T00:00:00").getTime() - 14 * 86400000).toISOString();
+  const done14 = ts.filter((t) => isDone(t) && String(t.finishedAt || t.doneAt || "") >= since).length;
+  const due = String(p.dueDate || p.launchDate || "").slice(0, 10), perWeek = Math.round((done14 / 2) * 10) / 10;
+  if (!left || !done14) return { left, done14, perWeek, eta: "", lateBy: 0, due };
+  let need = Math.ceil(left / (done14 / 10)), d = key; while (need > 0) { d = addDays(d, 1); if (!isOffDay(d)) need--; }
+  return { left, done14, perWeek, eta: d, lateBy: due && d > due ? workdaysIn(due, d) : 0, due };
+}
+// 관리자 '판단 필요': 당겨야 할 것(중요 높음인데 늦어질 듯 · 마감 지남 · 속도 없이 마감 2주 안) · 미뤄도 되는 것(중요 낮음 업무가 이번 주 한도 넘은 사람에게 있음)
+export function judgeOf(D, key) {
+  const ws = weekStart(key), we = addDays(ws, 6);
+  const open = (D.tasks || []).filter((t) => isOneOff(t) && !isDone(t) && t.status !== "hold" && t.status !== "review");
+  const wk = {}; open.forEach((t) => { const d = dueOf(t); if (d && d >= ws && d <= we) ownersOf(t).forEach((u) => { wk[u] = (wk[u] || 0) + 1; }); });
+  const cap = (u) => Number(((D.users || []).find((x) => x.id === u) || {}).weekCap) || 15;
+  const pull = [], push = [];
+  (D.projects || []).filter((p) => projOpen(p) && !isHoldP(p)).forEach((p) => {
+    const imp = impOf(p), mine = open.filter((t) => t.projectId === p.id);
+    if (imp === "high") { const f = projForecast(p, D.tasks, key), n = f.due ? ddays(f.due, key) : null, blocked = mine.filter((t) => t.blocked).length;
+      const why = !f.left ? "" : n != null && n < 0 ? `마감 ${md(f.due)} 지남 · 남은 ${f.left}` : f.eta && f.lateBy > 0 ? `예상 ${md(f.eta)} · 마감 ${md(f.due)}보다 ${f.lateBy}일 늦음` : !f.eta && n != null && n <= 14 && f.left >= 3 ? `최근 2주 끝낸 업무 0 · 마감 D-${n} · 남은 ${f.left}` : "";
+      if (why) pull.push({ p, f, why, blocked, score: (n != null && n < 0 ? 100 : 0) + f.lateBy + (f.eta ? 0 : 20) }); }
+    if (imp === "low") { const wkT = mine.filter((t) => { const d = dueOf(t); return d && d >= ws && d <= we; });
+      const ppl = [...new Set(wkT.flatMap((t) => ownersOf(t)))].filter((u) => wk[u] > cap(u)).map((u) => { const k = wkT.filter((t) => ownersOf(t).includes(u)).length; return { u, n: wk[u], cap: cap(u), k }; });
+      if (ppl.length) push.push({ p, ppl, tasks: wkT.filter((t) => ownersOf(t).some((u) => ppl.some((x) => x.u === u))) }); }
+  });
+  return { pull: pull.sort((a, b) => b.score - a.score), push: push.sort((a, b) => b.tasks.length - a.tasks.length), ws, we };
+}
 export function projHealth(p, D, key, pctOf = null) {
   const ts = (D.tasks || []).filter((t) => t.projectId === p.id && !t.isFixed), open = ts.filter((t) => !isDone(t));
   const late = open.filter((t) => { const r = riskOf(t, key); return r && (r.k === "late" || r.k === "blocked"); }).length;

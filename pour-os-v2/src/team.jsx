@@ -72,7 +72,7 @@ export function RiskSheet({ D, cu, open, onBack, onClose }) {
 }
 export function PersonSheet({ D, cu, A, open, onBack, onClose, id, setToast }) {
   const u = D.users.find((x) => x.id === id); const [ask, setAsk] = useState(false), [all, setAll] = useState(false);
-  if (!u) return <Sheet title="사람" onBack={onBack} onClose={onClose}><Empty>찾지 못했어요</Empty></Sheet>;
+  if (!u) return <Sheet title="사람" kind="사람" onBack={onBack} onClose={onClose}><Empty>찾지 못했어요</Empty></Sheet>;
   const now = new Date(), key = ymd(now), s = personStat(D, u.id, key), ot = onTimeOf(D, u.id, now), wl = workloadOf(D, u.id, now);
   const open1 = D.tasks.filter((t) => isOneOff(t) && !isDone(t) && isMine(t, u.id));
   const doing = open1.filter((t) => t.status === "inprogress"), todoAll = open1.filter((t) => t.status !== "inprogress").sort((a, b) => String(dueOf(a) || "9").localeCompare(String(dueOf(b) || "9"))), next = all ? todoAll : todoAll.slice(0, 5);
@@ -80,7 +80,7 @@ export function PersonSheet({ D, cu, A, open, onBack, onClose, id, setToast }) {
   const fx = D.tasks.filter((t) => t.isFixed && !t.paused && fxIsMine(t, u.id) && fxDueOn(t, key));
   const talk = D.notes.filter((n) => n.by === u.id && !n.deleted).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 5);
   const L = ({ a, empty, render }) => <Card>{a.length === 0 ? <Empty>{empty}</Empty> : a.map((x, i) => render(x, i === a.length - 1))}</Card>;
-  return <Sheet title={u.name} onBack={onBack} onClose={onClose} foot={<Big onClick={() => open({ type: "add", preset: { assigneeId: u.id } })}>{u.name}님에게 업무 맡기기</Big>}>
+  return <Sheet title={u.name} kind="사람" path="팀원 보기" onBack={onBack} onClose={onClose} foot={<Big onClick={() => open({ type: "add", preset: { assigneeId: u.id } })}>{u.name}님에게 업무 맡기기</Big>}>
     <div style={{ marginTop: 12, padding: "10px 12px", background: C.soft, borderRadius: 12, fontSize: 13, color: C.ink }}>보기만 하는 화면이에요. 댓글은 내 이름({cu.name})으로 남아요.</div>
     <div style={{ fontSize: 14, color: C.sub, margin: "12px 2px 0", lineHeight: 1.6 }}>진행 {s.inprog} · 열린 업무 {s.open}{s.late ? ` · 지남 ${s.late}` : ""} · 오늘 고정 {s.fxDone}/{s.fxTotal}{ot.pct != null ? ` · 기한 지킴 ${ot.pct}% (최근 30일 ${ot.n}건${ot.miss ? ` · 못 끝낸 ${ot.miss}건 포함` : ""})` : ""}{s.last ? ` · 마지막 활동 ${ago(s.last)}` : ""}</div>
     <Head>앞으로 2주 마감</Head>

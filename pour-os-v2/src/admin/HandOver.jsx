@@ -22,7 +22,7 @@ export function HandOver({ D, cu, A, open, onBack, onClose, id }) {
     ? <Row key={x.id} title={x.title} sub={[x.dueDate ? `마감 ${md(x.dueDate)}` : "마감 없음", x.status === "hold" ? "보류" : ""].filter(Boolean).join(" · ")} onClick={() => open({ type: "project", id: x.id })} last={last} />
     : <Row key={x.id} title={x.title} sub={k === "fixed" ? (x.assigneeIds || []).length > 1 ? `함께 ${x.assigneeIds.map((y) => nameOf(D.users, y)).filter(Boolean).join("·")}` : "혼자 맡음"
       : [dueOf(x) ? md(dueOf(x)) : "기한 없음", pName(D, x.projectId), ownersOf2(x) > 1 ? "여러 명 담당" : ""].filter(Boolean).join(" · ")} onClick={() => open({ type: x.isFixed ? "fixed" : "task", id: x.id })} last={last} />;
-  return <Sheet title={`${u.name}님 일 넘기기`} onBack={onBack} onClose={onClose} foot={foot}>
+  return <Sheet title={`${u.name}님 일 넘기기`} kind="일 넘기기" onBack={onBack} onClose={onClose} foot={foot}>
     <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.6, marginTop: 12 }}>휴가·퇴사 때 {u.name}님이 맡은 일을 한 사람에게 한 번에 넘겨요. 끝낸 일과 기록은 그대로 두고, 맡긴 사람도 바뀌지 않아요.</div>
     {done ? <Card style={{ marginTop: 14, padding: "14px" }}><div style={{ fontSize: 14.5, color: C.text, lineHeight: 1.6 }}>{toN}님에게 넘겼어요. {toN}님 '확인할 것'에 '{u.name}님 업무 넘겨받음' 한 줄로 떠요.</div>
       <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>잘못 넘겼으면 아래 알림의 '되돌리기'를 눌러요 (5초)</div></Card>

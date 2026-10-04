@@ -9,9 +9,16 @@ export function Big({ children, onClick, disabled, tone = "navy", style }) {
   const bg = tone === "navy" ? C.navy : tone === "white" ? "#fff" : C.green;
   return <button type="button" onClick={onClick} disabled={disabled} style={{ width: "100%", height: 52, borderRadius: 14, border: tone === "white" ? `1.5px solid ${C.line}` : "none", background: bg, color: tone === "white" ? C.ink : "#fff", fontSize: 16, fontWeight: 800, fontFamily: F, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.45 : 1, ...style }}>{children}</button>;
 }
-// 글자 버튼
-export function TBtn({ children, onClick, tone, disabled, style, ...rest }) {
-  return <button type="button" onClick={onClick} disabled={disabled} {...rest} style={{ border: "none", background: "none", padding: "8px 4px", fontSize: 13.5, fontWeight: 700, fontFamily: F, color: tone === "red" ? C.red : tone === "mute" ? C.mute : C.navy, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.45 : 1, whiteSpace: "nowrap", ...style }}>{children}</button>;
+// 작은 버튼 — 글자만 있으면 헷갈려서 늘 배경 도형이 있음
+//   v: "line"(기본 · 흰 바탕 + 테두리 · 제목 옆 작은 버튼) · "soft"(연한 네이비 · 업무 동작 줄) · "solid"(진한 네이비 · 그 줄에서 가장 자주 누르는 1개) · "plain"(글자만 · 문장 안 링크)
+const TB_V = {
+  line: { background: "#fff", border: "1px solid #D5DCEC" },
+  soft: { background: "#E8ECF6", border: "1px solid #D5DCEC" },
+  solid: { background: C.navy, border: `1px solid ${C.navy}`, color: "#fff" },
+  plain: { background: "none", border: "none", padding: "8px 4px", minHeight: 0 },
+};
+export function TBtn({ children, onClick, tone, disabled, style, v = "line", ...rest }) {
+  return <button type="button" onClick={onClick} disabled={disabled} {...rest} style={{ padding: "6px 12px", minHeight: 34, borderRadius: 10, fontSize: 13.5, fontWeight: 800, fontFamily: F, color: tone === "red" ? C.red : tone === "mute" ? C.sub : C.navy, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.45 : 1, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, ...TB_V[v], ...style }}>{children}</button>;
 }
 // 줄 오른쪽 작은 실행 버튼 ('완료' 등)
 export function Act({ children, onClick, on, style }) {
@@ -52,14 +59,18 @@ export function Empty({ children }) { return <div style={{ padding: "16px 14px",
 export function More({ children, onClick }) { return <button type="button" onClick={onClick} style={{ width: "100%", padding: "12px 14px", border: "none", borderTop: `1px solid ${C.line}`, background: "#fff", color: C.navy, fontSize: 13.5, fontWeight: 800, fontFamily: F, cursor: "pointer", textAlign: "left" }}>{children}</button>; }
 
 // 시트: 폰은 전체 화면, PC(1024+)는 오른쪽 620px 패널
-export function Sheet({ title, onBack, onClose, children, foot }) {
+// 시트 머리 (시안 A): 네이비 띠 + 오른쪽 흰 '종류' 칩(업무·프로젝트·고정업무·사람 …) + 어디 속한 건지(path) + 큰 제목(head)
+//   kind 없이 title 만 주면 띠 + 큰 제목만 (설정·목록 시트)
+export function Sheet({ title, kind, path, onPath, head, onBack, onClose, children, foot }) {
   useEffect(() => { const k = (e) => { if (e.key === "Escape") (onBack || onClose)(); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [onBack, onClose]);
   return <div className="v2-sheet-wrap" onClick={onClose}>
     <div className="v2-sheet" role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()}>
-      <div style={{ display: "flex", alignItems: "center", gap: 4, height: 54, padding: "0 8px", borderBottom: `1px solid ${C.line}`, flex: "0 0 auto", paddingTop: "env(safe-area-inset-top,0px)" }}>
-        <TBtn onClick={onBack || onClose} style={{ fontSize: 15, padding: "8px 10px" }}>‹ {onBack ? "뒤로" : "닫기"}</TBtn>
-        <div style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: 15, fontWeight: 800, color: C.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</div>
-        {onBack ? <TBtn onClick={onClose} style={{ padding: "8px 10px" }}>닫기</TBtn> : <span style={{ width: 64 }} />}
+      <div className="v2-shead">
+        <div className="r"><button type="button" className="bk" onClick={onBack || onClose}>‹ {onBack ? "뒤로" : "닫기"}</button>
+          {onBack && <button type="button" className="bk" onClick={onClose}>닫기</button>}<span style={{ flex: 1 }} />
+          {kind && <span className="kind">{kind}</span>}</div>
+        {path && (onPath ? <button type="button" className="path go" onClick={onPath}>{path} ›</button> : <div className="path">{path}</div>)}
+        <div className="tt">{head || title}</div>
       </div>
       <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "4px 16px 24px" }}>{children}</div>
       {foot && <div style={{ flex: "0 0 auto", padding: "10px 16px calc(10px + env(safe-area-inset-bottom,0px))", borderTop: `1px solid ${C.line}`, background: "#fff" }}>{foot}</div>}
@@ -119,7 +130,7 @@ export const appLink = (kind, id) => `${String(window.location.href).split("#")[
 export function CopyLink({ kind, id, onDone, label = "링크 복사" }) {
   const [show, setShow] = useState("");
   const go = () => { const u = appLink(kind, id); try { navigator.clipboard.writeText(u).then(() => { setShow(""); if (onDone) onDone(); }, () => setShow(u)); } catch (e) { setShow(u); } };
-  return <><TBtn onClick={go} style={{ padding: "2px 0" }}>{label}</TBtn>
+  return <><TBtn onClick={go}>{label}</TBtn>
     {show && <input readOnly value={show} autoFocus onFocus={(e) => e.target.select()} aria-label="복사할 링크" style={{ ...inp, marginTop: 6, fontSize: 12.5, padding: "8px 10px" }} />}</>;
 }
 

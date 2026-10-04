@@ -150,7 +150,7 @@ function FocusCard({ D, cu, A, open, TV, T, x, pName, next, setSeen, setToast })
   return <div style={{ marginTop: 12, background: "#fff", border: `1.5px solid ${late || (x.risk && x.risk.red) ? "#E2B7BB" : x.fresh ? C.navy : "#C9D2EA"}`, borderRadius: 18, padding: "14px 16px" }}>
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <span style={{ fontSize: 12.5, fontWeight: 800, color: x.fresh ? C.navy : C.sub, flex: 1, minWidth: 0 }}>{x.fresh && pred ? `이제 내 차례 · ${nameOf(D.users, ownersOf(pred)[0])}님이 "${pred.title}"을 끝냈어요${info.readyAt ? " · " + ago(info.readyAt) : ""}` : "지금 할 일"}</span>
-      {TV.ranked.length > 1 && <TBtn onClick={() => { setMode(""); next(); }} style={{ padding: "4px 2px", flex: "0 0 auto" }}>다른 일 ›</TBtn>}
+      {TV.ranked.length > 1 && <TBtn onClick={() => { setMode(""); next(); }} style={{ flex: "0 0 auto" }}>다른 일 ›</TBtn>}
     </div>
     <div role="button" tabIndex={0} onClick={() => { seenTurn(); open({ type: "task", id: t.id }); }} onKeyDown={(e) => { if (e.key === "Enter") { seenTurn(); open({ type: "task", id: t.id }); } }} style={{ cursor: "pointer", marginTop: 4 }}>
       {!x.fresh && (x.risk || b.tag) && <span className={"v2-tag" + ((x.risk && x.risk.red) || b.tone === "red" ? " red" : b.tone === "turn" ? " turn" : "")} style={{ marginBottom: 4 }}>{x.risk ? x.risk.label : b.tag}</span>}

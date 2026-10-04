@@ -54,8 +54,8 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
   const [txt, setTxt] = useState(""), [handTo, setHandTo] = useState(""), [reqDate, setReqDate] = useState(""), [handoff, setHandoff] = useState(""), [depSel, setDepSel] = useState(null), [allOrder, setAllOrder] = useState(false);
   const fileRef = useRef(null);
   useEffect(() => { if (!focus || !t) return; const h = setTimeout(() => { const el = document.getElementById("v2-t-" + focus); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); return () => clearTimeout(h); }, [focus, !!t]);
-  if (t === undefined || t === null) return <Sheet title="업무" onBack={onBack} onClose={onClose}><Empty>불러오는 중…</Empty></Sheet>;
-  if (t === false) return <Sheet title="업무" onBack={onBack} onClose={onClose}><Empty>이 업무를 찾지 못했어요 (휴지통이나 보관함으로 갔을 수 있어요)</Empty></Sheet>;
+  if (t === undefined || t === null) return <Sheet title="업무" kind="업무" onBack={onBack} onClose={onClose}><Empty>불러오는 중…</Empty></Sheet>;
+  if (t === false) return <Sheet title="업무" kind="업무" onBack={onBack} onClose={onClose}><Empty>이 업무를 찾지 못했어요 (휴지통이나 보관함으로 갔을 수 있어요)</Empty></Sheet>;
   if (t.isFixed) return <FixedSheet D={D} cu={cu} A={A} onBack={onBack} onClose={onClose} id={id} focus={focus} setToast={setToast} />;   // 고정업무는 어느 입구로 와도 고정업무 화면 (일반 화면의 담당 바꾸기·끝냄이 반복 업무를 덮어쓰지 않게)
   const key = ymd(new Date()), mine = isMine(t, cu.id), done = isDone(t), n = ddays(dueOf(t), key), master = isMaster(cu);
   const p = D.projects.find((x) => x.id === t.projectId), owners = ownersOf(t).map((u) => nameOf(D.users, u) || "(없는 사람)");
@@ -98,8 +98,10 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
     if (finishedOf(x)) { const f = finishedAt(x); return `${w} · ${isDone(x) ? "끝냄" : "확인 중"}${f ? " " + md(ymd(new Date(f))) : ""}`; }
     const nn = ddays(dueOf(x), key); return `${w} · ${x.blocked ? "막힘" : x.status === "inprogress" ? "진행 중" : x.status === "hold" ? "보류" : "할 일"}${dueOf(x) ? nn < 0 ? ` · ${-nn}일 지남` : ` · ${md(dueOf(x))} 예정` : ""}`; };
   const ORD = 3;
-  return <Sheet title="업무" onBack={onBack} onClose={onClose} foot={foot}>
-    <h2 style={{ fontSize: 20, fontWeight: 800, color: C.ink, margin: "12px 0 6px", lineHeight: 1.35, wordBreak: "keep-all" }}>{risk && <span style={{ display: "inline-block", verticalAlign: 3, marginRight: 6, fontSize: 12, fontWeight: 800, padding: "2px 7px", borderRadius: 6, color: risk.red ? C.red : C.navy, background: risk.red ? "#F8E9EA" : C.soft }}>{risk.label}</span>}{t.title}</h2>
+  const projT = ((D.projects || []).find((x) => x.id === t.projectId) || {}).title;
+  return <Sheet title="업무" kind="업무" head={t.title} path={projT ? `프로젝트 · ${projT}` : "프로젝트 없음"} onPath={projT ? () => open({ type: "project", id: t.projectId }) : null} onBack={onBack} onClose={onClose} foot={foot}>
+    {risk && <div style={{ margin: "12px 0 0" }}><span style={{ display: "inline-block", fontSize: 12.5, fontWeight: 800, padding: "3px 9px", borderRadius: 6, color: risk.red ? C.red : C.navy, background: risk.red ? "#F8E9EA" : C.soft }}>{risk.label}</span></div>}
+    <div style={{ height: risk ? 6 : 12 }} />
     <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7 }}>
       <span>담당 {owners.join(", ") || "없음"}{temp ? " (임시 · 책임자로 채움)" : t.ownerFrom === "default" || (t.ownerAuto && !t.ownerFrom) ? " (기본 담당)" : ""}</span> · <span style={{ color: n != null && n < 0 && !done && t.status !== "hold" ? C.red : C.sub, fontWeight: n != null && n < 0 && !done && t.status !== "hold" ? 800 : 400 }}>{dueOf(t) ? `기한 ${md(dueOf(t))}${done ? "" : " · " + ddayLabel(n)}` : "기한 미정"}</span> · <b style={{ color: C.ink }}>{review ? "확인 대기" : STATUS_L[t.status] || t.status}</b>
       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>기간 {mine || master ? <input type="date" aria-label="시작일" className="v2-sel" value={t.startDate || ""} max={dueOf(t) || undefined} onChange={(e) => A.patchTask(t, { startDate: e.target.value }, "edit", `${t.title} · 시작 ${md(e.target.value) || "없음"}`, { prev: { startDate: t.startDate || "" } })} style={{ height: 30, padding: "0 6px", fontSize: 13 }} /> : <span>{t.startDate ? md(t.startDate) : "시작 미정"}</span>} ~ {dueOf(t) ? md(dueOf(t)) : "기한 미정"}<span style={{ flex: 1 }} /><CopyLink kind="t" id={t.id} label="업무 링크 복사" onDone={() => setToast && setToast({ text: "링크를 복사했어요 · 잔디·카톡에 붙여 넣으면 이 업무가 바로 열려요" })} /></div>
@@ -135,14 +137,14 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
     {mode === "hold" && <HoldAsk title={`보류 · ${t.title}`} onNo={() => setMode("")} onYes={(why, until) => { A.hold(t, why, until); setMode(""); }} />}
     {reopened && <Banner>앞 일 "{reopened.title}"이 수정 요청으로 다시 열렸어요 · {nameOf(D.users, ownersOf(reopened)[0]) || "앞사람"}님이 다시 끝내면 '이제 내 차례'로 알려 드려요</Banner>}
 
-    {!done && !review && <div style={{ display: "flex", flexWrap: "wrap", gap: 2, margin: "8px -4px 0" }}>
-      {mine && t.status !== "inprogress" && <TBtn onClick={() => A.setStatus(t, "inprogress")}>시작했어요</TBtn>}
-      {mine && !t.blocked && <TBtn onClick={() => { setTxt(""); setMode(mode === "block" ? "" : "block"); }}>막혔어요</TBtn>}
-      {t.status !== "hold" ? <TBtn onClick={() => setMode("hold")}>보류</TBtn> : <TBtn onClick={() => A.unhold(t)}>보류 풀기</TBtn>}
-      <TBtn onClick={() => { setHandTo(""); setTxt(""); setMode(mode === "who" ? "" : "who"); }}>담당 바꾸기</TBtn>
-      <TBtn onClick={() => setMode("ask")}>요청</TBtn>
-      <TBtn onClick={() => setMode(mode === "cc" ? "" : "cc")}>참조</TBtn>
-      {canDue ? <TBtn onClick={() => setMode(mode === "due" ? "" : "due")}>기한 바꾸기</TBtn> : !t.dueReq && <TBtn onClick={() => setMode(mode === "req" ? "" : "req")}>기한 조정 요청</TBtn>}
+    {!done && !review && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "10px 0 0" }}>
+      {mine && t.status !== "inprogress" && <TBtn v="solid" onClick={() => A.setStatus(t, "inprogress")}>시작했어요</TBtn>}
+      {mine && !t.blocked && <TBtn v="soft" onClick={() => { setTxt(""); setMode(mode === "block" ? "" : "block"); }}>막혔어요</TBtn>}
+      {t.status !== "hold" ? <TBtn v="soft" onClick={() => setMode("hold")}>보류</TBtn> : <TBtn v="soft" onClick={() => A.unhold(t)}>보류 풀기</TBtn>}
+      <TBtn v="soft" onClick={() => { setHandTo(""); setTxt(""); setMode(mode === "who" ? "" : "who"); }}>담당 바꾸기</TBtn>
+      <TBtn v="soft" onClick={() => setMode("ask")}>요청</TBtn>
+      <TBtn v="soft" onClick={() => setMode(mode === "cc" ? "" : "cc")}>참조</TBtn>
+      {canDue ? <TBtn v="soft" onClick={() => setMode(mode === "due" ? "" : "due")}>기한 바꾸기</TBtn> : !t.dueReq && <TBtn v="soft" onClick={() => setMode(mode === "req" ? "" : "req")}>기한 조정 요청</TBtn>}
     </div>}
     {mode === "block" && <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0" }}><input value={txt} onChange={(e) => setTxt(e.target.value)} placeholder="무엇 때문에 막혔나요? (예: 시안 자료가 없어요)" aria-label="막힌 이유" style={inp} />
       <div style={{ fontSize: 12.5, color: C.sub }}>{nameOf(D.users, askTo(t, D, cu.id)) || "마스터"}님의 '확인할 것'에 떠요.</div><Act onClick={() => { if (txt.trim()) { A.block(t, txt.trim(), askTo(t, D, cu.id)); setMode(""); } }} style={{ alignSelf: "flex-start", background: C.navy, color: "#fff", borderColor: C.navy }}>알리기</Act></div>}
@@ -256,13 +258,12 @@ export function FixedSheet({ D, cu, A, onBack, onClose, id, focus, setToast }) {
   const [checks, setChecks] = useState(null);
   useEffect(() => { fb.fetchWhere("checks", ["taskId", "==", id]).then(setChecks).catch((e) => { console.error(e); setChecks([]); }); }, [id, t && JSON.stringify(t.doneAtBy || {})]);
   useEffect(() => { if (focus !== "talk" || !t) return; const h = setTimeout(() => { const el = document.getElementById("v2-fx-talk"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); return () => clearTimeout(h); }, [focus, !!t]);
-  if (!t) return <Sheet title="고정업무" onBack={onBack} onClose={onClose}><Empty>{t === false ? "이 고정업무를 찾지 못했어요" : "불러오는 중…"}</Empty></Sheet>;
+  if (!t) return <Sheet title="고정업무" kind="고정업무" onBack={onBack} onClose={onClose}><Empty>{t === false ? "이 고정업무를 찾지 못했어요" : "불러오는 중…"}</Empty></Sheet>;
   const key = ymd(new Date()), mine = fxIsMine(t, cu.id), me = fxMeDone(t, cu.id, key), subs = fxSubs(t, cu.id), people = fxPeople(D.users, t);
   const days = [...Array(7)].map((_, i) => addDays(key, -i));
   const byDay = {}; (checks || []).filter((c) => c.on).forEach((c) => { (byDay[c.date] = byDay[c.date] || []).push(c); });
-  return <Sheet title="고정업무" onBack={onBack} onClose={onClose} foot={mine ? <Big tone={me ? "white" : "navy"} onClick={() => A.fxToggle(t)}>{me ? "✓ 체크 취소" : fxDoneWord(t)}</Big> : null}>
-    <h2 style={{ fontSize: 20, fontWeight: 800, color: C.ink, margin: "12px 0 4px" }}>{fxLabel(t, cu.id)}</h2>
-    <div style={{ fontSize: 13.5, color: C.sub }}>{fxRecurL(t)} · {fxTime(t, cu.id) || "시간 상관없음"} · 담당 {people.length}명{t.paused ? " · 멈춤" : ""}</div>
+  return <Sheet title="고정업무" kind="고정업무" head={fxLabel(t, cu.id)} path={`반복 · ${fxRecurL(t)}`} onBack={onBack} onClose={onClose} foot={mine ? <Big tone={me ? "white" : "navy"} onClick={() => A.fxToggle(t)}>{me ? "✓ 체크 취소" : fxDoneWord(t)}</Big> : null}>
+    <div style={{ fontSize: 13.5, color: C.sub, marginTop: 12 }}>{fxRecurL(t)} · {fxTime(t, cu.id) || "시간 상관없음"} · 담당 {people.length}명{t.paused ? " · 멈춤" : ""}</div>
     {mine && subs.length > 0 && <><Head>체크리스트</Head><div className="v2-chips">{subs.map((x) => { const ok = fxHit(t, ((t.subDone || {})[cu.id] || {})[x.id], key); return <Chip key={x.id} on={ok} onClick={() => A.fxSub(t, x.id)}>{ok ? "✓ " : ""}{x.title}</Chip>; })}</div></>}
     {(mine || isMaster(cu)) && <RecurEdit t={t} A={A} />}
     {isMaster(cu) && <FxOwners t={t} D={D} A={A} setToast={setToast} />}

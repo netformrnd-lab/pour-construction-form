@@ -35,7 +35,9 @@ export function calCells(D, idx, o, ym, key) {
     cells[d].proj.push(p);
   });
   // → 내 차례가 시작될 날: 기다리는 내 일의 남은 앞 일 기한 중 가장 늦은 날 (이미 지난 날이면 오늘)
-  if (o.turns) o.turns.byTask.forEach((T) => { const d = turnStartOf(T, key); if (d && cells[d]) cells[d].turnStart++; });
+  // o.turns = upcomingTurns(...) 줄들 → 그날 칸에 내 일 제목·위험(늦음·늦을 수 있음)까지
+  if (Array.isArray(o.turns)) o.turns.forEach((u) => { const c = u.start && cells[u.start]; if (!c) return; c.turnStart++; (c.turns = c.turns || []).push(u); if (u.level === "late" || u.level === "risk") c.turnRisk = true; });
+  else if (o.turns) o.turns.byTask.forEach((T) => { const d = turnStartOf(T, key); if (d && cells[d]) cells[d].turnStart++; });
   // 고정업무만 하는 사람: 그날 고정업무 수(회색)
   if (o.fxIfEmpty && who !== "*") (D.tasks || []).forEach((t) => { if (!t.isFixed || t.paused) return; const mine = t.forAll || ownersOf(t).includes(who); if (!mine) return;
     grid.forEach((g) => { if (fxDueOn(t, g.date)) cells[g.date].fx++; }); });

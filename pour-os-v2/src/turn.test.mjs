@@ -150,4 +150,22 @@ ok("⑲ 카드에 보이는 앞 일 마지막 말(shownNotes) · 내 일의 앞 
   const D = { users, projects: [P], tasks: ts, notes }; const r = R.turnsOf(D, R.turnIndex(D), "wm", now, {}, since);
   assert.ok(r.fresh.has("lb_X__s11")); assert.deepEqual([...r.shownNotes], ["n2"]); assert.deepEqual([...r.predIds].sort(), ["lb_X__s08", "lb_X__s10"]);
 });
+ok("㉑ 다가오는 내 차례: 프로젝트 · 앞사람 · 끝 예정 · 내 기한 · 여유(평일) · 내 앞 일만 남으면 뺌 · 위험 단계", () => {
+  const G = (id, o) => ({ id, title: id, projectId: "g1", status: "todo", assigneeId: "wm", assigneeIds: ["wm"], ...o });
+  const tasks = [
+    G("a", { assigneeId: "jh", assigneeIds: ["jh"], dueDate: "2026-10-07" }), G("b", { deps: ["a"], dueDate: "2026-10-12" }),     // 여유: 10/8 목 · 10/12 월 = 2일 (10/9 한글날 · 주말 빼고)
+    G("c", { assigneeId: "jh", assigneeIds: ["jh"], dueDate: "2026-10-08" }), G("d", { deps: ["c"], dueDate: "2026-10-09" }),     // 여유 1일 → 빠듯
+    G("e", { assigneeId: "jh", assigneeIds: ["jh"], dueDate: "2026-10-10" }), G("f", { deps: ["e"], dueDate: "2026-10-09" }),     // 앞 일 예정이 내 기한보다 늦음
+    G("g", { assigneeId: "jh", assigneeIds: ["jh"], dueDate: "2026-10-02" }), G("h", { deps: ["g"], dueDate: "2026-10-20" }),     // 앞 일 지남 → late
+    G("i", { dueDate: "2026-10-07" }), G("j", { deps: ["i"], dueDate: "2026-10-09" }),                                             // 앞 일도 내 일 → 뺌
+    G("k", { assigneeId: "jh", assigneeIds: ["jh"], dueDate: "2026-10-07" }), G("l", { deps: ["k"], dueDate: "2026-10-30" }),     // 프로젝트 마감(10/23)보다 내 기한이 늦음
+  ];
+  const D = { users, projects: [{ id: "g1", title: "추석 프로모션", dueDate: "2026-10-23" }], tasks }, idx = R.turnIndex(D), r = R.turnsOf(D, idx, "wm", now, {}, since);
+  const U = R.upcomingTurns(D, r, "2026-10-06", "wm"), by = Object.fromEntries(U.map((u) => [u.t.id, u]));
+  assert.equal(by.b.level, "ok"); assert.equal(by.b.slack, 2); assert.equal(by.b.label, "여유 2일"); assert.equal(by.b.start, "2026-10-07");
+  assert.equal(by.d.level, "tight"); assert.equal(by.f.level, "risk"); assert.equal(by.h.level, "late"); assert.equal(by.h.start, "2026-10-06");   // 앞 일이 지났으면 오늘부터
+  assert.equal(by.j, undefined); assert.equal(by.l.level, "risk"); assert.equal(by.l.label, "마감보다 늦음");
+  const L = R.upLine(by.b, users, "2026-10-06");
+  assert.equal(L.title, "b"); assert.equal(L.proj, "추석 프로모션 · 마감 10/23 (D-17)"); assert.equal(L.pred, '앞: 용정하 "a" 할 일 · 10/7 끝 예정 → 내 기한 10/12');
+});
 console.log(`\n${n}개 모두 통과`);

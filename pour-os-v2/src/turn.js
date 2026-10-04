@@ -4,7 +4,7 @@
 //                 ③ 하위 업무가 있는 상위 업무는 하위 업무(담당이 다를 때만) ④ 고정업무는 앞뒤 없음
 // '끝난 앞 일' = 끝남(done) 또는 확인 대기(review: 담당은 끝냈고 맡긴 사람 확인만 남음) 또는 불러온 범위에 없음
 // 기다림은 표시만 하고 막지 않는다(실제 일보다 상태가 늦게 바뀌는 경우가 많음). 내 일이 이미 진행 중이면 기다림 표시를 하지 않는다
-import { ymd, ddays, dueOf, isDone, isMine, ownersOf, nameOf, md, activeUsers } from "./model.js";
+import { ymd, ddays, dueOf, isDone, isMine, ownersOf, nameOf, md, activeUsers, addDays, isOffDay } from "./model.js";
 import { launchPreds, isTempOwner } from "./launch.js";
 
 export const finishedOf = (p) => !!p && (p.status === "done" || p.status === "review");
@@ -132,6 +132,50 @@ export function turnsOf(D, idx, uid, now = new Date(), seen = {}, since = "") {
       inbox.push({ kind: "nextNoOwner", tag: "담당 없음", id: `nn:${t.id}`, taskId: t.id, title: t.title, at: T.readyAt || "", text: `앞 일 "${T.last ? T.last.title : ""}"이 끝났는데 다음 담당이 없어요`, keep: true, act: "set" }); });
   });
   return { byTask, fresh, ready, soon, inbox, temp: idx.temp, shownNotes, predIds };
+}
+
+// 다가오는 내 차례 — 앞 일을 기다리는 내 일마다 한 줄 (달력 → 표식 · 고른 날 목록 · 7일 '곧 내 차례' · 오늘 화면이 같이 씀)
+//  start = 내 차례가 오는 날 = 남은 앞 일 중 끝 예정이 가장 늦은 날(이미 지났으면 오늘, 앞 일에 날짜가 없으면 "")
+//  slack = start 다음 날부터 내 기한까지 평일 수 (앞사람이 예정대로 끝내면 내게 남는 날) · 내 기한이 start 보다 앞이면 음수
+//  level: late(앞 일 지남·막힘·보류) · risk(앞 일 예정이 내 기한보다 늦음 · 내 기한이 프로젝트 마감보다 늦음) · tight(여유 1일 이하) · ok · nodate(날짜를 몰라 잴 수 없음)
+const wdays = (a, b) => { let n = 0; for (let k = addDays(a, 1), i = 0; k <= b && i < 400; k = addDays(k, 1), i++) if (!isOffDay(k)) n++; return n; };   // (a, b] 평일 수
+export function upcomingTurns(D, T, key, uid = "") {
+  const byId = new Map((D.tasks || []).map((t) => [t.id, t])), pById = new Map((D.projects || []).map((p) => [p.id, p])), out = [];
+  (T && T.byTask ? T.byTask : new Map()).forEach((I, id) => {
+    if (I.state !== "wait" && I.state !== "late") return;
+    const t = byId.get(id); if (!t) return;
+    // 앞 일이 모두 내 일이면(내가 이어서 하는 단계) '다른 사람을 기다리는 내 차례'가 아님 → 뺌
+    const others = uid ? I.open.filter((x) => !ownersOf(x).includes(uid)) : I.open; if (!others.length) return;
+    const p = I.show && others.includes(I.show) ? I.show : others.reduce((b, x) => (dueOf(x) && (!dueOf(b) || dueOf(x) > dueOf(b)) ? x : b), others[0]);
+    const last = I.open.map((x) => dueOf(x)).filter(Boolean).sort().pop() || "";
+    const start = last ? (last < key ? key : last) : "", myDue = dueOf(t);
+    const proj = pById.get(t.projectId) || null, launch = !!proj && String(proj.id).startsWith("lb_");
+    const projDue = proj ? String((launch ? proj.launchDate : proj.dueDate || proj.launchDate) || "").slice(0, 10) : "";
+    const slack = start && myDue ? (myDue >= start ? wdays(start, myDue) : -wdays(myDue, start)) : null;
+    let level, label;
+    if (I.state === "late") { const n = ddays(dueOf(p), key); level = "late"; label = p.blocked ? "앞 일 막힘" : p.status === "hold" ? "앞 일 보류" : n != null && n < 0 ? `앞 일 ${-n}일 지남` : "앞 일 늦음"; }
+    else if (!start) { level = "nodate"; label = "앞 일 날짜 없음"; }
+    else if (!myDue) { level = "nodate"; label = "내 기한 없음"; }
+    else if (myDue < start) { level = "risk"; label = "늦을 수 있음"; }
+    else if (projDue && myDue > projDue) { level = "risk"; label = `${launch ? "출시" : "마감"}보다 늦음`; }
+    else if (slack <= 1) { level = "tight"; label = slack <= 0 ? "당일 이어받기" : "여유 1일"; }
+    else { level = "ok"; label = `여유 ${slack}일`; }
+    out.push({ t, p, I, proj, launch, projDue, start, myDue, slack, level, label, who: ownersOf(p)[0] || "", pDue: dueOf(p) });
+  });
+  const ord = { late: 0, risk: 1, tight: 2, nodate: 3, ok: 4 };
+  return out.sort((a, b) => String(a.start || "9").localeCompare(String(b.start || "9")) || ord[a.level] - ord[b.level] || String(a.myDue || "9").localeCompare(String(b.myDue || "9")));
+}
+// 다가오는 내 차례 한 줄 글 (같은 말을 달력·오늘·목록에서)
+//  title = 내 일 · proj = 어느 프로젝트 · 출시/마감(D-n) · pred = 앞사람 무엇·상태·끝 예정 → 내 기한
+export function upLine(u, users, key) {
+  const who = nameOf(users, u.who) || "담당 없음";
+  const st = u.p.blocked ? "막힘" : u.p.status === "hold" ? "보류" : u.p.status === "inprogress" ? "하는 중" : "할 일";
+  const pd = u.projDue ? ddays(u.projDue, key) : null;
+  return {
+    title: u.t.title,
+    proj: [u.proj ? u.proj.title : "프로젝트 없음", u.projDue ? `${u.launch ? "출시" : "마감"} ${md(u.projDue)} (${pd >= 0 ? "D-" + pd : -pd + "일 지남"})` : ""].filter(Boolean).join(" · "),
+    pred: `앞: ${who} "${u.p.title}" ${st}${u.pDue ? ` · ${md(u.pDue)} 끝 예정` : " · 끝 예정일 없음"} → 내 기한 ${u.myDue ? md(u.myDue) : "없음"}`,
+  };
 }
 
 // 업무를 끝낼 때 "다음은 ○○님 차례예요" 문구

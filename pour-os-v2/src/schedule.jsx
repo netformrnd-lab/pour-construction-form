@@ -2,10 +2,10 @@
 // [나 ▾]로 동료 달력(보기만)·프로젝트(그 프로젝트 모든 사람 항목)를 고른다. 사람 비교 숫자·등급은 관리자 화면에만
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ymd, md, ddays, addDays, weekStart, WD, isOffDay, ddayLabel, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf, riskOf, projOpen, reqOf, canSetDue, dueApprover, fxDueOn, fxIsMine, fxMeDone, fxLabel, fxTime, holidayName } from "./model.js";
-import { calCells, turnStartOf } from "./views.js";
-import { personNow, predLine } from "./turn.js";
+import { calCells } from "./views.js";
+import { personNow, predLine, upcomingTurns } from "./turn.js";
 import { MonthCal, CalHead, dayHead } from "./cal.jsx";
-import { turnBits } from "./today.jsx";
+import { turnBits, UpRow } from "./today.jsx";
 import { moveDue } from "./task.jsx";
 import { C, Act, Chip, Head, Card, Row, Empty, More, TBtn, Sheet, Seg, useLocal } from "./ui.jsx";
 import { LS } from "./core.jsx";
@@ -22,8 +22,9 @@ export function CalendarTab({ D, cu, A, open, T, TV, setToast }) {
   const who = f.who && D.users.some((u) => u.id === f.who) ? f.who : cu.id, mine = who === cu.id;
   const proj = f.pid ? D.projects.find((p) => p.id === f.pid) : null;
   const oneOffOpenN = D.tasks.filter((t) => !t.isFixed && !isDone(t) && isMine(t, who)).length;
-  const cells = useMemo(() => calCells(D, { temp: T.temp }, { uid: proj ? "*" : who, pid: proj ? proj.id : "", noTemp: !proj, turns: mine && !proj ? T : null, fxIfEmpty: !proj && oneOffOpenN === 0 }, ym, key),
-    [D, T, who, proj && proj.id, ym, key, oneOffOpenN]);
+  const U = useMemo(() => (mine && !proj ? upcomingTurns(D, T, key, cu.id) : []), [D, T, key, mine, proj && proj.id, cu.id]);   // 다가오는 내 차례 (앞 일 기다리는 내 일)
+  const cells = useMemo(() => calCells(D, { temp: T.temp }, { uid: proj ? "*" : who, pid: proj ? proj.id : "", noTemp: !proj, turns: mine && !proj ? U : null, fxIfEmpty: !proj && oneOffOpenN === 0 }, ym, key),
+    [D, T, U, who, proj && proj.id, ym, key, oneOffOpenN]);
   const ymNow = key.slice(0, 7);
   const myOpen = D.tasks.filter((t) => !t.isFixed && !isDone(t) && isMine(t, cu.id) && t.status !== "review" && t.status !== "hold" && !T.temp.has(t.id));
   const lateN = myOpen.filter((t) => dueOf(t) && dueOf(t) < key).length;
@@ -53,7 +54,8 @@ export function CalendarTab({ D, cu, A, open, T, TV, setToast }) {
   const inScope = D.tasks.filter(scope);
   const wkDue = inScope.filter((t) => dueOf(t) >= ws && dueOf(t) <= we).length, wkLate = inScope.filter((t) => dueOf(t) && dueOf(t) < key).length;
   const wkProj = D.projects.filter((p) => projOpen(p) && (proj ? p.id === proj.id : D.tasks.some((t) => t.projectId === p.id && !t.isFixed && isMine(t, who)) || p.assigneeId === who) && (() => { const d = String(p.launchDate || p.dueDate || "").slice(0, 10); return d >= ws && d <= we; })()).length;
-  const soonN = mine && !proj ? T.soon.reduce((a, g) => a + g.mine.length, 0) : inScope.filter((t) => t.status === "inprogress").length;
+  const U7 = U.filter((u) => u.start && u.start <= we), U7risk = U7.some((u) => u.level === "late" || u.level === "risk");   // 7일 안에 오는 내 차례 (달력 → 표식과 같은 기준)
+  const soonN = mine && !proj ? U7.length : inScope.filter((t) => t.status === "inprogress").length;
   const label = proj ? proj.title : mine ? "나" : who2;   // 프로젝트를 고르면 그 프로젝트 모든 담당 항목
   return <>
     <header style={{ padding: "10px 0 0" }}>
@@ -78,13 +80,13 @@ export function CalendarTab({ D, cu, A, open, T, TV, setToast }) {
       <button type="button" onClick={() => { setView("week"); setSel(key); }}><b>{wkDue}</b><span>7일 안 마감</span></button>
       <button type="button" onClick={() => (mine && !proj && wkLate ? open({ type: "triage" }) : setView("month"))}><b className={wkLate ? "red" : ""}>{wkLate}</b><span>지난 일</span></button>
       <button type="button" onClick={() => { setView("week"); setSel(key); }}><b>{wkProj}</b><span>7일 안 출시</span></button>
-      <button type="button" onClick={() => (mine && !proj ? (T.soon.length ? open({ type: "turns" }) : null) : setView("week"))}><b>{soonN}</b><span>{mine && !proj ? "곧 내 차례" : "하는 중"}</span></button>
+      <button type="button" onClick={() => (mine && !proj ? (U.length ? open({ type: "upturns" }) : null) : setView("week"))}><b className={mine && !proj && U7risk ? "red" : ""}>{soonN}</b><span>{mine && !proj ? "곧 내 차례" : "하는 중"}</span></button>
     </div>
     <div style={{ marginBottom: 8 }}><Seg items={[["month", "월"], ["week", "7일 · 제목까지"]]} value={view} onChange={setView} /></div>
     {view === "week" ? <WeekList D={D} cu={cu} A={A} open={open} T={T} keyd={key} sel={sel} setSel={setSel} who={who} mine={mine && !proj} proj={proj} scope={scope} onDay={(d) => { setSel(d); setYm(d.slice(0, 7)); setView("month"); }} />
     : <div className="v2-calwrap">
       <MonthCal mode={proj ? "team" : "me"} ym={ym} setYm={setYm} cells={cells} sel={sel} onPick={pickDay} keyd={key} users={D.users} />
-      <div ref={listRef}><DayList D={D} cu={cu} A={A} open={open} T={T} date={sel} cell={cells[sel]} keyd={key} who={who} mine={mine && !proj} proj={proj} fxOpen={fxOpen} setFxOpen={setFxOpen} doneOpen={doneOpen} setDoneOpen={setDoneOpen} tempOpen={tempOpen} setTempOpen={setTempOpen} /></div>
+      <div ref={listRef}><DayList D={D} cu={cu} A={A} open={open} T={T} U={U} date={sel} cell={cells[sel]} keyd={key} who={who} mine={mine && !proj} proj={proj} fxOpen={fxOpen} setFxOpen={setFxOpen} doneOpen={doneOpen} setDoneOpen={setDoneOpen} tempOpen={tempOpen} setTempOpen={setTempOpen} /></div>
     </div>}
     {pick && <WhoSheet D={D} cu={cu} T={T} f={f} setF={(x) => { setF(x); setPick(false); }} onClose={() => setPick(false)} />}
   </>;
@@ -121,7 +123,7 @@ function WeekList({ D, cu, A, open, T, keyd, sel, setSel, who, mine, proj, scope
 }
 
 // 고른 날 목록: ▴ 출시·마감 → 일정 → 고정업무(접힘) → 이날 끝나면 내 차례 → 업무 → 임시 담당(접힘) → 끝낸 일(접힘)
-function DayList({ D, cu, A, open, T, date, cell, keyd, who, mine, proj, fxOpen, setFxOpen, doneOpen, setDoneOpen, tempOpen, setTempOpen }) {
+function DayList({ D, cu, A, open, T, U, date, cell, keyd, who, mine, proj, fxOpen, setFxOpen, doneOpen, setDoneOpen, tempOpen, setTempOpen }) {
   const c = cell || { n: 0, proj: [], items: [], temp: 0, done: 0 };
   const items = (D.tasks || []).filter((t) => !t.isFixed && dueOf(t) === date && (proj ? t.projectId === proj.id : isMine(t, who)));
   const open1 = items.filter((t) => !isDone(t) && t.status !== "review" && t.status !== "hold" && (proj || !T.temp.has(t.id)));
@@ -130,9 +132,8 @@ function DayList({ D, cu, A, open, T, date, cell, keyd, who, mine, proj, fxOpen,
   const evs = (D.events || []).filter((e) => e.date === date && (!mine || (e.attendeeIds || []).includes(cu.id) || !(e.attendeeIds || []).length));
   const fx = mine ? (D.tasks || []).filter((t) => t.isFixed && !t.paused && fxIsMine(t, cu.id) && fxDueOn(t, date)) : [];
   const fxLeft = fx.filter((t) => !fxMeDone(t, cu.id, date));
-  // 달력 → 표식과 같은 날(turnStartOf: 남은 앞 일 중 가장 늦은 기한, 지났으면 오늘) · 그날 끝 예정인 앞 일을 보여 줌 (없으면 늦은 앞 일)
-  const turnLines = mine ? [...T.byTask.entries()].filter(([, I]) => turnStartOf(I, keyd) === date)
-    .map(([id, I]) => ({ me: D.tasks.find((t) => t.id === id), p: I.open.find((p) => dueOf(p) === date) || I.show || I.open[I.open.length - 1] })).filter((x) => x.me && x.p) : [];
+  // 달력 → 표식과 같은 날(앞 일 끝 예정이 가장 늦은 날, 지났으면 오늘)에 오는 내 차례 — 어느 프로젝트 · 누가 무엇을 · 내 기한 · 프로젝트 마감 · 여유
+  const turnLines = mine ? (U || []).filter((u) => u.start === date) : [];
   const sorted = open1.slice().sort((a, b) => (riskOf(a, keyd) && riskOf(a, keyd).red ? 0 : 1) - (riskOf(b, keyd) && riskOf(b, keyd).red ? 0 : 1) || String(a.title).localeCompare(String(b.title)));
   const pName = (pid) => ((D.projects || []).find((p) => p.id === pid) || {}).title || "";
   const old = ddays(date, keyd) < -30;
@@ -143,7 +144,7 @@ function DayList({ D, cu, A, open, T, date, cell, keyd, who, mine, proj, fxOpen,
       {evs.map((e) => <Row key={e.id} tag="일정" title={e.title} sub={[e.time, e.place].filter(Boolean).join(" · ") || null} last={false} />)}
       {fx.length > 0 && (fxOpen ? fx.map((t) => <Row key={t.id} tag="고정" title={fxLabel(t, cu.id)} sub={fxTime(t, cu.id) || "시간 상관없음"} dim={fxMeDone(t, cu.id, date)} onClick={() => open({ type: "fixed", id: t.id })} right={date === keyd ? <Act on={fxMeDone(t, cu.id, date)} onClick={() => A.fxToggle(t)}>{fxMeDone(t, cu.id, date) ? "✓" : "완료"}</Act> : null} last={false} />)
         : <More onClick={() => setFxOpen(true)}>고정업무 {fx.length}{date <= keyd ? ` · ${fxLeft.length} 남음` : ""} ▾</More>)}
-      {turnLines.map(({ me, p }) => <Row key={me.id + p.id} tag="→" title={`${nameOf(D.users, ownersOf(p)[0]) || "담당 없음"} "${p.title}"이 끝나면 내 "${me.title}" 차례`} sub={predLine(p, D.users, keyd)} onClick={() => open({ type: "task", id: p.id })} last={false} />)}
+      {turnLines.map((u) => <UpRow key={u.t.id} u={u} D={D} open={open} keyd={keyd} last={false} />)}
       {sorted.map((t, i) => { const b = turnBits(t, T, D, keyd);
         return <Row key={t.id} tag={b.tag} tagTone={b.tone} title={t.title} sub={[proj || !mine ? nameOf(D.users, ownersOf(t)[0]) || "담당 없음" : "", pName(t.projectId), b.sub].filter(Boolean).join(" · ") || null}
           onClick={() => open({ type: "task", id: t.id })} right={mine && isMine(t, cu.id) ? <Act onClick={() => A.finish(t)}>끝냄</Act> : null} last={i === sorted.length - 1 && !temp.length && !doneL.length} />; })}
@@ -177,3 +178,4 @@ function WhoSheet({ D, cu, T, f, setF, onClose }) {
     <Card>{rest.sort(sortP).map((p, i) => pRow(p, i === rest.length - 1))}</Card>
   </Sheet>;
 }
+

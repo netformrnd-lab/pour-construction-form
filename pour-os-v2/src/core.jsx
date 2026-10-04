@@ -211,7 +211,9 @@ export function useActs(D, cu, setToast, idx = null) {
   };
   // v2At: v2 에서 고친 표시 (다시 가져오기가 v2 에서 정리한 담당·기한을 덮지 않게)
   // extra: 기록에 더 남길 칸(예: prev 이전 값)
-  const P = (t, f, logAction, label, extra) => fb.patch("tasks", tdoc(t), { ...f, updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }).then(() => { if (logAction) log(logAction, { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: label || t.title, ...(extra || {}) }); }).catch(fail("업무"));
+  // 기록: 이전 값(prev)이 있으면 바뀐 뒤 값(next)도 같이 → 업무 '기록' 탭에 '이전 → 이후'
+  const nextOf = (f, extra) => (extra && extra.prev && typeof extra.prev === "object" && !Array.isArray(extra.prev) ? { next: Object.fromEntries(Object.keys(extra.prev).filter((k) => k in f).map((k) => [k, f[k] === undefined ? null : f[k]])) } : {});
+  const P = (t, f, logAction, label, extra) => fb.patch("tasks", tdoc(t), { ...f, updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }).then(() => { if (logAction) log(logAction, { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: label || t.title, ...(extra || {}), ...nextOf(f, extra) }); }).catch(fail("업무"));
   // 이전 값 (없던 칸은 null) — 되돌리기·기록용
   const prevOf = (t, f) => Object.fromEntries(Object.keys(f).map((k) => [k, t[k] === undefined ? null : t[k]]));
   const A = {

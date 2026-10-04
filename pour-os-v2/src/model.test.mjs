@@ -226,4 +226,11 @@ ok("3단계: 받을 사람 기본값 · 도움 요청 · 담당 바뀜 · 참조
   const D3 = { ...D, tasks: [{ ...tasks[1], handoff: { ...tasks[1].handoff, by: "m", byName: "마" } }] };
   assert.ok(M.todayView(D3, "a", new Date()).inbox.some((x) => x.kind === "handed"));   // 이전 담당에게 '담당 바뀜'
 });
+ok("4단계: 이번 주(월~일) 내 완료율", () => {
+  const key = "2026-10-07", iso = (d) => d + "T03:00:00.000Z";
+  const D = { tasks: [{ id: "a", assigneeId: "u", status: "done", doneAt: iso("2026-10-06"), dueDate: "2026-10-06" }, { id: "b", assigneeId: "u", status: "todo", dueDate: "2026-10-06" },
+    { id: "c", assigneeId: "u", status: "inprogress", dueDate: "2026-10-09" }, { id: "d", assigneeId: "u", status: "hold", dueDate: "2026-10-08" }, { id: "e", assigneeId: "u", status: "done", doneAt: iso("2026-09-30"), dueDate: "2026-09-30" }, { id: "f", assigneeId: "v", status: "todo", dueDate: "2026-10-08" }] };
+  const w = M.weekMine(D, "u", key);
+  assert.equal(w.ws, "2026-10-05"); assert.equal(w.total, 3); assert.equal(w.done, 1); assert.equal(w.doing, 1); assert.equal(w.late, 1); assert.equal(w.pct, 33);
+});
 console.log(`\n${n}개 모두 통과`);

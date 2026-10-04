@@ -5,8 +5,9 @@ import * as fb from "./fb.js";
 import {
   ymd, addDays, ddays, ddayLabel, md, ago, hm, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf,
   projOpen, projMine, projStat, projGroups, projWhen, feedOf, taskNoteId, projNoteId, LOG_L, reqOf, riskOf, workloadOf, PROJ_CATS, catName, projCat, guessCat,
-  IMP, impOf, impName, isHoldP, projStLabel, projForecast,
+  IMP, impOf, impName, isHoldP, projStLabel, projForecast, projPct, isOneOff,
 } from "./model.js";
+import { Gantt } from "./gantt.jsx";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, launchPct } from "./launch.js";
 import { turnIndex, turnOf, nowNext, predLine } from "./turn.js";
 import { phaseStates, previewLaunchMove } from "./views.js";
@@ -45,6 +46,7 @@ export function ProjectsTab({ D, cu, open, idx: idx0 }) {
   const idx = useMemo(() => idx0 || turnIndex(D), [idx0, D]);
   const [cat, setCat] = useLocal(LS("pcat"), "all");   // 카테고리 (버전1 과 같은 분류: 신제품 출시 · 프로모션·마케팅 · 공지사항 …)
   const [scope, setScope] = useLocal(LS("pscope"), "mine"), [q, setQ] = useState(""), [more, setMore] = useState({});
+  const [pv, setPv] = useLocal(LS("pview"), "list"), [gm, setGm] = useLocal(LS("gmode"), "w8"), [gMine, setGMine] = useState(false);   // [목록 | 간트] · 간트 8주/4개월 · 내 업무만
   const now = new Date(), key = ymd(now);
   const openList = D.projects.filter(projOpen).map((p) => (p.dueDate || !p.launchDate ? p : { ...p, dueDate: p.launchDate }));
   const mineAll = openList.filter((p) => projMine(p, cu.id, D.tasks));
@@ -61,15 +63,26 @@ export function ProjectsTab({ D, cu, open, idx: idx0 }) {
   const groups = [["late", "마감 지남", true], ["week", "7일 안", true], ["month", "이번 달", true], ["later", "그 뒤", true], ["none", "날짜 없음", true], ["hold", "보류", false]];
   const doneN = D.projects.filter((p) => !projOpen(p)).length;
   const card = (p, last) => <ProjCard key={p.id} p={p} D={D} cu={cu} open={open} now={now} idx={idx} last={last} />;
+  const d10 = (v) => String(v || "").slice(0, 10);
+  const gRows = pv !== "gantt" ? [] : gMine
+    ? D.tasks.filter((t) => isOneOff(t) && !isDone(t) && t.status !== "dropped" && isMine(t, cu.id) && dueOf(t)).sort((a, b) => String(dueOf(a)).localeCompare(String(dueOf(b))))
+      .map((t) => ({ id: t.id, title: t.title, sub: (D.projects.find((p) => p.id === t.projectId) || {}).title || "", start: t.startDate || d10(t.startedAt) || dueOf(t), end: dueOf(t), pct: null, tone: t.status === "hold" ? "hold" : dueOf(t) < key ? "late" : "", onClick: () => open({ type: "task", id: t.id }) }))
+    : list.map((p) => { const ts = D.tasks.filter((t) => t.projectId === p.id && !t.isFixed), ds = ts.map((t) => dueOf(t)).filter(Boolean).sort();
+        const end = d10(p.launchDate || p.dueDate) || ds[ds.length - 1] || "", st = p.startDate || ts.map((t) => t.startDate || d10(t.startedAt) || dueOf(t)).filter(Boolean).sort()[0] || end;
+        return { id: p.id, title: p.title, sub: nameOf(D.users, p.assigneeId) || "", start: st, end, pct: isLaunch(p) ? launchPct(p, D) : projPct(p), tone: isHoldP(p) ? "hold" : end && end < key && ts.some((t) => !isDone(t) && t.status !== "hold") ? "late" : "", onClick: () => open({ type: "project", id: p.id }) }; })
+      .sort((a, b) => String(a.end || "9").localeCompare(String(b.end || "9")));
   return <>
     <header style={{ padding: "14px 2px 6px", display: "flex", flexDirection: "column", gap: 10 }}>
       <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.ink }}>프로젝트</h1>
       <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="찾기 · 프로젝트·제품 이름, 책임자, 업무 제목" aria-label="프로젝트 찾기" style={inp} />
+      {!hit && <Seg items={[["list", "목록"], ["gantt", "간트"]]} value={pv} onChange={setPv} />}
       {!hit && <Seg items={[["mine", `내 프로젝트 ${mineAll.length}`], ["all", `모든 프로젝트 ${openList.length}`]]} value={scope} onChange={setScope} />}
       {!hit && <div className="v2-chips v2-catchips" role="group" aria-label="카테고리">{cats.map(([k, l]) => <Chip key={k} on={cat1 === k} onClick={() => setCat(k)}>{l} {catN(k)}</Chip>)}</div>}
       {!hit && elseN > 0 && <div className="v2-cathint">{catName(cat1) || "미분류"} 프로젝트가 다른 사람 프로젝트에 {elseN}개 더 있어요 <TBtn onClick={() => setScope("all")}>모든 프로젝트 보기 ›</TBtn></div>}
     </header>
-    {hit ? <><Head>찾은 결과 {hit.length}</Head><Card>{hit.length === 0 ? <Empty>찾는 프로젝트가 없어요</Empty> : hit.map((p, i) => card(p, i === hit.length - 1))}</Card></>
+    {!hit && pv === "gantt" ? <Gantt rows={gRows} mode={gm} setMode={setGm} keyd={key} empty={gMine ? "기한 있는 내 업무가 이 기간에 없어요" : "날짜가 있는 프로젝트가 이 기간에 없어요"}
+        right={<Chip on={gMine} onClick={() => setGMine(!gMine)}>{gMine ? "✓ " : ""}내 업무만</Chip>} />
+    : hit ? <><Head>찾은 결과 {hit.length}</Head><Card>{hit.length === 0 ? <Empty>찾는 프로젝트가 없어요</Empty> : hit.map((p, i) => card(p, i === hit.length - 1))}</Card></>
       : groups.map(([k, l, openDefault]) => { const a = G[k]; if (!a.length) return null; const m = more[k], shown = openDefault ? (m ? a : a.slice(0, 5)) : (m ? a : []);
         return <div key={k}><Head red={k === "late"} right={!openDefault && <TBtn onClick={() => setMore({ ...more, [k]: !m })}>{m ? "접기 ▴" : `${a.length} ▾`}</TBtn>}>{l} {a.length}</Head>
           {shown.length > 0 && <Card>{shown.map((p, i) => card(p, i === shown.length - 1 && !(openDefault && a.length > 5)))}
@@ -286,6 +299,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
       {info && <div style={{ padding: "4px 14px 14px", fontSize: 14, color: C.text, lineHeight: 1.9 }}>
         <div>책임자 <select aria-label="책임자 바꾸기" className="v2-sel" value={p.assigneeId || ""} onChange={(e) => A.patchProject(p, { assigneeId: e.target.value }, `책임자 → ${nameOf(D.users, e.target.value)}`, p.assigneeId || "")}><option value="">없음</option>{activeUsers(D.users).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
         <div>함께 하는 사람 {(p.collaboratorIds || []).map((u) => nameOf(D.users, u)).filter(Boolean).join(", ") || "없음"}</div>
+        <div>시작 <input type="date" aria-label="시작일 바꾸기" className="v2-sel" defaultValue={p.startDate || ""} onBlur={(e) => { if (e.target.value !== (p.startDate || "")) A.patchProject(p, { startDate: e.target.value }, `시작 ${md(e.target.value) || "없음"}`, p.startDate || ""); }} /> <span style={{ fontSize: 12.5, color: C.mute }}>간트 막대 시작</span></div>
         {!launch && <div>마감 <input type="date" aria-label="마감 바꾸기" className="v2-sel" defaultValue={p.dueDate || ""} onBlur={(e) => { if (e.target.value !== (p.dueDate || "")) A.patchProject(p, { dueDate: e.target.value }, `마감 ${md(e.target.value) || "없음"}`, p.dueDate || ""); }} /></div>}
         <div>브랜드 <select aria-label="브랜드 바꾸기" className="v2-sel" value={p.brand || ""} onChange={(e) => A.patchProject(p, { brand: e.target.value }, `브랜드 → ${brandName(D, e.target.value) || "없음"}`, p.brand || "")}><option value="">없음</option>{(D.brands || []).filter((b) => b.active !== false || b.id === p.brand).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
           <span style={{ fontSize: 12.5, color: C.mute }}> 이 프로젝트 업무는 모두 이 브랜드로 봐요</span></div>

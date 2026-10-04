@@ -5,7 +5,7 @@ import {
   ymd, addDays, ddays, ddayLabel, md, hm, ago, dayTitle, WD, isMaster, activeUsers, nameOf, STATUS_L, isDone, isOneOff, isMine, ownersOf, dueOf,
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
-  reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf, weekStart, nextWorkday, isOffDay,
+  reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf, weekStart, nextWorkday, isOffDay, weekMine,
 } from "./model.js";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
 import { predLine, lastWord, predsOf, upcomingTurns, upLine } from "./turn.js";
@@ -79,10 +79,14 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
   const noDate = D.tasks.filter((t) => isOneOff(t) && !isDone(t) && isMine(t, cu.id) && !dueOf(t) && t.status !== "hold" && t.status !== "review" && t.tidySkip !== ym && !T.temp.has(t.id)).length;
   const tempMine = D.tasks.filter((t) => T.temp.has(t.id) && isMine(t, cu.id)).length;
   const lateN = TV.late.length;   // '하나씩 정리하기'가 카드 일까지 모두 보여 주므로 같은 수
+  const wk = useMemo(() => weekMine(D, cu.id, key), [D, cu.id, key]);   // 이번 주(월~일) 내 완료율 — 나만 봄
   return <>
     <header style={{ padding: "14px 2px 2px" }}>
       <div style={{ fontSize: 13, color: C.sub, fontWeight: 700 }}>{dayTitle(now)} · {cu.name}</div>
       <h1 style={{ margin: "4px 0 2px", fontSize: 22, fontWeight: 800, color: C.ink }}>남은 일 {TV.left} · 끝낸 일 {TV.doneToday}</h1>
+      {wk.total > 0 && <button type="button" className="v2-wkpct" onClick={() => open({ type: "mine" })} aria-label={`이번 주 완료율 ${wk.pct}% · 전체 ${wk.total} 완료 ${wk.done} 진행 ${wk.doing} 지남 ${wk.late} · 내 할 일 모두 보기`}>
+        <div className="t">이번 주 완료율 <b>{wk.pct}%</b> · 전체 {wk.total} · 완료 {wk.done} · 진행 {wk.doing} · 지남 <b style={{ color: wk.late ? C.red : C.ink }}>{wk.late}</b></div>
+        <div className="bar"><i style={{ width: wk.pct + "%" }} /></div></button>}
     </header>
     <FocusCard key={card ? card.t.id : "none"} D={D} cu={cu} A={A} open={open} TV={TV} T={T} x={card} pName={pName} setSeen={setSeen} setToast={setToast} next={() => { const i = TV.ranked.indexOf(card); const nx = TV.ranked[(i + 1) % TV.ranked.length]; if (card && card.fresh && card.t) markTurn(setSeen, card.t.id, T.byTask.get(card.t.id)); setCardId(nx ? nx.t.id : null); }} />
     <div style={{ display: "flex", flexDirection: "column", gap: 0, marginTop: 6 }}>

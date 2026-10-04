@@ -391,6 +391,16 @@ export function calItems(D, f = {}, key) {
     .map((t) => ({ t, date: dueOf(t), risk: riskOf(t, key) }));
 }
 // 프로젝트가 잘 가고 있나: 위험(지난 항목·막힘 또는 마감 7일 안인데 60% 미만) · 주의(곧 마감인데 시작 전 · 담당 없음) · 순조
+// 이번 주(월~일) 내 완료율: 전체 = 이번 주 마감인 내 일(보류 빼고) + 이번 주에 끝낸 일 · 완료 = 이번 주에 끝낸(확인 대기 포함) · 진행 · 지남(지금 기준)
+export function weekMine(D, uid, key) {
+  const ws = weekStart(key), we = addDays(ws, 6), a = new Date(ws + "T00:00:00").toISOString(), b = new Date(addDays(we, 1) + "T00:00:00").toISOString();
+  const mine = (D.tasks || []).filter((t) => isOneOff(t) && isMine(t, uid)), fin = (t) => String(t.finishedAt || t.doneAt || t.reviewAt || "");
+  const doneW = mine.filter((t) => (isDone(t) || t.status === "review") && fin(t) >= a && fin(t) < b);
+  const due = mine.filter((t) => { const d = dueOf(t); return d && d >= ws && d <= we && t.status !== "hold" && t.status !== "dropped"; });
+  const total = new Set([...due.map((t) => t.id), ...doneW.map((t) => t.id)]).size;
+  const open = (t) => !isDone(t) && t.status !== "review" && t.status !== "hold" && t.status !== "dropped";
+  return { ws, we, total, done: doneW.length, doing: mine.filter((t) => t.status === "inprogress").length, late: mine.filter((t) => open(t) && dueOf(t) && dueOf(t) < key).length, pct: total ? Math.round((doneW.length / total) * 100) : null };
+}
 // ── 프로젝트 끝내기 · 멈추기 · 중요도 ──
 // status: 진행(active 등) · completed 완료(다 해서 끝냄) · dropped 중단(안 하기로 함 · 남은 업무는 'dropped'로 접음, 지우지 않음) · hold 보류(나중에 다시 · 남은 업무는 보류로 접음, 다시 시작하면 되돌림)
 export const projStLabel = (p) => (!p ? "" : p.status === "completed" || p.status === "done" ? "완료" : p.status === "dropped" ? "중단" : p.status === "hold" || p.status === "paused" ? "보류" : "진행 중");

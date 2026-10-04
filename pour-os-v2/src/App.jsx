@@ -47,6 +47,10 @@ function Main({ D, cu, meta, setMeta, logout }) {
   const back = () => setStack((st) => st.slice(0, -1));
   const closeAll = () => setStack([]);
   useBackClose(stack.length, setStack);   // 폰 뒤로 = 맨 위 시트만 닫기
+  // 링크로 열기: …os2.html#t-업무ID / #p-프로젝트ID (업무·프로젝트 화면의 '링크 복사') → 로그인 뒤 그 화면 바로
+  useEffect(() => { const m = /^#(t|p)-(.+)$/.exec(window.location.hash || ""); if (!m) return; const id = decodeURIComponent(m[2]);
+    window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
+    if (m[1] === "p") open({ type: "project", id }); else { const t = D.tasks.find((x) => x.id === id); open({ type: t && t.isFixed ? "fixed" : "task", id }); } }, []);
   // 시트 화면 상태(지난 일 정리 몇 번째 · 내 정리 탭·고른 것 · 프로젝트 탭)를 그 시트 칸에 적어 둠 → 위 시트에서 '뒤로' 오면 이어서
   const saveAt = (i, patch) => setStack((st) => st.map((x, j) => (j === i ? { ...x, ...patch } : x)));
   const ctx = { D, cu, A, open, back, closeAll, saveAt, seen, setSeen, setToast, TV, T, idx, meta, setMeta, logout, setTab, BUILD };

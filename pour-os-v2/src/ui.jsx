@@ -113,3 +113,12 @@ export function useBackClose(n, setStack) {
     window.addEventListener("popstate", on); return () => window.removeEventListener("popstate", on);
   }, []);
 }
+
+// 업무·프로젝트 링크 (잔디·카톡에 붙이면 실사용 앱에서 그 화면이 바로 열림 · 관리자에서 복사해도 실사용 앱 주소)
+export const appLink = (kind, id) => `${String(window.location.href).split("#")[0].replace(/os2-admin\.html/, "os2.html").replace(/\/admin\.html/, "/index.html")}#${kind}-${encodeURIComponent(id)}`;
+export function CopyLink({ kind, id, onDone, label = "링크 복사" }) {
+  const [show, setShow] = useState("");
+  const go = () => { const u = appLink(kind, id); try { navigator.clipboard.writeText(u).then(() => { setShow(""); if (onDone) onDone(); }, () => setShow(u)); } catch (e) { setShow(u); } };
+  return <><TBtn onClick={go} style={{ padding: "2px 0" }}>{label}</TBtn>
+    {show && <input readOnly value={show} autoFocus onFocus={(e) => e.target.select()} aria-label="복사할 링크" style={{ ...inp, marginTop: 6, fontSize: 12.5, padding: "8px 10px" }} />}</>;
+}

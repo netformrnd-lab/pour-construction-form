@@ -11,7 +11,7 @@ import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from
 import { DecisionBlock } from "./mindmap.jsx";
 import { turnIndex, turnOf, predsOf, nextsOf, finishedOf, finishedAt, lastWord } from "./turn.js";
 import { nextWorkday } from "./model.js";
-import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked } from "./ui.jsx";
+import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked, CopyLink } from "./ui.jsx";
 import { HoldAsk } from "./hold.jsx";
 import { RequestAsk } from "./asks.jsx";
 import { askTo } from "./model.js";
@@ -50,7 +50,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
   const t = useTask(D, id);
   const notes = useItemNotes(D, taskNoteId(id));
   const idx = useMemo(() => idx0 || turnIndex(D), [idx0, D]);
-  const [mode, setMode] = useState(""), [memo, setMemo] = useState(""), [showLog, setShowLog] = useState(false), [logs, setLogs] = useState(null), [sub, setSub] = useState("");
+  const [mode, setMode] = useState(""), [memo, setMemo] = useState(""), [showLog, setShowLog] = useState(false), [tab2, setTab2] = useState("talk"), [logs, setLogs] = useState(null), [sub, setSub] = useState("");
   const [txt, setTxt] = useState(""), [handTo, setHandTo] = useState(""), [reqDate, setReqDate] = useState(""), [handoff, setHandoff] = useState(""), [depSel, setDepSel] = useState(null), [allOrder, setAllOrder] = useState(false);
   const fileRef = useRef(null);
   useEffect(() => { if (!focus || !t) return; const h = setTimeout(() => { const el = document.getElementById("v2-t-" + focus); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); return () => clearTimeout(h); }, [focus, !!t]);
@@ -64,9 +64,13 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
   const review = t.status === "review", amReviewer = review && ((t.reviewTo || req) === cu.id || master);
   const risk = riskOf(t, key);
   const files = [...(t.attachments || []).map((f) => ({ ...f, where: "업무" })), ...notes.filter((nn) => !nn.deleted).flatMap((nn) => (nn.files || []).map((f) => ({ ...f, by: nn.by, byName: nn.byName, uploadedAt: f.uploadedAt || nn.at, where: "댓글" })))];
-  const loadLogs = () => { setShowLog(!showLog); if (logs == null) fb.fetchWhere("log", ["targetId", "==", t.id]).then(setLogs).catch((e) => { console.error(e); setLogs([]); }); };
+  const loadLogs = () => { if (logs == null) fb.fetchWhere("log", ["targetId", "==", t.id]).then(setLogs).catch((e) => { console.error(e); setLogs([]); }); };
+  // 기록 한 줄의 '이전 → 이후' (담당 · 기한 · 시작 · 상태 · 참조 · 보류 다시 볼 날)
+  const CH = { assigneeId: ["담당", (v) => nameOf(D.users, v) || "없음"], assigneeIds: null, dueDate: ["기한", (v) => md(v) || "미정"], startDate: ["시작", (v) => md(v) || "없음"], status: ["상태", (v) => STATUS_L[v] || (v === "review" ? "확인 대기" : v || "-")],
+    ccIds: ["참조", (v) => (v || []).map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "없음"], holdUntil: ["다시 볼 날", (v) => md(v) || "미정"], priority: ["중요도", (v) => ({ high: "높음", mid: "보통", low: "낮음" })[v] || "보통"] };
+  const chOf = (l) => (l.prev && l.next && typeof l.prev === "object" && !Array.isArray(l.prev) ? Object.keys(l.next).filter((k) => CH[k] && JSON.stringify(l.prev[k] ?? null) !== JSON.stringify(l.next[k] ?? null)).map((k) => ({ k, l: CH[k][0], a: CH[k][1](l.prev[k]), b: CH[k][1](l.next[k]) })) : []);
   const hist = [...(t.statusLog || []).map((s, i) => ({ id: "s" + i, at: s.at, who: s.byName || nameOf(D.users, s.by), text: s.reopen ? "다시 엶" : STATUS_L[s.status] || (s.status === "review" ? "확인 요청" : s.status) })),
-    ...(logs || []).map((l) => ({ id: l.id, at: l.at, who: l.byName, text: (LOG_L[l.action] || l.action) + (l.label && l.label !== t.title ? " · " + l.label.replace(t.title + " · ", "") : "") }))].sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+    ...(logs || []).map((l) => ({ id: l.id, at: l.at, who: l.byName, ch: chOf(l), text: (LOG_L[l.action] || l.action) + (l.label && l.label !== t.title ? " · " + l.label.replace(t.title + " · ", "") : "") }))].sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
   const users = activeUsers(D.users);
   const dateChips = dueChips(key);   // 쉬는 날 빼고 · 버튼에 날짜까지 (오늘·지난 일 정리와 같은 버튼)
   // 순서: 앞 일(끝나야 내 차례) · 다음 일(내가 끝내면 그 사람 차례)
@@ -96,6 +100,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
     <h2 style={{ fontSize: 20, fontWeight: 800, color: C.ink, margin: "12px 0 6px", lineHeight: 1.35, wordBreak: "keep-all" }}>{risk && <span style={{ display: "inline-block", verticalAlign: 3, marginRight: 6, fontSize: 12, fontWeight: 800, padding: "2px 7px", borderRadius: 6, color: risk.red ? C.red : C.navy, background: risk.red ? "#F8E9EA" : C.soft }}>{risk.label}</span>}{t.title}</h2>
     <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7 }}>
       <span>담당 {owners.join(", ") || "없음"}{temp ? " (임시 · 책임자로 채움)" : t.ownerFrom === "default" || (t.ownerAuto && !t.ownerFrom) ? " (기본 담당)" : ""}</span> · <span style={{ color: n != null && n < 0 && !done && t.status !== "hold" ? C.red : C.sub, fontWeight: n != null && n < 0 && !done && t.status !== "hold" ? 800 : 400 }}>{dueOf(t) ? `기한 ${md(dueOf(t))}${done ? "" : " · " + ddayLabel(n)}` : "기한 미정"}</span> · <b style={{ color: C.ink }}>{review ? "확인 대기" : STATUS_L[t.status] || t.status}</b>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>기간 {mine || master ? <input type="date" aria-label="시작일" className="v2-sel" value={t.startDate || ""} max={dueOf(t) || undefined} onChange={(e) => A.patchTask(t, { startDate: e.target.value }, "edit", `${t.title} · 시작 ${md(e.target.value) || "없음"}`, { prev: { startDate: t.startDate || "" } })} style={{ height: 30, padding: "0 6px", fontSize: 13 }} /> : <span>{t.startDate ? md(t.startDate) : "시작 미정"}</span>} ~ {dueOf(t) ? md(dueOf(t)) : "기한 미정"}<span style={{ flex: 1 }} /><CopyLink kind="t" id={t.id} label="업무 링크 복사" onDone={() => setToast && setToast({ text: "링크를 복사했어요 · 잔디·카톡에 붙여 넣으면 이 업무가 바로 열려요" })} /></div>
       {(t.ccIds || []).length > 0 && <div>참조 {(t.ccIds || []).map((x) => nameOf(D.users, x)).filter(Boolean).join(", ")}</div>}
       {t.handoff && t.handoff.by && <div>{t.handoff.byName}님이 {md(ymd(new Date(t.handoff.at)))}에 {(t.handoff.from || []).map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "담당 없음"} → {nameOf(D.users, t.handoff.to)}{t.handoff.note ? ` · ${t.handoff.note}` : ""}</div>}
       {giver && <div>{giverName}님이 맡김{(req ? t.requestedAt : t.assignedAt) ? ` · ${md(ymd(new Date(req ? t.requestedAt : t.assignedAt)))}` : ""}{t.ackAt ? " · 받음" : " · 아직 안 받음"}</div>}
@@ -193,14 +198,15 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
           <Act onClick={() => { if (sub.trim()) { A.addTask({ title: sub, parentId: t.id, projectId: t.projectId, assigneeId: t.assigneeId || cu.id, dueDate: t.dueDate, noReview: true }); setSub(""); } }}>추가</Act></div>
       </Card></>}
 
-    <div id="v2-t-talk" style={{ scrollMarginTop: 8 }}><Head>대화 {notes.filter((x) => !x.deleted).length}</Head></div>
-    <Thread D={D} cu={cu} A={A} notes={notes} itemId={taskNoteId(t.id)} ctx={{ taskId: t.id, projectId: t.projectId }} />
+    <div id="v2-t-talk" style={{ scrollMarginTop: 8, margin: "18px 0 8px" }}><Seg items={[["talk", `대화 ${notes.filter((x) => !x.deleted).length}`], ["log", "기록"]]} value={tab2} onChange={(v) => { setTab2(v); if (v === "log" && logs == null) loadLogs(); }} /></div>
+    {tab2 === "talk" ? <Thread D={D} cu={cu} A={A} notes={notes} itemId={taskNoteId(t.id)} ctx={{ taskId: t.id, projectId: t.projectId }} />
+      : <Card>{logs == null ? <Empty>불러오는 중…</Empty> : hist.length === 0 ? <Empty>기록이 없어요</Empty> : hist.map((h, i) => <div key={h.id} className="v2-hist" style={{ borderBottom: i < hist.length - 1 ? `1px solid ${C.line}` : "none" }}>
+          <div className="hd"><b>{h.text}</b><span>{h.who || ""}{h.at ? ` · ${md(ymd(new Date(h.at)))} ${hm(h.at)}` : ""}</span></div>
+          {h.ch && h.ch.length > 0 && <div className="ch">{h.ch.map((c) => <span key={c.k}><small>{c.l}</small> <i className="was">{c.a}</i> → <i className="now">{c.b}</i></span>)}</div>}</div>)}</Card>}
 
     <div id="v2-t-files" style={{ scrollMarginTop: 8 }} /><Head right={<><TBtn onClick={() => fileRef.current && fileRef.current.click()}>+ 파일 올리기</TBtn><input ref={fileRef} type="file" multiple hidden onChange={(e) => { const f = [...e.target.files]; e.target.value = ""; if (f.length) A.addFiles(t, f); }} /></>}>파일 {files.length}</Head>
     <Card>{files.length === 0 ? <Empty>올린 파일이 없어요</Empty> : files.map((f, i) => <FileRow key={i} f={f} D={D} last={i === files.length - 1} />)}</Card>
 
-    <Head right={<TBtn onClick={loadLogs}>{showLog ? "접기 ▴" : "펼치기 ▾"}</TBtn>}>기록</Head>
-    {showLog && <Card>{logs == null ? <Empty>불러오는 중…</Empty> : hist.length === 0 ? <Empty>기록이 없어요</Empty> : hist.map((h, i) => <div key={h.id} style={{ display: "flex", gap: 10, padding: "10px 14px", borderBottom: i < hist.length - 1 ? `1px solid ${C.line}` : "none", fontSize: 13.5 }}><span style={{ color: C.mute, flex: "0 0 auto", fontVariantNumeric: "tabular-nums" }}>{h.at ? `${md(ymd(new Date(h.at)))} ${hm(h.at)}` : "-"}</span><span style={{ color: C.text, minWidth: 0, wordBreak: "break-word" }}>{h.who ? h.who + " · " : ""}{h.text}</span></div>)}</Card>}
   </Sheet>;
 }
 export function FileRow({ f, last }) {

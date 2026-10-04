@@ -64,8 +64,24 @@ export function useBoot() {
   const [launchNew, setLaunchNew] = useState(0);
   const synced = useRef(false);
   useEffect(() => { if (!meta || !D.ready || !authed || synced.current) return; synced.current = true;
-    syncNewLaunch(D, cu).then((n) => { if (n) setLaunchNew(n); }).catch((e) => console.error("[v2] 신제품 보드 새 제품 가져오기 실패:", e)); }, [meta, D.ready, authed]);
+    syncNewLaunch(D, cu).then((n) => { if (n) setLaunchNew(n); }).catch((e) => console.error("[v2] 신제품 보드 새 제품 가져오기 실패:", e));
+    const today = ymd(new Date()), k = "pour-os-v2.progSync";
+    let last = ""; try { last = localStorage.getItem(k) || ""; } catch (e) { /* 저장소 막힘 → 매번 */ }
+    if (isMaster(cu) && last !== today) syncProgress(D).then((n) => { try { localStorage.setItem(k, today); } catch (e) { /* 무시 */ } console.log(`[v2] 프로젝트 진척 다시 계산 · 바뀐 것 ${n}개`); }).catch((e) => console.error("[v2] 프로젝트 진척 다시 계산 실패:", e)); }, [meta, D.ready, authed]);
   return { launchNew, meta, setMeta, metaErr, checkMeta, D, err, cu, authed, signIn: (u, h) => { setMe(u.id); setKey(h); }, logout: () => { setKey(""); setMe(""); } };
+}
+// 프로젝트 진척(%) 하루 한 번 다시 계산: 열린 일반 프로젝트(신제품·직접 정한 % 빼고)의 전체 업무를 프로젝트별로 읽어 % 가 다르면 그 칸만 저장
+//  (앱은 열린 업무 + 최근 30일 끝낸 업무만 불러오므로 오래전에 끝낸 업무까지 세려면 서버에서 따로 읽어야 함)
+export async function syncProgress(D) {
+  const ps = (D.projects || []).filter((p) => projOpen(p) && !p.progressManual && !String(p.id || "").startsWith("lb_"));
+  let changed = 0;
+  for (let i = 0; i < ps.length; i += 4) {
+    await Promise.all(ps.slice(i, i + 4).map(async (p) => {
+      const all = (await fb.fetchWhere("tasks", ["projectId", "==", p.id])).filter((t) => !t.isFixed && !t.deleted);
+      const pct = all.length ? Math.round((all.filter(isDone).length / all.length) * 100) : 0;
+      if (Number(p.progress) !== pct) { changed++; await fb.patch("projects", p._doc || p.id, { progress: pct, updatedAt: nowIso(), v2At: nowIso() }); } }));
+  }
+  return changed;
 }
 // 신제품 보드(버전1 launch-board) 바로 읽기: v2 에 아직 없는 제품만 새로 만든다 (이미 있는 제품·항목은 절대 덮지 않음)
 //  열 때 한 번 · 버전1은 읽기만 · 쓰기 직전에 v2 프로젝트를 서버에서 다시 확인 (다른 기기가 먼저 넣었으면 건너뜀)
@@ -188,7 +204,7 @@ export function useActs(D, cu, setToast, idx = null) {
   const sl = (status, extra) => fb.arrayUnion({ by: cu.id, byName: cu.name, at: nowIso(), status, ...(extra || {}) });
   const recalc = async (pid) => {
     if (!pid) return; const p = D.projects.find((x) => x.id === pid); if (!p || p.progressManual) return;
-    try { const all = (await fb.fetchWhere("tasks", ["projectId", "==", pid])).filter((t) => !t.isFixed);
+    try { const all = (await fb.fetchWhere("tasks", ["projectId", "==", pid])).filter((t) => !t.isFixed && !t.deleted);
       const pct = all.length ? Math.round((all.filter(isDone).length / all.length) * 100) : 0;
       if (Number(p.progress) !== pct) await fb.patch("projects", p._doc || p.id, { progress: pct, updatedAt: nowIso(), v2At: nowIso() }); }
     catch (e) { console.error("[v2] 진척 계산 실패:", e); }

@@ -21,7 +21,6 @@ const NAVY_BTN = { background: C.navy, color: "#fff", borderColor: C.navy };
 const MAXC = 8;
 const topTasks = (p, D, idx) => { const ts = (D.tasks || []).filter((t) => t.projectId === p.id && !t.isFixed), ids = new Set(ts.map((t) => t.id));
   return orderTasks(ts.filter((t) => !t.parentId || !ids.has(t.parentId)), idx); };
-const taskPct = (p, D, idx) => { const top = topTasks(p, D, idx); return top.length ? Math.round((top.filter(isDone).length / top.length) * 100) : 0; };   // 띠와 같은 기준(불러온 업무)
 function taskStrip(p, D, idx, key) {
   const top = topTasks(p, D, idx);
   const cell = (t) => { const st = nodeState(t, idx, key); return { k: t.id, name: t.title, state: st === "done" ? "done" : st === "late" ? "late" : st === "doing" ? "cur" : st === "hold" ? "hold" : "todo" }; };
@@ -90,7 +89,7 @@ export function ProjectsTab({ D, cu, A, idx, open }) {
   const now = new Date(), key = ymd(now);
   const rows = useMemo(() => D.projects.filter(projOpen).map((p) => { const lp = isLaunchP(p);
     const ts = (D.tasks || []).filter((t) => t.projectId === p.id && t.launchItem);
-    const h = projHealth(p, D, key, lp ? (x) => launchPct(x, D) : () => taskPct(p, D, idx)), w = projWhen(p, D.tasks, key);
+    const h = projHealth(p, D, key, lp ? (x) => launchPct(x, D) : null), w = projWhen(p, D.tasks, key);   // % = 프로젝트 화면과 같은 값
     return { p, lp, h, nn: nowNext(p, D, idx, key), date: w.date, cells: lp ? phaseStates(ts, key).map((ph) => ({ k: ph.k, name: `${ph.name} · 남은 ${ph.left}/${ph.total}`, state: ph.state, txt: ph.state === "cur" || ph.state === "late" ? ph.left : "" })) : taskStrip(p, D, idx, key) }; }), [D, idx]);
   const inCat = (p, k) => (k === "all" ? true : k === "none" ? !projCat(p) : projCat(p) === k);
   const cats = [["all", "전체"], ...PROJ_CATS, ["none", "미분류"]].filter(([k]) => k === "all" || rows.some((x) => inCat(x.p, k)));
@@ -114,7 +113,7 @@ export function ProjectsTab({ D, cu, A, idx, open }) {
         {!x.lp && x.cells.length < 7 && [...Array(7 - x.cells.length)].map((_, i) => <span key={"e" + i} className="ph none" aria-hidden="true" />)}
         <span className="end">{x.h.late ? <b style={{ color: C.red }}>지남 {x.h.late}</b> : `${x.h.pct}%`}</span>
       </button>
-      <div className="a-lsub">{x.nn.now ? `지금 ${x.nn.now.title} (${nameOf(D.users, ownersOf(x.nn.now)[0]) || "담당 없음"})${x.nn.next ? ` → 다음 ${x.nn.next.title} (${nameOf(D.users, ownersOf(x.nn.next)[0]) || "담당 없음"})` : ""}` : x.h.open ? `열린 업무 ${x.h.open} · 지금 하는 일 없음` : x.cells.length ? "업무 다 끝남" : "업무가 아직 없어요"}{!x.lp && cat1 === "all" && projCat(p) ? ` · ${catName(projCat(p))}` : ""}</div>
+      <div className="a-lsub">{x.nn.now ? `지금 ${x.nn.now.title} (${nameOf(D.users, ownersOf(x.nn.now)[0]) || "담당 없음"})${x.nn.next ? ` → 다음 ${x.nn.next.title} (${nameOf(D.users, ownersOf(x.nn.next)[0]) || "담당 없음"})` : ""}` : x.h.open ? `열린 업무 ${x.h.open} · 지금 하는 일 없음` : x.h.allDone ? <>업무 다 끝남 · <TBtn onClick={() => open({ type: "project", id: p.id })} style={{ padding: "0 2px", fontSize: 12.5 }}>완료하기 ›</TBtn></> : "업무가 아직 없어요"}{!x.lp && cat1 === "all" && projCat(p) ? ` · ${catName(projCat(p))}` : ""}</div>
       {cat1 === "none" && <div className="a-lsub a-pcatset">
         <select aria-label={`${p.title} 카테고리`} className="v2-sel" value="" onChange={(e) => e.target.value && setPC(p, e.target.value)}><option value="">카테고리 고르기 ▾</option>{PROJ_CATS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
         {guessCat(p.title) && <TBtn onClick={() => setPC(p, guessCat(p.title))}>추천 '{catName(guessCat(p.title))}'로</TBtn>}</div>}

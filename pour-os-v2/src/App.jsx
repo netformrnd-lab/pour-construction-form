@@ -16,7 +16,7 @@ import { TaskSheet, FixedSheet, openTask } from "./task.jsx";
 import { ProjectsTab, ProjectSheet, NewProjectSheet, DoneProjectsSheet } from "./project.jsx";
 import { CalendarTab } from "./schedule.jsx";
 import { planLaunchImport, relaunch } from "./launch.js";
-import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked } from "./ui.jsx";
+import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked, useBackClose } from "./ui.jsx";
 
 export const BUILD = "v2-3단계 1003 실사용·관리자";
 import { useBoot, Gate, useActs, V1_URL, LS, nowIso } from "./core.jsx";
@@ -46,6 +46,7 @@ function Main({ D, cu, meta, setMeta, logout }) {
   const open = (s) => setStack((st) => [...st, s]);
   const back = () => setStack((st) => st.slice(0, -1));
   const closeAll = () => setStack([]);
+  useBackClose(stack.length, setStack);   // 폰 뒤로 = 맨 위 시트만 닫기
   // 시트 화면 상태(지난 일 정리 몇 번째 · 내 정리 탭·고른 것 · 프로젝트 탭)를 그 시트 칸에 적어 둠 → 위 시트에서 '뒤로' 오면 이어서
   const saveAt = (i, patch) => setStack((st) => st.map((x, j) => (j === i ? { ...x, ...patch } : x)));
   const ctx = { D, cu, A, open, back, closeAll, saveAt, seen, setSeen, setToast, TV, T, idx, meta, setMeta, logout, setTab, BUILD };

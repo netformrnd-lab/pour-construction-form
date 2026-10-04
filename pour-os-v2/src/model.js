@@ -27,13 +27,23 @@ export function ago(iso, now = new Date()) {
   return md(ymd(t));
 }
 export const dayTitle = (now) => `${now.getMonth() + 1}월 ${now.getDate()}일 (${WD[now.getDay()]})`;
-// 공휴일 (기한 계산에서 건너뜀 · 달력 날짜 회색). 음력 공휴일은 해마다 직접 넣는다
+// 공휴일 (기한 계산에서 건너뜀 · 달력 날짜 회색). 2026~2028 · 노동절(5/1)·제헌절(7/17)은 2026년부터 공휴일
+// 음력(설·추석·부처님오신날)·선거일·임시공휴일은 해마다 달라짐 → 6단계에서 공식 특일 정보로 매달 자동 확인 예정
 export const KR_HOLIDAYS = {
+  "2026-01-01": "신정", "2026-02-16": "설날 연휴", "2026-02-17": "설날", "2026-02-18": "설날 연휴", "2026-03-01": "삼일절", "2026-03-02": "삼일절 대체공휴일",
+  "2026-05-01": "노동절", "2026-05-05": "어린이날", "2026-05-24": "부처님오신날", "2026-05-25": "부처님오신날 대체공휴일", "2026-06-03": "지방선거일",
+  "2026-06-06": "현충일", "2026-07-17": "제헌절", "2026-08-15": "광복절", "2026-08-17": "광복절 대체공휴일",
+  "2026-09-24": "추석 연휴", "2026-09-25": "추석", "2026-09-26": "추석 연휴",
   "2026-10-03": "개천절", "2026-10-05": "개천절 대체공휴일", "2026-10-09": "한글날", "2026-12-25": "성탄절",
   "2027-01-01": "신정", "2027-02-06": "설날 연휴", "2027-02-07": "설날", "2027-02-08": "설날 연휴", "2027-02-09": "설날 대체공휴일",
-  "2027-03-01": "삼일절", "2027-05-05": "어린이날", "2027-05-13": "부처님오신날", "2027-06-06": "현충일", "2027-08-15": "광복절", "2027-08-16": "광복절 대체공휴일",
+  "2027-03-01": "삼일절", "2027-05-01": "노동절", "2027-05-05": "어린이날", "2027-05-13": "부처님오신날", "2027-06-06": "현충일",
+  "2027-07-17": "제헌절", "2027-07-19": "제헌절 대체공휴일", "2027-08-15": "광복절", "2027-08-16": "광복절 대체공휴일",
   "2027-09-14": "추석 연휴", "2027-09-15": "추석", "2027-09-16": "추석 연휴", "2027-10-03": "개천절", "2027-10-04": "개천절 대체공휴일",
   "2027-10-09": "한글날", "2027-10-11": "한글날 대체공휴일", "2027-12-25": "성탄절", "2027-12-27": "성탄절 대체공휴일",
+  "2028-01-01": "신정", "2028-01-25": "설날 연휴", "2028-01-26": "설날", "2028-01-27": "설날 연휴", "2028-03-01": "삼일절",
+  "2028-04-12": "국회의원 선거일", "2028-05-01": "노동절", "2028-05-02": "부처님오신날", "2028-05-05": "어린이날", "2028-06-06": "현충일",
+  "2028-07-17": "제헌절", "2028-08-15": "광복절", "2028-10-02": "추석 연휴", "2028-10-03": "추석 · 개천절", "2028-10-04": "추석 연휴",
+  "2028-10-05": "추석 대체공휴일", "2028-10-09": "한글날", "2028-12-25": "성탄절",
 };
 export const holidayName = (key) => KR_HOLIDAYS[key] || "";
 export const isOffDay = (key) => { const w = new Date(key + "T00:00:00").getDay(); return w === 0 || w === 6 || !!KR_HOLIDAYS[key]; };
@@ -147,6 +157,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   const doing = open.filter((t) => t.status === "inprogress").length;
   // 확인할 것
   const myProj = new Set((D.projects || []).filter((p) => p.assigneeId === uid || (p.collaboratorIds || []).includes(uid)).map((p) => p.id));
+  const projAll = new Set([...myProj, ...tasks.filter((t) => !t.isFixed && t.projectId && isMine(t, uid)).map((t) => t.projectId)]);   // 프로젝트 한마디는 그 프로젝트 업무 담당에게도 (업무 댓글은 그대로 책임자·함께)
   const since = new Date(now - 7 * 86400000).toISOString();
   const inbox = []; const launchNew = {}, bulkNew = {};
   // '이제 내 차례' 카드에 '앞 일 마지막 말'로 보이는 댓글 하나만 댓글 줄로 또 띄우지 않음 (T.shownNotes · 없으면 예전처럼 앞 일들의 한마디)
@@ -179,7 +190,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
     let hit = null;
     if (kind === "task") { const t = taskById[ref]; if (shown ? shown.has(n.id) : n.handoff && freshPreds.has(ref)) return;
       if (t && (isMine(t, uid) || reqOf(t) === uid || myProj.has(t.projectId) || (n.handoff && predIds.has(ref)))) hit = { taskId: ref, title: t.title }; }
-    else if (kind === "proj" && myProj.has(ref)) { const p = (D.projects || []).find((x) => x.id === ref); hit = { projectId: ref, title: p ? p.title : "프로젝트" }; }
+    else if (kind === "proj" && projAll.has(ref)) { const p = (D.projects || []).find((x) => x.id === ref); hit = { projectId: ref, title: p ? p.title : "프로젝트" }; }
     if (hit) inbox.push({ kind: "note", tag: "댓글", id: "nt:" + n.id, ...hit, who: n.by, whoName: n.byName, at: n.at, text: n.text });
   });
   const ORDER = { feedback: 0, review: 1, dueReq: 2, blocked: 3, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, dueRes: 9, note: 10 };
@@ -231,12 +242,15 @@ export function onTimeOf(D, uid, now = new Date(), days = 30) {
 // ── 프로젝트 ──
 export const projOpen = (p) => p && p.status !== "completed" && p.status !== "done" && !p.archived;
 export const projMine = (p, uid, tasks) => p.assigneeId === uid || (p.collaboratorIds || []).includes(uid) || (tasks || []).some((t) => t.projectId === p.id && !t.isFixed && isMine(t, uid));
+// 프로젝트 진척 % — 모든 화면이 이 값 하나만 씀 (신제품 lb_ 은 launchPct). 저장된 progress = 전체 업무(오래전에 끝낸 것 포함)로 계산한 값:
+//  업무를 끝내거나 다시 열 때 · 프로젝트를 열 때 · 마스터가 앱을 열면 하루 한 번 열린 프로젝트 전체를 다시 계산
+export const projPct = (p) => Math.max(0, Math.min(100, Math.round(Number(p && p.progress) || 0)));
 export function projStat(p, tasks, key) {
   const mine = (tasks || []).filter((t) => t.projectId === p.id && !t.isFixed);
   const open = mine.filter((t) => !isDone(t));
   const next = open.filter((t) => t.status !== "hold").sort((a, b) => (a.status === "inprogress" ? -1 : 0) - (b.status === "inprogress" ? -1 : 0) || String(dueOf(a) || "9").localeCompare(String(dueOf(b) || "9")))[0] || null;
   const n = ddays(p.dueDate, key);
-  const pct = Math.max(0, Math.min(100, Math.round(Number(p.progress) || 0)));
+  const pct = projPct(p);
   return { open: open.length, next, n, pct, late: n != null && n < 0 };
 }
 // 프로젝트 날짜 하나 → { date, n(D-day), late(빨강), launched(출시함), after(출시 후 며칠) }
@@ -348,9 +362,9 @@ export function planSeed(v1, notes = []) {
 export const COUNT_L = { tasks: "업무", projects: "프로젝트", users: "사람", notes: "댓글", log: "기록", events: "일정", goals: "목표", mainKPIs: "메인 KPI", subKPIs: "서브 KPI", workflows: "흐름", trash: "휴지통", launch: "신제품" };
 
 // ── 일정(달력) ──
-// 달력 칸: 월요일 시작 6주 이내. 이번 달 밖 날짜는 out:true
+// 달력 칸: 일요일 시작(일 맨 왼쪽 · 토 맨 오른쪽) 6주 이내. 이번 달 밖 날짜는 out:true
 export function monthGrid(ym) {
-  const first = new Date(ym + "-01T00:00:00"), start = new Date(first); start.setDate(1 - ((first.getDay() + 6) % 7));
+  const first = new Date(ym + "-01T00:00:00"), start = new Date(first); start.setDate(1 - first.getDay());
   const weeks = []; const d = new Date(start);
   for (let w = 0; w < 6; w++) { const row = []; for (let i = 0; i < 7; i++) { const k = ymd(d); row.push({ date: k, out: k.slice(0, 7) !== ym }); d.setDate(d.getDate() + 1); }
     if (w >= 4 && row.every((c) => c.out)) break; weeks.push(row); }
@@ -369,13 +383,14 @@ export function projHealth(p, D, key, pctOf = null) {
   const late = open.filter((t) => { const r = riskOf(t, key); return r && (r.k === "late" || r.k === "blocked"); }).length;
   const start = open.filter((t) => { const r = riskOf(t, key); return r && (r.k === "start" || r.k === "today"); }).length;
   const noOwner = open.filter((t) => !ownersOf(t).length).length;
-  const pct = pctOf ? pctOf(p) : Math.max(0, Math.min(100, Math.round(Number(p.progress) || 0))), n = ddays(p.dueDate, key);
+  const pct = pctOf ? pctOf(p) : projPct(p), n = ddays(p.dueDate, key);
+  const allDone = open.length === 0 && (ts.length > 0 || pct >= 100);   // 업무 다 끝남 → 프로젝트 완료 처리 신호 (오래전에 끝낸 업무는 안 불러와도 % 로 앎)
   const why = [];
   if (late) why.push(`지난 일 ${late}`); if (n != null && n < 0 && open.length) why.push(`마감 ${-n}일 지남`); else if (n != null && n <= 7 && pct < 60 && open.length) why.push(`마감 D-${n}인데 ${pct}%`);
   const level = why.length ? "위험" : start || noOwner ? "주의" : "순조";
   if (start) why.push(`시작 전 ${start}`); if (noOwner) why.push(`담당 없음 ${noOwner}`);
   const next = open.filter((t) => dueOf(t)).sort((a, b) => String(dueOf(a)).localeCompare(String(dueOf(b))))[0] || null;
-  return { level, why, late, start, open: open.length, pct, n, next };
+  return { level, why, late, start, open: open.length, pct, n, next, allDone };
 }
 // 사람 일정이 잘 맞게 가나: 지남·시작 전·기한 지킴 % + 앞으로 4주 주별 마감 수
 export function personHealth(D, uid, now = new Date()) {

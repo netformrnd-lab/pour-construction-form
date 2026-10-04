@@ -65,6 +65,10 @@ export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast
         <Act onClick={saveCap} style={cap && !busy ? { background: C.navy, color: "#fff", borderColor: C.navy } : { opacity: 0.5 }}>{busy ? "저장 중" : "한도 저장"}</Act>
       </div>
     </Card>
+    <Head>휴가 · 퇴사</Head>
+    <Card style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ flex: 1, fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>맡은 업무·고정업무·책임 프로젝트를 한 사람에게 한 번에 넘겨요</div>
+      <Act onClick={() => open({ type: "handOver", id: u.id })}>일 넘기기 ›</Act></Card>
     {u.id !== cu.id && u.pinHash && <div style={{ marginTop: 18 }}><TBtn onClick={() => setAsk(true)}>{u.name}님 PIN 초기화</TBtn></div>}
     {ask && <Ask title="PIN 초기화" body={`${u.name}님의 v2 PIN을 지울까요?\n본인이 다음에 열 때 새로 정해요. (버전1 PIN은 그대로예요)`} yes="초기화" onNo={() => setAsk(false)}
       onYes={() => { fb.patch("users", u._doc || u.id, { pinHash: null, pinResetBy: cu.id, pinResetAt: new Date().toISOString() }).then(() => setToast({ text: "PIN을 초기화했어요" })).catch((e) => { console.error("[v2 관리] PIN 초기화 실패:", e); setToast({ text: "초기화 실패 · 인터넷 연결을 확인해 주세요" }); }); setAsk(false); }} />}

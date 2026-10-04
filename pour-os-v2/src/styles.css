@@ -290,3 +290,13 @@ input[type=date] { min-width: 0; max-width: 100%; -webkit-appearance: none; appe
 .v2-hist .ch i { font-style: normal; }
 .v2-hist .ch .was { color: #6B7280; text-decoration: line-through; }
 .v2-hist .ch .now { color: #0F1F5C; font-weight: 800; }
+/* 빨간 날(일요일·공휴일) 빨강 · 토요일 파랑 — 달력 머리·날짜·7일 보기 */
+.v2-calh.sun { color: #D93A3A; }
+.v2-calh.sat { color: #2F6FD6; }
+.v2-calc.hol .d { color: #D93A3A; }
+.v2-calc.sat .d { color: #2F6FD6; }
+.v2-calc.out.hol .d { color: #EBA9A9; }
+.v2-calc.out.sat .d { color: #A9C2EC; }
+.v2-calc.l3.hol .d, .v2-calc.l3.sat .d { color: #fff; }
+.v2-wkhead.hol { color: #D93A3A; }
+.v2-wkhead.sat { color: #2F6FD6; }

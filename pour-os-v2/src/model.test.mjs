@@ -248,4 +248,23 @@ ok("4단계: 이번 주(월~일) 내 완료율", () => {
   const w = M.weekMine(D, "u", key);
   assert.equal(w.ws, "2026-10-05"); assert.equal(w.total, 3); assert.equal(w.done, 1); assert.equal(w.doing, 1); assert.equal(w.late, 1); assert.equal(w.pct, 33);
 });
+ok("7단계: 한 사람 일 한 번에 넘기기 — 묶음 · 담당 칸 · 넘겨받음 한 줄", () => {
+  const users = [{ id: "a", name: "가" }, { id: "b", name: "나" }, { id: "m", name: "마", master: true }];
+  const tasks = [{ id: "1", assigneeId: "a", status: "inprogress", dueDate: "2026-10-09" }, { id: "2", assigneeId: "a", status: "todo" }, { id: "3", assigneeId: "a", status: "hold" },
+    { id: "4", assigneeId: "a", status: "review" }, { id: "5", assigneeId: "a", status: "done" }, { id: "6", assigneeId: "a", status: "dropped" },
+    { id: "7", assigneeIds: ["c", "a"], assigneeId: "c", status: "todo" }, { id: "f1", isFixed: true, assigneeIds: ["a", "b"] }, { id: "f2", isFixed: true, forAll: true }, { id: "9", assigneeId: "b", status: "todo" }];
+  const projects = [{ id: "P", assigneeId: "a", status: "active" }, { id: "Q", assigneeId: "a", status: "completed" }, { id: "R", assigneeId: "a", status: "hold" }];
+  const g = M.handOverPlan({ users, tasks, projects }, "a");
+  assert.deepEqual(Object.fromEntries(Object.entries(g).map(([k, v]) => [k, v.map((x) => x.id)])), { doing: ["1"], todo: ["2", "7"], hold: ["3"], review: ["4"], fixed: ["f1"], proj: ["P", "R"] });
+  assert.deepEqual(M.handOverOwners(tasks[6], "a", "b"), { assigneeIds: ["c", "b"], assigneeId: "c" });   // 여러 담당이면 내 자리만
+  assert.deepEqual(M.handOverOwners(tasks[7], "a", "b"), { assigneeIds: ["b"], assigneeId: "b" });       // 이미 있으면 한 번만
+  assert.deepEqual(M.handOverOwners({ assigneeId: "a" }, "a", "b"), { assigneeIds: ["b"], assigneeId: "b" });
+  const at = new Date(Date.now() - 600e3).toISOString(), ho = { from: ["a"], to: "b", by: "m", byName: "마", at, all: true };
+  const moved = [{ id: "x1", projectId: "P", assigneeId: "b", assigneeIds: ["b"], status: "inprogress", assignedBy: "m", assignedAt: at, bulkId: "ho1", handoff: ho, ackAt: null },
+    { id: "x2", projectId: "R", assigneeId: "b", assigneeIds: ["b"], status: "todo", assignedBy: "m", assignedAt: at, bulkId: "ho1", handoff: ho, ackAt: null }];
+  const ib = M.todayView({ users, projects, tasks: moved, notes: [] }, "b", new Date()).inbox;
+  const line = ib.filter((x) => x.kind === "bulk");
+  assert.equal(line.length, 1); assert.equal(line[0].title, "가님 업무 2개 넘겨받음"); assert.equal(line[0].mine, true); assert.equal(line[0].projectId, null);
+  assert.ok(!ib.some((x) => x.kind === "assigned"));   // 한 건씩 따로 안 뜸
+});
 console.log(`\n${n}개 모두 통과`);

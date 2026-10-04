@@ -15,6 +15,7 @@ import { ProjectsTab, LaunchTools } from "./Projects.jsx";
 import { TidyTab, OrderSheet } from "./Tidy.jsx";
 import { SettingsSheet, LaunchOrderSheet } from "./Settings.jsx";
 import { PersonAdmin } from "./PersonAdmin.jsx";
+import { HandOver } from "./HandOver.jsx";
 import { RoutineTab } from "./Routine.jsx";
 import "./admin.css";
 
@@ -62,6 +63,7 @@ function AdminMain({ B }) {
   const extra = {
     person: (p, s) => <PersonAdmin {...p} id={s.id} />,
     personAdmin: (p, s) => <PersonAdmin {...p} id={s.id} />,
+    handOver: (p, s) => <HandOver {...p} id={s.id} />,
     settings: (p) => <SettingsSheet {...p} />,
     apick: (p, s) => <PickSheet {...p} s={s} />,
     adone: (p, s) => <DoneSheet {...p} s={s} />,

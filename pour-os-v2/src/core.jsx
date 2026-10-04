@@ -7,7 +7,7 @@ import {
   ymd, addDays, ddays, ddayLabel, md, hm, ago, dayTitle, isMaster, activeUsers, nameOf, STATUS_L, isDone, isOneOff, isMine, ownersOf, dueOf,
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, planSeed, COUNT_L, LOG_L,
-  reqOf, needsReview, dueApprover, isHoldP, nextWorkday, setHolidayLayer,
+  reqOf, needsReview, dueApprover, isHoldP, nextWorkday, setHolidayLayer, handOverOwners,
 } from "./model.js";
 import { planLaunchImport, relaunch, isTempOwner } from "./launch.js";
 import { nextTurnText } from "./turn.js";
@@ -363,6 +363,32 @@ export function useActs(D, cu, setToast, idx = null) {
       catch (e) { fail("한꺼번에 바꾸기")(e); return false; }
       log("bulk", { col: "tasks", label: `${label} · ${ts.length}건`, ids: ts.map((t) => t.id), prev: ops.map((o) => ({ id: o.id, ...o.prev })) });
       setToast({ text: `${label} · ${ts.length}건 바꿨어요`, undo: () => fb.patchMany(ops.map((o) => ({ key: o.key, id: o.id, fields: o.prev }))).then(() => log("bulk", { col: "tasks", label: `되돌림 · ${label}`, ids: ts.map((t) => t.id) })).catch(fail("되돌리기")) });
+      return true;
+    },
+    // 한 사람 일 한 번에 넘기기 (휴가·퇴사 · 마스터) — 업무·고정업무는 담당 칸만, 프로젝트는 책임자만 바꿈
+    //   업무: 맡긴 사람(requestedBy)은 그대로 · handoff(all) + bulkId → 받는 사람 '확인할 것'에 '○○님 업무 n개 넘겨받음' 한 줄
+    //   고정업무: 사람별 체크 기록은 지우지 않음 · 넘기는 사람이 정한 시간은 받는 사람에게 (받는 사람 시간이 없을 때)
+    //   한 번에 쓰고, 기록에 이전 값, 5초 되돌리기
+    handOver: async (from, to, items, note) => {
+      const { tasks = [], fixed = [], projs = [] } = items, at = nowIso(), bulkId = newId("ho"), msg = (note || "").trim();
+      const fromN = nameOf(D.users, from) || "?", toN = nameOf(D.users, to) || "?", n = tasks.length + fixed.length + projs.length;
+      if (!n || !to || to === from) return false;
+      const stamp = { updatedAt: at, updatedBy: cu.id, v2At: at };
+      const ops = [];
+      tasks.forEach((t) => { const f = { ...handOverOwners(t, from, to), ownerAuto: false, ownerFrom: "set", assignedBy: cu.id, assignedAt: at, bulkId,
+          handoff: { from: [from], to, note: msg, at, by: cu.id, byName: cu.name, all: true }, ...(t.status === "review" ? {} : { ackAt: to === cu.id ? at : null }) };
+        ops.push({ key: "tasks", id: tdoc(t), fields: { ...f, ...stamp }, prev: { ...prevOf(t, f), ...stamp } }); });
+      fixed.forEach((t) => { const f = handOverOwners(t, from, to), tb = t.timeBy || {};
+        if (tb[from] && !tb[to]) f[`timeBy.${to}`] = tb[from];
+        const prev = { assigneeIds: t.assigneeIds || [], assigneeId: t.assigneeId || "", ...(f[`timeBy.${to}`] ? { [`timeBy.${to}`]: null } : {}) };
+        ops.push({ key: "tasks", id: tdoc(t), fields: { ...f, ...stamp }, prev: { ...prev, ...stamp } }); });
+      projs.forEach((p) => ops.push({ key: "projects", id: p._doc || p.id, fields: { assigneeId: to, ...stamp }, prev: { assigneeId: p.assigneeId || "", ...stamp } }));
+      try { await fb.patchMany(ops.map(({ key, id, fields }) => ({ key, id, fields }))); }
+      catch (e) { fail("일 넘기기")(e); return false; }
+      const label = `${fromN} → ${toN} 일 넘기기 · 업무 ${tasks.length} · 고정업무 ${fixed.length} · 프로젝트 ${projs.length}${msg ? " · " + msg.slice(0, 60) : ""}`;
+      log("handover", { col: "tasks", targetId: from, label, from, to, bulkId, ids: [...tasks, ...fixed].map((t) => t.id), pids: projs.map((p) => p.id), prev: ops.map((o) => ({ key: o.key, id: o.id, ...o.prev })) });
+      setToast({ text: `${toN}님에게 ${n}건 넘겼어요`, undo: () => fb.patchMany(ops.map((o) => ({ key: o.key, id: o.id, fields: { ...o.prev, updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() } })))
+        .then(() => log("handover", { col: "tasks", targetId: from, label: `되돌림 · ${fromN} → ${toN} 일 넘기기`, bulkId })).catch(fail("되돌리기")) });
       return true;
     },
     // 기한 여러 개 한 번에 (최대 100건 · 이전 기한 기록 · 5초 되돌리기)

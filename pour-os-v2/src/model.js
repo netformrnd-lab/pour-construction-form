@@ -190,7 +190,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
     const mine = isMine(t, uid);
     if (mine && t.feedback && t.status !== "review") inbox.push({ kind: "feedback", tag: "수정 요청", id: "fb:" + t.id, taskId: t.id, title: t.title, who: t.feedback.by, whoName: t.feedback.byName, at: t.feedback.at, text: t.feedback.text, keep: true });
     else if (mine && (reqOf(t) || (t.assignedBy && t.assignedBy !== uid)) && !t.ackAt && (t.status === "todo" || (t.handoff && t.handoff.to === uid && t.handoff.by !== uid)) && !temp.has(t.id)) {
-      if (t.bulkId) { const g = (bulkNew[t.bulkId] = bulkNew[t.bulkId] || { n: 0, who: t.assignedBy, at: t.assignedAt, pid: t.projectId, ids: [] }); g.n++; g.ids.push(t.id); }
+      if (t.bulkId) { const g = (bulkNew[t.bulkId] = bulkNew[t.bulkId] || { n: 0, who: t.assignedBy, at: t.assignedAt, pid: t.projectId, pids: new Set(), ids: [], from: t.handoff && t.handoff.all ? t.handoff.from : null }); g.n++; g.ids.push(t.id); g.pids.add(t.projectId || ""); }
       else if (t.launchItem) { const g = (launchNew[t.projectId] = launchNew[t.projectId] || { n: 0, who: t.assignedBy || t.requestedBy, at: t.assignedAt || t.requestedAt }); g.n++; }
       else inbox.push({ kind: "assigned", tag: "맡김", id: "as:" + t.id, taskId: t.id, title: t.title, who: reqOf(t) || t.assignedBy, at: (reqOf(t) && t.requestedAt) || t.assignedAt || t.requestedAt, text: dueOf(t) ? `기한 ${md(dueOf(t))}` : "", keep: true });
     }
@@ -205,7 +205,8 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   Object.entries(launchNew).forEach(([pid, g]) => { const p = (D.projects || []).find((x) => x.id === pid);
     inbox.push({ kind: "launchNew", tag: "신제품", id: "ln:" + pid, projectId: pid, title: `${p ? p.title : "신제품"} · 항목 ${g.n}개 맡김`, who: g.who, at: g.at, text: "열어서 기한을 확인하고 '받았어요'를 눌러 주세요", keep: true }); });
   Object.entries(bulkNew).forEach(([bid, g]) => { const p = (D.projects || []).find((x) => x.id === g.pid);
-    inbox.push({ kind: "bulk", tag: "맡김", id: "bl:" + bid, bulkIds: g.ids, projectId: g.pid, title: `${p ? p.title + " · " : ""}항목 ${g.n}개 맡김`, who: g.who, at: g.at, text: "기한을 확인하고 '받았어요'를 눌러 주세요", keep: true }); });
+    const one = g.pids.size === 1 && g.pid, fromN = g.from ? g.from.map((x) => nameOf(users, x)).filter(Boolean).join("·") : "";
+    inbox.push({ kind: "bulk", tag: g.from ? "넘겨받음" : "맡김", id: "bl:" + bid, bulkIds: g.ids, projectId: one ? g.pid : null, mine: !one, title: g.from ? `${fromN || "다른 사람"}님 업무 ${g.n}개 넘겨받음` : `${one && p ? p.title + " · " : ""}항목 ${g.n}개 맡김`, who: g.who, at: g.at, text: "기한을 확인하고 '받았어요'를 눌러 주세요", keep: true }); });
   // 보류한 프로젝트 '다시 할 날'이 되면 책임자에게 (다시 시작하거나 날짜를 바꿀 때까지)
   (D.projects || []).forEach((p) => { if (isHoldP(p) && p.holdUntil && p.holdUntil <= key && p.assigneeId === uid) inbox.push({ kind: "projHoldDue", tag: "다시 할 날", id: "ph:" + p.id + ":" + p.holdUntil, projectId: p.id, title: p.title, who: p.heldBy, at: p.holdUntil + "T00:00:00", text: `보류${p.holdReason ? " · " + p.holdReason : ""} · ${md(p.holdUntil)}에 다시 하기로 함`, keep: true }); });
   if (T && Array.isArray(T.inbox)) T.inbox.forEach((x) => inbox.push(x));
@@ -342,7 +343,7 @@ export function ownerIssues(D) {
 }
 
 // ── 소식 (댓글 + 기록) ──
-export const LOG_L = { decide: "결정", add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", take: "이어받음", comment: "댓글", delete: "휴지통으로",
+export const LOG_L = { decide: "결정", add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", handover: "일 넘김", take: "이어받음", comment: "댓글", delete: "휴지통으로",
   ack: "받음", dueReq: "기한 조정 요청", dueOk: "기한 조정 수락", dueNo: "기한 유지", review: "확인 요청", approve: "확인 완료", feedback: "수정 요청", block: "막힘", unblock: "막힘 풀림", launch: "신제품 만듦", bulk: "한꺼번에 바꿈", deps: "앞 일 바꿈", ask: "도움 요청", askDone: "도움 요청 닫음", hold: "보류", unhold: "보류 풀기", projEnd: "프로젝트 끝냄·멈춤", projResume: "프로젝트 다시 시작" };
 export function feedOf(D, { projectId, taskIds, sinceIso } = {}) {
   const tset = taskIds ? new Set(taskIds) : null;
@@ -479,3 +480,25 @@ export function personHealth(D, uid, now = new Date()) {
   const level = w.late >= 3 || (ot.pct != null && ot.pct < 60) ? "위험" : w.late || start || Math.max(...weeks) >= 15 ? "주의" : "순조";
   return { ...w, ot, start, weeks, noDue, level };
 }
+
+// ── 한 사람 일 한 번에 넘기기 (휴가·퇴사 · 관리자) ──
+// 묶음: 진행 중 · 할 일 · 보류 · 확인 대기(끝냈고 확인만 남음) · 고정업무('전체' 담당은 빼고) · 책임 프로젝트(열린 것)
+// 끝낸 일·중단한 일은 그대로 (기록은 그 사람 이름으로 남음)
+export const HAND_GROUPS = [["doing", "진행 중"], ["todo", "할 일"], ["hold", "보류"], ["review", "확인 대기"], ["fixed", "고정업무"], ["proj", "책임 프로젝트"]];
+export const handOverPlan = (D, uid) => {
+  const g = { doing: [], todo: [], hold: [], review: [], fixed: [], proj: [] };
+  (D.tasks || []).forEach((t) => {
+    if (t.isFixed) { if (!t.forAll && fxIds(t).includes(uid)) g.fixed.push(t); return; }
+    if (isDone(t) || t.status === "dropped" || !isMine(t, uid)) return;
+    g[t.status === "inprogress" ? "doing" : t.status === "hold" ? "hold" : t.status === "review" ? "review" : "todo"].push(t);
+  });
+  (D.projects || []).forEach((p) => { if (p.assigneeId === uid && projOpen(p)) g.proj.push(p); });
+  const byDue = (a, b) => String(dueOf(a) || "9").localeCompare(String(dueOf(b) || "9"));
+  ["doing", "todo", "hold", "review"].forEach((k) => g[k].sort(byDue));
+  return g;
+};
+// 담당 칸만 바꿈: 넘기는 사람 자리에 받는 사람 (여러 담당이면 나머지는 그대로 · 이미 있으면 한 번만)
+export const handOverOwners = (t, from, to) => {
+  const cur = ownersOf(t), next = [...new Set((cur.length ? cur : [from]).map((x) => (x === from ? to : x)))];
+  return { assigneeIds: next, assigneeId: next[0] || "" };
+};

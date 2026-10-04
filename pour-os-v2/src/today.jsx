@@ -36,7 +36,7 @@ export function inboxFns(D, A, open, setSeen) {
   const tOf = (id) => D.tasks.find((y) => y.id === id);
   const openInbox = (x) => { if (!x.keep) markSeen(setSeen, x.id);
     if (x.kind === "turnLate") return open({ type: "task", id: x.taskId, focus: "talk" });
-    if (x.taskId) { const t = tOf(x.taskId); t ? openTask(open, t) : open({ type: "task", id: x.taskId }); } else if (x.projectId) open({ type: "project", id: x.projectId, first: x.kind === "launchNew" || x.kind === "bulk" || x.kind === "projHoldDue" ? "work" : "news" }); };
+    if (x.taskId) { const t = tOf(x.taskId); t ? openTask(open, t) : open({ type: "task", id: x.taskId }); } else if (x.mine) open({ type: "mine" }); else if (x.projectId) open({ type: "project", id: x.projectId, first: x.kind === "launchNew" || x.kind === "bulk" || x.kind === "projHoldDue" ? "work" : "news" }); };
   const inboxAct = (x) => { const t = x.taskId && tOf(x.taskId);
     if (x.kind === "assigned" && t) return <Act onClick={() => A.ack(t)} style={BTN_ON}>받았어요</Act>;
     if (x.kind === "bulk") return <Act onClick={() => A.ackMany(x.bulkIds.map(tOf).filter(Boolean))} style={BTN_ON}>받았어요</Act>;

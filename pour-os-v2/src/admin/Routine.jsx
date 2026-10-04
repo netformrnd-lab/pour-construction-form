@@ -79,7 +79,7 @@ function FixedBoard({ D, fx, paused, who, keyD, open }) {
         <div className="a-rtgh"><b>{l}</b><span>{w} {d} / {n}</span></div>
         <div className="a-rtlist">{shown.map((t) => { const ps = pairs(t), dn = ps.filter((u) => fxMeDone(t, u, keyD)).length;
           return <div key={t.id} className={"a-rtrow" + (dn === ps.length ? " all" : "")}>
-            <button type="button" className="a-rtname" onClick={() => open({ type: "task", id: t.id })}><b>{t.title}</b><small>{tlab(t) ? `${tlab(t)} · ` : "시간 없음 · "}{fxRecurL(t)}{t.brand ? ` · ${((D.brands || []).find((b) => b.id === t.brand) || {}).name || ""}` : " · 공통"}</small></button>
+            <button type="button" className="a-rtname" onClick={() => open({ type: "fixed", id: t.id })}><b>{t.title}</b><small>{tlab(t) ? `${tlab(t)} · ` : "시간 없음 · "}{fxRecurL(t)}{t.brand ? ` · ${((D.brands || []).find((b) => b.id === t.brand) || {}).name || ""}` : " · 공통"}</small></button>
             <div className="a-rtppl">{ps.map((u) => { const ok = fxMeDone(t, u, keyD), last = fxDoneOn(t, u);
               return <span key={u} className={"a-rtp" + (ok ? " ok" : "")} title={last ? `마지막 체크 ${md(last)}` : "체크 기록 없음"}>{ok ? "✓ " : ""}{nameOf(D.users, u) || "?"}</span>; })}</div>
             <span className="a-rtn">{dn}/{ps.length}</span>

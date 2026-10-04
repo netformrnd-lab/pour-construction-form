@@ -53,6 +53,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
   useEffect(() => { if (!focus || !t) return; const h = setTimeout(() => { const el = document.getElementById("v2-t-" + focus); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); return () => clearTimeout(h); }, [focus, !!t]);
   if (t === undefined || t === null) return <Sheet title="업무" onBack={onBack} onClose={onClose}><Empty>불러오는 중…</Empty></Sheet>;
   if (t === false) return <Sheet title="업무" onBack={onBack} onClose={onClose}><Empty>이 업무를 찾지 못했어요 (휴지통이나 보관함으로 갔을 수 있어요)</Empty></Sheet>;
+  if (t.isFixed) return <FixedSheet D={D} cu={cu} A={A} onBack={onBack} onClose={onClose} id={id} focus={focus} />;   // 고정업무는 어느 입구로 와도 고정업무 화면 (일반 화면의 담당 바꾸기·끝냄이 반복 업무를 덮어쓰지 않게)
   const key = ymd(new Date()), mine = isMine(t, cu.id), done = isDone(t), n = ddays(dueOf(t), key), master = isMaster(cu);
   const p = D.projects.find((x) => x.id === t.projectId), owners = ownersOf(t).map((u) => nameOf(D.users, u) || "(없는 사람)");
   const kids = D.tasks.filter((x) => x.parentId === t.id), parent = t.parentId ? D.tasks.find((x) => x.id === t.parentId) : null;
@@ -218,11 +219,12 @@ export function Thread({ D, cu, A, notes, itemId, ctx }) {
 }
 
 // ───────────────── 고정업무 보기 ─────────────────
-export function FixedSheet({ D, cu, A, onBack, onClose, id }) {
+export function FixedSheet({ D, cu, A, onBack, onClose, id, focus }) {
   const t = useTask(D, id);
   const notes = useItemNotes(D, taskNoteId(id));
   const [checks, setChecks] = useState(null);
   useEffect(() => { fb.fetchWhere("checks", ["taskId", "==", id]).then(setChecks).catch((e) => { console.error(e); setChecks([]); }); }, [id, t && JSON.stringify(t.doneAtBy || {})]);
+  useEffect(() => { if (focus !== "talk" || !t) return; const h = setTimeout(() => { const el = document.getElementById("v2-fx-talk"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); return () => clearTimeout(h); }, [focus, !!t]);
   if (!t) return <Sheet title="고정업무" onBack={onBack} onClose={onClose}><Empty>{t === false ? "이 고정업무를 찾지 못했어요" : "불러오는 중…"}</Empty></Sheet>;
   const key = ymd(new Date()), mine = fxIsMine(t, cu.id), me = fxMeDone(t, cu.id, key), subs = fxSubs(t, cu.id), people = fxPeople(D.users, t);
   const days = [...Array(7)].map((_, i) => addDays(key, -i));
@@ -240,7 +242,7 @@ export function FixedSheet({ D, cu, A, onBack, onClose, id }) {
       <div style={{ padding: "8px 14px", fontSize: 12, color: C.mute, borderTop: `1px solid ${C.line}` }}>v2에서 체크한 것부터 쌓여요</div></Card>
     <Head>하는 법 · 메모</Head>
     <Card style={{ padding: "12px 14px" }}><div style={{ fontSize: 14.5, color: t.memo ? C.text : C.mute, whiteSpace: "pre-wrap", lineHeight: 1.65 }}>{t.memo ? <Linked text={t.memo} /> : "적어 둔 하는 법이 없어요"}</div></Card>
-    <Head>대화</Head>
+    <div id="v2-fx-talk" style={{ scrollMarginTop: 8 }}><Head>대화</Head></div>
     <Thread D={D} cu={cu} A={A} notes={notes} itemId={taskNoteId(t.id)} ctx={{ taskId: t.id }} />
   </Sheet>;
 }

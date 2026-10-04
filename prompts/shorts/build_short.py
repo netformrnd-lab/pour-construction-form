@@ -1,6 +1,6 @@
 # 범용 숏폼 조립 스크립트 — 숏폼 스튜디오(대시보드) "빌드 설정 JSON" 하나로 완성 mp4 + 캡컷 소스를 만든다 (Higgsfield sandbox에서 실행)
 # 기준: prompts/shorts/drain-trap/build_v12.py (옥상배관방수트랩 v12) 를 컷 설정만 바꿔 재사용할 수 있게 일반화
-# 사용: UP_MP4='<put url>' UP_ZIP='<put url>' python3 build_short.py <short.json 경로 또는 URL>
+# 사용: UP_MP4='<put url>' UP_ZIP='<put url>' [UP_CUTS=<컷별 PUT URL 목록 파일>] python3 build_short.py <short.json 경로 또는 URL>
 #
 # 설정 형식 (prompts/shorts/drain-trap/short.json 참고)
 # {
@@ -258,4 +258,10 @@ if os.environ.get('UP_MP4'):
     sh(f'curl -sf -X PUT -H "Content-Type: video/mp4" -H "If-None-Match: *" --upload-file final.mp4 "{os.environ["UP_MP4"]}"')
 if os.environ.get('UP_ZIP'):
     sh(f'curl -sf -X PUT -H "Content-Type: application/octet-stream" -H "If-None-Match: *" --upload-file capcut.zip "{os.environ["UP_ZIP"]}"')
+# 컷별 재활용용 업로드: UP_CUTS 파일(한 줄에 PUT URL 하나, 컷 순서) → s{i}.mp4 (자막 없는 컷 영상)
+if os.environ.get('UP_CUTS') and os.path.exists(os.environ['UP_CUTS']):
+    for i, u in enumerate([l.strip() for l in open(os.environ['UP_CUTS']) if l.strip()], 1):
+        if i <= N:
+            sh(f'curl -sf -X PUT -H "Content-Type: video/mp4" -H "If-None-Match: *" --upload-file s{i}.mp4 "{u}"')
+print('CUTS', json.dumps(cd), flush=True)
 print('DONE', flush=True)

@@ -10,7 +10,7 @@ import {
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
 import { DecisionBlock } from "./mindmap.jsx";
 import { turnIndex, turnOf, predsOf, nextsOf, finishedOf, finishedAt, lastWord } from "./turn.js";
-import { nextWorkday } from "./model.js";
+import { nextWorkday, prevWorkday } from "./model.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked, CopyLink, Clash } from "./ui.jsx";
 import { HoldAsk } from "./hold.jsx";
 import { RequestAsk } from "./asks.jsx";
@@ -74,7 +74,9 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
   const hist = [...(t.statusLog || []).map((s, i) => ({ id: "s" + i, at: s.at, who: s.byName || nameOf(D.users, s.by), text: s.reopen ? "다시 엶" : STATUS_L[s.status] || (s.status === "review" ? "확인 요청" : s.status) })),
     ...(logs || []).map((l) => ({ id: l.id, at: l.at, who: l.byName, ch: chOf(l), text: (LOG_L[l.action] || l.action) + (l.label && l.label !== t.title ? " · " + l.label.replace(t.title + " · ", "") : "") }))].sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
   const users = activeUsers(D.users);
-  const dateChips = dueChips(key);   // 쉬는 날 빼고 · 버튼에 날짜까지 (오늘·지난 일 정리와 같은 버튼)
+  // 신제품 항목은 '출시 전 평일'(출시일 앞 평일 · 주말·공휴일 건너뜀)도 바로 고를 수 있게
+  const lpDate = t && t.launchItem ? ((D.projects || []).find((x) => x.id === t.projectId) || {}).launchDate || "" : "", preL = lpDate ? prevWorkday(addDays(lpDate, -1)) : "";
+  const dateChips = [...dueChips(key), ...(preL && preL >= key && !dueChips(key).some(([, d]) => d === preL) ? [[`출시 전 평일 ${md(preL)}`, preL]] : [])];   // 쉬는 날 빼고 · 버튼에 날짜까지 (오늘·지난 일 정리와 같은 버튼)
   // 순서: 앞 일(끝나야 내 차례) · 다음 일(내가 끝내면 그 사람 차례)
   const tu = t.isFixed ? { state: "none", preds: [], open: [] } : turnOf(t, idx, key);
   const preds = t.isFixed ? [] : predsOf(t, idx), nexts = t.isFixed ? [] : nextsOf(t, idx).filter((x) => !x.isFixed);

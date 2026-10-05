@@ -122,7 +122,7 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
       <div>
         {up7.length > 0 && <>
           <Head right={<TBtn onClick={() => open({ type: "upturns" })}>모두 ›</TBtn>}>곧 내 차례 {up7.length}{up7.some((u) => u.level === "late" || u.level === "risk") ? <span style={{ color: C.red }}> · 늦을 수 있음 {up7.filter((u) => u.level === "late" || u.level === "risk").length}</span> : null}</Head>
-          <Card>{up7.slice(0, soonOpen ? 8 : 3).map((u, i, arr) => <UpRow key={u.t.id} u={u} D={D} open={open} keyd={key} last={i === arr.length - 1 && up7.length <= (soonOpen ? 8 : 3)} />)}
+          <Card>{up7.slice(0, soonOpen ? 8 : 3).map((u, i, arr) => <UpRow key={u.t.id} u={u} D={D} cu={cu} open={open} keyd={key} last={i === arr.length - 1 && up7.length <= (soonOpen ? 8 : 3)} />)}
             {up7.length > 3 && <More onClick={() => setSoonOpen(!soonOpen)}>{soonOpen ? "접기 ▴" : `${up7.length - 3}개 더 ▾`}</More>}</Card>
         </>}
         {(noDate > 0 || tempMine > 0) && <Card style={{ marginTop: 14 }}><More onClick={() => open({ type: "myTidy", tab: noDate ? "nodate" : "temp" })}>
@@ -350,17 +350,19 @@ export function MineSheet({ D, cu, A, open, onBack, onClose, setToast }) {
 }
 
 // 다가오는 내 차례 한 줄: 태그 = 여유 n일 · 빠듯 · 늦을 수 있음 · 앞 일 늦음(빨강) / 제목 = 프로젝트 · 내 일 / 아래 = 앞사람 무엇·상태·끝 예정 · 내 기한 · 출시·마감
-export function UpRow({ u, D, open, keyd, last }) {
+// 신제품 '출시보다 늦음'은 책임자·마스터에게 '고치기 ›' → 그 프로젝트(맨 위 출시일·기한 고치기 카드)
+export function UpRow({ u, D, open, keyd, last, cu }) {
   const L = upLine(u, D.users, keyd), red = u.level === "late" || u.level === "risk";
+  const pj = (D.projects || []).find((x) => x.id === u.t.projectId), fix = cu && pj && pj.launchDate && /^출시보다 늦음/.test(u.label || "") && (pj.assigneeId === cu.id || isMaster(cu));
   return <Row tag={u.label} tagTone={red ? "red" : u.level === "ok" ? "turn" : null} title={L.title} sub={L.proj} sub2={L.pred}
     onClick={() => open({ type: "task", id: u.t.id })}
-    right={red ? <Act onClick={() => open({ type: "task", id: u.p.id, focus: "talk" })}>묻기</Act> : null} last={last} />;
+    right={fix ? <Act onClick={() => open({ type: "project", id: pj.id, first: "work" })}>고치기 ›</Act> : red ? <Act onClick={() => open({ type: "task", id: u.p.id, focus: "talk" })}>묻기</Act> : null} last={last} />;
 }
 // 다가오는 내 차례 모두 (7일 '곧 내 차례'·오늘 화면에서) — 내 차례가 오는 날 순 · 위험한 것 먼저 · 프로젝트 이름까지
 export function UpTurnsSheet({ D, cu, open, T, onBack, onClose }) {
   const key = ymd(new Date()), U = upcomingTurns(D, T, key, cu.id), we = addDays(key, 6);
   const soon = U.filter((u) => u.start && u.start <= we), later = U.filter((u) => u.start && u.start > we), nod = U.filter((u) => !u.start);
-  const sec = (h, a) => a.length > 0 && <><Head>{h} {a.length}</Head><Card>{a.map((u, i) => <UpRow key={u.t.id} u={u} D={D} open={open} keyd={key} last={i === a.length - 1} />)}</Card></>;
+  const sec = (h, a) => a.length > 0 && <><Head>{h} {a.length}</Head><Card>{a.map((u, i) => <UpRow key={u.t.id} u={u} D={D} cu={cu} open={open} keyd={key} last={i === a.length - 1} />)}</Card></>;
   return <Sheet title={`다가오는 내 차례 ${U.length}`} onBack={onBack} onClose={onClose}>
     <p style={{ fontSize: 13.5, color: C.sub, margin: "12px 2px", lineHeight: 1.6 }}>앞사람이 끝내면 이어서 할 내 일이에요. 여유 = 앞 일 끝 예정 다음 날부터 내 기한까지 평일 수 · 빨강은 늦을 수 있어요 → '묻기'로 앞사람에게 바로 물어보세요.</p>
     {sec("7일 안", soon)}{sec("그 뒤", later)}{sec("날짜를 몰라 잴 수 없음", nod)}

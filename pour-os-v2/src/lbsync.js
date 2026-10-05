@@ -10,7 +10,7 @@ import { ownersOf, dueOf } from "./model.js";
 
 // 신제품 대시보드 상태 → 업무OS (skip = 해당 없음 → 업무는 지우지 않고 'dropped'로 접음)
 export const LB2V = { todo: "todo", doing: "inprogress", done: "done", hold: "hold" };
-export const V2B = { todo: "todo", inprogress: "doing", review: "done", done: "done", hold: "hold" };   // 업무OS → 신제품 말 (3단계에서도 씀)
+export const V2B = { todo: "todo", inprogress: "doing", review: "doing", done: "done", hold: "hold" };   // 업무OS → 신제품 말 (3단계에서도 씀) · 확인 대기는 아직 진행 중 → 신제품에서 컨펌하면 승인
 const normB = (s) => (s === "skip" ? "skip" : LB2V[s] ? s : "todo");   // req·reviewed 같은 옛 상태는 할 일
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
@@ -39,7 +39,7 @@ export function planLaunchSync(p, proj, tasks, users, today, now) {
       if (same(bv, vv)) return false;                 // 이미 같음 (기억만 새로)
       return same(vv, base[k]) || boardNewer;         // 업무OS 는 그대로였거나, 신제품이 나중에 바뀜
     };
-    // 상태 (같은 말로 맞춰 비교: 업무OS 확인 대기 = 신제품 '완료' · 진행 중 = doing · 해당 없음으로 접은 것 = skip)
+    // 상태 (같은 말로 맞춰 비교: 업무OS 확인 대기 = 신제품 '진행 중'(컨펌 누르면 승인) · 진행 중 = doing · 해당 없음으로 접은 것 = skip)
     //   프로젝트째 보류·중단으로 접힌 업무는 상태를 건드리지 않음 (프로젝트 다시 시작 때 이전 상태로)
     const folded = t.holdBy === "proj" || (t.status === "dropped" && !t.lbSkip);
     if (!folded && take("status", b.status, vB, false)) {

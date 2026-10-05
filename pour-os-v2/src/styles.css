@@ -312,3 +312,14 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
 .v2-shead .path { font-size: 12.5px; color: #C9D3EA; margin-top: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .v2-shead .tt { font-size: 18px; font-weight: 900; line-height: 1.35; margin-top: 4px; word-break: keep-all; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .v2-shead .path.go { display: block; max-width: 100%; border: none; background: none; padding: 0; font: inherit; font-size: 12.5px; color: #DCE3F3; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; text-align: left; }
+
+/* 신제품 '출시보다 늦는 항목' 바로 고치기 카드 (launchfix.jsx) — 빨강은 늦음이라서 */
+.v2-lfix { margin-top: 12px; background: #fff; border: 1.5px solid #D93A3A; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.v2-lfix .h { color: #B42318; font-size: 15px; }
+.v2-lfix .s { font-size: 12.5px; color: #5B6475; line-height: 1.55; }
+.v2-lfix .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.v2-lfix .pv { border-top: 1px solid #EEF0F4; padding-top: 10px; font-size: 13px; color: #2C3446; line-height: 1.7; }
+.v2-lfix .pv b { color: #0F1F5C; }
+
+/* 신제품 대시보드로 가는 바로가기 (신제품 프로젝트 머리) */
+.v2-lblink{display:inline-flex;align-items:center;min-height:30px;padding:0 10px;border-radius:8px;background:#EEF2FA;border:1px solid #D5DDEE;color:#24386B;font-size:12.5px;font-weight:800;text-decoration:none}

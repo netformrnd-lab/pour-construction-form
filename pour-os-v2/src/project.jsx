@@ -11,6 +11,7 @@ import { Gantt } from "./gantt.jsx";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, launchPct } from "./launch.js";
 import { turnIndex, turnOf, nowNext, predLine } from "./turn.js";
 import { phaseStates, previewLaunchMove } from "./views.js";
+import { LaunchFix } from "./launchfix.jsx";
 import { flowList, planFlow, flowOwners } from "./flow.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, inp, useLocal, useAutoFocus, Linked, Clash } from "./ui.jsx";
 import { useItemNotes, Thread, FileRow } from "./task.jsx";
@@ -251,12 +252,14 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
       <h2 style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 800, color: C.ink, margin: 0, lineHeight: 1.35, display: "flex", flexWrap: "wrap", gap: 4 }}>{impOf(p) !== "mid" && <span className={"v2-pill " + (impOf(p) === "high" ? "hi" : "lo")}>중요 {impName(impOf(p))}</span>}{projStLabel(p) !== "진행 중" && <span className="v2-pill st">{projStLabel(p)}</span>}</h2>
       {!hasNow && edit !== "now" && <TBtn onClick={() => { setNow(""); setNowBase((p.now && p.now.at) || null); setNowClash(null); setEdit("now"); }} style={{ flex: "0 0 auto", fontSize: 13 }}>+ 지금 상황</TBtn>}
     </div>
-    {launch && <div style={{ fontSize: 12.5, color: C.mute, fontWeight: 700 }}>출시 템플릿 · {brandName(D, p.brand)}{p.batch ? " " + p.batch : ""}</div>}
+    {launch && <div style={{ fontSize: 12.5, color: C.mute, fontWeight: 700, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px 10px" }}><span>출시 템플릿 · {brandName(D, p.brand)}{p.batch ? " " + p.batch : ""}</span>
+      {p.launchId && <a className="v2-lblink" href={"/launch-board?p=" + encodeURIComponent(p.launchId)} target="_blank" rel="noopener">신제품 대시보드에서 보기 ›</a>}</div>}
     <div style={{ fontSize: 13.5, color: C.sub, marginTop: 4 }}>책임 {nameOf(D.users, p.assigneeId) || "없음"} · {date ? <span style={{ color: w.late ? C.red : C.sub, fontWeight: w.late ? 800 : 400 }}>{w.launched ? `출시 ${md(p.launchDate)} · 출시 후 ${w.after != null ? w.after : -ddays(p.launchDate, key)}일${w.late ? " · 늦은 항목 있음" : ""}` : `${launch ? "출시" : "마감"} ${md(date)} ${ddayLabel(w.n)}`}</span> : launch ? "출시일 미정" : "마감 없음"} · {pct}% · 남은 {openT.length}</div>
     <div style={{ height: 6, background: "#E8EBF2", borderRadius: 3, margin: "10px 0 0", overflow: "hidden" }}><div style={{ width: pct + "%", height: "100%", background: C.navy }} /></div>
     {(() => { if (launch || !projOpen(p) || isHoldP(p) || !openT.length) return null; const f = projForecast(p, D.tasks, key);   // 지금 속도로 언제 끝날까 (중요도와 같이 관리자 '판단 필요'에 쓰임)
       return <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6, lineHeight: 1.6 }}>{f.eta ? <>지금 속도 주 {f.perWeek}건 · 남은 {f.left}건 → 예상 {md(f.eta)}{f.lateBy > 0 ? <b style={{ color: C.red }}> · 마감보다 {f.lateBy}일 늦음</b> : f.due ? " · 마감 안에 끝나요" : ""}</> : `최근 2주 끝낸 업무가 없어 끝나는 날을 잴 수 없어요 · 남은 ${f.left}건`}</div>; })()}
     {projOpen(p) && !isHoldP(p) && lead && <div style={{ display: "flex", justifyContent: "flex-end" }}><TBtn onClick={() => setEndAsk(true)} style={{ fontSize: 12.5 }}>끝내기 · 멈추기 ›</TBtn></div>}
+    {launch && projOpen(p) && !isHoldP(p) && <LaunchFix p={p} D={D} A={A} cu={cu} open={open} />}
     {isHoldP(p) && <Card style={{ marginTop: 10, padding: "12px 14px" }}><div style={{ fontSize: 14.5, fontWeight: 800, color: C.ink }}>보류 중{p.heldAt ? ` · ${-ddays(ymd(new Date(p.heldAt)), key)}일째` : ""}</div>
       <div style={{ fontSize: 13.5, color: C.sub, marginTop: 4, lineHeight: 1.6 }}>{p.holdReason || "이유 없음"} · {p.holdUntil ? `다시 할 날 ${md(p.holdUntil)} (${ddayLabel(ddays(p.holdUntil, key))})` : "다시 할 날 미정"}</div>
       {lead && <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}><Act onClick={() => setResAsk(true)} style={{ background: C.navy, color: "#fff", borderColor: C.navy }}>다시 시작 ›</Act><Act onClick={() => setEndAsk(true)}>이유 · 다시 할 날 바꾸기</Act></div>}</Card>}

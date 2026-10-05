@@ -131,4 +131,8 @@ ok("연결 1단계: 가져올 때 ownerIds 가 있으면 여러 명 그대로", 
   assert.deepEqual(t("d01").assigneeIds, ["minji", "wm"]); assert.equal(t("d01").assigneeId, "minji");
   assert.deepEqual(t("s03").assigneeIds, ["wm"]);
 });
+ok("출시 전에 끝낼 항목만 '출시보다 늦음' 대상 (광고·리뷰·체험단처럼 출시일·출시 뒤 할 일은 아님)", () => {
+  assert.equal(L.preLaunchItem("s03"), true); assert.equal(L.preLaunchItem("x_3pl"), true);
+  assert.equal(L.preLaunchItem("x_ad_cp"), false); assert.equal(L.preLaunchItem("x_rv_cp"), false); assert.equal(L.preLaunchItem("없는항목"), false);
+});
 console.log(`\n${n}개 모두 통과`);

@@ -12,6 +12,7 @@ import {
 import { planLaunchImport, relaunch, isTempOwner } from "./launch.js";
 import { nextTurnText } from "./turn.js";
 import { planLaunchSync } from "./lbsync.js";
+import { planLaunchPush, BY as LB_BY } from "./lbpush.js";
 import { flowOwners } from "./flow.js";
 import { C, Big, TBtn, inp, useLocal } from "./ui.jsx";
 
@@ -96,14 +97,42 @@ export async function syncProgress(D) {
 // 신제품 대시보드 → 업무OS 자동 반영 (2단계): 신제품 대시보드를 실시간으로 보다가, 제품의 updatedAt 이 업무OS 프로젝트가 마지막으로 맞춘 값(lbSyncedAt)과 다르면
 //   그 프로젝트 업무를 서버에서 읽어 lbsync.planLaunchSync 로 비교 → 바뀐 칸만 조건부로 씀(그사이 업무OS에서 누가 고쳤으면 그 업무는 건너뛰고 다음에 다시)
 //   v2At 은 찍지 않음(업무OS 에서 고친 게 아니라서) · 기록 1건(sync) · 업무OS 에 없는 새 제품은 syncNewLaunch 로 · 한 번에 하나씩(겹쳐 돌지 않음)
+// 3단계: 업무OS 에서 바꾼 것(lbSeen 과 다른 칸)은 pushLaunchBoard 로 신제품 대시보드에 — 신제품 신호 뒤 + 업무OS 데이터가 바뀔 때마다(1.5초 모아서)
 function useLaunchSync(D, cu, on) {
-  const ref = useRef({ D, cu, busy: false, again: null }); ref.current.D = D; ref.current.cu = cu;
+  const ref = useRef({ D, cu, busy: false, again: null, prods: null, run: null }); ref.current.D = D; ref.current.cu = cu;
   useEffect(() => { if (!on) return;
-    const run = async (prods) => { const st = ref.current; if (st.busy) { st.again = prods; return; } st.busy = true;
-      try { await syncLaunchBoard(prods, st.D, st.cu); } catch (e) { console.error("[v2] 신제품 대시보드 반영 실패:", e); }
-      st.busy = false; if (st.again) { const n = st.again; st.again = null; setTimeout(() => run(n), 500); } };
+    const run = async (prods) => { const st = ref.current; if (prods) st.prods = prods; if (st.busy) { st.again = prods || st.again || "push"; return; } st.busy = true;
+      try { if (prods) await syncLaunchBoard(prods, st.D, st.cu); } catch (e) { console.error("[v2] 신제품 대시보드 반영 실패:", e); }
+      try { if (st.prods) await pushLaunchBoard(st.prods, st.D, st.cu); } catch (e) { console.error("[v2] 신제품 대시보드에 쓰기 실패:", e); }
+      st.busy = false; if (st.again) { const n = st.again; st.again = null; setTimeout(() => run(n === "push" ? null : n), 500); } };
+    ref.current.run = run;
     let t = null; const un = fb.listenLaunch((items) => { clearTimeout(t); t = setTimeout(() => run(items), 1200); });
-    return () => { clearTimeout(t); un && un(); }; }, [on]);
+    return () => { clearTimeout(t); un && un(); ref.current.run = null; }; }, [on]);
+  useEffect(() => { const st = ref.current; if (!on || !st.run || !st.prods) return;
+    const t = setTimeout(() => st.run && st.run(null), 1500); return () => clearTimeout(t); }, [on, D]);
+}
+// 업무OS → 신제품 대시보드 (3단계): 프로젝트마다 lbpush.planLaunchPush → 신제품 문서에 조건부로 씀(그사이 신제품에서 그 칸을 고쳤으면 건너뜀)
+//   → 쓴 업무·프로젝트의 '마지막으로 본 값'(lbSeen)을 새로 (되돌아와 다시 반영되지 않게) · 하루 첫 쓰기 전에 신제품 대시보드 통째 백업
+let lbBackup = "";
+export async function pushLaunchBoard(prods, D, cu) {
+  if (!cu || !cu.id) return { n: 0 };
+  const live = (prods || []).filter((p) => p && p.name && !p.deletedAt); let n = 0;
+  for (const p of live) {
+    const proj = (D.projects || []).find((x) => x.id === "lb_" + p.id); if (!proj || !proj.lbSeen || proj.deleted) continue;
+    const tasks = (D.tasks || []).filter((t) => t.projectId === proj.id), now = nowIso(), pl = planLaunchPush(p, proj, tasks, D.users, now, cu.name);
+    if (!pl.board) continue;
+    const day = "launch-" + ymd(new Date()); if (lbBackup !== day) { await fb.backupLaunch(day, prods, cu.name, true); lbBackup = day; }
+    const by = `${cu.name} (${LB_BY})`, said = pl.board.said;
+    const fields = { ...pl.board.fields, ...(said.length ? { updatedAt: now, updatedBy: by, history: fb.arrayUnion({ at: now, by, text: "업무OS에서 · " + said.join(", ").slice(0, 200) }) } : {}) };
+    const r = await fb.patchLaunchIf([{ id: p.id, fields, expect: pl.board.expect }]);
+    if (!r.done) continue;
+    const ops = pl.tasks.filter((x) => JSON.stringify(x.lbSeen) !== JSON.stringify(x.t.lbSeen)).map((x) => ({ key: "tasks", id: x.t._doc || x.t.id, expect: { lbSeen: x.t.lbSeen || null }, fields: { lbSeen: x.lbSeen } }));
+    if (ops.length) await fb.patchManyIf(ops);
+    if (pl.project) await fb.patchIf("projects", proj._doc || proj.id, { lbSeen: proj.lbSeen || null }, { lbSeen: pl.project.lbSeen });
+    if (said.length) n++;
+  }
+  if (n) console.log(`[v2] 신제품 대시보드에 반영 · 제품 ${n}개`);
+  return { n };
 }
 export async function syncLaunchBoard(prods, D, cu) {
   const today = ymd(new Date()); let made = 0, changed = 0;

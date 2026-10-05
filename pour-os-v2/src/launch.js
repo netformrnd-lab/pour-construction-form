@@ -24,6 +24,9 @@ export const LAUNCH_PHASES = [
     X("x_meta", "메타 광고 올리기", 7, { target: 5 }), X("x_dg", "디맨드젠 광고", 7, { target: 5 }), X("x_blog", "블로그 포스팅", 14, { target: 3 }), X("x_short", "숏폼 생성", 14, { target: 3 })] },
 ];
 export const LAUNCH_ITEMS = LAUNCH_PHASES.flatMap((ph) => ph.items.map((it) => ({ ...it, phase: ph.k, phaseName: ph.name })));
+// 출시 전에 끝내야 하는 항목인지 (off < 0) — 출시일·출시 뒤 할 일(광고·리뷰·체험단 등 off ≥ 0)은 '출시보다 늦음'이 아님
+const OFF_BY = Object.fromEntries(LAUNCH_ITEMS.map((i) => [i.id, i.off]));
+export const preLaunchItem = (id) => OFF_BY[id] != null && OFF_BY[id] < 0;
 export const LAUNCH_BRANDS = { grohome: { name: "그로홈", bm: "김송희" }, pourstore: { name: "POUR스토어", bm: "이란" }, barasday: { name: "바라스데이", bm: "김소연" } };
 const MIN_OFF = Math.min(...LAUNCH_ITEMS.map((i) => i.off));   // -56 (8주 전)
 
@@ -80,7 +83,8 @@ export const userByName = (users, owner) => (users || []).find((u) => u.active !
 // v1 항목 상태 읽기 (런칭보드 칸 lb:true 는 stages, 업무OS 추가 칸은 osExtra)
 export function itemState(p, it) {
   const ex = ((p && p.osExtra) || {})[it.id] || {};
-  if (it.lb) { const s = ((p && p.stages) || {})[it.id] || {}; return { status: s.status || "todo", owner: s.owner || "", ownerIds: Array.isArray(s.ownerIds) ? s.ownerIds : null, due: s.due || "", note: s.note || "", doneAt: s.doneAt || "", doneBy: s.doneBy || "", updatedAt: s.updatedAt || "" }; }
+  if (it.lb) { const s = ((p && p.stages) || {})[it.id] || {}; const auto = !!s.due && s.dueAuto === s.due;   // 업무OS가 채운 자동 기한(날짜를 바꾸면 자동 표시가 풀림) → 사람이 정한 마감 아님
+    return { status: s.status || "todo", owner: s.owner || "", ownerIds: Array.isArray(s.ownerIds) ? s.ownerIds : null, due: auto ? "" : s.due || "", autoDue: auto ? s.due : "", dueTbd: !!s.dueTbd, note: s.note || "", doneAt: s.doneAt || "", doneBy: s.doneBy || "", updatedAt: s.updatedAt || "" }; }
   const count = Number(ex.count || 0); let status = ex.status || "todo";
   if (it.target && status !== "skip") status = count >= it.target ? "done" : count > 0 ? "doing" : status;
   return { status, owner: ex.owner || "", ownerIds: Array.isArray(ex.ownerIds) ? ex.ownerIds : null, due: ex.due || "", note: ex.note || "", count, doneAt: ex.doneAt || (status === "done" ? ex.updatedAt || "" : ""), doneBy: ex.doneBy || ex.updatedBy || "", updatedAt: ex.updatedAt || "" };

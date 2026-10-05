@@ -17,7 +17,7 @@ import { SettingsSheet, LaunchOrderSheet } from "./Settings.jsx";
 import { PersonAdmin } from "./PersonAdmin.jsx";
 import { HandOver } from "./HandOver.jsx";
 import { RoutineTab } from "./Routine.jsx";
-import { KpiBoard, LagSheet, useGhRefresh } from "../kpiui.jsx";
+import { KpiBoard, LagSheet, useGhRefresh, KpiEditSheet } from "../kpiui.jsx";
 import "./admin.css";
 
 export default function AdminApp() {
@@ -74,6 +74,7 @@ function AdminMain({ B }) {
     launchOrder: (p) => <LaunchOrderSheet {...p} />,
     inbox: (p) => <InboxSheet {...p} TV={TV} setSeen={setSeen} />,
     lagInput: (p, s) => <LagSheet {...p} s={s} />,
+    kpiEdit: (p, s) => <KpiEditSheet {...p} s={s} />,
   };
   const top = stack[stack.length - 1];
   return <div className="v2-app a-app">

@@ -1,6 +1,6 @@
 // node src/kpi2.test.mjs — KPI 화면 계산 (kpi2.js)
 import assert from "node:assert/strict";
-import { kpiDefs, kpiBoard, myKpi, lagAt, lagLatest, lagDue, lagInbox, lagWrite, won, fmtV, ghSalesRows } from "./kpi2.js";
+import { kpiDefs, kpiBoard, myKpi, lagAt, lagLatest, lagDue, lagInbox, lagWrite, won, fmtV, ghSalesRows, applyKpiOv, visibleDefs, kpiEditWrite, skManual } from "./kpi2.js";
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 const brands = [{ id: "pourstore", name: "POUR스토어" }, { id: "grohome", name: "그로홈" }, { id: "bmupq52c0", name: "바라스데이" }];
 const users = [{ id: "songhee", name: "김송희" }, { id: "ran", name: "이란" }, { id: "minji", name: "김민지", master: false }];
@@ -83,4 +83,23 @@ ok("저장 칸: 새 문서 = 통째 · 있으면 그 달 칸만 · 같은 값이
   assert.equal(lagWrite(cur, it, "2026-10", "abc", cu, at), null);
 });
 ok("금액·단위 줄이기", () => { assert.equal(won(192000000), "1억 9,200만"); assert.equal(won(41000000), "4,100만"); assert.equal(won(3200), "3,200"); assert.equal(fmtV(1.14, "%"), "1.14%"); assert.equal(fmtV(null, "명"), "—"); });
+ok("KPI 고치기 덧칠: 버전1 위에 칸만 · 새로 만든 것 추가 · 숨김은 남기되 화면에선 빠짐(아래 것도)", () => {
+  const ov = [{ id: "sk2", coll: "subKPIs", fields: { title: "마켓 매출", targetValue: 200000000 } }, { id: "v2k_sub_1", coll: "subKPIs", created: true, fields: { title: "새 채널", mainKPIId: "mk1", targetValue: 1000, currentValue: 300, unit: "원", salesAuto: false, manualOverride: true } },
+    { id: "mk3", coll: "mainKPIs", hidden: true, fields: {} }, { id: "lg_repurchase", coll: "lagKPIs", fields: { goal: 50 } }];
+  const K2 = kpiDefs(docs, ov), V = visibleDefs(K2);
+  assert.equal(K2.subKPIs.find((x) => x.id === "sk2").title, "마켓 매출"); assert.equal(K2.subKPIs.find((x) => x.id === "sk2").currentValue, "33867260");
+  assert.ok(K2.mainKPIs.find((x) => x.id === "mk3")._hidden); assert.ok(!V.mainKPIs.some((x) => x.id === "mk3")); assert.ok(!V.subKPIs.some((x) => x.id === "sk9"));
+  const b = kpiBoard(K2, ctx, "pourstore"), mk1 = b.goals[0].mks[0];
+  assert.equal(b.goals[0].mks.length, 1); assert.equal(mk1.subs.length, 3); assert.equal(mk1.cur, 71090204 + 33867260 + 300); assert.equal(mk1.subs.find((x) => x.sk.id === "sk2").target, 200000000);
+  assert.equal(b.lags.find((x) => x.id === "lg_repurchase").goal, 50);
+});
+ok("KPI 고치기 저장 칸: 바뀐 칸만 기록 · 같으면 안 씀 · 숨김/다시 보임 · 새로 만들면 created", () => {
+  const cu = { id: "songhee", name: "김송희" }, at = "2026-10-05T09:00:00Z", base = K.subKPIs[1];
+  const w = kpiEditWrite(null, "subKPIs", "sk2", { title: "마켓 매출", unit: "원" }, undefined, cu, at, base);
+  assert.deepEqual(Object.keys(w.hist[0].ch), ["title"]); assert.equal(w.created, false); assert.equal(w.fields.title, "마켓 매출");
+  assert.equal(kpiEditWrite({ fields: w.fields, hist: w.hist }, "subKPIs", "sk2", { title: "마켓 매출" }, undefined, cu, at, base), null);
+  const h = kpiEditWrite({ fields: w.fields, hist: w.hist }, "subKPIs", "sk2", {}, true, cu, at, base); assert.equal(h.hidden, true); assert.deepEqual(h.hist[1].ch._hidden, [false, true]);
+  assert.equal(kpiEditWrite(null, "goals", "v2k_x", { title: "새 목표" }, undefined, cu, at, null).created, true);
+  assert.ok(!skManual(K.subKPIs[0])); assert.ok(skManual(K.subKPIs[2])); assert.ok(!skManual(K.subKPIs[3]));
+});
 console.log(`${n}개 모두 통과`);

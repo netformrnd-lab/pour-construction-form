@@ -11,7 +11,7 @@ import {
 } from "./model.js";
 import { planLaunchImport, relaunch, isTempOwner } from "./launch.js";
 import { nextTurnText } from "./turn.js";
-import { planLaunchSync } from "./lbsync.js";
+import { planLaunchSync, planLaunchTrash } from "./lbsync.js";
 import { planLaunchPush, BY as LB_BY } from "./lbpush.js";
 import { redact, secretOn } from "./secret.js";
 import { flowOwners } from "./flow.js";
@@ -141,11 +141,21 @@ export async function syncLaunchBoard(prods, D, cu) {
   const today = ymd(new Date()); let made = 0, changed = 0;
   const live = (prods || []).filter((p) => p && p.name && !p.deletedAt);
   if (live.some((p) => !(D.projects || []).some((x) => x.id === "lb_" + p.id))) made = await syncNewLaunch(D, cu);
+  // 4단계 휴지통: 신제품 대시보드에서 지운 제품 → 업무OS 프로젝트 중단(지우지 않음) · 되살리면 다시 열기 (표시 lbTrash 로 한 번만)
+  for (const p of (prods || []).filter((x) => x && x.name)) {
+    const proj = (D.projects || []).find((x) => x.id === "lb_" + p.id); if (!proj || !!p.deletedAt === !!proj.lbTrash) continue;
+    const tasks = (await fb.fetchWhere("tasks", ["projectId", "==", proj.id])).filter((t) => !t.deleted), now = nowIso(), tr = planLaunchTrash(p, proj, tasks, now); if (!tr) continue;
+    const r = await fb.patchIf("projects", proj._doc || proj.id, { lbTrash: proj.lbTrash || null, status: proj.status || null }, { ...tr.project, updatedAt: now, updatedBy: "board",
+      ...(tr.label ? { endLog: fb.arrayUnion({ kind: p.deletedAt ? "dropped" : "resume", why: tr.label, at: now, by: "board", byName: "신제품 대시보드" }) } : {}) });
+    if (!r.ok) continue;
+    if (tr.tasks.length) await fb.patchManyIf(tr.tasks.map((x) => ({ key: "tasks", id: x.t._doc || x.t.id, expect: { status: x.t.status || null }, fields: { ...x.fields, updatedAt: now, updatedBy: "board", statusLog: fb.arrayUnion({ by: "board", byName: "신제품 대시보드", at: now, status: x.fields.status }) } })));
+    if (tr.label) { const id = newId("lg"); await fb.put("log", id, { id, action: "projEnd", col: "projects", targetId: proj.id, projectId: proj.id, by: "board", byName: "신제품 대시보드", at: now, label: `${p.name} · 신제품 대시보드 ${tr.label}${tr.tasks.length ? ` · 업무 ${tr.tasks.length}건` : ""}` }); changed++; }
+  }
   for (const p of live) {
     const proj = (D.projects || []).find((x) => x.id === "lb_" + p.id); if (!proj) continue;
-    const ver = p.updatedAt || p.createdAt || "x"; if (proj.lbSyncedAt === ver) continue;
+    const ver = p.updatedAt || p.createdAt || "x"; if (proj.lbSyncedAt === ver && (p.project || "") === (proj.lbProject || "")) continue;   // 하위 프로젝트는 처음 한 번 따라잡기
     const tasks = (await fb.fetchWhere("tasks", ["projectId", "==", proj.id])).filter((t) => !t.deleted);
-    const now = nowIso(), pl = planLaunchSync(p, proj, tasks, D.users, today, now);
+    const now = nowIso(), pl = planLaunchSync(p, proj, tasks, D.users, today, now, prods.structure);
     const ops = pl.tasks.map((x) => ({ key: "tasks", id: x.t._doc || x.t.id, expect: { lbSeen: x.t.lbSeen || null, v2At: x.t.v2At || null },
       fields: { ...x.fields, updatedAt: now, updatedBy: "board", ...(x.fields.status && x.fields.status !== x.t.status ? { statusLog: fb.arrayUnion({ by: "board", byName: "신제품 대시보드", at: now, status: x.fields.status }) } : {}) } }));
     const r = ops.length ? await fb.patchManyIf(ops) : { done: 0, skipped: [] };

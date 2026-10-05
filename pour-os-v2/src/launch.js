@@ -109,7 +109,7 @@ export function planLaunchImport(products, D, today = ymd(new Date())) {
     const pid = "lb_" + p.id, leadName = p.lead || (LAUNCH_BRANDS[p.brand] || {}).bm || "", lead = userByName(users, leadName);
     // skipItems: v1 에서 건너뛴 항목 (업무를 만들지 않음 → 순서표에서 그 앞 항목으로 거슬러 올라감. 그 밖에 없는 항목은 오래전에 끝나 불러오지 않은 것)
     const proj = { id: pid, title: p.name, launchId: p.id, category: "launch", group: "신제품", brand: p.brand || "", batch: p.batch || "", dueDate: p.launchDate || "", launchDate: p.launchDate || "",
-      assigneeId: lead ? lead.id : "", collaboratorIds: [], status: "active", priority: "mid", progress: 0, memo: p.memo || "", importedFrom: "launch-board", createdAt: p.createdAt || "", skipItems: [],
+      assigneeId: lead ? lead.id : "", collaboratorIds: [], status: "active", priority: "mid", progress: 0, memo: p.memo || "", importedFrom: "launch-board", createdAt: p.createdAt || "", skipItems: [], lbProject: p.project || "", lbProjectName: p.project || "",
       lbSeen: { launchDate: p.launchDate || "", name: p.name || "" }, lbSyncedAt: p.updatedAt || p.createdAt || "x" };   // 신제품 대시보드 자동 반영(lbsync) 마지막으로 본 값
     projects.push(proj);
     LAUNCH_ITEMS.forEach((it) => {

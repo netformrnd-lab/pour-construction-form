@@ -61,4 +61,25 @@ ok("바뀐 것 없으면 쓸 것 없음", () => {
   const r = S.planLaunchSync(P({ d01: { status: "todo", owner: "이우민" } }), proj({ lbSeen: { launchDate: "2026-11-20", name: "제품" } }), [T("d01", { lbSeen: base })], users, today, now);
   assert.equal(r.tasks.length, 0); assert.equal(r.project, null);
 });
+ok("휴지통: 지우면 프로젝트 중단 + 열린 업무 접음(끝낸 일 그대로) · 되살리면 접은 것만 이전 상태로", () => {
+  const ts = [T("d01", { status: "inprogress" }), T("d02", { status: "done" }), T("d03", { status: "dropped", dropPrev: "todo" })];
+  const a = S.planLaunchTrash(P({}, { deletedAt: "2026-10-05T01:00:00Z" }), proj({ status: "active" }), ts, now);
+  assert.equal(a.project.status, "dropped"); assert.equal(a.project.lbTrash, "2026-10-05T01:00:00Z"); assert.equal(a.tasks.length, 1);
+  assert.deepEqual(a.tasks[0].fields, { status: "dropped", dropPrev: "inprogress", droppedAt: now, trashBy: "board" });
+  const folded = [{ ...ts[0], ...a.tasks[0].fields }, ts[1], ts[2]];
+  const b = S.planLaunchTrash(P({}), proj({ ...a.project }), folded, now);
+  assert.equal(b.project.status, "active"); assert.equal(b.project.lbTrash, null); assert.equal(b.tasks.length, 1); assert.equal(b.tasks[0].fields.status, "inprogress");
+  assert.equal(S.planLaunchTrash(P({}), proj({ status: "active" }), ts, now), null);
+});
+ok("휴지통: 업무OS에서 이미 끝낸 프로젝트는 상태 그대로(표시만) · 되살려도 그대로", () => {
+  const a = S.planLaunchTrash(P({}, { deletedAt: "x" }), proj({ status: "completed" }), [], now);
+  assert.deepEqual(a.project, { lbTrash: "kept" }); assert.equal(S.planLaunchTrash(P({}), proj({ status: "completed", lbTrash: "kept" }), [], now).project.lbTrash, null);
+});
+ok("해외 하위 프로젝트: 신제품 대시보드 값 + 구조 문서 이름을 따라감", () => {
+  const st = { projects: { grohome: [{ id: "amazon-jp", name: "아마존 JP" }] } };
+  const r = S.planLaunchSync(P({}, { brand: "grohome", project: "amazon-jp" }), proj({ lbSeen: { launchDate: "2026-11-20", name: "제품" } }), [], users, today, now, st);
+  assert.equal(r.project.fields.lbProject, "amazon-jp"); assert.equal(r.project.fields.lbProjectName, "아마존 JP");
+  const z = S.planLaunchSync(P({}, { brand: "grohome", project: "amazon-jp" }), proj({ lbSeen: { launchDate: "2026-11-20", name: "제품" }, lbProject: "amazon-jp", lbProjectName: "아마존 JP" }), [], users, today, now, st);
+  assert.equal(z.project, null);
+});
 console.log(`\n${n}개 모두 통과`);

@@ -38,7 +38,7 @@ export function ProjCard({ p, D, cu, open, last, now, idx, tag2 }) {
   const ts = D.tasks.filter((t) => t.projectId === p.id && !t.isFixed), openN = ts.filter((t) => !isDone(t)).length;
   const news = nn.next ? [] : feedOf(D, { projectId: p.id, taskIds: ts.map((t) => t.id), sinceIso: new Date(now - 7 * 864e5).toISOString() }).filter((x) => x.by !== cu.id);
   const nowL = nn.now ? `지금: ${whoOf(D, nn.now)} · ${nn.now.title}${nn.others ? ` 외 ${nn.others}명` : ""}${dueOf(nn.now) ? " · " + md(dueOf(nn.now)) : ""}` : openN ? `열린 일 ${openN} · 지금 하는 일 없음` : "열린 일 없음";
-  const pre = [launch ? brandName(D, p.brand) + (p.batch ? " " + p.batch : "") : "", tag2].filter(Boolean).join(" · ");
+  const pre = [launch ? brandName(D, p.brand) + (p.batch ? " " + p.batch : "") + (p.lbProjectName ? " " + p.lbProjectName : "") : "", tag2].filter(Boolean).join(" · ");
   return <Row title={p.title} tag={w.launched ? `출시 후 ${w.after != null ? w.after : -ddays(p.launchDate, key)}일` : date ? (launch ? "출시 " : "") + ddayLabel(w.n) : "날짜 없음"} tagTone={w.late ? "red" : null}
     sub={[pre, nowL].filter(Boolean).join(" · ")}
     sub2={nn.next ? `다음: ${whoOf(D, nn.next)} · ${nn.next.title}` : news.length ? `새 소식 ${news.length} · ${ago(news[0].at, now)}` : null}
@@ -61,7 +61,7 @@ export function ProjectsTab({ D, cu, open, idx: idx0 }) {
   const list = scoped.filter((p) => inCat(p, cat1));
   const elseN = scope === "mine" && cat1 !== "all" ? catN(cat1, openList) - list.length : 0;   // 내 프로젝트엔 없지만 다른 사람 프로젝트에 있는 수
   const qq = q.trim().replace(/\s/g, "").toLowerCase();
-  const hit = qq ? openList.filter((p) => [p.title, nameOf(D.users, p.assigneeId), p.batch, brandName(D, p.brand), ...D.tasks.filter((t) => t.projectId === p.id).map((t) => t.title)].join(" ").replace(/\s/g, "").toLowerCase().includes(qq)) : null;
+  const hit = qq ? openList.filter((p) => [p.title, nameOf(D.users, p.assigneeId), p.batch, brandName(D, p.brand), p.lbProjectName, ...D.tasks.filter((t) => t.projectId === p.id).map((t) => t.title)].join(" ").replace(/\s/g, "").toLowerCase().includes(qq)) : null;
   const G = projGroups(list, key, D.tasks);   // 출시한 신제품은 남은 항목 기한으로 묶음
   const groups = [["late", "마감 지남", true], ["week", "7일 안", true], ["month", "이번 달", true], ["later", "그 뒤", true], ["none", "날짜 없음", true], ["hold", "보류", false]];
   const doneN = D.projects.filter((p) => !projOpen(p)).length;
@@ -255,7 +255,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
       <h2 style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 800, color: C.ink, margin: 0, lineHeight: 1.35, display: "flex", flexWrap: "wrap", gap: 4 }}>{impOf(p) !== "mid" && <span className={"v2-pill " + (impOf(p) === "high" ? "hi" : "lo")}>중요 {impName(impOf(p))}</span>}{projStLabel(p) !== "진행 중" && <span className="v2-pill st">{projStLabel(p)}</span>}</h2>
       {!hasNow && edit !== "now" && <TBtn onClick={() => { setNow(""); setNowBase((p.now && p.now.at) || null); setNowClash(null); setEdit("now"); }} style={{ flex: "0 0 auto", fontSize: 13 }}>+ 지금 상황</TBtn>}
     </div>
-    {launch && <div style={{ fontSize: 12.5, color: C.mute, fontWeight: 700, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px 10px" }}><span>출시 템플릿 · {brandName(D, p.brand)}{p.batch ? " " + p.batch : ""}</span>
+    {launch && <div style={{ fontSize: 12.5, color: C.mute, fontWeight: 700, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px 10px" }}><span>출시 템플릿 · {brandName(D, p.brand)}{p.batch ? " " + p.batch : ""}{p.lbProjectName ? " · " + p.lbProjectName : ""}{p.lbTrash && p.lbTrash !== "kept" ? " · 신제품 대시보드 휴지통" : ""}</span>
       {p.launchId && <a className="v2-lblink" href={"/launch-board?p=" + encodeURIComponent(p.launchId)} target="_blank" rel="noopener">신제품 대시보드에서 보기 ›</a>}</div>}
     <div style={{ fontSize: 13.5, color: C.sub, marginTop: 4 }}>책임 {nameOf(D.users, p.assigneeId) || "없음"} · {date ? <span style={{ color: w.late ? C.red : C.sub, fontWeight: w.late ? 800 : 400 }}>{w.launched ? `출시 ${md(p.launchDate)} · 출시 후 ${w.after != null ? w.after : -ddays(p.launchDate, key)}일${w.late ? " · 늦은 항목 있음" : ""}` : `${launch ? "출시" : "마감"} ${md(date)} ${ddayLabel(w.n)}`}</span> : launch ? "출시일 미정" : "마감 없음"} · {pct}% · 남은 {openT.length}</div>
     <div style={{ height: 6, background: "#E8EBF2", borderRadius: 3, margin: "10px 0 0", overflow: "hidden" }}><div style={{ width: pct + "%", height: "100%", background: C.navy }} /></div>

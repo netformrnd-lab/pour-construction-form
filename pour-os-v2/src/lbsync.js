@@ -23,7 +23,7 @@ export function boardVals(p, it, users) {
 
 // p: 신제품 대시보드 제품 · proj: 업무OS 프로젝트(lb_<id>) · tasks: 그 프로젝트 업무 전부 · now: ISO
 // → { tasks:[{t, fields, label}], project: fields|null, n }
-export function planLaunchSync(p, proj, tasks, users, today, now) {
+export function planLaunchSync(p, proj, tasks, users, today, now, structure) {
   const out = [], byItem = new Map((tasks || []).filter((t) => t.launchItem && !t.isFixed).map((t) => [t.launchItem, t]));
   const skipAdd = [], skipDel = [];
   LAUNCH_ITEMS.forEach((it) => {
@@ -77,8 +77,36 @@ export function planLaunchSync(p, proj, tasks, users, today, now) {
       if (o) { if (!("dueDate" in o.fields)) o.fields.dueDate = x.due; } else out.push({ t: x.task, fields: { dueDate: x.due }, label: "출시일 따라 기한" }); });
   }
   if (pTake("name", p.name || "", proj.title || "")) { pf.title = p.name; pSaid.push("이름"); }
+  // 해외 하위 프로젝트: 신제품 대시보드에서만 정함 → 그대로 따라감(이름은 구조 문서에서)
+  if ((p.project || "") !== (proj.lbProject || "") || (p.project && structure && lbProjName(structure, p.brand, p.project) !== (proj.lbProjectName || ""))) {
+    Object.assign(pf, { lbProject: p.project || "", lbProjectName: lbProjName(structure, p.brand, p.project) }); if ((p.project || "") !== (proj.lbProject || "")) pSaid.push(p.project ? "하위 프로젝트 " + lbProjName(structure, p.brand, p.project) : "하위 프로젝트 없음"); }
   if (skipAdd.length || skipDel.length) pf.skipItems = [...new Set([...(proj.skipItems || []).filter((x) => !skipDel.includes(x)), ...skipAdd])];
   const pSeen = { launchDate: p.launchDate || "", name: p.name || "" };
   if (Object.keys(pf).length || !same(pSeen, pb)) project = { fields: { ...pf, lbSeen: pSeen }, label: pSaid.join("·") };
   return { tasks: out, project, n: out.filter((x) => x.label).length + (pSaid.length ? 1 : 0) };
+}
+
+// ── 4단계: 휴지통 · 해외 하위 프로젝트 ──
+// 하위 프로젝트(아마존 JP·US·큐텐…) 이름: 신제품 대시보드 구조 문서(board-structure.projects[브랜드])에서
+export const lbProjName = (structure, brand, pj) => { if (!pj) return ""; const l = ((structure && structure.projects) || {})[brand] || []; const x = l.find((y) => y && y.id === pj); return x ? x.name : pj; };
+// 휴지통: 신제품 대시보드에서 지우면(deletedAt) → 업무OS 프로젝트 '중단'(지우지 않음 · 열린 업무는 접음 dropPrev + trashBy) · 되살리면 → 다시 열기(접은 업무만 이전 상태로)
+//   업무OS에서 이미 끝내거나 중단한 프로젝트는 상태를 안 바꾸고 표시만(lbTrash 'kept') → 되살려도 그대로
+// → { project: fields|null, tasks: [{t, fields}], label } | null
+export function planLaunchTrash(p, proj, tasks, now) {
+  const trashed = !!p.deletedAt;
+  if (trashed && !proj.lbTrash) {
+    const open = proj.status !== "completed" && proj.status !== "done" && proj.status !== "dropped" && !proj.archived;
+    if (!open) return { project: { lbTrash: "kept" }, tasks: [], label: "" };
+    const ts = (tasks || []).filter((t) => !t.isFixed && !t.deleted && t.status !== "done" && t.status !== "dropped");
+    return { project: { status: "dropped", endPrev: proj.status || "active", dropReason: "신제품 대시보드 휴지통", droppedAt: now, droppedBy: "board", lbTrash: p.deletedAt },
+      tasks: ts.map((t) => ({ t, fields: { status: "dropped", dropPrev: t.status || "todo", droppedAt: now, trashBy: "board" } })), label: "휴지통으로 · 중단" };
+  }
+  if (!trashed && proj.lbTrash) {
+    if (proj.lbTrash === "kept") return { project: { lbTrash: null }, tasks: [], label: "" };
+    const ok = proj.endPrev && !["hold", "paused", "dropped", "completed", "done"].includes(proj.endPrev) ? proj.endPrev : "active";
+    const ts = (tasks || []).filter((t) => t.status === "dropped" && t.trashBy === "board");
+    return { project: { status: ok, lbTrash: null, dropReason: "", resumedAt: now },
+      tasks: ts.map((t) => { const s0 = t.dropPrev || "todo"; return { t, fields: { status: s0 === "dropped" ? "todo" : s0, dropPrev: null, trashBy: null } }; }), label: "휴지통에서 되살림 · 다시 열기" };
+  }
+  return null;
 }

@@ -12,6 +12,8 @@ import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, launchPct } fr
 import { turnIndex, turnOf, nowNext, predLine } from "./turn.js";
 import { phaseStates, previewLaunchMove } from "./views.js";
 import { LaunchFix } from "./launchfix.jsx";
+import { SecretBox } from "./secretui.jsx";
+import { viewTasks, viewLogs } from "./secret.js";
 import { flowList, planFlow, flowOwners } from "./flow.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, inp, useLocal, useAutoFocus, Linked, Clash } from "./ui.jsx";
 import { useItemNotes, Thread, FileRow } from "./task.jsx";
@@ -208,7 +210,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
   const nn = nowNext(p, D, idx, key);
   const hasNow = !!(p.now && p.now.text);
   const phases = launch ? phaseStates(live.filter((t) => t.launchItem), key) : null;
-  const loadDone = () => { setShowDone(!showDone || doneErr); setDoneErr(false); if (doneList == null) fb.fetchWhere("tasks", ["projectId", "==", p.id]).then((a) => setDoneList(a.filter((t) => isDone(t) && !t.isFixed))).catch((e) => { console.error("[v2] 끝낸 업무 불러오기 실패:", e); setDoneErr(true); }); };
+  const loadDone = () => { setShowDone(!showDone || doneErr); setDoneErr(false); if (doneList == null) fb.fetchWhere("tasks", ["projectId", "==", p.id]).then((a) => setDoneList(viewTasks(a.filter((t) => isDone(t) && !t.isFixed), D))).catch((e) => { console.error("[v2] 끝낸 업무 불러오기 실패:", e); setDoneErr(true); }); };
   const doneAll = doneList || live.filter(isDone);
   const top = (a) => a.filter((t) => !t.parentId || !a.some((x) => x.id === t.parentId));
   const kidsOf = (pid, a) => a.filter((t) => t.parentId === pid);
@@ -220,8 +222,9 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
   const tids = [...new Set([...live, ...(doneList || [])].map((t) => t.id))];
   // 이전 소식·자료 불러오기 (오래 멈춘 프로젝트를 다시 열 때) — 끝낸 업무 전체 + 이 프로젝트 기록 + 업무 대화(30개씩 나눠 조회). 누를 때 한 번만 읽음
   const loadOld = async () => { setOld("loading");
-    try { let dl = doneList; if (dl == null) { dl = (await fb.fetchWhere("tasks", ["projectId", "==", p.id])).filter((t) => isDone(t) && !t.isFixed); setDoneList(dl); }
-      const ids = [...new Set([...live, ...dl].map((t) => t.id))], logs = await fb.fetchWhere("log", ["projectId", "==", p.id]), ns = [];
+    try { let dl = doneList; if (dl == null) { dl = viewTasks((await fb.fetchWhere("tasks", ["projectId", "==", p.id])).filter((t) => isDone(t) && !t.isFixed), D); setDoneList(dl); }
+      const lk = new Set([...(D.lockedT || []), ...dl.filter((t) => t.locked).map((t) => t.id)]);   // 기밀(허용 안 됨) 업무의 기록·대화는 안 읽음
+      const ids = [...new Set([...live, ...dl].filter((t) => !t.locked).map((t) => t.id))], logs = viewLogs(await fb.fetchWhere("log", ["projectId", "==", p.id]), { ...D, lockedT: lk }), ns = [];
       for (let i = 0; i < ids.length; i += 30) ns.push(...(await fb.fetchWhere("notes", ["itemId", "in", ids.slice(i, i + 30).map(taskNoteId)])));
       console.log(`[v2 이전 소식] 기록 ${logs.length}건 · 대화 ${ns.length}건`); setOld({ notes: ns, logs }); }
     catch (e) { console.error("[v2] 이전 소식 불러오기 실패:", e); setOld("fail"); } };
@@ -260,6 +263,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
       return <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6, lineHeight: 1.6 }}>{f.eta ? <>지금 속도 주 {f.perWeek}건 · 남은 {f.left}건 → 예상 {md(f.eta)}{f.lateBy > 0 ? <b style={{ color: C.red }}> · 마감보다 {f.lateBy}일 늦음</b> : f.due ? " · 마감 안에 끝나요" : ""}</> : `최근 2주 끝낸 업무가 없어 끝나는 날을 잴 수 없어요 · 남은 ${f.left}건`}</div>; })()}
     {projOpen(p) && !isHoldP(p) && lead && <div style={{ display: "flex", justifyContent: "flex-end" }}><TBtn onClick={() => setEndAsk(true)} style={{ fontSize: 12.5 }}>끝내기 · 멈추기 ›</TBtn></div>}
     {launch && projOpen(p) && !isHoldP(p) && <LaunchFix p={p} D={D} A={A} cu={cu} open={open} />}
+    <SecretBox kind="project" x={p} D={D} cu={cu} A={A} />
     {isHoldP(p) && <Card style={{ marginTop: 10, padding: "12px 14px" }}><div style={{ fontSize: 14.5, fontWeight: 800, color: C.ink }}>보류 중{p.heldAt ? ` · ${-ddays(ymd(new Date(p.heldAt)), key)}일째` : ""}</div>
       <div style={{ fontSize: 13.5, color: C.sub, marginTop: 4, lineHeight: 1.6 }}>{p.holdReason || "이유 없음"} · {p.holdUntil ? `다시 할 날 ${md(p.holdUntil)} (${ddayLabel(ddays(p.holdUntil, key))})` : "다시 할 날 미정"}</div>
       {lead && <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}><Act onClick={() => setResAsk(true)} style={{ background: C.navy, color: "#fff", borderColor: C.navy }}>다시 시작 ›</Act><Act onClick={() => setEndAsk(true)}>이유 · 다시 할 날 바꾸기</Act></div>}</Card>}

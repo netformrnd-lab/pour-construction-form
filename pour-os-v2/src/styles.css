@@ -323,3 +323,13 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
 
 /* 신제품 대시보드로 가는 바로가기 (신제품 프로젝트 머리) */
 .v2-lblink{display:inline-flex;align-items:center;min-height:30px;padding:0 10px;border-radius:8px;background:#EEF2FA;border:1px solid #D5DDEE;color:#24386B;font-size:12.5px;font-weight:800;text-decoration:none}
+/* 기밀 (secretui.jsx) — 겁주지 않게: 네이비 자물쇠 + 짧은 말만 */
+.v2-lock{margin-top:16px;padding:18px 16px;border-radius:14px;background:#F4F6FB;border:1px solid #D7DDEE;display:flex;flex-direction:column;gap:6px;font-size:14px;color:#3B4458;line-height:1.6}
+.v2-lock b{font-size:15.5px;color:#0F1F5C}
+.v2-lock .s{font-size:12.5px;color:#6B7385}
+.v2-secret{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.v2-secret .ln{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:9px 12px;border-radius:12px;background:#F4F6FB;border:1px solid #D7DDEE;font-size:13px;color:#3B4458;line-height:1.5}
+.v2-secret .ln b{color:#0F1F5C}
+.v2-secret .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.v2-secret .pick{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:14px;border:1px solid #D7DDEE;background:#fff}
+.v2-secret .pick .s{font-size:12.5px;color:#6B7385;line-height:1.6}

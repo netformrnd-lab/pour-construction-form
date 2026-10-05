@@ -228,13 +228,14 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   (D.notes || []).forEach((n) => {
     if (!n || n.deleted || n.by === uid || (n.at || "") < since || seen["nt:" + n.id]) return;
     const [kind, ...rest] = String(n.itemId || "").split(":"); const ref = rest.join(":");
-    let hit = null;
-    if (kind === "task") { const t = taskById[ref]; if (shown ? shown.has(n.id) : n.handoff && freshPreds.has(ref)) return;
-      if (t && (n.to === uid || isMine(t, uid) || reqOf(t) === uid || myProj.has(t.projectId) || (t.ccIds || []).includes(uid) || talked.has(n.itemId) || (n.handoff && predIds.has(ref)))) hit = { taskId: ref, title: t.title }; }
-    else if (kind === "proj" && (projAll.has(ref) || talked.has(n.itemId))) { const p = (D.projects || []).find((x) => x.id === ref); hit = { projectId: ref, title: p ? p.title : "프로젝트" }; }
-    if (hit) inbox.push({ kind: "note", tag: "댓글", id: "nt:" + n.id, ...hit, who: n.by, whoName: n.byName, at: n.at, text: n.text });
+    let hit = null; const ment = (n.mentions || []).includes(uid);   // @ 로 나를 부른 댓글은 어디든 (업무를 못 불러왔어도)
+    if (kind === "task") { const t = taskById[ref]; if (!ment && (shown ? shown.has(n.id) : n.handoff && freshPreds.has(ref))) return;
+      if (ment) hit = { taskId: ref, title: t ? t.title : "업무" };
+      else if (t && (n.to === uid || isMine(t, uid) || reqOf(t) === uid || myProj.has(t.projectId) || (t.ccIds || []).includes(uid) || talked.has(n.itemId) || (n.handoff && predIds.has(ref)))) hit = { taskId: ref, title: t.title }; }
+    else if (kind === "proj" && (ment || projAll.has(ref) || talked.has(n.itemId))) { const p = (D.projects || []).find((x) => x.id === ref); hit = { projectId: ref, title: p ? p.title : "프로젝트" }; }
+    if (hit) inbox.push({ kind: ment ? "mention" : "note", tag: ment ? "@ 나를 부름" : "댓글", id: "nt:" + n.id, ...hit, who: n.by, whoName: n.byName, at: n.at, text: n.text });
   });
-  const ORDER = { feedback: 0, review: 1, dueReq: 2, help: 2.5, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, approved: 9, unblocked: 9, pinNew: 9.5, note: 10 };
+  const ORDER = { feedback: 0, review: 1, dueReq: 2, help: 2.5, mention: 2.8, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, approved: 9, unblocked: 9, pinNew: 9.5, note: 10 };
   inbox.sort((a, b) => (ORDER[a.kind] ?? 11) - (ORDER[b.kind] ?? 11) || String(b.at || "").localeCompare(String(a.at || "")));
   const userName = (id) => nameOf(users, id);
   // 끝낸 시각은 UTC(toISOString) → 기기 날짜로 바꿔 비교 (아침 9시 전에 끝낸 일도 오늘)

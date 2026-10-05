@@ -36,6 +36,7 @@ export function inboxFns(D, A, open, setSeen) {
   const tOf = (id) => D.tasks.find((y) => y.id === id);
   const openInbox = (x) => { if (!x.keep) markSeen(setSeen, x.id);
     if (x.kind === "turnLate") return open({ type: "task", id: x.taskId, focus: "talk" });
+    if (x.kind === "mention") return x.taskId ? open({ type: "task", id: x.taskId, focus: "talk" }) : open({ type: "project", id: x.projectId, first: "news" });   // @ 나를 부른 댓글 → 바로 대화 칸
     if (x.taskId) { const t = tOf(x.taskId); t ? openTask(open, t) : open({ type: "task", id: x.taskId }); } else if (x.mine) open({ type: "mine" }); else if (x.personId) open({ type: "person", id: x.personId }); else if (x.projectId) open({ type: "project", id: x.projectId, first: x.kind === "launchNew" || x.kind === "bulk" || x.kind === "projHoldDue" ? "work" : "news" }); };
   const inboxAct = (x) => { const t = x.taskId && tOf(x.taskId);
     if (x.kind === "assigned" && t) return <Act onClick={() => A.ack(t)} style={BTN_ON}>받았어요</Act>;
@@ -45,6 +46,7 @@ export function inboxFns(D, A, open, setSeen) {
     if (x.kind === "holdDue" && t) return <Act onClick={() => A.unhold(t)} style={BTN_ON}>다시 시작</Act>;
     if (x.kind === "help" && t) return <Act onClick={() => open({ type: "task", id: t.id, focus: "talk" })} style={BTN_ON}>답하기</Act>;
     if (x.kind === "turnLate") return <Act onClick={() => openInbox(x)}>묻기</Act>;
+    if (x.kind === "mention") return <Act onClick={() => openInbox(x)} style={BTN_ON}>답하기</Act>;
     if (x.kind === "turnOrder") return <Act onClick={() => openInbox(x)}>조정 요청</Act>;
     if (x.kind === "nextNoOwner") return <Act onClick={() => openInbox(x)}>정하기</Act>;
     return <Act onClick={() => openInbox(x)}>보기</Act>; };

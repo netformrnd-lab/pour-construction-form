@@ -16,6 +16,7 @@ import { HoldAsk } from "./hold.jsx";
 import { RequestAsk } from "./asks.jsx";
 import { askTo } from "./model.js";
 import { viewTasks } from "./secret.js";
+import { mentionPick, insertMention, parseMentions } from "./mention.js";
 import { SecretBox } from "./secretui.jsx";
 import { dueChips, ro } from "./pick.jsx";
 
@@ -232,7 +233,8 @@ export function FileRow({ f, last }) {
 export function Thread({ D, cu, A, notes, itemId, ctx }) {
   const th = threads(notes, itemId);
   const [text, setText] = useState(""), [reply, setReply] = useState(null), [files, setFiles] = useState([]), [busy, setBusy] = useState(false);
-  const fileRef = useRef(null);
+  const fileRef = useRef(null), taRef = useRef(null);
+  const pick = mentionPick(text, D.users, cu.id), tagged = parseMentions(text, D.users).filter((id) => id !== cu.id);   // '@' 를 치면 사람 고르기 · 부를 사람 미리 보기
   const send = async () => { if ((!text.trim() && !files.length) || busy) return; setBusy(true);
     const ok = await A.addNote(itemId, text || "(파일)", reply, files, ctx); setBusy(false); if (ok) { setText(""); setFiles([]); setReply(null); } };
   const Note = ({ n, child }) => <div style={{ padding: child ? "8px 0 0 14px" : "12px 14px", borderLeft: child ? `2px solid ${C.line}` : "none", marginTop: child ? 6 : 0 }}>
@@ -246,7 +248,9 @@ export function Thread({ D, cu, A, notes, itemId, ctx }) {
       <div style={{ padding: "0 14px 10px" }}>{n.replies.map((r) => <Note key={r.id} n={r} child />)}<TBtn onClick={() => setReply(reply === n.id ? null : n.id)} style={{ padding: "6px 0", fontSize: 12.5 }}>{reply === n.id ? "답글 취소" : "답글"}</TBtn></div></div>)}
     <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
       {reply && <div style={{ fontSize: 12.5, color: C.sub }}>{(th.find((x) => x.id === reply) || {}).byName}님 글에 답글</div>}
-      <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder={reply ? "답글 쓰기" : "댓글 쓰기 · 진행 상황, 피드백, 링크"} aria-label="댓글" style={{ ...inp, resize: "vertical", fontSize: 14.5 }} />
+      <textarea ref={taRef} value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder={reply ? "답글 쓰기 · @이름으로 부르기" : "댓글 쓰기 · 진행 상황, 피드백, 링크 · @이름으로 부르기"} aria-label="댓글" style={{ ...inp, resize: "vertical", fontSize: 14.5 }} />
+      {pick.length > 0 && <div className="v2-chips" role="listbox" aria-label="부를 사람">{pick.map((u) => <Chip key={u.id} onClick={() => { setText(insertMention(text, u.name)); setTimeout(() => taRef.current && taRef.current.focus(), 0); }}>@{u.name}</Chip>)}</div>}
+      {tagged.length > 0 && <div style={{ fontSize: 12.5, color: C.sub }}>부를 사람 {tagged.map((id) => nameOf(D.users, id)).join(", ")} · '확인할 것'에 뜨고, 문자 알림을 켠 사람은 문자도 받아요</div>}
       {files.length > 0 && <div style={{ fontSize: 13, color: C.sub }}>{files.map((f) => f.name).join(", ")} <TBtn tone="mute" onClick={() => setFiles([])}>✕ 파일 빼기</TBtn></div>}
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <TBtn onClick={() => fileRef.current && fileRef.current.click()}>+ 파일</TBtn><input ref={fileRef} type="file" multiple hidden onChange={(e) => { setFiles([...e.target.files].slice(0, 10)); e.target.value = ""; }} />

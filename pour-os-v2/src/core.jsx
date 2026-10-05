@@ -14,6 +14,7 @@ import { nextTurnText } from "./turn.js";
 import { planLaunchSync, planLaunchTrash, planRowSync, planCustomSteps } from "./lbsync.js";
 import { planLaunchPush, BY as LB_BY } from "./lbpush.js";
 import { redact, secretOn } from "./secret.js";
+import { parseMentions, smsTarget, smsOpen, smsDue, smsText } from "./mention.js";
 import { flowOwners } from "./flow.js";
 import { C, Big, TBtn, inp, useLocal } from "./ui.jsx";
 
@@ -80,6 +81,7 @@ export function useBoot() {
     let last = ""; try { last = localStorage.getItem(k) || ""; } catch (e) { /* 저장소 막힘 → 매번 */ }
     if (isMaster(cu) && last !== today) syncProgress(D).then((n) => { try { localStorage.setItem(k, today); } catch (e) { /* 무시 */ } console.log(`[v2] 프로젝트 진척 다시 계산 · 바뀐 것 ${n}개`); }).catch((e) => console.error("[v2] 프로젝트 진척 다시 계산 실패:", e)); }, [meta, D.ready, authed]);
   useLaunchSync(D, cu, !!(meta && D.ready && authed));
+  useSmsFlush(D, !!(meta && D.ready && authed));
   // 기밀(secret.js): 화면에는 이 사람이 볼 수 있는 것만 — 허용 안 된 기밀은 '기밀 업무'로 바꾼 대체본 · 신제품 반영·진척 계산은 위의 원래 D 로
   const V = useMemo(() => redact(D, authed ? cu : null), [D, authed, cu]);
   return { launchNew, holJ, meta, setMeta, metaErr, checkMeta, D: V, rawD: D, err, cu, authed, signIn: (u, h) => { setMe(u.id); setKey(h); }, logout: () => { setKey(""); setMe(""); } };
@@ -96,6 +98,45 @@ export async function syncProgress(D) {
       if (Number(p.progress) !== pct) { changed++; await fb.patch("projects", p._doc || p.id, { progress: pct, updatedAt: nowIso(), v2At: nowIso() }); } }));
   }
   return changed;
+}
+// ── @ 태그 문자 알림 (mention.js 규칙) ──
+// 큐 pour-os/v2/smsq/{사람}: {items:[{at, from, text, where, link}], lastSentAt} — 지금 보낼 수 있으면(시간 안 · 10분 지남) 바로, 아니면 10분 묶음으로 기다렸다가
+// 로그인한 아무 기기나 큐를 보다가(useSmsFlush) 보낼 차례가 되면 보냄(transaction 으로 한 기기만) · 시간 밖이면 비움(앱에만)
+const SMS_BASE = "https://pour-construction-form.pages.dev/pourstore-renewal/os2.html";
+export async function queueMentionSms(D, cu, ids, itemId, text) {
+  const [kind, ...rest] = String(itemId).split(":"), ref = rest.join(":");
+  const t = kind === "task" ? (D.tasks || []).find((x) => x.id === ref) : null, p = (D.projects || []).find((x) => x.id === (t ? t.projectId : ref));
+  const secret = secretOn(t) || secretOn(p), now = new Date();
+  const item = { at: now.toISOString(), from: cu.name, text: secret ? "기밀 업무 댓글" : String(text || "").slice(0, 60), where: secret ? "" : (t ? t.title : p ? p.title : ""), link: kind === "task" ? "#t-" + encodeURIComponent(ref) : "#p-" + encodeURIComponent(ref) };
+  for (const uid of ids) {
+    const u = (D.users || []).find((x) => x.id === uid);
+    if (!smsTarget(u, cu.id) || !smsOpen(u, now)) continue;   // 번호 없음·안 받음·시간 밖 → 앱에만
+    await fb.txDoc("smsq", uid, (cur) => ({ write: { items: [...((cur && cur.items) || []), item].slice(-20) } }));
+    await flushSms(D.users, uid);
+  }
+}
+export async function flushSms(users, uid, now = new Date()) {
+  const u = (users || []).find((x) => x.id === uid); if (!u) return 0;
+  const items = await fb.txDoc("smsq", uid, (cur) => {
+    if (!cur || !(cur.items || []).length) return null;
+    if (!smsTarget(u, "") || !smsOpen(u, now)) return { write: { items: [], droppedAt: now.toISOString(), dropped: (cur.items || []).length } };   // 시간 밖 → 앱에만
+    if (!smsDue(cur, now)) return null;
+    return { write: { items: [], lastSentAt: now.toISOString(), lastCount: cur.items.length }, ret: cur.items };
+  });
+  if (!items || !items.length) return 0;
+  try { const r = await fetch("/send-sms", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to: String(u.phone).replace(/\D/g, ""), text: smsText(items, SMS_BASE) }) });
+    if (!r.ok) throw new Error("HTTP " + r.status + " " + (await r.text()).slice(0, 120));
+    console.log(`[v2 문자] ${u.name}님께 ${items.length}건 묶어 보냄`); return items.length; }
+  catch (e) { console.error("[v2 문자] 보내기 실패:", e); await fb.txDoc("smsq", uid, () => ({ write: { lastError: String(e.message || e).slice(0, 200), lastErrorAt: now.toISOString() } })).catch(() => {}); return 0; }
+}
+// 로그인한 기기: 큐를 구독 → 1분마다 보낼 차례인 사람 것만 보냄
+function useSmsFlush(D, on) {
+  const ref = useRef({ q: [], users: [] }); ref.current.users = D.users;
+  useEffect(() => { if (!on) return;
+    const un = fb.listen("smsq", null, (a) => { ref.current.q = a; }, (e) => console.warn("[v2 문자] 큐 구독 실패:", e));
+    const tick = () => { const now = new Date(); ref.current.q.filter((q) => (q.items || []).length && (smsDue(q, now) || !smsOpen((ref.current.users || []).find((u) => u.id === (q.id || q._doc)), now)))
+      .forEach((q) => flushSms(ref.current.users, q.id || q._doc, now).catch((e) => console.error("[v2 문자] 묶음 보내기 실패:", e))); };
+    const iv = setInterval(tick, 60000); return () => { clearInterval(iv); un && un(); }; }, [on]);
 }
 // 신제품 대시보드 → 업무OS 자동 반영 (2단계): 신제품 대시보드를 실시간으로 보다가, 제품의 updatedAt 이 업무OS 프로젝트가 마지막으로 맞춘 값(lbSyncedAt)과 다르면
 //   그 프로젝트 업무를 서버에서 읽어 lbsync.planLaunchSync 로 비교 → 바뀐 칸만 조건부로 씀(그사이 업무OS에서 누가 고쳤으면 그 업무는 건너뛰고 다음에 다시)
@@ -554,8 +595,11 @@ export function useActs(D, cu, setToast, idx = null) {
     addNote: async (itemId, text, parentId, files, ctx, extra) => {
       const id = newId("n"); const up = [];
       try { for (const f of files || []) up.push(await fb.upload("note-" + itemId, f));
-        await fb.put("notes", id, { id, itemId, parentId: parentId || null, text: text.trim(), files: up, ...by(), madeIn: "v2", ...(extra || {}) });
-        log("comment", { col: "notes", targetId: ctx && ctx.taskId ? ctx.taskId : itemId, projectId: (ctx && ctx.projectId) || "", label: text.trim().slice(0, 60) }); return true; }
+        const mentions = parseMentions(text, D.users).filter((u) => u !== cu.id);   // @이름 → 그 사람 '확인할 것' + (설정·시간 안이면) 문자
+        await fb.put("notes", id, { id, itemId, parentId: parentId || null, text: text.trim(), files: up, ...by(), madeIn: "v2", ...(mentions.length ? { mentions } : {}), ...(extra || {}) });
+        log("comment", { col: "notes", targetId: ctx && ctx.taskId ? ctx.taskId : itemId, projectId: (ctx && ctx.projectId) || "", label: text.trim().slice(0, 60) });
+        if (mentions.length) queueMentionSms(D, cu, mentions, itemId, text).catch((e) => console.error("[v2] 문자 알림 준비 실패:", e));
+        return true; }
       catch (e) { fail("댓글")(e); return false; }
     },
     addProject: async (f) => {

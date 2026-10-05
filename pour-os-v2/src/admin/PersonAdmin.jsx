@@ -8,6 +8,7 @@ import { ymd, ddays, ddayLabel, md, ago, hm, isDone, isOneOff, isMine, ownersOf,
 import { nextsOf } from "../turn.js";
 import { C, Big, TBtn, Act, Head, Card, Row, Empty, Sheet, Ask, More, inp, Chip } from "../ui.jsx";
 import { Lv, pName } from "./common.jsx";
+import { PhoneEdit } from "../smsui.jsx";
 
 export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast }) {
   const u = (D.users || []).find((x) => x.id === id);
@@ -62,6 +63,8 @@ export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast
     <Head>오늘 고정업무 {fx.filter((t) => fxMeDone(t, u.id, key)).length}/{fx.length}</Head><L a={fx} empty="오늘 고정업무가 없어요" render={(t, last) => <Row key={t.id} title={fxLabel(t, u.id)} sub={fxMeDone(t, u.id, key) ? `✓ ${hm(t.doneAtBy && t.doneAtBy[u.id])}` : `아직${fxTime(t, u.id) ? ` · 예정 ${fxTime(t, u.id)}` : ""}`} onClick={() => open({ type: "fixed", id: t.id })} last={last} />} />
     <Head>최근 대화</Head><L a={talk} empty="최근 30일 대화가 없어요" render={(n, last) => <Row key={n.id} title={n.text} sub={ago(n.at)} onClick={() => { const [k, ...r] = String(n.itemId).split(":"); if (k === "task") open({ type: "task", id: r.join(":"), focus: "talk" }); else if (k === "proj") open({ type: "project", id: r.join(":"), first: "news" }); }} last={last} />} />
 
+    <Head>휴대폰 번호 (문자 알림)</Head>
+    <PhoneEdit u={u} A={A} setToast={setToast} />
     <Head>팀</Head>
     <Card style={{ padding: "12px 14px" }}>
       <div className="v2-chips">{TEAMS.map((t) => <Chip key={t} on={teamOf(u) === t} onClick={async () => { if (teamOf(u) === t) return; const prev = teamOf(u);

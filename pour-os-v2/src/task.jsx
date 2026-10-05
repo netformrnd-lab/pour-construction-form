@@ -19,7 +19,9 @@ import { viewTasks } from "./secret.js";
 import { mentionPick, insertMention, parseMentions } from "./mention.js";
 import { SecretBox } from "./secretui.jsx";
 import { dueChips, ro } from "./pick.jsx";
+import { CountBox } from "./routineui.jsx";
 
+const roP = (n) => { const c = String(n || "").slice(-1).charCodeAt(0) - 0xAC00; if (c < 0 || c > 11171) return "(으)로"; const j = c % 28; return j === 0 || j === 8 ? "로" : "으로"; };
 export const openTask = (open, t) => open({ type: t.isFixed ? "fixed" : "task", id: t.id });
 // 기한 바꾸기 + '기한을 10/6으로 바꿨어요 · 되돌리기' (오늘·지난 일 정리·달력·업무 보기가 같이 씀)
 // can 이 아니면 기한 조정 요청(알림은 A.requestDue). onUndo: 되돌린 뒤 화면이 할 일 (예: 달력 날짜 고르기를 그 일로 되돌리기)
@@ -44,8 +46,9 @@ export function useTask(D, id) {
 }
 export function useItemNotes(D, itemId) {
   const [old, setOld] = useState([]);
-  useEffect(() => { fb.fetchWhere("notes", ["itemId", "==", itemId]).then(setOld).catch((e) => console.error("[v2] 댓글 불러오기 실패:", e)); }, [itemId]);
-  return useMemo(() => { const m = new Map(); old.forEach((n) => m.set(n.id, n)); D.notes.forEach((n) => { if (n.itemId === itemId) m.set(n.id, n); }); return [...m.values()]; }, [old, D.notes, itemId]);
+  const locked = !!(D.lockedT && String(itemId).startsWith("task:") && D.lockedT.has(String(itemId).slice(5)));   // 기밀(허용 안 됨) 업무 댓글은 읽지 않음
+  useEffect(() => { if (locked) return; fb.fetchWhere("notes", ["itemId", "==", itemId]).then(setOld).catch((e) => console.error("[v2] 댓글 불러오기 실패:", e)); }, [itemId, locked]);
+  return useMemo(() => { if (locked) return []; const m = new Map(); old.forEach((n) => m.set(n.id, n)); D.notes.forEach((n) => { if (n.itemId === itemId) m.set(n.id, n); }); return [...m.values()]; }, [old, D.notes, itemId, locked]);
 }
 // 업무 보기 — 맨 위에 '지금 해야 할 일'(받았어요·확인·기한 조정·막힘)을 띄우고, 그 아래 순서(앞 일·다음 일) → 메모 → 하위 업무 → 대화 → 파일 → 기록
 // focus: "talk" | "files" — 열자마자 그 칸으로 (앞 일 '자료 n ›', 앞사람에게 묻기)
@@ -117,6 +120,8 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
       {parent && <div><TBtn onClick={() => open({ type: "task", id: parent.id })} style={{ padding: "2px 0" }}>상위 업무 · {parent.title} ›</TBtn></div>}
     </div>
     {t.firstStep && !done && <Banner><b>첫 걸음</b> · {t.firstStep}</Banner>}
+    {/* 신제품 횟수 항목(블로그 포스팅 3회 …): 할 때마다 [+1] → 반복(행동지표) 짝이 있으면 같이 (routineui) */}
+    <CountBox t={t} D={D} cu={cu} A={A} can={mine || master || !!(p && p.assigneeId === cu.id)} />
 
     {/* 지금 해야 할 일 */}
     {mine && !done && giver && !t.ackAt && t.status === "todo" && <Banner><b>{giverName}님이 맡긴 일이에요.</b> 기한을 확인하고 눌러 주세요.
@@ -151,11 +156,12 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
       {canDue ? <TBtn v="soft" onClick={() => setMode(mode === "due" ? "" : "due")}>기한 바꾸기</TBtn> : !t.dueReq && <TBtn v="soft" onClick={() => setMode(mode === "req" ? "" : "req")}>기한 조정 요청</TBtn>}
       <TBtn onClick={() => setMore(!more)} aria-expanded={more}>{more ? "접기 ▴" : "더 하기 ▾"}</TBtn>
     </div>}
+    {(done || review) && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "10px 0 0" }}><TBtn onClick={() => setMore(!more)} aria-expanded={more}>{more ? "접기 ▴" : "더 하기 ▾"}</TBtn></div>}
     {/* 사용 빈도별 노출: 자주 쓰는 동작만 늘 보이고, 드문 동작(보류 · 참조 · 결정 업무 · 기밀)은 '더 하기' 안에 · 켜져 있는 것(참조·기밀)은 상태 줄로 늘 보임 */}
-    {more && !done && !review && <div className="v2-more" role="group" aria-label="더 하기">
-      {t.status !== "hold" && <TBtn v="soft" onClick={() => { setMore(false); setMode("hold"); }}>보류</TBtn>}
-      <TBtn v="soft" onClick={() => { setMore(false); setMode(mode === "cc" ? "" : "cc"); }}>참조{(t.ccIds || []).length ? ` ${(t.ccIds || []).length}` : ""}</TBtn>
-      {!t.parentId && !t.decision && (mine || req === cu.id || master) && <TBtn v="soft" onClick={() => { setMore(false); A.setDecision(t, true); }}>결정 업무로 쓰기</TBtn>}
+    {more && <div className="v2-more" role="group" aria-label="더 하기">
+      {!done && !review && t.status !== "hold" && <TBtn v="soft" onClick={() => { setMore(false); setMode("hold"); }}>보류</TBtn>}
+      {!done && <TBtn v="soft" onClick={() => { setMore(false); setMode(mode === "cc" ? "" : "cc"); }}>참조{(t.ccIds || []).length ? ` ${(t.ccIds || []).length}` : ""}</TBtn>}
+      {!done && !t.parentId && !t.decision && (mine || req === cu.id || master) && <TBtn v="soft" onClick={() => { setMore(false); A.setDecision(t, true); }}>결정 업무로 쓰기</TBtn>}
       <SecretBox kind="task" x={t} D={D} cu={cu} A={A} only="button" />
       <CopyLink kind="t" id={t.id} label="업무 링크 복사" onDone={() => setToast && setToast({ text: "링크를 복사했어요 · 잔디·카톡에 붙여 넣으면 이 업무가 바로 열려요" })} />
     </div>}
@@ -306,7 +312,7 @@ function FxOwners({ t, D, A, setToast }) {
   const save = () => { const prev = { assigneeIds: t.assigneeIds || [], assigneeId: t.assigneeId || "", forAll: !!t.forAll };
     const f = all ? { forAll: true } : { assigneeIds: sel, assigneeId: sel[0] || "", forAll: false };
     A.patchTask(t, f, "assign", `${t.title} · 고정업무 담당 ${names || "없음"}`, { prev });
-    if (setToast) setToast({ text: `담당을 ${names}(으)로 바꿨어요`, undo: () => A.undoTask(t, f, prev, `${t.title} · 고정업무 담당`, "assign") }); setOn(false); };
+    if (setToast) setToast({ text: `담당을 ${names}${names.includes(",") || names.includes("·") ? "(으)로" : roP(names)} 바꿨어요`, undo: () => A.undoTask(t, f, prev, `${t.title} · 고정업무 담당`, "assign") }); setOn(false); };
   return <Card style={{ marginTop: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
     <div style={{ fontSize: 13, fontWeight: 800, color: C.ink }}>담당 (여러 명 가능)</div>
     <div className="v2-chips"><Chip on={all} onClick={() => setAll(!all)}>{all ? "✓ " : ""}전체</Chip>{!all && users.map((u) => { const k = sel.includes(u.id); return <Chip key={u.id} on={k} onClick={() => setSel(k ? sel.filter((x) => x !== u.id) : [...sel, u.id])}>{k ? "✓ " : ""}{u.name}</Chip>; })}</div>

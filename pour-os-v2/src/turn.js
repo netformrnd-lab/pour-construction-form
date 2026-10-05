@@ -108,7 +108,7 @@ export function turnsOf(D, idx, uid, now = new Date(), seen = {}, since = "") {
     }
     if (T.state === "late" && (ddays(dueOf(t), key) ?? 99) <= 7) {
       const p = T.show || T.open[0];
-      inbox.push({ kind: "turnLate", tag: p.blocked ? "앞 일 막힘" : "앞 일 늦음", red: true, id: `tl:${t.id}:${p.id}`, taskId: p.id, title: t.title, who: ownersOf(p)[0], at: p.updatedAt || p.dueDate,
+      if (!ownersOf(p).includes(uid)) inbox.push({ kind: "turnLate", tag: p.blocked ? "앞 일 막힘" : "앞 일 늦음", red: true, id: `tl:${t.id}:${p.id}`, taskId: p.id, title: t.title, who: ownersOf(p)[0], at: p.updatedAt || p.dueDate,
         text: `${predLine(p, users, key)} · 내 기한 ${md(dueOf(t)) || "미정"}`, keep: true, act: "ask" });
     }
     const dt = dueOf(t);

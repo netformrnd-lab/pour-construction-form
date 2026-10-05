@@ -1,6 +1,6 @@
 // 관리자 · 반복 실행 — 버전1 '반복 실행' 화면 모양: [전체 | 고정업무 | 행동지표] · 브랜드 · 사람
 //  고정업무(v2 업무 isFixed): 매일=오늘 · 매주=이번 주 · 매월=이번 달 체크 수 (사람마다 1칸)
-//  행동지표(AARRR): 정의 = 버전1 state-actionKPIs · 주별 실적 = 버전1 kpi-act-YYYY-Qn — 둘 다 '읽기만' (기록은 버전1 반복 실행에서)
+//  행동지표(AARRR): 정의 = 버전1 state-actionKPIs · 주별 실적 = 버전1 kpi-act-YYYY-Qn(읽기만) + 업무OS 오늘 화면 [+1] 기록(pour-os/v2/kpiact) 합계
 import { useEffect, useMemo, useState } from "react";
 import * as fb from "../fb.js";
 import { ymd, md, activeUsers, nameOf, fxPeople, fxMeDone, fxRecurL, fxDueOn, fxDoneOn, fxMin, fxIds } from "../model.js";
@@ -9,6 +9,7 @@ import {
 } from "../../../pour-os/src/actionKpi.js";
 import { C, Chip, Seg, TBtn, Card, Empty, useLocal } from "../ui.jsx";
 import { LS } from "../core.jsx";
+import { sumAk } from "../routine.js";
 
 // 버전1 문서 하나 실시간 읽기 (d: undefined = 불러오는 중, null = 없음)
 function useV1Doc(id) {
@@ -100,7 +101,8 @@ function AkBoard({ D, items, ready, err, who, whoOf }) {
   const y = anchor.getFullYear(), m0 = anchor.getMonth(), q = Math.floor(m0 / 3) + 1;
   const WK = akWeeksIn(y, m0), WQ = akQuarterWeeks(y, m0);
   const SEL = WK.find((w) => w.key === selKey) || WK.find((w) => w.start <= today && today <= w.end) || WK[0];
-  const qid = akQidOfMonth(y, m0), act = useV1Doc("kpi-act-" + qid), docs = act.d ? { [qid]: act.d } : {};
+  const qid = akQidOfMonth(y, m0), act = useV1Doc("kpi-act-" + qid), v2q = ((D.ak && D.ak.v2) || []).find((x) => (x.id || x._doc) === qid);
+  const docs = act.d || v2q ? { [qid]: sumAk(act.d, v2q) } : {};   // 버전1 실적(읽기만) + 업무OS 오늘 화면 [+1](v2 kpiact)
   const list = items.filter((it) => (who === "all" || whoOf(it).includes(who)) && (kind === "all" || (kind === "core" ? !!it.core : !it.core)) && (cyc === "all" || (cyc === "W" ? it.cyc === "W" : it.cyc !== "W")));
   const wksFor = (it) => (it.cyc === "Q" ? WQ : WK).filter((w) => it.cyc !== "W" || akCountable(it, w));
   const tot = (it) => akTotal(docs, it, wksFor(it));
@@ -126,7 +128,7 @@ function AkBoard({ D, items, ready, err, who, whoOf }) {
       {it.cyc === "W" ? <><div className="a-akw">{WK.map((w) => cell(it, w))}</div><div className={"a-akt" + (t.done ? " done" : "")}><b>{t.n} / {t.g}</b><span>{wksFor(it).length}주 합계</span></div></> : span(it)}
     </div>; };
   return <section aria-label="행동지표" className="a-rtsec">
-    <h2 className="a-rth">행동지표 <span>KPI · 주기별 목표 횟수 · 기록은 버전1 '반복 실행'에서 − / + (여기는 보기만)</span></h2>
+    <h2 className="a-rth">행동지표 <span>KPI · 주기별 목표 횟수 · 기록은 팀 앱 오늘 '할 횟수' [+1] (버전1에서 한 것도 합쳐 보여요)</span></h2>
     {err && <div className="a-rterr" role="alert">버전1 행동지표를 읽지 못했어요 ({err})</div>}
     <div className="a-rtbar">
       <div className="a-rtseg"><Seg items={[["all", "전체"], ["core", "필수"], ["add", "추가"]]} value={kind} onChange={setKind} /></div>

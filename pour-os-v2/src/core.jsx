@@ -16,6 +16,8 @@ import { planLaunchPush, BY as LB_BY } from "./lbpush.js";
 import { redact, secretOn } from "./secret.js";
 import { parseMentions, smsTarget, smsOpen, smsDue, smsText } from "./mention.js";
 import { flowOwners } from "./flow.js";
+import { sumAk, akWrite, countFields, countOf, baseTitle } from "./routine.js";
+import { akQidOfWeek, akWeekKey } from "../../pour-os/src/actionKpi.js";
 import { C, Big, TBtn, inp, useLocal } from "./ui.jsx";
 
 export const V1_URL = "./os.html";
@@ -24,7 +26,13 @@ export const nowIso = () => new Date().toISOString();
 
 // ───────────────── 데이터 구독 ─────────────────
 export function useData(on) {
-  const [S, setS] = useState({ users: null, projects: [], openT: [], doneT: [], notes: [], log: [], events: [], brands: [], workflows: [], mainKPIs: [], subKPIs: [], settings: [] });
+  const [S, setS] = useState({ users: null, projects: [], openT: [], doneT: [], notes: [], log: [], events: [], brands: [], workflows: [], mainKPIs: [], subKPIs: [], settings: [], akDef: undefined, akV1: undefined, akV2: [] });
+  // 이번 분기 — 켜 둔 채 날이 바뀌어도 따라감(1분마다 · 화면 다시 볼 때)
+  const [akQ, setAkQ] = useState(() => akQidOfWeek(akWeekKey(new Date())));
+  useEffect(() => { const f = () => setAkQ(akQidOfWeek(akWeekKey(new Date()))); const iv = setInterval(f, 60000); document.addEventListener("visibilitychange", f);
+    return () => { clearInterval(iv); document.removeEventListener("visibilitychange", f); }; }, []);
+  useEffect(() => { if (!on) return undefined; setS((s) => ({ ...s, akV1: undefined }));
+    return fb.listenV1Doc("kpi-act-" + akQ, (d) => setS((s) => ({ ...s, akV1: d })), (e) => { console.warn("[v2] 버전1 행동지표 실적 못 읽음:", e); setS((s) => ({ ...s, akV1: null })); }); }, [on, akQ]);
   const [err, setErr] = useState("");
   useEffect(() => {
     if (!on) return;
@@ -44,13 +52,19 @@ export function useData(on) {
       fb.listen("mainKPIs", null, put("mainKPIs"), onE),   // 프로젝트 KPI 분류용 (읽기만)
       fb.listen("subKPIs", null, put("subKPIs"), onE),
       fb.listen("settings", null, put("settings"), (e) => console.warn("[v2] 설정(회사 쉬는 날) 불러오기 실패 · 앱은 그대로:", e)),   // 못 읽어도 앱은 그대로
+      // 반복(행동지표 · routine.js): 정의·버전1 실적은 읽기만 · v2 실적 pour-os/v2/kpiact/{분기} — 못 읽어도 앱은 그대로
+      fb.listenV1Doc("state-actionKPIs", (d) => put("akDef")(d), (e) => { console.warn("[v2] 행동지표 정의 못 읽음:", e); put("akDef")(null); }),
+      fb.listen("kpiact", null, put("akV2"), (e) => console.warn("[v2] 행동지표 실적 못 읽음:", e)),
     ];
     return () => subs.forEach((u) => u && u());
   }, [on]);
   const D = useMemo(() => {
     const m = new Map(); S.doneT.forEach((t) => m.set(t.id, t)); S.openT.forEach((t) => m.set(t.id, t));
-    return { users: S.users || [], projects: S.projects, tasks: [...m.values()], notes: S.notes, log: S.log, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], settings: S.settings || [], ready: !!S.users };
-  }, [S]);
+    // 분기마다 v2 실적 · 이번 분기는 버전1 실적(읽기만)도 더함
+    const docs = Object.fromEntries((S.akV2 || []).map((x) => [x.id || x._doc, sumAk(x)])); docs[akQ] = sumAk(S.akV1, (S.akV2 || []).find((x) => (x.id || x._doc) === akQ));
+    const ak = { qid: akQ, items: ((S.akDef || {}).items || []).filter(Boolean), docs, v2: S.akV2 || [], ready: S.akDef !== undefined && S.akV1 !== undefined };
+    return { users: S.users || [], projects: S.projects, tasks: [...m.values()], notes: S.notes, log: S.log, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], settings: S.settings || [], ak, ready: !!S.users };
+  }, [S, akQ]);
   return [D, err];
 }
 
@@ -106,7 +120,9 @@ const SMS_BASE = "https://pour-construction-form.pages.dev/pourstore-renewal/os2
 export async function queueMentionSms(D, cu, ids, itemId, text) {
   const [kind, ...rest] = String(itemId).split(":"), ref = rest.join(":");
   const t = kind === "task" ? (D.tasks || []).find((x) => x.id === ref) : null, p = (D.projects || []).find((x) => x.id === (t ? t.projectId : ref));
-  const secret = secretOn(t) || secretOn(p), now = new Date();
+  const up = (x, k = 0) => (x && x.parentId && k < 20 ? (D.tasks || []).find((y) => y.id === x.parentId) : null);
+  let anc = false; for (let x = up(t), k = 0; x && k < 20; x = up(x, ++k)) if (secretOn(x)) anc = true;
+  const secret = secretOn(t) || secretOn(p) || anc || (kind === "task" && !t) || (kind !== "task" && !p), now = new Date();   // 못 찾으면 기밀처럼(내용 안 넣음)
   const item = { at: now.toISOString(), from: cu.name, text: secret ? "기밀 업무 댓글" : String(text || "").slice(0, 60), where: secret ? "" : (t ? t.title : p ? p.title : ""), link: kind === "task" ? "#t-" + encodeURIComponent(ref) : "#p-" + encodeURIComponent(ref) };
   for (const uid of ids) {
     const u = (D.users || []).find((x) => x.id === uid);
@@ -127,7 +143,7 @@ export async function flushSms(users, uid, now = new Date()) {
   try { const r = await fetch("/send-sms", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to: String(u.phone).replace(/\D/g, ""), text: smsText(items, SMS_BASE) }) });
     if (!r.ok) throw new Error("HTTP " + r.status + " " + (await r.text()).slice(0, 120));
     console.log(`[v2 문자] ${u.name}님께 ${items.length}건 묶어 보냄`); return items.length; }
-  catch (e) { console.error("[v2 문자] 보내기 실패:", e); await fb.txDoc("smsq", uid, () => ({ write: { lastError: String(e.message || e).slice(0, 200), lastErrorAt: now.toISOString() } })).catch(() => {}); return 0; }
+  catch (e) { console.error("[v2 문자] 보내기 실패:", e); await fb.txDoc("smsq", uid, () => ({ write: { lastError: String(e.message || e).slice(0, 200), lastErrorAt: now.toISOString() } })).catch((e2) => console.error("[v2 문자] 실패 기록도 못 남김:", e2)); return 0; }
 }
 // 로그인한 기기: 큐를 구독 → 1분마다 보낼 차례인 사람 것만 보냄
 function useSmsFlush(D, on) {
@@ -415,7 +431,7 @@ export function useActs(D, cu, setToast, idx = null) {
     },
     // 확인 완료 → 담당 '확인할 것'에 '확인 완료'(approvedAt) · 5초 되돌리기 (확인 대기로)
     approve: (t) => { const at = nowIso(), o = ownersOf(t)[0];
-      const f = { status: "done", doneAt: t.finishedAt || at, doneBy: o || cu.id, doneByName: nameOf(D.users, o) || cu.name, approvedBy: cu.id, approvedAt: at, feedback: null }, prev = { ...prevOf(t, f), statusLog: t.statusLog || [] };
+      const f = { status: "done", doneAt: t.finishedAt || at, doneBy: o || cu.id, doneByName: nameOf(D.users, o) || cu.name, approvedBy: cu.id, approvedAt: at, feedback: null }, prev = prevOf(t, f);   // 상태 기록(statusLog)은 통째로 되돌리지 않음 (기록은 더하기만)
       P(t, { ...f, statusLog: sl("done", { approved: true }) }, "approve").then(() => t.projectId && recalc(t.projectId));
       setToast({ text: `확인 완료 · ${t.title}`, undo: () => undoT(t, f, prev, `${t.title} · 확인 대기로`, "approve") }); },
     sendBack: (t, text) => { P(t, { status: "inprogress", feedback: { text, ...by() }, reviewAt: null, statusLog: sl("inprogress", { feedback: true }) }, "feedback", `${t.title} · ${text.slice(0, 40)}`);
@@ -610,6 +626,25 @@ export function useActs(D, cu, setToast, idx = null) {
       for (const tt of (f.tasks || []).filter((x) => x.trim())) await A.addTask({ title: tt, projectId: id, assigneeId: cu.id, dueDate: f.dueDate || "" });
       return p;
     },
+    // 반복(행동지표) +d → v2 실적 pour-os/v2/kpiact/{분기} (transaction · 여러 사람이 같이 눌러도 안 덮임 · 버전1 실적은 읽기만) · extra {task: 같이 센 신제품 업무, fail: 실패 건, wk: 그 주(되돌리기는 처음 누른 주로)}
+    //   → {n, wk} · 실패하면 null (알림)
+    akPlus: async (it, d = 1, extra) => { const at = nowIso(), wk = (extra && extra.wk) || akWeekKey(new Date());
+      try { const n = await fb.txDoc("kpiact", akQidOfWeek(wk), (cur) => akWrite(cur, it, wk, d, cu, at, { ...(extra || {}), union: fb.arrayUnion })); return { n, wk }; }
+      catch (e) { fail("반복 기록")(e); return null; } },
+    // 신제품 횟수 항목 +d (블로그 포스팅 3회 …) → count · 제목 (n/목표) · 처음 세면 진행 중 · 목표 채우면 끝냄 (transaction: 서버 지금 횟수에 더함 → 둘이 같이 눌러도 안 빠짐)
+    //   횟수 항목은 버전1 업무OS 칸(osExtra)이라 신제품 문서엔 횟수·상태 모두 안 씀 · 기억(lbSeen)에 횟수가 없던 예전 업무는 지금 횟수를 기억에 같이 (버전1 횟수가 나중에 바뀌면 그 차이만 더함)
+    //   → {n, g} · 실패하면 null (알림)
+    launchCount: async (t, d = 1, extra) => { const at = nowIso();
+      try {
+        const c = await fb.txDoc("tasks", tdoc(t), (cur) => { if (!cur) return null; const x = { ...cur, id: cur.id || t.id }, r = countFields(x, d, cu, at);
+          const w = { ...r.fields, updatedAt: at, updatedBy: cu.id, v2At: at, countLog: fb.arrayUnion({ at, by: cu.id, byName: cu.name, d, ...(extra || {}) }),
+            ...(x.lbSeen && x.lbSeen.count === undefined ? { "lbSeen.count": countOf(x) } : {}), ...(r.fields.status && r.fields.status !== x.status ? { statusLog: sl(r.fields.status) } : {}) };
+          return { write: w, ret: { n: r.n, g: r.g, st: r.fields.status || null } }; });
+        if (!c) { setToast({ text: "이 업무를 찾지 못했어요" }); return null; }
+        log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `${baseTitle(t)} · ${c.n}/${c.g}회${extra && extra.akName ? ` (반복 '${extra.akName}' 같이)` : ""}${d < 0 ? " · 취소" : ""}` });
+        if (c.st && t.projectId) recalc(t.projectId);
+        return c;
+      } catch (e) { fail("횟수")(e); return null; } },
     // 기밀 (secret.js): sec = { allow:[id] } 이면 켜기 · null 이면 풀기 — 정하는 사람(by)은 늘 볼 수 있음
     setSecret: (kind, x, sec) => { const f = { secret: sec ? { on: true, allow: sec.allow || [], by: cu.id, byName: cu.name, at: nowIso() } : null }, label = sec ? `기밀 설정 (볼 사람 ${(sec.allow || []).length}명 더)` : "기밀 풀기";
       if (kind === "project") return A.patchProject(x, f, label, null);

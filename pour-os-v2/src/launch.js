@@ -24,6 +24,10 @@ export const LAUNCH_PHASES = [
     X("x_meta", "메타 광고 올리기", 7, { target: 5 }), X("x_dg", "디맨드젠 광고", 7, { target: 5 }), X("x_blog", "블로그 포스팅", 14, { target: 3 }), X("x_short", "숏폼 생성", 14, { target: 3 })] },
 ];
 export const LAUNCH_ITEMS = LAUNCH_PHASES.flatMap((ph) => ph.items.map((it) => ({ ...it, phase: ph.k, phaseName: ph.name })));
+// 횟수 항목(목표 n회 · 블로그 포스팅 3 …): 목표 · 지금 횟수(count 칸 → 없으면 제목 '(n/목표)') · 횟수 뺀 제목
+export const targetOf = (t) => { const it = t && LAUNCH_ITEMS.find((i) => i.id === t.launchItem); return (it && it.target) || 0; };
+export const countOf = (t) => { if (!t) return 0; if (t.count != null && !isNaN(+t.count)) return Math.max(0, +t.count); const m = /\((\d+)\s*\/\s*\d+\)\s*$/.exec(t.title || ""); return m ? +m[1] : 0; };
+export const baseTitle = (t) => String((t && t.title) || "").replace(/\s*\(\d+\s*\/\s*\d+\)\s*$/, "");
 // 출시 전에 끝내야 하는 항목인지 (off < 0) — 출시일·출시 뒤 할 일(광고·리뷰·체험단 등 off ≥ 0)은 '출시보다 늦음'이 아님
 const OFF_BY = Object.fromEntries(LAUNCH_ITEMS.map((i) => [i.id, i.off]));
 export const preLaunchItem = (id) => OFF_BY[id] != null && OFF_BY[id] < 0;

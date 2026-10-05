@@ -36,4 +36,15 @@ ok("반복(고정) 업무는 기밀 대상 아님 · 로그인 전·관리자는
   assert.equal(S.redact(d, U.b).tasks[0].title, "인수 가격 협상");
   assert.equal(S.redact(D([P(sec())], [T()]), null).projects[0].title, "새 브랜드 인수");
 });
+ok("상위 업무가 기밀이면 하위 업무(안·할 일 줄)도 숨김 · 대체본엔 요청·막힘 글·안 정보 없음", () => {
+  const d = D([P()], [T({ ...sec(), ask: { kind: "help", text: "비밀 요청", to: "c", by: "a" }, blocked: { reason: "비밀 사유", to: "c" }, optInfo: "단가 1만", firstStep: "전화", decided: { title: "A안", by: "a" } }),
+    T({ id: "t2", parentId: "t1", title: "A안 · 단가", assigneeIds: ["c"], assigneeId: "c" })]);
+  const v = S.redact(d, U.b), t = v.tasks.find((x) => x.id === "t1"), k = v.tasks.find((x) => x.id === "t2");
+  assert.equal(k.title, S.LOCK_T);
+  assert.equal(t.ask.text, undefined); assert.equal(t.blocked.reason, undefined); assert.equal(t.optInfo, undefined); assert.equal(t.firstStep, undefined); assert.equal(t.decided.title, undefined);
+  assert.equal(t.ask.to, "c"); assert.deepEqual(t.assigneeIds, ["a"]);
+});
+ok("요청을 받은 사람은 볼 수 있음 (확인·도움·기한·막힘)", () => {
+  for (const f of [{ reviewTo: "b" }, { ask: { to: "b" } }, { dueReq: { to: "b" } }, { blocked: { to: "b" } }]) assert.equal(S.redact(D([P()], [T({ ...sec(), ...f })]), U.b).tasks[0].title, "인수 가격 협상", JSON.stringify(f));
+});
 console.log(`${n}개 모두 통과`);

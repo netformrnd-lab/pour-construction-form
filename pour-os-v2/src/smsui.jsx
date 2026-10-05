@@ -8,12 +8,14 @@ const HOURS = Array.from({ length: 11 }, (_, i) => String(8 + i).padStart(2, "0"
 const mask = (p) => { const d = String(p || "").replace(/\D/g, ""); return d.length >= 9 ? d.slice(0, 3) + "-****-" + d.slice(-4) : ""; };
 const saveFail = (setToast) => (e) => { console.error("[v2] 문자 설정 저장 실패:", e); setToast && setToast({ text: "저장 실패 · 인터넷 연결을 확인해 주세요" }); };
 
+// 받침 따라 '로/으로' (ㄹ 받침은 '로')
+const roParticle = (name) => { const c = String(name || "").slice(-1).charCodeAt(0) - 0xAC00; if (c < 0 || c > 11171) return "(으)로"; const j = c % 28; return j === 0 || j === 8 ? "로" : "으로"; };
 export function SmsSettings({ cu, setToast }) {
   const p = smsPref(cu), phone = mask(cu.phone);
   const save = (patch) => fb.patch("users", cu._doc || cu.id, { sms: { ...p, ...patch } }).then(() => setToast && setToast({ text: "문자 알림 설정을 바꿨어요" })).catch(saveFail(setToast));
   return <Card style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
-    <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>누가 댓글에서 <b>@{cu.name}</b>(으)로 부르면 '확인할 것'에 떠요. 아래 시간 안이면 문자도 와요 (10분 안에 여러 번이면 한 통으로).</div>
-    <div style={{ fontSize: 13, color: phone ? C.sub : C.red }}>{phone ? `받는 번호 ${phone} (관리자가 넣음)` : "번호가 없어서 문자는 안 가요 · 관리자에게 번호를 넣어 달라고 해 주세요"}</div>
+    <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>누가 댓글에서 <b>@{cu.name}</b>{roParticle(cu.name)} 부르면 '확인할 것'에 떠요. 아래 시간 안이면 문자도 와요 (10분 안에 여러 번이면 한 통으로).</div>
+    <div style={{ fontSize: 13, color: C.sub }}>{phone ? `받는 번호 ${phone} (관리자가 넣음)` : "번호가 없어서 문자는 안 가요 · 관리자에게 번호를 넣어 달라고 해 주세요"}</div>
     <div className="v2-chips" role="group" aria-label="문자 받기"><Chip on={p.on} onClick={() => !p.on && save({ on: true })}>문자 받기</Chip><Chip on={!p.on} onClick={() => p.on && save({ on: false })}>앱에만</Chip></div>
     {p.on && <>
       <div className="v2-chips" role="group" aria-label="주말·공휴일"><Chip on={!p.weekend} onClick={() => p.weekend && save({ weekend: false })}>주말·공휴일 안 받음</Chip><Chip on={p.weekend} onClick={() => !p.weekend && save({ weekend: true })}>주말·공휴일도 받음</Chip></div>

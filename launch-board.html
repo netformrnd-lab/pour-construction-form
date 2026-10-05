@@ -256,7 +256,7 @@
   .back{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px 0 10px;border-radius:12px;font-weight:700;color:var(--ink2);background:#fff;border:1px solid var(--line);margin-bottom:12px}
   .back:hover{background:#F9FAFB}
   .pcard{border:1px solid;border-radius:18px;padding:16px 18px}
-  .pcard .row1{display:flex;align-items:center;gap:8px}
+  .pcard .row1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .pcard .row1 .sp{flex:1}
   .pcard .bchip{font-size:12px;font-weight:800;padding:5px 10px;border-radius:8px}
   .pname{margin:10px 0 12px;font-size:24px;font-weight:800;letter-spacing:-.02em;word-break:keep-all}
@@ -324,6 +324,11 @@
   .nm-chip:has(small){height:auto;padding:6px 14px;line-height:1.2}
   .ck-sub{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:3px}
   .cf-who{font-size:11.5px;font-weight:800;color:var(--green)}
+  .os-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:3px;font-size:11.5px;color:var(--muted);font-weight:700}
+  .os-link{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:7px;background:#EEF2FA;color:#24386B;font-size:11.5px;font-weight:800;text-decoration:none;border:1px solid #D5DDEE}
+  .os-link:hover{background:#E1E8F6}
+  .os-wait{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:7px;background:#FFF7E6;color:#92400E;font-weight:800}
+  .auto-tag{flex-shrink:0;align-self:center;font-size:11px;font-weight:800;color:#24386B;background:#EEF2FA;border-radius:6px;padding:3px 6px}
   .skip-btn{font-size:11.5px;font-weight:700;color:var(--faint);padding:2px 0;text-decoration:underline;text-underline-offset:2px}
   .skip-btn:hover{color:var(--ink2)}
   .ck-step.skip{background:#F1F2F4}
@@ -992,6 +997,7 @@ function renderMain(){
   const m = $('main');
   const err = loadErr ? `<div class="errbar">⚠️ ${esc(loadErr)}</div>` : '';
   if (!loaded) { m.innerHTML = `<div class="empty">불러오는 중…</div>`; return; }
+  if (view!=='product') watchOs('');
   if (view==='week') m.innerHTML = err + viewWeek();
   else if (view==='cal') m.innerHTML = err + viewCal();
   else if (view==='guide') m.innerHTML = err + viewGuide();
@@ -1304,8 +1310,38 @@ function viewTrash(){
     <div class="wk-sec">${del.length ? del.map(p=>{const b=brandOf(p);return `<div class="wk-row"><span class="bdot" style="background:${b.ac}"></span><span class="mid"><b>${esc(p.name)}</b><span>${esc(b.name)} · ${esc(p.deletedBy||'')} 삭제 · ${fmtShort((p.deletedAt||'').slice(0,10))}</span></span><button class="btn sm" data-restore="${p.id}">↩ 되살리기</button></div>`;}).join('') : '<div class="wk-none">비어 있어요</div>'}</div>`;
 }
 
+// ═══ 업무OS 바로가기 (pour-os/v2 읽기만) — 열린 제품의 업무OS 업무: 상태·댓글·자료 수 · 열기 링크 ═══
+//   댓글·자료·컨펌 요청·넘기기는 업무OS에서만 (여기선 수만 보여 주고 바로 열기) · 업무OS '확인 대기'에서 여기 [컨펌] = 승인
+const OS_URL = '/pourstore-renewal/os2.html';
+let OS_TASKS = {}, osFor = '', osUnsub = null, OS_NOTES = {};
+function watchOs(pid){
+  if (osFor === pid) return; osFor = pid; OS_TASKS = {}; OS_NOTES = {}; if (osUnsub) { osUnsub(); osUnsub = null; }
+  if (!pid) return;
+  osUnsub = db.collection('pour-os').doc('v2').collection('tasks').where('projectId','==','lb_'+pid).onSnapshot(sn => {
+    const m = {}; sn.docs.forEach(d => { const t = { ...d.data(), id: d.data().id || d.id }; if (t.launchItem && !t.deleted && !t.isFixed) m[t.launchItem] = t; });
+    OS_TASKS = m; console.log(`[업무OS 업무] ${Object.keys(m).length}건`); loadOsNotes(pid); renderAll(false);
+  }, e => console.error('[업무OS 업무] 구독 실패:', e));
+}
+async function loadOsNotes(pid){
+  const ids = Object.values(OS_TASKS).map(t => 'task:' + t.id), cnt = {};
+  try { for (let i = 0; i < ids.length; i += 30) { const sn = await db.collection('pour-os').doc('v2').collection('notes').where('itemId','in',ids.slice(i, i+30)).get();
+      sn.docs.forEach(d => { const n = d.data(); if (!n.deleted) cnt[n.itemId] = (cnt[n.itemId] || 0) + 1; }); }
+    console.log(`[업무OS 댓글] ${Object.values(cnt).reduce((a,b)=>a+b,0)}건`);
+  } catch(e){ console.error('[업무OS 댓글] 불러오기 실패:', e); return; }
+  if (osFor === pid) { OS_NOTES = cnt; renderAll(false); }
+}
+function osProjLink(p){ return Object.keys(OS_TASKS).length ? `<a class="btn sm" href="${OS_URL}#p-${encodeURIComponent('lb_'+p.id)}" target="_blank" rel="noopener">업무OS에서 열기 ›</a>` : ''; }
+function osStepRow(p, sid, done){
+  const t = OS_TASKS[sid]; if (!t) return '';
+  const nc = OS_NOTES['task:' + t.id] || 0, fc = (t.attachments || []).length, bits = [];
+  if (nc) bits.push('댓글 ' + nc); if (fc) bits.push('자료 ' + fc); if (t.dueReq) bits.push('기한 요청');
+  const wait = t.status === 'review' && !done;
+  return `<div class="os-row">${wait ? '<span class="os-wait" title="여기서 [컨펌]을 누르면 업무OS에서도 승인돼요">확인 대기 · 컨펌하면 승인</span>' : ''}${bits.length ? `<span>${bits.join(' · ')}</span>` : ''}<a class="os-link" href="${OS_URL}#t-${encodeURIComponent(t.id)}" target="_blank" rel="noopener">${done || wait ? '업무OS에서 열기 ›' : '업무OS · 컨펌 요청 ›'}</a></div>`;
+}
+
 // ═══ 제품 페이지 (체크리스트) ═══
 function viewProduct(p){
+  watchOs(p.id);
   const b = brandOf(p), pr = progress(p);
   const hist = (p.history||[]).slice().sort((a,c)=>(c.at||'').localeCompare(a.at||'')).slice(0,30);
   const ddColor = !p.launchDate ? 'var(--faint)' : diffDays(p.launchDate)<0 ? 'var(--red)' : b.ac;
@@ -1313,7 +1349,7 @@ function viewProduct(p){
     <button class="back" data-back="">← 전체 제품</button>
     <div class="pcard" style="background:${b.bg};border-color:${b.bd}">
       <div class="row1"><span class="bchip" style="background:${b.chip};color:${b.ac}">${brandMark(b)}</span><button type="button" class="pj-chip" data-pj="${p.brand}|${pjOf(p)}" title="이 프로젝트 보드로">${pjIcon(pjName(p.brand,pjOf(p)))} ${esc(pjName(p.brand,pjOf(p)))}</button><span class="sp"></span>
-        <button class="btn sm" data-link="${p.id}">🔗 링크</button><button class="btn sm" data-info-edit="">✏️ 수정</button></div>
+        ${osProjLink(p)}<button class="btn sm" data-link="${p.id}">🔗 링크</button><button class="btn sm" data-info-edit="">✏️ 수정</button></div>
       <h1 class="pname">${esc(p.name)}</h1>
       <div class="pmeta">
         <label>🚀 출시일 <input type="${p.launchDate?'date':'text'}" data-dt="1" data-pf="launchDate" value="${esc(p.launchDate)}" placeholder="미정"></label>
@@ -1332,10 +1368,11 @@ function viewProduct(p){
       <div class="hist">${hist.length ? hist.map(h=>`<div><small>${fmtShort((h.at||'').slice(0,10))} ${esc(h.by)}</small>${esc(h.text)}</div>`).join('') : '<div>아직 기록이 없어요</div>'}</div></details>
 `;
 }
-function dueCell(attr, due, tbd, tbdAttr, dis){
+// auto: 업무OS가 출시일 기준으로 채운 자동 기한 (날짜를 직접 바꾸면 자동 표시가 풀리고 사람이 정한 마감이 됨)
+function dueCell(attr, due, tbd, tbdAttr, dis, auto){
   return tbd
     ? `<button type="button" class="due-tbd" ${dis||''} ${tbdAttr} data-v="0" title="눌러서 날짜 정하기">📅 마감 미정</button>`
-    : `<div class="due-wrap"><input type="${due?'date':'text'}" data-dt="1" ${attr} value="${esc(due)}" placeholder="마감기한" aria-label="마감기한" title="마감기한" ${dis||''}><button type="button" class="tbd-btn" ${dis||''} ${tbdAttr} data-v="1" title="마감일 미정으로 표시">미정</button></div>`;
+    : `<div class="due-wrap"><input type="${due?'date':'text'}" data-dt="1" ${attr} value="${esc(due)}" placeholder="마감기한" aria-label="마감기한" title="${auto?'자동 기한 (출시일 기준 · 날짜를 바꾸면 직접 정한 마감)':'마감기한'}" ${dis||''}>${auto?'<span class="auto-tag" title="업무OS가 출시일 기준으로 채운 기한">자동</span>':''}<button type="button" class="tbd-btn" ${dis||''} ${tbdAttr} data-v="1" title="마감일 미정으로 표시">미정</button></div>`;
 }
 function ckRow(p, sid){
   const s = stg(p,sid), st = STEP_BY[sid], done = s.status==='done', skip = s.status==='skip', over = isOver(s);
@@ -1348,11 +1385,11 @@ function ckRow(p, sid){
     <div class="ck-box"><button type="button" class="ck-grip" data-drag="${sid}" title="드래그로 순서 변경" aria-label="순서 변경">⠿</button>${cf}</div>
     <div class="ck-name"><b>${st.name}</b>
       <div class="ck-sub">${done && (s.doneBy||s.doneAt) ? `<span class="cf-who">${esc(s.doneBy||'')}${s.doneAt?' · '+fmtShort(s.doneAt.slice(0,10)):''}</span>` : ''}
-        <button type="button" class="skip-btn" data-skip="${sid}" data-v="${skip?'0':'1'}">${skip?'↩ 되살리기':'해당 없음'}</button>${st.custom?`<button type="button" class="skip-btn sdel" data-sdel="${sid}" title="이 단계 삭제">🗑 단계삭제</button>`:''}</div></div>
+        <button type="button" class="skip-btn" data-skip="${sid}" data-v="${skip?'0':'1'}">${skip?'↩ 되살리기':'해당 없음'}</button>${st.custom?`<button type="button" class="skip-btn sdel" data-sdel="${sid}" title="이 단계 삭제">🗑 단계삭제</button>`:''}</div>${skip ? '' : osStepRow(p, sid, done)}</div>
     <textarea rows="1" data-sid="${sid}" data-sf="note" placeholder="진행사항 기재" ${dis}>${esc(s.note)}</textarea>
     <div class="ck-meta">
       <input data-sid="${sid}" data-sf="owner" value="${esc(s.owner)}" placeholder="담당" data-pick="1" autocomplete="off" aria-label="담당" ${dis}>
-      ${dueCell(`data-sid="${sid}" data-sf="due"`, s.due, s.dueTbd, `data-tbd="${sid}"`, dis)}
+      ${dueCell(`data-sid="${sid}" data-sf="due"`, s.due, s.dueTbd, `data-tbd="${sid}"`, dis, !!s.due && s.dueAuto===s.due)}
     </div>
   </div>
   ${tasks.map(t=>{ const k = sid+':'+t.id, tover = !done && !skip && t.due && t.due < today(); return `

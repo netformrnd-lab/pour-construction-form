@@ -141,9 +141,12 @@ export async function patchLaunchIf(ops) {   // ops: [{id, fields, expect}] → 
   console.log(`[신제품 대시보드 쓰기] ${done}건 · 건너뜀 ${skipped.length}건`); return { done, skipped };
 }
 // 쓰기 전 통째 백업 (v2 안 backups/{id} · 문서 하나 1MB 안 · 되돌릴 때 이 값으로)
-export async function backupLaunch(id, products, by) {
+// once: 같은 번호 백업이 이미 있으면 그대로 둠 (하루 첫 백업을 남김)
+export async function backupLaunch(id, products, by, once) {
   const json = JSON.stringify(products); if (json.length > 900000) throw new Error("백업이 너무 커요 (" + json.length + "자)");
-  await setDoc(v2doc("backups", id), { id, kind: "launch-board", at: new Date().toISOString(), by, count: products.length, json });
+  const data = { id, kind: "launch-board", at: new Date().toISOString(), by, count: products.length, json };
+  if (!once) { await setDoc(v2doc("backups", id), data); return true; }
+  return runTransaction(db, async (tx) => { const r = v2doc("backups", id); if ((await tx.get(r)).exists()) return false; tx.set(r, data); return true; });
 }
 // 신제품 대시보드 제품 실시간 구독 (읽기 · board-structure 문서는 뺌)
 export function listenLaunch(cb, onErr) {

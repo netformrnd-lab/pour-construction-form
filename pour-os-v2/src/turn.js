@@ -5,7 +5,7 @@
 // '끝난 앞 일' = 끝남(done) 또는 확인 대기(review: 담당은 끝냈고 맡긴 사람 확인만 남음) 또는 불러온 범위에 없음
 // 기다림은 표시만 하고 막지 않는다(실제 일보다 상태가 늦게 바뀌는 경우가 많음). 내 일이 이미 진행 중이면 기다림 표시를 하지 않는다
 import { ymd, ddays, dueOf, isDone, isMine, ownersOf, nameOf, md, activeUsers, addDays, isOffDay } from "./model.js";
-import { launchPreds, isTempOwner } from "./launch.js";
+import { launchPreds, isTempOwner, preLaunchItem } from "./launch.js";
 
 export const finishedOf = (p) => !!p && (p.status === "done" || p.status === "review");
 // 끝낸 시각: v2 에서 누른 시각(finishedAt) → 상태 기록의 마지막 끝냄 → 모름
@@ -157,7 +157,7 @@ export function upcomingTurns(D, T, key, uid = "") {
     else if (!start) { level = "nodate"; label = "앞 일 날짜 없음"; }
     else if (!myDue) { level = "nodate"; label = "내 기한 없음"; }
     else if (myDue < start) { level = "risk"; label = "늦을 수 있음"; }
-    else if (projDue && myDue > projDue) { level = "risk"; label = `${launch ? "출시" : "마감"}보다 늦음`; }
+    else if (projDue && myDue > projDue && (!launch || !t.launchItem || preLaunchItem(t.launchItem))) { level = "risk"; label = `${launch ? "출시" : "마감"}보다 늦음`; }   // 신제품은 출시 전에 끝낼 항목만
     else if (slack <= 1) { level = "tight"; label = slack <= 0 ? "당일 이어받기" : "여유 1일"; }
     else { level = "ok"; label = `여유 ${slack}일`; }
     out.push({ t, p, I, proj, launch, projDue, start, myDue, slack, level, label, who: ownersOf(p)[0] || "", pDue: dueOf(p) });

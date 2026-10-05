@@ -31,10 +31,12 @@ ok("둘 다 바뀜: 나중에 바뀐 쪽 (진행사항 ↔ 메모)", () => {
   const early = S.planLaunchSync(P({ d01: { status: "todo", owner: "이우민", note: "신제품에서 고침", updatedAt: "2026-10-05T00:00:00Z" } }), proj(), [T("d01", { lbSeen: base, memo: "업무OS에서 고침", v2At: "2026-10-05T01:00:00Z" })], users, today, now);
   assert.ok(!("memo" in one(early, "d01").fields)); assert.equal(one(early, "d01").fields.lbSeen.note, "신제품에서 고침");
 });
-ok("확인 대기는 신제품 '완료'와 같은 걸로 · 신제품에서 담당 비우면 업무OS 담당 그대로", () => {
+ok("확인 대기 = 신제품 '진행 중' · 신제품에서 컨펌 누르면 승인(끝냄) · 신제품에서 담당 비우면 업무OS 담당 그대로", () => {
   const base = { status: "doing", owners: ["wm"], due: "", note: "" };
+  const same = S.planLaunchSync(P({ d01: { status: "doing", owner: "" } }), proj(), [T("d01", { lbSeen: base, status: "review", v2At: "2026-10-05T01:00:00Z" })], users, today, now);
+  assert.ok(!same.tasks.length || !("status" in one(same, "d01").fields));
   const r = S.planLaunchSync(P({ d01: { status: "done", owner: "" } }), proj(), [T("d01", { lbSeen: base, status: "review", v2At: "2026-10-05T01:00:00Z" })], users, today, now);
-  const f = one(r, "d01").fields; assert.ok(!("status" in f)); assert.ok(!("assigneeIds" in f));
+  const f = one(r, "d01").fields; assert.equal(f.status, "done"); assert.equal(f.reviewAt, null); assert.ok(!("assigneeIds" in f));
 });
 ok("해당 없음 → 업무 접기(지우지 않음) + skipItems · 되살리면 다시", () => {
   const base = { status: "todo", owners: ["wm"], due: "", note: "" };

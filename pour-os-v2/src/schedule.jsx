@@ -144,7 +144,7 @@ function DayList({ D, cu, A, open, T, U, date, cell, keyd, who, mine, proj, fxOp
       {evs.map((e) => <Row key={e.id} tag="일정" title={e.title} sub={[e.time, e.place].filter(Boolean).join(" · ") || null} last={false} />)}
       {fx.length > 0 && (fxOpen ? fx.map((t) => <Row key={t.id} tag="고정" title={fxLabel(t, cu.id)} sub={fxTime(t, cu.id) || "시간 상관없음"} dim={fxMeDone(t, cu.id, date)} onClick={() => open({ type: "fixed", id: t.id })} right={date === keyd ? <Act on={fxMeDone(t, cu.id, date)} onClick={() => A.fxToggle(t)}>{fxMeDone(t, cu.id, date) ? "✓" : "완료"}</Act> : null} last={false} />)
         : <More onClick={() => setFxOpen(true)}>고정업무 {fx.length}{date <= keyd ? ` · ${fxLeft.length} 남음` : ""} ▾</More>)}
-      {turnLines.map((u) => <UpRow key={u.t.id} u={u} D={D} open={open} keyd={keyd} last={false} />)}
+      {turnLines.map((u) => <UpRow key={u.t.id} u={u} D={D} cu={cu} open={open} keyd={keyd} last={false} />)}
       {sorted.map((t, i) => { const b = turnBits(t, T, D, keyd);
         return <Row key={t.id} tag={b.tag} tagTone={b.tone} title={t.title} sub={[proj || !mine ? nameOf(D.users, ownersOf(t)[0]) || "담당 없음" : "", pName(t.projectId), b.sub].filter(Boolean).join(" · ") || null}
           onClick={() => open({ type: "task", id: t.id })} right={mine && isMine(t, cu.id) ? <Act onClick={() => A.finish(t)}>끝냄</Act> : null} last={i === sorted.length - 1 && !temp.length && !doneL.length} />; })}

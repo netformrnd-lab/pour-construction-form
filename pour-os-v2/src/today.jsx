@@ -15,6 +15,7 @@ import { openTask, moveDue } from "./task.jsx";
 import { PickList, BulkBar, dueChips, ro } from "./pick.jsx";
 import { previewLaunchMove } from "./views.js";
 import { RoutineCard } from "./routineui.jsx";
+import { LINK_APP } from "./links.js";
 
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
 // 빠른 기한 버튼은 모두 pick.jsx dueChips (쉬는 날 빼고 · 버튼에 날짜까지)
@@ -36,6 +37,7 @@ export function turnBits(t, T, D, key) {
 export function inboxFns(D, A, open, setSeen) {
   const tOf = (id) => D.tasks.find((y) => y.id === id);
   const openInbox = (x) => { if (!x.keep) markSeen(setSeen, x.id);
+    if (x.kind === "link") { if (x.url) window.open(x.url, "_blank", "noopener"); return; }   // CRM·마진에서 온 줄 → 그 앱의 그 화면
     if (x.kind === "turnLate") return open({ type: "task", id: x.taskId, focus: "talk" });
     if (x.kind === "mention") return x.taskId ? open({ type: "task", id: x.taskId, focus: "talk" }) : open({ type: "project", id: x.projectId, first: "news" });   // @ 나를 부른 댓글 → 바로 대화 칸
     if (x.taskId) { const t = tOf(x.taskId); t ? openTask(open, t) : open({ type: "task", id: x.taskId }); } else if (x.mine) open({ type: "mine" }); else if (x.personId) open({ type: "person", id: x.personId }); else if (x.projectId) open({ type: "project", id: x.projectId, first: x.kind === "launchNew" || x.kind === "bulk" || x.kind === "projHoldDue" ? "work" : "news" }); };
@@ -46,6 +48,7 @@ export function inboxFns(D, A, open, setSeen) {
     if (x.kind === "dueReq" && t) return <Act onClick={() => A.answerDue(t, true)} style={BTN_ON}>수락</Act>;
     if (x.kind === "holdDue" && t) return <Act onClick={() => A.unhold(t)} style={BTN_ON}>다시 시작</Act>;
     if (x.kind === "help" && t) return <Act onClick={() => open({ type: "task", id: t.id, focus: "talk" })} style={BTN_ON}>답하기</Act>;
+    if (x.kind === "link") return <Act onClick={() => openInbox(x)}>{LINK_APP[x.src] || "열기"} ›</Act>;
     if (x.kind === "turnLate") return <Act onClick={() => openInbox(x)}>묻기</Act>;
     if (x.kind === "mention") return <Act onClick={() => openInbox(x)} style={BTN_ON}>답하기</Act>;
     if (x.kind === "turnOrder") return <Act onClick={() => openInbox(x)}>조정 요청</Act>;

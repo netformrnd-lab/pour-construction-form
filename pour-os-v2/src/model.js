@@ -521,3 +521,11 @@ export const handOverOwners = (t, from, to) => {
   const cur = ownersOf(t), next = [...new Set((cur.length ? cur : [from]).map((x) => (x === from ? to : x)))];
   return { assigneeIds: next, assigneeId: next[0] || "" };
 };
+
+// ── 팀 (5단계 · 사용자 결정 2026-10-05): 사람에 팀 한 번 → 프로젝트는 책임자 팀으로 자동 · 해외 하위 프로젝트(신제품 lbProject)는 3팀 · 예외만 프로젝트 team 칸
+export const TEAMS = ["1팀", "2팀", "3팀", "공용"];
+// 기본값(신제품 대시보드 조직도 + 사용자 정정): 관리자 › 사람에서 바꾸면 users.team 이 이김
+export const DEFAULT_TEAMS = { 김소연: "1팀", 남윤정: "1팀", 용정하: "1팀", 이우민: "1팀", 김송희: "2팀", 김민지: "2팀", 양채림: "2팀", 이란: "2팀", 김채원: "3팀", 변유림: "3팀", 허지은: "공용", 윤미니: "공용" };
+export const teamOf = (u) => (!u ? "" : u.team || DEFAULT_TEAMS[norm(u.name)] || "");
+export const projTeamAuto = (p, users) => (p && p.lbProject ? "3팀" : teamOf((users || []).find((u) => u.id === (p && p.assigneeId))));
+export const projTeam = (p, users) => (p && p.team) || projTeamAuto(p, users);

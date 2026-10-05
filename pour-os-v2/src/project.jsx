@@ -5,13 +5,14 @@ import * as fb from "./fb.js";
 import {
   ymd, addDays, ddays, ddayLabel, md, ago, hm, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf,
   projOpen, projMine, projStat, projGroups, projWhen, feedOf, taskNoteId, projNoteId, LOG_L, reqOf, riskOf, workloadOf, PROJ_CATS, catName, projCat, guessCat,
-  IMP, impOf, impName, isHoldP, projStLabel, projForecast, projPct, isOneOff,
+  IMP, impOf, impName, isHoldP, projStLabel, projForecast, projPct, isOneOff, TEAMS, projTeam, projTeamAuto,
 } from "./model.js";
 import { Gantt } from "./gantt.jsx";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, launchPct } from "./launch.js";
 import { turnIndex, turnOf, nowNext, predLine } from "./turn.js";
 import { phaseStates, previewLaunchMove } from "./views.js";
 import { LaunchFix } from "./launchfix.jsx";
+import { CatDash, ProjDash } from "./catdash.jsx";
 import { SecretBox } from "./secretui.jsx";
 import { viewTasks, viewLogs } from "./secret.js";
 import { flowList, planFlow, flowOwners } from "./flow.js";
@@ -53,7 +54,10 @@ export function ProjectsTab({ D, cu, open, idx: idx0 }) {
   const now = new Date(), key = ymd(now);
   const openList = D.projects.filter(projOpen).map((p) => (p.dueDate || !p.launchDate ? p : { ...p, dueDate: p.launchDate }));
   const mineAll = openList.filter((p) => projMine(p, cu.id, D.tasks));
-  const scoped = scope === "mine" ? mineAll : openList;
+  // 팀 (5단계): 프로젝트 팀 = 책임자 팀 · 해외 하위 프로젝트 3팀 · 예외는 프로젝트 정보 팀 칩 (model.projTeam)
+  const [team, setTeam] = useLocal(LS("pteam"), "all");
+  const teams = TEAMS.filter((t) => openList.some((p) => projTeam(p, D.users) === t)), team1 = teams.includes(team) ? team : "all";
+  const scoped = (scope === "mine" ? mineAll : openList).filter((p) => team1 === "all" || projTeam(p, D.users) === team1);
   const inCat = (p, k) => (k === "all" ? true : k === "none" ? !projCat(p) : projCat(p) === k);
   const catN = (k, a = scoped) => a.filter((p) => inCat(p, k)).length;
   const cats = [["all", "전체"], ...PROJ_CATS.filter(([k]) => catN(k, openList)), ...(catN("none", openList) ? [["none", "미분류"]] : [])];
@@ -78,19 +82,21 @@ export function ProjectsTab({ D, cu, open, idx: idx0 }) {
     <header style={{ padding: "14px 2px 6px", display: "flex", flexDirection: "column", gap: 10 }}>
       <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.ink }}>프로젝트</h1>
       <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="찾기 · 프로젝트·제품 이름, 책임자, 업무 제목" aria-label="프로젝트 찾기" style={inp} />
-      {!hit && <Seg items={[["list", "목록"], ["gantt", "간트"]]} value={pv} onChange={setPv} />}
+      {!hit && <Seg items={[["list", "목록"], ["gantt", "간트"], ["dash", "대시보드"]]} value={pv} onChange={setPv} />}
       {!hit && <Seg items={[["mine", `내 프로젝트 ${mineAll.length}`], ["all", `모든 프로젝트 ${openList.length}`]]} value={scope} onChange={setScope} />}
+      {!hit && teams.length > 1 && <div className="v2-chips" role="group" aria-label="팀">{[["all", "모든 팀"], ...teams.map((t) => [t, t])].map(([k, l]) => <Chip key={k} on={team1 === k} onClick={() => setTeam(k)}>{l}</Chip>)}</div>}
       {!hit && <div className="v2-chips v2-catchips" role="group" aria-label="카테고리">{cats.map(([k, l]) => <Chip key={k} on={cat1 === k} onClick={() => setCat(k)}>{l} {catN(k)}</Chip>)}</div>}
       {!hit && elseN > 0 && <div className="v2-cathint">{catName(cat1) || "미분류"} 프로젝트가 다른 사람 프로젝트에 {elseN}개 더 있어요 <TBtn onClick={() => setScope("all")}>모든 프로젝트 보기 ›</TBtn></div>}
     </header>
-    {!hit && pv === "gantt" ? <Gantt rows={gRows} mode={gm} setMode={setGm} keyd={key} empty={gMine ? "기한 있는 내 업무가 이 기간에 없어요" : "날짜가 있는 프로젝트가 이 기간에 없어요"}
+    {!hit && pv === "dash" ? <CatDash list={list} cat={cat1} D={D} idx={idx} open={open} />
+    : !hit && pv === "gantt" ? <Gantt rows={gRows} mode={gm} setMode={setGm} keyd={key} empty={gMine ? "기한 있는 내 업무가 이 기간에 없어요" : "날짜가 있는 프로젝트가 이 기간에 없어요"}
         right={<Chip on={gMine} onClick={() => setGMine(!gMine)}>{gMine ? "✓ " : ""}내 업무만</Chip>} />
     : hit ? <><Head>찾은 결과 {hit.length}</Head><Card>{hit.length === 0 ? <Empty>찾는 프로젝트가 없어요</Empty> : hit.map((p, i) => card(p, i === hit.length - 1))}</Card></>
       : groups.map(([k, l, openDefault]) => { const a = G[k]; if (!a.length) return null; const m = more[k], shown = openDefault ? (m ? a : a.slice(0, 5)) : (m ? a : []);
         return <div key={k}><Head red={k === "late"} right={!openDefault && <TBtn onClick={() => setMore({ ...more, [k]: !m })}>{m ? "접기 ▴" : `${a.length} ▾`}</TBtn>}>{l} {a.length}</Head>
           {shown.length > 0 && <Card>{shown.map((p, i) => card(p, i === shown.length - 1 && !(openDefault && a.length > 5)))}
             {openDefault && a.length > 5 && <More onClick={() => setMore({ ...more, [k]: !m })}>{m ? "접기 ▴" : `${a.length - 5}개 더 보기 ▾`}</More>}</Card>}</div>; })}
-    {!hit && list.length === 0 && <Card style={{ marginTop: 14 }}><Empty>{cat1 !== "all" ? `${catName(cat1) || "미분류"} 중 ${scope === "mine" ? "내 " : ""}프로젝트가 없어요` : scope === "mine" ? "내가 책임·담당이거나 업무를 맡은 프로젝트가 없어요" : "진행 중인 프로젝트가 없어요"}</Empty></Card>}
+    {!hit && pv !== "dash" && list.length === 0 && <Card style={{ marginTop: 14 }}><Empty>{cat1 !== "all" ? `${catName(cat1) || "미분류"} 중 ${scope === "mine" ? "내 " : ""}프로젝트가 없어요` : scope === "mine" ? "내가 책임·담당이거나 업무를 맡은 프로젝트가 없어요" : "진행 중인 프로젝트가 없어요"}</Empty></Card>}
     {doneN > 0 && <Card style={{ marginTop: 14 }}><More onClick={() => open({ type: "doneProjects" })}>끝난 프로젝트 {doneN} ›</More></Card>}
     <div className="v2-fab"><Big onClick={() => open({ type: "newProject", cat: cat1 !== "all" && cat1 !== "none" ? cat1 : "" })}>+ 새 프로젝트</Big></div>
   </>;
@@ -291,7 +297,10 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
         : <Act onClick={goLaunch} style={{ background: C.navy, color: "#fff", borderColor: C.navy }}>바꾸기 · 자동 기한 같이 이동 {mvN}개</Act>)}</div>}
     {lAsk && <Ask title={`출시일을 ${md(lAsk.d)}${ro(md(lAsk.d))} 바꿀까요?`} body={`자동 기한 ${lAsk.n}개가 같이 옮겨져요 (다른 사람 항목 포함).\n5초 안에 되돌릴 수 있고, 옮기기 전 기한은 기록에 남아요.`} yes="바꾸기" onNo={() => setLAsk(null)} onYes={() => { const a = lAsk; setLAsk(null); A.setLaunchDate(p, a.d); setLd(""); }} />}
 
-    <div style={{ margin: "18px 0 4px" }}><Seg items={[["work", `${launch ? "항목" : "업무"} ${openT.length}`], ["map", "마인드맵"], ["news", "소식"], ["files", `자료 ${files.length}`]]} value={tab} onChange={setTab} /></div>
+    <div style={{ margin: "18px 0 4px" }}><Seg items={[["work", `${launch ? "항목" : "업무"} ${openT.length}`], ["map", "마인드맵"], ["news", "소식"], ["files", `자료 ${files.length}`], ...(p.dash ? [["dash", "대시보드"]] : [])]} value={tab === "dash" && !p.dash ? "work" : tab} onChange={setTab} /></div>
+    {!p.dash && lead && projOpen(p) && <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}><TBtn onClick={() => { A.patchProject(p, { dash: true }, "대시보드 만들기", null); setTab("dash"); }} style={{ fontSize: 12.5 }}>대시보드 만들기 ›</TBtn></div>}
+    {tab === "dash" && p.dash && <><ProjDash p={p} D={D} open={open} />
+      {lead && <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}><TBtn onClick={() => { A.patchProject(p, { dash: false }, "대시보드 없애기 (업무는 그대로)", null); setTab("work"); }} style={{ fontSize: 12.5 }}>대시보드 없애기</TBtn></div>}</>}
     {tab === "work" && <>
       <Card style={{ marginTop: 10 }}><div style={{ display: "flex", gap: 6, padding: 10, flexWrap: "wrap" }}>
         <input value={nt} onChange={(e) => setNt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) addT(); }} placeholder="+ 업무 추가 (Enter로 계속)" aria-label="업무 추가" style={{ ...inp, flex: "1 1 180px", padding: "10px 12px", fontSize: 14 }} />
@@ -322,6 +331,8 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
       {info && <div style={{ padding: "4px 14px 14px", fontSize: 14, color: C.text, lineHeight: 1.9 }}>
         <div>책임자 <select aria-label="책임자 바꾸기" className="v2-sel" value={p.assigneeId || ""} onChange={(e) => A.patchProject(p, { assigneeId: e.target.value }, `책임자 → ${nameOf(D.users, e.target.value)}`, p.assigneeId || "")}><option value="">없음</option>{activeUsers(D.users).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
         <div>함께 하는 사람 {(p.collaboratorIds || []).map((u) => nameOf(D.users, u)).filter(Boolean).join(", ") || "없음"}</div>
+        <div>팀 {lead ? <>{[["", `자동 (${projTeamAuto(p, D.users) || "없음"})`], ...TEAMS.map((t) => [t, t])].map(([k, l]) => <Chip key={k || "auto"} on={(p.team || "") === k} onClick={() => (p.team || "") !== k && A.patchProject(p, { team: k || null }, `팀 → ${k || "자동"}`, p.team || "")}>{l}</Chip>)}</> : <b>{projTeam(p, D.users) || "없음"}</b>}
+          <div style={{ fontSize: 12.5, color: C.mute, lineHeight: 1.6 }}>자동 = 책임자 팀 (해외 하위 프로젝트는 3팀) · 프로젝트 목록·대시보드 팀 칩에 쓰여요</div></div>
         <div>시작 <input type="date" aria-label="시작일 바꾸기" className="v2-sel" defaultValue={p.startDate || ""} onBlur={(e) => { if (e.target.value !== (p.startDate || "")) A.patchProject(p, { startDate: e.target.value }, `시작 ${md(e.target.value) || "없음"}`, p.startDate || ""); }} /> <span style={{ fontSize: 12.5, color: C.mute }}>간트 막대 시작</span></div>
         {!launch && <div>마감 <input type="date" aria-label="마감 바꾸기" className="v2-sel" defaultValue={p.dueDate || ""} onBlur={(e) => { if (e.target.value !== (p.dueDate || "")) A.patchProject(p, { dueDate: e.target.value }, `마감 ${md(e.target.value) || "없음"}`, p.dueDate || ""); }} /></div>}
         <div>브랜드 <select aria-label="브랜드 바꾸기" className="v2-sel" value={p.brand || ""} onChange={(e) => A.patchProject(p, { brand: e.target.value }, `브랜드 → ${brandName(D, e.target.value) || "없음"}`, p.brand || "")}><option value="">없음</option>{(D.brands || []).filter((b) => b.active !== false || b.id === p.brand).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>

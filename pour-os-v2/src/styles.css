@@ -333,3 +333,28 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
 .v2-secret .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .v2-secret .pick{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:14px;border:1px solid #D7DDEE;background:#fff}
 .v2-secret .pick .s{font-size:12.5px;color:#6B7385;line-height:1.6}
+/* 5단계 카테고리 대시보드 (catdash.jsx) — 표는 가로로만 밀림 · 첫 열 고정 */
+.v2-dsum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:2px 0 10px}
+.v2-dsum div{background:#fff;border:1px solid #E1E5EE;border-radius:12px;padding:9px 10px;min-width:0}
+.v2-dsum b{display:block;font-size:19px;color:#0F1F5C;font-variant-numeric:tabular-nums}.v2-dsum span{font-size:11.5px;color:#6B7385}
+.v2-dsum .red b{color:#C2333D}
+.v2-dtbl{background:#fff;border:1px solid #E1E5EE;border-radius:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+.v2-dtbl table{border-collapse:collapse;font-size:12.5px;min-width:560px;width:100%}
+.v2-dtbl th{background:#F7F8FB;color:#5B6478;font-weight:800;padding:8px 6px;text-align:center;border-bottom:1px solid #E1E5EE;white-space:nowrap}
+.v2-dtbl td{padding:7px 4px;border-bottom:1px solid #F0F2F6;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+.v2-dtbl tr:last-child td{border-bottom:0}
+.v2-dtbl th:first-child,.v2-dtbl td:first-child{position:sticky;left:0;z-index:1;background:#fff;text-align:left;padding-left:10px;min-width:132px;max-width:170px;border-right:1px solid #EEF0F5}
+.v2-dtbl th:first-child{background:#F7F8FB}
+.v2-dtbl .pn{display:block;width:100%;text-align:left;background:none;border:0;padding:0;font:inherit;cursor:pointer}
+.v2-dtbl .pn b{display:block;font-size:13px;color:#1F2433;overflow:hidden;text-overflow:ellipsis}.v2-dtbl .pn span{font-size:11px;color:#6B7385;overflow:hidden;text-overflow:ellipsis;display:block}
+.v2-dtbl .n{display:inline-block;min-width:28px;min-height:26px;padding:3px 6px;border-radius:7px;font-weight:800;background:#EEF2FA;color:#24386B;border:0;font:inherit;font-weight:800;cursor:pointer}
+.v2-dtbl .n.late{background:#F8E9EA;color:#C2333D}.v2-dtbl .n.now{background:#24386B;color:#fff}
+.v2-dtbl .ok{color:#2E7D52;font-weight:800}.v2-dtbl .dim{color:#B8BECC}.v2-dtbl .pc{color:#3B4458;font-weight:700}
+.v2-dtbl .tx{text-align:left;max-width:180px;overflow:hidden;text-overflow:ellipsis;color:#3B4458}
+.v2-dnote{font-size:12px;color:#6B7385;padding:8px 2px 14px;line-height:1.6}
+.v2-kan{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,1fr);gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;max-width:100%}
+.v2-kan .col{background:#fff;border:1px solid #E1E5EE;border-radius:12px;padding:8px;min-width:0}
+.v2-kan h4{margin:0 0 6px;font-size:12.5px;color:#24386B}
+.v2-kan .it{display:block;width:100%;text-align:left;font:inherit;font-size:12.5px;color:#1F2433;background:#fff;border:1px solid #EEF0F5;border-radius:9px;padding:7px;margin-bottom:6px;line-height:1.4;cursor:pointer}
+.v2-kan .it span{display:block;color:#6B7385;font-size:11px;margin-top:2px}
+.v2-kan .more{font-size:11.5px;color:#9AA1B0;padding:4px 2px}

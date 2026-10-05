@@ -14,6 +14,7 @@ import { HoldBtn } from "./hold.jsx";
 import { openTask, moveDue } from "./task.jsx";
 import { PickList, BulkBar, dueChips, ro } from "./pick.jsx";
 import { previewLaunchMove } from "./views.js";
+import { RoutineCard } from "./routineui.jsx";
 
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
 // 빠른 기한 버튼은 모두 pick.jsx dueChips (쉬는 날 빼고 · 버튼에 날짜까지)
@@ -122,6 +123,7 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
         </Card>
       </div>
       <div>
+        <RoutineCard D={D} cu={cu} A={A} keyd={key} />
         {up7.length > 0 && <>
           <Head right={<TBtn onClick={() => open({ type: "upturns" })}>모두 ›</TBtn>}>곧 내 차례 {up7.length}{up7.some((u) => u.level === "late" || u.level === "risk") ? <span style={{ color: C.red }}> · 늦을 수 있음 {up7.filter((u) => u.level === "late" || u.level === "risk").length}</span> : null}</Head>
           <Card>{up7.slice(0, soonOpen ? 8 : 3).map((u, i, arr) => <UpRow key={u.t.id} u={u} D={D} cu={cu} open={open} keyd={key} last={i === arr.length - 1 && up7.length <= (soonOpen ? 8 : 3)} />)}

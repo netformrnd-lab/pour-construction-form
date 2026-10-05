@@ -5,8 +5,9 @@
 //   둘 다 바뀜 → 나중에 바뀐 쪽 (신제품 단계 updatedAt vs 업무OS v2At)
 //   처음(기억 없음): 업무OS 에서 고친 적 없는 업무(v2At 없음)만 신제품 값으로, 고친 업무는 그대로 두고 기억만
 // 신제품 대시보드의 빈 값(담당 없음 · 마감 없음)은 처음엔 업무OS 값을 지우지 않음 (자동 기한·기본 담당 유지)
-import { LAUNCH_ITEMS, itemState, ownerIdsOf, launchDue, relaunch, launchItemsOf, customItems } from "./launch.js";
+import { LAUNCH_ITEMS, itemState, ownerIdsOf, launchDue, relaunch, launchItemsOf, customItems, countOf, baseTitle } from "./launch.js";
 import { ownersOf, dueOf } from "./model.js";
+import { countFields } from "./routine.js";
 
 // 신제품 대시보드 상태 → 업무OS (skip = 해당 없음 → 업무는 지우지 않고 'dropped'로 접음)
 export const LB2V = { todo: "todo", doing: "inprogress", done: "done", hold: "hold" };
@@ -21,7 +22,7 @@ const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 export function boardVals(p, it, users) {
   const s = itemState(p, it), live = (id) => (users || []).some((u) => u.id === id && u.active !== false);
   const ids = (s.ownerIds && s.ownerIds.length ? s.ownerIds.filter(live) : ownerIdsOf(s.owner, users));
-  return { status: normB(s.status), owners: ids, due: s.dueTbd ? TBD : s.due || "", note: s.note || "", at: s.updatedAt || "", doneAt: s.doneAt || "", doneBy: s.doneBy || "" };
+  return { status: normB(s.status), owners: ids, due: s.dueTbd ? TBD : s.due || "", note: s.note || "", count: s.count || 0, at: s.updatedAt || "", doneAt: s.doneAt || "", doneBy: s.doneBy || "" };
 }
 
 // p: 신제품 대시보드 제품 · proj: 업무OS 프로젝트(lb_<id>) · tasks: 그 프로젝트 업무 전부 · now: ISO
@@ -45,7 +46,7 @@ export function planLaunchSync(p, proj, tasks, users, today, now, structure) {
     // 상태 (같은 말로 맞춰 비교: 업무OS 확인 대기 = 신제품 '진행 중'(컨펌 누르면 승인) · 진행 중 = doing · 해당 없음으로 접은 것 = skip)
     //   프로젝트째 보류·중단으로 접힌 업무는 상태를 건드리지 않음 (프로젝트 다시 시작 때 이전 상태로)
     const folded = t.holdBy === "proj" || (t.status === "dropped" && !t.lbSkip);
-    if (!folded && take("status", b.status, vB, false)) {
+    if (!folded && (!it.target || b.status === "skip" || t.lbSkip) && take("status", b.status, vB, false)) {
       if (b.status === "skip") { Object.assign(f, { status: "dropped", lbSkip: true, dropPrev: t.status || "todo", droppedAt: now }); skipAdd.push(it.id); said.push("해당 없음"); }
       else {
         const to = LB2V[b.status];
@@ -67,7 +68,15 @@ export function planLaunchSync(p, proj, tasks, users, today, now, structure) {
     }
     // 진행사항 → 메모
     if (take("note", b.note, v.note, !b.note)) { Object.assign(f, { memo: b.note, memoAt: now, memoBy: "", memoByName: "신제품 대시보드" }); said.push("진행사항"); }
-    const seen = { status: b.status, owners: b.owners, due: b.due, note: b.note };
+    // 횟수 항목(블로그 포스팅 3회 …): 버전1 업무OS 칸(osExtra.count)에서 바뀐 횟수 → 업무 count + 제목 (n/목표) · 상태는 위 상태 칸이 같이 맞춤
+    //   osExtra 는 버전1 몫이라 업무OS v2 는 읽기만(lbpush 는 안 씀) → v2 에서 센 횟수는 v2 에만 · 기억에 횟수가 없던 예전 업무는 v2 에서 고친 적 없을 때만
+    //   기억이 있으면 버전1에서 바뀐 만큼(b − 기억)만 업무OS 횟수에 더함 (v2 에서 센 것은 그대로) · 상태도 합친 횟수로 (끝냄 ↔ 진행 중)
+    if (it.target) { const vc = countOf(t), noBase = !base || base.count === undefined;
+      const nn = noBase ? (b.count !== vc && !t.v2At ? b.count : vc) : Math.max(0, vc + (b.count - base.count));
+      if (nn !== vc) { const c = countFields(t, 0, { id: "board", name: "신제품 대시보드" }, now, nn);
+        ["status", "doneAt", "doneBy", "doneByName", "finishedAt"].forEach((k) => { if (k in c.fields && !(k in f)) f[k] = c.fields[k]; });
+        Object.assign(f, { count: nn, title: c.fields.title }); said.push("횟수"); } }
+    const seen = { status: b.status, owners: b.owners, due: b.due, note: b.note, ...(it.target ? { count: b.count } : {}) };
     if (Object.keys(f).length || !same(seen, base)) out.push({ t, fields: { ...f, lbSeen: seen }, label: said.join("·") });
   });
   // 프로젝트: 출시일 · 이름 · 해당 없음 목록
@@ -129,12 +138,13 @@ export function planRowSync(p, proj, tasks, users, now, structure) {
     const rows = (((p.stages || {})[it.id] || {}).tasks || []).filter((r) => r && r.id);
     const subs = (tasks || []).filter((t) => t.parentId === parent.id && t.lbRow);
     rows.forEach((r) => {
-      const b = rowVals(r, users), sub = subs.find((t) => t.lbRow === r.id);
+      // 업무OS 에서 막 만든 하위 업무: 줄 번호 = 업무 번호인데 lbRow 가 아직 안 들어왔을 수 있음(다른 기기가 먼저 신호를 받음) → 새로 만들지 않고 그 업무로
+      const b = rowVals(r, users), sub = subs.find((t) => t.lbRow === r.id) || (tasks || []).find((t) => t.parentId === parent.id && !t.lbRow && t.id === r.id);
       if (!sub) { const o = b.owners;
         create.push({ id: `${parent.id}__r_${r.id}`, title: rowTitle(b.note), memo: b.note, projectId: proj.id, parentId: parent.id, lbRow: r.id, isFixed: false, type: "general", status: "todo",
           assigneeId: o[0] || "", assigneeIds: o, dueDate: b.due === TBD ? "" : b.due, dueAuto: false, noReview: true, attachments: [], brand: proj.brand || "", phase: parent.phase || "",
           createdAt: now, createdBy: "board", madeIn: "launch-board", lbSeen: b }); return; }
-      const base = sub.lbSeen || {}, v = subVals(sub), f = {}, said = [];
+      const base = sub.lbSeen || {}, v = subVals(sub), f = sub.lbRow ? {} : { lbRow: r.id }, said = [];
       const take = (k) => !same(b[k], base[k]) && !same(b[k], v[k]) && (same(v[k], base[k]) || !sub.v2At || (r.updatedAt || ((p.stages || {})[it.id] || {}).updatedAt || "") > sub.v2At);
       if (take("note")) { Object.assign(f, { title: rowTitle(b.note), memo: b.note }); said.push("할 일 줄 내용"); }
       if (b.owners.length && take("owners")) { Object.assign(f, { assigneeIds: b.owners, assigneeId: b.owners[0] }); said.push("할 일 줄 담당"); }

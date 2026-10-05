@@ -16,21 +16,35 @@ export function projSeen(p, uid, tasks) {
   return p.assigneeId === uid || (p.collaboratorIds || []).includes(uid) || allowed(p, uid) || p.createdBy === uid || p.secret.by === uid
     || (tasks || []).some((t) => t.projectId === p.id && ownersOf(t).includes(uid));
 }
-// 업무를 볼 수 있나 (p: 그 업무의 프로젝트 · 없으면 null)
-export function taskSeen(t, p, uid, tasks) {
+// 업무를 볼 수 있나 (p: 그 업무의 프로젝트 · 없으면 null) — 상위 업무가 기밀이면 하위 업무(안·할 일 줄)도 그 기준
+//   요청을 받은 사람(확인 받기 reviewTo · 도움 ask.to · 기한 조정 dueReq.to · 막힘 blocked.to · 풀림 unblocked.to)도 자동 허용 → 받은 요청을 열어 처리할 수 있게
+export function taskSeen(t, p, uid, tasks, depth = 0) {
   if (!t) return true;
   if (p && secretOn(p) && !projSeen(p, uid, tasks)) return false;
+  if (t.parentId && depth < 20) { const up = (tasks || []).find((x) => x.id === t.parentId); if (up && !taskSeen(up, p, uid, tasks, depth + 1)) return false; }
   if (t.isFixed || !secretOn(t)) return true;
-  return ownersOf(t).includes(uid) || allowed(t, uid) || (t.ccIds || []).includes(uid) || t.requestedBy === uid || t.createdBy === uid || t.secret.by === uid || (!!p && p.assigneeId === uid);
+  const to = (o) => !!(o && o.to === uid);
+  return ownersOf(t).includes(uid) || allowed(t, uid) || (t.ccIds || []).includes(uid) || t.requestedBy === uid || t.createdBy === uid || t.secret.by === uid || (!!p && p.assigneeId === uid)
+    || t.reviewTo === uid || to(t.ask) || to(t.dueReq) || to(t.blocked) || to(t.unblocked);
 }
 // 이 사람에게 기밀이 걸린 것인지 (마스터는 늘 봄)
 export const seeAll = (u) => !u || isMaster(u);
 
-// 화면용 대체본: 담당·기한·상태·순서 칸은 그대로, 글·자료·사유는 비움
-const blankReason = (o) => (o && typeof o === "object" ? { ...o, reason: "", note: "" } : o);
-export const lockTask = (t) => ({ ...t, title: LOCK_T, memo: "", attachments: [], feedback: null, statusLog: [], holdReason: "", ownerText: "", wfData: null, wfChecks: null, lbSeen: null,
-  blocked: blankReason(t.blocked), dueReq: blankReason(t.dueReq), handoff: blankReason(t.handoff), locked: true });
-export const lockProj = (p) => ({ ...p, title: LOCK_P, memo: "", now: null, lbSeen: null, sourceManualName: "", resultValue: null, locked: true });
+// 화면용 대체본: 남길 칸만 골라 담음(허용 목록) — 담당·기한·상태·순서 칸은 그대로(바쁜 건 보임), 글·자료·사유·이유·안 정보는 모두 빠짐
+const pick = (o, keys) => { const r = {}; keys.forEach((k) => { if (o && o[k] !== undefined) r[k] = o[k]; }); return r; };
+const sub = (o, keys) => (o && typeof o === "object" ? pick(o, keys) : o);
+const WHO = ["by", "byName", "at", "to"];
+const T_KEEP = ["id", "_doc", "status", "projectId", "parentId", "isFixed", "type", "launchItem", "phase", "assigneeId", "assigneeIds", "assignedBy", "assignedAt", "requestedBy", "requestedAt",
+  "dueDate", "dueAuto", "startDate", "workDate", "weekDay", "weekSlot", "holdUntil", "holdBy", "heldAt", "heldBy", "reviewAt", "reviewTo", "doneAt", "doneBy", "doneByName", "doneDate", "finishedAt",
+  "approvedAt", "approvedBy", "ackAt", "ackBy", "deps", "bulkId", "ownerFrom", "ownerAuto", "noReview", "ccIds", "tidySkip", "priority", "deleted", "secret", "option", "decision", "optDropped",
+  "order", "count", "customStep", "lbRow", "lbOff", "dropPrev", "holdPrev", "madeIn", "createdAt", "createdBy", "updatedAt", "updatedBy", "v2At"];
+export const lockTask = (t) => ({ ...pick(t, T_KEEP), title: LOCK_T, memo: "", attachments: [], statusLog: [], locked: true,
+  ...(t.handoff ? { handoff: sub(t.handoff, [...WHO, "from", "all"]) } : {}), ...(t.blocked ? { blocked: sub(t.blocked, WHO) } : {}), ...(t.unblocked ? { unblocked: sub(t.unblocked, WHO) } : {}),
+  ...(t.dueReq ? { dueReq: sub(t.dueReq, [...WHO, "date"]) } : {}), ...(t.dueReqResult ? { dueReqResult: sub(t.dueReqResult, [...WHO, "ok", "date"]) } : {}),
+  ...(t.ask ? { ask: sub(t.ask, [...WHO, "kind"]) } : {}), ...(t.feedback ? { feedback: sub(t.feedback, WHO) } : {}), ...(t.decided ? { decided: sub(t.decided, WHO) } : {}) });
+const P_KEEP = ["id", "_doc", "status", "assigneeId", "collaboratorIds", "dueDate", "dueAuto", "launchDate", "startDate", "priority", "progress", "progressManual", "category", "brand", "team",
+  "createdAt", "createdBy", "updatedAt", "deleted", "archived", "secret", "lbProject", "skipItems", "dash", "holdUntil", "heldBy", "finishedAt", "doneAt", "wfId", "group", "lbTrash"];
+export const lockProj = (p) => ({ ...pick(p, P_KEEP), title: LOCK_P, memo: "", now: null, statusLog: [], locked: true });
 
 // 목록 하나(서버에서 따로 읽은 업무들)를 화면용으로
 export function viewTasks(list, D, u = D.viewer) {

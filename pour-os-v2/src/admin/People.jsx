@@ -11,6 +11,7 @@ import { C, Chip, Seg, TBtn, Head, Card, Row, Empty, Sheet, useLocal } from "../
 import { LS } from "../core.jsx";
 import { Lv, SelBar, openOneOff, wdOf } from "./common.jsx";
 import { weekLoad, topMiss, finAt } from "./workload.js";
+import { sumAk } from "../routine.js";
 
 const ORD = { 위험: 0, 주의: 1, 순조: 2 };
 const sortRows = (rows) => rows.slice().sort((a, b) => ORD[a.level] - ORD[b.level] || b.weeks[0].n - a.weeks[0].n || String(a.u.name).localeCompare(String(b.u.name), "ko"));
@@ -60,19 +61,20 @@ function useChecks(from) {
   return a;
 }
 // 반복 업무 계산 재료 (그 주들의 체크 · 행동지표 정의와 실적)
-function useRepInputs(froms) {
+function useRepInputs(froms, D) {
   const first = froms.slice().sort()[0];
   const checks = useChecks(first.slice(0, 8) + "01");
   const v1 = useV1Docs(["state-actionKPIs", ...froms.map((w) => "kpi-act-" + akQidOfWeek(w))]);
   const akItems = ((v1["state-actionKPIs"] || {}).items || []).filter(Boolean);
-  const akDocs = Object.fromEntries(Object.entries(v1).filter(([k]) => k.startsWith("kpi-act-")).map(([k, d]) => [k.slice(8), d || {}]));
+  const v2 = (D && D.ak && D.ak.v2) || [];   // 업무OS 오늘 화면 [+1] 기록(v2 kpiact) — 버전1 실적과 더해서
+  const akDocs = useMemo(() => Object.fromEntries(Object.entries(v1).filter(([k]) => k.startsWith("kpi-act-")).map(([k, d]) => [k.slice(8), sumAk(d, v2.find((x) => (x.id || x._doc) === k.slice(8)))])), [v1, v2]);
   return { checks: checks || [], akItems, akDocs, ready: checks != null && v1["state-actionKPIs"] !== undefined };
 }
 
 // [한 주] 사람 × [반복 업무 | 프로젝트 업무]
 function WeekOne({ D, idx, open, from }) {
   const key = ymd(new Date()), to = addDays(from, 6), past = to < key;
-  const inp = useRepInputs([from]);
+  const inp = useRepInputs([from], D);
   const rows = useMemo(() => teamWeeks(D, idx, new Date(), false).map((r) => ({ u: r.u, level: r.level, late: r.late, ...weekLoad({ D, uid: r.u.id, from, key, ...inp, temp: idx.temp }) }))
     .filter((r) => r.rep.due + r.one.total > 0 || r.late)
     .map((r) => ({ ...r, bad: r.rep.miss + r.one.late + (past ? r.one.open : 0) }))
@@ -109,7 +111,7 @@ function WeekOne({ D, idx, open, from }) {
 // 반복 업무 한 사람 한 주: 고정업무는 요일 칸(✓ 함 · 빨강 못 함 · 흐림 남음), 행동지표는 목표 · 실적
 export function RepSheet({ D, idx, open, onBack, onClose, s }) {
   const key = ymd(new Date()), u = (D.users || []).find((x) => x.id === s.uid);
-  const inp = useRepInputs([s.from]);
+  const inp = useRepInputs([s.from], D);
   const L = useMemo(() => weekLoad({ D, uid: s.uid, from: s.from, key, ...inp, temp: idx && idx.temp }), [D, s.uid, s.from, inp.checks, inp.akItems, inp.akDocs]);
   const items = L.rep.items.slice().sort((a, b) => b.miss - a.miss || b.left - a.left || String(a.title).localeCompare(String(b.title), "ko"));
   const fx = items.filter((x) => x.kind === "fx"), ak = items.filter((x) => x.kind === "ak");
@@ -133,7 +135,7 @@ const KINDS = [["all", "모두"], ["one", "프로젝트 업무"], ["rep", "반�
 export function WeekTable({ D, idx, open, noTemp, off = 0, kind = "one" }) {
   const now = new Date(), key = ymd(now), mon = weekStart(key);
   const wkKeys = [0, 1, 2, 3].map((i) => addDays(mon, (off + i) * 7));
-  const inp = useRepInputs(wkKeys);
+  const inp = useRepInputs(wkKeys, D);
   const rows = useMemo(() => { const d7 = new Date(now - 7 * 864e5).toISOString();
     return sortRows(teamWeeks(D, idx, now, noTemp, off, mon)).map((r) => {
       const weeks = r.weeks.map((w) => { const L = weekLoad({ D, uid: r.u.id, from: w.from, key, ...inp, temp: idx.temp, noTemp });

@@ -30,7 +30,7 @@ export function useGhRefresh(D, cu) {
     let tried = 0; try { tried = +localStorage.getItem(LS("ghtry")) || 0; } catch (_) {}
     if (Date.now() - tried < 30 * 60 * 1000) return;
     busy.current = true; try { localStorage.setItem(LS("ghtry"), String(Date.now())); } catch (_) {}
-    refreshGhSales(g, cu.name).catch((e) => console.error("[그로홈 매출] 읽기 실패(예전 합계 그대로):", e)).finally(() => { busy.current = false; });
+    refreshGhSales(g, cu.name).catch((e) => console.warn("[그로홈 매출] 읽기 실패 · 예전 합계 그대로 · 30분 뒤 다시:", e)).finally(() => { busy.current = false; });
   }, [ready, g && (g.checkedAt || g.at), cu && cu.id]);
 }
 

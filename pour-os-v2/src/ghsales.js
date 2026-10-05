@@ -11,6 +11,7 @@ const num = (f) => Number((f || {}).integerValue || (f || {}).doubleValue || (f 
 
 export async function readGhRecords() {
   if (typeof window !== "undefined" && window.__GH_RECORDS) return window.__GH_RECORDS;   // 시험용
+  if (fb.NO_NET) throw new Error("가짜 저장 장치(시험) — 밖으로 안 읽음");
   const all = []; let tok = "";
   for (let i = 0; i < 80; i++) {
     const u = `https://firestore.googleapis.com/v1/projects/${GH.projectId}/databases/(default)/documents/salesRecords?pageSize=300&mask.fieldPaths=date&mask.fieldPaths=platform&mask.fieldPaths=totalPrice&key=${GH.apiKey}${tok ? "&pageToken=" + encodeURIComponent(tok) : ""}`;

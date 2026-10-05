@@ -50,7 +50,7 @@ export function useItemNotes(D, itemId) {
   useEffect(() => { if (locked) return; fb.fetchWhere("notes", ["itemId", "==", itemId]).then(setOld).catch((e) => console.error("[v2] 댓글 불러오기 실패:", e)); }, [itemId, locked]);
   return useMemo(() => { if (locked) return []; const m = new Map(); old.forEach((n) => m.set(n.id, n)); D.notes.forEach((n) => { if (n.itemId === itemId) m.set(n.id, n); }); return [...m.values()]; }, [old, D.notes, itemId, locked]);
 }
-// 업무 보기 — 맨 위에 '지금 해야 할 일'(받았어요·확인·기한 조정·막힘)을 띄우고, 그 아래 순서(앞 일·다음 일) → 메모 → 하위 업무 → 대화 → 파일 → 기록
+// 업무 보기 — 맨 위에 '지금 해야 할 일'(받았어요·확인·기한 조정·막힘)을 띄우고, 그 아래 대화(가장 자주 씀) → 순서(앞 일·다음 일) → 메모 → 하위 업무 → 파일
 // focus: "talk" | "files" — 열자마자 그 칸으로 (앞 일 '자료 n ›', 앞사람에게 묻기)
 export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx0, setToast }) {
   const t = useTask(D, id);
@@ -113,7 +113,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
     <div style={{ height: risk ? 6 : 12 }} />
     <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7 }}>
       <span>담당 {owners.join(", ") || "없음"}{temp ? " (임시 · 책임자로 채움)" : t.ownerFrom === "default" || (t.ownerAuto && !t.ownerFrom) ? " (기본 담당)" : ""}</span> · <span style={{ color: n != null && n < 0 && !done && t.status !== "hold" ? C.red : C.sub, fontWeight: n != null && n < 0 && !done && t.status !== "hold" ? 800 : 400 }}>{dueOf(t) ? `기한 ${md(dueOf(t))}${done ? "" : " · " + ddayLabel(n)}` : "기한 미정"}</span> · <b style={{ color: C.ink }}>{review ? "확인 대기" : STATUS_L[t.status] || t.status}</b>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>기간 {mine || master ? <input type="date" aria-label="시작일" className="v2-sel" value={t.startDate || ""} max={dueOf(t) || undefined} onChange={(e) => A.patchTask(t, { startDate: e.target.value }, "edit", `${t.title} · 시작 ${md(e.target.value) || "없음"}`, { prev: { startDate: t.startDate || "" } })} style={{ height: 30, padding: "0 6px", fontSize: 13 }} /> : <span>{t.startDate ? md(t.startDate) : "시작 미정"}</span>} ~ {dueOf(t) ? md(dueOf(t)) : "기한 미정"}</div>
+      {t.startDate && <div>기간 {md(t.startDate)} ~ {dueOf(t) ? md(dueOf(t)) : "기한 미정"}</div>}
       {(t.ccIds || []).length > 0 && <div>참조 {(t.ccIds || []).map((x) => nameOf(D.users, x)).filter(Boolean).join(", ")}</div>}
       {t.handoff && t.handoff.by && <div>{t.handoff.byName}님이 {md(ymd(new Date(t.handoff.at)))}에 {(t.handoff.from || []).map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "담당 없음"} → {nameOf(D.users, t.handoff.to)}{t.handoff.note ? ` · ${t.handoff.note}` : ""}</div>}
       {giver && <div>{giverName}님이 맡김{(req ? t.requestedAt : t.assignedAt) ? ` · ${md(ymd(new Date(req ? t.requestedAt : t.assignedAt)))}` : ""}{t.ackAt ? " · 받음" : " · 아직 안 받음"}</div>}
@@ -162,6 +162,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
       {!done && !review && t.status !== "hold" && <TBtn v="soft" onClick={() => { setMore(false); setMode("hold"); }}>보류</TBtn>}
       {!done && <TBtn v="soft" onClick={() => { setMore(false); setMode(mode === "cc" ? "" : "cc"); }}>참조{(t.ccIds || []).length ? ` ${(t.ccIds || []).length}` : ""}</TBtn>}
       {!done && !t.parentId && !t.decision && (mine || req === cu.id || master) && <TBtn v="soft" onClick={() => { setMore(false); A.setDecision(t, true); }}>결정 업무로 쓰기</TBtn>}
+      {(mine || master) && !done && <label className="v2-more-date">시작일 <input type="date" aria-label="시작일" className="v2-sel" value={t.startDate || ""} max={dueOf(t) || undefined} onChange={(e) => A.patchTask(t, { startDate: e.target.value }, "edit", `${t.title} · 시작 ${md(e.target.value) || "없음"}`, { prev: { startDate: t.startDate || "" } })} style={{ height: 34, padding: "0 6px", fontSize: 13 }} /></label>}
       <SecretBox kind="task" x={t} D={D} cu={cu} A={A} only="button" />
       <CopyLink kind="t" id={t.id} label="업무 링크 복사" onDone={() => setToast && setToast({ text: "링크를 복사했어요 · 잔디·카톡에 붙여 넣으면 이 업무가 바로 열려요" })} />
     </div>}
@@ -184,6 +185,13 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
       <div style={{ fontSize: 12.5, color: C.sub }}>{nameOf(D.users, approver) || "책임자"}님이 수락하면 기한이 바뀌어요. 그 전까지는 지금 기한({md(dueOf(t)) || "미정"})이에요.</div>
       {reqDate && reqDate === dueOf(t) && <div style={{ fontSize: 12.5, color: C.red }}>지금 기한과 같은 날이에요 · 다른 날을 골라 주세요</div>}
       <Act onClick={() => { if (reqDate && reqDate !== dueOf(t)) { A.requestDue(t, reqDate, txt.trim()); setMode(""); setTxt(""); } }} style={{ alignSelf: "flex-start", background: C.navy, color: "#fff", borderColor: C.navy, opacity: reqDate && reqDate !== dueOf(t) ? 1 : 0.45 }}>요청 보내기</Act></div>}
+
+    <div id="v2-t-talk" style={{ scrollMarginTop: 8, margin: "18px 0 8px" }}><Seg items={[["talk", `대화 ${notes.filter((x) => !x.deleted).length}`], ["log", "기록"]]} value={tab2} onChange={(v) => { setTab2(v); if (v === "log" && logs == null) loadLogs(); }} /></div>
+    {tab2 === "talk" ? <Thread D={D} cu={cu} A={A} notes={notes} itemId={taskNoteId(t.id)} ctx={{ taskId: t.id, projectId: t.projectId }} />
+      : <Card>{logs == null ? <Empty>불러오는 중…</Empty> : hist.length === 0 ? <Empty>기록이 없어요</Empty> : hist.map((h, i) => <div key={h.id} className="v2-hist" style={{ borderBottom: i < hist.length - 1 ? `1px solid ${C.line}` : "none" }}>
+          <div className="hd"><b>{h.text}</b><span>{h.who || ""}{h.at ? ` · ${md(ymd(new Date(h.at)))} ${hm(h.at)}` : ""}</span></div>
+          {h.ch && h.ch.length > 0 && <div className="ch">{h.ch.map((c) => <span key={c.k}><small>{c.l}</small> <i className="was">{c.a}</i> → <i className="now">{c.b}</i></span>)}</div>}</div>)}</Card>}
+
 
     {!t.isFixed && (preds.length > 0 || nexts.length > 0 || !done) && <>
       <Head right={mode !== "deps" && canOrder && <TBtn onClick={() => { setDepSel(null); setMode("deps"); }}>앞 일 바꾸기</TBtn>}>순서</Head>
@@ -223,12 +231,6 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
         <div style={{ display: "flex", gap: 8, padding: 10 }}><input value={sub} onChange={(e) => setSub(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing && sub.trim()) { A.addTask({ title: sub, parentId: t.id, projectId: t.projectId, assigneeId: t.assigneeId || cu.id, dueDate: t.dueDate, noReview: true }); setSub(""); } }} placeholder="+ 하위 업무 (작게 쪼개면 시작이 쉬워요)" aria-label="하위 업무 추가" style={{ ...inp, padding: "10px 12px", fontSize: 14 }} />
           <Act onClick={() => { if (sub.trim()) { A.addTask({ title: sub, parentId: t.id, projectId: t.projectId, assigneeId: t.assigneeId || cu.id, dueDate: t.dueDate, noReview: true }); setSub(""); } }}>추가</Act></div>
       </Card></>}
-
-    <div id="v2-t-talk" style={{ scrollMarginTop: 8, margin: "18px 0 8px" }}><Seg items={[["talk", `대화 ${notes.filter((x) => !x.deleted).length}`], ["log", "기록"]]} value={tab2} onChange={(v) => { setTab2(v); if (v === "log" && logs == null) loadLogs(); }} /></div>
-    {tab2 === "talk" ? <Thread D={D} cu={cu} A={A} notes={notes} itemId={taskNoteId(t.id)} ctx={{ taskId: t.id, projectId: t.projectId }} />
-      : <Card>{logs == null ? <Empty>불러오는 중…</Empty> : hist.length === 0 ? <Empty>기록이 없어요</Empty> : hist.map((h, i) => <div key={h.id} className="v2-hist" style={{ borderBottom: i < hist.length - 1 ? `1px solid ${C.line}` : "none" }}>
-          <div className="hd"><b>{h.text}</b><span>{h.who || ""}{h.at ? ` · ${md(ymd(new Date(h.at)))} ${hm(h.at)}` : ""}</span></div>
-          {h.ch && h.ch.length > 0 && <div className="ch">{h.ch.map((c) => <span key={c.k}><small>{c.l}</small> <i className="was">{c.a}</i> → <i className="now">{c.b}</i></span>)}</div>}</div>)}</Card>}
 
     <div id="v2-t-files" style={{ scrollMarginTop: 8 }} /><Head right={<><TBtn onClick={() => fileRef.current && fileRef.current.click()}>+ 파일 올리기</TBtn><input ref={fileRef} type="file" multiple hidden onChange={(e) => { const f = [...e.target.files]; e.target.value = ""; if (f.length) A.addFiles(t, f); }} /></>}>파일 {files.length}</Head>
     <Card>{files.length === 0 ? <Empty>올린 파일이 없어요</Empty> : files.map((f, i) => <FileRow key={i} f={f} D={D} last={i === files.length - 1} />)}</Card>

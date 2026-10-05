@@ -122,10 +122,12 @@ ok("프로젝트 상태: 지난 일 있으면 위험, 시작 전 있으면 주�
   assert.equal(M.projHealth(P, { tasks: [{ projectId: "p", assigneeId: "a", status: "inprogress", dueDate: "2026-10-20" }] }, k).level, "순조");
   assert.equal(M.projHealth({ ...P, dueDate: "2026-10-06", progress: 30 }, { tasks: [{ projectId: "p", assigneeId: "a", status: "inprogress", dueDate: "2026-10-20" }] }, k).level, "위험");
 });
-ok("사람 일정 상태: 지난 일 3개 이상이면 위험", () => {
+ok("사람 일정 상태: 진짜 내 일 지난 것 5개 이상이면 위험 · 3개는 주의 · 임시 담당 신제품 항목은 안 셈", () => {
   const now = new Date("2026-10-02T09:00:00");
-  const late = [1, 2, 3].map((i) => ({ id: i, assigneeId: "a", status: "todo", dueDate: "2026-09-2" + i }));
+  const late = [1, 2, 3, 4, 5].map((i) => ({ id: i, assigneeId: "a", status: "todo", dueDate: "2026-09-2" + i }));
   assert.equal(M.personHealth({ tasks: late }, "a", now).level, "위험");
+  assert.equal(M.personHealth({ tasks: late.slice(0, 3) }, "a", now).level, "주의");
+  assert.equal(M.personHealth({ tasks: late.map((t) => ({ ...t, launchItem: "x_blog", ownerAuto: true, ownerFrom: "lead" })) }, "a", now).realLate, 0);
   assert.equal(M.personHealth({ tasks: [{ id: 9, assigneeId: "a", status: "inprogress", dueDate: "2026-10-09" }] }, "a", now).level, "순조");
   assert.equal(M.personHealth({ tasks: [{ id: 9, assigneeId: "a", status: "inprogress", dueDate: "2026-10-09" }] }, "a", now).weeks[1], 1);
 });

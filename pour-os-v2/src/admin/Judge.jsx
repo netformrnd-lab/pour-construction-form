@@ -12,7 +12,7 @@ const NAVY = { background: C.navy, color: "#fff", borderColor: C.navy };
 
 export function Judge({ D, A, open, keyd }) {
   const J = useMemo(() => judgeOf(D, keyd), [D, keyd]);
-  const [ask, setAsk] = useState(null), [f, setF] = useState("all"), [n, setN] = useState(5);
+  const [ask, setAsk] = useState(null), [f, setF] = useState("all"), [n, setN] = useState(5), [endOpen, setEndOpen] = useState(false);   // 끝난·멈춘 프로젝트는 드물게 봄 → 한 줄로 접어 둠
   const ended = useMemo(() => D.projects.filter((p) => !projOpen(p) || isHoldP(p)).sort((a, b) => endAt(b).localeCompare(endAt(a))), [D.projects]);
   const cnt = (k) => ended.filter((p) => k === "all" || stK(p) === k).length;
   const list = ended.filter((p) => f === "all" || stK(p) === f);
@@ -30,12 +30,12 @@ export function Judge({ D, A, open, keyd }) {
         sub={`이번 주 이 프로젝트 업무 ${x.tasks.length}건 미루면 ${after(x)}`} onClick={() => open({ type: "project", id: x.p.id })}
         right={<Act onClick={() => push1w(x)} style={NAVY}>1주 미루기</Act>} last={i === Math.min(6, J.push.length) - 1} />)}
     </Card>
-    <Head>끝났거나 멈춘 프로젝트 {ended.length}</Head>
-    <div className="v2-chips" role="group" aria-label="끝난 프로젝트 거르기">{[["all", "모두"], ["done", "완료"], ["drop", "중단"], ["hold", "보류"]].map(([k, l]) => <Chip key={k} on={f === k} onClick={() => { setF(k); setN(5); }}>{l} {cnt(k)}</Chip>)}</div>
+    <Card style={{ marginTop: 14 }}><More onClick={() => setEndOpen(!endOpen)}>{endOpen ? "끝났거나 멈춘 프로젝트 접기 ▴" : `끝났거나 멈춘 프로젝트 ${ended.length} ▾`}</More></Card>
+    {endOpen && <><div className="v2-chips" role="group" aria-label="끝난 프로젝트 거르기" style={{ marginTop: 8 }}>{[["all", "모두"], ["done", "완료"], ["drop", "중단"], ["hold", "보류"]].map(([k, l]) => <Chip key={k} on={f === k} onClick={() => { setF(k); setN(5); }}>{l} {cnt(k)}</Chip>)}</div>
     <Card style={{ marginTop: 8 }}>{list.length === 0 ? <Empty>없어요</Empty> : list.slice(0, n).map((p, i) => <Row key={p.id} title={p.title}
       sub={[`${projStLabel(p)}${endAt(p) ? " " + md(ymd(new Date(endAt(p)))) : ""}`, isHoldP(p) ? (p.holdUntil ? `다시 할 날 ${md(p.holdUntil)}` : "다시 할 날 미정") : "", isHoldP(p) ? p.holdReason : p.status === "dropped" ? p.dropReason : "", p.status === "dropped" ? "남은 업무 접음" : ""].filter(Boolean).join(" · ")}
       onClick={() => open({ type: "project", id: p.id })} last={i === Math.min(n, list.length) - 1 && list.length <= n} />)}
-      {list.length > n && <More onClick={() => setN(n + 10)}>{list.length - n}개 더 보기 ▾</More>}</Card>
+      {list.length > n && <More onClick={() => setN(n + 10)}>{list.length - n}개 더 보기 ▾</More>}</Card></>}
     {ask && <Ask title={`${ask.x.p.title} · 1주 미루기`} yes={`${ask.changes.length}건 미루기`} onNo={() => setAsk(null)}
       body={`${ask.changes.slice(0, 5).map((c) => `${c.task.title} ${md(dueOf(c.task))} → ${md(c.due)}`).join("\n")}${ask.changes.length > 5 ? `\n외 ${ask.changes.length - 5}건` : ""}\n\n${after(ask.x)} · 5초 안에 되돌릴 수 있어요`}
       onYes={() => { A.applyDues(ask.changes, `${ask.x.p.title} · 1주 미루기`); setAsk(null); }} />}

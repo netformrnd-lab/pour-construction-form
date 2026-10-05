@@ -55,7 +55,7 @@ const addD = (ymd, n) => { const d = new Date(ymd + "T00:00:00"); d.setDate(d.ge
 const akMine = (docs, it, wk, uid) => { const v = ((((docs || {})[akQidOfWeek(wk)] || {}).w || {})[wk] || {})[it.id]; return Math.max(0, +((v && v.by) || {})[uid] || 0); };
 export { akVal };
 
-// 브랜드: 같은 브랜드 짝이 있으면 그것만 (그로홈 '고객 타겟 광고' ↔ 그로홈 제품) · 없으면 다른 브랜드도 (컨텐츠 발행은 POUR스토어 하나뿐 → 그로홈 제품 포스팅도 셈 · 틀리면 취소)
+// 브랜드(사용자 결정 2026-10-05 '브랜드가 다르면 별도로'): 둘 다 브랜드가 있으면 같은 브랜드끼리만 짝 · 한쪽이라도 브랜드가 없으면 짝 가능
 const BR = { "POUR스토어": "pourstore", "포어스토어": "pourstore", "그로홈": "grohome", "GROHOME": "grohome", "바라스데이": "barasday" };
 export const brId = (b) => { const s = String(b || "").trim(); return BR[s] || s.toLowerCase(); };
 export const brandName = (b) => ({ pourstore: "POUR스토어", grohome: "그로홈", barasday: "바라스데이" })[brId(b)] || String(b || "");
@@ -68,7 +68,7 @@ export function launchMatches(it, D, uid, key) {
   const open = (p) => p && !p.deleted && !["completed", "done", "dropped", "hold", "paused"].includes(p.status) && !p.archived;
   const base0 = (D.tasks || []).filter((t) => t.launchItem && want.includes(t.launchItem) && !t.isFixed && !t.deleted && !t.parentId && !isDone(t) && t.status !== "dropped" && t.status !== "review"
     && isMine(t, uid) && open(pOf(t.projectId)) && countOf(t) < targetOf(t) && t.title !== "기밀 업무");
-  const same = base0.filter((t) => sameBrand(it.brand, (pOf(t.projectId) || {}).brand || t.brand)), base = same.length ? same : base0;
+  const base = base0.filter((t) => sameBrand(it.brand, (pOf(t.projectId) || {}).brand || t.brand));
   const real = base.filter((t) => !isTempOwner(t, D)), pool = real.length ? real : base;
   const k = key || ymd(new Date()), near = (t) => { const L = (pOf(t.projectId) || {}).launchDate || "", d = dueOf(t) || "";
     return (L && L >= addDays(k, -21) && L <= addDays(k, 45)) || (d && d >= addDays(k, -14) && d <= addDays(k, 21)); };
@@ -77,7 +77,7 @@ export function launchMatches(it, D, uid, key) {
 // 신제품 → 반복 짝: 내 행동지표(사용 중) 중 이 항목과 낱말이 맞는 것
 export function akMatches(t, items, users, uid, brand) {
   const all = (items || []).filter((it) => it && it.active !== false && !it.deleted && !it.perFail && it.unit !== "%" && akWho(users, it).includes(uid) && akLaunchItems(it).includes(t.launchItem));
-  const same = all.filter((it) => sameBrand(it.brand, brand || t.brand)); return same.length ? same : all;
+  return all.filter((it) => sameBrand(it.brand, brand || t.brand));
 }
 
 // v2 실적 문서에 +d (transaction 안에서 부름) → { write, ret }

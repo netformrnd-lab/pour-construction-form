@@ -133,7 +133,7 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
           {[noDate ? `날짜 없는 일 ${noDate}` : "", tempMine ? `담당 정할 항목 ${tempMine}` : ""].filter(Boolean).join(" · ")} ›</More></Card>}
       </div>
     </div>
-    <div className="v2-fab"><Big onClick={() => open({ type: "add" })}>+ 할 일 추가 · 맡기기</Big></div>
+    <div className="v2-fab"><Big onClick={() => open({ type: "add" })}>+ 할 일 추가</Big></div>
   </>;
 }
 function LineBtn({ children, onClick }) {

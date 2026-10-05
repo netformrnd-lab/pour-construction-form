@@ -44,15 +44,15 @@ export function RoutineTab({ D, open }) {
   return <>
     <div className="a-rthead">
       <div style={{ flex: "1 1 260px", maxWidth: 420 }}><Seg items={[["all", "전체"], ["fixed", `고정업무 ${fx.length}`], ["ak", `행동지표 ${ak.length}`]]} value={sec} onChange={setSec} /></div>
-      <span className="a-hint" style={{ margin: 0 }}>고정업무 = 반복 체크 · 행동지표 = KPI 목표 횟수 (보기만)</span>
+      <span className="a-hint" style={{ margin: 0 }}>고정업무 = 반복 체크 · 행동지표 = KPI 목표 횟수</span>
     </div>
-    <div className="v2-chips" role="group" aria-label="브랜드" style={{ marginTop: 10 }}>
-      <Chip on={brand === "all"} onClick={() => setBrand("all")}>전체 브랜드</Chip>
-      {brands.map((b) => <Chip key={b.id} on={brand === b.id} onClick={() => setBrand(b.id)}>{b.name}</Chip>)}
-    </div>
-    <div className="v2-chips" role="group" aria-label="사람" style={{ marginTop: 6 }}>
-      <Chip on={who1 === "all"} onClick={() => setWho("all")}>모든 사람</Chip>
-      {ppl.map((u) => <Chip key={u.id} on={who1 === u.id} onClick={() => setWho(u.id)}>{u.name}</Chip>)}
+    {/* 브랜드 · 사람 칩은 한 줄(옆으로 밀기) — 폰에서 위가 길어지지 않게 */}
+    <div className="v2-filterrow" style={{ marginTop: 10 }} aria-label="브랜드 · 사람 고르기">
+      <div className="v2-chips" role="group" aria-label="브랜드"><Chip on={brand === "all"} onClick={() => setBrand("all")}>전체 브랜드</Chip>
+        {brands.map((b) => <Chip key={b.id} on={brand === b.id} onClick={() => setBrand(b.id)}>{b.name}</Chip>)}</div>
+      <span className="sep" aria-hidden="true" />
+      <div className="v2-chips" role="group" aria-label="사람"><Chip on={who1 === "all"} onClick={() => setWho("all")}>모든 사람</Chip>
+        {ppl.map((u) => <Chip key={u.id} on={who1 === u.id} onClick={() => setWho(u.id)}>{u.name}</Chip>)}</div>
     </div>
     {sec !== "ak" && <FixedBoard D={D} fx={fx} paused={fxAll.filter((t) => t.paused && inBrand(t.brand, "")).length} who={who1} keyD={key} open={open} />}
     {sec !== "fixed" && <AkBoard D={D} items={ak} ready={def.d !== undefined} err={def.err} who={who1} whoOf={whoOfAk} />}

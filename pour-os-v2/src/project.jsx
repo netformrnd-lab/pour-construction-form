@@ -84,8 +84,11 @@ export function ProjectsTab({ D, cu, open, idx: idx0 }) {
       <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="찾기 · 프로젝트·제품 이름, 책임자, 업무 제목" aria-label="프로젝트 찾기" style={inp} />
       {!hit && <Seg items={[["list", "목록"], ["gantt", "간트"], ["dash", "대시보드"]]} value={pv} onChange={setPv} />}
       {!hit && <Seg items={[["mine", `내 프로젝트 ${mineAll.length}`], ["all", `모든 프로젝트 ${openList.length}`]]} value={scope} onChange={setScope} />}
-      {!hit && teams.length > 1 && <div className="v2-chips" role="group" aria-label="팀">{[["all", "모든 팀"], ...teams.map((t) => [t, t])].map(([k, l]) => <Chip key={k} on={team1 === k} onClick={() => setTeam(k)}>{l}</Chip>)}</div>}
-      {!hit && <div className="v2-chips v2-catchips" role="group" aria-label="카테고리">{cats.map(([k, l]) => <Chip key={k} on={cat1 === k} onClick={() => setCat(k)}>{l} {catN(k)}</Chip>)}</div>}
+      {/* 팀 · 카테고리 칩은 한 줄(옆으로 밀기) — 폰에서 첫 프로젝트가 위로 오게 */}
+      {!hit && <div className="v2-filterrow" aria-label="팀 · 카테고리 고르기">
+        {teams.length > 1 && <div className="v2-chips" role="group" aria-label="팀">{[["all", "모든 팀"], ...teams.map((t) => [t, t])].map(([k, l]) => <Chip key={k} on={team1 === k} onClick={() => setTeam(k)}>{l}</Chip>)}</div>}
+        {teams.length > 1 && <span className="sep" aria-hidden="true" />}
+        <div className="v2-chips v2-catchips" role="group" aria-label="카테고리">{cats.map(([k, l]) => <Chip key={k} on={cat1 === k} onClick={() => setCat(k)}>{l} {catN(k)}</Chip>)}</div></div>}
       {!hit && elseN > 0 && <div className="v2-cathint">{catName(cat1) || "미분류"} 프로젝트가 다른 사람 프로젝트에 {elseN}개 더 있어요 <TBtn onClick={() => setScope("all")}>모든 프로젝트 보기 ›</TBtn></div>}
     </header>
     {!hit && pv === "dash" ? <CatDash list={list} cat={cat1} D={D} idx={idx} open={open} />

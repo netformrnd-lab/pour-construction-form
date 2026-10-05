@@ -50,13 +50,19 @@ export function CatDash({ list, cat, D, idx, open }) {
   const avg = rows.length ? Math.round(rows.reduce((s, p) => s + projPct(p), 0) / rows.length) : 0;
   return <>
     <div className="v2-dsum"><div><b>{rows.length}</b><span>진행 중</span></div><div className={lateN ? "red" : ""}><b>{lateN}</b><span>지난 업무</span></div><div><b>{avg}%</b><span>평균 진척</span></div></div>
-    <div className="v2-dtbl" role="region" aria-label="프로젝트 표" tabIndex={0}><table>
+    <div className="v2-dtbl v2-dtbl-wide" role="region" aria-label="프로젝트 표" tabIndex={0}><table>
       <thead><tr><th>프로젝트</th><th>지금</th><th>다음</th><th>진척</th><th>마감</th></tr></thead>
       <tbody>{rows.map((p) => { const nn = nowNext(p, D, idx, key), late = p.dueDate && p.dueDate < key;
         return <tr key={p.id} onClick={() => open({ type: "project", id: p.id })} style={{ cursor: "pointer" }}>
           <td><button type="button" className="pn" onClick={(e) => { e.stopPropagation(); open({ type: "project", id: p.id }); }}><b>{p.title}</b><span>책임 {nameOf(D.users, p.assigneeId) || "없음"}</span></button></td>
           <td className="tx">{nn.now ? `${whoOf(D, nn.now)} · ${nn.now.title}` : "–"}</td><td className="tx">{nn.next ? `${whoOf(D, nn.next)} · ${nn.next.title}` : "–"}</td>
           <td className="pc">{projPct(p)}%</td><td>{p.dueDate ? (late ? <span className="n late">지남</span> : md(p.dueDate)) : "–"}</td></tr>; })}</tbody></table></div>
+    {/* 폰(700px 아래): 표 대신 카드 — 이름 · 지금 · 진척 막대 · 마감이 한눈에 */}
+    <div className="v2-dcards">{rows.map((p) => { const nn = nowNext(p, D, idx, key), late = p.dueDate && p.dueDate < key, pc = projPct(p);
+      return <button type="button" key={p.id} className="c" onClick={() => open({ type: "project", id: p.id })}>
+        <div className="t"><b>{p.title}</b>{p.dueDate ? (late ? <span className="n late">지남</span> : <span className="d">{md(p.dueDate)}</span>) : <span className="d">마감 없음</span>}</div>
+        <div className="s">지금 · {nn.now ? `${whoOf(D, nn.now)} · ${nn.now.title}` : "–"}</div>
+        <div className="bar" aria-label={`진척 ${pc}%`}><i style={{ width: pc + "%" }} /></div><div className="s">진척 {pc}% · 책임 {nameOf(D.users, p.assigneeId) || "없음"}</div></button>; })}</div>
     <div className="v2-dnote">줄을 누르면 그 프로젝트</div>
   </>;
 }

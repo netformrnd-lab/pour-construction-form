@@ -16,6 +16,8 @@ export function SmsSettings({ cu, setToast }) {
   return <Card style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
     <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>누가 댓글에서 <b>@{cu.name}</b>{roParticle(cu.name)} 부르면 '확인할 것'에 떠요. 아래 시간 안이면 문자도 와요 (10분 안에 여러 번이면 한 통으로).</div>
     <div style={{ fontSize: 13, color: C.sub }}>{phone ? `받는 번호 ${phone} (관리자가 넣음)` : "번호가 없어서 문자는 안 가요 · 관리자에게 번호를 넣어 달라고 해 주세요"}</div>
+    {/* 번호가 없으면 설정은 미리 정해 둘 수 있지만 흐리게 (지금은 문자가 안 감) */}
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, opacity: phone ? 1 : 0.55 }}>
     <div className="v2-chips" role="group" aria-label="문자 받기"><Chip on={p.on} onClick={() => !p.on && save({ on: true })}>문자 받기</Chip><Chip on={!p.on} onClick={() => p.on && save({ on: false })}>앱에만</Chip></div>
     {p.on && <>
       <div className="v2-chips" role="group" aria-label="주말·공휴일"><Chip on={!p.weekend} onClick={() => p.weekend && save({ weekend: false })}>주말·공휴일 안 받음</Chip><Chip on={p.weekend} onClick={() => !p.weekend && save({ weekend: true })}>주말·공휴일도 받음</Chip></div>
@@ -24,6 +26,7 @@ export function SmsSettings({ cu, setToast }) {
         <select className="v2-sel" aria-label="끝 시각" value={p.to} onChange={(e) => save({ to: e.target.value, from: e.target.value <= p.from ? SMS_FROM : p.from })}>{HOURS.slice(1).map((h) => <option key={h} value={h}>{h}</option>)}</select></div>
       <div style={{ fontSize: 12.5, color: C.mute, lineHeight: 1.6 }}>08:00~18:00 안에서만 고를 수 있어요 · 시간 밖에 불리면 앱에만 떠요(나중에 몰아서 보내지 않아요) · 내가 쓴 댓글엔 안 와요</div>
     </>}
+    </div>
   </Card>;
 }
 

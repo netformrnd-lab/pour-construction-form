@@ -69,4 +69,14 @@ ok("되돌아옴(에코) 없음: 쓴 뒤 신제품 값으로 lbsync 를 돌리�
   const back = S.planLaunchSync(P(stages), proj(), [{ ...t, lbSeen: r.tasks[0].lbSeen }], users, today, now);
   assert.equal(back.tasks.length, 0);
 });
+ok("마감 미정: 업무OS에서 기한 지우면 → 신제품 '마감 미정' · 신제품 미정 → 업무OS 기한 없음(자동 아님) · 되돌아옴 없음", () => {
+  const r = L.planLaunchPush(P({ d01: { ...st, due: "2026-10-20", dueAuto: "2026-10-20" } }), proj(), [T("d01", { lbSeen: base, dueDate: "", dueAuto: false })], users, now, "x");
+  assert.equal(r.board.fields["stages.d01.dueTbd"], true); assert.equal(r.board.fields["stages.d01.due"], ""); assert.equal(r.tasks[0].lbSeen.due, "tbd");
+  const back = S.planLaunchSync(P({ d01: { ...st, due: "", dueTbd: true } }), proj(), [T("d01", { lbSeen: r.tasks[0].lbSeen, dueDate: "", dueAuto: false })], users, today, now);
+  assert.equal(back.tasks.length, 0);
+  const pull = S.planLaunchSync(P({ d01: { ...st, dueTbd: true } }), proj(), [T("d01", { lbSeen: base })], users, today, now);
+  assert.equal(pull.tasks[0].fields.dueDate, ""); assert.equal(pull.tasks[0].fields.dueAuto, false);
+  const set = L.planLaunchPush(P({ d01: { ...st, dueTbd: true } }), proj(), [T("d01", { lbSeen: { ...base, due: "tbd" }, dueDate: "2026-10-30", dueAuto: false })], users, now, "x");
+  assert.equal(set.board.fields["stages.d01.due"], "2026-10-30"); assert.equal(set.board.fields["stages.d01.dueTbd"], false);
+});
 console.log(`${n}개 모두 통과`);

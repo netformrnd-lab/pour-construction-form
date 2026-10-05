@@ -5,7 +5,7 @@
 // 기한: 사람이 정한 날 → 그 날 · 자동 기한 → 날짜 + 자동 표시(dueAuto: 같은 날짜 문자열 · 신제품에서 날짜를 바꾸면 자동 표시가 저절로 풀림)
 // 신제품 대시보드 칸(lb)만 · 업무OS 추가 칸(osExtra)은 버전1 몫이라 안 씀 · 마감 '미정'(dueTbd)·추가 할 일 줄은 4단계
 import { LAUNCH_ITEMS } from "./launch.js";
-import { V2B, boardVals } from "./lbsync.js";
+import { V2B, boardVals, v2Due, TBD } from "./lbsync.js";
 import { ownersOf, dueOf, nameOf } from "./model.js";
 
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
@@ -16,7 +16,7 @@ export const BY = "업무OS";
 // 업무OS 업무 → 신제품 말 (status: null 이면 상태는 건드리지 않음 — 프로젝트째 접힌 업무)
 export function v2Vals(t) {
   const folded = t.holdBy === "proj" || (t.status === "dropped" && !t.lbSkip);
-  return { status: folded ? null : t.status === "dropped" ? "skip" : V2B[t.status] || "todo", owners: ownersOf(t), due: t.dueAuto ? "" : dueOf(t), note: t.memo || "", auto: t.dueAuto ? dueOf(t) : "" };
+  return { status: folded ? null : t.status === "dropped" ? "skip" : V2B[t.status] || "todo", owners: ownersOf(t), due: v2Due(t), note: t.memo || "", auto: t.dueAuto ? dueOf(t) : "" };
 }
 
 // p: 신제품 대시보드 제품 · proj: lb_ 프로젝트 · tasks: 그 프로젝트 업무 · who: 바꾼 사람 이름
@@ -40,7 +40,8 @@ export function planLaunchPush(p, proj, tasks, users, now, who) {
       Object.assign(sf, { owner: [...v.owners.map((id) => nameOf(users, id)).filter(Boolean), ...keep].join(", "), ownerIds: v.owners });
       seen.owners = v.owners; mine.push("담당");
     }
-    if (push("due")) { Object.assign(sf, { due: v.due || v.auto, dueAuto: v.due ? "" : v.auto }); seen.due = v.due; mine.push("마감"); }
+    // 마감: 미정(tbd) → 신제품 '마감 미정' · 사람이 정한 날 → 그 날 · 자동 → 자동 날짜 + 표시 (미정 칸은 늘 같이 맞춤)
+    if (push("due")) { Object.assign(sf, v.due === TBD ? { due: "", dueAuto: "", dueTbd: true } : { due: v.due || v.auto, dueAuto: v.due ? "" : v.auto, dueTbd: false }); seen.due = v.due; mine.push("마감"); }
     // 둘 다 자동 기한이면 신제품 대시보드 마감 칸에 자동 날짜만 채움/고침 (기록 없이 · 마감 '미정'·컨펌 완료·해당 없음 칸은 그대로)
     else if (!v.due && !b.due && v.auto && !s.dueTbd && b.status !== "done" && b.status !== "skip" && ((s.due || "") !== v.auto || (s.dueAuto || "") !== v.auto)) Object.assign(sf, { due: v.auto, dueAuto: v.auto });
     if (push("note")) { Object.assign(sf, { note: v.note }); seen.note = v.note; mine.push("진행사항"); }

@@ -12,13 +12,16 @@ import { ownersOf, dueOf } from "./model.js";
 export const LB2V = { todo: "todo", doing: "inprogress", done: "done", hold: "hold" };
 export const V2B = { todo: "todo", inprogress: "doing", review: "doing", done: "done", hold: "hold" };   // 업무OS → 신제품 말 (3단계에서도 씀) · 확인 대기는 아직 진행 중 → 신제품에서 컨펌하면 승인
 const normB = (s) => (s === "skip" ? "skip" : LB2V[s] ? s : "todo");   // req·reviewed 같은 옛 상태는 할 일
+// 마감 미정: 신제품 dueTbd = 업무OS 기한 없음(자동 아님) — 둘 다 "tbd" 로 비교
+export const TBD = "tbd";
+export const v2Due = (t) => (t.dueAuto ? "" : dueOf(t) || TBD);
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
 // 한 업무의 신제품 대시보드 값 (상태 · 담당 번호들 · 직접 정한 마감 · 진행사항)
 export function boardVals(p, it, users) {
   const s = itemState(p, it), live = (id) => (users || []).some((u) => u.id === id && u.active !== false);
   const ids = (s.ownerIds && s.ownerIds.length ? s.ownerIds.filter(live) : ownerIdsOf(s.owner, users));
-  return { status: normB(s.status), owners: ids, due: s.due || "", note: s.note || "", at: s.updatedAt || "", doneAt: s.doneAt || "", doneBy: s.doneBy || "" };
+  return { status: normB(s.status), owners: ids, due: s.dueTbd ? TBD : s.due || "", note: s.note || "", at: s.updatedAt || "", doneAt: s.doneAt || "", doneBy: s.doneBy || "" };
 }
 
 // p: 신제품 대시보드 제품 · proj: 업무OS 프로젝트(lb_<id>) · tasks: 그 프로젝트 업무 전부 · now: ISO
@@ -30,7 +33,7 @@ export function planLaunchSync(p, proj, tasks, users, today, now, structure) {
     const t = byItem.get(it.id); if (!t) return;   // 업무가 없는 항목(처음부터 해당 없음 등)은 3단계·4단계에서
     const b = boardVals(p, it, users), base = t.lbSeen || null, first = !base;
     const vB = t.status === "dropped" && t.lbSkip ? "skip" : V2B[t.status] || "todo";
-    const v = { owners: ownersOf(t), due: t.dueAuto ? "" : dueOf(t), note: t.memo || "" };
+    const v = { owners: ownersOf(t), due: v2Due(t), note: t.memo || "" };
     const boardNewer = !t.v2At || (b.at && b.at > t.v2At);
     const f = {}, said = [];
     const take = (k, bv, vv, empty) => {   // 이 칸을 신제품 값으로 바꿀지
@@ -57,7 +60,8 @@ export function planLaunchSync(p, proj, tasks, users, today, now, structure) {
     if (b.owners.length && take("owners", b.owners, v.owners, false)) { Object.assign(f, { assigneeIds: b.owners, assigneeId: b.owners[0], ownerAuto: false, ownerFrom: "board" }); said.push("담당"); }
     // 마감: 신제품에서 정한 날 → 그 날 · 정했던 마감을 지우면 → 출시일 기준 자동 기한으로
     if (take("due", b.due, v.due, !b.due)) {
-      if (b.due) Object.assign(f, { dueDate: b.due, dueAuto: false });
+      if (b.due === TBD) Object.assign(f, { dueDate: "", dueAuto: false });
+      else if (b.due) Object.assign(f, { dueDate: b.due, dueAuto: false });
       else { const ad = launchDue(p.launchDate, it.off, today); Object.assign(f, { dueDate: ad, dueAuto: true }); }
       said.push("마감");
     }
@@ -79,7 +83,7 @@ export function planLaunchSync(p, proj, tasks, users, today, now, structure) {
   if (pTake("name", p.name || "", proj.title || "")) { pf.title = p.name; pSaid.push("이름"); }
   // 해외 하위 프로젝트: 신제품 대시보드에서만 정함 → 그대로 따라감(이름은 구조 문서에서)
   if ((p.project || "") !== (proj.lbProject || "") || (p.project && structure && lbProjName(structure, p.brand, p.project) !== (proj.lbProjectName || ""))) {
-    Object.assign(pf, { lbProject: p.project || "", lbProjectName: lbProjName(structure, p.brand, p.project) }); if ((p.project || "") !== (proj.lbProject || "")) pSaid.push(p.project ? "하위 프로젝트 " + lbProjName(structure, p.brand, p.project) : "하위 프로젝트 없음"); }
+    Object.assign(pf, { lbProject: p.project || "", lbProjectName: lbProjName(structure, p.brand, p.project) }); if ((p.project || "") !== (proj.lbProject || "") && proj.lbProject !== undefined) pSaid.push(p.project ? "하위 프로젝트 " + lbProjName(structure, p.brand, p.project) : "하위 프로젝트 없음"); }
   if (skipAdd.length || skipDel.length) pf.skipItems = [...new Set([...(proj.skipItems || []).filter((x) => !skipDel.includes(x)), ...skipAdd])];
   const pSeen = { launchDate: p.launchDate || "", name: p.name || "" };
   if (Object.keys(pf).length || !same(pSeen, pb)) project = { fields: { ...pf, lbSeen: pSeen }, label: pSaid.join("·") };

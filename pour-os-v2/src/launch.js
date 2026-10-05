@@ -117,12 +117,12 @@ export function planLaunchImport(products, D, today = ymd(new Date())) {
       // 담당: 신제품 대시보드에 업무OS 사람 번호(ownerIds)가 있으면 그대로(여러 명) · 없으면 이름으로 맞춤
       const live = (id) => users.some((x) => x.id === id), ids = (s.ownerIds || []).filter(live), nameU = !ids.length && s.owner ? userByName(users, s.owner) : null;
       const owners = ids.length ? ids : nameU ? [nameU.id] : [], u = owners.length ? { id: owners[0] } : null;
-      const auto = !s.due; const due = s.due || launchDue(p.launchDate, it.off, today);
+      const auto = !s.due && !s.dueTbd; const due = s.dueTbd ? "" : s.due || launchDue(p.launchDate, it.off, today);   // 마감 미정이면 기한 없음
       tasks.push({ id: `${pid}__${it.id}`, title: it.name + (it.target ? ` (${s.count || 0}/${it.target})` : ""), projectId: pid, launchItem: it.id, phase: it.phase, isFixed: false, type: "general",
         status: ST[s.status] || "todo", assigneeId: u ? u.id : "", assigneeIds: owners, ownerText: s.owner && !u ? s.owner : "", dueDate: due, dueAuto: auto, noReview: true,
         ownerAuto: false, ...(u ? { ownerFrom: "v1" } : {}),
         memo: s.note || "", attachments: [], parentId: null, brand: p.brand || "", importedFrom: "launch-board", createdAt: p.createdAt || "",
-        lbSeen: { status: ["todo", "doing", "done", "hold"].includes(s.status) ? s.status : "todo", owners: ids.length ? ids : ownerIdsOf(s.owner, users), due: s.due || "", note: s.note || "" },
+        lbSeen: { status: ["todo", "doing", "done", "hold"].includes(s.status) ? s.status : "todo", owners: ids.length ? ids : ownerIdsOf(s.owner, users), due: s.dueTbd ? "tbd" : s.due || "", note: s.note || "" },
         ...(s.status === "done" ? { doneAt: s.doneAt || "", finishedAt: s.doneAt || "", doneByName: s.doneBy || "" } : {}) });
     });
   });

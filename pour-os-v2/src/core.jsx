@@ -18,6 +18,7 @@ import { parseMentions, smsTarget, smsOpen, smsDue, smsText } from "./mention.js
 import { flowOwners } from "./flow.js";
 import { sumAk, akWrite, countFields, countOf, baseTitle } from "./routine.js";
 import { linkInbox } from "./links.js";
+import { lagInbox } from "./kpi2.js";
 import { akQidOfWeek, akWeekKey } from "../../pour-os/src/actionKpi.js";
 import { C, Big, TBtn, inp, useLocal } from "./ui.jsx";
 
@@ -27,7 +28,7 @@ export const nowIso = () => new Date().toISOString();
 
 // ───────────────── 데이터 구독 ─────────────────
 export function useData(on) {
-  const [S, setS] = useState({ users: null, projects: [], openT: [], doneT: [], notes: [], log: [], events: [], brands: [], workflows: [], mainKPIs: [], subKPIs: [], settings: [], akDef: undefined, akV1: undefined, akV2: [], links: [] });
+  const [S, setS] = useState({ users: null, projects: [], openT: [], doneT: [], notes: [], log: [], events: [], brands: [], workflows: [], mainKPIs: [], subKPIs: [], settings: [], akDef: undefined, akV1: undefined, akV2: [], links: [], lagDef: undefined, lagV2: [], kpisales: [] });
   // 이번 분기 — 켜 둔 채 날이 바뀌어도 따라감(1분마다 · 화면 다시 볼 때)
   const [akQ, setAkQ] = useState(() => akQidOfWeek(akWeekKey(new Date())));
   useEffect(() => { const f = () => setAkQ(akQidOfWeek(akWeekKey(new Date()))); const iv = setInterval(f, 60000); document.addEventListener("visibilitychange", f);
@@ -57,6 +58,10 @@ export function useData(on) {
       fb.listenV1Doc("state-actionKPIs", (d) => put("akDef")(d), (e) => { console.warn("[v2] 행동지표 정의 못 읽음:", e); put("akDef")(null); }),
       fb.listen("kpiact", null, put("akV2"), (e) => console.warn("[v2] 행동지표 실적 못 읽음:", e)),
       fb.listen("links", ["open", "==", true], put("links"), (e) => console.warn("[v2] CRM·마진 알림 못 읽음:", e)),   // 다른 앱에서 온 할 일 한 줄 (links.js) — 못 읽어도 앱은 그대로
+      // KPI(kpi2.js): 결과 KPI 정의 = 버전1 읽기만 · 월 값 = v2 lagvals · 매출 합계 = v2 kpisales(CRM · 그로홈) — 못 읽어도 앱은 그대로
+      fb.listenV1Doc("state-lagKPIs", (d) => put("lagDef")(d), (e) => { console.warn("[v2] 결과 KPI 정의 못 읽음:", e); put("lagDef")(null); }),
+      fb.listen("lagvals", null, put("lagV2"), (e) => console.warn("[v2] 결과 KPI 월 값 못 읽음:", e)),
+      fb.listen("kpisales", null, put("kpisales"), (e) => console.warn("[v2] 매출 합계 못 읽음:", e)),
     ];
     return () => subs.forEach((u) => u && u());
   }, [on]);
@@ -65,7 +70,9 @@ export function useData(on) {
     // 분기마다 v2 실적 · 이번 분기는 버전1 실적(읽기만)도 더함
     const docs = Object.fromEntries((S.akV2 || []).map((x) => [x.id || x._doc, sumAk(x)])); docs[akQ] = sumAk(S.akV1, (S.akV2 || []).find((x) => (x.id || x._doc) === akQ));
     const ak = { qid: akQ, items: ((S.akDef || {}).items || []).filter(Boolean), docs, v2: S.akV2 || [], ready: S.akDef !== undefined && S.akV1 !== undefined };
-    return { users: S.users || [], projects: S.projects, tasks: [...m.values()], notes: S.notes, log: S.log, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], settings: S.settings || [], ak, links: S.links || [], linkInbox, ready: !!S.users };
+    return { users: S.users || [], projects: S.projects, tasks: [...m.values()], notes: S.notes, log: S.log, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], settings: S.settings || [], ak, links: S.links || [], linkInbox,
+      kpi: { lagDefs: ((S.lagDef || {}).items || []).filter((x) => x && x.id && !x.deleted), lagReady: S.lagDef !== undefined, lagV2: Object.fromEntries((S.lagV2 || []).map((x) => [x.id || x._doc, x])), sales: Object.fromEntries((S.kpisales || []).map((x) => [x.id || x._doc, x])) },
+      lagInbox, ready: !!S.users };
   }, [S, akQ]);
   return [D, err];
 }

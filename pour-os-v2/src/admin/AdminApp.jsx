@@ -1,5 +1,5 @@
 // 관리자 대시보드 (os2-admin.html) — 마스터 4명 전용 화면. 보안 경계가 아니라 화면을 나눈 것 (보안규칙 변경 없음)
-// 탭 5개: 한눈에 · 사람 · 반복 실행 · 프로젝트 · 정리 / 머리 [설정] · 내 화면으로 ›
+// 탭 6개: 한눈에 · 사람 · 반복 실행 · KPI · 프로젝트 · 정리 / 머리 [설정] · 내 화면으로 ›
 // 상세 시트는 sheets.jsx 공용 + 관리자 시트(사람 관리자판 · 설정 · 고르기 목록 · 순서 꼬임)를 덧붙임
 import { useMemo, useState } from "react";
 import { useBoot, Gate, useActs, LS } from "../core.jsx";
@@ -17,6 +17,7 @@ import { SettingsSheet, LaunchOrderSheet } from "./Settings.jsx";
 import { PersonAdmin } from "./PersonAdmin.jsx";
 import { HandOver } from "./HandOver.jsx";
 import { RoutineTab } from "./Routine.jsx";
+import { KpiBoard, LagSheet, useGhRefresh } from "../kpiui.jsx";
 import "./admin.css";
 
 export default function AdminApp() {
@@ -37,7 +38,7 @@ function NotMaster({ cu, logout }) {
   </div>;
 }
 
-const TABS = [["glance", "한눈에"], ["people", "사람"], ["routine", "반복 실행"], ["projects", "프로젝트"], ["tidy", "정리"]];
+const TABS = [["glance", "한눈에"], ["people", "사람"], ["routine", "반복 실행"], ["kpi", "KPI"], ["projects", "프로젝트"], ["tidy", "정리"]];
 
 function AdminMain({ B }) {
   const { D, cu } = B;
@@ -48,6 +49,7 @@ function AdminMain({ B }) {
   const [toast, setToast] = useState(null);
   const idx = useMemo(() => turnIndex(D), [D]);
   const A = useActs(D, cu, setToast, idx);
+  useGhRefresh(D, cu);   // 그로홈 매출 합계 (3시간에 한 번)
   // 나에게 온 것: 팀원 '확인할 것'과 같은 계산 (읽음 표시도 팀원 화면과 같은 기기 저장)
   const [seen, setSeen] = useLocal(LS("seen-" + cu.id), {});
   const T = useMemo(() => turnsOf(D, idx, cu.id, new Date(), seen, (B.meta || {}).seededAt || ""), [D, idx, cu.id, seen]);
@@ -71,6 +73,7 @@ function AdminMain({ B }) {
     order: (p) => <OrderSheet {...p} />,
     launchOrder: (p) => <LaunchOrderSheet {...p} />,
     inbox: (p) => <InboxSheet {...p} TV={TV} setSeen={setSeen} />,
+    lagInput: (p, s) => <LagSheet {...p} s={s} />,
   };
   const top = stack[stack.length - 1];
   return <div className="v2-app a-app">
@@ -92,6 +95,7 @@ function AdminMain({ B }) {
         {tab === "glance" && <Glance {...ctx} />}
         {tab === "people" && <PeopleTab {...ctx} />}
         {tab === "routine" && <RoutineTab {...ctx} />}
+        {tab === "kpi" && <KpiBoard {...ctx} />}
         {tab === "projects" && <ProjectsTab {...ctx} />}
         {tab === "tidy" && <TidyTab {...ctx} tq={tq} setTq={setTq} />}
       </div>

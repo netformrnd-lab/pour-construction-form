@@ -405,3 +405,39 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
 .v2-dcards .s{font-size:12.5px;color:#6B7385;margin-top:4px;overflow-wrap:anywhere}
 .v2-dcards .bar{height:5px;background:#E8EBF2;border-radius:3px;margin-top:7px;overflow:hidden}.v2-dcards .bar i{display:block;height:100%;background:#24386B}
 @media (max-width:700px){.v2-dcards{display:flex}.v2-dtbl-wide{display:none}}
+/* ② KPI (kpiui.jsx) */
+.v2-kbar { height: 6px; background: #E8EBF2; border-radius: 3px; overflow: hidden; margin-top: 7px; }
+.v2-kbar i { display: block; height: 100%; border-radius: 3px; }
+.v2-krow { display: block; width: 100%; padding: 11px 14px; border: none; border-bottom: 1px solid #E3E7F0; background: #fff; text-align: left; font: inherit; color: #1B2333; box-sizing: border-box; }
+.v2-krow.btn { cursor: pointer; }
+.v2-krow.sub { padding-left: 24px; background: #FBFCFE; }
+.v2-krow .r1 { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.v2-krow .r1 b { font-size: 14px; font-weight: 800; min-width: 0; overflow-wrap: anywhere; }
+.v2-krow .r1 span { font-size: 12.5px; font-weight: 800; color: #5B6475; white-space: nowrap; flex: 0 0 auto; }
+.v2-krow .s { margin-top: 5px; font-size: 12px; color: #6B7385; line-height: 1.5; }
+.v2-krow .kk { display: inline-block; font-size: 11px; font-weight: 800; color: #24386B; background: #EEF1F8; border-radius: 6px; padding: 1px 6px; margin-right: 6px; }
+.v2-ksrc { font-weight: 800; color: #5B6475; }
+.v2-ksrc.auto { color: #24386B; }
+.v2-khero { margin-top: 18px; background: #0F1F5C; color: #fff; border-radius: 16px; padding: 14px 16px; }
+.v2-khero .k { font-size: 12px; opacity: .8; }
+.v2-khero .t { font-size: 17px; font-weight: 800; margin-top: 3px; }
+.v2-khero .n { margin-top: 8px; font-size: 13px; }
+.v2-khero .n b { font-size: 20px; }
+.v2-khero .v2-kbar { background: rgba(255,255,255,.2); }
+.v2-khero .v2-kbar i { background: #fff !important; }
+.v2-kmv { padding: 4px 14px 10px 24px; background: #F7F8FB; border-bottom: 1px solid #E3E7F0; }
+.v2-kmv .ln { display: flex; gap: 8px; align-items: baseline; padding: 6px 0; font-size: 13px; width: 100%; border: none; background: none; font: inherit; text-align: left; color: #1B2333; flex-wrap: wrap; }
+.v2-kmv .ln.go { cursor: pointer; }
+.v2-kmv .tg { font-size: 11px; font-weight: 800; color: #24386B; background: #EEF1F8; border-radius: 6px; padding: 1px 6px; flex: 0 0 auto; }
+.v2-kmv .nm { font-weight: 700; flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; }
+.v2-kmv .v { font-size: 12px; color: #5B6475; font-weight: 700; }
+.v2-klink { display: block; margin-top: 5px; padding: 0; border: none; background: none; font: inherit; font-size: 12.5px; font-weight: 800; color: #24386B; cursor: pointer; text-align: left; }
+.v2-kmonth { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.v2-kmonth b { font-size: 16px; color: #0F1F5C; }
+.v2-kmonth .m { margin-left: auto; font-size: 13px; font-weight: 800; color: #5B6475; }
+.v2-klag { display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid #E3E7F0; background: #fff; }
+.v2-klag .l { flex: 1; min-width: 0; }
+.v2-klag .l b { display: block; font-size: 14px; color: #1B2333; overflow-wrap: anywhere; }
+.v2-klag .l span { display: block; margin-top: 3px; font-size: 12px; color: #6B7385; line-height: 1.45; }
+.v2-klag .in { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; width: 120px; }
+.v2-klag .u { font-size: 12.5px; color: #5B6475; font-weight: 700; min-width: 14px; }

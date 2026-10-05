@@ -78,12 +78,12 @@ export function planOwnerIds(products, users) {
 export const userByName = (users, owner) => (users || []).find((u) => u.active !== false && nameMatch(owner, u.name)) || (users || []).find((u) => nameMatch(owner, u.name)) || null;
 
 // v1 항목 상태 읽기 (런칭보드 칸 lb:true 는 stages, 업무OS 추가 칸은 osExtra)
-function itemState(p, it) {
+export function itemState(p, it) {
   const ex = ((p && p.osExtra) || {})[it.id] || {};
-  if (it.lb) { const s = ((p && p.stages) || {})[it.id] || {}; return { status: s.status || "todo", owner: s.owner || "", ownerIds: Array.isArray(s.ownerIds) ? s.ownerIds : null, due: s.due || "", note: s.note || "", doneAt: s.doneAt || "", doneBy: s.doneBy || "" }; }
+  if (it.lb) { const s = ((p && p.stages) || {})[it.id] || {}; return { status: s.status || "todo", owner: s.owner || "", ownerIds: Array.isArray(s.ownerIds) ? s.ownerIds : null, due: s.due || "", note: s.note || "", doneAt: s.doneAt || "", doneBy: s.doneBy || "", updatedAt: s.updatedAt || "" }; }
   const count = Number(ex.count || 0); let status = ex.status || "todo";
   if (it.target && status !== "skip") status = count >= it.target ? "done" : count > 0 ? "doing" : status;
-  return { status, owner: ex.owner || "", due: ex.due || "", note: ex.note || "", count, doneAt: ex.doneAt || (status === "done" ? ex.updatedAt || "" : ""), doneBy: ex.doneBy || ex.updatedBy || "" };
+  return { status, owner: ex.owner || "", ownerIds: Array.isArray(ex.ownerIds) ? ex.ownerIds : null, due: ex.due || "", note: ex.note || "", count, doneAt: ex.doneAt || (status === "done" ? ex.updatedAt || "" : ""), doneBy: ex.doneBy || ex.updatedBy || "", updatedAt: ex.updatedAt || "" };
 }
 const ST = { done: "done", doing: "inprogress", todo: "todo", hold: "hold" };
 
@@ -105,7 +105,8 @@ export function planLaunchImport(products, D, today = ymd(new Date())) {
     const pid = "lb_" + p.id, leadName = p.lead || (LAUNCH_BRANDS[p.brand] || {}).bm || "", lead = userByName(users, leadName);
     // skipItems: v1 에서 건너뛴 항목 (업무를 만들지 않음 → 순서표에서 그 앞 항목으로 거슬러 올라감. 그 밖에 없는 항목은 오래전에 끝나 불러오지 않은 것)
     const proj = { id: pid, title: p.name, launchId: p.id, category: "launch", group: "신제품", brand: p.brand || "", batch: p.batch || "", dueDate: p.launchDate || "", launchDate: p.launchDate || "",
-      assigneeId: lead ? lead.id : "", collaboratorIds: [], status: "active", priority: "mid", progress: 0, memo: p.memo || "", importedFrom: "launch-board", createdAt: p.createdAt || "", skipItems: [] };
+      assigneeId: lead ? lead.id : "", collaboratorIds: [], status: "active", priority: "mid", progress: 0, memo: p.memo || "", importedFrom: "launch-board", createdAt: p.createdAt || "", skipItems: [],
+      lbSeen: { launchDate: p.launchDate || "", name: p.name || "" }, lbSyncedAt: p.updatedAt || p.createdAt || "x" };   // 신제품 대시보드 자동 반영(lbsync) 마지막으로 본 값
     projects.push(proj);
     LAUNCH_ITEMS.forEach((it) => {
       const s = itemState(p, it); if (s.status === "skip") { skipped.push(pid + ":" + it.id); proj.skipItems.push(it.id); return; }
@@ -117,6 +118,7 @@ export function planLaunchImport(products, D, today = ymd(new Date())) {
         status: ST[s.status] || "todo", assigneeId: u ? u.id : "", assigneeIds: owners, ownerText: s.owner && !u ? s.owner : "", dueDate: due, dueAuto: auto, noReview: true,
         ownerAuto: false, ...(u ? { ownerFrom: "v1" } : {}),
         memo: s.note || "", attachments: [], parentId: null, brand: p.brand || "", importedFrom: "launch-board", createdAt: p.createdAt || "",
+        lbSeen: { status: ["todo", "doing", "done", "hold"].includes(s.status) ? s.status : "todo", owners: ids, due: s.due || "", note: s.note || "" },
         ...(s.status === "done" ? { doneAt: s.doneAt || "", finishedAt: s.doneAt || "", doneByName: s.doneBy || "" } : {}) });
     });
   });

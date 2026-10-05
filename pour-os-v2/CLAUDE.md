@@ -33,7 +33,8 @@
 - v2 가 신제품 대시보드 문서(pour-os/launch-board/products)에도 씀 — 이 곳만 '쓰기는 v2 만' 규칙의 예외. 단계 칸만, 조건부(fb.patchLaunchIf), 지우지 않음, 큰 쓰기 전 통째 백업(fb.backupLaunch → pour-os/v2/backups)
 - 정해진 것: 기한 = 업무OS 자동 기한도 신제품 대시보드에 '자동' 표시로 채움(사람이 고친 기한은 그대로) · 카테고리 대시보드 = 업무OS 안 탭 (+ 프로젝트에 '대시보드 만들기' 버튼은 나중에) · 댓글·자료·요청·담당 넘기기·보류는 업무OS에만, 신제품 대시보드엔 개수 + '업무OS에서 열기 ›'
 - 1단계(완료): 담당 = 업무OS 사람 기준. launch-board.html 이 pour-os/v2/users 를 읽기만 해서 담당 고르기 목록(사용 중인 사람 + 외주) · 저장은 이름(owner, 버전1·소싱앱·가격 대시보드 호환) + ownerIds · 이름 규칙 launch.osIdOf(같은 이름 → 끝이 같은 사람 1명일 때만) = launch-board osIdOf 와 같은 계산(둘 다 고칠 것) · 관리자 설정 '신제품 대시보드 연결 › 담당 맞추기'(admin/LaunchLink.jsx · launch.planOwnerIds: 미리 보기 → 백업 → ownerIds 만 더함, 그사이 담당이 바뀐 제품은 건너뜀) · 가져오기(planLaunchImport)는 ownerIds 가 있으면 여러 명 그대로
-- 다음: 2단계 신제품 대시보드 → 업무OS 자동 반영 · 3단계 업무OS → 신제품 대시보드(상태·담당·기한·메모·출시일, 자동 기한, 바로가기·개수) · 4단계 빠진 기능(할 일 줄·마감 미정·직접 추가 단계·해외 하위 프로젝트·휴지통) · 5단계 카테고리 탭
+- 2단계(완료): 신제품 대시보드 → 업무OS 자동 반영 (core.useLaunchSync · syncLaunchBoard · lbsync.planLaunchSync · 시험 lbsync.test.mjs · os2/t26). 두 앱 모두 로그인 뒤 신제품 대시보드를 실시간 구독(fb.listenLaunch) → 제품 updatedAt ≠ 프로젝트 lbSyncedAt 인 것만 그 프로젝트 업무를 읽어 비교(평소엔 읽기 0). 칸마다 lbSeen(마지막으로 본 신제품 값: 업무 status·owners·due·note / 프로젝트 launchDate·name)과 3-way: 신제품만 바뀜 → 넣음 · 둘 다 → 나중 쪽(단계 updatedAt vs v2At) · 처음엔 v2At 없는 업무만 신제품 값으로. 신제품 빈 담당·빈 마감은 업무OS 값을 안 지움(마감을 지우면 자동 기한으로). 해당 없음 = status dropped + lbSkip + skipItems(지우지 않음). 출시일 바뀌면 자동 기한 업무만 옮김. 프로젝트째 보류·중단으로 접힌 업무는 상태 안 건드림. 쓰기는 patchManyIf(expect lbSeen·v2At) · v2At 안 찍음 · updatedBy 'board' · 기록 1건(action sync '신제품 대시보드에서'). 다 들어갔을 때만 lbSyncedAt 올림(건너뛴 업무는 다음에 다시). 새 제품은 syncNewLaunch(가져올 때 lbSeen·lbSyncedAt 같이)
+- 다음: 3단계 업무OS → 신제품 대시보드(상태·담당·기한·메모·출시일, 자동 기한, 바로가기·개수) · 4단계 빠진 기능(할 일 줄·마감 미정·직접 추가 단계·해외 하위 프로젝트·휴지통) · 5단계 카테고리 탭
 - 시험: scratchpad/lb (launch-board.html 을 가짜 Firebase compat 로 띄움) · admin t16
 
 ## 로그인

@@ -86,8 +86,11 @@ export const fxDueOn = (t, key) => { if (isOffDay(key)) return false; const rt =
   if (rt === "weekly") { const days = fxWeekDays(t); for (let k = 0; k < 7; k++) { const x = addDays(key, k); if (k > 0 && !isOffDay(x)) break; if (days.includes(WD[new Date(x + "T00:00:00").getDay()])) return true; } return false; }
   return true; };
 // 이번 주기(매주 = 이번 주 · 매월 = 이번 달)에 지나간 할 날을 못 했으면 그 날 (매일은 없음) → 오늘 화면 '밀림'
+// 매주: 이번 주 할 날이 쉬는 날이라 지난주(금 등)로 당겨진 것도 이번 주 몫으로 셈 (예: 월요일 대체공휴일 → 지난 금요일) — 원래 요일 날짜(fxOrigin)가 이번 주 안이면
+const fxOrigin = (t, d) => { const days = fxWeekDays(t); for (let k = 0; k < 7; k++) { const x = addDays(d, k); if (k > 0 && !isOffDay(x)) break; if (days.includes(WD[new Date(x + "T00:00:00").getDay()])) return x; } return d; };
 export const fxMissOf = (t, uid, key) => { const rt = t.recurType || "daily"; if (rt === "daily") return "";
-  const from = rt === "weekly" ? weekStart(key) : key.slice(0, 7) + "-01"; let last = ""; for (let d = from; d < key; d = addDays(d, 1)) if (fxDueOn(t, d)) last = d; if (!last) return "";
+  const ws = rt === "weekly" ? weekStart(key) : "", from = rt === "weekly" ? addDays(ws, -6) : key.slice(0, 7) + "-01"; let last = "";
+  for (let d = from; d < key; d = addDays(d, 1)) if (fxDueOn(t, d) && (rt !== "weekly" || d >= ws || fxOrigin(t, d) >= ws)) last = d; if (!last) return "";
   const done = fxDoneOn(t, uid), d0 = done ? String(done).slice(0, 10) : ""; return d0 && (fxHit(t, d0, last) || d0 > last) ? "" : last; };
 export const fxDoneOn = (t, uid) => (t.doneDates && Object.prototype.hasOwnProperty.call(t.doneDates, uid) ? t.doneDates[uid] : t.assigneeId === uid ? t.doneDate : null);
 export const fxHit = (t, d, key) => { if (!d) return false; const rt = t.recurType || "daily";

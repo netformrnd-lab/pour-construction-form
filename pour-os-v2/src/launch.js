@@ -53,12 +53,34 @@ export function nameMatch(owner, name) {
   const a = String(owner || "").split(/[,·/]/)[0].trim(), b = String(name || "").trim(); if (!a || !b) return false;
   if (a === b) return true; return a.length >= 2 && b.length >= 2 && (b.endsWith(a) || a.endsWith(b));
 }
+// 담당 이름 → 업무OS 사람 번호들 (신제품 대시보드와 같은 규칙 · 같은 계산이 launch-board.html osIdOf 에도 있음)
+//   이름이 똑같으면 그 사람 · 아니면 끝이 같은 사용 중인 사람이 딱 1명일 때만 (2명 이상이면 못 맞춤) · '외주…'·빈 칸은 번호 없음
+export function osIdOf(name, users) {
+  const n = String(name || "").trim(); if (!n || /^외주/.test(n)) return "";
+  const act = (users || []).filter((u) => u && u.name && u.active !== false);
+  const ex = act.find((u) => u.name === n); if (ex) return ex.id;
+  const c = n.length >= 2 ? act.filter((u) => u.name.endsWith(n) || n.endsWith(u.name)) : [];
+  return c.length === 1 ? c[0].id : "";
+}
+export const ownerIdsOf = (owner, users) => [...new Set(String(owner || "").split(/\s*[,·/]\s*/).map((x) => osIdOf(x, users)).filter(Boolean))];
+// 기존 신제품 대시보드 담당 맞추기 미리 보기: 단계마다 담당 이름 → ownerIds (이미 같으면 뺌) · 못 맞춘 이름은 따로 (건수)
+export function planOwnerIds(products, users) {
+  const changes = [], miss = {};
+  (products || []).forEach((p) => { if (!p || p.__structure || p.deletedAt || !p.stages) return;
+    Object.entries(p.stages).forEach(([sid, s]) => { const owner = String((s && s.owner) || "").trim(); if (!owner) return;
+      const names = owner.split(/\s*[,·/]\s*/).filter(Boolean), ids = ownerIdsOf(owner, users);
+      names.forEach((nm) => { if (!/^외주/.test(nm) && !osIdOf(nm, users)) miss[nm] = (miss[nm] || 0) + 1; });
+      const cur = Array.isArray(s.ownerIds) ? s.ownerIds : [];
+      if (ids.length && (cur.length !== ids.length || cur.some((x, i) => x !== ids[i]))) changes.push({ pid: p.id, name: p.name, sid, owner, ids }); }); });
+  const pairs = {}; changes.forEach((c) => c.owner.split(/\s*[,·/]\s*/).forEach((nm) => { const id = osIdOf(nm, users); if (id) { const k = nm + "→" + id; pairs[k] = (pairs[k] || 0) + 1; } }));
+  return { changes, miss: Object.entries(miss).sort((a, b) => b[1] - a[1]), pairs: Object.entries(pairs).sort((a, b) => b[1] - a[1]), products: new Set(changes.map((c) => c.pid)).size };
+}
 export const userByName = (users, owner) => (users || []).find((u) => u.active !== false && nameMatch(owner, u.name)) || (users || []).find((u) => nameMatch(owner, u.name)) || null;
 
 // v1 항목 상태 읽기 (런칭보드 칸 lb:true 는 stages, 업무OS 추가 칸은 osExtra)
 function itemState(p, it) {
   const ex = ((p && p.osExtra) || {})[it.id] || {};
-  if (it.lb) { const s = ((p && p.stages) || {})[it.id] || {}; return { status: s.status || "todo", owner: s.owner || "", due: s.due || "", note: s.note || "", doneAt: s.doneAt || "", doneBy: s.doneBy || "" }; }
+  if (it.lb) { const s = ((p && p.stages) || {})[it.id] || {}; return { status: s.status || "todo", owner: s.owner || "", ownerIds: Array.isArray(s.ownerIds) ? s.ownerIds : null, due: s.due || "", note: s.note || "", doneAt: s.doneAt || "", doneBy: s.doneBy || "" }; }
   const count = Number(ex.count || 0); let status = ex.status || "todo";
   if (it.target && status !== "skip") status = count >= it.target ? "done" : count > 0 ? "doing" : status;
   return { status, owner: ex.owner || "", due: ex.due || "", note: ex.note || "", count, doneAt: ex.doneAt || (status === "done" ? ex.updatedAt || "" : ""), doneBy: ex.doneBy || ex.updatedBy || "" };
@@ -87,10 +109,12 @@ export function planLaunchImport(products, D, today = ymd(new Date())) {
     projects.push(proj);
     LAUNCH_ITEMS.forEach((it) => {
       const s = itemState(p, it); if (s.status === "skip") { skipped.push(pid + ":" + it.id); proj.skipItems.push(it.id); return; }
-      const u = s.owner ? userByName(users, s.owner) : null;
+      // 담당: 신제품 대시보드에 업무OS 사람 번호(ownerIds)가 있으면 그대로(여러 명) · 없으면 이름으로 맞춤
+      const live = (id) => users.some((x) => x.id === id), ids = (s.ownerIds || []).filter(live), nameU = !ids.length && s.owner ? userByName(users, s.owner) : null;
+      const owners = ids.length ? ids : nameU ? [nameU.id] : [], u = owners.length ? { id: owners[0] } : null;
       const auto = !s.due; const due = s.due || launchDue(p.launchDate, it.off, today);
       tasks.push({ id: `${pid}__${it.id}`, title: it.name + (it.target ? ` (${s.count || 0}/${it.target})` : ""), projectId: pid, launchItem: it.id, phase: it.phase, isFixed: false, type: "general",
-        status: ST[s.status] || "todo", assigneeId: u ? u.id : "", assigneeIds: u ? [u.id] : [], ownerText: s.owner && !u ? s.owner : "", dueDate: due, dueAuto: auto, noReview: true,
+        status: ST[s.status] || "todo", assigneeId: u ? u.id : "", assigneeIds: owners, ownerText: s.owner && !u ? s.owner : "", dueDate: due, dueAuto: auto, noReview: true,
         ownerAuto: false, ...(u ? { ownerFrom: "v1" } : {}),
         memo: s.note || "", attachments: [], parentId: null, brand: p.brand || "", importedFrom: "launch-board", createdAt: p.createdAt || "",
         ...(s.status === "done" ? { doneAt: s.doneAt || "", finishedAt: s.doneAt || "", doneByName: s.doneBy || "" } : {}) });

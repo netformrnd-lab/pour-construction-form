@@ -773,7 +773,25 @@ function sortByLaunch(a,b){
   if (!a.launchDate) return 1; if (!b.launchDate) return -1;
   return a.launchDate.localeCompare(b.launchDate);
 }
+// 업무OS 사람 목록 (pour-os/v2/users · 읽기만) — 담당 고르기는 이 목록 기준. 저장은 이름(owner, 기존 화면·버전1·소싱앱·가격 대시보드용) + ownerIds(업무OS 사람 번호)
+let OS_USERS = [];
+db.collection('pour-os').doc('v2').collection('users').onSnapshot(sn => {
+  OS_USERS = sn.docs.map(d => ({ ...d.data(), id: d.data().id || d.id })).filter(u => u.name && u.active !== false)
+    .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  console.log(`[업무OS 사람] ${OS_USERS.length}명`); if (pickEl) renderPick();
+}, e => console.error('[업무OS 사람] 구독 실패:', e));
+// 이름 → 업무OS 사람 번호 (업무OS launch.js osIdOf 와 같은 규칙): 똑같은 이름 → 끝이 같은 사람이 딱 1명일 때만 · '외주…'는 번호 없음
+function osIdOf(name){ const n = String(name||'').trim(); if (!n || /^외주/.test(n)) return '';
+  const ex = OS_USERS.find(u => u.name === n); if (ex) return ex.id;
+  const c = n.length >= 2 ? OS_USERS.filter(u => u.name.endsWith(n) || n.endsWith(u.name)) : []; return c.length === 1 ? c[0].id : ''; }
+const ownerIdsOf = v => [...new Set(splitNames(v).map(osIdOf).filter(Boolean))];
+const samePerson = (a, b) => a === b || (!!osIdOf(a) && osIdOf(a) === osIdOf(b));
 function people(){
+  if (OS_USERS.length) {   // 업무OS 사람 + '외주' + 업무OS에 없는 이름(외주 홍길동 등)만
+    const set = new Set([...OS_USERS.map(u => u.name), '외주']);
+    live().forEach(p=>STEPS.forEach(s=>splitNames(stg(p,s.id).owner).forEach(n=>{ if (!osIdOf(n)) set.add(n); })));
+    return [...set];
+  }
   const set = new Set(PEOPLE_BASE);
   live().forEach(p=>{ if(p.lead) set.add(p.lead); STEPS.forEach(s=>{ const o = stg(p,s.id).owner; if(o) set.add(o); }); });
   if (me) set.add(me);
@@ -1252,7 +1270,7 @@ function viewGuide(){
 }
 
 // ── 팀 구성 (커머스본부 조직 개편 v1 · 2026.09) ──
-function ownedCount(name){ return live().filter(p=>STEPS.some(s=>splitNames(stg(p,s.id).owner).includes(name)) || p.lead===name || (BRANDS[p.brand]||{}).bm===name).length; }
+function ownedCount(name){ return live().filter(p=>STEPS.some(s=>splitNames(stg(p,s.id).owner).some(n=>samePerson(n,name))) || samePerson(p.lead||'',name) || samePerson((BRANDS[p.brand]||{}).bm||'',name)).length; }
 function person(m, color){
   const n = m.vacant ? 0 : ownedCount(m.name);
   return `<button class="mem ${m.vacant?'vacant':''}" ${m.vacant?'disabled':`data-person="${esc(m.name)}"`}>
@@ -1443,7 +1461,7 @@ async function saveAdd(){
   if (!name) { $('aName').focus(); toast('제품명을 입력해주세요'); return; }
   const at = nowIso();
   const doc = { brand:addBrand, project:addPj, name, launchDate:$('aLaunch').disabled ? '' : ($('aLaunch').value||''), lead:'', memo:'',
-    stages:Object.fromEntries(STEPS.map(s=>[s.id,{status:'todo',owner:DEFAULT_OWNERS[s.id]||'',due:'',note:''}])),
+    stages:Object.fromEntries(STEPS.map(s=>[s.id,{status:'todo',owner:DEFAULT_OWNERS[s.id]||'',ownerIds:ownerIdsOf(DEFAULT_OWNERS[s.id]||''),due:'',note:''}])),
     history:[{ at, by:who(), text:'제품 등록' }], createdAt:at, createdBy:who(), updatedAt:at, updatedBy:who(), deletedAt:null };
   try {
     const ref = await db.collection(COL).add(doc);
@@ -1464,6 +1482,7 @@ async function saveStepField(sid, field, value){
   const patch = { ['stages.'+sid+'.'+field]: value, ['stages.'+sid+'.updatedAt']: nowIso(), ['stages.'+sid+'.updatedBy']: who() };
   if (field==='status') { patch['stages.'+sid+'.doneBy'] = value==='done' ? who() : ''; patch['stages.'+sid+'.doneAt'] = value==='done' ? nowIso() : ''; }
   if (field==='due' && value) patch['stages.'+sid+'.dueTbd'] = false;
+  if (field==='owner') patch['stages.'+sid+'.ownerIds'] = ownerIdsOf(value);
   const ok = await writeDoc(p.id, patch, `${st.no} ${st.name} · ${msg}`);
   if (ok) toast(field==='status' ? (value==='done' ? '✅ 컨펌 완료' : value==='skip' ? '해당 없음으로 표시했어요' : prev.status==='skip' ? '다시 진행 단계로 돌렸어요' : '컨펌을 취소했어요') : '저장했어요');
   else renderMain();
@@ -1475,6 +1494,7 @@ async function saveTasks(sid, tasks, msg){
   const st = STEP_BY[sid];
   if (!me) { askName(); return false; }
   // 화면 데이터에 먼저 반영 → 연달아 고쳐도 직전 수정이 덮어써지지 않게
+  tasks = tasks.map(t => ({ ...t, ownerIds: ownerIdsOf(t.owner) }));
   p.stages = { ...(p.stages||{}), [sid]: { ...stg(p,sid), tasks } };
   return writeDoc(p.id, { ['stages.'+sid+'.tasks']: tasks, ['stages.'+sid+'.updatedAt']: nowIso(), ['stages.'+sid+'.updatedBy']: who() }, `${st.name} · ${msg}`);
 }
@@ -1629,9 +1649,9 @@ function renderPick(){
   const q = pickTyped ? pickEl.value.trim() : '';
   const list = people().filter(n => !q || n.includes(q));
   box.innerHTML = (pickSel.length ? `<button type="button" class="clr" data-pv="" data-clr="1">✕ 담당 지우기</button>` : '')
-    + list.map(n=>{ const on = pickSel.includes(n); return `<button type="button" class="${on?'on':''}" data-pv="${esc(n)}">${on?'✓ ':''}${esc(n)}</button>`; }).join('')
+    + list.map(n=>{ const on = pickSel.some(x => samePerson(x, n)); return `<button type="button" class="${on?'on':''}" data-pv="${esc(n)}">${on?'✓ ':''}${esc(n)}</button>`; }).join('')
     + (q && !list.includes(q) ? `<button type="button" class="new" data-pv="${esc(q)}">＋ "${esc(q)}" 추가</button>` : '')
-    + `<div class="pick-foot"><span>${pickSel.length ? pickSel.length+'명 선택' : '여러 명 선택 가능'}</span><button type="button" class="pick-done" data-pdone="1">완료</button></div>`;
+    + `<div class="pick-foot"><span>${pickSel.length ? pickSel.length+'명 선택' : OS_USERS.length ? '업무OS 사람 목록 · 여러 명 가능' : '여러 명 선택 가능'}</span><button type="button" class="pick-done" data-pdone="1">완료</button></div>`;
   const r = pickEl.getBoundingClientRect();
   box.style.minWidth = Math.max(170, r.width) + 'px';
   box.classList.remove('hidden'); box.scrollTop = keep;
@@ -1646,7 +1666,7 @@ function commitPick(){
   if (v !== pickOrig) { inp.dispatchEvent(new Event('change', { bubbles:true })); inp.dataset.pickSent = v; }
 }
 function closePick(save){ if (save !== false) commitPick(); pickEl = null; renderPick(); }
-document.addEventListener('focusin', e => { const t = e.target; if (t.dataset && t.dataset.pick && !t.disabled) { delete t.dataset.pickSent; pickEl = t; pickTyped = false; pickOrig = t.value.trim(); pickSel = splitNames(t.value); renderPick(); t.select(); t.addEventListener('mouseup', ev => ev.preventDefault(), { once:true }); } });
+document.addEventListener('focusin', e => { const t = e.target; if (t.dataset && t.dataset.pick && !t.disabled) { delete t.dataset.pickSent; pickEl = t; pickTyped = false; pickOrig = t.value.trim(); pickSel = splitNames(t.value).map(n => { const id = osIdOf(n), u = id && OS_USERS.find(x => x.id === id); return u ? u.name : n; }); renderPick(); t.select(); t.addEventListener('mouseup', ev => ev.preventDefault(), { once:true }); } });
 document.addEventListener('input', e => { if (e.target === pickEl) { pickTyped = true; renderPick(); } });
 document.addEventListener('focusout', e => { if (e.target === pickEl) { const el = pickEl; setTimeout(()=>{ if (pickEl === el && document.activeElement !== el) closePick(); }, 120); } });
 $('pick').addEventListener('mousedown', e => e.preventDefault());   // 목록을 눌러도 입력칸 포커스 유지
@@ -1656,7 +1676,7 @@ $('pick').addEventListener('click', e => {
   const b = e.target.closest('[data-pv]'); if (!b) return;
   const v = b.dataset.pv;
   if (b.dataset.clr) pickSel = [];
-  else if (pickSel.includes(v)) pickSel = pickSel.filter(x=>x!==v);
+  else if (pickSel.some(x => samePerson(x, v))) pickSel = pickSel.filter(x => !samePerson(x, v));
   else pickSel = [...pickSel, v];
   pickTyped = false; pickEl.value = pickSel.join(', ');
   renderPick();

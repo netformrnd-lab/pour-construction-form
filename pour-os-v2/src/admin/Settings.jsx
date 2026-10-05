@@ -7,6 +7,7 @@ import { md, hm, ymd, activeUsers, KR_HOLIDAYS, COUNT_L, holidayLayer } from "..
 import { LAUNCH_PHASES, LAUNCH_AFTER, LAUNCH_ITEMS } from "../launch.js";
 import { C, Big, Act, TBtn, Head, Card, Row, Empty, Sheet, Ask, More, inp } from "../ui.jsx";
 import { wdOf } from "./common.jsx";
+import { LaunchOwnerSync } from "./LaunchLink.jsx";
 
 const KIND_L = { launch: "버전1 신제품 보드 다시 가져오기", all: "버전1 전체 다시 가져오기" };
 const NAVY_BTN = { background: C.navy, color: "#fff", borderColor: C.navy };
@@ -65,6 +66,8 @@ export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose
   const addComp = () => { if (!cd || !cn.trim() || cBusy) return; saveComp(cd, cn.trim(), `${md(cd)} ${cn.trim()} 넣음`); setCd(""); setCn(""); };
   const last = holJ && holJ.last;
   return <Sheet title="설정" onBack={onBack} onClose={onClose}>
+    <Head>신제품 대시보드 연결</Head>
+    <LaunchOwnerSync D={D} cu={cu} A={A} setToast={setToast} />
     <Head>버전1에서 다시 가져오기</Head>
     <Card style={{ padding: "12px 14px", fontSize: 13.5, color: C.sub, lineHeight: 1.7 }}>
       <div>복사한 때: {meta && meta.reseededAt ? `${md(ymd(new Date(meta.reseededAt)))} ${hm(meta.reseededAt)} · ${meta.reseededBy || ""}` : meta && meta.seededAt ? `${md(ymd(new Date(meta.seededAt)))} ${hm(meta.seededAt)}` : "-"}{meta && meta.launchAt ? ` · 신제품 ${md(ymd(new Date(meta.launchAt)))} ${hm(meta.launchAt)}` : ""}</div>

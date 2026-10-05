@@ -1,7 +1,7 @@
 // 업무OS v2 — 업무OS → 신제품 대시보드 반영 (3단계 · 계산만, 저장은 core.pushLaunchBoard)
 // lbsync(신제품 → 업무OS)와 같은 '마지막으로 본 값'(lbSeen)으로 비교:
 //   업무OS 값이 기억과 다르고 + 신제품 대시보드 값은 기억 그대로 → 신제품 대시보드에 씀 + 기억을 새 값으로
-//   신제품 대시보드도 바뀌었으면 여기선 안 씀 (lbsync 가 나중에 바뀐 쪽으로 맞춤)
+//   둘 다 바뀌었으면 lbsync 와 같은 규칙: 나중에 바뀐 쪽 (업무OS가 나중이면 여기서 씀 · 신제품이 나중이면 lbsync 가 업무OS 로)
 // 기한: 사람이 정한 날 → 그 날 · 자동 기한 → 날짜 + 자동 표시(dueAuto: 같은 날짜 문자열 · 신제품에서 날짜를 바꾸면 자동 표시가 저절로 풀림)
 // 신제품 대시보드 칸(lb)만 · 업무OS 추가 칸(osExtra)은 버전1 몫이라 안 씀 · 마감 '미정'(dueTbd)·추가 할 일 줄은 4단계
 import { LAUNCH_ITEMS } from "./launch.js";
@@ -28,7 +28,9 @@ export function planLaunchPush(p, proj, tasks, users, now, who) {
     const t = byItem.get(it.id); if (!t) return;
     const s = ((p.stages || {})[it.id]) || {}, b = boardVals(p, it, users), base = t.lbSeen, v = v2Vals(t), sid = "stages." + it.id + ".";
     const sf = {}, seen = { ...base }, mine = [];
-    const push = (k) => !same(v[k], base[k]) && same(b[k], base[k]) && !same(v[k], b[k]);   // 업무OS만 바뀜
+    // 업무OS만 바뀜 → 씀 · 둘 다 바뀜 → lbsync 와 똑같은 규칙으로 나중 쪽 (업무OS v2At 이 신제품 단계 updatedAt 보다 나중이면 업무OS 값)
+    const v2Newer = !!t.v2At && t.v2At > (b.at || "");
+    const push = (k) => !same(v[k], base[k]) && !same(v[k], b[k]) && (same(b[k], base[k]) || v2Newer);
     if (v.status && push("status")) {
       Object.assign(sf, { status: v.status, doneAt: v.status === "done" ? t.finishedAt || t.doneAt || now : "", doneBy: v.status === "done" ? t.doneByName || nameOf(users, ownersOf(t)[0]) || who : "" });
       seen.status = v.status; mine.push(v.status === "done" ? "컨펌 완료" : v.status === "skip" ? "해당 없음" : v.status === "doing" ? "진행 중" : v.status === "hold" ? "보류" : "할 일");

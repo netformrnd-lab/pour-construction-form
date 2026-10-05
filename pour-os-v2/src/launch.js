@@ -122,7 +122,7 @@ export function planLaunchImport(products, D, today = ymd(new Date())) {
         status: ST[s.status] || "todo", assigneeId: u ? u.id : "", assigneeIds: owners, ownerText: s.owner && !u ? s.owner : "", dueDate: due, dueAuto: auto, noReview: true,
         ownerAuto: false, ...(u ? { ownerFrom: "v1" } : {}),
         memo: s.note || "", attachments: [], parentId: null, brand: p.brand || "", importedFrom: "launch-board", createdAt: p.createdAt || "",
-        lbSeen: { status: ["todo", "doing", "done", "hold"].includes(s.status) ? s.status : "todo", owners: ids, due: s.due || "", note: s.note || "" },
+        lbSeen: { status: ["todo", "doing", "done", "hold"].includes(s.status) ? s.status : "todo", owners: ids.length ? ids : ownerIdsOf(s.owner, users), due: s.due || "", note: s.note || "" },
         ...(s.status === "done" ? { doneAt: s.doneAt || "", finishedAt: s.doneAt || "", doneByName: s.doneBy || "" } : {}) });
     });
   });

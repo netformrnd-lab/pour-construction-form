@@ -22,6 +22,11 @@ ok("업무OS만 바뀜 → 신제품에 씀 (진행 중 · 담당 · 메모) + �
 ok("신제품도 바뀌었으면 안 씀 (lbsync 몫) · 아무것도 안 바뀌면 쓸 것 없음", () => {
   const r = L.planLaunchPush(P({ d01: { ...st, status: "done", due: "2026-10-30" } }), proj(), [T("d01", { lbSeen: base, status: "inprogress", dueDate: "2026-10-30", dueAuto: false })], users, now, "x");
   assert.equal(r.board, null);
+  // 둘 다 바뀜: 업무OS가 나중이면 업무OS 값 (lbsync 와 같은 규칙 — 서로 되돌리지 않음)
+  const n2 = L.planLaunchPush(P({ d01: { ...st, status: "done" } }), proj(), [T("d01", { lbSeen: base, status: "inprogress", v2At: "2026-10-05T02:00:00Z" })], users, now, "x");
+  assert.equal(n2.board.fields["stages.d01.status"], "doing");
+  const back = S.planLaunchSync(P({ d01: { ...st, status: "doing", updatedAt: now } }), proj(), [T("d01", { lbSeen: n2.tasks[0].lbSeen, status: "inprogress", v2At: "2026-10-05T02:00:00Z" })], users, today, now);
+  assert.ok(!back.tasks.length || !("status" in back.tasks[0].fields));
   const z = L.planLaunchPush(P({ d01: { ...st, due: "2026-10-20", dueAuto: "2026-10-20" } }), proj(), [T("d01", { lbSeen: base })], users, now, "x");
   assert.equal(z.board, null);
 });

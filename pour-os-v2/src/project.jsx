@@ -267,9 +267,8 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
     <div style={{ height: 6, background: "#E8EBF2", borderRadius: 3, margin: "10px 0 0", overflow: "hidden" }}><div style={{ width: pct + "%", height: "100%", background: C.navy }} /></div>
     {(() => { if (launch || !projOpen(p) || isHoldP(p) || !openT.length) return null; const f = projForecast(p, D.tasks, key);   // 지금 속도로 언제 끝날까 (중요도와 같이 관리자 '판단 필요'에 쓰임)
       return <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6, lineHeight: 1.6 }}>{f.eta ? <>지금 속도 주 {f.perWeek}건 · 남은 {f.left}건 → 예상 {md(f.eta)}{f.lateBy > 0 ? <b style={{ color: C.red }}> · 마감보다 {f.lateBy}일 늦음</b> : f.due ? " · 마감 안에 끝나요" : ""}</> : `최근 2주 끝낸 업무가 없어 끝나는 날을 잴 수 없어요 · 남은 ${f.left}건`}</div>; })()}
-    {projOpen(p) && !isHoldP(p) && lead && <div style={{ display: "flex", justifyContent: "flex-end" }}><TBtn onClick={() => setEndAsk(true)} style={{ fontSize: 12.5 }}>끝내기 · 멈추기 ›</TBtn></div>}
     {launch && projOpen(p) && !isHoldP(p) && <LaunchFix p={p} D={D} A={A} cu={cu} open={open} />}
-    <SecretBox kind="project" x={p} D={D} cu={cu} A={A} />
+    <SecretBox kind="project" x={p} D={D} cu={cu} A={A} only="status" />
     {isHoldP(p) && <Card style={{ marginTop: 10, padding: "12px 14px" }}><div style={{ fontSize: 14.5, fontWeight: 800, color: C.ink }}>보류 중{p.heldAt ? ` · ${-ddays(ymd(new Date(p.heldAt)), key)}일째` : ""}</div>
       <div style={{ fontSize: 13.5, color: C.sub, marginTop: 4, lineHeight: 1.6 }}>{p.holdReason || "이유 없음"} · {p.holdUntil ? `다시 할 날 ${md(p.holdUntil)} (${ddayLabel(ddays(p.holdUntil, key))})` : "다시 할 날 미정"}</div>
       {lead && <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}><Act onClick={() => setResAsk(true)} style={{ background: C.navy, color: "#fff", borderColor: C.navy }}>다시 시작 ›</Act><Act onClick={() => setEndAsk(true)}>이유 · 다시 할 날 바꾸기</Act></div>}</Card>}
@@ -298,7 +297,6 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
     {lAsk && <Ask title={`출시일을 ${md(lAsk.d)}${ro(md(lAsk.d))} 바꿀까요?`} body={`자동 기한 ${lAsk.n}개가 같이 옮겨져요 (다른 사람 항목 포함).\n5초 안에 되돌릴 수 있고, 옮기기 전 기한은 기록에 남아요.`} yes="바꾸기" onNo={() => setLAsk(null)} onYes={() => { const a = lAsk; setLAsk(null); A.setLaunchDate(p, a.d); setLd(""); }} />}
 
     <div style={{ margin: "18px 0 4px" }}><Seg items={[["work", `${launch ? "항목" : "업무"} ${openT.length}`], ["map", "마인드맵"], ["news", "소식"], ["files", `자료 ${files.length}`], ...(p.dash ? [["dash", "대시보드"]] : [])]} value={tab === "dash" && !p.dash ? "work" : tab} onChange={setTab} /></div>
-    {!p.dash && lead && projOpen(p) && <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}><TBtn onClick={() => { A.patchProject(p, { dash: true }, "대시보드 만들기", null); setTab("dash"); }} style={{ fontSize: 12.5 }}>대시보드 만들기 ›</TBtn></div>}
     {tab === "dash" && p.dash && <><ProjDash p={p} D={D} open={open} />
       {lead && <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}><TBtn onClick={() => { A.patchProject(p, { dash: false }, "대시보드 없애기 (업무는 그대로)", null); setTab("work"); }} style={{ fontSize: 12.5 }}>대시보드 없애기</TBtn></div>}</>}
     {tab === "work" && <>
@@ -327,7 +325,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
     {tab === "files" && <Card style={{ marginTop: 10 }}>{files.length === 0 ? <Empty>모인 자료가 없어요. 업무나 댓글에 파일을 올리면 여기 모여요.</Empty> : files.map((f, i) => <FileRow key={i} f={f} last={i === files.length - 1} />)}</Card>}
     {tab === "files" && <OldBtn />}
 
-    <Card style={{ marginTop: 18 }}><More onClick={() => setInfo(!info)}>{info ? "정보 접기 ▴" : "정보 ▾"}</More>
+    <Card style={{ marginTop: 18 }}><More onClick={() => setInfo(!info)}>{info ? "정보 · 더 하기 접기 ▴" : "정보 · 더 하기 ▾"}</More>
       {info && <div style={{ padding: "4px 14px 14px", fontSize: 14, color: C.text, lineHeight: 1.9 }}>
         <div>책임자 <select aria-label="책임자 바꾸기" className="v2-sel" value={p.assigneeId || ""} onChange={(e) => A.patchProject(p, { assigneeId: e.target.value }, `책임자 → ${nameOf(D.users, e.target.value)}`, p.assigneeId || "")}><option value="">없음</option>{activeUsers(D.users).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
         <div>함께 하는 사람 {(p.collaboratorIds || []).map((u) => nameOf(D.users, u)).filter(Boolean).join(", ") || "없음"}</div>
@@ -344,6 +342,10 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
         <div>중요도 {lead ? IMP.map(([k, l]) => <Chip key={k} on={impOf(p) === k} onClick={() => impOf(p) !== k && A.patchProject(p, { priority: k }, `중요도 → ${l}`, p.priority || "")}>{l}</Chip>) : <b>{impName(impOf(p))}</b>}
           <div style={{ fontSize: 12.5, color: C.mute, lineHeight: 1.6 }}>높음 = 날짜를 꼭 지켜야 하는 일 · 낮음 = 바쁘면 미뤄도 되는 일. 관리자 '판단 필요'(당길 것·미룰 것) 계산에 쓰여요</div></div>
         {(p.endLog || []).length > 0 && <div style={{ color: C.sub, fontSize: 13 }}>지난 멈춤·재개: {(p.endLog || []).slice(-3).map((x) => `${md(ymd(new Date(x.at)))} ${x.kind === "resume" ? "다시 시작" : x.kind === "hold" ? "보류" : x.kind === "dropped" ? "중단" : "완료"}${x.why ? `(${x.why})` : ""}`).join(" · ")}</div>}
+        {/* 드물게 쓰는 것: 대시보드 만들기 · 기밀 · 끝내기 (사용 빈도별 노출) */}
+        {lead && projOpen(p) && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+          {!p.dash && <TBtn v="soft" onClick={() => { A.patchProject(p, { dash: true }, "대시보드 만들기", null); setTab("dash"); setInfo(false); }}>대시보드 만들기</TBtn>}</div>}
+        <SecretBox kind="project" x={p} D={D} cu={cu} A={A} only="button" />
         {projOpen(p) && !isHoldP(p) && lead && <Big tone="white" onClick={() => setEndAsk(true)} style={{ marginTop: 10 }}>끝내기 · 멈추기 (완료 · 중단 · 보류)</Big>}
       </div>}</Card>
   </Sheet>;

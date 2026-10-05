@@ -358,3 +358,7 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
 .v2-kan .it{display:block;width:100%;text-align:left;font:inherit;font-size:12.5px;color:#1F2433;background:#fff;border:1px solid #EEF0F5;border-radius:9px;padding:7px;margin-bottom:6px;line-height:1.4;cursor:pointer}
 .v2-kan .it span{display:block;color:#6B7385;font-size:11px;margin-top:2px}
 .v2-kan .more{font-size:11.5px;color:#9AA1B0;padding:4px 2px}
+/* 사용 빈도별 노출: 드문 동작은 '더 하기 ▾' 안 (task.jsx) */
+.v2-more{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;padding:10px;border-radius:12px;background:#F7F8FB;border:1px solid #E6E9F1}
+.v2-more .v2-secret,.v2-more .v2-secret .row{display:contents}
+.v2-more .v2-secret .pick{flex-basis:100%}

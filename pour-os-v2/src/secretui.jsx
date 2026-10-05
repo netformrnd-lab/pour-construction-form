@@ -36,22 +36,25 @@ export function canSecret(kind, x, D, cu) {
 }
 
 // 업무·프로젝트 화면의 기밀 칸: 켜져 있으면 한 줄(누가 보는지) · 정할 수 있는 사람만 [기밀로 설정] / [볼 사람 바꾸기] / [기밀 풀기]
-export function SecretBox({ kind, x, D, cu, A }) {
+// only: "status" = 상태 줄만(늘 보이는 자리) · "button" = 버튼·고르기만(드물게 쓰는 '더 하기'·'정보' 안) · 없으면 둘 다
+export function SecretBox({ kind, x, D, cu, A, only }) {
   const [edit, setEdit] = useState(false), [sel, setSel] = useState(null);
   if (!x || x.isFixed) return null;
   const on = secretOn(x), can = canSecret(kind, x, D, cu);
   const p = kind === "task" ? (D.projects || []).find((q) => q.id === x.projectId) : null, inherit = !!p && secretOn(p);
   if (!on && !can && !inherit) return null;
+  if (only === "status" && !on && !inherit) return null;
+  if (only === "button" && !can) return null;
   const auto = autoIds(kind, x, D), people = activeUsers(D.users).filter((u) => !isMaster(u));
   const allow = sel || (on ? x.secret.allow || [] : []);
   const seen = people.filter((u) => auto.has(u.id) || allow.includes(u.id));
   const save = (next) => { A.setSecret(kind, x, next); setEdit(false); setSel(null); };
   return <div className="v2-secret">
-    {(on || inherit) && <div className="ln"><Lock /> <b>기밀</b><span>{inherit && !on ? "프로젝트가 기밀이라 이 업무도 기밀 · " : ""}관리자와 {(on ? seen : people.filter((u) => projSeen(p, u.id, D.tasks))).map((u) => (u.id === cu.id ? "나" : u.name)).join(", ") || "책임자"}만 봐요</span></div>}
-    {can && !edit && <div className="row">
+    {only !== "button" && (on || inherit) && <div className="ln"><Lock /> <b>기밀</b><span>{inherit && !on ? "프로젝트가 기밀이라 이 업무도 기밀 · " : ""}관리자와 {(on ? seen : people.filter((u) => projSeen(p, u.id, D.tasks))).map((u) => (u.id === cu.id ? "나" : u.name)).join(", ") || "책임자"}만 봐요</span></div>}
+    {only !== "status" && can && !edit && <div className="row">
       {on ? <><TBtn onClick={() => { setSel(x.secret.allow || []); setEdit(true); }}>볼 사람 바꾸기</TBtn><TBtn onClick={() => save(null)}>기밀 풀기</TBtn></> : <TBtn onClick={() => { setSel([]); setEdit(true); }}>기밀로 설정</TBtn>}
     </div>}
-    {edit && <div className="pick">
+    {only !== "status" && edit && <div className="pick">
       <div className="s">볼 수 있는 사람을 골라 주세요 · 관리자는 늘 볼 수 있고, {kind === "project" ? "책임자·함께 하는 사람·그 안 업무 담당" : "담당·맡긴 사람·프로젝트 책임자"}는 자동으로 봐요. 나머지 팀원에겐 '기밀 업무'(자물쇠)로만 보여요</div>
       <div className="v2-chips">{people.map((u) => { const a = auto.has(u.id), k = a || allow.includes(u.id);
         return <Chip key={u.id} on={k} onClick={() => { if (!a) setSel(k ? allow.filter((i) => i !== u.id) : [...allow, u.id]); }} style={a ? { opacity: 0.7, cursor: "default" } : null}>{k ? "✓ " : ""}{u.id === cu.id ? "나" : u.name}{a ? " (자동)" : ""}</Chip>; })}</div>

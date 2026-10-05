@@ -156,3 +156,8 @@ export function listenLaunch(cb, onErr) {
     console.log(`[신제품 대시보드] ${items.length}건${snap.metadata.fromCache ? " (기기 저장)" : ""}`); cb(items, snap.metadata.fromCache);
   }, (e) => { console.error("[신제품 대시보드] 구독 실패:", e); onErr && onErr(e); });
 }
+// 문서 하나를 읽고-판단하고-쓰기 (transaction) · fn(cur) → { write?: fields, ret? } — 없으면 만들고(set) 있으면 바뀐 칸만(update)
+export async function txDoc(key, id, fn) {
+  return runTransaction(db, async (tx) => { const r = v2doc(key, id), s = await tx.get(r), cur = s.exists() ? s.data() : null, out = fn(cur) || {};
+    if (out.write) { if (s.exists()) tx.update(r, out.write); else tx.set(r, { id, ...out.write }); } return out.ret ?? null; });
+}

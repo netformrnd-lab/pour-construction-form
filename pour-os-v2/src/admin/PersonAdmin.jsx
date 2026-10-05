@@ -4,10 +4,11 @@
 import { useState } from "react";
 import * as fb from "../fb.js";
 import { pinHash } from "../sha.js";
-import { ymd, ddays, ddayLabel, md, ago, hm, isDone, isOneOff, isMine, ownersOf, dueOf, nameOf, riskOf, projOpen, personHealth, onTimeOf, fxIsMine, fxDueOn, fxMeDone, fxLabel, fxTime } from "../model.js";
+import { ymd, ddays, ddayLabel, md, ago, hm, isDone, isOneOff, isMine, ownersOf, dueOf, nameOf, riskOf, projOpen, personHealth, onTimeOf, fxIsMine, fxDueOn, fxMeDone, fxLabel, fxTime, TEAMS, teamOf, DEFAULT_TEAMS } from "../model.js";
 import { nextsOf } from "../turn.js";
-import { C, Big, TBtn, Act, Head, Card, Row, Empty, Sheet, Ask, More, inp } from "../ui.jsx";
+import { C, Big, TBtn, Act, Head, Card, Row, Empty, Sheet, Ask, More, inp, Chip } from "../ui.jsx";
 import { Lv, pName } from "./common.jsx";
+import { PhoneEdit } from "../smsui.jsx";
 
 export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast }) {
   const u = (D.users || []).find((x) => x.id === id);
@@ -62,6 +63,15 @@ export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast
     <Head>오늘 고정업무 {fx.filter((t) => fxMeDone(t, u.id, key)).length}/{fx.length}</Head><L a={fx} empty="오늘 고정업무가 없어요" render={(t, last) => <Row key={t.id} title={fxLabel(t, u.id)} sub={fxMeDone(t, u.id, key) ? `✓ ${hm(t.doneAtBy && t.doneAtBy[u.id])}` : `아직${fxTime(t, u.id) ? ` · 예정 ${fxTime(t, u.id)}` : ""}`} onClick={() => open({ type: "fixed", id: t.id })} last={last} />} />
     <Head>최근 대화</Head><L a={talk} empty="최근 30일 대화가 없어요" render={(n, last) => <Row key={n.id} title={n.text} sub={ago(n.at)} onClick={() => { const [k, ...r] = String(n.itemId).split(":"); if (k === "task") open({ type: "task", id: r.join(":"), focus: "talk" }); else if (k === "proj") open({ type: "project", id: r.join(":"), first: "news" }); }} last={last} />} />
 
+    <Head>휴대폰 번호 (문자 알림)</Head>
+    <PhoneEdit u={u} A={A} setToast={setToast} />
+    <Head>팀</Head>
+    <Card style={{ padding: "12px 14px" }}>
+      <div className="v2-chips">{TEAMS.map((t) => <Chip key={t} on={teamOf(u) === t} onClick={async () => { if (teamOf(u) === t) return; const prev = teamOf(u);
+        try { await fb.patch("users", u._doc || u.id, { team: t }); A.log("edit", { col: "users", targetId: u.id, label: `${u.name} · 팀 ${prev || "없음"} → ${t}`, prev }); setToast({ text: `${u.name}님 팀을 ${t}으로 바꿨어요` }); }
+        catch (e) { console.error("[v2] 팀 저장 실패:", e); setToast({ text: "팀 저장 실패 · 인터넷 연결을 확인해 주세요" }); } }}>{t}</Chip>)}</div>
+      <div style={{ fontSize: 12.5, color: C.mute, marginTop: 8, lineHeight: 1.6 }}>{u.team ? "직접 정한 팀" : DEFAULT_TEAMS[String(u.name || "").replace(/\s/g, "")] ? "기본값(조직도)" : "아직 없음"} · 프로젝트 팀은 책임자 팀으로 자동으로 정해져요</div>
+    </Card>
     <Head>주 한도</Head>
     <Card style={{ padding: "12px 14px" }}>
       <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>한 주 마감이 <b>{curCap}건</b>을 넘으면 사람 표에서 숫자가 빨갛게 보여요{u.weekCap ? "" : " (기본값)"}.</div>

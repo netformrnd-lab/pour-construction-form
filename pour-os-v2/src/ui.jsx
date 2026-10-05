@@ -30,7 +30,7 @@ export function Chip({ children, on, onClick, style }) {
 // 두세 칸 전환
 export function Seg({ items, value, onChange }) {
   return <div role="tablist" style={{ display: "flex", background: "#E8EBF2", borderRadius: 12, padding: 3, gap: 3 }}>
-    {items.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={value === k} onClick={() => onChange(k)} style={{ flex: 1, height: 36, borderRadius: 10, border: "none", background: value === k ? "#fff" : "transparent", color: value === k ? C.ink : C.sub, fontSize: 13.5, fontWeight: 800, fontFamily: F, cursor: "pointer", boxShadow: value === k ? "0 1px 3px rgba(15,31,92,.12)" : "none" }}>{l}</button>)}
+    {items.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={value === k} onClick={() => onChange(k)} style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", padding: "0 4px", height: 36, borderRadius: 10, border: "none", background: value === k ? "#fff" : "transparent", color: value === k ? C.ink : C.sub, fontSize: items.length >= 5 ? 12.5 : 13.5, fontWeight: 800, fontFamily: F, cursor: "pointer", boxShadow: value === k ? "0 1px 3px rgba(15,31,92,.12)" : "none" }}>{l}</button>)}
   </div>;
 }
 // 묶음 제목

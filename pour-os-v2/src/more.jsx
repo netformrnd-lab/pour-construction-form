@@ -3,11 +3,12 @@ import { useState } from "react";
 import { ymd, md, hm, isMaster, nameOf, ownersOf, dueOf, riskOf, assignedByMe, fxIsMine, fxRecurL, fxTime, fxLabel, fxMeDone, COUNT_L } from "./model.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, useLocal } from "./ui.jsx";
 import { V1_URL, LS } from "./core.jsx";
+import { SmsSettings } from "./smsui.jsx";
 
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
 const ASG = [["review", "확인해 주세요", true], ["dueReq", "기한 조정 요청", true], ["blocked", "막힘", true], ["late", "기한 지남", true], ["risk", "곧 마감인데 시작 전", true], ["notAck", "아직 안 받음", true], ["doing", "진행 중", true], ["waiting", "받고 대기 중", false], ["done", "최근 7일 끝남", false]];
 
-export function MoreTab({ D, cu, meta, logout, open, BUILD }) {
+export function MoreTab({ D, cu, meta, logout, open, BUILD, setToast }) {
   const [ask, setAsk] = useState(""), [start, setStart] = useLocal(LS("start-" + cu.id), "today"), [news, setNews] = useLocal(LS("news3-" + cu.id), true);
   const G = assignedByMe(D, cu.id, new Date()), gN = Object.values(G).reduce((a, b) => a + b.length, 0), urgent = G.review.length + G.dueReq.length + G.blocked.length;
   const myFx = D.tasks.filter((t) => t.isFixed && !t.paused && fxIsMine(t, cu.id)).length;
@@ -28,6 +29,8 @@ export function MoreTab({ D, cu, meta, logout, open, BUILD }) {
       <Row title="내 할 일 모두" sub="할 일 · 진행 · 확인 대기 · 보류 · 끝남" onClick={() => open({ type: "mine" })} right={arrow} last={false} />
       <Row title={`내 고정업무 ${myFx}`} sub="매일 · 매주 · 매월" onClick={() => open({ type: "myFixed" })} right={arrow} last />
     </Card>
+    <Head>문자 알림</Head>
+    <SmsSettings cu={cu} setToast={setToast} />
     <Head>앱을 열면 먼저</Head>
     <div style={{ margin: "0 0 4px" }}><Seg items={[["today", "오늘"], ["calendar", "달력"]]} value={start} onChange={setStart} /></div>
     {isMaster(cu) && <><Head>관리자</Head><Card><a href="./os2-admin.html" style={{ textDecoration: "none" }}><Row title="관리자 화면" sub="팀 달력 · 사람별 일정 · 프로젝트 위험 · 한꺼번에 정리 · 가져오기" right={arrow} last /></a></Card></>}

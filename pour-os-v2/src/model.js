@@ -497,8 +497,11 @@ export function personHealth(D, uid, now = new Date()) {
   const start = open.filter((t) => { const r = riskOf(t, key); return r && r.k === "start"; }).length;
   const weeks = [0, 1, 2, 3].map((i) => w.week.slice(i * 7, i * 7 + 7).reduce((a, d) => a + d.list.length, 0));
   const noDue = open.filter((t) => !dueOf(t) && t.status !== "hold").length;
-  const level = w.late >= 3 || (ot.pct != null && ot.pct < 60) ? "위험" : w.late || start || Math.max(...weeks) >= 15 ? "주의" : "순조";
-  return { ...w, ot, start, weeks, noDue, level };
+  // 위험 기준(정밀 검토 2026-10-05 · 12명 중 10명이 위험이라 뜻이 약했음): 진짜 내 일(책임자로 채운 임시 신제품 항목 빼고) 지남 5개+ 또는 기한 지킴 60% 미만(5건 넘게 셀 때만)
+  const tmp = (t) => t.launchItem && (t.ownerFrom === "lead" || (!t.ownerFrom && t.ownerAuto));
+  const realLate = open.filter((t) => !tmp(t) && t.status !== "hold" && t.status !== "review" && (ddays(dueOf(t), key) ?? 0) < 0).length;
+  const level = realLate >= 5 || (ot.pct != null && ot.n >= 5 && ot.pct < 60) ? "위험" : realLate || start || Math.max(...weeks) >= 15 ? "주의" : "순조";
+  return { ...w, ot, start, weeks, noDue, level, realLate };
 }
 
 // ── 한 사람 일 한 번에 넘기기 (휴가·퇴사 · 관리자) ──

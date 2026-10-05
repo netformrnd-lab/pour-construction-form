@@ -96,10 +96,10 @@ const gh = { id: "ak_gh_ad", name: "고객 타겟 광고", brand: "grohome", who
 ck("그로홈 광고 ↔ 그로홈 제품만", akMatches({ launchItem: "x_meta" }, [ak("ak_ad"), gh], users, "songhee", "grohome").map((x) => x.id).join() === "ak_gh_ad");
 ck("POUR스토어 광고 ↔ pourstore 제품", akMatches({ launchItem: "x_meta" }, [ak("ak_ad"), gh], users, "songhee", "pourstore").map((x) => x.id).join() === "ak_ad");
 ck("제품 브랜드 없으면 둘 다", akMatches({ launchItem: "x_meta" }, [ak("ak_ad"), gh], users, "songhee", "").length === 2);
-ck("같은 브랜드 짝이 없으면 다른 브랜드도", akMatches({ launchItem: "x_blog" }, [ak("ak_c_b2c")], users, "songhee", "grohome").map((x) => x.id).join() === "ak_c_b2c");
+ck("브랜드가 다르면 짝 없음 (POUR스토어 컨텐츠 ↔ 그로홈 제품)", akMatches({ launchItem: "x_blog" }, [ak("ak_c_b2c")], users, "songhee", "grohome").length === 0);
 const Dg = { ...D, projects: D.projects.map((p) => (p.id === "lb_p2" ? { ...p, brand: "grohome" } : { ...p, brand: "pourstore" })) };
 m = launchMatches(ak("ak_c_b2c"), Dg, "songhee", "2026-10-07");
 ck("반복 → 같은 브랜드 제품만(있으면)", m.map((t) => t.id).join() === "lb_p1__x_blog", m.map((t) => t.id));
 m = launchMatches({ ...ak("ak_c_b2c"), brand: "barasday" }, Dg, "songhee", "2026-10-07");
-ck("반복 → 같은 브랜드 없으면 다 (2)", m.length === 2);
+ck("반복 → 같은 브랜드 없으면 짝 없음", m.length === 0);
 console.log(`${ok} 통과 · ${bad} 실패`); if (bad) process.exit(1);

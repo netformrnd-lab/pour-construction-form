@@ -83,7 +83,7 @@ function AdminMain({ B }) {
       <div className="v2-trial">시험판 v2 · 여기서 바꾼 건 버전1에 반영되지 않아요</div>
       <div className="v2-page">
         <div className="a-head">
-          <b>관리 · {cu.name}</b>
+          <b><span className="a-pre">관리 · </span>{cu.name}</b>
           <span style={{ flex: 1 }} />
           <button type="button" className={"a-inbox" + (TV.inbox.length ? " on" : "")} onClick={() => open({ type: "inbox" })}>나에게 온 것 <b>{TV.inbox.length}</b></button>
           <TBtn onClick={() => open({ type: "settings" })}>설정</TBtn>

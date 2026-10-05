@@ -1,4 +1,4 @@
-// 업무OS v2 — 요청 하나로: [확인 받기 · 도와주세요 · 기한 바꾸기] + 받을 사람 (기본 = 맡긴 사람 → 넘겨준 사람 → 프로젝트 책임자 → 마스터)
+// 업무OS v2 — 요청: [확인 받기 · 도와주세요] + 받을 사람 (기한은 업무 화면 [기한 바꾸기]/[기한 조정 요청] 하나로 — 같은 일을 두 길로 안 함) (기본 = 맡긴 사람 → 넘겨준 사람 → 프로젝트 책임자 → 마스터)
 // 받는 사람 '확인할 것'에 뜨고(관리자도 '나에게 온 것'), 답은 업무 대화로 오가며 물은 사람에게도 알림
 import { useState } from "react";
 import { C, Big, Chip, inp } from "./ui.jsx";
@@ -7,7 +7,7 @@ import { ymd, md, addDays, nextWorkday, dueOf, nameOf, activeUsers, askTo } from
 export function RequestAsk({ t, D, cu, A, mine, onNo }) {
   const key = ymd(new Date()), canConfirm = mine && t.status !== "review";
   const [kind, setKind] = useState(canConfirm ? "confirm" : "help"), [to, setTo] = useState(askTo(t, D, cu.id)), [text, setText] = useState(""), [date, setDate] = useState("");
-  const K = [["confirm", "확인 받기", "끝냈어요 · 봐 주세요"], ["help", "도와주세요", "막히기 전에 같이"], ["due", "기한 바꾸기", "새 기한을 부탁"]].filter(([k]) => k !== "confirm" || canConfirm);
+  const K = [["confirm", "확인 받기", "끝냈어요 · 봐 주세요"], ["help", "도와주세요", "막히기 전에 같이"]].filter(([k]) => k !== "confirm" || canConfirm);
   const base = dueOf(t) && dueOf(t) > key ? dueOf(t) : key, dchips = [["+1일", nextWorkday(addDays(base, 1))], ["+3일", nextWorkday(addDays(base, 3))], ["+1주", nextWorkday(addDays(base, 7))]];
   const ok = !!to && (kind !== "help" || text.trim()) && (kind !== "due" || (date && date !== dueOf(t)));
   const users = activeUsers(D.users).filter((u) => u.id !== cu.id);

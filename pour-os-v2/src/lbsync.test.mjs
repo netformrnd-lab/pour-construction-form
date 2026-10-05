@@ -82,4 +82,16 @@ ok("해외 하위 프로젝트: 신제품 대시보드 값 + 구조 문서 이�
   const z = S.planLaunchSync(P({}, { brand: "grohome", project: "amazon-jp" }), proj({ lbSeen: { launchDate: "2026-11-20", name: "제품" }, lbProject: "amazon-jp", lbProjectName: "아마존 JP" }), [], users, today, now, st);
   assert.equal(z.project, null);
 });
+ok("할 일 줄 → 하위 업무: 새 줄은 만들기(제목 = 첫 줄) · 내용·담당·마감 바뀌면 따라감 · 줄을 지우면 중단(지우지 않음)", () => {
+  const parent = T("s12", { lbSeen: { status: "todo", owners: ["wm"], due: "", note: "" } });
+  const row = { id: "r1", note: "[3팀] 아마존 US 입고\n상표 대기", owner: "민지", ownerIds: ["minji"], due: "2026-10-30", dueTbd: false };
+  const a = S.planRowSync(P({ s12: { tasks: [row] } }), proj(), [parent], users, now);
+  assert.equal(a.create.length, 1); const d = a.create[0];
+  assert.equal(d.title, "[3팀] 아마존 US 입고"); assert.equal(d.memo, row.note); assert.equal(d.parentId, parent.id); assert.deepEqual(d.assigneeIds, ["minji"]); assert.equal(d.dueDate, "2026-10-30"); assert.equal(d.lbRow, "r1");
+  const b = S.planRowSync(P({ s12: { tasks: [{ ...row, note: "바뀐 내용", dueTbd: true, due: "" }] } }), proj(), [parent, d], users, now);
+  assert.equal(b.tasks[0].fields.title, "바뀐 내용"); assert.equal(b.tasks[0].fields.dueDate, ""); assert.equal(b.tasks[0].fields.lbSeen.due, "tbd");
+  const c = S.planRowSync(P({ s12: { tasks: [] } }), proj(), [parent, d], users, now);
+  assert.equal(c.tasks[0].fields.status, "dropped"); assert.equal(c.tasks[0].fields.lbRowGone, true);
+  assert.deepEqual(S.planRowSync(P({ s12: { tasks: [row] } }), proj(), [parent, d], users, now).tasks, []);
+});
 console.log(`\n${n}개 모두 통과`);

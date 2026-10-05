@@ -114,3 +114,36 @@ export function planLaunchTrash(p, proj, tasks, now) {
   }
   return null;
 }
+
+// ── 4단계 ③: 신제품 대시보드 '할 일 줄'(stages.<id>.tasks[]: id·note·owner·ownerIds·due·dueTbd) ↔ 업무OS 하위 업무(parentId = 그 항목 업무, lbRow = 줄 id)
+// 줄에는 상태가 없음 → 하위 업무의 진행·끝냄은 업무OS 에만. 비교 칸은 내용(note)·담당(owners)·마감(due, 미정 = "tbd") — lbSeen 3-way(위와 같은 규칙)
+// 신제품에서 줄을 지우면 → 하위 업무는 지우지 않고 '중단'(dropPrev · lbRowGone)
+export const rowTitle = (note) => (String(note || "").split("\n").map((x) => x.trim()).find(Boolean) || "할 일").slice(0, 80);
+export const rowVals = (r, users) => ({ note: String(r.note || ""), owners: Array.isArray(r.ownerIds) && r.ownerIds.length ? r.ownerIds.filter((id) => (users || []).some((u) => u.id === id)) : ownerIdsOf(r.owner, users), due: r.due || TBD });   // 할 일 줄은 자동 기한이 없어서 날짜 없음 = 미정
+export const subVals = (t) => ({ note: String(t.memo || t.title || ""), owners: ownersOf(t), due: dueOf(t) || TBD });
+// → { create: [doc], tasks: [{t, fields, label}] }
+export function planRowSync(p, proj, tasks, users, now) {
+  const create = [], out = [];
+  LAUNCH_ITEMS.forEach((it) => {
+    const parent = (tasks || []).find((t) => t.launchItem === it.id && !t.isFixed); if (!parent) return;
+    const rows = (((p.stages || {})[it.id] || {}).tasks || []).filter((r) => r && r.id);
+    const subs = (tasks || []).filter((t) => t.parentId === parent.id && t.lbRow);
+    rows.forEach((r) => {
+      const b = rowVals(r, users), sub = subs.find((t) => t.lbRow === r.id);
+      if (!sub) { const o = b.owners;
+        create.push({ id: `${parent.id}__r_${r.id}`, title: rowTitle(b.note), memo: b.note, projectId: proj.id, parentId: parent.id, lbRow: r.id, isFixed: false, type: "general", status: "todo",
+          assigneeId: o[0] || "", assigneeIds: o, dueDate: b.due === TBD ? "" : b.due, dueAuto: false, noReview: true, attachments: [], brand: proj.brand || "", phase: parent.phase || "",
+          createdAt: now, createdBy: "board", madeIn: "launch-board", lbSeen: b }); return; }
+      const base = sub.lbSeen || {}, v = subVals(sub), f = {}, said = [];
+      const take = (k) => !same(b[k], base[k]) && !same(b[k], v[k]) && (same(v[k], base[k]) || !sub.v2At || (r.updatedAt || ((p.stages || {})[it.id] || {}).updatedAt || "") > sub.v2At);
+      if (take("note")) { Object.assign(f, { title: rowTitle(b.note), memo: b.note }); said.push("할 일 줄 내용"); }
+      if (b.owners.length && take("owners")) { Object.assign(f, { assigneeIds: b.owners, assigneeId: b.owners[0] }); said.push("할 일 줄 담당"); }
+      if (take("due")) { Object.assign(f, { dueDate: b.due === TBD ? "" : b.due, dueAuto: false }); said.push("할 일 줄 마감"); }
+      if (sub.status === "dropped" && sub.lbRowGone) { Object.assign(f, { status: sub.dropPrev || "todo", dropPrev: null, lbRowGone: null }); said.push("할 일 줄 되살림"); }
+      if (said.length || !same(b, base)) out.push({ t: sub, fields: { ...f, lbSeen: b }, label: said.join("·") });   // 기억 = 지금 신제품 줄 값
+    });
+    subs.filter((t) => !rows.some((r) => r.id === t.lbRow) && t.status !== "dropped" && t.status !== "done")
+      .forEach((t) => out.push({ t, fields: { status: "dropped", dropPrev: t.status || "todo", droppedAt: now, lbRowGone: true }, label: "할 일 줄 지움 · 중단" }));
+  });
+  return { create, tasks: out };
+}

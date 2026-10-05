@@ -5,7 +5,7 @@
 // 기한: 사람이 정한 날 → 그 날 · 자동 기한 → 날짜 + 자동 표시(dueAuto: 같은 날짜 문자열 · 신제품에서 날짜를 바꾸면 자동 표시가 저절로 풀림)
 // 신제품 대시보드 칸(lb)만 · 업무OS 추가 칸(osExtra)은 버전1 몫이라 안 씀 · 마감 '미정'(dueTbd)·추가 할 일 줄은 4단계
 import { LAUNCH_ITEMS } from "./launch.js";
-import { V2B, boardVals, v2Due, TBD } from "./lbsync.js";
+import { V2B, boardVals, v2Due, TBD, rowVals, subVals } from "./lbsync.js";
 import { ownersOf, dueOf, nameOf } from "./model.js";
 
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
@@ -45,11 +45,28 @@ export function planLaunchPush(p, proj, tasks, users, now, who) {
     // 둘 다 자동 기한이면 신제품 대시보드 마감 칸에 자동 날짜만 채움/고침 (기록 없이 · 마감 '미정'·컨펌 완료·해당 없음 칸은 그대로)
     else if (!v.due && !b.due && v.auto && !s.dueTbd && b.status !== "done" && b.status !== "skip" && ((s.due || "") !== v.auto || (s.dueAuto || "") !== v.auto)) Object.assign(sf, { due: v.auto, dueAuto: v.auto });
     if (push("note")) { Object.assign(sf, { note: v.note }); seen.note = v.note; mine.push("진행사항"); }
+    // 할 일 줄 (4단계 ③): 하위 업무(parentId = 이 업무) ↔ 줄 — 업무OS만 바뀐 칸은 그 줄에 · 업무OS에서 새로 만든 하위 업무는 줄 추가 (중단·끝낸 것도 줄은 지우지 않음)
+    const rows0 = (s.tasks || []).filter((r) => r && r.id), rows = rows0.map((r) => ({ ...r })), rowOut = []; let rowsSaid = false;
+    (tasks || []).filter((x) => x.parentId === t.id && !x.deleted && !x.isFixed).forEach((x) => {
+      const xv = subVals(x), names = (ids, prev) => [...ids.map((id) => nameOf(users, id)).filter(Boolean), ...split(prev).filter((n) => !(users || []).some((u) => u.name === n || n.endsWith(u.name) || u.name.endsWith(n)))].join(", ");
+      const dueF = (d) => (d === TBD ? { due: "", dueTbd: true } : { due: d, dueTbd: false });
+      if (!x.lbRow) { if (x.status === "dropped") return;
+        rows.push({ id: x.id, note: xv.note, owner: names(xv.owners, ""), ownerIds: xv.owners, ...dueF(xv.due) }); rowOut.push({ t: x, lbSeen: xv, extra: { lbRow: x.id } }); rowsSaid = true; return; }
+      const r = rows.find((y) => y.id === x.lbRow); if (!r || !x.lbSeen) return;
+      const rb = rowVals(r, users), xb = x.lbSeen, xn = !!x.v2At && x.v2At > (s.updatedAt || ""), xs = { ...xb };
+      const pu = (k) => !same(xv[k], xb[k]) && !same(xv[k], rb[k]) && (same(rb[k], xb[k]) || xn);
+      let ch = false;
+      if (pu("note")) { r.note = xv.note; xs.note = xv.note; ch = true; }
+      if (xv.owners.length && pu("owners")) { r.owner = names(xv.owners, r.owner); r.ownerIds = xv.owners; xs.owners = xv.owners; ch = true; }
+      if (pu("due")) { Object.assign(r, dueF(xv.due)); xs.due = xv.due; ch = true; }
+      if (ch) { rowOut.push({ t: x, lbSeen: xs }); rowsSaid = true; }
+    });
+    if (rowsSaid) { sf.tasks = rows; mine.push("할 일 줄"); seenOut.push(...rowOut); }
     if (!Object.keys(sf).length) return;
     Object.entries(sf).forEach(([k, x]) => { f[sid + k] = x; });
     if (mine.length) { f[sid + "updatedAt"] = now; f[sid + "updatedBy"] = who + " (" + BY + ")"; said.push(it.name + " " + mine.join("·")); }   // 자동 날짜만 채운 건 '고친 시각'을 안 바꿈
     expect[sid + "updatedAt"] = s.updatedAt ?? null;   // 그사이 신제품 대시보드에서 이 칸을 고쳤으면 통째로 다음에
-    seenOut.push({ t, lbSeen: seen });
+    if (!same(seen, base)) seenOut.push({ t, lbSeen: seen });
   });
   // 제품: 출시일 · 이름
   let project = null; const pb = proj.lbSeen || null;

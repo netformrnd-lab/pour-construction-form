@@ -11,6 +11,7 @@ import {
 } from "./model.js";
 import { planLaunchImport, relaunch, isTempOwner } from "./launch.js";
 import { nextTurnText } from "./turn.js";
+import { planLaunchSync } from "./lbsync.js";
 import { flowOwners } from "./flow.js";
 import { C, Big, TBtn, inp, useLocal } from "./ui.jsx";
 
@@ -76,6 +77,7 @@ export function useBoot() {
     const today = ymd(new Date()), k = "pour-os-v2.progSync";
     let last = ""; try { last = localStorage.getItem(k) || ""; } catch (e) { /* 저장소 막힘 → 매번 */ }
     if (isMaster(cu) && last !== today) syncProgress(D).then((n) => { try { localStorage.setItem(k, today); } catch (e) { /* 무시 */ } console.log(`[v2] 프로젝트 진척 다시 계산 · 바뀐 것 ${n}개`); }).catch((e) => console.error("[v2] 프로젝트 진척 다시 계산 실패:", e)); }, [meta, D.ready, authed]);
+  useLaunchSync(D, cu, !!(meta && D.ready && authed));
   return { launchNew, holJ, meta, setMeta, metaErr, checkMeta, D, err, cu, authed, signIn: (u, h) => { setMe(u.id); setKey(h); }, logout: () => { setKey(""); setMe(""); } };
 }
 // 프로젝트 진척(%) 하루 한 번 다시 계산: 열린 일반 프로젝트(신제품·직접 정한 % 빼고)의 전체 업무를 프로젝트별로 읽어 % 가 다르면 그 칸만 저장
@@ -90,6 +92,40 @@ export async function syncProgress(D) {
       if (Number(p.progress) !== pct) { changed++; await fb.patch("projects", p._doc || p.id, { progress: pct, updatedAt: nowIso(), v2At: nowIso() }); } }));
   }
   return changed;
+}
+// 신제품 대시보드 → 업무OS 자동 반영 (2단계): 신제품 대시보드를 실시간으로 보다가, 제품의 updatedAt 이 업무OS 프로젝트가 마지막으로 맞춘 값(lbSyncedAt)과 다르면
+//   그 프로젝트 업무를 서버에서 읽어 lbsync.planLaunchSync 로 비교 → 바뀐 칸만 조건부로 씀(그사이 업무OS에서 누가 고쳤으면 그 업무는 건너뛰고 다음에 다시)
+//   v2At 은 찍지 않음(업무OS 에서 고친 게 아니라서) · 기록 1건(sync) · 업무OS 에 없는 새 제품은 syncNewLaunch 로 · 한 번에 하나씩(겹쳐 돌지 않음)
+function useLaunchSync(D, cu, on) {
+  const ref = useRef({ D, cu, busy: false, again: null }); ref.current.D = D; ref.current.cu = cu;
+  useEffect(() => { if (!on) return;
+    const run = async (prods) => { const st = ref.current; if (st.busy) { st.again = prods; return; } st.busy = true;
+      try { await syncLaunchBoard(prods, st.D, st.cu); } catch (e) { console.error("[v2] 신제품 대시보드 반영 실패:", e); }
+      st.busy = false; if (st.again) { const n = st.again; st.again = null; setTimeout(() => run(n), 500); } };
+    let t = null; const un = fb.listenLaunch((items) => { clearTimeout(t); t = setTimeout(() => run(items), 1200); });
+    return () => { clearTimeout(t); un && un(); }; }, [on]);
+}
+export async function syncLaunchBoard(prods, D, cu) {
+  const today = ymd(new Date()); let made = 0, changed = 0;
+  const live = (prods || []).filter((p) => p && p.name && !p.deletedAt);
+  if (live.some((p) => !(D.projects || []).some((x) => x.id === "lb_" + p.id))) made = await syncNewLaunch(D, cu);
+  for (const p of live) {
+    const proj = (D.projects || []).find((x) => x.id === "lb_" + p.id); if (!proj) continue;
+    const ver = p.updatedAt || p.createdAt || "x"; if (proj.lbSyncedAt === ver) continue;
+    const tasks = (await fb.fetchWhere("tasks", ["projectId", "==", proj.id])).filter((t) => !t.deleted);
+    const now = nowIso(), pl = planLaunchSync(p, proj, tasks, D.users, today, now);
+    const ops = pl.tasks.map((x) => ({ key: "tasks", id: x.t._doc || x.t.id, expect: { lbSeen: x.t.lbSeen || null, v2At: x.t.v2At || null },
+      fields: { ...x.fields, updatedAt: now, updatedBy: "board", ...(x.fields.status && x.fields.status !== x.t.status ? { statusLog: fb.arrayUnion({ by: "board", byName: "신제품 대시보드", at: now, status: x.fields.status }) } : {}) } }));
+    const r = ops.length ? await fb.patchManyIf(ops) : { done: 0, skipped: [] };
+    // 다 들어갔을 때만 '여기까지 맞춤' 표시 → 건너뛴 업무가 있으면 다음 신호 때 다시
+    await fb.patchIf("projects", proj._doc || proj.id, { lbSyncedAt: proj.lbSyncedAt || null }, { ...(pl.project ? pl.project.fields : {}), ...(r.skipped.length ? {} : { lbSyncedAt: ver }), updatedAt: now });
+    const real = pl.tasks.filter((x) => x.label && !r.skipped.includes(x.t._doc || x.t.id));
+    if (real.length || (pl.project && pl.project.label)) { changed += real.length;
+      const id = newId("lg"); await fb.put("log", id, { id, action: "sync", col: "tasks", targetId: "", projectId: proj.id, by: "board", byName: "신제품 대시보드", at: now,
+        label: `신제품 대시보드에서 · ${p.name}${pl.project && pl.project.label ? " · " + pl.project.label : ""}${real.length ? ` · 업무 ${real.length}건 (${[...new Set(real.flatMap((x) => x.label.split("·")))].join("·")})` : ""}`, ids: real.map((x) => x.t.id) }); }
+  }
+  if (made || changed) console.log(`[v2] 신제품 대시보드 반영 · 새 제품 ${made} · 바뀐 업무 ${changed}`);
+  return { made, changed };
 }
 // 신제품 보드(버전1 launch-board) 바로 읽기: v2 에 아직 없는 제품만 새로 만든다 (이미 있는 제품·항목은 절대 덮지 않음)
 //  열 때 한 번 · 버전1은 읽기만 · 쓰기 직전에 v2 프로젝트를 서버에서 다시 확인 (다른 기기가 먼저 넣었으면 건너뜀)
@@ -526,7 +562,8 @@ export function useActs(D, cu, setToast, idx = null) {
 // kind: "launch"(신제품 보드만) | "all"(전체 + 신제품). 먼저 계산해 미리 보기 숫자를 보여 주고, 확인 뒤 runReimport
 // v2 에서 고친 문서: v2At · updatedBy · madeIn:v2 + (이 표시가 생기기 전에 쓴) 메모(memoAt) · 받음(ackBy) · v2 에 올린 파일
 const V2_FILE = /^task-attachments\/v2\//;
-export const v2edited = (x) => !!(x && (x.v2At || x.updatedBy || x.madeIn === "v2" || x.memoAt || x.ackBy
+// 신제품 대시보드 자동 반영(updatedBy 'board' · 메모 '신제품 대시보드')은 업무OS 에서 고친 게 아니라서 빼고 봄
+export const v2edited = (x) => !!(x && (x.v2At || (x.updatedBy && x.updatedBy !== "board") || x.madeIn === "v2" || (x.memoAt && x.memoByName !== "신제품 대시보드") || x.ackBy
   || (Array.isArray(x.attachments) && x.attachments.some((a) => a && V2_FILE.test(String(a.path || ""))))));
 // 이미 있는 문서에 덮어쓸 때 빼는 칸 — v2 가 주인인 칸(PIN · 주 한도 · 고정업무 사람별 체크)
 //   고정업무 체크(doneDates·doneAtBy·subDone)는 버전1에도 같은 이름이 있어서 '고친 문서' 판단에는 못 쓰고, 대신 덮어쓰지 않음

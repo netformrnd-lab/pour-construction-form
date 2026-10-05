@@ -145,3 +145,10 @@ export async function backupLaunch(id, products, by) {
   const json = JSON.stringify(products); if (json.length > 900000) throw new Error("백업이 너무 커요 (" + json.length + "자)");
   await setDoc(v2doc("backups", id), { id, kind: "launch-board", at: new Date().toISOString(), by, count: products.length, json });
 }
+// 신제품 대시보드 제품 실시간 구독 (읽기 · board-structure 문서는 뺌)
+export function listenLaunch(cb, onErr) {
+  return onSnapshot(collection(db, "pour-os", "launch-board", "products"), (snap) => {
+    const items = snap.docs.map((d) => ({ ...d.data(), id: d.id })).filter((x) => !x.__structure);
+    console.log(`[신제품 대시보드] ${items.length}건${snap.metadata.fromCache ? " (기기 저장)" : ""}`); cb(items, snap.metadata.fromCache);
+  }, (e) => { console.error("[신제품 대시보드] 구독 실패:", e); onErr && onErr(e); });
+}

@@ -1,7 +1,8 @@
 # 숏폼 스튜디오 Firestore 도구 (Claude 작업용) — config/shortsStudio(목록) · config/shorts-<id>(프로젝트)
-# 사용: python3 fs.py get <id> [out.json] | put <id> <in.json> | list
+# 사용: python3 fs.py get <id> [out.json] | put <id> <in.json> | list | refs | ref <레퍼런스ID> <저장폴더>
+#   refs: 레퍼런스 목록(config/shortsRefs) · ref: 캡처 이미지를 폴더에 jpg로 저장 → Read로 보고 제작에 반영
 # 보안규칙상 config/* 는 공개 읽기·쓰기 (pour-app-new). 기존 규칙 변경 없음.
-import sys, json, urllib.request, urllib.parse
+import sys, json, urllib.request, urllib.parse, urllib.error
 KEY = 'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU'
 BASE = 'https://firestore.googleapis.com/v1/projects/pour-app-new/databases/(default)/documents/config/'
 
@@ -31,7 +32,11 @@ def req(method, doc, body=None, mask=None):
     return json.loads(urllib.request.urlopen(r).read() or b'{}')
 
 def get(doc):
-    d = req('GET', doc); return {k: dec(v) for k, v in d.get('fields', {}).items()}
+    try: d = req('GET', doc)
+    except urllib.error.HTTPError as e:
+        if e.code == 404: return {}  # 아직 없는 문서
+        raise
+    return {k: dec(v) for k, v in d.get('fields', {}).items()}
 
 def put(pid, data):
     req('PATCH', 'shorts-' + pid, {'fields': {k: enc(v) for k, v in data.items()}})
@@ -48,4 +53,14 @@ if __name__ == '__main__':
         d = get('shorts-' + sys.argv[2])
         if len(sys.argv) > 3: json.dump(d, open(sys.argv[3], 'w'), ensure_ascii=False, indent=1)
         else: print(json.dumps(d, ensure_ascii=False, indent=1))
+    elif cmd == 'refs':
+        r = get('shortsRefs').get('refs', {})
+        for k, v in r.items(): v.pop('thumb', None)
+        print(json.dumps(r, ensure_ascii=False, indent=1))
+    elif cmd == 'ref':
+        import os, base64
+        d = get('shorts-ref-' + sys.argv[2]); out = sys.argv[3]; os.makedirs(out, exist_ok=True)
+        for i, im in enumerate(d.get('images', []), 1):
+            open(f'{out}/{sys.argv[2]}-{i:02d}.jpg', 'wb').write(base64.b64decode(im.split(',', 1)[1]))
+        d.pop('images', None); print(json.dumps(d, ensure_ascii=False, indent=1)); print('saved', out)
     elif cmd == 'put': put(sys.argv[2], json.load(open(sys.argv[3], encoding='utf-8'))); print('saved', sys.argv[2])

@@ -181,6 +181,16 @@ pre.code { margin: 6px 0 0; padding: 10px; background: var(--surface2); border-r
 .okmsg { color: var(--good); font-weight: 700; font-size: 13px; }
 
 .done-grid { display: grid; gap: 14px; }
+.ref-grid { display: grid; gap: 12px; }
+.ref { border: 1px solid var(--line); border-radius: var(--r); padding: 12px; display: grid; gap: 10px; min-width: 0; }
+.ref-top { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: start; }
+.ref-thumb { width: 96px; height: 170px; object-fit: cover; border-radius: var(--r-sm); background: var(--surface2); }
+.ref-empty { display: grid; place-items: center; font-size: 12px; color: var(--muted); }
+.ref-thumbs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.ref-th { position: relative; flex: none; }
+.ref-th img, .ref-thumbs > img { height: 160px; width: auto; max-width: none; border-radius: var(--r-sm); display: block; }
+.ref-thumbs.big > img { height: 360px; }
+.ref-th .btn { position: absolute; top: 4px; right: 4px; padding: 2px 8px; }
 .done { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 14px; align-items: start; border: 1px solid var(--line); border-radius: var(--r); padding: 12px; }
 .dv { width: 100%; max-width: 100%; aspect-ratio: 9 / 16; background: #000; border-radius: var(--r-sm); }
 .done-b { display: grid; gap: 8px; min-width: 0; }
@@ -410,7 +420,8 @@ function askText(n) {
     5: '5단계 JSON을 GitHub prompts/shorts/<상품>/short.json 으로 저장·푸시하고, build_short.py로 편집 빌드해서 완성 mp4·캡컷 zip 링크를 "최종"에 채워줘.',
     6: '유튜브 쇼츠·인스타 릴스용 제목, 설명, 해시태그 초안을 업로드 문구에 채워줘.',
   }[n];
-  return head + '\n' + body;
+  const rl = (P.refIds || []).filter(id => refs[id]).map(id => `${refs[id].title} (ID ${id})`);
+  return head + '\n' + body + (rl.length ? `\n참고 레퍼런스: ${rl.join(', ')}` : '');
 }
 
 function buildConfig() {
@@ -451,7 +462,9 @@ function promptOf(c) {
 let db = null, mode = 'loading', projects = {}, curId = null, P = null;
 let dirty = false, saving = false, saveAgain = false, editSeq = 0, saveTimer = null, saveMsg = '', saveErr = false, readOnly = false;
 let loadedIndex = false;
-let view = (store.get('studio.view') === 'done') ? 'done' : 'make', openDone = null, doneCache = {}, copyTo = {}, copyMsg = '';
+let refs = {}, refForm = { url: '', title: '', note: '', tags: [], images: [] }, refOpen = null, refCache = {}, refMsg = '', refBusy = false;
+const REF_TAGS = ['후크', '자막', '편집 리듬', '화면 구성', '나레이션 톤', '상품 추천(CTA)', '시공 장면'];
+let view = (['done', 'refs'].includes(store.get('studio.view'))) ? store.get('studio.view') : 'make', openDone = null, doneCache = {}, copyTo = {}, copyMsg = '';
 const CDN = 'https://d8j0ntlcm91z4.cloudfront.net/user_39sUpHbwBquNe1iB2u0CUyyHgzC/';
 const mediaUrl = u => !u ? '' : (/^https?:/.test(u) ? u : CDN + u);
 let tab = Math.min(5, Math.max(0, +(store.get('studio.tab') || 0) || 0)), showNew = false, armed = null, pendingRemote = false, copied = '';
@@ -530,7 +543,7 @@ function headerHTML() {
   const list = listProjects();
   return `<div class="bar">
     <div class="brand"><span class="mark" aria-hidden="true">▶</span>POUR 숏폼 스튜디오</div>
-    <div class="seg" role="group" aria-label="보기"><button type="button" data-act="view" data-v="make" aria-pressed="${view === 'make'}">제작판</button><button type="button" data-act="view" data-v="done" aria-pressed="${view === 'done'}">완성 숏폼 ${doneList().length}</button></div>
+    <div class="seg" role="group" aria-label="보기"><button type="button" data-act="view" data-v="make" aria-pressed="${view === 'make'}">제작판</button><button type="button" data-act="view" data-v="done" aria-pressed="${view === 'done'}">완성 숏폼 ${doneList().length}</button><button type="button" data-act="view" data-v="refs" aria-pressed="${view === 'refs'}">레퍼런스 ${refList().length}</button></div>
     <div class="proj">
       ${list.length ? `<select class="in" id="proj" aria-label="숏폼 선택">${list.map(p => `<option value="${p.id}" ${p.id === curId ? 'selected' : ''}>${esc(p.product?.name || p.name)}${p.output?.version ? ' · ' + esc(p.output.version) : ''}${p.archived ? ' · 숨김' : ''}</option>`).join('')}</select>` : ''}
       <button class="btn pri" data-act="new">새 숏폼</button>
@@ -597,6 +610,9 @@ function panel1() {
   <section class="card"><h3>자료 체크 <span class="sub">없으면 "없음" → 대체안으로 바로 진행</span></h3>
     ${MAT.map(m => `<div class="cut"><div class="cut-h"><b style="flex:1 1 200px">${m.t}</b>${seg('materials.' + m.k, [['todo', '준비 전'], ['done', '보냄'], ['none', '없음']])}</div>
       <p class="note">${m.why} · ${m.alt}</p></div>`).join('')}
+  </section>
+  <section class="card"><h3>참고 레퍼런스 <span class="sub">이 숏폼에 참고할 영상 고르기 · 레퍼런스 탭에서 추가</span></h3>
+    ${refList().length ? `<div class="addbar">${refList().map(r => { const on = (P.refIds || []).includes(r.id); return `<button type="button" class="btn sm ${on ? 'pri' : ''}" data-act="refLink" data-id="${r.id}" aria-pressed="${on}">${esc(r.title)}</button>`; }).join('')}</div>` : '<p class="empty">아직 레퍼런스가 없어요. 위쪽 "레퍼런스"에서 링크와 캡처를 넣어 주세요.</p>'}
   </section>
   <section class="card"><h3>사실 확인 <span class="sub">원인·수치는 근거 확인한 것만 대본에</span></h3>
     ${P.facts.length ? P.facts.map((f, i) => `<div class="cut"><div class="fgrid">${field('주장', `facts.${i}.text`, '예) 철근이 녹슬면 부피가 커져 콘크리트가 갈라진다')}${field('근거', `facts.${i}.source`, '예) 시방서 /149, KTR 시험성적서')}</div>
@@ -731,6 +747,78 @@ function meterHTML() {
     <dl class="kv"><dt>컷</dt><dd>${P.cuts.length}</dd><dt>음절</dt><dd>${totalSyl()}</dd><dt>목표 음절 (대략)</dt><dd>${Math.round((tgt - P.cuts.length * (P.build.gap ?? GAP) - P.cuts.length * 0.3) / 0.2)}</dd></dl>`;
 }
 
+// ── 레퍼런스 보관함: 링크 + 화면 캡처 + 참고할 점 ─────────────────
+function refList() { return Object.entries(refs).map(([id, r]) => Object.assign({ id }, r)).filter(r => !r.archived).sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || ''))); }
+function shrink(file, maxH = 720, q = 0.7) {
+  return new Promise((ok, bad) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => { const r = Math.min(1, maxH / img.height, 540 / img.width); const c = document.createElement('canvas');
+      c.width = Math.round(img.width * r); c.height = Math.round(img.height * r); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); ok(c.toDataURL('image/jpeg', q)); };
+    img.onerror = e => { URL.revokeObjectURL(url); bad(e); }; img.src = url;
+  });
+}
+async function addRefImages(files) {
+  for (const f of files) {
+    if (!f.type.startsWith('image/')) continue;
+    if (refForm.images.length >= 10) { refMsg = '캡처는 한 번에 10장까지 넣을 수 있어요'; break; }
+    try { refForm.images.push(await shrink(f)); } catch (e) { console.error('[refs] 이미지 읽기 실패:', e); refMsg = '이미지를 읽지 못했어요'; }
+  }
+  render();
+}
+async function saveRef() {
+  const f = refForm;
+  if (!f.url.trim() && !f.images.length) { refMsg = '영상 링크나 화면 캡처 중 하나는 넣어 주세요'; render(); return; }
+  const bytes = f.images.reduce((a, x) => a + x.length, 0);
+  if (bytes > 900000) { refMsg = '캡처 용량이 너무 커요. 몇 장 빼고 저장해 주세요'; render(); return; }
+  refBusy = true; render();
+  const id = (mode === 'db' ? db.collection('config').doc().id : 'r' + Date.now().toString(36)).slice(0, 12);
+  const thumb = f.images[0] ? await new Promise(ok => { const i = new Image(); i.onload = () => { const r = 200 / i.height; const c = document.createElement('canvas'); c.width = Math.round(i.width * r); c.height = 200; c.getContext('2d').drawImage(i, 0, 0, c.width, c.height); ok(c.toDataURL('image/jpeg', 0.6)); }; i.src = f.images[0]; }) : '';
+  const meta = { url: f.url.trim(), title: f.title.trim() || f.url.trim().replace(/^https?:\/\//, '').slice(0, 40) || '레퍼런스', note: f.note.trim(), tags: f.tags.slice(), count: f.images.length, thumb, archived: false, createdAt: nowIso() };
+  try {
+    if (mode === 'db') {
+      await db.collection('config').doc('shorts-ref-' + id).set(Object.assign({}, meta, { thumb: '', images: f.images }));
+      await db.collection('config').doc('shortsRefs').set({ refs: { [id]: meta } }, { merge: true });
+      console.log(`[refs] ${id} 저장 (캡처 ${f.images.length}장)`);
+    } else { refs[id] = meta; refCache[id] = f.images.slice(); store.set('studio.refs', JSON.stringify(refs)); }
+    refs[id] = meta; refForm = { url: '', title: '', note: '', tags: [], images: [] }; refMsg = '저장했어요. Claude에게 "레퍼런스 참고해서 만들어줘"라고 하면 돼요.';
+  } catch (e) { console.error('[refs] 저장 실패:', e); refMsg = '저장 실패 — 잠시 후 다시 눌러 주세요'; }
+  refBusy = false; render();
+}
+async function loadRef(id) {
+  if (refCache[id]) return;
+  if (mode === 'db') { try { const d = await db.collection('config').doc('shorts-ref-' + id).get(); console.log(`[refs] ${id} 캡처 불러옴`); refCache[id] = d.exists ? (d.data().images || []) : []; } catch (e) { console.error('[refs] 불러오기 실패:', e); refCache[id] = []; } }
+  else refCache[id] = [];
+}
+function refsHTML() {
+  const f = refForm, list = refList();
+  return `<section class="card" style="margin-top:16px"><h3>레퍼런스 추가 <span class="sub">링크 + 화면 캡처 + 참고할 점 → Claude가 보고 제작에 반영</span></h3>
+    <div class="fgrid"><label class="f">영상 링크<input class="in" id="ref-url" value="${esc(f.url)}" placeholder="https://youtube.com/shorts/…" inputmode="url"></label>
+      <label class="f">이름 (선택)<input class="in" id="ref-title" value="${esc(f.title)}" placeholder="예) 방수 시공 쇼츠 · 자막 스타일 좋음"></label></div>
+    <label class="f">무엇을 참고할까요?<textarea class="in" id="ref-note" rows="2" placeholder="예) 첫 2초 후크 문장, 자막 크기·색, 컷 넘어가는 속도">${esc(f.note)}</textarea></label>
+    <div class="addbar">${REF_TAGS.map(t => `<button type="button" class="btn sm ${f.tags.includes(t) ? 'pri' : ''}" data-act="refTag" data-t="${esc(t)}" aria-pressed="${f.tags.includes(t)}">${esc(t)}</button>`).join('')}</div>
+    <label class="f">화면 캡처 (여러 장 가능 · 최대 10장)<input class="in" id="ref-files" type="file" accept="image/*" multiple></label>
+    <p class="note">PC에서는 캡처 후 이 화면에서 Ctrl+V로 바로 붙여넣어도 돼요.</p>
+    ${f.images.length ? `<div class="ref-thumbs">${f.images.map((x, j) => `<div class="ref-th"><img src="${x}" alt="캡처 ${j + 1}"><button class="btn sm" data-act="refDelImg" data-j="${j}" aria-label="캡처 ${j + 1} 빼기">×</button></div>`).join('')}</div>` : ''}
+    <div class="addbar"><button class="btn pri" data-act="refSave" ${refBusy ? 'disabled' : ''}>${refBusy ? '저장 중…' : '레퍼런스 저장'}</button></div>
+    ${refMsg ? `<p class="okmsg">${esc(refMsg)}</p>` : ''}</section>
+  <section class="card"><h3>레퍼런스 ${list.length}개</h3>
+    ${list.length ? `<div class="ref-grid">${list.map(r => refCard(r)).join('')}</div>` : '<p class="empty">아직 없어요. 위에서 링크와 캡처를 넣어 주세요.</p>'}</section>`;
+}
+function refCard(r) {
+  const open = refOpen === r.id, imgs = refCache[r.id];
+  return `<article class="ref">
+    <div class="ref-top">${r.thumb ? `<img class="ref-thumb" src="${r.thumb}" alt="">` : '<div class="ref-thumb ref-empty">캡처 없음</div>'}
+      <div class="done-b"><b>${esc(r.title)}</b><span class="mono sub">ID ${r.id} · ${String(r.createdAt || '').slice(0, 10)}</span>
+        ${r.tags?.length ? `<div class="addbar">${r.tags.map(t => `<span class="chip mute">${esc(t)}</span>`).join('')}</div>` : ''}
+        ${r.note ? `<p class="preview" style="margin:0">${esc(r.note)}</p>` : ''}
+        <div class="addbar">${r.url ? `<a class="btn sm" href="${esc(r.url)}" target="_blank" rel="noopener">영상 열기</a>` : ''}
+          ${r.count ? `<button class="btn sm ${open ? 'pri' : ''}" data-act="refToggle" data-id="${r.id}">${open ? '캡처 닫기' : `캡처 보기 ${r.count}`}</button>` : ''}
+          <button class="btn sm ghost ${armed === 'ref' + r.id ? 'danger' : ''}" data-act="refHide" data-id="${r.id}">${armed === 'ref' + r.id ? '숨길까요?' : '숨기기'}</button></div></div></div>
+    ${open ? (imgs ? `<div class="ref-thumbs big">${imgs.map((x, j) => `<img src="${x}" alt="${esc(r.title)} 캡처 ${j + 1}">`).join('')}</div>` : '<p class="empty">캡처 불러오는 중…</p>') : ''}
+  </article>`;
+}
+
 // ── 완성 숏폼 모아보기 + 컷별 재활용 ─────────────────────
 function doneList() { return Object.values(projects).filter(p => p.output?.mp4).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))); }
 function fmt(t) { return `${Math.floor(t / 60)}:${pad(Math.floor(t % 60))}`; }
@@ -797,7 +885,9 @@ function render() {
   const app = document.getElementById('app');
   const ae = document.activeElement; const focus = ae && ae.id ? { id: ae.id, s: ae.selectionStart, e: ae.selectionEnd } : null;
   if (mode === 'loading' || (mode === 'db' && !loadedIndex) || (mode === 'db' && curId && !P)) { app.innerHTML = '<p class="empty">숏폼 스튜디오를 불러오는 중…</p>'; return; }
-  if (view === 'done') {
+  if (view === 'refs') {
+    app.innerHTML = `<header>${headerHTML()}</header>${refsHTML()}`;
+  } else if (view === 'done') {
     app.innerHTML = `<header>${headerHTML()}</header>${doneHTML()}`;
   } else if (!P) {
     app.innerHTML = `<header>${headerHTML()}</header><section class="card" style="margin-top:16px"><h3>아직 숏폼이 없어요</h3>
@@ -832,6 +922,7 @@ async function copy(text, key) {
   render(); setTimeout(() => { if (copied === key) { copied = ''; render(); } }, 2000);
 }
 document.addEventListener('input', e => {
+  if (e.target.id && /^ref-(url|title|note)$/.test(e.target.id)) { refForm[e.target.id.slice(4)] = e.target.value; return; }
   const el = e.target.closest('[data-f]'); if (!el || !P) return;
   let v = el.type === 'checkbox' ? el.checked : el.value;
   if (el.dataset.num) v = el.value === '' ? '' : parseFloat(el.value);
@@ -843,7 +934,13 @@ document.addEventListener('input', e => {
   if (el.dataset.full) render(); else updateDerived();
 });
 document.addEventListener('change', e => {
+  if (e.target.id === 'ref-files') { addRefImages([...e.target.files]); return; }
   if (e.target.id === 'proj') { if (dirty) save(); armed = null; pickProject(e.target.value); render(); }
+});
+document.addEventListener('paste', e => {
+  if (view !== 'refs') return;
+  const files = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith('image/'));
+  if (files.length) { e.preventDefault(); addRefImages(files); }
 });
 document.addEventListener('focusout', e => {
   if (!pendingRemote) return;
@@ -852,7 +949,7 @@ document.addEventListener('focusout', e => {
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const act = b.dataset.act, i = +b.dataset.i, j = +b.dataset.j;
-  if (act !== 'archive' && act !== 'restart' && act !== 'del') armed = null;
+  if (act !== 'archive' && act !== 'restart' && act !== 'del' && act !== 'refHide') armed = null;
   switch (act) {
     case 'new': showNew = true; render(); setTimeout(() => document.getElementById('newName')?.focus(), 0); return;
     case 'cancelNew': showNew = false; render(); return;
@@ -863,6 +960,13 @@ document.addEventListener('click', async e => {
       if (armed !== 'archive') { armed = 'archive'; render(); return; }
       armed = null; P.archived = true; await saveNow(); pickProject(); render(); return;
     case 'unarchive': P.archived = false; break;
+    case 'refTag': { const t = b.dataset.t; refForm.tags = refForm.tags.includes(t) ? refForm.tags.filter(x => x !== t) : refForm.tags.concat([t]); render(); return; }
+    case 'refDelImg': refForm.images.splice(j, 1); render(); return;
+    case 'refSave': return saveRef();
+    case 'refToggle': { const id = b.dataset.id; refOpen = refOpen === id ? null : id; render(); if (refOpen) { await loadRef(id); render(); } return; }
+    case 'refHide': { const id = b.dataset.id; if (armed !== 'ref' + id) { armed = 'ref' + id; render(); return; } armed = null; refs[id].archived = true;
+      try { if (mode === 'db') await db.collection('config').doc('shortsRefs').set({ refs: { [id]: { archived: true } } }, { merge: true }); else store.set('studio.refs', JSON.stringify(refs)); } catch (e) { console.error('[refs] 숨기기 실패:', e); }
+      render(); return; }
     case 'view': view = b.dataset.v; store.set('studio.view', view); copyMsg = ''; render(); window.scrollTo({ top: 0 }); return;
     case 'openMake': view = 'make'; store.set('studio.view', view); if (dirty) await save(); pickProject(b.dataset.id); render(); window.scrollTo({ top: 0 }); return;
     case 'toggleDone': { const id = b.dataset.id; openDone = openDone === id ? null : id; render(); if (openDone) { await loadDone(id); render(); } return; }
@@ -874,6 +978,7 @@ document.addEventListener('click', async e => {
     case 'start': P.startedAt = nowIso(); break;
     case 'restart': if (armed !== 'restart') { armed = 'restart'; render(); return; } armed = null; P.startedAt = nowIso(); break;
     case 'seg': { const raw = b.dataset.v; setPath(P, b.dataset.f, /^\d+$/.test(raw) ? +raw : raw); break; }
+    case 'refLink': { const id = b.dataset.id; P.refIds = (P.refIds || []).includes(id) ? P.refIds.filter(x => x !== id) : (P.refIds || []).concat([id]); break; }
     case 'addFact': P.facts.push({ text: '', source: '', ok: false }); break;
     case 'delFact': P.facts.splice(i, 1); break;
     case 'addCut': {
@@ -923,6 +1028,7 @@ pickProject = function (prefer) {
   if (typeof firebase === 'undefined') {
     mode = 'local';
     try { projects = JSON.parse(store.get('studio.projects') || '{}') || {}; } catch (e) { projects = {}; }
+    try { refs = JSON.parse(store.get('studio.refs') || '{}') || {}; } catch (e) { refs = {}; }
     console.log(`[shorts] 이 기기 저장 ${Object.keys(projects).length}건`);
     pickProject(); render(); return;
   }
@@ -935,6 +1041,10 @@ pickProject = function (prefer) {
     appId: "1:411031141847:web:e658174fd4b9652cdadf92"
   });
   db = firebase.firestore(); mode = 'db';
+  db.collection('config').doc('shortsRefs').onSnapshot(doc => {
+    refs = (doc.exists && doc.data().refs) || {}; console.log(`[shortsRefs] 레퍼런스 ${Object.keys(refs).length}건`);
+    const a = document.activeElement; if (!(a && a.matches && a.matches('input,textarea,select'))) render();
+  }, err => console.error('[shortsRefs] 구독 오류:', err));
   db.collection('config').doc('shortsStudio').onSnapshot(doc => {
     const list = (doc.exists && doc.data().projects) || {};
     console.log(`[shortsStudio] 숏폼 ${Object.keys(list).length}건`);

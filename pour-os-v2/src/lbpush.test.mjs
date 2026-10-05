@@ -69,4 +69,27 @@ ok("되돌아옴(에코) 없음: 쓴 뒤 신제품 값으로 lbsync 를 돌리�
   const back = S.planLaunchSync(P(stages), proj(), [{ ...t, lbSeen: r.tasks[0].lbSeen }], users, today, now);
   assert.equal(back.tasks.length, 0);
 });
+ok("마감 미정: 업무OS에서 기한 지우면 → 신제품 '마감 미정' · 신제품 미정 → 업무OS 기한 없음(자동 아님) · 되돌아옴 없음", () => {
+  const r = L.planLaunchPush(P({ d01: { ...st, due: "2026-10-20", dueAuto: "2026-10-20" } }), proj(), [T("d01", { lbSeen: base, dueDate: "", dueAuto: false })], users, now, "x");
+  assert.equal(r.board.fields["stages.d01.dueTbd"], true); assert.equal(r.board.fields["stages.d01.due"], ""); assert.equal(r.tasks[0].lbSeen.due, "tbd");
+  const back = S.planLaunchSync(P({ d01: { ...st, due: "", dueTbd: true } }), proj(), [T("d01", { lbSeen: r.tasks[0].lbSeen, dueDate: "", dueAuto: false })], users, today, now);
+  assert.equal(back.tasks.length, 0);
+  const pull = S.planLaunchSync(P({ d01: { ...st, dueTbd: true } }), proj(), [T("d01", { lbSeen: base })], users, today, now);
+  assert.equal(pull.tasks[0].fields.dueDate, ""); assert.equal(pull.tasks[0].fields.dueAuto, false);
+  const set = L.planLaunchPush(P({ d01: { ...st, dueTbd: true } }), proj(), [T("d01", { lbSeen: { ...base, due: "tbd" }, dueDate: "2026-10-30", dueAuto: false })], users, now, "x");
+  assert.equal(set.board.fields["stages.d01.due"], "2026-10-30"); assert.equal(set.board.fields["stages.d01.dueTbd"], false);
+});
+ok("하위 업무 → 할 일 줄: 업무OS에서 고친 줄만 바꾸고 다른 줄은 그대로 · 업무OS에서 새로 만든 하위 업무는 줄 추가", () => {
+  const rows = [{ id: "r1", note: "원래", owner: "", ownerIds: [], due: "", dueTbd: false }, { id: "r2", note: "그대로", owner: "", due: "" }];
+  const par = T("s12", { lbSeen: base });
+  const sub1 = { id: "x1", parentId: par.id, projectId: "lb_P", title: "고친 내용", memo: "", lbRow: "r1", lbSeen: { note: "원래", owners: [], due: "tbd" }, assigneeIds: ["jh"], assigneeId: "jh", dueDate: "", status: "todo" };
+  const sub2 = { id: "x2", parentId: par.id, projectId: "lb_P", title: "새 할 일", memo: "", assigneeIds: ["wm"], assigneeId: "wm", dueDate: "2026-10-25", status: "todo" };
+  const r = L.planLaunchPush(P({ s12: { ...st, due: "2026-10-20", dueAuto: "2026-10-20", tasks: rows } }), proj(), [par, sub1, sub2], users, now, "x");
+  const out = r.board.fields["stages.s12.tasks"];
+  assert.equal(out.length, 3); assert.equal(out[0].note, "고친 내용"); assert.deepEqual(out[0].ownerIds, ["jh"]); assert.deepEqual(out[1], rows[1]);
+  assert.equal(out[2].id, "x2"); assert.equal(out[2].due, "2026-10-25"); assert.equal(out[2].owner, "이우민");
+  assert.ok(r.tasks.some((x) => x.t.id === "x2" && x.extra && x.extra.lbRow === "x2"));
+  const back = S.planRowSync(P({ s12: { tasks: out } }), proj(), [par, { ...sub1, lbSeen: r.tasks.find((x) => x.t.id === "x1").lbSeen }, { ...sub2, lbRow: "x2", lbSeen: r.tasks.find((x) => x.t.id === "x2").lbSeen }], users, now);
+  assert.deepEqual(back.create.map((d) => d.lbRow), ["r2"]); assert.deepEqual(back.tasks, []);   // r2 는 신제품에만 있던 줄 → 하위 업무로 · 고친 줄은 되돌아오지 않음
+});
 console.log(`${n}개 모두 통과`);

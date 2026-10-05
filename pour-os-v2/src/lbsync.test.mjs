@@ -61,4 +61,53 @@ ok("바뀐 것 없으면 쓸 것 없음", () => {
   const r = S.planLaunchSync(P({ d01: { status: "todo", owner: "이우민" } }), proj({ lbSeen: { launchDate: "2026-11-20", name: "제품" } }), [T("d01", { lbSeen: base })], users, today, now);
   assert.equal(r.tasks.length, 0); assert.equal(r.project, null);
 });
+ok("휴지통: 지우면 프로젝트 중단 + 열린 업무 접음(끝낸 일 그대로) · 되살리면 접은 것만 이전 상태로", () => {
+  const ts = [T("d01", { status: "inprogress" }), T("d02", { status: "done" }), T("d03", { status: "dropped", dropPrev: "todo" })];
+  const a = S.planLaunchTrash(P({}, { deletedAt: "2026-10-05T01:00:00Z" }), proj({ status: "active" }), ts, now);
+  assert.equal(a.project.status, "dropped"); assert.equal(a.project.lbTrash, "2026-10-05T01:00:00Z"); assert.equal(a.tasks.length, 1);
+  assert.deepEqual(a.tasks[0].fields, { status: "dropped", dropPrev: "inprogress", droppedAt: now, trashBy: "board" });
+  const folded = [{ ...ts[0], ...a.tasks[0].fields }, ts[1], ts[2]];
+  const b = S.planLaunchTrash(P({}), proj({ ...a.project }), folded, now);
+  assert.equal(b.project.status, "active"); assert.equal(b.project.lbTrash, null); assert.equal(b.tasks.length, 1); assert.equal(b.tasks[0].fields.status, "inprogress");
+  assert.equal(S.planLaunchTrash(P({}), proj({ status: "active" }), ts, now), null);
+});
+ok("휴지통: 업무OS에서 이미 끝낸 프로젝트는 상태 그대로(표시만) · 되살려도 그대로", () => {
+  const a = S.planLaunchTrash(P({}, { deletedAt: "x" }), proj({ status: "completed" }), [], now);
+  assert.deepEqual(a.project, { lbTrash: "kept" }); assert.equal(S.planLaunchTrash(P({}), proj({ status: "completed", lbTrash: "kept" }), [], now).project.lbTrash, null);
+});
+ok("해외 하위 프로젝트: 신제품 대시보드 값 + 구조 문서 이름을 따라감", () => {
+  const st = { projects: { grohome: [{ id: "amazon-jp", name: "아마존 JP" }] } };
+  const r = S.planLaunchSync(P({}, { brand: "grohome", project: "amazon-jp" }), proj({ lbSeen: { launchDate: "2026-11-20", name: "제품" } }), [], users, today, now, st);
+  assert.equal(r.project.fields.lbProject, "amazon-jp"); assert.equal(r.project.fields.lbProjectName, "아마존 JP");
+  const z = S.planLaunchSync(P({}, { brand: "grohome", project: "amazon-jp" }), proj({ lbSeen: { launchDate: "2026-11-20", name: "제품" }, lbProject: "amazon-jp", lbProjectName: "아마존 JP" }), [], users, today, now, st);
+  assert.equal(z.project, null);
+});
+ok("할 일 줄 → 하위 업무: 새 줄은 만들기(제목 = 첫 줄) · 내용·담당·마감 바뀌면 따라감 · 줄을 지우면 중단(지우지 않음)", () => {
+  const parent = T("s12", { lbSeen: { status: "todo", owners: ["wm"], due: "", note: "" } });
+  const row = { id: "r1", note: "[3팀] 아마존 US 입고\n상표 대기", owner: "민지", ownerIds: ["minji"], due: "2026-10-30", dueTbd: false };
+  const a = S.planRowSync(P({ s12: { tasks: [row] } }), proj(), [parent], users, now);
+  assert.equal(a.create.length, 1); const d = a.create[0];
+  assert.equal(d.title, "[3팀] 아마존 US 입고"); assert.equal(d.memo, row.note); assert.equal(d.parentId, parent.id); assert.deepEqual(d.assigneeIds, ["minji"]); assert.equal(d.dueDate, "2026-10-30"); assert.equal(d.lbRow, "r1");
+  const b = S.planRowSync(P({ s12: { tasks: [{ ...row, note: "바뀐 내용", dueTbd: true, due: "" }] } }), proj(), [parent, d], users, now);
+  assert.equal(b.tasks[0].fields.title, "바뀐 내용"); assert.equal(b.tasks[0].fields.dueDate, ""); assert.equal(b.tasks[0].fields.lbSeen.due, "tbd");
+  const c = S.planRowSync(P({ s12: { tasks: [] } }), proj(), [parent, d], users, now);
+  assert.equal(c.tasks[0].fields.status, "dropped"); assert.equal(c.tasks[0].fields.lbRowGone, true);
+  assert.deepEqual(S.planRowSync(P({ s12: { tasks: [row] } }), proj(), [parent, d], users, now).tasks, []);
+});
+ok("직접 추가한 단계: 업무 없으면 만들기(영역 단계·앞 단계 기준 자동 기한·책임자 기본 담당) · 해당 없음이면 안 만듦 · 단계를 지우면 중단", () => {
+  const st = { custom: { c1: { name: "수입 통관" } }, order: { P2: ["d01", "s03", "c1"] } };
+  const a = S.planCustomSteps(P({}), proj({ assigneeId: "minji" }), [], users, st, today, now);
+  assert.equal(a.create.length, 1); const d = a.create[0];
+  assert.equal(d.id, "lb_P__c1"); assert.equal(d.title, "수입 통관"); assert.equal(d.phase, "pack"); assert.deepEqual(d.assigneeIds, ["minji"]); assert.equal(d.ownerAuto, true); assert.equal(d.dueAuto, true); assert.ok(d.dueDate); assert.equal(d.customStep, true);
+  assert.equal(S.planCustomSteps(P({ c1: { status: "skip" } }), proj(), [], users, st, today, now).create.length, 0);
+  assert.equal(S.planCustomSteps(P({}), proj(), [d], users, st, today, now).create.length, 0);
+  const g = S.planCustomSteps(P({}), proj(), [d], users, { custom: {}, order: {} }, today, now);
+  assert.equal(g.drop.length, 1); assert.equal(g.drop[0].fields.status, "dropped"); assert.equal(g.drop[0].fields.lbStepGone, true);
+});
+ok("직접 추가한 단계도 상태·담당 양쪽 반영 (구조 문서를 넘기면)", () => {
+  const st = { custom: { c1: { name: "수입 통관" } }, order: { P2: ["c1"] } };
+  const t = { id: "lb_P__c1", projectId: "lb_P", launchItem: "c1", status: "todo", assigneeIds: ["wm"], assigneeId: "wm", dueDate: "2026-10-20", dueAuto: true, memo: "", lbSeen: { status: "todo", owners: [], due: "", note: "" } };
+  const r = S.planLaunchSync(P({ c1: { status: "done", owner: "민지", ownerIds: ["minji"] } }), proj(), [t], users, today, now, st);
+  assert.equal(r.tasks[0].fields.status, "done");
+});
 console.log(`\n${n}개 모두 통과`);

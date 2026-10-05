@@ -151,7 +151,8 @@ export async function backupLaunch(id, products, by, once) {
 // 신제품 대시보드 제품 실시간 구독 (읽기 · board-structure 문서는 뺌)
 export function listenLaunch(cb, onErr) {
   return onSnapshot(collection(db, "pour-os", "launch-board", "products"), (snap) => {
-    const items = snap.docs.map((d) => ({ ...d.data(), id: d.id })).filter((x) => !x.__structure);
+    const all = snap.docs.map((d) => ({ ...d.data(), id: d.id })), items = all.filter((x) => !x.__structure);
+    items.structure = all.find((x) => x.__structure) || null;   // 단계 구조·해외 하위 프로젝트 이름 (읽기만)
     console.log(`[신제품 대시보드] ${items.length}건${snap.metadata.fromCache ? " (기기 저장)" : ""}`); cb(items, snap.metadata.fromCache);
   }, (e) => { console.error("[신제품 대시보드] 구독 실패:", e); onErr && onErr(e); });
 }

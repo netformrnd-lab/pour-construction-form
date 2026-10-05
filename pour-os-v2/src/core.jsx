@@ -9,9 +9,9 @@ import {
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, planSeed, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, isHoldP, nextWorkday, setHolidayLayer, handOverOwners,
 } from "./model.js";
-import { planLaunchImport, relaunch, isTempOwner } from "./launch.js";
+import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS } from "./launch.js";
 import { nextTurnText } from "./turn.js";
-import { planLaunchSync } from "./lbsync.js";
+import { planLaunchSync, planLaunchTrash, planRowSync, planCustomSteps } from "./lbsync.js";
 import { planLaunchPush, BY as LB_BY } from "./lbpush.js";
 import { redact, secretOn } from "./secret.js";
 import { flowOwners } from "./flow.js";
@@ -122,14 +122,14 @@ export async function pushLaunchBoard(prods, D, cu) {
   const live = (prods || []).filter((p) => p && p.name && !p.deletedAt); let n = 0;
   for (const p of live) {
     const proj = (D.projects || []).find((x) => x.id === "lb_" + p.id); if (!proj || !proj.lbSeen || proj.deleted || secretOn(proj)) continue;   // 기밀 프로젝트·업무는 신제품 대시보드(로그인 없는 화면)에 안 씀
-    const tasks = (D.tasks || []).filter((t) => t.projectId === proj.id && !secretOn(t)), now = nowIso(), pl = planLaunchPush(p, proj, tasks, D.users, now, cu.name);
+    const tasks = (D.tasks || []).filter((t) => t.projectId === proj.id && !secretOn(t)), now = nowIso(), pl = planLaunchPush(p, proj, tasks, D.users, now, cu.name, prods.structure);
     if (!pl.board) continue;
     const day = "launch-" + ymd(new Date()); if (lbBackup !== day) { await fb.backupLaunch(day, prods, cu.name, true); lbBackup = day; }
     const by = `${cu.name} (${LB_BY})`, said = pl.board.said;
     const fields = { ...pl.board.fields, ...(said.length ? { updatedAt: now, updatedBy: by, history: fb.arrayUnion({ at: now, by, text: "업무OS에서 · " + said.join(", ").slice(0, 200) }) } : {}) };
     const r = await fb.patchLaunchIf([{ id: p.id, fields, expect: pl.board.expect }]);
     if (!r.done) continue;
-    const ops = pl.tasks.filter((x) => JSON.stringify(x.lbSeen) !== JSON.stringify(x.t.lbSeen)).map((x) => ({ key: "tasks", id: x.t._doc || x.t.id, expect: { lbSeen: x.t.lbSeen || null }, fields: { lbSeen: x.lbSeen } }));
+    const ops = pl.tasks.filter((x) => x.extra || JSON.stringify(x.lbSeen) !== JSON.stringify(x.t.lbSeen)).map((x) => ({ key: "tasks", id: x.t._doc || x.t.id, expect: { lbSeen: x.t.lbSeen || null }, fields: { lbSeen: x.lbSeen, ...(x.extra || {}) } }));   // extra: 새 줄 번호(lbRow)
     if (ops.length) await fb.patchManyIf(ops);
     if (pl.project) await fb.patchIf("projects", proj._doc || proj.id, { lbSeen: proj.lbSeen || null }, { lbSeen: pl.project.lbSeen });
     if (said.length) n++;
@@ -141,17 +141,42 @@ export async function syncLaunchBoard(prods, D, cu) {
   const today = ymd(new Date()); let made = 0, changed = 0;
   const live = (prods || []).filter((p) => p && p.name && !p.deletedAt);
   if (live.some((p) => !(D.projects || []).some((x) => x.id === "lb_" + p.id))) made = await syncNewLaunch(D, cu);
+  // 4단계 ④ 직접 추가한 단계: 구조 문서의 단계마다 업무가 없으면 만들기(없을 때만) · 지운 단계의 업무는 중단(지우지 않음)
+  const st0 = prods.structure, hasCustom = !!(st0 && st0.custom && Object.keys(st0.custom).length) || (D.tasks || []).some((t) => t.customStep && t.status !== "dropped");
+  if (hasCustom) for (const p of live) {
+    const proj = (D.projects || []).find((x) => x.id === "lb_" + p.id); if (!proj || !projOpen(proj)) continue;
+    const now = nowIso(), cs = planCustomSteps(p, proj, (D.tasks || []).filter((t) => t.projectId === proj.id), D.users, st0, today, now);
+    const m = cs.create.length ? (await fb.createMissing(cs.create.map((d) => ({ key: "tasks", id: d.id, data: d })))).made : 0;
+    if (cs.drop.length) await fb.patchManyIf(cs.drop.map((x) => ({ key: "tasks", id: x.t._doc || x.t.id, expect: { status: x.t.status || null }, fields: { ...x.fields, updatedAt: now, updatedBy: "board" } })));
+    if (m || cs.drop.length) { changed += m + cs.drop.length; const id = newId("lg"); await fb.put("log", id, { id, action: "sync", col: "tasks", targetId: "", projectId: proj.id, by: "board", byName: "신제품 대시보드", at: now,
+      label: `신제품 대시보드에서 · ${p.name}${m ? ` · 추가한 단계 ${cs.create.slice(0, m).map((d) => d.title).join(", ")}` : ""}${cs.drop.length ? ` · 지운 단계 ${cs.drop.length}개 중단` : ""}` }); }
+  }
+  // 4단계 휴지통: 신제품 대시보드에서 지운 제품 → 업무OS 프로젝트 중단(지우지 않음) · 되살리면 다시 열기 (표시 lbTrash 로 한 번만)
+  for (const p of (prods || []).filter((x) => x && x.name)) {
+    const proj = (D.projects || []).find((x) => x.id === "lb_" + p.id); if (!proj || !!p.deletedAt === !!proj.lbTrash) continue;
+    const tasks = (await fb.fetchWhere("tasks", ["projectId", "==", proj.id])).filter((t) => !t.deleted), now = nowIso(), tr = planLaunchTrash(p, proj, tasks, now); if (!tr) continue;
+    const r = await fb.patchIf("projects", proj._doc || proj.id, { lbTrash: proj.lbTrash || null, status: proj.status || null }, { ...tr.project, updatedAt: now, updatedBy: "board",
+      ...(tr.label ? { endLog: fb.arrayUnion({ kind: p.deletedAt ? "dropped" : "resume", why: tr.label, at: now, by: "board", byName: "신제품 대시보드" }) } : {}) });
+    if (!r.ok) continue;
+    if (tr.tasks.length) await fb.patchManyIf(tr.tasks.map((x) => ({ key: "tasks", id: x.t._doc || x.t.id, expect: { status: x.t.status || null }, fields: { ...x.fields, updatedAt: now, updatedBy: "board", statusLog: fb.arrayUnion({ by: "board", byName: "신제품 대시보드", at: now, status: x.fields.status }) } })));
+    if (tr.label) { const id = newId("lg"); await fb.put("log", id, { id, action: "projEnd", col: "projects", targetId: proj.id, projectId: proj.id, by: "board", byName: "신제품 대시보드", at: now, label: `${p.name} · 신제품 대시보드 ${tr.label}${tr.tasks.length ? ` · 업무 ${tr.tasks.length}건` : ""}` }); changed++; }
+  }
   for (const p of live) {
     const proj = (D.projects || []).find((x) => x.id === "lb_" + p.id); if (!proj) continue;
-    const ver = p.updatedAt || p.createdAt || "x"; if (proj.lbSyncedAt === ver) continue;
+    const ver = p.updatedAt || p.createdAt || "x"; const rows = LAUNCH_ITEMS.some((it) => (((p.stages || {})[it.id] || {}).tasks || []).length);
+    if (proj.lbSyncedAt === ver && (p.project || "") === (proj.lbProject || "") && (proj.lbRows || !rows)) continue;   // 하위 프로젝트·할 일 줄은 처음 한 번 따라잡기
     const tasks = (await fb.fetchWhere("tasks", ["projectId", "==", proj.id])).filter((t) => !t.deleted);
-    const now = nowIso(), pl = planLaunchSync(p, proj, tasks, D.users, today, now);
+    const now = nowIso(), pl = planLaunchSync(p, proj, tasks, D.users, today, now, prods.structure);
+    // 할 일 줄 → 하위 업무 (4단계 ③): 새 줄은 없을 때만 만들기 · 바뀐 줄은 아래 조건부 쓰기에 같이
+    const rs = planRowSync(p, proj, tasks, D.users, now, prods.structure); pl.tasks.push(...rs.tasks);
+    const madeRows = rs.create.length ? (await fb.createMissing(rs.create.map((d) => ({ key: "tasks", id: d.id, data: d })))).made : 0;
     const ops = pl.tasks.map((x) => ({ key: "tasks", id: x.t._doc || x.t.id, expect: { lbSeen: x.t.lbSeen || null, v2At: x.t.v2At || null },
       fields: { ...x.fields, updatedAt: now, updatedBy: "board", ...(x.fields.status && x.fields.status !== x.t.status ? { statusLog: fb.arrayUnion({ by: "board", byName: "신제품 대시보드", at: now, status: x.fields.status }) } : {}) } }));
     const r = ops.length ? await fb.patchManyIf(ops) : { done: 0, skipped: [] };
     // 다 들어갔을 때만 '여기까지 맞춤' 표시 → 건너뛴 업무가 있으면 다음 신호 때 다시
-    await fb.patchIf("projects", proj._doc || proj.id, { lbSyncedAt: proj.lbSyncedAt || null }, { ...(pl.project ? pl.project.fields : {}), ...(r.skipped.length ? {} : { lbSyncedAt: ver }), updatedAt: now });
+    await fb.patchIf("projects", proj._doc || proj.id, { lbSyncedAt: proj.lbSyncedAt || null }, { ...(pl.project ? pl.project.fields : {}), ...(r.skipped.length ? {} : { lbSyncedAt: ver, ...(rows ? { lbRows: true } : {}) }), updatedAt: now });
     const real = pl.tasks.filter((x) => x.label && !r.skipped.includes(x.t._doc || x.t.id));
+    if (madeRows) real.push(...rs.create.slice(0, madeRows).map((d) => ({ t: d, label: "할 일 줄 → 하위 업무" })));
     if (real.length || (pl.project && pl.project.label)) { changed += real.length;
       const id = newId("lg"); await fb.put("log", id, { id, action: "sync", col: "tasks", targetId: "", projectId: proj.id, by: "board", byName: "신제품 대시보드", at: now,
         label: `신제품 대시보드에서 · ${p.name}${pl.project && pl.project.label ? " · " + pl.project.label : ""}${real.length ? ` · 업무 ${real.length}건 (${[...new Set(real.flatMap((x) => x.label.split("·")))].join("·")})` : ""}`, ids: real.map((x) => x.t.id) }); }

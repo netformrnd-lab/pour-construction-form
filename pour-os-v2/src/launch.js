@@ -109,7 +109,7 @@ export function planLaunchImport(products, D, today = ymd(new Date())) {
     const pid = "lb_" + p.id, leadName = p.lead || (LAUNCH_BRANDS[p.brand] || {}).bm || "", lead = userByName(users, leadName);
     // skipItems: v1 에서 건너뛴 항목 (업무를 만들지 않음 → 순서표에서 그 앞 항목으로 거슬러 올라감. 그 밖에 없는 항목은 오래전에 끝나 불러오지 않은 것)
     const proj = { id: pid, title: p.name, launchId: p.id, category: "launch", group: "신제품", brand: p.brand || "", batch: p.batch || "", dueDate: p.launchDate || "", launchDate: p.launchDate || "",
-      assigneeId: lead ? lead.id : "", collaboratorIds: [], status: "active", priority: "mid", progress: 0, memo: p.memo || "", importedFrom: "launch-board", createdAt: p.createdAt || "", skipItems: [],
+      assigneeId: lead ? lead.id : "", collaboratorIds: [], status: "active", priority: "mid", progress: 0, memo: p.memo || "", importedFrom: "launch-board", createdAt: p.createdAt || "", skipItems: [], lbProject: p.project || "", lbProjectName: p.project || "",
       lbSeen: { launchDate: p.launchDate || "", name: p.name || "" }, lbSyncedAt: p.updatedAt || p.createdAt || "x" };   // 신제품 대시보드 자동 반영(lbsync) 마지막으로 본 값
     projects.push(proj);
     LAUNCH_ITEMS.forEach((it) => {
@@ -117,12 +117,12 @@ export function planLaunchImport(products, D, today = ymd(new Date())) {
       // 담당: 신제품 대시보드에 업무OS 사람 번호(ownerIds)가 있으면 그대로(여러 명) · 없으면 이름으로 맞춤
       const live = (id) => users.some((x) => x.id === id), ids = (s.ownerIds || []).filter(live), nameU = !ids.length && s.owner ? userByName(users, s.owner) : null;
       const owners = ids.length ? ids : nameU ? [nameU.id] : [], u = owners.length ? { id: owners[0] } : null;
-      const auto = !s.due; const due = s.due || launchDue(p.launchDate, it.off, today);
+      const auto = !s.due && !s.dueTbd; const due = s.dueTbd ? "" : s.due || launchDue(p.launchDate, it.off, today);   // 마감 미정이면 기한 없음
       tasks.push({ id: `${pid}__${it.id}`, title: it.name + (it.target ? ` (${s.count || 0}/${it.target})` : ""), projectId: pid, launchItem: it.id, phase: it.phase, isFixed: false, type: "general",
         status: ST[s.status] || "todo", assigneeId: u ? u.id : "", assigneeIds: owners, ownerText: s.owner && !u ? s.owner : "", dueDate: due, dueAuto: auto, noReview: true,
         ownerAuto: false, ...(u ? { ownerFrom: "v1" } : {}),
         memo: s.note || "", attachments: [], parentId: null, brand: p.brand || "", importedFrom: "launch-board", createdAt: p.createdAt || "",
-        lbSeen: { status: ["todo", "doing", "done", "hold"].includes(s.status) ? s.status : "todo", owners: ids.length ? ids : ownerIdsOf(s.owner, users), due: s.due || "", note: s.note || "" },
+        lbSeen: { status: ["todo", "doing", "done", "hold"].includes(s.status) ? s.status : "todo", owners: ids.length ? ids : ownerIdsOf(s.owner, users), due: s.dueTbd ? "tbd" : s.due || "", note: s.note || "" },
         ...(s.status === "done" ? { doneAt: s.doneAt || "", finishedAt: s.doneAt || "", doneByName: s.doneBy || "" } : {}) });
     });
   });
@@ -156,8 +156,9 @@ const movable = (t) => !!t && !!t.launchItem && !!t.dueAuto && !isDone(t) && t.s
 // 출시일 변경 → 자동 기한 항목만 다시 계산 [{task, due}]
 export function relaunch(tasks, launchDate, today = ymd(new Date())) {
   const off = Object.fromEntries(LAUNCH_ITEMS.map((i) => [i.id, i.off]));
-  return (tasks || []).filter((t) => movable(t) && off[t.launchItem] != null)
-    .map((t) => ({ task: t, due: launchDue(launchDate, off[t.launchItem], today) })).filter((x) => x.due !== t0(x.task));
+  const o = (t) => (off[t.launchItem] != null ? off[t.launchItem] : t.lbOff);   // 직접 추가한 단계는 만들 때 적어 둔 lbOff
+  return (tasks || []).filter((t) => movable(t) && o(t) != null)
+    .map((t) => ({ task: t, due: launchDue(launchDate, o(t), today) })).filter((x) => x.due !== t0(x.task));
 }
 const t0 = (t) => String(t.dueDate || "");
 export const phaseOf = (k) => LAUNCH_PHASES.find((p) => p.k === k);
@@ -230,3 +231,18 @@ export function rebalanceLaunch(tasks, launchDate, today = ymd(new Date())) {
   return cand.map((t) => ({ task: t, due: due.get(t.id) })).filter((x) => x.due && x.due !== String(x.task.dueDate || ""));
 }
 const finishedLike = (t) => isDone(t) || t.status === "review";
+
+// ── 신제품 대시보드에서 직접 추가한 단계(board-structure.custom · 4단계 ④) ──
+// 신제품 영역 P1~P5 → 업무OS 단계 · 자동 기한 = 그 영역에서 바로 앞 기본 단계의 기한(없으면 영역 첫 기본 단계)
+export const BOARD_PHASE = { P1: "plan", P2: "pack", P3: "content", P4: "content", P5: "channel" };
+const BOARD_BASE = { P1: ["p01", "p02", "p03", "p04", "s01", "s02"], P2: ["d01", "s03", "d02", "s04", "d03", "s05"], P3: ["s06"], P4: ["s07", "s08", "s09", "s10"], P5: ["s11", "s12"] };
+export function customItems(structure) {
+  const custom = (structure && structure.custom) || {}, order = (structure && structure.order) || {};
+  return Object.keys(custom).map((id) => {
+    const pk = Object.keys(BOARD_BASE).find((k) => (order[k] || []).includes(id)) || "P5", list = order[pk] || BOARD_BASE[pk];
+    const before = list.slice(0, Math.max(0, list.indexOf(id))).reverse().find((x) => OFF_BY[x] != null) || BOARD_BASE[pk][0];
+    const ph = BOARD_PHASE[pk], phase = LAUNCH_PHASES.find((x) => x.k === ph);
+    return { id, name: (custom[id] && custom[id].name) || "새 단계", off: OFF_BY[before], lb: true, custom: true, phase: ph, phaseName: phase ? phase.name : "" };
+  });
+}
+export const launchItemsOf = (structure) => [...LAUNCH_ITEMS, ...customItems(structure)];

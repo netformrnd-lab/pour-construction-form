@@ -5,7 +5,7 @@
 //   둘 다 바뀜 → 나중에 바뀐 쪽 (신제품 단계 updatedAt vs 업무OS v2At)
 //   처음(기억 없음): 업무OS 에서 고친 적 없는 업무(v2At 없음)만 신제품 값으로, 고친 업무는 그대로 두고 기억만
 // 신제품 대시보드의 빈 값(담당 없음 · 마감 없음)은 처음엔 업무OS 값을 지우지 않음 (자동 기한·기본 담당 유지)
-import { LAUNCH_ITEMS, itemState, ownerIdsOf, launchDue, relaunch } from "./launch.js";
+import { LAUNCH_ITEMS, itemState, ownerIdsOf, launchDue, relaunch, launchItemsOf, customItems } from "./launch.js";
 import { ownersOf, dueOf } from "./model.js";
 
 // 신제품 대시보드 상태 → 업무OS (skip = 해당 없음 → 업무는 지우지 않고 'dropped'로 접음)
@@ -29,7 +29,7 @@ export function boardVals(p, it, users) {
 export function planLaunchSync(p, proj, tasks, users, today, now, structure) {
   const out = [], byItem = new Map((tasks || []).filter((t) => t.launchItem && !t.isFixed).map((t) => [t.launchItem, t]));
   const skipAdd = [], skipDel = [];
-  LAUNCH_ITEMS.forEach((it) => {
+  launchItemsOf(structure).forEach((it) => {
     const t = byItem.get(it.id); if (!t) return;   // 업무가 없는 항목(처음부터 해당 없음 등)은 3단계·4단계에서
     const b = boardVals(p, it, users), base = t.lbSeen || null, first = !base;
     const vB = t.status === "dropped" && t.lbSkip ? "skip" : V2B[t.status] || "todo";
@@ -122,9 +122,9 @@ export const rowTitle = (note) => (String(note || "").split("\n").map((x) => x.t
 export const rowVals = (r, users) => ({ note: String(r.note || ""), owners: Array.isArray(r.ownerIds) && r.ownerIds.length ? r.ownerIds.filter((id) => (users || []).some((u) => u.id === id)) : ownerIdsOf(r.owner, users), due: r.due || TBD });   // 할 일 줄은 자동 기한이 없어서 날짜 없음 = 미정
 export const subVals = (t) => ({ note: String(t.memo || t.title || ""), owners: ownersOf(t), due: dueOf(t) || TBD });
 // → { create: [doc], tasks: [{t, fields, label}] }
-export function planRowSync(p, proj, tasks, users, now) {
+export function planRowSync(p, proj, tasks, users, now, structure) {
   const create = [], out = [];
-  LAUNCH_ITEMS.forEach((it) => {
+  launchItemsOf(structure).forEach((it) => {
     const parent = (tasks || []).find((t) => t.launchItem === it.id && !t.isFixed); if (!parent) return;
     const rows = (((p.stages || {})[it.id] || {}).tasks || []).filter((r) => r && r.id);
     const subs = (tasks || []).filter((t) => t.parentId === parent.id && t.lbRow);
@@ -146,4 +146,22 @@ export function planRowSync(p, proj, tasks, users, now) {
       .forEach((t) => out.push({ t, fields: { status: "dropped", dropPrev: t.status || "todo", droppedAt: now, lbRowGone: true }, label: "할 일 줄 지움 · 중단" }));
   });
   return { create, tasks: out };
+}
+
+// ── 4단계 ④: 직접 추가한 단계 → 업무OS 항목 업무 (없을 때만 만들기 · 담당 = 신제품 칸 담당 → 제품 책임자 · 자동 기한) / 단계를 지우면 → 업무는 지우지 않고 중단(lbStepGone)
+export function planCustomSteps(p, proj, tasks, users, structure, today, now) {
+  const items = customItems(structure), have = new Set((tasks || []).filter((t) => t.launchItem).map((t) => t.launchItem)), create = [], drop = [];
+  items.forEach((it) => {
+    if (have.has(it.id)) return; const s = itemState(p, it); if (s.status === "skip") return;
+    const ids = (s.ownerIds && s.ownerIds.length ? s.ownerIds : ownerIdsOf(s.owner, users)), owners = ids.length ? ids : proj.assigneeId ? [proj.assigneeId] : [];
+    const auto = !s.due && !s.dueTbd, due = s.dueTbd ? "" : s.due || launchDue(p.launchDate, it.off, today);
+    create.push({ id: `${proj.id}__${it.id}`, title: it.name, projectId: proj.id, launchItem: it.id, phase: it.phase, isFixed: false, type: "general", status: LB2V[s.status] || "todo",
+      assigneeId: owners[0] || "", assigneeIds: owners, ownerAuto: !ids.length, ...(ids.length ? { ownerFrom: "board" } : { ownerFrom: "lead" }), dueDate: due, dueAuto: auto, noReview: true, memo: s.note || "",
+      attachments: [], parentId: null, brand: p.brand || proj.brand || "", importedFrom: "launch-board", customStep: true, lbOff: it.off, createdAt: now, createdBy: "board",
+      lbSeen: { status: normB(s.status), owners: ids, due: s.dueTbd ? TBD : s.due || "", note: s.note || "" } });
+  });
+  const ids = new Set(items.map((x) => x.id));
+  (tasks || []).filter((t) => t.customStep && t.launchItem && !ids.has(t.launchItem) && t.status !== "dropped" && t.status !== "done")
+    .forEach((t) => drop.push({ t, fields: { status: "dropped", dropPrev: t.status || "todo", droppedAt: now, lbStepGone: true } }));
+  return { create, drop };
 }

@@ -94,4 +94,20 @@ ok("할 일 줄 → 하위 업무: 새 줄은 만들기(제목 = 첫 줄) · 내
   assert.equal(c.tasks[0].fields.status, "dropped"); assert.equal(c.tasks[0].fields.lbRowGone, true);
   assert.deepEqual(S.planRowSync(P({ s12: { tasks: [row] } }), proj(), [parent, d], users, now).tasks, []);
 });
+ok("직접 추가한 단계: 업무 없으면 만들기(영역 단계·앞 단계 기준 자동 기한·책임자 기본 담당) · 해당 없음이면 안 만듦 · 단계를 지우면 중단", () => {
+  const st = { custom: { c1: { name: "수입 통관" } }, order: { P2: ["d01", "s03", "c1"] } };
+  const a = S.planCustomSteps(P({}), proj({ assigneeId: "minji" }), [], users, st, today, now);
+  assert.equal(a.create.length, 1); const d = a.create[0];
+  assert.equal(d.id, "lb_P__c1"); assert.equal(d.title, "수입 통관"); assert.equal(d.phase, "pack"); assert.deepEqual(d.assigneeIds, ["minji"]); assert.equal(d.ownerAuto, true); assert.equal(d.dueAuto, true); assert.ok(d.dueDate); assert.equal(d.customStep, true);
+  assert.equal(S.planCustomSteps(P({ c1: { status: "skip" } }), proj(), [], users, st, today, now).create.length, 0);
+  assert.equal(S.planCustomSteps(P({}), proj(), [d], users, st, today, now).create.length, 0);
+  const g = S.planCustomSteps(P({}), proj(), [d], users, { custom: {}, order: {} }, today, now);
+  assert.equal(g.drop.length, 1); assert.equal(g.drop[0].fields.status, "dropped"); assert.equal(g.drop[0].fields.lbStepGone, true);
+});
+ok("직접 추가한 단계도 상태·담당 양쪽 반영 (구조 문서를 넘기면)", () => {
+  const st = { custom: { c1: { name: "수입 통관" } }, order: { P2: ["c1"] } };
+  const t = { id: "lb_P__c1", projectId: "lb_P", launchItem: "c1", status: "todo", assigneeIds: ["wm"], assigneeId: "wm", dueDate: "2026-10-20", dueAuto: true, memo: "", lbSeen: { status: "todo", owners: [], due: "", note: "" } };
+  const r = S.planLaunchSync(P({ c1: { status: "done", owner: "민지", ownerIds: ["minji"] } }), proj(), [t], users, today, now, st);
+  assert.equal(r.tasks[0].fields.status, "done");
+});
 console.log(`\n${n}개 모두 통과`);

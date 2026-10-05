@@ -4,13 +4,12 @@
 //   둘 다 바뀌었으면 lbsync 와 같은 규칙: 나중에 바뀐 쪽 (업무OS가 나중이면 여기서 씀 · 신제품이 나중이면 lbsync 가 업무OS 로)
 // 기한: 사람이 정한 날 → 그 날 · 자동 기한 → 날짜 + 자동 표시(dueAuto: 같은 날짜 문자열 · 신제품에서 날짜를 바꾸면 자동 표시가 저절로 풀림)
 // 신제품 대시보드 칸(lb)만 · 업무OS 추가 칸(osExtra)은 버전1 몫이라 안 씀 · 마감 '미정'(dueTbd)·추가 할 일 줄은 4단계
-import { LAUNCH_ITEMS } from "./launch.js";
+import { launchItemsOf } from "./launch.js";
 import { V2B, boardVals, v2Due, TBD, rowVals, subVals } from "./lbsync.js";
 import { ownersOf, dueOf, nameOf } from "./model.js";
 
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 const split = (v) => String(v || "").split(/\s*,\s*/).map((x) => x.trim()).filter(Boolean);
-const LB_ITEMS = LAUNCH_ITEMS.filter((i) => i.lb);
 export const BY = "업무OS";
 
 // 업무OS 업무 → 신제품 말 (status: null 이면 상태는 건드리지 않음 — 프로젝트째 접힌 업무)
@@ -21,10 +20,10 @@ export function v2Vals(t) {
 
 // p: 신제품 대시보드 제품 · proj: lb_ 프로젝트 · tasks: 그 프로젝트 업무 · who: 바꾼 사람 이름
 // → { board: {fields, expect, said[]} | null, tasks: [{t, lbSeen}], project: {lbSeen} | null }
-export function planLaunchPush(p, proj, tasks, users, now, who) {
+export function planLaunchPush(p, proj, tasks, users, now, who, structure) {
   const f = {}, expect = {}, said = [], seenOut = [];
   const byItem = new Map((tasks || []).filter((t) => t.launchItem && !t.isFixed && !t.deleted && t.lbSeen).map((t) => [t.launchItem, t]));
-  LB_ITEMS.forEach((it) => {
+  launchItemsOf(structure).filter((i) => i.lb).forEach((it) => {
     const t = byItem.get(it.id); if (!t) return;
     const s = ((p.stages || {})[it.id]) || {}, b = boardVals(p, it, users), base = t.lbSeen, v = v2Vals(t), sid = "stages." + it.id + ".";
     const sf = {}, seen = { ...base }, mine = [];

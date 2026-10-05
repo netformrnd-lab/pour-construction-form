@@ -1,6 +1,7 @@
 // 업무OS v2 — 저장 장치 (Firebase pour-app-new)
 //
 // 쓰기는 오직 pour-os/v2/** 와 Storage task-attachments/v2/** 에만 한다. (v1 데이터 보호)
+// 예외(사용자 결정 2026-10 · 신제품 대시보드 양쪽 쓰기): 신제품 대시보드 pour-os/launch-board/products/* 의 단계 칸만 조건부로 (patchLaunchIf) — 지우지 않음, 쓰기 전 백업
 // v1 문서(pour-os/state-*, pour-os/ak-notes/c)는 '버전1에서 가져오기' 때 읽기만 한다.
 // 보안규칙: 기존 pour-os/{doc=**} · task-attachments/** 허용 범위 안 → 규칙 변경 없음.
 import { initializeApp } from "firebase/app";
@@ -124,4 +125,23 @@ export async function createMissing(ops) {
     made += r; skipped += part.length - r;
   }
   console.log(`[v2 없을 때만 만들기] ${made}건 · 이미 있음 ${skipped}건`); return { made, skipped };
+}
+
+// ── 신제품 대시보드 (pour-os/launch-board/products) 쓰기 — 단계 칸만, 서버 지금 값이 기대값과 같을 때만 ──
+const LB = (id) => doc(db, "pour-os", "launch-board", "products", String(id));
+export async function patchLaunchIf(ops) {   // ops: [{id, fields, expect}] → {done, skipped}
+  let done = 0; const skipped = [];
+  for (let i = 0; i < ops.length; i += 100) {
+    const part = ops.slice(i, i + 100);
+    const r = await runTransaction(db, async (tx) => { const snaps = await Promise.all(part.map((o) => tx.get(LB(o.id)))), ok = [], no = [];
+      part.forEach((o, j) => { const cur = snaps[j].exists() ? snaps[j].data() : null; if (fits(cur, o.expect)) { tx.update(LB(o.id), o.fields); ok.push(o.id); } else no.push(o.id); });
+      return { ok, no }; });
+    done += r.ok.length; skipped.push(...r.no);
+  }
+  console.log(`[신제품 대시보드 쓰기] ${done}건 · 건너뜀 ${skipped.length}건`); return { done, skipped };
+}
+// 쓰기 전 통째 백업 (v2 안 backups/{id} · 문서 하나 1MB 안 · 되돌릴 때 이 값으로)
+export async function backupLaunch(id, products, by) {
+  const json = JSON.stringify(products); if (json.length > 900000) throw new Error("백업이 너무 커요 (" + json.length + "자)");
+  await setDoc(v2doc("backups", id), { id, kind: "launch-board", at: new Date().toISOString(), by, count: products.length, json });
 }

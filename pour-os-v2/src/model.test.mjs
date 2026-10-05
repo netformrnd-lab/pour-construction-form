@@ -21,7 +21,7 @@ ok("5단계: 쉬는 날 규칙 하나 — 매일은 평일만 · 매주 요일�
   assert.equal(M.fxDueOn({ recurType: "monthly", monthDay: 1 }, "2027-01-04"), true);                     // 1/1 신정 → 12/31 은 다른 달이라 1/4(월)
   const mon = { recurType: "weekly", weekDays: ["월"], assigneeId: "a" };
   assert.equal(M.fxMissOf(mon, "a", "2026-10-14"), "2026-10-12");                                           // 이번 주 월요일을 못 함 → 밀림
-  assert.equal(M.fxMissOf(mon, "a", "2026-10-07"), "");                                                     // 10/5(월)은 대체공휴일 → 앞 평일 10/2(지난 주)로 옮겨져 이번 주엔 없음
+  assert.equal(M.fxMissOf(mon, "a", "2026-10-07"), "2026-10-02");                                           // 10/5(월) 대체공휴일 → 10/2(금)로 당겨진 이번 주 몫을 못 했으면 이번 주에도 밀림
   assert.equal(M.fxMissOf({ ...mon, doneDates: { a: "2026-10-13" } }, "a", "2026-10-14"), "");             // 늦게라도 하면 풀림
   assert.equal(M.fxMissOf({ recurType: "daily", assigneeId: "a" }, "a", "2026-10-07"), "");                // 매일은 밀림 없음
   const D = { users: [{ id: "a", name: "가" }], projects: [], notes: [], tasks: [{ id: "f1", title: "주간 보고", isFixed: true, ...mon }] };
@@ -300,5 +300,12 @@ ok("9단계: 확인 완료 · 막힘 풀림 · PIN 처음 정함 알림 · 확�
   assert.ok(ib("m").includes("note:r1"));                                                       // 댓글 to → 확인할 사람
   const D2 = { ...D, users: D.users.map((u) => (u.id === "b" ? { ...u, pinByCode: true } : u)) };
   assert.ok(!M.todayView(D2, "m", new Date()).inbox.some((x) => x.kind === "pinNew"));          // 시작 코드로 정했으면 알림 없음
+});
+ok("밀림: 이번 주 월요일이 쉬는 날이라 지난 금요일로 당겨진 할 날도 이번 주 몫", () => {
+  const t = { recurType: "weekly", weekDays: ["월"], assigneeId: "a", doneDates: { a: "2026-09-21" } };
+  assert.equal(M.fxMissOf(t, "a", "2026-10-05"), "2026-10-02");   // 10/5 월 대체공휴일 → 10/2 금 (지난주 날짜지만 이번 주 몫)
+  assert.equal(M.fxMissOf(t, "a", "2026-10-07"), "2026-10-02");
+  assert.equal(M.fxMissOf({ ...t, doneDates: { a: "2026-10-02" } }, "a", "2026-10-06"), "");
+  assert.equal(M.fxMissOf(t, "a", "2026-09-30"), "2026-09-28");
 });
 console.log(`\n${n}개 모두 통과`);

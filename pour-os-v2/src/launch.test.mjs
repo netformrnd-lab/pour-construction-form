@@ -112,4 +112,23 @@ ok("보류·확인 대기 항목은 출시일 옮기기·기한 다시 나누기
   assert.ok(ch.length > 0 && mv.length > 0);
   [ch, mv].forEach((a) => assert.ok(!a.some((x) => x.task.launchItem === "x_test" || x.task.launchItem === "s02")));
 });
+ok("연결 1단계: 담당 이름 → 업무OS 사람 번호 (짧은 이름 · 여러 명 · 외주 · 겹치는 이름은 안 맞춤)", () => {
+  const users = [{ id: "minji", name: "김민지" }, { id: "jh", name: "용정하" }, { id: "wm", name: "이우민" }, { id: "x1", name: "김윤정" }, { id: "x2", name: "남윤정" }, { id: "old", name: "박정하", active: false }];
+  assert.equal(L.osIdOf("민지", users), "minji"); assert.equal(L.osIdOf("정하", users), "jh");   // 미사용 박정하는 빼고 하나
+  assert.equal(L.osIdOf("윤정", users), "");    // 김윤정·남윤정 둘 다 → 못 맞춤
+  assert.equal(L.osIdOf("외주", users), ""); assert.equal(L.osIdOf("이우민", users), "wm");
+  assert.deepEqual(L.ownerIdsOf("민지, 이우민, 외주", users), ["minji", "wm"]);
+  const prods = [{ id: "a", name: "A", stages: { d01: { owner: "민지" }, s03: { owner: "이우민", ownerIds: ["wm"] }, p01: { owner: "윤정" }, s12: { owner: "" } } },
+    { id: "board-structure", __structure: true }, { id: "z", deletedAt: "x", stages: { d01: { owner: "민지" } } }];
+  const pl = L.planOwnerIds(prods, users);
+  assert.deepEqual(pl.changes.map((c) => c.sid + ":" + c.ids.join("")), ["d01:minji"]);   // 이미 맞는 s03 · 휴지통 · 구조 문서는 뺌
+  assert.deepEqual(pl.miss, [["윤정", 1]]); assert.equal(pl.products, 1);
+});
+ok("연결 1단계: 가져올 때 ownerIds 가 있으면 여러 명 그대로", () => {
+  const users = [{ id: "minji", name: "김민지" }, { id: "wm", name: "이우민" }];
+  const r = L.planLaunchImport([{ id: "P", name: "제품", brand: "grohome", launchDate: "2026-11-20", stages: { d01: { owner: "민지, 이우민", ownerIds: ["minji", "wm"] }, s03: { owner: "이우민" } } }], { users }, "2026-10-05");
+  const t = (id) => r.tasks.find((x) => x.launchItem === id);
+  assert.deepEqual(t("d01").assigneeIds, ["minji", "wm"]); assert.equal(t("d01").assigneeId, "minji");
+  assert.deepEqual(t("s03").assigneeIds, ["wm"]);
+});
 console.log(`\n${n}개 모두 통과`);

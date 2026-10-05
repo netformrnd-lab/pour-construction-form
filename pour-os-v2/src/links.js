@@ -1,0 +1,27 @@
+// 업무OS v2 — 다른 앱에서 온 '할 일 한 줄' (CRM · 마진 · 사용자 결정 2026-10-05 · 계산만)
+// 저장: pour-os/v2/links/{id} — CRM·마진 앱이 씀(업무OS 는 읽기만) · 전화번호·주소 같은 개인정보는 안 받음(이름·업체명 한 줄 + 날짜 + 담당 + 바로가기)
+//   { id, src: "crm"|"margin", kind, title, sub, date: "YYYY-MM-DD"(이날부터 보임 · 없으면 바로), time, owner(이름), ownerOsId, url, open, at }
+//   그 앱에서 처리되면 open:false (지우지 않음)
+// 누구에게: 담당(업무OS 사람 번호 → 이름 끝이 같은 사람 1명)이 있으면 그 사람 · 없으면 마스터 '확인할 것'
+import { isMaster } from "./model.js";
+
+export const LINK_TAG = { recall: "재통화", visit: "방문예약", dealerOrder: "대리점 발주", dealerChat: "대리점 채팅", lowStock: "재고 위험", marginLow: "마진 낮음", quoteAccepted: "견적 수락" };
+export const LINK_APP = { crm: "CRM", margin: "마진" };
+const clean = (s) => String(s || "").replace(/\s/g, "");
+// 이름으로 업무OS 사람 찾기 (같은 이름 → 끝이 같은 사람이 딱 1명)
+export function linkOwnerId(l, users) {
+  const act = (users || []).filter((u) => u && u.active !== false && u.name);
+  if (l.ownerOsId && act.some((u) => u.id === l.ownerOsId)) return l.ownerOsId;
+  const n = clean(l.owner); if (n.length < 2) return "";
+  const ex = act.find((u) => clean(u.name) === n); if (ex) return ex.id;
+  const c = act.filter((u) => clean(u.name).endsWith(n) || n.endsWith(clean(u.name))); return c.length === 1 ? c[0].id : "";
+}
+const dd = (a, b) => Math.round((new Date(a + "T00:00:00") - new Date(b + "T00:00:00")) / 864e5);
+// 이 사람 '확인할 것'에 넣을 줄
+export function linkInbox(links, users, uid, key) {
+  const me = (users || []).find((u) => u.id === uid); if (!me) return [];
+  return (links || []).filter((l) => l && l.open !== false && (!l.date || l.date <= key)).filter((l) => { const o = linkOwnerId(l, users); return o ? o === uid : isMaster(me); })
+    .map((l) => { const late = l.date && l.date < key ? dd(key, l.date) : 0;
+      return { kind: "link", src: l.src || "crm", whoName: LINK_APP[l.src || "crm"] || "", tag: LINK_TAG[l.kind] || "알림", red: late > 0 || l.kind === "lowStock" || l.kind === "marginLow", id: "lk:" + l.id + ":" + (l.date || ""), title: l.title || "", url: l.url || "",
+        text: [l.sub, l.time, late ? `${late}일 지남` : "", !linkOwnerId(l, users) && l.owner ? `담당 ${l.owner}` : ""].filter(Boolean).join(" · "), at: l.at || "", keep: true }; });
+}

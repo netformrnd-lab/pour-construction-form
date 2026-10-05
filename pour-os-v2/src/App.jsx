@@ -12,6 +12,7 @@ import { TodayTab, TurnSheet, MyTidySheet, UpTurnsSheet } from "./today.jsx";
 import { MoreTab, AssignedSheet, MyFixedSheet } from "./more.jsx";
 import { turnIndex, turnsOf } from "./turn.js";
 import { SheetRouter } from "./sheets.jsx";
+import { MyKpiSheet, LagSheet, useGhRefresh } from "./kpiui.jsx";
 import { TaskSheet, FixedSheet, openTask } from "./task.jsx";
 import { ProjectsTab, ProjectSheet, NewProjectSheet, DoneProjectsSheet } from "./project.jsx";
 import { CalendarTab } from "./schedule.jsx";
@@ -53,6 +54,7 @@ function Main({ D, cu, meta, setMeta, logout }) {
     if (m[1] === "p") open({ type: "project", id }); else { const t = D.tasks.find((x) => x.id === id); open({ type: t && t.isFixed ? "fixed" : "task", id }); } }, []);
   // 시트 화면 상태(지난 일 정리 몇 번째 · 내 정리 탭·고른 것 · 프로젝트 탭)를 그 시트 칸에 적어 둠 → 위 시트에서 '뒤로' 오면 이어서
   const saveAt = (i, patch) => setStack((st) => st.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  useGhRefresh(D, cu);   // 그로홈 매출 합계 (마스터 기기 · 3시간에 한 번)
   const ctx = { D, cu, A, open, back, closeAll, saveAt, seen, setSeen, setToast, TV, T, idx, meta, setMeta, logout, setTab, BUILD };
   const top = stack[stack.length - 1];
   const TABS = [["today", "오늘"], ["calendar", "달력"], ["projects", "프로젝트"], ["more", "더보기"]];
@@ -64,6 +66,8 @@ function Main({ D, cu, meta, setMeta, logout }) {
     myTidy: (p, s) => <MyTidySheet {...p} tab0={s.tab} st={s} />,
     assigned: (p) => <AssignedSheet {...p} />,
     myFixed: (p) => <MyFixedSheet {...p} />,
+    myKpi: (p) => <MyKpiSheet {...p} goToday={() => { setTab("today"); closeAll(); window.scrollTo(0, 0); }} />,
+    lagInput: (p, s) => <LagSheet {...p} s={s} />,
   };
   return <div className="v2-app">
     <nav className="v2-nav" aria-label="메뉴">

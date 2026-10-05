@@ -88,6 +88,7 @@ export async function upload(target, file) {
   return { name: file.name || "file", url: await getDownloadURL(r), path, size: file.size || 0, type: file.type || "", uploadedAt: new Date().toISOString() };
 }
 export { arrayUnion, arrayRemove, deleteField };
+export const NO_NET = false;   // 시험용 가짜 저장 장치만 true (그로홈 매출 REST 안 읽음)
 
 // ── 여러 사람이 같이 쓸 때: 조건부 쓰기 (서버의 지금 값을 확인하고 씀) ──
 // expect = {칸(점 경로 가능): 기대값}. 지금 서버 값이 모두 같을 때만 fields 를 씀 → 그사이 다른 사람이 바꾼 것을 덮지 않음

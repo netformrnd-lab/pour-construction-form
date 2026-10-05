@@ -1313,13 +1313,16 @@ function viewTrash(){
 // ═══ 업무OS 바로가기 (pour-os/v2 읽기만) — 열린 제품의 업무OS 업무: 상태·댓글·자료 수 · 열기 링크 ═══
 //   댓글·자료·컨펌 요청·넘기기는 업무OS에서만 (여기선 수만 보여 주고 바로 열기) · 업무OS '확인 대기'에서 여기 [컨펌] = 승인
 const OS_URL = '/pourstore-renewal/os2.html';
-let OS_TASKS = {}, osFor = '', osUnsub = null, OS_NOTES = {};
+let OS_TASKS = {}, osFor = '', osUnsub = null, OS_NOTES = {}, OS_SECRET = false;
 function watchOs(pid){
   if (osFor === pid) return; osFor = pid; OS_TASKS = {}; OS_NOTES = {}; if (osUnsub) { osUnsub(); osUnsub = null; }
   if (!pid) return;
+  OS_SECRET = false;   // 업무OS에서 기밀로 정한 프로젝트면 바로가기·개수 모두 안 보임
+  db.collection('pour-os').doc('v2').collection('projects').doc('lb_'+pid).get().then(d => { const x = d.exists ? d.data() : null; OS_SECRET = !!(x && x.secret && x.secret.on); if (OS_SECRET && osFor === pid) { OS_TASKS = {}; OS_NOTES = {}; renderAll(false); } })
+    .catch(e => console.error('[업무OS 프로젝트] 불러오기 실패:', e));
   osUnsub = db.collection('pour-os').doc('v2').collection('tasks').where('projectId','==','lb_'+pid).onSnapshot(sn => {
-    const m = {}; sn.docs.forEach(d => { const t = { ...d.data(), id: d.data().id || d.id }; if (t.launchItem && !t.deleted && !t.isFixed) m[t.launchItem] = t; });
-    OS_TASKS = m; console.log(`[업무OS 업무] ${Object.keys(m).length}건`); loadOsNotes(pid); renderAll(false);
+    const m = {}; sn.docs.forEach(d => { const t = { ...d.data(), id: d.data().id || d.id }; if (t.launchItem && !t.deleted && !t.isFixed && !(t.secret && t.secret.on)) m[t.launchItem] = t; });   // 업무OS 기밀 업무는 이 화면(로그인 없음)에 수도 안 보임
+    OS_TASKS = OS_SECRET ? {} : m; console.log(`[업무OS 업무] ${Object.keys(m).length}건${OS_SECRET ? ' (기밀 프로젝트 · 안 보임)' : ''}`); if (!OS_SECRET) loadOsNotes(pid); renderAll(false);
   }, e => console.error('[업무OS 업무] 구독 실패:', e));
 }
 async function loadOsNotes(pid){

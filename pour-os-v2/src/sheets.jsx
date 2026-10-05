@@ -4,6 +4,8 @@ import { TaskSheet, FixedSheet } from "./task.jsx";
 import { ProjectSheet, NewProjectSheet, DoneProjectsSheet } from "./project.jsx";
 import { PersonSheet, IssuesSheet, RiskSheet } from "./team.jsx";
 import { AddSheet, MineSheet, FocusTriage } from "./today.jsx";
+import { useTask } from "./task.jsx";
+import { LockSheet } from "./secretui.jsx";
 
 // extra: { [type]: (props, s) => element } — 관리자 앱 등에서 시트 종류를 덧붙일 때
 // 시트마다 key(깊이·종류·id) → 업무에서 다른 업무로 넘어가도 앞 업무에 쓰던 글·고른 것·스크롤이 따라가지 않음
@@ -16,9 +18,10 @@ export function SheetRouter({ s, depth, extra, ...ctx }) {
 }
 function route(s, p, extra) {
   if (extra && extra[s.type]) return extra[s.type](p, s);
-  if (s.type === "task") return <TaskSheet {...p} id={s.id} focus={s.focus} />;
+  if (s.type === "task") return <TaskGate {...p} id={s.id} focus={s.focus} />;
   if (s.type === "fixed") return <FixedSheet {...p} id={s.id} />;
-  if (s.type === "project") return <ProjectSheet {...p} id={s.id} first={s.first} st={s} />;
+  if (s.type === "project") { const x = (p.D.projects || []).find((q) => q.id === s.id); if (x && x.locked) return <LockSheet D={p.D} x={x} kind="project" onBack={p.onBack} onClose={p.onClose} />;
+    return <ProjectSheet {...p} id={s.id} first={s.first} st={s} />; }
   if (s.type === "person") return <PersonSheet {...p} id={s.id} />;
   if (s.type === "add") return <AddSheet {...p} preset={s.preset || {}} />;
   if (s.type === "newProject") return <NewProjectSheet {...p} cat={s.cat} />;
@@ -29,3 +32,6 @@ function route(s, p, extra) {
   if (s.type === "risk") return <RiskSheet {...p} />;
   return null;
 }
+
+// 기밀: 허용 안 된 사람이 업무를 열면 내용 대신 안내만 (지난 업무를 서버에서 읽어 온 것도 같이)
+function TaskGate(p) { const t = useTask(p.D, p.id); if (t && t.locked) return <LockSheet D={p.D} x={t} kind="task" onBack={p.onBack} onClose={p.onClose} />; return <TaskSheet {...p} />; }

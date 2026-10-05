@@ -13,6 +13,7 @@ import { planLaunchImport, relaunch, isTempOwner } from "./launch.js";
 import { nextTurnText } from "./turn.js";
 import { planLaunchSync } from "./lbsync.js";
 import { planLaunchPush, BY as LB_BY } from "./lbpush.js";
+import { redact, secretOn } from "./secret.js";
 import { flowOwners } from "./flow.js";
 import { C, Big, TBtn, inp, useLocal } from "./ui.jsx";
 
@@ -79,7 +80,9 @@ export function useBoot() {
     let last = ""; try { last = localStorage.getItem(k) || ""; } catch (e) { /* 저장소 막힘 → 매번 */ }
     if (isMaster(cu) && last !== today) syncProgress(D).then((n) => { try { localStorage.setItem(k, today); } catch (e) { /* 무시 */ } console.log(`[v2] 프로젝트 진척 다시 계산 · 바뀐 것 ${n}개`); }).catch((e) => console.error("[v2] 프로젝트 진척 다시 계산 실패:", e)); }, [meta, D.ready, authed]);
   useLaunchSync(D, cu, !!(meta && D.ready && authed));
-  return { launchNew, holJ, meta, setMeta, metaErr, checkMeta, D, err, cu, authed, signIn: (u, h) => { setMe(u.id); setKey(h); }, logout: () => { setKey(""); setMe(""); } };
+  // 기밀(secret.js): 화면에는 이 사람이 볼 수 있는 것만 — 허용 안 된 기밀은 '기밀 업무'로 바꾼 대체본 · 신제품 반영·진척 계산은 위의 원래 D 로
+  const V = useMemo(() => redact(D, authed ? cu : null), [D, authed, cu]);
+  return { launchNew, holJ, meta, setMeta, metaErr, checkMeta, D: V, rawD: D, err, cu, authed, signIn: (u, h) => { setMe(u.id); setKey(h); }, logout: () => { setKey(""); setMe(""); } };
 }
 // 프로젝트 진척(%) 하루 한 번 다시 계산: 열린 일반 프로젝트(신제품·직접 정한 % 빼고)의 전체 업무를 프로젝트별로 읽어 % 가 다르면 그 칸만 저장
 //  (앱은 열린 업무 + 최근 30일 끝낸 업무만 불러오므로 오래전에 끝낸 업무까지 세려면 서버에서 따로 읽어야 함)
@@ -118,8 +121,8 @@ export async function pushLaunchBoard(prods, D, cu) {
   if (!cu || !cu.id) return { n: 0 };
   const live = (prods || []).filter((p) => p && p.name && !p.deletedAt); let n = 0;
   for (const p of live) {
-    const proj = (D.projects || []).find((x) => x.id === "lb_" + p.id); if (!proj || !proj.lbSeen || proj.deleted) continue;
-    const tasks = (D.tasks || []).filter((t) => t.projectId === proj.id), now = nowIso(), pl = planLaunchPush(p, proj, tasks, D.users, now, cu.name);
+    const proj = (D.projects || []).find((x) => x.id === "lb_" + p.id); if (!proj || !proj.lbSeen || proj.deleted || secretOn(proj)) continue;   // 기밀 프로젝트·업무는 신제품 대시보드(로그인 없는 화면)에 안 씀
+    const tasks = (D.tasks || []).filter((t) => t.projectId === proj.id && !secretOn(t)), now = nowIso(), pl = planLaunchPush(p, proj, tasks, D.users, now, cu.name);
     if (!pl.board) continue;
     const day = "launch-" + ymd(new Date()); if (lbBackup !== day) { await fb.backupLaunch(day, prods, cu.name, true); lbBackup = day; }
     const by = `${cu.name} (${LB_BY})`, said = pl.board.said;
@@ -538,6 +541,10 @@ export function useActs(D, cu, setToast, idx = null) {
       for (const tt of (f.tasks || []).filter((x) => x.trim())) await A.addTask({ title: tt, projectId: id, assigneeId: cu.id, dueDate: f.dueDate || "" });
       return p;
     },
+    // 기밀 (secret.js): sec = { allow:[id] } 이면 켜기 · null 이면 풀기 — 정하는 사람(by)은 늘 볼 수 있음
+    setSecret: (kind, x, sec) => { const f = { secret: sec ? { on: true, allow: sec.allow || [], by: cu.id, byName: cu.name, at: nowIso() } : null }, label = sec ? `기밀 설정 (볼 사람 ${(sec.allow || []).length}명 더)` : "기밀 풀기";
+      if (kind === "project") return A.patchProject(x, f, label, null);
+      return P(x, f, "edit", `${x.title} · ${label}`, { prev: { secret: x.secret || null } }); },
     patchProject: (p, f, label, prev) => fb.patch("projects", p._doc || p.id, { ...f, updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }).then(() => log("edit", { col: "projects", targetId: p.id, projectId: p.id, label: `${p.title} · ${label}`, ...(prev != null ? { prev } : {}) })).catch(fail("프로젝트")),
     // 신제품: 프로젝트 + 항목 업무를 한 번에
     createLaunch: async (plan) => {

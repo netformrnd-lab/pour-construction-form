@@ -15,6 +15,8 @@ import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask,
 import { HoldAsk } from "./hold.jsx";
 import { RequestAsk } from "./asks.jsx";
 import { askTo } from "./model.js";
+import { viewTasks } from "./secret.js";
+import { SecretBox } from "./secretui.jsx";
 import { dueChips, ro } from "./pick.jsx";
 
 export const openTask = (open, t) => open({ type: t.isFixed ? "fixed" : "task", id: t.id });
@@ -36,7 +38,7 @@ function Banner({ tone, children }) {
 export function useTask(D, id) {
   const live = D.tasks.find((t) => t.id === id);
   const [extra, setExtra] = useState(null);
-  useEffect(() => { if (!live && !extra) fb.fetchWhere("tasks", ["id", "==", id]).then((a) => setExtra(a[0] || false)).catch((e) => { console.error("[v2] 업무 불러오기 실패:", e); setExtra(false); }); }, [id, !!live]);
+  useEffect(() => { if (!live && !extra) fb.fetchWhere("tasks", ["id", "==", id]).then((a) => setExtra(a[0] ? viewTasks([a[0]], D)[0] : false)).catch((e) => { console.error("[v2] 업무 불러오기 실패:", e); setExtra(false); }); }, [id, !!live]);
   return live || extra;
 }
 export function useItemNotes(D, itemId) {
@@ -158,6 +160,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
     {mode === "cc" && <div style={{ padding: "8px 0" }}><div style={{ fontSize: 12.5, color: C.sub, marginBottom: 6 }}>참조 = 담당이 아니어도 이 업무의 대화·소식을 받는 사람</div><div className="v2-chips">{users.filter((u) => !ownersOf(t).includes(u.id)).map((u) => { const on = (t.ccIds || []).includes(u.id);
       return <Chip key={u.id} on={on} onClick={() => A.toggleCc(t, u.id, !on)}>{on ? "✓ " : ""}{u.id === cu.id ? "나" : u.name}</Chip>; })}</div></div>}
     {mode === "ask" && <RequestAsk t={t} D={D} cu={cu} A={A} mine={mine} onNo={() => setMode("")} />}
+    <SecretBox kind="task" x={t} D={D} cu={cu} A={A} />
     {mode === "due" && <div className="v2-chips" style={{ padding: "8px 0" }}>{dateChips.map(([l, d]) => <Chip key={d} onClick={() => { moveDue(A, setToast, t, d, true); setMode(""); }}>{l}</Chip>)}<Chip onClick={() => { moveDue(A, setToast, t, "", true); setMode(""); }}>미정</Chip><input type="date" aria-label="날짜 고르기" defaultValue={dueOf(t)} onChange={(e) => { if (e.target.value) { moveDue(A, setToast, t, e.target.value, true); setMode(""); } }} className="v2-sel" /></div>}
     {mode === "req" && <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0" }}>
       <div className="v2-chips">{dateChips.filter(([, d]) => d !== key && d !== dueOf(t)).map(([l, d]) => <Chip key={d} on={reqDate === d} onClick={() => setReqDate(d)}>{l}</Chip>)}<input type="date" aria-label="원하는 기한" value={reqDate} onChange={(e) => setReqDate(e.target.value)} className="v2-sel" /></div>

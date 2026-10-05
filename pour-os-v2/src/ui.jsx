@@ -40,13 +40,15 @@ export function Head({ children, right, red }) {
   </div>;
 }
 export function Card({ children, style }) { return <div style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.line}`, overflow: "hidden", ...style }}>{children}</div>; }
-// 한 줄 (누르면 보기) — 오른쪽에 실행 버튼 1개
+// 한 줄 (누르면 보기) — 오른쪽에 실행 버튼 1개 · 기밀 대체본(secret.js '기밀 업무'·'기밀 프로젝트')이면 제목 앞에 자물쇠
+const LOCKED_RE = /(^|· )기밀 (업무|프로젝트)$/;
 export function Row({ title, sub, sub2, right, onClick, dim, tag, tagTone, last }) {
   return <div role={onClick ? "button" : undefined} tabIndex={onClick ? 0 : undefined} onClick={onClick} onKeyDown={(e) => { if (onClick && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onClick(); } }}
     style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", minHeight: 56, borderBottom: last ? "none" : `1px solid ${C.line}`, cursor: onClick ? "pointer" : "default", background: "#fff" }}>
     <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
         {tag && <span style={{ flex: "0 0 auto", fontSize: 11, fontWeight: 800, padding: "2px 6px", borderRadius: 6, color: tagTone === "red" ? C.red : tagTone === "turn" ? "#fff" : C.navy, background: tagTone === "red" ? "#F8E9EA" : tagTone === "turn" ? C.navy : C.soft }}>{tag}</span>}
+        {typeof title === "string" && LOCKED_RE.test(title) && <svg width="13" height="13" viewBox="0 0 16 16" aria-label="기밀" style={{ flex: "0 0 auto" }}><rect x="3" y="7" width="10" height="7.5" rx="1.6" fill={C.navy} /><path d="M5.2 7V5.2a2.8 2.8 0 0 1 5.6 0V7" fill="none" stroke={C.navy} strokeWidth="1.6" /></svg>}
         <span style={{ fontSize: 15, fontWeight: 700, color: dim ? C.mute : C.text, textDecoration: dim ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</span>
       </div>
       {sub && <div style={{ marginTop: 3, fontSize: 12.5, color: C.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</div>}

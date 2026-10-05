@@ -1,0 +1,329 @@
+{
+ "name": "옥상배관방수트랩 v14",
+ "gap": 0.42,
+ "tail": 0.8,
+ "tempo": 1.0,
+ "cta": {
+  "title": "POUR 옥상배관방수트랩",
+  "subtitle": "보강시트 설치 세트",
+  "badge": "타임세일 · 무료배송",
+  "button": "▶ 프로필 링크에서 확인"
+ },
+ "cuts": [
+  {
+   "subs": [
+    "폭우가 오면 빗물은",
+    "【전부 이 구멍】으로 모여요"
+   ],
+   "audio": "hf_20261005_053618_ec110ac5-01fb-4471-abb2-9e3f226236b5.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261003_120715_3b62fe5a-c85f-44ca-93e8-7fccdc1ff186.mp4",
+      "w": 1,
+      "ss": 0.1
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "배수구가 막히면",
+    "옥상에 물이 【고여요】"
+   ],
+   "audio": "hf_20261005_051134_f4fb9820-2adc-4f21-b966-4e5af15c23cb.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261002_114638_85510f05-b6e3-4222-8369-31e0d5566817.mp4",
+      "w": 1,
+      "ss": 0.3
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "고인 물은",
+    "방수막인 도막층을",
+    "약하게 만들어요",
+    "햇볕 열기에 부풀었다가",
+    "기온이 떨어지면",
+    "가라앉기를 반복하면서",
+    "도막이 점차 약해지고",
+    "결국 【찢어져요】"
+   ],
+   "audio": "hf_20261005_051134_6c116ee7-b0d0-4096-b12b-7c845b0b5d1e.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261003_114944_ce1744d7-29f3-4c5f-8350-da55aff28ad3.mp4",
+      "w": 0.3,
+      "ss": 0.3
+     },
+     {
+      "src": "hf_20261003_114944_0b8bff54-fd65-4993-87df-cfcdc4f30185.mp4",
+      "w": 0.4,
+      "ss": 0.3
+     },
+     {
+      "src": "hf_20261003_114943_5b01dd93-e025-408f-b798-ca9859f69658.mp4",
+      "w": 0.3,
+      "ss": 0.3
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "결국 【천장까지】 물이 새고",
+    "곰팡이가 생겨요"
+   ],
+   "audio": "hf_20261005_051134_7f314c4a-195a-431f-8ef6-9dfbc9d9d592.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261002_133016_d6eef20a-dad0-4a81-bc9c-0e64d0168c35.mp4",
+      "w": 14,
+      "ss": 0.3
+     },
+     {
+      "src": "hf_20261002_133958_b46c150d-705a-4812-9e4f-0c48a23b20df.mp4",
+      "w": 10,
+      "ss": 0.3
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "이럴 때는",
+    "【배수구부터】 확인해야 해요"
+   ],
+   "audio": "hf_20261005_051134_f5572e53-4b7d-477b-aede-7b8174056e04.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261002_114638_85510f05-b6e3-4222-8369-31e0d5566817.mp4",
+      "w": 1,
+      "ss": 2.5
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "일반 드레인은",
+    "거름망 입구가 좁아",
+    "낙엽 같은 큰 이물질에",
+    "쉽게 막혀요",
+    "꽂는 부분도 짧아",
+    "아래쪽 PVC 배관까지",
+    "연결되지 않으면",
+    "【틈이 생겨요】",
+    "이 틈으로 물이 새면서",
+    "미세한 균열을 따라",
+    "철근까지 닿을 수 있어요"
+   ],
+   "audio": "hf_20261005_051136_203b9142-3c1f-4bea-9f98-56b5e89184d5.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261003_010736_78d915ae-4af7-4b23-889c-400557109d8d.mp4",
+      "w": 0.25,
+      "ss": 0.3,
+      "label": "일반 드레인 (예시)"
+     },
+     {
+      "src": "hf_20261003_010736_d0f33f94-7cf1-4f05-9540-651e5a83aec7.mp4",
+      "w": 0.2,
+      "ss": 0.3,
+      "label": "일반 드레인 (예시)"
+     },
+     {
+      "src": "hf_20261003_120714_48b9c87d-709d-474c-bd8d-eefc2b515bf5.mp4",
+      "w": 0.3,
+      "ss": 0.3,
+      "label": "일반 드레인 (예시)"
+     },
+     {
+      "src": "hf_20261005_143051_8b1beb41-551e-498f-87d5-5f1ffdff1294.mp4",
+      "w": 0.25,
+      "ss": 0.3
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "철근은 녹이 슬면",
+    "【부풀어 올라요】",
+    "그러면 콘크리트가 벌어지고",
+    "균열이 점점 커지면서",
+    "누수가 더 심해질 수 있어요"
+   ],
+   "audio": "hf_20261005_053618_f850151f-ad4c-4126-b48d-4df8cd809eaf.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261005_143051_8b1beb41-551e-498f-87d5-5f1ffdff1294.mp4",
+      "w": 0.55,
+      "ss": 4.6
+     },
+     {
+      "src": "hf_20261002_133958_053949a3-c4e6-4af3-93d8-3221235f4d57.mp4",
+      "w": 0.45,
+      "ss": 0.3
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "POUR 옥상배관 방수트랩은",
+    "큰 거름망으로",
+    "낙엽 같은 큰 이물질을",
+    "【밖에서】 걸러줘요"
+   ],
+   "audio": "hf_20261005_051136_787a463c-2f30-46d8-8638-72d2d4172419.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261003_032729_38e7d836-b091-470c-bd71-e98cdc5ff4f4.mp4",
+      "w": 1,
+      "ss": 0.3,
+      "label": "① 밖에서 큰 이물질"
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "작은 찌꺼기는",
+    "【안에서】 한 번 더 걸러줘요"
+   ],
+   "audio": "hf_20261005_051136_8feae76e-8ce2-40d2-b6fc-1aa9a24bd36a.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261003_032729_46add937-57c0-4fd8-b5af-110c7ddefee1.mp4",
+      "w": 1,
+      "ss": 0.3,
+      "label": "② 안에서 작은 이물질"
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "연장시트까지 연결하면",
+    "콘크리트 안쪽",
+    "PVC 배관까지 이어져요",
+    "물이 주변 콘크리트로",
+    "새지 않고 배관으로",
+    "【바로 빠져나가도록】 해요"
+   ],
+   "audio": "hf_20261005_051156_eb4cad25-601a-4c17-af73-ac2f032bf9a2.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261003_032729_bac7a292-9cde-4806-9a71-a0b3ad577998.mp4",
+      "w": 0.3,
+      "ss": 0.3,
+      "label": "③ 연장시트"
+     },
+     {
+      "src": "hf_20261003_032850_630bb920-e46a-43bc-97ca-28df0fad5edd.mp4",
+      "w": 0.35,
+      "ss": 0.3,
+      "label": "③ PVC 배관 속까지"
+     },
+     {
+      "src": "hf_20261003_032729_9565b55f-7ff0-4faa-80bf-ce43c5bc7352.mp4",
+      "w": 0.35,
+      "ss": 0.3,
+      "label": "③ 콘크리트엔 물 안 닿음"
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "이렇게 물이 새는",
+    "경로를 막아",
+    "【콘크리트와 철근】을",
+    "보호해요"
+   ],
+   "audio": "hf_20261005_051155_28a9139b-0162-46f8-b70f-57d238050ff0.wav",
+   "visual": {
+    "type": "ai",
+    "clips": [
+     {
+      "src": "hf_20261003_123303_1d634015-4419-4438-b727-abf1e1ad24f6.mp4",
+      "w": 1,
+      "ss": 0.3,
+      "label": "콘크리트·철근 보호"
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "시공 방법도 【간단해요】",
+    "쓱 붙이고 싹 바르고",
+    "덮고 쏙 꽂으면 돼요"
+   ],
+   "audio": "hf_20261005_051205_f60d0bc1-7461-4b77-9229-43f525612871.wav",
+   "visual": {
+    "type": "diy",
+    "video": "",
+    "steps": [
+     {
+      "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/step-02-glue-attach.jpg",
+      "word": "쓱"
+     },
+     {
+      "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/step-04-coat1.jpg",
+      "word": "싹"
+     },
+     {
+      "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/step-05-sheet.jpg",
+      "word": "착"
+     },
+     {
+      "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/step-07-support.jpg",
+      "word": "쏙"
+     },
+     {
+      "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/step-08-done.jpg",
+      "word": "끝!"
+     }
+    ]
+   }
+  },
+  {
+   "subs": [
+    "트랩부터",
+    "견고한 시공을 위한",
+    "코트재와 시트까지",
+    "모두 【한 세트】로",
+    "구매할 수 있어요"
+   ],
+   "audio": "hf_20261005_051205_f834a334-de44-4925-901e-0c59ff7c5209.wav",
+   "visual": {
+    "type": "cta",
+    "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/ref-01-thumbnail.png"
+   }
+  }
+ ]
+}

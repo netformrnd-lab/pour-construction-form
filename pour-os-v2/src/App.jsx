@@ -12,7 +12,7 @@ import { TodayTab, TurnSheet, MyTidySheet, UpTurnsSheet } from "./today.jsx";
 import { MoreTab, AssignedSheet, MyFixedSheet } from "./more.jsx";
 import { turnIndex, turnsOf } from "./turn.js";
 import { SheetRouter } from "./sheets.jsx";
-import { MyKpiSheet, LagSheet, useGhRefresh } from "./kpiui.jsx";
+import { MyKpiSheet, LagSheet, useGhRefresh, KpiEditSheet } from "./kpiui.jsx";
 import { TaskSheet, FixedSheet, openTask } from "./task.jsx";
 import { ProjectsTab, ProjectSheet, NewProjectSheet, DoneProjectsSheet } from "./project.jsx";
 import { CalendarTab } from "./schedule.jsx";
@@ -68,6 +68,7 @@ function Main({ D, cu, meta, setMeta, logout }) {
     myFixed: (p) => <MyFixedSheet {...p} />,
     myKpi: (p) => <MyKpiSheet {...p} goToday={() => { setTab("today"); closeAll(); window.scrollTo(0, 0); }} />,
     lagInput: (p, s) => <LagSheet {...p} s={s} />,
+    kpiEdit: (p, s) => <KpiEditSheet {...p} s={s} />,
   };
   return <div className="v2-app">
     <nav className="v2-nav" aria-label="메뉴">

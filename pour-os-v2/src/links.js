@@ -18,10 +18,25 @@ export function linkOwnerId(l, users) {
 }
 const dd = (a, b) => Math.round((new Date(a + "T00:00:00") - new Date(b + "T00:00:00")) / 864e5);
 // 이 사람 '확인할 것'에 넣을 줄
+// 같은 종류가 3줄 넘게 오면(예: 재고 위험 54개) 한 줄로 묶음 — '확인할 것'이 넘치지 않게
+export const LINK_GROUP_MIN = 4;
 export function linkInbox(links, users, uid, key) {
+  const rows = linkRows(links, users, uid, key), by = {};
+  rows.forEach((x) => { (by[x._k] = by[x._k] || []).push(x); });
+  const out = [];
+  Object.values(by).forEach((g) => {
+    if (g.length < LINK_GROUP_MIN) { out.push(...g); return; }
+    const late = g.filter((x) => x.red).length, names = g.slice(0, 2).map((x) => x.title.replace(/\s*재고 위험$/, "")).join(" · ");
+    // 재고 위험 묶음은 빨강 아님 · '읽음'으로 오늘 하루 숨길 수 있음(내일·수가 바뀌면 다시) — 정밀 검토 2026-10-06
+    const stock = g[0]._k === "lowStock";
+    out.push({ ...g[0], id: "lk:grp:" + g[0]._k + ":" + g.length + (stock ? ":" + key : ""), title: `${g[0].tag} ${g.length}건`, text: `${names} 외 ${g.length - 2}건${late && !stock ? ` · 지남 ${late}` : ""}`, group: g.length, red: stock ? false : g[0].red, keep: !stock });
+  });
+  return out;
+}
+function linkRows(links, users, uid, key) {
   const me = (users || []).find((u) => u.id === uid); if (!me) return [];
   return (links || []).filter((l) => l && l.open !== false && (!l.date || l.date <= key)).filter((l) => { const o = linkOwnerId(l, users); return o ? o === uid : isMaster(me); })
     .map((l) => { const late = l.date && l.date < key ? dd(key, l.date) : 0;
-      return { kind: "link", src: l.src || "crm", whoName: LINK_APP[l.src || "crm"] || "", tag: LINK_TAG[l.kind] || "알림", red: late > 0 || l.kind === "lowStock" || l.kind === "marginLow", id: "lk:" + l.id + ":" + (l.date || ""), title: l.title || "", url: l.url || "",
-        text: [l.sub, l.time, late ? `${late}일 지남` : "", !linkOwnerId(l, users) && l.owner ? `담당 ${l.owner}` : ""].filter(Boolean).join(" · "), at: l.at || "", keep: true }; });
+      return { kind: "link", src: l.src || "crm", whoName: LINK_APP[l.src || "crm"] || "", tag: LINK_TAG[l.kind] || "알림", red: late > 0 || l.kind === "marginLow", id: "lk:" + l.id + ":" + (l.date || ""), title: l.title || "", url: l.url || "",
+        text: [l.sub, l.time, late ? `${late}일 지남` : "", !linkOwnerId(l, users) && l.owner ? `담당 ${l.owner}` : ""].filter(Boolean).join(" · "), at: l.at || "", keep: true, _k: l.kind || "" }; });
 }

@@ -27,27 +27,29 @@ export const LS = (k) => "pour-os2-" + k;   // v1(pour-os-…) 과 겹치지 않
 export const nowIso = () => new Date().toISOString();
 
 // ───────────────── 데이터 구독 ─────────────────
-export function useData(on) {
-  const [S, setS] = useState({ users: null, projects: [], openT: [], doneT: [], notes: [], log: [], events: [], brands: [], workflows: [], mainKPIs: [], subKPIs: [], settings: [], akDef: undefined, akV1: undefined, akV2: [], links: [], lagDef: undefined, lagV2: [], kpisales: [], kpiOv: [] });
+// on: 사람 목록만(로그인 화면) · full: 로그인 뒤 나머지 전부 (로그인 전엔 업무·기록을 읽지 않음 — 정밀 검토 2026-10-06 · 읽기 비용)
+export function useData(on, full = true) {
+  const [S, setS] = useState({ users: null, projects: null, openT: null, doneT: [], notes: [], log: [], events: [], brands: [], workflows: [], mainKPIs: [], subKPIs: [], settings: [], akDef: undefined, akV1: undefined, akV2: [], links: [], lagDef: undefined, lagV2: [], kpisales: undefined, kpiOv: [] });
   // 이번 분기 — 켜 둔 채 날이 바뀌어도 따라감(1분마다 · 화면 다시 볼 때)
   const [akQ, setAkQ] = useState(() => akQidOfWeek(akWeekKey(new Date())));
   useEffect(() => { const f = () => setAkQ(akQidOfWeek(akWeekKey(new Date()))); const iv = setInterval(f, 60000); document.addEventListener("visibilitychange", f);
     return () => { clearInterval(iv); document.removeEventListener("visibilitychange", f); }; }, []);
-  useEffect(() => { if (!on) return undefined; setS((s) => ({ ...s, akV1: undefined }));
-    return fb.listenV1Doc("kpi-act-" + akQ, (d) => setS((s) => ({ ...s, akV1: d })), (e) => { console.warn("[v2] 버전1 행동지표 실적 못 읽음:", e); setS((s) => ({ ...s, akV1: null })); }); }, [on, akQ]);
+  useEffect(() => { if (!on || !full) return undefined; setS((s) => ({ ...s, akV1: undefined }));
+    return fb.listenV1Doc("kpi-act-" + akQ, (d) => setS((s) => ({ ...s, akV1: d })), (e) => { console.warn("[v2] 버전1 행동지표 실적 못 읽음:", e); setS((s) => ({ ...s, akV1: null })); }); }, [on, full, akQ]);
   const [err, setErr] = useState("");
   useEffect(() => {
     if (!on) return;
-    const since30 = new Date(Date.now() - 30 * 864e5).toISOString(), since14 = new Date(Date.now() - 14 * 864e5).toISOString();
+    const since30 = new Date(Date.now() - 30 * 864e5).toISOString(), since14 = new Date(Date.now() - 7 * 864e5).toISOString();
     const put = (k) => (x) => setS((s) => ({ ...s, [k]: x }));
     const onE = (e) => setErr("데이터를 불러오지 못했어요 · 인터넷 연결을 확인해 주세요 (" + (e.code || e.message) + ")");
+    if (!full) return fb.listen("users", null, put("users"), onE);
     const subs = [
       fb.listen("users", null, put("users"), onE),
       fb.listen("projects", null, put("projects"), onE),
       fb.listen("tasks", ["status", "in", ["todo", "inprogress", "hold", "review"]], put("openT"), onE),   // 열린 업무 + 고정업무
       fb.listen("tasks", ["doneAt", ">=", since30], put("doneT"), onE),                                    // 최근 30일 끝낸 업무
       fb.listen("notes", ["at", ">=", since30], put("notes"), onE),
-      fb.listen("log", ["at", ">=", since14], put("log"), onE),
+      fb.listen("log", ["at", ">=", since14], put("log"), onE),   // 최근 7일만 (더 이전은 프로젝트 소식 '이전 불러오기' · 정밀 검토 2026-10-06 읽기 비용)
       fb.listen("events", null, put("events"), onE),
       fb.listen("brands", null, put("brands"), onE),
       fb.listen("workflows", null, put("workflows"), onE),
@@ -65,16 +67,18 @@ export function useData(on) {
       fb.listen("kpidefs", null, put("kpiOv"), (e) => console.warn("[v2] KPI 고친 것 못 읽음:", e)),   // KPI 고치기(v2 덧칠) — 버전1 정의 위에 덮어 보임
     ];
     return () => subs.forEach((u) => u && u());
-  }, [on]);
+  }, [on, full]);
   const D = useMemo(() => {
-    const m = new Map(); S.doneT.forEach((t) => m.set(t.id, t)); S.openT.forEach((t) => m.set(t.id, t));
+    const m = new Map(); S.doneT.forEach((t) => m.set(t.id, t)); (S.openT || []).forEach((t) => m.set(t.id, t));
     // 분기마다 v2 실적 · 이번 분기는 버전1 실적(읽기만)도 더함
     const docs = Object.fromEntries((S.akV2 || []).map((x) => [x.id || x._doc, sumAk(x)])); docs[akQ] = sumAk(S.akV1, (S.akV2 || []).find((x) => (x.id || x._doc) === akQ));
     const ak = { qid: akQ, items: ((S.akDef || {}).items || []).filter(Boolean), docs, v2: S.akV2 || [], ready: S.akDef !== undefined && S.akV1 !== undefined };
-    return { users: S.users || [], projects: S.projects, tasks: [...m.values()], notes: S.notes, log: S.log, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], settings: S.settings || [], ak, links: S.links || [], linkInbox,
+    return { users: S.users || [], projects: S.projects || [], tasks: [...m.values()], notes: S.notes, log: S.log, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], settings: S.settings || [], ak, links: S.links || [], linkInbox,
       kpi: { ov: S.kpiOv || [], lagRaw: ((S.lagDef || {}).items || []).filter((x) => x && x.id && !x.deleted),
         lagDefs: applyKpiOv({ lagKPIs: ((S.lagDef || {}).items || []).filter((x) => x && x.id && !x.deleted) }, S.kpiOv).lagKPIs.filter((x) => !x._hidden), lagReady: S.lagDef !== undefined, lagV2: Object.fromEntries((S.lagV2 || []).map((x) => [x.id || x._doc, x])), sales: Object.fromEntries((S.kpisales || []).map((x) => [x.id || x._doc, x])) },
-      lagInbox, ready: !!S.users };
+      lagInbox, ready: !!S.users,
+      // 업무·프로젝트 첫 목록까지 받은 뒤 (그 전엔 '급한 일 없어요'·자동 반영이 빈 목록으로 돌지 않게 — 정밀 검토 2026-10-06)
+      loaded: !!S.users && S.openT !== null && S.projects !== null, salesReady: S.kpisales !== undefined };
   }, [S, akQ]);
   return [D, err];
 }
@@ -86,11 +90,13 @@ export function useBoot() {
   const [metaErr, setMetaErr] = useState("");
   const checkMeta = () => { setMetaErr(""); fb.getMeta().then(setMeta).catch((e) => { console.error("[v2] 복사 정보 확인 실패:", e); setMetaErr("서버에 연결하지 못했어요 · 인터넷 연결을 확인하고 다시 눌러 주세요"); }); };
   useEffect(checkMeta, []);
-  const [D, err] = useData(!!meta);
+  const [full, setFull] = useState(false);
+  const [D, err] = useData(!!meta, full);
   const [me, setMe] = useLocal(LS("me"), "");
   const [key, setKey] = useLocal(LS("key"), "");
   const cu = D.users.find((u) => u.id === me);
   const authed = !!(cu && cu.active !== false && (cu.pinHash ? cu.pinHash === key : false));
+  useEffect(() => { if (authed && !full) setFull(true); }, [authed]);   // 로그인 뒤부터 나머지 구독 (한번 켜면 계속)
   const [launchNew, setLaunchNew] = useState(0);
   // 쉬는 날: 매달 자동 갱신한 공식 특일 정보(holidays.json, 같은 사이트) + 회사만 쉬는 날(settings/holidays). 화면이 그리기 전에 층을 바꿔 둠
   const [holJ, setHolJ] = useState(null);
@@ -100,13 +106,13 @@ export function useBoot() {
   const comp = ((D.settings || []).find((x) => x.id === "holidays") || {}).days;
   useMemo(() => setHolidayLayer("company", comp), [JSON.stringify(comp || {})]);
   const synced = useRef(false);
-  useEffect(() => { if (!meta || !D.ready || !authed || synced.current) return; synced.current = true;
+  useEffect(() => { if (!meta || !D.loaded || !authed || synced.current) return; synced.current = true;
     syncNewLaunch(D, cu).then((n) => { if (n) setLaunchNew(n); }).catch((e) => console.error("[v2] 신제품 보드 새 제품 가져오기 실패:", e));
     const today = ymd(new Date()), k = "pour-os-v2.progSync";
     let last = ""; try { last = localStorage.getItem(k) || ""; } catch (e) { /* 저장소 막힘 → 매번 */ }
     if (isMaster(cu) && last !== today) syncProgress(D).then((n) => { try { localStorage.setItem(k, today); } catch (e) { /* 무시 */ } console.log(`[v2] 프로젝트 진척 다시 계산 · 바뀐 것 ${n}개`); }).catch((e) => console.error("[v2] 프로젝트 진척 다시 계산 실패:", e)); }, [meta, D.ready, authed]);
-  useLaunchSync(D, cu, !!(meta && D.ready && authed));
-  useSmsFlush(D, !!(meta && D.ready && authed));
+  useLaunchSync(D, cu, !!(meta && D.loaded && authed));
+  useSmsFlush(D, !!(meta && D.loaded && authed));
   // 기밀(secret.js): 화면에는 이 사람이 볼 수 있는 것만 — 허용 안 된 기밀은 '기밀 업무'로 바꾼 대체본 · 신제품 반영·진척 계산은 위의 원래 D 로
   const V = useMemo(() => redact(D, authed ? cu : null), [D, authed, cu]);
   return { launchNew, holJ, meta, setMeta, metaErr, checkMeta, D: V, rawD: D, err, cu, authed, signIn: (u, h) => { setMe(u.id); setKey(h); }, logout: () => { setKey(""); setMe(""); } };
@@ -177,7 +183,8 @@ function useLaunchSync(D, cu, on) {
       try { if (st.prods) await pushLaunchBoard(st.prods, st.D, st.cu); } catch (e) { console.error("[v2] 신제품 대시보드에 쓰기 실패:", e); }
       st.busy = false; if (st.again) { const n = st.again; st.again = null; setTimeout(() => run(n === "push" ? null : n), 500); } };
     ref.current.run = run;
-    let t = null; const un = fb.listenLaunch((items) => { clearTimeout(t); t = setTimeout(() => run(items), 1200); });
+    // 기기에 저장된(낡았을 수 있는) 목록으로는 반영하지 않음 — 서버에서 온 목록일 때만 (정밀 검토 2026-10-06)
+    let t = null; const un = fb.listenLaunch((items, fromCache) => { if (fromCache) return; clearTimeout(t); t = setTimeout(() => run(items), 1200); });
     return () => { clearTimeout(t); un && un(); ref.current.run = null; }; }, [on]);
   useEffect(() => { const st = ref.current; if (!on || !st.run || !st.prods) return;
     const t = setTimeout(() => st.run && st.run(null), 1500); return () => clearTimeout(t); }, [on, D]);
@@ -198,8 +205,8 @@ export async function pushLaunchBoard(prods, D, cu) {
     const r = await fb.patchLaunchIf([{ id: p.id, fields, expect: pl.board.expect }]);
     if (!r.done) continue;
     const ops = pl.tasks.filter((x) => x.extra || JSON.stringify(x.lbSeen) !== JSON.stringify(x.t.lbSeen)).map((x) => ({ key: "tasks", id: x.t._doc || x.t.id, expect: { lbSeen: x.t.lbSeen || null }, fields: { lbSeen: x.lbSeen, ...(x.extra || {}) } }));   // extra: 새 줄 번호(lbRow)
-    if (ops.length) await fb.patchManyIf(ops);
-    if (pl.project) await fb.patchIf("projects", proj._doc || proj.id, { lbSeen: proj.lbSeen || null }, { lbSeen: pl.project.lbSeen });
+    if (ops.length) await fb.patchManyIf(ops, { noFallback: true });
+    if (pl.project) await fb.patchIf("projects", proj._doc || proj.id, { lbSeen: proj.lbSeen || null }, { lbSeen: pl.project.lbSeen }, { noFallback: true });
     if (said.length) n++;
   }
   if (n) console.log(`[v2] 신제품 대시보드에 반영 · 제품 ${n}개`);
@@ -215,7 +222,9 @@ export async function syncLaunchBoard(prods, D, cu) {
     const proj = (D.projects || []).find((x) => x.id === "lb_" + p.id); if (!proj || !projOpen(proj)) continue;
     const now = nowIso(), cs = planCustomSteps(p, proj, (D.tasks || []).filter((t) => t.projectId === proj.id), D.users, st0, today, now);
     const m = cs.create.length ? (await fb.createMissing(cs.create.map((d) => ({ key: "tasks", id: d.id, data: d })))).made : 0;
-    if (cs.drop.length) await fb.patchManyIf(cs.drop.map((x) => ({ key: "tasks", id: x.t._doc || x.t.id, expect: { status: x.t.status || null }, fields: { ...x.fields, updatedAt: now, updatedBy: "board" } })));
+    if (!st0) cs.drop = [];   // 구조 문서를 못 받았으면 '지운 단계'로 보고 중단하지 않음
+    const dr = cs.drop.length ? await fb.patchManyIf(cs.drop.map((x) => ({ key: "tasks", id: x.t._doc || x.t.id, expect: { status: x.t.status || null }, fields: { ...x.fields, updatedAt: now, updatedBy: "board" } })), { noFallback: true }) : { done: 0 };
+    cs.drop.length = dr.done;
     if (m || cs.drop.length) { changed += m + cs.drop.length; const id = newId("lg"); await fb.put("log", id, { id, action: "sync", col: "tasks", targetId: "", projectId: proj.id, by: "board", byName: "신제품 대시보드", at: now,
       label: `신제품 대시보드에서 · ${p.name}${m ? ` · 추가한 단계 ${cs.create.slice(0, m).map((d) => d.title).join(", ")}` : ""}${cs.drop.length ? ` · 지운 단계 ${cs.drop.length}개 중단` : ""}` }); }
   }
@@ -224,15 +233,19 @@ export async function syncLaunchBoard(prods, D, cu) {
     const proj = (D.projects || []).find((x) => x.id === "lb_" + p.id); if (!proj || !!p.deletedAt === !!proj.lbTrash) continue;
     const tasks = (await fb.fetchWhere("tasks", ["projectId", "==", proj.id])).filter((t) => !t.deleted), now = nowIso(), tr = planLaunchTrash(p, proj, tasks, now); if (!tr) continue;
     const r = await fb.patchIf("projects", proj._doc || proj.id, { lbTrash: proj.lbTrash || null, status: proj.status || null }, { ...tr.project, updatedAt: now, updatedBy: "board",
-      ...(tr.label ? { endLog: fb.arrayUnion({ kind: p.deletedAt ? "dropped" : "resume", why: tr.label, at: now, by: "board", byName: "신제품 대시보드" }) } : {}) });
+      ...(tr.label ? { endLog: fb.arrayUnion({ kind: p.deletedAt ? "dropped" : "resume", why: tr.label, at: now, by: "board", byName: "신제품 대시보드" }) } : {}) }, { noFallback: true });
     if (!r.ok) continue;
-    if (tr.tasks.length) await fb.patchManyIf(tr.tasks.map((x) => ({ key: "tasks", id: x.t._doc || x.t.id, expect: { status: x.t.status || null }, fields: { ...x.fields, updatedAt: now, updatedBy: "board", statusLog: fb.arrayUnion({ by: "board", byName: "신제품 대시보드", at: now, status: x.fields.status }) } })));
+    if (tr.tasks.length) await fb.patchManyIf(tr.tasks.map((x) => ({ key: "tasks", id: x.t._doc || x.t.id, expect: { status: x.t.status || null }, fields: { ...x.fields, updatedAt: now, updatedBy: "board", statusLog: fb.arrayUnion({ by: "board", byName: "신제품 대시보드", at: now, status: x.fields.status }) } })), { noFallback: true });
     if (tr.label) { const id = newId("lg"); await fb.put("log", id, { id, action: "projEnd", col: "projects", targetId: proj.id, projectId: proj.id, by: "board", byName: "신제품 대시보드", at: now, label: `${p.name} · 신제품 대시보드 ${tr.label}${tr.tasks.length ? ` · 업무 ${tr.tasks.length}건` : ""}` }); changed++; }
   }
-  for (const p of live) {
-    const proj = (D.projects || []).find((x) => x.id === "lb_" + p.id); if (!proj) continue;
+  for (const p0 of live) {
+    const proj = (D.projects || []).find((x) => x.id === "lb_" + p0.id); if (!proj) continue;
+    const v0 = p0.updatedAt || p0.createdAt || "x", rows0 = LAUNCH_ITEMS.some((it) => (((p0.stages || {})[it.id] || {}).tasks || []).length);
+    if (proj.lbSyncedAt === v0 && (p0.project || "") === (proj.lbProject || "") && (proj.lbRows || !rows0)) continue;   // 하위 프로젝트·할 일 줄은 처음 한 번 따라잡기
+    // 받아 둔 목록이 그사이 낡았을 수 있음 → 쓰기 직전에 그 제품을 서버에서 다시 읽어 그 값으로 (낡은 값으로 남의 변경을 되돌리지 않게 · 정밀 검토 2026-10-06)
+    const p = await fb.readLaunchProduct(p0.id); if (!p || p.deletedAt || !p.name) continue;
     const ver = p.updatedAt || p.createdAt || "x"; const rows = LAUNCH_ITEMS.some((it) => (((p.stages || {})[it.id] || {}).tasks || []).length);
-    if (proj.lbSyncedAt === ver && (p.project || "") === (proj.lbProject || "") && (proj.lbRows || !rows)) continue;   // 하위 프로젝트·할 일 줄은 처음 한 번 따라잡기
+    if (proj.lbSyncedAt === ver && (p.project || "") === (proj.lbProject || "") && (proj.lbRows || !rows)) continue;
     const tasks = (await fb.fetchWhere("tasks", ["projectId", "==", proj.id])).filter((t) => !t.deleted);
     const now = nowIso(), pl = planLaunchSync(p, proj, tasks, D.users, today, now, prods.structure);
     // 할 일 줄 → 하위 업무 (4단계 ③): 새 줄은 없을 때만 만들기 · 바뀐 줄은 아래 조건부 쓰기에 같이
@@ -240,9 +253,9 @@ export async function syncLaunchBoard(prods, D, cu) {
     const madeRows = rs.create.length ? (await fb.createMissing(rs.create.map((d) => ({ key: "tasks", id: d.id, data: d })))).made : 0;
     const ops = pl.tasks.map((x) => ({ key: "tasks", id: x.t._doc || x.t.id, expect: { lbSeen: x.t.lbSeen || null, v2At: x.t.v2At || null },
       fields: { ...x.fields, updatedAt: now, updatedBy: "board", ...(x.fields.status && x.fields.status !== x.t.status ? { statusLog: fb.arrayUnion({ by: "board", byName: "신제품 대시보드", at: now, status: x.fields.status }) } : {}) } }));
-    const r = ops.length ? await fb.patchManyIf(ops) : { done: 0, skipped: [] };
+    const r = ops.length ? await fb.patchManyIf(ops, { noFallback: true }) : { done: 0, skipped: [] };
     // 다 들어갔을 때만 '여기까지 맞춤' 표시 → 건너뛴 업무가 있으면 다음 신호 때 다시
-    await fb.patchIf("projects", proj._doc || proj.id, { lbSyncedAt: proj.lbSyncedAt || null }, { ...(pl.project ? pl.project.fields : {}), ...(r.skipped.length ? {} : { lbSyncedAt: ver, ...(rows ? { lbRows: true } : {}) }), updatedAt: now });
+    await fb.patchIf("projects", proj._doc || proj.id, { lbSyncedAt: proj.lbSyncedAt || null }, { ...(pl.project ? pl.project.fields : {}), ...(r.skipped.length ? {} : { lbSyncedAt: ver, ...(rows ? { lbRows: true } : {}) }), updatedAt: now }, { noFallback: true });
     const real = pl.tasks.filter((x) => x.label && !r.skipped.includes(x.t._doc || x.t.id));
     if (madeRows) real.push(...rs.create.slice(0, madeRows).map((d) => ({ t: d, label: "할 일 줄 → 하위 업무" })));
     if (real.length || (pl.project && pl.project.label)) { changed += real.length;
@@ -276,6 +289,7 @@ export function Gate({ B, title }) {
   if (B.err) return <Splash title={title} text={B.err} />;
   if (!B.D.ready) return <Splash title={title} text="불러오는 중…" />;
   if (!B.authed) return <Login D={B.D} title={title} preset={B.cu && B.cu.active !== false ? B.cu : null} onIn={B.signIn} />;
+  if (!B.D.loaded) return <Splash title={title} text="내 일 불러오는 중…" />;
   return null;
 }
 

@@ -8,6 +8,7 @@ import { LAUNCH_PHASES, LAUNCH_AFTER, LAUNCH_ITEMS } from "../launch.js";
 import { C, Big, Act, TBtn, Head, Card, Row, Empty, Sheet, Ask, More, inp } from "../ui.jsx";
 import { wdOf } from "./common.jsx";
 import { LaunchOwnerSync } from "./LaunchLink.jsx";
+import { pinHash } from "../sha.js";
 
 const KIND_L = { launch: "버전1 신제품 보드 다시 가져오기", all: "버전1 전체 다시 가져오기" };
 const NAVY_BTN = { background: C.navy, color: "#fff", borderColor: C.navy };
@@ -66,6 +67,7 @@ export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose
   const addComp = () => { if (!cd || !cn.trim() || cBusy) return; saveComp(cd, cn.trim(), `${md(cd)} ${cn.trim()} 넣음`); setCd(""); setCn(""); };
   const last = holJ && holJ.last;
   return <Sheet title="설정" onBack={onBack} onClose={onClose}>
+    <BulkCodes D={D} cu={cu} A={A} setToast={setToast} />
     <Head>신제품 대시보드 연결</Head>
     <LaunchOwnerSync D={D} cu={cu} A={A} setToast={setToast} />
     <Head>버전1에서 다시 가져오기</Head>
@@ -133,4 +135,42 @@ export function LaunchOrderView() {
 }
 export function LaunchOrderSheet({ onBack, onClose }) {
   return <Sheet title="신제품 순서표" onBack={onBack} onClose={onClose}><Card style={{ marginTop: 12 }}><LaunchOrderView /></Card></Sheet>;
+}
+
+// PIN 시작 코드 한꺼번에 (정밀 검토 2026-10-06 · 시범 첫날 남의 이름으로 PIN을 먼저 정하는 것 막기)
+//  PIN 없는 사용 중인 사람마다 4자리 → 해시만 users.pinInvite (아직 PIN 없을 때만 · patchIf) · 코드는 이 화면에 한 번만 · 이미 코드가 있던 사람은 새 코드로 바뀜
+export function BulkCodes({ D, cu, A, setToast }) {
+  const need = activeUsers(D.users).filter((u) => !u.pinHash).sort((a, b) => String(a.name).localeCompare(String(b.name), "ko"));
+  const [codes, setCodes] = useState(null), [busy, setBusy] = useState(false), [ask, setAsk] = useState(false);
+  if (!need.length && !codes) return null;
+  const make = async () => {
+    setAsk(false); setBusy(true); const out = [], at = nowIso();
+    try {
+      for (const u of need) {
+        const c = String(crypto.getRandomValues(new Uint32Array(1))[0] % 10000).padStart(4, "0");
+        const r = await fb.patchIf("users", u._doc || u.id, { pinHash: null }, { pinInvite: pinHash(u.id, "inv:" + c), pinInviteAt: at, pinInviteBy: cu.id });
+        if (r.ok) out.push({ name: u.name, code: c }); else out.push({ name: u.name, code: "", note: "그사이 PIN을 정함" });
+      }
+      A.log("edit", { col: "users", targetId: "", label: `시작 코드 한꺼번에 만듦 · ${out.filter((x) => x.code).length}명` });
+      setCodes(out); setToast({ text: `시작 코드 ${out.filter((x) => x.code).length}명 만들었어요 · 이 화면을 닫으면 다시 볼 수 없어요` });
+    } catch (e) { console.error("[v2 관리] 시작 코드 한꺼번에 실패:", e); setToast({ text: "저장 실패 · 인터넷 연결을 확인해 주세요" }); if (out.length) setCodes(out); }
+    setBusy(false);
+  };
+  const text = (codes || []).filter((x) => x.code).map((x) => `${x.name} ${x.code}`).join("\n");
+  const copy = () => { try { navigator.clipboard.writeText(text).then(() => setToast({ text: "복사했어요" }), () => setToast({ text: "복사가 막혀 있어요 · 화면을 보고 알려 주세요" })); } catch (_) { setToast({ text: "복사가 막혀 있어요 · 화면을 보고 알려 주세요" }); } };
+  return <>
+    <Head>PIN 시작 코드</Head>
+    <Card style={{ padding: "12px 14px" }}>
+      {!codes ? <>
+        <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>PIN 없는 사람 {need.length}명 · {need.map((u) => u.name).join(" · ")}<br /><span style={{ color: C.sub, fontSize: 12.5 }}>시작 코드가 있으면 그 코드를 받은 본인만 처음 PIN을 정할 수 있어요 (이름만 골라 남의 PIN을 먼저 정하는 것 막기)</span></div>
+        <div style={{ marginTop: 10 }}><TBtn v="solid" disabled={busy} onClick={() => setAsk(true)}>{busy ? "만드는 중" : `시작 코드 ${need.length}명 한꺼번에 만들기`}</TBtn></div>
+      </> : <>
+        <div style={{ fontSize: 12.5, color: C.sub, marginBottom: 6 }}>한 사람씩 본인에게만 알려 주세요 · 이 화면을 닫으면 다시 볼 수 없어요(잊으면 사람 보기에서 다시 만들기)</div>
+        {codes.map((x) => <div key={x.name} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.line}`, fontSize: 14 }}><b>{x.name}</b>
+          <span style={{ fontVariantNumeric: "tabular-nums", letterSpacing: 4, fontWeight: 800, color: x.code ? C.ink : C.mute }}>{x.code || x.note}</span></div>)}
+        <div style={{ marginTop: 10 }}><TBtn onClick={copy}>목록 복사</TBtn></div>
+      </>}
+    </Card>
+    {ask && <Ask title="시작 코드 한꺼번에 만들기" body={`PIN 없는 ${need.length}명에게 새 시작 코드를 만들어요.\n이미 코드를 받은 사람도 새 코드로 바뀌어요.\n코드는 이 화면에 한 번만 보여요.`} yes="만들기" onNo={() => setAsk(false)} onYes={make} />}
+  </>;
 }

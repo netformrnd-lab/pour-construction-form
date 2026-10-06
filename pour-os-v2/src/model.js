@@ -218,8 +218,12 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
     const one = g.pids.size === 1 && g.pid, fromN = g.from ? g.from.map((x) => nameOf(users, x)).filter(Boolean).join("·") : "";
     inbox.push({ kind: "bulk", tag: g.from ? "넘겨받음" : "맡김", id: "bl:" + bid, bulkIds: g.ids, projectId: one ? g.pid : null, mine: !one, title: g.from ? `${fromN || "다른 사람"}님 업무 ${g.n}개 넘겨받음` : `${one && p ? p.title + " · " : ""}항목 ${g.n}개 맡김`, who: g.who, at: g.at, text: "기한을 확인하고 '받았어요'를 눌러 주세요", keep: true }); });
   // PIN을 처음 정한 사람 (시작 코드 없이) → 마스터에게 7일 동안 — 본인이 아니면 사람 보기에서 PIN 초기화
-  if (isMaster(users.find((u) => u.id === uid))) users.forEach((u) => { if (u.id !== uid && u.pinSetAt && u.pinSetAt >= since && !u.pinByCode && !seen["pn:" + u.id + u.pinSetAt])
-    inbox.push({ kind: "pinNew", tag: "PIN 처음 정함", id: "pn:" + u.id + u.pinSetAt, personId: u.id, title: `${u.name}님이 PIN을 정했어요`, who: u.id, at: u.pinSetAt, text: "본인이 맞는지 확인해 주세요 · 아니면 PIN 초기화" }); });
+  //  여러 명이면 한 줄로 묶음(정밀 검토 2026-10-06 · 첫 주에 줄이 쌓이지 않게) — 누르면 가장 최근 사람
+  if (isMaster(users.find((u) => u.id === uid))) {
+    const pn = users.filter((u) => u.id !== uid && u.pinSetAt && u.pinSetAt >= since && !u.pinByCode && !seen["pn:" + u.id + u.pinSetAt]).sort((a, b) => String(b.pinSetAt).localeCompare(String(a.pinSetAt)));
+    if (pn.length === 1) { const u = pn[0]; inbox.push({ kind: "pinNew", tag: "PIN 처음 정함", id: "pn:" + u.id + u.pinSetAt, personId: u.id, title: `${u.name}님이 PIN을 정했어요`, who: u.id, at: u.pinSetAt, text: "본인이 맞는지 확인해 주세요 · 아니면 PIN 초기화" }); }
+    else if (pn.length > 1) inbox.push({ kind: "pinNew", tag: "PIN 처음 정함", id: pn.map((u) => "pn:" + u.id + u.pinSetAt).join("|"), personId: pn[0].id, title: `${pn.length}명이 PIN을 정했어요`, who: pn[0].id, at: pn[0].pinSetAt, text: `${pn.map((u) => u.name).join(" · ")} · 본인이 아니면 사람 보기에서 PIN 초기화` });
+  }
   // 보류한 프로젝트 '다시 할 날'이 되면 책임자에게 (다시 시작하거나 날짜를 바꿀 때까지)
   (D.projects || []).forEach((p) => { if (isHoldP(p) && p.holdUntil && p.holdUntil <= key && p.assigneeId === uid) inbox.push({ kind: "projHoldDue", tag: "다시 할 날", id: "ph:" + p.id + ":" + p.holdUntil, projectId: p.id, title: p.title, who: p.heldBy, at: p.holdUntil + "T00:00:00", text: `보류${p.holdReason ? " · " + p.holdReason : ""} · ${md(p.holdUntil)}에 다시 하기로 함`, keep: true }); });
   if (T && Array.isArray(T.inbox)) T.inbox.forEach((x) => inbox.push(x));

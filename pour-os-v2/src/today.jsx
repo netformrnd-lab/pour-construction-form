@@ -19,7 +19,7 @@ import { LINK_APP } from "./links.js";
 
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
 // 빠른 기한 버튼은 모두 pick.jsx dueChips (쉬는 날 빼고 · 버튼에 날짜까지)
-const markSeen = (setSeen, id) => setSeen((s) => ({ ...s, [id]: true }));
+const markSeen = (setSeen, id) => setSeen((s) => ({ ...s, [id]: true, ...Object.fromEntries(String(id).split("|").map((k) => [k, true])) }));   // 묶은 줄(id1|id2)은 하나씩도 읽음
 // '이제 내 차례'를 본 것으로: 앞 일이 끝난 때까지 담은 키(info.seenKey · 없으면 예전 키) + (카드에서 시작·열면) 카드에 보인 '앞 일 마지막 말' 댓글
 const markTurn = (setSeen, tid, info, notes) => { if (!info || !info.last) return; const w = notes ? lastWord(info.last, notes) : null;
   setSeen((s) => ({ ...s, [info.seenKey || `tn:${tid}:${info.last.id}`]: true, ...(w ? { ["nt:" + w.id]: true } : {}) })); };
@@ -65,7 +65,7 @@ export function InboxSheet({ D, A, open, TV, setSeen, onBack, onClose }) {
     <div style={{ fontSize: 13, color: C.sub, margin: "12px 2px 8px", lineHeight: 1.6 }}>확인 요청 · 도움 요청 · 기한 조정 · 막힘 · 맡김 · 담당 바뀜 · 내가 말한 대화의 답이 여기 모여요. 처리할 때까지 남는 것과 읽으면 사라지는 것이 있어요.</div>
     {TV.inbox.length === 0 ? <Card><Empty>새로 온 요청·알림이 없어요</Empty></Card>
       : <Card>{TV.inbox.map((x, i) => <Row key={x.id} tag={x.tag} tagTone={x.red ? "red" : null} title={x.title} sub={`${x.whoName || TV.userName(x.who) || ""}${x.at ? (x.whoName || TV.userName(x.who) ? " · " : "") + ago(x.at, now) : ""}${x.text ? " · " + x.text : ""}`} onClick={() => openInbox(x)} right={inboxAct(x)} last={i === TV.inbox.length - 1} />)}</Card>}
-    {readable.length > 0 && <div style={{ marginTop: 10 }}><TBtn tone="mute" onClick={() => setSeen((s) => ({ ...s, ...Object.fromEntries(readable.map((x) => [x.id, true])) }))}>읽음 표시 {readable.length}</TBtn></div>}
+    {readable.length > 0 && <div style={{ marginTop: 10 }}><TBtn tone="mute" onClick={() => setSeen((s) => ({ ...s, ...Object.fromEntries(readable.flatMap((x) => [x.id, ...String(x.id).split("|")].map((k) => [k, true]))) }))}>읽음 표시 {readable.length}</TBtn></div>}
   </Sheet>;
 }
 // 순서: 지금 할 일 1장 → 확인할 것 → 오늘(고정업무 접기 · 일회성 3줄) → 곧 내 차례 → 정리 한 줄
@@ -105,7 +105,7 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
     <div className="v2-cols">
       <div>
         {TV.inbox.length > 0 && <>
-          <Head right={readable.length > 0 && <TBtn tone="mute" onClick={() => setSeen((s) => ({ ...s, ...Object.fromEntries(readable.map((x) => [x.id, true])) }))}>읽음 표시</TBtn>}>확인할 것 {TV.inbox.length}</Head>
+          <Head right={readable.length > 0 && <TBtn tone="mute" onClick={() => setSeen((s) => ({ ...s, ...Object.fromEntries(readable.flatMap((x) => [x.id, ...String(x.id).split("|")].map((k) => [k, true]))) }))}>읽음 표시</TBtn>}>확인할 것 {TV.inbox.length}</Head>
           <Card>
             {inbox.map((x, i) => <Row key={x.id} tag={x.tag} tagTone={x.red ? "red" : null} title={x.title} sub={`${x.whoName || TV.userName(x.who) || ""}${x.at ? (x.whoName || TV.userName(x.who) ? " · " : "") + ago(x.at, now) : ""}${x.text ? " · " + x.text : ""}`} onClick={() => openInbox(x)} right={inboxAct(x)} last={i === inbox.length - 1 && TV.inbox.length <= 3} />)}
             {TV.inbox.length > 3 && <More onClick={() => setAllInbox(!allInbox)}>{allInbox ? "접기 ▴" : `${TV.inbox.length}개 모두 보기 ▾`}</More>}

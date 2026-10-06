@@ -106,9 +106,10 @@ export function turnsOf(D, idx, uid, now = new Date(), seen = {}, since = "") {
       const p = T.open[0], pt = turnOf(p, idx, key), pn = ddays(dueOf(p), key);
       if (p.status === "inprogress" || ((pt.state === "ready" || pt.state === "none") && pn != null && pn <= 3)) soonRaw.push({ t, p });
     }
-    if (T.state === "late" && (ddays(dueOf(t), key) ?? 99) <= 7) {
+    const myD = ddays(dueOf(t), key);   // 내 기한 3일 지남 ~ 7일 안만 (오래 지난 내 일까지 줄을 늘리지 않게 · 둘 다 자동 기한이면 빼기 — 정밀 검토 2026-10-06)
+    if (T.state === "late" && myD != null && myD >= -3 && myD <= 7) {
       const p = T.show || T.open[0];
-      if (!ownersOf(p).includes(uid)) inbox.push({ kind: "turnLate", tag: p.blocked ? "앞 일 막힘" : "앞 일 늦음", red: true, id: `tl:${t.id}:${p.id}`, taskId: p.id, title: t.title, who: ownersOf(p)[0], at: p.updatedAt || p.dueDate,
+      if (!ownersOf(p).includes(uid) && !(p.dueAuto && t.dueAuto && !p.blocked)) inbox.push({ kind: "turnLate", tag: p.blocked ? "앞 일 막힘" : "앞 일 늦음", red: true, id: `tl:${t.id}:${p.id}`, taskId: p.id, title: t.title, who: ownersOf(p)[0], at: p.updatedAt || p.dueDate,
         text: `${predLine(p, users, key)} · 내 기한 ${md(dueOf(t)) || "미정"}`, keep: true, act: "ask" });
     }
     const dt = dueOf(t);

@@ -37,7 +37,9 @@ export function visibleDefs(K) {
   return { ...K, goals, mainKPIs, subKPIs: K.subKPIs.filter((x) => !x._hidden && (mid.has(x.mainKPIId) || !K.mainKPIs.some((m) => m.id === x.mainKPIId))), lagKPIs: (K.lagKPIs || []).filter((x) => !x._hidden) };
 }
 // 서브KPI '지금 값'을 사람이 넣을 수 있나 (자동으로 들어오는 칸은 안 됨)
-export const skManual = (sk) => !!sk && !sk.crmSynced && !sk._auto && !(sk.mainKPIId === "mk2" && sk.unit === "원" && !sk.manualOverride) && !sk.launchCount && !(sk.unit === "원" && sk.salesAuto !== false && salesChOf(sk).length && sk.mainKPIId !== "mk2");
+// % 서브KPI 는 직접 넣지 않았으면 연결된 프로젝트 진척 평균 (버전1 kpi.skCur 와 같은 규칙)
+export const pctAuto = (sk, projects) => !!sk && sk.unit === "%" && !sk.manualOverride && (projects || []).some((p) => p && !p.deleted && p.subKPIId === sk.id);
+export const skManual = (sk, projects) => !!sk && !pctAuto(sk, projects) && !sk.crmSynced && !sk._auto && !(sk.mainKPIId === "mk2" && sk.unit === "원" && !sk.manualOverride) && !sk.launchCount && !(sk.unit === "원" && sk.salesAuto !== false && salesChOf(sk).length && sk.mainKPIId !== "mk2");
 // 저장 칸 (txDoc) — next: 바꿀 칸 {칸: 값} · hide: true/false/undefined · base: 버전1 원래 항목(없으면 새로 만듦)
 export function kpiEditWrite(cur, coll, id, next, hide, cu, at, base) {
   const prev = { ...(base || {}), ...((cur && cur.fields) || {}) }, ch = {};
@@ -80,8 +82,9 @@ export const lagGoal = (it) => (it.goal == null || it.goal === "" ? null : +it.g
 export const lagPct = (it, v) => { const g = lagGoal(it); return g && v != null ? Math.round((v / g) * 100) : null; };
 
 // 서브KPI 숫자가 어디서 오는지
-function skSrc(sk, mk, hasGh) {
+function skSrc(sk, mk, hasGh, projects) {
   if (sk.crmSynced) return { auto: true, t: "CRM 자동" };
+  if (pctAuto(sk, projects)) return { auto: true, t: "프로젝트 진척 평균" };
   if (sk._auto) return { auto: true, t: "그로홈 대시보드 자동" };
   if (sk.mainKPIId === "mk2" && sk.unit === "원" && !sk.manualOverride) return { auto: true, t: "프로젝트 매출 합계" };
   if (sk.unit === "원" && sk.salesAuto !== false && salesChOf(sk).length && sk.mainKPIId !== "mk2") return { auto: false, t: hasGh ? "직접 입력" : "매출 불러오는 중" };
@@ -112,7 +115,7 @@ export function kpiBoard(K0, ctx, brand) {
   const out = goals.map((g) => {
     const mks = D0.mainKPIs.filter((m) => m.goalId === g.id).sort(ord).map((mk) => {
       const ss = subs.filter((s) => s.mainKPIId === mk.id).sort(ord).map((sk) => { const cur = skCur(sk, projects), t = numF(sk.targetValue);
-        return { sk, cur, target: t, pct: t > 0 ? Math.round((cur / t) * 100) : null, src: skSrc(sk, mk, !!gh), mv: moversOf(mk, sk) }; });
+        return { sk, cur, target: t, pct: t > 0 ? Math.round((cur / t) * 100) : null, src: skSrc(sk, mk, !!gh, projects), mv: moversOf(mk, sk) }; });
       const cur = mkCur(mk, subs, projects), t = numF(mk.targetValue);
       return { mk, cur, target: t, pct: t > 0 ? Math.round((cur / t) * 100) : null, subs: ss, mv: moversOf(mk, null),
         auto: ss.length > 0 && mk.unit === "원" && ss.every((s) => s.src.auto) };
@@ -140,12 +143,14 @@ export function myKpi(board, uid, D) {
 // 월말 입력 — 그 달에 아직 값이 없는 결과 KPI
 export const lagMissing = (lags, v2, ym) => (lags || []).filter((it) => !lagAt(it, v2, ym));
 // 알림 달: 마지막 평일 3일 전부터 그 달 · 새 달 10일까지는 지난달 (값이 다 들어가면 없음) — 버전1 월말 회고와 같은 날짜 규칙
+// 월말 입력 알림은 v2 결과 KPI 를 연 달(2026-10)부터 — 그 전 달은 알리지 않음(정밀 검토 2026-10-06 · 9월 15개 '늦음'이 첫날부터 뜨지 않게)
+export const LAG_START = "2026-10";
 export function lagDue(key, lags, v2) {
   const [y, m] = key.split("-").map(Number), m0 = m - 1;
   const pd = new Date(y, m0 - 1, 1), pym = akYm(pd.getFullYear(), pd.getMonth());
-  if (+key.slice(8, 10) <= 10) { const miss = lagMissing(lags, v2, pym); if (miss.length) return { ym: pym, late: true, miss, day: akRetroDay(pd.getFullYear(), pd.getMonth()) }; }
+  if (+key.slice(8, 10) <= 10 && pym >= LAG_START) { const miss = lagMissing(lags, v2, pym); if (miss.length) return { ym: pym, late: true, miss, day: akRetroDay(pd.getFullYear(), pd.getMonth()) }; }
   const day = akRetroDay(y, m0), ym = akYm(y, m0);
-  if (key >= akAddDays(day, -3)) { const miss = lagMissing(lags, v2, ym); if (miss.length) return { ym, late: key > day, miss, day }; }
+  if (key >= akAddDays(day, -3) && ym >= LAG_START) { const miss = lagMissing(lags, v2, ym); if (miss.length) return { ym, late: key > day, miss, day }; }
   return null;
 }
 export const canLag = (u) => can(u, "kpiLag");

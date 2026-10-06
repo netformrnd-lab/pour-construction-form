@@ -98,13 +98,14 @@ const valAt = (d, path) => String(path).split(".").reduce((o, k) => (o == null ?
 export const sameVal = (a, b) => stable(a) === stable(b);
 const fits = (cur, expect) => !!cur && Object.keys(expect || {}).every((k) => sameVal(valAt(cur, k), expect[k]));
 const offline = (e) => e && /unavailable|offline|network/i.test(String(e.code || e.message || ""));
-export async function patchIf(key, id, expect, fields) {
+// opt.noFallback: 자동으로 도는 쓰기(신제품 대시보드 반영 등)는 연결이 끊기면 확인 없이 쓰지 않고 그냥 실패 → 다음에 다시
+export async function patchIf(key, id, expect, fields, opt) {
   try { return await runTransaction(db, async (tx) => { const r = v2doc(key, id), s = await tx.get(r); const cur = s.exists() ? s.data() : null;
       if (!fits(cur, expect)) return { ok: false, cur }; tx.update(r, fields); return { ok: true, cur }; }); }
-  catch (e) { if (!offline(e)) throw e; console.warn("[v2] 확인 없이 저장(연결 끊김):", e.message); await updateDoc(v2doc(key, id), fields); return { ok: true, cur: null, unchecked: true }; }
+  catch (e) { if (!offline(e) || (opt && opt.noFallback)) throw e; console.warn("[v2] 확인 없이 저장(연결 끊김):", e.message); await updateDoc(v2doc(key, id), fields); return { ok: true, cur: null, unchecked: true }; }
 }
 // 여러 문서 — 문서마다 검사, 그사이 남이 바꾼 문서는 건너뜀. ops: [{key, id, fields, expect}] → {done, skipped:[id]}
-export async function patchManyIf(ops) {
+export async function patchManyIf(ops, opt) {
   let done = 0; const skipped = [];
   for (let i = 0; i < ops.length; i += 100) {
     const part = ops.slice(i, i + 100);
@@ -112,7 +113,7 @@ export async function patchManyIf(ops) {
         part.forEach((o, j) => { const cur = snaps[j].exists() ? snaps[j].data() : null; if (fits(cur, o.expect)) { tx.update(v2doc(o.key, o.id), o.fields); ok.push(o.id); } else no.push(o.id); });
         return { ok, no }; });
       done += r.ok.length; skipped.push(...r.no); }
-    catch (e) { if (!offline(e)) throw e; console.warn("[v2] 확인 없이 되돌림(연결 끊김):", e.message); await patchMany(part); done += part.length; }
+    catch (e) { if (!offline(e) || (opt && opt.noFallback)) throw e; console.warn("[v2] 확인 없이 되돌림(연결 끊김):", e.message); await patchMany(part); done += part.length; }
   }
   console.log(`[v2 조건부 쓰기] ${done}건 · 건너뜀 ${skipped.length}건`); return { done, skipped };
 }
@@ -157,6 +158,8 @@ export function listenLaunch(cb, onErr) {
     console.log(`[신제품 대시보드] ${items.length}건${snap.metadata.fromCache ? " (기기 저장)" : ""}`); cb(items, snap.metadata.fromCache);
   }, (e) => { console.error("[신제품 대시보드] 구독 실패:", e); onErr && onErr(e); });
 }
+// 신제품 제품 하나를 서버에서 바로 읽기 (자동 반영 직전 — 받아 둔 목록이 그사이 낡았을 수 있어서)
+export async function readLaunchProduct(id) { const s = await getDocFromServer(LB(id)); return s.exists() ? { ...s.data(), id: s.id } : null; }
 // 문서 하나를 읽고-판단하고-쓰기 (transaction) · fn(cur) → { write?: fields, ret? } — 없으면 만들고(set) 있으면 바뀐 칸만(update)
 export async function txDoc(key, id, fn) {
   return runTransaction(db, async (tx) => { const r = v2doc(key, id), s = await tx.get(r), cur = s.exists() ? s.data() : null, out = fn(cur) || {};

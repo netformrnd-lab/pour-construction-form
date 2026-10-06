@@ -56,6 +56,8 @@ export function viewTasks(list, D, u = D.viewer) {
 // 데이터 전체 → 이 사람이 볼 화면 데이터 (+ lockedT · lockedP 번호 모음)
 export function redact(D, u) {
   if (seeAll(u) || !D.ready) return { ...D, lockedT: new Set(), lockedP: new Set(), viewer: u || null };
+  // 기밀이 하나도 없으면 바로 (폰에서 업무 1,800건을 매번 훑지 않게 · 정밀 검토 2026-10-06)
+  if (!(D.projects || []).some(secretOn) && !(D.tasks || []).some(secretOn)) return { ...D, lockedT: new Set(), lockedP: new Set(), viewer: u };
   const lockedP = new Set((D.projects || []).filter((p) => !projSeen(p, u.id, D.tasks)).map((p) => p.id));
   const pm = new Map((D.projects || []).map((p) => [p.id, p]));
   const lockedT = new Set((D.tasks || []).filter((t) => !taskSeen(t, pm.get(t.projectId) || null, u.id, D.tasks)).map((t) => t.id));

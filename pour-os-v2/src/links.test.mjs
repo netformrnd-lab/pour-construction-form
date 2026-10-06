@@ -16,4 +16,10 @@ ok("담당 없음 → 마스터만 · 지나면 빨강 n일 지남", () => {
   assert.equal(linkInbox([L({ owner: "" })], users, "minji", "2026-10-07").length, 0);
 });
 ok("처리된 것(open:false)은 안 보임", () => assert.equal(linkInbox([L({ open: false })], users, "ran", "2026-10-07").length, 0));
+ok("같은 종류 4줄 이상이면 한 줄로 묶음 (재고 위험 54건)", () => {
+  const ls = Array.from({ length: 54 }, (_, i) => L({ id: "s" + i, kind: "lowStock", title: `제품${i} 재고 위험`, owner: "", date: "", url: "https://pourstorecrm.web.app/products/stock" }));
+  const x = linkInbox([...ls, L()], users, "songhee", "2026-10-07");
+  assert.equal(x.length, 1 + 0); const g = x.find((y) => y.group); assert.ok(g && g.title === "재고 위험 54건" && /제품0 · 제품1 외 52건/.test(g.text) && g.url);
+  assert.equal(linkInbox([...ls.slice(0, 3)], users, "songhee", "2026-10-07").length, 3);
+});
 console.log(`${n}개 모두 통과`);

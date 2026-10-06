@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as fb from "./fb.js";
 import { ymd, md, isMaster, nameOf } from "./model.js";
-import { kpiDefs, kpiBoard, myKpi, lagAt, lagLatest, lagGoal, lagPct, lagMissing, lagWrite, lagBrand, canLag, fmtV, KCOLL_L, skManual, kpiEditWrite, newKpiId, goalBrandOf, mkBrand } from "./kpi2.js";
+import { kpiDefs, kpiBoard, myKpi, lagAt, lagLatest, lagGoal, lagPct, lagMissing, lagWrite, lagBrand, canLag, fmtV, KCOLL_L, skManual, kpiEditWrite, newKpiId, goalBrandOf, mkBrand, lagDue } from "./kpi2.js";
 import { AK_FUNS } from "../../pour-os/src/actionKpi.js";
 import { refreshGhSales, GH_EVERY } from "./ghsales.js";
 import { C, Big, TBtn, Chip, Head, Card, Empty, More, Sheet, inp, useLocal } from "./ui.jsx";
@@ -24,7 +24,7 @@ export function useKpiDefs(D) {
 }
 // 그로홈 매출 합계 새로 읽기 — 마스터 기기에서 3시간에 한 번 (실패하면 30분 뒤 다시)
 export function useGhRefresh(D, cu) {
-  const busy = useRef(false); const g = (D.kpi && D.kpi.sales && D.kpi.sales.grohome) || null; const ready = !!(D.kpi && D.ready);
+  const busy = useRef(false); const g = (D.kpi && D.kpi.sales && D.kpi.sales.grohome) || null; const ready = !!(D.kpi && D.loaded && D.salesReady);   // 저장된 합계를 받은 뒤에만 (3시간 규칙이 첫 화면에서 무시되지 않게)
   useEffect(() => {
     if (!ready || !isMaster(cu) || busy.current) return;
     const last = g ? Date.parse(g.checkedAt || g.at || "") || 0 : 0; if (Date.now() - last < GH_EVERY) return;
@@ -54,7 +54,8 @@ export function KpiBoard({ D, cu, open }) {
   const EdLine = ({ children }) => ed ? <div className="v2-kedit">{children}</div> : null;
   const bname = (bs.find((x) => x.id === brand) || { name: brand }).name;
   if (!K) return <Card style={{ marginTop: 12 }}><Empty>KPI를 불러오는 중이에요</Empty></Card>;
-  const miss = lagMissing(B.lags, D.kpi.lagV2, ym).length;
+  const due = lagDue(key, B.lags, D.kpi.lagV2), inYm = due ? due.ym : ym;   // 새 달 10일까지는 지난달 (알림과 같은 달)
+  const miss = lagMissing(B.lags, D.kpi.lagV2, inYm).length;
   const gh = brand === "grohome" && D.kpi.sales.grohome;
   return <div className="v2-kpi">
     <div className="v2-filterrow" style={{ marginTop: 4 }} aria-label="브랜드 고르기">
@@ -63,7 +64,7 @@ export function KpiBoard({ D, cu, open }) {
     {isMaster(cu) && <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}><TBtn v={ed ? "solid" : "line"} onClick={() => setEd(!ed)}>{ed ? "고치기 끝" : "KPI 고치기"}</TBtn></div>}
     {ed && <p className="v2-kednote">줄마다 [고치기]로 이름·목표·단위를 바꾸고, [+ 추가]로 새로 만들어요 · 지우기 대신 숨기기(다시 보이기 가능) · 고친 것은 업무OS v2 에만 저장되고 버전1 KPI 화면엔 그대로예요</p>}
     <p className="a-hint" style={{ margin: "10px 2px 0" }}>{bname} · {mLabel(ym)} · {md(key)} 기준{gh ? ` · 그로홈 매출 ${md(ymd(new Date(gh.checkedAt || gh.at)))} 읽음` : ""} · 숫자는 사람이 안 넣어도 되는 것만 자동</p>
-    <Head right={ed ? <TBtn onClick={() => E("lagKPIs", "", { isNew: true })}>+ 결과 KPI 추가</TBtn> : canLag(cu) && B.lags.length > 0 && <TBtn v={miss ? "solid" : "line"} onClick={() => open({ type: "lagInput", ym, brand })}>{miss ? `월말 입력 · ${miss}개 남음` : "월말 입력"}</TBtn>}>결과 KPI · {mLabel(ym)}</Head>
+    <Head right={ed ? <TBtn onClick={() => E("lagKPIs", "", { isNew: true })}>+ 결과 KPI 추가</TBtn> : canLag(cu) && B.lags.length > 0 && <TBtn v={miss ? "solid" : "line"} onClick={() => open({ type: "lagInput", ym: inYm, brand })}>{miss ? `월말 입력 · ${mLabel(inYm)} ${miss}개 남음` : "월말 입력"}</TBtn>}>결과 KPI · {mLabel(ym)}</Head>
     {B.lags.length ? <Card>{(lagAll ? B.lags : B.lags.slice(0, 5)).map((it, i, arr) => { const a = lagAt(it, D.kpi.lagV2, ym), L = lagLatest(it, D.kpi.lagV2, ym), g = lagGoal(it), v = a ? a.v : null, p = lagPct(it, v);
       return <div key={it.id} className="v2-krow" style={{ borderBottom: i === arr.length - 1 && B.lags.length <= 5 ? "none" : undefined }}>
         <div className="r1"><b>{it.name}</b><span>{fmtV(v, it.unit)}{g != null ? ` / ${fmtV(g, it.unit)}` : ""}</span></div>
@@ -93,7 +94,7 @@ export function KpiBoard({ D, cu, open }) {
                 <Bar pct={S.pct} />
                 <div className="s"><Src s={S.src} />{nm ? ` · 움직이는 것 ${nm} ${so ? "▴" : "▾"}` : " · 연결된 행동지표·프로젝트 없음"}</div>
               </button>
-              <EdLine><TBtn onClick={() => E("subKPIs", S.sk.id)}>고치기</TBtn>{skManual(S.sk) && <span className="h">지금 값도 여기서</span>}</EdLine>
+              <EdLine><TBtn onClick={() => E("subKPIs", S.sk.id)}>고치기</TBtn>{skManual(S.sk, D.projects) && <span className="h">지금 값도 여기서</span>}</EdLine>
               {so && <Movers D={D} mv={S.mv} open={open} />}
             </div>; })}
         </Card>; })}
@@ -143,13 +144,14 @@ export function LagSheet({ D, cu, s, onBack, onClose, setToast }) {
   useEffect(() => setVal({}), [ym]);
   const cur = (it) => { const a = lagAt(it, v2, ym); return a ? String(a.v) : ""; };
   const shown = (it) => (val[it.id] !== undefined ? val[it.id] : cur(it));
-  const changed = lags.filter((it) => val[it.id] !== undefined && val[it.id].trim() !== cur(it));
-  const bad = changed.filter((it) => val[it.id].trim() !== "" && !isFinite(+val[it.id].trim()));
+  const nv = (x) => String(x || "").replace(/,/g, "").trim();   // 1,000 처럼 쉼표 넣어도 됨
+  const changed = lags.filter((it) => val[it.id] !== undefined && nv(val[it.id]) !== cur(it));
+  const bad = changed.filter((it) => nv(val[it.id]) !== "" && !isFinite(+nv(val[it.id])));
   const miss = lagMissing(lags, v2, ym).length;
   const save = async () => {
     if (!changed.length || bad.length || busy) return; setBusy(true); let n = 0;
     try { const at = nowIso();
-      for (const it of changed) { const v = val[it.id].trim(); const r = await fb.txDoc("lagvals", it.id, (c) => { const w = lagWrite(c, it, ym, v, cu, at); return w ? { write: w, ret: 1 } : {}; }); n += r || 0; }
+      for (const it of changed) { const v = nv(val[it.id]); const r = await fb.txDoc("lagvals", it.id, (c) => { const w = lagWrite(c, it, ym, v, cu, at); return w ? { write: w, ret: 1 } : {}; }); n += r || 0; }
       setVal({}); setToast && setToast({ text: `${mLabel(ym)} 결과 KPI ${n}개 저장했어요` });
     } catch (e) { console.error("[결과 KPI] 저장 실패:", e); setToast && setToast({ text: "저장하지 못했어요 · 인터넷 연결을 확인해 주세요" }); }
     finally { setBusy(false); }
@@ -164,12 +166,12 @@ export function LagSheet({ D, cu, s, onBack, onClose, setToast }) {
     {!edit && <p style={{ margin: "8px 2px 0", fontSize: 13, color: C.sub }}>보기만 할 수 있어요 · 넣기는 마스터·결과 KPI 권한</p>}
     {!lags.length && <Card style={{ marginTop: 12 }}><Empty>{D.kpi && D.kpi.lagReady ? "결과 KPI가 아직 없어요" : "불러오는 중이에요"}</Empty></Card>}
     {groups.map(({ b, l }) => <div key={b.id}><Head>{b.name} {l.length}</Head><Card>{l.map((it, i) => { const prev = lagLatest(it, v2, ymAdd(ym, -1)), g = lagGoal(it), a = lagAt(it, v2, ym), x = shown(it);
-      const wrong = x.trim() !== "" && !isFinite(+x.trim());
+      const wrong = nv(x) !== "" && !isFinite(+nv(x));
       return <label key={it.id} className="v2-klag" style={{ borderBottom: i === l.length - 1 ? "none" : undefined }}>
         <div className="l"><b>{it.name}</b>
           <span>{g != null ? `목표 ${fmtV(g, it.unit)}` : "목표 없음"} · {prev.v != null ? `${prev.ym ? mLabel(prev.ym) : "기준값"} ${fmtV(prev.v, it.unit)}` : "지난 값 없음"}{a && a.byName ? ` · ${a.byName} 넣음` : ""}</span></div>
         <div className="in"><input value={x} disabled={!edit} inputMode="decimal" aria-label={`${it.name} ${mLabel(ym)} 값`} placeholder="—"
-          onChange={(e) => setVal((v) => ({ ...v, [it.id]: e.target.value }))} style={{ ...inp, padding: "9px 10px", textAlign: "right", borderColor: wrong ? C.red : val[it.id] !== undefined && x.trim() !== cur(it) ? C.navy : C.line }} />
+          onChange={(e) => setVal((v) => ({ ...v, [it.id]: e.target.value }))} style={{ ...inp, padding: "9px 10px", textAlign: "right", borderColor: wrong ? C.red : val[it.id] !== undefined && nv(x) !== cur(it) ? C.navy : C.line }} />
           <span className="u">{it.unit || ""}</span></div>
       </label>; })}</Card></div>)}
     <p style={{ margin: "14px 2px 0", fontSize: 12.5, color: C.mute, lineHeight: 1.6 }}>버전1에서 넣은 값도 같이 보여요 · 여기서 고친 값은 업무OS v2 에만 저장돼요(버전1 값은 그대로) · 지우면 빈 값으로 남고 이전 값은 기록에 남아요</p>
@@ -209,15 +211,16 @@ export function KpiEditSheet({ D, cu, s, onBack, onClose, setToast }) {
   if (!K) return <Sheet title="KPI 고치기" onBack={onBack} onClose={onClose}><Card style={{ marginTop: 12 }}><Empty>불러오는 중이에요</Empty></Card></Sheet>;
   if (!isNew && !it) return <Sheet title="KPI 고치기" onBack={onBack} onClose={onClose}><Card style={{ marginTop: 12 }}><Empty>그 KPI를 찾지 못했어요</Empty></Card></Sheet>;
   const numK = coll === "lagKPIs" ? ["goal", "base"] : coll === "subKPIs" ? ["targetValue", "currentValue"] : ["targetValue"];
-  const manual = coll !== "subKPIs" || (isNew || skManual(it));
+  const manual = coll !== "subKPIs" || (isNew || skManual(it, D.projects));
   const bad = numK.filter((k) => !(k === "currentValue" && !manual) && String(v[k] ?? "").trim() !== "" && !isFinite(num(v[k])));
-  const noName = !String(v[nm] || "").trim();
+  const noName = !String(v[nm] || "").trim(), badYear = coll === "goals" && !/^20\d\d$/.test(String(v.year || "").trim());
   const save = async (hide) => {
-    if (busy || (hide === undefined && (bad.length || noName))) return; setBusy(true);
+    if (busy || (hide === undefined && (bad.length || noName || badYear))) return; setBusy(true);
     try {
       const at = nowIso(), id = isNew ? newKpiId(coll) : it.id, next = {};
       if (hide === undefined) {
-        Object.entries(v).forEach(([k, x]) => { if (k === "currentValue" && !manual) return; next[k] = numK.includes(k) ? num(x) : String(x ?? "").trim(); });
+        // 내가 바꾼 칸만 보냄 (시트를 연 뒤 다른 마스터가 고친 칸을 되돌리지 않게 · 새로 만들 땐 전부)
+        Object.entries(v).forEach(([k, x]) => { if (k === "currentValue" && !manual) return; if (!isNew && String(x ?? "") === String(init[k] ?? "")) return; next[k] = numK.includes(k) ? num(x) : String(x ?? "").trim(); });
         if (coll === "subKPIs" && manual && next.currentValue != null && (isNew || num(init.currentValue) !== next.currentValue)) next.manualOverride = true;
         if (isNew) {
           if (coll === "goals") next.brand = s.brand;
@@ -235,7 +238,7 @@ export function KpiEditSheet({ D, cu, s, onBack, onClose, setToast }) {
   const fld = (label, k, ph, mode) => <label className="v2-kfld"><span>{label}</span><input value={v[k] ?? ""} inputMode={mode} placeholder={ph || ""} onChange={(e) => set(k, e.target.value)} style={{ ...inp, borderColor: bad.includes(k) ? C.red : C.line }} /></label>;
   const ov = !isNew && (D.kpi.ov || []).find((o) => o.id === it.id);
   return <Sheet title={isNew ? `${KCOLL_L[coll]} 추가` : `${KCOLL_L[coll]} 고치기`} onBack={onBack} onClose={onClose}
-    foot={<Big onClick={() => save()} disabled={busy || !!bad.length || noName}>{busy ? "저장하는 중" : noName ? "이름을 넣어 주세요" : bad.length ? "숫자만 넣어 주세요" : isNew ? "추가" : "저장"}</Big>}>
+    foot={<Big onClick={() => save()} disabled={busy || !!bad.length || noName || badYear}>{busy ? "저장하는 중" : noName ? "이름을 넣어 주세요" : badYear ? "연도는 2026처럼 넣어 주세요" : bad.length ? "숫자만 넣어 주세요" : isNew ? "추가" : "저장"}</Big>}>
     {it && it._hidden && <p className="v2-kednote" style={{ marginTop: 12 }}>지금 숨겨져 있어요</p>}
     {fld("이름", nm, coll === "subKPIs" ? "예: 자사몰 매출" : "")}
     {coll === "mainKPIs" && fld("짧은 이름 (선택)", "krKey", "예: 메인1")}
@@ -245,7 +248,7 @@ export function KpiEditSheet({ D, cu, s, onBack, onClose, setToast }) {
     {coll === "lagKPIs" && fld("기준값 (선택)", "base", "", "decimal")}
     {coll === "lagKPIs" && <div className="v2-kfld"><span>묶음</span><div className="v2-chips" style={{ flexWrap: "wrap" }}>{AK_FUNS.map((u) => <Chip key={u} on={v.fun === u} onClick={() => set("fun", u)}>{u}</Chip>)}</div></div>}
     {coll === "subKPIs" && (manual ? fld("지금 값 (직접 입력)", "currentValue", "", "decimal")
-      : <p className="v2-kednote">지금 값은 자동이에요({it.crmSynced ? "CRM" : it.launchCount ? "신제품 출시 수" : it.unit === "원" && it.mainKPIId !== "mk2" ? "매출 자동 연결" : "프로젝트 합계"}) · 이름·목표·단위만 바꿀 수 있어요</p>)}
+      : <p className="v2-kednote">지금 값은 자동이에요({it.crmSynced ? "CRM" : it.launchCount ? "신제품 출시 수" : it.unit === "%" ? "연결된 프로젝트 진척 평균" : it.unit === "원" && it.mainKPIId !== "mk2" ? "매출 자동 연결" : "프로젝트 합계"}) · 이름·목표·단위만 바꿀 수 있어요</p>)}
     {!isNew && <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
       {it._hidden ? <TBtn onClick={() => save(false)} disabled={busy}>다시 보이기</TBtn> : <TBtn tone="mute" onClick={() => save(true)} disabled={busy}>숨기기</TBtn>}
     </div>}

@@ -42,7 +42,8 @@ export function Head({ children, right, red }) {
 export function Card({ children, style }) { return <div style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.line}`, overflow: "hidden", ...style }}>{children}</div>; }
 // 한 줄 (누르면 보기) — 오른쪽에 실행 버튼 1개 · 기밀 대체본(secret.js '기밀 업무'·'기밀 프로젝트')이면 제목 앞에 자물쇠
 const LOCKED_RE = /(^|· )기밀 (업무|프로젝트)$/;
-export function Row({ title, sub, sub2, right, onClick, dim, tag, tagTone, last }) {
+// below = 부제 아래 덧붙임(고정업무 체크리스트 칩 등 · 안의 버튼은 줄 누르기로 번지지 않게 stopPropagation)
+export function Row({ title, sub, sub2, right, onClick, dim, tag, tagTone, last, below }) {
   return <div role={onClick ? "button" : undefined} tabIndex={onClick ? 0 : undefined} onClick={onClick} onKeyDown={(e) => { if (onClick && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onClick(); } }}
     style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", minHeight: 56, borderBottom: last ? "none" : `1px solid ${C.line}`, cursor: onClick ? "pointer" : "default", background: "#fff" }}>
     <div style={{ flex: 1, minWidth: 0 }}>
@@ -53,6 +54,7 @@ export function Row({ title, sub, sub2, right, onClick, dim, tag, tagTone, last 
       </div>
       {sub && <div style={{ marginTop: 3, fontSize: 12.5, color: C.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</div>}
       {sub2 && <div style={{ marginTop: 2, fontSize: 12, color: C.mute, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub2}</div>}
+      {below}
     </div>
     {right}
   </div>;

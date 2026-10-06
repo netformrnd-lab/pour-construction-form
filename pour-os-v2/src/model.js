@@ -113,6 +113,21 @@ export function fxCheckPatch(t, uid, on, key, at, name) {
   fxSubs(t, uid).forEach((x) => { p[`subDone.${uid}.${x.id}`] = on ? key : null; });
   return p;
 }
+// 체크리스트 칩 하나 누르기 (버전1 fixedSubPatch 와 같은 규칙) → { patch, flip }
+//   그 칩만 켬/끔 · 내 칩이 다 켜지면 내 몫 끝냄(doneDates·doneAtBy) · 끝낸 뒤 하나 풀면 내 끝냄만 지움(다른 칩·다른 사람 칸은 그대로)
+//   flip = true(방금 끝냄) · false(방금 끝냄 풀림) · null(끝냄 그대로)
+export function fxSubPatch(t, uid, subId, key, at, name) {
+  const ss = fxSubs(t, uid), cur = { ...(((t.subDone || {})[uid]) || {}) };
+  cur[subId] = fxHit(t, cur[subId], key) ? null : key;
+  const patch = { [`subDone.${uid}.${subId}`]: cur[subId] };
+  const all = ss.length > 0 && ss.every((x) => fxHit(t, cur[x.id], key));
+  if (all === fxMeDone(t, uid, key)) return { patch, flip: null };
+  if (all) Object.assign(patch, { [`doneDates.${uid}`]: key, [`doneAtBy.${uid}`]: at, doneAt: at, doneByName: name || "" });
+  else Object.assign(patch, { [`doneDates.${uid}`]: null, [`doneAtBy.${uid}`]: null });
+  return { patch, flip: all };
+}
+// 체크리스트 진행 (내 칩 중 이번 주기에 켠 수)
+export const fxSubCount = (t, uid, key) => { const ss = fxSubs(t, uid), m = ((t.subDone || {})[uid]) || {}; return [ss.filter((x) => fxHit(t, m[x.id], key)).length, ss.length]; };
 
 // ── 업무 흐름 규칙 (맡김 → 받음 → 진행 → 끝냄 → 확인) ──
 // 다른 사람이 맡긴 일이면 맡긴 사람 id

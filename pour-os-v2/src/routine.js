@@ -48,8 +48,14 @@ export function periodWeeks(it, key) {
 export function myRoutine(items, users, uid, docs, key) {
   const wk = akWeekKey(new Date(key + "T00:00:00"));
   return (items || []).filter((it) => it && it.active !== false && !it.deleted && akWho(users, it).includes(uid) && akCountable(it, { end: addD(wk, 6) }))
-    .sort(akOrder).map((it) => { const weeks = periodWeeks(it, key), tot = akTotal(docs, it, weeks), me = weeks.reduce((s, w) => s + akMine(docs, it, w.key, uid), 0);
-      return { it, wk, qid: akQidOfWeek(wk), tot, me, step: akStep(it), per: it.cyc === "W" ? "이번 주" : it.cyc === "M" ? "이번 달" : "이번 분기", goal: akGoalText(it), links: akLaunchItems(it) }; });
+    .sort((a, b) => (CYC_RANK[a.cyc] ?? 1) - (CYC_RANK[b.cyc] ?? 1) || akOrder(a, b)).map((it) => { const weeks = periodWeeks(it, key), tot = akTotal(docs, it, weeks), me = weeks.reduce((s, w) => s + akMine(docs, it, w.key, uid), 0);
+      return { it, wk, qid: akQidOfWeek(wk), tot, me, owners: akWho(users, it).length, step: akStep(it), per: periodLabel(it, key), goal: akGoalText(it), links: akLaunchItems(it) }; });
+}
+const CYC_RANK = { W: 0, M: 1, Q: 2 };   // 주 → 월 → 분기
+// 기간 이름 (숫자 앞에 붙임): 주간 = '이번 주' · 월간 = 실제 달('10월' · periodWeeks 가 고른 달 = 이번 주 월요일이 속한 달) · 분기 = '4분기'
+export function periodLabel(it, key) {
+  const { m0 } = akMonthOfWeek(akWeekKey(new Date(key + "T00:00:00")));
+  return it.cyc === "W" ? "이번 주" : it.cyc === "Q" ? `${Math.floor(m0 / 3) + 1}분기` : `${m0 + 1}월`;
 }
 const addD = (ymd, n) => { const d = new Date(ymd + "T00:00:00"); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const akMine = (docs, it, wk, uid) => { const v = ((((docs || {})[akQidOfWeek(wk)] || {}).w || {})[wk] || {})[it.id]; return Math.max(0, +((v && v.by) || {})[uid] || 0); };
@@ -58,7 +64,10 @@ export { akVal };
 // 브랜드(사용자 결정 2026-10-05 '브랜드가 다르면 별도로'): 둘 다 브랜드가 있으면 같은 브랜드끼리만 짝 · 한쪽이라도 브랜드가 없으면 짝 가능
 const BR = { "POUR스토어": "pourstore", "포어스토어": "pourstore", "그로홈": "grohome", "GROHOME": "grohome", "바라스데이": "barasday" };
 export const brId = (b) => { const s = String(b || "").trim(); return BR[s] || s.toLowerCase(); };
-export const brandName = (b) => ({ pourstore: "POUR스토어", grohome: "그로홈", barasday: "바라스데이" })[brId(b)] || String(b || "");
+// 브랜드 이름: D.brands(id·이름) 먼저 → 아는 이름 → 그대로 (bmuqo9k5u 같은 id 가 날것으로 안 보이게)
+export const brandName = (b, brands) => { const s = String(b || "").trim(); if (!s) return "";
+  const hit = (brands || []).find((x) => x && (x.id === s || x.id === brId(s) || String(x.name || "").trim() === s));
+  return (hit && hit.name) || ({ pourstore: "POUR스토어", grohome: "그로홈", barasday: "바라스데이" })[brId(s)] || s; };
 export const sameBrand = (a, b) => !brId(a) || !brId(b) || brId(a) === brId(b);
 // 반복 → 신제품 짝: 내가 담당인 열린 신제품 횟수 항목 (목표 아직 · 프로젝트 열림 · 기밀 대체본 아님)
 //   진짜 담당(임시 = 책임자로 채운 것 말고)이 있으면 그것만 · 지금 즈음인 제품만(출시 45일 전 ~ 출시 21일 뒤 · 또는 기한이 2주 전 ~ 3주 뒤) · 많아도 5개

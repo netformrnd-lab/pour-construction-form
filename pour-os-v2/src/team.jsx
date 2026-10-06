@@ -33,7 +33,7 @@ export function TeamTab({ D, cu, A, open }) {
     {seg === "people" && <>
       <Card style={{ marginTop: 12 }}><Row title={`나 · ${cu.name}`} sub={`진행 ${me.inprog} · 열린 업무 ${me.open}${me.late ? ` · 지남 ${me.late}` : ""} · 고정 ${me.fxDone}/${me.fxTotal}${meOt.pct != null ? ` · 기한 지킴 ${meOt.pct}%` : ""}`} onClick={() => open({ type: "mine" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={false} />
         <Row tag={teamRisk ? "위험" : null} tagTone="red" title={`팀 위험 업무 ${teamRisk}`} sub="기한이 지났거나 막힌 일 · 사람별로 모아 보기" onClick={() => open({ type: "risk" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={!issues.length} />
-        {issues.length > 0 && <Row tag="마스터" title={`담당 정리 필요 ${issues.length}`} sub="담당이 없거나 미사용인 사람이 맡은 일" onClick={() => open({ type: "issues" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last />}</Card>
+        {issues.length > 0 && <Row tag="관리자" title={`담당 정리 필요 ${issues.length}`} sub="담당이 없거나 미사용인 사람이 맡은 일" onClick={() => open({ type: "issues" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last />}</Card>
       <Head>팀원 {users.length}</Head>
       <Card>{users.map((u, i) => { const s = personStat(D, u.id, key), ot = onTimeOf(D, u.id, now);
         return <Row key={u.id} title={u.name} tag={s.late ? `지남 ${s.late}` : null} tagTone="red" sub={`진행 ${s.inprog} · 열린 업무 ${s.open} · 고정 ${s.fxDone}/${s.fxTotal}${ot.pct != null ? ` · 기한 지킴 ${ot.pct}%` : ""}`} sub2={s.last ? "마지막 활동 " + ago(s.last, now) : null} onClick={() => open({ type: "person", id: u.id })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={i === users.length - 1} />; })}</Card>

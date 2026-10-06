@@ -163,7 +163,7 @@ export function LagSheet({ D, cu, s, onBack, onClose, setToast }) {
       <TBtn onClick={() => setYm(ymAdd(ym, 1))} disabled={ym >= ymNow()} aria-label="다음 달">›</TBtn>
       <span className="m">{miss ? `모두 ${miss}개 남음` : "다 넣었어요 ✓"}</span>
     </div>
-    {!edit && <p style={{ margin: "8px 2px 0", fontSize: 13, color: C.sub }}>보기만 할 수 있어요 · 넣기는 마스터·결과 KPI 권한</p>}
+    {!edit && <p style={{ margin: "8px 2px 0", fontSize: 13, color: C.sub }}>보기만 할 수 있어요 · 넣기는 관리자·결과 KPI 권한</p>}
     {!lags.length && <Card style={{ marginTop: 12 }}><Empty>{D.kpi && D.kpi.lagReady ? "결과 KPI가 아직 없어요" : "불러오는 중이에요"}</Empty></Card>}
     {groups.map(({ b, l }) => <div key={b.id}><Head>{b.name} {l.length}</Head><Card>{l.map((it, i) => { const prev = lagLatest(it, v2, ymAdd(ym, -1)), g = lagGoal(it), a = lagAt(it, v2, ym), x = shown(it);
       const wrong = nv(x) !== "" && !isFinite(+nv(x));
@@ -207,7 +207,7 @@ export function KpiEditSheet({ D, cu, s, onBack, onClose, setToast }) {
   }, [it && it.id, K ? 1 : 0]);
   const [f, setF] = useState(null), [busy, setBusy] = useState(false);
   const v = f || init, set = (k, x) => setF({ ...v, [k]: x });
-  if (!isMaster(cu)) return <Sheet title="KPI 고치기" onBack={onBack} onClose={onClose}><Card style={{ marginTop: 12 }}><Empty>KPI는 마스터만 고칠 수 있어요</Empty></Card></Sheet>;
+  if (!isMaster(cu)) return <Sheet title="KPI 고치기" onBack={onBack} onClose={onClose}><Card style={{ marginTop: 12 }}><Empty>KPI는 관리자만 고칠 수 있어요</Empty></Card></Sheet>;
   if (!K) return <Sheet title="KPI 고치기" onBack={onBack} onClose={onClose}><Card style={{ marginTop: 12 }}><Empty>불러오는 중이에요</Empty></Card></Sheet>;
   if (!isNew && !it) return <Sheet title="KPI 고치기" onBack={onBack} onClose={onClose}><Card style={{ marginTop: 12 }}><Empty>그 KPI를 찾지 못했어요</Empty></Card></Sheet>;
   const numK = coll === "lagKPIs" ? ["goal", "base"] : coll === "subKPIs" ? ["targetValue", "currentValue"] : ["targetValue"];

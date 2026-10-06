@@ -125,7 +125,7 @@ export function RepSheet({ D, idx, open, onBack, onClose, s }) {
     <Head>행동지표 {ak.length}</Head>
     <Card>{ak.length === 0 ? <Empty>맡은 행동지표가 없어요</Empty> : ak.map((x, i) => <div key={x.id} className="a-reprow" style={{ borderBottom: i < ak.length - 1 ? `1px solid ${C.line}` : "none" }}>
       <span className="t">{x.title}<small>{x.cyc === "W" ? "주간" : x.cyc === "Q" ? "분기 ÷13" : "월간 ÷4"} · 이 주 목표 {x.due}{x.unit} · 실적 {x.got}</small></span>{st(x)}</div>)}</Card>
-    <p className="a-hint">고정업무 체크는 v2 에서 한 것만 · 행동지표 실적은 버전1 반복 실행 기록(읽기만) · 고정업무 줄을 누르면 그 업무</p>
+    <p className="a-hint">고정업무 체크는 v2 에서 한 것만 · 행동지표 실적은 버전1 기록 + 업무OS [+1] 합 · 고정업무 줄을 누르면 그 업무</p>
   </Sheet>;
 }
 

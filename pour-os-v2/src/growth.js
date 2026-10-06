@@ -64,6 +64,9 @@ export function growthTree(X, { uids, period, rootName }) {
   if (kids.has("~none")) top.push({ id: "k:~none", kind: "kpi", title: "KPI 연결 없음", sub: "프로젝트에 KPI를 이으면 위로 올라가요", st: "wait", kids: kN("~none") });
   const loose = byProj.get("") || [];
   if (loose.length) top.push({ id: "k:~loose", kind: "kpi", title: "프로젝트 없는 일", sub: `끝낸 일 ${loose.length}`, st: "wait", kids: loose.sort((a, b) => doneDay(a).localeCompare(doneDay(b))).map(tNode) });
+  // 이 기간에 끝낸 일이 많은 KPI 먼저 (같으면 원래 순서 · 8개 넘으면 '+n개 더' 안으로 들어가므로 일한 가지가 위에)
+  const dn = (k) => k.kids.reduce((a, x) => a + (x.kind === "task" ? 1 : x.n || 0), 0);
+  top.forEach((k, i) => { k.n = dn(k); k.i = i; }); const ps = (k) => String(k.id).startsWith("k:~"); top.sort((a, b) => (b.n > 0) - (a.n > 0) || ps(a) - ps(b) || b.n - a.n || a.i - b.i);   // 끝낸 일 있는 KPI → 연결 없음·프로젝트 없는 일 → 나머지
   const nK = top.filter((x) => !String(x.id).startsWith("k:~")).length;
   return { id: "root", kind: "root", title: period.label, sub: `${rootName} · KPI ${nK}`, kids: top,
     count: { kpi: nK, proj: projs.length, done: doneIn.length, ak: top.reduce((a, k) => a + k.kids.filter((x) => x.kind === "ak").length, 0) } };

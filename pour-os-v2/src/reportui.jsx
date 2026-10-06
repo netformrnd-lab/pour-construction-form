@@ -3,7 +3,7 @@
 //  관리자: 한 줄 정리 · [이 달 보고서 확정](지금 값을 얼려 reports/{id}.data) · [공유 링크 만들기](os2-report.html#id~token · 로그인 없이 보기만)
 //          [더 하기 ▾] 공유 끄기 · 공유 내용 지금 값으로 · 공유에서 금액 숨기기 · 다시 확정 · 관리자 메모(댓글·회의록·대표님 피드백 — 관리자만 · 공유 링크엔 안 실림)
 //  쓰기: pour-os/v2/reports/{id} · reporthist/{id~시각}(다시 확정 전 확정본) · reportnotes/{id} — 지우지 않음
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as fb from "./fb.js";
 import { ymd, md, isMaster, newId } from "./model.js";
 import { C, Big, TBtn, Chip, Head, Card, Empty, Sheet, Ask, inp } from "./ui.jsx";
@@ -11,6 +11,8 @@ import { LS, nowIso } from "./core.jsx";
 import { useLocal } from "./ui.jsx";
 import { useKpiDefs } from "./kpiui.jsx";
 import { visibleDefs } from "./kpi2.js";
+import { sumAk } from "./routine.js";
+import { akQidOfMonth } from "../../pour-os/src/actionKpi.js";
 import { reportBrand, reportProject, reportProjects, reportId, newToken, shareUrl, ymAdd, mLabel, monthRange, confirmWrite, shareOnWrite, shareOffWrite, refreshWrite, moneyWrite, summaryWrite, NOTE_KINDS, noteDoc } from "./report.js";
 import { ReportView } from "./reportview.jsx";
 
@@ -40,6 +42,17 @@ function useProjTasks(D, pid) {
   return useMemo(() => { if (!pid) return null; const x = got[pid]; if (!x) return null; if (x === "err") return "err";
     const m = new Map(x.map((t) => [t.id, t])); (D.tasks || []).filter((t) => t.projectId === pid).forEach((t) => m.set(t.id, t)); return [...m.values()]; }, [pid, got[pid], D.tasks]);
 }
+// 그 달 반복 실적 — 이번 분기는 앱이 이미 읽음 · 다른 분기는 버전1 kpi-act-분기(읽기만) + v2 kpiact 를 그때 한 번 읽어 더함
+export function useAkMonth(D, ym) {
+  const q = akQidOfMonth(+ym.slice(0, 4), +ym.slice(5, 7) - 1), cur = D.ak && D.ak.qid === q;
+  const [v1, setV1] = useState({});
+  useEffect(() => { if (cur || v1[q] !== undefined) return undefined;
+    const un = fb.listenV1Doc("kpi-act-" + q, (d) => setV1((s) => ({ ...s, [q]: d || null })), (e) => { console.warn("[보고서] 버전1 반복 실적 못 읽음:", e); setV1((s) => ({ ...s, [q]: null })); });
+    return () => un && un(); }, [q, cur]);
+  return useMemo(() => { if (cur || v1[q] === undefined) return D.ak;
+    const v2 = ((D.ak && D.ak.v2) || []).find((x) => (x.id || x._doc) === q);
+    return { ...D.ak, docs: { ...((D.ak && D.ak.docs) || {}), [q]: sumAk(v1[q], v2) } }; }, [D.ak, q, cur, v1[q]]);
+}
 // 그 달 보고서 문서들 (확정본 · 공유 · 한 줄 정리)
 function useReportDocs(ym) {
   const [docs, setDocs] = useState(null);
@@ -60,21 +73,21 @@ export function ReportBody({ D, cu, open, setToast, inline }) {
   const K0 = useKpiDefs(D), K = useMemo(() => (K0 ? visibleDefs(K0) : null), [K0]);
   const r = monthRange(ym), M = useDoneSince(D, r.from);
   const PT = useProjTasks(D, sc.kind === "project" ? sc.key : "");
-  const docs = useReportDocs(ym);
+  const docs = useReportDocs(ym), AK = useAkMonth(D, ym), wrap = useRef(null);
   const id = reportId(sc.key, ym), cur = docs ? docs[id] || null : undefined;
-  const X = { users: D.users, brands: D.brands, projects: D.projects, tasks: M.tasks, K, sales: D.kpi.sales, lagDefs: D.kpi.lagDefs, lagV2: D.kpi.lagV2, ak: D.ak, key };
+  const X = { users: D.users, brands: D.brands, projects: D.projects, tasks: M.tasks, K, sales: D.kpi.sales, lagDefs: D.kpi.lagDefs, lagV2: D.kpi.lagV2, ak: AK, key };
   const proj = sc.kind === "project" ? D.projects.find((x) => x.id === sc.key) : null;
   const liveData = useMemo(() => { if (sc.kind === "brand") return K && M.ready ? reportBrand(X, sc.key, ym) : null;
-    return Array.isArray(PT) ? reportProject(X, proj, PT, ym) : null; }, [sc.kind, sc.key, ym, K, M.tasks, M.ready, PT, D.projects, D.kpi, D.ak, D.users]);
+    return Array.isArray(PT) ? reportProject(X, proj, PT, ym) : null; }, [sc.kind, sc.key, ym, K, M.tasks, M.ready, PT, D.projects, D.kpi, AK, D.users]);
   const final = cur && cur.status === "final" && cur.data;
   const [showLive, setShowLive] = useState(false);
   useEffect(() => setShowLive(false), [id]);
   const shown = final && !showLive ? cur.data : liveData && { ...liveData, summary: (cur && cur.summary) || "" };
   const admin = isMaster(cu);
-  const goProject = (pid) => { setSc({ kind: "project", key: pid }); window.scrollTo && window.scrollTo(0, 0); };
+  const goProject = (pid) => { setSc({ kind: "project", key: pid }); setTimeout(() => wrap.current && wrap.current.scrollIntoView({ block: "start" }), 0); };
   const loading = sc.kind === "brand" ? !K || !M.ready : PT === null;
   const failed = M.err || PT === "err";
-  return <div className="rp-wrap">
+  return <div className="rp-wrap" ref={wrap}>
     {!inline && <p className="rp-lead">업무OS 기록과 매출(POUR스토어 CRM · 그로홈 대시보드)로 자동으로 만들어져요</p>}
     <div className="rp-month" role="group" aria-label="달 고르기">
       <TBtn onClick={() => setYm(ymAdd(ym, -1))} aria-label="지난달">‹ {mLabel(ymAdd(ym, -1))}</TBtn>
@@ -161,7 +174,7 @@ export function ReportNotes({ id, cu, setToast, title }) {
   const [notes, setNotes] = useState(null), [kind, setKind] = useState(""), [txt, setTxt] = useState(""), [ttl, setTtl] = useState(""), [busy, setBusy] = useState(false);
   useEffect(() => { setNotes(null); setKind(""); return fb.listen("reportnotes", ["reportId", "==", id], (x) => setNotes(x), (e) => { console.warn("[보고서 메모] 못 읽음:", e); setNotes([]); }); }, [id]);
   if (!isMaster(cu)) return null;
-  const list = [...(notes || [])].sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+  const list = [...(notes || [])].sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")) || String(b.id || "").localeCompare(String(a.id || "")));
   const KL = Object.fromEntries(NOTE_KINDS);
   const save = async () => { if (!txt.trim() || busy) return; setBusy(true);
     try { const at = nowIso(), nid = newId("rn"); await fb.txDoc("reportnotes", nid, (c) => (c ? {} : { write: noteDoc(id, kind, txt, ttl, cu, at) }));

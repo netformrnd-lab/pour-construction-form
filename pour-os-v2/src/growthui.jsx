@@ -50,7 +50,7 @@ export function GrowthBody({ D, cu, open }) {
 // 폰: 계층
 function GTree({ tree, tap }) {
   const [more, setMore] = useState({});
-  const Node = ({ n, d }) => { const ks = n.kids || [], lim = d >= 2 ? 6 : 99, all = more[n.id], shown = all ? ks : ks.slice(0, lim);
+  const Node = ({ n, d }) => { const ks = n.kids || [], lim = n.kind === "kpi" ? 10 : 6, all = more[n.id], shown = all ? ks : ks.slice(0, lim);
     const go = n.kind === "task" || n.kind === "proj" || n.kind === "ak";
     return <div className={"gb-b d" + d}>
       <button type="button" className={"gb-n " + n.kind + " " + (n.st || "")} onClick={go ? () => tap(n) : undefined} disabled={!go} aria-label={`${n.title}${n.sub ? " · " + n.sub : ""}`}>

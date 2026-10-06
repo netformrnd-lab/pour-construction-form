@@ -7,7 +7,7 @@
 import { ymd, md, isDone, dueOf, ownersOf, nameOf, projOpen, projPct } from "./model.js";
 import { secretOn } from "./secret.js";
 import { projBrand, goalBrand, akBrandOf, rollBrand } from "../../pour-os/src/brand.js";
-import { akWeeksIn, akVal, akOrder } from "../../pour-os/src/actionKpi.js";
+import { akWeeksIn, akVal, akOrder, akQidOfMonth } from "../../pour-os/src/actionKpi.js";
 import { lagAt, lagGoal, lagPct, lagBrand } from "./kpi2.js";
 
 export const pad = (n) => String(n).padStart(2, "0");
@@ -35,6 +35,14 @@ export function hiddenSet(projects, tasks) {
   const sp = new Set((projects || []).filter(secretOn).map((p) => p.id)), byId = new Map((tasks || []).map((t) => [t.id, t]));
   const hid = (t, d = 0) => !t || secretOn(t) || (t.projectId && sp.has(t.projectId)) || (d < 20 && t.parentId && byId.has(t.parentId) && hid(byId.get(t.parentId), d + 1));
   return { proj: (p) => !p || secretOn(p), task: (t) => hid(t) };
+}
+// 프로젝트 브랜드 = 브랜드 칸 → 메인KPI 브랜드(버전1 규칙) · 둘 다 없으면 이름에 브랜드 이름이 있을 때 그 브랜드(예: '그로홈 기부')
+export function projBrandR(p, BD) {
+  if (p && !String(p.brand || "").trim() && !((BD.mainKPIs || []).some((m) => m.id === p.mainKPIId))) {
+    const t = String(p.title || ""), hit = (BD.brands || []).filter((b) => b && b.name && t.includes(b.name));
+    if (hit.length === 1) return hit[0].id;
+  }
+  return projBrand(p, BD);
 }
 const live = (t) => t && !t.deleted && !t.isFixed && t.status !== "dropped";
 const whoN = (users, t) => ownersOf(t).map((u) => nameOf(users, u)).filter(Boolean).join("·");
@@ -66,6 +74,7 @@ export function salesGoal(K, brand, ym, brands) {
 // 그 달 반복 일(횟수 목표) — 주간 = 그 달 주 수 × 목표 · 월간 = 목표 · 분기 = 목표 ÷ 3 · %·실패 기준 항목은 뺌
 export function akMonth(items, docs, ym, brand, brands) {
   const weeks = akWeeksIn(+ym.slice(0, 4), +ym.slice(5, 7) - 1);
+  if (docs && !docs[akQidOfMonth(+ym.slice(0, 4), +ym.slice(5, 7) - 1)]) return { pct: null, n: 0, g: 0, items: [], none: true };   // 그 분기 기록을 못 읽음 → 0% 대신 '—
   const rows = (items || []).filter((it) => it && it.active !== false && !it.deleted && !it.paused && !it._hidden && it.unit !== "%" && !it.perFail && akBrandOf(it, brands) === brand).sort(akOrder)
     .map((it) => { const n = weeks.reduce((a, w) => a + akVal(docs || {}, it, w.key), 0), goal = +it.goal || 1;
       const g = it.cyc === "W" ? goal * weeks.length : it.cyc === "Q" ? Math.ceil(goal / 3) : goal;
@@ -86,7 +95,7 @@ const projLine = (p, X, r) => {
 export function reportBrand(X, brand, ym) {
   const r = monthRange(ym), key = X.key || ymd(new Date()), cut = key < r.to ? key : r.to, brands = X.brands || [];
   const H = hiddenSet(X.projects, X.tasks), BD = { goals: (X.K && X.K.goals) || [], mainKPIs: (X.K && X.K.mainKPIs) || [], brands };
-  const P = (X.projects || []).filter((p) => p && !p.deleted && !H.proj(p) && projBrand(p, BD) === brand);
+  const P = (X.projects || []).filter((p) => p && !p.deleted && !H.proj(p) && projBrandR(p, BD) === brand);
   const pid = new Set(P.map((p) => p.id));
   const T = (X.tasks || []).filter((t) => live(t) && pid.has(t.projectId) && !H.task(t));
   const doneP = P.filter((p) => inM(projDoneDay(p), r)).map((p) => projLine(p, X, r)).sort((a, b) => a.end.localeCompare(b.end));

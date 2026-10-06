@@ -91,6 +91,8 @@ const fxDone = (A, t, setAsk) => { const on = A.fxToggle(t); if (on && qtyCfg(t)
 // 묻는 중인 끝낸 줄은 남은 줄 목록 그 자리(시간 순)에 그대로
 const todayRows = (G, ask) => { const id = String(ask || "").replace(/^(fix|saved):/, ""), hit = id && !G.left.some((x) => x.t.id === id) ? G.done.find((x) => x.t.id === id) : null;
   if (!hit) return G.left; const a = [...G.left]; const i = a.findIndex((x) => !x.miss && (x.min ?? 9999) > (hit.min ?? 9999)); a.splice(i < 0 ? a.length : i, 0, { ...hit, asking: true }); return a; };
+const FX_OPEN_MAX = 8;   // 남은 고정업무·오늘 체크 줄 8개 넘으면 8 + 'n개 더 ▾' (묻는 줄은 그 뒤여도 보임)
+const openShown = (rows, more) => (more ? rows : rows.slice(0, Math.max(FX_OPEN_MAX, rows.findIndex((x) => x.asking) + 1)));
 const FX_CHIP_MAX = 7;   // 7개 이상이면 6개 + '외 n개'
 export function FxChips({ t, uid, keyd, A, open, onDone }) {
   const subs = fxSubs(t, uid); if (!subs.length) return null;
@@ -103,32 +105,35 @@ export function FxChips({ t, uid, keyd, A, open, onDone }) {
   </div>;
 }
 // 반복 실행 카드 '오늘 체크' — 브랜드 정한 고정업무(scope brand) · 시간 순서 · 줄 모양은 고정업무 줄과 같음(칩 · a/b · 시간 · n/m명 체크)
-//   꼬리표: 밀림·시간 지남(빨강) 먼저 → 브랜드가 여럿일 때만 브랜드 짧은 이름 · 5개 넘으면 'n개 더 ▾' · 끝낸 것 '끝낸 체크 n ▾'
+//   꼬리표: 밀림·시간 지남(빨강) 먼저 → 브랜드가 여럿일 때만 브랜드 짧은 이름 · 8개 넘으면 'n개 더 ▾' · 끝낸 것 '끝낸 체크 n ▾'(접힘)
+//   남은 줄은 처음부터 펼침(2026-10-06 "고정업무 펼친상태로 보여주고, 완료시 접어") · [접기 ▴] 누르면 이 기기에 기억(pour-os2-rtfold)
 const brShort = (b, brands) => (b === COMMON_BRAND.id ? COMMON_BRAND.short : brandLabel(b, brands).replace(/^POUR/, ""));
 function RoutineChecks({ D, cu, A, open, R, keyd }) {
-  const [more, setMore] = useState(false), [doneOn, setDoneOn] = useState(false), [ask, setAsk] = useState(null);
+  const [more, setMore] = useState(false), [doneOn, setDoneOn] = useState(false), [ask, setAsk] = useState(null), [fold, setFold] = useLocal(LSK("rtfold"), false);
   const multi = new Set([...R.left, ...R.done].map((x) => brandKey(x.t.brand, D.brands))).size > 1;
-  const rows = todayRows(R, ask), shown = more ? rows : rows.slice(0, Math.max(5, rows.findIndex((x) => x.asking) + 1));
+  const rows = todayRows(R, ask), shown = fold ? [] : openShown(rows, more);
   return <>
-    <div className="v2-rtsub"><b>오늘 체크 · {R.left.length ? `${R.left.length}개 남음` : "다 했어요 ✓"}</b><span>시간 순서</span></div>
+    <div className="v2-rtsub"><b>오늘 체크 · {R.left.length ? `${R.left.length}개 남음` : "다 했어요 ✓"}</b>{!fold && rows.length > 1 && <span>시간 순서</span>}
+      {rows.length > 0 && <button type="button" aria-expanded={!fold} onClick={() => setFold(!fold)}>{fold ? "펼치기 ▾" : "접기 ▴"}</button>}</div>
     {shown.map((x) => { const t = x.t, dn = !!x.asking;
       return <Row key={t.id} dim={dn} tag={dn ? null : x.miss ? `밀림 ${md(x.miss)}` : x.late ? "시간 지남" : multi ? brShort(brandKey(t.brand, D.brands), D.brands) : null} tagTone={x.late ? "red" : null} title={<FxTitle t={t} uid={cu.id} keyd={keyd} />} sub={fxLine(D, t, cu.id, keyd)}
         below={<><FxChips t={t} uid={cu.id} keyd={keyd} A={A} open={open} onDone={() => qtyCfg(t) && setAsk(t.id)} /><FxQty t={t} D={D} cu={cu} A={A} ask={ask} setAsk={setAsk} keyd={keyd} /></>} onClick={() => open({ type: "fixed", id: t.id })}
         right={dn ? <Act on onClick={() => { setAsk(null); A.fxToggle(t); }}>✓ 취소</Act> : <Act onClick={() => fxDone(A, t, setAsk)}>완료</Act>} last={false} />; })}
-    {rows.length > shown.length && <More onClick={() => setMore(!more)}>{`${rows.length - shown.length}개 더 ▾`}</More>}
-    {more && rows.length > 5 && <More onClick={() => setMore(false)}>접기 ▴</More>}
+    {!fold && rows.length > shown.length && <More onClick={() => setMore(true)}>{`${rows.length - shown.length}개 더 ▾`}</More>}
+    {!fold && more && rows.length > FX_OPEN_MAX && <More onClick={() => setMore(false)}>{`${FX_OPEN_MAX}개만 보기 ▴`}</More>}
     {R.done.length > 0 && <More onClick={() => setDoneOn(!doneOn)}>{doneOn ? "끝낸 체크 접기 ▴" : `끝낸 체크 ${R.done.length} ▾`}</More>}
     {doneOn && R.done.filter((x) => !rows.some((r) => r.t.id === x.t.id)).map((x) => <Row key={x.t.id} dim title={<FxTitle t={x.t} uid={cu.id} keyd={keyd} />} sub={`✓ ${hm(x.t.doneAtBy && x.t.doneAtBy[cu.id])}${fxCount(D.users, x.t, keyd)[1] > 1 ? ` · ${fxCount(D.users, x.t, keyd).join("/")}명 체크` : ""}`}
       below={<><FxChips t={x.t} uid={cu.id} keyd={keyd} A={A} open={open} />{ask !== x.t.id && <FxQty t={x.t} D={D} cu={cu} A={A} ask={ask} setAsk={setAsk} keyd={keyd} />}</>} onClick={() => open({ type: "fixed", id: x.t.id })} right={<Act on onClick={() => A.fxToggle(x.t)}>✓ 취소</Act>} />)}
   </>;
 }
-// 순서: 지금 할 일 1장 → 확인할 것 → 오늘(고정업무 접기 · 일회성 3줄) → 곧 내 차례 → 정리 한 줄
+// 순서: 지금 할 일 1장 → 확인할 것 → 오늘(남은 고정업무 펼침 · 끝낸 것 접힘 · 일회성 3줄) → 곧 내 차례 → 정리 한 줄
 export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
   const now = new Date(), key = TV.key;
   const up7 = useMemo(() => upcomingTurns(D, T, key, cu.id).filter((u) => u.start && u.start <= addDays(key, 6)), [D, T, key]);   // 곧 내 차례 = 7일 안에 오는 내 차례 (달력과 같은 기준)
   const [fxAsk, setFxAsk] = useState(null);   // 건수 칸 묻는 고정업무 줄
   const myToday = useMemo(() => myNotesOf(D, cu.id, key, "today").length, [D.notes, cu.id, key]);   // '오늘 내가 쓴 댓글 n ›' (있을 때만)
-  const [fxOpen, setFxOpen] = useState(TV.oneOffOpen === 0), [showFxDone, setShowFxDone] = useState(false), [allInbox, setAllInbox] = useState(false), [soonOpen, setSoonOpen] = useState(false);
+  const [fxFold, setFxFold] = useLocal(LSK("fxfold"), false), fxOpen = !fxFold, [fxMore, setFxMore] = useState(false);   // 남은 고정업무는 처음부터 펼침 · 접으면 이 기기에 기억
+  const [showFxDone, setShowFxDone] = useState(false), [allInbox, setAllInbox] = useState(false), [soonOpen, setSoonOpen] = useState(false);
   const pName = (pid) => (D.projects.find((p) => p.id === pid) || {}).title || "";
   const [cardId, setCardId] = useState(null);
   const inbox = allInbox ? TV.inbox : TV.inbox.slice(0, 3);
@@ -169,15 +174,17 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
         <Head right={<TBtn onClick={() => open({ type: "mine" })}>내 할 일 모두 ›</TBtn>}>오늘</Head>
         <Card>
           {TV.fixed.total > 0 && (fxOpen
-            ? <>{fxRows.map((x) => { const t = x.t, dn = !!x.asking;
+            ? <>{openShown(fxRows, fxMore).map((x) => { const t = x.t, dn = !!x.asking;
                 return <Row key={t.id} dim={dn} tag={dn ? null : x.miss ? `밀림 ${md(x.miss)}` : x.late ? "시간 지남" : "고정"} tagTone={x.late ? "red" : null} title={<FxTitle t={t} uid={cu.id} keyd={key} />} sub={fxLine(D, t, cu.id, key)}
                   below={<><FxChips t={t} uid={cu.id} keyd={key} A={A} open={open} onDone={() => qtyCfg(t) && setFxAsk(t.id)} /><FxQty t={t} D={D} cu={cu} A={A} ask={fxAsk} setAsk={setFxAsk} keyd={key} /></>} onClick={() => open({ type: "fixed", id: t.id })}
                   right={dn ? <Act on onClick={() => { setFxAsk(null); A.fxToggle(t); }}>✓ 취소</Act> : <Act onClick={() => fxDone(A, t, setFxAsk)}>완료</Act>} last={false} />; })}
+                {fxRows.length > openShown(fxRows, fxMore).length && <More onClick={() => setFxMore(true)}>{`고정업무 ${fxRows.length - openShown(fxRows, fxMore).length}개 더 ▾`}</More>}
+                {fxMore && fxRows.length > FX_OPEN_MAX && <More onClick={() => setFxMore(false)}>{`${FX_OPEN_MAX}개만 보기 ▴`}</More>}
                 {TV.fixed.done.length > 0 && <More onClick={() => setShowFxDone(!showFxDone)}>{showFxDone ? "끝낸 고정업무 접기 ▴" : `끝낸 고정업무 ${TV.fixed.done.length} ▾`}</More>}
                 {showFxDone && TV.fixed.done.filter((x) => !fxRows.some((r) => r.t.id === x.t.id)).map((x) => <Row key={x.t.id} dim title={<FxTitle t={x.t} uid={cu.id} keyd={key} />} sub={`✓ ${hm(x.t.doneAtBy && x.t.doneAtBy[cu.id])}${fxCount(D.users, x.t, key)[1] > 1 ? ` · ${fxCount(D.users, x.t, key).join("/")}명 체크` : ""}`}
                   below={<><FxChips t={x.t} uid={cu.id} keyd={key} A={A} open={open} /><FxQty t={x.t} D={D} cu={cu} A={A} ask={fxAsk} setAsk={setFxAsk} keyd={key} /></>} onClick={() => open({ type: "fixed", id: x.t.id })} right={<Act on onClick={() => A.fxToggle(x.t)}>✓ 취소</Act>} />)}
-                {TV.oneOffOpen > 0 && <More onClick={() => setFxOpen(false)}>고정업무 접기 ▴</More>}</>
-            : <More onClick={() => setFxOpen(true)}>{fxLeft.length ? <>고정업무 <b>{fxLeft.length}개 남음</b>{nextFx ? ` · 다음 ${fxTime(nextFx.t, cu.id) || ""} ${fxLabel(nextFx.t, cu.id)}` : ""} ▾</> : <>고정업무 {TV.fixed.total}개 다 했어요 ✓ ▾</>}</More>)}
+                {fxRows.length > 0 && <More onClick={() => setFxFold(true)}>고정업무 접기 ▴</More>}</>
+            : <More onClick={() => setFxFold(false)}>{fxLeft.length ? <>고정업무 <b>{fxLeft.length}개 남음</b>{nextFx ? ` · 다음 ${fxTime(nextFx.t, cu.id) || ""} ${fxLabel(nextFx.t, cu.id)}` : ""} ▾</> : <>고정업무 {TV.fixed.total}개 다 했어요 ✓ ▾</>}</More>)}
           {list.slice(0, 3).map((x, i) => { const b = turnBits(x.t, T, D, key);
             return <Row key={x.t.id} tag={x.fresh ? "이제 내 차례" : b.tag} tagTone={x.fresh ? "turn" : b.tone} title={x.t.title} sub={[pName(x.t.projectId), dueOf(x.t) ? ddayLabel(x.n) : "", b.sub].filter(Boolean).join(" · ") || null}
               onClick={() => open({ type: "task", id: x.t.id })} right={<Act onClick={() => A.finish(x.t)}>끝냄</Act>} last={i === Math.min(3, list.length) - 1 && list.length <= 3} />; })}

@@ -2,6 +2,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 
 <section data-section="집안도 튼튼하고, 아름답게">
 <style>
@@ -15,6 +16,8 @@
 .psh-kicker::after { content:''; position:absolute; left:50%; bottom:0; transform:translateX(-50%); width:30px; height:2px; background:#EA580C; border-radius:2px; }
 
 .psh-head h2 { font-size:42px; font-weight:400; letter-spacing:-0.04em; line-height:1.28; margin-bottom:18px; }
+/* 제목만 Noto Sans KR 로 (span까지 직접 지정: .psh * 규칙이 폰트를 덮어쓰므로) */
+.psh-head h2, .psh-head h2 * { font-family:'Noto Sans KR','Noto Sans',sans-serif; }
 .psh-head h2 .nv { color:#111111; }
 .psh-head h2 .or { color:#F97316; }
 
@@ -201,7 +204,7 @@
       <h2><span class="nv">오늘보다 더 좋아질,</span><br><span class="or">우리 집을 위해</span></h2>
       <p class="desc">고쳐 쓰는 마음과 아름답게 가꾸는 취향.<br>집을 오래 사랑하는 방법을 제안합니다.</p>
       <div class="psh-meta">
-        <span><b>120+</b> SKU</span><span class="vs">·</span><span>친환경 1등급</span><span class="vs">·</span><span>전국 당일 출고</span>
+        <span><b>120+</b> SKU</span><span class="vs">·</span><span>전국 당일 출고</span>
       </div>
     </div>
 

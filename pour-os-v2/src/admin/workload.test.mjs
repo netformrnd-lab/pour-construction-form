@@ -32,4 +32,12 @@ ok("지난 주 행동지표 부족분은 못 함", () => {
   const L = W.weekLoad({ D, uid: "a", from: "2026-09-21", key: "2026-10-01", checks: [], akItems: ak, akDocs: {} });
   assert.equal(L.rep.items.find((x) => x.id === "k1").miss, 3);
 });
+ok("2단계: 주기 확인 전(그로홈에서 온 반복 칸 빈 것)은 목록엔 있고 합계(달성률)에서만 빠짐", () => {
+  const gh = { id: "g1", title: "재고관리", isFixed: true, assigneeIds: ["a"], assigneeId: "a", brand: "grohome" };
+  const L = W.weekLoad({ D: { users, tasks: [fx, gh] }, uid: "a", from: "2026-09-28", key: "2026-10-01", checks: [], akItems: [], akDocs: {} });
+  const g = L.rep.items.find((x) => x.id === "g1"); assert.ok(g && g.pending); assert.equal(L.rep.due, 5);
+  assert.ok(!/재고관리/.test(W.topMiss(L.rep.items, 5)));
+  const L2 = W.weekLoad({ D: { users, tasks: [fx, { ...gh, cycleOk: true, recurType: "daily" }] }, uid: "a", from: "2026-09-28", key: "2026-10-01", checks: [], akItems: [], akDocs: {} });
+  assert.equal(L2.rep.due, 10);
+});
 console.log(`\n${n}개 모두 통과`);

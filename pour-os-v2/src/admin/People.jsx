@@ -57,18 +57,19 @@ function useV1Docs(ids) {
 // 고정업무 체크 기록 (v2 checks · 보이는 기간(그 달 1일부터) 한 번 읽기)
 function useChecks(from) {
   const [a, setA] = useState(null);
-  useEffect(() => { let live = true; setA(null); fb.fetchWhere("checks", ["date", ">=", from]).then((x) => { if (live) setA(x); }).catch((e) => { console.error("[v2 checks] 읽기 실패:", e); if (live) setA([]); }); return () => { live = false; }; }, [from]);
+  // 3단계: checks 에 반복 실행 하루 기록(kind ak · akopen)도 같이 있음 → 고정업무 체크(kind 없음 = 예전 · 'fx')만 씀 (사람 숫자 그대로)
+  useEffect(() => { let live = true; setA(null); fb.fetchWhere("checks", ["date", ">=", from]).then((x) => { if (live) setA(x.filter((c) => c && (!c.kind || c.kind === "fx"))); }).catch((e) => { console.error("[v2 checks] 읽기 실패:", e); if (live) setA([]); }); return () => { live = false; }; }, [from]);
   return a;
 }
 // 반복 업무 계산 재료 (그 주들의 체크 · 행동지표 정의와 실적)
 function useRepInputs(froms, D) {
   const first = froms.slice().sort()[0];
   const checks = useChecks(first.slice(0, 8) + "01");
-  const v1 = useV1Docs(["state-actionKPIs", ...froms.map((w) => "kpi-act-" + akQidOfWeek(w))]);
-  const akItems = ((v1["state-actionKPIs"] || {}).items || []).filter(Boolean);
+  const v1 = useV1Docs(froms.map((w) => "kpi-act-" + akQidOfWeek(w)));
+  const akItems = ((D && D.ak && D.ak.items) || []).filter((it) => !it.paused);   // 정의 = core 한 곳(버전1 + v2 덧칠 · 숨긴 것 뺌)
   const v2 = (D && D.ak && D.ak.v2) || [];   // 업무OS 오늘 화면 [+1] 기록(v2 kpiact) — 버전1 실적과 더해서
   const akDocs = useMemo(() => Object.fromEntries(Object.entries(v1).filter(([k]) => k.startsWith("kpi-act-")).map(([k, d]) => [k.slice(8), sumAk(d, v2.find((x) => (x.id || x._doc) === k.slice(8)))])), [v1, v2]);
-  return { checks: checks || [], akItems, akDocs, ready: checks != null && v1["state-actionKPIs"] !== undefined };
+  return { checks: checks || [], akItems, akDocs, ready: checks != null && !!(D && D.ak && D.ak.defReady) };
 }
 
 // [한 주] 사람 × [반복 업무 | 프로젝트 업무]

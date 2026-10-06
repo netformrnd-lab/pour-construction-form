@@ -15,16 +15,21 @@ const items = (d) => (d && Array.isArray(d.items) ? d.items : []).filter((x) => 
 // ── KPI 고치기(사용자 결정 2026-10-05 'KPI 변경 가능하게') — 버전1 문서는 읽기만, 고친 것은 v2 덧칠 ──
 //  pour-os/v2/kpidefs/{id} = {id, coll, fields:{바꾼 칸}, hidden, created, hist:[{at,by,byName,ch:{칸:[이전,이후]}}]}
 //  · 버전1 항목 → fields 를 위에 덮어 보임 · created = v2 에서 새로 만든 항목(fields 가 통째) · hidden = 숨김(지우지 않음 · 다시 보이기)
-export const KCOLL = ["goals", "mainKPIs", "subKPIs", "lagKPIs"];
-export const KCOLL_L = { goals: "최종 목표", mainKPIs: "메인KPI", subKPIs: "서브KPI", lagKPIs: "결과 KPI" };
+// 반복 실행(횟수 목표 · 버전1 행동지표 · 3단계 2026-10-06): 같은 덧칠 — fields = subs(공통 체크리스트) · qty(건수 칸) · desc·descAt·descBy(하는 법·메모) · brand · who · paused
+//   문서 맨 위 files[](자료 · arrayUnion · hist 에 안 쌓음) → 항목 _files · 기존 29개는 goal·cyc·unit 을 덮지 않음(화면에서 못 고침) · 새 항목(created)만 통째
+export const KCOLL = ["goals", "mainKPIs", "subKPIs", "lagKPIs", "actionKPIs"];
+export const KCOLL_L = { goals: "최종 목표", mainKPIs: "메인KPI", subKPIs: "서브KPI", lagKPIs: "결과 KPI", actionKPIs: "반복 실행" };
+const AK_LOCK = ["goal", "cyc", "unit"];   // 버전1 행동지표 목표는 덧칠로 안 바꿈 (버전1 실적 합이 그대로)
 export function applyKpiOv(K, ov) {
   const by = {}; (ov || []).forEach((o) => { if (o && o.id && KCOLL.includes(o.coll)) by[o.id] = o; });
   const out = {};
   Object.keys(K).forEach((c) => {
     const seen = new Set();
+    const files = (o) => (c === "actionKPIs" && Array.isArray(o.files) && o.files.length ? { _files: o.files } : {});
     const arr = (K[c] || []).map((it) => { seen.add(it.id); const o = by[it.id]; if (!o || o.coll !== c) return it;
-      return { ...it, ...(o.fields || {}), ...(o.hidden ? { _hidden: true } : {}), _ov: true }; });
-    Object.values(by).forEach((o) => { if (o.coll === c && o.created && !seen.has(o.id)) arr.push({ ...(o.fields || {}), id: o.id, _new: true, ...(o.hidden ? { _hidden: true } : {}) }); });
+      const f = { ...(o.fields || {}) }; if (c === "actionKPIs") AK_LOCK.forEach((k) => delete f[k]);
+      return { ...it, ...f, ...files(o), ...(o.hidden ? { _hidden: true } : {}), _ov: true }; });
+    Object.values(by).forEach((o) => { if (o.coll === c && o.created && !seen.has(o.id)) arr.push({ ...(o.fields || {}), ...files(o), id: o.id, _new: true, ...(o.hidden ? { _hidden: true } : {}) }); });
     out[c] = arr;
   });
   return out;

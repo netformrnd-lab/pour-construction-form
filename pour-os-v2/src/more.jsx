@@ -1,9 +1,12 @@
 // 업무OS v2 — 더보기 (나와 관련된 도구만) · 내가 맡긴 일 · 내 고정업무
 import { useState } from "react";
-import { ymd, md, hm, isMaster, nameOf, ownersOf, dueOf, riskOf, assignedByMe, fxIsMine, fxRecurL, fxTime, fxLabel, fxMeDone, COUNT_L } from "./model.js";
-import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, useLocal } from "./ui.jsx";
+import { addDays, WD, ymd, md, hm, isMaster, nameOf, ownersOf, dueOf, riskOf, assignedByMe, fxIsMine, fxRecurL, fxTime, fxLabel, fxMeDone, COUNT_L, scopeOf, brandLabel, FX_WD } from "./model.js";
+import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, useLocal, inp } from "./ui.jsx";
 import { V1_URL, LS } from "./core.jsx";
 import { SmsSettings } from "./smsui.jsx";
+import { myRoutine, brandName } from "./routine.js";
+import { akWho } from "../../pour-os/src/actionKpi.js";
+import { fileKind } from "./files.jsx";
 
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
 const ASG = [["review", "확인해 주세요", true], ["dueReq", "기한 조정 요청", true], ["blocked", "막힘", true], ["late", "기한 지남", true], ["risk", "곧 마감인데 시작 전", true], ["notAck", "아직 안 받음", true], ["doing", "진행 중", true], ["waiting", "받고 대기 중", false], ["done", "최근 7일 끝남", false]];
@@ -11,7 +14,7 @@ const ASG = [["review", "확인해 주세요", true], ["dueReq", "기한 조정 
 export function MoreTab({ D, cu, meta, logout, open, BUILD, setToast }) {
   const [ask, setAsk] = useState(""), [start, setStart] = useLocal(LS("start-" + cu.id), "today"), [news, setNews] = useLocal(LS("news3-" + cu.id), true);
   const G = assignedByMe(D, cu.id, new Date()), gN = Object.values(G).reduce((a, b) => a + b.length, 0), urgent = G.review.length + G.dueReq.length + G.blocked.length;
-  const myFx = D.tasks.filter((t) => t.isFixed && !t.paused && fxIsMine(t, cu.id)).length;
+  const myFx = D.tasks.filter((t) => t.isFixed && !t.paused && fxIsMine(t, cu.id)).length, myN = { today: myNotesOf(D, cu.id, ymd(new Date()), "today").length };
   const c = meta.counts || {};
   const at = meta.reseededAt || meta.seededAt;
   const arrow = <span style={{ color: C.navy, fontWeight: 800 }}>›</span>;
@@ -28,6 +31,7 @@ export function MoreTab({ D, cu, meta, logout, open, BUILD, setToast }) {
       <Row title={`내가 맡긴 일 ${gN}`} tag={urgent ? `처리할 것 ${urgent}` : null} sub="확인 요청 · 기한 조정 · 막힘 · 아직 안 받음" onClick={() => open({ type: "assigned" })} right={arrow} last={false} />
       <Row title="내 할 일 모두" sub="할 일 · 진행 · 확인 대기 · 보류 · 끝남" onClick={() => open({ type: "mine" })} right={arrow} last={false} />
       <Row title={`내 고정업무 ${myFx}`} sub="매일 · 매주 · 매월" onClick={() => open({ type: "myFixed" })} right={arrow} last={false} />
+      <Row title={`내가 쓴 댓글${myN.today ? ` · 오늘 ${myN.today}` : ""}`} sub="오늘 · 7일 · 30일 · 누르면 그 댓글로" onClick={() => open({ type: "myNotes" })} right={arrow} last={false} />
       <Row title="내 KPI" sub="내 반복·내 프로젝트가 움직이는 KPI" onClick={() => open({ type: "myKpi" })} right={arrow} last />
     </Card>
     <Head>문자 알림</Head>
@@ -62,16 +66,96 @@ export function AssignedSheet({ D, cu, A, open, onBack, onClose }) {
   </Sheet>;
 }
 
-// 내 고정업무 (매일 · 매주 · 매월)
+// 내 고정업무 — [+ 고정업무] · 두 묶음: '고정업무(내 것)'(개인·브랜드 미정) / '내가 맡은 반복 실행'(브랜드 정한 것)
 export function MyFixedSheet({ D, cu, open, onBack, onClose }) {
   const key = ymd(new Date());
   const all = D.tasks.filter((t) => t.isFixed && fxIsMine(t, cu.id));
-  const g = [["daily", "매일"], ["weekly", "매주"], ["monthly", "매월"]].map(([k, l]) => [l, all.filter((t) => (t.recurType || "daily") === k && !t.paused)]);
-  const paused = all.filter((t) => t.paused);
-  return <Sheet title={`내 고정업무 ${all.length}`} onBack={onBack} onClose={onClose}>
-    {g.map(([l, a]) => a.length > 0 && <div key={l}><Head>{l} {a.length}</Head><Card>{a.sort((x, y) => String(fxTime(x, cu.id) || "99").localeCompare(String(fxTime(y, cu.id) || "99"))).map((t, i) =>
-      <Row key={t.id} title={fxLabel(t, cu.id)} sub={[fxRecurL(t), fxTime(t, cu.id) || "시간 상관없음"].join(" · ")} tag={fxMeDone(t, cu.id, key) ? "✓" : null} onClick={() => open({ type: "fixed", id: t.id })} last={i === a.length - 1} />)}</Card></div>)}
-    {paused.length > 0 && <><Head>멈춤 {paused.length}</Head><Card>{paused.map((t, i) => <Row key={t.id} dim title={fxLabel(t, cu.id)} sub={fxRecurL(t)} onClick={() => open({ type: "fixed", id: t.id })} last={i === paused.length - 1} />)}</Card></>}
-    {!all.length && <Card style={{ marginTop: 12 }}><Empty>맡은 고정업무가 없어요</Empty></Card>}
+  const RT = { daily: 0, weekly: 1, monthly: 2 };
+  const sortF = (a) => [...a].sort((x, y) => (RT[x.recurType || "daily"] ?? 0) - (RT[y.recurType || "daily"] ?? 0) || String(fxTime(x, cu.id) || "99").localeCompare(String(fxTime(y, cu.id) || "99")));
+  const live = all.filter((t) => !t.paused), paused = all.filter((t) => t.paused);
+  const mine = sortF(live.filter((t) => scopeOf(t) !== "brand")), rt = sortF(live.filter((t) => scopeOf(t) === "brand"));
+  // 횟수 목표 반복 실행(버전1 행동지표 + v2 에서 만든 것 · 덧칠 D.ak.items) 중 내가 담당 — 누르면 반복 실행 시트
+  const ak = D.ak || {}, akRows = myRoutine(ak.items || [], D.users, cu.id, ak.docs || {}, key);
+  const akPaused = (ak.items || []).filter((it) => it && it.paused && it.active !== false && !it.deleted && akWho(D.users, it).includes(cu.id));
+  const rtN = rt.length + akRows.length;
+  const akRow = (r, i, a) => { const it = r.it, u = it.unit === "%" ? "%" : it.unit || "회";
+    return <Row key={"ak" + it.id} title={it.name} tag={r.tot.done ? "✓" : null}
+      sub={[`횟수 목표 · ${r.per} ${it.perFail ? `시도 ${r.tot.n} / ${r.tot.g || 0}회` : `${r.tot.n} / ${r.tot.g}${u}`}`, brandName(it.brand, D.brands) || ""].filter(Boolean).join(" · ")}
+      onClick={() => open({ type: "routine", id: it.id })} last={i === a.length - 1} />; };
+  const row = (t, i, a) => <Row key={t.id} title={fxLabel(t, cu.id)} sub={[fxRecurL(t), fxTime(t, cu.id) || "시간 상관없음", scopeOf(t) === "brand" ? brandLabel(t.brand, D.brands) : scopeOf(t) === "unset" ? "브랜드 미정" : ""].filter(Boolean).join(" · ")}
+    tag={fxMeDone(t, cu.id, key) ? "✓" : null} onClick={() => open({ type: "fixed", id: t.id })} last={i === a.length - 1} />;
+  return <Sheet title={`내 고정업무 ${all.length}`} onBack={onBack} onClose={onClose} foot={<Big onClick={() => open({ type: "addFixed" })}>+ 고정업무</Big>}>
+    <div style={{ fontSize: 12.5, color: C.sub, marginTop: 12, lineHeight: 1.6 }}>고정업무 = 내가 빠뜨리지 않으려고 쓰는 알림이에요 · 반복 실행 = 브랜드 운영이라 관리자가 정해요</div>
+    <Head>고정업무(내 것) {mine.length}</Head>
+    <Card>{mine.length ? mine.map(row) : <Empty>아직 없어요 · 아래 [+ 고정업무]로 만들어요</Empty>}</Card>
+    {rtN > 0 && <><Head>내가 맡은 반복 실행 {rtN}</Head><Card>{rt.map((t, i) => row(t, i, akRows.length ? [...rt, ...akRows] : rt))}{akRows.map((r, i) => akRow(r, i, akRows))}</Card></>}
+    {paused.length + akPaused.length > 0 && <><Head>멈춤 {paused.length + akPaused.length}</Head><Card>{paused.map((t, i) => <Row key={t.id} dim title={fxLabel(t, cu.id)} sub={fxRecurL(t)} onClick={() => open({ type: "fixed", id: t.id })} last={!akPaused.length && i === paused.length - 1} />)}
+      {akPaused.map((it, i) => <Row key={"ak" + it.id} dim title={it.name} sub="횟수 목표 · 멈춤" onClick={() => open({ type: "routine", id: it.id })} last={i === akPaused.length - 1} />)}</Card></>}
+  </Sheet>;
+}
+
+// 고정업무 새로 만들기 (한 시트에서 끝): 이름 · 반복(매일 / 매주 요일 / 매월 n일·말일) · 시간(선택) · 체크리스트(선택) → 개인 고정업무(scope me · 담당 나)
+export function AddFixedSheet({ A, onBack, onClose }) {
+  const [f, setF] = useState({ title: "", rt: "daily", wd: ["월"], mday: "1", time: "", subs: [] }), [sub, setSub] = useState(""), [busy, setBusy] = useState(false);
+  const ok = f.title.trim() && (f.rt !== "weekly" || f.wd.length > 0);
+  const addSub = () => { const v = sub.trim(); if (!v) return; setF({ ...f, subs: [...f.subs, v] }); setSub(""); };
+  const save = async () => { if (!ok || busy) return; setBusy(true);
+    const id = await A.addFixed({ title: f.title, recurType: f.rt, weekDays: f.wd, monthDay: f.mday === "end" ? 31 : +f.mday, monthEnd: f.mday === "end", fixedTime: f.time, subs: [...f.subs, ...(sub.trim() ? [sub.trim()] : [])] });
+    setBusy(false); if (id) onBack ? onBack() : onClose(); };
+  const lab = { fontSize: 13, fontWeight: 800, color: C.ink, margin: "16px 0 6px" };
+  return <Sheet title="고정업무 만들기" kind="고정업무" head="고정업무 만들기" onBack={onBack} onClose={onClose} foot={<Big onClick={save} disabled={!ok || busy}>저장</Big>}>
+    <div style={lab}>이름</div>
+    <input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="예: 오전 메일 확인" aria-label="고정업무 이름" style={inp} autoFocus />
+    <div style={lab}>반복</div>
+    <Seg items={[["daily", "매일"], ["weekly", "매주"], ["monthly", "매월"]]} value={f.rt} onChange={(rt) => setF({ ...f, rt })} />
+    {f.rt === "weekly" && <div className="v2-chips" style={{ marginTop: 8 }} role="group" aria-label="요일">{FX_WD.map((d) => <Chip key={d} on={f.wd.includes(d)} onClick={() => setF({ ...f, wd: f.wd.includes(d) ? f.wd.filter((x) => x !== d) : FX_WD.filter((x) => x === d || f.wd.includes(x)) })}>{d}</Chip>)}</div>}
+    {f.rt === "monthly" && <select aria-label="매월 날짜" className="v2-sel" style={{ marginTop: 8 }} value={f.mday} onChange={(e) => setF({ ...f, mday: e.target.value })}>
+      {[...Array(31)].map((_, i) => <option key={i} value={String(i + 1)}>{i + 1}일</option>)}<option value="end">말일 (평일 기준)</option></select>}
+    <div style={{ fontSize: 12, color: C.mute, marginTop: 6 }}>주말·공휴일이면 앞 평일에 떠요 · 매일은 평일만</div>
+    <div style={lab}>시간 <span style={{ color: C.mute, fontWeight: 700 }}>(선택)</span></div>
+    <div style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="time" aria-label="시간" className="v2-sel" value={f.time} onChange={(e) => setF({ ...f, time: e.target.value })} />{f.time && <TBtn onClick={() => setF({ ...f, time: "" })}>시간 지우기</TBtn>}</div>
+    <div style={lab}>체크리스트 <span style={{ color: C.mute, fontWeight: 700 }}>(선택)</span></div>
+    {f.subs.length > 0 && <div className="v2-chips" style={{ marginBottom: 8 }}>{f.subs.map((x, i) => <Chip key={i} on onClick={() => setF({ ...f, subs: f.subs.filter((_, j) => j !== i) })}>{x} ✕</Chip>)}</div>}
+    <div style={{ display: "flex", gap: 8 }}><input value={sub} onChange={(e) => setSub(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSub(); } }} placeholder="예: 하이웍스" aria-label="체크리스트 항목" style={{ ...inp, flex: 1, minWidth: 0 }} /><TBtn onClick={addSub} disabled={!sub.trim()}>추가</TBtn></div>
+    <div style={{ fontSize: 12.5, color: C.sub, marginTop: 18 }}>저장하면 오늘 화면 고정업무에 바로 떠요 · 나만 보는 개인 고정업무예요</div>
+  </Sheet>;
+}
+
+// ───────────────── 내가 쓴 댓글 (사용자 요청 2026-10-06 '오늘 내가 댓글 단 것들 한곳에서') ─────────────────
+// 이미 불러온 댓글(D.notes = 최근 30일 · 기밀은 보이는 규칙 그대로)에서 내가 쓴 것만 · 읽기만 · 누르면 그 업무·프로젝트·반복 실행의 대화 칸으로 가서 그 댓글 테두리(댓글 링크와 같은 길)
+export const MYN_RANGE = [["today", "오늘", 0], ["d7", "7일", 6], ["d30", "30일", 29]];
+export function myNotesOf(D, uid, key, range) {
+  const back = (MYN_RANGE.find((r) => r[0] === range) || MYN_RANGE[0])[2], from = addDays(key, -back);
+  return (D.notes || []).filter((n) => n && !n.deleted && n.by === uid && n.at && (() => { const d = ymd(new Date(n.at)); return d >= from && d <= key; })())
+    .sort((a, b) => String(b.at).localeCompare(String(a.at)));
+}
+// 그 댓글이 어디 것인지 + 여는 길
+export function noteWhere(D, n) {
+  const id = String(n.itemId || ""), ci = id.indexOf(":"), k = ci > 0 ? id.slice(0, ci) : "", ref = ci > 0 ? id.slice(ci + 1) : id;
+  if (k === "task") { const t = (D.tasks || []).find((x) => x.id === ref);
+    return { kind: t && t.isFixed ? (t.scope === "brand" ? "반복 실행" : "고정업무") : "업무", title: t ? t.title : "지난 업무", go: { type: t && t.isFixed ? "fixed" : "task", id: ref, focus: "talk", note: n.id } }; }
+  if (k === "proj") { const p = (D.projects || []).find((x) => x.id === ref); return { kind: "프로젝트", title: p ? p.title : "프로젝트", go: { type: "project", id: ref, first: "news", note: n.id } }; }
+  if (!k && id.includes("~")) { const tid = id.split("~")[0], t = (D.tasks || []).find((x) => x.id === tid); return { kind: "고정업무 메모", title: t ? t.title : "고정업무", go: { type: "fixed", id: tid } }; }
+  const it = ((D.ak && D.ak.items) || []).find((x) => x.id === id);
+  return { kind: "반복 실행", title: it ? it.name : "반복 실행", go: { type: "routine", id, focus: "talk", note: n.id } };
+}
+const dayHead = (d, key) => (d === key ? "오늘" : d === addDays(key, -1) ? "어제" : `${md(d)}(${WD[new Date(d + "T00:00:00").getDay()]})`);
+export function MyNotesSheet({ D, cu, open, onBack, onClose }) {
+  const key = ymd(new Date());
+  const [range, setRange] = useState("today");
+  const cnt = Object.fromEntries(MYN_RANGE.map(([k]) => [k, myNotesOf(D, cu.id, key, k).length]));
+  const list = myNotesOf(D, cu.id, key, range), groups = [];
+  list.forEach((n) => { const d = ymd(new Date(n.at)), g = groups[groups.length - 1]; if (g && g.d === d) g.a.push(n); else groups.push({ d, a: [n] }); });
+  const kids = (n) => (D.notes || []).filter((x) => x && !x.deleted && x.parentId === n.id).length;
+  return <Sheet title={`내가 쓴 댓글 ${list.length}`} onBack={onBack} onClose={onClose}>
+    <div className="v2-filterrow" role="group" aria-label="기간" style={{ marginTop: 12 }}><div className="v2-chips">{MYN_RANGE.map(([k, l]) => <Chip key={k} on={range === k} onClick={() => setRange(k)}>{l} {cnt[k]}</Chip>)}</div></div>
+    {list.length === 0 && <Card style={{ marginTop: 12 }}><Empty>{range === "today" ? "오늘 쓴 댓글이 없어요" : "이 기간에 쓴 댓글이 없어요"}</Empty></Card>}
+    {groups.map((g) => <div key={g.d}><Head>{dayHead(g.d, key)} {g.a.length}</Head><Card>{g.a.map((n, i) => { const w = noteWhere(D, n), r = kids(n), fs = (n.files || []).filter((f) => f && f.url), img = fs.find((f) => fileKind(f) === "img");
+      return <button key={n.id} type="button" className="v2-mynote" onClick={() => open(w.go)} style={{ borderBottom: i === g.a.length - 1 ? "none" : undefined }}>
+        <span className="tx"><span className="wh"><b>{w.kind}</b> · {w.title}</span>
+          <span className="v2-clamp2 bd">{n.parentId ? "답글 · " : ""}{n.text}</span>
+          <span className="mt">{hm(n.at)}{r ? ` · 답글 ${r}` : ""}{fs.length ? ` · 파일 ${fs.length}` : ""}</span></span>
+        {img && <img src={img.url} alt="" loading="lazy" decoding="async" className="th" />}<span className="go">›</span></button>; })}</Card></div>)}
+    <p style={{ fontSize: 12.5, color: C.mute, margin: "12px 2px" }}>최근 30일 댓글만 불러와요 · 기밀 업무 댓글은 볼 수 있는 사람에게만 보여요</p>
   </Sheet>;
 }

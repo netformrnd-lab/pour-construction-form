@@ -6,12 +6,15 @@ import {
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit, fxWeekDays, fxIds, FX_WD, monthEndWorkday,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf,
+  scopeOf, brandLabel, brandsWithCommon, brandKey, cyclePending, cycleGuess,
 } from "./model.js";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
 import { DecisionBlock } from "./mindmap.jsx";
 import { turnIndex, turnOf, predsOf, nextsOf, finishedOf, finishedAt, lastWord } from "./turn.js";
 import { nextWorkday, prevWorkday } from "./model.js";
-import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked, CopyLink, Clash } from "./ui.jsx";
+import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked, CopyLink, Clash, appLink } from "./ui.jsx";
+import { NoteFiles, FileList, useUploads, UpList, UpBtn } from "./files.jsx";
+export { FileRow } from "./files.jsx";
 import { HoldAsk } from "./hold.jsx";
 import { RequestAsk } from "./asks.jsx";
 import { askTo } from "./model.js";
@@ -20,6 +23,8 @@ import { mentionPick, insertMention, parseMentions } from "./mention.js";
 import { SecretBox } from "./secretui.jsx";
 import { dueChips, ro } from "./pick.jsx";
 import { CountBox } from "./routineui.jsx";
+import { recTag, DayQty, RecList, useRecs } from "./recui.jsx";
+import { qtyCfg, qtyText, QTY_UNITS } from "./rec.js";
 
 const roP = (n) => { const c = String(n || "").slice(-1).charCodeAt(0) - 0xAC00; if (c < 0 || c > 11171) return "(으)로"; const j = c % 28; return j === 0 || j === 8 ? "로" : "으로"; };
 export const openTask = (open, t) => open({ type: t.isFixed ? "fixed" : "task", id: t.id });
@@ -45,25 +50,25 @@ export function useTask(D, id) {
   return live || extra;
 }
 export function useItemNotes(D, itemId) {
-  const [old, setOld] = useState([]);
+  const [old, setOld] = useState(null);   // null = 아직 읽는 중 (댓글 링크: 다 읽은 뒤에도 없으면 id 로 한 번 더)
   const locked = !!(D.lockedT && String(itemId).startsWith("task:") && D.lockedT.has(String(itemId).slice(5)));   // 기밀(허용 안 됨) 업무 댓글은 읽지 않음
-  useEffect(() => { if (locked) return; fb.fetchWhere("notes", ["itemId", "==", itemId]).then(setOld).catch((e) => console.error("[v2] 댓글 불러오기 실패:", e)); }, [itemId, locked]);
-  return useMemo(() => { if (locked) return []; const m = new Map(); old.forEach((n) => m.set(n.id, n)); D.notes.forEach((n) => { if (n.itemId === itemId) m.set(n.id, n); }); return [...m.values()]; }, [old, D.notes, itemId, locked]);
+  useEffect(() => { if (locked) return; fb.fetchWhere("notes", ["itemId", "==", itemId]).then(setOld).catch((e) => { console.error("[v2] 댓글 불러오기 실패:", e); setOld([]); }); }, [itemId, locked]);
+  return useMemo(() => { if (locked) return Object.assign([], { ready: true }); const m = new Map(); (old || []).forEach((n) => m.set(n.id, n)); D.notes.forEach((n) => { if (n.itemId === itemId) m.set(n.id, n); }); return Object.assign([...m.values()], { ready: old != null }); }, [old, D.notes, itemId, locked]);
 }
 // 업무 보기 — 맨 위에 '지금 해야 할 일'(받았어요·확인·기한 조정·막힘)을 띄우고, 그 아래 대화(가장 자주 씀) → 순서(앞 일·다음 일) → 메모 → 하위 업무 → 파일
 // focus: "talk" | "files" — 열자마자 그 칸으로 (앞 일 '자료 n ›', 앞사람에게 묻기)
-export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx0, setToast }) {
+export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, idx: idx0, setToast }) {
   const t = useTask(D, id);
   const notes = useItemNotes(D, taskNoteId(id));
   const idx = useMemo(() => idx0 || turnIndex(D), [idx0, D]);
   const [more, setMore] = useState(false);   // 드문 동작 펼치기
   const [mode, setMode] = useState(""), [memo, setMemo] = useState(""), [memoBase, setMemoBase] = useState(null), [clash, setClash] = useState(null), [showLog, setShowLog] = useState(false), [tab2, setTab2] = useState("talk"), [logs, setLogs] = useState(null), [sub, setSub] = useState("");
   const [txt, setTxt] = useState(""), [handTo, setHandTo] = useState(""), [reqDate, setReqDate] = useState(""), [handoff, setHandoff] = useState(""), [depSel, setDepSel] = useState(null), [allOrder, setAllOrder] = useState(false);
-  const fileRef = useRef(null);
+  const U = useUploads(A, "task-" + id, (metas) => A.addFiles(t, metas));
   useEffect(() => { if (!focus || !t) return; const h = setTimeout(() => { const el = document.getElementById("v2-t-" + focus); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); return () => clearTimeout(h); }, [focus, !!t]);
   if (t === undefined || t === null) return <Sheet title="업무" kind="업무" onBack={onBack} onClose={onClose}><Empty>불러오는 중…</Empty></Sheet>;
   if (t === false) return <Sheet title="업무" kind="업무" onBack={onBack} onClose={onClose}><Empty>이 업무를 찾지 못했어요 (휴지통이나 보관함으로 갔을 수 있어요)</Empty></Sheet>;
-  if (t.isFixed) return <FixedSheet D={D} cu={cu} A={A} onBack={onBack} onClose={onClose} id={id} focus={focus} setToast={setToast} />;   // 고정업무는 어느 입구로 와도 고정업무 화면 (일반 화면의 담당 바꾸기·끝냄이 반복 업무를 덮어쓰지 않게)
+  if (t.isFixed) return <FixedSheet D={D} cu={cu} A={A} onBack={onBack} onClose={onClose} id={id} focus={focus} note={note} setToast={setToast} />;   // 고정업무는 어느 입구로 와도 고정업무 화면 (일반 화면의 담당 바꾸기·끝냄이 반복 업무를 덮어쓰지 않게)
   const key = ymd(new Date()), mine = isMine(t, cu.id), done = isDone(t), n = ddays(dueOf(t), key), master = isMaster(cu);
   const p = D.projects.find((x) => x.id === t.projectId), owners = ownersOf(t).map((u) => nameOf(D.users, u) || "(없는 사람)");
   const kids = D.tasks.filter((x) => x.parentId === t.id), parent = t.parentId ? D.tasks.find((x) => x.id === t.parentId) : null;
@@ -187,7 +192,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
       <Act onClick={() => { if (reqDate && reqDate !== dueOf(t)) { A.requestDue(t, reqDate, txt.trim()); setMode(""); setTxt(""); } }} style={{ alignSelf: "flex-start", background: C.navy, color: "#fff", borderColor: C.navy, opacity: reqDate && reqDate !== dueOf(t) ? 1 : 0.45 }}>요청 보내기</Act></div>}
 
     <div id="v2-t-talk" style={{ scrollMarginTop: 8, margin: "18px 0 8px" }}><Seg items={[["talk", `대화 ${notes.filter((x) => !x.deleted).length}`], ["log", "기록"]]} value={tab2} onChange={(v) => { setTab2(v); if (v === "log" && logs == null) loadLogs(); }} /></div>
-    {tab2 === "talk" ? <Thread D={D} cu={cu} A={A} notes={notes} itemId={taskNoteId(t.id)} ctx={{ taskId: t.id, projectId: t.projectId }} />
+    {tab2 === "talk" ? <Thread D={D} cu={cu} A={A} notes={notes} itemId={taskNoteId(t.id)} ctx={{ taskId: t.id, projectId: t.projectId }} link={{ kind: "t", id: t.id }} hl={note} />
       : <Card>{logs == null ? <Empty>불러오는 중…</Empty> : hist.length === 0 ? <Empty>기록이 없어요</Empty> : hist.map((h, i) => <div key={h.id} className="v2-hist" style={{ borderBottom: i < hist.length - 1 ? `1px solid ${C.line}` : "none" }}>
           <div className="hd"><b>{h.text}</b><span>{h.who || ""}{h.at ? ` · ${md(ymd(new Date(h.at)))} ${hm(h.at)}` : ""}</span></div>
           {h.ch && h.ch.length > 0 && <div className="ch">{h.ch.map((c) => <span key={c.k}><small>{c.l}</small> <i className="was">{c.a}</i> → <i className="now">{c.b}</i></span>)}</div>}</div>)}</Card>}
@@ -232,102 +237,203 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
           <Act onClick={() => { if (sub.trim()) { A.addTask({ title: sub, parentId: t.id, projectId: t.projectId, assigneeId: t.assigneeId || cu.id, dueDate: t.dueDate, noReview: true }); setSub(""); } }}>추가</Act></div>
       </Card></>}
 
-    <div id="v2-t-files" style={{ scrollMarginTop: 8 }} /><Head right={<><TBtn onClick={() => fileRef.current && fileRef.current.click()}>+ 파일 올리기</TBtn><input ref={fileRef} type="file" multiple hidden onChange={(e) => { const f = [...e.target.files]; e.target.value = ""; if (f.length) A.addFiles(t, f); }} /></>}>파일 {files.length}</Head>
-    <Card>{files.length === 0 ? <Empty>올린 파일이 없어요</Empty> : files.map((f, i) => <FileRow key={i} f={f} D={D} last={i === files.length - 1} />)}</Card>
+    <div id="v2-t-files" style={{ scrollMarginTop: 8 }} /><Head right={<UpBtn U={U} />}>파일 {files.length}</Head>
+    <UpList U={U} style={{ marginBottom: 8 }} />
+    <FileList files={files} empty="올린 파일이 없어요" />
 
   </Sheet>;
 }
-export function FileRow({ f, last }) {
-  const img = /^image\//.test(f.type || "");
-  return <a href={f.url} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: last ? "none" : `1px solid ${C.line}`, textDecoration: "none", color: C.text }}>
-    {img ? <img src={f.url} alt="" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 8, flex: "0 0 auto" }} /> : <span style={{ width: 40, height: 40, borderRadius: 8, background: C.soft, color: C.navy, fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto" }}>{String(f.name || "").split(".").pop().slice(0, 4).toUpperCase() || "파일"}</span>}
-    <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span><span style={{ fontSize: 12, color: C.mute }}>{[f.byName, f.where, f.uploadedAt ? md(ymd(new Date(f.uploadedAt))) : ""].filter(Boolean).join(" · ")}</span></span>
-    <span style={{ color: C.navy, fontSize: 13, fontWeight: 800 }}>열기 ›</span>
-  </a>;
-}
-
 // 대화 (댓글 + 대댓글 + 파일)
-export function Thread({ D, cu, A, notes, itemId, ctx }) {
-  const th = threads(notes, itemId);
-  const [text, setText] = useState(""), [reply, setReply] = useState(null), [files, setFiles] = useState([]), [busy, setBusy] = useState(false);
+// rec: 하루 기록 한 건에 붙이는 글 {date, uid, qty, runs} (반복 실행 시트 날짜별 기록 줄을 누르면) → 댓글 extra rec · 목록엔 '10/6 기록 · 37건' 꼬리표
+// link: 댓글 [링크 복사] 주소 {kind 't'|'p'|'r', id} → os2.html#t-ID~c-댓글ID · hl: 링크로 열었을 때 그 댓글 id (그 자리로 가서 2초 테두리 · 못 찾으면 id 로 한 번 읽기)
+// 파일: 고른 파일은 [남기기] 때 파일마다 진행 막대로 올리고(실패한 파일만 [다시]) 다 올라가면 댓글 저장
+export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl }) {
+  const [got, setGot] = useState(null), [miss, setMiss] = useState(false), [hlOn, setHlOn] = useState(""), hlDone = useRef(false);
+  const all = got && !notes.some((n) => n.id === got.id) ? [...notes, got] : notes;
+  const th = threads(all, itemId);
+  const [text, setText] = useState(""), [reply, setReply] = useState(null), [busy, setBusy] = useState(false), [pend, setPend] = useState(false), [copied, setCopied] = useState(""), [showL, setShowL] = useState(null);
+  const U = useUploads(A, "note-" + itemId);
   const fileRef = useRef(null), taRef = useRef(null);
   const pick = mentionPick(text, D.users, cu.id), tagged = parseMentions(text, D.users).filter((id) => id !== cu.id);   // '@' 를 치면 사람 고르기 · 부를 사람 미리 보기
-  const send = async () => { if ((!text.trim() && !files.length) || busy) return; setBusy(true);
-    const ok = await A.addNote(itemId, text || "(파일)", reply, files, ctx); setBusy(false); if (ok) { setText(""); setFiles([]); setReply(null); } };
-  const Note = ({ n, child }) => <div style={{ padding: child ? "8px 0 0 14px" : "12px 14px", borderLeft: child ? `2px solid ${C.line}` : "none", marginTop: child ? 6 : 0 }}>
+  const post = async () => { const rows = U.cur(); if (rows.some((r) => r.st !== "ok")) { setPend(true); return false; }
+    const ok = await A.addNote(itemId, text || "(파일)", reply, rows.map((r) => r.meta), ctx, rec ? { rec } : undefined);
+    if (ok) { setText(""); U.clear(); setReply(null); setPend(false); if (onRec) onRec(null); } return ok; };
+  const send = async () => { if ((!text.trim() && !U.rows.length) || busy || U.busy) return; setBusy(true);
+    try { await U.flow(); await post(); } finally { setBusy(false); } };
+  const retry = async (k) => { setBusy(true); try { await U.retry(k); if (pend && U.cur().every((r) => r.st === "ok")) await post(); } finally { setBusy(false); } };
+  // 링크로 열기: 그 댓글로 스크롤 + 잠깐 테두리
+  useEffect(() => { if (!hl || hlDone.current) return;
+    const el = document.getElementById("v2-n-" + hl);
+    if (el) { hlDone.current = true; setTimeout(() => { const e2 = document.getElementById("v2-n-" + hl) || el; e2.scrollIntoView({ behavior: "smooth", block: "center" }); setHlOn(hl); setTimeout(() => setHlOn(""), 2200); }, 350); return; }   // 다시 그려져도 취소하지 않음
+    if (!notes.ready || got !== null) return;
+    setGot(false); fb.fetchWhere("notes", ["id", "==", hl]).then((a) => { const n = a.find((x) => x.itemId === itemId && !x.deleted); if (n) setGot(n); else { hlDone.current = true; setMiss(true); } })
+      .catch((e) => { console.error("[v2] 댓글 불러오기 실패:", e); hlDone.current = true; setMiss(true); }); }, [hl, th.length, notes.ready, got]);
+  const copy = (nid) => { const u = appLink(link.kind, link.id, nid);
+    const ok = () => { setShowL(null); setCopied(nid); setTimeout(() => setCopied((c) => (c === nid ? "" : c)), 2200); };
+    try { navigator.clipboard.writeText(u).then(ok, () => setShowL({ id: nid, u })); } catch (e) { setShowL({ id: nid, u }); } };
+  const LinkBtn = ({ n }) => link ? <TBtn v="plain" onClick={() => copy(n.id)} style={{ padding: "6px 0", fontSize: 12.5 }}>{copied === n.id ? "✓ 복사했어요" : "링크 복사"}</TBtn> : null;
+  const LinkBox = ({ n }) => showL && showL.id === n.id ? <input readOnly value={showL.u} autoFocus onFocus={(e) => e.target.select()} aria-label="복사할 링크" style={{ ...inp, marginTop: 4, fontSize: 12.5, padding: "8px 10px" }} /> : null;
+  const Note = ({ n, child }) => <div id={"v2-n-" + n.id} className={"v2-note" + (hlOn === n.id ? " hl" : "")} style={{ padding: child ? "8px 0 0 14px" : "12px 14px", borderLeft: child ? `2px solid ${C.line}` : "none", marginTop: child ? 6 : 0, scrollMarginTop: 60 }}>
     <div style={{ fontSize: 12.5, color: C.mute }}><b style={{ color: C.ink }}>{n.byName || nameOf(D.users, n.by)}</b> · {ago(n.at)}</div>
     <div style={{ fontSize: 14.5, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 2, wordBreak: "break-word" }}><Linked text={n.text} /></div>
-    {(n.files || []).map((f, i) => <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 4, marginRight: 8, fontSize: 13, color: C.navy, fontWeight: 700 }}>{f.name} ›</a>)}
+    <NoteFiles files={n.files} />
+    {n.rec && <div><span className="v2-rttag">{recTag(n.rec, cfg)}</span></div>}
+    {child && link && <><div className="v2-nact"><LinkBtn n={n} /></div><LinkBox n={n} /></>}
   </div>;
+  const canSend = (text.trim() || U.rows.length) && !busy && !U.busy;
   return <Card>
+    {miss && <div role="status" style={{ padding: "10px 14px", fontSize: 13, color: C.sub, background: C.soft, borderBottom: `1px solid ${C.line}` }}>이 댓글을 찾지 못했어요 · 지워졌거나 다른 곳의 댓글일 수 있어요</div>}
     {th.length === 0 && <Empty>아직 대화가 없어요. 진행 상황이나 궁금한 점을 남겨 주세요.</Empty>}
     {th.map((n) => <div key={n.id} style={{ borderBottom: `1px solid ${C.line}` }}><Note n={n} />
-      <div style={{ padding: "0 14px 10px" }}>{n.replies.map((r) => <Note key={r.id} n={r} child />)}<TBtn onClick={() => setReply(reply === n.id ? null : n.id)} style={{ padding: "6px 0", fontSize: 12.5 }}>{reply === n.id ? "답글 취소" : "답글"}</TBtn></div></div>)}
+      <div style={{ padding: "0 14px 10px" }}>{n.replies.map((r) => <Note key={r.id} n={r} child />)}
+        <div className="v2-nact"><TBtn v="plain" onClick={() => setReply(reply === n.id ? null : n.id)} style={{ padding: "6px 0", fontSize: 12.5 }}>{reply === n.id ? "답글 취소" : "답글"}</TBtn>{link && <span style={{ color: C.line }}>|</span>}<LinkBtn n={n} /></div>
+        <LinkBox n={n} /></div></div>)}
     <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
       {reply && <div style={{ fontSize: 12.5, color: C.sub }}>{(th.find((x) => x.id === reply) || {}).byName}님 글에 답글</div>}
+      {rec && <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: C.sub }}><span className="v2-rttag" style={{ marginTop: 0 }}>{recTag(rec, cfg)}</span>{rec.name ? `${rec.name}님 기록에 붙여요` : "이 기록에 붙여요"}<TBtn v="plain" tone="mute" onClick={() => onRec && onRec(null)}>✕ 빼기</TBtn></div>}
       <textarea ref={taRef} value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder={reply ? "답글 쓰기 · @이름으로 부르기" : "댓글 쓰기 · 진행 상황, 피드백, 링크 · @이름으로 부르기"} aria-label="댓글" style={{ ...inp, resize: "vertical", fontSize: 14.5 }} />
       {pick.length > 0 && <div className="v2-chips" role="listbox" aria-label="부를 사람">{pick.map((u) => <Chip key={u.id} onClick={() => { setText(insertMention(text, u.name)); setTimeout(() => taRef.current && taRef.current.focus(), 0); }}>@{u.name}</Chip>)}</div>}
       {tagged.length > 0 && <div style={{ fontSize: 12.5, color: C.sub }}>부를 사람 {tagged.map((id) => nameOf(D.users, id)).join(", ")} · '확인할 것'에 뜨고, 문자 알림을 켠 사람은 문자도 받아요</div>}
-      {files.length > 0 && <div style={{ fontSize: 13, color: C.sub }}>{files.map((f) => f.name).join(", ")} <TBtn tone="mute" onClick={() => setFiles([])}>✕ 파일 빼기</TBtn></div>}
+      <UpList U={U} onRetry={retry} onDrop={(k) => U.drop(k)} />
+      {pend && !U.busy && U.rows.some((r) => r.st === "fail") && <div style={{ fontSize: 12.5, color: C.red }}>못 올린 파일이 있어서 아직 안 남겼어요 · [다시]를 누르거나 [빼기] 뒤 [남기기]</div>}
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <TBtn onClick={() => fileRef.current && fileRef.current.click()}>+ 파일</TBtn><input ref={fileRef} type="file" multiple hidden onChange={(e) => { setFiles([...e.target.files].slice(0, 10)); e.target.value = ""; }} />
-        <span style={{ flex: 1 }} /><Act onClick={send} style={{ background: C.navy, color: "#fff", borderColor: C.navy, opacity: (text.trim() || files.length) && !busy ? 1 : 0.45 }}>{busy ? "올리는 중" : "남기기"}</Act>
+        <TBtn disabled={busy || U.busy} onClick={() => fileRef.current && fileRef.current.click()}>+ 파일</TBtn><input ref={fileRef} type="file" multiple hidden aria-label="첨부할 파일" onChange={(e) => { const f = [...e.target.files].slice(0, Math.max(0, 10 - U.rows.length)); e.target.value = ""; if (f.length) { U.add(f); setPend(false); } }} />
+        <span style={{ flex: 1 }} /><TBtn v="solid" disabled={!canSend} onClick={send} style={{ minWidth: 72, height: 36 }}>{busy || U.busy ? "올리는 중" : "남기기"}</TBtn>
       </div>
     </div>
   </Card>;
 }
 
 // ───────────────── 고정업무 보기 ─────────────────
-export function FixedSheet({ D, cu, A, onBack, onClose, id, focus, setToast }) {
+export function FixedSheet({ D, cu, A, onBack, onClose, id, focus, note, setToast }) {
   const t = useTask(D, id);
   const notes = useItemNotes(D, taskNoteId(id));
   const oldMine = useItemNotes(D, `${id}~${cu.id}`);   // 버전1 고정업무 '내 메모'(사람별 · 읽기만)
-  const [checks, setChecks] = useState(null);
+  const [tick, setTick] = useState(0), [rec, setRec] = useState(null);
+  const R = useRecs(D, id, `${tick}:${t && JSON.stringify(t.doneAtBy || {})}`, true);   // 하루 기록(이번 달 · itemId+ym) + 오늘 것은 실시간
   const [editMemo, setEditMemo] = useState(false), [memo, setMemo] = useState(""), [memoBase, setMemoBase] = useState(null), [clash, setClash] = useState(null), [oldOpen, setOldOpen] = useState(false);
-  const fileRef = useRef(null);
-  useEffect(() => { fb.fetchWhere("checks", ["taskId", "==", id]).then(setChecks).catch((e) => { console.error(e); setChecks([]); }); }, [id, t && JSON.stringify(t.doneAtBy || {})]);
+  const U = useUploads(A, "task-" + id, (metas) => A.addFiles(t, metas));
+  const toTalk = () => setTimeout(() => { const el = document.getElementById("v2-fx-talk"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80);
   useEffect(() => { if (focus !== "talk" || !t) return; const h = setTimeout(() => { const el = document.getElementById("v2-fx-talk"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); return () => clearTimeout(h); }, [focus, !!t]);
   if (!t) return <Sheet title="고정업무" kind="고정업무" onBack={onBack} onClose={onClose}><Empty>{t === false ? "이 고정업무를 찾지 못했어요" : "불러오는 중…"}</Empty></Sheet>;
   const key = ymd(new Date()), mine = fxIsMine(t, cu.id), me = fxMeDone(t, cu.id, key), subs = fxSubs(t, cu.id), people = fxPeople(D.users, t);
-  const days = [...Array(7)].map((_, i) => addDays(key, -i));
-  const byDay = {}; (checks || []).filter((c) => c.on).forEach((c) => { (byDay[c.date] = byDay[c.date] || []).push(c); });
+  const cfg = qtyCfg(t), myDay = (R.docs || []).find((d) => d.date === key && d.uid === cu.id), myQty = +(myDay && myDay.qty) || 0;
   const canEdit = mine || isMaster(cu);   // 메모·자료 = 담당 · 관리자
+  // 2단계 권한: 개인(me) = 본인이 다 · 반복 실행(brand)의 공통 체크리스트·브랜드·담당·반복 = 관리자 · 담당은 내 체크리스트·보이는 이름·내 시간·메모·파일
+  const master = isMaster(cu), sc = scopeOf(t), isRt = sc === "brand";
+  const canRecur = master || (!isRt && mine), canCommon = master || (!isRt && mine), canScope = master || (sc === "me" && mine);
+  const pathL = isRt ? `반복 실행 · ${brandLabel(t.brand, D.brands)} · ${fxRecurL(t)}${t.fixedTime ? " " + t.fixedTime : ""}` : `고정업무${sc === "unset" ? " · 브랜드 미정" : ""} · ${fxRecurL(t)}${t.fixedTime ? " " + t.fixedTime : ""}`;
+  const cg = cyclePending(t) ? cycleGuess(t) : null;
   const saveMemo = async (force) => { const r = await A.setMemo(t, memo, memoBase, force === true); if (r && r.conflict) setClash(r.cur); else if (r && r.ok) { setClash(null); setEditMemo(false); } };
   const files = [...(t.attachments || []).map((f) => ({ ...f, where: "고정업무" })), ...notes.filter((nn) => !nn.deleted).flatMap((nn) => (nn.files || []).map((f) => ({ ...f, by: nn.by, byName: nn.byName, uploadedAt: f.uploadedAt || nn.at, where: "댓글" })))];
   const oldNotes = oldMine.filter((n) => !n.deleted).sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
-  return <Sheet title="고정업무" kind="고정업무" head={fxLabel(t, cu.id)} path={`반복 · ${fxRecurL(t)}`} onBack={onBack} onClose={onClose} foot={mine ? <Big tone={me ? "white" : "navy"} onClick={() => A.fxToggle(t)}>{me ? "✓ 체크 취소" : fxDoneWord(t)}</Big> : null}>
+  return <Sheet title={isRt ? "반복 실행" : "고정업무"} kind={isRt ? "반복 실행" : "고정업무"} head={fxLabel(t, cu.id)} path={pathL} onBack={onBack} onClose={onClose} foot={mine ? <Big tone={me ? "white" : "navy"} onClick={() => A.fxToggle(t)}>{me ? "✓ 체크 취소" : fxDoneWord(t)}</Big> : null}>
     <div style={{ fontSize: 13.5, color: C.sub, marginTop: 12 }}>{fxRecurL(t)} · {fxTime(t, cu.id) || "시간 상관없음"} · 담당 {people.length}명{t.paused ? " · 멈춤" : ""}</div>
+    {cyclePending(t) && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>주기 확인 필요{cg ? ` · 제안 ${({ daily: "매일", weekly: "매주", monthly: "매월" })[cg.rt]}(${cg.from} '${cg.word}')` : ""} · 관리자가 정해요</div>}
     {mine && subs.length > 0 && <><Head>체크리스트</Head><div className="v2-chips">{subs.map((x) => { const ok = fxHit(t, ((t.subDone || {})[cu.id] || {})[x.id], key); return <Chip key={x.id} on={ok} onClick={() => A.fxSub(t, x.id)}>{ok ? "✓ " : ""}{x.title}</Chip>; })}</div></>}
-    {(mine || isMaster(cu)) && <RecurEdit t={t} A={A} />}
-    {isMaster(cu) && <FxOwners t={t} D={D} A={A} setToast={setToast} />}
+    <FxMore t={t} D={D} cu={cu} A={A} focus={focus} mine={mine} canRecur={canRecur} canCommon={canCommon} canScope={canScope} master={master} setToast={setToast} />
     <Head>누가 했나</Head>
     <Card>{people.length === 0 ? <Empty>담당이 없어요</Empty> : people.map((uid, i) => { const ok = fxMeDone(t, uid, key), at = t.doneAtBy && t.doneAtBy[uid];
       return <div key={uid} style={{ display: "flex", gap: 10, padding: "11px 14px", borderBottom: i < people.length - 1 ? `1px solid ${C.line}` : "none", fontSize: 14 }}><b style={{ flex: 1, color: C.text }}>{nameOf(D.users, uid) || uid}</b><span style={{ color: ok ? C.green : C.mute, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{ok ? `✓ ${hm(at)}` : `아직${fxTime(t, uid) ? ` (예정 ${fxTime(t, uid)})` : ""}`}</span></div>; })}</Card>
-    <Head>최근 7일</Head>
-    <Card>{checks == null ? <Empty>불러오는 중…</Empty> : days.map((d, i) => <div key={d} style={{ display: "flex", gap: 10, padding: "10px 14px", borderBottom: i < 6 ? `1px solid ${C.line}` : "none", fontSize: 13.5 }}><span style={{ width: 52, color: C.mute, fontVariantNumeric: "tabular-nums" }}>{md(d)}</span><span style={{ flex: 1, color: C.text }}>{fxDueOn(t, d) ? ((byDay[d] || []).map((c) => `${c.name} ${hm(c.at)}`).join(" · ") || "-") : <span style={{ color: C.mute }}>쉬는 날</span>}</span></div>)}
-      <div style={{ padding: "8px 14px", fontSize: 12, color: C.mute, borderTop: `1px solid ${C.line}` }}>v2에서 체크한 것부터 쌓여요</div></Card>
+    {cfg && mine && <DayQty cfg={cfg} mine={myQty} can extra={people.length > 1 ? `모두 ${qtyText(cfg, (R.docs || []).filter((d) => d.date === key).reduce((a, d) => a + (+d.qty || 0), 0))}` : ""}
+      onAdd={async (n) => { await A.fxQty(t, n, "add"); setTick((x) => x + 1); }} onSet={async (n) => { await A.fxQty(t, n, "set"); setTick((x) => x + 1); }} />}
+    <RecList D={D} docs={R.docs} ready={R.ready} cfg={cfg} kind="fx" notes={notes} keyd={key} onPick={(r) => { setRec({ date: r.date, uid: r.uid, qty: r.qty, runs: r.on ? 1 : 0, name: r.name }); toTalk(); }} />
     <Head right={canEdit && !editMemo && <TBtn onClick={() => { setMemo(t.memo || ""); setMemoBase(t.memoAt || null); setClash(null); setEditMemo(true); }}>{t.memo ? "메모 고치기" : "메모 쓰기"}</TBtn>}>하는 법 · 메모</Head>
     {editMemo ? <div><textarea value={memo} onChange={(e) => setMemo(e.target.value)} rows={6} aria-label="하는 법 · 메모" style={{ ...inp, resize: "vertical", lineHeight: 1.6 }} />
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}><Big tone="white" onClick={() => setEditMemo(false)} style={{ flex: 1, height: 44 }}>취소</Big><Big onClick={saveMemo} style={{ flex: 1, height: 44 }}>메모 저장</Big></div>
       {clash && <Clash who={clash.memoByName} at={clash.memoAt} text={clash.memo} onMerge={() => { setMemo(`${clash.memo || ""}\n\n${memo}`.trim()); setMemoBase(clash.memoAt || null); setClash(null); }} onMine={() => saveMemo(true)} />}</div>
     : <Card style={{ padding: "12px 14px" }}><div style={{ fontSize: 14.5, color: t.memo ? C.text : C.mute, whiteSpace: "pre-wrap", lineHeight: 1.65, wordBreak: "break-word" }}>{t.memo ? <Linked text={t.memo} /> : "적어 둔 하는 법이 없어요"}</div>{t.memoAt && <div style={{ marginTop: 6, fontSize: 12, color: C.mute }}>{t.memoByName || nameOf(D.users, t.memoBy)} · {ago(t.memoAt)} 고침</div>}</Card>}
-    <Head right={canEdit && <><TBtn onClick={() => fileRef.current && fileRef.current.click()}>+ 파일 올리기</TBtn><input ref={fileRef} type="file" multiple hidden aria-label="파일 고르기" onChange={(e) => { const f = [...e.target.files]; e.target.value = ""; if (f.length) A.addFiles(t, f); }} /></>}>자료 {files.length}</Head>
-    <Card>{files.length === 0 ? <Empty>올린 자료가 없어요</Empty> : files.map((f, i) => <FileRow key={i} f={f} last={i === files.length - 1} />)}</Card>
+    <Head right={canEdit && <UpBtn U={U} />}>자료 {files.length}</Head>
+    <UpList U={U} style={{ marginBottom: 8 }} />
+    <FileList files={files} />
     <div id="v2-fx-talk" style={{ scrollMarginTop: 8 }}><Head>대화</Head></div>
-    <Thread D={D} cu={cu} A={A} notes={notes} itemId={taskNoteId(t.id)} ctx={{ taskId: t.id }} />
+    <Thread D={D} cu={cu} A={A} notes={notes} itemId={taskNoteId(t.id)} ctx={{ taskId: t.id }} link={{ kind: "t", id: t.id }} hl={note} rec={rec ? { date: rec.date, uid: rec.uid, qty: rec.qty, runs: rec.runs } : null} onRec={setRec} cfg={cfg} />
     {oldNotes.length > 0 && <Card style={{ marginTop: 10 }}>
       <More onClick={() => setOldOpen(!oldOpen)}>{oldOpen ? "예전 내 메모 접기 ▴" : `예전 내 메모 ${oldNotes.length} ▾`} <span style={{ color: C.mute, fontWeight: 700 }}>읽기만</span></More>
       {oldOpen && oldNotes.map((n, i) => <div key={n.id} style={{ padding: "10px 14px", borderTop: `1px solid ${C.line}` }}>
         <div style={{ fontSize: 12, color: C.mute }}>{n.byName || nameOf(D.users, n.by)} · {n.at ? md(ymd(new Date(n.at))) : ""}</div>
         <div style={{ fontSize: 14, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 2, wordBreak: "break-word" }}><Linked text={n.text} /></div>
-        {(n.files || []).map((f, j) => <a key={j} href={f.url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 4, marginRight: 8, fontSize: 13, color: C.navy, fontWeight: 700 }}>{f.name} ›</a>)}</div>)}
+        <NoteFiles files={n.files} /></div>)}
     </Card>}
   </Sheet>;
 }
 
+// 고정업무·반복 실행 설정 [더 하기 ▾] — 드문 동작: 체크리스트 고치기 · 보이는 이름·내 시간 · 브랜드·개인 바꾸기 · 반복·시간 · 담당(관리자)
+function FxMore({ t, D, cu, A, focus, mine, canRecur, canCommon, canScope, master, setToast }) {
+  const [more, setMore] = useState(false), [mode, setMode] = useState(focus === "owners" && master ? "owners" : "");   // 관리자 '담당 없는 고정업무'에서 열면 담당 고르기 바로
+  const go = (m) => { setMore(false); setMode(m); }, done = () => setMode("");
+  const any = mine || canCommon || canScope || canRecur || master;
+  if (!any) return null;
+  return <div style={{ marginTop: 10 }}>
+    <TBtn onClick={() => { setMore(!more); setMode(""); }} aria-expanded={more}>{more ? "접기 ▴" : "더 하기 ▾"}</TBtn>
+    {more && <div className="v2-more" role="group" aria-label="더 하기">
+      {(mine || canCommon) && <TBtn v="soft" onClick={() => go("subs")}>체크리스트 고치기</TBtn>}
+      {mine && <TBtn v="soft" onClick={() => go("label")}>보이는 이름 · 내 시간</TBtn>}
+      {canScope && <TBtn v="soft" onClick={() => go("scope")}>브랜드·개인 바꾸기</TBtn>}
+      {canRecur && <TBtn v="soft" onClick={() => go("recur")}>반복 · 시간</TBtn>}
+      {canCommon && <TBtn v="soft" onClick={() => go("qty")}>건수 칸</TBtn>}
+      {master && <TBtn v="soft" onClick={() => go("owners")}>담당 바꾸기</TBtn>}
+    </div>}
+    {mode === "qty" && <QtyCfgEdit cfg={qtyCfg(t)} onSave={(q) => { A.setQtyCfg(t, q); done(); }} onDone={done} />}
+    {mode === "subs" && <SubsEdit t={t} cu={cu} A={A} canMine={mine} canCommon={canCommon} onDone={done} />}
+    {mode === "label" && <LabelEdit t={t} cu={cu} A={A} onDone={done} />}
+    {mode === "scope" && <ScopeEdit t={t} D={D} A={A} onDone={done} />}
+    {mode === "recur" && <RecurEdit t={t} A={A} onDone={done} />}
+    {mode === "owners" && <FxOwners t={t} D={D} A={A} setToast={setToast} onDone={done} />}
+  </div>;
+}
+// 체크리스트 고치기: [공통 | 내 것] · 칩 ✕ 로 빼기 · 입력 + [추가](Enter 도) · 저장(공통은 transaction 으로 통째 · 내 것은 내 칸만) · 같은 항목은 id 그대로(체크 기록 이어짐)
+function SubsEdit({ t, cu, A, canMine, canCommon, onDone }) {
+  const [who, setWho] = useState(canCommon ? "*" : cu.id);
+  const init = (w) => (((t.subsBy || {})[w]) || []).filter((x) => x && x.title).map((x) => ({ id: x.id, title: x.title }));
+  const [list, setList] = useState(() => init(canCommon ? "*" : cu.id)), [v, setV] = useState("");
+  const pick = (w) => { setWho(w); setList(init(w)); setV(""); };
+  const add = () => { const x = v.trim(); if (!x) return; setList([...list, { id: newId("s"), title: x }]); setV(""); };
+  const save = async () => { const extra = v.trim() ? [{ id: newId("s"), title: v.trim() }] : []; const ok = await A.setSubs(t, who, [...list, ...extra]); if (ok) onDone(); };
+  const common = init("*");
+  return <Card style={{ marginTop: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+    {canCommon && canMine && <Seg items={[["*", "공통"], [cu.id, "내 것"]]} value={who} onChange={pick} />}
+    <div style={{ fontSize: 12.5, color: C.sub }}>{who === "*" ? "담당 모두에게 보이는 목록이에요" : `나만 보는 목록이에요 · 비우면 공통 목록${common.length ? `(${common.map((x) => x.title).join(" · ")})` : ""}을 써요`}</div>
+    {list.length > 0 ? <div className="v2-chips">{list.map((x, i) => <Chip key={x.id || i} on onClick={() => setList(list.filter((_, j) => j !== i))}>{x.title} ✕</Chip>)}</div> : <div style={{ fontSize: 13, color: C.mute }}>항목이 없어요</div>}
+    <div style={{ display: "flex", gap: 8 }}><input value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} placeholder="새 항목" aria-label="체크리스트 항목" style={{ ...inp, flex: 1, minWidth: 0, padding: "9px 12px" }} /><TBtn onClick={add} disabled={!v.trim()}>추가</TBtn></div>
+    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><TBtn tone="mute" onClick={onDone}>그만</TBtn><TBtn v="solid" onClick={save}>저장 · {list.length + (v.trim() ? 1 : 0)}개</TBtn></div>
+  </Card>;
+}
+// 건수 칸 (그날 몇 건 했는지 남기는 칸) — 이름 · 단위 · 끄기 (고정업무 t.qty · 반복 실행 덧칠 qty 가 같이 씀)
+export function QtyCfgEdit({ cfg, onSave, onDone, note }) {
+  const [label, setLabel] = useState((cfg && cfg.label) || ""), [unit, setUnit] = useState((cfg && cfg.unit) || "건");
+  return <Card style={{ marginTop: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ fontSize: 12.5, color: C.sub }}>{note || "켜면 체크한 뒤 '오늘 몇 건이에요?'를 한 줄로 물어요 · 날짜별로 쌓여요"}</div>
+    <label style={{ fontSize: 13, fontWeight: 800, color: C.ink }}>무엇을 세나요<input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="예: 처리한 문의 · 전화" aria-label="건수 칸 이름" style={{ ...inp, marginTop: 6, padding: "9px 12px" }} /></label>
+    <div className="v2-chips" role="group" aria-label="단위">{QTY_UNITS.map((u) => <Chip key={u} on={unit === u} onClick={() => setUnit(u)}>{u}</Chip>)}</div>
+    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>{cfg && <TBtn tone="mute" onClick={() => onSave(null)}>건수 칸 끄기</TBtn>}<span style={{ flex: 1 }} /><TBtn tone="mute" onClick={onDone}>그만</TBtn><TBtn v="solid" onClick={() => onSave({ label: label.trim() || "건수", unit })}>{cfg ? "저장" : "켜기"}</TBtn></div>
+  </Card>;
+}
+// 보이는 이름 · 내 시간 (나만 · labelBy.<나> · timeBy.<나>) — 비우면 공통 이름·시간
+function LabelEdit({ t, cu, A, onDone }) {
+  const [l, setL] = useState(((t.labelBy || {})[cu.id]) || ""), [tm, setTm] = useState(((t.timeBy || {})[cu.id]) || "");
+  const save = () => { if (l.trim() !== (((t.labelBy || {})[cu.id]) || "")) A.setMine(t, "labelBy", l); if (tm !== (((t.timeBy || {})[cu.id]) || "")) A.setMine(t, "timeBy", tm); onDone(); };
+  return <Card style={{ marginTop: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+    <label style={{ fontSize: 13, fontWeight: 800, color: C.ink }}>보이는 이름 <span style={{ color: C.mute, fontWeight: 700 }}>(나만)</span><input value={l} onChange={(e) => setL(e.target.value)} placeholder={t.title} aria-label="보이는 이름" style={{ ...inp, marginTop: 6, padding: "9px 12px" }} /></label>
+    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 800, color: C.ink, flexWrap: "wrap" }}>내 시간 <input type="time" aria-label="내 시간" className="v2-sel" value={tm} onChange={(e) => setTm(e.target.value)} />{tm && <TBtn onClick={() => setTm("")}>지우기</TBtn>}<span style={{ fontSize: 12, color: C.mute, fontWeight: 700 }}>비우면 {t.fixedTime || "시간 상관없음"}</span></label>
+    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><TBtn tone="mute" onClick={onDone}>그만</TBtn><TBtn v="solid" onClick={save}>저장</TBtn></div>
+  </Card>;
+}
+// 브랜드·개인 바꾸기 — 1탭 · 5초 되돌리기 (반복 실행 = 브랜드 · 공통 운영 / 고정업무 = 개인)
+function ScopeEdit({ t, D, A, onDone }) {
+  const sc = scopeOf(t), cur = sc === "me" ? "me" : sc === "brand" ? brandKey(t.brand, D.brands) : "";
+  const pick = async (k) => { if (k === cur) return; const ok = await A.setScopes([{ t, pick: k }]); if (ok) onDone(); };
+  return <Card style={{ marginTop: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ fontSize: 12.5, color: C.sub }}>반복 실행이면 브랜드를, 나만 챙기는 일이면 [개인]을 골라요</div>
+    <div className="v2-chips" role="group" aria-label="브랜드·개인">{[...brandsWithCommon(D.brands).map((b) => [b.id, b.name]), ["me", "개인"]].map(([k, l]) => <Chip key={k} on={k === cur} onClick={() => pick(k)}>{k === cur ? "✓ " : ""}{l}</Chip>)}</div>
+    <div style={{ display: "flex", justifyContent: "flex-end" }}><TBtn tone="mute" onClick={onDone}>그만</TBtn></div>
+  </Card>;
+}
 // 고정업무 담당 바꾸기 (마스터) — 여러 명 고르기 또는 '전체' · 사람마다 정한 시간·이름·체크 기록은 지우지 않음 · 5초 되돌리기
-function FxOwners({ t, D, A, setToast }) {
-  const users = activeUsers(D.users), [on, setOn] = useState(false), [sel, setSel] = useState([]), [all, setAll] = useState(false);
+function FxOwners({ t, D, A, setToast, onDone }) {
+  const users = activeUsers(D.users), [on, setOn0] = useState(false), [sel, setSel] = useState([]), [all, setAll] = useState(false);
+  const setOn = (v) => { setOn0(v); if (!v && onDone) onDone(); };
+  useEffect(() => { if (onDone) { setSel(fxIds(t).filter((id) => users.some((u) => u.id === id))); setAll(!!t.forAll); setOn0(true); } }, []);
   if (!on) return <div style={{ marginTop: 4 }}><TBtn onClick={() => { setSel(fxIds(t).filter((id) => users.some((u) => u.id === id))); setAll(!!t.forAll); setOn(true); }}>담당 바꾸기 ›</TBtn></div>;
   const names = all ? "전체" : sel.map((id) => nameOf(D.users, id)).filter(Boolean).join("·");
   const save = () => { const prev = { assigneeIds: t.assigneeIds || [], assigneeId: t.assigneeId || "", forAll: !!t.forAll };
@@ -342,8 +448,9 @@ function FxOwners({ t, D, A, setToast }) {
   </Card>;
 }
 // 고정업무 반복·시간 바꾸기 (담당·마스터) — 매일 / 매주(요일 여러 개) / 매월(1~31일 · 말일(평일)). 바뀐 칸만 저장 + 기록에 이전 값
-function RecurEdit({ t, A }) {
-  const [on, setOn] = useState(false);
+function RecurEdit({ t, A, onDone }) {
+  const [on, setOn0] = useState(!!onDone);
+  const setOn = (v) => { setOn0(v); if (!v && onDone) onDone(); };
   const init = () => ({ rt: t.recurType || "daily", wd: fxWeekDays(t), mday: t.monthEnd ? "end" : String(t.monthDay || 1), time: t.fixedTime || "" });
   const [f, setF] = useState(init);
   const key = ymd(new Date());

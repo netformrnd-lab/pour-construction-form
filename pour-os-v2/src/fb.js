@@ -7,9 +7,9 @@
 import { initializeApp } from "firebase/app";
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager, getFirestore,
-  doc, collection, query, where, onSnapshot, getDoc, getDocFromServer, getDocs, setDoc, updateDoc, writeBatch, arrayUnion, arrayRemove, deleteField, runTransaction,
+  doc, collection, query, where, onSnapshot, getDoc, getDocFromServer, getDocs, setDoc, updateDoc, writeBatch, arrayUnion, arrayRemove, deleteField, runTransaction, increment,
 } from "firebase/firestore";
-import { getStorage, ref as sref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getStorage, ref as sref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
 const app = initializeApp({
   apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
@@ -32,15 +32,18 @@ const META = doc(db, ...ROOT);
 
 const toItems = (snap) => snap.docs.map((d) => ({ ...d.data(), id: d.data().id || d.id, _doc: d.id }));
 
+// 조건: null = 전체 · [칸, 연산, 값] 하나 · [[칸, '==', 값], [칸, '==', 값]] 여러 개(같음 조건끼리만 — 복합 색인 없이 됨 · 하루 기록 itemId+ym)
+const qOf = (key, w) => (!w ? v2col(key) : Array.isArray(w[0]) ? query(v2col(key), ...w.map((c) => where(c[0], c[1], c[2]))) : query(v2col(key), where(w[0], w[1], w[2])));
+const wTxt = (w) => (!w ? "" : Array.isArray(w[0]) ? w.map((c) => c.join(" ")).join(" & ") : w.join(" "));
 // 실시간 구독 — w: null 이면 전체, [칸, 연산, 값] 이면 조건 (orderBy 안 씀 · 정렬은 화면에서)
 export function listen(key, w, cb, onErr) {
-  const q = w ? query(v2col(key), where(w[0], w[1], w[2])) : v2col(key);
-  return onSnapshot(q, (snap) => { const items = toItems(snap); console.log(`[v2 ${key}${w ? " " + w.join(" ") : ""}] ${items.length}건${snap.metadata.fromCache ? " (기기 저장)" : ""}`); cb(items, snap.metadata.fromCache); },
+  const q = qOf(key, w);
+  return onSnapshot(q, (snap) => { const items = toItems(snap); console.log(`[v2 ${key}${w ? " " + wTxt(w) : ""}] ${items.length}건${snap.metadata.fromCache ? " (기기 저장)" : ""}`); cb(items, snap.metadata.fromCache); },
     (e) => { console.error(`[v2 ${key}] 구독 실패:`, e); onErr && onErr(e); });
 }
 export async function fetchWhere(key, w) {
-  const snap = await getDocs(w ? query(v2col(key), where(w[0], w[1], w[2])) : v2col(key));
-  const items = toItems(snap); console.log(`[v2 ${key} ${w ? w.join(" ") : "전체"}] ${items.length}건`); return items;
+  const snap = await getDocs(qOf(key, w));
+  const items = toItems(snap); console.log(`[v2 ${key} ${w ? wTxt(w) : "전체"}] ${items.length}건`); return items;
 }
 // 복사 정보 — 서버에서 직접 확인(기기 저장의 빈 값으로 판단하지 않음)
 export async function getMeta() { const s = await getDocFromServer(META); return s.exists() ? s.data() : null; }
@@ -79,15 +82,16 @@ export function listenV1Doc(id, cb, onErr) {
     (e) => { console.error(`[v1 ${id}] 읽기 실패:`, e); onErr && onErr(e); });
 }
 export async function readV1Notes() { const snap = await getDocs(collection(db, "pour-os", "ak-notes", "c")); console.log(`[v1 댓글 읽기] ${snap.size}건`); return snap.docs.map((d) => ({ ...d.data(), id: d.data().id || d.id })); }
-// 파일 올리기 (task-attachments/v2/{대상}/…)
-export async function upload(target, file) {
+// 파일 올리기 (task-attachments/v2/{대상}/…) · onProg(0~1) = 올라간 비율 (uploadBytesResumable)
+export async function upload(target, file, onProg) {
   const safe = String(file.name || "file").replace(/[^\w.\-가-힣]/g, "_").slice(-80);
   const path = `task-attachments/v2/${String(target).replace(/[^\w\-]/g, "_")}/${Date.now()}_${safe}`;
   const r = sref(storage, path);
-  await uploadBytes(r, file, { contentType: file.type || "application/octet-stream" });
+  await new Promise((ok, no) => { const up = uploadBytesResumable(r, file, { contentType: file.type || "application/octet-stream" });
+    up.on("state_changed", (s) => { if (onProg && s.totalBytes) onProg(s.bytesTransferred / s.totalBytes); }, no, ok); });
   return { name: file.name || "file", url: await getDownloadURL(r), path, size: file.size || 0, type: file.type || "", uploadedAt: new Date().toISOString() };
 }
-export { arrayUnion, arrayRemove, deleteField };
+export { arrayUnion, arrayRemove, deleteField, increment };
 export const NO_NET = false;   // 시험용 가짜 저장 장치만 true (그로홈 매출 REST 안 읽음)
 
 // ── 여러 사람이 같이 쓸 때: 조건부 쓰기 (서버의 지금 값을 확인하고 씀) ──
@@ -164,4 +168,13 @@ export async function readLaunchProduct(id) { const s = await getDocFromServer(L
 export async function txDoc(key, id, fn) {
   return runTransaction(db, async (tx) => { const r = v2doc(key, id), s = await tx.get(r), cur = s.exists() ? s.data() : null, out = fn(cur) || {};
     if (out.write) { if (s.exists()) tx.update(r, out.write); else tx.set(r, { id, ...out.write }); } return out.ret ?? null; });
+}
+// 여러 문서를 한 transaction 으로 (반복 실행 +1 = 분기 실적 + 그날 기록 + 체크리스트 진행 중 문서를 같이 · 하나만 써지는 일 없음)
+//   docs: [{key, id}] · fn(curs[]) → { writes: [fields | null](docs 순서) , ret } — 없던 문서는 set({id, …}) · 있던 문서는 update(점 경로 가능)
+//   없던 문서에 쓸 칸은 점 경로가 아니라 통째 모양이어야 함 (set 은 점 경로를 칸 이름으로 씀)
+export async function txDocs(docs, fn) {
+  return runTransaction(db, async (tx) => { const refs = docs.map((d) => v2doc(d.key, d.id)), snaps = await Promise.all(refs.map((r) => tx.get(r)));
+    const out = fn(snaps.map((s) => (s.exists() ? s.data() : null))) || {};
+    (out.writes || []).forEach((w, i) => { if (!w) return; if (snaps[i].exists()) tx.update(refs[i], w); else tx.set(refs[i], { id: docs[i].id, ...w }); });
+    return out.ret ?? null; });
 }

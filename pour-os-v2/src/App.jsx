@@ -9,7 +9,7 @@ import {
   reqOf, needsReview, dueApprover,
 } from "./model.js";
 import { TodayTab, TurnSheet, MyTidySheet, UpTurnsSheet } from "./today.jsx";
-import { MoreTab, AssignedSheet, MyFixedSheet } from "./more.jsx";
+import { MoreTab, AssignedSheet, MyFixedSheet, AddFixedSheet, MyNotesSheet } from "./more.jsx";
 import { turnIndex, turnsOf } from "./turn.js";
 import { SheetRouter } from "./sheets.jsx";
 import { MyKpiSheet, LagSheet, useGhRefresh, KpiEditSheet } from "./kpiui.jsx";
@@ -17,7 +17,7 @@ import { TaskSheet, FixedSheet, openTask } from "./task.jsx";
 import { ProjectsTab, ProjectSheet, NewProjectSheet, DoneProjectsSheet } from "./project.jsx";
 import { CalendarTab } from "./schedule.jsx";
 import { planLaunchImport, relaunch } from "./launch.js";
-import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked, useBackClose } from "./ui.jsx";
+import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked, useBackClose, parseAppHash } from "./ui.jsx";
 
 export const BUILD = "v2-3단계 1003 실사용·관리자";
 import { useBoot, Gate, useActs, V1_URL, LS, nowIso } from "./core.jsx";
@@ -48,10 +48,15 @@ function Main({ D, cu, meta, setMeta, logout }) {
   const back = () => setStack((st) => st.slice(0, -1));
   const closeAll = () => setStack([]);
   useBackClose(stack.length, setStack);   // 폰 뒤로 = 맨 위 시트만 닫기
-  // 링크로 열기: …os2.html#t-업무ID / #p-프로젝트ID (업무·프로젝트 화면의 '링크 복사') → 로그인 뒤 그 화면 바로
-  useEffect(() => { const m = /^#(t|p)-(.+)$/.exec(window.location.hash || ""); if (!m) return; const id = decodeURIComponent(m[2]);
-    window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
-    if (m[1] === "p") open({ type: "project", id }); else { const t = D.tasks.find((x) => x.id === id); open({ type: t && t.isFixed ? "fixed" : "task", id }); } }, []);
+  // 링크로 열기: …os2.html#t-업무ID / #p-프로젝트ID (업무·프로젝트 화면의 '링크 복사') / #r-반복실행ID (문자 알림) → 로그인 뒤 그 화면 바로
+  //   댓글 링크 '~c-댓글ID' (대화의 [링크 복사]) → 대화 칸으로 가서 그 댓글에 잠깐 테두리 (프로젝트는 소식 탭 '프로젝트에 한마디') · 로그인한 채로 링크를 열어도(hashchange)
+  const Dref = useRef(D); Dref.current = D;
+  useEffect(() => { const go = () => { const h = parseAppHash(window.location.hash); if (!h) return; const { kind, id, note } = h;
+      window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
+      const nt = note ? { focus: "talk", note } : {};
+      if (kind === "p") open({ type: "project", id, ...(note ? { first: "news", note } : {}) }); else if (kind === "r") open({ type: "routine", id, ...nt });
+      else { const t = Dref.current.tasks.find((x) => x.id === id); open({ type: t && t.isFixed ? "fixed" : "task", id, ...nt }); } };
+    go(); window.addEventListener("hashchange", go); return () => window.removeEventListener("hashchange", go); }, []);
   // 시트 화면 상태(지난 일 정리 몇 번째 · 내 정리 탭·고른 것 · 프로젝트 탭)를 그 시트 칸에 적어 둠 → 위 시트에서 '뒤로' 오면 이어서
   const saveAt = (i, patch) => setStack((st) => st.map((x, j) => (j === i ? { ...x, ...patch } : x)));
   useGhRefresh(D, cu);   // 그로홈 매출 합계 (마스터 기기 · 3시간에 한 번)
@@ -66,6 +71,8 @@ function Main({ D, cu, meta, setMeta, logout }) {
     myTidy: (p, s) => <MyTidySheet {...p} tab0={s.tab} st={s} />,
     assigned: (p) => <AssignedSheet {...p} />,
     myFixed: (p) => <MyFixedSheet {...p} />,
+    addFixed: (p) => <AddFixedSheet {...p} />,
+    myNotes: (p) => <MyNotesSheet {...p} />,
     myKpi: (p) => <MyKpiSheet {...p} goToday={() => { setTab("today"); closeAll(); window.scrollTo(0, 0); }} />,
     lagInput: (p, s) => <LagSheet {...p} s={s} />,
     kpiEdit: (p, s) => <KpiEditSheet {...p} s={s} />,

@@ -2,7 +2,7 @@
 //  반복 업무 = 고정업무(v2 tasks isFixed) + 행동지표(버전1 actionKPIs, 읽기만)
 //  프로젝트 업무 = 기한 있는 한 번짜리 일(고정업무 아님)
 //  주 = 월~일. 지난 날에 안 한 것 = 못 함, 오늘부터 남은 것 = 남음
-import { addDays, isDone, isMine, dueOf, isOffDay, fxPeople, fxDueOn, fxDoneOn, ownersOf } from "../model.js";
+import { addDays, isDone, isMine, dueOf, isOffDay, fxPeople, fxDueOn, fxDoneOn, ownersOf, cyclePending } from "../model.js";
 import { akBy, akWho, akStart } from "../../../pour-os/src/actionKpi.js";
 
 const openOneOff = (t) => !!t && !t.isFixed && !isDone(t) && t.status !== "review" && t.status !== "hold";   // common.jsx 와 같은 기준 (계산 시험용으로 여기 둠)
@@ -41,18 +41,18 @@ export function weekLoad({ D, uid, from, key, checks, akItems, akDocs, temp, noT
   (D.tasks || []).filter((t) => t.isFixed && !t.paused && !t.deleted && fxPeople(D.users, t).includes(uid)).forEach((t) => {
     const days = fxWeek(t, uid, from, key, checks); if (!days.length) return;
     const done = days.filter((x) => x.done).length, miss = days.filter((x) => x.state === "miss").length;
-    items.push({ kind: "fx", id: t.id, title: t.title, due: days.length, done, miss, left: days.length - done - miss, days });
+    items.push({ kind: "fx", id: t.id, title: t.title, due: days.length, done, miss, left: days.length - done - miss, days, ...(cyclePending(t) ? { pending: true } : {}) });   // 주기 확인 전 = 목록엔 보이고 합계(달성률)에서만 뺌
   });
   (akItems || []).filter((it) => akCountable(it) && akWho(D.users, it).includes(uid) && akStart(it) <= to).forEach((it) => {
     const goal = akWeekGoal(it), got = +((akBy(akDocs || {}, it, from) || {})[uid] || 0), done = Math.min(got, goal), short = goal - done;
     items.push({ kind: "ak", id: it.id, title: it.name, due: goal, done, got, miss: past ? short : 0, left: past ? 0 : short, cyc: it.cyc, unit: it.unit || "" });
   });
-  const sum = (k) => items.reduce((a, x) => a + x[k], 0);
+  const sum = (k) => items.reduce((a, x) => a + (x.pending ? 0 : x[k]), 0);
   const rep = { due: sum("due"), done: sum("done"), miss: sum("miss"), left: sum("left"), items };
   return { one, rep };
 }
 // 칸 아래 한 줄: 가장 많이 못 한(남은) 것 2개
-export const topMiss = (items, n = 2) => items.filter((x) => x.miss + x.left > 0).sort((a, b) => b.miss - a.miss || b.left - a.left).slice(0, n)
+export const topMiss = (items, n = 2) => items.filter((x) => !x.pending && x.miss + x.left > 0).sort((a, b) => b.miss - a.miss || b.left - a.left).slice(0, n)
   .map((x) => `${x.title.length > 10 ? x.title.slice(0, 10) + "…" : x.title} ${x.miss || x.left}`).join(" · ");
 // 프로젝트 칸 아래 한 줄
 export const ownersLine = (t, users) => ownersOf(t).map((id) => ((users || []).find((u) => u.id === id) || {}).name).filter(Boolean).join(", ");

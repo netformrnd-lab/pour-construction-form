@@ -349,3 +349,67 @@ div.a-reprow { cursor: default; }
 .a-rtno .a-rtname { display: flex; flex-direction: column; width: 100%; border-top: 1px solid #EEF0F4; }
 
 @media (max-width: 480px) { .a-pre { display: none; } }
+/* 반복 실행 2단계: 브랜드 안 정한 고정업무 · 주기 확인 필요 (줄마다 칩 1탭) */
+.a-rtset { background: #fff; border: 1.5px solid #E2E6EE; border-radius: 12px; margin: 8px 0 10px; overflow: hidden; }
+.a-rtseth { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: #F6F7FA; padding-right: 10px; }
+.a-rtseth .a-rtnoh { flex: 1 1 260px; min-width: 0; }
+.a-rtseth > button:last-child:not(.a-rtnoh) { margin: 6px 0; }
+.a-rtsrow { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 10px 12px; border-top: 1px solid #EEF0F4; }
+.a-rtsrow .a-rtname { flex: 1 1 220px; min-width: 0; border-top: none !important; width: auto !important; }
+.a-rtschips { display: flex; flex-wrap: wrap; gap: 6px; }
+.a-rtschips button { border: 1.5px solid #E2E6EE; background: #fff; color: #5B6475; border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.a-rtschips button.rec { border-color: #24386B; color: #24386B; background: #EEF1F8; font-weight: 800; }
+.a-rtschips button:disabled { opacity: .5; cursor: default; }
+.a-rtsnote { padding: 8px 12px 10px; font-size: 12px; color: #8A92A3; border-top: 1px solid #EEF0F4; }
+/* 반복 실행 3단계: 오늘 건수 · 메모·파일 · 주 칸 건수 · 기록 표 */
+.a-rtname small.a-rtqm { color: #5B6475; }
+.a-rtname small.a-rtqm b { color: #24386B; font-size: 12px; }
+.a-akc small { display: block; font-size: 10px; font-weight: 700; color: #8A92A3; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.a-akt { flex-wrap: wrap; }
+.a-akt .q { flex-basis: 100%; font-size: 11.5px; color: #8A92A3; font-weight: 700; }
+.a-akname { display: block; border: none; background: none; padding: 0; font: inherit; font-size: 14px; font-weight: 700; color: #1B2333; line-height: 1.35; text-align: left; cursor: pointer; }
+.a-akname:hover { text-decoration: underline; }
+.a-recbook { margin-top: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; background: #fff; border: 1px solid #E3E7F0; border-radius: 14px; max-width: 100%; }
+.a-recbook table { border-collapse: collapse; font-size: 12.5px; min-width: 100%; }
+.a-recbook th, .a-recbook td { padding: 8px 10px; border-bottom: 1px solid #F0F2F6; white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; color: #1B2333; }
+.a-recbook thead th { background: #F8F9FB; color: #5B6475; font-weight: 800; }
+.a-recbook tbody th, .a-recbook thead th:first-child { position: sticky; left: 0; background: #fff; text-align: left; color: #0F1F5C; font-weight: 800; z-index: 1; }
+.a-recbook thead th:first-child { background: #F8F9FB; }
+.a-recbook tr.sum td, .a-recbook tr.sum th { font-weight: 800; color: #24386B; background: #F4F5F8; }
+
+/* 협업 맵 (admin/Collab.jsx) — 그림은 자기 칸 안에서만 옆으로 밀림 · 폰은 팀 그림 대신 짝 순위 */
+.cm-note { margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: #EEF1F8; font-size: 12.5px; color: #24386B; line-height: 1.5; }
+.cm-team { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.cm-net { display: none; }
+.cm-net .cm-svg { width: 100%; height: auto; display: block; }
+.cm-netm { font-size: 13px; color: #5B6475; padding: 8px 6px 2px; line-height: 1.5; }
+.cm-svg { display: block; max-width: none; }
+.cm-node { cursor: pointer; outline: none; }
+.cm-node:focus-visible rect, .cm-node:focus-visible circle { stroke: #0F1F5C; stroke-width: 3; }
+.cm-foot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 8px 4px 2px; }
+.cm-legend { flex: 1 1 200px; min-width: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: #5B6475; }
+.cm-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 6px; border: 1.5px solid #24386B; margin-right: 4px; vertical-align: -2px; }
+.cm-rank { background: #fff; border: 1px solid #E3E7F0; border-radius: 16px; overflow: hidden; min-width: 0; }
+.cm-rh { padding: 12px 14px 6px; font-size: 14px; font-weight: 800; color: #0F1F5C; }
+.cm-pr, .cm-it { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; min-height: 52px; border: none; border-top: 1px solid #E3E7F0; background: #fff; font: inherit; text-align: left; cursor: pointer; }
+.cm-pr .no { flex: 0 0 20px; font-size: 12.5px; font-weight: 800; color: #8A92A3; text-align: right; font-variant-numeric: tabular-nums; }
+.cm-pr .tx, .cm-it .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cm-pr .tx b, .cm-it .tx b { font-size: 14px; font-weight: 800; color: #1B2333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cm-pr .tx small, .cm-it .tx small { font-size: 12px; color: #5B6475; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cm-pr .ct, .cm-ph .ct { flex: 0 0 auto; font-size: 15px; font-weight: 800; color: #24386B; font-variant-numeric: tabular-nums; }
+.cm-ph .ct { font-size: 13px; padding: 1px 8px; border-radius: 9px; background: #EEF1F8; margin-left: 4px; }
+.cm-more { display: block; width: 100%; padding: 12px 14px; border: none; border-top: 1px solid #E3E7F0; background: #fff; font: inherit; font-size: 13.5px; font-weight: 800; color: #24386B; cursor: pointer; }
+.cm-sum { font-size: 12.5px; color: #5B6475; margin: 10px 2px 0; line-height: 1.6; word-break: keep-all; }
+.cm-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.cm-scroll.fit .cm-svg { width: 100%; height: auto; }
+.cm-ph { display: flex; align-items: center; gap: 8px; padding: 12px 14px; }
+.cm-ph b { font-size: 15px; font-weight: 800; color: #0F1F5C; }
+.cm-kinds { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.cm-kinds span { font-size: 11.5px; font-weight: 800; color: #24386B; background: #EEF1F8; padding: 2px 7px; border-radius: 6px; }
+.cm-it .tg { flex: 0 0 auto; font-size: 11px; font-weight: 800; color: #24386B; background: #EEF1F8; padding: 2px 6px; border-radius: 6px; }
+.cm-it .lk { font-style: normal; font-size: 10.5px; font-weight: 800; color: #fff; background: #24386B; padding: 1px 5px; border-radius: 5px; margin-right: 5px; vertical-align: 1px; }
+.cm-it .go { flex: 0 0 auto; color: #24386B; font-weight: 800; }
+@media (min-width: 700px) { .cm-net { display: block; } .cm-netm { display: none; } }
+@media (min-width: 1000px) { .cm-team { display: grid; grid-template-columns: minmax(0, 1fr) 320px; align-items: start; } }
+@media (max-width: 420px) { .a-app .v2-tab { font-size: 12px; letter-spacing: -0.3px; } }
+@media (max-width: 699px) { .cm-dt { display: none; } }

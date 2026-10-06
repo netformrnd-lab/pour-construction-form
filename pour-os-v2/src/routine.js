@@ -6,7 +6,7 @@
 import { akWho, akWeekKey, akQidOfWeek, akWeeksIn, akQuarterWeeks, akMonthOfWeek, akTotal, akVal, akCountable, akOrder, akStep, akGoalText } from "../../pour-os/src/actionKpi.js";
 import { targetOf, countOf, baseTitle, isTempOwner } from "./launch.js";
 export { targetOf, countOf, baseTitle };
-import { isMine, isDone, dueOf, ymd, addDays } from "./model.js";
+import { isMine, isDone, dueOf, ymd, addDays, COMMON_BRAND } from "./model.js";
 
 // 낱말 묶음: 행동지표 이름(괄호 안 말은 뺌 · 체험단은 횟수 항목이 없어 뺌) → 신제품 횟수 항목
 export const RT_GROUPS = [
@@ -47,7 +47,7 @@ export function periodWeeks(it, key) {
 // 오늘 화면 '이번 주 할 횟수': 내 행동지표(사용 중) · 이번 기간 n/목표 · docs = {분기: 합친 문서}
 export function myRoutine(items, users, uid, docs, key) {
   const wk = akWeekKey(new Date(key + "T00:00:00"));
-  return (items || []).filter((it) => it && it.active !== false && !it.deleted && akWho(users, it).includes(uid) && akCountable(it, { end: addD(wk, 6) }))
+  return (items || []).filter((it) => it && it.active !== false && !it.deleted && !it.paused && akWho(users, it).includes(uid) && akCountable(it, { end: addD(wk, 6) }))
     .sort((a, b) => (CYC_RANK[a.cyc] ?? 1) - (CYC_RANK[b.cyc] ?? 1) || akOrder(a, b)).map((it) => { const weeks = periodWeeks(it, key), tot = akTotal(docs, it, weeks), me = weeks.reduce((s, w) => s + akMine(docs, it, w.key, uid), 0);
       return { it, wk, qid: akQidOfWeek(wk), tot, me, owners: akWho(users, it).length, step: akStep(it), per: periodLabel(it, key), goal: akGoalText(it), links: akLaunchItems(it) }; });
 }
@@ -65,7 +65,7 @@ export { akVal };
 const BR = { "POUR스토어": "pourstore", "포어스토어": "pourstore", "그로홈": "grohome", "GROHOME": "grohome", "바라스데이": "barasday" };
 export const brId = (b) => { const s = String(b || "").trim(); return BR[s] || s.toLowerCase(); };
 // 브랜드 이름: D.brands(id·이름) 먼저 → 아는 이름 → 그대로 (bmuqo9k5u 같은 id 가 날것으로 안 보이게)
-export const brandName = (b, brands) => { const s = String(b || "").trim(); if (!s) return "";
+export const brandName = (b, brands) => { const s = String(b || "").trim(); if (!s) return ""; if (s === COMMON_BRAND.id) return COMMON_BRAND.name;
   const hit = (brands || []).find((x) => x && (x.id === s || x.id === brId(s) || String(x.name || "").trim() === s));
   return (hit && hit.name) || ({ pourstore: "POUR스토어", grohome: "그로홈", barasday: "바라스데이" })[brId(s)] || s; };
 export const sameBrand = (a, b) => !brId(a) || !brId(b) || brId(a) === brId(b);
@@ -93,7 +93,8 @@ export function akMatches(t, items, users, uid, brand) {
 export function akWrite(cur, it, wk, d, cu, at, extra) {
   const v = (((cur || {}).w || {})[wk] || {})[it.id] || {}, step = d * akStep(it), fail = !!(extra && extra.fail);
   const n = Math.max(0, (+v.n || 0) + (fail ? 0 : step)), fl = Math.max(0, (+v.fail || 0) + (fail ? d : 0)), mine = Math.max(0, (+((v.by || {})[cu.id]) || 0) + (fail ? 0 : step));
-  const entry = { at, by: cu.id, byName: cu.name, it: it.id, wk, d: step, ...(fail ? { fail: true } : {}), ...(extra && extra.task ? { task: extra.task } : {}) };
+  const entry = { at, by: cu.id, byName: cu.name, it: it.id, wk, d: step, ...(fail ? { fail: true } : {}), ...(extra && extra.task ? { task: extra.task } : {}),
+    ...(extra && extra.date ? { date: extra.date } : {}), ...(extra && extra.qty != null ? { qty: extra.qty } : {}), ...(extra && extra.via ? { via: extra.via } : {}) };   // 3단계: 그날 · 건수 · 어디서(btn 버튼 · list 체크리스트 한 바퀴 · qty 건수)
   if (!cur) return { write: { w: { [wk]: { [it.id]: { n, fail: fl, by: { [cu.id]: mine } } } }, log: [entry] }, ret: n };
   const p = `w.${wk}.${it.id}.`;
   return { write: { [p + "n"]: n, [p + "fail"]: fl, [p + "by." + cu.id]: mine, log: (extra && extra.union ? extra.union(entry) : [...(cur.log || []), entry]) }, ret: n };

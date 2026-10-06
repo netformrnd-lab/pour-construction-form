@@ -149,17 +149,17 @@
 .psm1-tabs { border-bottom:1px solid #F2F3F5; background:#fff; }
 .psm1-tabs-inner { max-width:1256px; margin:0 auto; padding:0 24px; display:flex; align-items:center; gap:0; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; }
 .psm1-tabs-inner::-webkit-scrollbar { display:none; }
-.psm1-tab { padding:15px 14px; font-size:15px; font-weight:600; color:#757575; white-space:nowrap; border-bottom:2px solid transparent; margin-bottom:-1px; transition:.15s; letter-spacing:-0.03em; }
-.psm1-tab.on { color:#E8780F; border-color:#E8780F; font-weight:700; }
+.psm1-tab { padding:15px 14px; font-size:15px; font-weight:600; color:#111111; white-space:nowrap; border-bottom:2px solid transparent; margin-bottom:-1px; transition:.15s; letter-spacing:-0.03em; }
+.psm1-tab.on, .psm1-tab.hot.on, .psm1-tab.story.on { color:#E8780F; border-color:#E8780F; font-weight:700; }
 /* 베스트: 톤다운 — 알약 제거, 오렌지 텍스트 + 작은 따봉으로 '살짝'만 강조 */
-.psm1-tab.hot { color:#E8780F; font-weight:700; display:inline-flex; align-items:center; gap:4px; }
-.psm1-tab.hot:hover { color:#D26A0A; }
-.psm1-tab-thumb { width:15px; height:15px; flex-shrink:0; color:#E8780F; display:inline-flex; }
+.psm1-tab.hot { color:#111111; font-weight:600; display:inline-flex; align-items:center; gap:4px; }
+.psm1-tab.hot:hover { color:#111111; }
+.psm1-tab-thumb { width:15px; height:15px; flex-shrink:0; color:inherit; display:inline-flex; }
 .psm1-tab-thumb svg { width:100%; height:100%; display:block; }
 /* POUR이야기: 배경 없이 확성기 아이콘 + 오렌지 강조 (가끔 흔들리는 효과) */
-.psm1-tab.story { color:#E8780F; font-weight:800; display:inline-flex; align-items:center; gap:5px; }
-.psm1-tab.story:hover { color:#D26A0A; }
-.psm1-tab-mega { width:17px; height:17px; flex-shrink:0; color:#E8780F; display:inline-flex; transform-origin:75% 75%; animation:psm1-mega-wiggle 2.4s ease-in-out infinite; }
+.psm1-tab.story { color:#111111; font-weight:600; display:inline-flex; align-items:center; gap:5px; }
+.psm1-tab.story:hover { color:#111111; }
+.psm1-tab-mega { width:17px; height:17px; flex-shrink:0; color:inherit; display:inline-flex; transform-origin:75% 75%; animation:psm1-mega-wiggle 2.4s ease-in-out infinite; }
 .psm1-tab-mega svg { width:100%; height:100%; display:block; }
 @keyframes psm1-mega-wiggle { 0%,86%,100% { transform:rotate(0); } 90% { transform:rotate(-12deg); } 94% { transform:rotate(9deg); } }
 .psm1-tab:hover { color:#2F3438; }
@@ -462,8 +462,8 @@
 <!-- 2) 카테고리 탭 (복구) — 목적지는 CMS 페이지 제작 후 연결 예정(임시 #) -->
 <nav class="psm1-tabs" aria-label="카테고리 탭">
   <div class="psm1-tabs-inner">
-    <a href="/product/list.html?cate_no=104" class="psm1-tab hot"><span class="psm1-tab-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11M2 13v7a2 2 0 0 0 2 2h13.3a2 2 0 0 0 2-1.7l1.4-9a2 2 0 0 0-2-2.3H14V5a3 3 0 0 0-3-3l-4 9"/></svg></span>베스트</a>
     <a href="/product/list.html?cate_no=73" class="psm1-tab pcatnav-btn" data-pcatnav-btn aria-haspopup="true" aria-expanded="false"><span class="pcatnav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.3"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.3"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.3"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.3"/></svg></span>카테고리</a>
+    <a href="/product/list.html?cate_no=104" class="psm1-tab hot"><span class="psm1-tab-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11M2 13v7a2 2 0 0 0 2 2h13.3a2 2 0 0 0 2-1.7l1.4-9a2 2 0 0 0-2-2.3H14V5a3 3 0 0 0-3-3l-4 9"/></svg></span>베스트</a>
     <a href="/pourstore_renewal/story/pour-story.html" class="psm1-tab story"><span class="psm1-tab-mega"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5v3a1 1 0 0 0 1 1h2l10 4.5V5L6 9.5H4a1 1 0 0 0-1 1z"/><path d="M6 14.5V18a1.5 1.5 0 0 0 3 0v-2"/><path d="M19 9.8a3.4 3.4 0 0 1 0 4.4"/></svg></span>POUR이야기</a>
     <a href="/guide/guide.html" class="psm1-tab">셀프시공</a>
     <a href="/pourstore_renewal/construction/pour-construction-request.html" class="psm1-tab">시공문의</a>
@@ -473,8 +473,8 @@
     <div class="pcatnav-panel" data-pcatnav-panel hidden><div class="pcatnav-panel-inner"><a href="/product/list.html?cate_no=73">전체 제품</a><a href="/product/list.html?cate_no=71">패키지</a><a href="/product/list.html?cate_no=86">방수</a><a href="/product/list.html?cate_no=88">균열보수</a><a href="/product/list.html?cate_no=74">도장·도색</a><a href="/product/list.html?cate_no=117">지붕보강자재</a><a href="/product/list.html?cate_no=119">지하주차장 보강자재</a><a href="/product/list.html?cate_no=118">외벽 보강자재</a><a href="/product/list.html?cate_no=116">도로보강자재</a><a href="/product/list.html?cate_no=84">부자재</a><a href="/product/list.html?cate_no=63">안전용품</a><a href="/product/list.html?cate_no=43">홈리페어·홈데코</a></div></div>
 </nav>
 <style>
-.pcatnav-btn{cursor:pointer;color:#E8780F;font-weight:700;display:inline-flex;align-items:center;gap:4px;}
-.pcatnav-btn:hover{color:#D26A0A;}
+.pcatnav-btn{cursor:pointer;color:#111111;font-weight:600;display:inline-flex;align-items:center;gap:4px;}
+.pcatnav-btn:hover{color:#111111;}
 .pcatnav-ico{width:15px;height:15px;flex-shrink:0;display:inline-flex;}
 .pcatnav-ico svg{width:100%;height:100%;display:block;}
 .psm1-tabs{position:relative;}
@@ -485,6 +485,24 @@
 .pcatnav-panel-inner a:hover{background:#FBF5EE;color:#E8780F;}
 @media (max-width:640px){ .pcatnav-panel-inner{grid-template-columns:repeat(2,1fr);padding:12px 14px;gap:2px 12px;} .pcatnav-panel-inner a{font-size:14px;padding:10px;} }
 </style>
+<script>
+/* 현재 보는 페이지 탭만 주황색 표시 (nav-active-mark) */
+(function(){
+  try{
+    var tabs=document.querySelectorAll(".psm1-tabs-inner .psm1-tab"); if(!tabs.length) return;
+    var p=(location.pathname||"").replace(/\/+$/,"");
+    var cate=null; try{ cate=new URLSearchParams(location.search).get("cate_no"); }catch(e){}
+    var isList=/\/product\/list\d*\.html$/.test(p);
+    tabs.forEach(function(t){
+      var href=t.getAttribute("href")||""; var hp=href.split("?")[0].replace(/\/+$/,"");
+      var hcate=(href.match(/cate_no=(\d+)/)||[])[1]; var on=false;
+      if(isList && hcate){ if(hcate==="104"){ on=(cate==="104"); } else if(hcate==="73"){ on=(!!cate && cate!=="104"); } }
+      else if(hp && hp!=="/"){ on=(p===hp); }
+      t.classList.toggle("on", on);
+    });
+  }catch(e){}
+})();
+</script>
 <script>
 (function(){
   var btn=document.querySelector('[data-pcatnav-btn]');

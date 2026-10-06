@@ -297,7 +297,7 @@ export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl
       <UpList U={U} onRetry={retry} onDrop={(k) => U.drop(k)} />
       {pend && !U.busy && U.rows.some((r) => r.st === "fail") && <div style={{ fontSize: 12.5, color: C.red }}>못 올린 파일이 있어서 아직 안 남겼어요 · [다시]를 누르거나 [빼기] 뒤 [남기기]</div>}
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <TBtn disabled={busy || U.busy} onClick={() => fileRef.current && fileRef.current.click()}>+ 파일</TBtn><input ref={fileRef} type="file" multiple hidden aria-label="댓글에 붙일 파일" onChange={(e) => { const f = [...e.target.files].slice(0, Math.max(0, 10 - U.rows.length)); e.target.value = ""; if (f.length) { U.add(f); setPend(false); } }} />
+        <TBtn disabled={busy || U.busy} onClick={() => fileRef.current && fileRef.current.click()}>+ 파일</TBtn><input ref={fileRef} type="file" multiple hidden aria-label="첨부할 파일" onChange={(e) => { const f = [...e.target.files].slice(0, Math.max(0, 10 - U.rows.length)); e.target.value = ""; if (f.length) { U.add(f); setPend(false); } }} />
         <span style={{ flex: 1 }} /><TBtn v="solid" disabled={!canSend} onClick={send} style={{ minWidth: 72, height: 36 }}>{busy || U.busy ? "올리는 중" : "남기기"}</TBtn>
       </div>
     </div>

@@ -16,6 +16,8 @@ import { PickList, BulkBar, dueChips, ro } from "./pick.jsx";
 import { previewLaunchMove } from "./views.js";
 import { RoutineCard } from "./routineui.jsx";
 import { QtyAsk, QtyDone } from "./recui.jsx";
+import { LS as LSK } from "./core.jsx";
+import { myNotesOf } from "./more.jsx";
 import { qtyCfg, qtySum, qtyText } from "./rec.js";
 import { LINK_APP } from "./links.js";
 
@@ -125,6 +127,7 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
   const now = new Date(), key = TV.key;
   const up7 = useMemo(() => upcomingTurns(D, T, key, cu.id).filter((u) => u.start && u.start <= addDays(key, 6)), [D, T, key]);   // 곧 내 차례 = 7일 안에 오는 내 차례 (달력과 같은 기준)
   const [fxAsk, setFxAsk] = useState(null);   // 건수 칸 묻는 고정업무 줄
+  const myToday = useMemo(() => myNotesOf(D, cu.id, key, "today").length, [D.notes, cu.id, key]);   // '오늘 내가 쓴 댓글 n ›' (있을 때만)
   const [fxOpen, setFxOpen] = useState(TV.oneOffOpen === 0), [showFxDone, setShowFxDone] = useState(false), [allInbox, setAllInbox] = useState(false), [soonOpen, setSoonOpen] = useState(false);
   const pName = (pid) => (D.projects.find((p) => p.id === pid) || {}).title || "";
   const [cardId, setCardId] = useState(null);
@@ -181,6 +184,7 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
           {list.length > 3 && <More onClick={() => open({ type: "mine" })}>{list.length - 3}개 더 · 내 할 일 모두 ›</More>}
           {!list.length && !TV.fixed.total && <Empty>오늘·내일 마감이거나 하는 중인 일이 없어요</Empty>}
         </Card>
+        {myToday > 0 && <div className="v2-mylink"><TBtn v="plain" onClick={() => open({ type: "myNotes" })} style={{ fontSize: 13 }}>오늘 내가 쓴 댓글 {myToday} ›</TBtn></div>}
       </div>
       <div>
         <RoutineCard D={D} cu={cu} A={A} open={open} keyd={key} checks={TV.routine && TV.routine.total > 0 ? <RoutineChecks D={D} cu={cu} A={A} open={open} R={TV.routine} keyd={key} /> : null} />
@@ -387,8 +391,22 @@ export function AddSheet({ D, cu, A, onBack, onClose, preset, setToast }) {
   </Sheet>;
 }
 
+// 날짜 칩 (내 할 일 모두 · 사용자 요청 2026-10-06): 기한 기준 · 상태 칩·찾기와 같이 · 마지막 고른 것 기기 저장(pour-os2-mine-date-<나>)
+export const MINE_DATES = [["all", "전체"], ["past", "지난 일"], ["today", "오늘"], ["tomorrow", "내일"], ["week", "이번 주"], ["next", "다음 주"], ["none", "날짜 없음"], ["pick", "날짜 고르기"]];
+export function mineDateHit(k, due, key, from, to) {
+  const ws = weekStart(key);
+  if (k === "all") return true; if (k === "none") return !due; if (!due) return false;
+  if (k === "past") return due < key; if (k === "today") return due === key; if (k === "tomorrow") return due === addDays(key, 1);
+  if (k === "week") return due >= ws && due <= addDays(ws, 6); if (k === "next") return due >= addDays(ws, 7) && due <= addDays(ws, 13);
+  if (k === "pick") return !!from && due >= from && due <= (to && to >= from ? to : from);
+  return true;
+}
+// '전체'일 때 날짜 머리: 지난 일 · 오늘 · 내일 · 10/9(금) … · 날짜 없음
+export const mineDateHead = (due, key) => (!due ? "날짜 없음" : due < key ? "지난 일" : due === key ? "오늘" : due === addDays(key, 1) ? "내일" : `${md(due)}(${WD[new Date(due + "T00:00:00").getDay()]})`);
 export function MineSheet({ D, cu, A, open, onBack, onClose, setToast }) {
   const [st, setSt] = useState("todo"), [q, setQ] = useState("");
+  const [df, setDf] = useLocal(LSK("mine-date-" + cu.id), { k: "all", from: "", to: "" });
+  const dk = (df && df.k) || "all", from = (df && df.from) || "", to = (df && df.to) || "";
   const key = ymd(new Date());
   // 날짜 없는 일 '오늘 하기': 오늘이 쉬는 날이면 다음 평일 · 기한 허락이 필요한 일은 요청 · 출시일 미정 신제품 항목은 내 정리(제품별 출시일 정하기)로
   const [, qd] = dueChips(key)[0] || ["", key], qWord = qd === key ? "오늘 하기" : `${md(qd)} 하기`;
@@ -399,16 +417,30 @@ export function MineSheet({ D, cu, A, open, onBack, onClose, setToast }) {
   const mine = D.tasks.filter((t) => isOneOff(t) && isMine(t, cu.id));
   const by = { todo: mine.filter((t) => t.status === "todo"), inprogress: mine.filter((t) => t.status === "inprogress"), review: mine.filter((t) => t.status === "review"), hold: mine.filter((t) => t.status === "hold"), done: mine.filter(isDone) };
   const qq = q.trim().toLowerCase();
-  const list = (qq ? mine.filter((t) => String(t.title).toLowerCase().includes(qq)) : by[st]).slice().sort((a, b) => st === "done" ? String(b.doneAt || "").localeCompare(String(a.doneAt || "")) : String(dueOf(a) || "9999").localeCompare(String(dueOf(b) || "9999")));
+  const base = qq ? mine.filter((t) => String(t.title).toLowerCase().includes(qq)) : by[st];
+  const dN = Object.fromEntries(MINE_DATES.map(([k]) => [k, base.filter((t) => mineDateHit(k, dueOf(t), key, from, to)).length]));
+  const list = base.filter((t) => mineDateHit(dk, dueOf(t), key, from, to)).slice().sort((a, b) => st === "done" && !qq ? String(b.doneAt || "").localeCompare(String(a.doneAt || "")) : String(dueOf(a) || "9999").localeCompare(String(dueOf(b) || "9999")));
+  // 전체 = 날짜 머리로 묶음 (기한 순 · 날짜 없음 맨 아래)
+  const shown = list.slice(0, 200), groups = [];
+  if (dk === "all" && !(st === "done" && !qq)) shown.slice().sort((a, b) => String(dueOf(a) || "9999").localeCompare(String(dueOf(b) || "9999"))).forEach((t) => { const h = mineDateHead(dueOf(t), key); const g = groups[groups.length - 1]; if (g && g.h === h) g.a.push(t); else groups.push({ h, a: [t] }); });
+  else groups.push({ h: "", a: shown });
   const pName = (pid) => (D.projects.find((p) => p.id === pid) || {}).title || "";
+  const setK = (k) => setDf({ k, from: k === "pick" ? from || key : from, to });
+  const row = (t, i, a) => { const r = riskOf(t, key);
+    return <Row key={t.id} dim={isDone(t)} title={t.title} sub={[dueOf(t) ? (isDone(t) ? md(dueOf(t)) : ddayLabel(ddays(dueOf(t), key))) : "날짜 없음", pName(t.projectId)].filter(Boolean).join(" · ")} tag={r ? r.label : null} tagTone={r && r.red ? "red" : null} onClick={() => open({ type: "task", id: t.id })}
+      right={isDone(t) || t.status === "review" ? null : !dueOf(t) ? (t.dueReq ? null : dayAct(t)) : <Act onClick={() => A.finish(t)}>끝냄</Act>} last={i === a.length - 1} />; };
   return <Sheet title="내 할 일 모두" onBack={onBack} onClose={onClose}>
     <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
       <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="내 업무 찾기" aria-label="내 업무 찾기" style={inp} />
-      {!qq && <div className="v2-chips">{[["todo", "할 일"], ["inprogress", "진행"], ["review", "확인 대기"], ["hold", "보류"], ["done", "끝남"]].map(([k, l]) => <Chip key={k} on={st === k} onClick={() => setSt(k)}>{l} {by[k].length}</Chip>)}</div>}
+      {!qq && <div className="v2-filterrow" role="group" aria-label="상태"><div className="v2-chips">{[["todo", "할 일"], ["inprogress", "진행"], ["review", "확인 대기"], ["hold", "보류"], ["done", "끝남"]].map(([k, l]) => <Chip key={k} on={st === k} onClick={() => setSt(k)}>{l} {by[k].length}</Chip>)}</div></div>}
+      <div className="v2-filterrow" role="group" aria-label="날짜"><div className="v2-chips">{MINE_DATES.map(([k, l]) => <Chip key={k} on={dk === k} onClick={() => setK(k)}>{k === "pick" ? `${l} ${dk === "pick" ? "▴" : "▾"}` : `${l} ${dN[k]}`}</Chip>)}</div></div>
+      {dk === "pick" && <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 13, color: C.sub }}>
+        <input type="date" aria-label="시작 날짜" className="v2-sel" value={from} onChange={(e) => setDf({ k: "pick", from: e.target.value, to: to && to < e.target.value ? "" : to })} />
+        <span>~</span><input type="date" aria-label="끝 날짜" className="v2-sel" value={to} min={from || undefined} onChange={(e) => setDf({ k: "pick", from, to: e.target.value })} />
+        <span>{to && to > from ? "" : "하루만 · 끝 날짜를 고르면 기간"} · {dN.pick}개</span></div>}
     </div>
-    <Card style={{ marginTop: 12 }}>{list.length === 0 ? <Empty>없어요</Empty> : list.slice(0, 200).map((t, i) => { const r = riskOf(t, key);
-      return <Row key={t.id} dim={isDone(t)} title={t.title} sub={[dueOf(t) ? (isDone(t) ? md(dueOf(t)) : ddayLabel(ddays(dueOf(t), key))) : "날짜 없음", pName(t.projectId)].filter(Boolean).join(" · ")} tag={r ? r.label : null} tagTone={r && r.red ? "red" : null} onClick={() => open({ type: "task", id: t.id })}
-        right={isDone(t) || t.status === "review" ? null : !dueOf(t) ? (t.dueReq ? null : dayAct(t)) : <Act onClick={() => A.finish(t)}>끝냄</Act>} last={i === Math.min(200, list.length) - 1} />; })}</Card>
+    {list.length === 0 ? <Card style={{ marginTop: 12 }}><Empty>없어요</Empty></Card>
+      : groups.map((g, gi) => <div key={g.h + gi}>{g.h && <Head red={g.h === "지난 일"}>{g.h} {g.a.length}</Head>}<Card style={{ marginTop: g.h ? 0 : 12 }}>{g.a.map(row)}</Card></div>)}
     {st === "done" && !qq && <p style={{ fontSize: 12.5, color: C.mute, margin: "10px 2px" }}>최근 30일에 끝낸 업무만 보여요</p>}
   </Sheet>;
 }

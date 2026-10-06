@@ -23,7 +23,7 @@
 <style>
 :root{--navy:#24386B;--navy2:#0F1F5C;--bg:#F4F5F8;--card:#fff;--line:#E3E6EE;--ink:#1B2233;--ink2:#3C455A;--mute:#6B7386;--red:#C62828;--redbg:#FDECEC;--soft:#E8EBF3;--bar:#24386B;--barbg:#E6E9F1}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Pretendard,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;-webkit-text-size-adjust:100%;overflow-x:hidden}
+html,body{word-break:keep-all;overflow-wrap:anywhere;margin:0;background:var(--bg);color:var(--ink);font-family:Pretendard,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;-webkit-text-size-adjust:100%;overflow-x:hidden}
 button,input,select{font-family:inherit}
 a{color:inherit}
 .m2-wrap{max-width:640px;margin:0 auto;padding:0 16px calc(84px + env(safe-area-inset-bottom))}
@@ -88,7 +88,7 @@ a{color:inherit}
 .m2-sh .x{position:absolute;right:12px;bottom:10px;background:none;border:0;color:#fff;font-size:13px;font-weight:700;opacity:.85;cursor:pointer;height:28px}
 .m2-sbody{padding:4px 16px 0}
 .m2-kv{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.m2-kv div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.m2-kv>div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .m2-kv .k{font-size:12px;color:var(--mute);font-weight:700}
 .m2-kv .v{font-size:20px;font-weight:800;margin-top:3px}
 .m2-kv .v.red{color:var(--red)}
@@ -118,7 +118,8 @@ a{color:inherit}
   const ceil100 = (n) => Math.ceil(n / 100) * 100;
   const hash = (s) => { let h = 5381; s = String(s); for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return h.toString(36); };
   const won = (v) => v == null || !isFinite(v) ? "—" : Math.round(v).toLocaleString("ko-KR");
-  const pctTxt = (r) => r == null || !isFinite(r) ? "—" : `${Math.round(r * 100)}%`;
+  const pctTxt = (r) => r == null || !isFinite(r) ? "—" : `${(Math.round(r * 1000) / 10).toFixed(1)}%`;   // 버전1과 같이 소수 한 자리 (14.9% 가 15% 로 보이지 않게)
+  const thrTxt = (r) => `${Math.round(r * 100)}%`;
   const lc = (a) => (Array.isArray(a) ? a : []).map((e) => String(e).toLowerCase());
 
   // 권한 (버전1 recompute*Allowed 와 같은 판정) → 'master' | 'sub' | 'general' | 'none'
@@ -187,7 +188,7 @@ a{color:inherit}
   // 업무OS 한 줄(pour-os/v2/links) — 이름·채널·% 만 (원가·금액 없음)
   function lowLink(p, r, threshold, { base, owner = "", ownerOsId = "", today, by = "" }) {
     return { id: linkId("low", p.key, r.uid), src: "margin", kind: "marginLow", title: cut(`${p.name} · ${r.name}`, 40),
-      sub: `마진 ${pctTxt(r.m.net)} (기준 ${pctTxt(threshold)}) · 가격 확인`, date: today, time: "", owner, ownerOsId, url: pageUrl(base, p), open: true, at: new Date().toISOString(), by };
+      sub: `마진 ${pctTxt(r.m.net)} (기준 ${thrTxt(threshold)}) · 가격 확인`, date: today, time: "", owner, ownerOsId, url: pageUrl(base, p), open: true, at: new Date().toISOString(), by };
   }
   function reqLink(p, r, from, to, { base, today, by = "", byName = "" }) {
     return { id: linkId("req", p.key, r.role === "retail" ? "" : r.uid), src: "margin", kind: "priceReq", title: cut(`${p.name} ${r.name}가 변경`, 40),
@@ -202,7 +203,7 @@ a{color:inherit}
       if (l.kind === "marginLow") {
         const x = lows.get(l.id);
         if (!x) out.push({ id: l.id, data: { open: false, closedAt: new Date().toISOString(), closedWhy: "마진 기준 넘음" } });
-        else { const sub = `마진 ${pctTxt(x.r.m.net)} (기준 ${pctTxt(threshold)}) · 가격 확인`; if (sub !== l.sub) out.push({ id: l.id, data: { sub } }); }
+        else { const sub = `마진 ${pctTxt(x.r.m.net)} (기준 ${thrTxt(threshold)}) · 가격 확인`; if (sub !== l.sub) out.push({ id: l.id, data: { sub } }); }
       } else if (l.kind === "priceReq") {
         if (!pend.has(l.id)) out.push({ id: l.id, data: { open: false, closedAt: new Date().toISOString(), closedWhy: "승인 또는 반려" } });
       }
@@ -264,7 +265,7 @@ a{color:inherit}
     return { rows, meta };
   }
 
-  G.M2C = { pKey, ceil100, hash, won, pctTxt, roleOf, ROLE_NAME, costIndex, marginOf, buildModel, lowList, linkId, lowLink, reqLink, planLinkSync, draftKeyOf, draftWith, pendingKeys, pendingLinkIds, pendingList, calc, priceFor, expiryRows, parseDate, days };
+  G.M2C = { pKey, ceil100, hash, won, pctTxt, thrTxt, roleOf, ROLE_NAME, costIndex, marginOf, buildModel, lowList, linkId, lowLink, reqLink, planLinkSync, draftKeyOf, draftWith, pendingKeys, pendingLinkIds, pendingList, calc, priceFor, expiryRows, parseDate, days };
 })(typeof window !== "undefined" ? window : globalThis);
 </script>
 
@@ -462,7 +463,7 @@ function BrandChips({ model, val, set, extra }) {
     ${extra || ""}
   </div>`;
 }
-const pctTxt = C.pctTxt, won = C.won;
+const pctTxt = C.pctTxt, won = C.won, thr = C.thrTxt;
 
 // ── 상품 ──
 function ProdTab({ ctx }) {
@@ -473,7 +474,7 @@ function ProdTab({ ctx }) {
   const at = D.catalog && D.catalog.updatedAt;
   return html`<div>
     <div class="m2-h1">상품 <span class="sp" /><span style=${{ fontSize: 13, color: "var(--mute)", fontWeight: 600 }}>${list.length}개</span></div>
-    <p class="m2-sub">${canCost ? `제품을 누르면 채널별 마진 · 기준 ${pctTxt(D.threshold)}보다 낮으면 빨강` : "제품을 누르면 채널별 판매가"}${at ? ` · 단가표 ${whenTxt(at)} 기준` : ""}</p>
+    <p class="m2-sub">${canCost ? `제품을 누르면 채널별 마진 · 기준 ${thr(D.threshold)}보다 낮으면 빨강` : "제품을 누르면 채널별 판매가"}${at ? ` · 단가표 ${whenTxt(at)} 기준` : ""}</p>
     <input class="m2-in" type="search" placeholder="제품 이름·코드 찾기" value=${q} onInput=${(e) => { setQ(e.target.value); setN(60); }} aria-label="제품 찾기" style=${{ marginBottom: 8 }} />
     <${BrandChips} model=${M} val=${brand} set=${(b) => { setBrand(b); setN(60); }} extra=${canCost ? html`<button class=${"m2-chip" + (lowOnly ? " on" : "")} onClick=${() => setLowOnly(!lowOnly)}>마진 낮음만</button>` : null} />
     <div class="m2-card">
@@ -505,7 +506,7 @@ function ProdSheet({ ctx, p, close }) {
           <div><div class="k">${isMaster ? "원가 (택배비 포함)" : "원가"}</div><div class="v">${isMaster ? (p.cost == null ? "—" : won(p.cost + p.ship)) : "가려짐"}</div>${isMaster && p.ship ? html`<div class="m2-note" style=${{ margin: "2px 0 0" }}>택배비 ${won(p.ship)}원 포함</div>` : ""}</div>
           <div><div class="k">가장 낮은 마진</div><div class=${"v" + (p.minNet != null && p.minNet < D.threshold ? " red" : "")}>${pctTxt(p.minNet)}</div></div>
         </div>`}
-        <div class="m2-sec">${canCost ? `채널별 마진 (기준 ${pctTxt(D.threshold)})` : "채널별 판매가"}<span class="sp" /><span class="rt">${canCost ? (isMaster ? "수수료 뺀 값" : "원가는 마스터만") : ""}</span></div>
+        <div class="m2-sec">${canCost ? `채널별 마진 (기준 ${thr(D.threshold)})` : "채널별 판매가"}<span class="sp" /><span class="rt">${canCost ? (isMaster ? "수수료 뺀 값" : "원가는 마스터만") : ""}</span></div>
         <div class="m2-card">
           ${p.rows.length ? p.rows.map((r) => { const l = linkById.get(C.linkId("low", p.key, r.uid));
             return html`<div key=${r.uid} class="m2-ch">
@@ -587,7 +588,7 @@ function LowTab({ ctx }) {
     try { for (let i = 0; i < unsent.length; i += 400) await sendLow(c2, unsent.slice(i, i + 400), owner); setToast(`${unsent.length}건 보냈어요 · 업무OS '확인할 것'에 한 줄로 묶여 떠요`); } catch (e) { console.error(e); setToast("못 보냈어요: " + (e.code || e.message)); } setBusy(false); };
   return html`<div>
     <div class="m2-h1">마진 낮음 <span class="sp" /><span style=${{ fontSize: 13, color: "var(--mute)", fontWeight: 600 }}>${list.length}건</span></div>
-    <p class="m2-sub">기준 ${pctTxt(D.threshold)}보다 낮은 제품·채널 (수수료 뺀 마진 · 낮은 순)</p>
+    <p class="m2-sub">기준 ${thr(D.threshold)}보다 낮은 제품·채널 (수수료 뺀 마진 · 낮은 순)</p>
     ${list.length ? html`<div class="m2-next">다음 할 일: 가격을 올릴지 정하고 → [업무OS로 보내기]로 담당에게 넘기기 · 기준을 넘으면 업무OS 줄은 저절로 닫혀요</div>` : ""}
     <${BrandChips} model=${D.model} val=${brand} set=${setBrand} />
     ${list.length ? html`<div class="m2-card m2-pad" style=${{ marginBottom: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -604,7 +605,7 @@ function LowTab({ ctx }) {
             <div class="t">${x.p.name} · <span class="m2-red">${x.r.name}</span></div>
             <div class="s">${won(x.r.price)} · <span class="m2-red">마진 ${pctTxt(x.r.m.net)}</span>${x.r.fee ? ` · 수수료 ${x.r.fee}%` : ""}${l ? ` · 업무OS ${l.owner || "관리자"}` : ""}</div></button>
           <div class="r">${l ? html`<a class="m2-btn sm" href=${OS_URL} target="_blank" rel="noopener">업무OS에서 열기 ›</a>` : html`<${SendBtn} ctx=${c2} p=${x.p} r=${x.r} small=${true} />`}</div>
-        </div>`; }) : html`<div class="m2-empty">기준 ${pctTxt(D.threshold)}보다 낮은 곳이 없어요.</div>`}
+        </div>`; }) : html`<div class="m2-empty">기준 ${thr(D.threshold)}보다 낮은 곳이 없어요.</div>`}
       ${list.length > n && html`<button class="m2-list-more" onClick=${() => setN(n + 100)}>${list.length - n}건 더 보기</button>`}
     </div>
     <p class="m2-note">업무OS에는 제품·채널 이름과 마진 %만 가요(원가·금액 없음). 기준은 더보기에서${isMaster ? " 바꿔요" : " 볼 수 있어요"}.</p>
@@ -646,7 +647,7 @@ function CalcTab({ ctx }) {
       <div class="m2-sub" style=${{ margin: 0 }}>마진</div>
       <div class=${"big" + (out && out.net < D.threshold ? " red" : "")}>${out ? pctTxt(out.net) : "—"}</div>
       ${out && showWon ? html`<div class="m2-sub" style=${{ margin: "2px 0 0" }}>개당 ${won(out.profit)}원${out.fee ? ` · 수수료 ${won(num(price) * out.fee / 100)}원` : ""}</div>` : ""}
-      ${out && out.net < D.threshold ? html`<div class="m2-sub m2-red" style=${{ margin: "2px 0 0" }}>기준 ${pctTxt(D.threshold)}보다 낮음</div>` : ""}
+      ${out && out.net < D.threshold ? html`<div class="m2-sub m2-red" style=${{ margin: "2px 0 0" }}>기준 ${thr(D.threshold)}보다 낮음</div>` : ""}
     </div>
     <div class="m2-sec">목표 마진이면 판매가는?</div>
     <div class="m2-grid2" style=${{ alignItems: "end" }}>
@@ -720,7 +721,7 @@ function MoreTab({ ctx }) {
         <div class="m2-sub" style=${{ margin: "0 0 8px" }}>이보다 낮으면 '마진 낮음' (수수료 뺀 마진 · 모든 사람 같은 기준)</div>
         ${isMaster ? html`<div class="m2-chips">${[10, 15, 20, 25, 30].map((n) => html`<button key=${n} class=${"m2-chip" + (Math.round(D.threshold * 100) === n ? " on" : "")} disabled=${busy} onClick=${() => saveT(n)}>${n}%</button>`)}</div>
           <div style=${{ display: "flex", gap: 8 }}><input class="m2-in" inputmode="numeric" value=${tv} onInput=${(e) => setTv(e.target.value)} aria-label="기준 마진" style=${{ flex: 1 }} /><button class="m2-btn solid" disabled=${busy || +tv === Math.round(D.threshold * 100)} onClick=${() => saveT(tv)} style=${{ height: 44 }}>저장</button></div>`
-          : html`<div style=${{ fontSize: 22, fontWeight: 800 }}>${pctTxt(D.threshold)}</div><div class="m2-note" style=${{ marginTop: 4 }}>바꾸기는 마스터만</div>`}
+          : html`<div style=${{ fontSize: 22, fontWeight: 800 }}>${thr(D.threshold)}</div><div class="m2-note" style=${{ marginTop: 4 }}>바꾸기는 마스터만</div>`}
       </div>`}
     <div class="m2-sec">바로가기</div>
     <div class="m2-card">

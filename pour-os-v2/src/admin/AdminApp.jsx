@@ -20,6 +20,9 @@ import { RoutineTab } from "./Routine.jsx";
 import { CollabTab } from "./Collab.jsx";
 import { AddRoutineSheet, RecBookSheet } from "./RoutineAdd.jsx";
 import { KpiBoard, LagSheet, useGhRefresh, KpiEditSheet } from "../kpiui.jsx";
+import { ReportBody, ReportSheet } from "../reportui.jsx";
+import { GrowthBody, GrowthSheet } from "../growthui.jsx";
+import { Seg } from "../ui.jsx";
 import "./admin.css";
 
 export default function AdminApp() {
@@ -79,6 +82,8 @@ function AdminMain({ B }) {
     kpiEdit: (p, s) => <KpiEditSheet {...p} s={s} />,
     addRoutine: (p) => <AddRoutineSheet {...p} />,   // [+ 반복 실행] (admin/RoutineAdd.jsx)
     recBook: (p) => <RecBookSheet {...p} />,          // [기록 보기 ›]
+    reports: (p) => <ReportSheet {...p} />,
+    growth: (p) => <GrowthSheet {...p} />,
   };
   const top = stack[stack.length - 1];
   return <div className="v2-app a-app">
@@ -101,7 +106,7 @@ function AdminMain({ B }) {
         {tab === "people" && <PeopleTab {...ctx} />}
         {tab === "collab" && <CollabTab {...ctx} />}
         {tab === "routine" && <RoutineTab {...ctx} />}
-        {tab === "kpi" && <KpiBoard {...ctx} />}
+        {tab === "kpi" && <KpiTab ctx={ctx} cu={cu} />}
         {tab === "projects" && <ProjectsTab {...ctx} />}
         {tab === "tidy" && <TidyTab {...ctx} tq={tq} setTq={setTq} />}
       </div>
@@ -109,4 +114,16 @@ function AdminMain({ B }) {
     {top && <SheetRouter s={top} {...ctx} depth={stack.length} extra={extra} />}
     <Toast toast={toast} onDone={() => setToast(null)} />
   </div>;
+}
+
+// KPI 탭: [KPI | 월말 보고서 | 그로스보드] (③ · 관리자 탭을 늘리지 않고 KPI 탭 안에서)
+function KpiTab({ ctx, cu }) {
+  const [v, setV] = useLocal(LS("kview-" + cu.id), "kpi");
+  const view = ["kpi", "report", "growth"].includes(v) ? v : "kpi";
+  return <>
+    <div className="a-kseg"><Seg items={[["kpi", "KPI"], ["report", "월말 보고서"], ["growth", "그로스보드"]]} value={view} onChange={setV} /></div>
+    {view === "kpi" && <KpiBoard {...ctx} />}
+    {view === "report" && <ReportBody {...ctx} inline />}
+    {view === "growth" && <GrowthBody {...ctx} />}
+  </>;
 }

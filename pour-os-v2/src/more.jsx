@@ -34,6 +34,11 @@ export function MoreTab({ D, cu, meta, logout, open, BUILD, setToast }) {
       <Row title={`내가 쓴 댓글${myN.today ? ` · 오늘 ${myN.today}` : ""}`} sub="오늘 · 7일 · 30일 · 누르면 그 댓글로" onClick={() => open({ type: "myNotes" })} right={arrow} last={false} />
       <Row title="내 KPI" sub="내 반복·내 프로젝트가 움직이는 KPI" onClick={() => open({ type: "myKpi" })} right={arrow} last />
     </Card>
+    <Head>성과</Head>
+    <Card>
+      <Row title="그로스보드" sub="KPI → 프로젝트·반복 → 끝낸 일 · 나 · 우리 팀" onClick={() => open({ type: "growth" })} right={arrow} last={false} />
+      <Row title="월말 보고서" sub="브랜드별 · 프로젝트별 · 매출 · 끝낸 일" onClick={() => open({ type: "reports" })} right={arrow} last />
+    </Card>
     <Head>문자 알림</Head>
     <SmsSettings cu={cu} setToast={setToast} />
     <Head>앱을 열면 먼저</Head>

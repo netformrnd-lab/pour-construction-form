@@ -156,7 +156,7 @@ function TreeMap({ D, cu, A, open, p, idx, launch }) {
 // 왼쪽 프로젝트 → 큰 가지(앞 일 순서 번호 · 신제품 = 7단계) → 작은 가지(하위 업무) · 곡선 연결
 // 가지를 누르면 그 업무 시트 · 오른쪽 작은 칸(‹ / +n)을 누르면 접기·펼치기 · 9개 이상은 8개 + '+n개 더'
 // 칸 안에서만 밀림(옆·아래 · PC 는 끌어서) · [화면에 맞추기] · [그림으로 저장] PNG · 쓰기 없음
-const NST = {
+export const NST = {
   "": { fill: "#FFFFFF", stroke: "#D5DBE8", sw: 1.5, t: "#1B2333", s: "#5B6475" },
   done: { fill: "#E7ECF7", stroke: "#E7ECF7", sw: 1.5, t: "#24386B", s: "#5B6475" },
   doing: { fill: "#FFFFFF", stroke: "#24386B", sw: 2.2, t: "#1B2333", s: "#5B6475" },

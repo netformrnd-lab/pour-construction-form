@@ -13,6 +13,8 @@ import { MoreTab, AssignedSheet, MyFixedSheet, AddFixedSheet, MyNotesSheet } fro
 import { turnIndex, turnsOf } from "./turn.js";
 import { SheetRouter } from "./sheets.jsx";
 import { MyKpiSheet, LagSheet, useGhRefresh, KpiEditSheet } from "./kpiui.jsx";
+import { ReportSheet } from "./reportui.jsx";
+import { GrowthSheet } from "./growthui.jsx";
 import { TaskSheet, FixedSheet, openTask } from "./task.jsx";
 import { ProjectsTab, ProjectSheet, NewProjectSheet, DoneProjectsSheet } from "./project.jsx";
 import { CalendarTab } from "./schedule.jsx";
@@ -76,6 +78,8 @@ function Main({ D, cu, meta, setMeta, logout }) {
     myKpi: (p) => <MyKpiSheet {...p} goToday={() => { setTab("today"); closeAll(); window.scrollTo(0, 0); }} />,
     lagInput: (p, s) => <LagSheet {...p} s={s} />,
     kpiEdit: (p, s) => <KpiEditSheet {...p} s={s} />,
+    reports: (p) => <ReportSheet {...p} />,     // 월말 보고서 (reportui.jsx)
+    growth: (p) => <GrowthSheet {...p} />,      // 그로스보드 v2 (growthui.jsx)
   };
   return <div className="v2-app">
     <nav className="v2-nav" aria-label="메뉴">

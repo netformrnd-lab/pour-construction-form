@@ -1536,6 +1536,51 @@ body:not(.cost-ok) #sh-expiry :is(#exFileBtn,#exPasteBtn,#exPastePanel,.toolrow 
 /* 유통기한 — 일반 팀원(보기만): 3PL 코드·누적·필요 하루 판매·배수·기한 내 소진율은 숨김 (판단에 필요한 8열만) */
 .ex-view th:nth-child(3),.ex-view td:nth-child(3),.ex-view th:nth-child(7),.ex-view td:nth-child(7),.ex-view th:nth-child(9),.ex-view td:nth-child(9),.ex-view th:nth-child(10),.ex-view td:nth-child(10),.ex-view th:nth-child(12),.ex-view td:nth-child(12){display:none}
 #priceHint[hidden]{display:none!important}
+/* 📦 재고 충전 — 카드형: 무엇을 몇 개 주문할지 */
+#sh-expiry.ro-mode .ex-xonly{display:none!important}
+#exBody .ro-tabs{display:flex;gap:6px;margin:0 0 12px;background:#EEF2F6;padding:4px;border-radius:12px;max-width:520px}
+#exBody .ro-tabs button{flex:1;border:0;background:transparent;border-radius:9px;padding:10px 8px;font:inherit;font-size:14px;font-weight:700;color:#475569;cursor:pointer;min-height:44px}
+#exBody .ro-tabs button.on{background:#fff;color:#0F172A;box-shadow:0 1px 4px rgba(15,23,42,.12)}
+#exBody .ro-tabs em{font-style:normal;display:inline-block;min-width:20px;padding:0 6px;margin-left:4px;border-radius:999px;background:#DC2626;color:#fff;font-size:12px;line-height:20px}
+#exBody .ro-wrap{max-width:1100px}
+#exBody .ro-stock{font-size:12px;color:var(--ink-faint);margin:0 0 8px}
+#exBody .ro-link{border:0;background:none;color:#1D4ED8;font:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:2px 4px}
+#exBody .ro-hero{display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-radius:14px;margin:0 0 10px;border:1px solid}
+#exBody .ro-hero b{font-size:18px} #exBody .ro-hero span{font-size:13px}
+#exBody .ro-hero.bad{background:#FEF2F2;border-color:#FCA5A5;color:#991B1B}
+#exBody .ro-hero.warn{background:#FFFBEB;border-color:#FCD34D;color:#92400E}
+#exBody .ro-hero.ok{background:#F0FDF4;border-color:#86EFAC;color:#166534}
+#exBody .ro-act{margin:0 0 6px}
+#exBody .ro-h{margin:16px 0 8px;font-size:15px} #exBody .ro-h em,#exBody .ro-more summary em{font-style:normal;color:var(--ink-faint);font-weight:600;margin-left:2px}
+#exBody .ro-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px}
+#exBody .ro-card{background:#fff;border:1px solid #E2E8F0;border-left:5px solid;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+#exBody .ro-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+#exBody .ro-name{display:flex;flex-direction:column;min-width:0} #exBody .ro-name b{font-size:15px;line-height:1.3}
+#exBody .ro-code{font:11px var(--mono);color:var(--ink-faint)}
+#exBody .ro-qty{text-align:right;white-space:nowrap;line-height:1.1} #exBody .ro-qty b{font-size:22px;display:block} #exBody .ro-qty em{font-style:normal;font-size:12px;font-weight:700}
+#exBody .ro-chip{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700}
+#exBody .ro-bar{position:relative;height:8px;background:#F1F5F9;border-radius:99px}
+#exBody .ro-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
+#exBody .ro-bar s{position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;background:#334155;border-radius:2px}
+#exBody .ro-txt{font-size:13px;color:#334155}
+#exBody .ro-est{display:inline-block;margin-left:3px;padding:0 5px;border-radius:5px;background:#F1F5F9;color:#64748B;font-size:10px;vertical-align:1px}
+#exBody .ro-warn{font-size:12.5px;color:#B91C1C;background:#FEF2F2;border-radius:8px;padding:6px 9px}
+#exBody .ro-inc{font-size:12.5px;color:#1E3A8A;background:#EFF6FF;border-radius:8px;padding:6px 9px}
+#exBody .ro-sub{font-size:11.5px;color:var(--ink-faint)}
+#exBody .ro-done{align-self:flex-start;border:1px solid #CBD5E1;background:#fff;border-radius:10px;padding:8px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;min-height:40px}
+#exBody .ro-form{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;background:#F8FAFC;border-radius:10px;padding:10px}
+#exBody .ro-form label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:#475569;flex:1 1 130px}
+#exBody .ro-form input{padding:8px 10px;border:1px solid #CBD5E1;border-radius:8px;font:inherit;font-size:16px;width:100%;box-sizing:border-box}
+#exBody .ro-fbtn{display:flex;gap:6px;flex:1 1 100%}
+#exBody .ro-more{margin:12px 0 0;background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:10px 14px}
+#exBody .ro-more summary{cursor:pointer;font-weight:700;font-size:14px;min-height:28px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+#exBody .ro-more .ro-grid{margin-top:10px}
+#exBody .ro-list{display:flex;flex-direction:column;margin-top:6px} #exBody .ro-list>div{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid #F1F5F9;font-size:13px}
+#exBody .ro-set summary{font-weight:500;font-size:13px}
+#exBody .ro-setf{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+#exBody .ro-setf label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:#475569}
+#exBody .ro-setf input{width:72px;padding:7px 9px;border:1px solid #CBD5E1;border-radius:8px;font:inherit;font-size:16px}
+@media(max-width:640px){ #exBody .ro-grid{grid-template-columns:1fr} #exBody .ro-hero b{font-size:16px} #exBody .ro-tabs{max-width:none} }
 /* 유통기한 — 같은 상품코드(기한만 다른 로트) 묶음 */
 #exBody tr.ex-gf td{border-top:2px solid #CBD5E1}
 #exBody tr.ex-gm td:first-child{box-shadow:inset 4px 0 0 #F59E0B}
@@ -2173,13 +2218,13 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     <div class="toolrow">
       <span class="ttl">유통기한·소진</span>
       <select id="exBrand"><option value="">전체 브랜드</option><option value="GROHOME">GROHOME</option><option value="POUR스토어">POUR스토어</option></select>
-      <label class="footnote" style="margin:0;display:flex;gap:4px;align-items:center"><input type="checkbox" id="exRisk"> 위험만</label>
-      <label class="footnote" style="margin:0;display:flex;gap:4px;align-items:center">판매마감 여유 <input type="number" id="exBuffer" min="0" style="width:56px">일 전</label>
+      <label class="footnote ex-xonly" style="margin:0;display:flex;gap:4px;align-items:center"><input type="checkbox" id="exRisk"> 위험만</label>
+      <label class="footnote ex-xonly" style="margin:0;display:flex;gap:4px;align-items:center">판매마감 여유 <input type="number" id="exBuffer" min="0" style="width:56px">일 전</label>
       <label class="footnote" style="margin:0;display:flex;gap:4px;align-items:center">판매속도 기준 <select id="exWin"><option value="30">최근 30일</option><option value="60">최근 60일</option><option value="90">최근 90일</option><option value="180">최근 180일</option></select></label>
       <button class="tbtn primary" id="exFileBtn" title="3PL 재고 엑셀을 그대로 올리면 어느 브랜드 파일인지 알아서 구분합니다 (비즈로지컴 → GROHOME · 세이고라닌 → POUR스토어)">📥 재고 엑셀 올리기</button><input type="file" id="exFile" accept=".xlsx,.xls,.csv,.htm,.html" style="display:none">
-      <button class="tbtn" id="exPasteBtn">📋 POUR스토어 재고 붙여넣기</button>
+      <button class="tbtn ex-xonly" id="exPasteBtn">📋 POUR스토어 재고 붙여넣기</button>
       <button class="tbtn" id="exReload">↻ 새로고침</button>
-      <span class="hint">기한 안에 팔려면 하루 몇 개를 팔아야 하는지, 지금 속도면 얼마나 버리게 되는지 봅니다 · 🎯 로 바로 프로모션 설계</span>
+      <span class="hint ex-xonly">기한 안에 팔려면 하루 몇 개를 팔아야 하는지, 지금 속도면 얼마나 버리게 되는지 봅니다 · 🎯 로 바로 프로모션 설계</span>
     </div>
     <div class="sheet-pad">
       <div class="panel" id="exPastePanel" style="display:none"><h3>POUR스토어 재고 붙여넣기 <span class="tag">이지어드민 유통기한 재고 엑셀에서 복사</span></h3><div class="bd">
@@ -2638,7 +2683,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
   <button class="stab" data-grp="prod" data-sh="sh-launch"><span class="dot"></span>출시 관리</button>
   <button class="stab" data-grp="prod" data-sh="sh-reg"><span class="dot"></span>등록·제조사</button>
   <button class="stab" data-grp="sales" data-sh="sh-sales"><span class="dot"></span>매출</button>
-  <button class="stab" data-grp="sales" data-sh="sh-expiry"><span class="dot"></span>유통기한</button>
+  <button class="stab" data-grp="sales" data-sh="sh-expiry"><span class="dot"></span>재고·유통기한</button>
   <button class="stab" data-grp="sales" data-sh="sh-pl"><span class="dot"></span>손익</button>
   <button class="stab" data-grp="sales" data-sh="sh-fixed"><span class="dot"></span>고정지출</button>
   <button class="stab" data-grp="mkt" data-sh="sh-mktpromo"><span class="dot"></span>행사 달력</button>
@@ -5981,7 +6026,7 @@ function tabHidden(b){
 const MENU=[
   {g:'price',ic:'💰',lb:'가격',items:[{lb:'단가표',tabs:['sh-tprice']},{lb:'가격정책표',tabs:['sh-price','sh-dash']}]},
   {g:'prod',ic:'📦',lb:'제품',items:[{lb:'출시 관리·등록',tabs:['sh-launch','sh-reg']}]},
-  {g:'sales',ic:'📈',lb:'판매',items:[{lb:'매출',tabs:['sh-sales']},{lb:'유통기한',tabs:['sh-expiry']},{lb:'손익',tabs:['sh-pl','sh-fixed']}]},
+  {g:'sales',ic:'📈',lb:'판매',items:[{lb:'매출',tabs:['sh-sales']},{lb:'재고·유통기한',tabs:['sh-expiry']},{lb:'손익',tabs:['sh-pl','sh-fixed']}]},
   {g:'mkt',ic:'📣',lb:'마케팅',items:[{lb:'프로모션',tabs:['sh-mktpromo','sh-promo']},{lb:'링크',tabs:['sh-mktlink','sh-mkt']},{lb:'공동구매',tabs:['sh-gb']}]},
   {g:'set',ic:'⚙',lb:'설정',items:[{lb:'채널·브랜드',tabs:['sh-chman']},{lb:'계정',tabs:['sh-access']},{lb:'CRM 연동',tabs:['sh-inbound']},{lb:'매칭',tabs:['sh-match']},{lb:'온라인 상품',tabs:['sh-items']},{lb:'MOQ 구간',tabs:['sh-moq']},{lb:'데이터·휴지통',tabs:['sh-data']}]}
 ];
@@ -9274,6 +9319,8 @@ async function loadSales(){
       rows.push({src,brand,date:String(r.date||'').slice(0,10),ch:c.ch,grp:c.grp,amt:Math.round(+r.totalPrice||((+r.unitPrice||0)*(+r.quantity||0))),qty:+r.quantity||0,name:r.productName||'',key:k,ghId:r.productId||''}); });
     // 📥 판매 엑셀 기록: 그로홈에 넣은 줄·이미 그로홈에 있던 날짜의 줄(mir 1·2)은 그로홈 salesRecords 로 이미 들어와 있으니 빼고, POUR스토어 줄이 있는 날은 CRM 기록 대신 이것을 쓴다
     const upDays=new Set(); let upN=0;
+    /* 색상(옵션)별 판매: 판매 엑셀 줄은 가격대시보드 제품(pk = 색상별 제품)으로 남아 있다 → 그로홈 판매 기록(색상 구분 없음)을 색상별로 나누는 비율로 쓴다(재고·유통기한) */
+    SL.opt=[]; uSnap.docs.filter(d=>!d.id.startsWith('batch-')).forEach(d=>{ (d.data().rows||[]).forEach(r=>{ if(r.pk&&+r.qty>0) SL.opt.push({date:d.id,key:r.pk,qty:+r.qty}); }); });
     uSnap.docs.filter(d=>!d.id.startsWith('batch-')).forEach(d=>{ (d.data().rows||[]).forEach(r=>{ if(r.mir) return; const c=slChan(r.ch);
       if(r.brand==='POUR스토어') upDays.add(d.id);
       rows.push({src:'판매엑셀',brand:r.brand||'POUR스토어',date:d.id,ch:c.ch,grp:c.grp,amt:Math.round(+r.amt||0),qty:+r.qty||0,name:r.name||'',key:r.pk||null}); upN++; }); });
@@ -11363,23 +11410,32 @@ const CENTRAL_FB_CONFIG={ apiKey:"AIzaSyAA5CEMdm0RUFocGlcAv_JF5ckf9k9XZr4", auth
 let _cenDb=null;
 function centralDB(){ if(_cenDb) return _cenDb; const app=(firebase.apps||[]).find(a=>a.name==='central')||firebase.initializeApp(CENTRAL_FB_CONFIG,'central'); _cenDb=app.firestore(); return _cenDb; }
 const EX={lots:null, gh:null, at:{}, loading:null, err:'', brand:'', risk:false, buffer:30, win:90, bk:'all', q:'', sort:'risk', diag:false};
-Object.assign(EX,{lead:30, safe:14, cover:90, roAll:false});   // 재주문: 입고까지 일수 · 안전 여유일 · 한 번 주문으로 버틸 일수
+Object.assign(EX,{lead:30, safe:14, cover:90, mode:'ro', roEdit:null, roSetOpen:false, onOrder:{}});   // 재주문: 입고까지 일수 · 안전 여유일 · 한 번 주문으로 버틸 일수 · 화면(ro 재고 충전 / exp 유통기한)
+try{ const m=localStorage.getItem('pour-expiry-mode'); if(m==='ro'||m==='exp') EX.mode=m; }catch(e){}
 try{ const v=JSON.parse(localStorage.getItem('pour-expiry-opts')||'{}'); if(v.buffer>=0) EX.buffer=+v.buffer; if(v.win>0) EX.win=+v.win;
   ['lead','safe','cover'].forEach(k=>{ if(v[k]>=0) EX[k]=+v[k]; }); }catch(e){}
 const exSaveOpts=()=>{ try{ localStorage.setItem('pour-expiry-opts',JSON.stringify({buffer:EX.buffer,win:EX.win,lead:EX.lead,safe:EX.safe,cover:EX.cover})); }catch(e){} };
-/* ── 재주문(발주점) — 상품코드별: 판매 가능 재고(3PL 합계 − 판매마감 전 못 팔 수량) ÷ 하루 판매 = 재고일수
-   발주점 = 하루 판매 × (입고까지 일수 + 안전 여유일) · 판매 가능 재고 ≤ 발주점 → 지금 주문
-   추천 주문량 = 하루 판매 × 버틸 일수 + 발주점 − 판매 가능 재고 (10개 단위 올림) */
-const EX_RO={now:['🔴 지금 주문','#FEE2E2','#B91C1C'], soon:['🟡 곧 주문','#FEF3C7','#92400E'], ok:['🟢 여유','#E3F2E8','#0B5C30'], none:['판매 없음','#F3F4F6','#6B7280'], nolink:['판매 미연결','#F3F4F6','#6B7280']};
+/* ── 재고 충전(발주점) — 상품코드(색상)별
+   판매 가능 재고 = 3PL 합계 − 판매마감 전 못 팔 수량(예상 폐기·기한 지남)
+   발주점 = 하루 판매 × (입고까지 일수 + 안전 여유일) · (판매 가능 + 입고 예정) ≤ 발주점 → 지금 주문
+   추천 주문량 = 하루 판매 × 버틸 일수 + 발주점 − (판매 가능 + 입고 예정) (10개 단위 올림)
+   입고 예정 = 화면의 [✅ 주문했어요] 기록(expiryLots/{브랜드}.onOrder[상품코드]) — 입고예정일 이후 재고를 새로 올리면 들어온 것으로 보고 뺀다 */
+const EX_RO={now:['지금 주문','#FEE2E2','#B91C1C','#DC2626'], soon:['2주 안에 주문','#FEF3C7','#92400E','#D97706'], ok:['여유','#E3F2E8','#0B5C30','#059669'], none:['안 팔림','#F3F4F6','#6B7280','#9CA3AF'], nolink:['판매 미연결','#F3F4F6','#6B7280','#9CA3AF']};
+const exMD=d=>{ const x=d instanceof Date?d:new Date(String(d)+'T00:00:00'); return isNaN(x)?'':`${x.getMonth()+1}/${x.getDate()}`; };
 function exReorder(lotRows){
+  const today=new Date(); today.setHours(0,0,0,0); const day=n=>new Date(today.getTime()+n*86400000);
   const g=new Map(); lotRows.forEach(r=>{ const k=r.l.brand+'|'+r.ck; if(!g.has(k)) g.set(k,[]); g.get(k).push(r); });
-  return [...g.values()].map(rs=>{ const f=rs[0], qty=rs.reduce((a,r)=>a+r.l.qty,0);
+  return [...g.entries()].map(([key,rs])=>{ const f=rs[0], qty=rs.reduce((a,r)=>a+r.l.qty,0), brand=f.l.brand, code=f.l.code;
     const unsellable=rs.reduce((a,r)=>a+(r.v==='expired'?r.l.qty:(r.waste||0)),0), sellable=Math.max(0,qty-unsellable), avg=f.avg;
-    const rop=avg>0?Math.ceil(avg*(EX.lead+EX.safe)):null, days=avg>0?sellable/avg:null;
-    const st=avg==null?'nolink':!(avg>0)?'none':sellable<=rop?'now':days<=EX.lead+EX.safe+14?'soon':'ok';
-    const order=avg>0&&st!=='ok'?Math.max(0,Math.ceil((avg*EX.cover+rop-sellable)/10)*10):0;
-    const hit=avg>0?new Date(Date.now()+Math.max(0,days-EX.lead-EX.safe)*86400000):null;
-    return {f, l:f.l, p:f.p, est:f.est, qty, sellable, unsellable, avg, rop, days, st, order, hit};
+    const oo=((EX.onOrder||{})[brand]||{})[code], upAt=String(EX.at[brand]||'').slice(0,10);
+    const ooOn=!!(oo&&+oo.qty>0&&!(oo.eta&&upAt&&upAt>=oo.eta)&&!(oo.eta&&(today-new Date(oo.eta+'T00:00:00'))/86400000>30));
+    const inc=ooOn?+oo.qty:0, eff=sellable+inc;
+    const rop=avg>0?Math.ceil(avg*(EX.lead+EX.safe)):null, days=avg>0?sellable/avg:null, effDays=avg>0?eff/avg:null;
+    const st=avg==null?'nolink':!(avg>0)?'none':eff<=rop?'now':effDays<=EX.lead+EX.safe+14?'soon':'ok';
+    const order=avg>0&&st!=='ok'?Math.max(0,Math.ceil((avg*EX.cover+rop-eff)/10)*10):0;
+    return {key, f, l:f.l, p:f.p, est:f.est, qty, sellable, unsellable, avg, rop, days, effDays, st, order, inc, oo:ooOn?oo:null,
+      outDate:days!=null?day(Math.floor(days)):null, orderBy:effDays!=null?day(Math.max(0,Math.floor(effDays-EX.lead-EX.safe))):null,
+      gap:avg>0&&!ooOn&&days<EX.lead?Math.ceil(EX.lead-days):0};
   });
 }
 const exCodeKey=s=>{ const t=String(s??'').trim().toUpperCase(), d=t.replace(/\D/g,''); return d.length>=4?d:t; };
@@ -11409,9 +11465,10 @@ async function exLoadLots(){
   exTakeLots(snap, gSnap); _exLotsAt=Date.now();
 }
 function exTakeLots(snap, gSnap){
-    EX.lots=[]; EX.at={}; EX.seed={}; EX.meta={};
+    EX.lots=[]; EX.at={}; EX.seed={}; EX.meta={}; EX.onOrder={};
     snap.docs.forEach(d=>{ const x=d.data()||{}, b=d.id==='grohome'?'GROHOME':d.id==='pour'?'POUR스토어':(x.brand||d.id);
-      const man=(x.manual&&typeof x.manual==='object')?x.manual:{};   // 대시보드에서 직접 넣은 유통기한(상품코드별) — 엑셀에 기한이 없을 때만 씀
+      const man=(x.manual&&typeof x.manual==='object')?x.manual:{};
+      EX.onOrder[b]=(x.onOrder&&typeof x.onOrder==='object')?x.onOrder:{};   // [✅ 주문했어요] 기록 (상품코드별 {qty, eta, at, by})   // 대시보드에서 직접 넣은 유통기한(상품코드별) — 엑셀에 기한이 없을 때만 씀
       const L=Array.isArray(x.lots)?x.lots:[];
       EX.meta[b]={docId:d.id, source:x.source||'', label:exSrcLabel(x.source||''), file:x.file||'', at:x.updatedAt||'', by:x.updatedBy||'', lots:L.length, qty:L.reduce((a,l)=>a+(+l.qty||0),0), noExp:L.filter(l=>!exParseDate(l.expiry)).length};
       /* 3PL은 한 상품코드를 여러 파레트에 나눠 적재 → 상품코드·유통기한(·로트번호)이 같은 줄은 한 로트로 합산. 기한이 다르면 따로 적재하므로 별도 로트 */
@@ -11471,17 +11528,26 @@ function exRows(){
   (SL.rows||[]).forEach(r=>{ if(!r.date||r.date<fIso||r.date>tIso) return;
     if(r.ghId) byGh[r.ghId]=(byGh[r.ghId]||0)+r.qty; if(r.key) byKey[r.key]=(byKey[r.key]||0)+r.qty; });
   /* 3PL은 한 상품코드를 여러 파레트에 나눠 적재(같은 기한은 이미 한 로트로 합산) → 같은 상품코드 = 한 품목(색상), 선입선출 누적도 그 안에서만 본다.
-     판매 기록은 그로홈 제품 단위(색상 구분 없음)라, 한 제품에 상품코드가 여럿이면 재고 비율로 나눠 '추정'으로 표시 */
-  const groups=new Map(), unitStock={}, unitCodes={};
+     판매 기록은 그로홈 제품 단위(색상 구분 없음)라, 한 제품에 상품코드가 여럿이면 아래 shareOf 로 색상별로 나눈다 */
+  const groups=new Map(), unitCodes={};
   EX.lots.forEach(l=>{ const m=idx(l), ck=exCodeKey(l.code)||exNorm(l.name), gk=l.brand+'|'+ck;
     const u=m.g?'g:'+m.g.id:m.key?'k:'+m.key:null;
     if(!groups.has(gk)) groups.set(gk,{m,u,ck,list:[]}); groups.get(gk).list.push(l);
-    if(u){ unitStock[u]=(unitStock[u]||0)+l.qty; (unitCodes[u]=unitCodes[u]||new Set()).add(gk); } });
+    if(u) (unitCodes[u]=unitCodes[u]||new Map()).set(gk,m.key||null); });
+  /* 한 제품에 색상(상품코드)이 여럿이면 제품 판매량을 색상별로 나눈다:
+     ① 판매 엑셀의 색상별 판매 비율(최근 N일 → 없으면 전체 기간, 10개 이상일 때) ② 없으면 색상 수로 똑같이 나눔
+     (재고 비율로 나누면 모든 색상의 남은 일수가 같아져 빨리 팔리는 색이 바닥나는 걸 못 잡는다) */
+  const optWin={}, optAll={}; (SL.opt||[]).forEach(r=>{ optAll[r.key]=(optAll[r.key]||0)+r.qty; if(r.date>=fIso&&r.date<=tIso) optWin[r.key]=(optWin[r.key]||0)+r.qty; });
+  const shareOf=(u,gk)=>{ const cm=unitCodes[u], keys=[...cm.values()];
+    if(keys.every(Boolean)){ for(const src of [optWin,optAll]){ const tot=keys.reduce((a,k)=>a+(src[k]||0),0);
+        if(tot>=10){ const k=cm.get(gk), same=keys.filter(x=>x===k).length; return {f:(src[k]||0)/tot/same, how:'color'}; } } }
+    return {f:1/cm.size, how:'even'}; };
   const out=[];
   groups.forEach(({m,u,ck,list})=>{
+    const gk=list[0].brand+'|'+ck;
     const soldAll = m.g ? m.ghIds.reduce((a,id)=>a+(byGh[id]||0),0) : (m.key?(byKey[m.key]||0):null);
-    const est = u!=null && unitCodes[u].size>1, codeQty=list.reduce((a,l)=>a+l.qty,0);
-    const sold = soldAll==null?null:est?(unitStock[u]>0?soldAll*codeQty/unitStock[u]:0):soldAll;
+    const sh = u!=null && unitCodes[u].size>1 ? shareOf(u,gk) : null, est = sh?sh.how:false;
+    const sold = soldAll==null?null:sh?soldAll*sh.f:soldAll;
     const avg = sold==null?null:sold/EX.win;
     const p = m.key?P.find(x=>pKey(x)===m.key):null, cost=p&&p.cost>0?p.cost:null;
     let cum=0;
@@ -11554,32 +11620,51 @@ async function renderExpiry(){
       ${EX.diag?`<div class="ex-diag"><b>재고 → 제품 연결</b> · 연결 ${won(byCode)}건 · <b class="${nolinkN?'neg':'pos'}">미연결 ${won(nolinkN)}건</b><br>
         <b>매출 기록</b> 총 ${won(sr.length)}건 · 최근 ${EX.win}일 안 ${won(inWin)}건 · 기간 밖 ${won(sr.length-inWin)}건${minD?` · 기록 범위 ${minD} ~ ${maxD}`:''}<br>
         <b>그로홈 제품 마스터</b> ${won((EX.gh||[]).length)}건 · 가격대시보드 제품 ${won(P.filter(p=>!isDeletedProd(p)).length)}건</div>`:''}</div>`;
-  /* 재주문(발주점) 패널 — 브랜드·검색 조건만 적용(기간 칩과 무관), 기본은 🔴·🟡만 */
+  /* ── 📦 재고 충전 화면 — "무엇을 몇 개 주문할지"만. 브랜드 선택만 적용(기간 칩·검색과 무관) ── */
   const RO_O={now:0,soon:1,ok:2,none:3,nolink:4};
-  const roAll=exReorder(all.filter(r=>(!EX.brand||r.l.brand===EX.brand)&&(!qn||exNorm(r.l.name+' '+r.l.code+' '+(r.p?prodLabel(r.p):'')).includes(qn))))
-    .sort((a,b)=>(RO_O[a.st]-RO_O[b.st])||((a.days??1e9)-(b.days??1e9)));
-  const roN={now:0,soon:0}; roAll.forEach(x=>{ if(x.st in roN) roN[x.st]++; });
-  const roRows=EX.roAll?roAll:roAll.filter(x=>x.st==='now'||x.st==='soon'), md=d=>`${d.getMonth()+1}/${d.getDate()}`;
-  const roIn=(id,v,lb)=>`<label class="footnote" style="margin:0;display:inline-flex;gap:4px;align-items:center">${lb} <input type="number" id="${id}" min="0" value="${v}" style="width:56px">일</label>`;
-  const roPanel=`<div class="panel" id="exRo"><h3>📦 재주문 판단 (발주점) <span class="tag">🔴 지금 주문 ${roN.now} · 🟡 곧 주문 ${roN.soon}</span></h3>
-    <div class="bd" style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding-bottom:6px">
-      ${roIn('roLead',EX.lead,'입고까지')}${roIn('roSafe',EX.safe,'안전 여유')}${roIn('roCover',EX.cover,'한 번 주문으로 버틸')}
-      <button type="button" class="tbtn" id="roToggle" style="min-height:0;padding:4px 10px">${EX.roAll?'🔴·🟡만 보기':`전체 ${roAll.length}개 보기`}</button></div>
-    <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" style="width:100%;min-width:720px">
-      <thead><tr><th style="min-width:150px">상품 (상품코드)</th><th>판단</th><th class="num">추천 주문량</th><th class="num">재고일수</th><th class="num" title="판매마감 전 못 팔 재고(예상 폐기·기한 지남)를 뺀 수량">판매 가능</th><th class="num">하루 판매</th><th class="num" title="하루 판매 × (입고까지 + 안전 여유)">발주점</th><th class="num">3PL 재고</th></tr></thead>
-      <tbody>${roRows.map(x=>{ const V=EX_RO[x.st];
-        return `<tr><td style="white-space:normal;min-width:140px">${esc(x.l.name)} <span class="dim" style="font-family:var(--mono);font-size:11px">${esc(x.l.code)}</span>${x.p?`<div class="footnote" style="margin:0">→ ${esc(prodLabel(x.p))}</div>`:''}</td>
-          <td><span class="prb" style="background:${V[1]};color:${V[2]}">${V[0]}</span>${x.st==='soon'&&x.hit?`<div class="footnote" style="margin:0">${md(x.hit)}쯤 발주점</div>`:''}</td>
-          <td class="num">${x.order?`<b>${won(x.order)}개</b>`:'—'}</td>
-          <td class="num">${x.days==null?'—':`<b class="${x.st==='now'?'neg':''}">${won(Math.floor(x.days))}일</b>`}</td>
-          <td class="num"><b>${won(x.sellable)}</b>${x.unsellable?`<div class="footnote neg" style="margin:0">못 팔 ${won(x.unsellable)}</div>`:''}</td>
-          <td class="num">${x.avg==null?'—':f1(x.avg)+'개/일'+(x.est?'<div class="footnote" style="margin:0">추정</div>':'')}</td>
-          <td class="num">${x.rop==null?'—':won(x.rop)}</td>
-          <td class="num">${won(x.qty)}</td></tr>`; }).join('')
-        || `<tr><td colspan="8" style="text-align:center;padding:14px">${roAll.length?'지금 주문하거나 곧 주문할 상품이 없습니다 🟢':'재고가 없습니다'}</td></tr>`}</tbody></table></div>
-    <div class="bd"><p class="footnote" style="margin:0">· <b>발주점</b> = 하루 판매(최근 ${EX.win}일) × (입고까지 ${EX.lead}일 + 안전 여유 ${EX.safe}일). 판매 가능 재고가 발주점 이하면 🔴 지금 주문, 발주점까지 2주 안쪽이면 🟡 곧 주문.<br>
-      · <b>추천 주문량</b> = 하루 판매 × ${EX.cover}일 + 발주점 − 판매 가능 재고 (10개 단위 올림). 최소주문수량(MOQ)·유통기한 안에 다 팔 수 있는지는 따로 확인하세요.<br>
-      · 재고는 3PL 창고만 계산합니다(쿠팡 그로스 창고 재고·판매는 아직 미포함).</p></div></div>`;
+  const roAll=exReorder(all.filter(r=>!EX.brand||r.l.brand===EX.brand)).sort((a,b)=>(RO_O[a.st]-RO_O[b.st])||((a.effDays??1e9)-(b.effDays??1e9)));
+  const roBy=st=>roAll.filter(x=>x.st===st), roNow=roBy('now'), roSoon=roBy('soon'), roWait=roAll.filter(x=>x.st==='ok'&&x.inc>0), roOk=roAll.filter(x=>x.st==='ok'&&!x.inc);
+  const roScale=(EX.lead+EX.safe)*2;
+  const roCard=x=>{ const V=EX_RO[x.st], i=roAll.indexOf(x), ed=EX.roEdit===x.key, d=x.effDays==null?0:Math.min(100,x.effDays/roScale*100);
+    return `<div class="ro-card" style="border-left-color:${V[3]}">
+      <div class="ro-top"><div class="ro-name"><b>${esc(x.l.name)}</b><span class="ro-code">${esc(x.l.code)}${x.l.brand==='POUR스토어'?' · POUR':''}</span></div>
+        ${x.order?`<div class="ro-qty" style="color:${V[2]}"><b>${won(x.order)}개</b><em>주문</em></div>`:`<div class="ro-qty"><span class="ro-chip" style="background:${V[1]};color:${V[2]}">${V[0]}</span></div>`}</div>
+      <div class="ro-bar" title="막대 = 남은 재고(입고 예정 포함) · 세로선 = 주문해야 하는 선(${EX.lead+EX.safe}일치)"><i style="width:${d}%;background:${V[3]}"></i><s></s></div>
+      <div class="ro-txt">남은 재고 <b>${won(x.sellable)}개</b> · 하루 약 ${f1(x.avg)}개 팔림${x.est==='even'?'<span class="ro-est" title="색상별 판매 기록이 없어 제품 판매량을 색상 수로 똑같이 나눈 값 — 판매 엑셀을 올리면 실제 색상 비율로 바뀌어요">추정</span>':''} → <b class="${x.st==='now'?'neg':''}">${exMD(x.outDate)}쯤 바닥</b> <span class="dim">(${won(Math.floor(x.days))}일치)</span></div>
+      ${x.st==='soon'&&x.orderBy?`<div class="ro-txt">📅 <b>${exMD(x.orderBy)}까지</b> 주문하면 돼요</div>`:''}
+      ${x.gap?`<div class="ro-warn">⚠️ 지금 주문해도 들어오기(${EX.lead}일) 전에 약 ${x.gap}일 품절될 수 있어요</div>`:''}
+      ${x.oo?`<div class="ro-inc">🚚 주문함 · <b>${won(x.inc)}개</b> ${x.oo.eta?exMD(x.oo.eta)+' 입고 예정':''}${VIEW?'':` <button type="button" class="ro-link" data-rocancel="${i}">취소</button>`}</div>`:''}
+      ${x.unsellable?`<div class="ro-sub">유통기한 안에 못 팔 재고 ${won(x.unsellable)}개는 빼고 계산했어요</div>`:''}
+      ${VIEW||x.st==='ok'&&!x.order?'':ed?`<div class="ro-form"><label>주문 수량<input type="number" min="1" data-rof="qty" value="${x.order||''}"></label><label>입고 예정일<input type="date" data-rof="eta" value="${slDay(new Date(Date.now()+EX.lead*86400000))}"></label>
+          <div class="ro-fbtn"><button type="button" class="tbtn primary" data-rosave="${i}">저장</button><button type="button" class="tbtn" data-roclose="1">닫기</button></div></div>`
+        :`<button type="button" class="ro-done" data-rodone="${i}">✅ 주문했어요</button>`}
+    </div>`; };
+  const roSec=(ttl,list,open=true)=>!list.length?'':open?`<h4 class="ro-h">${ttl} <em>${list.length}</em></h4><div class="ro-grid">${list.map(roCard).join('')}</div>`
+    :`<details class="ro-more"><summary>${ttl} <em>${list.length}</em></summary><div class="ro-grid">${list.map(roCard).join('')}</div></details>`;
+  const roMini=(ttl,list,hint)=>!list.length?'':`<details class="ro-more"><summary>${ttl} <em>${list.length}</em></summary>${hint?`<p class="footnote" style="margin:6px 0">${hint}</p>`:''}
+      <div class="ro-list">${list.map(x=>`<div><span>${esc(x.l.name)}</span><span class="dim">${esc(x.l.code)} · 재고 ${won(x.qty)}개</span></div>`).join('')}</div></details>`;
+  const nextUp=roOk.filter(x=>x.orderBy).sort((a,b)=>a.orderBy-b.orderBy)[0];
+  const roHero=roNow.length?`<div class="ro-hero bad"><b>🔴 오늘 주문할 상품 ${roNow.length}개</b><span>${roSoon.length?`2주 안에 주문할 상품도 ${roSoon.length}개 있어요`:'아래 카드의 주문 수량대로 주문하세요'}</span></div>`
+    :roSoon.length?`<div class="ro-hero warn"><b>🟡 오늘 급한 건 없어요 · 2주 안에 ${roSoon.length}개</b><span>가장 빠른 주문일 ${exMD(roSoon[0].orderBy)}</span></div>`
+    :`<div class="ro-hero ok"><b>🟢 지금은 주문할 상품이 없어요</b><span>${nextUp?`다음 주문: ${esc(nextUp.l.name)} · ${exMD(nextUp.orderBy)}쯤`:'판매 기록이 연결된 상품이 모두 여유 있어요'}</span></div>`;
+  const roStock=Object.keys(EX.meta||{}).filter(b=>!EX.brand||b===EX.brand).map(b=>`${esc(b)} ${esc(exFmtDT(EX.meta[b].at))}`).join(' · ')||'아직 올린 재고가 없어요';
+  const roInp=(id,v,lb,unit)=>`<label>${lb}<span><input type="number" id="${id}" min="0" value="${v}"> ${unit}</span></label>`;
+  const roView=`<div class="ro-wrap">
+    <div class="ro-stock">🕒 재고 기준 · ${roStock}${VIEW?'':` <button type="button" class="ro-link" id="roUp">📥 새 재고 올리기</button>`}</div>
+    ${roHero}
+    ${roNow.length+roSoon.length?`<div class="ro-act"><button type="button" class="tbtn" id="roCopy">📋 주문 목록 복사 (${roNow.length+roSoon.length}개)</button></div>`:''}
+    ${roSec('🔴 지금 주문하세요',roNow)}
+    ${roSec('🟡 2주 안에 주문하세요',roSoon)}
+    ${roSec('🚚 입고 기다리는 중',roWait)}
+    ${roSec('🟢 여유 있는 상품',roOk,false)}
+    ${roMini(`😴 최근 ${EX.win}일 동안 안 팔린 상품`,roBy('none'),'재고는 있는데 팔리지 않아 주문할 필요가 없어요. 유통기한 탭에서 털어낼지 확인하세요.')}
+    ${roMini('❔ 판매 기록이 연결 안 된 상품',roBy('nolink'),'판매량을 몰라 판단에서 빠졌어요. 그로홈은 그로홈 대시보드 제품 마스터 → 📦 물류센터 재고코드에 이 상품코드를 넣으면 계산돼요.')}
+    <details class="ro-more ro-set"${EX.roSetOpen?' open':''}><summary>⚙️ 계산 기준 · 주문하면 <b>${EX.lead}일</b> 뒤 입고 · 안전 여유 <b>${EX.safe}일</b> · <b>${EX.cover}일</b>치 주문</summary>
+      <div class="ro-setf">${roInp('roLead',EX.lead,'주문 → 입고까지','일')}${roInp('roSafe',EX.safe,'안전 여유','일')}${roInp('roCover',EX.cover,'한 번에 몇 일치 주문','일')}</div>
+      <p class="footnote" style="margin:6px 0 0">· 남은 재고가 <b>(입고까지 + 안전 여유)일치</b> 아래로 내려가면 '지금 주문'이에요. 판매량은 최근 ${EX.win}일 평균(위 판매속도 기준에서 변경).<br>· 3PL 창고 재고만 계산해요(쿠팡 그로스 창고 재고·판매는 아직 미포함). 바꾼 기준은 이 기기에 저장돼요.</p></details>
+  </div>`;
+  const modeTabs=`<div class="ro-tabs"><button type="button" data-exmode="ro" class="${EX.mode==='ro'?'on':''}">📦 재고 충전${roNow.length?` <em>${roNow.length}</em>`:''}</button><button type="button" data-exmode="exp" class="${EX.mode==='exp'?'on':''}">⏰ 유통기한 소진${risk.length?` <em>${risk.length}</em>`:''}</button></div>`;
+  { const sh=$('#sh-expiry'); if(sh){ sh.classList.toggle('ro-mode',EX.mode==='ro'); const t=sh.querySelector('.toolrow .ttl'); if(t) t.textContent=EX.mode==='ro'?'재고 충전':'유통기한·소진'; } }
   const chip=(k,lb)=>`<button type="button" data-exbk="${k}" class="${EX.bk===k?'on':''}">${lb}</button>`;
   const fbar=`<div class="ex-fbar"><div class="seg ex-chips">${chip('all','전체')}${BK.map(([k,lb])=>chip(k,lb)).join('')}${none.lots?chip('none','미등록'):''}</div>
       <div class="ex-fr"><input type="search" id="exQ" placeholder="🔍 상품명 · 코드 찾기" value="${esc(EX.q)}">
@@ -11592,7 +11677,7 @@ async function renderExpiry(){
         <div class="ex-src-n">로트 ${won(m.lots)} · ${won(m.qty)}개${m.noExp?` · <span class="neg">유통기한 없음 ${m.noExp}</span>`:''}</div>`
         :`<div class="ex-src-n">아직 올린 재고가 없어요</div>`}
       ${VIEW?'':`<button type="button" class="tbtn" data-exup="${esc(b)}">📥 엑셀 올리기</button>`}</div>`; }).join('')}</div>`;
-  body.innerHTML=`
+  body.innerHTML=modeTabs+(EX.mode==='ro'?roView:`
     ${srcCards}
     <div class="cards">
       ${card('🔴 프로모션 필요 로트', risk.length+'개', risk.length?'neg':'', `지금 속도의 2배 넘게 팔아야 하거나 기한 ${EX.buffer}일 안쪽으로 들어온 로트`)}
@@ -11604,7 +11689,6 @@ async function renderExpiry(){
     <div class="ex-bks">${bkCards}</div>
     ${totals}
     ${fbar}
-    ${roPanel}
     <div class="panel"><h3>로트별 소진 판단 <span class="tag">최근 ${EX.win}일 판매 속도 · 선입선출</span></h3>
       <div class="bd" style="padding:0;overflow-x:auto"><table class="grid${VIEW?' ex-view':''}" style="width:100%;min-width:${VIEW?'760px':'1280px'}">
         <thead><tr><th>브랜드</th><th style="min-width:200px">상품 (재고 이름)</th><th>3PL 코드</th><th>유통기한</th><th class="num">남은 일수</th><th class="num">수량</th><th class="num" title="같은 상품코드에서 기한이 빠른 로트부터 이 로트까지 더한 수량(선입선출)">누적<br><span style="font-weight:400;font-size:10px">같은 코드·기한순</span></th>
@@ -11614,7 +11698,7 @@ async function renderExpiry(){
             <td>${first?`${esc(r.l.name)}${multi?` <span class="ex-gt" title="3PL 현재고 = 이 상품코드의 모든 로트 합계">3PL 합계 <b>${won(T.qty)}</b>개 · 기한 ${T.n}종</span>`:''}`:`<span class="ex-gsub">↳ 기한 다른 로트</span>`}${!first?'':r.p?`<div class="footnote" style="margin:0">→ ${esc(prodLabel(r.p))}${pcodeOf(r.p)?' · '+esc(pcodeOf(r.p)):''}</div>`:(r.m.g?`<div class="footnote" style="margin:0">→ 그로홈 ${esc(r.m.g.name)} (가격대시보드 미연결)</div>`:'')}${first&&r.sg?`<div class="footnote" style="margin:2px 0 0;color:#1D4ED8">추천 → <b>${esc(prodLabel(r.sg.p))}</b> <button type="button" class="tbtn" data-exsg="${i}" style="min-height:0;padding:2px 8px;font-size:11px">✓ 연결</button></div>`:''}</td>
             <td style="font-family:var(--mono)">${esc(r.l.code)}</td><td>${!VIEW&&!r.l.fileExp&&!(EX.meta[r.l.brand]&&/-seed$/.test(EX.meta[r.l.brand].source))?`<input type="date" class="ex-md" data-doc="${esc(r.l.docId||'')}" data-code="${esc(r.l.code)}" value="${esc(r.l.manualExp?r.l.expiry:'')}" title="엑셀에 유통기한이 없어 직접 넣습니다 (다음 엑셀 올릴 때도 유지)">`:esc(r.l.expiry||r.l.rawExpiry||'—')}</td>
             <td class="num">${r.rem==null?'—':r.rem<0?`<b class="neg">${-r.rem}일 지남</b>`:r.rem<=30?`<b class="neg">D-${r.rem}</b>`:`D-${r.rem}`}</td>
-            <td class="num"><b>${won(r.l.qty)}</b>${r.l.pallets>1?`<div class="footnote" style="margin:0" title="같은 기한 재고가 여러 파레트에 나뉘어 있어 합산">파레트 ${r.l.pallets}곳 합산</div>`:''}</td><td class="num">${multi?won(r.cum):'—'}</td><td class="num">${r.avg==null?'—':f1(r.avg)+'개/일'+(r.est?'<div class="footnote" style="margin:0" title="그로홈 판매 기록은 색상 구분이 없어 제품 판매량을 색상별 재고 비율로 나눔">추정</div>':'')}</td>
+            <td class="num"><b>${won(r.l.qty)}</b>${r.l.pallets>1?`<div class="footnote" style="margin:0" title="같은 기한 재고가 여러 파레트에 나뉘어 있어 합산">파레트 ${r.l.pallets}곳 합산</div>`:''}</td><td class="num">${multi?won(r.cum):'—'}</td><td class="num">${r.avg==null?'—':f1(r.avg)+'개/일'+(r.est?`<div class="footnote" style="margin:0" title="${r.est==='color'?'제품 판매량을 판매 엑셀의 색상별 판매 비율로 나눔':'색상별 판매 기록이 없어 색상 수로 똑같이 나눔'}">${r.est==='color'?'색상 비율':'추정'}</div>`:'')}</td>
             <td class="num">${r.need==null?'—':`<b style="color:${r.avg==null?'inherit':r.need>r.avg?'var(--red)':'var(--xl-green-dark)'}">${f1(r.need)}개/일</b><div class="footnote" style="margin:0">${won(Math.ceil(r.need*30.4))}개/월</div>`}</td>
             <td class="num">${r.ratio==null?'—':r.ratio===Infinity?'판매 없음':f1(r.ratio)+'배'}</td>
             <td class="num">${r.sellThru==null?'—':won(Math.ceil(r.sellThru))+'일'}</td>
@@ -11627,9 +11711,9 @@ async function renderExpiry(){
         · <b>소진 예상</b> = 같은 제품의 앞선 로트까지 모두 파는 데 걸리는 일수 · <b>기한 내 소진율</b> = 판매마감 전까지 지금 속도로 팔리는 비율<br>
         · <b>로트</b> = 상품코드 + 유통기한. 같은 기한이 여러 파레트에 나뉘어 있으면 합산하고(파레트 n곳 합산), 기한이 다르면 따로 적재하므로 별도 줄입니다. 같은 상품코드의 줄은 <b>왼쪽 주황 막대</b>로 묶고 첫 줄에 <b>3PL 합계</b>(= 3PL 현재고)를 표시합니다.<br>
         · <b>누적</b> = 같은 상품코드 안에서 기한이 빠른 로트부터 이 로트까지 더한 수량(선입선출) — 색상이 다른 상품과는 섞지 않습니다.<br>
-        · <b>배수</b> = 필요 하루 판매 ÷ 최근 하루 판매 → 1배 이하 🟢 · 2배 이하 🟡 · 2배 초과 🔴. 그로홈 판매 기록은 색상 구분이 없어, 한 제품에 색상(상품코드)이 여럿이면 제품 판매량을 색상별 재고 비율로 나눈 <b>추정</b>값입니다.<br>
-        · 재고 올린 시각: ${srcBrands.map(b=>{ const m=(EX.meta||{})[b]; return `${esc(b)} ${m?esc(exFmtDT(m.at))+' ('+esc(m.label)+')':'없음'}`; }).join(' · ')}</p></div></div>`;
-  body._rows=rows;
+        · <b>배수</b> = 필요 하루 판매 ÷ 최근 하루 판매 → 1배 이하 🟢 · 2배 이하 🟡 · 2배 초과 🔴. 그로홈 판매 기록은 색상 구분이 없어, 한 제품에 색상(상품코드)이 여럿이면 제품 판매량을 <b>판매 엑셀의 색상별 판매 비율</b>로 나눕니다(색상 비율). 색상 판매 기록이 없으면 색상 수로 똑같이 나눈 <b>추정</b>값입니다.<br>
+        · 재고 올린 시각: ${srcBrands.map(b=>{ const m=(EX.meta||{})[b]; return `${esc(b)} ${m?esc(exFmtDT(m.at))+' ('+esc(m.label)+')':'없음'}`; }).join(' · ')}</p></div></div>`);
+  body._rows=rows; body._ro=roAll;
 }
 /* ── 재고 엑셀 올리기 (브랜드별 3PL 재고리스트 → 공용 DB expiryLots/{브랜드}) ──
    · 파일 모양으로 어느 창고·브랜드인지 알아서 구분: 세이고라닌(출고가능재고 칸) → POUR스토어 · 비즈로지컴(로케이션·현재고 칸) → GROHOME
@@ -11693,6 +11777,23 @@ async function exUploadStock(file, forceBrand){
     logAct('유통기한', `${brand} 재고 엑셀 (${fmt.label})`, `${file.name} · ${lots.length}개 로트 · ${tot}개`); uiToast(`${brand} 재고 ${lots.length}개 로트 저장됨 · ${exFmtDT(now)}`,'ok');
     EX.lots=null; await renderExpiry(); if(typeof eolAutoCheck==='function') eolAutoCheck();
   }catch(e){ console.error('[재고 엑셀] 올리기 실패', e); uiToast('재고 올리기 실패: '+(e.code||e.message||e),'err'); }
+}
+/* [✅ 주문했어요] — 입고 예정을 공용 DB(expiryLots/{브랜드}.onOrder[상품코드])에 남겨 팀 모두가 보고, 재고 충전 판단에 더한다. qty 0 = 지우기 */
+async function exRoSave(x, qty, eta){
+  const code=x.l.code, docId=x.l.docId||exDocId(x.l.brand); qty=Math.floor(+qty||0);
+  if(qty<0||(qty>0&&!exParseDate(eta))){ uiToast('주문 수량과 입고 예정일을 넣어 주세요','err'); return; }
+  try{ await centralDB().collection('expiryLots').doc(docId).set({onOrder:{[code]: qty>0?{qty, eta:exParseDate(eta), at:new Date().toISOString(), by:(curUser&&curUser.email)||''}:firebase.firestore.FieldValue.delete()}},{merge:true});
+    logAct('재고 충전', `${x.l.brand} ${x.l.name} (${code})`, qty>0?`주문 ${qty}개 · 입고 ${eta}`:'주문 기록 지움');
+    uiToast(qty>0?`${x.l.name} ${qty.toLocaleString('ko-KR')}개 주문 기록됨`:'주문 기록을 지웠어요','ok');
+    EX.roEdit=null; EX.lots=null; await renderExpiry();
+  }catch(e){ console.error('[재고 충전] 주문 기록 실패', e); uiToast('저장 실패: '+(e.code||e.message||e),'err'); }
+}
+function exRoCopy(list){
+  const L=list.filter(x=>(x.st==='now'||x.st==='soon')&&x.order>0); if(!L.length){ uiToast('주문할 상품이 없어요','err'); return; }
+  const txt=`[재고 충전 목록] ${slDay(new Date())}\n`+L.map(x=>`${x.st==='now'?'🔴':'🟡'} ${x.l.name} (${x.l.code}) — ${x.order.toLocaleString('ko-KR')}개`).join('\n');
+  const done=()=>uiToast(`주문 목록 ${L.length}개를 복사했어요 — 카톡·메일에 붙여넣으세요`,'ok');
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done,()=>{ prompt('아래 내용을 복사하세요',txt); });
+  else prompt('아래 내용을 복사하세요',txt);
 }
 async function exSaveManual(docId,code,val){
   const v=exParseDate(val);
@@ -11783,12 +11884,18 @@ function exLinkList(){
   body.addEventListener('input',e=>{ if(e.target.id!=='exQ') return; EX.q=e.target.value; const pos=e.target.selectionStart;
     Promise.resolve(renderExpiry()).then(()=>{ const q=$('#exQ'); if(q){ q.focus(); try{ q.setSelectionRange(pos,pos); }catch(err){} } }); });
   body.addEventListener('change',e=>{ if(e.target.id==='exSort'){ EX.sort=e.target.value; renderExpiry(); return; }
-    const ro={roLead:'lead',roSafe:'safe',roCover:'cover'}[e.target.id]; if(ro){ EX[ro]=Math.max(0,+e.target.value||0); exSaveOpts(); renderExpiry(); return; }
+    const ro={roLead:'lead',roSafe:'safe',roCover:'cover'}[e.target.id]; if(ro){ EX[ro]=Math.max(0,+e.target.value||0); EX.roSetOpen=true; exSaveOpts(); renderExpiry(); return; }
     if(e.target.classList.contains('ex-md')) exSaveManual(e.target.dataset.doc, e.target.dataset.code, e.target.value); });
   body.addEventListener('click',e=>{
     if(e.target.id==='exRetry'){ EX.err=''; EX.lots=null; renderExpiry(); return; }
     if(e.target.id==='exDiag'){ EX.diag=!EX.diag; renderExpiry(); return; }
-    if(e.target.id==='roToggle'){ EX.roAll=!EX.roAll; renderExpiry(); return; }
+    const md=e.target.closest('[data-exmode]'); if(md){ EX.mode=md.dataset.exmode; EX.roEdit=null; try{ localStorage.setItem('pour-expiry-mode',EX.mode); }catch(_){} renderExpiry(); return; }
+    if(e.target.closest('#roUp')){ _exUpBrand=EX.brand||''; $('#exFile').click(); return; }
+    if(e.target.closest('#roCopy')){ exRoCopy(body._ro||[]); return; }
+    const rd=e.target.closest('[data-rodone]'); if(rd){ const x=(body._ro||[])[+rd.dataset.rodone]; if(x){ EX.roEdit=x.key; renderExpiry(); } return; }
+    if(e.target.closest('[data-roclose]')){ EX.roEdit=null; renderExpiry(); return; }
+    const rs=e.target.closest('[data-rosave]'); if(rs){ const x=(body._ro||[])[+rs.dataset.rosave], card=rs.closest('.ro-card'); if(x&&card) exRoSave(x, +card.querySelector('[data-rof=qty]').value, card.querySelector('[data-rof=eta]').value); return; }
+    const rc=e.target.closest('[data-rocancel]'); if(rc){ const x=(body._ro||[])[+rc.dataset.rocancel]; if(x&&confirm(`${x.l.name} 주문 기록을 지울까요?`)) exRoSave(x, 0, ''); return; }
     const up=e.target.closest('[data-exup]'); if(up){ _exUpBrand=up.dataset.exup; $('#exFile').click(); return; }
     if(e.target.id==='exSgAll'){ exLinkBulk(body._sgRows||[]); return; }
     const sgb=e.target.closest('button[data-exsg]'); if(sgb){ const r=(body._rows||[])[+sgb.dataset.exsg]; if(r&&r.sg){ (async()=>{ const cur=String(P3PL[r.sg.k]||'').trim(); const err=await setP3plFor(r.sg.k, cur?cur+', '+r.l.code:r.l.code);

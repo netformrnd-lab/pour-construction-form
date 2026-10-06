@@ -119,7 +119,12 @@
 .a-axr .c { min-height: 38px; border-radius: 7px; background: #fff; border: 1px solid #E3E7F0; font-size: 13px; font-weight: 800; color: #0F1F5C; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .a-axr .c.ln { border: 2px solid #0F1F5C; }
 .a-axr .c i { font-style: normal; font-size: 9.5px; font-weight: 800; }
-.a-axr .c.w3 i { color: #fff; }
+/* 칸 농도(.w1~.w3)가 '.a-axr .c' 흰 바탕에 덮이지 않게 같은 세기로 다시 · 진한 칸 글자는 흰색, ▴출시·마감은 흰 칩으로 늘 보이게 */
+.a-axr .c.w1 { background: #EEF1F8; }
+.a-axr .c.w2 { background: #D5DCEE; }
+.a-axr .c.w3 { background: #24386B; border-color: #24386B; color: #fff; }
+.a-axr .c.w3.ln { border-color: #0F1F5C; }
+.a-axr .c.w3 i { color: #0F1F5C; background: #fff; border-radius: 4px; padding: 0 3px; margin-top: 1px; }
 @media (min-width: 768px) { .a-ax { min-width: 0; } .a-axr { grid-template-columns: 160px repeat(8, minmax(0, 1fr)); } }
 /* 위험순 목록 줄 */
 .a-prow { padding: 12px 14px; background: #fff; cursor: pointer; }

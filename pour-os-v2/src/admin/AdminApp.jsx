@@ -21,7 +21,7 @@ import { KpiBoard, LagSheet, useGhRefresh, KpiEditSheet } from "../kpiui.jsx";
 import "./admin.css";
 
 export default function AdminApp() {
-  const B = useBoot(); const g = Gate({ B, title: "커머스본부 관리 대시보드" }); if (g) return g;
+  const B = useBoot(); const g = Gate({ B, title: "커머스본부 관리 대시보드", admin: true }); if (g) return g;
   if (!isMaster(B.cu)) return <NotMaster cu={B.cu} logout={B.logout} />;
   return <AdminMain key={B.cu.id} B={B} />;
 }
@@ -30,7 +30,7 @@ export default function AdminApp() {
 function NotMaster({ cu, logout }) {
   return <div className="v2-center">
     <div style={{ width: "min(420px, 100%)", textAlign: "center", display: "flex", flexDirection: "column", gap: 14, alignItems: "center" }}>
-      <p style={{ margin: 0, fontSize: 17, fontWeight: 800, color: C.ink, lineHeight: 1.6 }}>관리자 화면은 마스터만 볼 수 있어요</p>
+      <p style={{ margin: 0, fontSize: 17, fontWeight: 800, color: C.ink, lineHeight: 1.6 }}>관리자 화면은 관리자만 볼 수 있어요</p>
       {cu && <p style={{ margin: 0, fontSize: 14, color: C.sub }}>지금 {cu.name}님으로 들어와 있어요</p>}
       {logout && <button type="button" onClick={logout} className="a-mylink big" style={{ border: "none", background: "none", cursor: "pointer", font: "inherit" }}>다른 사람으로 들어가기 ›</button>}
       <a href={MY_URL} className="a-mylink big">내 화면으로 ›</a>

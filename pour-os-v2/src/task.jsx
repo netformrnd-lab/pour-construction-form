@@ -168,7 +168,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
     </div>}
     {(t.ccIds || []).length > 0 && mode !== "cc" && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 8 }}>참조 {(t.ccIds || []).map((id) => nameOf(D.users, id)).filter(Boolean).join(", ")} <TBtn v="plain" onClick={() => setMode("cc")} style={{ fontSize: 12.5 }}>바꾸기 ›</TBtn></div>}
     {mode === "block" && <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0" }}><input value={txt} onChange={(e) => setTxt(e.target.value)} placeholder="무엇 때문에 막혔나요? (예: 시안 자료가 없어요)" aria-label="막힌 이유" style={inp} />
-      <div style={{ fontSize: 12.5, color: C.sub }}>{nameOf(D.users, askTo(t, D, cu.id)) || "마스터"}님의 '확인할 것'에 떠요.</div><Act onClick={() => { if (txt.trim()) { A.block(t, txt.trim(), askTo(t, D, cu.id)); setMode(""); } }} style={{ alignSelf: "flex-start", background: C.navy, color: "#fff", borderColor: C.navy }}>알리기</Act></div>}
+      <div style={{ fontSize: 12.5, color: C.sub }}>{nameOf(D.users, askTo(t, D, cu.id)) || "관리자"}님의 '확인할 것'에 떠요.</div><Act onClick={() => { if (txt.trim()) { A.block(t, txt.trim(), askTo(t, D, cu.id)); setMode(""); } }} style={{ alignSelf: "flex-start", background: C.navy, color: "#fff", borderColor: C.navy }}>알리기</Act></div>}
     {mode === "who" && <div style={{ padding: "8px 0" }}><div className="v2-chips">{users.map((u) => <Chip key={u.id} on={handTo ? handTo === u.id : t.assigneeId === u.id} onClick={() => setHandTo(u.id)}>{u.id === cu.id ? "나" : u.name}</Chip>)}</div>
       {handTo && !(ownersOf(t).length === 1 && ownersOf(t)[0] === handTo) && <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
         <input value={txt} onChange={(e) => setTxt(e.target.value)} placeholder="넘기는 이유·이어서 할 것 (선택)" aria-label="넘기며 한마디" style={inp} />
@@ -281,13 +281,20 @@ export function Thread({ D, cu, A, notes, itemId, ctx }) {
 export function FixedSheet({ D, cu, A, onBack, onClose, id, focus, setToast }) {
   const t = useTask(D, id);
   const notes = useItemNotes(D, taskNoteId(id));
+  const oldMine = useItemNotes(D, `${id}~${cu.id}`);   // 버전1 고정업무 '내 메모'(사람별 · 읽기만)
   const [checks, setChecks] = useState(null);
+  const [editMemo, setEditMemo] = useState(false), [memo, setMemo] = useState(""), [memoBase, setMemoBase] = useState(null), [clash, setClash] = useState(null), [oldOpen, setOldOpen] = useState(false);
+  const fileRef = useRef(null);
   useEffect(() => { fb.fetchWhere("checks", ["taskId", "==", id]).then(setChecks).catch((e) => { console.error(e); setChecks([]); }); }, [id, t && JSON.stringify(t.doneAtBy || {})]);
   useEffect(() => { if (focus !== "talk" || !t) return; const h = setTimeout(() => { const el = document.getElementById("v2-fx-talk"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); return () => clearTimeout(h); }, [focus, !!t]);
   if (!t) return <Sheet title="고정업무" kind="고정업무" onBack={onBack} onClose={onClose}><Empty>{t === false ? "이 고정업무를 찾지 못했어요" : "불러오는 중…"}</Empty></Sheet>;
   const key = ymd(new Date()), mine = fxIsMine(t, cu.id), me = fxMeDone(t, cu.id, key), subs = fxSubs(t, cu.id), people = fxPeople(D.users, t);
   const days = [...Array(7)].map((_, i) => addDays(key, -i));
   const byDay = {}; (checks || []).filter((c) => c.on).forEach((c) => { (byDay[c.date] = byDay[c.date] || []).push(c); });
+  const canEdit = mine || isMaster(cu);   // 메모·자료 = 담당 · 관리자
+  const saveMemo = async (force) => { const r = await A.setMemo(t, memo, memoBase, force === true); if (r && r.conflict) setClash(r.cur); else if (r && r.ok) { setClash(null); setEditMemo(false); } };
+  const files = [...(t.attachments || []).map((f) => ({ ...f, where: "고정업무" })), ...notes.filter((nn) => !nn.deleted).flatMap((nn) => (nn.files || []).map((f) => ({ ...f, by: nn.by, byName: nn.byName, uploadedAt: f.uploadedAt || nn.at, where: "댓글" })))];
+  const oldNotes = oldMine.filter((n) => !n.deleted).sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
   return <Sheet title="고정업무" kind="고정업무" head={fxLabel(t, cu.id)} path={`반복 · ${fxRecurL(t)}`} onBack={onBack} onClose={onClose} foot={mine ? <Big tone={me ? "white" : "navy"} onClick={() => A.fxToggle(t)}>{me ? "✓ 체크 취소" : fxDoneWord(t)}</Big> : null}>
     <div style={{ fontSize: 13.5, color: C.sub, marginTop: 12 }}>{fxRecurL(t)} · {fxTime(t, cu.id) || "시간 상관없음"} · 담당 {people.length}명{t.paused ? " · 멈춤" : ""}</div>
     {mine && subs.length > 0 && <><Head>체크리스트</Head><div className="v2-chips">{subs.map((x) => { const ok = fxHit(t, ((t.subDone || {})[cu.id] || {})[x.id], key); return <Chip key={x.id} on={ok} onClick={() => A.fxSub(t, x.id)}>{ok ? "✓ " : ""}{x.title}</Chip>; })}</div></>}
@@ -299,10 +306,22 @@ export function FixedSheet({ D, cu, A, onBack, onClose, id, focus, setToast }) {
     <Head>최근 7일</Head>
     <Card>{checks == null ? <Empty>불러오는 중…</Empty> : days.map((d, i) => <div key={d} style={{ display: "flex", gap: 10, padding: "10px 14px", borderBottom: i < 6 ? `1px solid ${C.line}` : "none", fontSize: 13.5 }}><span style={{ width: 52, color: C.mute, fontVariantNumeric: "tabular-nums" }}>{md(d)}</span><span style={{ flex: 1, color: C.text }}>{fxDueOn(t, d) ? ((byDay[d] || []).map((c) => `${c.name} ${hm(c.at)}`).join(" · ") || "-") : <span style={{ color: C.mute }}>쉬는 날</span>}</span></div>)}
       <div style={{ padding: "8px 14px", fontSize: 12, color: C.mute, borderTop: `1px solid ${C.line}` }}>v2에서 체크한 것부터 쌓여요</div></Card>
-    <Head>하는 법 · 메모</Head>
-    <Card style={{ padding: "12px 14px" }}><div style={{ fontSize: 14.5, color: t.memo ? C.text : C.mute, whiteSpace: "pre-wrap", lineHeight: 1.65 }}>{t.memo ? <Linked text={t.memo} /> : "적어 둔 하는 법이 없어요"}</div></Card>
+    <Head right={canEdit && !editMemo && <TBtn onClick={() => { setMemo(t.memo || ""); setMemoBase(t.memoAt || null); setClash(null); setEditMemo(true); }}>{t.memo ? "메모 고치기" : "메모 쓰기"}</TBtn>}>하는 법 · 메모</Head>
+    {editMemo ? <div><textarea value={memo} onChange={(e) => setMemo(e.target.value)} rows={6} aria-label="하는 법 · 메모" style={{ ...inp, resize: "vertical", lineHeight: 1.6 }} />
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}><Big tone="white" onClick={() => setEditMemo(false)} style={{ flex: 1, height: 44 }}>취소</Big><Big onClick={saveMemo} style={{ flex: 1, height: 44 }}>메모 저장</Big></div>
+      {clash && <Clash who={clash.memoByName} at={clash.memoAt} text={clash.memo} onMerge={() => { setMemo(`${clash.memo || ""}\n\n${memo}`.trim()); setMemoBase(clash.memoAt || null); setClash(null); }} onMine={() => saveMemo(true)} />}</div>
+    : <Card style={{ padding: "12px 14px" }}><div style={{ fontSize: 14.5, color: t.memo ? C.text : C.mute, whiteSpace: "pre-wrap", lineHeight: 1.65, wordBreak: "break-word" }}>{t.memo ? <Linked text={t.memo} /> : "적어 둔 하는 법이 없어요"}</div>{t.memoAt && <div style={{ marginTop: 6, fontSize: 12, color: C.mute }}>{t.memoByName || nameOf(D.users, t.memoBy)} · {ago(t.memoAt)} 고침</div>}</Card>}
+    <Head right={canEdit && <><TBtn onClick={() => fileRef.current && fileRef.current.click()}>+ 파일 올리기</TBtn><input ref={fileRef} type="file" multiple hidden aria-label="파일 고르기" onChange={(e) => { const f = [...e.target.files]; e.target.value = ""; if (f.length) A.addFiles(t, f); }} /></>}>자료 {files.length}</Head>
+    <Card>{files.length === 0 ? <Empty>올린 자료가 없어요</Empty> : files.map((f, i) => <FileRow key={i} f={f} last={i === files.length - 1} />)}</Card>
     <div id="v2-fx-talk" style={{ scrollMarginTop: 8 }}><Head>대화</Head></div>
     <Thread D={D} cu={cu} A={A} notes={notes} itemId={taskNoteId(t.id)} ctx={{ taskId: t.id }} />
+    {oldNotes.length > 0 && <Card style={{ marginTop: 10 }}>
+      <More onClick={() => setOldOpen(!oldOpen)}>{oldOpen ? "예전 내 메모 접기 ▴" : `예전 내 메모 ${oldNotes.length} ▾`} <span style={{ color: C.mute, fontWeight: 700 }}>읽기만</span></More>
+      {oldOpen && oldNotes.map((n, i) => <div key={n.id} style={{ padding: "10px 14px", borderTop: `1px solid ${C.line}` }}>
+        <div style={{ fontSize: 12, color: C.mute }}>{n.byName || nameOf(D.users, n.by)} · {n.at ? md(ymd(new Date(n.at))) : ""}</div>
+        <div style={{ fontSize: 14, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 2, wordBreak: "break-word" }}><Linked text={n.text} /></div>
+        {(n.files || []).map((f, j) => <a key={j} href={f.url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 4, marginRight: 8, fontSize: 13, color: C.navy, fontWeight: 700 }}>{f.name} ›</a>)}</div>)}
+    </Card>}
   </Sheet>;
 }
 

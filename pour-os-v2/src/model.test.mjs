@@ -310,4 +310,24 @@ ok("밀림: 이번 주 월요일이 쉬는 날이라 지난 금요일로 당겨�
   assert.equal(M.fxMissOf({ ...t, doneDates: { a: "2026-10-02" } }, "a", "2026-10-06"), "");
   assert.equal(M.fxMissOf(t, "a", "2026-09-30"), "2026-09-28");
 });
+ok("체크리스트 칩(fxSubPatch): 다 켜면 끝냄 · 하나 풀면 내 끝냄만 지움 · 다른 사람 칸 그대로", () => {
+  const subs = [{ id: "s1", title: "하이웍스" }, { id: "s2", title: "네이버" }, { id: "s3", title: "카톡" }];
+  const k = "2026-10-06", at = "2026-10-06T01:00:00Z";
+  const t0 = { recurType: "daily", assigneeIds: ["a", "b"], subsBy: { "*": subs }, subDone: { a: { s1: k, s2: k }, b: { s1: k } }, doneDates: { b: "2026-10-05" } };
+  const r = M.fxSubPatch(t0, "a", "s3", k, at, "가");
+  assert.equal(r.flip, true); assert.equal(r.patch["subDone.a.s3"], k); assert.equal(r.patch["doneDates.a"], k); assert.equal(r.patch["doneAtBy.a"], at); assert.equal(r.patch.doneByName, "가");
+  assert.ok(!Object.keys(r.patch).some((x) => /\.b(\.|$)/.test(x)));                            // 다른 사람 칸 안 건드림
+  const t1 = { ...t0, subDone: { ...t0.subDone, a: { s1: k, s2: k, s3: k } }, doneDates: { ...t0.doneDates, a: k }, doneAtBy: { a: at } };
+  const u = M.fxSubPatch(t1, "a", "s2", k, at, "가");
+  assert.equal(u.flip, false); assert.equal(u.patch["subDone.a.s2"], null); assert.equal(u.patch["doneDates.a"], null); assert.equal(u.patch["doneAtBy.a"], null);
+  assert.ok(!("subDone.a.s1" in u.patch) && !("subDone.a.s3" in u.patch));                     // 다른 칩은 그대로
+  assert.ok(!Object.keys(u.patch).some((x) => /\.b(\.|$)/.test(x)));
+  const m = M.fxSubPatch(t0, "a", "s1", k, at, "가");                                            // 아직 다 안 켬 → 끝냄 그대로
+  assert.equal(m.flip, null); assert.deepEqual(Object.keys(m.patch), ["subDone.a.s1"]); assert.equal(m.patch["subDone.a.s1"], null);
+  // 지난주 체크는 이번 주기에 안 셈 (매주)
+  const w = { recurType: "weekly", weekDays: ["화"], assigneeIds: ["a"], subsBy: { "*": subs }, subDone: { a: { s1: "2026-10-02", s2: "2026-10-02", s3: "2026-10-02" } }, doneDates: { a: "2026-10-02" } };
+  assert.deepEqual(M.fxSubCount(w, "a", k), [0, 3]);
+  const w1 = M.fxSubPatch(w, "a", "s1", k, at, "가"); assert.equal(w1.flip, null); assert.equal(w1.patch["subDone.a.s1"], k);
+  assert.deepEqual(M.fxSubCount(t0, "a", k), [2, 3]);
+});
 console.log(`\n${n}개 모두 통과`);

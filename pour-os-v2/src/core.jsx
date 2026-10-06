@@ -5,7 +5,7 @@ import * as fb from "./fb.js";
 import { pinHash } from "./sha.js";
 import {
   ymd, addDays, ddays, ddayLabel, md, hm, ago, dayTitle, isMaster, activeUsers, nameOf, STATUS_L, isDone, isOneOff, isMine, ownersOf, dueOf,
-  fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit,
+  fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxSubPatch, fxPeople, fxHit, weekStart,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, planSeed, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, isHoldP, nextWorkday, setHolidayLayer, handOverOwners,
 } from "./model.js";
@@ -283,12 +283,12 @@ export async function syncNewLaunch(D, cu) {
   return lp.projects.length;
 }
 // 공통 문지기: 확인 중 · 첫 복사 · 오류 · 로그인 화면을 대신 보여주고, 통과하면 null
-export function Gate({ B, title }) {
+export function Gate({ B, title, admin }) {
   if (B.meta === undefined) return <Splash title={title} text={B.metaErr || "불러오는 중…"} retry={B.metaErr ? B.checkMeta : null} />;
   if (B.meta === null) return <SeedGate onDone={B.setMeta} />;
   if (B.err) return <Splash title={title} text={B.err} />;
   if (!B.D.ready) return <Splash title={title} text="불러오는 중…" />;
-  if (!B.authed) return <Login D={B.D} title={title} preset={B.cu && B.cu.active !== false ? B.cu : null} onIn={B.signIn} />;
+  if (!B.authed) return <Login D={B.D} title={title} admin={admin} preset={B.cu && B.cu.active !== false ? B.cu : null} onIn={B.signIn} />;
   if (!B.D.loaded) return <Splash title={title} text="내 일 불러오는 중…" />;
   return null;
 }
@@ -331,7 +331,7 @@ export function SeedGate({ onDone }) {
 }
 
 // 나 고르기 + 사람별 PIN
-export function Login({ D, preset, onIn, title }) {
+export function Login({ D, preset, onIn, title, admin }) {
   const [u, setU] = useState(preset);
   const [p1, setP1] = useState(""), [p2, setP2] = useState(""), [p3, setP3] = useState(""), [msg, setMsg] = useState(""), [busy, setBusy] = useState(false);
   const [lock, setLock] = useLocal(LS("pinlock"), {});
@@ -341,7 +341,7 @@ export function Login({ D, preset, onIn, title }) {
   if (!u) return <div className="v2-center">
     <div style={{ width: "min(520px, 100%)" }}>
       <h1 style={{ fontSize: 22, fontWeight: 800, color: C.ink, margin: "0 0 6px" }}>이 기기를 쓰는 사람을 골라 주세요</h1>
-      <p style={{ fontSize: 14, color: C.sub, margin: "0 0 16px", lineHeight: 1.6 }}>체크와 댓글이 이 이름으로 남아요. 다른 사람 일은 달력 오른쪽 위 [나 ▾]에서 봐요.</p>
+      <p style={{ fontSize: 14, color: C.sub, margin: "0 0 16px", lineHeight: 1.6 }}>{admin ? "관리 대시보드는 관리자만 열 수 있어요. 바꾼 것은 이 이름으로 기록에 남아요." : "체크와 댓글이 이 이름으로 남아요. 다른 사람 일은 달력 오른쪽 위 [나 ▾]에서 봐요."}</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8 }}>
         {users.map((x) => <button key={x.id} type="button" onClick={() => { setU(x); setMsg(""); }} style={{ height: 56, borderRadius: 14, border: `1.5px solid ${C.line}`, background: "#fff", fontSize: 16, fontWeight: 800, color: C.ink, fontFamily: "inherit", cursor: "pointer" }}>{x.name}</button>)}
       </div>
@@ -355,11 +355,11 @@ export function Login({ D, preset, onIn, title }) {
       if (p1 !== p2) return setMsg("두 번 입력한 PIN이 달라요");
       if (u.pinInvite) { if (locked) return;   // 시작 코드도 5번 틀리면 5분 잠금
         if (pinHash(u.id, "inv:" + p3) !== u.pinInvite) { const n = (lk.n || 0) + 1; setLock((l) => ({ ...l, [u.id]: n >= 5 ? { n: 0, until: Date.now() + 5 * 60000 } : { n } })); setP3("");
-          return setMsg(n >= 5 ? "5번 틀려서 5분 동안 잠겼어요" : `시작 코드가 맞지 않아요 (${n}/5) · 마스터에게 받은 4자리를 넣어 주세요`); } }
+          return setMsg(n >= 5 ? "5번 틀려서 5분 동안 잠겼어요" : `시작 코드가 맞지 않아요 (${n}/5) · 관리자에게 받은 4자리를 넣어 주세요`); } }
       const h = pinHash(u.id, p1); setBusy(true);
       // 아직 PIN 이 없고 시작 코드가 그대로일 때만 저장 (다른 기기에서 먼저 정했으면 막음)
       try { const r = await fb.patchIf("users", u._doc || u.id, { pinHash: null, pinInvite: u.pinInvite || null }, { pinHash: h, pinSetAt: nowIso(), pinByCode: !!u.pinInvite, pinInvite: null });
-        if (r.ok) onIn(u, h); else setMsg("다른 기기에서 방금 PIN을 정했어요 · 본인이 아니면 마스터에게 PIN 초기화를 부탁하세요"); }
+        if (r.ok) onIn(u, h); else setMsg("다른 기기에서 방금 PIN을 정했어요 · 본인이 아니면 관리자에게 PIN 초기화를 부탁하세요"); }
       catch (e) { console.error("[v2] PIN 저장 실패:", e); setMsg("저장하지 못했어요 · 인터넷 연결을 확인해 주세요"); }
       setBusy(false); return;
     }
@@ -373,7 +373,7 @@ export function Login({ D, preset, onIn, title }) {
     <div style={{ width: "min(400px, 100%)", display: "flex", flexDirection: "column", gap: 10 }}>
       <TBtn onClick={() => { setU(null); setP1(""); setP2(""); setP3(""); setMsg(""); }} style={{ alignSelf: "flex-start" }}>‹ 다른 사람 고르기</TBtn>
       <h1 style={{ fontSize: 22, fontWeight: 800, color: C.ink, margin: 0 }}>{u.name}</h1>
-      <p style={{ fontSize: 14, color: C.sub, margin: "0 0 6px", lineHeight: 1.6 }}>{setMode ? (u.pinInvite ? "처음이에요. 마스터에게 받은 시작 코드와 내가 쓸 PIN 4자리를 넣어 주세요." : "처음이에요. 내 이름으로만 쓰도록 PIN 4자리를 정해 주세요. 정하면 마스터에게 알림이 가요.") : "PIN 4자리를 넣어 주세요. 잊었다면 마스터에게 초기화를 부탁하세요."}</p>
+      <p style={{ fontSize: 14, color: C.sub, margin: "0 0 6px", lineHeight: 1.6 }}>{setMode ? (u.pinInvite ? "처음이에요. 관리자에게 받은 시작 코드와 내가 쓸 PIN 4자리를 넣어 주세요." : "처음이에요. 내 이름으로만 쓰도록 PIN 4자리를 정해 주세요. 정하면 관리자에게 알림이 가요.") : "PIN 4자리를 넣어 주세요. 잊었다면 관리자에게 초기화를 부탁하세요."}</p>
       {setMode && u.pinInvite && <input type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={p3} onChange={(e) => { setP3(only4(e.target.value)); setMsg(""); }} placeholder="시작 코드 4자리" aria-label="시작 코드" style={{ ...inp, fontSize: 20, letterSpacing: 8, textAlign: "center" }} />}
       <input ref={ref} type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={p1} disabled={locked} onChange={(e) => { setP1(only4(e.target.value)); setMsg(""); }} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} placeholder="PIN 4자리" aria-label="PIN" style={{ ...inp, fontSize: 20, letterSpacing: 8, textAlign: "center" }} />
       {setMode && <input type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={p2} onChange={(e) => { setP2(only4(e.target.value)); setMsg(""); }} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} placeholder="한 번 더" aria-label="PIN 확인" style={{ ...inp, fontSize: 20, letterSpacing: 8, textAlign: "center" }} />}
@@ -626,13 +626,18 @@ export function useActs(D, cu, setToast, idx = null) {
       await fb.patch("tasks", tdoc(t), { attachments: fb.arrayUnion(...up.map((x) => ({ ...x, by: cu.id, byName: cu.name }))), updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }); log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `${t.title} · 파일 ${up.length}개 올림` }); setToast({ text: `파일 ${up.length}개 올렸어요` }); }
       catch (e) { fail("파일")(e); } },
     // 고정업무 체크 — 내 칸만 바꾸고, 체크 기록(누가 몇 시)을 따로 남김
+    //   기록 문서는 merge (다시 체크하거나 취소해도 그날 문서의 다른 칸(건수·체크리스트 기록 등)을 지우지 않음)
+    fxCheck: (t, on, key, at) => fb.merge("checks", `${t.id}~${cu.id}~${key}`, { kind: "fx", taskId: t.id, itemId: t.id, uid: cu.id, name: cu.name, date: key, ym: key.slice(0, 7), wk: weekStart(key), at, on }),
     fxToggle: (t) => {
       const key = ymd(new Date()), at = nowIso(), on = !fxMeDone(t, cu.id, key);
       fb.patch("tasks", tdoc(t), { ...fxCheckPatch(t, cu.id, on, key, at, cu.name), v2At: at }).catch(fail("체크"));
-      fb.put("checks", `${t.id}~${cu.id}~${key}`, { taskId: t.id, uid: cu.id, name: cu.name, date: key, at, on }).catch(fail("체크 기록"));
-      if (on) setToast({ text: `체크했어요 · ${fxLabel(t, cu.id)}`, undo: () => { fb.patch("tasks", tdoc(t), { ...fxCheckPatch(t, cu.id, false, key, at, cu.name), v2At: nowIso() }).catch(fail("되돌리기")); fb.put("checks", `${t.id}~${cu.id}~${key}`, { taskId: t.id, uid: cu.id, name: cu.name, date: key, at, on: false }); } });
+      A.fxCheck(t, on, key, at).catch(fail("체크 기록"));
+      if (on) setToast({ text: `체크했어요 · ${fxLabel(t, cu.id)}`, undo: () => { fb.patch("tasks", tdoc(t), { ...fxCheckPatch(t, cu.id, false, key, at, cu.name), v2At: nowIso() }).catch(fail("되돌리기")); A.fxCheck(t, false, key, at).catch(fail("체크 기록")); } });
     },
-    fxSub: (t, subId) => { const key = ymd(new Date()); const cur = (((t.subDone || {})[cu.id]) || {})[subId]; fb.patch("tasks", tdoc(t), { [`subDone.${cu.id}.${subId}`]: fxHit(t, cur, key) ? null : key, v2At: nowIso() }).catch(fail("체크")); },
+    // 체크리스트 칩 하나 (버전1과 같은 규칙: 다 켜면 내 몫 끝냄 · 끝낸 뒤 하나 풀면 내 끝냄만 지움)
+    fxSub: (t, subId) => { const key = ymd(new Date()), at = nowIso(), r = fxSubPatch(t, cu.id, subId, key, at, cu.name);
+      fb.patch("tasks", tdoc(t), { ...r.patch, v2At: at }).catch(fail("체크"));
+      if (r.flip !== null) { A.fxCheck(t, r.flip, key, at).catch(fail("체크 기록")); if (r.flip) setToast({ text: `다 체크했어요 · ${fxLabel(t, cu.id)}` }); } },
     addNote: async (itemId, text, parentId, files, ctx, extra) => {
       const id = newId("n"); const up = [];
       try { for (const f of files || []) up.push(await fb.upload("note-" + itemId, f));

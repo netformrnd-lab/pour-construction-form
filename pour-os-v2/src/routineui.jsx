@@ -20,7 +20,7 @@ function Pick({ q, opts, onPick, onNone }) {
     <div className="v2-rtchips">{opts.map((o) => <button type="button" key={o.k} onClick={() => onPick(o)}>{o.l}</button>)}<button type="button" className="no" onClick={onNone}>해당 없음</button></div></div></div>;
 }
 
-// 오늘 화면 '이번 주 할 횟수' (내 행동지표가 없으면 안 보임)
+// 오늘 화면 '할 횟수' (내 행동지표가 없으면 안 보임) · 줄마다 기간 + 숫자 + 단위: '이번 주 1 / 4건' · '10월 0 / 1회' · '4분기 0 / 1건' · '10월 30 / 100%' · 담당 2명+ '내 몫 n' · 순서 주 → 월 → 분기
 export function RoutineCard({ D, cu, A, keyd }) {
   const [line, setLine] = useState(null), [busy, setBusy] = useState(""), [all, setAll] = useState(false);
   const ak = D.ak || {};
@@ -54,12 +54,12 @@ export function RoutineCard({ D, cu, A, keyd }) {
     const cands = L.cands.map(tOf).filter(Boolean), many = new Set(cands.map((t) => t.projectId)).size < cands.length;
     return <Pick q={`어느 제품 ${askWord(r.it)}이에요?`} opts={cands.map((t) => ({ k: t.id, l: pTitle(D, t) + (many ? ` · ${baseTitle(t)}` : "") }))} onNone={() => setLine({ ...L, kind: "plain" })} onPick={(o) => pick(r, L, o)} />; };
   return <>
-    <Head>{rows.some((r) => r.it.cyc !== "W") ? "할 횟수 · 이번 주·이번 달" : "이번 주 할 횟수"}</Head>
+    <Head right={rows.some((r) => r.it.cyc !== "W") ? <span style={{ fontSize: 12, color: C.mute, fontWeight: 700 }}>주 → 월 → 분기</span> : null}>할 횟수</Head>
     <Card>
       {shown.map((r, i) => { const t = r.tot, done = t.done, u = unitOf(r.it);
         return <div key={r.it.id} className="v2-rtrow" style={{ borderBottom: i === shown.length - 1 && rows.length <= 4 ? 0 : undefined }}>
           <div className="r1"><div className="t"><b>{r.it.name}</b>
-            <span>{r.it.perFail ? <>시도 <b className="num">{t.n}</b> / {t.g || 0}회 · 실패 {t.fail}건 × {r.it.perFail}</> : <><b className="num">{t.n}</b> / {t.g}{u}{r.per !== "이번 주" ? ` · ${r.per}` : ""}{done ? " ✓" : ""}</>}{multiBrand && r.it.brand ? ` · ${brandName(r.it.brand)}` : ""}</span></div>
+            <span>{r.per} {r.it.perFail ? <>시도 <b className="num">{t.n}</b> / {t.g || 0}회 · 실패 {t.fail}건 × {r.it.perFail}</> : <><b className="num">{t.n}</b> / {t.g}{u}{done ? " ✓" : ""}</>}{r.owners >= 2 && !r.it.perFail ? ` · 내 몫 ${r.me}${u === "%" ? "%" : ""}` : ""}{multiBrand && r.it.brand ? ` · ${brandName(r.it.brand, D.brands)}` : ""}</span></div>
             {r.it.perFail && <button type="button" className="v2-rtplus soft" disabled={!!busy} onClick={() => plus(r, true)} aria-label={`${r.it.name} 실패 1건`}>실패 +1</button>}
             <button type="button" className={"v2-rtplus" + (done ? " soft" : "")} disabled={!!busy} onClick={() => plus(r)} aria-label={`${r.it.name} ${plusL(r.it)}`}>{plusL(r.it)}</button></div>
           {lineFor(r)}

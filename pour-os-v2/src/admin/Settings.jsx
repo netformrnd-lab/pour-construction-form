@@ -117,7 +117,7 @@ export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose
       {showHol && <div style={{ padding: "4px 14px 14px", fontSize: 13, color: C.text, lineHeight: 1.75 }}>{hol.map(([d, x]) => <div key={d}>{d.slice(0, 4)}년 {md(d)} ({wdOf(d)}) {x.n} <span style={{ color: C.mute }}>· {x.srcs.join("·")}</span></div>)}</div>}</Card>
 
     <Head>이 기기</Head>
-    <Card><Row title={`${cu.name} · 마스터`} sub="이 기기에서 나가고 이름을 다시 골라요" onClick={() => setAsk("out")} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last /></Card>
+    <Card><Row title={`${cu.name} · 관리자`} sub="이 기기에서 나가고 이름을 다시 골라요" onClick={() => setAsk("out")} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last /></Card>
 
     {ask === "run" && st && st.plan && <Ask title={KIND_L[st.kind]} body={`덮어쓸 문서 ${st.plan.overwrite} · 건너뛰는 문서 ${st.plan.skip} · 새로 생기는 문서 ${st.plan.fresh}\n· v2에서 정리한 담당·기한은 그대로 남아요 (메모·파일도)\n· 버전1은 읽기만 해요(바뀌지 않아요)\n· PIN · 주 한도 · 고정업무 체크 같은 v2 전용 칸은 그대로예요\n· 누르면 한 번 더 비교한 뒤 가져와요${st.plan.pinBack && st.plan.pinBack.length ? `\n· ${st.plan.pinBack.join("·")}님 PIN은 버전1 PIN으로 돌아가요` : ""}`} yes="가져오기" onNo={() => setAsk("")} onYes={run} />}
     {ask === "out" && <Ask title="이 기기에서 나가기" body={"다시 들어올 때 이름과 PIN을 넣어요."} yes="나가기" onNo={() => setAsk("")} onYes={() => { setAsk(""); logout(); }} />}

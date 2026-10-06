@@ -1,5 +1,5 @@
 // node src/routine.test.mjs — 반복(행동지표) ↔ 신제품 횟수 항목 같이 세기 (계산만)
-import { akLaunchItems, countOf, baseTitle, countFields, sumAk, myRoutine, launchMatches, akMatches, akWrite } from "./routine.js";
+import { akLaunchItems, countOf, baseTitle, countFields, sumAk, myRoutine, launchMatches, akMatches, akWrite, periodLabel, brandName } from "./routine.js";
 import { AK_SEED } from "../../pour-os/src/actionKpi.js";
 import { planLaunchSync } from "./lbsync.js";
 import { planLaunchPush } from "./lbpush.js";
@@ -52,7 +52,21 @@ const rows = myRoutine(AK_SEED, users, "songhee", docs, "2026-10-07");
 const rb = rows.find((r) => r.it.id === "ak_c_b2c");
 ck("송희 반복에 컨텐츠 발행 3/4", rb && rb.tot.n === 3 && rb.tot.g === 4 && rb.per === "이번 주", rb && rb.tot);
 ck("이란 것은 안 보임", !rows.some((r) => r.it.id === "ak_c_b2b"));
-ck("월간 항목 '이번 달'", rows.find((r) => r.it.id === "ak_kwsel").per === "이번 달");
+ck("월간 항목 = 실제 달 '10월'", rows.find((r) => r.it.id === "ak_kwsel").per === "10월");
+ck("순서 주 → 월 → 분기", rows.map((r) => ({ W: 0, M: 1, Q: 2 })[r.it.cyc]).every((v, i, a) => !i || a[i - 1] <= v), rows.map((r) => r.it.cyc).join(""));
+{ const r2 = myRoutine([{ ...ak("ak_c_b2c"), who: ["chaerim", "songhee"] }], [...users, { id: "chaerim", name: "이채림" }], "songhee", docs, "2026-10-07").find((r) => r.it.id === "ak_c_b2c");
+  ck("담당 수(내 몫 표시용)", r2.owners === 2 && r2.me === 3, r2 && [r2.owners, r2.me]); }
+
+// 4b. 기간 이름 · 브랜드 이름
+ck("2026-10-06 주간 → 이번 주", periodLabel({ cyc: "W" }, "2026-10-06") === "이번 주");
+ck("2026-10-06 월간 → 10월", periodLabel({ cyc: "M" }, "2026-10-06") === "10월");
+ck("2026-10-01 월간 → 9월 (이번 주 월요일 9/28 의 달)", periodLabel({ cyc: "M" }, "2026-10-01") === "9월", periodLabel({ cyc: "M" }, "2026-10-01"));
+ck("2026-10-06 분기 → 4분기", periodLabel({ cyc: "Q" }, "2026-10-06") === "4분기");
+ck("2026-10-01 분기 → 3분기", periodLabel({ cyc: "Q" }, "2026-10-01") === "3분기");
+const BRS = [{ id: "pourstore", name: "POUR스토어" }, { id: "bmuqo9k5u", name: "모여라딜" }, { id: "bmupq52c0", name: "바라스데이" }];
+ck("brandName id → 모여라딜", brandName("bmuqo9k5u", BRS) === "모여라딜");
+ck("brandName 이름 그대로", brandName("POUR스토어", BRS) === "POUR스토어" && brandName("pourstore", BRS) === "POUR스토어");
+ck("brandName 목록 없어도 아는 이름", brandName("grohome") === "그로홈" && brandName("", BRS) === "");
 
 // 5. 짝 찾기
 const D = { users, projects: [{ id: "lb_p1", title: "스티커 프라이머", status: "active", launchDate: "2026-10-16" }, { id: "lb_p2", title: "타일카펫", status: "active", launchDate: "2026-10-20" }, { id: "lb_p3", title: "끝난 제품", status: "completed", launchDate: "2026-10-16" }, { id: "lb_p9", title: "먼 제품", status: "active", launchDate: "2027-03-01" }],

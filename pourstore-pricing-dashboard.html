@@ -11363,7 +11363,25 @@ const CENTRAL_FB_CONFIG={ apiKey:"AIzaSyAA5CEMdm0RUFocGlcAv_JF5ckf9k9XZr4", auth
 let _cenDb=null;
 function centralDB(){ if(_cenDb) return _cenDb; const app=(firebase.apps||[]).find(a=>a.name==='central')||firebase.initializeApp(CENTRAL_FB_CONFIG,'central'); _cenDb=app.firestore(); return _cenDb; }
 const EX={lots:null, gh:null, at:{}, loading:null, err:'', brand:'', risk:false, buffer:30, win:90, bk:'all', q:'', sort:'risk', diag:false};
-try{ const v=JSON.parse(localStorage.getItem('pour-expiry-opts')||'{}'); if(v.buffer>=0) EX.buffer=+v.buffer; if(v.win>0) EX.win=+v.win; }catch(e){}
+Object.assign(EX,{lead:30, safe:14, cover:90, roAll:false});   // 재주문: 입고까지 일수 · 안전 여유일 · 한 번 주문으로 버틸 일수
+try{ const v=JSON.parse(localStorage.getItem('pour-expiry-opts')||'{}'); if(v.buffer>=0) EX.buffer=+v.buffer; if(v.win>0) EX.win=+v.win;
+  ['lead','safe','cover'].forEach(k=>{ if(v[k]>=0) EX[k]=+v[k]; }); }catch(e){}
+const exSaveOpts=()=>{ try{ localStorage.setItem('pour-expiry-opts',JSON.stringify({buffer:EX.buffer,win:EX.win,lead:EX.lead,safe:EX.safe,cover:EX.cover})); }catch(e){} };
+/* ── 재주문(발주점) — 상품코드별: 판매 가능 재고(3PL 합계 − 판매마감 전 못 팔 수량) ÷ 하루 판매 = 재고일수
+   발주점 = 하루 판매 × (입고까지 일수 + 안전 여유일) · 판매 가능 재고 ≤ 발주점 → 지금 주문
+   추천 주문량 = 하루 판매 × 버틸 일수 + 발주점 − 판매 가능 재고 (10개 단위 올림) */
+const EX_RO={now:['🔴 지금 주문','#FEE2E2','#B91C1C'], soon:['🟡 곧 주문','#FEF3C7','#92400E'], ok:['🟢 여유','#E3F2E8','#0B5C30'], none:['판매 없음','#F3F4F6','#6B7280'], nolink:['판매 미연결','#F3F4F6','#6B7280']};
+function exReorder(lotRows){
+  const g=new Map(); lotRows.forEach(r=>{ const k=r.l.brand+'|'+r.ck; if(!g.has(k)) g.set(k,[]); g.get(k).push(r); });
+  return [...g.values()].map(rs=>{ const f=rs[0], qty=rs.reduce((a,r)=>a+r.l.qty,0);
+    const unsellable=rs.reduce((a,r)=>a+(r.v==='expired'?r.l.qty:(r.waste||0)),0), sellable=Math.max(0,qty-unsellable), avg=f.avg;
+    const rop=avg>0?Math.ceil(avg*(EX.lead+EX.safe)):null, days=avg>0?sellable/avg:null;
+    const st=avg==null?'nolink':!(avg>0)?'none':sellable<=rop?'now':days<=EX.lead+EX.safe+14?'soon':'ok';
+    const order=avg>0&&st!=='ok'?Math.max(0,Math.ceil((avg*EX.cover+rop-sellable)/10)*10):0;
+    const hit=avg>0?new Date(Date.now()+Math.max(0,days-EX.lead-EX.safe)*86400000):null;
+    return {f, l:f.l, p:f.p, est:f.est, qty, sellable, unsellable, avg, rop, days, st, order, hit};
+  });
+}
 const exCodeKey=s=>{ const t=String(s??'').trim().toUpperCase(), d=t.replace(/\D/g,''); return d.length>=4?d:t; };
 const exNorm=s=>String(s??'').replace(/\s+/g,'').replace(/[-－_()[\]]/g,'').toLowerCase();
 function exParseDate(s){ const m=String(s??'').replace(/["'\s]/g,'').match(/^(\d{4})[-./]?(\d{1,2})[-./]?(\d{1,2})/); if(!m) return ''; const y=+m[1],mo=+m[2],d=+m[3];
@@ -11536,6 +11554,32 @@ async function renderExpiry(){
       ${EX.diag?`<div class="ex-diag"><b>재고 → 제품 연결</b> · 연결 ${won(byCode)}건 · <b class="${nolinkN?'neg':'pos'}">미연결 ${won(nolinkN)}건</b><br>
         <b>매출 기록</b> 총 ${won(sr.length)}건 · 최근 ${EX.win}일 안 ${won(inWin)}건 · 기간 밖 ${won(sr.length-inWin)}건${minD?` · 기록 범위 ${minD} ~ ${maxD}`:''}<br>
         <b>그로홈 제품 마스터</b> ${won((EX.gh||[]).length)}건 · 가격대시보드 제품 ${won(P.filter(p=>!isDeletedProd(p)).length)}건</div>`:''}</div>`;
+  /* 재주문(발주점) 패널 — 브랜드·검색 조건만 적용(기간 칩과 무관), 기본은 🔴·🟡만 */
+  const RO_O={now:0,soon:1,ok:2,none:3,nolink:4};
+  const roAll=exReorder(all.filter(r=>(!EX.brand||r.l.brand===EX.brand)&&(!qn||exNorm(r.l.name+' '+r.l.code+' '+(r.p?prodLabel(r.p):'')).includes(qn))))
+    .sort((a,b)=>(RO_O[a.st]-RO_O[b.st])||((a.days??1e9)-(b.days??1e9)));
+  const roN={now:0,soon:0}; roAll.forEach(x=>{ if(x.st in roN) roN[x.st]++; });
+  const roRows=EX.roAll?roAll:roAll.filter(x=>x.st==='now'||x.st==='soon'), md=d=>`${d.getMonth()+1}/${d.getDate()}`;
+  const roIn=(id,v,lb)=>`<label class="footnote" style="margin:0;display:inline-flex;gap:4px;align-items:center">${lb} <input type="number" id="${id}" min="0" value="${v}" style="width:56px">일</label>`;
+  const roPanel=`<div class="panel" id="exRo"><h3>📦 재주문 판단 (발주점) <span class="tag">🔴 지금 주문 ${roN.now} · 🟡 곧 주문 ${roN.soon}</span></h3>
+    <div class="bd" style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding-bottom:6px">
+      ${roIn('roLead',EX.lead,'입고까지')}${roIn('roSafe',EX.safe,'안전 여유')}${roIn('roCover',EX.cover,'한 번 주문으로 버틸')}
+      <button type="button" class="tbtn" id="roToggle" style="min-height:0;padding:4px 10px">${EX.roAll?'🔴·🟡만 보기':`전체 ${roAll.length}개 보기`}</button></div>
+    <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" style="width:100%;min-width:720px">
+      <thead><tr><th style="min-width:150px">상품 (상품코드)</th><th>판단</th><th class="num">추천 주문량</th><th class="num">재고일수</th><th class="num" title="판매마감 전 못 팔 재고(예상 폐기·기한 지남)를 뺀 수량">판매 가능</th><th class="num">하루 판매</th><th class="num" title="하루 판매 × (입고까지 + 안전 여유)">발주점</th><th class="num">3PL 재고</th></tr></thead>
+      <tbody>${roRows.map(x=>{ const V=EX_RO[x.st];
+        return `<tr><td style="white-space:normal;min-width:140px">${esc(x.l.name)} <span class="dim" style="font-family:var(--mono);font-size:11px">${esc(x.l.code)}</span>${x.p?`<div class="footnote" style="margin:0">→ ${esc(prodLabel(x.p))}</div>`:''}</td>
+          <td><span class="prb" style="background:${V[1]};color:${V[2]}">${V[0]}</span>${x.st==='soon'&&x.hit?`<div class="footnote" style="margin:0">${md(x.hit)}쯤 발주점</div>`:''}</td>
+          <td class="num">${x.order?`<b>${won(x.order)}개</b>`:'—'}</td>
+          <td class="num">${x.days==null?'—':`<b class="${x.st==='now'?'neg':''}">${won(Math.floor(x.days))}일</b>`}</td>
+          <td class="num"><b>${won(x.sellable)}</b>${x.unsellable?`<div class="footnote neg" style="margin:0">못 팔 ${won(x.unsellable)}</div>`:''}</td>
+          <td class="num">${x.avg==null?'—':f1(x.avg)+'개/일'+(x.est?'<div class="footnote" style="margin:0">추정</div>':'')}</td>
+          <td class="num">${x.rop==null?'—':won(x.rop)}</td>
+          <td class="num">${won(x.qty)}</td></tr>`; }).join('')
+        || `<tr><td colspan="8" style="text-align:center;padding:14px">${roAll.length?'지금 주문하거나 곧 주문할 상품이 없습니다 🟢':'재고가 없습니다'}</td></tr>`}</tbody></table></div>
+    <div class="bd"><p class="footnote" style="margin:0">· <b>발주점</b> = 하루 판매(최근 ${EX.win}일) × (입고까지 ${EX.lead}일 + 안전 여유 ${EX.safe}일). 판매 가능 재고가 발주점 이하면 🔴 지금 주문, 발주점까지 2주 안쪽이면 🟡 곧 주문.<br>
+      · <b>추천 주문량</b> = 하루 판매 × ${EX.cover}일 + 발주점 − 판매 가능 재고 (10개 단위 올림). 최소주문수량(MOQ)·유통기한 안에 다 팔 수 있는지는 따로 확인하세요.<br>
+      · 재고는 3PL 창고만 계산합니다(쿠팡 그로스 창고 재고·판매는 아직 미포함).</p></div></div>`;
   const chip=(k,lb)=>`<button type="button" data-exbk="${k}" class="${EX.bk===k?'on':''}">${lb}</button>`;
   const fbar=`<div class="ex-fbar"><div class="seg ex-chips">${chip('all','전체')}${BK.map(([k,lb])=>chip(k,lb)).join('')}${none.lots?chip('none','미등록'):''}</div>
       <div class="ex-fr"><input type="search" id="exQ" placeholder="🔍 상품명 · 코드 찾기" value="${esc(EX.q)}">
@@ -11560,6 +11604,7 @@ async function renderExpiry(){
     <div class="ex-bks">${bkCards}</div>
     ${totals}
     ${fbar}
+    ${roPanel}
     <div class="panel"><h3>로트별 소진 판단 <span class="tag">최근 ${EX.win}일 판매 속도 · 선입선출</span></h3>
       <div class="bd" style="padding:0;overflow-x:auto"><table class="grid${VIEW?' ex-view':''}" style="width:100%;min-width:${VIEW?'760px':'1280px'}">
         <thead><tr><th>브랜드</th><th style="min-width:200px">상품 (재고 이름)</th><th>3PL 코드</th><th>유통기한</th><th class="num">남은 일수</th><th class="num">수량</th><th class="num" title="같은 상품코드에서 기한이 빠른 로트부터 이 로트까지 더한 수량(선입선출)">누적<br><span style="font-weight:400;font-size:10px">같은 코드·기한순</span></th>
@@ -11715,7 +11760,7 @@ function exLinkList(){
 }
 (function bindExpiry(){
   const body=$('#exBody'); if(!body) return;
-  const saveOpts=()=>{ try{ localStorage.setItem('pour-expiry-opts',JSON.stringify({buffer:EX.buffer,win:EX.win})); }catch(e){} };
+  const saveOpts=exSaveOpts;
   $('#exBrand').addEventListener('change',e=>{ EX.brand=e.target.value; renderExpiry(); });
   $('#exRisk').addEventListener('change',e=>{ EX.risk=e.target.checked; renderExpiry(); });
   $('#exBuffer').value=EX.buffer; $('#exWin').value=String(EX.win);
@@ -11738,10 +11783,12 @@ function exLinkList(){
   body.addEventListener('input',e=>{ if(e.target.id!=='exQ') return; EX.q=e.target.value; const pos=e.target.selectionStart;
     Promise.resolve(renderExpiry()).then(()=>{ const q=$('#exQ'); if(q){ q.focus(); try{ q.setSelectionRange(pos,pos); }catch(err){} } }); });
   body.addEventListener('change',e=>{ if(e.target.id==='exSort'){ EX.sort=e.target.value; renderExpiry(); return; }
+    const ro={roLead:'lead',roSafe:'safe',roCover:'cover'}[e.target.id]; if(ro){ EX[ro]=Math.max(0,+e.target.value||0); exSaveOpts(); renderExpiry(); return; }
     if(e.target.classList.contains('ex-md')) exSaveManual(e.target.dataset.doc, e.target.dataset.code, e.target.value); });
   body.addEventListener('click',e=>{
     if(e.target.id==='exRetry'){ EX.err=''; EX.lots=null; renderExpiry(); return; }
     if(e.target.id==='exDiag'){ EX.diag=!EX.diag; renderExpiry(); return; }
+    if(e.target.id==='roToggle'){ EX.roAll=!EX.roAll; renderExpiry(); return; }
     const up=e.target.closest('[data-exup]'); if(up){ _exUpBrand=up.dataset.exup; $('#exFile').click(); return; }
     if(e.target.id==='exSgAll'){ exLinkBulk(body._sgRows||[]); return; }
     const sgb=e.target.closest('button[data-exsg]'); if(sgb){ const r=(body._rows||[])[+sgb.dataset.exsg]; if(r&&r.sg){ (async()=>{ const cur=String(P3PL[r.sg.k]||'').trim(); const err=await setP3plFor(r.sg.k, cur?cur+', '+r.l.code:r.l.code);

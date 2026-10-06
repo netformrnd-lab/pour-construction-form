@@ -102,4 +102,17 @@ ok("KPI 고치기 저장 칸: 바뀐 칸만 기록 · 같으면 안 씀 · 숨�
   assert.equal(kpiEditWrite(null, "goals", "v2k_x", { title: "새 목표" }, undefined, cu, at, null).created, true);
   assert.ok(!skManual(K.subKPIs[0])); assert.ok(skManual(K.subKPIs[2])); assert.ok(!skManual(K.subKPIs[3]));
 });
+ok("반복 실행(actionKPIs) 덧칠: subs·qty·desc 덮기 · 목표·주기·단위는 안 덮음 · created 붙음 · 숨김 남음 · 파일", () => {
+  const v1 = [{ id: "ak_a", name: "고객안내", goal: 1, cyc: "M", unit: "회", desc: "버전1 설명" }, { id: "ak_b", name: "NPS", goal: 2, cyc: "M", unit: "회" }];
+  const ov = [{ id: "ak_a", coll: "actionKPIs", fields: { subs: [{ id: "s1", title: "명단 뽑기" }], qty: { label: "전화", unit: "건" }, desc: "새 설명", goal: 99, cyc: "W", unit: "건" }, files: [{ name: "a.pdf" }] },
+    { id: "ak_b", coll: "actionKPIs", fields: {}, hidden: true },
+    { id: "v2k_act_1", coll: "actionKPIs", created: true, fields: { name: "고객안내전화", goal: 1, cyc: "M", unit: "회", brand: "pourstore", active: true } },
+    { id: "g1", coll: "goals", fields: { title: "x" } }];
+  const r = applyKpiOv({ actionKPIs: v1 }, ov).actionKPIs;
+  const a = r.find((x) => x.id === "ak_a"); assert.equal(a.desc, "새 설명"); assert.equal(a.subs[0].title, "명단 뽑기"); assert.equal(a.qty.unit, "건");
+  assert.equal(a.goal, 1); assert.equal(a.cyc, "M"); assert.equal(a.unit, "회"); assert.equal(a._files.length, 1);
+  assert.equal(r.find((x) => x.id === "ak_b")._hidden, true);
+  const c = r.find((x) => x.id === "v2k_act_1"); assert.ok(c && c._new && c.goal === 1 && c.unit === "회");
+  assert.equal(r.length, 3);
+});
 console.log(`${n}개 모두 통과`);

@@ -10,6 +10,7 @@ import {
 import { C, Chip, Seg, TBtn, Card, Empty, useLocal, Ask } from "../ui.jsx";
 import { LS } from "../core.jsx";
 import { sumAk } from "../routine.js";
+import { qtyCfg, qtySum, qtyText } from "../rec.js";
 
 // 버전1 문서 하나 실시간 읽기 (d: undefined = 불러오는 중, null = 없음)
 function useV1Doc(id) {
@@ -41,9 +42,9 @@ export function RoutineTab({ D, A, open }) {
   const unset = fxAll.filter((t) => scopeOf(t) === "unset" && !t.paused);
   const meAll = fxAll.filter((t) => scopeOf(t) === "me" && !t.paused);
   const pend = rtAll.filter((t) => !t.paused && cyclePending(t) && inBrand(t.brand, ""));
-  // 행동지표 (버전1 읽기)
-  const def = useV1Doc("state-actionKPIs");
-  const akAll = useMemo(() => (Array.isArray(def.d && def.d.items) ? def.d.items : []).filter((x) => x && x.id).sort(akOrder), [def.d]);
+  // 횟수 목표(행동지표) = core 한 곳(버전1 읽기 + v2 덧칠 · 숨긴 것 뺌 · 새로 만든 것 포함)
+  const akAll = useMemo(() => ((D.ak && D.ak.items) || []).filter((x) => x && x.id).sort(akOrder), [D.ak]);
+  const def = { d: D.ak && D.ak.defReady ? {} : undefined, err: "" };
   const ak = akAll.filter((it) => it.active !== false && inBrand(it.brand, "pourstore"));
   const whoOfAk = (it) => akWho(D.users, it);
   // 사람 칩: 보이는 반복 실행·행동지표(개인 세그면 개인 고정업무)에 들어 있는 사람
@@ -53,6 +54,7 @@ export function RoutineTab({ D, A, open }) {
     <p className="a-hint" style={{ margin: "6px 2px 8px" }}>반복 실행 = 브랜드가 문제없이 돌아가게 하는 일 · 개인 고정업무는 [개인]에서</p>
     <div className="a-rthead">
       <div style={{ flex: "1 1 300px", maxWidth: 520 }}><Seg items={[["all", "전체"], ["check", `오늘 체크 ${fx.length}`], ["ak", `횟수 ${ak.length}`], ["me", `개인 ${meAll.length}`]]} value={sec} onChange={setSec} /></div>
+      <span style={{ flex: 1 }} /><div style={{ display: "flex", gap: 8 }}><TBtn v="solid" onClick={() => open({ type: "addRoutine" })}>+ 반복 실행</TBtn><TBtn onClick={() => open({ type: "recBook" })}>기록 보기 ›</TBtn></div>
     </div>
     {unset.length > 0 && <UnsetPanel D={D} A={A} list={unset} open={open} />}
     {/* 브랜드 · 사람 칩은 한 줄(옆으로 밀기) — 폰에서 위가 길어지지 않게 */}
@@ -65,7 +67,7 @@ export function RoutineTab({ D, A, open }) {
     </div>
     {sec !== "me" && sec !== "ak" && pend.length > 0 && <CyclePanel D={D} A={A} list={pend} open={open} />}
     {(sec === "all" || sec === "check") && <FixedBoard D={D} fx={fx} paused={rtAll.filter((t) => t.paused && inBrand(t.brand, "")).length} who={who1} keyD={key} open={open} />}
-    {(sec === "all" || sec === "ak") && <AkBoard D={D} items={ak} ready={def.d !== undefined} err={def.err} who={who1} whoOf={whoOfAk} />}
+    {(sec === "all" || sec === "ak") && <AkBoard D={D} items={ak} ready={def.d !== undefined} err={def.err} who={who1} whoOf={whoOfAk} open={open} />}
     {sec === "me" && <MeBoard D={D} list={meAll} who={who1} keyD={key} />}
   </>;
 }
@@ -126,6 +128,9 @@ function MeBoard({ D, list, who, keyD }) {
 // ── 고정업무: 매일 · 매주 · 매월 카드 + 줄마다 사람 체크 ──
 function FixedBoard({ D, fx, paused, who, keyD, open }) {
   const [more, setMore] = useState({}), [noOn, setNoOn] = useState(false);
+  const todayRecs = (D.recs && D.recs.key === keyD ? D.recs.today : []) || [];   // 오늘 건수 (하루 기록 · 실시간)
+  const noteFor = (t) => (D.notes || []).filter((n) => n && !n.deleted && n.itemId === "task:" + t.id);
+  const memoN = (t) => noteFor(t).length + (t.memo ? 1 : 0), fileN = (t) => (t.attachments || []).length + noteFor(t).reduce((a, n) => a + (n.files || []).length, 0);
   const noOwner = (D.tasks || []).filter((t) => t.isFixed && !t.paused && !t.deleted && fxPeople(D.users, t).length === 0);   // 담당이 비었거나 모두 미사용 → 어디에도 안 보이던 고정업무
   const pairs = (t) => fxPeople(D.users, t).filter((u) => who === "all" || u === who);
   const rows = fx.filter((t) => pairs(t).length);
@@ -147,7 +152,8 @@ function FixedBoard({ D, fx, paused, who, keyD, open }) {
         <div className="a-rtgh"><b>{l}</b><span>{w} {d} / {n}</span></div>
         <div className="a-rtlist">{shown.map((t) => { const ps = pairs(t), dn = ps.filter((u) => fxMeDone(t, u, keyD)).length;
           return <div key={t.id} className={"a-rtrow" + (dn === ps.length ? " all" : "")}>
-            <button type="button" className="a-rtname" onClick={() => open({ type: "fixed", id: t.id })}><b>{t.title}</b><small>{tlab(t) ? `${tlab(t)} · ` : "시간 없음 · "}{fxRecurL(t)}{` · ${brandLabel(t.brand, D.brands)}`}{cyclePending(t) ? " · 주기 확인 필요" : ""}</small></button>
+            <button type="button" className="a-rtname" onClick={() => open({ type: "fixed", id: t.id })}><b>{t.title}</b><small>{tlab(t) ? `${tlab(t)} · ` : "시간 없음 · "}{fxRecurL(t)}{` · ${brandLabel(t.brand, D.brands)}`}{cyclePending(t) ? " · 주기 확인 필요" : ""}</small>
+              {(() => { const cfg = qtyCfg(t), q = cfg ? qtySum(todayRecs, t.id) : 0, m = memoN(t), f = fileN(t); return cfg || m || f ? <small className="a-rtqm">{cfg ? <b>{qtyText(cfg, q)}</b> : null}{cfg && (m || f) ? " · " : ""}{m || f ? `메모 ${m} · 파일 ${f}` : ""}</small> : null; })()}</button>
             <div className="a-rtppl">{ps.map((u) => { const ok = fxMeDone(t, u, keyD), last = fxDoneOn(t, u);
               return <span key={u} className={"a-rtp" + (ok ? " ok" : "")} title={last ? `마지막 체크 ${md(last)}` : "체크 기록 없음"}>{ok ? "✓ " : ""}{nameOf(D.users, u) || "?"}</span>; })}</div>
             <span className="a-rtn">{dn}/{ps.length}</span>
@@ -158,13 +164,24 @@ function FixedBoard({ D, fx, paused, who, keyD, open }) {
 }
 
 // ── 행동지표: 버전1 표와 같은 계산 (주간 칸 · 월간·분기 누적), 주요 KPI → AARRR → 주기 ──
-function AkBoard({ D, items, ready, err, who, whoOf }) {
+// 3단계: 주 칸 아래 회색 = 그 주 건수 · 'n월 건수' (하루 기록 checks · 보이는 달·주가 걸친 달을 ym 같음 조건으로 한 번 읽기)
+function useMonthRecs(yms) {
+  const k = [...new Set(yms)].sort().join(","), [st, setSt] = useState({ k: "", a: null });
+  useEffect(() => { let live = true; Promise.all(k.split(",").filter(Boolean).map((ym) => fb.fetchWhere("checks", ["ym", "==", ym])))
+    .then((a) => { if (live) setSt({ k, a: a.flat().filter((d) => d && d.kind === "ak") }); }).catch((e) => { console.error("[v2 checks] 횟수 기록 읽기 실패:", e); if (live) setSt({ k, a: [] }); }); return () => { live = false; }; }, [k]);
+  return st.k === k ? st.a : null;
+}
+function AkBoard({ D, items, ready, err, who, whoOf, open }) {
   const today = akYmd(new Date());
   const [anchor, setAnchor] = useState(() => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), 1); });
   const [kind, setKind] = useLocal(LS("arkind"), "all"), [cyc, setCyc] = useLocal(LS("arcyc"), "all"), [selKey, setSelKey] = useState(null);
   const y = anchor.getFullYear(), m0 = anchor.getMonth(), q = Math.floor(m0 / 3) + 1;
   const WK = akWeeksIn(y, m0), WQ = akQuarterWeeks(y, m0);
   const SEL = WK.find((w) => w.key === selKey) || WK.find((w) => w.start <= today && today <= w.end) || WK[0];
+  const ym = `${y}-${String(m0 + 1).padStart(2, "0")}`, recs = useMonthRecs([ym, ...WK.map((w) => w.key.slice(0, 7))]);
+  const today0 = (D.recs && D.recs.today) || [], recAll = recs ? [...recs.filter((d) => !today0.some((x) => (x.id || x._doc) === (d.id || d._doc))), ...today0.filter((d) => d.kind === "ak")] : null;
+  const qW = (it, wk) => (recAll || []).filter((d) => d.itemId === it.id && d.wk === wk && (who === "all" || d.uid === who)).reduce((a, d) => a + (+d.qty || 0), 0);
+  const qM = (it) => (recAll || []).filter((d) => d.itemId === it.id && d.ym === ym && (who === "all" || d.uid === who)).reduce((a, d) => a + (+d.qty || 0), 0);
   const qid = akQidOfMonth(y, m0), act = useV1Doc("kpi-act-" + qid), v2q = ((D.ak && D.ak.v2) || []).find((x) => (x.id || x._doc) === qid);
   const docs = act.d || v2q ? { [qid]: sumAk(act.d, v2q) } : {};   // 버전1 실적(읽기만) + 업무OS 오늘 화면 [+1](v2 kpiact)
   const list = items.filter((it) => (who === "all" || whoOf(it).includes(who)) && (kind === "all" || (kind === "core" ? !!it.core : !it.core)) && (cyc === "all" || (cyc === "W" ? it.cyc === "W" : it.cyc !== "W")));
@@ -179,17 +196,19 @@ function AkBoard({ D, items, ready, err, who, whoOf }) {
   const groups = [...mks.map((m) => ({ key: m.id, m })), { key: "", m: null }];
   const cell = (it, w) => { const n = akVal(docs, it, w.key), goal = +it.goal || 1, done = n >= goal, fut = w.start > today, past = w.end < today, pre = !akCountable(it, w);
     const cls = pre && !n ? "pre" : done ? "done" : fut ? "fut" : past && akFullWeek(it, w) ? "miss" : n > 0 ? "part" : "";
-    return <span key={w.key} className={"a-akc " + cls + (SEL.key === w.key ? " sel" : "")} title={`${w.label} 주 ${n}/${goal}`}>{pre && !n ? "–" : done && goal === 1 ? "✓" : `${n}/${goal}`}</span>; };
+    const cfg = qtyCfg(it), q = cfg ? qW(it, w.key) : 0;
+    return <span key={w.key} className={"a-akc " + cls + (SEL.key === w.key ? " sel" : "")} title={`${w.label} 주 ${n}/${goal}${q ? ` · ${qtyText(cfg, q)}` : ""}`}>{pre && !n ? "–" : done && goal === 1 ? "✓" : `${n}/${goal}`}{q ? <small>{qtyText(cfg, q)}</small> : null}</span>; };
   const span = (it) => { const t = tot(it), past = akPeriodEnd(it, y, m0) < today, pct = t.g ? Math.min(100, (t.n / t.g) * 100) : 0;
     const cls = t.done ? "done" : past && !t.none && !part(it) ? "miss" : t.n > 0 ? "part" : "";
     const val = it.unit === "%" ? `${t.n}%` : t.none ? (t.n ? `${t.n}회 시도` : "매칭 실패 없음") : `${t.n} / ${t.g}${it.unit || ""}`;
     const state = t.done ? "달성" : part(it) ? "시작한 달 · 참고" : t.none || it.unit === "%" ? "" : `${Math.round(pct)}%`;
-    return <div className={"a-aksp " + cls}><i style={{ width: `${pct}%` }} /><b>{val}</b>{state && <span>{state}</span>}<em>{it.cyc === "Q" ? `${q}분기 누적` : `${m0 + 1}월 누적`}</em></div>; };
+    const cfg = qtyCfg(it), qm = cfg ? qM(it) : 0;
+    return <div className={"a-aksp " + cls}><i style={{ width: `${pct}%` }} /><b>{val}</b>{state && <span>{state}</span>}<em>{it.cyc === "Q" ? `${q}분기 누적` : `${m0 + 1}월 누적`}{cfg ? ` · ${m0 + 1}월 ${qtyText(cfg, qm)}` : ""}</em></div>; };
   const row = (it) => { const t = tot(it);
     return <div key={it.id} className="a-akrow">
-      <div className="a-akn"><b>{it.name}</b>
-        <span className="tags">{whoOf(it).map((id) => <span key={id} className="tg">{nameOf(D.users, id)}</span>)}{!whoOf(it).length && <span className="tg mute">담당 미정</span>}{it.how === "외주" && <span className="tg">외주</span>}{!it.core && <span className="tg">추가</span>}<span className="goal">{akGoalText(it)}</span></span></div>
-      {it.cyc === "W" ? <><div className="a-akw">{WK.map((w) => cell(it, w))}</div><div className={"a-akt" + (t.done ? " done" : "")}><b>{t.n} / {t.g}</b><span>{wksFor(it).length}주 합계</span></div></> : span(it)}
+      <div className="a-akn"><button type="button" className="a-akname" onClick={() => open && open({ type: "routine", id: it.id })}>{it.name}</button>
+        <span className="tags">{whoOf(it).map((id) => <span key={id} className="tg">{nameOf(D.users, id)}</span>)}{!whoOf(it).length && <span className="tg mute">담당 미정</span>}{it.how === "외주" && <span className="tg">외주</span>}{!it.core && <span className="tg">추가</span>}{it.paused && <span className="tg mute">멈춤</span>}{it._new && <span className="tg">새로 만듦</span>}<span className="goal">{akGoalText(it)}</span></span></div>
+      {it.cyc === "W" ? <><div className="a-akw">{WK.map((w) => cell(it, w))}</div><div className={"a-akt" + (t.done ? " done" : "")}><b>{t.n} / {t.g}</b><span>{wksFor(it).length}주 합계</span>{qtyCfg(it) && <span className="q">{m0 + 1}월 {qtyText(qtyCfg(it), qM(it))}</span>}</div></> : span(it)}
     </div>; };
   return <section aria-label="행동지표" className="a-rtsec">
     <h2 className="a-rth">횟수 <span>행동지표 · KPI · 주기별 목표 횟수 · 기록은 팀 앱 오늘 '할 횟수' [+1] (버전1에서 한 것도 합쳐 보여요)</span></h2>

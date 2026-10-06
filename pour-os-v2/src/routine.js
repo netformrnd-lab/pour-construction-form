@@ -47,7 +47,7 @@ export function periodWeeks(it, key) {
 // 오늘 화면 '이번 주 할 횟수': 내 행동지표(사용 중) · 이번 기간 n/목표 · docs = {분기: 합친 문서}
 export function myRoutine(items, users, uid, docs, key) {
   const wk = akWeekKey(new Date(key + "T00:00:00"));
-  return (items || []).filter((it) => it && it.active !== false && !it.deleted && akWho(users, it).includes(uid) && akCountable(it, { end: addD(wk, 6) }))
+  return (items || []).filter((it) => it && it.active !== false && !it.deleted && !it.paused && akWho(users, it).includes(uid) && akCountable(it, { end: addD(wk, 6) }))
     .sort((a, b) => (CYC_RANK[a.cyc] ?? 1) - (CYC_RANK[b.cyc] ?? 1) || akOrder(a, b)).map((it) => { const weeks = periodWeeks(it, key), tot = akTotal(docs, it, weeks), me = weeks.reduce((s, w) => s + akMine(docs, it, w.key, uid), 0);
       return { it, wk, qid: akQidOfWeek(wk), tot, me, owners: akWho(users, it).length, step: akStep(it), per: periodLabel(it, key), goal: akGoalText(it), links: akLaunchItems(it) }; });
 }
@@ -93,7 +93,8 @@ export function akMatches(t, items, users, uid, brand) {
 export function akWrite(cur, it, wk, d, cu, at, extra) {
   const v = (((cur || {}).w || {})[wk] || {})[it.id] || {}, step = d * akStep(it), fail = !!(extra && extra.fail);
   const n = Math.max(0, (+v.n || 0) + (fail ? 0 : step)), fl = Math.max(0, (+v.fail || 0) + (fail ? d : 0)), mine = Math.max(0, (+((v.by || {})[cu.id]) || 0) + (fail ? 0 : step));
-  const entry = { at, by: cu.id, byName: cu.name, it: it.id, wk, d: step, ...(fail ? { fail: true } : {}), ...(extra && extra.task ? { task: extra.task } : {}) };
+  const entry = { at, by: cu.id, byName: cu.name, it: it.id, wk, d: step, ...(fail ? { fail: true } : {}), ...(extra && extra.task ? { task: extra.task } : {}),
+    ...(extra && extra.date ? { date: extra.date } : {}), ...(extra && extra.qty != null ? { qty: extra.qty } : {}), ...(extra && extra.via ? { via: extra.via } : {}) };   // 3단계: 그날 · 건수 · 어디서(btn 버튼 · list 체크리스트 한 바퀴 · qty 건수)
   if (!cur) return { write: { w: { [wk]: { [it.id]: { n, fail: fl, by: { [cu.id]: mine } } } }, log: [entry] }, ret: n };
   const p = `w.${wk}.${it.id}.`;
   return { write: { [p + "n"]: n, [p + "fail"]: fl, [p + "by." + cu.id]: mine, log: (extra && extra.union ? extra.union(entry) : [...(cur.log || []), entry]) }, ret: n };

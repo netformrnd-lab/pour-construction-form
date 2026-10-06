@@ -32,6 +32,12 @@ t("자리: 왼쪽 → 오른쪽 · 부모는 아이 가운데 · 겹치지 않�
   L.nodes.forEach((x) => { assert.ok(x.x + x.w <= L.W && x.y + x.h <= L.H && x.y >= 0, x.id); });
   assert.equal(L.edges.length, L.nodes.length - 1); assert.ok(by["c~more"]);
 });
+t("뿌리는 처음 화면 안 (rootMax)", () => {
+  const vt = visibleTree(root(Array.from({ length: 8 }, (_, i) => br("p" + i, 6))), no, no);
+  const a = layoutTree(vt).nodes[0], b = layoutTree(vt, { rootMax: 300 }).nodes[0];
+  assert.ok(a.y + a.h / 2 > 300); assert.equal(b.y + b.h / 2, 300); assert.equal(b.x, a.x);
+  const s = layoutTree(visibleTree(root([leaf("a")]), no, no), { rootMax: 300 }).nodes[0]; assert.ok(s.y + s.h / 2 < 300);
+});
 t("빈 나무 · 곡선", () => {
   const L = layoutTree(visibleTree(root([]), no, no)); assert.equal(L.nodes.length, 1); assert.ok(L.H >= MM.NH);
   assert.equal(curve(0, 0, 10, 10), "M0,0 C5,0 5,10 10,10");

@@ -190,11 +190,11 @@ function RightMap({ D, cu, A, open, p, idx, launch }) {
   const [fold, setFold] = useState({}), [more, setMore] = useState({}), [all, setAll] = useState(false), [fit, setFit] = useState(false);
   const isFold = (n) => (fold[n.id] != null ? fold[n.id] : !all && n.kind === "phase" && n.ph.state === "done");
   const vt = visibleTree(tree, isFold, (n) => all || !!more[n.id]);
-  const L = layoutTree(vt);
+  const maxH = typeof window !== "undefined" ? Math.min(Math.round(window.innerHeight * 0.7), 760) : 600;
+  const L = layoutTree(vt, { rootMax: Math.max(120, Math.round(maxH / 2) - 20) });
   const box = useRef(null), svgRef = useRef(null), drag = useRef(null);
   const [bw, setBw] = useState(0);
   useEffect(() => { const m = () => box.current && setBw(box.current.clientWidth); m(); window.addEventListener("resize", m); return () => window.removeEventListener("resize", m); }, []);
-  const maxH = typeof window !== "undefined" ? Math.min(Math.round(window.innerHeight * 0.7), 760) : 600;
   const sc = fit && bw ? Math.min(1, (bw - 4) / L.W, (maxH - 4) / L.H) : 1;
   const toggle = (n) => setFold({ ...fold, [n.id]: !isFold(n) });
   const foldDone = () => { const f = {}; const walk = (n) => { (n.kids || []).forEach((k) => { if ((k.kids || []).length) f[k.id] = nodeDone(k); walk(k); }); }; walk(tree); setAll(false); setMore({}); setFold(f); };

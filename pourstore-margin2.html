@@ -521,7 +521,7 @@ function ProdSheet({ ctx, p, close }) {
           ${canCost && !p.set && p.rows.some((r) => !r.gh) && html`<button class="m2-btn solid" onClick=${() => setReq(true)}>가격 바꾸기 요청</button>`}
           <a class="m2-btn" href=${CRM_SALES} target="_blank" rel="noopener">이번 달 매출 ›</a>
         </div>`}
-        <p class="m2-note">${canCost ? "마진 = (판매가 − 수수료 − 원가·택배비) ÷ 판매가. 수수료 0인 채널은 PC 가격정책표 마진과 같아요. " : ""}가격 바꾸기는 요청 → 관리자 승인(PC 가격정책표) 뒤 반영돼요 · 승인되면 CRM 견적 단가도 같이.</p>
+        ${canCost && html`<p class="m2-note">마진 = (판매가 − 수수료 − 원가·택배비) ÷ 판매가. 수수료 0인 채널은 PC 가격정책표 마진과 같아요. 가격 바꾸기는 요청 → 관리자 승인(PC 가격정책표) 뒤 반영돼요 · 승인되면 CRM 견적 단가도 같이.</p>`}
       </div>
     </div>
   </div>`;

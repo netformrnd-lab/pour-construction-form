@@ -1536,6 +1536,13 @@ body:not(.cost-ok) #sh-expiry :is(#exFileBtn,#exPasteBtn,#exPastePanel,.toolrow 
 /* 유통기한 — 일반 팀원(보기만): 3PL 코드·누적·필요 하루 판매·배수·기한 내 소진율은 숨김 (판단에 필요한 8열만) */
 .ex-view th:nth-child(3),.ex-view td:nth-child(3),.ex-view th:nth-child(7),.ex-view td:nth-child(7),.ex-view th:nth-child(9),.ex-view td:nth-child(9),.ex-view th:nth-child(10),.ex-view td:nth-child(10),.ex-view th:nth-child(12),.ex-view td:nth-child(12){display:none}
 #priceHint[hidden]{display:none!important}
+/* 유통기한 — 같은 상품코드(기한만 다른 로트) 묶음 */
+#exBody tr.ex-gf td{border-top:2px solid #CBD5E1}
+#exBody tr.ex-gm td:first-child{box-shadow:inset 4px 0 0 #F59E0B}
+#exBody tr.ex-go td{background:#FAFBFC}
+#exBody .ex-gt{display:inline-block;margin-left:4px;padding:1px 7px;border-radius:999px;background:#FFF7E6;border:1px solid #F5C36B;color:#92400E;font-size:11px;font-weight:600;white-space:nowrap}
+#exBody .ex-gsub{color:var(--ink-faint);font-size:12px;padding-left:6px}
+@media(max-width:640px){ #exBody .ex-gt{display:table;margin:3px 0 0} }
 #pricingBanner{display:flex;flex-wrap:wrap;gap:6px;align-items:center;position:sticky;left:0;z-index:20;width:fit-content;max-width:calc(100vw - 16px);padding:0 8px}
 @media(min-width:641px){ #pricingBanner{max-width:calc(100vw - 280px)} }
 .pb-chip{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0;padding:6px 10px;border-radius:10px;font-size:12.5px;font-weight:700}
@@ -11389,8 +11396,13 @@ function exTakeLots(snap, gSnap){
       const man=(x.manual&&typeof x.manual==='object')?x.manual:{};   // 대시보드에서 직접 넣은 유통기한(상품코드별) — 엑셀에 기한이 없을 때만 씀
       const L=Array.isArray(x.lots)?x.lots:[];
       EX.meta[b]={docId:d.id, source:x.source||'', label:exSrcLabel(x.source||''), file:x.file||'', at:x.updatedAt||'', by:x.updatedBy||'', lots:L.length, qty:L.reduce((a,l)=>a+(+l.qty||0),0), noExp:L.filter(l=>!exParseDate(l.expiry)).length};
+      /* 3PL은 한 상품코드를 여러 파레트에 나눠 적재 → 상품코드·유통기한(·로트번호)이 같은 줄은 한 로트로 합산. 기한이 다르면 따로 적재하므로 별도 로트 */
+      const mg=new Map();
       L.forEach(l=>{ const fx=exParseDate(l.expiry)||'', mx=!fx&&man[l.code]?exParseDate(man[l.code]):'';
-        EX.lots.push({...l, brand:b, docId:d.id, expiry:fx||mx||'', manualExp:!!mx, fileExp:!!fx, qty:+l.qty||0}); });
+        const k=exCodeKey(l.code)+'||'+(fx||String(l.rawExpiry||''))+'||'+String(l.lot||''), x=mg.get(k);
+        if(x){ x.qty+=+l.qty||0; x.pallets+=+l.pallets||1; return; }
+        mg.set(k,{...l, brand:b, docId:d.id, expiry:fx||mx||'', manualExp:!!mx, fileExp:!!fx, qty:+l.qty||0, pallets:+l.pallets||1}); });
+      EX.lots.push(...mg.values());
       EX.at[b]=x.updatedAt||''; (EX.seed=EX.seed||{})[b]=/-seed$/.test(x.source||''); });   // 그로홈 '초기 데이터'(09-22 기준)인지 표시용
     EX.gh=gSnap.docs.map(d=>({id:d.id,...d.data()}));
     console.log(`[expiryLots] 로트 ${EX.lots.length}개 (${Object.keys(EX.at).join('·')||'없음'}) · 그로홈 제품 ${EX.gh.length}개`);
@@ -11415,13 +11427,17 @@ function exIndex(){
     const n=exNorm(g.name); if(n) ghName.push({g,n}); });
   ghName.sort((a,b)=>b.n.length-a.n.length);
   const p3=new Map(); Object.entries(P3PL).forEach(([k,v])=>String(v||'').split(/[,\s]+/).forEach(w=>{ const c=exCodeKey(w); if(c&&!p3.has(c)&&P.some(p=>pKey(p)===k&&!isDeletedProd(p))) p3.set(c,k); }));
-  const ghKey={}; Object.entries(PGHLINK).forEach(([k,gid])=>{ if(!ghKey[gid]) ghKey[gid]=k; });
+  /* 그로홈은 색상이 옵션인 제품 1개, 가격대시보드는 색상마다 제품 → 그로홈 제품에 이어진 제품이 여럿이면 재고 이름의 색상(규격)이 맞는 것을 고른다 */
+  const ghKeys={}; Object.entries(PGHLINK).forEach(([k,gid])=>{ (ghKeys[gid]=ghKeys[gid]||[]).push(k); });
+  const specOf=k=>{ const p=P.find(x=>pKey(x)===k); return p&&p.spec&&p.spec!=='-'?exNorm(p.spec):''; };
+  const pickGh=(ids,n)=>{ const ks=[...new Set(ids.flatMap(id=>ghKeys[id]||[]))]; if(!ks.length) return null;
+    return ks.find(k=>{ const sp=specOf(k); return sp.length>=2&&n.includes(sp); }) || (ks.length===1?ks[0]:null); };
   const pName=P.filter(p=>!isDeletedProd(p)).map(p=>({k:pKey(p),n:exNorm(p.name)})).filter(x=>x.n.length>=3).sort((a,b)=>b.n.length-a.n.length);
   return lot=>{
     const c=exCodeKey(lot.code), n=exNorm(lot.name);
     let g=null; if(lot.brand==='GROHOME'){ g=(c&&ghBy.get(c))||(ghName.find(x=>n===x.n||n.startsWith(x.n))||{}).g||null; }
     const ghIds=g?[g.id,...(legacy[g.id]||[]),...(Array.isArray(g.options)?g.options.map(o=>o&&o.legacyId).filter(Boolean):[])]:[];
-    const key=(c&&p3.get(c)) || (g&&(ghKey[g.id]||ghIds.map(id=>ghKey[id]).find(Boolean))) || (pName.find(x=>n===x.n||n.startsWith(x.n))||{}).k || null;
+    const key=(c&&p3.get(c)) || (g&&pickGh([g.id,...ghIds],n)) || (pName.find(x=>n===x.n||n.startsWith(x.n))||{}).k || null;
     return {g, ghIds:[...new Set(ghIds)], key};
   };
 }
@@ -11436,11 +11452,18 @@ function exRows(){
   const byGh={}, byKey={};
   (SL.rows||[]).forEach(r=>{ if(!r.date||r.date<fIso||r.date>tIso) return;
     if(r.ghId) byGh[r.ghId]=(byGh[r.ghId]||0)+r.qty; if(r.key) byKey[r.key]=(byKey[r.key]||0)+r.qty; });
-  const groups=new Map();
-  EX.lots.forEach(l=>{ const m=idx(l); const gk=l.brand+'|'+(m.g?'g:'+m.g.id:m.key?'k:'+m.key:'x:'+(exCodeKey(l.code)||exNorm(l.name))); if(!groups.has(gk)) groups.set(gk,{m,list:[]}); groups.get(gk).list.push(l); });
+  /* 3PL은 한 상품코드를 여러 파레트에 나눠 적재(같은 기한은 이미 한 로트로 합산) → 같은 상품코드 = 한 품목(색상), 선입선출 누적도 그 안에서만 본다.
+     판매 기록은 그로홈 제품 단위(색상 구분 없음)라, 한 제품에 상품코드가 여럿이면 재고 비율로 나눠 '추정'으로 표시 */
+  const groups=new Map(), unitStock={}, unitCodes={};
+  EX.lots.forEach(l=>{ const m=idx(l), ck=exCodeKey(l.code)||exNorm(l.name), gk=l.brand+'|'+ck;
+    const u=m.g?'g:'+m.g.id:m.key?'k:'+m.key:null;
+    if(!groups.has(gk)) groups.set(gk,{m,u,ck,list:[]}); groups.get(gk).list.push(l);
+    if(u){ unitStock[u]=(unitStock[u]||0)+l.qty; (unitCodes[u]=unitCodes[u]||new Set()).add(gk); } });
   const out=[];
-  groups.forEach(({m,list})=>{
-    const sold = m.g ? m.ghIds.reduce((a,id)=>a+(byGh[id]||0),0) : (m.key?(byKey[m.key]||0):null);
+  groups.forEach(({m,u,ck,list})=>{
+    const soldAll = m.g ? m.ghIds.reduce((a,id)=>a+(byGh[id]||0),0) : (m.key?(byKey[m.key]||0):null);
+    const est = u!=null && unitCodes[u].size>1, codeQty=list.reduce((a,l)=>a+l.qty,0);
+    const sold = soldAll==null?null:est?(unitStock[u]>0?soldAll*codeQty/unitStock[u]:0):soldAll;
     const avg = sold==null?null:sold/EX.win;
     const p = m.key?P.find(x=>pKey(x)===m.key):null, cost=p&&p.cost>0?p.cost:null;
     let cum=0;
@@ -11457,7 +11480,7 @@ function exRows(){
       else { ratio=avg>0?need/avg:Infinity; waste=Math.min(l.qty,Math.max(0,Math.ceil(cum-avg*avail))); v=ratio<=1?'ok':late?'late':ratio<=2?'warn':'bad'; }
       const sellThru=avg>0?cum/avg:null;   // 이 로트까지 다 파는 데 걸리는 일수(선입선출)
       const rate=rem!=null&&rem<0?0:(avg>0&&avail!=null?Math.min(100,avg*Math.max(0,avail)/cum*100):null);   // 판매마감 전까지 팔리는 비율
-      out.push({l, m, p, cost, sold, avg, cum, rem, avail, need, ratio, waste, v, loss:waste!=null&&cost?waste*cost:null, sellThru, rate, bk:bkOf(l.expiry)});
+      out.push({l, m, p, cost, sold, avg, est, ck, cum, rem, avail, need, ratio, waste, v, loss:waste!=null&&cost?waste*cost:null, sellThru, rate, bk:bkOf(l.expiry)});
     });
   });
   return out;
@@ -11480,6 +11503,11 @@ async function renderExpiry(){
     wasteDesc:(a,b)=>nz(b.waste)-nz(a.waste)||ex(a).localeCompare(ex(b)), needDesc:(a,b)=>nz(b.need)-nz(a.need),
     qtyDesc:(a,b)=>b.l.qty-a.l.qty, qtyAsc:(a,b)=>a.l.qty-b.l.qty||ex(a).localeCompare(ex(b)), nameAsc:(a,b)=>String(a.l.name).localeCompare(String(b.l.name),'ko') };
   rows.sort(SORTS[EX.sort]||SORTS.risk);
+  /* 같은 상품코드(기한만 다른 로트)는 붙여서 보여준다: 묶음 순서 = 정렬 기준에서 먼저 나온 로트, 묶음 안 = 유통기한 빠른 순 */
+  const gk=r=>r.l.brand+'|'+r.ck, gOrd=new Map(); rows.forEach(r=>{ if(!gOrd.has(gk(r))) gOrd.set(gk(r),gOrd.size); });
+  rows.sort((a,b)=>(gOrd.get(gk(a))-gOrd.get(gk(b)))||ex(a).localeCompare(ex(b)));
+  const gTot={}; all.forEach(r=>{ const t=gTot[gk(r)]=gTot[gk(r)]||{qty:0,n:0,pal:0}; t.qty+=r.l.qty; t.n++; t.pal+=r.l.pallets||1; });
+  let gIdx=-1;
   base.forEach(r=>{ r.sg=(!VIEW&&!r.p&&r.l.brand==='POUR스토어')?exSuggest(r.l):null; });
   const sgN=VIEW?0:base.filter(r=>r.sg).length; body._sgRows=base.filter(r=>r.sg);
   const f1=v=>v==null?'—':(Math.round(v*10)/10).toLocaleString('ko-KR');
@@ -11490,7 +11518,7 @@ async function renderExpiry(){
   const bkCards=BK.map(([k,lb,bg,bd,tx])=>{ const t=sum[k]||{lots:0,qty:0,waste:0}, on=EX.bk===k;
     return `<button type="button" class="ex-bk${on?' on':''}" data-exbk="${k}" style="background:${bg};border-color:${on?tx:bd};${on?`box-shadow:0 0 0 2px ${bd}`:''}">
       <b style="color:${tx}">${won(t.qty)}</b><span>${lb}<br>로트 ${t.lots}건</span>${t.waste>0?`<em>폐기 예상 ${won(t.waste)}개</em>`:''}</button>`; }).join('');
-  const groupsN=new Set(base.map(r=>r.l.brand+'|'+(r.m.g?'g'+r.m.g.id:r.m.key||exCodeKey(r.l.code)||exNorm(r.l.name)))).size;
+  const groupsN=new Set(base.map(gk)).size;
   const totQty=base.reduce((a,r)=>a+r.l.qty,0), none=sum.none||{lots:0,qty:0}, unknown=base.filter(r=>r.v==='nolink').length;
   const nolinkN=base.filter(r=>!r.m.g&&!r.m.key).length;
   const today0=new Date(); today0.setHours(0,0,0,0); const tIso=slDay(today0), fD=new Date(today0); fD.setDate(fD.getDate()-EX.win+1); const fIso=slDay(fD);
@@ -11534,14 +11562,14 @@ async function renderExpiry(){
     ${fbar}
     <div class="panel"><h3>로트별 소진 판단 <span class="tag">최근 ${EX.win}일 판매 속도 · 선입선출</span></h3>
       <div class="bd" style="padding:0;overflow-x:auto"><table class="grid${VIEW?' ex-view':''}" style="width:100%;min-width:${VIEW?'760px':'1280px'}">
-        <thead><tr><th>브랜드</th><th style="min-width:200px">상품 (재고 이름)</th><th>3PL 코드</th><th>유통기한</th><th class="num">남은 일수</th><th class="num">수량</th><th class="num">누적</th>
+        <thead><tr><th>브랜드</th><th style="min-width:200px">상품 (재고 이름)</th><th>3PL 코드</th><th>유통기한</th><th class="num">남은 일수</th><th class="num">수량</th><th class="num" title="같은 상품코드에서 기한이 빠른 로트부터 이 로트까지 더한 수량(선입선출)">누적<br><span style="font-weight:400;font-size:10px">같은 코드·기한순</span></th>
           <th class="num">하루 판매 (최근)</th><th class="num">필요 하루 판매</th><th class="num">배수</th><th class="num">소진 예상</th><th class="num">기한 내 소진율</th><th>판단</th><th class="num">예상 폐기</th>${VIEW?'':'<th class="num">폐기 손실</th><th></th>'}</tr></thead>
-        <tbody>${rows.map((r,i)=>{ const V=EX_V[r.v]||EX_V.nolink;
-          return `<tr><td>${esc(r.l.brand==='POUR스토어'?'POUR':'GRO')}</td>
-            <td>${esc(r.l.name)}${r.p?`<div class="footnote" style="margin:0">→ ${esc(prodLabel(r.p))}${pcodeOf(r.p)?' · '+esc(pcodeOf(r.p)):''}</div>`:(r.m.g?`<div class="footnote" style="margin:0">→ 그로홈 ${esc(r.m.g.name)} (가격대시보드 미연결)</div>`:'')}${r.sg?`<div class="footnote" style="margin:2px 0 0;color:#1D4ED8">추천 → <b>${esc(prodLabel(r.sg.p))}</b> <button type="button" class="tbtn" data-exsg="${i}" style="min-height:0;padding:2px 8px;font-size:11px">✓ 연결</button></div>`:''}</td>
+        <tbody>${rows.map((r,i)=>{ const V=EX_V[r.v]||EX_V.nolink, k=gk(r), T=gTot[k], first=i===0||gk(rows[i-1])!==k, multi=T&&T.n>1; if(first) gIdx++;
+          return `<tr class="${first?'ex-gf':'ex-gc'}${multi?' ex-gm':''}${gIdx%2?' ex-go':''}"><td>${esc(r.l.brand==='POUR스토어'?'POUR':'GRO')}</td>
+            <td>${first?`${esc(r.l.name)}${multi?` <span class="ex-gt" title="3PL 현재고 = 이 상품코드의 모든 로트 합계">3PL 합계 <b>${won(T.qty)}</b>개 · 기한 ${T.n}종</span>`:''}`:`<span class="ex-gsub">↳ 기한 다른 로트</span>`}${!first?'':r.p?`<div class="footnote" style="margin:0">→ ${esc(prodLabel(r.p))}${pcodeOf(r.p)?' · '+esc(pcodeOf(r.p)):''}</div>`:(r.m.g?`<div class="footnote" style="margin:0">→ 그로홈 ${esc(r.m.g.name)} (가격대시보드 미연결)</div>`:'')}${first&&r.sg?`<div class="footnote" style="margin:2px 0 0;color:#1D4ED8">추천 → <b>${esc(prodLabel(r.sg.p))}</b> <button type="button" class="tbtn" data-exsg="${i}" style="min-height:0;padding:2px 8px;font-size:11px">✓ 연결</button></div>`:''}</td>
             <td style="font-family:var(--mono)">${esc(r.l.code)}</td><td>${!VIEW&&!r.l.fileExp&&!(EX.meta[r.l.brand]&&/-seed$/.test(EX.meta[r.l.brand].source))?`<input type="date" class="ex-md" data-doc="${esc(r.l.docId||'')}" data-code="${esc(r.l.code)}" value="${esc(r.l.manualExp?r.l.expiry:'')}" title="엑셀에 유통기한이 없어 직접 넣습니다 (다음 엑셀 올릴 때도 유지)">`:esc(r.l.expiry||r.l.rawExpiry||'—')}</td>
             <td class="num">${r.rem==null?'—':r.rem<0?`<b class="neg">${-r.rem}일 지남</b>`:r.rem<=30?`<b class="neg">D-${r.rem}</b>`:`D-${r.rem}`}</td>
-            <td class="num"><b>${won(r.l.qty)}</b></td><td class="num">${won(r.cum)}</td><td class="num">${r.avg==null?'—':f1(r.avg)+'개/일'}</td>
+            <td class="num"><b>${won(r.l.qty)}</b>${r.l.pallets>1?`<div class="footnote" style="margin:0" title="같은 기한 재고가 여러 파레트에 나뉘어 있어 합산">파레트 ${r.l.pallets}곳 합산</div>`:''}</td><td class="num">${multi?won(r.cum):'—'}</td><td class="num">${r.avg==null?'—':f1(r.avg)+'개/일'+(r.est?'<div class="footnote" style="margin:0" title="그로홈 판매 기록은 색상 구분이 없어 제품 판매량을 색상별 재고 비율로 나눔">추정</div>':'')}</td>
             <td class="num">${r.need==null?'—':`<b style="color:${r.avg==null?'inherit':r.need>r.avg?'var(--red)':'var(--xl-green-dark)'}">${f1(r.need)}개/일</b><div class="footnote" style="margin:0">${won(Math.ceil(r.need*30.4))}개/월</div>`}</td>
             <td class="num">${r.ratio==null?'—':r.ratio===Infinity?'판매 없음':f1(r.ratio)+'배'}</td>
             <td class="num">${r.sellThru==null?'—':won(Math.ceil(r.sellThru))+'일'}</td>
@@ -11552,7 +11580,9 @@ async function renderExpiry(){
           || `<tr><td colspan="${VIEW?14:16}" style="text-align:center;padding:18px">${EX.lots.length?'조건에 맞는 로트가 없습니다':'공용 DB에 재고가 없습니다 — 그로홈 대시보드 [유통기한 관리]를 한 번 열면 올라옵니다'}</td></tr>`}</tbody></table></div>
       <div class="bd"><p class="footnote" style="margin:0">· <b>필요 하루 판매</b> = 이 로트까지의 누적 재고 ÷ (남은 일수 − 판매마감 여유 ${EX.buffer}일). 같은 제품의 로트는 기한이 빠른 것부터 팔린다고 봅니다.<br>
         · <b>소진 예상</b> = 같은 제품의 앞선 로트까지 모두 파는 데 걸리는 일수 · <b>기한 내 소진율</b> = 판매마감 전까지 지금 속도로 팔리는 비율<br>
-        · <b>배수</b> = 필요 하루 판매 ÷ 최근 하루 판매 → 1배 이하 🟢 · 2배 이하 🟡 · 2배 초과 🔴. 그로홈 색상별 재고는 판매 기록이 제품 단위라 색상 구분 없이 합쳐 봅니다.<br>
+        · <b>로트</b> = 상품코드 + 유통기한. 같은 기한이 여러 파레트에 나뉘어 있으면 합산하고(파레트 n곳 합산), 기한이 다르면 따로 적재하므로 별도 줄입니다. 같은 상품코드의 줄은 <b>왼쪽 주황 막대</b>로 묶고 첫 줄에 <b>3PL 합계</b>(= 3PL 현재고)를 표시합니다.<br>
+        · <b>누적</b> = 같은 상품코드 안에서 기한이 빠른 로트부터 이 로트까지 더한 수량(선입선출) — 색상이 다른 상품과는 섞지 않습니다.<br>
+        · <b>배수</b> = 필요 하루 판매 ÷ 최근 하루 판매 → 1배 이하 🟢 · 2배 이하 🟡 · 2배 초과 🔴. 그로홈 판매 기록은 색상 구분이 없어, 한 제품에 색상(상품코드)이 여럿이면 제품 판매량을 색상별 재고 비율로 나눈 <b>추정</b>값입니다.<br>
         · 재고 올린 시각: ${srcBrands.map(b=>{ const m=(EX.meta||{})[b]; return `${esc(b)} ${m?esc(exFmtDT(m.at))+' ('+esc(m.label)+')':'없음'}`; }).join(' · ')}</p></div></div>`;
   body._rows=rows;
 }
@@ -11598,7 +11628,7 @@ function exParseStock(aoa){
     const qty=num(g(r,C.qty)); if(qty<=0){ skip.zero.push(name); return; }
     const ev=g(r,C.exp), ex=exXlDate(ev), rawE=t(ev);
     lots.push({code,name,qty,expiry:ex||'',rawExpiry:ex||/^0{4}/.test(rawE)?'':rawE,lot:t(g(r,C.lot)),mfg:exXlDate(g(r,C.mfg))||'',inDate:exXlDate(g(r,C.inDate))||''}); });
-  const m=new Map(); lots.forEach(l=>{ const k=l.code+'||'+(l.expiry||'')+'||'+l.lot; const x=m.get(k); if(x){ x.qty+=l.qty; if(l.inDate&&(!x.inDate||l.inDate<x.inDate)) x.inDate=l.inDate; } else m.set(k,{...l}); });
+  const m=new Map(); lots.forEach(l=>{ const k=l.code+'||'+(l.expiry||'')+'||'+l.lot; const x=m.get(k); if(x){ x.qty+=l.qty; x.pallets++; if(l.inDate&&(!x.inDate||l.inDate<x.inDate)) x.inDate=l.inDate; } else m.set(k,{...l,pallets:1}); });
   return {lots:[...m.values()], skip, fmt};
 }
 let _exUpBrand='';
@@ -11614,7 +11644,7 @@ async function exUploadStock(file, forceBrand){
     if(!confirm(`[${brand}] ${fmt.label} 재고로 바꿉니다 — 최신 파일로 교체\n· ${file.name}\n· ${codes}개 품목 · ${lots.length}개 로트 · ${tot.toLocaleString('ko-KR')}개\n· 유통기한 있는 로트 ${withExp}개 (없는 로트는 대시보드에서 직접 넣은 기한을 씁니다)${skip.nonsale.length||skip.zero.length?`\n· 제외: 부자재·제공용·샘플 ${skip.nonsale.length}줄 · 수량 0 ${skip.zero.length}줄`:''}`)) return;
     const now=new Date().toISOString();
     await centralDB().collection('expiryLots').doc(exDocId(brand)).set({brand, source:fmt.id, file:file.name, updatedAt:now, uploadedAt:now, updatedBy:(curUser&&curUser.email)||'',
-      lots:lots.map(l=>({code:l.code,name:l.name,qty:l.qty,expiry:l.expiry||'',rawExpiry:l.rawExpiry||'',lot:l.lot||'',mfg:l.mfg||'',inDate:l.inDate||''}))},{merge:true});   // merge: manual(직접 넣은 유통기한) 유지
+      lots:lots.map(l=>({code:l.code,name:l.name,qty:l.qty,expiry:l.expiry||'',rawExpiry:l.rawExpiry||'',lot:l.lot||'',mfg:l.mfg||'',inDate:l.inDate||'',pallets:l.pallets||1}))},{merge:true});   // merge: manual(직접 넣은 유통기한) 유지
     logAct('유통기한', `${brand} 재고 엑셀 (${fmt.label})`, `${file.name} · ${lots.length}개 로트 · ${tot}개`); uiToast(`${brand} 재고 ${lots.length}개 로트 저장됨 · ${exFmtDT(now)}`,'ok');
     EX.lots=null; await renderExpiry(); if(typeof eolAutoCheck==='function') eolAutoCheck();
   }catch(e){ console.error('[재고 엑셀] 올리기 실패', e); uiToast('재고 올리기 실패: '+(e.code||e.message||e),'err'); }

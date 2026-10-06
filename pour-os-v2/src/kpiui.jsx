@@ -64,7 +64,7 @@ export function KpiBoard({ D, cu, open }) {
     {isMaster(cu) && <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}><TBtn v={ed ? "solid" : "line"} onClick={() => setEd(!ed)}>{ed ? "고치기 끝" : "KPI 고치기"}</TBtn></div>}
     {ed && <p className="v2-kednote">줄마다 [고치기]로 이름·목표·단위를 바꾸고, [+ 추가]로 새로 만들어요 · 지우기 대신 숨기기(다시 보이기 가능) · 고친 것은 업무OS v2 에만 저장되고 버전1 KPI 화면엔 그대로예요</p>}
     <p className="a-hint" style={{ margin: "10px 2px 0" }}>{bname} · {mLabel(ym)} · {md(key)} 기준{gh ? ` · 그로홈 매출 ${md(ymd(new Date(gh.checkedAt || gh.at)))} 읽음` : ""} · 숫자는 사람이 안 넣어도 되는 것만 자동</p>
-    <Head right={ed ? <TBtn onClick={() => E("lagKPIs", "", { isNew: true })}>+ 결과 KPI 추가</TBtn> : canLag(cu) && B.lags.length > 0 && <TBtn v={miss ? "solid" : "line"} onClick={() => open({ type: "lagInput", ym: inYm, brand })}>{miss ? `${mLabel(inYm)} 입력 · ${miss}개 남음` : "월말 입력"}</TBtn>}>결과 KPI · {mLabel(ym)}</Head>
+    <Head right={ed ? <TBtn onClick={() => E("lagKPIs", "", { isNew: true })}>+ 결과 KPI 추가</TBtn> : canLag(cu) && B.lags.length > 0 && <TBtn v={miss ? "solid" : "line"} onClick={() => open({ type: "lagInput", ym: inYm, brand })}>{miss ? `월말 입력 · ${mLabel(inYm)} ${miss}개 남음` : "월말 입력"}</TBtn>}>결과 KPI · {mLabel(ym)}</Head>
     {B.lags.length ? <Card>{(lagAll ? B.lags : B.lags.slice(0, 5)).map((it, i, arr) => { const a = lagAt(it, D.kpi.lagV2, ym), L = lagLatest(it, D.kpi.lagV2, ym), g = lagGoal(it), v = a ? a.v : null, p = lagPct(it, v);
       return <div key={it.id} className="v2-krow" style={{ borderBottom: i === arr.length - 1 && B.lags.length <= 5 ? "none" : undefined }}>
         <div className="r1"><b>{it.name}</b><span>{fmtV(v, it.unit)}{g != null ? ` / ${fmtV(g, it.unit)}` : ""}</span></div>

@@ -130,7 +130,11 @@ export function useBackClose(n, setStack) {
 }
 
 // 업무·프로젝트 링크 (잔디·카톡에 붙이면 실사용 앱에서 그 화면이 바로 열림 · 관리자에서 복사해도 실사용 앱 주소)
-export const appLink = (kind, id) => `${String(window.location.href).split("#")[0].replace(/os2-admin\.html/, "os2.html").replace(/\/admin\.html/, "/index.html")}#${kind}-${encodeURIComponent(id)}`;
+// cid = 댓글 id → #t-업무~c-댓글 (열면 대화 칸으로 가서 그 댓글을 잠깐 표시 · App.jsx)
+export const appLink = (kind, id, cid) => `${String(window.location.href).split("#")[0].replace(/os2-admin\.html/, "os2.html").replace(/\/admin\.html/, "/index.html")}#${kind}-${encodeURIComponent(id)}${cid ? `~c-${encodeURIComponent(cid)}` : ""}`;
+// 링크 해시 읽기: '#t-ID' · '#p-ID~c-댓글ID' → {kind, id, note} | null
+export const parseAppHash = (h) => { const m = /^#(t|p|r)-(.+)$/.exec(String(h || "")); if (!m) return null; let raw = m[2], note = ""; const ci = raw.lastIndexOf("~c-");
+  if (ci > 0) { note = raw.slice(ci + 3); raw = raw.slice(0, ci); } try { return { kind: m[1], id: decodeURIComponent(raw), note: note ? decodeURIComponent(note) : "" }; } catch (e) { return null; } };
 export function CopyLink({ kind, id, onDone, label = "링크 복사" }) {
   const [show, setShow] = useState("");
   const go = () => { const u = appLink(kind, id); try { navigator.clipboard.writeText(u).then(() => { setShow(""); if (onDone) onDone(); }, () => setShow(u)); } catch (e) { setShow(u); } };

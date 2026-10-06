@@ -12,7 +12,9 @@ import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from
 import { DecisionBlock } from "./mindmap.jsx";
 import { turnIndex, turnOf, predsOf, nextsOf, finishedOf, finishedAt, lastWord } from "./turn.js";
 import { nextWorkday, prevWorkday } from "./model.js";
-import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked, CopyLink, Clash } from "./ui.jsx";
+import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked, CopyLink, Clash, appLink } from "./ui.jsx";
+import { NoteFiles, FileList, useUploads, UpList, UpBtn } from "./files.jsx";
+export { FileRow } from "./files.jsx";
 import { HoldAsk } from "./hold.jsx";
 import { RequestAsk } from "./asks.jsx";
 import { askTo } from "./model.js";
@@ -48,25 +50,25 @@ export function useTask(D, id) {
   return live || extra;
 }
 export function useItemNotes(D, itemId) {
-  const [old, setOld] = useState([]);
+  const [old, setOld] = useState(null);   // null = 아직 읽는 중 (댓글 링크: 다 읽은 뒤에도 없으면 id 로 한 번 더)
   const locked = !!(D.lockedT && String(itemId).startsWith("task:") && D.lockedT.has(String(itemId).slice(5)));   // 기밀(허용 안 됨) 업무 댓글은 읽지 않음
-  useEffect(() => { if (locked) return; fb.fetchWhere("notes", ["itemId", "==", itemId]).then(setOld).catch((e) => console.error("[v2] 댓글 불러오기 실패:", e)); }, [itemId, locked]);
-  return useMemo(() => { if (locked) return []; const m = new Map(); old.forEach((n) => m.set(n.id, n)); D.notes.forEach((n) => { if (n.itemId === itemId) m.set(n.id, n); }); return [...m.values()]; }, [old, D.notes, itemId, locked]);
+  useEffect(() => { if (locked) return; fb.fetchWhere("notes", ["itemId", "==", itemId]).then(setOld).catch((e) => { console.error("[v2] 댓글 불러오기 실패:", e); setOld([]); }); }, [itemId, locked]);
+  return useMemo(() => { if (locked) return Object.assign([], { ready: true }); const m = new Map(); (old || []).forEach((n) => m.set(n.id, n)); D.notes.forEach((n) => { if (n.itemId === itemId) m.set(n.id, n); }); return Object.assign([...m.values()], { ready: old != null }); }, [old, D.notes, itemId, locked]);
 }
 // 업무 보기 — 맨 위에 '지금 해야 할 일'(받았어요·확인·기한 조정·막힘)을 띄우고, 그 아래 대화(가장 자주 씀) → 순서(앞 일·다음 일) → 메모 → 하위 업무 → 파일
 // focus: "talk" | "files" — 열자마자 그 칸으로 (앞 일 '자료 n ›', 앞사람에게 묻기)
-export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx0, setToast }) {
+export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, idx: idx0, setToast }) {
   const t = useTask(D, id);
   const notes = useItemNotes(D, taskNoteId(id));
   const idx = useMemo(() => idx0 || turnIndex(D), [idx0, D]);
   const [more, setMore] = useState(false);   // 드문 동작 펼치기
   const [mode, setMode] = useState(""), [memo, setMemo] = useState(""), [memoBase, setMemoBase] = useState(null), [clash, setClash] = useState(null), [showLog, setShowLog] = useState(false), [tab2, setTab2] = useState("talk"), [logs, setLogs] = useState(null), [sub, setSub] = useState("");
   const [txt, setTxt] = useState(""), [handTo, setHandTo] = useState(""), [reqDate, setReqDate] = useState(""), [handoff, setHandoff] = useState(""), [depSel, setDepSel] = useState(null), [allOrder, setAllOrder] = useState(false);
-  const fileRef = useRef(null);
+  const U = useUploads(A, "task-" + id, (metas) => A.addFiles(t, metas));
   useEffect(() => { if (!focus || !t) return; const h = setTimeout(() => { const el = document.getElementById("v2-t-" + focus); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); return () => clearTimeout(h); }, [focus, !!t]);
   if (t === undefined || t === null) return <Sheet title="업무" kind="업무" onBack={onBack} onClose={onClose}><Empty>불러오는 중…</Empty></Sheet>;
   if (t === false) return <Sheet title="업무" kind="업무" onBack={onBack} onClose={onClose}><Empty>이 업무를 찾지 못했어요 (휴지통이나 보관함으로 갔을 수 있어요)</Empty></Sheet>;
-  if (t.isFixed) return <FixedSheet D={D} cu={cu} A={A} onBack={onBack} onClose={onClose} id={id} focus={focus} setToast={setToast} />;   // 고정업무는 어느 입구로 와도 고정업무 화면 (일반 화면의 담당 바꾸기·끝냄이 반복 업무를 덮어쓰지 않게)
+  if (t.isFixed) return <FixedSheet D={D} cu={cu} A={A} onBack={onBack} onClose={onClose} id={id} focus={focus} note={note} setToast={setToast} />;   // 고정업무는 어느 입구로 와도 고정업무 화면 (일반 화면의 담당 바꾸기·끝냄이 반복 업무를 덮어쓰지 않게)
   const key = ymd(new Date()), mine = isMine(t, cu.id), done = isDone(t), n = ddays(dueOf(t), key), master = isMaster(cu);
   const p = D.projects.find((x) => x.id === t.projectId), owners = ownersOf(t).map((u) => nameOf(D.users, u) || "(없는 사람)");
   const kids = D.tasks.filter((x) => x.parentId === t.id), parent = t.parentId ? D.tasks.find((x) => x.id === t.parentId) : null;
@@ -190,7 +192,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
       <Act onClick={() => { if (reqDate && reqDate !== dueOf(t)) { A.requestDue(t, reqDate, txt.trim()); setMode(""); setTxt(""); } }} style={{ alignSelf: "flex-start", background: C.navy, color: "#fff", borderColor: C.navy, opacity: reqDate && reqDate !== dueOf(t) ? 1 : 0.45 }}>요청 보내기</Act></div>}
 
     <div id="v2-t-talk" style={{ scrollMarginTop: 8, margin: "18px 0 8px" }}><Seg items={[["talk", `대화 ${notes.filter((x) => !x.deleted).length}`], ["log", "기록"]]} value={tab2} onChange={(v) => { setTab2(v); if (v === "log" && logs == null) loadLogs(); }} /></div>
-    {tab2 === "talk" ? <Thread D={D} cu={cu} A={A} notes={notes} itemId={taskNoteId(t.id)} ctx={{ taskId: t.id, projectId: t.projectId }} />
+    {tab2 === "talk" ? <Thread D={D} cu={cu} A={A} notes={notes} itemId={taskNoteId(t.id)} ctx={{ taskId: t.id, projectId: t.projectId }} link={{ kind: "t", id: t.id }} hl={note} />
       : <Card>{logs == null ? <Empty>불러오는 중…</Empty> : hist.length === 0 ? <Empty>기록이 없어요</Empty> : hist.map((h, i) => <div key={h.id} className="v2-hist" style={{ borderBottom: i < hist.length - 1 ? `1px solid ${C.line}` : "none" }}>
           <div className="hd"><b>{h.text}</b><span>{h.who || ""}{h.at ? ` · ${md(ymd(new Date(h.at)))} ${hm(h.at)}` : ""}</span></div>
           {h.ch && h.ch.length > 0 && <div className="ch">{h.ch.map((c) => <span key={c.k}><small>{c.l}</small> <i className="was">{c.a}</i> → <i className="now">{c.b}</i></span>)}</div>}</div>)}</Card>}
@@ -235,63 +237,82 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, idx: idx
           <Act onClick={() => { if (sub.trim()) { A.addTask({ title: sub, parentId: t.id, projectId: t.projectId, assigneeId: t.assigneeId || cu.id, dueDate: t.dueDate, noReview: true }); setSub(""); } }}>추가</Act></div>
       </Card></>}
 
-    <div id="v2-t-files" style={{ scrollMarginTop: 8 }} /><Head right={<><TBtn onClick={() => fileRef.current && fileRef.current.click()}>+ 파일 올리기</TBtn><input ref={fileRef} type="file" multiple hidden onChange={(e) => { const f = [...e.target.files]; e.target.value = ""; if (f.length) A.addFiles(t, f); }} /></>}>파일 {files.length}</Head>
-    <Card>{files.length === 0 ? <Empty>올린 파일이 없어요</Empty> : files.map((f, i) => <FileRow key={i} f={f} D={D} last={i === files.length - 1} />)}</Card>
+    <div id="v2-t-files" style={{ scrollMarginTop: 8 }} /><Head right={<UpBtn U={U} />}>파일 {files.length}</Head>
+    <UpList U={U} style={{ marginBottom: 8 }} />
+    <FileList files={files} empty="올린 파일이 없어요" />
 
   </Sheet>;
 }
-export function FileRow({ f, last }) {
-  const img = /^image\//.test(f.type || "");
-  return <a href={f.url} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: last ? "none" : `1px solid ${C.line}`, textDecoration: "none", color: C.text }}>
-    {img ? <img src={f.url} alt="" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 8, flex: "0 0 auto" }} /> : <span style={{ width: 40, height: 40, borderRadius: 8, background: C.soft, color: C.navy, fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto" }}>{String(f.name || "").split(".").pop().slice(0, 4).toUpperCase() || "파일"}</span>}
-    <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span><span style={{ fontSize: 12, color: C.mute }}>{[f.byName, f.where, f.uploadedAt ? md(ymd(new Date(f.uploadedAt))) : ""].filter(Boolean).join(" · ")}</span></span>
-    <span style={{ color: C.navy, fontSize: 13, fontWeight: 800 }}>열기 ›</span>
-  </a>;
-}
-
 // 대화 (댓글 + 대댓글 + 파일)
 // rec: 하루 기록 한 건에 붙이는 글 {date, uid, qty, runs} (반복 실행 시트 날짜별 기록 줄을 누르면) → 댓글 extra rec · 목록엔 '10/6 기록 · 37건' 꼬리표
-export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg }) {
-  const th = threads(notes, itemId);
-  const [text, setText] = useState(""), [reply, setReply] = useState(null), [files, setFiles] = useState([]), [busy, setBusy] = useState(false);
+// link: 댓글 [링크 복사] 주소 {kind 't'|'p'|'r', id} → os2.html#t-ID~c-댓글ID · hl: 링크로 열었을 때 그 댓글 id (그 자리로 가서 2초 테두리 · 못 찾으면 id 로 한 번 읽기)
+// 파일: 고른 파일은 [남기기] 때 파일마다 진행 막대로 올리고(실패한 파일만 [다시]) 다 올라가면 댓글 저장
+export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl }) {
+  const [got, setGot] = useState(null), [miss, setMiss] = useState(false), [hlOn, setHlOn] = useState(""), hlDone = useRef(false);
+  const all = got && !notes.some((n) => n.id === got.id) ? [...notes, got] : notes;
+  const th = threads(all, itemId);
+  const [text, setText] = useState(""), [reply, setReply] = useState(null), [busy, setBusy] = useState(false), [pend, setPend] = useState(false), [copied, setCopied] = useState(""), [showL, setShowL] = useState(null);
+  const U = useUploads(A, "note-" + itemId);
   const fileRef = useRef(null), taRef = useRef(null);
   const pick = mentionPick(text, D.users, cu.id), tagged = parseMentions(text, D.users).filter((id) => id !== cu.id);   // '@' 를 치면 사람 고르기 · 부를 사람 미리 보기
-  const send = async () => { if ((!text.trim() && !files.length) || busy) return; setBusy(true);
-    const ok = await A.addNote(itemId, text || "(파일)", reply, files, ctx, rec ? { rec } : undefined); setBusy(false); if (ok) { setText(""); setFiles([]); setReply(null); if (onRec) onRec(null); } };
-  const Note = ({ n, child }) => <div style={{ padding: child ? "8px 0 0 14px" : "12px 14px", borderLeft: child ? `2px solid ${C.line}` : "none", marginTop: child ? 6 : 0 }}>
+  const post = async () => { const rows = U.cur(); if (rows.some((r) => r.st !== "ok")) { setPend(true); return false; }
+    const ok = await A.addNote(itemId, text || "(파일)", reply, rows.map((r) => r.meta), ctx, rec ? { rec } : undefined);
+    if (ok) { setText(""); U.clear(); setReply(null); setPend(false); if (onRec) onRec(null); } return ok; };
+  const send = async () => { if ((!text.trim() && !U.rows.length) || busy || U.busy) return; setBusy(true);
+    try { await U.flow(); await post(); } finally { setBusy(false); } };
+  const retry = async (k) => { setBusy(true); try { await U.retry(k); if (pend && U.cur().every((r) => r.st === "ok")) await post(); } finally { setBusy(false); } };
+  // 링크로 열기: 그 댓글로 스크롤 + 잠깐 테두리
+  useEffect(() => { if (!hl || hlDone.current) return;
+    const el = document.getElementById("v2-n-" + hl);
+    if (el) { hlDone.current = true; const h = setTimeout(() => { el.scrollIntoView({ behavior: "smooth", block: "center" }); setHlOn(hl); setTimeout(() => setHlOn(""), 2200); }, 350); return () => clearTimeout(h); }
+    if (!notes.ready || got !== null) return;
+    setGot(false); fb.fetchWhere("notes", ["id", "==", hl]).then((a) => { const n = a.find((x) => x.itemId === itemId && !x.deleted); if (n) setGot(n); else { hlDone.current = true; setMiss(true); } })
+      .catch((e) => { console.error("[v2] 댓글 불러오기 실패:", e); hlDone.current = true; setMiss(true); }); }, [hl, th.length, notes.ready, got]);
+  const copy = (nid) => { const u = appLink(link.kind, link.id, nid);
+    const ok = () => { setShowL(null); setCopied(nid); setTimeout(() => setCopied((c) => (c === nid ? "" : c)), 2200); };
+    try { navigator.clipboard.writeText(u).then(ok, () => setShowL({ id: nid, u })); } catch (e) { setShowL({ id: nid, u }); } };
+  const LinkBtn = ({ n }) => link ? <TBtn v="plain" onClick={() => copy(n.id)} style={{ padding: "6px 0", fontSize: 12.5 }}>{copied === n.id ? "✓ 복사했어요" : "링크 복사"}</TBtn> : null;
+  const LinkBox = ({ n }) => showL && showL.id === n.id ? <input readOnly value={showL.u} autoFocus onFocus={(e) => e.target.select()} aria-label="복사할 링크" style={{ ...inp, marginTop: 4, fontSize: 12.5, padding: "8px 10px" }} /> : null;
+  const Note = ({ n, child }) => <div id={"v2-n-" + n.id} className={"v2-note" + (hlOn === n.id ? " hl" : "")} style={{ padding: child ? "8px 0 0 14px" : "12px 14px", borderLeft: child ? `2px solid ${C.line}` : "none", marginTop: child ? 6 : 0, scrollMarginTop: 60 }}>
     <div style={{ fontSize: 12.5, color: C.mute }}><b style={{ color: C.ink }}>{n.byName || nameOf(D.users, n.by)}</b> · {ago(n.at)}</div>
     <div style={{ fontSize: 14.5, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 2, wordBreak: "break-word" }}><Linked text={n.text} /></div>
-    {(n.files || []).map((f, i) => <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 4, marginRight: 8, fontSize: 13, color: C.navy, fontWeight: 700 }}>{f.name} ›</a>)}
+    <NoteFiles files={n.files} />
     {n.rec && <div><span className="v2-rttag">{recTag(n.rec, cfg)}</span></div>}
+    {child && link && <><div className="v2-nact"><LinkBtn n={n} /></div><LinkBox n={n} /></>}
   </div>;
+  const canSend = (text.trim() || U.rows.length) && !busy && !U.busy;
   return <Card>
+    {miss && <div role="status" style={{ padding: "10px 14px", fontSize: 13, color: C.sub, background: C.soft, borderBottom: `1px solid ${C.line}` }}>이 댓글을 찾지 못했어요 · 지워졌거나 다른 곳의 댓글일 수 있어요</div>}
     {th.length === 0 && <Empty>아직 대화가 없어요. 진행 상황이나 궁금한 점을 남겨 주세요.</Empty>}
     {th.map((n) => <div key={n.id} style={{ borderBottom: `1px solid ${C.line}` }}><Note n={n} />
-      <div style={{ padding: "0 14px 10px" }}>{n.replies.map((r) => <Note key={r.id} n={r} child />)}<TBtn onClick={() => setReply(reply === n.id ? null : n.id)} style={{ padding: "6px 0", fontSize: 12.5 }}>{reply === n.id ? "답글 취소" : "답글"}</TBtn></div></div>)}
+      <div style={{ padding: "0 14px 10px" }}>{n.replies.map((r) => <Note key={r.id} n={r} child />)}
+        <div className="v2-nact"><TBtn v="plain" onClick={() => setReply(reply === n.id ? null : n.id)} style={{ padding: "6px 0", fontSize: 12.5 }}>{reply === n.id ? "답글 취소" : "답글"}</TBtn>{link && <span style={{ color: C.line }}>|</span>}<LinkBtn n={n} /></div>
+        <LinkBox n={n} /></div></div>)}
     <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
       {reply && <div style={{ fontSize: 12.5, color: C.sub }}>{(th.find((x) => x.id === reply) || {}).byName}님 글에 답글</div>}
       {rec && <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: C.sub }}><span className="v2-rttag" style={{ marginTop: 0 }}>{recTag(rec, cfg)}</span>{rec.name ? `${rec.name}님 기록에 붙여요` : "이 기록에 붙여요"}<TBtn v="plain" tone="mute" onClick={() => onRec && onRec(null)}>✕ 빼기</TBtn></div>}
       <textarea ref={taRef} value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder={reply ? "답글 쓰기 · @이름으로 부르기" : "댓글 쓰기 · 진행 상황, 피드백, 링크 · @이름으로 부르기"} aria-label="댓글" style={{ ...inp, resize: "vertical", fontSize: 14.5 }} />
       {pick.length > 0 && <div className="v2-chips" role="listbox" aria-label="부를 사람">{pick.map((u) => <Chip key={u.id} onClick={() => { setText(insertMention(text, u.name)); setTimeout(() => taRef.current && taRef.current.focus(), 0); }}>@{u.name}</Chip>)}</div>}
       {tagged.length > 0 && <div style={{ fontSize: 12.5, color: C.sub }}>부를 사람 {tagged.map((id) => nameOf(D.users, id)).join(", ")} · '확인할 것'에 뜨고, 문자 알림을 켠 사람은 문자도 받아요</div>}
-      {files.length > 0 && <div style={{ fontSize: 13, color: C.sub }}>{files.map((f) => f.name).join(", ")} <TBtn tone="mute" onClick={() => setFiles([])}>✕ 파일 빼기</TBtn></div>}
+      <UpList U={U} onRetry={retry} onDrop={(k) => U.drop(k)} />
+      {pend && !U.busy && U.rows.some((r) => r.st === "fail") && <div style={{ fontSize: 12.5, color: C.red }}>못 올린 파일이 있어서 아직 안 남겼어요 · [다시]를 누르거나 [빼기] 뒤 [남기기]</div>}
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <TBtn onClick={() => fileRef.current && fileRef.current.click()}>+ 파일</TBtn><input ref={fileRef} type="file" multiple hidden onChange={(e) => { setFiles([...e.target.files].slice(0, 10)); e.target.value = ""; }} />
-        <span style={{ flex: 1 }} /><Act onClick={send} style={{ background: C.navy, color: "#fff", borderColor: C.navy, opacity: (text.trim() || files.length) && !busy ? 1 : 0.45 }}>{busy ? "올리는 중" : "남기기"}</Act>
+        <TBtn disabled={busy || U.busy} onClick={() => fileRef.current && fileRef.current.click()}>+ 파일</TBtn><input ref={fileRef} type="file" multiple hidden aria-label="댓글에 붙일 파일" onChange={(e) => { const f = [...e.target.files].slice(0, Math.max(0, 10 - U.rows.length)); e.target.value = ""; if (f.length) { U.add(f); setPend(false); } }} />
+        <span style={{ flex: 1 }} /><TBtn v="solid" disabled={!canSend} onClick={send} style={{ minWidth: 72, height: 36 }}>{busy || U.busy ? "올리는 중" : "남기기"}</TBtn>
       </div>
     </div>
   </Card>;
 }
 
 // ───────────────── 고정업무 보기 ─────────────────
-export function FixedSheet({ D, cu, A, onBack, onClose, id, focus, setToast }) {
+export function FixedSheet({ D, cu, A, onBack, onClose, id, focus, note, setToast }) {
   const t = useTask(D, id);
   const notes = useItemNotes(D, taskNoteId(id));
   const oldMine = useItemNotes(D, `${id}~${cu.id}`);   // 버전1 고정업무 '내 메모'(사람별 · 읽기만)
   const [tick, setTick] = useState(0), [rec, setRec] = useState(null);
-  const R = useRecs(D, id, `${tick}:${t && JSON.stringify(t.doneAtBy || {})}`);   // 하루 기록(이번 달 · itemId+ym) + 오늘 것은 실시간
+  const R = useRecs(D, id, `${tick}:${t && JSON.stringify(t.doneAtBy || {})}`, true);   // 하루 기록(이번 달 · itemId+ym) + 오늘 것은 실시간
   const [editMemo, setEditMemo] = useState(false), [memo, setMemo] = useState(""), [memoBase, setMemoBase] = useState(null), [clash, setClash] = useState(null), [oldOpen, setOldOpen] = useState(false);
-  const fileRef = useRef(null);
+  const U = useUploads(A, "task-" + id, (metas) => A.addFiles(t, metas));
   const toTalk = () => setTimeout(() => { const el = document.getElementById("v2-fx-talk"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80);
   useEffect(() => { if (focus !== "talk" || !t) return; const h = setTimeout(() => { const el = document.getElementById("v2-fx-talk"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); return () => clearTimeout(h); }, [focus, !!t]);
   if (!t) return <Sheet title="고정업무" kind="고정업무" onBack={onBack} onClose={onClose}><Empty>{t === false ? "이 고정업무를 찾지 못했어요" : "불러오는 중…"}</Empty></Sheet>;
@@ -322,16 +343,17 @@ export function FixedSheet({ D, cu, A, onBack, onClose, id, focus, setToast }) {
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}><Big tone="white" onClick={() => setEditMemo(false)} style={{ flex: 1, height: 44 }}>취소</Big><Big onClick={saveMemo} style={{ flex: 1, height: 44 }}>메모 저장</Big></div>
       {clash && <Clash who={clash.memoByName} at={clash.memoAt} text={clash.memo} onMerge={() => { setMemo(`${clash.memo || ""}\n\n${memo}`.trim()); setMemoBase(clash.memoAt || null); setClash(null); }} onMine={() => saveMemo(true)} />}</div>
     : <Card style={{ padding: "12px 14px" }}><div style={{ fontSize: 14.5, color: t.memo ? C.text : C.mute, whiteSpace: "pre-wrap", lineHeight: 1.65, wordBreak: "break-word" }}>{t.memo ? <Linked text={t.memo} /> : "적어 둔 하는 법이 없어요"}</div>{t.memoAt && <div style={{ marginTop: 6, fontSize: 12, color: C.mute }}>{t.memoByName || nameOf(D.users, t.memoBy)} · {ago(t.memoAt)} 고침</div>}</Card>}
-    <Head right={canEdit && <><TBtn onClick={() => fileRef.current && fileRef.current.click()}>+ 파일 올리기</TBtn><input ref={fileRef} type="file" multiple hidden aria-label="파일 고르기" onChange={(e) => { const f = [...e.target.files]; e.target.value = ""; if (f.length) A.addFiles(t, f); }} /></>}>자료 {files.length}</Head>
-    <Card>{files.length === 0 ? <Empty>올린 자료가 없어요</Empty> : files.map((f, i) => <FileRow key={i} f={f} last={i === files.length - 1} />)}</Card>
+    <Head right={canEdit && <UpBtn U={U} />}>자료 {files.length}</Head>
+    <UpList U={U} style={{ marginBottom: 8 }} />
+    <FileList files={files} />
     <div id="v2-fx-talk" style={{ scrollMarginTop: 8 }}><Head>대화</Head></div>
-    <Thread D={D} cu={cu} A={A} notes={notes} itemId={taskNoteId(t.id)} ctx={{ taskId: t.id }} rec={rec ? { date: rec.date, uid: rec.uid, qty: rec.qty, runs: rec.runs } : null} onRec={setRec} cfg={cfg} />
+    <Thread D={D} cu={cu} A={A} notes={notes} itemId={taskNoteId(t.id)} ctx={{ taskId: t.id }} link={{ kind: "t", id: t.id }} hl={note} rec={rec ? { date: rec.date, uid: rec.uid, qty: rec.qty, runs: rec.runs } : null} onRec={setRec} cfg={cfg} />
     {oldNotes.length > 0 && <Card style={{ marginTop: 10 }}>
       <More onClick={() => setOldOpen(!oldOpen)}>{oldOpen ? "예전 내 메모 접기 ▴" : `예전 내 메모 ${oldNotes.length} ▾`} <span style={{ color: C.mute, fontWeight: 700 }}>읽기만</span></More>
       {oldOpen && oldNotes.map((n, i) => <div key={n.id} style={{ padding: "10px 14px", borderTop: `1px solid ${C.line}` }}>
         <div style={{ fontSize: 12, color: C.mute }}>{n.byName || nameOf(D.users, n.by)} · {n.at ? md(ymd(new Date(n.at))) : ""}</div>
         <div style={{ fontSize: 14, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 2, wordBreak: "break-word" }}><Linked text={n.text} /></div>
-        {(n.files || []).map((f, j) => <a key={j} href={f.url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 4, marginRight: 8, fontSize: 13, color: C.navy, fontWeight: 700 }}>{f.name} ›</a>)}</div>)}
+        <NoteFiles files={n.files} /></div>)}
     </Card>}
   </Sheet>;
 }

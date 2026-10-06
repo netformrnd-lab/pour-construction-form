@@ -15,15 +15,15 @@ import { Sheet, Empty } from "./ui.jsx";
 export function SheetRouter({ s, depth, extra, ...ctx }) {
   const save = ctx.saveAt ? (patch) => ctx.saveAt(depth - 1, patch) : () => {};
   const p = { ...ctx, save, onBack: depth > 1 ? ctx.back : null, onClose: ctx.closeAll };
-  const k = `${depth}:${s.type}:${s.id || ""}:${s.focus || ""}`;
+  const k = `${depth}:${s.type}:${s.id || ""}:${s.focus || ""}:${s.note || ""}`;
   return <Fragment key={k}>{route(s, p, extra)}</Fragment>;
 }
 function route(s, p, extra) {
   if (extra && extra[s.type]) return extra[s.type](p, s);
-  if (s.type === "task") return <TaskGate {...p} id={s.id} focus={s.focus} />;
-  if (s.type === "fixed" || s.type === "routine") return <RoutineSheet {...p} type={s.type} id={s.id} focus={s.focus} />;   // 고정업무·정한 날 체크 / 횟수 목표 — 한 부품 (rtsheet.jsx)
+  if (s.type === "task") return <TaskGate {...p} id={s.id} focus={s.focus} note={s.note} />;
+  if (s.type === "fixed" || s.type === "routine") return <RoutineSheet {...p} type={s.type} id={s.id} focus={s.focus} note={s.note} />;   // 고정업무·정한 날 체크 / 횟수 목표 — 한 부품 (rtsheet.jsx)
   if (s.type === "project") { const x = (p.D.projects || []).find((q) => q.id === s.id); if (x && x.locked) return <LockSheet D={p.D} x={x} kind="project" onBack={p.onBack} onClose={p.onClose} />;
-    return <ProjectSheet {...p} id={s.id} first={s.first} st={s} />; }
+    return <ProjectSheet {...p} id={s.id} first={s.first} note={s.note} st={s} />; }
   if (s.type === "person") return <PersonSheet {...p} id={s.id} />;
   if (s.type === "add") return <AddSheet {...p} preset={s.preset || {}} />;
   if (s.type === "newProject") return <NewProjectSheet {...p} cat={s.cat} />;

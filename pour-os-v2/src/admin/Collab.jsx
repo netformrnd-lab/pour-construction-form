@@ -25,8 +25,8 @@ export function CollabTab({ D, cu, idx, open }) {
   const svgRef = useRef(null);
   const sum = C2.pairs.reduce((s, P) => s + P.n, 0);
   const sub = `최근 ${days}일 · ${kind === "all" ? KINDS.map((k) => k[1]).join(" · ") : KIND_L[kind] + "만"}`;
-  // 파일 이름은 영문(한글 이름은 일부 브라우저에서 'download'로 바뀜)
-  const save = () => savePng(svgRef.current, `협업 맵 · ${me ? me.name : "팀 전체"} · 최근 ${days}일${kind === "all" ? "" : " · " + KIND_L[kind] + "만"} · ${ymd(new Date())} 기준`, `collab-map-${me ? String(me.id).replace(/[^\w-]/g, "") : "team"}-${days}d-${ymd(new Date())}.png`);
+  // 파일 이름 한글: 협업맵_<이름|팀>_<n>일_<날짜>.png (Blob + a.download · 브라우저가 그대로 씀 · 파일 이름에 못 쓰는 글자만 뺌)
+  const save = () => savePng(svgRef.current, `협업 맵 · ${me ? me.name : "팀 전체"} · 최근 ${days}일${kind === "all" ? "" : " · " + KIND_L[kind] + "만"} · ${ymd(new Date())} 기준`, `협업맵_${me ? String(me.name || me.id).replace(/[\\/:*?"<>|\s]+/g, "") || "사람" : "팀"}_${days}일_${ymd(new Date())}.png`);
   return <div className="cm-wrap">
     <Card style={{ padding: "14px 14px 12px", marginTop: 6 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>

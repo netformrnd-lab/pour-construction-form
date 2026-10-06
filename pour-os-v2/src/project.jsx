@@ -17,7 +17,8 @@ import { SecretBox } from "./secretui.jsx";
 import { viewTasks, viewLogs } from "./secret.js";
 import { flowList, planFlow, flowOwners } from "./flow.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, inp, useLocal, useAutoFocus, Linked, Clash } from "./ui.jsx";
-import { useItemNotes, Thread, FileRow } from "./task.jsx";
+import { useItemNotes, Thread } from "./task.jsx";
+import { FileList } from "./files.jsx";
 import { MindMap } from "./mindmap.jsx";
 import { ro } from "./pick.jsx";
 import { ProjEndAsk, ResumeAsk } from "./hold.jsx";
@@ -196,7 +197,7 @@ export function NewProjectSheet({ D, cu, A, open, back, onBack, onClose, setToas
 
 // 프로젝트 한 장 (실사용·관리자 공용). projectExtra: 관리자 앱 덧붙임 (출시일 옮기기 미리 보기 · 기한 다시 나누기) — (p) => element
 // st/save: 시트 칸에 적어 둔 탭·펼친 단계·정보 → 업무를 열었다가 '뒤로' 오면 그대로
-export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, projectExtra, idx: idx0, st, save }) {
+export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note, projectExtra, idx: idx0, st, save }) {
   const idx = useMemo(() => idx0 || turnIndex(D), [idx0, D]);
   const p = D.projects.find((x) => x.id === id);
   const member = p && projMine(p, cu.id, D.tasks);
@@ -324,8 +325,8 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, proje
     </>}
     {tab === "map" && <MindMap D={D} cu={cu} A={A} open={open} p={p} idx={idx} launch={launch} />}
     {tab === "news" && <><NewsFeed D={D} p={p} feed={feed} tTitle={tTitle} open={open} /><OldBtn /></>}
-    {tab === "news" && <><Head>프로젝트에 한마디</Head><Thread D={D} cu={cu} A={A} notes={notes} itemId={projNoteId(p.id)} ctx={{ projectId: p.id }} /></>}
-    {tab === "files" && <Card style={{ marginTop: 10 }}>{files.length === 0 ? <Empty>모인 자료가 없어요. 업무나 댓글에 파일을 올리면 여기 모여요.</Empty> : files.map((f, i) => <FileRow key={i} f={f} last={i === files.length - 1} />)}</Card>}
+    {tab === "news" && <><Head>프로젝트에 한마디</Head><Thread D={D} cu={cu} A={A} notes={notes} itemId={projNoteId(p.id)} ctx={{ projectId: p.id }} link={{ kind: "p", id: p.id }} hl={note} /></>}
+    {tab === "files" && <div style={{ marginTop: 10 }}><FileList files={files} empty="모인 자료가 없어요. 업무나 댓글에 파일을 올리면 여기 모여요." /></div>}
     {tab === "files" && <OldBtn />}
 
     <Card style={{ marginTop: 18 }}><More onClick={() => setInfo(!info)}>{info ? "정보 · 더 하기 접기 ▴" : "정보 · 더 하기 ▾"}</More>

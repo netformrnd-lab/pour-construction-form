@@ -6,7 +6,8 @@
 import { useEffect, useRef, useState } from "react";
 import { C, Big, TBtn, Chip, Seg, Head, Card, Empty, Sheet, inp, Linked, Clash } from "./ui.jsx";
 import { ymd, ago, isMaster, activeUsers, nameOf, newId, brandsWithCommon, brandKey } from "./model.js";
-import { FixedSheet, Thread, FileRow, useItemNotes, QtyCfgEdit } from "./task.jsx";
+import { FixedSheet, Thread, useItemNotes, QtyCfgEdit } from "./task.jsx";
+import { FileList, useUploads, UpList, UpBtn } from "./files.jsx";
 import { periodWeeks, periodLabel, brandName } from "./routine.js";
 import { akTotal, akWho, akGoalText, akStep } from "../../pour-os/src/actionKpi.js";
 import { qtyCfg, qtyText, qtyShort, qtyToGoal, akSubsOf, openIdAk, dayIdAk, roundOn } from "./rec.js";
@@ -17,12 +18,12 @@ const unitOf = (it) => (it.unit === "%" ? "%" : it.unit || "회");
 const plusL = (it) => (it.unit === "%" ? `+${it.step || 10}%` : "+1");
 
 
-function AkSheet({ D, cu, A, onBack, onClose, id, focus }) {
+function AkSheet({ D, cu, A, onBack, onClose, id, focus, note }) {
   const ak = D.ak || {}, it = (ak.items || []).find((x) => x.id === id);
   const notes = useItemNotes(D, id);   // 대화 itemId = 행동지표 id (버전1 메모 복사본이 이어짐)
   const [tick, setTick] = useState(0), [rec, setRec] = useState(null), [line, setLine] = useState(null), [busy, setBusy] = useState(false);
   const [editMemo, setEditMemo] = useState(false), [memo, setMemo] = useState(""), [memoBase, setMemoBase] = useState(null), [clash, setClash] = useState(null);
-  const fileRef = useRef(null);
+  const U = useUploads(A, "ak-" + id, (metas) => A.akFiles(it, metas));
   const R = useRecs(D, id, tick);
   const toTalk = () => setTimeout(() => { const el = document.getElementById("v2-rt-talk"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80);
   useEffect(() => { if (focus === "talk" && it) toTalk(); }, [focus, !!it]);
@@ -60,10 +61,11 @@ function AkSheet({ D, cu, A, onBack, onClose, id, focus }) {
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}><Big tone="white" onClick={() => setEditMemo(false)} style={{ flex: 1, height: 44 }}>취소</Big><Big onClick={saveMemo} style={{ flex: 1, height: 44 }}>메모 저장</Big></div>
       {clash && <Clash who={clash.memoByName} at={clash.memoAt} text={clash.memo} onMerge={() => { setMemo(`${clash.memo || ""}\n\n${memo}`.trim()); setMemoBase(clash.memoAt || null); setClash(null); }} onMine={() => saveMemo(true)} />}</div>
     : <Card style={{ padding: "12px 14px" }}><div style={{ fontSize: 14.5, color: desc ? C.text : C.mute, whiteSpace: "pre-wrap", lineHeight: 1.65, wordBreak: "break-word" }}>{desc ? <Linked text={desc} /> : "적어 둔 하는 법이 없어요"}</div>{descAt && <div style={{ marginTop: 6, fontSize: 12, color: C.mute }}>{it.descByName || nameOf(D.users, it.descBy)} · {ago(descAt)} 고침</div>}</Card>}
-    <Head right={canFiles && <><TBtn onClick={() => fileRef.current && fileRef.current.click()}>+ 파일 올리기</TBtn><input ref={fileRef} type="file" multiple hidden aria-label="파일 고르기" onChange={(e) => { const f = [...e.target.files]; e.target.value = ""; if (f.length) A.akFiles(it, f); }} /></>}>자료 {files.length}</Head>
-    <Card>{files.length === 0 ? <Empty>올린 자료가 없어요</Empty> : files.map((f, i) => <FileRow key={i} f={f} last={i === files.length - 1} />)}</Card>
+    <Head right={canFiles && <UpBtn U={U} />}>자료 {files.length}</Head>
+    <UpList U={U} style={{ marginBottom: 8 }} />
+    <FileList files={files} />
     <div id="v2-rt-talk" style={{ scrollMarginTop: 8 }}><Head>대화</Head></div>
-    <Thread D={D} cu={cu} A={A} notes={notes} itemId={it.id} ctx={{}} rec={rec ? { date: rec.date, uid: rec.uid, qty: rec.qty, runs: rec.runs } : null} onRec={setRec} cfg={cfg} />
+    <Thread D={D} cu={cu} A={A} notes={notes} itemId={it.id} ctx={{}} link={{ kind: "r", id: it.id }} hl={note} rec={rec ? { date: rec.date, uid: rec.uid, qty: rec.qty, runs: rec.runs } : null} onRec={setRec} cfg={cfg} />
     <AkMore it={it} D={D} cu={cu} A={A} mine={mine} master={master} />
   </Sheet>;
 }

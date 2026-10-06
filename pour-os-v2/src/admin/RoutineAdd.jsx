@@ -64,7 +64,7 @@ export function RecBookSheet({ D, onBack, onClose }) {
   const T = useMemo(() => recTable(docs || [], ym), [docs, ym]);
   const mv = (d) => { const [y, m] = ym.split("-").map(Number), x = new Date(y, m - 1 + d, 1); setYm(`${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`); };
   const nameOf = (d) => { const it = ((D.ak && D.ak.items) || []).find((x) => x.id === d.itemId); if (it) return it.name; const t = (D.tasks || []).find((x) => x.id === d.itemId); return t ? t.title : d.itemId; };
-  const csv = () => { const blob = new Blob([recCsv(docs || [], nameOf)], { type: "text/csv;charset=utf-8" }), a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `routine-records-${ym}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); };
+  const csv = () => { const blob = new Blob([recCsv(docs || [], nameOf)], { type: "text/csv;charset=utf-8" }), a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `반복실행_기록_${ym}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); };
   const cellT = (c) => (!c ? "" : `${c.runs + c.on}회${c.qty ? ` · ${c.qty}건` : ""}`);
   const tot = (uid) => T.days.reduce((a, d) => { const c = T.cell(d, uid); return c ? { n: a.n + c.runs + c.on, q: a.q + c.qty } : a; }, { n: 0, q: 0 });
   return <Sheet title="반복 실행 기록" kind="반복 실행" head={`기록 · ${+ym.slice(5)}월`} path="날짜 × 사람 · 회 = 체크 + 횟수 · 건 = 그날 건수" onBack={onBack} onClose={onClose}>

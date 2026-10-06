@@ -48,12 +48,16 @@ export function DayQty({ cfg, mine, onAdd, onSet, can, extra }) {
     </Card></>;
 }
 // 하루 기록 읽기 (시트 · 같은 항목 이번 달 + 14일 전 달 · itemId+ym 같음 조건) + 오늘 문서는 실시간(D.recs.today)
-export function useRecs(D, itemId, tick) {
+//   legacy(고정업무): 1단계 전 체크 기록(itemId·ym 칸 없음 · {taskId, uid, name, date, at, on})도 — taskId+date 같음 조건으로 그날만(v2 시작 10/2 ~ 1단계 10/6 사이 날짜만 · 그 뒤엔 안 읽음) · id 로 겹친 것 하나만
+export const LEGACY_REC = ["2026-10-02", "2026-10-06"];
+export function useRecs(D, itemId, tick, legacy) {
   const key = (D.recs && D.recs.key) || ymd(new Date()), yms = [...new Set([key.slice(0, 7), addDays(key, -13).slice(0, 7)])];
+  const oldDays = legacy ? [...Array(14)].map((_, i) => addDays(key, -i)).filter((d) => d >= LEGACY_REC[0] && d <= LEGACY_REC[1]) : [];
   const [old, setOld] = useState(null);
-  useEffect(() => { let live = true; Promise.all(yms.map((ym) => fb.fetchWhere("checks", [["itemId", "==", itemId], ["ym", "==", ym]])))
+  useEffect(() => { let live = true; Promise.all([...yms.map((ym) => fb.fetchWhere("checks", [["itemId", "==", itemId], ["ym", "==", ym]])),
+      ...oldDays.map((d) => fb.fetchWhere("checks", [["taskId", "==", itemId], ["date", "==", d]]))])
     .then((a) => { if (live) setOld(a.flat()); }).catch((e) => { console.error("[v2 checks] 기록 읽기 실패:", e); if (live) setOld([]); }); return () => { live = false; }; }, [itemId, key, tick]);
-  return useMemo(() => { const m = new Map(); (old || []).forEach((d) => m.set(d.id || d._doc, d)); ((D.recs && D.recs.today) || []).filter((d) => d.itemId === itemId).forEach((d) => m.set(d.id || d._doc, d));
+  return useMemo(() => { const m = new Map(); (old || []).forEach((d) => { const k = d.id || d._doc; if (!m.has(k) || d.itemId) m.set(k, d); }); ((D.recs && D.recs.today) || []).filter((d) => d.itemId === itemId).forEach((d) => m.set(d.id || d._doc, d));
     return { docs: [...m.values()], ready: old != null }; }, [old, D.recs, itemId]);
 }
 const dayL = (d) => `${md(d)}(${WD[new Date(d + "T00:00:00").getDay()]})`;

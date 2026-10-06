@@ -637,9 +637,12 @@ export function useActs(D, cu, setToast, idx = null) {
     },
     setMemo: (t, memo, baseAt, force) => A.saveText("tasks", t, "memoAt", { memo, memoBy: cu.id, memoByName: cu.name, memoAt: nowIso() }, baseAt, { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `${t.title} · 메모 고침`, prev: String(t.memo || "").slice(0, 2000) }, force),
     setProjNow: (p, text, baseAt, force) => A.saveText("projects", p, "now.at", { now: { text: String(text || "").trim(), by: cu.id, byName: cu.name, at: nowIso() } }, baseAt, { col: "projects", targetId: p.id, projectId: p.id, label: `${p.title} · 지금 상황 고침`, prev: (p.now && p.now.text) || "" }, force),
-    addFiles: async (t, files) => { try { const up = []; for (const f of files) up.push(await fb.upload("task-" + t.id, f));
-      await fb.patch("tasks", tdoc(t), { attachments: fb.arrayUnion(...up.map((x) => ({ ...x, by: cu.id, byName: cu.name }))), updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }); log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `${t.title} · 파일 ${up.length}개 올림` }); setToast({ text: `파일 ${up.length}개 올렸어요` }); }
-      catch (e) { fail("파일")(e); } },
+    // 파일 하나 올리기 (진행률 onProg 0~1) → 올린 파일 정보 · 실패하면 throw (화면이 파일마다 [다시])
+    upload: (target, f, onProg) => fb.upload(target, f, onProg),
+    // files = File 또는 이미 올린 정보({url, path}) — 화면이 먼저 올리고(진행률) 여기선 기록만
+    addFiles: async (t, files) => { try { const up = []; for (const f of files) up.push(f && f.url && f.path ? f : await fb.upload("task-" + t.id, f));
+      await fb.patch("tasks", tdoc(t), { attachments: fb.arrayUnion(...up.map((x) => ({ ...x, by: cu.id, byName: cu.name }))), updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }); log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `${t.title} · 파일 ${up.length}개 올림` }); setToast({ text: `파일 ${up.length}개 올렸어요` }); return true; }
+      catch (e) { fail("파일")(e); return false; } },
     // 고정업무 체크 — 내 칸만 바꾸고, 체크 기록(누가 몇 시)을 따로 남김
     //   기록 문서는 merge (다시 체크하거나 취소해도 그날 문서의 다른 칸(건수·체크리스트 기록 등)을 지우지 않음)
     fxCheck: (t, on, key, at) => fb.merge("checks", `${t.id}~${cu.id}~${key}`, { kind: "fx", taskId: t.id, itemId: t.id, uid: cu.id, name: cu.name, date: key, ym: key.slice(0, 7), wk: weekStart(key), at, on }),
@@ -714,7 +717,7 @@ export function useActs(D, cu, setToast, idx = null) {
       setToast({ text: field === "labelBy" ? "보이는 이름을 바꿨어요" : "내 시간을 바꿨어요", undo: () => undoT(t, f, { [`${field}.${cu.id}`]: prev || null }, `${t.title} · ${field === "labelBy" ? "보이는 이름" : "내 시간"}`) }); },
     addNote: async (itemId, text, parentId, files, ctx, extra) => {
       const id = newId("n"); const up = [];
-      try { for (const f of files || []) up.push(await fb.upload("note-" + itemId, f));
+      try { for (const f of files || []) up.push(f && f.url && f.path ? f : await fb.upload("note-" + itemId, f));
         const mentions = parseMentions(text, D.users).filter((u) => u !== cu.id);   // @이름 → 그 사람 '확인할 것' + (설정·시간 안이면) 문자
         await fb.put("notes", id, { id, itemId, parentId: parentId || null, text: text.trim(), files: up, ...by(), madeIn: "v2", ...(mentions.length ? { mentions } : {}), ...(extra || {}) });
         log("comment", { col: "notes", targetId: ctx && ctx.taskId ? ctx.taskId : itemId, projectId: (ctx && ctx.projectId) || "", label: text.trim().slice(0, 60) });
@@ -780,10 +783,10 @@ export function useActs(D, cu, setToast, idx = null) {
         return r; }
       catch (e) { fail("메모")(e); return { error: true }; } },
     // 자료 올리기 → Storage task-attachments/v2/ak-<akId>/ · 덧칠 문서 맨 위 files[] (arrayUnion · hist 에 안 쌓음)
-    akFiles: async (it, files) => { try { const up = []; for (const f of files) up.push({ ...(await fb.upload("ak-" + it.id, f)), by: cu.id, byName: cu.name });
+    akFiles: async (it, files) => { try { const up = []; for (const f of files) up.push({ ...(f && f.url && f.path ? f : await fb.upload("ak-" + it.id, f)), by: cu.id, byName: cu.name });
         await fb.txDoc("kpidefs", it.id, (c) => ({ write: c ? { files: fb.arrayUnion(...up) } : { coll: "actionKPIs", fields: {}, hidden: false, hist: [], created: false, files: up, at: nowIso(), by: cu.id, byName: cu.name } }));
-        log("edit", { col: "kpidefs", targetId: it.id, label: `${it.name} · 파일 ${up.length}개 올림` }); setToast({ text: `파일 ${up.length}개 올렸어요` }); }
-      catch (e) { fail("파일")(e); } },
+        log("edit", { col: "kpidefs", targetId: it.id, label: `${it.name} · 파일 ${up.length}개 올림` }); setToast({ text: `파일 ${up.length}개 올렸어요` }); return true; }
+      catch (e) { fail("파일")(e); return false; } },
     // [+ 반복 실행] 횟수 목표 새로 (관리자) — id v2k_act_… · 덧칠 created (버전1 문서는 그대로)
     akCreate: async (f) => { const id = newKpiId("actionKPIs"), at = nowIso(), wk = akWeekKey(new Date());
       const subs = (f.subs || []).map((x) => String(x || "").trim()).filter(Boolean).map((title, i) => ({ id: newId("s") + i, title }));

@@ -9,7 +9,7 @@ import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager, getFirestore,
   doc, collection, query, where, onSnapshot, getDoc, getDocFromServer, getDocs, setDoc, updateDoc, writeBatch, arrayUnion, arrayRemove, deleteField, runTransaction, increment,
 } from "firebase/firestore";
-import { getStorage, ref as sref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getStorage, ref as sref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
 const app = initializeApp({
   apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
@@ -82,12 +82,13 @@ export function listenV1Doc(id, cb, onErr) {
     (e) => { console.error(`[v1 ${id}] 읽기 실패:`, e); onErr && onErr(e); });
 }
 export async function readV1Notes() { const snap = await getDocs(collection(db, "pour-os", "ak-notes", "c")); console.log(`[v1 댓글 읽기] ${snap.size}건`); return snap.docs.map((d) => ({ ...d.data(), id: d.data().id || d.id })); }
-// 파일 올리기 (task-attachments/v2/{대상}/…)
-export async function upload(target, file) {
+// 파일 올리기 (task-attachments/v2/{대상}/…) · onProg(0~1) = 올라간 비율 (uploadBytesResumable)
+export async function upload(target, file, onProg) {
   const safe = String(file.name || "file").replace(/[^\w.\-가-힣]/g, "_").slice(-80);
   const path = `task-attachments/v2/${String(target).replace(/[^\w\-]/g, "_")}/${Date.now()}_${safe}`;
   const r = sref(storage, path);
-  await uploadBytes(r, file, { contentType: file.type || "application/octet-stream" });
+  await new Promise((ok, no) => { const up = uploadBytesResumable(r, file, { contentType: file.type || "application/octet-stream" });
+    up.on("state_changed", (s) => { if (onProg && s.totalBytes) onProg(s.bytesTransferred / s.totalBytes); }, no, ok); });
   return { name: file.name || "file", url: await getDownloadURL(r), path, size: file.size || 0, type: file.type || "", uploadedAt: new Date().toISOString() };
 }
 export { arrayUnion, arrayRemove, deleteField, increment };

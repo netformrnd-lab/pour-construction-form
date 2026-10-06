@@ -22,4 +22,12 @@ ok("같은 종류 4줄 이상이면 한 줄로 묶음 (재고 위험 54건)", ()
   assert.equal(x.length, 1 + 0); const g = x.find((y) => y.group); assert.ok(g && g.title === "재고 위험 54건" && /제품0 · 제품1 외 52건/.test(g.text) && g.url);
   assert.equal(linkInbox([...ls.slice(0, 3)], users, "songhee", "2026-10-07").length, 3);
 });
+ok("CRM 큰 건(bigDeal) 태그 · 마진 낮음(marginLow) 빨강 · 마진 앱 이름", () => {
+  const b = linkInbox([L({ id: "crm-big-1", kind: "bigDeal", title: "○○아파트 (큰 건)", sub: "견적 발송완료 · 384만원" })], users, "ran", "2026-10-07")[0];
+  assert.ok(b && b.tag === "큰 건" && !b.red && b.whoName === "CRM");
+  const m = linkInbox([L({ id: "margin-low-x", src: "margin", kind: "marginLow", title: "스티커 프라이머 · 쿠팡", sub: "마진 8% (기준 15%)", owner: "", date: "" })], users, "songhee", "2026-10-07")[0];
+  assert.ok(m && m.tag === "마진 낮음" && m.red && m.whoName === "마진");
+  const q = linkInbox([L({ id: "margin-req-x", src: "margin", kind: "priceReq", title: "타일카펫 자사몰가 변경", sub: "ran → 관리자 · 29,900 → 27,900", owner: "", date: "2026-10-07" })], users, "songhee", "2026-10-07")[0];
+  assert.ok(q && q.tag === "가격 컨펌" && !q.red && q.whoName === "마진" && /29,900 → 27,900/.test(q.text));
+});
 console.log(`${n}개 모두 통과`);

@@ -264,7 +264,7 @@ export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl
   // 링크로 열기: 그 댓글로 스크롤 + 잠깐 테두리
   useEffect(() => { if (!hl || hlDone.current) return;
     const el = document.getElementById("v2-n-" + hl);
-    if (el) { hlDone.current = true; const h = setTimeout(() => { el.scrollIntoView({ behavior: "smooth", block: "center" }); setHlOn(hl); setTimeout(() => setHlOn(""), 2200); }, 350); return () => clearTimeout(h); }
+    if (el) { hlDone.current = true; setTimeout(() => { const e2 = document.getElementById("v2-n-" + hl) || el; e2.scrollIntoView({ behavior: "smooth", block: "center" }); setHlOn(hl); setTimeout(() => setHlOn(""), 2200); }, 350); return; }   // 다시 그려져도 취소하지 않음
     if (!notes.ready || got !== null) return;
     setGot(false); fb.fetchWhere("notes", ["id", "==", hl]).then((a) => { const n = a.find((x) => x.itemId === itemId && !x.deleted); if (n) setGot(n); else { hlDone.current = true; setMiss(true); } })
       .catch((e) => { console.error("[v2] 댓글 불러오기 실패:", e); hlDone.current = true; setMiss(true); }); }, [hl, th.length, notes.ready, got]);

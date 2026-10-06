@@ -5,7 +5,7 @@ import * as fb from "./fb.js";
 import {
   ymd, addDays, ddays, ddayLabel, md, ago, hm, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf,
   projOpen, projMine, projStat, projGroups, projWhen, feedOf, taskNoteId, projNoteId, LOG_L, reqOf, riskOf, workloadOf, PROJ_CATS, catName, projCat, guessCat,
-  IMP, impOf, impName, isHoldP, projStLabel, projForecast, projPct, isOneOff, TEAMS, projTeam, projTeamAuto,
+  IMP, impOf, impName, isHoldP, projStLabel, projForecast, projPct, isOneOff, TEAMS, projTeam, projTeamAuto, isGhProj, ghDashUrl,
 } from "./model.js";
 import { Gantt } from "./gantt.jsx";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, launchPct } from "./launch.js";
@@ -267,6 +267,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
     </div>
     {launch && <div style={{ fontSize: 12.5, color: C.mute, fontWeight: 700, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px 10px" }}><span>출시 템플릿 · {brandName(D, p.brand)}{p.batch ? " " + p.batch : ""}{p.lbProjectName ? " · " + p.lbProjectName : ""}{p.lbTrash && p.lbTrash !== "kept" ? " · 신제품 대시보드 휴지통" : ""}</span>
       {p.launchId && <a className="v2-lblink" href={"/launch-board?p=" + encodeURIComponent(p.launchId)} target="_blank" rel="noopener">신제품 대시보드에서 보기 ›</a>}</div>}
+    {isGhProj(p.id) && <div style={{ fontSize: 12.5, color: C.mute, fontWeight: 700, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px 10px" }}><span>그로홈 그로스보드 KPI · 그로홈 대시보드와 같이 씀</span><a className="v2-lblink" href={ghDashUrl()} target="_blank" rel="noopener">그로홈 대시보드에서 보기 ›</a></div>}
     <div style={{ fontSize: 13.5, color: C.sub, marginTop: 4 }}>책임 {nameOf(D.users, p.assigneeId) || "없음"} · {date ? <span style={{ color: w.late ? C.red : C.sub, fontWeight: w.late ? 800 : 400 }}>{w.launched ? `출시 ${md(p.launchDate)} · 출시 후 ${w.after != null ? w.after : -ddays(p.launchDate, key)}일${w.late ? " · 늦은 항목 있음" : ""}` : `${launch ? "출시" : "마감"} ${md(date)} ${ddayLabel(w.n)}`}</span> : launch ? "출시일 미정" : "마감 없음"} · {pct}% · 남은 {openT.length}</div>
     <div style={{ height: 6, background: "#E8EBF2", borderRadius: 3, margin: "10px 0 0", overflow: "hidden" }}><div style={{ width: pct + "%", height: "100%", background: C.navy }} /></div>
     {(() => { if (launch || !projOpen(p) || isHoldP(p) || !openT.length) return null; const f = projForecast(p, D.tasks, key);   // 지금 속도로 언제 끝날까 (중요도와 같이 관리자 '판단 필요'에 쓰임)

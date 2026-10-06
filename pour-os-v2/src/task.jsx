@@ -17,7 +17,7 @@ import { NoteFiles, FileList, useUploads, UpList, UpBtn } from "./files.jsx";
 export { FileRow } from "./files.jsx";
 import { HoldAsk } from "./hold.jsx";
 import { RequestAsk } from "./asks.jsx";
-import { askTo } from "./model.js";
+import { askTo, isGhProj, ghDashUrl } from "./model.js";
 import { viewTasks } from "./secret.js";
 import { mentionPick, insertMention, parseMentions } from "./mention.js";
 import { SecretBox } from "./secretui.jsx";
@@ -123,6 +123,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
       {t.handoff && t.handoff.by && <div>{t.handoff.byName}님이 {md(ymd(new Date(t.handoff.at)))}에 {(t.handoff.from || []).map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "담당 없음"} → {nameOf(D.users, t.handoff.to)}{t.handoff.note ? ` · ${t.handoff.note}` : ""}</div>}
       {giver && <div>{giverName}님이 맡김{(req ? t.requestedAt : t.assignedAt) ? ` · ${md(ymd(new Date(req ? t.requestedAt : t.assignedAt)))}` : ""}{t.ackAt ? " · 받음" : " · 아직 안 받음"}</div>}
       {parent && <div><TBtn onClick={() => open({ type: "task", id: parent.id })} style={{ padding: "2px 0" }}>상위 업무 · {parent.title} ›</TBtn></div>}
+      {isGhProj(t.projectId) && <div>그로홈 그로스보드 업무{!owners.length && t.ghAssigneeName ? ` · 그로홈 담당 ${t.ghAssigneeName}` : ""} · <a className="v2-lblink" href={ghDashUrl(t.id)} target="_blank" rel="noopener">그로홈 대시보드에서 보기 ›</a></div>}
     </div>
     {t.firstStep && !done && <Banner><b>첫 걸음</b> · {t.firstStep}</Banner>}
     {/* 신제품 횟수 항목(블로그 포스팅 3회 …): 할 때마다 [+1] → 반복(행동지표) 짝이 있으면 같이 (routineui) */}

@@ -5,7 +5,7 @@
 // 계산은 kpi2.js · 정의는 버전1 문서 읽기만 · 매출: POUR스토어 = CRM(버전1 서브KPI 에 CRM 이 넣는 누계) · 그로홈 = 그로홈 대시보드(ghsales.js)
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as fb from "./fb.js";
-import { ymd, md, isMaster, nameOf } from "./model.js";
+import { ymd, md, isMaster, nameOf, GH_DASH } from "./model.js";
 import { kpiDefs, kpiBoard, myKpi, lagAt, lagLatest, lagGoal, lagPct, lagMissing, lagWrite, lagBrand, canLag, fmtV, KCOLL_L, skManual, kpiEditWrite, newKpiId, goalBrandOf, mkBrand, lagDue } from "./kpi2.js";
 import { AK_FUNS } from "../../pour-os/src/actionKpi.js";
 import { refreshGhSales, GH_EVERY } from "./ghsales.js";
@@ -100,7 +100,7 @@ export function KpiBoard({ D, cu, open }) {
         </Card>; })}
     </div>)}
     {ed && <HiddenList K={K} brand={brand} D={D} E={E} />}
-    <p className="a-hint" style={{ margin: "14px 2px 0" }}>매출: POUR스토어 = CRM · 그로홈 = 그로홈 대시보드{isMaster(cu) ? " · KPI·목표는 [KPI 고치기]에서" : ""}</p>
+    <p className="a-hint" style={{ margin: "14px 2px 0" }}>매출: POUR스토어 = CRM · 그로홈 = 그로홈 대시보드{isMaster(cu) ? " · KPI·목표는 [KPI 고치기]에서" : ""}{brand === "grohome" && <> · 그로홈 채널 목표·결과 KPI는 그로홈 대시보드에서 넣어도 같은 값 <a className="v2-lblink" href={GH_DASH} target="_blank" rel="noopener">그로홈 대시보드에서 보기 ›</a></>}</p>
   </div>;
 }
 function Movers({ D, mv, open }) {

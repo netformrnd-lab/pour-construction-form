@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#24386B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>POUR 마진</title>
+<!--
+  마진 v2 (폰) — 사용자 결정 2026-10-05 · 시안 pour-os-v2/mockups/step7-crm-margin-v2-plan.png ④⑤
+  · 버전1(pourstore-pricing-dashboard.html)은 그대로. 같은 프로젝트(pourstoreproject) · 같은 로그인 · 같은 데이터
+  · 가격 = 팀용 단가표(team-catalog/current — 버전1 관리자 화면이 계산해 저장하는 채널별 판매가)
+  · 원가 = products · products-added + product-meta prod-cost(원가 수정) · prod-ship(택배비) · prod-rename(이름 변경)
+  · 권한: 마스터 = 원가·이익(원)·마진 % / 부마스터 = 마진 %만(원가·이익 금액 안 보임) / 일반(허용·팀) = 판매가만(팀용 단가표만 읽음)
+  · 가격 바꾸기 요청 = 버전1 개정안(product-meta/pricing-draft)에 담고 '대기' → 마스터가 PC 가격정책표에서 승인(버전1 그대로 — CRM 단가도 같이)
+  · 마진 낮음 · 가격 요청 → 업무OS(pour-app-new) pour-os/v2/links (src 'margin', kind marginLow · priceReq) — 이름·채널·% 한 줄만
+  · 재고·유통기한 = 공용 DB(commerce-division) expiryLots 읽기만 (올리기·재고 충전 계산은 PC)
+-->
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{--navy:#24386B;--navy2:#0F1F5C;--bg:#F4F5F8;--card:#fff;--line:#E3E6EE;--ink:#1B2233;--ink2:#3C455A;--mute:#6B7386;--red:#C62828;--redbg:#FDECEC;--soft:#E8EBF3;--bar:#24386B;--barbg:#E6E9F1}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Pretendard,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;-webkit-text-size-adjust:100%;overflow-x:hidden}
+button,input,select{font-family:inherit}
+a{color:inherit}
+.m2-wrap{max-width:640px;margin:0 auto;padding:0 16px calc(84px + env(safe-area-inset-bottom))}
+.m2-top{position:sticky;top:0;z-index:20;background:var(--bg);padding:calc(10px + env(safe-area-inset-top)) 0 8px}
+.m2-switch{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.m2-switch a,.m2-switch span{display:flex;align-items:center;justify-content:center;height:36px;border-radius:10px;font-weight:700;font-size:13px;text-decoration:none;color:var(--ink2);background:#E8EAF0}
+.m2-switch .on{background:var(--navy);color:#fff}
+.m2-h1{font-size:22px;font-weight:800;margin:14px 0 2px;letter-spacing:-.3px;display:flex;align-items:center;gap:8px}
+.m2-h1 .sp{flex:1}
+.m2-sub{color:var(--mute);font-size:13px;margin:0 0 10px;line-height:1.5}
+.m2-next{background:#fff;border:1px solid var(--line);border-left:3px solid var(--navy);border-radius:10px;padding:9px 12px;font-size:13px;color:var(--ink2);margin-bottom:10px;line-height:1.5}
+.m2-card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.m2-pad{padding:12px 14px}
+.m2-row{display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--line);background:#fff;width:100%;text-align:left;border-left:0;border-right:0;border-bottom:0;font-size:15px;color:var(--ink);cursor:pointer}
+.m2-row:first-child{border-top:0}
+.m2-row .tx{flex:1;min-width:0}
+.m2-row .t{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m2-row .s{color:var(--mute);font-size:12.5px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m2-row .r{flex:none;font-size:12.5px;color:var(--mute);text-align:right}
+.m2-red{color:var(--red)!important}
+.m2-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--soft);color:var(--navy);vertical-align:1px;margin-right:4px}
+.m2-tag.red{background:var(--redbg);color:var(--red)}
+.m2-chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.m2-chips::-webkit-scrollbar{display:none}
+.m2-chip{flex:none;height:32px;padding:0 12px;border-radius:16px;border:1px solid var(--line);background:#fff;color:var(--ink2);font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+.m2-chip.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.m2-in{width:100%;height:44px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-size:16px;background:#fff;color:var(--ink)}
+.m2-in:focus{outline:2px solid var(--navy);outline-offset:-1px}
+.m2-btn{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--navy);font-weight:700;font-size:14px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.m2-btn.solid{background:var(--navy);border-color:var(--navy);color:#fff}
+.m2-btn.soft{background:var(--soft);border-color:var(--soft)}
+.m2-btn.sm{height:32px;padding:0 10px;font-size:12.5px;border-radius:8px}
+.m2-btn:disabled{opacity:.5;cursor:default}
+.m2-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.m2-sec{font-size:13px;font-weight:800;color:var(--ink2);margin:16px 2px 8px;display:flex;align-items:center;gap:6px}
+.m2-sec .sp{flex:1}
+.m2-sec .rt{font-weight:600;color:var(--mute);font-size:12px}
+.m2-empty{padding:22px 14px;text-align:center;color:var(--mute);font-size:13.5px;line-height:1.6}
+.m2-err{background:var(--redbg);color:var(--red);border-radius:10px;padding:8px 12px;font-size:12.5px;margin-bottom:10px;line-height:1.5}
+.m2-note{color:var(--mute);font-size:12px;line-height:1.55;margin:10px 2px 0}
+.m2-mbar{height:6px;border-radius:3px;background:var(--barbg);margin-top:8px;overflow:hidden}
+.m2-mbar i{display:block;height:100%;background:var(--bar);border-radius:3px}
+.m2-mbar.red i{background:var(--red)}
+.m2-ch{padding:12px 14px;border-top:1px solid var(--line)}
+.m2-ch:first-child{border-top:0}
+.m2-ch .a{display:flex;align-items:baseline;gap:8px}
+.m2-ch .a b{font-size:15px}
+.m2-ch .a .sp{flex:1}
+.m2-ch .b{color:var(--mute);font-size:12.5px;margin-top:3px}
+.m2-tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.m2-tabs .in{max-width:640px;margin:0 auto;display:grid}
+.m2-tabs button{height:56px;border:0;background:none;font-weight:700;font-size:12.5px;color:var(--mute);cursor:pointer;padding:0 2px;line-height:1.2}
+.m2-tabs button.on{color:var(--navy)}
+.m2-tabs button.on span{border-bottom:2px solid var(--navy);padding-bottom:3px}
+.m2-tabs .badge{display:inline-block;min-width:17px;height:17px;line-height:17px;padding:0 4px;border-radius:9px;background:var(--red);color:#fff;font-size:10.5px;margin-left:3px;vertical-align:1px}
+.m2-dim{position:fixed;inset:0;z-index:40;background:rgba(15,31,92,.35)}
+.m2-sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;max-height:92vh;overflow-y:auto;background:var(--bg);border-radius:18px 18px 0 0;max-width:640px;margin:0 auto;padding-bottom:calc(16px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.m2-sh{background:var(--navy);color:#fff;padding:16px 16px 14px;border-radius:18px 18px 0 0;position:relative}
+.m2-sh .path{font-size:12px;opacity:.78;margin-right:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m2-sh .kind{position:absolute;top:12px;right:12px;background:#fff;color:var(--navy);font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:9px}
+.m2-sh .title{font-size:19px;font-weight:800;margin-top:4px;word-break:keep-all;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.m2-sh .x{position:absolute;right:12px;bottom:10px;background:none;border:0;color:#fff;font-size:13px;font-weight:700;opacity:.85;cursor:pointer;height:28px}
+.m2-sbody{padding:4px 16px 0}
+.m2-kv{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.m2-kv div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.m2-kv .k{font-size:12px;color:var(--mute);font-weight:700}
+.m2-kv .v{font-size:20px;font-weight:800;margin-top:3px}
+.m2-kv .v.red{color:var(--red)}
+.m2-toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;background:var(--navy2);color:#fff;padding:11px 16px;border-radius:12px;font-size:13.5px;font-weight:700;max-width:calc(100vw - 32px);box-shadow:0 6px 24px rgba(0,0,0,.2)}
+.m2-login{max-width:380px;margin:60px auto 0;padding:0 16px}
+.m2-login .m2-in{margin-bottom:8px}
+.m2-fld{margin-bottom:10px}
+.m2-fld label{display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin:0 0 5px}
+.m2-grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.m2-out{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:4px}
+.m2-out .big{font-size:24px;font-weight:800}
+.m2-out .big.red{color:var(--red)}
+.m2-sel{width:100%;height:44px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:15px;background:#fff;color:var(--ink)}
+.m2-list-more{display:block;width:100%;height:44px;border:0;border-top:1px solid var(--line);background:#fff;color:var(--navy);font-weight:700;font-size:13.5px;cursor:pointer}
+.m2-load{padding:40px 0;text-align:center;color:var(--mute);font-size:14px}
+@media (max-width:380px){.m2-tabs button{font-size:11.5px}.m2-kv .v{font-size:18px}}
+@media (min-width:900px){.m2-wrap{padding-top:8px}}
+</style>
+</head>
+<body>
+<div id="root"><div class="m2-load">마진 불러오는 중…</div></div>
+
+<!-- 계산만 (저장 없음) — 시험: node 로 이 스크립트만 꺼내 돌림 (pour-os-v2 밖 · scratchpad m2/calc.test.mjs) -->
+<script id="m2calc">
+(function(G){
+  const pKey = (p) => `${p.cat}|${p.name}|${p.spec}`;
+  const ceil100 = (n) => Math.ceil(n / 100) * 100;
+  const hash = (s) => { let h = 5381; s = String(s); for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return h.toString(36); };
+  const won = (v) => v == null || !isFinite(v) ? "—" : Math.round(v).toLocaleString("ko-KR");
+  const pctTxt = (r) => r == null || !isFinite(r) ? "—" : `${Math.round(r * 100)}%`;
+  const lc = (a) => (Array.isArray(a) ? a : []).map((e) => String(e).toLowerCase());
+
+  // 권한 (버전1 recompute*Allowed 와 같은 판정) → 'master' | 'sub' | 'general' | 'none'
+  //  마스터 = masterEmail + masterEmails · 부마스터 = subMasterEmails · 둘 다 이메일 인증해야 원가 열림(인증 전엔 일반)
+  //  일반 = allowedEmails · teamEmails (판매가만)
+  function roleOf(access, email, verified) {
+    const e = String(email || "").toLowerCase(); if (!e || !access) return "none";
+    const masters = [String(access.masterEmail || "").toLowerCase(), ...lc(access.masterEmails)].filter(Boolean);
+    const subs = lc(access.subMasterEmails), allow = lc(access.allowedEmails), team = lc(access.teamEmails);
+    if (masters.includes(e)) return verified ? "master" : "general";
+    if (subs.includes(e)) return verified ? "sub" : "general";
+    if (allow.includes(e) || team.includes(e)) return "general";
+    return "none";
+  }
+  const ROLE_NAME = { master: "마스터", sub: "부마스터", general: "일반", none: "권한 없음" };
+
+  // 원가 찾기: 현재 이름 키(버전1 pKey) → {cost, ship}. products 는 원래 이름 → prod-rename 로 지금 이름
+  function costIndex({ products = [], padd = [], renames = {}, pcost = {}, pship = {} }) {
+    const idx = {};
+    products.forEach((p) => {
+      const ok = pKey(p), nm = renames[ok] || null;
+      const cur = nm ? `${p.cat}|${nm.name || p.name}|${nm.spec != null ? nm.spec : p.spec}` : ok;
+      if (!(cur in idx)) idx[cur] = { cost: p.cost == null || p.cost === "" ? null : +p.cost };
+    });
+    padd.forEach((p) => { const k = pKey(p); if (!(k in idx)) idx[k] = { cost: p.cost == null || p.cost === "" ? null : +p.cost }; });
+    Object.keys(pcost || {}).forEach((k) => { const v = pcost[k]; idx[k] = { ...(idx[k] || {}), cost: v == null || v === "" ? null : +v }; });
+    Object.keys(idx).forEach((k) => { const s = +((pship || {})[k]); idx[k].ship = s > 0 ? s : 0; });
+    return idx;
+  }
+
+  // 한 칸 마진: 원가 = 원가 + 택배비(버전1 mCost) · raw = (판매가 − 원가)/판매가(버전1 가격정책표 값) · net = 채널 수수료(config/calc.chVar)까지 뺀 값
+  function marginOf(price, cost, ship, feePct) {
+    if (price == null || !(price > 0) || cost == null || !isFinite(cost)) return null;
+    const c = cost + (ship || 0), f = (+feePct || 0) / 100;
+    const profit = price * (1 - f) - c;
+    return { raw: (price - c) / price, net: profit / price, profit, fee: +feePct || 0 };
+  }
+
+  // 화면용 제품 목록 — role 이 원가 권한(master·sub)일 때만 마진 계산
+  function buildModel({ catalog, costIdx = {}, chVar = {}, threshold = 0.15, role = "general" }) {
+    const chans = ((catalog && catalog.channels) || []).filter((c) => c && c.uid && c.role !== "export").slice().sort((a, b) => (a.ord ?? 0) - (b.ord ?? 0));
+    const canCost = role === "master" || role === "sub";
+    const products = ((catalog && catalog.products) || []).map((p, i) => {
+      const key = pKey(p), set = p.type === "세트", ci = costIdx[key] || {};
+      const cost = canCost && !set ? (ci.cost == null ? null : ci.cost) : null, ship = canCost ? ci.ship || 0 : 0;
+      const rows = chans.filter((c) => p.prices && p.prices[c.uid] != null).map((c) => {
+        const price = +p.prices[c.uid], fee = +((chVar[c.code] || {}).fee) || 0;
+        const m = canCost && !set ? marginOf(price, cost, ship, fee) : null;
+        return { uid: c.uid, code: c.code || "", name: c.short || c.name || c.code || "", full: c.name || "", role: c.role || "", gh: String(c.uid).startsWith("ghc-") || String(c.uid).startsWith("ghp-"), price, fee, m, low: !!(m && m.net < threshold) };
+      });
+      const retail = rows.find((r) => r.role === "retail") || rows[0] || null;
+      const lowN = rows.filter((r) => r.low).length;
+      return { i, key, h: hash(key), cat: p.cat || "", name: p.name || "", spec: p.spec && p.spec !== "-" ? p.spec : "", brand: Array.isArray(p.brand) ? p.brand : [], status: p.status || "", group: p.group || "", set, code: p.code || "",
+        cost, ship, noCost: canCost && !set && cost == null, rows, retail, lowN, minNet: rows.reduce((a, r) => (r.m && (a == null || r.m.net < a) ? r.m.net : a), null) };
+    });
+    return { chans, products, threshold, canCost, role };
+  }
+  // 마진 낮음 (제품 × 채널) — 낮은 순
+  function lowList(model) {
+    const out = []; (model.products || []).forEach((p) => p.rows.forEach((r) => { if (r.low) out.push({ p, r, id: linkId("low", p.key, r.uid) }); }));
+    return out.sort((a, b) => a.r.m.net - b.r.m.net);
+  }
+  const linkId = (k, key, uid) => `margin-${k}-${hash(key + "|" + (uid || ""))}`;
+  const cut = (s, n) => String(s || "").replace(/\s+/g, " ").trim().slice(0, n);
+  const pageUrl = (base, p) => `${base}#p-${p.h}`;
+  // 업무OS 한 줄(pour-os/v2/links) — 이름·채널·% 만 (원가·금액 없음)
+  function lowLink(p, r, threshold, { base, owner = "", ownerOsId = "", today, by = "" }) {
+    return { id: linkId("low", p.key, r.uid), src: "margin", kind: "marginLow", title: cut(`${p.name} · ${r.name}`, 40),
+      sub: `마진 ${pctTxt(r.m.net)} (기준 ${pctTxt(threshold)}) · 가격 확인`, date: today, time: "", owner, ownerOsId, url: pageUrl(base, p), open: true, at: new Date().toISOString(), by };
+  }
+  function reqLink(p, r, from, to, { base, today, by = "", byName = "" }) {
+    return { id: linkId("req", p.key, r.role === "retail" ? "" : r.uid), src: "margin", kind: "priceReq", title: cut(`${p.name} ${r.name}가 변경`, 40),
+      sub: `${byName || by} → 관리자 · ${won(from)} → ${won(to)}`, date: today, time: "", owner: "", ownerOsId: "", url: `${base}#req`, open: true, at: new Date().toISOString(), by };
+  }
+  // 열려 있는 마진 줄 정리(앱을 열 때) — 이제 낮지 않으면 닫고(open:false · 지우지 않음) · % 가 바뀌었으면 고침 · 승인·반려된 요청은 닫음
+  function planLinkSync(open, model, draft, threshold) {
+    const lows = new Map(lowList(model).map((x) => [x.id, x])), pend = new Set(pendingLinkIds(draft));
+    const out = [];
+    (open || []).forEach((l) => {
+      if (!l || l.open === false || l.src !== "margin") return;
+      if (l.kind === "marginLow") {
+        const x = lows.get(l.id);
+        if (!x) out.push({ id: l.id, data: { open: false, closedAt: new Date().toISOString(), closedWhy: "마진 기준 넘음" } });
+        else { const sub = `마진 ${pctTxt(x.r.m.net)} (기준 ${pctTxt(threshold)}) · 가격 확인`; if (sub !== l.sub) out.push({ id: l.id, data: { sub } }); }
+      } else if (l.kind === "priceReq") {
+        if (!pend.has(l.id)) out.push({ id: l.id, data: { open: false, closedAt: new Date().toISOString(), closedWhy: "승인 또는 반려" } });
+      }
+    });
+    return out;
+  }
+  // 개정안(버전1 product-meta/pricing-draft) — 자사몰 정가 = retail[pKey] · 그 밖 채널 = ovr["pKey|uid"] (버전1 draftSetRetail · draftSetOvr 와 같은 칸 · 100원 올림)
+  const draftKeyOf = (p, r) => r.role === "retail" ? p.key : p.key + "|" + r.uid;
+  function pendingKeys(d) { if (!d) return []; return [...Object.keys(d.retail || {}), ...Object.keys(d.ovr || {})]; }
+  // 개정안 칸 → 업무OS 요청 줄 id (reqLink 와 같은 계산: 정가 = hash(pKey|) · 채널 = hash(pKey|uid))
+  function pendingLinkIds(d) { if (!d) return []; return [...Object.keys(d.retail || {}).map((k) => linkId("req", k, "")), ...Object.keys(d.ovr || {}).map((k) => `margin-req-${hash(k)}`)]; }
+  function draftWith(cur, p, r, price, meta) {
+    const d = { vbase: {}, retail: {}, coeff: {}, ovr: {}, todo: {}, meta: { status: "", by: "", at: "", note: "" }, ...(cur || {}) };
+    d.retail = { ...(d.retail || {}) }; d.ovr = { ...(d.ovr || {}) };
+    const v = ceil100(+price);
+    if (r.role === "retail") d.retail[p.key] = v; else d.ovr[p.key + "|" + r.uid] = v;
+    const old = d.meta || {}, line = meta.note;
+    d.meta = { status: "대기", by: old.status === "대기" && old.by ? old.by : meta.by, at: meta.at, note: cut([old.status === "대기" ? old.note : "", line].filter(Boolean).join(" / "), 500) };
+    return d;
+  }
+  // 승인 대기 목록 — 개정안의 정가·채널 칸 (누가 넣었든)
+  function pendingList(d, model) {
+    if (!d || !d.meta || d.meta.status !== "대기") return [];
+    const byKey = new Map((model.products || []).map((p) => [p.key, p]));
+    const out = [];
+    Object.entries(d.retail || {}).forEach(([k, v]) => { const p = byKey.get(k); const r = p && (p.rows.find((x) => x.role === "retail")); out.push({ k, p, name: p ? p.name : (k.split("|")[1] || k), ch: r ? r.name : "자사몰 정가", from: r ? r.price : null, to: v }); });
+    Object.entries(d.ovr || {}).forEach(([k, v]) => { const parts = k.split("|"), uid = parts.pop(), pk = parts.join("|"), p = byKey.get(pk); const r = p && p.rows.find((x) => x.uid === uid); out.push({ k, p, name: p ? p.name : (parts[1] || pk), ch: r ? r.name : uid, from: r ? r.price : null, to: v }); });
+    return out;
+  }
+
+  // 가격 계산
+  function calc({ price, cost, ship, fee }) { return marginOf(+price || null, cost === "" || cost == null ? null : +cost, +ship || 0, +fee || 0); }
+  function priceFor({ cost, ship, fee, target }) {
+    const c = (+cost || 0) + (+ship || 0), k = 1 - (+fee || 0) / 100 - (+target || 0) / 100;
+    if (!(c > 0) || !(k > 0)) return null; return ceil100(c / k);
+  }
+
+  // 재고·유통기한: expiryLots/{pour|grohome} → 상품코드별 한 줄 (같은 코드 로트 합 · 가장 빠른 유통기한)
+  const parseDate = (s) => { const m = String(s ?? "").replace(/["'\s]/g, "").match(/^(\d{4})[-./]?(\d{1,2})[-./]?(\d{1,2})/); if (!m) return ""; const y = +m[1], mo = +m[2], d = +m[3]; if (y < 2000 || y > 2100 || mo < 1 || mo > 12 || d < 1 || d > 31) return ""; return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`; };
+  const codeKey = (s) => { const t = String(s ?? "").trim().toUpperCase(), d = t.replace(/\D/g, ""); return d.length >= 4 ? d : t; };
+  const days = (a, b) => Math.round((new Date(a + "T00:00:00") - new Date(b + "T00:00:00")) / 864e5);
+  function expiryRows(docs, today) {
+    const out = new Map(), meta = {};
+    (docs || []).forEach((dc) => {
+      const x = dc.data || {}, brand = dc.id === "grohome" ? "그로홈" : dc.id === "pour" ? "POUR스토어" : (x.brand || dc.id), man = x.manual && typeof x.manual === "object" ? x.manual : {}, oo = x.onOrder && typeof x.onOrder === "object" ? x.onOrder : {};
+      meta[brand] = { at: x.updatedAt || "", lots: Array.isArray(x.lots) ? x.lots.length : 0 };
+      (Array.isArray(x.lots) ? x.lots : []).forEach((l) => {
+        const q = +l.qty || 0; if (!(q > 0)) return;
+        const ck = codeKey(l.code) || String(l.name || "").replace(/\s/g, ""), k = brand + "|" + ck;
+        const exp = parseDate(l.expiry) || (man[l.code] ? parseDate(man[l.code]) : "");
+        const r = out.get(k) || { k, brand, code: l.code || "", name: l.name || l.code || "", qty: 0, exp: "", expQty: 0, lots: 0, onOrder: null };
+        r.qty += q; r.lots++;
+        if (exp && (!r.exp || exp < r.exp)) { r.exp = exp; r.expQty = q; } else if (exp && exp === r.exp) r.expQty += q;
+        const o = oo[l.code]; if (o && +o.qty > 0) r.onOrder = { qty: +o.qty, eta: o.eta || "" };
+        out.set(k, r);
+      });
+    });
+    const rows = [...out.values()].map((r) => ({ ...r, left: r.exp ? days(r.exp, today) : null }));
+    return { rows, meta };
+  }
+
+  G.M2C = { pKey, ceil100, hash, won, pctTxt, roleOf, ROLE_NAME, costIndex, marginOf, buildModel, lowList, linkId, lowLink, reqLink, planLinkSync, draftKeyOf, draftWith, pendingKeys, pendingLinkIds, pendingList, calc, priceFor, expiryRows, parseDate, days };
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+<script>
+(function(){
+"use strict";
+const C = window.M2C, { useState, useEffect, useMemo, useRef, useCallback } = React;
+const html = htm.bind(React.createElement);
+const OS_URL = "https://pour-construction-form.pages.dev/pourstore-renewal/os2.html";
+const CRM_URL = "https://pourstorecrm.web.app/v2";
+const CRM_SALES = "https://pourstorecrm.web.app/v2#sales";
+const V1_URL = "https://pour-construction-form.pages.dev/pourstore-pricing-dashboard.html";
+const SELF_URL = "https://pour-construction-form.pages.dev/pourstore-margin2.html";
+const THRESH_DEFAULT = 0.15;
+const ymd = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const md = (s) => { const m = /^\d{4}-(\d{2})-(\d{2})/.exec(String(s || "")); return m ? `${+m[1]}/${+m[2]}` : ""; };
+const whenTxt = (iso) => { if (!iso) return ""; const d = new Date(iso); if (isNaN(d)) return ""; return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+
+// ── Firebase: 기본 앱 = pourstoreproject(로그인·가격·원가) · pourOs = pour-app-new(업무OS 다리) · central = commerce-division(재고·유통기한)
+firebase.initializeApp({ apiKey: "AIzaSyB9VC75Hs8eAdXxy9n2aVsCeFUnCGX4xhA", authDomain: "pourstoreproject.firebaseapp.com", projectId: "pourstoreproject", storageBucket: "pourstoreproject.firebasestorage.app", messagingSenderId: "549863414475", appId: "1:549863414475:web:9c696d7f85d82a7b7bd94e" });   // 버전1과 같은 설정(같은 로그인)
+const auth = firebase.auth(), db = firebase.firestore();
+const osApp = () => (firebase.apps || []).find((a) => a.name === "pourOs") || firebase.initializeApp({ apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU", authDomain: "pour-app-new.firebaseapp.com", projectId: "pour-app-new", storageBucket: "pour-app-new.firebasestorage.app", messagingSenderId: "411031141847", appId: "1:411031141847:web:e658174fd4b9652cdadf92" }, "pourOs");
+const osDb = () => osApp().firestore();
+const cenDb = () => ((firebase.apps || []).find((a) => a.name === "central") || firebase.initializeApp({ apiKey: "AIzaSyAA5CEMdm0RUFocGlcAv_JF5ckf9k9XZr4", authDomain: "commerce-division.firebaseapp.com", projectId: "commerce-division", storageBucket: "commerce-division.firebasestorage.app", messagingSenderId: "990937465227", appId: "1:990937465227:web:4013cb98e5e5869bb06f8e" }, "central")).firestore();
+const linksCol = () => osDb().collection("pour-os").doc("v2").collection("links");
+const pm = (n) => db.collection("product-meta").doc(n);
+
+// 폰 뒤로 = 맨 위 시트만 닫기
+function useBackClose(open, close) {
+  const pushed = useRef(false), cref = useRef(close); cref.current = close;
+  useEffect(() => {
+    if (!open) return;
+    try { history.pushState({ m2: 1 }, ""); pushed.current = true; } catch (e) { pushed.current = false; }
+    const onPop = () => { pushed.current = false; cref.current(); };
+    window.addEventListener("popstate", onPop);
+    return () => { window.removeEventListener("popstate", onPop); if (pushed.current) { pushed.current = false; try { history.back(); } catch (e) {} } };
+  }, [open]);
+}
+
+function Login({ err }) {
+  const [em, setEm] = useState(""), [pw, setPw] = useState(""), [msg, setMsg] = useState(err || ""), [busy, setBusy] = useState(false);
+  const go = async (e) => { e.preventDefault(); setBusy(true); setMsg("");
+    try { await auth.signInWithEmailAndPassword(em.trim(), pw); }
+    catch (x) { const c = (x && x.code) || ""; setMsg(/invalid|wrong|not-found/.test(c) ? "이메일 또는 비밀번호가 맞지 않아요." : "로그인 못 했어요: " + (c || x.message || x)); }
+    setBusy(false); };
+  return html`<div class="m2-login">
+    <div class="m2-h1">POUR 마진</div>
+    <p class="m2-sub">가격·마진 대시보드와 같은 계정으로 들어가요.</p>
+    ${msg && html`<div class="m2-err">${msg}</div>`}
+    <form onSubmit=${go}>
+      <input class="m2-in" type="email" autocomplete="username" placeholder="이메일" value=${em} onInput=${(e) => setEm(e.target.value)} aria-label="이메일" />
+      <input class="m2-in" type="password" autocomplete="current-password" placeholder="비밀번호" value=${pw} onInput=${(e) => setPw(e.target.value)} aria-label="비밀번호" />
+      <button class="m2-btn solid" style=${{ width: "100%", height: 46 }} disabled=${busy || !em || !pw}>${busy ? "들어가는 중…" : "로그인"}</button>
+    </form>
+    <p class="m2-note">PC 화면(버전1)은 <a href=${V1_URL}>가격·마진 대시보드 ›</a></p>
+  </div>`;
+}
+
+function Switch() {
+  return html`<div class="m2-switch" role="navigation" aria-label="앱 바꾸기">
+    <a href=${OS_URL}>업무 ›</a><a href=${CRM_URL}>CRM ›</a><span class="on" aria-current="page">마진</span>
+  </div>`;
+}
+
+// ── 데이터 ──
+function useData(user, role) {
+  const [st, setSt] = useState({ loading: true, err: "" });
+  const [catalog, setCatalog] = useState(null), [costIdx, setCostIdx] = useState({}), [chVar, setChVar] = useState({}), [draft, setDraft] = useState(undefined), [cfg, setCfg] = useState({});
+  useEffect(() => {
+    if (!user || role === "none" || !role) return;
+    let off = [], dead = false;
+    const canCost = role === "master" || role === "sub";
+    (async () => {
+      try {
+        off.push(db.collection("team-catalog").doc("current").onSnapshot((d) => { const x = d.exists ? d.data() : null; console.log(`[team-catalog] 제품 ${x && x.products ? x.products.length : 0}개`); setCatalog(x || { products: [], channels: [] }); setSt((s) => ({ ...s, loading: false })); },
+          (e) => { console.error("[team-catalog] 로드 실패", e); setSt({ loading: false, err: "단가표를 못 불러왔어요: " + (e.code || e.message) }); }));
+        if (canCost) {
+          const [ps, pa, pc, sh, rn, calc] = await Promise.all([db.collection("products").get(), db.collection("products-added").get(), pm("prod-cost").get(), pm("prod-ship").get(), pm("prod-rename").get(), db.collection("config").doc("calc").get()]);
+          if (dead) return;
+          console.log(`[products] ${ps.size}건 · [products-added] ${pa.size}건`);
+          const mp = (d) => (d.exists && d.data().map && typeof d.data().map === "object" ? d.data().map : {});
+          setCostIdx(C.costIndex({ products: ps.docs.map((d) => d.data()), padd: pa.docs.map((d) => d.data()), renames: mp(rn), pcost: mp(pc), pship: mp(sh) }));
+          setChVar((calc.exists && calc.data().chVar) || {});
+          off.push(pm("pricing-draft").onSnapshot((d) => setDraft(d.exists ? d.data() : null), (e) => { console.warn("[pricing-draft] 로드 실패", e.code || e); setDraft(null); }));
+        }
+        off.push(pm("margin-v2").onSnapshot((d) => setCfg(d.exists ? d.data() || {} : {}), (e) => console.warn("[margin-v2] 설정 로드 실패", e.code || e)));
+      } catch (e) { console.error("[마진 v2] 로드 실패", e); if (!dead) setSt({ loading: false, err: "데이터를 못 불러왔어요: " + (e.code || e.message || e) }); }
+    })();
+    return () => { dead = true; off.forEach((f) => { try { f(); } catch (e) {} }); };
+  }, [user && user.uid, role]);
+  const threshold = typeof cfg.threshold === "number" && cfg.threshold > 0 && cfg.threshold < 1 ? cfg.threshold : THRESH_DEFAULT;
+  const model = useMemo(() => C.buildModel({ catalog, costIdx, chVar, threshold, role }), [catalog, costIdx, chVar, threshold, role]);
+  return { ...st, catalog, model, draft, threshold, cfg };
+}
+
+// 업무OS 마진 줄 (열린 것만 · 읽기 실패해도 화면은 그대로)
+function useOsLinks(enabled) {
+  const [links, setLinks] = useState([]), [users, setUsers] = useState([]);
+  useEffect(() => {
+    if (!enabled) return;
+    let off = [];
+    try {
+      off.push(linksCol().where("src", "==", "margin").where("open", "==", true).onSnapshot((s) => { console.log(`[업무OS 다리] 마진 줄 ${s.size}건 열림`); setLinks(s.docs.map((d) => ({ id: d.id, ...d.data() }))); }, (e) => console.warn("[업무OS 다리] 읽기 실패", e.code || e)));
+      osDb().collection("pour-os").doc("v2").collection("users").get().then((s) => setUsers(s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((u) => u.active !== false && u.name).map((u) => ({ id: u.id, name: u.name })))).catch((e) => console.warn("[업무OS 사람] 읽기 실패", e.code || e));
+    } catch (e) { console.warn("[업무OS 다리] 시작 실패", e); }
+    return () => off.forEach((f) => { try { f(); } catch (e) {} });
+  }, [enabled]);
+  return { links, users };
+}
+
+function App() {
+  const [user, setUser] = useState(undefined), [access, setAccess] = useState(undefined), [accErr, setAccErr] = useState("");
+  useEffect(() => auth.onAuthStateChanged((u) => setUser(u || null)), []);
+  useEffect(() => {
+    if (!user) { setAccess(undefined); return; }
+    db.collection("config").doc("access").get().then((d) => setAccess(d.exists ? d.data() : null)).catch((e) => { console.error("[config/access] 로드 실패", e); setAccErr(String(e.code || e.message)); setAccess(null); });
+  }, [user && user.uid]);
+  const role = user && access !== undefined ? C.roleOf(access, user.email, user.emailVerified) : "";
+  if (user === undefined) return html`<div class="m2-load">불러오는 중…</div>`;
+  if (!user) return html`<div><div class="m2-wrap"><div class="m2-top"><${Switch} /></div></div><${Login} /></div>`;
+  if (access === undefined) return html`<div class="m2-load">권한 확인 중…</div>`;
+  if (role === "none") return html`<div class="m2-wrap"><div class="m2-top"><${Switch} /></div>
+    <div class="m2-h1">마진</div><div class="m2-err">${user.email} 계정은 마진 화면을 볼 수 없어요. 관리자에게 열람 등록을 요청해 주세요.${accErr ? " (" + accErr + ")" : ""}</div>
+    <button class="m2-btn" onClick=${() => auth.signOut()}>다른 계정으로</button></div>`;
+  return html`<${Main} user=${user} role=${role} access=${access} />`;
+}
+
+function Main({ user, role, access }) {
+  const D = useData(user, role);
+  const canCost = role === "master" || role === "sub", isMaster = role === "master";
+  const { links, users } = useOsLinks(canCost);
+  const [tab, setTab] = useState(() => { try { return localStorage.getItem("m2-tab-" + role) || "prod"; } catch (e) { return "prod"; } });
+  const [sheet, setSheet] = useState(null), [toast, setToast] = useState("");
+  const tabs = canCost ? [["prod", "상품"], ["low", "마진 낮음"], ["calc", "가격 계산"], ["stock", "재고·유통기한"], ["more", "더보기"]] : [["prod", "상품"], ["calc", "가격 계산"], ["stock", "재고·유통기한"], ["more", "더보기"]];
+  const go = (t) => { setTab(t); try { localStorage.setItem("m2-tab-" + role, t); } catch (e) {} window.scrollTo(0, 0); };
+  useEffect(() => { if (!tabs.some((t) => t[0] === tab)) setTab("prod"); }, [role]);
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 2600); return () => clearTimeout(t); }, [toast]);
+  const lows = useMemo(() => (canCost ? C.lowList(D.model) : []), [D.model, canCost]);
+  const linkById = useMemo(() => new Map(links.map((l) => [l.id, l])), [links]);
+  // 해시: #p-<제품> · #low · #req
+  const hashDone = useRef(false);
+  useEffect(() => {
+    if (hashDone.current || D.loading || !D.catalog) return; hashDone.current = true;
+    const h = decodeURIComponent((location.hash || "").slice(1)); if (!h) return;
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+    if (h === "low" && canCost) go("low"); else if (h === "req") go("more");
+    else if (h.startsWith("p-")) { const p = D.model.products.find((x) => x.h === h.slice(2)); if (p) setSheet({ type: "prod", key: p.key }); }
+  }, [D.loading, D.catalog]);
+  // 열린 업무OS 줄 정리 (원가 권한 · 데이터 다 받은 뒤 · 한 번만 · 바뀐 것만)
+  const synced = useRef("");
+  useEffect(() => {
+    if (!canCost || !D.catalog || D.draft === undefined || !Object.keys(D.model.products).length) return;
+    const sig = D.threshold + ":" + links.length + ":" + (D.catalog.updatedAt || "") + ":" + JSON.stringify(D.draft && D.draft.meta || null) + ":" + C.pendingKeys(D.draft).length;
+    if (synced.current === sig) return; synced.current = sig;
+    const plan = C.planLinkSync(links, D.model, D.draft, D.threshold);
+    if (!plan.length) return;
+    const b = osDb().batch(); plan.forEach((w) => b.set(linksCol().doc(w.id), w.data, { merge: true }));
+    b.commit().then(() => console.log(`[업무OS 다리] 마진 줄 ${plan.length}건 정리`)).catch((e) => console.warn("[업무OS 다리] 정리 실패", e.code || e));
+  }, [canCost, D.catalog, D.draft, D.threshold, links]);
+
+  const ctx = { user, role, canCost, isMaster, D, lows, links, linkById, users, setSheet, setToast, go, access };
+  const sp = sheet && sheet.type === "prod" ? D.model.products.find((p) => p.key === sheet.key) : null;
+  const lowBadge = lows.length;
+  return html`<div>
+    <div class="m2-wrap">
+      <div class="m2-top"><${Switch} /></div>
+      ${D.err && html`<div class="m2-err">${D.err}</div>`}
+      ${D.loading ? html`<div class="m2-load">상품 불러오는 중…</div>` : html`
+        ${tab === "prod" && html`<${ProdTab} ctx=${ctx} />`}
+        ${tab === "low" && canCost && html`<${LowTab} ctx=${ctx} />`}
+        ${tab === "calc" && html`<${CalcTab} ctx=${ctx} />`}
+        ${tab === "stock" && html`<${StockTab} ctx=${ctx} />`}
+        ${tab === "more" && html`<${MoreTab} ctx=${ctx} />`}`}
+    </div>
+    <nav class="m2-tabs" aria-label="마진 메뉴"><div class="in" style=${{ gridTemplateColumns: `repeat(${tabs.length},1fr)` }}>
+      ${tabs.map(([k, l]) => html`<button key=${k} class=${tab === k ? "on" : ""} aria-current=${tab === k ? "page" : undefined} onClick=${() => go(k)}><span>${l}</span>${k === "low" && lowBadge ? html`<b class="badge">${lowBadge > 99 ? "99+" : lowBadge}</b>` : ""}</button>`)}
+    </div></nav>
+    ${sp && html`<${ProdSheet} ctx=${ctx} p=${sp} close=${() => setSheet(null)} />`}
+    ${toast && html`<div class="m2-toast" role="status">${toast}</div>`}
+  </div>`;
+}
+
+const brandsOf = (model) => { const s = new Set(); model.products.forEach((p) => p.brand.forEach((b) => s.add(b))); return [...s]; };
+function BrandChips({ model, val, set, extra }) {
+  const bs = brandsOf(model); if (bs.length < 2 && !extra) return null;
+  return html`<div class="m2-chips" role="group" aria-label="브랜드">
+    <button class=${"m2-chip" + (!val ? " on" : "")} onClick=${() => set("")}>모두</button>
+    ${bs.map((b) => html`<button key=${b} class=${"m2-chip" + (val === b ? " on" : "")} onClick=${() => set(b)}>${b}</button>`)}
+    ${extra || ""}
+  </div>`;
+}
+const pctTxt = C.pctTxt, won = C.won;
+
+// ── 상품 ──
+function ProdTab({ ctx }) {
+  const { D, canCost, isMaster, setSheet } = ctx, M = D.model;
+  const [q, setQ] = useState(""), [brand, setBrand] = useState(""), [n, setN] = useState(60), [lowOnly, setLowOnly] = useState(false);
+  const list = useMemo(() => { const t = q.replace(/\s/g, "").toLowerCase();
+    return M.products.filter((p) => (!brand || p.brand.includes(brand)) && (!lowOnly || p.lowN) && (!t || (p.name + p.spec + p.cat + p.code).replace(/\s/g, "").toLowerCase().includes(t))); }, [M, q, brand, lowOnly]);
+  const at = D.catalog && D.catalog.updatedAt;
+  return html`<div>
+    <div class="m2-h1">상품 <span class="sp" /><span style=${{ fontSize: 13, color: "var(--mute)", fontWeight: 600 }}>${list.length}개</span></div>
+    <p class="m2-sub">${canCost ? `제품을 누르면 채널별 마진 · 기준 ${pctTxt(D.threshold)}보다 낮으면 빨강` : "제품을 누르면 채널별 판매가"}${at ? ` · 단가표 ${whenTxt(at)} 기준` : ""}</p>
+    <input class="m2-in" type="search" placeholder="제품 이름·코드 찾기" value=${q} onInput=${(e) => { setQ(e.target.value); setN(60); }} aria-label="제품 찾기" style=${{ marginBottom: 8 }} />
+    <${BrandChips} model=${M} val=${brand} set=${(b) => { setBrand(b); setN(60); }} extra=${canCost ? html`<button class=${"m2-chip" + (lowOnly ? " on" : "")} onClick=${() => setLowOnly(!lowOnly)}>마진 낮음만</button>` : null} />
+    <div class="m2-card">
+      ${list.length ? list.slice(0, n).map((p) => html`<button key=${p.key} class="m2-row" onClick=${() => setSheet({ type: "prod", key: p.key })}>
+        <div class="tx"><div class="t">${p.name}${p.spec ? html` <span style=${{ fontWeight: 500, color: "var(--mute)", fontSize: 13 }}>${p.spec}</span>` : ""}</div>
+          <div class="s">${p.retail ? `${p.retail.name} ${won(p.retail.price)}` : "판매가 없음"}${canCost && p.retail && p.retail.m ? ` · 마진 ${pctTxt(p.retail.m.net)}` : ""}${p.set ? " · 세트" : ""}${p.noCost ? " · 원가 없음" : ""}${p.status && p.status !== "출시" ? " · " + p.status : ""}</div></div>
+        <div class="r">${p.lowN ? html`<span class="m2-tag red">마진 낮음 ${p.lowN}</span>` : ""}›</div>
+      </button>`) : html`<div class="m2-empty">${M.products.length ? "찾는 제품이 없어요." : "단가표가 비어 있어요. PC 가격·마진 대시보드를 관리자 계정으로 한 번 열면 채워져요."}</div>`}
+      ${list.length > n && html`<button class="m2-list-more" onClick=${() => setN(n + 100)}>${list.length - n}개 더 보기</button>`}
+    </div>
+    ${!canCost && html`<p class="m2-note">이 계정은 판매가만 보여요. 원가·마진은 마스터·부마스터 계정만.</p>`}
+  </div>`;
+}
+
+// ── 제품 한 장 (아래에서 올라오는 시트) ──
+function ProdSheet({ ctx, p, close }) {
+  const { D, canCost, isMaster, linkById, setToast, users } = ctx;
+  useBackClose(true, close);
+  const [req, setReq] = useState(false);
+  useEffect(() => { const k = (e) => { if (e.key === "Escape") close(); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, []);
+  const path = [p.brand.join("·"), p.cat, p.spec].filter(Boolean).join(" · ");
+  const maxNet = Math.max(0.0001, ...p.rows.map((r) => (r.m ? r.m.net : 0)), D.threshold * 2);
+  return html`<div>
+    <div class="m2-dim" onClick=${close} />
+    <div class="m2-sheet" role="dialog" aria-modal="true" aria-label=${p.name}>
+      <div class="m2-sh"><div class="path">${path || "제품"}</div><span class="kind">${p.set ? "세트" : "제품"}</span><div class="title">${p.name}</div><button class="x" onClick=${close} aria-label="닫기">닫기 ✕</button></div>
+      <div class="m2-sbody">
+        ${canCost && !p.set && html`<div class="m2-kv" style=${{ marginTop: 12 }}>
+          <div><div class="k">${isMaster ? "원가 (택배비 포함)" : "원가"}</div><div class="v">${isMaster ? (p.cost == null ? "—" : won(p.cost + p.ship)) : "가려짐"}</div>${isMaster && p.ship ? html`<div class="m2-note" style=${{ margin: "2px 0 0" }}>택배비 ${won(p.ship)}원 포함</div>` : ""}</div>
+          <div><div class="k">가장 낮은 마진</div><div class=${"v" + (p.minNet != null && p.minNet < D.threshold ? " red" : "")}>${pctTxt(p.minNet)}</div></div>
+        </div>`}
+        <div class="m2-sec">${canCost ? `채널별 마진 (기준 ${pctTxt(D.threshold)})` : "채널별 판매가"}<span class="sp" /><span class="rt">${canCost ? (isMaster ? "수수료 뺀 값" : "원가는 마스터만") : ""}</span></div>
+        <div class="m2-card">
+          ${p.rows.length ? p.rows.map((r) => { const l = linkById.get(C.linkId("low", p.key, r.uid));
+            return html`<div key=${r.uid} class="m2-ch">
+              <div class="a"><b class=${r.low ? "m2-red" : ""}>${r.name} · ${won(r.price)}</b><span class="sp" />
+                ${r.low && (l ? html`<a class="m2-btn sm" href=${OS_URL} target="_blank" rel="noopener">업무OS에서 열기 ›</a>` : html`<${SendBtn} ctx=${ctx} p=${p} r=${r} small=${true} />`)}</div>
+              ${canCost && (r.m ? html`<div class=${"b" + (r.low ? " m2-red" : "")}>마진 ${pctTxt(r.m.net)}${isMaster ? ` · 개당 ${won(r.m.profit)}원` : ""}${r.fee ? ` · 수수료 ${r.fee}%` : ""}${r.low ? " · 기준보다 낮음" : ""}</div>
+                <div class=${"m2-mbar" + (r.low ? " red" : "")}><i style=${{ width: Math.max(2, Math.min(100, (r.m.net / maxNet) * 100)) + "%" }} /></div>`
+                : html`<div class="b">${p.set ? "세트 마진은 PC 화면에서" : "원가가 없어 마진을 못 셈"}</div>`)}
+            </div>`; }) : html`<div class="m2-empty">이 제품은 채널 판매가가 아직 없어요.</div>`}
+        </div>
+        ${req ? html`<${ReqPanel} ctx=${ctx} p=${p} done=${() => setReq(false)} />` : html`<div class="m2-btns">
+          ${canCost && !p.set && p.rows.some((r) => !r.gh) && html`<button class="m2-btn solid" onClick=${() => setReq(true)}>가격 바꾸기 요청</button>`}
+          <a class="m2-btn" href=${CRM_SALES} target="_blank" rel="noopener">이번 달 매출 ›</a>
+        </div>`}
+        <p class="m2-note">${canCost ? "마진 = (판매가 − 수수료 − 원가·택배비) ÷ 판매가. 수수료 0인 채널은 PC 가격정책표 마진과 같아요. " : ""}가격 바꾸기는 요청 → 관리자 승인(PC 가격정책표) 뒤 반영돼요 · 승인되면 CRM 견적 단가도 같이.</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+// 업무OS로 보내기 (마진 낮음 한 줄)
+async function sendLow(ctx, items, owner) {
+  const today = ymd(), by = ctx.user.email || "";
+  const b = osDb().batch();
+  items.forEach(({ p, r }) => { const l = C.lowLink(p, r, ctx.D.threshold, { base: SELF_URL, owner: owner ? owner.name : "", ownerOsId: owner ? owner.id : "", today, by }); const { id, ...data } = l; b.set(linksCol().doc(id), data); });
+  await b.commit();
+  console.log(`[업무OS 다리] 마진 낮음 ${items.length}건 보냄`);
+}
+function SendBtn({ ctx, p, r, small }) {
+  const [busy, setBusy] = useState(false);
+  const go = async () => { setBusy(true); try { await sendLow(ctx, [{ p, r }], ctx.owner || null); ctx.setToast("업무OS로 보냈어요 · 관리자 '확인할 것'에 떠요"); } catch (e) { console.error("[업무OS 다리] 보내기 실패", e); ctx.setToast("못 보냈어요: " + (e.code || e.message)); } setBusy(false); };
+  return html`<button class=${"m2-btn" + (small ? " sm" : "")} disabled=${busy} onClick=${go}>${busy ? "보내는 중…" : "업무OS로 보내기"}</button>`;
+}
+
+// 가격 바꾸기 요청 → 개정안(대기) + 업무OS 한 줄(관리자)
+function ReqPanel({ ctx, p, done }) {
+  const { D, isMaster, user, setToast } = ctx;
+  const rows = p.rows.filter((r) => !r.gh);
+  const [uid, setUid] = useState((rows.find((r) => r.low) || rows[0] || {}).uid), [v, setV] = useState(""), [note, setNote] = useState(""), [busy, setBusy] = useState(false);
+  const r = rows.find((x) => x.uid === uid), to = +String(v).replace(/[^0-9]/g, "") || 0;
+  const toC = to ? C.ceil100(to) : 0;
+  const after = r && toC && p.cost != null ? C.marginOf(toC, p.cost, p.ship, r.fee) : null;
+  const send = async () => {
+    if (!r || !toC || toC === r.price) return; setBusy(true);
+    try {
+      const ref = pm("pricing-draft"), at = new Date().toISOString(), by = user.email || "";
+      const line = `폰 요청: ${p.name} ${r.name} ${won(r.price)} → ${won(toC)}${note ? " (" + note.trim().slice(0, 80) + ")" : ""}`;
+      await db.runTransaction(async (tx) => { const d = await tx.get(ref); tx.set(ref, { ...C.draftWith(d.exists ? d.data() : null, p, r, toC, { by, at, note: line }), updatedAt: at }); });
+      try { const l = C.reqLink(p, r, r.price, toC, { base: SELF_URL, today: ymd(), by, byName: by.split("@")[0] }); const { id, ...data } = l; await linksCol().doc(id).set(data); }
+      catch (e) { console.warn("[업무OS 다리] 요청 줄 못 보냄", e.code || e); }
+      setToast(isMaster ? "개정안에 담았어요 · PC 가격정책표에서 승인하면 반영" : "요청했어요 · 관리자 업무OS '확인할 것'에 떠요"); done();
+    } catch (e) { console.error("[pricing-draft] 요청 실패", e); setToast("요청 못 했어요: " + (e.code || e.message)); }
+    setBusy(false);
+  };
+  return html`<div class="m2-card m2-pad" style=${{ marginTop: 12 }}>
+    <div class="m2-sec" style=${{ marginTop: 0 }}>가격 바꾸기 요청</div>
+    <div class="m2-chips">${rows.map((x) => html`<button key=${x.uid} class=${"m2-chip" + (x.uid === uid ? " on" : "")} onClick=${() => setUid(x.uid)}>${x.name}</button>`)}</div>
+    <div class="m2-fld"><label>${r ? `${r.name} 지금 ${won(r.price)}원 → 새 가격` : "새 가격"}</label>
+      <input class="m2-in" inputmode="numeric" placeholder="예: 27900" value=${v} onInput=${(e) => setV(e.target.value)} aria-label="새 가격" autofocus /></div>
+    ${toC ? html`<p class="m2-sub" style=${{ margin: "0 0 8px" }}>${toC !== to ? `100원 올림 → ${won(toC)}원 · ` : ""}${after ? html`마진 ${pctTxt(r.m && r.m.net)} → <b class=${after.net < D.threshold ? "m2-red" : ""}>${pctTxt(after.net)}</b>` : ""}</p>` : ""}
+    <div class="m2-fld"><label>한마디 (선택)</label><input class="m2-in" value=${note} onInput=${(e) => setNote(e.target.value)} placeholder="예: 쿠팡 경쟁가 맞춤" aria-label="한마디" /></div>
+    <div class="m2-btns" style=${{ marginTop: 4 }}>
+      <button class="m2-btn solid" disabled=${busy || !toC || !r || toC === r.price} onClick=${send}>${busy ? "보내는 중…" : "요청 보내기"}</button>
+      <button class="m2-btn" onClick=${done}>그만두기</button>
+    </div>
+    <p class="m2-note">버전1 개정안에 담겨 '승인 대기'가 돼요. 승인 전엔 가격이 안 바뀌어요.</p>
+  </div>`;
+}
+
+// ── 마진 낮음 ──
+function LowTab({ ctx }) {
+  const { D, lows, linkById, users, setSheet, setToast, isMaster } = ctx;
+  const [brand, setBrand] = useState(""), [ownerId, setOwnerId] = useState(() => { try { return localStorage.getItem("m2-owner") || ""; } catch (e) { return ""; } }), [busy, setBusy] = useState(false), [n, setN] = useState(50);
+  const owner = users.find((u) => u.id === ownerId) || null;
+  const list = lows.filter((x) => !brand || x.p.brand.includes(brand));
+  const unsent = list.filter((x) => !linkById.get(x.id));
+  const c2 = { ...ctx, owner };
+  const sendAll = async () => { if (unsent.length > 30 && !confirm(`${unsent.length}건을 업무OS로 보낼까요?`)) return; setBusy(true);
+    try { for (let i = 0; i < unsent.length; i += 400) await sendLow(c2, unsent.slice(i, i + 400), owner); setToast(`${unsent.length}건 보냈어요 · 업무OS '확인할 것'에 한 줄로 묶여 떠요`); } catch (e) { console.error(e); setToast("못 보냈어요: " + (e.code || e.message)); } setBusy(false); };
+  return html`<div>
+    <div class="m2-h1">마진 낮음 <span class="sp" /><span style=${{ fontSize: 13, color: "var(--mute)", fontWeight: 600 }}>${list.length}건</span></div>
+    <p class="m2-sub">기준 ${pctTxt(D.threshold)}보다 낮은 제품·채널 (수수료 뺀 마진 · 낮은 순)</p>
+    ${list.length ? html`<div class="m2-next">다음 할 일: 가격을 올릴지 정하고 → [업무OS로 보내기]로 담당에게 넘기기 · 기준을 넘으면 업무OS 줄은 저절로 닫혀요</div>` : ""}
+    <${BrandChips} model=${D.model} val=${brand} set=${setBrand} />
+    ${list.length ? html`<div class="m2-card m2-pad" style=${{ marginBottom: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+      <label style=${{ fontSize: 12.5, fontWeight: 700, color: "var(--ink2)" }} for="m2own">받는 사람</label>
+      <select id="m2own" class="m2-sel" style=${{ flex: "1 1 140px", width: "auto", height: 38 }} value=${ownerId} onChange=${(e) => { setOwnerId(e.target.value); try { localStorage.setItem("m2-owner", e.target.value); } catch (x) {} }}>
+        <option value="">관리자(업무OS 마스터)</option>${users.map((u) => html`<option key=${u.id} value=${u.id}>${u.name}</option>`)}
+      </select>
+      ${unsent.length > 1 ? html`<button class="m2-btn solid sm" disabled=${busy} onClick=${sendAll}>${busy ? "보내는 중…" : `안 보낸 ${unsent.length}건 모두 보내기`}</button>` : ""}
+    </div>` : ""}
+    <div class="m2-card">
+      ${list.length ? list.slice(0, n).map((x) => { const l = linkById.get(x.id);
+        return html`<div key=${x.id} class="m2-row" style=${{ cursor: "default" }}>
+          <button class="tx" style=${{ background: "none", border: 0, padding: 0, textAlign: "left", cursor: "pointer", minWidth: 0 }} onClick=${() => setSheet({ type: "prod", key: x.p.key })}>
+            <div class="t">${x.p.name} · <span class="m2-red">${x.r.name}</span></div>
+            <div class="s">${won(x.r.price)} · <span class="m2-red">마진 ${pctTxt(x.r.m.net)}</span>${x.r.fee ? ` · 수수료 ${x.r.fee}%` : ""}${l ? ` · 업무OS ${l.owner || "관리자"}` : ""}</div></button>
+          <div class="r">${l ? html`<a class="m2-btn sm" href=${OS_URL} target="_blank" rel="noopener">업무OS에서 열기 ›</a>` : html`<${SendBtn} ctx=${c2} p=${x.p} r=${x.r} small=${true} />`}</div>
+        </div>`; }) : html`<div class="m2-empty">기준 ${pctTxt(D.threshold)}보다 낮은 곳이 없어요.</div>`}
+      ${list.length > n && html`<button class="m2-list-more" onClick=${() => setN(n + 100)}>${list.length - n}건 더 보기</button>`}
+    </div>
+    <p class="m2-note">업무OS에는 제품·채널 이름과 마진 %만 가요(원가·금액 없음). 기준은 더보기에서${isMaster ? " 바꿔요" : " 볼 수 있어요"}.</p>
+  </div>`;
+}
+
+// ── 가격 계산 ──
+function CalcTab({ ctx }) {
+  const { D, canCost, isMaster } = ctx, M = D.model;
+  const [pk, setPk] = useState(""), [q, setQ] = useState(""), [uid, setUid] = useState("");
+  const [price, setPrice] = useState(""), [cost, setCost] = useState(""), [ship, setShip] = useState(""), [fee, setFee] = useState(""), [target, setTarget] = useState(String(Math.round(D.threshold * 100)));
+  const p = M.products.find((x) => x.key === pk) || null;
+  const hidden = !!(p && canCost && !isMaster && p.cost != null);   // 부마스터: 고른 제품 원가는 가려서 계산
+  const pick = (x) => { setPk(x.key); setQ(""); const r = x.retail; setUid(r ? r.uid : ""); setPrice(r ? String(r.price) : ""); setFee(r ? String(r.fee || "") : "");
+    if (canCost && x.cost != null) { setCost(isMaster ? String(x.cost) : ""); setShip(isMaster ? String(x.ship || "") : ""); } else { setCost(""); setShip(""); } };
+  const pickCh = (r) => { setUid(r.uid); setPrice(String(r.price)); setFee(String(r.fee || "")); };
+  const num = (s) => +String(s).replace(/[^0-9.]/g, "") || 0;
+  const cst = hidden ? p.cost : (cost === "" ? null : num(cost)), shp = hidden ? p.ship : num(ship);
+  const out = C.calc({ price: num(price), cost: cst, ship: shp, fee: num(fee) });
+  const need = C.priceFor({ cost: cst, ship: shp, fee: num(fee), target: num(target) });
+  const found = q ? M.products.filter((x) => (x.name + x.spec + x.code).replace(/\s/g, "").toLowerCase().includes(q.replace(/\s/g, "").toLowerCase())).slice(0, 8) : [];
+  const showWon = !hidden;
+  return html`<div>
+    <div class="m2-h1">가격 계산</div>
+    <p class="m2-sub">판매가·수수료·원가를 넣으면 마진 · 목표 마진이면 필요한 판매가 (저장 안 함)</p>
+    <div class="m2-fld"><label>제품 (선택)</label>
+      ${p ? html`<div class="m2-card m2-pad" style=${{ display: "flex", alignItems: "center", gap: 8 }}><div style=${{ flex: 1, minWidth: 0, fontWeight: 700 }}>${p.name}${p.spec ? " · " + p.spec : ""}</div><button class="m2-btn sm" onClick=${() => { setPk(""); setUid(""); }}>바꾸기</button></div>
+        ${p.rows.length > 1 ? html`<div class="m2-chips" style=${{ marginTop: 8 }}>${p.rows.map((r) => html`<button key=${r.uid} class=${"m2-chip" + (r.uid === uid ? " on" : "")} onClick=${() => pickCh(r)}>${r.name}</button>`)}</div>` : ""}`
+      : html`<input class="m2-in" type="search" placeholder="제품 이름으로 찾기 (없어도 계산돼요)" value=${q} onInput=${(e) => setQ(e.target.value)} aria-label="제품 찾기" />
+        ${found.length ? html`<div class="m2-card" style=${{ marginTop: 6 }}>${found.map((x) => html`<button key=${x.key} class="m2-row" onClick=${() => pick(x)}><div class="tx"><div class="t">${x.name}</div><div class="s">${x.spec}${x.retail ? " · " + won(x.retail.price) : ""}</div></div></button>`)}</div>` : ""}`}
+    </div>
+    <div class="m2-grid2">
+      <div class="m2-fld"><label>판매가 (원)</label><input class="m2-in" inputmode="numeric" value=${price} onInput=${(e) => setPrice(e.target.value)} aria-label="판매가" /></div>
+      <div class="m2-fld"><label>수수료 (%)</label><input class="m2-in" inputmode="decimal" value=${fee} onInput=${(e) => setFee(e.target.value)} aria-label="수수료" /></div>
+      <div class="m2-fld"><label>원가 (원)</label>${hidden ? html`<div class="m2-in" style=${{ display: "flex", alignItems: "center", color: "var(--mute)", fontSize: 14 }}>가려짐 (제품 원가로 계산)</div>` : html`<input class="m2-in" inputmode="numeric" value=${cost} onInput=${(e) => setCost(e.target.value)} aria-label="원가" placeholder=${p && canCost && p.cost == null ? "원가 없음" : ""} />`}</div>
+      <div class="m2-fld"><label>택배비 (원)</label>${hidden ? html`<div class="m2-in" style=${{ display: "flex", alignItems: "center", color: "var(--mute)", fontSize: 14 }}>가려짐</div>` : html`<input class="m2-in" inputmode="numeric" value=${ship} onInput=${(e) => setShip(e.target.value)} aria-label="택배비" />`}</div>
+    </div>
+    <div class="m2-out">
+      <div class="m2-sub" style=${{ margin: 0 }}>마진</div>
+      <div class=${"big" + (out && out.net < D.threshold ? " red" : "")}>${out ? pctTxt(out.net) : "—"}</div>
+      ${out && showWon ? html`<div class="m2-sub" style=${{ margin: "2px 0 0" }}>개당 ${won(out.profit)}원${out.fee ? ` · 수수료 ${won(num(price) * out.fee / 100)}원` : ""}</div>` : ""}
+      ${out && out.net < D.threshold ? html`<div class="m2-sub m2-red" style=${{ margin: "2px 0 0" }}>기준 ${pctTxt(D.threshold)}보다 낮음</div>` : ""}
+    </div>
+    <div class="m2-sec">목표 마진이면 판매가는?</div>
+    <div class="m2-grid2" style=${{ alignItems: "end" }}>
+      <div class="m2-fld"><label>목표 마진 (%)</label><input class="m2-in" inputmode="decimal" value=${target} onInput=${(e) => setTarget(e.target.value)} aria-label="목표 마진" /></div>
+      <div class="m2-out" style=${{ marginBottom: 10 }}><div class="m2-sub" style=${{ margin: 0 }}>필요한 판매가</div><div class="big" style=${{ fontSize: 20 }}>${need ? won(need) + "원" : "—"}</div></div>
+    </div>
+    ${p && canCost && !p.set && p.rows.some((r) => !r.gh) && need ? html`<p class="m2-note">이 가격으로 바꾸려면 상품에서 제품을 열고 [가격 바꾸기 요청]</p>` : ""}
+  </div>`;
+}
+
+// ── 재고·유통기한 (공용 DB 읽기만) ──
+function StockTab({ ctx }) {
+  const [st, setSt] = useState({ loading: true, rows: [], meta: {}, err: "" }), [brand, setBrand] = useState(""), [sort, setSort] = useState("exp"), [q, setQ] = useState(""), [n, setN] = useState(50);
+  const load = useCallback(() => { setSt((s) => ({ ...s, loading: true, err: "" }));
+    cenDb().collection("expiryLots").get().then((s) => { console.log(`[expiryLots] ${s.size}건`); const r = C.expiryRows(s.docs.map((d) => ({ id: d.id, data: d.data() })), ymd()); setSt({ loading: false, ...r, err: "" }); })
+      .catch((e) => { console.error("[expiryLots] 로드 실패", e); setSt({ loading: false, rows: [], meta: {}, err: "재고를 못 불러왔어요: " + (e.code || e.message) }); }); }, []);
+  useEffect(load, []);
+  const brands = Object.keys(st.meta);
+  const t = q.replace(/\s/g, "").toLowerCase();
+  const list = st.rows.filter((r) => (!brand || r.brand === brand) && (!t || (r.name + r.code).replace(/\s/g, "").toLowerCase().includes(t)))
+    .sort((a, b) => sort === "qty" ? a.qty - b.qty : ((a.left == null ? 1e9 : a.left) - (b.left == null ? 1e9 : b.left)));
+  const soon = st.rows.filter((r) => r.left != null && r.left <= 90).length;
+  return html`<div>
+    <div class="m2-h1">재고·유통기한 <span class="sp" /><button class="m2-btn sm" onClick=${load}>새로</button></div>
+    <p class="m2-sub">3PL 재고(공용 DB) · 같은 상품코드는 합쳐서 · 90일 안에 끝나는 것 ${soon}개${brands.length ? " · 올린 때 " + brands.map((b) => `${b} ${whenTxt(st.meta[b].at)}`).join(" · ") : ""}</p>
+    ${st.err && html`<div class="m2-err">${st.err}</div>`}
+    <input class="m2-in" type="search" placeholder="제품 이름·코드 찾기" value=${q} onInput=${(e) => setQ(e.target.value)} aria-label="재고 찾기" style=${{ marginBottom: 8 }} />
+    <div class="m2-chips">
+      <button class=${"m2-chip" + (sort === "exp" ? " on" : "")} onClick=${() => setSort("exp")}>유통기한 빠른 순</button>
+      <button class=${"m2-chip" + (sort === "qty" ? " on" : "")} onClick=${() => setSort("qty")}>재고 적은 순</button>
+      ${brands.length > 1 ? [html`<span key="sp" style=${{ width: 6, flex: "none" }} />`, html`<button key="all" class=${"m2-chip" + (!brand ? " on" : "")} onClick=${() => setBrand("")}>모두</button>`, ...brands.map((b) => html`<button key=${b} class=${"m2-chip" + (brand === b ? " on" : "")} onClick=${() => setBrand(b)}>${b}</button>`)] : ""}
+    </div>
+    <div class="m2-card">
+      ${st.loading ? html`<div class="m2-empty">불러오는 중…</div>` : list.length ? list.slice(0, n).map((r) => { const red = r.left != null && r.left <= 30;
+        return html`<div key=${r.k} class="m2-row" style=${{ cursor: "default" }}>
+          <div class="tx"><div class="t">${r.name}</div>
+            <div class="s">${r.brand}${r.code ? " · " + r.code : ""} · 재고 ${won(r.qty)}개${r.onOrder ? ` · 주문함 ${won(r.onOrder.qty)}개${r.onOrder.eta ? " " + md(r.onOrder.eta) + " 입고" : ""}` : ""}</div></div>
+          <div class="r">${r.exp ? html`<div class=${red ? "m2-red" : ""} style=${{ fontWeight: 700 }}>${r.left < 0 ? `${-r.left}일 지남` : `${r.left}일 남음`}</div><div>${md(r.exp)}${r.expQty !== r.qty ? ` · ${won(r.expQty)}개` : ""}</div>` : "기한 없음"}</div>
+        </div>`; }) : html`<div class="m2-empty">${st.rows.length ? "찾는 재고가 없어요." : "공용 DB에 재고가 없어요. PC 화면에서 재고 엑셀을 올려 주세요."}</div>`}
+      ${list.length > n && html`<button class="m2-list-more" onClick=${() => setN(n + 100)}>${list.length - n}개 더 보기</button>`}
+    </div>
+    <p class="m2-note">재고 엑셀 올리기 · 재고 충전(언제 몇 개 주문) 계산은 <a href=${V1_URL} target="_blank" rel="noopener">PC 화면 ›</a> · 재고 위험은 CRM이 업무OS에도 알려요.</p>
+  </div>`;
+}
+
+// ── 더보기 ──
+function MoreTab({ ctx }) {
+  const { D, user, role, isMaster, canCost, setToast, setSheet } = ctx;
+  const pend = useMemo(() => C.pendingList(D.draft, D.model), [D.draft, D.model]);
+  const [tv, setTv] = useState(String(Math.round(D.threshold * 100))), [busy, setBusy] = useState(false);
+  useEffect(() => setTv(String(Math.round(D.threshold * 100))), [D.threshold]);
+  const saveT = async (v) => { const n = +v; if (!(n > 0 && n < 90)) { setToast("1~89 사이 숫자로 넣어 주세요"); return; } setBusy(true);
+    try { await pm("margin-v2").set({ threshold: n / 100, updatedAt: new Date().toISOString(), updatedBy: user.email || "" }, { merge: true }); setToast(`기준 마진 ${n}%로 바꿨어요`); } catch (e) { console.error("[margin-v2] 저장 실패", e); setToast("저장 못 했어요: " + (e.code || e.message)); } setBusy(false); };
+  return html`<div>
+    <div class="m2-h1">더보기</div>
+    <div class="m2-card">
+      <div class="m2-row" style=${{ cursor: "default" }}><div class="tx"><div class="t">${user.email}</div><div class="s">${C.ROLE_NAME[role]} · ${role === "master" ? "원가·이익·마진 모두" : role === "sub" ? "마진 %만 (원가·금액은 가려짐)" : "판매가만"}${!user.emailVerified && role === "general" ? " · 이메일 인증 전" : ""}</div></div>
+        <button class="m2-btn sm" onClick=${() => auth.signOut()}>로그아웃</button></div>
+    </div>
+    ${canCost && html`<div class="m2-sec">가격 요청 · 승인 대기 <span class="sp" /><span class="rt">${pend.length}건</span></div>
+      <div class="m2-card">
+        ${pend.length ? pend.map((x) => html`<button key=${x.k} class="m2-row" onClick=${() => x.p && setSheet({ type: "prod", key: x.p.key })}><div class="tx"><div class="t">${x.name} · ${x.ch}</div><div class="s">${x.from != null ? won(x.from) + " → " : ""}${won(x.to)}원</div></div><div class="r">›</div></button>`)
+          : html`<div class="m2-empty">승인 대기 중인 가격 변경이 없어요.</div>`}
+        ${D.draft && D.draft.meta && D.draft.meta.status === "대기" && html`<div class="m2-pad" style=${{ borderTop: "1px solid var(--line)" }}>
+          <div class="m2-sub" style=${{ margin: 0 }}>요청: ${D.draft.meta.by || "-"} · ${whenTxt(D.draft.meta.at)}${D.draft.meta.note ? " · " + D.draft.meta.note : ""}</div>
+          ${isMaster && html`<div class="m2-btns" style=${{ marginTop: 8 }}><a class="m2-btn solid" href=${V1_URL} target="_blank" rel="noopener">PC 가격정책표에서 승인 ›</a></div>`}
+        </div>`}
+      </div>`}
+    ${canCost && html`<div class="m2-sec">기준 마진</div>
+      <div class="m2-card m2-pad">
+        <div class="m2-sub" style=${{ margin: "0 0 8px" }}>이보다 낮으면 '마진 낮음' (수수료 뺀 마진 · 모든 사람 같은 기준)</div>
+        ${isMaster ? html`<div class="m2-chips">${[10, 15, 20, 25, 30].map((n) => html`<button key=${n} class=${"m2-chip" + (Math.round(D.threshold * 100) === n ? " on" : "")} disabled=${busy} onClick=${() => saveT(n)}>${n}%</button>`)}</div>
+          <div style=${{ display: "flex", gap: 8 }}><input class="m2-in" inputmode="numeric" value=${tv} onInput=${(e) => setTv(e.target.value)} aria-label="기준 마진" style=${{ flex: 1 }} /><button class="m2-btn solid" disabled=${busy || +tv === Math.round(D.threshold * 100)} onClick=${() => saveT(tv)} style=${{ height: 44 }}>저장</button></div>`
+          : html`<div style=${{ fontSize: 22, fontWeight: 800 }}>${pctTxt(D.threshold)}</div><div class="m2-note" style=${{ marginTop: 4 }}>바꾸기는 마스터만</div>`}
+      </div>`}
+    <div class="m2-sec">바로가기</div>
+    <div class="m2-card">
+      <a class="m2-row" href=${CRM_SALES} target="_blank" rel="noopener" style=${{ textDecoration: "none" }}><div class="tx"><div class="t">이번 달 매출</div><div class="s">매출 원본 = CRM (채널별 합계)</div></div><div class="r">›</div></a>
+      <a class="m2-row" href=${V1_URL} target="_blank" rel="noopener" style=${{ textDecoration: "none" }}><div class="tx"><div class="t">PC 가격·마진 대시보드 (버전1)</div><div class="s">가격정책표 · 개정안 승인 · 재고 엑셀 올리기 · 프로모션</div></div><div class="r">›</div></a>
+      <a class="m2-row" href=${OS_URL} style=${{ textDecoration: "none" }}><div class="tx"><div class="t">업무OS</div><div class="s">마진 낮음 · 가격 요청은 '확인할 것'에</div></div><div class="r">›</div></a>
+    </div>
+  </div>`;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(html`<${App} />`);
+})();
+</script>
+</body>
+</html>

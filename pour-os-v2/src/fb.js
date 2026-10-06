@@ -41,6 +41,8 @@ export function listen(key, w, cb, onErr) {
   return onSnapshot(q, (snap) => { const items = toItems(snap); console.log(`[v2 ${key}${w ? " " + wTxt(w) : ""}] ${items.length}건${snap.metadata.fromCache ? " (기기 저장)" : ""}`); cb(items, snap.metadata.fromCache); },
     (e) => { console.error(`[v2 ${key}] 구독 실패:`, e); onErr && onErr(e); });
 }
+// 문서 하나 읽기 (공유 보고서 페이지 · 읽기만)
+export async function getOne(key, id) { const s = await getDoc(v2doc(key, id)); console.log(`[v2 ${key}/${id}] ${s.exists() ? "있음" : "없음"}`); return s.exists() ? { ...s.data(), id: s.data().id || s.id } : null; }
 export async function fetchWhere(key, w) {
   const snap = await getDocs(qOf(key, w));
   const items = toItems(snap); console.log(`[v2 ${key} ${w ? wTxt(w) : "전체"}] ${items.length}건`); return items;

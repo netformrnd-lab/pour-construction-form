@@ -10,3 +10,4 @@ make-mockup.mjs
 mockup.svg
 process-editor-mockup.png
 dist-admin
+dist-report

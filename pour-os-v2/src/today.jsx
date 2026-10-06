@@ -126,7 +126,7 @@ function RoutineChecks({ D, cu, A, open, R, keyd }) {
       below={<><FxChips t={x.t} uid={cu.id} keyd={keyd} A={A} open={open} />{ask !== x.t.id && <FxQty t={x.t} D={D} cu={cu} A={A} ask={ask} setAsk={setAsk} keyd={keyd} />}</>} onClick={() => open({ type: "fixed", id: x.t.id })} right={<Act on onClick={() => A.fxToggle(x.t)}>✓ 취소</Act>} />)}
   </>;
 }
-// 순서: 지금 할 일 1장 → 확인할 것 → 오늘(남은 고정업무 펼침 · 끝낸 것 접힘 · 일회성 3줄) → 곧 내 차례 → 정리 한 줄
+// 순서: 지난 일 한 줄 → 확인할 것 → 오늘(남은 고정업무 펼침 · 끝낸 것 접힘 · 일회성: 수정 요청·내 차례·지난 일·진행 중·오늘 마감 5줄+) → 곧 내 차례 → 정리 한 줄
 export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
   const now = new Date(), key = TV.key;
   const up7 = useMemo(() => upcomingTurns(D, T, key, cu.id).filter((u) => u.start && u.start <= addDays(key, 6)), [D, T, key]);   // 곧 내 차례 = 7일 안에 오는 내 차례 (달력과 같은 기준)
@@ -135,14 +135,15 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
   const [fxFold, setFxFold] = useLocal(LSK("fxfold"), false), fxOpen = !fxFold, [fxMore, setFxMore] = useState(false);   // 남은 고정업무는 처음부터 펼침 · 접으면 이 기기에 기억
   const [showFxDone, setShowFxDone] = useState(false), [allInbox, setAllInbox] = useState(false), [soonOpen, setSoonOpen] = useState(false);
   const pName = (pid) => (D.projects.find((p) => p.id === pid) || {}).title || "";
-  const [cardId, setCardId] = useState(null);
+  const [listAll, setListAll] = useState(false);
   const inbox = allInbox ? TV.inbox : TV.inbox.slice(0, 3);
   const readable = TV.inbox.filter((x) => !x.keep);
   const tOf = (id) => D.tasks.find((y) => y.id === id);
   const { openInbox, inboxAct } = inboxFns(D, A, open, setSeen);
-  const card = TV.ranked.find((x) => x.t.id === cardId) || TV.ranked[0];
-  // 오늘 챙길 일회성: 오늘·내일 마감·진행 중 (카드·지난 일 빼고)
-  const list = TV.ranked.filter((x) => x !== card && !(x.n != null && x.n < 0) && (x.t.status === "inprogress" || (x.n != null && x.n <= 1) || x.fresh));
+  // 오늘 챙길 일회성 (2026-10-06 위 '지금 할 일' 카드 없앰 → 카드가 보이던 일은 모두 이 목록에): 수정 요청 · 이제 내 차례 · 지난 일 · 진행 중 · 오늘·내일 마감
+  //   순서 = TV.ranked(model.focusRank) 그대로 · 5줄 + 'n개 더 ▾'
+  const list = TV.ranked.filter((x) => x.t.feedback || x.fresh || (x.n != null && x.n <= 1) || x.t.status === "inprogress");
+  const LIST_MAX = 5, listShown = listAll ? list : list.slice(0, LIST_MAX);
   const fxLeft = TV.fixed.left, fxRows = todayRows(TV.fixed, fxAsk), nextFx = fxLeft.find((x) => !x.late && x.min < 9999) || fxLeft[0];
   const ym = key.slice(0, 7);
   const noDate = D.tasks.filter((t) => isOneOff(t) && !isDone(t) && isMine(t, cu.id) && !dueOf(t) && t.status !== "hold" && t.status !== "review" && t.tidySkip !== ym && !T.temp.has(t.id)).length;
@@ -157,9 +158,7 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
         <div className="t">이번 주 완료율 <b>{wk.pct}%</b> · 전체 {wk.total} · 완료 {wk.done} · 진행 {wk.doing} · 지남 <b style={{ color: wk.late ? C.red : C.ink }}>{wk.late}</b></div>
         <div className="bar"><i style={{ width: wk.pct + "%" }} /></div></button>}
     </header>
-    <FocusCard key={card ? card.t.id : "none"} D={D} cu={cu} A={A} open={open} TV={TV} T={T} x={card} pName={pName} setSeen={setSeen} setToast={setToast} next={() => { const i = TV.ranked.indexOf(card); const nx = TV.ranked[(i + 1) % TV.ranked.length]; if (card && card.fresh && card.t) markTurn(setSeen, card.t.id, T.byTask.get(card.t.id)); setCardId(nx ? nx.t.id : null); }} />
     <div style={{ display: "flex", flexDirection: "column", gap: 0, marginTop: 6 }}>
-      {TV.freshN > (card && card.fresh ? 1 : 0) && <LineBtn onClick={() => open({ type: "turns" })}><b style={{ color: C.navy }}>이제 내 차례 {TV.freshN - (card && card.fresh ? 1 : 0)}개 더</b> ›</LineBtn>}
       {lateN > 0 && <LineBtn onClick={() => open({ type: "triage" })}><span>지난 일 <b style={{ color: C.red }}>{lateN}개</b> · 하나씩 정리하기</span> ›</LineBtn>}
       {TV.doing >= 4 && <div style={{ fontSize: 12.5, color: C.sub, padding: "6px 4px" }}>진행 중 {TV.doing}개예요 · 하나씩 끝내면 더 빨라요</div>}
     </div>
@@ -185,10 +184,8 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
                   below={<><FxChips t={x.t} uid={cu.id} keyd={key} A={A} open={open} /><FxQty t={x.t} D={D} cu={cu} A={A} ask={fxAsk} setAsk={setFxAsk} keyd={key} /></>} onClick={() => open({ type: "fixed", id: x.t.id })} right={<Act on onClick={() => A.fxToggle(x.t)}>✓ 취소</Act>} />)}
                 {fxRows.length > 0 && <More onClick={() => setFxFold(true)}>고정업무 접기 ▴</More>}</>
             : <More onClick={() => setFxFold(false)}>{fxLeft.length ? <>고정업무 <b>{fxLeft.length}개 남음</b>{nextFx ? ` · 다음 ${fxTime(nextFx.t, cu.id) || ""} ${fxLabel(nextFx.t, cu.id)}` : ""} ▾</> : <>고정업무 {TV.fixed.total}개 다 했어요 ✓ ▾</>}</More>)}
-          {list.slice(0, 3).map((x, i) => { const b = turnBits(x.t, T, D, key);
-            return <Row key={x.t.id} tag={x.fresh ? "이제 내 차례" : b.tag} tagTone={x.fresh ? "turn" : b.tone} title={x.t.title} sub={[pName(x.t.projectId), dueOf(x.t) ? ddayLabel(x.n) : "", b.sub].filter(Boolean).join(" · ") || null}
-              onClick={() => open({ type: "task", id: x.t.id })} right={<Act onClick={() => A.finish(x.t)}>끝냄</Act>} last={i === Math.min(3, list.length) - 1 && list.length <= 3} />; })}
-          {list.length > 3 && <More onClick={() => open({ type: "mine" })}>{list.length - 3}개 더 · 내 할 일 모두 ›</More>}
+          {listShown.map((x, i) => <OneRow key={x.t.id} x={x} D={D} A={A} T={T} keyd={key} open={open} setSeen={setSeen} pName={pName} last={i === listShown.length - 1 && list.length <= LIST_MAX} />)}
+          {list.length > LIST_MAX && <More onClick={() => setListAll(!listAll)}>{listAll ? "접기 ▴" : `${list.length - LIST_MAX}개 더 ▾`}</More>}
           {!list.length && !TV.fixed.total && <Empty>오늘·내일 마감이거나 하는 중인 일이 없어요</Empty>}
         </Card>
         {myToday > 0 && <div className="v2-mylink"><TBtn v="plain" onClick={() => open({ type: "myNotes" })} style={{ fontSize: 13 }}>오늘 내가 쓴 댓글 {myToday} ›</TBtn></div>}
@@ -211,45 +208,20 @@ function LineBtn({ children, onClick }) {
   return <button type="button" onClick={onClick} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", padding: "9px 4px", border: "none", borderBottom: `1px solid ${C.line}`, background: "none", fontFamily: "inherit", fontSize: 13.5, color: C.text, cursor: "pointer", textAlign: "left" }}>{children}</button>;
 }
 
-// 지금 할 일 — 한 번에 하나만 크게. 큰 버튼은 늘 1개 (할 일이면 '시작하기', 하는 중이면 '끝냈어요')
-// '이제 내 차례'면: 앞사람이 무엇을 끝냈는지 · 앞 일 마지막 말 · 앞 일 자료를 같이 보여 줌
-function FocusCard({ D, cu, A, open, TV, T, x, pName, next, setSeen, setToast }) {
-  const [mode, setMode] = useState(""), [txt, setTxt] = useState("");
-  if (!x) return <Card style={{ marginTop: 12, padding: "16px 16px" }}><div style={{ fontSize: 12.5, fontWeight: 800, color: C.sub }}>지금 할 일</div><div style={{ fontSize: 16, fontWeight: 800, color: C.ink, marginTop: 4 }}>급한 일이 없어요</div><div style={{ fontSize: 13.5, color: C.sub, marginTop: 4 }}>고정업무를 하거나, 아래 '+ 할 일 추가'로 새 일을 적어 두세요.</div></Card>;
-  const t = x.t, key = TV.key, late = x.n != null && x.n < 0, can = canSetDue(t, cu.id, D, isMaster(cu)), appr = nameOf(D.users, dueApprover(t, D));
-  const info = T.byTask.get(t.id), pred = info && info.last, word = pred ? lastWord(pred, D.notes) : null;
-  const pFiles = pred ? (pred.attachments || []).length + D.notes.filter((n) => n.itemId === taskNoteId(pred.id) && !n.deleted).reduce((a, n) => a + (n.files || []).length, 0) : 0;
-  const seenTurn = () => { if (x.fresh && pred) markTurn(setSeen, t.id, info, D.notes); };
-  const moveTo = (d) => moveDue(A, setToast, t, d, can, "지난 일 정리");
-  const b = turnBits(t, T, D, key);
-  return <div style={{ marginTop: 12, background: "#fff", border: `1.5px solid ${late || (x.risk && x.risk.red) ? "#E2B7BB" : x.fresh ? C.navy : "#C9D2EA"}`, borderRadius: 18, padding: "14px 16px" }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ fontSize: 12.5, fontWeight: 800, color: x.fresh ? C.navy : C.sub, flex: 1, minWidth: 0 }}>{x.fresh && pred ? `이제 내 차례 · ${nameOf(D.users, ownersOf(pred)[0])}님이 "${pred.title}"을 끝냈어요${info.readyAt ? " · " + ago(info.readyAt) : ""}` : "지금 할 일"}</span>
-      {TV.ranked.length > 1 && <TBtn onClick={() => { setMode(""); next(); }} style={{ flex: "0 0 auto" }}>다른 일 ›</TBtn>}
-    </div>
-    <div role="button" tabIndex={0} onClick={() => { seenTurn(); open({ type: "task", id: t.id }); }} onKeyDown={(e) => { if (e.key === "Enter") { seenTurn(); open({ type: "task", id: t.id }); } }} style={{ cursor: "pointer", marginTop: 4 }}>
-      {!x.fresh && (x.risk || b.tag) && <span className={"v2-tag" + ((x.risk && x.risk.red) || b.tone === "red" ? " red" : b.tone === "turn" ? " turn" : "")} style={{ marginBottom: 4 }}>{x.risk ? x.risk.label : b.tag}</span>}
-      <div style={{ fontSize: 18, fontWeight: 800, color: C.ink, lineHeight: 1.35, wordBreak: "keep-all" }}>{t.title}</div>
-      <div style={{ fontSize: 13, color: C.sub, marginTop: 3 }}>{[pName(t.projectId), dueOf(t) ? `기한 ${md(dueOf(t))}` : "기한 미정", reqOf(t) ? `${nameOf(D.users, reqOf(t))}님이 맡김` : ""].filter(Boolean).join(" · ")}</div>
-      {t.feedback && <div style={{ fontSize: 13.5, color: C.ink, fontWeight: 700, marginTop: 6 }}>수정 요청: {t.feedback.text}</div>}
-      {x.fresh && word && <div className="v2-clamp3" style={{ fontSize: 13.5, color: C.text, marginTop: 6, padding: "8px 10px", background: C.soft, borderRadius: 10, lineHeight: 1.5, wordBreak: "break-word" }}><b style={{ color: C.ink }}>{word.handoff ? `${word.byName || "앞사람"}님이 남긴 말` : "앞 일 마지막 말"}</b> · {word.text}</div>}
-      {!x.fresh && b.sub && <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>{b.sub}</div>}
-      {t.firstStep && <div style={{ fontSize: 13.5, color: C.ink, marginTop: 6 }}>첫 걸음: {t.firstStep}</div>}
-    </div>
-    {x.fresh && pred && pFiles > 0 && <TBtn onClick={() => { seenTurn(); open({ type: "task", id: pred.id, focus: "files" }); }} style={{ padding: "6px 0" }}>앞 일 자료 {pFiles} ›</TBtn>}
-    {late ? <>
-      <div style={{ fontSize: 13, color: C.sub, margin: "10px 0 6px" }}>{can ? "끝냈으면 '끝냈어요', 아니면 새 기한을 골라요" : `새 기한은 ${appr || "책임자"}님께 요청으로 가요`}</div>
-      <div className="v2-chips"><Act onClick={() => A.finish(t)} style={BTN_ON}>끝냈어요</Act>
-        {dueChips(key).map(([l, d]) => <Act key={d} onClick={() => moveTo(d)}>{can ? l : l + " 요청"}</Act>)}
-        <HoldBtn t={t} A={A}>보류</HoldBtn></div>
-    </> : <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
-      {t.status !== "inprogress" ? <Big onClick={() => { seenTurn(); A.setStatus(t, "inprogress"); }} style={{ height: 46, flex: 1 }}>시작하기</Big>
-        : <Big onClick={() => A.finish(t)} style={{ height: 46, flex: 1 }}>끝냈어요</Big>}
-      {t.status !== "inprogress" && <TBtn onClick={() => A.finish(t)}>바로 끝냄</TBtn>}
-      {!t.blocked && <TBtn onClick={() => { setTxt(""); setMode(mode === "block" ? "" : "block"); }}>막혔어요</TBtn>}
-    </div>}
-    {mode === "block" && <div style={{ display: "flex", gap: 6, marginTop: 8 }}><input value={txt} onChange={(e) => setTxt(e.target.value)} placeholder="무엇 때문에 막혔나요?" aria-label="막힌 이유" style={{ ...inp, padding: "9px 12px", fontSize: 14 }} /><Act onClick={() => { if (txt.trim()) { A.block(t, txt.trim()); setMode(""); } }}>알리기</Act></div>}
-  </div>;
+// 오늘 목록 일회성 줄 (위 '지금 할 일' 카드 대신 · 2026-10-06 "상단 카드가 사용이 더 헷갈려" → 카드 없애고 목록에 표시)
+//   이제 내 차례: 꼬리표 '내 차례' · '허지은님이 "최종 검수"를 끝냄 · 9시간 전' · 앞 일 마지막 말 1줄 · [시작](할 일) / [끝냄](진행 중) · 열거나 시작하면 차례 알림 읽음
+//   나머지: 꼬리표 = 위험(지남·막힘·수정 요청·오늘 마감)·진행 중 · 수정 요청이면 그 말 1줄 · [끝냄]
+const eulReul = (w) => { const c = String(w || "").slice(-1).charCodeAt(0) - 0xAC00; return c >= 0 && c <= 11171 && c % 28 !== 0 ? "을" : "를"; };
+function OneRow({ x, D, A, T, keyd, open, setSeen, pName, last }) {
+  const t = x.t, b = turnBits(t, T, D, keyd), info = x.fresh && T && T.byTask ? T.byTask.get(t.id) : null, pred = info && info.last, word = pred ? lastWord(pred, D.notes) : null;
+  const seenTurn = () => { if (pred) markTurn(setSeen, t.id, info, D.notes); };
+  const sub = pred ? `${nameOf(D.users, ownersOf(pred)[0]) || "앞사람"}님이 "${pred.title}"${eulReul(pred.title)} 끝냄${info.readyAt ? " · " + ago(info.readyAt) : ""}`
+    : [pName(t.projectId), dueOf(t) ? ddayLabel(x.n) : "", b.sub].filter(Boolean).join(" · ") || null;
+  const sub2 = word ? `${word.handoff ? `${word.byName || "앞사람"}님이 남긴 말` : "앞 일 마지막 말"} · ${word.text}` : t.feedback && t.feedback.text ? `수정 요청 · ${t.feedback.text}` : null;
+  const start = x.fresh && t.status !== "inprogress";
+  return <Row tag={x.fresh ? "내 차례" : b.tag} tagTone={x.fresh ? "turn" : b.tone} title={t.title} sub={sub} sub2={sub2} last={last}
+    onClick={() => { seenTurn(); open({ type: "task", id: t.id }); }}
+    right={start ? <Act onClick={() => { seenTurn(); A.setStatus(t, "inprogress"); }} style={BTN_ON}>시작</Act> : <Act onClick={() => A.finish(t)}>끝냄</Act>} />;
 }
 
 // 이제 내 차례 모두 (앞 일이 방금 끝난 내 일)

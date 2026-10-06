@@ -137,16 +137,13 @@ def still(png, d, out, z=0.08):
        f"zoompan=z='1+{z}*on/{n}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s={W}x{H}:fps={FPS},setsar=1\" "
        f'-frames:v {n} -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -an {out}')
 
-AITAG = (f"drawtext=fontfile={FONT}:text='AI 연출 화면':fontsize=34:fontcolor=white@0.85:"
-         f"box=1:boxcolor=black@0.35:boxborderw=14:x=w-tw-50:y=90")
-
 def clip(src, d, out, ss=0.3, label=None, ai=True):
     avail = max(0.5, dur(src) - ss - 0.2)
     f = d / avail
     pts = f'setpts={f:.4f}*PTS,' if f > 1 else ''
     if f > 1.1: print(f'WARN {src} 느리게 늘림 x{f:.2f} — 클립이 짧음', flush=True)
     lab = (f",drawtext=fontfile={FONT}:text='{esc(label)}':fontsize=52:fontcolor=white:box=1:boxcolor=0x505050@0.85:boxborderw=22:x=60:y=170") if label else ''
-    look = f',{GRADE},{AITAG}' if ai else ''
+    look = f',{GRADE}' if ai else ''  # 'AI 연출 화면' 표기는 넣지 않음 (사용자 지시 10.06)
     sh(f'ffmpeg -y -v error -ss {ss} -i {src} -vf "{pts}scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps={FPS},setsar=1,'
        f'tpad=stop_mode=clone:stop_duration=3{look}{lab}" -t {d} -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -an {out}')
 

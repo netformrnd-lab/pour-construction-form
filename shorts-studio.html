@@ -332,7 +332,7 @@ function template(name) {
     name, product: { name, set: '', url: '', no: '', target: '', problem: '' }, targetSec: 45, startedAt: null,
     materials: { link: 'todo', photos: 'todo', video: 'todo' }, facts: [],
     cuts: [blankCut('problem'), blankCut('problem'), blankCut('cause'), blankCut('cause'), blankCut('solution', '그럼,\n【어떻게】 해결해야 할까요?'), blankCut('solution'), blankCut('solution'), blankCut('diy'), blankCut('cta')],
-    gates: { script: false, images: false, final: false }, qa: { product: false, aitag: false, temp: false, claims: false },
+    gates: { script: false, images: false, final: false }, qa: { product: false, temp: false, claims: false },
     build: { gap: GAP, tail: TAIL }, cta: { title: name, subtitle: '', badge: '', button: '▶ 프로필 링크에서 확인' },
     output: { mp4: '', zip: '', version: '' }, upload: { caption: '', yt: false, ig: false, tt: false, store: false },
     archived: false, createdAt: nowIso(), updatedAt: nowIso(),
@@ -379,7 +379,7 @@ function qaAuto() {
     ['금지 표현 없음', !P.cuts.some(c => cutWarn(c).some(w => w[0] === 'bad')), '보증·영구·최저가·견적·타사'],
   ];
 }
-const QA_MANUAL = [['product', '제품 모양이 실물과 같다 (변형 없음)'], ['aitag', 'AI 컷에 "AI 연출 화면" 표기'], ['temp', '실사 대체 컷에 "(임시)" 또는 "교체 예정" 표기'], ['claims', '수치·원인은 근거 확인한 것만']];
+const QA_MANUAL = [['product', '제품 모양이 실물과 같다 (변형 없음)'], ['temp', '실사 대체 컷에 "(임시)" 또는 "교체 예정" 표기'], ['claims', '수치·원인은 근거 확인한 것만']];
 function qaAll() { return qaAuto().every(x => x[1]) && QA_MANUAL.every(([k]) => P.qa[k]); }
 
 function nextStep() {

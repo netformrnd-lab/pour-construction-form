@@ -330,4 +330,32 @@ ok("체크리스트 칩(fxSubPatch): 다 켜면 끝냄 · 하나 풀면 내 끝�
   const w1 = M.fxSubPatch(w, "a", "s1", k, at, "가"); assert.equal(w1.flip, null); assert.equal(w1.patch["subDone.a.s1"], k);
   assert.deepEqual(M.fxSubCount(t0, "a", k), [2, 3]);
 });
+ok("2단계 scopeOf: brand만 → brand · 없음 → unset · scope 칸이 먼저", () => {
+  assert.equal(M.scopeOf({ brand: "pourstore" }), "brand"); assert.equal(M.scopeOf({}), "unset"); assert.equal(M.scopeOf({ brand: "grohome", scope: "me" }), "me");
+  assert.equal(M.scopeOf({ scope: "brand", brand: "common" }), "brand"); assert.equal(M.scopeOf({ scope: "x" }), "unset");
+  assert.deepEqual(M.scopeFields("me"), { scope: "me", brand: null }); assert.deepEqual(M.scopeFields("common"), { scope: "brand", brand: "common" });
+});
+ok("2단계 공통 운영: 가상 브랜드 이름 · 칩 목록 맨 끝 · 추천표 28개", () => {
+  const BR = [{ id: "grohome", name: "그로홈", order: 2 }, { id: "pourstore", name: "POUR스토어", order: 1 }, { id: "x", name: "안 씀", active: false }];
+  assert.equal(M.brandLabel("common", BR), "공통 운영"); assert.equal(M.brandLabel("pourstore", BR), "POUR스토어");
+  assert.deepEqual(M.brandsWithCommon(BR).map((b) => b.id), ["pourstore", "grohome", "common"]);
+  const v = Object.values(M.SCOPE_REC); assert.equal(v.length, 28);
+  assert.deepEqual([v.filter((x) => x === "common").length, v.filter((x) => x === "pourstore").length, v.filter((x) => x === "me").length, v.filter((x) => x === "grohome").length], [14, 8, 4, 2]);
+  assert.equal(M.scopeRec({ id: "zz", title: "오후 주문 발주" }), "common"); assert.equal(M.scopeRec({ id: "zz", title: "사진 정리" }), "");
+});
+ok("2단계 그로홈 주기 제안: 상시→매일 · 주 2회→매주 · 월1회→매월 · 말 없으면 null · 횟수 후보", () => {
+  const g = (memo, title = "x") => M.cycleGuess({ memo: `그로홈 대시보드 고정업무 · 주기: ${memo}`, title });
+  assert.equal(g("상시").rt, "daily"); assert.equal(g("주 2회").rt, "weekly"); assert.equal(g("월1회").rt, "monthly"); assert.equal(g("월 4회 주1회").rt, "weekly");
+  assert.equal(M.cycleGuess({ memo: "그로홈 대시보드 고정업무", title: "브랜드커머스" }), null);
+  assert.equal(M.cycleGuess({ memo: "그로홈 대시보드 고정업무", title: "오전 수동발주" }).from, "이름");
+  assert.ok(M.countHint({ memo: "주기: 주 2회", title: "공식 블로그 관리" })); assert.ok(M.countHint({ title: "오픈채팅방 홍보 글 배포" })); assert.ok(!M.countHint({ memo: "주기: 상시", title: "리뷰 관리" }));
+  assert.ok(M.cyclePending({ isFixed: true })); assert.ok(!M.cyclePending({ isFixed: true, recurType: "daily" })); assert.ok(!M.cyclePending({ isFixed: true, cycleOk: true }));
+  assert.deepEqual(M.cycleFields("weekly"), { recurType: "weekly", weekDays: ["월"], weekDay: "월", cycleOk: true });
+});
+ok("2단계 오늘: 브랜드 정한 고정업무는 routine(반복 실행 카드) · 개인·미정은 fixed · 남은 일 수는 둘 다", () => {
+  const now = new Date("2026-10-06T07:00:00"), base = { isFixed: true, recurType: "daily", assigneeIds: ["a"] };
+  const D = { tasks: [{ ...base, id: "f1", title: "CS", brand: "common", scope: "brand" }, { ...base, id: "f2", title: "메일", scope: "me" }, { ...base, id: "f3", title: "미정" }, { ...base, id: "f4", title: "그로홈", brand: "grohome" }], users: [{ id: "a", name: "가" }], projects: [], notes: [] };
+  const v = M.todayView(D, "a", now);
+  assert.deepEqual(v.fixed.left.map((x) => x.t.id).sort(), ["f2", "f3"]); assert.deepEqual(v.routine.left.map((x) => x.t.id).sort(), ["f1", "f4"]); assert.equal(v.left, 4);
+});
 console.log(`\n${n}개 모두 통과`);

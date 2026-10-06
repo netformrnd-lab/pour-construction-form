@@ -9,7 +9,7 @@ import {
   reqOf, needsReview, dueApprover,
 } from "./model.js";
 import { TodayTab, TurnSheet, MyTidySheet, UpTurnsSheet } from "./today.jsx";
-import { MoreTab, AssignedSheet, MyFixedSheet } from "./more.jsx";
+import { MoreTab, AssignedSheet, MyFixedSheet, AddFixedSheet } from "./more.jsx";
 import { turnIndex, turnsOf } from "./turn.js";
 import { SheetRouter } from "./sheets.jsx";
 import { MyKpiSheet, LagSheet, useGhRefresh, KpiEditSheet } from "./kpiui.jsx";
@@ -66,6 +66,7 @@ function Main({ D, cu, meta, setMeta, logout }) {
     myTidy: (p, s) => <MyTidySheet {...p} tab0={s.tab} st={s} />,
     assigned: (p) => <AssignedSheet {...p} />,
     myFixed: (p) => <MyFixedSheet {...p} />,
+    addFixed: (p) => <AddFixedSheet {...p} />,
     myKpi: (p) => <MyKpiSheet {...p} goToday={() => { setTab("today"); closeAll(); window.scrollTo(0, 0); }} />,
     lagInput: (p, s) => <LagSheet {...p} s={s} />,
     kpiEdit: (p, s) => <KpiEditSheet {...p} s={s} />,

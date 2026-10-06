@@ -65,6 +65,7 @@ ck("2026-10-06 분기 → 4분기", periodLabel({ cyc: "Q" }, "2026-10-06") === 
 ck("2026-10-01 분기 → 3분기", periodLabel({ cyc: "Q" }, "2026-10-01") === "3분기");
 const BRS = [{ id: "pourstore", name: "POUR스토어" }, { id: "bmuqo9k5u", name: "모여라딜" }, { id: "bmupq52c0", name: "바라스데이" }];
 ck("brandName id → 모여라딜", brandName("bmuqo9k5u", BRS) === "모여라딜");
+ck("brandName 공통 운영(가상 브랜드)", brandName("common", BRS) === "공통 운영");
 ck("brandName 이름 그대로", brandName("POUR스토어", BRS) === "POUR스토어" && brandName("pourstore", BRS) === "POUR스토어");
 ck("brandName 목록 없어도 아는 이름", brandName("grohome") === "그로홈" && brandName("", BRS) === "");
 

@@ -6,7 +6,7 @@
 import { akWho, akWeekKey, akQidOfWeek, akWeeksIn, akQuarterWeeks, akMonthOfWeek, akTotal, akVal, akCountable, akOrder, akStep, akGoalText } from "../../pour-os/src/actionKpi.js";
 import { targetOf, countOf, baseTitle, isTempOwner } from "./launch.js";
 export { targetOf, countOf, baseTitle };
-import { isMine, isDone, dueOf, ymd, addDays } from "./model.js";
+import { isMine, isDone, dueOf, ymd, addDays, COMMON_BRAND } from "./model.js";
 
 // 낱말 묶음: 행동지표 이름(괄호 안 말은 뺌 · 체험단은 횟수 항목이 없어 뺌) → 신제품 횟수 항목
 export const RT_GROUPS = [
@@ -65,7 +65,7 @@ export { akVal };
 const BR = { "POUR스토어": "pourstore", "포어스토어": "pourstore", "그로홈": "grohome", "GROHOME": "grohome", "바라스데이": "barasday" };
 export const brId = (b) => { const s = String(b || "").trim(); return BR[s] || s.toLowerCase(); };
 // 브랜드 이름: D.brands(id·이름) 먼저 → 아는 이름 → 그대로 (bmuqo9k5u 같은 id 가 날것으로 안 보이게)
-export const brandName = (b, brands) => { const s = String(b || "").trim(); if (!s) return "";
+export const brandName = (b, brands) => { const s = String(b || "").trim(); if (!s) return ""; if (s === COMMON_BRAND.id) return COMMON_BRAND.name;
   const hit = (brands || []).find((x) => x && (x.id === s || x.id === brId(s) || String(x.name || "").trim() === s));
   return (hit && hit.name) || ({ pourstore: "POUR스토어", grohome: "그로홈", barasday: "바라스데이" })[brId(s)] || s; };
 export const sameBrand = (a, b) => !brId(a) || !brId(b) || brId(a) === brId(b);

@@ -129,6 +129,73 @@ export function fxSubPatch(t, uid, subId, key, at, name) {
 // 체크리스트 진행 (내 칩 중 이번 주기에 켠 수)
 export const fxSubCount = (t, uid, key) => { const ss = fxSubs(t, uid), m = ((t.subDone || {})[uid]) || {}; return [ss.filter((x) => fxHit(t, m[x.id], key)).length, ss.length]; };
 
+// ── 반복 실행 · 고정업무 나누기 (2단계 · 사용자 확정 2026-10-06) ──
+// scope: 'brand'(반복 실행 — 브랜드가 문제없이 돌아가게 하는 일) | 'me'(고정업무 — 나만의 알림) · 칸이 없으면 브랜드가 있을 때 'brand', 없으면 'unset'(브랜드 미정 · 숨기지 않음)
+export const scopeOf = (t) => (t && (t.scope === "brand" || t.scope === "me") ? t.scope : t && t.brand ? "brand" : "unset");
+export const isRoutineFx = (t) => !!t && !!t.isFixed && scopeOf(t) === "brand";
+// '공통 운영' = 두 브랜드 일을 같이 하는 CS·주문·발주·문의 (가상 브랜드 · D.brands 에 없음 → 브랜드 이름·칩 만드는 곳마다 이 상수를 같이 씀)
+export const COMMON_BRAND = { id: "common", name: "공통 운영", short: "공통" };
+export const brandsWithCommon = (brands) => [...(brands || []).filter((b) => b && b.active !== false && b.id !== COMMON_BRAND.id).sort((a, b) => (+a.order || 0) - (+b.order || 0)), COMMON_BRAND];
+export const brandLabel = (id, brands) => { const s = String(id || ""); if (!s) return ""; if (s === COMMON_BRAND.id) return COMMON_BRAND.name;
+  const b = (brands || []).find((x) => x && (x.id === s || String(x.name || "").trim() === s)); return (b && b.name) || s; };
+// 브랜드 칸을 D.brands id 로 (이름으로 들어 있던 것도) — 없으면 그대로
+export const brandKey = (v, brands) => { const s = String(v || "").trim(); if (!s || s === COMMON_BRAND.id) return s; const b = (brands || []).find((x) => x && (x.id === s || String(x.name || "").trim() === s)); return b ? b.id : s; };
+// 브랜드 안 정한 고정업무 28개 추천 (실데이터 2026-10-06 분석 · 관리자가 [추천대로 정하기] 또는 줄마다 고름)
+//   공통 = 두 브랜드 CS·주문·발주·입금·공지·택배 품의 · 개인 = 보고·품의·메일 같은 내 일 · 그 밖 = 담당 팀 브랜드
+export const SCOPE_REC = {
+  t1781248724919_0: "common",      // 오전 CS 확인(고객-온/오프라인 | 거래처)
+  t1781248724919_3: "pourstore",   // 촬영물 업로드 및 정리
+  t1781657352272_a2: "pourstore",  // 인포크비즈니스 확인
+  t1781768399400: "me",            // KPI 기재
+  t1781768423736: "me",            // 그로스보드 업로드
+  t1790675520990: "common",        // 오전 주문수집/발주
+  t1790675666150: "common",        // 오후 주문수집/발주
+  t1790675796804: "common",        // 오후 CS 확인
+  t1790676105562: "pourstore",     // 재고엑셀 업로드
+  t1790683210147: "common",        // 무통장 입금확인
+  t1790694312675: "common",        // 다음달 휴일 공지·배송설정
+  t1790699252393: "pourstore",     // 재고확인 (김송희·이란)
+  t1790728334599: "me",            // 하이웍스 품의 확인
+  t1790742710681: "grohome",       // 그로홈 전일보고/매출 대시보드 검수
+  t1790819194543: "common",        // 재고 확인/발주(제조사→물류창고/쿠팡)
+  t1790821237718: "grohome",       // 월말 그로홈 이벤트
+  t1790821275574: "common",        // 리뷰 확인하기
+  t1790821283102: "common",        // 고객 문의 확인
+  t1790825390499: "common",        // 금일 주문발주 최종확인(잔디)
+  t1790825425674: "common",        // 금일 발주 최종확인
+  t1790825510512: "common",        // 금일 발주 건 송장·퀵 전달 확인
+  t1790831555155: "common",        // 부서 월간 고정지출 품의
+  t1790838561303: "me",            // 오전 메일 확인 및 OS 작성
+  t1790899441313: "common",        // 한진택배 품의 작성
+  t1790910007303: "pourstore",     // 비즈머니 확인
+  t1790914787166: "pourstore",     // 재고확인 (용인창고·비즈로지컴·쿠팡)
+  t1790918718994: "pourstore",     // 시온 월말 정산
+  t1790926024678: "pourstore",     // 나비엠알오 월말 정산
+};
+// 추천 (표에 없으면 이름으로 짐작: CS·주문·발주·문의·입금·택배 → 공통 · 그로홈 → 그로홈 · 보고·품의·메일·KPI → 개인 · 그 밖 없음)
+export const scopeRec = (t) => { if (!t) return ""; if (SCOPE_REC[t.id]) return SCOPE_REC[t.id]; const s = String(t.title || "");
+  if (/그로홈/.test(s)) return "grohome"; if (/KPI|그로스보드|품의|메일/.test(s)) return "me"; if (/CS|주문|발주|문의|입금|택배|송장/.test(s)) return "common"; return ""; };
+// 1탭으로 정하기 → 바뀔 칸 (brand id | 'common' | 'me')
+export const scopeFields = (pick) => (pick === "me" ? { scope: "me", brand: null } : { scope: "brand", brand: pick });
+
+// ── 그로홈에서 온 고정업무 주기 제안 (사용자 결정 4 · 반복 칸이 비어 '매일'로 보이던 52개) ──
+// 확인 전(cyclePending) = 목록엔 '주기 확인 필요'로 늘 보이고, 이행률(관리자 달성 칸·사람 반복 칸)에서만 뺌
+export const cyclePending = (t) => !!t && !!t.isFixed && !t.recurType && !t.cycleOk;
+const cycText = (t) => { const m = /주기\s*[:：]\s*([^\n·]+)/.exec(String((t && t.memo) || "")); return { memo: m ? m[1].trim() : "", title: String((t && t.title) || "") }; };
+// → { rt:'daily'|'weekly'|'monthly', word:'상시', from:'메모'|'이름' } | null
+export function cycleGuess(t) {
+  const { memo, title } = cycText(t);
+  for (const [src, s] of [["메모", memo], ["이름", title]]) { if (!s) continue; let m;
+    if ((m = /월\s*1\s*회|매월|월말|월초/.exec(s))) return { rt: "monthly", word: m[0], from: src };
+    if ((m = /\d?\s*주\s*\d\s*회|매주|주간/.exec(s))) return { rt: "weekly", word: m[0].trim(), from: src };
+    if ((m = /상시|매일|일일|전일|금일|오전|오후/.exec(s))) return { rt: "daily", word: m[0], from: src }; }
+  return null;
+}
+// 횟수 후보 (정한 날 체크보다 '주 n회' 횟수 목표가 맞아 보이는 것 · 표시만): 주·월 2회 이상 / 2주 1회 / 글·홍보·섭외·광고·출시처럼 세는 일
+export const countHint = (t) => { const { memo, title } = cycText(t), s = memo + " " + title;
+  return /[주월]\s*[2-9]\s*회|2주|블로그|포스팅|오픈채팅|홍보|체험단|인플루언서|섭외|게시글|공동구매|출시|영업|컨텍/.test(s); };
+export const cycleFields = (rt) => ({ recurType: rt, ...(rt === "weekly" ? { weekDays: ["월"], weekDay: "월" } : {}), ...(rt === "monthly" ? { monthDay: 1, monthEnd: false } : {}), cycleOk: true });
+
 // ── 업무 흐름 규칙 (맡김 → 받음 → 진행 → 끝냄 → 확인) ──
 // 다른 사람이 맡긴 일이면 맡긴 사람 id
 export const reqOf = (t) => (t && t.requestedBy && !ownersOf(t).includes(t.requestedBy) ? t.requestedBy : "");
@@ -186,7 +253,9 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   const fx = tasks.filter((t) => t.isFixed && !t.paused && fxIsMine(t, uid) && fxDueOn(t, key))
     .map((t) => ({ t, min: fxMin(t, uid), me: fxMeDone(t, uid, key) })).concat(fxMiss)
     .sort((a, b) => a.min - b.min || fxLabel(a.t, uid).localeCompare(fxLabel(b.t, uid)));
-  const fixed = { left: fx.filter((x) => !x.me).map((x) => ({ ...x, late: !!x.miss || (x.min < 9999 && x.min < nowMin) })).sort((a, b) => (b.miss ? 1 : 0) - (a.miss ? 1 : 0)), done: fx.filter((x) => x.me), total: fx.length };
+  // 2단계: 브랜드 정한 것(반복 실행 · scope brand) = '반복 실행' 카드 '오늘 체크' · 개인·미정 = '오늘' 카드 고정업무
+  const grp = (a) => ({ left: a.filter((x) => !x.me).map((x) => ({ ...x, late: !!x.miss || (x.min < 9999 && x.min < nowMin) })).sort((a, b) => (b.miss ? 1 : 0) - (a.miss ? 1 : 0)), done: a.filter((x) => x.me), total: a.length });
+  const fixed = grp(fx.filter((x) => scopeOf(x.t) !== "brand")), routine = grp(fx.filter((x) => scopeOf(x.t) === "brand"));
   // 내 할 일 (확인 대기·보류 빼고) — 지금 할 일 순서대로
   const open = tasks.filter((t) => isOneOff(t) && !isDone(t) && isMine(t, uid));
   const active = open.filter((t) => t.status !== "review" && t.status !== "hold" && !temp.has(t.id));   // 임시 담당(책임자로 채운 신제품 항목)은 '정리'로만
@@ -261,9 +330,9 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   const userName = (id) => nameOf(users, id);
   // 끝낸 시각은 UTC(toISOString) → 기기 날짜로 바꿔 비교 (아침 9시 전에 끝낸 일도 오늘)
   const localDay = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? ymd(d) : ""; };
-  const doneToday = fixed.done.length + tasks.filter((t) => isOneOff(t) && isMine(t, uid) && (isDone(t) || t.status === "review") && localDay(t.doneAt || t.reviewAt) === key).length;
+  const doneToday = fixed.done.length + routine.done.length + tasks.filter((t) => isOneOff(t) && isMine(t, uid) && (isDone(t) || t.status === "review") && localDay(t.doneAt || t.reviewAt) === key).length;
   const oneOffOpen = open.length;   // 0이면 '고정업무만 하는 사람' — 오늘 고정업무를 처음부터 펼침
-  return { key, fixed, ranked, todo: ranked, focus, late, doing, inbox, userName, left: fixed.left.length + focus.length, doneToday, oneOffOpen, freshN: ranked.filter((x) => x.fresh).length };
+  return { key, fixed, routine, ranked, todo: ranked, focus, late, doing, inbox, userName, left: fixed.left.length + routine.left.length + focus.length, doneToday, oneOffOpen, freshN: ranked.filter((x) => x.fresh).length };
 }
 
 // ── 맡긴 일 (지시자) ──

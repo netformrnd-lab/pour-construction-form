@@ -21,12 +21,12 @@ function Pick({ q, opts, onPick, onNone }) {
 }
 
 // 오늘 화면 '할 횟수' (내 행동지표가 없으면 안 보임) · 줄마다 기간 + 숫자 + 단위: '이번 주 1 / 4건' · '10월 0 / 1회' · '4분기 0 / 1건' · '10월 30 / 100%' · 담당 2명+ '내 몫 n' · 순서 주 → 월 → 분기
-export function RoutineCard({ D, cu, A, keyd }) {
+// 2단계: 카드 머리 '반복 실행' 하나 · 안에 '오늘 체크'(checks = 오늘 화면이 만든 줄 묶음 · 브랜드 정한 고정업무) → '횟수'(행동지표 [+1])
+export function RoutineCard({ D, cu, A, keyd, checks }) {
   const [line, setLine] = useState(null), [busy, setBusy] = useState(""), [all, setAll] = useState(false);
   const ak = D.ak || {};
-  if (!ak.ready || !(ak.items || []).length) return null;
-  const rows = myRoutine(ak.items, D.users, cu.id, ak.docs, keyd);
-  if (!rows.length) return null;
+  const rows = ak.ready && (ak.items || []).length ? myRoutine(ak.items, D.users, cu.id, ak.docs, keyd) : [];
+  if (!rows.length && !checks) return null;
   const shown = all ? rows : rows.slice(0, 4);
   const multiBrand = new Set(rows.map((r) => brId(r.it.brand)).filter(Boolean)).size > 1;   // 브랜드가 여럿이면 줄마다 브랜드 (비슷한 이름 구별)
   const tOf = (id) => (D.tasks || []).find((t) => t.id === id);
@@ -54,8 +54,10 @@ export function RoutineCard({ D, cu, A, keyd }) {
     const cands = L.cands.map(tOf).filter(Boolean), many = new Set(cands.map((t) => t.projectId)).size < cands.length;
     return <Pick q={`어느 제품 ${askWord(r.it)}이에요?`} opts={cands.map((t) => ({ k: t.id, l: pTitle(D, t) + (many ? ` · ${baseTitle(t)}` : "") }))} onNone={() => setLine({ ...L, kind: "plain" })} onPick={(o) => pick(r, L, o)} />; };
   return <>
-    <Head right={rows.some((r) => r.it.cyc !== "W") ? <span style={{ fontSize: 12, color: C.mute, fontWeight: 700 }}>주 → 월 → 분기</span> : null}>할 횟수</Head>
+    <Head>반복 실행</Head>
     <Card>
+      {checks}
+      {rows.length > 0 && <div className="v2-rtsub"><b>횟수</b>{rows.some((r) => r.it.cyc !== "W") && <span>주 → 월 → 분기</span>}</div>}
       {shown.map((r, i) => { const t = r.tot, done = t.done, u = unitOf(r.it);
         return <div key={r.it.id} className="v2-rtrow" style={{ borderBottom: i === shown.length - 1 && rows.length <= 4 ? 0 : undefined }}>
           <div className="r1"><div className="t"><b>{r.it.name}</b>

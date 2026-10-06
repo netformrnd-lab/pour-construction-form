@@ -5,7 +5,7 @@ import {
   ymd, addDays, ddays, ddayLabel, md, hm, ago, dayTitle, WD, isMaster, activeUsers, nameOf, STATUS_L, isDone, isOneOff, isMine, ownersOf, dueOf,
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit, fxSubCount,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
-  reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf, weekStart, nextWorkday, isOffDay, weekMine,
+  reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf, weekStart, nextWorkday, isOffDay, weekMine, brandLabel, brandKey, COMMON_BRAND,
 } from "./model.js";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
 import { predLine, lastWord, predsOf, upcomingTurns, upLine } from "./turn.js";
@@ -84,6 +84,24 @@ export function FxChips({ t, uid, keyd, A, open }) {
     {many && <button type="button" className="more" onClick={(e) => { e.stopPropagation(); open({ type: "fixed", id: t.id }); }}>외 {subs.length - 6}개 ›</button>}
   </div>;
 }
+// 반복 실행 카드 '오늘 체크' — 브랜드 정한 고정업무(scope brand) · 시간 순서 · 줄 모양은 고정업무 줄과 같음(칩 · a/b · 시간 · n/m명 체크)
+//   꼬리표: 밀림·시간 지남(빨강) 먼저 → 브랜드가 여럿일 때만 브랜드 짧은 이름 · 5개 넘으면 'n개 더 ▾' · 끝낸 것 '끝낸 체크 n ▾'
+const brShort = (b, brands) => (b === COMMON_BRAND.id ? COMMON_BRAND.short : brandLabel(b, brands).replace(/^POUR/, ""));
+function RoutineChecks({ D, cu, A, open, R, keyd }) {
+  const [more, setMore] = useState(false), [doneOn, setDoneOn] = useState(false);
+  const multi = new Set([...R.left, ...R.done].map((x) => brandKey(x.t.brand, D.brands))).size > 1;
+  const shown = more ? R.left : R.left.slice(0, 5);
+  return <>
+    <div className="v2-rtsub"><b>오늘 체크 · {R.left.length ? `${R.left.length}개 남음` : "다 했어요 ✓"}</b><span>시간 순서</span></div>
+    {shown.map((x) => { const t = x.t;
+      return <Row key={t.id} tag={x.miss ? `밀림 ${md(x.miss)}` : x.late ? "시간 지남" : multi ? brShort(brandKey(t.brand, D.brands), D.brands) : null} tagTone={x.late ? "red" : null} title={<FxTitle t={t} uid={cu.id} keyd={keyd} />} sub={fxLine(D, t, cu.id, keyd)}
+        below={<FxChips t={t} uid={cu.id} keyd={keyd} A={A} open={open} />} onClick={() => open({ type: "fixed", id: t.id })} right={<Act onClick={() => A.fxToggle(t)}>완료</Act>} last={false} />; })}
+    {R.left.length > 5 && <More onClick={() => setMore(!more)}>{more ? "접기 ▴" : `${R.left.length - 5}개 더 ▾`}</More>}
+    {R.done.length > 0 && <More onClick={() => setDoneOn(!doneOn)}>{doneOn ? "끝낸 체크 접기 ▴" : `끝낸 체크 ${R.done.length} ▾`}</More>}
+    {doneOn && R.done.map((x) => <Row key={x.t.id} dim title={<FxTitle t={x.t} uid={cu.id} keyd={keyd} />} sub={`✓ ${hm(x.t.doneAtBy && x.t.doneAtBy[cu.id])}${fxCount(D.users, x.t, keyd)[1] > 1 ? ` · ${fxCount(D.users, x.t, keyd).join("/")}명 체크` : ""}`}
+      below={<FxChips t={x.t} uid={cu.id} keyd={keyd} A={A} open={open} />} onClick={() => open({ type: "fixed", id: x.t.id })} right={<Act on onClick={() => A.fxToggle(x.t)}>✓ 취소</Act>} />)}
+  </>;
+}
 // 순서: 지금 할 일 1장 → 확인할 것 → 오늘(고정업무 접기 · 일회성 3줄) → 곧 내 차례 → 정리 한 줄
 export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
   const now = new Date(), key = TV.key;
@@ -145,7 +163,7 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
         </Card>
       </div>
       <div>
-        <RoutineCard D={D} cu={cu} A={A} keyd={key} />
+        <RoutineCard D={D} cu={cu} A={A} keyd={key} checks={TV.routine && TV.routine.total > 0 ? <RoutineChecks D={D} cu={cu} A={A} open={open} R={TV.routine} keyd={key} /> : null} />
         {up7.length > 0 && <>
           <Head right={<TBtn onClick={() => open({ type: "upturns" })}>모두 ›</TBtn>}>곧 내 차례 {up7.length}{up7.some((u) => u.level === "late" || u.level === "risk") ? <span style={{ color: C.red }}> · 늦을 수 있음 {up7.filter((u) => u.level === "late" || u.level === "risk").length}</span> : null}</Head>
           <Card>{up7.slice(0, soonOpen ? 8 : 3).map((u, i, arr) => <UpRow key={u.t.id} u={u} D={D} cu={cu} open={open} keyd={key} last={i === arr.length - 1 && up7.length <= (soonOpen ? 8 : 3)} />)}

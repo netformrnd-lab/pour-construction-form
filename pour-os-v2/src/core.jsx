@@ -8,6 +8,7 @@ import {
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxSubPatch, fxPeople, fxHit, weekStart,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, planSeed, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, isHoldP, nextWorkday, setHolidayLayer, handOverOwners,
+  scopeFields, brandLabel, cycleFields, FX_WD,
 } from "./model.js";
 import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS } from "./launch.js";
 import { nextTurnText } from "./turn.js";
@@ -638,6 +639,63 @@ export function useActs(D, cu, setToast, idx = null) {
     fxSub: (t, subId) => { const key = ymd(new Date()), at = nowIso(), r = fxSubPatch(t, cu.id, subId, key, at, cu.name);
       fb.patch("tasks", tdoc(t), { ...r.patch, v2At: at }).catch(fail("체크"));
       if (r.flip !== null) { A.fxCheck(t, r.flip, key, at).catch(fail("체크 기록")); if (r.flip) setToast({ text: `다 체크했어요 · ${fxLabel(t, cu.id)}` }); } },
+    // ── 반복 실행·고정업무 나누기 (2단계) ──
+    // 브랜드·개인 정하기: picks = [{t, pick}] (pick = D.brands id | 'common' | 'me') · 바뀐 칸만 · 기록에 이전 값 · 5초 되돌리기(내가 쓴 값 그대로인 것만)
+    setScopes: async (picks, label) => { const at = nowIso();
+      const ops = picks.filter((x) => x && x.t && x.pick).map(({ t, pick }) => { const f = { ...scopeFields(pick), scopeBy: cu.id, scopeAt: at };
+        return { key: "tasks", id: tdoc(t), t, pick, fields: f, prev: { scope: t.scope === undefined ? null : t.scope, brand: t.brand === undefined ? null : t.brand, scopeBy: t.scopeBy || null, scopeAt: t.scopeAt || null } }; });
+      if (!ops.length) return false;
+      const nm = (k) => (k === "me" ? "개인" : brandLabel(k, D.brands));
+      try { await fb.patchMany(ops.map((o) => ({ key: o.key, id: o.id, fields: { ...o.fields, updatedAt: at, updatedBy: cu.id, v2At: at } })));
+        const lab = label || (ops.length === 1 ? `${ops[0].t.title} · ${nm(ops[0].pick)}` : `브랜드·개인 정하기 · ${ops.length}개`);
+        log(ops.length === 1 ? "edit" : "bulk", { col: "tasks", targetId: ops.length === 1 ? ops[0].t.id : "", label: lab, ids: ops.map((o) => o.t.id), prev: ops.length === 1 ? ops[0].prev : ops.map((o) => ({ id: o.t.id, ...o.prev })), ...(ops.length === 1 ? { next: { scope: ops[0].fields.scope, brand: ops[0].fields.brand } } : {}) });
+        setToast({ text: ops.length === 1 ? `${nm(ops[0].pick)}(으)로 정했어요 · ${ops[0].t.title}` : `${ops.length}개 정했어요`, undo: () => undoMany(ops.map((o) => ({ key: o.key, id: o.id, wrote: { scope: o.fields.scope, brand: o.fields.brand }, prev: o.prev })), lab) });
+        return true; }
+      catch (e) { fail("브랜드 정하기")(e); return false; }
+    },
+    // 주기 정하기 (그로홈에서 온 고정업무 · 확인 전엔 이행률에서 뺌): picks = [{t, rt}] → recurType + cycleOk
+    setCycles: async (picks, label) => { const at = nowIso();
+      const ops = picks.filter((x) => x && x.t && x.rt).map(({ t, rt }) => { const f = { ...cycleFields(rt), cycleBy: cu.id, cycleAt: at };
+        return { key: "tasks", id: tdoc(t), t, rt, fields: f, prev: Object.fromEntries(Object.keys(f).map((k) => [k, t[k] === undefined ? null : t[k]])) }; });
+      if (!ops.length) return false;
+      try { await fb.patchMany(ops.map((o) => ({ key: o.key, id: o.id, fields: { ...o.fields, updatedAt: at, updatedBy: cu.id, v2At: at } })));
+        const lab = label || (ops.length === 1 ? `${ops[0].t.title} · 주기 ${({ daily: "매일", weekly: "매주", monthly: "매월" })[ops[0].rt]}` : `주기 정하기 · ${ops.length}개`);
+        log(ops.length === 1 ? "edit" : "bulk", { col: "tasks", targetId: ops.length === 1 ? ops[0].t.id : "", label: lab, ids: ops.map((o) => o.t.id), prev: ops.length === 1 ? ops[0].prev : ops.map((o) => ({ id: o.t.id, ...o.prev })) });
+        setToast({ text: ops.length === 1 ? `주기를 정했어요 · ${ops[0].t.title}` : `주기 ${ops.length}개 정했어요`, undo: () => undoMany(ops.map((o) => ({ key: o.key, id: o.id, wrote: { recurType: o.fields.recurType, cycleOk: true }, prev: o.prev })), lab) });
+        return true; }
+      catch (e) { fail("주기")(e); return false; }
+    },
+    // 개인 고정업무 새로 만들기 (더보기 › 내 고정업무 [+ 고정업무]) — scope 'me' · 담당 나 · v2 에서 만듦
+    addFixed: async (f) => { const id = newId("t"), at = nowIso(), rt = f.recurType || "daily";
+      const wd = FX_WD.filter((d) => (f.weekDays || []).includes(d));
+      const subs = (f.subs || []).map((x) => String(x || "").trim()).filter(Boolean).map((title, i) => ({ id: newId("s") + i, title }));
+      const t = { id, title: String(f.title || "").trim(), isFixed: true, type: "fixed", scope: "me", status: "todo", recurType: rt,
+        ...(rt === "weekly" ? { weekDays: wd.length ? wd : ["월"], weekDay: (wd[0] || "월") } : {}),
+        ...(rt === "monthly" ? (f.monthEnd ? { monthEnd: true, monthDay: 31 } : { monthEnd: false, monthDay: Math.min(31, Math.max(1, +f.monthDay || 1)) }) : {}),
+        fixedTime: f.fixedTime || "", assigneeIds: [cu.id], assigneeId: cu.id, subsBy: subs.length ? { "*": subs } : {}, memo: "", attachments: [], paused: false,
+        madeIn: "v2", createdAt: at, createdBy: cu.id, updatedAt: at, updatedBy: cu.id, v2At: at };
+      if (!t.title) return null;
+      try { await fb.put("tasks", id, t); log("add", { col: "tasks", targetId: id, label: `고정업무 · ${t.title}` }); setToast({ text: `고정업무를 만들었어요 · ${t.title}` }); return id; }
+      catch (e) { fail("고정업무")(e); return null; }
+    },
+    // 체크리스트 고치기: who '*' = 공통(점 경로에 못 써서 transaction 으로 subsBy 통째) · 그 밖 = 내 목록(subsBy.<나> 점 경로)
+    //   되돌리기 = 내가 쓴 목록이 아직 그대로일 때만
+    setSubs: async (t, who, list, label) => { const at = nowIso(), clean = (list || []).filter((x) => x && String(x.title || "").trim()).map((x) => ({ id: x.id, title: String(x.title).trim() }));
+      const prev = ((t.subsBy || {})[who]) || [], lab = label || `${t.title} · 체크리스트${who === "*" ? "(공통)" : "(내 것)"} ${clean.length}개`;
+      const write = async (next, expect) => { if (who === "*") return fb.txDoc("tasks", tdoc(t), (cur) => { if (!cur) return {}; const sb = { ...(cur.subsBy || {}) };
+          if (expect && !fb.sameVal(sb["*"] || [], expect)) return { ret: false };
+          sb["*"] = next; return { write: { subsBy: sb, updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }, ret: true }; });
+        if (expect) { const r = await fb.patchIf("tasks", tdoc(t), { [`subsBy.${who}`]: expect }, { [`subsBy.${who}`]: next, updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }); return r.ok; }
+        await fb.patch("tasks", tdoc(t), { [`subsBy.${who}`]: next, updatedAt: at, updatedBy: cu.id, v2At: at }); return true; };
+      try { await write(clean); log("edit", { col: "tasks", targetId: t.id, label: lab, prev: { subs: prev.map((x) => x.title).join(", ") }, next: { subs: clean.map((x) => x.title).join(", ") } });
+        setToast({ text: "체크리스트를 고쳤어요", undo: async () => { const ok = await write(prev, clean).catch((e) => { fail("되돌리기")(e); return null; }); if (ok === false) setToast({ text: "그사이 다른 사람이 바꿔서 되돌리지 않았어요" }); else if (ok) { log("edit", { col: "tasks", targetId: t.id, label: `되돌림 · ${lab}` }); setToast({ text: "되돌렸어요" }); } } });
+        return true; }
+      catch (e) { fail("체크리스트")(e); return false; }
+    },
+    // 내 것만 (보이는 이름 labelBy.<나> · 내 시간 timeBy.<나>) — 비우면 공통 값으로
+    setMine: (t, field, value, label) => { const v = String(value || "").trim(), prev = ((t[field] || {})[cu.id]) || "";
+      const f = { [`${field}.${cu.id}`]: v || null }; P(t, f, "edit", label || `${t.title} · ${field === "labelBy" ? "보이는 이름" : "내 시간"} ${v || "공통으로"}`, { prev: { [field]: prev } });
+      setToast({ text: field === "labelBy" ? "보이는 이름을 바꿨어요" : "내 시간을 바꿨어요", undo: () => undoT(t, f, { [`${field}.${cu.id}`]: prev || null }, `${t.title} · ${field === "labelBy" ? "보이는 이름" : "내 시간"}`) }); },
     addNote: async (itemId, text, parentId, files, ctx, extra) => {
       const id = newId("n"); const up = [];
       try { for (const f of files || []) up.push(await fb.upload("note-" + itemId, f));
@@ -737,10 +795,15 @@ export const v2edited = (x) => !!(x && (x.v2At || (x.updatedBy && x.updatedBy !=
   || (Array.isArray(x.attachments) && x.attachments.some((a) => a && V2_FILE.test(String(a.path || ""))))));
 // 이미 있는 문서에 덮어쓸 때 빼는 칸 — v2 가 주인인 칸(PIN · 주 한도 · 고정업무 사람별 체크)
 //   고정업무 체크(doneDates·doneAtBy·subDone)는 버전1에도 같은 이름이 있어서 '고친 문서' 판단에는 못 쓰고, 대신 덮어쓰지 않음
+export const V2_TASK_ONLY = ["scope", "scopeBy", "scopeAt", "qty", "cycleOk", "cycleBy", "cycleAt", "madeIn"];
 export function stripV2Only(key, data, cur) {
   if (!data) return data; const d = { ...data };
   if (key === "users") Object.keys(d).forEach((f) => { if (/^pin/.test(f) || f === "weekCap") delete d[f]; });
-  if (key === "tasks") { ["doneDates", "doneAtBy", "subDone"].forEach((f) => delete d[f]); if ((cur && cur.isFixed) || d.isFixed) ["doneAt", "doneByName"].forEach((f) => delete d[f]); }
+  if (key === "tasks") { ["doneDates", "doneAtBy", "subDone"].forEach((f) => delete d[f]); if ((cur && cur.isFixed) || d.isFixed) ["doneAt", "doneByName"].forEach((f) => delete d[f]);
+    // 반복 실행·고정업무 나누기(2단계) · 주기 확인 · 건수 칸(3단계 예약) — v2 에서만 정하는 칸 · 정한 브랜드·반복도 버전1 값으로 안 되돌림
+    V2_TASK_ONLY.forEach((f) => delete d[f]);
+    if (cur && (cur.scope || cur.scopeAt)) delete d.brand;
+    if (cur && cur.cycleOk) ["recurType", "weekDays", "weekDay", "monthDay", "monthEnd"].forEach((f) => delete d[f]); }
   return d;
 }
 export async function planReimport(kind, D) {

@@ -6,6 +6,7 @@ import {
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit, fxWeekDays, fxIds, FX_WD, monthEndWorkday,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf,
+  scopeOf, brandLabel, brandsWithCommon, brandKey, cyclePending, cycleGuess,
 } from "./model.js";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
 import { DecisionBlock } from "./mindmap.jsx";
@@ -292,14 +293,19 @@ export function FixedSheet({ D, cu, A, onBack, onClose, id, focus, setToast }) {
   const days = [...Array(7)].map((_, i) => addDays(key, -i));
   const byDay = {}; (checks || []).filter((c) => c.on).forEach((c) => { (byDay[c.date] = byDay[c.date] || []).push(c); });
   const canEdit = mine || isMaster(cu);   // 메모·자료 = 담당 · 관리자
+  // 2단계 권한: 개인(me) = 본인이 다 · 반복 실행(brand)의 공통 체크리스트·브랜드·담당·반복 = 관리자 · 담당은 내 체크리스트·보이는 이름·내 시간·메모·파일
+  const master = isMaster(cu), sc = scopeOf(t), isRt = sc === "brand";
+  const canRecur = master || (!isRt && mine), canCommon = master || (!isRt && mine), canScope = master || (sc === "me" && mine);
+  const pathL = isRt ? `반복 실행 · ${brandLabel(t.brand, D.brands)} · ${fxRecurL(t)}${t.fixedTime ? " " + t.fixedTime : ""}` : `고정업무${sc === "unset" ? " · 브랜드 미정" : ""} · ${fxRecurL(t)}${t.fixedTime ? " " + t.fixedTime : ""}`;
+  const cg = cyclePending(t) ? cycleGuess(t) : null;
   const saveMemo = async (force) => { const r = await A.setMemo(t, memo, memoBase, force === true); if (r && r.conflict) setClash(r.cur); else if (r && r.ok) { setClash(null); setEditMemo(false); } };
   const files = [...(t.attachments || []).map((f) => ({ ...f, where: "고정업무" })), ...notes.filter((nn) => !nn.deleted).flatMap((nn) => (nn.files || []).map((f) => ({ ...f, by: nn.by, byName: nn.byName, uploadedAt: f.uploadedAt || nn.at, where: "댓글" })))];
   const oldNotes = oldMine.filter((n) => !n.deleted).sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
-  return <Sheet title="고정업무" kind="고정업무" head={fxLabel(t, cu.id)} path={`반복 · ${fxRecurL(t)}`} onBack={onBack} onClose={onClose} foot={mine ? <Big tone={me ? "white" : "navy"} onClick={() => A.fxToggle(t)}>{me ? "✓ 체크 취소" : fxDoneWord(t)}</Big> : null}>
+  return <Sheet title={isRt ? "반복 실행" : "고정업무"} kind={isRt ? "반복 실행" : "고정업무"} head={fxLabel(t, cu.id)} path={pathL} onBack={onBack} onClose={onClose} foot={mine ? <Big tone={me ? "white" : "navy"} onClick={() => A.fxToggle(t)}>{me ? "✓ 체크 취소" : fxDoneWord(t)}</Big> : null}>
     <div style={{ fontSize: 13.5, color: C.sub, marginTop: 12 }}>{fxRecurL(t)} · {fxTime(t, cu.id) || "시간 상관없음"} · 담당 {people.length}명{t.paused ? " · 멈춤" : ""}</div>
+    {cyclePending(t) && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>주기 확인 필요{cg ? ` · 제안 ${({ daily: "매일", weekly: "매주", monthly: "매월" })[cg.rt]}(${cg.from} '${cg.word}')` : ""} · 관리자가 정해요</div>}
     {mine && subs.length > 0 && <><Head>체크리스트</Head><div className="v2-chips">{subs.map((x) => { const ok = fxHit(t, ((t.subDone || {})[cu.id] || {})[x.id], key); return <Chip key={x.id} on={ok} onClick={() => A.fxSub(t, x.id)}>{ok ? "✓ " : ""}{x.title}</Chip>; })}</div></>}
-    {(mine || isMaster(cu)) && <RecurEdit t={t} A={A} />}
-    {isMaster(cu) && <FxOwners t={t} D={D} A={A} setToast={setToast} />}
+    <FxMore t={t} D={D} cu={cu} A={A} focus={focus} mine={mine} canRecur={canRecur} canCommon={canCommon} canScope={canScope} master={master} setToast={setToast} />
     <Head>누가 했나</Head>
     <Card>{people.length === 0 ? <Empty>담당이 없어요</Empty> : people.map((uid, i) => { const ok = fxMeDone(t, uid, key), at = t.doneAtBy && t.doneAtBy[uid];
       return <div key={uid} style={{ display: "flex", gap: 10, padding: "11px 14px", borderBottom: i < people.length - 1 ? `1px solid ${C.line}` : "none", fontSize: 14 }}><b style={{ flex: 1, color: C.text }}>{nameOf(D.users, uid) || uid}</b><span style={{ color: ok ? C.green : C.mute, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{ok ? `✓ ${hm(at)}` : `아직${fxTime(t, uid) ? ` (예정 ${fxTime(t, uid)})` : ""}`}</span></div>; })}</Card>
@@ -325,9 +331,70 @@ export function FixedSheet({ D, cu, A, onBack, onClose, id, focus, setToast }) {
   </Sheet>;
 }
 
+// 고정업무·반복 실행 설정 [더 하기 ▾] — 드문 동작: 체크리스트 고치기 · 보이는 이름·내 시간 · 브랜드·개인 바꾸기 · 반복·시간 · 담당(관리자)
+function FxMore({ t, D, cu, A, focus, mine, canRecur, canCommon, canScope, master, setToast }) {
+  const [more, setMore] = useState(false), [mode, setMode] = useState(focus === "owners" && master ? "owners" : "");   // 관리자 '담당 없는 고정업무'에서 열면 담당 고르기 바로
+  const go = (m) => { setMore(false); setMode(m); }, done = () => setMode("");
+  const any = mine || canCommon || canScope || canRecur || master;
+  if (!any) return null;
+  return <div style={{ marginTop: 10 }}>
+    <TBtn onClick={() => { setMore(!more); setMode(""); }} aria-expanded={more}>{more ? "접기 ▴" : "더 하기 ▾"}</TBtn>
+    {more && <div className="v2-more" role="group" aria-label="더 하기">
+      {(mine || canCommon) && <TBtn v="soft" onClick={() => go("subs")}>체크리스트 고치기</TBtn>}
+      {mine && <TBtn v="soft" onClick={() => go("label")}>보이는 이름 · 내 시간</TBtn>}
+      {canScope && <TBtn v="soft" onClick={() => go("scope")}>브랜드·개인 바꾸기</TBtn>}
+      {canRecur && <TBtn v="soft" onClick={() => go("recur")}>반복 · 시간</TBtn>}
+      {master && <TBtn v="soft" onClick={() => go("owners")}>담당 바꾸기</TBtn>}
+    </div>}
+    {mode === "subs" && <SubsEdit t={t} cu={cu} A={A} canMine={mine} canCommon={canCommon} onDone={done} />}
+    {mode === "label" && <LabelEdit t={t} cu={cu} A={A} onDone={done} />}
+    {mode === "scope" && <ScopeEdit t={t} D={D} A={A} onDone={done} />}
+    {mode === "recur" && <RecurEdit t={t} A={A} onDone={done} />}
+    {mode === "owners" && <FxOwners t={t} D={D} A={A} setToast={setToast} onDone={done} />}
+  </div>;
+}
+// 체크리스트 고치기: [공통 | 내 것] · 칩 ✕ 로 빼기 · 입력 + [추가](Enter 도) · 저장(공통은 transaction 으로 통째 · 내 것은 내 칸만) · 같은 항목은 id 그대로(체크 기록 이어짐)
+function SubsEdit({ t, cu, A, canMine, canCommon, onDone }) {
+  const [who, setWho] = useState(canCommon ? "*" : cu.id);
+  const init = (w) => (((t.subsBy || {})[w]) || []).filter((x) => x && x.title).map((x) => ({ id: x.id, title: x.title }));
+  const [list, setList] = useState(() => init(canCommon ? "*" : cu.id)), [v, setV] = useState("");
+  const pick = (w) => { setWho(w); setList(init(w)); setV(""); };
+  const add = () => { const x = v.trim(); if (!x) return; setList([...list, { id: newId("s"), title: x }]); setV(""); };
+  const save = async () => { const extra = v.trim() ? [{ id: newId("s"), title: v.trim() }] : []; const ok = await A.setSubs(t, who, [...list, ...extra]); if (ok) onDone(); };
+  const common = init("*");
+  return <Card style={{ marginTop: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+    {canCommon && canMine && <Seg items={[["*", "공통"], [cu.id, "내 것"]]} value={who} onChange={pick} />}
+    <div style={{ fontSize: 12.5, color: C.sub }}>{who === "*" ? "담당 모두에게 보이는 목록이에요" : `나만 보는 목록이에요 · 비우면 공통 목록${common.length ? `(${common.map((x) => x.title).join(" · ")})` : ""}을 써요`}</div>
+    {list.length > 0 ? <div className="v2-chips">{list.map((x, i) => <Chip key={x.id || i} on onClick={() => setList(list.filter((_, j) => j !== i))}>{x.title} ✕</Chip>)}</div> : <div style={{ fontSize: 13, color: C.mute }}>항목이 없어요</div>}
+    <div style={{ display: "flex", gap: 8 }}><input value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} placeholder="새 항목" aria-label="체크리스트 항목" style={{ ...inp, flex: 1, minWidth: 0, padding: "9px 12px" }} /><TBtn onClick={add} disabled={!v.trim()}>추가</TBtn></div>
+    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><TBtn tone="mute" onClick={onDone}>그만</TBtn><TBtn v="solid" onClick={save}>저장 · {list.length + (v.trim() ? 1 : 0)}개</TBtn></div>
+  </Card>;
+}
+// 보이는 이름 · 내 시간 (나만 · labelBy.<나> · timeBy.<나>) — 비우면 공통 이름·시간
+function LabelEdit({ t, cu, A, onDone }) {
+  const [l, setL] = useState(((t.labelBy || {})[cu.id]) || ""), [tm, setTm] = useState(((t.timeBy || {})[cu.id]) || "");
+  const save = () => { if (l.trim() !== (((t.labelBy || {})[cu.id]) || "")) A.setMine(t, "labelBy", l); if (tm !== (((t.timeBy || {})[cu.id]) || "")) A.setMine(t, "timeBy", tm); onDone(); };
+  return <Card style={{ marginTop: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+    <label style={{ fontSize: 13, fontWeight: 800, color: C.ink }}>보이는 이름 <span style={{ color: C.mute, fontWeight: 700 }}>(나만)</span><input value={l} onChange={(e) => setL(e.target.value)} placeholder={t.title} aria-label="보이는 이름" style={{ ...inp, marginTop: 6, padding: "9px 12px" }} /></label>
+    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 800, color: C.ink, flexWrap: "wrap" }}>내 시간 <input type="time" aria-label="내 시간" className="v2-sel" value={tm} onChange={(e) => setTm(e.target.value)} />{tm && <TBtn onClick={() => setTm("")}>지우기</TBtn>}<span style={{ fontSize: 12, color: C.mute, fontWeight: 700 }}>비우면 {t.fixedTime || "시간 상관없음"}</span></label>
+    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><TBtn tone="mute" onClick={onDone}>그만</TBtn><TBtn v="solid" onClick={save}>저장</TBtn></div>
+  </Card>;
+}
+// 브랜드·개인 바꾸기 — 1탭 · 5초 되돌리기 (반복 실행 = 브랜드 · 공통 운영 / 고정업무 = 개인)
+function ScopeEdit({ t, D, A, onDone }) {
+  const sc = scopeOf(t), cur = sc === "me" ? "me" : sc === "brand" ? brandKey(t.brand, D.brands) : "";
+  const pick = async (k) => { if (k === cur) return; const ok = await A.setScopes([{ t, pick: k }]); if (ok) onDone(); };
+  return <Card style={{ marginTop: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ fontSize: 12.5, color: C.sub }}>반복 실행이면 브랜드를, 나만 챙기는 일이면 [개인]을 골라요</div>
+    <div className="v2-chips" role="group" aria-label="브랜드·개인">{[...brandsWithCommon(D.brands).map((b) => [b.id, b.name]), ["me", "개인"]].map(([k, l]) => <Chip key={k} on={k === cur} onClick={() => pick(k)}>{k === cur ? "✓ " : ""}{l}</Chip>)}</div>
+    <div style={{ display: "flex", justifyContent: "flex-end" }}><TBtn tone="mute" onClick={onDone}>그만</TBtn></div>
+  </Card>;
+}
 // 고정업무 담당 바꾸기 (마스터) — 여러 명 고르기 또는 '전체' · 사람마다 정한 시간·이름·체크 기록은 지우지 않음 · 5초 되돌리기
-function FxOwners({ t, D, A, setToast }) {
-  const users = activeUsers(D.users), [on, setOn] = useState(false), [sel, setSel] = useState([]), [all, setAll] = useState(false);
+function FxOwners({ t, D, A, setToast, onDone }) {
+  const users = activeUsers(D.users), [on, setOn0] = useState(false), [sel, setSel] = useState([]), [all, setAll] = useState(false);
+  const setOn = (v) => { setOn0(v); if (!v && onDone) onDone(); };
+  useEffect(() => { if (onDone) { setSel(fxIds(t).filter((id) => users.some((u) => u.id === id))); setAll(!!t.forAll); setOn0(true); } }, []);
   if (!on) return <div style={{ marginTop: 4 }}><TBtn onClick={() => { setSel(fxIds(t).filter((id) => users.some((u) => u.id === id))); setAll(!!t.forAll); setOn(true); }}>담당 바꾸기 ›</TBtn></div>;
   const names = all ? "전체" : sel.map((id) => nameOf(D.users, id)).filter(Boolean).join("·");
   const save = () => { const prev = { assigneeIds: t.assigneeIds || [], assigneeId: t.assigneeId || "", forAll: !!t.forAll };
@@ -342,8 +409,9 @@ function FxOwners({ t, D, A, setToast }) {
   </Card>;
 }
 // 고정업무 반복·시간 바꾸기 (담당·마스터) — 매일 / 매주(요일 여러 개) / 매월(1~31일 · 말일(평일)). 바뀐 칸만 저장 + 기록에 이전 값
-function RecurEdit({ t, A }) {
-  const [on, setOn] = useState(false);
+function RecurEdit({ t, A, onDone }) {
+  const [on, setOn0] = useState(!!onDone);
+  const setOn = (v) => { setOn0(v); if (!v && onDone) onDone(); };
   const init = () => ({ rt: t.recurType || "daily", wd: fxWeekDays(t), mday: t.monthEnd ? "end" : String(t.monthDay || 1), time: t.fixedTime || "" });
   const [f, setF] = useState(init);
   const key = ymd(new Date());

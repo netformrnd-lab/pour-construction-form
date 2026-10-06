@@ -20,7 +20,7 @@ export function SheetRouter({ s, depth, extra, ...ctx }) {
 function route(s, p, extra) {
   if (extra && extra[s.type]) return extra[s.type](p, s);
   if (s.type === "task") return <TaskGate {...p} id={s.id} focus={s.focus} />;
-  if (s.type === "fixed") return <FixedSheet {...p} id={s.id} />;
+  if (s.type === "fixed") return <FixedSheet {...p} id={s.id} focus={s.focus} />;
   if (s.type === "project") { const x = (p.D.projects || []).find((q) => q.id === s.id); if (x && x.locked) return <LockSheet D={p.D} x={x} kind="project" onBack={p.onBack} onClose={p.onClose} />;
     return <ProjectSheet {...p} id={s.id} first={s.first} st={s} />; }
   if (s.type === "person") return <PersonSheet {...p} id={s.id} />;

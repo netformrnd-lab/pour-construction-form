@@ -480,6 +480,10 @@ export const projNoteId = (id) => "proj:" + id;
 
 // ── 새 id ──
 export const newId = (pre) => pre + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+// 그로홈 대시보드 바로가기 (③ 2단계 · 그로홈 그로스보드 업무 = 업무OS 업무 · 프로젝트 gh_kpi_<KPI>) — 그로홈 쪽 ?m=kpi.growthBoard&t=<업무 id>
+export const GH_DASH = "https://grohome-dashboard.web.app/";
+export const isGhProj = (pid) => String(pid || "").startsWith("gh_kpi_");
+export const ghDashUrl = (taskId) => `${GH_DASH}?m=kpi.growthBoard${taskId ? "&t=" + encodeURIComponent(taskId) : ""}`;
 
 // ── v1 → v2 복사 계획 (읽기만 한 v1 데이터 → v2 문서 목록) ──
 // v1 키(pour-os/state-<키>) 를 v2 의 같은 이름 칸으로. meta·savelock 은 저장 장치라 옮기지 않음.

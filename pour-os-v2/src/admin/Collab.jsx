@@ -6,10 +6,10 @@ import { useMemo, useRef, useState } from "react";
 import { md, ymd } from "../model.js";
 import { collabOf, partnersOf, kindsSorted, loners, circleLayout, shortName, clip, textW, KINDS, KIND_L, LOADED_DAYS } from "../collab.js";
 import { LOCK_T } from "../secret.js";
+import { savePng, SVG_FONT as FONT, fileSafe } from "../svgpng.js";
 import { C, Chip, TBtn, Card, Empty, useLocal } from "../ui.jsx";
 import { LS } from "../core.jsx";
 
-const FONT = "Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
 const TEAM_FILL = { "1팀": "#FFFFFF", "2팀": "#EEF1F8", "3팀": "#DCE3F3", "공용": "#F4F5F8" };
 const teamFill = (t) => TEAM_FILL[t] || "#FFFFFF";
 const kindLine = (by, max = 6) => kindsSorted(by).slice(0, max).map(([k, n]) => `${KIND_L[k]} ${n}`).join(" · ");
@@ -26,7 +26,7 @@ export function CollabTab({ D, cu, idx, open }) {
   const sum = C2.pairs.reduce((s, P) => s + P.n, 0);
   const sub = `최근 ${days}일 · ${kind === "all" ? KINDS.map((k) => k[1]).join(" · ") : KIND_L[kind] + "만"}`;
   // 파일 이름 한글: 협업맵_<이름|팀>_<n>일_<날짜>.png (Blob + a.download · 브라우저가 그대로 씀 · 파일 이름에 못 쓰는 글자만 뺌)
-  const save = () => savePng(svgRef.current, `협업 맵 · ${me ? me.name : "팀 전체"} · 최근 ${days}일${kind === "all" ? "" : " · " + KIND_L[kind] + "만"} · ${ymd(new Date())} 기준`, `협업맵_${me ? String(me.name || me.id).replace(/[\\/:*?"<>|\s]+/g, "") || "사람" : "팀"}_${days}일_${ymd(new Date())}.png`);
+  const save = () => savePng(svgRef.current, `협업 맵 · ${me ? me.name : "팀 전체"} · 최근 ${days}일${kind === "all" ? "" : " · " + KIND_L[kind] + "만"} · ${ymd(new Date())} 기준`, `협업맵_${me ? fileSafe(me.name || me.id, "사람") : "팀"}_${days}일_${ymd(new Date())}.png`);
   return <div className="cm-wrap">
     <Card style={{ padding: "14px 14px 12px", marginTop: 6 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
@@ -181,27 +181,4 @@ function MapSvg({ me, ps, svgRef, sel, onPick }) {
       </g>; })}
     {rest > 0 && <text x={PX} y={H - 10} fontSize="12" fill="#8A92A3">그 밖 {rest}명 · {ps.slice(8).map((p) => p.name).slice(0, 4).join(" · ")}{rest > 4 ? " …" : ""}</text>}
   </svg>;
-}
-
-// 지금 보이는 그림 → PNG 내려받기 (밖으로 보내는 것 없음 · 외부 라이브러리 없음)
-//  caption = 그림 위 한 줄(무엇을 · 언제) — 저장한 그림만 봐도 알 수 있게
-export function savePng(svg, caption, name) {
-  if (!svg) return;
-  const NS = "http://www.w3.org/2000/svg", TOP = 40;
-  const vb = (svg.getAttribute("viewBox") || "0 0 720 540").split(/\s+/).map(Number), w = vb[2], h = vb[3] + TOP, k = 2;
-  const cl = document.createElementNS(NS, "svg"); cl.setAttribute("xmlns", NS); cl.setAttribute("viewBox", `0 0 ${w} ${h}`); cl.setAttribute("width", w); cl.setAttribute("height", h); cl.setAttribute("font-family", FONT);
-  const bg = document.createElementNS(NS, "rect"); bg.setAttribute("width", w); bg.setAttribute("height", h); bg.setAttribute("fill", "#FFFFFF"); cl.appendChild(bg);
-  const tx = document.createElementNS(NS, "text"); tx.setAttribute("x", 16); tx.setAttribute("y", 26); tx.setAttribute("font-size", 14); tx.setAttribute("font-weight", 800); tx.setAttribute("fill", "#0F1F5C"); tx.textContent = clip(caption, 14, w - 32); cl.appendChild(tx);
-  const g = document.createElementNS(NS, "g"); g.setAttribute("transform", `translate(0,${TOP})`); [...svg.childNodes].forEach((n) => g.appendChild(n.cloneNode(true))); cl.appendChild(g);
-  const src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(cl));
-  const img = new Image();
-  img.onload = () => {
-    const cv = document.createElement("canvas"); cv.width = w * k; cv.height = h * k;
-    const g = cv.getContext("2d"); g.fillStyle = "#FFFFFF"; g.fillRect(0, 0, cv.width, cv.height); g.scale(k, k); g.drawImage(img, 0, 0, w, h);
-    const done = (url) => { const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); };
-    if (cv.toBlob) cv.toBlob((b) => { if (!b) { done(cv.toDataURL("image/png")); return; } const u = URL.createObjectURL(b); done(u); setTimeout(() => URL.revokeObjectURL(u), 4000); }, "image/png");
-    else done(cv.toDataURL("image/png"));
-  };
-  img.onerror = (e) => console.error("[협업 맵] 그림 만들기 실패:", e);
-  img.src = src;
 }

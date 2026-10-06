@@ -3,12 +3,15 @@
 // 큰 가지 번호 = 앞 일 순서(deps·흐름 단계·기한). 신제품은 7단계가 큰 가지
 // 결정 업무(decision): 하위 업무(option)를 '안'으로 비교 → [이 안으로 정하기] → 정한 안·이유·날짜 기록, 안 고른 안은 보류(지우지 않음), 결정 업무는 끝냄
 // 끌어서 순서 바꾸기는 하지 않음(실수 방지) — 순서는 업무 보기 [앞 일 바꾸기]로
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ymd, md, ddays, ddayLabel, nameOf, isDone, isMine, ownersOf, dueOf, riskOf, isMaster, addDays, nextWorkday } from "./model.js";
 import { LAUNCH_PHASES } from "./launch.js";
 import { turnOf, predsOf } from "./turn.js";
 import { phaseStates } from "./views.js";
-import { C, Act, TBtn, Card, Empty, inp } from "./ui.jsx";
+import { C, Act, TBtn, Card, Empty, Seg, inp, useLocal } from "./ui.jsx";
+import { LS } from "./core.jsx";
+import { visibleTree, layoutTree, curve, defaultView, MM } from "./mmlayout.js";
+import { savePng, clip, textW, fileSafe, SVG_FONT } from "./svgpng.js";
 
 const PH_SHORT = { plan: "기획", sample: "샘플", pack: "패킹", content: "콘텐츠", channel: "채널 등록", stock: "창고 입고", promo: "출시 홍보" };
 const who = (D, t) => nameOf(D.users, ownersOf(t)[0]) || t.ownerText || "담당 없음";
@@ -67,8 +70,20 @@ export function DecisionBlock({ D, cu, A, t, open, compact }) {
   </div>;
 }
 
-// 마인드맵 (프로젝트 한 장의 탭)
-export function MindMap({ D, cu, A, open, p, idx, launch }) {
+// 마인드맵 (프로젝트 한 장의 탭) — [계층 | 마인드맵] 두 보기 (기기마다 기억 · 처음엔 폰 계층 · PC 마인드맵)
+export function MindMap(props) {
+  const [saved, setView] = useLocal(LS("mmview"), null);
+  const view = defaultView(saved, typeof window !== "undefined" ? window.innerWidth : 1280);
+  return <div className="mm-wrap">
+    <div className="mm-seg"><Seg items={[["tree", "계층"], ["map", "마인드맵"]]} value={view} onChange={setView} /></div>
+    {view === "map" ? <RightMap {...props} /> : <TreeMap {...props} />}
+  </div>;
+}
+
+const Legend = () => <div className="mm-legend"><span><i className="done" />끝남</span><span><i className="doing" />하는 중</span><span><i className="wait" />앞 일 기다림</span><span><i className="hold" />보류</span><span><i className="late" />지남·막힘</span></div>;
+
+// 계층형 (예전 그대로)
+function TreeMap({ D, cu, A, open, p, idx, launch }) {
   const key = ymd(new Date());
   const [sel, setSel0] = useState("root"), [more, setMore] = useState({}), [nt, setNt] = useState(""), [after, setAfter] = useState(true), [kt, setKt] = useState("");
   // 가지를 누르면 요약 칸으로 (세로형일 때 요약이 지도 아래에 있어서)
@@ -119,8 +134,8 @@ export function MindMap({ D, cu, A, open, p, idx, launch }) {
         <div style={{ fontSize: 12, color: C.mute, marginTop: 8, lineHeight: 1.5 }}>가지를 누르면 그 업무를 늘리거나 열 수 있어요. 가지 = 업무라 달력·오늘에도 같이 나와요.</div>
       </> : <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6, lineHeight: 1.5 }}>신제품은 7단계가 큰 가지예요. 항목을 누르면 열거나 다음 단계를 붙일 수 있어요.</div>}
     </Card>;
-  return <div className="mm-wrap">
-    <div className="mm-legend"><span><i className="done" />끝남</span><span><i className="doing" />하는 중</span><span><i className="wait" />앞 일 기다림</span><span><i className="hold" />보류</span><span><i className="late" />지남·막힘</span></div>
+  return <>
+    <Legend />
     <div className="mm-grid">
       <div className="mm-map" role="tree" aria-label={`${p.title} 마인드맵`}>
         <button type="button" className={"mm-n root" + (sel === "root" ? " sel" : "")} onClick={() => setSel("root")}><span className="mm-t">{p.title}</span><span className="mm-s">{[nameOf(D.users, p.assigneeId) ? "책임 " + nameOf(D.users, p.assigneeId) : "", (p.launchDate || p.dueDate) ? (launch ? "출시 " : "마감 ") + md(p.launchDate || p.dueDate) : ""].filter(Boolean).join(" · ")}</span></button>
@@ -134,5 +149,133 @@ export function MindMap({ D, cu, A, open, p, idx, launch }) {
       </div>
       <div className="mm-side">{panel}</div>
     </div>
-  </div>;
+  </>;
+}
+
+// ── 오른쪽으로 뻗는 마인드맵 (시안 step11 · 사용자 확정 2026-10-05~06) ──
+// 왼쪽 프로젝트 → 큰 가지(앞 일 순서 번호 · 신제품 = 7단계) → 작은 가지(하위 업무) · 곡선 연결
+// 가지를 누르면 그 업무 시트 · 오른쪽 작은 칸(‹ / +n)을 누르면 접기·펼치기 · 9개 이상은 8개 + '+n개 더'
+// 칸 안에서만 밀림(옆·아래 · PC 는 끌어서) · [화면에 맞추기] · [그림으로 저장] PNG · 쓰기 없음
+const NST = {
+  "": { fill: "#FFFFFF", stroke: "#D5DBE8", sw: 1.5, t: "#1B2333", s: "#5B6475" },
+  done: { fill: "#E7ECF7", stroke: "#E7ECF7", sw: 1.5, t: "#24386B", s: "#5B6475" },
+  doing: { fill: "#FFFFFF", stroke: "#24386B", sw: 2.2, t: "#1B2333", s: "#5B6475" },
+  wait: { fill: "#FFFFFF", stroke: "#B7BFD0", sw: 1.5, dash: "5 4", t: "#5B6475", s: "#8A92A3" },
+  hold: { fill: "#F4F5F8", stroke: "#D5D9E2", sw: 1.5, t: "#8A92A3", s: "#8A92A3" },
+  late: { fill: "#FFFFFF", stroke: "#B4383F", sw: 2.2, t: "#1B2333", s: "#B4383F" },
+};
+const phState = (ph) => (ph.state === "done" ? "done" : ph.state === "late" ? "late" : ph.state === "cur" ? "doing" : "wait");
+
+// 나무 만들기 (이미 불러온 업무만 · 저장 없음)
+export function mindTree({ D, p, idx, launch, key }) {
+  const all = (D.tasks || []).filter((t) => t.projectId === p.id && !t.isFixed);
+  const byId = new Map(all.map((t) => [t.id, t]));
+  const kidsBy = new Map(); all.forEach((t) => { if (t.parentId && byId.has(t.parentId)) { if (!kidsBy.has(t.parentId)) kidsBy.set(t.parentId, []); kidsBy.get(t.parentId).push(t); } });
+  const isTop = (t) => !t.parentId || !byId.has(t.parentId);
+  const tnode = (t, seen, num) => { if (seen.has(t.id)) return null; const s2 = new Set(seen).add(t.id);
+    const ks = orderTasks(kidsBy.get(t.id) || [], idx).map((k) => tnode(k, s2)).filter(Boolean);
+    return { id: t.id, kind: "task", t, num, st: nodeState(t, idx, key), kids: ks }; };
+  const kids = launch
+    ? phaseStates(all.filter((t) => t.launchItem), key).map((ph, i) => ({ ph, i, ts: orderTasks(all.filter((t) => t.phase === ph.k && isTop(t)), idx) })).filter((x) => x.ts.length)
+      .map((x, j) => ({ id: "ph:" + x.ph.k, kind: "phase", ph: x.ph, num: j + 1, st: phState(x.ph), kids: x.ts.map((t) => tnode(t, new Set())).filter(Boolean) }))
+    : orderTasks(all.filter(isTop), idx).map((t, i) => tnode(t, new Set(), i + 1)).filter(Boolean);
+  return { id: "root", kind: "root", kids, count: all.length };
+}
+const nodeDone = (n) => (n.kind === "phase" ? n.ph.state === "done" : n.kind === "task" ? isDone(n.t) : false);
+
+function RightMap({ D, cu, A, open, p, idx, launch }) {
+  const key = ymd(new Date());
+  const tree = useMemo(() => mindTree({ D, p, idx, launch, key }), [D, p, idx, launch, key]);
+  // 접기: 기본 = 신제품의 다 끝난 단계만 접음 · 사람이 누른 것은 fold[id] 로 · 모두 펼치기 = all
+  const [fold, setFold] = useState({}), [more, setMore] = useState({}), [all, setAll] = useState(false), [fit, setFit] = useState(false);
+  const isFold = (n) => (fold[n.id] != null ? fold[n.id] : !all && n.kind === "phase" && n.ph.state === "done");
+  const vt = visibleTree(tree, isFold, (n) => all || !!more[n.id]);
+  const maxH = typeof window !== "undefined" ? Math.min(Math.round(window.innerHeight * 0.7), 760) : 600;
+  const L = layoutTree(vt, { rootMax: Math.max(120, Math.round(maxH / 2) - 20) });
+  const box = useRef(null), svgRef = useRef(null), drag = useRef(null);
+  const [bw, setBw] = useState(0);
+  useEffect(() => { const m = () => box.current && setBw(box.current.clientWidth); m(); window.addEventListener("resize", m); return () => window.removeEventListener("resize", m); }, []);
+  const sc = fit && bw ? Math.min(1, (bw - 4) / L.W, (maxH - 4) / L.H) : 1;
+  const toggle = (n) => setFold({ ...fold, [n.id]: !isFold(n) });
+  const foldDone = () => { const f = {}; const walk = (n) => { (n.kids || []).forEach((k) => { if ((k.kids || []).length) f[k.id] = nodeDone(k); walk(k); }); }; walk(tree); setAll(false); setMore({}); setFold(f); };
+  const openAll = () => { setAll(true); setFold({}); };
+  const tap = (n) => { if (n.kind === "task") open({ type: "task", id: n.t.id }); else if (n.kind === "phase") toggle(n); else if (n.kind === "more") setMore({ ...more, [n.parentId]: true }); };
+  const save = () => savePng(svgRef.current, `마인드맵 · ${p.title} · ${key} 기준`, `마인드맵_${fileSafe(p.title, "프로젝트")}_${key}.png`);
+  // PC 마우스로 끌어서 밀기 (손가락은 원래 밀림) · 끌었으면 누름으로 안 침
+  const onDown = (e) => { if (e.pointerType !== "mouse" || e.button !== 0) return; const b = box.current; drag.current = { x: e.clientX, y: e.clientY, l: b.scrollLeft, t: b.scrollTop, moved: false }; };
+  const onMove = (e) => { const d = drag.current; if (!d) return; const dx = e.clientX - d.x, dy = e.clientY - d.y; if (!d.moved && Math.abs(dx) + Math.abs(dy) < 5) return; d.moved = true; box.current.scrollLeft = d.l - dx; box.current.scrollTop = d.t - dy; };
+  const onUp = () => { const d = drag.current; drag.current = null; if (d && d.moved) { box.current.__moved = true; setTimeout(() => { if (box.current) box.current.__moved = false; }, 0); } };
+  const onClickCap = (e) => { if (box.current && box.current.__moved) { e.stopPropagation(); e.preventDefault(); } };
+
+  const rootSub = [nameOf(D.users, p.assigneeId) ? "책임 " + nameOf(D.users, p.assigneeId) : "", (p.launchDate || p.dueDate) ? (launch ? "출시 " : "마감 ") + md(p.launchDate || p.dueDate) : ""].filter(Boolean).join(" · ");
+  const subOf = (n) => { if (n.kind === "phase") return n.ph.state === "done" ? "다 끝남" : `남은 ${n.ph.left} / ${n.ph.total}`;
+    const t = n.t, d = dueOf(t), r = riskOf(t, key);
+    const tag = t.decision ? (t.decided ? "정함 → " + t.decided.title : "결정 대기") : t.option && t.optDropped ? "보류" : "";
+    return [isDone(t) ? "✓" + (d ? " " + md(d) : "") : "", who(D, t), !isDone(t) && d ? md(d) + (r && r.red ? " · " + r.label : "") : "", tag].filter(Boolean).join(" · "); };
+  const titleOf = (n) => (n.kind === "phase" ? PH_SHORT[n.ph.k] || n.ph.name : n.t.title);
+  const pill = (n) => { const ks = n.kids || []; if (!ks.length) return ""; if (n.kind === "phase") return `${n.ph.total - n.ph.left}/${n.ph.total}`; return `${ks.filter(nodeDone).length}/${ks.length}`; };
+  const lateTo = (n) => n.st === "late";
+  const kb = (fn) => (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fn(); } };
+
+  return <>
+    <Legend />
+    <div className="mm-rmap">
+      <div ref={box} className={"mm-rbox" + (fit ? " fit" : "")} style={{ maxHeight: maxH }} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp} onClickCapture={onClickCap}>
+        <svg ref={svgRef} viewBox={`0 0 ${L.W} ${L.H}`} width={Math.round(L.W * sc)} height={Math.round(L.H * sc)} className="mm-svg" role="group" aria-label={`${p.title} 마인드맵 (오른쪽으로 뻗는 보기)`} xmlns="http://www.w3.org/2000/svg" fontFamily={SVG_FONT}>
+          <rect x="0" y="0" width={L.W} height={L.H} fill="#FFFFFF" />
+          {L.edges.map(({ from: a, to: b }) => { const hasT = a.kind !== "root" && a.total > 0, x1 = a.x + a.w + (hasT ? 30 : 0);
+            return <path key={a.id + ">" + b.id} d={curve(x1, a.y + a.h / 2, b.x, b.y + b.h / 2)} fill="none" stroke={lateTo(b) ? "#D89A9E" : a.kind === "root" ? "#9AA6C4" : "#C3CBDD"} strokeWidth={a.kind === "root" ? 1.7 : 1.4} />; })}
+          {L.nodes.map((n) => {
+            if (n.kind === "root") return <g key="root" className="mm-node root" aria-label={`프로젝트 ${p.title}`}>
+              <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="12" fill="#0F1F5C" />
+              <text x={n.x + 12} y={n.y + 19} fontSize="13.5" fontWeight="800" fill="#FFFFFF">{clip(p.title, 13.5, n.w - 22)}</text>
+              <text x={n.x + 12} y={n.y + 36} fontSize="11" fontWeight="700" fill="#C9D3F2">{clip(rootSub || `업무 ${tree.count}`, 11, n.w - 22)}</text>
+            </g>;
+            if (n.kind === "more") return <g key={n.id} role="button" tabIndex={0} className="mm-node more" aria-label={`${n.n}개 더 보기`} onClick={() => tap(n)} onKeyDown={kb(() => tap(n))}>
+              <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="10" fill="#EEF1F8" stroke="#D5DBE8" strokeWidth="1.2" />
+              <text x={n.x + 12} y={n.y + 22} fontSize="12.5" fontWeight="800" fill="#24386B">+{n.n}개 더 ▾</text>
+            </g>;
+            const S = NST[n.st] || NST[""], pl = pill(n), pw = pl ? textW(pl, 11) + 12 : 0, nw = n.num != null ? 22 : 0;
+            const title = titleOf(n), sub = subOf(n);
+            return <g key={n.id} data-id={n.id}>
+              <g role="button" tabIndex={0} className="mm-node" aria-label={`${n.num != null ? n.num + " " : ""}${title}${sub ? " · " + sub : ""}`} onClick={() => tap(n)} onKeyDown={kb(() => tap(n))}>
+                <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="11" fill={S.fill} stroke={S.stroke} strokeWidth={S.sw} strokeDasharray={S.dash || undefined} />
+                {n.num != null && <><circle cx={n.x + 19} cy={n.y + 15} r="8.5" fill="#24386B" /><text x={n.x + 19} y={n.y + 19} textAnchor="middle" fontSize="10.5" fontWeight="800" fill="#FFFFFF">{n.num}</text></>}
+                <text x={n.x + 11 + nw} y={n.y + 19} fontSize="13" fontWeight="800" fill={S.t}>{clip(title, 13, n.w - 22 - nw - (pw ? pw + 6 : 0))}</text>
+                {pl && <><rect x={n.x + n.w - pw - 8} y={n.y + 7} width={pw} height="17" rx="8.5" fill={n.st === "done" ? "#FFFFFF" : "#EEF1F8"} /><text x={n.x + n.w - 8 - pw / 2} y={n.y + 19.5} textAnchor="middle" fontSize="11" fontWeight="800" fill="#24386B">{pl}</text></>}
+                <text x={n.x + 11} y={n.y + 36} fontSize="11" fill={S.s}>{clip(sub, 11, n.w - 22)}</text>
+              </g>
+              {n.total > 0 && <g role="button" tabIndex={0} className="mm-node tog" aria-label={`${title} ${n.folded ? "펼치기" : "접기"}`} aria-expanded={!n.folded} onClick={() => toggle(n)} onKeyDown={kb(() => toggle(n))}>
+                <rect x={n.x + n.w + 4} y={n.y + n.h / 2 - 11} width="26" height="22" rx="11" fill={n.folded ? "#24386B" : "#FFFFFF"} stroke="#C3CBDD" strokeWidth="1.2" />
+                <text x={n.x + n.w + 17} y={n.y + n.h / 2 + 4} textAnchor="middle" fontSize={n.folded ? 10.5 : 12} fontWeight="800" fill={n.folded ? "#FFFFFF" : "#24386B"}>{n.folded ? "+" + n.total : "‹"}</text>
+              </g>}
+            </g>; })}
+        </svg>
+      </div>
+      {!tree.kids.length && <div className="mm-empty" style={{ padding: "8px 12px" }}>아직 가지가 없어요{launch ? "" : " · 아래에서 큰 가지를 넣어 주세요"}</div>}
+      <div className="mm-foot">
+        <TBtn onClick={() => setFit(!fit)}>{fit ? "원래 크기" : "화면에 맞추기"}</TBtn>
+        <TBtn onClick={openAll}>모두 펼치기</TBtn>
+        <TBtn onClick={foldDone}>끝낸 것 접기</TBtn>
+        <TBtn onClick={save}>그림으로 저장</TBtn>
+      </div>
+    </div>
+    <div className="mm-hint">가지를 누르면 그 업무 · 오른쪽 작은 칸(‹ · +n)을 누르면 접기·펼치기 · 그림은 이 칸 안에서 옆으로 밀어서 봐요</div>
+    {!launch && <AddBranch D={D} cu={cu} A={A} p={p} idx={idx} />}
+  </>;
+}
+
+// 큰 가지 넣기 (마인드맵 보기 아래 · 계층 보기의 '가지 추가'와 같은 쓰기)
+function AddBranch({ D, cu, A, p, idx }) {
+  const [nt, setNt] = useState(""), [after, setAfter] = useState(true);
+  const all = (D.tasks || []).filter((t) => t.projectId === p.id && !t.isFixed), ids = new Set(all.map((t) => t.id));
+  const tops = orderTasks(all.filter((t) => !t.parentId || !ids.has(t.parentId)), idx);
+  const lastTop = tops.filter((t) => !isDone(t)).slice(-1)[0] || tops.slice(-1)[0];
+  const add = () => { if (!nt.trim()) return; A.addTask({ title: nt, projectId: p.id, assigneeId: cu.id, dueDate: "", noReview: true, ...(after && lastTop ? { deps: [lastTop.id] } : {}) }); setNt(""); };
+  return <Card style={{ padding: "12px 14px", marginTop: 10 }}>
+    <div style={{ display: "flex", gap: 6 }}>
+      <input value={nt} onChange={(e) => setNt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) add(); }} placeholder="+ 큰 가지 (업무) 예: 생산 방안 정하기" aria-label="큰 가지 추가" style={{ ...inp, padding: "8px 10px", fontSize: 13.5 }} />
+      <Act onClick={add}>추가</Act></div>
+    {lastTop && <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: C.sub, marginTop: 8 }}><input type="checkbox" checked={after} onChange={(e) => setAfter(e.target.checked)} />'{lastTop.title}' 다음 순서로 (그 일이 끝나면 차례)</label>}
+  </Card>;
 }

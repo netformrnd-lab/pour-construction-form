@@ -151,6 +151,5 @@ export function circleLayout(people, cx, cy, r) {
 }
 // 짧은 이름 (원 안 글자): 세 글자 한국 이름 → 뒤 두 글자
 export const shortName = (s) => { const x = String(s || "").trim(); return /^[가-힣]{3}$/.test(x) ? x.slice(1) : x.slice(0, 4); };
-// SVG 글자 폭 어림 (한글 1em · 그 밖 0.6em)
-export const textW = (s, fs) => [...String(s || "")].reduce((w, ch) => w + (/[ㄱ-힣]/.test(ch) ? 1 : /[\s.·,]/.test(ch) ? 0.35 : 0.62) * fs, 0);
-export const clip = (s, fs, maxW) => { let x = String(s || ""); if (textW(x, fs) <= maxW) return x; while (x.length > 1 && textW(x + "…", fs) > maxW) x = x.slice(0, -1); return x + "…"; };
+// SVG 글자 폭 어림 · 자르기 = svgpng.js (협업 맵 · 마인드맵 공용)
+export { textW, clip } from "./svgpng.js";

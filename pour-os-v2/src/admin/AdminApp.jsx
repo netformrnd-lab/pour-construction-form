@@ -17,6 +17,7 @@ import { SettingsSheet, LaunchOrderSheet } from "./Settings.jsx";
 import { PersonAdmin } from "./PersonAdmin.jsx";
 import { HandOver } from "./HandOver.jsx";
 import { RoutineTab } from "./Routine.jsx";
+import { AddRoutineSheet, RecBookSheet } from "./RoutineAdd.jsx";
 import { KpiBoard, LagSheet, useGhRefresh, KpiEditSheet } from "../kpiui.jsx";
 import "./admin.css";
 
@@ -75,6 +76,8 @@ function AdminMain({ B }) {
     inbox: (p) => <InboxSheet {...p} TV={TV} setSeen={setSeen} />,
     lagInput: (p, s) => <LagSheet {...p} s={s} />,
     kpiEdit: (p, s) => <KpiEditSheet {...p} s={s} />,
+    addRoutine: (p) => <AddRoutineSheet {...p} />,   // [+ 반복 실행] (admin/RoutineAdd.jsx)
+    recBook: (p) => <RecBookSheet {...p} />,          // [기록 보기 ›]
   };
   const top = stack[stack.length - 1];
   return <div className="v2-app a-app">

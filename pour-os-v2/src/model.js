@@ -323,6 +323,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
       if (ment) hit = { taskId: ref, title: t ? t.title : "업무" };
       else if (t && (n.to === uid || isMine(t, uid) || reqOf(t) === uid || myProj.has(t.projectId) || (t.ccIds || []).includes(uid) || talked.has(n.itemId) || (n.handoff && predIds.has(ref)))) hit = { taskId: ref, title: t.title }; }
     else if (kind === "proj" && (ment || projAll.has(ref) || talked.has(n.itemId))) { const p = (D.projects || []).find((x) => x.id === ref); hit = { projectId: ref, title: p ? p.title : "프로젝트" }; }
+    else if (!rest.length && (ment || talked.has(n.itemId))) { const it = ((D.ak && D.ak.items) || []).find((x) => x && x.id === n.itemId); if (it) hit = { akId: it.id, title: it.name || "반복 실행" }; }   // 반복 실행(횟수 목표) 대화 — ':' 없는 itemId = 행동지표 id
     if (hit) inbox.push({ kind: ment ? "mention" : "note", tag: ment ? "@ 나를 부름" : "댓글", id: "nt:" + n.id, ...hit, who: n.by, whoName: n.byName, at: n.at, text: n.text });
   });
   const ORDER = { feedback: 0, review: 1, dueReq: 2, help: 2.5, mention: 2.8, link: 2.9, lagDue: 2.95, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, approved: 9, unblocked: 9, pinNew: 9.5, note: 10 };

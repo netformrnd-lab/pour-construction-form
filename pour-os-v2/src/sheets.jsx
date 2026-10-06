@@ -1,6 +1,7 @@
 // 업무OS v2 — 시트 길잡이 (실사용·관리자가 같이 씀). 같은 대상은 어디서 열어도 같은 시트
 import { Fragment } from "react";
-import { TaskSheet, FixedSheet } from "./task.jsx";
+import { TaskSheet } from "./task.jsx";
+import { RoutineSheet } from "./rtsheet.jsx";
 import { ProjectSheet, NewProjectSheet, DoneProjectsSheet } from "./project.jsx";
 import { PersonSheet, IssuesSheet, RiskSheet } from "./team.jsx";
 import { AddSheet, MineSheet, FocusTriage } from "./today.jsx";
@@ -20,7 +21,7 @@ export function SheetRouter({ s, depth, extra, ...ctx }) {
 function route(s, p, extra) {
   if (extra && extra[s.type]) return extra[s.type](p, s);
   if (s.type === "task") return <TaskGate {...p} id={s.id} focus={s.focus} />;
-  if (s.type === "fixed") return <FixedSheet {...p} id={s.id} focus={s.focus} />;
+  if (s.type === "fixed" || s.type === "routine") return <RoutineSheet {...p} type={s.type} id={s.id} focus={s.focus} />;   // 고정업무·정한 날 체크 / 횟수 목표 — 한 부품 (rtsheet.jsx)
   if (s.type === "project") { const x = (p.D.projects || []).find((q) => q.id === s.id); if (x && x.locked) return <LockSheet D={p.D} x={x} kind="project" onBack={p.onBack} onClose={p.onClose} />;
     return <ProjectSheet {...p} id={s.id} first={s.first} st={s} />; }
   if (s.type === "person") return <PersonSheet {...p} id={s.id} />;

@@ -7,6 +7,7 @@ import {
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf,
   scopeOf, brandLabel, brandsWithCommon, brandKey, cyclePending, cycleGuess, isRemoved, canRemoveFx, canRenameFx, canRenameTask, canRemoveNote, canFinish, canRemoveTask, canRestoreTask, taskKids,
+  roadOf, phaseOfTask, stageName, noStageL, canSetPhase, projLabel,
 } from "./model.js";
 import { RemoveAsk, RemovedNote, TaskRemoveAsk } from "./trash.jsx";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
@@ -81,15 +82,16 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
   const req = reqOf(t), reqName = nameOf(D.users, req), giver = req || (t.assignedBy && t.assignedBy !== cu.id ? t.assignedBy : ""), giverName = nameOf(D.users, giver), approver = dueApprover(t, D), canDue = canSetDue(t, cu.id, D, master);
   const review = t.status === "review", amReviewer = review && ((t.reviewTo || req) === cu.id || master);
   const risk = riskOf(t, key);
-  // 신제품 단계 바꾸기: 신제품 프로젝트의 직접 넣은 업무만(신제품 항목·하위 업무 빼고 — 하위 업무는 위 업무 단계를 따름) · 책임자·관리자·담당
-  const canPhase = !!p && String(p.id || "").startsWith("lb_") && !t.launchItem && !t.parentId && !done && (p.assigneeId === cu.id || master || mine);
+  // 단계 바꾸기(로드 · 2026-10-07): 로드 있는 모든 프로젝트(신제품·일반·흐름) · 직접 넣은 업무만(신제품 항목·하위 업무 빼고 — 하위 업무는 위 업무 단계를 따름) · 책임자·관리자·담당 · 끝낸 업무 빼고
+  const road = p ? roadOf(p, D) : null, phK = road ? phaseOfTask(t, p, D, null, road) : "", noSt = p ? noStageL(p) : "기타";
+  const canPhase = !!road && !done && canSetPhase(t, p, cu);
   // 메모 저장 — 고치는 사이 다른 사람이 먼저 저장했으면 겹친 글을 보여 주고 고르게 (내 글은 그대로 남음)
   const saveMemo = async (force) => { const r = await A.setMemo(t, memo, memoBase, force === true); if (r && r.conflict) setClash(r.cur); else if (r && r.ok) { setClash(null); setMode(""); } };
   const files = [...(t.attachments || []).map((f) => ({ ...f, where: "업무" })), ...notes.filter((nn) => !nn.deleted).flatMap((nn) => (nn.files || []).map((f) => ({ ...f, by: nn.by, byName: nn.byName, uploadedAt: f.uploadedAt || nn.at, where: "댓글" })))];
   const loadLogs = () => { if (logs == null) fb.fetchWhere("log", ["targetId", "==", t.id]).then(setLogs).catch((e) => { console.error(e); setLogs([]); }); };
   // 기록 한 줄의 '이전 → 이후' (담당 · 기한 · 시작 · 상태 · 참조 · 보류 다시 볼 날)
   const CH = { assigneeId: ["담당", (v) => nameOf(D.users, v) || "없음"], assigneeIds: null, dueDate: ["기한", (v) => md(v) || "미정"], startDate: ["시작", (v) => md(v) || "없음"], status: ["상태", (v) => STATUS_L[v] || (v === "review" ? "확인 대기" : v || "-")],
-    ccIds: ["참조", (v) => (v || []).map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "없음"], holdUntil: ["다시 볼 날", (v) => md(v) || "미정"], phase: ["단계", (v) => (phaseOf(v) || {}).name || "기타"], title: ["이름", (v) => v || "-"], priority: ["중요도", (v) => ({ high: "높음", mid: "보통", low: "낮음" })[v] || "보통"] };
+    ccIds: ["참조", (v) => (v || []).map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "없음"], holdUntil: ["다시 볼 날", (v) => md(v) || "미정"], phase: ["단계", (v) => stageName(road, v) || noSt], title: ["이름", (v) => v || "-"], priority: ["중요도", (v) => ({ high: "높음", mid: "보통", low: "낮음" })[v] || "보통"] };
   const chOf = (l) => (l.prev && l.next && typeof l.prev === "object" && !Array.isArray(l.prev) ? Object.keys(l.next).filter((k) => CH[k] && JSON.stringify(l.prev[k] ?? null) !== JSON.stringify(l.next[k] ?? null)).map((k) => ({ k, l: CH[k][0], a: CH[k][1](l.prev[k]), b: CH[k][1](l.next[k]) })) : []);
   const hist = [...(t.statusLog || []).map((s, i) => ({ id: "s" + i, at: s.at, who: s.byName || nameOf(D.users, s.by), text: s.reopen ? "다시 엶" : STATUS_L[s.status] || (s.status === "review" ? "확인 요청" : s.status) })),
     ...(logs || []).map((l) => ({ id: l.id, at: l.at, who: l.byName, ch: chOf(l), text: (LOG_L[l.action] || l.action) + (l.label && l.label !== t.title ? " · " + l.label.replace(t.title + " · ", "") : "") }))].sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
@@ -121,7 +123,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
     if (finishedOf(x)) { const f = finishedAt(x); return `${w} · ${isDone(x) ? "끝냄" : "확인 중"}${f ? " " + md(ymd(new Date(f))) : ""}`; }
     const nn = ddays(dueOf(x), key); return `${w} · ${x.blocked ? "막힘" : x.status === "inprogress" ? "진행 중" : x.status === "hold" ? "보류" : "할 일"}${dueOf(x) ? nn < 0 ? ` · ${-nn}일 지남` : ` · ${md(dueOf(x))} 예정` : ""}`; };
   const ORD = 3;
-  const projT = ((D.projects || []).find((x) => x.id === t.projectId) || {}).title;
+  const projT = projLabel((D.projects || []).find((x) => x.id === t.projectId), D);
   return <Sheet title="업무" kind="업무" head={t.title} path={projT ? `프로젝트 · ${projT}` : "프로젝트 없음"} onPath={projT ? () => open({ type: "project", id: t.projectId }) : null} onBack={onBack} onClose={onClose} foot={foot}>
     {risk && <div style={{ margin: "12px 0 0" }}><span style={{ display: "inline-block", fontSize: 12.5, fontWeight: 800, padding: "3px 9px", borderRadius: 6, color: risk.red ? C.red : C.navy, background: risk.red ? "#F8E9EA" : C.soft }}>{risk.label}</span></div>}
     <div style={{ height: risk ? 6 : 12 }} />
@@ -131,6 +133,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
       {(t.ccIds || []).length > 0 && <div>참조 {(t.ccIds || []).map((x) => nameOf(D.users, x)).filter(Boolean).join(", ")}</div>}
       {t.handoff && t.handoff.by && <div>{t.handoff.byName}님이 {md(ymd(new Date(t.handoff.at)))}에 {(t.handoff.from || []).map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "담당 없음"} → {nameOf(D.users, t.handoff.to)}{t.handoff.note ? ` · ${t.handoff.note}` : ""}</div>}
       {giver && <div>{giverName}님이 맡김{(req ? t.requestedAt : t.assignedAt) ? ` · ${md(ymd(new Date(req ? t.requestedAt : t.assignedAt)))}` : ""}{t.ackAt ? " · 받음" : " · 아직 안 받음"}</div>}
+      {road && !t.launchItem && <div>단계 {stageName(road, phK) || noSt}{t.parentId && phK ? " (상위 업무를 따름)" : ""}</div>}
       {parent && <div><TBtn onClick={() => open({ type: "task", id: parent.id })} style={{ padding: "2px 0" }}>상위 업무 · {parent.title} ›</TBtn></div>}
       {isGhProj(t.projectId) && <div>그로홈 그로스보드 업무{!owners.length && t.ghAssigneeName ? ` · 그로홈 담당 ${t.ghAssigneeName}` : ""} · <a className="v2-lblink" href={ghDashUrl(t.id)} target="_blank" rel="noopener">그로홈 대시보드에서 보기 ›</a></div>}
     </div>
@@ -199,8 +202,8 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
       return <div className="v2-rename" style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "8px 0" }}><input value={nm} onChange={(e) => setNm(e.target.value)} autoFocus aria-label="새 이름" onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) save(); if (e.key === "Escape") setMode(""); }} style={{ ...inp, flex: "1 1 200px", minWidth: 0 }} />
         <div style={{ display: "flex", gap: 8 }}><TBtn v="solid" onClick={save} disabled={!ok || nmBusy}>저장</TBtn><TBtn onClick={() => setMode("")}>취소</TBtn></div>
         {!v ? <div style={{ flexBasis: "100%", fontSize: 12.5, color: C.sub }}>이름을 비울 수는 없어요</div> : !ok ? <div style={{ flexBasis: "100%", fontSize: 12.5, color: C.sub }}>지금 이름과 같아요</div> : null}</div>; })()}
-    {mode === "phase" && canPhase && <div style={{ padding: "8px 0" }}><div style={{ fontSize: 12.5, color: C.sub, marginBottom: 6 }}>지금 단계 {(phaseOf(t.phase) || {}).name || "기타"} · 고르면 바로 옮겨요 (5초 안에 되돌릴 수 있어요)</div>
-      <div className="v2-chips" role="group" aria-label="단계 고르기">{[...LAUNCH_PHASES.map((ph) => [ph.k, ph.name]), ["", "기타"]].map(([k, l]) => <Chip key={k || "etc"} on={(t.phase || "") === k} onClick={async () => { if ((t.phase || "") === k) { setMode(""); return; } if (await A.setPhase(t, k)) setMode(""); }}>{l}</Chip>)}</div></div>}
+    {mode === "phase" && canPhase && <div style={{ padding: "8px 0" }}><div style={{ fontSize: 12.5, color: C.sub, marginBottom: 6 }}>지금 단계 {stageName(road, phK) || noSt} · 고르면 바로 옮겨요 (5초 안에 되돌릴 수 있어요)</div>
+      <div className="v2-chips" role="group" aria-label="단계 고르기">{[...road.map((x) => [x.k, x.name]), ["", noSt]].map(([k, l]) => <Chip key={k || "etc"} on={phK === k} onClick={async () => { if (phK === k) { setMode(""); return; } if (await A.setPhase(t, k)) setMode(""); }}>{l}</Chip>)}</div></div>}
     {mode === "ask" && <RequestAsk t={t} D={D} cu={cu} A={A} mine={mine} onNo={() => setMode("")} />}
     <SecretBox kind="task" x={t} D={D} cu={cu} A={A} only="status" />
     {mode === "due" && <div className="v2-chips" style={{ padding: "8px 0" }}>{dateChips.map(([l, d]) => <Chip key={d} onClick={() => { moveDue(A, setToast, t, d, true); setMode(""); }}>{l}</Chip>)}<Chip onClick={() => { moveDue(A, setToast, t, "", true); setMode(""); }}>미정</Chip><input type="date" aria-label="날짜 고르기" defaultValue={dueOf(t)} onChange={(e) => { if (e.target.value) { moveDue(A, setToast, t, e.target.value, true); setMode(""); } }} className="v2-sel" /></div>}
@@ -274,7 +277,7 @@ function RemovedTaskView({ D, cu, A, t, notes, note, open, onBack, onClose }) {
   const n = (rm.kids || []).length, rootT = rm.root && rm.root !== t.id ? (D.removedTasks || []).find((x) => x.id === rm.root) : null;
   const files = [...(t.attachments || []).map((f) => ({ ...f, where: "업무" })), ...notes.filter((nn) => !nn.deleted).flatMap((nn) => (nn.files || []).map((f) => ({ ...f, by: nn.by, byName: nn.byName, uploadedAt: f.uploadedAt || nn.at, where: "댓글" })))];
   const restore = async () => { if (busy) return; setBusy(true); const ok = await A.taskRestore(rootT || t); setBusy(false); if (ok) (onBack || onClose)(); };
-  return <Sheet title="업무" kind="업무" head={t.title} path={p ? `프로젝트 · ${p.title}` : "프로젝트 없음"} onPath={p ? () => open({ type: "project", id: p.id }) : null} onBack={onBack} onClose={onClose}>
+  return <Sheet title="업무" kind="업무" head={t.title} path={p ? `프로젝트 · ${projLabel(p, D)}` : "프로젝트 없음"} onPath={p ? () => open({ type: "project", id: p.id }) : null} onBack={onBack} onClose={onClose}>
     <RemovedNote what={`없앤 업무예요${rm.reason ? " · " + rm.reason : ""}`} rm={rm} can={canRestoreTask(rootT || t, cu)} busy={busy} onRestore={restore} />
     {rm.proj && <div style={{ marginTop: 8, fontSize: 12.5, color: C.sub }}>프로젝트를 없애며 같이 빠졌어요 · 프로젝트를 되살리면 같이 돌아와요{(D.removedProjects || []).some((x) => x.id === rm.root) && <> · <TBtn v="plain" onClick={() => open({ type: "project", id: rm.root })} style={{ fontSize: 12.5, padding: 0 }}>없앤 프로젝트 보기 ›</TBtn></>}</div>}
     {rootT && <div style={{ marginTop: 8, fontSize: 12.5, color: C.sub }}>상위 업무 '{rootT.title}'와 같이 없앴어요 · 되살리면 같이 돌아와요</div>}

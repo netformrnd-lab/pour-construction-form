@@ -708,3 +708,136 @@ export const DEFAULT_TEAMS = { 김소연: "1팀", 남윤정: "1팀", 용정하: 
 export const teamOf = (u) => (!u ? "" : u.team || DEFAULT_TEAMS[norm(u.name)] || "");
 export const projTeamAuto = (p, users) => (p && p.lbProject ? "3팀" : teamOf((users || []).find((u) => u.id === (p && p.assigneeId))));
 export const projTeam = (p, users) => (p && p.team) || projTeamAuto(p, users);
+
+// ── 프로젝트 단계(로드) (사용자 확정 2026-10-07 '카테고리별 로드') ──
+// 로드 = [{k, name}] · k = 바뀌지 않는 열쇠(이름을 바꿔도 업무가 안 떨어짐) · 업무 phase = k
+//  신제품 출시 = 7단계(LAUNCH_ROAD · 신제품 대시보드와 같은 열쇠 · lb_ 프로젝트는 못 고침) · 프로모션·마케팅 = 기획 → 소재 제작 → 집행 → 성과 분석
+//  그 밖(공지사항 · 시스템 구축 · 영업·B2B · 상시 운영 · 미분류) = 기획 → 준비 → 실행 → 점검 · 흐름 = 그 흐름 단계 · 그로홈 gh_kpi_ = 로드 없음(KR 로 묶임)
+//  저장: 카테고리 기본 = pour-os/v2/settings/roads {roads:{카테고리: [{k,name}]}} (관리자 설정 · 없으면 아래 기본) · 프로젝트 road 칸 = 기본과 다를 때만(흐름은 늘)
+//  → road 칸이 없는 프로젝트는 관리자가 기본을 고치면 바로 따라감(업무는 안 고침 · 로드에 없는 열쇠의 업무는 '단계 미정'으로 보임)
+const RD = (a) => a.map(([k, name]) => ({ k, name }));
+export const LAUNCH_ROAD = RD([["plan", "기획"], ["sample", "샘플"], ["pack", "패킹"], ["content", "콘텐츠"], ["channel", "채널 등록"], ["stock", "창고 입고"], ["promo", "출시 홍보"]]);
+export const ROAD_MKT = RD([["plan", "기획"], ["make", "소재 제작"], ["run", "집행"], ["result", "성과 분석"]]);
+export const ROAD_BASE = RD([["plan", "기획"], ["prep", "준비"], ["run", "실행"], ["check", "점검"]]);
+// 관리자가 고칠 수 있는 카테고리 기본 로드 (신제품 출시는 신제품 대시보드 단계 그대로라 못 고침)
+export const ROAD_CATS = [["marketing", "프로모션·마케팅"], ["notice", "공지사항"], ["system", "시스템 구축"], ["sales", "영업·B2B"], ["ops", "상시 운영"], ["none", "미분류"]];
+export const ROAD_MAX = 12, STAGE_NAME_MAX = 20;
+export const builtinRoad = (cat) => (cat === "launch" ? LAUNCH_ROAD : cat === "marketing" ? ROAD_MKT : ROAD_BASE);
+// 저장된 로드 정리: 열쇠·이름 있는 것만 · 같은 열쇠는 처음 것만
+export const cleanRoad = (r) => { if (!Array.isArray(r)) return []; const seen = new Set();
+  return r.filter((s) => s && s.k && String(s.name || "").trim() && !seen.has(String(s.k)) && seen.add(String(s.k))).map((s) => ({ k: String(s.k), name: String(s.name).trim() })); };
+export const sameRoad = (a, b) => JSON.stringify(cleanRoad(a)) === JSON.stringify(cleanRoad(b));
+export const roadsDoc = (D) => ((D && D.settings) || []).find((x) => x && x.id === "roads") || null;
+export const catRoadStored = (cat, D) => { const d = roadsDoc(D), r = d && d.roads ? cleanRoad(d.roads[cat || "none"]) : []; return r.length ? r : null; };
+export function catRoad(cat, D) { const c = cat || "none"; if (c === "launch") return LAUNCH_ROAD; return catRoadStored(c, D) || builtinRoad(c); }
+export const isLaunchProj = (p) => !!p && String(p.id || "").startsWith("lb_");
+export const isFlowProj = (p) => !!p && !!p.wfId && p.wfId !== "wf_launch" && !isLaunchProj(p) && !isGhProj(p.id);
+export const roadOwn = (p) => cleanRoad(p && p.road).length > 0;
+// 예전 흐름 프로젝트(road 칸 없음): 단계 번호(wfStage) = 열쇠 'wf0'… · 이름 = 흐름 문서 단계 → 그 단계 업무 이름 → 'n단계' (새 흐름도 같은 열쇠로 road 를 저장)
+export function flowRoad(p, D) {
+  const wf = ((D && D.workflows) || []).find((w) => w && w.id === p.wfId && Array.isArray(w.stages)), st = wf ? wf.stages.filter((s) => s && s.name) : [];
+  const ts = ((D && D.tasks) || []).filter((t) => t && t.projectId === p.id && Number.isInteger(t.wfStage) && t.wfStage >= 0 && t.wfStage < 50);
+  const n = Math.max(st.length, ...ts.map((t) => t.wfStage + 1), 0);
+  return Array.from({ length: n }, (_, i) => ({ k: "wf" + i, name: (st[i] && String(st[i].name).trim()) || ((ts.find((t) => t.wfStage === i) || {}).title) || `${i + 1}단계` }));
+}
+// 프로젝트 로드 하나 (모든 화면이 이것): 그로홈 KPI = null · 신제품(lb_) = 7단계 · 저장된 road · 예전 흐름 · 카테고리 기본
+export function roadOf(p, D) {
+  if (!p || isGhProj(p.id)) return null;
+  if (isLaunchProj(p)) return LAUNCH_ROAD;
+  const own = cleanRoad(p.road); if (own.length) return own;
+  if (isFlowProj(p)) { const fr = flowRoad(p, D); if (fr.length) return fr; }
+  return catRoad(projCat(p), D);
+}
+export const stageName = (road, k) => ((road || []).find((s) => s.k === k) || {}).name || "";
+export const noStageL = (p) => (isLaunchProj(p) ? "기타" : "단계 미정");
+// 업무의 단계 열쇠 ('' = 단계 미정) — phase(정한 것) → 예전 흐름 업무는 wfStage · 하위 업무는 같은 프로젝트에 있는 위 업무를 따름 · 로드에 없는 열쇠면 ''
+//  흐름 업무를 일부러 '단계 미정'으로 옮기면 phase "" (wfStage 로 돌아가지 않게)
+export function phaseOfTask(t, p, D, byId, road) {
+  if (!t || !p) return ""; const r = road || roadOf(p, D); if (!r) return "";
+  let x = t;
+  for (let i = 0; i < 8 && x.parentId; i++) { const pa = byId ? byId.get(x.parentId) : ((D && D.tasks) || []).find((y) => y && y.id === x.parentId); if (!pa || pa.projectId !== t.projectId) break; x = pa; }
+  const k = x.phase != null ? String(x.phase) : isFlowProj(p) && Number.isInteger(x.wfStage) ? "wf" + x.wfStage : "";
+  return k && r.some((s) => s.k === k) ? k : "";
+}
+// 단계 상태(띠·마인드맵·관리자 칸): none(업무 없음) · done(다 끝남) · late(지난·막힌 업무) · cur(처음 남은 단계) · todo — 신제품 띠는 예전 views.phaseStates 그대로
+export function roadStates(road, ts, phOf, key) {
+  let cur = false;
+  return (road || []).map((s) => { const a = (ts || []).filter((t) => phOf(t) === s.k), left = a.filter((t) => !isDone(t) && t.status !== "review" && t.status !== "dropped");
+    const late = left.some((t) => { const r = riskOf(t, key); return r && (r.k === "late" || r.k === "blocked"); });
+    const state = !a.length ? "none" : !left.length ? "done" : late ? "late" : !cur ? "cur" : "todo"; if (state === "cur" || state === "late") cur = true;
+    return { k: s.k, name: s.name, left: left.length, total: a.length, state }; });
+}
+// 지금 단계(위 추가 칸 기본값): 남은 업무가 있는 첫 단계 → 없으면 첫 단계
+export const curStage = (states) => ((states || []).find((s) => s.left > 0) || (states || [])[0] || {}).k || "";
+// 새 단계 열쇠 (이름이 아니라 바뀌지 않는 id)
+export const newStageKey = (road) => { const has = new Set((road || []).map((s) => s.k)); let k = ""; for (let i = 0; i < 20 && (!k || has.has(k)); i++) k = "s" + Math.random().toString(36).slice(2, 7); return k; };
+// 로드 고치기 확인: 이름 비었나 · 같은 이름 · 너무 많음 → '' 이면 저장 가능
+export const roadProblem = (r) => { const a = Array.isArray(r) ? r : []; if (!a.length) return "단계가 하나는 있어야 해요"; if (a.length > ROAD_MAX) return `단계는 ${ROAD_MAX}개까지예요`;
+  if (a.some((s) => !String((s && s.name) || "").trim())) return "이름이 빈 단계가 있어요"; if (a.some((s) => String(s.name).trim().length > STAGE_NAME_MAX)) return `단계 이름은 ${STAGE_NAME_MAX}자까지예요`;
+  const n = a.map((s) => String(s.name).replace(/\s/g, "")); if (new Set(n).size !== n.length) return "같은 이름의 단계가 있어요"; return ""; };
+// 권한: 로드 고치기 = 책임자·관리자 (신제품 lb_·그로홈 KPI 는 못 고침) · 업무 단계 바꾸기 = 책임자·관리자·담당 (신제품 항목·하위 업무는 안 됨)
+export const canEditRoad = (p, cu) => !!p && !!cu && !p.locked && !isLaunchProj(p) && !isGhProj(p.id) && projLeadOrMaster(p, cu);
+export const canSetPhase = (t, p, cu) => !!t && !!p && !!cu && !t.isFixed && !t.launchItem && !t.parentId && !t.locked && !isRemoved(t) && !isGhProj(p.id) && (isMine(t, cu.id) || projLeadOrMaster(p, cu));
+// 로드 저장 칸: 카테고리 기본과 같으면 null(기본을 따라감) · 흐름은 늘 저장
+export const roadToStore = (p, road, D, cat) => (isFlowProj(p) || !sameRoad(road, catRoad(cat !== undefined ? cat : projCat(p), D)) ? cleanRoad(road) : null);
+// 카테고리 바꿀 때 새 로드로 옮기기: 열쇠가 새 로드에 있으면 그대로 · 이름이 같은 단계가 있으면 그 열쇠로(쓰기) · 나머지는 '단계 미정'(업무는 안 고침)
+export function roadSwitchPlan(oldRoad, newRoad, tasks, phOf) {
+  const keep = [], move = [], loose = [], nk = new Set((newRoad || []).map((s) => s.k)), byName = new Map((newRoad || []).map((s) => [String(s.name).replace(/\s/g, ""), s.k]));
+  (tasks || []).forEach((t) => { const k = phOf(t); if (!k) return; if (nk.has(k)) return keep.push(t);
+    const nm = String(stageName(oldRoad, k)).replace(/\s/g, ""), to = byName.get(nm); if (to) move.push({ t, from: k, to }); else loose.push(t); });
+  return { keep, move, loose };
+}
+// 단계 추천 (예전 일반 프로젝트 업무 '단계 정리' · 저장 없음): ① 이름에 단계 이름이 있으면 그 단계 ② 낱말 규칙 → 단계 종류 → 그 로드의 같은 열쇠(없으면 비슷한 종류)
+//  실데이터(2026-10-07 일반 프로젝트 업무)로 맞춤 · 기획 낱말은 어디 있든 먼저 · 나머지는 이름 맨 뒤 낱말(한국어 업무 이름은 끝 낱말이 하는 일)
+const SUG_A = [["plan", /기획|계획|시장\s*조사|리서치|레퍼|벤치마킹|구상|전략|타겟/], ["result", /결과|성과|리포트|회고|효과/]];
+const SUG_B = [
+  ["plan", /조사|서치|써치|소싱|리스트업|견적|검토|미팅|선정|개요|컨셉|아이디어|파악|분석|현\s*상황|현황|계산|찾기/g],
+  ["prep", /준비|세팅|섭외|계약|품의|요청|컨택|컨텍|연락|문의|인수인계|확보|발굴|예약|협의|구매|수령|받기|변경/g],
+  ["make", /제작|디자인|촬영|편집|초안|작성|이미지|영상|상세페이지|배너|양식|외주|크몽|콘티|프롬프트|생성|시안|카피|스킨|수정|개발|구축|인쇄|라벨|고도화|리디자인|교체|포장|추가|강화/g],
+  ["run", /업로드|포스팅|발송|오픈|게시|캠페인|진행|광고|집행|송장|발주|출고|신청|제출|뿌리기|돌리기|등록|배포|운영|처리|환불|반품|회수|배송|입고|주문|응대|방문|디엠|메일|지급|충전|개시|발표|전달|안내|문자|판매|적용|연동|활성화|외근|배차|제안(?!서)|기자단|반납|올리기|전송|반영/g],
+  ["check", /점검|확인|검수|테스트|체크|실사|정산|보고|피드백|모니터링|검증|비율/g],
+];
+// 신제품 로드(lb_ 아닌 '신제품 출시' 카테고리 프로젝트)용 낱말
+const SUG_L = [["plan", /시장\s*조사|기획|선정|판매가|제조사|MOQ|견적|소싱/g], ["sample", /샘플|품질/g], ["pack", /라벨|단상자|설명서|패킹|포장|스티커|인쇄|컬러|유통기한|구성품/g],
+  ["content", /상세페이지|상페|촬영|섬네일|썸네일|콘텐츠|컨텐츠|배너|이미지/g], ["channel", /상품\s*등록|판매채널|사방넷|도매꾹|나비엠알오|오늘의집|키워드|등록|입점/g],
+  ["stock", /입고|창고|3PL|로켓그로스|MSDS/gi], ["promo", /홍보|광고|체험단|리뷰|인플루언서|메타|B2B|출시\s*안내|판매촉진|영업|마케팅|협찬/g]];
+const SUG_LA = [["promo", /광고|체험단|리뷰|인플루언서|홍보|판매촉진|마케팅|협찬/], ["stock", /입고|창고|3PL|로켓그로스/i]];
+const SUG_FALL = { plan: ["plan"], prep: ["prep", "make"], make: ["make", "prep", "content"], run: ["run", "channel"], check: ["check", "result"], result: ["result", "check"],
+  sample: ["sample"], pack: ["pack"], content: ["content"], channel: ["channel"], stock: ["stock"], promo: ["promo"] };
+const lastHit = (s, rules) => { let best = null;
+  rules.forEach(([ty, re]) => { const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g"); let m;
+    while ((m = g.exec(s))) { const end = m.index + m[0].length; if (!best || end > best.end || (end === best.end && m[0].length > best.len)) best = { ty, end, len: m[0].length }; if (!m[0].length) g.lastIndex++; } });
+  return best && best.ty; };
+export function suggestStage(title, road) {
+  const r = cleanRoad(road); if (!r.length) return "";
+  const s = String(title || "").replace(/기획전/g, "■").replace(/\s+/g, " ").trim(); if (!s) return "";
+  const ns = s.replace(/\s/g, ""); let byName = null;   // ① 단계 이름 (가장 뒤에 나온 것)
+  r.forEach((x) => { const nm = String(x.name).replace(/\s/g, ""); if (nm.length < 2) return; const i = ns.lastIndexOf(nm); if (i >= 0 && (!byName || i > byName.i)) byName = { k: x.k, i }; });
+  if (byName) return byName.k;
+  const has = new Set(r.map((x) => x.k)), pick = (ty) => (ty ? (SUG_FALL[ty] || [ty]).find((k) => has.has(k)) || "" : "");
+  if (has.has("sample") || has.has("promo")) { const a0 = SUG_LA.find(([, re]) => re.test(s)), k = pick(a0 ? a0[0] : lastHit(s, SUG_L)); if (k) return k; }   // 신제품 단계 낱말 먼저 (홍보·입고 낱말은 어디 있든)
+  const a = SUG_A.find(([, re]) => re.test(s)); if (a) { const k = pick(a[0]); if (k) return k; }
+  return pick(lastHit(s, SUG_B));
+}
+// 단계 정리 카드: 단계 미정인 열린 위 업무 + 추천 (책임자·관리자 = 모두 · 담당 = 내 업무만)
+export function stageSortRows(p, D, cu, road, phOf) {
+  if (!p || !road || isLaunchProj(p) || !cu) return [];
+  const all = projLeadOrMaster(p, cu), ids = new Set(((D && D.tasks) || []).filter((t) => t && t.projectId === p.id).map((t) => t.id));
+  return ((D && D.tasks) || []).filter((t) => t && t.projectId === p.id && !t.isFixed && !isDone(t) && t.status !== "dropped" && !t.launchItem && !t.locked && (!t.parentId || !ids.has(t.parentId)) && !phOf(t) && (all || isMine(t, cu.id)))
+    .map((t) => ({ t, sug: suggestStage(t.title, road) }));
+}
+// ── 프로젝트 이름 하나로 (사용자 신고 2026-10-07 '스티커프라이머 둘 중 어느 인쇄 발주인지 모름') ──
+//  신제품: 이름 · (해외 하위 프로젝트 이름 → 차수) · 그 밖: 열린 프로젝트 중 띄어쓰기·대소문자 빼고 같은 이름이 있으면 차수 → 해외 하위 → 브랜드 → 책임자 중 처음으로 다른 것을 붙임
+const PL_CACHE = new WeakMap();
+const ptKey = (s) => String(s || "").replace(/\s/g, "").toLowerCase();
+export function projLabel(p, D) {
+  if (!p) return ""; const t = String(p.title || "").trim();
+  if (isLaunchProj(p) && (p.lbProjectName || p.batch)) return `${t} · ${String(p.lbProjectName || p.batch).trim()}`;
+  const ps = (D && D.projects) || []; let m = PL_CACHE.get(ps);
+  if (!m) { m = new Map(); ps.forEach((x) => { if (x && projOpen(x) && !isRemoved(x)) { const k = ptKey(x.title); m.set(k, [...(m.get(k) || []), x]); } }); PL_CACHE.set(ps, m); }
+  const twins = (m.get(ptKey(t)) || []).filter((x) => x.id !== p.id); if (!twins.length) return t;
+  const fs = [(x) => String(x.batch || "").trim(), (x) => String(x.lbProjectName || "").trim(), (x) => brandLabel(x.brand, D && D.brands), (x) => nameOf(D && D.users, x.assigneeId)];
+  for (const f of fs) { const v = f(p); if (v && twins.every((x) => f(x) !== v)) return `${t} · ${v}`; }
+  return t;
+}
+export const projLabelOf = (D, pid) => projLabel(((D && D.projects) || []).find((x) => x && x.id === pid), D);

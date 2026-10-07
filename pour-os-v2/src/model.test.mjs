@@ -451,3 +451,89 @@ ok("끝냄: 담당 + 관리자(모든 업무) · 다른 팀원은 못 함", () =
   assert.equal(M.canFinish(t, { id: "a" }), true); assert.equal(M.canFinish(t, { id: "b", name: "나" }), false); assert.equal(M.canFinish(t, { id: "m", master: true }), true);
   assert.equal(M.canFinish({ ...t, isFixed: true }, { id: "m", master: true }), false); assert.equal(M.canFinish({ ...t, locked: true }, { id: "m", master: true }), false);
 });
+// ── 프로젝트 단계(로드) (사용자 확정 2026-10-07 '카테고리별 로드') ──
+import { LAUNCH_PHASES } from "./launch.js";
+ok("로드: 신제품 7단계 = launch.LAUNCH_PHASES 열쇠·이름 그대로", () => {
+  assert.deepEqual(M.LAUNCH_ROAD, LAUNCH_PHASES.map((ph) => ({ k: ph.k, name: ph.name })));
+});
+ok("로드: 카테고리별 (신제품 · 프로모션·마케팅 · 그 밖) · 흐름 · 그로홈 KPI 없음 · 저장한 road · 관리자 기본", () => {
+  const D = { settings: [], workflows: [], tasks: [] };
+  const names = (r) => r.map((s) => s.name).join(">");
+  assert.equal(names(M.roadOf({ id: "lb_x", category: "marketing" }, D)), "기획>샘플>패킹>콘텐츠>채널 등록>창고 입고>출시 홍보");   // lb_ 는 카테고리와 상관없이 7단계
+  assert.equal(names(M.roadOf({ id: "p1", category: "launch" }, D)), "기획>샘플>패킹>콘텐츠>채널 등록>창고 입고>출시 홍보");    // 신제품 출시 카테고리 일반 프로젝트
+  assert.equal(names(M.roadOf({ id: "p1", category: "marketing" }, D)), "기획>소재 제작>집행>성과 분석");
+  ["notice", "system", "sales", "ops", ""].forEach((c) => assert.equal(names(M.roadOf({ id: "p1", category: c }, D)), "기획>준비>실행>점검"));
+  assert.equal(M.roadOf({ id: "gh_kpi_1", category: "ops" }, D), null);
+  assert.equal(names(M.roadOf({ id: "p1", wfId: "wf_cpc", category: "marketing", road: [{ k: "wf0", name: "소재 제작" }, { k: "wf1", name: "캠페인 등록" }] }, D)), "소재 제작>캠페인 등록");
+  assert.equal(names(M.roadOf({ id: "p1", category: "ops", road: [{ k: "plan", name: "기획" }, { k: "sX", name: "발송" }, { k: "", name: "빈 열쇠" }, { k: "sX", name: "같은 열쇠" }] }, D)), "기획>발송");
+  // 관리자 기본 (settings/roads) → road 칸 없는 프로젝트가 따라감 · 신제품은 못 바꿈
+  const D2 = { ...D, settings: [{ id: "roads", roads: { sales: [{ k: "plan", name: "컨택" }, { k: "sP", name: "제안" }], launch: [{ k: "x", name: "바꾸면 안 됨" }] } }] };
+  assert.equal(names(M.roadOf({ id: "p1", category: "sales" }, D2)), "컨택>제안"); assert.equal(names(M.roadOf({ id: "p1", category: "ops" }, D2)), "기획>준비>실행>점검");
+  assert.equal(names(M.catRoad("launch", D2)), "기획>샘플>패킹>콘텐츠>채널 등록>창고 입고>출시 홍보");
+  assert.equal(names(M.roadOf({ id: "p1", category: "sales", road: [{ k: "a", name: "내 단계" }] }, D2)), "내 단계");
+});
+ok("로드: 업무 단계 — phase · 하위 업무는 위 업무 · 로드에 없는 열쇠 = 단계 미정 · 예전 흐름 wfStage · 흐름에서 일부러 미정('')", () => {
+  const p = { id: "p1", category: "ops" }, a = { id: "a", projectId: "p1", phase: "prep" }, k = { id: "k", projectId: "p1", parentId: "a", phase: "plan" }, z = { id: "z", projectId: "p1", phase: "result" };
+  const D = { tasks: [a, k, z], settings: [] };
+  assert.equal(M.phaseOfTask(a, p, D), "prep"); assert.equal(M.phaseOfTask(k, p, D), "prep"); assert.equal(M.phaseOfTask(z, p, D), "");
+  const o = { id: "o", projectId: "p2", parentId: "a", phase: "plan" }; assert.equal(M.phaseOfTask(o, { id: "p2", category: "ops" }, { tasks: [a, o] }), "plan");   // 다른 프로젝트 위 업무는 안 따름
+  const fp = { id: "f", wfId: "wf_promo", category: "marketing" }, ft = { id: "f1", projectId: "f", wfStage: 2, title: "이미지 제작" };
+  const FD = { tasks: [ft, { id: "f0", projectId: "f", wfStage: 0, title: "기획" }], workflows: [] };
+  assert.equal(M.phaseOfTask(ft, fp, FD), "wf2"); assert.equal(M.roadOf(fp, FD)[2].name, "이미지 제작"); assert.equal(M.roadOf(fp, FD)[1].name, "2단계");
+  assert.equal(M.phaseOfTask({ ...ft, phase: "" }, fp, FD), "");
+  assert.equal(M.phaseOfTask(a, { id: "gh_kpi_x" }, D), "");
+});
+ok("로드: 저장 칸(기본과 같으면 null · 흐름은 늘) · 고치기 확인 · 새 열쇠 · 권한", () => {
+  const D = { settings: [] }, p = { id: "p1", category: "ops", assigneeId: "a" };
+  assert.equal(M.roadToStore(p, M.ROAD_BASE, D), null); assert.deepEqual(M.roadToStore(p, M.ROAD_MKT, D), M.ROAD_MKT);
+  assert.equal(M.roadToStore(p, M.ROAD_MKT, D, "marketing"), null);   // 카테고리를 같이 바꾸면 그 기본과 비교
+  assert.deepEqual(M.roadToStore({ ...p, wfId: "wf_promo" }, M.ROAD_BASE, D), M.ROAD_BASE);
+  assert.equal(M.roadProblem([]), "단계가 하나는 있어야 해요"); assert.equal(M.roadProblem([{ k: "a", name: " " }]), "이름이 빈 단계가 있어요");
+  assert.equal(M.roadProblem([{ k: "a", name: "기획" }, { k: "b", name: "기 획" }]), "같은 이름의 단계가 있어요"); assert.equal(M.roadProblem(M.ROAD_BASE), "");
+  assert.equal(M.roadProblem(Array.from({ length: 13 }, (_, i) => ({ k: "s" + i, name: "단계" + i }))), "단계는 12개까지예요");
+  const k = M.newStageKey(M.ROAD_BASE); assert.ok(/^s[a-z0-9]{3,}$/.test(k) && !M.ROAD_BASE.some((s) => s.k === k));
+  const lead = { id: "a" }, other = { id: "b" }, master = { id: "m", master: true };
+  assert.equal(M.canEditRoad(p, lead), true); assert.equal(M.canEditRoad(p, other), false); assert.equal(M.canEditRoad(p, master), true);
+  assert.equal(M.canEditRoad({ id: "lb_x", assigneeId: "a" }, lead), false); assert.equal(M.canEditRoad({ id: "gh_kpi_x", assigneeId: "a" }, master), false);
+  const t = { id: "t", projectId: "p1", assigneeId: "b", assigneeIds: ["b"] };
+  assert.equal(M.canSetPhase(t, p, other), true); assert.equal(M.canSetPhase(t, p, lead), true); assert.equal(M.canSetPhase(t, p, { id: "c" }), false);
+  assert.equal(M.canSetPhase({ ...t, parentId: "x" }, p, lead), false); assert.equal(M.canSetPhase({ ...t, launchItem: "s01" }, p, master), false);
+});
+ok("로드: 단계 상태 · 지금 단계 · 카테고리 바꿀 때 옮기기 계획", () => {
+  const ts = [{ id: "1", phase: "plan", status: "done" }, { id: "2", phase: "prep", status: "todo", dueDate: "2026-10-01" }, { id: "3", phase: "prep", status: "todo" }, { id: "4", phase: "run", status: "todo" }];
+  const st = M.roadStates(M.ROAD_BASE, ts, (t) => t.phase, "2026-10-07");
+  assert.deepEqual(st.map((s) => s.state), ["done", "late", "todo", "none"]); assert.deepEqual(st.map((s) => s.left), [0, 2, 1, 0]);
+  assert.equal(M.curStage(st), "prep"); assert.equal(M.curStage(M.roadStates(M.ROAD_BASE, [], (t) => t.phase, "2026-10-07")), "plan");
+  const custom = [{ k: "plan", name: "기획" }, { k: "sA", name: "집행" }, { k: "sB", name: "보고" }];
+  const plan = M.roadSwitchPlan(custom, M.ROAD_MKT, [{ id: "a", phase: "plan" }, { id: "b", phase: "sA" }, { id: "c", phase: "sB" }, { id: "d" }], (t) => t.phase || "");
+  assert.deepEqual(plan.keep.map((t) => t.id), ["a"]); assert.deepEqual(plan.move.map((x) => [x.t.id, x.to]), [["b", "run"]]); assert.deepEqual(plan.loose.map((t) => t.id), ["c"]);
+});
+ok("로드: 단계 추천 (이름 낱말 · 실데이터 예)", () => {
+  const S = (t, r) => M.stageName(r, M.suggestStage(t, r));
+  assert.equal(S("블로그 검수 및 업로드", M.ROAD_MKT), "집행"); assert.equal(S("헤라퍼티/필러 숏폼 기획안", M.ROAD_MKT), "기획"); assert.equal(S("상세페이지 이미지 외주", M.ROAD_MKT), "소재 제작");
+  assert.equal(S("8월 얼리버드 프로모션 기획전 페이지 제작", M.ROAD_MKT), "소재 제작");   // 기획전 ≠ 기획
+  assert.equal(S("간판 제작비 시장조사", M.ROAD_BASE), "기획"); assert.equal(S("제안서 디자인 제작", M.ROAD_BASE), "준비"); assert.equal(S("김준석 반품 해야함", M.ROAD_BASE), "실행");
+  assert.equal(S("재고 실사", M.ROAD_BASE), "점검"); assert.equal(S("크리마 리뷰 회신 비율", M.ROAD_MKT), "성과 분석");
+  assert.equal(S("판매채널 상품 등록", M.LAUNCH_ROAD), "채널 등록"); assert.equal(S("메타광고 등록", M.LAUNCH_ROAD), "출시 홍보");
+  assert.equal(S("발송", [{ k: "wf0", name: "초안" }, { k: "wf1", name: "발송" }]), "발송");   // 단계 이름이 들어 있으면 그 단계
+  assert.equal(M.suggestStage("사진 옮기기", M.ROAD_MKT), ""); assert.equal(M.suggestStage("", M.ROAD_BASE), "");
+});
+ok("로드: 단계 정리 줄 — 책임자·관리자 = 모두 · 담당 = 내 업무만 · 하위·끝낸·단계 있는 업무 빼고 · 신제품 없음", () => {
+  const p = { id: "p1", category: "ops", assigneeId: "a" }, mk = (id, o) => ({ id, projectId: "p1", title: "반품 처리", status: "todo", assigneeId: "b", assigneeIds: ["b"], ...o });
+  const D = { tasks: [mk("1"), mk("2", { assigneeId: "c", assigneeIds: ["c"] }), mk("3", { status: "done" }), mk("4", { phase: "run" }), mk("5", { parentId: "1" })], settings: [] };
+  const road = M.roadOf(p, D), ph = (t) => M.phaseOfTask(t, p, D, null, road);
+  assert.deepEqual(M.stageSortRows(p, D, { id: "a" }, road, ph).map((r) => [r.t.id, r.sug]), [["1", "run"], ["2", "run"]]);
+  assert.deepEqual(M.stageSortRows(p, D, { id: "b" }, road, ph).map((r) => r.t.id), ["1"]);
+  assert.deepEqual(M.stageSortRows({ ...p, id: "lb_p" }, D, { id: "a" }, road, ph), []);
+});
+ok("프로젝트 이름 하나로(projLabel): 신제품은 해외 하위 → 차수 · 같은 이름이면 다른 칸을 붙임", () => {
+  const A = { id: "lb_a", title: "스티커 프라이머", batch: "리페어 1차", brand: "grohome", assigneeId: "sh", status: "active" };
+  const B = { id: "lb_b", title: "스티커프라이머", batch: "", lbProjectName: "아마존 JP", brand: "grohome", assigneeId: "sh", status: "active" };
+  const N1 = { id: "n1", title: "광고 관리", brand: "grohome", assigneeId: "sh", status: "active" }, N2 = { id: "n2", title: "광고관리", brand: "pourstore", assigneeId: "sh", status: "active" };
+  const N3 = { id: "n3", title: "재고관리", status: "active" }, N4 = { id: "n4", title: "재고 관리", status: "completed" };
+  const D = { projects: [A, B, N1, N2, N3, N4], brands: [{ id: "grohome", name: "그로홈" }, { id: "pourstore", name: "POUR스토어" }], users: [{ id: "sh", name: "김송희" }] };
+  assert.equal(M.projLabel(A, D), "스티커 프라이머 · 리페어 1차"); assert.equal(M.projLabel(B, D), "스티커프라이머 · 아마존 JP");
+  assert.equal(M.projLabel(N1, D), "광고 관리 · 그로홈"); assert.equal(M.projLabel(N2, D), "광고관리 · POUR스토어");
+  assert.equal(M.projLabel(N3, D), "재고관리");   // 같은 이름은 끝난 프로젝트뿐 → 그대로
+  assert.equal(M.projLabelOf(D, "lb_b"), "스티커프라이머 · 아마존 JP"); assert.equal(M.projLabelOf(D, "없음"), "");
+});

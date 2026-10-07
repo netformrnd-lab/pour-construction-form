@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { C, Head, Card, More } from "./ui.jsx";
 import { myRoutine, launchMatches, akMatches, countOf, targetOf, baseTitle, periodWeeks, akLaunchItems, brId, brandName } from "./routine.js";
-import { isDone } from "./model.js";
+import { isDone, projLabelOf } from "./model.js";
 import { akTotal } from "../../pour-os/src/actionKpi.js";
 import { qtyCfg, qtyText, qtySum, akSubsOf, openIdAk, roundOn } from "./rec.js";
 import { QtyAsk, qtyAfterQ } from "./recui.jsx";
@@ -12,7 +12,7 @@ import { QtyAsk, qtyAfterQ } from "./recui.jsx";
 const unitOf = (it) => (it.unit === "%" ? "%" : it.unit || "회");
 const plusL = (it) => (it.unit === "%" ? `+${it.step || 10}%` : "+1");
 const askWord = (it) => { const g = akLaunchItems(it); return g.includes("x_blog") ? "포스팅" : g.includes("x_short") ? "숏폼" : g.includes("x_meta") ? "광고" : "일"; };
-const pTitle = (D, t) => ((D.projects || []).find((p) => p.id === t.projectId) || {}).title || "신제품";
+const pTitle = (D, t) => projLabelOf(D, t.projectId) || "신제품";
 
 function Line({ children, onUndo, undoL = "취소" }) {
   return <div className="v2-rtline" role="status"><div>{children}</div>{onUndo && <button type="button" onClick={onUndo}>{undoL}</button>}</div>;

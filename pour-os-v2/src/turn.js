@@ -4,7 +4,7 @@
 //                 ③ 하위 업무가 있는 상위 업무는 하위 업무(담당이 다를 때만) ④ 고정업무는 앞뒤 없음
 // '끝난 앞 일' = 끝남(done) 또는 확인 대기(review: 담당은 끝냈고 맡긴 사람 확인만 남음) 또는 불러온 범위에 없음
 // 기다림은 표시만 하고 막지 않는다(실제 일보다 상태가 늦게 바뀌는 경우가 많음). 내 일이 이미 진행 중이면 기다림 표시를 하지 않는다
-import { ymd, ddays, dueOf, isDone, isMine, ownersOf, nameOf, md, activeUsers, addDays, isOffDay } from "./model.js";
+import { ymd, ddays, dueOf, isDone, isMine, ownersOf, nameOf, md, activeUsers, addDays, isOffDay, isFlowProj, roadOf, phaseOfTask, projLabel } from "./model.js";
 import { launchPreds, isTempOwner, preLaunchItem } from "./launch.js";
 
 export const finishedOf = (p) => !!p && (p.status === "done" || p.status === "review");
@@ -22,13 +22,24 @@ export function turnIndex(D) {
   const kids = new Map(); tasks.forEach((t) => { if (t.parentId) { const a = kids.get(t.parentId) || []; a.push(t); kids.set(t.parentId, a); } });
   const preds = new Map(), nexts = new Map(), temp = new Set();
   const skipOf = new Map((D.projects || []).filter((p) => p && Array.isArray(p.skipItems)).map((p) => [p.id, new Set(p.skipItems)]));   // v1 에서 건너뛴 신제품 항목
+  // 흐름 프로젝트(로드 · 사용자 확정 2026-10-07): 단계마다 업무가 여럿일 수 있음 → 다음 단계 사람은 앞 단계(업무가 있는 가장 가까운 앞 단계) 업무가 '모두' 끝나야 차례
+  //   위 업무만 셈(하위 업무는 위 업무를 따름) · 중단(dropped) 빼고 · 단계 있는 업무의 deps 는 다른 프로젝트 것·같은 단계 것만 씀
+  //   (만들 때 걸린 '바로 앞 단계' deps 는 단계 규칙이 대신 · 단계 순서를 바꾸거나 업무를 단계 미정으로 옮겨도 고리·엉킨 기다림이 안 생기게)
+  const stg = new Map();   // 업무 id → {pid, i(단계 번호), prev: [앞 단계 업무]}
+  (D.projects || []).forEach((p) => { if (!isFlowProj(p)) return; const road = roadOf(p, D); if (!road || !road.length) return;
+    const ord = new Map(road.map((s, i) => [s.k, i])), by = road.map(() => []);
+    tasks.forEach((t) => { if (t.projectId !== p.id || t.isFixed || t.status === "dropped") return; const pa = t.parentId && byId.get(t.parentId); if (pa && pa.projectId === p.id) return;
+      const k = phaseOfTask(t, p, D, byId, road); if (k && ord.has(k)) { const i = ord.get(k); by[i].push(t); stg.set(t.id, { pid: p.id, i }); } });
+    let last = []; by.forEach((a, i) => { a.forEach((t) => { stg.get(t.id).prev = last; }); if (a.length) last = a; }); });
   tasks.forEach((t) => {
     if (t.isFixed) return;
     if (isTempOwner(t, D)) temp.add(t.id);
     let ps = [];
-    if (Array.isArray(t.deps)) ps = t.deps.map((id) => byId.get(id)).filter(Boolean);
+    const sg = stg.get(t.id);
+    if (Array.isArray(t.deps)) ps = t.deps.map((id) => byId.get(id)).filter(Boolean).filter((x) => !sg || x.projectId !== t.projectId || (stg.get(x.id) || {}).i === sg.i);
     else if (t.launchItem) ps = launchPreds(t, byId, skipOf.get(t.projectId));
     else if (kids.has(t.id)) { const o = ownersOf(t); ps = kids.get(t.id).filter((k) => !ownersOf(k).some((u) => o.includes(u))); }
+    if (sg && sg.prev && sg.prev.length) ps = [...new Set([...ps, ...sg.prev])];
     if (ps.length) { preds.set(t.id, ps); ps.forEach((p) => { const a = nexts.get(p.id) || []; a.push(t); nexts.set(p.id, a); }); }
   });
   return { byId, preds, nexts, temp };
@@ -161,7 +172,7 @@ export function upcomingTurns(D, T, key, uid = "") {
     else if (projDue && myDue > projDue && (!launch || !t.launchItem || preLaunchItem(t.launchItem))) { level = "risk"; label = `${launch ? "출시" : "마감"}보다 늦음`; }   // 신제품은 출시 전에 끝낼 항목만
     else if (slack <= 1) { level = "tight"; label = slack <= 0 ? "당일 이어받기" : "여유 1일"; }
     else { level = "ok"; label = `여유 ${slack}일`; }
-    out.push({ t, p, I, proj, launch, projDue, start, myDue, slack, level, label, who: ownersOf(p)[0] || "", pDue: dueOf(p) });
+    out.push({ t, p, I, proj, projL: proj ? projLabel(proj, D) : "", launch, projDue, start, myDue, slack, level, label, who: ownersOf(p)[0] || "", pDue: dueOf(p) });
   });
   const ord = { late: 0, risk: 1, tight: 2, nodate: 3, ok: 4 };
   return out.sort((a, b) => String(a.start || "9").localeCompare(String(b.start || "9")) || ord[a.level] - ord[b.level] || String(a.myDue || "9").localeCompare(String(b.myDue || "9")));
@@ -174,7 +185,7 @@ export function upLine(u, users, key) {
   const pd = u.projDue ? ddays(u.projDue, key) : null;
   return {
     title: u.t.title,
-    proj: [u.proj ? u.proj.title : "프로젝트 없음", u.projDue ? `${u.launch ? "출시" : "마감"} ${md(u.projDue)} (${pd >= 0 ? "D-" + pd : -pd + "일 지남"})` : ""].filter(Boolean).join(" · "),
+    proj: [u.proj ? u.projL || u.proj.title : "프로젝트 없음", u.projDue ? `${u.launch ? "출시" : "마감"} ${md(u.projDue)} (${pd >= 0 ? "D-" + pd : -pd + "일 지남"})` : ""].filter(Boolean).join(" · "),
     pred: `앞: ${who} "${u.p.title}" ${st}${u.pDue ? ` · ${md(u.pDue)} 끝 예정` : " · 끝 예정일 없음"} → 내 기한 ${u.myDue ? md(u.myDue) : "없음"}`,
   };
 }
@@ -215,7 +226,7 @@ export function nowNext(p, D, idx, key) {
 export function personNow(D, uid, key) {
   const mine = (D.tasks || []).filter((t) => !t.isFixed && !isDone(t) && isMine(t, uid));
   const byDue = (a, b) => String(dueOf(a) || "9").localeCompare(String(dueOf(b) || "9"));
-  const pn = (t) => ((D.projects || []).find((p) => p.id === t.projectId) || {}).title;
+  const pn = (t) => projLabel((D.projects || []).find((p) => p.id === t.projectId), D);
   const doing = mine.filter((t) => t.status === "inprogress").sort(byDue)[0];
   if (doing) return `지금: ${doing.title}${pn(doing) ? " · " + pn(doing) : ""}`;
   const next = mine.filter((t) => t.status === "todo").sort(byDue)[0];

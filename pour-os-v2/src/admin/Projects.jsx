@@ -1,7 +1,7 @@
 // 관리자 · 프로젝트 — 출시가 겹치나, 어느 프로젝트가 위험한가, 출시일을 옮기면 무엇이 바뀌나
 // 출시 줄(앞으로 8주 출시일 묶음 · 제품마다 7단계 칸) → 위험순 전체 목록(일반·신제품 한 목록) → 제품을 누르면 프로젝트 시트 + 관리자 덧붙임(LaunchTools)
 import { useMemo, useState } from "react";
-import { ymd, addDays, ddays, ddayLabel, md, ago, nameOf, ownersOf, dueOf, isDone, projOpen, projHealth, projWhen, weekStart, PROJ_CATS, catName, projCat, guessCat, isHoldP, impOf, IMP_RANK, projPct } from "../model.js";
+import { ymd, addDays, ddays, ddayLabel, md, ago, nameOf, ownersOf, dueOf, isDone, projOpen, projHealth, projWhen, weekStart, PROJ_CATS, catName, projCat, guessCat, isHoldP, impOf, IMP_RANK, projPct, roadOf, roadStates, phaseOfTask } from "../model.js";
 import { phaseStates, previewLaunchMove, groupItems } from "../views.js";
 import { nodeState, orderTasks } from "../mindmap.jsx";
 import { LAUNCH_PHASES, launchPct, rebalanceLaunch } from "../launch.js";
@@ -30,6 +30,14 @@ function taskStrip(p, D, idx, key) {
     cells = [...(done.length ? [{ k: "done", name: `끝난 업무 ${done.length}개`, state: "done", txt: `✓${done.length}` }] : []), ...rest.slice(0, MAXC - (done.length ? 1 : 0))];
     const more = rest.length - (MAXC - (done.length ? 1 : 0)); if (more > 0) cells.push({ k: "more", name: `열린 업무 ${more}개 더`, state: "more", txt: `+${more}` }); }
   return cells;
+}
+
+// 로드(2026-10-07): 일반·흐름 프로젝트 = 단계 하나가 한 칸(이름은 칸 설명 · 숫자 = 지금 단계·늦은 단계의 남은 업무) · 단계가 8개 넘으면 8칸까지
+function roadStrip(p, D, key, road) {
+  const ts = (D.tasks || []).filter((t) => t.projectId === p.id && !t.isFixed), by = new Map(ts.map((t) => [t.id, t]));
+  const st = roadStates(road, ts, (t) => phaseOfTask(t, p, D, by, road), key);
+  const cells = st.slice(0, MAXC).map((ph) => ({ k: ph.k, name: `${ph.name} · ${ph.state === "none" ? "업무 없음" : `남은 ${ph.left}/${ph.total}`}`, state: ph.state === "none" ? "empty" : ph.state, txt: ph.state === "cur" || ph.state === "late" ? ph.left : "" }));
+  return { cells, cur: st.find((x) => x.state === "cur" || x.state === "late") || null };
 }
 
 // [주별 표] 카테고리 × 주(월~일) — 사람 표와 같은 모양. 카테고리를 누르면 그 안 프로젝트가 펼쳐짐
@@ -92,13 +100,14 @@ export function ProjectsTab({ D, cu, A, idx, open }) {
   const rows = useMemo(() => D.projects.filter(projOpen).map((p) => { const lp = isLaunchP(p);
     const ts = (D.tasks || []).filter((t) => t.projectId === p.id && t.launchItem);
     const h = projHealth(p, D, key, lp ? (x) => launchPct(x, D) : null), w = projWhen(p, D.tasks, key);   // % = 프로젝트 화면과 같은 값
-    return { p, lp, h, nn: nowNext(p, D, idx, key), date: w.date, cells: lp ? phaseStates(ts, key).map((ph) => ({ k: ph.k, name: `${ph.name} · 남은 ${ph.left}/${ph.total}`, state: ph.state, txt: ph.state === "cur" || ph.state === "late" ? ph.left : "" })) : taskStrip(p, D, idx, key) }; }), [D, idx]);
+    const road = lp ? null : roadOf(p, D), rsx = road ? roadStrip(p, D, key, road) : null;
+    return { p, lp, h, nn: nowNext(p, D, idx, key), date: w.date, stage: rsx && rsx.cur ? rsx.cur.name : "", cells: lp ? phaseStates(ts, key).map((ph) => ({ k: ph.k, name: `${ph.name} · 남은 ${ph.left}/${ph.total}`, state: ph.state, txt: ph.state === "cur" || ph.state === "late" ? ph.left : "" })) : rsx ? rsx.cells : taskStrip(p, D, idx, key) }; }), [D, idx]);
   const inCat = (p, k) => (k === "all" ? true : k === "none" ? !projCat(p) : projCat(p) === k);
   const cats = [["all", "전체"], ...PROJ_CATS, ["none", "미분류"]].filter(([k]) => k === "all" || rows.some((x) => inCat(x.p, k)));
   const cat1 = cats.some(([k]) => k === cat) ? cat : "all";
   const list = rows.filter((x) => inCat(x.p, cat1));
   const cnt = (v) => list.filter((x) => x.h.level === v).length;
-  const setPC = (p, v) => A.patchProject(p, { category: v }, `카테고리 → ${catName(v) || "미분류"}`, p.category || "");
+  const setPC = (p, v) => A.setCategory(p, v, "auto");   // 로드(2026-10-07): 단계가 정해진 업무가 있으면 지금 단계 그대로 · 없으면 새 카테고리 단계
   // 날짜별 묶음: 지난 날짜 → 앞으로 → 날짜 없음 → 보류
   const groups = useMemo(() => { const g = new Map();
     list.forEach((x) => { const k = x.p.status === "hold" || x.p.status === "paused" ? "~hold" : x.date || "~none"; (g.get(k) || g.set(k, []).get(k)).push(x); });
@@ -115,7 +124,7 @@ export function ProjectsTab({ D, cu, A, idx, open }) {
         {!x.lp && x.cells.length < 7 && [...Array(7 - x.cells.length)].map((_, i) => <span key={"e" + i} className="ph none" aria-hidden="true" />)}
         <span className="end">{x.h.late ? <b style={{ color: C.red }}>지남 {x.h.late}</b> : `${x.h.pct}%`}</span>
       </button>
-      <div className="a-lsub">{isHoldP(p) ? `보류 · ${p.holdReason || "이유 없음"} · ${p.holdUntil ? `다시 할 날 ${md(p.holdUntil)}` : "다시 할 날 미정"}` : x.nn.now ? `지금 ${x.nn.now.title} (${nameOf(D.users, ownersOf(x.nn.now)[0]) || "담당 없음"})${x.nn.next ? ` → 다음 ${x.nn.next.title} (${nameOf(D.users, ownersOf(x.nn.next)[0]) || "담당 없음"})` : ""}` : x.h.open ? `열린 업무 ${x.h.open} · 지금 하는 일 없음` : x.h.allDone ? <>업무 다 끝남 · <TBtn onClick={() => open({ type: "project", id: p.id })} style={{ padding: "0 2px", fontSize: 12.5 }}>완료하기 ›</TBtn></> : "업무가 아직 없어요"}{!x.lp && cat1 === "all" && projCat(p) ? ` · ${catName(projCat(p))}` : ""}</div>
+      <div className="a-lsub">{x.stage ? `${x.stage} 단계 · ` : ""}{isHoldP(p) ? `보류 · ${p.holdReason || "이유 없음"} · ${p.holdUntil ? `다시 할 날 ${md(p.holdUntil)}` : "다시 할 날 미정"}` : x.nn.now ? `지금 ${x.nn.now.title} (${nameOf(D.users, ownersOf(x.nn.now)[0]) || "담당 없음"})${x.nn.next ? ` → 다음 ${x.nn.next.title} (${nameOf(D.users, ownersOf(x.nn.next)[0]) || "담당 없음"})` : ""}` : x.h.open ? `열린 업무 ${x.h.open} · 지금 하는 일 없음` : x.h.allDone ? <>업무 다 끝남 · <TBtn onClick={() => open({ type: "project", id: p.id })} style={{ padding: "0 2px", fontSize: 12.5 }}>완료하기 ›</TBtn></> : "업무가 아직 없어요"}{!x.lp && cat1 === "all" && projCat(p) ? ` · ${catName(projCat(p))}` : ""}</div>
       {cat1 === "none" && <div className="a-lsub a-pcatset">
         <select aria-label={`${p.title} 카테고리`} className="v2-sel" value="" onChange={(e) => e.target.value && setPC(p, e.target.value)}><option value="">카테고리 고르기 ▾</option>{PROJ_CATS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
         {guessCat(p.title) && <TBtn onClick={() => setPC(p, guessCat(p.title))}>추천 '{catName(guessCat(p.title))}'로</TBtn>}</div>}
@@ -146,7 +155,7 @@ export function ProjectsTab({ D, cu, A, idx, open }) {
               return <span key={w} className={"c" + (k > 25 ? " w3" : k > 10 ? " w2" : k > 0 ? " w1" : "") + (ln ? " ln" : "")}>{k || ""}{ln ? <i>▴{x.lp ? "출시" : "마감"}</i> : null}</span>; })}
           </button>; })}
       </div></div>}
-    <p className="a-hint">칸: 신제품 = 기획 · 샘플 · 패킹 · 콘텐츠 · 채널 등록 · 창고 입고 · 출시 홍보 (숫자 = 그 단계 남은 항목) · 그 밖 프로젝트 = 업무 하나가 한 칸(앞 일 순서대로, ✓n = 끝난 업무 묶음). 채움 = 끝남 · 테두리 = 하는 중 · 빨간 테두리 = 지남 · 연한 칸 = 아직 · <TBtn onClick={() => open({ type: "launchOrder" })} style={{ padding: "0 2px", fontSize: 12 }}>신제품 순서표 보기 ›</TBtn></p></>}
+    <p className="a-hint">칸: 신제품 = 기획 · 샘플 · 패킹 · 콘텐츠 · 채널 등록 · 창고 입고 · 출시 홍보 (숫자 = 그 단계 남은 항목) · 일반·흐름 = 그 프로젝트 단계 하나가 한 칸(숫자 = 지금 단계 남은 업무 · 줄 아래에 지금 단계 이름 · 점선 = 업무 없는 단계) · 그로홈 KPI = 업무 하나가 한 칸(✓n = 끝난 업무 묶음). 채움 = 끝남 · 테두리 = 하는 중 · 빨간 테두리 = 지남 · 연한 칸 = 아직 · <TBtn onClick={() => open({ type: "launchOrder" })} style={{ padding: "0 2px", fontSize: 12 }}>신제품 순서표 보기 ›</TBtn></p></>}
   </>;
 }
 

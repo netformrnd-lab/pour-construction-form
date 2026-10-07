@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as fb from "../fb.js";
 import { akQidOfWeek } from "../../../pour-os/src/actionKpi.js";
-import { ymd, addDays, md, isMine, isDone, dueOf, holidayName, isOffDay, weekStart, nameOf, ownersOf } from "../model.js";
+import { ymd, addDays, md, isMine, isDone, dueOf, holidayName, isOffDay, weekStart, nameOf, ownersOf, projLabelOf } from "../model.js";
 import { teamWeeks, groupItems } from "../views.js";
 import { PickList } from "../pick.jsx";
 import { C, Chip, Seg, TBtn, Head, Card, Row, Empty, Sheet, useLocal } from "../ui.jsx";
@@ -177,7 +177,7 @@ export function WeekTable({ D, idx, open, noTemp, off = 0, kind = "one" }) {
 export function DoneSheet({ D, open, onBack, onClose, s }) {
   const u = (D.users || []).find((x) => x.id === s.uid);
   const list = (D.tasks || []).filter((t) => !t.isFixed && isDone(t) && isMine(t, s.uid) && finAt(t) >= s.since && (!s.until || finAt(t) < s.until)).sort((a, b) => finAt(b).localeCompare(finAt(a)));
-  const pn = (t) => ((D.projects || []).find((p) => p.id === t.projectId) || {}).title || "";
+  const pn = (t) => projLabelOf(D, t.projectId);
   return <Sheet title={`${u ? u.name : "사람"} · 완료 ${list.length}건 · ${s.label}`} onBack={onBack} onClose={onClose}>
     <Card style={{ marginTop: 12 }}>{list.length === 0 ? <Empty>끝낸 일이 없어요</Empty> : list.map((t, i) => <Row key={t.id} title={t.title} tag={`✓ ${md(finAt(t).slice(0, 10))}`} sub={pn(t) || "프로젝트 없음"} onClick={() => open({ type: "task", id: t.id })} last={i === list.length - 1} />)}</Card>
   </Sheet>;
@@ -215,7 +215,7 @@ export function PickSheet({ D, cu, A, idx, open, onBack, onClose, setToast, s })
   // 그 기간에 끝낸 일 (보기만 · 지난 일 묶음에는 없음)
   const iso = (d) => new Date(d + "T00:00:00").toISOString();
   const doneL = s.late ? [] : (D.tasks || []).filter((t) => !t.isFixed && isDone(t) && who(t) && finAt(t) >= iso(s.from) && finAt(t) < iso(addDays(s.to, 1))).sort((a, b) => finAt(b).localeCompare(finAt(a)));
-  const pn = (t) => ((D.projects || []).find((p) => p.id === t.projectId) || {}).title || "";
+  const pn = (t) => projLabelOf(D, t.projectId);
   const items = only === "done" ? [] : only === "temp" ? base.filter((t) => idx.temp.has(t.id)) : only === "real" ? base.filter((t) => !idx.temp.has(t.id)) : base;
   const groups = groupItems(items, "project", D);
   const range = s.late ? "지난 일" : s.from === s.to ? `${md(s.from)} (${wdOf(s.from)})` : `${md(s.from)}~${md(s.to)}`;

@@ -168,4 +168,17 @@ ok("㉑ 다가오는 내 차례: 프로젝트 · 앞사람 · 끝 예정 · 내 
   const L = R.upLine(by.b, users, "2026-10-06");
   assert.equal(L.title, "b"); assert.equal(L.proj, "추석 프로모션 · 마감 10/23 (D-17)"); assert.equal(L.pred, '앞: 용정하 "a" 할 일 · 10/7 끝 예정 → 내 기한 10/12');
 });
+ok("흐름 로드(2026-10-07): 2단계에 업무가 둘이면 3단계 '곧 내 차례'는 둘 다 끝나야 · 하나 남으면 그 업무를 기다림", () => {
+  const FP = { id: "pF", title: "추석 프로모션", wfId: "wf_promo", category: "marketing", assigneeId: "sh", dueDate: "2026-10-23", road: [{ k: "wf0", name: "기획" }, { k: "wf1", name: "기획안 컨펌" }, { k: "wf2", name: "이미지 제작" }] };
+  const F = (id, ph, o) => ({ id, title: id, projectId: "pF", phase: ph, status: "todo", assigneeId: "wm", assigneeIds: ["wm"], ...o });
+  const ts = [F("a", "wf0", { status: "done", finishedAt: "2026-10-05T01:00:00Z" }), F("b", "wf1", { assigneeId: "jh", assigneeIds: ["jh"], dueDate: "2026-10-07" }), F("x", "wf1", { assigneeId: "sh", assigneeIds: ["sh"], dueDate: "2026-10-08", status: "inprogress" }), F("c", "wf2", { assigneeId: "cr", assigneeIds: ["cr"], dueDate: "2026-10-12" })];
+  const D = { users, projects: [FP], tasks: ts }, idx = R.turnIndex(D);
+  assert.deepEqual(R.predsOf(ts[3], idx).map((x) => x.id).sort(), ["b", "x"]);
+  const T = R.turnsOf(D, idx, "cr", now, {}, since), up = R.upcomingTurns(D, T, "2026-10-06", "cr");
+  assert.equal(up.length, 1); assert.equal(up[0].start, "2026-10-08");   // 남은 앞 일 중 끝 예정이 가장 늦은 것(x 10/8)
+  const D2 = { ...D, tasks: ts.map((t) => (t.id === "b" ? { ...t, status: "done", finishedAt: "2026-10-06T01:00:00Z" } : t)) }, i2 = R.turnIndex(D2);
+  assert.equal(R.turnOf(D2.tasks[3], i2, "2026-10-06").state, "wait"); assert.deepEqual(R.turnOf(D2.tasks[3], i2, "2026-10-06").open.map((x) => x.id), ["x"]);
+  const D3 = { ...D2, tasks: D2.tasks.map((t) => (t.id === "x" ? { ...t, status: "done", finishedAt: "2026-10-06T08:00:00Z" } : t)) }, i3 = R.turnIndex(D3);
+  assert.equal(R.turnOf(D3.tasks[3], i3, "2026-10-06").state, "ready"); assert.ok(R.turnsOf(D3, i3, "cr", now, {}, since).fresh.has("c"));
+});
 console.log(`\n${n}개 모두 통과`);

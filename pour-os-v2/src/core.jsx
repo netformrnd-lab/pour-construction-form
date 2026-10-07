@@ -10,8 +10,9 @@ import {
   reqOf, needsReview, dueApprover, isHoldP, nextWorkday, setHolidayLayer, handOverOwners,
   scopeFields, brandLabel, cycleFields, FX_WD, isRemoved, fxRemoveFields, fxRestoreFields, canRemoveFx, canRemoveAk, canRenameFx, canRenameTask, canRemoveNote, canRestoreNote, scopeOf,
   canFinish, canRemoveTask, canRestoreTask, taskKids, taskRemoveFields, canRemoveProj, canRestoreProj, projRemoveFields, projTaskRemoveFields, projTaskBack,
+  roadOf, catRoad, builtinRoad, cleanRoad, sameRoad, roadToStore, roadProblem, roadSwitchPlan, phaseOfTask, stageName, noStageL, canSetPhase, canEditRoad, isFlowProj, isLaunchProj, catName, projCat, roadOwn,
 } from "./model.js";
-import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS, phaseOf } from "./launch.js";
+import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS } from "./launch.js";
 import { nextTurnText } from "./turn.js";
 import { planLaunchSync, planLaunchTrash, planRowSync, planCustomSteps } from "./lbsync.js";
 import { planLaunchPush, BY as LB_BY } from "./lbpush.js";
@@ -804,14 +805,89 @@ export function useActs(D, cu, setToast, idx = null) {
       log("noteRestore", { col: "notes", targetId: n.id, itemId: n.itemId || "", label: undo ? "댓글 되살림 (되돌리기)" : "댓글 되살림", noteBy: n.by || "" });
       setToast({ text: undo ? "되돌렸어요" : "댓글을 되살렸어요" });
       return { ok: true }; },
+    // 새 프로젝트(빈 프로젝트): 카테고리 로드 → 고친 로드는 기본과 다를 때만 road 칸에 (2026-10-07) · 단계마다 첫 업무(phase)
     addProject: async (f) => {
       const id = newId("p"), at = nowIso();
-      const p = { id, title: f.title.trim(), assigneeId: f.assigneeId || cu.id, collaboratorIds: [], status: "active", priority: "mid", progress: 0, resultValue: 0, mainKPIId: "", subKPIId: "", dueDate: f.dueDate || "", brand: f.brand || "", group: "기타", ...(f.category ? { category: f.category } : {}), createdAt: at, createdBy: cu.id, madeIn: "v2" };
+      const p0 = { id, title: f.title.trim(), assigneeId: f.assigneeId || cu.id, collaboratorIds: [], status: "active", priority: "mid", progress: 0, resultValue: 0, mainKPIId: "", subKPIId: "", dueDate: f.dueDate || "", brand: f.brand || "", group: "기타", ...(f.category ? { category: f.category } : {}), createdAt: at, createdBy: cu.id, madeIn: "v2" };
+      const store = f.road && !roadProblem(f.road) ? roadToStore(p0, f.road, D, f.category || "") : null;
+      const p = { ...p0, ...(store ? { road: store, roadBy: cu.id, roadAt: at } : {}) };
       try { await fb.put("projects", id, p); } catch (e) { fail("프로젝트")(e); return null; }
-      log("add", { col: "projects", targetId: id, projectId: id, label: p.title });
+      log("add", { col: "projects", targetId: id, projectId: id, label: p.title + (store ? ` · 단계 ${store.map((x) => x.name).join(" → ")}` : "") });
+      const road = store || catRoad(f.category || "", D);
+      for (const x of (f.stageTasks || []).filter((y) => y && String(y.title || "").trim())) await A.addTask({ title: x.title, projectId: id, assigneeId: cu.id, dueDate: f.dueDate || "", ...(road.some((r) => r.k === x.k) ? { phase: x.k } : {}) });
       for (const tt of (f.tasks || []).filter((x) => x.trim())) await A.addTask({ title: tt, projectId: id, assigneeId: cu.id, dueDate: f.dueDate || "" });
       return p;
     },
+    // ── 프로젝트 단계(로드) 고치기 (책임자·관리자 · 2026-10-07) — 단계 이름·순서·더하기·빼기 · 업무는 안 고침(뺀 단계 업무는 '단계 미정'으로 보임)
+    //   서버 road 가 화면에서 본 값일 때만 씀 · 기본과 같으면 road null(카테고리 기본을 따라감) · 기록 · 5초 되돌리기
+    setRoad: async (p, road) => {
+      if (!canEditRoad(p, cu)) { setToast({ text: "책임자·관리자만 단계를 고칠 수 있어요" }); return false; }
+      const prob = roadProblem(road); if (prob) { setToast({ text: prob }); return false; }
+      const before = roadOf(p, D) || [], store = roadToStore(p, road, D), cur = p.road != null ? p.road : null, at = nowIso(), pid = p._doc || p.id;
+      if (JSON.stringify(cur ? cleanRoad(cur) : null) === JSON.stringify(store)) return true;
+      const label = `${p.title} · 단계 ${before.map((x) => x.name).join(" → ")} → ${cleanRoad(road).map((x) => x.name).join(" → ")}`;
+      try { const r = await fb.patchIf("projects", pid, { road: cur }, { road: store, roadBy: cu.id, roadAt: at, updatedAt: at, updatedBy: cu.id, v2At: at });
+        if (!r.ok) { setToast({ text: "그사이 다른 사람이 단계를 바꿨어요 · 지금 단계를 확인해 주세요" }); return false; }
+        log("edit", { col: "projects", targetId: p.id, projectId: p.id, label, prev: { road: cur }, next: { road: store } });
+        setToast({ text: "단계를 바꿨어요", undo: () => undoMany([{ key: "projects", id: pid, wrote: { road: store }, prev: { road: cur } }], label, "edit") });
+        return true; }
+      catch (e) { fail("단계")(e); return false; } },
+    // 카테고리 바꾸기 + 로드: mode 'switch' = 새 카테고리 로드로(열쇠가 같으면 그대로 · 이름이 같으면 그 단계로 · 나머지 단계 미정) · 'keep' = 지금 단계 그대로(road 칸에 남김)
+    //   'auto'(묻지 않는 곳 · 관리자 미분류 칩) = 로드가 같으면 카테고리만 · 단계가 정해진 업무가 있으면 keep · 없으면 switch
+    setCategory: async (p, cat, mode = "auto") => {
+      const c = cat || "", oldRoad = roadOf(p, D), curCat = p.category || "", curRoad = p.road != null ? p.road : null, pid = p._doc || p.id, at = nowIso();
+      const plain = (lab) => A.patchProject(p, { category: c }, `카테고리 → ${catName(c) || "미분류"}${lab || ""}`, curCat);
+      if (!oldRoad || isLaunchProj(p) || c === projCat(p)) return plain();
+      const newDef = catRoad(c, D), np = { ...p, category: c };
+      const byId = new Map(D.tasks.map((t) => [t.id, t])), ts = D.tasks.filter((t) => t.projectId === p.id && !t.isFixed), ph = (t) => phaseOfTask(t, p, D, byId, oldRoad);
+      let m = mode; if (m === "auto") m = sameRoad(oldRoad, newDef) ? "plain" : ts.some((t) => ph(t)) ? "keep" : "switch";
+      if (m === "plain" && !roadOwn(p)) return plain();
+      const store = roadToStore(np, m === "keep" || m === "plain" ? oldRoad : newDef, D, c);
+      const plan = m === "switch" ? roadSwitchPlan(oldRoad, newDef, ts.filter((t) => !t.parentId || !byId.has(t.parentId) || byId.get(t.parentId).projectId !== p.id), ph) : { keep: [], move: [], loose: [] };
+      if (plan.move.length > 400) { setToast({ text: "한 번에 400개까지예요" }); return false; }
+      const label = `${p.title} · 카테고리 → ${catName(c) || "미분류"} · ${m === "switch" ? `단계 ${newDef.map((x) => x.name).join(" → ")}${plan.move.length ? ` (${plan.move.length}개 옮김)` : ""}${plan.loose.length ? ` · 단계 미정 ${plan.loose.length}` : ""}` : "단계 그대로"}`;
+      const pf = { category: c, road: store, roadBy: cu.id, roadAt: at, updatedAt: at, updatedBy: cu.id, v2At: at };
+      try { const r = await fb.txDocs([{ key: "projects", id: pid }, ...plan.move.map((x) => ({ key: "tasks", id: tdoc(x.t) }))], (curs) => {
+          if (!curs[0] || (curs[0].category || "") !== curCat || !fb.sameVal(curs[0].road != null ? curs[0].road : null, curRoad)) return { ret: { conflict: true } };
+          const mv = plan.move.map((x, i) => (curs[i + 1] && (curs[i + 1].phase != null ? curs[i + 1].phase : null) === (x.t.phase != null ? x.t.phase : null) ? x : null));
+          return { writes: [pf, ...mv.map((x) => (x ? { phase: x.to, phaseBy: cu.id, phaseAt: at, updatedAt: at, updatedBy: cu.id, v2At: at } : null))], ret: { ok: true, moved: mv.filter(Boolean) } }; });
+        if (!r || r.conflict) { setToast({ text: "그사이 다른 사람이 카테고리·단계를 바꿨어요 · 지금 값을 확인해 주세요" }); return false; }
+        log("edit", { col: "projects", targetId: p.id, projectId: p.id, label, prev: { category: curCat, road: curRoad, tasks: r.moved.map((x) => ({ id: x.t.id, phase: x.t.phase != null ? x.t.phase : null })) }, next: { category: c, road: store }, ids: r.moved.map((x) => x.t.id) });
+        setToast({ text: `카테고리를 바꿨어요${m === "switch" ? ` · 단계도 ${catName(c) || "미분류"} 단계로` : " · 단계는 그대로"}`, undo: () => undoMany([{ key: "projects", id: pid, wrote: { category: c, road: store }, prev: { category: curCat, road: curRoad } },
+          ...r.moved.map((x) => ({ key: "tasks", id: tdoc(x.t), wrote: { phase: x.to }, prev: { phase: x.t.phase != null ? x.t.phase : null } }))], label, "edit") });
+        return true; }
+      catch (e) { fail("카테고리")(e); return false; } },
+    // 단계 정리 [추천대로 넣기] · 여러 업무 단계 한 번에 — 업무마다 서버 단계가 본 값일 때만(그사이 바뀐 업무는 건너뜀) · 기록 1건 · 5초 되돌리기
+    setPhases: async (p, picks) => {
+      const road = roadOf(p, D); if (!road) return null;
+      const ok = (picks || []).filter((x) => x && x.t && x.k && road.some((r) => r.k === x.k) && canSetPhase(x.t, p, cu)).slice(0, 300);
+      if (!ok.length) { setToast({ text: "넣을 업무가 없어요" }); return null; }
+      const at = nowIso(), cur = (t) => (t.phase != null ? t.phase : null);
+      try { const r = await fb.patchManyIf(ok.map((x) => ({ key: "tasks", id: tdoc(x.t), expect: { phase: cur(x.t) }, fields: { phase: x.k, phaseBy: cu.id, phaseAt: at, updatedAt: at, updatedBy: cu.id, v2At: at } })));
+        const done = ok.filter((x) => !r.skipped.includes(tdoc(x.t))); if (!done.length) { setToast({ text: "그사이 다른 사람이 단계를 바꿔서 그대로 뒀어요" }); return r; }
+        const cnt = road.map((s) => [s.name, done.filter((x) => x.k === s.k).length]).filter(([, n]) => n).map(([nm, n]) => `${nm} ${n}`).join(" · ");
+        const label = `${p.title} · 단계 정리 ${done.length}개 (${cnt})`;
+        log("edit", { col: "tasks", targetId: done.length === 1 ? done[0].t.id : "", projectId: p.id, label, ids: done.map((x) => x.t.id), prev: { tasks: done.map((x) => ({ id: x.t.id, phase: cur(x.t) })) } });
+        setToast({ text: `단계에 넣었어요 · ${done.length}개${r.skipped.length ? ` · ${r.skipped.length}개는 그사이 바뀌어서 그대로` : ""}`, undo: () => undoMany(done.map((x) => ({ key: "tasks", id: tdoc(x.t), wrote: { phase: x.k }, prev: { phase: cur(x.t) } })), label, "edit") });
+        return r; }
+      catch (e) { fail("단계")(e); return null; } },
+    // 관리자 설정 › 카테고리 기본 로드 (settings/roads · 관리자만 · 신제품 출시는 못 바꿈) — 연 때 본 값 그대로일 때만(transaction) · 기록 · 5초 되돌리기
+    //   road 칸 없는 프로젝트는 바로 따라감 · 업무는 안 고침 · 기본과 같으면 null(앱 안 기본)
+    setCatRoad: async (cat, road, seen, viaUndo) => {
+      if (!isMaster(cu)) { setToast({ text: "관리자만 바꿀 수 있어요" }); return false; }
+      if (!cat || cat === "launch") { setToast({ text: "신제품 출시 단계는 신제품 대시보드 단계 그대로예요" }); return false; }
+      const prob = roadProblem(road); if (prob) { setToast({ text: prob }); return false; }
+      const clean = cleanRoad(road), store = sameRoad(clean, builtinRoad(cat)) ? null : clean, was = seen != null ? cleanRoad(seen) : null, at = nowIso();
+      const entry = { at, by: cu.id, byName: cu.name, cat, prev: was, next: store };
+      try { const r = await fb.txDoc("settings", "roads", (cur) => { const now = cur && cur.roads && cur.roads[cat] != null ? cur.roads[cat] : null;
+          if (!fb.sameVal(now, was)) return { ret: { conflict: true } };
+          return { write: cur ? { [`roads.${cat}`]: store, updatedAt: at, updatedBy: cu.id, updatedByName: cu.name, hist: fb.arrayUnion(entry) } : { roads: { [cat]: store }, updatedAt: at, updatedBy: cu.id, updatedByName: cu.name, hist: [entry] }, ret: { ok: true } }; });
+        if (!r || r.conflict) { setToast({ text: "그사이 다른 관리자가 이 단계를 바꿨어요 · 지금 단계를 확인해 주세요" }); return false; }
+        const label = `프로젝트 단계 · ${catName(cat) || "미분류"} · ${(was || builtinRoad(cat)).map((x) => x.name).join(" → ")} → ${clean.map((x) => x.name).join(" → ")}${viaUndo ? " (되돌리기)" : ""}`;
+        log("edit", { col: "settings", targetId: "roads", label, prev: { cat, road: was }, next: { cat, road: store } });
+        setToast({ text: viaUndo ? "되돌렸어요" : "기본 단계를 바꿨어요 · 단계를 따로 고치지 않은 프로젝트에 바로 보여요", ...(viaUndo ? {} : { undo: () => A.setCatRoad(cat, was || builtinRoad(cat), store, true) }) });
+        return true; }
+      catch (e) { fail("기본 단계")(e); return false; } },
     // 반복(행동지표) +d → v2 실적 pour-os/v2/kpiact/{분기} (transaction · 여러 사람이 같이 눌러도 안 덮임 · 버전1 실적은 읽기만) · extra {task: 같이 센 신제품 업무, fail: 실패 건, wk: 그 주(되돌리기는 처음 누른 주로)}
     //   → {n, wk} · 실패하면 null (알림)
     //   3단계: 분기 실적 + 그날 기록(checks ak~항목~나~날짜 runs) 을 한 transaction 으로 (실패 건은 그날 기록 없이) · extra.date = 그날(취소는 처음 누른 날로) · extra.via 'btn'
@@ -942,13 +1018,19 @@ export function useActs(D, cu, setToast, idx = null) {
     //   한 transaction: 처음 업무가 서버에 아직 안 없앤 것일 때만 · 하위 업무도 아직 안 없앤 것만 · 기록 1건(prev) · 5초 되돌리기 · 진척 다시 계산
     // 신제품 단계 바꾸기(사용자 확정 2026-10-07 '둘 다 넣기'): 직접 넣은 업무만(신제품 항목 launchItem 은 신제품 대시보드 단계 그대로) · 서버 단계가 화면에서 본 값일 때만 씀
     //   k = LAUNCH_PHASES 키 · '' = 기타(단계 없음) · 기록 1건 '단계 기타 → 채널 등록' · 5초 되돌리기 · 신제품 대시보드엔 안 씀(lbpush 는 launchItem·그 하위 줄만 봄)
+    //   로드(2026-10-07): 모든 로드 있는 프로젝트(신제품·일반·흐름) · k = 그 로드 열쇠 · '' = 단계 미정(신제품은 '기타') · 책임자·관리자·담당만(canSetPhase)
     setPhase: async (t, k) => { if (t.launchItem) { setToast({ text: "신제품 대시보드 항목은 대시보드 단계를 따라요" }); return false; }
-      const cur = t.phase || null, next = k || null; if (cur === next) return true;
-      const nm = (x) => (phaseOf(x) || {}).name || "기타", at = nowIso(), label = `${t.title} · 단계 ${nm(cur)} → ${nm(next)}`;
+      const p = (D.projects || []).find((x) => x.id === t.projectId), road = roadOf(p, D);
+      if (!road) { setToast({ text: "단계가 없는 프로젝트예요" }); return false; }
+      if (!canSetPhase(t, p, cu)) { setToast({ text: "책임자·관리자·담당만 단계를 바꿀 수 있어요" }); return false; }
+      if (k && !road.some((x) => x.k === k)) { setToast({ text: "이 프로젝트에 없는 단계예요" }); return false; }
+      const curK = phaseOfTask(t, p, D, null, road); if (curK === (k || "")) return true;
+      const cur = t.phase != null ? t.phase : null, next = k || (isFlowProj(p) && Number.isInteger(t.wfStage) ? "" : null);   // 흐름 업무를 일부러 단계 미정으로 = "" (wfStage 로 안 돌아가게)
+      const nm = (x) => stageName(road, x) || noStageL(p), at = nowIso(), label = `${t.title} · 단계 ${nm(curK)} → ${nm(k || "")}`;
       try { const r = await fb.patchIf("tasks", tdoc(t), { phase: cur }, { phase: next, phaseBy: cu.id, phaseAt: at, updatedAt: at, updatedBy: cu.id, v2At: at });
         if (!r.ok) { setToast({ text: "그사이 다른 사람이 단계를 바꿨어요 · 지금 단계를 확인해 주세요" }); return false; }
         log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label, prev: { phase: cur }, next: { phase: next } });
-        setToast({ text: `'${nm(next)}' 단계로 옮겼어요`, undo: () => undoT(t, { phase: next }, { phase: cur }, label) });
+        setToast({ text: k || isLaunchProj(p) ? `'${nm(k || "")}' 단계로 옮겼어요` : `'${noStageL(p)}'으로 옮겼어요`, undo: () => undoT(t, { phase: next }, { phase: cur }, label) });
         return true; }
       catch (e) { fail("단계")(e); return false; } },
     taskRemove: async (t, reason) => { if (!canRemoveTask(t, cu)) { setToast({ text: "없앨 수 없는 업무예요" }); return false; }
@@ -1123,7 +1205,7 @@ export const V2_TASK_ONLY = ["scope", "scopeBy", "scopeAt", "qty", "cycleOk", "c
 export function stripV2Only(key, data, cur) {
   if (!data) return data; const d = { ...data };
   if (key === "users") Object.keys(d).forEach((f) => { if (/^pin/.test(f) || f === "weekCap") delete d[f]; });
-  if (key === "projects") delete d.removed;
+  if (key === "projects") ["removed", "road", "roadBy", "roadAt"].forEach((f) => delete d[f]);   // road = 업무OS 프로젝트 단계(로드 · 2026-10-07)
   if (key === "notes") delete d.removed;   // 댓글 삭제(2026-10-07) — 다시 가져오기가 되살리지 않음   // 프로젝트 없애기(휴지통) — 다시 가져오기가 되살리지 않음
   if (key === "tasks") { ["doneDates", "doneAtBy", "subDone"].forEach((f) => delete d[f]); if ((cur && cur.isFixed) || d.isFixed) ["doneAt", "doneByName"].forEach((f) => delete d[f]);
     // 반복 실행·고정업무 나누기(2단계) · 주기 확인 · 건수 칸(3단계 예약) — v2 에서만 정하는 칸 · 정한 브랜드·반복도 버전1 값으로 안 되돌림

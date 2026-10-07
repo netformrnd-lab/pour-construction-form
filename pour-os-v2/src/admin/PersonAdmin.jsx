@@ -4,7 +4,7 @@
 import { useState } from "react";
 import * as fb from "../fb.js";
 import { pinHash } from "../sha.js";
-import { ymd, ddays, ddayLabel, md, ago, hm, isDone, isOneOff, isMine, ownersOf, dueOf, nameOf, riskOf, projOpen, personHealth, onTimeOf, fxIsMine, fxDueOn, fxMeDone, fxLabel, fxTime, TEAMS, teamOf, DEFAULT_TEAMS } from "../model.js";
+import { ymd, ddays, ddayLabel, md, ago, hm, isDone, isOneOff, isMine, ownersOf, dueOf, nameOf, riskOf, projOpen, personHealth, onTimeOf, fxIsMine, fxDueOn, fxMeDone, fxLabel, fxTime, TEAMS, teamOf, DEFAULT_TEAMS, projLabelOf } from "../model.js";
 import { nextsOf } from "../turn.js";
 import { C, Big, TBtn, Act, Head, Card, Row, Empty, Sheet, Ask, More, inp, Chip } from "../ui.jsx";
 import { Lv, pName } from "./common.jsx";
@@ -58,7 +58,7 @@ export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast
 
     <Head>지금 하는 일 {doing.length}</Head><L a={doing} empty="진행 중인 일이 없어요" render={(t, last) => <Row key={t.id} title={t.title} sub={[dueOf(t) ? `${md(dueOf(t))} · ${ddayLabel(ddays(dueOf(t), key))}` : "기한 없음", pName(D, t.projectId)].filter(Boolean).join(" · ")} onClick={() => open({ type: "task", id: t.id })} last={last} />} />
     <Head right={todoAll.length > 5 && <TBtn onClick={() => setAll(!all)}>{all ? "접기 ▴" : `모두 ${todoAll.length} ▾`}</TBtn>}>다음 할 일 {todoAll.length}</Head>
-    <L a={next} empty="남은 할 일이 없어요" render={(t, last) => { const r = riskOf(t, key); return <Row key={t.id} tag={r ? r.label : idx.temp.has(t.id) ? "임시" : null} tagTone={r && r.red ? "red" : null} title={t.title} sub={[dueOf(t) ? md(dueOf(t)) : "기한 없음", ((D.projects.find((p) => p.id === t.projectId) || {}).title) || ""].filter(Boolean).join(" · ")} onClick={() => open({ type: "task", id: t.id })} last={last} />; }} />
+    <L a={next} empty="남은 할 일이 없어요" render={(t, last) => { const r = riskOf(t, key); return <Row key={t.id} tag={r ? r.label : idx.temp.has(t.id) ? "임시" : null} tagTone={r && r.red ? "red" : null} title={t.title} sub={[dueOf(t) ? md(dueOf(t)) : "기한 없음", projLabelOf(D, t.projectId)].filter(Boolean).join(" · ")} onClick={() => open({ type: "task", id: t.id })} last={last} />; }} />
     <Head>책임 프로젝트 {projs.length}{projs.filter((p) => !(p.now && p.now.text)).length ? <span style={{ fontWeight: 600, color: C.mute }}> · 지금 상황 없음 {projs.filter((p) => !(p.now && p.now.text)).length}</span> : null}</Head><L a={projs} empty="책임 프로젝트가 없어요" render={(p, last) => <Row key={p.id} title={p.title} sub={p.now && p.now.text ? p.now.text.split("\n")[0] : null} onClick={() => open({ type: "project", id: p.id })} last={last} />} />
     <Head>오늘 고정업무 {fx.filter((t) => fxMeDone(t, u.id, key)).length}/{fx.length}</Head><L a={fx} empty="오늘 고정업무가 없어요" render={(t, last) => <Row key={t.id} title={fxLabel(t, u.id)} sub={fxMeDone(t, u.id, key) ? `✓ ${hm(t.doneAtBy && t.doneAtBy[u.id])}` : `아직${fxTime(t, u.id) ? ` · 예정 ${fxTime(t, u.id)}` : ""}`} onClick={() => open({ type: "fixed", id: t.id })} last={last} />} />
     <Head>최근 대화</Head><L a={talk} empty="최근 30일 대화가 없어요" render={(n, last) => <Row key={n.id} title={n.text} sub={ago(n.at)} onClick={() => { const [k, ...r] = String(n.itemId).split(":"); if (k === "task") open({ type: "task", id: r.join(":"), focus: "talk" }); else if (k === "proj") open({ type: "project", id: r.join(":"), first: "news" }); }} last={last} />} />

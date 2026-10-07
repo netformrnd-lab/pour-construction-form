@@ -115,4 +115,15 @@ ok("반복 실행(actionKPIs) 덧칠: subs·qty·desc 덮기 · 목표·주기·
   const c = r.find((x) => x.id === "v2k_act_1"); assert.ok(c && c._new && c.goal === 1 && c.unit === "회");
   assert.equal(r.length, 3);
 });
+ok("반복 실행 없애기(2026-10-07): hidden + removed → _hidden·_removed · 숨기기만 한 것은 _removed 없음 · kpiEditWrite 숨김 기록", () => {
+  const rm = { at: "2026-10-07T01:00:00Z", by: "songhee", byName: "김송희" };
+  const r = applyKpiOv({ actionKPIs: [{ id: "a1", name: "블로그" }, { id: "a2", name: "전화" }] }, [{ id: "a1", coll: "actionKPIs", hidden: true, removed: rm, fields: {} }, { id: "a2", coll: "actionKPIs", hidden: true, fields: {} },
+    { id: "v2k_act_x", coll: "actionKPIs", created: true, hidden: true, removed: rm, fields: { name: "새것" } }, { id: "a3", coll: "actionKPIs", hidden: false, removed: rm, fields: {} }]).actionKPIs;
+  const by = Object.fromEntries(r.map((x) => [x.id, x]));
+  assert.deepEqual(by.a1._removed, rm); assert.equal(by.a1._hidden, true); assert.equal(by.a2._removed, undefined); assert.deepEqual(by.v2k_act_x._removed, rm);
+  const w = kpiEditWrite(null, "actionKPIs", "a1", {}, true, { id: "songhee", name: "김송희" }, "t", { id: "a1", name: "블로그" });
+  assert.equal(w.hidden, true); assert.equal(w.created, false); assert.deepEqual(w.hist[0].ch, { _hidden: [false, true] });
+  const back = kpiEditWrite({ ...w, removed: rm }, "actionKPIs", "a1", {}, false, { id: "songhee", name: "김송희" }, "t2", { id: "a1" });
+  assert.equal(back.hidden, false); assert.equal(back.hist.length, 2);
+});
 console.log(`${n}개 모두 통과`);

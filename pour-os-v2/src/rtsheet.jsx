@@ -5,7 +5,8 @@
 //   권한: 관리자 = 공통 체크리스트 · 건수 칸 · 브랜드 · 담당 · 멈춤 · (새로 만든 항목만) 목표 / 담당 = 내 체크리스트 · 메모 · 파일
 import { useEffect, useRef, useState } from "react";
 import { C, Big, TBtn, Chip, Seg, Head, Card, Empty, Sheet, inp, Linked, Clash } from "./ui.jsx";
-import { ymd, ago, isMaster, activeUsers, nameOf, newId, brandsWithCommon, brandKey } from "./model.js";
+import { ymd, ago, isMaster, activeUsers, nameOf, newId, brandsWithCommon, brandKey, canRemoveAk } from "./model.js";
+import { RemoveAsk, RemovedNote } from "./trash.jsx";
 import { FixedSheet, Thread, useItemNotes, QtyCfgEdit } from "./task.jsx";
 import { FileList, useUploads, UpList, UpBtn } from "./files.jsx";
 import { periodWeeks, periodLabel, brandName } from "./routine.js";
@@ -27,6 +28,13 @@ function AkSheet({ D, cu, A, onBack, onClose, id, focus, note }) {
   const R = useRecs(D, id, tick);
   const toTalk = () => setTimeout(() => { const el = document.getElementById("v2-rt-talk"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80);
   useEffect(() => { if (focus === "talk" && it) toTalk(); }, [focus, !!it]);
+  const gone = !it ? (ak.removed || []).find((x) => x.id === id) : null;   // 없앤 것(휴지통 · 링크로 열었을 때) → 맨 위 '없앤 반복 실행이에요 · [되살리기]' + 지난 기록·대화
+  if (gone) return <Sheet title="반복 실행" kind="반복 실행" head={gone.name} path={`반복 실행 · ${brandName(gone.brand, D.brands) || "브랜드 없음"} · ${akGoalText(gone)}`} onBack={onBack} onClose={onClose}>
+    <RemovedNote what="없앤 반복 실행이에요" rm={gone._removed} can={canRemoveAk(cu)} onRestore={async () => { const ok = await A.akRestore(gone); if (ok) (onBack || onClose)(); }} />
+    <RecList D={D} docs={R.docs} ready={R.ready} cfg={qtyCfg(gone)} kind="ak" notes={notes} keyd={(D.recs && D.recs.key) || ymd(new Date())} onPick={() => {}} />
+    <div id="v2-rt-talk" style={{ scrollMarginTop: 8 }}><Head>대화</Head></div>
+    <Thread D={D} cu={cu} A={A} notes={notes} itemId={gone.id} ctx={{}} link={{ kind: "r", id: gone.id }} hl={note} cfg={qtyCfg(gone)} />
+  </Sheet>;
   if (!it) return <Sheet title="반복 실행" kind="반복 실행" onBack={onBack} onClose={onClose}><Empty>{ak.defReady ? "이 반복 실행을 찾지 못했어요" : "불러오는 중…"}</Empty></Sheet>;
   const key = (D.recs && D.recs.key) || ymd(new Date()), who = akWho(D.users, it), mine = who.includes(cu.id), master = isMaster(cu);
   const tot = akTotal(ak.docs || {}, it, periodWeeks(it, key)), u = unitOf(it), cfg = qtyCfg(it), subs = akSubsOf(it, cu.id);
@@ -66,13 +74,15 @@ function AkSheet({ D, cu, A, onBack, onClose, id, focus, note }) {
     <FileList files={files} />
     <div id="v2-rt-talk" style={{ scrollMarginTop: 8 }}><Head>대화</Head></div>
     <Thread D={D} cu={cu} A={A} notes={notes} itemId={it.id} ctx={{}} link={{ kind: "r", id: it.id }} hl={note} rec={rec ? { date: rec.date, uid: rec.uid, qty: rec.qty, runs: rec.runs } : null} onRec={setRec} cfg={cfg} />
-    <AkMore it={it} D={D} cu={cu} A={A} mine={mine} master={master} />
+    <AkMore it={it} D={D} cu={cu} A={A} mine={mine} master={master} onGone={() => (onBack || onClose)()} />
   </Sheet>;
 }
 
 // [더 하기 ▾] — 체크리스트 고치기(관리자 공통 · 담당 내 것) · 건수 칸 · 브랜드 · 담당 · 멈추기 · 목표(새로 만든 것만) — 관리자
-function AkMore({ it, D, cu, A, mine, master }) {
-  const [more, setMore] = useState(false), [mode, setMode] = useState("");
+//   [없애기](관리자 · 사용자 확정 2026-10-07) = 덧칠 hidden + removed → 휴지통(관리자 반복 실행 아래 '없앤 것') · 5초 되돌리기 · 시트 닫음
+function AkMore({ it, D, cu, A, mine, master, onGone }) {
+  const [more, setMore] = useState(false), [mode, setMode] = useState(""), [busy, setBusy] = useState(false);
+  const remove = async () => { if (busy) return; setBusy(true); const ok = await A.akRemove(it); setBusy(false); if (ok) { setMode(""); onGone && onGone(); } };
   if (!mine && !master) return null;
   const go = (m) => { setMore(false); setMode(m); }, done = () => setMode("");
   return <div style={{ marginTop: 12 }}>
@@ -84,7 +94,9 @@ function AkMore({ it, D, cu, A, mine, master }) {
       {master && <TBtn v="soft" onClick={() => go("who")}>담당 바꾸기</TBtn>}
       {master && it._new && <TBtn v="soft" onClick={() => go("goal")}>목표</TBtn>}
       {master && <TBtn v="soft" onClick={() => { setMore(false); A.akSet(it, { paused: !it.paused }, it.paused ? "다시 시작" : "잠시 멈춤"); }}>{it.paused ? "다시 시작" : "잠시 멈추기"}</TBtn>}
+      {canRemoveAk(cu) && <TBtn tone="red" onClick={() => go("remove")}>없애기</TBtn>}
     </div>}
+    {mode === "remove" && <RemoveAsk what="이 반복 실행을" busy={busy} onNo={done} onYes={remove} where="관리자 › 반복 실행 아래 '없앤 것'" />}
     {mode === "subs" && <AkSubsEdit it={it} cu={cu} A={A} canCommon={master} canMine={mine} onDone={done} />}
     {mode === "qty" && <QtyCfgEdit cfg={qtyCfg(it)} note={["건", "명", "개"].includes(it.unit) && !it.perFail ? `목표 단위가 '${it.unit}'라서 넣은 숫자가 목표에도 더해져요` : "목표는 [+1]로 세고, 건수는 날짜별 기록으로만 남아요"}
       onSave={async (q) => { await A.akSet(it, { qty: q && q.unit ? q : null }, q ? "건수 칸" : "건수 칸 끔"); done(); }} onDone={done} />}

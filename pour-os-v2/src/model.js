@@ -138,6 +138,25 @@ export const COMMON_BRAND = { id: "common", name: "공통 운영", short: "공�
 export const brandsWithCommon = (brands) => [...(brands || []).filter((b) => b && b.active !== false && b.id !== COMMON_BRAND.id).sort((a, b) => (+a.order || 0) - (+b.order || 0)), COMMON_BRAND];
 export const brandLabel = (id, brands) => { const s = String(id || ""); if (!s) return ""; if (s === COMMON_BRAND.id) return COMMON_BRAND.name;
   const b = (brands || []).find((x) => x && (x.id === s || String(x.name || "").trim() === s)); return (b && b.name) || s; };
+// ── 없애기 · 휴지통 (사용자 확정 2026-10-07 "등록한거 삭제 방안은?" → 목록에서 빼기 + 휴지통) — 지우지 않음
+//   고정업무·정한 날 체크(v2 업무) = removed {at, by, byName, prevPaused, scope} + paused true(예전 화면에서도 안 뜨게) · 되살리기 = paused 이전 값 · removed null
+//   횟수 목표(행동지표) = v2 덧칠 hidden true + removed {at, by, byName} (버전1 그대로) · 지난 체크·건수·메모·파일은 그대로
+export const isRemoved = (x) => !!(x && x.removed && typeof x.removed === "object" && x.removed.at);
+// 권한: 개인 고정업무(scope me) = 본인(담당·만든 사람) 또는 관리자 · 반복 실행(브랜드)·브랜드 미정 = 관리자만
+export const fxOwnerOf = (t, uid) => !!t && !!uid && (ownersOf(t).includes(uid) || t.createdBy === uid);
+export const canRemoveFx = (t, cu) => !!t && !!cu && !!t.isFixed && (isMaster(cu) || (scopeOf(t) === "me" && fxOwnerOf(t, cu.id)));
+export const canRemoveAk = (cu) => isMaster(cu);
+export const fxRemoveFields = (t, cu, at) => ({ removed: { at, by: cu.id, byName: cu.name || "", prevPaused: !!(t && t.paused), scope: scopeOf(t) }, paused: true });
+export const fxRestoreFields = (t) => ({ removed: null, paused: !!(t && t.removed && t.removed.prevPaused) });
+// 휴지통 줄: 고정업무(removedFx) + 횟수 목표(akRemoved · _removed) → [{kind, id, name, sub, by, byName, at, x}] 최근 것 먼저
+//   uid 를 주면 그 사람 개인 고정업무만 (더보기 › 내 고정업무)
+export function trashRows(removedFx, akRemoved, brands, uid) {
+  const fx = (removedFx || []).filter((t) => t && t.isFixed && isRemoved(t) && (!uid || ((t.removed.scope || scopeOf(t)) === "me" && fxOwnerOf(t, uid))))
+    .map((t) => { const sc = t.removed.scope || scopeOf(t); return { kind: "fx", id: t.id, name: t.title || "", sub: sc === "brand" ? `반복 실행 · ${brandLabel(t.brand, brands) || "브랜드"}` : sc === "me" ? "개인 고정업무" : "고정업무 · 브랜드 미정", by: t.removed.by, byName: t.removed.byName, at: t.removed.at, x: t }; });
+  const ak = uid ? [] : (akRemoved || []).filter((it) => it && it._removed && it._removed.at)
+    .map((it) => ({ kind: "ak", id: it.id, name: it.name || "", sub: `횟수 목표 · ${brandLabel(it.brand, brands) || "브랜드"}`, by: it._removed.by, byName: it._removed.byName, at: it._removed.at, x: it }));
+  return [...fx, ...ak].sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+}
 // 브랜드 칸을 D.brands id 로 (이름으로 들어 있던 것도) — 없으면 그대로
 export const brandKey = (v, brands) => { const s = String(v || "").trim(); if (!s || s === COMMON_BRAND.id) return s; const b = (brands || []).find((x) => x && (x.id === s || String(x.name || "").trim() === s)); return b ? b.id : s; };
 // 브랜드 안 정한 고정업무 28개 추천 (실데이터 2026-10-06 분석 · 관리자가 [추천대로 정하기] 또는 줄마다 고름)
@@ -454,7 +473,7 @@ export function ownerIssues(D) {
 }
 
 // ── 소식 (댓글 + 기록) ──
-export const LOG_L = { decide: "결정", add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", handover: "일 넘김", sync: "신제품 대시보드에서", take: "이어받음", comment: "댓글", delete: "휴지통으로",
+export const LOG_L = { decide: "결정", add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", handover: "일 넘김", sync: "신제품 대시보드에서", take: "이어받음", comment: "댓글", delete: "휴지통으로", remove: "없앰(휴지통)", restore: "되살림",
   ack: "받음", dueReq: "기한 조정 요청", dueOk: "기한 조정 수락", dueNo: "기한 유지", review: "확인 요청", approve: "확인 완료", feedback: "수정 요청", block: "막힘", unblock: "막힘 풀림", launch: "신제품 만듦", bulk: "한꺼번에 바꿈", deps: "앞 일 바꿈", ask: "도움 요청", askDone: "도움 요청 닫음", hold: "보류", unhold: "보류 풀기", projEnd: "프로젝트 끝냄·멈춤", projResume: "프로젝트 다시 시작" };
 export function feedOf(D, { projectId, taskIds, sinceIso } = {}) {
   const tset = taskIds ? new Set(taskIds) : null;

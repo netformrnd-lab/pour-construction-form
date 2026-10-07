@@ -6,8 +6,9 @@ import {
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit, fxWeekDays, fxIds, FX_WD, monthEndWorkday,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf,
-  scopeOf, brandLabel, brandsWithCommon, brandKey, cyclePending, cycleGuess,
+  scopeOf, brandLabel, brandsWithCommon, brandKey, cyclePending, cycleGuess, isRemoved, canRemoveFx,
 } from "./model.js";
+import { RemoveAsk, RemovedNote } from "./trash.jsx";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
 import { DecisionBlock } from "./mindmap.jsx";
 import { turnIndex, turnOf, predsOf, nextsOf, finishedOf, finishedAt, lastWord } from "./turn.js";
@@ -328,15 +329,20 @@ export function FixedSheet({ D, cu, A, onBack, onClose, id, focus, note, setToas
   const saveMemo = async (force) => { const r = await A.setMemo(t, memo, memoBase, force === true); if (r && r.conflict) setClash(r.cur); else if (r && r.ok) { setClash(null); setEditMemo(false); } };
   const files = [...(t.attachments || []).map((f) => ({ ...f, where: "고정업무" })), ...notes.filter((nn) => !nn.deleted).flatMap((nn) => (nn.files || []).map((f) => ({ ...f, by: nn.by, byName: nn.byName, uploadedAt: f.uploadedAt || nn.at, where: "댓글" })))];
   const oldNotes = oldMine.filter((n) => !n.deleted).sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
-  return <Sheet title={isRt ? "반복 실행" : "고정업무"} kind={isRt ? "반복 실행" : "고정업무"} head={fxLabel(t, cu.id)} path={pathL} onBack={onBack} onClose={onClose} foot={mine ? <Big tone={me ? "white" : "navy"} onClick={() => A.fxToggle(t)}>{me ? "✓ 체크 취소" : fxDoneWord(t)}</Big> : null}>
-    <div style={{ fontSize: 13.5, color: C.sub, marginTop: 12 }}>{fxRecurL(t)} · {fxTime(t, cu.id) || "시간 상관없음"} · 담당 {people.length}명{t.paused ? " · 멈춤" : ""}</div>
+  // 없앤 것(휴지통 · 링크로 열었을 때): 맨 위 '없앤 … · [되살리기]' · 체크·설정 버튼은 숨김(지난 기록·메모·자료·대화는 그대로 보임)
+  const gone = isRemoved(t), canRm = canRemoveFx(t, cu), wasRt = gone ? (t.removed.scope || sc) === "brand" : isRt;
+  const close = () => (onBack ? onBack() : onClose());
+  const restore = async () => { const ok = await A.fxRestore(t); if (ok) close(); };
+  return <Sheet title={isRt ? "반복 실행" : "고정업무"} kind={isRt ? "반복 실행" : "고정업무"} head={fxLabel(t, cu.id)} path={pathL} onBack={onBack} onClose={onClose} foot={mine && !gone ? <Big tone={me ? "white" : "navy"} onClick={() => A.fxToggle(t)}>{me ? "✓ 체크 취소" : fxDoneWord(t)}</Big> : null}>
+    {gone && <RemovedNote what={wasRt ? "없앤 반복 실행이에요" : "없앤 고정업무예요"} rm={t.removed} can={canRm} onRestore={restore} />}
+    <div style={{ fontSize: 13.5, color: C.sub, marginTop: 12 }}>{fxRecurL(t)} · {fxTime(t, cu.id) || "시간 상관없음"} · 담당 {people.length}명{t.paused && !gone ? " · 멈춤" : ""}</div>
     {cyclePending(t) && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>주기 확인 필요{cg ? ` · 제안 ${({ daily: "매일", weekly: "매주", monthly: "매월" })[cg.rt]}(${cg.from} '${cg.word}')` : ""} · 관리자가 정해요</div>}
-    {mine && subs.length > 0 && <><Head>체크리스트</Head><div className="v2-chips">{subs.map((x) => { const ok = fxHit(t, ((t.subDone || {})[cu.id] || {})[x.id], key); return <Chip key={x.id} on={ok} onClick={() => A.fxSub(t, x.id)}>{ok ? "✓ " : ""}{x.title}</Chip>; })}</div></>}
-    <FxMore t={t} D={D} cu={cu} A={A} focus={focus} mine={mine} canRecur={canRecur} canCommon={canCommon} canScope={canScope} master={master} setToast={setToast} />
+    {mine && !gone && subs.length > 0 && <><Head>체크리스트</Head><div className="v2-chips">{subs.map((x) => { const ok = fxHit(t, ((t.subDone || {})[cu.id] || {})[x.id], key); return <Chip key={x.id} on={ok} onClick={() => A.fxSub(t, x.id)}>{ok ? "✓ " : ""}{x.title}</Chip>; })}</div></>}
+    {!gone && <FxMore t={t} D={D} cu={cu} A={A} focus={focus} mine={mine} canRecur={canRecur} canCommon={canCommon} canScope={canScope} master={master} setToast={setToast} canRemove={canRm} onGone={close} />}
     <Head>누가 했나</Head>
     <Card>{people.length === 0 ? <Empty>담당이 없어요</Empty> : people.map((uid, i) => { const ok = fxMeDone(t, uid, key), at = t.doneAtBy && t.doneAtBy[uid];
       return <div key={uid} style={{ display: "flex", gap: 10, padding: "11px 14px", borderBottom: i < people.length - 1 ? `1px solid ${C.line}` : "none", fontSize: 14 }}><b style={{ flex: 1, color: C.text }}>{nameOf(D.users, uid) || uid}</b><span style={{ color: ok ? C.green : C.mute, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{ok ? `✓ ${hm(at)}` : `아직${fxTime(t, uid) ? ` (예정 ${fxTime(t, uid)})` : ""}`}</span></div>; })}</Card>
-    {cfg && mine && <DayQty cfg={cfg} mine={myQty} can extra={people.length > 1 ? `모두 ${qtyText(cfg, (R.docs || []).filter((d) => d.date === key).reduce((a, d) => a + (+d.qty || 0), 0))}` : ""}
+    {cfg && mine && !gone && <DayQty cfg={cfg} mine={myQty} can extra={people.length > 1 ? `모두 ${qtyText(cfg, (R.docs || []).filter((d) => d.date === key).reduce((a, d) => a + (+d.qty || 0), 0))}` : ""}
       onAdd={async (n) => { await A.fxQty(t, n, "add"); setTick((x) => x + 1); }} onSet={async (n) => { await A.fxQty(t, n, "set"); setTick((x) => x + 1); }} />}
     <RecList D={D} docs={R.docs} ready={R.ready} cfg={cfg} kind="fx" notes={notes} keyd={key} onPick={(r) => { setRec({ date: r.date, uid: r.uid, qty: r.qty, runs: r.on ? 1 : 0, name: r.name }); toTalk(); }} />
     <Head right={canEdit && !editMemo && <TBtn onClick={() => { setMemo(t.memo || ""); setMemoBase(t.memoAt || null); setClash(null); setEditMemo(true); }}>{t.memo ? "메모 고치기" : "메모 쓰기"}</TBtn>}>하는 법 · 메모</Head>
@@ -360,10 +366,13 @@ export function FixedSheet({ D, cu, A, onBack, onClose, id, focus, note, setToas
 }
 
 // 고정업무·반복 실행 설정 [더 하기 ▾] — 드문 동작: 체크리스트 고치기 · 보이는 이름·내 시간 · 브랜드·개인 바꾸기 · 반복·시간 · 담당(관리자)
-function FxMore({ t, D, cu, A, focus, mine, canRecur, canCommon, canScope, master, setToast }) {
-  const [more, setMore] = useState(false), [mode, setMode] = useState(focus === "owners" && master ? "owners" : "");   // 관리자 '담당 없는 고정업무'에서 열면 담당 고르기 바로
+// [없애기](사용자 확정 2026-10-07): 개인 = 본인·관리자 · 반복 실행·미정 = 관리자 → 확인 카드 → 목록에서 빼기(휴지통) · 5초 되돌리기 · 시트 닫음
+function FxMore({ t, D, cu, A, focus, mine, canRecur, canCommon, canScope, master, setToast, canRemove, onGone }) {
+  const [more, setMore] = useState(false), [mode, setMode] = useState(focus === "owners" && master ? "owners" : ""), [busy, setBusy] = useState(false);   // 관리자 '담당 없는 고정업무'에서 열면 담당 고르기 바로
   const go = (m) => { setMore(false); setMode(m); }, done = () => setMode("");
-  const any = mine || canCommon || canScope || canRecur || master;
+  const any = mine || canCommon || canScope || canRecur || master || canRemove;
+  const personal = scopeOf(t) === "me";
+  const remove = async () => { if (busy) return; setBusy(true); const ok = await A.fxRemove(t); setBusy(false); if (ok) { setMode(""); onGone && onGone(); } };
   if (!any) return null;
   return <div style={{ marginTop: 10 }}>
     <TBtn onClick={() => { setMore(!more); setMode(""); }} aria-expanded={more}>{more ? "접기 ▴" : "더 하기 ▾"}</TBtn>
@@ -374,7 +383,10 @@ function FxMore({ t, D, cu, A, focus, mine, canRecur, canCommon, canScope, maste
       {canRecur && <TBtn v="soft" onClick={() => go("recur")}>반복 · 시간</TBtn>}
       {canCommon && <TBtn v="soft" onClick={() => go("qty")}>건수 칸</TBtn>}
       {master && <TBtn v="soft" onClick={() => go("owners")}>담당 바꾸기</TBtn>}
+      {canRemove && <TBtn tone="red" onClick={() => go("remove")}>없애기</TBtn>}
     </div>}
+    {mode === "remove" && <RemoveAsk what={scopeOf(t) === "brand" ? "이 반복 실행을" : "이 고정업무를"} busy={busy} onNo={done} onYes={remove}
+      where={personal ? (master ? "관리자 › 반복 실행 아래 '없앤 것' · 더보기 › 내 고정업무 아래 '없앤 고정업무'" : "더보기 › 내 고정업무 아래 '없앤 고정업무'") : "관리자 › 반복 실행 아래 '없앤 것'"} />}
     {mode === "qty" && <QtyCfgEdit cfg={qtyCfg(t)} onSave={(q) => { A.setQtyCfg(t, q); done(); }} onDone={done} />}
     {mode === "subs" && <SubsEdit t={t} cu={cu} A={A} canMine={mine} canCommon={canCommon} onDone={done} />}
     {mode === "label" && <LabelEdit t={t} cu={cu} A={A} onDone={done} />}

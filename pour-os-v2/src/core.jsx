@@ -8,7 +8,7 @@ import {
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxSubPatch, fxPeople, fxHit, weekStart,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, planSeed, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, isHoldP, nextWorkday, setHolidayLayer, handOverOwners,
-  scopeFields, brandLabel, cycleFields, FX_WD,
+  scopeFields, brandLabel, cycleFields, FX_WD, isRemoved, fxRemoveFields, fxRestoreFields, canRemoveFx, canRemoveAk, scopeOf,
 } from "./model.js";
 import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS } from "./launch.js";
 import { nextTurnText } from "./turn.js";
@@ -82,8 +82,12 @@ export function useData(on, full = true) {
     const docs = Object.fromEntries((S.akV2 || []).map((x) => [x.id || x._doc, sumAk(x)])); docs[akQ] = sumAk(S.akV1, (S.akV2 || []).find((x) => (x.id || x._doc) === akQ));
     // 반복 실행(횟수 목표) 정의 = 버전1 state-actionKPIs(읽기만) 위에 v2 덧칠(kpidefs coll 'actionKPIs' · 체크리스트·건수 칸·하는 법·자료·새 항목) — 덧칠은 여기 한 곳에서만 · 숨긴 것은 뺌
     const akRaw = ((S.akDef || {}).items || []).filter(Boolean);
-    const ak = { qid: akQ, raw: akRaw, items: applyKpiOv({ actionKPIs: akRaw }, S.kpiOv).actionKPIs.filter((x) => !x._hidden), docs, v2: S.akV2 || [], ready: S.akDef !== undefined && S.akV1 !== undefined, defReady: S.akDef !== undefined };
-    return { users: S.users || [], projects: S.projects || [], tasks: [...m.values()], notes: S.notes, log: S.log, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], settings: S.settings || [], ak, links: S.links || [], linkInbox,
+    //   [없애기](removed · 사용자 확정 2026-10-07) = 숨긴 것과 같이 빠지고 휴지통 줄(removed)에만
+    const akAll = applyKpiOv({ actionKPIs: akRaw }, S.kpiOv).actionKPIs;
+    const ak = { qid: akQ, raw: akRaw, items: akAll.filter((x) => !x._hidden), removed: akAll.filter((x) => x._hidden && x._removed), docs, v2: S.akV2 || [], ready: S.akDef !== undefined && S.akV1 !== undefined, defReady: S.akDef !== undefined };
+    // 없앤 고정업무(removed)는 여기 한 곳에서 빼서 오늘·반복 실행·내 고정업무·관리자·사람·협업 맵 어디에도 안 보임 → 휴지통 줄(removedFx)에만
+    const allT = [...m.values()];
+    return { users: S.users || [], projects: S.projects || [], tasks: allT.filter((t) => !isRemoved(t)), removedFx: allT.filter((t) => t.isFixed && isRemoved(t)), notes: S.notes, log: S.log, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], settings: S.settings || [], ak, links: S.links || [], linkInbox,
       kpi: { ov: S.kpiOv || [], lagRaw: ((S.lagDef || {}).items || []).filter((x) => x && x.id && !x.deleted),
         lagDefs: applyKpiOv({ lagKPIs: ((S.lagDef || {}).items || []).filter((x) => x && x.id && !x.deleted) }, S.kpiOv).lagKPIs.filter((x) => !x._hidden), lagReady: S.lagDef !== undefined, lagV2: Object.fromEntries((S.lagV2 || []).map((x) => [x.id || x._doc, x])), sales: Object.fromEntries((S.kpisales || []).map((x) => [x.id || x._doc, x])) },
       lagInbox, ready: !!S.users, recs: { key: dayK, today: S.recToday || [], ready: S.recToday !== undefined, open: S.akOpen || [] },
@@ -811,6 +815,45 @@ export function useActs(D, cu, setToast, idx = null) {
     setQtyCfg: (t, q) => { const f = { qty: q && q.unit ? { label: String(q.label || "").trim() || "건수", unit: q.unit } : null }, prev = { qty: t.qty || null };
       P(t, f, "edit", `${t.title} · 건수 칸 ${f.qty ? `${f.qty.label}(${f.qty.unit})` : "끔"}`, { prev });
       setToast({ text: f.qty ? "건수 칸을 켰어요" : "건수 칸을 껐어요", undo: () => undoT(t, f, prev, `${t.title} · 건수 칸`) }); },
+    // ── 없애기 · 휴지통 (사용자 확정 2026-10-07 · 목록에서 빼기 + 휴지통 · 지우지 않음) ──
+    // 고정업무·정한 날 체크: removed{at,by,byName,prevPaused,scope} + paused true — 서버에 아직 안 없앤 것일 때만(transaction) · 5초 되돌리기 · 기록에 이전 값
+    //   권한: 개인(me) = 본인·관리자 · 반복 실행(브랜드)·미정 = 관리자 (화면에서도 같은 규칙 model.canRemoveFx)
+    fxRemove: async (t) => { if (!canRemoveFx(t, cu)) { setToast({ text: "없앨 수 있는 사람이 아니에요" }); return false; }
+      const at = nowIso(), f = fxRemoveFields(t, cu, at), prev = { removed: null, paused: t.paused === undefined ? null : !!t.paused };
+      try { const r = await fb.patchIf("tasks", tdoc(t), { removed: null }, { ...f, updatedAt: at, updatedBy: cu.id, v2At: at });
+        if (!r.ok) { setToast({ text: "이미 없앤 것이에요" }); return false; }
+        log("remove", { col: "tasks", targetId: t.id, label: `${t.title} · 없앰 (휴지통 · 지난 체크·건수·메모·파일은 그대로)`, prev, next: { removed: f.removed, paused: true } });
+        setToast({ text: `없앴어요 · ${t.title}`, undo: () => A.fxRestore({ ...t, removed: f.removed, paused: true }, true) });
+        return true; }
+      catch (e) { fail("없애기")(e); return false; } },
+    // 되살리기 = 없앨 때 그대로(멈춤 이전 값) · 서버의 removed 가 내가 본 것과 같을 때만
+    fxRestore: async (t, viaUndo) => { const rm = t && t.removed; if (!rm || !canRemoveFx(t, cu)) return false;
+      const at = nowIso(), f = fxRestoreFields(t);
+      try { const r = await fb.patchIf("tasks", tdoc(t), { removed: rm }, { ...f, updatedAt: at, updatedBy: cu.id, v2At: at });
+        if (!r.ok) { setToast({ text: "그사이 다른 사람이 바꿔서 그대로 뒀어요" }); return false; }
+        log("restore", { col: "tasks", targetId: t.id, label: `${t.title} · 되살림${viaUndo ? " (되돌리기)" : ""}`, prev: { removed: rm, paused: true }, next: f });
+        setToast({ text: viaUndo ? "되돌렸어요" : `되살렸어요 · ${t.title}` });
+        return true; }
+      catch (e) { fail("되살리기")(e); return false; } },
+    // 횟수 목표: v2 덧칠 hidden true + removed (버전1 문서는 그대로 · 관리자만)
+    akRemove: async (it) => { if (!canRemoveAk(cu)) { setToast({ text: "관리자만 없앨 수 있어요" }); return false; }
+      const at = nowIso(), base = ((D.ak && D.ak.raw) || []).find((x) => x.id === it.id) || null, rm = { at, by: cu.id, byName: cu.name || "" };
+      try { const ok = await fb.txDoc("kpidefs", it.id, (c) => { if (c && c.hidden && c.removed) return { ret: false };
+          const w = kpiEditWrite(c, "actionKPIs", it.id, {}, true, cu, at, base) || {}; return { write: { ...w, removed: rm }, ret: true }; });
+        if (!ok) { setToast({ text: "이미 없앤 것이에요" }); return false; }
+        log("remove", { col: "kpidefs", targetId: it.id, label: `${it.name} · 없앰 (휴지통 · 지난 기록·메모·파일은 그대로)`, prev: { hidden: false, removed: null }, next: { hidden: true, removed: rm } });
+        setToast({ text: `없앴어요 · ${it.name}`, undo: () => A.akRestore({ ...it, _removed: rm }, true) });
+        return true; }
+      catch (e) { fail("없애기")(e); return false; } },
+    akRestore: async (it, viaUndo) => { const rm = it && it._removed; if (!rm || !canRemoveAk(cu)) return false;
+      const at = nowIso(), base = ((D.ak && D.ak.raw) || []).find((x) => x.id === it.id) || null;
+      try { const ok = await fb.txDoc("kpidefs", it.id, (c) => { if (!c || !c.removed || !fb.sameVal(c.removed, rm)) return { ret: false };
+          const w = kpiEditWrite(c, "actionKPIs", it.id, {}, false, cu, at, base) || {}; return { write: { ...w, removed: null }, ret: true }; });
+        if (!ok) { setToast({ text: "그사이 다른 사람이 바꿔서 그대로 뒀어요" }); return false; }
+        log("restore", { col: "kpidefs", targetId: it.id, label: `${it.name} · 되살림${viaUndo ? " (되돌리기)" : ""}`, prev: { hidden: true, removed: rm }, next: { hidden: false, removed: null } });
+        setToast({ text: viaUndo ? "되돌렸어요" : `되살렸어요 · ${it.name}` });
+        return true; }
+      catch (e) { fail("되살리기")(e); return false; } },
     // 신제품 횟수 항목 +d (블로그 포스팅 3회 …) → count · 제목 (n/목표) · 처음 세면 진행 중 · 목표 채우면 끝냄 (transaction: 서버 지금 횟수에 더함 → 둘이 같이 눌러도 안 빠짐)
     //   횟수 항목은 버전1 업무OS 칸(osExtra)이라 신제품 문서엔 횟수·상태 모두 안 씀 · 기억(lbSeen)에 횟수가 없던 예전 업무는 지금 횟수를 기억에 같이 (버전1 횟수가 나중에 바뀌면 그 차이만 더함)
     //   → {n, g} · 실패하면 null (알림)
@@ -887,7 +930,7 @@ export const v2edited = (x) => !!(x && (x.v2At || (x.updatedBy && x.updatedBy !=
   || (Array.isArray(x.attachments) && x.attachments.some((a) => a && V2_FILE.test(String(a.path || ""))))));
 // 이미 있는 문서에 덮어쓸 때 빼는 칸 — v2 가 주인인 칸(PIN · 주 한도 · 고정업무 사람별 체크)
 //   고정업무 체크(doneDates·doneAtBy·subDone)는 버전1에도 같은 이름이 있어서 '고친 문서' 판단에는 못 쓰고, 대신 덮어쓰지 않음
-export const V2_TASK_ONLY = ["scope", "scopeBy", "scopeAt", "qty", "cycleOk", "cycleBy", "cycleAt", "madeIn"];
+export const V2_TASK_ONLY = ["scope", "scopeBy", "scopeAt", "qty", "cycleOk", "cycleBy", "cycleAt", "madeIn", "removed"];   // removed = [없애기](휴지통) — 다시 가져오기가 되살리지 않음
 export function stripV2Only(key, data, cur) {
   if (!data) return data; const d = { ...data };
   if (key === "users") Object.keys(d).forEach((f) => { if (/^pin/.test(f) || f === "weekCap") delete d[f]; });
@@ -895,7 +938,8 @@ export function stripV2Only(key, data, cur) {
     // 반복 실행·고정업무 나누기(2단계) · 주기 확인 · 건수 칸(3단계 예약) — v2 에서만 정하는 칸 · 정한 브랜드·반복도 버전1 값으로 안 되돌림
     V2_TASK_ONLY.forEach((f) => delete d[f]);
     if (cur && (cur.scope || cur.scopeAt)) delete d.brand;
-    if (cur && cur.cycleOk) ["recurType", "weekDays", "weekDay", "monthDay", "monthEnd"].forEach((f) => delete d[f]); }
+    if (cur && cur.cycleOk) ["recurType", "weekDays", "weekDay", "monthDay", "monthEnd"].forEach((f) => delete d[f]);
+    if (isRemoved(cur)) delete d.paused; }   // 없앤 것은 멈춤도 버전1 값으로 안 바꿈 (되살릴 때 이전 값으로)
   return d;
 }
 export async function planReimport(kind, D) {

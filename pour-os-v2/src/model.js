@@ -841,3 +841,81 @@ export function projLabel(p, D) {
   return t;
 }
 export const projLabelOf = (D, pid) => projLabel(((D && D.projects) || []).find((x) => x && x.id === pid), D);
+
+// ── 예상 소요일 · 프로젝트 소요기간 (사용자 확정 2026-10-07 ①) ──
+//  업무 estDays = 평일 수(1~365 · 없으면 '미정') · 프로젝트 소요기간 = 앞 일 순서를 따라 가장 긴 길(critical path) — 같이 할 수 있는 일은 겹침
+//  앞 일(예상에만 씀 · 차례는 막지 않음): ① 업무의 앞 일(deps · 같은 프로젝트) → ② 신제품 항목 순서표(lx.after = launch.LAUNCH_AFTER · 빠진 항목은 거슬러 올라감)
+//   → ③ 로드의 앞 단계(업무가 있는 가장 가까운 앞 단계의 위 업무 모두) · 단계 미정 + 앞 일 없음 = 프로젝트 시작에
+//   흐름 프로젝트는 turn.js 와 같은 그래프(단계 있는 업무의 deps 는 같은 단계 것만 + 앞 단계 모두)
+//  하위 업무는 위 업무에 합침: 위 업무 = max(내 소요일, 하위 업무 소요일 합) (결정 · 하위 업무는 보통 위 업무 안에서 차례로 하는 일)
+//  남은 예상 = 끝냄·확인 대기 업무를 0 으로 본 같은 계산 · 중단·없앤 업무는 빼고 · 쉬는 날(주말·공휴일·회사 쉬는 날) 빼고 평일로 셈
+//  model.js 는 다른 파일을 안 불러서 신제품 순서표는 부르는 쪽이 lx 로 넘김 (tpl.js LX · projEstimate)
+export const EST_MAX = 365;
+export const estOf = (t) => { const n = Number(t && t.estDays); return Number.isInteger(n) && n >= 1 && n <= EST_MAX ? n : 0; };
+// 입력 칸 글 → null(비움 = 미정) · 1~365 정수 · NaN(잘못된 값)
+export const estClean = (v) => { const s = String(v == null ? "" : v).trim(); if (!s) return null; if (!/^\d+$/.test(s)) return NaN; const n = +s; return n >= 1 && n <= EST_MAX ? n : NaN; };
+// 예상 소요일 정하기 = 기한·앞 일을 정할 수 있는 사람(담당 · 맡긴 사람 · 프로젝트 책임자 · 관리자)
+export const canSetEst = (t, p, cu) => !!t && !!cu && !t.isFixed && !t.locked && !isRemoved(t) && (isMine(t, cu.id) || reqOf(t) === cu.id || t.requestedBy === cu.id || (!!p && p.assigneeId === cu.id) || isMaster(cu));
+// 평일 셈: start(쉬는 날이면 다음 평일)에서 off 번째 평일 (0 = 그날)
+export function wdAt(start, off) { let k = nextWorkday(String(start).slice(0, 10)); for (let i = 0; i < off && i < 4000; i++) k = nextWorkday(addDays(k, 1)); return k; }
+// a 다음 날 ~ b 까지 평일 수 (b ≤ a 면 0)
+export function wdBetween(a, b) { if (!a || !b || b <= a) return 0; let n = 0; for (let k = addDays(a, 1), i = 0; k <= b && i < 4000; k = addDays(k, 1), i++) if (!isOffDay(k)) n++; return n; }
+// 계산 한 곳 — items: [{id, parentId, deps, launchItem, phase(위 업무 단계 열쇠 · '' 미정), est, fin}] · road: [{k}] | null · kind 'launch'|'flow'|'normal'
+//   lx: {after: 신제품 순서표, pre: (항목 id) → 출시 전 항목인가, preStages: Set(출시 전 단계 열쇠)} (신제품만)
+//   → total(전체 n일) · remain(남은 m일) · has(소요일 있는 업무가 하나라도) · missing / missingLeft(남은 업무 중 미정) · node(id → {es, ef, w, rs, rf, rw})
+//     stage(열쇠 → {es, ef, span}) · preTotal / preRemain(신제품: 출시 전 항목이 끝나는 날까지) · eff/rem(업무 → 소요일) · kidsOf
+export function estPlan(items, road, kind, lx = {}) {
+  const all = (items || []).filter((x) => x && x.id), byId = new Map(all.map((x) => [x.id, x]));
+  const isTop = (x) => !x.parentId || x.parentId === x.id || !byId.has(x.parentId);
+  const kids = new Map(); all.forEach((x) => { if (!isTop(x)) { const a = kids.get(x.parentId) || []; a.push(x); kids.set(x.parentId, a); } });
+  const tops = all.filter(isTop);
+  const topOf = (x) => { let y = x; for (let i = 0; i < 30 && y && !isTop(y); i++) y = byId.get(y.parentId); return y && isTop(y) ? y : null; };
+  const roll = (f) => { const memo = new Map(); const go = (x, seen) => { if (memo.has(x.id)) return memo.get(x.id); if (seen.has(x.id)) return 0; seen.add(x.id);
+    const v = f(x, (kk) => kk.reduce((s, k) => s + go(k, seen), 0)); memo.set(x.id, v); return v; }; return (x) => go(x, new Set()); };
+  const eff = roll((x, sum) => Math.max(+x.est || 0, sum(kids.get(x.id) || [])));
+  const rem = roll((x, sum) => (x.fin ? 0 : Math.max(+x.est || 0, sum(kids.get(x.id) || []))));
+  const ord = new Map((road || []).map((s, i) => [s.k, i])), stI = (x) => (x.phase && ord.has(x.phase) ? ord.get(x.phase) : -1);
+  const by = (road || []).map(() => []); tops.forEach((x) => { const i = stI(x); if (i >= 0) by[i].push(x); });
+  const prevSt = (i) => { for (let j = i - 1; j >= 0; j--) if (by[j].length) return by[j]; return []; };
+  const after = lx.after || {}, inAfter = (it) => !!it && Object.prototype.hasOwnProperty.call(after, it);
+  const byItem = new Map(); tops.forEach((x) => { if (x.launchItem && !byItem.has(x.launchItem)) byItem.set(x.launchItem, x); });
+  const launchP = (x) => { const out = [], seen = new Set();
+    const walk = (it) => (after[it] || []).forEach((a) => { if (seen.has(a)) return; seen.add(a); const y = byItem.get(a); if (y) { if (y !== x) out.push(y); } else walk(a); });
+    walk(x.launchItem); return out; };
+  const predsOf = (x) => {
+    const ex = [...new Set((Array.isArray(x.deps) ? x.deps : []).map((id) => byId.get(id)).filter(Boolean).map(topOf).filter((y) => y && y !== x))], i = stI(x);
+    if (kind === "flow") return i >= 0 ? [...new Set([...ex.filter((y) => stI(y) === i), ...prevSt(i)])] : ex;
+    if (ex.length) return ex;
+    if (kind === "launch" && inAfter(x.launchItem)) return launchP(x);
+    return i >= 0 ? prevSt(i) : [];
+  };
+  const P = new Map(tops.map((x) => [x.id, predsOf(x)]));
+  const sched = (w) => { const es = new Map(), on = new Set();
+    const go = (x) => { if (es.has(x.id)) return es.get(x.id) + w(x); if (on.has(x.id)) return 0; on.add(x.id);   // 고리(앞 일이 서로 기다림)는 끊고 셈
+      const s = (P.get(x.id) || []).reduce((m, y) => Math.max(m, go(y)), 0); on.delete(x.id); es.set(x.id, s); return s + w(x); };
+    let end = 0; tops.forEach((x) => { end = Math.max(end, go(x)); }); return { es, end }; };
+  const T = sched(eff), R = sched(rem);
+  const node = new Map(tops.map((x) => { const es = T.es.get(x.id) || 0, rs = R.es.get(x.id) || 0; return [x.id, { es, ef: es + eff(x), w: eff(x), rs, rf: rs + rem(x), rw: rem(x) }]; }));
+  const stage = new Map(); (road || []).forEach((s, i) => { const xs = by[i].filter((x) => eff(x) > 0); if (!xs.length) return;
+    const es = Math.min(...xs.map((x) => node.get(x.id).es)), ef = Math.max(...xs.map((x) => node.get(x.id).ef)); stage.set(s.k, { es, ef, span: ef - es }); });
+  const isPre = (x) => (inAfter(x.launchItem) || (x.launchItem && lx.pre && lx.pre(x.launchItem)) ? !!(lx.pre && lx.pre(x.launchItem)) : !!(lx.preStages && lx.preStages.has(x.phase)));
+  const pre = kind === "launch" ? tops.filter(isPre) : [];
+  return { total: T.end, remain: R.end, has: tops.some((x) => eff(x) > 0), missing: tops.filter((x) => !eff(x)).length, missingLeft: tops.filter((x) => !x.fin && !eff(x)).length, n: tops.length, all: all.length,
+    node, stage, preTotal: pre.reduce((m, x) => Math.max(m, node.get(x.id).ef), 0), preRemain: pre.reduce((m, x) => Math.max(m, node.get(x.id).rf), 0),
+    eff, rem, tops, kidsOf: (id) => kids.get(id) || [], predsOf: (id) => P.get(id) || [] };
+}
+// 프로젝트 → 계산 재료 (중단·없앤 업무 빼고 · 하위 업무는 같은 프로젝트 위 업무로 · 단계 = 로드 열쇠)
+export function projEstItems(p, D, tasks) {
+  if (!p) return { items: [], road: null, kind: "normal" };
+  const road = roadOf(p, D), kind = isLaunchProj(p) ? "launch" : isFlowProj(p) ? "flow" : "normal";
+  const ts = (tasks || (D && D.tasks) || []).filter((t) => t && t.projectId === p.id && !t.isFixed && !t.deleted && !isRemoved(t) && t.status !== "dropped");
+  const byId = new Map(ts.map((t) => [t.id, t]));
+  return { road, kind, items: ts.map((t) => ({ id: t.id, parentId: t.parentId && byId.has(t.parentId) ? t.parentId : null, deps: t.deps, launchItem: t.launchItem || "", phase: road ? phaseOfTask(t, p, D, byId, road) : "", est: estOf(t), fin: isDone(t) || t.status === "review" })) };
+}
+// 프로젝트 예상: 위 계산 + '오늘 시작하면 M/D 끝' + 마감(신제품은 출시일 · 출시 전 항목 기준)보다 늦는 평일 수
+export function projEst(p, D, lx, key, tasks) {
+  const { road, kind, items } = projEstItems(p, D, tasks), E = estPlan(items, road, kind, lx), k = key || ymd(new Date());
+  const launch = kind === "launch", end = E.remain ? wdAt(k, E.remain - 1) : "";
+  const dl = String((launch ? (p && (p.launchDate || p.dueDate)) : p && p.dueDate) || "").slice(0, 10), cmpN = launch ? E.preRemain : E.remain, cmpEnd = cmpN ? wdAt(k, cmpN - 1) : "";
+  return { ...E, road, kind, launch, end, deadline: dl, lateBy: dl && cmpEnd && cmpEnd > dl ? wdBetween(dl, cmpEnd) : 0 };
+}

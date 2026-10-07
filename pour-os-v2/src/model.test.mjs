@@ -537,3 +537,137 @@ ok("프로젝트 이름 하나로(projLabel): 신제품은 해외 하위 → 차
   assert.equal(M.projLabel(N3, D), "재고관리");   // 같은 이름은 끝난 프로젝트뿐 → 그대로
   assert.equal(M.projLabelOf(D, "lb_b"), "스티커프라이머 · 아마존 JP"); assert.equal(M.projLabelOf(D, "없음"), "");
 });
+
+// ── 예상 소요일 · 프로젝트 소요기간 (critical path) · 견본 (사용자 확정 2026-10-07) ──
+const T_ = await import("./tpl.js");
+const mkT = (id, o) => ({ id, projectId: "pe", title: id, status: "todo", isFixed: false, assigneeId: "a", assigneeIds: ["a"], createdAt: "2026-10-01T00:00:0" + (o && o.n || 0) + "Z", ...o });
+ok("예상 소요: 입력 칸 정리 · 권한(담당·맡긴 사람·책임자·관리자) · 평일 셈(한글날 빼고)", () => {
+  assert.equal(M.estClean(""), null); assert.equal(M.estClean(" 3 "), 3); assert.ok(Number.isNaN(M.estClean("0"))); assert.ok(Number.isNaN(M.estClean("366"))); assert.ok(Number.isNaN(M.estClean("2.5"))); assert.ok(Number.isNaN(M.estClean("-1")));
+  assert.equal(M.estOf({ estDays: 4 }), 4); assert.equal(M.estOf({ estDays: "x" }), 0); assert.equal(M.estOf({ estDays: 2.5 }), 0); assert.equal(M.estOf({}), 0);
+  const p = { id: "pe", assigneeId: "lead" }, t = mkT("x", { assigneeId: "a", assigneeIds: ["a"], requestedBy: "req" });
+  assert.ok(M.canSetEst(t, p, { id: "a" })); assert.ok(M.canSetEst(t, p, { id: "req" })); assert.ok(M.canSetEst(t, p, { id: "lead" })); assert.ok(M.canSetEst(t, p, { id: "m", name: "김송희" }));
+  assert.ok(!M.canSetEst(t, p, { id: "z", name: "남" })); assert.ok(!M.canSetEst({ ...t, isFixed: true }, p, { id: "a" })); assert.ok(!M.canSetEst({ ...t, removed: { at: "x" } }, p, { id: "a" }));
+  assert.equal(M.wdAt("2026-10-07", 0), "2026-10-07"); assert.equal(M.wdAt("2026-10-07", 2), "2026-10-12");   // 10/9 한글날(금) · 주말 빼고
+  assert.equal(M.wdAt("2026-10-10", 0), "2026-10-12"); assert.equal(M.wdBetween("2026-10-07", "2026-10-13"), 3); assert.equal(M.wdBetween("2026-10-13", "2026-10-07"), 0);
+});
+ok("예상 소요: 일반 4단계 — 같은 단계는 겹침 · 앞 단계 위 업무 모두 다음 · 앞 일(deps)이 먼저 · 단계 미정은 시작부터 · 하위 업무는 위 업무에 합침 · 미정 수", () => {
+  const p = { id: "pe", category: "ops", assigneeId: "a", dueDate: "2026-10-14" }, D = { settings: [], tasks: [
+    mkT("A", { phase: "plan", estDays: 2 }), mkT("B", { phase: "plan", estDays: 3 }), mkT("C", { phase: "prep", estDays: 4 }), mkT("G", { parentId: "C", estDays: 6 }),
+    mkT("H", { phase: "prep" }), mkT("Dd", { phase: "run", estDays: 1, deps: ["A"] }), mkT("E", { phase: "check", estDays: 2 }), mkT("F", { estDays: 5 }),
+    mkT("X", { phase: "run", estDays: 9, status: "dropped" }), mkT("Y", { phase: "run", estDays: 9, removed: { at: "z" } })] };
+  const E = M.projEst(p, D, {}, "2026-10-07");
+  assert.equal(E.total, 9);                                   // A·B 겹침(3) → C = max(4, 하위 6) = 6 → 9
+  assert.deepEqual([E.node.get("C").es, E.node.get("C").ef], [3, 9]);
+  assert.deepEqual([E.node.get("Dd").es, E.node.get("E").es], [2, 3]);   // 집행 Dd 는 앞 일 A 만 기다림 · 점검 E 는 앞 단계(집행) 다음
+  assert.equal(E.node.get("F").es, 0);                        // 단계 미정 · 앞 일 없음 = 시작부터
+  assert.equal(E.missing, 1); assert.equal(E.missingLeft, 1); assert.equal(E.n, 7); assert.ok(E.has);   // H 만 미정 · 중단(X)·없앤(Y) 빼고
+  assert.equal(E.remain, 9); assert.equal(E.end, M.wdAt("2026-10-07", 8)); assert.equal(E.end, "2026-10-20");
+  assert.equal(E.deadline, "2026-10-14"); assert.equal(E.lateBy, M.wdBetween("2026-10-14", "2026-10-20")); assert.equal(E.lateBy, 4);
+  assert.deepEqual([E.stage.get("plan").span, E.stage.get("prep").span, E.stage.has("run"), E.stage.get("check").span], [3, 6, true, 2]);
+  // 끝낸 업무 = 남은 0 → 남은 예상 줄어듦 · 확인 대기도 끝낸 것
+  const D2 = { ...D, tasks: D.tasks.map((t) => (t.id === "A" ? { ...t, status: "done" } : t.id === "B" ? { ...t, status: "review" } : t)) };
+  const E2 = M.projEst(p, D2, {}, "2026-10-07");
+  assert.equal(E2.total, 9); assert.equal(E2.remain, 6); assert.equal(E2.lateBy, M.wdBetween("2026-10-14", M.wdAt("2026-10-07", 5)));
+  // 하위 업무 하나 끝 → 위 업무 남은 = max(내 4, 남은 하위 0) = 4
+  const D3 = { ...D2, tasks: D2.tasks.map((t) => (t.id === "G" ? { ...t, status: "done" } : t)) };
+  assert.equal(M.projEst(p, D3, {}, "2026-10-07").remain, 5);   // C 4 · E(점검)는 Dd(0~1) 다음 → 1~3 · F 5 → 5
+  // 소요일이 하나도 없으면 has=false (머리 줄 숨김) · 마감 안이면 lateBy 0
+  assert.equal(M.projEst(p, { settings: [], tasks: [mkT("A", { phase: "plan" })] }, {}, "2026-10-07").has, false);
+  assert.equal(M.projEst({ ...p, dueDate: "2026-12-31" }, D, {}, "2026-10-07").lateBy, 0);
+});
+ok("예상 소요: 흐름 — 단계 업무 여럿 · deps 는 같은 단계 것만 + 앞 단계 모두 (turn.js 와 같은 그래프)", () => {
+  const p = { id: "pe", wfId: "wf_promo", road: [{ k: "wf0", name: "기획" }, { k: "wf1", name: "제작" }, { k: "wf2", name: "오픈" }] }, D = { settings: [], workflows: [], tasks: [
+    mkT("S0a", { phase: "wf0", estDays: 2 }), mkT("S0b", { phase: "wf0", estDays: 3 }), mkT("S1", { phase: "wf1", estDays: 1, deps: ["S0a"] }), mkT("S1b", { phase: "wf1", estDays: 4, deps: ["S1"] }), mkT("S2", { phase: "wf2", estDays: 2, deps: ["S1"] })] };
+  const E = M.projEst(p, D, {}, "2026-10-07");
+  assert.equal(E.kind, "flow"); assert.equal(E.node.get("S1").es, 3); assert.equal(E.node.get("S1b").es, 4); assert.equal(E.node.get("S2").es, 8); assert.equal(E.total, 10);
+  // 같은 업무를 일반 프로젝트로 보면 deps 가 먼저 → S1 은 S0a 만 · S2 는 S1 만 기다림
+  const N = M.projEst({ ...p, wfId: "" }, D, {}, "2026-10-07"); assert.equal(N.kind, "normal"); assert.equal(N.node.get("S1").es, 2); assert.equal(N.node.get("S2").es, 3); assert.equal(N.total, 7);
+});
+ok("예상 소요: 신제품 — 항목 순서표(빠진 항목은 거슬러 올라감) · 직접 넣은 업무는 앞 단계 · 출시 전 항목 기준 출시일보다 늦음 · 단계 칸", () => {
+  const L = (it, o) => mkT("lb_pe__" + it, { projectId: "lb_pe", launchItem: it, ...o });
+  const p = { id: "lb_pe", launchDate: "2026-10-20", dueDate: "2026-10-20" }, D = { settings: [], tasks: [
+    L("p01", { phase: "plan", estDays: 3 }), L("p02", { phase: "plan", estDays: 2 }), L("p03", { phase: "plan", estDays: 1 }), L("p04", { phase: "plan", estDays: 4 }),
+    L("s01", { phase: "sample", estDays: 5 }), L("s02", { phase: "sample", estDays: 2 }), L("x_b2b", { phase: "promo", estDays: 1 }),
+    L("x_test", { phase: "sample", estDays: 9, status: "dropped", lbSkip: true }), mkT("cu", { projectId: "lb_pe", phase: "promo", estDays: 2 })] };
+  const E = M.projEst(p, D, T_.LX, "2026-10-07"), n = (id) => E.node.get("lb_pe__" + id);
+  assert.deepEqual([n("p02").es, n("p03").es, n("p04").es, n("s01").es, n("s02").es], [3, 5, 5, 9, 14]);   // s02 ← x_test(해당 없음) 거슬러 → s01 · p03
+  assert.equal(n("x_b2b").es, 16); assert.equal(E.node.get("cu").es, 16); assert.equal(E.total, 18);   // 홍보 x_b2b ← … ← s02·s01 · 직접 넣은 홍보 업무 ← 앞 단계(샘플)
+  assert.equal(E.preTotal, 16); assert.equal(E.preRemain, 16);   // 출시 전 항목(기획~샘플)이 끝나는 날까지
+  assert.ok(E.lateBy > 0); assert.equal(E.lateBy, M.wdBetween("2026-10-20", M.wdAt("2026-10-07", 15)));
+  assert.equal(M.projEst({ ...p, launchDate: "2026-11-30" }, D, T_.LX, "2026-10-07").lateBy, 0);
+  assert.deepEqual([E.stage.get("plan").span, E.stage.get("sample").span, E.stage.get("promo").span], [9, 7, 2]);
+  assert.equal(T_.projEstimate(p, D, "2026-10-07").total, 18);
+});
+ok("예상 소요: 하위 업무 합치기(max(내 것, 하위 합)) · 고리는 끊고 셈", () => {
+  const E = M.estPlan([{ id: "P", est: 2 }, { id: "k1", parentId: "P", est: 3 }, { id: "k2", parentId: "P", est: 4 }, { id: "Q", est: 9 }, { id: "k3", parentId: "Q", est: 1 }], null, "normal");
+  assert.equal(E.eff(E.tops[0]), 7); assert.equal(E.eff(E.tops[1]), 9); assert.equal(E.total, 9); assert.equal(E.n, 2);
+  const C = M.estPlan([{ id: "A", est: 2, deps: ["B"] }, { id: "B", est: 3, deps: ["A"] }], null, "normal"); assert.ok(C.total >= 3 && C.total <= 5);
+});
+// 견본 — 원래 프로젝트는 그대로 · 구조만 복사 · 새 프로젝트는 새 번호로 다시 잇기 + 날짜 계산
+const TU = [{ id: "a", name: "가" }, { id: "b", name: "나" }, { id: "old", name: "퇴사", active: false }];
+ok("견본 저장 계획: 이름·하위·앞 일·단계·소요일만 · 담당은 고를 때만 · 중단·해당 없음·없앤·기밀 빼고 · 원래 업무 그대로", () => {
+  const p = { id: "pe", title: "10월 기획전", category: "marketing", brand: "grohome", assigneeId: "a" };
+  const ts = [mkT("A", { phase: "plan", estDays: 2, dueDate: "2026-10-09", memo: "메모", attachments: [{ url: "x" }], n: 1 }), mkT("B", { phase: "make", estDays: 3, deps: ["A", "other_proj_task"], assigneeId: "b", assigneeIds: ["b"], status: "done", n: 2 }),
+    mkT("K", { parentId: "B", estDays: 1, n: 3 }), mkT("Z", { phase: "run", status: "dropped" }), mkT("R", { phase: "run", removed: { at: "x" } }), mkT("S", { phase: "run", secret: { on: true } }), mkT("SK", { parentId: "S" }),
+    mkT("O", { phase: "run", assigneeId: "old", assigneeIds: ["old"], n: 4 })];
+  const before = JSON.stringify(ts), D = { settings: [], users: TU, tasks: ts };
+  const r = T_.planTemplate(p, D, ts, { title: " 기획전 견본 ", cu: { id: "a", name: "가" }, at: "2026-10-07T01:00:00Z" });
+  assert.equal(JSON.stringify(ts), before);   // 원래 업무 안 바뀜
+  assert.equal(r.n, 4); assert.equal(r.skipped, 1); assert.equal(r.secret, 1);
+  const d = r.doc, by = Object.fromEntries(d.tasks.map((x) => [x.title, x]));
+  assert.equal(d.title, "기획전 견본"); assert.equal(d.srcKind, "normal"); assert.equal(d.category, "marketing"); assert.equal(d.brand, "grohome"); assert.equal(d.withOwners, false);
+  assert.deepEqual(d.road.map((s) => s.k), ["plan", "make", "run", "result"]);
+  assert.deepEqual(d.tasks.map((x) => x.title), ["A", "B", "K", "O"]);   // 단계 순서 → 하위는 위 업무 바로 뒤
+  assert.deepEqual(by.B.afterKeys, [by.A.key]); assert.equal(by.K.parentKey, by.B.key); assert.equal(by.K.phase, ""); assert.equal(by.B.phase, "make"); assert.equal(by.B.estDays, 3); assert.equal(by.O.estDays, null);
+  assert.ok(d.tasks.every((x) => x.assigneeId === undefined && x.dueDate === undefined && x.status === undefined && x.memo === undefined));
+  assert.equal(r.est.total, 5); assert.equal(r.est.missing, 1);   // A 2 → B max(3, 하위 1) = 3 · O(집행·미정)는 0일
+  const w = T_.planTemplate(p, D, ts, { withOwners: true, cu: { id: "a" }, at: "x" }).doc.tasks;
+  assert.equal(w.find((x) => x.title === "B").assigneeId, "b"); assert.equal(w.find((x) => x.title === "O").assigneeId, undefined);   // 사용 안 하는 사람은 안 넣음
+});
+ok("견본 → 새 프로젝트: 새 번호로 앞 일·하위 다시 잇기 · 단계·소요일 그대로 · 시작일부터 평일 기한 · 소요일 미정은 기한 없이 · 마감 = 끝", () => {
+  const tpl = { id: "tp1", title: "기획전 견본", srcKind: "normal", category: "marketing", brand: "grohome", road: [{ k: "plan", name: "기획" }, { k: "make", name: "소재 제작" }, { k: "run", name: "집행" }], withOwners: false,
+    tasks: [{ key: "k1", title: "타겟", phase: "plan", estDays: 2, afterKeys: [] }, { key: "k2", title: "배너", phase: "make", estDays: 3, afterKeys: ["k1"] }, { key: "k3", title: "배너 A", parentKey: "k2", estDays: 1 }, { key: "k4", title: "배너 B", parentKey: "k2", estDays: 1 },
+      { key: "k5", title: "오픈", phase: "run", afterKeys: [] }, { key: "k6", title: "뺀 것", phase: "run", estDays: 9, out: { at: "x" } }] };
+  assert.equal(T_.tplEst(tpl).total, 5); assert.equal(T_.tplEst(tpl).missing, 1);
+  const pl = T_.planFromTemplate(tpl, { title: "11월 기획전", leadId: "a", start: "2026-10-07" }, { users: TU }, { id: "a", name: "가" }, "2026-10-07", "2026-10-07T02:00:00Z");
+  const by = Object.fromEntries(pl.tasks.map((t) => [t.title, t]));
+  assert.equal(pl.tasks.length, 5); assert.ok(!by["뺀 것"]); assert.equal(new Set(pl.tasks.map((t) => t.id)).size, 5);
+  assert.deepEqual(by["배너"].deps, [by["타겟"].id]); assert.equal(by["배너 A"].parentId, by["배너"].id); assert.equal(by["배너"].phase, "make"); assert.equal(by["배너"].phaseBy, "a"); assert.equal(by["배너 A"].phase, undefined);
+  assert.equal(by["배너"].estDays, 3); assert.equal(by["오픈"].estDays, undefined);
+  assert.deepEqual([by["타겟"].startDate, by["타겟"].dueDate], ["2026-10-07", "2026-10-08"]); assert.deepEqual([by["배너"].startDate, by["배너"].dueDate], ["2026-10-12", "2026-10-14"]);   // 10/9 한글날
+  assert.deepEqual([by["배너 A"].dueDate, by["배너 B"].startDate, by["배너 B"].dueDate], ["2026-10-12", "2026-10-13", "2026-10-13"]);   // 하위 업무는 위 업무 안에서 차례로
+  assert.equal(by["오픈"].dueDate, ""); assert.equal(pl.noDue, 1);   // 소요일 미정 = 기한 없이
+  assert.equal(pl.project.dueDate, "2026-10-14"); assert.equal(pl.end, "2026-10-14"); assert.equal(pl.project.startDate, "2026-10-07"); assert.equal(pl.project.fromTemplate, "tp1");
+  assert.deepEqual(pl.project.road.map((s) => s.k), ["plan", "make", "run"]); assert.equal(pl.project.category, "marketing"); assert.ok(!String(pl.project.id).startsWith("lb_"));
+  assert.ok(pl.tasks.every((t) => t.projectId === pl.project.id && t.fromTemplate === "tp1" && t.status === "todo" && t.assigneeId === "a" && t.ackAt));
+  // 지난 시작일 → 오늘 · 쉬는 날 시작 → 다음 평일 · 담당 고르기(다른 사람 = 맡김 묶음)
+  const p2 = T_.planFromTemplate(tpl, { title: "x", leadId: "a", start: "2026-10-01", owners: { k2: "b" } }, { users: TU }, { id: "a", name: "가" }, "2026-10-10");
+  assert.equal(p2.start, "2026-10-12"); const b2 = p2.tasks.find((t) => t.title === "배너");
+  assert.equal(b2.assigneeId, "b"); assert.ok(b2.bulkId && b2.assignedBy === "a" && !b2.ackAt); assert.deepEqual(p2.project.collaboratorIds, ["b"]);
+});
+ok("견본 → 새 프로젝트: 신제품 견본 = 업무OS 전용 신제품(lb_v2) · 항목 번호 그대로 · 출시일 = 출시 전 항목 끝 · 흐름 견본 = 같은 흐름 단계", () => {
+  const tpl = { id: "tl", title: "신제품 견본", srcKind: "launch", brand: "grohome", road: M.LAUNCH_ROAD, withOwners: false, tasks: [
+    { key: "k1", title: "시장조사", phase: "plan", estDays: 2, launchItem: "p01" }, { key: "k2", title: "제품 선정", phase: "plan", estDays: 1, launchItem: "p02" },
+    { key: "k3", title: "블로그 포스팅", phase: "promo", estDays: 3, launchItem: "x_blog" }, { key: "k4", title: "할 일 줄", parentKey: "k2", estDays: 1 }] };
+  const pl = T_.planFromTemplate(tpl, { title: "새 퍼티", leadId: "a", start: "2026-10-07" }, { users: TU }, { id: "a", name: "가" }, "2026-10-07");
+  const pid = pl.project.id; assert.ok(/^lb_v2/.test(pid)); assert.equal(pl.project.category, "launch"); assert.equal(pl.project.road, undefined);
+  const by = Object.fromEntries(pl.tasks.map((t) => [t.title, t]));
+  assert.equal(by["시장조사"].id, pid + "__p01"); assert.equal(by["시장조사"].launchItem, "p01"); assert.equal(by["시장조사"].ownerFrom, "lead"); assert.equal(by["블로그 포스팅 (0/3)"].launchItem, "x_blog");
+  assert.equal(by["할 일 줄"].parentId, pid + "__p02"); assert.ok(!by["할 일 줄"].launchItem);
+  assert.equal(pl.launchDate, M.wdAt("2026-10-07", 2)); assert.equal(pl.project.launchDate, pl.launchDate); assert.equal(pl.project.dueDate, pl.launchDate);
+  assert.equal(pl.end, M.wdAt("2026-10-07", 5));   // 홍보 블로그 ← s12 … 없음 → 거슬러 p02 다음 3일
+  const ft = { id: "tf", title: "프로모션 견본", srcKind: "flow", wfId: "wf_promo", category: "marketing", road: [{ k: "wf0", name: "기획", ownerId: "b" }, { k: "wf1", name: "오픈" }], withOwners: true,
+    tasks: [{ key: "k1", title: "기획", phase: "wf0", estDays: 2 }, { key: "k2", title: "오픈", phase: "wf1", estDays: 1, afterKeys: ["k1"], assigneeId: "old" }] };
+  const fp = T_.planFromTemplate(ft, { title: "11월 프로모션", leadId: "a", start: "2026-10-07" }, { users: TU }, { id: "a", name: "가" }, "2026-10-07");
+  assert.equal(fp.project.wfId, "wf_promo"); assert.deepEqual(fp.project.road, [{ k: "wf0", name: "기획" }, { k: "wf1", name: "오픈" }]); assert.equal(fp.tasks[0].phase, "wf0");
+  assert.equal(fp.tasks[0].assigneeId, "b"); assert.equal(fp.tasks[1].assigneeId, "a");   // 단계 담당(흐름) · 사용 안 하는 사람이면 책임자
+  assert.equal(M.isFlowProj(fp.project), true); assert.equal(fp.end, M.wdAt("2026-10-07", 2));
+});
+ok("견본 권한 · 휴지통 줄", () => {
+  const tpl = { id: "t", createdBy: "a", tasks: [{ key: "k1", title: "x" }, { key: "k2", title: "y", out: { at: "z" } }] };
+  assert.ok(T_.canEditTpl(tpl, { id: "a", name: "가" })); assert.ok(T_.canEditTpl(tpl, { id: "m", name: "김송희" })); assert.ok(!T_.canEditTpl(tpl, { id: "b", name: "나" }));
+  assert.ok(T_.canSaveTpl({ id: "p", assigneeId: "b" }, { id: "b" })); assert.ok(!T_.canSaveTpl({ id: "p", assigneeId: "b" }, { id: "c", name: "다" })); assert.ok(!T_.canSaveTpl({ id: "p", assigneeId: "b", secret: { on: true } }, { id: "b" })); assert.ok(!T_.canSaveTpl({ id: "gh_kpi_x", assigneeId: "b" }, { id: "b" }));
+  assert.equal(T_.tplLive(tpl).length, 1);
+  const rows = T_.tplTrashRows([{ ...tpl, title: "견본", removed: { at: "2026-10-07", by: "b", byName: "나" } }, { id: "u", createdBy: "c", title: "다른", removed: { at: "2026-10-06", by: "c" }, tasks: [] }], "a");
+  assert.equal(rows.length, 1); assert.equal(rows[0].kind, "tpl"); assert.equal(rows[0].sub, "견본 · 업무 1개");
+});

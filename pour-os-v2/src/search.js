@@ -3,7 +3,7 @@
 //  · 찾는 곳 = 이미 불러온 것(열린 업무 · 30일 안 끝낸 업무 · 30일 안 댓글 · 프로젝트 · 반복 실행) + '더 오래된 것도 찾기'로 한 번 읽은 것(older)
 //  · 맞추기 = 대소문자·띄어쓰기 무시 · 글 안에 들어 있으면 (초성 찾기 없음) · 담당 이름·프로젝트 이름으로도
 //  · 기밀: 화면 D(secret.redact 뒤)에서 잠긴 것(locked)은 아예 안 넣음 · 따로 읽은 지난 업무·댓글도 같은 규칙(secret.taskSeen)
-import { nameOf, ownersOf, isMine, dueOf, md, STATUS_L, projStLabel, brandLabel, scopeOf, fxIsMine, fxIds, fxRecurL, isMaster, trashRows } from "./model.js";
+import { nameOf, ownersOf, isMine, dueOf, md, STATUS_L, projStLabel, brandLabel, scopeOf, fxIsMine, fxIds, fxRecurL, isMaster, trashRows, isRemoved } from "./model.js";
 import { taskSeen, seeAll, lockTask } from "./secret.js";
 
 // 띄어쓰기 없애고 소문자로
@@ -48,7 +48,7 @@ export function mergeOlder(D, older) {
   if (!older) return D;
   const u = D.viewer, all = seeAll(u), have = new Set((D.tasks || []).map((t) => t.id));
   const pm = new Map((D.projects || []).map((p) => [p.id, p]));
-  const raw = (older.tasks || []).filter((t) => t && t.id && !have.has(t.id) && !t.deleted && !t.isFixed);
+  const raw = (older.tasks || []).filter((t) => t && t.id && !have.has(t.id) && !t.deleted && !t.isFixed && !isRemoved(t));   // 없앤 업무는 찾기에 안 나옴(휴지통에만)
   const pool = [...(D.tasks || []), ...raw];
   const add = all ? raw : raw.map((t) => (taskSeen(t, pm.get(t.projectId) || null, u.id, pool) ? t : lockTask(t)));
   const tasks = [...(D.tasks || []), ...add];

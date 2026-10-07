@@ -1,6 +1,6 @@
 // 업무OS v2 — 더보기 (나와 관련된 도구만) · 내가 맡긴 일 · 내 고정업무
 import { useState } from "react";
-import { addDays, WD, ymd, md, hm, isMaster, nameOf, ownersOf, dueOf, riskOf, assignedByMe, fxIsMine, fxRecurL, fxTime, fxLabel, fxMeDone, COUNT_L, scopeOf, brandLabel, FX_WD, trashRows } from "./model.js";
+import { addDays, WD, ymd, md, hm, isMaster, nameOf, ownersOf, dueOf, riskOf, assignedByMe, fxIsMine, fxRecurL, fxTime, fxLabel, fxMeDone, COUNT_L, scopeOf, brandLabel, FX_WD, trashRows, taskTrashRows } from "./model.js";
 import { TrashList } from "./trash.jsx";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, useLocal, inp } from "./ui.jsx";
 import { V1_URL, LS } from "./core.jsx";
@@ -13,7 +13,7 @@ import { noteWhere } from "./search.js";
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
 const ASG = [["review", "확인해 주세요", true], ["dueReq", "기한 조정 요청", true], ["blocked", "막힘", true], ["late", "기한 지남", true], ["risk", "곧 마감인데 시작 전", true], ["notAck", "아직 안 받음", true], ["doing", "진행 중", true], ["waiting", "받고 대기 중", false], ["done", "최근 7일 끝남", false]];
 
-export function MoreTab({ D, cu, meta, logout, open, BUILD, setToast }) {
+export function MoreTab({ D, cu, A, meta, logout, open, BUILD, setToast }) {
   const [ask, setAsk] = useState(""), [start, setStart] = useLocal(LS("start-" + cu.id), "today"), [news, setNews] = useLocal(LS("news3-" + cu.id), true);
   const G = assignedByMe(D, cu.id, new Date()), gN = Object.values(G).reduce((a, b) => a + b.length, 0), urgent = G.review.length + G.dueReq.length + G.blocked.length;
   const myFx = D.tasks.filter((t) => t.isFixed && !t.paused && fxIsMine(t, cu.id)).length, myN = { today: myNotesOf(D, cu.id, ymd(new Date()), "today").length };
@@ -36,6 +36,8 @@ export function MoreTab({ D, cu, meta, logout, open, BUILD, setToast }) {
       <Row title={`내가 쓴 댓글${myN.today ? ` · 오늘 ${myN.today}` : ""}`} sub="오늘 · 7일 · 30일 · 누르면 그 댓글로" onClick={() => open({ type: "myNotes" })} right={arrow} last={false} />
       <Row title="내 KPI" sub="내 반복·내 프로젝트가 움직이는 KPI" onClick={() => open({ type: "myKpi" })} right={arrow} last />
     </Card>
+    {/* 없앤 업무(누구나 없애기 · 2026-10-07): 내가 없앴거나 내가 담당·맡긴 것 · 처음엔 접힘 */}
+    {A && <TrashList rows={taskTrashRows(D.removedTasks, D.projects, cu.id)} A={A} open={open} label="없앤 업무" note="되살리면 없애기 전 그대로 돌아와요(하위 업무도 같이) · 댓글·파일·기록은 그대로 있어요" style={{ marginTop: 10 }} />}
     <Head>성과</Head>
     <Card>
       <Row title="그로스보드" sub="KPI → 프로젝트·반복 → 끝낸 일 · 나 · 우리 팀" onClick={() => open({ type: "growth" })} right={arrow} last={false} />

@@ -6,15 +6,15 @@ import {
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit, fxWeekDays, fxIds, FX_WD, monthEndWorkday,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf,
-  scopeOf, brandLabel, brandsWithCommon, brandKey, cyclePending, cycleGuess, isRemoved, canRemoveFx, canRenameFx,
+  scopeOf, brandLabel, brandsWithCommon, brandKey, cyclePending, cycleGuess, isRemoved, canRemoveFx, canRenameFx, canRemoveTask, canRestoreTask, taskKids,
 } from "./model.js";
-import { RemoveAsk, RemovedNote } from "./trash.jsx";
+import { RemoveAsk, RemovedNote, TaskRemoveAsk } from "./trash.jsx";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
 import { DecisionBlock } from "./mindmap.jsx";
 import { turnIndex, turnOf, predsOf, nextsOf, finishedOf, finishedAt, lastWord } from "./turn.js";
 import { nextWorkday, prevWorkday } from "./model.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked, CopyLink, Clash, appLink } from "./ui.jsx";
-import { NoteFiles, FileList, useUploads, UpList, UpBtn } from "./files.jsx";
+import { NoteFiles, FileList, useUploads, UpList, UpBtn, fileSize } from "./files.jsx";
 export { FileRow } from "./files.jsx";
 import { HoldAsk } from "./hold.jsx";
 import { RequestAsk } from "./asks.jsx";
@@ -45,7 +45,7 @@ function Banner({ tone, children }) {
   return <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 14, background: tone === "red" ? "#F8E9EA" : C.soft, border: `1px solid ${tone === "red" ? "#EBC9CC" : "#D7DDEE"}`, fontSize: 14, color: C.text, lineHeight: 1.6 }}>{children}</div>;
 }
 export function useTask(D, id) {
-  const live = D.tasks.find((t) => t.id === id);
+  const live = D.tasks.find((t) => t.id === id) || (D.removedTasks || []).find((t) => t.id === id);   // 없앤 업무(휴지통·링크)도 바로
   const [extra, setExtra] = useState(null);
   useEffect(() => { if (!live && !extra) fb.fetchWhere("tasks", ["id", "==", id]).then((a) => setExtra(a[0] ? viewTasks([a[0]], D)[0] : false)).catch((e) => { console.error("[v2] 업무 불러오기 실패:", e); setExtra(false); }); }, [id, !!live]);
   return live || extra;
@@ -65,10 +65,12 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
   const [more, setMore] = useState(false);   // 드문 동작 펼치기
   const [mode, setMode] = useState(""), [memo, setMemo] = useState(""), [memoBase, setMemoBase] = useState(null), [clash, setClash] = useState(null), [showLog, setShowLog] = useState(false), [tab2, setTab2] = useState("talk"), [logs, setLogs] = useState(null), [sub, setSub] = useState("");
   const [txt, setTxt] = useState(""), [handTo, setHandTo] = useState(""), [reqDate, setReqDate] = useState(""), [handoff, setHandoff] = useState(""), [depSel, setDepSel] = useState(null), [allOrder, setAllOrder] = useState(false);
+  const [rmBusy, setRmBusy] = useState(false);
   const U = useUploads(A, "task-" + id, (metas) => A.addFiles(t, metas));
   useEffect(() => { if (!focus || !t) return; const h = setTimeout(() => { const el = document.getElementById("v2-t-" + focus); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); return () => clearTimeout(h); }, [focus, !!t]);
   if (t === undefined || t === null) return <Sheet title="업무" kind="업무" onBack={onBack} onClose={onClose}><Empty>불러오는 중…</Empty></Sheet>;
   if (t === false) return <Sheet title="업무" kind="업무" onBack={onBack} onClose={onClose}><Empty>이 업무를 찾지 못했어요 (휴지통이나 보관함으로 갔을 수 있어요)</Empty></Sheet>;
+  if (isRemoved(t)) return <RemovedTaskView D={D} cu={cu} A={A} t={t} notes={notes} note={note} open={open} onBack={onBack} onClose={onClose} />;   // 없앤 업무: 읽기만 + [되살리기]
   if (t.isFixed) return <FixedSheet D={D} cu={cu} A={A} onBack={onBack} onClose={onClose} id={id} focus={focus} note={note} setToast={setToast} />;   // 고정업무는 어느 입구로 와도 고정업무 화면 (일반 화면의 담당 바꾸기·끝냄이 반복 업무를 덮어쓰지 않게)
   const key = ymd(new Date()), mine = isMine(t, cu.id), done = isDone(t), n = ddays(dueOf(t), key), master = isMaster(cu);
   const p = D.projects.find((x) => x.id === t.projectId), owners = ownersOf(t).map((u) => nameOf(D.users, u) || "(없는 사람)");
@@ -172,7 +174,9 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
       {(mine || master) && !done && <label className="v2-more-date">시작일 <input type="date" aria-label="시작일" className="v2-sel" value={t.startDate || ""} max={dueOf(t) || undefined} onChange={(e) => A.patchTask(t, { startDate: e.target.value }, "edit", `${t.title} · 시작 ${md(e.target.value) || "없음"}`, { prev: { startDate: t.startDate || "" } })} style={{ height: 34, padding: "0 6px", fontSize: 13 }} /></label>}
       <SecretBox kind="task" x={t} D={D} cu={cu} A={A} only="button" />
       <CopyLink kind="t" id={t.id} label="업무 링크 복사" onDone={() => setToast && setToast({ text: "링크를 복사했어요 · 잔디·카톡에 붙여 넣으면 이 업무가 바로 열려요" })} />
+      {canRemoveTask(t, cu) && <TBtn tone="red" onClick={() => { setMore(false); setMode("remove"); }}>없애기</TBtn>}
     </div>}
+    {mode === "remove" && <TaskRemoveAsk t={t} kids={taskKids(t, D.tasks)} busy={rmBusy} onNo={() => setMode("")} onYes={async (why) => { if (rmBusy) return; setRmBusy(true); const ok = await A.taskRemove(t, why); setRmBusy(false); if (ok) { setMode(""); (onBack || onClose)(); } }} />}
     {(t.ccIds || []).length > 0 && mode !== "cc" && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 8 }}>참조 {(t.ccIds || []).map((id) => nameOf(D.users, id)).filter(Boolean).join(", ")} <TBtn v="plain" onClick={() => setMode("cc")} style={{ fontSize: 12.5 }}>바꾸기 ›</TBtn></div>}
     {mode === "block" && <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0" }}><input value={txt} onChange={(e) => setTxt(e.target.value)} placeholder="무엇 때문에 막혔나요? (예: 시안 자료가 없어요)" aria-label="막힌 이유" style={inp} />
       <div style={{ fontSize: 12.5, color: C.sub }}>{nameOf(D.users, askTo(t, D, cu.id)) || "관리자"}님의 '확인할 것'에 떠요.</div><Act onClick={() => { if (txt.trim()) { A.block(t, txt.trim(), askTo(t, D, cu.id)); setMode(""); } }} style={{ alignSelf: "flex-start", background: C.navy, color: "#fff", borderColor: C.navy }}>알리기</Act></div>}
@@ -249,11 +253,62 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
 // rec: 하루 기록 한 건에 붙이는 글 {date, uid, qty, runs} (반복 실행 시트 날짜별 기록 줄을 누르면) → 댓글 extra rec · 목록엔 '10/6 기록 · 37건' 꼬리표
 // link: 댓글 [링크 복사] 주소 {kind 't'|'p'|'r', id} → os2.html#t-ID~c-댓글ID · hl: 링크로 열었을 때 그 댓글 id (그 자리로 가서 2초 테두리 · 못 찾으면 id 로 한 번 읽기)
 // 파일: 고른 파일은 [남기기] 때 파일마다 진행 막대로 올리고(실패한 파일만 [다시]) 다 올라가면 댓글 저장
-export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl }) {
+// 없앤 업무 보기 (링크·휴지통·'확인할 것'에서 열었을 때) — 맨 위 '없앤 업무예요 · 누가 · 언제 · [되살리기]' · 나머지는 읽기만(대화도 보기만)
+function RemovedTaskView({ D, cu, A, t, notes, note, open, onBack, onClose }) {
+  const [busy, setBusy] = useState(false);
+  const rm = t.removed, p = (D.projects || []).find((x) => x.id === t.projectId), owners = ownersOf(t).map((u) => nameOf(D.users, u)).filter(Boolean);
+  const n = (rm.kids || []).length, rootT = rm.root && rm.root !== t.id ? (D.removedTasks || []).find((x) => x.id === rm.root) : null;
+  const files = [...(t.attachments || []).map((f) => ({ ...f, where: "업무" })), ...notes.filter((nn) => !nn.deleted).flatMap((nn) => (nn.files || []).map((f) => ({ ...f, by: nn.by, byName: nn.byName, uploadedAt: f.uploadedAt || nn.at, where: "댓글" })))];
+  const restore = async () => { if (busy) return; setBusy(true); const ok = await A.taskRestore(rootT || t); setBusy(false); if (ok) (onBack || onClose)(); };
+  return <Sheet title="업무" kind="업무" head={t.title} path={p ? `프로젝트 · ${p.title}` : "프로젝트 없음"} onPath={p ? () => open({ type: "project", id: p.id }) : null} onBack={onBack} onClose={onClose}>
+    <RemovedNote what={`없앤 업무예요${rm.reason ? " · " + rm.reason : ""}`} rm={rm} can={canRestoreTask(rootT || t, cu)} busy={busy} onRestore={restore} />
+    {rootT && <div style={{ marginTop: 8, fontSize: 12.5, color: C.sub }}>상위 업무 '{rootT.title}'와 같이 없앴어요 · 되살리면 같이 돌아와요</div>}
+    {n > 0 && <div style={{ marginTop: 8, fontSize: 12.5, color: C.sub }}>하위 업무 {n}개도 같이 없앴어요 · 되살리면 같이 돌아와요</div>}
+    <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7, marginTop: 10 }}>담당 {owners.join(", ") || "없음"} · {dueOf(t) ? `기한 ${md(dueOf(t))}` : "기한 미정"} · 없애기 전 {t.status === "review" ? "확인 대기" : STATUS_L[t.status] || "할 일"}</div>
+    {t.memo && <><Head>메모</Head><Card style={{ padding: "12px 14px" }}><div style={{ fontSize: 14.5, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.65, wordBreak: "break-word" }}><Linked text={t.memo} /></div></Card></>}
+    {files.length > 0 && <><Head>파일 {files.length}</Head><FileList files={files} /></>}
+    <div id="v2-t-talk" style={{ scrollMarginTop: 8 }}><Head>대화 {notes.filter((x) => !x.deleted).length} · 보기만</Head></div>
+    <Thread D={D} cu={cu} A={A} notes={notes} itemId={taskNoteId(t.id)} ctx={{ taskId: t.id, projectId: t.projectId }} link={{ kind: "t", id: t.id }} hl={note} readOnly />
+  </Sheet>;
+}
+// 댓글 고치기 칸 (사용자 요청 2026-10-07 · 쓴 사람·관리자) — Thread 밖에 두어야 글자마다 다시 그려지지 않음
+//   글 + 지금 파일 줄마다 [빼기] + [+ 파일](올리기 진행 같음) → [저장] [그만] · 연 때 본 글 그대로일 때만 저장(아니면 Clash) · 빼낸 파일은 이전 판(edits)에 남음
+function NoteEdit({ D, cu, A, n, itemId, onDone }) {
+  const [text, setText] = useState(n.text === "(파일)" && (n.files || []).length ? "" : n.text || ""), [keep, setKeep] = useState(n.files || []), [busy, setBusy] = useState(false), [clash, setClash] = useState(null), [pend, setPend] = useState(false);
+  const [base, setBase] = useState({ text: n.text || "", editedAt: n.editedAt || null });
+  const U = useUploads(A, "note-" + itemId), fileRef = useRef(null), taRef = useRef(null);
+  useEffect(() => { const el = taRef.current; if (el) { el.focus(); try { el.setSelectionRange(el.value.length, el.value.length); } catch (e) { /* 무시 */ } } }, []);
+  const pick = mentionPick(text, D.users, cu.id), had = new Set([...(n.mentions || []), n.by, cu.id]), fresh = parseMentions(text, D.users).filter((id) => !had.has(id));
+  const save = async (force) => { if (busy || U.busy) return; if (!text.trim() && !keep.length && !U.rows.length) return; setBusy(true);
+    try { await U.flow(); const rows = U.cur(); if (rows.some((r) => r.st !== "ok")) { setPend(true); return; }
+      const r = await A.editNote(n, text, [...keep, ...rows.map((x) => x.meta)], base, force === true ? { force: true } : undefined);
+      if (r && r.conflict) setClash(r.cur); else if (r && (r.ok || r.same)) { U.clear(); onDone(); } }
+    finally { setBusy(false); } };
+  return <div className="v2-nedit" style={{ display: "flex", flexDirection: "column", gap: 8, padding: "10px 0" }}>
+    <div style={{ fontSize: 12.5, color: C.sub }}>댓글 고치기 · 이전 글은 '(고침)'을 누르면 보여요</div>
+    <textarea ref={taRef} value={text} onChange={(e) => setText(e.target.value)} rows={3} aria-label="댓글 고치기" style={{ ...inp, resize: "vertical", fontSize: 14.5 }} />
+    {pick.length > 0 && <div className="v2-chips" role="listbox" aria-label="부를 사람">{pick.map((u) => <Chip key={u.id} onClick={() => { setText(insertMention(text, u.name)); setTimeout(() => taRef.current && taRef.current.focus(), 0); }}>@{u.name}</Chip>)}</div>}
+    {fresh.length > 0 && <div style={{ fontSize: 12.5, color: C.sub }}>새로 부를 사람 {fresh.map((id) => nameOf(D.users, id)).join(", ")} · 이 사람들에게만 알려요</div>}
+    {keep.length > 0 && <div className="v2-nkeep" role="list" aria-label="붙은 파일">{keep.map((f, i) => <div key={(f.path || f.url || "") + i} role="listitem" style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", border: `1px solid ${C.line}`, borderRadius: 10, marginBottom: 4, background: "#fff" }}>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name || "파일"}{f.size ? ` · ${fileSize(f.size)}` : ""}</span>
+      <TBtn v="plain" tone="mute" onClick={() => setKeep(keep.filter((x, j) => j !== i))} aria-label={`${f.name || "파일"} 빼기`} style={{ fontSize: 12.5 }}>빼기</TBtn></div>)}</div>}
+    <UpList U={U} onRetry={async (k) => { setBusy(true); try { await U.retry(k); } finally { setBusy(false); } }} onDrop={(k) => U.drop(k)} />
+    {pend && !U.busy && U.rows.some((r) => r.st === "fail") && <div style={{ fontSize: 12.5, color: C.red }}>못 올린 파일이 있어서 아직 저장 안 했어요 · [다시]를 누르거나 [빼기] 뒤 [저장]</div>}
+    {clash && <Clash who={clash.editedByName || clash.byName} at={clash.editedAt || clash.at} text={clash.text} onMerge={() => { setText(`${clash.text || ""}\n\n${text}`.trim()); setKeep(clash.files || []); setBase({ text: clash.text || "", editedAt: clash.editedAt || null }); setClash(null); }} onMine={() => { setClash(null); save(true); }} />}
+    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+      <TBtn disabled={busy || U.busy} onClick={() => fileRef.current && fileRef.current.click()}>+ 파일</TBtn><input ref={fileRef} type="file" multiple hidden aria-label="더 붙일 파일" onChange={(e) => { const f = [...e.target.files].slice(0, Math.max(0, 10 - U.rows.length - keep.length)); e.target.value = ""; if (f.length) { U.add(f); setPend(false); } }} />
+      <span style={{ flex: 1 }} /><TBtn tone="mute" disabled={busy} onClick={() => { U.clear(); onDone(); }}>그만</TBtn>
+      <TBtn v="solid" disabled={busy || U.busy || (!text.trim() && !keep.length && !U.rows.length)} onClick={() => save()} style={{ minWidth: 64, height: 36 }}>{busy || U.busy ? "저장 중" : "저장"}</TBtn></div>
+  </div>;
+}
+// readOnly: 없앤 업무를 링크로 열었을 때 — 대화는 보이지만 새로 쓰기·답글·고치기 없음
+export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl, readOnly }) {
   const [got, setGot] = useState(null), [miss, setMiss] = useState(false), [hlOn, setHlOn] = useState(""), hlDone = useRef(false);
   const all = got && !notes.some((n) => n.id === got.id) ? [...notes, got] : notes;
   const th = threads(all, itemId);
   const [text, setText] = useState(""), [reply, setReply] = useState(null), [busy, setBusy] = useState(false), [pend, setPend] = useState(false), [copied, setCopied] = useState(""), [showL, setShowL] = useState(null);
+  const [edit, setEdit] = useState(""), [hist, setHist] = useState("");   // 고치는 댓글 · 이전 판 펼친 댓글
+  const canEditN = (n) => !readOnly && !!n && (n.by === cu.id || isMaster(cu));
   const U = useUploads(A, "note-" + itemId);
   const fileRef = useRef(null), taRef = useRef(null);
   const pick = mentionPick(text, D.users, cu.id), tagged = parseMentions(text, D.users).filter((id) => id !== cu.id);   // '@' 를 치면 사람 고르기 · 부를 사람 미리 보기
@@ -275,22 +330,33 @@ export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl
     try { navigator.clipboard.writeText(u).then(ok, () => setShowL({ id: nid, u })); } catch (e) { setShowL({ id: nid, u }); } };
   const LinkBtn = ({ n }) => link ? <TBtn v="plain" onClick={() => copy(n.id)} style={{ padding: "6px 0", fontSize: 12.5 }}>{copied === n.id ? "✓ 복사했어요" : "링크 복사"}</TBtn> : null;
   const LinkBox = ({ n }) => showL && showL.id === n.id ? <input readOnly value={showL.u} autoFocus onFocus={(e) => e.target.select()} aria-label="복사할 링크" style={{ ...inp, marginTop: 4, fontSize: 12.5, padding: "8px 10px" }} /> : null;
+  const EditBtn = ({ n }) => canEditN(n) ? <TBtn v="plain" onClick={() => { setEdit(edit === n.id ? "" : n.id); setReply(null); }} style={{ padding: "6px 0", fontSize: 12.5 }}>고치기</TBtn> : null;
+  const Sep = () => <span style={{ color: C.line }}>|</span>;
+  // 이전 판 (읽기만 · 처음엔 접힘) — '(고침)' 누르면
+  const Hist = ({ n }) => hist === n.id && (n.edits || []).length > 0 ? <div className="v2-nhist" style={{ margin: "6px 0 2px", padding: "8px 10px", background: C.bg, borderRadius: 10, fontSize: 13 }}>
+    {[...(n.edits || [])].sort((a, b) => String(b.undone || b.at || "").localeCompare(String(a.undone || a.at || ""))).map((e, i) => <div key={i} style={{ padding: "6px 0", borderTop: i ? `1px solid ${C.line}` : "none" }}>
+      <div style={{ fontSize: 12, color: C.mute }}>이전 판 · {e.byName || nameOf(D.users, e.by) || ""}{e.at ? ` · ${ago(e.at)}` : ""}{e.undone ? " · 되돌린 글" : ""}</div>
+      <div style={{ color: C.sub, whiteSpace: "pre-wrap", lineHeight: 1.55, wordBreak: "break-word" }}>{e.text || "(비어 있음)"}</div>
+      {(e.files || []).length > 0 && <NoteFiles files={e.files} />}</div>)}</div> : null;
   const Note = ({ n, child }) => <div id={"v2-n-" + n.id} className={"v2-note" + (hlOn === n.id ? " hl" : "")} style={{ padding: child ? "8px 0 0 14px" : "12px 14px", borderLeft: child ? `2px solid ${C.line}` : "none", marginTop: child ? 6 : 0, scrollMarginTop: 60 }}>
-    <div style={{ fontSize: 12.5, color: C.mute }}><b style={{ color: C.ink }}>{n.byName || nameOf(D.users, n.by)}</b> · {ago(n.at)}</div>
+    <div style={{ fontSize: 12.5, color: C.mute }}><b style={{ color: C.ink }}>{n.byName || nameOf(D.users, n.by)}</b> · {ago(n.at)}{n.editedAt && <> · <button type="button" className="v2-edited" aria-expanded={hist === n.id} onClick={() => setHist(hist === n.id ? "" : n.id)} title={`${n.editedByName || ""} · ${ago(n.editedAt)} 고침`}>(고침)</button></>}</div>
+    <Hist n={n} />
     <div style={{ fontSize: 14.5, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 2, wordBreak: "break-word" }}><Linked text={n.text} /></div>
     <NoteFiles files={n.files} />
     {n.rec && <div><span className="v2-rttag">{recTag(n.rec, cfg)}</span></div>}
-    {child && link && <><div className="v2-nact"><LinkBtn n={n} /></div><LinkBox n={n} /></>}
+    {child && (link || canEditN(n)) && <><div className="v2-nact"><LinkBtn n={n} />{link && canEditN(n) && <Sep />}<EditBtn n={n} /></div><LinkBox n={n} /></>}
   </div>;
+  const NoteOrEdit = ({ n, child }) => edit === n.id ? <div style={{ padding: child ? "6px 0 0 14px" : "4px 14px 0" }}><NoteEdit D={D} cu={cu} A={A} n={n} itemId={itemId} onDone={() => setEdit("")} /></div> : <Note n={n} child={child} />;
   const canSend = (text.trim() || U.rows.length) && !busy && !U.busy;
   return <Card>
     {miss && <div role="status" style={{ padding: "10px 14px", fontSize: 13, color: C.sub, background: C.soft, borderBottom: `1px solid ${C.line}` }}>이 댓글을 찾지 못했어요 · 지워졌거나 다른 곳의 댓글일 수 있어요</div>}
     {th.length === 0 && <Empty>아직 대화가 없어요. 진행 상황이나 궁금한 점을 남겨 주세요.</Empty>}
-    {th.map((n) => <div key={n.id} style={{ borderBottom: `1px solid ${C.line}` }}><Note n={n} />
-      <div style={{ padding: "0 14px 10px" }}>{n.replies.map((r) => <Note key={r.id} n={r} child />)}
-        <div className="v2-nact"><TBtn v="plain" onClick={() => setReply(reply === n.id ? null : n.id)} style={{ padding: "6px 0", fontSize: 12.5 }}>{reply === n.id ? "답글 취소" : "답글"}</TBtn>{link && <span style={{ color: C.line }}>|</span>}<LinkBtn n={n} /></div>
+    {th.map((n) => <div key={n.id} style={{ borderBottom: `1px solid ${C.line}` }}>{NoteOrEdit({ n })}
+      <div style={{ padding: "0 14px 10px" }}>{n.replies.map((r) => <div key={r.id}>{NoteOrEdit({ n: r, child: true })}</div>)}
+        {!readOnly ? <div className="v2-nact"><TBtn v="plain" onClick={() => setReply(reply === n.id ? null : n.id)} style={{ padding: "6px 0", fontSize: 12.5 }}>{reply === n.id ? "답글 취소" : "답글"}</TBtn>{link && <Sep />}<LinkBtn n={n} />{canEditN(n) && edit !== n.id && <><Sep /><EditBtn n={n} /></>}</div>
+          : link && <div className="v2-nact"><LinkBtn n={n} /></div>}
         <LinkBox n={n} /></div></div>)}
-    <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+    {!readOnly && <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
       {reply && <div style={{ fontSize: 12.5, color: C.sub }}>{(th.find((x) => x.id === reply) || {}).byName}님 글에 답글</div>}
       {rec && <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: C.sub }}><span className="v2-rttag" style={{ marginTop: 0 }}>{recTag(rec, cfg)}</span>{rec.name ? `${rec.name}님 기록에 붙여요` : "이 기록에 붙여요"}<TBtn v="plain" tone="mute" onClick={() => onRec && onRec(null)}>✕ 빼기</TBtn></div>}
       <textarea ref={taRef} value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder={reply ? "답글 쓰기 · @이름으로 부르기" : "댓글 쓰기 · 진행 상황, 피드백, 링크 · @이름으로 부르기"} aria-label="댓글" style={{ ...inp, resize: "vertical", fontSize: 14.5 }} />
@@ -302,7 +368,7 @@ export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl
         <TBtn disabled={busy || U.busy} onClick={() => fileRef.current && fileRef.current.click()}>+ 파일</TBtn><input ref={fileRef} type="file" multiple hidden aria-label="첨부할 파일" onChange={(e) => { const f = [...e.target.files].slice(0, Math.max(0, 10 - U.rows.length)); e.target.value = ""; if (f.length) { U.add(f); setPend(false); } }} />
         <span style={{ flex: 1 }} /><TBtn v="solid" disabled={!canSend} onClick={send} style={{ minWidth: 72, height: 36 }}>{busy || U.busy ? "올리는 중" : "남기기"}</TBtn>
       </div>
-    </div>
+    </div>}
   </Card>;
 }
 

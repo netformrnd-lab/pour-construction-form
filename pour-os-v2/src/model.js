@@ -159,6 +159,24 @@ export function trashRows(removedFx, akRemoved, brands, uid) {
     .map((it) => ({ kind: "ak", id: it.id, name: it.name || "", sub: `횟수 목표 · ${brandLabel(it.brand, brands) || "브랜드"}`, by: it._removed.by, byName: it._removed.byName, at: it._removed.at, x: it }));
   return [...fx, ...ak].sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
 }
+// ── 한 번짜리 업무 없애기 (사용자 확정 2026-10-07 "업무 삭제는 어떻게해?" → 누구나 없애기 · 지우지 않음) ──
+//   볼 수 있는 사람이면 누구나(기밀로 잠긴 사람은 못 봄 → 못 없앰) · removed {at, by, byName, reason, prevStatus, root, kids[]} — 상태는 그대로 · 하위 업무(결정 업무의 안 포함)는 같이(root = 처음 없앤 업무)
+export const REMOVE_REASONS = ["잘못 만듦", "중복", "안 하기로 함", "기타"];
+export const canRemoveTask = (t, cu) => !!t && !!cu && !t.isFixed && !t.locked && !isRemoved(t);
+export const canRestoreTask = (t, cu) => !!t && !!cu && !t.isFixed && !t.locked && isRemoved(t);
+// 아래로 끝까지 하위 업무 (없앤 것·고정업무 빼고 · 고리 막음)
+export function taskKids(t, tasks) { const out = [], seen = new Set([t && t.id]); let q = [t && t.id];
+  for (let k = 0; k < 20 && q.length; k++) { const nx = []; (tasks || []).forEach((x) => { if (x && q.includes(x.parentId) && !seen.has(x.id) && !x.isFixed && !isRemoved(x)) { seen.add(x.id); out.push(x); nx.push(x.id); } }); q = nx; }
+  return out; }
+export const taskRemoveFields = (t, cu, at, reason, root, kids) => ({ removed: { at, by: cu.id, byName: cu.name || "", reason: String(reason || "").trim().slice(0, 200), prevStatus: (t && t.status) || "todo", root: root || (t && t.id), ...(kids ? { kids } : {}) } });
+// 휴지통 줄(한 번짜리 업무): 처음 없앤 업무(root)만 · uid 를 주면 내가 없앴거나 내가 담당·맡긴 것만 · pid 를 주면 그 프로젝트만
+export function taskTrashRows(removed, projects, uid, pid) {
+  return (removed || []).filter((t) => t && !t.isFixed && isRemoved(t) && (t.removed.root || t.id) === t.id && (!pid || t.projectId === pid)
+      && (!uid || t.removed.by === uid || isMine(t, uid) || t.requestedBy === uid || t.createdBy === uid))
+    .map((t) => { const p = (projects || []).find((x) => x.id === t.projectId), n = (t.removed.kids || []).length;
+      return { kind: "task", id: t.id, name: t.title || "", sub: `${p ? p.title : "프로젝트 없음"}${n ? ` · 하위 ${n}개 같이` : ""}`, reason: t.removed.reason || "", by: t.removed.by, byName: t.removed.byName, at: t.removed.at, x: t }; })
+    .sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+}
 // 브랜드 칸을 D.brands id 로 (이름으로 들어 있던 것도) — 없으면 그대로
 export const brandKey = (v, brands) => { const s = String(v || "").trim(); if (!s || s === COMMON_BRAND.id) return s; const b = (brands || []).find((x) => x && (x.id === s || String(x.name || "").trim() === s)); return b ? b.id : s; };
 // 브랜드 안 정한 고정업무 28개 추천 (실데이터 2026-10-06 분석 · 관리자가 [추천대로 정하기] 또는 줄마다 고름)
@@ -317,6 +335,13 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
     if (mine && t.status === "hold" && t.holdUntil && t.holdUntil <= key && !t.holdBy) inbox.push({ kind: "holdDue", tag: "다시 볼 날", id: "hd:" + t.id + ":" + t.holdUntil, taskId: t.id, title: t.title, who: t.heldBy, at: t.holdUntil + "T00:00:00", text: `보류${t.holdReason ? " · " + t.holdReason : ""} · ${md(t.holdUntil)}에 다시 보기로 함`, keep: true });
     if (mine && t.dueReqResult && !seen["dr:" + t.id + t.dueReqResult.at]) inbox.push({ kind: "dueRes", tag: t.dueReqResult.ok ? "기한 바뀜" : "기한 유지", id: "dr:" + t.id + t.dueReqResult.at, taskId: t.id, title: t.title, who: t.dueReqResult.by, whoName: t.dueReqResult.byName, at: t.dueReqResult.at, text: t.dueReqResult.ok ? `새 기한 ${md(dueOf(t))}` : t.dueReqResult.reason || "기한은 그대로예요" });
   });
+  // 업무 없앰(누구나 없애기 · 2026-10-07): 없앤 사람이 내가 아니고 내가 담당·맡긴 사람이면 한 줄(읽음 = 사라짐) — 하위 업무는 상위 줄에서 이미 알린 사람에겐 따로 안 띄움
+  const rmTo = (t) => [...ownersOf(t), reqOf(t) || t.requestedBy || ""].filter(Boolean);
+  const rmById = Object.fromEntries((D.removedTasks || []).map((t) => [t.id, t]));
+  (D.removedTasks || []).forEach((t) => { const rm = t && t.removed; if (!rm || t.isFixed || rm.by === uid || (rm.at || "") < since || !rmTo(t).includes(uid)) return;
+    const root = rm.root && rm.root !== t.id ? rmById[rm.root] : null; if (root && rmTo(root).includes(uid)) return;
+    const id = "rm:" + t.id + rm.at; if (seen[id]) return; const n = (rm.kids || []).length;
+    inbox.push({ kind: "removed", tag: "업무 없앰", id, taskId: t.id, title: t.title, who: rm.by, whoName: rm.byName, at: rm.at, text: `${rm.byName || "누군가"}님이 없앴어요${rm.reason ? " · " + rm.reason : ""}${n ? ` · 하위 ${n}개 같이` : ""} · 휴지통에서 되살릴 수 있어요` }); });
   Object.entries(launchNew).forEach(([pid, g]) => { const p = (D.projects || []).find((x) => x.id === pid);
     inbox.push({ kind: "launchNew", tag: "신제품", id: "ln:" + pid, projectId: pid, title: `${p ? p.title : "신제품"} · 항목 ${g.n}개 맡김`, who: g.who, at: g.at, text: "열어서 기한을 확인하고 '받았어요'를 눌러 주세요", keep: true }); });
   Object.entries(bulkNew).forEach(([bid, g]) => { const p = (D.projects || []).find((x) => x.id === g.pid);
@@ -337,7 +362,9 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   const taskById = Object.fromEntries(tasks.map((t) => [t.id, t]));
   const talked = new Set((D.notes || []).filter((n) => n && n.by === uid && !n.deleted).map((n) => n.itemId));   // 내가 말한 대화 → 답이 오면 나에게도
   (D.notes || []).forEach((n) => {
-    if (!n || n.deleted || n.by === uid || (n.at || "") < since || seen["nt:" + n.id]) return;
+    // 댓글을 고치며 새로 부른 사람(mentionedAt.<나>)은 고친 때 기준 · 새 줄(이미 읽은 댓글이어도)
+    const ma = n && n.mentionedAt && n.mentionedAt[uid], nid = ma ? "nt:" + n.id + ":" + ma : "nt:" + (n && n.id);
+    if (!n || n.deleted || n.by === uid || (ma || n.at || "") < since || seen[nid]) return;
     const [kind, ...rest] = String(n.itemId || "").split(":"); const ref = rest.join(":");
     let hit = null; const ment = (n.mentions || []).includes(uid);   // @ 로 나를 부른 댓글은 어디든 (업무를 못 불러왔어도)
     if (kind === "task") { const t = taskById[ref]; if (!ment && (shown ? shown.has(n.id) : n.handoff && freshPreds.has(ref))) return;
@@ -345,7 +372,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
       else if (t && (n.to === uid || isMine(t, uid) || reqOf(t) === uid || myProj.has(t.projectId) || (t.ccIds || []).includes(uid) || talked.has(n.itemId) || (n.handoff && predIds.has(ref)))) hit = { taskId: ref, title: t.title }; }
     else if (kind === "proj" && (ment || projAll.has(ref) || talked.has(n.itemId))) { const p = (D.projects || []).find((x) => x.id === ref); hit = { projectId: ref, title: p ? p.title : "프로젝트" }; }
     else if (!rest.length && (ment || talked.has(n.itemId))) { const it = ((D.ak && D.ak.items) || []).find((x) => x && x.id === n.itemId); if (it) hit = { akId: it.id, title: it.name || "반복 실행" }; }   // 반복 실행(횟수 목표) 대화 — ':' 없는 itemId = 행동지표 id
-    if (hit) inbox.push({ kind: ment ? "mention" : "note", tag: ment ? "@ 나를 부름" : "댓글", id: "nt:" + n.id, ...hit, who: n.by, whoName: n.byName, at: n.at, text: n.text });
+    if (hit) inbox.push({ kind: ment ? "mention" : "note", tag: ment ? "@ 나를 부름" : "댓글", id: nid, ...hit, who: ma ? n.editedBy || n.by : n.by, whoName: ma ? n.editedByName || n.byName : n.byName, at: ma || n.at, text: n.text });
   });
   const ORDER = { feedback: 0, review: 1, dueReq: 2, help: 2.5, mention: 2.8, link: 2.9, lagDue: 2.95, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, approved: 9, unblocked: 9, pinNew: 9.5, note: 10 };
   inbox.sort((a, b) => (ORDER[a.kind] ?? 11) - (ORDER[b.kind] ?? 11) || String(b.at || "").localeCompare(String(a.at || "")));
@@ -475,7 +502,7 @@ export function ownerIssues(D) {
 }
 
 // ── 소식 (댓글 + 기록) ──
-export const LOG_L = { decide: "결정", add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", handover: "일 넘김", sync: "신제품 대시보드에서", take: "이어받음", comment: "댓글", delete: "휴지통으로", remove: "없앰(휴지통)", restore: "되살림",
+export const LOG_L = { decide: "결정", add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", handover: "일 넘김", sync: "신제품 대시보드에서", take: "이어받음", comment: "댓글", noteEdit: "댓글 고침", delete: "휴지통으로", remove: "없앰(휴지통)", restore: "되살림",
   ack: "받음", dueReq: "기한 조정 요청", dueOk: "기한 조정 수락", dueNo: "기한 유지", review: "확인 요청", approve: "확인 완료", feedback: "수정 요청", block: "막힘", unblock: "막힘 풀림", launch: "신제품 만듦", bulk: "한꺼번에 바꿈", deps: "앞 일 바꿈", ask: "도움 요청", askDone: "도움 요청 닫음", hold: "보류", unhold: "보류 풀기", projEnd: "프로젝트 끝냄·멈춤", projResume: "프로젝트 다시 시작" };
 export function feedOf(D, { projectId, taskIds, sinceIso } = {}) {
   const tset = taskIds ? new Set(taskIds) : null;

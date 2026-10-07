@@ -383,4 +383,49 @@ ok("이름 고치기 권한: 개인 = 본인·관리자 · 반복 실행 = 관�
   const boss = { id: "s", name: "김송희", role: "lead" }, me = { id: "a", name: "가" };
   assert.equal(M.canRenameFx({ isFixed: true, scope: "me", assigneeIds: ["a"] }, me), true); assert.equal(M.canRenameFx({ isFixed: true, scope: "brand", brand: "x", assigneeIds: ["a"] }, me), false); assert.equal(M.canRenameFx({ isFixed: true, scope: "brand", brand: "x" }, boss), true);
 });
+ok("업무 없애기(누구나): 권한 · 하위 업무 · 저장 칸 · 휴지통 줄 · 지우지 않음", () => {
+  const me = { id: "a", name: "가" }, other = { id: "b", name: "나" };
+  const t = { id: "t1", title: "시안", status: "inprogress", assigneeIds: ["a"], assigneeId: "a", projectId: "p1", requestedBy: "c" };
+  assert.equal(M.canRemoveTask(t, other), true);                                  // 볼 수 있으면 누구나
+  assert.equal(M.canRemoveTask({ ...t, locked: true }, other), false);            // 기밀로 잠긴 사람은 못 봄 → 못 없앰
+  assert.equal(M.canRemoveTask({ ...t, isFixed: true }, me), false);              // 고정업무는 따로(canRemoveFx)
+  const tasks = [t, { id: "k1", title: "안 A", parentId: "t1", option: true }, { id: "k2", title: "안 B", parentId: "t1" }, { id: "k3", title: "손자", parentId: "k1" }, { id: "x", title: "남", parentId: "zz" }, { id: "k4", parentId: "t1", removed: { at: "x" } }, { id: "k5", parentId: "t1", isFixed: true }];
+  assert.deepEqual(M.taskKids(t, tasks).map((x) => x.id), ["k1", "k2", "k3"]);   // 아래로 끝까지 · 이미 없앤 것·고정업무 빼고
+  assert.deepEqual(M.taskKids({ id: "a1" }, [{ id: "a2", parentId: "a1" }, { id: "a1", parentId: "a2" }]).map((x) => x.id), ["a2"]);   // 고리 막음
+  const f = M.taskRemoveFields(t, other, "2026-10-07T01:00:00Z", " 중복 ", "t1", ["k1"]);
+  assert.deepEqual(f, { removed: { at: "2026-10-07T01:00:00Z", by: "b", byName: "나", reason: "중복", prevStatus: "inprogress", root: "t1", kids: ["k1"] } });
+  assert.equal("status" in f, false);                                              // 상태는 그대로
+  assert.equal(M.isRemoved({ ...t, ...f }), true); assert.equal(M.canRestoreTask({ ...t, ...f }, me), true); assert.equal(M.canRemoveTask({ ...t, ...f }, me), false);
+  const kid = { ...tasks[1], ...M.taskRemoveFields(tasks[1], other, "2026-10-07T01:00:00Z", "", "t1") };
+  const old = { id: "o1", title: "옛", projectId: "p2", assigneeIds: ["z"], removed: { at: "2026-10-06T00:00:00Z", by: "z", byName: "다", reason: "", root: "o1" } };
+  const rows = M.taskTrashRows([{ ...t, ...f }, kid, old], [{ id: "p1", title: "봄 신제품" }]);
+  assert.deepEqual(rows.map((r) => r.id), ["t1", "o1"]);                           // 처음 없앤 업무만(하위는 같이) · 최근 것 먼저
+  assert.equal(rows[0].sub, "봄 신제품 · 하위 1개 같이"); assert.equal(rows[0].reason, "중복"); assert.equal(rows[1].sub, "프로젝트 없음"); assert.equal(rows[0].kind, "task");
+  assert.deepEqual(M.taskTrashRows([{ ...t, ...f }, kid, old], [], "a").map((r) => r.id), ["t1"]);   // 내 것 = 내가 담당
+  assert.deepEqual(M.taskTrashRows([{ ...t, ...f }, kid, old], [], "c").map((r) => r.id), ["t1"]);   // 맡긴 사람
+  assert.deepEqual(M.taskTrashRows([{ ...t, ...f }, kid, old], [], "b").map((r) => r.id), ["t1"]);   // 없앤 사람
+  assert.deepEqual(M.taskTrashRows([{ ...t, ...f }, kid, old], [], "q"), []);
+  assert.deepEqual(M.taskTrashRows([{ ...t, ...f }, kid, old], [], null, "p2").map((r) => r.id), ["o1"]);   // 그 프로젝트만
+});
+ok("업무 없앰 알림: 담당·맡긴 사람에게 '업무 없앰' (없앤 사람 본인은 없음 · 읽음 = 사라짐 · 하위는 상위 줄로 한 번)", () => {
+  const now = new Date("2026-10-07T10:00:00"), at = "2026-10-07T01:00:00Z";
+  const root = { id: "t1", title: "시안", status: "todo", assigneeIds: ["a"], assigneeId: "a", requestedBy: "c", removed: { at, by: "b", byName: "나", reason: "중복", root: "t1", kids: ["k1", "k2"] } };
+  const k1 = { id: "k1", title: "안 A", parentId: "t1", status: "todo", assigneeIds: ["a"], removed: { at, by: "b", byName: "나", reason: "중복", root: "t1" } };
+  const k2 = { id: "k2", title: "안 B", parentId: "t1", status: "todo", assigneeIds: ["d"], removed: { at, by: "b", byName: "나", reason: "중복", root: "t1" } };
+  const D = { tasks: [], removedTasks: [root, k1, k2], users: [{ id: "a", name: "가" }, { id: "b", name: "나" }, { id: "c", name: "다" }, { id: "d", name: "라" }], projects: [], notes: [] };
+  const ia = M.todayView(D, "a", now, {}).inbox.filter((x) => x.kind === "removed");
+  assert.equal(ia.length, 1); assert.equal(ia[0].tag, "업무 없앰"); assert.equal(ia[0].taskId, "t1"); assert.equal(ia[0].keep, undefined); assert.match(ia[0].text, /나님이 없앴어요 · 중복 · 하위 2개 같이/);
+  assert.equal(M.todayView(D, "c", now, {}).inbox.filter((x) => x.kind === "removed").length, 1);   // 맡긴 사람
+  assert.deepEqual(M.todayView(D, "d", now, {}).inbox.filter((x) => x.kind === "removed").map((x) => x.taskId), ["k2"]);   // 하위만 담당 → 하위 줄
+  assert.equal(M.todayView(D, "b", now, {}).inbox.filter((x) => x.kind === "removed").length, 0);   // 없앤 사람 본인
+  assert.equal(M.todayView(D, "a", now, { [ia[0].id]: true }).inbox.filter((x) => x.kind === "removed").length, 0);   // 읽음
+});
+ok("댓글 고치며 새로 부른 사람: 고친 때 기준 새 줄 (이미 읽은 댓글이어도)", () => {
+  const now = new Date("2026-10-07T10:00:00");
+  const n = { id: "n1", itemId: "proj:p1", by: "b", byName: "나", at: "2026-09-20T00:00:00Z", text: "@가 봐 주세요", mentions: ["a"], mentionedAt: { a: "2026-10-07T01:00:00Z" }, editedAt: "2026-10-07T01:00:00Z", editedBy: "b", editedByName: "나" };
+  const D = { tasks: [], users: [{ id: "a", name: "가" }, { id: "b", name: "나" }], projects: [{ id: "p1", title: "P" }], notes: [n] };
+  const v = M.todayView(D, "a", now, { "nt:n1": true }).inbox.filter((x) => x.kind === "mention");
+  assert.equal(v.length, 1); assert.equal(v[0].id, "nt:n1:2026-10-07T01:00:00Z"); assert.equal(v[0].at, "2026-10-07T01:00:00Z");
+  assert.equal(M.todayView({ ...D, notes: [{ ...n, mentionedAt: null }] }, "a", now, {}).inbox.filter((x) => x.kind === "mention").length, 0);   // 처음 쓴 지 7일 넘음 → 안 뜸
+});
 console.log(`\n${n}개 모두 통과`);

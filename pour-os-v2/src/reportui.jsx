@@ -5,7 +5,7 @@
 //  쓰기: pour-os/v2/reports/{id} · reporthist/{id~시각}(다시 확정 전 확정본) · reportnotes/{id} — 지우지 않음
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as fb from "./fb.js";
-import { ymd, md, isMaster, newId } from "./model.js";
+import { ymd, md, isMaster, newId, isRemoved } from "./model.js";
 import { C, Big, TBtn, Chip, Head, Card, Empty, Sheet, Ask, inp } from "./ui.jsx";
 import { LS, nowIso } from "./core.jsx";
 import { useLocal } from "./ui.jsx";
@@ -23,7 +23,7 @@ export function useDoneSince(D, from) {
   const need = !!from && from < ymd(new Date(Date.now() - 29 * 864e5));
   const [got, setGot] = useState({});
   useEffect(() => { if (!need || got[from]) return; let on = true;
-    fb.fetchWhere("tasks", ["doneAt", ">=", new Date(from + "T00:00:00").toISOString()]).then((x) => { if (on) setGot((g) => ({ ...g, [from]: x })); })
+    fb.fetchWhere("tasks", ["doneAt", ">=", new Date(from + "T00:00:00").toISOString()]).then((x) => { if (on) setGot((g) => ({ ...g, [from]: x.filter((t) => !isRemoved(t)) })); })
       .catch((e) => { console.error("[보고서] 지난 끝낸 업무 못 읽음:", e); if (on) setGot((g) => ({ ...g, [from]: "err" })); });
     return () => { on = false; }; }, [need, from]);
   return useMemo(() => {
@@ -36,7 +36,7 @@ export function useDoneSince(D, from) {
 function useProjTasks(D, pid) {
   const [got, setGot] = useState({});
   useEffect(() => { if (!pid || got[pid]) return; let on = true;
-    fb.fetchWhere("tasks", ["projectId", "==", pid]).then((x) => { if (on) setGot((g) => ({ ...g, [pid]: x })); })
+    fb.fetchWhere("tasks", ["projectId", "==", pid]).then((x) => { if (on) setGot((g) => ({ ...g, [pid]: x.filter((t) => !isRemoved(t)) })); })
       .catch((e) => { console.error("[보고서] 프로젝트 업무 못 읽음:", e); if (on) setGot((g) => ({ ...g, [pid]: "err" })); });
     return () => { on = false; }; }, [pid]);
   return useMemo(() => { if (!pid) return null; const x = got[pid]; if (!x) return null; if (x === "err") return "err";

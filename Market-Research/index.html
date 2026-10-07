@@ -157,6 +157,24 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--line);
 
 .plink{display:flex;flex-direction:column;flex:1;text-decoration:none;color:inherit}
 .pchk{display:grid;grid-template-columns:1fr;gap:6px;padding:0 13px 13px}
+button.cmt-tg{font:inherit;font-size:12px;font-weight:700;padding:7px 4px;border-radius:8px;border:1px dashed var(--line);background:var(--bg);color:var(--ink3);cursor:pointer}
+button.cmt-tg:hover{color:var(--ink);border-color:#c2c9d2}
+button.cmt-tg.has{border-style:solid;color:var(--ink2)}
+button.cmt-tg b{color:var(--blue)}
+.cmt{border-top:1px solid var(--line2);padding:10px 13px 13px;display:grid;gap:8px;background:var(--bg3)}
+.cmt-list{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.cmt-list li{background:var(--bg);border:1px solid var(--line2);border-radius:8px;padding:7px 9px;font-size:12.5px;line-height:1.5;color:var(--ink2);word-break:break-word}
+.cmt-meta{display:flex;flex-wrap:wrap;gap:2px 6px;align-items:center;white-space:nowrap;font-size:11px;color:var(--ink3);margin-bottom:2px}
+.cmt-meta b{color:var(--ink);font-weight:700}
+.cmt-del{margin-left:auto;font:inherit;font-size:11px;border:0;background:none;color:var(--ink3);cursor:pointer;padding:0 2px}
+.cmt-del:hover,.cmt-del.sure{color:var(--red);font-weight:700}
+.cmt-empty{font-size:12px;color:var(--ink3)}
+.cmt-form{display:grid;gap:6px}
+.cmt-form input,.cmt-form textarea{font:inherit;font-size:13px;width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:var(--bg);color:var(--ink)}
+.cmt-form textarea{min-height:56px;resize:vertical}
+.cmt-form input:focus,.cmt-form textarea:focus{outline:2px solid var(--blue);outline-offset:0;border-color:var(--blue)}
+.cmt-form button{font:inherit;font-size:12.5px;font-weight:700;border:0;border-radius:8px;padding:8px;background:var(--ink);color:#fff;cursor:pointer}
+.cmt-form button:disabled{opacity:.5;cursor:default}
 button.ck{font:inherit;font-size:12px;font-weight:700;padding:7px 4px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink3);cursor:pointer;white-space:nowrap}
 button.ck::before{content:'';display:inline-block;width:11px;height:11px;border:1.5px solid currentColor;border-radius:3px;margin-right:5px;vertical-align:-1px;box-sizing:border-box}
 button.ck:hover{border-color:#c2c9d2;color:var(--ink)}
@@ -212,7 +230,7 @@ td.n{white-space:nowrap}
 <section id="s1"><div class="sec-head"><span class="sec-num">01</span><h2>핵심 결론</h2></div>
 <p class="sec-sub">수집한 제품의 ㎡당 가격(판매가 + 배송비)을 기준으로 관찰한 내용입니다.</p><div class="finding"><span class="f-tag">관찰</span><h3>품목마다 ㎡당 가격 수준이 크게 다릅니다</h3><p>㎡당 중앙값으로 PVC 투명시트 <b>1,663원</b>, 붙이는 롤형 벽지 3,490원, 대리석 타일 시트지 9,111원, 비접착식 데코타일 14,276원, 데크타일 A타입 22,099원, B타입 28,333원, 논슬립 화장실 패드 33,010원, 붙이는 타일 시트 <b>81,889원</b>입니다. 품목마다 가격 기준을 따로 잡아야 합니다.</p></div><div class="finding"><span class="f-tag">관찰</span><h3>비접착식 데코타일은 가격대가 좁게 모여 있습니다</h3><p>4건 모두 오늘의집이고 ㎡당 <b>13,542원에서 14,769원</b> 사이로, 최저와 최고 차이가 9%입니다. 크기(47~60cm)와 묶음 수(4~9장)가 달라도 ㎡당으로는 거의 같은 수준입니다.</p></div><div class="finding"><span class="f-tag">관찰</span><h3>데크타일은 조각이 작은 B타입이 ㎡당 더 비쌉니다</h3><p>30cm 조각인 A타입은 중앙값 <b>22,099원</b>, 12~15cm 조각인 B타입은 <b>28,333원</b>입니다. B타입은 40~72개 묶음으로 팔려 개당 가격은 512~638원으로 낮지만, 면적으로 보면 A타입보다 높습니다.</p></div><div class="finding alert"><span class="f-tag">주의</span><h3>낱장 판매는 배송비 때문에 ㎡당 가격이 크게 올라갑니다</h3><p>대리석 타일 시트지에서 10장 묶음 2건은 ㎡당 <b>8,500원·9,111원</b>인데, 엘로몽키는 1장 1,100원에 배송비 3,000원이 붙어 <b>22,778원</b>입니다. 데크타일 A타입도 몰딩스토리 1장(3,000원 + 배송비 3,000원)이 <b>66,667원</b>으로, 나머지 4건(16,769~33,951원)보다 크게 높습니다.</p></div><div class="finding alert"><span class="f-tag">주의</span><h3>롤형 벽지와 투명시트는 크기가 달라 판매가로는 비교할 수 없습니다</h3><p>롤형 벽지는 1.7㎡~10㎡까지 크기가 달라 ㎡당 <b>1,483원에서 21,913원</b>까지 15배 가까이 차이가 납니다. 가장 싼 이지롤(60cm×10m, 8,900원)과 가장 비싼 스페이스테일러(69×250cm, 32,300원 + 배송비 5,500원)는 판매가로는 4배지만 ㎡당으로는 15배입니다. 투명시트는 60×10m 5건이 832~2,650원, 60×8m(이지픽) 2,073원, 60×5m(대쉬) 3,967원으로, 판매가는 4,990~15,900원으로 3배 넘게 차이 나지만 ㎡당으로는 832~3,967원 안에 있습니다. 이 두 품목은 <b>㎡당으로만 비교해야</b> 합니다.</p></div><div class="finding alert"><span class="f-tag">주의</span><h3>아이방스티커는 크기가 없어 ㎡당 비교가 안 됩니다</h3><p>6개 묶음 2건을 개당가로만 비교했습니다. 소피의열한시십칠분 17,680원(개당 <b>2,947원</b>), 미노네 6,400원 + 배송비 3,000원(개당 <b>1,567원</b>)입니다. 레벨월스코리아 포인트벽지(163,800원)는 스티커가 아닌 벽지로, 모양 참고용이라 계산에서 뺐습니다.</p></div></section>
 <section id="s2"><div class="sec-head"><span class="sec-num">02</span><h2>수집 제품</h2></div>
-<p class="sec-sub">핵심 결론의 근거가 된 제품입니다. ㎡당 가격이 낮은 순으로 정렬했고, 카드를 누르면 판매 페이지로 이동하고, 카드 아래 버튼으로 샘플을 살 제품과, 사지 않고 비슷한 제품을 더 찾아볼 제품을 체크합니다. 체크는 바로 저장되어 모두에게 같이 보입니다.</p>
+<p class="sec-sub">핵심 결론의 근거가 된 제품입니다. ㎡당 가격이 낮은 순으로 정렬했고, 카드를 누르면 판매 페이지로 이동하고, 카드 아래 버튼으로 샘플을 살 제품과, 사지 않고 비슷한 제품을 더 찾아볼 제품을 체크하고, 제품마다 코멘트를 남길 수 있습니다. 체크는 바로 저장되어 모두에게 같이 보입니다.</p>
 <div class="ckbar"><span id="cksum"></span><span id="ckstate" class="ckstate">불러오는 중…</span></div><div class="chips" role="tablist" id="chips"></div><div class="grid" id="grid"></div></section>
 <section id="s3"><details class="fold"><summary><div class="sec-head"><span class="sec-num">03</span><h2>품목별 가격 구조</h2><span class="fold-hint">펼치기</span></div></summary>
 <p class="sec-sub">크기가 다른 제품을 나란히 보기 위해 ㎡당 가격으로 통일했습니다. 대체품은 계산에서 뺐습니다.</p>
@@ -231,7 +249,21 @@ const w=n=>Math.round(n).toLocaleString('ko-KR');
 let cur=CATS[0];
 let CK={},REF=null;
 const chk=no=>CK[no]||{buy:false,more:false};
+// 코멘트 — sourcing-os/market-research-deco2/comments (실시간 공유)
+let CM=[],CREF=null;const OPEN=new Set(),DRAFT={},SURE={};
+let NAME='';try{NAME=localStorage.getItem('mrCommentName')||'';}catch(e){}
+const cmOf=no=>CM.filter(c=>String(c.no)===String(no)).sort((a,b)=>(a.at||'').localeCompare(b.at||''));
+const fmtAt=iso=>{if(!iso)return '';const d=new Date(iso);return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
+function cmtHtml(no){
+  const list=cmOf(no),n=list.length,open=OPEN.has(String(no));
+  let h=`<button type="button" class="cmt-tg${n?' has':''}" data-cno="${no}" aria-expanded="${open}">${open?'코멘트 닫기':(n?`코멘트 <b>${n}</b>`:'코멘트 달기')}</button>`;
+  if(!open)return h;
+  h+=`</div><div class="cmt">`+(n?`<ul class="cmt-list">${list.map(c=>`<li><div class="cmt-meta"><b>${esc(c.name||'익명')}</b><span>${fmtAt(c.at)}</span><button type="button" class="cmt-del${SURE[c.id]?' sure':''}" data-del="${c.id}">${SURE[c.id]?'삭제 확인':'삭제'}</button></div>${esc(c.text).replace(/\n/g,'<br>')}</li>`).join('')}</ul>`:'<p class="cmt-empty">아직 코멘트가 없어요.</p>')+
+    `<div class="cmt-form"><input type="text" id="cmn-${no}" data-cname="1" placeholder="이름" value="${esc(NAME)}" maxlength="20"><textarea id="cmt-${no}" data-ctext="${no}" placeholder="이 제품에 대한 의견을 남겨 주세요">${esc(DRAFT[no]||'')}</textarea><button type="button" data-csend="${no}">등록</button></div>`;
+  return h;
+}
 function draw(){
+  const ae=document.activeElement,aeId=ae&&ae.id,selS=ae&&ae.selectionStart,selE=ae&&ae.selectionEnd;
   document.getElementById('chips').innerHTML=CATS.map(c=>`<button class="chip" role="tab" aria-selected="${c===cur}" data-c="${esc(c)}">${esc(c)}<span class="c">${P.filter(p=>p.cat===c).length}</span></button>`).join('');
   const list=P.filter(p=>p.cat===cur).sort((a,b)=>((a.cmp==='대체품')-(b.cmp==='대체품'))||a.unit-b.unit);
   document.getElementById('grid').innerHTML=list.map(p=>`<div class="pcard${chk(p.no).buy?' is-buy':(chk(p.no).more?' is-more':'')}"><a class="plink" href="${esc(p.link)}" target="_blank" rel="noopener"><div class="ph${p.photo?' life':' empty'}">${p.photo?`<img src="${p.photo}" alt="">`:'사진 없음'}</div><div class="pbody">
@@ -241,13 +273,15 @@ function draw(){
     ${p.ref?'<span class="unit off">디자인 참고 · 벽지</span>':`<span class="unit${p.cmp==='대체품'?' off':''}">${p.kind} ${w(p.unit)}원</span>`}
     <div class="ship${p.ship>0?'':(p.ship===0?' none':'')}">${p.ship>0?'배송비 '+w(p.ship)+'원':(p.ship===0?'':'배송비 미기재')}</div></div>
     <div class="pfoot"><span class="plat">${esc(p.ch)}</span><span class="sel">${esc(p.seller)}</span>${p.ref?'<span class="ctag">디자인 참고</span>':(p.cmp==='대체품'?'<span class="ctag">대체품</span>':'')}</div></div></a>
-    <div class="pchk"><button type="button" class="ck ck-buy" aria-pressed="${!!chk(p.no).buy}" data-no="${p.no}" data-k="buy">샘플 구매</button><button type="button" class="ck ck-more" aria-pressed="${!!chk(p.no).more}" data-no="${p.no}" data-k="more">비슷한 거 더 찾기</button></div></div>`).join('');
+    <div class="pchk"><button type="button" class="ck ck-buy" aria-pressed="${!!chk(p.no).buy}" data-no="${p.no}" data-k="buy">샘플 구매</button><button type="button" class="ck ck-more" aria-pressed="${!!chk(p.no).more}" data-no="${p.no}" data-k="more">비슷한 거 더 찾기</button>${cmtHtml(p.no)}</div></div>`).join('');
   summary();
+  if(aeId){const el=document.getElementById(aeId);if(el){el.focus();try{if(selS!=null)el.setSelectionRange(selS,selE);}catch(e){}}}
 }
 function summary(){
   const v=Object.entries(CK).filter(([n])=>P.some(p=>String(p.no)===n));
   const buy=v.filter(([,c])=>c.buy).length, more=v.filter(([,c])=>c.more).length;
-  document.getElementById('cksum').innerHTML=`샘플 구매 <b>${buy}</b>개 · 비슷한 거 더 찾기 <b>${more}</b>개`;
+  const cm=CM.filter(c=>P.some(p=>String(p.no)===String(c.no))).length;
+  document.getElementById('cksum').innerHTML=`샘플 구매 <b>${buy}</b>개 · 비슷한 거 더 찾기 <b>${more}</b>개 · 코멘트 <b>${cm}</b>개`;
 }
 // 업무OS 프로젝트 연결용 요약 — pour-os/research-index/items/market-research-deco2 (체크한 제품만, 사진 제외)
 let IDX=null,lastPub='';
@@ -259,7 +293,28 @@ function publish(){
     .then(()=>console.log(`[시장조사 요약] ${items.length}건 업무OS에 반영`)).catch(e=>{lastPub='';console.error('[시장조사 요약] 반영 실패:',e);});
 }
 function setState(t,err){const el=document.getElementById('ckstate');el.textContent=t;el.classList.toggle('err',!!err);}
+document.getElementById('grid').addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.ctext)DRAFT[t.dataset.ctext]=t.value;
+  if(t.dataset.cname){NAME=t.value;try{localStorage.setItem('mrCommentName',NAME);}catch(err){}}
+});
 document.getElementById('grid').addEventListener('click',e=>{
+  const tg=e.target.closest('button.cmt-tg');
+  if(tg){const no=tg.dataset.cno;OPEN.has(no)?OPEN.delete(no):OPEN.add(no);draw();if(OPEN.has(no)){const ta=document.getElementById('cmt-'+no);if(ta)ta.focus();}return;}
+  const del=e.target.closest('button.cmt-del');
+  if(del){const id=del.dataset.del;
+    if(!SURE[id]){SURE[id]=true;draw();setTimeout(()=>{if(SURE[id]){delete SURE[id];draw();}},4000);return;}
+    delete SURE[id];if(!CREF)return;setState('삭제 중…');
+    CREF.doc(id).delete().then(()=>setState('삭제됨')).catch(err=>{console.error('[코멘트] 삭제 실패:',err);setState('삭제하지 못했어요 · 다시 눌러 주세요',true);});return;}
+  const send=e.target.closest('button[data-csend]');
+  if(send){const no=send.dataset.csend,text=(DRAFT[no]||'').trim();
+    if(!text){const ta=document.getElementById('cmt-'+no);if(ta)ta.focus();return;}
+    if(!CREF){setState('저장 안 됨 · 인터넷 연결을 확인해 주세요',true);return;}
+    send.disabled=true;setState('저장 중…');
+    CREF.add({no:String(no),text,name:(NAME||'').trim()||'익명',at:new Date().toISOString(),createdAt:firebase.firestore.FieldValue.serverTimestamp()})
+      .then(()=>{DRAFT[no]='';setState('저장됨');draw();})
+      .catch(err=>{console.error('[코멘트] 저장 실패:',err);send.disabled=false;setState('코멘트를 저장하지 못했어요 · 다시 눌러 주세요',true);});
+    return;}
   const b=e.target.closest('button.ck');if(!b)return;
   const no=b.dataset.no,k=b.dataset.k,c0=chk(no),v=!c0[k];
   const next={buy:c0.buy,more:c0.more};next[k]=v;
@@ -276,6 +331,8 @@ try{
   firebase.initializeApp({apiKey:'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU',authDomain:'pour-app-new.firebaseapp.com',projectId:'pour-app-new',storageBucket:'pour-app-new.firebasestorage.app',messagingSenderId:'411031141847',appId:'1:411031141847:web:e658174fd4b9652cdadf92'});
   REF=firebase.firestore().collection('sourcing-os').doc('market-research-deco2');
   IDX=firebase.firestore().collection('pour-os').doc('research-index').collection('items').doc('market-research-deco2');
+  CREF=REF.collection('comments');
+  CREF.onSnapshot(q=>{CM=q.docs.map(d=>({id:d.id,...d.data()}));console.log(`[코멘트] ${CM.length}건`);draw();},err=>{console.error('[코멘트] 불러오기 실패:',err);setState('코멘트를 불러오지 못했어요 · 새로고침해 주세요',true);});
   setState('불러오는 중…');
   REF.onSnapshot(d=>{const c=(d.exists&&d.data().checks)||{};CK={};Object.keys(c).forEach(n=>CK[n]={buy:!!c[n].buy,more:!!c[n].more});draw();setState('실시간 저장 중');if(!d.metadata||!d.metadata.hasPendingWrites)publish();},()=>setState('불러오지 못했어요 · 새로고침해 주세요',true));
 }catch(e){setState('저장 안 됨 · 인터넷 연결을 확인해 주세요',true);}

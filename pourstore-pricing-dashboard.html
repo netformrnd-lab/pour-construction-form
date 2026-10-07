@@ -9043,7 +9043,7 @@ document.addEventListener('change',e=>{
    · 새로 등록: products-added 에 GROHOME 브랜드 제품으로 추가 (정가=그로홈 기준가격)
    · 기존 제품에 연결: 같은 제품이 이미 있으면 브랜드만 GROHOME 을 덧붙인다 (값은 그대로)
    · 연결 기록(PGHLINK)으로 다시 가져와도 중복 등록되지 않는다. */
-const GH_FB_CONFIG={
+const GH_FB_CONFIG={   // 옛 그로홈 프로젝트(2026-10-07 이사 전 원본 · 읽기 전용 보관) — 지금은 연결하지 않음
   apiKey:"AIzaSyBp6S2Fln8cCXBHKpREfguRfLkL2oEYZ3k",
   authDomain:"grohome-dashboard.firebaseapp.com",
   projectId:"grohome-dashboard",
@@ -9052,10 +9052,12 @@ const GH_FB_CONFIG={
   appId:"1:395180350177:web:95e279fc5f21c371cf75a0"
 };
 let _ghDb=null, GH_ROWS=[], GH_LABEL2KEY={}, GH_LINKED_ALL={};
+/* 그로홈 데이터 — 2026-10-07 grohome-dashboard 프로젝트(무료 요금제 하루 읽기 한도)에서 이 프로젝트(pour-app-new)의 pour-os/grohome 으로 이사.
+   ghDB() 는 '그로홈 루트 문서'를 돌려준다 → ghDB().collection('products') = pour-os/grohome/products (기존 호출 그대로 · .collection() 만 씀)
+   위 GH_FB_CONFIG(옛 grohome-dashboard)는 더 이상 연결하지 않는다 — 원본은 지우지 않고 남겨 둠 */
 function ghDB(){
   if(_ghDb) return _ghDb;
-  const app=(firebase.apps||[]).find(a=>a.name==='grohome') || firebase.initializeApp(GH_FB_CONFIG,'grohome');
-  _ghDb=app.firestore();
+  _ghDb=db.collection('pour-os').doc('grohome');
   return _ghDb;
 }
 const ghNorm=s=>String(s||'').toLowerCase().replace(/[\s\-_/()\[\]·.,]+/g,'');
@@ -9291,8 +9293,8 @@ const slDay=d=>{ const z=new Date(d.getTime()-d.getTimezoneOffset()*60000); retu
 /* '오늘의 집'처럼 띄어 쓴 이름도 같은 채널로 모은다 */
 function slChan(raw){ const r=String(raw||'').trim(); const m=SL_CH[r]||SL_CH[r.replace(/\s+/g,'')]; return m?{ch:m[0],grp:m[1],known:true}:{ch:r||'(채널 없음)',grp:'etcon',known:false}; }
 /* 그로홈 판매 기록 읽기
-   · 그로홈 DB(grohome-dashboard, 무료 요금제)는 하루 읽기 한도(5만 건)를 넘으면 429 Quota exceeded 로 막힌다.
-     이때 기본 get() 은 오류 대신 '빈 결과(캐시)'를 돌려줘 판매가 전부 0으로 보였다(2026-10-07) → 서버에서만 읽어 실패를 실패로 받는다.
+   · 옛 그로홈 DB(grohome-dashboard, 무료 요금제)가 하루 읽기 한도로 막혀(429) 기본 get() 이 오류 대신 '빈 결과(캐시)'를 돌려줘
+     판매가 전부 0으로 보였다(2026-10-07) → 그 뒤 데이터를 pour-app-new 로 이사했고, 여기서는 서버에서만 읽어 실패를 실패로 받는다.
    · 실패하면 커머스본부 DB 의 사본(그로홈 대시보드가 같은 기록을 복사해 둔 salesRecords)에서 최근 180일만 대신 읽는다
      (date 한 칸 조건만 → 복합 색인 불필요 · 매출 화면은 '최근 180일만'이라고 알리고, 업무OS 월 합계는 이때 덮어쓰지 않는다) */
 const SL_GH_FALLBACK_DAYS=180;
@@ -9404,8 +9406,8 @@ function renderSales(){
   const M=SL.meta, today=slDay(new Date());
   // 안내: 두 데이터의 마감일 차이
   const notes=[];
-  if(SL.gh&&SL.gh.src==='central') notes.push(`⚠️ <b>그로홈 DB가 오늘 무료 사용량(하루 읽기 5만 건)을 다 써서</b> 커머스본부 사본으로 보여 줍니다. 그로홈 매출은 <b>${esc(SL.gh.from)} 이후만</b> 들어 있고, 최근 기록이 조금 늦을 수 있어요. 한국시간 오후 4시쯤(겨울엔 5시) 풀리면 ↻ 다시 불러오세요.`);
-  if(SL.gh&&SL.gh.src==='none') notes.push(`⛔ <b>그로홈 매출을 불러오지 못했습니다</b> (${esc(SL.gh.err)}) — 그로홈 DB 하루 무료 사용량 초과일 가능성이 큽니다. 아래 그로홈 숫자는 0이 아니라 <b>모름</b>이에요. 한국시간 오후 4시쯤(겨울엔 5시) 다시 불러오세요.`);
+  if(SL.gh&&SL.gh.src==='central') notes.push(`⚠️ <b>그로홈 판매 기록을 읽지 못해</b>(${esc(SL.gh.err)}) 커머스본부 사본으로 보여 줍니다. 그로홈 매출은 <b>${esc(SL.gh.from)} 이후만</b> 들어 있고, 최근 기록이 조금 늦을 수 있어요. 잠시 뒤 ↻ 다시 불러오세요.`);
+  if(SL.gh&&SL.gh.src==='none') notes.push(`⛔ <b>그로홈 매출을 불러오지 못했습니다</b> (${esc(SL.gh.err)}). 아래 그로홈 숫자는 0이 아니라 <b>모름</b>이에요. 잠시 뒤 ↻ 다시 불러오세요.`);
   if(to>=today || (M.gMax && to>M.gMax)) notes.push(`<b>그로홈</b>은 판매채널 엑셀을 다음 날 입력해서 <b>${esc(M.gMax||'—')}</b>까지 들어와 있습니다. 그 뒤 날짜는 그로홈 매출이 아직 비어 있을 수 있어요 (POUR스토어는 <b>${esc(M.pMax||'—')}</b>까지).`);
   const unk=Object.entries(M.unknownCh||{}); if(unk.length) notes.push(`분류 규칙에 없는 채널명 ${unk.map(([c,n])=>`<b>${esc(c)}</b>(${n}건)`).join(', ')} — 기타 온라인으로 넣었습니다.`);
   $('#slNotice').innerHTML=notes.length?`<div class="sl-note">${notes.join('<br>')}</div>`:'';
@@ -11478,7 +11480,7 @@ function exParseText(text){
   return {lots:[...m.values()], skipped};
 }
 /* 그로홈 제품 목록(로트 상품코드 → 그로홈 제품 연결용)
-   · 그로홈 DB가 하루 읽기 한도로 막히면 빈 목록이 와서 판매량을 색상별로 나눌 수 없다
+   · 그로홈 데이터를 못 읽으면(연결 오류 등) 빈 목록이 와서 판매량을 색상별로 나눌 수 없다
      → 마지막으로 서버에서 제대로 읽은 목록을 이 기기에 보관(연결에 필요한 칸만)했다가 대신 쓴다. 제품 목록은 자주 바뀌지 않는다. */
 const EX_GHP_LS='pour-gh-products-cache';
 function exGhProductsGet(){ return ghDB().collection('products').get().catch(e=>{ console.error('[grohome products] 읽기 실패', e.code||e); return null; }); }
@@ -11493,7 +11495,7 @@ function exGhProducts(gSnap){
   if(list.length) return list;   // 서버엔 못 갔어도 이번 화면에서 이미 받아 둔 목록(캐시)
   try{ const c=JSON.parse(localStorage.getItem(EX_GHP_LS)||'null');
     if(c&&Array.isArray(c.list)&&c.list.length){ EX.ghStale=c.at||''; console.warn(`[grohome products] 서버에서 못 읽어 이 기기 보관본(${c.at}) ${c.list.length}건으로 대신`); return c.list; } }catch(e){ console.warn('[grohome products] 보관본 읽기 실패', e); }
-  console.error('[grohome products] 0건 — 그로홈 DB 하루 사용량 초과 또는 권한 확인'); return [];
+  console.error('[grohome products] 0건 — pour-os/grohome/products 연결·권한 확인'); return [];
 }
 /* 재고(로트)·그로홈 제품만 — 단종예정 자동 확인은 매출까지 부르지 않는다 */
 let _exLotsAt=0;
@@ -11706,8 +11708,8 @@ async function renderExpiry(){
       <div class="ro-setf">${roInp('roLead',EX.lead,'주문 → 입고까지','일')}${roInp('roSafe',EX.safe,'안전 여유','일')}${roInp('roCover',EX.cover,'한 번에 몇 일치 주문','일')}</div>
       <p class="footnote" style="margin:6px 0 0">· 남은 재고가 <b>(입고까지 + 안전 여유)일치</b> 아래로 내려가면 '지금 주문'이에요. 판매량은 최근 ${EX.win}일 평균(위 판매속도 기준에서 변경).<br>· 3PL 창고 재고만 계산해요(쿠팡 그로스 창고 재고·판매는 아직 미포함). 바꾼 기준은 이 기기에 저장돼요.</p></details>
   </div>`;
-  const ghWarn=SL.gh&&SL.gh.src==='central'?`<div class="ex-note" style="background:#FFFBEB;border-color:#FCD34D;color:#92400E">⚠️ <b>그로홈 DB가 오늘 무료 사용량을 다 써서</b> 커머스본부 사본(같은 판매 기록)으로 계산했어요. 최근 하루이틀 기록이 늦을 수 있어요.</div>`
-    :(SL.gh&&SL.gh.src==='none')||!(EX.gh&&EX.gh.length)?`<div class="ex-note" style="background:#FEF2F2;border-color:#FCA5A5;color:#991B1B">⛔ <b>${SL.gh&&SL.gh.src==='none'?'그로홈 판매 기록을':'그로홈 제품 목록을'} 불러오지 못했어요</b>${SL.gh&&SL.gh.err?` (${esc(SL.gh.err)})`:''} — 그로홈 DB 하루 무료 사용량 초과일 가능성이 커요. 그로홈 상품의 판매량은 <b>0이 아니라 '모름'</b>으로 두었어요. 한국시간 오후 4시쯤(겨울엔 5시) 풀리면 ↻ 새로고침.</div>`:'';
+  const ghWarn=SL.gh&&SL.gh.src==='central'?`<div class="ex-note" style="background:#FFFBEB;border-color:#FCD34D;color:#92400E">⚠️ <b>그로홈 판매 기록을 읽지 못해</b> 커머스본부 사본(같은 판매 기록)으로 계산했어요. 최근 하루이틀 기록이 늦을 수 있어요. 잠시 뒤 ↻ 새로고침.</div>`
+    :(SL.gh&&SL.gh.src==='none')||!(EX.gh&&EX.gh.length)?`<div class="ex-note" style="background:#FEF2F2;border-color:#FCA5A5;color:#991B1B">⛔ <b>${SL.gh&&SL.gh.src==='none'?'그로홈 판매 기록을':'그로홈 제품 목록을'} 불러오지 못했어요</b>${SL.gh&&SL.gh.err?` (${esc(SL.gh.err)})`:''}. 그로홈 상품의 판매량은 <b>0이 아니라 '모름'</b>으로 두었어요. 잠시 뒤 ↻ 새로고침.</div>`:'';
   const modeTabs=`<div class="ro-tabs"><button type="button" data-exmode="ro" class="${EX.mode==='ro'?'on':''}">📦 재고 충전${roNow.length?` <em>${roNow.length}</em>`:''}</button><button type="button" data-exmode="exp" class="${EX.mode==='exp'?'on':''}">⏰ 유통기한 소진${risk.length?` <em>${risk.length}</em>`:''}</button></div>`;
   { const sh=$('#sh-expiry'); if(sh){ sh.classList.toggle('ro-mode',EX.mode==='ro'); const t=sh.querySelector('.toolrow .ttl'); if(t) t.textContent=EX.mode==='ro'?'재고 충전':'유통기한·소진'; } }
   const chip=(k,lb)=>`<button type="button" data-exbk="${k}" class="${EX.bk===k?'on':''}">${lb}</button>`;
@@ -11913,7 +11915,7 @@ function exLinkList(){
   $('#exBuffer').addEventListener('change',e=>{ EX.buffer=Math.max(0,+e.target.value||0); saveOpts(); renderExpiry(); });
   $('#exWin').addEventListener('change',e=>{ EX.win=+e.target.value||90; saveOpts(); renderExpiry(); });
   $('#exReload').addEventListener('click',async()=>{ EX.lots=null; EX.err='';
-    /* 재고는 매번 다시 읽고, 판매 기록(그로홈 약 6천 건 = 하루 무료 한도 5만 건의 1할)은 30분 지났거나 지난번에 제대로 못 읽었을 때만 다시 읽는다 */
+    /* 재고는 매번 다시 읽고, 판매 기록(그로홈 약 6천 건 — 읽은 만큼 비용)은 30분 지났거나 지난번에 제대로 못 읽었을 때만 다시 읽는다 */
     const age=SL.meta&&SL.meta.at?Date.now()-new Date(SL.meta.at).getTime():Infinity;
     if(age>30*60000 || !SL.gh || SL.gh.src!=='grohome') SL.loaded=false; else uiToast('재고를 다시 불러왔어요 (판매 기록은 30분 안에 불러온 것을 그대로 씀)','ok');
     await renderExpiry(); });

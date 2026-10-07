@@ -11,7 +11,9 @@ import {
   scopeFields, brandLabel, cycleFields, FX_WD, isRemoved, fxRemoveFields, fxRestoreFields, canRemoveFx, canRemoveAk, canRenameFx, canRenameTask, canRemoveNote, canRestoreNote, scopeOf,
   canFinish, canRemoveTask, canRestoreTask, taskKids, taskRemoveFields, canRemoveProj, canRestoreProj, projRemoveFields, projTaskRemoveFields, projTaskBack,
   roadOf, catRoad, builtinRoad, cleanRoad, sameRoad, roadToStore, roadProblem, roadSwitchPlan, phaseOfTask, stageName, noStageL, canSetPhase, canEditRoad, isFlowProj, isLaunchProj, catName, projCat, roadOwn,
+  canSetEst, EST_MAX,
 } from "./model.js";
+import { canEditTpl, canSaveTpl, TPL_MAX, TPL_NAME_MAX } from "./tpl.js";
 import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS } from "./launch.js";
 import { nextTurnText } from "./turn.js";
 import { planLaunchSync, planLaunchTrash, planRowSync, planCustomSteps } from "./lbsync.js";
@@ -42,7 +44,7 @@ export const liveNotes = (arr, D) => { const live = new Set(((D && D.notes) || [
 // ───────────────── 데이터 구독 ─────────────────
 // on: 사람 목록만(로그인 화면) · full: 로그인 뒤 나머지 전부 (로그인 전엔 업무·기록을 읽지 않음 — 정밀 검토 2026-10-06 · 읽기 비용)
 export function useData(on, full = true) {
-  const [S, setS] = useState({ users: null, projects: null, openT: null, doneT: [], notes: [], log: [], events: [], brands: [], workflows: [], mainKPIs: [], subKPIs: [], settings: [], akDef: undefined, akV1: undefined, akV2: [], links: [], lagDef: undefined, lagV2: [], kpisales: undefined, kpiOv: [] });
+  const [S, setS] = useState({ users: null, projects: null, openT: null, doneT: [], notes: [], log: [], events: [], brands: [], workflows: [], mainKPIs: [], subKPIs: [], settings: [], akDef: undefined, akV1: undefined, akV2: [], links: [], lagDef: undefined, lagV2: [], kpisales: undefined, kpiOv: [], templates: undefined });
   // 이번 분기 — 켜 둔 채 날이 바뀌어도 따라감(1분마다 · 화면 다시 볼 때)
   const [akQ, setAkQ] = useState(() => akQidOfWeek(akWeekKey(new Date())));
   const [dayK, setDayK] = useState(() => ymd(new Date()));   // 오늘 (하루 기록 구독 · 날이 바뀌면 따라감)
@@ -84,6 +86,8 @@ export function useData(on, full = true) {
       fb.listen("lagvals", null, put("lagV2"), (e) => console.warn("[v2] 결과 KPI 월 값 못 읽음:", e)),
       fb.listen("kpisales", null, put("kpisales"), (e) => console.warn("[v2] 매출 합계 못 읽음:", e)),
       fb.listen("kpidefs", null, put("kpiOv"), (e) => console.warn("[v2] KPI 고친 것 못 읽음:", e)),   // KPI 고치기(v2 덧칠) — 버전1 정의 위에 덮어 보임
+      // 견본(템플릿 · 2026-10-07): 문서 하나에 업무 목록을 담아 따로 둠 → 업무·프로젝트 목록에 안 섞임(오늘·달력·KPI·한눈에·협업 맵·보고서·찾기에 안 나옴) — 못 읽어도 앱은 그대로
+      fb.listen("templates", null, put("templates"), (e) => { console.warn("[v2] 견본 못 읽음:", e); setS((s) => ({ ...s, templates: [] })); }),
     ];
     return () => subs.forEach((u) => u && u());
   }, [on, full]);
@@ -112,7 +116,11 @@ export function useData(on, full = true) {
       tasks: allT.filter((t) => !isRemoved(t) && !inGone(t)), removedFx: allT.filter((t) => t.isFixed && isRemoved(t)), removedTasks: allT.filter((t) => !t.isFixed && isRemoved(t) && !goneT.has(t.id)), removedProjTasks: allT.filter((t) => goneT.has(t.id)), notes, removedNotes, removedNoteIds: new Set(removedNotes.map((n) => n.id)), log: logs, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], settings: S.settings || [], ak, links: S.links || [], linkInbox,
       kpi: { ov: S.kpiOv || [], lagRaw: ((S.lagDef || {}).items || []).filter((x) => x && x.id && !x.deleted),
         lagDefs: applyKpiOv({ lagKPIs: ((S.lagDef || {}).items || []).filter((x) => x && x.id && !x.deleted) }, S.kpiOv).lagKPIs.filter((x) => !x._hidden), lagReady: S.lagDef !== undefined, lagV2: Object.fromEntries((S.lagV2 || []).map((x) => [x.id || x._doc, x])), sales: Object.fromEntries((S.kpisales || []).map((x) => [x.id || x._doc, x])) },
-      lagInbox, ready: !!S.users, recs: { key: dayK, today: S.recToday || [], ready: S.recToday !== undefined, open: S.akOpen || [] },
+      lagInbox, ready: !!S.users,
+      // 견본함(templates · 2026-10-07): 살아 있는 것 = 최근 고친 순 · 없앤 것(removed) = 휴지통 줄에만
+      templates: (S.templates || []).filter((x) => x && !isRemoved(x)).sort((a, b) => String(b.updatedAt || b.createdAt || "").localeCompare(String(a.updatedAt || a.createdAt || ""))),
+      removedTemplates: (S.templates || []).filter((x) => x && isRemoved(x)), tplReady: S.templates !== undefined,
+      recs: { key: dayK, today: S.recToday || [], ready: S.recToday !== undefined, open: S.akOpen || [] },
       // 업무·프로젝트 첫 목록까지 받은 뒤 (그 전엔 '급한 일 없어요'·자동 반영이 빈 목록으로 돌지 않게 — 정밀 검토 2026-10-06)
       loaded: !!S.users && S.openT !== null && S.projects !== null, salesReady: S.kpisales !== undefined };
   }, [S, akQ, dayK]);
@@ -1033,6 +1041,131 @@ export function useActs(D, cu, setToast, idx = null) {
         setToast({ text: k || isLaunchProj(p) ? `'${nm(k || "")}' 단계로 옮겼어요` : `'${noStageL(p)}'으로 옮겼어요`, undo: () => undoT(t, { phase: next }, { phase: cur }, label) });
         return true; }
       catch (e) { fail("단계")(e); return false; } },
+    // ── 예상 소요일 (사용자 확정 2026-10-07 ①) — 기한·앞 일을 정할 수 있는 사람(model.canSetEst) · 서버 값이 화면에서 본 값일 때만 · 기록 '예상 소요 a → b일' · 5초 되돌리기
+    //   n = 1~365 평일 수 · null = 비움(미정) · 다시 가져오기가 덮지 않음(V2_TASK_ONLY estDays·estBy·estAt)
+    setEst: async (t, n) => {
+      const p = (D.projects || []).find((x) => x.id === t.projectId);
+      if (!canSetEst(t, p, cu)) { setToast({ text: "담당·맡긴 사람·책임자·관리자만 정할 수 있어요" }); return false; }
+      const v = n == null ? null : n; if (v != null && !(Number.isInteger(v) && v >= 1 && v <= EST_MAX)) { setToast({ text: `1~${EST_MAX} 사이 평일 수로 넣어 주세요` }); return false; }
+      const cur = t.estDays == null ? null : t.estDays; if (cur === v) return true;
+      const at = nowIso(), L = (x) => (x ? `${x}일` : "미정"), label = `${t.title} · 예상 소요 ${L(cur)} → ${L(v)}`;
+      try { const r = await fb.patchIf("tasks", tdoc(t), { estDays: cur }, { estDays: v, estBy: cu.id, estAt: at, updatedAt: at, updatedBy: cu.id, v2At: at });
+        if (!r.ok) { setToast({ text: "그사이 다른 사람이 예상 소요일을 바꿨어요 · 지금 값을 확인해 주세요" }); return false; }
+        log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label, prev: { estDays: cur }, next: { estDays: v } });
+        setToast({ text: v ? `예상 소요 ${v}일로 정했어요` : "예상 소요일을 비웠어요 (미정)", undo: () => undoT(t, { estDays: v }, { estDays: cur }, label) });
+        return true; }
+      catch (e) { fail("예상 소요")(e); return false; } },
+    // ── 견본(템플릿 · 사용자 확정 2026-10-07 ②) — pour-os/v2/templates/{id} 문서 하나 · 고치기·없애기 = 만든 사람·관리자(tpl.canEditTpl) · 저장 = 책임자·관리자
+    //   모두 조건부(transaction · 서버 지금 값이 화면에서 본 값일 때만) · 기록(col templates) · 5초 되돌리기 · 지우는 길 없음(업무 빼기 = out 표시 · 견본 없애기 = removed 휴지통)
+    tplSave: async (p, doc) => {
+      if (!canSaveTpl(p, cu)) { setToast({ text: "책임자·관리자만 견본으로 저장할 수 있어요" }); return null; }
+      if (!doc || !(doc.tasks || []).length) { setToast({ text: "견본에 넣을 업무가 없어요" }); return null; }
+      const id = newId("tp"), at = nowIso(), d = { ...doc, id, createdBy: cu.id, createdByName: cu.name || "", createdAt: at, updatedAt: at, updatedBy: cu.id, v2At: at, removed: null };
+      let r; try { r = await fb.txDoc("templates", id, (c) => (c ? { ret: false } : { write: d, ret: true })); } catch (e) { fail("견본")(e); return null; }
+      if (!r) { setToast({ text: "같은 번호가 있어서 저장하지 않았어요 · 다시 눌러 주세요" }); return null; }
+      log("add", { col: "templates", targetId: id, label: `견본 저장 · ${d.title} · 업무 ${d.tasks.length}개 (${p.title}에서 · 원래 프로젝트는 그대로)`, srcProjectId: p.id });
+      setToast({ text: `견본으로 저장했어요 · 업무 ${d.tasks.length}개 · 견본함에서 모두 볼 수 있어요`, undo: () => A.tplRemove(d, { undo: true }) });
+      return d; },
+    tplRename: async (tpl, name, base, noUndo) => { const v = String(name || "").trim().slice(0, TPL_NAME_MAX); if (!v || v === String(base || "").trim()) return { error: true };
+      if (!canEditTpl(tpl, cu)) { setToast({ text: "만든 사람·관리자만 고칠 수 있어요" }); return { error: true }; }
+      try { const r = await fb.txDoc("templates", tpl.id, (c) => { if (!c || isRemoved(c)) return { ret: { error: true } }; if ((c.title || "") !== (base || "")) return { ret: { conflict: true, cur: c.title || "" } };
+          const at = nowIso(); return { write: { title: v, updatedAt: at, updatedBy: cu.id, v2At: at }, ret: { ok: true } }; });
+        if (r && r.conflict) setToast({ text: `그사이 다른 사람이 이름을 바꿨어요 · 지금 이름: ${r.cur}` });
+        if (r && r.ok) { log("edit", { col: "templates", targetId: tpl.id, label: `견본 이름 ${base} → ${v}`, prev: { title: base }, next: { title: v } });
+          if (!noUndo) setToast({ text: "견본 이름을 고쳤어요", undo: async () => { const b = await A.tplRename(tpl, base, v, true); if (b && b.ok) setToast({ text: "되돌렸어요" }); } }); }
+        return r; }
+      catch (e) { fail("견본 이름")(e); return { error: true }; } },
+    // 견본 안 업무 하나 고치기 — f = {title?, estDays?} · base = 화면에서 본 값 (그 칸이 서버에서 그대로일 때만)
+    tplItem: async (tpl, key, f0, base, noUndo) => {
+      if (!canEditTpl(tpl, cu)) { setToast({ text: "만든 사람·관리자만 고칠 수 있어요" }); return { error: true }; }
+      const f = {}; if (f0.title !== undefined) { const v = String(f0.title || "").trim().slice(0, 200); if (!v) return { error: true }; f.title = v; }
+      if (f0.estDays !== undefined) { const n = f0.estDays == null ? null : f0.estDays; if (n != null && !(Number.isInteger(n) && n >= 1 && n <= EST_MAX)) { setToast({ text: `1~${EST_MAX} 사이 평일 수로 넣어 주세요` }); return { error: true }; } f.estDays = n; }
+      const ks = Object.keys(f); if (!ks.length) return { error: true };
+      try { const r = await fb.txDoc("templates", tpl.id, (c) => { if (!c || isRemoved(c)) return { ret: { error: true } }; const a = (c.tasks || []).slice(), i = a.findIndex((x) => x && x.key === key);
+          if (i < 0 || a[i].out) return { ret: { error: true } };
+          if (ks.some((k) => !fb.sameVal(a[i][k] ?? null, base[k] ?? null))) return { ret: { conflict: true } };
+          if (ks.every((k) => fb.sameVal(a[i][k] ?? null, f[k] ?? null))) return { ret: { ok: true, same: true } };
+          a[i] = { ...a[i], ...f }; const at = nowIso(); return { write: { tasks: a, updatedAt: at, updatedBy: cu.id, v2At: at }, ret: { ok: true } }; });
+        if (r && r.conflict) setToast({ text: "그사이 다른 사람이 이 업무를 바꿨어요 · 지금 값을 확인해 주세요" });
+        if (r && r.ok && !r.same) { const L = (x) => (x ? `${x}일` : "미정"), prev = Object.fromEntries(ks.map((k) => [k, base[k] ?? null]));
+          const label = `견본 ${tpl.title} · ${base.title || key}${"title" in f ? ` · 이름 → ${f.title}` : ""}${"estDays" in f ? ` · 예상 소요 ${L(base.estDays)} → ${L(f.estDays)}` : ""}`;
+          log("edit", { col: "templates", targetId: tpl.id, label, prev, next: f, key });
+          if (!noUndo) setToast({ text: "견본을 고쳤어요", undo: async () => { const b = await A.tplItem(tpl, key, prev, { ...base, ...f }, true); if (b && b.ok) setToast({ text: "되돌렸어요" }); } }); }
+        return r; }
+      catch (e) { fail("견본")(e); return { error: true }; } },
+    // 견본에 업무 더하기 — it = {title, phase, estDays, parentKey} · 되돌리기 = 빼기(out)
+    tplAdd: async (tpl, it) => {
+      if (!canEditTpl(tpl, cu)) { setToast({ text: "만든 사람·관리자만 고칠 수 있어요" }); return null; }
+      const v = String((it && it.title) || "").trim().slice(0, 200); if (!v) return null;
+      const n0 = it.estDays == null ? null : it.estDays; if (n0 != null && !(Number.isInteger(n0) && n0 >= 1 && n0 <= EST_MAX)) { setToast({ text: `1~${EST_MAX} 사이 평일 수로 넣어 주세요` }); return null; }
+      const at = nowIso();
+      try { const r = await fb.txDoc("templates", tpl.id, (c) => { if (!c || isRemoved(c)) return { ret: { error: true } }; const a = c.tasks || [];
+          if (a.filter((x) => x && !x.out).length >= TPL_MAX) return { ret: { full: true } };
+          const has = new Set(a.map((x) => x && x.key)); let n = a.length + 1; while (has.has("k" + n)) n++; const key = "k" + n;
+          const x = { key, title: v, parentKey: it.parentKey || null, afterKeys: [], phase: it.parentKey ? "" : it.phase || "", estDays: n0, added: { at, by: cu.id, byName: cu.name || "" } };
+          return { write: { tasks: [...a, x], updatedAt: at, updatedBy: cu.id, v2At: at }, ret: { ok: true, key } }; });
+        if (r && r.full) { setToast({ text: `견본 업무는 ${TPL_MAX}개까지예요` }); return null; }
+        if (!r || !r.ok) { setToast({ text: "이 견본을 찾지 못했어요" }); return null; }
+        log("edit", { col: "templates", targetId: tpl.id, label: `견본 ${tpl.title} · 업무 더함 · ${v}${n0 ? ` (${n0}일)` : ""}`, key: r.key });
+        setToast({ text: `더했어요 · ${v}`, undo: () => A.tplOut(tpl, r.key, true, true) });
+        return r.key; }
+      catch (e) { fail("견본")(e); return null; } },
+    // 견본 업무 빼기(on) · 되돌리기(off) — 지우지 않고 out 표시(하위 업무도 같이 · 같은 표시끼리 같이 돌아옴)
+    tplOut: async (tpl, key, on, noUndo) => {
+      if (!canEditTpl(tpl, cu)) { setToast({ text: "만든 사람·관리자만 고칠 수 있어요" }); return false; }
+      const at = nowIso(), mark = { at, by: cu.id, byName: cu.name || "", root: key };
+      let r; try { r = await fb.txDoc("templates", tpl.id, (c) => { if (!c || isRemoved(c)) return { ret: { error: true } }; const a = c.tasks || [], it = a.find((x) => x && x.key === key); if (!it) return { ret: { error: true } };
+          const stamp = { updatedAt: at, updatedBy: cu.id, v2At: at };
+          if (on) { if (it.out) return { ret: { already: true } }; const sub = new Set([key]);
+            for (let g = true, i = 0; g && i < 50; i++) { g = false; a.forEach((x) => { if (x && !x.out && x.parentKey && sub.has(x.parentKey) && !sub.has(x.key)) { sub.add(x.key); g = true; } }); }
+            return { write: { tasks: a.map((x) => (x && sub.has(x.key) && !x.out ? { ...x, out: mark } : x)), ...stamp }, ret: { ok: true, n: sub.size, title: it.title } }; }
+          const m = it.out; if (!m) return { ret: { already: true } };
+          const back = a.filter((x) => x && x.out && x.out.root === m.root && x.out.at === m.at).length;
+          return { write: { tasks: a.map((x) => (x && x.out && x.out.root === m.root && x.out.at === m.at ? { ...x, out: null } : x)), ...stamp }, ret: { ok: true, n: back, title: it.title } }; }); }
+      catch (e) { fail("견본")(e); return false; }
+      if (!r || r.error) { setToast({ text: "이 업무를 찾지 못했어요" }); return false; }
+      if (r.already) { setToast({ text: on ? "이미 뺀 업무예요" : "그사이 다른 사람이 바꿔서 그대로 뒀어요" }); return false; }
+      log("edit", { col: "templates", targetId: tpl.id, label: `견본 ${tpl.title} · ${on ? "업무 뺌" : "업무 되돌림"} · ${r.title}${r.n > 1 ? ` (하위 ${r.n - 1}개 같이)` : ""}`, key });
+      if (!noUndo && on) setToast({ text: `뺐어요 · ${r.title}${r.n > 1 ? ` · 하위 ${r.n - 1}개 같이` : ""}`, undo: () => A.tplOut(tpl, key, false, true) });
+      else setToast({ text: on ? `뺐어요 · ${r.title}` : "되돌렸어요" });
+      return true; },
+    tplRemove: async (tpl, opt) => { const undo = !!(opt && opt.undo);
+      if (!canEditTpl(tpl, cu)) { setToast({ text: "만든 사람·관리자만 없앨 수 있어요" }); return false; }
+      const at = nowIso(), rm = { at, by: cu.id, byName: cu.name || "", ...(undo ? { reason: "저장 되돌림" } : {}) };
+      let r; try { r = await fb.txDoc("templates", tpl.id, (c) => (!c ? { ret: "missing" } : isRemoved(c) ? { ret: "already" } : { write: { removed: rm, updatedAt: at, updatedBy: cu.id, v2At: at }, ret: "ok" })); }
+      catch (e) { fail("견본 없애기")(e); return false; }
+      if (r !== "ok") { setToast({ text: r === "already" ? "이미 없앤 견본이에요" : "이 견본을 찾지 못했어요" }); return false; }
+      log("remove", { col: "templates", targetId: tpl.id, label: `견본 ${tpl.title} · ${undo ? "저장 되돌림 (휴지통)" : "없앰 (휴지통 · 이 견본으로 만든 프로젝트는 그대로)"}`, prev: { removed: null }, next: { removed: rm } });
+      setToast(undo ? { text: "되돌렸어요 · 견본은 휴지통(없앤 견본)에 있어요" } : { text: `없앴어요 · ${tpl.title}`, undo: () => A.tplRestore({ ...tpl, removed: rm }, true) });
+      return true; },
+    tplRestore: async (tpl, viaUndo) => { const rm = tpl && tpl.removed; if (!rm || !canEditTpl(tpl, cu)) return false;
+      const at = nowIso(); let r;
+      try { r = await fb.txDoc("templates", tpl.id, (c) => (!c || !c.removed || !fb.sameVal(c.removed, rm) ? { ret: false } : { write: { removed: null, updatedAt: at, updatedBy: cu.id, v2At: at }, ret: true })); }
+      catch (e) { fail("되살리기")(e); return false; }
+      if (!r) { setToast({ text: "그사이 다른 사람이 바꿔서 그대로 뒀어요" }); return false; }
+      log("restore", { col: "templates", targetId: tpl.id, label: `견본 ${tpl.title} · 되살림${viaUndo ? " (되돌리기)" : ""}`, prev: { removed: rm }, next: { removed: null } });
+      setToast({ text: viaUndo ? "되돌렸어요" : `되살렸어요 · ${tpl.title}` });
+      return true; },
+    // 견본 → 새 프로젝트 (tpl.planFromTemplate) — 프로젝트 + 업무를 한 transaction(없던 번호일 때만 · addProject·createFlow 처럼 한 번에)
+    //   기록 1건 · 다른 사람 업무 = 맡김 묶음(bulkId) · 5초 되돌리기 = 만든 것을 그대로(아무도 안 고쳤을 때만) 프로젝트 휴지통으로(지우지 않음 · 되살리기 가능)
+    tplCreate: async (plan, tpl) => {
+      if (!plan || !plan.tasks.length) { setToast({ text: "견본에 업무가 없어요" }); return null; }
+      if (plan.tasks.length > 400) { setToast({ text: "한 번에 400개까지예요" }); return null; }
+      const p = plan.project, docs = [{ key: "projects", id: p.id }, ...plan.tasks.map((t) => ({ key: "tasks", id: t.id }))];
+      let r; try { r = await fb.txDocs(docs, (curs) => (curs.some(Boolean) ? { ret: false } : { writes: [p, ...plan.tasks], ret: true })); } catch (e) { fail("견본으로 만들기")(e); return null; }
+      if (!r) { setToast({ text: "같은 번호가 이미 있어서 만들지 않았어요 · 다시 눌러 주세요" }); return null; }
+      log("add", { col: "projects", targetId: p.id, projectId: p.id, label: `${p.title} · 견본 '${tpl.title}'으로 만듦 · 업무 ${plan.tasks.length}개${plan.end ? ` · 끝 예상 ${md(plan.end)}` : ""}`, fromTemplate: tpl.id, ids: plan.tasks.map((t) => t.id) });
+      setToast({ text: `만들었어요 · 업무 ${plan.tasks.length}개${plan.end ? ` · 끝 예상 ${md(plan.end)}` : ""}`, undo: () => A.tplCreateUndo(plan) });
+      return p; },
+    tplCreateUndo: async (plan) => { const p = plan.project, at = nowIso(), n = plan.tasks.length, why = "견본으로 만들기 되돌림";
+      const docs = [{ key: "projects", id: p.id }, ...plan.tasks.map((t) => ({ key: "tasks", id: t.id }))], stamp = { updatedAt: at, updatedBy: cu.id, v2At: at };
+      let r; try { r = await fb.txDocs(docs, (curs) => { if (curs.some((c) => !c || isRemoved(c) || (c.updatedAt || "") !== plan.at)) return { ret: false };
+          return { writes: [{ ...projRemoveFields(curs[0], cu, at, why, n), ...stamp }, ...curs.slice(1).map((c) => ({ ...projTaskRemoveFields(c, cu, at, why, p.id), ...stamp }))], ret: true }; }); }
+      catch (e) { fail("되돌리기")(e); return false; }
+      if (!r) { setToast({ text: "그사이 바뀐 것이 있어서 되돌리지 않았어요 · 필요하면 프로젝트 [없애기]로 빼 주세요" }); return false; }
+      log("remove", { col: "projects", targetId: p.id, projectId: p.id, label: `${p.title} · ${why} (휴지통 · 되살릴 수 있어요)`, prev: { removed: null }, ids: plan.tasks.map((t) => t.id) });
+      setToast({ text: "되돌렸어요 · 만든 프로젝트는 휴지통(없앤 프로젝트)에 있어요" });
+      return true; },
     taskRemove: async (t, reason) => { if (!canRemoveTask(t, cu)) { setToast({ text: "없앨 수 없는 업무예요" }); return false; }
       const at = nowIso(), kids = taskKids(t, D.tasks), seen = new Set([t.id, ...kids.map((x) => x.id)]);
       try { let q = [...seen];   // 불러오지 않은 하위 업무(오래전에 끝낸 것)도 서버에서 한 층씩
@@ -1201,11 +1334,11 @@ export const v2edited = (x) => !!(x && (x.v2At || (x.updatedBy && x.updatedBy !=
   || (Array.isArray(x.attachments) && x.attachments.some((a) => a && V2_FILE.test(String(a.path || ""))))));
 // 이미 있는 문서에 덮어쓸 때 빼는 칸 — v2 가 주인인 칸(PIN · 주 한도 · 고정업무 사람별 체크)
 //   고정업무 체크(doneDates·doneAtBy·subDone)는 버전1에도 같은 이름이 있어서 '고친 문서' 판단에는 못 쓰고, 대신 덮어쓰지 않음
-export const V2_TASK_ONLY = ["scope", "scopeBy", "scopeAt", "qty", "cycleOk", "cycleBy", "cycleAt", "madeIn", "removed", "phaseBy", "phaseAt"];   // phaseBy·phaseAt = 업무OS에서 정한 신제품 단계   // removed = [없애기](휴지통) — 다시 가져오기가 되살리지 않음
+export const V2_TASK_ONLY = ["scope", "scopeBy", "scopeAt", "qty", "cycleOk", "cycleBy", "cycleAt", "madeIn", "removed", "phaseBy", "phaseAt", "estDays", "estBy", "estAt", "fromTemplate", "tplKey"];   // estDays·estBy·estAt = 예상 소요일 · fromTemplate·tplKey = 견본으로 만든 업무 (2026-10-07)   // phaseBy·phaseAt = 업무OS에서 정한 신제품 단계   // removed = [없애기](휴지통) — 다시 가져오기가 되살리지 않음
 export function stripV2Only(key, data, cur) {
   if (!data) return data; const d = { ...data };
   if (key === "users") Object.keys(d).forEach((f) => { if (/^pin/.test(f) || f === "weekCap") delete d[f]; });
-  if (key === "projects") ["removed", "road", "roadBy", "roadAt"].forEach((f) => delete d[f]);   // road = 업무OS 프로젝트 단계(로드 · 2026-10-07)
+  if (key === "projects") ["removed", "road", "roadBy", "roadAt", "fromTemplate", "fromTemplateTitle"].forEach((f) => delete d[f]);   // fromTemplate = 견본으로 만든 프로젝트(2026-10-07)   // road = 업무OS 프로젝트 단계(로드 · 2026-10-07)
   if (key === "notes") delete d.removed;   // 댓글 삭제(2026-10-07) — 다시 가져오기가 되살리지 않음   // 프로젝트 없애기(휴지통) — 다시 가져오기가 되살리지 않음
   if (key === "tasks") { ["doneDates", "doneAtBy", "subDone"].forEach((f) => delete d[f]); if ((cur && cur.isFixed) || d.isFixed) ["doneAt", "doneByName"].forEach((f) => delete d[f]);
     // 반복 실행·고정업무 나누기(2단계) · 주기 확인 · 건수 칸(3단계 예약) — v2 에서만 정하는 칸 · 정한 브랜드·반복도 버전1 값으로 안 되돌림

@@ -7,6 +7,7 @@ import { PersonSheet, IssuesSheet, RiskSheet } from "./team.jsx";
 import { AddSheet, MineSheet, FocusTriage } from "./today.jsx";
 import { useTask } from "./task.jsx";
 import { LockSheet } from "./secretui.jsx";
+import { TplSaveSheet, TplBoxSheet, TplSheet, TplNewSheet } from "./tplui.jsx";
 import { Sheet, Empty } from "./ui.jsx";
 
 // extra: { [type]: (props, s) => element } — 관리자 앱 등에서 시트 종류를 덧붙일 때
@@ -32,6 +33,11 @@ function route(s, p, extra) {
   if (s.type === "doneProjects") return <DoneProjectsSheet {...p} />;
   if (s.type === "triage") return <FocusTriage {...p} st={s} />;
   if (s.type === "risk") return <RiskSheet {...p} />;
+  // 견본(템플릿 · 2026-10-07 ②): 견본함 · 견본 한 장 · 견본으로 저장 · 견본으로 새 프로젝트 (두 앱 같은 시트)
+  if (s.type === "templates") return <TplBoxSheet {...p} />;
+  if (s.type === "template") return <TplSheet {...p} id={s.id} />;
+  if (s.type === "tplSave") return <TplSaveSheet {...p} id={s.id} />;
+  if (s.type === "tplNew") return <TplNewSheet {...p} id={s.id} />;
   return null;
 }
 

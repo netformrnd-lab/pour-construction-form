@@ -24,6 +24,8 @@ import { useItemNotes, Thread } from "./task.jsx";
 import { liveNotes } from "./core.jsx";
 import { FileList } from "./files.jsx";
 import { MindMap } from "./mindmap.jsx";
+import { projEstimate, canSaveTpl } from "./tpl.js";
+import { TplPick } from "./tplui.jsx";
 import { ro } from "./pick.jsx";
 import { ProjEndAsk, ResumeAsk } from "./hold.jsx";
 
@@ -85,7 +87,9 @@ export function ProjectsTab({ D, cu, open, idx: idx0 }) {
       .sort((a, b) => String(a.end || "9").localeCompare(String(b.end || "9")));
   return <>
     <header style={{ padding: "14px 2px 6px", display: "flex", flexDirection: "column", gap: 10 }}>
-      <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.ink }}>프로젝트</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}><h1 style={{ flex: 1, minWidth: 0, margin: 0, fontSize: 22, fontWeight: 800, color: C.ink }}>프로젝트</h1>
+        {/* 견본함(2026-10-07 ②) — 모두 봄 · 견본으로 새 프로젝트 */}
+        <TBtn onClick={() => open({ type: "templates" })} aria-label={`견본함 ${(D.templates || []).length}개`}>견본 {(D.templates || []).length}</TBtn></div>
       <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="찾기 · 프로젝트·제품 이름, 책임자, 업무 제목" aria-label="프로젝트 찾기" style={inp} />
       {!hit && <Seg items={[["list", "목록"], ["gantt", "간트"], ["dash", "대시보드"]]} value={pv} onChange={setPv} />}
       {!hit && <Seg items={[["mine", `내 프로젝트 ${mineAll.length}`], ["all", `모든 프로젝트 ${openList.length}`]]} value={scope} onChange={setScope} />}
@@ -124,7 +128,8 @@ function WhoLoad({ D, byWho, now }) {
   return <>{Object.entries(byWho).sort((a, b) => b[1].length - a[1].length).map(([uid, a]) => { const w = workloadOf(D, uid, now);
     return <div key={uid} style={{ color: C.sub }}>{nameOf(D.users, uid) || "담당 없음"} · 새 {a.length}개 · 열린 {w.open}{w.late ? <b style={{ color: C.red }}> · 지난 일 {w.late}</b> : ""}</div>; })}</>;
 }
-const KINDS = [["normal", "빈 프로젝트", "이름만 적고 시작해요 · 카테고리 단계(예: 기획 → 준비 → 실행 → 점검)가 같이 깔려요"], ["launch", "신제품 출시", "출시일만 넣으면 항목 46개의 기한 · 담당 · 순서가 자동으로 들어가요"], ["flow", "흐름으로 만들기", "프로모션 8단계처럼 정해진 순서대로. 앞 단계가 끝나면 다음 담당 차례예요"]];
+const KINDS = [["normal", "빈 프로젝트", "이름만 적고 시작해요 · 카테고리 단계(예: 기획 → 준비 → 실행 → 점검)가 같이 깔려요"], ["launch", "신제품 출시", "출시일만 넣으면 항목 46개의 기한 · 담당 · 순서가 자동으로 들어가요"], ["flow", "흐름으로 만들기", "프로모션 8단계처럼 정해진 순서대로. 앞 단계가 끝나면 다음 담당 차례예요"],
+  ["tpl", "견본으로 만들기", "견본함의 업무 · 순서 · 단계 · 예상 소요일 그대로 · 시작일만 고르면 기한이 평일로 들어가요"]];
 
 // 새 프로젝트 — 첫 화면은 고르기 카드 3개 (빈 프로젝트 / 신제품 출시 / 흐름으로 만들기)
 export function NewProjectSheet({ D, cu, A, open, back, onBack, onClose, setToast, cat: cat0 }) {
@@ -159,8 +164,12 @@ export function NewProjectSheet({ D, cu, A, open, back, onBack, onClose, setToas
   if (!kind) return <Sheet title="새 프로젝트" onBack={onBack} onClose={onClose}>
     <div style={{ fontSize: 14, color: C.sub, margin: "14px 2px 10px" }}>어떻게 시작할까요?</div>
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{KINDS.map(([k, l, d]) => <button key={k} type="button" className="v2-pick" onClick={() => setKind(k)}>
-      <b>{l} ›</b><span>{k === "flow" ? `${d} · ${flows.length}가지` : d}</span></button>)}</div>
+      <b>{l} ›</b><span>{k === "flow" ? `${d} · ${flows.length}가지` : k === "tpl" ? `${d} · 견본 ${(D.templates || []).length}개` : d}</span></button>)}</div>
   </Sheet>;
+  if (kind === "tpl") return <Sheet title="새 프로젝트" onBack={onBack} onClose={onClose}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 2px 8px" }}><b style={{ flex: 1, fontSize: 15, color: C.ink }}>견본으로 만들기</b><TBtn onClick={() => setKind("")}>다른 방식</TBtn></div>
+    <div style={{ fontSize: 13.5, color: C.sub, margin: "0 2px 10px" }}>어떤 견본으로 만들까요? 고르면 시작일 · 책임자만 정하면 돼요.</div>
+    <TplPick D={D} open={open} /></Sheet>;
   return <Sheet title="새 프로젝트" onBack={onBack} onClose={onClose} foot={foot}>
     <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 2px 0" }}><b style={{ flex: 1, fontSize: 15, color: C.ink }}>{label}{flow && wf ? ` · ${wf.name} ${wf.stages.length}단계` : ""}</b>
       <TBtn onClick={() => (flow && wf ? setWfId("") : setKind(""))}>{flow && wf ? "다른 흐름" : "다른 방식"}</TBtn></div>
@@ -236,6 +245,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
   const goLaunch = () => { if (mvN >= 30) setLAsk({ d: ld, n: mvN }); else { A.setLaunchDate(p, ld); setLd(""); } };
   const live = D.tasks.filter((t) => t.projectId === p.id && !t.isFixed);
   const openT = live.filter((t) => !isDone(t));
+  const est = projEstimate(p, D, key);
   const myNew = openT.filter((t) => isMine(t, cu.id) && reqOf(t) && !t.ackAt && t.status === "todo");
   const nn = nowNext(p, D, idx, key);
   const hasNow = !!(p.now && p.now.text);
@@ -310,6 +320,10 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
     <div style={{ height: 6, background: "#E8EBF2", borderRadius: 3, margin: "10px 0 0", overflow: "hidden" }}><div style={{ width: pct + "%", height: "100%", background: C.navy }} /></div>
     {(() => { if (launch || !projOpen(p) || isHoldP(p) || !openT.length) return null; const f = projForecast(p, D.tasks, key);   // 지금 속도로 언제 끝날까 (중요도와 같이 관리자 '판단 필요'에 쓰임)
       return <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6, lineHeight: 1.6 }}>{f.eta ? <>지금 속도 주 {f.perWeek}건 · 남은 {f.left}건 → 예상 {md(f.eta)}{f.lateBy > 0 ? <b style={{ color: C.red }}> · 마감보다 {f.lateBy}일 늦음</b> : f.due ? " · 마감 안에 끝나요" : ""}</> : `최근 2주 끝낸 업무가 없어 끝나는 날을 잴 수 없어요 · 남은 ${f.left}건`}</div>; })()}
+    {/* 예상 소요(2026-10-07 ①): 앞 일 순서의 가장 긴 길 · 남은 업무만 다시 → 오늘 시작하면 끝 · 미정 수 · 마감(신제품은 출시일 · 출시 전 항목)보다 늦으면 빨강 · 소요일이 하나도 없으면 안 보임 */}
+    {est.has && <div className="v2-est" style={{ fontSize: 12.5, color: C.sub, marginTop: 6, lineHeight: 1.6 }}>
+      {[`예상 소요 ${est.total}일`, projOpen(p) ? (est.remain ? `남은 ${est.remain}일 → ${md(est.end)} 끝 예상` : est.missingLeft ? "" : "남은 일 없음") : "", projOpen(p) && est.missingLeft ? `미정 ${est.missingLeft}개` : ""].filter(Boolean).join(" · ")}
+      {projOpen(p) && est.lateBy > 0 && <b className="v2-estlate" style={{ display: "block", color: C.red }}>{launch ? "출시일" : "마감"}보다 {est.lateBy}일 늦을 수 있어요</b>}</div>}
     {launch && projOpen(p) && !isHoldP(p) && <LaunchFix p={p} D={D} A={A} cu={cu} open={open} />}
     <SecretBox kind="project" x={p} D={D} cu={cu} A={A} only="status" />
     {isHoldP(p) && <Card style={{ marginTop: 10, padding: "12px 14px" }}><div style={{ fontSize: 14.5, fontWeight: 800, color: C.ink }}>보류 중{p.heldAt ? ` · ${-ddays(ymd(new Date(p.heldAt)), key)}일째` : ""}</div>
@@ -406,6 +420,8 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
         {/* 드물게 쓰는 것: 대시보드 만들기 · 기밀 · 끝내기 (사용 빈도별 노출) */}
         {lead && projOpen(p) && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
           {!p.dash && <TBtn v="soft" onClick={() => { A.patchProject(p, { dash: true }, "대시보드 만들기", null); setTab("dash"); setInfo(false); }}>대시보드 만들기</TBtn>}</div>}
+        {/* 견본으로 저장(2026-10-07 ②) — 책임자·관리자 · 이 프로젝트 모양(업무·순서·단계·예상 소요일)을 견본함에 · 프로젝트는 그대로 */}
+        {canSaveTpl(p, cu) && <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 10 }}><TBtn v="soft" onClick={() => open({ type: "tplSave", id: p.id })}>견본으로 저장</TBtn>{p.fromTemplateTitle && <span style={{ fontSize: 12.5, color: C.mute }}>견본 '{p.fromTemplateTitle}'으로 만든 프로젝트</span>}</div>}
         <SecretBox kind="project" x={p} D={D} cu={cu} A={A} only="button" />
         {projOpen(p) && !isHoldP(p) && lead && <Big tone="white" onClick={() => setEndAsk(true)} style={{ marginTop: 10 }}>끝내기 · 멈추기 (완료 · 중단 · 보류)</Big>}
         {/* 프로젝트 없애기 (책임자·관리자 · 2026-10-07) — 업무까지 통째로 휴지통 · 지우지 않음 */}

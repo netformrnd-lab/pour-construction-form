@@ -1,7 +1,7 @@
 // 업무OS v2 — 달력 탭 (실사용): 한 달을 한눈에. 칸 = 그날 내 마감 수(농도), 빨강 = 지난 날 안 끝난 일·막힘, ▴ 출시·마감, → 내 차례 시작
 // [나 ▾]로 동료 달력(보기만)·프로젝트(그 프로젝트 모든 사람 항목)를 고른다. 사람 비교 숫자·등급은 관리자 화면에만
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ymd, md, ddays, addDays, weekStart, WD, isOffDay, ddayLabel, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf, riskOf, projOpen, reqOf, canSetDue, dueApprover, fxDueOn, fxIsMine, fxMeDone, fxLabel, fxTime, holidayName, canFinish } from "./model.js";
+import { ymd, md, ddays, addDays, weekStart, WD, isOffDay, ddayLabel, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf, riskOf, projOpen, reqOf, canSetDue, dueApprover, fxDueOn, fxIsMine, fxMeDone, fxLabel, fxTime, holidayName, canFinish, projLabelOf, projLabel } from "./model.js";
 import { calCells } from "./views.js";
 import { personNow, predLine, upcomingTurns } from "./turn.js";
 import { MonthCal, CalHead, dayHead } from "./cal.jsx";
@@ -95,7 +95,7 @@ export function CalendarTab({ D, cu, A, open, T, TV, setToast }) {
 // 7일 보기: 고른 날부터 7일을 제목까지 (처음엔 오늘부터) · 날짜 머리를 누르면 월 달력의 그날로
 function WeekList({ D, cu, A, open, T, keyd, sel, setSel, who, mine, proj, scope, onDay }) {
   const ws = sel, days = [0, 1, 2, 3, 4, 5, 6].map((i) => addDays(ws, i));
-  const pName = (pid) => ((D.projects || []).find((p) => p.id === pid) || {}).title || "";
+  const pName = (pid) => projLabelOf(D, pid);
   const open1 = D.tasks.filter(scope);
   const projs = (D.projects || []).filter((p) => projOpen(p) && (proj ? p.id === proj.id : p.assigneeId === who || D.tasks.some((t) => t.projectId === p.id && !t.isFixed && isMine(t, who))));
   const thisWk = ws === keyd;
@@ -110,7 +110,7 @@ function WeekList({ D, cu, A, open, T, keyd, sel, setSel, who, mine, proj, scope
       const ps = projs.filter((p) => String(p.launchDate || p.dueDate || "").slice(0, 10) === d), hol = holidayName(d), off = isOffDay(d), wd = WD[new Date(d + "T00:00:00").getDay()];
       return <div key={d} className={"v2-wkday" + (d === keyd ? " today" : "") + (off ? " off" : "")}>
         <button type="button" className={"v2-wkhead" + (off ? " off" : "") + (wd === "일" || hol ? " hol" : wd === "토" ? " sat" : "")} onClick={() => onDay(d)} aria-label={`${md(d)} ${wd}요일 월 달력에서 보기`}>{md(d)} ({wd}){d === keyd ? " · 오늘" : ""}{hol ? " · " + hol : ""}<span className="c">{ts.length ? `마감 ${ts.length}` : ""} ›</span></button>
-        {ps.map((p) => <div key={p.id} className="v2-wkrow" role="button" tabIndex={0} onClick={() => open({ type: "project", id: p.id })}><span className="v2-tag turn">{isLaunchP(p) ? "출시" : "마감"}</span><span className="tt">{p.title}</span></div>)}
+        {ps.map((p) => <div key={p.id} className="v2-wkrow" role="button" tabIndex={0} onClick={() => open({ type: "project", id: p.id })}><span className="v2-tag turn">{isLaunchP(p) ? "출시" : "마감"}</span><span className="tt">{projLabel(p, D)}</span></div>)}
         {ts.slice(0, 8).map((t) => { const b = turnBits(t, T, D, keyd);
           return <div key={t.id} className="v2-wkrow" role="button" tabIndex={0} onClick={() => open({ type: "task", id: t.id })} onKeyDown={(e) => { if (e.key === "Enter") open({ type: "task", id: t.id }); }}>
             {b.tag && <span className={"v2-tag" + (b.tone === "red" ? " red" : b.tone === "turn" ? " turn" : "")}>{b.tag}</span>}
@@ -135,12 +135,12 @@ function DayList({ D, cu, A, open, T, U, date, cell, keyd, who, mine, proj, fxOp
   // 달력 → 표식과 같은 날(앞 일 끝 예정이 가장 늦은 날, 지났으면 오늘)에 오는 내 차례 — 어느 프로젝트 · 누가 무엇을 · 내 기한 · 프로젝트 마감 · 여유
   const turnLines = mine ? (U || []).filter((u) => u.start === date) : [];
   const sorted = open1.slice().sort((a, b) => (riskOf(a, keyd) && riskOf(a, keyd).red ? 0 : 1) - (riskOf(b, keyd) && riskOf(b, keyd).red ? 0 : 1) || String(a.title).localeCompare(String(b.title)));
-  const pName = (pid) => ((D.projects || []).find((p) => p.id === pid) || {}).title || "";
+  const pName = (pid) => projLabelOf(D, pid);
   const old = ddays(date, keyd) < -30;
   return <>
     <Head>{dayHead(date, keyd, open1.length, c.proj.length)}</Head>
     <Card>
-      {c.proj.map((p) => <Row key={p.id} tag={isLaunchP(p) ? "출시" : "프로젝트 마감"} title={p.title} sub={`책임 ${nameOf(D.users, p.assigneeId) || "없음"}`} onClick={() => open({ type: "project", id: p.id })} last={false} />)}
+      {c.proj.map((p) => <Row key={p.id} tag={isLaunchP(p) ? "출시" : "프로젝트 마감"} title={projLabel(p, D)} sub={`책임 ${nameOf(D.users, p.assigneeId) || "없음"}`} onClick={() => open({ type: "project", id: p.id })} last={false} />)}
       {evs.map((e) => <Row key={e.id} tag="일정" title={e.title} sub={[e.time, e.place].filter(Boolean).join(" · ") || null} last={false} />)}
       {fx.length > 0 && (fxOpen ? fx.map((t) => <Row key={t.id} tag="고정" title={fxLabel(t, cu.id)} sub={fxTime(t, cu.id) || "시간 상관없음"} dim={fxMeDone(t, cu.id, date)} onClick={() => open({ type: "fixed", id: t.id })} right={date === keyd ? <Act on={fxMeDone(t, cu.id, date)} onClick={() => A.fxToggle(t)}>{fxMeDone(t, cu.id, date) ? "✓" : "완료"}</Act> : null} last={false} />)
         : <More onClick={() => setFxOpen(true)}>고정업무 {fx.length}{date <= keyd ? ` · ${fxLeft.length} 남음` : ""} ▾</More>)}

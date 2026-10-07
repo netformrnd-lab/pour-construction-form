@@ -3,7 +3,8 @@
 import { useState } from "react";
 import * as fb from "../fb.js";
 import { planReimport, runReimport, nowIso } from "../core.jsx";
-import { md, hm, ymd, activeUsers, KR_HOLIDAYS, COUNT_L, holidayLayer } from "../model.js";
+import { md, hm, ymd, activeUsers, KR_HOLIDAYS, COUNT_L, holidayLayer, ROAD_CATS, LAUNCH_ROAD, catRoad, builtinRoad, roadsDoc, roadOwn, isFlowProj, isLaunchProj, isGhProj, projOpen, projCat, phaseOfTask, roadProblem, sameRoad, cleanRoad } from "../model.js";
+import { RoadEdit, roadLine } from "../roadui.jsx";
 import { LAUNCH_PHASES, LAUNCH_AFTER, LAUNCH_ITEMS } from "../launch.js";
 import { C, Big, Act, TBtn, Head, Card, Row, Empty, Sheet, Ask, More, inp } from "../ui.jsx";
 import { wdOf } from "./common.jsx";
@@ -97,6 +98,9 @@ export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose
     </div>)}</Card>
     <p className="a-hint">한 주 마감이 한도를 넘으면 사람 표에서 숫자가 빨갛게 보여요. 저장하는 건 한도 숫자 하나뿐이에요.</p>
 
+    <Head>프로젝트 단계(로드) <span style={{ fontWeight: 600, color: C.mute }}>(카테고리 기본)</span></Head>
+    <RoadDefaults D={D} cu={cu} A={A} />
+
     <Head>신제품 순서표 <span style={{ fontWeight: 600, color: C.mute }}>(보기만)</span></Head>
     <Card><More onClick={() => setShowAfter(!showAfter)}>{showAfter ? "접기 ▴" : "항목별 앞 일 보기 ▾"}</More>
       {showAfter && <LaunchOrderView />}</Card>
@@ -174,3 +178,38 @@ export function BulkCodes({ D, cu, A, setToast }) {
     {ask && <Ask title="시작 코드 한꺼번에 만들기" body={`PIN 없는 ${need.length}명에게 새 시작 코드를 만들어요.\n이미 코드를 받은 사람도 새 코드로 바뀌어요.\n코드는 이 화면에 한 번만 보여요.`} yes="만들기" onNo={() => setAsk(false)} onYes={make} />}
   </>;
 }
+
+// 프로젝트 단계(로드) 카테고리 기본 (사용자 확정 2026-10-07 '카테고리별 로드') — settings/roads {roads:{카테고리: [{k,name}]}} · 관리자만 · A.setCatRoad(조건부 · 기록 · 5초 되돌리기)
+//   단계를 따로 고치지 않은 열린 프로젝트(road 칸 없음 · 흐름 빼고)는 바로 따라감 · 업무는 안 고침 · 신제품 출시는 신제품 대시보드 7단계 그대로(보기만)
+export function RoadDefaults({ D, cu, A }) {
+  const [edit, setEdit] = useState(null), [ask, setAsk] = useState(null), [busy, setBusy] = useState(false);   // edit {cat, road, seen}
+  const doc = roadsDoc(D), stored = (cat) => (doc && doc.roads && doc.roads[cat] != null ? doc.roads[cat] : null);
+  const follow = (cat) => (D.projects || []).filter((p) => projOpen(p) && !isLaunchProj(p) && !isGhProj(p.id) && !isFlowProj(p) && !roadOwn(p) && (projCat(p) || "none") === cat);
+  const prob = edit ? roadProblem(edit.road) : "";
+  const goneN = (cat, road) => { const keep = new Set(road.map((x) => x.k)); let n = 0, ps = 0;
+    follow(cat).forEach((p) => { const m = (D.tasks || []).filter((t) => t.projectId === p.id && !t.isFixed && !isDoneT(t) && (() => { const k = phaseOfTask(t, p, D); return k && !keep.has(k); })()).length; if (m) { n += m; ps++; } });
+    return { n, ps }; };
+  const save = async (force) => { if (!edit || prob || busy) return; const g = goneN(edit.cat, edit.road);
+    if (g.n && !force) { setAsk(g); return; }
+    setAsk(null); setBusy(true); const ok = await A.setCatRoad(edit.cat, edit.road, edit.seen); setBusy(false); if (ok) setEdit(null); };
+  return <Card style={{ padding: "12px 14px", fontSize: 13.5, color: C.text, lineHeight: 1.7 }}>
+    <div style={{ color: C.sub, fontSize: 12.5 }}>새 프로젝트를 만들 때 카테고리를 고르면 이 단계가 깔려요. 여기서 바꾸면 단계를 따로 고치지 않은 진행 중 프로젝트에 바로 보여요(업무는 그대로 · 뺀 단계의 업무는 '단계 미정'으로).</div>
+    <div className="a-roadrow"><div><b>신제품 출시</b> <span style={{ color: C.mute, fontSize: 12.5 }}>· 신제품 대시보드 7단계 그대로 · 여기서는 못 바꿔요</span></div><div className="ln">{roadLine(LAUNCH_ROAD)}</div></div>
+    {ROAD_CATS.map(([cat, l]) => { const r = catRoad(cat === "none" ? "" : cat, D), n = follow(cat).length, on = edit && edit.cat === cat;
+      return <div key={cat} className="a-roadrow">
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ flex: "1 1 auto" }}>{l}</b>
+          <span style={{ color: C.mute, fontSize: 12.5 }}>{stored(cat) ? "바꾼 단계" : "앱 기본"} · 따르는 프로젝트 {n}개</span>
+          {!on && <TBtn v="soft" onClick={() => { setAsk(null); setEdit({ cat, road: r.map((x) => ({ ...x })), seen: stored(cat) }); }} aria-label={`${l} 단계 고치기`}>고치기</TBtn>}</div>
+        {!on ? <div className="ln">{roadLine(r)}</div> : <div style={{ marginTop: 6 }}>
+          <RoadEdit road={edit.road} onChange={(road) => setEdit({ ...edit, road })} label={`${l} 기본 단계 고치기`} />
+          {prob && <div role="status" style={{ fontSize: 12.5, color: C.ink, fontWeight: 700 }}>{prob}</div>}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
+            <TBtn v="solid" disabled={!!prob || busy || sameRoad(edit.road, r)} onClick={() => save(false)}>{busy ? "저장 중" : "저장"}</TBtn>
+            <TBtn onClick={() => { setEdit(null); setAsk(null); }}>그만</TBtn>
+            {!sameRoad(edit.road, builtinRoad(cat)) && <TBtn tone="mute" onClick={() => setEdit({ ...edit, road: builtinRoad(cat).map((x) => ({ ...x })) })}>앱 기본으로</TBtn>}
+          </div></div>}
+      </div>; })}
+    {ask && <Ask title="단계를 빼요" body={`이 카테고리를 따르는 프로젝트 ${ask.ps}개의 업무 ${ask.n}개가 '단계 미정'으로 보여요.\n업무는 지우지 않아요 · 프로젝트 화면 '단계 정리'에서 다시 넣을 수 있어요 · 5초 안에 되돌릴 수 있어요.`} yes="빼고 저장" onNo={() => setAsk(null)} onYes={() => save(true)} />}
+  </Card>;
+}
+const isDoneT = (t) => t && (t.status === "done" || t.status === "dropped");

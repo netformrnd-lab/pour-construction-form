@@ -1,5 +1,5 @@
 // 업무OS v2 — 화면용 계산 (달력 칸 · 사람×주 표 · 출시 줄 · 정리 묶음 · 출시일 옮기기 미리 보기). 저장은 하지 않음
-import { ymd, addDays, ddays, dueOf, isDone, isMine, ownersOf, activeUsers, nameOf, monthGrid, holidayName, isOffDay, ownerIssues, fxDueOn, personHealth, riskOf, md, reqOf, dueApprover, weekStart } from "./model.js";
+import { ymd, addDays, ddays, dueOf, isDone, isMine, ownersOf, activeUsers, nameOf, monthGrid, holidayName, isOffDay, ownerIssues, fxDueOn, personHealth, riskOf, md, reqOf, dueApprover, weekStart, projLabelOf } from "./model.js";
 import { LAUNCH_PHASES, launchPct, relaunch } from "./launch.js";
 import { turnOf, orderIssues, predsOf } from "./turn.js";
 
@@ -113,7 +113,7 @@ export function tidyQueues(D, idx, now) {
 export function groupItems(items, by, D) {
   const m = new Map();
   items.forEach((t) => { const k = by === "person" ? ownersOf(t)[0] || "" : t.projectId || "";
-    const label = by === "person" ? nameOf(D.users, k) || "담당 없음" : ((D.projects || []).find((p) => p.id === k) || {}).title || "프로젝트 없음";
+    const label = by === "person" ? nameOf(D.users, k) || "담당 없음" : projLabelOf(D, k) || "프로젝트 없음";
     const g = m.get(k) || { key: k, label, items: [] }; g.items.push(t); m.set(k, g); });
   return [...m.values()].sort((a, b) => b.items.length - a.items.length);
 }

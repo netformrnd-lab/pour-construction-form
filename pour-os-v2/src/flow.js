@@ -1,4 +1,5 @@
 // 업무OS v2 — 흐름으로 만들기 (프로모션 8단계 등): 단계마다 업무 1건 + 바로 앞 단계를 앞 일(deps)로 걸어 '앞사람 끝나면 내 차례'가 저절로 됨
+// 로드(2026-10-07): 흐름 단계 = 프로젝트 road(열쇠 wf0…) · 단계마다 업무를 더 넣을 수 있음 → turn.js 가 '앞 단계 업무가 모두 끝나야 다음 단계 차례'로 계산
 // 단계 이름은 버전1 workflows 문서(stages)를 쓰고, 흐름 이름만 여기 표에서 찾는다(버전1 문서에는 이름 칸이 없음)
 import { ymd, addDays, isOffDay, newId, wfCat } from "./model.js";
 
@@ -45,12 +46,14 @@ export function flowDues(n, final, today) {
 export function planFlow({ wf, title, brand, leadId, due, owners }, D, me, today = ymd(new Date()), at = new Date().toISOString()) {
   const pid = newId("p"), bulk = newId("fl"), dues = flowDues(wf.stages.length, due, today);
   const project = { id: pid, title: title.trim(), assigneeId: leadId || me.id, collaboratorIds: [...new Set(owners.filter((u) => u && u !== (leadId || me.id)))], status: "active", priority: "mid", progress: 0, resultValue: 0, mainKPIId: "", subKPIId: "",
-    dueDate: due, brand: brand || "", group: "기타", wfId: wf.id, ...(wfCat(wf.id) || (wf.doc && wf.doc.cat) ? { category: wfCat(wf.id) || wf.doc.cat } : {}), createdAt: at, createdBy: me.id, madeIn: "v2", v2At: at };
+    dueDate: due, brand: brand || "", group: "기타", wfId: wf.id, ...(wfCat(wf.id) || (wf.doc && wf.doc.cat) ? { category: wfCat(wf.id) || wf.doc.cat } : {}),
+    road: wf.stages.map((s, i) => ({ k: "wf" + i, name: String(s.name || "").trim() || `${i + 1}단계` })),   // 로드(사용자 확정 2026-10-07) = 흐름 단계 · 열쇠 wf0… (예전 흐름의 wfStage 와 같은 열쇠)
+    createdAt: at, createdBy: me.id, madeIn: "v2", v2At: at };
   const ids = wf.stages.map(() => newId("t"));
   const tasks = wf.stages.map((s, i) => { const who = owners[i] || me.id, other = who !== me.id;
     return { id: ids[i], title: s.name, isFixed: false, type: "general", status: "todo", assigneeId: who, assigneeIds: [who], projectId: pid, parentId: null,
       dueDate: dues[i] || "", workDate: "", memo: s.desc || "", attachments: [], weekDay: null, weekSlot: null, priority: "mid", ...(brand ? { brand } : {}),
-      deps: i ? [ids[i - 1]] : [], wfId: wf.id, wfStage: i, noReview: true, ownerAuto: false, ownerFrom: "set",
+      deps: i ? [ids[i - 1]] : [], wfId: wf.id, wfStage: i, phase: "wf" + i, noReview: true, ownerAuto: false, ownerFrom: "set",
       ...(other ? { assignedBy: me.id, assignedAt: at, bulkId: bulk } : { ackAt: at }),
       requestedBy: me.id, requestedAt: at, createdAt: at, createdBy: me.id, statusLog: [{ by: me.id, byName: me.name, at, status: "todo" }], madeIn: "v2", v2At: at }; });
   const byWho = {}; tasks.forEach((t) => { (byWho[t.assigneeId] = byWho[t.assigneeId] || []).push(t); });

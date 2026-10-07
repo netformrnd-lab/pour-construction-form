@@ -1,7 +1,7 @@
 // 업무OS v2 — 여러 개 골라서 한꺼번에 (관리자 정리 · 사람 표 · 실사용 '담당 정할 항목')
 // 안전장치: 한 번에 100건 · 누르기 전 문장 미리 보기 · 30건 이상이면 확인 창 · 5초 되돌리기 · 기록(이전 값) · 삭제 없음 · 맡긴 사람(requestedBy) 그대로
 import { useState } from "react";
-import { ymd, addDays, md, ddays, ddayLabel, dueOf, ownersOf, nameOf, activeUsers, weekStart, nextWorkday, prevWorkday, isOffDay, WD, isDone, taskNoteId, reqOf } from "./model.js";
+import { ymd, addDays, md, ddays, ddayLabel, dueOf, ownersOf, nameOf, activeUsers, weekStart, nextWorkday, prevWorkday, isOffDay, WD, isDone, taskNoteId, reqOf, projLabel } from "./model.js";
 import { C, Act, Chip, TBtn, Ask, Card, Empty } from "./ui.jsx";
 import { HoldAsk } from "./hold.jsx";
 
@@ -24,7 +24,7 @@ export function PickList({ D, groups, sel, setSel, open, temp, max = 60, right }
           <div role="button" tabIndex={0} onClick={() => open({ type: t.isFixed ? "fixed" : "task", id: t.id })} onKeyDown={(e) => { if (e.key === "Enter") open({ type: t.isFixed ? "fixed" : "task", id: t.id }); }} style={{ flex: 1, minWidth: 0, padding: "9px 12px 9px 0", cursor: "pointer" }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</div>
             <div style={{ fontSize: 12, color: C.sub, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {[(nameOf(D.users, ownersOf(t)[0]) || "담당 없음") + (temp && temp.has(t.id) ? "(임시)" : ""), p && p.title, dueOf(t) ? <span key="d" style={{ color: n < 0 ? C.red : C.sub }}>{md(dueOf(t))} {ddayLabel(n)}</span> : "기한 없음"].filter(Boolean).reduce((a, x, j) => (j ? [...a, " · ", x] : [x]), [])}</div>
+              {[(nameOf(D.users, ownersOf(t)[0]) || "담당 없음") + (temp && temp.has(t.id) ? "(임시)" : ""), p && projLabel(p, D), dueOf(t) ? <span key="d" style={{ color: n < 0 ? C.red : C.sub }}>{md(dueOf(t))} {ddayLabel(n)}</span> : "기한 없음"].filter(Boolean).reduce((a, x, j) => (j ? [...a, " · ", x] : [x]), [])}</div>
           </div>{right && <div style={{ flex: "0 0 auto", paddingRight: 10 }}>{right(t)}</div>}</div>; })}
         {g.items.length > shown.length && <button type="button" onClick={() => setMore({ ...more, [g.key]: true })} style={{ width: "100%", padding: 12, border: "none", borderTop: `1px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontFamily: "inherit", cursor: "pointer" }}>{g.items.length - shown.length}개 더 ▾</button>}
         {!g.items.length && <Empty>없어요</Empty>}</Card>

@@ -3,7 +3,7 @@
 //  · 찾는 곳 = 이미 불러온 것(열린 업무 · 30일 안 끝낸 업무 · 30일 안 댓글 · 프로젝트 · 반복 실행) + '더 오래된 것도 찾기'로 한 번 읽은 것(older)
 //  · 맞추기 = 대소문자·띄어쓰기 무시 · 글 안에 들어 있으면 (초성 찾기 없음) · 담당 이름·프로젝트 이름으로도
 //  · 기밀: 화면 D(secret.redact 뒤)에서 잠긴 것(locked)은 아예 안 넣음 · 따로 읽은 지난 업무·댓글도 같은 규칙(secret.taskSeen)
-import { nameOf, ownersOf, isMine, dueOf, md, STATUS_L, projStLabel, brandLabel, scopeOf, fxIsMine, fxIds, fxRecurL, isMaster, trashRows, isRemoved } from "./model.js";
+import { nameOf, ownersOf, isMine, dueOf, md, STATUS_L, projStLabel, brandLabel, scopeOf, fxIsMine, fxIds, fxRecurL, isMaster, trashRows, isRemoved, projLabel } from "./model.js";
 import { taskSeen, seeAll, lockTask } from "./secret.js";
 
 // 띄어쓰기 없애고 소문자로
@@ -35,7 +35,7 @@ export function noteWhere(D, n) {
   const id = String(n.itemId || ""), ci = id.indexOf(":"), k = ci > 0 ? id.slice(0, ci) : "", ref = ci > 0 ? id.slice(ci + 1) : id;
   if (k === "task") { const t = (D.tasks || []).find((x) => x.id === ref) || (D.removedFx || []).find((x) => x.id === ref);   // 없앤 고정업무 대화도 그 시트로
     return { kind: t && t.isFixed ? (t.scope === "brand" ? "반복 실행" : "고정업무") : "업무", title: t ? t.title : "지난 업무", t, go: { type: t && t.isFixed ? "fixed" : "task", id: ref, focus: "talk", note: n.id } }; }
-  if (k === "proj") { const p = (D.projects || []).find((x) => x.id === ref); return { kind: "프로젝트", title: p ? p.title : "프로젝트", p, go: { type: "project", id: ref, first: "news", note: n.id } }; }
+  if (k === "proj") { const p = (D.projects || []).find((x) => x.id === ref); return { kind: "프로젝트", title: p ? projLabel(p, D) : "프로젝트", p, go: { type: "project", id: ref, first: "news", note: n.id } }; }
   if (!k && id.includes("~")) { const tid = id.split("~")[0], t = (D.tasks || []).find((x) => x.id === tid); return { kind: "고정업무 메모", title: t ? t.title : "고정업무", t, go: { type: "fixed", id: tid } }; }
   const it = ((D.ak && D.ak.items) || []).find((x) => x.id === id) || ((D.ak && D.ak.removed) || []).find((x) => x.id === id);
   return { kind: "반복 실행", title: it ? it.name : "반복 실행", go: { type: "routine", id, focus: "talk", note: n.id } };
@@ -78,7 +78,7 @@ export function searchAll(D, q0, opt = {}) {
     if (!t || t.isFixed || t.deleted || t.locked) return;
     if (mine && !(isMine(t, uid) || t.requestedBy === uid || t.assignedBy === uid || (t.ccIds || []).includes(uid) || t.createdBy === uid)) return;
     const p = pm.get(t.projectId), pLocked = p && p.locked, who = names(D, ownersOf(t)).join(", ") || t.ghAssigneeName || "";
-    const where = p && !pLocked ? p.title : t.brand ? brandLabel(t.brand, D.brands) : "";
+    const where = p && !pLocked ? projLabel(p, D) : t.brand ? brandLabel(t.brand, D.brands) : "";
     const field = has(t.title, q) ? "title" : has(t.memo, q) ? "memo" : has(who, q) ? "who" : where && has(where, q) ? "where" : null; if (!field) return;
     const done = t.status === "done" || t.status === "dropped", due = dueOf(t);
     out.task.push({ key: "t:" + t.id, kind: "task", id: t.id, title: t.title || "(제목 없음)", field, snip: field === "memo" ? snippet(t.memo, q) : "", where, who, stat: TSTAT(t), done,
@@ -89,7 +89,7 @@ export function searchAll(D, q0, opt = {}) {
   (D.projects || []).forEach((p) => {
     if (!p || p.deleted || p.locked) return;
     if (mine && !(p.assigneeId === uid || (p.collaboratorIds || []).includes(uid) || p.createdBy === uid)) return;
-    const who = nameOf(D.users, p.assigneeId), where = [brandLabel(p.brand, D.brands), p.lbProjectName].filter(Boolean).join(" · ");
+    const who = nameOf(D.users, p.assigneeId), where = [brandLabel(p.brand, D.brands), p.lbProjectName, p.batch].filter(Boolean).join(" · ");
     const nowT = p.now && typeof p.now === "object" ? p.now.text : "";
     const field = has(p.title, q) ? "title" : has(p.memo, q) ? "memo" : has(nowT, q) ? "memo" : has(who, q) ? "who" : has(where, q) ? "where" : null; if (!field) return;
     const st = projStLabel(p), done = st === "완료" || st === "중단", d = String(p.launchDate || p.dueDate || "").slice(0, 10);

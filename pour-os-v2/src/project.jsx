@@ -6,7 +6,9 @@ import {
   ymd, addDays, ddays, ddayLabel, md, ago, hm, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf,
   projOpen, projMine, projStat, projGroups, projWhen, feedOf, taskNoteId, projNoteId, LOG_L, reqOf, riskOf, workloadOf, PROJ_CATS, catName, projCat, guessCat,
   IMP, impOf, impName, isHoldP, projStLabel, projForecast, projPct, isOneOff, TEAMS, projTeam, projTeamAuto, isGhProj, ghDashUrl, isRemoved, taskTrashRows, canRemoveProj, canRestoreProj, canFinish,
+  roadOf, roadStates, phaseOfTask, curStage, noStageL, catRoad, sameRoad, roadProblem, projLabel, projLabelOf, canEditRoad,
 } from "./model.js";
+import { RoadEdit, RoadBox, StageSortCard, CatRoadAsk } from "./roadui.jsx";
 import { TrashList, ProjRemoveAsk, RemovedNote } from "./trash.jsx";
 import { Gantt } from "./gantt.jsx";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, launchPct } from "./launch.js";
@@ -76,7 +78,7 @@ export function ProjectsTab({ D, cu, open, idx: idx0 }) {
   const d10 = (v) => String(v || "").slice(0, 10);
   const gRows = pv !== "gantt" ? [] : gMine
     ? D.tasks.filter((t) => isOneOff(t) && !isDone(t) && t.status !== "dropped" && isMine(t, cu.id) && dueOf(t)).sort((a, b) => String(dueOf(a)).localeCompare(String(dueOf(b))))
-      .map((t) => ({ id: t.id, title: t.title, sub: (D.projects.find((p) => p.id === t.projectId) || {}).title || "", start: t.startDate || d10(t.startedAt) || dueOf(t), end: dueOf(t), pct: null, tone: t.status === "hold" ? "hold" : dueOf(t) < key ? "late" : "", onClick: () => open({ type: "task", id: t.id }) }))
+      .map((t) => ({ id: t.id, title: t.title, sub: projLabelOf(D, t.projectId), start: t.startDate || d10(t.startedAt) || dueOf(t), end: dueOf(t), pct: null, tone: t.status === "hold" ? "hold" : dueOf(t) < key ? "late" : "", onClick: () => open({ type: "task", id: t.id }) }))
     : list.map((p) => { const ts = D.tasks.filter((t) => t.projectId === p.id && !t.isFixed), ds = ts.map((t) => dueOf(t)).filter(Boolean).sort();
         const end = d10(p.launchDate || p.dueDate) || ds[ds.length - 1] || "", st = p.startDate || ts.map((t) => t.startDate || d10(t.startedAt) || dueOf(t)).filter(Boolean).sort()[0] || end;
         return { id: p.id, title: p.title, sub: nameOf(D.users, p.assigneeId) || "", start: st, end, pct: isLaunch(p) ? launchPct(p, D) : projPct(p), tone: isHoldP(p) ? "hold" : end && end < key && ts.some((t) => !isDone(t) && t.status !== "hold") ? "late" : "", onClick: () => open({ type: "project", id: p.id }) }; })
@@ -122,13 +124,14 @@ function WhoLoad({ D, byWho, now }) {
   return <>{Object.entries(byWho).sort((a, b) => b[1].length - a[1].length).map(([uid, a]) => { const w = workloadOf(D, uid, now);
     return <div key={uid} style={{ color: C.sub }}>{nameOf(D.users, uid) || "담당 없음"} · 새 {a.length}개 · 열린 {w.open}{w.late ? <b style={{ color: C.red }}> · 지난 일 {w.late}</b> : ""}</div>; })}</>;
 }
-const KINDS = [["normal", "빈 프로젝트", "이름 · 마감 · 첫 업무만 적고 시작해요"], ["launch", "신제품 출시", "출시일만 넣으면 항목 46개의 기한 · 담당 · 순서가 자동으로 들어가요"], ["flow", "흐름으로 만들기", "프로모션 8단계처럼 정해진 순서대로. 앞 단계가 끝나면 다음 담당 차례예요"]];
+const KINDS = [["normal", "빈 프로젝트", "이름만 적고 시작해요 · 카테고리 단계(예: 기획 → 준비 → 실행 → 점검)가 같이 깔려요"], ["launch", "신제품 출시", "출시일만 넣으면 항목 46개의 기한 · 담당 · 순서가 자동으로 들어가요"], ["flow", "흐름으로 만들기", "프로모션 8단계처럼 정해진 순서대로. 앞 단계가 끝나면 다음 담당 차례예요"]];
 
 // 새 프로젝트 — 첫 화면은 고르기 카드 3개 (빈 프로젝트 / 신제품 출시 / 흐름으로 만들기)
 export function NewProjectSheet({ D, cu, A, open, back, onBack, onClose, setToast, cat: cat0 }) {
   const [kind, setKind] = useState(cat0 === "launch" ? "launch" : "");
   const [cat, setCat] = useState(cat0 && cat0 !== "launch" ? cat0 : "");
-  const [title, setTitle] = useState(""), [lead, setLead] = useState(cu.id), [due, setDue] = useState(""), [brand, setBrand] = useState(""), [tasks, setTasks] = useState(["", "", ""]), [busy, setBusy] = useState(false), [batch, setBatch] = useState("");
+  const [title, setTitle] = useState(""), [lead, setLead] = useState(cu.id), [due, setDue] = useState(""), [brand, setBrand] = useState(""), [busy, setBusy] = useState(false), [batch, setBatch] = useState("");
+  const [st, setSt] = useState({}), [roadDraft, setRoadDraft] = useState(null), [rEdit, setREdit] = useState(false);   // 단계마다 첫 업무 {열쇠: 글} · 이 프로젝트만 고친 단계(없으면 카테고리 기본)
   const [wfId, setWfId] = useState(""), [owners, setOwners] = useState([]);
   const ref = useAutoFocus();
   const brands = (D.brands || []).filter((b) => b.active !== false).sort((a, b) => (+a.order || 0) - (+b.order || 0));
@@ -138,10 +141,15 @@ export function NewProjectSheet({ D, cu, A, open, back, onBack, onClose, setToas
   const plan = useMemo(() => (launch && title.trim() && brand && due ? planNewLaunch({ name: title, brand, launchDate: due, batch, leadId: lead }, D, cu) : null), [launch, title, brand, due, batch, lead, D]);
   const fplan = useMemo(() => (flow && wf && title.trim() && due ? planFlow({ wf, title, brand, leadId: lead, due, owners }, D, cu) : null), [flow, wf, title, brand, due, lead, owners, D]);
   const needBrand = kind !== "normal";   // 빈 프로젝트는 브랜드 없이도 만듦
-  const ok = title.trim() && (brand || !needBrand) && (kind === "normal" || due) && (!flow || fplan) && !busy;
+  // 빈 프로젝트 로드: 고른 카테고리(안 고르면 이름으로 짐작) 기본 단계 → [단계 고치기]로 이 프로젝트만 바꿀 수 있음 (만들기 전까지 저장 없음)
+  const catEff = cat || guessCat(title), road = roadDraft || catRoad(catEff, D), rProb = roadDraft ? roadProblem(roadDraft) : "";
+  const pickCat = (k) => { const nc = cat === k ? "" : k, nr = catRoad(nc || guessCat(title), D), nst = { ...st };   // 카테고리를 고르면 그 단계가 바로 깔림 · 적어 둔 첫 업무는 같은 열쇠 → 같은 자리로
+    nr.forEach((x, i) => { const o = road[i]; if (o && !nr.some((y) => y.k === o.k) && !String(nst[x.k] || "").trim() && String(st[o.k] || "").trim()) nst[x.k] = st[o.k]; });
+    setSt(nst); setRoadDraft(null); setREdit(false); setCat(nc); };
+  const ok = title.trim() && (brand || !needBrand) && (kind === "normal" || due) && (!flow || fplan) && !rProb && !busy;
   const missing = [needBrand && !brand && "브랜드", kind !== "normal" && !due && (launch ? "출시일" : "마지막 단계 마감")].filter(Boolean);
   const save = async () => { if (!ok) return; setBusy(true);
-    const p = launch ? await A.createLaunch(plan) : flow ? await A.createFlow(fplan, wf, owners) : await A.addProject({ title, assigneeId: lead, dueDate: due, brand, tasks, category: cat || guessCat(title) });
+    const p = launch ? await A.createLaunch(plan) : flow ? await A.createFlow(fplan, wf, owners) : await A.addProject({ title, assigneeId: lead, dueDate: due, brand, category: catEff, road, stageTasks: road.map((x) => ({ k: x.k, title: st[x.k] || "" })) });
     setBusy(false); if (p) { setToast({ text: launch ? `신제품을 만들었어요 · 항목 ${plan.tasks.length}개` : flow ? `만들었어요 · ${fplan.tasks.length}단계 · 앞 단계가 끝나면 다음 담당 차례예요` : "프로젝트를 만들었어요" }); back(); open({ type: "project", id: p.id }); } };
   const pickBrand = (id) => { setBrand(id); if (launch) { const bm = userByName(D.users, (LAUNCH_BRANDS[id] || {}).bm); if (bm) setLead(bm.id); } };
   const pickWf = (w) => { setWfId(w.id); setOwners(flowOwners(w, cu, D.users)); };
@@ -165,9 +173,15 @@ export function NewProjectSheet({ D, cu, A, open, back, onBack, onClose, setToas
     {launch && <><label className="v2-lab" htmlFor="v2-npb">차수 <span style={{ color: C.mute, fontWeight: 600 }}>(선택 · 같이 출시하는 묶음)</span></label><input id="v2-npb" value={batch} onChange={(e) => setBatch(e.target.value)} placeholder="예: 데코라인 2차" style={inp} /></>}
     <div className="v2-lab">책임자</div><div className="v2-chips"><Chip on={lead === cu.id} onClick={() => setLead(cu.id)}>나</Chip>{lead !== cu.id && <Chip on>{nameOf(D.users, lead)}</Chip>}<select aria-label="책임자" className="v2-sel" value="" onChange={(e) => e.target.value && setLead(e.target.value)}><option value="">다른 사람 ▾</option>{people.filter((u) => u.id !== cu.id).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
     {kind === "normal" && <><div className="v2-lab">카테고리 <span style={{ color: C.mute, fontWeight: 600 }}>{cat ? "" : guessCat(title) ? `(안 고르면 이름으로 '${catName(guessCat(title))}')` : "(선택)"}</span></div>
-      <div className="v2-chips">{PROJ_CATS.filter(([k]) => k !== "launch").map(([k, l]) => <Chip key={k} on={cat === k} onClick={() => setCat(cat === k ? "" : k)}>{l}</Chip>)}</div></>}
-    {kind === "normal" && <><div className="v2-lab">첫 업무 <span style={{ color: C.mute, fontWeight: 600 }}>(선택 · 나중에 더 넣을 수 있어요)</span></div>
-      {tasks.map((v, i) => <input key={i} value={v} onChange={(e) => setTasks(tasks.map((x, j) => (j === i ? e.target.value : x)))} placeholder={`업무 ${i + 1}`} aria-label={`첫 업무 ${i + 1}`} style={{ ...inp, marginBottom: 6 }} />)}</>}
+      <div className="v2-chips">{PROJ_CATS.filter(([k]) => k !== "launch").map(([k, l]) => <Chip key={k} on={cat === k} onClick={() => pickCat(k)}>{l}</Chip>)}</div></>}
+    {kind === "normal" && <><div className="v2-lab">단계 · 첫 업무 <span style={{ color: C.mute, fontWeight: 600 }}>(선택 · 단계마다 하나 · 나중에 더 넣을 수 있어요)</span></div>
+      <Card>{road.map((x, i) => <div key={x.k} className="v2-np-st"><span className="nm"><i>{i + 1}</i>{x.name || "(이름 없음)"}</span>
+        <input value={st[x.k] || ""} onChange={(e) => setSt({ ...st, [x.k]: e.target.value })} placeholder="첫 업무 (선택)" aria-label={`${x.name} 첫 업무`} style={{ ...inp, padding: "9px 12px", fontSize: 14 }} /></div>)}</Card>
+      <div className="v2-np-rd"><span>{roadDraft ? "이 프로젝트만 단계를 바꿨어요" : `${catName(catEff) || "미분류"} 기본 단계 · 카테고리를 고르면 그 단계로 바뀌어요`}</span>
+        <TBtn onClick={() => { if (!roadDraft) setRoadDraft(road.map((x) => ({ ...x }))); setREdit(!rEdit); }} disabled={rEdit && !!rProb}>{rEdit ? "단계 다 고쳤어요" : "단계 고치기"}</TBtn></div>
+      {rEdit && roadDraft && <><RoadEdit road={roadDraft} onChange={setRoadDraft} label="새 프로젝트 단계 고치기" />
+        {rProb && <div role="status" style={{ fontSize: 12.5, color: C.ink, fontWeight: 700, margin: "4px 2px" }}>{rProb}</div>}
+        <div style={{ marginTop: 4 }}><TBtn tone="mute" onClick={() => { setRoadDraft(null); setREdit(false); }}>카테고리 기본으로</TBtn></div></>}</>}
     {flow && <><div className="v2-lab">단계와 담당 <span style={{ color: C.mute, fontWeight: 600 }}>(고른 담당은 다음에도 기본으로 나와요)</span></div>
       <Card>{wf.stages.map((s, i) => <div key={s.id || i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderBottom: i < wf.stages.length - 1 ? `1px solid ${C.line}` : "none" }}>
         <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i + 1}. {s.name}</div>
@@ -204,6 +218,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
   const p = D.projects.find((x) => x.id === id);
   const member = p && projMine(p, cu.id, D.tasks);
   const [tab, setTab] = useState(() => (st && st.tab) || first || (!p || member ? "work" : "news"));   // 방금 만든 프로젝트는 업무부터
+  const [nph, setNph] = useState(null), [catAsk, setCatAsk] = useState("");   // 위 추가 칸 단계(null = 지금 단계) · 카테고리 바꿀 때 묻기
   const [doneList, setDoneList] = useState(null), [showDone, setShowDone] = useState(false), [nt, setNt] = useState(""), [nw, setNw] = useState(cu.id), [ndue, setNdue] = useState(""), [edit, setEdit] = useState(""), [now, setNow] = useState(""), [info, setInfo] = useState(!!(st && st.info)), [ld, setLd] = useState(""), [openPh, setOpenPh] = useState((st && st.openPh) || {}), [lAsk, setLAsk] = useState(null), [phAdd, setPhAdd] = useState(""), [pt, setPt] = useState("");
   const notes = useItemNotes(D, projNoteId(id));
   const [endAsk, setEndAsk] = useState(false), [resAsk, setResAsk] = useState(false);   // 끝내기·멈추기 창 · 다시 시작 창
@@ -229,17 +244,24 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
   const doneAll = doneList || live.filter(isDone);
   const top = (a) => a.filter((t) => !t.parentId || !a.some((x) => x.id === t.parentId));
   const kidsOf = (pid, a) => a.filter((t) => t.parentId === pid);
-  // 신제품: 하위 업무는 위 업무(같은 프로젝트에 열려 있으면)의 단계를 따름 — 단계 바꾸기는 위 업무만
+  // 단계(로드 · 사용자 확정 2026-10-07): 신제품·일반·흐름 모두 단계로 묶음 · 하위 업무는 위 업무(같은 프로젝트)의 단계를 따름 — 단계 바꾸기는 위 업무만
+  //   로드에 없는 업무 = 맨 아래 '단계 미정'(신제품은 '기타') · 그로홈 KPI(gh_kpi_)만 예전처럼 상태로 묶음 · 상태는 줄마다 꼬리표
   const liveById = new Map(live.map((t) => [t.id, t]));
-  const phOf = (t, n = 0) => { const pa = t.parentId && n < 8 ? liveById.get(t.parentId) : null; return pa ? phOf(pa, n + 1) : t.phase || ""; };
-  const groups = launch ? LAUNCH_PHASES.map((ph) => [ph.k, ph.name, (t) => phOf(t) === ph.k]).concat([["etc", "기타", (t) => !phOf(t) || !LAUNCH_PHASES.some((ph) => ph.k === phOf(t))]])
+  const road = roadOf(p, D), roadMode = !!road && !launch;
+  const phOf = (t) => phaseOfTask(t, p, D, liveById, road);
+  const rs = roadMode ? roadStates(road, live, phOf, key) : null, curK = rs ? curStage(rs) : "";
+  const groups = road ? road.map((x) => [x.k, x.name, (t) => phOf(t) === x.k]).concat([["etc", noStageL(p), (t) => !phOf(t)]])
     : [["inprogress", "진행 중", (t) => t.status === "inprogress"], ["todo", "할 일", (t) => (t.status || "todo") === "todo"], ["review", "확인 대기", (t) => t.status === "review"], ["hold", "보류", (t) => t.status === "hold"]];
+  const addK = nph != null ? nph : curK;   // 위 추가 칸 단계 (기본 = 지금 단계)
+  const ST_RANK = { inprogress: 0, todo: 1, review: 2, hold: 3 };
   // 없애기 확인 열기: 같이 빠질 업무 수 = 서버에서(끝낸 지 오래된 것까지) · 못 읽으면 화면에 있는 것만 셈
   const rmOpen = () => { setRmAsk({ n: null }); fb.fetchWhere("tasks", ["projectId", "==", p.id]).then((a) => setRmAsk((x) => (x ? { n: a.filter((t) => t && !t.isFixed && !isRemoved(t)).length } : x)))
     .catch((e) => { console.error("[v2] 프로젝트 업무 세기 실패:", e); setRmAsk((x) => (x ? { n: live.length } : x)); }); };
-  const addT = () => { if (!nt.trim()) return; A.addTask({ title: nt, projectId: p.id, assigneeId: nw, dueDate: ndue || (nw !== cu.id ? addDays(key, 3) : ""), noReview: nw === cu.id }); setNt(""); };
-  // 신제품 '+ 이 단계에 추가': 그 단계(phase)로 바로 만듦 · 담당·기한은 위 추가 칸에서 고른 대로 · 기타 = 단계 없음
+  const addT = () => { if (!nt.trim()) return; A.addTask({ title: nt, projectId: p.id, assigneeId: nw, dueDate: ndue || (nw !== cu.id ? addDays(key, 3) : ""), noReview: nw === cu.id, ...(roadMode && addK && addK !== "none" ? { phase: addK } : {}) }); setNt(""); };
+  // '+ 이 단계에 추가'(로드 있는 모든 프로젝트): 그 단계(phase)로 바로 만듦 · 담당·기한은 위 추가 칸에서 고른 대로 · 기타 = 단계 없음
   const addPh = (k) => { if (!pt.trim()) return; A.addTask({ title: pt, projectId: p.id, assigneeId: nw, dueDate: ndue || (nw !== cu.id ? addDays(key, 3) : ""), noReview: nw === cu.id, ...(k && k !== "etc" ? { phase: k } : {}) }); setPt(""); };
+  // 카테고리 바꾸기: 로드가 바뀌면 먼저 묻기(새 단계로 · 지금 단계 그대로) — 같으면 바로
+  const pickCat = (c) => { if ((c || "") === projCat(p)) return; if (!road || launch || sameRoad(road, catRoad(c, D))) { A.setCategory(p, c, "plain"); return; } setCatAsk(c || "none"); };
   // 지금 상황 저장 — 고치는 사이 다른 사람이 먼저 저장했으면 겹친 글을 보여 주고 고르게
   const saveNow = async (force) => { const r = await A.setProjNow(p, now, nowBase, force === true); if (r && r.conflict) setNowClash(r.cur.now || {}); else if (r && r.ok) { setNowClash(null); setEdit(""); } };
   const tids = [...new Set([...live, ...(doneList || [])].map((t) => t.id))];
@@ -305,6 +327,8 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
     {(nn.now || nn.next) && <Card style={{ marginTop: 12 }}>{nn.now && flowRow("지금", nn.now, nn.others ? ` 외 ${nn.others}명` : "", !nn.next)}{nn.next && flowRow("다음", nn.next, "", true)}</Card>}
     {phases && <div className="v2-phases" role="list" aria-label="7단계">{phases.map((ph) => <button key={ph.k} type="button" role="listitem" className={"v2-ph " + ph.state} onClick={() => goPhase(ph.k)}
       aria-label={`${ph.name} · ${ph.state === "done" ? "끝남" : `남은 ${ph.left}${ph.state === "late" ? " · 지난 항목 있음" : ""}`}`}><span className="nm">{PH_SHORT[ph.k] || ph.name}</span><span className="c">{ph.state === "done" ? "✓" : ph.left}</span></button>)}</div>}
+    {rs && <div className={"v2-phases" + (rs.length > 7 ? " many" : "")} role="list" aria-label="프로젝트 단계" style={{ gridTemplateColumns: `repeat(${rs.length}, minmax(${rs.length > 7 ? 56 : 0}px, 1fr))` }}>{rs.map((ph) => <button key={ph.k} type="button" role="listitem" className={"v2-ph " + ph.state} onClick={() => goPhase(ph.k)}
+      aria-label={`${ph.name} · ${ph.state === "none" ? "업무 없음" : ph.state === "done" ? "끝남" : `남은 ${ph.left}${ph.state === "late" ? " · 지난 업무 있음" : ""}`}`}><span className="nm">{ph.name}</span><span className="c">{ph.state === "done" ? "✓" : ph.state === "none" ? "-" : ph.left}</span></button>)}</div>}
     {projectExtra && projectExtra(p)}
     {myNew.length > 0 && <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 14, background: C.soft, border: "1px solid #D7DDEE", fontSize: 14, color: C.text }}>
       <b>나에게 온 {launch ? "항목" : "업무"} {myNew.length}개</b> · 기한을 훑어보고 받아 주세요. 안 맞는 기한은 열어서 '기한 조정 요청'을 해요.
@@ -323,20 +347,28 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
         <input value={nt} onChange={(e) => setNt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) addT(); }} placeholder="+ 업무 추가 (Enter로 계속)" aria-label="업무 추가" style={{ ...inp, flex: "1 1 180px", padding: "10px 12px", fontSize: 14 }} />
         <select aria-label="담당" value={nw} onChange={(e) => setNw(e.target.value)} className="v2-sel">{activeUsers(D.users).map((u) => <option key={u.id} value={u.id}>{u.id === cu.id ? "나" : u.name}</option>)}</select>
         <input type="date" aria-label="기한" value={ndue} onChange={(e) => setNdue(e.target.value)} className="v2-sel" />
+        {roadMode && <select aria-label="넣을 단계" value={addK} onChange={(e) => setNph(e.target.value)} className="v2-sel">{road.map((x) => <option key={x.k} value={x.k}>{x.name}{x.k === curK ? " (지금)" : ""}</option>)}<option value="none">단계 미정</option></select>}
         <Act onClick={addT}>추가</Act></div>
         {nw !== cu.id && !ndue && <div style={{ padding: "0 12px 10px", fontSize: 12.5, color: C.sub }}>기한을 안 고르면 3일 뒤({md(addDays(key, 3))})로 맡겨요</div>}</Card>
-      {(() => { let firstOpen = true; return groups.map(([k, l, f]) => { const a = openT.filter(f); if (!a.length) return null;
-        const tops = top(a).sort((x, y) => (x.wfStage ?? 99) - (y.wfStage ?? 99) || String(dueOf(x) || "9").localeCompare(String(dueOf(y) || "9")));
-        // 신제품: 지금 단계(처음 남은 단계)와 급한 항목이 있는 단계만 펼침 — 한 번에 볼 것만
-        const hot = a.some((t) => { const r = riskOf(t, key); return r && (r.red || r.k === "start" || r.k === "today"); });
-        const shown = !launch || openPh[k] != null ? (launch ? openPh[k] : true) : firstOpen || hot; firstOpen = false;
-        const redH = launch && a.some((t) => { const r = riskOf(t, key); return r && r.red; });   // 빨강은 지남·막힘이 있을 때만 ('급함'은 오늘 마감·시작 전 포함)
-        return <div key={k} id={"v2-ph-" + k} style={{ scrollMarginTop: 12 }}><Head red={redH} right={launch && <TBtn onClick={() => setOpenPh({ ...openPh, [k]: !shown })}>{shown ? "접기 ▴" : "펼치기 ▾"}</TBtn>}>{l} {a.length}{launch && hot ? " · 급함" : ""}</Head>
-          {shown && <Card>{tops.map((t, i) => <div key={t.id}><TRow t={t} last={!launch && i === tops.length - 1 && !kidsOf(t.id, a).length} />{kidsOf(t.id, a).map((kk) => <TRow key={kk.id} t={kk} indent />)}</div>)}
-            {launch && (phAdd === k ? <div className="v2-phadd"><input value={pt} onChange={(e) => setPt(e.target.value)} autoFocus onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) addPh(k); if (e.key === "Escape") setPhAdd(""); }} placeholder={`${l}에 넣을 업무`} aria-label={`${l} 단계에 업무 추가`} style={{ ...inp, flex: "1 1 160px", minWidth: 0, padding: "9px 12px", fontSize: 14 }} />
+      {roadMode && <StageSortCard p={p} D={D} cu={cu} A={A} road={road} phOf={phOf} />}
+      {(() => { let firstOpen = true;
+        // '+ 이 단계에 추가' 칸 (그 자리 입력 · Enter로 계속 · 담당·기한은 위 추가 칸에서 고른 대로)
+        const addBox = (k, l) => (phAdd === k ? <div className="v2-phadd"><input value={pt} onChange={(e) => setPt(e.target.value)} autoFocus onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) addPh(k); if (e.key === "Escape") setPhAdd(""); }} placeholder={`${l}에 넣을 업무`} aria-label={`${l} 단계에 업무 추가`} style={{ ...inp, flex: "1 1 160px", minWidth: 0, padding: "9px 12px", fontSize: 14 }} />
               <Act onClick={() => addPh(k)}>추가</Act><TBtn onClick={() => { setPhAdd(""); setPt(""); }} style={{ fontSize: 13 }}>닫기</TBtn>
               {(nw !== cu.id || ndue) && <div style={{ flexBasis: "100%", fontSize: 12, color: C.sub }}>담당·기한은 위 추가 칸에서 고른 대로 넣어요 ({nw === cu.id ? "나" : nameOf(D.users, nw)} · {ndue ? md(ndue) : `${md(addDays(key, 3))}까지`})</div>}</div>
-              : <div className="v2-phadd"><TBtn onClick={() => { setPhAdd(k); setPt(""); }} style={{ fontSize: 13 }} aria-label={`${l} 단계에 추가`}>+ 이 단계에 추가</TBtn></div>)}</Card>}</div>; }); })()}
+              : <div className="v2-phadd"><TBtn onClick={() => { setPhAdd(k); setPt(""); }} style={{ fontSize: 13 }} aria-label={`${l} 단계에 추가`}>+ 이 단계에 추가</TBtn></div>);
+        return groups.map(([k, l, f]) => { const a = openT.filter(f);
+        if (!a.length) { if (!road || k === "etc" || !projOpen(p)) return null;   // 빈 단계도 한 줄로(로드 · 2026-10-07) — '+ 이 단계에 추가'
+          const dn = live.filter((t) => isDone(t) && f(t)).length;
+          return <div key={k} id={"v2-ph-" + k} className="v2-phe" style={{ scrollMarginTop: 12 }}><div className="hd"><b>{l}</b><span>{dn ? `끝낸 ${launch ? "항목" : "업무"} ${dn} · 남은 것 없음` : "비어 있어요"}</span></div>{addBox(k, l)}</div>; }
+        const tops = top(a).sort(roadMode ? (x, y) => (ST_RANK[x.status] ?? 1) - (ST_RANK[y.status] ?? 1) || String(dueOf(x) || "9").localeCompare(String(dueOf(y) || "9")) : (x, y) => (x.wfStage ?? 99) - (y.wfStage ?? 99) || String(dueOf(x) || "9").localeCompare(String(dueOf(y) || "9")));
+        // 신제품: 지금 단계(처음 남은 단계)와 급한 항목이 있는 단계만 펼침 — 한 번에 볼 것만 · 일반·흐름 단계는 처음부터 펼침
+        const hot = a.some((t) => { const r = riskOf(t, key); return r && (r.red || r.k === "start" || r.k === "today"); });
+        const shown = openPh[k] != null && road ? openPh[k] : launch ? firstOpen || hot : true; firstOpen = false;
+        const redH = !!road && a.some((t) => { const r = riskOf(t, key); return r && r.red; });   // 빨강은 지남·막힘이 있을 때만 ('급함'은 오늘 마감·시작 전 포함)
+        return <div key={k} id={"v2-ph-" + k} style={{ scrollMarginTop: 12 }}><Head red={redH} right={road && <TBtn onClick={() => setOpenPh({ ...openPh, [k]: !shown })}>{shown ? "접기 ▴" : "펼치기 ▾"}</TBtn>}>{l} {a.length}{launch && hot ? " · 급함" : ""}</Head>
+          {shown && <Card>{tops.map((t, i) => <div key={t.id}><TRow t={t} last={(!road || (k === "etc" && !launch)) && i === tops.length - 1 && !kidsOf(t.id, a).length} />{kidsOf(t.id, a).map((kk) => <TRow key={kk.id} t={kk} indent />)}</div>)}
+            {road && (k !== "etc" || launch) && addBox(k, l)}</Card>}</div>; }); })()}
       {openT.length === 0 && <Card style={{ marginTop: 10 }}><Empty>열린 업무가 없어요{projOpen(p) && lead ? " · 다 끝났으면 프로젝트를 완료해요" : ""}</Empty></Card>}
       {projOpen(p) && !isHoldP(p) && openT.length === 0 && lead && <Big onClick={() => A.endProject(p, "completed")} style={{ marginTop: 10 }}>프로젝트 완료</Big>}
       <Card style={{ marginTop: 14 }}><More onClick={loadDone}>{showDone ? "끝낸 업무 접기 ▴" : `끝낸 업무 ${doneList ? doneList.length : "보기"} ▾`}</More>
@@ -360,9 +392,11 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
         {!launch && <div>마감 {!lead ? <b>{md(p.dueDate) || "없음"}</b> : <input type="date" aria-label="마감 바꾸기" className="v2-sel" defaultValue={p.dueDate || ""} onBlur={(e) => { if (e.target.value !== (p.dueDate || "")) A.patchProject(p, { dueDate: e.target.value }, `마감 ${md(e.target.value) || "없음"}`, p.dueDate || ""); }} />}</div>}
         <div>브랜드 {!lead ? <b>{brandName(D, p.brand) || "없음"}</b> : <select aria-label="브랜드 바꾸기" className="v2-sel" value={p.brand || ""} onChange={(e) => A.patchProject(p, { brand: e.target.value }, `브랜드 → ${brandName(D, e.target.value) || "없음"}`, p.brand || "")}><option value="">없음</option>{(D.brands || []).filter((b) => b.active !== false || b.id === p.brand).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>}
           <span style={{ fontSize: 12.5, color: C.mute }}> 이 프로젝트 업무는 모두 이 브랜드로 봐요</span></div>
-        <div>카테고리 {!lead ? <b>{catName(projCat(p)) || "미분류"}</b> : <select aria-label="카테고리 바꾸기" className="v2-sel" value={projCat(p)} onChange={(e) => A.patchProject(p, { category: e.target.value }, `카테고리 → ${catName(e.target.value) || "미분류"}`, p.category || "")}><option value="">미분류</option>{PROJ_CATS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}
-          {lead && !projCat(p) && guessCat(p.title) && <TBtn onClick={() => A.patchProject(p, { category: guessCat(p.title) }, `카테고리 → ${catName(guessCat(p.title))}`, "")}>'{catName(guessCat(p.title))}'로 넣기</TBtn>}
+        <div>카테고리 {!lead ? <b>{catName(projCat(p)) || "미분류"}</b> : <select aria-label="카테고리 바꾸기" className="v2-sel" value={projCat(p)} onChange={(e) => pickCat(e.target.value)}><option value="">미분류</option>{PROJ_CATS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}
+          {lead && !projCat(p) && guessCat(p.title) && <TBtn onClick={() => pickCat(guessCat(p.title))}>'{catName(guessCat(p.title))}'로 넣기</TBtn>}
           {p.wfId && <span style={{ fontSize: 12.5, color: C.mute }}> · 흐름 {(flowList(D).find((w) => w.id === p.wfId) || {}).name || p.wfId}</span>}</div>
+        {catAsk !== "" && <CatRoadAsk p={p} D={D} A={A} cat={catAsk === "none" ? "" : catAsk} road={road} phOf={phOf} tasks={top(live)} onDone={() => setCatAsk("")} />}
+        <RoadBox p={p} D={D} cu={cu} A={A} road={road} phOf={phOf} tasks={live} />
         {p.memo && <div style={{ whiteSpace: "pre-wrap", color: C.sub }}>예전 메모: {p.memo}</div>}
         <div>중요도 {lead ? IMP.map(([k, l]) => <Chip key={k} on={impOf(p) === k} onClick={() => impOf(p) !== k && A.patchProject(p, { priority: k }, `중요도 → ${l}`, p.priority || "")}>{l}</Chip>) : <b>{impName(impOf(p))}</b>}
           <div style={{ fontSize: 12.5, color: C.mute, lineHeight: 1.6 }}>높음 = 날짜를 꼭 지켜야 하는 일 · 낮음 = 바쁘면 미뤄도 되는 일. 관리자 '판단 필요'(당길 것·미룰 것) 계산에 쓰여요</div></div>

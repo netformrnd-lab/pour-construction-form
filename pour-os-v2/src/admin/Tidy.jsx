@@ -2,7 +2,7 @@
 // 묶음 목록(숫자 큰 순) → 묶음 안: 사람별·제품별 고르기(PickList) → 아래 막대(BulkBar)로 담당·기한·보류·날짜 없이 두기·담당에게 묻기
 // 안전장치(pick.jsx · core.jsx bulk): 한 번에 100건 · 미리 보기 문장 · 30건 이상 확인 창 · 5초 되돌리기 · 기록(이전 값) · 삭제 없음
 import { useMemo, useState } from "react";
-import { ymd, md, ddays, nameOf, ownersOf, dueOf, isDone, taskNoteId, projOpen, taskTrashRows, projTrashRows, canRestoreProj, noteTrashRows, isMaster } from "../model.js";
+import { ymd, md, ddays, nameOf, ownersOf, dueOf, isDone, taskNoteId, projOpen, taskTrashRows, projTrashRows, canRestoreProj, noteTrashRows, isMaster, projLabelOf } from "../model.js";
 import { TrashList } from "../trash.jsx";
 import { groupItems, previewLaunchMove } from "../views.js";
 import { orderIssues, predLine } from "../turn.js";
@@ -142,7 +142,7 @@ export function OrderSheet({ D, cu, A, idx, open, onBack, onClose, setToast }) {
       return <div key={k}><Head red={k === "b" && a.length > 0}>{l} {a.length}{k === "b" || k === "c" ? <small className="a-also"> · 함께 볼 것</small> : null}</Head>
         <Card>{a.length === 0 ? <Empty>없어요</Empty> : a.slice(0, lim).map((x, i) => { const done = asked[k + x.t.id + (x.p ? x.p.id : "")];
           return <Row key={k + x.t.id + (x.p ? x.p.id : i)} title={x.t.title}
-            sub={`${who(x.t)} · ${dueOf(x.t) ? md(dueOf(x.t)) : "기한 없음"}${((D.projects || []).find((p) => p.id === x.t.projectId) || {}).title ? " · " + D.projects.find((p) => p.id === x.t.projectId).title : ""}`}
+            sub={`${who(x.t)} · ${dueOf(x.t) ? md(dueOf(x.t)) : "기한 없음"}${projLabelOf(D, x.t.projectId) ? " · " + projLabelOf(D, x.t.projectId) : ""}`}
             sub2={x.p ? `앞 일: ${targets(k, x.t, x.p).map((p) => predLine(p, D.users, key)).join(" / ")}` : null} onClick={() => open({ type: "task", id: k === "c" ? x.t.id : (x.p || x.t).id })} last={i === Math.min(lim, a.length) - 1 && a.length <= lim}
             right={k === "c" ? <Act onClick={() => open({ type: "task", id: x.t.id })}>담당 정하기</Act>
               : x.p ? <Act onClick={() => !done && ask(k, x.t, x.p)} style={done ? { color: C.mute } : null}>{done ? "물어봄 ✓" : "담당에게 묻기"}</Act> : null} />; })}

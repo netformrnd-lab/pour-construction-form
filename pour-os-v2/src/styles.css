@@ -668,12 +668,15 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
 /* '할 일' 카드 머리 (2026-10-07): [할 일 · 내 할 일 모두 ›] 아래 칩 줄 · 칸이 넓으면(480+) 칩이 같은 줄 */
 .v2-ts.tod { container-type: inline-size; }
 .v2-todohead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 18px 2px 8px; }
-.v2-todohead h3 { order: 1; margin: 0; font-size: 14px; font-weight: 800; color: #0F1F5C; flex: 1 1 auto; min-width: 0; }
-.v2-todohead .all { order: 2; }
+.v2-todohead h3 { order: 1; margin: 0; font-size: 14px; font-weight: 800; color: #0F1F5C; flex: 0 0 auto; min-width: 0; }
+/* [+ 추가] = 제목 바로 옆 (2026-10-07 · 오늘 화면 떠 있던 버튼 대신) */
+.v2-todohead .add { order: 1; flex: 0 0 auto; padding-left: 10px; padding-right: 10px; }
+.v2-todohead .all { order: 2; margin-left: auto; }
 .v2-trange { order: 3; flex: 1 0 100%; display: flex; gap: 6px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .v2-trange::-webkit-scrollbar { display: none; }
 @container (min-width: 480px) {
   .v2-todohead h3 { flex: 0 0 auto; }
+  .v2-todohead .add { order: 1; }
   .v2-trange { order: 2; flex: 1 1 auto; }
   .v2-todohead .all { order: 3; }
 }

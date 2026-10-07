@@ -9,7 +9,7 @@ import {
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, planSeed, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, isHoldP, nextWorkday, setHolidayLayer, handOverOwners,
   scopeFields, brandLabel, cycleFields, FX_WD, isRemoved, fxRemoveFields, fxRestoreFields, canRemoveFx, canRemoveAk, canRenameFx, scopeOf,
-  canRemoveTask, canRestoreTask, taskKids, taskRemoveFields, canRemoveProj, canRestoreProj, projRemoveFields, projTaskRemoveFields, projTaskBack,
+  canFinish, canRemoveTask, canRestoreTask, taskKids, taskRemoveFields, canRemoveProj, canRestoreProj, projRemoveFields, projTaskRemoveFields, projTaskBack,
 } from "./model.js";
 import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS } from "./launch.js";
 import { nextTurnText } from "./turn.js";
@@ -95,7 +95,7 @@ export function useData(on, full = true) {
     const goneT = new Set(allT.filter((t) => inGone(t) || (isRemoved(t) && t.removed.proj)).map((t) => t.id));
     const goneItem = (id) => { const s = String(id || ""); return (s.startsWith("proj:") && goneP.has(s.slice(5))) || (s.startsWith("task:") && goneT.has(s.slice(5))); };
     const notes = goneP.size ? (S.notes || []).filter((n) => !n || !goneItem(n.itemId)) : S.notes;
-    const logs = goneP.size ? (S.log || []).filter((l) => !l || (l.col === "projects" && (l.action === "remove" || l.action === "restore")) || !(goneP.has(l.projectId) || goneP.has(l.targetId) || goneT.has(l.targetId))) : S.log;
+    const logs = goneP.size ? (S.log || []).filter((l) => !l || !(goneP.has(l.projectId) || goneP.has(l.targetId) || goneT.has(l.targetId))) : S.log;
     return { users: S.users || [], projects: goneP.size ? allP.filter((p) => !goneP.has(p.id)) : allP, removedProjects: allP.filter((p) => goneP.has(p.id)), goneIds: goneT,
       tasks: allT.filter((t) => !isRemoved(t) && !inGone(t)), removedFx: allT.filter((t) => t.isFixed && isRemoved(t)), removedTasks: allT.filter((t) => !t.isFixed && isRemoved(t) && !goneT.has(t.id)), removedProjTasks: allT.filter((t) => goneT.has(t.id)), notes, log: logs, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], settings: S.settings || [], ak, links: S.links || [], linkInbox,
       kpi: { ov: S.kpiOv || [], lagRaw: ((S.lagDef || {}).items || []).filter((x) => x && x.id && !x.deleted),
@@ -467,7 +467,9 @@ export function useActs(D, cu, setToast, idx = null) {
     },
     // 끝냈어요 — 맡긴 사람이 있으면 확인 요청, 아니면 바로 끝
     // note: 다음 사람에게 한마디(있으면 handoff 댓글로 남김 → 뒷사람 '지금 할 일' 카드의 '앞 일 마지막 말')
-    finish: (t, note) => {
+    finish: (t, note, opt) => { if (!(opt && opt.any) && !canFinish(t, cu)) { setToast({ text: "담당이나 관리자만 끝낼 수 있어요" }); return; }
+      const proxy = !isMine(t, cu.id) && !(opt && opt.any) ? ownersOf(t)[0] || "" : "", px = proxy ? { doneBy: proxy, doneByName: nameOf(D.users, proxy) || cu.name, doneProxy: { by: cu.id, byName: cu.name, at: nowIso() } } : {};   // 관리자가 대신 끝냄: 끝낸 사람 = 담당 · 누른 사람 = 관리자(기록·상태 기록 by)
+      const pxL = proxy ? ` (관리자 ${cu.name}님이 대신)` : "";
       const at = nowIso(), prev = { status: t.status, doneAt: t.doneAt || null, reviewAt: t.reviewAt || null, finishedAt: t.finishedAt || null, feedback: t.feedback || null, blocked: t.blocked || null, ackAt: t.ackAt || null };
       const nx = idx ? nextTurnText(t, idx, D.users) : { text: "" };
       if (note && note.trim()) A.addNote(taskNoteId(t.id), note.trim(), null, [], { taskId: t.id, projectId: t.projectId }, { handoff: true });
@@ -475,11 +477,11 @@ export function useActs(D, cu, setToast, idx = null) {
       const tail = nx.text ? ` · ${nx.text}` : nx.noOwner ? ` · 다음 일 담당이 없어서 ${lead && lead !== cu.id ? `책임자 ${nameOf(D.users, lead)}님께 알렸어요` : "담당을 정해 주세요"}` : "";
       if (needsReview(t)) {
         const f = { status: "review", reviewAt: at, reviewTo: reqOf(t), finishedAt: at, blocked: null, ...(t.ackAt ? {} : { ackAt: at, ackBy: cu.id }) };
-        P(t, { ...f, statusLog: sl("review") }, "review");
+        P(t, { ...f, statusLog: sl("review", proxy ? { proxy } : undefined) }, "review", t.title + pxL);
         setToast({ text: `${nameOf(D.users, reqOf(t))}님께 확인 요청을 보냈어요${tail}`, undo: () => undoT(t, f, prev, `${t.title} · 확인 요청 취소`) });
       } else {
-        const f = { status: "done", doneAt: at, doneBy: cu.id, doneByName: cu.name, finishedAt: at, feedback: null, blocked: null, ...(t.ackAt ? {} : { ackAt: at, ackBy: cu.id }) };
-        P(t, { ...f, statusLog: sl("done") }, "done").then(() => t.projectId && recalc(t.projectId));
+        const f = { status: "done", doneAt: at, doneBy: cu.id, doneByName: cu.name, ...px, finishedAt: at, feedback: null, blocked: null, ...(t.ackAt ? {} : { ackAt: at, ackBy: cu.id }) };
+        P(t, { ...f, statusLog: sl("done", proxy ? { proxy } : undefined) }, "done", t.title + pxL).then(() => t.projectId && recalc(t.projectId));
         setToast({ text: `끝냈어요${tail || " · " + t.title}`, undo: () => undoT(t, f, prev, `${t.title} · 끝냄 취소`) });
       }
     },
@@ -580,7 +582,7 @@ export function useActs(D, cu, setToast, idx = null) {
         if (others.length) await fb.patchMany(others.map((o) => ({ key: "tasks", id: tdoc(o), fields: { status: "hold", optDropped: true, statusLog: sl("hold", { dropped: true }), updatedAt: at, updatedBy: cu.id, v2At: at } })));
         if (!isDone(opt)) await P(opt, { status: "done", doneAt: at, doneBy: cu.id, doneByName: cu.name, finishedAt: at, ...(opt.ackAt ? {} : { ackAt: at }), statusLog: sl("done", { chosen: true }) });
         const nx = idx ? nextTurnText(t, idx, D.users) : { text: "" };
-        if (!isDone(t) && t.status !== "review") A.finish(t);   // 끝냄 알림은 아래 '정했어요' 알림으로 바뀜 (다음 차례 문구는 같이)
+        if (!isDone(t) && t.status !== "review") A.finish(t, "", { any: true });   // 정한 사람이 끝냄(예전 그대로) · 끝냄 알림은 아래 '정했어요' 알림으로 바뀜 (다음 차례 문구는 같이)
         setToast({ text: `정했어요 · ${opt.title}${others.length ? ` · 나머지 ${others.length}개는 보류` : ""}${nx.text ? " · " + nx.text : ""}`, undo: () => undoMany([{ key: "tasks", id: tdoc(t), wrote: { decided: { optionId: opt.id, title: opt.title, reason: String(reason || "").trim(), by: cu.id, byName: cu.name, at } }, prev: prevT },
           ...prevO.map((x) => ({ key: "tasks", id: tdoc(x.o), wrote: { status: "hold", optDropped: true }, prev: { status: x.status, optDropped: x.optDropped } })),
           ...(prevChosen.status !== "done" ? [{ key: "tasks", id: tdoc(opt), wrote: { status: "done" }, prev: { status: prevChosen.status, doneAt: null, doneBy: null, finishedAt: null } }] : [])], `${t.title} · 결정 취소`, "decide") });

@@ -162,6 +162,8 @@ export function trashRows(removedFx, akRemoved, brands, uid) {
 // ── 한 번짜리 업무 없애기 (사용자 확정 2026-10-07 "업무 삭제는 어떻게해?" → 누구나 없애기 · 지우지 않음) ──
 //   볼 수 있는 사람이면 누구나(기밀로 잠긴 사람은 못 봄 → 못 없앰) · removed {at, by, byName, reason, prevStatus, root, kids[]} — 상태는 그대로 · 하위 업무(결정 업무의 안 포함)는 같이(root = 처음 없앤 업무)
 export const REMOVE_REASONS = ["잘못 만듦", "중복", "안 하기로 함", "기타"];
+// 끝냄 누를 수 있는 사람 (사용자 확정 2026-10-07): 담당 + 관리자(모든 업무 · 대신 끝내면 기록·상태 기록엔 관리자 이름 · 끝낸 사람(doneBy)은 담당으로 남김)
+export const canFinish = (t, cu) => !!t && !!cu && !t.isFixed && !t.locked && !isRemoved(t) && (isMine(t, cu.id) || isMaster(cu));
 export const canRemoveTask = (t, cu) => !!t && !!cu && !t.isFixed && !t.locked && !isRemoved(t);
 export const canRestoreTask = (t, cu) => !!t && !!cu && !t.isFixed && !t.locked && isRemoved(t) && !t.removed.proj;   // 프로젝트째 없앤 업무는 프로젝트를 되살려야 돌아옴
 // 아래로 끝까지 하위 업무 (없앤 것·고정업무 빼고 · 고리 막음)

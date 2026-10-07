@@ -5,7 +5,7 @@ import * as fb from "./fb.js";
 import {
   ymd, addDays, ddays, ddayLabel, md, ago, hm, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf,
   projOpen, projMine, projStat, projGroups, projWhen, feedOf, taskNoteId, projNoteId, LOG_L, reqOf, riskOf, workloadOf, PROJ_CATS, catName, projCat, guessCat,
-  IMP, impOf, impName, isHoldP, projStLabel, projForecast, projPct, isOneOff, TEAMS, projTeam, projTeamAuto, isGhProj, ghDashUrl, isRemoved, taskTrashRows, canRemoveProj, canRestoreProj,
+  IMP, impOf, impName, isHoldP, projStLabel, projForecast, projPct, isOneOff, TEAMS, projTeam, projTeamAuto, isGhProj, ghDashUrl, isRemoved, taskTrashRows, canRemoveProj, canRestoreProj, canFinish,
 } from "./model.js";
 import { TrashList, ProjRemoveAsk, RemovedNote } from "./trash.jsx";
 import { Gantt } from "./gantt.jsx";
@@ -263,7 +263,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
     return <div style={{ paddingLeft: indent ? 18 : 0, background: "#fff" }}><Row dim={isDone(t)} tag={tag} tagTone={r ? (r.red ? "red" : null) : tag === "내 차례" ? "turn" : null} title={t.title}
       sub={[own, dueOf(t) ? md(dueOf(t)) + (isDone(t) || r ? "" : " · " + ddayLabel(ddays(dueOf(t), key))) : "기한 미정", ncount(t) ? `댓글 ${ncount(t)}` : ""].filter(Boolean).join(" · ")}
       sub2={wait ? "앞 일: " + predLine(wait, D.users, key) : null}
-      onClick={() => open({ type: "task", id: t.id })} right={isMine(t, cu.id) && t.status !== "review" ? <Act on={isDone(t)} onClick={() => (isDone(t) ? A.reopen(t) : A.finish(t))}>{isDone(t) ? "✓" : "끝냄"}</Act> : null} last={last} /></div>; };
+      onClick={() => open({ type: "task", id: t.id })} right={(isDone(t) ? isMine(t, cu.id) || isMaster(cu) : canFinish(t, cu)) && t.status !== "review" ? <Act on={isDone(t)} onClick={() => (isDone(t) ? A.reopen(t) : A.finish(t))}>{isDone(t) ? "✓" : "끝냄"}</Act> : null} last={last} /></div>; };
   const goPhase = (k) => { setTab("work"); setOpenPh((o) => ({ ...o, [k]: true })); setTimeout(() => { const el = document.getElementById("v2-ph-" + k); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); };
   const flowRow = (lab, t, extra, last) => <Row key={lab} tag={lab} tagTone={lab === "지금" ? "turn" : null} title={`${whoOf(D, t)} · ${t.title}${extra || ""}`}
     sub={[dueOf(t) ? md(dueOf(t)) + " " + ddayLabel(ddays(dueOf(t), key)) : "기한 미정", lab === "다음" && t.status === "todo" ? "앞 일이 끝나면 시작" : stWord(t)].join(" · ")} onClick={() => open({ type: "task", id: t.id })} last={last} />;

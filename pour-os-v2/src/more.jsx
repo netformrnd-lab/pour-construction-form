@@ -1,6 +1,6 @@
 // 업무OS v2 — 더보기 (나와 관련된 도구만) · 내가 맡긴 일 · 내 고정업무
 import { useState } from "react";
-import { addDays, WD, ymd, md, hm, isMaster, nameOf, ownersOf, dueOf, riskOf, assignedByMe, fxIsMine, fxRecurL, fxTime, fxLabel, fxMeDone, COUNT_L, scopeOf, brandLabel, FX_WD, trashRows, taskTrashRows } from "./model.js";
+import { addDays, WD, ymd, md, hm, isMaster, nameOf, ownersOf, dueOf, riskOf, assignedByMe, fxIsMine, fxRecurL, fxTime, fxLabel, fxMeDone, COUNT_L, scopeOf, brandLabel, FX_WD, trashRows, taskTrashRows, projTrashRows, canRestoreProj } from "./model.js";
 import { TrashList } from "./trash.jsx";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, useLocal, inp } from "./ui.jsx";
 import { V1_URL, LS } from "./core.jsx";
@@ -36,6 +36,8 @@ export function MoreTab({ D, cu, A, meta, logout, open, BUILD, setToast }) {
       <Row title={`내가 쓴 댓글${myN.today ? ` · 오늘 ${myN.today}` : ""}`} sub="오늘 · 7일 · 30일 · 누르면 그 댓글로" onClick={() => open({ type: "myNotes" })} right={arrow} last={false} />
       <Row title="내 KPI" sub="내 반복·내 프로젝트가 움직이는 KPI" onClick={() => open({ type: "myKpi" })} right={arrow} last />
     </Card>
+    {/* 없앤 프로젝트(2026-10-07): 관리자는 전부 · 팀원은 내가 책임자·함께 하는 사람이거나 내가 없앤 것 · 되살리기는 책임자·관리자 */}
+    {A && <TrashList rows={projTrashRows(D.removedProjects, isMaster(cu) ? null : cu.id)} A={A} open={open} label="없앤 프로젝트" canRestore={(r) => canRestoreProj(r.x, cu)} note="되살리면 안에 있던 업무까지 통째로 돌아와요 · 댓글·자료·기록은 그대로 있어요" style={{ marginTop: 10 }} />}
     {/* 없앤 업무(누구나 없애기 · 2026-10-07): 내가 없앴거나 내가 담당·맡긴 것 · 처음엔 접힘 */}
     {A && <TrashList rows={taskTrashRows(D.removedTasks, D.projects, cu.id)} A={A} open={open} label="없앤 업무" note="되살리면 없애기 전 그대로 돌아와요(하위 업무도 같이) · 댓글·파일·기록은 그대로 있어요" style={{ marginTop: 10 }} />}
     <Head>성과</Head>

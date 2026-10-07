@@ -22,6 +22,7 @@ import { AddRoutineSheet, RecBookSheet } from "./RoutineAdd.jsx";
 import { KpiBoard, LagSheet, useGhRefresh, KpiEditSheet } from "../kpiui.jsx";
 import { ReportBody, ReportSheet } from "../reportui.jsx";
 import { GrowthBody, GrowthSheet } from "../growthui.jsx";
+import { SearchSheet } from "../searchui.jsx";
 import { Seg } from "../ui.jsx";
 import "./admin.css";
 
@@ -84,6 +85,7 @@ function AdminMain({ B }) {
     recBook: (p) => <RecBookSheet {...p} />,          // [기록 보기 ›]
     reports: (p) => <ReportSheet {...p} />,
     growth: (p) => <GrowthSheet {...p} />,
+    search: (p, s) => <SearchSheet {...p} s={s} />,   // 찾기 (searchui.jsx · 머리 [찾기])
   };
   const top = stack[stack.length - 1];
   return <div className="v2-app a-app">
@@ -98,6 +100,7 @@ function AdminMain({ B }) {
         <div className="a-head">
           <b><span className="a-pre">관리 · </span>{cu.name}</b>
           <span style={{ flex: 1 }} />
+          <TBtn onClick={() => open({ type: "search" })} aria-label="찾기 · 업무 · 프로젝트 · 댓글">찾기</TBtn>
           <button type="button" className={"a-inbox" + (TV.inbox.length ? " on" : "")} onClick={() => open({ type: "inbox" })}>나에게 온 것 <b>{TV.inbox.length}</b></button>
           <TBtn onClick={() => open({ type: "settings" })}>설정</TBtn>
           <a href={MY_URL} className="a-mylink">내 화면으로 ›</a>

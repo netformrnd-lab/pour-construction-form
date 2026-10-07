@@ -157,6 +157,7 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
       {wk.total > 0 && <button type="button" className="v2-wkpct" onClick={() => open({ type: "mine" })} aria-label={`이번 주 완료율 ${wk.pct}% · 전체 ${wk.total} 완료 ${wk.done} 진행 ${wk.doing} 지남 ${wk.late} · 내 할 일 모두 보기`}>
         <div className="t">이번 주 완료율 <b>{wk.pct}%</b> · 전체 {wk.total} · 완료 {wk.done} · 진행 {wk.doing} · 지남 <b style={{ color: wk.late ? C.red : C.ink }}>{wk.late}</b></div>
         <div className="bar"><i style={{ width: wk.pct + "%" }} /></div></button>}
+      <button type="button" className="v2-findbtn" onClick={() => open({ type: "search" })} aria-label="찾기 · 업무 · 프로젝트 · 댓글"><b>찾기</b><span>업무 · 프로젝트 · 댓글</span></button>
     </header>
     <div style={{ display: "flex", flexDirection: "column", gap: 0, marginTop: 6 }}>
       {lateN > 0 && <LineBtn onClick={() => open({ type: "triage" })}><span>지난 일 <b style={{ color: C.red }}>{lateN}개</b> · 하나씩 정리하기</span> ›</LineBtn>}

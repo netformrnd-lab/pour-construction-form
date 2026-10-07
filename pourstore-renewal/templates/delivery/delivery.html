@@ -60,13 +60,17 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 .psm1-hd-inner { max-width:1256px; margin:0 auto; padding:18px 24px; display:flex; align-items:center; gap:28px; }
 .psm1-logo { display:flex; align-items:center; font-weight:800; font-size:24px; color:#111827; letter-spacing:-0.045em; flex-shrink:0; }
 .psm1-logo .psm1-logo-or { color:#111827; }
+.psm1-logo img { height:64px; width:auto; display:block; }
+.psm1-hd-mb .psm1-mb-logo img { height:46px; width:auto; display:block; }
+.psm1-drawer-logo img { height:40px; width:auto; display:block; vertical-align:middle; }
+.psm1-ytm-brand img { height:34px; width:auto; display:block; }
 .psm1-searchwrap { flex:1; max-width:620px; position:relative; }
 .psm1-slogan { position:relative; display:inline-block; margin-top:11px; margin-left:20px; font-family:'Gothic A1','Pretendard Variable',Pretendard,sans-serif; font-weight:600; font-size:15px; letter-spacing:-0.02em; color:#2A2E33; line-height:1.3; word-break:keep-all; }
 .psm1-slogan b { font-family:inherit; font-weight:inherit; color:#E8780F; }
 .psm1-slg-g { position:absolute; inset:0; font-family:inherit; background:linear-gradient(100deg,transparent 44%,rgba(255,255,255,.92) 50%,transparent 56%); background-size:280% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; animation:psm1-shine 6.5s ease-in-out infinite; pointer-events:none; }
 @keyframes psm1-shine { 0% { background-position:170% 0; } 50%,100% { background-position:-70% 0; } }
 @media (prefers-reduced-motion:reduce) { .psm1-slg-g { animation:none; opacity:0; } }
-@media (max-width:700px){ .psm1-mb-slogan { margin:8px 4px 0; text-align:center; font-family:'Gothic A1','Pretendard Variable',Pretendard,sans-serif; font-weight:600; font-size:12.5px; letter-spacing:-0.02em; color:#2A2E33; line-height:1.4; word-break:keep-all; } .psm1-mb-slogan b { font-family:inherit; font-weight:inherit; color:#E8780F; } }
+@media (max-width:700px){ .psm1-mb-slogan { margin:8px 4px 0; text-align:center; font-family:'Pretendard Variable',Pretendard,sans-serif; font-weight:600; font-size:12.5px; letter-spacing:-0.02em; color:#2A2E33; line-height:1.4; word-break:keep-all; } .psm1-mb-slogan b { font-family:inherit; font-weight:inherit; color:#E8780F; } .psm1-hd-mb, .psm1-tabs { -webkit-text-size-adjust:100%; text-size-adjust:100%; } /* iOS 글자 자동확대 방지 — 전 페이지 상단 크기 고정 */ }
 .psm1-search form { margin:0; display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:26px; padding:10px 12px 10px 18px; }
 .psm1-search .psm1-search-ico { width:20px; height:20px; color:#E8780F; flex-shrink:0; }
 .psm1-search input { flex:1; min-width:0; border:none; outline:none; background:none; font-size:15px; font-weight:400; color:#2F3438; letter-spacing:-0.02em; }
@@ -147,7 +151,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 .psm1-hd-util .psm1-util-lb { font-size:10.5px; font-weight:600; color:#6B7280; letter-spacing:-0.04em; line-height:1; white-space:nowrap; }
 .psm1-hd-util .psm1-util-ico:hover, .psm1-hd-util .psm1-cart-link:hover { color:#E8780F; }
 .psm1-hd-util .psm1-util-ico:hover .psm1-util-lb, .psm1-hd-util .psm1-cart-link:hover .psm1-util-lb { color:#E8780F; }
-.psm1-hd-util .psm1-util-sep { align-self:center; width:1px; height:24px; background:#E5E7EB; margin:0 2px; }
+.psm1-hd-util .psm1-util-sep { align-self:center; width:1px; height:24px; background:#E5E7EB; margin:0 4px; }
 .psm1-hd-mb { display:none; }
 /* 2) 카테고리 탭 */
 .psm1-tabs { border-bottom:1px solid #F2F3F5; background:#fff; }
@@ -424,7 +428,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 <!-- 1) 메인 헤더 -->
 <header class="psm1-hd">
   <div class="psm1-hd-inner">
-    <a href="/" class="psm1-logo"><span class="psm1-logo-or">POUR</span><span>스토어</span></a>
+    <a href="/" class="psm1-logo"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fpour-logo.png?alt=media&amp;token=01389d80-e284-4587-9ac7-53394ae3cabe" alt="POUR스토어"></a>
     <div class="psm1-searchwrap">
       <div class="psm1-search">
         <form action="/product/search.html" method="get" role="search">
@@ -461,7 +465,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
   <div class="psm1-hd-mb">
     <div class="psm1-mb-top">
       <button class="psm1-mb-menu" aria-label="메뉴"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-      <a href="/" class="psm1-mb-logo"><span class="psm1-logo-or">POUR</span><span>스토어</span></a>
+      <a href="/" class="psm1-mb-logo"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fpour-logo.png?alt=media&amp;token=01389d80-e284-4587-9ac7-53394ae3cabe" alt="POUR스토어"></a>
       <a href="/order/basket.html" module="Layout_orderBasketcount" class="psm1-mb-cart" aria-label="장바구니">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg>
         <span class="count {$basket_count_display|display} {$basket_count_display_class}"><span class="{$basket_count_class}">{$basket_count}</span></span>
@@ -494,7 +498,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
     <a href="/pourstore_renewal/story/case.html" class="psm1-tab">시공사례</a>
     <a href="/pourstore_renewal/story/event.html" class="psm1-tab">이벤트</a>
   </div>
-    <div class="pcatnav-panel" data-pcatnav-panel hidden><div class="pcatnav-panel-inner"><a href="/product/list.html?cate_no=73">전체 제품</a><a href="/product/list.html?cate_no=71">패키지</a><a href="/product/list.html?cate_no=88">균열보수</a><a href="/product/list.html?cate_no=74">도장·도색</a><a href="/product/list.html?cate_no=117">지붕보강자재</a><a href="/product/list.html?cate_no=119">지하주차장 보강자재</a><a href="/product/list.html?cate_no=118">외벽 보강자재</a><a href="/product/list.html?cate_no=116">도로보강자재</a><a href="/product/list.html?cate_no=84">부자재</a><a href="/product/list.html?cate_no=63">안전용품</a></div></div>
+    <div class="pcatnav-panel" data-pcatnav-panel hidden><div class="pcatnav-panel-inner"><a href="/product/list.html?cate_no=73">전체 제품</a><a href="/product/list.html?cate_no=71">패키지</a><a href="/product/list.html?cate_no=86">방수</a><a href="/product/list.html?cate_no=88">균열보수</a><a href="/product/list.html?cate_no=74">도장·도색</a><a href="/product/list.html?cate_no=117">지붕보강자재</a><a href="/product/list.html?cate_no=119">지하주차장 보강자재</a><a href="/product/list.html?cate_no=118">외벽 보강자재</a><a href="/product/list.html?cate_no=116">도로보강자재</a><a href="/product/list.html?cate_no=84">부자재</a><a href="/product/list.html?cate_no=63">안전용품</a><a href="/product/list.html?cate_no=43">홈리페어·홈데코</a></div></div>
 </nav>
 <style>
 .pcatnav-btn{cursor:pointer;color:#111111;font-weight:600;display:inline-flex;align-items:center;gap:4px;}
@@ -610,7 +614,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 <div class="psm1-drawer-bk" data-mb-backdrop hidden></div>
 <aside class="psm1-drawer" data-mb-drawer hidden aria-label="전체 메뉴">
   <div class="psm1-drawer-head">
-    <a href="/" class="psm1-drawer-logo"><span class="or">POUR</span>스토어</a>
+    <a href="/" class="psm1-drawer-logo"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fpour-logo.png?alt=media&amp;token=01389d80-e284-4587-9ac7-53394ae3cabe" alt="POUR스토어"></a>
     <button class="psm1-drawer-close" data-mb-close type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div class="psm1-drawer-body">

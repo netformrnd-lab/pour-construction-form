@@ -4,6 +4,25 @@
 
 ---
 
+## 🧭 상단 헤더(로고·슬로건·검색창·탭) — 복사본 12곳 (⚠️ 바꿀 땐 전부 동일하게)
+
+> 2026-10 모바일 상단 통일: 로고=이미지, 슬로건 "누구나 쉽게, 오래가는 건축물 유지보수 자재의 모든 것"(Pretendard 600 12.5px, 검색창 위),
+> 검색창 높이 42px, 모바일 인기검색어 숨김, 탭 순서 카테고리→베스트→POUR이야기. **기준본 = `common/pour-header.html`**
+
+| 파일 | 쓰이는 곳 |
+|---|---|
+| `common/pour-header.html` (기준본) | 레이아웃 경유 전 페이지(상품목록·베스트 cate_no=104·검색 등) |
+| `main/pour-01-main.html` | 메인 |
+| `story/pour-story.html` · `story/case.html` · `story/event.html` | POUR이야기 · 시공사례 · 이벤트 |
+| `construction/pour-construction-request.html` · `package/pour-package.html` | 시공문의 · 패키지 |
+| `guide/guide.html` · `guide/guide-detail.html` (카페24 스킨 루트 `guide/`) | 셀프시공 |
+| `delivery/delivery.html` (카페24 스킨 루트 `delivery/`) | 배송안내 |
+| `category/best.html` · `category/pour-products.html` | (현재 메뉴 미사용, 동기화만 유지) |
+
+- 독립 페이지들의 `<header>`~탭`</nav>` 블록은 기준본과 **글자 하나까지 동일**하게 유지(활성 탭은 JS가 URL 보고 자동 표시).
+
+---
+
 ## 🟢 POUR닥터 실시간 채팅 위젯 — 어디를 고쳐야 하나 (⚠️ 꼭 읽기)
 
 > **위젯(오른쪽 아래 채팅 버튼)을 바꿀 땐, 원본을 고친 뒤 아래 3곳에 그대로 반영하세요.**

@@ -6,7 +6,7 @@ import {
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit, fxWeekDays, fxIds, FX_WD, monthEndWorkday,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf,
-  scopeOf, brandLabel, brandsWithCommon, brandKey, cyclePending, cycleGuess, isRemoved, canRemoveFx, canRenameFx, parenSubs,
+  scopeOf, brandLabel, brandsWithCommon, brandKey, cyclePending, cycleGuess, isRemoved, canRemoveFx, canRenameFx,
 } from "./model.js";
 import { RemoveAsk, RemovedNote } from "./trash.jsx";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
@@ -391,7 +391,7 @@ function FxMore({ t, D, cu, A, focus, mine, canRecur, canCommon, canScope, maste
       where={personal ? (master ? "관리자 › 반복 실행 아래 '없앤 것' · 더보기 › 내 고정업무 아래 '없앤 고정업무'" : "더보기 › 내 고정업무 아래 '없앤 고정업무'") : "관리자 › 반복 실행 아래 '없앤 것'"} />}
     {mode === "qty" && <QtyCfgEdit cfg={qtyCfg(t)} onSave={(q) => { A.setQtyCfg(t, q); done(); }} onDone={done} />}
     {mode === "subs" && <SubsEdit t={t} cu={cu} A={A} canMine={mine} canCommon={canCommon} onDone={done} />}
-    {mode === "name" && <NameEdit t={t} cu={cu} A={A} canRename={canRename} canMine={mine} canSubs={canRename && canCommon} onDone={done} />}
+    {mode === "name" && <NameEdit t={t} cu={cu} A={A} canRename={canRename} canMine={mine} onDone={done} />}
     {mode === "label" && <LabelEdit t={t} cu={cu} A={A} onDone={done} />}
     {mode === "scope" && <ScopeEdit t={t} D={D} A={A} onDone={done} />}
     {mode === "recur" && <RecurEdit t={t} A={A} onDone={done} />}
@@ -435,32 +435,24 @@ function LabelEdit({ t, cu, A, onDone }) {
   </Card>;
 }
 // 이름 고치기 (사용자 요청 2026-10-07): ① 공통 이름(모두에게 · 개인 = 본인·관리자 · 반복 실행 = 관리자 · 연 때 본 이름 그대로일 때만) ② 내 화면에만 보이는 이름(labelBy.<나> · 선택)
-//   긴 이름은 여기서 전부 보임(시트 머리는 2줄까지) · 끝 괄호 안이 쉼표 목록이면 '괄호 안 내용을 체크리스트로 옮길까요? [옮기기]' → 미리 보기 → 한 번에 · 되돌리기
+//   긴 이름은 여기서 전부 보임(시트 머리는 2줄까지)
 export function NameClash({ cur, onUse, onMine }) {
   return <div role="alert" style={{ padding: "10px 12px", borderRadius: 10, background: "#fff", border: `1.5px solid ${C.navy}`, fontSize: 13, color: C.text, lineHeight: 1.55 }}>
     <b style={{ color: C.ink }}>그사이 다른 사람이 이름을 바꿨어요</b> · 내 이름은 아직 저장 안 했어요<div style={{ margin: "4px 0 8px", wordBreak: "break-word" }}>지금 이름: {cur || "(비어 있음)"}</div>
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><Act onClick={onUse}>지금 이름으로 다시 보기</Act><Act onClick={onMine}>내 이름으로 저장</Act></div></div>;
 }
-function NameEdit({ t, cu, A, canRename, canMine, canSubs, onDone }) {
+function NameEdit({ t, cu, A, canRename, canMine, onDone }) {
   const [base, setBase] = useState(t.title || ""), [v, setV] = useState(t.title || ""), [l, setL] = useState(((t.labelBy || {})[cu.id]) || "");
-  const [clash, setClash] = useState(null), [prev, setPrev] = useState(false), [busy, setBusy] = useState(false);
-  const plan = canSubs ? parenSubs(t.title, (t.subsBy || {})["*"]) : null;
+  const [clash, setClash] = useState(null), [busy, setBusy] = useState(false);
   const save = async (b = base) => { if (busy) return; setBusy(true);
     try { if (canRename && v.trim() && v.trim() !== b) { const r = await A.renameFx(t, v, b); if (r && r.conflict) { setClash(r.cur); return; } if (!r || !r.ok) return; }
       if (canMine && l.trim() !== (((t.labelBy || {})[cu.id]) || "")) A.setMine(t, "labelBy", l);
       onDone(); } finally { setBusy(false); } };
-  const move = async () => { if (busy) return; setBusy(true); try { const r = await A.fxParenMove(t, plan, base); if (r && r.conflict) { setPrev(false); setClash(r.cur); } else if (r && r.ok) onDone(); } finally { setBusy(false); } };
   return <Card style={{ marginTop: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
     {canRename ? <label style={{ fontSize: 13, fontWeight: 800, color: C.ink }}>이름 <span style={{ color: C.mute, fontWeight: 700 }}>(모두에게 보여요)</span>
       <textarea value={v} onChange={(e) => setV(e.target.value)} rows={Math.min(4, Math.max(1, Math.ceil(v.length / 28)))} aria-label="이름" style={{ ...inp, marginTop: 6, padding: "9px 12px", resize: "vertical", lineHeight: 1.5 }} /></label>
     : <div style={{ fontSize: 13, color: C.sub }}><b style={{ color: C.ink }}>이름</b> · {t.title}<div style={{ fontSize: 12, color: C.mute, marginTop: 2 }}>모두에게 보이는 이름은 관리자가 고쳐요</div></div>}
     {clash != null && <NameClash cur={clash} onUse={() => { setBase(clash); setV(clash); setClash(null); }} onMine={() => { const c = clash; setBase(c); setClash(null); save(c); }} />}
-    {plan && plan.parts.length > 0 && !prev && <div style={{ fontSize: 12.5, color: C.sub, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", background: C.bg, borderRadius: 10, padding: "8px 10px" }}>괄호 안 내용을 체크리스트로 옮길까요? <TBtn onClick={() => setPrev(true)}>옮기기</TBtn></div>}
-    {plan && prev && <div className="v2-namemove" style={{ background: C.bg, borderRadius: 10, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ fontSize: 13, color: C.text, wordBreak: "break-word" }}><b>이름</b> → {plan.title}</div>
-      <div style={{ fontSize: 12.5, color: C.sub }}>공통 체크리스트에 {plan.parts.length}개 더해요 · 5초 안에 되돌릴 수 있어요</div>
-      <div className="v2-chips">{plan.parts.map((x, i) => <Chip key={i} on>{x}</Chip>)}</div>
-      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><TBtn tone="mute" onClick={() => setPrev(false)}>그만</TBtn><TBtn v="solid" disabled={busy} onClick={move}>이렇게 옮기기</TBtn></div></div>}
     {canMine && <label style={{ fontSize: 13, fontWeight: 800, color: C.ink }}>내 화면에만 보이는 이름 <span style={{ color: C.mute, fontWeight: 700 }}>(선택)</span><input value={l} onChange={(e) => setL(e.target.value)} placeholder={t.title} aria-label="보이는 이름" style={{ ...inp, marginTop: 6, padding: "9px 12px" }} /></label>}
     <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><TBtn tone="mute" onClick={onDone}>그만</TBtn><TBtn v="solid" disabled={busy || (canRename && !v.trim())} onClick={() => save()}>저장</TBtn></div>
   </Card>;

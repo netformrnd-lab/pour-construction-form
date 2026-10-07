@@ -65,7 +65,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 .psm1-slg-g { position:absolute; inset:0; font-family:inherit; background:linear-gradient(100deg,transparent 44%,rgba(255,255,255,.92) 50%,transparent 56%); background-size:280% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; animation:psm1-shine 6.5s ease-in-out infinite; pointer-events:none; }
 @keyframes psm1-shine { 0% { background-position:170% 0; } 50%,100% { background-position:-70% 0; } }
 @media (prefers-reduced-motion:reduce) { .psm1-slg-g { animation:none; opacity:0; } }
-@media (max-width:700px){ .psm1-mb-slogan { margin:9px 4px 0; text-align:center; font-family:'Gothic A1','Pretendard Variable',Pretendard,sans-serif; font-weight:600; font-size:12.5px; letter-spacing:-0.02em; color:#2A2E33; line-height:1.4; word-break:keep-all; } .psm1-mb-slogan b { font-family:inherit; font-weight:inherit; color:#E8780F; } }
+@media (max-width:700px){ .psm1-mb-slogan { margin:8px 4px 0; text-align:center; font-family:'Gothic A1','Pretendard Variable',Pretendard,sans-serif; font-weight:600; font-size:12.5px; letter-spacing:-0.02em; color:#2A2E33; line-height:1.4; word-break:keep-all; } .psm1-mb-slogan b { font-family:inherit; font-weight:inherit; color:#E8780F; } }
 .psm1-search form { margin:0; display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:26px; padding:10px 12px 10px 18px; }
 .psm1-search .psm1-search-ico { width:20px; height:20px; color:#E8780F; flex-shrink:0; }
 .psm1-search input { flex:1; min-width:0; border:none; outline:none; background:none; font-size:15px; font-weight:400; color:#2F3438; letter-spacing:-0.02em; }
@@ -235,17 +235,18 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
   .psm1-hd-mb .psm1-mb-cart .count { position:absolute; top:2px; right:2px; min-width:15px; height:15px; padding:0 4px; background:#E8780F; color:#fff; font-size:9px; font-weight:800; border-radius:8px; display:grid; place-items:center; line-height:1; }
   .psm1-hd-mb .psm1-mb-logo { display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; color:#111827; letter-spacing:-0.045em; }
   .psm1-hd-mb .psm1-mb-logo .psm1-logo-or { color:#111827; }
-  .psm1-mb-searchbar { margin-top:14px; }
-  .psm1-mb-searchbar form { display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:24px; padding:10px 12px 10px 16px; }
+  .psm1-mb-searchbar { margin-top:8px; }
+  .psm1-mb-searchbar form { display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:22px; padding:4px 5px 4px 14px; } /* 모바일 검색창 높이 축소(약 42px) */
   .psm1-mb-searchbar .psm1-mb-search-ico { width:18px; height:18px; color:#E8780F; flex-shrink:0; }
-  .psm1-mb-searchbar input { flex:1; min-width:0; border:none; background:none; outline:none; font-size:16px; color:#2F3438; letter-spacing:-0.02em; } /* 16px 미만이면 iOS가 포커스 시 자동확대 → 16px 고정 */
+  .psm1-mb-searchbar input { flex:1; min-width:0; height:30px; padding:0; border:none; background:none; outline:none; font-size:16px; color:#2F3438; letter-spacing:-0.02em; } /* 16px 미만이면 iOS가 포커스 시 자동확대 → 16px 고정 */
   .psm1-mb-searchbar input::placeholder { color:#9E9E9E; }
-  .psm1-mb-searchbar button[type="submit"] { flex-shrink:0; width:32px; height:32px; border-radius:50%; background:#E8780F; display:grid; place-items:center; }
+  .psm1-mb-searchbar button[type="submit"] { flex-shrink:0; width:30px; height:30px; border-radius:50%; background:#E8780F; display:grid; place-items:center; }
   .psm1-mb-searchbar button[type="submit"] svg { width:15px; height:15px; color:#fff; }
   .psm1-mb-hot { margin-top:10px; display:flex; align-items:center; gap:10px; overflow-x:auto; scrollbar-width:none; }
   .psm1-mb-hot::-webkit-scrollbar { display:none; }
   .psm1-mb-hot .psm1-mb-hot-label { font-size:11px; font-weight:800; color:#E8780F; flex-shrink:0; }
   .psm1-mb-hot a { font-size:12.5px; font-weight:500; color:#616161; white-space:nowrap; }
+  .psm1-mb-hot { display:none !important; } /* 모바일 상단 인기검색어 제거(2026-10) — 하단 재배치 예정 */
   .psm1-tabs-inner { padding:0 14px; }
   .psm1-tab { font-size:14px; padding:14px 10px; }
   .psm1-hero { padding:14px 14px 0; }
@@ -465,6 +466,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
         <span class="count {$basket_count_display|display} {$basket_count_display_class}"><span class="{$basket_count_class}">{$basket_count}</span></span>
       </a>
     </div>
+    <div class="psm1-mb-slogan">누구나 쉽게, 오래가는 <b>건축물 유지보수 자재</b>의 모든 것</div>
     <div class="psm1-mb-searchbar" style="position:relative">
       <form action="/product/search.html" method="get" role="search">
         <svg class="psm1-mb-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -475,7 +477,6 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
       </form>
       <div class="psm1-ac" data-psm1-mb-ac></div>
     </div>
-    <div class="psm1-mb-slogan">누구나 쉽고 오래가는 <b>건축물 유지보수 자재</b>의 모든 것</div>
     <div class="psm1-mb-hot" data-psm1-mb-hot>
       <span class="psm1-mb-hot-label">인기검색어</span>
     </div>

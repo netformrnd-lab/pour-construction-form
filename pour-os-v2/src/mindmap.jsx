@@ -237,7 +237,9 @@ function RightMap({ D, cu, A, open, p, idx, launch, tpl }) {
   const onUp = () => { const d = drag.current; drag.current = null; if (d && d.moved) { box.current.__moved = true; setTimeout(() => { if (box.current) box.current.__moved = false; }, 0); } };
   const onClickCap = (e) => { if (box.current && box.current.__moved) { e.stopPropagation(); e.preventDefault(); } };
 
-  const rootSub = tpl ? tpl.rootSub : [nameOf(D.users, p.assigneeId) ? "책임 " + nameOf(D.users, p.assigneeId) : "", (p.launchDate || p.dueDate) ? (launch ? "출시 " : "마감 ") + md(p.launchDate || p.dueDate) : "", E && E.has ? `예상 ${E.total}일` : ""].filter(Boolean).join(" · ");
+  // 뿌리 칸이 좁아서(176) 예상 소요가 있으면 날짜 → 예상 → 책임 순 (책임은 머리에도 있음)
+  const leadL = nameOf(D.users, p.assigneeId) ? "책임 " + nameOf(D.users, p.assigneeId) : "", dateL = (p.launchDate || p.dueDate) ? (launch ? "출시 " : "마감 ") + md(p.launchDate || p.dueDate) : "";
+  const rootSub = tpl ? tpl.rootSub : (E && E.has ? [dateL, `예상 ${E.total}일`, leadL] : [leadL, dateL]).filter(Boolean).join(" · ");
   const subOf = (n) => { if (tpl) return tpl.subOf(n); if (n.kind === "phase") return [phSub(n.ph), spanL(E, n.ph.k)].filter(Boolean).join(" · ");
     const t = n.t, d = dueOf(t), r = riskOf(t, key);
     const tag = t.decision ? (t.decided ? "정함 → " + t.decided.title : "결정 대기") : t.option && t.optDropped ? "보류" : "";

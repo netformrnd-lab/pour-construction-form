@@ -92,7 +92,7 @@ function Main({ D, cu, meta, setMeta, logout }) {
     </nav>
     <div className="v2-main">
       <div className="v2-trial">시험판 · 버전1 {at ? md(ymd(new Date(at))) : ""} 데이터 · 여기서 바꾼 건 버전1에 안 가요 <a href={V1_URL}>버전1 열기 ›</a></div>
-      <div className="v2-page">
+      <div className={"v2-page" + (tab === "today" ? " v2-today" : "")}>
         {tab === "today" && <TodayTab {...ctx} />}
         {tab === "calendar" && <CalendarTab {...ctx} />}
         {tab === "projects" && <ProjectsTab {...ctx} />}

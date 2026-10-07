@@ -6,7 +6,7 @@ import {
   ymd, addDays, ddays, ddayLabel, md, ago, hm, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf,
   projOpen, projMine, projStat, projGroups, projWhen, feedOf, taskNoteId, projNoteId, LOG_L, reqOf, riskOf, workloadOf, PROJ_CATS, catName, projCat, guessCat,
   IMP, impOf, impName, isHoldP, projStLabel, projForecast, projPct, isOneOff, TEAMS, projTeam, projTeamAuto, isGhProj, ghDashUrl, isRemoved, taskTrashRows, canRemoveProj, canRestoreProj, canFinish,
-  roadOf, roadStates, phaseOfTask, curStage, noStageL, catRoad, sameRoad, roadProblem, projLabel, projLabelOf, canEditRoad,
+  roadOf, roadStates, phaseOfTask, curStage, noStageL, catRoad, sameRoad, roadProblem, projLabel, projLabelOf, canEditRoad, roadOwn,
 } from "./model.js";
 import { RoadEdit, RoadBox, StageSortCard, CatRoadAsk } from "./roadui.jsx";
 import { TrashList, ProjRemoveAsk, RemovedNote } from "./trash.jsx";
@@ -261,7 +261,9 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
   // '+ 이 단계에 추가'(로드 있는 모든 프로젝트): 그 단계(phase)로 바로 만듦 · 담당·기한은 위 추가 칸에서 고른 대로 · 기타 = 단계 없음
   const addPh = (k) => { if (!pt.trim()) return; A.addTask({ title: pt, projectId: p.id, assigneeId: nw, dueDate: ndue || (nw !== cu.id ? addDays(key, 3) : ""), noReview: nw === cu.id, ...(k && k !== "etc" ? { phase: k } : {}) }); setPt(""); };
   // 카테고리 바꾸기: 로드가 바뀌면 먼저 묻기(새 단계로 · 지금 단계 그대로) — 같으면 바로
-  const pickCat = (c) => { if ((c || "") === projCat(p)) return; if (!road || launch || sameRoad(road, catRoad(c, D))) { A.setCategory(p, c, "plain"); return; } setCatAsk(c || "none"); };
+  //   단계를 따로 고치지 않았고 단계 정한 업무도 없으면 묻지 않고 새 카테고리 단계로(잃을 것이 없음)
+  const pickCat = (c) => { if ((c || "") === projCat(p)) return; if (!road || launch || sameRoad(road, catRoad(c, D))) { A.setCategory(p, c, "plain"); return; }
+    if (!roadOwn(p) && !live.some((t) => phOf(t))) { A.setCategory(p, c, "switch"); return; } setCatAsk(c || "none"); };
   // 지금 상황 저장 — 고치는 사이 다른 사람이 먼저 저장했으면 겹친 글을 보여 주고 고르게
   const saveNow = async (force) => { const r = await A.setProjNow(p, now, nowBase, force === true); if (r && r.conflict) setNowClash(r.cur.now || {}); else if (r && r.ok) { setNowClash(null); setEdit(""); } };
   const tids = [...new Set([...live, ...(doneList || [])].map((t) => t.id))];

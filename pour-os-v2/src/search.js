@@ -48,13 +48,14 @@ export function mergeOlder(D, older) {
   if (!older) return D;
   const u = D.viewer, all = seeAll(u), have = new Set((D.tasks || []).map((t) => t.id));
   const pm = new Map((D.projects || []).map((p) => [p.id, p]));
-  const raw = (older.tasks || []).filter((t) => t && t.id && !have.has(t.id) && !t.deleted && !t.isFixed && !isRemoved(t));   // 없앤 업무는 찾기에 안 나옴(휴지통에만)
+  const goneP = new Set((D.removedProjects || []).map((p) => p.id)), gone = new Set([...(D.goneIds || []), ...(older.tasks || []).filter((t) => t && (goneP.has(t.projectId) || (isRemoved(t) && t.removed.proj))).map((t) => t.id)]);   // 없앤 프로젝트(휴지통)의 업무·대화도 찾기에 안 나옴
+  const raw = (older.tasks || []).filter((t) => t && t.id && !have.has(t.id) && !t.deleted && !t.isFixed && !isRemoved(t) && !goneP.has(t.projectId));   // 없앤 업무는 찾기에 안 나옴(휴지통에만)
   const pool = [...(D.tasks || []), ...raw];
   const add = all ? raw : raw.map((t) => (taskSeen(t, pm.get(t.projectId) || null, u.id, pool) ? t : lockTask(t)));
   const tasks = [...(D.tasks || []), ...add];
   const lockedT = new Set([...(D.lockedT || []), ...add.filter((t) => t.locked).map((t) => t.id)]), lockedP = D.lockedP || new Set();
   const known = new Set(tasks.map((t) => t.id)); (D.removedFx || []).forEach((t) => known.add(t.id));
-  const hidden = (n) => { const s = String(n.itemId || ""); if (s.startsWith("task:")) { const id = s.slice(5); return lockedT.has(id) || (!all && !known.has(id)); } if (s.startsWith("proj:")) return lockedP.has(s.slice(5)); return false; };
+  const hidden = (n) => { const s = String(n.itemId || ""); if (s.startsWith("task:")) { const id = s.slice(5); return lockedT.has(id) || gone.has(id) || (!all && !known.has(id)); } if (s.startsWith("proj:")) return lockedP.has(s.slice(5)) || goneP.has(s.slice(5)); return false; };
   const nHave = new Set((D.notes || []).map((n) => n.id));
   const notes = [...(D.notes || []).filter((n) => !(n && String(n.itemId || "").startsWith("task:") && lockedT.has(String(n.itemId).slice(5)))),
     ...(older.notes || []).filter((n) => n && n.id && !nHave.has(n.id) && !n.deleted && !hidden(n))];

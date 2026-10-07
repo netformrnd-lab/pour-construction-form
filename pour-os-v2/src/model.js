@@ -163,12 +163,27 @@ export function trashRows(removedFx, akRemoved, brands, uid) {
 //   볼 수 있는 사람이면 누구나(기밀로 잠긴 사람은 못 봄 → 못 없앰) · removed {at, by, byName, reason, prevStatus, root, kids[]} — 상태는 그대로 · 하위 업무(결정 업무의 안 포함)는 같이(root = 처음 없앤 업무)
 export const REMOVE_REASONS = ["잘못 만듦", "중복", "안 하기로 함", "기타"];
 export const canRemoveTask = (t, cu) => !!t && !!cu && !t.isFixed && !t.locked && !isRemoved(t);
-export const canRestoreTask = (t, cu) => !!t && !!cu && !t.isFixed && !t.locked && isRemoved(t);
+export const canRestoreTask = (t, cu) => !!t && !!cu && !t.isFixed && !t.locked && isRemoved(t) && !t.removed.proj;   // 프로젝트째 없앤 업무는 프로젝트를 되살려야 돌아옴
 // 아래로 끝까지 하위 업무 (없앤 것·고정업무 빼고 · 고리 막음)
 export function taskKids(t, tasks) { const out = [], seen = new Set([t && t.id]); let q = [t && t.id];
   for (let k = 0; k < 20 && q.length; k++) { const nx = []; (tasks || []).forEach((x) => { if (x && q.includes(x.parentId) && !seen.has(x.id) && !x.isFixed && !isRemoved(x)) { seen.add(x.id); out.push(x); nx.push(x.id); } }); q = nx; }
   return out; }
 export const taskRemoveFields = (t, cu, at, reason, root, kids) => ({ removed: { at, by: cu.id, byName: cu.name || "", reason: String(reason || "").trim().slice(0, 200), prevStatus: (t && t.status) || "todo", root: root || (t && t.id), ...(kids ? { kids } : {}) } });
+// ── 프로젝트 없애기 (사용자 확정 2026-10-07 · 책임자·관리자만 · 지우지 않음) ──
+//   프로젝트 removed{at,by,byName,reason,prevStatus,n} · 그 안 아직 안 없앤 업무 removed{…, root: 프로젝트 id, proj: true} → 되살리기 = root 가 이 프로젝트·같은 시각인 업무만
+//   (그 전에 따로 없앤 업무는 root 가 자기 자신 → 그대로 휴지통에) · 신제품 프로젝트(lb_)도 업무OS 안에서만 · 신제품 대시보드는 안 건드림
+export const projLeadOrMaster = (p, cu) => !!p && !!cu && (p.assigneeId === cu.id || isMaster(cu));
+export const canRemoveProj = (p, cu) => !!p && !p.locked && !isRemoved(p) && projLeadOrMaster(p, cu);
+export const canRestoreProj = (p, cu) => !!p && !p.locked && isRemoved(p) && projLeadOrMaster(p, cu);
+export const projRemoveFields = (p, cu, at, reason, n) => ({ removed: { at, by: cu.id, byName: cu.name || "", reason: String(reason || "").trim().slice(0, 200), prevStatus: (p && p.status) || "active", n: n || 0 } });
+export const projTaskRemoveFields = (t, cu, at, reason, pid) => ({ removed: { ...taskRemoveFields(t, cu, at, reason, pid).removed, proj: true } });
+export const projTaskBack = (t, p) => isRemoved(t) && !!t.removed.proj && t.removed.root === p.id && !!p.removed && t.removed.at === p.removed.at;
+// 휴지통 줄(프로젝트): uid 를 주면 내가 책임자·함께 하는 사람이거나 내가 없앤 것만 · 최근 것 먼저
+export function projTrashRows(removedProjects, uid) {
+  return (removedProjects || []).filter((p) => p && isRemoved(p) && !p.locked && (!uid || p.removed.by === uid || p.assigneeId === uid || (p.collaboratorIds || []).includes(uid)))
+    .map((p) => { const n = p.removed.n || 0; return { kind: "proj", id: p.id, name: p.title || "", sub: `프로젝트${String(p.id || "").startsWith("lb_") ? " · 신제품" : ""} · 업무 ${n}개 같이`, reason: p.removed.reason || "", by: p.removed.by, byName: p.removed.byName, at: p.removed.at, x: p }; })
+    .sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+}
 // 휴지통 줄(한 번짜리 업무): 처음 없앤 업무(root)만 · uid 를 주면 내가 없앴거나 내가 담당·맡긴 것만 · pid 를 주면 그 프로젝트만
 export function taskTrashRows(removed, projects, uid, pid) {
   return (removed || []).filter((t) => t && !t.isFixed && isRemoved(t) && (t.removed.root || t.id) === t.id && (!pid || t.projectId === pid)

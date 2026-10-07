@@ -28,6 +28,9 @@
 .pour-gh *, .pour-gh *::before, .pour-gh *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR','Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .pour-gh { position:sticky; top:0; z-index:1000; background:#fff; color:#111111; line-height:1.5; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.02em; }
 .pour-gh .psm1-sticky { position:static !important; } /* 고정은 .pour-gh가 담당(부모=body 전체높이 → 끝까지 고정) */
+/* 상단 고정(2026-10): 카페24 레이아웃 박스 안에서는 sticky가 중간에 풀림 → JS가 body 맨 앞으로 옮기고 fixed로 고정(메인과 동일) */
+.pour-gh.pour-gh--pinned { position:fixed !important; top:0; left:0; right:0; z-index:9990; }
+.pour-gh-spacer { display:block; width:100%; }
 .pour-gh a { color:inherit; text-decoration:none; }
 .pour-gh button { background:none; border:none; cursor:pointer; font:inherit; color:inherit; letter-spacing:inherit; }
 .pour-gh img { display:block; max-width:100%; }
@@ -1443,6 +1446,34 @@ var PM_POSTS = [];
 })();
 </script>
 </section>
+<script>
+/* ===== 상단 고정(2026-10) — 모든 페이지에서 메인처럼 맨 위에 항상 고정 =====
+   카페24 레이아웃 안쪽(높이가 정해진 박스·overflow 박스)에 들어가면 sticky가 안 먹어서 상단이 같이 올라가 버림.
+   → 같은 높이 자리표시(spacer)를 남기고 헤더를 body 맨 앞으로 옮긴 뒤 position:fixed. 화면이 튀지 않음. */
+(function(){
+  function pin(){
+    try{
+      var gh=document.querySelector('[data-pour-gh]');
+      if(!gh || gh.__pinned) return;
+      if(getComputedStyle(gh).display==='none') return; // 메인(자체 헤더) 등에서 숨김 상태면 건너뜀
+      gh.__pinned=true;
+      var sp=document.createElement('div'); sp.className='pour-gh-spacer'; sp.setAttribute('aria-hidden','true');
+      sp.style.height=gh.offsetHeight+'px';
+      // 자리표시는 body 맨 위에 → 카페24가 헤더 위에 둔 띠배너 등도 가려지지 않고 헤더 아래로 밀림
+      document.body.insertBefore(sp, document.body.firstChild);
+      document.body.insertBefore(gh, sp);
+      gh.classList.add('pour-gh--pinned');
+      // 맨 위에 있을 때만 높이 다시 맞춤(스크롤 중 카테고리줄 접힘으로 본문이 튀지 않게)
+      var set=function(){ if((window.pageYOffset||0)<10) sp.style.height=gh.offsetHeight+'px'; };
+      window.addEventListener('resize', set, {passive:true});
+      if(window.ResizeObserver){ try{ new ResizeObserver(set).observe(gh); }catch(e){} }
+      console.log('[pour-gh] 상단 고정 완료, 높이 '+gh.offsetHeight+'px');
+    }catch(e){ console.error('[pour-gh] 상단 고정 실패:', e); }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', pin); else pin();
+})();
+</script>
+
 
 
 <!-- ===== 시공사례 본문 ===== -->

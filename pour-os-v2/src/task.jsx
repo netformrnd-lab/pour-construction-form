@@ -19,7 +19,7 @@ import { NoteFiles, FileList, useUploads, UpList, UpBtn, fileSize } from "./file
 export { FileRow } from "./files.jsx";
 import { HoldAsk } from "./hold.jsx";
 import { RequestAsk } from "./asks.jsx";
-import { askTo, isGhProj, ghDashUrl } from "./model.js";
+import { askTo, isGhProj, ghDashUrl, estOf, estClean, canSetEst, EST_MAX } from "./model.js";
 import { viewTasks } from "./secret.js";
 import { mentionPick, insertMention, parseMentions } from "./mention.js";
 import { SecretBox } from "./secretui.jsx";
@@ -91,7 +91,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
   const loadLogs = () => { if (logs == null) fb.fetchWhere("log", ["targetId", "==", t.id]).then(setLogs).catch((e) => { console.error(e); setLogs([]); }); };
   // 기록 한 줄의 '이전 → 이후' (담당 · 기한 · 시작 · 상태 · 참조 · 보류 다시 볼 날)
   const CH = { assigneeId: ["담당", (v) => nameOf(D.users, v) || "없음"], assigneeIds: null, dueDate: ["기한", (v) => md(v) || "미정"], startDate: ["시작", (v) => md(v) || "없음"], status: ["상태", (v) => STATUS_L[v] || (v === "review" ? "확인 대기" : v || "-")],
-    ccIds: ["참조", (v) => (v || []).map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "없음"], holdUntil: ["다시 볼 날", (v) => md(v) || "미정"], phase: ["단계", (v) => stageName(road, v) || noSt], title: ["이름", (v) => v || "-"], priority: ["중요도", (v) => ({ high: "높음", mid: "보통", low: "낮음" })[v] || "보통"] };
+    ccIds: ["참조", (v) => (v || []).map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "없음"], holdUntil: ["다시 볼 날", (v) => md(v) || "미정"], phase: ["단계", (v) => stageName(road, v) || noSt], title: ["이름", (v) => v || "-"], estDays: ["예상 소요", (v) => (v ? `${v}일` : "미정")], priority: ["중요도", (v) => ({ high: "높음", mid: "보통", low: "낮음" })[v] || "보통"] };
   const chOf = (l) => (l.prev && l.next && typeof l.prev === "object" && !Array.isArray(l.prev) ? Object.keys(l.next).filter((k) => CH[k] && JSON.stringify(l.prev[k] ?? null) !== JSON.stringify(l.next[k] ?? null)).map((k) => ({ k, l: CH[k][0], a: CH[k][1](l.prev[k]), b: CH[k][1](l.next[k]) })) : []);
   const hist = [...(t.statusLog || []).map((s, i) => ({ id: "s" + i, at: s.at, who: s.byName || nameOf(D.users, s.by), text: s.reopen ? "다시 엶" : STATUS_L[s.status] || (s.status === "review" ? "확인 요청" : s.status) })),
     ...(logs || []).map((l) => ({ id: l.id, at: l.at, who: l.byName, ch: chOf(l), text: (LOG_L[l.action] || l.action) + (l.label && l.label !== t.title ? " · " + l.label.replace(t.title + " · ", "") : "") }))].sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
@@ -130,6 +130,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
     <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7 }}>
       <span>담당 {owners.join(", ") || "없음"}{temp ? " (임시 · 책임자로 채움)" : t.ownerFrom === "default" || (t.ownerAuto && !t.ownerFrom) ? " (기본 담당)" : ""}</span> · <span style={{ color: n != null && n < 0 && !done && t.status !== "hold" ? C.red : C.sub, fontWeight: n != null && n < 0 && !done && t.status !== "hold" ? 800 : 400 }}>{dueOf(t) ? `기한 ${md(dueOf(t))}${done ? "" : " · " + ddayLabel(n)}` : "기한 미정"}</span> · <b style={{ color: C.ink }}>{review ? "확인 대기" : STATUS_L[t.status] || t.status}</b>
       {t.startDate && <div>기간 {md(t.startDate)} ~ {dueOf(t) ? md(dueOf(t)) : "기한 미정"}</div>}
+      {estOf(t) > 0 && <div>예상 소요 {estOf(t)}일 <span style={{ color: C.mute }}>(평일)</span></div>}
       {(t.ccIds || []).length > 0 && <div>참조 {(t.ccIds || []).map((x) => nameOf(D.users, x)).filter(Boolean).join(", ")}</div>}
       {t.handoff && t.handoff.by && <div>{t.handoff.byName}님이 {md(ymd(new Date(t.handoff.at)))}에 {(t.handoff.from || []).map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "담당 없음"} → {nameOf(D.users, t.handoff.to)}{t.handoff.note ? ` · ${t.handoff.note}` : ""}</div>}
       {giver && <div>{giverName}님이 맡김{(req ? t.requestedAt : t.assignedAt) ? ` · ${md(ymd(new Date(req ? t.requestedAt : t.assignedAt)))}` : ""}{t.ackAt ? " · 받음" : " · 아직 안 받음"}</div>}
@@ -182,6 +183,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
       {!done && !t.parentId && !t.decision && (mine || req === cu.id || master) && <TBtn v="soft" onClick={() => { setMore(false); A.setDecision(t, true); }}>결정 업무로 쓰기</TBtn>}
       {canPhase && <TBtn v="soft" onClick={() => { setMore(false); setMode(mode === "phase" ? "" : "phase"); }}>단계 바꾸기</TBtn>}
       {canRenameTask(t, cu, D) && <TBtn v="soft" onClick={() => { setMore(false); setNm(t.title || ""); setNmBase(t.title || ""); setMode("rename"); }}>이름 고치기</TBtn>}
+      {canSetEst(t, p, cu) && <EstEdit t={t} A={A} />}
       {(mine || master) && !done && <label className="v2-more-date">시작일 <input type="date" aria-label="시작일" className="v2-sel" value={t.startDate || ""} max={dueOf(t) || undefined} onChange={(e) => A.patchTask(t, { startDate: e.target.value }, "edit", `${t.title} · 시작 ${md(e.target.value) || "없음"}`, { prev: { startDate: t.startDate || "" } })} style={{ height: 34, padding: "0 6px", fontSize: 13 }} /></label>}
       <SecretBox kind="task" x={t} D={D} cu={cu} A={A} only="button" />
       <CopyLink kind="t" id={t.id} label="업무 링크 복사" onDone={() => setToast && setToast({ text: "링크를 복사했어요 · 잔디·카톡에 붙여 넣으면 이 업무가 바로 열려요" })} />
@@ -271,6 +273,16 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
 // link: 댓글 [링크 복사] 주소 {kind 't'|'p'|'r', id} → os2.html#t-ID~c-댓글ID · hl: 링크로 열었을 때 그 댓글 id (그 자리로 가서 2초 테두리 · 못 찾으면 id 로 한 번 읽기)
 // 파일: 고른 파일은 [남기기] 때 파일마다 진행 막대로 올리고(실패한 파일만 [다시]) 다 올라가면 댓글 저장
 // 없앤 업무 보기 (링크·휴지통·'확인할 것'에서 열었을 때) — 맨 위 '없앤 업무예요 · 누가 · 언제 · [되살리기]' · 나머지는 읽기만(대화도 보기만)
+// 예상 소요일 칸 ([더 하기 ▾] · 사용자 확정 2026-10-07 ①): 평일 수 1~365 · 비우면 미정 · 칸을 떠나거나 Enter 면 저장(조건부 · 기록 · 5초 되돌리기)
+function EstEdit({ t, A }) {
+  const [v, setV] = useState(t.estDays ? String(t.estDays) : ""), [busy, setBusy] = useState(false);
+  useEffect(() => { setV(t.estDays ? String(t.estDays) : ""); }, [t.estDays]);
+  const n = estClean(v), bad = Number.isNaN(n);
+  const save = async () => { if (bad || busy || (n || null) === (t.estDays || null)) return; setBusy(true); await A.setEst(t, n); setBusy(false); };
+  return <label className="v2-more-date">예상 소요 <input type="number" inputMode="numeric" min={1} max={EST_MAX} value={v} placeholder="미정" onChange={(e) => setV(e.target.value)} onBlur={save}
+    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); save(); } }} aria-label="예상 소요일" className="v2-sel v2-estin" disabled={busy} /> 일
+    {bad && <span className="v2-tplerr" style={{ margin: 0 }}>1~{EST_MAX}</span>}</label>;
+}
 function RemovedTaskView({ D, cu, A, t, notes, note, open, onBack, onClose }) {
   const [busy, setBusy] = useState(false);
   const rm = t.removed, p = (D.projects || []).find((x) => x.id === t.projectId), owners = ownersOf(t).map((u) => nameOf(D.users, u)).filter(Boolean);

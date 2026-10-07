@@ -4,6 +4,7 @@
 import { useMemo, useState } from "react";
 import { ymd, md, ddays, nameOf, ownersOf, dueOf, isDone, taskNoteId, projOpen, taskTrashRows, projTrashRows, canRestoreProj, noteTrashRows, isMaster, projLabelOf } from "../model.js";
 import { TrashList } from "../trash.jsx";
+import { tplTrashRows, canEditTpl } from "../tpl.js";
 import { groupItems, previewLaunchMove } from "../views.js";
 import { orderIssues, predLine } from "../turn.js";
 import { PickList, ro } from "../pick.jsx";
@@ -27,6 +28,8 @@ export function TidyTab({ D, cu, A, idx, open, tq, setTq, setToast }) {
     {/* 없앤 업무(누구나 없애기 · 2026-10-07) 전부 — 처음엔 접힘 */}
     <TrashList rows={taskTrashRows(D.removedTasks, D.projects)} A={A} open={open} label="없앤 업무" note="팀원이 목록에서 뺀 한 번짜리 업무예요 · 되살리면 없애기 전 그대로(하위 업무도 같이) · 댓글·파일·기록은 그대로" style={{ marginTop: 12 }} />
     {/* 삭제한 댓글(쓴 사람·관리자 · 2026-10-07 '흔적 없이 숨김') — 최근 30일 안 댓글 · 처음엔 접힘 · [되살리기] 관리자 */}
+    {/* 없앤 견본(만든 사람·관리자 · 2026-10-07 ②) 전부 — 처음엔 접힘 */}
+    <TrashList rows={tplTrashRows(D.removedTemplates)} A={A} open={open} label="없앤 견본" canRestore={(r) => canEditTpl(r.x, cu)} note="만든 사람·관리자가 견본함에서 뺀 견본이에요 · 되살리면 견본함에 다시 보여요 · 이 견본으로 만든 프로젝트는 그대로" style={{ marginTop: 12 }} />
     <TrashList rows={noteTrashRows(D.removedNotes, D)} A={A} open={open} label="삭제한 댓글" canRestore={() => isMaster(cu)} note="쓴 사람·관리자가 삭제한 댓글이에요 · 화면 어디에도 안 보이고 답글은 그대로 남아요 · 붙은 파일은 지우지 않아요" style={{ marginTop: 12 }} />
     <p className="a-hint">지우는 기능은 없어요. 담당·기한을 바꾸거나 보류·날짜 없이 두기로 치워요. 바꾸기 전 값은 기록에 남고 5초 안에 되돌릴 수 있어요.</p>
   </div>;

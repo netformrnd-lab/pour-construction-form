@@ -9,6 +9,7 @@ import { myRoutine, brandName } from "./routine.js";
 import { akWho } from "../../pour-os/src/actionKpi.js";
 import { fileKind } from "./files.jsx";
 import { noteWhere } from "./search.js";
+import { tplTrashRows, canEditTpl } from "./tpl.js";
 
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
 const ASG = [["review", "확인해 주세요", true], ["dueReq", "기한 조정 요청", true], ["blocked", "막힘", true], ["late", "기한 지남", true], ["risk", "곧 마감인데 시작 전", true], ["notAck", "아직 안 받음", true], ["doing", "진행 중", true], ["waiting", "받고 대기 중", false], ["done", "최근 7일 끝남", false]];
@@ -40,6 +41,10 @@ export function MoreTab({ D, cu, A, meta, logout, open, BUILD, setToast }) {
     {A && <TrashList rows={projTrashRows(D.removedProjects, isMaster(cu) ? null : cu.id)} A={A} open={open} label="없앤 프로젝트" canRestore={(r) => canRestoreProj(r.x, cu)} note="되살리면 안에 있던 업무까지 통째로 돌아와요 · 댓글·자료·기록은 그대로 있어요" style={{ marginTop: 10 }} />}
     {/* 없앤 업무(누구나 없애기 · 2026-10-07): 내가 없앴거나 내가 담당·맡긴 것 · 처음엔 접힘 */}
     {A && <TrashList rows={taskTrashRows(D.removedTasks, D.projects, cu.id)} A={A} open={open} label="없앤 업무" note="되살리면 없애기 전 그대로 돌아와요(하위 업무도 같이) · 댓글·파일·기록은 그대로 있어요" style={{ marginTop: 10 }} />}
+    {/* 견본함(2026-10-07 ②) — 모두 봄 · 없앤 견본(내가 만들었거나 없앤 것 · 관리자 = 전부) */}
+    <Head>프로젝트 견본</Head>
+    <Card><Row title={`견본함 ${(D.templates || []).length}`} sub="업무 · 순서 · 단계 · 예상 소요일 그대로 새 프로젝트" onClick={() => open({ type: "templates" })} right={arrow} last /></Card>
+    {A && <TrashList rows={tplTrashRows(D.removedTemplates, isMaster(cu) ? null : cu.id)} A={A} open={open} label="없앤 견본" canRestore={(r) => canEditTpl(r.x, cu)} note="되살리면 견본함에 다시 보여요 · 이 견본으로 만든 프로젝트는 처음부터 그대로예요" style={{ marginTop: 10 }} />}
     <Head>성과</Head>
     <Card>
       <Row title="그로스보드" sub="KPI → 프로젝트·반복 → 끝낸 일 · 나 · 우리 팀" onClick={() => open({ type: "growth" })} right={arrow} last={false} />

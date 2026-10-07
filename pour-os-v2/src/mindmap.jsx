@@ -5,7 +5,8 @@
 // 결정 업무(decision): 하위 업무(option)를 '안'으로 비교 → [이 안으로 정하기] → 정한 안·이유·날짜 기록, 안 고른 안은 보류(지우지 않음), 결정 업무는 끝냄
 // 끌어서 순서 바꾸기는 하지 않음(실수 방지) — 순서는 업무 보기 [앞 일 바꾸기]로
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ymd, md, ddays, ddayLabel, nameOf, isDone, isMine, ownersOf, dueOf, riskOf, isMaster, addDays, nextWorkday, roadOf, roadStates, phaseOfTask, curStage } from "./model.js";
+import { ymd, md, ddays, ddayLabel, nameOf, isDone, isMine, ownersOf, dueOf, riskOf, isMaster, addDays, nextWorkday, roadOf, roadStates, phaseOfTask, curStage, estOf } from "./model.js";
+import { projEstimate, tplRoad, tplLive, tplKind } from "./tpl.js";
 import { LAUNCH_PHASES } from "./launch.js";
 import { turnOf, predsOf } from "./turn.js";
 import { phaseStates } from "./views.js";
@@ -15,6 +16,9 @@ import { visibleTree, layoutTree, curve, defaultView, MM } from "./mmlayout.js";
 import { savePng, clip, textW, fileSafe, SVG_FONT } from "./svgpng.js";
 
 const PH_SHORT = { plan: "기획", sample: "샘플", pack: "패킹", content: "콘텐츠", channel: "채널 등록", stock: "창고 입고", promo: "출시 홍보" };
+// 예상 소요(2026-10-07 ①): 업무 가지 'n일' · 단계 가지 = 그 단계 걸리는 평일(겹친 것 빼고) · 프로젝트 = '예상 n일' (tpl.projEstimate)
+const estL = (t) => (estOf(t) ? `${estOf(t)}일` : "");
+const spanL = (E, k) => { const s = E && E.stage && E.stage.get(k); return s && s.span ? `${s.span}일` : ""; };
 const who = (D, t) => nameOf(D.users, ownersOf(t)[0]) || t.ownerText || "담당 없음";
 // 로드 단계 가지 (일반·흐름): 모든 단계(빈 단계 포함) + 맨 끝 '단계 미정'(업무가 있을 때만) · 상태는 model.roadStates
 const PH_CLS = { done: "done", late: "late", cur: "doing", todo: "wait", none: "" };
@@ -95,6 +99,7 @@ const Legend = () => <div className="mm-legend"><span><i className="done" />끝�
 // 계층형 (예전 그대로)
 function TreeMap({ D, cu, A, open, p, idx, launch }) {
   const key = ymd(new Date());
+  const E = useMemo(() => projEstimate(p, D, key), [p, D, key]);
   const [sel, setSel0] = useState("root"), [more, setMore] = useState({}), [nt, setNt] = useState(""), [after, setAfter] = useState(true), [kt, setKt] = useState("");
   // 가지를 누르면 요약 칸으로 (세로형일 때 요약이 지도 아래에 있어서)
   const setSel = (id) => { setSel0(id); setTimeout(() => { const side = document.querySelector(".mm-side"), map = document.querySelector(".mm-map"); if (side && map && side.getBoundingClientRect().top > map.getBoundingClientRect().bottom - 2) side.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, 30); };
@@ -117,7 +122,7 @@ function TreeMap({ D, cu, A, open, p, idx, launch }) {
     const tag = t.decision ? (t.decided ? "정함" : "결정 대기") : t.option && t.optDropped ? "보류" : null;
     return <button type="button" className={`mm-n ${st} ${cls}` + (sel === t.id ? " sel" : "")} onClick={() => setSel(t.id)} aria-pressed={sel === t.id}>
       <span className="mm-t">{num != null && <i className="mm-num">{num}</i>}{tag && <i className="mm-tag">{tag}</i>}{t.title}</span>
-      <span className="mm-s">{[who(D, t), d ? md(d) + (isDone(t) ? "" : r && r.red ? " · " + r.label : "") : "", t.option && t.optInfo ? t.optInfo : "", t.decided ? "→ " + t.decided.title : "", !launch && kids && !t.decision ? `하위 ${kids}` : ""].filter(Boolean).join(" · ")}</span>
+      <span className="mm-s">{[who(D, t), d ? md(d) + (isDone(t) ? "" : r && r.red ? " · " + r.label : "") : "", estL(t), t.option && t.optInfo ? t.optInfo : "", t.decided ? "→ " + t.decided.title : "", !launch && kids && !t.decision ? `하위 ${kids}` : ""].filter(Boolean).join(" · ")}</span>
     </button>; };
   const KidList = ({ b }) => { const lim = more[b.id] ? 99 : 6, ks = b.kids;
     if (!ks.length) return null;
@@ -157,13 +162,13 @@ function TreeMap({ D, cu, A, open, p, idx, launch }) {
     <Legend />
     <div className="mm-grid">
       <div className="mm-map" role="tree" aria-label={`${p.title} 마인드맵`}>
-        <button type="button" className={"mm-n root" + (sel === "root" ? " sel" : "")} onClick={() => setSel("root")}><span className="mm-t">{p.title}</span><span className="mm-s">{[nameOf(D.users, p.assigneeId) ? "책임 " + nameOf(D.users, p.assigneeId) : "", (p.launchDate || p.dueDate) ? (launch ? "출시 " : "마감 ") + md(p.launchDate || p.dueDate) : ""].filter(Boolean).join(" · ")}</span></button>
+        <button type="button" className={"mm-n root" + (sel === "root" ? " sel" : "")} onClick={() => setSel("root")}><span className="mm-t">{p.title}</span><span className="mm-s">{[nameOf(D.users, p.assigneeId) ? "책임 " + nameOf(D.users, p.assigneeId) : "", (p.launchDate || p.dueDate) ? (launch ? "출시 " : "마감 ") + md(p.launchDate || p.dueDate) : "", E.has ? `예상 ${E.total}일` : ""].filter(Boolean).join(" · ")}</span></button>
         {branches.length === 0 ? <div className="mm-branches"><div className="mm-b"><div className="mm-empty">아직 가지가 없어요 · 오른쪽(폰은 아래)에서 큰 가지를 넣어 주세요</div></div></div>
         : <div className="mm-branches">{branches.map((b, i) => <div key={b.id} className="mm-b">
             {launch ? <button type="button" className={`mm-n ${b.phase.state === "done" ? "done" : b.phase.state === "late" ? "late" : b.phase.state === "cur" ? "doing" : "wait"}` + (sel === b.id ? " sel" : "")} onClick={() => { setSel(b.id); setMore({ ...more, ["open" + b.id]: !more["open" + b.id] }); }}>
-                <span className="mm-t"><i className="mm-num">{i + 1}</i>{PH_SHORT[b.phase.k] || b.phase.name}</span><span className="mm-s">{b.phase.state === "done" ? "다 끝남" : `남은 ${b.phase.left} / ${b.phase.total}`} · {more["open" + b.id] || b.phase.state === "cur" || b.phase.state === "late" ? "접기 ▴" : "펼치기 ▾"}</span></button>
+                <span className="mm-t"><i className="mm-num">{i + 1}</i>{PH_SHORT[b.phase.k] || b.phase.name}</span><span className="mm-s">{b.phase.state === "done" ? "다 끝남" : `남은 ${b.phase.left} / ${b.phase.total}`}{spanL(E, b.phase.k) ? ` · ${spanL(E, b.phase.k)}` : ""} · {more["open" + b.id] || b.phase.state === "cur" || b.phase.state === "late" ? "접기 ▴" : "펼치기 ▾"}</span></button>
               : b.phase ? <button type="button" className={`mm-n ${PH_CLS[b.phase.state] || ""}` + (sel === b.id ? " sel" : "")} onClick={() => { setSel(b.id); setMore({ ...more, ["fold" + b.id]: !more["fold" + b.id] }); }}>
-                <span className="mm-t">{b.phase.k ? <i className="mm-num">{i + 1}</i> : null}{b.phase.name}</span><span className="mm-s">{phSub(b.phase)}{b.kids.length ? ` · ${more["fold" + b.id] ? "펼치기 ▾" : "접기 ▴"}` : ""}</span></button>
+                <span className="mm-t">{b.phase.k ? <i className="mm-num">{i + 1}</i> : null}{b.phase.name}</span><span className="mm-s">{phSub(b.phase)}{spanL(E, b.phase.k) ? ` · ${spanL(E, b.phase.k)}` : ""}{b.kids.length ? ` · ${more["fold" + b.id] ? "펼치기 ▾" : "접기 ▴"}` : ""}</span></button>
               : <Node t={b.t} num={i + 1} />}
             {(launch ? more["open" + b.id] || b.phase.state === "cur" || b.phase.state === "late" : !b.phase || !more["fold" + b.id]) && <KidList b={b} />}
           </div>)}</div>}
@@ -206,9 +211,11 @@ export function mindTree({ D, p, idx, launch, key }) {
 }
 const nodeDone = (n) => (n.kind === "phase" ? n.ph.state === "done" : n.kind === "task" ? isDone(n.t) : false);
 
-function RightMap({ D, cu, A, open, p, idx, launch }) {
+// tpl: 견본 보기(읽기만 · 2026-10-07 ②) = {tree, rootSub, subOf} — 상태 모양·진척 칸·가지 넣기 없음 · 업무 가지를 눌러도 아무것도 안 열림
+function RightMap({ D, cu, A, open, p, idx, launch, tpl }) {
   const key = ymd(new Date());
-  const tree = useMemo(() => mindTree({ D, p, idx, launch, key }), [D, p, idx, launch, key]);
+  const E = useMemo(() => (tpl ? null : projEstimate(p, D, key)), [p, D, key, tpl]);
+  const tree = useMemo(() => (tpl ? tpl.tree : mindTree({ D, p, idx, launch, key })), [D, p, idx, launch, key, tpl]);
   // 접기: 기본 = 신제품의 다 끝난 단계만 접음 · 사람이 누른 것은 fold[id] 로 · 모두 펼치기 = all
   const [fold, setFold] = useState({}), [more, setMore] = useState({}), [all, setAll] = useState(false), [fit, setFit] = useState(false);
   const isFold = (n) => (fold[n.id] != null ? fold[n.id] : !all && n.kind === "phase" && n.ph.state === "done");
@@ -222,26 +229,26 @@ function RightMap({ D, cu, A, open, p, idx, launch }) {
   const toggle = (n) => setFold({ ...fold, [n.id]: !isFold(n) });
   const foldDone = () => { const f = {}; const walk = (n) => { (n.kids || []).forEach((k) => { if ((k.kids || []).length) f[k.id] = nodeDone(k); walk(k); }); }; walk(tree); setAll(false); setMore({}); setFold(f); };
   const openAll = () => { setAll(true); setFold({}); };
-  const tap = (n) => { if (n.kind === "task") open({ type: "task", id: n.t.id }); else if (n.kind === "phase") toggle(n); else if (n.kind === "more") setMore({ ...more, [n.parentId]: true }); };
-  const save = () => savePng(svgRef.current, `마인드맵 · ${p.title} · ${key} 기준`, `마인드맵_${fileSafe(p.title, "프로젝트")}_${key}.png`);
+  const tap = (n) => { if (n.kind === "task") { if (!tpl) open({ type: "task", id: n.t.id }); } else if (n.kind === "phase") toggle(n); else if (n.kind === "more") setMore({ ...more, [n.parentId]: true }); };
+  const save = () => (tpl ? savePng(svgRef.current, `견본 마인드맵 · ${p.title} · ${key} 기준`, `견본_${fileSafe(p.title, "견본")}_${key}.png`) : savePng(svgRef.current, `마인드맵 · ${p.title} · ${key} 기준`, `마인드맵_${fileSafe(p.title, "프로젝트")}_${key}.png`));
   // PC 마우스로 끌어서 밀기 (손가락은 원래 밀림) · 끌었으면 누름으로 안 침
   const onDown = (e) => { if (e.pointerType !== "mouse" || e.button !== 0) return; const b = box.current; drag.current = { x: e.clientX, y: e.clientY, l: b.scrollLeft, t: b.scrollTop, moved: false }; };
   const onMove = (e) => { const d = drag.current; if (!d) return; const dx = e.clientX - d.x, dy = e.clientY - d.y; if (!d.moved && Math.abs(dx) + Math.abs(dy) < 5) return; d.moved = true; box.current.scrollLeft = d.l - dx; box.current.scrollTop = d.t - dy; };
   const onUp = () => { const d = drag.current; drag.current = null; if (d && d.moved) { box.current.__moved = true; setTimeout(() => { if (box.current) box.current.__moved = false; }, 0); } };
   const onClickCap = (e) => { if (box.current && box.current.__moved) { e.stopPropagation(); e.preventDefault(); } };
 
-  const rootSub = [nameOf(D.users, p.assigneeId) ? "책임 " + nameOf(D.users, p.assigneeId) : "", (p.launchDate || p.dueDate) ? (launch ? "출시 " : "마감 ") + md(p.launchDate || p.dueDate) : ""].filter(Boolean).join(" · ");
-  const subOf = (n) => { if (n.kind === "phase") return phSub(n.ph);
+  const rootSub = tpl ? tpl.rootSub : [nameOf(D.users, p.assigneeId) ? "책임 " + nameOf(D.users, p.assigneeId) : "", (p.launchDate || p.dueDate) ? (launch ? "출시 " : "마감 ") + md(p.launchDate || p.dueDate) : "", E && E.has ? `예상 ${E.total}일` : ""].filter(Boolean).join(" · ");
+  const subOf = (n) => { if (tpl) return tpl.subOf(n); if (n.kind === "phase") return [phSub(n.ph), spanL(E, n.ph.k)].filter(Boolean).join(" · ");
     const t = n.t, d = dueOf(t), r = riskOf(t, key);
     const tag = t.decision ? (t.decided ? "정함 → " + t.decided.title : "결정 대기") : t.option && t.optDropped ? "보류" : "";
-    return [isDone(t) ? "✓" + (d ? " " + md(d) : "") : "", who(D, t), !isDone(t) && d ? md(d) + (r && r.red ? " · " + r.label : "") : "", tag].filter(Boolean).join(" · "); };
+    return [isDone(t) ? "✓" + (d ? " " + md(d) : "") : "", who(D, t), !isDone(t) && d ? md(d) + (r && r.red ? " · " + r.label : "") : "", estL(t), tag].filter(Boolean).join(" · "); };
   const titleOf = (n) => (n.kind === "phase" ? (launch ? PH_SHORT[n.ph.k] : "") || n.ph.name : n.t.title);
-  const pill = (n) => { const ks = n.kids || []; if (!ks.length) return ""; if (n.kind === "phase") return `${n.ph.total - n.ph.left}/${n.ph.total}`; return `${ks.filter(nodeDone).length}/${ks.length}`; };
+  const pill = (n) => { const ks = n.kids || []; if (!ks.length || tpl) return ""; if (n.kind === "phase") return `${n.ph.total - n.ph.left}/${n.ph.total}`; return `${ks.filter(nodeDone).length}/${ks.length}`; };
   const lateTo = (n) => n.st === "late";
   const kb = (fn) => (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fn(); } };
 
   return <>
-    <Legend />
+    {!tpl && <Legend />}
     <div className="mm-rmap">
       <div ref={box} className={"mm-rbox" + (fit ? " fit" : "")} style={{ maxHeight: maxH }} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp} onClickCapture={onClickCap}>
         <svg ref={svgRef} viewBox={`0 0 ${L.W} ${L.H}`} width={Math.round(L.W * sc)} height={Math.round(L.H * sc)} className="mm-svg" role="group" aria-label={`${p.title} 마인드맵 (오른쪽으로 뻗는 보기)`} xmlns="http://www.w3.org/2000/svg" fontFamily={SVG_FONT}>
@@ -275,7 +282,7 @@ function RightMap({ D, cu, A, open, p, idx, launch }) {
             </g>; })}
         </svg>
       </div>
-      {!tree.kids.length && <div className="mm-empty" style={{ padding: "8px 12px" }}>아직 가지가 없어요{launch ? "" : " · 아래에서 큰 가지를 넣어 주세요"}</div>}
+      {!tree.kids.length && <div className="mm-empty" style={{ padding: "8px 12px" }}>아직 가지가 없어요{launch || tpl ? "" : " · 아래에서 큰 가지를 넣어 주세요"}</div>}
       <div className="mm-foot">
         <TBtn onClick={() => setFit(!fit)}>{fit ? "원래 크기" : "화면에 맞추기"}</TBtn>
         <TBtn onClick={openAll}>모두 펼치기</TBtn>
@@ -283,8 +290,8 @@ function RightMap({ D, cu, A, open, p, idx, launch }) {
         <TBtn onClick={save}>그림으로 저장</TBtn>
       </div>
     </div>
-    <div className="mm-hint">가지를 누르면 그 업무 · 오른쪽 작은 칸(‹ · +n)을 누르면 접기·펼치기 · 그림은 이 칸 안에서 옆으로 밀어서 봐요</div>
-    {!launch && <AddBranch D={D} cu={cu} A={A} p={p} idx={idx} />}
+    <div className="mm-hint">{tpl ? "견본 마인드맵 · 단계 → 업무(예상 소요일) · 오른쪽 작은 칸(‹ · +n)을 누르면 접기·펼치기 · 고치기는 [목록]에서" : "가지를 누르면 그 업무 · 오른쪽 작은 칸(‹ · +n)을 누르면 접기·펼치기 · 그림은 이 칸 안에서 옆으로 밀어서 봐요"}</div>
+    {!launch && !tpl && <AddBranch D={D} cu={cu} A={A} p={p} idx={idx} />}
   </>;
 }
 
@@ -309,4 +316,21 @@ function AddBranch({ D, cu, A, p, idx }) {
       <Act onClick={add}>추가</Act></div>
     {lastTop && <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: C.sub, marginTop: 8 }}><input type="checkbox" checked={after} onChange={(e) => setAfter(e.target.checked)} />'{lastTop.title}' 다음 순서로 (그 일이 끝나면 차례)</label>}
   </Card>;
+}
+
+// 견본 마인드맵 (견본 한 장 [마인드맵] · 읽기만): 견본 → 단계(업무 n개 · 걸리는 평일) → 업무(n일 · 담당) → 하위 업무
+export function TplMap({ D, tpl, E }) {
+  const road = tplRoad(tpl), live = tplLive(tpl), ks = new Set(live.map((x) => x.key)), noL = tplKind(tpl) === "launch" ? "기타" : "단계 미정";
+  const esOf = (x) => ((E.node.get(x.key) || {}).es || 0), ord = new Map(live.map((x, i) => [x.key, i])), sortT = (a) => a.slice().sort((x, y) => esOf(x) - esOf(y) || ord.get(x.key) - ord.get(y.key));
+  const tnode = (x, seen) => { if (seen.has(x.key)) return null; const s2 = new Set(seen).add(x.key);
+    return { id: "k:" + x.key, kind: "task", t: { id: x.key, title: x.title, x }, st: "", kids: live.filter((k) => k.parentKey === x.key).map((k) => tnode(k, s2)).filter(Boolean) }; };
+  const tops = live.filter((x) => !x.parentKey || !ks.has(x.parentKey));
+  const ph = (k, name, num, a) => ({ id: "ph:" + k, kind: "phase", ph: { k, name, state: "todo", left: a.length, total: a.length }, num, st: "", kids: sortT(a).map((x) => tnode(x, new Set())).filter(Boolean) });
+  const kids = road.map((s, i) => ph(s.k, s.name, i + 1, tops.filter((x) => x.phase === s.k)));
+  const un = tops.filter((x) => !road.some((s) => s.k === x.phase)); if (un.length) kids.push(ph("", noL, null, un));
+  const tree = { id: "root", kind: "root", kids, count: live.length };
+  const subOf = (n) => { if (n.kind === "phase") { const sp = n.ph.k && E.stage.get(n.ph.k); return n.ph.total ? `업무 ${n.ph.total}개${sp && sp.span ? ` · ${sp.span}일` : ""}` : "비어 있어요"; }
+    const x = n.t.x; return [estOf(x) ? `${estOf(x)}일` : "소요일 미정", tpl.withOwners && x.assigneeId ? nameOf(D.users, x.assigneeId) : ""].filter(Boolean).join(" · "); };
+  const rootSub = [`업무 ${live.length}개`, E.has ? `예상 ${E.total}일` : "예상 소요 미정"].join(" · ");
+  return <div className="mm-wrap"><RightMap D={D} p={{ id: "tpl:" + tpl.id, title: tpl.title || "견본" }} launch={false} tpl={{ tree, rootSub, subOf }} /></div>;
 }

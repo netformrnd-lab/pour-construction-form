@@ -723,3 +723,34 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
 .v2-sort .row .tt { font-size: 14px; font-weight: 700; color: #1B2333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 6px; }
 .v2-sort .row .v2-chips { flex-wrap: wrap; }
 .v2-sort .row .v2-chips button { padding: 6px 10px; font-size: 12.5px; }
+
+/* 예상 소요 · 견본 (사용자 확정 2026-10-07) */
+.v2-estin { width: 64px; height: 34px; padding: 0 6px; font-size: 13px; }
+.v2-tplnote { font-size: 12.5px; color: #8A92A3; line-height: 1.55; margin: 4px 2px 0; word-break: keep-all; }
+.v2-tplerr { font-size: 12.5px; color: #1B2333; font-weight: 700; margin: 4px 2px 0; flex-basis: 100%; }
+.v2-tplul { margin: 10px 2px 0; padding-left: 18px; font-size: 12.5px; color: #5B6475; line-height: 1.7; word-break: keep-all; }
+.v2-tplinfo { margin: 12px 2px 0; font-size: 14px; color: #1B2333; line-height: 1.5; }
+.v2-tplinfo b { color: #0F1F5C; }
+.v2-tplinfo span { color: #5B6475; font-size: 13px; }
+.v2-tplg { margin-top: 12px; }
+.v2-tplst { display: flex; align-items: baseline; gap: 8px; margin: 0 2px 6px; min-width: 0; }
+.v2-tplst b { flex: 0 1 auto; min-width: 0; font-size: 14px; color: #0F1F5C; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-tplst span { flex: 1 1 auto; min-width: 0; font-size: 12.5px; color: #8A92A3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-tpli { border-bottom: 1px solid #E3E7F0; background: #fff; }
+.v2-tpli:last-child { border-bottom: none; }
+.v2-tpli .hd { display: flex; flex-direction: column; gap: 2px; width: 100%; min-width: 0; text-align: left; padding: 11px 14px; border: none; background: none; font: inherit; color: inherit; }
+.v2-tpli button.hd { cursor: pointer; }
+.v2-tpli.kid .hd { padding-left: 32px; }
+.v2-tpli.on { background: #F6F8FC; }
+.v2-tpli .t { font-size: 14.5px; font-weight: 700; color: #1B2333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-tpli .s { font-size: 12.5px; color: #5B6475; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-tpli .ed { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 14px 12px; }
+.v2-tpli.kid .ed { padding-left: 32px; }
+.v2-tpli .ed .bt { display: flex; align-items: center; gap: 8px; flex-basis: 100%; }
+.v2-tpladd { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px; }
+.v2-tpladd .v2-sel { max-width: 100%; }
+.v2-tplown { display: flex; align-items: center; gap: 8px; padding: 8px 12px; min-width: 0; }
+.v2-tplown.kid { padding-left: 28px; }
+.v2-tplown .t { flex: 1 1 auto; min-width: 0; font-size: 13.5px; color: #1B2333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-tplown .v2-sel { flex: 0 0 auto; max-width: 46%; }
+.v2-tplsum b, .v2-tplprev b { color: #0F1F5C; }

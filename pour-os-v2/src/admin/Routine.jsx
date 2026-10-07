@@ -3,7 +3,8 @@
 //  행동지표(AARRR): 정의 = 버전1 state-actionKPIs · 주별 실적 = 버전1 kpi-act-YYYY-Qn(읽기만) + 업무OS 오늘 화면 [+1] 기록(pour-os/v2/kpiact) 합계
 import { useEffect, useMemo, useState } from "react";
 import * as fb from "../fb.js";
-import { ymd, md, activeUsers, nameOf, fxPeople, fxMeDone, fxRecurL, fxDueOn, fxDoneOn, fxMin, fxIds, scopeOf, scopeRec, brandsWithCommon, brandLabel, brandKey, cyclePending, cycleGuess, countHint, COMMON_BRAND } from "../model.js";
+import { ymd, md, activeUsers, nameOf, fxPeople, fxMeDone, fxRecurL, fxDueOn, fxDoneOn, fxMin, fxIds, scopeOf, scopeRec, brandsWithCommon, brandLabel, brandKey, cyclePending, cycleGuess, countHint, COMMON_BRAND, trashRows } from "../model.js";
+import { TrashList } from "../trash.jsx";
 import {
   AK_FUNS, AK_CYC, akYmd, akWeeksIn, akQuarterWeeks, akQidOfMonth, akVal, akWeekDone, akTotal, akCountable, akFullWeek, akPartial, akPeriodEnd, akGoalText, akWho, akOrder, akLink,
 } from "../../../pour-os/src/actionKpi.js";
@@ -69,6 +70,8 @@ export function RoutineTab({ D, A, open }) {
     {(sec === "all" || sec === "check") && <FixedBoard D={D} fx={fx} paused={rtAll.filter((t) => t.paused && inBrand(t.brand, "")).length} who={who1} keyD={key} open={open} />}
     {(sec === "all" || sec === "ak") && <AkBoard D={D} items={ak} ready={def.d !== undefined} err={def.err} who={who1} whoOf={whoOfAk} open={open} />}
     {sec === "me" && <MeBoard D={D} list={meAll} who={who1} keyD={key} />}
+    {/* 없앤 것(휴지통 · 사용자 확정 2026-10-07) — 맨 아래 접힘 · 누가·언제 · [되살리기] = 없애기 전 그대로 */}
+    <TrashList rows={trashRows(D.removedFx, D.ak && D.ak.removed, D.brands)} A={A} open={open} label="없앤 것" note="목록·오늘 화면·달성률에서 빠진 것들이에요 · 지난 체크·건수·메모·파일은 그대로 있어요 · 되살리면 없애기 전 그대로 돌아와요" />
   </>;
 }
 

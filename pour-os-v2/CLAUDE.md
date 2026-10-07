@@ -107,6 +107,16 @@
   · @부르기: model.todayView ':' 없는 itemId = 행동지표 id → {akId, title}(부름·내가 말한 대화) · today.openInbox → open({type:'routine'}) · core.queueMentionSms 링크 #r-<akId>(App 해시 #r-) · useItemNotes 기밀 판단은 task: 만
   · 관리자 반복 실행: [+ 반복 실행](admin/RoutineAdd.AddRoutineSheet · [정한 날 체크 | 횟수 목표] · 이름 · 브랜드 꼭(공통 운영 포함) · 담당 · 반복 또는 주/월/분기 + 숫자 + 회/건 · 체크리스트 · 건수 칸 → A.addRoutineFixed(scope brand) / A.akCreate) · [기록 보기 ›](RecBookSheet · 날짜 × 사람 '회 · 건' · ‹ › · [더 하기 ▾] CSV 반복실행_기록_YYYY-MM.csv) · 오늘 체크 줄 '문의 23건' · '메모 n · 파일 n' · 횟수 표 주 칸 아래 회색 그 주 건수 · '10월 전화 49건' · 이름 누르면 시트 · '새로 만듦'·'멈춤' 꼬리표
 
+## 없애기 · 휴지통 · 이름 고치기 (사용자 확정 2026-10-07 "등록한거 삭제 방안은?" → 목록에서 빼기 + 휴지통 · 시험 model.test 없애기·이름 · kpi2.test 없애기 · os2/t47 · admin t28)
+- 지우는 길 없음. 반복 실행·고정업무 시트 [더 하기 ▾] 마지막 [없애기](trash.RemoveAsk 확인 카드: 빠지는 곳 · 남는 것 · 되살리는 곳) → 시트 닫힘 · 5초 되돌리기 · 기록 action 'remove'/'restore'(LOG_L 없앰(휴지통)/되살림 · prev 이전 값)
+- 권한(model.canRemoveFx · canRemoveAk): 개인 고정업무(scope me) = 본인(담당·만든 사람)·관리자 · 반복 실행(브랜드)·브랜드 미정 = 관리자 · 횟수 목표 = 관리자
+- 저장: 고정업무·정한 날 체크 = 업무 removed{at,by,byName,prevPaused,scope} + paused true(예전 화면에서도 안 뜨게 · A.fxRemove = patchIf removed null 일 때만) · 되살리기 A.fxRestore = removed 가 본 값 그대로일 때만 → paused 이전 값 · removed null. 횟수 목표 = 덧칠 kpidefs hidden true + removed(A.akRemove · kpiEditWrite hist) · 되살리기 A.akRestore. 지난 checks·kpiact·메모·파일·대화는 그대로
+- 빼는 곳은 core.useData 한 곳: D.tasks 에서 removed 뺌 → D.removedFx · D.ak.items 에서 뺌(applyKpiOv _removed) → D.ak.removed. 그래서 오늘·반복 실행 카드·내 고정업무·관리자 목록·타일·%·사람·협업 맵·그로스보드·보고서 모두 빠짐. 기밀 removedFx 는 secret.redact 가 볼 사람만. 기록 보기(RecBook) 지난 기록 이름 '… (없앰)'
+- 휴지통(trash.TrashList · model.trashRows 최근 것 먼저): 관리자 반복 실행 맨 아래 '없앤 것 n ▾'(접힘 · 개인 포함 전부) · 더보기 › 내 고정업무 맨 아래 '없앤 고정업무 n ▾'(내 개인 고정업무만) · 줄 = 이름 · 종류·브랜드 · 누가 없앰 · 언제 · [되살리기] · 이름 누르면 그 시트
+- 링크·휴지통으로 없앤 것을 열면 맨 위 '없앤 반복 실행이에요 / 없앤 고정업무예요 · 누가 · 언제 · [되살리기]'(trash.RemovedNote) · 체크·설정·메모·파일 올리기 숨김 · 지난 기록·대화는 보임 (App #t- 해시도 removedFx 에서 찾음)
+- 다시 가져오기: V2_TASK_ONLY 에 removed · 없앤 문서는 paused 도 안 덮음(stripV2Only) → 버전1에서 다시 가져와도 되살아나지 않음
+- [이름 고치기](사용자 요청 2026-10-07 · [더 하기 ▾] 첫 버튼): 공통 이름 = task.title(A.renameFx) / 횟수 목표 = 덧칠 fields.name(A.akRename · 버전1 그대로) · 권한 개인 = 본인·관리자 · 반복 실행·미정·횟수 목표 = 관리자(model.canRenameFx) · 연 때 본 이름 그대로일 때만(transaction) → 아니면 NameClash '그사이 다른 사람이 이름을 바꿨어요 · 지금 이름: … [지금 이름으로 다시 보기][내 이름으로 저장]' · 기록 prev · 5초 되돌리기. 같은 칸 두 번째 '내 화면에만 보이는 이름 (선택)' = labelBy.<나>(예전 '보이는 이름 · 내 시간'은 '내 시간'만 남음) · 권한 없으면 전체 이름 읽기만 + '관리자가 고쳐요' · 시트 머리 이름은 2줄까지(말줄임 · title 에 전체) · 괄호 → 체크리스트 제안은 안 함(사용자 결정)
+
 ## 파일 미리 보기 · 올리기 진행 · 댓글 링크 (사용자 요청 2026-10-06 · files.jsx · 시험 os2/t41 · admin t25)
 - 댓글 파일(task.Thread → files.NoteFiles · 업무·고정업무·반복 실행·프로젝트 한마디 모두): 사진 = 그 자리 작은 그림(loading lazy · 높이 180 안 · 2장 이상은 반씩) → 누르면 전체 화면(ImgViewer: ✕ 닫기 · ‹ 이전 · 다음 › · ← → · 밀어서 · 새 창에서 열기 · Esc 는 보기만 닫고 시트는 그대로 — 창 keydown 을 capture 로 먼저 받음) · PDF = '이름 · 크기' + [PDF 미리보기] → PdfViewer(iframe · [새 창에서 열기] 늘 같이 · 안내 '안 보이면 새 창에서') · 그 밖 = 이름 · 크기 · [열기]. 사진이 안 읽히면(onError) 파일 줄로. fileKind = type image/*·.png…(heic 는 파일) / application/pdf·.pdf
 - 자료 목록(업무 파일 · 고정업무·반복 실행 자료 · 프로젝트 자료 탭) = files.FileList(같은 보기 · 줄 오른쪽 '크게 보기 ›' / '미리보기 ›' / '열기 ›' · 크기). 예전 task.FileRow 는 files.FileRow 로 옮김(task.jsx 가 다시 내보냄)

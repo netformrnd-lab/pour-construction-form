@@ -358,4 +358,29 @@ ok("2단계 오늘: 브랜드 정한 고정업무는 routine(반복 실행 카�
   const v = M.todayView(D, "a", now);
   assert.deepEqual(v.fixed.left.map((x) => x.t.id).sort(), ["f2", "f3"]); assert.deepEqual(v.routine.left.map((x) => x.t.id).sort(), ["f1", "f4"]); assert.equal(v.left, 4);
 });
+ok("없애기·휴지통(2026-10-07): 권한 · 저장 칸 · 되살리기 = 이전 멈춤 그대로 · 휴지통 줄", () => {
+  const boss = { id: "s", name: "김송희", role: "lead" }, me = { id: "a", name: "가" }, other = { id: "b", name: "나" };
+  const mine = { id: "f1", title: "메일", isFixed: true, scope: "me", assigneeIds: ["a"] }, rt = { id: "f2", title: "CS", isFixed: true, scope: "brand", brand: "common", assigneeIds: ["a"] }, un = { id: "f3", title: "미정", isFixed: true, assigneeIds: ["a"] };
+  assert.equal(M.canRemoveFx(mine, me), true); assert.equal(M.canRemoveFx(mine, other), false); assert.equal(M.canRemoveFx(mine, boss), true);
+  assert.equal(M.canRemoveFx(rt, me), false); assert.equal(M.canRemoveFx(rt, boss), true); assert.equal(M.canRemoveFx(un, me), false); assert.equal(M.canRemoveFx(un, boss), true);
+  assert.equal(M.canRemoveFx({ ...mine, assigneeIds: ["b"], createdBy: "a" }, me), true);   // 만든 사람
+  assert.equal(M.canRemoveFx({ id: "x", title: "업무", scope: "me", assigneeIds: ["a"] }, me), false);   // 고정업무만
+  assert.equal(M.canRemoveAk(me), false); assert.equal(M.canRemoveAk(boss), true);
+  const f = M.fxRemoveFields({ ...rt, paused: false }, boss, "2026-10-07T01:00:00Z");
+  assert.deepEqual(f, { removed: { at: "2026-10-07T01:00:00Z", by: "s", byName: "김송희", prevPaused: false, scope: "brand" }, paused: true });
+  assert.equal(M.isRemoved({ ...rt, ...f }), true); assert.equal(M.isRemoved(rt), false); assert.equal(M.isRemoved({ removed: null }), false);
+  assert.deepEqual(M.fxRestoreFields({ ...rt, ...f }), { removed: null, paused: false });
+  assert.deepEqual(M.fxRestoreFields({ ...rt, ...M.fxRemoveFields({ ...rt, paused: true }, boss, "x") }), { removed: null, paused: true });   // 멈춰 있던 것은 멈춤으로
+  const gone = [{ ...rt, ...f }, { ...mine, ...M.fxRemoveFields(mine, me, "2026-10-07T02:00:00Z") }, { ...un, removed: { at: "2026-10-06T00:00:00Z", by: "s", byName: "김송희" } }];
+  const ak = [{ id: "k1", name: "블로그", brand: "pourstore", _hidden: true, _removed: { at: "2026-10-07T03:00:00Z", by: "s", byName: "김송희" } }];
+  const all = M.trashRows(gone, ak, [{ id: "pourstore", name: "POUR스토어" }]);
+  assert.deepEqual(all.map((r) => r.kind + ":" + r.id), ["ak:k1", "fx:f1", "fx:f2", "fx:f3"]);   // 최근 것 먼저
+  assert.equal(all[0].sub, "횟수 목표 · POUR스토어"); assert.equal(all[2].sub, "반복 실행 · 공통 운영"); assert.equal(all[1].sub, "개인 고정업무"); assert.equal(all[3].sub, "고정업무 · 브랜드 미정");
+  assert.deepEqual(M.trashRows(gone, ak, [], "a").map((r) => r.id), ["f1"]);   // 내 것 = 내 개인 고정업무만 (반복 실행·횟수 목표는 관리자 휴지통)
+  assert.deepEqual(M.trashRows(gone, ak, [], "b"), []);
+});
+ok("이름 고치기 권한: 개인 = 본인·관리자 · 반복 실행 = 관리자", () => {
+  const boss = { id: "s", name: "김송희", role: "lead" }, me = { id: "a", name: "가" };
+  assert.equal(M.canRenameFx({ isFixed: true, scope: "me", assigneeIds: ["a"] }, me), true); assert.equal(M.canRenameFx({ isFixed: true, scope: "brand", brand: "x", assigneeIds: ["a"] }, me), false); assert.equal(M.canRenameFx({ isFixed: true, scope: "brand", brand: "x" }, boss), true);
+});
 console.log(`\n${n}개 모두 통과`);

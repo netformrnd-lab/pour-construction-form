@@ -14,6 +14,7 @@ const DONE_P = ["completed", "dropped", "archived"];
 const items = (d) => (d && Array.isArray(d.items) ? d.items : []).filter((x) => x && x.id && !x.deleted && !x.deletedAt);
 // ── KPI 고치기(사용자 결정 2026-10-05 'KPI 변경 가능하게') — 버전1 문서는 읽기만, 고친 것은 v2 덧칠 ──
 //  pour-os/v2/kpidefs/{id} = {id, coll, fields:{바꾼 칸}, hidden, created, hist:[{at,by,byName,ch:{칸:[이전,이후]}}]}
+//  · removed {at,by,byName} = 반복 실행 [없애기](hidden 과 같이 · 휴지통 줄 _removed · 되살리기 = hidden false · removed null)
 //  · 버전1 항목 → fields 를 위에 덮어 보임 · created = v2 에서 새로 만든 항목(fields 가 통째) · hidden = 숨김(지우지 않음 · 다시 보이기)
 // 반복 실행(횟수 목표 · 버전1 행동지표 · 3단계 2026-10-06): 같은 덧칠 — fields = subs(공통 체크리스트) · qty(건수 칸) · desc·descAt·descBy(하는 법·메모) · brand · who · paused
 //   문서 맨 위 files[](자료 · arrayUnion · hist 에 안 쌓음) → 항목 _files · 기존 29개는 goal·cyc·unit 을 덮지 않음(화면에서 못 고침) · 새 항목(created)만 통째
@@ -28,8 +29,8 @@ export function applyKpiOv(K, ov) {
     const files = (o) => (c === "actionKPIs" && Array.isArray(o.files) && o.files.length ? { _files: o.files } : {});
     const arr = (K[c] || []).map((it) => { seen.add(it.id); const o = by[it.id]; if (!o || o.coll !== c) return it;
       const f = { ...(o.fields || {}) }; if (c === "actionKPIs") AK_LOCK.forEach((k) => delete f[k]);
-      return { ...it, ...f, ...files(o), ...(o.hidden ? { _hidden: true } : {}), _ov: true }; });
-    Object.values(by).forEach((o) => { if (o.coll === c && o.created && !seen.has(o.id)) arr.push({ ...(o.fields || {}), ...files(o), id: o.id, _new: true, ...(o.hidden ? { _hidden: true } : {}) }); });
+      return { ...it, ...f, ...files(o), ...(o.hidden ? { _hidden: true } : {}), ...(o.hidden && o.removed ? { _removed: o.removed } : {}), _ov: true }; });
+    Object.values(by).forEach((o) => { if (o.coll === c && o.created && !seen.has(o.id)) arr.push({ ...(o.fields || {}), ...files(o), id: o.id, _new: true, ...(o.hidden ? { _hidden: true } : {}), ...(o.hidden && o.removed ? { _removed: o.removed } : {}) }); });
     out[c] = arr;
   });
   return out;

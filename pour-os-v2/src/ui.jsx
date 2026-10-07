@@ -74,7 +74,7 @@ export function Sheet({ title, kind, path, onPath, head, onBack, onClose, childr
           {onBack && <button type="button" className="bk" onClick={onClose}>닫기</button>}<span style={{ flex: 1 }} />
           {kind && <span className="kind">{kind}</span>}</div>
         {path && (onPath ? <button type="button" className="path go" onClick={onPath}>{path} ›</button> : <div className="path">{path}</div>)}
-        <div className="tt">{head || title}</div>
+        <div className="tt" title={typeof (head || title) === "string" ? head || title : undefined}>{head || title}</div>
       </div>
       <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "4px 16px 24px" }}>{children}</div>
       {foot && <div style={{ flex: "0 0 auto", padding: "10px 16px calc(10px + env(safe-area-inset-bottom,0px))", borderTop: `1px solid ${C.line}`, background: "#fff" }}>{foot}</div>}

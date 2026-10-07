@@ -1,6 +1,7 @@
 // 업무OS v2 — 더보기 (나와 관련된 도구만) · 내가 맡긴 일 · 내 고정업무
 import { useState } from "react";
-import { addDays, WD, ymd, md, hm, isMaster, nameOf, ownersOf, dueOf, riskOf, assignedByMe, fxIsMine, fxRecurL, fxTime, fxLabel, fxMeDone, COUNT_L, scopeOf, brandLabel, FX_WD } from "./model.js";
+import { addDays, WD, ymd, md, hm, isMaster, nameOf, ownersOf, dueOf, riskOf, assignedByMe, fxIsMine, fxRecurL, fxTime, fxLabel, fxMeDone, COUNT_L, scopeOf, brandLabel, FX_WD, trashRows } from "./model.js";
+import { TrashList } from "./trash.jsx";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, useLocal, inp } from "./ui.jsx";
 import { V1_URL, LS } from "./core.jsx";
 import { SmsSettings } from "./smsui.jsx";
@@ -72,7 +73,8 @@ export function AssignedSheet({ D, cu, A, open, onBack, onClose }) {
 }
 
 // 내 고정업무 — [+ 고정업무] · 두 묶음: '고정업무(내 것)'(개인·브랜드 미정) / '내가 맡은 반복 실행'(브랜드 정한 것)
-export function MyFixedSheet({ D, cu, open, onBack, onClose }) {
+//   맨 아래 '없앤 고정업무 n ▾'(접힘 · 내 개인 고정업무 중 없앤 것 · [되살리기] · 사용자 확정 2026-10-07)
+export function MyFixedSheet({ D, cu, A, open, onBack, onClose }) {
   const key = ymd(new Date());
   const all = D.tasks.filter((t) => t.isFixed && fxIsMine(t, cu.id));
   const RT = { daily: 0, weekly: 1, monthly: 2 };
@@ -96,6 +98,7 @@ export function MyFixedSheet({ D, cu, open, onBack, onClose }) {
     {rtN > 0 && <><Head>내가 맡은 반복 실행 {rtN}</Head><Card>{rt.map((t, i) => row(t, i, akRows.length ? [...rt, ...akRows] : rt))}{akRows.map((r, i) => akRow(r, i, akRows))}</Card></>}
     {paused.length + akPaused.length > 0 && <><Head>멈춤 {paused.length + akPaused.length}</Head><Card>{paused.map((t, i) => <Row key={t.id} dim title={fxLabel(t, cu.id)} sub={fxRecurL(t)} onClick={() => open({ type: "fixed", id: t.id })} last={!akPaused.length && i === paused.length - 1} />)}
       {akPaused.map((it, i) => <Row key={"ak" + it.id} dim title={it.name} sub="횟수 목표 · 멈춤" onClick={() => open({ type: "routine", id: it.id })} last={i === akPaused.length - 1} />)}</Card></>}
+    <TrashList rows={trashRows(D.removedFx, null, D.brands, cu.id)} A={A} open={open} label="없앤 고정업무" note="되살리면 없애기 전 그대로 돌아와요 · 지난 체크·메모·파일은 그대로 있어요" />
   </Sheet>;
 }
 
@@ -137,11 +140,11 @@ export function myNotesOf(D, uid, key, range) {
 // 그 댓글이 어디 것인지 + 여는 길
 export function noteWhere(D, n) {
   const id = String(n.itemId || ""), ci = id.indexOf(":"), k = ci > 0 ? id.slice(0, ci) : "", ref = ci > 0 ? id.slice(ci + 1) : id;
-  if (k === "task") { const t = (D.tasks || []).find((x) => x.id === ref);
+  if (k === "task") { const t = (D.tasks || []).find((x) => x.id === ref) || (D.removedFx || []).find((x) => x.id === ref);   // 없앤 고정업무 대화도 그 시트로
     return { kind: t && t.isFixed ? (t.scope === "brand" ? "반복 실행" : "고정업무") : "업무", title: t ? t.title : "지난 업무", go: { type: t && t.isFixed ? "fixed" : "task", id: ref, focus: "talk", note: n.id } }; }
   if (k === "proj") { const p = (D.projects || []).find((x) => x.id === ref); return { kind: "프로젝트", title: p ? p.title : "프로젝트", go: { type: "project", id: ref, first: "news", note: n.id } }; }
   if (!k && id.includes("~")) { const tid = id.split("~")[0], t = (D.tasks || []).find((x) => x.id === tid); return { kind: "고정업무 메모", title: t ? t.title : "고정업무", go: { type: "fixed", id: tid } }; }
-  const it = ((D.ak && D.ak.items) || []).find((x) => x.id === id);
+  const it = ((D.ak && D.ak.items) || []).find((x) => x.id === id) || ((D.ak && D.ak.removed) || []).find((x) => x.id === id);
   return { kind: "반복 실행", title: it ? it.name : "반복 실행", go: { type: "routine", id, focus: "talk", note: n.id } };
 }
 const dayHead = (d, key) => (d === key ? "오늘" : d === addDays(key, -1) ? "어제" : `${md(d)}(${WD[new Date(d + "T00:00:00").getDay()]})`);

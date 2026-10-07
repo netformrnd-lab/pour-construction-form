@@ -63,7 +63,8 @@ export function RecBookSheet({ D, onBack, onClose }) {
   useEffect(() => { let live = true; setDocs(null); fb.fetchWhere("checks", ["ym", "==", ym]).then((a) => { if (live) setDocs(a); }).catch((e) => { console.error("[v2 checks] 달 기록 읽기 실패:", e); if (live) setDocs([]); }); return () => { live = false; }; }, [ym]);
   const T = useMemo(() => recTable(docs || [], ym), [docs, ym]);
   const mv = (d) => { const [y, m] = ym.split("-").map(Number), x = new Date(y, m - 1 + d, 1); setYm(`${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`); };
-  const nameOf = (d) => { const it = ((D.ak && D.ak.items) || []).find((x) => x.id === d.itemId); if (it) return it.name; const t = (D.tasks || []).find((x) => x.id === d.itemId); return t ? t.title : d.itemId; };
+  const nameOf = (d) => { const it = ((D.ak && D.ak.items) || []).find((x) => x.id === d.itemId); if (it) return it.name; const t = (D.tasks || []).find((x) => x.id === d.itemId); if (t) return t.title;
+    const g = ((D.ak && D.ak.removed) || []).find((x) => x.id === d.itemId) || (D.removedFx || []).find((x) => x.id === d.itemId); return g ? `${g.name || g.title} (없앰)` : d.itemId; };   // 없앤 것도 지난 기록은 이름 그대로
   const csv = () => { const blob = new Blob([recCsv(docs || [], nameOf)], { type: "text/csv;charset=utf-8" }), a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `반복실행_기록_${ym}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); };
   const cellT = (c) => (!c ? "" : `${c.runs + c.on}회${c.qty ? ` · ${c.qty}건` : ""}`);
   const tot = (uid) => T.days.reduce((a, d) => { const c = T.cell(d, uid); return c ? { n: a.n + c.runs + c.on, q: a.q + c.qty } : a; }, { n: 0, q: 0 });

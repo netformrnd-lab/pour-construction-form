@@ -34,8 +34,9 @@ export const noteOver = new Map(); const noteSubs = new Set();
 export const setNoteOver = (id, v) => { noteOver.set(id, v); noteSubs.forEach((f) => f()); };
 export function useNoteOver() { const [v, set] = useState(0); useEffect(() => { const f = () => set((x) => x + 1); noteSubs.add(f); return () => { noteSubs.delete(f); }; }, []); return v; }
 // 따로 읽은 댓글 목록에서 삭제한 것 빼기 (업무·프로젝트 대화 · 이전 소식 · 링크)
-export const liveNotes = (arr, D) => { const L = new Set([...((D && D.notes) || []), ...((D && D.removedNotes) || [])].map((n) => n.id));
-  return (arr || []).filter((n) => n && !(L.has(n.id) || !noteOver.has(n.id) ? isRemoved(n) : !!noteOver.get(n.id))); };
+//   구독에 있으면 구독 값(D.notes = 살아 있음 · D.removedNotes = 삭제) → 이 기기에서 방금 지움/되살림(noteOver) → 그 문서의 removed
+export const liveNotes = (arr, D) => { const live = new Set(((D && D.notes) || []).map((n) => n.id)), gone = (D && D.removedNoteIds) || new Set(((D && D.removedNotes) || []).map((n) => n.id));
+  return (arr || []).filter((n) => n && (live.has(n.id) ? true : gone.has(n.id) ? false : noteOver.has(n.id) ? !noteOver.get(n.id) : !isRemoved(n))); };
 
 // ───────────────── 데이터 구독 ─────────────────
 // on: 사람 목록만(로그인 화면) · full: 로그인 뒤 나머지 전부 (로그인 전엔 업무·기록을 읽지 않음 — 정밀 검토 2026-10-06 · 읽기 비용)

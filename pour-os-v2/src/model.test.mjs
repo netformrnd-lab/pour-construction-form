@@ -414,7 +414,7 @@ ok("업무 없앰 알림: 담당·맡긴 사람에게 '업무 없앰' (없앤 �
   const k2 = { id: "k2", title: "안 B", parentId: "t1", status: "todo", assigneeIds: ["d"], removed: { at, by: "b", byName: "나", reason: "중복", root: "t1" } };
   const D = { tasks: [], removedTasks: [root, k1, k2], users: [{ id: "a", name: "가" }, { id: "b", name: "나" }, { id: "c", name: "다" }, { id: "d", name: "라" }], projects: [], notes: [] };
   const ia = M.todayView(D, "a", now, {}).inbox.filter((x) => x.kind === "removed");
-  assert.equal(ia.length, 1); assert.equal(ia[0].tag, "업무 없앰"); assert.equal(ia[0].taskId, "t1"); assert.equal(ia[0].keep, undefined); assert.match(ia[0].text, /나님이 없앴어요 · 중복 · 하위 2개 같이/);
+  assert.equal(ia.length, 1); assert.equal(ia[0].tag, "업무 없앰"); assert.equal(ia[0].taskId, "t1"); assert.equal(ia[0].keep, undefined); assert.match(ia[0].text, /^없앴어요 · 중복 · 하위 2개 같이 · 휴지통에서/); assert.equal(ia[0].whoName, "나");
   assert.equal(M.todayView(D, "c", now, {}).inbox.filter((x) => x.kind === "removed").length, 1);   // 맡긴 사람
   assert.deepEqual(M.todayView(D, "d", now, {}).inbox.filter((x) => x.kind === "removed").map((x) => x.taskId), ["k2"]);   // 하위만 담당 → 하위 줄
   assert.equal(M.todayView(D, "b", now, {}).inbox.filter((x) => x.kind === "removed").length, 0);   // 없앤 사람 본인

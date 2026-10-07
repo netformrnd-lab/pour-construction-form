@@ -56,7 +56,7 @@ export function TrashList({ rows, A, open, label, note, canRestore, style }) {
       {rows.map((r, i) => <div key={r.kind + r.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: i < rows.length - 1 ? `1px solid ${C.line}` : "none" }}>
         <button type="button" onClick={() => open && open({ type: r.kind === "ak" ? "routine" : r.kind === "task" ? "task" : "fixed", id: r.id })} style={{ flex: 1, minWidth: 0, textAlign: "left", border: "none", background: "none", padding: 0, fontFamily: "inherit", cursor: open ? "pointer" : "default" }}>
           <span style={{ display: "block", fontSize: 14.5, fontWeight: 700, color: C.mute, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
-          <span style={{ display: "block", marginTop: 2, fontSize: 12.5, color: C.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.sub} · {r.byName || "누군가"} 없앰 · {ago(r.at)}{r.reason ? ` · ${r.reason}` : ""}</span></button>
+          <span className="v2-clamp2" style={{ marginTop: 2, fontSize: 12.5, color: C.sub, lineHeight: 1.45, wordBreak: "keep-all" }}>{r.sub} · {r.byName || "누군가"} 없앰 · {ago(r.at)}{r.reason ? ` · ${r.reason}` : ""}</span></button>
         {(!canRestore || canRestore(r)) && <TBtn disabled={!!busy} onClick={() => back(r)}>{busy === r.id ? "되살리는 중" : "되살리기"}</TBtn>}
       </div>)}
       {note && <div style={{ padding: "8px 14px 12px", fontSize: 12, color: C.mute, borderTop: `1px solid ${C.line}` }}>{note}</div>}

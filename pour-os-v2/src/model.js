@@ -341,7 +341,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   (D.removedTasks || []).forEach((t) => { const rm = t && t.removed; if (!rm || t.isFixed || rm.by === uid || (rm.at || "") < since || !rmTo(t).includes(uid)) return;
     const root = rm.root && rm.root !== t.id ? rmById[rm.root] : null; if (root && rmTo(root).includes(uid)) return;
     const id = "rm:" + t.id + rm.at; if (seen[id]) return; const n = (rm.kids || []).length;
-    inbox.push({ kind: "removed", tag: "업무 없앰", id, taskId: t.id, title: t.title, who: rm.by, whoName: rm.byName, at: rm.at, text: `${rm.byName || "누군가"}님이 없앴어요${rm.reason ? " · " + rm.reason : ""}${n ? ` · 하위 ${n}개 같이` : ""} · 휴지통에서 되살릴 수 있어요` }); });
+    inbox.push({ kind: "removed", tag: "업무 없앰", id, taskId: t.id, title: t.title, who: rm.by, whoName: rm.byName, at: rm.at, text: `없앴어요${rm.reason ? " · " + rm.reason : ""}${n ? ` · 하위 ${n}개 같이` : ""} · 휴지통에서 되살릴 수 있어요` }); });
   Object.entries(launchNew).forEach(([pid, g]) => { const p = (D.projects || []).find((x) => x.id === pid);
     inbox.push({ kind: "launchNew", tag: "신제품", id: "ln:" + pid, projectId: pid, title: `${p ? p.title : "신제품"} · 항목 ${g.n}개 맡김`, who: g.who, at: g.at, text: "열어서 기한을 확인하고 '받았어요'를 눌러 주세요", keep: true }); });
   Object.entries(bulkNew).forEach(([bid, g]) => { const p = (D.projects || []).find((x) => x.id === g.pid);

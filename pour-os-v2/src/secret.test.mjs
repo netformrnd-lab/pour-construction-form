@@ -47,4 +47,17 @@ ok("상위 업무가 기밀이면 하위 업무(안·할 일 줄)도 숨김 · �
 ok("요청을 받은 사람은 볼 수 있음 (확인·도움·기한·막힘)", () => {
   for (const f of [{ reviewTo: "b" }, { ask: { to: "b" } }, { dueReq: { to: "b" } }, { blocked: { to: "b" } }]) assert.equal(S.redact(D([P()], [T({ ...sec(), ...f })]), U.b).tasks[0].title, "인수 가격 협상", JSON.stringify(f));
 });
+ok("프로젝트 책임자 끄기(secret.deny): 끈 책임자는 '기밀 업무' · 다시 켜면 봄 · 담당·맡긴·만든 사람이기도 하면 그대로 봄 · 관리자는 늘 봄", () => {
+  const off = { secret: { on: true, allow: [], deny: ["lead"], by: "boss" } };
+  const v = S.redact(D([P()], [T(off)]), U.lead);
+  assert.equal(v.tasks[0].title, S.LOCK_T); assert.ok(v.lockedT.has("t1")); assert.ok(!v.notes.some((x) => x.itemId === "task:t1")); assert.ok(!v.log.some((l) => l.id === "l1"));
+  assert.equal(S.viewTasks([T({ id: "old", ...off })], v)[0].title, S.LOCK_T);
+  assert.equal(S.taskSeen(T(off), P(), "lead", []), false);
+  assert.equal(S.redact(D([P()], [T({ secret: { on: true, allow: [], deny: [], by: "boss" } })]), U.lead).tasks[0].title, "인수 가격 협상");
+  for (const f of [{ assigneeIds: ["lead"], assigneeId: "lead" }, { requestedBy: "lead" }, { createdBy: "lead" }, { reviewTo: "lead" }, { ccIds: ["lead"] }])
+    assert.equal(S.redact(D([P()], [T({ ...off, ...f })]), U.lead).tasks[0].title, "인수 가격 협상", JSON.stringify(f));
+  assert.equal(S.redact(D([P()], [T({ secret: { ...off.secret, by: "lead" } })]), U.lead).tasks[0].title, "인수 가격 협상");
+  assert.equal(S.redact(D([P()], [T(off)]), U.boss).tasks[0].title, "인수 가격 협상");
+  assert.equal(S.redact(D([P()], [T(off)]), U.a).tasks[0].title, "인수 가격 협상");
+});
 console.log(`${n}개 모두 통과`);

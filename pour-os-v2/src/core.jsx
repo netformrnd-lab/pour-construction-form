@@ -885,8 +885,9 @@ export function useActs(D, cu, setToast, idx = null) {
         if (c.st && t.projectId) recalc(t.projectId);
         return c;
       } catch (e) { fail("횟수")(e); return null; } },
-    // 기밀 (secret.js): sec = { allow:[id] } 이면 켜기 · null 이면 풀기 — 정하는 사람(by)은 늘 볼 수 있음
-    setSecret: (kind, x, sec) => { const f = { secret: sec ? { on: true, allow: sec.allow || [], by: cu.id, byName: cu.name, at: nowIso() } : null }, label = sec ? `기밀 설정 (볼 사람 ${(sec.allow || []).length}명 더)` : "기밀 풀기";
+    // 기밀 (secret.js): sec = { allow:[id], deny:[id](업무 · 끈 프로젝트 책임자) } 이면 켜기 · null 이면 풀기 — 정하는 사람(by)은 늘 볼 수 있음
+    setSecret: (kind, x, sec) => { const dn = kind === "task" && sec ? (sec.deny || []).filter((i) => i && i !== cu.id) : [];
+      const f = { secret: sec ? { on: true, allow: sec.allow || [], ...(dn.length ? { deny: dn } : {}), by: cu.id, byName: cu.name, at: nowIso() } : null }, label = sec ? `기밀 설정 (볼 사람 ${(sec.allow || []).length}명 더${dn.length ? ` · 책임자 ${nameOf(D.users, dn[0]) || ""} 끔` : ""})` : "기밀 풀기";
       if (kind === "project") return A.patchProject(x, f, label, null);
       return P(x, f, "edit", `${x.title} · ${label}`, { prev: { secret: x.secret || null } }); },
     patchProject: (p, f, label, prev) => fb.patch("projects", p._doc || p.id, { ...f, updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }).then(() => log("edit", { col: "projects", targetId: p.id, projectId: p.id, label: `${p.title} · ${label}`, ...(prev != null ? { prev } : {}) })).catch(fail("프로젝트")),

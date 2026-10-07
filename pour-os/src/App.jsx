@@ -985,7 +985,7 @@ export default function App(){
     let stop=false; let c=null; try{ c=JSON.parse(localStorage.getItem("pour-os-gh-sales")||"null"); }catch(_){}
     if(c&&c.at&&Date.now()-c.at<60*60*1000) return;
     (async()=>{ try{ const all=[]; let tok="";
-      for(let i=0;i<60;i++){ const u=`https://firestore.googleapis.com/v1/projects/${GH_FIREBASE.projectId}/databases/(default)/documents/salesRecords?pageSize=300&mask.fieldPaths=date&mask.fieldPaths=platform&mask.fieldPaths=totalPrice&key=${GH_FIREBASE.apiKey}${tok?"&pageToken="+encodeURIComponent(tok):""}`;
+      for(let i=0;i<60;i++){ const u=`https://firestore.googleapis.com/v1/projects/${GH_FIREBASE.projectId}/databases/(default)/documents/${GH_FIREBASE.root}/salesRecords?pageSize=300&mask.fieldPaths=date&mask.fieldPaths=platform&mask.fieldPaths=totalPrice&key=${GH_FIREBASE.apiKey}${tok?"&pageToken="+encodeURIComponent(tok):""}`;
         const r=await fetch(u); const j=await r.json(); if(!r.ok) throw new Error((j.error&&j.error.message)||("HTTP "+r.status));
         (j.documents||[]).forEach(d=>{ const f=d.fields||{}; all.push({date:(f.date||{}).stringValue||"",platform:(f.platform||{}).stringValue||"",totalPrice:Number((f.totalPrice||{}).integerValue||(f.totalPrice||{}).doubleValue||(f.totalPrice||{}).stringValue||0)}); });
         tok=j.nextPageToken||""; if(!tok||stop) break; }
@@ -9161,7 +9161,7 @@ const IMPORT_SRC={
     label:(pl)=>`모여라딜 OS 가져오기 — 목표 ${pl.counts.goals.add} · KPI ${pl.counts.mainKPIs.add+pl.counts.subKPIs.add} · 프로젝트 ${pl.counts.projects.add} · 업무 ${pl.counts.tasks.add}` },
   gh:{ title:"그로홈 대시보드 업무 가져오기", brand:(D)=>(D.brands||[]).find(b=>b.id==="grohome")||{id:"grohome",name:"그로홈"}, noBrand:"",
     desc:(b)=>`그로홈 대시보드의 업무를 '${b.name}' 브랜드로 한 번 옮겨요. 대시보드 화면(매출·재고 등)은 그대로예요.`,
-    load:async()=>{ const src={}; for(const c of GH_COLS) src[c]=parseGhCol(await fsList(GH_FIREBASE.projectId,GH_FIREBASE.apiKey,c)); console.log("[그로홈 가져오기] 원본",Object.fromEntries(Object.entries(src).map(([k,v])=>[k,v.length]))); if(!GH_COLS.slice(1).some(c=>src[c].length)) throw new Error("원본에서 업무를 찾지 못했어요"); return src; },
+    load:async()=>{ const src={}; for(const c of GH_COLS) src[c]=parseGhCol(await fsList(GH_FIREBASE.projectId,GH_FIREBASE.apiKey,`${GH_FIREBASE.root}/${c}`)); console.log("[그로홈 가져오기] 원본",Object.fromEntries(Object.entries(src).map(([k,v])=>[k,v.length]))); if(!GH_COLS.slice(1).some(c=>src[c].length)) throw new Error("원본에서 업무를 찾지 못했어요"); return src; },
     plan:(src,D,b)=>planGhImport(src,D,{brandId:b.id}),
     rows:(pl)=>{ const c=pl.counts; return [["고정업무",c.fixed.add,c.fixed.total],["기타 업무 → 할 일",c.etc.add,c.etc.total],["선행 업무 → 할 일",c.lead.add,c.lead.total],["월간 업무 → 할 일",c.mon.add,c.mon.total],["KPI 업무",c.gb.add,c.gb.total],["KPI 분야 프로젝트",c.projects.add,c.projects.total],["새 담당자(미사용)",c.users.add,c.users.total]]; },
     notes:(pl)=>[`사람: ${pl.matched.join(" · ")}는 업무OS의 같은 이름에 붙여요`, pl.newUsers.length?`${pl.newUsers.join(" · ")}은(는) 담당자로 추가하고 '미사용'으로 둬요(기록은 이름 그대로)`:"", pl.noOwner?`예전 담당 번호만 남은 ${pl.noOwner}건은 담당 비움`:"", "KPI 업무는 분야(제품·판매·운영·마케팅·브랜드)마다 프로젝트 1개로 묶고, 분기·이유·결과는 메모로 남겨요."].filter(Boolean),

@@ -1,6 +1,6 @@
 // ✅ 그로홈 대시보드 업무 → 커머스본부 업무OS 한 번 옮기기 (계산 로직만 — 화면은 App.jsx)
 //
-// 원본: Firebase 프로젝트 grohome-dashboard (읽기만, 지우지 않음 — 대시보드 화면은 그대로 둠)
+// 원본: 그로홈 대시보드 데이터 — 2026-10-07 grohome-dashboard 프로젝트(무료 요금제 하루 읽기 한도)에서 pour-app-new 의 pour-os/grohome 으로 이사 (읽기만, 지우지 않음)
 //  · employees(담당자) · fixedTasks(고정업무) · etcTasks(기타 업무) · leadingTasks(선행 업무) · monthlyTasks(월간 업무) · gbTasks(KPI 업무 트리)
 // 규칙 (대표 결정: 업무는 업무OS 에서만 · 김보성·이채은은 담당자로 추가하되 '미사용')
 //  · 모두 그로홈 브랜드. id 앞에 "gh_" → 두 번 눌러도 중복 없음
@@ -10,7 +10,7 @@
 //  · 사람: 같은 이름의 업무OS 담당자. 없는 사람은 새 담당자로 추가하고 active:false(미사용)
 import { fsVal } from "./moyImport.js";
 
-export const GH_FIREBASE = { projectId: "grohome-dashboard", apiKey: "AIzaSyBp6S2Fln8cCXBHKpREfguRfLkL2oEYZ3k" };
+export const GH_FIREBASE = { projectId: "pour-app-new", apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU", root: "pour-os/grohome" };   // 컬렉션 경로 = root/<원래 이름>
 export const GH_COLS = ["employees", "fixedTasks", "etcTasks", "leadingTasks", "monthlyTasks", "gbTasks"];
 export const GH_KPI_LABEL = { product: "제품", sales: "판매", operations: "운영", marketing: "마케팅", brand: "브랜드" };
 

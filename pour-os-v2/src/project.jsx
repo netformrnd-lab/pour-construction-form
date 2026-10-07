@@ -203,7 +203,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
   const p = D.projects.find((x) => x.id === id);
   const member = p && projMine(p, cu.id, D.tasks);
   const [tab, setTab] = useState(() => (st && st.tab) || first || (!p || member ? "work" : "news"));   // 방금 만든 프로젝트는 업무부터
-  const [doneList, setDoneList] = useState(null), [showDone, setShowDone] = useState(false), [nt, setNt] = useState(""), [nw, setNw] = useState(cu.id), [ndue, setNdue] = useState(""), [edit, setEdit] = useState(""), [now, setNow] = useState(""), [info, setInfo] = useState(!!(st && st.info)), [ld, setLd] = useState(""), [openPh, setOpenPh] = useState((st && st.openPh) || {}), [lAsk, setLAsk] = useState(null);
+  const [doneList, setDoneList] = useState(null), [showDone, setShowDone] = useState(false), [nt, setNt] = useState(""), [nw, setNw] = useState(cu.id), [ndue, setNdue] = useState(""), [edit, setEdit] = useState(""), [now, setNow] = useState(""), [info, setInfo] = useState(!!(st && st.info)), [ld, setLd] = useState(""), [openPh, setOpenPh] = useState((st && st.openPh) || {}), [lAsk, setLAsk] = useState(null), [phAdd, setPhAdd] = useState(""), [pt, setPt] = useState("");
   const notes = useItemNotes(D, projNoteId(id));
   const [endAsk, setEndAsk] = useState(false), [resAsk, setResAsk] = useState(false);   // 끝내기·멈추기 창 · 다시 시작 창
   const [rmAsk, setRmAsk] = useState(null), [rmBusy, setRmBusy] = useState(false);   // 프로젝트 없애기 확인 {n: 같이 빠질 업무 수 · null 세는 중}
@@ -228,12 +228,17 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
   const doneAll = doneList || live.filter(isDone);
   const top = (a) => a.filter((t) => !t.parentId || !a.some((x) => x.id === t.parentId));
   const kidsOf = (pid, a) => a.filter((t) => t.parentId === pid);
-  const groups = launch ? LAUNCH_PHASES.map((ph) => [ph.k, ph.name, (t) => t.phase === ph.k]).concat([["etc", "기타", (t) => !t.phase]])
+  // 신제품: 하위 업무는 위 업무(같은 프로젝트에 열려 있으면)의 단계를 따름 — 단계 바꾸기는 위 업무만
+  const liveById = new Map(live.map((t) => [t.id, t]));
+  const phOf = (t, n = 0) => { const pa = t.parentId && n < 8 ? liveById.get(t.parentId) : null; return pa ? phOf(pa, n + 1) : t.phase || ""; };
+  const groups = launch ? LAUNCH_PHASES.map((ph) => [ph.k, ph.name, (t) => phOf(t) === ph.k]).concat([["etc", "기타", (t) => !phOf(t) || !LAUNCH_PHASES.some((ph) => ph.k === phOf(t))]])
     : [["inprogress", "진행 중", (t) => t.status === "inprogress"], ["todo", "할 일", (t) => (t.status || "todo") === "todo"], ["review", "확인 대기", (t) => t.status === "review"], ["hold", "보류", (t) => t.status === "hold"]];
   // 없애기 확인 열기: 같이 빠질 업무 수 = 서버에서(끝낸 지 오래된 것까지) · 못 읽으면 화면에 있는 것만 셈
   const rmOpen = () => { setRmAsk({ n: null }); fb.fetchWhere("tasks", ["projectId", "==", p.id]).then((a) => setRmAsk((x) => (x ? { n: a.filter((t) => t && !t.isFixed && !isRemoved(t)).length } : x)))
     .catch((e) => { console.error("[v2] 프로젝트 업무 세기 실패:", e); setRmAsk((x) => (x ? { n: live.length } : x)); }); };
   const addT = () => { if (!nt.trim()) return; A.addTask({ title: nt, projectId: p.id, assigneeId: nw, dueDate: ndue || (nw !== cu.id ? addDays(key, 3) : ""), noReview: nw === cu.id }); setNt(""); };
+  // 신제품 '+ 이 단계에 추가': 그 단계(phase)로 바로 만듦 · 담당·기한은 위 추가 칸에서 고른 대로 · 기타 = 단계 없음
+  const addPh = (k) => { if (!pt.trim()) return; A.addTask({ title: pt, projectId: p.id, assigneeId: nw, dueDate: ndue || (nw !== cu.id ? addDays(key, 3) : ""), noReview: nw === cu.id, ...(k && k !== "etc" ? { phase: k } : {}) }); setPt(""); };
   // 지금 상황 저장 — 고치는 사이 다른 사람이 먼저 저장했으면 겹친 글을 보여 주고 고르게
   const saveNow = async (force) => { const r = await A.setProjNow(p, now, nowBase, force === true); if (r && r.conflict) setNowClash(r.cur.now || {}); else if (r && r.ok) { setNowClash(null); setEdit(""); } };
   const tids = [...new Set([...live, ...(doneList || [])].map((t) => t.id))];
@@ -325,7 +330,11 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
         const shown = !launch || openPh[k] != null ? (launch ? openPh[k] : true) : firstOpen || hot; firstOpen = false;
         const redH = launch && a.some((t) => { const r = riskOf(t, key); return r && r.red; });   // 빨강은 지남·막힘이 있을 때만 ('급함'은 오늘 마감·시작 전 포함)
         return <div key={k} id={"v2-ph-" + k} style={{ scrollMarginTop: 12 }}><Head red={redH} right={launch && <TBtn onClick={() => setOpenPh({ ...openPh, [k]: !shown })}>{shown ? "접기 ▴" : "펼치기 ▾"}</TBtn>}>{l} {a.length}{launch && hot ? " · 급함" : ""}</Head>
-          {shown && <Card>{tops.map((t, i) => <div key={t.id}><TRow t={t} last={i === tops.length - 1 && !kidsOf(t.id, a).length} />{kidsOf(t.id, a).map((kk) => <TRow key={kk.id} t={kk} indent />)}</div>)}</Card>}</div>; }); })()}
+          {shown && <Card>{tops.map((t, i) => <div key={t.id}><TRow t={t} last={!launch && i === tops.length - 1 && !kidsOf(t.id, a).length} />{kidsOf(t.id, a).map((kk) => <TRow key={kk.id} t={kk} indent />)}</div>)}
+            {launch && (phAdd === k ? <div className="v2-phadd"><input value={pt} onChange={(e) => setPt(e.target.value)} autoFocus onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) addPh(k); if (e.key === "Escape") setPhAdd(""); }} placeholder={`${l}에 넣을 업무`} aria-label={`${l} 단계에 업무 추가`} style={{ ...inp, flex: "1 1 160px", minWidth: 0, padding: "9px 12px", fontSize: 14 }} />
+              <Act onClick={() => addPh(k)}>추가</Act><TBtn onClick={() => { setPhAdd(""); setPt(""); }} style={{ fontSize: 13 }}>닫기</TBtn>
+              {(nw !== cu.id || ndue) && <div style={{ flexBasis: "100%", fontSize: 12, color: C.sub }}>담당·기한은 위 추가 칸에서 고른 대로 넣어요 ({nw === cu.id ? "나" : nameOf(D.users, nw)} · {ndue ? md(ndue) : `${md(addDays(key, 3))}까지`})</div>}</div>
+              : <div className="v2-phadd"><TBtn onClick={() => { setPhAdd(k); setPt(""); }} style={{ fontSize: 13 }} aria-label={`${l} 단계에 추가`}>+ 이 단계에 추가</TBtn></div>)}</Card>}</div>; }); })()}
       {openT.length === 0 && <Card style={{ marginTop: 10 }}><Empty>열린 업무가 없어요{projOpen(p) && lead ? " · 다 끝났으면 프로젝트를 완료해요" : ""}</Empty></Card>}
       {projOpen(p) && !isHoldP(p) && openT.length === 0 && lead && <Big onClick={() => A.endProject(p, "completed")} style={{ marginTop: 10 }}>프로젝트 완료</Big>}
       <Card style={{ marginTop: 14 }}><More onClick={loadDone}>{showDone ? "끝낸 업무 접기 ▴" : `끝낸 업무 ${doneList ? doneList.length : "보기"} ▾`}</More>

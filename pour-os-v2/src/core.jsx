@@ -11,7 +11,7 @@ import {
   scopeFields, brandLabel, cycleFields, FX_WD, isRemoved, fxRemoveFields, fxRestoreFields, canRemoveFx, canRemoveAk, canRenameFx, scopeOf,
   canFinish, canRemoveTask, canRestoreTask, taskKids, taskRemoveFields, canRemoveProj, canRestoreProj, projRemoveFields, projTaskRemoveFields, projTaskBack,
 } from "./model.js";
-import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS } from "./launch.js";
+import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS, phaseOf } from "./launch.js";
 import { nextTurnText } from "./turn.js";
 import { planLaunchSync, planLaunchTrash, planRowSync, planCustomSteps } from "./lbsync.js";
 import { planLaunchPush, BY as LB_BY } from "./lbpush.js";
@@ -458,7 +458,7 @@ export function useActs(D, cu, setToast, idx = null) {
       const t = { id, title: f.title.trim(), isFixed: false, type: "general", status: "todo", assigneeId: who, assigneeIds: [who], projectId: f.projectId || "", parentId: f.parentId || null,
         dueDate: f.dueDate || "", workDate: "", memo: "", attachments: [], weekDay: null, weekSlot: null, priority: "mid", ...(p && p.brand ? { brand: p.brand } : {}),
         ...(f.firstStep ? { firstStep: f.firstStep.trim() } : {}), ...(f.noReview ? { noReview: true } : {}), ...(who === cu.id ? { ackAt: at } : {}),
-        ...(Array.isArray(f.deps) ? { deps: f.deps } : {}), ...(f.extra || {}), v2At: at,
+        ...(Array.isArray(f.deps) ? { deps: f.deps } : {}), ...(f.phase ? { phase: f.phase, phaseBy: cu.id, phaseAt: at } : {}), ...(f.extra || {}), v2At: at,
         requestedBy: cu.id, requestedAt: at, createdAt: at, createdBy: cu.id, statusLog: [{ by: cu.id, byName: cu.name, at, status: "todo" }], madeIn: "v2" };
       try { await fb.put("tasks", id, t); } catch (e) { fail("업무")(e); return null; }
       log("add", { col: "tasks", targetId: id, projectId: t.projectId, label: t.title + (who !== cu.id ? ` → ${nameOf(D.users, who)}` : "") });
@@ -893,6 +893,17 @@ export function useActs(D, cu, setToast, idx = null) {
     // ── 한 번짜리 업무 없애기 (사용자 확정 2026-10-07 "업무 삭제는 어떻게해?" → 누구나 없애기 · 지우지 않음) ──
     //   볼 수 있는 사람 누구나(기밀로 잠긴 사람은 못 봄) · removed{at,by,byName,reason,prevStatus,root,kids} · 상태는 그대로 · 하위 업무(결정 업무의 안 포함)는 같이
     //   한 transaction: 처음 업무가 서버에 아직 안 없앤 것일 때만 · 하위 업무도 아직 안 없앤 것만 · 기록 1건(prev) · 5초 되돌리기 · 진척 다시 계산
+    // 신제품 단계 바꾸기(사용자 확정 2026-10-07 '둘 다 넣기'): 직접 넣은 업무만(신제품 항목 launchItem 은 신제품 대시보드 단계 그대로) · 서버 단계가 화면에서 본 값일 때만 씀
+    //   k = LAUNCH_PHASES 키 · '' = 기타(단계 없음) · 기록 1건 '단계 기타 → 채널 등록' · 5초 되돌리기 · 신제품 대시보드엔 안 씀(lbpush 는 launchItem·그 하위 줄만 봄)
+    setPhase: async (t, k) => { if (t.launchItem) { setToast({ text: "신제품 대시보드 항목은 대시보드 단계를 따라요" }); return false; }
+      const cur = t.phase || null, next = k || null; if (cur === next) return true;
+      const nm = (x) => (phaseOf(x) || {}).name || "기타", at = nowIso(), label = `${t.title} · 단계 ${nm(cur)} → ${nm(next)}`;
+      try { const r = await fb.patchIf("tasks", tdoc(t), { phase: cur }, { phase: next, phaseBy: cu.id, phaseAt: at, updatedAt: at, updatedBy: cu.id, v2At: at });
+        if (!r.ok) { setToast({ text: "그사이 다른 사람이 단계를 바꿨어요 · 지금 단계를 확인해 주세요" }); return false; }
+        log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label, prev: { phase: cur }, next: { phase: next } });
+        setToast({ text: `'${nm(next)}' 단계로 옮겼어요`, undo: () => undoT(t, { phase: next }, { phase: cur }, label) });
+        return true; }
+      catch (e) { fail("단계")(e); return false; } },
     taskRemove: async (t, reason) => { if (!canRemoveTask(t, cu)) { setToast({ text: "없앨 수 없는 업무예요" }); return false; }
       const at = nowIso(), kids = taskKids(t, D.tasks), seen = new Set([t.id, ...kids.map((x) => x.id)]);
       try { let q = [...seen];   // 불러오지 않은 하위 업무(오래전에 끝낸 것)도 서버에서 한 층씩
@@ -1061,7 +1072,7 @@ export const v2edited = (x) => !!(x && (x.v2At || (x.updatedBy && x.updatedBy !=
   || (Array.isArray(x.attachments) && x.attachments.some((a) => a && V2_FILE.test(String(a.path || ""))))));
 // 이미 있는 문서에 덮어쓸 때 빼는 칸 — v2 가 주인인 칸(PIN · 주 한도 · 고정업무 사람별 체크)
 //   고정업무 체크(doneDates·doneAtBy·subDone)는 버전1에도 같은 이름이 있어서 '고친 문서' 판단에는 못 쓰고, 대신 덮어쓰지 않음
-export const V2_TASK_ONLY = ["scope", "scopeBy", "scopeAt", "qty", "cycleOk", "cycleBy", "cycleAt", "madeIn", "removed"];   // removed = [없애기](휴지통) — 다시 가져오기가 되살리지 않음
+export const V2_TASK_ONLY = ["scope", "scopeBy", "scopeAt", "qty", "cycleOk", "cycleBy", "cycleAt", "madeIn", "removed", "phaseBy", "phaseAt"];   // phaseBy·phaseAt = 업무OS에서 정한 신제품 단계   // removed = [없애기](휴지통) — 다시 가져오기가 되살리지 않음
 export function stripV2Only(key, data, cur) {
   if (!data) return data; const d = { ...data };
   if (key === "users") Object.keys(d).forEach((f) => { if (/^pin/.test(f) || f === "weekCap") delete d[f]; });
@@ -1070,6 +1081,7 @@ export function stripV2Only(key, data, cur) {
     // 반복 실행·고정업무 나누기(2단계) · 주기 확인 · 건수 칸(3단계 예약) — v2 에서만 정하는 칸 · 정한 브랜드·반복도 버전1 값으로 안 되돌림
     V2_TASK_ONLY.forEach((f) => delete d[f]);
     if (cur && (cur.scope || cur.scopeAt)) delete d.brand;
+    if (cur && cur.phaseAt) delete d.phase;   // 업무OS에서 정한 신제품 단계는 버전1·신제품 값으로 안 되돌림
     if (cur && cur.cycleOk) ["recurType", "weekDays", "weekDay", "monthDay", "monthEnd"].forEach((f) => delete d[f]);
     if (isRemoved(cur)) delete d.paused; }   // 없앤 것은 멈춤도 버전1 값으로 안 바꿈 (되살릴 때 이전 값으로)
   return d;

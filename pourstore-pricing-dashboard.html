@@ -9290,17 +9290,35 @@ let SL={loaded:false,loading:null,rows:[],meta:{},unit:'amt',quick:'mtd'};
 const slDay=d=>{ const z=new Date(d.getTime()-d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); };
 /* '오늘의 집'처럼 띄어 쓴 이름도 같은 채널로 모은다 */
 function slChan(raw){ const r=String(raw||'').trim(); const m=SL_CH[r]||SL_CH[r.replace(/\s+/g,'')]; return m?{ch:m[0],grp:m[1],known:true}:{ch:r||'(채널 없음)',grp:'etcon',known:false}; }
+/* 그로홈 판매 기록 읽기
+   · 그로홈 DB(grohome-dashboard, 무료 요금제)는 하루 읽기 한도(5만 건)를 넘으면 429 Quota exceeded 로 막힌다.
+     이때 기본 get() 은 오류 대신 '빈 결과(캐시)'를 돌려줘 판매가 전부 0으로 보였다(2026-10-07) → 서버에서만 읽어 실패를 실패로 받는다.
+   · 실패하면 커머스본부 DB 의 사본(그로홈 대시보드가 같은 기록을 복사해 둔 salesRecords)에서 최근 180일만 대신 읽는다
+     (date 한 칸 조건만 → 복합 색인 불필요 · 매출 화면은 '최근 180일만'이라고 알리고, 업무OS 월 합계는 이때 덮어쓰지 않는다) */
+const SL_GH_FALLBACK_DAYS=180;
+async function slReadGhSales(){
+  try{ const sn=await ghDB().collection('salesRecords').get({source:'server'});
+    return {docs:sn.docs, src:'grohome', err:'', from:''}; }
+  catch(e){ const err=String(e.code||e.message||e); console.error('[매출] 그로홈 salesRecords 읽기 실패 — 커머스본부 사본으로 대신 읽습니다', err);
+    try{ const d=new Date(); d.setDate(d.getDate()-SL_GH_FALLBACK_DAYS); const from=slDay(d);
+      const sn=await centralDB().collection('salesRecords').where('date','>=',from).get({source:'server'});
+      const docs=sn.docs.filter(x=>{ const v=x.data()||{}; return v.source==='grohome-dashboard'||v.team==='미디어커머스팀'; });
+      console.log(`[매출] 커머스본부 사본(최근 ${SL_GH_FALLBACK_DAYS}일) 그로홈 ${docs.length}건`);
+      return {docs, src:'central', err, from}; }
+    catch(e2){ console.error('[매출] 커머스본부 사본도 읽기 실패', e2.code||e2); return {docs:[], src:'none', err, from:''}; } }
+}
 async function loadSales(){
   if(SL.loading) return SL.loading;
   SL.loading=(async()=>{
     const cdb=crmDB(); if(!cdb) throw new Error('POUR스토어 CRM 연결 실패');
-    const [gSnap, pDoc, sDoc, uSnap]=await Promise.all([
-      ghDB().collection('salesRecords').get(),
+    const [gRes, pDoc, sDoc, uSnap]=await Promise.all([
+      slReadGhSales(),
       cdb.collection('pour_data').doc('sales_records').get(),
       cdb.collection('pour_data').doc('shipments').get(),
       db.collection('sales-orders').get().catch(e=>{ console.warn('[매출] 판매 엑셀 기록 읽기 실패', e.code||e); return {docs:[]}; }),
     ]);
-    const gRecs=gSnap.docs.map(d=>({id:d.id,...d.data()}));
+    const gRecs=gRes.docs.map(d=>({id:d.id,...d.data()}));
+    SL.gh={src:gRes.src, err:gRes.err, from:gRes.from};   // grohome 정상 · central 사본(최근 180일) · none 못 읽음
     const pRecs=(pDoc.exists&&Array.isArray(pDoc.data().records))?pDoc.data().records:[];
     const ships=(sDoc.exists&&Array.isArray(sDoc.data().data))?sDoc.data().data:[];
     console.log(`[매출] 그로홈 ${gRecs.length}건 · POUR스토어 ${pRecs.length}건 · 출고등록 ${ships.length}건 로드`);
@@ -9334,7 +9352,7 @@ async function loadSales(){
       rows.push({src,brand,date,ch:c.ch,grp:c.grp,amt:Math.round(vatEx*1.1),qty:+r.qty||+r.quantity||0,name:nm,key:k}); });
     const maxDate=src=>rows.filter(r=>r.src===src&&r.date).reduce((m,r)=>r.date>m?r.date:m,'');
     SL.rows=rows; SL.loaded=true;
-    slRollupToOS(rows, gRecs.length>0 && pRecs.length>0);
+    slRollupToOS(rows, gRes.src==='grohome' && gRecs.length>0 && pRecs.length>0);   // 사본(최근 180일)일 땐 업무OS 월 합계를 덮어쓰지 않는다
     try{ const t=new Date(),y=new Date(t); y.setDate(y.getDate()-1); const ds=[slDay(y),slDay(t)]; SL.marks={};
       await Promise.all(ds.map(async d=>{ const m=await ghDB().collection('salesDays').doc(d).get(); SL.marks[d]=m.exists?m.data():{}; })); }catch(e){ console.warn('[매출] 등록완료 표시 읽기 실패', e.code||e); }
     SL.meta={upN,gN:gRecs.length,pN:pRecs.length,shipN:ships.length,redated,unknownCh,gMax:maxDate('GROHOME'),pMax:maxDate('POUR스토어'),
@@ -9386,6 +9404,8 @@ function renderSales(){
   const M=SL.meta, today=slDay(new Date());
   // 안내: 두 데이터의 마감일 차이
   const notes=[];
+  if(SL.gh&&SL.gh.src==='central') notes.push(`⚠️ <b>그로홈 DB가 오늘 무료 사용량(하루 읽기 5만 건)을 다 써서</b> 커머스본부 사본으로 보여 줍니다. 그로홈 매출은 <b>${esc(SL.gh.from)} 이후만</b> 들어 있고, 최근 기록이 조금 늦을 수 있어요. 한국시간 오후 4시쯤(겨울엔 5시) 풀리면 ↻ 다시 불러오세요.`);
+  if(SL.gh&&SL.gh.src==='none') notes.push(`⛔ <b>그로홈 매출을 불러오지 못했습니다</b> (${esc(SL.gh.err)}) — 그로홈 DB 하루 무료 사용량 초과일 가능성이 큽니다. 아래 그로홈 숫자는 0이 아니라 <b>모름</b>이에요. 한국시간 오후 4시쯤(겨울엔 5시) 다시 불러오세요.`);
   if(to>=today || (M.gMax && to>M.gMax)) notes.push(`<b>그로홈</b>은 판매채널 엑셀을 다음 날 입력해서 <b>${esc(M.gMax||'—')}</b>까지 들어와 있습니다. 그 뒤 날짜는 그로홈 매출이 아직 비어 있을 수 있어요 (POUR스토어는 <b>${esc(M.pMax||'—')}</b>까지).`);
   const unk=Object.entries(M.unknownCh||{}); if(unk.length) notes.push(`분류 규칙에 없는 채널명 ${unk.map(([c,n])=>`<b>${esc(c)}</b>(${n}건)`).join(', ')} — 기타 온라인으로 넣었습니다.`);
   $('#slNotice').innerHTML=notes.length?`<div class="sl-note">${notes.join('<br>')}</div>`:'';
@@ -11420,7 +11440,7 @@ const exSaveOpts=()=>{ try{ localStorage.setItem('pour-expiry-opts',JSON.stringi
    발주점 = 하루 판매 × (입고까지 일수 + 안전 여유일) · (판매 가능 + 입고 예정) ≤ 발주점 → 지금 주문
    추천 주문량 = 하루 판매 × 버틸 일수 + 발주점 − (판매 가능 + 입고 예정) (10개 단위 올림)
    입고 예정 = 화면의 [✅ 주문했어요] 기록(expiryLots/{브랜드}.onOrder[상품코드]) — 입고예정일 이후 재고를 새로 올리면 들어온 것으로 보고 뺀다 */
-const EX_RO={now:['지금 주문','#FEE2E2','#B91C1C','#DC2626'], soon:['2주 안에 주문','#FEF3C7','#92400E','#D97706'], ok:['여유','#E3F2E8','#0B5C30','#059669'], none:['안 팔림','#F3F4F6','#6B7280','#9CA3AF'], nolink:['판매 미연결','#F3F4F6','#6B7280','#9CA3AF']};
+const EX_RO={now:['지금 주문','#FEE2E2','#B91C1C','#DC2626'], soon:['2주 안에 주문','#FEF3C7','#92400E','#D97706'], ok:['여유','#E3F2E8','#0B5C30','#059669'], none:['안 팔림','#F3F4F6','#6B7280','#9CA3AF'], nolink:['판매 미연결','#F3F4F6','#6B7280','#9CA3AF'], nosales:['판매량 못 불러옴','#FEF3C7','#92400E','#D97706']};
 const exMD=d=>{ const x=d instanceof Date?d:new Date(String(d)+'T00:00:00'); return isNaN(x)?'':`${x.getMonth()+1}/${x.getDate()}`; };
 function exReorder(lotRows){
   const today=new Date(); today.setHours(0,0,0,0); const day=n=>new Date(today.getTime()+n*86400000);
@@ -11431,7 +11451,7 @@ function exReorder(lotRows){
     const ooOn=!!(oo&&+oo.qty>0&&!(oo.eta&&upAt&&upAt>=oo.eta)&&!(oo.eta&&(today-new Date(oo.eta+'T00:00:00'))/86400000>30));
     const inc=ooOn?+oo.qty:0, eff=sellable+inc;
     const rop=avg>0?Math.ceil(avg*(EX.lead+EX.safe)):null, days=avg>0?sellable/avg:null, effDays=avg>0?eff/avg:null;
-    const st=avg==null?'nolink':!(avg>0)?'none':eff<=rop?'now':effDays<=EX.lead+EX.safe+14?'soon':'ok';
+    const st=avg==null?(f.down?'nosales':'nolink'):!(avg>0)?'none':eff<=rop?'now':effDays<=EX.lead+EX.safe+14?'soon':'ok';
     const order=avg>0&&st!=='ok'?Math.max(0,Math.ceil((avg*EX.cover+rop-eff)/10)*10):0;
     return {key, f, l:f.l, p:f.p, est:f.est, qty, sellable, unsellable, avg, rop, days, effDays, st, order, inc, oo:ooOn?oo:null,
       outDate:days!=null?day(Math.floor(days)):null, orderBy:effDays!=null?day(Math.max(0,Math.floor(effDays-EX.lead-EX.safe))):null,
@@ -11457,11 +11477,29 @@ function exParseText(text){
   const m=new Map(); lots.forEach(l=>{ const k=(l.code||exNorm(l.name))+'||'+(l.expiry||l.rawExpiry); const x=m.get(k); if(x) x.qty+=l.qty; else m.set(k,{...l}); });
   return {lots:[...m.values()], skipped};
 }
+/* 그로홈 제품 목록(로트 상품코드 → 그로홈 제품 연결용)
+   · 그로홈 DB가 하루 읽기 한도로 막히면 빈 목록이 와서 판매량을 색상별로 나눌 수 없다
+     → 마지막으로 서버에서 제대로 읽은 목록을 이 기기에 보관(연결에 필요한 칸만)했다가 대신 쓴다. 제품 목록은 자주 바뀌지 않는다. */
+const EX_GHP_LS='pour-gh-products-cache';
+function exGhProductsGet(){ return ghDB().collection('products').get().catch(e=>{ console.error('[grohome products] 읽기 실패', e.code||e); return null; }); }
+function exGhProducts(gSnap){
+  const list=gSnap?gSnap.docs.map(d=>({id:d.id,...d.data()})):[], fromServer=!!(gSnap&&!(gSnap.metadata&&gSnap.metadata.fromCache));
+  EX.ghStale='';
+  if(list.length&&fromServer){
+    try{ localStorage.setItem(EX_GHP_LS, JSON.stringify({at:new Date().toISOString(), list:list.map(g=>({id:g.id, name:g.name||'', mergedInto:g.mergedInto||'',
+      options:(Array.isArray(g.options)?g.options:[]).map(o=>({wms:Array.isArray(o&&o.wms)?o.wms:[], legacyId:(o&&o.legacyId)||''}))}))})); }
+    catch(e){ console.warn('[grohome products] 이 기기 보관 실패', e); }
+    return list; }
+  if(list.length) return list;   // 서버엔 못 갔어도 이번 화면에서 이미 받아 둔 목록(캐시)
+  try{ const c=JSON.parse(localStorage.getItem(EX_GHP_LS)||'null');
+    if(c&&Array.isArray(c.list)&&c.list.length){ EX.ghStale=c.at||''; console.warn(`[grohome products] 서버에서 못 읽어 이 기기 보관본(${c.at}) ${c.list.length}건으로 대신`); return c.list; } }catch(e){ console.warn('[grohome products] 보관본 읽기 실패', e); }
+  console.error('[grohome products] 0건 — 그로홈 DB 하루 사용량 초과 또는 권한 확인'); return [];
+}
 /* 재고(로트)·그로홈 제품만 — 단종예정 자동 확인은 매출까지 부르지 않는다 */
 let _exLotsAt=0;
 async function exLoadLots(){
   if(EX.lots && Date.now()-_exLotsAt<60000) return;
-  const [snap, gSnap]=await Promise.all([ centralDB().collection('expiryLots').get(), ghDB().collection('products').get() ]);
+  const [snap, gSnap]=await Promise.all([ centralDB().collection('expiryLots').get(), exGhProductsGet() ]);
   exTakeLots(snap, gSnap); _exLotsAt=Date.now();
 }
 function exTakeLots(snap, gSnap){
@@ -11479,14 +11517,14 @@ function exTakeLots(snap, gSnap){
         mg.set(k,{...l, brand:b, docId:d.id, expiry:fx||mx||'', manualExp:!!mx, fileExp:!!fx, qty:+l.qty||0, pallets:+l.pallets||1}); });
       EX.lots.push(...mg.values());
       EX.at[b]=x.updatedAt||''; (EX.seed=EX.seed||{})[b]=/-seed$/.test(x.source||''); });   // 그로홈 '초기 데이터'(09-22 기준)인지 표시용
-    EX.gh=gSnap.docs.map(d=>({id:d.id,...d.data()}));
+    EX.gh=exGhProducts(gSnap);
     console.log(`[expiryLots] 로트 ${EX.lots.length}개 (${Object.keys(EX.at).join('·')||'없음'}) · 그로홈 제품 ${EX.gh.length}개`);
 }
 async function exLoad(force){
   if(EX.loading) return EX.loading;
   if(EX.lots && !force) return;
   EX.loading=(async()=>{
-    const [snap, gSnap]=await Promise.all([ centralDB().collection('expiryLots').get(), ghDB().collection('products').get() ]);
+    const [snap, gSnap]=await Promise.all([ centralDB().collection('expiryLots').get(), exGhProductsGet() ]);
     exTakeLots(snap, gSnap); _exLotsAt=Date.now();
     if(!EX.lots.length) console.warn('[expiryLots] 공용 DB에 재고가 없습니다 — 그로홈 대시보드 [유통기한 관리]를 한 번 열거나 붙여넣기 하세요');
     if(!SL.loaded) await loadSales();
@@ -11523,6 +11561,8 @@ function exRows(){
   /* 기간 구간(그로홈 유통기한 화면과 같은 기준): 만료 · 1개월 · 3개월 · 6개월 · 12개월 · 그 이상 */
   const cut=m=>{ const d=new Date(today); d.setMonth(d.getMonth()+m); return slDay(d); }, CUTS=[cut(1),cut(3),cut(6),cut(12)];
   const bkOf=e=>!e?'none':e<tIso?'expired':e<=CUTS[0]?'b1':e<=CUTS[1]?'b3':e<=CUTS[2]?'b6':e<=CUTS[3]?'b12':'b12p';
+  /* 그로홈 판매량을 믿을 수 없을 때(판매 기록을 못 읽음 · 그로홈 제품 목록을 못 읽어 색상 연결 불가) → 0 이 아니라 '모름'(null) */
+  const ghDown=!!(SL.gh&&SL.gh.src==='none') || !(EX.gh&&EX.gh.length);
   /* 판매량: 그로홈은 제품 id(옛 제품 포함)로, POUR는 가격대시보드 제품(pKey)으로 */
   const byGh={}, byKey={};
   (SL.rows||[]).forEach(r=>{ if(!r.date||r.date<fIso||r.date>tIso) return;
@@ -11545,7 +11585,8 @@ function exRows(){
   const out=[];
   groups.forEach(({m,u,ck,list})=>{
     const gk=list[0].brand+'|'+ck;
-    const soldAll = m.g ? m.ghIds.reduce((a,id)=>a+(byGh[id]||0),0) : (m.key?(byKey[m.key]||0):null);
+    const down = ghDown && list[0].brand==='GROHOME';
+    const soldAll = down ? null : m.g ? m.ghIds.reduce((a,id)=>a+(byGh[id]||0),0) : (m.key?(byKey[m.key]||0):null);
     const sh = u!=null && unitCodes[u].size>1 ? shareOf(u,gk) : null, est = sh?sh.how:false;
     const sold = soldAll==null?null:sh?soldAll*sh.f:soldAll;
     const avg = sold==null?null:sold/EX.win;
@@ -11560,17 +11601,17 @@ function exRows(){
       let v, waste=null, ratio=null;
       if(rem==null) v='nodate';
       else if(rem<0){ v='expired'; waste=l.qty; }
-      else if(sold==null) v=late?'late':'nolink';
+      else if(sold==null) v=late?'late':down?'nosales':'nolink';
       else { ratio=avg>0?need/avg:Infinity; waste=Math.min(l.qty,Math.max(0,Math.ceil(cum-avg*avail))); v=ratio<=1?'ok':late?'late':ratio<=2?'warn':'bad'; }
       const sellThru=avg>0?cum/avg:null;   // 이 로트까지 다 파는 데 걸리는 일수(선입선출)
       const rate=rem!=null&&rem<0?0:(avg>0&&avail!=null?Math.min(100,avg*Math.max(0,avail)/cum*100):null);   // 판매마감 전까지 팔리는 비율
-      out.push({l, m, p, cost, sold, avg, est, ck, cum, rem, avail, need, ratio, waste, v, loss:waste!=null&&cost?waste*cost:null, sellThru, rate, bk:bkOf(l.expiry)});
+      out.push({l, m, p, cost, sold, avg, est, ck, down, cum, rem, avail, need, ratio, waste, v, loss:waste!=null&&cost?waste*cost:null, sellThru, rate, bk:bkOf(l.expiry)});
     });
   });
   return out;
 }
 const EX_V={ ok:['🟢 지금 속도로 소진','#E3F2E8','#0B5C30'], warn:['🟡 속도 올려야 함','#FEF3C7','#92400E'], bad:['🔴 프로모션 필요','#FEE2E2','#B91C1C'],
-  late:['🔴 판매마감 여유 안쪽','#FEE2E2','#B91C1C'], expired:['⛔ 기한 지남','#FEE2E2','#7F1D1D'], nolink:['제품 미연결','#F3F4F6','#6B7280'], nodate:['기한 미등록','#F3F4F6','#6B7280'] };
+  late:['🔴 판매마감 여유 안쪽','#FEE2E2','#B91C1C'], expired:['⛔ 기한 지남','#FEE2E2','#7F1D1D'], nolink:['제품 미연결','#F3F4F6','#6B7280'], nosales:['판매량 못 불러옴','#FEF3C7','#92400E'], nodate:['기한 미등록','#F3F4F6','#6B7280'] };
 async function renderExpiry(){
   const body=$('#exBody'); if(!body) return;
   const VIEW=!costAllowed;   // 일반 팀원: 보기만 — 원가(폐기 손실)·프로모션 설계·재고 올리기·제품 연결·기한 입력은 숨김
@@ -11582,7 +11623,7 @@ async function renderExpiry(){
   const soon=all.filter(r=>r.rem!=null&&r.rem>=0&&r.rem<=30).length, expired=all.filter(r=>r.v==='expired');
   const card=(lb,v,cls,sub)=>`<div class="card"><h4>${lb}</h4><div class="big ${cls||''}">${v}</div>${sub?`<div class="footnote" style="margin:4px 0 0">${sub}</div>`:''}</div>`;
   const ex=r=>String(r.l.expiry||'9999'), nz=v=>v==null?-1:v;
-  const SORTS={ risk:(a,b)=>{ const o={expired:0,late:1,bad:2,warn:3,nolink:4,nodate:5,ok:6}; return (o[a.v]-o[b.v])||ex(a).localeCompare(ex(b)); },
+  const SORTS={ risk:(a,b)=>{ const o={expired:0,late:1,bad:2,warn:3,nosales:4,nolink:4,nodate:5,ok:6}; return (o[a.v]-o[b.v])||ex(a).localeCompare(ex(b)); },
     expiryAsc:(a,b)=>ex(a).localeCompare(ex(b)), expiryDesc:(a,b)=>ex(b).localeCompare(ex(a)),
     wasteDesc:(a,b)=>nz(b.waste)-nz(a.waste)||ex(a).localeCompare(ex(b)), needDesc:(a,b)=>nz(b.need)-nz(a.need),
     qtyDesc:(a,b)=>b.l.qty-a.l.qty, qtyAsc:(a,b)=>a.l.qty-b.l.qty||ex(a).localeCompare(ex(b)), nameAsc:(a,b)=>String(a.l.name).localeCompare(String(b.l.name),'ko') };
@@ -11603,7 +11644,7 @@ async function renderExpiry(){
     return `<button type="button" class="ex-bk${on?' on':''}" data-exbk="${k}" style="background:${bg};border-color:${on?tx:bd};${on?`box-shadow:0 0 0 2px ${bd}`:''}">
       <b style="color:${tx}">${won(t.qty)}</b><span>${lb}<br>로트 ${t.lots}건</span>${t.waste>0?`<em>폐기 예상 ${won(t.waste)}개</em>`:''}</button>`; }).join('');
   const groupsN=new Set(base.map(gk)).size;
-  const totQty=base.reduce((a,r)=>a+r.l.qty,0), none=sum.none||{lots:0,qty:0}, unknown=base.filter(r=>r.v==='nolink').length;
+  const totQty=base.reduce((a,r)=>a+r.l.qty,0), none=sum.none||{lots:0,qty:0}, unknown=base.filter(r=>r.v==='nolink'||r.v==='nosales').length;
   const nolinkN=base.filter(r=>!r.m.g&&!r.m.key).length;
   const today0=new Date(); today0.setHours(0,0,0,0); const tIso=slDay(today0), fD=new Date(today0); fD.setDate(fD.getDate()-EX.win+1); const fIso=slDay(fD);
   const sr=(SL.rows||[]).filter(r=>r.date), inWin=sr.filter(r=>r.date>=fIso&&r.date<=tIso).length;
@@ -11621,7 +11662,7 @@ async function renderExpiry(){
         <b>매출 기록</b> 총 ${won(sr.length)}건 · 최근 ${EX.win}일 안 ${won(inWin)}건 · 기간 밖 ${won(sr.length-inWin)}건${minD?` · 기록 범위 ${minD} ~ ${maxD}`:''}<br>
         <b>그로홈 제품 마스터</b> ${won((EX.gh||[]).length)}건 · 가격대시보드 제품 ${won(P.filter(p=>!isDeletedProd(p)).length)}건</div>`:''}</div>`;
   /* ── 📦 재고 충전 화면 — "무엇을 몇 개 주문할지"만. 브랜드 선택만 적용(기간 칩·검색과 무관) ── */
-  const RO_O={now:0,soon:1,ok:2,none:3,nolink:4};
+  const RO_O={now:0,soon:1,ok:2,none:3,nosales:4,nolink:5};
   const roAll=exReorder(all.filter(r=>!EX.brand||r.l.brand===EX.brand)).sort((a,b)=>(RO_O[a.st]-RO_O[b.st])||((a.effDays??1e9)-(b.effDays??1e9)));
   const roBy=st=>roAll.filter(x=>x.st===st), roNow=roBy('now'), roSoon=roBy('soon'), roWait=roAll.filter(x=>x.st==='ok'&&x.inc>0), roOk=roAll.filter(x=>x.st==='ok'&&!x.inc);
   const roScale=(EX.lead+EX.safe)*2;
@@ -11646,6 +11687,7 @@ async function renderExpiry(){
   const nextUp=roOk.filter(x=>x.orderBy).sort((a,b)=>a.orderBy-b.orderBy)[0];
   const roHero=roNow.length?`<div class="ro-hero bad"><b>🔴 오늘 주문할 상품 ${roNow.length}개</b><span>${roSoon.length?`2주 안에 주문할 상품도 ${roSoon.length}개 있어요`:'아래 카드의 주문 수량대로 주문하세요'}</span></div>`
     :roSoon.length?`<div class="ro-hero warn"><b>🟡 오늘 급한 건 없어요 · 2주 안에 ${roSoon.length}개</b><span>가장 빠른 주문일 ${exMD(roSoon[0].orderBy)}</span></div>`
+    :roBy('nosales').length?`<div class="ro-hero warn"><b>⏳ 판매량을 못 불러와서 지금은 판단할 수 없어요</b><span>그로홈 상품 ${roBy('nosales').length}개 — '주문할 게 없다'는 뜻이 아니에요. 위 안내대로 풀리면 ↻ 새로고침하세요.</span></div>`
     :`<div class="ro-hero ok"><b>🟢 지금은 주문할 상품이 없어요</b><span>${nextUp?`다음 주문: ${esc(nextUp.l.name)} · ${exMD(nextUp.orderBy)}쯤`:'판매 기록이 연결된 상품이 모두 여유 있어요'}</span></div>`;
   const roStock=Object.keys(EX.meta||{}).filter(b=>!EX.brand||b===EX.brand).map(b=>`${esc(b)} ${esc(exFmtDT(EX.meta[b].at))}`).join(' · ')||'아직 올린 재고가 없어요';
   const roInp=(id,v,lb,unit)=>`<label>${lb}<span><input type="number" id="${id}" min="0" value="${v}"> ${unit}</span></label>`;
@@ -11658,11 +11700,14 @@ async function renderExpiry(){
     ${roSec('🚚 입고 기다리는 중',roWait)}
     ${roSec('🟢 여유 있는 상품',roOk,false)}
     ${roMini(`😴 최근 ${EX.win}일 동안 안 팔린 상품`,roBy('none'),'재고는 있는데 팔리지 않아 주문할 필요가 없어요. 유통기한 탭에서 털어낼지 확인하세요.')}
+    ${roMini('⏳ 판매량을 못 불러온 상품',roBy('nosales'),'그로홈 판매 기록을 지금 읽을 수 없어 판단에서 빠졌어요(위 빨간 안내 참고). 풀리면 ↻ 새로고침하세요.')}
     ${roMini('❔ 판매 기록이 연결 안 된 상품',roBy('nolink'),'판매량을 몰라 판단에서 빠졌어요. 그로홈은 그로홈 대시보드 제품 마스터 → 📦 물류센터 재고코드에 이 상품코드를 넣으면 계산돼요.')}
     <details class="ro-more ro-set"${EX.roSetOpen?' open':''}><summary>⚙️ 계산 기준 · 주문하면 <b>${EX.lead}일</b> 뒤 입고 · 안전 여유 <b>${EX.safe}일</b> · <b>${EX.cover}일</b>치 주문</summary>
       <div class="ro-setf">${roInp('roLead',EX.lead,'주문 → 입고까지','일')}${roInp('roSafe',EX.safe,'안전 여유','일')}${roInp('roCover',EX.cover,'한 번에 몇 일치 주문','일')}</div>
       <p class="footnote" style="margin:6px 0 0">· 남은 재고가 <b>(입고까지 + 안전 여유)일치</b> 아래로 내려가면 '지금 주문'이에요. 판매량은 최근 ${EX.win}일 평균(위 판매속도 기준에서 변경).<br>· 3PL 창고 재고만 계산해요(쿠팡 그로스 창고 재고·판매는 아직 미포함). 바꾼 기준은 이 기기에 저장돼요.</p></details>
   </div>`;
+  const ghWarn=SL.gh&&SL.gh.src==='central'?`<div class="ex-note" style="background:#FFFBEB;border-color:#FCD34D;color:#92400E">⚠️ <b>그로홈 DB가 오늘 무료 사용량을 다 써서</b> 커머스본부 사본(같은 판매 기록)으로 계산했어요. 최근 하루이틀 기록이 늦을 수 있어요.</div>`
+    :(SL.gh&&SL.gh.src==='none')||!(EX.gh&&EX.gh.length)?`<div class="ex-note" style="background:#FEF2F2;border-color:#FCA5A5;color:#991B1B">⛔ <b>${SL.gh&&SL.gh.src==='none'?'그로홈 판매 기록을':'그로홈 제품 목록을'} 불러오지 못했어요</b>${SL.gh&&SL.gh.err?` (${esc(SL.gh.err)})`:''} — 그로홈 DB 하루 무료 사용량 초과일 가능성이 커요. 그로홈 상품의 판매량은 <b>0이 아니라 '모름'</b>으로 두었어요. 한국시간 오후 4시쯤(겨울엔 5시) 풀리면 ↻ 새로고침.</div>`:'';
   const modeTabs=`<div class="ro-tabs"><button type="button" data-exmode="ro" class="${EX.mode==='ro'?'on':''}">📦 재고 충전${roNow.length?` <em>${roNow.length}</em>`:''}</button><button type="button" data-exmode="exp" class="${EX.mode==='exp'?'on':''}">⏰ 유통기한 소진${risk.length?` <em>${risk.length}</em>`:''}</button></div>`;
   { const sh=$('#sh-expiry'); if(sh){ sh.classList.toggle('ro-mode',EX.mode==='ro'); const t=sh.querySelector('.toolrow .ttl'); if(t) t.textContent=EX.mode==='ro'?'재고 충전':'유통기한·소진'; } }
   const chip=(k,lb)=>`<button type="button" data-exbk="${k}" class="${EX.bk===k?'on':''}">${lb}</button>`;
@@ -11677,7 +11722,7 @@ async function renderExpiry(){
         <div class="ex-src-n">로트 ${won(m.lots)} · ${won(m.qty)}개${m.noExp?` · <span class="neg">유통기한 없음 ${m.noExp}</span>`:''}</div>`
         :`<div class="ex-src-n">아직 올린 재고가 없어요</div>`}
       ${VIEW?'':`<button type="button" class="tbtn" data-exup="${esc(b)}">📥 엑셀 올리기</button>`}</div>`; }).join('')}</div>`;
-  body.innerHTML=modeTabs+(EX.mode==='ro'?roView:`
+  body.innerHTML=modeTabs+ghWarn+(EX.mode==='ro'?roView:`
     ${srcCards}
     <div class="cards">
       ${card('🔴 프로모션 필요 로트', risk.length+'개', risk.length?'neg':'', `지금 속도의 2배 넘게 팔아야 하거나 기한 ${EX.buffer}일 안쪽으로 들어온 로트`)}
@@ -11867,7 +11912,11 @@ function exLinkList(){
   $('#exBuffer').value=EX.buffer; $('#exWin').value=String(EX.win);
   $('#exBuffer').addEventListener('change',e=>{ EX.buffer=Math.max(0,+e.target.value||0); saveOpts(); renderExpiry(); });
   $('#exWin').addEventListener('change',e=>{ EX.win=+e.target.value||90; saveOpts(); renderExpiry(); });
-  $('#exReload').addEventListener('click',async()=>{ EX.lots=null; EX.err=''; SL.loaded=false; await renderExpiry(); });
+  $('#exReload').addEventListener('click',async()=>{ EX.lots=null; EX.err='';
+    /* 재고는 매번 다시 읽고, 판매 기록(그로홈 약 6천 건 = 하루 무료 한도 5만 건의 1할)은 30분 지났거나 지난번에 제대로 못 읽었을 때만 다시 읽는다 */
+    const age=SL.meta&&SL.meta.at?Date.now()-new Date(SL.meta.at).getTime():Infinity;
+    if(age>30*60000 || !SL.gh || SL.gh.src!=='grohome') SL.loaded=false; else uiToast('재고를 다시 불러왔어요 (판매 기록은 30분 안에 불러온 것을 그대로 씀)','ok');
+    await renderExpiry(); });
   $('#exFileBtn').addEventListener('click',()=>{ _exUpBrand=''; $('#exFile').click(); });
   $('#exFile').addEventListener('change',async e=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; const b=_exUpBrand; _exUpBrand=''; if(f) await exUploadStock(f,b); });
   $('#exPasteBtn').addEventListener('click',()=>{ const p=$('#exPastePanel'); p.style.display=p.style.display==='none'?'':'none'; $('#exPasteMsg').textContent=''; });

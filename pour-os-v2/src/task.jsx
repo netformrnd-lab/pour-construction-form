@@ -6,7 +6,7 @@ import {
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit, fxWeekDays, fxIds, FX_WD, monthEndWorkday,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf,
-  scopeOf, brandLabel, brandsWithCommon, brandKey, cyclePending, cycleGuess, isRemoved, canRemoveFx, canRenameFx, canFinish, canRemoveTask, canRestoreTask, taskKids,
+  scopeOf, brandLabel, brandsWithCommon, brandKey, cyclePending, cycleGuess, isRemoved, canRemoveFx, canRenameFx, canRenameTask, canFinish, canRemoveTask, canRestoreTask, taskKids,
 } from "./model.js";
 import { RemoveAsk, RemovedNote, TaskRemoveAsk } from "./trash.jsx";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
@@ -65,7 +65,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
   const [more, setMore] = useState(false);   // 드문 동작 펼치기
   const [mode, setMode] = useState(""), [memo, setMemo] = useState(""), [memoBase, setMemoBase] = useState(null), [clash, setClash] = useState(null), [showLog, setShowLog] = useState(false), [tab2, setTab2] = useState("talk"), [logs, setLogs] = useState(null), [sub, setSub] = useState("");
   const [txt, setTxt] = useState(""), [handTo, setHandTo] = useState(""), [reqDate, setReqDate] = useState(""), [handoff, setHandoff] = useState(""), [depSel, setDepSel] = useState(null), [allOrder, setAllOrder] = useState(false);
-  const [rmBusy, setRmBusy] = useState(false);
+  const [rmBusy, setRmBusy] = useState(false), [nm, setNm] = useState(""), [nmBase, setNmBase] = useState(""), [nmBusy, setNmBusy] = useState(false);   // 이름 고치기
   const U = useUploads(A, "task-" + id, (metas) => A.addFiles(t, metas));
   useEffect(() => { if (!focus || !t) return; const h = setTimeout(() => { const el = document.getElementById("v2-t-" + focus); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); return () => clearTimeout(h); }, [focus, !!t]);
   if (t === undefined || t === null) return <Sheet title="업무" kind="업무" onBack={onBack} onClose={onClose}><Empty>불러오는 중…</Empty></Sheet>;
@@ -86,7 +86,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
   const loadLogs = () => { if (logs == null) fb.fetchWhere("log", ["targetId", "==", t.id]).then(setLogs).catch((e) => { console.error(e); setLogs([]); }); };
   // 기록 한 줄의 '이전 → 이후' (담당 · 기한 · 시작 · 상태 · 참조 · 보류 다시 볼 날)
   const CH = { assigneeId: ["담당", (v) => nameOf(D.users, v) || "없음"], assigneeIds: null, dueDate: ["기한", (v) => md(v) || "미정"], startDate: ["시작", (v) => md(v) || "없음"], status: ["상태", (v) => STATUS_L[v] || (v === "review" ? "확인 대기" : v || "-")],
-    ccIds: ["참조", (v) => (v || []).map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "없음"], holdUntil: ["다시 볼 날", (v) => md(v) || "미정"], phase: ["단계", (v) => (phaseOf(v) || {}).name || "기타"], priority: ["중요도", (v) => ({ high: "높음", mid: "보통", low: "낮음" })[v] || "보통"] };
+    ccIds: ["참조", (v) => (v || []).map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "없음"], holdUntil: ["다시 볼 날", (v) => md(v) || "미정"], phase: ["단계", (v) => (phaseOf(v) || {}).name || "기타"], title: ["이름", (v) => v || "-"], priority: ["중요도", (v) => ({ high: "높음", mid: "보통", low: "낮음" })[v] || "보통"] };
   const chOf = (l) => (l.prev && l.next && typeof l.prev === "object" && !Array.isArray(l.prev) ? Object.keys(l.next).filter((k) => CH[k] && JSON.stringify(l.prev[k] ?? null) !== JSON.stringify(l.next[k] ?? null)).map((k) => ({ k, l: CH[k][0], a: CH[k][1](l.prev[k]), b: CH[k][1](l.next[k]) })) : []);
   const hist = [...(t.statusLog || []).map((s, i) => ({ id: "s" + i, at: s.at, who: s.byName || nameOf(D.users, s.by), text: s.reopen ? "다시 엶" : STATUS_L[s.status] || (s.status === "review" ? "확인 요청" : s.status) })),
     ...(logs || []).map((l) => ({ id: l.id, at: l.at, who: l.byName, ch: chOf(l), text: (LOG_L[l.action] || l.action) + (l.label && l.label !== t.title ? " · " + l.label.replace(t.title + " · ", "") : "") }))].sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
@@ -175,6 +175,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
       {!done && <TBtn v="soft" onClick={() => { setMore(false); setMode(mode === "cc" ? "" : "cc"); }}>참조{(t.ccIds || []).length ? ` ${(t.ccIds || []).length}` : ""}</TBtn>}
       {!done && !t.parentId && !t.decision && (mine || req === cu.id || master) && <TBtn v="soft" onClick={() => { setMore(false); A.setDecision(t, true); }}>결정 업무로 쓰기</TBtn>}
       {canPhase && <TBtn v="soft" onClick={() => { setMore(false); setMode(mode === "phase" ? "" : "phase"); }}>단계 바꾸기</TBtn>}
+      {canRenameTask(t, cu, D) && <TBtn v="soft" onClick={() => { setMore(false); setNm(t.title || ""); setNmBase(t.title || ""); setMode("rename"); }}>이름 고치기</TBtn>}
       {(mine || master) && !done && <label className="v2-more-date">시작일 <input type="date" aria-label="시작일" className="v2-sel" value={t.startDate || ""} max={dueOf(t) || undefined} onChange={(e) => A.patchTask(t, { startDate: e.target.value }, "edit", `${t.title} · 시작 ${md(e.target.value) || "없음"}`, { prev: { startDate: t.startDate || "" } })} style={{ height: 34, padding: "0 6px", fontSize: 13 }} /></label>}
       <SecretBox kind="task" x={t} D={D} cu={cu} A={A} only="button" />
       <CopyLink kind="t" id={t.id} label="업무 링크 복사" onDone={() => setToast && setToast({ text: "링크를 복사했어요 · 잔디·카톡에 붙여 넣으면 이 업무가 바로 열려요" })} />
@@ -191,6 +192,10 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
         <Act onClick={() => { A.assign(t, handTo, handTo === cu.id, txt); setTxt(""); setHandTo(""); setMode(""); }} style={{ alignSelf: "flex-start", background: C.navy, color: "#fff", borderColor: C.navy }}>{handTo === cu.id ? "내가 이어서 하기" : `${nameOf(D.users, handTo)}님에게 넘기기`}</Act></div>}</div>}
     {mode === "cc" && <div style={{ padding: "8px 0" }}><div style={{ fontSize: 12.5, color: C.sub, marginBottom: 6 }}>참조 = 담당이 아니어도 이 업무의 대화·소식을 받는 사람</div><div className="v2-chips">{users.filter((u) => !ownersOf(t).includes(u.id)).map((u) => { const on = (t.ccIds || []).includes(u.id);
       return <Chip key={u.id} on={on} onClick={() => A.toggleCc(t, u.id, !on)}>{on ? "✓ " : ""}{u.id === cu.id ? "나" : u.name}</Chip>; })}</div></div>}
+    {mode === "rename" && canRenameTask(t, cu, D) && (() => { const v = nm.trim(), ok = !!v && v !== String(nmBase || "").trim(), save = async () => { if (!ok || nmBusy) return; setNmBusy(true); const r = await A.renameTask(t, v, nmBase); setNmBusy(false); if (r && r.ok) setMode(""); };
+      return <div className="v2-rename" style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "8px 0" }}><input value={nm} onChange={(e) => setNm(e.target.value)} autoFocus aria-label="새 이름" onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) save(); if (e.key === "Escape") setMode(""); }} style={{ ...inp, flex: "1 1 200px", minWidth: 0 }} />
+        <div style={{ display: "flex", gap: 8 }}><TBtn v="solid" onClick={save} disabled={!ok || nmBusy}>저장</TBtn><TBtn onClick={() => setMode("")}>취소</TBtn></div>
+        {!v ? <div style={{ flexBasis: "100%", fontSize: 12.5, color: C.sub }}>이름을 비울 수는 없어요</div> : !ok ? <div style={{ flexBasis: "100%", fontSize: 12.5, color: C.sub }}>지금 이름과 같아요</div> : null}</div>; })()}
     {mode === "phase" && canPhase && <div style={{ padding: "8px 0" }}><div style={{ fontSize: 12.5, color: C.sub, marginBottom: 6 }}>지금 단계 {(phaseOf(t.phase) || {}).name || "기타"} · 고르면 바로 옮겨요 (5초 안에 되돌릴 수 있어요)</div>
       <div className="v2-chips" role="group" aria-label="단계 고르기">{[...LAUNCH_PHASES.map((ph) => [ph.k, ph.name]), ["", "기타"]].map(([k, l]) => <Chip key={k || "etc"} on={(t.phase || "") === k} onClick={async () => { if ((t.phase || "") === k) { setMode(""); return; } if (await A.setPhase(t, k)) setMode(""); }}>{l}</Chip>)}</div></div>}
     {mode === "ask" && <RequestAsk t={t} D={D} cu={cu} A={A} mine={mine} onNo={() => setMode("")} />}

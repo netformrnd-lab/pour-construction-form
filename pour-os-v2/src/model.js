@@ -164,6 +164,9 @@ export function trashRows(removedFx, akRemoved, brands, uid) {
 export const REMOVE_REASONS = ["잘못 만듦", "중복", "안 하기로 함", "기타"];
 // 끝냄 누를 수 있는 사람 (사용자 확정 2026-10-07): 담당 + 관리자(모든 업무 · 대신 끝내면 기록·상태 기록엔 관리자 이름 · 끝낸 사람(doneBy)은 담당으로 남김)
 export const canFinish = (t, cu) => !!t && !!cu && !t.isFixed && !t.locked && !isRemoved(t) && (isMine(t, cu.id) || isMaster(cu));
+// 한 번짜리 업무 이름 고치기(사용자 확정 2026-10-07): 담당 · 만든 사람(createdBy·requestedBy) · 프로젝트 책임자 · 관리자 — 신제품 항목(이름 = 신제품 대시보드)·고정업무(renameFx)·없앤·끝낸 업무는 안 됨
+export const canRenameTask = (t, cu, D) => !!t && !!cu && !t.isFixed && !t.launchItem && !t.locked && !isRemoved(t) && !isDone(t)
+  && (isMine(t, cu.id) || t.createdBy === cu.id || t.requestedBy === cu.id || isMaster(cu) || (!!t.projectId && ((D && D.projects) || []).some((p) => p.id === t.projectId && p.assigneeId === cu.id)));
 export const canRemoveTask = (t, cu) => !!t && !!cu && !t.isFixed && !t.locked && !isRemoved(t);
 export const canRestoreTask = (t, cu) => !!t && !!cu && !t.isFixed && !t.locked && isRemoved(t) && !t.removed.proj;   // 프로젝트째 없앤 업무는 프로젝트를 되살려야 돌아옴
 // 아래로 끝까지 하위 업무 (없앤 것·고정업무 빼고 · 고리 막음)

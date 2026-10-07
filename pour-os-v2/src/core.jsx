@@ -8,7 +8,7 @@ import {
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxSubPatch, fxPeople, fxHit, weekStart,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, planSeed, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, isHoldP, nextWorkday, setHolidayLayer, handOverOwners,
-  scopeFields, brandLabel, cycleFields, FX_WD, isRemoved, fxRemoveFields, fxRestoreFields, canRemoveFx, canRemoveAk, canRenameFx, scopeOf,
+  scopeFields, brandLabel, cycleFields, FX_WD, isRemoved, fxRemoveFields, fxRestoreFields, canRemoveFx, canRemoveAk, canRenameFx, canRenameTask, scopeOf,
   canFinish, canRemoveTask, canRestoreTask, taskKids, taskRemoveFields, canRemoveProj, canRestoreProj, projRemoveFields, projTaskRemoveFields, projTaskBack,
 } from "./model.js";
 import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS, phaseOf } from "./launch.js";
@@ -859,6 +859,16 @@ export function useActs(D, cu, setToast, idx = null) {
           if (c.title === v) return { ret: { ok: true, same: true } }; const at = nowIso(); return { write: { title: v, updatedAt: at, updatedBy: cu.id, v2At: at }, ret: { ok: true } }; });
         if (r && r.ok && !r.same) { log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `이름 고침 · ${base} → ${v}`, prev: { title: base }, next: { title: v } });
           if (!noUndo) setToast({ text: "이름을 고쳤어요", undo: async () => { const b = await A.renameFx(t, base, v, true); if (b && b.conflict) setToast({ text: "그사이 다른 사람이 바꿔서 그대로 뒀어요" }); else if (b && b.ok) setToast({ text: "되돌렸어요" }); } }); }
+        return r; }
+      catch (e) { fail("이름")(e); return { error: true }; } },
+    // 한 번짜리 업무 이름 고치기 — renameFx 와 같은 모양: 서버 이름이 화면에서 본 이름(base)일 때만 · 기록 '이름 A → B' · 5초 되돌리기
+    renameTask: async (t, title, base, noUndo) => { const v = String(title || "").trim(); if (!v || v === String(base || "").trim()) return { error: true };
+      if (!noUndo && !canRenameTask(t, cu, D)) { setToast({ text: "이름을 고칠 수 있는 사람이 아니에요" }); return { error: true }; }
+      try { const r = await fb.txDoc("tasks", tdoc(t), (c) => { if (!c || c.isFixed || c.launchItem || isRemoved(c)) return { ret: { error: true } }; if ((c.title || "") !== (base || "")) return { ret: { conflict: true, cur: c.title || "" } };
+          const at = nowIso(); return { write: { title: v, updatedAt: at, updatedBy: cu.id, v2At: at }, ret: { ok: true } }; });
+        if (r && r.conflict && !noUndo) setToast({ text: "그사이 다른 사람이 바꿨어요 · 지금 이름을 확인해 주세요" });
+        if (r && r.ok) { log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `이름 ${base} → ${v}`, prev: { title: base }, next: { title: v } });
+          if (!noUndo) setToast({ text: "이름을 고쳤어요", undo: async () => { const b = await A.renameTask(t, base, v, true); if (b && b.conflict) setToast({ text: "그사이 다른 사람이 바꿔서 그대로 뒀어요" }); else if (b && b.ok) setToast({ text: "되돌렸어요" }); } }); }
         return r; }
       catch (e) { fail("이름")(e); return { error: true }; } },
     // 횟수 목표 이름 = 덧칠 fields.name (버전1 문서 그대로 · 관리자) — 지금 보이는 이름(덧칠 → 버전1)이 base 와 같을 때만

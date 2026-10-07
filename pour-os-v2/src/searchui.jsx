@@ -13,7 +13,7 @@ import { LS } from "./core.jsx";
 const PAGE = 30;
 const GROUPS = [["task", "업무"], ["proj", "프로젝트"], ["note", "댓글"], ["rt", "반복 실행"]];
 // 이 앱을 연 동안 기억하는 '더 오래된 것' (시트를 닫았다 열어도 다시 안 읽음)
-let OLDER = null;
+let OLDER = null, PART = null;   // PART = 읽는 중 (실패하면 그 단계부터 다시)
 
 // 맞은 곳 굵게
 function M({ text, q }) { return <>{marks(text, q).map((x, i) => (x.b ? <b key={i} className="hit">{x.t}</b> : <span key={i}>{x.t}</span>))}</>; }
@@ -30,14 +30,16 @@ export function SearchSheet({ D, cu, open, onBack, onClose, save, s = {} }) {
   const R = useMemo(() => searchAll(DD, q, { cu, uid: cu.id, mine, today: ymd(new Date()) }), [DD, q, mine, cu]);
   const n = { task: R.task.length, proj: R.proj.length, note: R.note.length, rt: R.rt.length };
   const total = n.task + n.proj + n.note + n.rt;
-  const remember = () => { if (R.q) setRecent((l) => addRecent(Array.isArray(l) ? l : [], text)); };
+  // 바로 기기에 씀 (결과를 누르면 이 시트가 바로 닫혀서 state 갱신만으로는 안 남음)
+  const remember = () => { if (!R.q) return; const nx = addRecent(Array.isArray(recent) ? recent : [], text); try { localStorage.setItem(LS("search"), JSON.stringify(nx)); } catch (e) { /* 저장 막힘 → 이번만 */ } setRecent(nx); };
   const go = (x) => { remember(); save({ q: text, f, mine }); open(x.go); };
+  // 단계마다 하나씩 · 실패하면 그 단계부터 [다시] (앞에서 읽은 것은 다시 안 읽음)
   const loadOlder = async () => {
-    const got = { tasks: [], notes: [] };
-    for (let i = 0; i < OLDER_STEPS.length; i++) { const st = OLDER_STEPS[i]; setLd({ i, err: false });
-      try { got[st.key].push(...(await fb.fetchWhere(st.key, st.w))); }
+    const got = PART || (PART = { tasks: [], notes: [], i: 0 });
+    for (let i = got.i; i < OLDER_STEPS.length; i++) { const st = OLDER_STEPS[i]; setLd({ i, err: false });
+      try { got[st.key].push(...(await fb.fetchWhere(st.key, st.w))); got.i = i + 1; }
       catch (e) { console.error("[v2 찾기] 더 오래된 것 못 읽음:", st.label, e); setLd({ i, err: true }); return; } }
-    OLDER = { ...got, at: new Date().toISOString() }; setOlder(OLDER); setLd(null);
+    OLDER = { tasks: got.tasks, notes: got.notes, at: new Date().toISOString() }; PART = null; setOlder(OLDER); setLd(null);
   };
   const shown = GROUPS.filter(([k]) => f === "all" || f === k);
   const WHY = { task: ["담당 이름", "프로젝트 이름"], proj: ["책임자 이름", "브랜드"], note: ["쓴 사람 이름", "업무·프로젝트 이름"], fx: ["담당 이름", "브랜드"], ak: ["담당 이름", "브랜드"] };
@@ -47,12 +49,12 @@ export function SearchSheet({ D, cu, open, onBack, onClose, save, s = {} }) {
       <span className="t1">{x.tag && <span className="tag">{x.tag}</span>}{x.kind === "note" && x.reply && <span className="rp">답글 · </span>}<span className="tt"><M text={x.title} q={R.q} /></span></span>
       {x.snip && <span className="sn">메모 · <M text={x.snip} q={R.q} /></span>}
       <span className="t2">{[x.where && <M key="w" text={x.where} q={R.q} />, x.who && <M key="o" text={x.who} q={R.q} />].filter(Boolean).reduce((a, b, i) => (i ? [...a, " · ", b] : [b]), [])}</span>
-      {(x.stat || x.date || fieldNote(x)) && <span className="t3">{[x.stat, x.date].filter(Boolean).map((v, i) => <span key={i} className={i === 1 && x.red ? "red" : ""}>{i ? " · " : ""}{v}</span>)}{fieldNote(x) && <span className="why">{x.stat || x.date ? " · " : ""}{fieldNote(x)}에서 찾음</span>}</span>}
+      {(x.stat || x.date || fieldNote(x)) && <span className="t3">{x.stat}{x.stat && x.date ? " · " : ""}{x.date && <span className={x.red ? "red" : ""}>{x.date}</span>}{fieldNote(x) && <span className="why">{x.stat || x.date ? " · " : ""}{fieldNote(x)}에서 찾음</span>}</span>}
     </span><span className="go">›</span></button>;
   return <Sheet title="찾기" onBack={onBack} onClose={onClose}>
     <div className="v2-sbox">
       <div className="in"><input ref={ref} type="search" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { setQ(text); remember(); e.currentTarget.blur(); } }}
-        placeholder="업무 · 프로젝트 · 댓글 · 사람 이름" aria-label="찾기" enterKeyHint="search" autoComplete="off" />
+        placeholder="업무 · 프로젝트 · 댓글 · 사람 이름" aria-label="찾는 말" enterKeyHint="search" autoComplete="off" />
         {text && <button type="button" className="x" aria-label="지우기" onClick={() => { setText(""); setQ(""); ref.current && ref.current.focus(); }}>✕</button>}</div>
       {R.q && <div className="v2-filterrow" role="group" aria-label="찾을 곳" style={{ marginTop: 8 }}><div className="v2-chips">
         <Chip on={f === "all"} onClick={() => setF("all")}>전체 {total}</Chip>

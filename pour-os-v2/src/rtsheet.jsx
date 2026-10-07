@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { C, Big, TBtn, Chip, Seg, Head, Card, Empty, Sheet, inp, Linked, Clash } from "./ui.jsx";
 import { ymd, ago, isMaster, activeUsers, nameOf, newId, brandsWithCommon, brandKey, canRemoveAk } from "./model.js";
 import { RemoveAsk, RemovedNote } from "./trash.jsx";
-import { FixedSheet, Thread, useItemNotes, QtyCfgEdit } from "./task.jsx";
+import { FixedSheet, Thread, useItemNotes, QtyCfgEdit, NameClash } from "./task.jsx";
 import { FileList, useUploads, UpList, UpBtn } from "./files.jsx";
 import { periodWeeks, periodLabel, brandName } from "./routine.js";
 import { akTotal, akWho, akGoalText, akStep } from "../../pour-os/src/actionKpi.js";
@@ -88,6 +88,7 @@ function AkMore({ it, D, cu, A, mine, master, onGone }) {
   return <div style={{ marginTop: 12 }}>
     <TBtn onClick={() => { setMore(!more); setMode(""); }} aria-expanded={more}>{more ? "접기 ▴" : "더 하기 ▾"}</TBtn>
     {more && <div className="v2-more" role="group" aria-label="더 하기">
+      {master && <TBtn v="soft" onClick={() => go("name")}>이름 고치기</TBtn>}
       <TBtn v="soft" onClick={() => go("subs")}>체크리스트 고치기</TBtn>
       {master && <TBtn v="soft" onClick={() => go("qty")}>건수 칸</TBtn>}
       {master && <TBtn v="soft" onClick={() => go("brand")}>브랜드</TBtn>}
@@ -97,6 +98,7 @@ function AkMore({ it, D, cu, A, mine, master, onGone }) {
       {canRemoveAk(cu) && <TBtn tone="red" onClick={() => go("remove")}>없애기</TBtn>}
     </div>}
     {mode === "remove" && <RemoveAsk what="이 반복 실행을" busy={busy} onNo={done} onYes={remove} where="관리자 › 반복 실행 아래 '없앤 것'" />}
+    {mode === "name" && <AkNameEdit it={it} A={A} onDone={done} />}
     {mode === "subs" && <AkSubsEdit it={it} cu={cu} A={A} canCommon={master} canMine={mine} onDone={done} />}
     {mode === "qty" && <QtyCfgEdit cfg={qtyCfg(it)} note={["건", "명", "개"].includes(it.unit) && !it.perFail ? `목표 단위가 '${it.unit}'라서 넣은 숫자가 목표에도 더해져요` : "목표는 [+1]로 세고, 건수는 날짜별 기록으로만 남아요"}
       onSave={async (q) => { await A.akSet(it, { qty: q && q.unit ? q : null }, q ? "건수 칸" : "건수 칸 끔"); done(); }} onDone={done} />}
@@ -105,6 +107,18 @@ function AkMore({ it, D, cu, A, mine, master, onGone }) {
     {mode === "who" && <AkWho it={it} D={D} A={A} onDone={done} />}
     {mode === "goal" && <AkGoal it={it} A={A} onDone={done} />}
   </div>;
+}
+// 이름 고치기 (관리자 · 덧칠 fields.name · 버전1 그대로 · 연 때 본 이름 그대로일 때만 · 5초 되돌리기)
+function AkNameEdit({ it, A, onDone }) {
+  const [base, setBase] = useState(it.name || ""), [v, setV] = useState(it.name || ""), [clash, setClash] = useState(null), [busy, setBusy] = useState(false);
+  const save = async (b = base) => { if (busy || !v.trim()) return; if (v.trim() === b) return onDone(); setBusy(true);
+    try { const r = await A.akRename(it, v, b); if (r && r.conflict) setClash(r.cur); else if (r && r.ok) onDone(); } finally { setBusy(false); } };
+  return <Card style={{ marginTop: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+    <label style={{ fontSize: 13, fontWeight: 800, color: C.ink }}>이름 <span style={{ color: C.mute, fontWeight: 700 }}>(모두에게 보여요 · 버전1 이름은 그대로)</span>
+      <textarea value={v} onChange={(e) => setV(e.target.value)} rows={Math.min(4, Math.max(1, Math.ceil(v.length / 28)))} aria-label="이름" style={{ ...inp, marginTop: 6, padding: "9px 12px", resize: "vertical", lineHeight: 1.5 }} /></label>
+    {clash != null && <NameClash cur={clash} onUse={() => { setBase(clash); setV(clash); setClash(null); }} onMine={() => { const c = clash; setBase(c); setClash(null); save(c); }} />}
+    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><TBtn tone="mute" onClick={onDone}>그만</TBtn><TBtn v="solid" disabled={busy || !v.trim()} onClick={() => save()}>저장</TBtn></div>
+  </Card>;
 }
 function AkSubsEdit({ it, cu, A, canCommon, canMine, onDone }) {
   const [who, setWho] = useState(canCommon ? "*" : cu.id);

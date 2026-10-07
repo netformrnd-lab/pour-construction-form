@@ -8,7 +8,7 @@ import {
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxSubPatch, fxPeople, fxHit, weekStart,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, planSeed, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, isHoldP, nextWorkday, setHolidayLayer, handOverOwners,
-  scopeFields, brandLabel, cycleFields, FX_WD, isRemoved, fxRemoveFields, fxRestoreFields, canRemoveFx, canRemoveAk, scopeOf,
+  scopeFields, brandLabel, cycleFields, FX_WD, isRemoved, fxRemoveFields, fxRestoreFields, canRemoveFx, canRemoveAk, canRenameFx, scopeOf,
 } from "./model.js";
 import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS } from "./launch.js";
 import { nextTurnText } from "./turn.js";
@@ -815,6 +815,36 @@ export function useActs(D, cu, setToast, idx = null) {
     setQtyCfg: (t, q) => { const f = { qty: q && q.unit ? { label: String(q.label || "").trim() || "건수", unit: q.unit } : null }, prev = { qty: t.qty || null };
       P(t, f, "edit", `${t.title} · 건수 칸 ${f.qty ? `${f.qty.label}(${f.qty.unit})` : "끔"}`, { prev });
       setToast({ text: f.qty ? "건수 칸을 켰어요" : "건수 칸을 껐어요", undo: () => undoT(t, f, prev, `${t.title} · 건수 칸`) }); },
+    // ── 이름 고치기 (사용자 요청 2026-10-07) — 연 때 본 이름(base) 그대로일 때만(transaction) · 그사이 바뀌었으면 {conflict, cur} · 기록 prev · 5초 되돌리기
+    renameFx: async (t, title, base, noUndo) => { const v = String(title || "").trim(); if (!v) return { error: true }; if (!canRenameFx(t, cu)) { setToast({ text: "이름을 고칠 수 있는 사람이 아니에요" }); return { error: true }; }
+      try { const r = await fb.txDoc("tasks", tdoc(t), (c) => { if (!c) return { ret: { error: true } }; if ((c.title || "") !== (base || "")) return { ret: { conflict: true, cur: c.title || "", by: c.updatedBy || "" } };
+          if (c.title === v) return { ret: { ok: true, same: true } }; const at = nowIso(); return { write: { title: v, updatedAt: at, updatedBy: cu.id, v2At: at }, ret: { ok: true } }; });
+        if (r && r.ok && !r.same) { log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `이름 고침 · ${base} → ${v}`, prev: { title: base }, next: { title: v } });
+          if (!noUndo) setToast({ text: "이름을 고쳤어요", undo: async () => { const b = await A.renameFx(t, base, v, true); if (b && b.conflict) setToast({ text: "그사이 다른 사람이 바꿔서 그대로 뒀어요" }); else if (b && b.ok) setToast({ text: "되돌렸어요" }); } }); }
+        return r; }
+      catch (e) { fail("이름")(e); return { error: true }; } },
+    // 괄호 안 쉼표 목록 → 공통 체크리스트(subsBy['*'])로 옮기고 이름에서 괄호 뺌 — 한 transaction · 되돌리기 = 내가 쓴 이름·목록 그대로일 때만
+    fxParenMove: async (t, plan, base) => { if (!canRenameFx(t, cu) || !plan || !plan.parts || !plan.parts.length) return { error: true };
+      const add = plan.parts.map((title, i) => ({ id: newId("s") + i, title }));
+      try { const r = await fb.txDoc("tasks", tdoc(t), (c) => { if (!c) return { ret: { error: true } }; if ((c.title || "") !== (base || "")) return { ret: { conflict: true, cur: c.title || "" } };
+          const sb = { ...(c.subsBy || {}) }, prev = sb["*"] || []; sb["*"] = [...prev, ...add]; const at = nowIso();
+          return { write: { title: plan.title, subsBy: sb, updatedAt: at, updatedBy: cu.id, v2At: at }, ret: { ok: true, prev, next: sb["*"] } }; });
+        if (r && r.ok) { const lab = `이름 고침 · 괄호 안 ${add.length}개 → 체크리스트(공통)`;
+          log("edit", { col: "tasks", targetId: t.id, label: `${lab} · ${base} → ${plan.title}`, prev: { title: base, subs: r.prev.map((x) => x.title).join(", ") }, next: { title: plan.title, subs: r.next.map((x) => x.title).join(", ") } });
+          setToast({ text: `체크리스트로 ${add.length}개 옮겼어요`, undo: async () => { const ok = await fb.txDoc("tasks", tdoc(t), (c) => { if (!c || c.title !== plan.title || !fb.sameVal(((c.subsBy || {})["*"]) || [], r.next)) return { ret: false };
+              return { write: { title: base, subsBy: { ...(c.subsBy || {}), "*": r.prev }, updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }, ret: true }; }).catch((e) => { fail("되돌리기")(e); return null; });
+            if (ok === false) setToast({ text: "그사이 다른 사람이 바꿔서 그대로 뒀어요" }); else if (ok) { log("edit", { col: "tasks", targetId: t.id, label: `되돌림 · ${lab}`, prev: { title: plan.title }, next: { title: base } }); setToast({ text: "되돌렸어요" }); } } }); }
+        return r; }
+      catch (e) { fail("이름")(e); return { error: true }; } },
+    // 횟수 목표 이름 = 덧칠 fields.name (버전1 문서 그대로 · 관리자) — 지금 보이는 이름(덧칠 → 버전1)이 base 와 같을 때만
+    akRename: async (it, name, base, noUndo) => { const v = String(name || "").trim(); if (!v) return { error: true }; if (!isMaster(cu)) return { error: true };
+      const at = nowIso(), b0 = ((D.ak && D.ak.raw) || []).find((x) => x.id === it.id) || null;
+      try { const r = await fb.txDoc("kpidefs", it.id, (c) => { const now = ((c && c.fields) || {}).name ?? (b0 && b0.name) ?? "";
+          if (now !== (base || "")) return { ret: { conflict: true, cur: now } }; const w = kpiEditWrite(c, "actionKPIs", it.id, { name: v }, undefined, cu, at, b0); return w ? { write: w, ret: { ok: true } } : { ret: { ok: true, same: true } }; });
+        if (r && r.ok && !r.same) { log("edit", { col: "kpidefs", targetId: it.id, label: `이름 고침 · ${base} → ${v}`, prev: { name: base }, next: { name: v } });
+          if (!noUndo) setToast({ text: "이름을 고쳤어요", undo: async () => { const b = await A.akRename(it, base, v, true); if (b && b.conflict) setToast({ text: "그사이 다른 사람이 바꿔서 그대로 뒀어요" }); else if (b && b.ok) setToast({ text: "되돌렸어요" }); } }); }
+        return r; }
+      catch (e) { fail("이름")(e); return { error: true }; } },
     // ── 없애기 · 휴지통 (사용자 확정 2026-10-07 · 목록에서 빼기 + 휴지통 · 지우지 않음) ──
     // 고정업무·정한 날 체크: removed{at,by,byName,prevPaused,scope} + paused true — 서버에 아직 안 없앤 것일 때만(transaction) · 5초 되돌리기 · 기록에 이전 값
     //   권한: 개인(me) = 본인·관리자 · 반복 실행(브랜드)·미정 = 관리자 (화면에서도 같은 규칙 model.canRemoveFx)

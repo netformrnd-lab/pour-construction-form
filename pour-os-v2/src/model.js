@@ -148,6 +148,16 @@ export const canRemoveFx = (t, cu) => !!t && !!cu && !!t.isFixed && (isMaster(cu
 export const canRemoveAk = (cu) => isMaster(cu);
 export const fxRemoveFields = (t, cu, at) => ({ removed: { at, by: cu.id, byName: cu.name || "", prevPaused: !!(t && t.paused), scope: scopeOf(t) }, paused: true });
 export const fxRestoreFields = (t) => ({ removed: null, paused: !!(t && t.removed && t.removed.prevPaused) });
+// 이름 고치기(사용자 요청 2026-10-07): 공통 이름(task.title · 횟수 목표는 덧칠 fields.name) — 권한은 없애기와 같음(개인 = 본인·관리자 · 반복 실행·미정 = 관리자)
+export const canRenameFx = (t, cu) => canRemoveFx(t, cu);
+// 이름 끝 괄호 안이 쉼표로 나뉜 할 일 목록이면 → 체크리스트로 옮기기 제안 {title(괄호 뺀 이름), parts[]} · 이미 있는 항목은 빼고 · 2개 미만이면 null
+export function parenSubs(title, have) {
+  const s = String(title || ""), m = s.match(/^(.*\S)\s*\(([^()]*)\)\s*$/); if (!m) return null;
+  const old = new Set((have || []).map((x) => String((x && x.title) || x || "").trim()));
+  const parts = m[2].split(/[,，]/).map((x) => x.trim()).filter(Boolean);
+  if (parts.length < 2) return null;
+  return { title: m[1].trim(), parts: parts.filter((x) => !old.has(x)) };
+}
 // 휴지통 줄: 고정업무(removedFx) + 횟수 목표(akRemoved · _removed) → [{kind, id, name, sub, by, byName, at, x}] 최근 것 먼저
 //   uid 를 주면 그 사람 개인 고정업무만 (더보기 › 내 고정업무)
 export function trashRows(removedFx, akRemoved, brands, uid) {

@@ -379,4 +379,13 @@ ok("없애기·휴지통(2026-10-07): 권한 · 저장 칸 · 되살리기 = 이
   assert.deepEqual(M.trashRows(gone, ak, [], "a").map((r) => r.id), ["f1"]);   // 내 것 = 내 개인 고정업무만 (반복 실행·횟수 목표는 관리자 휴지통)
   assert.deepEqual(M.trashRows(gone, ak, [], "b"), []);
 });
+ok("이름 고치기: 괄호 안 쉼표 목록 → 체크리스트 제안 · 권한", () => {
+  const r = M.parenSubs("오후 주문수집/발주(배송유형에 맞춰 잘나갔는지-택배/퀵, 1고객 1개 창고로 나갔는지, 고객에게 송장번호/퀵차량번호 안내했는지)");
+  assert.deepEqual(r, { title: "오후 주문수집/발주", parts: ["배송유형에 맞춰 잘나갔는지-택배/퀵", "1고객 1개 창고로 나갔는지", "고객에게 송장번호/퀵차량번호 안내했는지"] });
+  assert.equal(M.parenSubs("오전 CS 확인(고객-온/오프라인 | 거래처)"), null);   // 쉼표 없음
+  assert.equal(M.parenSubs("재고확인"), null); assert.equal(M.parenSubs("(a, b) 앞에 괄호"), null);
+  assert.deepEqual(M.parenSubs("발주(가, 나)", [{ id: "s1", title: "가" }]), { title: "발주", parts: ["나"] });   // 이미 있는 것 빼고
+  const boss = { id: "s", name: "김송희", role: "lead" }, me = { id: "a", name: "가" };
+  assert.equal(M.canRenameFx({ isFixed: true, scope: "me", assigneeIds: ["a"] }, me), true); assert.equal(M.canRenameFx({ isFixed: true, scope: "brand", brand: "x", assigneeIds: ["a"] }, me), false); assert.equal(M.canRenameFx({ isFixed: true, scope: "brand", brand: "x" }, boss), true);
+});
 console.log(`\n${n}개 모두 통과`);

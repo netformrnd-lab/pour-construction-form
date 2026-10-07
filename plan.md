@@ -8,7 +8,7 @@
 - 새 페이지는 `pourstore-renewal/os2-guide.html`에 독립 정적 HTML로 추가한다.
 - 기존 페이지를 직접 임베드하지 않고, 실제 기능을 설명하는 CSS 목업과 탭 인터랙션으로 로딩 비용과 인증/데이터 노출을 피한다.
 - 실제 사용자 화면과 관리자 화면으로 이동할 수 있는 CTA를 제공한다.
-- `/pourstore-renewal/os2-guide` extensionless 경로는 `_redirects`에서 새 HTML로 연결한다.
+- 기존 `pourstore-renewal/*` 직접 서빙 규칙을 사용해 `.html` 정적 URL로 제공한다. Cloudflare Pages의 `.html` 정규화와 충돌하는 별도 extensionless rewrite는 두지 않는다.
 
 ## 디자인
 - **Design Movement**: 운영 매뉴얼을 제품 랜딩처럼 정리하는 editorial product documentation.

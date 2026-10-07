@@ -110,4 +110,21 @@ ok("직접 추가한 단계도 상태·담당 양쪽 반영 (구조 문서를 �
   const r = S.planLaunchSync(P({ c1: { status: "done", owner: "민지", ownerIds: ["minji"] } }), proj(), [t], users, today, now, st);
   assert.equal(r.tasks[0].fields.status, "done");
 });
+ok("없앤 업무(누구나 없애기): 신제품 값으로 안 고침 · 다시 만들지 않음 · 줄 지워도 중단 안 씀 · 휴지통 접기에서도 빼기", () => {
+  const rm = { at: "2026-10-07T00:00:00Z", by: "a", byName: "가", root: "x" };
+  const r = S.planLaunchSync(P({ d01: { status: "done", owner: "민지", ownerIds: ["minji"] } }), proj(), [T("d01", { removed: rm })], users, today, now);
+  assert.equal(r.tasks.length, 0);                                                   // 상태·담당 안 씀
+  const parent = T("s12", { lbSeen: { status: "todo", owners: ["wm"], due: "", note: "" } }), row = { id: "r1", note: "할 일", owner: "민지", ownerIds: ["minji"], due: "2026-10-30" };
+  const sub = { id: "lb_P__s12__r_r1", parentId: parent.id, lbRow: "r1", status: "todo", title: "옛", memo: "옛", removed: rm };
+  const a = S.planRowSync(P({ s12: { tasks: [row] } }), proj(), [parent, sub], users, now);
+  assert.equal(a.create.length, 0); assert.equal(a.tasks.length, 0);                // 없앤 하위 업무를 새로 만들지도 고치지도 않음
+  assert.equal(S.planRowSync(P({ s12: { tasks: [] } }), proj(), [parent, sub], users, now).tasks.length, 0);   // 줄 지움 → 중단 안 씀
+  const gp = S.planRowSync(P({ s12: { tasks: [row] } }), proj(), [{ ...parent, removed: rm }], users, now);
+  assert.equal(gp.create.length, 0);                                                 // 없앤 항목 아래로 줄을 만들지 않음
+  const st = { custom: { c1: { name: "수입 통관" } }, order: { P2: ["c1"] } }, c1 = { id: "lb_P__c1", launchItem: "c1", customStep: true, status: "todo", removed: rm };
+  assert.equal(S.planCustomSteps(P({}), proj(), [c1], users, st, today, now).create.length, 0);   // 없앤 단계 업무 다시 안 만듦
+  assert.equal(S.planCustomSteps(P({}), proj(), [c1], users, { custom: {}, order: {} }, today, now).drop.length, 0);
+  const tr = S.planLaunchTrash(P({}, { deletedAt: "2026-10-07T00:00:00Z" }), proj({ status: "active" }), [T("d01", { removed: rm }), T("d02")], now);
+  assert.deepEqual(tr.tasks.map((x) => x.t.launchItem), ["d02"]);
+});
 console.log(`\n${n}개 모두 통과`);

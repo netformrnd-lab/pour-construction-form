@@ -15,6 +15,7 @@ import { openTask, moveDue } from "./task.jsx";
 import { PickList, BulkBar, dueChips, ro } from "./pick.jsx";
 import { previewLaunchMove } from "./views.js";
 import { RoutineCard } from "./routineui.jsx";
+import { myRoutine } from "./routine.js";
 import { QtyAsk, QtyDone } from "./recui.jsx";
 import { LS as LSK } from "./core.jsx";
 import { myNotesOf } from "./more.jsx";
@@ -132,6 +133,7 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
   const up7 = useMemo(() => upcomingTurns(D, T, key, cu.id).filter((u) => u.start && u.start <= addDays(key, 6)), [D, T, key]);   // 곧 내 차례 = 7일 안에 오는 내 차례 (달력과 같은 기준)
   const [fxAsk, setFxAsk] = useState(null);   // 건수 칸 묻는 고정업무 줄
   const myToday = useMemo(() => myNotesOf(D, cu.id, key, "today").length, [D.notes, cu.id, key]);   // '오늘 내가 쓴 댓글 n ›' (있을 때만)
+  const [range, setRange] = useLocal(LSK("todo-range"), "today");   // '할 일' 카드 [오늘 | 내일 | 이번 주]
   const [fxFold, setFxFold] = useLocal(LSK("fxfold"), false), fxOpen = !fxFold, [fxMore, setFxMore] = useState(false);   // 남은 고정업무는 처음부터 펼침 · 접으면 이 기기에 기억
   const [showFxDone, setShowFxDone] = useState(false), [allInbox, setAllInbox] = useState(false), [soonOpen, setSoonOpen] = useState(false);
   const pName = (pid) => (D.projects.find((p) => p.id === pid) || {}).title || "";
@@ -142,7 +144,18 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
   const { openInbox, inboxAct } = inboxFns(D, A, open, setSeen);
   // 오늘 챙길 일회성 (2026-10-06 위 '지금 할 일' 카드 없앰 → 카드가 보이던 일은 모두 이 목록에): 수정 요청 · 이제 내 차례 · 지난 일 · 진행 중 · 오늘·내일 마감
   //   순서 = TV.ranked(model.focusRank) 그대로 · 5줄 + 'n개 더 ▾'
-  const list = TV.ranked.filter((x) => x.t.feedback || x.fresh || (x.n != null && x.n <= 1) || x.t.status === "inprogress");
+  //   2026-10-07 카드 이름 '할 일' + [오늘 | 내일 | 이번 주](기기 기억 pour-os2-todo-range · 화면 거르기만)
+  //   오늘 = 수정 요청 · 이제 내 차례 · 지난 일 · 진행 중 · 오늘 마감 / 내일 = 내일 마감 / 이번 주 = 이번 일요일까지 마감(오늘·지난 일 포함) · 고정업무는 '오늘'에만
+  const sun = addDays(weekStart(key), 6);
+  const RANGE_HIT = {
+    today: (x) => x.t.feedback || x.fresh || (x.n != null && x.n <= 0) || x.t.status === "inprogress",
+    tomorrow: (x) => x.n === 1,
+    week: (x) => { const d = dueOf(x.t); return !!d && d <= sun; },
+  };
+  const rk = RANGE_HIT[range] ? range : "today";
+  const rangeN = Object.fromEntries(Object.entries(RANGE_HIT).map(([k, f]) => [k, TV.ranked.filter(f).length]));
+  const list = TV.ranked.filter(RANGE_HIT[rk]);
+  const showFx = rk === "today";
   const LIST_MAX = 5, listShown = listAll ? list : list.slice(0, LIST_MAX);
   const fxLeft = TV.fixed.left, fxRows = todayRows(TV.fixed, fxAsk), nextFx = fxLeft.find((x) => !x.late && x.min < 9999) || fxLeft[0];
   const ym = key.slice(0, 7);
@@ -150,6 +163,9 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
   const tempMine = D.tasks.filter((t) => T.temp.has(t.id) && isMine(t, cu.id)).length;
   const lateN = TV.late.length;   // '하나씩 정리하기'가 카드 일까지 모두 보여 주므로 같은 수
   const wk = useMemo(() => weekMine(D, cu.id, key), [D, cu.id, key]);   // 이번 주(월~일) 내 완료율 — 나만 봄
+  // 칸 나눔(화면만): 반복 실행 카드가 보일지 = RoutineCard 와 같은 조건 · 빈 칸은 안 그림
+  const hasRt = !!(TV.routine && TV.routine.total > 0) || !!(D.ak && D.ak.ready && (D.ak.items || []).length && myRoutine(D.ak.items, D.users, cu.id, D.ak.docs, key).length);
+  const hasC1 = TV.inbox.length > 0 || up7.length > 0;
   return <>
     <header style={{ padding: "14px 2px 2px" }}>
       <div style={{ fontSize: 13, color: C.sub, fontWeight: 700 }}>{dayTitle(now)} · {cu.name}</div>
@@ -163,17 +179,30 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
       {lateN > 0 && <LineBtn onClick={() => open({ type: "triage" })}><span>지난 일 <b style={{ color: C.red }}>{lateN}개</b> · 하나씩 정리하기</span> ›</LineBtn>}
       {TV.doing >= 4 && <div style={{ fontSize: 12.5, color: C.sub, padding: "6px 4px" }}>진행 중 {TV.doing}개예요 · 하나씩 끝내면 더 빨라요</div>}
     </div>
-    <div className="v2-cols">
-      <div>
-        {TV.inbox.length > 0 && <>
+    {/* PC 넓은 화면(2026-10-07): 칸 3개 [확인할 것·곧 내 차례 | 오늘·날짜 없는 일 | 반복 실행] · 900~1199 = 2칸 + 반복 실행 아래 · 900 아래 = 한 줄(예전 순서 그대로 · 칸 묶음은 display:contents) */}
+    <div className={"v2-tgrid" + (hasC1 ? "" : " no1") + (hasRt ? "" : " no3")}>
+      {hasC1 && <div className="v2-tcol c1">
+        {TV.inbox.length > 0 && <div className="v2-ts in"><>
           <Head right={readable.length > 0 && <TBtn tone="mute" onClick={() => setSeen((s) => ({ ...s, ...Object.fromEntries(readable.flatMap((x) => [x.id, ...String(x.id).split("|")].map((k) => [k, true]))) }))}>읽음 표시</TBtn>}>확인할 것 {TV.inbox.length}</Head>
           <Card>
             {inbox.map((x, i) => <Row key={x.id} tag={x.tag} tagTone={x.red ? "red" : null} title={x.title} sub={`${x.whoName || TV.userName(x.who) || ""}${x.at ? (x.whoName || TV.userName(x.who) ? " · " : "") + ago(x.at, now) : ""}${x.text ? " · " + x.text : ""}`} onClick={() => openInbox(x)} right={inboxAct(x)} last={i === inbox.length - 1 && TV.inbox.length <= 3} />)}
             {TV.inbox.length > 3 && <More onClick={() => setAllInbox(!allInbox)}>{allInbox ? "접기 ▴" : `${TV.inbox.length}개 모두 보기 ▾`}</More>}
-          </Card></>}
-        <Head right={<TBtn onClick={() => open({ type: "mine" })}>내 할 일 모두 ›</TBtn>}>오늘</Head>
+          </Card></></div>}
+        {up7.length > 0 && <div className="v2-ts soon">
+          <Head right={<TBtn onClick={() => open({ type: "upturns" })}>모두 ›</TBtn>}>곧 내 차례 {up7.length}{up7.some((u) => u.level === "late" || u.level === "risk") ? <span style={{ color: C.red }}> · 늦을 수 있음 {up7.filter((u) => u.level === "late" || u.level === "risk").length}</span> : null}</Head>
+          <Card>{up7.slice(0, soonOpen ? 8 : 3).map((u, i, arr) => <UpRow key={u.t.id} u={u} D={D} cu={cu} open={open} keyd={key} last={i === arr.length - 1 && up7.length <= (soonOpen ? 8 : 3)} />)}
+            {up7.length > 3 && <More onClick={() => setSoonOpen(!soonOpen)}>{soonOpen ? "접기 ▴" : `${up7.length - 3}개 더 ▾`}</More>}</Card>
+        </div>}
+      </div>}
+      <div className="v2-tcol c2">
+        <div className="v2-ts tod">
+        <div className="v2-todohead">
+          <h3>할 일</h3>
+          <div className="v2-trange" role="group" aria-label="할 일 날짜">{[["today", "오늘"], ["tomorrow", "내일"], ["week", "이번 주"]].map(([k, l]) => <Chip key={k} on={rk === k} onClick={() => { setRange(k); setListAll(false); }} style={{ padding: "6px 11px" }}>{l} {rangeN[k]}</Chip>)}</div>
+          <TBtn className="all" onClick={() => open({ type: "mine" })}>내 할 일 모두 ›</TBtn>
+        </div>
         <Card>
-          {TV.fixed.total > 0 && (fxOpen
+          {showFx && TV.fixed.total > 0 && (fxOpen
             ? <>{openShown(fxRows, fxMore).map((x) => { const t = x.t, dn = !!x.asking;
                 return <Row key={t.id} dim={dn} tag={dn ? null : x.miss ? `밀림 ${md(x.miss)}` : x.late ? "시간 지남" : "고정"} tagTone={x.late ? "red" : null} title={<FxTitle t={t} uid={cu.id} keyd={key} />} sub={fxLine(D, t, cu.id, key)}
                   below={<><FxChips t={t} uid={cu.id} keyd={key} A={A} open={open} onDone={() => qtyCfg(t) && setFxAsk(t.id)} /><FxQty t={t} D={D} cu={cu} A={A} ask={fxAsk} setAsk={setFxAsk} keyd={key} /></>} onClick={() => open({ type: "fixed", id: t.id })}
@@ -187,20 +216,16 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
             : <More onClick={() => setFxFold(false)}>{fxLeft.length ? <>고정업무 <b>{fxLeft.length}개 남음</b>{nextFx ? ` · 다음 ${fxTime(nextFx.t, cu.id) || ""} ${fxLabel(nextFx.t, cu.id)}` : ""} ▾</> : <>고정업무 {TV.fixed.total}개 다 했어요 ✓ ▾</>}</More>)}
           {listShown.map((x, i) => <OneRow key={x.t.id} x={x} D={D} A={A} T={T} keyd={key} open={open} setSeen={setSeen} pName={pName} last={i === listShown.length - 1 && list.length <= LIST_MAX} />)}
           {list.length > LIST_MAX && <More onClick={() => setListAll(!listAll)}>{listAll ? "접기 ▴" : `${list.length - LIST_MAX}개 더 ▾`}</More>}
-          {!list.length && !TV.fixed.total && <Empty>오늘·내일 마감이거나 하는 중인 일이 없어요</Empty>}
+          {!list.length && !(showFx && TV.fixed.total) && <Empty>{rk === "tomorrow" ? "내일 마감인 일이 없어요" : rk === "week" ? "이번 주(일요일까지) 마감인 일이 없어요" : "오늘 마감이거나 하는 중인 일이 없어요"}</Empty>}
         </Card>
         {myToday > 0 && <div className="v2-mylink"><TBtn v="plain" onClick={() => open({ type: "myNotes" })} style={{ fontSize: 13 }}>오늘 내가 쓴 댓글 {myToday} ›</TBtn></div>}
+        </div>
+        {(noDate > 0 || tempMine > 0) && <div className="v2-ts nd"><Card style={{ marginTop: 14 }}><More onClick={() => open({ type: "myTidy", tab: noDate ? "nodate" : "temp" })}>
+          {[noDate ? `날짜 없는 일 ${noDate}` : "", tempMine ? `담당 정할 항목 ${tempMine}` : ""].filter(Boolean).join(" · ")} ›</More></Card></div>}
       </div>
-      <div>
+      {hasRt && <div className="v2-tcol c3"><div className="v2-ts rt">
         <RoutineCard D={D} cu={cu} A={A} open={open} keyd={key} checks={TV.routine && TV.routine.total > 0 ? <RoutineChecks D={D} cu={cu} A={A} open={open} R={TV.routine} keyd={key} /> : null} />
-        {up7.length > 0 && <>
-          <Head right={<TBtn onClick={() => open({ type: "upturns" })}>모두 ›</TBtn>}>곧 내 차례 {up7.length}{up7.some((u) => u.level === "late" || u.level === "risk") ? <span style={{ color: C.red }}> · 늦을 수 있음 {up7.filter((u) => u.level === "late" || u.level === "risk").length}</span> : null}</Head>
-          <Card>{up7.slice(0, soonOpen ? 8 : 3).map((u, i, arr) => <UpRow key={u.t.id} u={u} D={D} cu={cu} open={open} keyd={key} last={i === arr.length - 1 && up7.length <= (soonOpen ? 8 : 3)} />)}
-            {up7.length > 3 && <More onClick={() => setSoonOpen(!soonOpen)}>{soonOpen ? "접기 ▴" : `${up7.length - 3}개 더 ▾`}</More>}</Card>
-        </>}
-        {(noDate > 0 || tempMine > 0) && <Card style={{ marginTop: 14 }}><More onClick={() => open({ type: "myTidy", tab: noDate ? "nodate" : "temp" })}>
-          {[noDate ? `날짜 없는 일 ${noDate}` : "", tempMine ? `담당 정할 항목 ${tempMine}` : ""].filter(Boolean).join(" · ")} ›</More></Card>}
-      </div>
+      </div></div>}
     </div>
     <div className="v2-fab"><Big onClick={() => open({ type: "add" })}>+ 할 일 추가</Big></div>
   </>;

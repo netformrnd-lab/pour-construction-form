@@ -2960,6 +2960,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
         <div class="fld"><label>규격</label><input id="adSpec" placeholder="예: 20kg/통" autocomplete="off"></div>
         <div class="fld"><label>자체상품코드 <span style="color:var(--ink-faint)">비우면 자동</span></label><input id="adPcode" placeholder="예: PS-003-02" autocomplete="off" style="font-family:var(--mono)"></div>
         <div class="fld"><label>3PL 코드 <span style="color:var(--ink-faint)">물류센터 · 선택</span></label><input id="adP3pl" placeholder="예: 03031 (여러 개면 쉼표)" autocomplete="off" style="font-family:var(--mono)"></div>
+        <div class="fld"><label>바코드 <span style="color:var(--ink-faint)">스캔용 · 선택</span></label><input id="adBarcode" placeholder="예: 8809123456789" autocomplete="off" inputmode="numeric" style="font-family:var(--mono)"></div>
         <div class="fld"><label>유형</label><select id="adType"><option value="단품">단품</option><option value="세트">세트(패키지)</option></select></div>
         <div class="fld" id="adLaunchFld"><label>상태</label><select id="adLaunch"><option value="출시">출시 (바로 판매)</option><option value="출시준비">출시준비 (검토 후 출시)</option></select></div>
         <div class="fld" id="adConceptFld"><label>컨셉 <span style="color:var(--ink-faint)">파생 기준 · 선택</span></label><input id="adConcept" placeholder="예: 옥상방수 세트" autocomplete="off"></div>
@@ -7333,6 +7334,24 @@ async function setP3plFor(k,val){   // 3PL 코드 지정 — 다른 제품과 �
   try{ await saveP3plPatch({[k]:v}); logAct('3PL코드', `${k.split('|')[1]} ${old||'—'} → ${v||'—'}`, '수동 변경'); return ''; }
   catch(e){ if(old) P3PL[k]=old; else delete P3PL[k]; return '저장 실패: '+(e.code||e.message||e); }
 }
+/* 바코드(상품 바코드 — 오픈마켓/물류 스캔용 숫자·코드) — 자체상품코드·3PL과 따로 관리.
+   pKey → '8809...'  ← product-meta/prod-barcode. 한 바코드는 한 제품에만(겹치면 거부). */
+let PBARCODE={};
+function pbarcodeOf(p){ return PBARCODE[pKey(p)]||''; }
+function normBarcode(v){ return String(v||'').trim().replace(/\s+/g,''); }
+async function saveBarcodePatch(patch){
+  const del=firebase.firestore.FieldValue.delete();
+  const map={}; Object.entries(patch).forEach(([k,v])=>{ map[k]=v?v:del; });
+  await db.collection('product-meta').doc('prod-barcode').set({map, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''},{merge:true});
+}
+async function setBarcodeFor(k,val){   // 바코드 지정 — 다른 제품과 겹치면 거부. 반환: 오류 문구 또는 ''
+  const v=normBarcode(val);
+  if(v){ const o=Object.keys(PBARCODE).find(kk=>kk!==k && normBarcode(PBARCODE[kk])===v); if(o) return `바코드 ${v} 는 다른 제품(${o.split('|')[1]})에 붙어 있습니다.`; }
+  if((PBARCODE[k]||'')===v) return '';
+  const old=PBARCODE[k]; if(v) PBARCODE[k]=v; else delete PBARCODE[k];
+  try{ await saveBarcodePatch({[k]:v}); logAct('바코드', `${k.split('|')[1]} ${old||'—'} → ${v||'—'}`, '수동 변경'); return ''; }
+  catch(e){ if(old) PBARCODE[k]=old; else delete PBARCODE[k]; return '저장 실패: '+(e.code||e.message||e); }
+}
 const LS_CODECOL='pour-codecol-open';
 let CODECOL_OPEN=(()=>{ try{ return localStorage.getItem(LS_CODECOL)!=='0'; }catch(e){ return true; } })();
 function setCodeCol(on){ CODECOL_OPEN=!!on; try{ localStorage.setItem(LS_CODECOL,on?'1':'0'); }catch(e){} renderGrid(); }
@@ -7467,23 +7486,23 @@ function pcodeRows(){
 }
 function renderPcodeTable(){
   const q=(($('#pcQ').value)||'').trim().toLowerCase();
-  const rows=pcodeRows().filter(r=>!q || (r.p.name+' '+r.p.spec+' '+r.code+' '+(P3PL[r.k]||'')).toLowerCase().includes(q));
-  let h='<thead><tr><th>자체상품코드</th><th>3PL 코드 <span style="font-weight:400">(물류센터)</span></th><th>제품명</th><th>규격</th><th>브랜드</th><th>분류 / 세트 구성</th></tr></thead><tbody>', last=null, nGrp=new Set();
+  const rows=pcodeRows().filter(r=>!q || (r.p.name+' '+r.p.spec+' '+r.code+' '+(P3PL[r.k]||'')+' '+(PBARCODE[r.k]||'')).toLowerCase().includes(q));
+  let h='<thead><tr><th>자체상품코드</th><th>3PL 코드 <span style="font-weight:400">(물류센터)</span></th><th>바코드 <span style="font-weight:400">(스캔용)</span></th><th>제품명</th><th>규격</th><th>브랜드</th><th>분류 / 세트 구성</th></tr></thead><tbody>', last=null, nGrp=new Set();
   rows.forEach(r=>{ const m=r.code.match(PCODE_RE), g=m?m[1]:'';
     if(g) nGrp.add(g);
-    if(g!==last){ last=g; h+=`<tr class="pc-grp"><td colspan="6">${g?`${g[0]==='S'?'세트':'제품'} ${esc(PCODE_PREFIX+'-'+g)} · ${esc(codeBase(r.p.name))}`:'코드 미부여 (잠시 후 자동 부여)'}</td></tr>`; }
+    if(g!==last){ last=g; h+=`<tr class="pc-grp"><td colspan="7">${g?`${g[0]==='S'?'세트':'제품'} ${esc(PCODE_PREFIX+'-'+g)} · ${esc(codeBase(r.p.name))}`:'코드 미부여 (잠시 후 자동 부여)'}</td></tr>`; }
     const c=pcat(r.p);
-    h+=`<tr><td><input class="pcIn" data-k="${esc(r.k)}" value="${esc(r.code)}"></td><td><input class="p3In" data-k="${esc(r.k)}" value="${esc(P3PL[r.k]||'')}" placeholder="예: 03031" style="border-color:#FFD9BF"></td><td class="nm">${esc(r.p.name)}</td><td class="dim">${esc(r.p.spec||'-')}</td><td class="dim">${esc(pbrand(r.p).join(' · '))}</td><td class="dim" style="white-space:normal">${isPackage(r.p)?`<b style="color:var(--xl-green-dark)">세트</b> ${esc(setCompLabel(r.p))}`:esc([c.l1,c.l2].filter(Boolean).join(' › '))}</td></tr>`; });
-  if(!rows.length) h+='<tr><td colspan="6" class="dim" style="padding:12px">해당하는 제품이 없습니다.</td></tr>';
+    h+=`<tr><td><input class="pcIn" data-k="${esc(r.k)}" value="${esc(r.code)}"></td><td><input class="p3In" data-k="${esc(r.k)}" value="${esc(P3PL[r.k]||'')}" placeholder="예: 03031" style="border-color:#FFD9BF"></td><td><input class="bcIn" data-k="${esc(r.k)}" value="${esc(PBARCODE[r.k]||'')}" placeholder="예: 8809123456789" style="border-color:#BFE0FF;font-family:var(--mono)"></td><td class="nm">${esc(r.p.name)}</td><td class="dim">${esc(r.p.spec||'-')}</td><td class="dim">${esc(pbrand(r.p).join(' · '))}</td><td class="dim" style="white-space:normal">${isPackage(r.p)?`<b style="color:var(--xl-green-dark)">세트</b> ${esc(setCompLabel(r.p))}`:esc([c.l1,c.l2].filter(Boolean).join(' › '))}</td></tr>`; });
+  if(!rows.length) h+='<tr><td colspan="7" class="dim" style="padding:12px">해당하는 제품이 없습니다.</td></tr>';
   $('#pcTable').innerHTML=h+'</tbody>';
   const all=pcodeRows(); $('#pcCount').textContent=`제품 ${new Set(all.map(r=>(r.code.match(PCODE_RE)||[])[1]).filter(Boolean)).size}종 · 옵션 ${all.filter(r=>r.code).length}개${all.some(r=>!r.code)?` · 미부여 ${all.filter(r=>!r.code).length}개`:''}`;
 }
 function exportPcodeCsv(){
   const rows=pcodeRows().filter(r=>r.code);
-  const out=[['자체상품코드','3PL 코드','구분','제품번호','옵션번호','기본제품명','제품명','규격','자사몰 정가','세트 구성','브랜드','대분류','중분류','소분류']];
+  const out=[['자체상품코드','3PL 코드','바코드','구분','제품번호','옵션번호','기본제품명','제품명','규격','자사몰 정가','세트 구성','브랜드','대분류','중분류','소분류']];
   const rU=retailUid();
   rows.forEach(r=>{ const m=r.code.match(PCODE_RE)||[], c=pcat(r.p), pk=isPackage(r.p);
-    out.push([r.code,P3PL[r.k]||'',pk?'세트':'단품',m[1]||'',m[2]||'',codeBase(r.p.name),r.p.name,r.p.spec||'',(rU&&effPrice(r.p,rU))||'',pk?setCompLabel(r.p):'',pbrand(r.p).join('/'),c.l1,c.l2,c.l3]); });
+    out.push([r.code,P3PL[r.k]||'',PBARCODE[r.k]||'',pk?'세트':'단품',m[1]||'',m[2]||'',codeBase(r.p.name),r.p.name,r.p.spec||'',(rU&&effPrice(r.p,rU))||'',pk?setCompLabel(r.p):'',pbrand(r.p).join('/'),c.l1,c.l2,c.l3]); });
   const body=out.map(r=>r.map(v=>{ const t=String(v??''); return /[",\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t; }).join(',')).join('\n');
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+body],{type:'text/csv;charset=utf-8'}));
   a.download=`POUR스토어_자체상품코드_${slDay(new Date())}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
@@ -7494,6 +7513,9 @@ function exportPcodeCsv(){
   on('pcCsv','click',exportPcodeCsv); on('pcQ','input',renderPcodeTable); on('pcRenum','click',renumberPcodes);
   if(typeof bindOverlayClose==='function') bindOverlayClose('pcOverlay',closePcode);
   on('pcTable','change',async e=>{
+    const tb=e.target.closest('.bcIn');
+    if(tb){ const err=await setBarcodeFor(tb.dataset.k, tb.value); tb.classList.toggle('bad',!!err);
+      $('#pcStatus').innerHTML=err?`<span style="color:var(--red)">${esc(err)}</span>`:'저장됨 ✓'; tb.value=PBARCODE[tb.dataset.k]||''; return; }
     const t3=e.target.closest('.p3In');
     if(t3){ const err=await setP3plFor(t3.dataset.k, t3.value); t3.classList.toggle('bad',!!err);
       $('#pcStatus').innerHTML=err?`<span style="color:var(--red)">${esc(err)}</span>`:'저장됨 ✓'; t3.value=P3PL[t3.dataset.k]||''; if(!err) renderGrid(); return; }
@@ -8472,7 +8494,7 @@ function openAddModal(prefill){   // prefill: {l1,l2,l3}
   const pf=prefill||{};
   $('#adL1').value=pf.l1||'POUR공법'; $('#adL2').value=pf.l2||''; $('#adL3').value=pf.l3||'';
   renderAdBrands(pf.brands || [BRAND_FILTER||BRAND_DEFAULT]);
-  $('#adPcode').value=''; $('#adP3pl').value='';   // 브랜드 필터를 켠 채 추가하면 그 브랜드로
+  $('#adPcode').value=''; $('#adP3pl').value=''; if($('#adBarcode'))$('#adBarcode').value='';   // 브랜드 필터를 켠 채 추가하면 그 브랜드로
   const isPkgCtx=((pf.l2||'').trim()==='패키지')||((pf.l1||'').trim()==='패키지');   // 패키지 분류에서 추가 → 기본 '세트'
   $('#adType').value=isPkgCtx?'세트':'단품'; $('#adType').disabled=false; $('#adStatus').textContent='';
   $('#adLaunch').value=pf.status==='출시준비'?'출시준비':'출시'; $('#adConcept').value='';
@@ -8488,7 +8510,7 @@ function openEditModal(p){   // 기존 제품 수정: 분류(전체)·원가·�
   $('#adLaunchFld').style.display='none'; $('#adConceptFld').style.display='none';   // 상태는 출시 관리에서 바꾼다
   $('#adL1').value=c.l1; $('#adL2').value=c.l2; $('#adL3').value=c.l3;
   renderAdBrands(pbrand(p));
-  $('#adPcode').value=pcodeOf(p); $('#adP3pl').value=p3plOf(p);
+  $('#adPcode').value=pcodeOf(p); $('#adP3pl').value=p3plOf(p); if($('#adBarcode'))$('#adBarcode').value=pbarcodeOf(p);
   $('#adName').value=p.name; $('#adSpec').value=p.spec||'';
   $('#adCost').value=(p.cost==null?'':p.cost);
   $('#adMfg').value=secAllowed?mfgOf(p):'';                           // 제조사는 마스터 전용 — 값도 담지 않음
@@ -8579,6 +8601,7 @@ async function submitAddProduct(){
   const brands=adBrandsValue();
   const pcIn=(($('#adPcode')&&$('#adPcode').value)||'').trim().toUpperCase();
   const p3In=norm3pl(($('#adP3pl')&&$('#adP3pl').value)||'');
+  const bcIn=normBarcode(($('#adBarcode')&&$('#adBarcode').value)||'');
   const isSet=type==='세트';
   const cost=isSet?null:($('#adCost').value===''?null:+$('#adCost').value);   // 세트 원가는 구성 합산 → 저장 안 함
   const shipIn=$('#adShip')?(+$('#adShip').value||0):0;
@@ -8601,6 +8624,7 @@ async function submitAddProduct(){
       setPbrandKey(pKey(AD_EDIT), brands); await savePbrand();
       if(p3In!==(P3PL[pKey(AD_EDIT)]||'')){ const er=await setP3plFor(pKey(AD_EDIT),p3In); if(er){ $('#adStatus').innerHTML=`<span style="color:var(--red)">${esc(er)}</span>`; btn.disabled=false; btn.textContent=old; return; } }
       if(pcIn && pcIn!==(PCODE[pKey(AD_EDIT)]||'')){ const er=await setPcodeFor(pKey(AD_EDIT),pcIn); if(er){ $('#adStatus').innerHTML=`<span style="color:var(--red)">자체상품코드: ${esc(er)}</span>`; btn.disabled=false; btn.textContent=old; return; } }
+      if(bcIn!==(PBARCODE[pKey(AD_EDIT)]||'')){ const er=await setBarcodeFor(pKey(AD_EDIT),bcIn); if(er){ $('#adStatus').innerHTML=`<span style="color:var(--red)">바코드: ${esc(er)}</span>`; btn.disabled=false; btn.textContent=old; return; } }
       const setStr=setItemsStr();       // 구성(패키지) — 모든 제품 config 저장
       PTYPE[pKey(AD_EDIT)]=type; await savePtype();                  // 단품↔세트 전환 저장(기본 제품 포함)
       if(type==='세트'){ PKGSET[pKey(AD_EDIT)]=setStr; await savePkgSet(); }
@@ -8667,6 +8691,7 @@ async function submitAddProduct(){
     setPbrandKey(key, brands); await savePbrand();  // 브랜드(POUR스토어·GROHOME)
     if(pcIn){ const er=await setPcodeFor(key,pcIn); if(er) alert('자체상품코드는 자동으로 붙입니다: '+er); }   // 비우면 자동 부여
     if(p3In){ const er=await setP3plFor(key,p3In); if(er) alert('3PL 코드는 저장하지 않았습니다: '+er); }
+    if(bcIn){ const er=await setBarcodeFor(key,bcIn); if(er) alert('바코드는 저장하지 않았습니다: '+er); }
     /* 📋 복사 등록이면 원본 바로 아래에 놓는다 — 예전엔 표 맨 끝에 붙어 찾아 헤맸다 */
     if(AD_COPY_FROM){
       ensurePorder();
@@ -10235,7 +10260,7 @@ async function saveChannelMarkup(){ try{ await db.collection('product-meta').doc
 async function loadVendorConfig(){
   /* 폰에서 느리던 부팅: 문서 29개를 하나씩 기다리던 것을 한꺼번에 요청(처리 순서·실패 처리는 그대로) */
   const PM_PRE={}; const pmGet=n=>PM_PRE[n]||(PM_PRE[n]=db.collection('product-meta').doc(n).get());
-  ['vendor-prices','retail-prices','price-overrides','price-todo','price-fixed','prod-cost','prod-ship','crm-map','channel-markup','cat-config','prod-order','chan-order','custom-channels','prod-cat','pkg-set','prod-type','prod-deleted','prod-rename','prod-code','prod-3pl','prod-brand','brands','prod-status','promo-types','mfg-alias','prod-eol','promo-plans','launch-plans','chan-deleted'].forEach(n=>{ pmGet(n).catch(()=>{}); });   // 먼저 모두 출발 — 실패는 아래 각 줄에서 그대로 처리
+  ['vendor-prices','retail-prices','price-overrides','price-todo','price-fixed','prod-cost','prod-ship','crm-map','channel-markup','cat-config','prod-order','chan-order','custom-channels','prod-cat','pkg-set','prod-type','prod-deleted','prod-rename','prod-code','prod-3pl','prod-barcode','prod-brand','brands','prod-status','promo-types','mfg-alias','prod-eol','promo-plans','launch-plans','chan-deleted'].forEach(n=>{ pmGet(n).catch(()=>{}); });   // 먼저 모두 출발 — 실패는 아래 각 줄에서 그대로 처리
   try{ const d=await pmGet('vendor-prices'); if(d.exists&&d.data().map) VBASE=d.data().map; }catch(e){ console.warn('[vendor-prices] 로드 실패', e.code||e); }
   try{ const d=await pmGet('retail-prices'); if(d.exists&&d.data().map) VRETAIL=d.data().map; }catch(e){ console.warn('[retail-prices] 로드 실패', e.code||e); }
   try{ const d=await pmGet('price-overrides'); if(d.exists&&d.data().map) POVR=d.data().map; console.log(`[price-overrides] 직접 조정 ${Object.keys(POVR).length}칸`); }catch(e){ console.warn('[price-overrides] 로드 실패', e.code||e); }
@@ -10259,6 +10284,7 @@ async function loadVendorConfig(){
   try{ const d=await pmGet('prod-rename'); if(d.exists&&d.data().map&&typeof d.data().map==='object'){ PNAME=d.data().map; console.log(`[prod-rename] 이름 변경 ${Object.keys(PNAME).length}건`); } }catch(e){ console.warn('[prod-rename] 로드 실패', e.code||e); }
   try{ const d=await pmGet('prod-code'); PCODE=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; PCODE_RULE=(d.exists&&d.data().rule)||''; PCODE_LOADED=true; console.log(`[prod-code] 자체상품코드 ${Object.keys(PCODE).length}개`); }catch(e){ console.warn('[prod-code] 로드 실패 — 자동 부여 보류', e.code||e); }
   try{ const d=await pmGet('prod-3pl'); P3PL=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-3pl] 3PL 코드 ${Object.keys(P3PL).length}개`); }catch(e){ console.warn('[prod-3pl] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('prod-barcode'); PBARCODE=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-barcode] 바코드 ${Object.keys(PBARCODE).length}개`); }catch(e){ console.warn('[prod-barcode] 로드 실패', e.code||e); }
   try{ const d=await pmGet('prod-brand'); if(d.exists){ const x=d.data()||{}; if(x.map&&typeof x.map==='object') PBRAND=x.map; if(x.gh&&typeof x.gh==='object') PGHLINK=x.gh; } console.log(`[prod-brand] 브랜드 지정 ${Object.keys(PBRAND).length}건 · 그로홈 연결 ${Object.keys(PGHLINK).length}건`); }catch(e){ console.warn('[prod-brand] 로드 실패', e.code||e); }
   try{ const d=await pmGet('brands'); BRAND_REG=(d.exists&&Array.isArray(d.data().list))?d.data().list:[]; applyBrandList(BRAND_REG); console.log(`[brands] 브랜드 ${BRAND_LIST.length}개`); }catch(e){ console.warn('[brands] 로드 실패 — 기본 2개로', e.code||e); }
   try{ const d=await pmGet('prod-status'); PSTATUS=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-status] 상태 지정 ${Object.keys(PSTATUS).length}건`); }catch(e){ console.warn('[prod-status] 로드 실패', e.code||e); }

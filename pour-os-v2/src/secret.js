@@ -1,7 +1,8 @@
 // 업무OS v2 — 기밀 업무·프로젝트 (화면 숨김 · 사용자 결정 2026-10-05)
 // 마스터(관리자)는 전부 봄 · 팀원은 허용된 사람만 · 허용 안 된 사람에겐 '기밀 업무'(자물쇠)로만 — 담당·기한·상태는 보여서 바쁜 건 보임, 제목·메모·댓글·자료·기록은 안 보임
-// 칸: secret = { on: true, allow: [사람 id], by, byName, at } (업무·프로젝트 문서)
+// 칸: secret = { on: true, allow: [사람 id], deny: [사람 id](업무만 · 끈 프로젝트 책임자), by, byName, at } (업무·프로젝트 문서)
 // 자동 허용: 프로젝트 = 책임자·함께하는 사람·만든 사람·정한 사람·그 안 업무 담당 · 업무 = 담당·참조·맡긴 사람·만든 사람·정한 사람·프로젝트 책임자
+//   업무의 프로젝트 책임자는 기본으로 보지만 끌 수 있음(secret.deny · 사용자 결정 2026-10-07) — 담당·맡긴·만든·정한 사람·참조·요청 받은 사람이면 그래도 봄
 // 프로젝트가 기밀이면 그 안 업무도 프로젝트 기준으로 숨김 · 반복(고정) 업무는 기밀 대상 아님
 // ※ 화면에서 숨기는 것 (진짜 잠금은 로그인 방식을 바꿀 때 보안규칙으로) · 숨긴 화면 데이터(가짜 제목)는 절대 저장에 쓰지 않음 — 신제품 대시보드 반영은 원래 데이터로
 import { ownersOf, isMaster } from "./model.js";
@@ -9,6 +10,7 @@ import { ownersOf, isMaster } from "./model.js";
 export const LOCK_T = "기밀 업무", LOCK_P = "기밀 프로젝트";
 export const secretOn = (x) => !!(x && x.secret && x.secret.on);
 const allowed = (x, uid) => ((x && x.secret && x.secret.allow) || []).includes(uid);
+export const denied = (x, uid) => ((x && x.secret && x.secret.deny) || []).includes(uid);
 
 // 프로젝트를 볼 수 있나 (tasks: 그 안 담당 확인용)
 export function projSeen(p, uid, tasks) {
@@ -24,7 +26,7 @@ export function taskSeen(t, p, uid, tasks, depth = 0) {
   if (t.parentId && depth < 20) { const up = (tasks || []).find((x) => x.id === t.parentId); if (up && !taskSeen(up, p, uid, tasks, depth + 1)) return false; }
   if (t.isFixed || !secretOn(t)) return true;
   const to = (o) => !!(o && o.to === uid);
-  return ownersOf(t).includes(uid) || allowed(t, uid) || (t.ccIds || []).includes(uid) || t.requestedBy === uid || t.createdBy === uid || t.secret.by === uid || (!!p && p.assigneeId === uid)
+  return ownersOf(t).includes(uid) || allowed(t, uid) || (t.ccIds || []).includes(uid) || t.requestedBy === uid || t.createdBy === uid || t.secret.by === uid || (!!p && p.assigneeId === uid && !denied(t, uid))
     || t.reviewTo === uid || to(t.ask) || to(t.dueReq) || to(t.blocked) || to(t.unblocked);
 }
 // 이 사람에게 기밀이 걸린 것인지 (마스터는 늘 봄)
@@ -57,6 +59,7 @@ export function viewTasks(list, D, u = D.viewer) {
 export function redact(D, u) {
   if (seeAll(u) || !D.ready) return { ...D, lockedT: new Set(), lockedP: new Set(), viewer: u || null };
   // 없앤 고정업무(휴지통 줄)도 기밀이면 볼 수 있는 사람에게만
+  if ((D.removedTasks || []).some(secretOn)) D = { ...D, removedTasks: D.removedTasks.filter((t) => !secretOn(t) || taskSeen(t, (D.projects || []).find((p) => p.id === t.projectId) || null, u.id, D.tasks)) };   // 없앤 한 번짜리 업무도 같은 규칙
   if ((D.removedFx || []).some(secretOn)) D = { ...D, removedFx: D.removedFx.filter((t) => !secretOn(t) || taskSeen(t, (D.projects || []).find((p) => p.id === t.projectId) || null, u.id, D.tasks)) };
   // 기밀이 하나도 없으면 바로 (폰에서 업무 1,800건을 매번 훑지 않게 · 정밀 검토 2026-10-06)
   if (!(D.projects || []).some(secretOn) && !(D.tasks || []).some(secretOn)) return { ...D, lockedT: new Set(), lockedP: new Set(), viewer: u };

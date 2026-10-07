@@ -6,7 +6,7 @@
 //   처음(기억 없음): 업무OS 에서 고친 적 없는 업무(v2At 없음)만 신제품 값으로, 고친 업무는 그대로 두고 기억만
 // 신제품 대시보드의 빈 값(담당 없음 · 마감 없음)은 처음엔 업무OS 값을 지우지 않음 (자동 기한·기본 담당 유지)
 import { LAUNCH_ITEMS, itemState, ownerIdsOf, launchDue, relaunch, launchItemsOf, customItems, countOf, baseTitle } from "./launch.js";
-import { ownersOf, dueOf } from "./model.js";
+import { ownersOf, dueOf, isRemoved } from "./model.js";
 import { countFields } from "./routine.js";
 
 // 신제품 대시보드 상태 → 업무OS (skip = 해당 없음 → 업무는 지우지 않고 'dropped'로 접음)
@@ -27,7 +27,9 @@ export function boardVals(p, it, users) {
 
 // p: 신제품 대시보드 제품 · proj: 업무OS 프로젝트(lb_<id>) · tasks: 그 프로젝트 업무 전부 · now: ISO
 // → { tasks:[{t, fields, label}], project: fields|null, n }
-export function planLaunchSync(p, proj, tasks, users, today, now, structure) {
+export function planLaunchSync(p, proj, tasks0, users, today, now, structure) {
+  // 없앤 업무(removed · 누구나 없애기)는 해당 없음처럼 건너뜀 — 상태·담당·기한을 쓰지 않고, 되살리지도 않음 (항목을 새로 만들지도 않음: 만들기는 planCustomSteps·planRowSync 가 없앤 것도 '있음'으로 셈)
+  const tasks = (tasks0 || []).filter((t) => !isRemoved(t));
   const out = [], byItem = new Map((tasks || []).filter((t) => t.launchItem && !t.isFixed).map((t) => [t.launchItem, t]));
   const skipAdd = [], skipDel = [];
   launchItemsOf(structure).forEach((it) => {
@@ -110,14 +112,14 @@ export function planLaunchTrash(p, proj, tasks, now) {
   if (trashed && !proj.lbTrash) {
     const open = proj.status !== "completed" && proj.status !== "done" && proj.status !== "dropped" && !proj.archived;
     if (!open) return { project: { lbTrash: "kept" }, tasks: [], label: "" };
-    const ts = (tasks || []).filter((t) => !t.isFixed && !t.deleted && t.status !== "done" && t.status !== "dropped");
+    const ts = (tasks || []).filter((t) => !t.isFixed && !t.deleted && !isRemoved(t) && t.status !== "done" && t.status !== "dropped");
     return { project: { status: "dropped", endPrev: proj.status || "active", dropReason: "신제품 대시보드 휴지통", droppedAt: now, droppedBy: "board", lbTrash: p.deletedAt },
       tasks: ts.map((t) => ({ t, fields: { status: "dropped", dropPrev: t.status || "todo", droppedAt: now, trashBy: "board" } })), label: "휴지통으로 · 중단" };
   }
   if (!trashed && proj.lbTrash) {
     if (proj.lbTrash === "kept") return { project: { lbTrash: null }, tasks: [], label: "" };
     const ok = proj.endPrev && !["hold", "paused", "dropped", "completed", "done"].includes(proj.endPrev) ? proj.endPrev : "active";
-    const ts = (tasks || []).filter((t) => t.status === "dropped" && t.trashBy === "board");
+    const ts = (tasks || []).filter((t) => t.status === "dropped" && t.trashBy === "board" && !isRemoved(t));
     return { project: { status: ok, lbTrash: null, dropReason: "", resumedAt: now },
       tasks: ts.map((t) => { const s0 = t.dropPrev || "todo"; return { t, fields: { status: s0 === "dropped" ? "todo" : s0, dropPrev: null, trashBy: null } }; }), label: "휴지통에서 되살림 · 다시 열기" };
   }
@@ -134,7 +136,7 @@ export const subVals = (t) => ({ note: String(t.memo || t.title || ""), owners: 
 export function planRowSync(p, proj, tasks, users, now, structure) {
   const create = [], out = [];
   launchItemsOf(structure).forEach((it) => {
-    const parent = (tasks || []).find((t) => t.launchItem === it.id && !t.isFixed); if (!parent) return;
+    const parent = (tasks || []).find((t) => t.launchItem === it.id && !t.isFixed); if (!parent || isRemoved(parent)) return;   // 없앤 항목 업무 아래로는 줄을 만들지 않음
     const rows = (((p.stages || {})[it.id] || {}).tasks || []).filter((r) => r && r.id);
     const subs = (tasks || []).filter((t) => t.parentId === parent.id && t.lbRow);
     rows.forEach((r) => {
@@ -144,6 +146,7 @@ export function planRowSync(p, proj, tasks, users, now, structure) {
         create.push({ id: `${parent.id}__r_${r.id}`, title: rowTitle(b.note), memo: b.note, projectId: proj.id, parentId: parent.id, lbRow: r.id, isFixed: false, type: "general", status: "todo",
           assigneeId: o[0] || "", assigneeIds: o, dueDate: b.due === TBD ? "" : b.due, dueAuto: false, noReview: true, attachments: [], brand: proj.brand || "", phase: parent.phase || "",
           createdAt: now, createdBy: "board", madeIn: "launch-board", lbSeen: b }); return; }
+      if (isRemoved(sub)) return;   // 없앤 하위 업무: 다시 만들지도, 고치지도 않음
       const base = sub.lbSeen || {}, v = subVals(sub), f = sub.lbRow ? {} : { lbRow: r.id }, said = [];
       const take = (k) => !same(b[k], base[k]) && !same(b[k], v[k]) && (same(v[k], base[k]) || !sub.v2At || (r.updatedAt || ((p.stages || {})[it.id] || {}).updatedAt || "") > sub.v2At);
       if (take("note")) { Object.assign(f, { title: rowTitle(b.note), memo: b.note }); said.push("할 일 줄 내용"); }
@@ -152,7 +155,7 @@ export function planRowSync(p, proj, tasks, users, now, structure) {
       if (sub.status === "dropped" && sub.lbRowGone) { Object.assign(f, { status: sub.dropPrev || "todo", dropPrev: null, lbRowGone: null }); said.push("할 일 줄 되살림"); }
       if (said.length || !same(b, base)) out.push({ t: sub, fields: { ...f, lbSeen: b }, label: said.join("·") });   // 기억 = 지금 신제품 줄 값
     });
-    subs.filter((t) => !rows.some((r) => r.id === t.lbRow) && t.status !== "dropped" && t.status !== "done")
+    subs.filter((t) => !isRemoved(t) && !rows.some((r) => r.id === t.lbRow) && t.status !== "dropped" && t.status !== "done")
       .forEach((t) => out.push({ t, fields: { status: "dropped", dropPrev: t.status || "todo", droppedAt: now, lbRowGone: true }, label: "할 일 줄 지움 · 중단" }));
   });
   return { create, tasks: out };
@@ -171,7 +174,7 @@ export function planCustomSteps(p, proj, tasks, users, structure, today, now) {
       lbSeen: { status: normB(s.status), owners: ids, due: s.dueTbd ? TBD : s.due || "", note: s.note || "" } });
   });
   const ids = new Set(items.map((x) => x.id));
-  (tasks || []).filter((t) => t.customStep && t.launchItem && !ids.has(t.launchItem) && t.status !== "dropped" && t.status !== "done")
+  (tasks || []).filter((t) => t.customStep && t.launchItem && !isRemoved(t) && !ids.has(t.launchItem) && t.status !== "dropped" && t.status !== "done")
     .forEach((t) => drop.push({ t, fields: { status: "dropped", dropPrev: t.status || "todo", droppedAt: now, lbStepGone: true } }));
   return { create, drop };
 }

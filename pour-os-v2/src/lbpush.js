@@ -3,10 +3,11 @@
 //   업무OS 값이 기억과 다르고 + 신제품 대시보드 값은 기억 그대로 → 신제품 대시보드에 씀 + 기억을 새 값으로
 //   둘 다 바뀌었으면 lbsync 와 같은 규칙: 나중에 바뀐 쪽 (업무OS가 나중이면 여기서 씀 · 신제품이 나중이면 lbsync 가 업무OS 로)
 // 기한: 사람이 정한 날 → 그 날 · 자동 기한 → 날짜 + 자동 표시(dueAuto: 같은 날짜 문자열 · 신제품에서 날짜를 바꾸면 자동 표시가 저절로 풀림)
+// 없앤 업무(removed · 누구나 없애기)는 신제품 대시보드에 쓰지 않음(없앴다는 것도 안 알림 · 해당 없음처럼 건너뜀)
 // 신제품 대시보드 칸(lb)만 · 업무OS 추가 칸(osExtra)은 버전1 몫이라 안 씀 · 마감 '미정'(dueTbd)·추가 할 일 줄은 4단계
 import { launchItemsOf } from "./launch.js";
 import { V2B, boardVals, v2Due, TBD, rowVals, subVals } from "./lbsync.js";
-import { ownersOf, dueOf, nameOf } from "./model.js";
+import { ownersOf, dueOf, nameOf, isRemoved } from "./model.js";
 
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 const split = (v) => String(v || "").split(/\s*,\s*/).map((x) => x.trim()).filter(Boolean);
@@ -22,7 +23,7 @@ export function v2Vals(t) {
 // → { board: {fields, expect, said[]} | null, tasks: [{t, lbSeen}], project: {lbSeen} | null }
 export function planLaunchPush(p, proj, tasks, users, now, who, structure) {
   const f = {}, expect = {}, said = [], seenOut = [];
-  const byItem = new Map((tasks || []).filter((t) => t.launchItem && !t.isFixed && !t.deleted && t.lbSeen).map((t) => [t.launchItem, t]));
+  const byItem = new Map((tasks || []).filter((t) => t.launchItem && !t.isFixed && !t.deleted && !isRemoved(t) && t.lbSeen).map((t) => [t.launchItem, t]));
   launchItemsOf(structure).filter((i) => i.lb).forEach((it) => {
     const t = byItem.get(it.id); if (!t) return;
     const s = ((p.stages || {})[it.id]) || {}, b = boardVals(p, it, users), base = t.lbSeen, v = v2Vals(t), sid = "stages." + it.id + ".";
@@ -46,7 +47,7 @@ export function planLaunchPush(p, proj, tasks, users, now, who, structure) {
     if (push("note")) { Object.assign(sf, { note: v.note }); seen.note = v.note; mine.push("진행사항"); }
     // 할 일 줄 (4단계 ③): 하위 업무(parentId = 이 업무) ↔ 줄 — 업무OS만 바뀐 칸은 그 줄에 · 업무OS에서 새로 만든 하위 업무는 줄 추가 (중단·끝낸 것도 줄은 지우지 않음)
     const rows0 = (s.tasks || []).filter((r) => r && r.id), rows = rows0.map((r) => ({ ...r })), rowOut = []; let rowsSaid = false;
-    (tasks || []).filter((x) => x.parentId === t.id && !x.deleted && !x.isFixed).forEach((x) => {
+    (tasks || []).filter((x) => x.parentId === t.id && !x.deleted && !x.isFixed && !isRemoved(x)).forEach((x) => {
       const xv = subVals(x), names = (ids, prev) => [...ids.map((id) => nameOf(users, id)).filter(Boolean), ...split(prev).filter((n) => !(users || []).some((u) => u.name === n || n.endsWith(u.name) || u.name.endsWith(n)))].join(", ");
       const dueF = (d) => (d === TBD ? { due: "", dueTbd: true } : { due: d, dueTbd: false });
       if (!x.lbRow) { if (x.status === "dropped") return;

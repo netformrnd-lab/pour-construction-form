@@ -117,6 +117,17 @@
 - 다시 가져오기: V2_TASK_ONLY 에 removed · 없앤 문서는 paused 도 안 덮음(stripV2Only) → 버전1에서 다시 가져와도 되살아나지 않음
 - [이름 고치기](사용자 요청 2026-10-07 · [더 하기 ▾] 첫 버튼): 공통 이름 = task.title(A.renameFx) / 횟수 목표 = 덧칠 fields.name(A.akRename · 버전1 그대로) · 권한 개인 = 본인·관리자 · 반복 실행·미정·횟수 목표 = 관리자(model.canRenameFx) · 연 때 본 이름 그대로일 때만(transaction) → 아니면 NameClash '그사이 다른 사람이 이름을 바꿨어요 · 지금 이름: … [지금 이름으로 다시 보기][내 이름으로 저장]' · 기록 prev · 5초 되돌리기. 같은 칸 두 번째 '내 화면에만 보이는 이름 (선택)' = labelBy.<나>(예전 '보이는 이름 · 내 시간'은 '내 시간'만 남음) · 권한 없으면 전체 이름 읽기만 + '관리자가 고쳐요' · 시트 머리 이름은 2줄까지(말줄임 · title 에 전체) · 괄호 → 체크리스트 제안은 안 함(사용자 결정)
 
+## 찾기 (사용자 요청 2026-10-07 "검색기능넣어서 업무, 프로젝트, 댓글 바로 찾을 수 있게해줘" · search.js · searchui.jsx · 시험 search.test.mjs · os2/t48 · admin t29)
+- 들어가는 곳: 팀 앱 오늘 머리(이번 주 완료율 아래) '찾기 · 업무 · 프로젝트 · 댓글' 칸 · 관리자 머리 [찾기](나에게 온 것 앞) → 시트 'search'(App·AdminApp extra · 입력 칸에 바로 커서 · 칸은 시트 안 위에 붙어 있음)
+- 찾는 말 하나(0.2초 모아서) → 묶음 업무 · 프로젝트 · 댓글 · 반복 실행(묶음마다 30개 + 'n개 더 ▾' = 30개씩 더) · 칩 [전체 n | 업무 n | 프로젝트 n | 댓글 n] + [내 것만](업무 = 담당·맡긴·참조·만든 · 프로젝트 = 책임·함께·만든 · 댓글 = 내가 씀 · 반복 = 내 담당) · 반복 실행 묶음은 [전체]에서만
+- 맞추기(search.norm · hitAt): 대소문자·띄어쓰기 무시 · 글 안에 들어 있으면(초성 찾기 없음) · 업무 = 제목 → 메모 → 담당 이름 → 프로젝트 이름 · 프로젝트 = 이름 → 메모·지금 상황 → 책임자 → 브랜드·해외 하위 프로젝트 · 댓글 = 글 → 쓴 사람 → 업무·프로젝트 이름 · 반복 = 이름(내 화면 이름 포함) → 담당 → 브랜드. 순서 = 제목 맞은 것 먼저 → 열린 일(기한 순) → 끝낸 일(최근 순)
+- 줄 = 제목(맞은 곳 굵게) · 어디(프로젝트/브랜드) · 담당 · 상태 · 기한(지남 빨강)/끝낸 날 · 이름이 아닌 곳에서 맞았으면 '담당 이름에서 찾음' 같은 한 줄 · 메모에서 맞으면 '메모 · …앞뒤…'. 누르면 그 시트(업무·프로젝트·고정업무·반복 실행) · 댓글 = 댓글 링크와 같은 길(search.noteWhere — more.jsx 내가 쓴 댓글도 이것: 대화 칸·소식 탭 + 그 댓글 테두리). 시트 상태(말·칩·내 것만)는 쌓인 칸에 적어 둠(save) → 뒤로 오면 그대로 · 폰 뒤로 = 맨 위 시트만
+- 찾는 곳 = 이미 불러온 것(열린 업무 · 30일 안 끝낸 업무 · 30일 안 댓글 · 프로젝트 · 반복 실행(D.ak.items)) · 아래 [더 오래된 것도 찾기] = 같음 조건만 한 번씩 읽기(search.OLDER_STEPS: tasks status==done → status==dropped → notes 전체 · orderBy·범위 없음) · '끝낸 업무 불러오는 중 · 1/3' · 실패하면 '못 불러왔어요 · 댓글' [다시](못 읽은 단계부터) · 읽은 것은 앱을 닫을 때까지 기억(시트를 다시 열어도 다시 안 읽음) · search.mergeOlder 로 없던 것만 합침. 쓰기 없음
+- 기밀: 화면 D(secret.redact 뒤)에서 잠긴 업무·프로젝트(locked)는 아예 안 넣음(제목 '기밀 업무'로도 안 나옴) · 그 댓글은 redact 가 이미 뺌 · 따로 읽은 지난 업무는 taskSeen 으로 잠금 → 빠짐 · 그 댓글·어느 업무인지 못 찾는 댓글은 팀원에게 안 나옴(관리자는 다 봄) · 버전1 사람별 고정업무 메모(itemId 업무~사람)는 본인·관리자만 · 남의 개인 고정업무(scope me)는 본인·관리자만
+- 없앤 것: model.trashRows 와 같은 사람만(관리자 = 전부 · 팀원 = 내 개인 고정업무) → 반복 실행 묶음 맨 뒤 '없앤 것' 꼬리표 · '누구 없앰' · 누르면 그 시트(맨 위 '없앤 …이에요 · [되살리기]')
+- 최근 찾은 말: 기기 저장 pour-os2-search(8개 · 같은 말(띄어쓰기 무시) 하나) · 결과를 누르거나 Enter 때 저장 · 빈 칸이면 '최근 찾은 말' + 줄마다 ✕ + [모두 지우기] · 없으면 안내 한 줄
+- 시험 가짜 저장 장치 fb.fake.js fetchWhere: window.__V2.fetches(읽은 조건 기록) · __FETCH_FAIL(정규식 · 한 번 실패) · __FETCH_MS(느리게)
+
 ## 파일 미리 보기 · 올리기 진행 · 댓글 링크 (사용자 요청 2026-10-06 · files.jsx · 시험 os2/t41 · admin t25)
 - 댓글 파일(task.Thread → files.NoteFiles · 업무·고정업무·반복 실행·프로젝트 한마디 모두): 사진 = 그 자리 작은 그림(loading lazy · 높이 180 안 · 2장 이상은 반씩) → 누르면 전체 화면(ImgViewer: ✕ 닫기 · ‹ 이전 · 다음 › · ← → · 밀어서 · 새 창에서 열기 · Esc 는 보기만 닫고 시트는 그대로 — 창 keydown 을 capture 로 먼저 받음) · PDF = '이름 · 크기' + [PDF 미리보기] → PdfViewer(iframe · [새 창에서 열기] 늘 같이 · 안내 '안 보이면 새 창에서') · 그 밖 = 이름 · 크기 · [열기]. 사진이 안 읽히면(onError) 파일 줄로. fileKind = type image/*·.png…(heic 는 파일) / application/pdf·.pdf
 - 자료 목록(업무 파일 · 고정업무·반복 실행 자료 · 프로젝트 자료 탭) = files.FileList(같은 보기 · 줄 오른쪽 '크게 보기 ›' / '미리보기 ›' / '열기 ›' · 크기). 예전 task.FileRow 는 files.FileRow 로 옮김(task.jsx 가 다시 내보냄)
@@ -151,7 +162,7 @@
 - 5번 틀리면 5분 잠금. 마스터가 사람 보기에서 PIN 초기화.
 
 ## 파일
-- 공용: `report.js`·`reportui.jsx`·`reportview.jsx`(월말 보고서) · `growth.js`·`growthui.jsx`(그로스보드 v2) · `core.jsx`(로그인·구독·useActs 쓰기·다시 가져오기) · `model.js`(계산) · `launch.js`(신제품·순서표·공휴일 기한) · `turn.js`(앞 일 → 내 차례, 저장 안 함) · `views.js`(달력 칸·사람×주·출시 줄·정리 묶음) · `flow.js`(흐름으로 만들기) · `cal.jsx`(월 달력) · `pick.jsx`(고르기 목록·한꺼번에 바꾸기) · `sheets.jsx`(시트 길잡이) · `task.jsx` · `project.jsx` · `mindmap.jsx`(마인드맵 [계층 | 마인드맵]·결정 업무) · `mmlayout.js`(마인드맵 자리 계산) · `svgpng.js`(SVG → PNG 저장 · 글자 폭 · 협업 맵과 공용) · `files.jsx`(파일 미리 보기·올리기 진행) · `ui.jsx`
+- 공용: `search.js`·`searchui.jsx`(찾기) · `report.js`·`reportui.jsx`·`reportview.jsx`(월말 보고서) · `growth.js`·`growthui.jsx`(그로스보드 v2) · `core.jsx`(로그인·구독·useActs 쓰기·다시 가져오기) · `model.js`(계산) · `launch.js`(신제품·순서표·공휴일 기한) · `turn.js`(앞 일 → 내 차례, 저장 안 함) · `views.js`(달력 칸·사람×주·출시 줄·정리 묶음) · `flow.js`(흐름으로 만들기) · `cal.jsx`(월 달력) · `pick.jsx`(고르기 목록·한꺼번에 바꾸기) · `sheets.jsx`(시트 길잡이) · `task.jsx` · `project.jsx` · `mindmap.jsx`(마인드맵 [계층 | 마인드맵]·결정 업무) · `mmlayout.js`(마인드맵 자리 계산) · `svgpng.js`(SVG → PNG 저장 · 글자 폭 · 협업 맵과 공용) · `files.jsx`(파일 미리 보기·올리기 진행) · `ui.jsx`
 - 실사용: `App.jsx` · `today.jsx` · `schedule.jsx`(달력 탭) · `more.jsx`
 - 관리자: `admin/*` (AdminApp · Glance · People · Collab · PersonAdmin · Projects · Tidy · Settings · common · admin.css) · 협업 맵 계산 `collab.js`
 - 시트 머리(시안 A · ui.Sheet kind/path/onPath/head): 네이비 띠 + 오른쪽 흰 종류 칩(업무 · 고정업무 · 프로젝트/신제품 프로젝트 · 사람 · 일 넘기기) + 어디 속한 건지(업무 = '프로젝트 · 이름 ›' 누르면 그 프로젝트) + 큰 제목(2줄까지). 제목은 머리에만(본문엔 위험·중요도 칩만)

@@ -8,6 +8,7 @@ import { SmsSettings } from "./smsui.jsx";
 import { myRoutine, brandName } from "./routine.js";
 import { akWho } from "../../pour-os/src/actionKpi.js";
 import { fileKind } from "./files.jsx";
+import { noteWhere } from "./search.js";
 
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
 const ASG = [["review", "확인해 주세요", true], ["dueReq", "기한 조정 요청", true], ["blocked", "막힘", true], ["late", "기한 지남", true], ["risk", "곧 마감인데 시작 전", true], ["notAck", "아직 안 받음", true], ["doing", "진행 중", true], ["waiting", "받고 대기 중", false], ["done", "최근 7일 끝남", false]];
@@ -137,16 +138,8 @@ export function myNotesOf(D, uid, key, range) {
   return (D.notes || []).filter((n) => n && !n.deleted && n.by === uid && n.at && (() => { const d = ymd(new Date(n.at)); return d >= from && d <= key; })())
     .sort((a, b) => String(b.at).localeCompare(String(a.at)));
 }
-// 그 댓글이 어디 것인지 + 여는 길
-export function noteWhere(D, n) {
-  const id = String(n.itemId || ""), ci = id.indexOf(":"), k = ci > 0 ? id.slice(0, ci) : "", ref = ci > 0 ? id.slice(ci + 1) : id;
-  if (k === "task") { const t = (D.tasks || []).find((x) => x.id === ref) || (D.removedFx || []).find((x) => x.id === ref);   // 없앤 고정업무 대화도 그 시트로
-    return { kind: t && t.isFixed ? (t.scope === "brand" ? "반복 실행" : "고정업무") : "업무", title: t ? t.title : "지난 업무", go: { type: t && t.isFixed ? "fixed" : "task", id: ref, focus: "talk", note: n.id } }; }
-  if (k === "proj") { const p = (D.projects || []).find((x) => x.id === ref); return { kind: "프로젝트", title: p ? p.title : "프로젝트", go: { type: "project", id: ref, first: "news", note: n.id } }; }
-  if (!k && id.includes("~")) { const tid = id.split("~")[0], t = (D.tasks || []).find((x) => x.id === tid); return { kind: "고정업무 메모", title: t ? t.title : "고정업무", go: { type: "fixed", id: tid } }; }
-  const it = ((D.ak && D.ak.items) || []).find((x) => x.id === id) || ((D.ak && D.ak.removed) || []).find((x) => x.id === id);
-  return { kind: "반복 실행", title: it ? it.name : "반복 실행", go: { type: "routine", id, focus: "talk", note: n.id } };
-}
+// 그 댓글이 어디 것인지 + 여는 길 → search.noteWhere (찾기와 같이 씀)
+export { noteWhere };
 const dayHead = (d, key) => (d === key ? "오늘" : d === addDays(key, -1) ? "어제" : `${md(d)}(${WD[new Date(d + "T00:00:00").getDay()]})`);
 export function MyNotesSheet({ D, cu, open, onBack, onClose }) {
   const key = ymd(new Date());

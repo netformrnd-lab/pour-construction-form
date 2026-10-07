@@ -3,6 +3,7 @@
 // StageSortCard = '단계 정리 n개' (단계 미정 업무 + 추천 · [추천대로 넣기] · 칩 하나로 넣기) · CatRoadAsk = 카테고리를 바꿀 때 '단계도 바꿀까요?'
 import { useState } from "react";
 import { C, TBtn, Chip, Card, Act, Ask, inp } from "./ui.jsx";
+import { ro } from "./pick.jsx";
 import {
   cleanRoad, newStageKey, roadProblem, ROAD_MAX, STAGE_NAME_MAX, stageName, stageSortRows, roadOwn, isFlowProj, isLaunchProj, canEditRoad, catRoad, projCat, catName,
   roadSwitchPlan, sameRoad, projLeadOrMaster,
@@ -67,7 +68,7 @@ export function CatRoadAsk({ p, D, A, cat, road, phOf, tasks, onDone }) {
   const nr = catRoad(cat, D), plan = roadSwitchPlan(road, nr, tasks, phOf);
   const go = async (mode) => { if (busy) return; setBusy(true); const ok = await A.setCategory(p, cat, mode); setBusy(false); if (ok !== false) onDone(); };
   return <div className="v2-catask" role="group" aria-label="카테고리 바꾸기">
-    <div style={{ fontSize: 14, fontWeight: 800, color: C.ink }}>'{catName(cat) || "미분류"}'(으)로 바꿔요 · 단계도 바꿀까요?</div>
+    <div style={{ fontSize: 14, fontWeight: 800, color: C.ink }}>'{catName(cat) || "미분류"}'{ro(catName(cat) || "미분류")} 바꿔요 · 단계도 바꿀까요?</div>
     <div style={{ fontSize: 13, color: C.sub, lineHeight: 1.65, marginTop: 4 }}>
       <div>지금 단계: {roadLine(road)}</div>
       <div>새 단계: <b style={{ color: C.text }}>{roadLine(nr)}</b></div>

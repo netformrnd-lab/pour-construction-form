@@ -8,7 +8,7 @@ import {
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxSubPatch, fxPeople, fxHit, weekStart,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, planSeed, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, isHoldP, nextWorkday, setHolidayLayer, handOverOwners,
-  scopeFields, brandLabel, cycleFields, FX_WD, isRemoved, fxRemoveFields, fxRestoreFields, canRemoveFx, canRemoveAk, canRenameFx, canRenameTask, scopeOf,
+  scopeFields, brandLabel, cycleFields, FX_WD, isRemoved, fxRemoveFields, fxRestoreFields, canRemoveFx, canRemoveAk, canRenameFx, canRenameTask, canRemoveNote, canRestoreNote, scopeOf,
   canFinish, canRemoveTask, canRestoreTask, taskKids, taskRemoveFields, canRemoveProj, canRestoreProj, projRemoveFields, projTaskRemoveFields, projTaskBack,
 } from "./model.js";
 import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS, phaseOf } from "./launch.js";
@@ -28,6 +28,14 @@ import { C, Big, TBtn, inp, useLocal } from "./ui.jsx";
 export const V1_URL = "./os.html";
 export const LS = (k) => "pour-os2-" + k;   // v1(pour-os-…) 과 겹치지 않는 기기 저장 이름
 export const nowIso = () => new Date().toISOString();
+
+// 댓글 삭제 화면 반영(30일 지난 댓글은 구독 밖이라 이 기기에서 바로 숨김) — id → removed 값 · null = 되살림. 구독에 있는 댓글은 구독 값이 먼저
+export const noteOver = new Map(); const noteSubs = new Set();
+export const setNoteOver = (id, v) => { noteOver.set(id, v); noteSubs.forEach((f) => f()); };
+export function useNoteOver() { const [v, set] = useState(0); useEffect(() => { const f = () => set((x) => x + 1); noteSubs.add(f); return () => { noteSubs.delete(f); }; }, []); return v; }
+// 따로 읽은 댓글 목록에서 삭제한 것 빼기 (업무·프로젝트 대화 · 이전 소식 · 링크)
+export const liveNotes = (arr, D) => { const L = new Set([...((D && D.notes) || []), ...((D && D.removedNotes) || [])].map((n) => n.id));
+  return (arr || []).filter((n) => n && !(L.has(n.id) || !noteOver.has(n.id) ? isRemoved(n) : !!noteOver.get(n.id))); };
 
 // ───────────────── 데이터 구독 ─────────────────
 // on: 사람 목록만(로그인 화면) · full: 로그인 뒤 나머지 전부 (로그인 전엔 업무·기록을 읽지 않음 — 정밀 검토 2026-10-06 · 읽기 비용)
@@ -94,10 +102,12 @@ export function useData(on, full = true) {
     const inGone = (t) => !!t && !t.isFixed && goneP.has(t.projectId);
     const goneT = new Set(allT.filter((t) => inGone(t) || (isRemoved(t) && t.removed.proj)).map((t) => t.id));
     const goneItem = (id) => { const s = String(id || ""); return (s.startsWith("proj:") && goneP.has(s.slice(5))) || (s.startsWith("task:") && goneT.has(s.slice(5))); };
-    const notes = goneP.size ? (S.notes || []).filter((n) => !n || !goneItem(n.itemId)) : S.notes;
+    const notes0 = goneP.size ? (S.notes || []).filter((n) => !n || !goneItem(n.itemId)) : S.notes || [];
+    // 삭제한 댓글(removed · 2026-10-07 '흔적 없이 숨김')은 여기서 빼서 댓글 수·새 댓글·확인할 것·내가 쓴 댓글·찾기·소식·보고서·협업 맵 어디에도 안 보임 → 관리자 휴지통(removedNotes)에만
+    const notes = notes0.filter((n) => !isRemoved(n)), removedNotes = notes0.filter((n) => isRemoved(n));
     const logs = goneP.size ? (S.log || []).filter((l) => !l || !(goneP.has(l.projectId) || goneP.has(l.targetId) || goneT.has(l.targetId))) : S.log;
     return { users: S.users || [], projects: goneP.size ? allP.filter((p) => !goneP.has(p.id)) : allP, removedProjects: allP.filter((p) => goneP.has(p.id)), goneIds: goneT,
-      tasks: allT.filter((t) => !isRemoved(t) && !inGone(t)), removedFx: allT.filter((t) => t.isFixed && isRemoved(t)), removedTasks: allT.filter((t) => !t.isFixed && isRemoved(t) && !goneT.has(t.id)), removedProjTasks: allT.filter((t) => goneT.has(t.id)), notes, log: logs, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], settings: S.settings || [], ak, links: S.links || [], linkInbox,
+      tasks: allT.filter((t) => !isRemoved(t) && !inGone(t)), removedFx: allT.filter((t) => t.isFixed && isRemoved(t)), removedTasks: allT.filter((t) => !t.isFixed && isRemoved(t) && !goneT.has(t.id)), removedProjTasks: allT.filter((t) => goneT.has(t.id)), notes, removedNotes, removedNoteIds: new Set(removedNotes.map((n) => n.id)), log: logs, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], settings: S.settings || [], ak, links: S.links || [], linkInbox,
       kpi: { ov: S.kpiOv || [], lagRaw: ((S.lagDef || {}).items || []).filter((x) => x && x.id && !x.deleted),
         lagDefs: applyKpiOv({ lagKPIs: ((S.lagDef || {}).items || []).filter((x) => x && x.id && !x.deleted) }, S.kpiOv).lagKPIs.filter((x) => !x._hidden), lagReady: S.lagDef !== undefined, lagV2: Object.fromEntries((S.lagV2 || []).map((x) => [x.id || x._doc, x])), sales: Object.fromEntries((S.kpisales || []).map((x) => [x.id || x._doc, x])) },
       lagInbox, ready: !!S.users, recs: { key: dayK, today: S.recToday || [], ready: S.recToday !== undefined, open: S.akOpen || [] },
@@ -767,6 +777,32 @@ export function useActs(D, cu, setToast, idx = null) {
       if (!undo) setToast({ text: "댓글을 고쳤어요", undo: async () => { const b = await A.editNote({ ...n, text: v, files: fs, editedAt: at }, r.prev.text, r.prev.files, { text: v, editedAt: at }, { undo: { editedAt: n.editedAt || null, editedBy: n.editedBy || null, editedByName: n.editedByName || null } });
         if (b && b.conflict) setToast({ text: "그사이 다른 사람이 바꿔서 그대로 뒀어요" }); else if (b && b.ok) setToast({ text: "되돌렸어요" }); } });
       return { ok: true }; },
+    // 댓글 삭제 (사용자 확정 2026-10-07 '흔적 없이 숨김') — 쓴 사람·관리자만(동작에서도 막음) · removed{at,by,byName} · 지우지 않음(파일도 Storage 그대로)
+    //   화면에서 본 글·고친 시각 그대로이고 아직 삭제 안 된 것일 때만(transaction) · 기록 noteRemove(글 내용·프로젝트 없이 → 소식에 흔적 없음) · 5초 되돌리기
+    noteRemove: async (n) => { if (!canRemoveNote(n, cu)) { setToast({ text: "쓴 사람이나 관리자만 삭제할 수 있어요" }); return { error: true }; }
+      const rm = { at: nowIso(), by: cu.id, byName: cu.name }; let r;
+      try { r = await fb.txDoc("notes", n._doc || n.id, (c) => { if (!c) return { ret: { missing: true } };
+          if (isRemoved(c) || c.deleted || (c.text || "") !== (n.text || "") || (c.editedAt || null) !== (n.editedAt || null)) return { ret: { conflict: true } };
+          return { write: { removed: rm }, ret: { ok: true } }; }); }
+      catch (e) { fail("댓글 삭제")(e); return { error: true }; }
+      if (!r || r.missing) { setToast({ text: "이 댓글을 찾지 못했어요" }); return { error: true }; }
+      if (r.conflict) { setToast({ text: "그사이 다른 사람이 댓글을 바꿨어요 · 지금 댓글을 확인해 주세요" }); return r; }
+      setNoteOver(n.id, rm);
+      log("noteRemove", { col: "notes", targetId: n.id, itemId: n.itemId || "", label: "댓글 삭제", noteBy: n.by || "" });
+      setToast({ text: "댓글을 삭제했어요", undo: () => A.noteRestore({ ...n, removed: rm }, true) });
+      return { ok: true }; },
+    // 되살리기 = 관리자(휴지통) · 되돌리기 = 지운 사람도 · 서버 removed 가 본 것과 같을 때만
+    noteRestore: async (n, undo) => { if (!canRestoreNote(n, cu, undo)) { setToast({ text: "관리자만 되살릴 수 있어요" }); return { error: true }; }
+      let r; try { r = await fb.txDoc("notes", n._doc || n.id, (c) => { if (!c) return { ret: { missing: true } };
+          if (!isRemoved(c) || c.removed.at !== n.removed.at) return { ret: { conflict: true } };
+          return { write: { removed: null }, ret: { ok: true } }; }); }
+      catch (e) { fail("댓글 되살리기")(e); return { error: true }; }
+      if (!r || r.missing) { setToast({ text: "이 댓글을 찾지 못했어요" }); return { error: true }; }
+      if (r.conflict) { setToast({ text: "그사이 다른 사람이 바꿔서 그대로 뒀어요" }); return r; }
+      setNoteOver(n.id, null);
+      log("noteRestore", { col: "notes", targetId: n.id, itemId: n.itemId || "", label: undo ? "댓글 되살림 (되돌리기)" : "댓글 되살림", noteBy: n.by || "" });
+      setToast({ text: undo ? "되돌렸어요" : "댓글을 되살렸어요" });
+      return { ok: true }; },
     addProject: async (f) => {
       const id = newId("p"), at = nowIso();
       const p = { id, title: f.title.trim(), assigneeId: f.assigneeId || cu.id, collaboratorIds: [], status: "active", priority: "mid", progress: 0, resultValue: 0, mainKPIId: "", subKPIId: "", dueDate: f.dueDate || "", brand: f.brand || "", group: "기타", ...(f.category ? { category: f.category } : {}), createdAt: at, createdBy: cu.id, madeIn: "v2" };
@@ -1086,7 +1122,8 @@ export const V2_TASK_ONLY = ["scope", "scopeBy", "scopeAt", "qty", "cycleOk", "c
 export function stripV2Only(key, data, cur) {
   if (!data) return data; const d = { ...data };
   if (key === "users") Object.keys(d).forEach((f) => { if (/^pin/.test(f) || f === "weekCap") delete d[f]; });
-  if (key === "projects") delete d.removed;   // 프로젝트 없애기(휴지통) — 다시 가져오기가 되살리지 않음
+  if (key === "projects") delete d.removed;
+  if (key === "notes") delete d.removed;   // 댓글 삭제(2026-10-07) — 다시 가져오기가 되살리지 않음   // 프로젝트 없애기(휴지통) — 다시 가져오기가 되살리지 않음
   if (key === "tasks") { ["doneDates", "doneAtBy", "subDone"].forEach((f) => delete d[f]); if ((cur && cur.isFixed) || d.isFixed) ["doneAt", "doneByName"].forEach((f) => delete d[f]);
     // 반복 실행·고정업무 나누기(2단계) · 주기 확인 · 건수 칸(3단계 예약) — v2 에서만 정하는 칸 · 정한 브랜드·반복도 버전1 값으로 안 되돌림
     V2_TASK_ONLY.forEach((f) => delete d[f]);

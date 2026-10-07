@@ -58,7 +58,7 @@ export function mergeOlder(D, older) {
   const hidden = (n) => { const s = String(n.itemId || ""); if (s.startsWith("task:")) { const id = s.slice(5); return lockedT.has(id) || gone.has(id) || (!all && !known.has(id)); } if (s.startsWith("proj:")) return lockedP.has(s.slice(5)) || goneP.has(s.slice(5)); return false; };
   const nHave = new Set((D.notes || []).map((n) => n.id));
   const notes = [...(D.notes || []).filter((n) => !(n && String(n.itemId || "").startsWith("task:") && lockedT.has(String(n.itemId).slice(5)))),
-    ...(older.notes || []).filter((n) => n && n.id && !nHave.has(n.id) && !n.deleted && !hidden(n))];
+    ...(older.notes || []).filter((n) => n && n.id && !nHave.has(n.id) && !n.deleted && !(n.removed && n.removed.at) && !(D.removedNoteIds && D.removedNoteIds.has(n.id)) && !hidden(n))];   // 삭제한 댓글 빼기
   return { ...D, tasks, notes, lockedT };
 }
 

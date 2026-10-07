@@ -19,6 +19,7 @@ import { viewTasks, viewLogs } from "./secret.js";
 import { flowList, planFlow, flowOwners } from "./flow.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, inp, useLocal, useAutoFocus, Linked, Clash } from "./ui.jsx";
 import { useItemNotes, Thread } from "./task.jsx";
+import { liveNotes } from "./core.jsx";
 import { FileList } from "./files.jsx";
 import { MindMap } from "./mindmap.jsx";
 import { ro } from "./pick.jsx";
@@ -248,10 +249,11 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
       const lk = new Set([...(D.lockedT || []), ...dl.filter((t) => t.locked).map((t) => t.id)]);   // 기밀(허용 안 됨) 업무의 기록·대화는 안 읽음
       const ids = [...new Set([...live, ...dl].filter((t) => !t.locked).map((t) => t.id))], logs = viewLogs(await fb.fetchWhere("log", ["projectId", "==", p.id]), { ...D, lockedT: lk }), ns = [];
       for (let i = 0; i < ids.length; i += 30) ns.push(...(await fb.fetchWhere("notes", ["itemId", "in", ids.slice(i, i + 30).map(taskNoteId)])));
-      console.log(`[v2 이전 소식] 기록 ${logs.length}건 · 대화 ${ns.length}건`); setOld({ notes: ns, logs }); }
+      const nl = liveNotes(ns, D);   // 삭제한 댓글 빼기
+      console.log(`[v2 이전 소식] 기록 ${logs.length}건 · 대화 ${nl.length}건`); setOld({ notes: nl, logs }); }
     catch (e) { console.error("[v2] 이전 소식 불러오기 실패:", e); setOld("fail"); } };
   const uniq = (a) => { const m = new Map(); a.forEach((x) => m.set(x.id, x)); return [...m.values()]; };
-  const allNotes = uniq([...(old && old.notes ? old.notes : []), ...notes, ...D.notes]), allLog = uniq([...(old && old.logs ? old.logs : []), ...(D.log || [])]);
+  const allNotes = liveNotes(uniq([...(old && old.notes ? old.notes : []), ...notes, ...D.notes]), D), allLog = uniq([...(old && old.logs ? old.logs : []), ...(D.log || [])]);
   const feed = feedOf({ ...D, notes: allNotes, log: allLog }, { projectId: p.id, taskIds: tids });
   const OldBtn = () => old && typeof old === "object" ? <div style={{ fontSize: 12.5, color: C.mute, textAlign: "center", margin: "10px 0 0" }}>처음부터 모두 불러왔어요</div>
     : <div style={{ marginTop: 10 }}><TBtn onClick={loadOld} disabled={old === "loading"}>{old === "loading" ? "불러오는 중…" : old === "fail" ? "못 불러왔어요 · 다시 ›" : "30일보다 이전 소식·자료 불러오기 ›"}</TBtn></div>;

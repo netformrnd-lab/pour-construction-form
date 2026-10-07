@@ -394,6 +394,26 @@
   .psm1-ytm-side { grid-template-columns:1fr; gap:22px; }
   .psm1-ytm-rel-tt { font-size:15.5px; }
 }
+/* ===== ★ 모바일 전용 커스텀(요청 반영) — PC(≥701px)에는 전혀 영향 없음 ===== */
+@media (max-width:700px){
+  /* [4] 슬로건을 검색칸 "위"로: 모바일 헤더를 세로 flex로 두고 순서 지정
+         (상단바 → 슬로건 → 검색칸 순) */
+  .psm1-hd-mb { display:flex; flex-direction:column; }
+  .psm1-hd-mb .psm1-mb-top       { order:0; }
+  .psm1-hd-mb .psm1-mb-slogan    { order:1; margin:10px 4px 0; }
+  .psm1-hd-mb .psm1-mb-searchbar { order:2; margin-top:10px; }
+  .psm1-hd-mb .psm1-mb-hot       { order:3; }
+
+  /* [1] 검색칸 높이 축소: form 상하 패딩·버튼 크기 축소(입력 글씨는 iOS 자동확대 방지 위해 16px 유지) */
+  .psm1-mb-searchbar form { padding:6px 12px 6px 16px; }
+  .psm1-mb-searchbar button[type="submit"] { width:28px; height:28px; }
+
+  /* [2] 인기검색어: 모바일에서 숨김(추후 다른 위치에 재배치 예정) */
+  .psm1-hd-mb .psm1-mb-hot { display:none; }
+
+  /* [3] 히어로 2번째(서브) 배너: 모바일에서 숨겨 1줄만 노출 */
+  .psm1-banner-side { display:none !important; }
+}
 </style>
 <div class="psm1-sticky">
 <!-- 0) 상단 유틸바 제거 — 마이페이지/로그인·로그아웃/주문조회/고객센터는 헤더 우측 아이콘으로 이동 -->

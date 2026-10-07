@@ -15,14 +15,15 @@
 <section class="pour-gh" data-pour-gh>
 <!-- 로고 글자 "POUR스토어" 전용 배민 도현체 (8글자만 받는 초경량 로드) -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&display=block&text=POUR%EC%8A%A4%ED%86%A0%EC%96%B4">
-<!-- 슬로건 전용 Noto Sans KR 600 (슬로건 글자만 받는 초경량 로드) -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@600&display=block&text=%20%2C%EA%B0%80%EA%B1%B4%EA%B2%83%EA%B2%8C%EA%B5%AC%EB%82%98%EB%88%84%EB%8A%94%EB%93%A0%EB%9E%98%EB%AA%A8%EB%AC%BC%EB%B3%B4%EC%88%98%EC%89%BD%EC%98%A4%EC%9C%A0%EC%9D%98%EC%9E%90%EC%9E%AC%EC%A7%80%EC%B6%95">
+<!-- 상단(헤더) 기본 글씨체 = Noto Sans KR (POUR스토어 기본체) -->
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=block">
 <style>
 /* ===== 공용 헤더(pour-header): pour-01-main 헤더를 전 페이지 공용으로 =====
    - 검색+탭만 노출(히어로/빠른메뉴 등 본문 숨김)
    - 루트는 .pour-gh (querySelector('.psm1')와 충돌 방지). 컴포넌트 .psm1-* 스타일은 그대로 적용됨
    - 메인 페이지(자체 .psm1 헤더 존재)에선 숨김 + JS 비활성 */
-.pour-gh *, .pour-gh *::before, .pour-gh *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pour-gh *, .pour-gh *::before, .pour-gh *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR','Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .pour-gh { position:sticky; top:0; z-index:1000; background:#fff; color:#111111; line-height:1.5; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.02em; }
 .pour-gh .psm1-sticky { position:static !important; } /* 고정은 .pour-gh가 담당(부모=body 전체높이 → 끝까지 고정) */
 .pour-gh a { color:inherit; text-decoration:none; }
@@ -43,7 +44,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 @media (max-width:700px){ .pour-gh-sub-inner { padding:0 14px; } .pour-gh-sub-link { font-size:12.5px; padding:10px 9px; } .pour-gh-sub { max-height:52px; } }
 </style>
 <style>
-.psm1 *, .psm1 *::before, .psm1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.psm1 *, .psm1 *::before, .psm1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR','Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .psm1 { background:#fff; color:#2F3438; line-height:1.5; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.02em; }
 .psm1 a { color:inherit; text-decoration:none; }
 .psm1 button { background:none; border:none; cursor:pointer; font:inherit; color:inherit; letter-spacing:inherit; }

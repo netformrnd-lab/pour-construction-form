@@ -5,9 +5,9 @@ import * as fb from "./fb.js";
 import {
   ymd, addDays, ddays, ddayLabel, md, ago, hm, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf,
   projOpen, projMine, projStat, projGroups, projWhen, feedOf, taskNoteId, projNoteId, LOG_L, reqOf, riskOf, workloadOf, PROJ_CATS, catName, projCat, guessCat,
-  IMP, impOf, impName, isHoldP, projStLabel, projForecast, projPct, isOneOff, TEAMS, projTeam, projTeamAuto, isGhProj, ghDashUrl, isRemoved, taskTrashRows,
+  IMP, impOf, impName, isHoldP, projStLabel, projForecast, projPct, isOneOff, TEAMS, projTeam, projTeamAuto, isGhProj, ghDashUrl, isRemoved, taskTrashRows, canRemoveProj, canRestoreProj, canFinish,
 } from "./model.js";
-import { TrashList } from "./trash.jsx";
+import { TrashList, ProjRemoveAsk, RemovedNote } from "./trash.jsx";
 import { Gantt } from "./gantt.jsx";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, launchPct } from "./launch.js";
 import { turnIndex, turnOf, nowNext, predLine } from "./turn.js";
@@ -206,10 +206,13 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
   const [doneList, setDoneList] = useState(null), [showDone, setShowDone] = useState(false), [nt, setNt] = useState(""), [nw, setNw] = useState(cu.id), [ndue, setNdue] = useState(""), [edit, setEdit] = useState(""), [now, setNow] = useState(""), [info, setInfo] = useState(!!(st && st.info)), [ld, setLd] = useState(""), [openPh, setOpenPh] = useState((st && st.openPh) || {}), [lAsk, setLAsk] = useState(null);
   const notes = useItemNotes(D, projNoteId(id));
   const [endAsk, setEndAsk] = useState(false), [resAsk, setResAsk] = useState(false);   // 끝내기·멈추기 창 · 다시 시작 창
+  const [rmAsk, setRmAsk] = useState(null), [rmBusy, setRmBusy] = useState(false);   // 프로젝트 없애기 확인 {n: 같이 빠질 업무 수 · null 세는 중}
   const [old, setOld] = useState(null), [doneErr, setDoneErr] = useState(false), [nowBase, setNowBase] = useState(null), [nowClash, setNowClash] = useState(null);   // 30일보다 이전 소식·자료: null 안 불러옴 · "loading" · "fail" · {notes, logs}
   useEffect(() => { if (!isLaunch(p)) A.recalc(id); }, [id]);   // 열 때 진척(%)을 실제 업무 수로 다시 계산 (다르면만 저장) · 신제품은 launchPct 로 그때그때 계산하므로 저장 안 함
   useEffect(() => { if (save) save({ tab, openPh, info }); }, [tab, openPh, info]);
-  if (!p) return <Sheet title="프로젝트" kind="프로젝트" onBack={onBack} onClose={onClose}><Empty>이 프로젝트를 찾지 못했어요</Empty></Sheet>;
+  if (!p) { const rp = (D.removedProjects || []).find((x) => x.id === id);   // 없앤 프로젝트(휴지통·링크): 읽기만 + [되살리기]
+    if (rp) return <RemovedProjView D={D} cu={cu} A={A} p={rp} note={note} onBack={onBack} onClose={onClose} />;
+    return <Sheet title="프로젝트" kind="프로젝트" onBack={onBack} onClose={onClose}><Empty>이 프로젝트를 찾지 못했어요</Empty></Sheet>; }
   const key = ymd(new Date()), s = projStat(p, D.tasks, key), launch = isLaunch(p), master = isMaster(cu), lead = p.assigneeId === cu.id || master;
   const date = dateOf(p), w = whenOf(p, D.tasks, key), pct = launch ? launchPct(p, D) : s.pct;
   // 출시일 바꾸기: 옮겨질 자동 기한 수를 버튼에 · 30개 이상이면 한 번 더 묻기 · 지난 날은 못 고름 (되돌리기는 A.setLaunchDate 알림)
@@ -227,6 +230,9 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
   const kidsOf = (pid, a) => a.filter((t) => t.parentId === pid);
   const groups = launch ? LAUNCH_PHASES.map((ph) => [ph.k, ph.name, (t) => t.phase === ph.k]).concat([["etc", "기타", (t) => !t.phase]])
     : [["inprogress", "진행 중", (t) => t.status === "inprogress"], ["todo", "할 일", (t) => (t.status || "todo") === "todo"], ["review", "확인 대기", (t) => t.status === "review"], ["hold", "보류", (t) => t.status === "hold"]];
+  // 없애기 확인 열기: 같이 빠질 업무 수 = 서버에서(끝낸 지 오래된 것까지) · 못 읽으면 화면에 있는 것만 셈
+  const rmOpen = () => { setRmAsk({ n: null }); fb.fetchWhere("tasks", ["projectId", "==", p.id]).then((a) => setRmAsk((x) => (x ? { n: a.filter((t) => t && !t.isFixed && !isRemoved(t)).length } : x)))
+    .catch((e) => { console.error("[v2] 프로젝트 업무 세기 실패:", e); setRmAsk((x) => (x ? { n: live.length } : x)); }); };
   const addT = () => { if (!nt.trim()) return; A.addTask({ title: nt, projectId: p.id, assigneeId: nw, dueDate: ndue || (nw !== cu.id ? addDays(key, 3) : ""), noReview: nw === cu.id }); setNt(""); };
   // 지금 상황 저장 — 고치는 사이 다른 사람이 먼저 저장했으면 겹친 글을 보여 주고 고르게
   const saveNow = async (force) => { const r = await A.setProjNow(p, now, nowBase, force === true); if (r && r.conflict) setNowClash(r.cur.now || {}); else if (r && r.ok) { setNowClash(null); setEdit(""); } };
@@ -257,7 +263,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
     return <div style={{ paddingLeft: indent ? 18 : 0, background: "#fff" }}><Row dim={isDone(t)} tag={tag} tagTone={r ? (r.red ? "red" : null) : tag === "내 차례" ? "turn" : null} title={t.title}
       sub={[own, dueOf(t) ? md(dueOf(t)) + (isDone(t) || r ? "" : " · " + ddayLabel(ddays(dueOf(t), key))) : "기한 미정", ncount(t) ? `댓글 ${ncount(t)}` : ""].filter(Boolean).join(" · ")}
       sub2={wait ? "앞 일: " + predLine(wait, D.users, key) : null}
-      onClick={() => open({ type: "task", id: t.id })} right={isMine(t, cu.id) && t.status !== "review" ? <Act on={isDone(t)} onClick={() => (isDone(t) ? A.reopen(t) : A.finish(t))}>{isDone(t) ? "✓" : "끝냄"}</Act> : null} last={last} /></div>; };
+      onClick={() => open({ type: "task", id: t.id })} right={(isDone(t) ? isMine(t, cu.id) || isMaster(cu) : canFinish(t, cu)) && t.status !== "review" ? <Act on={isDone(t)} onClick={() => (isDone(t) ? A.reopen(t) : A.finish(t))}>{isDone(t) ? "✓" : "끝냄"}</Act> : null} last={last} /></div>; };
   const goPhase = (k) => { setTab("work"); setOpenPh((o) => ({ ...o, [k]: true })); setTimeout(() => { const el = document.getElementById("v2-ph-" + k); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); };
   const flowRow = (lab, t, extra, last) => <Row key={lab} tag={lab} tagTone={lab === "지금" ? "turn" : null} title={`${whoOf(D, t)} · ${t.title}${extra || ""}`}
     sub={[dueOf(t) ? md(dueOf(t)) + " " + ddayLabel(ddays(dueOf(t), key)) : "기한 미정", lab === "다음" && t.status === "todo" ? "앞 일이 끝나면 시작" : stWord(t)].join(" · ")} onClick={() => open({ type: "task", id: t.id })} last={last} />;
@@ -355,7 +361,24 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
           {!p.dash && <TBtn v="soft" onClick={() => { A.patchProject(p, { dash: true }, "대시보드 만들기", null); setTab("dash"); setInfo(false); }}>대시보드 만들기</TBtn>}</div>}
         <SecretBox kind="project" x={p} D={D} cu={cu} A={A} only="button" />
         {projOpen(p) && !isHoldP(p) && lead && <Big tone="white" onClick={() => setEndAsk(true)} style={{ marginTop: 10 }}>끝내기 · 멈추기 (완료 · 중단 · 보류)</Big>}
+        {/* 프로젝트 없애기 (책임자·관리자 · 2026-10-07) — 업무까지 통째로 휴지통 · 지우지 않음 */}
+        {canRemoveProj(p, cu) && !rmAsk && <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-end" }}><TBtn tone="red" onClick={rmOpen}>없애기</TBtn></div>}
+        {rmAsk && <ProjRemoveAsk p={p} n={rmAsk.n} launch={launch} busy={rmBusy} onNo={() => setRmAsk(null)} onYes={async (why) => { if (rmBusy) return; setRmBusy(true); const ok = await A.projRemove(p, why); setRmBusy(false); if (ok) { setRmAsk(null); (onBack || onClose)(); } }} />}
       </div>}</Card>
+  </Sheet>;
+}
+
+// 없앤 프로젝트 보기 (휴지통·링크에서 열었을 때) — 맨 위 '없앤 프로젝트예요 · 누가 · 언제 · [되살리기]'(책임자·관리자) · 나머지는 읽기만
+function RemovedProjView({ D, cu, A, p, note, onBack, onClose }) {
+  const [busy, setBusy] = useState(false);
+  const notes = useItemNotes(D, projNoteId(p.id)), rm = p.removed, n = rm.n || 0;
+  const restore = async () => { if (busy) return; setBusy(true); const ok = await A.projRestore(p); setBusy(false); if (ok) (onBack || onClose)(); };
+  return <Sheet title="프로젝트" kind="프로젝트" head={p.title} onBack={onBack} onClose={onClose}>
+    <RemovedNote what={`없앤 프로젝트예요${rm.reason ? " · " + rm.reason : ""}`} rm={rm} can={canRestoreProj(p, cu)} busy={busy} onRestore={restore} />
+    <div style={{ marginTop: 8, fontSize: 12.5, color: C.sub, lineHeight: 1.6 }}>{n ? `업무 ${n}개도 같이 없앴어요 · 되살리면 업무까지 통째로 돌아와요` : "같이 없앤 업무는 없어요"}{canRestoreProj(p, cu) ? "" : " · 되살리기는 책임자·관리자만 할 수 있어요"}</div>
+    <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7, marginTop: 10 }}>책임 {nameOf(D.users, p.assigneeId) || "없음"} · {p.dueDate ? `마감 ${md(p.dueDate)}` : "마감 없음"}{isLaunch(p) ? " · 신제품 (신제품 대시보드는 그대로)" : ""}</div>
+    <Head>프로젝트에 한마디 · 보기만</Head>
+    <Thread D={D} cu={cu} A={A} notes={notes} itemId={projNoteId(p.id)} ctx={{ projectId: p.id }} link={{ kind: "p", id: p.id }} hl={note} readOnly />
   </Sheet>;
 }
 

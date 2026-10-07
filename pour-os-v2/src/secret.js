@@ -60,6 +60,7 @@ export function redact(D, u) {
   if (seeAll(u) || !D.ready) return { ...D, lockedT: new Set(), lockedP: new Set(), viewer: u || null };
   // 없앤 고정업무(휴지통 줄)도 기밀이면 볼 수 있는 사람에게만
   if ((D.removedTasks || []).some(secretOn)) D = { ...D, removedTasks: D.removedTasks.filter((t) => !secretOn(t) || taskSeen(t, (D.projects || []).find((p) => p.id === t.projectId) || null, u.id, D.tasks)) };   // 없앤 한 번짜리 업무도 같은 규칙
+  if ((D.removedProjects || []).some(secretOn)) D = { ...D, removedProjects: D.removedProjects.filter((p) => projSeen(p, u.id, [...(D.tasks || []), ...(D.removedProjTasks || [])])) };   // 없앤 프로젝트도 볼 수 있는 사람에게만
   if ((D.removedFx || []).some(secretOn)) D = { ...D, removedFx: D.removedFx.filter((t) => !secretOn(t) || taskSeen(t, (D.projects || []).find((p) => p.id === t.projectId) || null, u.id, D.tasks)) };
   // 기밀이 하나도 없으면 바로 (폰에서 업무 1,800건을 매번 훑지 않게 · 정밀 검토 2026-10-06)
   if (!(D.projects || []).some(secretOn) && !(D.tasks || []).some(secretOn)) return { ...D, lockedT: new Set(), lockedP: new Set(), viewer: u };

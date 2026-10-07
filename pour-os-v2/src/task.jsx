@@ -6,7 +6,7 @@ import {
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit, fxWeekDays, fxIds, FX_WD, monthEndWorkday,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf,
-  scopeOf, brandLabel, brandsWithCommon, brandKey, cyclePending, cycleGuess, isRemoved, canRemoveFx, canRenameFx, canRemoveTask, canRestoreTask, taskKids,
+  scopeOf, brandLabel, brandsWithCommon, brandKey, cyclePending, cycleGuess, isRemoved, canRemoveFx, canRenameFx, canFinish, canRemoveTask, canRestoreTask, taskKids,
 } from "./model.js";
 import { RemoveAsk, RemovedNote, TaskRemoveAsk } from "./trash.jsx";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
@@ -45,7 +45,7 @@ function Banner({ tone, children }) {
   return <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 14, background: tone === "red" ? "#F8E9EA" : C.soft, border: `1px solid ${tone === "red" ? "#EBC9CC" : "#D7DDEE"}`, fontSize: 14, color: C.text, lineHeight: 1.6 }}>{children}</div>;
 }
 export function useTask(D, id) {
-  const live = D.tasks.find((t) => t.id === id) || (D.removedTasks || []).find((t) => t.id === id);   // 없앤 업무(휴지통·링크)도 바로
+  const live = D.tasks.find((t) => t.id === id) || (D.removedTasks || []).find((t) => t.id === id) || (D.removedProjTasks || []).find((t) => t.id === id);   // 프로젝트째 없앤 업무도 (보기만)   // 없앤 업무(휴지통·링크)도 바로
   const [extra, setExtra] = useState(null);
   useEffect(() => { if (!live && !extra) fb.fetchWhere("tasks", ["id", "==", id]).then((a) => setExtra(a[0] ? viewTasks([a[0]], D)[0] : false)).catch((e) => { console.error("[v2] 업무 불러오기 실패:", e); setExtra(false); }); }, [id, !!live]);
   return live || extra;
@@ -108,8 +108,9 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
   // 아래 큰 버튼 하나 (+ 다음 사람에게 한마디: 다음 일 담당이 나와 다를 때만)
   const foot = done ? <Big tone="white" onClick={() => A.reopen(t)}>다시 열기</Big>
     : review ? (amReviewer ? <Big onClick={() => A.approve(t)}>확인 완료</Big> : <Big disabled>{nameOf(D.users, t.reviewTo || req) || "맡긴 사람"}님 확인 기다리는 중</Big>)
-    : mine ? <>{nextOwners.length > 0 && <input value={handoff} onChange={(e) => setHandoff(e.target.value)} placeholder={`다음 사람(${nameOf(D.users, nextOwners[0])}${nextOwners.length > 1 ? ` 외 ${nextOwners.length - 1}명` : ""})에게 한마디 (선택)`} aria-label="다음 사람에게 한마디" style={{ ...inp, padding: "10px 12px", fontSize: 14, marginBottom: 8 }} />}
-      <Big onClick={() => { A.finish(t, handoff); setHandoff(""); }}>{needsReview(t) ? `끝냈어요 · ${reqName}님께 확인 요청` : "끝냈어요"}</Big></>
+    : canFinish(t, cu) ? <>{nextOwners.length > 0 && <input value={handoff} onChange={(e) => setHandoff(e.target.value)} placeholder={`다음 사람(${nameOf(D.users, nextOwners[0])}${nextOwners.length > 1 ? ` 외 ${nextOwners.length - 1}명` : ""})에게 한마디 (선택)`} aria-label="다음 사람에게 한마디" style={{ ...inp, padding: "10px 12px", fontSize: 14, marginBottom: 8 }} />}
+      <Big onClick={() => { A.finish(t, handoff); setHandoff(""); }}>{needsReview(t) ? `끝냈어요 · ${reqName}님께 확인 요청` : "끝냈어요"}</Big>
+      {!mine && <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, fontSize: 12.5, color: C.sub, flexWrap: "wrap" }}><span style={{ flex: "1 1 160px" }}>관리자로 대신 끝내요 · 기록엔 내 이름이 남아요</span><TBtn onClick={() => A.assign(t, cu.id, true)}>내가 이어서 하기</TBtn></div>}</>
     : <Big onClick={() => A.assign(t, cu.id, true)}>내가 이어서 하기</Big>;
   const predSub = (x) => { const w = nameOf(D.users, ownersOf(x)[0]) || "담당 없음";
     if (finishedOf(x)) { const f = finishedAt(x); return `${w} · ${isDone(x) ? "끝냄" : "확인 중"}${f ? " " + md(ymd(new Date(f))) : ""}`; }
@@ -238,7 +239,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
     : (kids.length > 0 || !done) && <>
       <Head>하위 업무 {kids.filter(isDone).length}/{kids.length}</Head>
       <Card>
-        {kids.map((k) => <Row key={k.id} dim={isDone(k)} title={k.title} sub={nameOf(D.users, k.assigneeId)} onClick={() => open({ type: "task", id: k.id })} right={<Act on={isDone(k)} onClick={() => (isDone(k) ? A.reopen(k) : A.finish(k))}>{isDone(k) ? "✓" : "완료"}</Act>} last={false} />)}
+        {kids.map((k) => <Row key={k.id} dim={isDone(k)} title={k.title} sub={nameOf(D.users, k.assigneeId)} onClick={() => open({ type: "task", id: k.id })} right={<Act on={isDone(k)} onClick={() => (isDone(k) ? A.reopen(k) : A.finish(k, "", canFinish(k, cu) ? undefined : { any: true }))}>{isDone(k) ? "✓" : "완료"}</Act>} last={false} />)}
         <div style={{ display: "flex", gap: 8, padding: 10 }}><input value={sub} onChange={(e) => setSub(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing && sub.trim()) { A.addTask({ title: sub, parentId: t.id, projectId: t.projectId, assigneeId: t.assigneeId || cu.id, dueDate: t.dueDate, noReview: true }); setSub(""); } }} placeholder="+ 하위 업무 (작게 쪼개면 시작이 쉬워요)" aria-label="하위 업무 추가" style={{ ...inp, padding: "10px 12px", fontSize: 14 }} />
           <Act onClick={() => { if (sub.trim()) { A.addTask({ title: sub, parentId: t.id, projectId: t.projectId, assigneeId: t.assigneeId || cu.id, dueDate: t.dueDate, noReview: true }); setSub(""); } }}>추가</Act></div>
       </Card></>}
@@ -262,6 +263,7 @@ function RemovedTaskView({ D, cu, A, t, notes, note, open, onBack, onClose }) {
   const restore = async () => { if (busy) return; setBusy(true); const ok = await A.taskRestore(rootT || t); setBusy(false); if (ok) (onBack || onClose)(); };
   return <Sheet title="업무" kind="업무" head={t.title} path={p ? `프로젝트 · ${p.title}` : "프로젝트 없음"} onPath={p ? () => open({ type: "project", id: p.id }) : null} onBack={onBack} onClose={onClose}>
     <RemovedNote what={`없앤 업무예요${rm.reason ? " · " + rm.reason : ""}`} rm={rm} can={canRestoreTask(rootT || t, cu)} busy={busy} onRestore={restore} />
+    {rm.proj && <div style={{ marginTop: 8, fontSize: 12.5, color: C.sub }}>프로젝트를 없애며 같이 빠졌어요 · 프로젝트를 되살리면 같이 돌아와요{(D.removedProjects || []).some((x) => x.id === rm.root) && <> · <TBtn v="plain" onClick={() => open({ type: "project", id: rm.root })} style={{ fontSize: 12.5, padding: 0 }}>없앤 프로젝트 보기 ›</TBtn></>}</div>}
     {rootT && <div style={{ marginTop: 8, fontSize: 12.5, color: C.sub }}>상위 업무 '{rootT.title}'와 같이 없앴어요 · 되살리면 같이 돌아와요</div>}
     {n > 0 && <div style={{ marginTop: 8, fontSize: 12.5, color: C.sub }}>하위 업무 {n}개도 같이 없앴어요 · 되살리면 같이 돌아와요</div>}
     <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7, marginTop: 10 }}>담당 {owners.join(", ") || "없음"} · {dueOf(t) ? `기한 ${md(dueOf(t))}` : "기한 미정"} · 없애기 전 {t.status === "review" ? "확인 대기" : STATUS_L[t.status] || "할 일"}</div>

@@ -198,6 +198,7 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
         <div className="v2-ts tod">
         <div className="v2-todohead">
           <h3>할 일</h3>
+          <TBtn className="add" onClick={() => open({ type: "add" })} aria-label="할 일 추가">+ 추가</TBtn>
           <div className="v2-trange" role="group" aria-label="할 일 날짜">{[["today", "오늘"], ["tomorrow", "내일"], ["week", "이번 주"]].map(([k, l]) => <Chip key={k} on={rk === k} onClick={() => { setRange(k); setListAll(false); }} style={{ padding: "6px 11px" }}>{l} {rangeN[k]}</Chip>)}</div>
           <TBtn className="all" onClick={() => open({ type: "mine" })}>내 할 일 모두 ›</TBtn>
         </div>
@@ -227,7 +228,6 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
         <RoutineCard D={D} cu={cu} A={A} open={open} keyd={key} checks={TV.routine && TV.routine.total > 0 ? <RoutineChecks D={D} cu={cu} A={A} open={open} R={TV.routine} keyd={key} /> : null} />
       </div></div>}
     </div>
-    <div className="v2-fab"><Big onClick={() => open({ type: "add" })}>+ 할 일 추가</Big></div>
   </>;
 }
 function LineBtn({ children, onClick }) {

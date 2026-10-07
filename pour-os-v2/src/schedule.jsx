@@ -1,7 +1,7 @@
 // 업무OS v2 — 달력 탭 (실사용): 한 달을 한눈에. 칸 = 그날 내 마감 수(농도), 빨강 = 지난 날 안 끝난 일·막힘, ▴ 출시·마감, → 내 차례 시작
 // [나 ▾]로 동료 달력(보기만)·프로젝트(그 프로젝트 모든 사람 항목)를 고른다. 사람 비교 숫자·등급은 관리자 화면에만
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ymd, md, ddays, addDays, weekStart, WD, isOffDay, ddayLabel, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf, riskOf, projOpen, reqOf, canSetDue, dueApprover, fxDueOn, fxIsMine, fxMeDone, fxLabel, fxTime, holidayName } from "./model.js";
+import { ymd, md, ddays, addDays, weekStart, WD, isOffDay, ddayLabel, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf, riskOf, projOpen, reqOf, canSetDue, dueApprover, fxDueOn, fxIsMine, fxMeDone, fxLabel, fxTime, holidayName, canFinish } from "./model.js";
 import { calCells } from "./views.js";
 import { personNow, predLine, upcomingTurns } from "./turn.js";
 import { MonthCal, CalHead, dayHead } from "./cal.jsx";
@@ -115,7 +115,7 @@ function WeekList({ D, cu, A, open, T, keyd, sel, setSel, who, mine, proj, scope
           return <div key={t.id} className="v2-wkrow" role="button" tabIndex={0} onClick={() => open({ type: "task", id: t.id })} onKeyDown={(e) => { if (e.key === "Enter") open({ type: "task", id: t.id }); }}>
             {b.tag && <span className={"v2-tag" + (b.tone === "red" ? " red" : b.tone === "turn" ? " turn" : "")}>{b.tag}</span>}
             <span className="tt">{t.title}<span className="ss">{[proj || !mine ? nameOf(D.users, ownersOf(t)[0]) || "담당 없음" : "", pName(t.projectId)].filter(Boolean).join(" · ")}</span></span>
-            {mine && isMine(t, cu.id) && <Act onClick={() => A.finish(t)}>끝냄</Act>}</div>; })}
+            {(mine || isMaster(cu)) && canFinish(t, cu) && <Act onClick={() => A.finish(t)}>끝냄</Act>}</div>; })}
         {ts.length > 8 && <div className="v2-wkrow" role="button" tabIndex={0} onClick={() => onDay(d)}><span className="tt" style={{ color: C.navy }}>{ts.length - 8}개 더 ›</span></div>}
         {!ts.length && !ps.length && <div className="v2-wkempty">{off ? "쉬는 날" : "마감 없음"}</div>}
       </div>; })}</div>
@@ -147,7 +147,7 @@ function DayList({ D, cu, A, open, T, U, date, cell, keyd, who, mine, proj, fxOp
       {turnLines.map((u) => <UpRow key={u.t.id} u={u} D={D} cu={cu} open={open} keyd={keyd} last={false} />)}
       {sorted.map((t, i) => { const b = turnBits(t, T, D, keyd);
         return <Row key={t.id} tag={b.tag} tagTone={b.tone} title={t.title} sub={[proj || !mine ? nameOf(D.users, ownersOf(t)[0]) || "담당 없음" : "", pName(t.projectId), b.sub].filter(Boolean).join(" · ") || null}
-          onClick={() => open({ type: "task", id: t.id })} right={mine && isMine(t, cu.id) ? <Act onClick={() => A.finish(t)}>끝냄</Act> : null} last={i === sorted.length - 1 && !temp.length && !doneL.length} />; })}
+          onClick={() => open({ type: "task", id: t.id })} right={(mine || isMaster(cu)) && canFinish(t, cu) ? <Act onClick={() => A.finish(t)}>끝냄</Act> : null} last={i === sorted.length - 1 && !temp.length && !doneL.length} />; })}
       {temp.length > 0 && (tempOpen ? temp.map((t) => <Row key={t.id} tag="임시" title={t.title} sub={pName(t.projectId) + " · 담당을 정해야 해요"} onClick={() => open({ type: "task", id: t.id })} last={false} />)
         : <More onClick={() => setTempOpen(true)}>담당 정할 항목 {temp.length} ▾</More>)}
       {doneL.length > 0 && (doneOpen ? doneL.map((t) => <Row key={t.id} dim title={t.title} sub={t.status === "review" ? "확인 대기" : "끝남"} onClick={() => open({ type: "task", id: t.id })} last={false} />)

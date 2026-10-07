@@ -37,6 +37,26 @@ export function TaskRemoveAsk({ t, kids, busy, onYes, onNo }) {
     <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><TBtn tone="mute" onClick={onNo}>그만</TBtn><TBtn tone="red" disabled={busy} onClick={() => onYes(reason)}>없애기</TBtn></div>
   </Card></div>;
 }
+// 프로젝트 없애기 확인 (책임자·관리자 · 2026-10-07) — 같이 빠지는 업무 수 · 빠지는 곳 · 남는 것 · 되살리는 곳 · 이유 칩(선택)
+//   n = 같이 빠질 업무 수(null = 세는 중 · 서버에서 끝낸 업무까지)
+export function ProjRemoveAsk({ p, n, launch, busy, onYes, onNo }) {
+  const [why, setWhy] = useState(""), [etc, setEtc] = useState("");
+  const reason = why === "기타" ? (etc.trim() || "기타") : why;
+  return <div className="v2-rmask"><Card style={{ marginTop: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ fontSize: 14, fontWeight: 800, color: C.ink, wordBreak: "keep-all" }}>'{p.title}' 프로젝트를 목록에서 뺄까요?</div>
+    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: C.sub, lineHeight: 1.65, wordBreak: "keep-all" }}>
+      <li>{n == null ? "같이 빠질 업무를 세는 중이에요" : n ? <>안에 있는 업무 <b style={{ color: C.ink }}>{n}개</b>도 같이 빠져요</> : "안에 있는 업무는 없어요"}</li>
+      <li>오늘 · 프로젝트 목록 · '끝났거나 멈춘 프로젝트' · 관리자 화면 · 찾기 · 보고서에서 빠져요</li>
+      <li>댓글 · 자료 · 기록은 그대로 남아요</li>
+      {launch && <li>신제품 대시보드는 그대로예요 (업무OS에서만 빠져요)</li>}
+      <li>휴지통(관리자 정리 · 더보기 '없앤 프로젝트')에서 되살리면 업무까지 통째로 돌아와요</li>
+    </ul>
+    <div style={{ fontSize: 12.5, color: C.sub }}>이유 (선택)</div>
+    <div className="v2-chips" role="group" aria-label="없애는 이유">{REMOVE_REASONS.map((r) => <Chip key={r} on={why === r} onClick={() => setWhy(why === r ? "" : r)}>{r}</Chip>)}</div>
+    {why === "기타" && <input value={etc} onChange={(e) => setEtc(e.target.value)} maxLength={100} placeholder="이유를 짧게 (선택)" aria-label="없애는 이유 직접 쓰기" style={{ ...inp, padding: "9px 12px", fontSize: 14 }} />}
+    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><TBtn tone="mute" onClick={onNo}>그만</TBtn><TBtn tone="red" disabled={busy || n == null} onClick={() => onYes(reason)}>{busy ? "없애는 중" : "프로젝트 없애기"}</TBtn></div>
+  </Card></div>;
+}
 // 없앤 것을 링크·휴지통에서 열었을 때 시트 맨 위 한 줄 — what: '없앤 고정업무예요'
 export function RemovedNote({ what, rm, can, busy, onRestore }) {
   return <div role="status" className="v2-removed" style={{ marginTop: 12, padding: "10px 12px", borderRadius: 12, background: "#F8E9EA", border: "1px solid #EBC9CC", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -48,13 +68,13 @@ export function RemovedNote({ what, rm, can, busy, onRestore }) {
 export function TrashList({ rows, A, open, label, note, canRestore, style }) {
   const [on, setOn] = useState(false), [busy, setBusy] = useState("");
   if (!rows || !rows.length) return null;
-  const back = async (r) => { if (busy) return; setBusy(r.id); try { await (r.kind === "ak" ? A.akRestore(r.x) : r.kind === "task" ? A.taskRestore(r.x) : A.fxRestore(r.x)); } finally { setBusy(""); } };
+  const back = async (r) => { if (busy) return; setBusy(r.id); try { await (r.kind === "ak" ? A.akRestore(r.x) : r.kind === "task" ? A.taskRestore(r.x) : r.kind === "proj" ? A.projRestore(r.x) : A.fxRestore(r.x)); } finally { setBusy(""); } };
   return <div className="v2-trash" style={{ marginTop: 16, ...(style || {}) }}>
     <button type="button" aria-expanded={on} onClick={() => setOn(!on)} style={{ width: "100%", textAlign: "left", padding: "11px 14px", borderRadius: 12, border: `1px solid ${C.line}`, background: "#fff", color: C.navy, fontSize: 13.5, fontWeight: 800, fontFamily: "inherit", cursor: "pointer" }}>
       {label} {rows.length} {on ? "▴" : "▾"}</button>
     {on && <Card style={{ marginTop: 6 }}>
       {rows.map((r, i) => <div key={r.kind + r.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: i < rows.length - 1 ? `1px solid ${C.line}` : "none" }}>
-        <button type="button" onClick={() => open && open({ type: r.kind === "ak" ? "routine" : r.kind === "task" ? "task" : "fixed", id: r.id })} style={{ flex: 1, minWidth: 0, textAlign: "left", border: "none", background: "none", padding: 0, fontFamily: "inherit", cursor: open ? "pointer" : "default" }}>
+        <button type="button" onClick={() => open && open({ type: r.kind === "ak" ? "routine" : r.kind === "task" ? "task" : r.kind === "proj" ? "project" : "fixed", id: r.id })} style={{ flex: 1, minWidth: 0, textAlign: "left", border: "none", background: "none", padding: 0, fontFamily: "inherit", cursor: open ? "pointer" : "default" }}>
           <span style={{ display: "block", fontSize: 14.5, fontWeight: 700, color: C.mute, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
           <span className="v2-clamp2" style={{ marginTop: 2, fontSize: 12.5, color: C.sub, lineHeight: 1.45, wordBreak: "keep-all" }}>{r.sub} · {r.byName || "누군가"} 없앰 · {ago(r.at)}{r.reason ? ` · ${r.reason}` : ""}</span></button>
         {(!canRestore || canRestore(r)) && <TBtn disabled={!!busy} onClick={() => back(r)}>{busy === r.id ? "되살리는 중" : "되살리기"}</TBtn>}

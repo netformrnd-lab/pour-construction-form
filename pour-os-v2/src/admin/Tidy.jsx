@@ -2,7 +2,7 @@
 // 묶음 목록(숫자 큰 순) → 묶음 안: 사람별·제품별 고르기(PickList) → 아래 막대(BulkBar)로 담당·기한·보류·날짜 없이 두기·담당에게 묻기
 // 안전장치(pick.jsx · core.jsx bulk): 한 번에 100건 · 미리 보기 문장 · 30건 이상 확인 창 · 5초 되돌리기 · 기록(이전 값) · 삭제 없음
 import { useMemo, useState } from "react";
-import { ymd, md, ddays, nameOf, ownersOf, dueOf, isDone, taskNoteId, projOpen, taskTrashRows } from "../model.js";
+import { ymd, md, ddays, nameOf, ownersOf, dueOf, isDone, taskNoteId, projOpen, taskTrashRows, projTrashRows, canRestoreProj } from "../model.js";
 import { TrashList } from "../trash.jsx";
 import { groupItems, previewLaunchMove } from "../views.js";
 import { orderIssues, predLine } from "../turn.js";
@@ -22,6 +22,8 @@ export function TidyTab({ D, cu, A, idx, open, tq, setTq, setToast }) {
     {Q.all.length === 0 ? <Card><Empty>정리할 것이 없어요</Empty></Card>
       : <Card>{Q.all.map((q, i) => <button key={q.k} type="button" className={"a-q" + (tq === q.k ? " on" : "")} onClick={() => { setTq(q.k); window.scrollTo(0, 0); }} style={{ borderBottom: i < Q.all.length - 1 ? `1px solid ${C.line}` : "none" }} aria-current={tq === q.k ? "true" : undefined}>
         <span className="lb">{q.label}</span><b style={{ color: (q.k === "blocked" || q.k === "late" || q.k === "old") ? C.red : C.ink }}>{q.items.length}</b><span className="a-go">›</span></button>)}</Card>}
+    {/* 없앤 프로젝트(책임자·관리자 · 2026-10-07) 전부 — 처음엔 접힘 · 되살리면 업무까지 통째로 */}
+    <TrashList rows={projTrashRows(D.removedProjects)} A={A} open={open} label="없앤 프로젝트" canRestore={(r) => canRestoreProj(r.x, cu)} note="책임자·관리자가 목록에서 뺀 프로젝트예요 · 되살리면 안에 있던 업무까지 통째로 돌아와요 · 댓글·자료·기록은 그대로 · 신제품 대시보드는 안 건드려요" style={{ marginTop: 12 }} />
     {/* 없앤 업무(누구나 없애기 · 2026-10-07) 전부 — 처음엔 접힘 */}
     <TrashList rows={taskTrashRows(D.removedTasks, D.projects)} A={A} open={open} label="없앤 업무" note="팀원이 목록에서 뺀 한 번짜리 업무예요 · 되살리면 없애기 전 그대로(하위 업무도 같이) · 댓글·파일·기록은 그대로" style={{ marginTop: 12 }} />
     <p className="a-hint">지우는 기능은 없어요. 담당·기한을 바꾸거나 보류·날짜 없이 두기로 치워요. 바꾸기 전 값은 기록에 남고 5초 안에 되돌릴 수 있어요.</p>

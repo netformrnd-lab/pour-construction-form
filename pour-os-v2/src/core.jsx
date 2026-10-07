@@ -9,7 +9,7 @@ import {
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, planSeed, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, isHoldP, nextWorkday, setHolidayLayer, handOverOwners,
   scopeFields, brandLabel, cycleFields, FX_WD, isRemoved, fxRemoveFields, fxRestoreFields, canRemoveFx, canRemoveAk, canRenameFx, scopeOf,
-  canRemoveTask, canRestoreTask, taskKids, taskRemoveFields,
+  canFinish, canRemoveTask, canRestoreTask, taskKids, taskRemoveFields, canRemoveProj, canRestoreProj, projRemoveFields, projTaskRemoveFields, projTaskBack,
 } from "./model.js";
 import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS } from "./launch.js";
 import { nextTurnText } from "./turn.js";
@@ -88,8 +88,16 @@ export function useData(on, full = true) {
     const ak = { qid: akQ, raw: akRaw, items: akAll.filter((x) => !x._hidden), removed: akAll.filter((x) => x._hidden && x._removed), docs, v2: S.akV2 || [], ready: S.akDef !== undefined && S.akV1 !== undefined, defReady: S.akDef !== undefined };
     // 없앤 한 번짜리 업무(removedTasks · 누구나 없애기 2026-10-07)도 같이 → 오늘·확인할 것·달력·프로젝트·관리자·찾기·보고서 어디에도 안 보임 · 휴지통 줄에만
     // 없앤 고정업무(removed)는 여기 한 곳에서 빼서 오늘·반복 실행·내 고정업무·관리자·사람·협업 맵 어디에도 안 보임 → 휴지통 줄(removedFx)에만
-    const allT = [...m.values()];
-    return { users: S.users || [], projects: S.projects || [], tasks: allT.filter((t) => !isRemoved(t)), removedFx: allT.filter((t) => t.isFixed && isRemoved(t)), removedTasks: allT.filter((t) => !t.isFixed && isRemoved(t)), notes: S.notes, log: S.log, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], settings: S.settings || [], ak, links: S.links || [], linkInbox,
+    // 없앤 프로젝트(removedProjects · 책임자·관리자 · 2026-10-07): 프로젝트와 그 안 업무(같이 없앤 것 + 혹시 남은 것)·대화·기록이 어디에도 안 보임 · 휴지통 줄에만
+    //   프로젝트째 없앤 업무(removed.proj)는 업무 휴지통·'업무 없앰' 알림에도 안 나옴(removedProjTasks — 링크로 열 때만)
+    const allT = [...m.values()], allP = S.projects || [], goneP = new Set(allP.filter(isRemoved).map((p) => p.id));
+    const inGone = (t) => !!t && !t.isFixed && goneP.has(t.projectId);
+    const goneT = new Set(allT.filter((t) => inGone(t) || (isRemoved(t) && t.removed.proj)).map((t) => t.id));
+    const goneItem = (id) => { const s = String(id || ""); return (s.startsWith("proj:") && goneP.has(s.slice(5))) || (s.startsWith("task:") && goneT.has(s.slice(5))); };
+    const notes = goneP.size ? (S.notes || []).filter((n) => !n || !goneItem(n.itemId)) : S.notes;
+    const logs = goneP.size ? (S.log || []).filter((l) => !l || !(goneP.has(l.projectId) || goneP.has(l.targetId) || goneT.has(l.targetId))) : S.log;
+    return { users: S.users || [], projects: goneP.size ? allP.filter((p) => !goneP.has(p.id)) : allP, removedProjects: allP.filter((p) => goneP.has(p.id)), goneIds: goneT,
+      tasks: allT.filter((t) => !isRemoved(t) && !inGone(t)), removedFx: allT.filter((t) => t.isFixed && isRemoved(t)), removedTasks: allT.filter((t) => !t.isFixed && isRemoved(t) && !goneT.has(t.id)), removedProjTasks: allT.filter((t) => goneT.has(t.id)), notes, log: logs, events: S.events, brands: S.brands, workflows: S.workflows, mainKPIs: S.mainKPIs || [], subKPIs: S.subKPIs || [], settings: S.settings || [], ak, links: S.links || [], linkInbox,
       kpi: { ov: S.kpiOv || [], lagRaw: ((S.lagDef || {}).items || []).filter((x) => x && x.id && !x.deleted),
         lagDefs: applyKpiOv({ lagKPIs: ((S.lagDef || {}).items || []).filter((x) => x && x.id && !x.deleted) }, S.kpiOv).lagKPIs.filter((x) => !x._hidden), lagReady: S.lagDef !== undefined, lagV2: Object.fromEntries((S.lagV2 || []).map((x) => [x.id || x._doc, x])), sales: Object.fromEntries((S.kpisales || []).map((x) => [x.id || x._doc, x])) },
       lagInbox, ready: !!S.users, recs: { key: dayK, today: S.recToday || [], ready: S.recToday !== undefined, open: S.akOpen || [] },
@@ -236,7 +244,7 @@ export async function pushLaunchBoard(prods, D, cu) {
 export async function syncLaunchBoard(prods, D, cu) {
   const today = ymd(new Date()); let made = 0, changed = 0;
   const live = (prods || []).filter((p) => p && p.name && !p.deletedAt);
-  if (live.some((p) => !(D.projects || []).some((x) => x.id === "lb_" + p.id))) made = await syncNewLaunch(D, cu);
+  if (live.some((p) => ![...(D.projects || []), ...(D.removedProjects || [])].some((x) => x.id === "lb_" + p.id))) made = await syncNewLaunch(D, cu);   // 없앤 신제품 프로젝트는 있는 것으로(다시 안 만듦)
   // 4단계 ④ 직접 추가한 단계: 구조 문서의 단계마다 업무가 없으면 만들기(없을 때만) · 지운 단계의 업무는 중단(지우지 않음)
   const st0 = prods.structure, hasCustom = !!(st0 && st0.custom && Object.keys(st0.custom).length) || (D.tasks || []).some((t) => t.customStep && t.status !== "dropped");
   if (hasCustom) for (const p of live) {
@@ -290,7 +298,7 @@ export async function syncLaunchBoard(prods, D, cu) {
 //  열 때 한 번 · 버전1은 읽기만 · 쓰기 직전에 v2 프로젝트를 서버에서 다시 확인 (다른 기기가 먼저 넣었으면 건너뜀)
 export async function syncNewLaunch(D, cu) {
   const prods = await fb.readV1Launch();
-  const have0 = new Set((D.projects || []).map((p) => p.id));
+  const have0 = new Set([...(D.projects || []), ...(D.removedProjects || [])].map((p) => p.id));
   if (!(prods || []).some((p) => p && p.name && !p.deletedAt && !have0.has("lb_" + p.id))) return 0;
   const have = new Set((await fb.fetchWhere("projects", null)).map((p) => p.id));
   const lp = planLaunchImport(prods.filter((p) => !have.has("lb_" + p.id)), D);
@@ -459,7 +467,9 @@ export function useActs(D, cu, setToast, idx = null) {
     },
     // 끝냈어요 — 맡긴 사람이 있으면 확인 요청, 아니면 바로 끝
     // note: 다음 사람에게 한마디(있으면 handoff 댓글로 남김 → 뒷사람 '지금 할 일' 카드의 '앞 일 마지막 말')
-    finish: (t, note) => {
+    finish: (t, note, opt) => { if (!(opt && opt.any) && !canFinish(t, cu)) { setToast({ text: "담당이나 관리자만 끝낼 수 있어요" }); return; }
+      const proxy = !isMine(t, cu.id) && !(opt && opt.any) ? ownersOf(t)[0] || "" : "", px = proxy ? { doneBy: proxy, doneByName: nameOf(D.users, proxy) || cu.name, doneProxy: { by: cu.id, byName: cu.name, at: nowIso() } } : {};   // 관리자가 대신 끝냄: 끝낸 사람 = 담당 · 누른 사람 = 관리자(기록·상태 기록 by)
+      const pxL = proxy ? ` (관리자 ${cu.name}님이 대신)` : "";
       const at = nowIso(), prev = { status: t.status, doneAt: t.doneAt || null, reviewAt: t.reviewAt || null, finishedAt: t.finishedAt || null, feedback: t.feedback || null, blocked: t.blocked || null, ackAt: t.ackAt || null };
       const nx = idx ? nextTurnText(t, idx, D.users) : { text: "" };
       if (note && note.trim()) A.addNote(taskNoteId(t.id), note.trim(), null, [], { taskId: t.id, projectId: t.projectId }, { handoff: true });
@@ -467,11 +477,11 @@ export function useActs(D, cu, setToast, idx = null) {
       const tail = nx.text ? ` · ${nx.text}` : nx.noOwner ? ` · 다음 일 담당이 없어서 ${lead && lead !== cu.id ? `책임자 ${nameOf(D.users, lead)}님께 알렸어요` : "담당을 정해 주세요"}` : "";
       if (needsReview(t)) {
         const f = { status: "review", reviewAt: at, reviewTo: reqOf(t), finishedAt: at, blocked: null, ...(t.ackAt ? {} : { ackAt: at, ackBy: cu.id }) };
-        P(t, { ...f, statusLog: sl("review") }, "review");
+        P(t, { ...f, statusLog: sl("review", proxy ? { proxy } : undefined) }, "review", t.title + pxL);
         setToast({ text: `${nameOf(D.users, reqOf(t))}님께 확인 요청을 보냈어요${tail}`, undo: () => undoT(t, f, prev, `${t.title} · 확인 요청 취소`) });
       } else {
-        const f = { status: "done", doneAt: at, doneBy: cu.id, doneByName: cu.name, finishedAt: at, feedback: null, blocked: null, ...(t.ackAt ? {} : { ackAt: at, ackBy: cu.id }) };
-        P(t, { ...f, statusLog: sl("done") }, "done").then(() => t.projectId && recalc(t.projectId));
+        const f = { status: "done", doneAt: at, doneBy: cu.id, doneByName: cu.name, ...px, finishedAt: at, feedback: null, blocked: null, ...(t.ackAt ? {} : { ackAt: at, ackBy: cu.id }) };
+        P(t, { ...f, statusLog: sl("done", proxy ? { proxy } : undefined) }, "done", t.title + pxL).then(() => t.projectId && recalc(t.projectId));
         setToast({ text: `끝냈어요${tail || " · " + t.title}`, undo: () => undoT(t, f, prev, `${t.title} · 끝냄 취소`) });
       }
     },
@@ -572,7 +582,7 @@ export function useActs(D, cu, setToast, idx = null) {
         if (others.length) await fb.patchMany(others.map((o) => ({ key: "tasks", id: tdoc(o), fields: { status: "hold", optDropped: true, statusLog: sl("hold", { dropped: true }), updatedAt: at, updatedBy: cu.id, v2At: at } })));
         if (!isDone(opt)) await P(opt, { status: "done", doneAt: at, doneBy: cu.id, doneByName: cu.name, finishedAt: at, ...(opt.ackAt ? {} : { ackAt: at }), statusLog: sl("done", { chosen: true }) });
         const nx = idx ? nextTurnText(t, idx, D.users) : { text: "" };
-        if (!isDone(t) && t.status !== "review") A.finish(t);   // 끝냄 알림은 아래 '정했어요' 알림으로 바뀜 (다음 차례 문구는 같이)
+        if (!isDone(t) && t.status !== "review") A.finish(t, "", { any: true });   // 정한 사람이 끝냄(예전 그대로) · 끝냄 알림은 아래 '정했어요' 알림으로 바뀜 (다음 차례 문구는 같이)
         setToast({ text: `정했어요 · ${opt.title}${others.length ? ` · 나머지 ${others.length}개는 보류` : ""}${nx.text ? " · " + nx.text : ""}`, undo: () => undoMany([{ key: "tasks", id: tdoc(t), wrote: { decided: { optionId: opt.id, title: opt.title, reason: String(reason || "").trim(), by: cu.id, byName: cu.name, at } }, prev: prevT },
           ...prevO.map((x) => ({ key: "tasks", id: tdoc(x.o), wrote: { status: "hold", optDropped: true }, prev: { status: x.status, optDropped: x.optDropped } })),
           ...(prevChosen.status !== "done" ? [{ key: "tasks", id: tdoc(opt), wrote: { status: "done" }, prev: { status: prevChosen.status, doneAt: null, doneBy: null, finishedAt: null } }] : [])], `${t.title} · 결정 취소`, "decide") });
@@ -918,6 +928,44 @@ export function useActs(D, cu, setToast, idx = null) {
       setToast({ text: viaUndo ? "되돌렸어요" : `되살렸어요 · ${t.title}${r.n ? ` · 하위 ${r.n}개 같이` : ""}` });
       return true; },
     // 횟수 목표: v2 덧칠 hidden true + removed (버전1 문서는 그대로 · 관리자만)
+    // ── 프로젝트 없애기 (사용자 확정 2026-10-07 · 책임자·관리자만 · 지우지 않음) ──
+    //   프로젝트 removed{at,by,byName,reason,prevStatus,n} + 그 안 아직 안 없앤 업무 전부(서버에서 다시 읽음) removed{…, root: 프로젝트, proj: true} — 한 transaction
+    //   서버의 프로젝트가 화면에서 본 값(상태·책임자)과 같고 아직 안 없앤 것일 때만 · 업무도 아직 안 없앤 것만 · 기록 1건 · 5초 되돌리기
+    //   신제품 프로젝트(lb_)도 업무OS 문서만 — 신제품 대시보드엔 아무것도 안 씀(lbpush·lbsync 가 없앤 프로젝트를 건너뜀)
+    projRemove: async (p, reason) => { if (!canRemoveProj(p, cu)) { setToast({ text: "책임자나 관리자만 없앨 수 있어요" }); return false; }
+      const at = nowIso(), stamp = { updatedAt: at, updatedBy: cu.id, v2At: at };
+      let ts; try { ts = (await fb.fetchWhere("tasks", ["projectId", "==", p.id])).filter((t) => t && !t.isFixed && !isRemoved(t)); }
+      catch (e) { fail("프로젝트 업무 불러오기")(e); return false; }
+      if (ts.length > 450) { setToast({ text: `업무가 ${ts.length}개라 한 번에 없앨 수 없어요 · 관리자에게 알려 주세요` }); return false; }
+      const live = (c) => c && !c.isFixed && !isRemoved(c) && c.projectId === p.id;
+      let r;
+      try { r = await fb.txDocs([{ key: "projects", id: p._doc || p.id }, ...ts.map((t) => ({ key: "tasks", id: tdoc(t) }))], (curs) => {
+          const c = curs[0]; if (!c || isRemoved(c)) return { ret: { gone: true } };
+          if ((c.status || "") !== (p.status || "") || (c.assigneeId || "") !== (p.assigneeId || "")) return { ret: { conflict: true } };
+          const ok = ts.filter((t, i) => live(curs[i + 1])), pf = projRemoveFields(c, cu, at, reason, ok.length);
+          return { writes: [{ ...pf, ...stamp }, ...ts.map((t, i) => (live(curs[i + 1]) ? { ...projTaskRemoveFields(curs[i + 1], cu, at, reason, p.id), ...stamp } : null))], ret: { rm: pf.removed, ids: ok.map((t) => t.id) } }; }); }
+      catch (e) { fail("프로젝트 없애기")(e); return false; }
+      if (!r || r.gone) { setToast({ text: "이미 없앤 프로젝트예요" }); return false; }
+      if (r.conflict) { setToast({ text: "그사이 다른 사람이 프로젝트를 바꿔서 그대로 뒀어요 · 다시 확인해 주세요" }); return false; }
+      const n = r.ids.length;
+      log("remove", { col: "projects", targetId: p.id, projectId: p.id, label: `${p.title} · 프로젝트 없앰${reason ? " · " + reason : ""}${n ? ` · 업무 ${n}개 같이` : ""} (휴지통 · 댓글·자료·기록은 그대로)`, prev: { removed: null, status: p.status || "" }, next: { removed: r.rm }, ids: [p.id, ...r.ids] });
+      setToast({ text: `없앴어요 · ${p.title}${n ? ` · 업무 ${n}개 같이` : ""}`, undo: () => A.projRestore({ ...p, removed: r.rm }, true) });
+      return true; },
+    // 되살리기: 서버의 removed 가 내가 본 것과 같을 때만 · 같이 없앤 업무(root = 이 프로젝트 · 같은 시각)만 같이 · 상태는 없애기 전 그대로
+    projRestore: async (p, viaUndo) => { const rm = p && p.removed; if (!rm || !canRestoreProj(p, cu)) { setToast({ text: "책임자나 관리자만 되살릴 수 있어요" }); return false; }
+      const at = nowIso(), stamp = { updatedAt: at, updatedBy: cu.id, v2At: at };
+      let ts; try { ts = (await fb.fetchWhere("tasks", ["projectId", "==", p.id])).filter((t) => projTaskBack(t, p)); }
+      catch (e) { fail("프로젝트 업무 불러오기")(e); return false; }
+      const back = (c) => !!c && projTaskBack(c, p);
+      let r;
+      try { r = await fb.txDocs([{ key: "projects", id: p._doc || p.id }, ...ts.map((t) => ({ key: "tasks", id: tdoc(t) }))], (curs) => {
+          const c = curs[0]; if (!c || !c.removed || !fb.sameVal(c.removed, rm)) return { ret: null };
+          return { writes: [{ removed: null, ...(rm.prevStatus && c.status !== rm.prevStatus ? { status: rm.prevStatus } : {}), ...stamp }, ...ts.map((t, i) => (back(curs[i + 1]) ? { removed: null, ...stamp } : null))], ret: { n: ts.filter((t, i) => back(curs[i + 1])).length } }; }); }
+      catch (e) { fail("되살리기")(e); return false; }
+      if (!r) { setToast({ text: "그사이 다른 사람이 바꿔서 그대로 뒀어요" }); return false; }
+      log("restore", { col: "projects", targetId: p.id, projectId: p.id, label: `${p.title} · 프로젝트 되살림${r.n ? ` · 업무 ${r.n}개 같이` : ""}${viaUndo ? " (되돌리기)" : ""}`, prev: { removed: rm }, next: { removed: null }, ids: [p.id, ...ts.map((t) => t.id)] });
+      setToast({ text: viaUndo ? "되돌렸어요" : `되살렸어요 · ${p.title}${r.n ? ` · 업무 ${r.n}개 같이` : ""}` });
+      return true; },
     akRemove: async (it) => { if (!canRemoveAk(cu)) { setToast({ text: "관리자만 없앨 수 있어요" }); return false; }
       const at = nowIso(), base = ((D.ak && D.ak.raw) || []).find((x) => x.id === it.id) || null, rm = { at, by: cu.id, byName: cu.name || "" };
       try { const ok = await fb.txDoc("kpidefs", it.id, (c) => { if (c && c.hidden && c.removed) return { ret: false };
@@ -1017,6 +1065,7 @@ export const V2_TASK_ONLY = ["scope", "scopeBy", "scopeAt", "qty", "cycleOk", "c
 export function stripV2Only(key, data, cur) {
   if (!data) return data; const d = { ...data };
   if (key === "users") Object.keys(d).forEach((f) => { if (/^pin/.test(f) || f === "weekCap") delete d[f]; });
+  if (key === "projects") delete d.removed;   // 프로젝트 없애기(휴지통) — 다시 가져오기가 되살리지 않음
   if (key === "tasks") { ["doneDates", "doneAtBy", "subDone"].forEach((f) => delete d[f]); if ((cur && cur.isFixed) || d.isFixed) ["doneAt", "doneByName"].forEach((f) => delete d[f]);
     // 반복 실행·고정업무 나누기(2단계) · 주기 확인 · 건수 칸(3단계 예약) — v2 에서만 정하는 칸 · 정한 브랜드·반복도 버전1 값으로 안 되돌림
     V2_TASK_ONLY.forEach((f) => delete d[f]);

@@ -429,3 +429,25 @@ ok("댓글 고치며 새로 부른 사람: 고친 때 기준 새 줄 (이미 읽
   assert.equal(M.todayView({ ...D, notes: [{ ...n, mentionedAt: null }] }, "a", now, {}).inbox.filter((x) => x.kind === "mention").length, 0);   // 처음 쓴 지 7일 넘음 → 안 뜸
 });
 console.log(`\n${n}개 모두 통과`);
+ok("프로젝트 없애기: 책임자·관리자만 · 저장 칸 · 같이 없앤 업무만 되살림 · 휴지통 줄", () => {
+  const lead = { id: "a", name: "가" }, other = { id: "b", name: "나" }, admin = { id: "m", name: "관", master: true };
+  const p = { id: "p1", title: "봄 신제품", status: "active", assigneeId: "a", collaboratorIds: ["c"] };
+  assert.equal(M.canRemoveProj(p, lead), true); assert.equal(M.canRemoveProj(p, admin), true); assert.equal(M.canRemoveProj(p, other), false);
+  assert.equal(M.canRemoveProj({ ...p, locked: true }, admin), false);
+  const f = M.projRemoveFields(p, lead, "2026-10-07T01:00:00Z", " 중복 ", 3);
+  assert.deepEqual(f, { removed: { at: "2026-10-07T01:00:00Z", by: "a", byName: "가", reason: "중복", prevStatus: "active", n: 3 } });
+  const rp = { ...p, ...f };
+  assert.equal(M.canRemoveProj(rp, lead), false); assert.equal(M.canRestoreProj(rp, lead), true); assert.equal(M.canRestoreProj(rp, other), false);
+  const t = { id: "t1", status: "inprogress", projectId: "p1" }, tf = M.projTaskRemoveFields(t, lead, "2026-10-07T01:00:00Z", "", "p1");
+  assert.equal(tf.removed.root, "p1"); assert.equal(tf.removed.proj, true); assert.equal(tf.removed.prevStatus, "inprogress");
+  assert.equal(M.projTaskBack({ ...t, ...tf }, rp), true);
+  assert.equal(M.projTaskBack({ ...t, removed: { at: "2026-10-01T00:00:00Z", root: "t1" } }, rp), false);   // 그 전에 따로 없앤 업무는 그대로
+  assert.equal(M.canRestoreTask({ ...t, ...tf }, admin), false);                                            // 프로젝트째 없앤 업무는 업무만 못 되살림
+  const rows = M.projTrashRows([rp]); assert.equal(rows.length, 1); assert.equal(rows[0].kind, "proj"); assert.equal(rows[0].sub, "프로젝트 · 업무 3개 같이"); assert.equal(rows[0].reason, "중복");
+  assert.equal(M.projTrashRows([rp], "c").length, 1); assert.equal(M.projTrashRows([rp], "z").length, 0);
+});
+ok("끝냄: 담당 + 관리자(모든 업무) · 다른 팀원은 못 함", () => {
+  const t = { id: "t1", status: "todo", assigneeId: "a", assigneeIds: ["a"] };
+  assert.equal(M.canFinish(t, { id: "a" }), true); assert.equal(M.canFinish(t, { id: "b", name: "나" }), false); assert.equal(M.canFinish(t, { id: "m", master: true }), true);
+  assert.equal(M.canFinish({ ...t, isFixed: true }, { id: "m", master: true }), false); assert.equal(M.canFinish({ ...t, locked: true }, { id: "m", master: true }), false);
+});

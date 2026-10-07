@@ -680,3 +680,6 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
   .v2-trange { order: 2; flex: 1 1 auto; }
   .v2-todohead .all { order: 3; }
 }
+/* 신제품 단계별 '+ 이 단계에 추가' (project.jsx) */
+.v2-phadd { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; }
+.v2-phadd > input { max-width: 100%; }

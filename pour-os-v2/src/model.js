@@ -164,6 +164,21 @@ export function trashRows(removedFx, akRemoved, brands, uid) {
 export const REMOVE_REASONS = ["잘못 만듦", "중복", "안 하기로 함", "기타"];
 // 끝냄 누를 수 있는 사람 (사용자 확정 2026-10-07): 담당 + 관리자(모든 업무 · 대신 끝내면 기록·상태 기록엔 관리자 이름 · 끝낸 사람(doneBy)은 담당으로 남김)
 export const canFinish = (t, cu) => !!t && !!cu && !t.isFixed && !t.locked && !isRemoved(t) && (isMine(t, cu.id) || isMaster(cu));
+// 한 번짜리 업무 이름 고치기(사용자 확정 2026-10-07): 담당 · 만든 사람(createdBy·requestedBy) · 프로젝트 책임자 · 관리자 — 신제품 항목(이름 = 신제품 대시보드)·고정업무(renameFx)·없앤·끝낸 업무는 안 됨
+export const canRenameTask = (t, cu, D) => !!t && !!cu && !t.isFixed && !t.launchItem && !t.locked && !isRemoved(t) && !isDone(t)
+  && (isMine(t, cu.id) || t.createdBy === cu.id || t.requestedBy === cu.id || isMaster(cu) || (!!t.projectId && ((D && D.projects) || []).some((p) => p.id === t.projectId && p.assigneeId === cu.id)));
+// 댓글 삭제(사용자 확정 2026-10-07 '흔적 없이 숨김'): 쓴 사람·관리자만 · removed{at,by,byName} (지우지 않음 · 파일은 Storage 그대로) · 되살리기 = 관리자(되돌리기는 지운 사람도)
+export const canRemoveNote = (n, cu) => !!n && !!cu && !n.deleted && !isRemoved(n) && (n.by === cu.id || isMaster(cu));
+export const canRestoreNote = (n, cu, undo) => !!n && !!cu && isRemoved(n) && (isMaster(cu) || (!!undo && n.removed.by === cu.id));
+// 관리자 정리 탭 '삭제한 댓글' 줄 — 쓴 사람 · 글 앞부분 · 어느 업무/프로젝트
+export function noteTrashRows(removedNotes, D) {
+  return (removedNotes || []).filter((n) => n && isRemoved(n)).map((n) => { const [k, ...r] = String(n.itemId || "").split(":"), ref = r.join(":");
+      const t = k === "task" ? [...((D && D.tasks) || []), ...((D && D.removedTasks) || [])].find((x) => x.id === ref) : null, p = k === "proj" ? ((D && D.projects) || []).find((x) => x.id === ref) : null;
+      const where = t ? `업무 '${t.title}'` : p ? `프로젝트 '${p.title}'` : k === "task" ? "업무" : k === "proj" ? "프로젝트" : "반복 실행";
+      return { kind: "note", id: n.id, name: String(n.text || "(파일)").replace(/\s+/g, " ").slice(0, 60), sub: `${n.byName || nameOf((D && D.users) || [], n.by) || "누군가"} 댓글 · ${where}`, verb: "삭제",
+        by: n.removed.by, byName: n.removed.byName, at: n.removed.at, x: n, go: k === "task" ? { type: "task", id: ref } : k === "proj" ? { type: "project", id: ref } : null }; })
+    .sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+}
 export const canRemoveTask = (t, cu) => !!t && !!cu && !t.isFixed && !t.locked && !isRemoved(t);
 export const canRestoreTask = (t, cu) => !!t && !!cu && !t.isFixed && !t.locked && isRemoved(t) && !t.removed.proj;   // 프로젝트째 없앤 업무는 프로젝트를 되살려야 돌아옴
 // 아래로 끝까지 하위 업무 (없앤 것·고정업무 빼고 · 고리 막음)
@@ -519,7 +534,7 @@ export function ownerIssues(D) {
 }
 
 // ── 소식 (댓글 + 기록) ──
-export const LOG_L = { decide: "결정", add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", handover: "일 넘김", sync: "신제품 대시보드에서", take: "이어받음", comment: "댓글", noteEdit: "댓글 고침", delete: "휴지통으로", remove: "없앰(휴지통)", restore: "되살림",
+export const LOG_L = { noteRemove: "댓글 삭제", noteRestore: "댓글 되살림", decide: "결정", add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", handover: "일 넘김", sync: "신제품 대시보드에서", take: "이어받음", comment: "댓글", noteEdit: "댓글 고침", delete: "휴지통으로", remove: "없앰(휴지통)", restore: "되살림",
   ack: "받음", dueReq: "기한 조정 요청", dueOk: "기한 조정 수락", dueNo: "기한 유지", review: "확인 요청", approve: "확인 완료", feedback: "수정 요청", block: "막힘", unblock: "막힘 풀림", launch: "신제품 만듦", bulk: "한꺼번에 바꿈", deps: "앞 일 바꿈", ask: "도움 요청", askDone: "도움 요청 닫음", hold: "보류", unhold: "보류 풀기", projEnd: "프로젝트 끝냄·멈춤", projResume: "프로젝트 다시 시작" };
 export function feedOf(D, { projectId, taskIds, sinceIso } = {}) {
   const tset = taskIds ? new Set(taskIds) : null;
@@ -535,7 +550,7 @@ export function feedOf(D, { projectId, taskIds, sinceIso } = {}) {
 
 // ── 댓글 묶기 (원댓글 + 대댓글) ──
 export function threads(notes, itemId) {
-  const mine = (notes || []).filter((n) => n && n.itemId === itemId && !n.deleted);
+  const mine = (notes || []).filter((n) => n && n.itemId === itemId && !n.deleted && !isRemoved(n));   // 삭제한 댓글은 흔적 없이 · 그 답글은 맨 위 줄로
   const byAt = (a, b) => String(a.at || "").localeCompare(String(b.at || ""));
   const tops = mine.filter((n) => !n.parentId || !mine.some((m) => m.id === n.parentId)).sort(byAt);
   return tops.map((t) => ({ ...t, replies: mine.filter((r) => r.parentId === t.id).sort(byAt) }));

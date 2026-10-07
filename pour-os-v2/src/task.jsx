@@ -6,7 +6,7 @@ import {
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit, fxWeekDays, fxIds, FX_WD, monthEndWorkday,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf,
-  scopeOf, brandLabel, brandsWithCommon, brandKey, cyclePending, cycleGuess, isRemoved, canRemoveFx, canRenameFx, canFinish, canRemoveTask, canRestoreTask, taskKids,
+  scopeOf, brandLabel, brandsWithCommon, brandKey, cyclePending, cycleGuess, isRemoved, canRemoveFx, canRenameFx, canRenameTask, canRemoveNote, canFinish, canRemoveTask, canRestoreTask, taskKids,
 } from "./model.js";
 import { RemoveAsk, RemovedNote, TaskRemoveAsk } from "./trash.jsx";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
@@ -26,6 +26,7 @@ import { dueChips, ro } from "./pick.jsx";
 import { CountBox } from "./routineui.jsx";
 import { recTag, DayQty, RecList, useRecs } from "./recui.jsx";
 import { qtyCfg, qtyText, QTY_UNITS } from "./rec.js";
+import { liveNotes, useNoteOver } from "./core.jsx";
 
 const roP = (n) => { const c = String(n || "").slice(-1).charCodeAt(0) - 0xAC00; if (c < 0 || c > 11171) return "(으)로"; const j = c % 28; return j === 0 || j === 8 ? "로" : "으로"; };
 export const openTask = (open, t) => open({ type: t.isFixed ? "fixed" : "task", id: t.id });
@@ -54,7 +55,9 @@ export function useItemNotes(D, itemId) {
   const [old, setOld] = useState(null);   // null = 아직 읽는 중 (댓글 링크: 다 읽은 뒤에도 없으면 id 로 한 번 더)
   const locked = !!(D.lockedT && String(itemId).startsWith("task:") && D.lockedT.has(String(itemId).slice(5)));   // 기밀(허용 안 됨) 업무 댓글은 읽지 않음
   useEffect(() => { if (locked) return; fb.fetchWhere("notes", ["itemId", "==", itemId]).then(setOld).catch((e) => { console.error("[v2] 댓글 불러오기 실패:", e); setOld([]); }); }, [itemId, locked]);
-  return useMemo(() => { if (locked) return Object.assign([], { ready: true }); const m = new Map(); (old || []).forEach((n) => m.set(n.id, n)); D.notes.forEach((n) => { if (n.itemId === itemId) m.set(n.id, n); }); return Object.assign([...m.values()], { ready: old != null }); }, [old, D.notes, itemId, locked]);
+  const ov = useNoteOver();   // 댓글 삭제·되살리기 바로 반영
+  // 삭제한 댓글(removed)은 빼고 줌 → 댓글 수·파일·대화 어디에도 안 보임 (구독 값이 따로 읽은 옛 값보다 먼저)
+  return useMemo(() => { if (locked) return Object.assign([], { ready: true }); const m = new Map(); (old || []).forEach((n) => m.set(n.id, n)); [...D.notes, ...(D.removedNotes || [])].forEach((n) => { if (n.itemId === itemId) m.set(n.id, n); }); return Object.assign(liveNotes([...m.values()], D), { ready: old != null }); }, [old, D.notes, D.removedNotes, itemId, locked, ov]);
 }
 // 업무 보기 — 맨 위에 '지금 해야 할 일'(받았어요·확인·기한 조정·막힘)을 띄우고, 그 아래 대화(가장 자주 씀) → 순서(앞 일·다음 일) → 메모 → 하위 업무 → 파일
 // focus: "talk" | "files" — 열자마자 그 칸으로 (앞 일 '자료 n ›', 앞사람에게 묻기)
@@ -65,7 +68,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
   const [more, setMore] = useState(false);   // 드문 동작 펼치기
   const [mode, setMode] = useState(""), [memo, setMemo] = useState(""), [memoBase, setMemoBase] = useState(null), [clash, setClash] = useState(null), [showLog, setShowLog] = useState(false), [tab2, setTab2] = useState("talk"), [logs, setLogs] = useState(null), [sub, setSub] = useState("");
   const [txt, setTxt] = useState(""), [handTo, setHandTo] = useState(""), [reqDate, setReqDate] = useState(""), [handoff, setHandoff] = useState(""), [depSel, setDepSel] = useState(null), [allOrder, setAllOrder] = useState(false);
-  const [rmBusy, setRmBusy] = useState(false);
+  const [rmBusy, setRmBusy] = useState(false), [nm, setNm] = useState(""), [nmBase, setNmBase] = useState(""), [nmBusy, setNmBusy] = useState(false);   // 이름 고치기
   const U = useUploads(A, "task-" + id, (metas) => A.addFiles(t, metas));
   useEffect(() => { if (!focus || !t) return; const h = setTimeout(() => { const el = document.getElementById("v2-t-" + focus); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); return () => clearTimeout(h); }, [focus, !!t]);
   if (t === undefined || t === null) return <Sheet title="업무" kind="업무" onBack={onBack} onClose={onClose}><Empty>불러오는 중…</Empty></Sheet>;
@@ -78,13 +81,15 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
   const req = reqOf(t), reqName = nameOf(D.users, req), giver = req || (t.assignedBy && t.assignedBy !== cu.id ? t.assignedBy : ""), giverName = nameOf(D.users, giver), approver = dueApprover(t, D), canDue = canSetDue(t, cu.id, D, master);
   const review = t.status === "review", amReviewer = review && ((t.reviewTo || req) === cu.id || master);
   const risk = riskOf(t, key);
+  // 신제품 단계 바꾸기: 신제품 프로젝트의 직접 넣은 업무만(신제품 항목·하위 업무 빼고 — 하위 업무는 위 업무 단계를 따름) · 책임자·관리자·담당
+  const canPhase = !!p && String(p.id || "").startsWith("lb_") && !t.launchItem && !t.parentId && !done && (p.assigneeId === cu.id || master || mine);
   // 메모 저장 — 고치는 사이 다른 사람이 먼저 저장했으면 겹친 글을 보여 주고 고르게 (내 글은 그대로 남음)
   const saveMemo = async (force) => { const r = await A.setMemo(t, memo, memoBase, force === true); if (r && r.conflict) setClash(r.cur); else if (r && r.ok) { setClash(null); setMode(""); } };
   const files = [...(t.attachments || []).map((f) => ({ ...f, where: "업무" })), ...notes.filter((nn) => !nn.deleted).flatMap((nn) => (nn.files || []).map((f) => ({ ...f, by: nn.by, byName: nn.byName, uploadedAt: f.uploadedAt || nn.at, where: "댓글" })))];
   const loadLogs = () => { if (logs == null) fb.fetchWhere("log", ["targetId", "==", t.id]).then(setLogs).catch((e) => { console.error(e); setLogs([]); }); };
   // 기록 한 줄의 '이전 → 이후' (담당 · 기한 · 시작 · 상태 · 참조 · 보류 다시 볼 날)
   const CH = { assigneeId: ["담당", (v) => nameOf(D.users, v) || "없음"], assigneeIds: null, dueDate: ["기한", (v) => md(v) || "미정"], startDate: ["시작", (v) => md(v) || "없음"], status: ["상태", (v) => STATUS_L[v] || (v === "review" ? "확인 대기" : v || "-")],
-    ccIds: ["참조", (v) => (v || []).map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "없음"], holdUntil: ["다시 볼 날", (v) => md(v) || "미정"], priority: ["중요도", (v) => ({ high: "높음", mid: "보통", low: "낮음" })[v] || "보통"] };
+    ccIds: ["참조", (v) => (v || []).map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "없음"], holdUntil: ["다시 볼 날", (v) => md(v) || "미정"], phase: ["단계", (v) => (phaseOf(v) || {}).name || "기타"], title: ["이름", (v) => v || "-"], priority: ["중요도", (v) => ({ high: "높음", mid: "보통", low: "낮음" })[v] || "보통"] };
   const chOf = (l) => (l.prev && l.next && typeof l.prev === "object" && !Array.isArray(l.prev) ? Object.keys(l.next).filter((k) => CH[k] && JSON.stringify(l.prev[k] ?? null) !== JSON.stringify(l.next[k] ?? null)).map((k) => ({ k, l: CH[k][0], a: CH[k][1](l.prev[k]), b: CH[k][1](l.next[k]) })) : []);
   const hist = [...(t.statusLog || []).map((s, i) => ({ id: "s" + i, at: s.at, who: s.byName || nameOf(D.users, s.by), text: s.reopen ? "다시 엶" : STATUS_L[s.status] || (s.status === "review" ? "확인 요청" : s.status) })),
     ...(logs || []).map((l) => ({ id: l.id, at: l.at, who: l.byName, ch: chOf(l), text: (LOG_L[l.action] || l.action) + (l.label && l.label !== t.title ? " · " + l.label.replace(t.title + " · ", "") : "") }))].sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
@@ -172,6 +177,8 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
       {!done && !review && t.status !== "hold" && <TBtn v="soft" onClick={() => { setMore(false); setMode("hold"); }}>보류</TBtn>}
       {!done && <TBtn v="soft" onClick={() => { setMore(false); setMode(mode === "cc" ? "" : "cc"); }}>참조{(t.ccIds || []).length ? ` ${(t.ccIds || []).length}` : ""}</TBtn>}
       {!done && !t.parentId && !t.decision && (mine || req === cu.id || master) && <TBtn v="soft" onClick={() => { setMore(false); A.setDecision(t, true); }}>결정 업무로 쓰기</TBtn>}
+      {canPhase && <TBtn v="soft" onClick={() => { setMore(false); setMode(mode === "phase" ? "" : "phase"); }}>단계 바꾸기</TBtn>}
+      {canRenameTask(t, cu, D) && <TBtn v="soft" onClick={() => { setMore(false); setNm(t.title || ""); setNmBase(t.title || ""); setMode("rename"); }}>이름 고치기</TBtn>}
       {(mine || master) && !done && <label className="v2-more-date">시작일 <input type="date" aria-label="시작일" className="v2-sel" value={t.startDate || ""} max={dueOf(t) || undefined} onChange={(e) => A.patchTask(t, { startDate: e.target.value }, "edit", `${t.title} · 시작 ${md(e.target.value) || "없음"}`, { prev: { startDate: t.startDate || "" } })} style={{ height: 34, padding: "0 6px", fontSize: 13 }} /></label>}
       <SecretBox kind="task" x={t} D={D} cu={cu} A={A} only="button" />
       <CopyLink kind="t" id={t.id} label="업무 링크 복사" onDone={() => setToast && setToast({ text: "링크를 복사했어요 · 잔디·카톡에 붙여 넣으면 이 업무가 바로 열려요" })} />
@@ -188,6 +195,12 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
         <Act onClick={() => { A.assign(t, handTo, handTo === cu.id, txt); setTxt(""); setHandTo(""); setMode(""); }} style={{ alignSelf: "flex-start", background: C.navy, color: "#fff", borderColor: C.navy }}>{handTo === cu.id ? "내가 이어서 하기" : `${nameOf(D.users, handTo)}님에게 넘기기`}</Act></div>}</div>}
     {mode === "cc" && <div style={{ padding: "8px 0" }}><div style={{ fontSize: 12.5, color: C.sub, marginBottom: 6 }}>참조 = 담당이 아니어도 이 업무의 대화·소식을 받는 사람</div><div className="v2-chips">{users.filter((u) => !ownersOf(t).includes(u.id)).map((u) => { const on = (t.ccIds || []).includes(u.id);
       return <Chip key={u.id} on={on} onClick={() => A.toggleCc(t, u.id, !on)}>{on ? "✓ " : ""}{u.id === cu.id ? "나" : u.name}</Chip>; })}</div></div>}
+    {mode === "rename" && canRenameTask(t, cu, D) && (() => { const v = nm.trim(), ok = !!v && v !== String(nmBase || "").trim(), save = async () => { if (!ok || nmBusy) return; setNmBusy(true); const r = await A.renameTask(t, v, nmBase); setNmBusy(false); if (r && r.ok) setMode(""); };
+      return <div className="v2-rename" style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "8px 0" }}><input value={nm} onChange={(e) => setNm(e.target.value)} autoFocus aria-label="새 이름" onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) save(); if (e.key === "Escape") setMode(""); }} style={{ ...inp, flex: "1 1 200px", minWidth: 0 }} />
+        <div style={{ display: "flex", gap: 8 }}><TBtn v="solid" onClick={save} disabled={!ok || nmBusy}>저장</TBtn><TBtn onClick={() => setMode("")}>취소</TBtn></div>
+        {!v ? <div style={{ flexBasis: "100%", fontSize: 12.5, color: C.sub }}>이름을 비울 수는 없어요</div> : !ok ? <div style={{ flexBasis: "100%", fontSize: 12.5, color: C.sub }}>지금 이름과 같아요</div> : null}</div>; })()}
+    {mode === "phase" && canPhase && <div style={{ padding: "8px 0" }}><div style={{ fontSize: 12.5, color: C.sub, marginBottom: 6 }}>지금 단계 {(phaseOf(t.phase) || {}).name || "기타"} · 고르면 바로 옮겨요 (5초 안에 되돌릴 수 있어요)</div>
+      <div className="v2-chips" role="group" aria-label="단계 고르기">{[...LAUNCH_PHASES.map((ph) => [ph.k, ph.name]), ["", "기타"]].map(([k, l]) => <Chip key={k || "etc"} on={(t.phase || "") === k} onClick={async () => { if ((t.phase || "") === k) { setMode(""); return; } if (await A.setPhase(t, k)) setMode(""); }}>{l}</Chip>)}</div></div>}
     {mode === "ask" && <RequestAsk t={t} D={D} cu={cu} A={A} mine={mine} onNo={() => setMode("")} />}
     <SecretBox kind="task" x={t} D={D} cu={cu} A={A} only="status" />
     {mode === "due" && <div className="v2-chips" style={{ padding: "8px 0" }}>{dateChips.map(([l, d]) => <Chip key={d} onClick={() => { moveDue(A, setToast, t, d, true); setMode(""); }}>{l}</Chip>)}<Chip onClick={() => { moveDue(A, setToast, t, "", true); setMode(""); }}>미정</Chip><input type="date" aria-label="날짜 고르기" defaultValue={dueOf(t)} onChange={(e) => { if (e.target.value) { moveDue(A, setToast, t, e.target.value, true); setMode(""); } }} className="v2-sel" /></div>}
@@ -311,6 +324,8 @@ export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl
   const [text, setText] = useState(""), [reply, setReply] = useState(null), [busy, setBusy] = useState(false), [pend, setPend] = useState(false), [copied, setCopied] = useState(""), [showL, setShowL] = useState(null);
   const [edit, setEdit] = useState(""), [hist, setHist] = useState("");   // 고치는 댓글 · 이전 판 펼친 댓글
   const canEditN = (n) => !readOnly && !!n && (n.by === cu.id || isMaster(cu));
+  const canDelN = (n) => !readOnly && canRemoveNote(n, cu);   // 댓글 삭제: 쓴 사람·관리자 (A.noteRemove 도 막음)
+  const [delBusy, setDelBusy] = useState("");
   const U = useUploads(A, "note-" + itemId);
   const fileRef = useRef(null), taRef = useRef(null);
   const pick = mentionPick(text, D.users, cu.id), tagged = parseMentions(text, D.users).filter((id) => id !== cu.id);   // '@' 를 치면 사람 고르기 · 부를 사람 미리 보기
@@ -325,7 +340,8 @@ export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl
     const el = document.getElementById("v2-n-" + hl);
     if (el) { hlDone.current = true; setTimeout(() => { const e2 = document.getElementById("v2-n-" + hl) || el; e2.scrollIntoView({ behavior: "smooth", block: "center" }); setHlOn(hl); setTimeout(() => setHlOn(""), 2200); }, 350); return; }   // 다시 그려져도 취소하지 않음
     if (!notes.ready || got !== null) return;
-    setGot(false); fb.fetchWhere("notes", ["id", "==", hl]).then((a) => { const n = a.find((x) => x.itemId === itemId && !x.deleted); if (n) setGot(n); else { hlDone.current = true; setMiss(true); } })
+    setGot(false); fb.fetchWhere("notes", ["id", "==", hl]).then((a) => { const n0 = a.find((x) => x.itemId === itemId && !x.deleted), n = n0 && liveNotes([n0], D)[0];
+        if (n) setGot(n); else { hlDone.current = true; setMiss(n0 ? "gone" : true); } })
       .catch((e) => { console.error("[v2] 댓글 불러오기 실패:", e); hlDone.current = true; setMiss(true); }); }, [hl, th.length, notes.ready, got]);
   const copy = (nid) => { const u = appLink(link.kind, link.id, nid);
     const ok = () => { setShowL(null); setCopied(nid); setTimeout(() => setCopied((c) => (c === nid ? "" : c)), 2200); };
@@ -333,6 +349,7 @@ export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl
   const LinkBtn = ({ n }) => link ? <TBtn v="plain" onClick={() => copy(n.id)} style={{ padding: "6px 0", fontSize: 12.5 }}>{copied === n.id ? "✓ 복사했어요" : "링크 복사"}</TBtn> : null;
   const LinkBox = ({ n }) => showL && showL.id === n.id ? <input readOnly value={showL.u} autoFocus onFocus={(e) => e.target.select()} aria-label="복사할 링크" style={{ ...inp, marginTop: 4, fontSize: 12.5, padding: "8px 10px" }} /> : null;
   const EditBtn = ({ n }) => canEditN(n) ? <TBtn v="plain" onClick={() => { setEdit(edit === n.id ? "" : n.id); setReply(null); }} style={{ padding: "6px 0", fontSize: 12.5 }}>고치기</TBtn> : null;
+  const DelBtn = ({ n }) => canDelN(n) ? <><Sep /><TBtn v="plain" tone="mute" disabled={!!delBusy} onClick={async () => { if (delBusy) return; setDelBusy(n.id); try { const r = await A.noteRemove(n); if (r && r.ok && reply === n.id) setReply(null); } finally { setDelBusy(""); } }} aria-label={`${n.byName || "이"} 글 삭제`} style={{ padding: "6px 0", fontSize: 12.5 }}>{delBusy === n.id ? "삭제 중" : "삭제"}</TBtn></> : null;
   const Sep = () => <span style={{ color: C.line }}>|</span>;
   // 이전 판 (읽기만 · 처음엔 접힘) — '(고침)' 누르면
   const Hist = ({ n }) => hist === n.id && (n.edits || []).length > 0 ? <div className="v2-nhist" style={{ margin: "6px 0 2px", padding: "8px 10px", background: C.bg, borderRadius: 10, fontSize: 13 }}>
@@ -346,16 +363,16 @@ export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl
     <div style={{ fontSize: 14.5, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 2, wordBreak: "break-word" }}><Linked text={n.text} /></div>
     <NoteFiles files={n.files} />
     {n.rec && <div><span className="v2-rttag">{recTag(n.rec, cfg)}</span></div>}
-    {child && (link || canEditN(n)) && <><div className="v2-nact"><LinkBtn n={n} />{link && canEditN(n) && <Sep />}<EditBtn n={n} /></div><LinkBox n={n} /></>}
+    {child && (link || canEditN(n) || canDelN(n)) && <><div className="v2-nact"><LinkBtn n={n} />{link && canEditN(n) && <Sep />}<EditBtn n={n} /><DelBtn n={n} /></div><LinkBox n={n} /></>}
   </div>;
   const NoteOrEdit = ({ n, child }) => edit === n.id ? <div style={{ padding: child ? "6px 0 0 14px" : "4px 14px 0" }}><NoteEdit D={D} cu={cu} A={A} n={n} itemId={itemId} onDone={() => setEdit("")} /></div> : <Note n={n} child={child} />;
   const canSend = (text.trim() || U.rows.length) && !busy && !U.busy;
   return <Card>
-    {miss && <div role="status" style={{ padding: "10px 14px", fontSize: 13, color: C.sub, background: C.soft, borderBottom: `1px solid ${C.line}` }}>이 댓글을 찾지 못했어요 · 지워졌거나 다른 곳의 댓글일 수 있어요</div>}
+    {miss && <div role="status" style={{ padding: "10px 14px", fontSize: 13, color: C.sub, background: C.soft, borderBottom: `1px solid ${C.line}` }}>{miss === "gone" ? "찾을 수 없는 댓글이에요" : "이 댓글을 찾지 못했어요 · 지워졌거나 다른 곳의 댓글일 수 있어요"}</div>}
     {th.length === 0 && <Empty>아직 대화가 없어요. 진행 상황이나 궁금한 점을 남겨 주세요.</Empty>}
     {th.map((n) => <div key={n.id} style={{ borderBottom: `1px solid ${C.line}` }}>{NoteOrEdit({ n })}
       <div style={{ padding: "0 14px 10px" }}>{n.replies.map((r) => <div key={r.id}>{NoteOrEdit({ n: r, child: true })}</div>)}
-        {!readOnly ? <div className="v2-nact"><TBtn v="plain" onClick={() => setReply(reply === n.id ? null : n.id)} style={{ padding: "6px 0", fontSize: 12.5 }}>{reply === n.id ? "답글 취소" : "답글"}</TBtn>{link && <Sep />}<LinkBtn n={n} />{canEditN(n) && edit !== n.id && <><Sep /><EditBtn n={n} /></>}</div>
+        {!readOnly ? <div className="v2-nact"><TBtn v="plain" onClick={() => setReply(reply === n.id ? null : n.id)} style={{ padding: "6px 0", fontSize: 12.5 }}>{reply === n.id ? "답글 취소" : "답글"}</TBtn>{link && <Sep />}<LinkBtn n={n} />{canEditN(n) && edit !== n.id && <><Sep /><EditBtn n={n} /></>}{edit !== n.id && <DelBtn n={n} />}</div>
           : link && <div className="v2-nact"><LinkBtn n={n} /></div>}
         <LinkBox n={n} /></div></div>)}
     {!readOnly && <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>

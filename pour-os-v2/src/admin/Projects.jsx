@@ -107,7 +107,7 @@ export function ProjectsTab({ D, cu, A, idx, open }) {
   const cat1 = cats.some(([k]) => k === cat) ? cat : "all";
   const list = rows.filter((x) => inCat(x.p, cat1));
   const cnt = (v) => list.filter((x) => x.h.level === v).length;
-  const setPC = (p, v) => A.patchProject(p, { category: v }, `카테고리 → ${catName(v) || "미분류"}`, p.category || "");
+  const setPC = (p, v) => A.setCategory(p, v, "auto");   // 로드(2026-10-07): 단계가 정해진 업무가 있으면 지금 단계 그대로 · 없으면 새 카테고리 단계
   // 날짜별 묶음: 지난 날짜 → 앞으로 → 날짜 없음 → 보류
   const groups = useMemo(() => { const g = new Map();
     list.forEach((x) => { const k = x.p.status === "hold" || x.p.status === "paused" ? "~hold" : x.date || "~none"; (g.get(k) || g.set(k, []).get(k)).push(x); });

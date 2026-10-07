@@ -5,8 +5,9 @@ import * as fb from "./fb.js";
 import {
   ymd, addDays, ddays, ddayLabel, md, ago, hm, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf,
   projOpen, projMine, projStat, projGroups, projWhen, feedOf, taskNoteId, projNoteId, LOG_L, reqOf, riskOf, workloadOf, PROJ_CATS, catName, projCat, guessCat,
-  IMP, impOf, impName, isHoldP, projStLabel, projForecast, projPct, isOneOff, TEAMS, projTeam, projTeamAuto, isGhProj, ghDashUrl,
+  IMP, impOf, impName, isHoldP, projStLabel, projForecast, projPct, isOneOff, TEAMS, projTeam, projTeamAuto, isGhProj, ghDashUrl, isRemoved, taskTrashRows,
 } from "./model.js";
+import { TrashList } from "./trash.jsx";
 import { Gantt } from "./gantt.jsx";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, launchPct } from "./launch.js";
 import { turnIndex, turnOf, nowNext, predLine } from "./turn.js";
@@ -220,7 +221,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
   const nn = nowNext(p, D, idx, key);
   const hasNow = !!(p.now && p.now.text);
   const phases = launch ? phaseStates(live.filter((t) => t.launchItem), key) : null;
-  const loadDone = () => { setShowDone(!showDone || doneErr); setDoneErr(false); if (doneList == null) fb.fetchWhere("tasks", ["projectId", "==", p.id]).then((a) => setDoneList(viewTasks(a.filter((t) => isDone(t) && !t.isFixed), D))).catch((e) => { console.error("[v2] 끝낸 업무 불러오기 실패:", e); setDoneErr(true); }); };
+  const loadDone = () => { setShowDone(!showDone || doneErr); setDoneErr(false); if (doneList == null) fb.fetchWhere("tasks", ["projectId", "==", p.id]).then((a) => setDoneList(viewTasks(a.filter((t) => isDone(t) && !t.isFixed && !isRemoved(t)), D))).catch((e) => { console.error("[v2] 끝낸 업무 불러오기 실패:", e); setDoneErr(true); }); };
   const doneAll = doneList || live.filter(isDone);
   const top = (a) => a.filter((t) => !t.parentId || !a.some((x) => x.id === t.parentId));
   const kidsOf = (pid, a) => a.filter((t) => t.parentId === pid);
@@ -232,7 +233,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
   const tids = [...new Set([...live, ...(doneList || [])].map((t) => t.id))];
   // 이전 소식·자료 불러오기 (오래 멈춘 프로젝트를 다시 열 때) — 끝낸 업무 전체 + 이 프로젝트 기록 + 업무 대화(30개씩 나눠 조회). 누를 때 한 번만 읽음
   const loadOld = async () => { setOld("loading");
-    try { let dl = doneList; if (dl == null) { dl = viewTasks((await fb.fetchWhere("tasks", ["projectId", "==", p.id])).filter((t) => isDone(t) && !t.isFixed), D); setDoneList(dl); }
+    try { let dl = doneList; if (dl == null) { dl = viewTasks((await fb.fetchWhere("tasks", ["projectId", "==", p.id])).filter((t) => isDone(t) && !t.isFixed && !isRemoved(t)), D); setDoneList(dl); }
       const lk = new Set([...(D.lockedT || []), ...dl.filter((t) => t.locked).map((t) => t.id)]);   // 기밀(허용 안 됨) 업무의 기록·대화는 안 읽음
       const ids = [...new Set([...live, ...dl].filter((t) => !t.locked).map((t) => t.id))], logs = viewLogs(await fb.fetchWhere("log", ["projectId", "==", p.id]), { ...D, lockedT: lk }), ns = [];
       for (let i = 0; i < ids.length; i += 30) ns.push(...(await fb.fetchWhere("notes", ["itemId", "in", ids.slice(i, i + 30).map(taskNoteId)])));
@@ -329,6 +330,8 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
     {tab === "news" && <><Head>프로젝트에 한마디</Head><Thread D={D} cu={cu} A={A} notes={notes} itemId={projNoteId(p.id)} ctx={{ projectId: p.id }} link={{ kind: "p", id: p.id }} hl={note} /></>}
     {tab === "files" && <div style={{ marginTop: 10 }}><FileList files={files} empty="모인 자료가 없어요. 업무나 댓글에 파일을 올리면 여기 모여요." /></div>}
     {tab === "files" && <OldBtn />}
+    {/* 없앤 업무(누구나 없애기 · 2026-10-07) — 소식·자료 탭 맨 아래 · 처음엔 접힘 */}
+    {(tab === "news" || tab === "files") && <TrashList rows={taskTrashRows(D.removedTasks, D.projects, null, p.id)} A={A} open={open} label="없앤 업무" note="되살리면 없애기 전 그대로 돌아와요(하위 업무도 같이) · 댓글·파일·기록은 그대로 있어요" />}
 
     <Card style={{ marginTop: 18 }}><More onClick={() => setInfo(!info)}>{info ? "정보 · 더 하기 접기 ▴" : "정보 · 더 하기 ▾"}</More>
       {info && <div style={{ padding: "4px 14px 14px", fontSize: 14, color: C.text, lineHeight: 1.9 }}>

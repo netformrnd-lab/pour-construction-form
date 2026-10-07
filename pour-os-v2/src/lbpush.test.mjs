@@ -92,4 +92,12 @@ ok("하위 업무 → 할 일 줄: 업무OS에서 고친 줄만 바꾸고 다른
   const back = S.planRowSync(P({ s12: { tasks: out } }), proj(), [par, { ...sub1, lbSeen: r.tasks.find((x) => x.t.id === "x1").lbSeen }, { ...sub2, lbRow: "x2", lbSeen: r.tasks.find((x) => x.t.id === "x2").lbSeen }], users, now);
   assert.deepEqual(back.create.map((d) => d.lbRow), ["r2"]); assert.deepEqual(back.tasks, []);   // r2 는 신제품에만 있던 줄 → 하위 업무로 · 고친 줄은 되돌아오지 않음
 });
+ok("없앤 업무(누구나 없애기)는 신제품 대시보드에 안 씀 (상태·담당 · 할 일 줄)", () => {
+  const rm = { at: "2026-10-07T00:00:00Z", by: "a", byName: "가", root: "x" };
+  const r = L.planLaunchPush(P({ d01: st }), proj(), [T("d01", { lbSeen: base, status: "inprogress", removed: rm })], users, now, "김민지");
+  assert.equal(r.board, null);
+  const par = T("d01", { lbSeen: base }), kid = { id: "k9", parentId: par.id, title: "새 줄", memo: "새 줄", status: "todo", assigneeIds: ["wm"], removed: rm };
+  const b = L.planLaunchPush(P({ d01: st }), proj(), [par, kid], users, now, "김민지").board;
+  assert.ok(!b || !("stages.d01.tasks" in b.fields));                               // 없앤 하위 업무는 줄로 안 더함
+});
 console.log(`${n}개 모두 통과`);

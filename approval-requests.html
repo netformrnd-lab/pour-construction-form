@@ -83,6 +83,10 @@ button { cursor: pointer; }
 .b-구매요청서 { background: var(--t3-bg); color: var(--t3); }
 .b-topic { background: var(--surface2); color: var(--ink2); font-weight: 600; }
 .b-wait { background: var(--warn-bg); color: var(--warn); margin-left: auto; }
+.check { margin-left: auto; border: 1.5px solid var(--warn); background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 5px 11px; font-size: 13.5px; font-weight: 800; white-space: nowrap; }
+.check.on { border-color: var(--good); background: var(--good-bg); color: var(--good); }
+.check:disabled { opacity: .5; }
+.item { cursor: pointer; }
 .b-done { background: var(--good-bg); color: var(--good); margin-left: auto; }
 .item .title { font-size: 15.5px; font-weight: 700; overflow-wrap: anywhere; }
 .item .preview { font-size: 13.5px; color: var(--ink2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; margin-top: 2px; }
@@ -174,8 +178,8 @@ textarea.inp { min-height: 200px; resize: vertical; line-height: 1.6; }
   <div class="banner" id="banner"></div>
 
   <div class="stats">
-    <button class="stat wait" data-status="요청" type="button"><b id="cWait">-</b><span>작성 대기</span></button>
-    <button class="stat done" data-status="작성완료" type="button"><b id="cDone">-</b><span>작성 완료</span></button>
+    <button class="stat wait" data-status="품의전" type="button"><b id="cWait">-</b><span>품의 전</span></button>
+    <button class="stat done" data-status="품의완료" type="button"><b id="cDone">-</b><span>품의 완료</span></button>
     <button class="stat" data-status="전체" type="button"><b id="cAll">-</b><span>전체</span></button>
   </div>
   <div class="next" id="next">불러오는 중…</div>
@@ -265,7 +269,7 @@ const ME_KEY = 'approvalReq.me';
 // ─────────────────────────────────────────────
 let items = [];
 let loaded = false;
-let fStatus = '요청';
+let fStatus = '품의전';
 let fTopic = '전체';
 let query = '';
 let editingId = null;
@@ -273,6 +277,8 @@ let form = { topic: '', docType: '' };
 let openId = null;
 
 const $ = (id) => document.getElementById(id);
+// 상태: '품의전' | '품의완료'
+const isDone = (i) => i.status === '품의완료';
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const lsGet = (k) => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 저장 불가 브라우저 — 이름만 기억 못 함 */ } };
@@ -329,7 +335,7 @@ COL.onSnapshot(snap => {
 function render() {
   $('meBtn').textContent = me ? '👤 ' + me : '👤 이름 설정';
 
-  const wait = items.filter(i => i.status !== '작성완료');
+  const wait = items.filter(i => !isDone(i));
   $('cWait').textContent = wait.length;
   $('cDone').textContent = items.length - wait.length;
   $('cAll').textContent = items.length;
@@ -338,8 +344,8 @@ function render() {
   const next = $('next');
   if (!loaded) next.textContent = '불러오는 중…';
   else if (!items.length) next.innerHTML = '아직 요청이 없어요. 아래 <b>＋ 품의 요청하기</b>를 눌러 첫 요청을 남겨 보세요.';
-  else if (wait.length) next.innerHTML = '<b>다음 할 일</b> · 작성 대기 ' + wait.length + '건 — 오래된 요청(' + esc(fmtDate(wait[wait.length - 1].createdAt)) + ')부터 열어 그룹웨어에 옮겨 적고 <b>작성 완료</b>를 눌러 주세요.';
-  else next.innerHTML = '대기 중인 요청이 없어요. 모두 작성 완료! 🎉';
+  else if (wait.length) next.innerHTML = '<b>다음 할 일</b> · 품의 전 ' + wait.length + '건 — 오래된 요청(' + esc(fmtDate(wait[wait.length - 1].createdAt)) + ')부터 그룹웨어에 품의를 올리고 <b>☐ 품의 완료</b>를 체크해 주세요.';
+  else next.innerHTML = '품의 전 요청이 없어요. 모두 품의 완료! 🎉';
 
   $('topicChips').innerHTML = ['전체', ...TOPICS].map(t =>
     '<button type="button" class="chip' + (t === fTopic ? ' on' : '') + '" data-topic="' + esc(t) + '">' + esc(t) + '</button>'
@@ -347,12 +353,12 @@ function render() {
 
   const q = query.trim().toLowerCase();
   const list = items.filter(i =>
-    (fStatus === '전체' || (fStatus === '작성완료' ? i.status === '작성완료' : i.status !== '작성완료')) &&
+    (fStatus === '전체' || (fStatus === '품의완료' ? isDone(i) : !isDone(i))) &&
     (fTopic === '전체' || i.topic === fTopic) &&
     (!q || [i.title, i.body, i.requester, i.docType, i.topic].join(' ').toLowerCase().includes(q))
   );
   // 대기 목록은 오래된 것부터 처리하도록 위에 둔다
-  if (fStatus === '요청') list.reverse();
+  if (fStatus === '품의전') list.reverse();
 
   if (!loaded) { $('list').innerHTML = ''; return; }
   if (!list.length) {
@@ -361,25 +367,52 @@ function render() {
     return;
   }
   $('list').innerHTML = list.map(i => {
-    const done = i.status === '작성완료';
-    return '<button type="button" class="item' + (done ? ' done' : '') + '" data-id="' + esc(i.id) + '">' +
+    const done = isDone(i);
+    return '<div class="item' + (done ? ' done' : '') + '" data-id="' + esc(i.id) + '" role="button" tabindex="0">' +
       '<div class="row1">' +
         '<span class="badge b-' + esc(i.docType) + '">' + esc(i.docType) + '</span>' +
         '<span class="badge b-topic">' + esc(i.topic) + '</span>' +
-        (done ? '<span class="badge b-done">작성 완료</span>' : '<span class="badge b-wait">작성 대기</span>') +
+        '<button type="button" class="check' + (done ? ' on' : '') + '" data-check="' + esc(i.id) + '" aria-pressed="' + done + '">' +
+          (done ? '☑ 품의 완료' : '☐ 품의 완료') + '</button>' +
       '</div>' +
       '<div class="title">' + esc(i.title) + '</div>' +
       '<div class="preview">' + esc(i.body) + '</div>' +
       '<div class="meta">' + esc(i.requester) + ' · ' + esc(fmtDate(i.createdAt)) +
-        (done && i.doneBy ? ' · ' + esc(i.doneBy) + ' 작성' : '') + '</div>' +
-    '</button>';
+        (done ? ' · ' + (i.doneBy ? esc(i.doneBy) + ' ' : '') + '품의 완료 ' + esc(fmtDate(i.doneAt)) : '') + '</div>' +
+    '</div>';
   }).join('');
 }
 
 document.querySelectorAll('.stat').forEach(el => el.addEventListener('click', () => { fStatus = el.dataset.status; render(); }));
 $('topicChips').addEventListener('click', e => { const b = e.target.closest('[data-topic]'); if (b) { fTopic = b.dataset.topic; render(); } });
 $('q').addEventListener('input', e => { query = e.target.value; render(); });
-$('list').addEventListener('click', e => { const b = e.target.closest('[data-id]'); if (b) openDetail(b.dataset.id); });
+const donePatch = (who, memo, now) => ({ status: '품의완료', doneBy: who, doneAt: now, doneMemo: memo, updatedAt: now });
+const undonePatch = (now) => ({ status: '품의전', doneBy: '', doneAt: null, doneMemo: '', updatedAt: now });
+
+// 목록에서 바로 체크 → 품의 완료로 이동 (다시 누르면 품의 전으로)
+async function toggleDone(id, btn) {
+  const i = items.find(x => x.id === id);
+  if (!i) return;
+  const now = new Date().toISOString();
+  btn.disabled = true;
+  try {
+    await COL.doc(id).update(isDone(i) ? undonePatch(now) : donePatch(me, '', now));
+    toast(isDone(i) ? '품의 전으로 되돌렸어요' : '품의 완료로 옮겼어요');
+  } catch (err) {
+    console.error('[approval-requests] 상태 변경 실패:', err);
+    toast('저장하지 못했어요. 다시 시도해 주세요', true);
+    btn.disabled = false;
+  }
+}
+$('list').addEventListener('click', e => {
+  const c = e.target.closest('[data-check]');
+  if (c) { toggleDone(c.dataset.check, c); return; }
+  const b = e.target.closest('[data-id]');
+  if (b) openDetail(b.dataset.id);
+});
+$('list').addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.item')) { e.preventDefault(); openDetail(e.target.dataset.id); }
+});
 $('meBtn').addEventListener('click', () => {
   const v = prompt('이 기기에서 쓸 이름을 입력하세요 (요청자·작성자로 자동 입력돼요)', me);
   if (v === null) return;
@@ -466,7 +499,7 @@ $('saveBtn').addEventListener('click', async () => {
       await COL.doc(editingId).update({ ...data, updatedAt: now });
       toast('수정했어요');
     } else {
-      await COL.add({ ...data, status: '요청', doneBy: '', doneAt: null, doneMemo: '',
+      await COL.add({ ...data, status: '품의전', doneBy: '', doneAt: null, doneMemo: '',
         createdAt: now, updatedAt: now, deleted: false, deletedAt: null });
       toast('요청을 올렸어요');
     }
@@ -489,7 +522,7 @@ function openDetail(id) { openId = id; renderDetail._id = null; renderDetail(); 
 function renderDetail() {
   const i = items.find(x => x.id === openId);
   if (!i) { closeSheet('detailBg'); return; }
-  const done = i.status === '작성완료';
+  const done = isDone(i);
   // 실시간 갱신으로 다시 그려도 입력 중이던 작성자·메모는 유지
   const keepWho = $('dWho') && renderDetail._id === i.id ? $('dWho').value : me;
   const keepMemo = $('dMemo') && renderDetail._id === i.id ? $('dMemo').value : '';
@@ -498,29 +531,28 @@ function renderDetail() {
     '<div class="row1">' +
       '<span class="badge b-' + esc(i.docType) + '">' + esc(i.docType) + '</span>' +
       '<span class="badge b-topic">' + esc(i.topic) + '</span>' +
-      (done ? '<span class="badge b-done">작성 완료</span>' : '<span class="badge b-wait">작성 대기</span>') +
+      (done ? '<span class="badge b-done">품의 완료</span>' : '<span class="badge b-wait">품의 전</span>') +
     '</div>' +
     '<div class="d-meta">요청 ' + esc(i.requester) + ' · ' + esc(fmtDate(i.createdAt)) +
       (i.updatedAt && i.updatedAt !== i.createdAt ? ' · 수정 ' + esc(fmtDate(i.updatedAt)) : '') + '</div>' +
-    (done ? '<div class="d-done">✅ ' + esc(i.doneBy || '') + ' 작성 완료 · ' + esc(fmtDate(i.doneAt)) +
+    (done ? '<div class="d-done">✅ ' + (i.doneBy ? esc(i.doneBy) + ' ' : '') + '품의 완료 · ' + esc(fmtDate(i.doneAt)) +
       (i.doneMemo ? '\n메모: ' + esc(i.doneMemo) : '') + '</div>' : '') +
     '<div class="d-box"><div class="d-box-hd">문서 종류</div><div class="d-box-bd">' + esc(i.docType) + '</div></div>' +
     '<div class="d-box"><div class="d-box-hd">제목<button class="mini" type="button" data-copy="title">복사</button></div><div class="d-box-bd">' + esc(i.title) + '</div></div>' +
     '<div class="d-box"><div class="d-box-hd">본문<button class="mini" type="button" data-copy="body">복사</button></div><div class="d-box-bd">' + esc(i.body) + '</div></div>' +
     (done ? '' :
       '<div class="field" style="margin:16px 0 0">' +
-        '<div class="label">그룹웨어에 작성했다면</div>' +
-        '<input class="inp" id="dWho" maxlength="20" placeholder="작성한 사람 이름" value="' + esc(keepWho) + '" style="margin-bottom:6px">' +
+        '<div class="label">품의 올린 사람 <span class="hint">선택</span></div>' +
+        '<input class="inp" id="dWho" maxlength="20" placeholder="이름" value="' + esc(keepWho) + '" style="margin-bottom:6px">' +
         '<input class="inp" id="dMemo" maxlength="100" placeholder="메모 (선택) — 예: 결재 문서번호" value="' + esc(keepMemo) + '">' +
-        '<div class="err" id="dErr">작성한 사람 이름을 적어 주세요.</div>' +
       '</div>');
 
   $('dFoot').innerHTML =
     '<button class="btn danger" type="button" data-act="delete">삭제</button>' +
     '<button class="btn ghost" type="button" data-act="edit">수정</button>' +
     (done
-      ? '<button class="btn ghost" type="button" data-act="undo" style="flex:1">대기로 되돌리기</button>'
-      : '<button class="btn good" type="button" data-act="done">✅ 작성 완료</button>');
+      ? '<button class="btn ghost" type="button" data-act="undo" style="flex:1">품의 전으로 되돌리기</button>'
+      : '<button class="btn good" type="button" data-act="done">✅ 품의 완료</button>');
 }
 
 async function copyText(text) {
@@ -556,12 +588,11 @@ $('dFoot').addEventListener('click', async e => {
   if (act === 'edit') { closeSheet('detailBg'); openForm(i); return; }
   let patch;
   if (act === 'done') {
-    const who = $('dWho').value.trim();
-    if (!who) { $('dErr').classList.add('on'); $('dWho').focus(); return; }
-    if (!me) { me = who; lsSet(ME_KEY, me); render(); }
-    patch = { status: '작성완료', doneBy: who, doneAt: now, doneMemo: $('dMemo').value.trim(), updatedAt: now };
+    const who = $('dWho').value.trim().slice(0, 20);
+    if (who && !me) { me = who; lsSet(ME_KEY, me); render(); }
+    patch = donePatch(who, $('dMemo').value.trim(), now);
   } else if (act === 'undo') {
-    patch = { status: '요청', doneBy: '', doneAt: null, doneMemo: '', updatedAt: now };
+    patch = undonePatch(now);
   } else if (act === 'delete') {
     if (!confirm('이 요청을 삭제할까요?')) return;
     patch = { deleted: true, deletedAt: now, updatedAt: now };
@@ -569,7 +600,7 @@ $('dFoot').addEventListener('click', async e => {
   b.disabled = true;
   try {
     await COL.doc(i.id).update(patch);
-    toast(act === 'done' ? '작성 완료로 표시했어요' : act === 'undo' ? '대기로 되돌렸어요' : '삭제했어요');
+    toast(act === 'done' ? '품의 완료로 옮겼어요' : act === 'undo' ? '품의 전으로 되돌렸어요' : '삭제했어요');
     if (act !== 'undo') closeSheet('detailBg');
   } catch (err) {
     console.error('[approval-requests] 변경 실패:', err);

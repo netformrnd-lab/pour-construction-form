@@ -311,7 +311,7 @@
      'open'   = pour-os/marketing-hub/<컬렉션> — 이미 게시된 공개 규칙(pour-os/{doc=**}) 안. 규칙 게시 없이 바로 씀(임시)
                 → 주소를 아는 사람은 읽고 고칠 수 있음(그로홈 대시보드와 같은 수준). 그래서 원본 CSV 는 알아본 열만 저장
      'secure' = 최상위 mkt-<컬렉션> — firestore.rules '마케팅 허브' 게시 후. 업로더는 올리기만, 나머지는 관리자만
-     ※ 규칙 게시(2026-10-13 월 예정) 뒤 STORE_MODE 를 'secure' 로 바꾸고 대시보드 설정 › [임시 저장소에서 옮기기] */
+     ※ 규칙 게시(2026-10-12 월 예정) 뒤 STORE_MODE 를 'secure' 로 바꾸고 대시보드 설정 › [임시 저장소에서 옮기기] */
   const STORE_MODE = 'open';
   const OPEN_ROOT = ['pour-os', 'marketing-hub'];
   const OWNER_EMAILS = ['netformrnd@gmail.com']; // firestore.rules mktAdmin() 와 같게

@@ -907,6 +907,7 @@
 (function(){
   if (window.innerWidth > 700) return;
   var DEAL_CATE = '73', PKG_CATE = '71';
+  var DEAL_ON = false; // '오직 POUR스토어에서만!' 섹션 — 2026-10 진행 중 아님 → 숨김. 다시 켜려면 true
   var cache = {};
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   function href(h){ if(!h) return ''; if(h.charAt(0)!=='/'&&!/^https?:/i.test(h)) h='/'+h.replace(/^\.?\//,''); return h; }
@@ -1013,7 +1014,7 @@
       setInterval(function(){ if(Date.now()-hold<6000 || !tr.clientWidth) return; cur=(cur+1)%n; tr.scrollTo({left:cur*tr.clientWidth, behavior:'smooth'}); upd(); }, Math.max(2,sec2)*1000);
     }).catch(function(e){ console.error('[mhome] 모바일 띠배너 로드 실패:', e); });
   }
-  function boot(){ lazy('[data-mh="evbanner"]', '.psm1-bs', renderEvBanner); lazy('[data-mh="deal"]', '.psm1-bs', renderDeal); lazy('[data-mh="pkg"]', '.psm1-cats', renderPkg); lazy('[data-mh="best"]', '.psm1-cats', renderBest); }
+  function boot(){ lazy('[data-mh="evbanner"]', '.psm1-bs', renderEvBanner); if(DEAL_ON) lazy('[data-mh="deal"]', '.psm1-bs', renderDeal); lazy('[data-mh="pkg"]', '.psm1-cats', renderPkg); lazy('[data-mh="best"]', '.psm1-cats', renderBest); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>

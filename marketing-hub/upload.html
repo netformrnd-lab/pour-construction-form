@@ -105,6 +105,7 @@ firebase.initializeApp(FB_CFG);
 const auth=firebase.auth(), db=firebase.firestore();
 // 로컬 시험(localhost?emu=1)만 에뮬레이터 — 실제 주소에선 동작 안 함
 if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&new URLSearchParams(location.search).has('emu')){auth.useEmulator('http://127.0.0.1:9099');db.useEmulator('127.0.0.1',8080);}
+const MODE=window.MktCore.storeMode(); // 저장 위치: core.js STORE_MODE
 const C=window.MktCore, $=(id)=>document.getElementById(id);
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
@@ -178,11 +179,17 @@ $('save-button').onclick=async()=>{
   try{
     const c=await check();
     if(c.fail){setStatus('err','실패: '+c.fail);return;}
-    let csv=c.text, reduced=false;
-    if(C.utf8Bytes(csv)>=C.MAX_CSV_BYTES){csv=C.reducedCsv(c.r);reduced=true;}
-    if(C.utf8Bytes(csv)>=C.MAX_CSV_BYTES){setStatus('err','실패: 파일이 너무 큽니다. 기간을 하루로 줄여 다시 받으세요.');return;}
     const u=auth.currentUser;
-    const ref=await db.collection('mkt-uploads').add({
+    if(MODE==='open'){ // 공개 저장소: 규칙이 못 막으므로 화면에서 등록된 계정인지 확인
+      const rd=await C.col(db,'mkt-access','open').doc('roles').get();
+      const roles=rd.exists?rd.data():{};
+      if(!C.isAdminEmail(u.email,roles)&&!C.isUploaderEmail(u.email,roles)){setStatus('err','실패: 이 계정은 업로드 권한이 없습니다. 관리자에게 등록을 요청하세요.');return;}
+    }
+    // 공개 저장소에선 고객 정보 같은 다른 열이 새지 않게 알아본 열만 저장
+    let csv=c.text, reduced=false;
+    if(MODE==='open'||C.utf8Bytes(csv)>=C.MAX_CSV_BYTES){csv=C.reducedCsv(c.r);reduced=true;}
+    if(C.utf8Bytes(csv)>=C.MAX_CSV_BYTES){setStatus('err','실패: 파일이 너무 큽니다. 기간을 하루로 줄여 다시 받으세요.');return;}
+    const ref=await C.col(db,'mkt-uploads',MODE).add({
       channel:c.channel, reportDate:c.date, csv, uploadedBy:u.uid, uploaderEmail:u.email,
       rowCount:c.r.rows.length, fileName:c.fileName.slice(0,200), reduced,
       createdAt:firebase.firestore.FieldValue.serverTimestamp()

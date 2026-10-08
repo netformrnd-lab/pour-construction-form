@@ -307,7 +307,31 @@
     return 'obsidian://new?' + q.join('&');
   }
 
-  const api = { CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
+  /* ── 저장 위치 ──────────────────────────────────────────
+     'open'   = pour-os/marketing-hub/<컬렉션> — 이미 게시된 공개 규칙(pour-os/{doc=**}) 안. 규칙 게시 없이 바로 씀(임시)
+                → 주소를 아는 사람은 읽고 고칠 수 있음(그로홈 대시보드와 같은 수준). 그래서 원본 CSV 는 알아본 열만 저장
+     'secure' = 최상위 mkt-<컬렉션> — firestore.rules '마케팅 허브' 게시 후. 업로더는 올리기만, 나머지는 관리자만
+     ※ 규칙 게시(2026-10-13 월 예정) 뒤 STORE_MODE 를 'secure' 로 바꾸고 대시보드 설정 › [임시 저장소에서 옮기기] */
+  const STORE_MODE = 'open';
+  const OPEN_ROOT = ['pour-os', 'marketing-hub'];
+  const OWNER_EMAILS = ['netformrnd@gmail.com']; // firestore.rules mktAdmin() 와 같게
+  function storeMode(loc) { // 로컬 시험(localhost)에서만 ?mode=secure|open 로 바꿔 볼 수 있음
+    try {
+      const l = loc || (typeof location !== 'undefined' ? location : null);
+      if (l && /^(localhost|127\.0\.0\.1)$/.test(l.hostname)) {
+        const m = new URLSearchParams(l.search).get('mode');
+        if (m === 'open' || m === 'secure') return m;
+      }
+    } catch (e) { console.error('[storeMode]', e); }
+    return STORE_MODE;
+  }
+  function col(db, name, mode) {
+    return mode === 'secure' ? db.collection(name) : db.collection(OPEN_ROOT[0]).doc(OPEN_ROOT[1]).collection(name);
+  }
+  const isAdminEmail = (email, roles) => !!email && (OWNER_EMAILS.includes(email) || ((roles && roles.admins) || []).includes(email));
+  const isUploaderEmail = (email, roles) => !!email && ((roles && roles.uploaders) || []).includes(email);
+
+  const api = { STORE_MODE, OPEN_ROOT, OWNER_EMAILS, storeMode, col, isAdminEmail, isUploaderEmail, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MktCore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

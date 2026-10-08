@@ -359,6 +359,7 @@ const NAV = [
   { id: 'guidedetail',     icon: '📖', label: '시공가이드 상세',        group: 'design' },
   { id: 'packages',        icon: '🧩', label: '패키지 구성 관리',     group: 'design' },
   { id: 'banners',         icon: '🖼', label: '메인 배너 관리',       group: 'design' },
+  { id: 'shipping',        icon: '🚚', label: '출고 마감 설정',       group: 'design' },
   { id: 'popups',          icon: '📢', label: '팝업 관리',           group: 'design' },
   { id: 'homecards',       icon: '🏠', label: '홈 소재별 카드 관리',   group: 'design' },
   { id: 'products',        icon: '📦', label: '상품관리',           group: 'design' },
@@ -4647,6 +4648,87 @@ function HotKeywordsPage({showToast}){
         <b>레벨1 (인기검색어·검색바 우측 가로):</b> <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>items</code>를 <b>rank 오름차순</b> 정렬 후 <b>active===true</b>만 keyword·link로 표출 (orderBy 미사용, §10.3-C)<br/>
         <b>레벨A (검색 드롭다운·네이버식 세로카드):</b> 검색창 포커스 시 같은 items를 🔍+순위+keyword로 세로 표출, <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>thumb</code> 있으면 우측 썸네일. 타이핑 시 <code style={{background:'#fff',padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)'}}>keyword + synonyms[]</code> 부분매칭으로 전환. 가이드 포스팅은 추후 <code style={{background:'var(--or-pale)',padding:'1px 5px',borderRadius:4,fontWeight:800}}>pourstore-postings</code> 합류.
       </div>
+    </div>
+  );
+}
+
+// ============================================================
+// 출고 마감 설정 (2026-10)
+//   저장: config/pourstoreShipping { enabled, cutoff:'HH:MM', holidays:['YYYY-MM-DD'], updatedAt, updatedBy }
+//   표시: 상품상세 구매영역 위 "오후 2시까지 주문하면 오늘 출고" (common/pour-skin.html, 한국시간·평일만)
+// ============================================================
+const SHIPPING_DOC = 'pourstoreShipping';
+const SHIPPING_DEFAULT_HOLIDAYS = ['2026-01-01','2026-02-16','2026-02-17','2026-02-18','2026-03-02','2026-05-05','2026-05-25','2026-06-03','2026-08-17','2026-09-24','2026-09-25','2026-09-28','2026-10-05','2026-10-09','2026-12-25','2027-01-01','2027-02-08','2027-02-09','2027-03-01','2027-05-05','2027-05-13','2027-08-16','2027-09-14','2027-09-15','2027-09-16','2027-10-04','2027-10-11','2027-12-27'];
+function shippingPreview(cutoff, holidays){
+  const WD=['일','월','화','수','목','금','토'];
+  const [ch,cm]=String(cutoff||'14:00').split(':').map(n=>+n||0);
+  const now=new Date(Date.now()+9*3600*1000);
+  const ymd=d=>d.toISOString().slice(0,10);
+  const biz=d=>{const w=d.getUTCDay();return w>=1&&w<=5&&!holidays.includes(ymd(d));};
+  const hm=(h,m)=>(h<12?'오전':'오후')+' '+(h%12===0?12:h%12)+'시'+(m?' '+m+'분':'');
+  const mins=now.getUTCHours()*60+now.getUTCMinutes(), cut=ch*60+cm;
+  if(biz(now)&&mins<cut){const l=cut-mins;return `${hm(ch,cm)}까지 주문하면 오늘 출고 · 마감까지 ${Math.floor(l/60)?Math.floor(l/60)+'시간 ':''}${l%60}분`;}
+  let d=new Date(now.getTime()+86400000),g=0; while(!biz(d)&&g++<30) d=new Date(d.getTime()+86400000);
+  const tm=ymd(d)===ymd(new Date(now.getTime()+86400000));
+  return `지금 주문하면 ${tm?'내일 ':''}${d.getUTCMonth()+1}월 ${d.getUTCDate()}일(${WD[d.getUTCDay()]}) 출고`;
+}
+function ShippingPage({showToast}){
+  const { audit } = useActiveStaffContext();
+  const [enabled,setEnabled]=useState(true);
+  const [cutoff,setCutoff]=useState('14:00');
+  const [holText,setHolText]=useState(SHIPPING_DEFAULT_HOLIDAYS.join('\n'));
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [saved,setSaved]=useState(false);
+  const [,tick]=useState(0);
+  useEffect(()=>{ const t=setInterval(()=>tick(x=>x+1),30000); return ()=>clearInterval(t); },[]);
+  useEffect(()=>{(async()=>{
+    try{
+      const doc=await db.collection('config').doc(SHIPPING_DOC).get();
+      if(doc.exists){ const d=doc.data(); console.log(`[config/${SHIPPING_DOC}] 로드 — 마감 ${d.cutoff}, 휴일 ${(d.holidays||[]).length}건`);
+        setEnabled(d.enabled!==false); setCutoff(d.cutoff||'14:00'); if(Array.isArray(d.holidays)) setHolText(d.holidays.join('\n')); setSaved(true); }
+      else console.log(`[config/${SHIPPING_DOC}] 문서 없음 → 기본값(오후 2시 · 2026~2027 공휴일) 표시, 저장 전`);
+    }catch(e){ console.error(`[config/${SHIPPING_DOC}] 로드 실패:`,e); showToast('출고 설정 로드 실패: '+e.message,'error'); }
+    setLoading(false);
+  })();},[]);
+  const parsed=holText.split(/[\s,]+/).map(s=>s.trim()).filter(Boolean);
+  const bad=parsed.filter(s=>!/^\d{4}-\d{2}-\d{2}$/.test(s));
+  const holidays=[...new Set(parsed.filter(s=>/^\d{4}-\d{2}-\d{2}$/.test(s)))].sort();
+  const save=async()=>{
+    if(bad.length){ showToast('날짜 형식이 틀린 줄이 있어요: '+bad[0],'error'); return; }
+    if(!/^\d{2}:\d{2}$/.test(cutoff)){ showToast('마감 시간을 확인해 주세요','error'); return; }
+    setSaving(true);
+    try{ await db.collection('config').doc(SHIPPING_DOC).set({enabled,cutoff,holidays,...audit.update()},{merge:true});
+      console.log(`[config/${SHIPPING_DOC}] 저장 — 마감 ${cutoff}, 휴일 ${holidays.length}건`); setSaved(true); showToast('저장했어요 · 상품 페이지에 5분 안에 반영돼요');
+    }catch(e){ console.error(`[config/${SHIPPING_DOC}] 저장 실패:`,e); showToast('저장 실패: '+e.message,'error'); }
+    setSaving(false);
+  };
+  const card={background:'#fff',border:'1px solid var(--border)',borderRadius:14,padding:'16px 18px',marginBottom:14};
+  if(loading) return <div style={{padding:30,color:'var(--text-sm)'}}>불러오는 중…</div>;
+  return (
+    <div style={{maxWidth:640}}>
+      <h2 style={{fontSize:20,fontWeight:900,margin:'0 0 4px'}}>🚚 출고 마감 설정</h2>
+      <p style={{fontSize:13,color:'var(--text-md)',margin:'0 0 16px',lineHeight:1.6}}>상품 페이지 구매 버튼 위에 <b>"오후 2시까지 주문하면 오늘 출고"</b> 안내가 나와요. 평일만 출고하고, 아래 휴일 목록의 날짜는 출고하지 않아요(한국시간 기준, 모든 상품 동일).</p>
+      <div style={{...card,background:enabled?'#FFF6EC':'#F3F4F6',borderColor:enabled?'#FBD9B4':'var(--border)'}}>
+        <div style={{fontSize:11.5,fontWeight:800,color:'var(--text-sm)',marginBottom:4}}>지금 고객에게 보이는 문구</div>
+        <div style={{fontSize:15,fontWeight:800,color:enabled?'#C2410C':'var(--text-sm)'}}>{enabled?shippingPreview(cutoff,holidays):'(꺼짐 — 안내가 안 보여요)'}</div>
+      </div>
+      <div style={card}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+          <label style={{fontSize:14,fontWeight:800}}>출고 마감 시간
+            <input type="time" value={cutoff} onChange={e=>{setCutoff(e.target.value);setSaved(false);}} style={{marginLeft:10,padding:'8px 10px',fontSize:15,fontWeight:700,border:'1.5px solid var(--border)',borderRadius:8}}/>
+          </label>
+          <button onClick={()=>{setEnabled(!enabled);setSaved(false);}} style={{padding:'8px 14px',borderRadius:20,border:'none',cursor:'pointer',fontWeight:800,fontSize:13,background:enabled?'var(--green)':'var(--border)',color:enabled?'#fff':'var(--text-md)'}}>{enabled?'안내 켜짐':'안내 꺼짐'}</button>
+        </div>
+      </div>
+      <div style={card}>
+        <div style={{fontSize:14,fontWeight:800,marginBottom:4}}>출고 안 하는 날 (공휴일·임시휴무)</div>
+        <div style={{fontSize:12,color:'var(--text-md)',marginBottom:8,lineHeight:1.6}}>한 줄에 하나씩 <b>2026-10-09</b> 처럼 적어요. 토·일요일은 자동으로 빠지니 안 적어도 돼요. 기본으로 2026~2027년 공휴일·대체공휴일을 넣어 뒀어요 — <b>회사 휴무일·근로자의 날 등은 직접 추가</b>해 주세요.</div>
+        <textarea value={holText} onChange={e=>{setHolText(e.target.value);setSaved(false);}} rows={10} style={{width:'100%',boxSizing:'border-box',padding:10,fontSize:13,fontFamily:'monospace',border:'1.5px solid '+(bad.length?'var(--red)':'var(--border)'),borderRadius:8,lineHeight:1.6}}/>
+        <div style={{fontSize:12,marginTop:6,color:bad.length?'var(--red)':'var(--text-sm)',fontWeight:700}}>{bad.length?`⚠ 형식이 틀린 줄: ${bad.join(', ')}`:`휴일 ${holidays.length}일 등록됨`}</div>
+      </div>
+      <button onClick={save} disabled={saving} style={{width:'100%',padding:'14px',borderRadius:12,border:'none',background:saved?'var(--border)':'var(--or)',color:saved?'var(--text-md)':'#fff',fontSize:15,fontWeight:900,cursor:saving?'wait':'pointer'}}>{saving?'저장 중…':saved?'저장됨 ✓':'저장하기'}</button>
+      <div style={{fontSize:11.5,color:'var(--text-sm)',marginTop:10,lineHeight:1.6}}>다음 할 일: 저장 후 상품 페이지를 시크릿 창으로 열어 문구를 확인하세요. 저장 위치 <code>config/pourstoreShipping</code></div>
     </div>
   );
 }
@@ -12882,6 +12964,7 @@ function App() {
         {active === 'postings' && <PostingsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'events' && <EventsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'best' && <BestPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'shipping' && <ShippingPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'guidedetail' && <GuideDetailPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'packages' && <PackagesPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'banners' && <BannersPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}

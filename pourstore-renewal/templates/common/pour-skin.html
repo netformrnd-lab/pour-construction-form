@@ -606,3 +606,104 @@
   })();
 })();
 </script>
+
+<!-- ============================================================
+  📦 출고 마감 안내 (2026-10) — 상품상세 구매버튼 위에 "오후 2시까지 주문하면 오늘 출고"
+  - 기준: 한국시간(KST), 평일(월~금)만 출고, 공휴일 출고 X, 모든 상품 동일
+  - 설정: 관리센터 > 디자인/개발 센터 > '출고 마감 설정' (Firestore config/pourstoreShipping)
+          { enabled:true, cutoff:'14:00', holidays:['YYYY-MM-DD',...] } — 문서 없으면 아래 기본값 사용
+  - 카페24 모듈/변수는 건드리지 않음. #scbtnzone(구매영역) 맨 위에 JS로 한 줄 끼워 넣기만 함.
+  ============================================================ -->
+<style>
+.pship { display:flex; align-items:center; gap:10px; margin:0 0 12px; padding:11px 14px; background:#FFF6EC; border:1px solid #FBD9B4; border-radius:10px; font-family:'Noto Sans KR','Pretendard Variable',Pretendard,sans-serif; color:#2A2E33; line-height:1.45; letter-spacing:-0.02em; box-sizing:border-box; width:100%; }
+.pship * { box-sizing:border-box; }
+.pship-ico { flex-shrink:0; width:34px; height:34px; border-radius:50%; background:#E8780F; display:grid; place-items:center; }
+.pship-ico svg { width:19px; height:19px; color:#fff; display:block; }
+.pship-txt { min-width:0; flex:1; }
+.pship-main { font-size:14px; font-weight:600; }
+.pship-main b { color:#E8780F; font-weight:800; }
+.pship-sub { margin-top:2px; font-size:12px; font-weight:500; color:#6B7280; }
+.pship-sub b { color:#C2410C; font-weight:700; font-variant-numeric:tabular-nums; }
+.pship.is-late { background:#F4F6FA; border-color:#DDE3EC; }
+.pship.is-late .pship-ico { background:#0F1F5C; }
+.pship.is-late .pship-main b { color:#0F1F5C; }
+@media (max-width:700px){ .pship { padding:10px 12px; gap:9px; } .pship-main { font-size:13.5px; } .pship-sub { font-size:11.5px; } .pship-ico { width:30px; height:30px; } .pship-ico svg { width:17px; height:17px; } }
+</style>
+<script>
+(function(){
+  if (window.__pourShipBooted) return; window.__pourShipBooted = true;
+  // 기본값 — 관리센터에서 저장하면 그 값이 우선. (공휴일·대체공휴일은 관리센터에서 확인·추가)
+  var DEF = { enabled:true, cutoff:'14:00', holidays:[
+    '2026-01-01','2026-02-16','2026-02-17','2026-02-18','2026-03-02','2026-05-05','2026-05-25','2026-06-03',
+    '2026-08-17','2026-09-24','2026-09-25','2026-09-28','2026-10-05','2026-10-09','2026-12-25',
+    '2027-01-01','2027-02-08','2027-02-09','2027-03-01','2027-05-05','2027-05-13','2027-08-16',
+    '2027-09-14','2027-09-15','2027-09-16','2027-10-04','2027-10-11','2027-12-27'
+  ]};
+  var DOC_URL = 'https://firestore.googleapis.com/v1/projects/pour-app-new/databases/(default)/documents/config/pourstoreShipping?key=AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU';
+  var WD = ['일','월','화','수','목','금','토'];
+
+  function kstNow(){ var d = new Date(Date.now() + 9*3600*1000); return d; } // UTC 필드 = 한국시간
+  function ymd(d){ return d.getUTCFullYear()+'-'+('0'+(d.getUTCMonth()+1)).slice(-2)+'-'+('0'+d.getUTCDate()).slice(-2); }
+  function isBiz(d, hol){ var w = d.getUTCDay(); return w>=1 && w<=5 && hol.indexOf(ymd(d)) < 0; }
+  function addDay(d, n){ return new Date(d.getTime() + n*86400000); }
+  function hmText(h, m){ var ap = h<12 ? '오전' : '오후'; var hh = h%12===0 ? 12 : h%12; return ap+' '+hh+'시'+(m ? ' '+m+'분' : ''); }
+
+  function compute(cfg){
+    var p = String(cfg.cutoff||'14:00').split(':'), ch = +p[0]||14, cm = +p[1]||0;
+    var hol = Array.isArray(cfg.holidays) ? cfg.holidays : [];
+    var now = kstNow(), mins = now.getUTCHours()*60 + now.getUTCMinutes(), cut = ch*60 + cm;
+    var cutTxt = hmText(ch, cm);
+    if (isBiz(now, hol) && mins < cut){
+      var left = cut - mins, lh = Math.floor(left/60), lm = left%60;
+      return { late:false, main:cutTxt+'까지 주문하면 <b>오늘 출고</b>',
+               sub:'출고 마감까지 <b>'+(lh ? lh+'시간 ' : '')+lm+'분</b> 남았어요' };
+    }
+    var d = addDay(now, 1), guard = 0;
+    while (!isBiz(d, hol) && guard++ < 30) d = addDay(d, 1);
+    var tomorrow = ymd(d) === ymd(addDay(now, 1));
+    var label = (tomorrow ? '내일 ' : '') + (d.getUTCMonth()+1)+'월 '+d.getUTCDate()+'일('+WD[d.getUTCDay()]+')';
+    return { late:true, main:'지금 주문하면 <b>'+label+' 출고</b>',
+             sub:'평일 '+cutTxt+'까지 주문 시 당일 출고 · 주말·공휴일 제외' };
+  }
+
+  function loadCfg(){
+    try { var c = JSON.parse(sessionStorage.getItem('pc:cfg:shipping')||'null'); if (c && Date.now()-c.t < 300000) return Promise.resolve(c.v); } catch(e){}
+    return fetch(DOC_URL).then(function(r){
+      if (r.status === 404){ console.log('[pship] config/pourstoreShipping 없음 → 기본값'); return null; }
+      if (!r.ok) throw new Error('HTTP '+r.status);
+      return r.json();
+    }).then(function(j){
+      var v = null;
+      if (j && j.fields){
+        var f = j.fields; v = {};
+        if (f.enabled) v.enabled = f.enabled.booleanValue !== false;
+        if (f.cutoff && f.cutoff.stringValue) v.cutoff = f.cutoff.stringValue;
+        if (f.holidays && f.holidays.arrayValue) v.holidays = (f.holidays.arrayValue.values||[]).map(function(x){ return x.stringValue; }).filter(Boolean);
+        console.log('[pship] 설정 로드 — 마감 '+(v.cutoff||'기본')+', 휴일 '+(v.holidays?v.holidays.length:'기본')+'건');
+      }
+      try { sessionStorage.setItem('pc:cfg:shipping', JSON.stringify({ t:Date.now(), v:v })); } catch(e){}
+      return v;
+    });
+  }
+
+  function mount(){
+    var zone = document.querySelector('#scbtnzone');
+    if (!zone) return; // 상품상세(구매영역)가 아닌 페이지
+    var box = document.createElement('div'); box.className = 'pship'; box.setAttribute('role','status');
+    box.innerHTML = '<span class="pship-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4h13v11H1z"/><path d="M14 8h4l3 3v4h-7z"/><circle cx="5.5" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></svg></span><div class="pship-txt"><div class="pship-main"></div><div class="pship-sub"></div></div>';
+    var cfg = DEF;
+    function paint(){
+      if (cfg.enabled === false){ box.style.display = 'none'; return; }
+      var r = compute(cfg); box.style.display = '';
+      box.classList.toggle('is-late', r.late);
+      box.querySelector('.pship-main').innerHTML = r.main;
+      box.querySelector('.pship-sub').innerHTML = r.sub;
+    }
+    paint(); zone.insertBefore(box, zone.firstChild);
+    setInterval(paint, 30000);
+    loadCfg().then(function(v){ if (v){ cfg = { enabled: v.enabled!==false, cutoff: v.cutoff||DEF.cutoff, holidays: v.holidays||DEF.holidays }; paint(); } })
+      .catch(function(e){ console.error('[pship] 설정 로드 실패(기본값 사용):', e); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
+})();
+</script>

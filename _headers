@@ -24,3 +24,10 @@
 
 /approval-requests.html
   Cache-Control: no-store, must-revalidate
+
+# 촬영 데스크 — 여러 사람이 폰으로 바로 최신 화면을 보도록 캐시 안 함
+/shoot-desk
+  Cache-Control: no-store, must-revalidate
+
+/shoot-desk.html
+  Cache-Control: no-store, must-revalidate

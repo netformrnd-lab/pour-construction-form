@@ -849,7 +849,10 @@
   .psm1-bs-pr .rate { color:#E8433B; margin-right:4px; }
   .psm1-mh-empty { padding:30px 0; text-align:center; font-size:13px; color:#9CA3AF; }
   /* 섹션 구분(2026-10): 섹션 사이 회색 띠 8px + 문제/이벤트 섹션 연한 배경 */
-  .psm1-pb, .psm1-cats, .psm1-pk, .psm1-bs, .psm1-dl { border-top:8px solid #F2F3F5 !important; }
+  .psm1-pb, .psm1-cats, .psm1-pk, .psm1-bs, .psm1-dl { border-top:0 !important; position:relative; }
+  .psm1-pb::before, .psm1-cats::before, .psm1-pk::before, .psm1-bs::before, .psm1-dl::before { content:''; position:absolute; top:0; left:16px; right:16px; height:1px; background:#E9EBEE; } /* 얇은 구분선(2026-10 사용자 요청: 띠가 너무 두꺼움) */
+  /* 기존 메인 섹션 중 '누수가 되고 있다면?'(pleak)·소재별(철재·목재·돌/시멘트, psm2)은 모바일에서 숨김 — PC는 그대로 */
+  .pleak, .psm2 { display:none !important; }
   .psm1-pb { background:#F7F8FA; padding-bottom:20px !important; }
   .psm1-pb .psm1-pb-card { border-color:#ECEEF1; }
   .psm1-dl { background:#FFF6EE; padding-bottom:18px !important; }

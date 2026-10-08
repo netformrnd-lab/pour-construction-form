@@ -281,6 +281,38 @@ body.noTabs .tabbar{display:none}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13.5px}
 .kv dt{color:var(--faint)} .kv dd{margin:0;color:var(--text);min-width:0;overflow-wrap:anywhere}
 .reqbox{background:var(--card2);border:1px solid var(--line);border-radius:var(--r);padding:13px 14px}
+.reqfold{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+.reqfold + .reqfold{margin-top:8px}
+.reqfold .t{font-size:10.5px;font-weight:700;color:var(--accent);letter-spacing:.06em;flex:none}
+.reqfold .bd{max-height:118px;overflow:hidden;position:relative}
+.reqfold.clip .bd::after{content:"";position:absolute;left:0;right:0;bottom:0;height:30px;background:linear-gradient(transparent,var(--card2))}
+.reqfold.open .bd{max-height:none}
+.reqfold.open .bd::after{display:none}
+.reqfold .kv{font-size:13px;margin-top:8px}
+.reqfold .more{font-size:12.5px;font-weight:600;color:var(--muted);padding:4px 0}
+.reqfold .fold-act{margin-top:6px}
+.reqwrap{margin-top:12px;padding-top:12px;border-top:1px solid var(--line2)}
+/* date picker */
+.dp-btn{width:100%;display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:11px 12px;font-size:16px;min-height:46px;text-align:left;color:var(--text)}
+.sheet .dp-btn{background:var(--card2)}
+.dp-btn svg{width:18px;height:18px;color:var(--muted);flex:none}
+.dp.on .dp-btn{border-color:var(--ink)}
+.field.err .dp-btn{outline:2px solid var(--accent);outline-offset:1px}
+.dp-cal{margin-top:8px;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px;box-shadow:var(--shadow)}
+.dp-head{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.dp-head b{flex:1;text-align:center;font-size:15px;color:var(--ink)}
+.dp-head button{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;color:var(--muted)}
+.dp-head button:hover{background:var(--sunk)}
+.dp-head button svg{width:18px;height:18px}
+.dp-dow,.dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.dp-dow{font-size:10.5px;color:var(--faint);padding:2px 0 4px}
+.dp-grid button{height:40px;border-radius:9px;font-size:14px;color:var(--text);font-family:"IBM Plex Mono",monospace}
+.dp-grid button:hover:not(:disabled){background:var(--sunk)}
+.dp-grid button.today{box-shadow:inset 0 0 0 1.5px var(--accent);font-weight:600}
+.dp-grid button[aria-pressed="true"]{background:var(--ink);color:var(--paper);font-weight:600}
+.dp-grid button:disabled{color:var(--faint);opacity:.35;cursor:not-allowed}
+.dp-foot{display:flex;justify-content:flex-end;margin-top:6px}
+.dp-foot button{font-size:12.5px;color:var(--muted);padding:7px 8px;border-radius:8px}
 .reqbox .t{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.06em}
 .reqbox p{margin:6px 0 0;font-size:13.5px;line-height:1.6;color:var(--text)}
 .reqbox .lb{font-size:11px;color:var(--faint);margin-top:10px;display:block}
@@ -415,6 +447,9 @@ const bar=(p,cls)=>'<div class="bar '+(cls||'')+'"><i style="width:'+p+'%"></i><
 const opts=(arr,sel)=>arr.map(([v,l])=>'<option value="'+esc(v)+'"'+(v===sel?' selected':'')+'>'+esc(l)+'</option>').join('');
 const lsGet=k=>{try{return localStorage.getItem(k)||'';}catch(e){return '';}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+const MIN_LEAD=7;
+const minDeadline=()=>d2s(addDays(today,MIN_LEAD));
 const H={home:'#/',form:'#/request',requests:'#/requests',req:id=>'#/r/'+encodeURIComponent(id),folders:'#/folders',
   brand:b=>'#/folders/'+encodeURIComponent(b),prod:id=>'#/p/'+encodeURIComponent(id),round:(p,r)=>'#/p/'+encodeURIComponent(p)+'/'+encodeURIComponent(r),cal:'#/calendar'};
 
@@ -610,13 +645,55 @@ function roundCard(p,r,i){
   return '<a class="fcard'+(r.archived?' hidden-tag':'')+'" href="'+H.round(p.id,r.id)+'"><div class="tabtop"></div>'+
     '<div class="row" style="gap:8px"><h3 class="grow trunc"><span class="mono" style="color:var(--faint);font-weight:500;font-size:13px">'+String(i+1).padStart(2,'0')+'</span> '+esc(r.title)+'</h3>'+
       (r.archived?'<span class="chip line">숨김</span>':'')+(r.date?ddayChip(r.date):'<span class="dday">날짜 미정</span>')+'</div>'+
-    (rq&&rq.concept?'<p class="sub clamp2">'+esc(rq.concept)+'</p>':(r.note?'<p class="sub clamp2">'+esc(r.note)+'</p>':''))+
+    (r.note?'<p class="sub clamp2">'+esc(r.note)+'</p>':'')+
     '<div class="fmeta">'+(r.date?'<span class="mono">'+fmtD(r.date)+(r.time?' '+esc(r.time):'')+'</span>':'<span>일정 미정</span>')+
       (r.loc?'<span class="dot"></span>'+I.pin+'<span>'+esc(r.loc)+'</span>':'')+(rq?'<span class="dot"></span><span>요청 '+esc(rq.name)+'</span>':'')+'</div>'+
     '<div class="row" style="margin-top:10px;gap:9px">'+bar(c.p,c.p===100?'done':'')+'<span class="pct mono">'+c.p+'%</span></div></a>';
 }
 const empty=(t,s)=>'<div class="empty">'+t+(s?'<br><span class="tiny">'+s+'</span>':'')+'</div>';
 const sec=(t,act)=>'<div class="sec-head"><span class="sec-title">'+t+'</span>'+(act||'')+'</div>';
+
+/* ---------------- 날짜 선택기 (캘린더) ---------------- */
+const dpText=(v,ph)=>v?esc(fmtD(v)+' ('+ddayLabel(dday(v))+')'):'<span class="faint">'+esc(ph||'날짜 선택')+'</span>';
+function dpHTML(name,value,o){
+  o=o||{};
+  return '<div class="dp" data-min="'+esc(o.min||'')+'" data-ph="'+esc(o.ph||'날짜 선택')+'"'+(o.clear?' data-clear="1"':'')+'>'+
+    '<input type="hidden" name="'+name+'"'+(o.f?' data-f="'+o.f+'"':'')+' value="'+esc(value||'')+'">'+
+    '<button type="button" class="dp-btn" data-act="dp-toggle" aria-expanded="false">'+I.cal+'<span class="dp-val">'+dpText(value,o.ph)+'</span></button>'+
+    '<div class="dp-cal" hidden></div></div>';
+}
+function dpField(label,name,value,o){
+  o=o||{};
+  return '<div class="field'+(o.err?' err':'')+'"'+(o.key?' data-field="'+o.key+'"':'')+'><span>'+label+(o.req?' <b class="req">*</b>':'')+'</span>'+
+    dpHTML(name,value,o)+(o.hint?'<div class="hint">'+o.hint+'</div>':'')+'</div>';
+}
+function dpDraw(box){
+  const y=+box.dataset.y, m=+box.dataset.m, val=box.querySelector('input').value, min=box.dataset.min, td=d2s(today);
+  const first=new Date(y,m,1).getDay(), n=new Date(y,m+1,0).getDate();
+  let cells=''; for(let i=0;i<first;i++)cells+='<span></span>';
+  for(let d=1;d<=n;d++){const ds=d2s(new Date(y,m,d)), dow=(first+d-1)%7;
+    cells+='<button type="button" data-act="dp-pick" data-d="'+ds+'" class="'+(ds===td?'today ':'')+(dow===0?'sun':dow===6?'sat':'')+'" aria-pressed="'+(ds===val)+'"'+(min&&ds<min?' disabled':'')+' aria-label="'+fmtD(ds)+'">'+d+'</button>';}
+  box.querySelector('.dp-cal').innerHTML='<div class="dp-head"><button type="button" data-act="dp-mv" data-n="-1" aria-label="이전 달">'+I.back+'</button>'+
+    '<b class="mono">'+y+'년 '+(m+1)+'월</b><button type="button" data-act="dp-mv" data-n="1" aria-label="다음 달" style="transform:rotate(180deg)">'+I.back+'</button></div>'+
+    '<div class="dp-dow"><span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span></div>'+
+    '<div class="dp-grid">'+cells+'</div>'+(box.dataset.clear?'<div class="dp-foot"><button type="button" data-act="dp-clear">날짜 지우기</button></div>':'');
+}
+function dpReveal(box){
+  const cal=box.querySelector('.dp-cal'), r=cal.getBoundingClientRect(), sh=box.closest('.sheet');
+  if(sh){const sr=sh.getBoundingClientRect();if(r.bottom>sr.bottom-12)sh.scrollTop+=r.bottom-sr.bottom+12;return;}
+  const bar=document.querySelector('.actionbar'), limit=(bar?bar.getBoundingClientRect().top:innerHeight)-12;
+  if(r.bottom>limit)window.scrollBy(0,Math.min(r.bottom-limit,r.top-80));
+}
+function dpClose(box){box.classList.remove('on');box.querySelector('.dp-cal').hidden=true;box.querySelector('.dp-btn').setAttribute('aria-expanded','false');}
+
+/* ---------------- 요청 요약 (제품·회차 화면 상단) ---------------- */
+function reqFold(rq){
+  return '<div class="reqfold"><div class="row"><span class="t">요청</span><span class="small trunc"><b style="color:var(--ink)">'+esc(rq.name)+'</b> · '+fmtISO(rq.createdAt)+' 요청</span><span class="grow"></span>'+ddayChip(rq.deadline,'마감 ')+'</div>'+
+    '<div class="bd"><dl class="kv"><dt>마감일</dt><dd>'+(rq.deadline?fmtD(rq.deadline):'-')+'</dd>'+
+      '<dt>컨셉</dt><dd class="pre">'+(esc(rq.concept)||'-')+'</dd>'+
+      (rq.cuts?'<dt>필요 컷</dt><dd class="pre">'+esc(rq.cuts)+'</dd>':'')+'</dl>'+miniThumbs(rq.refs)+'</div>'+
+    '<div class="row fold-act"><button type="button" class="more" data-act="fold" hidden>더보기 ▾</button><span class="grow"></span><a class="sec-act" href="'+H.req(rq.id)+'">요청 상세 ›</a></div></div>';
+}
 
 /* ---------------- 다음 할 일 ---------------- */
 function nextAction(){
@@ -682,6 +759,7 @@ function missing(){
   if(!D.product.trim())m.push(['product','촬영 품목']);
   if(!D.concept.trim())m.push(['concept','촬영 컨셉']);
   if(!D.deadline)m.push(['deadline','마감일']);
+  else if(!D.id&&D.deadline<minDeadline())m.push(['deadline','마감일(7일 이후)']);
   if(D.refs.length<2)m.push(['refs','레퍼런스 '+(2-D.refs.length)+'개 부족']);
   return m;
 }
@@ -704,7 +782,7 @@ function viewForm(R){
     '</section>',
     '<section class="formcard"><h4>촬영 내용</h4>',
       F('concept','촬영 컨셉','<textarea data-f="concept" placeholder="예: 자연광, 옥상 실사용 장면">'+esc(D.concept)+'</textarea>',1),
-      F('deadline','촬영 마감일','<input type="date" data-f="deadline" value="'+esc(D.deadline)+'"'+(R.id?'':' min="'+d2s(today)+'"')+'><div class="hint">촬영 완료 기한'+(D.deadline?' · '+fmtD(D.deadline)+' ('+ddayLabel(dday(D.deadline))+')':'')+'</div>',1),
+      dpField('촬영 마감일','deadline',D.deadline,{req:1,f:'deadline',key:'deadline',err:E.deadline,min:R.id?'':minDeadline(),hint:'마감일 최소 1주일 전 요청'}),
       F('cuts','필요한 컷 · 추가 내용','<textarea data-f="cuts" placeholder="예: 정면 누끼 3컷 / 사용 장면 2컷 / 9:16 영상 15초 1개">'+esc(D.cuts)+'</textarea>'),
     '</section>',
     '<section class="formcard'+(E.refs?' err':'')+'" data-field="refs" style="padding-bottom:14px"><div class="row" style="margin-bottom:10px"><h4 style="margin:0">레퍼런스 <b class="req" style="color:var(--accent)">*</b></h4>'+
@@ -732,8 +810,9 @@ async function submitReq(){
   if(m.length){
     DRAFT.err={}; m.forEach(([k])=>DRAFT.err[k]=1); render();
     const el=document.querySelector('[data-field="'+m[0][0]+'"]');
-    if(el){el.scrollIntoView({behavior:'smooth',block:'center'});const i=el.querySelector('input,textarea');if(i)setTimeout(()=>i.focus({preventScroll:true}),300);}
-    const MSG={name:'요청자 이름 미입력',brand:'브랜드 미선택',product:'촬영 품목 미입력',concept:'촬영 컨셉 미입력',deadline:'촬영 마감일 미입력'};
+    if(el){el.scrollIntoView({behavior:'smooth',block:'center'});const i=el.querySelector('input:not([type=hidden]),textarea');
+      if(i)setTimeout(()=>i.focus({preventScroll:true}),300);else{const b=el.querySelector('.dp-btn');if(b)setTimeout(()=>b.click(),300);}}
+    const MSG={name:'요청자 이름 미입력',brand:'브랜드 미선택',product:'촬영 품목 미입력',concept:'촬영 컨셉 미입력',deadline:DRAFT.deadline?'마감일 최소 1주일 이후':'촬영 마감일 미입력'};
     toast(MSG[m[0][0]]||'레퍼런스 '+(2-DRAFT.refs.length)+'개 부족'); return;
   }
   S.busy=true; const btn=$('#submitReq'); if(btn){btn.textContent='접수 중…';btn.classList.add('dim');}
@@ -857,12 +936,12 @@ function viewProd(R){
       '<h2 style="margin:9px 0 2px;font-size:20px;letter-spacing:-.02em;color:var(--ink);word-break:keep-all">'+esc(p.name)+'</h2>'+
       (p.memo?'<p class="small muted pre" style="margin:4px 0 0">'+esc(p.memo)+'</p>':'')+
       '<div class="fmeta"><span>회차 '+visRounds(p).length+'</span><span class="dot"></span><span>요청 '+rq.length+'</span>'+(c.t?'<span class="dot"></span><span class="mono">'+c.d+'/'+c.t+' 항목</span>':'')+'</div>'+
-      (c.t?'<div class="row" style="margin-top:10px;gap:9px">'+bar(c.p,c.p===100?'done':'')+'<span class="pct mono">'+c.p+'%</span></div>':'')+'</section>',
+      (c.t?'<div class="row" style="margin-top:10px;gap:9px">'+bar(c.p,c.p===100?'done':'')+'<span class="pct mono">'+c.p+'%</span></div>':'')+
+      (rq.length?'<div class="reqwrap">'+rq.map(reqFold).join('')+'</div>':'')+'</section>',
     sec('촬영 회차'),
     '<section class="stack">'+(rs.length?rs.map((r,i)=>roundCard(p,r,i)).join(''):empty('촬영 회차 없음'))+'</section>',
     '<button class="btn '+(rs.length?'ghost':'accent')+'" data-act="newround" data-p="'+esc(p.id)+'">+ '+((p.rounds||[]).length+1)+'차 촬영 추가</button>',
-    hiddenN?'<div class="foot"><button data-act="togglehidden" data-k="round">'+(sh?'숨긴 회차 감추기':'숨긴 회차 '+hiddenN+'개 보기')+'</button></div>':'',
-    rq.length?'<section class="stack">'+sec('요청 내역 '+rq.length)+rq.map(reqCard).join('')+'</section>':''
+    hiddenN?'<div class="foot"><button data-act="togglehidden" data-k="round">'+(sh?'숨긴 회차 감추기':'숨긴 회차 '+hiddenN+'개 보기')+'</button></div>':''
   ].join('');
 }
 function todoRow(p,r,k,t){
@@ -884,11 +963,7 @@ function viewRound(R){
       '<div class="row" style="margin-top:11px;gap:9px">'+bar(c.p,c.p===100?'done':'')+'<span class="pct mono">'+c.p+'%</span></div>'+
       (c.t&&c.p===100?'<div class="banner" style="margin-top:10px;background:var(--q4s);color:var(--q4)">투두 전체 완료</div>':'')+'</section>',
     !r.date||!r.loc?'<div class="prompt"><span>'+(!r.date&&!r.loc?'촬영 일정·장소 미정':!r.date?'촬영 일정 미정':'촬영 장소 미정')+'</span><button data-act="editround" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'">입력 ›</button></div>':'',
-    rq?'<div class="reqbox"><div class="row"><span class="t">요청 내용</span><span class="grow"></span>'+ddayChip(rq.deadline,'마감 ')+'</div>'+
-      '<p><b style="color:var(--ink)">'+esc(rq.name)+'</b> · 마감 '+(rq.deadline?fmtD(rq.deadline):'-')+'</p>'+
-      (rq.concept?'<span class="lb">촬영 컨셉</span><p class="pre" style="margin-top:2px">'+esc(rq.concept)+'</p>':'')+
-      (rq.cuts?'<span class="lb">필요한 컷 · 추가 내용</span><p class="pre" style="margin-top:2px">'+esc(rq.cuts)+'</p>':'')+
-      '<a class="sec-act" style="display:inline-block;margin-top:10px" href="'+H.req(rq.id)+'">요청 전체 보기 ›</a></div>':'',
+    rq?reqFold(rq):'',
     '<div class="matrix">'+QUADS.map(q=>{
       const list=todos[q.k]||[], dn=list.filter(t=>t.done).length;
       return '<div class="quad '+q.q+'"><div class="quad-h"><span class="nm">'+q.n+'</span>'+
@@ -947,7 +1022,7 @@ function viewCal(){
 
 /* ---------------- 렌더 ---------------- */
 let pendingRender=false;
-const typing=()=>{const a=document.activeElement;return !!(a&&a.closest&&a.closest('#view')&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));};
+const typing=()=>{if(document.querySelector('#view .dp.on'))return true;const a=document.activeElement;return !!(a&&a.closest&&a.closest('#view')&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));};
 function scheduleRender(){if(typing()){pendingRender=true;return;}render();}
 document.addEventListener('focusout',()=>{if(!pendingRender)return;setTimeout(()=>{if(typing())return;pendingRender=false;render();},60);});
 function render(){
@@ -963,6 +1038,7 @@ function render(){
   v.innerHTML=R.v==='form'?viewForm(R):R.v==='requests'?viewRequests():R.v==='req'?viewReq(R):R.v==='folders'?viewFolders():
     R.v==='brand'?viewBrand(R):R.v==='prod'?viewProd(R):R.v==='round'?viewRound(R):R.v==='calendar'?viewCal():viewHome();
   if(R.v==='form')updateMissing();
+  v.querySelectorAll('.reqfold').forEach(f=>{const bd=f.querySelector('.bd');if(bd.scrollHeight>bd.clientHeight+4){f.classList.add('clip');f.querySelector('.more').hidden=false;}});
   if(S.focusAdd){S.focusAdd=false;const inp=v.querySelector('.inlineform input');if(inp)inp.focus();}
   if(S.focusLink){S.focusLink=false;const lk=v.querySelector('#lk-url');if(lk)lk.focus();}
 }
@@ -987,7 +1063,7 @@ function acceptSheet(id){
     '<label class="field"><span>제품 폴더</span><select name="prod">'+opts(choices,match?match.id:'__new')+'</select>'+
       (match?'<div class="hint">동일 제품 폴더 있음 → 다음 회차로 추가</div>':'')+'</label>'+
     '<div id="newname"'+(match?' hidden':'')+'>'+Fld('새 폴더 이름','name',r.product)+'</div>'+
-    '<div class="two">'+Fld('촬영 날짜','date','','date')+Fld('시간','time','10:00','time')+'</div>'+
+    dpField('촬영 날짜','date','',{clear:1,ph:'날짜 미정'})+Fld('시간','time','10:00','time')+
     (r.deadline?'<div class="tiny faint" style="margin:-8px 0 12px">요청 마감일 '+fmtD(r.deadline)+' ('+ddayLabel(dday(r.deadline))+')</div>':'')+
     Fld('촬영 장소','loc','','text',' list="locs" placeholder="예: 성수 스튜디오 A"')+locList()+
     '<button class="btn accent" type="submit">수락 · 폴더 생성</button></form>',true);
@@ -1004,7 +1080,7 @@ function roundSheet(pid,rid){
   openSheet('<h3>'+(r?'일정 · 장소 수정':n+'차 촬영 추가')+'</h3><p class="lead">'+esc(p.brand)+' › '+esc(p.name)+(r?'':' · 기본 투두 4종 포함')+'</p>'+
     '<form data-act="'+(r?'do-editround':'do-newround')+'" data-p="'+esc(p.id)+'"'+(r?' data-r="'+esc(r.id)+'"':'')+'>'+
     Fld('회차 이름','title',r?r.title:n+'차 촬영')+
-    '<div class="two">'+Fld('촬영 날짜','date',r?r.date:'','date')+Fld('시간','time',r?r.time:'10:00','time')+'</div>'+
+    dpField('촬영 날짜','date',r?r.date:'',{clear:1,ph:'날짜 미정'})+Fld('시간','time',r?r.time:'10:00','time')+
     Fld('촬영 장소','loc',r?r.loc:(visRounds(p).slice(-1)[0]||{}).loc||'','text',' list="locs" placeholder="예: 성수 스튜디오 A"')+locList()+
     (!r&&prodReqs.length?'<label class="field"><span>연결할 요청 (선택)</span><select name="req">'+opts([['','연결 안 함']].concat(prodReqs.map(q=>[q.id,q.name+' · '+fmtISO(q.createdAt)+' 요청'])),'')+'</select></label>':'')+
     '<label class="field"><span>메모 (선택)</span><textarea name="note" placeholder="예: 모델 손 섭외 필요">'+esc(r?r.note:'')+'</textarea></label>'+
@@ -1197,6 +1273,22 @@ document.addEventListener('click',async e=>{
      else{let m=S.cal.m+Number(d.n),y=S.cal.y;if(m<0){m=11;y--;}if(m>11){m=0;y++;}S.cal={y,m};}
      render(); break;}
    case 'close': closeSheet(); break;
+   case 'fold': {const f=el.closest('.reqfold');const o=f.classList.toggle('open');el.textContent=o?'접기 ▴':'더보기 ▾';break;}
+   case 'dp-toggle': {
+     const box=el.closest('.dp'), cal=box.querySelector('.dp-cal');
+     document.querySelectorAll('.dp.on').forEach(b=>{if(b!==box)dpClose(b);});
+     if(cal.hidden){const v=box.querySelector('input').value||box.dataset.min||d2s(today), dt=s2d(v);
+       box.dataset.y=dt.getFullYear(); box.dataset.m=dt.getMonth(); dpDraw(box); cal.hidden=false; box.classList.add('on'); el.setAttribute('aria-expanded','true');
+       requestAnimationFrame(()=>dpReveal(box));}
+     else dpClose(box);
+     break;}
+   case 'dp-mv': {const box=el.closest('.dp');let m=+box.dataset.m+Number(d.n),y=+box.dataset.y;if(m<0){m=11;y--;}if(m>11){m=0;y++;}box.dataset.y=y;box.dataset.m=m;dpDraw(box);break;}
+   case 'dp-pick': case 'dp-clear': {
+     const box=el.closest('.dp'), inp=box.querySelector('input');
+     inp.value=a==='dp-pick'?d.d:''; box.querySelector('.dp-val').innerHTML=dpText(inp.value,box.dataset.ph); dpClose(box);
+     inp.dispatchEvent(new Event('input',{bubbles:true}));
+     if(pendingRender&&!typing())render();
+     break;}
   }
 });
 
@@ -1204,7 +1296,6 @@ document.addEventListener('click',async e=>{
 document.addEventListener('input',e=>{
   const f=e.target.dataset&&e.target.dataset.f; if(!f||!DRAFT)return;
   DRAFT[f]=e.target.value; if(DRAFT.err[f==='brandCustom'?'brand':f]){DRAFT.err[f==='brandCustom'?'brand':f]=0;const fe=e.target.closest('.field');if(fe)fe.classList.remove('err');}
-  if(f==='deadline'){const h=e.target.parentNode.querySelector('.hint');if(h)h.textContent='촬영 완료 기한'+(DRAFT.deadline?' · '+fmtD(DRAFT.deadline)+' ('+ddayLabel(dday(DRAFT.deadline))+')':'');}
   updateMissing();
 });
 document.addEventListener('keydown',e=>{

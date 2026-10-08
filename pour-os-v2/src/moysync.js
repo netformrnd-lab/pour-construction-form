@@ -130,7 +130,7 @@ export function planMoySync(src, V, opt = {}) {
   [add, upd, keep, trash, gone].forEach((a) => a.sort(ord));
   // 활동 기록: 새로 넣거나 최신으로 바꾸는 것의 모여라딜 기록만 (버전1 가져오기 뒤 · 새 것은 전부) → pour-os/v2/log/md_<기록 id> (없을 때만)
   const addIds = new Set(add.map((x) => x.id)), updIds = new Set(upd.map((x) => x.id)), pOf = new Map([...(pl.adds.tasks || []).map((t) => [t.id, t.projectId || ""])]);
-  const logs = (pl.logs || []).filter((e) => e && e.targetId && (addIds.has(e.targetId) || (updIds.has(e.targetId) && String(e.at || "") > base)))
+  const logs = (pl.logs || []).filter((e) => e && e.id && e.targetId && (addIds.has(e.targetId) || (updIds.has(e.targetId) && String(e.at || "") > base)))
     .map((e) => ({ ...e, importedFrom: MOY_FROM, projectId: e.col === "projects" ? e.targetId : pOf.get(e.targetId) || "" }));
   // 사람 · 브랜드
   const uName = (id) => ((V.users || []).find((u) => u.id === id) || {}).name || "";

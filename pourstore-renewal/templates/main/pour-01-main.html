@@ -791,9 +791,6 @@
 <!-- ===== 2026-10 [모바일 전용] 베스트 '지금 많이 찾는 유지보수 자재' (탭 + 순위 카드) ===== -->
 <section class="psm1-bs" data-mh="best" aria-label="베스트" hidden>
   <div class="psm1-mh-head"><h2>지금 많이 찾는 유지보수 자재</h2><a href="/product/list.html?cate_no=104" data-href="/product/list.html?cate_no=104" class="psm1-mh-more" aria-label="베스트 전체">›</a></div>
-  <div class="psm1-bs-tabs" role="tablist">
-    <button type="button" class="on" data-cate="104">전체</button><button type="button" data-cate="86">방수</button><button type="button" data-cate="74">도장</button><button type="button" data-cate="88">균열보수</button><button type="button" data-cate="117">보강자재</button><button type="button" data-cate="43">홈리페어</button><button type="button" data-cate="84">부자재</button>
-  </div>
   <div class="psm1-bs-row" data-mh-list></div>
 </section>
 <style>
@@ -839,10 +836,6 @@
   .psm1-pk-pr { margin-top:3px; font-size:14px; font-weight:800; }
   .psm1-pk-pr .rate { color:#E8433B; margin-right:4px; }
   /* 베스트 */
-  .psm1-bs-tabs { display:flex; gap:6px; overflow-x:auto; margin:0 -16px 14px; padding:0 16px; scrollbar-width:none; }
-  .psm1-bs-tabs::-webkit-scrollbar { display:none; }
-  .psm1 .psm1-bs-tabs button { flex-shrink:0; padding:7px 14px; border-radius:999px; background:#F3F4F6; color:#374151; font-size:13px; font-weight:600; }
-  .psm1 .psm1-bs-tabs button.on { background:#0F1F5C; color:#fff; }
   .psm1-bs-row { display:flex; gap:10px; overflow-x:auto; margin:0 -16px; padding:0 16px 6px; scroll-padding:0 16px; scroll-snap-type:x mandatory; scrollbar-width:none; min-height:220px; }
   .psm1-bs-row::-webkit-scrollbar { display:none; }
   .psm1-bs-it { flex:0 0 128px; scroll-snap-align:start; color:#111827; }
@@ -859,7 +852,7 @@
 /* ===== 모바일 홈 추가 섹션 데이터 — 카페24 상품목록 페이지(같은 사이트)를 읽어 카드로 표시 (pour-02-best와 같은 방식)
    - PC/태블릿(701px 이상)에서는 아무것도 불러오지 않음 → PC 속도·화면 영향 0
    - 이벤트: DEAL_CATE 목록에서 '할인 중'인 상품만 할인율 높은 순 4개 (전용 카테고리 만들면 번호만 바꾸면 됨)
-   - 패키지: PKG_CATE 앞 4개 / 베스트: 탭별 카테고리 목록 순서 = 순위 ===== */
+   - 패키지: PKG_CATE 앞 4개 / 베스트: 카페24 베스트 분류(104) 진열 순서 = 순위 (카테고리 탭은 상품 수가 적어 빈 칸이 생겨 제거, 2026-10) ===== */
 (function(){
   if (window.innerWidth > 700) return;
   var DEAL_CATE = '73', PKG_CATE = '71';
@@ -933,12 +926,6 @@
         if(more){ more.href='/product/list.html?cate_no='+cate; more.setAttribute('data-href', more.href); }
       });
     }
-    Array.prototype.forEach.call(sec.querySelectorAll('.psm1-bs-tabs button'), function(b){
-      b.addEventListener('click', function(){
-        Array.prototype.forEach.call(sec.querySelectorAll('.psm1-bs-tabs button'), function(x){ x.classList.toggle('on', x===b); });
-        show(b.getAttribute('data-cate'));
-      });
-    });
     sec.hidden = false; show('104');
   }
   // 보이는 기준 요소(watch)가 화면 근처에 오면 그때 불러옴 — hidden 섹션은 크기 0이라 관찰 불가

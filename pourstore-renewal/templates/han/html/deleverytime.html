@@ -1,0 +1,56 @@
+<!-- ============================================================
+  deleverytime.html — 상품상세 '오늘 출발' 배너 (카페24 스킨 /han/html/deleverytime.html 교체본, 2026-10)
+  - 기존: 선물상자 아이콘 + 남은 시간 카운트다운 → 변경: 화물차 아이콘 + 고정 배송 안내 문구
+  - 마감 시간: 관리센터 > 디자인/개발 센터 > '출고 마감 설정' (Firestore config/pourstoreShipping {enabled, cutoff:'HH:MM'})
+    문서가 없거나 못 읽으면 기본값 오후 2시로 표시.
+  - 색: .pdlv 의 --pdlv-bg 한 줄만 바꾸면 전체 색 변경
+  ============================================================ -->
+<div class="pdlv" id="pdlvBanner" role="note" aria-label="배송 안내">
+  <div class="pdlv-ico" aria-hidden="true">
+    <svg viewBox="0 0 64 64" fill="none">
+      <g class="pdlv-wind" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M4 26h8"/><path d="M2 33h9"/><path d="M5 40h6"/></g>
+      <g class="pdlv-truck">
+        <path d="M15 19h25v24H15z" fill="currentColor"/>
+        <path d="M40 27h9l7 8v8H40z" fill="currentColor"/>
+        <path d="M43 30h5l4.5 5H43z" fill="#fff" opacity=".9"/>
+        <circle cx="23" cy="45" r="5" fill="#fff" stroke="currentColor" stroke-width="3"/>
+        <circle cx="48" cy="45" r="5" fill="#fff" stroke="currentColor" stroke-width="3"/>
+        <path d="M20 26h14M20 32h9" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".85"/>
+      </g>
+    </svg>
+  </div>
+  <p class="pdlv-main">평일 <b data-pdlv-time>오후 2시</b> 이전 주문 시 <b>오늘 출발!</b></p>
+  <p class="pdlv-sub">주문 당일 바로 포장해서 보내드려요<br>주말·공휴일 주문은 다음 영업일에 출발합니다</p>
+</div>
+<style>
+.pdlv { --pdlv-bg:#4BB8C4; --pdlv-hi:#FFF35C; position:relative; box-sizing:border-box; width:100%; margin:0; padding:22px 18px 18px; border-radius:10px; background:var(--pdlv-bg); color:#fff; text-align:center; font-family:'Noto Sans KR','Pretendard Variable',Pretendard,sans-serif; letter-spacing:-0.02em; overflow:hidden; }
+.pdlv * { box-sizing:border-box; }
+.pdlv::after { content:''; position:absolute; right:-40px; top:-40px; width:140px; height:140px; border-radius:50%; background:rgba(255,255,255,.08); pointer-events:none; }
+.pdlv-ico { width:64px; height:64px; margin:0 auto 10px; border-radius:50%; background:rgba(255,255,255,.95); color:var(--pdlv-bg); display:grid; place-items:center; box-shadow:0 6px 16px rgba(0,0,0,.12); }
+.pdlv-ico svg { width:48px; height:48px; display:block; }
+.pdlv-truck { animation:pdlvDrive 1.6s ease-in-out infinite; }
+.pdlv-wind { animation:pdlvWind 1.6s ease-in-out infinite; }
+@keyframes pdlvDrive { 0%,100% { transform:translateX(0); } 50% { transform:translateX(2px) translateY(-.6px); } }
+@keyframes pdlvWind { 0%,100% { opacity:.25; transform:translateX(0); } 50% { opacity:.8; transform:translateX(-2px); } }
+@media (prefers-reduced-motion:reduce){ .pdlv-truck, .pdlv-wind { animation:none; } }
+.pdlv-main { margin:0; font-size:16px; font-weight:700; line-height:1.45; word-break:keep-all; }
+.pdlv-main b { color:var(--pdlv-hi); font-weight:800; }
+.pdlv-sub { margin:5px 0 0; font-size:12.5px; font-weight:500; line-height:1.5; opacity:.92; word-break:keep-all; }
+@media (max-width:700px){ .pdlv { padding:18px 14px 15px; } .pdlv-ico { width:56px; height:56px; } .pdlv-ico svg { width:42px; height:42px; } .pdlv-main { font-size:15px; } .pdlv-sub { font-size:12px; } }
+</style>
+<script>
+(function(){
+  var el = document.getElementById('pdlvBanner'); if (!el || el.__init) return; el.__init = true;
+  var URL_ = 'https://firestore.googleapis.com/v1/projects/pour-app-new/databases/(default)/documents/config/pourstoreShipping?key=AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU';
+  function hm(v){ var p=String(v||'14:00').split(':'), h=+p[0]||14, m=+p[1]||0; return (h<12?'오전':'오후')+' '+(h%12===0?12:h%12)+'시'+(m?' '+m+'분':''); }
+  function apply(v){ if (!v) return; if (v.enabled === false){ el.style.display='none'; return; } el.querySelector('[data-pdlv-time]').textContent = hm(v.cutoff); }
+  try { var c = JSON.parse(sessionStorage.getItem('pc:cfg:shipping')||'null'); if (c && Date.now()-c.t < 300000){ apply(c.v); return; } } catch(e){}
+  fetch(URL_).then(function(r){ if (r.status===404){ console.log('[pdlv] 출고 설정 없음 → 기본 오후 2시'); return null; } if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+  .then(function(j){
+    var v = null;
+    if (j && j.fields){ var f=j.fields; v = { enabled: !(f.enabled && f.enabled.booleanValue===false), cutoff: (f.cutoff && f.cutoff.stringValue) || '14:00' }; console.log('[pdlv] 출고 설정 — '+(v.enabled?'켜짐':'꺼짐')+', '+v.cutoff); }
+    try { sessionStorage.setItem('pc:cfg:shipping', JSON.stringify({ t:Date.now(), v:v })); } catch(e){}
+    apply(v);
+  }).catch(function(e){ console.error('[pdlv] 출고 설정 로드 실패(기본값 표시):', e); });
+})();
+</script>

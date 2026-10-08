@@ -790,7 +790,7 @@
   <div class="psm1-mh-head"><h2>지금 많이 찾는 유지보수 자재</h2><a href="/product/list.html?cate_no=104" data-href="/product/list.html?cate_no=104" class="psm1-mh-more" aria-label="베스트 전체">›</a></div>
   <div class="psm1-bs-row" data-mh-list></div>
 </section>
-<!-- ===== 2026-10 [모바일 전용] 띠배너(가로4:세로1) — 어드민 '메인 배너 관리' > '모바일 메인 띠배너'(config/pourstoreBanners.mstrip). 없으면 자리 안 보임 ===== -->
+<!-- ===== 2026-10 [모바일 전용] 띠배너(가로4:세로1.5) — 어드민 '메인 배너 관리' > '모바일 메인 띠배너'(config/pourstoreBanners.mstrip). 없으면 자리 안 보임 ===== -->
 <section class="psm1-eb" data-mh="evbanner" aria-label="띠배너" hidden>
   <div class="psm1-eb-track" data-eb-track></div>
   <span class="psm1-eb-cnt" data-eb-cnt></span>
@@ -824,12 +824,12 @@
   .psm1-dl-pr .rate { color:#E8433B; margin-right:5px; }
   .psm1-dl-pr .orig { margin-left:5px; font-size:12px; font-weight:400; color:#9CA3AF; text-decoration:line-through; }
   .psm1-dl-chip { align-self:flex-start; margin-top:2px; padding:2px 7px; border:1px solid #E5E7EB; border-radius:4px; font-size:11px; color:#4B5563; }
-  /* 띠배너(베스트와 '오직 POUR스토어에서만' 사이, 가로4:세로1) — 좌우로 넘기기 */
+  /* 띠배너(베스트와 '오직 POUR스토어에서만' 사이, 가로4:세로1.5) — 좌우로 넘기기 */
   .psm1-eb { position:relative; padding:4px 0 22px; } /* 화면 끝까지 꽉 차게(아래 이벤트 섹션 배경과 같은 폭) */
   .psm1-eb-track { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
   .psm1-eb-track::-webkit-scrollbar { display:none; }
-  .psm1-eb-it { flex:0 0 100%; scroll-snap-align:start; aspect-ratio:4/1; background:#F5F6F8; display:block; }
-  .psm1-eb-it img { width:100%; height:100%; object-fit:cover; display:block; }
+  .psm1-eb-it { flex:0 0 100%; scroll-snap-align:start; aspect-ratio:8/3; background:#000; display:block; }
+  .psm1-eb-it img { width:100%; height:100%; object-fit:contain; display:block; } /* 비율 다른 이미지도 잘리지 않게(남는 곳은 어두운 여백) — 권장 1080×405 */
   .psm1-eb-cnt { position:absolute; right:10px; bottom:30px; padding:2px 8px; border-radius:20px; background:rgba(17,24,39,.55); color:#fff; font-size:10.5px; font-weight:600; letter-spacing:.02em; }
   .psm1-eb-cnt:empty { display:none; }
   /* 무엇이 궁금하신가요 — 기존 아이콘을 가로 스크롤 한 줄로 (제품구매·패키지·부자재/안전용품 제외) */

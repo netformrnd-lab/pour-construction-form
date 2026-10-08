@@ -685,6 +685,8 @@
   </div>
 </section>
 <style>
+/* ★ 모바일 전용(사용자 결정 2026-10-08: PC는 건드리지 않음) — 701px 이상에서는 아래 두 섹션 숨김 */
+.psm1-qc, .psm1-pb { display:none; }
 .psm1-qc { padding:26px 24px 8px; }
 .psm1-qc-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:repeat(8,1fr); gap:18px 6px; }
 .psm1-qc-it { display:flex; flex-direction:column; align-items:center; gap:9px; text-decoration:none; }
@@ -717,6 +719,7 @@
 .psm1-pb-ar { padding:6px 14px 12px; color:#9CA3AF; font-size:16px; }
 @media (max-width:900px){ .psm1-qc-inner { grid-template-columns:repeat(4,1fr); } }
 @media (max-width:700px){
+  .psm1-qc, .psm1-pb { display:block; }
   .psm1-qc { padding:20px 10px 4px; }
   .psm1-qc-inner { gap:16px 0; }
   .psm1-qc-ico { width:60px; height:60px; }

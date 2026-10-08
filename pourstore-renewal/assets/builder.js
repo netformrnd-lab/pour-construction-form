@@ -9821,7 +9821,7 @@ show('entry');
     return href;
   }
   // Pretendard CDN — 오늘의집과 동일 폰트 (variable + static fallback)
-  const PRETENDARD_CSS_URL = 'https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css';
+  const PRETENDARD_CSS_URL = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css';
   function buildFontTokensCss() {
     const tokens = (state && Array.isArray(state.fontTokens)) ? state.fontTokens : [];
     if (tokens.length === 0) return '';

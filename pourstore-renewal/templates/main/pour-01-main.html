@@ -19,12 +19,17 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@600&display=swap">
+<!-- (2026-10) 슬로건 Gothic A1 제거 → Pretendard 통일: 페이지마다 글씨체 달라 보이던 문제 해결 -->
 <section class="psm1">
+<!-- 로고 글자 "POUR스토어" 전용 배민 도현체 (8글자만 받는 초경량 로드) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&display=block&text=POUR%EC%8A%A4%ED%86%A0%EC%96%B4">
+<!-- 상단(헤더) 기본 글씨체 = Noto Sans KR (POUR스토어 기본체) -->
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=block">
 <style>
-.psm1 *, .psm1 *::before, .psm1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.psm1 *, .psm1 *::before, .psm1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR','Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .psm1 { background:#fff; color:#2F3438; line-height:1.5; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.02em; }
 .psm1 a { color:inherit; text-decoration:none; }
 .psm1 button { background:none; border:none; cursor:pointer; font:inherit; color:inherit; letter-spacing:inherit; }
@@ -56,14 +61,43 @@
 .psm1-hd-mb .psm1-mb-logo img { height:46px; width:auto; display:block; }
 .psm1-drawer-logo img { height:40px; width:auto; display:block; vertical-align:middle; }
 .psm1-ytm-brand img { height:34px; width:auto; display:block; }
+/* 로고 = 동그란 엠블럼 + 오른쪽 'POUR스토어' 글자 (2026-10, 12곳 동일) */
+.psm1-logo, .psm1-hd-mb .psm1-mb-logo, .psm1-drawer-logo { display:flex; align-items:center; gap:8px; }
+.psm1-logo-txt { font-family:'Do Hyeon','Pretendard Variable',Pretendard,sans-serif; font-weight:400; color:#111827; letter-spacing:-0.01em; white-space:nowrap; line-height:1; } /* 배민 도현체 */
+.psm1-logo .psm1-logo-txt { font-size:32px; }
+.psm1-hd-mb .psm1-mb-logo { gap:6px; }
+.psm1-hd-mb .psm1-mb-logo img { height:40px; }
+.psm1-hd-mb .psm1-mb-logo .psm1-logo-txt { font-size:25px; }
+.psm1-drawer-logo img { height:36px; }
+.psm1-drawer-logo .psm1-logo-txt { font-size:23px; }
+/* ===== 상단 크기 고정(2026-10) — 카페24 스킨 CSS·페이지별 CSS가 달라도 12곳 상단이 똑같이 보이게 ===== */
+.psm1-sticky { font-size:14px; line-height:1.5; -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+.psm1-sticky .psm1-search input { height:34px !important; padding:0 !important; margin:0 !important; font-size:15px !important; line-height:34px !important; }
+.psm1-sticky .psm1-search-btn { width:34px !important; height:34px !important; min-width:0 !important; padding:0 !important; }
+.psm1-sticky .psm1-mb-searchbar input { height:30px !important; padding:0 !important; margin:0 !important; font-size:16px !important; line-height:30px !important; }
+.psm1-sticky .psm1-mb-searchbar button[type="submit"] { width:30px !important; height:30px !important; min-width:0 !important; padding:0 !important; }
+.psm1-sticky .psm1-logo img { height:64px !important; width:auto !important; max-width:none !important; }
+.psm1-sticky .psm1-hd-mb .psm1-mb-logo img { height:40px !important; width:auto !important; max-width:none !important; }
+@media (max-width:900px){ .psm1-sticky .psm1-search input { font-size:16px !important; } }
+/* 태블릿(701~1100px): 오른쪽 아이콘 줄이 화면 밖으로 밀려나던 문제 → 아이콘만(글자 숨김)·로고 조금 작게 */
+@media (min-width:701px) and (max-width:1100px){
+  .psm1-sticky .psm1-hd-inner { gap:16px; }
+  .psm1-sticky .psm1-hd-util .psm1-util-lb { display:none; }
+  .psm1-sticky .psm1-hd-util .psm1-util-ico, .psm1-sticky .psm1-hd-util .psm1-cart-link { min-width:32px; padding:6px 3px; }
+  .psm1-sticky .psm1-hd-util .psm1-util-sep { display:none; }
+  .psm1-sticky .psm1-logo img { height:50px !important; }
+  .psm1-sticky .psm1-logo .psm1-logo-txt { font-size:26px; }
+  .psm1-sticky .psm1-searchwrap { min-width:0; }
+  .psm1-sticky .psm1-slogan { margin-left:6px; font-size:13px; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:top; }
+}
 .psm1-searchwrap { flex:1; max-width:620px; position:relative; }
 /* 검색창 아래 태그라인 — 왼쪽 정렬 + 오른쪽으로 반짝이는 빛(글린트) 반복, 귀여운 Jua */
-.psm1-slogan { position:relative; display:inline-block; margin-top:11px; margin-left:20px; font-family:'Gothic A1','Pretendard Variable',Pretendard,sans-serif; font-weight:600; font-size:15px; letter-spacing:-0.02em; color:#2A2E33; line-height:1.3; word-break:keep-all; }
+.psm1-slogan { position:relative; display:inline-block; margin-top:11px; margin-left:20px; font-family:'Noto Sans KR','Pretendard Variable',Pretendard,sans-serif; font-weight:600; font-size:15px; letter-spacing:-0.02em; color:#2A2E33; line-height:1.3; word-break:keep-all; }
 .psm1-slogan b { font-family:inherit; font-weight:inherit; color:#E8780F; }
 .psm1-slg-g { position:absolute; inset:0; font-family:inherit; background:linear-gradient(100deg,transparent 44%,rgba(255,255,255,.92) 50%,transparent 56%); background-size:280% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; animation:psm1-shine 6.5s ease-in-out infinite; pointer-events:none; }
 @keyframes psm1-shine { 0% { background-position:170% 0; } 50%,100% { background-position:-70% 0; } }
 @media (prefers-reduced-motion:reduce) { .psm1-slg-g { animation:none; opacity:0; } }
-.psm1-search form { margin:0; display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:26px; padding:10px 12px 10px 18px; }
+.psm1-search form { margin:0; display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:24px; padding:4px 5px 4px 18px; } /* PC 검색창 높이 축소(46px) */
 .psm1-search .psm1-search-ico { width:20px; height:20px; color:#E8780F; flex-shrink:0; }
 .psm1-search input { flex:1; min-width:0; border:none; outline:none; background:none; font-size:15px; font-weight:400; color:#2F3438; letter-spacing:-0.02em; }
 .psm1-search input::placeholder { color:#9E9E9E; }
@@ -74,7 +108,7 @@
   border:none !important; border-radius:0!important; box-shadow:none !important; outline:none !important;
 }
 .psm1 input[type="text"]:-webkit-autofill { -webkit-box-shadow:0 0 0 1000px #fff inset !important; }
-.psm1-search-btn { flex-shrink:0; width:38px; height:38px; border-radius:50%; background:#E8780F; display:grid; place-items:center; transition:.15s; }
+.psm1-search-btn { flex-shrink:0; width:34px; height:34px; border-radius:50%; background:#E8780F; display:grid; place-items:center; transition:.15s; }
 .psm1-search-btn:hover { background:#C8650D; }
 .psm1-search-btn svg { width:18px; height:18px; color:#fff; }
 /* 자동완성 드롭다운 */
@@ -105,7 +139,7 @@
 .psm1-ac-cats::-webkit-scrollbar { display:none; }
 .psm1-ac-cat { flex:0 0 auto; width:66px; display:flex; flex-direction:column; align-items:center; gap:6px; padding:5px 2px; border-radius:0; transition:.12s; }
 .psm1-ac-cat:hover { background:#FAFAFA; }
-.psm1-ac-cat-ico { width:44px; height:44px; border-radius:0; background:#FFF3E9; color:#E8780F; display:grid; place-items:center; }
+.psm1-ac-cat-ico { width:44px; height:44px; border-radius:13px; background:#FFF3E9; color:#E8780F; display:grid; place-items:center; }
 .psm1-ac-cat-ico svg { width:22px; height:22px; }
 .psm1-ac-cat-nm { font-size:11.5px; font-weight:600; color:#374151; white-space:nowrap; letter-spacing:-0.03em; }
 .psm1-ac-rank { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; padding:0 4px 6px; }
@@ -143,7 +177,7 @@
 .psm1-hd-util .psm1-util-lb { font-size:10.5px; font-weight:600; color:#6B7280; letter-spacing:-0.04em; line-height:1; white-space:nowrap; }
 .psm1-hd-util .psm1-util-ico:hover, .psm1-hd-util .psm1-cart-link:hover { color:#E8780F; }
 .psm1-hd-util .psm1-util-ico:hover .psm1-util-lb, .psm1-hd-util .psm1-cart-link:hover .psm1-util-lb { color:#E8780F; }
-.psm1-hd-util .psm1-util-sep { align-self:center; width:1px; height:24px; background:#E5E7EB; margin:0 2px; }
+.psm1-hd-util .psm1-util-sep { align-self:center; width:1px; height:24px; background:#E5E7EB; margin:0 4px; }
 .psm1-hd-mb { display:none; }
 /* 2) 카테고리 탭 */
 .psm1-tabs { border-bottom:1px solid #F2F3F5; background:#fff; }
@@ -199,7 +233,12 @@
 .psm1-bnr-arrow.prev { left:10px; } .psm1-bnr-arrow.next { right:10px; }
 .psm1-banner:hover .psm1-bnr-arrow, .psm1-banner-side:hover .psm1-bnr-arrow { opacity:1; }
 @media (max-width:700px){
-  .psm1-bnr-arrow { display:none; } /* 모바일은 스와이프로 넘김 */
+  /* 모바일: 하단 점 대신 좌우 화살표로 넘김(항상 표시) */
+  .psm1-bnr-dots { display:none !important; }
+  .psm1-bnr-arrow { opacity:1; width:30px; height:30px; font-size:20px; background:rgba(15,23,42,.42) !important; color:#fff !important; box-shadow:0 2px 6px rgba(0,0,0,.18); }
+  .psm1-bnr-arrow.prev { left:8px; } .psm1-bnr-arrow.next { right:8px; }
+  /* 모바일: 하단 서브배너 숨김(메인 배너 1개만) */
+  .psm1-banner-side { display:none !important; }
   /* 모바일: 서브(사이드) 배너는 가로형으로 (JS 높이동기화 무시, 16:9) */
   .psm1-banner-side.psm1-has-carousel { aspect-ratio:5/2; min-height:0 !important; height:auto !important; } /* 모바일 서브배너 2.5:1 (권장 이미지 1080×432) */
   /* 디자인형 배너(텍스트 포함)면 모바일 최소높이 확보 */
@@ -230,24 +269,25 @@
   .psm1-topbar { display:none; }
   .psm1-hd-inner { display:none; }
   .psm1-hd-mb { display:block; padding:12px 14px 14px; }
-  .psm1-mb-slogan { margin:9px 4px 0; text-align:center; font-family:'Gothic A1','Pretendard Variable',Pretendard,sans-serif; font-weight:600; font-size:12.5px; letter-spacing:-0.02em; color:#2A2E33; line-height:1.4; word-break:keep-all; }
-  .psm1-mb-slogan b { font-family:inherit; font-weight:inherit; color:#E8780F; }
+  .psm1-mb-slogan { margin:8px 4px 0; text-align:center; font-family:'Noto Sans KR','Pretendard Variable',Pretendard,sans-serif; font-weight:600; font-size:12.5px; letter-spacing:-0.02em; color:#2A2E33; line-height:1.4; word-break:keep-all; }
+  .psm1-mb-slogan b { font-family:inherit; font-weight:inherit; color:#E8780F; } .psm1-hd-mb, .psm1-tabs { -webkit-text-size-adjust:100%; text-size-adjust:100%; } /* iOS 글자 자동확대 방지 — 전 페이지 상단 크기 고정 */
   .psm1-mb-top { display:grid; grid-template-columns:40px 1fr 40px; align-items:center; }
   .psm1-hd-mb .psm1-mb-menu, .psm1-hd-mb .psm1-mb-cart { width:40px; height:40px; display:grid; place-items:center; font-size:22px; color:#374151; position:relative; }
   .psm1-hd-mb .psm1-mb-cart .count { position:absolute; top:2px; right:2px; min-width:15px; height:15px; padding:0 4px; background:#E8780F; color:#fff; font-size:9px; font-weight:800; border-radius:8px; display:grid; place-items:center; line-height:1; }
   .psm1-hd-mb .psm1-mb-logo { display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; color:#111827; letter-spacing:-0.045em; }
   .psm1-hd-mb .psm1-mb-logo .psm1-logo-or { color:#111827; }
-  .psm1-mb-searchbar { margin-top:14px; }
-  .psm1-mb-searchbar form { display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:24px; padding:10px 12px 10px 16px; }
+  .psm1-mb-searchbar { margin-top:8px; }
+  .psm1-mb-searchbar form { display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:22px; padding:4px 5px 4px 14px; } /* 모바일 검색창 높이 축소(약 42px) */
   .psm1-mb-searchbar .psm1-mb-search-ico { width:18px; height:18px; color:#E8780F; flex-shrink:0; }
-  .psm1-mb-searchbar input { flex:1; min-width:0; border:none; background:none; outline:none; font-size:16px; color:#2F3438; letter-spacing:-0.02em; } /* 16px 미만이면 iOS가 포커스 시 자동확대 → 16px 고정 */
+  .psm1-mb-searchbar input { flex:1; min-width:0; height:30px; padding:0; border:none; background:none; outline:none; font-size:16px; color:#2F3438; letter-spacing:-0.02em; } /* 16px 미만이면 iOS가 포커스 시 자동확대 → 16px 고정 */
   .psm1-mb-searchbar input::placeholder { color:#9E9E9E; }
-  .psm1-mb-searchbar button[type="submit"] { flex-shrink:0; width:32px; height:32px; border-radius:50%; background:#E8780F; display:grid; place-items:center; }
+  .psm1-mb-searchbar button[type="submit"] { flex-shrink:0; width:30px; height:30px; border-radius:50%; background:#E8780F; display:grid; place-items:center; }
   .psm1-mb-searchbar button[type="submit"] svg { width:15px; height:15px; color:#fff; }
   .psm1-mb-hot { margin-top:10px; display:flex; align-items:center; gap:10px; overflow-x:auto; scrollbar-width:none; }
   .psm1-mb-hot::-webkit-scrollbar { display:none; }
   .psm1-mb-hot .psm1-mb-hot-label { font-size:11px; font-weight:800; color:#E8780F; flex-shrink:0; }
   .psm1-mb-hot a { font-size:12.5px; font-weight:500; color:#616161; white-space:nowrap; }
+  .psm1-mb-hot { display:none !important; } /* 모바일 상단 인기검색어 제거(2026-10) — 하단 재배치 예정 */
   .psm1-tabs-inner { padding:0 14px; }
   .psm1-tab { font-size:14px; padding:14px 10px; }
   .psm1-hero { padding:14px 14px 0; }
@@ -297,7 +337,7 @@
 .psm1-ov-cats { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; padding-bottom:2px; }
 .psm1-ov-cats::-webkit-scrollbar { display:none; }
 .psm1-ov-cat { flex:0 0 auto; width:74px; display:flex; flex-direction:column; align-items:center; gap:8px; }
-.psm1-ov-cat-ico { width:62px; height:62px; border-radius:0; display:grid; place-items:center; background:#FFF3E9; color:#E8780F; }
+.psm1-ov-cat-ico { width:62px; height:62px; border-radius:18px; display:grid; place-items:center; background:#FFF3E9; color:#E8780F; }
 .psm1-ov-cat-ico svg { width:28px; height:28px; }
 .psm1-ov-cat-name { font-size:12.5px; font-weight:600; color:#374151; letter-spacing:-0.03em; text-align:center; white-space:nowrap; }
 /* 급상승 검색어 (2단 순번) */
@@ -420,7 +460,7 @@
 <!-- 1) 메인 헤더 -->
 <header class="psm1-hd">
   <div class="psm1-hd-inner">
-    <a href="/" class="psm1-logo"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fpour-logo.png?alt=media&amp;token=01389d80-e284-4587-9ac7-53394ae3cabe" alt="POUR스토어"></a>
+    <a href="/" class="psm1-logo" aria-label="POUR스토어 홈"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fpour-logo.png?alt=media&amp;token=01389d80-e284-4587-9ac7-53394ae3cabe" alt="" aria-hidden="true"><span class="psm1-logo-txt">POUR스토어</span></a>
     <div class="psm1-searchwrap">
       <div class="psm1-search">
         <form action="/product/search.html" method="get" role="search">
@@ -431,7 +471,7 @@
           </button>
         </form>
       </div>
-      <div class="psm1-slogan">누구나 쉽고 오래가는 <b>건축물 유지보수 자재</b>의 모든 것<span class="psm1-slg-g" aria-hidden="true">누구나 쉽고 오래가는 건축물 유지보수 자재의 모든 것</span></div>
+      <div class="psm1-slogan">누구나 쉽게, 오래가는 <b>건축물 유지보수 자재</b>의 모든 것<span class="psm1-slg-g" aria-hidden="true">누구나 쉽게, 오래가는 건축물 유지보수 자재의 모든 것</span></div>
       <div class="psm1-ac" data-psm1-ac></div>
     </div>
     <div class="psm1-hot" data-psm1-hot>
@@ -457,12 +497,13 @@
   <div class="psm1-hd-mb">
     <div class="psm1-mb-top">
       <button class="psm1-mb-menu" aria-label="메뉴"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-      <a href="/" class="psm1-mb-logo"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fpour-logo.png?alt=media&amp;token=01389d80-e284-4587-9ac7-53394ae3cabe" alt="POUR스토어"></a>
+      <a href="/" class="psm1-mb-logo" aria-label="POUR스토어 홈"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fpour-logo.png?alt=media&amp;token=01389d80-e284-4587-9ac7-53394ae3cabe" alt="" aria-hidden="true"><span class="psm1-logo-txt">POUR스토어</span></a>
       <a href="/order/basket.html" module="Layout_orderBasketcount" class="psm1-mb-cart" aria-label="장바구니">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg>
         <span class="count {$basket_count_display|display} {$basket_count_display_class}"><span class="{$basket_count_class}">{$basket_count}</span></span>
       </a>
     </div>
+    <div class="psm1-mb-slogan">누구나 쉽게, 오래가는 <b>건축물 유지보수 자재</b>의 모든 것</div>
     <div class="psm1-mb-searchbar" style="position:relative">
       <form action="/product/search.html" method="get" role="search">
         <svg class="psm1-mb-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -473,7 +514,6 @@
       </form>
       <div class="psm1-ac" data-psm1-mb-ac></div>
     </div>
-    <div class="psm1-mb-slogan">누구나 쉽고 오래가는 <b>건축물 유지보수 자재</b>의 모든 것</div>
     <div class="psm1-mb-hot" data-psm1-mb-hot>
       <span class="psm1-mb-hot-label">인기검색어</span>
     </div>
@@ -579,7 +619,174 @@
 })();
 </script>
 <!-- 4) 카테고리 아이콘 -->
+<!-- ===== 2026-10 소재·작업별 카테고리 8개 (기존 빠른메뉴 위) — 아이콘 교체: Storage POUR스토어_리뉴얼/quick-icons/cat-N.png 올리면 자동 교체 ===== -->
+<div class="psm1-mfirst"><!-- [모바일] 첫 화면 = 아이콘 + 문제섹션만 (아래 섹션이 첫 화면에 걸치지 않게 최소 높이) -->
+<!-- ===== 2026-10 [모바일 전용] 소재·작업별 카테고리 8개 (기존 빠른메뉴 위) — 아이콘 교체: Storage POUR스토어_리뉴얼/quick-icons/cat-N.png 올리면 자동 교체 ===== -->
+<nav class="psm1-qc" aria-label="카테고리 바로가기">
+  <div class="psm1-pb-head psm1-qc-head"><h2>필요한 자재를 바로 찾아보세요</h2><a href="/product/list.html?cate_no=73" data-href="/product/list.html?cate_no=73">전체보기 ›</a></div>
+  <div class="psm1-qc-inner">
+    <a href="/product/list.html?cate_no=86" class="psm1-qc-it" data-href="/product/list.html?cate_no=86" data-n="1"><span class="psm1-qc-ico" style="background:#E3F0FF"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5c-.6 0-1.1.3-1.4.8C11.8 9 7.5 14.3 7.5 19.2a8.5 8.5 0 0 0 17 0c0-4.9-4.3-10.2-7.1-14.9-.3-.5-.8-.8-1.4-.8z" fill="#3B82F6"/>
+<path d="M16 3.5c-.6 0-1.1.3-1.4.8C11.8 9 7.5 14.3 7.5 19.2a8.5 8.5 0 0 0 8.5 8.5z" fill="#60A5FA"/>
+<path d="M12 19.5a4.2 4.2 0 0 0 3.2 4.1" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity=".9"/></svg></span><span class="psm1-qc-nm">방수</span></a>
+    <a href="/product/list.html?cate_no=74" class="psm1-qc-it" data-href="/product/list.html?cate_no=74" data-n="2"><span class="psm1-qc-ico" style="background:#FFEBD9"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="5" width="20" height="9" rx="3" fill="#F97316"/>
+<rect x="4" y="5" width="20" height="4" rx="2" fill="#FDBA74"/>
+<path d="M24 9.5h2.5a1.5 1.5 0 0 1 1.5 1.5v3.5a1.5 1.5 0 0 1-1.5 1.5H16.5a1.5 1.5 0 0 0-1.5 1.5V19" stroke="#94A3B8" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="12.5" y="19" width="5" height="10" rx="2" fill="#475569"/></svg></span><span class="psm1-qc-nm">도장</span></a>
+    <a href="/product/list.html?cate_no=88" class="psm1-qc-it" data-href="/product/list.html?cate_no=88" data-n="3"><span class="psm1-qc-ico" style="background:#F1EAE2"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="5" width="24" height="22" rx="3" fill="#D6C7B6"/>
+<path d="M4 12h24M4 19h24M12 5v7M20 12v7M12 19v8" stroke="#BCA891" stroke-width="1.4"/>
+<path d="M17 5l-3 6 4 3-3 5 3 4-2 4" stroke="#7C5A3A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="9" y="13.5" width="14" height="6" rx="2" transform="rotate(-35 16 16.5)" fill="#F59E0B"/>
+<circle cx="14.2" cy="17.3" r=".9" fill="#fff" opacity=".8"/><circle cx="17.8" cy="15.6" r=".9" fill="#fff" opacity=".8"/></svg></span><span class="psm1-qc-nm">균열보수</span></a>
+    <a href="/product/list.html?cate_no=119" class="psm1-qc-it" data-href="/product/list.html?cate_no=119" data-n="4"><span class="psm1-qc-ico" style="background:#DFF5EA"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 20.5 3.5 14.5 16 8.5l12.5 6z" fill="#86EFAC"/>
+<path d="M3.5 18.5 16 24.5l12.5-6" stroke="#10B981" stroke-width="2.4" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M3.5 14.5 16 20.5l12.5-6" stroke="#059669" stroke-width="2.4" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M16 8.5 3.5 14.5" stroke="#059669" stroke-width="2.4" stroke-linecap="round"/><path d="M16 8.5l12.5 6" stroke="#059669" stroke-width="2.4" stroke-linecap="round"/></svg></span><span class="psm1-qc-nm">바닥보수</span></a>
+    <a href="/product/list.html?cate_no=116" class="psm1-qc-it" data-href="/product/list.html?cate_no=116" data-n="5"><span class="psm1-qc-ico" style="background:#E8EAEE"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M11 4h10l6 24H5z" fill="#475569"/>
+<path d="M16 6.5v3.5M16 13v4M16 20v5" stroke="#FACC15" stroke-width="2.2" stroke-linecap="round"/>
+<path d="M11 4 5 28" stroke="#CBD5E1" stroke-width="1.5"/><path d="M21 4l6 24" stroke="#CBD5E1" stroke-width="1.5"/>
+<path d="M25 14.5l3.2 9H21.8z" fill="#F97316"/><path d="M23.3 19.5h3.4" stroke="#fff" stroke-width="1.6"/><rect x="21" y="23.3" width="8" height="1.8" rx=".9" fill="#EA580C"/></svg></span><span class="psm1-qc-nm">도로보수</span></a>
+    <a href="/product/list.html?cate_no=117" class="psm1-qc-it" data-href="/product/list.html?cate_no=117" data-n="6"><span class="psm1-qc-ico" style="background:#E0ECFF"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3.5 17 16 6l12.5 11" stroke="#1E3A8A" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M7 15.5h18" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round"/>
+<path d="M16 8.5v7M16 8.5l-5 7M16 8.5l5 7M11.5 11.8h9" stroke="#60A5FA" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="6" y="18.5" width="20" height="3.2" rx="1" fill="#475569"/>
+<rect x="14.4" y="21.2" width="3.2" height="5.3" fill="#64748B"/>
+<rect x="10" y="26" width="12" height="2.6" rx="1" fill="#475569"/></svg></span><span class="psm1-qc-nm">보강자재</span></a>
+    <a href="/product/list.html?cate_no=43" class="psm1-qc-it" data-href="/product/list.html?cate_no=43" data-n="7"><span class="psm1-qc-ico" style="background:#FFE4EC"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 15 16 5.5 27 15" stroke="#E11D48" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M8 14v12.5h16V14L16 7z" fill="#FB7185"/>
+<rect x="13" y="18" width="6" height="8.5" rx="1" fill="#fff"/>
+<circle cx="24" cy="23" r="5" fill="#fff"/><path d="M26.2 21.2a2.2 2.2 0 0 0-2.9 2.6l-2.3 2.3 1.1 1.1 2.3-2.3a2.2 2.2 0 0 0 2.6-2.9l-1.1 1.1-1-.1-.1-1z" fill="#475569"/></svg></span><span class="psm1-qc-nm">홈리페어</span></a>
+    <a href="/product/list.html?cate_no=84" class="psm1-qc-it" data-href="/product/list.html?cate_no=84" data-n="8"><span class="psm1-qc-ico" style="background:#EDE9FE"><svg viewBox="0 0 32 32" aria-hidden="true"><g transform="rotate(40 16 16)">
+<rect x="13.6" y="14.5" width="4.8" height="15" rx="2.4" fill="#B7791F"/>
+<rect x="14.6" y="16" width="1.3" height="11" rx=".65" fill="#F6C277" opacity=".8"/>
+<rect x="12.5" y="10.5" width="7" height="5" rx="1" fill="#94A3B8"/>
+<rect x="12.5" y="12.2" width="7" height="1.2" fill="#CBD5E1"/>
+<path d="M12 10.8V4.5A2.5 2.5 0 0 1 14.5 2h3A2.5 2.5 0 0 1 20 4.5v6.3z" fill="#8B5CF6"/>
+<path d="M12 6h8v4.8h-8z" fill="#7C3AED"/>
+<path d="M14 2.6v7.8M16 2v8.6M18 2.6v7.8" stroke="#C4B5FD" stroke-width=".8" opacity=".7"/>
+</g></svg></span><span class="psm1-qc-nm">부자재</span></a>
+  </div>
+</nav>
+<!-- ===== 2026-10 문제 카드 8장(좌우 스크롤) — 사진: Storage POUR스토어_리뉴얼/problem-cards/problem-N.jpg 올리면 자동 표시(없으면 아이콘) ===== -->
+<section class="psm1-pb" aria-label="지금 이런 문제가 있으신가요?">
+  <div class="psm1-pb-head"><h2>지금 이런 문제가 있으신가요?</h2><div class="psm1-pb-tools"><a href="/product/list.html?cate_no=73" data-href="/product/list.html?cate_no=73">전체보기 ›</a><button type="button" class="psm1-pb-nav" data-pb-nav="-1" aria-label="이전">‹</button><button type="button" class="psm1-pb-nav" data-pb-nav="1" aria-label="다음">›</button></div></div>
+  <div class="psm1-pb-row">
+    <a href="/product/list.html?cate_no=86" class="psm1-pb-card" data-href="/product/list.html?cate_no=86" data-n="1"><span class="psm1-pb-ph" style="background:#E3F0FF"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5c-.6 0-1.1.3-1.4.8C11.8 9 7.5 14.3 7.5 19.2a8.5 8.5 0 0 0 17 0c0-4.9-4.3-10.2-7.1-14.9-.3-.5-.8-.8-1.4-.8z" fill="#3B82F6"/>
+<path d="M16 3.5c-.6 0-1.1.3-1.4.8C11.8 9 7.5 14.3 7.5 19.2a8.5 8.5 0 0 0 8.5 8.5z" fill="#60A5FA"/>
+<path d="M12 19.5a4.2 4.2 0 0 0 3.2 4.1" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity=".9"/></svg></span><span class="psm1-pb-tx">지붕·옥상 누수가 걱정된다면</span><span class="psm1-pb-ar" aria-hidden="true">→</span></a>
+    <a href="/product/list.html?cate_no=88" class="psm1-pb-card" data-href="/product/list.html?cate_no=88" data-n="2"><span class="psm1-pb-ph" style="background:#F1EAE2"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="5" width="24" height="22" rx="3" fill="#D6C7B6"/>
+<path d="M4 12h24M4 19h24M12 5v7M20 12v7M12 19v8" stroke="#BCA891" stroke-width="1.4"/>
+<path d="M17 5l-3 6 4 3-3 5 3 4-2 4" stroke="#7C5A3A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="9" y="13.5" width="14" height="6" rx="2" transform="rotate(-35 16 16.5)" fill="#F59E0B"/>
+<circle cx="14.2" cy="17.3" r=".9" fill="#fff" opacity=".8"/><circle cx="17.8" cy="15.6" r=".9" fill="#fff" opacity=".8"/></svg></span><span class="psm1-pb-tx">건물에 균열이 생겼다면</span><span class="psm1-pb-ar" aria-hidden="true">→</span></a>
+    <a href="/product/list.html?cate_no=74" class="psm1-pb-card" data-href="/product/list.html?cate_no=74" data-n="3"><span class="psm1-pb-ph" style="background:#FFEBD9"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="5" width="20" height="9" rx="3" fill="#F97316"/>
+<rect x="4" y="5" width="20" height="4" rx="2" fill="#FDBA74"/>
+<path d="M24 9.5h2.5a1.5 1.5 0 0 1 1.5 1.5v3.5a1.5 1.5 0 0 1-1.5 1.5H16.5a1.5 1.5 0 0 0-1.5 1.5V19" stroke="#94A3B8" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="12.5" y="19" width="5" height="10" rx="2" fill="#475569"/></svg></span><span class="psm1-pb-tx">외벽 페인트가 벗겨졌다면</span><span class="psm1-pb-ar" aria-hidden="true">→</span></a>
+    <a href="/product/list.html?cate_no=86" class="psm1-pb-card" data-href="/product/list.html?cate_no=86" data-n="4"><span class="psm1-pb-ph" style="background:#E3F0FF"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5c-.6 0-1.1.3-1.4.8C11.8 9 7.5 14.3 7.5 19.2a8.5 8.5 0 0 0 17 0c0-4.9-4.3-10.2-7.1-14.9-.3-.5-.8-.8-1.4-.8z" fill="#3B82F6"/>
+<path d="M16 3.5c-.6 0-1.1.3-1.4.8C11.8 9 7.5 14.3 7.5 19.2a8.5 8.5 0 0 0 8.5 8.5z" fill="#60A5FA"/>
+<path d="M12 19.5a4.2 4.2 0 0 0 3.2 4.1" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity=".9"/></svg></span><span class="psm1-pb-tx">철재에 녹이 슬었다면</span><span class="psm1-pb-ar" aria-hidden="true">→</span></a>
+    <a href="/product/list.html?cate_no=117" class="psm1-pb-card" data-href="/product/list.html?cate_no=117" data-n="5"><span class="psm1-pb-ph" style="background:#E0ECFF"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3.5 17 16 6l12.5 11" stroke="#1E3A8A" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M7 15.5h18" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round"/>
+<path d="M16 8.5v7M16 8.5l-5 7M16 8.5l5 7M11.5 11.8h9" stroke="#60A5FA" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="6" y="18.5" width="20" height="3.2" rx="1" fill="#475569"/>
+<rect x="14.4" y="21.2" width="3.2" height="5.3" fill="#64748B"/>
+<rect x="10" y="26" width="12" height="2.6" rx="1" fill="#475569"/></svg></span><span class="psm1-pb-tx">옥상 방수층을 보완하고 싶다면</span><span class="psm1-pb-ar" aria-hidden="true">→</span></a>
+    <a href="/product/list.html?cate_no=86" class="psm1-pb-card" data-href="/product/list.html?cate_no=86" data-n="6"><span class="psm1-pb-ph" style="background:#E3F0FF"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5c-.6 0-1.1.3-1.4.8C11.8 9 7.5 14.3 7.5 19.2a8.5 8.5 0 0 0 17 0c0-4.9-4.3-10.2-7.1-14.9-.3-.5-.8-.8-1.4-.8z" fill="#3B82F6"/>
+<path d="M16 3.5c-.6 0-1.1.3-1.4.8C11.8 9 7.5 14.3 7.5 19.2a8.5 8.5 0 0 0 8.5 8.5z" fill="#60A5FA"/>
+<path d="M12 19.5a4.2 4.2 0 0 0 3.2 4.1" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity=".9"/></svg></span><span class="psm1-pb-tx">목재 색이 바랬다면</span><span class="psm1-pb-ar" aria-hidden="true">→</span></a>
+    <a href="/product/list.html?cate_no=119" class="psm1-pb-card" data-href="/product/list.html?cate_no=119" data-n="7"><span class="psm1-pb-ph" style="background:#DFF5EA"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 20.5 3.5 14.5 16 8.5l12.5 6z" fill="#86EFAC"/>
+<path d="M3.5 18.5 16 24.5l12.5-6" stroke="#10B981" stroke-width="2.4" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M3.5 14.5 16 20.5l12.5-6" stroke="#059669" stroke-width="2.4" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M16 8.5 3.5 14.5" stroke="#059669" stroke-width="2.4" stroke-linecap="round"/><path d="M16 8.5l12.5 6" stroke="#059669" stroke-width="2.4" stroke-linecap="round"/></svg></span><span class="psm1-pb-tx">주차장 바닥이 들떴다면</span><span class="psm1-pb-ar" aria-hidden="true">→</span></a>
+    <a href="/product/list.html?cate_no=116" class="psm1-pb-card" data-href="/product/list.html?cate_no=116" data-n="8"><span class="psm1-pb-ph" style="background:#E8EAEE"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M11 4h10l6 24H5z" fill="#475569"/>
+<path d="M16 6.5v3.5M16 13v4M16 20v5" stroke="#FACC15" stroke-width="2.2" stroke-linecap="round"/>
+<path d="M11 4 5 28" stroke="#CBD5E1" stroke-width="1.5"/><path d="M21 4l6 24" stroke="#CBD5E1" stroke-width="1.5"/>
+<path d="M25 14.5l3.2 9H21.8z" fill="#F97316"/><path d="M23.3 19.5h3.4" stroke="#fff" stroke-width="1.6"/><rect x="21" y="23.3" width="8" height="1.8" rx=".9" fill="#EA580C"/></svg></span><span class="psm1-pb-tx">아스팔트가 패였다면</span><span class="psm1-pb-ar" aria-hidden="true">→</span></a>
+    <a href="/product/list.html?cate_no=43" class="psm1-pb-card" data-href="/product/list.html?cate_no=43" data-n="9"><span class="psm1-pb-ph" style="background:#FFE4EC"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 15 16 5.5 27 15" stroke="#E11D48" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M8 14v12.5h16V14L16 7z" fill="#FB7185"/>
+<rect x="13" y="18" width="6" height="8.5" rx="1" fill="#fff"/>
+<circle cx="24" cy="23" r="5" fill="#fff"/><path d="M26.2 21.2a2.2 2.2 0 0 0-2.9 2.6l-2.3 2.3 1.1 1.1 2.3-2.3a2.2 2.2 0 0 0 2.6-2.9l-1.1 1.1-1-.1-.1-1z" fill="#475569"/></svg></span><span class="psm1-pb-tx">생활공간을 간편하게 개선하고 싶다면</span><span class="psm1-pb-ar" aria-hidden="true">→</span></a>
+  </div>
+</section>
+</div><!-- //psm1-mfirst -->
+<style>
+/* ★ 모바일 전용(사용자 결정 2026-10-08: PC는 건드리지 않음) — 701px 이상에서는 아래 두 섹션 숨김 */
+.psm1-qc, .psm1-pb { display:none; }
+.psm1-qc { padding:26px 24px 8px; }
+.psm1 .psm1-qc, .psm1 .psm1-qc *, .psm1 .psm1-pb, .psm1 .psm1-pb * { font-family:'Noto Sans KR','Pretendard Variable',Pretendard,sans-serif; }
+.psm1-qc-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:repeat(8,1fr); gap:18px 6px; }
+.psm1-qc-it { display:flex; flex-direction:column; align-items:center; gap:9px; text-decoration:none; }
+.psm1-qc-ico { width:68px; height:68px; border-radius:50%; display:grid; place-items:center; overflow:hidden; transition:transform .15s; }
+.psm1-qc-it:hover .psm1-qc-ico { transform:translateY(-2px); }
+.psm1-qc-ico svg { width:38px; height:38px; overflow:visible; }
+.psm1-qc-ico img { display:none; }
+.psm1-qc-ico.has-img { background:transparent !important; }
+.psm1-qc-ico.has-img svg { display:none; }
+.psm1-qc-ico.has-img img { display:block; width:100%; height:100%; object-fit:cover; }
+.psm1-qc-nm { font-size:14px; font-weight:600; color:#2F3438; letter-spacing:-0.03em; }
+.psm1-pb { max-width:1256px; margin:0 auto; padding:26px 24px 6px; }
+.psm1-pb-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; }
+.psm1-pb-head h2 { font-size:22px; font-weight:800; color:#111827; letter-spacing:-0.04em; }
+.psm1-pb-head a { font-size:13.5px; font-weight:500; color:#6B7280; }
+.psm1-pb-tools { display:flex; align-items:center; gap:6px; }
+.psm1-pb-tools a { margin-right:6px; }
+.psm1 .psm1-pb-nav { width:32px; height:32px; border-radius:50%; border:1px solid #E5E7EB; background:#fff; color:#374151; font-size:18px; line-height:1; display:grid; place-items:center; cursor:pointer; }
+.psm1 .psm1-pb-nav:hover { border-color:#E8780F; color:#E8780F; }
+.psm1-pb-row { display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:6px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+.psm1-pb-row::-webkit-scrollbar { display:none; }
+.psm1-pb-card { flex:0 0 200px; min-height:100%; scroll-snap-align:start; display:flex; flex-direction:column; background:#fff; border:1px solid #EEF0F3; border-radius:12px; overflow:hidden; text-decoration:none; color:#111827; transition:box-shadow .15s; }
+.psm1-pb-card:hover { box-shadow:0 6px 18px rgba(15,31,92,.08); }
+.psm1-pb-ph { position:relative; display:grid; place-items:center; aspect-ratio:4/3; overflow:hidden; }
+.psm1-pb-ph svg { width:56px; height:56px; overflow:visible; }
+.psm1-pb-ph img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none; }
+.psm1-pb-ph.has-img img { display:block; }
+.psm1-pb-ph.has-img svg { display:none; }
+.psm1-pb-tx { padding:12px 14px 0; font-size:15px; font-weight:700; line-height:1.4; letter-spacing:-0.03em; }
+.psm1-pb-ar { margin-top:auto; padding:6px 14px 12px; color:#9CA3AF; font-size:16px; }
+@media (max-width:900px){ .psm1-qc-inner { grid-template-columns:repeat(4,1fr); } }
+@media (max-width:700px){
+  .psm1-qc, .psm1-pb { display:block; }
+  .psm1-qc { padding:22px 10px 28px; } /* 아이콘 글자와 문제섹션 사이 여백(2026-10: 너무 붙어 보임) */
+  .psm1-qc .psm1-qc-head { padding:0 6px; margin-bottom:16px; } /* 문제섹션 제목과 같은 모양(16.5px 굵게) */
+  .psm1-qc-inner { gap:16px 0; }
+  .psm1-qc-ico { width:60px; height:60px; }
+  .psm1-qc-ico svg { width:34px; height:34px; }
+  .psm1-qc-nm { font-size:13px; }
+  .psm1-pb { padding:22px 0 4px; }
+  .psm1-pb-head { padding:0 16px; margin-bottom:12px; }
+  .psm1-pb-head h2 { font-size:16.5px; font-weight:800; } /* 카드 본문(13.5px)보다 3px 크게 */
+  .psm1 .psm1-pb-nav { display:none; } /* 폰은 손가락으로 넘김 */
+  .psm1-pb-row { padding:0 16px 6px; gap:10px; scroll-padding:0 16px; }
+  .psm1-pb-card { flex-basis:136px; }
+  .psm1-pb-ph svg { width:46px; height:46px; }
+  .psm1-pb-tx { padding:10px 12px 0; font-size:13.5px; font-weight:600; word-break:keep-all; }
+  .psm1-pb-ar { padding:5px 12px 10px; font-size:15px; }
+}
+</style>
+<script>
+(function(){
+  var BASE='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'+encodeURIComponent('POUR스토어_리뉴얼')+'%2F';
+  function swap(sel, box, folder, name){
+    Array.prototype.forEach.call(document.querySelectorAll(sel), function(a){
+      var b=a.querySelector(box); if(!b) return;
+      var img=document.createElement('img'); img.alt=''; img.decoding='async'; // lazy 금지: display:none 이미지는 lazy면 로드가 안 됨
+      img.onload=function(){ b.classList.add('has-img'); };
+      img.onerror=function(){ b.classList.remove('has-img'); };
+      img.src=BASE+encodeURIComponent(folder)+'%2F'+encodeURIComponent(name.replace('N',a.getAttribute('data-n')))+'?alt=media';
+      b.appendChild(img);
+    });
+  }
+  swap('.psm1-qc-it','.psm1-qc-ico','quick-icons','cat-N.png');       // 카테고리 아이콘(선택)
+  swap('.psm1-pb-card','.psm1-pb-ph','problem-cards','problem-N.jpg'); // 문제 카드 사진
+  // 카페24 편집기가 href를 #로 바꿔도 실제 링크 복원
+  function fix(){ Array.prototype.forEach.call(document.querySelectorAll('.psm1-qc [data-href], .psm1-pb [data-href]'), function(a){ a.setAttribute('href', a.getAttribute('data-href')); }); }
+  fix(); document.addEventListener('DOMContentLoaded', fix); setTimeout(fix, 800);
+  // PC ‹ › 버튼: 카드 2장씩 넘김
+  Array.prototype.forEach.call(document.querySelectorAll('[data-pb-nav]'), function(btn){ btn.addEventListener('click', function(){ var row=document.querySelector('.psm1-pb-row'); if(row) row.scrollBy({ left: (+btn.getAttribute('data-pb-nav'))*424, behavior:'smooth' }); }); });
+})();
+</script>
 <nav class="psm1-cats" aria-label="빠른 메뉴">
+  <div class="psm1-mh-head psm1-cats-head"><h2>무엇이 궁금하신가요?</h2></div>
   <div class="psm1-cats-inner">
     <a href="/product/list.html?cate_no=73" class="psm1-cat" data-icon="1"><span class="psm1-cat-ico c1" style="color:#7C3AED"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9l1-4h14l1 4M4 9v10h16V9M4 9h16M9 19v-5h6v5"/></svg></span><span class="psm1-cat-name">제품구매</span></a>
     <a href="/guide/guide.html" class="psm1-cat" data-icon="2"><span class="psm1-cat-ico c2" style="color:#E11D48"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6C10 4.5 6.5 4.5 4 5v13c2.5-.5 6-.5 8 1 2-1.5 5.5-1.5 8-1V5c-2.5-.5-6-.5-8 1z"/><path d="M12 6v13"/></svg></span><span class="psm1-cat-name">시공가이드</span></a>
@@ -593,6 +800,223 @@
     <a href="/pourstore_renewal/showroom/pour-showroom.html" class="psm1-cat" data-icon="7"><span class="psm1-cat-ico c9" style="color:#0891B2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 10h.01M15 10h.01"/></svg></span><span class="psm1-cat-name">전시장</span></a>
   </div>
 </nav>
+<!-- ===== 2026-10 [모바일 전용] 패키지 '처음이라면 세트로 시작하세요.' (집들이 UI 2x2) ===== -->
+<section class="psm1-pk" data-mh="pkg" aria-label="패키지" hidden>
+  <div class="psm1-mh-head"><h2>처음이라면 세트로 시작하세요.</h2><a href="/pourstore_renewal/package/pour-package.html" data-href="/pourstore_renewal/package/pour-package.html" class="psm1-mh-more" aria-label="패키지 전체">›</a></div>
+  <div class="psm1-pk-grid" data-mh-list></div>
+</section>
+<!-- ===== 2026-10 [모바일 전용] 베스트 '지금 많이 찾는 유지보수 자재' (탭 + 순위 카드) ===== -->
+<section class="psm1-bs" data-mh="best" aria-label="베스트" hidden>
+  <div class="psm1-mh-head"><h2>지금 많이 찾는 유지보수 자재</h2><a href="/product/list.html?cate_no=104" data-href="/product/list.html?cate_no=104" class="psm1-mh-more" aria-label="베스트 전체">›</a></div>
+  <div class="psm1-bs-row" data-mh-list></div>
+</section>
+<!-- ===== 2026-10 [모바일 전용] 띠배너(가로4:세로1) — 어드민 '메인 배너 관리' > '모바일 메인 띠배너'(config/pourstoreBanners.mstrip). 없으면 자리 안 보임 ===== -->
+<section class="psm1-eb" data-mh="evbanner" aria-label="띠배너" hidden>
+  <div class="psm1-eb-track" data-eb-track></div>
+  <span class="psm1-eb-cnt" data-eb-cnt></span>
+</section>
+<!-- ===== 2026-10 [모바일 전용] 이벤트 '오직 POUR스토어에서만!' — 할인 중인 상품 자동 노출(오늘의딜 UI) ===== -->
+<section class="psm1-dl" data-mh="deal" aria-label="오직 POUR스토어에서만" hidden>
+  <div class="psm1-mh-head"><h2>오직 POUR스토어에서만!</h2><a href="/product/list.html?cate_no=73" data-href="/product/list.html?cate_no=73" class="psm1-mh-more" aria-label="더보기">›</a></div>
+  <div class="psm1-dl-list" data-mh-list></div>
+</section>
+<style>
+/* ===== 모바일 홈 추가 섹션(이벤트·궁금·패키지·베스트) — PC/태블릿은 숨김(사용자 결정: PC 건드리지 않음) ===== */
+.psm1-dl, .psm1-pk, .psm1-bs, .psm1-eb, .psm1-cats-head { display:none !important; }
+@media (max-width:700px){
+  .psm1-dl:not([hidden]), .psm1-pk:not([hidden]), .psm1-bs:not([hidden]), .psm1-eb:not([hidden]) { display:block !important; }
+  .psm1 .psm1-dl, .psm1 .psm1-dl *, .psm1 .psm1-pk, .psm1 .psm1-pk *, .psm1 .psm1-bs, .psm1 .psm1-bs *, .psm1 .psm1-cats, .psm1 .psm1-cats * { font-family:'Noto Sans KR','Pretendard Variable',Pretendard,sans-serif; }
+  .psm1-dl, .psm1-pk, .psm1-bs { padding:26px 16px 6px; }
+  .psm1-mh-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .psm1-mh-head h2 { font-size:16.5px; font-weight:800; color:#111827; letter-spacing:-0.04em; }
+  .psm1-mh-more { width:28px; height:28px; display:grid; place-items:center; font-size:24px; line-height:1; color:#374151; }
+  /* 이벤트(오늘의딜) */
+  .psm1-dl-list { display:flex; flex-direction:column; }
+  .psm1-dl-it { display:flex; gap:14px; padding:14px 0; border-top:1px solid #F1F2F4; color:#111827; }
+  .psm1-dl-it:first-child { border-top:0; padding-top:0; }
+  .psm1-dl-th { position:relative; flex:0 0 118px; height:118px; border-radius:10px; overflow:hidden; background:#F5F6F8; }
+  .psm1-dl-th img { width:100%; height:100%; object-fit:cover; display:block; }
+  .psm1-dl-badge { position:absolute; left:6px; top:6px; padding:3px 7px; border-radius:6px; background:#E8780F; color:#fff; font-size:11px; font-weight:800; }
+  .psm1-dl-tx { min-width:0; flex:1; display:flex; flex-direction:column; gap:4px; }
+  .psm1-dl-br { font-size:12px; font-weight:700; color:#374151; }
+  .psm1-dl-nm { font-size:13.5px; font-weight:500; line-height:1.45; color:#1F2937; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .psm1-dl-pr { margin-top:2px; font-size:17px; font-weight:800; color:#111827; }
+  .psm1-dl-pr .rate { color:#E8433B; margin-right:5px; }
+  .psm1-dl-pr .orig { margin-left:5px; font-size:12px; font-weight:400; color:#9CA3AF; text-decoration:line-through; }
+  .psm1-dl-chip { align-self:flex-start; margin-top:2px; padding:2px 7px; border:1px solid #E5E7EB; border-radius:4px; font-size:11px; color:#4B5563; }
+  /* 띠배너(베스트와 '오직 POUR스토어에서만' 사이, 가로4:세로1) — 좌우로 넘기기 */
+  .psm1-eb { position:relative; padding:4px 16px 22px; }
+  .psm1-eb-track { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; border-radius:10px; }
+  .psm1-eb-track::-webkit-scrollbar { display:none; }
+  .psm1-eb-it { flex:0 0 100%; scroll-snap-align:start; aspect-ratio:4/1; background:#F5F6F8; display:block; }
+  .psm1-eb-it img { width:100%; height:100%; object-fit:cover; display:block; }
+  .psm1-eb-cnt { position:absolute; right:24px; bottom:30px; padding:2px 8px; border-radius:20px; background:rgba(17,24,39,.55); color:#fff; font-size:10.5px; font-weight:600; letter-spacing:.02em; }
+  .psm1-eb-cnt:empty { display:none; }
+  /* 무엇이 궁금하신가요 — 기존 아이콘을 가로 스크롤 한 줄로 (제품구매·패키지·부자재/안전용품 제외) */
+  .psm1-cats { padding:26px 0 6px !important; }
+  .psm1-cats-head { display:flex !important; padding:0 16px; }
+  .psm1-cats .psm1-cats-inner { display:flex !important; gap:6px !important; overflow-x:auto; padding:0 12px 6px; scrollbar-width:none; }
+  .psm1-cats .psm1-cats-inner::-webkit-scrollbar { display:none; }
+  .psm1-cats .psm1-cat { flex:0 0 76px; padding:4px 2px; }
+  .psm1-cats .psm1-cat[data-icon="1"], .psm1-cats .psm1-cat[data-icon="3"], .psm1-cats .psm1-cat[data-icon="9"] { display:none !important; }
+  .psm1-cats .psm1-cat-ico { width:58px; height:58px; border-radius:16px; }
+  .psm1-cats .psm1-cat-name { font-size:12.5px; white-space:nowrap; }
+  /* 패키지(집들이 2x2) */
+  .psm1-pk-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px 12px; }
+  .psm1-pk-it { color:#111827; }
+  .psm1-pk-th { position:relative; aspect-ratio:1/1; border-radius:10px; overflow:hidden; background:#F5F6F8; }
+  .psm1-pk-th img { width:100%; height:100%; object-fit:cover; display:block; }
+  .psm1-pk-tag { position:absolute; left:8px; top:8px; padding:3px 7px; border-radius:6px; background:rgba(15,31,92,.88); color:#fff; font-size:10.5px; font-weight:700; }
+  .psm1-pk-nm { margin-top:8px; font-size:13.5px; font-weight:500; line-height:1.45; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .psm1-pk-pr { margin-top:3px; font-size:14px; font-weight:800; }
+  .psm1-pk-pr .rate { color:#E8433B; margin-right:4px; }
+  /* 베스트 */
+  .psm1-bs-row { display:flex; gap:10px; overflow-x:auto; margin:0 -16px; padding:0 16px 6px; scroll-padding:0 16px; scroll-snap-type:x mandatory; scrollbar-width:none; min-height:220px; }
+  .psm1-bs-row::-webkit-scrollbar { display:none; }
+  .psm1-bs-it { flex:0 0 128px; scroll-snap-align:start; color:#111827; }
+  .psm1-bs-th { position:relative; aspect-ratio:1/1; border-radius:10px; overflow:hidden; background:#F5F6F8; }
+  .psm1-bs-th img { width:100%; height:100%; object-fit:cover; display:block; }
+  .psm1-bs-rk { position:absolute; left:8px; top:0; width:26px; height:32px; padding-bottom:6px; display:grid; place-items:center; background:#E8780F; color:#fff; font-size:13px; font-weight:800; clip-path:polygon(0 0,100% 0,100% 100%,50% 80%,0 100%); } /* 순위 깃발(아래 V자 홈) */
+  .psm1-bs-nm { margin-top:8px; font-size:13px; font-weight:500; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .psm1-bs-pr { margin-top:3px; font-size:14.5px; font-weight:800; }
+  .psm1-bs-pr .rate { color:#E8433B; margin-right:4px; }
+  .psm1-mh-empty { padding:30px 0; text-align:center; font-size:13px; color:#9CA3AF; }
+  /* 섹션 구분(2026-10): 섹션 사이 회색 띠 8px + 문제/이벤트 섹션 연한 배경 */
+  .psm1-pb, .psm1-cats, .psm1-pk, .psm1-bs, .psm1-dl { border-top:0 !important; position:relative; }
+  .psm1-pb::before, .psm1-cats::before, .psm1-pk::before, .psm1-bs::before, .psm1-dl::before { content:''; position:absolute; top:0; left:16px; right:16px; height:1px; background:#E9EBEE; } /* 얇은 구분선(2026-10 사용자 요청: 띠가 너무 두꺼움) */
+  /* 기존 메인 섹션 중 '누수가 되고 있다면?'(pleak)·소재별(철재·목재·돌/시멘트, psm2)은 모바일에서 숨김 — PC는 그대로 */
+  .pleak, .psm2 { display:none !important; }
+  .pshp { display:none !important; } /* '패키지로 쉽게, 부담 없이 시공해요' 배너(pour-02c) 모바일 숨김 — PC 그대로 */
+  .psm1-pb { background:#F7F8FA; padding-bottom:20px !important; }
+  .psm1-pb .psm1-pb-card { border-color:#ECEEF1; }
+  .psm1-dl { background:#FFF6EE; padding-bottom:18px !important; }
+  .psm1-dl .psm1-dl-it { border-top-color:#F5E3D3; }
+  .psm1-bs, .psm1-pk { padding-bottom:18px !important; }
+  /* 첫 화면: 아이콘+문제섹션이 화면 한 장을 채우게(JS가 --mfirst-h 설정). 남는 공간은 문제섹션 배경색으로 채움 */
+  .psm1-mfirst { display:flex; flex-direction:column; min-height:var(--mfirst-h, auto); }
+  .psm1-mfirst > * { width:100%; box-sizing:border-box; } /* 세로 flex 안에서 auto 여백 때문에 폭이 내용만큼 늘어나는 것 방지 */
+  .psm1-mfirst > .psm1-pb { flex:1 0 auto; }
+  .psm1-mfirst > .psm1-qc { flex:0 0 auto; } /* 아이콘 영역이 눌려 글자가 가려지지 않게 */
+}
+</style>
+<script>
+/* ===== 모바일 홈 추가 섹션 데이터 — 카페24 상품목록 페이지(같은 사이트)를 읽어 카드로 표시 (pour-02-best와 같은 방식)
+   - PC/태블릿(701px 이상)에서는 아무것도 불러오지 않음 → PC 속도·화면 영향 0
+   - 이벤트: DEAL_CATE 목록에서 '할인 중'인 상품만 할인율 높은 순 4개 (전용 카테고리 만들면 번호만 바꾸면 됨)
+   - 패키지: PKG_CATE 앞 4개 / 베스트: 카페24 베스트 분류(104) 진열 순서 = 순위 (카테고리 탭은 상품 수가 적어 빈 칸이 생겨 제거, 2026-10) ===== */
+(function(){
+  if (window.innerWidth > 700) return;
+  var DEAL_CATE = '73', PKG_CATE = '71';
+  var cache = {};
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function href(h){ if(!h) return ''; if(h.charAt(0)!=='/'&&!/^https?:/i.test(h)) h='/'+h.replace(/^\.?\//,''); return h; }
+  function priceOf(spec){
+    var nums=[]; if(spec){ var re=/([0-9][0-9,]*)\s*원/g,m; while((m=re.exec(spec.textContent||''))){ var v=parseInt(m[1].replace(/[^0-9]/g,''),10); if(v>=100) nums.push(v); } }
+    nums=nums.filter(function(v,i,a){return a.indexOf(v)===i;}).sort(function(a,b){return b-a;});
+    var orig=nums.length>=2?nums[0]:0, sale=nums.length>=2?nums[1]:(nums[0]||0);
+    return { sale:sale, orig:orig, rate:(orig&&sale&&orig>sale)?Math.round((1-sale/orig)*100):0 };
+  }
+  function loadCate(cate){
+    if (cache[cate]) return cache[cate];
+    try { var c=JSON.parse(sessionStorage.getItem('pc:mh:'+cate)||'null'); if(c && Date.now()-c.t<300000) return (cache[cate]=Promise.resolve(c.v)); } catch(e){}
+    return (cache[cate] = fetch('/product/list.html?cate_no='+encodeURIComponent(cate),{credentials:'same-origin'}).then(function(r){
+      if(!r.ok) throw new Error('HTTP '+r.status); return r.text();
+    }).then(function(html){
+      var doc=new DOMParser().parseFromString(html,'text/html'), out=[];
+      Array.prototype.forEach.call(doc.querySelectorAll('ul.prdList > li'),function(li){
+        var a=li.querySelector('.description .name a')||li.querySelector('a[href*="product_no="]');
+        var img=li.querySelector('.prdImg img')||li.querySelector('.thumbnail img');
+        var nEl=li.querySelector('.description .name a'), name='';
+        if(nEl){ var cl=nEl.cloneNode(true); var tt=cl.querySelector('.title'); if(tt) tt.remove(); name=cl.textContent.replace(/\s+/g,' ').trim(); }
+        name=name.replace(/^\s*상품명\s*[:：]\s*/,'').replace(/^\s*[:：]\s*/,'').trim();
+        var pp=priceOf(li.querySelector('.spec'));
+        if(a||name) out.push({ link:href(a?a.getAttribute('href'):''), src:img?(img.getAttribute('src')||''):'', name:name, sale:pp.sale, orig:pp.orig, rate:pp.rate });
+      });
+      console.log('[mhome] cate '+cate+' 상품 '+out.length+'건');
+      try { sessionStorage.setItem('pc:mh:'+cate, JSON.stringify({t:Date.now(), v:out})); } catch(e){}
+      return out;
+    }).catch(function(e){ console.error('[mhome] cate '+cate+' 로드 실패:', e); delete cache[cate]; return []; }));
+  }
+  function img(p, eager){ return p.src ? '<img src="'+esc(p.src)+'" alt="" decoding="async" loading="'+(eager?'eager':'lazy')+'">' : ''; }
+  function won(n){ return n ? n.toLocaleString()+'원' : ''; }
+
+  function renderDeal(sec){
+    loadCate(DEAL_CATE).then(function(list){
+      var deals=list.filter(function(p){ return p.rate>0; }).sort(function(a,b){ return b.rate-a.rate; }).slice(0,4);
+      if(!deals.length){ console.log('[mhome] 할인 상품 없음 → 이벤트 섹션 숨김'); return; }
+      sec.querySelector('[data-mh-list]').innerHTML = deals.map(function(p){
+        return '<a class="psm1-dl-it" href="'+esc(p.link||'#')+'"><span class="psm1-dl-th">'+img(p)+'<span class="psm1-dl-badge">'+p.rate+'% 할인</span></span>'+
+          '<span class="psm1-dl-tx"><span class="psm1-dl-br">POUR스토어</span><span class="psm1-dl-nm">'+esc(p.name)+'</span>'+
+          '<span class="psm1-dl-pr"><span class="rate">'+p.rate+'%</span>'+won(p.sale)+(p.orig?'<span class="orig">'+won(p.orig)+'</span>':'')+'</span>'+
+          '<span class="psm1-dl-chip">POUR스토어 단독</span></span></a>';
+      }).join('');
+      sec.hidden = false;
+    });
+  }
+  function renderPkg(sec){
+    loadCate(PKG_CATE).then(function(list){
+      list=list.slice(0,4); if(!list.length) return;
+      sec.querySelector('[data-mh-list]').innerHTML = list.map(function(p){
+        return '<a class="psm1-pk-it" href="'+esc(p.link||'#')+'"><span class="psm1-pk-th" style="display:block">'+img(p)+'<span class="psm1-pk-tag">패키지</span></span>'+
+          '<span class="psm1-pk-nm">'+esc(p.name)+'</span><span class="psm1-pk-pr" style="display:block">'+(p.rate?'<span class="rate">'+p.rate+'%</span>':'')+won(p.sale)+'</span></a>';
+      }).join('');
+      sec.hidden = false;
+    });
+  }
+  function renderBest(sec){
+    var row=sec.querySelector('[data-mh-list]'), more=sec.querySelector('.psm1-mh-more');
+    function show(cate){
+      row.innerHTML='<div class="psm1-mh-empty">불러오는 중…</div>';
+      loadCate(cate).then(function(list){
+        list=list.slice(0,10);
+        row.innerHTML = list.length ? list.map(function(p,i){
+          return '<a class="psm1-bs-it" href="'+esc(p.link||'#')+'"><span class="psm1-bs-th" style="display:block">'+img(p, i<3)+'<span class="psm1-bs-rk">'+(i+1)+'</span></span>'+
+            '<span class="psm1-bs-nm">'+esc(p.name)+'</span><span class="psm1-bs-pr" style="display:block">'+(p.rate?'<span class="rate">'+p.rate+'%</span>':'')+won(p.sale)+'</span></a>';
+        }).join('') : '<div class="psm1-mh-empty">상품을 준비 중이에요</div>';
+        row.scrollLeft=0;
+        if(more){ more.href='/product/list.html?cate_no='+cate; more.setAttribute('data-href', more.href); }
+      });
+    }
+    sec.hidden = false; show('104');
+  }
+  // 보이는 기준 요소(watch)가 화면 근처에 오면 그때 불러옴 — hidden 섹션은 크기 0이라 관찰 불가
+  function lazy(sel, watch, fn){
+    var sec=document.querySelector(sel), w=document.querySelector(watch)||sec; if(!sec) return;
+    if(!('IntersectionObserver' in window)){ fn(sec); return; }
+    var io=new IntersectionObserver(function(es){ if(es[0].isIntersecting){ io.disconnect(); fn(sec); } }, { rootMargin:'700px 0px' });
+    io.observe(w);
+  }
+  function fitFirst(){
+    var f=document.querySelector('.psm1-mfirst'), st=document.querySelector('.psm1-sticky'); if(!f) return;
+    var h=window.innerHeight-(st?st.offsetHeight:0); if(h>320) f.style.setProperty('--mfirst-h', h+'px');
+  }
+  fitFirst(); var lastW=window.innerWidth; window.addEventListener('resize', function(){ if(window.innerWidth!==lastW){ lastW=window.innerWidth; fitFirst(); } });
+  setTimeout(fitFirst, 600);
+  // 모바일 띠배너: 어드민 '메인 배너 관리' → '모바일 메인 띠배너'(config/pourstoreBanners.mstrip)에 올린 이미지(숨김 제외)를 순서대로
+  function renderEvBanner(sec){
+    var u='https://firestore.googleapis.com/v1/projects/pour-app-new/databases/(default)/documents/config/pourstoreBanners';
+    function val(v){ if(!v) return null; if('stringValue' in v) return v.stringValue; if('booleanValue' in v) return v.booleanValue; if('integerValue' in v) return +v.integerValue; if('doubleValue' in v) return v.doubleValue; return null; }
+    fetch(u).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(d){
+      var F=d.fields||{}, arr=((F.mstrip||{}).arrayValue||{}).values||[], sec2=val(F.intervalSec)||5;
+      var list=arr.map(function(e){ var f=(e.mapValue||{}).fields||{}, o={}; for(var k in f) o[k]=val(f[k]); return o; }).filter(function(b){ return b.image && !b.hidden; });
+      console.log('[mhome] 모바일 띠배너 '+list.length+'건');
+      if(!list.length) return;
+      var tr=sec.querySelector('[data-eb-track]'), cnt=sec.querySelector('[data-eb-cnt]');
+      tr.innerHTML=list.map(function(b){ var img='<img src="'+esc(b.image)+'" alt="이벤트 배너">'; return b.link ? '<a class="psm1-eb-it" href="'+esc(b.link)+'">'+img+'</a>' : '<span class="psm1-eb-it">'+img+'</span>'; }).join('');
+      sec.hidden=false;
+      if(list.length<2) return;
+      var cur=0, n=list.length, hold=0;
+      function upd(){ cnt.textContent=(cur+1)+' / '+n; }
+      upd();
+      tr.addEventListener('scroll', function(){ var i=Math.round(tr.scrollLeft/tr.clientWidth); if(i!==cur){ cur=i; upd(); } }, {passive:true});
+      tr.addEventListener('touchstart', function(){ hold=Date.now(); }, {passive:true});
+      setInterval(function(){ if(Date.now()-hold<6000 || !tr.clientWidth) return; cur=(cur+1)%n; tr.scrollTo({left:cur*tr.clientWidth, behavior:'smooth'}); upd(); }, Math.max(2,sec2)*1000);
+    }).catch(function(e){ console.error('[mhome] 모바일 띠배너 로드 실패:', e); });
+  }
+  function boot(){ lazy('[data-mh="evbanner"]', '.psm1-bs', renderEvBanner); lazy('[data-mh="deal"]', '.psm1-bs', renderDeal); lazy('[data-mh="pkg"]', '.psm1-cats', renderPkg); lazy('[data-mh="best"]', '.psm1-cats', renderBest); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
 <!-- 퀵메뉴 아이콘 이미지 교체(Storage quick-icons/icon-N.*) — 있으면 이미지, 없으면 기본 아이콘 -->
 <style>
 .psm1-cat-ico img{display:none;}
@@ -667,7 +1091,7 @@
 <div class="psm1-drawer-bk" data-mb-backdrop hidden></div>
 <aside class="psm1-drawer" data-mb-drawer hidden aria-label="전체 메뉴">
   <div class="psm1-drawer-head">
-    <a href="/" class="psm1-drawer-logo"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fpour-logo.png?alt=media&amp;token=01389d80-e284-4587-9ac7-53394ae3cabe" alt="POUR스토어"></a>
+    <a href="/" class="psm1-drawer-logo" aria-label="POUR스토어 홈"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fpour-logo.png?alt=media&amp;token=01389d80-e284-4587-9ac7-53394ae3cabe" alt="" aria-hidden="true"><span class="psm1-logo-txt">POUR스토어</span></a>
     <button class="psm1-drawer-close" data-mb-close type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div class="psm1-drawer-body">

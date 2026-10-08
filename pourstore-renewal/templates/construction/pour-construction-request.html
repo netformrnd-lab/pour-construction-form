@@ -6,6 +6,11 @@
 <title>시공의뢰 | POUR스토어</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<!-- 로고 글자 "POUR스토어" 전용 배민 도현체 (8글자만 받는 초경량 로드) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&display=block&text=POUR%EC%8A%A4%ED%86%A0%EC%96%B4">
+<!-- 상단(헤더) 기본 글씨체 = Noto Sans KR (POUR스토어 기본체) -->
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=block">
 <style>
 :root{
   --or:#ED6A1A; --or2:#F5872E; --or-d:#D9590F;
@@ -199,16 +204,19 @@ body{
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <section class="pour-gh" data-pour-gh>
 <style>
 /* ===== 공용 헤더(pour-header): pour-01-main 헤더를 전 페이지 공용으로 =====
    - 검색+탭만 노출(히어로/빠른메뉴 등 본문 숨김)
    - 루트는 .pour-gh (querySelector('.psm1')와 충돌 방지). 컴포넌트 .psm1-* 스타일은 그대로 적용됨
    - 메인 페이지(자체 .psm1 헤더 존재)에선 숨김 + JS 비활성 */
-.pour-gh *, .pour-gh *::before, .pour-gh *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pour-gh *, .pour-gh *::before, .pour-gh *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR','Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .pour-gh { position:sticky; top:0; z-index:1000; background:#fff; color:#111111; line-height:1.5; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.02em; }
 .pour-gh .psm1-sticky { position:static !important; } /* 고정은 .pour-gh가 담당(부모=body 전체높이 → 끝까지 고정) */
+/* 상단 고정(2026-10): 카페24 레이아웃 박스 안에서는 sticky가 중간에 풀림 → JS가 body 맨 앞으로 옮기고 fixed로 고정(메인과 동일) */
+.pour-gh.pour-gh--pinned { position:fixed !important; top:0; left:0; right:0; z-index:9990; }
+.pour-gh-spacer { display:block; width:100%; }
 .pour-gh a { color:inherit; text-decoration:none; }
 .pour-gh button { background:none; border:none; cursor:pointer; font:inherit; color:inherit; letter-spacing:inherit; }
 .pour-gh img { display:block; max-width:100%; }
@@ -227,7 +235,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 @media (max-width:700px){ .pour-gh-sub-inner { padding:0 14px; } .pour-gh-sub-link { font-size:12.5px; padding:10px 9px; } .pour-gh-sub { max-height:52px; } }
 </style>
 <style>
-.psm1 *, .psm1 *::before, .psm1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.psm1 *, .psm1 *::before, .psm1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR','Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .psm1 { background:#fff; color:#2F3438; line-height:1.5; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.02em; }
 .psm1 a { color:inherit; text-decoration:none; }
 .psm1 button { background:none; border:none; cursor:pointer; font:inherit; color:inherit; letter-spacing:inherit; }
@@ -247,14 +255,47 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 .psm1-hd-inner { max-width:1256px; margin:0 auto; padding:18px 24px; display:flex; align-items:center; gap:28px; }
 .psm1-logo { display:flex; align-items:center; font-weight:800; font-size:24px; color:#111827; letter-spacing:-0.045em; flex-shrink:0; }
 .psm1-logo .psm1-logo-or { color:#111827; }
+.psm1-logo img { height:64px; width:auto; display:block; }
+.psm1-hd-mb .psm1-mb-logo img { height:46px; width:auto; display:block; }
+.psm1-drawer-logo img { height:40px; width:auto; display:block; vertical-align:middle; }
+.psm1-ytm-brand img { height:34px; width:auto; display:block; }
+/* 로고 = 동그란 엠블럼 + 오른쪽 'POUR스토어' 글자 (2026-10, 12곳 동일) */
+.psm1-logo, .psm1-hd-mb .psm1-mb-logo, .psm1-drawer-logo { display:flex; align-items:center; gap:8px; }
+.psm1-logo-txt { font-family:'Do Hyeon','Pretendard Variable',Pretendard,sans-serif; font-weight:400; color:#111827; letter-spacing:-0.01em; white-space:nowrap; line-height:1; } /* 배민 도현체 */
+.psm1-logo .psm1-logo-txt { font-size:32px; }
+.psm1-hd-mb .psm1-mb-logo { gap:6px; }
+.psm1-hd-mb .psm1-mb-logo img { height:40px; }
+.psm1-hd-mb .psm1-mb-logo .psm1-logo-txt { font-size:25px; }
+.psm1-drawer-logo img { height:36px; }
+.psm1-drawer-logo .psm1-logo-txt { font-size:23px; }
+/* ===== 상단 크기 고정(2026-10) — 카페24 스킨 CSS·페이지별 CSS가 달라도 12곳 상단이 똑같이 보이게 ===== */
+.psm1-sticky { font-size:14px; line-height:1.5; -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+.psm1-sticky .psm1-search input { height:34px !important; padding:0 !important; margin:0 !important; font-size:15px !important; line-height:34px !important; }
+.psm1-sticky .psm1-search-btn { width:34px !important; height:34px !important; min-width:0 !important; padding:0 !important; }
+.psm1-sticky .psm1-mb-searchbar input { height:30px !important; padding:0 !important; margin:0 !important; font-size:16px !important; line-height:30px !important; }
+.psm1-sticky .psm1-mb-searchbar button[type="submit"] { width:30px !important; height:30px !important; min-width:0 !important; padding:0 !important; }
+.psm1-sticky .psm1-logo img { height:64px !important; width:auto !important; max-width:none !important; }
+.psm1-sticky .psm1-hd-mb .psm1-mb-logo img { height:40px !important; width:auto !important; max-width:none !important; }
+@media (max-width:900px){ .psm1-sticky .psm1-search input { font-size:16px !important; } }
+/* 태블릿(701~1100px): 오른쪽 아이콘 줄이 화면 밖으로 밀려나던 문제 → 아이콘만(글자 숨김)·로고 조금 작게 */
+@media (min-width:701px) and (max-width:1100px){
+  .psm1-sticky .psm1-hd-inner { gap:16px; }
+  .psm1-sticky .psm1-hd-util .psm1-util-lb { display:none; }
+  .psm1-sticky .psm1-hd-util .psm1-util-ico, .psm1-sticky .psm1-hd-util .psm1-cart-link { min-width:32px; padding:6px 3px; }
+  .psm1-sticky .psm1-hd-util .psm1-util-sep { display:none; }
+  .psm1-sticky .psm1-logo img { height:50px !important; }
+  .psm1-sticky .psm1-logo .psm1-logo-txt { font-size:26px; }
+  .psm1-sticky .psm1-searchwrap { min-width:0; }
+  .psm1-sticky .psm1-slogan { margin-left:6px; font-size:13px; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:top; }
+}
 .psm1-searchwrap { flex:1; max-width:620px; position:relative; }
-.psm1-slogan { position:relative; display:inline-block; margin-top:11px; margin-left:20px; font-family:'Gothic A1','Pretendard Variable',Pretendard,sans-serif; font-weight:600; font-size:15px; letter-spacing:-0.02em; color:#2A2E33; line-height:1.3; word-break:keep-all; }
+.psm1-slogan { position:relative; display:inline-block; margin-top:11px; margin-left:20px; font-family:'Noto Sans KR','Pretendard Variable',Pretendard,sans-serif; font-weight:600; font-size:15px; letter-spacing:-0.02em; color:#2A2E33; line-height:1.3; word-break:keep-all; }
 .psm1-slogan b { font-family:inherit; font-weight:inherit; color:#E8780F; }
 .psm1-slg-g { position:absolute; inset:0; font-family:inherit; background:linear-gradient(100deg,transparent 44%,rgba(255,255,255,.92) 50%,transparent 56%); background-size:280% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; animation:psm1-shine 6.5s ease-in-out infinite; pointer-events:none; }
 @keyframes psm1-shine { 0% { background-position:170% 0; } 50%,100% { background-position:-70% 0; } }
 @media (prefers-reduced-motion:reduce) { .psm1-slg-g { animation:none; opacity:0; } }
-@media (max-width:700px){ .psm1-mb-slogan { margin:9px 4px 0; text-align:center; font-family:'Gothic A1','Pretendard Variable',Pretendard,sans-serif; font-weight:600; font-size:12.5px; letter-spacing:-0.02em; color:#2A2E33; line-height:1.4; word-break:keep-all; } .psm1-mb-slogan b { font-family:inherit; font-weight:inherit; color:#E8780F; } }
-.psm1-search form { margin:0; display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:26px; padding:10px 12px 10px 18px; }
+@media (max-width:700px){ .psm1-mb-slogan { margin:8px 4px 0; text-align:center; font-family:'Noto Sans KR','Pretendard Variable',Pretendard,sans-serif; font-weight:600; font-size:12.5px; letter-spacing:-0.02em; color:#2A2E33; line-height:1.4; word-break:keep-all; } .psm1-mb-slogan b { font-family:inherit; font-weight:inherit; color:#E8780F; } .psm1-hd-mb, .psm1-tabs { -webkit-text-size-adjust:100%; text-size-adjust:100%; } /* iOS 글자 자동확대 방지 — 전 페이지 상단 크기 고정 */ }
+.psm1-search form { margin:0; display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:24px; padding:4px 5px 4px 18px; } /* PC 검색창 높이 축소(46px) */
 .psm1-search .psm1-search-ico { width:20px; height:20px; color:#E8780F; flex-shrink:0; }
 .psm1-search input { flex:1; min-width:0; border:none; outline:none; background:none; font-size:15px; font-weight:400; color:#2F3438; letter-spacing:-0.02em; }
 .psm1-search input::placeholder { color:#9E9E9E; }
@@ -265,7 +306,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
   border:none !important; border-radius:0!important; box-shadow:none !important; outline:none !important;
 }
 .psm1 input[type="text"]:-webkit-autofill { -webkit-box-shadow:0 0 0 1000px #fff inset !important; }
-.psm1-search-btn { flex-shrink:0; width:38px; height:38px; border-radius:50%; background:#E8780F; display:grid; place-items:center; transition:.15s; }
+.psm1-search-btn { flex-shrink:0; width:34px; height:34px; border-radius:50%; background:#E8780F; display:grid; place-items:center; transition:.15s; }
 .psm1-search-btn:hover { background:#C8650D; }
 .psm1-search-btn svg { width:18px; height:18px; color:#fff; }
 /* 자동완성 드롭다운 */
@@ -423,17 +464,18 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
   .psm1-hd-mb .psm1-mb-cart .count { position:absolute; top:2px; right:2px; min-width:15px; height:15px; padding:0 4px; background:#E8780F; color:#fff; font-size:9px; font-weight:800; border-radius:8px; display:grid; place-items:center; line-height:1; }
   .psm1-hd-mb .psm1-mb-logo { display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; color:#111827; letter-spacing:-0.045em; }
   .psm1-hd-mb .psm1-mb-logo .psm1-logo-or { color:#111827; }
-  .psm1-mb-searchbar { margin-top:14px; }
-  .psm1-mb-searchbar form { display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:24px; padding:10px 12px 10px 16px; }
+  .psm1-mb-searchbar { margin-top:8px; }
+  .psm1-mb-searchbar form { display:flex; align-items:center; gap:8px; background:#fff; border:2px solid #E8780F; border-radius:22px; padding:4px 5px 4px 14px; } /* 모바일 검색창 높이 축소(약 42px) */
   .psm1-mb-searchbar .psm1-mb-search-ico { width:18px; height:18px; color:#E8780F; flex-shrink:0; }
-  .psm1-mb-searchbar input { flex:1; min-width:0; border:none; background:none; outline:none; font-size:16px; color:#2F3438; letter-spacing:-0.02em; } /* 16px 미만이면 iOS가 포커스 시 자동확대 → 16px 고정 */
+  .psm1-mb-searchbar input { flex:1; min-width:0; height:30px; padding:0; border:none; background:none; outline:none; font-size:16px; color:#2F3438; letter-spacing:-0.02em; } /* 16px 미만이면 iOS가 포커스 시 자동확대 → 16px 고정 */
   .psm1-mb-searchbar input::placeholder { color:#9E9E9E; }
-  .psm1-mb-searchbar button[type="submit"] { flex-shrink:0; width:32px; height:32px; border-radius:50%; background:#E8780F; display:grid; place-items:center; }
+  .psm1-mb-searchbar button[type="submit"] { flex-shrink:0; width:30px; height:30px; border-radius:50%; background:#E8780F; display:grid; place-items:center; }
   .psm1-mb-searchbar button[type="submit"] svg { width:15px; height:15px; color:#fff; }
   .psm1-mb-hot { margin-top:10px; display:flex; align-items:center; gap:10px; overflow-x:auto; scrollbar-width:none; }
   .psm1-mb-hot::-webkit-scrollbar { display:none; }
   .psm1-mb-hot .psm1-mb-hot-label { font-size:11px; font-weight:800; color:#E8780F; flex-shrink:0; }
   .psm1-mb-hot a { font-size:12.5px; font-weight:500; color:#616161; white-space:nowrap; }
+  .psm1-mb-hot { display:none !important; } /* 모바일 상단 인기검색어 제거(2026-10) — 하단 재배치 예정 */
   .psm1-tabs-inner { padding:0 14px; }
   .psm1-tab { font-size:14px; padding:14px 10px; }
   .psm1-hero { padding:14px 14px 0; }
@@ -610,7 +652,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 <!-- 1) 메인 헤더 -->
 <header class="psm1-hd">
   <div class="psm1-hd-inner">
-    <a href="/" class="psm1-logo"><span class="psm1-logo-or">POUR</span><span>스토어</span></a>
+    <a href="/" class="psm1-logo" aria-label="POUR스토어 홈"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fpour-logo.png?alt=media&amp;token=01389d80-e284-4587-9ac7-53394ae3cabe" alt="" aria-hidden="true"><span class="psm1-logo-txt">POUR스토어</span></a>
     <div class="psm1-searchwrap">
       <div class="psm1-search">
         <form action="/product/search.html" method="get" role="search">
@@ -621,7 +663,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
           </button>
         </form>
       </div>
-      <div class="psm1-slogan">누구나 쉽고 오래가는 <b>건축물 유지보수 자재</b>의 모든 것<span class="psm1-slg-g" aria-hidden="true">누구나 쉽고 오래가는 건축물 유지보수 자재의 모든 것</span></div>
+      <div class="psm1-slogan">누구나 쉽게, 오래가는 <b>건축물 유지보수 자재</b>의 모든 것<span class="psm1-slg-g" aria-hidden="true">누구나 쉽게, 오래가는 건축물 유지보수 자재의 모든 것</span></div>
       <div class="psm1-ac" data-psm1-ac></div>
     </div>
     <div class="psm1-hot" data-psm1-hot>
@@ -647,12 +689,13 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
   <div class="psm1-hd-mb">
     <div class="psm1-mb-top">
       <button class="psm1-mb-menu" aria-label="메뉴"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-      <a href="/" class="psm1-mb-logo"><span class="psm1-logo-or">POUR</span><span>스토어</span></a>
+      <a href="/" class="psm1-mb-logo" aria-label="POUR스토어 홈"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fpour-logo.png?alt=media&amp;token=01389d80-e284-4587-9ac7-53394ae3cabe" alt="" aria-hidden="true"><span class="psm1-logo-txt">POUR스토어</span></a>
       <a href="/order/basket.html" module="Layout_orderBasketcount" class="psm1-mb-cart" aria-label="장바구니">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg>
         <span class="count {$basket_count_display|display} {$basket_count_display_class}"><span class="{$basket_count_class}">{$basket_count}</span></span>
       </a>
     </div>
+    <div class="psm1-mb-slogan">누구나 쉽게, 오래가는 <b>건축물 유지보수 자재</b>의 모든 것</div>
     <div class="psm1-mb-searchbar" style="position:relative">
       <form action="/product/search.html" method="get" role="search">
         <svg class="psm1-mb-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -663,7 +706,6 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
       </form>
       <div class="psm1-ac" data-psm1-mb-ac></div>
     </div>
-    <div class="psm1-mb-slogan">누구나 쉽고 오래가는 <b>건축물 유지보수 자재</b>의 모든 것</div>
     <div class="psm1-mb-hot" data-psm1-mb-hot>
       <span class="psm1-mb-hot-label">인기검색어</span>
     </div>
@@ -796,7 +838,7 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 <div class="psm1-drawer-bk" data-mb-backdrop hidden></div>
 <aside class="psm1-drawer" data-mb-drawer hidden aria-label="전체 메뉴">
   <div class="psm1-drawer-head">
-    <a href="/" class="psm1-drawer-logo"><span class="or">POUR</span>스토어</a>
+    <a href="/" class="psm1-drawer-logo" aria-label="POUR스토어 홈"><img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fpour-logo.png?alt=media&amp;token=01389d80-e284-4587-9ac7-53394ae3cabe" alt="" aria-hidden="true"><span class="psm1-logo-txt">POUR스토어</span></a>
     <button class="psm1-drawer-close" data-mb-close type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div class="psm1-drawer-body">
@@ -1586,6 +1628,34 @@ var PM_POSTS = [];
 })();
 </script>
 </section>
+<script>
+/* ===== 상단 고정(2026-10) — 모든 페이지에서 메인처럼 맨 위에 항상 고정 =====
+   카페24 레이아웃 안쪽(높이가 정해진 박스·overflow 박스)에 들어가면 sticky가 안 먹어서 상단이 같이 올라가 버림.
+   → 같은 높이 자리표시(spacer)를 남기고 헤더를 body 맨 앞으로 옮긴 뒤 position:fixed. 화면이 튀지 않음. */
+(function(){
+  function pin(){
+    try{
+      var gh=document.querySelector('[data-pour-gh]');
+      if(!gh || gh.__pinned) return;
+      if(getComputedStyle(gh).display==='none') return; // 메인(자체 헤더) 등에서 숨김 상태면 건너뜀
+      gh.__pinned=true;
+      var sp=document.createElement('div'); sp.className='pour-gh-spacer'; sp.setAttribute('aria-hidden','true');
+      sp.style.height=gh.offsetHeight+'px';
+      // 자리표시는 body 맨 위에 → 카페24가 헤더 위에 둔 띠배너 등도 가려지지 않고 헤더 아래로 밀림
+      document.body.insertBefore(sp, document.body.firstChild);
+      document.body.insertBefore(gh, sp);
+      gh.classList.add('pour-gh--pinned');
+      // 맨 위에 있을 때만 높이 다시 맞춤(스크롤 중 카테고리줄 접힘으로 본문이 튀지 않게)
+      var set=function(){ if((window.pageYOffset||0)<10) sp.style.height=gh.offsetHeight+'px'; };
+      window.addEventListener('resize', set, {passive:true});
+      if(window.ResizeObserver){ try{ new ResizeObserver(set).observe(gh); }catch(e){} }
+      console.log('[pour-gh] 상단 고정 완료, 높이 '+gh.offsetHeight+'px');
+    }catch(e){ console.error('[pour-gh] 상단 고정 실패:', e); }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', pin); else pin();
+})();
+</script>
+
 <!-- ===== //공용 헤더 ===== -->
 <div class="cr">
 

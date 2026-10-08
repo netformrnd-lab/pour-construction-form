@@ -359,6 +359,7 @@ const NAV = [
   { id: 'guidedetail',     icon: '📖', label: '시공가이드 상세',        group: 'design' },
   { id: 'packages',        icon: '🧩', label: '패키지 구성 관리',     group: 'design' },
   { id: 'banners',         icon: '🖼', label: '메인 배너 관리',       group: 'design' },
+  { id: 'shipping',        icon: '🚚', label: '출고 마감 설정',       group: 'design' },
   { id: 'popups',          icon: '📢', label: '팝업 관리',           group: 'design' },
   { id: 'homecards',       icon: '🏠', label: '홈 소재별 카드 관리',   group: 'design' },
   { id: 'products',        icon: '📦', label: '상품관리',           group: 'design' },
@@ -4652,6 +4653,67 @@ function HotKeywordsPage({showToast}){
 }
 
 // ============================================================
+// 출고 마감 설정 (2026-10) — 상품상세 "[당일발송] 평일 오후 2시 이전 주문 시 당일 발송" 고정 문구
+//   저장: config/pourstoreShipping { enabled, cutoff:'HH:MM', updatedAt, updatedBy }
+//   표시: common/pour-skin.html (남은 시간 표시 없음 — 사용자 결정 2026-10-08)
+// ============================================================
+const SHIPPING_DOC = 'pourstoreShipping';
+function shippingHm(v){ const [h,m]=String(v||'14:00').split(':').map(n=>+n||0); return (h<12?'오전':'오후')+' '+(h%12===0?12:h%12)+'시'+(m?' '+m+'분':''); }
+function ShippingPage({showToast}){
+  const { audit } = useActiveStaffContext();
+  const [enabled,setEnabled]=useState(true);
+  const [cutoff,setCutoff]=useState('14:00');
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [saved,setSaved]=useState(false);
+  useEffect(()=>{(async()=>{
+    try{
+      const doc=await db.collection('config').doc(SHIPPING_DOC).get();
+      if(doc.exists){ const d=doc.data(); console.log(`[config/${SHIPPING_DOC}] 로드 — ${d.enabled===false?'꺼짐':'켜짐'}, 마감 ${d.cutoff}`);
+        setEnabled(d.enabled!==false); setCutoff(d.cutoff||'14:00'); setSaved(true); }
+      else console.log(`[config/${SHIPPING_DOC}] 문서 없음 → 기본값(오후 2시·켜짐)으로 사이트 표시 중`);
+    }catch(e){ console.error(`[config/${SHIPPING_DOC}] 로드 실패:`,e); showToast('출고 설정 로드 실패: '+e.message,'error'); }
+    setLoading(false);
+  })();},[]);
+  const save=async()=>{
+    if(!/^\d{2}:\d{2}$/.test(cutoff)){ showToast('마감 시간을 확인해 주세요','error'); return; }
+    setSaving(true);
+    try{ await db.collection('config').doc(SHIPPING_DOC).set({enabled,cutoff,...audit.update()},{merge:true});
+      console.log(`[config/${SHIPPING_DOC}] 저장 — ${enabled?'켜짐':'꺼짐'}, 마감 ${cutoff}`); setSaved(true); showToast('저장했어요 · 상품 페이지에 5분 안에 반영돼요');
+    }catch(e){ console.error(`[config/${SHIPPING_DOC}] 저장 실패:`,e); showToast('저장 실패: '+e.message,'error'); }
+    setSaving(false);
+  };
+  const card={background:'#fff',border:'1px solid var(--border)',borderRadius:14,padding:'16px 18px',marginBottom:14};
+  if(loading) return <div style={{padding:30,color:'var(--text-sm)'}}>불러오는 중…</div>;
+  return (
+    <div style={{maxWidth:640}}>
+      <h2 style={{fontSize:20,fontWeight:900,margin:'0 0 4px'}}>🚚 출고 마감 설정</h2>
+      <p style={{fontSize:13,color:'var(--text-md)',margin:'0 0 16px',lineHeight:1.6}}>상품 페이지 구매 버튼 위에 나오는 <b>당일발송 안내</b> 문구예요. 모든 상품에 똑같이 나와요.</p>
+      <div style={{...card}}>
+        <div style={{fontSize:11.5,fontWeight:800,color:'var(--text-sm)',marginBottom:8}}>고객에게 보이는 모습</div>
+        {enabled
+          ? <div style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:'6px 8px',fontSize:13.5,color:'#374151'}}>
+              <span style={{fontSize:11,fontWeight:800,color:'#fff',background:'#E8780F',padding:'3px 7px',borderRadius:4}}>당일발송</span>
+              <span><b style={{color:'#111827'}}>평일 {shippingHm(cutoff)}</b> 이전 주문 시 당일 발송</span>
+              <span style={{marginLeft:'auto',fontSize:12,color:'#9CA3AF'}}>주말·공휴일 제외</span>
+            </div>
+          : <div style={{fontSize:13.5,fontWeight:700,color:'var(--text-sm)'}}>(꺼짐 — 안내가 안 보여요)</div>}
+      </div>
+      <div style={card}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+          <label style={{fontSize:14,fontWeight:800}}>마감 시간
+            <input type="time" value={cutoff} onChange={e=>{setCutoff(e.target.value);setSaved(false);}} style={{marginLeft:10,padding:'8px 10px',fontSize:15,fontWeight:700,border:'1.5px solid var(--border)',borderRadius:8}}/>
+          </label>
+          <button onClick={()=>{setEnabled(!enabled);setSaved(false);}} style={{padding:'8px 14px',borderRadius:20,border:'none',cursor:'pointer',fontWeight:800,fontSize:13,background:enabled?'var(--green)':'var(--border)',color:enabled?'#fff':'var(--text-md)'}}>{enabled?'안내 켜짐':'안내 꺼짐'}</button>
+        </div>
+      </div>
+      <button onClick={save} disabled={saving} style={{width:'100%',padding:'14px',borderRadius:12,border:'none',background:saved?'var(--border)':'var(--or)',color:saved?'var(--text-md)':'#fff',fontSize:15,fontWeight:900,cursor:saving?'wait':'pointer'}}>{saving?'저장 중…':saved?'저장됨 ✓':'저장하기'}</button>
+      <div style={{fontSize:11.5,color:'var(--text-sm)',marginTop:10,lineHeight:1.6}}>다음 할 일: 저장 후 상품 페이지를 시크릿 창으로 열어 문구를 확인하세요. 저장 위치 <code>config/pourstoreShipping</code></div>
+    </div>
+  );
+}
+
+// ============================================================
 // 추천검색어 관리 (검색 오버레이 하단 '추천 검색어' 알약)
 //   저장 위치: config/pourstoreRecoKeywords (단일 문서)
 //   { items:[{rank,keyword,link,active}], updatedAt, updatedBy }
@@ -6891,18 +6953,20 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
 //     hero:[{mode:'image', image,imageMobile,link}
 //           |{mode:'design', image(배경),link,badge,title,desc,tags,cta,theme}], side:[...] }
 //   → 스토어 pour-01-main/index-main 히어로/사이드 배너에 자동 반영. (config 규칙 사용)
+//   mstrip: 모바일 메인 띠배너(베스트 아래, 4:1, 이미지형만) → pour-01-main 모바일 전용 섹션 .psm1-eb
 //   디자인형: 배경사진 위에 글자(Noto Sans, 굵기만) 조립 — buildDesignSlide()가 렌더
 // ============================================================
 const BANNER_SLOTS=[
   {key:'hero', label:'메인 히어로 배너', desc:'검색바 아래 좌측 큰 배너', size:'PC 권장 1280 × 720 px (가로형 16:9)', ratio:'16 / 9', mobileSize:'모바일 권장 716 × 432 px (가로 약 5:3)', mobileRatio:'716 / 432'},
   {key:'side', label:'추천(사이드) 배너', desc:'히어로 우측 세로 배너 (높이는 좌측에 맞춰 표시)', size:'PC 권장 640 × 960 px (세로형 · 2:3)', ratio:'2 / 3', mobileSize:'모바일 권장 1080 × 432 px (가로 2.5:1)', mobileRatio:'5 / 2'},
+  {key:'mstrip', label:'모바일 메인 띠배너', desc:'모바일 메인 \'지금 많이 찾는 유지보수 자재\'(베스트) 아래 작은 배너 · PC엔 안 보임 (여러 장이면 자동 슬라이드)', size:'권장 1080 × 270 px (가로 4 : 세로 1)', ratio:'4 / 1', imageOnly:true},
   {key:'package', label:'패키지 페이지 상단 배너', desc:'패키지 페이지 맨 위 슬라이드 배너 (여러 장 올리면 자동 슬라이드)', size:'PC 권장 1256 × 400 px (가로형 · 넓은화면 안전)', ratio:'1256 / 400', mobileSize:'모바일 권장 1080 × 720 px (3:2)', mobileRatio:'3 / 2'},
 ];
 function BannersPage({showToast}){
   const { audit } = useActiveStaffContext();
   const oneB=(x)=>({mode:(x.mode==='design'?'design':'image'),image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',badge:x.badge||'',title:x.title||'',desc:x.desc||'',tags:x.tags||'',cta:x.cta||'',theme:(x.theme==='dark'?'dark':'light'),hidden:!!x.hidden});
   const normSlot=(v)=>{ if(Array.isArray(v)) return v.map(oneB); if(v && (v.image||v.link||v.title||v.badge)) return [oneB(v)]; return []; };
-  const [data,setData]=useState({hero:[], side:[], package:[], intervalSec:5});
+  const [data,setData]=useState({hero:[], side:[], package:[], mstrip:[], intervalSec:5});
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState(null);
@@ -6910,7 +6974,7 @@ function BannersPage({showToast}){
   useEffect(()=>{ (async()=>{
     try{
       const d=await db.collection('config').doc('pourstoreBanners').get();
-      if(d.exists){ const v=d.data()||{}; setData({hero:normSlot(v.hero), side:normSlot(v.side), package:normSlot(v.package), intervalSec:Number(v.intervalSec)||5}); }
+      if(d.exists){ const v=d.data()||{}; setData({hero:normSlot(v.hero), side:normSlot(v.side), package:normSlot(v.package), mstrip:normSlot(v.mstrip), intervalSec:Number(v.intervalSec)||5}); }
       console.log('[banners] 로드', d.exists);
     }catch(e){ console.error('[banners] 로드 실패:',e); showToast('배너 로드 실패: '+e.message,'error'); }
     setLoading(false);
@@ -6944,7 +7008,7 @@ function BannersPage({showToast}){
       const clean=(arr)=>arr.filter(b=> b.mode==='design' ? (b.title||b.badge||b.desc||b.cta||b.image) : b.image ).map(b=> b.mode==='design'
         ? {mode:'design',image:b.image||'',imageMobile:(b.imageMobile||''),link:(b.link||'').trim(),badge:(b.badge||'').trim(),title:(b.title||'').trim(),desc:(b.desc||'').trim(),tags:(b.tags||'').trim(),cta:(b.cta||'').trim(),theme:(b.theme==='dark'?'dark':'light'),hidden:!!b.hidden}
         : {mode:'image',image:b.image,imageMobile:(b.imageMobile||''),link:(b.link||'').trim(),hidden:!!b.hidden} );
-      await db.collection('config').doc('pourstoreBanners').set({hero:clean(data.hero), side:clean(data.side), package:clean(data.package), intervalSec:Number(data.intervalSec)||5, ...audit.update()},{merge:true});
+      await db.collection('config').doc('pourstoreBanners').set({hero:clean(data.hero), side:clean(data.side), package:clean(data.package), mstrip:clean(data.mstrip), intervalSec:Number(data.intervalSec)||5, ...audit.update()},{merge:true});
       showToast('저장되었습니다 — 스토어에 반영됩니다');
     }catch(e){ console.error('[banners] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
     setSaving(false);
@@ -6977,11 +7041,11 @@ function BannersPage({showToast}){
                     <div key={i} style={{padding:'10px',background:'var(--bg)',borderRadius:10,border:b.hidden?'1px dashed #9CA3AF':'1px solid var(--border)',opacity:b.hidden?0.6:1}}>
                       {/* 모드 토글 + 이동/삭제 */}
                       <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:9}}>
-                        <div style={{display:'flex',gap:3,background:'#fff',border:'1px solid var(--border)',borderRadius:8,padding:3}}>
+                        {!slot.imageOnly && <div style={{display:'flex',gap:3,background:'#fff',border:'1px solid var(--border)',borderRadius:8,padding:3}}>
                           {[['image','이미지형'],['design','디자인형']].map(([m,lb])=>{ const on=(b.mode||'image')===m; return(
                             <button key={m} onClick={()=>patchBanner(slot.key,i,{mode:m})} style={{padding:'5px 11px',borderRadius:6,border:'none',fontSize:11,fontWeight:800,cursor:'pointer',background:on?'var(--or)':'transparent',color:on?'#fff':'var(--text-md)'}}>{lb}</button>
                           );})}
-                        </div>
+                        </div>}
                         <div style={{flex:1}}/>
                         <button onClick={()=>moveBanner(slot.key,i,-1)} disabled={i===0} title="위로" style={{width:28,borderRadius:7,border:'1px solid var(--border)',background:'#fff',cursor:i===0?'default':'pointer',opacity:i===0?0.4:1,fontWeight:800}}>↑</button>
                         <button onClick={()=>moveBanner(slot.key,i,1)} disabled={i===list.length-1} title="아래로" style={{width:28,borderRadius:7,border:'1px solid var(--border)',background:'#fff',cursor:i===list.length-1?'default':'pointer',opacity:i===list.length-1?0.4:1,fontWeight:800}}>↓</button>
@@ -7002,6 +7066,7 @@ function BannersPage({showToast}){
                               <input type="file" accept="image/png,image/jpeg" disabled={up} onChange={e=>{const f=e.target.files&&e.target.files[0]; upload(slot.key,i,'image',f); e.target.value='';}} style={{display:'none'}}/>
                             </label>
                             <input value={b.link||''} onChange={e=>patchBanner(slot.key,i,{link:e.target.value})} placeholder="클릭 시 이동 링크 (예: /product/list.html?cate_no=71)" style={field}/>
+                            {!slot.imageOnly && <>
                             <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
                               <div style={{position:'relative',width:70,aspectRatio:slot.mobileRatio||'16/9',flexShrink:0,borderRadius:6,overflow:'hidden',background:'var(--or-pale)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
                                 {b.imageMobile?<img src={b.imageMobile} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';}}/>:<span style={{fontSize:9,color:'var(--text-sm)',fontWeight:700}}>모바일</span>}
@@ -7013,6 +7078,7 @@ function BannersPage({showToast}){
                               {b.imageMobile && <button onClick={()=>patchBanner(slot.key,i,{imageMobile:''})} title="모바일 이미지 제거" style={{width:28,borderRadius:7,border:'1px solid var(--red-m)',background:'var(--red-l)',color:'var(--red)',cursor:'pointer',fontWeight:900,fontSize:12}}>×</button>}
                             </div>
                             <div style={{fontSize:10.5,color:'var(--text-sm)',fontWeight:600,marginTop:3}}>모바일에선 이 이미지가 대신 노출 ({slot.mobileSize||'권장 1080×432, 2.5:1'} — 없으면 위 이미지 사용)</div>
+                            </>}
                           </div>
                         </div>
                       ) : (
@@ -7053,7 +7119,7 @@ function BannersPage({showToast}){
               </div>
               <div style={{display:'flex',gap:8,marginTop:12}}>
                 <button onClick={()=>addBanner(slot.key,'image')} style={{flex:1,padding:'10px',borderRadius:9,border:'1.5px dashed var(--or)',background:'var(--or-pale)',color:'var(--or-d)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>+ 이미지 배너</button>
-                <button onClick={()=>addBanner(slot.key,'design')} style={{flex:1,padding:'10px',borderRadius:9,border:'1.5px dashed var(--navy)',background:'#EEF2FF',color:'var(--navy)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>+ 디자인 배너</button>
+                {!slot.imageOnly && <button onClick={()=>addBanner(slot.key,'design')} style={{flex:1,padding:'10px',borderRadius:9,border:'1.5px dashed var(--navy)',background:'#EEF2FF',color:'var(--navy)',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>+ 디자인 배너</button>}
               </div>
             </div>
           );
@@ -12882,6 +12948,7 @@ function App() {
         {active === 'postings' && <PostingsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'events' && <EventsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'best' && <BestPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'shipping' && <ShippingPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'guidedetail' && <GuideDetailPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'packages' && <PackagesPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'banners' && <BannersPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}

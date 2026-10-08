@@ -62,10 +62,16 @@ const fb_same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null
 export const newKpiId = (coll) => `v2k_${coll.slice(0, 3)}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
 
 // 버전1 문서 4개 → 정의 (undefined = 아직 못 읽음) · ov 가 있으면 v2 덧칠 (숨긴 것도 _hidden 으로 남김 — 화면 계산은 visibleDefs)
+//   docs.moy = {goals, mainKPIs, subKPIs}: 모여라딜 OS 최신 가져오기(moysync · 2026-10-08)가 v2 컬렉션에 넣거나 바꾼 md_ 정의(moyAt 있는 것만) → 버전1 같은 id 위에 덮고, 버전1에 없으면 더함 (그 위에 KPI 고치기 덧칠)
 export function kpiDefs(docs, ov) {
   const k = ["goals", "mainKPIs", "subKPIs", "lagKPIs"];
   if (k.some((x) => docs[x] === undefined)) return null;
-  const o = {}; k.forEach((x) => { o[x] = items(docs[x]); }); return ov ? applyKpiOv(o, ov) : o;
+  const o = {}; k.forEach((x) => { o[x] = moyOver(items(docs[x]), docs.moy && docs.moy[x]); }); return ov ? applyKpiOv(o, ov) : o;
+}
+export function moyOver(arr, mv) {
+  const m = (mv || []).filter((x) => x && x.id && x.moyAt && !x.deleted && !x.deletedAt); if (!m.length) return arr;
+  const clean = (x) => { const { _doc, ...r } = x; return r; }, by = new Map(m.map((x) => [x.id, clean(x)])), have = new Set(arr.map((x) => x.id));
+  return [...arr.map((x) => by.get(x.id) || x), ...[...by.values()].filter((x) => !have.has(x.id))];
 }
 const ord = (a, b) => numF(a.order) - numF(b.order);
 export const lagBrand = (it, brands) => akBrandOf(it, brands);

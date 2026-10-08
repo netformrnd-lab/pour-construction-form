@@ -1330,7 +1330,8 @@ export function useActs(D, cu, setToast, idx = null) {
 // v2 에서 고친 문서: v2At · updatedBy · madeIn:v2 + (이 표시가 생기기 전에 쓴) 메모(memoAt) · 받음(ackBy) · v2 에 올린 파일
 const V2_FILE = /^task-attachments\/v2\//;
 // 신제품 대시보드 자동 반영(updatedBy 'board' · 메모 '신제품 대시보드')은 업무OS 에서 고친 게 아니라서 빼고 봄
-export const v2edited = (x) => !!(x && (x.v2At || (x.updatedBy && x.updatedBy !== "board") || x.madeIn === "v2" || (x.memoAt && x.memoByName !== "신제품 대시보드") || x.ackBy
+//   모여라딜 OS 최신 가져오기(moysync · moyAt)가 넣거나 바꾼 문서도 버전1보다 새것이라 건너뜀
+export const v2edited = (x) => !!(x && (x.v2At || x.moyAt || (x.updatedBy && x.updatedBy !== "board") || x.madeIn === "v2" || (x.memoAt && x.memoByName !== "신제품 대시보드") || x.ackBy
   || (Array.isArray(x.attachments) && x.attachments.some((a) => a && V2_FILE.test(String(a.path || ""))))));
 // 이미 있는 문서에 덮어쓸 때 빼는 칸 — v2 가 주인인 칸(PIN · 주 한도 · 고정업무 사람별 체크)
 //   고정업무 체크(doneDates·doneAtBy·subDone)는 버전1에도 같은 이름이 있어서 '고친 문서' 판단에는 못 쓰고, 대신 덮어쓰지 않음

@@ -3,12 +3,13 @@
 import { useState } from "react";
 import * as fb from "../fb.js";
 import { planReimport, runReimport, nowIso } from "../core.jsx";
-import { md, hm, ymd, activeUsers, KR_HOLIDAYS, COUNT_L, holidayLayer, ROAD_CATS, LAUNCH_ROAD, catRoad, builtinRoad, roadsDoc, roadOwn, isFlowProj, isLaunchProj, isGhProj, projOpen, projCat, phaseOfTask, roadProblem, sameRoad, cleanRoad } from "../model.js";
+import { md, hm, ymd, activeUsers, isMaster, KR_HOLIDAYS, COUNT_L, holidayLayer, ROAD_CATS, LAUNCH_ROAD, catRoad, builtinRoad, roadsDoc, roadOwn, isFlowProj, isLaunchProj, isGhProj, projOpen, projCat, phaseOfTask, roadProblem, sameRoad, cleanRoad } from "../model.js";
 import { RoadEdit, roadLine } from "../roadui.jsx";
 import { LAUNCH_PHASES, LAUNCH_AFTER, LAUNCH_ITEMS } from "../launch.js";
 import { C, Big, Act, TBtn, Head, Card, Row, Empty, Sheet, Ask, More, inp } from "../ui.jsx";
 import { wdOf } from "./common.jsx";
 import { LaunchOwnerSync } from "./LaunchLink.jsx";
+import { MoyImport } from "./MoyImport.jsx";
 import { pinHash } from "../sha.js";
 
 const KIND_L = { launch: "버전1 신제품 보드 다시 가져오기", all: "버전1 전체 다시 가져오기" };
@@ -90,6 +91,9 @@ export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}><Act onClick={() => setAsk("run")} style={NAVY_BTN}>가져오기</Act><Act onClick={() => setSt(null)}>그만</Act></div>
       </div>}
     </Card>
+
+    {isMaster(cu) && <><Head>모여라딜 OS 최신 데이터 가져오기</Head>
+      <MoyImport D={D} cu={cu} A={A} meta={meta} setMeta={setMeta} setToast={setToast} /></>}
 
     <Head right={changed.length > 0 && <Act onClick={saveCaps} style={NAVY_BTN}>{busy ? "저장 중" : `${changed.length}명 저장`}</Act>}>사람별 주 한도</Head>
     <Card>{users.map((u, i) => <div key={u.id} className="a-caprow" style={{ borderBottom: i < users.length - 1 ? `1px solid ${C.line}` : "none" }}>

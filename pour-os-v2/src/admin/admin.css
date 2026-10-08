@@ -418,3 +418,16 @@ div.a-reprow { cursor: default; }
 .a-roadrow { padding: 10px 0; border-top: 1px solid #E3E7F0; }
 .a-roadrow:first-of-type { border-top: none; }
 .a-roadrow .ln { font-size: 13px; color: #5B6475; margin-top: 2px; word-break: keep-all; }
+
+/* 설정 › 모여라딜 OS 최신 데이터 가져오기 (admin/MoyImport.jsx) — 375 에서 2칸 · 넓으면 4칸 · 이름이 길어도 줄바꿈 */
+.a-moyg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+@media (min-width: 700px) { .a-moyg { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.a-moyn { background: #fff; border: 1px solid #E3E7F0; border-radius: 10px; padding: 7px 9px; min-width: 0; display: flex; flex-direction: column; }
+.a-moyn span { font-size: 12px; font-weight: 700; color: #5B6475; line-height: 1.35; }
+.a-moyn b { font-size: 20px; font-weight: 800; color: #0F1F5C; font-variant-numeric: tabular-nums; line-height: 1.3; }
+.a-moyn i { font-style: normal; font-size: 11.5px; color: #8A92A3; line-height: 1.4; overflow-wrap: anywhere; }
+.a-moyh { margin-top: 8px; font-weight: 800; color: #0F1F5C; }
+.a-moyl .ln { font-size: 12.5px; color: #1B2333; overflow-wrap: anywhere; line-height: 1.55; }
+.a-moyl .ln b { font-weight: 700; }
+.a-moybar { height: 8px; border-radius: 4px; background: #fff; border: 1px solid #D5DCEC; overflow: hidden; margin-top: 6px; }
+.a-moybar i { display: block; height: 100%; background: #24386B; }

@@ -13,14 +13,17 @@ import { C, Big, TBtn, Chip, Head, Card, Empty, More, Sheet, inp, useLocal } fro
 import { LS, nowIso } from "./core.jsx";
 
 // 버전1 KPI 정의 문서 실시간 읽기 (결과 KPI 정의는 core 가 이미 읽음)
+//   + 모여라딜 OS 최신 가져오기가 v2 에 넣은 md_ 정의(moyAt) — 메인·서브KPI 는 core 가 이미 구독(D.mainKPIs·D.subKPIs) · 최종 목표만 여기서(importedFrom 같음 조건 · 못 읽어도 화면 그대로)
 export function useKpiDefs(D) {
-  const [docs, setDocs] = useState({});
+  const [docs, setDocs] = useState({}), [mg, setMg] = useState([]);
   useEffect(() => {
     const un = ["goals", "mainKPIs", "subKPIs"].map((k) => fb.listenV1Doc("state-" + k, (d) => setDocs((s) => ({ ...s, [k]: d || null })), (e) => { console.warn(`[v2 KPI] 버전1 ${k} 못 읽음:`, e); setDocs((s) => ({ ...s, [k]: null })); }));
+    un.push(fb.listen("goals", ["importedFrom", "==", "moyeoradeal-os"], (x) => setMg(x || []), (e) => console.warn("[v2 KPI] 모여라딜 목표 못 읽음:", e)));
     return () => un.forEach((u) => u && u());
   }, []);
   const lag = D.kpi && D.kpi.lagReady ? { items: D.kpi.lagRaw } : undefined, ov = D.kpi && D.kpi.ov;
-  return useMemo(() => kpiDefs({ ...docs, lagKPIs: lag }, ov || []), [docs, lag && lag.items, ov]);
+  const moy = useMemo(() => ({ goals: mg, mainKPIs: D.mainKPIs || [], subKPIs: D.subKPIs || [] }), [mg, D.mainKPIs, D.subKPIs]);
+  return useMemo(() => kpiDefs({ ...docs, lagKPIs: lag, moy }, ov || []), [docs, lag && lag.items, ov, moy]);
 }
 // 그로홈 매출 합계 새로 읽기 — 마스터 기기에서 3시간에 한 번 (실패하면 30분 뒤 다시)
 export function useGhRefresh(D, cu) {

@@ -136,7 +136,7 @@ function renderLogin(){
   $('#lg-btn').onclick=go;$('#lg-pw').onkeydown=(e)=>{if(e.key==='Enter')go();};
   const em=()=>$('#lg-email').value.trim().toLowerCase(), err=(t,ok)=>{$('#lg-err').style.color=ok?'var(--green)':'var(--red)';$('#lg-err').textContent=t;};
   $('#lg-reset').onclick=async()=>{if(!em()){err('이메일을 먼저 넣으세요.');return;}
-    try{await auth.sendPasswordResetEmail(em());err(`${em()} 로 재설정 메일을 보냈습니다. 메일함(스팸함 포함)을 확인하세요.`,true);}catch(e){console.error('[auth] 재설정 실패',e);err('재설정 메일 실패: '+e.code);}};
+    try{await auth.sendPasswordResetEmail(em());err(`${em()} 로 재설정 요청을 보냈습니다. 5분 안에 메일(보낸 사람 noreply@pour-app-new.firebaseapp.com)이 안 오면 스팸·프로모션함을 보고, 그래도 없으면 아직 계정이 없는 것입니다 → 비밀번호 칸에 새 비밀번호(8자 이상)를 넣고 [처음이면 대표 계정 만들기].`,true);}catch(e){console.error('[auth] 재설정 실패',e);err('재설정 메일 실패: '+e.code);}};
   $('#lg-first').onclick=async()=>{ // 대표 이메일만 · 이미 계정이 있으면 재설정 안내
     if(!OWNER_EMAILS.includes(em())){err('대표 이메일(netformrnd@gmail.com)만 여기서 만들 수 있습니다. 다른 계정은 대표가 [계정] 탭에서 만듭니다.');return;}
     const pw=$('#lg-pw').value;if(pw.length<8){err('비밀번호 칸에 새로 쓸 비밀번호(8자 이상)를 넣고 다시 누르세요.');return;}

@@ -50,6 +50,9 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .btn{border:1px solid var(--border);background:#fff;border-radius:var(--r-sm);padding:8px 12px;font:inherit;font-weight:700;cursor:pointer;color:var(--text)}
 .btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn.sm{padding:5px 9px;font-size:12px}
+a.btn{display:inline-block;text-decoration:none;text-align:center}
+.btn.obs{background:#7C3AED;border-color:#7C3AED;color:#fff}
+#obsidian-send{width:100%;max-width:360px;padding:12px}
 .btn:disabled{opacity:.5}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
 .kpi{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px}
@@ -254,6 +257,7 @@ function render(){
   const body={home:vHome,stock:vStock,ads:vAds,sales:vSales,log:vLog,acct:vAcct,set:vSet}[S.tab]();
   $('#app').innerHTML=msg+body;
 }
+document.addEventListener('click',(e)=>{const o=e.target.closest('#obs-hub');if(o){if(obsHubDone()&&!confirm('허브에 이미 붙였습니다. 한 번 더 붙일까요? (같은 칸이 두 번 생깁니다)')){e.preventDefault();return;}try{localStorage.setItem('mkt_obsidian_hub','1');}catch(err){console.error(err);}setTimeout(render,500);}});
 document.addEventListener('click',(e)=>{const t=e.target.closest('[data-tab]');if(t){S.tab=t.dataset.tab;render();window.scrollTo(0,0);}});
 
 function vHome(){
@@ -268,7 +272,18 @@ function vHome(){
     <div class="kpi"><div class="l">마지막 업로드</div><div class="v" style="font-size:16px">${lastUp?fmtTs(lastUp):'없음'}</div><div class="sub">${fails?`<span class="down">최근 7일 실패 ${fails}건</span>`:'최근 7일 실패 없음'}</div></div></div>
   <div class="grid2">
     <div class="card"><h3>🔴 발주 필요 <span class="sub">레오</span><span class="sp"></span><button class="btn sm" data-tab="stock">전체 ›</button></h3>${stockTable(need.slice(0,8),true)}</div>
-    <div class="card"><h3>✂️ 끌 키워드 <span class="sub">케이</span><span class="sp"></span><button class="btn sm" data-tab="ads">전체 ›</button></h3>${advList(adv.off.slice(0,8))}</div></div>`;
+    <div class="card"><h3>✂️ 끌 키워드 <span class="sub">케이</span><span class="sp"></span><button class="btn sm" data-tab="ads">전체 ›</button></h3>${advList(adv.off.slice(0,8))}</div></div>
+  <div class="card"><h3>🟣 옵시디언</h3><div class="bd">
+    <a class="btn pri obs" id="obsidian-send" href="${esc(obsidianLink())}">옵시디언으로 보내기</a>
+    <div class="sub" style="margin-top:8px">누르면 옵시디언이 열리고 '${esc(C.OBSIDIAN_NOTE)}' 노트가 지금 숫자(발주 필요·키워드·제품별 판매)로 바뀝니다.${obsHubDone()?'':' 허브에 끼워 보려면 설정 탭 › 옵시디언 › [허브에 연결] 한 번.'}</div></div></div>`;
+}
+function obsVault(){try{const v=localStorage.getItem('mkt_obsidian_vault');return v==null?'POUR 마케팅 허브':v;}catch(e){return 'POUR 마케팅 허브';}}
+function obsHubDone(){try{return localStorage.getItem('mkt_obsidian_hub')==='1';}catch(e){return false;}}
+function obsidianLink(){
+  const dr=dailyRevenue();
+  const note=C.obsidianNote({date:todayKST(),sales7:dr.slice(7).reduce((a,x)=>a+x.v,0),salesPrev7:dr.slice(0,7).reduce((a,x)=>a+x.v,0),
+    stock:stockRows(),advice:C.keywordAdvice(S.ads,S.settings),sales:salesRows(),adsDays:S.settings.adsDays});
+  return C.obsidianUri(obsVault(),C.OBSIDIAN_NOTE,note,'overwrite');
 }
 function stockTable(rows,short){
   if(!rows.length)return `<div class="empty">${S.stock.length?'발주할 품목이 없습니다':'재고 리포트가 아직 없습니다'}</div>`;
@@ -335,7 +350,12 @@ function vSet(){
     ${f('defaultLeadTimeDays','기본 리드타임','일 · 재고 CSV 에 리드타임 열이 없을 때')}${f('safetyDays','안전재고','일')}${f('windowDays','일평균 판매 기간','일')}
     ${f('adsDays','키워드 판단 기간','최근 N일 합계')}${f('roasLow','줄이기 기준 ROAS','% 미만')}${f('roasHigh','올리기 기준 ROAS','% 이상')}
     ${f('minCost','판단 최소 비용','원 · 이보다 적으면 보류')}${f('minClicks','올리기 최소 클릭','회')}</div>
-    <div style="margin-top:14px"><button class="btn pri" id="set-save">저장</button></div></div></div>`;
+    <div style="margin-top:14px"><button class="btn pri" id="set-save">저장</button></div></div></div>
+  <div class="card"><h3>🟣 옵시디언</h3><div class="bd">
+    <div class="form"><div><label for="obs-vault">볼트 이름</label><input id="obs-vault" value="${esc(obsVault())}" placeholder="POUR 마케팅 허브"><div class="sub">옵시디언에서 연 볼트 이름 그대로 · 이 기기에만 저장</div></div></div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="obs-vault-save">볼트 이름 저장</button>
+      <a class="btn obs" id="obs-hub" href="${esc(C.obsidianUri(obsVault(),C.OBSIDIAN_HUB,C.OBSIDIAN_HUB_SECTION,'append'))}">${obsHubDone()?'✅ 허브에 연결됨 (다시 붙이기)':'허브에 연결 (한 번만)'}</a></div>
+    <p class="sub">[허브에 연결]은 '${esc(C.OBSIDIAN_HUB)}' 노트 맨 끝에 '📊 오늘 숫자' 칸을 붙입니다(기존 내용은 그대로). 한 번만 누르세요. 그 뒤로는 요약 탭 [옵시디언으로 보내기]만 누르면 허브에서 새 숫자가 보입니다.</p></div></div>`;
 }
 
 /* ── 동작 ── */
@@ -348,6 +368,7 @@ document.addEventListener('click',async(e)=>{
       await db.collection(COLL.settings).doc('main').set({...next,updatedAt:FV.serverTimestamp(),updatedBy:S.user.email});
       S.settings={...DEFAULT_SET,...next};setMsg('ok','기준값을 저장했습니다');await loadData();return;
     }
+    if(b.id==='obs-vault-save'){try{localStorage.setItem('mkt_obsidian_vault',$('#obs-vault').value.trim());}catch(err){console.error('[옵시디언] 볼트 이름 저장 실패',err);}setMsg('ok','볼트 이름을 저장했습니다');render();return;}
     if(b.id==='reprocess-all'){await processPending();await loadData();return;}
     if(b.dataset.redo){
       b.disabled=true;const d=await db.collection(COLL.uploads).doc(b.dataset.redo).get();

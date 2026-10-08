@@ -55,5 +55,16 @@ eq('키워드: 끄기·줄이기·올리기·유지', [adv.off.map((d) => d.keyw
 eq('어제(KST): 10/8 00:30 KST', C.yesterdayKST(new Date('2026-10-07T15:30:00Z')), '2026-10-07');
 eq('큰 파일 줄이기', C.reducedCsv(rs).split('\n')[0], '상품코드,상품명,판매수량,판매합계');
 
+// 옵시디언 노트·링크
+const note = C.obsidianNote({ date: '2026-10-08', sales7: 120000, salesPrev7: 100000, adsDays: 7,
+  stock: [{ productCode: 'P001', productName: '곰팡|이젤', available: 20, avgDailySales: 1.86, daysLeft: 10.8, reorderNeeded: true, reorderQty: 49 }],
+  advice: adv, sales: [{ code: 'P001', name: '곰팡이젤', q7: 16, r7: 274200, qp: 10 }] });
+eq('옵시디언: 속성', note.split('\n').slice(0, 9), ['---', '유형: 숫자', '기준일: 2026-10-08', '매출7일: 120000', '발주필요: 1', '올릴키워드: 1', '줄일키워드: 1', '끌키워드: 1', '---']);
+eq('옵시디언: 표 칸의 | 는 / 로', note.includes('| P001 | 곰팡/이젤 | 20 | 1.86 | 10.8일 | 49 |'), true);
+eq('옵시디언: 전주 대비', note.includes('(전주 대비 ▲20%)'), true);
+const uri = C.obsidianUri('POUR 마케팅 허브', C.OBSIDIAN_NOTE, '가 & b', 'overwrite');
+eq('옵시디언: 링크', uri, 'obsidian://new?vault=POUR%20%EB%A7%88%EC%BC%80%ED%8C%85%20%ED%97%88%EB%B8%8C&file=05%20%EC%98%A4%EB%8A%98%20%EC%88%AB%EC%9E%90&content=%EA%B0%80%20%26%20b&overwrite=true');
+eq('옵시디언: 허브 붙이기 = append', C.obsidianUri('', C.OBSIDIAN_HUB, 'x', 'append'), 'obsidian://new?file=00%20%ED%97%88%EB%B8%8C&content=x&append=true');
+
 console.log(`\n${n - bad}/${n} 통과`);
 process.exit(bad ? 1 : 0);

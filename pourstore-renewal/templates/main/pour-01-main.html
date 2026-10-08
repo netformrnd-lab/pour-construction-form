@@ -602,7 +602,7 @@
 <!-- ===== 2026-10 소재·작업별 카테고리 8개 (기존 빠른메뉴 위) — 아이콘 교체: Storage POUR스토어_리뉴얼/quick-icons/cat-N.png 올리면 자동 교체 ===== -->
 <!-- ===== 2026-10 [모바일 전용] 소재·작업별 카테고리 8개 (기존 빠른메뉴 위) — 아이콘 교체: Storage POUR스토어_리뉴얼/quick-icons/cat-N.png 올리면 자동 교체 ===== -->
 <nav class="psm1-qc" aria-label="카테고리 바로가기">
-  <div class="psm1-pb-head psm1-qc-head"><h2>어떤 보수가 필요하세요?</h2><a href="/product/list.html?cate_no=73" data-href="/product/list.html?cate_no=73">전체보기 ›</a></div>
+  <div class="psm1-pb-head psm1-qc-head"><h2>필요한 자재를 바로 찾아보세요</h2><a href="/product/list.html?cate_no=73" data-href="/product/list.html?cate_no=73">전체보기 ›</a></div>
   <div class="psm1-qc-inner">
     <a href="/product/list.html?cate_no=86" class="psm1-qc-it" data-href="/product/list.html?cate_no=86" data-n="1"><span class="psm1-qc-ico" style="background:#E3F0FF"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5c-.6 0-1.1.3-1.4.8C11.8 9 7.5 14.3 7.5 19.2a8.5 8.5 0 0 0 17 0c0-4.9-4.3-10.2-7.1-14.9-.3-.5-.8-.8-1.4-.8z" fill="#3B82F6"/>
 <path d="M16 3.5c-.6 0-1.1.3-1.4.8C11.8 9 7.5 14.3 7.5 19.2a8.5 8.5 0 0 0 8.5 8.5z" fill="#60A5FA"/>
@@ -687,6 +687,11 @@
 <circle cx="24" cy="23" r="5" fill="#fff"/><path d="M26.2 21.2a2.2 2.2 0 0 0-2.9 2.6l-2.3 2.3 1.1 1.1 2.3-2.3a2.2 2.2 0 0 0 2.6-2.9l-1.1 1.1-1-.1-.1-1z" fill="#475569"/></svg></span><span class="psm1-pb-tx">생활공간을 간편하게 개선하고 싶다면</span><span class="psm1-pb-ar" aria-hidden="true">→</span></a>
   </div>
 </section>
+<!-- ===== 2026-10 [모바일 전용] 이벤트 '오직 POUR스토어에서만!' — 할인 중인 상품 자동 노출(오늘의딜 UI) ===== -->
+<section class="psm1-dl" data-mh="deal" aria-label="오직 POUR스토어에서만" hidden>
+  <div class="psm1-mh-head"><h2>오직 POUR스토어에서만!</h2><a href="/product/list.html?cate_no=73" data-href="/product/list.html?cate_no=73" class="psm1-mh-more" aria-label="더보기">›</a></div>
+  <div class="psm1-dl-list" data-mh-list></div>
+</section>
 <style>
 /* ★ 모바일 전용(사용자 결정 2026-10-08: PC는 건드리지 않음) — 701px 이상에서는 아래 두 섹션 숨김 */
 .psm1-qc, .psm1-pb { display:none; }
@@ -764,6 +769,7 @@
 })();
 </script>
 <nav class="psm1-cats" aria-label="빠른 메뉴">
+  <div class="psm1-mh-head psm1-cats-head"><h2>무엇이 궁금하신가요?</h2></div>
   <div class="psm1-cats-inner">
     <a href="/product/list.html?cate_no=73" class="psm1-cat" data-icon="1"><span class="psm1-cat-ico c1" style="color:#7C3AED"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9l1-4h14l1 4M4 9v10h16V9M4 9h16M9 19v-5h6v5"/></svg></span><span class="psm1-cat-name">제품구매</span></a>
     <a href="/guide/guide.html" class="psm1-cat" data-icon="2"><span class="psm1-cat-ico c2" style="color:#E11D48"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6C10 4.5 6.5 4.5 4 5v13c2.5-.5 6-.5 8 1 2-1.5 5.5-1.5 8-1V5c-2.5-.5-6-.5-8 1z"/><path d="M12 6v13"/></svg></span><span class="psm1-cat-name">시공가이드</span></a>
@@ -777,6 +783,175 @@
     <a href="/pourstore_renewal/showroom/pour-showroom.html" class="psm1-cat" data-icon="7"><span class="psm1-cat-ico c9" style="color:#0891B2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 10h.01M15 10h.01"/></svg></span><span class="psm1-cat-name">전시장</span></a>
   </div>
 </nav>
+<!-- ===== 2026-10 [모바일 전용] 패키지 '처음이라면 세트로 시작하세요.' (집들이 UI 2x2) ===== -->
+<section class="psm1-pk" data-mh="pkg" aria-label="패키지" hidden>
+  <div class="psm1-mh-head"><h2>처음이라면 세트로 시작하세요.</h2><a href="/pourstore_renewal/package/pour-package.html" data-href="/pourstore_renewal/package/pour-package.html" class="psm1-mh-more" aria-label="패키지 전체">›</a></div>
+  <div class="psm1-pk-grid" data-mh-list></div>
+</section>
+<!-- ===== 2026-10 [모바일 전용] 베스트 '지금 많이 찾는 유지보수 자재' (탭 + 순위 카드) ===== -->
+<section class="psm1-bs" data-mh="best" aria-label="베스트" hidden>
+  <div class="psm1-mh-head"><h2>지금 많이 찾는 유지보수 자재</h2><a href="/product/list.html?cate_no=104" data-href="/product/list.html?cate_no=104" class="psm1-mh-more" aria-label="베스트 전체">›</a></div>
+  <div class="psm1-bs-tabs" role="tablist">
+    <button type="button" class="on" data-cate="104">전체</button><button type="button" data-cate="86">방수</button><button type="button" data-cate="74">도장</button><button type="button" data-cate="88">균열보수</button><button type="button" data-cate="117">보강자재</button><button type="button" data-cate="43">홈리페어</button><button type="button" data-cate="84">부자재</button>
+  </div>
+  <div class="psm1-bs-row" data-mh-list></div>
+</section>
+<style>
+/* ===== 모바일 홈 추가 섹션(이벤트·궁금·패키지·베스트) — PC/태블릿은 숨김(사용자 결정: PC 건드리지 않음) ===== */
+.psm1-dl, .psm1-pk, .psm1-bs, .psm1-cats-head { display:none !important; }
+@media (max-width:700px){
+  .psm1-dl:not([hidden]), .psm1-pk:not([hidden]), .psm1-bs:not([hidden]) { display:block !important; }
+  .psm1 .psm1-dl, .psm1 .psm1-dl *, .psm1 .psm1-pk, .psm1 .psm1-pk *, .psm1 .psm1-bs, .psm1 .psm1-bs *, .psm1 .psm1-cats, .psm1 .psm1-cats * { font-family:'Noto Sans KR','Pretendard Variable',Pretendard,sans-serif; }
+  .psm1-dl, .psm1-pk, .psm1-bs { padding:26px 16px 6px; }
+  .psm1-mh-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .psm1-mh-head h2 { font-size:16.5px; font-weight:800; color:#111827; letter-spacing:-0.04em; }
+  .psm1-mh-more { width:28px; height:28px; display:grid; place-items:center; font-size:24px; line-height:1; color:#374151; }
+  /* 이벤트(오늘의딜) */
+  .psm1-dl-list { display:flex; flex-direction:column; }
+  .psm1-dl-it { display:flex; gap:14px; padding:14px 0; border-top:1px solid #F1F2F4; color:#111827; }
+  .psm1-dl-it:first-child { border-top:0; padding-top:0; }
+  .psm1-dl-th { position:relative; flex:0 0 118px; height:118px; border-radius:10px; overflow:hidden; background:#F5F6F8; }
+  .psm1-dl-th img { width:100%; height:100%; object-fit:cover; display:block; }
+  .psm1-dl-badge { position:absolute; left:6px; top:6px; padding:3px 7px; border-radius:6px; background:#E8780F; color:#fff; font-size:11px; font-weight:800; }
+  .psm1-dl-tx { min-width:0; flex:1; display:flex; flex-direction:column; gap:4px; }
+  .psm1-dl-br { font-size:12px; font-weight:700; color:#374151; }
+  .psm1-dl-nm { font-size:13.5px; font-weight:500; line-height:1.45; color:#1F2937; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .psm1-dl-pr { margin-top:2px; font-size:17px; font-weight:800; color:#111827; }
+  .psm1-dl-pr .rate { color:#E8433B; margin-right:5px; }
+  .psm1-dl-pr .orig { margin-left:5px; font-size:12px; font-weight:400; color:#9CA3AF; text-decoration:line-through; }
+  .psm1-dl-chip { align-self:flex-start; margin-top:2px; padding:2px 7px; border:1px solid #E5E7EB; border-radius:4px; font-size:11px; color:#4B5563; }
+  /* 무엇이 궁금하신가요 — 기존 아이콘을 가로 스크롤 한 줄로 (제품구매·패키지·부자재/안전용품 제외) */
+  .psm1-cats { padding:26px 0 6px !important; }
+  .psm1-cats-head { display:flex !important; padding:0 16px; }
+  .psm1-cats .psm1-cats-inner { display:flex !important; gap:6px !important; overflow-x:auto; padding:0 12px 6px; scrollbar-width:none; }
+  .psm1-cats .psm1-cats-inner::-webkit-scrollbar { display:none; }
+  .psm1-cats .psm1-cat { flex:0 0 76px; padding:4px 2px; }
+  .psm1-cats .psm1-cat[data-icon="1"], .psm1-cats .psm1-cat[data-icon="3"], .psm1-cats .psm1-cat[data-icon="9"] { display:none !important; }
+  .psm1-cats .psm1-cat-ico { width:58px; height:58px; border-radius:16px; }
+  .psm1-cats .psm1-cat-name { font-size:12.5px; white-space:nowrap; }
+  /* 패키지(집들이 2x2) */
+  .psm1-pk-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px 12px; }
+  .psm1-pk-it { color:#111827; }
+  .psm1-pk-th { position:relative; aspect-ratio:1/1; border-radius:10px; overflow:hidden; background:#F5F6F8; }
+  .psm1-pk-th img { width:100%; height:100%; object-fit:cover; display:block; }
+  .psm1-pk-tag { position:absolute; left:8px; top:8px; padding:3px 7px; border-radius:6px; background:rgba(15,31,92,.88); color:#fff; font-size:10.5px; font-weight:700; }
+  .psm1-pk-nm { margin-top:8px; font-size:13.5px; font-weight:500; line-height:1.45; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .psm1-pk-pr { margin-top:3px; font-size:14px; font-weight:800; }
+  .psm1-pk-pr .rate { color:#E8433B; margin-right:4px; }
+  /* 베스트 */
+  .psm1-bs-tabs { display:flex; gap:6px; overflow-x:auto; margin:0 -16px 14px; padding:0 16px; scrollbar-width:none; }
+  .psm1-bs-tabs::-webkit-scrollbar { display:none; }
+  .psm1 .psm1-bs-tabs button { flex-shrink:0; padding:7px 14px; border-radius:999px; background:#F3F4F6; color:#374151; font-size:13px; font-weight:600; }
+  .psm1 .psm1-bs-tabs button.on { background:#0F1F5C; color:#fff; }
+  .psm1-bs-row { display:flex; gap:10px; overflow-x:auto; margin:0 -16px; padding:0 16px 6px; scroll-padding:0 16px; scroll-snap-type:x mandatory; scrollbar-width:none; min-height:220px; }
+  .psm1-bs-row::-webkit-scrollbar { display:none; }
+  .psm1-bs-it { flex:0 0 128px; scroll-snap-align:start; color:#111827; }
+  .psm1-bs-th { position:relative; aspect-ratio:1/1; border-radius:10px; overflow:hidden; background:#F5F6F8; }
+  .psm1-bs-th img { width:100%; height:100%; object-fit:cover; display:block; }
+  .psm1-bs-rk { position:absolute; left:0; top:0; min-width:24px; height:26px; padding:0 6px; display:grid; place-items:center; background:#E8780F; color:#fff; font-size:13px; font-weight:800; border-bottom-right-radius:8px; }
+  .psm1-bs-nm { margin-top:8px; font-size:13px; font-weight:500; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .psm1-bs-pr { margin-top:3px; font-size:14.5px; font-weight:800; }
+  .psm1-bs-pr .rate { color:#E8433B; margin-right:4px; }
+  .psm1-mh-empty { padding:30px 0; text-align:center; font-size:13px; color:#9CA3AF; }
+}
+</style>
+<script>
+/* ===== 모바일 홈 추가 섹션 데이터 — 카페24 상품목록 페이지(같은 사이트)를 읽어 카드로 표시 (pour-02-best와 같은 방식)
+   - PC/태블릿(701px 이상)에서는 아무것도 불러오지 않음 → PC 속도·화면 영향 0
+   - 이벤트: DEAL_CATE 목록에서 '할인 중'인 상품만 할인율 높은 순 4개 (전용 카테고리 만들면 번호만 바꾸면 됨)
+   - 패키지: PKG_CATE 앞 4개 / 베스트: 탭별 카테고리 목록 순서 = 순위 ===== */
+(function(){
+  if (window.innerWidth > 700) return;
+  var DEAL_CATE = '73', PKG_CATE = '71';
+  var cache = {};
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function href(h){ if(!h) return ''; if(h.charAt(0)!=='/'&&!/^https?:/i.test(h)) h='/'+h.replace(/^\.?\//,''); return h; }
+  function priceOf(spec){
+    var nums=[]; if(spec){ var re=/([0-9][0-9,]*)\s*원/g,m; while((m=re.exec(spec.textContent||''))){ var v=parseInt(m[1].replace(/[^0-9]/g,''),10); if(v>=100) nums.push(v); } }
+    nums=nums.filter(function(v,i,a){return a.indexOf(v)===i;}).sort(function(a,b){return b-a;});
+    var orig=nums.length>=2?nums[0]:0, sale=nums.length>=2?nums[1]:(nums[0]||0);
+    return { sale:sale, orig:orig, rate:(orig&&sale&&orig>sale)?Math.round((1-sale/orig)*100):0 };
+  }
+  function loadCate(cate){
+    if (cache[cate]) return cache[cate];
+    try { var c=JSON.parse(sessionStorage.getItem('pc:mh:'+cate)||'null'); if(c && Date.now()-c.t<300000) return (cache[cate]=Promise.resolve(c.v)); } catch(e){}
+    return (cache[cate] = fetch('/product/list.html?cate_no='+encodeURIComponent(cate),{credentials:'same-origin'}).then(function(r){
+      if(!r.ok) throw new Error('HTTP '+r.status); return r.text();
+    }).then(function(html){
+      var doc=new DOMParser().parseFromString(html,'text/html'), out=[];
+      Array.prototype.forEach.call(doc.querySelectorAll('ul.prdList > li'),function(li){
+        var a=li.querySelector('.description .name a')||li.querySelector('a[href*="product_no="]');
+        var img=li.querySelector('.prdImg img')||li.querySelector('.thumbnail img');
+        var nEl=li.querySelector('.description .name a'), name='';
+        if(nEl){ var cl=nEl.cloneNode(true); var tt=cl.querySelector('.title'); if(tt) tt.remove(); name=cl.textContent.replace(/\s+/g,' ').trim(); }
+        name=name.replace(/^\s*상품명\s*[:：]\s*/,'').replace(/^\s*[:：]\s*/,'').trim();
+        var pp=priceOf(li.querySelector('.spec'));
+        if(a||name) out.push({ link:href(a?a.getAttribute('href'):''), src:img?(img.getAttribute('src')||''):'', name:name, sale:pp.sale, orig:pp.orig, rate:pp.rate });
+      });
+      console.log('[mhome] cate '+cate+' 상품 '+out.length+'건');
+      try { sessionStorage.setItem('pc:mh:'+cate, JSON.stringify({t:Date.now(), v:out})); } catch(e){}
+      return out;
+    }).catch(function(e){ console.error('[mhome] cate '+cate+' 로드 실패:', e); delete cache[cate]; return []; }));
+  }
+  function img(p, eager){ return p.src ? '<img src="'+esc(p.src)+'" alt="" decoding="async" loading="'+(eager?'eager':'lazy')+'">' : ''; }
+  function won(n){ return n ? n.toLocaleString()+'원' : ''; }
+
+  function renderDeal(sec){
+    loadCate(DEAL_CATE).then(function(list){
+      var deals=list.filter(function(p){ return p.rate>0; }).sort(function(a,b){ return b.rate-a.rate; }).slice(0,4);
+      if(!deals.length){ console.log('[mhome] 할인 상품 없음 → 이벤트 섹션 숨김'); return; }
+      sec.querySelector('[data-mh-list]').innerHTML = deals.map(function(p){
+        return '<a class="psm1-dl-it" href="'+esc(p.link||'#')+'"><span class="psm1-dl-th">'+img(p)+'<span class="psm1-dl-badge">'+p.rate+'% 할인</span></span>'+
+          '<span class="psm1-dl-tx"><span class="psm1-dl-br">POUR스토어</span><span class="psm1-dl-nm">'+esc(p.name)+'</span>'+
+          '<span class="psm1-dl-pr"><span class="rate">'+p.rate+'%</span>'+won(p.sale)+(p.orig?'<span class="orig">'+won(p.orig)+'</span>':'')+'</span>'+
+          '<span class="psm1-dl-chip">POUR스토어 단독</span></span></a>';
+      }).join('');
+      sec.hidden = false;
+    });
+  }
+  function renderPkg(sec){
+    loadCate(PKG_CATE).then(function(list){
+      list=list.slice(0,4); if(!list.length) return;
+      sec.querySelector('[data-mh-list]').innerHTML = list.map(function(p){
+        return '<a class="psm1-pk-it" href="'+esc(p.link||'#')+'"><span class="psm1-pk-th" style="display:block">'+img(p)+'<span class="psm1-pk-tag">패키지</span></span>'+
+          '<span class="psm1-pk-nm">'+esc(p.name)+'</span><span class="psm1-pk-pr" style="display:block">'+(p.rate?'<span class="rate">'+p.rate+'%</span>':'')+won(p.sale)+'</span></a>';
+      }).join('');
+      sec.hidden = false;
+    });
+  }
+  function renderBest(sec){
+    var row=sec.querySelector('[data-mh-list]'), more=sec.querySelector('.psm1-mh-more');
+    function show(cate){
+      row.innerHTML='<div class="psm1-mh-empty">불러오는 중…</div>';
+      loadCate(cate).then(function(list){
+        list=list.slice(0,10);
+        row.innerHTML = list.length ? list.map(function(p,i){
+          return '<a class="psm1-bs-it" href="'+esc(p.link||'#')+'"><span class="psm1-bs-th" style="display:block">'+img(p, i<3)+'<span class="psm1-bs-rk">'+(i+1)+'</span></span>'+
+            '<span class="psm1-bs-nm">'+esc(p.name)+'</span><span class="psm1-bs-pr" style="display:block">'+(p.rate?'<span class="rate">'+p.rate+'%</span>':'')+won(p.sale)+'</span></a>';
+        }).join('') : '<div class="psm1-mh-empty">상품을 준비 중이에요</div>';
+        row.scrollLeft=0;
+        if(more){ more.href='/product/list.html?cate_no='+cate; more.setAttribute('data-href', more.href); }
+      });
+    }
+    Array.prototype.forEach.call(sec.querySelectorAll('.psm1-bs-tabs button'), function(b){
+      b.addEventListener('click', function(){
+        Array.prototype.forEach.call(sec.querySelectorAll('.psm1-bs-tabs button'), function(x){ x.classList.toggle('on', x===b); });
+        show(b.getAttribute('data-cate'));
+      });
+    });
+    sec.hidden = false; show('104');
+  }
+  // 보이는 기준 요소(watch)가 화면 근처에 오면 그때 불러옴 — hidden 섹션은 크기 0이라 관찰 불가
+  function lazy(sel, watch, fn){
+    var sec=document.querySelector(sel), w=document.querySelector(watch)||sec; if(!sec) return;
+    if(!('IntersectionObserver' in window)){ fn(sec); return; }
+    var io=new IntersectionObserver(function(es){ if(es[0].isIntersecting){ io.disconnect(); fn(sec); } }, { rootMargin:'700px 0px' });
+    io.observe(w);
+  }
+  function boot(){ lazy('[data-mh="deal"]', '.psm1-pb', renderDeal); lazy('[data-mh="pkg"]', '.psm1-cats', renderPkg); lazy('[data-mh="best"]', '.psm1-cats', renderBest); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
 <!-- 퀵메뉴 아이콘 이미지 교체(Storage quick-icons/icon-N.*) — 있으면 이미지, 없으면 기본 아이콘 -->
 <style>
 .psm1-cat-ico img{display:none;}

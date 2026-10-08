@@ -968,7 +968,7 @@ pour-construction-form/
 ├── site-solution.html          ← 2차: POUR솔루션 사이트 연동
 ├── site-method.html            ← 2차: POUR공법 사이트 연동
 ├── site-store.html             ← 2차: POUR스토어 사이트 연동
-├── shoot-desk.html             ← 촬영 데스크 (요청 접수 → 브랜드›제품›N차 촬영 폴더·투두·레퍼런스, Firestore config/shootreq-*·shootprod-*·shootimg-*, 로그인 없음)
+├── shoot-desk.html             ← 촬영 데스크 (요청 접수 → 브랜드›제품›N차 촬영 폴더·투두·레퍼런스, Firestore config/shootreq-*·shootprod-*·shootimg-*, 로그인 없음 · UI 문구는 딱딱한 명사형, 친절체·“~해 드려요” 금지)
 ├── worker.js                   ← SMS 프록시 (기존, 건드리지 말 것)
 ├── workers/
 │   ├── backup-cron.js          ← Cloudflare Cron — Firestore 백업 트리거

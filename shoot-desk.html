@@ -452,10 +452,10 @@ const Store={
     if(MODE==='db'){
       const ref=db.collection('config').doc(id);
       return db.runTransaction(async tx=>{
-        const s=await tx.get(ref); if(!s.exists)throw new Error('문서를 찾지 못했어요: '+id);
+        const s=await tx.get(ref); if(!s.exists)throw new Error('문서 없음: '+id);
         const next=clean(fn(clean(s.data()))); tx.set(ref,next); return next;});
     }
-    const o=local.read(); if(!o[id])throw new Error('문서를 찾지 못했어요: '+id);
+    const o=local.read(); if(!o[id])throw new Error('문서 없음: '+id);
     o[id]=clean(fn(clean(o[id]))); local.write(o); setTimeout(local.emit,0); return o[id];
   },
   async setImg(id,data){
@@ -601,7 +601,7 @@ function prodCard(p){
   const nx=rs.filter(r=>r.date&&dday(r.date)>=0).sort((a,b)=>a.date<b.date?-1:1)[0];
   return '<a class="fcard'+(p.archived?' hidden-tag':'')+'" href="'+H.prod(p.id)+'"><div class="tabtop" style="background:var(--'+brandC(p.brand)+')"></div>'+
     '<div class="row" style="gap:8px"><h3 class="grow trunc">'+esc(p.name)+'</h3>'+(p.archived?'<span class="chip line">숨김</span>':'')+(nx?ddayChip(nx.date):'')+'</div>'+
-    '<p class="sub">'+(last?esc(last.title)+(last.date?' · '+fmtD(last.date):' · 날짜 미정')+(last.loc?' · '+esc(last.loc):''):'아직 촬영 회차가 없어요')+'</p>'+
+    '<p class="sub">'+(last?esc(last.title)+(last.date?' · '+fmtD(last.date):' · 날짜 미정')+(last.loc?' · '+esc(last.loc):''):'촬영 회차 없음')+'</p>'+
     '<div class="fmeta"><span>회차 '+rs.length+'</span><span class="dot"></span><span>요청 '+nq+'</span>'+(c.t?'<span class="dot"></span><span class="mono">'+c.d+'/'+c.t+' 항목</span>':'')+'</div>'+
     (c.t?'<div class="row" style="margin-top:10px;gap:9px">'+bar(c.p,c.p===100?'done':'')+'<span class="pct mono">'+c.p+'%</span></div>':'')+'</a>';
 }
@@ -611,7 +611,7 @@ function roundCard(p,r,i){
     '<div class="row" style="gap:8px"><h3 class="grow trunc"><span class="mono" style="color:var(--faint);font-weight:500;font-size:13px">'+String(i+1).padStart(2,'0')+'</span> '+esc(r.title)+'</h3>'+
       (r.archived?'<span class="chip line">숨김</span>':'')+(r.date?ddayChip(r.date):'<span class="dday">날짜 미정</span>')+'</div>'+
     (rq&&rq.concept?'<p class="sub clamp2">'+esc(rq.concept)+'</p>':(r.note?'<p class="sub clamp2">'+esc(r.note)+'</p>':''))+
-    '<div class="fmeta">'+(r.date?'<span class="mono">'+fmtD(r.date)+(r.time?' '+esc(r.time):'')+'</span>':'<span>일정을 정해 주세요</span>')+
+    '<div class="fmeta">'+(r.date?'<span class="mono">'+fmtD(r.date)+(r.time?' '+esc(r.time):'')+'</span>':'<span>일정 미정</span>')+
       (r.loc?'<span class="dot"></span>'+I.pin+'<span>'+esc(r.loc)+'</span>':'')+(rq?'<span class="dot"></span><span>요청 '+esc(rq.name)+'</span>':'')+'</div>'+
     '<div class="row" style="margin-top:10px;gap:9px">'+bar(c.p,c.p===100?'done':'')+'<span class="pct mono">'+c.p+'%</span></div></a>';
 }
@@ -621,12 +621,12 @@ const sec=(t,act)=>'<div class="sec-head"><span class="sec-title">'+t+'</span>'+
 /* ---------------- 다음 할 일 ---------------- */
 function nextAction(){
   const pend=visReqs().filter(r=>r.status==='new').sort(sortNew);
-  if(pend.length)return{t:'새 촬영 요청 '+pend.length+'건 — 확인하고 수락해 주세요',h:pend.length===1?H.req(pend[0].id):H.requests,g:'확인'};
+  if(pend.length)return{t:'신규 요청 '+pend.length+'건 확인 필요',h:pend.length===1?H.req(pend[0].id):H.requests,g:'확인'};
   const nodate=allRounds().filter(x=>!x.r.date&&cnt(x.r.todos).p<100);
-  if(nodate.length)return{t:'“'+nodate[0].p.name+'” '+nodate[0].r.title+' 날짜·장소를 정해 주세요',h:H.round(nodate[0].p.id,nodate[0].r.id),g:'정하기'};
+  if(nodate.length)return{t:'“'+nodate[0].p.name+'” '+nodate[0].r.title+' 일정·장소 미정',h:H.round(nodate[0].p.id,nodate[0].r.id),g:'정하기'};
   const nx=nextRound();
   if(nx){const left=((nx.r.todos||{}).pre||[]).filter(t=>!t.done).length+((nx.r.todos||{}).props||[]).filter(t=>!t.done).length;
-    if(left&&dday(nx.r.date)<=3)return{t:'“'+nx.p.name+'” 촬영 '+ddayLabel(dday(nx.r.date))+' · 준비 항목 '+left+'개 남았어요',h:H.round(nx.p.id,nx.r.id),g:'열기'};}
+    if(left&&dday(nx.r.date)<=3)return{t:'“'+nx.p.name+'” 촬영 '+ddayLabel(dday(nx.r.date))+' · 준비 항목 '+left+'개 미완료',h:H.round(nx.p.id,nx.r.id),g:'열기'};}
   return null;
 }
 
@@ -643,17 +643,17 @@ function viewHome(){
       '<h2>'+esc(nx.p.name)+'</h2><div class="hsub">'+esc(nx.p.brand)+' · '+esc(nx.r.title)+(rq?' · 요청 '+esc(rq.name):'')+'</div>'+
       '<div class="hrow mono"><span>'+fmtD(nx.r.date)+(nx.r.time?' '+esc(nx.r.time):'')+'</span>'+(nx.r.loc?'<span>'+esc(nx.r.loc)+'</span>':'<span>장소 미정</span>')+'</div>'+
       bar(c.p)+'<div class="row" style="margin-top:7px;font-size:11.5px;opacity:.75"><span>준비 진행률 '+c.p+'%</span><span class="grow"></span><span class="mono">'+c.d+'/'+c.t+'</span></div>'+
-      '<a class="cta" href="'+H.round(nx.p.id,nx.r.id)+'">투두 · 레퍼런스 열기</a></section>';}
+      '<a class="cta" href="'+H.round(nx.p.id,nx.r.id)+'">회차 열기</a></section>';}
   const left=[
     na?'<a class="nextline" href="'+na.h+'"><span class="lbl">다음 할 일</span><span class="grow">'+esc(na.t)+'</span><span class="go">'+na.g+' ›</span></a>':'',
-    '<section class="reqcta"><div class="eyebrow">Shoot request</div><h2>촬영이 필요하신가요?</h2>'+
-      '<p>브랜드 · 품목 · 컨셉 · 마감일과 레퍼런스 2개 이상을 남겨 주세요. 확인 후 장소와 일정을 잡아 드려요.</p>'+
-      '<a class="cta" href="'+H.form+'">촬영 요청하기</a><button class="sub-act" data-act="copylink">요청 페이지 링크 복사</button></section>',
+    '<section class="reqcta"><div class="eyebrow">Shoot request</div><h2>촬영 요청</h2>'+
+      '<p>필수: 브랜드 · 품목 · 컨셉 · 마감일 · 레퍼런스 2개 이상</p>'+
+      '<a class="cta" href="'+H.form+'">촬영 요청 작성</a><button class="sub-act" data-act="copylink">요청 페이지 링크 복사</button></section>',
     hero
   ];
   const right=[
     '<section class="stack">'+sec('확인 대기 요청 '+pend.length,'<a class="sec-act" href="'+H.requests+'">요청함 ›</a>')+
-      (pend.length?pend.slice(0,4).map(reqCard).join(''):empty('확인할 새 요청이 없어요','요청이 들어오면 여기와 요청함에 쌓여요'))+'</section>',
+      (pend.length?pend.slice(0,4).map(reqCard).join(''):empty('대기 중인 요청 없음'))+'</section>',
     up.length?'<section class="stack">'+sec('다가오는 촬영')+'<div class="card" style="padding:4px 12px">'+up.map(x=>
       '<a class="row" style="padding:11px 0;border-bottom:1px solid var(--line2)" href="'+H.round(x.p.id,x.r.id)+'">'+
       '<span class="mono tiny" style="width:42px;color:var(--muted);flex:none">'+fmtS(x.r.date)+'</span>'+
@@ -662,8 +662,8 @@ function viewHome(){
   return modeBanner()+'<div class="homegrid"><div class="stack">'+left.join('')+'</div><div class="stack">'+right.join('')+'</div></div>';
 }
 function modeBanner(){
-  if(LOAD_ERR)return '<div class="banner err">데이터 연결에 문제가 있어요: '+esc(LOAD_ERR)+'</div>';
-  if(MODE==='local')return '<div class="banner">이 기기에만 저장되는 미리보기 모드예요. 팀과 함께 쓰려면 주소에서 ?local=1 을 빼고 열어 주세요.</div>';
+  if(LOAD_ERR)return '<div class="banner err">데이터 연결 오류: '+esc(LOAD_ERR)+'</div>';
+  if(MODE==='local')return '<div class="banner">미리보기 모드 · 이 기기에만 저장됨</div>';
   return '';
 }
 
@@ -682,48 +682,48 @@ function missing(){
   if(!D.product.trim())m.push(['product','촬영 품목']);
   if(!D.concept.trim())m.push(['concept','촬영 컨셉']);
   if(!D.deadline)m.push(['deadline','마감일']);
-  if(D.refs.length<2)m.push(['refs','레퍼런스 '+(2-D.refs.length)+'개 더']);
+  if(D.refs.length<2)m.push(['refs','레퍼런스 '+(2-D.refs.length)+'개 부족']);
   return m;
 }
 function viewForm(R){
   if(!DRAFT||DRAFT.id!==(R.id||null)){
-    if(R.id){const r=findReq(R.id);if(!r)return empty('요청을 찾지 못했어요');DRAFT=draftFrom(r);}else DRAFT=newDraft();
+    if(R.id){const r=findReq(R.id);if(!r)return empty('요청 없음');DRAFT=draftFrom(r);}else DRAFT=newDraft();
   }
   const D=DRAFT, E=D.err||{};
   const chips=brandList();
   const F=(k,label,inner,req,extra)=>'<label class="field'+(E[k]?' err':'')+'" data-field="'+k+'"><span>'+label+(req?' <b class="req">*</b>':'')+(extra||'')+'</span>'+inner+'</label>';
   return [
-    R.id?'':'<div class="tiny muted" style="line-height:1.6">요청을 보내면 담당자가 확인한 뒤 <b style="color:var(--ink)">브랜드 › 제품 폴더</b>를 만들고 장소·일정·투두를 정리해요. 로그인은 필요 없어요.</div>',
-    '<section class="formcard"><h4>누가 · 무엇을</h4>',
-      F('name','요청자 이름','<input data-f="name" value="'+esc(D.name)+'" placeholder="예: 김송희" autocomplete="name">',1),
+    R.id?'':'<div class="tiny muted"><b class="req" style="color:var(--accent)">*</b> 필수 항목</div>',
+    '<section class="formcard"><h4>기본 정보</h4>',
+      F('name','요청자 이름','<input data-f="name" value="'+esc(D.name)+'" placeholder="예: 제갈공명" autocomplete="name">',1),
       '<div class="field'+(E.brand?' err':'')+'" data-field="brand"><span>브랜드 <b class="req">*</b></span><div class="picks" role="group" aria-label="브랜드">'+
         chips.map(n=>'<button type="button" class="pick" data-act="pick-brand" data-b="'+esc(n)+'" aria-pressed="'+(D.brandMode==='pick'&&D.brand===n)+'">'+esc(n)+'</button>').join('')+
         '<button type="button" class="pick" data-act="pick-brand" data-b="__custom" aria-pressed="'+(D.brandMode==='custom')+'">+ 직접 입력</button></div>'+
-        (D.brandMode==='custom'?'<input data-f="brandCustom" value="'+esc(D.brandCustom)+'" placeholder="브랜드 이름 입력" style="margin-top:8px">':'')+'</div>',
+        (D.brandMode==='custom'?'<input data-f="brandCustom" value="'+esc(D.brandCustom)+'" placeholder="브랜드명" style="margin-top:8px">':'')+'</div>',
       F('product','촬영 품목','<input data-f="product" value="'+esc(D.product)+'" placeholder="예: 옥상배관방수트랩">',1),
     '</section>',
-    '<section class="formcard"><h4>어떻게 · 언제까지</h4>',
-      F('concept','촬영 컨셉','<textarea data-f="concept" placeholder="예: 밝은 자연광, 실제 옥상에서 쓰는 장면 위주">'+esc(D.concept)+'</textarea>',1),
-      F('deadline','촬영 마감일','<input type="date" data-f="deadline" value="'+esc(D.deadline)+'"'+(R.id?'':' min="'+d2s(today)+'"')+'><div class="hint">이 날짜까지 촬영이 끝나야 해요'+(D.deadline?' · '+fmtD(D.deadline)+' ('+ddayLabel(dday(D.deadline))+')':'')+'</div>',1),
-      F('cuts','필요한 컷 · 추가 내용','<textarea data-f="cuts" placeholder="예: 정면 누끼 3컷, 사용 장면 2컷, 9:16 세로 영상 15초 1개">'+esc(D.cuts)+'</textarea>'),
+    '<section class="formcard"><h4>촬영 내용</h4>',
+      F('concept','촬영 컨셉','<textarea data-f="concept" placeholder="예: 자연광, 옥상 실사용 장면">'+esc(D.concept)+'</textarea>',1),
+      F('deadline','촬영 마감일','<input type="date" data-f="deadline" value="'+esc(D.deadline)+'"'+(R.id?'':' min="'+d2s(today)+'"')+'><div class="hint">촬영 완료 기한'+(D.deadline?' · '+fmtD(D.deadline)+' ('+ddayLabel(dday(D.deadline))+')':'')+'</div>',1),
+      F('cuts','필요한 컷 · 추가 내용','<textarea data-f="cuts" placeholder="예: 정면 누끼 3컷 / 사용 장면 2컷 / 9:16 영상 15초 1개">'+esc(D.cuts)+'</textarea>'),
     '</section>',
     '<section class="formcard'+(E.refs?' err':'')+'" data-field="refs" style="padding-bottom:14px"><div class="row" style="margin-bottom:10px"><h4 style="margin:0">레퍼런스 <b class="req" style="color:var(--accent)">*</b></h4>'+
       '<span class="chip '+(D.refs.length>=2?'q4':'q2')+'" style="margin-left:auto">'+D.refs.length+' / 최소 2개</span></div>'+
-      '<div class="tiny faint" style="margin:-4px 0 10px">영상·페이지 링크나 사진을 2개 이상 넣어 주세요</div>'+
+      '<div class="tiny faint" style="margin:-4px 0 10px">링크 또는 사진 · 최소 2개</div>'+
       (D.refs.length?'<div class="refgrid" style="margin-bottom:10px">'+D.refs.map(r=>'<div style="position:relative">'+refTile(r,'draft')+
         '<button type="button" class="refx" data-act="draft-delref" data-ref="'+esc(r.id)+'" aria-label="레퍼런스 빼기">✕</button></div>').join('')+'</div>':'')+
-      (D.linkOpen?'<div class="linkform"><input id="lk-url" type="url" inputmode="url" placeholder="https:// 링크 붙여넣기"><input id="lk-note" placeholder="메모 (선택) 예: 조명 톤 참고">'+
-        '<div class="row"><button type="button" class="btn soft" data-act="draft-linkcancel">취소</button><button type="button" class="btn" data-act="draft-linkadd">링크 넣기</button></div></div>'
+      (D.linkOpen?'<div class="linkform"><input id="lk-url" type="url" inputmode="url" placeholder="https://"><input id="lk-note" placeholder="메모 (선택)">'+
+        '<div class="row"><button type="button" class="btn soft" data-act="draft-linkcancel">취소</button><button type="button" class="btn" data-act="draft-linkadd">추가</button></div></div>'
         :'<div class="refadd"><button type="button" data-act="draft-linkopen">+ 링크</button><button type="button" data-act="pickimg" data-to="draft">+ 사진</button></div>')+
     '</section>',
     '<div class="actionbar"><div class="actionbar-in"><div class="missing" id="missing"></div>'+
-      '<button class="btn accent" id="submitReq" data-act="submit-req">'+(R.id?'수정 저장':'요청 보내기')+'</button></div></div>'
+      '<button class="btn accent" id="submitReq" data-act="submit-req">'+(R.id?'저장':'요청 접수')+'</button></div></div>'
   ].join('');
 }
 function updateMissing(){
   const el=$('#missing'), btn=$('#submitReq'); if(!el||!DRAFT)return;
   const m=missing();
-  el.innerHTML=m.length?'남은 항목: <b>'+m.map(x=>x[1]).join(', ')+'</b>':'모두 채웠어요. 보내면 바로 요청함에 쌓여요.';
+  el.innerHTML=m.length?'미입력: <b>'+m.map(x=>x[1]).join(', ')+'</b>':'입력 완료';
   btn.classList.toggle('dim',m.length>0);
 }
 async function submitReq(){
@@ -733,10 +733,10 @@ async function submitReq(){
     DRAFT.err={}; m.forEach(([k])=>DRAFT.err[k]=1); render();
     const el=document.querySelector('[data-field="'+m[0][0]+'"]');
     if(el){el.scrollIntoView({behavior:'smooth',block:'center'});const i=el.querySelector('input,textarea');if(i)setTimeout(()=>i.focus({preventScroll:true}),300);}
-    const MSG={name:'요청자 이름을 입력해 주세요',brand:'브랜드를 골라 주세요',product:'촬영 품목을 입력해 주세요',concept:'촬영 컨셉을 입력해 주세요',deadline:'촬영 마감일을 골라 주세요'};
-    toast(MSG[m[0][0]]||'레퍼런스를 '+(2-DRAFT.refs.length)+'개 더 넣어 주세요'); return;
+    const MSG={name:'요청자 이름 미입력',brand:'브랜드 미선택',product:'촬영 품목 미입력',concept:'촬영 컨셉 미입력',deadline:'촬영 마감일 미입력'};
+    toast(MSG[m[0][0]]||'레퍼런스 '+(2-DRAFT.refs.length)+'개 부족'); return;
   }
-  S.busy=true; const btn=$('#submitReq'); if(btn){btn.textContent='보내는 중…';btn.classList.add('dim');}
+  S.busy=true; const btn=$('#submitReq'); if(btn){btn.textContent='접수 중…';btn.classList.add('dim');}
   try{
     const D=DRAFT;
     for(const ref of D.refs){if(ref.kind==='image'&&ref.data&&!ref.img){const iid=uid();await Store.setImg(iid,ref.data);ref.img=iid;}}
@@ -750,12 +750,12 @@ async function submitReq(){
     console.log('[shootreq] 저장 '+id);
     lsSet(NAME_KEY,D.name.trim());
     DRAFT=null; S.busy=false;
-    toast(prev?'수정했어요':'요청을 보냈어요 · 확인 후 일정을 잡아 드려요');
+    toast(prev?'수정 완료':'요청 접수 완료');
     go(H.req(id));
   }catch(e){
     console.error('[shootreq] 저장 실패:',e); S.busy=false;
-    if(btn){btn.textContent=DRAFT&&DRAFT.id?'수정 저장':'요청 보내기';btn.classList.remove('dim');}
-    toast('저장하지 못했어요 · 인터넷 연결을 확인하고 다시 눌러 주세요');
+    if(btn){btn.textContent=DRAFT&&DRAFT.id?'저장':'요청 접수';btn.classList.remove('dim');}
+    toast('저장 실패 · 네트워크 확인 후 재시도');
   }
 }
 
@@ -777,7 +777,7 @@ function viewRequests(){
     brandsHere.length>1||bf!=='all'?'<div class="filterbar">'+['all'].concat(brandsHere).map(b=>
       '<button class="fchip" data-act="reqbrand" data-b="'+esc(b)+'" aria-pressed="'+(bf===b)+'">'+(b==='all'?'모든 브랜드':esc(b))+'</button>').join('')+'</div>':'',
     list.length?groups.map(g=>'<section class="stack">'+sec('<span style="color:var(--'+brandC(g.b)+')">'+esc(g.b)+'</span> · '+g.items.length+'건')+g.items.map(reqCard).join('')+'</section>').join('')
-      :empty(st==='new'?'확인할 새 요청이 없어요':'해당하는 요청이 없어요',st==='new'?'촬영 요청이 들어오면 브랜드별로 여기에 쌓여요':''),
+      :empty(st==='new'?'대기 중인 요청 없음':'해당 요청 없음'),
     hiddenN?'<div class="foot"><button data-act="togglehidden" data-k="req">'+(sh?'숨긴 요청 감추기':'숨긴 요청 '+hiddenN+'개 보기')+'</button></div>':'',
     '<div style="height:44px" aria-hidden="true"></div><a class="fab" href="'+H.form+'"><span style="font-size:18px;line-height:1">+</span>촬영 요청</a>'
   ].join('');
@@ -785,15 +785,15 @@ function viewRequests(){
 
 /* ---------------- 요청 상세 ---------------- */
 function viewReq(R){
-  const r=findReq(R.id); if(!r)return empty('요청을 찾지 못했어요','삭제됐거나 주소가 잘못됐을 수 있어요');
+  const r=findReq(R.id); if(!r)return empty('요청 없음','주소 확인 필요');
   const st=REQ_ST[r.status]||REQ_ST.new, lk=roundOfReq(r);
   const acts=r.status==='new'
-    ?'<div class="btnrow"><button class="btn accent" data-act="accept" data-id="'+esc(r.id)+'">수락하고 폴더 만들기</button></div><div class="btnrow" style="margin-top:8px"><button class="btn ghost" data-act="hold" data-id="'+esc(r.id)+'">보류</button><a class="btn ghost" href="'+H.form+'/'+encodeURIComponent(r.id)+'">요청 수정</a></div>'
+    ?'<div class="btnrow"><button class="btn accent" data-act="accept" data-id="'+esc(r.id)+'">수락 · 폴더 생성</button></div><div class="btnrow" style="margin-top:8px"><button class="btn ghost" data-act="hold" data-id="'+esc(r.id)+'">보류</button><a class="btn ghost" href="'+H.form+'/'+encodeURIComponent(r.id)+'">요청 수정</a></div>'
     :r.status==='hold'
-    ?'<div class="btnrow"><button class="btn accent" data-act="accept" data-id="'+esc(r.id)+'">수락하고 폴더 만들기</button></div><div class="btnrow" style="margin-top:8px"><button class="btn ghost" data-act="unhold" data-id="'+esc(r.id)+'">확인 대기로 되돌리기</button><a class="btn ghost" href="'+H.form+'/'+encodeURIComponent(r.id)+'">요청 수정</a></div>'
+    ?'<div class="btnrow"><button class="btn accent" data-act="accept" data-id="'+esc(r.id)+'">수락 · 폴더 생성</button></div><div class="btnrow" style="margin-top:8px"><button class="btn ghost" data-act="unhold" data-id="'+esc(r.id)+'">대기로 변경</button><a class="btn ghost" href="'+H.form+'/'+encodeURIComponent(r.id)+'">요청 수정</a></div>'
     :'<a class="btn ghost" href="'+H.form+'/'+encodeURIComponent(r.id)+'">요청 수정</a>';
   return [
-    r.archived?'<div class="banner">목록에서 숨긴 요청이에요 · 오른쪽 위 ⋯ 에서 다시 보이게 할 수 있어요</div>':'',
+    r.archived?'<div class="banner">숨김 처리된 요청 · ⋯ 메뉴에서 복원</div>':'',
     '<section class="card" style="padding:15px">',
       '<div class="chiprow"><span class="chip '+brandC(r.brand)+'">'+esc(r.brand)+'</span><span class="chip '+st.c+'">'+st.n+'</span><span class="grow"></span>'+ddayChip(r.deadline,'마감 ')+'</div>',
       '<h2 style="margin:10px 0 4px;font-size:21px;letter-spacing:-.02em;color:var(--ink);word-break:keep-all">'+esc(r.product)+'</h2>',
@@ -807,7 +807,7 @@ function viewReq(R){
     '<div class="info"><h4>촬영 컨셉</h4><p class="pre">'+(esc(r.concept)||'<span class="faint">-</span>')+'</p></div>',
     '<div class="info"><h4>필요한 컷 · 추가 내용</h4><p class="pre">'+(esc(r.cuts)||'<span class="faint">없음</span>')+'</p></div>',
     sec('레퍼런스 '+(r.refs||[]).length),
-    (r.refs||[]).length?'<div class="refgrid">'+r.refs.map(x=>refTile(x,'req',' data-id="'+esc(r.id)+'"')).join('')+'</div>':empty('레퍼런스가 없어요'),
+    (r.refs||[]).length?'<div class="refgrid">'+r.refs.map(x=>refTile(x,'req',' data-id="'+esc(r.id)+'"')).join('')+'</div>':empty('레퍼런스 없음'),
     r.status==='accepted'?'<div>'+acts+'</div>':''
   ].join('');
 }
@@ -818,16 +818,16 @@ function viewFolders(){
   const brands=[...new Set(brandList().concat(sh?PRODS.map(p=>p.brand):[]))];
   const hiddenN=PRODS.filter(p=>p.archived).length;
   return modeBanner()+[
-    '<div class="tiny muted" style="line-height:1.6">브랜드 › 제품 › 1차·2차 촬영 순서로 정리돼요. 요청을 수락하면 폴더가 자동으로 만들어져요.</div>',
+    '<div class="tiny muted" style="line-height:1.6">브랜드 › 제품 › 촬영 회차 · 요청 수락 시 폴더 자동 생성</div>',
     '<section class="stack">'+brands.map(b=>{
       const ps=PRODS.filter(p=>p.brand===b&&(sh||!p.archived)), pend=visReqs().filter(r=>r.brand===b&&r.status==='new').length;
       const rs=[]; ps.forEach(p=>visRounds(p).forEach(r=>rs.push(r)));
       const nx=rs.filter(r=>r.date&&dday(r.date)>=0).sort((a,b)=>a.date<b.date?-1:1)[0];
       return '<a class="fcard" href="'+H.brand(b)+'"><div class="tabtop" style="background:var(--'+brandC(b)+')"></div>'+
         '<div class="row" style="gap:8px"><h3 class="grow trunc">'+esc(b)+'</h3>'+(pend?'<span class="chip q2">새 요청 '+pend+'</span>':'')+(nx?ddayChip(nx.date):'')+'</div>'+
-        '<p class="sub">'+(ps.length?ps.slice(0,3).map(p=>esc(p.name)).join(' · ')+(ps.length>3?' 외 '+(ps.length-3)+'개':''):'아직 제품 폴더가 없어요')+'</p>'+
+        '<p class="sub">'+(ps.length?ps.slice(0,3).map(p=>esc(p.name)).join(' · ')+(ps.length>3?' 외 '+(ps.length-3)+'개':''):'제품 폴더 없음')+'</p>'+
         '<div class="fmeta"><span>제품 '+ps.length+'</span><span class="dot"></span><span>촬영 회차 '+rs.length+'</span></div></a>';}).join('')+'</section>',
-    '<button class="btn ghost" data-act="newprod">+ 제품 폴더 직접 만들기</button>',
+    '<button class="btn ghost" data-act="newprod">+ 제품 폴더 생성</button>',
     hiddenN?'<div class="foot"><button data-act="togglehidden" data-k="prod">'+(sh?'숨긴 폴더 감추기':'숨긴 폴더 '+hiddenN+'개 보기')+'</button></div>':''
   ].join('');
 }
@@ -840,18 +840,18 @@ function viewBrand(R){
     '<section class="card" style="padding:14px"><div class="row"><span class="chip '+brandC(b)+'">브랜드</span></div>'+
       '<h2 style="margin:9px 0 2px;font-size:20px;letter-spacing:-.02em;color:var(--ink)">'+esc(b)+'</h2>'+
       '<div class="fmeta"><span>제품 폴더 '+ps.length+'</span><span class="dot"></span><span>확인 대기 요청 '+pend.length+'</span>'+(hold.length?'<span class="dot"></span><span>보류 '+hold.length+'</span>':'')+'</div></section>',
-    pend.length?'<section class="stack">'+sec('확인 대기 요청 '+pend.length,'<span class="faint tiny" style="margin-left:auto">수락하면 제품 폴더가 생겨요</span>')+pend.map(reqCard).join('')+'</section>':'',
-    '<section class="stack">'+sec('제품 폴더 '+ps.length)+(ps.length?ps.map(prodCard).join(''):empty('아직 제품 폴더가 없어요','요청을 수락하거나 아래 버튼으로 직접 만들 수 있어요'))+'</section>',
+    pend.length?'<section class="stack">'+sec('확인 대기 요청 '+pend.length,'<span class="faint tiny" style="margin-left:auto">수락 시 폴더 생성</span>')+pend.map(reqCard).join('')+'</section>':'',
+    '<section class="stack">'+sec('제품 폴더 '+ps.length)+(ps.length?ps.map(prodCard).join(''):empty('제품 폴더 없음'))+'</section>',
     '<button class="btn ghost" data-act="newprod" data-b="'+esc(b)+'">+ 제품 폴더 추가</button>',
     hold.length?'<section class="stack">'+sec('보류한 요청 '+hold.length)+hold.map(reqCard).join('')+'</section>':''
   ].join('');
 }
 function viewProd(R){
-  const p=findProd(R.pid); if(!p)return empty('제품 폴더를 찾지 못했어요');
+  const p=findProd(R.pid); if(!p)return empty('폴더 없음');
   const sh=S.showHidden.round, rs=visRounds(p,sh), c=pCount(p), rq=reqsOfProd(p).sort(sortRecent);
   const hiddenN=(p.rounds||[]).filter(r=>r.archived).length;
   return [
-    p.archived?'<div class="banner">숨긴 폴더예요 · 오른쪽 위 ⋯ 에서 다시 보이게 할 수 있어요</div>':'',
+    p.archived?'<div class="banner">숨김 처리된 폴더 · ⋯ 메뉴에서 복원</div>':'',
     '<section class="card" style="padding:14px"><div class="row"><span class="chip '+brandC(p.brand)+'">'+esc(p.brand)+'</span><span class="chip line">제품 폴더</span><span class="grow"></span>'+
       '<button class="chip line" data-act="editprod" data-p="'+esc(p.id)+'">수정</button></div>'+
       '<h2 style="margin:9px 0 2px;font-size:20px;letter-spacing:-.02em;color:var(--ink);word-break:keep-all">'+esc(p.name)+'</h2>'+
@@ -859,7 +859,7 @@ function viewProd(R){
       '<div class="fmeta"><span>회차 '+visRounds(p).length+'</span><span class="dot"></span><span>요청 '+rq.length+'</span>'+(c.t?'<span class="dot"></span><span class="mono">'+c.d+'/'+c.t+' 항목</span>':'')+'</div>'+
       (c.t?'<div class="row" style="margin-top:10px;gap:9px">'+bar(c.p,c.p===100?'done':'')+'<span class="pct mono">'+c.p+'%</span></div>':'')+'</section>',
     sec('촬영 회차'),
-    '<section class="stack">'+(rs.length?rs.map((r,i)=>roundCard(p,r,i)).join(''):empty('아직 촬영 회차가 없어요','아래 버튼으로 1차 촬영을 추가해 주세요'))+'</section>',
+    '<section class="stack">'+(rs.length?rs.map((r,i)=>roundCard(p,r,i)).join(''):empty('촬영 회차 없음'))+'</section>',
     '<button class="btn '+(rs.length?'ghost':'accent')+'" data-act="newround" data-p="'+esc(p.id)+'">+ '+((p.rounds||[]).length+1)+'차 촬영 추가</button>',
     hiddenN?'<div class="foot"><button data-act="togglehidden" data-k="round">'+(sh?'숨긴 회차 감추기':'숨긴 회차 '+hiddenN+'개 보기')+'</button></div>':'',
     rq.length?'<section class="stack">'+sec('요청 내역 '+rq.length)+rq.map(reqCard).join('')+'</section>':''
@@ -871,19 +871,19 @@ function todoRow(p,r,k,t){
     '<button class="del" data-act="deltodo" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'" data-q="'+k+'" data-t="'+esc(t.id)+'" aria-label="항목 삭제">✕</button></div>';
 }
 function viewRound(R){
-  const p=findProd(R.pid), r=findRound(p,R.rid); if(!p||!r)return empty('촬영 회차를 찾지 못했어요');
+  const p=findProd(R.pid), r=findRound(p,R.rid); if(!p||!r)return empty('회차 없음');
   const c=cnt(r.todos), rq=r.reqId?findReq(r.reqId):null, todos=r.todos||{};
   const rrefs=r.refs||[], qrefs=rq?(rq.refs||[]):[];
   return [
-    r.archived?'<div class="banner">숨긴 회차예요 · 오른쪽 위 ⋯ 에서 다시 보이게 할 수 있어요</div>':'',
+    r.archived?'<div class="banner">숨김 처리된 회차 · ⋯ 메뉴에서 복원</div>':'',
     '<section class="card" style="padding:14px"><div class="chiprow"><span class="chip '+brandC(p.brand)+'">'+esc(p.brand)+'</span><a class="chip line" href="'+H.prod(p.id)+'">'+esc(p.name)+'</a><span class="grow"></span>'+
       '<button class="chip line" data-act="editround" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'">일정 · 장소 수정</button></div>'+
       '<h2 style="margin:10px 0 2px;font-size:20px;letter-spacing:-.02em;color:var(--ink)">'+esc(r.title)+(r.date?' <span class="mono" style="font-size:14px;color:var(--faint);font-weight:500">'+ddayLabel(dday(r.date))+'</span>':'')+'</h2>'+
       '<div class="fmeta" style="font-size:12.5px">'+(r.date?'<span class="mono">'+fmtD(r.date)+(r.time?' '+esc(r.time):'')+'</span>':'<span>날짜 미정</span>')+'<span class="dot"></span>'+I.pin+'<span>'+(r.loc?esc(r.loc):'장소 미정')+'</span></div>'+
       (r.note?'<p class="small muted pre" style="margin:8px 0 0">'+esc(r.note)+'</p>':'')+
       '<div class="row" style="margin-top:11px;gap:9px">'+bar(c.p,c.p===100?'done':'')+'<span class="pct mono">'+c.p+'%</span></div>'+
-      (c.t&&c.p===100?'<div class="banner" style="margin-top:10px;background:var(--q4s);color:var(--q4)">이 회차 투두를 모두 끝냈어요</div>':'')+'</section>',
-    !r.date||!r.loc?'<div class="prompt"><span>'+(!r.date&&!r.loc?'촬영 날짜와 장소를 정해 주세요':!r.date?'촬영 날짜를 정해 주세요':'촬영 장소를 정해 주세요')+'</span><button data-act="editround" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'">정하기 ›</button></div>':'',
+      (c.t&&c.p===100?'<div class="banner" style="margin-top:10px;background:var(--q4s);color:var(--q4)">투두 전체 완료</div>':'')+'</section>',
+    !r.date||!r.loc?'<div class="prompt"><span>'+(!r.date&&!r.loc?'촬영 일정·장소 미정':!r.date?'촬영 일정 미정':'촬영 장소 미정')+'</span><button data-act="editround" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'">입력 ›</button></div>':'',
     rq?'<div class="reqbox"><div class="row"><span class="t">요청 내용</span><span class="grow"></span>'+ddayChip(rq.deadline,'마감 ')+'</div>'+
       '<p><b style="color:var(--ink)">'+esc(rq.name)+'</b> · 마감 '+(rq.deadline?fmtD(rq.deadline):'-')+'</p>'+
       (rq.concept?'<span class="lb">촬영 컨셉</span><p class="pre" style="margin-top:2px">'+esc(rq.concept)+'</p>':'')+
@@ -894,12 +894,12 @@ function viewRound(R){
       return '<div class="quad '+q.q+'"><div class="quad-h"><span class="nm">'+q.n+'</span>'+
         (list.length&&dn===list.length?'<span class="qdone">완료</span>':'<span class="ct mono">'+dn+'/'+list.length+'</span>')+'</div>'+
         '<div class="tasks">'+list.map(t=>todoRow(p,r,q.k,t)).join('')+'</div>'+
-        (S.adding===q.k?'<form class="inlineform" data-act="addtodo" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'" data-q="'+q.k+'"><input name="tx" placeholder="항목 입력 후 Enter" enterkeyhint="done"><button type="submit">추가</button></form>'
+        (S.adding===q.k?'<form class="inlineform" data-act="addtodo" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'" data-q="'+q.k+'"><input name="tx" placeholder="항목 입력" enterkeyhint="done"><button type="submit">추가</button></form>'
           :'<button class="addtask" data-act="addtask" data-q="'+q.k+'">+ 항목 추가</button>')+'</div>';}).join('')+'</div>',
     sec('레퍼런스 '+(qrefs.length+rrefs.length)),
     qrefs.length||rrefs.length?'<div class="refgrid">'+qrefs.map(x=>refTile(x,'req',' data-id="'+esc(rq.id)+'"')).join('')+
       rrefs.map(x=>refTile(x,'round',' data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'"')).join('')+'</div>':'',
-    qrefs.length?'<div class="tiny faint" style="margin-top:-8px">요청자가 넣은 레퍼런스 '+qrefs.length+'개 포함 · 요청 수정에서 바꿀 수 있어요</div>':'',
+    qrefs.length?'<div class="tiny faint" style="margin-top:-8px">요청 레퍼런스 '+qrefs.length+'개 포함 (변경은 요청 수정에서)</div>':'',
     '<div class="refadd"><button data-act="roundlink" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'">+ 링크</button><button data-act="pickimg" data-to="round" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'">+ 사진</button></div>'
   ].join('');
 }
@@ -936,7 +936,7 @@ function viewCal(){
       :'<a class="card" style="padding:13px;border-left:3px dashed var(--accent);display:block" href="'+H.req(e.r.id)+'">'+
         '<div class="row"><span class="chip q2">마감</span><span style="font-weight:600;font-size:14px;color:var(--ink)" class="trunc grow">'+esc(e.r.product)+'</span></div>'+
         '<div class="fmeta"><span>'+esc(e.r.brand)+'</span><span class="dot"></span><span>'+esc(e.r.name)+'</span><span class="dot"></span><span>'+(REQ_ST[e.r.status]||REQ_ST.new).n+'</span></div></a>').join('')
-      :empty('이 날짜에는 촬영이 없어요','촬영 날짜는 각 회차의 “일정 · 장소 수정”에서 정해요'))+'</section>',
+      :empty('촬영 없음'))+'</section>',
     sec((m+1)+'월 촬영 '+monthShoots.length+'회'),
     monthShoots.length?'<div class="card" style="padding:4px 12px">'+monthShoots.map(x=>
       '<a class="row" style="padding:10px 0;border-bottom:1px solid var(--line2)" href="'+H.round(x.p.id,x.r.id)+'">'+
@@ -981,66 +981,66 @@ function acceptSheet(id){
   const r=findReq(id); if(!r)return;
   const same=visProds().filter(p=>p.brand===r.brand);
   const match=same.find(p=>norm(p.name)===norm(r.product));
-  const choices=[['__new','새 폴더 만들기 · “'+r.product+'”']].concat(same.map(p=>[p.id,'기존 폴더 · '+p.name+' (회차 '+(p.rounds||[]).length+')']));
-  openSheet('<h3>요청 수락</h3><p class="lead">수락하면 <b>'+esc(r.brand)+' › 제품 폴더</b>에 촬영 회차가 만들어지고, 요청 내용과 레퍼런스를 그 안에서 볼 수 있어요. 날짜·장소는 나중에 정해도 돼요.</p>'+
+  const choices=[['__new','새 폴더 · '+r.product]].concat(same.map(p=>[p.id,'기존 폴더 · '+p.name+' (회차 '+(p.rounds||[]).length+')']));
+  openSheet('<h3>요청 수락</h3><p class="lead">수락 시 <b>'+esc(r.brand)+' › 제품 폴더</b>에 회차 생성. 일정·장소는 추후 입력 가능.</p>'+
     '<form data-act="do-accept" data-id="'+esc(r.id)+'">'+
     '<label class="field"><span>제품 폴더</span><select name="prod">'+opts(choices,match?match.id:'__new')+'</select>'+
-      (match?'<div class="hint">같은 이름의 폴더가 있어서 거기에 다음 회차로 넣어요</div>':'')+'</label>'+
+      (match?'<div class="hint">동일 제품 폴더 있음 → 다음 회차로 추가</div>':'')+'</label>'+
     '<div id="newname"'+(match?' hidden':'')+'>'+Fld('새 폴더 이름','name',r.product)+'</div>'+
     '<div class="two">'+Fld('촬영 날짜','date','','date')+Fld('시간','time','10:00','time')+'</div>'+
     (r.deadline?'<div class="tiny faint" style="margin:-8px 0 12px">요청 마감일 '+fmtD(r.deadline)+' ('+ddayLabel(dday(r.deadline))+')</div>':'')+
     Fld('촬영 장소','loc','','text',' list="locs" placeholder="예: 성수 스튜디오 A"')+locList()+
-    '<button class="btn accent" type="submit">수락하고 폴더 만들기</button></form>',true);
+    '<button class="btn accent" type="submit">수락 · 폴더 생성</button></form>',true);
 }
 function holdSheet(id){
-  openSheet('<h3>요청 보류</h3><p class="lead">보류한 요청은 지워지지 않고 요청함의 “보류”에 남아요. 언제든 다시 수락할 수 있어요.</p>'+
-    '<form data-act="do-hold" data-id="'+esc(id)+'"><label class="field"><span>보류 이유 (선택)</span><textarea name="memo" placeholder="예: 제품 입고 후 다시 진행"></textarea></label>'+
-    '<button class="btn" type="submit">보류하기</button></form>',true);
+  openSheet('<h3>요청 보류</h3><p class="lead">요청함 “보류”로 이동. 이후 수락 가능.</p>'+
+    '<form data-act="do-hold" data-id="'+esc(id)+'"><label class="field"><span>보류 이유 (선택)</span><textarea name="memo" placeholder="예: 제품 입고 후 진행"></textarea></label>'+
+    '<button class="btn" type="submit">보류</button></form>',true);
 }
 function roundSheet(pid,rid){
   const p=findProd(pid), r=rid?findRound(p,rid):null; if(!p)return;
   const n=(p.rounds||[]).length+1;
   const prodReqs=REQS.filter(q=>q.prodId===p.id&&!q.archived);
-  openSheet('<h3>'+(r?'일정 · 장소 수정':n+'차 촬영 추가')+'</h3><p class="lead">'+esc(p.brand)+' › '+esc(p.name)+(r?'':' · 기본 투두 4종이 함께 만들어져요')+'</p>'+
+  openSheet('<h3>'+(r?'일정 · 장소 수정':n+'차 촬영 추가')+'</h3><p class="lead">'+esc(p.brand)+' › '+esc(p.name)+(r?'':' · 기본 투두 4종 포함')+'</p>'+
     '<form data-act="'+(r?'do-editround':'do-newround')+'" data-p="'+esc(p.id)+'"'+(r?' data-r="'+esc(r.id)+'"':'')+'>'+
     Fld('회차 이름','title',r?r.title:n+'차 촬영')+
     '<div class="two">'+Fld('촬영 날짜','date',r?r.date:'','date')+Fld('시간','time',r?r.time:'10:00','time')+'</div>'+
     Fld('촬영 장소','loc',r?r.loc:(visRounds(p).slice(-1)[0]||{}).loc||'','text',' list="locs" placeholder="예: 성수 스튜디오 A"')+locList()+
     (!r&&prodReqs.length?'<label class="field"><span>연결할 요청 (선택)</span><select name="req">'+opts([['','연결 안 함']].concat(prodReqs.map(q=>[q.id,q.name+' · '+fmtISO(q.createdAt)+' 요청'])),'')+'</select></label>':'')+
     '<label class="field"><span>메모 (선택)</span><textarea name="note" placeholder="예: 모델 손 섭외 필요">'+esc(r?r.note:'')+'</textarea></label>'+
-    '<button class="btn" type="submit">'+(r?'저장':'회차 만들기')+'</button></form>',true);
+    '<button class="btn" type="submit">'+(r?'저장':'회차 생성')+'</button></form>',true);
 }
 function prodSheet(pid,brand){
   const p=pid?findProd(pid):null;
-  openSheet('<h3>'+(p?'제품 폴더 수정':'제품 폴더 만들기')+'</h3>'+(p?'':'<p class="lead">요청 없이 바로 폴더를 만들 때 써요. 보통은 요청을 수락하면 자동으로 생겨요.</p>')+
+  openSheet('<h3>'+(p?'제품 폴더 수정':'제품 폴더 생성')+'</h3>'+(p?'':'<p class="lead">요청 없이 폴더 생성 시 사용</p>')+
     '<form data-act="'+(p?'do-editprod':'do-newprod')+'"'+(p?' data-p="'+esc(p.id)+'"':'')+'>'+
     Fld('브랜드','brand',p?p.brand:(brand||''),'text',' list="brandlist" placeholder="그로홈 · POUR스토어 · 바라스데이 또는 직접 입력"')+brandDatalist()+
     Fld('제품 이름','name',p?p.name:'')+
     '<label class="field"><span>메모 (선택)</span><textarea name="memo">'+esc(p?p.memo:'')+'</textarea></label>'+
-    '<button class="btn" type="submit">'+(p?'저장':'폴더 만들기')+'</button></form>');
+    '<button class="btn" type="submit">'+(p?'저장':'생성')+'</button></form>');
 }
 function linkSheet(pid,rid){
   openSheet('<h3>레퍼런스 링크 추가</h3><form data-act="do-roundlink" data-p="'+esc(pid)+'" data-r="'+esc(rid)+'">'+
     Fld('링크','url','','url',' inputmode="url" placeholder="https://"')+Fld('메모 (선택)','note','','text',' placeholder="예: 조명 톤 참고"')+
-    '<button class="btn" type="submit">추가하기</button></form>');
+    '<button class="btn" type="submit">추가</button></form>');
 }
 function menuSheet(d){
   if(d.kind==='prod'){const p=findProd(d.p);if(!p)return;
     openSheet('<h3>'+esc(p.name)+'</h3><div class="menu">'+
       '<button data-act="editprod" data-p="'+esc(p.id)+'"><span class="ico">✎</span>폴더 정보 수정</button>'+
       '<button data-act="newround" data-p="'+esc(p.id)+'"><span class="ico">＋</span>'+((p.rounds||[]).length+1)+'차 촬영 추가</button>'+
-      '<button class="'+(p.archived?'':'warn')+'" data-act="archive" data-kind="prod" data-p="'+esc(p.id)+'"><span class="ico">'+(p.archived?'↺':'⌫')+'</span>'+(p.archived?'다시 보이기':'목록에서 숨기기')+'<span class="tiny faint" style="margin-left:auto">지워지지 않아요</span></button></div>',true);}
+      '<button class="'+(p.archived?'':'warn')+'" data-act="archive" data-kind="prod" data-p="'+esc(p.id)+'"><span class="ico">'+(p.archived?'↺':'⌫')+'</span>'+(p.archived?'복원':'숨기기')+'<span class="tiny faint" style="margin-left:auto">삭제 아님</span></button></div>',true);}
   if(d.kind==='round'){const p=findProd(d.p),r=findRound(p,d.r);if(!r)return;
     openSheet('<h3>'+esc(p.name)+' · '+esc(r.title)+'</h3><div class="menu">'+
       '<button data-act="editround" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'"><span class="ico">✎</span>일정 · 장소 수정</button>'+
-      '<button data-act="copyround" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'"><span class="ico">⧉</span>이 회차 복제 · 다음 회차로<span class="tiny faint" style="margin-left:auto">체크는 초기화</span></button>'+
-      '<button data-act="sharelink"><span class="ico">↗</span>이 화면 링크 복사</button>'+
-      '<button class="'+(r.archived?'':'warn')+'" data-act="archive" data-kind="round" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'"><span class="ico">'+(r.archived?'↺':'⌫')+'</span>'+(r.archived?'다시 보이기':'목록에서 숨기기')+'<span class="tiny faint" style="margin-left:auto">지워지지 않아요</span></button></div>',true);}
+      '<button data-act="copyround" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'"><span class="ico">⧉</span>회차 복제 (다음 회차)<span class="tiny faint" style="margin-left:auto">체크 초기화</span></button>'+
+      '<button data-act="sharelink"><span class="ico">↗</span>링크 복사</button>'+
+      '<button class="'+(r.archived?'':'warn')+'" data-act="archive" data-kind="round" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'"><span class="ico">'+(r.archived?'↺':'⌫')+'</span>'+(r.archived?'복원':'숨기기')+'<span class="tiny faint" style="margin-left:auto">삭제 아님</span></button></div>',true);}
   if(d.kind==='req'){const r=findReq(d.id);if(!r)return;
     openSheet('<h3>'+esc(r.product)+'</h3><div class="menu">'+
       '<a href="'+H.form+'/'+encodeURIComponent(r.id)+'"><span class="ico">✎</span>요청 수정</a>'+
-      '<button data-act="sharelink"><span class="ico">↗</span>이 요청 링크 복사</button>'+
-      '<button class="'+(r.archived?'':'warn')+'" data-act="archive" data-kind="req" data-id="'+esc(r.id)+'"><span class="ico">'+(r.archived?'↺':'⌫')+'</span>'+(r.archived?'다시 보이기':'목록에서 숨기기')+'<span class="tiny faint" style="margin-left:auto">지워지지 않아요</span></button></div>',true);}
+      '<button data-act="sharelink"><span class="ico">↗</span>링크 복사</button>'+
+      '<button class="'+(r.archived?'':'warn')+'" data-act="archive" data-kind="req" data-id="'+esc(r.id)+'"><span class="ico">'+(r.archived?'↺':'⌫')+'</span>'+(r.archived?'복원':'숨기기')+'<span class="tiny faint" style="margin-left:auto">삭제 아님</span></button></div>',true);}
 }
 function findRefFrom(d){
   if(d.src==='draft')return DRAFT?(DRAFT.refs||[]).find(x=>x.id===d.ref):null;
@@ -1051,7 +1051,7 @@ function findRefFrom(d){
 async function openRefSheet(d){
   const ref=findRefFrom(d); if(!ref)return;
   const canDel=d.src==='round';
-  const delBtn=canDel?'<button class="btn danger" style="margin-top:8px" data-act="delroundref" data-p="'+esc(d.p)+'" data-r="'+esc(d.r)+'" data-ref="'+esc(ref.id)+'">이 레퍼런스 빼기</button>':'';
+  const delBtn=canDel?'<button class="btn danger" style="margin-top:8px" data-act="delroundref" data-p="'+esc(d.p)+'" data-r="'+esc(d.r)+'" data-ref="'+esc(ref.id)+'">레퍼런스 삭제</button>':'';
   if(ref.kind==='link'){
     const y=ytId(ref.url);
     openSheet('<h3>'+esc(ref.note||host(ref.url))+'</h3>'+(y?'<div class="viewer"><img src="https://i.ytimg.com/vi/'+y+'/hqdefault.jpg" alt=""></div>':'')+
@@ -1064,11 +1064,11 @@ async function openRefSheet(d){
   if(ref.data)return;
   try{const full=ref.img?await Store.getImg(ref.img):'';
     if(full&&$('#viewer')){$('#viewer').innerHTML='<img src="'+full+'" alt="">';$('#imgdl').href=full;}}
-  catch(e){console.error('[shootimg] 원본 불러오기 실패:',e);toast('원본 사진을 불러오지 못했어요');}
+  catch(e){console.error('[shootimg] 원본 불러오기 실패:',e);toast('원본 사진 로드 실패');}
 }
 
 /* ---------------- 이미지 처리 ---------------- */
-function loadImg(file){return new Promise((ok,no)=>{const url=URL.createObjectURL(file),i=new Image();i.onload=()=>ok({i,url});i.onerror=()=>{URL.revokeObjectURL(url);no(new Error('이미지를 읽지 못했어요: '+file.name));};i.src=url;});}
+function loadImg(file){return new Promise((ok,no)=>{const url=URL.createObjectURL(file),i=new Image();i.onload=()=>ok({i,url});i.onerror=()=>{URL.revokeObjectURL(url);no(new Error('이미지 읽기 실패: '+file.name));};i.src=url;});}
 function toJpeg(img,max,q){const w=img.naturalWidth,h=img.naturalHeight,r=Math.min(1,max/Math.max(w,h));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*r));c.height=Math.max(1,Math.round(h*r));
   const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);return c.toDataURL('image/jpeg',q);}
 async function compress(file){
@@ -1089,13 +1089,13 @@ $('#filepick').addEventListener('change',async e=>{
     if(tg.to==='draft'){
       if(!DRAFT)return;
       const room=MAX_REFS-DRAFT.refs.length; DRAFT.refs.push(...made.slice(0,Math.max(0,room))); DRAFT.err.refs=0;
-      if(made.length>room)toast('레퍼런스는 최대 '+MAX_REFS+'개까지 넣을 수 있어요'); else toast('사진 '+made.length+'장을 넣었어요');
+      if(made.length>room)toast('레퍼런스 최대 '+MAX_REFS+'개'); else toast('사진 '+made.length+'장 추가');
       render(); return;
     }
     for(const m of made){const iid=uid();await Store.setImg(iid,m.data);m.img=iid;delete m.data;}
     mutateProd(tg.p,p=>{const r=findRound(p,tg.r);if(r)r.refs=(r.refs||[]).concat(made);return p;});
-    toast('사진 '+made.length+'장을 레퍼런스에 넣었어요');
-  }catch(err){console.error('[사진] 처리 실패:',err);toast('사진을 넣지 못했어요 · '+err.message);}
+    toast('사진 '+made.length+'장 추가');
+  }catch(err){console.error('[사진] 처리 실패:',err);toast('사진 추가 실패 · '+err.message);}
 });
 
 /* ---------------- 쓰기 ---------------- */
@@ -1104,10 +1104,10 @@ function mutateProd(pid,fn){
   const i=PRODS.findIndex(p=>p.id===pid);
   if(i>=0){PRODS[i]=fn(clean(PRODS[i]));PRODS[i].updatedAt=nowISO();render();}
   return Store.mutate(P_PROD+pid,p=>{p=fn(p);p.updatedAt=nowISO();return p;})
-    .catch(e=>{console.error('[shootprod] 저장 실패:',e);toast('저장하지 못했어요 · 인터넷 연결을 확인해 주세요');throw e;});
+    .catch(e=>{console.error('[shootprod] 저장 실패:',e);toast('저장 실패 · 네트워크 확인');throw e;});
 }
 async function patchReq(id,fields){
-  const r=findReq(id); if(!r)throw new Error('요청을 찾지 못했어요: '+id);
+  const r=findReq(id); if(!r)throw new Error('요청 없음: '+id);
   const next=Object.assign(clean(r),fields,{updatedAt:nowISO()});
   const i=REQS.findIndex(x=>x.id===id); if(i>=0)REQS[i]=next;
   await Store.set(P_REQ+id,next);
@@ -1117,7 +1117,7 @@ const shortNow=()=>{const d=new Date();return (d.getMonth()+1)+'/'+d.getDate()+'
 function normUrl(u){u=String(u||'').trim();if(!u)return '';if(!/^https?:\/\//i.test(u))u='https://'+u;try{new URL(u);return u;}catch(e){return '';}}
 async function copyText(t,msg){
   try{await navigator.clipboard.writeText(t);toast(msg);}
-  catch(e){console.error('[복사] 실패:',e);window.prompt('아래 주소를 길게 눌러 복사해 주세요',t);}
+  catch(e){console.error('[복사] 실패:',e);window.prompt('주소 복사',t);}
 }
 const pageURL=()=>location.href.split('#')[0];
 
@@ -1126,8 +1126,8 @@ document.addEventListener('click',async e=>{
   const el=e.target.closest('[data-act]'); if(!el||el.tagName==='FORM')return;
   const a=el.dataset.act, d=el.dataset;
   switch(a){
-   case 'copylink': copyText(pageURL()+'#/request','요청 페이지 링크를 복사했어요 · 요청할 분께 보내 주세요'); break;
-   case 'sharelink': closeSheet(); copyText(location.href,'링크를 복사했어요'); break;
+   case 'copylink': copyText(pageURL()+'#/request','요청 페이지 링크 복사됨'); break;
+   case 'sharelink': closeSheet(); copyText(location.href,'링크 복사됨'); break;
    case 'reqst': S.reqStatus=d.k; render(); break;
    case 'reqbrand': S.reqBrand=d.b; render(); break;
    case 'togglehidden': S.showHidden[d.k]=!S.showHidden[d.k]; render(); break;
@@ -1137,24 +1137,24 @@ document.addEventListener('click',async e=>{
      if(d.b==='__custom'){const i=document.querySelector('[data-f="brandCustom"]');if(i)i.focus();}
      break;
    case 'draft-linkopen':
-     if(DRAFT.refs.length>=MAX_REFS){toast('레퍼런스는 최대 '+MAX_REFS+'개까지예요');break;}
+     if(DRAFT.refs.length>=MAX_REFS){toast('레퍼런스 최대 '+MAX_REFS+'개');break;}
      DRAFT.linkOpen=true; S.focusLink=true; render(); break;
    case 'draft-linkcancel': DRAFT.linkOpen=false; render(); break;
    case 'draft-linkadd': {
-     const u=normUrl($('#lk-url').value); if(!u){toast('링크 주소를 확인해 주세요');$('#lk-url').focus();break;}
+     const u=normUrl($('#lk-url').value); if(!u){toast('링크 주소 오류');$('#lk-url').focus();break;}
      DRAFT.refs.push({id:uid(),kind:'link',url:u,note:$('#lk-note').value.trim()}); DRAFT.linkOpen=false; DRAFT.err.refs=0; render();
-     toast(DRAFT.refs.length>=2?'레퍼런스 '+DRAFT.refs.length+'개 · 충분해요':'1개 더 넣어 주세요'); break;}
+     toast(DRAFT.refs.length>=2?'레퍼런스 '+DRAFT.refs.length+'개':'레퍼런스 1개 부족'); break;}
    case 'draft-delref': e.stopPropagation(); DRAFT.refs=DRAFT.refs.filter(x=>x.id!==d.ref); render(); break;
    case 'pickimg':
-     if(d.to==='draft'&&DRAFT.refs.length>=MAX_REFS){toast('레퍼런스는 최대 '+MAX_REFS+'개까지예요');break;}
+     if(d.to==='draft'&&DRAFT.refs.length>=MAX_REFS){toast('레퍼런스 최대 '+MAX_REFS+'개');break;}
      pickTarget={to:d.to,p:d.p,r:d.r}; $('#filepick').click(); break;
    case 'submit-req': submitReq(); break;
    case 'openref': openRefSheet(d); break;
    case 'accept': acceptSheet(d.id); break;
    case 'hold': holdSheet(d.id); break;
    case 'unhold':
-     try{await patchReq(d.id,{status:'new',holdMemo:''});render();toast('확인 대기로 되돌렸어요');}
-     catch(err){console.error('[shootreq] 되돌리기 실패:',err);toast('저장하지 못했어요');} break;
+     try{await patchReq(d.id,{status:'new',holdMemo:''});render();toast('대기로 변경됨');}
+     catch(err){console.error('[shootreq] 되돌리기 실패:',err);toast('저장 실패');} break;
    case 'menu': menuSheet(d); break;
    case 'editprod': closeSheet(); setTimeout(()=>prodSheet(d.p),180); break;
    case 'newprod': prodSheet(null,d.b||''); break;
@@ -1166,14 +1166,14 @@ document.addEventListener('click',async e=>{
      const p=findProd(d.p), r=findRound(p,d.r), t=r&&((r.todos||{})[d.q]||[]).find(x=>x.id===d.t); if(!t)break;
      const to=!t.done, at=to?shortNow():null;
      mutateProd(d.p,p=>{const rr=findRound(p,d.r),tt=rr&&((rr.todos||{})[d.q]||[]).find(x=>x.id===d.t);if(tt){tt.done=to;tt.at=at;}return p;}).catch(()=>{});
-     if(to){const c=cnt(findRound(findProd(d.p),d.r).todos);if(c.t&&c.d===c.t)toast('“'+p.name+'” '+r.title+' 투두를 모두 끝냈어요');}
+     if(to){const c=cnt(findRound(findProd(d.p),d.r).todos);if(c.t&&c.d===c.t)toast('“'+p.name+'” '+r.title+' 투두 전체 완료');}
      break;}
    case 'deltodo':
      mutateProd(d.p,p=>{const rr=findRound(p,d.r);if(rr&&rr.todos&&rr.todos[d.q])rr.todos[d.q]=rr.todos[d.q].filter(x=>x.id!==d.t);return p;}).catch(()=>{});
      break;
    case 'delroundref':
      closeSheet();
-     mutateProd(d.p,p=>{const rr=findRound(p,d.r);if(rr)rr.refs=(rr.refs||[]).filter(x=>x.id!==d.ref);return p;}).then(()=>toast('레퍼런스를 뺐어요')).catch(()=>{});
+     mutateProd(d.p,p=>{const rr=findRound(p,d.r);if(rr)rr.refs=(rr.refs||[]).filter(x=>x.id!==d.ref);return p;}).then(()=>toast('레퍼런스 삭제됨')).catch(()=>{});
      break;
    case 'copyround': {
      closeSheet();
@@ -1181,15 +1181,15 @@ document.addEventListener('click',async e=>{
      const nid=uid(), n=(p.rounds||[]).length+1;
      const copy={id:nid,title:n+'차 촬영',date:'',time:src.time||'10:00',loc:src.loc||'',reqId:null,note:src.note||'',refs:clean(src.refs||[]),archived:false,createdAt:nowISO(),
        todos:(()=>{const o={};QK.forEach(k=>o[k]=((src.todos||{})[k]||[]).map(t=>({id:uid(),text:t.text,done:false})));return o;})()};
-     mutateProd(d.p,pp=>{pp.rounds=(pp.rounds||[]).concat(copy);return pp;}).then(()=>{go(H.round(d.p,nid));toast(n+'차 촬영을 만들었어요 · 날짜를 정해 주세요');}).catch(()=>{});
+     mutateProd(d.p,pp=>{pp.rounds=(pp.rounds||[]).concat(copy);return pp;}).then(()=>{go(H.round(d.p,nid));toast(n+'차 촬영 생성됨');}).catch(()=>{});
      break;}
    case 'archive': {
      closeSheet();
      try{
-       if(d.kind==='req'){const r=findReq(d.id);await patchReq(d.id,{archived:!r.archived});toast(r.archived?'다시 보이게 했어요':'목록에서 숨겼어요 · 요청함 아래에서 다시 볼 수 있어요');render();}
-       if(d.kind==='prod'){const p=findProd(d.p),was=!!p.archived;await mutateProd(d.p,pp=>{pp.archived=!was;return pp;});toast(was?'다시 보이게 했어요':'폴더를 숨겼어요 · 폴더 목록 아래에서 다시 볼 수 있어요');if(!was)go(H.brand(p.brand));}
-       if(d.kind==='round'){const p=findProd(d.p),r=findRound(p,d.r),was=!!r.archived;await mutateProd(d.p,pp=>{const rr=findRound(pp,d.r);if(rr)rr.archived=!was;return pp;});toast(was?'다시 보이게 했어요':'회차를 숨겼어요 · 제품 폴더 아래에서 다시 볼 수 있어요');if(!was)go(H.prod(d.p));}
-     }catch(err){console.error('[숨기기] 실패:',err);toast('저장하지 못했어요');}
+       if(d.kind==='req'){const r=findReq(d.id);await patchReq(d.id,{archived:!r.archived});toast(r.archived?'복원됨':'숨김 처리됨');render();}
+       if(d.kind==='prod'){const p=findProd(d.p),was=!!p.archived;await mutateProd(d.p,pp=>{pp.archived=!was;return pp;});toast(was?'복원됨':'숨김 처리됨');if(!was)go(H.brand(p.brand));}
+       if(d.kind==='round'){const p=findProd(d.p),r=findRound(p,d.r),was=!!r.archived;await mutateProd(d.p,pp=>{const rr=findRound(pp,d.r);if(rr)rr.archived=!was;return pp;});toast(was?'복원됨':'숨김 처리됨');if(!was)go(H.prod(d.p));}
+     }catch(err){console.error('[숨기기] 실패:',err);toast('저장 실패');}
      break;}
    case 'day': S.sel=d.d; render(); break;
    case 'mv': {
@@ -1204,7 +1204,7 @@ document.addEventListener('click',async e=>{
 document.addEventListener('input',e=>{
   const f=e.target.dataset&&e.target.dataset.f; if(!f||!DRAFT)return;
   DRAFT[f]=e.target.value; if(DRAFT.err[f==='brandCustom'?'brand':f]){DRAFT.err[f==='brandCustom'?'brand':f]=0;const fe=e.target.closest('.field');if(fe)fe.classList.remove('err');}
-  if(f==='deadline'){const h=e.target.parentNode.querySelector('.hint');if(h)h.textContent='이 날짜까지 촬영이 끝나야 해요'+(DRAFT.deadline?' · '+fmtD(DRAFT.deadline)+' ('+ddayLabel(dday(DRAFT.deadline))+')':'');}
+  if(f==='deadline'){const h=e.target.parentNode.querySelector('.hint');if(h)h.textContent='촬영 완료 기한'+(DRAFT.deadline?' · '+fmtD(DRAFT.deadline)+' ('+ddayLabel(dday(DRAFT.deadline))+')':'');}
   updateMissing();
 });
 document.addEventListener('keydown',e=>{
@@ -1233,7 +1233,7 @@ document.addEventListener('submit',async e=>{
     }
     lock();
     if(a==='do-accept'){
-      const r=findReq(d.id); if(!r)throw new Error('요청을 찾지 못했어요');
+      const r=findReq(d.id); if(!r)throw new Error('요청 없음');
       const rid=uid(); let pid=v('prod');
       const round={id:rid,title:'',date:v('date'),time:v('time')||'10:00',loc:v('loc'),reqId:r.id,note:'',todos:tplTodos(),refs:[],archived:false,createdAt:nowISO()};
       if(pid==='__new'){
@@ -1245,37 +1245,37 @@ document.addEventListener('submit',async e=>{
       }
       await patchReq(r.id,{status:'accepted',prodId:pid,roundId:rid,acceptedAt:nowISO(),holdMemo:''});
       console.log('[shootreq] 수락 '+r.id+' → '+pid+'/'+rid);
-      closeSheet(); go(H.round(pid,rid)); toast('폴더를 만들었어요 · 투두와 일정을 확인해 주세요');
+      closeSheet(); go(H.round(pid,rid)); toast('수락 완료 · 폴더 생성됨');
     }
-    if(a==='do-hold'){await patchReq(d.id,{status:'hold',holdMemo:v('memo')});closeSheet();render();toast('보류했어요 · 요청함 “보류”에 남아요');}
+    if(a==='do-hold'){await patchReq(d.id,{status:'hold',holdMemo:v('memo')});closeSheet();render();toast('보류 처리됨');}
     if(a==='do-newround'){
       const p=findProd(d.p); const rid=uid();
       const round={id:rid,title:v('title')||((p.rounds||[]).length+1)+'차 촬영',date:v('date'),time:v('time')||'10:00',loc:v('loc'),reqId:v('req')||null,note:v('note'),todos:tplTodos(),refs:[],archived:false,createdAt:nowISO()};
       await mutateProd(d.p,pp=>{pp.rounds=(pp.rounds||[]).concat(round);return pp;});
       if(round.reqId)await patchReq(round.reqId,{roundId:rid});
-      closeSheet(); go(H.round(d.p,rid)); toast(round.title+'을 만들었어요');
+      closeSheet(); go(H.round(d.p,rid)); toast(round.title+' 생성됨');
     }
     if(a==='do-editround'){
       await mutateProd(d.p,pp=>{const rr=findRound(pp,d.r);if(rr){rr.title=v('title')||rr.title;rr.date=v('date');rr.time=v('time');rr.loc=v('loc');rr.note=v('note');}return pp;});
-      closeSheet(); render(); toast('저장했어요');
+      closeSheet(); render(); toast('저장됨');
     }
     if(a==='do-newprod'){
-      const brand=v('brand'), name=v('name'); if(!brand||!name){unlock();toast('브랜드와 제품 이름을 넣어 주세요');return;}
+      const brand=v('brand'), name=v('name'); if(!brand||!name){unlock();toast('브랜드·제품명 미입력');return;}
       const pid=uid(), np={id:pid,brand,name,memo:v('memo'),rounds:[],archived:false,createdAt:nowISO(),updatedAt:nowISO()};
       await Store.set(P_PROD+pid,np); upsert(PRODS,clean(np));
-      closeSheet(); go(H.prod(pid)); toast('폴더를 만들었어요 · 1차 촬영을 추가해 주세요');
+      closeSheet(); go(H.prod(pid)); toast('폴더 생성됨');
     }
     if(a==='do-editprod'){
-      const brand=v('brand'), name=v('name'); if(!brand||!name){unlock();toast('브랜드와 제품 이름을 넣어 주세요');return;}
+      const brand=v('brand'), name=v('name'); if(!brand||!name){unlock();toast('브랜드·제품명 미입력');return;}
       await mutateProd(d.p,pp=>{pp.brand=brand;pp.name=name;pp.memo=v('memo');return pp;});
-      closeSheet(); render(); toast('저장했어요');
+      closeSheet(); render(); toast('저장됨');
     }
     if(a==='do-roundlink'){
-      const u=normUrl(v('url')); if(!u){unlock();toast('링크 주소를 확인해 주세요');return;}
+      const u=normUrl(v('url')); if(!u){unlock();toast('링크 주소 오류');return;}
       await mutateProd(d.p,pp=>{const rr=findRound(pp,d.r);if(rr)rr.refs=(rr.refs||[]).concat({id:uid(),kind:'link',url:u,note:v('note')});return pp;});
-      closeSheet(); toast('레퍼런스를 넣었어요');
+      closeSheet(); toast('레퍼런스 추가됨');
     }
-  }catch(err){console.error('['+a+'] 실패:',err);unlock();toast('저장하지 못했어요 · '+(err.message||'다시 시도해 주세요'));}
+  }catch(err){console.error('['+a+'] 실패:',err);unlock();toast('저장 실패 · '+(err.message||'재시도 필요'));}
 });
 
 /* ---------------- 시작 ---------------- */
@@ -1283,7 +1283,7 @@ window.addEventListener('hashchange',()=>{S.adding=null;closeSheet();render();wi
 function start(){
   const forceLocal=/[?&]local=1/.test(location.search);
   if(forceLocal||typeof firebase==='undefined'){
-    MODE='local'; if(!forceLocal)console.error('[shootdesk] Firebase를 불러오지 못해 이 기기 저장 모드로 열어요');
+    MODE='local'; if(!forceLocal)console.error('[shootdesk] Firebase 로드 실패 · 로컬 저장 모드');
   }else{
     try{
       if(!firebase.apps.length)firebase.initializeApp({

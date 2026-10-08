@@ -67,6 +67,10 @@ input,select{width:100%;max-width:100%;font:inherit;border:1px solid var(--borde
 ol.adv{margin:0;padding:0 16px 0 34px}ol.adv li{padding:7px 0;border-bottom:1px solid var(--border)}ol.adv li:last-child{border:0}
 ol.adv .r{font-size:12px;color:var(--text-md)}
 #login{max-width:380px;margin:40px auto}
+.acct-list{border-top:1px solid var(--border)}
+.acct-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--border)}
+.acct-row .who{flex:1;min-width:0;word-break:break-all}
+.acct-row .acts{display:flex;gap:6px;flex-wrap:wrap}
 .temp{background:var(--gold-l);border:1px solid #FDE68A;border-radius:var(--r-sm);padding:12px;margin-bottom:12px}
 code{background:#F3F4F6;border-radius:4px;padding:2px 6px;font-size:13px}
 @media (max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.form{grid-template-columns:1fr 1fr}}
@@ -350,11 +354,11 @@ function vAcct(){
       <div><label for="ac-role">역할</label><select id="ac-role"><option value="uploader">업로더 (올리기만 · Aside 용)</option><option value="admin">관리자 (전부)</option></select></div></div>
     <div style="margin-top:12px"><button class="btn pri" data-acct="add">계정 만들기 / 등록</button></div>
     <p class="sub">처음 쓰는 이메일이면 계정과 임시 비밀번호를 만듭니다. Aside 용은 본인 메인 계정이 아닌 <b>전용 이메일</b>로 만드세요.</p></div>
-    <div class="tbl"><table><thead><tr><th>이름</th><th>이메일</th><th>역할</th><th></th></tr></thead><tbody>
-      ${OWNER_EMAILS.map(e=>`<tr><td>대표</td><td>${esc(e)}</td><td><span class="pill ok">관리자</span></td><td class="sub">고정</td></tr>`).join('')}
-      ${ppl.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.email)}</td><td>${p.active===false?'<span class="pill m">사용 중지</span>':p.role==='admin'?'<span class="pill ok">관리자</span>':'<span class="pill wait">업로더</span>'}</td>
-        <td><button class="btn sm" data-acct="toggle" data-e="${esc(p.email)}">${p.active===false?'다시 사용':'사용 중지'}</button> <button class="btn sm" data-acct="reset" data-e="${esc(p.email)}">비밀번호 재설정 메일</button></td></tr>`).join('')}
-    </tbody></table></div></div>`;
+    <div class="acct-list">
+      ${OWNER_EMAILS.map(e=>`<div class="acct-row"><div class="who"><b>대표</b> <span class="pill ok">관리자</span><div class="sub">${esc(e)}</div></div><span class="sub">고정</span></div>`).join('')}
+      ${ppl.map(p=>`<div class="acct-row"><div class="who"><b>${esc(p.name)}</b> ${p.active===false?'<span class="pill m">사용 중지</span>':p.role==='admin'?'<span class="pill ok">관리자</span>':'<span class="pill wait">업로더</span>'}<div class="sub">${esc(p.email)}</div></div>
+        <div class="acts"><button class="btn sm" data-acct="toggle" data-e="${esc(p.email)}">${p.active===false?'다시 사용':'사용 중지'}</button><button class="btn sm" data-acct="reset" data-e="${esc(p.email)}">비밀번호 재설정 메일</button></div></div>`).join('')}
+    </div></div>`;
 }
 function vSet(){
   const s=S.settings, f=(k,l,u)=>`<div><label for="st-${k}">${l}</label><input id="st-${k}" type="number" min="0" value="${esc(s[k])}"><div class="sub">${u}</div></div>`;

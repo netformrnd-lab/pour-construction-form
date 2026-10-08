@@ -726,7 +726,7 @@
 @media (max-width:900px){ .psm1-qc-inner { grid-template-columns:repeat(4,1fr); } }
 @media (max-width:700px){
   .psm1-qc, .psm1-pb { display:block; }
-  .psm1-qc { padding:22px 10px 4px; }
+  .psm1-qc { padding:22px 10px 28px; } /* 아이콘 글자와 문제섹션 사이 여백(2026-10: 너무 붙어 보임) */
   .psm1-qc .psm1-qc-head { padding:0 6px; margin-bottom:16px; } /* 문제섹션 제목과 같은 모양(16.5px 굵게) */
   .psm1-qc-inner { gap:16px 0; }
   .psm1-qc-ico { width:60px; height:60px; }
@@ -862,6 +862,7 @@
   .psm1-mfirst { display:flex; flex-direction:column; min-height:var(--mfirst-h, auto); }
   .psm1-mfirst > * { width:100%; box-sizing:border-box; } /* 세로 flex 안에서 auto 여백 때문에 폭이 내용만큼 늘어나는 것 방지 */
   .psm1-mfirst > .psm1-pb { flex:1 0 auto; }
+  .psm1-mfirst > .psm1-qc { flex:0 0 auto; } /* 아이콘 영역이 눌려 글자가 가려지지 않게 */
 }
 </style>
 <script>

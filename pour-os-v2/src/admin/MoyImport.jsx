@@ -85,7 +85,7 @@ export function MoyImport({ D, cu, A, meta, setMeta, setToast }) {
   };
   const pl = st && st.plan, c = pl && pl.counts;
   const userLine = pl && pl.people.map((p) => `${p.from} → ${p.to || "담당 비움"}`).join(" · ");
-  return <Card style={{ padding: "12px 14px", fontSize: 13.5, color: C.sub, lineHeight: 1.7 }}>
+  return <div className="a-moy"><Card style={{ padding: "12px 14px", fontSize: 13.5, color: C.sub, lineHeight: 1.7 }}>
     <div style={{ color: C.text }}>모여라딜 OS를 <b>읽기만</b> 해서 업무OS에 없는 새 것과, 업무OS에서 안 고친 것만 최신으로 바꿔요. 업무OS에서 고친 것·휴지통에 있는 것은 그대로예요. 지우는 것은 없어요.</div>
     {last && last.at && <div style={{ marginTop: 4 }}>지난번 {when(last.at)} · {last.byName || ""} · 새로 {(last.counts && last.counts.add) || 0} · 최신으로 {(last.counts && last.counts.upd) || 0}</div>}
     {(!st || st.step === "err") && <div style={{ marginTop: 10 }}><TBtn v="solid" onClick={load}>무엇이 들어올지 보기</TBtn></div>}
@@ -124,5 +124,5 @@ export function MoyImport({ D, cu, A, meta, setMeta, setToast }) {
         {st.doneUpd && st.doneUpd.length > 0 && <TBtn disabled={st.step === "undo"} onClick={undo}>{st.step === "undo" ? "되돌리는 중" : `최신으로 바꾼 ${st.doneUpd.length}건 되돌리기`}</TBtn>}
         <TBtn onClick={load}>다시 보기</TBtn></div>
     </div>}
-  </Card>;
+  </Card></div>;
 }

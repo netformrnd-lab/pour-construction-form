@@ -219,6 +219,7 @@ goals[g1] 매출 10억
 - id 앞 `md_`(KPI 번호 mk1~3 충돌 방지) · 연결(목표→KPI→서브→프로젝트→업무·하위업무) 유지 · 브랜드 '모여라딜'(이름에 바라스데이·그로홈 있는 프로젝트는 그 브랜드, 모여라딜 KPI 연결은 끊음) · 프로젝트 없는 업무는 brand=모여라딜.
 - 사람: 같은 이름의 업무OS 담당자(김송희·용정하). 없는 사람(봇)은 담당 비움. 활동 기록은 `archiveMove("log")`로 월별 보관함에 바로(현재 기록 밀어내지 않음). 휴지통·eventTypes 는 옮기지 않음.
 - `importBulk`(App): 이미 있는 id 건너뜀 → 두 번 눌러도 중복 없음. 넣은 항목엔 `importedFrom:"moyeoradeal-os"`.
+- 2026-10-08부터 '최신 데이터 한 번 더'는 업무OS v2 관리자 › 설정 › '모여라딜 OS 최신 데이터 가져오기'(원본 → `pour-os/v2/**` 바로 · 이 버전1 화면·문서는 안 씀 · 규칙은 `pour-os-v2/CLAUDE.md` 같은 이름 절 · 계산은 이 `moyImport.planMoyImport` 를 그대로 import).
 
 ### ✅ 그로홈 대시보드 업무 → 업무OS 한 번 옮기기 · 담당자 미사용 (2026-10, 대표 결정: 업무는 업무OS 에서만)
 - 원본 = 그로홈 대시보드 데이터의 employees·fixedTasks·etcTasks·leadingTasks·monthlyTasks·gbTasks — REST로 읽기만(대시보드 화면·데이터 그대로). 2026-10-07 그로홈 데이터 이사 뒤 위치 = pour-app-new 의 `pour-os/grohome/<컬렉션>`(`GH_FIREBASE.root`) · 옛 grohome-dashboard 프로젝트는 무료 요금제 하루 읽기 한도로 막혀 이사(원본 보관). 계산 `ghImport.js`(`planGhImport`, 테스트 `ghImport.test.mjs`).

@@ -294,7 +294,8 @@ function vHome(){
     <button class="btn" id="obsidian-copy" style="margin-top:8px;width:100%;max-width:360px">📋 노트 내용 복사 (버튼이 안 될 때)</button>
     <div class="sub" style="margin-top:8px">누르면 옵시디언이 열리고 '${esc(C.OBSIDIAN_NOTE)}' 노트가 지금 숫자(발주 필요·키워드·제품별 판매)로 바뀝니다.${obsHubDone()?'':' 허브에 끼워 보려면 설정 탭 › 옵시디언 › [허브에 연결] 한 번.'}</div></div></div>`;
 }
-function obsVault(){try{const v=localStorage.getItem('mkt_obsidian_vault');return v==null?'POUR 마케팅 허브':v;}catch(e){return 'POUR 마케팅 허브';}}
+// 기본 = 빈칸(옵시디언에 지금 열린 볼트) — 아이폰에서 볼트 이름을 넣으면 노트가 안 생기고 빈칸이면 됨(2026-10-09 사용자 확인)
+function obsVault(){try{const v=localStorage.getItem('mkt_obsidian_vault');return v==null?'':v;}catch(e){return '';}}
 function obsHubDone(){try{return localStorage.getItem('mkt_obsidian_hub')==='1';}catch(e){return false;}}
 function obsidianText(){
   const dr=dailyRevenue();
@@ -374,7 +375,7 @@ function vSet(){
         <button class="btn" id="migrate-open">임시 저장소에서 옮기기</button>
         <p class="sub">임시 저장소의 판매·광고·재고·업로드 기록·계정·기준값을 그대로 복사합니다(임시 저장소는 지우지 않음). 여러 번 눌러도 같은 문서를 덮어써서 중복이 없습니다. 원본 CSV 는 옮기지 않습니다.</p>`}</div></div>
   <div class="card"><h3>🟣 옵시디언</h3><div class="bd">
-    <div class="form"><div><label for="obs-vault">볼트 이름</label><input id="obs-vault" value="${esc(obsVault())}" placeholder="POUR 마케팅 허브"><div class="sub">옵시디언에서 연 볼트 이름 그대로 · 이 기기에만 저장 · <b>비워 두면 옵시디언에 지금 열려 있는 볼트</b>에 만듭니다(이름이 안 맞아 노트가 안 생길 때)</div></div></div>
+    <div class="form"><div><label for="obs-vault">볼트 이름</label><input id="obs-vault" value="${esc(obsVault())}" placeholder="비워 두기 (지금 열린 볼트)"><div class="sub">옵시디언에서 연 볼트 이름 그대로 · 이 기기에만 저장 · <b>비워 두면 옵시디언에 지금 열려 있는 볼트</b>에 만듭니다(이름이 안 맞아 노트가 안 생길 때)</div></div></div>
     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="obs-vault-save">볼트 이름 저장</button>
       <a class="btn obs" id="obs-hub" href="${esc(C.obsidianUri(obsVault(),C.OBSIDIAN_HUB,C.OBSIDIAN_HUB_SECTION,'append'))}">${obsHubDone()?'✅ 허브에 연결됨 (다시 붙이기)':'허브에 연결 (한 번만)'}</a></div>
     <p class="sub">[허브에 연결]은 '${esc(C.OBSIDIAN_HUB)}' 노트 맨 끝에 '📊 오늘 숫자' 칸을 붙입니다(기존 내용은 그대로). 한 번만 누르세요. 그 뒤로는 요약 탭 [옵시디언으로 보내기]만 누르면 허브에서 새 숫자가 보입니다.</p></div></div>`;

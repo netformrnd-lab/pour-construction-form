@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- 구매 품의 작성 요청 대시보드
+     품의 작성이 어려운 직원이 주제·문서 종류·제목·본문을 남기면, 상급자가 목록에서 보고 그룹웨어에 대신 작성한다.
+     CRM과 무관한 독립 페이지.
+     데이터: Firestore pour-app-new  pour-os/approval-requests/items/{id}
+       ※ 기존 보안규칙 pour-os/{doc=**} 범위 안에서 동작 (규칙 변경 없음) -->
+<title>구매 품의 요청함</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root {
+  --bg: #F4F6F9; --surface: #FFFFFF; --surface2: #EEF1F6; --ink: #111827; --ink2: #4B5563; --muted: #6B7280;
+  --line: #E2E6EE; --brand: #0F1F5C; --brand-ink: #FFFFFF; --accent: #2563EB; --accent-soft: #E8F0FE;
+  --good: #047857; --good-bg: #E3F5EC; --warn: #9A5600; --warn-bg: #FFF2DB; --bad: #B91C1C; --bad-bg: #FDE8E8;
+  --t1: #6D28D9; --t1-bg: #F1EBFE; --t2: #0E7490; --t2-bg: #E0F4F8; --t3: #B45309; --t3-bg: #FEF1E2;
+  --shadow: 0 1px 2px rgba(17,24,39,.05), 0 4px 14px rgba(17,24,39,.05);
+  --r: 14px; --r-sm: 9px;
+  --f: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0D1220; --surface: #151C2E; --surface2: #1C2540; --ink: #E8ECF5; --ink2: #B6BED2; --muted: #8B94AC;
+  --line: #2A3453; --brand: #5470E0; --brand-ink: #FFFFFF; --accent: #7AA5FF; --accent-soft: #1D2B4D;
+  --good: #5ACB98; --good-bg: #123123; --warn: #F2B653; --warn-bg: #33270F; --bad: #F48A8A; --bad-bg: #3A171A;
+  --t1: #C4A8FF; --t1-bg: #2B1F48; --t2: #6DD3E6; --t2-bg: #12313A; --t3: #F5B26B; --t3-bg: #3A2814;
+  --shadow: 0 1px 2px rgba(0,0,0,.3); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0D1220; --surface: #151C2E; --surface2: #1C2540; --ink: #E8ECF5; --ink2: #B6BED2; --muted: #8B94AC;
+  --line: #2A3453; --brand: #5470E0; --brand-ink: #FFFFFF; --accent: #7AA5FF; --accent-soft: #1D2B4D;
+  --good: #5ACB98; --good-bg: #123123; --warn: #F2B653; --warn-bg: #33270F; --bad: #F48A8A; --bad-bg: #3A171A;
+  --t1: #C4A8FF; --t1-bg: #2B1F48; --t2: #6DD3E6; --t2-bg: #12313A; --t3: #F5B26B; --t3-bg: #3A2814;
+  --shadow: 0 1px 2px rgba(0,0,0,.3); color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f); font-size: 15px; line-height: 1.55; overflow-x: hidden; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 14px 16px 110px; }
+
+/* 상단 */
+.top { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.top h1 { font-size: 20px; margin: 0; font-weight: 800; letter-spacing: -.02em; flex: 1; min-width: 0; }
+.top h1 small { display: block; font-size: 12.5px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.me { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 13px; color: var(--ink2); white-space: nowrap; max-width: 46vw; overflow: hidden; text-overflow: ellipsis; }
+
+.banner { display: none; background: var(--bad-bg); color: var(--bad); border-radius: var(--r-sm); padding: 10px 12px; font-size: 13.5px; margin-bottom: 12px; }
+.banner.on { display: block; }
+
+/* 요약 */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; text-align: left; box-shadow: var(--shadow); }
+.stat b { display: block; font-size: 24px; font-weight: 800; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12.5px; color: var(--muted); }
+.stat.on { outline: 2px solid var(--accent); outline-offset: -2px; }
+.stat.wait b { color: var(--warn); }
+.stat.done b { color: var(--good); }
+.next { background: var(--accent-soft); color: var(--ink); border-radius: var(--r-sm); padding: 10px 12px; font-size: 13.5px; margin-bottom: 14px; }
+.next b { color: var(--accent); }
+
+/* 필터 */
+.filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 13px; font-size: 13.5px; color: var(--ink2); }
+.chip.on { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); font-weight: 700; }
+.search { width: 220px; max-width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 7px 14px; font-size: 14px; }
+
+/* 목록 */
+.list { display: grid; gap: 8px; }
+.item { display: block; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 13px 14px; box-shadow: var(--shadow); }
+.item:hover { border-color: var(--accent); }
+.item.done { opacity: .72; }
+.row1 { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
+.badge { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+.b-품의서 { background: var(--t1-bg); color: var(--t1); }
+.b-지출결의서 { background: var(--t2-bg); color: var(--t2); }
+.b-구매요청서 { background: var(--t3-bg); color: var(--t3); }
+.b-topic { background: var(--surface2); color: var(--ink2); font-weight: 600; }
+.b-wait { background: var(--warn-bg); color: var(--warn); margin-left: auto; }
+.b-done { background: var(--good-bg); color: var(--good); margin-left: auto; }
+.item .title { font-size: 15.5px; font-weight: 700; overflow-wrap: anywhere; }
+.item .preview { font-size: 13.5px; color: var(--ink2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; margin-top: 2px; }
+.item .meta { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+.empty { text-align: center; color: var(--muted); padding: 48px 12px; background: var(--surface); border: 1px dashed var(--line); border-radius: var(--r); }
+
+/* 하단 고정 버튼 */
+.fab { position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); z-index: 20; background: var(--accent); color: #fff; border: 0; border-radius: 999px; padding: 14px 22px; font-size: 16px; font-weight: 800; box-shadow: 0 8px 24px rgba(37,99,235,.35); }
+
+/* 시트 (작성/상세) */
+.sheet-bg { position: fixed; inset: 0; background: rgba(9,13,24,.45); z-index: 40; display: none; align-items: center; justify-content: center; padding: 20px; }
+.sheet-bg.on { display: flex; }
+.sheet { background: var(--surface); border-radius: 18px; width: 100%; max-width: 640px; max-height: calc(100vh - 40px); display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+.sheet-hd { display: flex; align-items: center; gap: 8px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.sheet-hd h2 { margin: 0; font-size: 17px; font-weight: 800; flex: 1; }
+.x { border: 0; background: var(--surface2); width: 34px; height: 34px; border-radius: 50%; font-size: 18px; line-height: 1; color: var(--ink2); }
+.sheet-bd { padding: 16px 18px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.sheet-ft { display: flex; gap: 8px; padding: 12px 18px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); flex-wrap: wrap; }
+
+.field { margin-bottom: 18px; }
+.label { display: flex; align-items: baseline; gap: 6px; font-size: 14px; font-weight: 700; margin-bottom: 7px; }
+.label .req { color: var(--bad); }
+.label .hint { font-weight: 500; font-size: 12.5px; color: var(--muted); }
+.inp { width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r-sm); padding: 11px 12px; font-size: 15px; }
+.inp:focus, .search:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+textarea.inp { min-height: 200px; resize: vertical; line-height: 1.6; }
+.pick { display: flex; gap: 6px; flex-wrap: wrap; }
+.pick .chip { padding: 9px 15px; font-size: 14.5px; }
+.doctypes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.dt { border: 1.5px solid var(--line); background: var(--surface); border-radius: var(--r-sm); padding: 11px 10px; text-align: left; }
+.dt b { display: block; font-size: 15px; }
+.dt span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.dt.on { border-color: var(--accent); background: var(--accent-soft); }
+.dt.on b { color: var(--accent); }
+.rule { font-size: 12.5px; color: var(--muted); margin-top: 7px; }
+.mini { border: 1px solid var(--line); background: var(--surface2); border-radius: 7px; padding: 4px 10px; font-size: 12.5px; color: var(--ink2); margin-left: auto; }
+.err { color: var(--bad); font-size: 13px; margin-top: 6px; display: none; }
+.err.on { display: block; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 11px; padding: 11px 16px; font-size: 15px; font-weight: 700; }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); flex: 1; }
+.btn.good { background: var(--good); color: #fff; border-color: var(--good); flex: 1; }
+.btn.ghost { color: var(--ink2); }
+.btn.danger { color: var(--bad); }
+.btn:disabled { opacity: .5; cursor: default; }
+
+/* 상세 */
+.d-meta { font-size: 13px; color: var(--muted); margin: 6px 0 14px; }
+.d-box { border: 1px solid var(--line); border-radius: var(--r-sm); margin-bottom: 12px; }
+.d-box-hd { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--surface2); border-radius: var(--r-sm) var(--r-sm) 0 0; font-size: 13px; font-weight: 700; color: var(--ink2); }
+.d-box-bd { padding: 12px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; }
+.d-done { background: var(--good-bg); color: var(--good); border-radius: var(--r-sm); padding: 10px 12px; font-size: 13.5px; margin-bottom: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); z-index: 60; background: #111827; color: #fff; padding: 11px 18px; border-radius: 11px; font-size: 14px; font-weight: 700; box-shadow: 0 8px 24px rgba(0,0,0,.25); display: none; max-width: calc(100vw - 32px); text-align: center; }
+.toast.on { display: block; }
+.toast.bad { background: #B91C1C; }
+
+@media (max-width: 900px) {
+  .wrap { padding-top: 12px; }
+}
+@media (max-width: 700px) {
+  .top h1 { font-size: 18px; }
+  .stats { gap: 6px; }
+  .stat { padding: 10px; }
+  .stat b { font-size: 20px; }
+  .filters { flex-direction: column; align-items: stretch; }
+  .chips { flex: none; }
+  .search { width: 100%; }
+  .sheet-bg { padding: 0; align-items: flex-end; }
+  .sheet { max-width: none; max-height: 94vh; border-radius: 18px 18px 0 0; }
+  .doctypes { grid-template-columns: 1fr; }
+  .dt { display: flex; align-items: baseline; gap: 8px; }
+  .dt span { margin-top: 0; }
+  .fab { left: 16px; right: 16px; }
+}
+@media (max-width: 380px) {
+  .stat span { font-size: 11.5px; }
+  .sheet-ft .btn { padding: 11px 12px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>구매 품의 요청함<small>요청을 남기면 상급자가 대신 품의를 작성해요</small></h1>
+    <button class="me" id="meBtn" type="button">👤 이름 설정</button>
+  </div>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="stats">
+    <button class="stat wait" data-status="요청" type="button"><b id="cWait">-</b><span>작성 대기</span></button>
+    <button class="stat done" data-status="작성완료" type="button"><b id="cDone">-</b><span>작성 완료</span></button>
+    <button class="stat" data-status="전체" type="button"><b id="cAll">-</b><span>전체</span></button>
+  </div>
+  <div class="next" id="next">불러오는 중…</div>
+
+  <div class="filters">
+    <div class="chips" id="topicChips"></div>
+    <input class="search" id="q" type="search" placeholder="제목·본문·요청자 검색">
+  </div>
+
+  <div class="list" id="list"></div>
+</div>
+
+<button class="fab" id="newBtn" type="button">＋ 품의 요청하기</button>
+
+<!-- 작성 / 수정 -->
+<div class="sheet-bg" id="formBg">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="formTitle">
+    <div class="sheet-hd"><h2 id="formTitle">품의 요청하기</h2><button class="x" type="button" data-close="formBg" aria-label="닫기">×</button></div>
+    <div class="sheet-bd">
+      <div class="field">
+        <div class="label">요청자 <span class="req">*</span></div>
+        <input class="inp" id="fRequester" maxlength="20" placeholder="이름">
+      </div>
+      <div class="field">
+        <div class="label">주제 <span class="req">*</span></div>
+        <div class="pick" id="fTopic"></div>
+      </div>
+      <div class="field">
+        <div class="label">문서 종류 <span class="req">*</span><span class="hint">결제 방법으로 고르세요</span></div>
+        <div class="doctypes" id="fDocType"></div>
+        <div class="rule">현금영수증 되는 결제 → 지출결의서 · 카드 사용 → 구매요청서 · 둘 다 아니면 → 품의서</div>
+      </div>
+      <div class="field">
+        <div class="label">제목 <span class="req">*</span></div>
+        <input class="inp" id="fTitle" maxlength="120" placeholder="제목을 입력해 주세요.">
+      </div>
+      <div class="field">
+        <div class="label">본문 <span class="req">*</span><button class="mini" id="tplBtn" type="button">양식 넣기</button></div>
+        <textarea class="inp" id="fBody" placeholder="무엇을, 얼마나, 왜 사야 하는지 적어 주세요.&#10;'양식 넣기'를 누르면 칸이 채워져요."></textarea>
+      </div>
+      <div class="err" id="fErr"></div>
+    </div>
+    <div class="sheet-ft">
+      <button class="btn ghost" type="button" data-close="formBg">취소</button>
+      <button class="btn primary" id="saveBtn" type="button">요청 올리기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 상세 -->
+<div class="sheet-bg" id="detailBg">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+    <div class="sheet-hd"><h2 id="dTitle">요청 내용</h2><button class="x" type="button" data-close="detailBg" aria-label="닫기">×</button></div>
+    <div class="sheet-bd" id="dBody"></div>
+    <div class="sheet-ft" id="dFoot"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// 설정
+// ─────────────────────────────────────────────
+firebase.initializeApp({
+  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain: "pour-app-new.firebaseapp.com",
+  projectId: "pour-app-new",
+  storageBucket: "pour-app-new.firebasestorage.app",
+  messagingSenderId: "411031141847",
+  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
+});
+const db = firebase.firestore();
+const COL = db.collection('pour-os').doc('approval-requests').collection('items');
+
+const TOPICS = ['CS', '주문/발주', '재고관리', '기타'];
+const DOC_TYPES = [
+  { v: '지출결의서', pay: '현금영수증 되는 결제' },
+  { v: '구매요청서', pay: '카드 사용' },
+  { v: '품의서', pay: '둘 다 아닐 때' },
+];
+const BODY_TEMPLATE = '- 품목:\n- 수량:\n- 금액(예상):\n- 구매처/링크:\n- 결제 방법:\n- 필요한 이유:\n- 필요한 날짜:';
+const ME_KEY = 'approvalReq.me';
+
+// ─────────────────────────────────────────────
+// 상태
+// ─────────────────────────────────────────────
+let items = [];
+let loaded = false;
+let fStatus = '요청';
+let fTopic = '전체';
+let query = '';
+let editingId = null;
+let form = { topic: '', docType: '' };
+let openId = null;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const lsGet = (k) => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 저장 불가 브라우저 — 이름만 기억 못 함 */ } };
+let me = lsGet(ME_KEY);
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  const now = new Date();
+  const hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  if (d.toDateString() === now.toDateString()) return '오늘 ' + hm;
+  const y = new Date(now); y.setDate(now.getDate() - 1);
+  if (d.toDateString() === y.toDateString()) return '어제 ' + hm;
+  const md = (d.getMonth() + 1) + '/' + d.getDate();
+  return (d.getFullYear() === now.getFullYear() ? md : d.getFullYear() + '/' + md) + ' ' + hm;
+}
+
+function toast(msg, bad) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast on' + (bad ? ' bad' : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { t.className = 'toast'; }, 2400);
+}
+
+function showError(msg) {
+  const b = $('banner');
+  b.textContent = msg;
+  b.classList.add('on');
+}
+
+// ─────────────────────────────────────────────
+// 데이터 (실시간)
+// ─────────────────────────────────────────────
+COL.onSnapshot(snap => {
+  const docs = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(d => !d.deleted);
+  // orderBy 대신 클라이언트 정렬
+  docs.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  console.log(`[approval-requests] ${docs.length}건 로드`);
+  items = docs;
+  loaded = true;
+  $('banner').classList.remove('on');
+  render();
+  if (openId) renderDetail();
+}, err => {
+  console.error('[approval-requests] 불러오기 실패:', err);
+  showError('목록을 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요. (' + (err.code || err.message) + ')');
+});
+
+// ─────────────────────────────────────────────
+// 목록 화면
+// ─────────────────────────────────────────────
+function render() {
+  $('meBtn').textContent = me ? '👤 ' + me : '👤 이름 설정';
+
+  const wait = items.filter(i => i.status !== '작성완료');
+  $('cWait').textContent = wait.length;
+  $('cDone').textContent = items.length - wait.length;
+  $('cAll').textContent = items.length;
+  document.querySelectorAll('.stat').forEach(el => el.classList.toggle('on', el.dataset.status === fStatus));
+
+  const next = $('next');
+  if (!loaded) next.textContent = '불러오는 중…';
+  else if (!items.length) next.innerHTML = '아직 요청이 없어요. 아래 <b>＋ 품의 요청하기</b>를 눌러 첫 요청을 남겨 보세요.';
+  else if (wait.length) next.innerHTML = '<b>다음 할 일</b> · 작성 대기 ' + wait.length + '건 — 오래된 요청(' + esc(fmtDate(wait[wait.length - 1].createdAt)) + ')부터 열어 그룹웨어에 옮겨 적고 <b>작성 완료</b>를 눌러 주세요.';
+  else next.innerHTML = '대기 중인 요청이 없어요. 모두 작성 완료! 🎉';
+
+  $('topicChips').innerHTML = ['전체', ...TOPICS].map(t =>
+    '<button type="button" class="chip' + (t === fTopic ? ' on' : '') + '" data-topic="' + esc(t) + '">' + esc(t) + '</button>'
+  ).join('');
+
+  const q = query.trim().toLowerCase();
+  const list = items.filter(i =>
+    (fStatus === '전체' || (fStatus === '작성완료' ? i.status === '작성완료' : i.status !== '작성완료')) &&
+    (fTopic === '전체' || i.topic === fTopic) &&
+    (!q || [i.title, i.body, i.requester, i.docType, i.topic].join(' ').toLowerCase().includes(q))
+  );
+  // 대기 목록은 오래된 것부터 처리하도록 위에 둔다
+  if (fStatus === '요청') list.reverse();
+
+  if (!loaded) { $('list').innerHTML = ''; return; }
+  if (!list.length) {
+    const why = items.length ? '조건에 맞는 요청이 없어요.' : '요청이 아직 없어요.';
+    $('list').innerHTML = '<div class="empty">' + why + '</div>';
+    return;
+  }
+  $('list').innerHTML = list.map(i => {
+    const done = i.status === '작성완료';
+    return '<button type="button" class="item' + (done ? ' done' : '') + '" data-id="' + esc(i.id) + '">' +
+      '<div class="row1">' +
+        '<span class="badge b-' + esc(i.docType) + '">' + esc(i.docType) + '</span>' +
+        '<span class="badge b-topic">' + esc(i.topic) + '</span>' +
+        (done ? '<span class="badge b-done">작성 완료</span>' : '<span class="badge b-wait">작성 대기</span>') +
+      '</div>' +
+      '<div class="title">' + esc(i.title) + '</div>' +
+      '<div class="preview">' + esc(i.body) + '</div>' +
+      '<div class="meta">' + esc(i.requester) + ' · ' + esc(fmtDate(i.createdAt)) +
+        (done && i.doneBy ? ' · ' + esc(i.doneBy) + ' 작성' : '') + '</div>' +
+    '</button>';
+  }).join('');
+}
+
+document.querySelectorAll('.stat').forEach(el => el.addEventListener('click', () => { fStatus = el.dataset.status; render(); }));
+$('topicChips').addEventListener('click', e => { const b = e.target.closest('[data-topic]'); if (b) { fTopic = b.dataset.topic; render(); } });
+$('q').addEventListener('input', e => { query = e.target.value; render(); });
+$('list').addEventListener('click', e => { const b = e.target.closest('[data-id]'); if (b) openDetail(b.dataset.id); });
+$('meBtn').addEventListener('click', () => {
+  const v = prompt('이 기기에서 쓸 이름을 입력하세요 (요청자·작성자로 자동 입력돼요)', me);
+  if (v === null) return;
+  me = v.trim().slice(0, 20);
+  lsSet(ME_KEY, me);
+  render();
+});
+
+// ─────────────────────────────────────────────
+// 시트 열기/닫기
+// ─────────────────────────────────────────────
+function openSheet(id) { $(id).classList.add('on'); document.body.style.overflow = 'hidden'; }
+function closeSheet(id) {
+  $(id).classList.remove('on');
+  if (!document.querySelector('.sheet-bg.on')) document.body.style.overflow = '';
+  if (id === 'detailBg') openId = null;
+}
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeSheet(b.dataset.close)));
+document.querySelectorAll('.sheet-bg').forEach(bg => bg.addEventListener('click', e => { if (e.target === bg) closeSheet(bg.id); }));
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const top = [...document.querySelectorAll('.sheet-bg.on')].pop();
+  if (top) closeSheet(top.id);
+});
+
+// ─────────────────────────────────────────────
+// 작성 / 수정
+// ─────────────────────────────────────────────
+function renderFormPicks() {
+  $('fTopic').innerHTML = TOPICS.map(t =>
+    '<button type="button" class="chip' + (t === form.topic ? ' on' : '') + '" data-v="' + esc(t) + '">' + esc(t) + '</button>'
+  ).join('');
+  $('fDocType').innerHTML = DOC_TYPES.map(d =>
+    '<button type="button" class="dt' + (d.v === form.docType ? ' on' : '') + '" data-v="' + esc(d.v) + '"><b>' + esc(d.v) + '</b><span>' + esc(d.pay) + '</span></button>'
+  ).join('');
+}
+$('fTopic').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) { form.topic = b.dataset.v; renderFormPicks(); } });
+$('fDocType').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) { form.docType = b.dataset.v; renderFormPicks(); } });
+$('tplBtn').addEventListener('click', () => {
+  const ta = $('fBody');
+  ta.value = ta.value.trim() ? ta.value.replace(/\s*$/, '') + '\n\n' + BODY_TEMPLATE : BODY_TEMPLATE;
+  ta.focus();
+});
+
+function openForm(item) {
+  editingId = item ? item.id : null;
+  form = { topic: item ? item.topic : '', docType: item ? item.docType : '' };
+  $('formTitle').textContent = item ? '요청 수정' : '품의 요청하기';
+  $('saveBtn').textContent = item ? '수정 저장' : '요청 올리기';
+  $('fRequester').value = item ? item.requester : me;
+  $('fTitle').value = item ? item.title : '';
+  $('fBody').value = item ? item.body : '';
+  $('fErr').classList.remove('on');
+  renderFormPicks();
+  openSheet('formBg');
+  setTimeout(() => (item || me ? $('fTitle') : $('fRequester')).focus({ preventScroll: true }), 50);
+}
+$('newBtn').addEventListener('click', () => openForm(null));
+
+$('saveBtn').addEventListener('click', async () => {
+  const data = {
+    requester: $('fRequester').value.trim(),
+    topic: form.topic,
+    docType: form.docType,
+    title: $('fTitle').value.trim(),
+    body: $('fBody').value.replace(/\s+$/, ''),
+  };
+  const miss = [];
+  if (!data.requester) miss.push('요청자');
+  if (!data.topic) miss.push('주제');
+  if (!data.docType) miss.push('문서 종류');
+  if (!data.title) miss.push('제목');
+  if (!data.body.trim()) miss.push('본문');
+  if (miss.length) {
+    $('fErr').textContent = miss.join(', ') + '을(를) 채워 주세요.';
+    $('fErr').classList.add('on');
+    return;
+  }
+  const btn = $('saveBtn');
+  btn.disabled = true;
+  const now = new Date().toISOString();
+  try {
+    if (editingId) {
+      await COL.doc(editingId).update({ ...data, updatedAt: now });
+      toast('수정했어요');
+    } else {
+      await COL.add({ ...data, status: '요청', doneBy: '', doneAt: null, doneMemo: '',
+        createdAt: now, updatedAt: now, deleted: false, deletedAt: null });
+      toast('요청을 올렸어요');
+    }
+    if (!me) { me = data.requester; lsSet(ME_KEY, me); }
+    closeSheet('formBg');
+  } catch (e) {
+    console.error('[approval-requests] 저장 실패:', e);
+    $('fErr').textContent = '저장하지 못했어요. 다시 눌러 주세요. (' + (e.code || e.message) + ')';
+    $('fErr').classList.add('on');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ─────────────────────────────────────────────
+// 상세 — 상급자가 보고 그룹웨어에 옮겨 적기
+// ─────────────────────────────────────────────
+function openDetail(id) { openId = id; renderDetail._id = null; renderDetail(); openSheet('detailBg'); }
+
+function renderDetail() {
+  const i = items.find(x => x.id === openId);
+  if (!i) { closeSheet('detailBg'); return; }
+  const done = i.status === '작성완료';
+  // 실시간 갱신으로 다시 그려도 입력 중이던 작성자·메모는 유지
+  const keepWho = $('dWho') && renderDetail._id === i.id ? $('dWho').value : me;
+  const keepMemo = $('dMemo') && renderDetail._id === i.id ? $('dMemo').value : '';
+  renderDetail._id = i.id;
+  $('dBody').innerHTML =
+    '<div class="row1">' +
+      '<span class="badge b-' + esc(i.docType) + '">' + esc(i.docType) + '</span>' +
+      '<span class="badge b-topic">' + esc(i.topic) + '</span>' +
+      (done ? '<span class="badge b-done">작성 완료</span>' : '<span class="badge b-wait">작성 대기</span>') +
+    '</div>' +
+    '<div class="d-meta">요청 ' + esc(i.requester) + ' · ' + esc(fmtDate(i.createdAt)) +
+      (i.updatedAt && i.updatedAt !== i.createdAt ? ' · 수정 ' + esc(fmtDate(i.updatedAt)) : '') + '</div>' +
+    (done ? '<div class="d-done">✅ ' + esc(i.doneBy || '') + ' 작성 완료 · ' + esc(fmtDate(i.doneAt)) +
+      (i.doneMemo ? '\n메모: ' + esc(i.doneMemo) : '') + '</div>' : '') +
+    '<div class="d-box"><div class="d-box-hd">문서 종류</div><div class="d-box-bd">' + esc(i.docType) + '</div></div>' +
+    '<div class="d-box"><div class="d-box-hd">제목<button class="mini" type="button" data-copy="title">복사</button></div><div class="d-box-bd">' + esc(i.title) + '</div></div>' +
+    '<div class="d-box"><div class="d-box-hd">본문<button class="mini" type="button" data-copy="body">복사</button></div><div class="d-box-bd">' + esc(i.body) + '</div></div>' +
+    (done ? '' :
+      '<div class="field" style="margin:16px 0 0">' +
+        '<div class="label">그룹웨어에 작성했다면</div>' +
+        '<input class="inp" id="dWho" maxlength="20" placeholder="작성한 사람 이름" value="' + esc(keepWho) + '" style="margin-bottom:6px">' +
+        '<input class="inp" id="dMemo" maxlength="100" placeholder="메모 (선택) — 예: 결재 문서번호" value="' + esc(keepMemo) + '">' +
+        '<div class="err" id="dErr">작성한 사람 이름을 적어 주세요.</div>' +
+      '</div>');
+
+  $('dFoot').innerHTML =
+    '<button class="btn danger" type="button" data-act="delete">삭제</button>' +
+    '<button class="btn ghost" type="button" data-act="edit">수정</button>' +
+    (done
+      ? '<button class="btn ghost" type="button" data-act="undo" style="flex:1">대기로 되돌리기</button>'
+      : '<button class="btn good" type="button" data-act="done">✅ 작성 완료</button>');
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (e) {
+    // 클립보드 API가 막힌 환경(일부 사내 브라우저) 대비
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    if (!ok) throw e;
+  }
+}
+
+$('dBody').addEventListener('click', async e => {
+  const b = e.target.closest('[data-copy]');
+  if (!b) return;
+  const i = items.find(x => x.id === openId);
+  if (!i) return;
+  try { await copyText(i[b.dataset.copy]); toast((b.dataset.copy === 'title' ? '제목' : '본문') + ' 복사했어요'); }
+  catch (err) { console.error('[approval-requests] 복사 실패:', err); toast('복사하지 못했어요. 길게 눌러 직접 복사해 주세요', true); }
+});
+
+$('dFoot').addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const i = items.find(x => x.id === openId);
+  if (!i) return;
+  const act = b.dataset.act;
+  const now = new Date().toISOString();
+  if (act === 'edit') { closeSheet('detailBg'); openForm(i); return; }
+  let patch;
+  if (act === 'done') {
+    const who = $('dWho').value.trim();
+    if (!who) { $('dErr').classList.add('on'); $('dWho').focus(); return; }
+    if (!me) { me = who; lsSet(ME_KEY, me); render(); }
+    patch = { status: '작성완료', doneBy: who, doneAt: now, doneMemo: $('dMemo').value.trim(), updatedAt: now };
+  } else if (act === 'undo') {
+    patch = { status: '요청', doneBy: '', doneAt: null, doneMemo: '', updatedAt: now };
+  } else if (act === 'delete') {
+    if (!confirm('이 요청을 삭제할까요?')) return;
+    patch = { deleted: true, deletedAt: now, updatedAt: now };
+  } else return;
+  b.disabled = true;
+  try {
+    await COL.doc(i.id).update(patch);
+    toast(act === 'done' ? '작성 완료로 표시했어요' : act === 'undo' ? '대기로 되돌렸어요' : '삭제했어요');
+    if (act !== 'undo') closeSheet('detailBg');
+  } catch (err) {
+    console.error('[approval-requests] 변경 실패:', err);
+    toast('저장하지 못했어요. 다시 시도해 주세요', true);
+    b.disabled = false;
+  }
+});
+
+render();
+</script>
+</body>
+</html>

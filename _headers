@@ -17,3 +17,10 @@
 
 /pourstore-margin2.html
   Cache-Control: no-store, must-revalidate
+
+# 구매 품의 요청함 — 수정 즉시 반영되도록 늘 새로 받기
+/approval-requests
+  Cache-Control: no-store, must-revalidate
+
+/approval-requests.html
+  Cache-Control: no-store, must-revalidate

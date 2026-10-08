@@ -92,5 +92,21 @@ await p.waitForSelector('.kpis');await p.waitForTimeout(2500);
 const ads2=(await list('mkt-ads')).map(d=>d.fields.keyword.stringValue).sort();
 log('   ads after:',ads2);check('재업로드 후 ads 3건 (네이버 2 + 쿠팡 1) · 우레탄방수 사라짐',ads2.length===3&&!ads2.includes('우레탄방수'));
 await p.click('nav button[data-tab="log"]');await p.screenshot({path:OUT+'/log-1280b.png',fullPage:true});
+
+// 5) 옵시디언으로 보내기 링크 (375)
+p=await page(375);await p.goto(BASE+'/index.html?emu=1');
+await p.fill('#lg-email','netformrnd@gmail.com');await p.fill('#lg-pw','ownerpw123');await p.click('#lg-btn');
+await p.waitForSelector('#obsidian-send');await p.waitForTimeout(1500);
+const href=await p.getAttribute('#obsidian-send','href');const dec=decodeURIComponent(href);
+check('옵시디언 링크 = 오늘 숫자 덮어쓰기',href.startsWith('obsidian://new?vault=')&&href.endsWith('&overwrite=true')&&dec.includes('file=05 오늘 숫자'));
+check('노트에 발주 필요·끌 키워드',dec.includes('| P001 | 곰팡이젤 |')&&dec.includes('**옥상방수**'));
+log('   링크 길이',href.length);
+check('요약 375 넘침 없음(옵시디언 카드)',await overflow(p)<=0);
+await p.screenshot({path:OUT+'/home-obs-375.png',fullPage:true});
+await p.click('nav button[data-tab="set"]');await p.waitForTimeout(200);
+const hub=await p.getAttribute('#obs-hub','href');check('허브 연결 = append',hub.includes('append=true')&&decodeURIComponent(hub).includes('![[05 오늘 숫자]]'));
+check('설정 375 넘침 없음',await overflow(p)<=0);
+await p.screenshot({path:OUT+'/set-375.png',fullPage:true});
+await p.context().close();
 await b.close();
 if(globalThis.PROD_HITS)fails++;console.log('실제 Firebase 요청:',globalThis.PROD_HITS||0);console.log(fails?`실패 ${fails}`:'전부 통과');process.exit(fails?1:0);

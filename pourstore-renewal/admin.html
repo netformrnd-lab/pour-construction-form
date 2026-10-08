@@ -6953,13 +6953,13 @@ function PostingEditor({form,setForm,onSave,onClose,saving}){
 //     hero:[{mode:'image', image,imageMobile,link}
 //           |{mode:'design', image(배경),link,badge,title,desc,tags,cta,theme}], side:[...] }
 //   → 스토어 pour-01-main/index-main 히어로/사이드 배너에 자동 반영. (config 규칙 사용)
-//   mstrip: 모바일 메인 띠배너(베스트 아래, 8:3, 이미지형만) → pour-01-main 모바일 전용 섹션 .psm1-eb
+//   mstrip: 모바일 메인 띠배너(베스트 아래, 4:1, 이미지형만) → pour-01-main 모바일 전용 섹션 .psm1-eb
 //   디자인형: 배경사진 위에 글자(Noto Sans, 굵기만) 조립 — buildDesignSlide()가 렌더
 // ============================================================
 const BANNER_SLOTS=[
   {key:'hero', label:'메인 히어로 배너', desc:'검색바 아래 좌측 큰 배너', size:'PC 권장 1280 × 720 px (가로형 16:9)', ratio:'16 / 9', mobileSize:'모바일 권장 716 × 432 px (가로 약 5:3)', mobileRatio:'716 / 432'},
   {key:'side', label:'추천(사이드) 배너', desc:'히어로 우측 세로 배너 (높이는 좌측에 맞춰 표시)', size:'PC 권장 640 × 960 px (세로형 · 2:3)', ratio:'2 / 3', mobileSize:'모바일 권장 1080 × 432 px (가로 2.5:1)', mobileRatio:'5 / 2'},
-  {key:'mstrip', label:'모바일 메인 띠배너', desc:'모바일 메인 \'지금 많이 찾는 유지보수 자재\'(베스트) 아래 작은 배너 · PC엔 안 보임 (여러 장이면 자동 슬라이드)', size:'권장 1080 × 405 px (가로 4 : 세로 1.5)', ratio:'8 / 3', imageOnly:true},
+  {key:'mstrip', label:'모바일 메인 띠배너', desc:'모바일 메인 \'지금 많이 찾는 유지보수 자재\'(베스트) 아래 작은 배너 · PC엔 안 보임 (여러 장이면 자동 슬라이드)', size:'권장 1080 × 270 px (가로 4 : 세로 1)', ratio:'4 / 1', imageOnly:true},
   {key:'package', label:'패키지 페이지 상단 배너', desc:'패키지 페이지 맨 위 슬라이드 배너 (여러 장 올리면 자동 슬라이드)', size:'PC 권장 1256 × 400 px (가로형 · 넓은화면 안전)', ratio:'1256 / 400', mobileSize:'모바일 권장 1080 × 720 px (3:2)', mobileRatio:'3 / 2'},
 ];
 function BannersPage({showToast}){

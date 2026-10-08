@@ -600,6 +600,7 @@
 </script>
 <!-- 4) 카테고리 아이콘 -->
 <!-- ===== 2026-10 소재·작업별 카테고리 8개 (기존 빠른메뉴 위) — 아이콘 교체: Storage POUR스토어_리뉴얼/quick-icons/cat-N.png 올리면 자동 교체 ===== -->
+<div class="psm1-mfirst"><!-- [모바일] 첫 화면 = 아이콘 + 문제섹션만 (아래 섹션이 첫 화면에 걸치지 않게 최소 높이) -->
 <!-- ===== 2026-10 [모바일 전용] 소재·작업별 카테고리 8개 (기존 빠른메뉴 위) — 아이콘 교체: Storage POUR스토어_리뉴얼/quick-icons/cat-N.png 올리면 자동 교체 ===== -->
 <nav class="psm1-qc" aria-label="카테고리 바로가기">
   <div class="psm1-pb-head psm1-qc-head"><h2>필요한 자재를 바로 찾아보세요</h2><a href="/product/list.html?cate_no=73" data-href="/product/list.html?cate_no=73">전체보기 ›</a></div>
@@ -687,11 +688,7 @@
 <circle cx="24" cy="23" r="5" fill="#fff"/><path d="M26.2 21.2a2.2 2.2 0 0 0-2.9 2.6l-2.3 2.3 1.1 1.1 2.3-2.3a2.2 2.2 0 0 0 2.6-2.9l-1.1 1.1-1-.1-.1-1z" fill="#475569"/></svg></span><span class="psm1-pb-tx">생활공간을 간편하게 개선하고 싶다면</span><span class="psm1-pb-ar" aria-hidden="true">→</span></a>
   </div>
 </section>
-<!-- ===== 2026-10 [모바일 전용] 이벤트 '오직 POUR스토어에서만!' — 할인 중인 상품 자동 노출(오늘의딜 UI) ===== -->
-<section class="psm1-dl" data-mh="deal" aria-label="오직 POUR스토어에서만" hidden>
-  <div class="psm1-mh-head"><h2>오직 POUR스토어에서만!</h2><a href="/product/list.html?cate_no=73" data-href="/product/list.html?cate_no=73" class="psm1-mh-more" aria-label="더보기">›</a></div>
-  <div class="psm1-dl-list" data-mh-list></div>
-</section>
+</div><!-- //psm1-mfirst -->
 <style>
 /* ★ 모바일 전용(사용자 결정 2026-10-08: PC는 건드리지 않음) — 701px 이상에서는 아래 두 섹션 숨김 */
 .psm1-qc, .psm1-pb { display:none; }
@@ -793,6 +790,11 @@
   <div class="psm1-mh-head"><h2>지금 많이 찾는 유지보수 자재</h2><a href="/product/list.html?cate_no=104" data-href="/product/list.html?cate_no=104" class="psm1-mh-more" aria-label="베스트 전체">›</a></div>
   <div class="psm1-bs-row" data-mh-list></div>
 </section>
+<!-- ===== 2026-10 [모바일 전용] 이벤트 '오직 POUR스토어에서만!' — 할인 중인 상품 자동 노출(오늘의딜 UI) ===== -->
+<section class="psm1-dl" data-mh="deal" aria-label="오직 POUR스토어에서만" hidden>
+  <div class="psm1-mh-head"><h2>오직 POUR스토어에서만!</h2><a href="/product/list.html?cate_no=73" data-href="/product/list.html?cate_no=73" class="psm1-mh-more" aria-label="더보기">›</a></div>
+  <div class="psm1-dl-list" data-mh-list></div>
+</section>
 <style>
 /* ===== 모바일 홈 추가 섹션(이벤트·궁금·패키지·베스트) — PC/태블릿은 숨김(사용자 결정: PC 건드리지 않음) ===== */
 .psm1-dl, .psm1-pk, .psm1-bs, .psm1-cats-head { display:none !important; }
@@ -846,6 +848,17 @@
   .psm1-bs-pr { margin-top:3px; font-size:14.5px; font-weight:800; }
   .psm1-bs-pr .rate { color:#E8433B; margin-right:4px; }
   .psm1-mh-empty { padding:30px 0; text-align:center; font-size:13px; color:#9CA3AF; }
+  /* 섹션 구분(2026-10): 섹션 사이 회색 띠 8px + 문제/이벤트 섹션 연한 배경 */
+  .psm1-pb, .psm1-cats, .psm1-pk, .psm1-bs, .psm1-dl { border-top:8px solid #F2F3F5 !important; }
+  .psm1-pb { background:#F7F8FA; padding-bottom:20px !important; }
+  .psm1-pb .psm1-pb-card { border-color:#ECEEF1; }
+  .psm1-dl { background:#FFF6EE; padding-bottom:18px !important; }
+  .psm1-dl .psm1-dl-it { border-top-color:#F5E3D3; }
+  .psm1-bs, .psm1-pk { padding-bottom:18px !important; }
+  /* 첫 화면: 아이콘+문제섹션이 화면 한 장을 채우게(JS가 --mfirst-h 설정). 남는 공간은 문제섹션 배경색으로 채움 */
+  .psm1-mfirst { display:flex; flex-direction:column; min-height:var(--mfirst-h, auto); }
+  .psm1-mfirst > * { width:100%; box-sizing:border-box; } /* 세로 flex 안에서 auto 여백 때문에 폭이 내용만큼 늘어나는 것 방지 */
+  .psm1-mfirst > .psm1-pb { flex:1 0 auto; }
 }
 </style>
 <script>
@@ -935,7 +948,13 @@
     var io=new IntersectionObserver(function(es){ if(es[0].isIntersecting){ io.disconnect(); fn(sec); } }, { rootMargin:'700px 0px' });
     io.observe(w);
   }
-  function boot(){ lazy('[data-mh="deal"]', '.psm1-pb', renderDeal); lazy('[data-mh="pkg"]', '.psm1-cats', renderPkg); lazy('[data-mh="best"]', '.psm1-cats', renderBest); }
+  function fitFirst(){
+    var f=document.querySelector('.psm1-mfirst'), st=document.querySelector('.psm1-sticky'); if(!f) return;
+    var h=window.innerHeight-(st?st.offsetHeight:0); if(h>320) f.style.setProperty('--mfirst-h', h+'px');
+  }
+  fitFirst(); var lastW=window.innerWidth; window.addEventListener('resize', function(){ if(window.innerWidth!==lastW){ lastW=window.innerWidth; fitFirst(); } });
+  setTimeout(fitFirst, 600);
+  function boot(){ lazy('[data-mh="deal"]', '.psm1-bs', renderDeal); lazy('[data-mh="pkg"]', '.psm1-cats', renderPkg); lazy('[data-mh="best"]', '.psm1-cats', renderBest); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>

@@ -9,7 +9,7 @@ async function route(p){await p.route(/gstatic\.com\/firebasejs\/10\.12\.0\/(fir
   await p.route(/cdn\.jsdelivr\.net/,(r)=>r.fulfill({contentType:'text/css',body:''}));}
 const BASE='http://127.0.0.1:5500', OUT=process.env.OUT;
 const signUp=(email,pw)=>fetch('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=x',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,password:pw,returnSecureToken:true})}).then(r=>r.json());
-const list=async(c)=>{const r=await fetch(`http://127.0.0.1:8080/v1/projects/pour-app-new/databases/(default)/documents/${c}?pageSize=300`,{headers:{Authorization:'Bearer owner'}});const j=await r.json();return (j.documents||[]);};
+const list=async(c,top)=>{const r=await fetch(`http://127.0.0.1:8080/v1/projects/pour-app-new/databases/(default)/documents/${top?'':'pour-os/marketing-hub/'}${c}?pageSize=300`,{headers:{Authorization:'Bearer owner'}});const j=await r.json();return (j.documents||[]);};
 await signUp('netformrnd@gmail.com','ownerpw123');
 const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--ignore-certificate-errors']});
 const log=(...a)=>console.log(...a);
@@ -107,6 +107,23 @@ await p.click('nav button[data-tab="set"]');await p.waitForTimeout(200);
 const hub=await p.getAttribute('#obs-hub','href');check('허브 연결 = append',hub.includes('append=true')&&decodeURIComponent(hub).includes('![[05 오늘 숫자]]'));
 check('설정 375 넘침 없음',await overflow(p)<=0);
 await p.screenshot({path:OUT+'/set-375.png',fullPage:true});
+await p.context().close();
+
+// 6) 규칙 게시 뒤(잠긴 저장소) — 임시 저장소에서 옮기기
+p=await page(375);p.on('dialog',d=>d.accept());await p.goto(BASE+'/index.html?emu=1&mode=secure');
+await p.fill('#lg-email','netformrnd@gmail.com');await p.fill('#lg-pw','ownerpw123');await p.click('#lg-btn');
+await p.waitForSelector('.kpis');await p.click('nav button[data-tab="set"]');await p.waitForSelector('#migrate-open');
+await p.click('#migrate-open');await p.waitForFunction(()=>/옮겼습니다/.test((document.querySelector('.msg')||{}).textContent||''),null,{timeout:20000});
+log('   ',await p.textContent('.msg'));
+const topAds=(await list('mkt-ads',true)).length, topRoles=(await list('mkt-access',true)).length;
+check('옮긴 뒤 잠긴 저장소 ads 3건 · 계정 문서 있음',topAds===3&&topRoles===1);
+await p.click('nav button[data-tab="ads"]');check('잠긴 저장소에서 키워드 화면',(await p.textContent('main')).includes('옥상방수'));
+await p.context().close();
+// 7) 업로더는 잠긴 저장소에서도 올리기만
+p=await page(375);await p.goto(BASE+'/upload.html?emu=1&mode=secure');
+await p.fill('#login-email','aside-upload@example.com');await p.fill('#login-password',pw);await p.click('#login-button');
+await p.waitForSelector('#upload-section:not([hidden])');
+r=await up('stock','2026-10-08',{text:'상품코드,상품명,가용재고\nP001,곰팡이젤,5'});check('잠긴 저장소 업로드 완료(옮긴 계정으로)',r[1]==='완료: 2026-10-08 재고 1행');
 await p.context().close();
 await b.close();
 if(globalThis.PROD_HITS)fails++;console.log('실제 Firebase 요청:',globalThis.PROD_HITS||0);console.log(fails?`실패 ${fails}`:'전부 통과');process.exit(fails?1:0);

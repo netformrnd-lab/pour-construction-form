@@ -701,13 +701,14 @@ function MoreTab({ ctx }) {
   useEffect(() => setTv(String(Math.round(D.threshold * 100))), [D.threshold]);
   const saveT = async (v) => { const n = +v; if (!(n > 0 && n < 90)) { setToast("1~89 사이 숫자로 넣어 주세요"); return; } setBusy(true);
     try { await pm("margin-v2").set({ threshold: n / 100, updatedAt: new Date().toISOString(), updatedBy: user.email || "" }, { merge: true }); setToast(`기준 마진 ${n}%로 바꿨어요`); } catch (e) { console.error("[margin-v2] 저장 실패", e); setToast("저장 못 했어요: " + (e.code || e.message)); } setBusy(false); };
-  // 옵시디언 제품 카드용 목록 — 단가표(team-catalog) 칸만 · 원가·택배비·이익·마진은 절대 넣지 않음 (2026-10-09 사장님: 팀원이 원가를 알면 안 됨)
+  // 옵시디언 제품 카드용 목록 — 단가표(team-catalog) 칸 중 아래 6가지만 · 원가·택배비·이익·마진·제조사(가칭 포함)는 절대 넣지 않음 (2026-10-09 사장님: 팀원이 원가를 알면 안 됨)
   const copyCatalog = async () => {
     const M = D.model || {}, chans = M.chans || [], prods = M.products || [];
     const cell = (v) => String(v == null ? "" : v).replace(/[\t\n]/g, " ");
-    const head = ["제품코드", "상품명", "분류", "규격", "브랜드", "상태", "그룹", ...chans.map((c) => c.short || c.name || c.code)];
+    // 팀원이 볼 칸 = 분류 · 상품명 · 옵션 · 자체상품코드 · 브랜드 · 채널별 판매가 (이것만 · 2026-10-09 사장님)
+    const head = ["분류", "상품명", "옵션", "자체상품코드", "브랜드", ...chans.map((c) => c.short || c.name || c.code)];
     const lines = prods.map((p) => { const pr = Object.fromEntries((p.rows || []).map((r) => [r.uid, r.price]));
-      return [p.code, p.name, p.cat, p.spec, (p.brand || []).join("/"), p.status, p.group, ...chans.map((c) => pr[c.uid] ?? "")].map(cell).join("\t"); });
+      return [p.cat, p.name, p.spec, p.code, (p.brand || []).join("/"), ...chans.map((c) => pr[c.uid] ?? "")].map(cell).join("\t"); });
     try { await navigator.clipboard.writeText([head.join("\t"), ...lines].join("\n")); setToast(`제품 ${prods.length}개 복사 (원가 없음) — Claude 채팅에 붙여넣기`); }
     catch (e) { console.error("[제품 목록 복사] 실패", e); setToast("복사 못 했어요: " + (e.message || e)); }
   };
@@ -735,7 +736,7 @@ function MoreTab({ ctx }) {
       </div>`}
     <div class="m2-sec">옵시디언 제품 카드</div>
     <div class="m2-card m2-pad">
-      <div class="m2-sub" style=${{ margin: "0 0 8px" }}>제품코드·이름·분류·규격·브랜드·상태·채널별 판매가만 복사해요. 원가·이익·마진은 넣지 않아요.</div>
+      <div class="m2-sub" style=${{ margin: "0 0 8px" }}>분류·상품명·옵션·자체상품코드·브랜드·채널별 판매가만 복사해요. 원가·이익·마진·제조사는 넣지 않아요.</div>
       <button class="m2-btn solid" style=${{ width: "100%", height: 44 }} onClick=${copyCatalog}>📋 제품 목록 복사 (원가 없음)</button>
     </div>
     <div class="m2-sec">바로가기</div>

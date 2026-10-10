@@ -73,6 +73,30 @@ ol.adv .r{font-size:12px;color:var(--text-md)}
 .acct-row .acts{display:flex;gap:6px;flex-wrap:wrap}
 .temp{background:var(--gold-l);border:1px solid #FDE68A;border-radius:var(--r-sm);padding:12px;margin-bottom:12px}
 code{background:#F3F4F6;border-radius:4px;padding:2px 6px;font-size:13px}
+.team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px}
+.tm{border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;min-width:0}
+.tm summary{list-style:none;cursor:pointer}.tm summary::-webkit-details-marker{display:none}
+.tm .h{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.tm .h b{font-size:15px}
+.tm[open]{background:#FAFAFB}
+details.wk>summary{cursor:pointer;padding:12px 16px;font-weight:800;list-style:none}details.wk>summary::-webkit-details-marker{display:none}
+.tm .l{font-size:12px;color:var(--text-md);margin-top:6px;word-break:keep-all}
+.rows .row{display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)}
+.rows .row:last-child{border-bottom:0}.rows .row .tx{flex:1;min-width:0;word-break:break-all}
+.rows .row .t{flex:none;width:44px;font-weight:800;font-variant-numeric:tabular-nums}
+.rows .row .acts{display:flex;gap:6px;flex-wrap:wrap;flex:none}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;padding:12px}
+.week .d{border:1px solid var(--border);border-radius:var(--r-sm);padding:8px;min-width:0}
+.week .d.today{border-color:var(--accent);background:var(--accent-l)}
+.week .d .dh{font-weight:800;font-size:12px;margin-bottom:6px}.week .d div.it{font-size:11px;color:var(--text-md);padding:2px 0;word-break:keep-all}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips label{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-weight:700;cursor:pointer;background:#fff;margin:0;color:var(--text)}
+.chips input{position:absolute;opacity:0;width:1px;height:1px}
+.chips label:has(input:checked){background:var(--navy);border-color:var(--navy);color:#fff}
+.chips label.urg:has(input:checked){background:var(--red);border-color:var(--red)}
+textarea{width:100%;max-width:100%;font:inherit;border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 10px;min-height:80px;resize:vertical}
+.vf>div{margin-bottom:12px}.vf label.t{display:block;font-size:12px;font-weight:700;color:var(--text-md);margin-bottom:5px}
+@media (max-width:900px){.team-grid{grid-template-columns:repeat(2,1fr)}.week{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:700px){.team-grid{grid-template-columns:1fr}.week{grid-template-columns:1fr 1fr}.rows .row{padding:10px 12px;flex-wrap:wrap}.rows .row .acts.wide{width:100%;justify-content:flex-end}}
 @media (max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.form{grid-template-columns:1fr 1fr}}
 @media (max-width:700px){main{padding:12px}.kpi .v{font-size:18px}.form{grid-template-columns:1fr}.card h3{padding:11px 12px}.card .bd{padding:12px}}
 </style>
@@ -99,7 +123,9 @@ if(EMU){auth.useEmulator('http://127.0.0.1:9099');db.useEmulator('127.0.0.1',808
 const C=window.MktCore, $=(s)=>document.querySelector(s);
 const OWNER_EMAILS=C.OWNER_EMAILS;
 const MODE=C.storeMode(), col=(n)=>C.col(db,n,MODE); // 저장 위치: core.js STORE_MODE
-const COLL={uploads:'mkt-uploads',status:'mkt-upload-status',sales:'mkt-sales',ads:'mkt-ads',stock:'mkt-stock',access:'mkt-access',settings:'mkt-settings'};
+const COLL={uploads:'mkt-uploads',status:'mkt-upload-status',sales:'mkt-sales',ads:'mkt-ads',stock:'mkt-stock',access:'mkt-access',settings:'mkt-settings',voc:'mkt-voc',team:'mkt-team'};
+// 업무OS v2 '확인할 것' 다리 (공개 규칙 pour-os/{doc=**} · CRM 다리와 같은 모양) — AI 팀 검토 대기 · 고객의 소리 급함
+const linksCol=()=>db.collection('pour-os').doc('v2').collection('links');
 const KIND_COLL={sales:COLL.sales,ads:COLL.ads,stock:COLL.stock};
 const DEFAULT_SET={defaultLeadTimeDays:7,safetyDays:7,windowDays:14,roasLow:200,roasHigh:400,minCost:10000,minClicks:10,adsDays:7};
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -109,7 +135,8 @@ const todayKST=()=>C.addDays(C.yesterdayKST(),1);
 const tsMs=(t)=>t&&t.toMillis?t.toMillis():(t?new Date(t).getTime():0);
 const fmtTs=(t)=>{const m=tsMs(t);if(!m)return '-';const d=new Date(m+9*3600e3);return d.toISOString().slice(5,16).replace('T',' ');};
 
-const S={user:null,tab:'home',roles:null,settings:{...DEFAULT_SET},sales:[],ads:[],stock:[],log:[],msg:null,temp:null,busy:false};
+const HASH_TAB={'#voc':'voc','#team':'team'}; // 업무OS 바로가기 (…/marketing-hub/#voc)
+const S={user:null,tab:HASH_TAB[location.hash]||'home',roles:null,settings:{...DEFAULT_SET},sales:[],ads:[],stock:[],log:[],voc:[],links:[],team:{},msg:null,temp:null,busy:false};
 
 /* ── 로그인 ── */
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e=>console.error('[auth] persistence',e));
@@ -232,7 +259,35 @@ async function loadData(){
     S.sales=sa.docs.map(d=>d.data()); S.ads=ad.docs.map(d=>d.data()); S.stock=stk.docs.map(d=>d.data());
     console.log(`[${COLL.sales}] ${S.sales.length}건 · [${COLL.ads}] ${S.ads.length}건 · [${COLL.stock}] ${S.stock.length}건`);
   }catch(e){console.error('[데이터] 로드 실패',e);setMsg('err','데이터 불러오기 실패: '+(e.code||e.message));}
+  await loadTeamVoc();
+}
+// AI 팀 · 고객의 소리 (따로 — 실패해도 숫자 화면엔 영향 없음)
+async function loadTeamVoc(){
+  try{
+    const [v,t]=await Promise.all([col(COLL.voc).where('date','>=',C.addDays(todayKST(),-29)).get(),col(COLL.team).get()]);
+    S.voc=v.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||tsMs(b.createdAt)-tsMs(a.createdAt));
+    S.team=Object.fromEntries(t.docs.map(d=>[d.id,d.data()]));
+    console.log(`[${COLL.voc}] ${S.voc.length}건 · [${COLL.team}] ${t.size}건`);
+  }catch(e){console.error('[고객의 소리·AI 팀] 로드 실패',e);setMsg('err','고객의 소리·AI 팀 불러오기 실패: '+(e.code||e.message));}
+  try{
+    const l=await linksCol().where('src','==','mkt').where('open','==',true).get();
+    S.links=l.docs.map(d=>({id:d.id,...d.data()}));
+    console.log(`[pour-os/v2/links mkt] 열린 ${S.links.length}건`);
+    await syncVocLinks();
+  }catch(e){console.error('[업무OS 다리] 실패',e);}
   render();
+}
+// 고객의 소리 급함 → 업무OS: 바뀐 줄만 쓰고 · 이제 없는 줄은 닫음(open:false · 지우지 않음)
+async function syncVocLinks(){
+  const want=new Map(C.vocLinks(S.voc,todayKST()).map(l=>[l.id,l]));
+  const cur=new Map(S.links.filter(l=>l.kind==='voc').map(l=>[l.id,l]));
+  const w=[];
+  want.forEach((l,id)=>{const c=cur.get(id);if(!c||c.title!==l.title||c.sub!==l.sub||c.date!==l.date)w.push([id,c?{...l,at:c.at||l.at}:l]);});
+  cur.forEach((c,id)=>{if(!want.has(id))w.push([id,{...c,open:false,closedAt:new Date().toISOString()}]);});
+  if(!w.length)return;
+  const b=db.batch();w.forEach(([id,d])=>b.set(linksCol().doc(id),d));await b.commit();
+  S.links=S.links.filter(l=>l.kind!=='voc').concat([...want.values()]);
+  console.log(`[업무OS 다리] 고객의 소리 ${w.length}줄 반영`);
 }
 
 /* ── 계산 (화면용) ── */
@@ -264,14 +319,16 @@ const pct=(a,b)=>b>0?Math.round((a-b)/b*100):null;
 const chName=(id)=>(C.channelOf(id)||{label:id}).label;
 
 /* ── 화면 ── */
-const TABS=[['home','요약'],['stock','재고·발주'],['ads','키워드'],['sales','판매'],['log','업로드 기록'],['acct','계정'],['set','설정']];
+const TABS=[['home','요약'],['team','AI 팀'],['voc','고객의 소리'],['stock','재고·발주'],['ads','키워드'],['sales','판매'],['log','업로드 기록'],['acct','계정'],['set','설정']];
 function setMsg(c,t){S.msg=c?{c,t}:null;}
 function render(){
   if(!S.user)return;
   $('#tabs').innerHTML=TABS.map(([k,l])=>`<button data-tab="${k}" class="${S.tab===k?'on':''}">${l}</button>`).join('');
   const msg=S.msg?`<div class="msg ${S.msg.c}">${esc(S.msg.t)}</div>`:'';
-  const body={home:vHome,stock:vStock,ads:vAds,sales:vSales,log:vLog,acct:vAcct,set:vSet}[S.tab]();
+  const body={home:vHome,team:vTeam,voc:vVoc,stock:vStock,ads:vAds,sales:vSales,log:vLog,acct:vAcct,set:vSet}[S.tab]();
+  const keep=vocKeep(); // 쓰던 고객의 소리는 화면을 다시 그려도 남김
   $('#app').innerHTML=msg+body;
+  vocKeep(keep);
 }
 document.addEventListener('click',(e)=>{const o=e.target.closest('#obs-hub');if(o){if(obsHubDone()&&!confirm('허브에 이미 붙였습니다. 한 번 더 붙일까요? (같은 칸이 두 번 생깁니다)')){e.preventDefault();return;}try{localStorage.setItem('mkt_obsidian_hub','1');}catch(err){console.error(err);}setTimeout(render,500);}});
 document.addEventListener('click',(e)=>{const t=e.target.closest('[data-tab]');if(t){S.tab=t.dataset.tab;render();window.scrollTo(0,0);}});
@@ -289,10 +346,11 @@ function vHome(){
   <div class="grid2">
     <div class="card"><h3>🔴 발주 필요 <span class="sub">레오</span><span class="sp"></span><button class="btn sm" data-tab="stock">전체 ›</button></h3>${stockTable(need.slice(0,8),true)}</div>
     <div class="card"><h3>✂️ 끌 키워드 <span class="sub">케이</span><span class="sp"></span><button class="btn sm" data-tab="ads">전체 ›</button></h3>${advList(adv.off.slice(0,8))}</div></div>
+  ${homeTeamVoc()}
   <div class="card"><h3>🟣 옵시디언</h3><div class="bd">
     <a class="btn pri obs" id="obsidian-send" href="${esc(obsidianLink())}">옵시디언으로 보내기</a>
     <button class="btn" id="obsidian-copy" style="margin-top:8px;width:100%;max-width:360px">📋 노트 내용 복사 (버튼이 안 될 때)</button>
-    <div class="sub" style="margin-top:8px">누르면 옵시디언이 열리고 '${esc(C.OBSIDIAN_NOTE)}' 노트가 지금 숫자(발주 필요·키워드·제품별 판매)로 바뀝니다.${obsHubDone()?'':' 허브에 끼워 보려면 설정 탭 › 옵시디언 › [허브에 연결] 한 번.'}</div></div></div>`;
+    <div class="sub" style="margin-top:8px">누르면 옵시디언이 열리고 '${esc(C.OBSIDIAN_NOTE)}' 노트가 지금 숫자(발주 필요·키워드·제품별 판매·고객의 소리)로 바뀝니다.${obsHubDone()?'':' 허브에 끼워 보려면 설정 탭 › 옵시디언 › [허브에 연결] 한 번.'}</div></div></div>`;
 }
 // 기본 = 빈칸(옵시디언에 지금 열린 볼트) — 아이폰에서 볼트 이름을 넣으면 노트가 안 생기고 빈칸이면 됨(2026-10-09 사용자 확인)
 function obsVault(){try{const v=localStorage.getItem('mkt_obsidian_vault');return v==null?'':v;}catch(e){return '';}}
@@ -300,7 +358,8 @@ function obsHubDone(){try{return localStorage.getItem('mkt_obsidian_hub')==='1';
 function obsidianText(){
   const dr=dailyRevenue();
   return C.obsidianNote({date:todayKST(),sales7:dr.slice(7).reduce((a,x)=>a+x.v,0),salesPrev7:dr.slice(0,7).reduce((a,x)=>a+x.v,0),
-    stock:stockRows(),advice:C.keywordAdvice(S.ads,S.settings),sales:salesRows(),adsDays:S.settings.adsDays});
+    stock:stockRows(),advice:C.keywordAdvice(S.ads,S.settings),sales:salesRows(),adsDays:S.settings.adsDays,
+    voc:C.vocSummary(S.voc,todayKST()),vocList:S.voc.filter(v=>v.date>=C.addDays(todayKST(),-6))});
 }
 function obsidianLink(){return C.obsidianUri(obsVault(),C.OBSIDIAN_NOTE,obsidianText(),'overwrite');}
 function stockTable(rows,short){
@@ -349,16 +408,16 @@ function vLog(){
 function vAcct(){
   const R=S.roles||{}, ppl=Object.values(R.people||{}).sort((a,b)=>(a.role>b.role?1:-1));
   const t=S.temp?`<div class="temp"><b>✅ ${esc(S.temp.email)} 계정을 만들었습니다</b><div style="margin-top:6px">임시 비밀번호: <code>${esc(S.temp.pw)}</code> <button class="btn sm" data-acct="copy">복사</button></div>
-    <div class="sub" style="margin-top:6px">Aside 비밀번호 관리자에 저장하세요. 이 화면을 벗어나면 다시 볼 수 없습니다.</div></div>`:'';
+    <div class="sub" style="margin-top:6px">Aside·직원에게 전하고 첫 로그인 뒤 바꾸게 하세요. 이 화면을 벗어나면 다시 볼 수 없습니다.</div></div>`:'';
   return `<div class="card"><h3>👥 계정</h3><div class="bd">${t}
     <div class="form"><div><label for="ac-email">이메일</label><input id="ac-email" type="email" autocomplete="off" placeholder="aside-upload@…"></div>
       <div><label for="ac-name">이름</label><input id="ac-name" placeholder="예: Aside 업로드"></div>
-      <div><label for="ac-role">역할</label><select id="ac-role"><option value="uploader">업로더 (올리기만 · Aside 용)</option><option value="admin">관리자 (전부)</option></select></div></div>
+      <div><label for="ac-role">역할</label><select id="ac-role"><option value="uploader">업로더 (올리기만 · Aside 용)</option><option value="staff">직원 (고객의 소리 쓰기만)</option><option value="admin">관리자 (전부)</option></select></div></div>
     <div style="margin-top:12px"><button class="btn pri" data-acct="add">계정 만들기 / 등록</button></div>
-    <p class="sub">처음 쓰는 이메일이면 계정과 임시 비밀번호를 만듭니다. Aside 용은 본인 메인 계정이 아닌 <b>전용 이메일</b>로 만드세요.</p></div>
+    <p class="sub">처음 쓰는 이메일이면 계정과 임시 비밀번호를 만듭니다. Aside 용은 본인 메인 계정이 아닌 <b>전용 이메일</b>로 만드세요. 직원은 <b>marketing-hub/voc.html</b> 에서 고객의 소리만 씁니다(숫자·원가는 못 봄).</p></div>
     <div class="acct-list">
       ${OWNER_EMAILS.map(e=>`<div class="acct-row"><div class="who"><b>대표</b> <span class="pill ok">관리자</span><div class="sub">${esc(e)}</div></div><span class="sub">고정</span></div>`).join('')}
-      ${ppl.map(p=>`<div class="acct-row"><div class="who"><b>${esc(p.name)}</b> ${p.active===false?'<span class="pill m">사용 중지</span>':p.role==='admin'?'<span class="pill ok">관리자</span>':'<span class="pill wait">업로더</span>'}<div class="sub">${esc(p.email)}</div></div>
+      ${ppl.map(p=>`<div class="acct-row"><div class="who"><b>${esc(p.name)}</b> ${p.active===false?'<span class="pill m">사용 중지</span>':p.role==='admin'?'<span class="pill ok">관리자</span>':p.role==='staff'?'<span class="pill m">직원 · 고객의 소리</span>':'<span class="pill wait">업로더</span>'}<div class="sub">${esc(p.email)}</div></div>
         <div class="acts"><button class="btn sm" data-acct="toggle" data-e="${esc(p.email)}">${p.active===false?'다시 사용':'사용 중지'}</button><button class="btn sm" data-acct="reset" data-e="${esc(p.email)}">비밀번호 재설정 메일</button></div></div>`).join('')}
     </div></div>`;
 }
@@ -373,12 +432,99 @@ function vSet(){
     ${MODE==='open'?`<p style="margin:0"><span class="pill wait">임시</span> 공개 저장소(pour-os/marketing-hub)에 저장 중 — 보안 규칙 게시 전까지 쓰는 곳입니다. 주소를 아는 사람은 읽고 고칠 수 있어 원본 CSV 는 필요한 열만 저장합니다. 규칙을 게시하면 잠긴 저장소로 옮깁니다.</p>`
       :`<p style="margin:0 0 10px"><span class="pill ok">잠김</span> 관리자만 읽는 저장소(mkt-*)에 저장 중.</p>
         <button class="btn" id="migrate-open">임시 저장소에서 옮기기</button>
-        <p class="sub">임시 저장소의 판매·광고·재고·업로드 기록·계정·기준값을 그대로 복사합니다(임시 저장소는 지우지 않음). 여러 번 눌러도 같은 문서를 덮어써서 중복이 없습니다. 원본 CSV 는 옮기지 않습니다.</p>`}</div></div>
+        <p class="sub">임시 저장소의 판매·광고·재고·업로드 기록·계정·기준값·고객의 소리·AI 팀 기록을 그대로 복사합니다(임시 저장소는 지우지 않음). 여러 번 눌러도 같은 문서를 덮어써서 중복이 없습니다. 원본 CSV 는 옮기지 않습니다.</p>`}</div></div>
   <div class="card"><h3>🟣 옵시디언</h3><div class="bd">
     <div class="form"><div><label for="obs-vault">볼트 이름</label><input id="obs-vault" value="${esc(obsVault())}" placeholder="비워 두기 (지금 열린 볼트)"><div class="sub">옵시디언에서 연 볼트 이름 그대로 · 이 기기에만 저장 · <b>비워 두면 옵시디언에 지금 열려 있는 볼트</b>에 만듭니다(이름이 안 맞아 노트가 안 생길 때)</div></div></div>
     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="obs-vault-save">볼트 이름 저장</button>
       <a class="btn obs" id="obs-hub" href="${esc(C.obsidianUri(obsVault(),C.OBSIDIAN_HUB,C.OBSIDIAN_HUB_SECTION,'append'))}">${obsHubDone()?'✅ 허브에 연결됨 (다시 붙이기)':'허브에 연결 (한 번만)'}</a></div>
     <p class="sub">[허브에 연결]은 '${esc(C.OBSIDIAN_HUB)}' 노트 맨 끝에 '📊 오늘 숫자' 칸을 붙입니다(기존 내용은 그대로). 한 번만 누르세요. 그 뒤로는 요약 탭 [옵시디언으로 보내기]만 누르면 허브에서 새 숫자가 보입니다.</p></div></div>`;
+}
+
+/* ── AI 팀 ── */
+const DOW=['일','월','화','수','목','금','토'];
+const mdw=(ymd)=>`${Number(ymd.slice(5,7))}/${Number(ymd.slice(8,10))}(${DOW[new Date(ymd+'T00:00:00Z').getUTCDay()]})`;
+const reviews=()=>S.links.filter(l=>l.kind==='aiReview').sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.title>b.title?1:-1));
+function stepPill(m){return m.admin?'<span class="pill m">관리자 전용</span>':m.live?'<span class="pill ok">가동</span>':`<span class="pill m">설정 ${m.step}순위</span>`;}
+function runState(r,now){ // 오늘 한 일 상태
+  const rv=reviews().find(l=>l.member===r.id&&l.date===now.date), done=(S.team[r.id]||{}).lastDate===now.date;
+  if(rv)return '<span class="pill wait">검토 대기</span>';
+  if(done)return '<span class="pill ok">검토 끝</span>';
+  if(!r.live)return '<span class="pill m">설정 전</span>';
+  return r.t>now.time?'<span class="pill m">예정</span>':'<span class="pill err">결과 없음</span>';
+}
+function reviewRows(list){
+  if(!list.length)return '<div class="empty">검토할 결과가 없습니다</div>';
+  return `<div class="rows">${list.map(l=>`<div class="row"><div class="tx"><b>${esc(l.title)}</b><div class="sub">${esc(l.date?mdw(l.date):'')} · ${esc(l.sub||'')}</div></div>
+    <div class="acts wide">${l.note?`<a class="btn sm obs" href="${esc(C.obsidianOpenUri(obsVault(),l.note))}">노트 열기</a>`:''}<button class="btn sm" data-review="${esc(l.id)}">✅ 검토 끝</button></div></div>`).join('')}</div>`;
+}
+function homeTeamVoc(){
+  const now=C.nowKST(), rv=reviews(), vs=C.vocSummary(S.voc,now.date), urg=vs.urgentItems.length+vs.repeated.length;
+  return `<div class="grid2">
+    <div class="card"><h3>🤖 검토 대기 ${rv.length} <span class="sub">AI 팀</span><span class="sp"></span><button class="btn sm" data-tab="team">AI 팀 ›</button></h3>${reviewRows(rv.slice(0,5))}</div>
+    <div class="card"><h3>🗣 고객의 소리 <span class="sub">최근 7일 ${vs.total}건${urg?` · <span class="down">급함 ${urg}</span>`:''}</span><span class="sp"></span><button class="btn sm" data-tab="voc">쓰기·보기 ›</button></h3>${vocUrgent(vs)||'<div class="empty">급한 이야기가 없습니다</div>'}</div></div>`;
+}
+function vTeam(){
+  const now=C.nowKST(), today=C.teamDay(now.date), rv=reviews();
+  const week=[];for(let i=0;i<7;i++){const d=C.addDays(now.date,i);week.push({d,runs:C.teamDay(d)});}
+  const live=C.TEAM.filter(m=>m.live).length;
+  return `<div class="card"><h3>📋 검토 대기 ${rv.length} <span class="sub">팀원이 올린 결과 · 노트 열기 → 확인·게시 → [검토 끝] (업무OS '확인할 것'에서도 사라짐)</span></h3>${reviewRows(rv)}</div>
+  <div class="card"><h3>🕘 오늘 ${esc(mdw(now.date))} <span class="sub">${today.length}건 · 지금 ${esc(now.time)}</span></h3>
+    ${today.length?`<div class="rows">${today.map(r=>`<div class="row"><span class="t">${esc(r.t)}</span><div class="tx"><b>${esc(r.name)}</b> ${esc(r.what)}</div>${runState(r,now)}</div>`).join('')}</div>`:'<div class="empty">오늘은 정해진 일이 없습니다 (주말)</div>'}</div>
+  <div class="card"><h3>👥 팀원 ${C.TEAM.length} <span class="sub">가동 ${live} · 누르면 자세히 · 설정 순서는 볼트 '00 팀 운영 설계' 4절</span></h3><div class="team-grid">
+    ${C.TEAM.map(m=>{const nx=C.nextRun(m,now), t=S.team[m.id]||{};
+      return `<details class="tm"><summary><div class="h"><span class="sub">${esc(m.no)}</span><b>${esc(m.name)}</b><span class="sub">${esc(m.role)}</span><span class="sp" style="flex:1"></span>${stepPill(m)}</div>
+        <div class="l">다음: ${nx?`${esc(nx.date===now.date?'오늘':mdw(nx.date))} ${esc(nx.t)} · ${esc(nx.what)}`:'요청할 때'}</div></summary>
+        <div class="l">최근 검토: ${t.lastDate?`${esc(mdw(t.lastDate))} · ${esc(t.lastTitle||'')}`:'없음'}</div>
+        <div class="l">${m.runs.map(r=>esc(C.RUN_WORD(r))+' '+esc(r.what)).join('<br>')||'정해진 시간 없음 (요청할 때)'}</div>
+        <div style="margin-top:8px"><a class="btn sm" href="${esc(C.obsidianOpenUri(obsVault(),'02 팀원/'+m.name))}">팀원 노트 ›</a></div></details>`;}).join('')}</div></div>
+  <div class="card"><details class="wk"><summary>📅 앞으로 7일 ▾ <span class="sub">누가 언제 무엇을</span></summary><div class="week">${week.map(w=>`<div class="d${w.d===now.date?' today':''}"><div class="dh">${esc(mdw(w.d))}</div>
+    ${w.runs.length?w.runs.map(r=>`<div class="it">${esc(r.t)} <b>${esc(r.name)}</b> ${esc(r.what)}</div>`).join(''):'<div class="it">쉼</div>'}</div>`).join('')}</div></details></div>`;
+}
+
+/* ── 고객의 소리 ── */
+function vocKeep(v){
+  const p=$('#voc-product'),t=$('#voc-text');if(!p||!t)return null;
+  if(v===undefined){const a=document.querySelector('input[name=voc-type]:checked'),b=document.querySelector('input[name=voc-source]:checked');return {p:p.value,t:t.value,a:a&&a.value,b:b&&b.value};}
+  if(!v)return null;
+  p.value=v.p;t.value=v.t;
+  for(const [n,x] of [['voc-type',v.a],['voc-source',v.b]])if(x)document.querySelectorAll(`input[name=${n}]`).forEach(i=>{i.checked=i.value===x;});
+  return null;
+}
+function vocProducts(){
+  const set=new Set();
+  for(const x of S.sales)if(x.productName)set.add(x.productName);
+  for(const x of S.stock)if(x.productName)set.add(x.productName);
+  for(const x of S.voc)if(x.product)set.add(x.product);
+  return [...set].sort();
+}
+function vocForm(){
+  return `<div class="card" id="voc-card"><h3>✍️ 고객의 소리 쓰기 <span class="sub">전화·CS 끝나고 30초</span></h3><div class="bd vf">
+    <div><label class="t" for="voc-product">제품</label><input id="voc-product" list="voc-products" maxlength="60" placeholder="제품 이름 (목록에서 고르거나 적기)" autocomplete="off">
+      <datalist id="voc-products">${vocProducts().map(p=>`<option value="${esc(p)}">`).join('')}</datalist></div>
+    <div><label class="t">종류</label><div class="chips">${C.VOC_TYPES.map(t=>`<label class="${t===C.VOC_URGENT_TYPE?'urg':''}"><input type="radio" name="voc-type" value="${esc(t)}">${esc(t)}</label>`).join('')}</div></div>
+    <div><label class="t">들은 곳</label><div class="chips">${C.VOC_SOURCES.map((t,i)=>`<label><input type="radio" name="voc-source" value="${esc(t)}"${i===0?' checked':''}>${esc(t)}</label>`).join('')}</div></div>
+    <div><label class="t" for="voc-text">내용 (한 줄)</label><textarea id="voc-text" maxlength="300" placeholder="예: 뚜껑을 열 때 액이 새서 손에 묻는다고 함"></textarea>
+      <div class="sub">고객 이름·전화번호·주소는 쓰지 마세요. 적어도 전화번호·이메일·동호수는 자동으로 가립니다.</div></div>
+    <button class="btn pri" id="voc-save" style="width:100%;max-width:360px;padding:12px">저장</button></div></div>`;
+}
+function vocUrgent(vs){
+  if(!vs.urgentItems.length&&!vs.repeated.length)return '';
+  return `<div class="rows">${vs.urgentItems.map(v=>`<div class="row"><span class="pill err">하자·안전</span><div class="tx"><b>${esc(v.product)}</b> ${esc(v.text)}<div class="sub">${esc(mdw(v.date))}</div></div></div>`).join('')}
+    ${vs.repeated.map(x=>`<div class="row"><span class="pill err">${x.count}건</span><div class="tx"><b>${esc(x.product)}</b> ${esc(x.type)} — 7일 안 같은 이야기<div class="sub">${esc(x.items.slice(0,3).map(v=>v.text).join(' / '))}</div></div></div>`).join('')}</div>`;
+}
+function vVoc(){
+  const vs=C.vocSummary(S.voc,todayKST());
+  return `${vocForm()}
+  <div class="kpis"><div class="kpi"><div class="l">최근 7일</div><div class="v">${vs.total}</div></div>
+    <div class="kpi"><div class="l">안 끝난 것</div><div class="v">${vs.open}</div></div>
+    <div class="kpi"><div class="l">불만 · 하자·안전</div><div class="v">${vs.byType['불만']} · ${vs.byType['하자·안전']}</div></div>
+    <div class="kpi"><div class="l">급함</div><div class="v" style="color:${vs.urgentItems.length+vs.repeated.length?'var(--red)':'inherit'}">${vs.urgentItems.length+vs.repeated.length}</div><div class="sub">업무OS '확인할 것'에도 뜸</div></div></div>
+  ${vocUrgent(vs)?`<div class="card"><h3>🚨 급함 <span class="sub">하자·안전 · 같은 이야기 ${C.VOC_REPEAT}건 이상</span></h3>${vocUrgent(vs)}</div>`:''}
+  <div class="card"><h3>🔝 많이 나온 이야기 <span class="sub">최근 7일 · 제품 × 종류</span></h3>${vs.top.length?`<div class="rows">${vs.top.map(x=>`<div class="row"><span class="t">${x.count}건</span><div class="tx"><b>${esc(x.product)}</b> <span class="pill m">${esc(x.type)}</span><div class="sub">${esc(x.items.slice(0,3).map(v=>v.text).join(' / '))}</div></div></div>`).join('')}</div>`:'<div class="empty">최근 7일 메모가 없습니다</div>'}</div>
+  <div class="card"><h3>🗂 최근 30일 ${S.voc.length}건 <span class="sub">개선이 끝나면 [끝남] · 온유가 매일 18:00 묶어서 개선 제안</span><span class="sp"></span><button class="btn sm" data-copy="voc">📋 온유에게 줄 표 복사</button></h3>
+  ${S.voc.length?`<div class="rows">${S.voc.map(v=>`<div class="row"><div class="tx">${v.type===C.VOC_URGENT_TYPE?'<span class="pill err">하자·안전</span>':`<span class="pill m">${esc(v.type)}</span>`} <b>${esc(v.product)}</b> ${esc(v.text)}
+      <div class="sub">${esc(mdw(v.date))} · ${esc(v.source||'')} · ${esc((v.byEmail||'').split('@')[0])}${v.resolved?' · ✅ 끝남':''}</div></div>
+      <div class="acts"><button class="btn sm" data-voc-done="${esc(v.id)}">${v.resolved?'다시 열기':'끝남'}</button></div></div>`).join('')}</div>`:'<div class="empty">아직 메모가 없습니다</div>'}</div>`;
 }
 
 /* ── 동작 ── */
@@ -400,7 +546,7 @@ document.addEventListener('click',async(e)=>{
     if(b.id==='migrate-open'){
       if(!confirm('임시 저장소의 데이터를 잠긴 저장소로 복사할까요?'))return;
       b.disabled=true;b.textContent='옮기는 중…';
-      const names=[COLL.access,COLL.settings,COLL.status,COLL.sales,COLL.ads,COLL.stock];let total=0;
+      const names=[COLL.access,COLL.settings,COLL.status,COLL.sales,COLL.ads,COLL.stock,COLL.voc,COLL.team];let total=0;
       for(const n of names){
         const snap=await C.col(db,n,'open').get();console.log(`[옮기기] ${n} ${snap.size}건`);
         for(let i=0;i<snap.docs.length;i+=400){const bt=db.batch();for(const d of snap.docs.slice(i,i+400))bt.set(C.col(db,n,'secure').doc(d.id),d.data());await bt.commit();}
@@ -416,6 +562,22 @@ document.addEventListener('click',async(e)=>{
       const r=await processUpload({id:d.id,...d.data()});S.log=S.log.filter(x=>x.id!==d.id).concat(r);
       setMsg(r.result==='ok'?'ok':'err',`다시 정리: ${r.result==='ok'?'성공':'실패'} — ${r.message}`);await loadData();return;
     }
+    if(b.id==='voc-save'){await saveVoc(b);return;}
+    if(b.dataset.vocDone){
+      const v=S.voc.find(x=>x.id===b.dataset.vocDone);if(!v)return;
+      b.disabled=true;const resolved=!v.resolved;
+      await col(COLL.voc).doc(v.id).update({resolved,resolvedAt:resolved?FV.serverTimestamp():null,resolvedBy:resolved?S.user.email:null});
+      v.resolved=resolved;await syncVocLinks();setMsg('ok',`${v.product} — ${resolved?'끝남으로 표시':'다시 열었습니다'}`);render();return;
+    }
+    if(b.dataset.review){
+      const l=S.links.find(x=>x.id===b.dataset.review);if(!l)return;
+      b.disabled=true;
+      await linksCol().doc(l.id).set({open:false,closedAt:new Date().toISOString(),closedBy:S.user.email},{merge:true});
+      if(l.member)await col(COLL.team).doc(l.member).set({lastDate:l.date||todayKST(),lastTitle:String(l.title||'').replace(/^검토:\s*/,''),lastNote:l.note||l.sub||'',lastReviewedAt:FV.serverTimestamp(),lastReviewedBy:S.user.email,reviewed:FV.increment(1)},{merge:true});
+      S.links=S.links.filter(x=>x.id!==l.id);
+      if(l.member)S.team[l.member]={...(S.team[l.member]||{}),lastDate:l.date||todayKST(),lastTitle:String(l.title||'').replace(/^검토:\s*/,'')};
+      setMsg('ok',`검토 끝: ${l.title}`);render();return;
+    }
     if(b.dataset.copy){await copyTable(b.dataset.copy);return;}
     if(b.dataset.acct)await acct(b.dataset.acct,b);
   }catch(err){console.error('[동작] 실패',err);setMsg('err','실패: '+(err.code||err.message));render();}
@@ -425,6 +587,7 @@ async function copyTable(kind){
   let rows;
   if(kind==='stock')rows=[['상품코드','상품명','가용재고','일평균','남은일수','리드타임','발주필요','발주수량','기준일'],...stockRows().map(r=>[r.productCode,r.productName,r.available,r.avgDailySales,r.daysLeft==null?'':r.daysLeft,r.leadTimeDays,r.reorderNeeded?'Y':'',r.reorderQty,r.reportDate])];
   else if(kind==='ads'){const a=C.keywordAdvice(S.ads,S.settings);rows=[['판단','채널','캠페인','키워드','노출','클릭','비용','전환매출','ROAS%'],...[['올리기',a.up],['줄이기',a.down],['끄기',a.off],['유지',a.keep]].flatMap(([l,list])=>list.map(d=>[l,chName(d.channel),d.campaign,d.keyword,d.impressions,d.clicks,Math.round(d.cost),Math.round(d.revenue),d.roas]))];}
+  else if(kind==='voc')rows=[['날짜','제품','종류','들은곳','내용','끝남'],...S.voc.map(v=>[v.date,v.product,v.type,v.source,v.text,v.resolved?'Y':''])];
   else rows=[['상품코드','상품명','7일수량','7일매출','전주수량'],...salesRows().map(r=>[r.code,r.name,r.q7,Math.round(r.r7),r.qp])];
   const tsv=rows.map(r=>r.map(c=>String(c==null?'':c).replace(/[\t\n]/g,' ')).join('\t')).join('\n');
   try{await navigator.clipboard.writeText(tsv);setMsg('ok',`${rows.length-1}줄을 복사했습니다 (Claude·옵시디언에 붙여넣기)`);}
@@ -432,6 +595,18 @@ async function copyTable(kind){
   render();
 }
 
+async function saveVoc(b){
+  const typ=document.querySelector('input[name=voc-type]:checked'), src=document.querySelector('input[name=voc-source]:checked');
+  const r=C.vocDoc({product:$('#voc-product').value,type:typ?typ.value:'',source:src?src.value:'',text:$('#voc-text').value});
+  if(!r.ok){setMsg('err','실패: '+r.errors.join(' '));render();return;}
+  b.disabled=true;
+  const ref=await col(COLL.voc).add({...r.doc,date:todayKST(),by:S.user.uid,byEmail:S.user.email,createdAt:FV.serverTimestamp()});
+  console.log('[mkt-voc] 저장',ref.id,r.doc.product,r.doc.type);
+  S.voc.unshift({id:ref.id,...r.doc,date:todayKST(),byEmail:S.user.email,createdAt:new Date()});
+  $('#voc-product').value='';$('#voc-text').value='';document.querySelectorAll('input[name=voc-type]').forEach(i=>{i.checked=false;});
+  await syncVocLinks().catch(e=>console.error('[업무OS 다리] 고객의 소리',e));
+  setMsg('ok',`완료: ${r.doc.product} ${r.doc.type} 저장${r.masked?` (개인정보 ${r.masked}곳 가림)`:''}${r.doc.urgent?' · 급함 → 업무OS 확인할 것':''}`);render();window.scrollTo(0,0);
+}
 function tempPw(){const c='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';const a=new Uint32Array(14);crypto.getRandomValues(a);return Array.from(a,x=>c[x%c.length]).join('')+'!7';}
 async function createAuth(email,pw){ // 보조 앱으로 만들어 지금 로그인한 관리자가 로그아웃되지 않게
   let app=firebase.apps.find(a=>a.name==='mkt-acct');if(!app){app=firebase.initializeApp(FB_CFG,'mkt-acct');if(EMU)app.auth().useEmulator('http://127.0.0.1:9099');}
@@ -442,6 +617,7 @@ async function saveRoles(r){
   const ppl=Object.values(r.people||{}).filter(p=>p.active!==false);
   r.admins=ppl.filter(p=>p.role==='admin').map(p=>p.email);
   r.uploaders=ppl.filter(p=>p.role==='uploader').map(p=>p.email);
+  r.staffs=ppl.filter(p=>p.role==='staff').map(p=>p.email);
   r.updatedAt=new Date().toISOString();r.updatedBy=S.user.email;
   await col(COLL.access).doc('roles').set(r);S.roles=r;
 }
@@ -452,12 +628,12 @@ async function acct(a,b){
     const email=$('#ac-email').value.trim().toLowerCase(), name=$('#ac-name').value.trim(), role=$('#ac-role').value;
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){setMsg('err','이메일을 확인하세요');render();return;}
     if(OWNER_EMAILS.includes(email)){setMsg('err','대표 이메일은 이미 관리자입니다');render();return;}
-    if(role==='uploader'&&OWNER_EMAILS.concat(r.admins||[]).includes(email)&&!confirm('관리자 이메일을 업로더로 바꿀까요?'))return;
+    if(role!=='admin'&&OWNER_EMAILS.concat(r.admins||[]).includes(email)&&!confirm('관리자 이메일을 관리자가 아닌 역할로 바꿀까요?'))return;
     b.disabled=true;b.textContent='만드는 중…';
     const pw=tempPw(), res=await createAuth(email,pw);
     r.people[email]={...(r.people[email]||{}),email,name:name||email.split('@')[0],role,active:true,addedAt:(r.people[email]||{}).addedAt||new Date().toISOString(),addedBy:S.user.email};
     await saveRoles(r);S.temp=res==='created'?{email,pw}:null;
-    setMsg('ok',res==='created'?`${email} 계정을 만들고 ${role==='admin'?'관리자':'업로더'}로 등록했습니다`:`${email} 은(는) 이미 계정이 있어 역할만 등록했습니다`);render();return;
+    setMsg('ok',res==='created'?`${email} 계정을 만들고 ${({admin:'관리자',staff:'직원',uploader:'업로더'})[role]}로 등록했습니다`:`${email} 은(는) 이미 계정이 있어 역할만 등록했습니다`);render();return;
   }
   const email=b.dataset.e;if(!r.people[email])return;
   if(a==='toggle'){

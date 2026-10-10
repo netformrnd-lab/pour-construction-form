@@ -1,13 +1,14 @@
 // 업무OS v2 — 다른 앱에서 온 '할 일 한 줄' (CRM · 마진 · 사용자 결정 2026-10-05 · 계산만)
 // 저장: pour-os/v2/links/{id} — CRM·마진 앱이 씀(업무OS 는 읽기만) · 전화번호·주소 같은 개인정보는 안 받음(이름·업체명 한 줄 + 날짜 + 담당 + 바로가기)
-//   { id, src: "crm"|"margin", kind, title, sub, date: "YYYY-MM-DD"(이날부터 보임 · 없으면 바로), time, owner(이름), ownerOsId, url, open, at }
+//   마케팅 허브(marketing-hub/): aiReview(AI 팀원 결과 검토 → 허브 AI 팀에서 [검토 끝]) · voc(고객의 소리 하자·안전 / 같은 이야기 3건 · 내용 없음)
+//   { id, src: "crm"|"margin"|"mkt", kind, title, sub, date: "YYYY-MM-DD"(이날부터 보임 · 없으면 바로), time, owner(이름), ownerOsId, url, open, at }
 //   그 앱에서 처리되면 open:false (지우지 않음)
 //   마진 v2(pourstore-margin2.html): marginLow(마진 낮음 · 제품·채널·% 만) · priceReq(가격 바꾸기 요청 → 관리자 · 승인·반려되면 닫힘)
 // 누구에게: 담당(업무OS 사람 번호 → 이름 끝이 같은 사람 1명)이 있으면 그 사람 · 없으면 마스터 '확인할 것'
 import { isMaster } from "./model.js";
 
-export const LINK_TAG = { recall: "재통화", visit: "방문예약", dealerOrder: "대리점 발주", dealerChat: "대리점 채팅", lowStock: "재고 위험", marginLow: "마진 낮음", quoteAccepted: "견적 수락", bigDeal: "큰 건", priceReq: "가격 컨펌" };
-export const LINK_APP = { crm: "CRM", margin: "마진" };
+export const LINK_TAG = { recall: "재통화", visit: "방문예약", dealerOrder: "대리점 발주", dealerChat: "대리점 채팅", lowStock: "재고 위험", marginLow: "마진 낮음", quoteAccepted: "견적 수락", bigDeal: "큰 건", priceReq: "가격 컨펌", aiReview: "AI 검토", voc: "고객의 소리" };
+export const LINK_APP = { crm: "CRM", margin: "마진", mkt: "마케팅 허브" };
 const clean = (s) => String(s || "").replace(/\s/g, "");
 // 이름으로 업무OS 사람 찾기 (같은 이름 → 끝이 같은 사람이 딱 1명)
 export function linkOwnerId(l, users) {

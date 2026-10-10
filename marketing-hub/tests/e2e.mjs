@@ -4,11 +4,13 @@
 // 실제 Firebase(googleapis 등) 요청은 막고 0건인지 검사한다.
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 async function route(p){await p.route(/gstatic\.com\/firebasejs\/10\.12\.0\/(firebase-[a-z]+-compat\.js)/,(r)=>{const n=r.request().url().match(/(firebase-[a-z]+-compat\.js)/)[1];r.fulfill({contentType:'application/javascript',body:readFileSync('cdn/'+n)});});
   await p.route(/^https?:\/\/[^/]*(googleapis\.com|firebaseio\.com|firebaseapp\.com)/,(r)=>{console.log('  ✗ 실제 Firebase 요청 차단:',r.request().url().slice(0,90));globalThis.PROD_HITS=(globalThis.PROD_HITS||0)+1;r.abort();});
   await p.route(/cdn\.jsdelivr\.net/,(r)=>r.fulfill({contentType:'text/css',body:''}));}
 const BASE='http://127.0.0.1:5500', OUT=process.env.OUT;
 const signUp=(email,pw)=>fetch('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=x',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,password:pw,returnSecureToken:true})}).then(r=>r.json());
+const getDoc=async(path)=>{const r=await fetch(`http://127.0.0.1:8080/v1/projects/pour-app-new/databases/(default)/documents/${path}`,{headers:{Authorization:'Bearer owner'}});return r.ok?(await r.json()).fields:null;};
 const list=async(c,top)=>{const r=await fetch(`http://127.0.0.1:8080/v1/projects/pour-app-new/databases/(default)/documents/${top?'':'pour-os/marketing-hub/'}${c}?pageSize=300`,{headers:{Authorization:'Bearer owner'}});const j=await r.json();return (j.documents||[]);};
 await signUp('netformrnd@gmail.com','ownerpw123');
 const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--ignore-certificate-errors']});
@@ -36,7 +38,7 @@ await p.goto(BASE+'/index.html?emu=1');
 await p.fill('#lg-email','aside-upload@example.com');await p.fill('#lg-pw',pw);await p.click('#lg-btn');
 await p.waitForTimeout(4000);log('   url',p.url(),await p.textContent('body').then(t=>t.slice(0,200)));await p.waitForURL(/upload\.html\?emu=1/,{timeout:5000});check('업로더 → upload.html 로 이동',true);
 await p.waitForSelector('#upload-section:not([hidden])');
-check('날짜 기본값 = 어제',(await p.inputValue('#report-date'))==='2026-10-07');
+const yday=new Date(Date.now()+9*3600e3-864e5).toISOString().slice(0,10);check('날짜 기본값 = 어제',(await p.inputValue('#report-date'))===yday);
 async function up(channel,date,{text,file}){
   await p.selectOption('#channel',channel);await p.fill('#report-date',date);
   if(file)await p.setInputFiles('#csv-file',file);else{await p.setInputFiles('#csv-file',[]);await p.fill('#csv-text',text);}
@@ -98,7 +100,7 @@ p=await page(375);await p.goto(BASE+'/index.html?emu=1');
 await p.fill('#lg-email','netformrnd@gmail.com');await p.fill('#lg-pw','ownerpw123');await p.click('#lg-btn');
 await p.waitForSelector('#obsidian-send');await p.waitForTimeout(1500);
 const href=await p.getAttribute('#obsidian-send','href');const dec=decodeURIComponent(href);
-check('옵시디언 링크 = 오늘 숫자 덮어쓰기',href.startsWith('obsidian://new?vault=')&&href.endsWith('&overwrite=true')&&dec.includes('file=05 오늘 숫자'));
+check('옵시디언 링크 = 오늘 숫자 덮어쓰기 (볼트 이름 빈칸 = 지금 열린 볼트)',href.startsWith('obsidian://new?file=')&&href.endsWith('&overwrite=true')&&dec.includes('file=05 오늘 숫자'));
 check('노트에 발주 필요·끌 키워드',dec.includes('| P001 | 곰팡이젤 |')&&dec.includes('**옥상방수**'));
 log('   링크 길이',href.length);
 check('요약 375 넘침 없음(옵시디언 카드)',await overflow(p)<=0);
@@ -109,6 +111,74 @@ check('설정 375 넘침 없음',await overflow(p)<=0);
 await p.screenshot({path:OUT+'/set-375.png',fullPage:true});
 await p.context().close();
 
+// 5-2) 고객의 소리: 대표가 직원 계정 만들기 → 직원은 voc.html 에서 쓰기만
+p=await page(375);await p.goto(BASE+'/index.html?emu=1');
+await p.fill('#lg-email','netformrnd@gmail.com');await p.fill('#lg-pw','ownerpw123');await p.click('#lg-btn');
+await p.waitForSelector('nav button[data-tab="acct"]');await p.click('nav button[data-tab="acct"]');
+await p.fill('#ac-email','cs@example.com');await p.fill('#ac-name','CS 담당');await p.selectOption('#ac-role','staff');
+await p.click('[data-acct="add"]');await p.waitForSelector('.temp code');
+const spw=await p.textContent('.temp code');check('직원 계정 · 직원 표시',(await p.textContent('.acct-list')).includes('직원 · 고객의 소리'));
+await p.context().close();
+p=await page(375);await p.goto(BASE+'/index.html?emu=1');
+await p.fill('#lg-email','cs@example.com');await p.fill('#lg-pw',spw);await p.click('#lg-btn');
+await p.waitForURL(/voc\.html\?emu=1/,{timeout:10000});check('직원 → 대시보드 주소로 와도 voc.html',true);
+await p.waitForSelector('#voc-section:not([hidden])');
+async function voc(product,type,text){
+  await p.fill('#voc-product',product);await p.click(`#voc-types label:has(input[value="${type}"])`);await p.fill('#voc-text',text);
+  await p.evaluate(()=>{document.querySelector('#status-message').textContent='';});
+  await p.click('#save-button');await p.waitForFunction(()=>/^(완료|실패)/.test(document.querySelector('#status-message').textContent));
+  return p.textContent('#status-message');
+}
+await p.click('#save-button');check('빈 칸 → 실패 문구',(await p.textContent('#status-message')).startsWith('실패: 제품을 고르거나 적으세요.'));
+let vr=await voc('실리콘','하자·안전','바르고 나서 손이 따갑다고 함 010-2222-3333');log('  ',vr);
+check('하자·안전 저장 · 번호 가림 · 급함 알림',vr==='완료: 실리콘 하자·안전 저장 (개인정보 1곳 가림) · 급함으로 바로 알림');
+for(const t of ['냄새가 강함','냄새 때문에 환불 문의','냄새 빠지는 시간 문의'])vr=await voc('곰팡이젤','불만',t);
+check('곰팡이젤 불만 3건 저장',vr==='완료: 곰팡이젤 불만 저장');
+check('오늘 쓴 것 4건 · 번호는 가린 채',(await p.$$('#mine > div')).length===4&&(await p.textContent('#mine')).includes('(번호)')&&!(await p.textContent('#mine')).includes('3333'));
+check('voc.html 375 넘침 없음',await overflow(p)<=0);await p.screenshot({path:OUT+'/voc-staff-375.png',fullPage:true});
+await p.context().close();
+const vocs=await list('mkt-voc');check('mkt-voc 4건 · 전화번호 없음',vocs.length===4&&!JSON.stringify(vocs).includes('3333'));
+const urgId='mkt-voc-'+vocs.find(d=>d.fields.type.stringValue==='하자·안전').name.split('/').pop();
+check('업무OS 확인할 것: 하자·안전 한 줄 (내용 없음)',await getDoc('pour-os/v2/links/'+urgId).then(f=>f&&f.open.booleanValue===true&&f.title.stringValue==='실리콘 하자·안전'&&!JSON.stringify(f).includes('따갑')));
+
+// 5-3) AI 팀원 결과 (Claude 루틴 도구로 한 줄) → 대표가 검토
+const today=new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
+log('  ',execFileSync('python3',[process.env.TOOLS+'/team_link.py','open','포리','블로그 원고 3',`03 작업/${today} 블로그 원고 3.md`]).toString().trim());
+for(const w of [1280,768,375]){
+  p=await page(w);await p.goto(BASE+'/index.html?emu=1');
+  await p.fill('#lg-email','netformrnd@gmail.com');await p.fill('#lg-pw','ownerpw123');await p.click('#lg-btn');
+  await p.waitForSelector('.kpis');await p.waitForTimeout(2500);
+  if(w===1280){
+    const home=await p.textContent('main');
+    check('요약: 검토 대기 1 · 고객의 소리 급함 2',home.includes('검토 대기 1')&&home.includes('급함 2'));
+    const vg=await getDoc('pour-os/v2/links/mkt-vocg-'+(await p.evaluate(()=>MktCore.hash('곰팡이젤|불만'))));
+    check('업무OS: 같은 이야기 3건 한 줄',vg&&vg.open.booleanValue===true&&vg.title.stringValue==='곰팡이젤 불만 3건');
+    const dec=decodeURIComponent(await p.getAttribute('#obsidian-send','href'));
+    check('옵시디언 노트에 고객의 소리',dec.includes('## 🗣 고객의 소리 — [[온유]] (최근 7일 4건 · 안 끝난 것 4)')&&dec.includes('바르고 나서 손이 따갑다고 함 (번호)'));
+  }
+  check(`요약 ${w} 넘침 없음 (AI 팀·고객의 소리 카드)`,await overflow(p)<=0);
+  for(const t of ['team','voc']){await p.click(`nav button[data-tab="${t}"]`);await p.waitForTimeout(200);check(`${t} ${w} 넘침 없음`,await overflow(p)<=0);await p.screenshot({path:`${OUT}/${t}-${w}.png`,fullPage:true});}
+  if(w===375){
+    await p.click('nav button[data-tab="team"]');const tm=await p.textContent('main');
+    check('AI 팀: 팀원 17 · 포리 검토 대기',tm.includes('팀원 17')&&tm.includes('검토: 포리 블로그 원고 3'));
+    check('노트 열기 = obsidian://open',(await p.getAttribute('.rows a.obs','href')).startsWith('obsidian://open?file=03%20'));
+    await p.click('[data-review]');await p.waitForFunction(()=>/검토 끝:/.test((document.querySelector('.msg')||{}).textContent||''));
+    const ln=(await list('pour-os/v2/links',true)).filter(d=>d.fields.kind&&d.fields.kind.stringValue==='aiReview');
+    check('검토 끝 → 업무OS 줄 닫힘 · 포리 최근 검토',ln.length===1&&ln[0].fields.open.booleanValue===false&&(await getDoc('pour-os/marketing-hub/mkt-team/pori')).lastTitle.stringValue==='포리 블로그 원고 3');
+    await p.click('details.tm:nth-child(2) summary');check('팀원 카드(펼침): 최근 검토 표시',(await p.textContent('details.tm[open]')).includes('· 포리 블로그 원고 3'));
+    check('펼친 팀원 375 넘침 없음',await overflow(p)<=0);await p.screenshot({path:OUT+'/team-open-375.png',fullPage:true});
+    await p.click('nav button[data-tab="voc"]');const vt=await p.textContent('main');
+    check('고객의 소리: 급함 하자·안전 · 많이 나온 이야기 3건',vt.includes('바르고 나서 손이 따갑다고 함')&&/3건\s*곰팡이젤/.test(vt));
+    // 쓰다가 다른 메시지로 화면이 다시 그려져도 쓰던 내용은 남음
+    await p.fill('#voc-product','방수테이프');await p.fill('#voc-text','쓰는 중');await p.click('#voc-save');
+    check('빈 종류 → 실패 · 쓰던 내용 남음',(await p.textContent('.msg')).startsWith('실패: 종류를 고르세요.')&&(await p.inputValue('#voc-text'))==='쓰는 중');
+    await p.click(`[data-voc-done="${urgId.replace('mkt-voc-','')}"]`);await p.waitForFunction(()=>/끝남으로 표시/.test((document.querySelector('.msg')||{}).textContent||''));
+    check('하자·안전 끝남 → 업무OS 줄 닫힘',(await getDoc('pour-os/v2/links/'+urgId)).open.booleanValue===false);
+    await p.click('[data-copy="voc"]').catch(()=>{});
+  }
+  await p.context().close();
+}
+
 // 6) 규칙 게시 뒤(잠긴 저장소) — 임시 저장소에서 옮기기
 p=await page(375);p.on('dialog',d=>d.accept());await p.goto(BASE+'/index.html?emu=1&mode=secure');
 await p.fill('#lg-email','netformrnd@gmail.com');await p.fill('#lg-pw','ownerpw123');await p.click('#lg-btn');
@@ -117,6 +187,7 @@ await p.click('#migrate-open');await p.waitForFunction(()=>/옮겼습니다/.tes
 log('   ',await p.textContent('.msg'));
 const topAds=(await list('mkt-ads',true)).length, topRoles=(await list('mkt-access',true)).length;
 check('옮긴 뒤 잠긴 저장소 ads 3건 · 계정 문서 있음',topAds===3&&topRoles===1);
+check('옮긴 뒤 고객의 소리 4건 · AI 팀 기록',(await list('mkt-voc',true)).length===4&&(await list('mkt-team',true)).length===1);
 await p.click('nav button[data-tab="ads"]');check('잠긴 저장소에서 키워드 화면',(await p.textContent('main')).includes('옥상방수'));
 await p.context().close();
 // 7) 업로더는 잠긴 저장소에서도 올리기만
@@ -124,6 +195,12 @@ p=await page(375);await p.goto(BASE+'/upload.html?emu=1&mode=secure');
 await p.fill('#login-email','aside-upload@example.com');await p.fill('#login-password',pw);await p.click('#login-button');
 await p.waitForSelector('#upload-section:not([hidden])');
 r=await up('stock','2026-10-08',{text:'상품코드,상품명,가용재고\nP001,곰팡이젤,5'});check('잠긴 저장소 업로드 완료(옮긴 계정으로)',r[1]==='완료: 2026-10-08 재고 1행');
+await p.context().close();
+// 8) 직원은 잠긴 저장소에서도 쓰기만 (읽기는 규칙이 막음)
+p=await page(375);await p.goto(BASE+'/voc.html?emu=1&mode=secure');
+await p.fill('#login-email','cs@example.com');await p.fill('#login-password',spw);await p.click('#login-button');
+await p.waitForSelector('#voc-section:not([hidden])');
+vr=await voc('방수테이프','요청','큰 용량도 있으면 좋겠다고 함');check('잠긴 저장소 고객의 소리 저장(옮긴 계정으로)',vr==='완료: 방수테이프 요청 저장');
 await p.context().close();
 await b.close();
 if(globalThis.PROD_HITS)fails++;console.log('실제 Firebase 요청:',globalThis.PROD_HITS||0);console.log(fails?`실패 ${fails}`:'전부 통과');process.exit(fails?1:0);

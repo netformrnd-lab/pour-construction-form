@@ -261,7 +261,7 @@
 
   /* ── 옵시디언 노트 (대시보드 → 옵시디언 '05 오늘 숫자') ──────
      폰·PC 모두 obsidian:// 링크 한 번으로 노트를 덮어씀 (서버·비밀번호 없음)
-     in: { date, sales7, salesPrev7, stock:[stockRows], advice:keywordAdvice(), sales:[{code,name,q7,r7,qp}], adsDays } */
+     in: { date, sales7, salesPrev7, stock:[stockRows], advice:keywordAdvice(), sales:[{code,name,q7,r7,qp}], adsDays, voc?:vocSummary(), vocList?:[최근 메모] } */
   const OBSIDIAN_NOTE = '05 오늘 숫자';
   const OBSIDIAN_HUB = '00 허브';
   function obsidianNote(d) {
@@ -296,6 +296,22 @@
       for (const r of d.sales.slice(0, 30)) L.push(`| ${cell(r.code)} | ${cell(r.name)} | ${n(r.q7)} | ${n(r.r7)} | ${n(r.qp)} |`);
     } else L.push('- 판매 리포트 없음');
     L.push('');
+    if (d.voc) { // 고객의 소리 (개인정보는 저장 때 이미 가림) — 온유가 읽음
+      const v = d.voc;
+      L.push(`## 🗣 고객의 소리 — [[온유]] (최근 7일 ${v.total}건 · 안 끝난 것 ${v.open})`);
+      if (v.urgentItems.length || v.repeated.length) {
+        L.push('### 🚨 급함');
+        for (const x of v.urgentItems) L.push(`- ${cell(x.date)} **${cell(x.product)}** 하자·안전 — ${cell(x.text)}`);
+        for (const x of v.repeated) L.push(`- **${cell(x.product)}** ${cell(x.type)} ${x.count}건 (7일 안 같은 이야기)`);
+        L.push('');
+      }
+      const rows = (d.vocList || []).slice(0, 60);
+      if (rows.length) {
+        L.push('| 날짜 | 제품 | 종류 | 들은 곳 | 내용 | 끝남 |', '|---|---|---|---|---|---|');
+        for (const x of rows) L.push(`| ${cell(x.date)} | ${cell(x.product)} | ${cell(x.type)} | ${cell(x.source)} | ${cell(x.text)} | ${x.resolved ? '✅' : ''} |`);
+      } else L.push('- 메모 없음');
+      L.push('');
+    }
     return L.join('\n');
   }
   // 허브 노트 끝에 한 번 붙이는 칸 (오늘 숫자 노트를 끼워 보여 줌)
@@ -328,10 +344,158 @@
   function col(db, name, mode) {
     return mode === 'secure' ? db.collection(name) : db.collection(OPEN_ROOT[0]).doc(OPEN_ROOT[1]).collection(name);
   }
+  /* ── AI 팀 (볼트 '00 팀 운영 설계' 2절 리듬과 같게 · 바꾸면 둘 다) ──────────
+     runs: dow = 요일(0 일 ~ 6 토, 한국 시간) · dom = 날짜(숫자 또는 'last' 말일) · months = 그 달만 · every+anchor = N일마다
+     live = Claude 루틴이 실제로 켜졌는지 (켜면 여기를 true 로 · 설정 순서 step) · admin = 관리자 전용(원가) */
+  const WEEKDAYS = [1, 2, 3, 4, 5];
+  const TEAM = [
+    { id: 'haru', no: '00', name: '하루', role: '팀장 · 총괄', step: 2, live: false, runs: [
+      { dow: WEEKDAYS, t: '07:00', what: '오늘 주제 배분 (블로그 3 · 숏폼 1 · 지식인 4)' },
+      { dow: [1], t: '09:30', what: '주간 브리핑 · 이번 주 할 일' },
+      { dow: [5], t: '17:00', what: '주간 회고' },
+      { dom: 'last', t: '17:00', what: '월간 리포트' },
+      { dom: 'last', months: [3, 6, 9, 12], t: '17:30', what: '다음 분기 시즌 캘린더' }] },
+    { id: 'pori', no: '01', name: '포리', role: '콘텐츠 마케터', step: 2, live: false, runs: [
+      { dow: WEEKDAYS, t: '07:30', what: '공식 블로그 원고 3 · 사진 지정 · 제목 A/B' }] },
+    { id: 'luna', no: '02', name: '루나', role: '영상 마케터', step: 4, live: false, runs: [
+      { dow: WEEKDAYS, t: '08:00', what: '숏폼 대본 1 → 숏폼 스튜디오' },
+      { dow: [3], t: '10:00', what: '메타 광고 소재 3종' }] },
+    { id: 'teo', no: '03', name: '테오', role: 'AI 상세페이지 · 외주', step: 7, live: false, runs: [] },
+    { id: 'noa', no: '04', name: '노아', role: '소싱·가격 (관리자 전용)', step: 7, live: false, admin: true, runs: [] },
+    { id: 'tobi', no: '05', name: '토비', role: '런칭 일정 총괄', step: 7, live: false, runs: [] },
+    { id: 'moka', no: '06', name: '모카', role: '제품마스터', step: 1, live: false, runs: [] },
+    { id: 'leo', no: '07', name: '레오', role: '재고·발주', step: 6, live: false, runs: [
+      { dow: [1], t: '08:30', what: '발주 초안' }] },
+    { id: 'kei', no: '08', name: '케이', role: '검색광고', step: 6, live: false, runs: [
+      { dow: [1], t: '09:00', what: '광고 판정 · 상품명·태그 최적화' },
+      { dow: [5], t: '16:00', what: '순위 모니터링' }] },
+    { id: 'daon', no: '09', name: '다온', role: '커뮤니티 답변', step: 3, live: false, runs: [
+      { dow: WEEKDAYS, t: '08:30', what: '지식인 답변 4' }] },
+    { id: 'sora', no: '10', name: '소라', role: '인플루언서', step: 6, live: false, runs: [
+      { dow: [1], t: '10:00', what: '섭외 제안 10건 (DM·이메일)' },
+      { dom: 1, t: '10:30', what: '체험단 계획' }] },
+    { id: 'roy', no: '11', name: '로이', role: '신제품 개발', step: 7, live: false, runs: [
+      { dom: 1, t: '11:00', what: '불만 리뷰 · 경쟁사 정리' }] },
+    { id: 'ria', no: '12', name: '리아', role: '리뷰·CS', step: 3, live: false, runs: [
+      { dow: WEEKDAYS, t: '09:00', what: '댓글 대댓글 · 후기 답글 · 상품 Q&A' }] },
+    { id: 'jay', no: '13', name: '제이', role: '프로모션', step: 6, live: false, runs: [
+      { dow: [1], t: '10:00', what: '이번 주 행사 점검' },
+      { dom: 20, t: '10:00', what: '다음 달 행사 준비' }] },
+    { id: 'eco', no: '14', name: '에코', role: '재배포 편집', step: 2, live: false, runs: [
+      { dow: WEEKDAYS, t: '08:00', what: '티스토리 1 · 카페 1~2 (다시 쓴 버전)' }] },
+    { id: 'nari', no: '15', name: '나리', role: '외주 원고', step: 6, live: false, runs: [
+      { dow: [2, 5], t: '10:00', what: '외주 계정 글감·사진·가이드' }] },
+    { id: 'onyu', no: '16', name: '온유', role: '고객 관리', step: 5, live: false, runs: [
+      { dow: WEEKDAYS, t: '18:00', what: '고객의 소리 묶음 → 개선 제안' },
+      { every: 14, anchor: '2026-10-12', t: '10:00', what: '리뷰 이벤트 당첨자 선정안' },
+      { dom: 25, t: '10:00', what: 'NPS 분석' }] },
+  ];
+  const teamMember = (id) => TEAM.find((m) => m.id === id || m.name === id) || null;
+  const dowOf = (ymd) => new Date(ymd + 'T00:00:00Z').getUTCDay();
+  const lastDom = (ymd) => { const d = new Date(ymd.slice(0, 7) + '-01T00:00:00Z'); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(0); return d.getUTCDate(); };
+  function runsOn(r, ymd) {
+    const day = Number(ymd.slice(8, 10)), mon = Number(ymd.slice(5, 7));
+    if (r.months && !r.months.includes(mon)) return false;
+    if (r.dow) return r.dow.includes(dowOf(ymd));
+    if (r.dom != null) return r.dom === 'last' ? day === lastDom(ymd) : day === r.dom;
+    if (r.every) { const diff = Math.round((Date.parse(ymd) - Date.parse(r.anchor)) / 864e5); return diff >= 0 && diff % r.every === 0; }
+    return false;
+  }
+  // 그날 도는 일 (시간순)
+  function teamDay(ymd) {
+    const out = [];
+    for (const m of TEAM) for (const r of m.runs) if (runsOn(r, ymd)) out.push({ id: m.id, name: m.name, role: m.role, live: m.live, t: r.t, what: r.what });
+    return out.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : a.name < b.name ? -1 : 1));
+  }
+  // 다음 차례 (now = { date:'YYYY-MM-DD', time:'HH:MM' } 한국 시간) — 정해진 일이 없으면 null
+  function nextRun(m, now) {
+    if (!m || !m.runs.length) return null;
+    for (let i = 0; i < 400; i++) {
+      const d = addDays(now.date, i);
+      const hit = m.runs.filter((r) => runsOn(r, d) && (i > 0 || r.t > now.time)).sort((a, b) => (a.t < b.t ? -1 : 1))[0];
+      if (hit) return { date: d, t: hit.t, what: hit.what };
+    }
+    return null;
+  }
+  const RUN_WORD = (r) => {
+    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    let w;
+    if (r.dow) w = r.dow.join() === WEEKDAYS.join() ? '평일' : r.dow.length === 7 ? '매일' : r.dow.map((x) => days[x]).join('·');
+    else if (r.dom != null) w = `${r.months ? r.months.join('·') + '월 ' : '매월 '}${r.dom === 'last' ? '말일' : r.dom + '일'}`;
+    else if (r.every) w = `${r.every}일마다`;
+    return `${w} ${r.t}`;
+  };
+  function nowKST(now = new Date()) {
+    const k = new Date(now.getTime() + 9 * 3600 * 1000).toISOString();
+    return { date: k.slice(0, 10), time: k.slice(11, 16) };
+  }
+
+  /* ── 고객의 소리 (VOC) — 직원 메모 → 온유 ────────────────
+     개인정보는 저장 전에 가림 (전화·이메일·주민번호·긴 숫자·동호수). 이름은 못 알아보므로 화면에서 '쓰지 않기' 안내 */
+  const VOC_TYPES = ['불만', '문의', '요청', '칭찬', '하자·안전'];
+  const VOC_SOURCES = ['전화', '채팅·톡', '게시판·리뷰', '현장·방문', '기타'];
+  const VOC_URGENT_TYPE = '하자·안전';
+  const VOC_REPEAT = 3; // 7일 안에 같은 제품·같은 종류가 이만큼 → 급함
+  function maskPII(text) {
+    let n = 0;
+    const rep = (label) => () => { n++; return label; };
+    let s = String(text == null ? '' : text);
+    s = s.replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, rep('(이메일)'));
+    s = s.replace(/\d{6}\s*-\s*[1-4]\d{6}/g, rep('(주민번호)'));
+    s = s.replace(/\+?\d[\d\-.\s]{7,}\d/g, (m) => (m.replace(/\D/g, '').length >= 9 ? (n++, '(번호)') : m));
+    s = s.replace(/\d+\s*동\s*\d+\s*호/g, rep('(동호수)'));
+    return { text: s, n };
+  }
+  function vocDoc(input) {
+    const errors = [];
+    const product = String(input.product || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+    const type = String(input.type || ''), source = String(input.source || '기타');
+    const m = maskPII(String(input.text || '').replace(/\s+/g, ' ').trim());
+    if (!product) errors.push('제품을 고르거나 적으세요.');
+    if (!VOC_TYPES.includes(type)) errors.push('종류를 고르세요.');
+    if (!VOC_SOURCES.includes(source)) errors.push('어디서 들었는지 고르세요.');
+    if (m.text.length < 2) errors.push('내용을 한 줄 적으세요.');
+    if (m.text.length > 300) errors.push('내용은 300자까지입니다.');
+    if (errors.length) return { ok: false, errors };
+    return { ok: true, errors: [], masked: m.n, doc: { product, type, source, text: m.text, masked: m.n, urgent: type === VOC_URGENT_TYPE } };
+  }
+  // 최근 days 일 요약 — list: [{id, date, product, type, text, resolved}]
+  function vocSummary(list, today, days = 7) {
+    const from = addDays(today, -(days - 1));
+    const recent = list.filter((v) => v.date >= from && v.date <= today);
+    const g = new Map();
+    for (const v of recent) {
+      const k = v.product + '|' + v.type;
+      const x = g.get(k) || { key: k, product: v.product, type: v.type, count: 0, open: 0, items: [] };
+      x.count++; if (!v.resolved) x.open++; x.items.push(v); g.set(k, x);
+    }
+    const groups = [...g.values()].sort((a, b) => b.count - a.count || (a.product < b.product ? -1 : 1));
+    const byType = Object.fromEntries(VOC_TYPES.map((t) => [t, recent.filter((v) => v.type === t).length]));
+    const urgentItems = list.filter((v) => v.type === VOC_URGENT_TYPE && !v.resolved);
+    const repeated = groups.filter((x) => x.count >= VOC_REPEAT && x.open > 0 && x.type !== '칭찬');
+    return { from, total: recent.length, open: recent.filter((v) => !v.resolved).length, byType, top: groups.slice(0, 5), groups, urgentItems, repeated };
+  }
+
+  /* ── 업무OS 다리 (pour-os/v2/links · CRM 다리와 같은 모양 · 개인정보·내용 안 보냄) ──
+     src 'mkt' · kind 'aiReview' (Claude 팀원 결과 검토 — marketing-hub/tools/team_link.py 가 씀 · member · note = 볼트 노트 경로 · url = 이 허브 #team)
+                · kind 'voc' (고객의 소리 급함 — 대시보드·고객의 소리 화면이 씀) */
+  const HUB_URL = 'https://pour-construction-form.pages.dev/marketing-hub/';
+  function vocLinks(list, today) {
+    const s = vocSummary(list, today), out = [], at = new Date().toISOString();
+    for (const v of s.urgentItems) out.push({ id: 'mkt-voc-' + v.id, src: 'mkt', kind: 'voc', title: `${v.product} 하자·안전`, sub: '고객의 소리 · 바로 확인', date: v.date, time: '', owner: '', url: HUB_URL + '#voc', open: true, at });
+    for (const x of s.repeated) out.push({ id: 'mkt-vocg-' + hash(x.key), src: 'mkt', kind: 'voc', title: `${x.product} ${x.type} ${x.count}건`, sub: `고객의 소리 · 최근 7일 같은 이야기`, date: today, time: '', owner: '', url: HUB_URL + '#voc', open: true, at });
+    return out;
+  }
+  function obsidianOpenUri(vault, file) {
+    return 'obsidian://open?' + (vault ? 'vault=' + encodeURIComponent(vault) + '&' : '') + 'file=' + encodeURIComponent(file);
+  }
+
   const isAdminEmail = (email, roles) => !!email && (OWNER_EMAILS.includes(email) || ((roles && roles.admins) || []).includes(email));
   const isUploaderEmail = (email, roles) => !!email && ((roles && roles.uploaders) || []).includes(email);
+  const isStaffEmail = (email, roles) => !!email && ((roles && roles.staffs) || []).includes(email); // 직원: 고객의 소리 입력만
 
-  const api = { STORE_MODE, OPEN_ROOT, OWNER_EMAILS, storeMode, col, isAdminEmail, isUploaderEmail, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
+  const api = { STORE_MODE, OPEN_ROOT, OWNER_EMAILS, storeMode, col, isAdminEmail, isUploaderEmail, isStaffEmail,
+    TEAM, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MktCore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

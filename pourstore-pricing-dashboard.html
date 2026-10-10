@@ -4405,6 +4405,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   const ghBtn=$('#btnGhImport'); if(ghBtn) ghBtn.style.display=costAllowed?'':'none';        // 그로홈 가져오기: 원가열람 계정만
   const pcBtn=$('#btnPcode'); if(pcBtn) pcBtn.style.display=costAllowed?'':'none';          // 자체상품코드: 원가열람 계정만
   if(PCODE_LOADED && costAllowed && (PCODE_RULE!==PCODE_RULE_VER || pcodeTargets().some(p=>!PCODE[pKey(p)]))) schedulePcodeAuto();
+  if(PCODE_LOADED && costAllowed && !TEAM_MODE) setTimeout(autoGhCodes,1500);
   renderBrandSeg(); renderStatusSeg(); if(window.__pzFiltPaint) window.__pzFiltPaint();
   ['btnBulkFix','btnBulkAuto','btnClearTodo','btnClearOvr'].forEach(id=>{ const b=$('#'+id); if(b) b.style.display=costAllowed?'':'none'; });
   const ct=$('#btnClearTodo'); if(ct){ const n=todoCount(); ct.textContent=n?`미정 해제 (${n})`:'미정 해제'; ct.disabled=!n; ct.style.opacity=n?'':'.45'; }
@@ -7457,6 +7458,34 @@ async function migratePcodeRule(){
   }catch(e){ console.error('[prod-code] 규칙 정리 실패',e); }
   finally{ _pcBusy=false; }
 }
+/* GROHOME 제품 자체상품코드 자동 연결 (2026-10-10 사장님 '자동 생성'):
+   GROHOME 코드는 그로홈 제품마스터(pour-os/grohome/products)가 붙인다 — 제품 GH-P### · 옵션 GH-P###-3PL번호(없으면 9xxxx 임시).
+   여기서 코드가 없는(또는 9xxxx 임시 코드인) GROHOME 제품을 같은 이름·옵션의 그로홈 코드로 채움 → 단가표·제품 목록 복사에도 코드가 들어감.
+   그로홈 제품마스터에 없는 제품은 건드리지 않음(콘솔 안내). 세션당 1번. */
+let _ghcBusy=false, _ghcDone=false;
+const GH_TEMP_RE=/^GH-P\d{3,}-9\d{4}$/;
+async function autoGhCodes(){
+  if(_ghcBusy||_ghcDone||!PCODE_LOADED||!costAllowed||TEAM_MODE) return;
+  const need=P.filter(p=>{ if(isDeletedProd(p)) return false; const b=pbrand(p); if(!b.includes('GROHOME')||b.includes('POUR스토어')) return false;
+    const c=PCODE[pKey(p)]||''; return c ? GH_TEMP_RE.test(c) : !p.ghCode; });
+  if(!need.length){ _ghcDone=true; return; }
+  _ghcBusy=true;
+  try{
+    const sn=await ghDB().collection('products').get(), gh=sn.docs.map(d=>({id:d.id,...d.data()}));
+    console.log(`[그로홈 코드] 코드 없는 GROHOME 제품 ${need.length}개 · 그로홈 제품마스터 ${gh.length}개`);
+    const used=new Set(Object.values(PCODE).map(c=>String(c).toUpperCase())); P.forEach(p=>{ if(p.ghCode) used.add(String(p.ghCode).toUpperCase()); });
+    const patch={}, miss=[];
+    need.forEach(p=>{ const g=gh.find(x=>!x.mergedInto && ghNorm(x.name)===ghNorm(p.name)); if(!g){ miss.push(p.name); return; }
+      const opts=(Array.isArray(g.options)?g.options:[]).filter(o=>o&&o.code), sp=ghNorm(p.spec&&p.spec!=='-'?p.spec:'');
+      const o=opts.find(x=>ghNorm(x.name)===sp)||(opts.length===1?opts[0]:null); if(!o){ miss.push(p.name+' '+(p.spec||'')); return; }
+      const c=String(o.code).toUpperCase(), cur=PCODE[pKey(p)]||''; if(c===cur||(used.has(c)&&c!==cur)) return; used.add(c); patch[pKey(p)]=c; });
+    const n=Object.keys(patch).length;
+    if(n){ await savePcodePatch(patch); Object.assign(PCODE,patch); logAct('상품코드',`그로홈 코드 연결 ${n}개`,Object.entries(patch).slice(0,3).map(([k,c])=>c+' '+k.split('|')[1]).join(', ')+(n>3?' 외':''));
+      renderGrid(); scheduleTeamCatalog(); }
+    console.log(`[그로홈 코드] 연결 ${n}개${miss.length?` · 그로홈 제품마스터에 없음 ${miss.length}개: ${miss.slice(0,5).join(', ')}`:''}`);
+  }catch(e){ console.error('[그로홈 코드] 자동 연결 실패', e); }
+  finally{ _ghcBusy=false; _ghcDone=true; }
+}
 async function autoAssignPcodes(){
   if(!PCODE_LOADED || !costAllowed || _pcBusy) return;
   if(PCODE_RULE!==PCODE_RULE_VER){ await migratePcodeRule(); return; }
@@ -9106,9 +9135,12 @@ let _ghDb=null, GH_ROWS=[], GH_LABEL2KEY={}, GH_LINKED_ALL={};
 /* 그로홈 데이터 — 2026-10-07 grohome-dashboard 프로젝트(무료 요금제 하루 읽기 한도)에서 이 프로젝트(pour-app-new)의 pour-os/grohome 으로 이사.
    ghDB() 는 '그로홈 루트 문서'를 돌려준다 → ghDB().collection('products') = pour-os/grohome/products (기존 호출 그대로 · .collection() 만 씀)
    위 GH_FB_CONFIG(옛 grohome-dashboard)는 더 이상 연결하지 않는다 — 원본은 지우지 않고 남겨 둠 */
+const GH_DATA_CFG={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};   // = LB_CFG (아래 런칭보드와 같은 앱)
 function ghDB(){
   if(_ghDb) return _ghDb;
-  _ghDb=db.collection('pour-os').doc('grohome');
+  // 이 파일의 db 는 pourstoreproject(원가) → 그로홈 데이터가 있는 pour-app-new 는 보조 앱으로 (2026-10-10 고침: 이사 때 db 로 잘못 연결돼 있었음)
+  const app=(firebase.apps||[]).find(a=>a.name==='launchboard')||firebase.initializeApp(GH_DATA_CFG,'launchboard');
+  _ghDb=app.firestore().collection('pour-os').doc('grohome');
   return _ghDb;
 }
 const ghNorm=s=>String(s||'').toLowerCase().replace(/[\s\-_/()\[\]·.,]+/g,'');

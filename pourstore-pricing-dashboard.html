@@ -6016,11 +6016,34 @@ function tabHidden(b){
     const g=e.target.closest('#subTabs [data-sh],#needBox [data-goto],#ribbonKpis [data-goto]');
     if(g){ gotoTab(g.dataset.sh||g.dataset.goto); try{ $('#sheetwrap .sheet.on').scrollTop=0; }catch(err){} return; }
   });
-  side.addEventListener('click',e=>{ const b=e.target.closest('[data-sh]'); if(b){ gotoTab(b.dataset.sh); document.body.classList.remove('sn-open'); try{ $('#sheetwrap .sheet.on').scrollTop=0; }catch(err){} return; }
+  side.addEventListener('click',e=>{ const b=e.target.closest('[data-sh]'); if(b&&side.contains(b)){ /* body 에도 data-sh(지금 시트)가 있어서 메뉴 안 버튼만 */ gotoTab(b.dataset.sh); document.body.classList.remove('sn-open'); try{ $('#sheetwrap .sheet.on').scrollTop=0; }catch(err){} return; }
     if(e.target.closest('#snClose')){ document.body.classList.remove('sn-open'); return; }
+    if(e.target.closest('#snCopyCatalog')){ copyCatalogTSV(); return; }
     if(e.target.closest('#snFold')){ document.body.classList.toggle('sn-fold'); try{ localStorage.setItem('pour-sn-fold',document.body.classList.contains('sn-fold')?'1':'0'); }catch(err){} } });
   try{ if(localStorage.getItem('pour-sn-fold')==='1') document.body.classList.add('sn-fold'); }catch(e){}
 })();
+/* 옵시디언 제품 카드용 제품 목록 (마진 v2 더보기와 같은 6가지 칸 · 2026-10-09/10 사장님: 팀원은 원가·제조사를 알면 안 됨)
+   분류 · 상품명 · 옵션 · 자체상품코드 · 브랜드 · 채널별 판매가 만 — 원가·택배비·이익·마진·제조사 가칭(alias)은 절대 넣지 않음
+   출처 = 팀용 단가표 모양(teamCatalogPayload / team-catalog) — 원가가 없는 자리 */
+function catalogTSV(cat){
+  const chs=((cat&&cat.channels)||[]).filter(c=>c&&c.uid&&c.role!=='export').slice().sort((a,b)=>(a.ord??0)-(b.ord??0)), prods=(cat&&cat.products)||[];
+  const cell=v=>String(v==null?'':v).replace(/[\t\n]/g,' ');
+  const head=['분류','상품명','옵션','자체상품코드','브랜드',...chs.map(c=>c.short||c.name||c.code)];
+  const lines=prods.map(p=>[p.cat,p.name,p.spec,p.code,Array.isArray(p.brand)?p.brand.join('/'):p.brand,...chs.map(c=>(p.prices||{})[c.uid]??'')].map(cell).join('\t'));
+  return {n:prods.length,text:[head.join('\t'),...lines].join('\n')};
+}
+async function copyCatalogTSV(){
+  try{
+    let cat=null;
+    if(TEAM_MODE&&typeof TEAMCAT!=='undefined'&&TEAMCAT&&(TEAMCAT.products||[]).length) cat=TEAMCAT;
+    else if(costAllowed&&!TEAM_MODE&&typeof teamCatalogPayload==='function') cat=teamCatalogPayload();
+    if(cat){ const r=catalogTSV(cat); await navigator.clipboard.writeText(r.text); uiToast(`제품 ${r.n}개 복사 (원가 없음) — Claude 채팅에 붙여넣기`,'ok'); return; }
+    // 그 밖(열람 계정 등): 팀용 단가표를 읽어서 — 아이폰은 읽는 사이 복사 권한이 끊기므로 ClipboardItem 으로 미리 자리 잡음
+    const load=db.collection('team-catalog').doc('current').get().then(d=>{ const r=catalogTSV(d.exists?d.data():null); console.log(`[제품 목록 복사] team-catalog 제품 ${r.n}개`); return r; });
+    if(window.ClipboardItem&&navigator.clipboard.write){ let n=0; await navigator.clipboard.write([new ClipboardItem({'text/plain':load.then(r=>{n=r.n;return new Blob([r.text],{type:'text/plain'});})})]); uiToast(`제품 ${n}개 복사 (원가 없음) — Claude 채팅에 붙여넣기`,'ok'); }
+    else { const r=await load; await navigator.clipboard.writeText(r.text); uiToast(`제품 ${r.n}개 복사 (원가 없음) — Claude 채팅에 붙여넣기`,'ok'); }
+  }catch(e){ console.error('[제품 목록 복사] 실패',e); uiToast('복사 못 했어요: '+(e.message||e),'err'); }
+}
 /* ══════════ 메뉴 v2 (5묶음 · 메뉴 항목 · 안쪽 탭) ══════════
    시트 id 는 그대로 두고, 여러 시트를 한 메뉴 항목의 '안쪽 탭'으로 묶는다 → 기존 gotoTab 링크가 전부 그대로 동작.
    권한은 탭 단위(tabHidden)로 걸리고, 보이는 탭이 하나도 없으면 메뉴 항목도 숨는다. */
@@ -6054,15 +6077,18 @@ function renderSide(){
   const cur=document.querySelector('.stab.on'), curSh=cur?cur.dataset.sh:'';
   document.body.dataset.sh=curSh;
   let h=`<div class="sn-head"><div class="sn-logo">${TEAM_MODE?'<b>POUR 팀</b><span>대시보드</span>':'<b>POUR 가격·마진</b><span>통합 관리</span>'}</div><button id="snFold" title="메뉴 접기/펴기">☰</button><button id="snClose" title="메뉴 닫기">✕</button></div><nav class="sn-menu">`;
+  const copyBtn=`<button class="sn-item" id="snCopyCatalog" title="분류·상품명·옵션·자체상품코드·브랜드·채널별 판매가만 (원가·마진·제조사 없음)">📋 제품 목록 복사 (원가 없음)</button>`; let copyIn=false; // 옵시디언 제품 카드용 목록 — '제품' 묶음 안 (없으면 맨 아래)
   MENU.forEach(g=>{
     const its=g.items.map(it=>({it,tabs:miTabs(it)})).filter(x=>x.tabs.length);
     if(!its.length) return;
     h+=`<div class="sn-grp${its.some(x=>x.tabs.includes(curSh))?' on':''}"><div class="sn-gl"><span class="sn-ic">${esc(g.ic)}</span><span class="sn-t">${esc(g.lb)}</span></div>`;
     its.forEach(({it,tabs})=>{ const on=tabs.includes(curSh), dot=!sheetReady(tabs[0]);
       h+=`<button class="sn-item${on?' on':''}" data-sh="${esc(on?curSh:tabs[0])}" title="${esc(it.lb)}${dot?' · 먼저 준비할 데이터가 있어요':''}">${esc(it.lb)}${dot?'<i class="sn-dot"></i>':''}</button>`; });
+    if(g.g==='prod'){ h+=copyBtn; copyIn=true; }
     h+='</div>';
   });
   if(TEAM_MODE) h+=`<div class="sn-grp"><div class="sn-gl"><span class="sn-ic">🧭</span><span class="sn-t">바로가기</span></div><a class="sn-item" href="${SOURCING_URL}" target="_blank" rel="noopener">소싱앱 ↗</a></div>`;
+  if(!copyIn) h+=`<div class="sn-grp"><div class="sn-gl"><span class="sn-ic">📦</span><span class="sn-t">제품</span></div>${copyBtn}</div>`;
   el.innerHTML=h+'</nav>';
   renderSub(); renderNeed();
 }

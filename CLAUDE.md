@@ -969,7 +969,7 @@ pour-construction-form/
 ├── site-method.html            ← 2차: POUR공법 사이트 연동
 ├── site-store.html             ← 2차: POUR스토어 사이트 연동
 ├── shoot-desk.html             ← 촬영 데스크 (요청 접수 → 브랜드›제품›N차 촬영 폴더·투두·레퍼런스, Firestore config/shootreq-*·shootprod-*·shootimg-*, 로그인 없음 · UI 문구는 딱딱한 명사형, 친절체·“~해 드려요” 금지 · 숨기기 대신 “보류”(보류 목록에 남김) + 확인 후 영구 삭제 · “다음 할 일” 안내줄·“~미정 입력” 재촉 배너 같은 안내 요소 넣지 않음 — 사용자 지시, UX 규칙의 ‘다음 할 일 한 줄’보다 우선)
-├── marketing-hub/             ← 마케팅 허브: Aside 자동 업로드(upload.html) + 관리자 대시보드(index.html) · pour-app-new mkt-* 컬렉션(규칙 게시 전 임시: pour-os/marketing-hub/ · core.js STORE_MODE) · 계산 core.js · 상세 README.md
+├── marketing-hub/             ← 마케팅 허브: Aside 자동 업로드(upload.html) + 관리자 대시보드(index.html · AI 팀 · 고객의 소리) + 직원 고객의 소리(voc.html) · AI 팀원 결과 → 업무OS tools/team_link.py · pour-app-new mkt-* 컬렉션(규칙 게시 전 임시: pour-os/marketing-hub/ · core.js STORE_MODE) · 계산 core.js · 상세 README.md
 ├── worker.js                   ← SMS 프록시 (기존, 건드리지 말 것)
 ├── workers/
 │   ├── backup-cron.js          ← Cloudflare Cron — Firestore 백업 트리거

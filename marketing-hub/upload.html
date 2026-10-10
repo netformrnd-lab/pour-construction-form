@@ -114,9 +114,14 @@ $('report-date').value=C.yesterdayKST();
 
 /* 로그인 */
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e=>console.error('[auth] persistence',e));
-auth.onAuthStateChanged(u=>{
+auth.onAuthStateChanged(async u=>{
   $('login-section').hidden=!!u; $('upload-section').hidden=!u; $('logout-button').hidden=!u;
   $('who').textContent=u?u.email:'';
+  if(u&&MODE==='open'){ // 직원(고객의 소리만)은 고객의 소리 화면으로 · 잠긴 저장소에선 역할을 못 읽으므로 직원은 voc.html 주소로 바로 들어감
+    try{const rd=await C.col(db,'mkt-access','open').doc('roles').get(), r=rd.exists?rd.data():{};
+      if(C.isStaffEmail(u.email,r)&&!C.isUploaderEmail(u.email,r)&&!C.isAdminEmail(u.email,r))location.replace('voc.html'+location.search);}
+    catch(e){console.error('[mkt-access] 역할 확인 실패',e);}
+  }
 });
 const LOGIN_ERR={'auth/invalid-credential':'이메일 또는 비밀번호가 올바르지 않습니다.','auth/wrong-password':'비밀번호가 틀렸습니다.',
   'auth/user-not-found':'없는 계정입니다.','auth/too-many-requests':'시도가 많습니다. 잠시 후 다시 하세요.','auth/network-request-failed':'네트워크 오류입니다.'};

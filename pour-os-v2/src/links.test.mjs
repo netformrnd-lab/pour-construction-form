@@ -30,4 +30,10 @@ ok("CRM 큰 건(bigDeal) 태그 · 마진 낮음(marginLow) 빨강 · 마진 앱
   const q = linkInbox([L({ id: "margin-req-x", src: "margin", kind: "priceReq", title: "타일카펫 자사몰가 변경", sub: "ran → 관리자 · 29,900 → 27,900", owner: "", date: "2026-10-07" })], users, "songhee", "2026-10-07")[0];
   assert.ok(q && q.tag === "가격 컨펌" && !q.red && q.whoName === "마진" && /29,900 → 27,900/.test(q.text));
 });
+ok("마케팅 허브: AI 검토 · 고객의 소리 (담당 없음 → 마스터)", () => {
+  const a = linkInbox([L({ id: "mkt-ai-pori-2026-10-12-x", src: "mkt", kind: "aiReview", title: "검토: 포리 블로그 원고 3", sub: "03 작업/2026-10-12 블로그 원고 3.md", owner: "", date: "2026-10-12", time: "", url: "https://pour-construction-form.pages.dev/marketing-hub/#team" })], users, "songhee", "2026-10-12")[0];
+  assert.ok(a && a.tag === "AI 검토" && a.whoName === "마케팅 허브" && !a.red);
+  const v = linkInbox([L({ id: "mkt-voc-1", src: "mkt", kind: "voc", title: "실리콘 하자·안전", sub: "고객의 소리 · 바로 확인", owner: "", date: "2026-10-12", time: "" })], users, "minji", "2026-10-12");
+  assert.equal(v.length, 0);
+});
 console.log(`${n}개 모두 통과`);

@@ -66,5 +66,45 @@ const uri = C.obsidianUri('POUR 마케팅 허브', C.OBSIDIAN_NOTE, '가 & b', '
 eq('옵시디언: 링크', uri, 'obsidian://new?vault=POUR%20%EB%A7%88%EC%BC%80%ED%8C%85%20%ED%97%88%EB%B8%8C&file=05%20%EC%98%A4%EB%8A%98%20%EC%88%AB%EC%9E%90&content=%EA%B0%80%20%26%20b&overwrite=true');
 eq('옵시디언: 허브 붙이기 = append', C.obsidianUri('', C.OBSIDIAN_HUB, 'x', 'append'), 'obsidian://new?file=00%20%ED%97%88%EB%B8%8C&content=x&append=true');
 
+// AI 팀 리듬
+eq('팀: 17명 · 번호 겹침 없음', [C.TEAM.length, new Set(C.TEAM.map((m) => m.no)).size], [17, 17]);
+eq('팀: 월요일 아침 순서', C.teamDay('2026-10-12').slice(0, 6).map((x) => x.t + ' ' + x.name), ['07:00 하루', '07:30 포리', '08:00 루나', '08:00 에코', '08:30 다온', '08:30 레오']);
+eq('팀: 토요일은 쉼', C.teamDay('2026-10-10'), []);
+eq('팀: 말일 월간 리포트(10/30 금은 말일 아님 · 10/31 토)', [C.teamDay('2026-10-31').map((x) => x.what), C.teamDay('2026-12-31').filter((x) => x.name === '하루').map((x) => x.what)],
+  [['월간 리포트'], ['오늘 주제 배분 (블로그 3 · 숏폼 1 · 지식인 4)', '월간 리포트', '다음 분기 시즌 캘린더']]);
+eq('팀: 2주마다 (10/12 → 10/26)', ['2026-10-12', '2026-10-19', '2026-10-26'].map((d) => C.teamDay(d).some((x) => x.what.startsWith('리뷰 이벤트'))), [true, false, true]);
+eq('팀: 다음 차례 — 오늘 지난 시각은 다음 날로', [C.nextRun(C.teamMember('포리'), { date: '2026-10-12', time: '07:00' }), C.nextRun(C.teamMember('포리'), { date: '2026-10-12', time: '07:30' })],
+  [{ date: '2026-10-12', t: '07:30', what: '공식 블로그 원고 3 · 사진 지정 · 제목 A/B' }, { date: '2026-10-13', t: '07:30', what: '공식 블로그 원고 3 · 사진 지정 · 제목 A/B' }]);
+eq('팀: 정해진 일 없으면 null', C.nextRun(C.teamMember('테오'), { date: '2026-10-12', time: '07:00' }), null);
+eq('팀: 주기 말', C.teamMember('haru').runs.map(C.RUN_WORD), ['평일 07:00', '월 09:30', '금 17:00', '매월 말일 17:00', '3·6·9·12월 말일 17:30']);
+eq('한국 시간', C.nowKST(new Date('2026-10-11T22:30:00Z')), { date: '2026-10-12', time: '07:30' });
+
+// 고객의 소리
+eq('가림: 전화·이메일·주민번호·동호수 · 가격·날짜는 그대로',
+  C.maskPII('010-1234-5678 / 02 123 4567 / a.b@c.co.kr / 900101-1234567 / 101동 1203호 / 35,000원 / 2026-10-10 / 3통'),
+  { text: '(번호) / (번호) / (이메일) / (주민번호) / (동호수) / 35,000원 / 2026-10-10 / 3통', n: 5 });
+const vd = C.vocDoc({ product: ' 곰팡이젤 ', type: '불만', source: '전화', text: '  뚜껑이  새요 01012345678 ' });
+eq('VOC: 문서', vd, { ok: true, errors: [], masked: 1, doc: { product: '곰팡이젤', type: '불만', source: '전화', text: '뚜껑이 새요 (번호)', masked: 1, urgent: false } });
+eq('VOC: 빈 칸 문구', C.vocDoc({ type: 'x', source: '전화', text: 'a' }).errors, ['제품을 고르거나 적으세요.', '종류를 고르세요.', '내용을 한 줄 적으세요.']);
+eq('VOC: 하자·안전 = 급함', C.vocDoc({ product: 'A', type: '하자·안전', source: '전화', text: '손에 화상' }).doc.urgent, true);
+const vl = [
+  { id: '1', date: '2026-10-10', product: '곰팡이젤', type: '불만', source: '전화', text: '냄새', resolved: false },
+  { id: '2', date: '2026-10-09', product: '곰팡이젤', type: '불만', source: '전화', text: '냄새 2', resolved: true },
+  { id: '3', date: '2026-10-05', product: '곰팡이젤', type: '불만', source: '전화', text: '냄새 3', resolved: false },
+  { id: '4', date: '2026-10-03', product: '곰팡이젤', type: '불만', source: '전화', text: '7일 밖', resolved: false },
+  { id: '5', date: '2026-10-08', product: '실리콘', type: '하자·안전', source: '현장·방문', text: '갈라짐', resolved: false },
+  { id: '6', date: '2026-10-08', product: '실리콘', type: '칭찬', source: '전화', text: '좋아요', resolved: false },
+];
+const vs = C.vocSummary(vl, '2026-10-10');
+eq('VOC 요약: 7일 · 안 끝난 것 · 종류', [vs.from, vs.total, vs.open, vs.byType['불만']], ['2026-10-04', 5, 4, 3]);
+eq('VOC 요약: 같은 이야기 3건 → 급함 · 하자·안전', [vs.repeated.map((x) => x.key), vs.urgentItems.map((x) => x.id)], [['곰팡이젤|불만'], ['5']]);
+const vlk = C.vocLinks(vl, '2026-10-10');
+eq('VOC → 업무OS: 내용 안 보냄', vlk.map((l) => [l.id.replace(/-[0-9a-z]+$/, ''), l.src, l.kind, l.title, l.sub, l.open]),
+  [['mkt-voc', 'mkt', 'voc', '실리콘 하자·안전', '고객의 소리 · 바로 확인', true], ['mkt-vocg', 'mkt', 'voc', '곰팡이젤 불만 3건', '고객의 소리 · 최근 7일 같은 이야기', true]]);
+const vn = C.obsidianNote({ date: '2026-10-10', sales7: 0, salesPrev7: 0, adsDays: 7, stock: [], advice: { up: [], down: [], off: [], keep: [] }, sales: [], voc: vs, vocList: vl });
+eq('옵시디언: 고객의 소리 칸', [vn.includes('## 🗣 고객의 소리 — [[온유]] (최근 7일 5건 · 안 끝난 것 4)'), vn.includes('- **곰팡이젤** 불만 3건'), vn.includes('| 2026-10-09 | 곰팡이젤 | 불만 | 전화 | 냄새 2 | ✅ |')], [true, true, true]);
+eq('옵시디언: 노트 열기 링크', C.obsidianOpenUri('', '03 작업/2026-10-12 블로그.md'), 'obsidian://open?file=03%20%EC%9E%91%EC%97%85%2F2026-10-12%20%EB%B8%94%EB%A1%9C%EA%B7%B8.md');
+eq('직원 = 고객의 소리만', [C.isStaffEmail('s@x.com', { staffs: ['s@x.com'] }), C.isUploaderEmail('s@x.com', { staffs: ['s@x.com'] })], [true, false]);
+
 console.log(`\n${n - bad}/${n} 통과`);
 process.exit(bad ? 1 : 0);

@@ -346,16 +346,17 @@
   }
   /* ── AI 팀 (볼트 '00 팀 운영 설계' 2절 리듬과 같게 · 바꾸면 둘 다) ──────────
      runs: dow = 요일(0 일 ~ 6 토, 한국 시간) · dom = 날짜(숫자 또는 'last' 말일) · months = 그 달만 · every+anchor = N일마다
-     live = Claude 루틴이 실제로 켜졌는지 (켜면 여기를 true 로 · 설정 순서 step) · admin = 관리자 전용(원가) */
+     live = Claude 루틴이 실제로 켜졌는지 (켜면 여기를 true 로 · 설정 순서 step) · 그 팀원 일 중 아직 안 켠 것은 run.off · admin = 관리자 전용(원가)
+     2026-10-10 가동: 하루(매일 배분만) · 포리 · 에코 = 루틴 'AI 콘텐츠팀 아침' 평일 06:50 한 번에(하루 → 포리 → 에코 순서) */
   const WEEKDAYS = [1, 2, 3, 4, 5];
   const TEAM = [
-    { id: 'haru', no: '00', name: '하루', role: '팀장 · 총괄', step: 2, live: false, runs: [
+    { id: 'haru', no: '00', name: '하루', role: '팀장 · 총괄', step: 2, live: true, runs: [
       { dow: WEEKDAYS, t: '07:00', what: '오늘 주제 배분 (블로그 3 · 숏폼 1 · 지식인 4)' },
-      { dow: [1], t: '09:30', what: '주간 브리핑 · 이번 주 할 일' },
-      { dow: [5], t: '17:00', what: '주간 회고' },
-      { dom: 'last', t: '17:00', what: '월간 리포트' },
-      { dom: 'last', months: [3, 6, 9, 12], t: '17:30', what: '다음 분기 시즌 캘린더' }] },
-    { id: 'pori', no: '01', name: '포리', role: '콘텐츠 마케터', step: 2, live: false, runs: [
+      { dow: [1], t: '09:30', what: '주간 브리핑 · 이번 주 할 일', off: true },
+      { dow: [5], t: '17:00', what: '주간 회고', off: true },
+      { dom: 'last', t: '17:00', what: '월간 리포트', off: true },
+      { dom: 'last', months: [3, 6, 9, 12], t: '17:30', what: '다음 분기 시즌 캘린더', off: true }] },
+    { id: 'pori', no: '01', name: '포리', role: '콘텐츠 마케터', step: 2, live: true, runs: [
       { dow: WEEKDAYS, t: '07:30', what: '공식 블로그 원고 3 · 사진 지정 · 제목 A/B' }] },
     { id: 'luna', no: '02', name: '루나', role: '영상 마케터', step: 4, live: false, runs: [
       { dow: WEEKDAYS, t: '08:00', what: '숏폼 대본 1 → 숏폼 스튜디오' },
@@ -381,7 +382,7 @@
     { id: 'jay', no: '13', name: '제이', role: '프로모션', step: 6, live: false, runs: [
       { dow: [1], t: '10:00', what: '이번 주 행사 점검' },
       { dom: 20, t: '10:00', what: '다음 달 행사 준비' }] },
-    { id: 'eco', no: '14', name: '에코', role: '재배포 편집', step: 2, live: false, runs: [
+    { id: 'eco', no: '14', name: '에코', role: '재배포 편집', step: 2, live: true, runs: [
       { dow: WEEKDAYS, t: '08:00', what: '티스토리 1 · 카페 1~2 (다시 쓴 버전)' }] },
     { id: 'nari', no: '15', name: '나리', role: '외주 원고', step: 6, live: false, runs: [
       { dow: [2, 5], t: '10:00', what: '외주 계정 글감·사진·가이드' }] },
@@ -404,7 +405,7 @@
   // 그날 도는 일 (시간순)
   function teamDay(ymd) {
     const out = [];
-    for (const m of TEAM) for (const r of m.runs) if (runsOn(r, ymd)) out.push({ id: m.id, name: m.name, role: m.role, live: m.live, t: r.t, what: r.what });
+    for (const m of TEAM) for (const r of m.runs) if (runsOn(r, ymd)) out.push({ id: m.id, name: m.name, role: m.role, live: m.live && !r.off, t: r.t, what: r.what });
     return out.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : a.name < b.name ? -1 : 1));
   }
   // 다음 차례 (now = { date:'YYYY-MM-DD', time:'HH:MM' } 한국 시간) — 정해진 일이 없으면 null

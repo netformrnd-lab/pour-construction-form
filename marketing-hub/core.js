@@ -728,8 +728,8 @@
     const links = bl.filter((b) => b.t === 'link'), fl = links[0], pct = (b) => Math.round((b.pos / len) * 100);
     if (!fl) add('early', 'bad', '구매 링크 없음 — 제품 추천 바로 뒤 [링크: 제품 구매 → 주소]');
     else add('early', pct(fl) <= 45 ? 'ok' : 'bad', pct(fl) <= 45 ? `제품 추천·1차 구매 링크가 앞쪽 (글의 ${pct(fl)}%)` : `첫 구매 링크가 늦음 (글의 ${pct(fl)}%) — 문제 제기 바로 뒤로`);
-    const tail = links.filter((b) => b.pos / len >= 0.6).length;
-    add('cta', tail >= 2 ? 'ok' : tail === 1 ? 'warn' : 'bad', tail >= 2 ? `마지막 CTA ${tail}개 (구매·상담)` : `마지막 CTA ${tail}개 — 구매 + 1:1 상담 + 카카오톡 상담`);
+    const tail = links.filter((b) => b.pos / len >= 0.6).length, gh = /그로홈|grohome/i.test(post.heading || ''); // 그로홈 = 상담 창구 확인 전 → 구매 링크 하나면 됨 (표준 7절)
+    add('cta', tail >= (gh ? 1 : 2) ? 'ok' : tail === 1 ? 'warn' : 'bad', tail >= (gh ? 1 : 2) ? `마지막 CTA ${tail}개 (${gh ? '구매' : '구매·상담'})` : `마지막 CTA ${tail}개 — 구매 + 1:1 상담 + 카카오톡 상담`);
     const ph = bl.filter((b) => b.t === 'photo'), thin = ph.filter((b) => b.kind !== '고정' && b.text.replace(/\s/g, '').length < 12);
     add('photos', !ph.length ? 'bad' : thin.length ? 'warn' : 'ok', !ph.length ? '사진 자리 없음' : thin.length ? `사진 ${ph.length}개 중 ${thin.length}개는 장면 설명이 짧음 (사진 ${thin.map((b) => b.n).join('·')}) — 무엇을 · 어떤 구도로` : `사진 ${ph.length}개 · 장면 설명 있음`);
     const steps = (body.match(/STEP\s*\d|^\s*\**\s*\d+\s*[.)]\s*\S/gim) || []).length;

@@ -621,7 +621,8 @@
       .replace(/\*\*([^*]+)\*\*/g, '$1').replace(/`([^`]+)`/g, '$1')
       .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2').replace(/\[\[([^\]]+)\]\]/g, '$1')
       .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '$1 ($2)')
-      .replace(/^\s*\[(?:링크|버튼)\s*[:：]\s*(.+?)\s*(?:→|->)\s*(https?:\/\/\S+)\s*\]\s*$/, '$1\n$2'))
+      .replace(/^\s*\[(?:링크|버튼)\s*[:：]\s*(.+?)\s*(?:→|->)\s*(https?:\/\/\S+)\s*\]\s*$/, '$1\n$2')
+      .replace(/^\s*\[(?:링크|버튼)\s*[:：]\s*(.+?)\s*(?:→|->)\s*(?:tel:)?\s*((?:0\d{1,2}-?\d{3,4}-?\d{4}|1[5-9]\d{2}-?\d{4}))\s*\]\s*$/, '$1\n📞 $2'))
       .join('\n').replace(/\n{3,}/g, '\n\n').trim();
   }
 
@@ -632,11 +633,13 @@
        > 그 밖의 인용                             → 인용구 상자
        [사진: 유형 02 시공전 — 무엇을 · 어떤 구도로] · (사진 - …) · (사진3) → 번호 붙은 사진 자리 · '고정 …' = 늘 쓰는 이미지(후기·쇼룸·상담 배너)
        [링크: 라벨 → https://…]                   → 링크 카드 · 주소가 없으면 '주소 확인 필요'
+       [링크: 1:1 맞춤 시공 상담 → 1800-8203]      → 전화 카드 (주소 대신 전화번호 · 2026-10-12 사장님)
        ### 소제목 · --- 구분선 */
   const THUMB_RE = /^\s*[[(](?:대표\s*)?썸네일\s*[:：\-—]\s*(.*?)\s*[\])]\s*$/;
   const PHOTO_RE = /^\s*(?:\[사진\s*\d*\s*[:：]\s*([^\]]*)\]|\(사진\s*\d*\s*(?:[-—:：]\s*(.*?))?\s*\))\s*$/;
   const LINK_RE = /^\s*\[(?:링크|버튼)\s*[:：]\s*(.+?)\s*(?:→|->)\s*(.*?)\s*\]\s*$/;
   const BUBBLE_RE = /^["“'‘「]/;
+  const PHONE_RE = /^(?:tel:)?\s*(0\d{1,2}-?\d{3,4}-?\d{4}|1[5-9]\d{2}-?\d{4})$/; // 1800-8203 · 02-123-4567 · 010-…
   // 사진 설명 → { kind: '02 시공전' | '고정' | '', text }
   function photoParts(d) {
     let t = String(d || '').trim(), kind = '', m;
@@ -653,7 +656,10 @@
       const at = pos; pos += l.length + 1;
       if ((m = l.match(THUMB_RE))) { flush(); const q = [...m[1].matchAll(/「([^」]+)」/g)].map((x) => x[1]); out.push({ t: 'thumb', main: q[0] || '', sub: q[1] || '', text: m[1], pos: at }); continue; }
       if ((m = l.match(PHOTO_RE))) { flush(); out.push({ t: 'photo', n: ++photo, ...photoParts(m[1] != null ? m[1] : (m[2] || '')), pos: at }); continue; }
-      if ((m = l.match(LINK_RE))) { flush(); const url = /^https?:\/\/\S+$/.test(m[2]) ? m[2] : ''; out.push({ t: 'link', label: m[1], url, note: url ? '' : (m[2] || '주소 확인 필요'), pos: at }); continue; }
+      if ((m = l.match(LINK_RE))) {
+        flush(); const ph = m[2].match(PHONE_RE), url = /^https?:\/\/\S+$/.test(m[2]) ? m[2] : '';
+        out.push(ph ? { t: 'link', label: m[1], url: '', tel: ph[1], pos: at } : { t: 'link', label: m[1], url, note: url ? '' : (m[2] || '주소 확인 필요'), pos: at }); continue;
+      }
       if (/^\s*(---|\*\*\*)\s*$/.test(l)) { flush(); out.push({ t: 'hr', pos: at }); continue; }
       if ((m = l.match(/^(#{2,4})\s+(.*)$/))) { flush(); out.push({ t: 'h', text: m[2], pos: at }); continue; }
       if (/^>\s?/.test(l)) {
@@ -677,6 +683,7 @@
       if (b.t === 'thumb') return `<figure class="pv-thumb"><div class="pv-thumb-in">${b.main ? `<b>${esc(b.main)}</b>` : '<b>대표 썸네일</b>'}${b.sub ? `<span>${esc(b.sub)}</span>` : ''}</div><figcaption><em>대표 썸네일 시안</em> ${esc(b.text.replace(/(메인|서브)\s*(문구)?\s*[:：]?\s*「[^」]*」\s*\/?\s*/g, '').trim())}</figcaption></figure>`;
       if (b.t === 'photo' && b.kind === '고정') return `<figure class="pv-ph fix"><div class="pv-ph-in"><span class="pv-ph-n">📷 사진 ${b.n}</span><span class="pv-ph-k">고정 이미지</span><b>${esc(b.text)}</b></div></figure>`; // 늘 쓰는 이미지(후기·쇼룸·상담 배너) — 사람이 넣음
       if (b.t === 'photo') return `<figure class="pv-ph"><div class="pv-ph-in"><span class="pv-ph-n">📷 사진 ${b.n}</span>${b.kind ? `<span class="pv-ph-k">유형 ${esc(b.kind)}</span>` : ''}</div><figcaption>${esc(b.text) || '<i>장면 설명 없음</i>'}</figcaption></figure>`;
+      if (b.t === 'link' && b.tel) return `<a class="pv-link tel" href="tel:${esc(b.tel.replace(/-/g, ''))}"><b>${inline(b.label)}</b><span>📞 ${esc(b.tel)}</span><i>›</i></a>`;
       if (b.t === 'link') return b.url ? `<a class="pv-link" href="${esc(b.url)}" target="_blank" rel="noopener"><b>${inline(b.label)}</b><span>${esc(b.url.replace(/^https?:\/\//, '').split('/')[0])}</span><i>›</i></a>`
         : `<div class="pv-link no"><b>${inline(b.label)}</b><span>⚠️ ${esc(b.note)}</span></div>`;
       if (b.t === 'hr') return '<hr class="pv-hr">';
@@ -694,6 +701,7 @@
       if (b.t === 'md') return b.md.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean).map((x) => (/^\s*([-*]|\d+\.)\s|^\s*\|/.test(x) ? mdLite(x) : p(x.split('\n').map(inline).join('<br>')))).join('');
       if (b.t === 'thumb') return p(esc(`[대표 썸네일: ${b.text}]`));
       if (b.t === 'photo') { const d = `${b.kind ? (b.kind === '고정' ? '고정 ' : '유형 ' + b.kind + (b.text ? ' — ' : '')) : ''}${b.text}`; return p(esc(`[사진 ${b.n}${d ? ': ' + d : ''}]`)); }
+      if (b.t === 'link' && b.tel) return p(`<b>${inline(b.label)}</b><br>📞 ${esc(b.tel)}`);
       if (b.t === 'link') return b.url ? p(`<b>${inline(b.label)}</b><br><a href="${esc(b.url)}">${esc(b.url)}</a>`) : p(esc(`[링크: ${b.label} → ${b.note}]`));
       if (b.t === 'hr') return '<hr>';
       if (b.t === 'h') return `<h3${al}>${inline(b.text)}</h3>`;
@@ -728,7 +736,7 @@
     add('steps', steps >= 2 ? 'ok' : 'warn', steps >= 2 ? `시공·사용 순서 ${steps}단계` : '시공·사용 순서(STEP) 없음 — 시공형 제품이면 넣기');
     const tags = (post.tags || []).length;
     add('tags', tags >= 15 && tags <= 20 ? 'ok' : tags >= 10 && tags <= 25 ? 'warn' : 'bad', `해시태그 ${tags}개${tags >= 15 && tags <= 20 ? '' : ' — 15~20개'}`);
-    const noUrl = links.filter((b) => !b.url).length;
+    const noUrl = links.filter((b) => !b.url && !b.tel).length;
     if (noUrl) add('url', 'warn', `링크 주소 확인 필요 ${noUrl}개`);
     const all = [post.title || '', post.titleB || '', text].join('\n');
     const risky = [...new Set(all.match(RISKY_RE) || [])], nums = [...new Set(all.match(NUM_CHECK_RE) || [])];

@@ -625,13 +625,16 @@
   }
   const POST_STATUS = { queued: 'Aside 대기', draft: '임시저장됨 — 발행해 주세요', published: '게시 완료', failed: '임시저장 실패' };
   const postId = (noteId, n) => `${noteId}~${n}`;
+  // 임시저장(초안 저장)이 있는 채널만 Aside 에 맡김 · 지식인·인스타·그 밖은 사람이 복사해서 직접 등록 (실제 게시는 늘 사람 · 2026-10-11)
+  const DRAFT_CH = ['naver_blog', 'tistory', 'cafe'];
+  const canDraft = (ch) => DRAFT_CH.includes(ch);
 
   const isAdminEmail = (email, roles) => !!email && (OWNER_EMAILS.includes(email) || ((roles && roles.admins) || []).includes(email));
   const isUploaderEmail = (email, roles) => !!email && ((roles && roles.uploaders) || []).includes(email);
   const isStaffEmail = (email, roles) => !!email && ((roles && roles.staffs) || []).includes(email); // 직원: 고객의 소리 입력만
 
   const api = { STORE_MODE, OPEN_ROOT, OWNER_EMAILS, storeMode, col, isAdminEmail, isUploaderEmail, isStaffEmail,
-    mdLite, noteParts, parsePosts, postPlain, CHANNEL, POST_STATUS, postId, TEAM, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
+    mdLite, noteParts, parsePosts, postPlain, CHANNEL, POST_STATUS, postId, DRAFT_CH, canDraft, TEAM, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MktCore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

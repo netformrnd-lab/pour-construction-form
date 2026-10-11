@@ -116,6 +116,7 @@ details.meta summary{cursor:pointer;font-weight:700;color:var(--text-md);font-si
 .pv-logo{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:5px;background:#fff;color:#03C75A;font-weight:900;font-size:12px}
 .pv-tistory .pv-bar{background:#1F1F1F}.pv-tistory .pv-logo{color:#EB531F}
 .pv-cafe .pv-bar{background:#2DB400}.pv-other .pv-bar{background:var(--navy)}.pv-other .pv-logo{color:var(--navy)}
+.pv-insta .pv-bar{background:#C13584}.pv-insta .pv-logo{color:#C13584}
 .pv-notice{background:var(--gold-l);color:var(--gold);font-size:12px;font-weight:700;padding:8px 14px}
 .pv-in{padding:18px 16px 8px}
 .pv-cat{font-size:12px;color:#03C75A;font-weight:700;margin-bottom:6px}.pv-tistory .pv-cat{color:#EB531F}
@@ -581,16 +582,18 @@ function postActs(p,st){
     <div class="pv-btns"><input id="pub-url-${k}" placeholder="게시한 주소 (선택)" inputmode="url"><button class="btn sm pri" data-ppub="${k}">✅ 발행 완료</button></div>`;
   if(s==='published')return `<div class="pv-st"><span class="pill ok">게시 완료</span>${st.url?`<a class="sub" href="${esc(st.url)}" target="_blank" rel="noopener">글 열기 ›</a>`:''}</div>`;
   if(s==='failed')return `<div class="pv-st"><span class="pill err">임시저장 실패</span><span class="sub">${esc(st.failNote||'')}</span></div><div class="pv-btns"><button class="btn sm pri" data-pq="${k}">다시 맡기기</button>${copy}</div>`;
+  if(!C.canDraft(p.channel))return `<div class="pv-st"><span class="pill">사람이 직접 등록</span><span class="sub">${esc(C.CHANNEL[p.channel])}은 임시저장이 없어요 — 복사해서 붙여 넣고 등록</span></div>
+    <div class="pv-btns">${copy}<input id="pub-url-${k}" placeholder="등록한 주소 (선택)" inputmode="url"><button class="btn sm pri" data-ppub="${k}">✅ 등록 완료</button></div>`;
   return `<div class="pv-btns"><button class="btn sm pri" data-pq="${k}">📝 임시저장 맡기기</button>${copy}</div>`;
 }
 function postCard(p,n){
   const st=n.posts[p.n]||{},brand=BRAND_OF(p),d=n.doc||{};
   const more=[p.titleB?`<div><b>제목 B안</b> ${esc(p.titleB)}</div>`:'',p.thumbs.length?`<div><b>썸네일 문구</b><ol>${p.thumbs.map(t=>`<li>${esc(t)}</li>`).join('')}</ol></div>`:'',p.memo?`<div><b>팀원 메모</b> ${esc(p.memo)}</div>`:''].join('');
   return `<article class="pv pv-${p.channel}" id="pv-${p.n}">
-    <div class="pv-bar"><span class="pv-logo">${{naver_blog:'blog',tistory:'T',cafe:'cafe'}[p.channel]||'✎'}</span><span>${esc(C.CHANNEL[p.channel])} 미리보기</span><span class="sp"></span><span class="sub">${p.n}</span></div>
+    <div class="pv-bar"><span class="pv-logo">${{naver_blog:'blog',tistory:'T',cafe:'cafe',kin:'iN',insta:'IG'}[p.channel]||'✎'}</span><span>${esc(C.CHANNEL[p.channel])} 미리보기</span><span class="sp"></span><span class="sub">${p.n}</span></div>
     ${p.notice?`<div class="pv-notice">⚠️ ${esc(p.notice)}</div>`:''}
     <div class="pv-in">
-      ${brand&&p.channel!=='cafe'?`<div class="pv-cat">${esc(brand)} 공식 ${p.channel==='tistory'?'티스토리':'블로그'}</div>`:''}
+      ${brand&&(p.channel==='naver_blog'||p.channel==='tistory')?`<div class="pv-cat">${esc(brand)} 공식 ${p.channel==='tistory'?'티스토리':'블로그'}</div>`:''}
       <h2 class="pv-title">${esc(p.title||p.heading)}</h2>
       <div class="pv-meta">${esc(brand||'POUR')} · ${esc(dots(d.date||''))}</div>
       <div class="md pv-body">${C.mdLite(p.body)}</div>
@@ -604,7 +607,7 @@ function renderSheet(){
   const el=$('#sheet');if(!el)return;if(!S.note){el.innerHTML='';return;}
   const n=S.note,l=n.link||{},d=n.doc||{},open=S.links.some(x=>x.id===n.id),P=noteParsed(n);
   const posts=P?P.pp.posts:[],view=n.view||(posts.length?'pv':'doc'),who=(C.teamMember(l.member||d.member)||{}).name||'';
-  const todo=posts.filter(p=>!['queued','draft','published'].includes((n.posts[p.n]||{}).status||''));
+  const todo=posts.filter(p=>C.canDraft(p.channel)&&!['queued','draft','published'].includes((n.posts[p.n]||{}).status||''));
   let body;
   if(n.loading)body='<div class="empty">불러오는 중…</div>';
   else if(n.err)body=`<div class="msg err">불러오기 실패: ${esc(n.err)}</div>`;
@@ -638,21 +641,27 @@ async function saveNoteMemo(b){
 }
 // 게시 준비 — mkt-posts/{노트id~번호} (공개 자리 · Aside 작업대가 읽고 씀)
 const curPost=(k)=>{const P=S.note&&noteParsed(S.note);return P?P.pp.posts.find(p=>p.n===Number(k)):null;};
+// 글 한 편 그대로(작업대·기록용) — 맡길 때 · 맡기지 않고 바로 등록 완료할 때
+function postSnap(n,p){const d=n.doc||{},l=n.link||{};
+  return {noteId:n.id,n:p.n,member:l.member||d.member||'',date:d.date||l.date||todayKST(),channel:p.channel,heading:p.heading,title:p.title||p.heading,titleB:p.titleB,
+    tags:p.tags,thumbs:p.thumbs,notice:p.notice,body:p.body,plain:C.postPlain(p.body),products:p.products,brand:BRAND_OF(p)};}
 async function queuePost(k){
-  const n=S.note,p=curPost(k);if(!n||!p)return;const d=n.doc||{},l=n.link||{},id=C.postId(n.id,p.n);
-  const v={noteId:n.id,n:p.n,member:l.member||d.member||'',date:d.date||l.date||todayKST(),channel:p.channel,heading:p.heading,title:p.title||p.heading,titleB:p.titleB,
-    tags:p.tags,thumbs:p.thumbs,notice:p.notice,body:p.body,plain:C.postPlain(p.body),products:p.products,brand:BRAND_OF(p),status:'queued',failNote:'',
-    queuedAt:FV.serverTimestamp(),queuedBy:S.user.email,updatedAt:FV.serverTimestamp()};
+  const n=S.note,p=curPost(k);if(!n||!p)return;const id=C.postId(n.id,p.n);
+  if(!C.canDraft(p.channel))return; // 임시저장이 없는 곳은 사람이 직접
+  const v={...postSnap(n,p),status:'queued',failNote:'',queuedAt:FV.serverTimestamp(),queuedBy:S.user.email,updatedAt:FV.serverTimestamp()};
   await postsCol().doc(id).set(v,{merge:true});
   n.posts[p.n]={...(n.posts[p.n]||{}),...v};S.pub=S.pub.filter(x=>x.id!==id).concat([{id,...v}]);
   console.log('[mkt-posts] 맡김',id);
 }
 async function setPost(k,patch){
-  const n=S.note,id=C.postId(n.id,Number(k));
-  await postsCol().doc(id).set({...patch,updatedAt:FV.serverTimestamp()},{merge:true});
-  n.posts[k]={...(n.posts[k]||{}),...patch};
+  const n=S.note,id=C.postId(n.id,Number(k)),p=curPost(k),had=(n.posts[k]||{}).noteId;
+  const v={...(had||!p?{}:postSnap(n,p)),...patch,updatedAt:FV.serverTimestamp()}; // 맡기지 않고 바로 등록한 글도 내용을 남김
+  await postsCol().doc(id).set(v,{merge:true});
+  n.posts[k]={...(n.posts[k]||{}),...v};
   S.pub=S.pub.map(x=>x.id===id?{...x,...patch}:x).filter(x=>['queued','draft','failed'].includes(x.status));
-  if(patch.status==='published'||patch.status==='canceled') await linksCol().doc('mkt-pub-'+id.replace(/[^\w.-]/g,'_')).set({open:false,closedAt:new Date().toISOString(),closedBy:S.user.email},{merge:true}).catch(e=>console.error('[업무OS 다리] 발행 줄 닫기',e));
+  // 업무OS '발행' 줄은 Aside 가 임시저장했을 때만 있음 → 있는 줄만 닫음(없는 줄을 새로 만들지 않게 update)
+  if(patch.status==='published'||patch.status==='canceled') await linksCol().doc('mkt-pub-'+id.replace(/[^\w.-]/g,'_')).update({open:false,closedAt:new Date().toISOString(),closedBy:S.user.email})
+    .then(()=>console.log('[업무OS 다리] 발행 줄 닫음',id)).catch(e=>e.code==='not-found'?console.log('[업무OS 다리] 발행 줄 없음(임시저장 전)',id):console.error('[업무OS 다리] 발행 줄 닫기',e));
 }
 async function copyPost(what,k){
   const p=curPost(k);if(!p)return;
@@ -751,10 +760,10 @@ document.addEventListener('click',async(e)=>{
     if(b.dataset.note){openNote(b.dataset.note);return;}
     if(b.dataset.nv){S.note.view=b.dataset.nv;renderSheet();$('#sheet .sb').scrollTop=0;return;}
     if(b.dataset.pq){b.disabled=true;await queuePost(b.dataset.pq);S.note.saved='Aside 에 맡김';renderSheet();render();return;}
-    if(b.dataset.pqall){b.disabled=true;const P=noteParsed(S.note);for(const p of P.pp.posts){if(!['queued','draft','published'].includes((S.note.posts[p.n]||{}).status||''))await queuePost(p.n);}S.note.saved='모두 Aside 에 맡김';renderSheet();render();return;}
+    if(b.dataset.pqall){b.disabled=true;const P=noteParsed(S.note);for(const p of P.pp.posts){if(C.canDraft(p.channel)&&!['queued','draft','published'].includes((S.note.posts[p.n]||{}).status||''))await queuePost(p.n);}S.note.saved='모두 Aside 에 맡김';renderSheet();render();return;}
     if(b.dataset.pcancel){b.disabled=true;await setPost(b.dataset.pcancel,{status:'canceled'});S.note.saved='맡기기 취소';renderSheet();render();return;}
     if(b.dataset.ppub){b.disabled=true;const url=(($('#pub-url-'+b.dataset.ppub)||{}).value||'').trim().slice(0,500);
-      await setPost(b.dataset.ppub,{status:'published',url,publishedAt:FV.serverTimestamp(),publishedBy:S.user.email});S.note.saved='발행 완료로 표시';renderSheet();render();return;}
+      await setPost(b.dataset.ppub,{status:'published',url,publishedAt:FV.serverTimestamp(),publishedBy:S.user.email});S.note.saved='게시 완료로 표시';renderSheet();render();return;}
     if(b.dataset.pc){const [w,k]=b.dataset.pc.split(':');await copyPost(w,k);return;}
     if(b.id==='note-close'){closeNote();return;}
     if(b.id==='note-memo-save'){await saveNoteMemo(b);return;}

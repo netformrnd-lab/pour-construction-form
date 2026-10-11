@@ -773,6 +773,11 @@ table.vol-table{border-collapse:separate;border-spacing:0;width:100%;min-width:5
 .cloud-item .pc-tool-btn{font-size:11px;padding:4px 9px}
 /* 🔒 로그인 게이트 */
 body.locked .shell{display:none!important}
+.ps-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 14px;font-size:12.5px;background:#FFF8E1;color:#7A4B00;border-bottom:1px solid #F3E2B3}
+.ps-bar.ok{background:#ECFDF5;color:#065F46;border-color:#BBEBD6}.ps-bar.err{background:#FEF2F2;color:#991B1B;border-color:#F5C2C2}
+.ps-bar b{font-weight:800}.ps-bar button{border:1px solid currentColor;background:#fff;color:inherit;border-radius:7px;padding:5px 10px;font:inherit;font-weight:700;cursor:pointer}
+.ps-bar .ps-f{display:flex;gap:6px;flex-wrap:wrap;width:100%}.ps-bar input{flex:1;min-width:140px;border:1px solid #E5D3A1;border-radius:7px;padding:7px 9px;font:inherit}
+.ps-miss{width:100%;font-size:11.5px;opacity:.85}
 body:not(.locked) #authGate{display:none}
 .auth-gate{position:fixed;inset:0;z-index:10000;background:linear-gradient(160deg,#0D1B2A,#1B6B3A);display:flex;align-items:center;justify-content:center;padding:20px}
 .auth-box{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.35);padding:28px 24px;width:100%;max-width:360px;text-align:center}
@@ -828,6 +833,7 @@ body:not(.locked) .auth-userbox{display:flex}
     <button id="authLogout" style="display:none">로그아웃</button>
   </span>
 </header>
+<div class="ps-bar" id="psBar"></div>
 <!-- KPI strip for mobile (horizontal scroll) -->
 <div class="kpi-strip">
   <div class="kpi"><div class="kpi-l">프로모션 마진율</div><div class="kpi-v" id="kPromoMarginM">—</div></div>
@@ -1649,104 +1655,106 @@ function syncMobileKPIs(){
   });
 }
 
+/* 단가·원가는 이 파일에 두지 않음 (2026-10-11 · 공개 저장소·사이트로 원가가 새던 것 막음)
+   → 로그인 뒤 마진 대시보드 팀용 단가표(team-catalog)에서 채움 · 원가는 마스터·부마스터만 (psLoad 아래) */
 var PRICE_TABLE=[
-  {no:1,cat:"수용성 도료",name:"POUR 코트재Ⅰ(회색)",unit:"20",spec:"kg/통",cost:60000,retail:142000,coupang:134900,total_dist:115500,offline:116500,partner:117800,online_consign:119000,online_wholesale:127800},
-  {no:2,cat:"수용성 도료",name:"POUR 코트재Ⅰ(녹색)",unit:"20",spec:"kg/통",cost:60000,retail:142000,coupang:134900,total_dist:115500,offline:116500,partner:117800,online_consign:119000,online_wholesale:127800},
-  {no:3,cat:"수용성 도료",name:"POUR 코트재Ⅰ(적갈색)",unit:"20",spec:"kg/통",cost:60000,retail:142000,coupang:134900,total_dist:115500,offline:116500,partner:117800,online_consign:119000,online_wholesale:127800},
-  {no:4,cat:"수용성 도료",name:"POUR 코트재Ⅰ(백색)",unit:"20",spec:"kg/통",cost:60000,retail:142000,coupang:134900,total_dist:115500,offline:116500,partner:117800,online_consign:119000,online_wholesale:127800},
-  {no:5,cat:"수용성 도료",name:"POUR 코트재Ⅱ회색",unit:"20",spec:"kg/통",cost:60000,retail:142000,coupang:134900,total_dist:115500,offline:116500,partner:117800,online_consign:119000,online_wholesale:127800},
-  {no:6,cat:"수용성 도료",name:"POUR 코트재Ⅱ녹색",unit:"20",spec:"kg/통",cost:60000,retail:142000,coupang:134900,total_dist:115500,offline:116500,partner:117800,online_consign:119000,online_wholesale:127800},
-  {no:7,cat:"수용성 도료",name:"POUR 코트재Ⅱ적갈색",unit:"20",spec:"kg/통",cost:70000,retail:142000,coupang:134900,total_dist:115500,offline:116500,partner:117800,online_consign:119000,online_wholesale:127800},
-  {no:8,cat:"수용성 도료",name:"POUR 상도코트재(회색)",unit:"20",spec:"kg/통",cost:60000,retail:150000,coupang:143300,total_dist:136500,offline:137800,partner:139200,online_consign:140600,online_wholesale:135000},
-  {no:9,cat:"수용성 도료",name:"POUR 상도코트재(녹색)",unit:"20",spec:"kg/통",cost:60000,retail:150000,coupang:143300,total_dist:136500,offline:137800,partner:139200,online_consign:140600,online_wholesale:135000},
-  {no:10,cat:"수용성 도료",name:"POUR 상도코트재(적갈색)",unit:"20",spec:"kg/통",cost:60000,retail:150000,coupang:143300,total_dist:136500,offline:137800,partner:139200,online_consign:140600,online_wholesale:135000},
-  {no:11,cat:"수용성 도료",name:"POUR써밋페인트 플러스",unit:"20",spec:"kg/통",cost:60000,retail:126000,coupang:119700,total_dist:105000,offline:106000,partner:107100,online_consign:108200,online_wholesale:113400},
-  {no:12,cat:"수용성 도료",name:"POUR 아크릴배면차수제 (A+B제 세트)",unit:"20",spec:"kg/통",cost:92000,retail:152000,coupang:144400,total_dist:126000,offline:127200,partner:128500,online_consign:129800,online_wholesale:136800},
-  {no:13,cat:"수용성 도료",name:"POUR콘크리트 강화제",unit:"14",spec:"kg/통",cost:47000,retail:115500,coupang:109700,total_dist:94000,offline:94900,partner:95900,online_consign:96800,online_wholesale:104000},
-  {no:14,cat:"수용성 도료",name:"POUR강화재1(슬라브용)",unit:"18",spec:"L/통",cost:68000,retail:180000,coupang:171000,total_dist:160700,offline:162300,partner:163900,online_consign:165500,online_wholesale:162000},
-  {no:15,cat:"수용성 도료",name:"POUR강화제2(금속기와용)",unit:"18",spec:"L/통",cost:70000,retail:180000,coupang:171000,total_dist:160700,offline:162300,partner:163900,online_consign:165500,online_wholesale:162000},
-  {no:16,cat:"수용성 도료",name:"POUR하이롤퍼티",unit:"20",spec:"kg/통",cost:42000,retail:136000,coupang:129200,total_dist:0,offline:94200,partner:95200,online_consign:110200,online_wholesale:122400},
-  {no:17,cat:"수용성 도료",name:"POUR하이퍼티",unit:"20",spec:"kg/통",cost:43700,retail:136000,coupang:129200,total_dist:110000,offline:111000,partner:112200,online_consign:113300,online_wholesale:122400},
-  {no:18,cat:"수용성 도료",name:"POUR써밋바인더",unit:"18",spec:"kg/통",cost:23500,retail:126000,coupang:119700,total_dist:105000,offline:106000,partner:107100,online_consign:108200,online_wholesale:113400},
-  {no:19,cat:"유성 도료",name:"POUR써밋에폭시(하도)",unit:"13.5",spec:"kg/통",cost:52000,retail:99800,coupang:94800,total_dist:83200,offline:84000,partner:84900,online_consign:85700,online_wholesale:89800},
-  {no:20,cat:"유성 도료",name:"POUR써밋에폭시(중도)",unit:"24",spec:"kg/통",cost:70000,retail:132000,coupang:125400,total_dist:110000,offline:111000,partner:112200,online_consign:113300,online_wholesale:118800},
-  {no:21,cat:"유성 도료",name:"POUR써밋에폭시(상도)",unit:"16",spec:"kg/통",cost:65000,retail:124800,coupang:118600,total_dist:104000,offline:105000,partner:106100,online_consign:107100,online_wholesale:112300},
-  {no:22,cat:"유성 도료",name:"POUR써밋우레탄 하도",unit:"17",spec:"kg/통",cost:59500,retail:73000,coupang:73000,total_dist:69500,offline:70400,partner:70900,online_consign:71600,online_wholesale:65700},
-  {no:23,cat:"유성 도료",name:"POUR써밋우레탄 중도",unit:"20",spec:"kg/통",cost:44000,retail:72500,coupang:72500,total_dist:69000,offline:69800,partner:70400,online_consign:71100,online_wholesale:65200},
-  {no:24,cat:"유성 도료",name:"POUR써밋우레탄 상도",unit:"15.24",spec:"kg/통",cost:70000,retail:88200,coupang:88200,total_dist:84000,offline:85000,partner:85700,online_consign:86500,online_wholesale:79400},
-  {no:25,cat:"유성 도료",name:"POUR PMQ강화코팅제",unit:"15",spec:"kg/통",cost:123000,retail:345000,coupang:327800,total_dist:300000,offline:303000,partner:306000,online_consign:309000,online_wholesale:310500},
-  {no:26,cat:"유성 도료",name:"POUR폴리우레아",unit:"410",spec:"kg/통",cost:1968000,retail:3240000,coupang:3078000,total_dist:2700000,offline:2726000,partner:2754000,online_consign:2781000,online_wholesale:2916000},
-  {no:27,cat:"유성 도료",name:"POUR써밋엠보라이닝",unit:"24",spec:"kg/통",cost:75000,retail:137000,coupang:130200,total_dist:115000,offline:116100,partner:117300,online_consign:118500,online_wholesale:123300},
-  {no:28,cat:"아스팔트 도료",name:"POUR탄성테이프2T",unit:"5cm*10m",spec:"ea/개",cost:30000,retail:68400,coupang:65000,total_dist:57000,offline:57500,partner:58100,online_consign:58700,online_wholesale:61600},
-  {no:29,cat:"아스팔트 도료",name:"POUR씰패치 2T",unit:"1m*10m",spec:"ea/개",cost:250000,retail:570000,coupang:541500,total_dist:475000,offline:479500,partner:484500,online_consign:489300,online_wholesale:513000},
-  {no:30,cat:"아스팔트 도료",name:"POUR유화프라이머",unit:"420ml",spec:"ea/개",cost:6000,retail:13700,coupang:13000,total_dist:11400,offline:11500,partner:11600,online_consign:11700,online_wholesale:12300},
-  {no:31,cat:"아스팔트 도료",name:"POUR씰코트",unit:"25",spec:"kg/통",cost:70000,retail:159600,coupang:151600,total_dist:133000,offline:134200,partner:135700,online_consign:137000,online_wholesale:143600},
-  {no:32,cat:"아스팔트 도료",name:"POUR하드씰코트",unit:"20",spec:"kg/통",cost:70000,retail:159600,coupang:151600,total_dist:133000,offline:134200,partner:135700,online_consign:137000,online_wholesale:143600},
-  {no:33,cat:"아스팔트 도료",name:"POUR쉴드 유화아스팔트(RSC-3)",unit:"200",spec:"L/통",cost:150000,retail:300000,coupang:285000,total_dist:250000,offline:252400,partner:255000,online_consign:257500,online_wholesale:270000},
-  {no:34,cat:"아스팔트 도료",name:"POUR쉴드 유화아스팔트(RSC-4)",unit:"200",spec:"L/통",cost:150000,retail:300000,coupang:285000,total_dist:250000,offline:252400,partner:255000,online_consign:257500,online_wholesale:270000},
-  {no:35,cat:"아스팔트 도료",name:"POUR MMA",unit:"20",spec:"kg/통",cost:59000,retail:207000,coupang:196700,total_dist:180000,offline:181700,partner:183600,online_consign:185400,online_wholesale:186300},
-  {no:36,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"10cm*100m",spec:"롤/개",cost:6500,retail:38800,coupang:36900,total_dist:32300,offline:32600,partner:32900,online_consign:33300,online_wholesale:34900},
-  {no:37,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"20cm*100m",spec:"롤/개",cost:11000,retail:55400,coupang:52600,total_dist:46200,offline:46600,partner:47100,online_consign:47600,online_wholesale:49900},
-  {no:38,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"30cm*100m",spec:"롤/개",cost:15500,retail:67400,coupang:64000,total_dist:56200,offline:56700,partner:57300,online_consign:57900,online_wholesale:60700},
-  {no:39,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"40cm*100m",spec:"롤/개",cost:20000,retail:81100,coupang:77000,total_dist:67600,offline:68200,partner:69000,online_consign:69600,online_wholesale:73000},
-  {no:40,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"50cm*100m",spec:"롤/개",cost:24600,retail:98500,coupang:93600,total_dist:82100,offline:82800,partner:83700,online_consign:84600,online_wholesale:88600},
-  {no:41,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"60cm*100m",spec:"롤/개",cost:29100,retail:119400,coupang:113400,total_dist:99500,offline:100400,partner:101500,online_consign:102500,online_wholesale:107500},
-  {no:42,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"70cm*100m",spec:"롤/개",cost:33600,retail:143400,coupang:136200,total_dist:119500,offline:120600,partner:121900,online_consign:123100,online_wholesale:129100},
-  {no:43,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"80cm*100m",spec:"롤/개",cost:38100,retail:169500,coupang:161000,total_dist:141200,offline:142500,partner:144000,online_consign:145400,online_wholesale:152600},
-  {no:44,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"1m*100m",spec:"롤/개",cost:45100,retail:189000,coupang:179600,total_dist:157500,offline:159000,partner:160700,online_consign:162200,online_wholesale:179600},
-  {no:45,cat:"보강시트",name:"POUR 듀얼복합시트 1.5T",unit:"20cm*25m",spec:"롤/개",cost:26250,retail:58500,coupang:55600,total_dist:51450,offline:51950,partner:52500,online_consign:53000,online_wholesale:54500},
-  {no:46,cat:"보강시트",name:"POUR 듀얼복합시트 1.5T",unit:"30cm*25m",spec:"롤/개",cost:38200,retail:83500,coupang:79300,total_dist:73500,offline:74200,partner:75000,online_consign:75700,online_wholesale:77700},
-  {no:47,cat:"보강시트",name:"POUR 듀얼복합시트 1.5T",unit:"40cm*25m",spec:"롤/개",cost:48700,retail:106000,coupang:100700,total_dist:93100,offline:94000,partner:95000,online_consign:95900,online_wholesale:98600},
-  {no:48,cat:"보강시트",name:"POUR 듀얼복합시트 1.5T",unit:"50cm*25m",spec:"롤/개",cost:64200,retail:139500,coupang:132500,total_dist:122500,offline:123700,partner:125000,online_consign:126200,online_wholesale:129800},
-  {no:49,cat:"보강시트",name:"POUR 듀얼복합시트 1.5T",unit:"60cm*25m",spec:"롤/개",cost:74400,retail:162000,coupang:153900,total_dist:142100,offline:143400,partner:144900,online_consign:146400,online_wholesale:150700},
-  {no:50,cat:"보강시트",name:"POUR 듀얼복합시트 1.5T",unit:"70cm*25m",spec:"롤/개",cost:86800,retail:187000,coupang:177700,total_dist:164150,offline:165750,partner:167400,online_consign:169100,online_wholesale:174000},
-  {no:51,cat:"보강시트",name:"POUR 듀얼복합시트 1.5T",unit:"80cm*25m",spec:"롤/개",cost:98300,retail:212500,coupang:201900,total_dist:186200,offline:188000,partner:189900,online_consign:191800,online_wholesale:197700},
-  {no:52,cat:"보강시트",name:"POUR 듀얼복합시트 1.5T",unit:"1m*25m",spec:"롤/개",cost:122500,retail:262500,coupang:249400,total_dist:230000,offline:232200,partner:234600,online_consign:236900,online_wholesale:244200},
-  {no:53,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"10cm*100m",spec:"롤/개",cost:14000,retail:38600,coupang:36700,total_dist:32200,offline:32500,partner:32800,online_consign:33200,online_wholesale:35900},
-  {no:54,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"15cm*100m",spec:"롤/개",cost:19000,retail:52300,coupang:49700,total_dist:32200,offline:32500,partner:32800,online_consign:44700,online_wholesale:48700},
-  {no:55,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"20cm*100m",spec:"롤/개",cost:26000,retail:68700,coupang:65300,total_dist:57200,offline:57700,partner:58300,online_consign:58900,online_wholesale:63900},
-  {no:56,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"30cm*100m",spec:"롤/개",cost:38000,retail:104400,coupang:99200,total_dist:86900,offline:87700,partner:88600,online_consign:89500,online_wholesale:97100},
-  {no:57,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"40cm*100m",spec:"롤/개",cost:50000,retail:139900,coupang:132900,total_dist:116600,offline:117700,partner:118900,online_consign:120100,online_wholesale:130200},
-  {no:58,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"50cm*100m",spec:"롤/개",cost:63500,retail:174500,coupang:165800,total_dist:145400,offline:146800,partner:148300,online_consign:149800,online_wholesale:162300},
-  {no:59,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"60cm*100m",spec:"롤/개",cost:76000,retail:208500,coupang:198100,total_dist:173800,offline:175500,partner:177300,online_consign:179000,online_wholesale:194000},
-  {no:60,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"70cm*100m",spec:"롤/개",cost:89000,retail:244400,coupang:232200,total_dist:203700,offline:205700,partner:207800,online_consign:209800,online_wholesale:227300},
-  {no:61,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"80cm*100m",spec:"롤/개",cost:100000,retail:274700,coupang:261000,total_dist:228900,offline:231100,partner:233500,online_consign:235800,online_wholesale:255500},
-  {no:62,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"1m*100m",spec:"롤/개",cost:141000,retail:365400,coupang:347100,total_dist:304500,offline:307500,partner:310600,online_consign:313600,online_wholesale:339900},
-  {no:63,cat:"보강시트",name:"POUR PVC 시트 1.5T",unit:"1.83m*15m",spec:"롤/개",cost:168818,retail:421500,coupang:400400,total_dist:351300,offline:354700,partner:358300,online_consign:361800,online_wholesale:392000},
-  {no:64,cat:"보강시트",name:"POUR 보강시트 0.3T (크랙용)",unit:"10cm*100m",spec:"롤/개",cost:18150,retail:38800,coupang:36900,total_dist:32300,offline:32600,partner:32900,online_consign:33300,online_wholesale:36100},
-  {no:65,cat:"보강시트",name:"POUR 보강시트 0.3T (크랙용)",unit:"15cm*100m",spec:"롤/개",cost:26400,retail:50400,coupang:47900,total_dist:42000,offline:42400,partner:42800,online_consign:43300,online_wholesale:46900},
-  {no:66,cat:"보강시트",name:"POUR 보강시트 0.3T (크랙용)",unit:"20cm*100m",spec:"롤/개",cost:35200,retail:55400,coupang:52600,total_dist:46200,offline:46600,partner:47100,online_consign:47600,online_wholesale:51600},
-  {no:67,cat:"보강시트",name:"POUR 보강시트 0.3T (슬라브용)",unit:"10cm*100m",spec:"롤/개",cost:18150,retail:38800,coupang:36900,total_dist:32300,offline:32600,partner:32900,online_consign:33300,online_wholesale:36100},
-  {no:68,cat:"보강시트",name:"POUR 보강시트 0.3T (슬라브용)",unit:"15cm*100m",spec:"롤/개",cost:26400,retail:50400,coupang:47900,total_dist:42000,offline:42400,partner:42800,online_consign:43300,online_wholesale:46900},
-  {no:69,cat:"보강시트",name:"POUR 보강시트 0.3T (슬라브용)",unit:"20cm*100m",spec:"롤/개",cost:35200,retail:55400,coupang:52600,total_dist:46200,offline:46600,partner:47100,online_consign:47600,online_wholesale:51600},
-  {no:70,cat:"보강시트",name:"POUR 균열보수시트(에폭시용)",unit:"10cm*100m",spec:"롤/개",cost:10000,retail:38800,coupang:36900,total_dist:32300,offline:32600,partner:32900,online_consign:33300,online_wholesale:36100},
-  {no:71,cat:"보강시트",name:"POUR에어쉘시트",unit:"1m*100m",spec:"롤/개",cost:92000,retail:230000,coupang:218500,total_dist:0,offline:161000,partner:133400,online_consign:196700,online_wholesale:213900},
-  {no:72,cat:"파우더",name:"POUR 106파우더",unit:"20",spec:"kg/포",cost:3800,retail:108700,coupang:103300,total_dist:96600,offline:97500,partner:98500,online_consign:99500,online_wholesale:103265},
-  {no:73,cat:"파우더",name:"POUR 107파우더",unit:"20",spec:"kg/포",cost:3200,retail:108700,coupang:103300,total_dist:96600,offline:97500,partner:98500,online_consign:99500,online_wholesale:103265},
-  {no:74,cat:"파우더",name:"POUR 표면강화 파우더",unit:"20",spec:"kg/포",cost:6000,retail:108700,coupang:103300,total_dist:96600,offline:97500,partner:98500,online_consign:99500,online_wholesale:103265},
-  {no:75,cat:"파우더",name:"POUR 탄성강화 파우더",unit:"20",spec:"kg/포",cost:8500,retail:46000,coupang:43700,total_dist:38000,offline:38400,partner:38800,online_consign:39300,online_wholesale:43700},
-  {no:76,cat:"파우더",name:"POUR 탄성강화 파우더(경계석,블록침하 방지용)",unit:"20",spec:"kg/포",cost:3200,retail:38400,coupang:36500,total_dist:32000,offline:32300,partner:32600,online_consign:33000,online_wholesale:36500},
-  {no:77,cat:"파우더",name:"POUR 탄성강화 파우더(측구/바탕면 단면복구용)",unit:"20",spec:"kg/포",cost:7000,retail:38400,coupang:36500,total_dist:32000,offline:32300,partner:32600,online_consign:33000,online_wholesale:36500},
-  {no:78,cat:"파우더",name:"POUR 시트함침 파우더",unit:"20",spec:"kg/포",cost:4000,retail:38400,coupang:36500,total_dist:32000,offline:32300,partner:32600,online_consign:33000,online_wholesale:36500},
-  {no:79,cat:"보강 제품",name:"POUR슁글용 후커 5cm",unit:"5cm",spec:"ea/개",cost:2550,retail:7600,coupang:7200,total_dist:6300,offline:6400,partner:6400,online_consign:6500,online_wholesale:7220},
-  {no:80,cat:"보강 제품",name:"POUR슁글용 후커 6cm",unit:"6cm",spec:"ea/개",cost:2600,retail:7600,coupang:7200,total_dist:6300,offline:6400,partner:6400,online_consign:6500,online_wholesale:7220},
-  {no:81,cat:"보강 제품",name:"POUR슁글용 후커 7cm",unit:"7cm",spec:"ea/개",cost:2650,retail:7600,coupang:7200,total_dist:6300,offline:6400,partner:6400,online_consign:6500,online_wholesale:7220},
-  {no:82,cat:"보강 제품",name:"POUR슁글용 후커 8cm",unit:"8cm",spec:"ea/개",cost:2700,retail:7600,coupang:7200,total_dist:6300,offline:6400,partner:6400,online_consign:6500,online_wholesale:7220},
-  {no:83,cat:"보강 제품",name:"POUR슁글용 후커 9cm",unit:"9cm",spec:"ea/개",cost:2750,retail:7600,coupang:7200,total_dist:6300,offline:6400,partner:6400,online_consign:6500,online_wholesale:7220},
-  {no:84,cat:"보강 제품",name:"POUR슁글용 후커 10cm",unit:"10cm",spec:"ea/개",cost:2800,retail:7600,coupang:7200,total_dist:6300,offline:6400,partner:6400,online_consign:6500,online_wholesale:7220},
-  {no:85,cat:"보강 제품",name:"POUR금속기와용 후커",unit:"-",spec:"ea/개",cost:5000,retail:7600,coupang:7200,total_dist:6300,offline:6400,partner:6400,online_consign:6500,online_wholesale:7220},
-  {no:86,cat:"보강 제품",name:"POUR팬 벤트(도막용)",unit:"H230*W230",spec:"ea/개",cost:4863,retail:30000,coupang:28500,total_dist:25000,offline:25200,partner:25500,online_consign:25800,online_wholesale:28500},
-  {no:87,cat:"보강 제품",name:"POUR팬 벤트(시트용)",unit:"H230*W210",spec:"ea/개",cost:4933,retail:30000,coupang:28500,total_dist:25000,offline:25200,partner:25500,online_consign:25800,online_wholesale:28500},
-  {no:88,cat:"보강 제품",name:"POUR옥상배관방수트랩100(시트미포함)",unit:"직경75mm",spec:"ea/개",cost:2227,retail:18000,coupang:17100,total_dist:15000,offline:15100,partner:15300,online_consign:15500,online_wholesale:16200},
-  {no:89,cat:"보강 제품",name:"POUR옥상배관방수트랩100(시트포함)",unit:"직경75mm",spec:"ea/개",cost:3297,retail:20500,coupang:19500,total_dist:2500,offline:14400,partner:11900,online_consign:17500,online_wholesale:19475},
-  {no:90,cat:"보강 제품",name:"POUR옥상배관방수트랩50(시트 포함)",unit:"직경45mm",spec:"ea/개",cost:4649,retail:17000,coupang:16200,total_dist:14000,offline:14200,partner:14400,online_consign:14900,online_wholesale:15300},
-  {no:91,cat:"보강 제품",name:"POUR벤트 회색(35ea)_확장형",unit:"지름65mm",spec:"set/개",cost:700,retail:90000,coupang:110300,total_dist:105000,offline:106000,partner:107100,online_consign:108200,online_wholesale:110200},
-  {no:92,cat:"보강 제품",name:"POUR벤트 녹색(35ea)_확장형",unit:"지름66mm",spec:"set/개",cost:700,retail:90000,coupang:110300,total_dist:105000,offline:106000,partner:107100,online_consign:108200,online_wholesale:110200},
-  {no:93,cat:"보강 제품",name:"POUR벤트 회색(35ea)_기본형",unit:"지름45mm",spec:"set/개",cost:1050,retail:90000,coupang:110300,total_dist:105000,offline:106000,partner:107100,online_consign:108200,online_wholesale:110200},
-  {no:94,cat:"보강 제품",name:"POUR벤트 녹색(35ea)_기본형",unit:"지름45mm",spec:"set/개",cost:1050,retail:90000,coupang:110300,total_dist:105000,offline:106000,partner:107100,online_consign:108200,online_wholesale:110200},
-  {no:95,cat:"보강 제품",name:"POUR컨플럭스 듀오",unit:"600ml",spec:"ea/개",cost:35800,retail:82800,coupang:78700,total_dist:69000,offline:69600,partner:70400,online_consign:71100,online_wholesale:74600},
-  {no:96,cat:"보강 제품",name:"POUR페이퍼 팬 벤트(도막용)",unit:"H230*W230",spec:"ea/개",cost:7817,retail:30000,coupang:28500,total_dist:25000,offline:25200,partner:25500,online_consign:25800,online_wholesale:27000},
-  {no:97,cat:"보강 제품",name:"POUR페이퍼 팬 벤트(시트용)",unit:"H230*W210",spec:"ea/개",cost:7887,retail:30000,coupang:28500,total_dist:25000,offline:25200,partner:25500,online_consign:25800,online_wholesale:27000},
+  {no:1,cat:"수용성 도료",name:"POUR 코트재Ⅰ(회색)",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:2,cat:"수용성 도료",name:"POUR 코트재Ⅰ(녹색)",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:3,cat:"수용성 도료",name:"POUR 코트재Ⅰ(적갈색)",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:4,cat:"수용성 도료",name:"POUR 코트재Ⅰ(백색)",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:5,cat:"수용성 도료",name:"POUR 코트재Ⅱ회색",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:6,cat:"수용성 도료",name:"POUR 코트재Ⅱ녹색",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:7,cat:"수용성 도료",name:"POUR 코트재Ⅱ적갈색",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:8,cat:"수용성 도료",name:"POUR 상도코트재(회색)",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:9,cat:"수용성 도료",name:"POUR 상도코트재(녹색)",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:10,cat:"수용성 도료",name:"POUR 상도코트재(적갈색)",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:11,cat:"수용성 도료",name:"POUR써밋페인트 플러스",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:12,cat:"수용성 도료",name:"POUR 아크릴배면차수제 (A+B제 세트)",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:13,cat:"수용성 도료",name:"POUR콘크리트 강화제",unit:"14",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:14,cat:"수용성 도료",name:"POUR강화재1(슬라브용)",unit:"18",spec:"L/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:15,cat:"수용성 도료",name:"POUR강화제2(금속기와용)",unit:"18",spec:"L/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:16,cat:"수용성 도료",name:"POUR하이롤퍼티",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:17,cat:"수용성 도료",name:"POUR하이퍼티",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:18,cat:"수용성 도료",name:"POUR써밋바인더",unit:"18",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:19,cat:"유성 도료",name:"POUR써밋에폭시(하도)",unit:"13.5",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:20,cat:"유성 도료",name:"POUR써밋에폭시(중도)",unit:"24",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:21,cat:"유성 도료",name:"POUR써밋에폭시(상도)",unit:"16",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:22,cat:"유성 도료",name:"POUR써밋우레탄 하도",unit:"17",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:23,cat:"유성 도료",name:"POUR써밋우레탄 중도",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:24,cat:"유성 도료",name:"POUR써밋우레탄 상도",unit:"15.24",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:25,cat:"유성 도료",name:"POUR PMQ강화코팅제",unit:"15",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:26,cat:"유성 도료",name:"POUR폴리우레아",unit:"410",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:27,cat:"유성 도료",name:"POUR써밋엠보라이닝",unit:"24",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:28,cat:"아스팔트 도료",name:"POUR탄성테이프2T",unit:"5cm*10m",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:29,cat:"아스팔트 도료",name:"POUR씰패치 2T",unit:"1m*10m",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:30,cat:"아스팔트 도료",name:"POUR유화프라이머",unit:"420ml",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:31,cat:"아스팔트 도료",name:"POUR씰코트",unit:"25",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:32,cat:"아스팔트 도료",name:"POUR하드씰코트",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:33,cat:"아스팔트 도료",name:"POUR쉴드 유화아스팔트(RSC-3)",unit:"200",spec:"L/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:34,cat:"아스팔트 도료",name:"POUR쉴드 유화아스팔트(RSC-4)",unit:"200",spec:"L/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:35,cat:"아스팔트 도료",name:"POUR MMA",unit:"20",spec:"kg/통",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:36,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"10cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:37,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"20cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:38,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"30cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:39,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"40cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:40,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"50cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:41,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"60cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:42,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"70cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:43,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"80cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:44,cat:"보강시트",name:"POUR 슈퍼복합압축시트 0.3T",unit:"1m*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:45,cat:"보강시트",name:"POUR 듀얼복합시트 1.5T",unit:"20cm*25m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:46,cat:"보강시트",name:"POUR 듀얼복합시트 1.5T",unit:"30cm*25m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:47,cat:"보강시트",name:"POUR 듀얼복합시트 1.5T",unit:"40cm*25m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:48,cat:"보강시트",name:"POUR 듀얼복합시트 1.5T",unit:"50cm*25m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:49,cat:"보강시트",name:"POUR 듀얼복합시트 1.5T",unit:"60cm*25m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:50,cat:"보강시트",name:"POUR 듀얼복합시트 1.5T",unit:"70cm*25m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:51,cat:"보강시트",name:"POUR 듀얼복합시트 1.5T",unit:"80cm*25m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:52,cat:"보강시트",name:"POUR 듀얼복합시트 1.5T",unit:"1m*25m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:53,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"10cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:54,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"15cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:55,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"20cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:56,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"30cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:57,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"40cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:58,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"50cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:59,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"60cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:60,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"70cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:61,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"80cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:62,cat:"보강시트",name:"POUR 압축강화시트 0.7T",unit:"1m*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:63,cat:"보강시트",name:"POUR PVC 시트 1.5T",unit:"1.83m*15m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:64,cat:"보강시트",name:"POUR 보강시트 0.3T (크랙용)",unit:"10cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:65,cat:"보강시트",name:"POUR 보강시트 0.3T (크랙용)",unit:"15cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:66,cat:"보강시트",name:"POUR 보강시트 0.3T (크랙용)",unit:"20cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:67,cat:"보강시트",name:"POUR 보강시트 0.3T (슬라브용)",unit:"10cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:68,cat:"보강시트",name:"POUR 보강시트 0.3T (슬라브용)",unit:"15cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:69,cat:"보강시트",name:"POUR 보강시트 0.3T (슬라브용)",unit:"20cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:70,cat:"보강시트",name:"POUR 균열보수시트(에폭시용)",unit:"10cm*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:71,cat:"보강시트",name:"POUR에어쉘시트",unit:"1m*100m",spec:"롤/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:72,cat:"파우더",name:"POUR 106파우더",unit:"20",spec:"kg/포",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:73,cat:"파우더",name:"POUR 107파우더",unit:"20",spec:"kg/포",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:74,cat:"파우더",name:"POUR 표면강화 파우더",unit:"20",spec:"kg/포",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:75,cat:"파우더",name:"POUR 탄성강화 파우더",unit:"20",spec:"kg/포",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:76,cat:"파우더",name:"POUR 탄성강화 파우더(경계석,블록침하 방지용)",unit:"20",spec:"kg/포",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:77,cat:"파우더",name:"POUR 탄성강화 파우더(측구/바탕면 단면복구용)",unit:"20",spec:"kg/포",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:78,cat:"파우더",name:"POUR 시트함침 파우더",unit:"20",spec:"kg/포",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:79,cat:"보강 제품",name:"POUR슁글용 후커 5cm",unit:"5cm",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:80,cat:"보강 제품",name:"POUR슁글용 후커 6cm",unit:"6cm",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:81,cat:"보강 제품",name:"POUR슁글용 후커 7cm",unit:"7cm",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:82,cat:"보강 제품",name:"POUR슁글용 후커 8cm",unit:"8cm",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:83,cat:"보강 제품",name:"POUR슁글용 후커 9cm",unit:"9cm",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:84,cat:"보강 제품",name:"POUR슁글용 후커 10cm",unit:"10cm",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:85,cat:"보강 제품",name:"POUR금속기와용 후커",unit:"-",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:86,cat:"보강 제품",name:"POUR팬 벤트(도막용)",unit:"H230*W230",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:87,cat:"보강 제품",name:"POUR팬 벤트(시트용)",unit:"H230*W210",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:88,cat:"보강 제품",name:"POUR옥상배관방수트랩100(시트미포함)",unit:"직경75mm",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:89,cat:"보강 제품",name:"POUR옥상배관방수트랩100(시트포함)",unit:"직경75mm",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:90,cat:"보강 제품",name:"POUR옥상배관방수트랩50(시트 포함)",unit:"직경45mm",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:91,cat:"보강 제품",name:"POUR벤트 회색(35ea)_확장형",unit:"지름65mm",spec:"set/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:92,cat:"보강 제품",name:"POUR벤트 녹색(35ea)_확장형",unit:"지름66mm",spec:"set/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:93,cat:"보강 제품",name:"POUR벤트 회색(35ea)_기본형",unit:"지름45mm",spec:"set/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:94,cat:"보강 제품",name:"POUR벤트 녹색(35ea)_기본형",unit:"지름45mm",spec:"set/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:95,cat:"보강 제품",name:"POUR컨플럭스 듀오",unit:"600ml",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:96,cat:"보강 제품",name:"POUR페이퍼 팬 벤트(도막용)",unit:"H230*W230",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
+  {no:97,cat:"보강 제품",name:"POUR페이퍼 팬 벤트(시트용)",unit:"H230*W210",spec:"ea/개",cost:0,retail:0,coupang:0,total_dist:0,offline:0,partner:0,online_consign:0,online_wholesale:0},
 ];
 
 /* ── 프로모션용 상품 목록 (PRICE_TABLE 기반, 상품탭 선택 반영) ── */
@@ -4820,8 +4828,100 @@ function renderCloudCard(){
   if(sb) sb.style.display=(ready && strategyB2B.length)?'block':'none';
 }
 
+
+/* ── 🔒 단가·원가 불러오기 (2026-10-11) ───────────────────────────────
+   원가·B2B 단가를 이 파일(공개 저장소·사이트)에 두지 않고, 로그인 뒤 마진 대시보드(pourstoreproject)에서 읽음
+   · 판매가 = team-catalog/current(마진 대시보드가 계산해 저장하는 채널별 판매가) — 마진 대시보드 허용 계정(일반 이상)
+   · 원가 = products · products-added · product-meta prod-cost·prod-rename — 마스터·부마스터만 (pourstore-margin2.html M2C 와 같은 판정)
+   · 칸 맞추기: 정가→retail · 쿠팡→coupang · 대리점→offline · 시공→partner · 위탁→online_consign · 도매→online_wholesale · 총판→total_dist(없으면 대리점)
+   · 제품은 이름+규격으로 맞춤(번호 no 는 그대로 → 저장된 시나리오 유지) · 표에 없던 판매 중 제품은 뒤에 더함 · 메모리에만(이 파일·DB에 안 씀) */
+var PS_CONFIG={apiKey:"AIzaSyB9VC75Hs8eAdXxy9n2aVsCeFUnCGX4xhA",authDomain:"pourstoreproject.firebaseapp.com",projectId:"pourstoreproject",storageBucket:"pourstoreproject.firebasestorage.app",messagingSenderId:"549863414475",appId:"1:549863414475:web:9c696d7f85d82a7b7bd94e"};
+var PS_MAP=[['retail',['정가']],['coupang',['쿠팡']],['offline',['대리점','오프라인']],['partner',['시공','시공파트너스']],['online_consign',['위탁','위탁판매']],['online_wholesale',['도매']],['total_dist',['총판','대리점']]];
+var PS_ROLE_NAME={master:'마스터',sub:'부마스터',general:'일반',none:'권한 없음'};
+var psState={st:'idle',msg:'',role:'',matched:0,added:0,miss:[],fallback:''};
+function psApp(){var a=(firebase.apps||[]).filter(function(x){return x.name==='pourPrice';})[0];return a||firebase.initializeApp(PS_CONFIG,'pourPrice');}
+function psNorm(t){return String(t==null?'':t).replace(/[\s()（）\[\]·,]/g,'').toLowerCase();}
+function psKey(name,spec){return psNorm(name)+'|'+psNorm(spec);}
+function psRole(a,email,verified){
+  var e=String(email||'').toLowerCase();if(!e||!a)return 'none';
+  var lc=function(x){return (Array.isArray(x)?x:[]).map(function(v){return String(v).toLowerCase();});};
+  var masters=[String(a.masterEmail||'').toLowerCase()].concat(lc(a.masterEmails)).filter(Boolean);
+  if(masters.indexOf(e)>=0)return verified?'master':'general';
+  if(lc(a.subMasterEmails).indexOf(e)>=0)return verified?'sub':'general';
+  if(lc(a.allowedEmails).indexOf(e)>=0||lc(a.teamEmails).indexOf(e)>=0)return 'general';
+  return 'none';
+}
+function psCostIndex(products,padd,renames,pcost){
+  var idx={},pk=function(p){return p.cat+'|'+p.name+'|'+p.spec;};
+  products.forEach(function(p){var ok=pk(p),nm=renames[ok]||null;var cur=nm?(p.cat+'|'+(nm.name||p.name)+'|'+(nm.spec!=null?nm.spec:p.spec)):ok;if(!(cur in idx))idx[cur]=(p.cost==null||p.cost==='')?null:+p.cost;});
+  padd.forEach(function(p){var k=pk(p);if(!(k in idx))idx[k]=(p.cost==null||p.cost==='')?null:+p.cost;});
+  Object.keys(pcost||{}).forEach(function(k){var v=pcost[k];idx[k]=(v==null||v==='')?null:+v;});
+  return idx;
+}
+function psApply(cat,cidx){
+  var chs=(cat&&cat.channels)||[],list=(cat&&cat.products)||[],uidOf={},fallback='';
+  PS_MAP.forEach(function(m){for(var i=0;i<m[1].length;i++){var ch=chs.filter(function(c){return c.name===m[1][i];})[0];if(ch){uidOf[m[0]]=ch.uid;if(m[0]==='total_dist'&&i>0)fallback='총판가 칸이 없어 대리점가를 씀';break;}}});
+  var byKey={};list.forEach(function(p){byKey[psKey(p.name,p.spec)]=p;});
+  var put=function(row,p){PS_MAP.forEach(function(m){var u=uidOf[m[0]];var v=u&&p.prices?p.prices[u]:null;row[m[0]]=v==null?0:+v;});
+    var c=cidx?cidx[p.cat+'|'+p.name+'|'+p.spec]:null;row.cost=(c==null||!isFinite(c))?0:c;};
+  var seen={},matched=0,miss=[],maxNo=0;
+  PRICE_TABLE.forEach(function(row){maxNo=Math.max(maxNo,+row.no||0);var k=psKey(row.name,String(row.unit||'')+String(row.spec||''));var p=byKey[k];
+    if(!p){miss.push(row.name+' '+(row.unit||'')+(row.spec||''));return;}seen[k]=1;matched++;put(row,p);});
+  var added=0;
+  list.forEach(function(p){var k=psKey(p.name,p.spec);if(seen[k]||String(p.status||'')==='단종')return;seen[k]=1;
+    var row={no:++maxNo,cat:p.cat||'',name:p.name,unit:'',spec:p.spec||''};put(row,p);PRICE_TABLE.push(row);added++;});
+  psState={st:'ok',role:psState.role,matched:matched,added:added,miss:miss,fallback:fallback,msg:''};
+  console.log('[단가] 맞춤 '+matched+' · 새로 '+added+' · 못 찾음 '+miss.length+(cidx?' · 원가 포함':' · 원가 없음'));
+  /* 이미 만든 상품(마케팅 탭)도 같은 번호면 새 값으로 */
+  if(typeof products!=='undefined'&&products){products.forEach(function(pp){var r=PRICE_TABLE.filter(function(x){return x.no===pp.no;})[0];if(r){pp.list=r.retail;pp.cost=r.cost;}});}
+  try{reapplyBase();}catch(e){console.error('[단가] 채널 다시 계산 실패',e);}
+  try{renderAll();}catch(e){console.error('[단가] 화면 다시 그리기 실패',e);}
+  ['renderPcProdList','renderMoqTierSetup','renderCopyTargets'].forEach(function(f){try{if(typeof window[f]==='function')window[f]();}catch(e){console.error('[단가] '+f+' 실패',e);}});
+  renderPsBar();
+}
+function psLoad(user){
+  var db=firebase.firestore(psApp());psState={st:'loading',msg:'',role:''};renderPsBar();
+  db.collection('config').doc('access').get().then(function(ad){
+    var role=psRole(ad.exists?ad.data():null,user.email,user.emailVerified);psState.role=role;
+    if(role==='none'){psState={st:'err',role:role,msg:user.email+' 은 마진 대시보드 권한이 없어요 — 마진 대시보드 관리자에게 등록 요청'};renderPsBar();return;}
+    var canCost=role==='master'||role==='sub',pm=function(n){return db.collection('product-meta').doc(n).get();};
+    var jobs=[db.collection('team-catalog').doc('current').get()];
+    if(canCost)jobs=jobs.concat([db.collection('products').get(),db.collection('products-added').get(),pm('prod-cost'),pm('prod-rename')]);
+    return Promise.all(jobs).then(function(r){
+      var cat=r[0].exists?r[0].data():null;
+      if(!cat||!(cat.products||[]).length){psState={st:'err',role:role,msg:'마진 대시보드 단가표가 비어 있어요 — 마진 대시보드(PC)를 한 번 열면 만들어져요'};renderPsBar();return;}
+      var mp=function(d){return d&&d.exists&&d.data().map&&typeof d.data().map==='object'?d.data().map:{};};
+      var cidx=canCost?psCostIndex(r[1].docs.map(function(d){return d.data();}),r[2].docs.map(function(d){return d.data();}),mp(r[4]),mp(r[3])):null;
+      psApply(cat,cidx);
+    });
+  }).catch(function(e){console.error('[단가] 불러오기 실패',e);psState={st:'err',role:psState.role,msg:'불러오기 실패: '+(e.code||e.message)};renderPsBar();});
+}
+function renderPsBar(){
+  var el=document.getElementById('psBar');if(!el)return;var s=psState;
+  if(s.st==='ok'){el.className='ps-bar ok';el.innerHTML='<span>단가 <b>'+(s.matched+s.added)+'개</b> 불러옴 · '+(s.role==='master'||s.role==='sub'?'원가 포함':'<b>원가 없음</b>(마스터·부마스터만)')+' · '+PS_ROLE_NAME[s.role]+(s.fallback?' · '+s.fallback:'')+'</span><button data-ps="reload">다시 불러오기</button><button data-ps="out">단가 로그아웃</button>'+(s.miss.length?'<div class="ps-miss">단가표에서 못 찾은 제품 '+s.miss.length+'개(0원으로 둠): '+s.miss.slice(0,8).join(', ')+(s.miss.length>8?' …':'')+'</div>':'');return;}
+  if(s.st==='loading'){el.className='ps-bar';el.innerHTML='<span>마진 대시보드에서 단가 불러오는 중…</span>';return;}
+  el.className='ps-bar'+(s.st==='err'?' err':'');
+  el.innerHTML='<span>'+(s.st==='err'?s.msg:'🔒 단가·원가가 비어 있어요 — <b>마진 대시보드 계정</b>으로 불러오세요 (이 화면 파일에는 가격을 두지 않아요)')+'</span>'
+    +(s.st==='err'&&s.role&&s.role!=='none'?'<button data-ps="reload">다시</button>':'')
+    +'<div class="ps-f"><input id="psEmail" type="email" placeholder="마진 대시보드 이메일" autocomplete="username"><input id="psPw" type="password" placeholder="비밀번호" autocomplete="current-password"><button data-ps="in">불러오기</button></div>';
+}
+function setupPriceSource(){
+  if(typeof firebase==='undefined'||!firebase.auth){psState={st:'err',msg:'Firebase 를 못 불러왔어요 — 새로고침'};renderPsBar();return;}
+  var a=firebase.auth(psApp());
+  a.onAuthStateChanged(function(u){if(u)psLoad(u);else{psState={st:'idle'};renderPsBar();}});
+  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-ps]');if(!b)return;var k=b.dataset.ps;
+    if(k==='reload'&&a.currentUser)psLoad(a.currentUser);
+    if(k==='out')a.signOut().then(function(){location.reload();});
+    if(k==='in'){var em=(document.getElementById('psEmail').value||'').trim(),pw=document.getElementById('psPw').value||'';if(!em||!pw)return;b.disabled=true;
+      a.signInWithEmailAndPassword(em,pw).catch(function(err){console.error('[단가] 로그인 실패',err.code);psState={st:'err',msg:err.code==='auth/invalid-credential'?'이메일 또는 비밀번호가 올바르지 않아요':'로그인 실패: '+err.code};renderPsBar();});}
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target&&e.target.id==='psPw'){var b=document.querySelector('[data-ps="in"]');if(b)b.click();}});
+}
+
 renderAll();
 setupAuthGate();   /* 🔒 로그인 게이트 활성화 (인증 전까지 .shell 숨김) */
+renderPsBar();
+setupPriceSource(); /* 🔒 단가·원가 = 마진 대시보드에서 (위) */
 </script>
 </body>
 </html>

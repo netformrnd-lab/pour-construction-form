@@ -29,11 +29,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build site (ops-center only)
+      # 2026-10-11: 예전 사본에 원가가 들어 있어 GitHub Pages(github.io) 공개 사본은 '옮김' 안내로 덮음
+      #   운영센터는 https://pour-construction-form.pages.dev/pour-operations-center.html (단가·원가는 로그인 뒤 마진 대시보드에서)
+      #   저장소를 비공개로 바꾸면 이 워크플로는 지워도 됨
+      - name: Build site (moved notice only)
         run: |
           mkdir -p _site
-          cp pour-operations-center.html _site/index.html
-          cp pour-operations-center.html _site/pour-operations-center.html
+          cat > _site/index.html <<'HTML'
+          <!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow">
+          <title>POUR OPS CENTER — 옮김</title><style>body{font-family:-apple-system,system-ui,sans-serif;margin:0;padding:40px 20px;text-align:center;color:#111827;background:#F9FAFB}a{color:#2563EB;font-weight:700}</style></head>
+          <body><h1 style="font-size:20px">운영센터는 옮겼습니다</h1><p><a href="https://pour-construction-form.pages.dev/pour-operations-center.html">새 주소로 가기 ›</a></p></body></html>
+          HTML
+          cp _site/index.html _site/pour-operations-center.html
           touch _site/.nojekyll
 
       - name: Configure Pages (auto-enable)

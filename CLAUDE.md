@@ -971,7 +971,7 @@ pour-construction-form/
 ├── site-method.html            ← 2차: POUR공법 사이트 연동
 ├── site-store.html             ← 2차: POUR스토어 사이트 연동
 ├── shoot-desk.html             ← 촬영 데스크 (요청 접수 → 브랜드›제품›N차 촬영 폴더·투두·레퍼런스, Firestore config/shootreq-*·shootprod-*·shootimg-*, 로그인 없음 · UI 문구는 딱딱한 명사형, 친절체·“~해 드려요” 금지 · 숨기기 대신 “보류”(보류 목록에 남김) + 확인 후 영구 삭제 · “다음 할 일” 안내줄·“~미정 입력” 재촉 배너 같은 안내 요소 넣지 않음 — 사용자 지시, UX 규칙의 ‘다음 할 일 한 줄’보다 우선)
-├── marketing-hub/             ← 마케팅 허브: Aside 자동 업로드(upload.html) + 관리자 대시보드(index.html · AI 팀 · 고객의 소리) + 직원 고객의 소리(voc.html) + Aside 임시저장 작업대(drafts.html · 채널 미리보기 → 임시저장까지 · **실제 게시는 늘 사람**) · AI 팀원 결과 → 업무OS tools/team_link.py · pour-app-new mkt-* 컬렉션(규칙 게시 전 임시: pour-os/marketing-hub/ · core.js STORE_MODE) · 계산 core.js · 상세 README.md
+├── marketing-hub/             ← 마케팅 허브: Aside 자동 업로드(upload.html) + 관리자 대시보드(index.html · AI 팀 · 고객의 소리 · 블로그 미리보기 = 볼트 `00 블로그 글 표준` 27칸 + 글 구조 검사) + 직원 고객의 소리(voc.html) + Aside 임시저장 작업대(drafts.html · 채널 미리보기 → 임시저장까지 · **실제 게시는 늘 사람**) · AI 팀원 결과 → 업무OS tools/team_link.py · pour-app-new mkt-* 컬렉션(규칙 게시 전 임시: pour-os/marketing-hub/ · core.js STORE_MODE) · 계산 core.js · 상세 README.md
 ├── firebase-usage.html         ← Firebase(pour-app-new) 사용량 화면 (오늘 읽기·쓰기 / 무료 한도 · 이번 달 예상 요금 · 30일 막대) · 데이터 pour-os/v2/usage/pour-app-new ← GitHub Actions firebase-usage.yml 3시간마다(scripts/usage/ · Cloud Monitoring) · 10만 원 넘으면 문자 · 월요일 9시 주간 보고 문자 (사용자 결정 2026-10-11 · 설정 scripts/usage/README.md)
 ├── worker.js                   ← SMS 프록시 (기존, 건드리지 말 것)
 ├── workers/
@@ -983,7 +983,7 @@ pour-construction-form/
 │   ├── soft-delete.js          ← 소프트딜리트 유틸
 │   └── package.json
 ├── .github/workflows/
-│   └── firestore-backup.yml    ← 매일 자정 KST 자동 백업 (GitHub Actions)
+│   └── firestore-backup.yml    ← (예전) 백업 잡 — 2026-10-11 부터 pour-app-new 백업은 비공개 저장소 netformrnd-lab/pour-backups 가 매일 한국 03:30 (이 잡은 변수 BACKUP_REPO 없으면 안 돎)
 ├── .env.example                ← 환경변수 템플릿 (커밋 O)
 ├── functions/send-sms.js       ← Cloudflare Pages Function (기존)
 └── poursotre/                  ← 배너/마케팅 자료 (기존)

@@ -494,9 +494,8 @@
   /* ── 노트 본문 보기 (대시보드 [보기] · 옵시디언 마크다운 → 안전한 HTML) ──
      지원: 머리말(--- … ---)은 숨김 · # 제목 · 표 · 목록(- · 1. · 체크박스) · > 인용 · ``` 코드 · **굵게** · `코드` · [[링크|별칭]] · [글](http…) · [사진: …]
      모든 글자는 먼저 escape → 스크립트·태그는 글자로만 보임 */
-  function mdLite(src) {
-    const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    const inline = (t) => esc(t)
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const inline = (t) => esc(t)
       .replace(/`([^`]+)`/g, '<code>$1</code>')
       .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
       .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '<span class="wl">$2</span>')
@@ -504,6 +503,7 @@
       .replace(/\[사진:\s*([^\]]*)\]/g, '<span class="ph">📷 사진: $1</span>')
       .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
       .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+  function mdLite(src) {
     let lines = String(src == null ? '' : src).replace(/\r/g, '').split('\n');
     if (lines[0] === '---') { const e = lines.indexOf('---', 1); if (e > 0) lines = lines.slice(e + 1); }
     const out = []; let i = 0;
@@ -547,7 +547,7 @@
   /* ── 노트 → 보기 좋게 나누기 (대시보드 [보기] · 2026-10-11 사장님 'UX 개선 · 실제 올리기 전 화면처럼') ──
      noteParts: 머리말 빼고 · 맨 위 '# 제목' + 인용(안내) · '## 요청 내용/입력 자료/체크' = 작성 근거(접어 둠) · 나머지 = 본문
      parsePosts: 본문에서 게시물(제목 줄이 있는 ##/### 칸)을 꺼냄 → 채널별 미리보기 · 임시저장 맡기기 */
-  const META_SECTIONS = ['요청 내용', '입력 자료', '체크', '근거', '참고'];
+  const META_SECTIONS = ['요청 내용', '입력 자료', '체크', '근거', '참고', '검색 의도', '제품 정보', '기획'];
   function noteParts(src) {
     let lines = String(src == null ? '' : src).replace(/\r/g, '').split('\n');
     const props = {};
@@ -620,8 +620,122 @@
       .replace(/^\s*\|(.*)\|\s*$/, (_, x) => x.split('|').map((c) => c.trim()).join(' · '))
       .replace(/\*\*([^*]+)\*\*/g, '$1').replace(/`([^`]+)`/g, '$1')
       .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2').replace(/\[\[([^\]]+)\]\]/g, '$1')
-      .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '$1 ($2)'))
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '$1 ($2)')
+      .replace(/^\s*\[(?:링크|버튼)\s*[:：]\s*(.+?)\s*(?:→|->)\s*(https?:\/\/\S+)\s*\]\s*$/, '$1\n$2'))
       .join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  /* ── 게시 글 칸 (2026-10-11 사장님 '블로그 포스팅 레이아웃 고도화' · 볼트 [[00 블로그 글 표준]] · 기준 글 blog.naver.com/pourstore/223879157471) ──
+     원고 한 줄이 아래 모양이면 미리보기에서 실제 글처럼 보여 줌 (나머지는 mdLite 그대로):
+       [썸네일: 메인 「…」 / 서브 「…」 / 구도 …]   → 대표 썸네일 시안
+       > "고객 말"                                → 말풍선 (따옴표로 시작하는 인용 줄 하나 = 말풍선 하나)
+       > 그 밖의 인용                             → 인용구 상자
+       [사진: 유형 02 시공전 — 무엇을 · 어떤 구도로] · (사진 - …) · (사진3) → 번호 붙은 사진 자리 · '고정 …' = 늘 쓰는 이미지(후기·쇼룸·상담 배너)
+       [링크: 라벨 → https://…]                   → 링크 카드 · 주소가 없으면 '주소 확인 필요'
+       ### 소제목 · --- 구분선 */
+  const THUMB_RE = /^\s*[[(](?:대표\s*)?썸네일\s*[:：\-—]\s*(.*?)\s*[\])]\s*$/;
+  const PHOTO_RE = /^\s*(?:\[사진\s*\d*\s*[:：]\s*([^\]]*)\]|\(사진\s*\d*\s*(?:[-—:：]\s*(.*?))?\s*\))\s*$/;
+  const LINK_RE = /^\s*\[(?:링크|버튼)\s*[:：]\s*(.+?)\s*(?:→|->)\s*(.*?)\s*\]\s*$/;
+  const BUBBLE_RE = /^["“'‘「]/;
+  // 사진 설명 → { kind: '02 시공전' | '고정' | '', text }
+  function photoParts(d) {
+    let t = String(d || '').trim(), kind = '', m;
+    if ((m = t.match(/^유형\s*(\d{1,2})\s*([^\s—\-:]*)\s*[—\-:]?\s*/))) { kind = (m[1].padStart(2, '0') + ' ' + m[2]).trim(); t = t.slice(m[0].length); }
+    else if ((m = t.match(/^고정\s*[—\-:]?\s*/))) { kind = '고정'; t = t.slice(m[0].length); }
+    return { kind, text: t.trim() };
+  }
+  function postBlocks(body) {
+    const lines = String(body || '').replace(/\r/g, '').split('\n'), out = [];
+    let buf = [], bufAt = 0, photo = 0, pos = 0;
+    const flush = () => { if (buf.some((l) => l.trim())) out.push({ t: 'md', md: buf.join('\n').replace(/^\s*\n|\n\s*$/g, ''), pos: bufAt }); buf = []; };
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i]; let m;
+      const at = pos; pos += l.length + 1;
+      if ((m = l.match(THUMB_RE))) { flush(); const q = [...m[1].matchAll(/「([^」]+)」/g)].map((x) => x[1]); out.push({ t: 'thumb', main: q[0] || '', sub: q[1] || '', text: m[1], pos: at }); continue; }
+      if ((m = l.match(PHOTO_RE))) { flush(); out.push({ t: 'photo', n: ++photo, ...photoParts(m[1] != null ? m[1] : (m[2] || '')), pos: at }); continue; }
+      if ((m = l.match(LINK_RE))) { flush(); const url = /^https?:\/\/\S+$/.test(m[2]) ? m[2] : ''; out.push({ t: 'link', label: m[1], url, note: url ? '' : (m[2] || '주소 확인 필요'), pos: at }); continue; }
+      if (/^\s*(---|\*\*\*)\s*$/.test(l)) { flush(); out.push({ t: 'hr', pos: at }); continue; }
+      if ((m = l.match(/^(#{2,4})\s+(.*)$/))) { flush(); out.push({ t: 'h', text: m[2], pos: at }); continue; }
+      if (/^>\s?/.test(l)) {
+        flush(); const q = [l.replace(/^>\s?/, '')];
+        while (i + 1 < lines.length && /^>\s?/.test(lines[i + 1])) { i++; q.push(lines[i].replace(/^>\s?/, '')); pos += lines[i].length + 1; }
+        let box = [];
+        const flushBox = () => { if (box.some((x) => x.trim())) out.push({ t: 'quote', lines: box, pos: at }); box = []; };
+        for (const x of q) { if (BUBBLE_RE.test(x.trim())) { flushBox(); out.push({ t: 'bubble', text: x.trim(), pos: at }); } else box.push(x); }
+        flushBox(); continue;
+      }
+      if (!buf.length) bufAt = at;
+      buf.push(l);
+    }
+    flush();
+    return out;
+  }
+  // 미리보기 HTML (대시보드 [보기] · 작업대) — 모든 글자는 escape
+  function postHtml(body) {
+    return postBlocks(body).map((b) => {
+      if (b.t === 'md') return mdLite(b.md);
+      if (b.t === 'thumb') return `<figure class="pv-thumb"><div class="pv-thumb-in">${b.main ? `<b>${esc(b.main)}</b>` : '<b>대표 썸네일</b>'}${b.sub ? `<span>${esc(b.sub)}</span>` : ''}</div><figcaption><em>대표 썸네일 시안</em> ${esc(b.text.replace(/(메인|서브)\s*(문구)?\s*[:：]?\s*「[^」]*」\s*\/?\s*/g, '').trim())}</figcaption></figure>`;
+      if (b.t === 'photo' && b.kind === '고정') return `<figure class="pv-ph fix"><div class="pv-ph-in"><span class="pv-ph-n">📷 사진 ${b.n}</span><span class="pv-ph-k">고정 이미지</span><b>${esc(b.text)}</b></div></figure>`; // 늘 쓰는 이미지(후기·쇼룸·상담 배너) — 사람이 넣음
+      if (b.t === 'photo') return `<figure class="pv-ph"><div class="pv-ph-in"><span class="pv-ph-n">📷 사진 ${b.n}</span>${b.kind ? `<span class="pv-ph-k">유형 ${esc(b.kind)}</span>` : ''}</div><figcaption>${esc(b.text) || '<i>장면 설명 없음</i>'}</figcaption></figure>`;
+      if (b.t === 'link') return b.url ? `<a class="pv-link" href="${esc(b.url)}" target="_blank" rel="noopener"><b>${inline(b.label)}</b><span>${esc(b.url.replace(/^https?:\/\//, '').split('/')[0])}</span><i>›</i></a>`
+        : `<div class="pv-link no"><b>${inline(b.label)}</b><span>⚠️ ${esc(b.note)}</span></div>`;
+      if (b.t === 'hr') return '<hr class="pv-hr">';
+      if (b.t === 'h') return `<h3 class="pv-h">${inline(b.text)}</h3>`;
+      if (b.t === 'bubble') return `<div class="pv-bub">${inline(b.text)}</div>`;
+      if (b.t === 'quote') return `<blockquote class="pv-q">${b.lines.map(inline).join('<br>')}</blockquote>`;
+      return '';
+    }).join('\n');
+  }
+  // 편집기에 붙일 서식 글 (복사 · Aside) — 사진·썸네일 자리는 [ ] 글자 그대로(사람이 사진으로 바꿈) · 링크는 라벨 + 주소
+  function pasteHtml(body, opt) {
+    const al = opt && opt.center ? ' style="text-align:center"' : '';
+    const p = (h) => `<p${al}>${h}</p>`;
+    return postBlocks(body).map((b) => {
+      if (b.t === 'md') return b.md.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean).map((x) => (/^\s*([-*]|\d+\.)\s|^\s*\|/.test(x) ? mdLite(x) : p(x.split('\n').map(inline).join('<br>')))).join('');
+      if (b.t === 'thumb') return p(esc(`[대표 썸네일: ${b.text}]`));
+      if (b.t === 'photo') { const d = `${b.kind ? (b.kind === '고정' ? '고정 ' : '유형 ' + b.kind + (b.text ? ' — ' : '')) : ''}${b.text}`; return p(esc(`[사진 ${b.n}${d ? ': ' + d : ''}]`)); }
+      if (b.t === 'link') return b.url ? p(`<b>${inline(b.label)}</b><br><a href="${esc(b.url)}">${esc(b.url)}</a>`) : p(esc(`[링크: ${b.label} → ${b.note}]`));
+      if (b.t === 'hr') return '<hr>';
+      if (b.t === 'h') return `<h3${al}>${inline(b.text)}</h3>`;
+      if (b.t === 'bubble' || b.t === 'quote') return `<blockquote${al}>${(b.t === 'bubble' ? [b.text] : b.lines).map(inline).join('<br>')}</blockquote>`;
+      return '';
+    }).join('\n');
+  }
+  /* 글 구조 검사 (네이버 블로그 · 볼트 [[00 블로그 글 표준]] 최종 목차) — 사람이 볼 표시만, 막지 않음
+     level: ok ✅ · warn ⚠️(사람 확인) · bad ❌(표준 순서에서 빠짐) */
+  const RISKY_RE = /완벽|반영구|영구적|평생|국내\s*1위|업계\s*1위|최고의?|100\s*%|무조건|절대(?:로)?\s*(?:안|새지|깨지)/g;
+  const NUM_CHECK_RE = /\d+(?:\.\d+)?\s*배|\d+\s*mm\s*이상|(?:특허|협력사|파트너사?)\s*\d|\d[\d,]*\s*(?:여\s*)?(?:개|곳|건)\s*(?:의\s*)?(?:특허|협력사|파트너)/g;
+  function blogCheck(post) {
+    if (!post || post.channel !== 'naver_blog') return null;
+    const body = String(post.body || ''), bl = postBlocks(body), len = Math.max(1, body.length), items = [];
+    const add = (k, level, msg) => items.push({ k, level, msg });
+    const text = bl.filter((b) => b.t === 'md' || b.t === 'bubble' || b.t === 'quote').map((b) => b.md || b.text || b.lines.join(' ')).join('\n');
+    const firstText = (text.split('\n').find((l) => l.trim()) || '').trim();
+    add('greet', /^(안녕하세요|안녕하십니까|반갑습니다|여러분\s*안녕)/.test(firstText) ? 'bad' : 'ok', /^(안녕하세요|안녕하십니까|반갑습니다)/.test(firstText) ? '인사말로 시작 — 고객 말로 바로 시작' : '인사말 없이 시작');
+    const thumb = bl.some((b) => b.t === 'thumb') || (post.thumbs || []).length > 0;
+    add('thumb', thumb ? 'ok' : 'warn', thumb ? '대표 썸네일 지정' : '대표 썸네일 지정 없음 — [썸네일: 메인 「…」 / 서브 「…」 / 구도 …]');
+    const firstH = bl.findIndex((b) => b.t === 'h' || b.t === 'link'), head = firstH < 0 ? bl : bl.slice(0, firstH);
+    const bub = head.filter((b) => b.t === 'bubble').length;
+    add('quotes', bub >= 2 ? 'ok' : bub === 1 ? 'warn' : 'bad', bub >= 2 ? `고객 말 ${bub}개로 시작` : `고객 말 인용 ${bub}개 — 맨 앞에 2개 (> "…")`);
+    const links = bl.filter((b) => b.t === 'link'), fl = links[0], pct = (b) => Math.round((b.pos / len) * 100);
+    if (!fl) add('early', 'bad', '구매 링크 없음 — 제품 추천 바로 뒤 [링크: 제품 구매 → 주소]');
+    else add('early', pct(fl) <= 45 ? 'ok' : 'bad', pct(fl) <= 45 ? `제품 추천·1차 구매 링크가 앞쪽 (글의 ${pct(fl)}%)` : `첫 구매 링크가 늦음 (글의 ${pct(fl)}%) — 문제 제기 바로 뒤로`);
+    const tail = links.filter((b) => b.pos / len >= 0.6).length;
+    add('cta', tail >= 2 ? 'ok' : tail === 1 ? 'warn' : 'bad', tail >= 2 ? `마지막 CTA ${tail}개 (구매·상담)` : `마지막 CTA ${tail}개 — 구매 + 1:1 상담 + 카카오톡 상담`);
+    const ph = bl.filter((b) => b.t === 'photo'), thin = ph.filter((b) => b.kind !== '고정' && b.text.replace(/\s/g, '').length < 12);
+    add('photos', !ph.length ? 'bad' : thin.length ? 'warn' : 'ok', !ph.length ? '사진 자리 없음' : thin.length ? `사진 ${ph.length}개 중 ${thin.length}개는 장면 설명이 짧음 (사진 ${thin.map((b) => b.n).join('·')}) — 무엇을 · 어떤 구도로` : `사진 ${ph.length}개 · 장면 설명 있음`);
+    const steps = (body.match(/STEP\s*\d|^\s*\**\s*\d+\s*[.)]\s*\S/gim) || []).length;
+    add('steps', steps >= 2 ? 'ok' : 'warn', steps >= 2 ? `시공·사용 순서 ${steps}단계` : '시공·사용 순서(STEP) 없음 — 시공형 제품이면 넣기');
+    const tags = (post.tags || []).length;
+    add('tags', tags >= 15 && tags <= 20 ? 'ok' : tags >= 10 && tags <= 25 ? 'warn' : 'bad', `해시태그 ${tags}개${tags >= 15 && tags <= 20 ? '' : ' — 15~20개'}`);
+    const noUrl = links.filter((b) => !b.url).length;
+    if (noUrl) add('url', 'warn', `링크 주소 확인 필요 ${noUrl}개`);
+    const all = [post.title || '', post.titleB || '', text].join('\n');
+    const risky = [...new Set(all.match(RISKY_RE) || [])], nums = [...new Set(all.match(NUM_CHECK_RE) || [])];
+    if (risky.length) add('risky', 'warn', `과장 표현 확인: ${risky.join(' · ')}`);
+    if (nums.length) add('nums', 'warn', `수치 근거 확인: ${nums.join(' · ')}`);
+    const cnt = (lv) => items.filter((x) => x.level === lv).length;
+    return { items, ok: cnt('ok'), warn: cnt('warn'), bad: cnt('bad') };
   }
   const POST_STATUS = { queued: 'Aside 대기', draft: '임시저장됨 — 발행해 주세요', published: '게시 완료', failed: '임시저장 실패' };
   const postId = (noteId, n) => `${noteId}~${n}`;
@@ -634,7 +748,7 @@
   const isStaffEmail = (email, roles) => !!email && ((roles && roles.staffs) || []).includes(email); // 직원: 고객의 소리 입력만
 
   const api = { STORE_MODE, OPEN_ROOT, OWNER_EMAILS, storeMode, col, isAdminEmail, isUploaderEmail, isStaffEmail,
-    mdLite, noteParts, parsePosts, postPlain, CHANNEL, POST_STATUS, postId, DRAFT_CH, canDraft, TEAM, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
+    mdLite, noteParts, parsePosts, postPlain, postBlocks, postHtml, pasteHtml, blogCheck, photoParts, CHANNEL, POST_STATUS, postId, DRAFT_CH, canDraft, TEAM, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MktCore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

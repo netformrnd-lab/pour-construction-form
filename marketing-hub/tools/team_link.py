@@ -9,14 +9,16 @@
 #   pour-os/v2/links/{id}                      — 검토 줄 (CRM 다리와 같은 모양 · 내용 없음 · 팀원 · 한 일 · 노트 경로)
 #   pour-os/marketing-hub/mkt-notes/{같은 id}   — 노트 본문(마크다운) + 사장님 메모 memo/memoAt/memoBy
 #     본문 = 게시할 원고(제품 판매가만 · 원가·제조사·개인정보는 볼트 규칙상 처음부터 없음). 보안 규칙 게시 뒤에도 이 공개 자리에 둠(루틴은 로그인이 없음)
-# 볼트 위치: 환경변수 MKT_VAULT (기본 /home/user/pour-marketing-vault)
+# 볼트 위치: 환경변수 MKT_VAULT → 이 파일이 볼트 tools/ 안이면 그 볼트 → /home/user/pour-marketing-vault
+# ⚠️ 같은 파일 두 곳(2026-10-11 · 저장소 비공개 전환으로 루틴이 이 저장소를 못 받음): pour-construction-form/marketing-hub/tools/team_link.py · pour-marketing-vault/tools/team_link.py — 고치면 둘 다
 import sys, os, json, re, urllib.request, urllib.parse, datetime, hashlib
 KEY = 'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU'
 EMU = os.environ.get('FIRESTORE_EMULATOR_HOST')  # 시험(에뮬레이터)에서만 — 실제 DB 안 씀
 DOCS = (f'http://{EMU}' if EMU else 'https://firestore.googleapis.com') + '/v1/projects/pour-app-new/databases/(default)/documents'
 BASE = DOCS + '/pour-os/v2/links'
 NOTES = DOCS + '/pour-os/marketing-hub/mkt-notes'
-VAULT = os.environ.get('MKT_VAULT', '/home/user/pour-marketing-vault')
+_HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 볼트 안 tools/ 에서 돌면 그 볼트
+VAULT = os.environ.get('MKT_VAULT') or (_HERE if os.path.isdir(os.path.join(_HERE, '02 팀원')) else '/home/user/pour-marketing-vault')
 MAX_BODY = 800000  # Firestore 문서 1MB 한도 안
 TEAM = {'haru': '하루', 'pori': '포리', 'luna': '루나', 'teo': '테오', 'noa': '노아', 'tobi': '토비', 'moka': '모카', 'leo': '레오', 'kei': '케이',
         'daon': '다온', 'sora': '소라', 'roy': '로이', 'ria': '리아', 'jay': '제이', 'eco': '에코', 'nari': '나리', 'onyu': '온유'}  # core.js TEAM 과 같게

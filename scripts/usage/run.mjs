@@ -1,7 +1,7 @@
 // Firebase(pour-app-new) 사용량 측정 — GitHub Actions firebase-usage.yml 이 3시간마다 실행
 //   Cloud Monitoring(Firestore 읽기·쓰기·삭제 + Storage) → 하루 사용량·예상 요금 → pour-os/v2/usage/pour-app-new (화면 /firebase-usage.html)
 //   이번 달 예상 요금 ALERT_KRW(기본 10만 원) 넘으면 문자 1번(그 달) · 한국 월요일 9시 뒤 주간 보고 문자 1번
-// 환경변수: SA_EMAIL · SA_KEY(서비스 계정 · '모니터링 뷰어' 역할) · ALERT_PHONE(문자 받을 번호) · ALERT_KRW · FX
+// 환경변수: SA_EMAIL · SA_KEY(서비스 계정 · '모니터링 뷰어' 역할) · ALERT_PHONE(문자 받을 번호) · OPS_TOKEN(/send-sms 서버 토큰 · Cloudflare 와 같은 값) · ALERT_KRW · FX
 //   시험용: NOW · TOKEN_URL · MON_BASE · FS_BASE · SMS_URL (가짜 서버 — scripts/usage/e2e.mjs)
 // 계산은 core.mjs (저장·통신 없음)
 import { createSign } from 'node:crypto';
@@ -69,7 +69,7 @@ async function sms(text) {
   const to = String(E.ALERT_PHONE || '').replace(/[^0-9]/g, '');
   if (!to) return { ok: false, err: '문자 받을 번호(ALERT_PHONE) 없음' };
   try {
-    const r = await fetch(SMS_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to, text }) });
+    const r = await fetch(SMS_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(E.OPS_TOKEN ? { 'X-Ops-Token': E.OPS_TOKEN } : {}) }, body: JSON.stringify({ to, text }) }); // /send-sms 는 우리 사이트 아니면 이 토큰을 봄
     const j = await r.json().catch(() => ({}));
     return r.ok ? { ok: true } : { ok: false, err: `문자 실패 ${r.status}: ${j.error || ''}` };
   } catch (e) { return { ok: false, err: `문자 실패: ${e.message}` }; }

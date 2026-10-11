@@ -289,23 +289,23 @@
     "video": "",
     "steps": [
      {
-      "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/step-02-glue-attach.jpg",
+      "image": "https://pour-construction-form.pages.dev/prompts/shorts/drain-trap/step-02-glue-attach.jpg",
       "word": "쓱"
      },
      {
-      "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/step-04-coat1.jpg",
+      "image": "https://pour-construction-form.pages.dev/prompts/shorts/drain-trap/step-04-coat1.jpg",
       "word": "싹"
      },
      {
-      "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/step-05-sheet.jpg",
+      "image": "https://pour-construction-form.pages.dev/prompts/shorts/drain-trap/step-05-sheet.jpg",
       "word": "착"
      },
      {
-      "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/step-07-support.jpg",
+      "image": "https://pour-construction-form.pages.dev/prompts/shorts/drain-trap/step-07-support.jpg",
       "word": "쏙"
      },
      {
-      "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/step-08-done.jpg",
+      "image": "https://pour-construction-form.pages.dev/prompts/shorts/drain-trap/step-08-done.jpg",
       "word": "끝!"
      }
     ]
@@ -322,7 +322,7 @@
    "audio": "hf_20261005_051205_f834a334-de44-4925-901e-0c59ff7c5209.wav",
    "visual": {
     "type": "cta",
-    "image": "https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/ref-01-thumbnail.png"
+    "image": "https://pour-construction-form.pages.dev/prompts/shorts/drain-trap/ref-01-thumbnail.png"
    }
   }
  ]

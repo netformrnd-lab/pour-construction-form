@@ -23,6 +23,7 @@
    - `POUR_OS_FIREBASE_CLIENT_EMAIL` = JSON 의 `client_email`
    - `POUR_OS_FIREBASE_PRIVATE_KEY` = JSON 의 `private_key` (-----BEGIN 부터 END----- 까지 그대로)
    - `ALERT_PHONE` = 문자 받을 휴대폰 번호
+   - `OPS_TOKEN` = 아무 긴 글자(직접 정함) — **Cloudflare Pages › 설정 › 환경변수 `OPS_TOKEN` 에도 같은 값** (문자 함수가 우리 사이트 밖에서 온 요청은 이 토큰으로만 받음 · 2026-10-11)
 3. Google Cloud 콘솔 › IAM › 위 `client_email` 계정 › 역할 추가 **모니터링 뷰어(Monitoring Viewer)**
 4. GitHub › Actions › Firebase 사용량 › Run workflow → 화면에 첫 측정 (실패 글에 'Cloud Monitoring API has not been used'가 보이면 Google Cloud › API › Cloud Monitoring API [사용] 후 다시)
 - 키는 채팅·메일로 보내지 않고 GitHub 시크릿에만 넣음

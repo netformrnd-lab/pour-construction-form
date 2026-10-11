@@ -3,7 +3,7 @@
 import os, subprocess
 from PIL import Image
 CF = 'https://d8j0ntlcm91z4.cloudfront.net/user_39sUpHbwBquNe1iB2u0CUyyHgzC/'
-GH = 'https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/'
+GH = 'https://pour-construction-form.pages.dev/prompts/shorts/drain-trap/'
 MG = {
     'bg_roof': 'hf_20261003_014747_e2c32272-5711-4544-8ae7-c06261bc9a59.png',
     'bg_top': 'hf_20261003_014746_2df00480-9148-4b8d-b58e-1f4cefa8cf83.png',

@@ -8,7 +8,7 @@ GAP = float(os.environ.get('GAP', 0.3))      # 묶음 사이 쉼
 TAIL = float(os.environ.get('TAIL', 1.2))     # 마지막 컷 여유
 TEMPO = float(os.environ.get('TEMPO', 1.0))   # 나레이션 속도 (음높이 유지)
 CF = 'https://d8j0ntlcm91z4.cloudfront.net/user_39sUpHbwBquNe1iB2u0CUyyHgzC/'
-GH = 'https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/'
+GH = 'https://pour-construction-form.pages.dev/prompts/shorts/drain-trap/'
 FONT_URL = 'https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/Korean/NotoSansCJKkr-Bold.otf'
 
 # 나레이션: 한국어 원어민 남성 음성 레퍼런스(dc6489ab, 박포어 육성) · pitch -3 · 컷 묶음 단위 생성 · 편집 가속 없음

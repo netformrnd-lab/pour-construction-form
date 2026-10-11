@@ -54,7 +54,9 @@ export function MoreTab({ D, cu, A, meta, logout, open, BUILD, setToast }) {
     <SmsSettings cu={cu} setToast={setToast} />
     <Head>앱을 열면 먼저</Head>
     <div style={{ margin: "0 0 4px" }}><Seg items={[["today", "오늘"], ["calendar", "달력"]]} value={start} onChange={setStart} /></div>
-    {isMaster(cu) && <><Head>관리자</Head><Card><a href="./os2-admin.html" style={{ textDecoration: "none" }}><Row title="관리자 화면" sub="팀 달력 · 사람별 일정 · 프로젝트 위험 · 한꺼번에 정리 · 가져오기" right={arrow} last /></a></Card></>}
+    {isMaster(cu) && <><Head>관리자</Head><Card><a href="./os2-admin.html" style={{ textDecoration: "none" }}><Row title="관리자 화면" sub="팀 달력 · 사람별 일정 · 프로젝트 위험 · 한꺼번에 정리 · 가져오기" right={arrow} last={false} /></a>
+      {/* Firebase 사용량(2026-10-11) — 3시간마다 측정 · 10만 원 넘으면 문자 · 월요일 주간 보고 (GitHub firebase-usage.yml) */}
+      <a href="../firebase-usage.html" style={{ textDecoration: "none" }}><Row title="Firebase 사용량" sub="오늘 읽기·쓰기 / 무료 한도 · 이번 달 예상 요금" right={arrow} last /></a></Card></>}
     <Head>시험판 안내</Head>
     <Card style={{ padding: "12px 14px", fontSize: 13.5, color: C.text, lineHeight: 1.75 }}>
       <div>· 버전1 데이터를 복사해서 따로 저장해요({at ? `${md(ymd(new Date(at)))} ${hm(at)} 복사` : "-"}). 여기서 바꾼 것은 버전1에 반영되지 않아요.</div>

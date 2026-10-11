@@ -1,0 +1,48 @@
+name: Firebase 사용량 (pour-app-new)
+
+# 사용자 결정 2026-10-11: "매일 한도 측정 보게 하고, 매주 한도 보고 · 한화 10만 원 넘으면 문자"
+# 3시간마다: Cloud Monitoring → Firestore 읽기·쓰기·삭제 + Storage → 하루 사용량·예상 요금
+#   → pour-os/v2/usage/pour-app-new (화면 https://pour-construction-form.pages.dev/firebase-usage.html)
+#   → 이번 달 예상 요금이 ALERT_KRW(기본 10만 원)를 넘으면 문자 1번(그 달) · 한국 월요일 9시 뒤 주간 보고 문자 1번
+# 계산 scripts/usage/core.mjs (시험 core.test.mjs · e2e.mjs) · 실행 scripts/usage/run.mjs
+# 시크릿: POUR_OS_FIREBASE_CLIENT_EMAIL · POUR_OS_FIREBASE_PRIVATE_KEY (규칙 배포와 같은 서비스 계정 · Google Cloud IAM 에서 '모니터링 뷰어' 역할 추가)
+#         ALERT_PHONE (문자 받을 휴대폰 번호) — 없으면 측정만 하고 알림 문자는 못 보냄(빨간 표시)
+# 문자는 같은 사이트 /send-sms (functions/send-sms.js · 솔라피 키는 Cloudflare Pages 환경변수)
+
+on:
+  schedule:
+    - cron: '17 */3 * * *'   # 한국 00:17 · 03:17 … 09:17(월요일 주간 보고) …
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-usage
+  cancel-in-progress: false
+
+jobs:
+  usage:
+    name: 사용량 측정 · 알림
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 계산 시험
+        run: node scripts/usage/core.test.mjs
+
+      - name: 사용량 측정 · 알림
+        env:
+          SA_EMAIL: ${{ secrets.POUR_OS_FIREBASE_CLIENT_EMAIL }}
+          SA_KEY: ${{ secrets.POUR_OS_FIREBASE_PRIVATE_KEY }}
+          ALERT_PHONE: ${{ secrets.ALERT_PHONE }}
+          ALERT_KRW: ${{ vars.USAGE_ALERT_KRW || '100000' }}
+          FX: ${{ vars.USAGE_FX || '1400' }}
+        run: node scripts/usage/run.mjs

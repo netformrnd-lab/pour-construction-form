@@ -162,6 +162,11 @@ eq('구조 검사: 항목별', Object.fromEntries(ck.items.map((x) => [x.k, x.le
 const ck2 = C.blogCheck({ channel: 'naver_blog', body: '안녕하세요 포어입니다\n' + '설명\n'.repeat(40) + '[링크: 구매 → https://a.com]', tags: ['#a'] });
 eq('구조 검사: 인사말·인용 없음·늦은 링크·태그 부족', ['greet', 'quotes', 'early', 'tags', 'photos'].map((k) => ck2.items.find((x) => x.k === k).level), ['bad', 'bad', 'bad', 'bad', 'bad']);
 eq('구조 검사: 블로그만', C.blogCheck({ channel: 'tistory', body: blog }), null);
+// 전화 카드 (1:1 맞춤 시공 상담 = 전화 1800-8203 · 2026-10-12)
+const telB = C.postBlocks('[링크: 1:1 맞춤 시공 상담 → 1800-8203]\n[링크: 카카오톡 상담 → https://pf.kakao.com/_YAbxexj/chat]');
+eq('전화 카드: 번호 · 주소 확인 필요 아님', [telB[0].tel, telB[0].note, telB[1].url], ['1800-8203', undefined, 'https://pf.kakao.com/_YAbxexj/chat']);
+eq('전화 카드: 미리보기 tel · 붙여넣기 · 글자', [C.postHtml('[링크: 상담 → 1800-8203]').includes('href="tel:18008203"'), C.pasteHtml('[링크: 상담 → 1800-8203]'), C.postPlain('[링크: 상담 → 1800-8203]')], [true, '<p><b>상담</b><br>📞 1800-8203</p>', '상담\n📞 1800-8203']);
+eq('전화 카드: 구조 검사에서 주소 확인 필요로 안 셈', (C.blogCheck({ channel: 'naver_blog', body: '[링크: 상담 → 1800-8203]', tags: [] }).items.find((x) => x.k === 'url') || null), null);
 eq('표 칸 머리 이름(폰 카드용)', C.mdLite('| 제품 | 정가 |\n|---|---|\n| A | 1 |').includes('<td data-l="정가">1</td>'), true);
 eq('게시물 id', C.postId('mkt-ai-pori-2026-10-12-ab', 2), 'mkt-ai-pori-2026-10-12-ab~2');
 eq('임시저장 맡길 수 있는 채널 (지식인·인스타는 사람이 직접)', ['naver_blog','tistory','cafe','kin','insta','other'].map(C.canDraft), [true,true,true,false,false,false]);

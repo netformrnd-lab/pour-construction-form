@@ -7,7 +7,7 @@ W, H, FPS = 1080, 1920, 30
 GAP = 0.5      # 묶음 사이 쉼
 TAIL = 1.2     # 마지막 컷 여유
 CF = 'https://d8j0ntlcm91z4.cloudfront.net/user_39sUpHbwBquNe1iB2u0CUyyHgzC/'
-GH = 'https://raw.githubusercontent.com/netformrnd-lab/pour-construction-form/claude/eloquent-turing-r4703j/prompts/shorts/drain-trap/'
+GH = 'https://pour-construction-form.pages.dev/prompts/shorts/drain-trap/'
 FONT_URL = 'https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/Korean/NotoSansCJKkr-Bold.otf'
 
 AUDIO = [

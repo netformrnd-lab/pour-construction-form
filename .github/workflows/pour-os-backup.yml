@@ -3,6 +3,9 @@ name: POUR OS 자동 백업 (pour-app-new)
 # pour-os 앱 데이터(Firestore 컬렉션 pour-os/state-*)를 매일 GitHub에 백업.
 # 기기 분실·문서 손상·실수 삭제에도 복구 가능한 오프디바이스 2차 보관.
 # 관리센터(admin) 백업과 다른 Firebase 프로젝트(pour-app-new)라 전용 잡으로 분리.
+# ⚠️ 백업 위치 (2026-10-11): 이 저장소는 Cloudflare Pages 사이트와 연결돼 있어 브랜치마다 공개 미리보기 주소가 생김
+#    → 고객 정보가 든 백업을 이 저장소에 두면 저장소를 비공개로 바꿔도 새어 나갈 수 있음
+#    → 저장소 변수 BACKUP_REPO(사이트와 연결 안 된 비공개 저장소, 예: netformrnd-lab/pour-backups)가 있을 때만 돌고, 그 저장소에만 씀
 
 on:
   # 매일 00:05 KST (UTC 15:05) — admin 백업(00:00)과 5분 차이로 백업 브랜치 커밋 충돌 회피
@@ -15,6 +18,7 @@ jobs:
   backup-pour-os:
     name: pour-os Firestore 백업
     runs-on: ubuntu-latest
+    if: vars.BACKUP_REPO != '' && vars.BACKUP_REPO != github.repository
     steps:
       - name: 코드 체크아웃
         uses: actions/checkout@v4
@@ -54,7 +58,7 @@ jobs:
           FIREBASE_CLIENT_EMAIL: ${{ secrets.POUR_OS_FIREBASE_CLIENT_EMAIL }}
           FIREBASE_PRIVATE_KEY: ${{ secrets.POUR_OS_FIREBASE_PRIVATE_KEY }}
           GITHUB_TOKEN: ${{ secrets.BACKUP_GITHUB_TOKEN }}
-          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_REPO: ${{ vars.BACKUP_REPO }}
           # pour-os 컬렉션 한 곳(분할 문서 state-* + 레거시 state + 메타가 모두 이 컬렉션에 있음)
           BACKUP_COLLECTIONS: pour-os
         run: node firestore-backup.js

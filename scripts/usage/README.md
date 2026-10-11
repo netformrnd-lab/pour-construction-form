@@ -27,4 +27,4 @@
 4. GitHub › Actions › Firebase 사용량 › Run workflow → 화면에 첫 측정 (실패 글에 'Cloud Monitoring API has not been used'가 보이면 Google Cloud › API › Cloud Monitoring API [사용] 후 다시)
 - 키는 채팅·메일로 보내지 않고 GitHub 시크릿에만 넣음
 - 같은 시크릿으로 `firestore-rules-deploy.yml`(규칙 배포)도 동작함 — main 의 `firestore.rules` 가 바뀌거나 Run workflow 를 누를 때만 배포
-- ⚠️ `BACKUP_GITHUB_TOKEN` 은 아직 넣지 않음: `pour-os-backup.yml` 이 업무OS 데이터를 **이 공개 저장소** 브랜치에 올리게 되어 있음 → 비공개 저장소로 바꾼 뒤에 켬
+- ⚠️ 백업(`pour-os-backup.yml` · `firestore-backup.yml`)은 저장소 변수 `BACKUP_REPO`(사이트와 연결 안 된 **별도 비공개 저장소**)가 있을 때만 돌고 그 저장소에만 씀 (2026-10-11) — 이 저장소는 Cloudflare Pages 가 브랜치마다 공개 미리보기 주소를 만들어서, 비공개로 바꿔도 백업 브랜치가 새어 나갈 수 있음

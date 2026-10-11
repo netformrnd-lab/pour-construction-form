@@ -75,7 +75,7 @@ textarea{min-height:260px;line-height:1.7;font-size:14px}
       <ol class="steps">
         <li>아래 <b style="color:inherit">맡긴 글</b>에서 맨 위 글의 [열기]</li>
         <li>[글쓰기 열기]로 채널 글쓰기 화면을 엶 (로그인된 회사 계정)</li>
-        <li>제목 · 본문 · 태그를 그대로 붙여 넣음 — <b>[사진: …]</b> 글자는 지우지 않음(사람이 사진으로 바꿈)</li>
+        <li>제목 · 본문 · 태그를 그대로 붙여 넣음 — <b>[사진 …]</b> · <b>[대표 썸네일 …]</b> 글자는 지우지 않음(사람이 사진으로 바꿈) · 링크 주소 줄도 그대로</li>
         <li>채널에서 <b>임시저장만</b> 누름 — <b>발행·등록·공개 버튼은 절대 누르지 않음</b></li>
         <li>여기로 돌아와 [✅ 임시저장 완료] · 못 했으면 이유를 적고 [임시저장 못 함]</li>
       </ol>
@@ -191,7 +191,7 @@ async function copy(text,html){
   }catch(e){console.error('[복사] 실패',e);setStatus('err','복사 실패 — 칸을 길게 눌러 복사하세요');}
 }
 $('copy-title').onclick=()=>copy($('post-title').value);
-$('copy-body').onclick=()=>copy($('post-body').value,S.cur?C.mdLite(S.cur.body||''):'');
+$('copy-body').onclick=()=>copy($('post-body').value,S.cur?C.pasteHtml(S.cur.body||'',{center:S.cur.channel==='naver_blog'}):'');
 $('copy-tags').onclick=()=>copy($('post-tags').value);
 $('mark-draft').onclick=async()=>{
   const p=S.cur;if(!p)return;const btn=$('mark-draft');btn.disabled=true;

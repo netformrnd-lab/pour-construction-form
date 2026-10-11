@@ -128,6 +128,40 @@ eq('카페: 안내·내부 메모는 본문에서 뺌', [pp.posts[1].notice, pp.
 eq('블로그 본문엔 제목·태그·썸네일 줄 없음', [pp.posts[0].body.includes('제목 A안'), pp.posts[0].body.includes('#옥상'), pp.posts[0].body.includes('겨울 전 필수'), pp.posts[0].body.includes('### 작은 금')], [false, false, false, true]);
 eq('편집기에 붙일 글', C.postPlain(pp.posts[0].body), '[사진: 유형 02 시공전 — 금]\n\n작은 금\n본문 굵게 크랙 세트');
 eq('사진 자리만 있는 줄 = 큰 칸', C.mdLite('[사진: 유형 01 제품컷 — 패키지]'), '<div class="phb"><span class="phi">📷</span><span>유형 01 제품컷 — 패키지</span></div>');
+// 게시 글 칸 (2026-10-11 블로그 레이아웃 고도화 · 볼트 00 블로그 글 표준)
+const blog = `[썸네일: 메인 「균열 보수, 빠데만 바르면 될까요?」 / 서브 「반복되는 크랙 보수 방법」 / 구도: 전후 비교]
+> "빠데로 메웠는데, 또 갈라졌어요."
+> “빠데만 바르면 되나요?”
+
+혹시 지금 이런 고민으로
+찾고 계신가요?
+[사진: 유형 02 시공전 — 외벽에 길게 난 균열 · 정면에서 넓게]
+> 그 틈, 그냥 두면 **위험해요**
+(사진 - 코트재·하이퍼티 용기 나란히 · 앞에 시트 롤)
+[링크: 크랙 방수 세트 구매하기 → https://www.pourstore.net]
+${'원인 설명 줄\n'.repeat(30)}### 시공 순서
+**STEP 1. 바탕면 정리**
+(사진)
+**STEP 2. 코트재 도포**
+[사진: 고정 리얼 후기]
+${'마무리 줄\n'.repeat(10)}[링크: 크랙 방수 세트 → https://www.pourstore.net]
+[링크: 1:1 맞춤 시공 상담 → 주소 확인 필요]
+[링크: 카카오톡 상담 → https://pf.kakao.com/x]`;
+const bb = C.postBlocks(blog);
+eq('게시 글 칸 종류', bb.map((b) => b.t).slice(0, 9), ['thumb', 'bubble', 'bubble', 'md', 'photo', 'quote', 'photo', 'link', 'md']);
+eq('썸네일 메인·서브', [bb[0].main, bb[0].sub], ['균열 보수, 빠데만 바르면 될까요?', '반복되는 크랙 보수 방법']);
+eq('사진 번호·유형·고정', bb.filter((b) => b.t === 'photo').map((b) => [b.n, b.kind]), [[1, '02 시공전'], [2, ''], [3, ''], [4, '고정']]);
+eq('링크 주소 없음 = 확인 필요', bb.filter((b) => b.t === 'link').map((b) => b.url ? 'url' : b.note), ['url', 'url', '주소 확인 필요', 'url']);
+const bh = C.postHtml(blog + '\n<img src=x onerror=alert(1)>');
+eq('미리보기: 말풍선·사진·링크 카드', [bh.includes('<div class="pv-bub">&quot;빠데로'), bh.includes('📷 사진 4</span><span class="pv-ph-k">고정 이미지'), bh.includes('<a class="pv-link" href="https://pf.kakao.com/x"')], [true, true, true]);
+eq('미리보기: 태그는 글자로', bh.includes('<img'), false);
+eq('붙여넣기: 사진 자리 글자 · 링크 라벨+주소', [C.pasteHtml(blog).includes('<p>[사진 1: 유형 02 시공전 — 외벽에'), C.pasteHtml(blog).includes('<p><b>카카오톡 상담</b><br><a href="https://pf.kakao.com/x">')], [true, true]);
+eq('편집기 글: 링크 = 라벨 줄 + 주소 줄', C.postPlain('[링크: 구매하기 → https://a.com/x]'), '구매하기\nhttps://a.com/x');
+const ck = C.blogCheck({ channel: 'naver_blog', body: blog, tags: Array.from({ length: 16 }, (_, i) => '#t' + i), title: '완벽한 균열 보수 10배' });
+eq('구조 검사: 항목별', Object.fromEntries(ck.items.map((x) => [x.k, x.level])), { greet: 'ok', thumb: 'ok', quotes: 'ok', early: 'ok', cta: 'ok', photos: 'warn', steps: 'ok', tags: 'ok', url: 'warn', risky: 'warn', nums: 'warn' });
+const ck2 = C.blogCheck({ channel: 'naver_blog', body: '안녕하세요 포어입니다\n' + '설명\n'.repeat(40) + '[링크: 구매 → https://a.com]', tags: ['#a'] });
+eq('구조 검사: 인사말·인용 없음·늦은 링크·태그 부족', ['greet', 'quotes', 'early', 'tags', 'photos'].map((k) => ck2.items.find((x) => x.k === k).level), ['bad', 'bad', 'bad', 'bad', 'bad']);
+eq('구조 검사: 블로그만', C.blogCheck({ channel: 'tistory', body: blog }), null);
 eq('표 칸 머리 이름(폰 카드용)', C.mdLite('| 제품 | 정가 |\n|---|---|\n| A | 1 |').includes('<td data-l="정가">1</td>'), true);
 eq('게시물 id', C.postId('mkt-ai-pori-2026-10-12-ab', 2), 'mkt-ai-pori-2026-10-12-ab~2');
 eq('임시저장 맡길 수 있는 채널 (지식인·인스타는 사람이 직접)', ['naver_blog','tistory','cafe','kin','insta','other'].map(C.canDraft), [true,true,true,false,false,false]);

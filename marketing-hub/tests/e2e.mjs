@@ -150,7 +150,7 @@ check('업무OS 확인할 것: 하자·안전 한 줄 (내용 없음)',await get
 const today=new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
 // 볼트 대신 임시 폴더에 노트 하나 (루틴이 쓴 것처럼) → team_link.py 가 검토 줄 + 본문을 올림
 const VAULT=mkdtempSync(join(tmpdir(),'vault-'));mkdirSync(join(VAULT,'03 작업'));
-writeFileSync(join(VAULT,'03 작업',`${today} 블로그 원고 3.md`),'---\n유형: 작업\n상태: 검토대기\n---\n# 시험 원고\n> 사진 자리는 유형 번호\n\n## 요청 내용\n- 주제 2\n\n## 결과물\n\n## 1. 겨울 전 옥상 균열 보수 — POUR스토어 · [[PS-S011 크랙 방수 세트]]\n**제목 A안**: 옥상 균열 보수 이유\n**제목 B안**: 균열 보수 순서\n\n[사진: 유형 02 시공전 — 금이 간 옥상]\n\n### 이렇게 합니다\n| 제품 | 정가 |\n|---|--:|\n| [[PS-S011 크랙 방수 세트|크랙 세트]] | 226,000 |\n\n- 바탕 정리\n- 균열 메우기 <b>굵게아님</b>\n\n**해시태그**: #옥상균열 #POUR스토어\n\n**썸네일 문구 3안**\n1. 겨울 전 필수\n\n## 2. 카페 — [[GH-P004 미끄럼방지 페인트]]\n> **카페 규정 확인 후 게시**\n**제목**: [정보] 현관 미끄럼 체크\n카페 본문\n> ⚠️ 검토 메모: 광고 표기\n\n## 3. 지식인 — 옥상 균열 질문 답변\n**제목**: 옥상 균열 셀프 보수 가능한가요?\n작은 균열은 셀프로 가능합니다.\n\n## 체크\n- [ ] 확인\n');
+writeFileSync(join(VAULT,'03 작업',`${today} 블로그 원고 3.md`),'---\n유형: 작업\n상태: 검토대기\n---\n# 시험 원고\n> 사진 자리는 유형 번호\n\n## 요청 내용\n- 주제 2\n\n## 결과물\n\n## 1. 겨울 전 옥상 균열 보수 — POUR스토어 · [[PS-S011 크랙 방수 세트]]\n**제목 A안**: 옥상 균열 보수 이유\n**제목 B안**: 균열 보수 순서\n\n[썸네일: 메인 「옥상 균열, 겨울 전에」 / 서브 「셀프 보수 순서」 / 구도: 금 간 옥상 바닥]\n> \"비 오면 천장에 얼룩이 생겨요.\"\n> \"작은 금도 막아야 하나요?\"\n\n[사진: 유형 02 시공전 — 금이 간 옥상]\n[링크: 크랙 방수 세트 구매하기 → https://www.pourstore.net]\n\n### 이렇게 합니다\n| 제품 | 정가 |\n|---|--:|\n| [[PS-S011 크랙 방수 세트|크랙 세트]] | 226,000 |\n\n- 바탕 정리\n- 균열 메우기 <b>굵게아님</b>\n\n**해시태그**: #옥상균열 #POUR스토어\n\n**썸네일 문구 3안**\n1. 겨울 전 필수\n\n## 2. 카페 — [[GH-P004 미끄럼방지 페인트]]\n> **카페 규정 확인 후 게시**\n**제목**: [정보] 현관 미끄럼 체크\n카페 본문\n> ⚠️ 검토 메모: 광고 표기\n\n## 3. 지식인 — 옥상 균열 질문 답변\n**제목**: 옥상 균열 셀프 보수 가능한가요?\n작은 균열은 셀프로 가능합니다.\n\n## 체크\n- [ ] 확인\n');
 const TL=(...a)=>execFileSync('python3',[process.env.TOOLS+'/team_link.py',...a],{env:{...process.env,MKT_VAULT:VAULT}}).toString().trim();
 log('  ',TL('open','포리','블로그 원고 3',`03 작업/${today} 블로그 원고 3.md`));
 for(const w of [1280,768,375]){
@@ -177,7 +177,9 @@ for(const w of [1280,768,375]){
     check('미리보기: 블로그·카페·지식인 3개 (채널 모양 · 제목 A안)',JSON.stringify(pvs)===JSON.stringify([['pv pv-naver_blog','옥상 균열 보수 이유'],['pv pv-cafe','[정보] 현관 미끄럼 체크'],['pv pv-kin','옥상 균열 셀프 보수 가능한가요?']]));
     check('모두 맡기기 = 임시저장 되는 2개만 · 지식인은 사람이 직접 등록',(await p.textContent('[data-pqall]')).includes('2개 모두')&&!(await p.$('#pv-3 [data-pq]'))&&(await p.textContent('#pv-3 .pv-st')).includes('사람이 직접 등록'));
     const pv1=await p.textContent('#pv-1');
-    check('미리보기: 사진 자리 칸 · 표 · 태그 · 태그는 글자 · 제목 줄 안 보임',(await p.$('#pv-1 .phb'))&&pv1.includes('#옥상균열')&&(await p.textContent('#pv-1 td[data-l="제품"]'))==='크랙 세트'&&pv1.includes('<b>굵게아님</b>')&&!pv1.includes('제목 A안'));
+    check('미리보기: 썸네일 시안 · 고객 말 말풍선 2 · 사진 번호 · 구매 링크 카드',(await p.textContent('#pv-1 .pv-thumb-in b'))==='옥상 균열, 겨울 전에'&&(await p.$$('#pv-1 .pv-bub')).length===2&&(await p.textContent('#pv-1 .pv-ph-n')).includes('사진 1')&&!!(await p.$('#pv-1 a.pv-link[href="https://www.pourstore.net"]')));
+    check('글 구조 검사: 블로그만 · 해시태그 부족 = 펼쳐 보임',(await p.$eval('#pv-1 .pv-chk',e=>e.open&&e.textContent.includes('해시태그 2개')))&&!(await p.$('#pv-2 .pv-chk')));
+    check('미리보기: 사진 자리 칸 · 표 · 태그 · 태그는 글자 · 제목 줄 안 보임',(await p.$('#pv-1 .pv-ph'))&&pv1.includes('#옥상균열')&&(await p.textContent('#pv-1 td[data-l="제품"]'))==='크랙 세트'&&pv1.includes('<b>굵게아님</b>')&&!pv1.includes('제목 A안'));
     check('카페: 규정 안내 · 내부 메모는 본문 밖',(await p.textContent('#pv-2 .pv-notice')).includes('카페 규정')&&!(await p.textContent('#pv-2 .pv-body')).includes('광고 표기'));
     check('작성 근거는 접혀 있음 · 원문 보기',(await p.$('#sheet details.meta:not([open])'))!==null);
     check('보기 375 넘침 없음',await p.evaluate(()=>document.querySelector('#sheet .box').getBoundingClientRect().width<=375&&document.querySelector('#sheet .sb').scrollWidth<=document.querySelector('#sheet .sb').clientWidth+1));

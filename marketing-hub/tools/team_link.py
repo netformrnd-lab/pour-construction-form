@@ -2,19 +2,32 @@
 # 사용:
 #   python3 team_link.py open <팀원 id|이름> "<한 일>" "<볼트 노트 경로>" [YYYY-MM-DD]
 #       예) python3 team_link.py open 포리 "블로그 원고 3" "03 작업/2026-10-12 블로그 원고 3.md"
-#   python3 team_link.py list          — 열린(검토 전) 줄 보기
-# 쓰는 곳: pour-app-new pour-os/v2/links/{id} (CRM 다리와 같은 모양 · 공개 규칙 pour-os/{doc=**} · 규칙 변경 없음)
-#   내용(원고)·원가·개인정보는 안 보냄 — 팀원 · 한 일 · 노트 경로(링크)만. 검토 끝 = 마케팅 허브 'AI 팀' [검토 끝]
+#       → 검토 줄을 열고, 볼트에 그 노트 파일이 있으면 본문도 올림(대시보드 [보기]로 바로 읽기 · 2026-10-11 사장님)
+#   python3 team_link.py list               — 열린(검토 전) 줄 보기
+#   python3 team_link.py feedback [일수=14] — 사장님이 대시보드 [보기]에서 남긴 메모 (팀원이 다음 작업 전에 읽음)
+# 쓰는 곳 (pour-app-new · 공개 규칙 pour-os/{doc=**} · 규칙 변경 없음):
+#   pour-os/v2/links/{id}                      — 검토 줄 (CRM 다리와 같은 모양 · 내용 없음 · 팀원 · 한 일 · 노트 경로)
+#   pour-os/marketing-hub/mkt-notes/{같은 id}   — 노트 본문(마크다운) + 사장님 메모 memo/memoAt/memoBy
+#     본문 = 게시할 원고(제품 판매가만 · 원가·제조사·개인정보는 볼트 규칙상 처음부터 없음). 보안 규칙 게시 뒤에도 이 공개 자리에 둠(루틴은 로그인이 없음)
+# 볼트 위치: 환경변수 MKT_VAULT (기본 /home/user/pour-marketing-vault)
 import sys, os, json, re, urllib.request, urllib.parse, datetime, hashlib
 KEY = 'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU'
 EMU = os.environ.get('FIRESTORE_EMULATOR_HOST')  # 시험(에뮬레이터)에서만 — 실제 DB 안 씀
-BASE = (f'http://{EMU}' if EMU else 'https://firestore.googleapis.com') + '/v1/projects/pour-app-new/databases/(default)/documents/pour-os/v2/links'
+DOCS = (f'http://{EMU}' if EMU else 'https://firestore.googleapis.com') + '/v1/projects/pour-app-new/databases/(default)/documents'
+BASE = DOCS + '/pour-os/v2/links'
+NOTES = DOCS + '/pour-os/marketing-hub/mkt-notes'
+VAULT = os.environ.get('MKT_VAULT', '/home/user/pour-marketing-vault')
+MAX_BODY = 800000  # Firestore 문서 1MB 한도 안
 TEAM = {'haru': '하루', 'pori': '포리', 'luna': '루나', 'teo': '테오', 'noa': '노아', 'tobi': '토비', 'moka': '모카', 'leo': '레오', 'kei': '케이',
         'daon': '다온', 'sora': '소라', 'roy': '로이', 'ria': '리아', 'jay': '제이', 'eco': '에코', 'nari': '나리', 'onyu': '온유'}  # core.js TEAM 과 같게
 
 def enc(v):
     if isinstance(v, bool): return {'booleanValue': v}
     return {'stringValue': str(v)}
+
+def dec(v):
+    k, x = next(iter(v.items()))
+    return x if k != 'nullValue' else None
 
 def member(x):
     for k, n in TEAM.items():
@@ -24,35 +37,67 @@ def member(x):
 def kst_today():
     return (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime('%Y-%m-%d')
 
+def now_iso():
+    return datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z')
+
+def patch(url, fields, mask=None):
+    q = '?key=' + KEY + (''.join('&updateMask.fieldPaths=' + urllib.parse.quote(m) for m in mask) if mask else '')
+    r = urllib.request.Request(url + q, method='PATCH', data=json.dumps({'fields': {k: enc(v) for k, v in fields.items()}}).encode(),
+                               headers={'Content-Type': 'application/json'})
+    urllib.request.urlopen(r).read()
+
+def run_query(collection_parent, cid, filters):
+    q = {'structuredQuery': {'from': [{'collectionId': cid}], 'where': filters}}
+    r = urllib.request.Request(collection_parent + ':runQuery?key=' + KEY, method='POST', data=json.dumps(q).encode(), headers={'Content-Type': 'application/json'})
+    return [x['document'] for x in json.loads(urllib.request.urlopen(r).read()) if 'document' in x]
+
 def open_link(who, what, note, date=None):
     mid, name = member(who)
     date = date or kst_today()
     if not re.match(r'^\d{4}-\d{2}-\d{2}$', date): sys.exit('날짜는 YYYY-MM-DD')
     h = hashlib.sha1((what + '|' + note).encode()).hexdigest()[:8]
     lid = f'mkt-ai-{mid}-{date}-{h}'
-    doc = {'src': 'mkt', 'kind': 'aiReview', 'member': mid, 'title': f'검토: {name} {what}'[:60], 'sub': note[:120], 'note': note,
+    title = f'검토: {name} {what}'[:60]
+    doc = {'src': 'mkt', 'kind': 'aiReview', 'member': mid, 'title': title, 'sub': note[:120], 'note': note,
            'date': date, 'time': '', 'owner': '', 'ownerOsId': '',
-           'url': 'https://pour-construction-form.pages.dev/marketing-hub/#team', 'open': True,  # 업무OS → 마케팅 허브 AI 팀(노트 열기·검토 끝)
-           'at': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z')}
-    r = urllib.request.Request(f'{BASE}/{lid}?key={KEY}', method='PATCH', data=json.dumps({'fields': {k: enc(v) for k, v in doc.items()}}).encode(),
-                               headers={'Content-Type': 'application/json'})
-    urllib.request.urlopen(r).read()
-    print('열림:', lid, '·', doc['title'])
+           'url': 'https://pour-construction-form.pages.dev/marketing-hub/#team', 'open': True,  # 업무OS → 마케팅 허브 AI 팀([보기]·검토 끝)
+           'at': now_iso()}
+    patch(f'{BASE}/{lid}', doc)
+    print('열림:', lid, '·', title)
+    p = os.path.join(VAULT, note)
+    if not os.path.isfile(p):
+        print('노트 파일 없음 → 본문 없이 검토 줄만:', p); return
+    body = open(p, encoding='utf-8').read()
+    if len(body.encode('utf-8')) > MAX_BODY: body = body.encode('utf-8')[:MAX_BODY].decode('utf-8', 'ignore') + '\n\n…(너무 길어 잘림 — 옵시디언에서 전체 보기)'
+    # 사장님 메모(memo·memoAt·memoBy)는 건드리지 않게 이 칸들만 씀
+    f = {'member': mid, 'title': title, 'note': note, 'date': date, 'body': body, 'at': now_iso()}
+    patch(f'{NOTES}/{lid}', f, mask=list(f))
+    print('본문 올림:', f'{len(body)}자 → 대시보드 [보기]')
 
 def list_open():
-    q = {'structuredQuery': {'from': [{'collectionId': 'links'}], 'where': {'compositeFilter': {'op': 'AND', 'filters': [
+    rows = run_query(DOCS + '/pour-os/v2', 'links', {'compositeFilter': {'op': 'AND', 'filters': [
         {'fieldFilter': {'field': {'fieldPath': 'src'}, 'op': 'EQUAL', 'value': enc('mkt')}},
-        {'fieldFilter': {'field': {'fieldPath': 'open'}, 'op': 'EQUAL', 'value': enc(True)}}]}}}}
-    url = BASE.rsplit('/links', 1)[0] + ':runQuery?key=' + KEY
-    r = urllib.request.Request(url, method='POST', data=json.dumps(q).encode(), headers={'Content-Type': 'application/json'})
-    rows = [x['document'] for x in json.loads(urllib.request.urlopen(r).read()) if 'document' in x]
+        {'fieldFilter': {'field': {'fieldPath': 'open'}, 'op': 'EQUAL', 'value': enc(True)}}]}})
     print(f'열린 줄 {len(rows)}건')
     for d in rows:
-        f = {k: list(v.values())[0] for k, v in d['fields'].items()}
+        f = {k: dec(v) for k, v in d['fields'].items()}
         print('-', f.get('date', ''), f.get('kind', ''), f.get('title', ''), '·', f.get('sub', ''))
+
+def feedback(days=14):
+    since = (datetime.datetime.utcnow() + datetime.timedelta(hours=9) - datetime.timedelta(days=days)).strftime('%Y-%m-%d')
+    rows = run_query(DOCS + '/pour-os/marketing-hub', 'mkt-notes', {'fieldFilter': {'field': {'fieldPath': 'date'}, 'op': 'GREATER_THAN_OR_EQUAL', 'value': enc(since)}})
+    rows = [{k: dec(v) for k, v in d['fields'].items()} for d in rows]
+    rows = [r for r in rows if (r.get('memo') or '').strip()]
+    rows.sort(key=lambda r: (r.get('date', ''), r.get('memoAt', '')))
+    print(f'사장님 메모 {len(rows)}건 (최근 {days}일 · 대시보드 [보기]에서 남김)')
+    for r in rows:
+        print(f"\n### {r.get('date', '')} {TEAM.get(r.get('member', ''), r.get('member', ''))} · {r.get('note', '')}")
+        print(f"({r.get('memoBy', '')} · {r.get('memoAt', '')})")
+        print(r.get('memo', '').strip())
 
 if __name__ == '__main__':
     a = sys.argv[1:]
     if a and a[0] == 'open' and len(a) >= 4: open_link(a[1], a[2], a[3], a[4] if len(a) > 4 else None)
     elif a and a[0] == 'list': list_open()
-    else: print(__doc__ or open(__file__, encoding='utf-8').read().split('import')[0])
+    elif a and a[0] == 'feedback': feedback(int(a[1]) if len(a) > 1 else 14)
+    else: print(open(__file__, encoding='utf-8').read().split('import')[0])

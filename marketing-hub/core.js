@@ -491,12 +491,63 @@
     return 'obsidian://open?' + (vault ? 'vault=' + encodeURIComponent(vault) + '&' : '') + 'file=' + encodeURIComponent(file);
   }
 
+  /* ── 노트 본문 보기 (대시보드 [보기] · 옵시디언 마크다운 → 안전한 HTML) ──
+     지원: 머리말(--- … ---)은 숨김 · # 제목 · 표 · 목록(- · 1. · 체크박스) · > 인용 · ``` 코드 · **굵게** · `코드` · [[링크|별칭]] · [글](http…) · [사진: …]
+     모든 글자는 먼저 escape → 스크립트·태그는 글자로만 보임 */
+  function mdLite(src) {
+    const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const inline = (t) => esc(t)
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+      .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '<span class="wl">$2</span>')
+      .replace(/\[\[([^\]]+)\]\]/g, '<span class="wl">$1</span>')
+      .replace(/\[사진:([^\]]*)\]/g, '<span class="ph">📷 사진:$1</span>')
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+    let lines = String(src == null ? '' : src).replace(/\r/g, '').split('\n');
+    if (lines[0] === '---') { const e = lines.indexOf('---', 1); if (e > 0) lines = lines.slice(e + 1); }
+    const out = []; let i = 0;
+    const P = '\u0001'; // 표 칸 안의 [[이름|별칭]] · \| 는 칸 나눔이 아님
+    const cells = (l) => l.replace(/\[\[[^\]]*\]\]/g, (w) => w.replace(/\\?\|/g, P)).replace(/\\\|/g, P).trim().replace(/^\||\|$/g, '').split('|')
+      .map((c) => c.trim().split(P).join('|'));
+    while (i < lines.length) {
+      const l = lines[i];
+      if (/^```/.test(l)) { const buf = []; i++; while (i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]); i++; out.push('<pre>' + esc(buf.join('\n')) + '</pre>'); continue; }
+      let m = l.match(/^(#{1,6})\s+(.*)$/);
+      if (m) { const n = Math.min(6, m[1].length + 1); out.push(`<h${n}>${inline(m[2])}</h${n}>`); i++; continue; }
+      if (/^\s*\|/.test(l)) {
+        const rows = []; while (i < lines.length && /^\s*\|/.test(lines[i])) rows.push(lines[i++]);
+        const body = rows.filter((r) => !(/^\s*\|?[\s:|-]+\|?\s*$/.test(r) && r.includes('-')));
+        const [h, ...rest] = body;
+        out.push('<div class="tbl"><table><thead><tr>' + (h ? cells(h).map((c) => `<th>${inline(c)}</th>`).join('') : '') + '</tr></thead><tbody>'
+          + rest.map((r) => '<tr>' + cells(r).map((c) => `<td>${inline(c)}</td>`).join('') + '</tr>').join('') + '</tbody></table></div>');
+        continue;
+      }
+      if (/^>\s?/.test(l)) { const buf = []; while (i < lines.length && /^>\s?/.test(lines[i])) buf.push(lines[i++].replace(/^>\s?/, '')); out.push('<blockquote>' + buf.map(inline).join('<br>') + '</blockquote>'); continue; }
+      if (/^\s*([-*]|\d+\.)\s+/.test(l)) {
+        const ol = /^\s*\d+\./.test(l), buf = [], same = ol ? /^\s*\d+\.\s+/ : /^\s*[-*]\s+/;
+        while (i < lines.length && same.test(lines[i])) {
+          let t = lines[i++].replace(/^\s*([-*]|\d+\.)\s+/, '');
+          const ck = t.match(/^\[([ xX])\]\s*(.*)$/);
+          buf.push(ck ? `<li class="ck">${ck[1].trim() ? '☑' : '☐'} ${inline(ck[2])}</li>` : `<li>${inline(t)}</li>`);
+        }
+        out.push(ol ? '<ol>' + buf.join('') + '</ol>' : '<ul>' + buf.join('') + '</ul>'); continue;
+      }
+      if (/^\s*(---|\*\*\*)\s*$/.test(l)) { out.push('<hr>'); i++; continue; }
+      if (!l.trim()) { i++; continue; }
+      const buf = []; while (i < lines.length && lines[i].trim() && !/^(#{1,6}\s|```|>|\s*\||\s*([-*]|\d+\.)\s+)/.test(lines[i])) buf.push(lines[i++]);
+      if (!buf.length) { buf.push(lines[i++]); }
+      out.push('<p>' + buf.map(inline).join('<br>') + '</p>');
+    }
+    return out.join('\n');
+  }
+
   const isAdminEmail = (email, roles) => !!email && (OWNER_EMAILS.includes(email) || ((roles && roles.admins) || []).includes(email));
   const isUploaderEmail = (email, roles) => !!email && ((roles && roles.uploaders) || []).includes(email);
   const isStaffEmail = (email, roles) => !!email && ((roles && roles.staffs) || []).includes(email); // 직원: 고객의 소리 입력만
 
   const api = { STORE_MODE, OPEN_ROOT, OWNER_EMAILS, storeMode, col, isAdminEmail, isUploaderEmail, isStaffEmail,
-    TEAM, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
+    mdLite, TEAM, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MktCore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

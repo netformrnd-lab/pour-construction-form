@@ -7,6 +7,7 @@ name: Firebase 사용량 (pour-app-new)
 # 계산 scripts/usage/core.mjs (시험 core.test.mjs · e2e.mjs) · 실행 scripts/usage/run.mjs
 # 시크릿: POUR_OS_FIREBASE_CLIENT_EMAIL · POUR_OS_FIREBASE_PRIVATE_KEY (규칙 배포와 같은 서비스 계정 · Google Cloud IAM 에서 '모니터링 뷰어' 역할 추가)
 #         ALERT_PHONE (문자 받을 휴대폰 번호) — 없으면 측정만 하고 알림 문자는 못 보냄(빨간 표시)
+#         OPS_TOKEN (아무 긴 글자 · Cloudflare Pages 환경변수 OPS_TOKEN 에도 같은 값) — /send-sms 서버 호출 허락
 # 문자는 같은 사이트 /send-sms (functions/send-sms.js · 솔라피 키는 Cloudflare Pages 환경변수)
 
 on:
@@ -43,6 +44,7 @@ jobs:
           SA_EMAIL: ${{ secrets.POUR_OS_FIREBASE_CLIENT_EMAIL }}
           SA_KEY: ${{ secrets.POUR_OS_FIREBASE_PRIVATE_KEY }}
           ALERT_PHONE: ${{ secrets.ALERT_PHONE }}
+          OPS_TOKEN: ${{ secrets.OPS_TOKEN }}   # /send-sms 는 우리 사이트가 아니면 이 토큰을 봄 (Cloudflare 환경변수 OPS_TOKEN 과 같은 값)
           ALERT_KRW: ${{ vars.USAGE_ALERT_KRW || '100000' }}
           FX: ${{ vars.USAGE_FX || '1400' }}
         run: node scripts/usage/run.mjs

@@ -1,5 +1,9 @@
 name: Firestore 자동 백업
 
+# ⚠️ 백업 위치 (2026-10-11): 이 저장소는 Cloudflare Pages 사이트와 연결돼 있어 브랜치마다 공개 미리보기 주소가 생김
+#    → 고객 정보가 든 백업을 이 저장소에 두면 저장소를 비공개로 바꿔도 새어 나갈 수 있음
+#    → 저장소 변수 BACKUP_REPO(사이트와 연결 안 된 비공개 저장소, 예: netformrnd-lab/pour-backups)가 있을 때만 돌고, 그 저장소에만 씀
+
 on:
   # 매일 자정 KST (UTC 15:00)
   schedule:
@@ -23,7 +27,7 @@ jobs:
     name: 프로덕션 Firestore 백업
     runs-on: ubuntu-latest
     # 스케줄 실행 시 항상 prod, 수동 실행 시 선택값 따름
-    if: github.event_name == 'schedule' || github.event.inputs.environment == 'production'
+    if: vars.BACKUP_REPO != '' && vars.BACKUP_REPO != github.repository && (github.event_name == 'schedule' || github.event.inputs.environment == 'production')
 
     steps:
       - name: 코드 체크아웃
@@ -47,7 +51,7 @@ jobs:
           FIREBASE_CLIENT_EMAIL: ${{ secrets.PROD_FIREBASE_CLIENT_EMAIL }}
           FIREBASE_PRIVATE_KEY: ${{ secrets.PROD_FIREBASE_PRIVATE_KEY }}
           GITHUB_TOKEN: ${{ secrets.BACKUP_GITHUB_TOKEN }}
-          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_REPO: ${{ vars.BACKUP_REPO }}
           BACKUP_COLLECTIONS: ${{ vars.BACKUP_COLLECTIONS || 'leads,leads-store,leads-grohome,leads-method,activities,site-resources,partner-companies' }}
         run: node firestore-backup.js
         working-directory: backup
@@ -64,7 +68,7 @@ jobs:
   backup-development:
     name: 개발 Firestore 백업
     runs-on: ubuntu-latest
-    if: github.event.inputs.environment == 'development'
+    if: vars.BACKUP_REPO != '' && vars.BACKUP_REPO != github.repository && github.event.inputs.environment == 'development'
 
     steps:
       - name: 코드 체크아웃
@@ -88,7 +92,7 @@ jobs:
           FIREBASE_CLIENT_EMAIL: ${{ secrets.DEV_FIREBASE_CLIENT_EMAIL }}
           FIREBASE_PRIVATE_KEY: ${{ secrets.DEV_FIREBASE_PRIVATE_KEY }}
           GITHUB_TOKEN: ${{ secrets.BACKUP_GITHUB_TOKEN }}
-          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_REPO: ${{ vars.BACKUP_REPO }}
           BACKUP_COLLECTIONS: ${{ vars.BACKUP_COLLECTIONS || 'leads,leads-store,leads-grohome' }}
         run: node firestore-backup.js
         working-directory: backup
@@ -97,13 +101,14 @@ jobs:
   cleanup-old-backups:
     name: 오래된 백업 정리
     runs-on: ubuntu-latest
-    # 매월 1일 자정에만 실행
-    if: github.event_name == 'schedule'
+    # 매월 1일 자정에만 실행 · 백업 저장소(BACKUP_REPO)에서
+    if: vars.BACKUP_REPO != '' && vars.BACKUP_REPO != github.repository && github.event_name == 'schedule'
 
     steps:
       - name: 코드 체크아웃
         uses: actions/checkout@v4
         with:
+          repository: ${{ vars.BACKUP_REPO }}
           ref: backup/firestore-snapshots
           fetch-depth: 0
           token: ${{ secrets.BACKUP_GITHUB_TOKEN }}

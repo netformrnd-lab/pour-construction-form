@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Firebase 사용량 · POUR</title>
+<!--
+  Firebase(pour-app-new) 사용량 · 예상 요금 (사용자 결정 2026-10-11 "매일 한도 측정 보게 하고 매주 보고 · 10만 원 넘으면 문자")
+  · 데이터: pour-os/v2/usage/pour-app-new (GitHub Actions firebase-usage.yml 이 3시간마다 씀 · 계산 scripts/usage/core.mjs)
+  · 이 화면은 그 문서 하나만 읽음(로그인 없음 · 쓰기 없음)
+-->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{--navy:#0D1B2A;--accent:#2563EB;--accent-l:#EFF6FF;--green:#059669;--green-l:#ECFDF5;--red:#DC2626;--red-l:#FEF2F2;--gold:#D97706;--gold-l:#FFFBEB;
+  --text:#111827;--text-md:#4B5563;--text-sm:#9CA3AF;--bg:#F9FAFB;--card:#fff;--border:#E5E7EB;--r:12px;--r-sm:8px}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Pretendard,-apple-system,system-ui,'Segoe UI',sans-serif;font-size:15px}
+header{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px}
+header b{font-size:16px;white-space:nowrap}header .sub{font-size:12px;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+header button{margin-left:auto;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:var(--r-sm);padding:6px 10px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+main{max-width:960px;margin:0 auto;padding:16px}
+.when{font-size:13px;color:var(--text-md);margin:0 0 12px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;min-width:0}
+.card h3{margin:0 0 4px;font-size:14px}.card .hint{font-size:12px;color:var(--text-sm);margin:0 0 12px}
+.big{font-size:28px;font-weight:800;letter-spacing:-.5px}.big small{font-size:15px;font-weight:700;margin-left:2px}
+.line{font-size:13px;color:var(--text-md);margin-top:6px;line-height:1.6}
+.meter{margin:10px 0 0}.meter .t{display:flex;justify-content:space-between;font-size:13px;gap:8px}.meter .t b{font-weight:800}
+.bar{height:8px;background:#F3F4F6;border-radius:4px;margin-top:5px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.meter.over .bar i{background:var(--red)}.meter.over .t span{color:var(--red);font-weight:700}
+.pill{display:inline-block;font-size:11px;font-weight:800;border-radius:20px;padding:2px 9px;background:#F3F4F6;color:var(--text-md)}
+.pill.ok{background:var(--green-l);color:var(--green)}.pill.err{background:var(--red-l);color:var(--red)}.pill.wait{background:var(--gold-l);color:var(--gold)}
+.chart{position:relative;margin-top:4px}.chart svg{display:block;max-width:100%}
+.tip{position:absolute;pointer-events:none;background:var(--navy);color:#fff;font-size:12px;line-height:1.5;border-radius:var(--r-sm);padding:7px 10px;white-space:nowrap;transform:translate(-50%,-100%);display:none;z-index:2}
+.legend{font-size:12px;color:var(--text-md);display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:320px}
+th,td{padding:8px 6px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left}
+th{color:var(--text-md);font-weight:700;background:#F9FAFB}tr.over td.r{color:var(--red);font-weight:700}
+.tag{display:inline-block;font-size:10.5px;font-weight:800;border-radius:10px;padding:1px 6px;margin-left:4px;background:#F3F4F6;color:var(--text-md);vertical-align:1px}.tag.over{background:var(--red-l);color:var(--red)}
+.more{margin-top:10px;width:100%;border:1px solid var(--border);background:#fff;border-radius:var(--r-sm);padding:9px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--text-md)}
+details summary{cursor:pointer;font-weight:700;font-size:14px}details p,details li{font-size:13px;color:var(--text-md);line-height:1.7}
+.msg{border-radius:var(--r);padding:16px;margin-bottom:12px;font-size:14px;line-height:1.7}
+.msg.err{background:var(--red-l);color:var(--red)}.msg.wait{background:var(--gold-l);color:#92400E}.msg b{display:block;font-size:15px;margin-bottom:2px}
+.empty{color:var(--text-sm);text-align:center;padding:40px 0}
+@media (max-width:900px){.grid{grid-template-columns:1fr 1fr}.grid .wide{grid-column:1/-1}}
+@media (max-width:700px){main{padding:12px}.grid{grid-template-columns:1fr;gap:10px}.card{padding:14px}.big{font-size:26px}header .sub{display:none}}
+</style>
+</head>
+<body>
+<header><b>Firebase 사용량</b><span class="sub">pour-app-new · 업무OS · 마케팅 허브 · 그로홈 같이 씀</span><button type="button" id="reload">새로 보기</button></header>
+<main id="app"><div class="empty">불러오는 중…</div></main>
+<script>
+'use strict';
+const API_KEY='AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU';
+const DOC_URL=`https://firestore.googleapis.com/v1/projects/pour-app-new/databases/(default)/documents/pour-os/v2/usage/pour-app-new?key=${API_KEY}`;
+const SRC=(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&new URLSearchParams(location.search).get('src'))||DOC_URL; // 시험(로컬)에서만 바꿈
+const $=(id)=>document.getElementById(id);
+const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const n0=(v)=>Math.round(Number(v)||0).toLocaleString('ko-KR');
+const md=(d)=>d?`${Number(d.slice(5,7))}/${Number(d.slice(8,10))}`:'';
+const WD=['일','월','화','수','목','금','토'];
+const mdw=(d)=>d?`${md(d)}(${WD[new Date(d+'T12:00:00Z').getUTCDay()]})`:'';
+const when=(iso)=>{if(!iso)return '';const t=new Date(iso);return t.toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});};
+function fsDec(v){if(!v||typeof v!=='object')return null;if('nullValue' in v)return null;if('booleanValue' in v)return v.booleanValue;if('integerValue' in v)return Number(v.integerValue);
+  if('doubleValue' in v)return Number(v.doubleValue);if('stringValue' in v)return v.stringValue;if('timestampValue' in v)return v.timestampValue;
+  if('arrayValue' in v)return (v.arrayValue.values||[]).map(fsDec);if('mapValue' in v)return Object.fromEntries(Object.entries(v.mapValue.fields||{}).map(([k,x])=>[k,fsDec(x)]));return null;}
+
+async function load(){
+  $('app').innerHTML='<div class="empty">불러오는 중…</div>';
+  try{
+    const r=await fetch(SRC,{cache:'no-store'});
+    if(r.status===404){render404();return;}
+    if(r.status===429){renderMsg('wait','오늘 무료 읽기 한도를 다 써서 지금은 못 불러와요','한국 시간 16시(11월~3월은 17시)에 한도가 다시 채워지면 보여요. Blaze 요금제로 바꾸면 이 막힘이 없어져요.');return;}
+    const j=await r.json();
+    if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
+    const doc=fsDec({mapValue:{fields:j.fields||{}}});
+    console.log('[usage] 문서 읽음 · 날 '+((doc.days||[]).length)+'개');
+    render(doc);
+  }catch(e){console.error('[usage] 불러오기 실패',e);renderMsg('err','불러오기 실패',e.message);}
+}
+function renderMsg(c,t,s){$('app').innerHTML=`<div class="msg ${c}"><b>${esc(t)}</b>${esc(s)}</div>`;}
+function render404(){
+  $('app').innerHTML=`<div class="msg wait"><b>아직 측정 전이에요</b>GitHub 에 서비스 계정 키를 등록하고 Google Cloud 에서 '모니터링 뷰어' 역할을 주면, 3시간 안에 첫 측정이 여기에 보여요.</div>`;
+}
+function meter(label,v,free){
+  const pct=free?v/free*100:0, over=v>free;
+  return `<div class="meter${over?' over':''}"><div class="t"><span>${label}${over?' · 한도 넘음':''}</span><b>${n0(v)} <small style="font-weight:600;color:var(--text-sm)">/ ${n0(free)}</small></b></div>
+    <div class="bar" role="img" aria-label="${label} ${Math.round(pct)}%"><i style="width:${Math.min(100,pct).toFixed(1)}%"></i></div></div>`;
+}
+function render(doc){
+  const F=doc.free||{r:50000,w:20000,x:20000}, t=doc.today||{}, m=doc.month||{}, w=doc.week, alertKrw=doc.alertKrw||100000;
+  const alert=(doc.alerts||{})[m.ym], wk=Object.entries(doc.weekly||{}).sort(([a],[b])=>a.localeCompare(b)).pop();
+  const errs=Object.entries(doc.errors||{});
+  const over=(d)=>d.r>F.r||d.w>F.w||d.x>F.x;
+  const days=(doc.days||[]).slice(-30);
+  $('app').innerHTML=`
+    <p class="when">측정 ${esc(when(doc.at))} · 3시간마다 새로 재요 · 하루는 한국 16시(11월~3월 17시)에 바뀜</p>
+    ${errs.length?`<div class="msg err"><b>못 읽은 항목이 있어요</b>${errs.map(([k,v])=>esc(({r:'읽기',w:'쓰기',x:'삭제',sb:'저장 용량',eg:'내려받기'}[k]||k)+': '+v)).join('<br>')}</div>`:''}
+    <div class="grid">
+      <div class="card"><h3>오늘 (진행 중)</h3><p class="hint">무료 한도 = 하루마다 다시 채워짐</p>
+        ${meter('읽기',t.r||0,F.r)}${meter('쓰기',t.w||0,F.w)}${meter('삭제',t.x||0,F.x)}</div>
+      <div class="card"><h3>이번 달 예상 요금</h3><p class="hint">Blaze 기준 · 무료 한도 넘은 만큼만</p>
+        <div class="big">${n0(m.krw)}<small>원</small></div>
+        <div class="line">${esc(md(m.from))}~${esc(md(t.d))} · 이 속도면 월말 <b>${n0(m.forecastKrw)}원</b></div>
+        <div class="line">${n0(alertKrw)}원 넘으면 문자 · ${alert&&alert.sent?`<span class="pill err">${esc(when(alert.at))} 보냄</span>`:doc.phoneSet?'<span class="pill ok">받을 번호 등록됨</span>':'<span class="pill wait">받을 번호 없음</span>'}</div></div>
+      <div class="card wide"><h3>지난 7일</h3><p class="hint">${w?`${esc(mdw(w.from))} ~ ${esc(mdw(w.to))}`:'아직 하루치가 다 모이지 않았어요'}</p>
+        ${w?`<div class="line">읽기 하루 평균 <b>${n0(w.avgR)}</b> · 최대 ${n0(w.maxR)}</div><div class="line">쓰기 하루 평균 <b>${n0(w.avgW)}</b></div>
+        <div class="line">무료 한도 넘은 날 <b>${w.overDays}일</b> · 예상 ${n0(w.krw)}원</div>`:''}
+        <div class="line">주간 보고 문자 = 월요일 9시 ${wk?(wk[1].sent?`<span class="pill ok">${esc(md(wk[0]))} 보냄</span>`:`<span class="pill err">${esc(md(wk[0]))} 못 보냄</span>`):''}</div></div>
+    </div>
+    <div class="card" style="margin-bottom:12px"><h3>하루 읽기 · 최근 ${days.length}일</h3><p class="hint">점선 = 무료 한도 ${n0(F.r)} · 막대를 누르면 숫자</p>
+      <div class="chart" id="chart"><div class="svgw"></div><div class="tip" id="tip"></div></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>한도 안</span><span><i style="background:var(--red)"></i>한도 넘음</span><span><i style="background:var(--accent);opacity:.45"></i>오늘(진행 중)</span></div></div>
+    <div class="card" style="margin-bottom:12px"><h3>날짜별</h3><p class="hint">최근 것 먼저 · 넘음 = 무료 한도 넘은 날 · 요금 = Blaze 기준 예상 · 삭제 ${n0((doc.days||[]).reduce((a,d)=>a+d.x,0))}건(전체)</p>
+      <div class="tw"><table><thead><tr><th>날짜</th><th>읽기</th><th>쓰기</th><th>요금</th></tr></thead><tbody id="rows"></tbody></table></div>
+      <button type="button" class="more" id="more-days" hidden></button></div>
+    <div class="card"><details><summary>어떻게 계산하나요</summary>
+      <ul>
+        <li>Google Cloud Monitoring 에서 Firestore 읽기·쓰기·삭제 수와 Storage 용량·내려받기를 3시간마다 가져와요.</li>
+        <li>Firestore: 하루 무료(읽기 ${n0(F.r)} · 쓰기 ${n0(F.w)} · 삭제 ${n0(F.x)})를 넘은 만큼 × 10만 건당 읽기 $${(doc.price||{}).r} · 쓰기 $${(doc.price||{}).w} · 삭제 $${(doc.price||{}).x} (넉넉하게 잡은 값)</li>
+        <li>Storage: 저장 GB당 월 $${(doc.price||{}).gbMonth} · 내려받기 GB당 $${(doc.price||{}).egressGb} (무료분 빼지 않음)</li>
+        <li>환율 1달러 = ${n0(doc.fx||1400)}원. 실제 청구 금액은 Google Cloud 결제 화면이 정답이에요.</li>
+        <li>Spark(무료) 요금제에서는 돈이 나가지 않고 한도를 넘으면 그날 막혀요. 위 금액은 'Blaze였다면'이에요.</li>
+      </ul></details></div>`;
+  // 날짜별: 처음 14일 · [모두 보기]
+  const all=(doc.days||[]).slice().reverse(),row=(d)=>`<tr class="${over(d)?'over':''}"><td>${esc(mdw(d.d))}${d.today?'<span class="tag">오늘</span>':''}${over(d)?'<span class="tag over">넘음</span>':''}</td><td class="r">${n0(d.r)}</td><td>${n0(d.w)}</td><td>${n0(d.krw)}원</td></tr>`;
+  const fill=(n)=>{$('rows').innerHTML=all.slice(0,n).map(row).join('');const b=$('more-days');b.hidden=all.length<=n;b.textContent=`${all.length}일 모두 보기`;};
+  fill(14);$('more-days').onclick=()=>fill(all.length);
+  drawChart(days,F);
+}
+// 막대는 칸 너비 그대로 그림(글자가 작아지지 않게) · 화면 폭이 바뀌면 다시
+let CH=null;
+function drawChart(days,F){CH={days,F};const box=$('chart');if(!box)return;box.querySelector('.svgw').innerHTML=chart(days,F,Math.max(260,Math.floor(box.clientWidth)));bindChart(days,F);}
+let rzT=0;window.addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(()=>{if(CH)drawChart(CH.days,CH.F);},150);});
+// 하루 읽기 막대 — 한 계열(이름은 제목) · 무료 한도 점선 · 한도 넘은 날 빨강(+표·알림글) · 오늘은 옅게
+function chart(days,F,W){
+  if(!days.length)return '<div class="empty">아직 기록이 없어요</div>';
+  const H=W<480?170:200,L=34,R=4,T=14,B=22,max=Math.max(F.r*1.25,...days.map((d)=>d.r))*1.06;
+  const y=(v)=>T+(H-T-B)*(1-v/max),step=(W-L-R)/days.length,bw=Math.max(2,Math.min(18,step-2));
+  const yq=y(F.r),top=Math.floor(max/1e4)*1e4,ticks=[0,F.r,top].filter((v,i,a)=>a.indexOf(v)===i&&(v===0||v===F.r||Math.abs(y(v)-yq)>16));
+  const kfmt=(v)=>v>=1e4?(+(v/1e4).toFixed(1))+'만':String(v);
+  let s=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="최근 ${days.length}일 하루 읽기">`;
+  for(const v of ticks)s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#F3F4F6"/><text x="${L-5}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="#9CA3AF">${kfmt(v)}</text>`;
+  days.forEach((d,i)=>{
+    const x=L+i*step+(step-bw)/2,tp=y(d.r),h=Math.max(0,H-B-tp),rr=Math.min(4,bw/2,h);
+    const c=d.r>F.r?'#DC2626':'#2563EB',op=d.today?.45:1;
+    if(h>0)s+=`<path d="M${x},${H-B}V${tp+rr}Q${x},${tp} ${x+rr},${tp}H${x+bw-rr}Q${x+bw},${tp} ${x+bw},${tp+rr}V${H-B}Z" fill="${c}" opacity="${op}"/>`;
+    s+=`<rect class="hit" data-i="${i}" x="${L+i*step}" y="${T}" width="${step}" height="${H-B-T}" fill="transparent"/>`;
+  });
+  s+=`<line x1="${L}" x2="${W-R}" y1="${yq}" y2="${yq}" stroke="#111827" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+  s+=`<text x="${L+4}" y="${yq-5}" font-size="11" font-weight="700" fill="#111827" stroke="#fff" stroke-width="3" paint-order="stroke">무료 한도 ${kfmt(F.r)}</text>`;
+  const lab=[0,Math.floor((days.length-1)/2),days.length-1].filter((v,i,a)=>a.indexOf(v)===i);
+  lab.forEach((i,k)=>{const anc=k===0?'start':k===lab.length-1?'end':'middle',x=k===0?L+i*step:k===lab.length-1?L+(i+1)*step:L+i*step+step/2;s+=`<text x="${x}" y="${H-6}" text-anchor="${anc}" font-size="11" fill="#9CA3AF">${md(days[i].d)}</text>`;});
+  return s+'</svg>';
+}
+function bindChart(days,F){
+  const box=$('chart'),tip=$('tip');if(!box||!tip)return;
+  const show=(e)=>{const h=e.target.closest('.hit');if(!h){tip.style.display='none';return;}
+    const d=days[Number(h.dataset.i)],br=box.getBoundingClientRect(),hr=h.getBoundingClientRect();
+    tip.innerHTML=`<b>${esc(mdw(d.d))}${d.today?' · 진행 중':''}</b><br>읽기 ${n0(d.r)} · 쓰기 ${n0(d.w)}<br>예상 ${n0(d.krw)}원${d.r>F.r?' · 한도 넘음':''}`;
+    tip.style.display='block';const x=Math.min(Math.max(hr.left-br.left+hr.width/2,70),br.width-70);tip.style.left=x+'px';tip.style.top=(hr.top-br.top+8)+'px';};
+  box.addEventListener('mousemove',show);box.addEventListener('click',show);box.addEventListener('mouseleave',()=>{tip.style.display='none';});
+}
+$('reload').onclick=load;
+load();
+</script>
+</body>
+</html>

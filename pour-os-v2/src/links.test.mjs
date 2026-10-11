@@ -35,5 +35,7 @@ ok("마케팅 허브: AI 검토 · 고객의 소리 (담당 없음 → 마스터
   assert.ok(a && a.tag === "AI 검토" && a.whoName === "마케팅 허브" && !a.red);
   const v = linkInbox([L({ id: "mkt-voc-1", src: "mkt", kind: "voc", title: "실리콘 하자·안전", sub: "고객의 소리 · 바로 확인", owner: "", date: "2026-10-12", time: "" })], users, "minji", "2026-10-12");
   assert.equal(v.length, 0);
+  const p = linkInbox([L({ id: "mkt-pub-mkt_ai_pori_2026_10_12_x_1", src: "mkt", kind: "publish", title: "발행: 네이버 블로그 — 옥상 누수 셀프 방수", sub: "임시저장됨 · 앱에서 사진 넣고 발행", owner: "", date: "2026-10-12", time: "", url: "https://pour-construction-form.pages.dev/marketing-hub/#team" })], users, "songhee", "2026-10-12")[0];
+  assert.ok(p && p.tag === "발행" && p.whoName === "마케팅 허브" && !p.red);
 });
 console.log(`${n}개 모두 통과`);

@@ -24,7 +24,7 @@ html,body{margin:0;background:var(--bg);color:var(--text);font-family:Pretendard
 header{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px}
 header b{font-size:16px;white-space:nowrap}
 header .who{margin-left:auto;font-size:12px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:45vw}
-header button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:var(--r-sm);padding:6px 10px;font-size:12px;cursor:pointer}
+header a,header button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:var(--r-sm);padding:6px 10px;font-size:12px;cursor:pointer;font-family:inherit;text-decoration:none;white-space:nowrap}
 main{max-width:720px;margin:0 auto;padding:16px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px}
 label{display:block;font-size:13px;font-weight:700;color:var(--text-md);margin:0 0 6px}
@@ -52,12 +52,14 @@ th,td{padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap;t
 th{background:#F3F4F6}
 #login-error{color:var(--red);font-weight:700;font-size:14px;min-height:1em}
 @media (max-width:700px){main{padding:12px}.row2{grid-template-columns:1fr}.card{padding:14px}}
+@media (max-width:420px){header .who{display:none}}
 </style>
 </head>
 <body>
 <header>
   <b>📥 리포트 올리기</b>
   <span class="who" id="who"></span>
+  <a href="drafts.html" id="go-drafts" hidden>임시저장 작업대</a>
   <button type="button" id="logout-button" aria-label="로그아웃" hidden>로그아웃</button>
 </header>
 <main>
@@ -115,7 +117,7 @@ $('report-date').value=C.yesterdayKST();
 /* 로그인 */
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e=>console.error('[auth] persistence',e));
 auth.onAuthStateChanged(async u=>{
-  $('login-section').hidden=!!u; $('upload-section').hidden=!u; $('logout-button').hidden=!u;
+  $('login-section').hidden=!!u; $('upload-section').hidden=!u; $('logout-button').hidden=!u; $('go-drafts').hidden=!u;
   $('who').textContent=u?u.email:'';
   if(u&&MODE==='open'){ // 직원(고객의 소리만)은 고객의 소리 화면으로 · 잠긴 저장소에선 역할을 못 읽으므로 직원은 voc.html 주소로 바로 들어감
     try{const rd=await C.col(db,'mkt-access','open').doc('roles').get(), r=rd.exists?rd.data():{};

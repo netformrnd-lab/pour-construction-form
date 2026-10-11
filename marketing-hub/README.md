@@ -8,6 +8,7 @@
 | 대시보드 | https://pour-construction-form.pages.dev/marketing-hub/ | 관리자 (대표 + 계정 탭에서 등록한 관리자) |
 | 리포트 올리기 | https://pour-construction-form.pages.dev/marketing-hub/upload.html | Aside 전용 계정 (업로더) |
 | 고객의 소리 | https://pour-construction-form.pages.dev/marketing-hub/voc.html | 직원 (CS·전화 받는 사람 · 쓰기만) |
+| 임시저장 작업대 | https://pour-construction-form.pages.dev/marketing-hub/drafts.html | Aside 전용 계정 (업로더) · 관리자 |
 
 업로더 계정이 대시보드 주소로 들어오면 자동으로 올리기 화면으로 보낸다(직원은 임시 저장소 기간엔 고객의 소리 화면으로 · 잠긴 뒤엔 voc.html 주소로 바로). 실제 차단은 보안 규칙이 한다.
 
@@ -40,7 +41,10 @@
 | `mkt-settings/main` | 리드타임·안전재고·ROAS 기준 등 | 관리자 |
 | `mkt-voc/{자동}` | 고객의 소리 `{product, type(불만/문의/요청/칭찬/하자·안전), source, text(개인정보 가림), masked, urgent, date, by, byEmail, createdAt, resolved}` | 직원·관리자 **새로 만들기만**(직원) · 읽기/끝남 표시는 관리자 |
 | `mkt-team/{팀원 id}` | AI 팀 검토 기록 `{lastDate, lastTitle, lastNote, reviewed}` | 관리자 |
-| `pour-os/v2/links/mkt-*` | 업무OS '확인할 것' 한 줄 (src `mkt` · kind `aiReview`/`voc` · **내용·개인정보 없음**) | 공개 규칙(업무OS 다리 · CRM 다리와 같은 곳) |
+| `pour-os/v2/links/mkt-*` | 업무OS '확인할 것' 한 줄 (src `mkt` · kind `aiReview`/`voc`/`publish`(발행) · **내용·개인정보 없음**) | 공개 규칙(업무OS 다리 · CRM 다리와 같은 곳) |
+| `pour-os/marketing-hub/mkt-notes/{검토 줄 id}` | AI 팀원 노트 본문(마크다운) + 대표 메모 `memo/memoAt/memoBy` | 늘 공개 자리(루틴은 로그인 없음 · 게시할 원고라 원가·개인정보 없음) |
+| `pour-os/marketing-hub/mkt-posts/{노트 id}~{n}` | 게시할 글 한 편 `{noteId, n, member, date, channel, heading, title, titleB, tags, thumbs, notice, body, plain, products, brand, status, failNote, url, queuedBy/At, draftBy/At, publishedBy/At}` · status `queued`(Aside 대기) → `draft`(임시저장됨) → `published`(사람이 발행) · `failed` · `canceled` | 늘 공개 자리 |
+| `pour-os/marketing-hub/mkt-config/channels` | 채널 글쓰기 주소 `{naver_blog, tistory, cafe(줄마다 "이름\|주소")}` | 늘 공개 자리 |
 | `mkt-products/{상품코드}` | (예정) 제품 87개 마스터 · 옵시디언 `제품코드`와 같게 | 관리자 |
 
 - **같은 날짜·채널을 다시 올리면 그날 데이터를 통째로 바꾼다.** 같은 ID는 덮어쓰고, 새 리포트에 없는 줄은 지운다. 루틴이 두 번 돌아도 중복이 생기지 않는다.
@@ -99,6 +103,40 @@
   - 직원 계정 = 계정 탭 역할 '직원'. 직원은 쓰기만(읽기·숫자·원가 못 봄). 제품 목록은 그 기기에서 전에 쓴 제품.
   - 온유(매일 18:00)는 `05 오늘 숫자` 노트의 '🗣 고객의 소리' 칸(최근 7일 · 급함 · 표)과 [📋 온유에게 줄 표 복사]로 받는다.
 
+## 게시는 사람만 · Aside 는 임시저장까지 (사용자 결정 2026-10-11)
+> "실행자들은 실제 올리기 전 화면처럼 예시화면으로 보여주고, 어사이드로 임시저장으로 글 작성 세팅해놓으면 사람이 들어가서 게시버튼 누르는 여정으로 · 다른 것들도 마찬가지로 실제 게시는 사람이 해야해"
+
+**AI 팀원·Aside 는 글을 만들고 채널에 임시저장까지만 한다. 발행·등록·전송·답글 게시는 늘 사람이 누른다** (블로그·카페·지식인·인스타·댓글·DM·메일·리뷰 답글 모두).
+
+여정
+1. 팀원 루틴이 볼트 `03 작업`에 노트 → `team_link.py open` → 대시보드 AI 팀 '검토 대기' + 업무OS 'AI 검토'
+2. 대표: [📄 보기] → **미리보기**(채널 화면처럼: 네이버 블로그 초록 · 티스토리 · 카페 · 제목/본문/태그/사진 자리) · [원문]은 마크다운 그대로 · 작성 근거·요청 내용은 접힘
+3. 글마다 **[📝 임시저장 맡기기]**(또는 'n개 모두 맡기기') → `mkt-posts` status `queued` · 고칠 점은 아래 메모 → 팀원이 다음에 반영
+4. Aside(PC): `drafts.html` → 맨 위 글 [열기] → [글쓰기 열기 ↗] → 제목·본문·태그 붙여 넣기 → 채널에서 **임시저장만** → [✅ 임시저장 완료]
+   → status `draft` + 업무OS '확인할 것'에 **발행** 한 줄
+5. 사람: 채널 앱 › 임시저장 글 → `[사진: …]` 자리에 사진 → **발행** → 대시보드 그 글 [✅ 발행 완료](주소 선택) → 업무OS 줄 닫힘
+- 미리보기가 글을 알아보는 모양(포리·에코 노트 규칙 = 볼트 `CLAUDE.md` '게시 글 모양'): `##`/`###` 제목 바로 아래 `**제목 A안**:`·`**제목 B안**:` 또는 `**제목**:` 줄이 있으면 한 편 · 채널 = 제목의 블로그/티스토리/카페/인스타/지식인 또는 `**채널**:` 줄 · `**해시태그**:` · `**썸네일…**` 아래 목록 · `> 카페 규정…` = 게시 전 확인 띠 · `> ⚠️`/`> 검토`/`> 메모` = 내부 메모(본문에서 뺌)
+- 계산은 `core.js` `noteParts · parsePosts · postPlain`(시험 `core.test.mjs`)
+
+### Aside 임시저장 루틴 (drafts.html · 고정 id)
+- 로그인 `#login-email` `#login-password` `#login-button` · 맡긴 글 `#queue-list .post-row[data-post-id]` · 열기 `#open-1`(맨 위) …
+- 글 화면 `#post-detail` · 채널 `#post-channel` · 글쓰기 링크 `#post-write-links #write-link`(카페는 카페마다 하나) · 게시 전 확인 `#post-notice`
+- `#post-title`+`#copy-title` · `#post-body`+`#copy-body`(서식 같이) · `#post-tags`+`#copy-tags`
+- `#mark-draft`(✅ 임시저장 완료) · `#fail-note`+`#mark-failed`(못 함 + 이유) · `#back-to-list` · 결과 `#status-message`(늘 `완료:`/`실패:`로 시작)
+- 맡긴 글 = `queued` 만. 못 한 글(`failed`)은 Aside 가 다시 하지 않고, 사람이 대시보드에서 [다시 맡기기]
+```
+[루틴 4: 글 임시저장] 평일 09:00 (팀원 결과 검토 뒤)
+1. https://pour-construction-form.pages.dev/marketing-hub/drafts.html 을 연다. 로그인 화면이면 Aside 전용 계정.
+2. 맡긴 글이 없으면 종료. 있으면 #open-1 [열기].
+3. [글쓰기 열기 ↗] → 채널 글쓰기 화면(회사 계정으로 로그인돼 있어야 함).
+4. 제목 · 본문 · 태그를 붙여 넣는다. 본문의 [사진: …] 글자는 그대로 둔다.
+5. 채널의 "임시저장"(저장) 버튼만 누른다. 발행·등록·공개·예약발행 버튼은 절대 누르지 않는다.
+6. 작업대로 돌아와 [✅ 임시저장 완료]. 못 했으면 #fail-note 에 이유 → [임시저장 못 함].
+7. 맡긴 글이 남아 있으면 2부터 반복.
+절대 하지 말 것: 발행·등록·전송·댓글·답글 게시, 채널 설정 변경, 결제.
+```
+- 채널 글쓰기 주소는 대시보드 설정 › **게시 채널**(네이버 블로그 · 티스토리 · 카페 목록)
+
 ## 옵시디언 연결 (2026-10-08)
 - 옵시디언 볼트 원본은 **비공개 저장소 `netformrnd-lab/pour-marketing-vault`**에 있습니다(2026-10-09 이동). 이 공개 저장소의 `obsidian/` 폴더는 사이트에서 열리는 곳이라 지웠습니다. 폰·PC 옵시디언은 Git 플러그인으로 그 저장소와 동기화하고, Claude도 그 저장소를 직접 읽고 씁니다(규칙: 그 저장소 `CLAUDE.md`).
 - **대시보드 → 옵시디언, 한 방향**으로 연결합니다. `obsidian://new` 링크 한 번이면 폰·PC 모두 됩니다. 서버나 비밀번호는 필요 없습니다.
@@ -111,7 +149,7 @@
 ## 시험 (실제 DB 안 씀)
 - 계산: `node marketing-hub/core.test.mjs`
 - 보안 규칙: `tests/rules.test.mjs`. 에뮬레이터에서 업로더/직원/관리자/미등록/비로그인 53개를 검사한다.
-- 화면: `tests/e2e.mjs`. 계정 만들기 → 5종 업로드 → 정리 → 재업로드 시 중복 없음, 375·768·1280px 가로 넘침 없음. 직원 계정 → voc.html 쓰기(번호 가림 · 하자·안전 업무OS 한 줄) → 대표 고객의 소리·AI 팀(team_link.py 로 한 줄 → 검토 끝) 375·768·1280. 이어서 잠긴 저장소로 옮기기와 옮긴 뒤 업로드·고객의 소리까지 확인합니다. 실행 때 `TOOLS=<저장소>/marketing-hub/tools`.
+- 화면: `tests/e2e.mjs`. 계정 만들기 → 5종 업로드 → 정리 → 재업로드 시 중복 없음, 375·768·1280px 가로 넘침 없음. AI 팀 [📄 보기] 미리보기(블로그·카페) → [임시저장 맡기기] → drafts.html(375·1280) [임시저장 완료] → 업무OS '발행' 줄 → [✅ 발행 완료] → 줄 닫힘. 직원 계정 → voc.html 쓰기(번호 가림 · 하자·안전 업무OS 한 줄) → 대표 고객의 소리·AI 팀(team_link.py 로 한 줄 → 검토 끝) 375·768·1280. 이어서 잠긴 저장소로 옮기기와 옮긴 뒤 업로드·고객의 소리까지 확인합니다. 실행 때 `TOOLS=<저장소>/marketing-hub/tools`.
 - 로컬에서는 `?emu=1`로 에뮬레이터에 붙고, `?mode=secure`나 `?mode=open`으로 저장 위치를 바꿔 볼 수 있습니다. 둘 다 localhost에서만 동작합니다.
 
 ## 남은 일 (작업지시서 9장)
@@ -127,6 +165,8 @@
 - [ ] 9-2 제품 카드별 숫자 (제품 87개 받은 뒤)
 - [ ] 10 (선택) 제품 87개 → 옵시디언 제품 카드 + `mkt-products`
 - [x] AI 팀 보드 · 고객의 소리(직원 입력 · 업무OS 다리) (2026-10-10)
+- [x] 노트 대시보드 보기 + 고칠 점 메모 · 채널 미리보기 · Aside 임시저장 작업대 · 발행은 사람 (2026-10-11)
+- [ ] Aside 임시저장 루틴 실제로 만들기 (월요일 PC · 채널 글쓰기 주소 받은 뒤)
 - [ ] 팀원 루틴 하나씩 켜기 → `TEAM[].live` (2026-10-11: 하루(매일 배분)·포리·에코 가동)
 
 ### AI 팀 루틴 만드는 법 (2026-10-11 시험으로 확인)

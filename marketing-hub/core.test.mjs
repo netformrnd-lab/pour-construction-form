@@ -130,6 +130,7 @@ eq('편집기에 붙일 글', C.postPlain(pp.posts[0].body), '[사진: 유형 02
 eq('사진 자리만 있는 줄 = 큰 칸', C.mdLite('[사진: 유형 01 제품컷 — 패키지]'), '<div class="phb"><span class="phi">📷</span><span>유형 01 제품컷 — 패키지</span></div>');
 eq('표 칸 머리 이름(폰 카드용)', C.mdLite('| 제품 | 정가 |\n|---|---|\n| A | 1 |').includes('<td data-l="정가">1</td>'), true);
 eq('게시물 id', C.postId('mkt-ai-pori-2026-10-12-ab', 2), 'mkt-ai-pori-2026-10-12-ab~2');
+eq('임시저장 맡길 수 있는 채널 (지식인·인스타는 사람이 직접)', ['naver_blog','tistory','cafe','kin','insta','other'].map(C.canDraft), [true,true,true,false,false,false]);
 
 console.log(`\n${n - bad}/${n} 통과`);
 process.exit(bad ? 1 : 0);

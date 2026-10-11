@@ -150,7 +150,7 @@ check('업무OS 확인할 것: 하자·안전 한 줄 (내용 없음)',await get
 const today=new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
 // 볼트 대신 임시 폴더에 노트 하나 (루틴이 쓴 것처럼) → team_link.py 가 검토 줄 + 본문을 올림
 const VAULT=mkdtempSync(join(tmpdir(),'vault-'));mkdirSync(join(VAULT,'03 작업'));
-writeFileSync(join(VAULT,'03 작업',`${today} 블로그 원고 3.md`),'---\n유형: 작업\n상태: 검토대기\n---\n# 시험 원고\n> 사진 자리는 유형 번호\n\n## 요청 내용\n- 주제 2\n\n## 결과물\n\n## 1. 겨울 전 옥상 균열 보수 — POUR스토어 · [[PS-S011 크랙 방수 세트]]\n**제목 A안**: 옥상 균열 보수 이유\n**제목 B안**: 균열 보수 순서\n\n[사진: 유형 02 시공전 — 금이 간 옥상]\n\n### 이렇게 합니다\n| 제품 | 정가 |\n|---|--:|\n| [[PS-S011 크랙 방수 세트|크랙 세트]] | 226,000 |\n\n- 바탕 정리\n- 균열 메우기 <b>굵게아님</b>\n\n**해시태그**: #옥상균열 #POUR스토어\n\n**썸네일 문구 3안**\n1. 겨울 전 필수\n\n## 2. 카페 — [[GH-P004 미끄럼방지 페인트]]\n> **카페 규정 확인 후 게시**\n**제목**: [정보] 현관 미끄럼 체크\n카페 본문\n> ⚠️ 검토 메모: 광고 표기\n\n## 체크\n- [ ] 확인\n');
+writeFileSync(join(VAULT,'03 작업',`${today} 블로그 원고 3.md`),'---\n유형: 작업\n상태: 검토대기\n---\n# 시험 원고\n> 사진 자리는 유형 번호\n\n## 요청 내용\n- 주제 2\n\n## 결과물\n\n## 1. 겨울 전 옥상 균열 보수 — POUR스토어 · [[PS-S011 크랙 방수 세트]]\n**제목 A안**: 옥상 균열 보수 이유\n**제목 B안**: 균열 보수 순서\n\n[사진: 유형 02 시공전 — 금이 간 옥상]\n\n### 이렇게 합니다\n| 제품 | 정가 |\n|---|--:|\n| [[PS-S011 크랙 방수 세트|크랙 세트]] | 226,000 |\n\n- 바탕 정리\n- 균열 메우기 <b>굵게아님</b>\n\n**해시태그**: #옥상균열 #POUR스토어\n\n**썸네일 문구 3안**\n1. 겨울 전 필수\n\n## 2. 카페 — [[GH-P004 미끄럼방지 페인트]]\n> **카페 규정 확인 후 게시**\n**제목**: [정보] 현관 미끄럼 체크\n카페 본문\n> ⚠️ 검토 메모: 광고 표기\n\n## 3. 지식인 — 옥상 균열 질문 답변\n**제목**: 옥상 균열 셀프 보수 가능한가요?\n작은 균열은 셀프로 가능합니다.\n\n## 체크\n- [ ] 확인\n');
 const TL=(...a)=>execFileSync('python3',[process.env.TOOLS+'/team_link.py',...a],{env:{...process.env,MKT_VAULT:VAULT}}).toString().trim();
 log('  ',TL('open','포리','블로그 원고 3',`03 작업/${today} 블로그 원고 3.md`));
 for(const w of [1280,768,375]){
@@ -174,7 +174,8 @@ for(const w of [1280,768,375]){
     // 📄 보기 → 채널 화면처럼 미리보기 · [임시저장 맡기기] · 메모 → 루틴이 읽음 · 시트에서 검토 끝
     await p.click('[data-note]');await p.waitForSelector('#sheet .pv');
     const pvs=await p.$$eval('#sheet .pv',a=>a.map(x=>[x.className,x.querySelector('.pv-title').textContent]));
-    check('미리보기: 블로그·카페 2개 (채널 모양 · 제목 A안)',JSON.stringify(pvs)===JSON.stringify([['pv pv-naver_blog','옥상 균열 보수 이유'],['pv pv-cafe','[정보] 현관 미끄럼 체크']]));
+    check('미리보기: 블로그·카페·지식인 3개 (채널 모양 · 제목 A안)',JSON.stringify(pvs)===JSON.stringify([['pv pv-naver_blog','옥상 균열 보수 이유'],['pv pv-cafe','[정보] 현관 미끄럼 체크'],['pv pv-kin','옥상 균열 셀프 보수 가능한가요?']]));
+    check('모두 맡기기 = 임시저장 되는 2개만 · 지식인은 사람이 직접 등록',(await p.textContent('[data-pqall]')).includes('2개 모두')&&!(await p.$('#pv-3 [data-pq]'))&&(await p.textContent('#pv-3 .pv-st')).includes('사람이 직접 등록'));
     const pv1=await p.textContent('#pv-1');
     check('미리보기: 사진 자리 칸 · 표 · 태그 · 태그는 글자 · 제목 줄 안 보임',(await p.$('#pv-1 .phb'))&&pv1.includes('#옥상균열')&&(await p.textContent('#pv-1 td[data-l="제품"]'))==='크랙 세트'&&pv1.includes('<b>굵게아님</b>')&&!pv1.includes('제목 A안'));
     check('카페: 규정 안내 · 내부 메모는 본문 밖',(await p.textContent('#pv-2 .pv-notice')).includes('카페 규정')&&!(await p.textContent('#pv-2 .pv-body')).includes('광고 표기'));
@@ -186,6 +187,9 @@ for(const w of [1280,768,375]){
     await p.click('[data-pq="1"]');await p.waitForSelector('#pv-1 .pill.wait');
     await p.click('[data-pq="2"]');await p.waitForSelector('#pv-2 .pill.wait');
     const pd=await getDoc('pour-os/marketing-hub/mkt-posts/'+nid+'~1');
+    await p.fill('#pub-url-3','https://kin.naver.com/qna/detail.naver?d1id=1');await p.click('#pv-3 [data-ppub]');await p.waitForSelector('#pv-3 .pv-st a');
+    const kd=await getDoc('pour-os/marketing-hub/mkt-posts/'+nid+'~3');
+    check('지식인 등록 완료 → 상태 published · 글 내용 남음 · 업무OS 줄 새로 안 만듦',kd&&kd.status.stringValue==='published'&&kd.channel.stringValue==='kin'&&kd.title.stringValue==='옥상 균열 셀프 보수 가능한가요?'&&!(await getDoc('pour-os/v2/links/mkt-pub-'+nid+'_3')));
     check('임시저장 맡기기 → 게시물 문서 (상태 queued · 편집기용 글)',pd&&pd.status.stringValue==='queued'&&pd.title.stringValue==='옥상 균열 보수 이유'&&pd.plain.stringValue.includes('[사진: 유형 02 시공전')&&!pd.plain.stringValue.includes('**'));
     await p.fill('#note-memo','제목은 질문형으로 · 가격은 끝에 한 번만');await p.click('#note-memo-save');
     await p.waitForFunction(()=>/저장됨/.test(document.querySelector('#sheet .sf').textContent));

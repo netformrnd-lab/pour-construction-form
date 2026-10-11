@@ -95,8 +95,24 @@ details.wk>summary{cursor:pointer;padding:12px 16px;font-weight:800;list-style:n
 .chips label.urg:has(input:checked){background:var(--red);border-color:var(--red)}
 textarea{width:100%;max-width:100%;font:inherit;border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 10px;min-height:80px;resize:vertical}
 .vf>div{margin-bottom:12px}.vf label.t{display:block;font-size:12px;font-weight:700;color:var(--text-md);margin-bottom:5px}
+.sheet{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50;display:flex;align-items:center;justify-content:center;padding:4vh 16px}
+.sheet .box{background:#fff;border-radius:var(--r);width:100%;max-width:760px;max-height:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.sheet .sh{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.sheet .sh b{min-width:0;flex:1;word-break:break-all}
+.sheet .sb{flex:1;overflow:auto;padding:14px 16px;-webkit-overflow-scrolling:touch}
+.sheet .sf{border-top:1px solid var(--border);padding:10px 16px;display:grid;gap:6px;background:#FAFAFB}
+.sheet .sf textarea{min-height:56px}
+.sheet .acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.sheet .acts .sp{flex:1}
+.md{font-size:15px;line-height:1.7;word-break:break-word}
+.md h2{font-size:18px;margin:18px 0 8px}.md h3{font-size:16px;margin:16px 0 6px}.md h4,.md h5,.md h6{font-size:15px;margin:12px 0 4px}
+.md p{margin:8px 0}.md blockquote{margin:8px 0;padding:8px 12px;background:#F3F4F6;border-left:3px solid var(--border);color:var(--text-md);font-size:13px}
+.md ul,.md ol{margin:6px 0;padding-left:22px}.md li.ck{list-style:none;margin-left:-18px}
+.md pre{background:#F3F4F6;padding:10px;border-radius:var(--r-sm);overflow-x:auto;font-size:12px;white-space:pre-wrap}
+.md .wl{color:#7C3AED;font-weight:700}.md .ph{display:inline-block;background:var(--gold-l);color:var(--gold);border-radius:6px;padding:1px 8px;font-size:13px;font-weight:700}
+.md table th,.md table td{white-space:normal;min-width:72px;vertical-align:top}.md hr{border:0;border-top:1px solid var(--border);margin:14px 0}
+.md a{color:var(--accent);word-break:break-all}
 @media (max-width:900px){.team-grid{grid-template-columns:repeat(2,1fr)}.week{grid-template-columns:repeat(4,minmax(0,1fr))}}
-@media (max-width:700px){.team-grid{grid-template-columns:1fr}.week{grid-template-columns:1fr 1fr}.rows .row{padding:10px 12px;flex-wrap:wrap}.rows .row .acts.wide{width:100%;justify-content:flex-end}}
+@media (max-width:700px){.sheet{padding:0}.sheet .box{max-width:none;height:100%;border-radius:0}.team-grid{grid-template-columns:1fr}.week{grid-template-columns:1fr 1fr}.rows .row{padding:10px 12px;flex-wrap:wrap}.rows .row .acts.wide{width:100%;justify-content:flex-end}}
 @media (max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.form{grid-template-columns:1fr 1fr}}
 @media (max-width:700px){main{padding:12px}.kpi .v{font-size:18px}.form{grid-template-columns:1fr}.card h3{padding:11px 12px}.card .bd{padding:12px}}
 </style>
@@ -111,6 +127,7 @@ textarea{width:100%;max-width:100%;font:inherit;border:1px solid var(--border);b
 </header>
 <nav id="tabs" hidden></nav>
 <main id="app"></main>
+<div id="sheet"></div>
 <script>
 'use strict';
 const FB_CFG={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",
@@ -126,6 +143,8 @@ const MODE=C.storeMode(), col=(n)=>C.col(db,n,MODE); // 저장 위치: core.js S
 const COLL={uploads:'mkt-uploads',status:'mkt-upload-status',sales:'mkt-sales',ads:'mkt-ads',stock:'mkt-stock',access:'mkt-access',settings:'mkt-settings',voc:'mkt-voc',team:'mkt-team'};
 // 업무OS v2 '확인할 것' 다리 (공개 규칙 pour-os/{doc=**} · CRM 다리와 같은 모양) — AI 팀 검토 대기 · 고객의 소리 급함
 const linksCol=()=>db.collection('pour-os').doc('v2').collection('links');
+// AI 팀 노트 본문 + 사장님 메모 — 루틴(로그인 없음)이 tools/team_link.py 로 쓰므로 저장 위치와 상관없이 늘 공개 자리(pour-os/marketing-hub/mkt-notes)
+const notesCol=()=>C.col(db,'mkt-notes','open');
 const KIND_COLL={sales:COLL.sales,ads:COLL.ads,stock:COLL.stock};
 const DEFAULT_SET={defaultLeadTimeDays:7,safetyDays:7,windowDays:14,roasLow:200,roasHigh:400,minCost:10000,minClicks:10,adsDays:7};
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -136,7 +155,7 @@ const tsMs=(t)=>t&&t.toMillis?t.toMillis():(t?new Date(t).getTime():0);
 const fmtTs=(t)=>{const m=tsMs(t);if(!m)return '-';const d=new Date(m+9*3600e3);return d.toISOString().slice(5,16).replace('T',' ');};
 
 const HASH_TAB={'#voc':'voc','#team':'team'}; // 업무OS 바로가기 (…/marketing-hub/#voc)
-const S={user:null,tab:HASH_TAB[location.hash]||'home',roles:null,settings:{...DEFAULT_SET},sales:[],ads:[],stock:[],log:[],voc:[],links:[],team:{},msg:null,temp:null,busy:false};
+const S={user:null,tab:HASH_TAB[location.hash]||'home',roles:null,settings:{...DEFAULT_SET},sales:[],ads:[],stock:[],log:[],voc:[],links:[],team:{},msg:null,temp:null,busy:false,note:null};
 
 /* ── 로그인 ── */
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e=>console.error('[auth] persistence',e));
@@ -326,9 +345,10 @@ function render(){
   $('#tabs').innerHTML=TABS.map(([k,l])=>`<button data-tab="${k}" class="${S.tab===k?'on':''}">${l}</button>`).join('');
   const msg=S.msg?`<div class="msg ${S.msg.c}">${esc(S.msg.t)}</div>`:'';
   const body={home:vHome,team:vTeam,voc:vVoc,stock:vStock,ads:vAds,sales:vSales,log:vLog,acct:vAcct,set:vSet}[S.tab]();
-  const keep=vocKeep(); // 쓰던 고객의 소리는 화면을 다시 그려도 남김
+  const keep=formKeep(); // 쓰던 칸(계정·고객의 소리·설정…)은 뒤에서 불러오기가 끝나 화면을 다시 그려도 남김
   $('#app').innerHTML=msg+body;
-  vocKeep(keep);
+  formKeep(keep);
+  renderSheet();
 }
 document.addEventListener('click',(e)=>{const o=e.target.closest('#obs-hub');if(o){if(obsHubDone()&&!confirm('허브에 이미 붙였습니다. 한 번 더 붙일까요? (같은 칸이 두 번 생깁니다)')){e.preventDefault();return;}try{localStorage.setItem('mkt_obsidian_hub','1');}catch(err){console.error(err);}setTimeout(render,500);}});
 document.addEventListener('click',(e)=>{const t=e.target.closest('[data-tab]');if(t){S.tab=t.dataset.tab;render();window.scrollTo(0,0);}});
@@ -455,7 +475,7 @@ function runState(r,now){ // 오늘 한 일 상태
 function reviewRows(list){
   if(!list.length)return '<div class="empty">검토할 결과가 없습니다</div>';
   return `<div class="rows">${list.map(l=>`<div class="row"><div class="tx"><b>${esc(l.title)}</b><div class="sub">${esc(l.date?mdw(l.date):'')} · ${esc(l.sub||'')}</div></div>
-    <div class="acts wide">${l.note?`<a class="btn sm obs" href="${esc(C.obsidianOpenUri(obsVault(),l.note))}">노트 열기</a>`:''}<button class="btn sm" data-review="${esc(l.id)}">✅ 검토 끝</button></div></div>`).join('')}</div>`;
+    <div class="acts wide"><button class="btn sm pri" data-note="${esc(l.id)}">📄 보기</button>${l.note?`<a class="btn sm obs" href="${esc(C.obsidianOpenUri(obsVault(),l.note))}">옵시디언</a>`:''}<button class="btn sm" data-review="${esc(l.id)}">✅ 검토 끝</button></div></div>`).join('')}</div>`;
 }
 function homeTeamVoc(){
   const now=C.nowKST(), rv=reviews(), vs=C.vocSummary(S.voc,now.date), urg=vs.urgentItems.length+vs.repeated.length;
@@ -467,7 +487,7 @@ function vTeam(){
   const now=C.nowKST(), today=C.teamDay(now.date), rv=reviews();
   const week=[];for(let i=0;i<7;i++){const d=C.addDays(now.date,i);week.push({d,runs:C.teamDay(d)});}
   const live=C.TEAM.filter(m=>m.live).length;
-  return `<div class="card"><h3>📋 검토 대기 ${rv.length} <span class="sub">팀원이 올린 결과 · 노트 열기 → 확인·게시 → [검토 끝] (업무OS '확인할 것'에서도 사라짐)</span></h3>${reviewRows(rv)}</div>
+  return `<div class="card"><h3>📋 검토 대기 ${rv.length} <span class="sub">팀원이 올린 결과 · [보기]로 읽고 고칠 점은 메모 → 게시 → [검토 끝] (업무OS '확인할 것'에서도 사라짐)</span></h3>${reviewRows(rv)}</div>
   <div class="card"><h3>🕘 오늘 ${esc(mdw(now.date))} <span class="sub">${today.length}건 · 지금 ${esc(now.time)}</span></h3>
     ${today.length?`<div class="rows">${today.map(r=>`<div class="row"><span class="t">${esc(r.t)}</span><div class="tx"><b>${esc(r.name)}</b> ${esc(r.what)}</div>${runState(r,now)}</div>`).join('')}</div>`:'<div class="empty">오늘은 정해진 일이 없습니다 (주말)</div>'}</div>
   <div class="card"><h3>👥 팀원 ${C.TEAM.length} <span class="sub">가동 ${live} · 누르면 자세히 · 설정 순서는 볼트 '00 팀 운영 설계' 4절</span></h3><div class="team-grid">
@@ -481,14 +501,49 @@ function vTeam(){
     ${w.runs.length?w.runs.map(r=>`<div class="it">${esc(r.t)} <b>${esc(r.name)}</b> ${esc(r.what)}</div>`).join(''):'<div class="it">쉼</div>'}</div>`).join('')}</div></details></div>`;
 }
 
+/* ── 노트 보기 (대시보드에서 바로 · 2026-10-11 사장님) ── */
+function openNote(id){
+  const l=S.links.find(x=>x.id===id)||{id};
+  S.note={id,link:l,loading:true,doc:null,err:'',draft:'',saved:''};renderSheet();document.body.style.overflow='hidden';
+  notesCol().doc(id).get().then(d=>{
+    if(!S.note||S.note.id!==id)return;
+    S.note.loading=false;S.note.doc=d.exists?d.data():null;S.note.draft=(S.note.doc&&S.note.doc.memo)||'';
+    console.log(`[mkt-notes] ${id} ${d.exists?'본문 '+String((d.data().body||'')).length+'자':'없음'}`);renderSheet();
+  }).catch(e=>{console.error('[mkt-notes] 로드 실패',e);if(!S.note)return;S.note.loading=false;S.note.err=e.code||e.message;renderSheet();});
+}
+function closeNote(){S.note=null;document.body.style.overflow='';renderSheet();}
+function renderSheet(){
+  const el=$('#sheet');if(!el)return;if(!S.note){el.innerHTML='';return;}
+  const n=S.note,l=n.link||{},d=n.doc||{},open=S.links.some(x=>x.id===n.id);
+  const body=n.loading?'<div class="empty">불러오는 중…</div>':n.err?`<div class="msg err">불러오기 실패: ${esc(n.err)}</div>`
+    :d.body?`<div class="md">${C.mdLite(d.body)}</div>`:'<div class="empty">본문이 아직 대시보드에 없습니다 — [옵시디언]에서 보세요</div>';
+  el.innerHTML=`<div class="sheet" id="sheet-bg"><div class="box" role="dialog" aria-modal="true" aria-label="노트 보기">
+    <div class="sh"><b>${esc(l.title||d.title||'노트')}</b><button class="btn sm" id="note-close">닫기 ✕</button></div>
+    <div class="sb">${(l.note||d.note)?`<div class="sub" style="margin-bottom:8px">${esc(l.note||d.note)}</div>`:''}${body}</div>
+    <div class="sf"><label class="sub" for="note-memo">고칠 점 메모 — 팀원이 다음 작업 전에 읽고 반영합니다${d.memoBy?` · 마지막 ${esc(String(d.memoBy).split('@')[0])}`:''}</label>
+      <textarea id="note-memo" placeholder="예: 제목은 질문형으로 · 가격은 끝에 한 번만">${esc(n.draft||'')}</textarea>
+      <div class="acts">${(l.note||d.note)?`<a class="btn sm obs" href="${esc(C.obsidianOpenUri(obsVault(),l.note||d.note))}">옵시디언</a>`:''}<span class="sub">${esc(n.saved||'')}</span><span class="sp"></span>
+        <button class="btn sm" id="note-memo-save"${n.loading?' disabled':''}>메모 저장</button>
+        ${open?`<button class="btn sm pri" data-review="${esc(n.id)}">✅ 검토 끝</button>`:'<span class="pill ok">검토 끝</span>'}</div></div></div></div>`;
+}
+document.addEventListener('input',(e)=>{if(e.target.id==='note-memo'&&S.note)S.note.draft=e.target.value;});
+document.addEventListener('keydown',(e)=>{if(e.key==='Escape'&&S.note)closeNote();});
+document.addEventListener('click',(e)=>{if(e.target.id==='sheet-bg')closeNote();});
+async function saveNoteMemo(b){
+  const n=S.note;if(!n)return;const memo=($('#note-memo').value||'').trim().slice(0,3000);
+  b.disabled=true;
+  const l=n.link||{},extra=n.doc?{}:{member:l.member||'',title:l.title||'',note:l.note||'',date:l.date||todayKST()}; // 본문이 없던 노트도 루틴이 날짜로 찾게
+  await notesCol().doc(n.id).set({...extra,memo,memoAt:FV.serverTimestamp(),memoBy:S.user.email},{merge:true});
+  n.doc={...(n.doc||{}),...extra,memo,memoBy:S.user.email};n.draft=memo;n.saved='저장됨 '+C.nowKST().time+' — 팀원이 다음 작업 때 읽음';
+  console.log('[mkt-notes] 메모 저장',n.id,memo.length+'자');renderSheet();
+}
+
 /* ── 고객의 소리 ── */
-function vocKeep(v){
-  const p=$('#voc-product'),t=$('#voc-text');if(!p||!t)return null;
-  if(v===undefined){const a=document.querySelector('input[name=voc-type]:checked'),b=document.querySelector('input[name=voc-source]:checked');return {p:p.value,t:t.value,a:a&&a.value,b:b&&b.value};}
-  if(!v)return null;
-  p.value=v.p;t.value=v.t;
-  for(const [n,x] of [['voc-type',v.a],['voc-source',v.b]])if(x)document.querySelectorAll(`input[name=${n}]`).forEach(i=>{i.checked=i.value===x;});
-  return null;
+function formKeep(v){
+  const els=[...document.querySelectorAll('#app input,#app textarea,#app select')].filter(e=>e.type!=='file'&&(e.id||(e.type==='radio'&&e.name)));
+  if(v===undefined){const m={};els.forEach(e=>{if(e.type==='radio'){if(e.checked)m['r:'+e.name]=e.value;}else m[e.id]=e.value;});return m;}
+  if(!v)return;
+  els.forEach(e=>{if(e.type==='radio'){const k='r:'+e.name;if(k in v)e.checked=e.value===v[k];}else if(e.id in v)e.value=v[e.id];});
 }
 function vocProducts(){
   const set=new Set();
@@ -563,6 +618,9 @@ document.addEventListener('click',async(e)=>{
       setMsg(r.result==='ok'?'ok':'err',`다시 정리: ${r.result==='ok'?'성공':'실패'} — ${r.message}`);await loadData();return;
     }
     if(b.id==='voc-save'){await saveVoc(b);return;}
+    if(b.dataset.note){openNote(b.dataset.note);return;}
+    if(b.id==='note-close'){closeNote();return;}
+    if(b.id==='note-memo-save'){await saveNoteMemo(b);return;}
     if(b.dataset.vocDone){
       const v=S.voc.find(x=>x.id===b.dataset.vocDone);if(!v)return;
       b.disabled=true;const resolved=!v.resolved;
@@ -576,6 +634,7 @@ document.addEventListener('click',async(e)=>{
       if(l.member)await col(COLL.team).doc(l.member).set({lastDate:l.date||todayKST(),lastTitle:String(l.title||'').replace(/^검토:\s*/,''),lastNote:l.note||l.sub||'',lastReviewedAt:FV.serverTimestamp(),lastReviewedBy:S.user.email,reviewed:FV.increment(1)},{merge:true});
       S.links=S.links.filter(x=>x.id!==l.id);
       if(l.member)S.team[l.member]={...(S.team[l.member]||{}),lastDate:l.date||todayKST(),lastTitle:String(l.title||'').replace(/^검토:\s*/,'')};
+      if(S.note&&S.note.id===l.id)closeNote();
       setMsg('ok',`검토 끝: ${l.title}`);render();return;
     }
     if(b.dataset.copy){await copyTable(b.dataset.copy);return;}
@@ -632,7 +691,7 @@ async function acct(a,b){
     b.disabled=true;b.textContent='만드는 중…';
     const pw=tempPw(), res=await createAuth(email,pw);
     r.people[email]={...(r.people[email]||{}),email,name:name||email.split('@')[0],role,active:true,addedAt:(r.people[email]||{}).addedAt||new Date().toISOString(),addedBy:S.user.email};
-    await saveRoles(r);S.temp=res==='created'?{email,pw}:null;
+    await saveRoles(r);S.temp=res==='created'?{email,pw}:null;$('#ac-email').value='';$('#ac-name').value='';
     setMsg('ok',res==='created'?`${email} 계정을 만들고 ${({admin:'관리자',staff:'직원',uploader:'업로더'})[role]}로 등록했습니다`:`${email} 은(는) 이미 계정이 있어 역할만 등록했습니다`);render();return;
   }
   const email=b.dataset.e;if(!r.people[email])return;

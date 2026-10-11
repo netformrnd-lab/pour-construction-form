@@ -3,7 +3,9 @@
 //   marketing-hub 를 127.0.0.1:5500 으로 띄우고 OUT=<스크린샷 폴더> npx firebase emulators:exec --only auth,firestore --project pour-app-new "node e2e.mjs"
 // 실제 Firebase(googleapis 등) 요청은 막고 0건인지 검사한다.
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 async function route(p){await p.route(/gstatic\.com\/firebasejs\/10\.12\.0\/(firebase-[a-z]+-compat\.js)/,(r)=>{const n=r.request().url().match(/(firebase-[a-z]+-compat\.js)/)[1];r.fulfill({contentType:'application/javascript',body:readFileSync('cdn/'+n)});});
   await p.route(/^https?:\/\/[^/]*(googleapis\.com|firebaseio\.com|firebaseapp\.com)/,(r)=>{console.log('  ✗ 실제 Firebase 요청 차단:',r.request().url().slice(0,90));globalThis.PROD_HITS=(globalThis.PROD_HITS||0)+1;r.abort();});
@@ -16,7 +18,9 @@ await signUp('netformrnd@gmail.com','ownerpw123');
 const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--ignore-certificate-errors']});
 const log=(...a)=>console.log(...a);
 let fails=0; const check=(n,c)=>{log(c?'  ✓':'  ✗',n);if(!c)fails++;};
-async function page(w){const ctx=await b.newContext({viewport:{width:w,height:900},ignoreHTTPSErrors:true});const p=await ctx.newPage();await route(p);p.on('pageerror',e=>log('  [pageerror]',e.message));p.on('console',m=>{if(m.type()==='error')log('  [console]',m.text().slice(0,300));});return p;}
+async function page(w){const ctx=await b.newContext({viewport:{width:w,height:900},ignoreHTTPSErrors:true});const p=await ctx.newPage();await route(p);
+  await p.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{const st=document.createElement('style');st.textContent='.firebase-emulator-warning{display:none!important}';document.head.appendChild(st);})); /* 시험용 에뮬레이터 띠가 아래 버튼을 가림 */
+  p.on('pageerror',e=>log('  [pageerror]',e.message));p.on('console',m=>{if(m.type()==='error')log('  [console]',m.text().slice(0,300));});return p;}
 const overflow=(p)=>p.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
 
 // 1) 대표: 계정 탭에서 Aside 업로더 만들기
@@ -143,7 +147,11 @@ check('업무OS 확인할 것: 하자·안전 한 줄 (내용 없음)',await get
 
 // 5-3) AI 팀원 결과 (Claude 루틴 도구로 한 줄) → 대표가 검토
 const today=new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
-log('  ',execFileSync('python3',[process.env.TOOLS+'/team_link.py','open','포리','블로그 원고 3',`03 작업/${today} 블로그 원고 3.md`]).toString().trim());
+// 볼트 대신 임시 폴더에 노트 하나 (루틴이 쓴 것처럼) → team_link.py 가 검토 줄 + 본문을 올림
+const VAULT=mkdtempSync(join(tmpdir(),'vault-'));mkdirSync(join(VAULT,'03 작업'));
+writeFileSync(join(VAULT,'03 작업',`${today} 블로그 원고 3.md`),'---\n유형: 작업\n상태: 검토대기\n---\n# 시험 원고\n> 사진 자리는 유형 번호\n\n## 1. 겨울 전 옥상 균열 보수\n**제목 A안**: 옥상 균열 보수 이유\n[사진: 유형 02 시공전 — 금이 간 옥상]\n\n| 제품 | 정가 |\n|---|--:|\n| [[PS-S011 크랙 방수 세트|크랙 세트]] | 226,000 |\n\n- 바탕 정리\n- 균열 메우기 <b>굵게아님</b>\n');
+const TL=(...a)=>execFileSync('python3',[process.env.TOOLS+'/team_link.py',...a],{env:{...process.env,MKT_VAULT:VAULT}}).toString().trim();
+log('  ',TL('open','포리','블로그 원고 3',`03 작업/${today} 블로그 원고 3.md`));
 for(const w of [1280,768,375]){
   p=await page(w);await p.goto(BASE+'/index.html?emu=1');
   await p.fill('#lg-email','netformrnd@gmail.com');await p.fill('#lg-pw','ownerpw123');await p.click('#lg-btn');
@@ -162,7 +170,20 @@ for(const w of [1280,768,375]){
     await p.click('nav button[data-tab="team"]');const tm=await p.textContent('main');
     check('AI 팀: 팀원 17 · 포리 검토 대기',tm.includes('팀원 17')&&tm.includes('검토: 포리 블로그 원고 3'));
     check('노트 열기 = obsidian://open',(await p.getAttribute('.rows a.obs','href')).startsWith('obsidian://open?file=03%20'));
-    await p.click('[data-review]');await p.waitForFunction(()=>/검토 끝:/.test((document.querySelector('.msg')||{}).textContent||''));
+    // 📄 보기 → 대시보드에서 바로 읽기 · 메모 → 루틴이 읽음 · 시트에서 검토 끝
+    await p.click('[data-note]');await p.waitForSelector('#sheet .md h2');
+    const md=await p.textContent('#sheet .md');
+    check('보기: 본문 그대로 (머리말 숨김 · 표 · 사진 자리 · 태그는 글자)',md.includes('겨울 전 옥상 균열 보수')&&!md.includes('검토대기')&&(await p.textContent('#sheet .md td'))==='크랙 세트'&&md.includes('📷 사진: 유형 02 시공전')&&md.includes('<b>굵게아님</b>'));
+    check('보기 375 넘침 없음',await p.evaluate(()=>document.querySelector('#sheet .box').getBoundingClientRect().width<=375&&document.querySelector('#sheet .sb').scrollWidth<=document.querySelector('#sheet .sb').clientWidth+1));
+    await p.screenshot({path:OUT+'/note-375.png'});
+    await p.fill('#note-memo','제목은 질문형으로 · 가격은 끝에 한 번만');await p.click('#note-memo-save');
+    await p.waitForFunction(()=>/저장됨/.test(document.querySelector('#sheet .sf').textContent));
+    const nid=await p.getAttribute('#sheet [data-review]','data-review');
+    check('메모 저장 → 노트 문서',(await getDoc('pour-os/marketing-hub/mkt-notes/'+nid)).memo.stringValue==='제목은 질문형으로 · 가격은 끝에 한 번만');
+    const fb=TL('feedback','14');log('   feedback:',fb.split('\n')[0]);
+    check('루틴이 메모를 읽음 (team_link.py feedback)',fb.includes('제목은 질문형으로 · 가격은 끝에 한 번만')&&fb.includes('포리'));
+    await p.click('#sheet [data-review]');await p.waitForFunction(()=>/검토 끝:/.test((document.querySelector('.msg')||{}).textContent||''));
+    check('시트에서 검토 끝 → 시트 닫힘',!(await p.$('#sheet .sheet')));
     const ln=(await list('pour-os/v2/links',true)).filter(d=>d.fields.kind&&d.fields.kind.stringValue==='aiReview');
     check('검토 끝 → 업무OS 줄 닫힘 · 포리 최근 검토',ln.length===1&&ln[0].fields.open.booleanValue===false&&(await getDoc('pour-os/marketing-hub/mkt-team/pori')).lastTitle.stringValue==='포리 블로그 원고 3');
     await p.click('details.tm:nth-child(2) summary');check('팀원 카드(펼침): 최근 검토 표시',(await p.textContent('details.tm[open]')).includes('· 포리 블로그 원고 3'));

@@ -108,5 +108,14 @@ eq('옵시디언: 고객의 소리 칸', [vn.includes('## 🗣 고객의 소리 
 eq('옵시디언: 노트 열기 링크', C.obsidianOpenUri('', '03 작업/2026-10-12 블로그.md'), 'obsidian://open?file=03%20%EC%9E%91%EC%97%85%2F2026-10-12%20%EB%B8%94%EB%A1%9C%EA%B7%B8.md');
 eq('직원 = 고객의 소리만', [C.isStaffEmail('s@x.com', { staffs: ['s@x.com'] }), C.isUploaderEmail('s@x.com', { staffs: ['s@x.com'] })], [true, false]);
 
+// 노트 보기 (마크다운 → 안전한 HTML)
+const mh = C.mdLite('---\n유형: 작업\n상태: 검토대기\n---\n# 원고\n> 인용 **굵게**\n\n| 제품 | 정가 |\n|---|--:|\n| [[PS-S011 크랙 방수 세트|크랙 세트]] | 226,000 |\n\n- [ ] 확인\n1. 하나\n\n본문 <img src=x onerror=alert(1)> [사진: 유형 03 시공중 — 장면] https://www.pourstore.net');
+eq('보기: 머리말 숨김', mh.includes('검토대기'), false);
+eq('보기: 제목·인용·굵게', [mh.includes('<h2>원고</h2>'), mh.includes('<blockquote>인용 <b>굵게</b></blockquote>')], [true, true]);
+eq('보기: 표 + 별칭 링크', mh.includes('<td><span class="wl">크랙 세트</span></td><td>226,000</td>'), true);
+eq('보기: 체크박스·번호 목록', [mh.includes('<li class="ck">☐ 확인</li>'), mh.includes('<ol><li>하나</li></ol>')], [true, true]);
+eq('보기: 태그는 글자로 (스크립트 안 돎)', [mh.includes('<img'), mh.includes('&lt;img src=x onerror=alert(1)&gt;')], [false, true]);
+eq('보기: 사진 자리·링크', [mh.includes('<span class="ph">📷 사진: 유형 03 시공중 — 장면</span>'), mh.includes('<a href="https://www.pourstore.net" target="_blank" rel="noopener">')], [true, true]);
+
 console.log(`\n${n - bad}/${n} 통과`);
 process.exit(bad ? 1 : 0);

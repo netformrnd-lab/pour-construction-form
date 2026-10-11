@@ -112,10 +112,24 @@ eq('직원 = 고객의 소리만', [C.isStaffEmail('s@x.com', { staffs: ['s@x.co
 const mh = C.mdLite('---\n유형: 작업\n상태: 검토대기\n---\n# 원고\n> 인용 **굵게**\n\n| 제품 | 정가 |\n|---|--:|\n| [[PS-S011 크랙 방수 세트|크랙 세트]] | 226,000 |\n\n- [ ] 확인\n1. 하나\n\n본문 <img src=x onerror=alert(1)> [사진: 유형 03 시공중 — 장면] https://www.pourstore.net');
 eq('보기: 머리말 숨김', mh.includes('검토대기'), false);
 eq('보기: 제목·인용·굵게', [mh.includes('<h2>원고</h2>'), mh.includes('<blockquote>인용 <b>굵게</b></blockquote>')], [true, true]);
-eq('보기: 표 + 별칭 링크', mh.includes('<td><span class="wl">크랙 세트</span></td><td>226,000</td>'), true);
+eq('보기: 표 + 별칭 링크', mh.includes('<td data-l="제품"><span class="wl">크랙 세트</span></td><td data-l="정가">226,000</td>'), true);
 eq('보기: 체크박스·번호 목록', [mh.includes('<li class="ck">☐ 확인</li>'), mh.includes('<ol><li>하나</li></ol>')], [true, true]);
 eq('보기: 태그는 글자로 (스크립트 안 돎)', [mh.includes('<img'), mh.includes('&lt;img src=x onerror=alert(1)&gt;')], [false, true]);
 eq('보기: 사진 자리·링크', [mh.includes('<span class="ph">📷 사진: 유형 03 시공중 — 장면</span>'), mh.includes('<a href="https://www.pourstore.net" target="_blank" rel="noopener">')], [true, true]);
+
+// 노트 → 게시물 미리보기
+const noteSrc = '---\n담당: "[[포리]]"\n상태: 검토대기\n---\n# 2026-10-12 포리 블로그 원고 3\n> 안내 한 줄\n\n## 요청 내용\n- 주제 3\n\n## 입력 자료\n- 카드\n\n## 결과물\n\n## 1. 균열 보수 — POUR스토어 · [[PS-S011 크랙 방수 세트]]\n\n**제목 A안**: 옥상 균열 보수 이유\n**제목 B안**: 균열 보수 순서\n\n[사진: 유형 02 시공전 — 금]\n\n### 작은 금\n본문 **굵게** [[PS-S011 크랙 방수 세트|크랙 세트]]\n\n**해시태그**: #옥상 #균열\n\n**썸네일 문구 3안**\n1. 겨울 전 필수\n2. "금 하나가 누수로"\n\n### 카페 — 원고 1 다시 · [[PS-S011 크랙 방수 세트]]\n> **카페 규정 확인 후 게시**\n**제목**: [정보] 균열 체크\n본문2\n> ⚠️ 검토 메모: 광고 표기 필요\n\n## 체크\n- [ ] 확인\n';
+const np = C.noteParts(noteSrc);
+eq('노트 나누기: 제목·안내·근거 접기', [np.title, np.lead, np.props['상태'], np.meta.includes('## 요청 내용') && np.meta.includes('## 체크'), np.main.includes('결과물')], ['2026-10-12 포리 블로그 원고 3', ['안내 한 줄'], '검토대기', true, false]);
+const pp = C.parsePosts(np.main, 'pori');
+eq('게시물 2개: 블로그 + 카페(안쪽 ### 도 따로)', pp.posts.map((x) => [x.n, x.channel, x.title, x.titleB]), [[1, 'naver_blog', '옥상 균열 보수 이유', '균열 보수 순서'], [2, 'cafe', '[정보] 균열 체크', '']]);
+eq('게시물: 태그·썸네일·제품', [pp.posts[0].tags, pp.posts[0].thumbs, pp.posts[0].products], [['#옥상', '#균열'], ['겨울 전 필수', '금 하나가 누수로'], ['PS-S011 크랙 방수 세트']]);
+eq('카페: 안내·내부 메모는 본문에서 뺌', [pp.posts[1].notice, pp.posts[1].memo, pp.posts[1].body], ['카페 규정 확인 후 게시', '⚠️ 검토 메모: 광고 표기 필요', '본문2']);
+eq('블로그 본문엔 제목·태그·썸네일 줄 없음', [pp.posts[0].body.includes('제목 A안'), pp.posts[0].body.includes('#옥상'), pp.posts[0].body.includes('겨울 전 필수'), pp.posts[0].body.includes('### 작은 금')], [false, false, false, true]);
+eq('편집기에 붙일 글', C.postPlain(pp.posts[0].body), '[사진: 유형 02 시공전 — 금]\n\n작은 금\n본문 굵게 크랙 세트');
+eq('사진 자리만 있는 줄 = 큰 칸', C.mdLite('[사진: 유형 01 제품컷 — 패키지]'), '<div class="phb"><span class="phi">📷</span><span>유형 01 제품컷 — 패키지</span></div>');
+eq('표 칸 머리 이름(폰 카드용)', C.mdLite('| 제품 | 정가 |\n|---|---|\n| A | 1 |').includes('<td data-l="정가">1</td>'), true);
+eq('게시물 id', C.postId('mkt-ai-pori-2026-10-12-ab', 2), 'mkt-ai-pori-2026-10-12-ab~2');
 
 console.log(`\n${n - bad}/${n} 통과`);
 process.exit(bad ? 1 : 0);

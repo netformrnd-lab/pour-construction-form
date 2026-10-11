@@ -501,7 +501,7 @@
       .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
       .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '<span class="wl">$2</span>')
       .replace(/\[\[([^\]]+)\]\]/g, '<span class="wl">$1</span>')
-      .replace(/\[사진:([^\]]*)\]/g, '<span class="ph">📷 사진:$1</span>')
+      .replace(/\[사진:\s*([^\]]*)\]/g, '<span class="ph">📷 사진: $1</span>')
       .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
       .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
     let lines = String(src == null ? '' : src).replace(/\r/g, '').split('\n');
@@ -518,9 +518,9 @@
       if (/^\s*\|/.test(l)) {
         const rows = []; while (i < lines.length && /^\s*\|/.test(lines[i])) rows.push(lines[i++]);
         const body = rows.filter((r) => !(/^\s*\|?[\s:|-]+\|?\s*$/.test(r) && r.includes('-')));
-        const [h, ...rest] = body;
-        out.push('<div class="tbl"><table><thead><tr>' + (h ? cells(h).map((c) => `<th>${inline(c)}</th>`).join('') : '') + '</tr></thead><tbody>'
-          + rest.map((r) => '<tr>' + cells(r).map((c) => `<td>${inline(c)}</td>`).join('') + '</tr>').join('') + '</tbody></table></div>');
+        const [h, ...rest] = body, hc = h ? cells(h) : [];
+        out.push('<div class="tbl"><table class="rt"><thead><tr>' + hc.map((c) => `<th>${inline(c)}</th>`).join('') + '</tr></thead><tbody>'
+          + rest.map((r) => '<tr>' + cells(r).map((c, k) => `<td data-l="${esc(hc[k] || '')}">${inline(c)}</td>`).join('') + '</tr>').join('') + '</tbody></table></div>');
         continue;
       }
       if (/^>\s?/.test(l)) { const buf = []; while (i < lines.length && /^>\s?/.test(lines[i])) buf.push(lines[i++].replace(/^>\s?/, '')); out.push('<blockquote>' + buf.map(inline).join('<br>') + '</blockquote>'); continue; }
@@ -534,6 +534,8 @@
         out.push(ol ? '<ol>' + buf.join('') + '</ol>' : '<ul>' + buf.join('') + '</ul>'); continue;
       }
       if (/^\s*(---|\*\*\*)\s*$/.test(l)) { out.push('<hr>'); i++; continue; }
+      m = l.match(/^\s*\[사진:\s*([^\]]*)\]\s*$/);
+      if (m) { out.push(`<div class="phb"><span class="phi">📷</span><span>${esc(m[1])}</span></div>`); i++; continue; }
       if (!l.trim()) { i++; continue; }
       const buf = []; while (i < lines.length && lines[i].trim() && !/^(#{1,6}\s|```|>|\s*\||\s*([-*]|\d+\.)\s+)/.test(lines[i])) buf.push(lines[i++]);
       if (!buf.length) { buf.push(lines[i++]); }
@@ -542,12 +544,94 @@
     return out.join('\n');
   }
 
+  /* ── 노트 → 보기 좋게 나누기 (대시보드 [보기] · 2026-10-11 사장님 'UX 개선 · 실제 올리기 전 화면처럼') ──
+     noteParts: 머리말 빼고 · 맨 위 '# 제목' + 인용(안내) · '## 요청 내용/입력 자료/체크' = 작성 근거(접어 둠) · 나머지 = 본문
+     parsePosts: 본문에서 게시물(제목 줄이 있는 ##/### 칸)을 꺼냄 → 채널별 미리보기 · 임시저장 맡기기 */
+  const META_SECTIONS = ['요청 내용', '입력 자료', '체크', '근거', '참고'];
+  function noteParts(src) {
+    let lines = String(src == null ? '' : src).replace(/\r/g, '').split('\n');
+    const props = {};
+    if (lines[0] === '---') { const e = lines.indexOf('---', 1); if (e > 0) { lines.slice(1, e).forEach((l) => { const m = l.match(/^([^:]+):\s*(.*)$/); if (m) props[m[1].trim()] = m[2].trim(); }); lines = lines.slice(e + 1); } }
+    let title = '', i = 0; const lead = [];
+    while (i < lines.length && !/^##\s/.test(lines[i])) {
+      const l = lines[i++]; const m = l.match(/^#\s+(.*)$/);
+      if (m) title = m[1].trim(); else if (/^>\s?/.test(l)) lead.push(l.replace(/^>\s?/, '')); else if (l.trim()) lead.push(l);
+    }
+    const meta = [], main = [];
+    let cur = null;
+    for (; i < lines.length; i++) {
+      const l = lines[i], m = l.match(/^##\s+(.*)$/);
+      if (m) cur = META_SECTIONS.some((k) => m[1].trim().startsWith(k)) ? meta : main;
+      if (m && /^결과물\s*$/.test(m[1].trim())) continue; // '결과물' 머리는 빼고 내용만
+      (cur || main).push(l);
+    }
+    return { props, title, lead, meta: meta.join('\n').trim(), main: main.join('\n').trim() };
+  }
+  const CHANNEL = { naver_blog: '네이버 블로그', tistory: '티스토리', cafe: '네이버 카페', insta: '인스타그램', kin: '지식인', other: '게시물' };
+  function channelOfHeading(h, member) {
+    if (/티스토리/.test(h)) return 'tistory';
+    if (/카페/.test(h)) return 'cafe';
+    if (/인스타/.test(h)) return 'insta';
+    if (/지식인/.test(h)) return 'kin';
+    if (/블로그/.test(h)) return 'naver_blog';
+    return member === 'pori' ? 'naver_blog' : 'other';
+  }
+  const TITLE_RE = /^\*\*제목(?:\s*([AB])안)?\*\*\s*[:：]\s*(.+)$/;
+  function parsePosts(mainMd, member) {
+    const lines = String(mainMd || '').split('\n'), heads = [];
+    lines.forEach((l, i) => { const m = l.match(/^(#{2,3})\s+(.*)$/); if (m) heads.push({ i, level: m[1].length, text: m[2].trim() }); });
+    const posts = [], used = new Set();
+    // 게시물 머리 = 바로 아래(다음 머리 전)에 '**제목…**:' 줄이 있는 머리 · 게시물 칸 = 같은/윗 단계 머리나 다음 게시물 머리 전까지
+    const isPost = heads.map((h, k) => lines.slice(h.i + 1, k + 1 < heads.length ? heads[k + 1].i : lines.length).some((l) => TITLE_RE.test(l.trim())));
+    heads.forEach((h, k) => {
+      if (!isPost[k]) return;
+      let end = lines.length;
+      for (let j = k + 1; j < heads.length; j++) if (heads[j].level <= h.level || isPost[j]) { end = heads[j].i; break; }
+      const sec = lines.slice(h.i + 1, end);
+      for (let x = h.i; x < end; x++) used.add(x);
+      const post = { n: posts.length + 1, heading: h.text.replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2').replace(/\[\[([^\]]+)\]\]/g, '$1'),
+        products: [...h.text.matchAll(/\[\[([^\]|]+)/g)].map((m) => m[1]), channel: channelOfHeading(h.text, member),
+        title: '', titleB: '', tags: [], thumbs: [], notice: '', memo: '', body: '' };
+      const body = []; let inThumb = false;
+      for (const raw of sec) {
+        const l = raw.trim(); let m;
+        if ((m = l.match(TITLE_RE))) { if (m[1] === 'B') post.titleB = m[2].trim(); else post.title = m[2].trim(); inThumb = false; continue; }
+        if ((m = l.match(/^\*\*채널\*\*\s*[:：]\s*(.+)$/))) { const c = Object.keys(CHANNEL).find((k) => CHANNEL[k] === m[1].trim()); if (c) post.channel = c; continue; }
+        if ((m = l.match(/^\*\*(?:해시)?태그\*\*\s*[:：]\s*(.+)$/))) { post.tags = (m[1].match(/#[^\s#]+/g) || []); inThumb = false; continue; }
+        if (/^\*\*썸네일[^*]*\*\*/.test(l)) { inThumb = true; const t = l.replace(/^\*\*썸네일[^*]*\*\*\s*[:：]?\s*/, ''); if (t) post.thumbs.push(t); continue; }
+        if (inThumb) { if ((m = l.match(/^(?:[-*]|\d+\.)\s+(.*)$/))) { post.thumbs.push(m[1].replace(/^["“]|["”]$/g, '')); continue; } if (!l) continue; inThumb = false; }
+        if ((m = l.match(/^>\s*\**(카페 규정[^*]*)\**\s*$/))) { post.notice = m[1].trim(); continue; }
+        if (/^>\s*(⚠️|\**검토|\**메모)/.test(l)) { post.memo = (post.memo ? post.memo + '\n' : '') + l.replace(/^>\s?/, ''); continue; } // 팀원 내부 메모 = 게시 글에 안 넣음
+        body.push(raw);
+      }
+      post.body = body.join('\n').replace(/^\s+|\s+$/g, '');
+      posts.push(post);
+    });
+    // 게시물이 아닌 나머지(검토 메모 등)는 그대로 보여 줌
+    const rest = lines.filter((_, i) => !used.has(i)).join('\n').trim();
+    return { posts, rest };
+  }
+  // 편집기에 붙여 넣을 글 (마크다운 기호 없이 · 사진 자리는 [사진: …] 그대로 → 사람이 사진 넣음)
+  function postPlain(md) {
+    return String(md || '').split('\n').map((l) => l
+      .replace(/^#{1,6}\s+/, '')
+      .replace(/^>\s?/, '')
+      .replace(/^\s*\|?[\s:|-]+\|?\s*$/, (x) => (x.includes('-') ? '' : x))
+      .replace(/^\s*\|(.*)\|\s*$/, (_, x) => x.split('|').map((c) => c.trim()).join(' · '))
+      .replace(/\*\*([^*]+)\*\*/g, '$1').replace(/`([^`]+)`/g, '$1')
+      .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2').replace(/\[\[([^\]]+)\]\]/g, '$1')
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '$1 ($2)'))
+      .join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+  const POST_STATUS = { queued: 'Aside 대기', draft: '임시저장됨 — 발행해 주세요', published: '게시 완료', failed: '임시저장 실패' };
+  const postId = (noteId, n) => `${noteId}~${n}`;
+
   const isAdminEmail = (email, roles) => !!email && (OWNER_EMAILS.includes(email) || ((roles && roles.admins) || []).includes(email));
   const isUploaderEmail = (email, roles) => !!email && ((roles && roles.uploaders) || []).includes(email);
   const isStaffEmail = (email, roles) => !!email && ((roles && roles.staffs) || []).includes(email); // 직원: 고객의 소리 입력만
 
   const api = { STORE_MODE, OPEN_ROOT, OWNER_EMAILS, storeMode, col, isAdminEmail, isUploaderEmail, isStaffEmail,
-    mdLite, TEAM, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
+    mdLite, noteParts, parsePosts, postPlain, CHANNEL, POST_STATUS, postId, TEAM, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MktCore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

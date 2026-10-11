@@ -97,11 +97,38 @@ textarea{width:100%;max-width:100%;font:inherit;border:1px solid var(--border);b
 .vf>div{margin-bottom:12px}.vf label.t{display:block;font-size:12px;font-weight:700;color:var(--text-md);margin-bottom:5px}
 .sheet{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50;display:flex;align-items:center;justify-content:center;padding:4vh 16px}
 .sheet .box{background:#fff;border-radius:var(--r);width:100%;max-width:760px;max-height:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2)}
-.sheet .sh{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border)}
-.sheet .sh b{min-width:0;flex:1;word-break:break-all}
-.sheet .sb{flex:1;overflow:auto;padding:14px 16px;-webkit-overflow-scrolling:touch}
-.sheet .sf{border-top:1px solid var(--border);padding:10px 16px;display:grid;gap:6px;background:#FAFAFB}
-.sheet .sf textarea{min-height:56px}
+.sheet .sh{display:flex;align-items:flex-start;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.sheet .sh .tt{flex:1;min-width:0}.sheet .sh b{display:block;font-size:16px;word-break:keep-all}
+.chips2{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}.chips2 span{font-size:11px;font-weight:700;background:#F3F4F6;color:var(--text-md);border-radius:20px;padding:2px 8px}
+.chips2 .w{background:var(--gold-l);color:var(--gold)}.chips2 .g{background:var(--green-l);color:var(--green)}
+.seg2{display:flex;gap:4px;padding:8px 16px;border-bottom:1px solid var(--border);background:#fff}
+.seg2 button{flex:1;border:1px solid var(--border);background:#fff;border-radius:8px;padding:7px;font:inherit;font-weight:700;color:var(--text-md);cursor:pointer}
+.seg2 button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.sheet .sb{flex:1;overflow:auto;padding:14px 16px;-webkit-overflow-scrolling:touch;background:#F3F4F6}
+.sheet .sb>.md,.sheet .sb>details,.sheet .sb>.lead{background:#fff;border-radius:var(--r);padding:12px 14px;margin-bottom:12px}
+.lead{font-size:13px;color:var(--text-md);line-height:1.6}
+.btn.wide{width:100%;padding:12px;margin-bottom:12px}
+details.meta summary{cursor:pointer;font-weight:700;color:var(--text-md);font-size:13px}
+.sheet .sf{border-top:1px solid var(--border);padding:8px 12px calc(8px + env(safe-area-inset-bottom));display:grid;gap:6px;background:#fff}
+.sheet .sf textarea{min-height:40px;height:40px;resize:none;transition:height .15s}.sheet .sf textarea:focus{height:88px}
+.pv{background:#fff;border-radius:var(--r);overflow:hidden;margin-bottom:14px;border:1px solid var(--border)}
+.pv-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:12px;font-weight:700;color:#fff;background:#03C75A}
+.pv-logo{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:5px;background:#fff;color:#03C75A;font-weight:900;font-size:12px}
+.pv-tistory .pv-bar{background:#1F1F1F}.pv-tistory .pv-logo{color:#EB531F}
+.pv-cafe .pv-bar{background:#2DB400}.pv-other .pv-bar{background:var(--navy)}.pv-other .pv-logo{color:var(--navy)}
+.pv-notice{background:var(--gold-l);color:var(--gold);font-size:12px;font-weight:700;padding:8px 14px}
+.pv-in{padding:18px 16px 8px}
+.pv-cat{font-size:12px;color:#03C75A;font-weight:700;margin-bottom:6px}.pv-tistory .pv-cat{color:#EB531F}
+.pv-title{font-size:21px;line-height:1.4;margin:0 0 8px;word-break:keep-all}
+.pv-meta{font-size:12px;color:var(--text-sm);padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.pv-body.md{font-size:15px;line-height:1.85}.pv-body.md h2,.pv-body.md h3{font-size:17px;margin:20px 0 6px}.pv-body.md h4,.pv-body.md h5{font-size:15px}
+.pv-tags{color:#2F80ED;font-size:13px;line-height:1.8;padding:10px 0 4px;word-break:break-all}
+.pv-more{padding:0 16px 8px;font-size:13px}.pv-more summary{cursor:pointer;color:var(--text-md);font-weight:700;padding:6px 0}.pv-more ol{margin:4px 0;padding-left:20px}.pv-more>div{margin:6px 0}
+.pv-act{border-top:1px solid var(--border);padding:10px 12px;background:#FAFAFB;display:grid;gap:8px}
+.pv-st{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.pv-btns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.pv-btns input{flex:1;min-width:140px;padding:7px 9px}
+.phb{display:flex;align-items:center;gap:8px;background:var(--gold-l);color:var(--gold);border:1px dashed #FCD34D;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:13px;font-weight:700}
+.pv .phb{flex-direction:column;justify-content:center;text-align:center;aspect-ratio:16/10;background:#F3F4F6;color:var(--text-md);border:1px dashed #CBD5E1;font-weight:600}
+.pv .phb .phi{font-size:28px}
 .sheet .acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.sheet .acts .sp{flex:1}
 .md{font-size:15px;line-height:1.7;word-break:break-word}
 .md h2{font-size:18px;margin:18px 0 8px}.md h3{font-size:16px;margin:16px 0 6px}.md h4,.md h5,.md h6{font-size:15px;margin:12px 0 4px}
@@ -112,7 +139,11 @@ textarea{width:100%;max-width:100%;font:inherit;border:1px solid var(--border);b
 .md table th,.md table td{white-space:normal;min-width:72px;vertical-align:top}.md hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .md a{color:var(--accent);word-break:break-all}
 @media (max-width:900px){.team-grid{grid-template-columns:repeat(2,1fr)}.week{grid-template-columns:repeat(4,minmax(0,1fr))}}
-@media (max-width:700px){.sheet{padding:0}.sheet .box{max-width:none;height:100%;border-radius:0}.team-grid{grid-template-columns:1fr}.week{grid-template-columns:1fr 1fr}.rows .row{padding:10px 12px;flex-wrap:wrap}.rows .row .acts.wide{width:100%;justify-content:flex-end}}
+@media (max-width:700px){.sheet{padding:0}.sheet .box{max-width:none;height:100%;border-radius:0}.sheet .sb{padding:10px}.pv-title{font-size:19px}
+  .md table.rt thead{display:none}.md table.rt,.md table.rt tbody,.md table.rt tr,.md table.rt td{display:block;width:100%}
+  .md table.rt tr{border:1px solid var(--border);border-radius:10px;padding:6px 10px;margin-bottom:8px;background:#fff}
+  .md table.rt td{border:0;padding:3px 0;min-width:0;display:flex;gap:8px}.md table.rt td::before{content:attr(data-l);flex:none;width:88px;color:var(--text-sm);font-size:12px;font-weight:700}
+  .md .tbl{overflow:visible}.team-grid{grid-template-columns:1fr}.week{grid-template-columns:1fr 1fr}.rows .row{padding:10px 12px;flex-wrap:wrap}.rows .row .acts.wide{width:100%;justify-content:flex-end}}
 @media (max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.form{grid-template-columns:1fr 1fr}}
 @media (max-width:700px){main{padding:12px}.kpi .v{font-size:18px}.form{grid-template-columns:1fr}.card h3{padding:11px 12px}.card .bd{padding:12px}}
 </style>
@@ -145,6 +176,8 @@ const COLL={uploads:'mkt-uploads',status:'mkt-upload-status',sales:'mkt-sales',a
 const linksCol=()=>db.collection('pour-os').doc('v2').collection('links');
 // AI 팀 노트 본문 + 사장님 메모 — 루틴(로그인 없음)이 tools/team_link.py 로 쓰므로 저장 위치와 상관없이 늘 공개 자리(pour-os/marketing-hub/mkt-notes)
 const notesCol=()=>C.col(db,'mkt-notes','open');
+// 게시 준비(임시저장 맡기기 → Aside → 사람 발행) · 채널 글쓰기 주소 — Aside 작업대(drafts.html)가 같이 쓰므로 공개 자리
+const postsCol=()=>C.col(db,'mkt-posts','open'), cfgCol=()=>C.col(db,'mkt-config','open');
 const KIND_COLL={sales:COLL.sales,ads:COLL.ads,stock:COLL.stock};
 const DEFAULT_SET={defaultLeadTimeDays:7,safetyDays:7,windowDays:14,roasLow:200,roasHigh:400,minCost:10000,minClicks:10,adsDays:7};
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -155,7 +188,7 @@ const tsMs=(t)=>t&&t.toMillis?t.toMillis():(t?new Date(t).getTime():0);
 const fmtTs=(t)=>{const m=tsMs(t);if(!m)return '-';const d=new Date(m+9*3600e3);return d.toISOString().slice(5,16).replace('T',' ');};
 
 const HASH_TAB={'#voc':'voc','#team':'team'}; // 업무OS 바로가기 (…/marketing-hub/#voc)
-const S={user:null,tab:HASH_TAB[location.hash]||'home',roles:null,settings:{...DEFAULT_SET},sales:[],ads:[],stock:[],log:[],voc:[],links:[],team:{},msg:null,temp:null,busy:false,note:null};
+const S={user:null,tab:HASH_TAB[location.hash]||'home',roles:null,settings:{...DEFAULT_SET},sales:[],ads:[],stock:[],log:[],voc:[],links:[],team:{},msg:null,temp:null,busy:false,note:null,pub:[],chcfg:{}};
 
 /* ── 로그인 ── */
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e=>console.error('[auth] persistence',e));
@@ -291,6 +324,9 @@ async function loadTeamVoc(){
   try{
     const l=await linksCol().where('src','==','mkt').where('open','==',true).get();
     S.links=l.docs.map(d=>({id:d.id,...d.data()}));
+    const [pb,cf]=await Promise.all([postsCol().where('status','in',['queued','draft','failed']).get(),cfgCol().doc('channels').get()]);
+    S.pub=pb.docs.map(d=>({id:d.id,...d.data()}));S.chcfg=cf.exists?cf.data():{};
+    console.log(`[mkt-posts] 진행 중 ${S.pub.length}건`);
     console.log(`[pour-os/v2/links mkt] 열린 ${S.links.length}건`);
     await syncVocLinks();
   }catch(e){console.error('[업무OS 다리] 실패',e);}
@@ -448,6 +484,12 @@ function vSet(){
     ${f('adsDays','키워드 판단 기간','최근 N일 합계')}${f('roasLow','줄이기 기준 ROAS','% 미만')}${f('roasHigh','올리기 기준 ROAS','% 이상')}
     ${f('minCost','판단 최소 비용','원 · 이보다 적으면 보류')}${f('minClicks','올리기 최소 클릭','회')}</div>
     <div style="margin-top:14px"><button class="btn pri" id="set-save">저장</button></div></div></div>
+  <div class="card"><h3>📝 게시 채널 (Aside 글쓰기 주소)</h3><div class="bd">
+    <div class="form"><div><label for="ch-naver_blog">네이버 블로그 글쓰기</label><input id="ch-naver_blog" value="${esc(S.chcfg.naver_blog||'')}" placeholder="https://blog.naver.com/아이디?Redirect=Write"></div>
+      <div><label for="ch-tistory">티스토리 글쓰기</label><input id="ch-tistory" value="${esc(S.chcfg.tistory||'')}" placeholder="https://블로그.tistory.com/manage/newpost"></div>
+      <div><label for="ch-cafe">네이버 카페 (한 줄에 하나: 이름|주소)</label><textarea id="ch-cafe" rows="3" placeholder="셀프인테리어 카페|https://cafe.naver.com/…">${esc(S.chcfg.cafe||'')}</textarea></div></div>
+    <div style="margin-top:12px"><button class="btn pri" id="ch-save">저장</button></div>
+    <p class="sub">Aside 가 임시저장 작업대에서 [글쓰기 열기]로 이 주소를 엽니다. 발행은 늘 사람이 합니다.</p></div></div>
   <div class="card"><h3>🔒 저장 위치</h3><div class="bd">
     ${MODE==='open'?`<p style="margin:0"><span class="pill wait">임시</span> 공개 저장소(pour-os/marketing-hub)에 저장 중 — 보안 규칙 게시 전까지 쓰는 곳입니다. 주소를 아는 사람은 읽고 고칠 수 있어 원본 CSV 는 필요한 열만 저장합니다. 규칙을 게시하면 잠긴 저장소로 옮깁니다.</p>`
       :`<p style="margin:0 0 10px"><span class="pill ok">잠김</span> 관리자만 읽는 저장소(mkt-*)에 저장 중.</p>
@@ -477,6 +519,13 @@ function reviewRows(list){
   return `<div class="rows">${list.map(l=>`<div class="row"><div class="tx"><b>${esc(l.title)}</b><div class="sub">${esc(l.date?mdw(l.date):'')} · ${esc(l.sub||'')}</div></div>
     <div class="acts wide"><button class="btn sm pri" data-note="${esc(l.id)}">📄 보기</button>${l.note?`<a class="btn sm obs" href="${esc(C.obsidianOpenUri(obsVault(),l.note))}">옵시디언</a>`:''}<button class="btn sm" data-review="${esc(l.id)}">✅ 검토 끝</button></div></div>`).join('')}</div>`;
 }
+function pubCard(){
+  const order={draft:0,failed:1,queued:2},rows=[...S.pub].sort((a,b)=>(order[a.status]-order[b.status])||String(a.date).localeCompare(String(b.date)));
+  return `<div class="card"><h3>📤 게시 진행 ${rows.length} <span class="sub">임시저장 맡김 → Aside 임시저장 → <b>사람이 발행</b> · <a href="drafts.html">Aside 작업대 ›</a></span></h3>
+    ${rows.length?`<div class="rows">${rows.map(x=>`<div class="row"><div class="tx"><span class="pill ${x.status==='draft'?'ok':x.status==='failed'?'err':'wait'}">${esc(C.POST_STATUS[x.status]||x.status)}</span>
+      <b>${esc(x.title)}</b><div class="sub">${esc(C.CHANNEL[x.channel]||'')} · ${esc(x.date?mdw(x.date):'')}${x.status==='draft'?' · 앱에서 사진 넣고 발행':''}</div></div>
+      <div class="acts"><button class="btn sm" data-note="${esc(x.noteId)}">보기</button></div></div>`).join('')}</div>`:'<div class="empty">진행 중인 게시물이 없습니다 — 노트 [보기]에서 [임시저장 맡기기]</div>'}</div>`;
+}
 function homeTeamVoc(){
   const now=C.nowKST(), rv=reviews(), vs=C.vocSummary(S.voc,now.date), urg=vs.urgentItems.length+vs.repeated.length;
   return `<div class="grid2">
@@ -487,7 +536,8 @@ function vTeam(){
   const now=C.nowKST(), today=C.teamDay(now.date), rv=reviews();
   const week=[];for(let i=0;i<7;i++){const d=C.addDays(now.date,i);week.push({d,runs:C.teamDay(d)});}
   const live=C.TEAM.filter(m=>m.live).length;
-  return `<div class="card"><h3>📋 검토 대기 ${rv.length} <span class="sub">팀원이 올린 결과 · [보기]로 읽고 고칠 점은 메모 → 게시 → [검토 끝] (업무OS '확인할 것'에서도 사라짐)</span></h3>${reviewRows(rv)}</div>
+  return `<div class="card"><h3>📋 검토 대기 ${rv.length} <span class="sub">[📄 보기] → 미리보기 확인 · 고칠 점 메모 · [임시저장 맡기기] → [검토 끝]</span></h3>${reviewRows(rv)}</div>
+  ${pubCard()}
   <div class="card"><h3>🕘 오늘 ${esc(mdw(now.date))} <span class="sub">${today.length}건 · 지금 ${esc(now.time)}</span></h3>
     ${today.length?`<div class="rows">${today.map(r=>`<div class="row"><span class="t">${esc(r.t)}</span><div class="tx"><b>${esc(r.name)}</b> ${esc(r.what)}</div>${runState(r,now)}</div>`).join('')}</div>`:'<div class="empty">오늘은 정해진 일이 없습니다 (주말)</div>'}</div>
   <div class="card"><h3>👥 팀원 ${C.TEAM.length} <span class="sub">가동 ${live} · 누르면 자세히 · 설정 순서는 볼트 '00 팀 운영 설계' 4절</span></h3><div class="team-grid">
@@ -501,30 +551,79 @@ function vTeam(){
     ${w.runs.length?w.runs.map(r=>`<div class="it">${esc(r.t)} <b>${esc(r.name)}</b> ${esc(r.what)}</div>`).join(''):'<div class="it">쉼</div>'}</div>`).join('')}</div></details></div>`;
 }
 
-/* ── 노트 보기 (대시보드에서 바로 · 2026-10-11 사장님) ── */
+/* ── 노트 보기 (대시보드에서 바로 · 2026-10-11 사장님) ──
+   게시물이 있으면 채널 화면처럼 미리보기(네이버 블로그·티스토리·카페) + 게시 준비:
+   [📝 임시저장 맡기기] → Aside 가 임시저장 작업대(drafts.html)에서 채널에 임시저장 → 사람이 들어가 사진 넣고 발행 → [✅ 발행 완료]
+   ※ 발행·등록·전송은 늘 사람 (AI·Aside 는 임시저장까지 · 2026-10-11 사장님) */
+const BRAND_OF=(p)=>{const c=(p.products||[]).join(' ');return /GH-/.test(c)?'그로홈':/PS-/.test(c)?'POUR스토어':'';};
+const dots=(ymd)=>ymd?ymd.replace(/-/g,'. ')+'.':'';
 function openNote(id){
   const l=S.links.find(x=>x.id===id)||{id};
-  S.note={id,link:l,loading:true,doc:null,err:'',draft:'',saved:''};renderSheet();document.body.style.overflow='hidden';
-  notesCol().doc(id).get().then(d=>{
+  S.note={id,link:l,loading:true,doc:null,err:'',draft:'',saved:'',posts:{},view:''};renderSheet();document.body.style.overflow='hidden';
+  Promise.all([notesCol().doc(id).get(),postsCol().where('noteId','==',id).get()]).then(([d,ps])=>{
     if(!S.note||S.note.id!==id)return;
     S.note.loading=false;S.note.doc=d.exists?d.data():null;S.note.draft=(S.note.doc&&S.note.doc.memo)||'';
-    console.log(`[mkt-notes] ${id} ${d.exists?'본문 '+String((d.data().body||'')).length+'자':'없음'}`);renderSheet();
+    ps.docs.forEach(x=>{const v=x.data();S.note.posts[v.n]=v;});
+    console.log(`[mkt-notes] ${id} ${d.exists?'본문 '+String((d.data().body||'')).length+'자':'없음'} · [mkt-posts] ${ps.size}건`);renderSheet();
   }).catch(e=>{console.error('[mkt-notes] 로드 실패',e);if(!S.note)return;S.note.loading=false;S.note.err=e.code||e.message;renderSheet();});
 }
 function closeNote(){S.note=null;document.body.style.overflow='';renderSheet();}
+function noteParsed(n){
+  const d=n.doc||{};if(!d.body)return null;
+  if(n._src!==d.body){const parts=C.noteParts(d.body);n._parts=parts;n._pp=C.parsePosts(parts.main,(n.link&&n.link.member)||d.member);n._src=d.body;}
+  return {parts:n._parts,pp:n._pp};
+}
+function postActs(p,st){
+  const k=p.n,copy=`<button class="btn sm" data-pc="title:${k}">제목 복사</button><button class="btn sm" data-pc="body:${k}">본문 복사</button>${p.tags.length?`<button class="btn sm" data-pc="tags:${k}">태그 복사</button>`:''}`;
+  const s=st.status||'';
+  if(s==='queued')return `<div class="pv-st"><span class="pill wait">Aside 대기</span><span class="sub">Aside 가 임시저장 작업대에서 처리</span></div><div class="pv-btns"><button class="btn sm" data-pcancel="${k}">맡기기 취소</button>${copy}</div>`;
+  if(s==='draft')return `<div class="pv-st"><span class="pill ok">임시저장됨</span><span class="sub">${esc(C.CHANNEL[p.channel])} 앱 › 임시저장 글 → 사진 넣고 발행</span></div>
+    <div class="pv-btns"><input id="pub-url-${k}" placeholder="게시한 주소 (선택)" inputmode="url"><button class="btn sm pri" data-ppub="${k}">✅ 발행 완료</button></div>`;
+  if(s==='published')return `<div class="pv-st"><span class="pill ok">게시 완료</span>${st.url?`<a class="sub" href="${esc(st.url)}" target="_blank" rel="noopener">글 열기 ›</a>`:''}</div>`;
+  if(s==='failed')return `<div class="pv-st"><span class="pill err">임시저장 실패</span><span class="sub">${esc(st.failNote||'')}</span></div><div class="pv-btns"><button class="btn sm pri" data-pq="${k}">다시 맡기기</button>${copy}</div>`;
+  return `<div class="pv-btns"><button class="btn sm pri" data-pq="${k}">📝 임시저장 맡기기</button>${copy}</div>`;
+}
+function postCard(p,n){
+  const st=n.posts[p.n]||{},brand=BRAND_OF(p),d=n.doc||{};
+  const more=[p.titleB?`<div><b>제목 B안</b> ${esc(p.titleB)}</div>`:'',p.thumbs.length?`<div><b>썸네일 문구</b><ol>${p.thumbs.map(t=>`<li>${esc(t)}</li>`).join('')}</ol></div>`:'',p.memo?`<div><b>팀원 메모</b> ${esc(p.memo)}</div>`:''].join('');
+  return `<article class="pv pv-${p.channel}" id="pv-${p.n}">
+    <div class="pv-bar"><span class="pv-logo">${{naver_blog:'blog',tistory:'T',cafe:'cafe'}[p.channel]||'✎'}</span><span>${esc(C.CHANNEL[p.channel])} 미리보기</span><span class="sp"></span><span class="sub">${p.n}</span></div>
+    ${p.notice?`<div class="pv-notice">⚠️ ${esc(p.notice)}</div>`:''}
+    <div class="pv-in">
+      ${brand&&p.channel!=='cafe'?`<div class="pv-cat">${esc(brand)} 공식 ${p.channel==='tistory'?'티스토리':'블로그'}</div>`:''}
+      <h2 class="pv-title">${esc(p.title||p.heading)}</h2>
+      <div class="pv-meta">${esc(brand||'POUR')} · ${esc(dots(d.date||''))}</div>
+      <div class="md pv-body">${C.mdLite(p.body)}</div>
+      ${p.tags.length?`<div class="pv-tags">${p.tags.map(esc).join(' ')}</div>`:''}
+    </div>
+    ${more?`<details class="pv-more"><summary>다른 제목 · 썸네일 문구${p.memo?' · 팀원 메모':''}</summary>${more}</details>`:''}
+    <div class="pv-act">${postActs(p,st)}</div>
+  </article>`;
+}
 function renderSheet(){
   const el=$('#sheet');if(!el)return;if(!S.note){el.innerHTML='';return;}
-  const n=S.note,l=n.link||{},d=n.doc||{},open=S.links.some(x=>x.id===n.id);
-  const body=n.loading?'<div class="empty">불러오는 중…</div>':n.err?`<div class="msg err">불러오기 실패: ${esc(n.err)}</div>`
-    :d.body?`<div class="md">${C.mdLite(d.body)}</div>`:'<div class="empty">본문이 아직 대시보드에 없습니다 — [옵시디언]에서 보세요</div>';
+  const n=S.note,l=n.link||{},d=n.doc||{},open=S.links.some(x=>x.id===n.id),P=noteParsed(n);
+  const posts=P?P.pp.posts:[],view=n.view||(posts.length?'pv':'doc'),who=(C.teamMember(l.member||d.member)||{}).name||'';
+  const todo=posts.filter(p=>!['queued','draft','published'].includes((n.posts[p.n]||{}).status||''));
+  let body;
+  if(n.loading)body='<div class="empty">불러오는 중…</div>';
+  else if(n.err)body=`<div class="msg err">불러오기 실패: ${esc(n.err)}</div>`;
+  else if(!P)body='<div class="empty">본문이 아직 대시보드에 없습니다 — [옵시디언]에서 보세요</div>';
+  else if(view==='raw')body=`<div class="md">${C.mdLite(d.body)}</div>`;
+  else body=`${P.parts.lead.length?`<div class="lead">${P.parts.lead.map(x=>esc(x.replace(/\*\*/g,''))).join('<br>')}</div>`:''}
+    ${posts.length?`${todo.length>1?`<button class="btn pri wide" data-pqall="1">📝 ${todo.length}개 모두 임시저장 맡기기 (Aside)</button>`:''}${posts.map(p=>postCard(p,n)).join('')}`:''}
+    ${(posts.length?P.pp.rest:P.parts.main)?`<div class="md">${C.mdLite(posts.length?P.pp.rest:P.parts.main)}</div>`:''}
+    ${P.parts.meta?`<details class="meta"><summary>작성 근거 · 요청 내용</summary><div class="md">${C.mdLite(P.parts.meta)}</div></details>`:''}`;
   el.innerHTML=`<div class="sheet" id="sheet-bg"><div class="box" role="dialog" aria-modal="true" aria-label="노트 보기">
-    <div class="sh"><b>${esc(l.title||d.title||'노트')}</b><button class="btn sm" id="note-close">닫기 ✕</button></div>
-    <div class="sb">${(l.note||d.note)?`<div class="sub" style="margin-bottom:8px">${esc(l.note||d.note)}</div>`:''}${body}</div>
-    <div class="sf"><label class="sub" for="note-memo">고칠 점 메모 — 팀원이 다음 작업 전에 읽고 반영합니다${d.memoBy?` · 마지막 ${esc(String(d.memoBy).split('@')[0])}`:''}</label>
-      <textarea id="note-memo" placeholder="예: 제목은 질문형으로 · 가격은 끝에 한 번만">${esc(n.draft||'')}</textarea>
-      <div class="acts">${(l.note||d.note)?`<a class="btn sm obs" href="${esc(C.obsidianOpenUri(obsVault(),l.note||d.note))}">옵시디언</a>`:''}<span class="sub">${esc(n.saved||'')}</span><span class="sp"></span>
+    <div class="sh"><div class="tt"><b>${esc(String(l.title||d.title||'노트').replace(/^검토:\s*/,''))}</b>
+      <div class="chips2">${who?`<span>${esc(who)}</span>`:''}${(l.date||d.date)?`<span>${esc(mdw(l.date||d.date))}</span>`:''}${posts.length?`<span>게시물 ${posts.length}</span>`:''}${open?'<span class="w">검토 대기</span>':'<span class="g">검토 끝</span>'}</div></div>
+      <button class="btn sm" id="note-close" aria-label="닫기">✕</button></div>
+    ${P&&posts.length?`<div class="seg2"><button data-nv="pv" class="${view==='pv'?'on':''}">미리보기</button><button data-nv="raw" class="${view==='raw'?'on':''}">원문</button></div>`:''}
+    <div class="sb">${body}</div>
+    <div class="sf"><textarea id="note-memo" rows="1" placeholder="✏️ 고칠 점 메모 — 팀원이 다음 작업 때 반영">${esc(n.draft||'')}</textarea>
+      <div class="acts">${(l.note||d.note)?`<a class="sub" href="${esc(C.obsidianOpenUri(obsVault(),l.note||d.note))}">옵시디언 ›</a>`:''}<span class="sub">${esc(n.saved||'')}</span><span class="sp"></span>
         <button class="btn sm" id="note-memo-save"${n.loading?' disabled':''}>메모 저장</button>
-        ${open?`<button class="btn sm pri" data-review="${esc(n.id)}">✅ 검토 끝</button>`:'<span class="pill ok">검토 끝</span>'}</div></div></div></div>`;
+        ${open?`<button class="btn sm pri" data-review="${esc(n.id)}">✅ 검토 끝</button>`:''}</div></div></div></div>`;
 }
 document.addEventListener('input',(e)=>{if(e.target.id==='note-memo'&&S.note)S.note.draft=e.target.value;});
 document.addEventListener('keydown',(e)=>{if(e.key==='Escape'&&S.note)closeNote();});
@@ -534,8 +633,37 @@ async function saveNoteMemo(b){
   b.disabled=true;
   const l=n.link||{},extra=n.doc?{}:{member:l.member||'',title:l.title||'',note:l.note||'',date:l.date||todayKST()}; // 본문이 없던 노트도 루틴이 날짜로 찾게
   await notesCol().doc(n.id).set({...extra,memo,memoAt:FV.serverTimestamp(),memoBy:S.user.email},{merge:true});
-  n.doc={...(n.doc||{}),...extra,memo,memoBy:S.user.email};n.draft=memo;n.saved='저장됨 '+C.nowKST().time+' — 팀원이 다음 작업 때 읽음';
+  n.doc={...(n.doc||{}),...extra,memo,memoBy:S.user.email};n.draft=memo;n.saved='저장됨 '+C.nowKST().time;
   console.log('[mkt-notes] 메모 저장',n.id,memo.length+'자');renderSheet();
+}
+// 게시 준비 — mkt-posts/{노트id~번호} (공개 자리 · Aside 작업대가 읽고 씀)
+const curPost=(k)=>{const P=S.note&&noteParsed(S.note);return P?P.pp.posts.find(p=>p.n===Number(k)):null;};
+async function queuePost(k){
+  const n=S.note,p=curPost(k);if(!n||!p)return;const d=n.doc||{},l=n.link||{},id=C.postId(n.id,p.n);
+  const v={noteId:n.id,n:p.n,member:l.member||d.member||'',date:d.date||l.date||todayKST(),channel:p.channel,heading:p.heading,title:p.title||p.heading,titleB:p.titleB,
+    tags:p.tags,thumbs:p.thumbs,notice:p.notice,body:p.body,plain:C.postPlain(p.body),products:p.products,brand:BRAND_OF(p),status:'queued',failNote:'',
+    queuedAt:FV.serverTimestamp(),queuedBy:S.user.email,updatedAt:FV.serverTimestamp()};
+  await postsCol().doc(id).set(v,{merge:true});
+  n.posts[p.n]={...(n.posts[p.n]||{}),...v};S.pub=S.pub.filter(x=>x.id!==id).concat([{id,...v}]);
+  console.log('[mkt-posts] 맡김',id);
+}
+async function setPost(k,patch){
+  const n=S.note,id=C.postId(n.id,Number(k));
+  await postsCol().doc(id).set({...patch,updatedAt:FV.serverTimestamp()},{merge:true});
+  n.posts[k]={...(n.posts[k]||{}),...patch};
+  S.pub=S.pub.map(x=>x.id===id?{...x,...patch}:x).filter(x=>['queued','draft','failed'].includes(x.status));
+  if(patch.status==='published'||patch.status==='canceled') await linksCol().doc('mkt-pub-'+id.replace(/[^\w.-]/g,'_')).set({open:false,closedAt:new Date().toISOString(),closedBy:S.user.email},{merge:true}).catch(e=>console.error('[업무OS 다리] 발행 줄 닫기',e));
+}
+async function copyPost(what,k){
+  const p=curPost(k);if(!p)return;
+  const text=what==='title'?(p.title||p.heading):what==='tags'?p.tags.join(' '):C.postPlain(p.body);
+  try{
+    if(what==='body'&&window.ClipboardItem&&navigator.clipboard.write){ // 서식 있는 붙여넣기(굵게·소제목) + 글자만
+      await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([C.mdLite(p.body)],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]);
+    }else await navigator.clipboard.writeText(text);
+    S.note.saved=({title:'제목',body:'본문',tags:'태그'})[what]+' 복사됨';
+  }catch(e){console.error('[복사] 실패',e);S.note.saved='복사 실패 — 길게 눌러 복사';}
+  renderSheet();
 }
 
 /* ── 고객의 소리 ── */
@@ -618,7 +746,16 @@ document.addEventListener('click',async(e)=>{
       setMsg(r.result==='ok'?'ok':'err',`다시 정리: ${r.result==='ok'?'성공':'실패'} — ${r.message}`);await loadData();return;
     }
     if(b.id==='voc-save'){await saveVoc(b);return;}
+    if(b.id==='ch-save'){const v={naver_blog:$('#ch-naver_blog').value.trim(),tistory:$('#ch-tistory').value.trim(),cafe:$('#ch-cafe').value.trim(),updatedAt:FV.serverTimestamp(),updatedBy:S.user.email};
+      await cfgCol().doc('channels').set(v,{merge:true});S.chcfg=v;setMsg('ok','게시 채널 주소를 저장했습니다');render();return;}
     if(b.dataset.note){openNote(b.dataset.note);return;}
+    if(b.dataset.nv){S.note.view=b.dataset.nv;renderSheet();$('#sheet .sb').scrollTop=0;return;}
+    if(b.dataset.pq){b.disabled=true;await queuePost(b.dataset.pq);S.note.saved='Aside 에 맡김';renderSheet();render();return;}
+    if(b.dataset.pqall){b.disabled=true;const P=noteParsed(S.note);for(const p of P.pp.posts){if(!['queued','draft','published'].includes((S.note.posts[p.n]||{}).status||''))await queuePost(p.n);}S.note.saved='모두 Aside 에 맡김';renderSheet();render();return;}
+    if(b.dataset.pcancel){b.disabled=true;await setPost(b.dataset.pcancel,{status:'canceled'});S.note.saved='맡기기 취소';renderSheet();render();return;}
+    if(b.dataset.ppub){b.disabled=true;const url=(($('#pub-url-'+b.dataset.ppub)||{}).value||'').trim().slice(0,500);
+      await setPost(b.dataset.ppub,{status:'published',url,publishedAt:FV.serverTimestamp(),publishedBy:S.user.email});S.note.saved='발행 완료로 표시';renderSheet();render();return;}
+    if(b.dataset.pc){const [w,k]=b.dataset.pc.split(':');await copyPost(w,k);return;}
     if(b.id==='note-close'){closeNote();return;}
     if(b.id==='note-memo-save'){await saveNoteMemo(b);return;}
     if(b.dataset.vocDone){

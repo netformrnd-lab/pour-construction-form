@@ -90,6 +90,7 @@ check('ads 4건',ads1===4);check('status 5건',st1===5);
 p=await page(375);await p.goto(BASE+'/upload.html?emu=1');
 await p.fill('#login-email','aside-upload@example.com');await p.fill('#login-password',pw);await p.click('#login-button');
 await p.waitForSelector('#upload-section:not([hidden])');
+check('올리기 375: 머리에 작업대 링크 · 넘침 없음',await p.isVisible('#go-drafts')&&await overflow(p)<=0);
 r=await up('naver_ads','2026-10-07',{file:'naver-v2.csv'});check('재업로드 완료',r[1]==='완료: 2026-10-07 네이버 광고 2행');
 await p.context().close();
 p=await page(1280);await p.goto(BASE+'/index.html?emu=1');
@@ -149,7 +150,7 @@ check('업무OS 확인할 것: 하자·안전 한 줄 (내용 없음)',await get
 const today=new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
 // 볼트 대신 임시 폴더에 노트 하나 (루틴이 쓴 것처럼) → team_link.py 가 검토 줄 + 본문을 올림
 const VAULT=mkdtempSync(join(tmpdir(),'vault-'));mkdirSync(join(VAULT,'03 작업'));
-writeFileSync(join(VAULT,'03 작업',`${today} 블로그 원고 3.md`),'---\n유형: 작업\n상태: 검토대기\n---\n# 시험 원고\n> 사진 자리는 유형 번호\n\n## 1. 겨울 전 옥상 균열 보수\n**제목 A안**: 옥상 균열 보수 이유\n[사진: 유형 02 시공전 — 금이 간 옥상]\n\n| 제품 | 정가 |\n|---|--:|\n| [[PS-S011 크랙 방수 세트|크랙 세트]] | 226,000 |\n\n- 바탕 정리\n- 균열 메우기 <b>굵게아님</b>\n');
+writeFileSync(join(VAULT,'03 작업',`${today} 블로그 원고 3.md`),'---\n유형: 작업\n상태: 검토대기\n---\n# 시험 원고\n> 사진 자리는 유형 번호\n\n## 요청 내용\n- 주제 2\n\n## 결과물\n\n## 1. 겨울 전 옥상 균열 보수 — POUR스토어 · [[PS-S011 크랙 방수 세트]]\n**제목 A안**: 옥상 균열 보수 이유\n**제목 B안**: 균열 보수 순서\n\n[사진: 유형 02 시공전 — 금이 간 옥상]\n\n### 이렇게 합니다\n| 제품 | 정가 |\n|---|--:|\n| [[PS-S011 크랙 방수 세트|크랙 세트]] | 226,000 |\n\n- 바탕 정리\n- 균열 메우기 <b>굵게아님</b>\n\n**해시태그**: #옥상균열 #POUR스토어\n\n**썸네일 문구 3안**\n1. 겨울 전 필수\n\n## 2. 카페 — [[GH-P004 미끄럼방지 페인트]]\n> **카페 규정 확인 후 게시**\n**제목**: [정보] 현관 미끄럼 체크\n카페 본문\n> ⚠️ 검토 메모: 광고 표기\n\n## 체크\n- [ ] 확인\n');
 const TL=(...a)=>execFileSync('python3',[process.env.TOOLS+'/team_link.py',...a],{env:{...process.env,MKT_VAULT:VAULT}}).toString().trim();
 log('  ',TL('open','포리','블로그 원고 3',`03 작업/${today} 블로그 원고 3.md`));
 for(const w of [1280,768,375]){
@@ -170,20 +171,68 @@ for(const w of [1280,768,375]){
     await p.click('nav button[data-tab="team"]');const tm=await p.textContent('main');
     check('AI 팀: 팀원 17 · 포리 검토 대기',tm.includes('팀원 17')&&tm.includes('검토: 포리 블로그 원고 3'));
     check('노트 열기 = obsidian://open',(await p.getAttribute('.rows a.obs','href')).startsWith('obsidian://open?file=03%20'));
-    // 📄 보기 → 대시보드에서 바로 읽기 · 메모 → 루틴이 읽음 · 시트에서 검토 끝
-    await p.click('[data-note]');await p.waitForSelector('#sheet .md h2');
-    const md=await p.textContent('#sheet .md');
-    check('보기: 본문 그대로 (머리말 숨김 · 표 · 사진 자리 · 태그는 글자)',md.includes('겨울 전 옥상 균열 보수')&&!md.includes('검토대기')&&(await p.textContent('#sheet .md td'))==='크랙 세트'&&md.includes('📷 사진: 유형 02 시공전')&&md.includes('<b>굵게아님</b>'));
+    // 📄 보기 → 채널 화면처럼 미리보기 · [임시저장 맡기기] · 메모 → 루틴이 읽음 · 시트에서 검토 끝
+    await p.click('[data-note]');await p.waitForSelector('#sheet .pv');
+    const pvs=await p.$$eval('#sheet .pv',a=>a.map(x=>[x.className,x.querySelector('.pv-title').textContent]));
+    check('미리보기: 블로그·카페 2개 (채널 모양 · 제목 A안)',JSON.stringify(pvs)===JSON.stringify([['pv pv-naver_blog','옥상 균열 보수 이유'],['pv pv-cafe','[정보] 현관 미끄럼 체크']]));
+    const pv1=await p.textContent('#pv-1');
+    check('미리보기: 사진 자리 칸 · 표 · 태그 · 태그는 글자 · 제목 줄 안 보임',(await p.$('#pv-1 .phb'))&&pv1.includes('#옥상균열')&&(await p.textContent('#pv-1 td[data-l="제품"]'))==='크랙 세트'&&pv1.includes('<b>굵게아님</b>')&&!pv1.includes('제목 A안'));
+    check('카페: 규정 안내 · 내부 메모는 본문 밖',(await p.textContent('#pv-2 .pv-notice')).includes('카페 규정')&&!(await p.textContent('#pv-2 .pv-body')).includes('광고 표기'));
+    check('작성 근거는 접혀 있음 · 원문 보기',(await p.$('#sheet details.meta:not([open])'))!==null);
     check('보기 375 넘침 없음',await p.evaluate(()=>document.querySelector('#sheet .box').getBoundingClientRect().width<=375&&document.querySelector('#sheet .sb').scrollWidth<=document.querySelector('#sheet .sb').clientWidth+1));
-    await p.screenshot({path:OUT+'/note-375.png'});
+    await p.screenshot({path:OUT+'/note-375.png'});await p.screenshot({path:OUT+'/note-375-full.png',fullPage:false});
+    await p.click('[data-nv="raw"]');check('원문 보기',(await p.textContent('#sheet .sb')).includes('요청 내용'));await p.click('[data-nv="pv"]');
+    const nid=await p.getAttribute('#sheet [data-review]','data-review');
+    await p.click('[data-pq="1"]');await p.waitForSelector('#pv-1 .pill.wait');
+    await p.click('[data-pq="2"]');await p.waitForSelector('#pv-2 .pill.wait');
+    const pd=await getDoc('pour-os/marketing-hub/mkt-posts/'+nid+'~1');
+    check('임시저장 맡기기 → 게시물 문서 (상태 queued · 편집기용 글)',pd&&pd.status.stringValue==='queued'&&pd.title.stringValue==='옥상 균열 보수 이유'&&pd.plain.stringValue.includes('[사진: 유형 02 시공전')&&!pd.plain.stringValue.includes('**'));
     await p.fill('#note-memo','제목은 질문형으로 · 가격은 끝에 한 번만');await p.click('#note-memo-save');
     await p.waitForFunction(()=>/저장됨/.test(document.querySelector('#sheet .sf').textContent));
-    const nid=await p.getAttribute('#sheet [data-review]','data-review');
     check('메모 저장 → 노트 문서',(await getDoc('pour-os/marketing-hub/mkt-notes/'+nid)).memo.stringValue==='제목은 질문형으로 · 가격은 끝에 한 번만');
     const fb=TL('feedback','14');log('   feedback:',fb.split('\n')[0]);
     check('루틴이 메모를 읽음 (team_link.py feedback)',fb.includes('제목은 질문형으로 · 가격은 끝에 한 번만')&&fb.includes('포리'));
     await p.click('#sheet [data-review]');await p.waitForFunction(()=>/검토 끝:/.test((document.querySelector('.msg')||{}).textContent||''));
     check('시트에서 검토 끝 → 시트 닫힘',!(await p.$('#sheet .sheet')));
+    check('게시 진행: Aside 대기 2',(await p.textContent('main')).includes('게시 진행 2'));
+    // 설정 › 게시 채널 (Aside 글쓰기 주소)
+    await p.click('nav button[data-tab="set"]');await p.fill('#ch-naver_blog','https://blog.naver.com/pour?Redirect=Write');
+    await p.fill('#ch-cafe','셀프인테리어 카페|https://cafe.naver.com/self/write');await p.click('#ch-save');
+    await p.waitForFunction(()=>/게시 채널 주소를 저장/.test((document.querySelector('.msg')||{}).textContent||''));
+    check('게시 채널 저장',(await getDoc('pour-os/marketing-hub/mkt-config/channels')).cafe.stringValue.includes('cafe.naver.com/self'));
+    await p.click('nav button[data-tab="team"]');
+    // Aside: 임시저장 작업대 (375 · 1280)
+    for(const dw of [375,1280]){
+      const q=await page(dw);await q.goto(BASE+'/drafts.html?emu=1');
+      await q.fill('#login-email','aside-upload@example.com');await q.fill('#login-password',pw);await q.click('#login-button');
+      await q.waitForSelector('#queue-list .post-row');
+      check(`작업대 ${dw} 넘침 없음 · 맡긴 글 2`,await overflow(q)<=0&&(await q.$$('#queue-list .post-row')).length===2);
+      await q.screenshot({path:`${OUT}/drafts-${dw}.png`,fullPage:true});
+      if(dw===1280){
+        await q.click('#open-1');
+        check('작업대: 제목·본문(사진 자리 그대로)·태그',(await q.inputValue('#post-title'))==='옥상 균열 보수 이유'&&(await q.inputValue('#post-body')).includes('[사진: 유형 02 시공전 — 금이 간 옥상]')&&(await q.inputValue('#post-tags'))==='#옥상균열 #POUR스토어');
+        check('작업대: 블로그 글쓰기 링크 (설정 주소)',(await q.getAttribute('#write-link','href'))==='https://blog.naver.com/pour?Redirect=Write');
+        await q.screenshot({path:`${OUT}/drafts-open-1280.png`,fullPage:true});
+        await q.click('#mark-draft');await q.waitForFunction(()=>/^완료/.test(document.querySelector('#status-message').textContent));
+        check('임시저장 완료 → 상태 draft · 업무OS 발행 한 줄',(await getDoc('pour-os/marketing-hub/mkt-posts/'+nid+'~1')).status.stringValue==='draft'&&(await getDoc('pour-os/v2/links/mkt-pub-'+nid+'_1')).kind.stringValue==='publish');
+        check('작업대: 임시저장됨 목록으로',(await q.textContent('#draft-list')).includes('옥상 균열 보수 이유'));
+        // 카페 글: 규정 확인 띠 · 카페 글쓰기 링크 → 못 함(이유) → 맡긴 글에서 빠지고 '못 한 글'로 (Aside 가 되풀이하지 않음)
+        await q.click('#open-1');
+        check('작업대: 카페 규정 띠 · 카페 글쓰기 링크',await q.isVisible('#post-notice')&&(await q.textContent('#post-write-links')).includes('셀프인테리어 카페 글쓰기 열기'));
+        await q.click('#mark-failed');check('이유 없이 못 함 → 실패 문구',(await q.textContent('#status-message')).startsWith('실패:'));
+        await q.fill('#fail-note','카페 등급 부족');await q.click('#mark-failed');
+        await q.waitForFunction(()=>/^완료/.test(document.querySelector('#status-message').textContent));
+        check('못 함 → 상태 failed · 맡긴 글 0 · 못 한 글 1',(await getDoc('pour-os/marketing-hub/mkt-posts/'+nid+'~2')).status.stringValue==='failed'&&(await q.$$('#queue-list .post-row')).length===0&&(await q.textContent('#failed-list')).includes('카페 등급 부족'));
+      }
+      await q.context().close();
+    }
+    // 사람: 게시 진행 → 보기 → 발행 완료
+    await p.reload();await p.waitForSelector('.kpis');await p.waitForTimeout(2500);await p.click('nav button[data-tab="team"]');
+    await p.click('main [data-note]');await p.waitForSelector('#pv-1 [data-ppub]');
+    await p.fill('#pub-url-1','https://blog.naver.com/pour/1');await p.click('#pv-1 [data-ppub]');await p.waitForSelector('#pv-1 .pv-st a');
+    check('카페 글: 임시저장 실패 · 이유 · [다시 맡기기]',(await p.textContent('#pv-2 .pv-st')).includes('카페 등급 부족')&&!!(await p.$('#pv-2 [data-pq="2"]')));
+    check('발행 완료 → 상태 published · 주소 · 업무OS 발행 줄 닫힘',(await getDoc('pour-os/marketing-hub/mkt-posts/'+nid+'~1')).url.stringValue==='https://blog.naver.com/pour/1'&&(await getDoc('pour-os/v2/links/mkt-pub-'+nid+'_1')).open.booleanValue===false);
+    await p.click('#note-close');
     const ln=(await list('pour-os/v2/links',true)).filter(d=>d.fields.kind&&d.fields.kind.stringValue==='aiReview');
     check('검토 끝 → 업무OS 줄 닫힘 · 포리 최근 검토',ln.length===1&&ln[0].fields.open.booleanValue===false&&(await getDoc('pour-os/marketing-hub/mkt-team/pori')).lastTitle.stringValue==='포리 블로그 원고 3');
     await p.click('details.tm:nth-child(2) summary');check('팀원 카드(펼침): 최근 검토 표시',(await p.textContent('details.tm[open]')).includes('· 포리 블로그 원고 3'));

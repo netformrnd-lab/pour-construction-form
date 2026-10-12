@@ -203,7 +203,7 @@ const notesCol=()=>C.col(db,'mkt-notes','open');
 // 게시 준비(임시저장 맡기기 → Aside → 사람 발행) · 채널 글쓰기 주소 — Aside 작업대(drafts.html)가 같이 쓰므로 공개 자리
 const postsCol=()=>C.col(db,'mkt-posts','open'), cfgCol=()=>C.col(db,'mkt-config','open');
 const KIND_COLL={sales:COLL.sales,ads:COLL.ads,stock:COLL.stock};
-const DEFAULT_SET={defaultLeadTimeDays:7,safetyDays:7,windowDays:14,roasLow:200,roasHigh:400,minCost:10000,minClicks:10,adsDays:7};
+const DEFAULT_SET={...C.DEFAULT_SETTINGS}; // 기준값 기본 (core.js · 매일 숫자 작업과 같게)
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const won=(n)=>Math.round(n||0).toLocaleString('ko-KR');
 const num=(n,d=0)=>(n==null?'-':Number(n).toLocaleString('ko-KR',{maximumFractionDigits:d}));
@@ -370,30 +370,10 @@ async function syncVocLinks(){
 }
 
 /* ── 계산 (화면용) ── */
-function stockRows(){
-  // 상품별 가장 최근 재고 → 지금 판매 기록으로 다시 계산
-  const latest=new Map();
-  for(const d of S.stock){const k=d.productKey||d.productCode||d.productName;const p=latest.get(k);if(!p||d.reportDate>p.reportDate)latest.set(k,d);}
-  return [...latest.values()].map(d=>({...d,...C.stockPlan(d,S.sales,S.settings)}))
-    .sort((a,b)=>(b.reorderNeeded-a.reorderNeeded)||((a.daysLeft==null?1e9:a.daysLeft)-(b.daysLeft==null?1e9:b.daysLeft)));
-}
-function salesRows(){
-  const t=todayKST(), a=C.addDays(t,-7), b=C.addDays(t,-14);
-  const m=new Map();
-  for(const s of S.sales){
-    const k=s.productCode||s.productName; const r=m.get(k)||{code:s.productCode,name:s.productName,q7:0,r7:0,qp:0,rp:0,ch:new Set()};
-    if(!r.name&&s.productName)r.name=s.productName;
-    if(s.reportDate>=a){r.q7+=s.qty||0;r.r7+=s.revenue||0;r.ch.add(s.channel);} else if(s.reportDate>=b){r.qp+=s.qty||0;r.rp+=s.revenue||0;}
-    m.set(k,r);
-  }
-  return [...m.values()].sort((x,y)=>y.r7-x.r7||y.q7-x.q7);
-}
-function dailyRevenue(){
-  const days=[];for(let i=14;i>=1;i--)days.push(C.addDays(todayKST(),-i));
-  const sum=Object.fromEntries(days.map(d=>[d,0]));
-  for(const s of S.sales) if(s.reportDate in sum) sum[s.reportDate]+=s.revenue||0;
-  return days.map(d=>({d,v:sum[d]}));
-}
+// 계산은 core.js (매일 숫자 작업 scripts/mkt-numbers 와 같은 식)
+const stockRows=()=>C.stockRows(S.stock,S.sales,S.settings);
+const salesRows=()=>C.salesRows(S.sales,todayKST());
+const dailyRevenue=()=>C.dailyRevenue(S.sales,todayKST());
 const pct=(a,b)=>b>0?Math.round((a-b)/b*100):null;
 const chName=(id)=>(C.channelOf(id)||{label:id}).label;
 
@@ -435,12 +415,7 @@ function vHome(){
 // 기본 = 빈칸(옵시디언에 지금 열린 볼트) — 아이폰에서 볼트 이름을 넣으면 노트가 안 생기고 빈칸이면 됨(2026-10-09 사용자 확인)
 function obsVault(){try{const v=localStorage.getItem('mkt_obsidian_vault');return v==null?'':v;}catch(e){return '';}}
 function obsHubDone(){try{return localStorage.getItem('mkt_obsidian_hub')==='1';}catch(e){return false;}}
-function obsidianText(){
-  const dr=dailyRevenue();
-  return C.obsidianNote({date:todayKST(),sales7:dr.slice(7).reduce((a,x)=>a+x.v,0),salesPrev7:dr.slice(0,7).reduce((a,x)=>a+x.v,0),
-    stock:stockRows(),advice:C.keywordAdvice(S.ads,S.settings),sales:salesRows(),adsDays:S.settings.adsDays,
-    voc:C.vocSummary(S.voc,todayKST()),vocList:S.voc.filter(v=>v.date>=C.addDays(todayKST(),-6))});
-}
+function obsidianText(){return C.numbersNote({sales:S.sales,ads:S.ads,stock:S.stock,voc:S.voc,settings:S.settings,today:todayKST()});}
 function obsidianLink(){return C.obsidianUri(obsVault(),C.OBSIDIAN_NOTE,obsidianText(),'overwrite');}
 function stockTable(rows,short){
   if(!rows.length)return `<div class="empty">${S.stock.length?'발주할 품목이 없습니다':'재고 리포트가 아직 없습니다'}</div>`;

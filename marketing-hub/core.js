@@ -314,6 +314,40 @@
     }
     return L.join('\n');
   }
+  /* ── 오늘 숫자 계산 — 대시보드 화면 · [옵시디언으로 보내기] · scripts/mkt-numbers(매일 06:10 → AI 팀이 GitHub 볼트에 저장)가 같이 씀 (2026-10-12) ── */
+  const DEFAULT_SETTINGS = { defaultLeadTimeDays: 7, safetyDays: 7, windowDays: 14, roasLow: 200, roasHigh: 400, minCost: 10000, minClicks: 10, adsDays: 7 };
+  // 상품별 가장 최근 재고 → 지금 판매 기록으로 다시 계산 (발주 필요 먼저 · 남은 일수 적은 순)
+  function stockRows(stock, sales, settings) {
+    const latest = new Map();
+    for (const d of stock) { const k = d.productKey || d.productCode || d.productName; const p = latest.get(k); if (!p || d.reportDate > p.reportDate) latest.set(k, d); }
+    return [...latest.values()].map((d) => ({ ...d, ...stockPlan(d, sales, settings) }))
+      .sort((a, b) => (b.reorderNeeded - a.reorderNeeded) || ((a.daysLeft == null ? 1e9 : a.daysLeft) - (b.daysLeft == null ? 1e9 : b.daysLeft)));
+  }
+  // 제품별 최근 7일 · 그 전 7일
+  function salesRows(sales, today) {
+    const a = addDays(today, -7), b = addDays(today, -14), m = new Map();
+    for (const s of sales) {
+      const k = s.productCode || s.productName; const r = m.get(k) || { code: s.productCode, name: s.productName, q7: 0, r7: 0, qp: 0, rp: 0, ch: new Set() };
+      if (!r.name && s.productName) r.name = s.productName;
+      if (s.reportDate >= a) { r.q7 += s.qty || 0; r.r7 += s.revenue || 0; r.ch.add(s.channel); } else if (s.reportDate >= b) { r.qp += s.qty || 0; r.rp += s.revenue || 0; }
+      m.set(k, r);
+    }
+    return [...m.values()].sort((x, y) => y.r7 - x.r7 || y.q7 - x.q7);
+  }
+  // 어제까지 14일 날짜별 매출
+  function dailyRevenue(sales, today) {
+    const days = []; for (let i = 14; i >= 1; i--) days.push(addDays(today, -i));
+    const sum = Object.fromEntries(days.map((d) => [d, 0]));
+    for (const s of sales) if (s.reportDate in sum) sum[s.reportDate] += s.revenue || 0;
+    return days.map((d) => ({ d, v: sum[d] }));
+  }
+  // '05 오늘 숫자' 노트 한 장 — in: { sales, ads, stock, voc(날짜 최신순), settings, today }
+  function numbersNote({ sales, ads, stock, voc, settings, today }) {
+    const st = { ...DEFAULT_SETTINGS, ...(settings || {}) }, dr = dailyRevenue(sales, today);
+    return obsidianNote({ date: today, sales7: dr.slice(7).reduce((a, x) => a + x.v, 0), salesPrev7: dr.slice(0, 7).reduce((a, x) => a + x.v, 0),
+      stock: stockRows(stock, sales, st), advice: keywordAdvice(ads, st), sales: salesRows(sales, today), adsDays: st.adsDays,
+      voc: vocSummary(voc, today), vocList: voc.filter((v) => v.date >= addDays(today, -6)) });
+  }
   // 허브 노트 끝에 한 번 붙이는 칸 (오늘 숫자 노트를 끼워 보여 줌)
   const OBSIDIAN_HUB_SECTION = `\n\n## 📊 오늘 숫자\n> 대시보드 [옵시디언으로 보내기]를 누르면 아래가 새 숫자로 바뀝니다.\n\n![[${OBSIDIAN_NOTE}]]\n`;
   function obsidianUri(vault, file, content, mode) { // mode: 'overwrite' | 'append'
@@ -756,7 +790,7 @@
   const isStaffEmail = (email, roles) => !!email && ((roles && roles.staffs) || []).includes(email); // 직원: 고객의 소리 입력만
 
   const api = { STORE_MODE, OPEN_ROOT, OWNER_EMAILS, storeMode, col, isAdminEmail, isUploaderEmail, isStaffEmail,
-    mdLite, noteParts, parsePosts, postPlain, postBlocks, postHtml, pasteHtml, blogCheck, photoParts, CHANNEL, POST_STATUS, postId, DRAFT_CH, canDraft, TEAM, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
+    mdLite, noteParts, parsePosts, postPlain, postBlocks, postHtml, pasteHtml, blogCheck, photoParts, CHANNEL, POST_STATUS, postId, DRAFT_CH, canDraft, TEAM, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, DEFAULT_SETTINGS, stockRows, salesRows, dailyRevenue, numbersNote, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MktCore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

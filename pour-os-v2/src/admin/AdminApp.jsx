@@ -23,6 +23,7 @@ import { KpiBoard, LagSheet, useGhRefresh, KpiEditSheet } from "../kpiui.jsx";
 import { ReportBody, ReportSheet } from "../reportui.jsx";
 import { GrowthBody, GrowthSheet } from "../growthui.jsx";
 import { SearchSheet } from "../searchui.jsx";
+import { AiTeamBody } from "../aiui.jsx";
 import { Seg } from "../ui.jsx";
 import "./admin.css";
 
@@ -44,7 +45,7 @@ function NotMaster({ cu, logout }) {
   </div>;
 }
 
-const TABS = [["glance", "한눈에"], ["people", "사람"], ["collab", "협업 맵"], ["routine", "반복 실행"], ["kpi", "KPI"], ["projects", "프로젝트"], ["tidy", "정리"]];
+const TABS = [["glance", "한눈에"], ["people", "사람"], ["ai", "AI 팀원"], ["collab", "협업 맵"], ["routine", "반복 실행"], ["kpi", "KPI"], ["projects", "프로젝트"], ["tidy", "정리"]];   // AI 팀원 = 2026-10-12
 
 function AdminMain({ B }) {
   const { D, cu } = B;
@@ -107,6 +108,7 @@ function AdminMain({ B }) {
         </div>
         {tab === "glance" && <Glance {...ctx} />}
         {tab === "people" && <PeopleTab {...ctx} />}
+        {tab === "ai" && <AiTeamBody {...ctx} admin />}
         {tab === "collab" && <CollabTab {...ctx} />}
         {tab === "routine" && <RoutineTab {...ctx} />}
         {tab === "kpi" && <KpiTab ctx={ctx} cu={cu} />}

@@ -23,6 +23,8 @@ import { parseMentions, smsTarget, smsOpen, smsDue, smsText } from "./mention.js
 import { flowOwners } from "./flow.js";
 import { sumAk, akWrite, countFields, countOf, baseTitle } from "./routine.js";
 import { linkInbox } from "./links.js";
+import { askInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop } from "./aiask.js";   // AI 승인 (2026-10-12)
+import { mateOf, brandL } from "../../marketing-hub/crew.js";
 import { lagInbox, applyKpiOv, kpiEditWrite, newKpiId } from "./kpi2.js";
 import { dayIdFx, dayIdAk, openIdAk, dayBase, dayAdd, dayFix, roundTap, qtyToGoal, akSubsOf } from "./rec.js";
 import { akQidOfWeek, akWeekKey } from "../../pour-os/src/actionKpi.js";
@@ -44,7 +46,7 @@ export const liveNotes = (arr, D) => { const live = new Set(((D && D.notes) || [
 // ───────────────── 데이터 구독 ─────────────────
 // on: 사람 목록만(로그인 화면) · full: 로그인 뒤 나머지 전부 (로그인 전엔 업무·기록을 읽지 않음 — 정밀 검토 2026-10-06 · 읽기 비용)
 export function useData(on, full = true) {
-  const [S, setS] = useState({ users: null, projects: null, openT: null, doneT: [], notes: [], log: [], events: [], brands: [], workflows: [], mainKPIs: [], subKPIs: [], settings: [], akDef: undefined, akV1: undefined, akV2: [], links: [], lagDef: undefined, lagV2: [], kpisales: undefined, kpiOv: [], templates: undefined });
+  const [S, setS] = useState({ users: null, projects: null, openT: null, doneT: [], notes: [], log: [], events: [], brands: [], workflows: [], mainKPIs: [], subKPIs: [], settings: [], akDef: undefined, akV1: undefined, akV2: [], links: [], lagDef: undefined, lagV2: [], kpisales: undefined, kpiOv: [], templates: undefined, aiOpen: [], aiRecent: [], aimates: undefined });
   // 이번 분기 — 켜 둔 채 날이 바뀌어도 따라감(1분마다 · 화면 다시 볼 때)
   const [akQ, setAkQ] = useState(() => akQidOfWeek(akWeekKey(new Date())));
   const [dayK, setDayK] = useState(() => ymd(new Date()));   // 오늘 (하루 기록 구독 · 날이 바뀌면 따라감)
@@ -88,6 +90,10 @@ export function useData(on, full = true) {
       fb.listen("kpidefs", null, put("kpiOv"), (e) => console.warn("[v2] KPI 고친 것 못 읽음:", e)),   // KPI 고치기(v2 덧칠) — 버전1 정의 위에 덮어 보임
       // 견본(템플릿 · 2026-10-07): 문서 하나에 업무 목록을 담아 따로 둠 → 업무·프로젝트 목록에 안 섞임(오늘·달력·KPI·한눈에·협업 맵·보고서·찾기에 안 나옴) — 못 읽어도 앱은 그대로
       fb.listen("templates", null, put("templates"), (e) => { console.warn("[v2] 견본 못 읽음:", e); setS((s) => ({ ...s, templates: [] })); }),
+      // AI 승인(aiask.js · 2026-10-12): 열린 것(사람 차례 · AI 가 고치는 중) + 최근 7일 바뀐 것(성과·최종 승인 알림) · AI 팀원 담당·규칙 덧칠 — 못 읽어도 앱은 그대로
+      fb.listen("aiasks", ["state", "in", ["wait", "back"]], put("aiOpen"), (e) => console.warn("[v2] AI 승인 못 읽음:", e)),
+      fb.listen("aiasks", ["updatedAt", ">=", since14], put("aiRecent"), (e) => console.warn("[v2] AI 승인(최근) 못 읽음:", e)),
+      fb.listen("aimates", null, put("aimates"), (e) => { console.warn("[v2] AI 팀원 설정 못 읽음:", e); setS((s) => ({ ...s, aimates: [] })); }),
     ];
     return () => subs.forEach((u) => u && u());
   }, [on, full]);
@@ -122,7 +128,10 @@ export function useData(on, full = true) {
       removedTemplates: (S.templates || []).filter((x) => x && isRemoved(x)), tplReady: S.templates !== undefined,
       recs: { key: dayK, today: S.recToday || [], ready: S.recToday !== undefined, open: S.akOpen || [] },
       // 업무·프로젝트 첫 목록까지 받은 뒤 (그 전엔 '급한 일 없어요'·자동 반영이 빈 목록으로 돌지 않게 — 정밀 검토 2026-10-06)
-      loaded: !!S.users && S.openT !== null && S.projects !== null, salesReady: S.kpisales !== undefined };
+      loaded: !!S.users && S.openT !== null && S.projects !== null, salesReady: S.kpisales !== undefined,
+      // AI 승인(2026-10-12): asks = 열린 것 + 최근 7일(같은 id 는 열린 쪽) · mates = AI 팀원 덧칠 {id: 문서} · aiInbox = '확인할 것' 줄(model.todayView 가 부름 · 순환 import 피하려고 D 로)
+      ai: (() => { const m = new Map(); (S.aiRecent || []).forEach((x) => m.set(x.id, x)); (S.aiOpen || []).forEach((x) => m.set(x.id, x));
+        return { asks: [...m.values()], mates: Object.fromEntries((S.aimates || []).map((x) => [x.id || x._doc, x])), ready: S.aimates !== undefined }; })(), aiInbox: askInbox };
   }, [S, akQ, dayK]);
   return [D, err];
 }
@@ -469,6 +478,15 @@ export function useActs(D, cu, setToast, idx = null) {
       return r; }
     catch (e) { fail("되돌리기")(e); return null; }
   };
+  // AI 승인 한 번 쓰기(돌려보내기·AI 에게 다시·안 함): 연 때 본 차례 그대로일 때만 + 기록 + 5초 되돌리기
+  const aiWrite = async (a, pl, act, label, done) => {
+    try { const r = await fb.patchIf("aiasks", a.id, pl.expect, { ...pl.fields, log: fb.arrayUnion(pl.entry) }); if (!r.ok) { setToast({ text: "그사이 다른 사람이 먼저 처리했어요 · 지금 상태를 다시 봐 주세요" }); return false; } }
+    catch (e) { fail("AI 승인")(e); return false; }
+    log(act, { col: "aiasks", targetId: a.id, label });
+    const wrote = { ...pl.fields }, prev = prevOf(a, wrote);
+    setToast({ text: done, undo: () => A.aiUndo(a, wrote, prev, null) });
+    return true;
+  };
   const undoT = (t, wrote, prev, label, logAction = "edit") => undoMany([{ key: "tasks", id: tdoc(t), wrote, prev }], label, logAction).then((r) => { if (r && r.done && t.projectId) recalc(t.projectId); return r; });
   const A = {
     log, recalc, patchTask: P, undoMany, undoTask: undoT,
@@ -512,6 +530,107 @@ export function useActs(D, cu, setToast, idx = null) {
       setToast({ text: `확인 완료 · ${t.title}`, undo: () => undoT(t, f, prev, `${t.title} · 확인 대기로`, "approve") }); },
     sendBack: (t, text) => { P(t, { status: "inprogress", feedback: { text, ...by() }, reviewAt: null, statusLog: sl("inprogress", { feedback: true }) }, "feedback", `${t.title} · ${text.slice(0, 40)}`);
       A.addNote(taskNoteId(t.id), "수정 요청: " + text, null, [], { taskId: t.id, projectId: t.projectId }); setToast({ text: "수정 요청을 보냈어요" }); },
+    // ── AI 승인 (aiask.js · 사용자 결정 2026-10-12 'AI → 담당 → 리드 → 본부장') ──
+    //   승인 문서(pour-os/v2/aiasks)가 연 때 본 차례(state·to·step·ver) 그대로일 때만 씀(transaction) · 기록 log 는 더하기만 · 5초 되돌리기
+    //   최종 승인 + 실행 한 줄 → 담당에게 '실행' 업무(같은 transaction · 없을 때만) — 실제 반영(가격·광고·발송·게시)은 늘 사람
+    aiPass: async (a, pick) => {
+      if (!canAct(a, cu)) { setToast({ text: "지금 내 차례가 아니에요" }); return false; }
+      if (!pickOk(a, pick)) { setToast({ text: "승인할 번호를 골라 주세요" }); return false; }
+      const at = nowIso(), pl = planPass(a, cu, D.users, pick, at);
+      const ex = pl.final ? planExec({ ...a, ...pl.fields }, pl.fields.pick, cu, D.users, at, nextWorkday(addDays(ymd(new Date()), 1))) : null;
+      try {
+        const ok = await fb.txDocs([{ key: "aiasks", id: a.id }, ...(ex ? [{ key: "tasks", id: ex.id }] : [])], (curs) => {
+          const cur = curs[0]; if (!cur || !Object.keys(pl.expect).every((k) => fb.sameVal(cur[k], pl.expect[k]))) return { ret: false };
+          return { writes: [{ ...pl.fields, log: fb.arrayUnion(pl.entry), ...(ex ? { execTask: ex.id } : {}) }, ex && !curs[1] ? ex : null], ret: true }; });
+        if (!ok) { setToast({ text: "그사이 다른 사람이 먼저 처리했어요 · 지금 상태를 다시 봐 주세요" }); return false; }
+      } catch (e) { fail("AI 승인")(e); return false; }
+      const nm = nameOf(D.users, pl.next), pk = pl.fields.pick;
+      log(pl.final ? "aiOk" : "aiUp", { col: "aiasks", targetId: a.id, label: `${a.mateName || "AI"} · ${a.title}${pl.final ? " · 최종 승인" : ` → ${nm}`}${pk ? ` · ${pk.join("·")}` : ""}` });
+      const wrote = { ...pl.fields }, prev = prevOf(a, wrote);
+      setToast({ text: pl.final ? (ex ? `최종 승인 · ${nameOf(D.users, ex.assigneeId) || "담당"}님께 '실행' 업무가 생겼어요` : "최종 승인했어요") : `${nm}님께 승인 요청을 보냈어요`, undo: () => A.aiUndo(a, wrote, prev, ex) });
+      return true;
+    },
+    // 되돌리기: 내가 쓴 값이 그대로일 때만 · 최종 승인으로 생긴 실행 업무는 아직 손대지 않았으면 중단(지우지 않음)
+    aiUndo: async (a, wrote, prev, ex) => {
+      const r = await undoMany([{ key: "aiasks", id: a.id, wrote, prev }], `${a.mateName || "AI"} · ${a.title}`, "aiUndo");
+      if (r && r.done) {
+        fb.patch("aiasks", a.id, { log: fb.arrayUnion({ at: nowIso(), by: cu.id, byName: cu.name, act: "undo" }), ...(ex ? { execTask: null } : {}) }).catch((e) => console.error("[v2] AI 되돌림 기록 실패:", e));
+        if (ex) fb.patchManyIf([{ key: "tasks", id: ex.id, expect: { status: "todo" }, fields: { status: "dropped", dropReason: "AI 승인 되돌림", updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() } }]).catch((e) => console.error("[v2] 실행 업무 접기 실패:", e));
+      }
+      return r;
+    },
+    aiBack: async (a, text) => {
+      const t = String(text || "").trim(); if (!t) { setToast({ text: "무엇을 고치면 될지 한 줄 써 주세요" }); return false; }
+      if (!canBack(a, cu)) { setToast({ text: "AI에게 다시 보내기는 담당 단계에서만 해요" }); return false; }
+      return aiWrite(a, planBack(a, cu, t, nowIso()), "aiBack", `${a.mateName || "AI"}에게 다시 · ${t.slice(0, 40)}`, `${a.mateName || "AI"}에게 다시 보냈어요 · 다음 실행 때 고쳐서 올려요`);
+    },
+    aiRet: async (a, text) => {
+      const t = String(text || "").trim(); if (!t) { setToast({ text: "무엇을 고치면 될지 한 줄 써 주세요" }); return false; }
+      if (!canRet(a, cu)) { setToast({ text: "돌려보내기는 상급자 단계에서만 해요" }); return false; }
+      const pl = planRet(a, cu, t, nowIso());
+      return aiWrite(a, pl, "aiRet", `${a.title} · 돌려보냄 · ${t.slice(0, 40)}`, `${nameOf(D.users, pl.fields.to) || "담당"}님께 돌려보냈어요`);
+    },
+    aiDrop: async (a, reason) => {
+      if (!canAct(a, cu)) { setToast({ text: "지금 내 차례가 아니에요" }); return false; }
+      return aiWrite(a, planDrop(a, cu, String(reason || "").trim(), nowIso()), "aiNo", `${a.title} · 안 함${reason ? " · " + reason : ""}`, "안 하기로 했어요");
+    },
+    // AI 담당 정하기(관리자 · key = '_' 기본 또는 브랜드 id) — 그 AI 의 열린 승인 중 담당 차례인 것(옛 담당·담당 미정)은 새 담당에게 같이
+    mateOwnerSet: async (mateId, key, uid) => {
+      if (!isMaster(cu)) { setToast({ text: "AI 담당은 관리자가 정해요" }); return false; }
+      const at = nowIso(), k = key || "_", m = mateOf(mateId) || { name: mateId }; let was = "";
+      try { await fb.txDoc("aimates", mateId, (cur) => { was = ((cur && cur.owners) || {})[k] || ""; if (was === (uid || "")) return {};
+          const h = { at, by: cu.id, byName: cu.name, ch: { ["owners." + k]: [was, uid || ""] } };
+          return { write: cur ? { ["owners." + k]: uid || "", updatedAt: at, hist: fb.arrayUnion(h) } : { owners: { [k]: uid || "" }, rules: [], updatedAt: at, hist: [h] } }; }); }
+      catch (e) { fail("AI 담당")(e); return false; }
+      const own = ((D.ai.mates[mateId] || {}).owners) || {};
+      const moves = (D.ai.asks || []).filter((x) => x.mate === mateId && (k === "_" ? !own[x.brand] : x.brand === k)
+        && ((x.state === "wait" && !(x.step > 0) && (x.to === was || !x.to)) || (x.state === "back" && (x.owner === was || !x.owner))));
+      let moved = 0;
+      if (moves.length) { try { moved = (await fb.patchManyIf(moves.map((x) => ({ key: "aiasks", id: x.id, expect: { state: x.state, to: x.to || "", step: x.step || 0 }, fields: { ...(x.state === "wait" ? { to: uid || "" } : {}), owner: uid || "", updatedAt: at } })))).done; } catch (e) { console.error("[v2] 열린 승인 옮기기 실패:", e); } }
+      log("aiOwner", { col: "aimates", targetId: mateId, label: `${m.name} · 담당${k === "_" ? "" : ` (${brandL(k)})`} ${nameOf(D.users, was) || "미정"} → ${nameOf(D.users, uid) || "미정"}${moved ? ` · 열린 승인 ${moved}건 같이` : ""}` });
+      setToast({ text: `${m.name} 담당${k === "_" ? "" : `(${brandL(k)})`} = ${nameOf(D.users, uid) || "미정(관리자 누구나)"}${moved ? ` · 열린 승인 ${moved}건도 넘겼어요` : ""}` });
+      return true;
+    },
+    // 확정 규칙(고도화): 담당·관리자가 더함 → AI 가 실행 전마다 읽음(team_link.py rules) · 지우지 않고 끄기만
+    mateRule: async (mateId, text) => {
+      const t = String(text || "").trim().slice(0, 300); if (!t) return false;
+      const at = nowIso(), r = { id: newId("r"), text: t, at, by: cu.id, byName: cu.name };
+      try { await fb.txDoc("aimates", mateId, (cur) => ({ write: cur ? { rules: fb.arrayUnion(r), updatedAt: at } : { owners: {}, rules: [r], updatedAt: at, hist: [] } })); }
+      catch (e) { fail("규칙")(e); return false; }
+      log("aiRule", { col: "aimates", targetId: mateId, label: `${(mateOf(mateId) || {}).name || mateId} · 규칙 · ${t.slice(0, 60)}` });
+      setToast({ text: "확정 규칙에 더했어요 · AI가 다음 실행부터 읽어요", undo: () => A.mateRuleOff(mateId, r.id, true) });
+      return true;
+    },
+    mateRuleOff: async (mateId, rid, off = true) => {
+      const at = nowIso();
+      try { await fb.txDoc("aimates", mateId, (cur) => ({ write: { rules: ((cur && cur.rules) || []).map((x) => (x.id === rid ? { ...x, off: off ? { at, by: cu.id, byName: cu.name } : null } : x)), updatedAt: at } })); }
+      catch (e) { fail("규칙")(e); return false; }
+      log("aiRule", { col: "aimates", targetId: mateId, label: `${(mateOf(mateId) || {}).name || mateId} · 규칙 ${off ? "끔" : "다시 켬"}` });
+      if (off) setToast({ text: "규칙을 껐어요", undo: () => A.mateRuleOff(mateId, rid, false) });
+      return true;
+    },
+    // 상급자(관리자 · users.bossId) — 고리(서로 상급자) 막기 · 5초 되돌리기
+    setBoss: async (u, bossId) => {
+      if (!isMaster(cu)) { setToast({ text: "상급자는 관리자가 정해요" }); return false; }
+      if (bossLoop(D.users, u.id, bossId)) { setToast({ text: "서로 상급자가 되는 고리가 생겨요 · 다른 사람을 골라 주세요" }); return false; }
+      const at = nowIso(), was = u.bossId || null, nx = bossId || null;
+      try { const r = await fb.patchIf("users", u._doc || u.id, { bossId: was }, { bossId: nx, bossBy: cu.id, bossAt: at }); if (!r.ok) { setToast({ text: "그사이 다른 사람이 바꿨어요 · 다시 봐 주세요" }); return false; } }
+      catch (e) { fail("상급자")(e); return false; }
+      log("boss", { col: "users", targetId: u.id, label: `${u.name} · 상급자 ${nameOf(D.users, was) || "없음"} → ${nameOf(D.users, nx) || "없음(맨 위)"}`, prev: { bossId: was } });
+      setToast({ text: `${u.name}님 상급자 = ${nameOf(D.users, nx) || "없음(맨 위)"}`, undo: () => undoMany([{ key: "users", id: u._doc || u.id, wrote: { bossId: nx }, prev: { bossId: was } }], `${u.name} · 상급자`, "boss") });
+      return true;
+    },
+    // 추천대로 한꺼번에 (aiask.bossRec) — 지금 값과 다른 사람만 · 그사이 바뀐 사람은 건너뜀
+    setBosses: async (map) => {
+      if (!isMaster(cu)) { setToast({ text: "상급자는 관리자가 정해요" }); return false; }
+      const at = nowIso(), ops = (D.users || []).filter((u) => u.active !== false && Object.prototype.hasOwnProperty.call(map, u.id) && (u.bossId || "") !== (map[u.id] || ""))
+        .map((u) => ({ key: "users", id: u._doc || u.id, name: u.name, expect: { bossId: u.bossId || null }, fields: { bossId: map[u.id] || null, bossBy: cu.id, bossAt: at } }));
+      if (!ops.length) { setToast({ text: "이미 추천대로예요" }); return true; }
+      let r; try { r = await fb.patchManyIf(ops.map(({ name, ...o }) => o)); } catch (e) { fail("상급자")(e); return false; }
+      log("boss", { col: "users", targetId: "", label: `상급자 한꺼번에 ${r.done}명${r.skipped.length ? ` · ${r.skipped.length}명은 그사이 바뀌어 그대로` : ""}`, ids: ops.map((o) => o.id) });
+      setToast({ text: `상급자 ${r.done}명을 정했어요${r.skipped.length ? ` · ${r.skipped.length}명은 그사이 바뀌어서 그대로` : ""}`, undo: () => undoMany(ops.filter((o) => !r.skipped.includes(o.id)).map((o) => ({ key: o.key, id: o.id, wrote: { bossId: o.fields.bossId }, prev: { bossId: o.expect.bossId } })), "상급자 한꺼번에", "boss") });
+      return true;
+    },
     reopen: (t) => P(t, { status: "todo", doneAt: null, doneBy: null, doneByName: null, reviewAt: null, statusLog: sl("todo", { reopen: true }) }, "reopen").then(() => t.projectId && recalc(t.projectId)),
     setStatus: (t, s) => P(t, { status: s, statusLog: sl(s), ...(s === "inprogress" && !t.startedAt ? { startedAt: ymd(new Date()) } : {}), ...(s === "inprogress" && !t.ackAt ? { ackAt: nowIso() } : {}) }, "edit", `${t.title} · ${STATUS_L[s]}`),
     // 보류: 이유 · 다시 볼 날을 같이 (이전 상태 holdPrev 기억 → 보류 풀기 = 그 상태로) · 다시 볼 날이 되면 담당 '확인할 것'에
@@ -1338,7 +1457,7 @@ export const v2edited = (x) => !!(x && (x.v2At || x.moyAt || (x.updatedBy && x.u
 export const V2_TASK_ONLY = ["scope", "scopeBy", "scopeAt", "qty", "cycleOk", "cycleBy", "cycleAt", "madeIn", "removed", "phaseBy", "phaseAt", "estDays", "estBy", "estAt", "fromTemplate", "tplKey"];   // estDays·estBy·estAt = 예상 소요일 · fromTemplate·tplKey = 견본으로 만든 업무 (2026-10-07)   // phaseBy·phaseAt = 업무OS에서 정한 신제품 단계   // removed = [없애기](휴지통) — 다시 가져오기가 되살리지 않음
 export function stripV2Only(key, data, cur) {
   if (!data) return data; const d = { ...data };
-  if (key === "users") Object.keys(d).forEach((f) => { if (/^pin/.test(f) || f === "weekCap") delete d[f]; });
+  if (key === "users") Object.keys(d).forEach((f) => { if (/^pin/.test(f) || /^boss/.test(f) || f === "weekCap") delete d[f]; });   // boss* = 상급자(AI 승인 길 · 2026-10-12)
   if (key === "projects") ["removed", "road", "roadBy", "roadAt", "fromTemplate", "fromTemplateTitle"].forEach((f) => delete d[f]);   // fromTemplate = 견본으로 만든 프로젝트(2026-10-07)   // road = 업무OS 프로젝트 단계(로드 · 2026-10-07)
   if (key === "notes") delete d.removed;   // 댓글 삭제(2026-10-07) — 다시 가져오기가 되살리지 않음   // 프로젝트 없애기(휴지통) — 다시 가져오기가 되살리지 않음
   if (key === "tasks") { ["doneDates", "doneAtBy", "subDone"].forEach((f) => delete d[f]); if ((cur && cur.isFixed) || d.isFixed) ["doneAt", "doneByName"].forEach((f) => delete d[f]);

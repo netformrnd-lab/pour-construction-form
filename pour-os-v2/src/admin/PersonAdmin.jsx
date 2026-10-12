@@ -9,6 +9,7 @@ import { nextsOf } from "../turn.js";
 import { C, Big, TBtn, Act, Head, Card, Row, Empty, Sheet, Ask, More, inp, Chip } from "../ui.jsx";
 import { Lv, pName } from "./common.jsx";
 import { PhoneEdit } from "../smsui.jsx";
+import { BossCard } from "../aiui.jsx";
 
 export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast }) {
   const u = (D.users || []).find((x) => x.id === id);
@@ -72,6 +73,8 @@ export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast
         catch (e) { console.error("[v2] 팀 저장 실패:", e); setToast({ text: "팀 저장 실패 · 인터넷 연결을 확인해 주세요" }); } }}>{t}</Chip>)}</div>
       <div style={{ fontSize: 12.5, color: C.mute, marginTop: 8, lineHeight: 1.6 }}>{u.team ? "직접 정한 팀" : DEFAULT_TEAMS[String(u.name || "").replace(/\s/g, "")] ? "기본값(조직도)" : "아직 없음"} · 프로젝트 팀은 책임자 팀으로 자동으로 정해져요</div>
     </Card>
+    <Head>상급자 (AI 승인 길)</Head>
+    <BossCard D={D} cu={cu} A={A} u={u} />
     <Head>주 한도</Head>
     <Card style={{ padding: "12px 14px" }}>
       <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>한 주 마감이 <b>{curCap}건</b>을 넘으면 사람 표에서 숫자가 빨갛게 보여요{u.weekCap ? "" : " (기본값)"}.</div>

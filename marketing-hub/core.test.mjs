@@ -81,7 +81,7 @@ eq('팀: 가동 = 하루(매일 배분만)·포리·에코', [C.TEAM.filter((m) 
   [['하루', '포리', '에코'], ['하루 06:50', '포리 06:50', '에코 06:50']]);
 // 자동 작업 (트리거) 목록 — 2026-10-12
 const AU = C.automations(), AS = C.autoSummary(AU);
-eq('자동 작업: 걸어 둔 것 = 동작 중 4 · 준비 중 4 · 나머지는 팀원 계획', [AS.on, AS.wait, AS.plan === AU.length - 8], [4, 4, true]);
+eq('자동 작업: 걸어 둔 것 = 동작 중 4 · 준비 중 5 · 나머지는 팀원 계획', [AS.on, AS.wait, AS.plan === AU.length - 9], [4, 5, true]);
 eq('자동 작업: 켜진 팀원 일(하루 배분·포리·에코)은 계획에 안 겹침', AU.filter((a) => a.status === 'plan' && /^(포리|에코) ·|하루 · 오늘 주제/.test(a.name)).length, 0);
 eq('자동 작업: 하루 꺼 둔 일(주간 브리핑 등)은 계획으로', AU.filter((a) => a.status === 'plan' && a.members[0] === 'haru').length, 4);
 eq('자동 작업: 카테고리 7개 · 모두 분류됨', [AS.cats.length, AS.cats.reduce((x, c) => x + c.n, 0) === AU.length], [7, true]);

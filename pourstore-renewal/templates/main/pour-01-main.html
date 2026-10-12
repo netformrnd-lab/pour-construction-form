@@ -880,6 +880,27 @@
 }
 </style>
 <script>
+/* ===== 메인 배너 데이터 공용 로더(2026-10) — Firestore 하루 무료 읽기 한도가 차도 배너가 나오게
+   ① 이 기기에 5분 안에 받아 둔 값 → ② Storage 사본 JSON(POUR스토어_리뉴얼/config/pourstoreBanners.json, 어드민 저장 시 자동 생성)
+   → ③ Firestore(config/pourstoreBanners) → ④ 실패 시 이 기기에 마지막으로 받아 둔 값 ===== */
+window.__loadBanners = window.__loadBanners || function(fsGet){
+  if (window.__bnP) return window.__bnP;
+  var LS='pour:banners', TTL=300000;
+  var SURL='https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'+encodeURIComponent('POUR스토어_리뉴얼/config/pourstoreBanners.json')+'?alt=media';
+  var FURL='https://firestore.googleapis.com/v1/projects/pour-app-new/databases/(default)/documents/config/pourstoreBanners';
+  function rd(){ try{ return JSON.parse(localStorage.getItem(LS)||'null'); }catch(e){ return null; } }
+  function save(v){ if(v){ try{ localStorage.setItem(LS, JSON.stringify({t:Date.now(), v:v})); }catch(e){} } return v; }
+  function dec(v){ if(!v) return null; if('mapValue' in v){ var o={}, f=v.mapValue.fields||{}; for(var k in f) o[k]=dec(f[k]); return o; } if('arrayValue' in v) return (v.arrayValue.values||[]).map(dec); if('integerValue' in v) return +v.integerValue; if('doubleValue' in v) return v.doubleValue; if('booleanValue' in v) return v.booleanValue; if('stringValue' in v) return v.stringValue; if('timestampValue' in v) return v.timestampValue; return null; }
+  function rest(){ return fetch(FURL).then(function(r){ if(!r.ok) throw new Error('Firestore '+r.status); return r.json(); }).then(function(d){ return dec({mapValue:d}); }); }
+  var c=rd(); if (c && c.v && (Date.now()-c.t) < TTL) return (window.__bnP = Promise.resolve(c.v));
+  window.__bnP = fetch(SURL, {cache:'no-cache'}).then(function(r){ if(!r.ok) throw new Error('Storage 사본 '+r.status); return r.json(); })
+    .catch(function(e){ console.log('[banners] '+e.message+' → Firestore에서 읽기'); return (fsGet ? fsGet() : rest()); })
+    .then(function(v){ console.log('[banners] 배너 데이터 로드'); return save(v); })
+    .catch(function(e){ var s=rd(); if (s && s.v){ console.warn('[banners] 로드 실패 → 이 기기에 저장된 이전 배너 사용:', e && e.message); return s.v; } console.error('[banners] 로드 실패:', e); throw e; });
+  return window.__bnP;
+};
+</script>
+<script>
 /* ===== 모바일 홈 추가 섹션 데이터 — 카페24 상품목록 페이지(같은 사이트)를 읽어 카드로 표시 (pour-02-best와 같은 방식)
    - PC/태블릿(701px 이상)에서는 아무것도 불러오지 않음 → PC 속도·화면 영향 0
    - 이벤트: DEAL_CATE 목록에서 '할인 중'인 상품만 할인율 높은 순 4개 (전용 카테고리 만들면 번호만 바꾸면 됨)
@@ -975,11 +996,9 @@
   setTimeout(fitFirst, 600);
   // 모바일 띠배너: 어드민 '메인 배너 관리' → '모바일 메인 띠배너'(config/pourstoreBanners.mstrip)에 올린 이미지(숨김 제외)를 순서대로
   function renderEvBanner(sec){
-    var u='https://firestore.googleapis.com/v1/projects/pour-app-new/databases/(default)/documents/config/pourstoreBanners';
-    function val(v){ if(!v) return null; if('stringValue' in v) return v.stringValue; if('booleanValue' in v) return v.booleanValue; if('integerValue' in v) return +v.integerValue; if('doubleValue' in v) return v.doubleValue; return null; }
-    fetch(u).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(d){
-      var F=d.fields||{}, arr=((F.mstrip||{}).arrayValue||{}).values||[], sec2=val(F.intervalSec)||5;
-      var list=arr.map(function(e){ var f=(e.mapValue||{}).fields||{}, o={}; for(var k in f) o[k]=val(f[k]); return o; }).filter(function(b){ return b.image && !b.hidden; });
+    window.__loadBanners().then(function(d){
+      d=d||{}; var sec2=Number(d.intervalSec)||5;
+      var list=(Array.isArray(d.mstrip)?d.mstrip:[]).filter(function(b){ return b && b.image && !b.hidden; });
       console.log('[mhome] 모바일 띠배너 '+list.length+'건');
       if(!list.length) return;
       var tr=sec.querySelector('[data-eb-track]'), cnt=sec.querySelector('[data-eb-cnt]');
@@ -1288,7 +1307,7 @@ var PM_POSTS = [];
   var pReco    = window.__pcache.wrap('cfg:reco',     PC_TTL, function(){ return getDoc(doc(db,"config","pourstoreRecoKeywords")).then(function(s){ return s.exists()&&Array.isArray(s.data().items)?s.data().items:[]; }); });
   var pPosts   = window.__pcache.wrap('col:postings', PC_TTL, function(){ return getDocs(collection(db,"pourstore-postings")).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); });
   var pPkgs    = window.__pcache.wrap('col:packages', PC_TTL, function(){ return getDocs(collection(db,"pourstore-packages")).then(function(sn){ return sn.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }); }); });
-  var pBanners = window.__pcache.wrap('cfg:banners',  PC_TTL, function(){ return getDoc(doc(db,"config","pourstoreBanners")).then(function(s){ return s.exists()?(s.data()||{}):null; }); });
+  var pBanners = window.__pcache.wrap('cfg:banners',  PC_TTL, function(){ var fsGet=function(){ return getDoc(doc(db,"config","pourstoreBanners")).then(function(s){ return s.exists()?(s.data()||{}):null; }); }; return window.__loadBanners ? window.__loadBanners(fsGet) : fsGet(); }); // 한도 초과 대비: Storage 사본 우선(위 공용 로더)
 
   // ② 배너(화면 상단)는 다른 데이터를 기다리지 않고 도착 즉시 렌더 → 회색 박스 대기 최소화
   pBanners.then(function(bd){ if (bd) applyBanners(bd); }).catch(function(e){ console.log('[psm1] 배너 로드 스킵:', e && e.message ? e.message : e); });

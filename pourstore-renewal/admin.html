@@ -6962,8 +6962,15 @@ const BANNER_SLOTS=[
   {key:'mstrip', label:'모바일 메인 띠배너', desc:'모바일 메인 \'지금 많이 찾는 유지보수 자재\'(베스트) 아래 작은 배너 · PC엔 안 보임 (여러 장이면 자동 슬라이드)', size:'권장 1080 × 405 px (가로 4 : 세로 1.5) — 비율이 다르면 잘리지 않고 위아래/양옆에 어두운 여백', ratio:'8 / 3', imageOnly:true},
   {key:'package', label:'패키지 페이지 상단 배너', desc:'패키지 페이지 맨 위 슬라이드 배너 (여러 장 올리면 자동 슬라이드)', size:'PC 권장 1256 × 400 px (가로형 · 넓은화면 안전)', ratio:'1256 / 400', mobileSize:'모바일 권장 1080 × 720 px (3:2)', mobileRatio:'3 / 2'},
 ];
+// 스토어용 배너 사본(Storage JSON) — Firestore 하루 읽기 한도가 차도 메인 배너가 나오게 (pour-01-main __loadBanners가 먼저 읽음)
+async function mirrorBannersToStorage(obj){
+  const clean=JSON.parse(JSON.stringify(obj,(k,v)=>(v&&typeof v==='object'&&typeof v.toDate==='function')?v.toDate().toISOString():v));
+  await storage.ref('POUR스토어_리뉴얼/config/pourstoreBanners.json').putString(JSON.stringify(clean),'raw',{contentType:'application/json',cacheControl:'no-cache'});
+  console.log('[banners] Storage 사본 저장');
+}
 function BannersPage({showToast}){
   const { audit } = useActiveStaffContext();
+  const [loadFailed,setLoadFailed]=useState(false);
   const oneB=(x)=>({mode:(x.mode==='design'?'design':'image'),image:x.image||'',imageMobile:x.imageMobile||'',link:x.link||'',badge:x.badge||'',title:x.title||'',desc:x.desc||'',tags:x.tags||'',cta:x.cta||'',theme:(x.theme==='dark'?'dark':'light'),hidden:!!x.hidden});
   const normSlot=(v)=>{ if(Array.isArray(v)) return v.map(oneB); if(v && (v.image||v.link||v.title||v.badge)) return [oneB(v)]; return []; };
   const [data,setData]=useState({hero:[], side:[], package:[], mstrip:[], intervalSec:5});
@@ -6974,9 +6981,10 @@ function BannersPage({showToast}){
   useEffect(()=>{ (async()=>{
     try{
       const d=await db.collection('config').doc('pourstoreBanners').get();
-      if(d.exists){ const v=d.data()||{}; setData({hero:normSlot(v.hero), side:normSlot(v.side), package:normSlot(v.package), mstrip:normSlot(v.mstrip), intervalSec:Number(v.intervalSec)||5}); }
+      if(d.exists){ const v=d.data()||{}; setData({hero:normSlot(v.hero), side:normSlot(v.side), package:normSlot(v.package), mstrip:normSlot(v.mstrip), intervalSec:Number(v.intervalSec)||5});
+        mirrorBannersToStorage(v).catch(e=>console.error('[banners] Storage 사본 저장 실패:',e)); }
       console.log('[banners] 로드', d.exists);
-    }catch(e){ console.error('[banners] 로드 실패:',e); showToast('배너 로드 실패: '+e.message,'error'); }
+    }catch(e){ console.error('[banners] 로드 실패:',e); setLoadFailed(true); showToast('배너 로드 실패(저장 잠금): '+e.message,'error'); }
     setLoading(false);
   })(); },[]);
 
@@ -7003,12 +7011,16 @@ function BannersPage({showToast}){
   };
 
   const save=async()=>{
+    if(loadFailed){ showToast('기존 배너를 못 불러와서 저장을 막았어요(덮어쓰기 방지). 잠시 후 새로고침해 주세요','error'); return; }
     setSaving(true);
     try{
       const clean=(arr)=>arr.filter(b=> b.mode==='design' ? (b.title||b.badge||b.desc||b.cta||b.image) : b.image ).map(b=> b.mode==='design'
         ? {mode:'design',image:b.image||'',imageMobile:(b.imageMobile||''),link:(b.link||'').trim(),badge:(b.badge||'').trim(),title:(b.title||'').trim(),desc:(b.desc||'').trim(),tags:(b.tags||'').trim(),cta:(b.cta||'').trim(),theme:(b.theme==='dark'?'dark':'light'),hidden:!!b.hidden}
         : {mode:'image',image:b.image,imageMobile:(b.imageMobile||''),link:(b.link||'').trim(),hidden:!!b.hidden} );
-      await db.collection('config').doc('pourstoreBanners').set({hero:clean(data.hero), side:clean(data.side), package:clean(data.package), mstrip:clean(data.mstrip), intervalSec:Number(data.intervalSec)||5, ...audit.update()},{merge:true});
+      const payload={hero:clean(data.hero), side:clean(data.side), package:clean(data.package), mstrip:clean(data.mstrip), intervalSec:Number(data.intervalSec)||5, ...audit.update()};
+      await db.collection('config').doc('pourstoreBanners').set(payload,{merge:true});
+      try{ let full=payload; try{ const fresh=await db.collection('config').doc('pourstoreBanners').get(); if(fresh.exists) full=fresh.data(); }catch(_e){} await mirrorBannersToStorage(full); }
+      catch(e){ console.error('[banners] Storage 사본 저장 실패:',e); showToast('저장됨 — 단, 스토어용 사본 저장 실패: '+e.message,'error'); }
       showToast('저장되었습니다 — 스토어에 반영됩니다');
     }catch(e){ console.error('[banners] 저장 실패:',e); showToast('저장 실패: '+e.message,'error'); }
     setSaving(false);

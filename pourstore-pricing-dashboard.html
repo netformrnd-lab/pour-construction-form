@@ -690,7 +690,7 @@ tr.addrow td{background:#F7FAF8;border-top:1px dashed var(--xl-green)}
 #impTable tr[data-skip="1"]{opacity:.45}
 .imp-badge{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:9px}
 .imp-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-top:1px solid var(--xl-grid);flex-wrap:wrap}
-@media(max-width:640px){ .imp-foot{flex-direction:column;align-items:stretch} .imp-foot>div{display:flex;gap:8px} .imp-foot .tbtn{flex:1} }
+@media(max-width:640px){ .imp-foot{flex-direction:column;align-items:stretch} .imp-foot>div{display:flex;gap:8px} .imp-foot .tbtn{flex:1} #pcFootBtns .tbtn{flex:1 1 40%} }
 /* ── 단가표 인쇄(PDF) ── */
 #printArea{display:none}
 #printArea .ps-title{font-size:19px;font-weight:800;color:#0D1B2A}
@@ -2902,8 +2902,9 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
     </div>
     <div class="imp-foot">
       <span class="footnote" style="margin:0">GROHOME 전용 제품은 그로홈 코드를 그대로 쓰므로 여기 없습니다</span>
-      <div style="display:flex;gap:8px">
+      <div id="pcFootBtns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
         <button id="pcRenum" class="tbtn" style="color:#B45309;border-color:#FCD34D" title="지금 규칙(단품 PS-###-## · 세트 PS-S###-##)과 제품 순서대로 모든 코드를 새로 매깁니다">🔄 전체 다시 매기기</button>
+        <button id="pcCodeExport" class="tbtn" style="color:#0F766E;border-color:#99F6E4" title="그로홈 대시보드 🔗 코드 매핑표 [불러오기]에 올리는 파일 — pKey·제품명·옵션/규격·브랜드·자체상품코드·3PL·바코드·그로홈 연결만 (원가·가격·공급처 없음)">코드표 내보내기 (원가 없음)</button>
         <button id="pcCsv" class="tbtn">CSV 내보내기</button>
         <button id="pcDone" class="tbtn" style="background:#1E40AF;color:#fff;border-color:#1E40AF;font-weight:700">닫기</button>
       </div>
@@ -7562,10 +7563,29 @@ function exportPcodeCsv(){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+body],{type:'text/csv;charset=utf-8'}));
   a.download=`POUR스토어_자체상품코드_${slDay(new Date())}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
+/* 🔗 코드표 내보내기 (원가 없음) — 그로홈 대시보드 제품 관리 › 🔗 코드 매핑표 [불러오기]용 (2026-10-12 사용자 결정)
+   product-meta 는 이 프로젝트(pourstoreproject · 로그인)에만 있어 그로홈이 직접 못 읽으므로 파일로 넘긴다. 그로홈은 product-meta 를 쓰지 않는다.
+   칸: pKey · 제품명 · 옵션/규격 · 브랜드 · 자체상품코드(prod-code) · 3PL 코드(prod-3pl) · 바코드(prod-barcode) · 그로홈 연결(prod-brand gh = 그로홈 제품 문서 id)
+   ⚠️ 원가·가격·공급처·제조사 칸은 절대 넣지 않는다 (그로홈 쪽도 머리글에 원가·가격이 있으면 거부함) · 코드가 하나라도 있는 제품만 */
+const CODE_EXPORT_HEAD=['pKey','제품명','옵션/규격','브랜드','자체상품코드','3PL 코드','바코드','그로홈 연결'];
+function codeTableRows(){
+  return P.filter(p=>!isDeletedProd(p)).map(p=>({p,k:pKey(p)})).filter(({k})=>PCODE[k]||P3PL[k]||PBARCODE[k]||PGHLINK[k])
+    .sort((a,b)=>(PCODE[a.k]||'~').localeCompare(PCODE[b.k]||'~')||String(a.p.name).localeCompare(String(b.p.name)))
+    .map(({p,k})=>[k,p.name,(p.spec&&p.spec!=='-')?p.spec:'',pbrand(p).join('/'),PCODE[k]||'',norm3pl(P3PL[k]||''),PBARCODE[k]||'',PGHLINK[k]||'']);
+}
+function exportCodeTable(){
+  const rows=codeTableRows();
+  if(!rows.length){ uiToast('내보낼 코드가 없어요','err'); return; }
+  const body=[CODE_EXPORT_HEAD,...rows].map(r=>r.map(v=>{ const t=String(v??''); return /[",\n\r]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t; }).join(',')).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\uFEFF'+body],{type:'text/csv;charset=utf-8'}));
+  a.download=`코드표_원가없음_${slDay(new Date())}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  logAct('코드표', `내보내기 ${rows.length}줄`, '원가 없음 · 그로홈 코드 매핑표용');
+  $('#pcStatus').textContent=`코드표 ${rows.length}줄을 내려받았어요 (원가 없음) — 그로홈 대시보드 › 제품 관리 › 🔗 코드 매핑표 › 📥 불러오기에 올려 주세요.`;
+}
 (function wirePcode(){
   const on=(id,ev,fn)=>{ const el=document.getElementById(id); if(el) el.addEventListener(ev,fn); };
   on('btnPcode','click',openPcode); on('btnCodeCol','click',()=>setCodeCol(!CODECOL_OPEN)); on('pcClose','click',closePcode); on('pcDone','click',closePcode);
-  on('pcCsv','click',exportPcodeCsv); on('pcQ','input',renderPcodeTable); on('pcRenum','click',renumberPcodes);
+  on('pcCsv','click',exportPcodeCsv); on('pcQ','input',renderPcodeTable); on('pcRenum','click',renumberPcodes); on('pcCodeExport','click',exportCodeTable);
   if(typeof bindOverlayClose==='function') bindOverlayClose('pcOverlay',closePcode);
   on('pcTable','change',async e=>{
     const tb=e.target.closest('.bcIn');

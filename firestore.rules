@@ -261,6 +261,21 @@ service cloud.firestore {
     }
 
     // ─────────────────────────────────────────────
+    // 🔗 코드 매핑표 · 🚨 로켓그로스 재고 (그로홈 대시보드 제품 관리 · 2026-10-12 사용자 결정)
+    //   sku_map/{id}           : 판매 단위 한 줄 = 자체상품코드·3PL·바코드·쿠팡/카페24/스마트스토어 코드 (원가·단가 없음)
+    //   sku_map_log/{id}       : 매핑표 수정 기록 (누가·언제·칸·전→후)
+    //   rg_state/latest        : 마지막 로켓그로스 재고현황(읽은 줄 · 창고 재고 · 요약) — KPI 카드가 이 문서만 읽음
+    //   rg_uploads/{날짜_시각} : 올릴 때마다 사본(읽은 줄만)
+    //   rg_settings/main       : 리드·안전·목표·과잉 일수
+    //   → 로그인한 사람(pour-app-new 계정 · 마케팅 허브와 같은 계정)만 읽고 씀. 그로홈의 다른 데이터(pour-os/grohome)는 위 공개 규칙 그대로.
+    // ─────────────────────────────────────────────
+    match /sku_map/{id}             { allow read, write: if request.auth != null; }
+    match /sku_map_log/{id}         { allow read, write: if request.auth != null; }
+    match /rg_state/{id}            { allow read, write: if request.auth != null; }
+    match /rg_uploads/{id}          { allow read, write: if request.auth != null; }
+    match /rg_settings/{id}         { allow read, write: if request.auth != null; }
+
+    // ─────────────────────────────────────────────
     // 기본 정책: 명시되지 않은 컬렉션은 차단
     // ─────────────────────────────────────────────
     match /{document=**} {

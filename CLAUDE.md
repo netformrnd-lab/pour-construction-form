@@ -973,6 +973,7 @@ pour-construction-form/
 ├── shoot-desk.html             ← 촬영 데스크 (요청 접수 → 브랜드›제품›N차 촬영 폴더·투두·레퍼런스, Firestore config/shootreq-*·shootprod-*·shootimg-*, 로그인 없음 · UI 문구는 딱딱한 명사형, 친절체·“~해 드려요” 금지 · 숨기기 대신 “보류”(보류 목록에 남김) + 확인 후 영구 삭제 · “다음 할 일” 안내줄·“~미정 입력” 재촉 배너 같은 안내 요소 넣지 않음 — 사용자 지시, UX 규칙의 ‘다음 할 일 한 줄’보다 우선)
 ├── marketing-hub/             ← 마케팅 허브: Aside 자동 업로드(upload.html) + 관리자 대시보드(index.html · AI 팀 · 고객의 소리 · 블로그 미리보기 = 볼트 `00 블로그 글 표준` 27칸 + 글 구조 검사) + 직원 고객의 소리(voc.html) + Aside 임시저장 작업대(drafts.html · 채널 미리보기 → 임시저장까지 · **실제 게시는 늘 사람**) · AI 팀원 결과 → 업무OS tools/team_link.py · pour-app-new mkt-* 컬렉션(규칙 게시 전 임시: pour-os/marketing-hub/ · core.js STORE_MODE) · 계산 core.js · 상세 README.md
 ├── firebase-usage.html         ← Firebase(pour-app-new) 사용량 화면 (오늘 읽기·쓰기 / 무료 한도 · 이번 달 예상 요금 · 30일 막대) · 데이터 pour-os/v2/usage/pour-app-new ← GitHub Actions firebase-usage.yml 3시간마다(scripts/usage/ · Cloud Monitoring) · 10만 원 넘으면 문자 · 월요일 9시 주간 보고 문자 (사용자 결정 2026-10-11 · 설정 scripts/usage/README.md)
+├── pourstore-pricing-dashboard.html ← 가격·마진 대시보드 (db = pourstoreproject · product-meta 는 로그인 계정만) · 🏷 자체상품코드 › **[코드표 내보내기 (원가 없음)]** = pKey·제품명·옵션/규격·브랜드·자체상품코드·3PL·바코드·그로홈 연결만 → 그로홈 대시보드 제품 관리 › 🔗 코드 매핑표 [불러오기]에 올리는 파일 (2026-10-12 · 원가·가격·공급처 칸 절대 넣지 않음) · 그로홈 새 컬렉션 sku_map·sku_map_log·rg_state·rg_uploads·rg_settings(pour-app-new 최상위) 규칙 = 로그인한 사람만(firestore.rules · 콘솔 게시 필요)
 ├── worker.js                   ← SMS 프록시 (기존, 건드리지 말 것)
 ├── workers/
 │   ├── backup-cron.js          ← Cloudflare Cron — Firestore 백업 트리거

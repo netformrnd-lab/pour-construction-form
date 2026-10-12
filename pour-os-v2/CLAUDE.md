@@ -8,7 +8,7 @@
 - 신제품 보드 바로 읽기(core.syncNewLaunch): 두 앱 모두 로그인 뒤 한 번 버전1 `pour-os/launch-board/products` 를 읽어 v2 에 없는 제품(lb_<id>)만 프로젝트·항목으로 새로 만듦. 이미 있는 제품·항목은 덮지 않음(바뀐 출시일·체크는 관리자 설정 › 신제품 보드 다시 가져오기). 쓰기 전 v2 프로젝트를 서버에서 다시 확인 · 기록에 남김
 - 빌드: `cd pour-os-v2 && ./build.sh` (실사용 → os2.html, 관리자 → os2-admin.html, 공유 보고서(report.html · src/report-main.jsx) → os2-report.html 셋 다 복사)
   (node_modules 는 `../pour-os/node_modules` 심볼릭 링크 — 같은 패키지)
-- 테스트: `node src/model.test.mjs` · `launch.test.mjs` · `turn.test.mjs` · `views.test.mjs` · `flow.test.mjs` · `routine.test.mjs` 등 src/*.test.mjs (계산). 화면 시험은 가짜 저장 장치로만 — 실제 Firestore 에 쓰지 않음.
+- 테스트: `node src/model.test.mjs` · `launch.test.mjs` · `turn.test.mjs` · `views.test.mjs` · `flow.test.mjs` · `routine.test.mjs` · `aiask.test.mjs` 등 src/*.test.mjs (계산). 화면 시험은 가짜 저장 장치로만 — 실제 Firestore 에 쓰지 않음 (test/ · 아래 'AI 팀원 · AI 승인' 마지막 줄).
 
 ## v1 보호 (가장 중요)
 - 쓰기는 오직 `pour-os/v2/**` 와 Storage `task-attachments/v2/**`. v1 문서(`pour-os/state-*`, `pour-os/ak-notes/c`)는 **읽기만**.
@@ -197,7 +197,7 @@
 - 5번 틀리면 5분 잠금. 마스터가 사람 보기에서 PIN 초기화.
 
 ## 파일
-- 공용: `tpl.js`·`tplui.jsx`(견본 · 예상 소요 연결 tpl.LX/projEstimate) · `roadui.jsx`(프로젝트 단계(로드) 조각: RoadEdit · RoadBox · StageSortCard · CatRoadAsk) · `search.js`·`searchui.jsx`(찾기) · `report.js`·`reportui.jsx`·`reportview.jsx`(월말 보고서) · `growth.js`·`growthui.jsx`(그로스보드 v2) · `core.jsx`(로그인·구독·useActs 쓰기·다시 가져오기) · `model.js`(계산) · `launch.js`(신제품·순서표·공휴일 기한) · `turn.js`(앞 일 → 내 차례, 저장 안 함) · `views.js`(달력 칸·사람×주·출시 줄·정리 묶음) · `flow.js`(흐름으로 만들기) · `cal.jsx`(월 달력) · `pick.jsx`(고르기 목록·한꺼번에 바꾸기) · `sheets.jsx`(시트 길잡이) · `task.jsx` · `project.jsx` · `mindmap.jsx`(마인드맵 [계층 | 마인드맵]·결정 업무) · `mmlayout.js`(마인드맵 자리 계산) · `svgpng.js`(SVG → PNG 저장 · 글자 폭 · 협업 맵과 공용) · `files.jsx`(파일 미리 보기·올리기 진행) · `ui.jsx`
+- 공용: `aiask.js`·`aiui.jsx`(AI 승인 · AI 팀원 · 정의는 ../marketing-hub/crew.js) · `tpl.js`·`tplui.jsx`(견본 · 예상 소요 연결 tpl.LX/projEstimate) · `roadui.jsx`(프로젝트 단계(로드) 조각: RoadEdit · RoadBox · StageSortCard · CatRoadAsk) · `search.js`·`searchui.jsx`(찾기) · `report.js`·`reportui.jsx`·`reportview.jsx`(월말 보고서) · `growth.js`·`growthui.jsx`(그로스보드 v2) · `core.jsx`(로그인·구독·useActs 쓰기·다시 가져오기) · `model.js`(계산) · `launch.js`(신제품·순서표·공휴일 기한) · `turn.js`(앞 일 → 내 차례, 저장 안 함) · `views.js`(달력 칸·사람×주·출시 줄·정리 묶음) · `flow.js`(흐름으로 만들기) · `cal.jsx`(월 달력) · `pick.jsx`(고르기 목록·한꺼번에 바꾸기) · `sheets.jsx`(시트 길잡이) · `task.jsx` · `project.jsx` · `mindmap.jsx`(마인드맵 [계층 | 마인드맵]·결정 업무) · `mmlayout.js`(마인드맵 자리 계산) · `svgpng.js`(SVG → PNG 저장 · 글자 폭 · 협업 맵과 공용) · `files.jsx`(파일 미리 보기·올리기 진행) · `ui.jsx`
 - 실사용: `App.jsx` · `today.jsx` · `schedule.jsx`(달력 탭) · `more.jsx`
 - 관리자: `admin/*` (AdminApp · Glance · People · Collab · PersonAdmin · Projects · Tidy · Settings · MoyImport(모여라딜 최신 가져오기) · common · admin.css) · 협업 맵 계산 `collab.js` · 모여라딜 가져오기 계산 `moysync.js`
 - 시트 머리(시안 A · ui.Sheet kind/path/onPath/head): 네이비 띠 + 오른쪽 흰 종류 칩(업무 · 고정업무 · 프로젝트/신제품 프로젝트 · 사람 · 일 넘기기) + 어디 속한 건지(업무 = '프로젝트 · 이름 ›' 누르면 그 프로젝트) + 큰 제목(2줄까지). 제목은 머리에만(본문엔 위험·중요도 칩만)
@@ -280,6 +280,26 @@
   · 탭 수(375): 견본 저장 = 프로젝트 탭 → 프로젝트 → [정보 · 더 하기 ▾] → [견본으로 저장] → [견본 저장] = 5탭(프로젝트 안에서 3탭) · 견본으로 새 프로젝트 = 프로젝트 탭 → [견본 n] → 견본 → [이 견본으로 새 프로젝트] → [만들기] = 5탭(+ 이름 글자) · 예상 소요 넣기 = 프로젝트 탭 → 프로젝트 → 업무 → [더 하기 ▾] → 칸 = 5탭 + 숫자 + Enter
 - 다시 가져오기: V2_TASK_ONLY 에 estDays·estBy·estAt·fromTemplate·tplKey · projects 는 fromTemplate·fromTemplateTitle 도 뺌(stripV2Only) · 견본 문서는 버전1에 없어 안 건드림 · 쓰기는 pour-os/v2 만 · 지우기 없음 · 보안규칙 변경 없음 · 신제품 대시보드 안 씀
 - 한계: 'pour-os/** 공개' 규칙이라 견본 고치기 권한은 화면에서만 · 예상 소요는 불러온 업무(열린 + 30일 안 끝낸)로만 셈(오래전에 끝낸 업무는 남은 예상엔 영향 없음 · 전체 n일엔 빠질 수 있음)
+
+## AI 팀원 · AI 승인 (사용자 확정 2026-10-12 "AI팀원이 실행한것을 사람팀원에게 승인요청하고, 사람팀원은 상급자 사람에게 승인요청" · 단계 AI → 담당 → 리드 → 본부장 · 실행은 사람 · 담당·상급자는 앱에서 정함 · 시험 aiask.test.mjs · ../marketing-hub/crew.test.mjs · test/ai.e2e.mjs)
+- AI 팀원 정의 = `../marketing-hub/crew.js`(업무OS·허브 crew.html·시험이 같이 import — actionKpi 처럼 상대 경로 · 고치면 허브도 같이 배포됨): 기본 AI 팀원 17(원형 = 허브 core.js TEAM 과 같게 · 노아 = 관리자 전용) + 크루(브랜드+고객: 그로홈·POUR스토어 B2C 6명 봄·여름·가을·겨울·하늘·우주 = 보드 6 · POUR스토어 B2B 5명 초안 · 바라스데이 6명 초안 · from = 파생한 원형) · 보드 = 지표 · 할 일 A~E · 실행 한 줄(exec) · 원가·마진·제조사 칸 빼기 · 번호·메일 가림 · 노출 E(관리자 자리)
+- 저장(pour-os/v2 · 규칙 변경 없음 · 지우기 없음):
+  · aiasks/{id} = 승인 한 건(업무와 따로 → 사람 업무 수·%·보고서에 안 섞임) {crew, mate, mateName, brand, board, act, run, title, sum, body, cols, items[{n,c}], exec, url(결과 전체 보기), note·noteId(볼트 노트 · 허브 본문), metrics, owner(담당), to(지금 차례 · '' = 관리자 누구나), step(0 담당 · 1+ 상급자), state wait|back|ok|no, path[](이번 판에 승인한 사람), pick(고른 번호), ver(판), back{text…}(AI에게 다시), ret(돌려보냄), log[](arrayUnion), execTask, okAt·okBy·okByName, createdAt·updatedAt, src tool|crew}
+  · aimates/{AI id} = {owners{_: 기본 담당, <브랜드 id>: 그 브랜드 담당}, rules[{id,text,at,by,byName,off?}], hist[]} · 담당이 없거나 쉬면 '' = 관리자 누구나
+  · users.bossId(+bossBy·bossAt) = 상급자 → 승인 길은 bossId 를 따라 위로(MAX_UP 5 · 고리·쉬는 사람에서 끊음 = 그 사람이 최종)
+  · settings/aicrew {focus{크루: 칸}} 이번 주 집중 · aiboards/{보드} 지표·날짜별 값(허브 crew.html 이 씀 · 업무OS 는 읽기만)
+- 들어오는 길: 기본 AI 팀원 = Claude 루틴 → 볼트 `tools/team_link.py open`(같은 노트를 돌려받았으면 같은 건의 다음 판) · 크루 = Aside → 허브 `crew.html`(행동 A~E 하나 = 한 건) — 모양은 crew.askDoc 하나(허브 README 'AI 승인 · AI 크루')
+- 확인할 것(aiask.askInbox ← model.todayView): 내 차례(to = 나 · 담당 미정이면 관리자) 'AI 승인 요청'(담당 단계) / '확인 요청'(상급자 단계 · '승인하고 넘김 · n개 고름 · X (AI) 결과') / '수정 요청'(빨강 · 상급자가 돌려보냄) · 같은 AI 4건 이상이면 한 줄(aiGroup → AI 팀원 한 장) · 담당에게 '최종 승인'·'안 함'(aiDone) · 순서 ORDER ai 1.2 · 승인 대화(itemId 'ai:'+id · @부름·말한 사람·담당·차례·지나온 사람)
+- 승인 한 장(aiui.AiAskSheet · 시트 aiask · 링크 #a-<id>): 상태 · 승인 길(✓ 승인함 · ● 지금 · 앞으로) · 요약·본문 · '결과 전체 보기 ›'(허브 노트) · 번호 카드(고르기 · [모두 고르기/풀기] · 복사) · '실행은 사람이 · …' · [고른 n개 승인 → ○○님께] / [고른 n개 최종 승인] · [X(AI)에게 다시](담당 단계) · [담당님께 돌려보내기](상급자 단계) · [안 함](이유 칩) · 대화 · 기록
+  · A.aiPass(aiask.planPass): 다음 차례 = 승인한 사람(관리자가 대신하면 원래 차례 사람 · proxy 기록)의 bossId → 있으면 to·step+1 · 없으면 최종(state ok) · 번호가 있으면 1개 이상 · 위 단계는 아래가 고른 것 안에서 좁힘 · fb.txDocs 로 승인 문서(연 때 본 state·to·step·ver 그대로일 때만) + 최종이면 '실행' 업무 aix_<id>[_판](planExec · 담당에게 · 맡긴 사람 = 최종 승인자 · noReview · 기한 다음 평일 · 메모 = 실행 한 줄 + 승인 번호 줄 · aiAsk·aiMate · 실행 한 줄 없는 보고는 업무 없음)를 한 번에 · 5초 되돌리기(A.aiUndo = 승인 문서 + 아무도 안 고친 실행 업무 · 기록 undo)
+  · A.aiBack(state back · 다음 루틴/Aside 가 고쳐 다음 판) · A.aiRet(상급자 → 담당 · step 0 · ret) · A.aiDrop(안 함 + 이유) = aiWrite(patchIf · log · 5초 되돌리기) · 그사이 다른 사람이 처리했으면 안 씀 + 알림
+  · 실행 업무 화면 머리 '[원래 AI 승인 보기 ›]'(t.aiAsk)
+- AI 팀원 화면(aiui.AiTeamBody · 관리자 탭 'AI 팀원' · 팀 앱 더보기 'AI 팀원' 카드(승인 차례 수) · 시트 aiTeam): [내가 맡은 AI | 모두] · 크루마다 매출 공식 칩(→ 이번 주 집중) · 초안 표시 · 기본 AI 팀원(원형) · 관리자 [담당 한꺼번에 정하기](브랜드마다 고르기)
+  · AI 팀원 한 장(aiui.AiMateSheet · 시트 aiMate): 담당(브랜드별 · 관리자만 · A.mateOwnerSet = txDoc + 담당 단계에 열려 있는 승인도 새 담당에게) · 승인 길 미리 보기 · 최근 7일(aiask.mateStats) · 승인 기다리는 것 · 고칠 점(돌려받은 말 · 같은 말 2번+ repeatNotes) [규칙으로] · 확정 규칙(A.mateRule 더하기 · A.mateRuleOff 끄기 = 지우지 않음 · 끈 규칙) — 담당·관리자 · 보드(지표 막대 · 할 일 A~E · 체크리스트) · '허브에서 올리기 ›'(crew.html#보드)
+- 상급자: 관리자 › 사람 맨 위 BossPanel · PersonAdmin '상급자 (AI 승인 길)'(BossCard) · 추천 aiask.bossRec = 팀원 → 그 팀 리드(TEAM_LEADS 1팀 김소연(짐작) · 2팀 김송희 · 3팀 김채원) → 본부장(HQ_HEAD 허지은) · 리드·공용 → 본부장 · 본부장 = 맨 위 · [추천대로 정하기](A.setBosses) · 칩 하나(A.setBoss · bossLoop 고리 막음 · patchIf · 5초 되돌리기) · 다시 가져오기(stripV2Only)는 boss* 칸을 안 덮음
+- 구독: aiasks state in [wait, back] + updatedAt 최근 7일 + aimates 전부 → D.ai {asks, mates, ready} · D.aiInbox · 기록 LOG_L aiUp·aiOk·aiBack·aiRet·aiNo·aiUndo·aiOwner·aiRule·boss
+- 한계: 'pour-os/** 공개' 규칙이라 승인 권한은 화면에서만(기밀과 같음) · 보드 지표는 Aside 가 붙여 넣은 값 그대로 · B2B·바라스데이 크루는 초안(이름·구성·보드는 같이 정해 고침)
+- 화면 시험(가짜 저장 장치 · 실제 Firestore 안 씀 · 이 저장소에 둠): test/fb.fake.js(fb.js 모든 export 의 메모리판 · window.__V2 · __OTHER = '다른 사람이 지금 바꿈') + test/vite.test.config.js(fb.js 를 바꿔 끼워 빌드 · ADMIN=1 관리자 · NOMIN=1 안 줄임 · 결과 test/out/ — 커밋 안 함) → `node test/ai.e2e.mjs`(상급자 추천 → 담당 → 번호 승인 → 리드 좁힘 → 본부장 최종 → 실행 업무 · AI에게 다시 · 돌려보내기 · 담당 미정 · 되돌리기 · 그사이 바뀜 · 375·768·1280) · `node test/smoke.e2e.mjs`(한 바퀴: 팀 앱 4탭 + 업무·프로젝트·AI 팀원 시트 · 관리자 8탭 · 375·1280 화면 오류·넘침 — 큰 변경 뒤 회귀 확인용)
 
 ## 실사용 앱 (3단계)
 - 오늘(2026-10-06 사용자 결정 "상단 카드가 사용이 더 헷갈려" → 위 '지금 할 일' 카드 없앰 · 시험 os2/t45): 지난 일 한 줄 → 확인할 것 → 오늘(남은 고정업무 처음부터 펼침 · 끝내면 '끝낸 고정업무 n ▾' 접힘 · 8개 넘으면 8 + 'n개 더 ▾' · [고정업무 접기 ▴] 는 기기 기억 pour-os2-fxfold · 반복 실행 '오늘 체크'도 같음 [접기 ▴]/[펼치기 ▾] pour-os2-rtfold · 건수 묻는 줄은 그 자리 · 일회성 = today.OneRow: 수정 요청 → 내 차례 → 지난 일 → 진행 중 → 오늘·내일 마감(model.focusRank 순 · 5줄 + 'n개 더 ▾') · '내 차례' 줄 = 꼬리표 '내 차례' · '○○님이 "…"를 끝냄 · 9시간 전' · 앞 일 마지막 말 1줄 · [시작](진행 중이면 [끝냄]) · 열거나 시작하면 차례 알림 읽음 · 수정 요청 줄엔 요청 말 1줄) → 곧 내 차례 → 내 정리 한 줄. 배지 = 확인할 것 + 이제 내 차례(그대로)

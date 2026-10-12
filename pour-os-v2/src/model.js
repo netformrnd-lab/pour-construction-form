@@ -390,6 +390,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   (D.projects || []).forEach((p) => { if (isHoldP(p) && p.holdUntil && p.holdUntil <= key && p.assigneeId === uid) inbox.push({ kind: "projHoldDue", tag: "다시 할 날", id: "ph:" + p.id + ":" + p.holdUntil, projectId: p.id, title: p.title, who: p.heldBy, at: p.holdUntil + "T00:00:00", text: `보류${p.holdReason ? " · " + p.holdReason : ""} · ${md(p.holdUntil)}에 다시 하기로 함`, keep: true }); });
   if (T && Array.isArray(T.inbox)) T.inbox.forEach((x) => inbox.push(x));
   if (D.links && D.linkInbox) D.linkInbox(D.links, users, uid, key).forEach((x) => { if (!x.keep && seen[x.id]) return; inbox.push(x); });
+  if (D.ai && D.aiInbox) D.aiInbox(D.ai.asks, users, uid, seen, now).forEach((x) => inbox.push(x));   // AI 승인 (aiask.js · 2026-10-12): 내 차례 · 담당 미정은 관리자 누구나 · 최종 승인·안 함 알림
   if (D.kpi && D.lagInbox) D.lagInbox(D.kpi.lagDefs, D.kpi.lagV2, users, uid, key, D.brands).forEach((x) => inbox.push(x));   // 월말 결과 KPI 넣기 (kpi2.js · 마스터·결과 KPI 권한)   // CRM·마진에서 온 한 줄 (links.js · 순환 import 피하려고 D 로 받음)
   const taskById = Object.fromEntries(tasks.map((t) => [t.id, t]));
   const talked = new Set((D.notes || []).filter((n) => n && n.by === uid && !n.deleted).map((n) => n.itemId));   // 내가 말한 대화 → 답이 오면 나에게도
@@ -403,10 +404,12 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
       if (ment) hit = { taskId: ref, title: t ? t.title : "업무" };
       else if (t && (n.to === uid || isMine(t, uid) || reqOf(t) === uid || myProj.has(t.projectId) || (t.ccIds || []).includes(uid) || talked.has(n.itemId) || (n.handoff && predIds.has(ref)))) hit = { taskId: ref, title: t.title }; }
     else if (kind === "proj" && (ment || projAll.has(ref) || talked.has(n.itemId))) { const p = (D.projects || []).find((x) => x.id === ref); hit = { projectId: ref, title: p ? p.title : "프로젝트" }; }
+    else if (kind === "ai") { const a = ((D.ai && D.ai.asks) || []).find((x) => x.id === ref);   // AI 승인 대화 (2026-10-12)
+      if (ment || talked.has(n.itemId) || (a && (a.owner === uid || a.to === uid || (a.path || []).includes(uid)))) hit = { aiId: ref, title: a ? a.title : "AI 승인" }; }
     else if (!rest.length && (ment || talked.has(n.itemId))) { const it = ((D.ak && D.ak.items) || []).find((x) => x && x.id === n.itemId); if (it) hit = { akId: it.id, title: it.name || "반복 실행" }; }   // 반복 실행(횟수 목표) 대화 — ':' 없는 itemId = 행동지표 id
     if (hit) inbox.push({ kind: ment ? "mention" : "note", tag: ment ? "@ 나를 부름" : "댓글", id: nid, ...hit, who: ma ? n.editedBy || n.by : n.by, whoName: ma ? n.editedByName || n.byName : n.byName, at: ma || n.at, text: n.text });
   });
-  const ORDER = { feedback: 0, review: 1, dueReq: 2, help: 2.5, mention: 2.8, link: 2.9, lagDue: 2.95, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, approved: 9, unblocked: 9, pinNew: 9.5, note: 10 };
+  const ORDER = { feedback: 0, review: 1, ai: 1.2, aiGroup: 1.2, aiDone: 9, dueReq: 2, help: 2.5, mention: 2.8, link: 2.9, lagDue: 2.95, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, approved: 9, unblocked: 9, pinNew: 9.5, note: 10 };
   inbox.sort((a, b) => (ORDER[a.kind] ?? 11) - (ORDER[b.kind] ?? 11) || String(b.at || "").localeCompare(String(a.at || "")));
   const userName = (id) => nameOf(users, id);
   // 끝낸 시각은 UTC(toISOString) → 기기 날짜로 바꿔 비교 (아침 9시 전에 끝낸 일도 오늘)
@@ -534,7 +537,7 @@ export function ownerIssues(D) {
 }
 
 // ── 소식 (댓글 + 기록) ──
-export const LOG_L = { noteRemove: "댓글 삭제", noteRestore: "댓글 되살림", decide: "결정", add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", handover: "일 넘김", sync: "신제품 대시보드에서", take: "이어받음", comment: "댓글", noteEdit: "댓글 고침", delete: "휴지통으로", remove: "없앰(휴지통)", restore: "되살림",
+export const LOG_L = { aiUp: "AI 승인 · 위로", aiOk: "AI 최종 승인", aiBack: "AI에게 다시", aiRet: "AI 승인 돌려보냄", aiNo: "AI 안 함", aiUndo: "AI 승인 되돌림", aiOwner: "AI 담당 바꿈", aiRule: "AI 확정 규칙", boss: "상급자 바꿈", noteRemove: "댓글 삭제", noteRestore: "댓글 되살림", decide: "결정", add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", handover: "일 넘김", sync: "신제품 대시보드에서", take: "이어받음", comment: "댓글", noteEdit: "댓글 고침", delete: "휴지통으로", remove: "없앰(휴지통)", restore: "되살림",
   ack: "받음", dueReq: "기한 조정 요청", dueOk: "기한 조정 수락", dueNo: "기한 유지", review: "확인 요청", approve: "확인 완료", feedback: "수정 요청", block: "막힘", unblock: "막힘 풀림", launch: "신제품 만듦", bulk: "한꺼번에 바꿈", deps: "앞 일 바꿈", ask: "도움 요청", askDone: "도움 요청 닫음", hold: "보류", unhold: "보류 풀기", projEnd: "프로젝트 끝냄·멈춤", projResume: "프로젝트 다시 시작", moyImport: "모여라딜 OS에서 가져옴" };
 export function feedOf(D, { projectId, taskIds, sinceIso } = {}) {
   const tset = taskIds ? new Set(taskIds) : null;

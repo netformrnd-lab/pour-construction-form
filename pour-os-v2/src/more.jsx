@@ -10,6 +10,8 @@ import { akWho } from "../../pour-os/src/actionKpi.js";
 import { fileKind } from "./files.jsx";
 import { noteWhere } from "./search.js";
 import { tplTrashRows, canEditTpl } from "./tpl.js";
+import { mateOwner } from "./aiask.js";
+import { allMates } from "../../marketing-hub/crew.js";
 
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
 const ASG = [["review", "확인해 주세요", true], ["dueReq", "기한 조정 요청", true], ["blocked", "막힘", true], ["late", "기한 지남", true], ["risk", "곧 마감인데 시작 전", true], ["notAck", "아직 안 받음", true], ["doing", "진행 중", true], ["waiting", "받고 대기 중", false], ["done", "최근 7일 끝남", false]];
@@ -45,6 +47,11 @@ export function MoreTab({ D, cu, A, meta, logout, open, BUILD, setToast }) {
     <Head>프로젝트 견본</Head>
     <Card><Row title={`견본함 ${(D.templates || []).length}`} sub="업무 · 순서 · 단계 · 예상 소요일 그대로 새 프로젝트" onClick={() => open({ type: "templates" })} right={arrow} last /></Card>
     {A && <TrashList rows={tplTrashRows(D.removedTemplates, isMaster(cu) ? null : cu.id)} A={A} open={open} label="없앤 견본" canRestore={(r) => canEditTpl(r.x, cu)} note="되살리면 견본함에 다시 보여요 · 이 견본으로 만든 프로젝트는 처음부터 그대로예요" style={{ marginTop: 10 }} />}
+    {/* AI 팀원(2026-10-12): 크루(브랜드+고객별) · 기본 AI 팀원 · 내가 맡은 AI · 내 차례 승인 */}
+    <Head>AI 팀원</Head>
+    {(() => { const asks = (D.ai && D.ai.asks) || [], turn = asks.filter((x) => x.state === "wait" && (x.to === cu.id || (!x.to && isMaster(cu)))).length;
+      const mine = allMates().filter((m) => Object.values(((D.ai && D.ai.mates[m.id]) || {}).owners || {}).includes(cu.id)).length;
+      return <Card><Row title={`AI 팀원${mine ? ` · 내가 맡은 AI ${mine}` : ""}`} tag={turn ? `승인 차례 ${turn}` : null} sub="크루(브랜드·고객별) · 담당 → 리드 → 본부장 승인 · 확정 규칙" onClick={() => open({ type: "aiTeam" })} right={arrow} last /></Card>; })()}
     <Head>성과</Head>
     <Card>
       <Row title="그로스보드" sub="KPI → 프로젝트·반복 → 끝낸 일 · 나 · 우리 팀" onClick={() => open({ type: "growth" })} right={arrow} last={false} />

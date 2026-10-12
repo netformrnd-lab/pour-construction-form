@@ -474,7 +474,7 @@
   const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
   const AUTOMATIONS = [
     { id: 'ai-morning', name: 'AI 콘텐츠팀 아침', cat: 'content', where: 'routine', run: { dow: WEEKDAYS, t: '06:50' }, members: ['haru', 'pori', 'eco'], status: 'on',
-      what: '오늘 숫자 받기 → 하루 주제 3 → 포리 블로그 원고 3(표준 27칸) → 에코 티스토리·카페 → GitHub 저장 → 검토 줄', ref: 'trig_01CmBYhzb9BGCv8DLX59kuGB' },
+      what: '오늘 숫자 받기 → 고칠 것(업무OS AI에게 다시 · 확정 규칙) → 하루 주제 3 → 포리 블로그 원고 3(표준 27칸) → 에코 티스토리·카페 → GitHub 저장 → 업무OS AI 승인', ref: 'trig_01CmBYhzb9BGCv8DLX59kuGB' },
     { id: 'numbers', name: '오늘 숫자 만들기', cat: 'data', where: 'actions', run: { dow: ALL_DAYS, t: '06:10' }, status: 'on', trace: 'numbers',
       what: '판매·광고·재고·고객의 소리 → 05 오늘 숫자 (원가 없음 · 대시보드와 같은 계산)', ref: 'mkt-numbers.yml' },
     { id: 'review-alarm', name: 'AI 콘텐츠 검토 알림', cat: 'ops', where: 'calendar', run: { dow: WEEKDAYS, t: '08:30' }, status: 'on',
@@ -489,6 +489,8 @@
       note: 'Aside 세팅 전 — 이게 돌아야 오늘 숫자가 채워짐', what: '카페24·쿠팡·네이버 광고·재고 리포트 → 대시보드 (upload.html)' },
     { id: 'aside-drafts', name: '글 임시저장', cat: 'content', where: 'aside', word: '맡긴 글이 있을 때', status: 'wait',
       note: 'Aside 세팅 전', what: '대시보드에서 맡긴 글 → 네이버 블로그·티스토리·카페 임시저장 (발행은 늘 사람 · drafts.html)' },
+    { id: 'aside-crew', name: 'AI 크루 결과 올리기', cat: 'plan', where: 'aside', word: '보드마다 정한 때', status: 'wait',
+      note: 'Aside 세팅 전 · 업무OS AI 팀원 담당 정한 뒤', what: '그로홈·POUR스토어 B2C 크루 보드(지표 · 할 일 A~E) 결과 → 업무OS AI 승인(담당 → 리드 → 본부장) · 실행은 사람 (crew.html)' },
   ];
   const MEMBER_CAT = { haru: 'plan', pori: 'content', luna: 'content', teo: 'content', noa: 'plan', tobi: 'plan', moka: 'data', leo: 'stock', kei: 'ads', daon: 'customer', sora: 'ads', roy: 'plan', ria: 'customer', jay: 'ads', eco: 'content', nari: 'content', onyu: 'customer' };
   function automations() {

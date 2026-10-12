@@ -12,6 +12,7 @@ import { LS } from "../core.jsx";
 import { Lv, SelBar, openOneOff, wdOf } from "./common.jsx";
 import { weekLoad, topMiss, finAt } from "./workload.js";
 import { sumAk } from "../routine.js";
+import { BossPanel } from "../aiui.jsx";
 
 const ORD = { 위험: 0, 주의: 1, 순조: 2 };
 const sortRows = (rows) => rows.slice().sort((a, b) => ORD[a.level] - ORD[b.level] || b.weeks[0].n - a.weeks[0].n || String(a.u.name).localeCompare(String(b.u.name), "ko"));
@@ -30,6 +31,7 @@ export function PeopleTab({ D, cu, A, idx, open, setToast }) {
     {off !== 0 && <TBtn onClick={() => setOff(0)}>이번 주로</TBtn>}
   </div>;
   return <>
+    <BossPanel D={D} cu={cu} A={A} open={open} />   {/* 상급자(AI 승인 길 · 2026-10-12) */}
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
       <div style={{ flex: "1 1 220px", maxWidth: 320 }}><Seg items={[["w1", "한 주"], ["w4", "4주"], ["d14", "14일"]]} value={view} onChange={setView} /></div>
       {view !== "w1" && <Chip on={noTemp} onClick={() => setNoTemp(!noTemp)}>임시 빼기</Chip>}

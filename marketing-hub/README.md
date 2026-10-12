@@ -109,6 +109,7 @@
 - **`tools/team_link.py`** (볼트 `tools/` 에 같은 파일 — 고치면 둘 다 · 시험 `tests/team_link.test.mjs` 에뮬레이터)
   - `open <팀원> "<한 일>" "<노트 경로>" [날짜] [--brand pourstore|grohome|bmupq52c0]` → 노트 본문(`mkt-notes`) + 승인 한 건(`ai_<팀원>_<날짜>_<해시>` · crew base · 담당 = aimates owners[브랜드] → owners._ · 쉬는 사람이면 '' = 관리자 누구나 · url = 허브 `#note-<노트 id>` · 실행 한 줄 '발행은 사람')
     - 같은 노트를 [AI에게 다시]로 돌려받았거나 아직 담당 차례면 → 새 건이 아니라 **같은 건의 다음 판**(ver+1 · 담당 차례 · 돌려받은 말 비움 · 기록 redo) — 읽은 때(updateTime) 그대로일 때만 쓰는 `:commit`
+    - Firestore 가 요청 과다(429)·일시 오류(5xx)면 2·4·8·16초 뒤 다시 (2026-10-12 아침 루틴에서 429 실제로 남)
     - 위로 올라간·최종 승인·안 함인 건은 안 고침 → '같은 결과가 이미 올라가 있어요' · **본문도 안 덮음**(어느 건인지 먼저 정한 뒤 본문을 씀) · 노아(관리자 전용)는 올리지 않음
   - `feedback [일수] [팀원…]` = 고쳐서 다시 올릴 것(state back) · 상급자가 돌려보낸 말·안 함 이유 · 확정 규칙(켠 것) · 사장님 메모 — 기본 AI 팀원(crew base)만(크루 건은 crew.html) · `rules [팀원]` · `asks [팀원]` · `list`(예전 검토 줄) · `numbers`
 - **허브**: AI 팀 탭 '✅ AI 승인 진행'(최근 30일 + 진행 중 · base) · '📋 예전 검토 줄'(2026-10-11까지 올라온 links aiReview → 그대로 [검토 끝]) · 요약 '🤖 AI 승인 진행' · 노트 시트 = 승인 상태 칩 + [업무OS에서 승인 ›](`os2.html#a-<id>`) · **[📝 임시저장 맡기기]·[✅ 등록 완료]는 최종 승인(state ok) 뒤에만**(시트를 열 때 그 노트의 승인을 새로 읽음 · 못 읽으면 잠금 · 복사는 됨) · 팀원 카드 '최근 결과' · `#note-<id>` = AI 팀 탭 + 그 노트(업무OS '결과 전체 보기')
@@ -183,7 +184,7 @@
 - 계산: `node marketing-hub/core.test.mjs`
 - 보안 규칙: `tests/rules.test.mjs`. 에뮬레이터에서 업로더/직원/관리자/미등록/비로그인 53개를 검사한다.
 - 화면: `tests/e2e.mjs`. 계정 만들기 → 5종 업로드 → 정리 → 재업로드 시 중복 없음, 375·768·1280px 가로 넘침 없음. AI 팀: team_link.py open → 업무OS 승인 한 건(검토 줄 안 만듦) → [📄 보기] 미리보기(블로그·카페·지식인) · **승인 전엔 맡기기·등록 완료 잠금** → (업무OS 최종 승인 흉내) → [임시저장 맡기기] → drafts.html(375·1280) [임시저장 완료] → 업무OS '발행' 줄 → [✅ 발행 완료] → 줄 닫힘 · 예전 검토 줄은 그대로 [검토 끝]. **crew.html**(375·768·1280): 담당·규칙 → 붙여 넣기 → 미리보기(마진 칸 뺌 · 번호 가림 · 모르는 지표 키) → 올리기(승인 1건 · 보드 지표) → AI에게 다시 → 같은 날짜로 다시 = 2번째 판 → 위로 올라간 건 그대로 · 직원 계정은 막힘. 직원 계정 → voc.html 쓰기(번호 가림 · 하자·안전 업무OS 한 줄) → 대표 고객의 소리. 이어서 잠긴 저장소로 옮기기와 옮긴 뒤 업로드·고객의 소리까지 확인합니다. 실행 때 `TOOLS=<저장소>/marketing-hub/tools`.
-- AI 승인 도구: `tests/team_link.test.mjs` (에뮬레이터 · `TOOLS=…/tools npx firebase emulators:exec --only firestore --project pour-app-new "node team_link.test.mjs"`) — 올림 · 담당 · 본문 · feedback(팀원만·크루 빼기) · 다음 판 · 위로 올라간 건(본문도 그대로) · 쉬는 담당 · 노아 막힘 · rules · asks
+- AI 승인 도구: `tests/team_link.test.mjs` (에뮬레이터 · `TOOLS=…/tools npx firebase emulators:exec --only firestore --project pour-app-new "node team_link.test.mjs"`) — 올림 · 담당 · 본문 · feedback(팀원만·크루 빼기) · 다음 판 · 위로 올라간 건(본문도 그대로) · 쉬는 담당 · 노아 막힘 · rules · asks · 요청 과다(429)면 2·4·8·16초 뒤 다시(가짜 서버)
 - 로컬에서는 `?emu=1`로 에뮬레이터에 붙고, `?mode=secure`나 `?mode=open`으로 저장 위치를 바꿔 볼 수 있습니다. 둘 다 localhost에서만 동작합니다.
 
 ## 남은 일 (작업지시서 9장)

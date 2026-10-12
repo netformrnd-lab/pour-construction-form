@@ -1,8 +1,10 @@
 // team_link.py 시험 — Firestore 에뮬레이터에서만 (실제 DB 안 씀)
 //   실행: (rules.test.mjs 와 같은 폴더 준비) npx firebase emulators:exec --only firestore --project pour-app-new "node team_link.test.mjs"
 //   TOOLS = team_link.py 가 있는 폴더 (기본 ../tools)
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { execFileSync, execFile } from 'node:child_process';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import http from 'node:http';
+import { promisify } from 'node:util';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -72,5 +74,16 @@ ok('노아는 안 올림', r.code !== 0 && /관리자 전용/.test(r.out), r.out
 r = tl('rules', '포리'); ok('rules', r.out.includes('근거는 쿠팡 판매 데이터로') && !r.out.includes('끈 규칙'));
 r = tl('asks'); ok('asks: 모두 진행 3건 (크루 포함)', /진행 3건/.test(r.out) && r.out.includes('2단계'), r.out);
 r = tl('asks', '포리'); ok('asks 포리: 2건', /진행 2건/.test(r.out), r.out);
+
+// ⑤ 요청 과다(429 · 2026-10-12 아침 루틴에서 실제로 남) → 2·4초 뒤 다시 → 받음 (가짜 서버 · numbers · 실제 DB 아님)
+let hits = 0;
+const srv = http.createServer((q, s) => { hits++; if (hits <= 2) { s.writeHead(429, { 'content-type': 'application/json' }); s.end('{"error":{"code":429}}'); return; }
+  s.writeHead(200, { 'content-type': 'application/json' }); s.end(JSON.stringify({ fields: { body: { stringValue: '# 05 오늘 숫자\n시험\n' }, date: { stringValue: '2026-10-12' } } })); });
+await new Promise((res) => srv.listen(8095, '127.0.0.1', res));
+const t0 = Date.now(); let rr;
+try { rr = await promisify(execFile)('python3', [join(TOOLS, 'team_link.py'), 'numbers'], { env: { ...process.env, MKT_VAULT: vault, FIRESTORE_EMULATOR_HOST: '127.0.0.1:8095' }, encoding: 'utf8' }); }
+catch (e) { rr = { stdout: String(e.stdout || ''), stderr: String(e.stderr || '') }; }
+srv.close();
+ok('429 두 번 → 다시 받아 저장 (2·4초 기다림)', hits === 3 && /저장/.test(rr.stdout) && /429 — 2초 뒤 다시/.test(rr.stderr) && Date.now() - t0 >= 5500 && readFileSync(join(vault, '05 오늘 숫자.md'), 'utf8').includes('시험'), { hits, out: rr.stdout, err: rr.stderr });
 
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

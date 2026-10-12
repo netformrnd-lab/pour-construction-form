@@ -20,7 +20,7 @@
 #   실제 게시·발행·전송은 늘 사람 (최종 승인 → 담당이 허브 [임시저장 맡기기] → Aside 임시저장 → 사람이 발행)
 # 볼트 위치: 환경변수 MKT_VAULT → 이 파일이 볼트 tools/ 안이면 그 볼트 → /home/user/pour-marketing-vault
 # ⚠️ 같은 파일 두 곳(2026-10-11 · 저장소 비공개 전환으로 루틴이 이 저장소를 못 받음): pour-construction-form/marketing-hub/tools/team_link.py · pour-marketing-vault/tools/team_link.py — 고치면 둘 다
-import sys, os, json, re, urllib.request, urllib.parse, urllib.error, datetime, hashlib
+import sys, os, json, re, time, urllib.request, urllib.parse, urllib.error, datetime, hashlib
 KEY = 'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU'
 EMU = os.environ.get('FIRESTORE_EMULATOR_HOST')  # 시험(에뮬레이터)에서만 — 실제 DB 안 씀
 DOCS = (f'http://{EMU}' if EMU else 'https://firestore.googleapis.com') + '/v1/projects/pour-app-new/databases/(default)/documents'
@@ -66,12 +66,20 @@ def kst_today():
 def now_iso():
     return datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
+RETRY = (429, 500, 502, 503, 504)  # 요청 과다(2026-10-12 아침 루틴에서 429)·일시 오류 → 2·4·8·16초 뒤 다시 (거절된 요청이라 다시 보내도 안전)
 def req(url, method='GET', body=None):
-    r = urllib.request.Request(url, method=method, data=json.dumps(body).encode() if body is not None else None, headers={'Content-Type': 'application/json'})
-    try: return json.loads(urllib.request.urlopen(r).read() or b'{}')
-    except urllib.error.HTTPError as e:
-        if e.code != 404: sys.stderr.write(f'Firestore {e.code}: {e.read().decode("utf-8", "ignore")[:400]}\n')
-        raise
+    data = json.dumps(body).encode() if body is not None else None
+    for i in range(5):
+        r = urllib.request.Request(url, method=method, data=data, headers={'Content-Type': 'application/json'})
+        try: return json.loads(urllib.request.urlopen(r, timeout=60).read() or b'{}')
+        except urllib.error.HTTPError as e:
+            if e.code in RETRY and i < 4:
+                sys.stderr.write(f'Firestore {e.code} — {2 ** (i + 1)}초 뒤 다시 ({i + 1}/4)\n'); time.sleep(2 ** (i + 1)); continue
+            if e.code != 404: sys.stderr.write(f'Firestore {e.code}: {e.read().decode("utf-8", "ignore")[:400]}\n')
+            raise
+        except urllib.error.URLError as e:
+            if i < 4: sys.stderr.write(f'연결 오류 — {2 ** (i + 1)}초 뒤 다시 ({i + 1}/4): {e}\n'); time.sleep(2 ** (i + 1)); continue
+            raise
 
 def patch(url, fields, mask=None, pre=None):
     q = '?key=' + KEY + (''.join('&updateMask.fieldPaths=' + urllib.parse.quote(m) for m in mask) if mask else '') + (('&' + pre) if pre else '')
@@ -86,8 +94,7 @@ def get(url):
 
 def run_query(collection_parent, cid, filters):
     q = {'structuredQuery': {'from': [{'collectionId': cid}], **({'where': filters} if filters else {})}}
-    r = urllib.request.Request(collection_parent + ':runQuery?key=' + KEY, method='POST', data=json.dumps(q).encode(), headers={'Content-Type': 'application/json'})
-    return [x['document'] for x in json.loads(urllib.request.urlopen(r).read()) if 'document' in x]
+    return [x['document'] for x in req(collection_parent + ':runQuery?key=' + KEY, 'POST', q) if 'document' in x]
 
 def fdocs(rows): return [{**{k: dec(v) for k, v in d.get('fields', {}).items()}, '_id': d['name'].split('/')[-1]} for d in rows]
 def eqf(field, value): return {'fieldFilter': {'field': {'fieldPath': field}, 'op': 'EQUAL', 'value': enc(value)}}
@@ -230,7 +237,7 @@ def feedback(days=14, who=None):
 def numbers():
     url = NOTES + '/today-numbers?key=' + KEY
     try:
-        d = json.loads(urllib.request.urlopen(url).read())
+        d = req(url)
     except urllib.error.HTTPError as e:
         if e.code == 404: sys.exit('오늘 숫자 없음 — 매일 06:10 작업(mkt-numbers)이 아직 한 번도 안 돎')
         raise

@@ -1,0 +1,30 @@
+name: 마케팅 허브 오늘 숫자 (AI 팀용)
+
+# 매일 한국 06:10 — 대시보드와 같은 계산으로 '05 오늘 숫자' 를 만들어 pour-os/marketing-hub/mkt-notes/today-numbers 에 저장
+# → AI 팀 아침 루틴(06:50)이 볼트 tools/team_link.py numbers 로 받아 GitHub 볼트에 '05 오늘 숫자.md' 로 저장 (옵시디언 없이도 쌓임 · 2026-10-12)
+# 시크릿 없이 동작 (core.js STORE_MODE 'open' = 공개 규칙 자리). 'secure' 로 바꾸면 env MKT_MODE: secure + 서비스 계정 시크릿
+on:
+  schedule:
+    - cron: '10 21 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  numbers:
+    name: 오늘 숫자
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 계산 시험
+        run: node marketing-hub/core.test.mjs
+      - name: 오늘 숫자 만들기
+        env:
+          SA_EMAIL: ${{ secrets.POUR_OS_FIREBASE_CLIENT_EMAIL }}
+          SA_KEY: ${{ secrets.POUR_OS_FIREBASE_PRIVATE_KEY }}
+        run: node scripts/mkt-numbers/run.mjs

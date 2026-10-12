@@ -5,13 +5,15 @@
 #       → 검토 줄을 열고, 볼트에 그 노트 파일이 있으면 본문도 올림(대시보드 [보기]로 바로 읽기 · 2026-10-11 사장님)
 #   python3 team_link.py list               — 열린(검토 전) 줄 보기
 #   python3 team_link.py feedback [일수=14] — 사장님이 대시보드 [보기]에서 남긴 메모 (팀원이 다음 작업 전에 읽음)
+#   python3 team_link.py numbers            — 오늘 숫자(판매·광고·재고·고객의 소리 · 원가 없음)를 받아 볼트 '05 오늘 숫자.md' 로 저장 (2026-10-12)
+#       ← 매일 06:10 pour-construction-form GitHub Actions mkt-numbers.yml 이 대시보드와 같은 계산으로 만들어 둔 것 (옵시디언·버튼 없이 GitHub 에 쌓임)
 # 쓰는 곳 (pour-app-new · 공개 규칙 pour-os/{doc=**} · 규칙 변경 없음):
 #   pour-os/v2/links/{id}                      — 검토 줄 (CRM 다리와 같은 모양 · 내용 없음 · 팀원 · 한 일 · 노트 경로)
 #   pour-os/marketing-hub/mkt-notes/{같은 id}   — 노트 본문(마크다운) + 사장님 메모 memo/memoAt/memoBy
 #     본문 = 게시할 원고(제품 판매가만 · 원가·제조사·개인정보는 볼트 규칙상 처음부터 없음). 보안 규칙 게시 뒤에도 이 공개 자리에 둠(루틴은 로그인이 없음)
 # 볼트 위치: 환경변수 MKT_VAULT → 이 파일이 볼트 tools/ 안이면 그 볼트 → /home/user/pour-marketing-vault
 # ⚠️ 같은 파일 두 곳(2026-10-11 · 저장소 비공개 전환으로 루틴이 이 저장소를 못 받음): pour-construction-form/marketing-hub/tools/team_link.py · pour-marketing-vault/tools/team_link.py — 고치면 둘 다
-import sys, os, json, re, urllib.request, urllib.parse, datetime, hashlib
+import sys, os, json, re, urllib.request, urllib.parse, urllib.error, datetime, hashlib
 KEY = 'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU'
 EMU = os.environ.get('FIRESTORE_EMULATOR_HOST')  # 시험(에뮬레이터)에서만 — 실제 DB 안 씀
 DOCS = (f'http://{EMU}' if EMU else 'https://firestore.googleapis.com') + '/v1/projects/pour-app-new/databases/(default)/documents'
@@ -97,9 +99,25 @@ def feedback(days=14):
         print(f"({r.get('memoBy', '')} · {r.get('memoAt', '')})")
         print(r.get('memo', '').strip())
 
+def numbers():
+    url = NOTES + '/today-numbers?key=' + KEY
+    try:
+        d = json.loads(urllib.request.urlopen(url).read())
+    except urllib.error.HTTPError as e:
+        if e.code == 404: sys.exit('오늘 숫자 없음 — 매일 06:10 작업(mkt-numbers)이 아직 한 번도 안 돎')
+        raise
+    f = d.get('fields', {})
+    body, date = dec(f.get('body', {'stringValue': ''})) or '', dec(f.get('date', {'stringValue': ''})) or ''
+    if not body.strip(): sys.exit('오늘 숫자 본문이 비어 있음 — 저장하지 않음')
+    path = os.path.join(VAULT, '05 오늘 숫자.md')
+    with open(path, 'w', encoding='utf-8') as fp: fp.write(body if body.endswith('\n') else body + '\n')
+    age = (datetime.date.fromisoformat(kst_today()) - datetime.date.fromisoformat(date)).days if re.match(r'^\d{4}-\d{2}-\d{2}$', date) else None
+    print(f'05 오늘 숫자.md 저장 · 기준일 {date}' + (f' · ⚠️ {age}일 전 숫자 (매일 작업이 멈췄는지 확인)' if age and age > 1 else ''))
+
 if __name__ == '__main__':
     a = sys.argv[1:]
     if a and a[0] == 'open' and len(a) >= 4: open_link(a[1], a[2], a[3], a[4] if len(a) > 4 else None)
     elif a and a[0] == 'list': list_open()
     elif a and a[0] == 'feedback': feedback(int(a[1]) if len(a) > 1 else 14)
+    elif a and a[0] == 'numbers': numbers()
     else: print(open(__file__, encoding='utf-8').read().split('import')[0])

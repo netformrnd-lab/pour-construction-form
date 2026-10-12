@@ -68,17 +68,26 @@ eq('옵시디언: 허브 붙이기 = append', C.obsidianUri('', C.OBSIDIAN_HUB, 
 
 // AI 팀 리듬
 eq('팀: 17명 · 번호 겹침 없음', [C.TEAM.length, new Set(C.TEAM.map((m) => m.no)).size], [17, 17]);
-eq('팀: 월요일 아침 순서', C.teamDay('2026-10-12').slice(0, 6).map((x) => x.t + ' ' + x.name), ['07:00 하루', '07:30 포리', '08:00 루나', '08:00 에코', '08:30 다온', '08:30 레오']);
+eq('팀: 월요일 아침 순서', C.teamDay('2026-10-12').slice(0, 6).map((x) => x.t + ' ' + x.name), ['06:50 하루', '06:50 포리', '06:50 에코', '08:00 루나', '08:30 레오', '08:30 다온']);
 eq('팀: 토요일은 쉼', C.teamDay('2026-10-10'), []);
 eq('팀: 말일 월간 리포트(10/30 금은 말일 아님 · 10/31 토)', [C.teamDay('2026-10-31').map((x) => x.what), C.teamDay('2026-12-31').filter((x) => x.name === '하루').map((x) => x.what)],
   [['월간 리포트'], ['오늘 주제 배분 (블로그 3 · 숏폼 1 · 지식인 4)', '월간 리포트', '다음 분기 시즌 캘린더']]);
 eq('팀: 2주마다 (10/12 → 10/26)', ['2026-10-12', '2026-10-19', '2026-10-26'].map((d) => C.teamDay(d).some((x) => x.what.startsWith('리뷰 이벤트'))), [true, false, true]);
-eq('팀: 다음 차례 — 오늘 지난 시각은 다음 날로', [C.nextRun(C.teamMember('포리'), { date: '2026-10-12', time: '07:00' }), C.nextRun(C.teamMember('포리'), { date: '2026-10-12', time: '07:30' })],
-  [{ date: '2026-10-12', t: '07:30', what: '공식 블로그 원고 3 · 사진 지정 · 제목 A/B' }, { date: '2026-10-13', t: '07:30', what: '공식 블로그 원고 3 · 사진 지정 · 제목 A/B' }]);
+eq('팀: 다음 차례 — 오늘 지난 시각은 다음 날로', [C.nextRun(C.teamMember('포리'), { date: '2026-10-12', time: '06:40' }), C.nextRun(C.teamMember('포리'), { date: '2026-10-12', time: '06:50' })],
+  [{ date: '2026-10-12', t: '06:50', what: '공식 블로그 원고 3 · 사진 지정 · 제목 A/B' }, { date: '2026-10-13', t: '06:50', what: '공식 블로그 원고 3 · 사진 지정 · 제목 A/B' }]);
 eq('팀: 정해진 일 없으면 null', C.nextRun(C.teamMember('테오'), { date: '2026-10-12', time: '07:00' }), null);
-eq('팀: 주기 말', C.teamMember('haru').runs.map(C.RUN_WORD), ['평일 07:00', '월 09:30', '금 17:00', '매월 말일 17:00', '3·6·9·12월 말일 17:30']);
+eq('팀: 주기 말', C.teamMember('haru').runs.map(C.RUN_WORD), ['평일 06:50', '월 09:30', '금 17:00', '매월 말일 17:00', '3·6·9·12월 말일 17:30']);
 eq('팀: 가동 = 하루(매일 배분만)·포리·에코', [C.TEAM.filter((m) => m.live).map((m) => m.name), C.teamDay('2026-10-12').filter((x) => x.live).map((x) => x.name + ' ' + x.t)],
-  [['하루', '포리', '에코'], ['하루 07:00', '포리 07:30', '에코 08:00']]);
+  [['하루', '포리', '에코'], ['하루 06:50', '포리 06:50', '에코 06:50']]);
+// 자동 작업 (트리거) 목록 — 2026-10-12
+const AU = C.automations(), AS = C.autoSummary(AU);
+eq('자동 작업: 걸어 둔 것 = 동작 중 4 · 준비 중 4 · 나머지는 팀원 계획', [AS.on, AS.wait, AS.plan === AU.length - 8], [4, 4, true]);
+eq('자동 작업: 켜진 팀원 일(하루 배분·포리·에코)은 계획에 안 겹침', AU.filter((a) => a.status === 'plan' && /^(포리|에코) ·|하루 · 오늘 주제/.test(a.name)).length, 0);
+eq('자동 작업: 하루 꺼 둔 일(주간 브리핑 등)은 계획으로', AU.filter((a) => a.status === 'plan' && a.members[0] === 'haru').length, 4);
+eq('자동 작업: 카테고리 7개 · 모두 분류됨', [AS.cats.length, AS.cats.reduce((x, c) => x + c.n, 0) === AU.length], [7, true]);
+const now = { date: '2026-10-12', time: '20:30' }, au = (id) => AU.find((a) => a.id === id);
+eq('자동 작업: 다음 실행 · 말', [C.autoNext(au('ai-morning'), now), C.autoNext(au('usage'), now), C.autoNext(au('holidays'), now), C.autoNext(au('aside-upload'), now), C.autoWord(au('usage')), C.autoWord(au('aside-drafts'))],
+  [{ date: '2026-10-13', t: '06:50' }, { date: '2026-10-12', t: '21:17' }, { date: '2026-11-01', t: '09:17' }, null, '3시간마다', '맡긴 글이 있을 때']);
 eq('한국 시간', C.nowKST(new Date('2026-10-11T22:30:00Z')), { date: '2026-10-12', time: '07:30' });
 
 // 고객의 소리

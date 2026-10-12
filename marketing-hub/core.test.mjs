@@ -164,6 +164,8 @@ eq('구조 검사: 인사말·인용 없음·늦은 링크·태그 부족', ['gr
 eq('구조 검사: 블로그만', C.blogCheck({ channel: 'tistory', body: blog }), null);
 const ghBody = '설명\n'.repeat(20) + '[링크: 구매 → https://grohome.co.kr]';
 eq('구조 검사: 그로홈은 마지막 구매 링크 하나면 됨', ['GH 1. 녹 칠하기 — 그로홈 · [[GH-P011]]', '1. 옥상 — POUR스토어'].map((h) => C.blogCheck({ channel: 'naver_blog', heading: h, body: ghBody, tags: [] }).items.find((x) => x.k === 'cta').level), ['ok', 'warn']);
+const emptyN = C.numbersNote({ sales: [], ads: [], stock: [], voc: [], settings: {}, today: '2026-10-12' });
+eq('오늘 숫자: 리포트 없으면 0원이 아니라 없음', [emptyN.includes('판매 리포트 없음'), emptyN.includes('**0원**'), emptyN.includes('광고 리포트 없음'), /매출7일: \n/.test(emptyN)], [true, false, true, true]);
 // 전화 카드 (1:1 맞춤 시공 상담 = 전화 1800-8203 · 2026-10-12)
 const telB = C.postBlocks('[링크: 1:1 맞춤 시공 상담 → 1800-8203]\n[링크: 카카오톡 상담 → https://pf.kakao.com/_YAbxexj/chat]');
 eq('전화 카드: 번호 · 주소 확인 필요 아님', [telB[0].tel, telB[0].note, telB[1].url], ['1800-8203', undefined, 'https://pf.kakao.com/_YAbxexj/chat']);

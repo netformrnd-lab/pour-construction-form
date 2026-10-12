@@ -271,11 +271,12 @@
     const a = d.advice;
     const pctTxt = d.salesPrev7 > 0 ? `${d.sales7 >= d.salesPrev7 ? '▲' : '▼'}${Math.abs(Math.round((d.sales7 - d.salesPrev7) / d.salesPrev7 * 100))}%` : '-';
     const L = [];
-    L.push('---', '유형: 숫자', `기준일: ${d.date}`, `매출7일: ${Math.round(d.sales7)}`, `발주필요: ${need.length}`,
+    const noSales = d.salesCount === 0 || (d.salesCount == null && !d.sales.length), noAds = d.adsCount === 0, noStock = d.stockCount === 0; // 리포트가 없으면 0 이 아니라 '없음' (AI 팀이 0원으로 읽지 않게 · 2026-10-12)
+    L.push('---', '유형: 숫자', `기준일: ${d.date}`, `매출7일: ${noSales ? '' : Math.round(d.sales7)}`, `발주필요: ${need.length}`,
       `올릴키워드: ${a.up.length}`, `줄일키워드: ${a.down.length}`, `끌키워드: ${a.off.length}`, '---', '');
     L.push(`# 오늘 숫자 (${d.date})`, '', `> 마케팅 허브 대시보드에서 보냄. 다시 보내면 이 노트를 통째로 바꿉니다. 메모는 다른 노트에 쓰세요.`, '');
-    L.push('## 요약', `- 최근 7일 매출(카페24): **${n(d.sales7)}원** (전주 대비 ${pctTxt})`,
-      `- 발주 필요: **${need.length}개** · 끌 키워드 ${a.off.length} · 줄일 키워드 ${a.down.length} · 올릴 키워드 ${a.up.length} (최근 ${d.adsDays}일)`, '');
+    L.push('## 요약', noSales ? '- 최근 7일 매출(카페24): **판매 리포트 없음** — 0원이 아니라 아직 안 들어옴 (Aside 업로드 확인)' : `- 최근 7일 매출(카페24): **${n(d.sales7)}원** (전주 대비 ${pctTxt})`,
+      `- 발주 필요: **${need.length}개**${noStock ? ' (재고 리포트 없음)' : ''} · 끌 키워드 ${a.off.length} · 줄일 키워드 ${a.down.length} · 올릴 키워드 ${a.up.length} (최근 ${d.adsDays}일${noAds ? ' · 광고 리포트 없음' : ''})`, '');
     L.push('## 🔴 발주 필요 — [[레오]]');
     if (need.length) {
       L.push('| 제품코드 | 상품 | 가용재고 | 일평균 | 남은 일수 | 발주 수량 |', '|---|---|--:|--:|--:|--:|');
@@ -346,7 +347,8 @@
     const st = { ...DEFAULT_SETTINGS, ...(settings || {}) }, dr = dailyRevenue(sales, today);
     return obsidianNote({ date: today, sales7: dr.slice(7).reduce((a, x) => a + x.v, 0), salesPrev7: dr.slice(0, 7).reduce((a, x) => a + x.v, 0),
       stock: stockRows(stock, sales, st), advice: keywordAdvice(ads, st), sales: salesRows(sales, today), adsDays: st.adsDays,
-      voc: vocSummary(voc, today), vocList: voc.filter((v) => v.date >= addDays(today, -6)) });
+      voc: vocSummary(voc, today), vocList: voc.filter((v) => v.date >= addDays(today, -6)),
+      salesCount: sales.filter((x) => x.reportDate >= addDays(today, -14)).length, adsCount: ads.length, stockCount: stock.length });
   }
   // 허브 노트 끝에 한 번 붙이는 칸 (오늘 숫자 노트를 끼워 보여 줌)
   const OBSIDIAN_HUB_SECTION = `\n\n## 📊 오늘 숫자\n> 대시보드 [옵시디언으로 보내기]를 누르면 아래가 새 숫자로 바뀝니다.\n\n![[${OBSIDIAN_NOTE}]]\n`;

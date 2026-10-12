@@ -383,17 +383,17 @@
   /* ── AI 팀 (볼트 '00 팀 운영 설계' 2절 리듬과 같게 · 바꾸면 둘 다) ──────────
      runs: dow = 요일(0 일 ~ 6 토, 한국 시간) · dom = 날짜(숫자 또는 'last' 말일) · months = 그 달만 · every+anchor = N일마다
      live = Claude 루틴이 실제로 켜졌는지 (켜면 여기를 true 로 · 설정 순서 step) · 그 팀원 일 중 아직 안 켠 것은 run.off · admin = 관리자 전용(원가)
-     2026-10-10 가동: 하루(매일 배분만) · 포리 · 에코 = 루틴 'AI 콘텐츠팀 아침' 평일 06:50 한 번에(하루 → 포리 → 에코 순서) */
+     2026-10-10 가동: 하루(매일 배분만) · 포리 · 에코 = 루틴 'AI 콘텐츠팀 아침' 평일 06:50 한 번에(하루 → 포리 → 에코 순서) · 시간도 06:50 (2026-10-12) */
   const WEEKDAYS = [1, 2, 3, 4, 5];
   const TEAM = [
     { id: 'haru', no: '00', name: '하루', role: '팀장 · 총괄', step: 2, live: true, runs: [
-      { dow: WEEKDAYS, t: '07:00', what: '오늘 주제 배분 (블로그 3 · 숏폼 1 · 지식인 4)' },
+      { dow: WEEKDAYS, t: '06:50', what: '오늘 주제 배분 (블로그 3 · 숏폼 1 · 지식인 4)' },
       { dow: [1], t: '09:30', what: '주간 브리핑 · 이번 주 할 일', off: true },
       { dow: [5], t: '17:00', what: '주간 회고', off: true },
       { dom: 'last', t: '17:00', what: '월간 리포트', off: true },
       { dom: 'last', months: [3, 6, 9, 12], t: '17:30', what: '다음 분기 시즌 캘린더', off: true }] },
     { id: 'pori', no: '01', name: '포리', role: '콘텐츠 마케터', step: 2, live: true, runs: [
-      { dow: WEEKDAYS, t: '07:30', what: '공식 블로그 원고 3 · 사진 지정 · 제목 A/B' }] },
+      { dow: WEEKDAYS, t: '06:50', what: '공식 블로그 원고 3 · 사진 지정 · 제목 A/B' }] },
     { id: 'luna', no: '02', name: '루나', role: '영상 마케터', step: 4, live: false, runs: [
       { dow: WEEKDAYS, t: '08:00', what: '숏폼 대본 1 → 숏폼 스튜디오' },
       { dow: [3], t: '10:00', what: '메타 광고 소재 3종' }] },
@@ -419,7 +419,7 @@
       { dow: [1], t: '10:00', what: '이번 주 행사 점검' },
       { dom: 20, t: '10:00', what: '다음 달 행사 준비' }] },
     { id: 'eco', no: '14', name: '에코', role: '재배포 편집', step: 2, live: true, runs: [
-      { dow: WEEKDAYS, t: '08:00', what: '티스토리 1 · 카페 1~2 (다시 쓴 버전)' }] },
+      { dow: WEEKDAYS, t: '06:50', what: '티스토리 1 · 카페 1~2 (다시 쓴 버전)' }] },
     { id: 'nari', no: '15', name: '나리', role: '외주 원고', step: 6, live: false, runs: [
       { dow: [2, 5], t: '10:00', what: '외주 계정 글감·사진·가이드' }] },
     { id: 'onyu', no: '16', name: '온유', role: '고객 관리', step: 5, live: false, runs: [
@@ -441,8 +441,8 @@
   // 그날 도는 일 (시간순)
   function teamDay(ymd) {
     const out = [];
-    for (const m of TEAM) for (const r of m.runs) if (runsOn(r, ymd)) out.push({ id: m.id, name: m.name, role: m.role, live: m.live && !r.off, t: r.t, what: r.what });
-    return out.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : a.name < b.name ? -1 : 1));
+    TEAM.forEach((m, k) => { for (const r of m.runs) if (runsOn(r, ymd)) out.push({ id: m.id, name: m.name, role: m.role, live: m.live && !r.off, t: r.t, what: r.what, k }); });
+    return out.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : a.k - b.k)); // 같은 시간이면 팀 순서 (06:50 하루 → 포리 → 에코 = 루틴 순서)
   }
   // 다음 차례 (now = { date:'YYYY-MM-DD', time:'HH:MM' } 한국 시간) — 정해진 일이 없으면 null
   function nextRun(m, now) {
@@ -462,6 +462,62 @@
     else if (r.every) w = `${r.every}일마다`;
     return `${w} ${r.t}`;
   };
+  /* ── 자동 작업 (트리거) — AI 팀 탭 '⏰ 자동 작업' (2026-10-12 사장님 "트리거 뭐뭐 설정해뒀는지 카테고리별로") ──
+     AUTOMATIONS = 실제로 걸어 둔 것 (Claude 루틴 · GitHub 자동 작업 · 구글 캘린더 · Aside)
+       ⚠️ 루틴·워크플로·캘린더를 만들거나 바꾸면 여기도 같이 고침 (README '자동 작업') — 화면은 이 목록만 봄
+     계획 = TEAM 의 아직 안 켠 일(live false · off) → automations() 가 붙임
+     status: on 동작 중 · wait 준비 중(설정 남음 · note) · plan 계획(팀원 일 · 아직 안 켬)
+     run: TEAM 과 같은 모양(dow·dom·every + t) · ts = 하루 여러 번 · run 없으면 word 만 */
+  const AUTO_CATS = [['content', '콘텐츠'], ['ads', '광고·행사'], ['stock', '재고·발주'], ['customer', '고객'], ['plan', '기획·보고'], ['data', '숫자·데이터'], ['ops', '백업·알림']];
+  const AUTO_WHERE = { routine: 'Claude 루틴', actions: 'GitHub 자동 작업', calendar: '구글 캘린더', aside: 'Aside (회사 PC)' };
+  const AUTO_STATUS = { on: '동작 중', wait: '준비 중', plan: '계획' };
+  const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
+  const AUTOMATIONS = [
+    { id: 'ai-morning', name: 'AI 콘텐츠팀 아침', cat: 'content', where: 'routine', run: { dow: WEEKDAYS, t: '06:50' }, members: ['haru', 'pori', 'eco'], status: 'on',
+      what: '오늘 숫자 받기 → 하루 주제 3 → 포리 블로그 원고 3(표준 27칸) → 에코 티스토리·카페 → GitHub 저장 → 검토 줄', ref: 'trig_01CmBYhzb9BGCv8DLX59kuGB' },
+    { id: 'numbers', name: '오늘 숫자 만들기', cat: 'data', where: 'actions', run: { dow: ALL_DAYS, t: '06:10' }, status: 'on', trace: 'numbers',
+      what: '판매·광고·재고·고객의 소리 → 05 오늘 숫자 (원가 없음 · 대시보드와 같은 계산)', ref: 'mkt-numbers.yml' },
+    { id: 'review-alarm', name: 'AI 콘텐츠 검토 알림', cat: 'ops', where: 'calendar', run: { dow: WEEKDAYS, t: '08:30' }, status: 'on',
+      what: "구글 캘린더 '📝 AI 콘텐츠 검토' — 검토 대기 원고 보러 가기" },
+    { id: 'usage', name: 'Firebase 사용량 · 10만 원 알림', cat: 'data', where: 'actions', run: { dow: ALL_DAYS, ts: ['00:17', '03:17', '06:17', '09:17', '12:17', '15:17', '18:17', '21:17'] }, status: 'wait', trace: 'usage',
+      note: '서비스 계정 키·문자 번호·OPS_TOKEN 등록 후', what: '읽기·쓰기·예상 요금 → Firebase 사용량 화면 · 10만 원 넘으면 문자 · 월요일 9시 주간 보고', ref: 'firebase-usage.yml' },
+    { id: 'backup', name: '데이터 전체 백업', cat: 'ops', where: 'actions', run: { dow: ALL_DAYS, t: '03:30' }, status: 'wait',
+      note: '비공개 저장소 pour-backups 에 키 등록 후', what: 'pour-app-new 전체 → 비공개 저장소 pour-backups (바뀐 것만 · 지난 날은 기록으로)', ref: 'pour-backups/backup.yml' },
+    { id: 'holidays', name: '공휴일 갱신', cat: 'ops', where: 'actions', run: { dom: 1, t: '09:17' }, status: 'on',
+      what: '업무OS 기한 계산용 공휴일 목록 새로 받기', ref: 'holidays.yml' },
+    { id: 'aside-upload', name: '광고·판매·재고 리포트 올리기', cat: 'data', where: 'aside', word: '매일 아침', status: 'wait',
+      note: 'Aside 세팅 전 — 이게 돌아야 오늘 숫자가 채워짐', what: '카페24·쿠팡·네이버 광고·재고 리포트 → 대시보드 (upload.html)' },
+    { id: 'aside-drafts', name: '글 임시저장', cat: 'content', where: 'aside', word: '맡긴 글이 있을 때', status: 'wait',
+      note: 'Aside 세팅 전', what: '대시보드에서 맡긴 글 → 네이버 블로그·티스토리·카페 임시저장 (발행은 늘 사람 · drafts.html)' },
+  ];
+  const MEMBER_CAT = { haru: 'plan', pori: 'content', luna: 'content', teo: 'content', noa: 'plan', tobi: 'plan', moka: 'data', leo: 'stock', kei: 'ads', daon: 'customer', sora: 'ads', roy: 'plan', ria: 'customer', jay: 'ads', eco: 'content', nari: 'content', onyu: 'customer' };
+  function automations() {
+    const out = AUTOMATIONS.map((a) => ({ ...a }));
+    for (const m of TEAM) m.runs.forEach((r, i) => {
+      if (m.live && !r.off) return; // 켜진 일은 위 루틴이 함
+      out.push({ id: `plan-${m.id}-${i}`, name: `${m.name} · ${r.what}`, cat: MEMBER_CAT[m.id] || 'plan', where: 'routine', run: r, members: [m.id], status: 'plan',
+        note: m.admin ? '관리자 전용' : `설정 ${m.step}순위`, what: `${m.role} — 아직 안 켬 (켜려면 Claude 에게 "${m.name} 루틴 켜 줘")` });
+    });
+    return out;
+  }
+  const autoWord = (a) => (a.word ? a.word : a.run && a.run.ts ? `${a.run.dow && a.run.dow.length === 7 ? '' : '평일 '}${24 / a.run.ts.length}시간마다` : a.run ? RUN_WORD(a.run) : '');
+  // 다음 실행 (한국 시간) — 정해진 시간이 없으면 null
+  function autoNext(a, now) {
+    if (!a.run) return null;
+    const ts = a.run.ts || [a.run.t];
+    for (let i = 0; i < 400; i++) {
+      const d = addDays(now.date, i);
+      if (!runsOn(a.run, d)) continue;
+      const t = ts.filter((x) => i > 0 || x > now.time).sort()[0];
+      if (t) return { date: d, t };
+    }
+    return null;
+  }
+  function autoSummary(list) {
+    const by = (k, v) => list.filter((a) => a[k] === v).length;
+    return { total: list.length, on: by('status', 'on'), wait: by('status', 'wait'), plan: by('status', 'plan'),
+      cats: AUTO_CATS.map(([id, label]) => ({ id, label, n: by('cat', id), set: list.filter((a) => a.cat === id && a.status !== 'plan').length })) };
+  }
   function nowKST(now = new Date()) {
     const k = new Date(now.getTime() + 9 * 3600 * 1000).toISOString();
     return { date: k.slice(0, 10), time: k.slice(11, 16) };
@@ -792,7 +848,7 @@
   const isStaffEmail = (email, roles) => !!email && ((roles && roles.staffs) || []).includes(email); // 직원: 고객의 소리 입력만
 
   const api = { STORE_MODE, OPEN_ROOT, OWNER_EMAILS, storeMode, col, isAdminEmail, isUploaderEmail, isStaffEmail,
-    mdLite, noteParts, parsePosts, postPlain, postBlocks, postHtml, pasteHtml, blogCheck, photoParts, CHANNEL, POST_STATUS, postId, DRAFT_CH, canDraft, TEAM, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, DEFAULT_SETTINGS, stockRows, salesRows, dailyRevenue, numbersNote, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
+    mdLite, noteParts, parsePosts, postPlain, postBlocks, postHtml, pasteHtml, blogCheck, photoParts, CHANNEL, POST_STATUS, postId, DRAFT_CH, canDraft, TEAM, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, AUTO_CATS, AUTO_WHERE, AUTO_STATUS, AUTOMATIONS, automations, autoWord, autoNext, autoSummary, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, DEFAULT_SETTINGS, stockRows, salesRows, dailyRevenue, numbersNote, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MktCore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

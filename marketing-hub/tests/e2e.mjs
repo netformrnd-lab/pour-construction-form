@@ -170,6 +170,18 @@ for(const w of [1280,768,375]){
   if(w===375){
     await p.click('nav button[data-tab="team"]');const tm=await p.textContent('main');
     check('AI 팀: 팀원 17 · 포리 검토 대기',tm.includes('팀원 17')&&tm.includes('검토: 포리 블로그 원고 3'));
+    // ⏰ 자동 작업 — 카테고리 · 걸어 둔 것/계획 (2026-10-12)
+    const ac=await p.textContent('#auto-card');
+    check('자동 작업: 동작 중·준비 중·계획 · AI 콘텐츠팀 아침',/동작 중 4 · 준비 중 4 · 계획 \d+/.test(ac)&&ac.includes('AI 콘텐츠팀 아침')&&ac.includes('평일 06:50'));
+    await p.click('#auto-card [data-autocat="data"]');await p.waitForTimeout(100);
+    const dn=await p.$$eval('#auto-card .row.auto b',a=>a.map(x=>x.textContent));
+    check('자동 작업: 숫자·데이터만 (오늘 숫자 · 사용량 · 리포트 올리기)',dn.length===3&&dn.includes('오늘 숫자 만들기')&&dn.includes('광고·판매·재고 리포트 올리기'));
+    await p.click('#auto-card [data-autocat="customer"]');await p.click('#auto-card [data-autost="set"]');await p.waitForTimeout(100);
+    check('자동 작업: 고객 · 걸어 둔 것 = 없음',(await p.textContent('#auto-card')).includes('이 분류엔 없습니다'));
+    await p.click('#auto-card [data-autost="plan"]');await p.waitForTimeout(100);
+    check('자동 작업: 고객 계획 = 온유·리아·다온',(await p.$$eval('#auto-card .row.auto b',a=>a.map(x=>x.textContent).join('|'))).match(/온유|리아|다온/g).length>=3);
+    check('자동 작업 375 넘침 없음',await overflow(p)<=0);await p.screenshot({path:`${OUT}/team-auto-375.png`,fullPage:true});
+    await p.click('#auto-card [data-autocat="all"]');await p.click('#auto-card [data-autost="all"]');
     check('노트 열기 = obsidian://open',(await p.getAttribute('.rows a.obs','href')).startsWith('obsidian://open?file=03%20'));
     // 📄 보기 → 채널 화면처럼 미리보기 · [임시저장 맡기기] · 메모 → 루틴이 읽음 · 시트에서 검토 끝
     await p.click('[data-note]');await p.waitForSelector('#sheet .pv');

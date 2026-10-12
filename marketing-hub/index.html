@@ -46,6 +46,14 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .pill{display:inline-block;font-size:11px;font-weight:800;border-radius:20px;padding:2px 9px}
 .pill.ok{background:var(--green-l);color:var(--green)}.pill.err{background:var(--red-l);color:var(--red)}
 .pill.wait{background:var(--gold-l);color:var(--gold)}.pill.m{background:#F3F4F6;color:var(--text-md)}
+/* 자동 작업 (트리거) — AI 팀 탭 (2026-10-12) */
+.autocats{display:flex;gap:6px;overflow-x:auto;padding:10px 16px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}.autocats::-webkit-scrollbar{display:none}
+.autocats button{flex:none;border:1px solid var(--border);background:#fff;border-radius:20px;padding:6px 12px;font:inherit;font-size:13px;font-weight:700;color:var(--text-md);cursor:pointer;white-space:nowrap}
+.autocats button.on{background:var(--navy);border-color:var(--navy);color:#fff}.autocats button i{font-style:normal;opacity:.7;margin-left:3px}
+.autost{display:flex;gap:6px;padding:4px 16px 10px;align-items:center;flex-wrap:wrap}.autost .sub{margin-left:auto}
+.autost button{border:0;background:none;font:inherit;font-size:12px;font-weight:700;color:var(--text-sm);cursor:pointer;padding:4px 2px}.autost button.on{color:var(--navy);text-decoration:underline;text-underline-offset:4px}
+.rows .row.auto .t{width:auto;min-width:64px;max-width:88px;font-size:12px;line-height:1.4;white-space:normal;word-break:keep-all}
+.rows .row.auto.plan{opacity:.72}.rows .row.auto .w{font-size:11px;font-weight:800;color:var(--text-md);background:#F3F4F6;border-radius:4px;padding:1px 6px;margin-right:4px}
 .up{color:var(--green);font-weight:700}.down{color:var(--red);font-weight:700}
 .btn{border:1px solid var(--border);background:#fff;border-radius:var(--r-sm);padding:8px 12px;font:inherit;font-weight:700;cursor:pointer;color:var(--text)}
 .btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -212,7 +220,8 @@ const tsMs=(t)=>t&&t.toMillis?t.toMillis():(t?new Date(t).getTime():0);
 const fmtTs=(t)=>{const m=tsMs(t);if(!m)return '-';const d=new Date(m+9*3600e3);return d.toISOString().slice(5,16).replace('T',' ');};
 
 const HASH_TAB={'#voc':'voc','#team':'team'}; // 업무OS 바로가기 (…/marketing-hub/#voc)
-const S={user:null,tab:HASH_TAB[location.hash]||'home',roles:null,settings:{...DEFAULT_SET},sales:[],ads:[],stock:[],log:[],voc:[],links:[],team:{},msg:null,temp:null,busy:false,note:null,pub:[],chcfg:{}};
+const LS=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}}, LSset=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
+const S={autoCat:LS('mkt_auto_cat','all'),autoSt:LS('mkt_auto_st','all'),autoTrace:{},user:null,tab:HASH_TAB[location.hash]||'home',roles:null,settings:{...DEFAULT_SET},sales:[],ads:[],stock:[],log:[],voc:[],links:[],team:{},msg:null,temp:null,busy:false,note:null,pub:[],chcfg:{}};
 
 /* ── 로그인 ── */
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e=>console.error('[auth] persistence',e));
@@ -344,6 +353,10 @@ async function loadTeamVoc(){
     S.voc=v.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||tsMs(b.createdAt)-tsMs(a.createdAt));
     S.team=Object.fromEntries(t.docs.map(d=>[d.id,d.data()]));
     console.log(`[${COLL.voc}] ${S.voc.length}건 · [${COLL.team}] ${t.size}건`);
+    // 자동 작업 최근 흔적 (문서 2개 · 없으면 빈칸)
+    Promise.all([notesCol().doc('today-numbers').get(),db.collection('pour-os').doc('v2').collection('usage').doc('pour-app-new').get()])
+      .then(([n,u])=>{S.autoTrace={numbers:n.exists?n.data().at:'',usage:u.exists?u.data().at:''};console.log('[자동 작업] 흔적',S.autoTrace);if(S.tab==='team')render();})
+      .catch(e=>console.error('[자동 작업] 흔적 읽기 실패',e));
   }catch(e){console.error('[고객의 소리·AI 팀] 로드 실패',e);setMsg('err','고객의 소리·AI 팀 불러오기 실패: '+(e.code||e.message));}
   try{
     const l=await linksCol().where('src','==','mkt').where('open','==',true).get();
@@ -531,6 +544,27 @@ function homeTeamVoc(){
     <div class="card"><h3>🤖 검토 대기 ${rv.length} <span class="sub">AI 팀</span><span class="sp"></span><button class="btn sm" data-tab="team">AI 팀 ›</button></h3>${reviewRows(rv.slice(0,5))}</div>
     <div class="card"><h3>🗣 고객의 소리 <span class="sub">최근 7일 ${vs.total}건${urg?` · <span class="down">급함 ${urg}</span>`:''}</span><span class="sp"></span><button class="btn sm" data-tab="voc">쓰기·보기 ›</button></h3>${vocUrgent(vs)||'<div class="empty">급한 이야기가 없습니다</div>'}</div></div>`;
 }
+// ⏰ 자동 작업 (트리거) — 카테고리별 (2026-10-12 사장님) · 목록 원본 = core.js AUTOMATIONS + TEAM 계획
+const kstShort=(iso)=>{if(!iso)return '';const k=new Date(new Date(iso).getTime()+9*3600e3).toISOString();return mdw(k.slice(0,10))+' '+k.slice(11,16);};
+function autoCard(now){
+  const all=C.automations(), sm=C.autoSummary(all), cat=S.autoCat, st=S.autoSt;
+  const list=all.filter(a=>(cat==='all'||a.cat===cat)&&(st==='all'||(st==='set'?a.status!=='plan':a.status==='plan')))
+    .sort((a,b)=>({on:0,wait:1,plan:2}[a.status]-{on:0,wait:1,plan:2}[b.status])||String((C.autoNext(a,now)||{}).date||'9').localeCompare(String((C.autoNext(b,now)||{}).date||'9')));
+  const pill={on:'ok',wait:'wait',plan:'m'};
+  const row=(a)=>{const nx=C.autoNext(a,now), tr=a.trace&&S.autoTrace[a.trace];
+    return `<div class="row auto${a.status==='plan'?' plan':''}"><span class="t">${esc(C.autoWord(a))}</span><div class="tx"><b>${esc(a.name)}</b> <span class="pill ${pill[a.status]}">${esc(C.AUTO_STATUS[a.status])}</span>${a.note&&a.status!=='on'?` <span class="sub">${esc(a.note)}</span>`:''}
+      <div class="sub">${esc(a.what)}</div>
+      <div class="sub"><span class="w">${esc(C.AUTO_WHERE[a.where]||a.where)}</span>${(a.members||[]).map(id=>esc((C.teamMember(id)||{}).name||id)).join('·')}${a.status==='on'&&nx?` · 다음 ${esc(nx.date===now.date?'오늘':mdw(nx.date))} ${esc(nx.t)}`:''}${tr?` · 최근 ${esc(kstShort(tr))}`:''}</div></div></div>`;};
+  return `<div class="card" id="auto-card"><h3>⏰ 자동 작업 <span class="sub">동작 중 ${sm.on} · 준비 중 ${sm.wait} · 계획 ${sm.plan}</span></h3>
+    <div class="autocats" role="tablist"><button data-autocat="all" class="${cat==='all'?'on':''}">전체<i>${sm.total}</i></button>${sm.cats.map(c=>`<button data-autocat="${c.id}" class="${cat===c.id?'on':''}">${esc(c.label)}<i>${c.n}</i></button>`).join('')}</div>
+    <div class="autost"><button data-autost="all" class="${st==='all'?'on':''}">모두</button><button data-autost="set" class="${st==='set'?'on':''}">걸어 둔 것</button><button data-autost="plan" class="${st==='plan'?'on':''}">계획</button><span class="sub">${list.length}개</span></div>
+    ${list.length?`<div class="rows">${list.map(row).join('')}</div>`:'<div class="empty">이 분류엔 없습니다</div>'}
+    <div class="sub" style="padding:8px 16px 12px">팀원 일을 켜거나 시간을 바꾸려면 Claude 에게 말로 — 루틴을 만들고 이 목록도 같이 고칩니다</div></div>`;
+}
+document.addEventListener('click',(e)=>{const b=e.target.closest('[data-autocat],[data-autost]');if(!b)return;
+  if(b.dataset.autocat){S.autoCat=b.dataset.autocat;LSset('mkt_auto_cat',S.autoCat);}else{S.autoSt=b.dataset.autost;LSset('mkt_auto_st',S.autoSt);}
+  const y=window.scrollY;render();window.scrollTo(0,y);
+  const c=$('#auto-card .autocats'),on=c&&c.querySelector('.on');if(on)c.scrollLeft=Math.max(0,on.offsetLeft-c.clientWidth/2+on.offsetWidth/2);}); // 고른 분류가 화면 밖이면 보이게
 function vTeam(){
   const now=C.nowKST(), today=C.teamDay(now.date), rv=reviews();
   const week=[];for(let i=0;i<7;i++){const d=C.addDays(now.date,i);week.push({d,runs:C.teamDay(d)});}
@@ -539,6 +573,7 @@ function vTeam(){
   ${pubCard()}
   <div class="card"><h3>🕘 오늘 ${esc(mdw(now.date))} <span class="sub">${today.length}건 · 지금 ${esc(now.time)}</span></h3>
     ${today.length?`<div class="rows">${today.map(r=>`<div class="row"><span class="t">${esc(r.t)}</span><div class="tx"><b>${esc(r.name)}</b> ${esc(r.what)}</div>${runState(r,now)}</div>`).join('')}</div>`:'<div class="empty">오늘은 정해진 일이 없습니다 (주말)</div>'}</div>
+  ${autoCard(now)}
   <div class="card"><h3>👥 팀원 ${C.TEAM.length} <span class="sub">가동 ${live} · 누르면 자세히 · 설정 순서는 볼트 '00 팀 운영 설계' 4절</span></h3><div class="team-grid">
     ${C.TEAM.map(m=>{const nx=C.nextRun(m,now), t=S.team[m.id]||{};
       return `<details class="tm"><summary><div class="h"><span class="sub">${esc(m.no)}</span><b>${esc(m.name)}</b><span class="sub">${esc(m.role)}</span><span class="sp" style="flex:1"></span>${stepPill(m)}</div>
